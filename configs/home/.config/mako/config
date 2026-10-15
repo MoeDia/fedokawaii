@@ -4,7 +4,7 @@
 # "do not disturb" in quick settings switches to the mode at the end of this file.
 # colours and icons of the current theme (also the quieter text of low-urgency notices and
 # the vermilion edge of critical ones); mako takes include only outside a [section]
-include=~/.config/fedokawai/current/mako
+include=~/.config/fedokawaii/current/mako
 font=DepartureMono Nerd Font,Sumi Icons,PixelMplus12,Noto Kufi Arabic 11px
 border-size=2
 border-radius=0
@@ -28,6 +28,21 @@ default-timeout=0
 
 [app-name=desktop]
 default-timeout=2500
+
+# the drives (kawa-drives): a drive that opened says so for 8 s, and a click opens its
+# files (the notice's default action); "safe to unplug" and the rest close on a click.
+# A drive pulled out while open is critical: it stays until you have read it.
+[app-name=drives]
+default-timeout=8000
+on-button-left=invoke-default-action
+
+[app-name=drives urgency=critical]
+default-timeout=0
+
+# udiskie's own notice when closing a drive failed: kawa-drives' eject says it, and which of
+# your programs still uses the drive (udiskie's notice of a drive that would not open stays)
+[app-name=udiskie body~="^failed to (unmount|lock|detach) "]
+invisible=1
 
 # the level display of the volume and brightness keys (kawa-osd): a small panel at the
 # bottom centre, replaced in place while a key is held. Its width is its content exactly

@@ -3,12 +3,12 @@
 # saved to ~/Pictures/Screenshots. "edit" opens the capture in satty for annotation.
 set -u
 # shellcheck source=/dev/null
-. "$HOME/.config/fedokawai/env"
+. "$HOME/.config/fedokawaii/env"
 # shellcheck source=/dev/null
-. "$HOME/.config/fedokawai/icons.sh"
+. "$HOME/.config/fedokawaii/icons.sh"
 C_ACCENT=d0583a                                     # (the dark theme's, if none is set up)
 # shellcheck source=/dev/null
-[[ -r $HOME/.config/fedokawai/current/colors.sh ]] && . "$HOME/.config/fedokawai/current/colors.sh"
+[[ -r $HOME/.config/fedokawaii/current/colors.sh ]] && . "$HOME/.config/fedokawaii/current/colors.sh"
 # the region picker: everything outside the selection dimmed with ink (on either theme a
 # selection reads as the lit part), the selection edged and faintly washed in vermilion
 pick() { slurp -b '#0f0e0c66' -c "#${C_ACCENT}ff" -s "#${C_ACCENT}22" -w 2; }

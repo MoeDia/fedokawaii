@@ -1,0 +1,210 @@
+#!/usr/bin/env bash
+# kawa-config — Super+Shift+U (or "change" in quick settings): change the desktop itself,
+# part by part. Each part opens the file behind it in neovim — in your working copy
+# (~/repos/fedokawaii, made from the toolkit on first use), never in the toolkit — and when
+# the editor closes, applies it if you say so. Also: the files that are yours alone (the
+# theme never writes them), what changed, its history, and where to learn each language.
+# The same work as fedokawaii copy · diff · apply (handbook, chapter 15).
+set -u
+LC_ALL=C.UTF-8                 # widths count characters, not bytes
+# shellcheck source=/dev/null
+. "$HOME/.config/fedokawaii/icons.sh"
+TK=/usr/local/lib/fedokawaii
+COPY=${FEDOKAWAII_COPY:-$HOME/repos/fedokawaii}
+WIDTH=50                       # icon (2) + 2 + the name (16) + the note (29); fuzzel keeps a column
+
+say() { notify-send -a desktop "change" "$*" 2>/dev/null; }
+
+# the working copy: made once, from the toolkit (fedokawaii copy), before the first edit
+ensure_copy() {
+  [[ -f $COPY/setup.sh && -f $COPY/fedokawaii.sh ]] && return 0
+  [[ -e $COPY ]] && { say "$COPY is something else — move it, or set FEDOKAWAII_COPY"; return 1; }
+  fedokawaii copy >/dev/null 2>&1 || { say "could not make the working copy in $COPY"; return 1; }
+  say "your working copy: ${COPY/#$HOME/\~} — made from the toolkit; the desktop changes only when you apply"
+}
+pending() {   # how many files of the copy differ from the toolkit (fedokawaii.conf only when
+  # the copy changed it: as made or last applied, apply keeps the menu's settings — the same
+  # rule as fedokawaii diff)
+  local x=() a=/var/lib/fedokawaii/conf-from-copy.conf b=$COPY/.git/fedokawaii-conf-base
+  [[ -d $COPY ]] || { echo 0; return; }
+  [[ -f $b && ! ( -f $a && $a -nt $b ) ]] || b=$a
+  [[ -f $b ]] && cmp -s -- "$COPY/fedokawaii.conf" "$b" && x=(--exclude=fedokawaii.conf)
+  diff -rq --exclude=.git "${x[@]}" -- "$TK" "$COPY" 2>/dev/null | wc -l
+}
+
+# edit TITLE DIR FILE… — neovim in a terminal window of its own (the folder as its project),
+# waited on until it closes
+edit() {
+  local title=$1 dir=$2; shift 2
+  footclient -T "change · $title" -D "$dir" -- nvim -O -- "$@" 2>/dev/null \
+    || foot -T "change · $title" -D "$dir" -- nvim -O -- "$@"
+}
+sums() { cat -- "$@" 2>/dev/null | cksum; }
+
+# a window that runs CMD and waits for a key, so its last lines can be read
+hold() {   # hold NAME TITLE COLSxROWS CMD…
+  local name=$1 title=$2 size=$3; shift 3
+  kawa-float --once "$name" "$title" "$size" -- bash -c '"$@"; printf "\n  any key closes this window "; read -rsn1' _ "$@"
+}
+apply_now() { hold apply "apply" 100x33 fedokawaii apply; }
+
+# tools that draw files from their sources, run in the copy after their source changed
+draw_colours() { (cd "$COPY" && python3 tools/build-themes.py) >/dev/null 2>&1 || { say "tools/build-themes.py stopped — open it again: the line it names is in the log"; return 1; }; }
+draw_icons() {    # fontTools, once, into a folder of its own (it is not a package of the desktop)
+  local py=python3 v=${XDG_CACHE_HOME:-$HOME/.cache}/fedokawaii/fonttools
+  if ! python3 -c 'import fontTools' 2>/dev/null; then
+    if [[ ! -x $v/bin/python3 ]]; then
+      say "the first time: fetching fontTools for the icon font (a minute)"
+      { python3 -m venv "$v" && "$v/bin/pip" install -q fonttools; } >/dev/null 2>&1 \
+        || { rm -rf "$v"; say "fontTools could not be fetched (offline?) — the icons are not drawn yet"; return 1; }
+    fi
+    py=$v/bin/python3
+  fi
+  (cd "$COPY" && "$py" tools/build-icons.py) >/dev/null 2>&1 || { say "tools/build-icons.py stopped: icons.txt has a drawing it cannot read"; return 1; }
+}
+
+# after an edit that changed something: apply now, or later
+after_edit() {   # after_edit WHEN
+  local i rows=()
+  printf -v i '%s  %-14s%s' "$ICON_DOWNLOAD" 'apply now' 'asks your password'; rows+=("$i")
+  printf -v i '%s  %-14s%s' "$ICON_HOURGLASS" later 'fedokawaii apply'; rows+=("$i")
+  printf -v i '%s  %-14s%s' "$ICON_BRANCH" 'what changed' 'in the copy'; rows+=("$i")
+  i=$(printf '%s\n' "${rows[@]}" | kawa-menu --index --width 38 --lines 3 --title "$1") || return 0
+  case $i in
+    0) apply_now ;;
+    2) hold diff "what changed" 120x41 fedokawaii diff ;;
+  esac
+}
+
+# part TITLE WHEN HOOK FILE… — the files opened in the copy; then the hook, then apply
+part() {
+  local title=$1 when=$2 hook=$3 before; shift 3
+  ensure_copy || return 1
+  before=$(cd "$COPY" && sums "$@")
+  edit "$title" "$COPY" "$@"
+  [[ $(cd "$COPY" && sums "$@") == "$before" ]] && return 0          # (closed unchanged)
+  case $hook in
+    colours) draw_colours || return 1 ;;
+    icons)   draw_icons || return 1 ;;
+  esac
+  after_edit "$when"
+}
+
+# a file of yours alone: made with a few words of what it is for, the first time
+yours() {   # yours TITLE WHEN FILE HEADER
+  local title=$1 when=$2 f=$3
+  if [[ ! -e $f ]]; then mkdir -p -- "${f%/*}" && printf '%s\n' "$4" >"$f"; fi
+  edit "$title" "${f%/*}" "$f"
+  say "${f/#$HOME/\~} — yours: nothing to apply; $when"
+}
+line() { local r; printf -v r '%s  %-16s%s' "$1" "$2" "$3"; printf '%s\n' "$r"; }   # icon, name, note
+yours_menu() {
+  local i
+  i=$({ line "$ICON_TERMINAL" 'shell additions' 'aliases, functions, exports'
+        line "$ICON_HOURGLASS" autostart 'programs at every login'
+        line "$ICON_CODE" 'neovim plugins' 'LazyVim specs'
+        # shellcheck disable=SC2088  # a ~ shown, not expanded
+        line "$ICON_FOLDER" 'your scripts' '~/.local/bin, in yazi'; } | kawa-menu --index --width $WIDTH --lines 4 \
+        --title "yours alone · the theme never writes these") || return 0
+  case $i in
+    0) yours "shell additions" "every new terminal reads it" "$HOME/.bashrc.d/local.sh" \
+"# ~/.bashrc.d/local.sh — yours: aliases, functions, exports. Fedora's ~/.bashrc reads every
+# file in ~/.bashrc.d, by name (so this one after fedokawaii.sh: what you set here wins), and
+# the theme never writes here.
+# alias ll='eza -l --git'" ;;
+    1) yours "autostart" "it runs at your next login" "$HOME/.config/dwl/autostart.local.sh" \
+"# ~/.config/dwl/autostart.local.sh — yours: run at every login, beside the session (the
+# theme never writes here). End each program that keeps running with &, or the next waits:
+# syncthing serve --no-browser &" ;;
+    2) yours "neovim plugins" "neovim reads it at its next start" "$HOME/.config/nvim/lua/plugins/local.lua" \
+"-- ~/.config/nvim/lua/plugins/local.lua — yours: LazyVim reads every file in lua/plugins/
+-- (the theme writes only colorscheme.lua there). Each plugin, or a change to one, is a table:
+-- https://www.lazyvim.org/configuration/plugins
+return {
+  -- { \"folke/zen-mode.nvim\", cmd = \"ZenMode\" },
+}" ;;
+    3) mkdir -p "$HOME/.local/bin"; footclient -N -- yazi "$HOME/.local/bin" 2>/dev/null || foot -- yazi "$HOME/.local/bin" ;;
+  esac
+}
+
+# where to learn each language the parts are written in
+learn_menu() {
+  local rows=() urls=() i sec page
+  l() { rows+=("$(line "$1" "$2" "$3")"); urls+=("$4"); }
+  l "$ICON_BOOK"     'this handbook' 'chapter 15: changing it'  guide
+  l "$ICON_KEYBOARD" keys            "this desktop's: Super+/"  keys
+  l "$ICON_TERMINAL" bash            'The Linux Command Line'   https://linuxcommand.org/tlcl.php
+  l "$ICON_TERMINAL" ShellCheck      'what each finding means'  https://www.shellcheck.net/wiki/
+  l "$ICON_BRANCH"   git             'the Pro Git book'         https://git-scm.com/book/en/v2
+  l "$ICON_WINDOW"   dwl             'its wiki: config.h'       https://codeberg.org/dwl/dwl/wiki
+  l "$ICON_WINDOW"   waybar          'its wiki: modules, CSS'   https://github.com/Alexays/Waybar/wiki
+  l "$ICON_FILE"     foot            'man foot.ini'             'man:5 foot.ini'
+  l "$ICON_FILE"     fuzzel          'man fuzzel.ini'           'man:5 fuzzel.ini'
+  l "$ICON_FILE"     mako            'man mako'                 'man:5 mako'
+  l "$ICON_FOLDER"   yazi            'its documentation'        https://yazi-rs.github.io/docs/
+  l "$ICON_CODE"     LazyVim         'plugins, keys, extras'    https://www.lazyvim.org
+  l "$ICON_CODE"     Lua             'Programming in Lua'       https://www.lua.org/pil/contents.html
+  l "$ICON_THEME"    "GTK's CSS"     'what GTK 3 understands'   https://docs.gtk.org/gtk3/css-overview.html
+  i=$(printf '%s\n' "${rows[@]}" | kawa-menu --index --width $WIDTH --lines ${#rows[@]} \
+        --title "learn · what each part is written in") || return 0
+  case ${urls[i]} in
+    guide) exec fedokawaii guide ;;
+    keys)  exec kawa-help ;;
+    man:*) read -r sec page <<<"${urls[i]#man:}"; exec kawa-term man "$sec" "$page" ;;
+    *)     setsid -f xdg-open "${urls[i]}" >/dev/null 2>&1 ;;
+  esac
+}
+
+# ── the menu ──────────────────────────────────────────────────────────────────────────
+rows=() acts=()
+row() { local r; printf -v r '%s  %-16s%s' "$2" "$3" "$4"; rows+=("$r"); acts+=("$1"); }
+row keys      "$ICON_KEYBOARD"  keys           "dwl's, and the help sheet"
+row bar       "$ICON_WINDOW"    bar            "what it shows"
+row barlook   "$ICON_WINDOW"    'bar look'     "sizes, spacing (CSS)"
+row colours   "$ICON_THEME"     colours        "the dark and light palettes"
+row terminal  "$ICON_TERMINAL"  terminal       "font, size, keys"
+row shell     "$ICON_TERMINAL"  shell          "prompt, aliases"
+row launcher  "$ICON_CHEVRON_RIGHT" launcher   "every menu's look"
+row notify    "$ICON_BELL"      notifications  "look, how long they stay"
+row files     "$ICON_FOLDER"    files          "yazi's panes, colours, keys"
+row drives    "$ICON_DRIVE"     drives         "notices, eject, passphrase"
+row autostart "$ICON_HOURGLASS" autostart      "programs, idle and lock times"
+row icons     "$ICON_TILE"      icons          "the pixel icons (text grids)"
+row packages  "$ICON_ARCHIVE"   packages       "what is installed"
+row settings  "$ICON_SLIDERS"   settings       "keyboard, city, refresh rate…"
+row yours     "$ICON_USER"      'yours alone'  "…"
+row changed   "$ICON_BRANCH"    'what changed' "the copy against the toolkit"
+row history   "$ICON_BRANCH"    history        "commit, undo, push (lazygit)"
+row apply     "$ICON_DOWNLOAD"  apply          "the copy becomes the desktop"
+row learn     "$ICON_BOOK"      learn          "…"
+n=$(pending)
+title="change · ${COPY/#$HOME/\~}"
+if [[ ! -d $COPY ]]; then title+=" · made on first use"
+elif ((n)); then title+=" · $n not applied"; fi
+i=$(printf '%s\n' "${rows[@]}" | kawa-menu --index --width $WIDTH --lines ${#rows[@]} --title "$title") || exit 0
+
+H=configs/home
+case ${acts[i]} in
+  keys)      part keys "dwl is rebuilt: the keys work from your next login" - src/dwl/config.h $H/.config/fedokawaii/keybinds.txt ;;
+  bar)       part bar "the bar reloads at once" - $H/.config/waybar/config.jsonc ;;
+  barlook)   part "bar look" "the bar reloads at once" - $H/.config/waybar/style.css ;;
+  colours)   part colours "every program follows at once; the terminal at your next login" colours tools/build-themes.py ;;
+  terminal)  part terminal "the terminal server reads it at your next login" - $H/.config/foot/foot.ini ;;
+  shell)     part shell "every new terminal reads it" - $H/.bashrc.d/fedokawaii.sh ;;
+  launcher)  part launcher "the next menu that opens" - $H/.config/fuzzel/fuzzel.ini ;;
+  notify)    part notifications "at once" - $H/.config/mako/config ;;
+  files)     part files "the next time yazi starts" - $H/.config/yazi/init.lua $H/.config/yazi/theme.toml \
+               $H/.config/yazi/keymap.toml $H/.config/fedokawaii/yazi-pick/keymap.toml ;;
+  drives)    part drives "kawa-drives at once; udiskie's file at your next login; M when yazi next starts" - \
+               $H/.config/udiskie/config.yml bin/kawa-drives $H/.config/yazi/plugins/drives.yazi/main.lua ;;
+  autostart) part autostart "at your next login" - $H/.config/dwl/autostart.sh ;;
+  icons)     part icons "drawn into the icon font; seen after your next login" icons art/icons.txt ;;
+  packages)  part packages "apply installs what you added (it runs repair)" - lib/manifest.sh PACKAGES.md ;;
+  settings)  part settings "apply puts each value in place (it runs repair)" - fedokawaii.conf ;;
+  yours)     yours_menu ;;
+  changed)   ensure_copy && hold diff "what changed" 120x41 fedokawaii diff ;;
+  history)   ensure_copy && { footclient -N -D "$COPY" -- lazygit 2>/dev/null || foot -D "$COPY" -- lazygit; } ;;
+  apply)     ensure_copy && apply_now ;;
+  learn)     learn_menu ;;
+esac
+exit 0

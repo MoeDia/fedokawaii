@@ -12,7 +12,7 @@ set statusbar-home-tilde true
 set font "JetBrainsMono Nerd Font 10"
 
 # colours of the current theme (dark ink or light paper); kawa-theme reloads open windows
-include ../fedokawai/current/zathurarc
+include ../fedokawaii/current/zathurarc
 
 # "recolor" = the page in the theme's colours; toggle with Ctrl+r
 set recolor false

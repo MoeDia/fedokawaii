@@ -1,0 +1,9 @@
+# ~/.config/systemd/user/fedokawaii-remind.service — the update season's reminder: a notice
+# when an update is due, a new Fedora has settled, or yours is near its end. Reads only
+# what is already known (no network); shows at most one notice a day. Its timer runs it.
+[Unit]
+Description=Fedokawaii — is any upkeep due?
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/fedokawaii remind quiet

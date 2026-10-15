@@ -11,12 +11,12 @@
 # --copy ID, --delete ID, --wipe. Copies outlive the app they came from (kawa-clipkeep).
 set -u
 # shellcheck source=/dev/null
-. "$HOME/.config/fedokawai/icons.sh" 2>/dev/null
+. "$HOME/.config/fedokawaii/icons.sh" 2>/dev/null
 C_GROUND=0f0e0c                                     # (the dark theme's, if none is set up)
 # shellcheck source=/dev/null
-[[ -r $HOME/.config/fedokawai/current/colors.sh ]] && . "$HOME/.config/fedokawai/current/colors.sh"
+[[ -r $HOME/.config/fedokawaii/current/colors.sh ]] && . "$HOME/.config/fedokawaii/current/colors.sh"
 # every list of the desktop looks alike: one options file (rules, colours, the chevron)
-export FZF_DEFAULT_OPTS_FILE=$HOME/.config/fedokawai/fzf.opts; unset FZF_DEFAULT_OPTS
+export FZF_DEFAULT_OPTS_FILE=$HOME/.config/fedokawaii/fzf.opts; unset FZF_DEFAULT_OPTS
 
 entry() { printf '%s\t\n' "$1"; }            # cliphist's own line form: "ID<tab>…"
 

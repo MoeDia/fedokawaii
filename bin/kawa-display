@@ -6,7 +6,7 @@
 set -u
 MONITOR_HZ=144
 # shellcheck source=/dev/null
-. "$HOME/.config/fedokawai/env"
+. "$HOME/.config/fedokawaii/env"
 
 plan() {
   wlr-randr | awk -v want="$MONITOR_HZ" '

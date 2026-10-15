@@ -1,0 +1,7 @@
+# ~/.config/yazi/keymap.toml — the desktop's keys on top of yazi's own (for yazi 26.x; the
+# file dialog has its own, ~/.config/fedokawaii/yazi-pick/keymap.toml, with these too).
+[mgr]
+prepend_keymap = [
+	{ on = "M",          run = "plugin drives",          desc = "Drives: open or eject one" },
+	{ on = [ "g", "m" ], run = "plugin drives -- media", desc = "Go to the open drives" },
+]

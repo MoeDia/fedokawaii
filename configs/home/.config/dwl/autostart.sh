@@ -1,10 +1,11 @@
 #!/bin/sh
 # ~/.config/dwl/autostart.sh — run by dwl (-s). Its stdin is dwl's status stream; only the
 # status reader at the end keeps it, everything else closes it (<&-).
-. "$HOME/.config/fedokawai/env"
+. "$HOME/.config/fedokawaii/env"
 # what the helpers keep for one session only: $XDG_RUNTIME_DIR outlives a login (linger),
-# so the last session's bar state, notice id and monitor list go now
-rm -rf "$XDG_RUNTIME_DIR/dwl-bar" "$XDG_RUNTIME_DIR/kawa-ddc-buses" "$XDG_RUNTIME_DIR/kawa-osd-id"
+# so the last session's bar state, notice id, monitor list and open drives go now
+rm -rf "$XDG_RUNTIME_DIR/dwl-bar" "$XDG_RUNTIME_DIR/kawa-ddc-buses" "$XDG_RUNTIME_DIR/kawa-osd-id" \
+  "$XDG_RUNTIME_DIR/kawa-drives"
 
 # Hand this session to systemd --user and D-Bus, so the services they start on demand —
 # the portals behind every file dialog and screen share, the notification daemon — open
@@ -18,9 +19,9 @@ dbus-update-activation-environment --systemd $SESSION_VARS 2>/dev/null \
   || systemctl --user import-environment $SESSION_VARS
 systemctl --user stop dwl-session.target 2>/dev/null
 systemctl --user start dwl-session.target
-# the update season's reminder (fedokawai remind): a look two minutes in, then every six
+# the update season's reminder (fedokawaii remind): a look two minutes in, then every six
 # hours; it stops with the session
-systemctl --user start fedokawai-remind.timer 2>/dev/null
+systemctl --user start fedokawaii-remind.timer 2>/dev/null
 
 # keep CMD… — run a session helper and start it again should it ever crash; a clean exit
 # (status 0) ends it, and five crashes inside a minute give up with a notice rather than
@@ -56,7 +57,7 @@ case $polkit in /*) ;; ?*) polkit=$(command -v "$polkit") ;; esac
 for p in "$polkit" /usr/libexec/lxqt-policykit-agent /usr/bin/lxqt-policykit-agent; do
   [ -x "$p" ] && { keep "$p" <&- & break; }
 done
-keep udiskie <&- &                                 # USB automount (notifies; no tray icon)
+keep udiskie <&- &                                 # drives: open when plugged in (~/.config/udiskie, kawa-drives)
 command -v kawa-clipkeep >/dev/null && keep kawa-clipkeep <&- &   # a copy outlives the app it came from
 keep wl-paste --watch cliphist store <&- &         # clipboard history (Super+V)
 gammastep -l "$NIGHT_LIGHT" -t 6500:4200 <&- &     # night light (quick settings turns it off and on)
@@ -64,10 +65,15 @@ gammastep -l "$NIGHT_LIGHT" -t 6500:4200 <&- &     # night light (quick settings
 # a notice 10 s before · lock 10 min · screens off 15 min (wlopm: the outputs stay, so windows stay where they
 # are) · lock before suspend
 keep swayidle -w \
-  timeout 590 'notify-send -a desktop -u low -t 9500 "$(. ~/.config/fedokawai/icons.sh; printf %s "$ICON_LOCK")  locking in 10 s"' \
+  timeout 590 'notify-send -a desktop -u low -t 9500 "$(. ~/.config/fedokawaii/icons.sh; printf %s "$ICON_LOCK")  locking in 10 s"' \
   timeout 600 'kawa-lock' \
   timeout 900 "wlopm --off '*'" resume "wlopm --on '*'" \
   before-sleep 'kawa-lock --now' <&- &
+
+# yours: ~/.config/dwl/autostart.local.sh, if you made one — the theme never writes it. It
+# runs on its own, beside the session (it can never hold the bar back): end each program
+# that keeps running with &, as here (handbook §15.1)
+[ -f "$HOME/.config/dwl/autostart.local.sh" ] && sh "$HOME/.config/dwl/autostart.local.sh" <&- >>"$HOME/.cache/dwl.log" 2>&1 &
 
 # the bar's workspaces, layout, title and keyboard layout, from dwl's status on stdin
 keep kawa-dwlstatus

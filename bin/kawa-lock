@@ -12,10 +12,10 @@ set -u
 # It must lock even when something around it is broken (it also runs right before
 # suspend): every missing piece falls back to less decoration, never to no lock.
 THEME=dark C_GROUND=0f0e0c
-CONF="$HOME/.config/fedokawai/current/swaylock"
+CONF="$HOME/.config/fedokawaii/current/swaylock"
 # shellcheck source=/dev/null
-[[ -r $HOME/.config/fedokawai/current/colors.sh ]] && . "$HOME/.config/fedokawai/current/colors.sh"
-PADLOCK="$HOME/.local/share/fedokawai/$THEME/lock.png"
+[[ -r $HOME/.config/fedokawaii/current/colors.sh ]] && . "$HOME/.config/fedokawaii/current/colors.sh"
+PADLOCK="$HOME/.local/share/fedokawaii/$THEME/lock.png"
 pgrep -xu "$UID" swaylock >/dev/null && exit 0        # already locked (this user's)
 now=0; [[ ${1:-} == --now ]] && { now=1; shift; }
 

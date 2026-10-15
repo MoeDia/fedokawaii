@@ -13,7 +13,7 @@
 set -u
 C_MUTED=877f6f                                      # (the dark theme's, if none is set up)
 # shellcheck source=/dev/null
-[[ -r $HOME/.config/fedokawai/current/colors.sh ]] && . "$HOME/.config/fedokawai/current/colors.sh"
+[[ -r $HOME/.config/fedokawaii/current/colors.sh ]] && . "$HOME/.config/fedokawaii/current/colors.sh"
 args=(--dmenu --no-sort --minimal-lines "--message-color=${C_MUTED}ff")   # the title line, quiet
 drop=0 prompt="" idx=0
 while (($#)); do

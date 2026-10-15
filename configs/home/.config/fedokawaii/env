@@ -1,0 +1,7 @@
+# ~/.config/fedokawaii/env — read by the kawa-* helpers. Rendered by theme.sh
+# from fedokawaii.conf; edit the conf and re-run ./theme.sh rather than this file.
+MONITOR_HZ=@MONITOR_HZ@
+WEATHER_CITY="@WEATHER_CITY@"
+NIGHT_LIGHT="@NIGHT_LIGHT@"
+WALLPAPER_DIR="$HOME/Pictures/Wallpapers"
+SCREENSHOT_DIR="$HOME/Pictures/Screenshots"

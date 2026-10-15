@@ -5,7 +5,7 @@
 set -u
 LC_ALL=C.UTF-8                 # widths count characters, not bytes
 # shellcheck source=/dev/null
-. "$HOME/.config/fedokawai/icons.sh"
+. "$HOME/.config/fedokawaii/icons.sh"
 
 WIDTH=25                       # the menu's width in characters: odd, like the 13-column block
 LABEL=9                        # the label column (longest: "shut down")

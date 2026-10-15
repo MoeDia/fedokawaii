@@ -9,7 +9,7 @@
 set -u
 PATH="$HOME/.local/bin:$PATH"                       # (the portal starts it with systemd's PATH)
 # shellcheck source=/dev/null
-. "$HOME/.config/fedokawai/icons.sh" 2>/dev/null
+. "$HOME/.config/fedokawaii/icons.sh" 2>/dev/null
 mapfile -t lines
 ((${#lines[@]})) || exit 1
 if ((${#lines[@]} == 1)); then printf '%s\n' "${lines[0]}"; exit 0; fi

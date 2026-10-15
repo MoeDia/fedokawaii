@@ -57,8 +57,8 @@ inside() {
   local mode=$1 here=$2 work=$3 chosen=() keep=() args=() f to p
   local -A seen=()
   # the dialog's yazi: yours (theme, init.lua, yazi.toml, plugins, flavors) with the dialog's
-  # keys from ~/.config/fedokawai/yazi-pick (Enter goes into folders, Esc cancels)
-  local y=$work/yazi c=$HOME/.config/yazi d=$HOME/.config/fedokawai/yazi-pick
+  # keys from ~/.config/fedokawaii/yazi-pick (Enter goes into folders, Esc cancels)
+  local y=$work/yazi c=$HOME/.config/yazi d=$HOME/.config/fedokawaii/yazi-pick
   mkdir -p "$y/plugins"
   for p in theme.toml init.lua yazi.toml package.toml flavors; do [[ -e $c/$p ]] && ln -s "$c/$p" "$y/$p"; done
   for p in "$c"/plugins/*/; do [[ -d $p ]] && ln -s "${p%/}" "$y/plugins/"; done

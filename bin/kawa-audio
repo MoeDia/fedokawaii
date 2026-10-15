@@ -5,7 +5,7 @@
 # Devices come from pw-dump (JSON), so names with any characters are safe.
 set -u
 # shellcheck source=/dev/null
-. "$HOME/.config/fedokawai/icons.sh"
+. "$HOME/.config/fedokawaii/icons.sh"
 note() {   # note TITLE BODY — mako reads the body as markup, and a device may be called "Tom & Jerry"
   local b=${2//[[:cntrl:]]/ }
   b=${b//&/"&amp;"}; b=${b//</"&lt;"}; b=${b//>/"&gt;"}   # quoted: bash 5.2 treats a bare & as "the match"

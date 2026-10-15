@@ -15,12 +15,12 @@ today=$(LC_ALL=C date '+%Y-%m-%d · %a')     # (English day names: any locale)
 HEAD="## $today"
 
 if [[ ${1:-} == --inside ]]; then         # in the window: neovim, listening on SOCK
-  # as a page, with the popups' title rule (~/.config/fedokawai/notes.lua), at the end of
+  # as a page, with the popups' title rule (~/.config/fedokawaii/notes.lua), at the end of
   # the file, on a fresh line, typing
   # shellcheck source=/dev/null
-  . "$HOME/.config/fedokawai/icons.sh" 2>/dev/null
+  . "$HOME/.config/fedokawaii/icons.sh" 2>/dev/null
   KAWA_NOTES_ICON=${ICON_NOTE:-✎} KAWA_NOTES_WHERE=${NOTES/#"$HOME"/\~} \
-    exec nvim --listen "$SOCK" -c 'luafile ~/.config/fedokawai/notes.lua' -c 'normal! Go' -c 'startinsert!' -- "$NOTES"
+    exec nvim --listen "$SOCK" -c 'luafile ~/.config/fedokawaii/notes.lua' -c 'normal! Go' -c 'startinsert!' -- "$NOTES"
 fi
 
 # open already → put it away: neovim saves and quits, and its window closes with it

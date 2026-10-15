@@ -1,4 +1,4 @@
-# Fedokawai — software list
+# Fedokawaii — software list
 
 One tool per job. The authoritative list is `lib/manifest.sh` (packages) and `lib/upstream.sh`
 (release binaries); `verify.sh` proves the machine matches them exactly. Every name was checked
@@ -38,7 +38,7 @@ Source: **F** Fedora · **RF** RPM Fusion · **V** vendor repo (signed) · **C**
 | File dialogs | xdg-desktop-portal-termfilechooser 1.4.3 + yazi (`kawa-pick`) | git (GitHub, pinned commit) | not packaged for Fedora: built by setup.sh like dwl (meson + inih-devel + systemd-devel, kept); Brave's and GTK programs' Open/Save dialogs are yazi in a floating terminal; the GTK dialog stays as the fallback |
 | Terminal for apps | xdg-terminal-exec | F | programs that ask for a terminal get foot |
 | Auth dialogs | lxqt-policykit | F | |
-| USB | udiskie | F | |
+| USB drives | udiskie + udisks2 + `kawa-drives` · exfatprogs · dosfstools · ntfs-3g | F | sticks, disks and SD cards open by themselves under `/run/media/$USER`; `kawa-drives` gives the notices, the bar's drive mark, yazi's **M** and the eject that says "safe to unplug"; exFAT and FAT tools check, repair and name the usual sticks; ntfs-3g opens NTFS whether or not the kernel has its own NTFS driver (Fedora's kernels have changed which one they build) |
 | Bluetooth | bluez + blueman | F | controller dongle |
 | Files | yazi + 7zip + file | GH (musl) + F | 7-Zip: archive previews and extraction; `file`: types |
 | Office | AbiWord + Gnumeric | F | |
@@ -55,9 +55,10 @@ Source: **F** Fedora · **RF** RPM Fusion · **V** vendor repo (signed) · **C**
 | Music | spotify_player | GH (sha256) | Premium |
 | Torrents | torrra (on Python 3.13) + Prowlarr | pipx + podman | libtorrent has no Python 3.14 wheel yet; `kawa-torrra` hands torrra the key from `secrets.sh` |
 | Git | git + lazygit | F + C | |
+| Script checking | ShellCheck | F | `fedokawaii apply` reads the scripts you changed with it; every finding has a page (SC number) that explains it |
 | System monitor | btop | F | |
 | Search / view | ripgrep · fd-find · bat | F | rg and fd also power LazyVim's pickers |
-| Performance | tuned | F | the `fedokawai` profile: throughput-performance for an always-plugged desktop |
+| Performance | tuned | F | the `fedokawaii` profile: throughput-performance for an always-plugged desktop |
 | Fetch | `fetch` (own, pure bash) | repo | ten pixel pictures; replaces fastfetch |
 | Snapshots | snapper | F | Timeshift can't use Fedora's subvolume names |
 | Containers | podman | F | for Prowlarr |
@@ -67,7 +68,8 @@ Source: **F** Fedora · **RF** RPM Fusion · **V** vendor repo (signed) · **C**
 | Fonts | JetBrainsMono Nerd · DepartureMono Nerd · PixelMplus 12 · Sumi Icons · Terminus (console) · Noto Sans · Noto Sans CJK · Noto Naskh Arabic · Noto Kufi Arabic · Amiri · Noto Color Emoji · Liberation | GH + F + repo | Departure = the pixel UI font; PixelMplus = Japanese in the pixel UI and the terminal; Noto Sans CJK = Japanese, Chinese, Korean in programs and subtitles; Sumi Icons = this desktop's icons; Kufi = Arabic in the pixel UI (bar, menus, notices); Liberation = metric-compatible fonts for office files |
 | Look | adw-gtk3 · qt6ct · Papirus · dconf · pointers drawn here (Adwaita beneath for rare shapes) | F + repo | dark/light switched live by `kawa-theme`; the pixel pointers come from `art/cursors.txt` |
 | Build (kept) | gcc · make · pkgconf · wayland/wlroots/xcb devel | F | theme.sh rebuilds dwl when you change a keybind, and builds kawa-veil and kawa-clipkeep |
-| Script plumbing | dnf5-plugins · git · jq · gnupg2 · libva-utils · libdnf5-plugin-actions | F | used by setup.sh / verify.sh (the GPU is detected from /sys, so no pciutils); actions = a snapshot pair around every dnf run |
+| Script plumbing | dnf5-plugins · git · jq · gnupg2 · libva-utils · libdnf5-plugin-actions | F | used by setup.sh / verify.sh; actions = a snapshot pair around every dnf run |
+| Drivers and firmware | fwupd · pciutils · usbutils, and what this machine needs (`lib/hardware.sh`): microcode_ctl or amd-ucode-firmware, NetworkManager-wifi + wireless-regdb, alsa-sof-firmware, the firmware the kernel asked for (iwlwifi-…-firmware and the like), intel-media-driver beside an AMD card | F + RF | fwupd: device firmware from the LVFS, applied only by you · lspci / lsusb: which device, which driver · the per-machine packages are found from the hardware at setup, update and repair, and recorded in `/var/lib/fedokawaii/hardware-pkgs` (part of the manifest from then on) |
 | Base | NetworkManager · sudo | F | already in @core — listed so they are marked as yours and dnf's clean-up never takes them |
 | Base | NetworkManager-tui · xorg-x11-server-Xwayland · xdg-utils · xdg-user-dirs | F | nmtui (quick settings → network) · X11 programs · `xdg-open` · `~/Pictures`… |
 | GPU base | mesa-dri-drivers · vulkan-loader · linux-firmware · amd-gpu-firmware (AMD) · intel-media-driver + mesa-vulkan-drivers (Intel) | F + RF | the freeworld Mesa builds on AMD; Intel's VA-API driver from RPM Fusion, Fedora's Vulkan |
@@ -80,7 +82,9 @@ Origin (firefox, chromium, brave-browser) · other terminals and launchers (alac
 konsole, gnome-terminal, rofi, wofi, wmenu, bemenu) · second polkit agents and tray NM
 (polkit-gnome, hyprpolkitagent, network-manager-applet) · flatpak, snapd, PackageKit,
 gnome-software · ffmpeg-free · tuigreet, wlogout, fastfetch, neofetch (replaced by agreety,
-fuzzel menus and the own `fetch`) · on AMD, the non-freeworld mesa-va-drivers / mesa-vulkan-drivers.
+fuzzel menus and the own `fetch`) · second notification daemons (dunst, swaync) ·
+power-profiles-daemon (tuned only) · other login managers (gdm, sddm, lightdm, lxdm) · on AMD,
+the non-freeworld mesa-va-drivers / mesa-vulkan-drivers.
 
 On top of that list, verify.sh compares everything *user-installed* against a snapshot taken
 before setup started plus the manifest — anything else is reported by name.
@@ -97,7 +101,7 @@ before setup started plus the manifest — anything else is reported by name.
 | x264, x265, svt-av1, libaom, dav1d, opus, lame, flac, … CLI/lib packages | pulled in by ffmpeg where needed; the CLI encoders duplicated ffmpeg |
 | google-noto-sans-arabic-fonts | fontconfig sends Arabic to Noto Naskh; Sans Arabic was never used |
 | starship (COPR) | native bash prompt, no process per prompt |
-| bluez-tools, udisks2/polkit/xdg-desktop-portal listed explicitly | unused, or already dependencies |
+| bluez-tools, polkit/xdg-desktop-portal listed explicitly | unused, or already dependencies (udisks2 is listed again: nothing but a weak dependency brings it) |
 | `settings.ini` for GTK | GTK reads GSettings (dconf) on Wayland — single source |
 | unzip | 7zip opens zip files too (`7z x`) |
 | mediainfo | ffprobe (part of ffmpeg) tells the same about a video or song |
@@ -112,6 +116,7 @@ before setup started plus the manifest — anything else is reported by name.
 | terminus-fonts-console | a crisp, larger font on the text console (login, Ctrl+Alt+F2…) |
 | greetd-selinux | without it SELinux can block the login on Fedora |
 | tree-sitter-cli | required by LazyVim's nvim-treesitter (`main` branch) |
+| ShellCheck | changing the desktop's scripts yourself (§15 of the handbook): it catches the mistakes bash lets through |
 | python3.13 | torrra's libtorrent has wheels only up to 3.13 |
 | libnotify | `notify-send`, used by the helpers |
 | gtk4, libadwaita | runtime libraries of the satty binary |
@@ -134,3 +139,5 @@ before setup started plus the manifest — anything else is reported by name.
 | 7zip, file | yazi's archive previews and extraction; file types for the clipboard window |
 | google-noto-sans-cjk-vf-fonts | Japanese, Chinese and Korean in programs, web pages and subtitles |
 | ntsync-autoload | Proton's faster synchronisation (with Steam) |
+| fwupd, pciutils, usbutils | firmware inside the devices (SSD, motherboard, dock), offered by update and applied by you · which device is which, and which driver holds it |
+| exfatprogs, dosfstools, ntfs-3g | the USB drives: check, repair and name exFAT and FAT sticks; NTFS opens whatever NTFS driver the kernel has |

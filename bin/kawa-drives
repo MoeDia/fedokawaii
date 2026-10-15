@@ -1,0 +1,312 @@
+#!/usr/bin/env bash
+# kawa-drives — USB sticks, external disks, SD cards: what is plugged in, open it, eject it.
+#
+# udiskie (started with the session) mounts what you plug in, under /run/media/$USER, and
+# hands every change to this script (~/.config/udiskie/config.yml). From there:
+#   · a notice when a drive opens — click it, and yazi opens on it
+#   · the bar's drive mark while one is plugged in — click it for this menu
+#   · yazi's M (in the file dialog too): the drives, Enter opens one, e ejects it
+#   · eject: every file system on the drive closed and the drive switched off (a card
+#     reader's card ejected instead), then "safe to unplug" — or the programs of yours that
+#     still use it, so you can close them
+#   · pulled out while open: a notice that says so (what was being written can be lost)
+#   · an encrypted drive asks for its passphrase in a small menu of its own, typing hidden
+#
+#   kawa-drives                  the menu: open a drive in the files, or eject it
+#   kawa-drives list             one line per file system on a drive, tab-separated:
+#                                DEVICE DISK LABEL SIZE TYPE FOLDER (FOLDER: empty while closed)
+#   kawa-drives open DEVICE      opened (mounted, unlocked first if encrypted); prints its folder
+#   kawa-drives files DEVICE     the same, then yazi in a window of its own there
+#   kawa-drives eject DEVICE     the drive DEVICE is on: closed, switched off (or its card
+#                                ejected), "safe to unplug"
+#   kawa-drives bar              the bar's mark (waybar JSON), poked with SIGRTMIN+13
+#   kawa-drives event EVENT DEVICE EXTERNAL LABEL DRIVE   udiskie's event hook
+#   kawa-drives passphrase DEVICE LABEL DRIVE             udiskie's passphrase prompt
+# Exit status: 0 done · 1 it could not be done (said in a notice, or on stderr) · 2 misuse.
+set -u
+LC_ALL=C.UTF-8                                  # widths count characters, not bytes
+export LC_ALL
+case :$PATH: in *":$HOME/.local/bin:"*) ;; *) PATH=$HOME/.local/bin:$PATH ;; esac
+ICON_DRIVE="" ICON_EJECT="" ICON_LOCK=""
+# shellcheck source=/dev/null
+. "$HOME/.config/fedokawaii/icons.sh" 2>/dev/null
+STATE=${XDG_RUNTIME_DIR:-/run/user/$UID}/kawa-drives   # which drives are open (see event)
+PULLED=3                                        # seconds: closed this shortly before it went = pulled out
+
+say() {   # say [-u URGENCY] [-t MS] SUMMARY BODY — a notice of the drives' own (mako: [app-name=drives])
+  local a=(-a drives)
+  while [[ ${1:-} == -[ut] ]]; do a+=("$1" "$2"); shift 2; done
+  notify-send "${a[@]}" -- "$1" "$2" 2>/dev/null || printf '%s: %s\n' "$1" "$2" >&2
+}
+poke() { kawa-dwlstatus --poke 13 2>/dev/null || true; }   # the bar's mark
+
+# ── what is plugged in ───────────────────────────────────────────────────────
+# A drive is a disk (or an optical drive) udisks counts as not the system's own — its
+# HintSystem, what udiskie goes by too: USB, SD cards — and that holds none of the
+# system's folders. (Should udisks not answer: removable or hot-plugged, by the kernel's
+# word.) Each file system on it is a line; an encrypted one shows the file system inside
+# once unlocked, itself while locked. LABEL: the file system's name, else the encrypted
+# volume's, else the maker and model, else sdX.
+external() {   # external DISK… → JSON: those udisks counts as external, or null if it did not answer
+  local d a n=0 out=()
+  for d; do
+    [[ $d =~ ^/dev/[a-z0-9]+$ ]] || continue              # (its object path is the bare name)
+    a=$(busctl --system get-property org.freedesktop.UDisks2 "/org/freedesktop/UDisks2/block_devices/${d#/dev/}" \
+          org.freedesktop.UDisks2.Block HintSystem 2>/dev/null) || continue
+    n=$((n + 1))
+    [[ $a == "b false" ]] && out+=("\"$d\"")
+  done
+  if ((n == 0)); then echo null; else local IFS=,; printf '[%s]\n' "${out[*]}"; fi
+}
+COLS=NAME,TYPE,RM,HOTPLUG,TRAN,LABEL,SIZE,FSTYPE,MOUNTPOINTS,VENDOR,MODEL
+# shellcheck disable=SC2016  # (jq's $variables)
+JQ_LIST='
+def system: ["/", "/boot", "/boot/efi", "/efi", "/home", "/var", "/usr", "[SWAP]"];
+def opened: [.. | objects | (.mountpoints // [])[] | select(. != null)];
+def yes(f): (f == true or f == "1");
+def removable:
+  if $ext != null then (.name | IN($ext[]))
+  else yes(.rm) or yes(.hotplug) or .tran == "usb" or .tran == "mmc" or (.name | test("^/dev/mmcblk")) end;
+def maker: [.vendor, .model] | map(select(. != null) | gsub("^\\s+|\\s+$"; "")) | map(select(. != "")) | join(" ");
+def rows($disk; $name):
+  ( select(.fstype != null and .fstype != "swap" and (.fstype | test("_member$") | not)
+           and (.fstype != "crypto_LUKS" or ((.children // []) | length) == 0))
+    | [ .name, $disk.name, (.label // $name), .size, .fstype,
+        ([(.mountpoints // [])[] | select(. != null)][0] // "") ] | @tsv ),
+  ( (.label // $name) as $n | .children[]? | rows($disk; $n) );
+.blockdevices[]
+| select((.type == "disk" or .type == "rom") and removable)
+| select([opened[] | select(IN(system[]))] | length == 0)
+| . as $d
+| ($d | maker) as $m
+| rows($d; (if $m != "" then $m else ($d.name | sub("^/dev/"; "")) end))'
+list() {
+  local j
+  j=$(lsblk -J -p -o "$COLS" 2>/dev/null) || return 0
+  jq -r --argjson ext "$(mapfile -t d < <(jq -r '.blockdevices[] | select(.type == "disk" or .type == "rom") | .name' <<<"$j" 2>/dev/null)
+                         external "${d[@]}")" "$JQ_LIST" <<<"$j" 2>/dev/null
+}
+
+folder_of() {   # folder_of DEVICE → where it, or the file system inside it, is open
+  lsblk -J -o MOUNTPOINTS -- "$1" 2>/dev/null \
+    | jq -r '[.. | objects | (.mountpoints // [])[] | select(. != null)][0] // empty' 2>/dev/null
+}
+disk_of() {     # disk_of DEVICE → the drive it is on (/dev/sdb for /dev/sdb1 or its unlocked dm-0)
+  lsblk -nlpso NAME,TYPE -- "$1" 2>/dev/null | awk '$2 == "disk" || $2 == "rom" { d = $1 } END { if (d != "") print d }'
+}
+label_of() {    # label_of DEVICE → the name list gives it (or the device's own name). udiskie
+  local want dev disk label rest   # says /dev/dm-0 where lsblk says /dev/mapper/luks-…: the same node
+  want=$(readlink -f -- "$1" 2>/dev/null) || want=$1
+  while IFS=$'\t' read -r dev disk label rest; do
+    if [[ $dev == "$1" || $disk == "$1" || $(readlink -f -- "$dev" 2>/dev/null) == "$want" ]]; then
+      printf '%s\n' "$label"; return
+    fi
+  done < <(list)
+  printf '%s\n' "${1#/dev/}"
+}
+holders() {     # holders FOLDER… → your programs with a file or their working folder there
+  local p l m      # (one find reads every link: a readlink each would take seconds with a browser open)
+  while IFS=$'\t' read -r p l; do
+    for m; do
+      if [[ $l == "$m" || $l == "$m"/* ]]; then p=${p#/proc/}; cat -- "/proc/${p%%/*}/comm" 2>/dev/null; break; fi
+    done
+  done < <(find /proc/[0-9]*/cwd /proc/[0-9]*/fd/ -maxdepth 1 -type l -printf '%p\t%l\n' 2>/dev/null) \
+    | sort -u | paste -sd, - | sed 's/,/, /g'
+}
+short() {       # short TEXT N → TEXT in at most N characters (… when cut)
+  local t=$1 n=$2
+  ((${#t} > n)) && t="${t:0:n-1}…"
+  printf '%s' "$t"
+}
+
+# ── open · eject ─────────────────────────────────────────────────────────────
+open_dev() {    # open_dev DEVICE → prints the folder
+  local dev=$1 f err disk
+  f=$(folder_of "$dev")
+  if [[ -z $f ]]; then
+    # (opened because you asked: its "click to open it" notice would only say what you see)
+    disk=$(disk_of "$dev"); [[ -n $disk ]] && state_dir && : >"$STATE/asked.${disk##*/}"
+    # udiskie-mount reads ~/.config/udiskie/config.yml: the passphrase prompt below
+    err=$(udiskie-mount --recursive "$dev" 2>&1 >/dev/null)
+    f=$(folder_of "$dev")
+  fi
+  if [[ -z $f ]]; then
+    err=$(grep -v '^\s*$' <<<"${err:-}" | tail -n 1)
+    [[ -z $err ]] || printf 'kawa-drives: %s\n' "$err" >&2
+    # a udisks job that failed (wrong passphrase, a file system that will not mount): udiskie,
+    # running, has said why already · nothing at all: Esc at the passphrase · the rest (not
+    # allowed, gone, nothing udiskie opens) nobody else says: said here
+    if ! pgrep -xu "$UID" udiskie >/dev/null || [[ -n $err && $err != *Error.Failed* ]]; then
+      say "$ICON_DRIVE  $(label_of "$dev")" "not opened${err:+ — ${err##*: }}"
+    fi
+    return 1
+  fi
+  printf '%s\n' "$f"
+}
+
+eject_dev() {   # eject_dev DEVICE — its whole drive
+  local disk label err who how=--detach
+  local -a open=()
+  cd / 2>/dev/null || true                        # (never standing in the drive itself)
+  disk=$(disk_of "$1"); [[ -n $disk ]] || { say "$ICON_EJECT  ${1#/dev/}" "no longer plugged in"; poke; return 0; }
+  label=$(label_of "$disk")
+  mapfile -t open < <(lsblk -J -o MOUNTPOINTS -- "$disk" 2>/dev/null \
+                        | jq -r '.. | objects | (.mountpoints // [])[] | select(. != null)' 2>/dev/null)
+  # (closing on purpose: the drive going away now is no "pulled out")
+  state_dir && : >"$STATE/eject.${disk##*/}"
+  # every file system closed, an encrypted one locked again, then the drive switched off —
+  # or, where the media is what comes out (an SD card in a reader, a disc), the media
+  # ejected: a reader built into the machine, switched off, would be gone until a restart
+  [[ $(lsblk -dno RM -- "$disk" 2>/dev/null) == *1* ]] && how=--eject
+  err=$(udiskie-umount --force "$how" "$disk" 2>&1 >/dev/null)
+  if [[ -n $(lsblk -J -o MOUNTPOINTS -- "$disk" 2>/dev/null \
+               | jq -r '.. | objects | (.mountpoints // [])[] | select(. != null)' 2>/dev/null) ]]; then
+    who=$( ((${#open[@]})) && holders "${open[@]}")
+    if [[ -n $who ]]; then
+      say -t 10000 "$ICON_EJECT  $label is in use" "still open in: $who — close it there, then eject again"
+    else
+      err=$(grep -m1 'failed to \(unmount\|lock\)' <<<"${err:-}")   # (not the refused power-off after it)
+      say -t 10000 "$ICON_EJECT  $label is in use" "${err:+${err##*: } — }close what uses it, then eject again"
+    fi
+    rm -f -- "$STATE/eject.${disk##*/}"
+    poke; return 1
+  fi
+  forget "$disk"                                  # (its eject mark stays: the drive is going now)
+  # closed, and switched off or its media ejected: nothing is being written any more
+  say "$ICON_EJECT  $label" "safe to unplug"
+  poke
+}
+
+files_dev() {   # files_dev DEVICE — opened, then yazi on it
+  local f
+  f=$(open_dev "$1") || return 1
+  setsid -f kawa-term yazi "$f" >/dev/null 2>&1 </dev/null
+}
+
+# ── what udiskie reports ────────────────────────────────────────────────────
+# STATE/<device> = "DISK<tab>LABEL<tab>open|closed<tab>SECONDS" for each file system opened
+# since it was plugged in; STATE/eject.<disk> while eject is at work on that drive. A device
+# that goes away while open — or closed only a moment before, as the system closes one that
+# has already gone — and not being ejected, was pulled out.
+# shellcheck disable=SC2174  # (its parent, $XDG_RUNTIME_DIR, is there already)
+state_dir() { [[ -d $STATE ]] || mkdir -p -m 0700 -- "$STATE" 2>/dev/null; }
+remember() { state_dir && printf '%s\t%s\topen\t%s\n' "$2" "$3" "$EPOCHSECONDS" >"$STATE/${1##*/}"; }
+forget() {   # forget DISK — every line of that drive (an eject mark stays: it ages out)
+  local f d
+  for f in "$STATE"/*; do
+    [[ -f $f && ${f##*/} != eject.* && ${f##*/} != asked.* ]] || continue
+    IFS=$'\t' read -r d _ <"$f" && [[ $d == "$1" ]] && rm -f -- "$f"
+  done
+}
+recent() {   # recent FILE — made in the last minute (an eject at work, an open you asked for)
+  [[ -n $(find "$1" -maxdepth 0 -newermt '-60 seconds' 2>/dev/null) ]]
+}
+event() {
+  local ev=$1 dev=$2 ext=$3 name=${4:-} drive=${5:-} f disk label state t size fs ejecting
+  # the machine's own disks are none of ours. An unlocked encrypted volume (/dev/dm-N) has no
+  # drive of its own, so udisks counts it as the system's: it is ours when its drive is
+  if [[ $ext != True && ! -f $STATE/${dev##*/} ]]; then
+    [[ -n $dev ]] || return 0
+    disk=$(disk_of "$dev")
+    [[ -n $disk && $(external "$disk") == *\"* ]] || return 0
+  fi
+  label=${name:-${drive:-${dev#/dev/}}}
+  case $ev in
+    device_mounted)
+      [[ -n $name ]] || label=$(label_of "$dev")     # (an unlocked drive's own name, its maker…)
+      disk=$(disk_of "$dev")
+      remember "$dev" "${disk:-$dev}" "$label"
+      read -r size fs < <(lsblk -ndo SIZE,FSTYPE -- "$dev" 2>/dev/null) || true
+      poke
+      # opened because you asked (the menu, M in yazi): you are on your way there already
+      if [[ -n $disk ]] && recent "$STATE/asked.${disk##*/}"; then return 0; fi
+      # the notice waits for its click in the background: udiskie goes on at once
+      setsid -f "$0" notice-open "$dev" "$ICON_DRIVE  $label" \
+        "${size:+$size }${fs:+$fs }· click to open it in the files" >/dev/null 2>&1 </dev/null
+      ;;
+    device_unmounted)
+      f=$STATE/${dev##*/}
+      if [[ -f $f ]]; then
+        IFS=$'\t' read -r disk label state t <"$f"
+        printf '%s\t%s\tclosed\t%s\n' "$disk" "$label" "$EPOCHSECONDS" >"$f"
+      fi
+      poke ;;
+    device_removed)
+      f=$STATE/${dev##*/}
+      if [[ -f $f ]]; then
+        IFS=$'\t' read -r disk label state t <"$f"
+        ejecting=0; recent "$STATE/eject.${disk##*/}" && ejecting=1
+        forget "$disk"
+        if ((!ejecting)) && { [[ $state == open ]] || ((EPOCHSECONDS - t <= PULLED)); }; then
+          say -u critical "$ICON_DRIVE  $label was pulled out while open" \
+            "what was still being written to it may be lost — eject first next time (the bar's drive mark, or M in yazi)"
+        fi
+      fi
+      poke ;;
+    device_added)                                  # (a drive by that name before: forgotten)
+      forget "$dev"; poke ;;
+    *) poke ;;
+  esac
+}
+notice_open() {   # notice_open DEVICE SUMMARY BODY — click: the files
+  local act
+  act=$(notify-send -a drives -A default=open -- "$2" "$3" 2>/dev/null) || return 0
+  [[ $act == default ]] && files_dev "$1"
+}
+
+passphrase() {   # passphrase DEVICE LABEL DRIVE → the passphrase on stdout (Esc: nothing, status 1)
+  [[ -n ${1:-} ]] || return 2
+  local label=${2:-${3:-$(label_of "$1")}}         # (a partition has no drive name: its maker's)
+  fuzzel --dmenu --prompt-only="$ICON_LOCK  $(short "$label" 24) · passphrase  " --password \
+    --width 50 --cache=/dev/null </dev/null
+}
+
+# ── the bar · the menu ──────────────────────────────────────────────────────
+bar() {   # the drive mark while one is plugged in: lit while one is open; a count past one
+  local dev disk label size fs folder text cls=closed
+  local -A disks=()
+  while IFS=$'\t' read -r dev disk label size fs folder; do
+    disks[$disk]=1; [[ -n $folder ]] && cls=open
+  done < <(list)
+  if ((${#disks[@]} == 0)); then printf '{"text":""}\n'; return; fi
+  text=$ICON_DRIVE
+  if ((${#disks[@]} > 1)); then
+    printf '{"text":"%s %d","class":["%s","count"]}\n' "$text" "${#disks[@]}" "$cls"
+  else
+    printf '{"text":"%s","class":"%s"}\n' "$text" "$cls"
+  fi
+}
+
+menu() {
+  local dev disk label size fs folder r i
+  local -a rows=() acts=() order=()
+  local -A named=()
+  row() { printf -v r '%s  %-16s %7s  %s' "$2" "$(short "$3" 16)" "$4" "$5"; rows+=("$r"); acts+=("$1"); }
+  while IFS=$'\t' read -r dev disk label size fs folder; do
+    row "open $dev" "$ICON_DRIVE" "$label" "$size" "$([[ -n $folder ]] && echo open || echo closed)"
+    [[ -n ${named[$disk]:-} ]] || { named[$disk]=$label; order+=("$disk"); }
+  done < <(list)
+  for disk in "${order[@]}"; do
+    row "eject $disk" "$ICON_EJECT" "eject ${named[$disk]}" "" ""
+  done
+  ((${#rows[@]})) || row none "$ICON_DRIVE" "nothing plugged in" "" ""
+  i=$(printf '%s\n' "${rows[@]}" | kawa-menu --drop --index --width 38 --lines ${#rows[@]} --title "drives") || exit 0
+  case ${acts[i]:-} in
+    "open "*)  files_dev "${acts[i]#open }" ;;
+    "eject "*) eject_dev "${acts[i]#eject }" ;;
+  esac
+}
+
+case ${1:-menu} in
+  menu)        menu ;;
+  list)        list ;;
+  open)        [[ -n ${2:-} ]] || exit 2; open_dev "$2" ;;
+  files)       [[ -n ${2:-} ]] || exit 2; files_dev "$2" ;;
+  eject)       [[ -n ${2:-} ]] || exit 2; eject_dev "$2" ;;
+  bar)         bar ;;
+  event)       (($# >= 4)) || exit 2; shift; event "$@" ;;
+  notice-open) (($# == 4)) || exit 2; shift; notice_open "$@" ;;
+  passphrase)  shift; passphrase "$@" ;;
+  -h|--help)   sed -n '2,/^set -u/{/^set -u/d;s/^# \{0,1\}//;p}' "$0" ;;
+  *)           echo "kawa-drives: unknown command ${1} (kawa-drives --help)" >&2; exit 2 ;;
+esac

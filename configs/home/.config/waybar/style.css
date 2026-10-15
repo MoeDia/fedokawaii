@@ -1,9 +1,9 @@
 /* ~/.config/waybar/style.css — one thin bar, pixel font, workspaces drawn as keys.
    Colours come from the current theme (dark ink or light paper): kawa-theme switches
-   ~/.config/fedokawai/current and reloads the bar.
+   ~/.config/fedokawaii/current and reloads the bar.
    Departure Mono and Sumi Icons are pixel fonts on an 11 px grid: keep font-size at
    11px (or 22px) so every glyph lands on whole pixels. Reload: pkill -USR2 waybar */
-@import url("../fedokawai/current/waybar.css");
+@import url("../fedokawaii/current/waybar.css");
 
 * {
   font-family: "DepartureMono Nerd Font", "Sumi Icons", "PixelMplus12", "Noto Kufi Arabic";
@@ -22,7 +22,7 @@ window#waybar {
 }
 
 /* every module: the same horizontal rhythm */
-#custom-layout, #custom-title, #custom-nowplaying, #tray, #custom-kb, #custom-cpu, #wireplumber {
+#custom-layout, #custom-title, #custom-nowplaying, #tray, #custom-drives, #custom-kb, #custom-cpu, #wireplumber {
   padding: 0 10px;
 }
 
@@ -69,6 +69,11 @@ window#waybar {
 #custom-nowplaying.paused { color: @quiet; }
 
 #tray > .needs-attention { background: alpha(@accent, 0.5); }
+
+/* the drive mark: quiet while plugged in, the text colour once a drive on it is open */
+#custom-drives       { color: @quiet; }
+#custom-drives.open  { color: @text; }
+#custom-drives.count { padding-right: 11px; }   /* (a digit has 1 px of air where the icon has 2: 23 px to the next, like every gap) */
 
 #custom-kb        { color: @quiet; }
 #custom-kb.other  { color: @accent-text; }

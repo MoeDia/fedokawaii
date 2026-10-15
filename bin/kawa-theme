@@ -7,7 +7,7 @@
 #   kawa-theme apply         re-apply the current one (login, after theme.sh)
 #   kawa-theme settings      only the GTK/portal settings (theme.sh, outside a session)
 #
-# Every app reads its colours through one link, ~/.config/fedokawai/current →
+# Every app reads its colours through one link, ~/.config/fedokawaii/current →
 # themes/dark or themes/light (fuzzel and foot by include, waybar and GTK by @import,
 # swaylock by -C, btop/qt6ct by path, mpv by include, imv/presenterm/qt6ct through links).
 # Switching re-points that link, then tells whatever is running to look again:
@@ -27,7 +27,7 @@
 # crests — rising from the bottom like dawn for the light theme, falling from the top
 # like nightfall for the dark one.
 set -u
-DIR=$HOME/.config/fedokawai
+DIR=$HOME/.config/fedokawaii
 LINK=$DIR/current
 
 get() {
@@ -42,8 +42,8 @@ relink() {   # relink TARGET LINK — replace a link in one step (rename), so re
 }
 
 settings() {   # settings MODE — GTK 3 theme, GTK 4/libadwaita/portal colour scheme, icons
-  local m=$1 gtk=Fedokawai icons=Papirus k v     # (the GTK 3 themes: adw-gtk3 + the palette)
-  [[ $m == dark ]] && gtk=Fedokawai-dark icons=Papirus-Dark
+  local m=$1 gtk=Fedokawaii icons=Papirus k v     # (the GTK 3 themes: adw-gtk3 + the palette)
+  [[ $m == dark ]] && gtk=Fedokawaii-dark icons=Papirus-Dark
   command -v gsettings >/dev/null || return 1
   for kv in "color-scheme=prefer-$m" "gtk-theme=$gtk" "icon-theme=$icons"; do
     k=${kv%%=*} v=${kv#*=}
@@ -74,7 +74,7 @@ apply() {
   signal USR2 waybar
   pgrep -xu "$UID" mako >/dev/null && makoctl reload 2>/dev/null   # (makoctl would start one)
   signal USR2 btop
-  [[ -L $HOME/.config/qt6ct/qt6ct.conf ]] && relink ../fedokawai/current/qt6ct.conf "$HOME/.config/qt6ct/qt6ct.conf"
+  [[ -L $HOME/.config/qt6ct/qt6ct.conf ]] && relink ../fedokawaii/current/qt6ct.conf "$HOME/.config/qt6ct/qt6ct.conf"
   for pid in $(pgrep -xu "$UID" zathura); do
     busctl --user call "org.pwmt.zathura.PID-$pid" /org/pwmt/zathura org.pwmt.zathura SourceConfig >/dev/null 2>&1
   done

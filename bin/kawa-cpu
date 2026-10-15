@@ -6,7 +6,7 @@
 # that never speaks).
 set -u
 # shellcheck source=/dev/null
-. "$HOME/.config/fedokawai/icons.sh"
+. "$HOME/.config/fedokawaii/icons.sh"
 SEG=("$ICON_EQ_0" "$ICON_EQ_1" "$ICON_EQ_2" "$ICON_EQ_3" "$ICON_EQ_4" "$ICON_EQ_5")
 hist=(0 0 0 0 0 0 0 0)
 exec {quiet}<> <(:)                              # waiting on this fd = sleep without a fork

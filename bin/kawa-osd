@@ -13,10 +13,10 @@
 #                                  crisp 2×2 square.
 set -u
 # shellcheck source=/dev/null
-. "$HOME/.config/fedokawai/icons.sh"
+. "$HOME/.config/fedokawaii/icons.sh"
 C_TEAL=7fb8b0 C_ACCENT=d0583a C_ACCENT_TEXT=d15b3d C_FAINT=5f584c C_STRONG=ece3cc C_MUTED=877f6f   # (dark, if no theme yet)
 # shellcheck source=/dev/null
-[[ -r $HOME/.config/fedokawai/current/colors.sh ]] && . "$HOME/.config/fedokawai/current/colors.sh"
+[[ -r $HOME/.config/fedokawaii/current/colors.sh ]] && . "$HOME/.config/fedokawaii/current/colors.sh"
 ID_FILE="${XDG_RUNTIME_DIR:?}/kawa-osd-id"
 
 icon=${1:-} label=${2:-} pct=${3:-0} off=${4:-}

@@ -267,7 +267,7 @@ dots=""; for i in 9 3 2 6 4 5 7 15; do c d "$i"; dots+="$d● "; done
 # icons: the desktop's own in foot (the terminal with the icon font), none anywhere else
 ICON_USER="" ICON_HAT="" ICON_CPU="" ICON_HOURGLASS="" ICON_WINDOW="" ICON_TERMINAL="" ICON_MEMORY=""
 # shellcheck source=/dev/null
-[[ $TERM == foot* && -r ~/.config/fedokawai/icons.sh ]] && . ~/.config/fedokawai/icons.sh
+[[ $TERM == foot* && -r ~/.config/fedokawaii/icons.sh ]] && . ~/.config/fedokawaii/icons.sh
 INFO=(
   "$I1$ICON_USER $R ${B}${USER:-?}${K} @ ${B}${host}$R"
   "$I2$ICON_HAT $R ${V}${name,,} ${ver}$R"

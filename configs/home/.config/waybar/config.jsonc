@@ -3,8 +3,8 @@
 //           layout icon · window title
 //   centre: now playing between the two halves of a segment meter (hidden when nothing
 //           plays) — waybar centres it on the screen
-//   right:  tray · keyboard layout · CPU history · volume · date · time with seconds ·
-//           ⌄ key (quick settings)
+//   right:  mode seal · tray · drive mark (while a USB drive is plugged in) · keyboard layout ·
+//           CPU history · volume · date · day · time with seconds · ⌄ key (quick settings)
 // Network, Bluetooth, brightness, night light, theme, weather… live in the quick-settings
 // dropdown, so the bar stays quiet. Reload without logging out: pkill -USR2 waybar
 //
@@ -24,7 +24,7 @@
     "custom/layout", "custom/title"
   ],
   "modules-center": ["custom/nowplaying"],
-  "modules-right": ["custom/mode", "tray", "custom/kb", "custom/cpu", "wireplumber", "clock#date", "custom/day", "clock#time", "custom/menu"],
+  "modules-right": ["custom/mode", "tray", "custom/drives", "custom/kb", "custom/cpu", "wireplumber", "clock#date", "custom/day", "clock#time", "custom/menu"],
 
   // the torii icon
   "custom/torii": { "format": "\uDBB8\uDC00", "tooltip": false, "on-click": "fuzzel" },
@@ -53,6 +53,12 @@
   },
 
   "tray": { "icon-size": 14, "spacing": 8 },
+
+  // the drive mark while a USB stick, disk or SD card is plugged in (lit while one is open,
+  // a count past one): click for the drives menu, open or eject. kawa-drives pokes it with
+  // SIGRTMIN+13 whenever one comes, opens, closes or goes; empty hides it.
+  "custom/drives": { "exec": "kawa-drives bar", "return-type": "json", "interval": "once", "signal": 13,
+                     "tooltip": false, "on-click": "kawa-drives" },
 
   "custom/cpu": {
     "exec": "kawa-cpu", "return-type": "json", "restart-interval": 5,

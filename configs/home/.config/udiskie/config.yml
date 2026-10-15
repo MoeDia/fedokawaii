@@ -1,0 +1,28 @@
+# ~/.config/udiskie/config.yml — USB sticks, external disks, SD cards (udiskie 2.x; the
+# session starts it, ~/.config/dwl/autostart.sh). udiskie mounts what you plug in, under
+# /run/media/$USER; kawa-drives does everything you see of it: the notice with its click,
+# the bar's drive mark, the passphrase of an encrypted drive. YAML: a typo here stops
+# udiskie (the session restarts it four times, then says so in a notice).
+program_options:
+  tray: false              # no tray icon: the bar has its own drive mark
+  automount: true          # what is plugged in opens by itself
+  notify: true             # udiskie's own notices: only a failure, below
+  file_manager: ""         # (opening goes through kawa-drives: yazi in a window)
+  # an encrypted drive's passphrase: a small menu, typing hidden (Esc: left locked)
+  password_prompt: ["kawa-drives", "passphrase", "{device_file}", "{id_label}", "{drive_label}"]
+  # every change: the notices and the bar's mark (kawa-drives --help)
+  event_hook: ["kawa-drives", "event", "{event}", "{device_file}", "{is_external}", "{id_label}", "{drive_label}"]
+
+notifications:
+  timeout: 10              # seconds
+  device_mounted: false    # (kawa-drives says these, in its own words)
+  device_unmounted: false
+  device_added: false
+  device_removed: false
+  device_unlocked: false
+  device_locked: false
+  job_failed: 10           # a drive that would not open: what failed, and why (a drive that
+                           # would not close: kawa-drives' eject says it, mako hides this one)
+
+notification_actions:
+  job_failed: []           # (no Retry button: open it again from the drives menu)

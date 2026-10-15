@@ -4,7 +4,7 @@
 # when the bar is hidden.
 set -u
 # shellcheck source=/dev/null
-. "$HOME/.config/fedokawai/icons.sh"
+. "$HOME/.config/fedokawaii/icons.sh"
 # one change at a time: a held key repeats faster than wpctl answers, so a press that comes
 # while one is still being applied is dropped (no backlog that keeps changing the volume
 # after you let go), and the level shown is always the one the last change left

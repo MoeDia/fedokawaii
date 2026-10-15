@@ -4,7 +4,7 @@
 # Weeks start on Monday.
 set -u
 # shellcheck source=/dev/null
-. "$HOME/.config/fedokawai/icons.sh"
+. "$HOME/.config/fedokawaii/icons.sh"
 export LC_TIME=C                        # English month names whatever the system locale
 prev="$ICON_CHEVRON_LEFT  previous" next="$ICON_CHEVRON_RIGHT  next" back="$ICON_CALENDAR  back to today"
 off=0                                   # months away from the current one

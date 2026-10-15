@@ -9,17 +9,18 @@
 # ═════════════════════════════════════════════════════════════════════════════
 set -uo pipefail
 IFS=$'\n\t'
+export LC_ALL=C.UTF-8      # every tool's output in one language and format, whatever yours is
 REPO_DIR="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" && pwd)"
 [[ $EUID -eq 0 ]] || { echo "run with sudo: sudo bash check.sh" >&2; exit 2; }
-LOG_FILE=/var/log/fedokawai-check.log; : >"$LOG_FILE"
+LOG_FILE=/var/log/fedokawaii-check.log; : >"$LOG_FILE"
 source "$REPO_DIR/lib/common.sh"
-read_conf "$REPO_DIR/fedokawai.conf"
-STATE_DIR=/var/lib/fedokawai
+read_conf "$REPO_DIR/fedokawaii.conf"
+STATE_DIR=/var/lib/fedokawaii
 
-hdr "Fedokawai · readiness check"
+hdr "Fedokawaii · readiness check"
 
 # ── configuration ────────────────────────────────────────────────────────────
-section "fedokawai.conf"
+section "fedokawaii.conf"
 problems=$(conf_report)
 if [[ -z $problems ]]; then pass "all values valid"
 else while IFS= read -r p; do fail "$p"; done <<<"$problems"; fi
@@ -140,11 +141,11 @@ done
 if reachable wttr.in; then pass "reachable: wttr.in (weather)"; else warn "unreachable: wttr.in" "quick settings shows the city without the weather until it answers"; fi
 # the one thing a later Fedora can lack that ends setup hours in: dwl's wlroots (a machine
 # that already keeps its own copy needs nothing from this Fedora)
-if [[ -f /usr/local/lib/fedokawai-wlroots-$DWL_WLROOTS/cflags ]]; then
+if [[ -f /usr/local/lib/fedokawaii-wlroots-$DWL_WLROOTS/cflags ]]; then
   pass "wlroots $DWL_WLROOTS: dwl's own copy is kept"
 elif w=$(dnf -q repoquery --whatprovides "pkgconfig(wlroots-$DWL_WLROOTS)" --qf '%{name}-%{version}\n' 2>/dev/null); then
   if [[ -n $w ]]; then pass "wlroots $DWL_WLROOTS in this Fedora ($(head -n1 <<<"$w")) — dwl $DWL_TAG builds"
-  else fail "wlroots $DWL_WLROOTS is not in Fedora $VERSION_ID" "dwl $DWL_TAG needs it: install Fedora 44 or 45, then move up with fedokawai upgrade"; fi
+  else fail "wlroots $DWL_WLROOTS is not in Fedora $VERSION_ID" "dwl $DWL_TAG needs it: install Fedora 44 or 45, then move up with fedokawaii upgrade"; fi
 else warn "could not ask the repositories for wlroots $DWL_WLROOTS" "offline? setup checks again when it builds dwl"; fi
 
 # ── hardware ─────────────────────────────────────────────────────────────────
@@ -163,10 +164,24 @@ case $gpus in
   *amd:*)       fail "AMD GPU found but amdgpu is not driving it" "$gpus" ;;
   *intel:*)     pass "Intel GPU (${gpus% })" ;;
   *nvidia*)     fail "NVIDIA only" "this build targets AMD/Intel (open drivers)" ;;
-  *)            fail "no GPU detected" "set GPU= in fedokawai.conf if this is wrong" ;;
+  *)            fail "no GPU detected" "set GPU= in fedokawaii.conf if this is wrong" ;;
 esac
-[[ $GPU != auto && $gpus != *"$GPU:"* ]] && warn "GPU=$GPU in fedokawai.conf" "but detected: ${gpus:-none}"
+[[ $GPU != auto && $gpus != *"$GPU:"* ]] && warn "GPU=$GPU in fedokawaii.conf" "but detected: ${gpus:-none}"
 ls /sys/class/bluetooth/hci* >/dev/null 2>&1 && pass "Bluetooth adapter present" || warn "no Bluetooth adapter seen" "plug the dongle in before setup"
+# what setup will add for this hardware (lib/hardware.sh) — said now, nothing installed yet
+# shellcheck source=lib/hardware.sh
+source "$REPO_DIR/lib/hardware.sh"
+case $(hw_cpu_vendor) in
+  GenuineIntel) info "Intel CPU — setup adds its microcode (microcode_ctl)" ;;
+  AuthenticAMD) info "AMD CPU — setup adds its microcode (amd-ucode-firmware)" ;;
+esac
+hw_has_wifi && info "a Wi-Fi radio — setup adds NetworkManager's Wi-Fi part (wired is still the better start)"
+hw_has_sof && info "Intel's audio DSP drives the sound card — setup adds its firmware (alsa-sof-firmware)"
+fwmiss=$(hw_missing_firmware | tr '\n' ' ')
+[[ -z ${fwmiss// /} ]] || info "the kernel asked for firmware it did not find: ${fwmiss}— setup installs what provides it"
+nodrv=$(hw_driverless | tr '\n' ';')
+[[ -z $nodrv ]] && pass "every network, display, sound and USB device has a driver" \
+  || warn "devices no driver holds" "${nodrv} — lspci -nnk names them; such a device will not work here"
 nmcli -t -f TYPE,STATE device 2>/dev/null | grep -q '^ethernet:connected' && pass "ethernet connected" || info "not on ethernet (Wi-Fi works too)"
 
 # ── verdict ──────────────────────────────────────────────────────────────────

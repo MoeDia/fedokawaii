@@ -3,9 +3,9 @@
 # Each line shows its current state; toggles reopen the menu so the change is visible.
 set -u
 # shellcheck source=/dev/null
-. "$HOME/.config/fedokawai/env"
+. "$HOME/.config/fedokawaii/env"
 # shellcheck source=/dev/null
-. "$HOME/.config/fedokawai/icons.sh"
+. "$HOME/.config/fedokawaii/icons.sh"
 
 state_net() {
   local type state
@@ -24,9 +24,14 @@ state_bt()    {
     || p=$([[ $(bt show 2>/dev/null) == *"Powered: yes"* ]] && echo 'b true')
   [[ $p == 'b true' ]] && echo on || echo off
 }
-state_theme() { [[ $(readlink "$HOME/.config/fedokawai/current" 2>/dev/null) == */light ]] && echo light || echo dark; }
+state_theme() { [[ $(readlink "$HOME/.config/fedokawaii/current" 2>/dev/null) == */light ]] && echo light || echo dark; }
 state_night() { pgrep -xu "$UID" gammastep >/dev/null && echo on || echo off; }
 state_dnd()   { [[ $(makoctl mode 2>/dev/null) == *do-not-disturb* ]] && echo on || echo off; }
+state_drives() {   # USB sticks, disks, SD cards plugged in (kawa-drives: one line per file system)
+  local n
+  n=$(kawa-drives list 2>/dev/null | cut -f2 | sort -u | grep -c .)
+  if ((n == 0)); then echo none; else echo "$n plugged in"; fi
+}
 
 row() {   # row ACTION ICON NAME STATE
   local r; printf -v r '%s  %-16s%s' "$2" "$3" "$4"; rows+=("$r"); acts+=("$1")
@@ -54,10 +59,12 @@ while :; do
     row bt       "$ICON_BLUETOOTH" bluetooth "$bt"
     row pair     "$ICON_BLUETOOTH" 'pair a device' '…'
   fi
+  row drives     "$ICON_DRIVE"    drives "$(state_drives)"
   row dnd        "$dndicon"       'do not disturb' "$dnd"
   row shot       "$ICON_CAMERA"   screenshot region
   row keys       "$ICON_KEYBOARD" keybindings '…'
   row system     "$ICON_TORII"    system '…'
+  row change     "$ICON_CODE"     change '…'
   row power      "$ICON_POWER"    power '…'
   # 38 columns: the theme row is the widest, 37 — icon (2) + 2 + name (16) + "▣ dark  ☐ light"
   # (17: the boxes are icons, two columns each) — and fuzzel fills one column less than its
@@ -71,6 +78,7 @@ while :; do
     network)    exec kawa-float --once network network 80x25 -- nmtui ;;
     bt)         if [[ $bt == on ]]; then bt power off >/dev/null; else bt power on >/dev/null; fi ;;
     pair)       setsid -f blueman-manager >/dev/null 2>&1; exit 0 ;;
+    drives)     exec kawa-drives ;;
     night)      if [[ $night == on ]]; then pkill -xu "$UID" gammastep
                 else setsid -f gammastep -l "$NIGHT_LIGHT" -t 6500:4200 >/dev/null 2>&1 <&-; fi
                 sleep 0.2 ;;
@@ -80,7 +88,8 @@ while :; do
     shot)       sleep 0.2; exec kawa-screenshot region ;;      # let the menu close before slurp
     wallpaper)  exec kawa-wallpaper ;;
     keys)       exec kawa-help ;;
-    system)     exec fedokawai --window ;;
+    system)     exec fedokawaii --window ;;
+    change)     exec kawa-config ;;
     power)      exec kawa-power ;;
     *)          exit 0 ;;
   esac

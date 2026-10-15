@@ -4,9 +4,9 @@
 # 30 minutes, so it never holds a menu up. wttr.in, no API key.
 set -u
 # shellcheck source=/dev/null
-. "$HOME/.config/fedokawai/env"
+. "$HOME/.config/fedokawaii/env"
 # shellcheck source=/dev/null
-. "$HOME/.config/fedokawai/icons.sh"
+. "$HOME/.config/fedokawaii/icons.sh"
 CACHE="$HOME/.cache/kawa-weather"
 
 refresh() {

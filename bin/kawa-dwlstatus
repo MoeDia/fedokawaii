@@ -3,7 +3,7 @@
 # files for waybar's custom modules, then pokes only the modules that changed:
 #   SIGRTMIN+8 workspaces · +9 layout · +10 window title · +11 keyboard layout
 # `kawa-dwlstatus --poke N…` pokes waybar the same careful way for others (quick settings
-# and the screen-share portal: +12, the mode seal) and exits.
+# and the screen-share portal: +12, the mode seal · kawa-drives: +13, the drive mark) and exits.
 #
 # dwl prints these lines per monitor (the last one comes from src/dwl/dwl.patch):
 #   <mon> title <text> · appid · fullscreen · floating · selmon <0|1>
@@ -16,7 +16,7 @@
 # Pure bash: no forks per update (the signals come from bash's own kill).
 set -u
 # shellcheck source=/dev/null
-. "$HOME/.config/fedokawai/icons.sh"
+. "$HOME/.config/fedokawaii/icons.sh"
 DIR="${XDG_RUNTIME_DIR:?}/dwl-bar"
 mkdir -p "$DIR"
 ALWAYS=3

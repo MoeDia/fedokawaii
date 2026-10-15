@@ -12,7 +12,7 @@
 # clears the cache at each login; a monitor that stops answering means look again).
 set -u
 # shellcheck source=/dev/null
-. "$HOME/.config/fedokawai/icons.sh"
+. "$HOME/.config/fedokawaii/icons.sh"
 CACHE="${XDG_RUNTIME_DIR:?}/kawa-ddc-buses"
 
 buses() {

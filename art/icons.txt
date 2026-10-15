@@ -11,7 +11,7 @@
 #   configs/home/.local/share/fonts/SumiIcons.ttf   font "Sumi Icons", U+FE000 onwards in
 #                                                   this order (Supplementary Private Use
 #                                                   Area A, clear of every Nerd Font)
-#   configs/home/.config/fedokawai/icons.sh         ICON_<NAME> variables for the scripts
+#   configs/home/.config/fedokawaii/icons.sh        ICON_<NAME> variables for the scripts
 # Append new icons at the end: inserting one in the middle renumbers the ones after it.
 
 @torii
@@ -888,4 +888,28 @@
 #...##...#
 .###..###.
 ..........
+..........
+
+@drive
+..........
+..........
+########..
+#......###
+#.###..#.#
+#......#.#
+#......###
+########..
+..........
+..........
+
+@eject
+..........
+....##....
+...####...
+..######..
+.########.
+##########
+..........
+##########
+##########
 ..........

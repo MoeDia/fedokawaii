@@ -15,14 +15,14 @@
 # --remove PATH, --add. Covers are drawn once and kept in ~/.cache/kawa-books.
 set -u
 # shellcheck source=/dev/null
-. "$HOME/.config/fedokawai/icons.sh" 2>/dev/null
+. "$HOME/.config/fedokawaii/icons.sh" 2>/dev/null
 C_GROUND=0f0e0c C_EDGE=2b2721 C_MUTED=877f6f        # (the dark theme's, if none is set up)
 # shellcheck source=/dev/null
-[[ -r $HOME/.config/fedokawai/current/colors.sh ]] && . "$HOME/.config/fedokawai/current/colors.sh"
+[[ -r $HOME/.config/fedokawaii/current/colors.sh ]] && . "$HOME/.config/fedokawaii/current/colors.sh"
 BOOKS=${KAWA_BOOKS:-$HOME/Books}
 CACHE=${XDG_CACHE_HOME:-$HOME/.cache}/kawa-books
 # every list of the desktop looks alike: one options file (rules, colours, the chevron)
-export FZF_DEFAULT_OPTS_FILE=$HOME/.config/fedokawai/fzf.opts; unset FZF_DEFAULT_OPTS
+export FZF_DEFAULT_OPTS_FILE=$HOME/.config/fedokawaii/fzf.opts; unset FZF_DEFAULT_OPTS
 DB=${XDG_DATA_HOME:-$HOME/.local/share}/zathura/bookmarks.sqlite
 EXT=(pdf epub mobi fb2 xps oxps cbz cbr cb7)
 mkdir -p "$BOOKS" "$CACHE"

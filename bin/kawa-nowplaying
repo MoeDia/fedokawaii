@@ -16,9 +16,9 @@
 set -u
 LC_ALL=C.UTF-8                                   # count characters, not bytes
 # shellcheck source=/dev/null
-. "$HOME/.config/fedokawai/icons.sh"
+. "$HOME/.config/fedokawaii/icons.sh"
 # shellcheck source=/dev/null
-. "$HOME/.config/fedokawai/current/colors.sh"    # C_* colours of the dark or light theme
+. "$HOME/.config/fedokawaii/current/colors.sh"   # C_* colours of the dark or light theme
 MAX=48                                           # longest "artist — title" before …
 
 esc() {   # esc VAR TEXT — JSON + pango escaping into VAR
@@ -80,7 +80,7 @@ exec {in}< <(
     if [[ $m == Playing$'\x1f'* ]]; then
       # (started again should it have ended by itself: PipeWire restarted, say)
       { [[ -z $cv ]] || ! kill -0 "$cv" 2>/dev/null; } && command -v cava >/dev/null \
-        && { cava -p "$HOME/.config/fedokawai/cava.conf" & cv=$!; }
+        && { cava -p "$HOME/.config/fedokawaii/cava.conf" & cv=$!; }
     else stop; fi
   done < <(playerctl --follow metadata --format '{{status}}'$'\x1f''{{artist}}'$'\x1f''{{title}}')
   stop                                           # (cava would never notice on its own
