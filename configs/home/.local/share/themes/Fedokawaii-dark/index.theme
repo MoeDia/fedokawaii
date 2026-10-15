@@ -1,0 +1,7 @@
+[Desktop Entry]
+Type=X-GNOME-Metatheme
+Name=Fedokawaii-dark
+Comment=fedokawaii sumi (ink): adw-gtk3-dark with the desktop palette (generated)
+
+[X-GNOME-Metatheme]
+GtkTheme=Fedokawaii-dark

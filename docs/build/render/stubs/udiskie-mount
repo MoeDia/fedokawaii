@@ -1,0 +1,3 @@
+#!/bin/sh
+# udiskie-mount for the pictures: the stick is open again
+rm -f "${XDG_RUNTIME_DIR:?}/stub-drives-closed"

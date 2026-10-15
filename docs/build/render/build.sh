@@ -1,5 +1,5 @@
 #!/bin/bash
-# Build the fedokawai apps — and the text/toolkit stack they draw with — at Fedora 44's
+# Build the fedokawaii apps — and the text/toolkit stack they draw with — at Fedora 44's
 # versions into /opt/f44 (run as root). Nothing is installed outside /opt/f44.
 # Sources are expected under /opt/f44/src (README.md says where each came from).
 #

@@ -6,7 +6,7 @@
 # It runs in the image's non-root mode: you are uid 1000 inside (keep-id), so every file in
 # ~/.config/prowlarr stays yours, and the app holds no capabilities and can gain none
 # (s6 needs /run to belong to that user: the tmpfs). The API key is the one in
-# ~/.config/fedokawai/secrets.sh, handed over as a podman secret — never in a file here.
+# ~/.config/fedokawaii/secrets.sh, handed over as a podman secret — never in a file here.
 # The web page asks for a login (set on your first visit), even from this computer.
 [Unit]
 Description=Prowlarr — indexer aggregator for torrra

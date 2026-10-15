@@ -16,6 +16,9 @@ PKG_BASE=(
   bash-completion       # tab completion for every CLI below
   neovim                # the only editor
   tuned                 # the performance profile of an always-plugged desktop (system/tuned.conf)
+  fwupd                 # firmware inside the devices (SSD, motherboard, dock…) from the LVFS:
+                        #   update lists what is new, fwupdmgr update applies it — when you choose
+  pciutils usbutils     # lspci · lsusb: which device is which, and which driver holds it
 )
 PKG_REMOVE=(nano nano-default-editor vim-minimal vim-enhanced vim-default-editor   # one editor: neovim
             dracut-config-rescue)                                                  # no rescue boot entry
@@ -60,6 +63,9 @@ PKG_DESKTOP=(
   wl-clipboard cliphist grim slurp gammastep libnotify    # clipboard, screenshots, night light, notify-send
   xdg-desktop-portal-wlr xdg-desktop-portal-gtk           # screencast/screenshot + file dialogs/settings
   xdg-utils xdg-user-dirs udiskie lxqt-policykit          # xdg-open, ~/Pictures…, USB automount, auth dialogs
+  udisks2                                                 # what udiskie asks to mount (only a weak dependency brings it otherwise)
+  exfatprogs dosfstools ntfs-3g                           # drives: check, repair and name exFAT and FAT sticks and
+                                                          #   SD cards; NTFS opens whatever NTFS driver the kernel has
   xdg-terminal-exec                                       # a terminal (foot) for apps that ask for one
   bluez blueman                                           # Bluetooth controller dongle
   dconf                                                   # persists GTK settings (dark mode for GTK4/libadwaita)
@@ -92,6 +98,8 @@ PKG_APPS=(
   eza zoxide tldr                                   # the shell: ls with git status and trees · a cd that
                                                     #   learns your folders (yazi's Z too) · tldr examples
   lazygit tree-sitter-cli                           # git TUI; parser builder required by LazyVim's nvim-treesitter
+  ShellCheck                                        # explains what is wrong in a shell script: fedokawaii apply
+                                                    #   reads the ones you changed (and neovim's bash server, §11.5)
   openrgb solaar liquidctl                          # RGB, Logitech, coolers
   snapper libdnf5-plugin-actions                    # snapshots; actions = pre/post snapshot around every dnf run
   podman python3.13 pipx                            # Prowlarr container; torrra (needs libtorrent wheels ≤ py3.13)
@@ -112,6 +120,9 @@ FORBIDDEN_PKGS=(
   rofi wofi wmenu bemenu                                                       # launchers: fuzzel only
   tuigreet wlogout fastfetch neofetch                                          # replaced: agreety, fuzzel menus, own fetch
   polkit-gnome hyprpolkitagent network-manager-applet                          # one polkit agent, no tray NM
+  dunst swaync                                                                 # notifications: mako only
+  power-profiles-daemon                                                        # power: tuned only (both would set the CPU)
+  gdm sddm lightdm lxdm                                                        # logins: greetd only
   flatpak snapd PackageKit gnome-software                                      # dnf only
   dracut-config-rescue                                                         # no rescue image
   ffmpeg-free                                                                  # RPM Fusion ffmpeg only
@@ -139,6 +150,9 @@ manifest_all() {
   [[ ${STEAM:-yes} == yes ]] && printf '%s\n' "${PKG_GAMING[@]}"
   # libraries a release binary needed that Fedora stopped pulling in by itself (say
   # openssl3-libs for spotify_player on Fedora 45): installed and recorded by lib/upstream.sh
-  cat "${STATE_DIR:-/var/lib/fedokawai}/upstream-libs" 2>/dev/null || true
+  cat "${STATE_DIR:-/var/lib/fedokawaii}/upstream-libs" 2>/dev/null || true
+  # what this machine's own hardware needs — its firmware, the CPU's microcode, the Wi-Fi's
+  # plumbing (lib/hardware.sh): found and recorded by setup, update and repair
+  cat "${STATE_DIR:-/var/lib/fedokawaii}/hardware-pkgs" 2>/dev/null || true
   return 0
 }

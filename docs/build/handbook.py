@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
-"""Builds Fedokawai-Guide.pdf from docs/fedokawai-guide.md and REAL renders
+"""Builds Fedokawaii-Guide.pdf from docs/fedokawaii-guide.md and REAL renders
 (scratchpad/real/shots/{dark,light}: the real apps at Fedora 44's versions)."""
 import re, os, sys, glob, math
 import markdown, numpy as np
 from PIL import Image, ImageDraw, ImageFont
-S = os.environ.get("FEDOKAWAI_SCRATCH", "/tmp/claude-0/-home-claude/6d31fcd7-1ae3-5468-8ff5-715a71fb37a1/scratchpad")
-REPO = os.environ.get("FEDOKAWAI_REPO", "/home/claude/fedokawai")
-CHROME = os.environ.get("FEDOKAWAI_CHROME", "/opt/pw-browsers/chromium-1194/chrome-linux/chrome")
+S = os.environ.get("FEDOKAWAII_SCRATCH", "/tmp/claude-0/-home-claude/6d31fcd7-1ae3-5468-8ff5-715a71fb37a1/scratchpad")
+REPO = os.environ.get("FEDOKAWAII_REPO", "/home/claude/fedokawaii")
+CHROME = os.environ.get("FEDOKAWAII_CHROME", "/opt/pw-browsers/chromium-1194/chrome-linux/chrome")
 OUT = f"{S}/guide"
 IMG = f"{OUT}/img2"
 R = f"{S}/real/shots"
@@ -72,7 +72,7 @@ MM = 96 / 25.4                       # CSS px per mm
 TEXT_W = 180 * MM                    # the text column (A4 less 2 × 15 mm)
 FULL = {"bar", "fetch", "pointers", "icons"}          # strips that fill the column
 MAXH = {"desktop-dark": 236, "desktop-light": 236, "transition": 236, "packsheet": 236, "lock": 84,
-        "menus": 180, "osd": 150}
+        "menus": 180, "osd": 150, "drives": 110}
 def printable(src, scale, out):
     i = Image.open(src).convert("RGB")
     k = max(1, math.ceil(2.5 * scale - 1e-9))
@@ -121,6 +121,15 @@ add("colors", pair("colors", f"{IMG}/colors.png"))
 add("clipboard", grid([[im(f"{R}/dark/clipboard-picture.png"), im(f"{R}/light/clipboard.png")]], f"{IMG}/clipboard.png")
     if os.path.exists(f"{R}/dark/clipboard-picture.png") else None)
 add("launcher", pair("launcher", f"{IMG}/launcher.png"))
+add("menu-change", pair("menu-change", f"{IMG}/menu-change.png"))
+add("menu-drives", pair("menu-drives", f"{IMG}/menu-drives.png"))
+def drives_fig():   # a stick that opened, then eject's "safe to unplug": dark above light
+    rows = []
+    for t in ("dark", "light"):
+        rows.append([im(f"{R}/{t}/{n}.png") for n in ("notify-drive", "notify-eject") if os.path.exists(f"{R}/{t}/{n}.png")])
+    if not any(rows): return None
+    return grid(rows, f"{IMG}/drives.png", gap=24, pad=24, bg=INK, row_bg=[INK, PAPER])
+add("drives", drives_fig())
 if os.path.exists(f"{R}/dark/wallpaper-picker.png") and os.path.exists(f"{R}/light/wallpaper-picker.png"):
     add("wallpaper-picker", grid([[im(f"{R}/dark/wallpaper-picker.png"), im(f"{R}/light/wallpaper-picker.png")]], f"{IMG}/wallpaper-picker.png"))
 lk = both("lock-center", 2)
@@ -147,7 +156,7 @@ if subprocess.run(["python3", f"{REPO}/tools/build-cursors.py", "--preview", f"{
     add("pointers", f"{IMG}/pointers.png")
 # the walkthrough shots (nvim, lazygit, yazi): marker "nvim-picker" ← render "app-nvim-picker"
 for name in ("nvim-whichkey", "nvim-picker", "nvim-grep", "nvim-split", "nvim-lsp",
-             "lazygit-stage", "lazygit-commit", "lazygit-log", "yazi-preview"):
+             "lazygit-stage", "lazygit-commit", "lazygit-log", "yazi-preview", "yazi-drives"):
     # one theme each, alternating, full width: a walkthrough reads better large than twice
     t = ("dark", "light")[len([k for k in FIG if k.startswith(("nvim-", "lazygit-", "yazi-"))]) % 2]
     src = f"{R}/{t}/app-{name}.png"
@@ -175,8 +184,8 @@ if os.path.exists(f"{R}/dark/terminal-full.png"):
     fig.save(f"{IMG}/transition.png"); add("transition", f"{IMG}/transition.png")
 
 # the pack: two pictures, then the whole sheet
-W = "/home/kawau/.local/share/fedokawai/wallpapers"
-entries = [l.split()[:2] for l in open(f"{REPO}/configs/home/.local/share/fedokawai/wallpapers.list") if l.split()[:1] in (["dark"], ["light"])]
+W = "/home/kawau/.local/share/fedokawaii/wallpapers"
+entries = [l.split()[:2] for l in open(f"{REPO}/configs/home/.local/share/fedokawaii/wallpapers.list") if l.split()[:1] in (["dark"], ["light"])]
 if os.path.exists(f"{W}/dark/dawn-mart.png") and os.path.exists(f"{W}/light/station-street.png"):
     add("pack", grid([[im(f"{W}/dark/dawn-mart.png"), im(f"{W}/light/station-street.png")]], f"{IMG}/pack.png"))
 tw, th, cols = 320, 180, 6
@@ -211,7 +220,7 @@ add("grub", f"{S}/mock/png2/grub.png")
 add("icons", f"{S}/icons-preview.png")
 
 # ── the document ───────────────────────────────────────────────────────────────
-src = open(f"{REPO}/docs/fedokawai-guide.md", encoding="utf-8").read()
+src = open(f"{REPO}/docs/fedokawaii-guide.md", encoding="utf-8").read()
 fm, body = re.match(r"^---\n(.*?)\n---\n(.*)$", src, re.S).groups()
 meta = dict(re.findall(r'^(\w+):\s*"(.*)"$', fm, re.M))
 missing = []
@@ -289,12 +298,12 @@ nocode = re.sub(r"^```.*?^```", "", body, flags=re.M | re.S)   # (a "# comment" 
 heads = re.findall(r"^(#{1,3}) (.+)$", nocode, re.M)
 toc = "<section class='toc'><h1>Contents</h1><ol>" + "".join(
     f"<li class='l{len(h)}'>{markdown.markdown(re.sub(r'^(\d+)\. ', r'\1\\. ', t))[3:-4]}</li>" for h, t in heads) + "</ol></section>"
-cover_src = "/home/kawau/.local/share/fedokawai/dark/scene.png"
+cover_src = "/home/kawau/.local/share/fedokawaii/dark/scene.png"
 cover_raw = cover_src if os.path.exists(cover_src) else f"{S}/mock/wall-dark.png"
 _cw = Image.open(cover_raw).width                     # the scene, full-bleed across 210 mm:
 cover_bg = printable(cover_raw, 210 * MM / _cw, f"{IMG}/cover.png")   # (each art pixel an exact block)
 torii = chr(0xFE000)
-doc = (f"<!doctype html><html><head><meta charset='utf-8'><title>Fedokawai — the handbook</title><style>{CSS}</style></head><body>"
+doc = (f"<!doctype html><html><head><meta charset='utf-8'><title>Fedokawaii — the handbook</title><style>{CSS}</style></head><body>"
        f"<section class='cover'><img class='bg' src='file://{cover_bg}'><div class='t'>"
        f"<span class='torii'>{torii}</span><h1>{meta['title']}</h1><div class='rule'></div>"
        f"<p class='sub'>{meta['subtitle']}</p><p class='date'>{meta['date']}</p></div></section>"
@@ -313,12 +322,12 @@ with sync_playwright() as p:
         const r = e.getBoundingClientRect(); return r.right > document.documentElement.clientWidth - 15 * 96 / 25.4 + 0.5 && r.width > 0;
       }).slice(0, 12).map(e => e.tagName + '.' + (e.className || '') + ' ' + Math.round(e.getBoundingClientRect().right) + ' ' + (e.textContent || '').slice(0, 60))""")
     if wide: print("wider than the text column:", *wide, sep="\n  ")
-    pg.pdf(path=f"{OUT}/Fedokawai-Guide.pdf", format="A4", print_background=True, prefer_css_page_size=True)
+    pg.pdf(path=f"{OUT}/Fedokawaii-Guide.pdf", format="A4", print_background=True, prefer_css_page_size=True)
     b.close()
-print("pdf", os.path.getsize(f"{OUT}/Fedokawai-Guide.pdf") // 1024, "KiB")
+print("pdf", os.path.getsize(f"{OUT}/Fedokawaii-Guide.pdf") // 1024, "KiB")
 # the pictures re-compressed losslessly (pdfpack.py, beside this script): under 10 MB
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import pdfpack
-pdfpack.main(f"{OUT}/Fedokawai-Guide.pdf", f"{OUT}/Fedokawai-Guide.packed.pdf")
-os.replace(f"{OUT}/Fedokawai-Guide.packed.pdf", f"{OUT}/Fedokawai-Guide.pdf")
-print("packed", os.path.getsize(f"{OUT}/Fedokawai-Guide.pdf") // 1024, "KiB")
+pdfpack.main(f"{OUT}/Fedokawaii-Guide.pdf", f"{OUT}/Fedokawaii-Guide.packed.pdf")
+os.replace(f"{OUT}/Fedokawaii-Guide.packed.pdf", f"{OUT}/Fedokawaii-Guide.pdf")
+print("packed", os.path.getsize(f"{OUT}/Fedokawaii-Guide.pdf") // 1024, "KiB")

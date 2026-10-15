@@ -5,8 +5,8 @@
     python3 tools/build-cursors.py --preview out.png  # also draws every pointer, 8x, centred
 
 Output (committed, so a normal install needs no Python):
-    configs/home/.local/share/icons/Fedokawai/cursors/<name>   Xcursor files, 24 and 48 px
-    configs/home/.local/share/icons/Fedokawai/index.theme
+    configs/home/.local/share/icons/Fedokawaii/cursors/<name>   Xcursor files, 24 and 48 px
+    configs/home/.local/share/icons/Fedokawaii/index.theme
 
 Every pointer comes in two sizes in one file: 24 px, drawn 1:1 (the desktop's own pixel
 scale, like its fonts and icons), and 48 px with every pixel doubled for 2x screens. The
@@ -23,7 +23,7 @@ import sys
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 SRC = ROOT / "art" / "cursors.txt"
-OUT = ROOT / "configs/home/.local/share/icons/Fedokawai"
+OUT = ROOT / "configs/home/.local/share/icons/Fedokawaii"
 COLOURS = {"K": 0xFF0F0E0C, "W": 0xFFECE3CC, "R": 0xFFD0583A}   # ARGB, opaque
 SIZES = (24, 48)                                                 # nominal sizes: 1x and 2x
 
@@ -145,7 +145,7 @@ def main():
         (OUT / "cursors" / c["name"]).write_bytes(xcursor(c))
     (OUT / "index.theme").write_text(
         "[Icon Theme]\n"
-        "Name=Fedokawai\n"
+        "Name=Fedokawaii\n"
         "Comment=Pixel pointers in ink and paper (tools/build-cursors.py)\n"
         "Inherits=Adwaita\n")
     print(f"{len(cursors)} pointers → {(OUT / 'cursors').relative_to(ROOT)}/")

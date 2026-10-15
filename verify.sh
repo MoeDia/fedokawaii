@@ -2,13 +2,13 @@
 # ═════════════════════════════════════════════════════════════════════════════
 #  verify.sh — proves the machine matches the manifest. Read-only; safe any time.
 #
-#    fedokawai verify                    (or: sudo bash fedokawai.sh verify)
+#    fedokawaii verify                   (or: sudo bash fedokawaii.sh verify)
 #    sudo bash verify.sh --pre-finalize  used by setup.sh before enabling the login
 #
 #  System checks always run. Theme checks run once the theme has been applied
 #  (otherwise they are listed as "not applied", which is not a failure).
 #  Every check fails if its probe fails — a broken tool can never produce a pass.
-#  Exit 0 = all passed. Log: /var/log/fedokawai-verify.log
+#  Exit 0 = all passed. Log: /var/log/fedokawaii-verify.log
 # ═════════════════════════════════════════════════════════════════════════════
 set -uo pipefail
 IFS=$'\n\t'
@@ -17,23 +17,25 @@ REPO_DIR="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" && pwd)"
 PRE=0; [[ ${1:-} == --pre-finalize ]] && PRE=1
 [[ $EUID -eq 0 ]] || { echo "run with sudo" >&2; exit 2; }
 
-STATE_DIR=/var/lib/fedokawai
-LOG_FILE=/var/log/fedokawai-verify.log; : >"$LOG_FILE"
+STATE_DIR=/var/lib/fedokawaii
+LOG_FILE=/var/log/fedokawaii-verify.log; : >"$LOG_FILE"
 source "$REPO_DIR/lib/common.sh"
 source "$REPO_DIR/lib/manifest.sh"
 source "$REPO_DIR/lib/upstream.sh"
-read_conf "$REPO_DIR/fedokawai.conf"
+source "$REPO_DIR/lib/hygiene.sh"
+source "$REPO_DIR/lib/hardware.sh"
+read_conf "$REPO_DIR/fedokawaii.conf"
 [[ -f $STATE_DIR/user ]] || { echo "setup has not started — nothing to verify yet (try: check)" >&2; exit 2; }
 TARGET_USER=$(<"$STATE_DIR/user"); TARGET_HOME=$(getent passwd "$TARGET_USER" | cut -d: -f6)
 TARGET_UID=$(id -u "$TARGET_USER"); TARGET_GID=$(id -g "$TARGET_USER")
 export TARGET_USER TARGET_HOME TARGET_UID TARGET_GID
 GPU_KIND=$(cat "$STATE_DIR/gpu" 2>/dev/null || echo amd)
-THEMED=0; [[ -f $TARGET_HOME/.local/state/fedokawai/theme-applied ]] && THEMED=1
+THEMED=0; [[ -f $TARGET_HOME/.local/state/fedokawaii/theme-applied ]] && THEMED=1
 U() { as_user "$@"; }
 dump=$(dnf --dump-main-config 2>/dev/null)
 dnfopt() { sed -n "s/^$1 *= *//p" <<<"$dump"; }
 
-hdr "Fedokawai · verify · $(date '+%F %H:%M')"
+hdr "Fedokawaii · verify · $(date '+%F %H:%M')"
 
 # ── system ───────────────────────────────────────────────────────────────────
 section "system"
@@ -87,6 +89,31 @@ if [[ -n $ui ]]; then
 else fail "nothing user-installed beyond the manifest" "dnf repoquery failed"; fi
 check "no Flatpak, no Snap"                            bash -c 'command -v dnf && ! command -v flatpak && ! command -v snap'
 check "one editor (no vim, nano, emacs)"               bash -c 'command -v nvim && ! command -v vim && ! command -v nano && ! command -v emacs'
+# nothing doubled, nothing fighting (lib/hygiene.sh) — repair puts each of these right
+d=$(hy_duplicates)
+if [[ -z $d ]]; then pass "no package installed twice"
+else fail "packages installed twice" "$(tr '\n' ' ' <<<"$d")— repair keeps the newer"; fi
+d=$(hy_dnf_problems)
+if [[ -z $d ]]; then pass "dnf check: every dependency in place"
+else fail "dnf check reports problems" "$(head -n 3 <<<"$d" | tr '\n' ' ')— repair"; fi
+d=$(hy_services)
+if [[ -z $d ]]; then pass "no system service fights the desktop's own"
+else fail "services that fight the desktop's own" "$(cut -d'|' -f1 <<<"$d" | tr '\n' ' ')— repair switches them off"; fi
+d=$(hy_user_services)
+if [[ -z $d ]]; then pass "none of your services fights the session's"
+else fail "your services that fight the session's" "$(cut -d'|' -f1 <<<"$d" | tr '\n' ' ')— repair switches them off"; fi
+d=$(hy_display_manager)
+if [[ $d == greetd.service ]] || [[ -z $d && $PRE == 1 ]]; then pass "the login is greetd's alone"   # (before finalize: none yet)
+else fail "the login is ${d:-no login manager at all}" "greetd should be — repair"; fi
+d=$(hy_unneeded)
+if [[ -z $d ]]; then pass "no dependency left that nothing needs"
+else warn "dependencies nothing needs any more" "$(tr '\n' ' ' <<<"$d")— update and repair clear them"; fi
+d=$(hy_rpmnew)
+if [[ -z $d ]]; then pass "no configuration file left unmerged (.rpmnew, .rpmsave)"
+else warn "configuration files to compare by hand" "$(tr '\n' ' ' <<<"$d")"; fi
+d=$(hy_leftovers)
+if [[ -z $d ]]; then pass "nothing left behind by a stopped run"
+else warn "left behind by a stopped run" "$(tr '\n' ' ' <<<"$d")— repair clears it"; fi
 
 # ── repositories & dnf ───────────────────────────────────────────────────────
 section "repositories & dnf"
@@ -107,11 +134,11 @@ check "dnf minrate=50k (stalled mirrors dropped)"      grep -qxE '51200|50[kK]' 
 check "dnf defaultyes on"                              grep -qxiE '1|true' <<<"$(dnfopt defaultyes)"
 
 # ── upkeep: the toolkit and its control ──────────────────────────────────────
-section "upkeep (fedokawai · Super+U)"
-TK=/usr/local/lib/fedokawai
+section "upkeep (fedokawaii · Super+U)"
+TK=/usr/local/lib/fedokawaii
 check "the toolkit: root's own copy, writable by root alone" \
   bash -c 'test -f "$1/setup.sh" && test -z "$(find "$1" \( ! -user root -o \( ! -type l -perm /022 \) \) -print -quit)"' _ "$TK"
-check "the control: fedokawai is the toolkit's"         cmp -s "$TK/system/fedokawai" /usr/local/bin/fedokawai
+check "the control: fedokawaii is the toolkit's"         cmp -s "$TK/system/fedokawaii" /usr/local/bin/fedokawaii
 check "the manifest's packages marked as yours (dnf's clean-up never takes them)" \
   bash -c 'u=$(dnf repoquery --userinstalled --qf "%{name}\n" 2>/dev/null) || exit 1
            for p; do n=$p; rpm -q "$p" >/dev/null 2>&1 || n=$(rpm -q --qf "%{NAME}\n" --whatprovides "$p" 2>/dev/null | awk "NR == 1")
@@ -151,6 +178,35 @@ check "Vulkan driver present"                          compgen -G '/usr/share/vu
 enc=$(ffmpeg -hide_banner -encoders 2>/dev/null)
 for e in libx264 libx265 libsvtav1 libaom-av1; do check "ffmpeg encoder $e" grep -qw "$e" <<<"$enc"; done
 
+# ── this machine's drivers and firmware (lib/hardware.sh) ────────────────────
+section "drivers and firmware"
+cpu=$(hw_cpu_vendor)
+mapfile -t hw < <(hw_wanted -C | grep . | sort -u)     # (-C: dnf's cached metadata — no network)
+miss=(); for p in "${hw[@]}"; do pkg_installed "$p" || miss+=("$p"); done
+if ((${#miss[@]} == 0)); then pass "this machine's driver packages installed (${#hw[@]}: $(IFS=' '; echo "${hw[*]:-none needed}"))"
+# (missing, the desktop still works: a warning, and update and repair try again — a package
+# that would not install must never keep setup from finishing)
+else warn "driver packages this machine needs" "$(IFS=' '; echo "${miss[*]}") — update and repair install them"; fi
+case $cpu in
+  GenuineIntel|AuthenticAMD)
+    # (grep reads to the end: -q would stop at the line, and journalctl's write would fail)
+    if journalctl -k -b -o cat --no-pager 2>/dev/null | grep -iE 'microcode: (updated early|.*revision)' >/dev/null; then pass "CPU microcode loaded at boot ($cpu)"
+    else info "the kernel log says nothing of microcode this boot ($cpu: it may already be current in the firmware)"; fi ;;
+esac
+d=$(hw_driverless)
+if [[ -z $d ]]; then pass "every network, display, sound and USB device has its driver"
+else warn "devices no driver holds" "$(tr '\n' ';' <<<"$d") — lspci -nnk names them"; fi
+if hw_has_wifi; then
+  check "Wi-Fi managed by NetworkManager"              bash -c '! nmcli -t -f TYPE,STATE device | grep -q "^wifi:unmanaged"'
+fi
+d=$(cat "$STATE_DIR/fw-updates" 2>/dev/null)
+if [[ -n $d ]]; then info "firmware updates for this machine's devices (fwupdmgr update applies them): $(tr '\n' ';' <<<"$d")"; fi
+# drives — USB sticks, disks, SD cards: udisks opens them for udiskie (and kawa-drives)
+check "drives: udisks answers (what you plug in opens)" \
+  busctl --system get-property org.freedesktop.UDisks2 /org/freedesktop/UDisks2/Manager org.freedesktop.UDisks2.Manager Version
+if modinfo ntfs3 >/dev/null 2>&1; then info "NTFS drives open with the kernel's ntfs3 (ntfs-3g stands by)"
+else info "NTFS drives open with ntfs-3g (this kernel has no ntfs3)"; fi
+
 # ── compositor & login ───────────────────────────────────────────────────────
 section "compositor & login"
 check "dwl $DWL_TAG installed"                         U bash -c "/usr/local/bin/dwl -v 2>&1 | grep -q '${DWL_TAG#v}'"
@@ -163,8 +219,8 @@ check "dwl finds every library (its wlroots: its own)"  U bash -c 'l=$(ldd /usr/
 check "session launcher (start-dwl)"                   test -x /usr/local/bin/start-dwl
 check "keyboard layouts $KB_LAYOUTS"                   grep -q "XKB_DEFAULT_LAYOUT=\"$KB_LAYOUTS\"" /usr/local/bin/start-dwl
 check "greetd SELinux module loaded"                   bash -c 'semodule -l | grep -qw greetd'
-check "greetd runs kawa-greeter"                       grep -q '/usr/local/bin/kawa-greeter' /etc/greetd/fedokawai.toml
-check "greetd reads fedokawai.toml"                    bash -c 'systemctl cat greetd.service | grep -qx "ExecStart=/usr/bin/greetd --config /etc/greetd/fedokawai.toml"'
+check "greetd runs kawa-greeter"                       grep -q '/usr/local/bin/kawa-greeter' /etc/greetd/fedokawaii.toml
+check "greetd reads fedokawaii.toml"                   bash -c 'systemctl cat greetd.service | grep -qx "ExecStart=/usr/bin/greetd --config /etc/greetd/fedokawaii.toml"'
 check "agreety (greetd's text greeter) installed"      test -x /usr/bin/agreety
 check "kawa-greeter starts agreety → start-dwl"       grep -q 'exec agreety --cmd /usr/local/bin/start-dwl' /usr/local/bin/kawa-greeter
 # the file dialog: yazi through xdg-desktop-portal-termfilechooser, which setup.sh builds. Not
@@ -188,14 +244,14 @@ for s in "${svcs[@]}"; do
   check "$s enabled" systemctl is-enabled --quiet "$s"
 done
 for s in "${SVC_USER_GLOBAL[@]}"; do check "user unit $s enabled" bash -c "systemctl --global is-enabled $s | grep -qx enabled"; done
-check "tuned profile fedokawai (always-plugged desktop)" bash -c 'tuned-adm active 2>/dev/null | grep -q fedokawai'
-check "Wi-Fi power saving off"                         test -f /etc/NetworkManager/conf.d/90-fedokawai.conf
+check "tuned profile fedokawaii (always-plugged desktop)" bash -c 'tuned-adm active 2>/dev/null | grep -q fedokawaii'
+check "Wi-Fi power saving off"                         test -f /etc/NetworkManager/conf.d/90-fedokawaii.conf
 [[ $STEAM == yes ]] && check "ntsync ready for Proton (/dev/ntsync)" test -c /dev/ntsync
 check "linger on (update, repair, verify reach your services)" test -f "/var/lib/systemd/linger/$TARGET_USER"
-check "secrets.sh private (yours, chmod 600)"          bash -c '[[ ! -e $1 ]] || [[ $(stat -c "%a %U" "$1") == "600 $2" ]]' _ "$TARGET_HOME/.config/fedokawai/secrets.sh" "$TARGET_USER"
+check "secrets.sh private (yours, chmod 600)"          bash -c '[[ ! -e $1 ]] || [[ $(stat -c "%a %U" "$1") == "600 $2" ]]' _ "$TARGET_HOME/.config/fedokawaii/secrets.sh" "$TARGET_USER"
 # torrents: one key, in secrets.sh only; Prowlarr takes it, torrra gets it from kawa-torrra
 # shellcheck disable=SC2016  # expanded by the user's bash, after sourcing the file
-pkey=$(U bash -c '. "$1" >/dev/null 2>&1; printf %s "${PROWLARR_API_KEY:-}"' _ "$TARGET_HOME/.config/fedokawai/secrets.sh" 2>/dev/null) || pkey=""
+pkey=$(U bash -c '. "$1" >/dev/null 2>&1; printf %s "${PROWLARR_API_KEY:-}"' _ "$TARGET_HOME/.config/fedokawaii/secrets.sh" 2>/dev/null) || pkey=""
 prowlarr_get() {   # prowlarr_get PATH — the key goes to curl on stdin, never as an argument
   printf 'header = "X-Api-Key: %s"\n' "$pkey" | U curl -fsS --max-time 5 -K - "http://127.0.0.1:9696/api/v1/$1"
 }
@@ -271,11 +327,20 @@ if ((PRE == 0)); then
   section "snapshots"
   check "snapper config for /"                         bash -c 'snapper list-configs | grep -q "^root "'
   # (yours to delete when space runs short — the next move to a Fedora takes a new one)
-  if [[ $(snapper -c root list 2>/dev/null) == *"fedokawai baseline"* ]]; then pass "baseline snapshot exists"
-  else warn "no baseline snapshot" "deleted? the next move to a new Fedora takes one; or now: sudo snapper -c root create -d \"fedokawai baseline\""; fi
-  check "pre/post snapshot around every dnf run"       test -x /usr/local/sbin/kawa-snap -a -f /etc/dnf/libdnf5-plugins/actions.d/fedokawai-snapper.actions
+  if [[ $(snapper -c root list 2>/dev/null) == *"fedokawaii baseline"* ]]; then pass "baseline snapshot exists"
+  else warn "no baseline snapshot" "deleted? the next move to a new Fedora takes one; or now: sudo snapper -c root create -d \"fedokawaii baseline\""; fi
+  check "pre/post snapshot around every dnf run"       test -x /usr/local/sbin/kawa-snap -a -f /etc/dnf/libdnf5-plugins/actions.d/fedokawaii-snapper.actions
   check "snapshots kept within bounds (a fifth of the disk stays free)" \
     bash -c 'snapper --csvout -c root get-config | grep -qE "^FREE_LIMIT,0\.2"'
+  # the monthly scrub: on, and what the last one found (a disk going bad shows up here first)
+  if [[ $(findmnt -no FSTYPE / 2>/dev/null) == btrfs ]]; then
+    check "the monthly Btrfs scrub is on"              systemctl is-enabled --quiet fedokawaii-scrub.timer
+    sc=$(btrfs scrub status / 2>/dev/null) || sc=""
+    if [[ -z $sc || $sc == *"no stats available"* || $sc != *"Error summary"* ]]; then
+      info "no scrub has run yet (the first comes within a month)"
+    elif [[ $sc == *"no errors found"* ]]; then pass "the last scrub found no errors"
+    else fail "the last scrub found errors" "$(grep -m1 'Error summary' <<<"$sc") — copy what you keep to another disk now, then: sudo btrfs device stats /"; fi
+  fi
 fi
 
 # ── theme (only once applied) ────────────────────────────────────────────────
@@ -283,7 +348,7 @@ section "theme"
 if ((THEMED == 0)); then
   info "not applied — menu → Theme when you want it (setup alone gives dwl with upstream defaults)"
 else
-  info "applied $(cat "$TARGET_HOME/.local/state/fedokawai/theme-applied")"
+  info "applied $(cat "$TARGET_HOME/.local/state/fedokawaii/theme-applied")"
   check "every file in sync with the repo"             bash "$REPO_DIR/theme.sh" --user "$TARGET_USER" --check
   if grep -q 'vt.default_red=15,' /proc/cmdline; then pass "console palette active (the login console)"
   else info "console palette recorded for the kernel; it shows after the next boot"; fi
@@ -297,11 +362,11 @@ else
   done
   if [[ -n $fzhelp && -z $fzbad ]]; then pass "every fuzzel option the menus use exists"; else fail "fuzzel options" "${fzbad:-fuzzel missing}"; fi
   check "waybar config valid JSON"                     bash -c "grep -v '^[[:space:]]*//' $TARGET_HOME/.config/waybar/config.jsonc | jq -e ."
-  mode=$(readlink "$TARGET_HOME/.config/fedokawai/current"); mode=${mode##*/}
-  check "theme link → ${mode:-none} (dark or light)"   test -r "$TARGET_HOME/.config/fedokawai/current/colors.sh"
-  check "Qt palette has 3 × 21 colours"                awk -F, '/_colors=/{n++; if (NF!=21) bad=1} END{exit (n!=3 || bad)}' "$TARGET_HOME/.config/fedokawai/current/qt6ct-colors.conf"
+  mode=$(readlink "$TARGET_HOME/.config/fedokawaii/current"); mode=${mode##*/}
+  check "theme link → ${mode:-none} (dark or light)"   test -r "$TARGET_HOME/.config/fedokawaii/current/colors.sh"
+  check "Qt palette has 3 × 21 colours"                awk -F, '/_colors=/{n++; if (NF!=21) bad=1} END{exit (n!=3 || bad)}' "$TARGET_HOME/.config/fedokawaii/current/qt6ct-colors.conf"
   check "GTK and the portal follow the theme (prefer-$mode)" grep -q "prefer-$mode" <<<"$(U gsettings get org.gnome.desktop.interface color-scheme 2>&1)"
-  gtk=Fedokawai; [[ $mode == dark ]] && gtk=Fedokawai-dark
+  gtk=Fedokawaii; [[ $mode == dark ]] && gtk=Fedokawaii-dark
   check "GTK 3 theme $gtk (adw-gtk3 + the palette)"    grep -q "'$gtk'" <<<"$(U gsettings get org.gnome.desktop.interface gtk-theme 2>&1)"
   check "no window buttons in title bars (GTK, Brave)"  grep -qx "':'" <<<"$(U gsettings get org.gnome.desktop.wm.preferences button-layout 2>&1)"
   check "folders open in yazi, text in neovim"         test "$(U xdg-mime query default inode/directory) $(U xdg-mime query default text/plain)" = "kawa-files.desktop kawa-edit.desktop"
@@ -318,15 +383,15 @@ else
     pass "Brave in the desktop's colours (GTK mode, ground-coloured new tab)"
   else warn "Brave not in the desktop's colours" "your choice in Brave — or Settings → Appearance → Theme → GTK"; fi
   check "magnet links and .torrent files open in torrra" test "$(U xdg-mime query default x-scheme-handler/magnet) $(U xdg-mime query default application/x-bittorrent)" = "kawa-torrents.desktop kawa-torrents.desktop"
-  check "GTK 3 themes find adw-gtk3"                   bash -c 'for t in "" -dark; do f=$(sed -n "s|.*url(\"file://\([^\"]*\)\").*|\1|p" "$1/Fedokawai$t/gtk-3.0/gtk.css"); [[ -r $f ]] || exit 1; done' _ "$TARGET_HOME/.local/share/themes"
+  check "GTK 3 themes find adw-gtk3"                   bash -c 'for t in "" -dark; do f=$(sed -n "s|.*url(\"file://\([^\"]*\)\").*|\1|p" "$1/Fedokawaii$t/gtk-3.0/gtk.css"); [[ -r $f ]] || exit 1; done' _ "$TARGET_HOME/.local/share/themes"
   check "monospace → JetBrainsMono Nerd Font"          grep -q JetBrainsMono <<<"$(U fc-match monospace 2>&1)"
   check "Arabic → Noto Naskh Arabic"                   grep -q Naskh <<<"$(U fc-match 'sans-serif:lang=ar' 2>&1)"
   check "Japanese / Chinese / Korean → Noto Sans CJK"  U bash -c 'for l in ja zh-cn ko; do [[ $(fc-match "sans-serif:lang=$l") == *"Noto Sans CJK"* ]] || exit 1; done'
-  check "mpv: the theme's colours, players follow switches" test -r "$TARGET_HOME/.config/fedokawai/current/mpv.conf" -a -f "$TARGET_HOME/.config/mpv/scripts/kawa-ipc.lua"
+  check "mpv: the theme's colours, players follow switches" test -r "$TARGET_HOME/.config/fedokawaii/current/mpv.conf" -a -f "$TARGET_HOME/.config/mpv/scripts/kawa-ipc.lua"
   check "neovim colourscheme gruvbox (remapped)"       U sh -c 'timeout 60 nvim --headless "+lua io.write(vim.g.colors_name or \"\")" +qa 2>&1 | grep -q gruvbox'
   check "icon themes present (Papirus, Adwaita beneath the pointers)" test -d /usr/share/icons/Papirus-Dark -a -d /usr/share/icons/Papirus -a -d /usr/share/icons/Adwaita/cursors
-  check "pixel pointers in place (Fedokawai, with their X11 names)" test -s "$TARGET_HOME/.local/share/icons/Fedokawai/cursors/default" \
-    -a -L "$TARGET_HOME/.local/share/icons/Fedokawai/cursors/left_ptr" -a -s "$TARGET_HOME/.local/share/icons/default/index.theme"
+  check "pixel pointers in place (Fedokawaii, with their X11 names)" test -s "$TARGET_HOME/.local/share/icons/Fedokawaii/cursors/default" \
+    -a -L "$TARGET_HOME/.local/share/icons/Fedokawaii/cursors/left_ptr" -a -s "$TARGET_HOME/.local/share/icons/default/index.theme"
   check "UI font → DepartureMono Nerd Font"           grep -q DepartureMono <<<"$(U fc-match 'DepartureMono Nerd Font' 2>&1)"
   check "pixel icons → Sumi Icons"                     grep -q 'Sumi Icons' <<<"$(U fc-match 'Sumi Icons' 2>&1)"
   check "pixel icons in the terminal → Sumi Icons Term"  grep -q 'Sumi Icons Term' <<<"$(U fc-match 'Sumi Icons Term' 2>&1)"
@@ -338,7 +403,7 @@ else
   else warn "clipboard keeper (kawa-clipkeep) not built" "copy and paste work; a copy just ends with its app — repair builds it"; fi
   check "clipboard and wallpaper windows (fzf ≥ 0.68)" bash -c 'v=$(fzf --version 2>/dev/null) || exit 1; IFS=. read -r a b _ <<<"${v%% *}"; ((a > 0 || b >= 68))'
   check "wallpaper previews (ImageMagick draws sixels)" bash -c 'magick -size 2x2 xc:black sixel:- | grep -q "^.P"'
-  art=$TARGET_HOME/.local/share/fedokawai
+  art=$TARGET_HOME/.local/share/fedokawaii
   check "pixel art drawn for both themes (waves, Fuji, padlock)" \
     test -s "$art/dark/pattern.png" -a -s "$art/dark/scene.png" -a -s "$art/dark/lock.png" \
       -a -s "$art/light/pattern.png" -a -s "$art/light/scene.png" -a -s "$art/light/lock.png"
@@ -374,7 +439,7 @@ if pgrep -u "$TARGET_UID" -x dwl >/dev/null; then
     else info "night light off (quick settings turns it on)"; fi
     WD=$(find "/run/user/$TARGET_UID" -maxdepth 1 -name 'wayland-*' ! -name '*.lock' -printf '%f\n' -quit)
     check "clipboard history running"                  pgrep -u "$TARGET_UID" -f 'wl-paste --watch cliphist'
-    check "the update season's reminder (timer) running" U systemctl --user is-active --quiet fedokawai-remind.timer
+    check "the update season's reminder (timer) running" U systemctl --user is-active --quiet fedokawaii-remind.timer
     [[ -x $TARGET_HOME/.local/bin/kawa-clipkeep ]] && check "copies outlive their app (kawa-clipkeep)" pgrep -u "$TARGET_UID" -x kawa-clipkeep
     IFS=' ' read -r cur best < <(U env WAYLAND_DISPLAY="$WD" wlr-randr | awk -v want="$MONITOR_HZ" '
       /^[^ ]/ { if (c) exit } /^    [0-9]+x[0-9]+ px/ { r[++n] = $1; hz[n] = $3 + 0; if ($0 ~ /current/) { c = $1; ch = $3 + 0 } }
@@ -390,7 +455,7 @@ if pgrep -u "$TARGET_UID" -x dwl >/dev/null; then
   fi
 fi
 
-((${#FAILS[@]} == 0)) || _out "  ${C_DIM}most of these fix themselves: fedokawai repair${C_RESET}"
+((${#FAILS[@]} == 0)) || _out "  ${C_DIM}most of these fix themselves: fedokawaii repair${C_RESET}"
 summary "verified"; rc=$?
 ((rc == 0)) || rc=3          # (3: it ran, and things need you — 1 is verify itself failing)
 # the outcome, for the menu (Super+U) and repair: WHEN PASSED FAILED WARNINGS

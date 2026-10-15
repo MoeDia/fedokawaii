@@ -1,0 +1,33 @@
+#!/usr/bin/env bash
+# lsblk for the pictures: two drives plugged in — a USB stick (open) and an external disk
+# (closed) — beside the machine's own NVMe disk, as util-linux 2.41 prints them in JSON.
+# What kawa-drives asks is answered from this tree; anything else goes to the real lsblk.
+# "$XDG_RUNTIME_DIR/stub-drives-closed" (the stub udiskie-umount writes it): the stick is closed too.
+open=/run/media/kawau/KINGSTON
+[[ -e ${XDG_RUNTIME_DIR:-/nonexistent}/stub-drives-closed ]] && open=""
+mp() { if [[ -n $1 ]]; then printf '["%s"]' "$1"; else printf '[null]'; fi; }
+tree() { cat <<JSON
+{"blockdevices": [
+  {"name":"/dev/nvme0n1", "type":"disk", "rm":false, "hotplug":false, "tran":"nvme", "label":null, "size":"931.5G", "fstype":null, "mountpoints":[null], "vendor":null, "model":"Samsung SSD 990 PRO 1TB",
+   "children": [
+     {"name":"/dev/nvme0n1p1", "type":"part", "rm":false, "hotplug":false, "tran":"nvme", "label":null, "size":"600M", "fstype":"vfat", "mountpoints":["/boot/efi"], "vendor":null, "model":null},
+     {"name":"/dev/nvme0n1p2", "type":"part", "rm":false, "hotplug":false, "tran":"nvme", "label":null, "size":"1G", "fstype":"xfs", "mountpoints":["/boot"], "vendor":null, "model":null},
+     {"name":"/dev/nvme0n1p3", "type":"part", "rm":false, "hotplug":false, "tran":"nvme", "label":"fedora", "size":"929.9G", "fstype":"btrfs", "mountpoints":["/home", "/"], "vendor":null, "model":null}]},
+  {"name":"/dev/sda", "type":"disk", "rm":true, "hotplug":true, "tran":"usb", "label":null, "size":"28.9G", "fstype":null, "mountpoints":[null], "vendor":"Kingston", "model":"DataTraveler 3.0",
+   "children": [
+     {"name":"/dev/sda1", "type":"part", "rm":true, "hotplug":true, "tran":null, "label":"KINGSTON", "size":"28.9G", "fstype":"exfat", "mountpoints":$(mp "$open"), "vendor":null, "model":null}]},
+  {"name":"/dev/sdb", "type":"disk", "rm":false, "hotplug":true, "tran":"usb", "label":null, "size":"931.5G", "fstype":null, "mountpoints":[null], "vendor":"WD      ", "model":"Elements 25A2   ",
+   "children": [
+     {"name":"/dev/sdb1", "type":"part", "rm":false, "hotplug":true, "tran":null, "label":"PHOTOS", "size":"931.5G", "fstype":"ntfs", "mountpoints":[null], "vendor":null, "model":null}]}
+]}
+JSON
+}
+node() { tree | jq --arg d "$1" '{blockdevices: [.. | objects | select(.name? == $d)]}'; }
+dev=${!#}
+case "$*" in
+  "-J -p -o "*) tree ;;
+  "-J -o MOUNTPOINTS -- "*) node "$dev" ;;
+  "-nlpso NAME,TYPE -- "*) case $dev in /dev/sd?[0-9]*) printf '%s part\n%s disk\n' "$dev" "${dev%%[0-9]*}" ;; *) printf '%s disk\n' "$dev" ;; esac ;;
+  "-ndo SIZE,FSTYPE -- "*) node "$dev" | jq -r '.blockdevices[0] | "\(.size) \(.fstype // "")"' ;;
+  *) exec /usr/bin/lsblk "$@" ;;
+esac

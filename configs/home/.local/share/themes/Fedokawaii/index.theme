@@ -1,0 +1,7 @@
+[Desktop Entry]
+Type=X-GNOME-Metatheme
+Name=Fedokawaii
+Comment=fedokawaii washi (paper): adw-gtk3 with the desktop palette (generated)
+
+[X-GNOME-Metatheme]
+GtkTheme=Fedokawaii

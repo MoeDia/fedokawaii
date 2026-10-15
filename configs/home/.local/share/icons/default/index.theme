@@ -1,4 +1,4 @@
 # ~/.local/share/icons/default/index.theme — the pointer theme for programs that ask for
 # "the default" (dwl itself, XWayland): the pixel pointers in ink and paper
 [Icon Theme]
-Inherits=Fedokawai
+Inherits=Fedokawaii

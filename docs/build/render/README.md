@@ -1,4 +1,4 @@
-# Real renders of the fedokawai desktop (headless, Fedora 44 versions)
+# Real renders of the fedokawaii desktop (headless, Fedora 44 versions)
 
 `shoot.sh` starts the real apps — waybar, fuzzel, mako, foot/footclient, swaylock — with
 the test user's configs (what `theme.sh --user kawau` installed), in a headless sway on a
@@ -18,11 +18,11 @@ sudo SHOOT_ONLY="bar menus" ./shoot.sh dark   # groups: bar menus notify term lo
 A full run starts each `shots/<theme>/` and `logs/<theme>/` clean; a partial run
 (`SHOOT_ONLY`) replaces only the files of the groups it shoots.
 
-Re-run it after the repo changes: `cd /home/claude/fedokawai && sudo bash theme.sh --user kawau`,
+Re-run it after the repo changes: `cd /home/claude/fedokawaii && sudo bash theme.sh --user kawau`,
 then `./shoot.sh`. It is idempotent: every run starts from scratch, and each theme runs in
 its own PID + mount + UTS namespace, so when a theme is done every process it started is
 gone (nothing to clean up, even after a crash or a timeout — each theme is capped at 15 min).
-At the end the user's theme link (`~/.config/fedokawai/current`) is put back as it was.
+At the end the user's theme link (`~/.config/fedokawaii/current`) is put back as it was.
 
 Debugging: `SHOOT_SWAY_DEBUG=1` (sway -d into the sway log), `SHOOT_FOOT_DEBUG=1`
 (WAYLAND_DEBUG for the foot server).
@@ -62,7 +62,7 @@ Real: the five apps and their configs (including whatever theme.sh installs next
 e.g. `~/.config/pipewire/pipewire.conf.d/60-share.conf` — the "Share" output in the audio
 menu — and `~/.local/share/applications/kawa-*.desktop` — "Files" in the launcher), every
 `kawa-*` script and `fetch`, the user's
-bash prompt (`~/.bashrc.d/fedokawai.sh`), fonts (DepartureMono Nerd Font, JetBrainsMono
+bash prompt (`~/.bashrc.d/fedokawaii.sh`), fonts (DepartureMono Nerd Font, JetBrainsMono
 Nerd Font v3.5.1, PixelMplus12, Sumi Icons, Noto, Amiri, Liberation, Noto Color Emoji),
 adw-gtk3 6.4 + Papirus 20250501 (Fedora 44's), dconf defaults, PipeWire + WirePlumber
 (the volume module, `wpctl`, `pw-dump`), D-Bus, notify-send, the `kawa-dwlstatus` →
@@ -72,7 +72,7 @@ Stand-ins (`stubs/`, first in PATH; `xdg/`; `lib/`):
 
 | what | why / how |
 |---|---|
-| dwl | sway 1.9 (Ubuntu) is the compositor; dwl's status stream is written to `kawa-dwlstatus` by hand: tags 1 2 4 5 occupied, 1 selected, 5 urgent, layout `[]=`, layout US, title `~/repos/fedokawai` |
+| dwl | sway 1.9 (Ubuntu) is the compositor; dwl's status stream is written to `kawa-dwlstatus` by hand: tags 1 2 4 5 occupied, 1 selected, 5 urgent, layout `[]=`, layout US, title `~/repos/fedokawaii` |
 | `playerctl`, `cava` | one player, Playing "Mariya Takeuchi — Plastic Love"; one fixed meter frame (so the cassette's reels are always in the same position) |
 | `/proc/stat` (first line) | `lib/fakestat.py`, bind-mounted inside the namespace: a steady synthetic load, so the CPU history does not depend on what else this shared VM is doing |
 | `nmcli`, `bluetoothctl` | wired network up; one powered controller. `/sys/class/bluetooth/hci0` exists only for the `menu-quick` process (a private mount) |
@@ -83,8 +83,8 @@ Stand-ins (`stubs/`, first in PATH; `xdg/`; `lib/`):
 | `wlr-randr` | `/tmp/veiltest/fakebin/wlr-randr`: sway's outputs in wlr-randr's format |
 | audio devices | PipeWire null sinks/source named like the real machine's (Starship/Matisse analog, Navi 31 HDMI) |
 | launcher entries | `xdg/share/applications`: Fedora's `.desktop` names/icons for the GUI apps setup.sh installs, plus foot's own three |
-| system identity | inside the namespace: hostname `fedokawai`, a Fedora 44 Server `/etc/os-release` (what `fetch` prints) |
-| `~/repos/fedokawai` | recreated each run: a copy of the repo as a git repo with +1 staged, ~2 modified, ?1 untracked, ↑1 ahead |
+| system identity | inside the namespace: hostname `fedokawaii`, a Fedora 44 Server `/etc/os-release` (what `fetch` prints) |
+| `~/repos/fedokawaii` | recreated each run: a copy of the repo as a git repo with +1 staged, ~2 modified, ?1 untracked, ↑1 ahead |
 | the screenshot in `notify-normal` | a crop of the wallpaper's Fuji scene |
 
 ## Built at Fedora 44's versions (`build.sh` → `/opt/f44`)
@@ -204,7 +204,7 @@ keeps it). Demo files (`~/Documents`, `~/Videos`, `~/Pictures`), `secrets.sh` wi
 Prowlarr key, the demo repository (apps.sh's own `demo_repo`: the repo's files committed in a dozen
 steps dated Sep–Oct 2026, a merged `wallpaper` branch and an open `torrra` one, origin one commit
 behind; then work in progress like shoot.sh's: +1 staged, ~2 modified, ?1 untracked), a fresh dconf user database, Brave's profile, torrra's config…
-all live there. The system dconf defaults are compiled from the repo's `00-fedokawai` only
+all live there. The system dconf defaults are compiled from the repo's `00-fedokawaii` only
 and bind-mounted over `/etc/dconf/db/local` (this sandbox's `local.d` still holds an old
 `00-scriptorium` that would override `gtk-theme` and `button-layout`).
 

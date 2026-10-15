@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # /usr/local/bin/kawa-torrra — torrra (torrent search + download) with the Prowlarr API key
-# taken only from the environment: PROWLARR_API_KEY, kept in ~/.config/fedokawai/secrets.sh
+# taken only from the environment: PROWLARR_API_KEY, kept in ~/.config/fedokawaii/secrets.sh
 # (yours, mode 600). torrra itself reads the key only from its config file and writes it
 # back there on every start; here it is handed to torrra in memory instead, so
 # ~/.config/torrra/config.toml never holds it (one an older setup left there is taken out).
@@ -21,7 +21,7 @@
 set -uo pipefail
 venv=${KAWA_TORRRA_VENV:-$HOME/.local/share/pipx/venvs/torrra}
 py=$venv/bin/python
-secrets=$HOME/.config/fedokawai/secrets.sh
+secrets=$HOME/.config/fedokawaii/secrets.sh
 open=0
 [[ ${1:-} == --open ]] && { open=1; shift; }
 
@@ -95,7 +95,7 @@ if search:
     if r.status_code == 401:
         fail("Prowlarr refused the key in secrets.sh — run: update (it hands Prowlarr the key again)")
     if r.status_code != 200:
-        fail(f"Prowlarr answered HTTP {r.status_code} — journalctl --user -u prowlarr")
+        fail(f"Prowlarr answered HTTP {r.status_code} — journalctl --user -u prowlarr -e")
     if not any(i.get("enable") for i in r.json()):
         fail("Prowlarr has no indexers yet — open http://localhost:9696 → Indexers → Add Indexer")
 

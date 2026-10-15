@@ -6,7 +6,7 @@ export XDG_SESSION_TYPE=wayland
 export XDG_SESSION_DESKTOP=dwl
 export XDG_CURRENT_DESKTOP=wlroots
 
-# keyboard (from fedokawai.conf, filled in by setup.sh)
+# keyboard (from fedokawaii.conf, filled in by setup.sh)
 export XKB_DEFAULT_LAYOUT="@KB_LAYOUTS@"
 export XKB_DEFAULT_OPTIONS="@KB_TOGGLE@"
 
@@ -23,7 +23,7 @@ export GTK_USE_PORTAL=1
 export _JAVA_AWT_WM_NONREPARENTING=1
 
 export EDITOR=nvim VISUAL=nvim TERMINAL=foot BROWSER=brave-origin
-export XCURSOR_THEME=Fedokawai XCURSOR_SIZE=24   # the pixel pointers (~/.local/share/icons/Fedokawai)
+export XCURSOR_THEME=Fedokawaii XCURSOR_SIZE=24   # the pixel pointers (~/.local/share/icons/Fedokawaii)
 export PATH="$HOME/.local/bin:$PATH"
 
 mkdir -p "$HOME/.cache"
@@ -35,7 +35,7 @@ LOG="$HOME/.cache/dwl.log"
 rescue() {
   printf '\n  The desktop could not start: %s.\n\n' "$1"
   printf '  This console works as usual. To put things right:\n\n'
-  printf '      fedokawai repair      finds what broke and fixes it (or: fedokawai, the menu)\n\n'
+  printf '      fedokawaii repair      finds what broke and fixes it (or: fedokawaii, the menu)\n\n'
   printf '  What dwl said: %s · Ctrl+D logs out.\n\n' "$LOG"
   exec bash -l
 }

@@ -8,13 +8,13 @@ and "light" (washi paper: warm paper ground, ink text). Both share the accents
 (vermilion, matcha, yamabuki, indigo, wisteria, asagi), deepened on paper so they keep
 their contrast. This script is the only place the colours are written down; it renders:
 
-  configs/home/.config/fedokawai/themes/<mode>/     one folder per theme, read through
-      colors.sh  waybar.css  foot.ini  fuzzel.ini  the ~/.config/fedokawai/current
+  configs/home/.config/fedokawaii/themes/<mode>/     one folder per theme, read through
+      colors.sh  waybar.css  foot.ini  fuzzel.ini  the ~/.config/fedokawaii/current
       mako  qt6ct.conf  qt6ct-colors.conf          link that kawa-theme switches
       btop.theme  zathurarc  imv  swaylock  presenterm.yaml  mpv.conf
   configs/home/.config/foot/foot.ini              the [colors-dark] / [colors-light] block
   configs/home/.config/gtk-4.0/gtk.css            both themes, chosen by GTK's media query
-  configs/home/.local/share/themes/Fedokawai{,-dark}/   the two GTK 3 themes
+  configs/home/.local/share/themes/Fedokawaii{,-dark}/   the two GTK 3 themes
   configs/home/.config/nvim/lua/plugins/colorscheme.lua   gruvbox remapped to both palettes
 
 A few files cannot include a generated one (dwl's config.h is compiled in; mpv's subtitles,
@@ -28,7 +28,7 @@ import re
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 HOME = ROOT / "configs/home"
-THEMES = HOME / ".config/fedokawai/themes"
+THEMES = HOME / ".config/fedokawaii/themes"
 
 # ── the palettes ────────────────────────────────────────────────────────────────
 # ground .. strong run from the background to the strongest text; ansi0/7/8/15 follow
@@ -46,7 +46,7 @@ P = {
         red="d64b4b", green="8e9a5b", yellow="d29f45", blue="5f7fa0", purple="9079a9", teal="5e9c95",
         bred="e66a5f", bgreen="a8b46f", byellow="e3b866", bblue="7f9dbd", bpurple="ab96c2", bteal="7fb8b0",
         ansi0="2b2721", ansi7="cfc3a6", ansi8="7a7262", ansi15="ece3cc",
-        icons="Papirus-Dark", gtk="Fedokawai-dark", base="adw-gtk3-dark", scheme="prefer-dark",
+        icons="Papirus-Dark", gtk="Fedokawaii-dark", base="adw-gtk3-dark", scheme="prefer-dark",
     ),
     "light": dict(
         ground="e9e1cb", surface="dcd2b8", key="efe8d5", edge="c2b79b", edge2="b1a688",
@@ -60,7 +60,7 @@ P = {
         # on paper the "bright" colours are the deeper ones, so they read at least as well
         bred="942e25", bgreen="4d5625", byellow="6d4b0d", bblue="355270", bpurple="5c4a72", bteal="275a55",
         ansi0="d6cdb3", ansi7="4a443a", ansi8="696255", ansi15="1f1c18",
-        icons="Papirus", gtk="Fedokawai", base="adw-gtk3", scheme="prefer-light",
+        icons="Papirus", gtk="Fedokawaii", base="adw-gtk3", scheme="prefer-light",
     ),
 }
 NAMES = {"dark": "sumi (ink)", "light": "washi (paper)"}
@@ -78,7 +78,7 @@ def header(path, what):
 # ── per-theme files ─────────────────────────────────────────────────────────────
 def colors_sh(m, p):
     keys = ["ground", "surface", "edge", "edge2", "faint", "muted", "text", "strong", "accent", "accent_text"]   # what the scripts read
-    lines = [f"# {header('~/.config/fedokawai/current/colors.sh', 'theme colours for the scripts')}",
+    lines = [f"# {header('~/.config/fedokawaii/current/colors.sh', 'theme colours for the scripts')}",
              "# shellcheck disable=SC2034",
              f"THEME={m}"]
     lines += [f"C_{k.upper()}={p[k]}" for k in keys]
@@ -94,13 +94,13 @@ def waybar_css(m, p):
             ("strong-on-accent", p["on_accent"]), ("accent-text", p["accent_text"]),
             ("lit", p["lit"]), ("lit-text", p["lit_text"]), ("lit-hi", p["lit_hi"]), ("lit-lo", p["lit_lo"]),
             ("urgent", p["asagi"]), ("urgent-text", p["urgent_text"])]
-    out = [f"/* {header('~/.config/fedokawai/current/waybar.css', NAMES[m] + ' colours for the bar')} */"]
+    out = [f"/* {header('~/.config/fedokawaii/current/waybar.css', NAMES[m] + ' colours for the bar')} */"]
     out += [f"@define-color {k:<17}#{v};" for k, v in rows]
     return "\n".join(out) + "\n"
 
 
 def foot_mode(m, p):
-    return (f"# {header('~/.config/fedokawai/current/foot.ini', 'which palette a new foot starts in')}\n"
+    return (f"# {header('~/.config/fedokawaii/current/foot.ini', 'which palette a new foot starts in')}\n"
             f"[main]\ninitial-color-theme={m}\n")
 
 
@@ -126,7 +126,7 @@ def foot_block():
 
 
 def fuzzel_ini(m, p):
-    return f"""# {header('~/.config/fedokawai/current/fuzzel.ini', NAMES[m] + ' colours for every menu')}
+    return f"""# {header('~/.config/fedokawaii/current/fuzzel.ini', NAMES[m] + ' colours for every menu')}
 icon-theme={p['icons']}
 
 [colors]
@@ -145,7 +145,7 @@ border={p['muted']}ff
 
 
 def mako(m, p):
-    return f"""# {header('~/.config/fedokawai/current/mako', NAMES[m] + ' colours for notifications')}
+    return f"""# {header('~/.config/fedokawaii/current/mako', NAMES[m] + ' colours for notifications')}
 # Included at the top of ~/.config/mako/config (mako allows include only outside a
 # [section]); this file starts at the top level again, so it can have sections of its own.
 background-color=#{p['surface']}ff
@@ -200,8 +200,8 @@ def gtk_vars(m, p):
 def gtk3_theme(m, p):
     # A GTK 3 theme of its own per mode — adw-gtk3 with the palette — rather than colours
     # in ~/.config/gtk-3.0/gtk.css: GTK 3 reads that file once per process, but reloads a
-    # theme live when the theme's name changes. So kawa-theme switching Fedokawai ⇄
-    # Fedokawai-dark recolours every open GTK 3 window, the portal's file dialog included.
+    # theme live when the theme's name changes. So kawa-theme switching Fedokawaii ⇄
+    # Fedokawaii-dark recolours every open GTK 3 window, the portal's file dialog included.
     path = f"~/.local/share/themes/{p['gtk']}/gtk-3.0/gtk.css"
     out = [f"/* {header(path, NAMES[m] + ' for GTK 3: ' + p['base'] + ' with the desktop palette')}",
            "   (the redefined colours after the import replace adw-gtk3's own) */",
@@ -224,7 +224,7 @@ def gtk3_theme(m, p):
 
 def gtk3_index(m, p):
     return (f"[Desktop Entry]\nType=X-GNOME-Metatheme\nName={p['gtk']}\n"
-            f"Comment=fedokawai {NAMES[m]}: {p['base']} with the desktop palette (generated)\n\n"
+            f"Comment=fedokawaii {NAMES[m]}: {p['base']} with the desktop palette (generated)\n\n"
             f"[X-GNOME-Metatheme]\nGtkTheme={p['gtk']}\n")
 
 
@@ -278,7 +278,7 @@ def qt_colors(m, p):
                 c = hl
             vals.append(f"#ff{c}")
         return ", ".join(vals)
-    return (f"# {header('~/.config/fedokawai/current/qt6ct-colors.conf', NAMES[m] + ' colours for Qt (qt6ct)')}\n"
+    return (f"# {header('~/.config/fedokawaii/current/qt6ct-colors.conf', NAMES[m] + ' colours for Qt (qt6ct)')}\n"
             "[ColorScheme]\n"
             f"active_colors={line(fg, p['accent'])}\n"
             f"disabled_colors={line(p['muted'], p['edge'])}\n"
@@ -304,7 +304,7 @@ def btop_theme(m, p):
         "upload_start": start, "upload_mid": p["purple"], "upload_end": p["bpurple"],
         "process_start": p["green"], "process_mid": p["yellow"], "process_end": p["accent"],
     }
-    out = [f"# {header('~/.config/fedokawai/current/btop.theme', NAMES[m] + ' colours for btop')}",
+    out = [f"# {header('~/.config/fedokawaii/current/btop.theme', NAMES[m] + ' colours for btop')}",
            "# Gradients run matcha → yamabuki → vermilion: calm when idle, warm under load."]
     out += [f'theme[{k}]="#{v}"' for k, v in t.items()]
     return "\n".join(out) + "\n"
@@ -312,7 +312,7 @@ def btop_theme(m, p):
 
 def zathurarc(m, p):
     fg = p["strong"] if m == "dark" else p["text"]
-    return f"""# {header('~/.config/fedokawai/current/zathurarc', NAMES[m] + ' colours for zathura')}
+    return f"""# {header('~/.config/fedokawaii/current/zathurarc', NAMES[m] + ' colours for zathura')}
 set default-bg          "#{p['ground']}"
 set default-fg          "#{fg}"
 set statusbar-bg        "#{p['surface']}"
@@ -342,7 +342,7 @@ set recolor-darkcolor   "#{fg}"
 
 
 def imv(m, p):
-    return f"""# {header('~/.config/fedokawai/current/imv', 'the image viewer in ' + NAMES[m])}
+    return f"""# {header('~/.config/fedokawaii/current/imv', 'the image viewer in ' + NAMES[m])}
 # imv has no include: ~/.config/imv/config is a link to this file (theme.sh).
 [options]
 background = {p['ground']}
@@ -355,7 +355,7 @@ overlay_background_alpha = e6
 
 def swaylock(m, p):
     g = p["ground"]
-    return f"""# {header('~/.config/fedokawai/current/swaylock', 'the lock screen in ' + NAMES[m])}
+    return f"""# {header('~/.config/fedokawaii/current/swaylock', 'the lock screen in ' + NAMES[m])}
 # kawa-lock runs swaylock -C with this file and the pixel padlock as its picture: the
 # plain ground, the padlock in the centre. The indicator is a 15 px ring that sits inside
 # the padlock's keyhole, clear of its face: hidden until you type, then the keyhole glows —
@@ -414,7 +414,7 @@ def mpv_conf(m, p):
             ("context_menu-focused_color", p["text_on_accent"]),
             ("context_menu-focused_back_color", p["accent"])]
     body = "\n".join([f'{k}="#{v}"' for k, v in rows] + [f'script-opt="{k}=#{v}"' for k, v in opts])
-    return f"""# {header('~/.config/fedokawai/current/mpv.conf', "mpv's colours in " + NAMES[m])}
+    return f"""# {header('~/.config/fedokawaii/current/mpv.conf', "mpv's colours in " + NAMES[m])}
 # Read by ~/.config/mpv/mpv.conf (include) and handed to open players by kawa-theme.
 # On-screen text and menus: ink with a ground outline, vermilion for the chosen row ·
 # controller: the ground behind, title and time in ink (they sit over the picture too, so
@@ -428,7 +428,7 @@ def qt6ct_conf(m, p):
     # QSettings ini: no comments. ~/.config/qt6ct/qt6ct.conf is a link to this file;
     # kawa-theme re-points the link, which qt6ct notices (it watches that folder).
     return ("[Appearance]\n"
-            "color_scheme_path=@HOME@/.config/fedokawai/current/qt6ct-colors.conf\n"
+            "color_scheme_path=@HOME@/.config/fedokawaii/current/qt6ct-colors.conf\n"
             "custom_palette=true\n"
             f"icon_theme={p['icons']}\n"
             "standard_dialogs=default\nstyle=Fusion\n")
@@ -436,7 +436,7 @@ def qt6ct_conf(m, p):
 
 def presenterm(m, p):
     return (f"# {header('~/.config/presenterm/config.yaml', 'presenterm draws with the terminal colours')}\n"
-            f"# (a link to ~/.config/fedokawai/current/presenterm.yaml, switched with the theme)\n"
+            f"# (a link to ~/.config/fedokawaii/current/presenterm.yaml, switched with the theme)\n"
             f"defaults:\n  theme: terminal-{m}\n")
 
 

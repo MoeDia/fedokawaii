@@ -116,6 +116,9 @@ static const char *menucmd[]     = { "fuzzel", NULL };
 static const char *browsercmd[]  = { "brave-origin", NULL };
 static const char *filescmd[]    = { "footclient", "yazi", NULL };
 
+/* A key added or changed here belongs in the help sheet too: configs/home/.config/fedokawaii/
+ * keybinds.txt (Super+/ lists it). Keys are read from the first keyboard layout (us), so
+ * a binding works whichever layout is active. */
 static const Key keys[] = {
 	/* modifier        key                        function          argument */
 	/* ── launch ── */
@@ -132,7 +135,8 @@ static const Key keys[] = {
 	{ MODKEY,          XKB_KEY_v,                 spawn,            SHCMD("kawa-clip") },
 	{ MODKEY,          XKB_KEY_r,                 spawn,            SHCMD("kawa-books") },
 	{ MODKEY,          XKB_KEY_n,                 spawn,            SHCMD("kawa-notes") },
-	{ MODKEY,          XKB_KEY_u,                 spawn,            SHCMD("fedokawai --window") },
+	{ MODKEY,          XKB_KEY_u,                 spawn,            SHCMD("fedokawaii --window") },
+	{ MODKEY|SHIFT,    XKB_KEY_u,                 spawn,            SHCMD("kawa-config") },
 	{ MODKEY|SHIFT,    XKB_KEY_n,                 spawn,            SHCMD("makoctl dismiss -a") },
 	{ MODKEY,          XKB_KEY_Escape,            spawn,            SHCMD("kawa-lock") },
 	{ MODKEY|SHIFT,    XKB_KEY_e,                 spawn,            SHCMD("kawa-power") },

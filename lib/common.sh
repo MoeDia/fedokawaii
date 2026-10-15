@@ -8,7 +8,7 @@ if [[ -t 1 ]]; then
 else
   C_RESET='' C_GOLD='' C_RED='' C_OK='' C_DIM='' C_BOLD=''
 fi
-LOG_FILE=${LOG_FILE:-/var/log/fedokawai.log}
+LOG_FILE=${LOG_FILE:-/var/log/fedokawaii.log}
 # the logs record every command with its output: root's alone
 if [[ $EUID -eq 0 && $LOG_FILE == /var/log/* ]]; then
   [[ -e $LOG_FILE ]] || : >"$LOG_FILE"
@@ -68,7 +68,7 @@ summary() {                     # summary VERB → prints the verdict; returns 1
 }
 
 # ── idempotent steps: completion recorded in $STATE_DIR, re-runs skip them ──
-STATE_DIR=${STATE_DIR:-/var/lib/fedokawai}
+STATE_DIR=${STATE_DIR:-/var/lib/fedokawaii}
 step() {
   local name=$1 fn=$2 mark
   mark="$STATE_DIR/done.${name//\//-}"          # a "/" in a label must not become a folder
@@ -111,14 +111,14 @@ write_file() {                      # write_file PATH [MODE] < content — never
 # ── dwl's own copy of wlroots ─────────────────────────────────────────────────
 # dwl is built for one wlroots (DWL_WLROOTS). Fedora moves to newer ones over the years and
 # its package of the old one goes — which would leave dwl unable to start. So the first
-# build keeps Fedora's own build of it in /usr/local/lib/fedokawai-wlroots-VERSION: the
+# build keeps Fedora's own build of it in /usr/local/lib/fedokawaii-wlroots-VERSION: the
 # library, its headers, and the young libraries it uses that may change their names between
 # releases (libdisplay-info, libliftoff, xcb-errors); dwl is linked to that copy. A later
 # Fedora's wlroots never touches dwl, and dwl can still be built again (Theme) against the
 # copy. Everything else it uses keeps its name for years (Wayland, libinput, Mesa,
 # xkbcommon, pixman, libseat, udev, xcb) — and before a move to a new Fedora, the move
 # checks that the new release has every one of them (setup.sh, libs_ready).
-wlr_home() { echo "/usr/local/lib/fedokawai-wlroots-$DWL_WLROOTS"; }   # (beside the toolkit, never inside: a new toolkit replaces that folder whole)
+wlr_home() { echo "/usr/local/lib/fedokawaii-wlroots-$DWL_WLROOTS"; }   # (beside the toolkit, never inside: a new toolkit replaces that folder whole)
 wlr_kept() {
   local h; h=$(wlr_home)
   [[ -s $h/lib/libwlroots-$DWL_WLROOTS.so && -s $h/cflags && -d $h/include/wlroots-$DWL_WLROOTS ]]
@@ -171,15 +171,15 @@ take_built() {   # take_built SRC DEST MODE — 1 (nothing changed) if it cannot
 # ── one run at a time; temp files always cleaned up ──────────────────────────
 take_lock() {                       # take_lock FILE|DIR (a few seconds' grace: the menu looks at it too)
   if [[ -d $1 ]]; then exec 9<"$1"; else exec 9>"$1"; fi   # a folder of yours is only ever read, never truncated
-  flock -w 5 9 || die "another Fedokawai run is active (lock: $1)"
+  flock -w 5 9 || die "another Fedokawaii run is active (lock: $1)"
 }
 KAWA_TMP="" FOLLOWER=""
 make_tmp() {                        # private temp dir, removed on any exit (and dnf's follower stopped)
-  KAWA_TMP=$(mktemp -d "${TMPDIR:-/var/tmp}/fedokawai.XXXXXX")
+  KAWA_TMP=$(mktemp -d "${TMPDIR:-/var/tmp}/fedokawaii.XXXXXX")
   trap 'rm -rf "$KAWA_TMP"; [[ -n ${FOLLOWER:-} ]] && kill "$FOLLOWER" 2>/dev/null; true' EXIT
 }
 
-# ── fedokawai.conf: every value validated before anything runs ───────────────
+# ── fedokawaii.conf: every value validated before anything runs ───────────────
 validate_conf() {                   # prints one line per problem; empty = valid
   [[ $GPU =~ ^(auto|amd|intel)$ ]]              || echo "GPU must be auto, amd or intel (is '$GPU')"
   [[ $STEAM =~ ^(yes|no)$ ]]                    || echo "STEAM must be yes or no (is '$STEAM')"
@@ -207,7 +207,7 @@ validate_conf() {                   # prints one line per problem; empty = valid
   [[ -z $USERNAME ]] || id "$USERNAME" >/dev/null 2>&1 || echo "USERNAME '$USERNAME' does not exist"
   return 0
 }
-# fedokawai.conf is read as data, never run as code: KEY="value" lines (a value in double or
+# fedokawaii.conf is read as data, never run as code: KEY="value" lines (a value in double or
 # single quotes, or a bare word; a # comment after it), only the settings below. Anything
 # else in it is reported as a problem, and the values are checked before anything runs.
 CONF_KEYS=(USERNAME GPU STEAM SSH_SERVER MONITOR_HZ KB_LAYOUTS KB_TOGGLE TIMEZONE WEATHER_CITY
@@ -227,7 +227,7 @@ read_conf() {                       # read_conf FILE — sets the settings; CONF
     if [[ $line =~ $re ]]; then
       k=${BASH_REMATCH[1]} v=${BASH_REMATCH[3]}${BASH_REMATCH[4]}${BASH_REMATCH[5]}
       if [[ " ${CONF_KEYS[*]} " == *" $k "* ]]; then printf -v "$k" '%s' "$v"
-      else CONF_PROBLEMS+=("$k is not a setting of fedokawai.conf"); fi
+      else CONF_PROBLEMS+=("$k is not a setting of fedokawaii.conf"); fi
     else
       CONF_PROBLEMS+=("not a setting (KEY=\"value\"): ${line:0:60}")
     fi
@@ -236,12 +236,24 @@ read_conf() {                       # read_conf FILE — sets the settings; CONF
 conf_report() {                     # the settings read last → one line per problem; empty = valid
   { ((${#CONF_PROBLEMS[@]} == 0)) || printf '%s\n' "${CONF_PROBLEMS[@]}"; validate_conf; } | sed '/^$/d'
 }
+# conf_base BASE → the fedokawaii.conf a working copy's settings are measured against when
+# it becomes the toolkit: the newer of what the last apply took from a copy, and BASE — what
+# `fedokawaii copy` kept when it made this copy (the toolkit's file at that moment, in the
+# copy's .git/fedokawaii-conf-base). A key the copy holds as there was not changed in the
+# copy: the toolkit's own value stays.
+conf_base() {
+  local a=$STATE_DIR/conf-from-copy.conf b=$1
+  [[ -f $b && ! -L $b ]] || b=""
+  [[ -f $a ]] || a=""
+  if [[ -n $a && -n $b ]]; then [[ $b -nt $a ]] && echo "$b" || echo "$a"
+  else echo "${b:-$a}"; fi
+}
 conf_problems() {                   # conf_problems FILE → one line per problem; empty = valid
   read_conf "$1"; conf_report
 }
 load_conf() {                       # load_conf REPO_DIR — read + validate, die with every problem listed
   local problems
-  read_conf "$1/fedokawai.conf"
+  read_conf "$1/fedokawaii.conf"
   problems=$(conf_report)
-  [[ -z $problems ]] || die "fedokawai.conf:"$'\n'"$(sed 's/^/    /' <<<"$problems")"
+  [[ -z $problems ]] || die "fedokawaii.conf:"$'\n'"$(sed 's/^/    /' <<<"$problems")"
 }

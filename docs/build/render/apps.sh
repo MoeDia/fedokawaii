@@ -8,8 +8,8 @@
 #   sudo ./apps.sh light               one theme
 #   sudo APPS_ONLY="yazi nvim" ./apps.sh dark     only some groups:
 #        yazi nvim lazygit btop mpv zathura filechooser share torrra brave (default: all)
-#        nvim-whichkey nvim-picker nvim-grep nvim-split nvim-lsp lazygit-log lazygit-commit
-#        lazygit-stage yazi-preview
+#        books notes system nvim-whichkey nvim-picker nvim-grep nvim-split nvim-lsp lazygit-log
+#        lazygit-commit lazygit-stage yazi-preview yazi-drives
 #
 # Shots → shots/<theme>/app-<group>.png (the window 1:1) and app-<group>-full.png (the whole
 # screen in that same frame). Logs → logs/<theme>/apps/, summary → logs/apps-warnings.txt.
@@ -34,9 +34,10 @@ SELF=$APPS_SELF
 SH=/tmp/shoot-kawa-apps            # staged helpers (readable by $K); shoot.sh's is /tmp/shoot-kawa
 X=/tmp/xdg-kawa-apps               # the session's XDG_RUNTIME_DIR
 C=$R/apps-cache
-REPO=/home/claude/fedokawai
+REPO=/home/claude/fedokawaii
 ALL_GROUPS="yazi nvim lazygit btop mpv zathura filechooser share torrra brave books notes system
-  nvim-whichkey nvim-picker nvim-grep nvim-split nvim-lsp lazygit-log lazygit-commit lazygit-stage yazi-preview"
+  nvim-whichkey nvim-picker nvim-grep nvim-split nvim-lsp lazygit-log lazygit-commit lazygit-stage yazi-preview
+  yazi-drives"
 ALL_GROUPS=$(echo $ALL_GROUPS)
 ONLY=${APPS_ONLY:-$ALL_GROUPS}
 KEY=0123456789abcdef0123456789abcdef       # the stand-in Prowlarr's API key
@@ -127,7 +128,7 @@ make_media() {   # the test video, the demo PDF/picture/notes (→ $C/media, cop
 EOF
   printf 'Receipt 2026-09-12\nKonbini, Kawaguchiko\nonigiri ×2   ¥340\ntea          ¥160\ntotal        ¥500\n' >"$m/receipt-0912.txt"
   rm -rf "$SH/media"; mkdir -p "$SH/media"; cp -a "$m/." "$SH/media/"
-  cp "$REPO/docs/Fedokawai-Guide.pdf" "$SH/media/fedokawai-guide.pdf"
+  cp "$REPO/docs/Fedokawaii-Guide.pdf" "$SH/media/fedokawaii-guide.pdf"
   chmod -R a+rX "$SH/media"
 }
 
@@ -199,11 +200,11 @@ VARIANT="Server Edition"
 VARIANT_ID=server
 SUPPORT_END=2027-06-02
 EOF
-  # the system dconf defaults exactly as the repo installs them (only 00-fedokawai: this
+  # the system dconf defaults exactly as the repo installs them (only 00-fedokawaii: this
   # sandbox's /etc/dconf/db/local.d still holds an older test's 00-scriptorium, which
   # overrides gtk-theme and button-layout ':close'); bind-mounted inside the namespace
   install -d -m 755 "$SH/dconf.d"
-  cp "$REPO/configs/system/etc/dconf/db/local.d/00-fedokawai" "$SH/dconf.d/"
+  cp "$REPO/configs/system/etc/dconf/db/local.d/00-fedokawaii" "$SH/dconf.d/"
   /usr/bin/dconf compile "$SH/dconf-local" "$SH/dconf.d" || warn "dconf compile failed"
   chmod 644 "$SH/dconf-local"
 }
@@ -215,7 +216,7 @@ outer_apps() {
   ((${#themes[@]})) || themes=(dark light)
   for t in "${themes[@]}"; do
     [[ $t == dark || $t == light ]] || die "unknown theme '$t' (dark|light)"
-    [[ -d $KH/.config/fedokawai/themes/$t ]] || die "$KH/.config/fedokawai/themes/$t missing — run theme.sh --user $K"
+    [[ -d $KH/.config/fedokawaii/themes/$t ]] || die "$KH/.config/fedokawaii/themes/$t missing — run theme.sh --user $K"
   done
   for b in $F44/bin/{waybar,fuzzel,mako,makoctl,foot,footclient,wireplumber,wpctl} sway swaymsg grim swaybg \
            wtype pipewire pw-cli pw-dump dbus-daemon notify-send jq setpriv unshare git curl unzip gcc pkg-config \
@@ -349,14 +350,14 @@ home_setup() {   # what the user's home holds for the shots (all inside the over
   done
   # the yazi demo folder, the video, the PDF
   "${u[@]}" mkdir -p "$KH/Documents/Receipts" "$KH/Videos" "$KH/Downloads"
-  "${u[@]}" cp "$SH/media/notes.md" "$SH/media/fedokawai-guide.pdf" "$KH/Documents/"
+  "${u[@]}" cp "$SH/media/notes.md" "$SH/media/fedokawaii-guide.pdf" "$KH/Documents/"
   [[ -s $SH/media/fuji-dawn.png ]] && "${u[@]}" cp "$SH/media/fuji-dawn.png" "$KH/Documents/"
   "${u[@]}" cp "$SH/media/receipt-0912.txt" "$KH/Documents/Receipts/2026-09-12-konbini.txt"
   "${u[@]}" sh -c 'cd "$1" && printf "Receipt 2026-09-20\nBookshop, Jimbocho\n" >2026-09-20-books.txt' sh "$KH/Documents/Receipts"
   "${u[@]}" cp "$SH/media/fuji-dawn.mkv" "$KH/Videos/"
   # the Prowlarr key as setup.sh stores it (secrets.sh, mode 600, the user's)
   "${u[@]}" sh -c 'umask 077; printf "export PROWLARR_API_KEY=%s\n" "$1" >"$2"; chmod 600 "$2"' sh "$KEY" \
-    "$KH/.config/fedokawai/secrets.sh"
+    "$KH/.config/fedokawaii/secrets.sh"
   # the demo repository (shoot.sh's: staged, modified, untracked, ahead), now in the overlay
   demo_repo >/dev/null 2>&1
   # the user's font cache, current (written into the overlay)
@@ -364,26 +365,26 @@ home_setup() {   # what the user's home holds for the shots (all inside the over
     "$F44/bin/fc-cache" "$KH/.local/share/fonts" >/dev/null 2>&1
 }
 
-demo_repo() {   # (replaces shoot.sh's) ~/repos/fedokawai with a history: the repo's files committed
+demo_repo() {   # (replaces shoot.sh's) ~/repos/fedokawaii with a history: the repo's files committed
   # in steps over a few weeks, a merged branch (wallpaper) and an open one (torrra), a remote
   # one commit behind; then shoot.sh's work in progress (+1 staged, ~2 modified, ?1 untracked)
-  local d=$KH/repos/fedokawai n=0
+  local d=$KH/repos/fedokawaii n=0
   rm -rf "$d" "$KH/repos/.remote"
   install -d -o "$K" -g "$K" "$KH/repos"
   g() { setpriv --reuid="$KUID" --regid="$KGID" --init-groups env -i HOME="$KH" PATH=/usr/bin:/bin \
-          GIT_AUTHOR_NAME=kawau GIT_AUTHOR_EMAIL=kawau@fedokawai GIT_COMMITTER_NAME=kawau \
-          GIT_COMMITTER_EMAIL=kawau@fedokawai GIT_CONFIG_NOSYSTEM=1 \
+          GIT_AUTHOR_NAME=kawau GIT_AUTHOR_EMAIL=kawau@fedokawaii GIT_COMMITTER_NAME=kawau \
+          GIT_COMMITTER_EMAIL=kawau@fedokawaii GIT_CONFIG_NOSYSTEM=1 \
           GIT_AUTHOR_DATE="$gd" GIT_COMMITTER_DATE="$gd" git -C "$d" "$@" >/dev/null 2>&1; }
   ci() {   # ci DATE MESSAGE PATH… — add those paths (what is left of them) and commit
     local gd=$1 m=$2; shift 2
     g add -A -- "$@" && g commit -q -m "$m"
   }
   local gd="2026-09-01T21:14:00+04:00"
-  cp -a /home/claude/fedokawai "$d" 2>/dev/null || { warn "repo copy failed"; return; }
+  cp -a /home/claude/fedokawaii "$d" 2>/dev/null || { warn "repo copy failed"; return; }
   rm -rf "$d/.git"; chown -R "$K:$K" "$d"
   g init -q -b main
-  ci "2026-09-01T21:14:00+04:00" "fedokawai: setup.sh, the package list, the menu" \
-     setup.sh fedokawai.sh fedokawai.conf PACKAGES.md README.md lib check.sh
+  ci "2026-09-01T21:14:00+04:00" "fedokawaii: setup.sh, the package list, the menu" \
+     setup.sh fedokawaii.sh fedokawaii.conf PACKAGES.md README.md lib check.sh
   ci "2026-09-03T22:40:00+04:00" "dwl: config.h, the patch and start-dwl" src/dwl system/start-dwl system/tuned.conf
   ci "2026-09-06T10:05:00+04:00" "theme.sh: configs, palettes, dark and light" theme.sh tools art configs
   ci "2026-09-09T19:31:00+04:00" "bin: the kawa-* menus and bar helpers" bin/kawa-{menu,quick,power,audio,volume,brightness,calendar,help,osd,cpu,cell,tag,dwlstatus,nowplaying,display,clip,lock,term} bin/fetch
@@ -404,10 +405,10 @@ demo_repo() {   # (replaces shoot.sh's) ~/repos/fedokawai with a history: the re
   # work in progress below is all the Files panel shows
   ci "2026-10-11T07:40:00+04:00" "bin, system: books, notes, the clipboard and the rest" .
   gd="2026-10-11T08:00:00+04:00"
-  g clone -q --bare "$d" "$KH/repos/.remote/fedokawai.git" \
-    && g remote add origin "$KH/repos/.remote/fedokawai.git" && g fetch -q origin \
+  g clone -q --bare "$d" "$KH/repos/.remote/fedokawaii.git" \
+    && g remote add origin "$KH/repos/.remote/fedokawaii.git" && g fetch -q origin \
     && g branch -q -u origin/main
-  printf '\n<!-- draft -->\n' >>"$d/docs/fedokawai-guide.md"
+  printf '\n<!-- draft -->\n' >>"$d/docs/fedokawaii-guide.md"
   gd="2026-10-14T22:41:00+04:00" g commit -q -am "guide: draft of the apps chapter"   # ↑1
   sed -i '/^#    bash theme\.sh --check/a #    bash theme.sh --diff             the same, as a diff against the installed files' \
     "$d/theme.sh"; g add theme.sh                                                     # +1
@@ -476,7 +477,7 @@ nvim_warm() {   # once per session: a first start (plugins load, Mason and nvim-
   # what they have), quit; every shot is a later start, as on a desktop in use
   [[ -n ${NVIM_WARM:-} ]] && return 0
   NVIM_WARM=1
-  term nvim-warmup "$KH/repos/fedokawai" nvim "$KH/repos/fedokawai/bin/kawa-theme" || return
+  term nvim-warmup "$KH/repos/fedokawaii" nvim "$KH/repos/fedokawaii/bin/kawa-theme" || return
   sleep 12
   python3 -I "$SH/lib/appshot.py" window "$W/nvim-warmup-full.png" "$W/nvim-warmup.png" \
     $(win_geom "$TAPP") --settle 1 --timeout 5 >/dev/null 2>&1
@@ -486,7 +487,7 @@ nvim_warm() {   # once per session: a first start (plugins load, Mason and nvim-
 nvim_open() {   # nvim_open NAME ARGS… — nvim in the demo repository, settled
   local name=$1; shift
   nvim_warm
-  term "$name" "$KH/repos/fedokawai" nvim "$@" || return
+  term "$name" "$KH/repos/fedokawaii" nvim "$@" || return
   sleep 6
 }
 
@@ -561,7 +562,7 @@ shot_lazygit() {   # lazygit in the demo repository (+1 staged, ~2 modified, ?1 
 }
 
 lazygit_open() {   # lazygit_open NAME — lazygit in the demo repository, its intro closed if it shows
-  term "$1" "$KH/repos/fedokawai" lazygit || return
+  term "$1" "$KH/repos/fedokawaii" lazygit || return
   sleep 3
   # the one-time "Thanks for using lazygit!" (its state file says whether it was seen)
   if ! grep -qs 'startuppopupversion: [1-9]' "$KH/.local/state/lazygit/state.yml" "$KH/.config/lazygit/state.yml"; then
@@ -597,14 +598,22 @@ shot_lazygit_stage() {   # setup.sh: Enter opens its staging view, a selects a w
   term_close -k Escape -s 300 -k q
 }
 
+shot_yazi_drives() {   # M in yazi: the drives (kawa-drives list; stubs/lsblk: a stick open, a disk closed)
+  term yazi-drives "$KH" yazi || return
+  sleep 2.5
+  k wtype -s 300 M >/dev/null 2>&1; sleep 1.5
+  capture yazi-drives "$TAPP" 1.0
+  term_close -k Escape -s 300 q
+}
+
 shot_yazi_preview() {   # yazi in ~/Pictures, a picture hovered: its preview (sixel, foot)
   local u=(setpriv --reuid="$KUID" --regid="$KGID" --init-groups -- env -i HOME="$KH" PATH=/usr/bin:/bin)
   "${u[@]}" mkdir -p "$KH/Pictures/Wallpapers"
   [[ -s $SH/media/fuji-dawn.png ]] && "${u[@]}" cp "$SH/media/fuji-dawn.png" "$KH/Pictures/"
-  "${u[@]}" cp "$KH/.local/share/fedokawai/dark/scene.png" "$KH/Pictures/scene-night.png"
-  "${u[@]}" cp "$KH/.local/share/fedokawai/light/scene.png" "$KH/Pictures/scene-day.png"
-  "${u[@]}" cp "$KH/.cache/kawa-wallpaper/default-dark-1920x1080.png" "$KH/Pictures/Wallpapers/fedokawai-dark.png"
-  "${u[@]}" cp "$KH/.cache/kawa-wallpaper/default-light-1920x1080.png" "$KH/Pictures/Wallpapers/fedokawai-light.png"
+  "${u[@]}" cp "$KH/.local/share/fedokawaii/dark/scene.png" "$KH/Pictures/scene-night.png"
+  "${u[@]}" cp "$KH/.local/share/fedokawaii/light/scene.png" "$KH/Pictures/scene-day.png"
+  "${u[@]}" cp "$KH/.cache/kawa-wallpaper/default-dark-1920x1080.png" "$KH/Pictures/Wallpapers/fedokawaii-dark.png"
+  "${u[@]}" cp "$KH/.cache/kawa-wallpaper/default-light-1920x1080.png" "$KH/Pictures/Wallpapers/fedokawaii-light.png"
   term yazi-preview "$KH/Pictures" yazi "$KH/Pictures/fuji-dawn.png" || return
   sleep 3.5
   capture yazi-preview "$TAPP" 1.5
@@ -621,8 +630,8 @@ btop_start() {   # btop on a workspace of its own from the start, so its graphs 
   # the same btop with the theme where btop can find it (see the report: btop only looks in
   # its theme folders, so color_theme = a full path elsewhere falls back to the Default theme)
   install -d -o "$K" -g "$K" "$KH/.config-btopfix" "$KH/.config-btopfix/btop" "$KH/.config-btopfix/btop/themes"
-  sed 's|^color_theme = .*|color_theme = "fedokawai"|' "$KH/.config/btop/btop.conf" >"$KH/.config-btopfix/btop/btop.conf"
-  ln -sfn "$KH/.config/fedokawai/current/btop.theme" "$KH/.config-btopfix/btop/themes/fedokawai.theme"
+  sed 's|^color_theme = .*|color_theme = "fedokawaii"|' "$KH/.config/btop/btop.conf" >"$KH/.config-btopfix/btop/btop.conf"
+  ln -sfn "$KH/.config/fedokawaii/current/btop.theme" "$KH/.config-btopfix/btop/themes/fedokawaii.theme"
   chown -hR "$K:$K" "$KH/.config-btopfix"
   swaymsg -q workspace 3
   k env XDG_CONFIG_HOME="$KH/.config-btopfix" footclient -E -a app-btopfix -D "$KH" -- btop >>"$LT/btop.log" 2>&1 &
@@ -677,7 +686,7 @@ except socket.timeout:
 
 shot_zathura() {
   local pid
-  k zathura -P 5 "$KH/Documents/fedokawai-guide.pdf" >"$LT/zathura.log" 2>&1 &   # page 5: text, tables, a code block
+  k zathura -P 5 "$KH/Documents/fedokawaii-guide.pdf" >"$LT/zathura.log" 2>&1 &   # page 5: text, tables, a code block
   pid=$!
   waitfor 15 "the zathura window" win_geom org.pwmt.zathura || { kill "$pid" 2>/dev/null; return; }
   sleep 2.5
@@ -749,7 +758,7 @@ shot_notes() {   # Super+N: a few days of notes, open at the end, a line being t
   waitpid 5 "$pid" || true
 }
 
-shot_system() {   # Super+U: the system's control (fedokawai), from records as setup and an update leave them
+shot_system() {   # Super+U: the system's control (fedokawaii), from records as setup and an update leave them
   local st=$SH/system-state sb=$SH/system-bin pid d
   rm -rf "$st" "$sb"; mkdir -p "$st" "$sb"
   d=$(date -d '2026-09-02 19:40' +%s)
@@ -758,7 +767,7 @@ shot_system() {   # Super+U: the system's control (fedokawai), from records as s
   printf '14\n' >"$st/snapshots"
   : >"$st/lock"
   chmod -R a+rX "$st"
-  mkdir -p /var/lib/fedokawai && mount --bind "$st" /var/lib/fedokawai || { warn "$T: no stand-in records"; return; }
+  mkdir -p /var/lib/fedokawaii && mount --bind "$st" /var/lib/fedokawaii || { warn "$T: no stand-in records"; return; }
   # what a Fedora 44 machine answers (only for this window: the stand-ins are on its PATH alone)
   cat >"$sb/uname" <<'EOF'
 #!/bin/sh
@@ -778,20 +787,20 @@ EOF
   cat >"$sb/menu" <<EOF
 #!/bin/sh
 export PATH="$sb:\$PATH"
-exec bash "$SH/fedokawai"
+exec bash "$SH/fedokawaii"
 EOF
-  install -m 755 "$REPO/system/fedokawai" "$SH/fedokawai"
+  install -m 755 "$REPO/system/fedokawaii" "$SH/fedokawaii"
   chmod 755 "$sb"/*; chmod -R a+rX "$sb"
   k kawa-float --once system system 88x15 -- "$sb/menu" >"$LT/system.log" 2>&1 &
   pid=$!
-  waitfor 10 "the system window" win_geom float || { umount /var/lib/fedokawai; return; }
+  waitfor 10 "the system window" win_geom float || { umount /var/lib/fedokawaii; return; }
   sleep 3
   FLOAT=1 capture system float 1.0
   k wtype -s 300 -k Down -k Down >/dev/null 2>&1; sleep 2
   FLOAT=1 capture system-upgrade float 1.0
   k wtype -s 300 -k Escape >/dev/null 2>&1
   waitpid 5 "$pid" || warn "$T: the system window had to be closed"
-  umount /var/lib/fedokawai 2>/dev/null
+  umount /var/lib/fedokawaii 2>/dev/null
 }
 
 shot_share() {   # the screen-share picker: kawa-share fed what xdg-desktop-portal-wlr 0.8.4 sends
@@ -833,7 +842,7 @@ EOF
   kill "$fp" 2>/dev/null; wait "$fp" 2>/dev/null
 }
 
-shot_brave() {   # Brave Origin on its new-tab page: GTK mode (theme.sh's Preferences), Fedokawai
+shot_brave() {   # Brave Origin on its new-tab page: GTK mode (theme.sh's Preferences), Fedokawaii
   # --no-first-run: no one-time welcome tab (brave://welcome, "Set Brave as default browser"),
   # which would otherwise come back on every start until answered; --no-default-browser-check:
   # no "Brave isn't your default browser" bar (on the desktop it is the default, mimeapps.list)
@@ -914,6 +923,7 @@ inner_apps() {
   want nvim-split   && shot_nvim_split
   want nvim-lsp     && shot_nvim_lsp
   want yazi-preview && shot_yazi_preview
+  want yazi-drives && shot_yazi_drives
   want lazygit     && shot_lazygit
   want lazygit-log  && shot_lazygit_log
   want lazygit-commit && shot_lazygit_commit

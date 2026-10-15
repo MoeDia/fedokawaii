@@ -1,0 +1,3 @@
+#!/bin/sh
+# udiskie-umount for the pictures: the stick closes and switches off (eject's "safe to unplug")
+: >"${XDG_RUNTIME_DIR:?}/stub-drives-closed"

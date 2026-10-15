@@ -1,5 +1,5 @@
 #!/bin/bash
-# shoot.sh — render fedokawai's themed apps for real and capture them with grim.
+# shoot.sh — render fedokawaii's themed apps for real and capture them with grim.
 #
 #   sudo ./shoot.sh                 both themes (dark, then light)
 #   sudo ./shoot.sh light           one theme
@@ -9,7 +9,7 @@
 # The apps are the real ones at Fedora 44's versions (built into /opt/f44 by build.sh),
 # run as the test user with the configs theme.sh installed, in a headless sway (standing
 # in for dwl). Every theme gets a fresh session inside its own PID + mount + UTS namespace
-# (hostname "fedokawai", a Fedora 44 os-release): when the theme is done the namespace
+# (hostname "fedokawaii", a Fedora 44 os-release): when the theme is done the namespace
 # ends and takes every process it started with it. Shots → shots/<theme>/, logs →
 # logs/<theme>/, a summary of what the apps printed → logs/warnings.txt.
 set -uo pipefail
@@ -40,7 +40,7 @@ outer() {
   ((${#themes[@]})) || themes=(dark light)
   for t in "${themes[@]}"; do
     [[ $t == dark || $t == light ]] || die "unknown theme '$t' (dark|light)"
-    [[ -d $KH/.config/fedokawai/themes/$t ]] || die "$KH/.config/fedokawai/themes/$t missing — run theme.sh --user $K"
+    [[ -d $KH/.config/fedokawaii/themes/$t ]] || die "$KH/.config/fedokawaii/themes/$t missing — run theme.sh --user $K"
   done
   for b in $F44/bin/{waybar,fuzzel,mako,makoctl,foot,footclient,swaylock,wireplumber,wpctl} \
            sway swaymsg grim swaybg wtype pipewire pw-cli pw-dump dbus-daemon notify-send jq setpriv unshare; do
@@ -82,7 +82,7 @@ EOF
 
   demo_repo
 
-  local before; before=$(readlink "$KH/.config/fedokawai/current" 2>/dev/null)
+  local before; before=$(readlink "$KH/.config/fedokawaii/current" 2>/dev/null)
   mkdir -p "$OUT" "$LOG"
   local rc=0
   for t in "${themes[@]}"; do
@@ -92,29 +92,29 @@ EOF
   done
   # leave the user's theme as it was
   if [[ -n $before ]]; then
-    ln -sfn "$before" "$KH/.config/fedokawai/current.shoot" && mv -fT "$KH/.config/fedokawai/current.shoot" "$KH/.config/fedokawai/current"
-    chown -h "$K:$K" "$KH/.config/fedokawai/current"
+    ln -sfn "$before" "$KH/.config/fedokawaii/current.shoot" && mv -fT "$KH/.config/fedokawaii/current.shoot" "$KH/.config/fedokawaii/current"
+    chown -h "$K:$K" "$KH/.config/fedokawaii/current"
   fi
   rm -rf "$X"/* 2>/dev/null
   summary "${themes[@]}"
   return $rc
 }
 
-demo_repo() {   # ~/repos/fedokawai: a copy of the repo with work in progress, for the prompt
-  local d=$KH/repos/fedokawai g
+demo_repo() {   # ~/repos/fedokawaii: a copy of the repo with work in progress, for the prompt
+  local d=$KH/repos/fedokawaii g
   say "demo repository $d"
   rm -rf "$d" "$KH/repos/.remote"
   install -d -o "$K" -g "$K" "$KH/repos"
   g() { setpriv --reuid="$KUID" --regid="$KGID" --init-groups env -i HOME="$KH" PATH=/usr/bin:/bin \
-          GIT_AUTHOR_NAME=kawau GIT_AUTHOR_EMAIL=kawau@fedokawai GIT_COMMITTER_NAME=kawau \
-          GIT_COMMITTER_EMAIL=kawau@fedokawai GIT_CONFIG_NOSYSTEM=1 git -C "$d" "$@" >/dev/null 2>&1; }
-  cp -a /home/claude/fedokawai "$d" 2>/dev/null || { warn "repo copy failed"; return; }
+          GIT_AUTHOR_NAME=kawau GIT_AUTHOR_EMAIL=kawau@fedokawaii GIT_COMMITTER_NAME=kawau \
+          GIT_COMMITTER_EMAIL=kawau@fedokawaii GIT_CONFIG_NOSYSTEM=1 git -C "$d" "$@" >/dev/null 2>&1; }
+  cp -a /home/claude/fedokawaii "$d" 2>/dev/null || { warn "repo copy failed"; return; }
   rm -rf "$d/.git"; chown -R "$K:$K" "$d"
-  g init -q -b main && g add -A && g commit -q -m "fedokawai: initial" \
-    && g clone -q --bare "$d" "$KH/repos/.remote/fedokawai.git" \
-    && g remote add origin "$KH/repos/.remote/fedokawai.git" && g fetch -q origin \
+  g init -q -b main && g add -A && g commit -q -m "fedokawaii: initial" \
+    && g clone -q --bare "$d" "$KH/repos/.remote/fedokawaii.git" \
+    && g remote add origin "$KH/repos/.remote/fedokawaii.git" && g fetch -q origin \
     && g branch -q -u origin/main
-  printf '\n<!-- draft -->\n' >>"$d/docs/fedokawai-guide.md" 2>/dev/null || printf '\n' >>"$d/README.md"
+  printf '\n<!-- draft -->\n' >>"$d/docs/fedokawaii-guide.md" 2>/dev/null || printf '\n' >>"$d/README.md"
   g commit -q -am "guide: draft"                               # ↑1
   printf '\n# tweak\n' >>"$d/theme.sh"; g add theme.sh            # +1
   printf '\n# wip\n' >>"$d/setup.sh"; printf '\n' >>"$d/verify.sh" # ~2
@@ -164,7 +164,7 @@ waitpid() {   # waitpid SECONDS PID — then kill it
 
 session() {
   cd "$KH" || cd /     # the user's processes start here (footclient hands its cwd to the server)
-  hostname fedokawai
+  hostname fedokawaii
   mount --bind "$SH/state/os-release" /etc/os-release || warn "os-release bind failed"
   # the CPU meter's source (kawa-cpu reads the first line of /proc/stat): a steady synthetic
   # load, so the bar does not depend on what else this machine is doing (lib/fakestat.py)
@@ -247,7 +247,7 @@ session() {
   mkfifo -m 600 "$X/dwl-status"; chown "$K:$K" "$X/dwl-status"
   k kawa-dwlstatus <"$X/dwl-status" >"$LT/kawa-dwlstatus.log" 2>&1 &
   exec 7>"$X/dwl-status"
-  printf '%s\n' "DP-1 title ~/repos/fedokawai" "DP-1 appid foot" "DP-1 fullscreen 0" "DP-1 floating 0" \
+  printf '%s\n' "DP-1 title ~/repos/fedokawaii" "DP-1 appid foot" "DP-1 fullscreen 0" "DP-1 floating 0" \
     "DP-1 selmon 1" "DP-1 tags 27 1 1 16" "DP-1 layout []=" "DP-1 kblayout 0" >&7
   waitfor 10 "kawa-dwlstatus's files" test -s "$X/dwl-bar/kb.json"
   waitfor 10 "mako on the bus" k busctl --user status org.freedesktop.Notifications
@@ -323,6 +323,8 @@ shot_menus() {
   menu menu-calendar   k kawa-calendar
   menu menu-brightness k kawa-brightness
   menu menu-help       k kawa-help
+  menu menu-change     k kawa-config
+  menu menu-drives     k kawa-drives       # the drives (the bar's drive mark): stubs/lsblk's stick and disk
   # the launcher (Super+Space): fuzzel with the user's config; the applications are the
   # Fedora .desktop files of what setup.sh installs (xdg/), the icons Papirus
   menu launcher        k env XDG_DATA_DIRS="$SH/xdg/share" fuzzel
@@ -346,7 +348,7 @@ notice() {   # notice NAME CMD… — send a notification (or a level display), 
 }
 
 shot_notify() {
-  local icons; icons=$(. "$KH/.config/fedokawai/icons.sh"; printf '%s' "$ICON_CAMERA")
+  local icons; icons=$(. "$KH/.config/fedokawaii/icons.sh"; printf '%s' "$ICON_CAMERA")
   # the desktop's own notice (kawa-screenshot): its picture as the icon
   local pic="$KH/Pictures/Screenshots/2026-10-15_09-41-27.png"
   install -d -o "$K" -g "$K" "$KH/Pictures/Screenshots"
@@ -363,6 +365,12 @@ shot_notify() {
   # critical: what autostart's keep() sends when a helper keeps crashing
   notice notify-critical k notify-send -u critical "waybar keeps stopping" \
     "it was restarted 4 times in a minute; see ~/.cache/dwl.log"
+  # the drives, as udiskie hands them to kawa-drives (stubs/lsblk: a stick, open; a disk):
+  # the stick opened (click: its files), then ejected ("safe to unplug")
+  rm -f "$X/stub-drives-closed"
+  notice notify-drive k kawa-drives event device_mounted /dev/sda1 True KINGSTON "Kingston DataTraveler 3.0"
+  notice notify-eject k kawa-drives eject /dev/sda1
+  rm -f "$X/stub-drives-closed" "$X/kawa-drives"/* 2>/dev/null; k kawa-dwlstatus --poke 13
   # the level display: the real scripts, the real wpctl (PipeWire), ddcutil stubbed
   k wpctl set-mute @DEFAULT_AUDIO_SINK@ 0; k wpctl set-volume @DEFAULT_AUDIO_SINK@ 0.57
   notice osd-volume k kawa-volume up                      # 57 % → 62 %
@@ -393,7 +401,7 @@ foot_window() {   # foot_window APP_ID → "x,y wxh" of the newest such window
 typeln() { k wtype -s 300 -d 12 "$1" -k Return; }   # one virtual keyboard per line; wait for its keymap before the first key
 
 shot_term() {
-  local repo=$KH/repos/fedokawai geom pid
+  local repo=$KH/repos/fedokawaii geom pid
   # the terminal: footclient (the server is running) in the demo repository; real keys typed
   k footclient -D "$repo" >"$LT/footclient.log" 2>&1 &
   pid=$!

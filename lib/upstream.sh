@@ -37,7 +37,7 @@ GE_PROTON_REPO="GloriousEggroll/proton-ge-custom"; GE_PROTON_ASSET='^GE-Proton[0
 # after that has been checked against it.
 TORRRA_VERSION=2.5.1
 
-up_state_dir() { echo "$TARGET_HOME/.local/share/fedokawai/upstream"; }
+up_state_dir() { echo "$TARGET_HOME/.local/share/fedokawaii/upstream"; }
 up_tag()       { as_user cat -- "$(up_state_dir)/$1" 2>/dev/null | head -c 200 || true; }   # (yours: read as you)
 font_dir()     { echo "$TARGET_HOME/.local/share/fonts/${1}Nerd"; }
 proton_dir()   { echo "$TARGET_HOME/.local/share/Steam/compatibilitytools.d"; }

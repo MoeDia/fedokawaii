@@ -3,19 +3,19 @@
 #  theme.sh — every config, colour and keybinding. Independent of setup.sh:
 #  run it whenever you like once the software is installed. Safe to re-run.
 #
-#    sudo bash fedokawai.sh theme     the usual way (the menu passes --user)
+#    sudo bash fedokawaii.sh theme    the usual way (the menu passes --user)
 #    bash theme.sh                    as yourself: sudo is asked for only for the system
 #                                     parts (/etc/dconf, the boot menu and console font,
 #                                     the kernel command line, installing dwl)
 #    sudo bash theme.sh --user NAME   as root, for that user (default: USERNAME in
-#                                     fedokawai.conf, else whoever ran sudo)
+#                                     fedokawaii.conf, else whoever ran sudo)
 #    bash theme.sh --check            list files that differ from the repo; exit 3 if any
 #
 #  configs/home/   mirrors $HOME   →  copied as-is (tokens @HOME@ etc. rendered; fonts
 #                                     copied byte for byte); *.xpm pixel art is also
 #                                     drawn to .png beside it
-#  themes          dark + light    →  ~/.config/fedokawai/current links to the one in
-#                                     use (THEME in fedokawai.conf on a new install;
+#  themes          dark + light    →  ~/.config/fedokawaii/current links to the one in
+#                                     use (THEME in fedokawaii.conf on a new install;
 #                                     afterwards whatever kawa-theme last chose)
 #  wallpaper pack                  →  fetched once and redrawn as pixel art (WALLPAPER_PACK)
 #  configs/system/ mirrors /       →  /etc/dconf (GTK defaults, root)
@@ -23,10 +23,11 @@
 #  src/dwl/config.h + dwl.patch    →  ~/.local/src/dwl, dwl rebuilt only if it changed
 #  boot + console                  →  the GRUB menu's pixel theme, the text console's 16
 #                                     colours (kernel command line) and its font
-#  Replaced files are backed up to ~/.local/state/fedokawai/backup/<time>/.
+#  Replaced files are backed up to ~/.local/state/fedokawaii/backup/<time>/.
 # ═════════════════════════════════════════════════════════════════════════════
 set -Eeuo pipefail
 IFS=$'\n\t'
+export LC_ALL=C.UTF-8      # every tool's output in one language and format, whatever yours is
 REPO_DIR="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" && pwd)"
 CHECK=0 TARGET_USER=""
 while (($#)); do
@@ -39,12 +40,12 @@ while (($#)); do
 done
 
 if [[ $EUID -eq 0 ]]; then
-  conf_user=$(sed -n 's/^USERNAME=["'"'"']\{0,1\}\([a-z_][a-z0-9_-]*\).*/\1/p' "$REPO_DIR/fedokawai.conf" 2>/dev/null | tail -n1)
+  conf_user=$(sed -n 's/^USERNAME=["'"'"']\{0,1\}\([a-z_][a-z0-9_-]*\).*/\1/p' "$REPO_DIR/fedokawaii.conf" 2>/dev/null | tail -n1)
   TARGET_USER=${TARGET_USER:-${conf_user:-${SUDO_USER:-}}}
   [[ -n $TARGET_USER && $TARGET_USER != root ]] || { echo "as root: --user NAME" >&2; exit 2; }
-  LOG_FILE=/var/log/fedokawai.log
+  LOG_FILE=/var/log/fedokawaii.log
 else
-  TARGET_USER=$(id -un); LOG_FILE=$HOME/.cache/fedokawai-theme.log; mkdir -p "$HOME/.cache"
+  TARGET_USER=$(id -un); LOG_FILE=$HOME/.cache/fedokawaii-theme.log; mkdir -p "$HOME/.cache"
 fi
 TARGET_HOME=$(getent passwd "$TARGET_USER" | cut -d: -f6)
 TARGET_UID=$(id -u "$TARGET_USER"); TARGET_GID=$(id -g "$TARGET_USER")
@@ -66,28 +67,28 @@ on_exit() {                  # (explicit "return 0": a bare return in a trap han
 }
 CHANGED=()
 trap on_exit EXIT
-STATE=$TARGET_HOME/.local/state/fedokawai
+STATE=$TARGET_HOME/.local/state/fedokawaii
 U() { if [[ $EUID -eq 0 ]]; then as_user "$@"; else "$@"; fi; }      # as the desktop user
 R() { if [[ $EUID -eq 0 ]]; then "$@"; else sudo "$@"; fi; }         # as root
 # the check reads system files too (/etc, the boot menu): without sudo they would all look
 # changed, so as a user it asks for sudo once, up front
 if ((CHECK)) && [[ $EUID -ne 0 ]] && ! sudo -n true 2>/dev/null; then
   echo "the check also reads system files (/etc, the boot menu) — sudo asks once:" >&2
-  sudo -v || die "no sudo rights — run: sudo bash fedokawai.sh drift"
+  sudo -v || die "no sudo rights — run: sudo bash fedokawaii.sh drift"
 fi
 if ((CHECK == 0)); then
-  U mkdir -p "$STATE"; U rm -f "$STATE/theme.lock"                  # (the lock file of earlier versions)
+  U mkdir -p "$STATE"
   [[ -d $STATE && ! -L $STATE ]] || die "$STATE is not a folder"
   take_lock "$STATE"                                                  # your folder, opened read-only
 fi
 # the theme styles installed software; it cannot run before setup has built dwl
 [[ -x /usr/local/bin/dwl && -d $TARGET_HOME/.local/src/dwl ]] \
-  || die "the software is not installed yet — run Setup first (sudo bash fedokawai.sh setup)"
+  || die "the software is not installed yet — run Setup first (sudo bash fedokawaii.sh setup)"
 
 # The boot menu and the text console are always ink-dark: their colours come from the
 # dark theme's generated colors.sh (tools/build-themes.py), read in a subshell so its
 # THEME= line cannot touch this script's settings — and checked before anything changes.
-ink() { ( . "$REPO_DIR/configs/home/.config/fedokawai/themes/dark/colors.sh" && for v; do printf '%s ' "${!v}"; done ); }
+ink() { ( . "$REPO_DIR/configs/home/.config/fedokawaii/themes/dark/colors.sh" && for v; do printf '%s ' "${!v}"; done ); }
 IFS=' ' read -r -a CONSOLE_PALETTE <<<"$(ink C_ANSI)"            # (this script's IFS is \n\t)
 IFS=' ' read -r INK_GROUND INK_SURFACE INK_EDGE INK_EDGE2 INK_FAINT INK_TEXT INK_STRONG INK_ACCENT \
   <<<"$(ink C_GROUND C_SURFACE C_EDGE C_EDGE2 C_FAINT C_TEXT C_STRONG C_ACCENT)"
@@ -111,15 +112,15 @@ MPV_SCALING="# scaling: mpv's own defaults (profile=high-quality is written with
 discrete_amd && MPV_SCALING="profile=high-quality              # ewa_lanczossharp scaling and debanding (discrete AMD GPU)"
 
 # the pointer of every list (the fzf options file): the icon font's chevron
-CHEVRON=$(. "$REPO_DIR/configs/home/.config/fedokawai/icons.sh" && printf '%s' "$ICON_CHEVRON_RIGHT")
+CHEVRON=$(. "$REPO_DIR/configs/home/.config/fedokawaii/icons.sh" && printf '%s' "$ICON_CHEVRON_RIGHT")
 
-render() {      # render SRC → stdout, with fedokawai.conf values (and the chevron) filled in
+render() {      # render SRC → stdout, with fedokawaii.conf values (and the chevron) filled in
   sed -e "s|@HOME@|$TARGET_HOME|g" -e "s|@MONITOR_HZ@|$MONITOR_HZ|g" \
       -e "s|@WEATHER_CITY@|$WEATHER_CITY|g" -e "s|@NIGHT_LIGHT@|$NIGHT_LIGHT|g" \
       -e "s|@ICON_CHEVRON_RIGHT@|$CHEVRON|g" -e "s|^@MPV_SCALING@\$|$MPV_SCALING|" "$1"
 }
 
-BACKUP="$TARGET_HOME/.local/state/fedokawai/backup/$(date +%Y%m%d-%H%M%S)"
+BACKUP="$TARGET_HOME/.local/state/fedokawaii/backup/$(date +%Y%m%d-%H%M%S)"
 DRIFT=() TOTAL=0
 changed() { local f; for f in "${CHANGED[@]}"; do [[ $f == *"$1"* ]] && return 0; done; return 1; }
 
@@ -166,12 +167,12 @@ done < <(find "$REPO_DIR/configs/home" -type f -print0 | sort -z)
 for f in "$REPO_DIR"/bin/*; do place "$f" "$TARGET_HOME/.local/bin/${f##*/}" user; done
 
 # ── 2b. the theme link, and the configs that are links into it ───────────────
-# ~/.config/fedokawai/current → themes/dark or themes/light. It is created once (from
-# THEME in fedokawai.conf) and then belongs to kawa-theme: re-running this script
+# ~/.config/fedokawaii/current → themes/dark or themes/light. It is created once (from
+# THEME in fedokawaii.conf) and then belongs to kawa-theme: re-running this script
 # keeps whichever theme you switched to. Three apps have no include mechanism, so their
 # whole config file is a link into the current theme; btop reads a colour theme only by
-# name from its own themes folder, so "fedokawai" there is a link too.
-CUR=$TARGET_HOME/.config/fedokawai/current
+# name from its own themes folder, so "fedokawaii" there is a link too.
+CUR=$TARGET_HOME/.config/fedokawaii/current
 TOTAL=$((TOTAL + 1))
 if [[ ! -L $CUR || ! -d $CUR ]]; then                     # missing or broken: start in $THEME
   if ((CHECK)); then DRIFT+=("$CUR (no theme chosen)")
@@ -179,10 +180,10 @@ if [[ ! -L $CUR || ! -d $CUR ]]; then                     # missing or broken: s
     U rm -rf -- "$CUR"; U ln -sfn "themes/$THEME" "$CUR"; CHANGED+=("$CUR → themes/$THEME")
   fi
 fi
-LINKS=("../fedokawai/current/qt6ct.conf:.config/qt6ct/qt6ct.conf"
-       "../fedokawai/current/imv:.config/imv/config"
-       "../fedokawai/current/presenterm.yaml:.config/presenterm/config.yaml"
-       "../../fedokawai/current/btop.theme:.config/btop/themes/fedokawai.theme")
+LINKS=("../fedokawaii/current/qt6ct.conf:.config/qt6ct/qt6ct.conf"
+       "../fedokawaii/current/imv:.config/imv/config"
+       "../fedokawaii/current/presenterm.yaml:.config/presenterm/config.yaml"
+       "../../fedokawaii/current/btop.theme:.config/btop/themes/fedokawaii.theme")
 for l in "${LINKS[@]}"; do
   target=${l%%:*} link=$TARGET_HOME/${l#*:}
   TOTAL=$((TOTAL + 1))
@@ -200,7 +201,7 @@ done
 
 # files an earlier version installed that would now get in the way: moved to the backup,
 # but only while they are still ours (their content says so)
-#   ~/.config/gtk-3.0/gtk.css — GTK 3 colours now live in the Fedokawai themes; the old
+#   ~/.config/gtk-3.0/gtk.css — GTK 3 colours now live in the Fedokawaii themes; the old
 #   file would pin one palette over both
 retire() {   # retire FILE PATTERN
   local f=$TARGET_HOME/$1
@@ -216,10 +217,10 @@ retire .config/gtk-3.0/gtk.css 'current/gtk3.css'
 retire .bashrc.d/scriptorium.sh 'scriptorium'
 
 # ── 2c. the pointers' other names ────────────────────────────────────────────
-# The pointer theme (~/.local/share/icons/Fedokawai, tools/build-cursors.py) draws each
+# The pointer theme (~/.local/share/icons/Fedokawaii, tools/build-cursors.py) draws each
 # shape once, under its standard name; programs also ask by older X11 names (left_ptr,
 # hand2, xterm…), which are links to it here. Names not drawn come from Adwaita.
-CURSORS=$TARGET_HOME/.local/share/icons/Fedokawai/cursors
+CURSORS=$TARGET_HOME/.local/share/icons/Fedokawaii/cursors
 CURSOR_LINKS=(
   "default:left_ptr arrow top_left_arrow left_arrow"
   "pointer:hand2 hand1 hand pointing_hand 9d800788f1b08800ae810202380a0822 e29285e634086352946a0e7090d73106"
@@ -300,7 +301,8 @@ boot_and_console() {
   # upwards in an ordered dither (the grain of the desktop's transitions); the torii above
   # a quiet box of boot entries in Departure Mono (2× or 3× its pixel grid), the chosen
   # entry marked by a vermilion bar, and a thin vermilion line counting down.
-  # BOOT_MENU_SECONDS=0 keeps Fedora's hidden menu (shown after a failed boot, or with Esc).
+  # BOOT_MENU_SECONDS=0 keeps Fedora's hidden menu (shown after a failed boot, or by holding
+  # Shift or pressing F8 as the machine starts).
   # The text console (login, Ctrl+Alt+F2…F6) gets Terminus bold, larger from 1440p up.
   # Both take effect at the next boot.
   GRUB_THEME_DIR=/boot/grub2/themes/sumi
@@ -324,7 +326,7 @@ boot_and_console() {
   # turned into an 8×8 ordered dither, enlarged ×GS and laid along the bottom
   HW=$(( ${MODE%x*} / GS + 1 )) HH=$((24 * 5))
   magick -size "$MODE" "xc:#$INK_GROUND" \
-    \( -size "${HW}x$HH" "tile:$REPO_DIR/configs/home/.local/share/fedokawai/dark/pattern.xpm" \
+    \( -size "${HW}x$HH" "tile:$REPO_DIR/configs/home/.local/share/fedokawaii/dark/pattern.xpm" \
        -colorspace gray -auto-level -colorspace sRGB +level-colors "#$INK_GROUND,#$INK_EDGE2" \
        \( -size "${HW}x$HH" gradient:black-white -ordered-dither o8x8 \) \
        -alpha off -compose CopyOpacity -composite -scale "$((GS * 100))%" \) \
@@ -468,7 +470,7 @@ fi
 # what /usr/local/bin/dwl was built from (repo config.h + patch, the pinned commit, the make
 # options): stamped after a successful install, so a build that failed half-way, or one
 # from older sources, is redone on the next run however the file times look
-DWL_MARK=/var/lib/fedokawai/dwl.sha256              # (root's: nothing of yours decides a rebuild)
+DWL_MARK=/var/lib/fedokawaii/dwl.sha256              # (root's: nothing of yours decides a rebuild)
 DWL_SUM=$({ cat "$REPO_DIR/src/dwl/config.h" "$REPO_DIR/src/dwl/dwl.patch"; printf '%s\n' "$DWL_COMMIT" "${DWL_MAKE[@]}" "$(wlr_home)"; } | sha256sum)
 DWL_SUM=${DWL_SUM%% *}
 dwl_current() { [[ -x /usr/local/bin/dwl && $(cat "$DWL_MARK" 2>/dev/null) == "$DWL_SUM" ]]; }
@@ -499,7 +501,7 @@ fi
 
 # ── 4c. Brave: the desktop's colours ─────────────────────────────────────────
 # Brave's GTK theme mode paints its tab strip, toolbar, menus and dialogs from
-# the GTK 3 theme kawa-theme switches (Fedokawai / Fedokawai-dark, which carry a few rules
+# the GTK 3 theme kawa-theme switches (Fedokawaii / Fedokawaii-dark, which carry a few rules
 # for Brave alone) and follows every switch live; web pages follow the portal's dark/light.
 # The new-tab page gets the ground colour as CSS light-dark(), so it switches by itself.
 # Both are settings of each profile (its Preferences, rewritten by Brave while it runs):
@@ -507,7 +509,7 @@ fi
 # again only if the desktop's colours change): what you choose in Brave afterwards stays.
 BRAVE_DIR="$TARGET_HOME/.config/BraveSoftware/Brave-Origin"
 # shellcheck source=/dev/null
-ground() { ( . "$REPO_DIR/configs/home/.config/fedokawai/themes/$1/colors.sh" && printf '%s' "$C_GROUND" ); }
+ground() { ( . "$REPO_DIR/configs/home/.config/fedokawaii/themes/$1/colors.sh" && printf '%s' "$C_GROUND" ); }
 BRAVE_NTP="light-dark(#$(ground light), #$(ground dark))"
 # The new tab is kept to its search box: Brave draws its widgets (the stats card above
 # all) for dark pictures, and on paper they would be grey on grey.
@@ -578,7 +580,7 @@ if ((CHECK)); then
   printf '%s✔ theme in sync — %d files match the repo%s\n' "$C_OK" "$TOTAL" "$C_RESET"; exit 0
 fi
 
-hdr "Fedokawai theme → $TARGET_USER"
+hdr "Fedokawaii theme → $TARGET_USER"
 if ! dwl_current; then
   # against dwl's own copy of wlroots (lib/common.sh), made now if setup predates it
   wlr_kept || R bash -c '. "$1/lib/common.sh"; DWL_WLROOTS=$2; wlr_keep' _ "$REPO_DIR" "$DWL_WLROOTS" \
@@ -619,12 +621,12 @@ if changed /nvim/lua/plugins/ && [[ -f $TARGET_HOME/.config/nvim/init.lua ]]; th
   U timeout 900 nvim --headless '+Lazy! install' +qa >>"$LOG_FILE" 2>&1 && ok "neovim plugins installed (colourscheme)"
 fi
 # API keys live only here, read into the environment by the shell: yours alone (600)
-SECRETS=$TARGET_HOME/.config/fedokawai/secrets.sh
+SECRETS=$TARGET_HOME/.config/fedokawaii/secrets.sh
 if [[ ! -f $SECRETS ]]; then uinstall 0600 /dev/null "$SECRETS"
 elif [[ $(stat -c %a "$SECRETS") != 600 ]]; then
   U chmod 600 "$SECRETS"; CHANGED+=("$SECRETS (made private again: chmod 600)")
 fi
-U mkdir -p "$TARGET_HOME/Pictures/Wallpapers" "$TARGET_HOME/Pictures/Screenshots" "$TARGET_HOME/.local/share/fedokawai"
+U mkdir -p "$TARGET_HOME/Pictures/Wallpapers" "$TARGET_HOME/Pictures/Screenshots" "$TARGET_HOME/.local/share/fedokawaii"
 # pixel art (wave tile, Fuji scene, padlock — one set per theme) lives in the repo as XPM
 # text; swaybg and swaylock read PNG, so each .xpm gets a .png beside it when it changes
 while IFS= read -r -d '' x; do
@@ -632,7 +634,7 @@ while IFS= read -r -d '' x; do
   if changed "$x" || [[ ! -s $png || $x -nt $png ]]; then
     U magick "$x" "$png" || die "could not draw ${png##*/} from ${x##*/}"
   fi
-done < <(find "$TARGET_HOME/.local/share/fedokawai" -name '*.xpm' -print0)
+done < <(find "$TARGET_HOME/.local/share/fedokawaii" -name '*.xpm' -print0)
 # the wallpaper pack: fetched and redrawn once; pictures already drawn are skipped
 if [[ $WALLPAPER_PACK == yes ]]; then
   if U kawa-wallpaper --pack >>"$LOG_FILE" 2>&1; then ok "wallpaper pack ready ($(tail -n1 "$LOG_FILE"))"
@@ -645,7 +647,7 @@ U kawa-theme settings || log "GTK settings follow the theme at your next login (
 if ! grep -qs 'bashrc.d' "$TARGET_HOME/.bashrc"; then
   U tee -a "$TARGET_HOME/.bashrc" >/dev/null <<'RC' || die "could not add ~/.bashrc.d to ~/.bashrc"
 
-# ~/.bashrc.d — added by Fedokawai's theme.sh (the lines of Fedora's /etc/skel/.bashrc)
+# ~/.bashrc.d — added by Fedokawaii's theme.sh (the lines of Fedora's /etc/skel/.bashrc)
 if [ -d ~/.bashrc.d ]; then
     for rc in ~/.bashrc.d/*; do
         if [ -f "$rc" ]; then
@@ -676,4 +678,7 @@ if ((${#CHANGED[@]})); then
 else
   ok "all $TOTAL files already in sync"
 fi
+# the backups: the newest 20 runs kept (each folder holds only what that run replaced)
+U bash -c 'cd -- "$1" 2>/dev/null || exit 0; ls -1d -- */ 2>/dev/null | sort | head -n -20 | xargs -r -d "\n" rm -rf --' \
+  _ "$TARGET_HOME/.local/state/fedokawaii/backup" || true
 T=$(mktemp); date '+%F %T' >"$T"; uinstall 0644 "$T" "$STATE/theme-applied"; rm -f "$T"
