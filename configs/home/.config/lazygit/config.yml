@@ -1,0 +1,20 @@
+# ~/.config/lazygit/config.yml — colours by ANSI name → foot's palette, so lazygit follows
+# dark and light with the terminal (lazygit knows only the eight base names, and hex).
+# The panel you are in has a vermilion frame, like the focused window; the others a quiet
+# warm grey (one hex that reads on ink and on paper, for their titles too).
+gui:
+  nerdFontsVersion: "3"
+  border: single
+  showRandomTip: false          # (a quiet start: no tip of the day under the panels)
+  theme:
+    activeBorderColor: [red, bold]
+    inactiveBorderColor: ["#877f6f"]
+    searchingActiveBorderColor: [yellow, bold]
+    optionsTextColor: [blue]
+    selectedLineBgColor: [black]
+    unstagedChangesColor: [red]
+    defaultFgColor: [default]
+git:
+  overrideGpg: true
+os:
+  editPreset: nvim

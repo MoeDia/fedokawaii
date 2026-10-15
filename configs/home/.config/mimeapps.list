@@ -1,0 +1,104 @@
+# ~/.config/mimeapps.list — what opens what (xdg-open, Brave's downloads, yazi, GTK apps).
+# Folders and text open in a terminal window (Files, Editor in ~/.local/share/applications);
+# change one with: xdg-mime default APP.desktop TYPE  (it rewrites this file — theme.sh's
+# --check then lists it, and running Theme puts this version back)
+[Default Applications]
+# the web: Brave Origin
+x-scheme-handler/http=brave-origin.desktop
+x-scheme-handler/https=brave-origin.desktop
+x-scheme-handler/about=brave-origin.desktop
+x-scheme-handler/unknown=brave-origin.desktop
+text/html=brave-origin.desktop
+application/xhtml+xml=brave-origin.desktop
+application/x-extension-htm=brave-origin.desktop
+application/x-extension-html=brave-origin.desktop
+# folders: yazi in a terminal window
+inode/directory=kawa-files.desktop
+# text and code: neovim in a terminal window
+text/plain=kawa-edit.desktop
+text/markdown=kawa-edit.desktop
+text/x-markdown=kawa-edit.desktop
+text/x-shellscript=kawa-edit.desktop
+application/x-shellscript=kawa-edit.desktop
+text/x-python=kawa-edit.desktop
+text/x-csrc=kawa-edit.desktop
+text/x-chdr=kawa-edit.desktop
+text/x-c++src=kawa-edit.desktop
+text/x-rust=kawa-edit.desktop
+text/x-go=kawa-edit.desktop
+text/javascript=kawa-edit.desktop
+application/javascript=kawa-edit.desktop
+application/json=kawa-edit.desktop
+application/toml=kawa-edit.desktop
+application/x-yaml=kawa-edit.desktop
+text/x-log=kawa-edit.desktop
+text/css=kawa-edit.desktop
+application/xml=kawa-edit.desktop
+text/x-lua=kawa-edit.desktop
+text/x-diff=kawa-edit.desktop
+text/x-patch=kawa-edit.desktop
+# pictures: imv
+image/png=imv.desktop
+image/jpeg=imv.desktop
+image/gif=imv.desktop
+image/webp=imv.desktop
+image/avif=imv.desktop
+image/bmp=imv.desktop
+image/tiff=imv.desktop
+image/svg+xml=imv.desktop
+image/x-xpixmap=imv.desktop
+image/heic=imv.desktop
+image/jxl=imv.desktop
+# video, music and playlists: mpv
+video/mp4=mpv.desktop
+video/x-matroska=mpv.desktop
+video/webm=mpv.desktop
+video/quicktime=mpv.desktop
+video/x-msvideo=mpv.desktop
+video/mpeg=mpv.desktop
+video/ogg=mpv.desktop
+video/x-flv=mpv.desktop
+video/3gpp=mpv.desktop
+audio/mpeg=mpv.desktop
+audio/flac=mpv.desktop
+audio/ogg=mpv.desktop
+audio/opus=mpv.desktop
+audio/x-wav=mpv.desktop
+audio/wav=mpv.desktop
+audio/mp4=mpv.desktop
+audio/aac=mpv.desktop
+audio/x-m4a=mpv.desktop
+audio/webm=mpv.desktop
+audio/x-mpegurl=mpv.desktop
+application/vnd.apple.mpegurl=mpv.desktop
+audio/x-scpls=mpv.desktop
+# PDF and e-books: zathura
+application/pdf=org.pwmt.zathura-pdf-mupdf.desktop
+application/epub+zip=org.pwmt.zathura-pdf-mupdf.desktop
+application/oxps=org.pwmt.zathura-pdf-mupdf.desktop
+application/x-fictionbook+xml=org.pwmt.zathura-pdf-mupdf.desktop
+# comic books: zathura
+application/vnd.comicbook+zip=org.pwmt.zathura-cb.desktop
+application/x-cbz=org.pwmt.zathura-cb.desktop
+application/x-cbr=org.pwmt.zathura-cb.desktop
+application/vnd.comicbook-rar=org.pwmt.zathura-cb.desktop
+# documents: AbiWord
+application/vnd.oasis.opendocument.text=com.abisource.AbiWord.desktop
+application/msword=com.abisource.AbiWord.desktop
+application/vnd.openxmlformats-officedocument.wordprocessingml.document=com.abisource.AbiWord.desktop
+application/rtf=com.abisource.AbiWord.desktop
+# spreadsheets and CSV: Gnumeric
+application/vnd.oasis.opendocument.spreadsheet=org.gnumeric.gnumeric.desktop
+application/vnd.ms-excel=org.gnumeric.gnumeric.desktop
+application/vnd.openxmlformats-officedocument.spreadsheetml.sheet=org.gnumeric.gnumeric.desktop
+text/csv=org.gnumeric.gnumeric.desktop
+# handwritten notes and PDF annotation: Xournal++
+application/x-xopp=com.github.xournalpp.xournalpp.desktop
+# torrents: magnet links and .torrent files download in torrra (Torrents)
+x-scheme-handler/magnet=kawa-torrents.desktop
+application/x-bittorrent=kawa-torrents.desktop
+
+[Added Associations]
+inode/directory=kawa-files.desktop;
+x-scheme-handler/magnet=kawa-torrents.desktop;
+application/x-bittorrent=kawa-torrents.desktop;

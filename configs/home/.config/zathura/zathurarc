@@ -1,0 +1,22 @@
+# ~/.config/zathura/zathurarc — PDF / EPUB / CBZ reader
+set selection-clipboard clipboard
+set adjust-open "best-fit"
+set pages-per-row 1
+set scroll-page-aware true
+set scroll-full-overlap 0.02
+set scroll-step 60
+set zoom-min 10
+set guioptions ""
+set window-title-basename true
+set statusbar-home-tilde true
+set font "JetBrainsMono Nerd Font 10"
+
+# colours of the current theme (dark ink or light paper); kawa-theme reloads open windows
+include ../fedokawai/current/zathurarc
+
+# "recolor" = the page in the theme's colours; toggle with Ctrl+r
+set recolor false
+set recolor-keephue true
+map <C-r> recolor
+map r reload
+map p print

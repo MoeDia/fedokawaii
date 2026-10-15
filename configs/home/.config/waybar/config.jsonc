@@ -1,0 +1,88 @@
+// ~/.config/waybar/config.jsonc — waybar 0.15. One thin bar like an old machine's menu line.
+//   left:   torii key (opens the launcher) · workspaces 1 2 3 (+ any others in use) ·
+//           layout icon · window title
+//   centre: now playing between the two halves of a segment meter (hidden when nothing
+//           plays) — waybar centres it on the screen
+//   right:  tray · keyboard layout · CPU history · volume · date · time with seconds ·
+//           ⌄ key (quick settings)
+// Network, Bluetooth, brightness, night light, theme, weather… live in the quick-settings
+// dropdown, so the bar stays quiet. Reload without logging out: pkill -USR2 waybar
+//
+// Icons are drawn in the "Sumi Icons" font (art/icons.txt) and written here as JSON
+// escapes; the name of each is in the comment beside it.
+{
+  "layer": "top",
+  "position": "top",
+  // 26 px of content + the 1 px hairline: the 14 px text line and 18 px keys land on whole pixels
+  "height": 27,
+  "spacing": 0,
+
+  "modules-left": [
+    "custom/torii",
+    "custom/tag1", "custom/tag2", "custom/tag3", "custom/tag4", "custom/tag5",
+    "custom/tag6", "custom/tag7", "custom/tag8", "custom/tag9",
+    "custom/layout", "custom/title"
+  ],
+  "modules-center": ["custom/nowplaying"],
+  "modules-right": ["custom/mode", "tray", "custom/kb", "custom/cpu", "wireplumber", "clock#date", "custom/day", "clock#time", "custom/menu"],
+
+  // the torii icon
+  "custom/torii": { "format": "\uDBB8\uDC00", "tooltip": false, "on-click": "fuzzel" },
+
+  // workspaces: written by kawa-dwlstatus, which pokes only what changed — SIGRTMIN+8 workspaces,
+  // +9 layout, +10 title, +11 keyboard layout; an empty text hides the module.
+  // Clicking one switches to it (kawa-tag presses its Super+1…9 through a virtual keyboard).
+  "custom/tag1": { "exec": "{ IFS= read -r l <\"$XDG_RUNTIME_DIR/dwl-bar/tag1.json\"; } 2>/dev/null && printf '%s\\n' \"$l\"", "return-type": "json", "interval": "once", "signal": 8, "tooltip": false, "on-click": "kawa-tag 1" },
+  "custom/tag2": { "exec": "{ IFS= read -r l <\"$XDG_RUNTIME_DIR/dwl-bar/tag2.json\"; } 2>/dev/null && printf '%s\\n' \"$l\"", "return-type": "json", "interval": "once", "signal": 8, "tooltip": false, "on-click": "kawa-tag 2" },
+  "custom/tag3": { "exec": "{ IFS= read -r l <\"$XDG_RUNTIME_DIR/dwl-bar/tag3.json\"; } 2>/dev/null && printf '%s\\n' \"$l\"", "return-type": "json", "interval": "once", "signal": 8, "tooltip": false, "on-click": "kawa-tag 3" },
+  "custom/tag4": { "exec": "{ IFS= read -r l <\"$XDG_RUNTIME_DIR/dwl-bar/tag4.json\"; } 2>/dev/null && printf '%s\\n' \"$l\"", "return-type": "json", "interval": "once", "signal": 8, "tooltip": false, "on-click": "kawa-tag 4" },
+  "custom/tag5": { "exec": "{ IFS= read -r l <\"$XDG_RUNTIME_DIR/dwl-bar/tag5.json\"; } 2>/dev/null && printf '%s\\n' \"$l\"", "return-type": "json", "interval": "once", "signal": 8, "tooltip": false, "on-click": "kawa-tag 5" },
+  "custom/tag6": { "exec": "{ IFS= read -r l <\"$XDG_RUNTIME_DIR/dwl-bar/tag6.json\"; } 2>/dev/null && printf '%s\\n' \"$l\"", "return-type": "json", "interval": "once", "signal": 8, "tooltip": false, "on-click": "kawa-tag 6" },
+  "custom/tag7": { "exec": "{ IFS= read -r l <\"$XDG_RUNTIME_DIR/dwl-bar/tag7.json\"; } 2>/dev/null && printf '%s\\n' \"$l\"", "return-type": "json", "interval": "once", "signal": 8, "tooltip": false, "on-click": "kawa-tag 7" },
+  "custom/tag8": { "exec": "{ IFS= read -r l <\"$XDG_RUNTIME_DIR/dwl-bar/tag8.json\"; } 2>/dev/null && printf '%s\\n' \"$l\"", "return-type": "json", "interval": "once", "signal": 8, "tooltip": false, "on-click": "kawa-tag 8" },
+  "custom/tag9": { "exec": "{ IFS= read -r l <\"$XDG_RUNTIME_DIR/dwl-bar/tag9.json\"; } 2>/dev/null && printf '%s\\n' \"$l\"", "return-type": "json", "interval": "once", "signal": 8, "tooltip": false, "on-click": "kawa-tag 9" },
+  "custom/layout": { "exec": "{ IFS= read -r l <\"$XDG_RUNTIME_DIR/dwl-bar/layout.json\"; } 2>/dev/null && printf '%s\\n' \"$l\"", "return-type": "json", "interval": "once", "signal": 9, "tooltip": false },
+  // keyboard layout (US / AR, switched with Alt+Shift); vermilion while it is not the first
+  "custom/kb":     { "exec": "{ IFS= read -r l <\"$XDG_RUNTIME_DIR/dwl-bar/kb.json\"; } 2>/dev/null && printf '%s\\n' \"$l\"",     "return-type": "json", "interval": "once", "signal": 11, "tooltip": false },
+  "custom/title":  { "exec": "{ IFS= read -r l <\"$XDG_RUNTIME_DIR/dwl-bar/title.json\"; } 2>/dev/null && printf '%s\\n' \"$l\"",  "return-type": "json", "interval": "once", "signal": 10, "tooltip": false, "max-length": 60 },
+
+  // one long-running script (see its header); restarted if it ever exits
+  "custom/nowplaying": {
+    "exec": "kawa-nowplaying", "return-type": "json", "restart-interval": 5, "tooltip": false,
+    "on-click": "playerctl play-pause", "on-click-right": "playerctl next", "on-click-middle": "playerctl previous"
+  },
+
+  "tray": { "icon-size": 14, "spacing": 8 },
+
+  "custom/cpu": {
+    "exec": "kawa-cpu", "return-type": "json", "restart-interval": 5,
+    "on-click": "footclient -a float -T btop btop"
+  },
+
+  // icons: speaker-off when muted; speaker-low below 50 %, speaker above
+  "wireplumber": {
+    "format": "{icon} {volume:>3}",
+    "format-muted": "\uDBB8\uDC06 ---",
+    "format-icons": ["\uDBB8\uDC05", "\uDBB8\uDC04"],
+    "tooltip": false,
+    "on-click": "kawa-audio", "on-click-right": "wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle",
+    "scroll-step": 2, "max-volume": 100
+  },
+
+  // the clock: English names and AM/PM whatever the system language; waybar wakes on
+  // each whole second itself, so no script is needed. Click either part for the calendar.
+  // a seal while something is held back: 静 (quiet) while "do not disturb" is on, 共有
+  // (shared) in vermilion while a screen is shared; nothing otherwise. Poked with SIGRTMIN+12
+  // by quick settings and the screen-sharing portal.
+  "custom/mode": { "exec": "case $(makoctl mode 2>/dev/null) in *sharing*) echo '{\"text\":\"共有\",\"class\":\"share\"}' ;; *do-not-disturb*) echo '{\"text\":\"静\",\"class\":\"dnd\"}' ;; *) echo '{\"text\":\"\"}' ;; esac", "return-type": "json", "interval": "once", "signal": 12,
+                   "tooltip": false, "on-click": "kawa-quick" },
+
+  // the day of the week as its kanji (月 火 水 木 金 土 日), a vermilion seal between the date and the time
+  "custom/day": { "exec": "set -- 月 火 水 木 金 土 日; shift $(( $(date +%u) - 1 )); printf '%s\\n' \"$1\"",
+                  "interval": 60, "tooltip": false, "on-click": "kawa-calendar" },
+  "clock#date": { "format": "{:%a %d %b}", "interval": 60, "locale": "C", "tooltip": false, "on-click": "kawa-calendar" },
+  "clock#time": { "format": "{:%I:%M:%S %p}", "interval": 1, "locale": "C", "tooltip": false, "on-click": "kawa-calendar" },
+
+  // the chevron icon
+  "custom/menu": { "format": "\uDBB8\uDC26", "tooltip": false, "on-click": "kawa-quick" }
+}

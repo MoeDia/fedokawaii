@@ -1,0 +1,109 @@
+/* ~/.config/waybar/style.css — one thin bar, pixel font, workspaces drawn as keys.
+   Colours come from the current theme (dark ink or light paper): kawa-theme switches
+   ~/.config/fedokawai/current and reloads the bar.
+   Departure Mono and Sumi Icons are pixel fonts on an 11 px grid: keep font-size at
+   11px (or 22px) so every glyph lands on whole pixels. Reload: pkill -USR2 waybar */
+@import url("../fedokawai/current/waybar.css");
+
+* {
+  font-family: "DepartureMono Nerd Font", "Sumi Icons", "PixelMplus12", "Noto Kufi Arabic";
+  font-size: 11px;
+  min-height: 0;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  text-shadow: none;
+}
+
+window#waybar {
+  background: @bar;
+  color: @text;
+  border-bottom: 1px solid @edge;
+}
+
+/* every module: the same horizontal rhythm */
+#custom-layout, #custom-title, #custom-nowplaying, #tray, #custom-kb, #custom-cpu, #wireplumber {
+  padding: 0 10px;
+}
+
+/* a key: raised face, light top-left edge, dark bottom-right edge (old keyboard keys).
+   Every key is 18 px tall; its width keeps the glyph exactly centred (GTK puts a spare
+   half pixel on the right): the 10 px-wide icons in an even 24 px key, the 5 px-wide
+   digits in an odd 23 px one. */
+#custom-torii, #custom-menu, .tag {
+  min-width: 18px;
+  margin: 4px 0 5px 4px;            /* 27 px bar: the last row is the hairline below it */
+  padding: 0 2px;
+  border: 1px solid transparent;
+}
+.tag { min-width: 17px; }
+
+/* the torii key at the far left (opens the launcher): a vermilion key */
+#custom-torii {
+  margin-left: 6px;
+  margin-right: 0;                  /* the next key's own 4 px: every gap in the row is 4 px */
+  color: @strong-on-accent;
+  background: @accent;
+  border-color: @accent-hi @accent-lo @accent-lo @accent-hi;
+}
+
+/* ── workspaces as keys ─────────────────────────────────────────────────────
+   empty: a flat outlined key, quiet · occupied: a raised key · selected: the lit key (paper on the
+   dark theme, ink on the light one) with a vermilion stamp along its bottom edge ·
+   urgent: a teal key. Fixed width, so nothing shifts when the selection moves. */
+.tag          { color: @quiet; border-color: @edge; }   /* empty: a flat key, outlined only — the row stays whole */
+.tag.occupied { color: @text; background: @key; border-color: @hi @lo @lo @hi; }
+.tag.selected {
+  color: @lit-text;
+  background: @lit;
+  border-color: @lit-hi @lit-lo @lit-lo @lit-hi;
+  box-shadow: inset 0 -2px @accent;
+}
+.tag.urgent   { color: @urgent-text; background: @urgent; border-color: @hi @lo @lo @hi; }
+
+#custom-layout { color: @quiet; margin-left: 11px; }   /* 23 px after the last key, the bar's word gap */
+#custom-title  { color: @text; }
+
+/* now playing: the meter colours are set inside the text (kawa-nowplaying) */
+#custom-nowplaying        { color: @text; }
+#custom-nowplaying.paused { color: @quiet; }
+
+#tray > .needs-attention { background: alpha(@accent, 0.5); }
+
+#custom-kb        { color: @quiet; }
+#custom-kb.other  { color: @accent-text; }
+
+#custom-cpu       { color: @quiet; }
+#custom-cpu.busy  { color: @accent-text; }
+
+#wireplumber       { color: @text; }
+#wireplumber.muted { color: @accent-text; }
+
+/* the seals — the weekday's kanji, and the mode — are PixelMplus at its own 12 px grid: a
+   glyph 11 × 12 px (the cell's last column and its 2 px descent stay empty). Padding
+   2 left · 1 right · 2 top · 0 bottom puts 2 px of seal round every glyph: a 15 × 16 box
+   (共有: 27 × 16), at rows 5–20 of the 27 px bar, so its middle meets the words' middle */
+#custom-day, #custom-mode { font-family: "PixelMplus12"; font-size: 12px; padding: 2px 1px 0 2px; }
+#custom-day        { color: @strong-on-accent; background: @accent; margin: 5px 9px 6px 2px; }
+/* the mode seal: quiet (outlined, inside the same box) for do-not-disturb, vermilion while a
+   screen is shared */
+#custom-mode       { margin: 5px 12px 6px 0; }   /* 23 px to the keyboard layout, like every gap */
+#custom-mode.dnd   { color: @quiet; box-shadow: inset 0 0 0 1px @edge2; }
+#custom-mode.share { color: @strong-on-accent; background: @accent; }
+
+/* the clock: date quiet, time bright, between two hairlines */
+#clock.date { color: @quiet; padding: 0 7px 0 10px; border-left: 1px solid @edge; }   /* + the 2 px of the glyphs' own sides: one 9 px word gap */
+#clock.time { color: @strong; padding: 0 10px 0 0; border-right: 1px solid @edge; }
+
+/* the key that opens quick settings */
+#custom-menu {
+  margin: 4px 6px 5px 11px;   /* 11 px from the time's hairline: the same on both its sides */
+  color: @text;
+  background: @key;
+  border-color: @hi @lo @lo @hi;
+}
+#custom-menu:hover, #custom-torii:hover { box-shadow: inset 0 -2px @strong; }
+.tag:hover:not(.selected)               { box-shadow: inset 0 -2px @quiet; }
+
+tooltip { background: @bar; border: 2px solid @muted; border-radius: 0; }   /* framed like every menu */
+tooltip label { color: @text; padding: 2px 4px; }

@@ -1,0 +1,4 @@
+# ~/.config/xdg-terminals.list — the terminal for apps whose entries say Terminal=true
+# (xdg-terminal-exec, which GLib and xdg-open use): foot's client first, then foot alone
+footclient.desktop
+foot.desktop

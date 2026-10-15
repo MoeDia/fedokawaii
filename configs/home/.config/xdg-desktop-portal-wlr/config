@@ -1,0 +1,13 @@
+# ~/.config/xdg-desktop-portal-wlr/config — screen sharing (the ScreenCast portal; see
+# ../xdg-desktop-portal/wlroots-portals.conf). The portal is started by systemd --user,
+# whose PATH has no ~/.local/bin, so the helpers are named by their full paths.
+[screencast]
+# which screen: kawa-share asks with the usual menu (one screen: no question)
+chooser_type=dmenu
+chooser_cmd=@HOME@/.local/bin/kawa-share
+# a smooth share without spending a game's frames on it
+max_fps=60
+# while a screen is shared, notifications stay off it (critical ones still show), and the
+# bar shows a vermilion 共有 seal (both run within sh)
+exec_before=makoctl mode -a sharing; @HOME@/.local/bin/kawa-dwlstatus --poke 12
+exec_after=makoctl mode -r sharing; @HOME@/.local/bin/kawa-dwlstatus --poke 12

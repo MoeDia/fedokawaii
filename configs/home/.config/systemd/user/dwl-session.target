@@ -1,0 +1,11 @@
+# ~/.config/systemd/user/dwl-session.target — "a dwl session is running", for systemd.
+# Started by ~/.config/dwl/autostart.sh at login, stopped by start-dwl at logout.
+# The portals behind every file dialog and screen share (xdg-desktop-portal ≥ 1.21) start
+# only inside graphical-session.target, which cannot be started by itself: a session
+# target like this one binds it (systemd.special(7)).
+[Unit]
+Description=dwl session
+Documentation=man:systemd.special(7)
+BindsTo=graphical-session.target
+Wants=graphical-session-pre.target
+After=graphical-session-pre.target

@@ -1,0 +1,8 @@
+# ~/.config/yt-dlp/config — yt-dlp's settings, on its own and when mpv plays a link.
+# YouTube hands out its video addresses behind JavaScript challenges. yt-dlp answers them
+# in Node.js (installed by setup; run with Node's permission sandbox: no files, no network)
+# using the EJS solver scripts: Fedora's python3-yt-dlp-ejs once it is installed, else the
+# copy yt-dlp ships, else the release on yt-dlp's GitHub (fetched once, then cached).
+# Without a runtime YouTube gives fewer formats, or none. (Only Deno is on by default.)
+--js-runtimes node
+--remote-components ejs:github

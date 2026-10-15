@@ -1,0 +1,259 @@
+# ~/.config/yazi/theme.toml — yazi (Super+E) in the desktop's colours. Every colour is one
+# of the terminal's 16, by name, so it is foot's palette: an open yazi switches with the
+# dark and light theme exactly like the shell, bat and the code previews (yazi's built-in
+# "ansi" highlighting, used while syntect_theme is empty).
+#   black = the selection ink · red = vermilion · lightcyan = asagi · darkgray = rules
+# For yazi 26.x (sections [mgr], [pick], [cmp]); yazi names any key it does not know.
+
+[mgr]
+cwd            = { fg = "white", bold = true }
+find_keyword   = { fg = "lightred", bold = true, underline = true }
+find_position  = { fg = "lightcyan", bg = "reset", bold = true }
+symlink_target = { fg = "darkgray", italic = true }
+marker_copied   = { fg = "green",     bg = "green" }
+marker_cut      = { fg = "red",       bg = "red" }
+marker_marked   = { fg = "lightcyan", bg = "lightcyan" }
+marker_selected = { fg = "yellow",    bg = "yellow" }
+marker_symbol   = "│"
+count_copied   = { fg = "black", bg = "green" }
+count_cut      = { fg = "black", bg = "red" }
+count_selected = { fg = "black", bg = "yellow" }
+border_symbol = "│"
+border_style  = { fg = "darkgray" }
+syntect_theme = ""
+
+# tabs and the mode badge are lit keys, like the bar's: vermilion in normal mode, asagi
+# while selecting, ochre while unselecting
+[tabs]
+active    = { fg = "black", bg = "red", bold = true }
+inactive  = { fg = "gray", bg = "black" }
+sep_inner = { open = "", close = "" }
+sep_outer = { open = " ", close = "" }   # one free column before the first tab, as on every row
+
+[mode]
+normal_main = { fg = "black", bg = "red", bold = true }
+normal_alt  = { fg = "red", bg = "black" }
+select_main = { fg = "black", bg = "lightcyan", bold = true }
+select_alt  = { fg = "lightcyan", bg = "black" }
+unset_main  = { fg = "black", bg = "yellow", bold = true }
+unset_alt   = { fg = "yellow", bg = "black" }
+
+# the row under the cursor: the selection ink behind it; the file keeps its own colour.
+# padding: the bar's first and last cells, drawn in the bar's colour — a full block keeps the
+# row's name in the same column as its neighbours' ("" would pull it one column left)
+[indicator]
+parent  = { bg = "black" }
+current = { bg = "black", bold = true }
+preview = { underline = true }
+padding = { open = "█", close = "█" }
+
+[status]
+overall         = {}
+sep_left        = { open = "", close = "" }
+sep_right       = { open = "", close = "" }
+perm_sep        = { fg = "darkgray" }
+perm_type       = { fg = "blue" }
+perm_read       = { fg = "yellow" }
+perm_write      = { fg = "red" }
+perm_exec       = { fg = "green" }
+progress_label  = { bold = true }
+progress_normal = { fg = "red", bg = "black" }
+progress_error  = { fg = "yellow", bg = "red" }
+
+# pop-ups: a hairline in the text colour, titles in the strongest ink, keys in asagi
+[which]
+border          = { fg = "gray" }
+cols            = 3
+mask            = {}
+cand            = { fg = "lightcyan" }
+rest            = { fg = "darkgray" }
+desc            = { fg = "gray" }
+separator       = "  "
+separator_style = { fg = "darkgray" }
+
+[confirm]
+border     = { fg = "gray" }
+title      = { fg = "white" }
+body       = {}
+list       = {}
+btn_yes    = { fg = "black", bg = "red" }
+btn_no     = {}
+btn_labels = [ "  [Y]es  ", "  (N)o  " ]
+
+[spot]
+border   = { fg = "gray" }
+title    = { fg = "white" }
+tbl_col  = { fg = "lightcyan" }
+tbl_cell = { fg = "black", bg = "yellow" }
+
+[notify]
+title_info  = { fg = "green" }
+title_warn  = { fg = "yellow" }
+title_error = { fg = "red" }
+
+[pick]
+border   = { fg = "gray" }
+active   = { fg = "lightred", bold = true }
+inactive = {}
+
+[input]
+border   = { fg = "gray" }
+title    = { fg = "white" }
+value    = {}
+selected = { bg = "black" }
+
+[cmp]
+border   = { fg = "gray" }
+active   = { bg = "black", bold = true }
+inactive = {}
+
+[tasks]
+border  = { fg = "gray" }
+title   = { fg = "white" }
+hovered = { fg = "lightred", bold = true }
+
+[help]
+border  = { fg = "gray" }
+chord   = { fg = "lightcyan" }
+action  = {}
+hovered = { bg = "black", bold = true }
+
+# file names by kind; folders in blue, like ls
+[filetype]
+rules = [
+	{ mime = "**/image/*", fg = "yellow" },
+	{ mime = "**/{audio,video}/*", fg = "magenta" },
+	{ mime = "**/application/{zip,rar,7z*,tar,gzip,xz,zstd,bzip*,lzma,compress,archive,cpio,arj,xar,ms-cab*}", fg = "red" },
+	{ mime = "**/application/{pdf,doc,rtf,epub+zip}", fg = "cyan" },
+	{ mime = "vfs/{absent,stale}", fg = "darkgray" },
+	{ url = "*", is = "orphan", fg = "black", bg = "red" },
+	{ url = "*", is = "exec", fg = "green" },
+	{ url = "*", is = "dummy", fg = "black", bg = "red" },
+	{ url = "*/", is = "dummy", fg = "black", bg = "red" },
+	{ url = "*/", fg = "blue", bold = true },
+]
+
+# icons: the desktop's own pixel icons (Sumi Icons, the font of the bar and the menus;
+# art/icons.txt), one a kind, each in the colour of the name beside it. All are drawn on
+# the same 10 × 10 grid, so every name starts the same distance from its icon. Written as
+# their code points (U+FE000 onwards): icons.sh names them.
+[icon]
+globs = []
+files = []
+dirs = [
+	{ name = ".config", text = "\U000FE025" },
+	{ name = ".git", text = "\U000FE02B" },
+	{ name = "Desktop", text = "\U000FE02F" },
+	{ name = "Documents", text = "\U000FE041" },
+	{ name = "Downloads", text = "\U000FE047" },
+	{ name = "Music", text = "\U000FE00C" },
+	{ name = "Pictures", text = "\U000FE01E" },
+	{ name = "Public", text = "\U000FE02C" },
+	{ name = "Videos", text = "\U000FE01D" },
+]
+exts = [
+	# images
+	{ name = "png", text = "\U000FE01E" },
+	{ name = "jpg", text = "\U000FE01E" },
+	{ name = "jpeg", text = "\U000FE01E" },
+	{ name = "gif", text = "\U000FE01E" },
+	{ name = "webp", text = "\U000FE01E" },
+	{ name = "avif", text = "\U000FE01E" },
+	{ name = "bmp", text = "\U000FE01E" },
+	{ name = "svg", text = "\U000FE01E" },
+	{ name = "ico", text = "\U000FE01E" },
+	{ name = "heic", text = "\U000FE01E" },
+	# video
+	{ name = "mp4", text = "\U000FE01D" },
+	{ name = "mkv", text = "\U000FE01D" },
+	{ name = "webm", text = "\U000FE01D" },
+	{ name = "mov", text = "\U000FE01D" },
+	{ name = "m4v", text = "\U000FE01D" },
+	# audio
+	{ name = "mp3", text = "\U000FE00C" },
+	{ name = "flac", text = "\U000FE00C" },
+	{ name = "ogg", text = "\U000FE00C" },
+	{ name = "opus", text = "\U000FE00C" },
+	{ name = "wav", text = "\U000FE00C" },
+	{ name = "m4a", text = "\U000FE00C" },
+	{ name = "aac", text = "\U000FE00C" },
+	# archives and disc images
+	{ name = "zip", text = "\U000FE043" },
+	{ name = "gz", text = "\U000FE043" },
+	{ name = "xz", text = "\U000FE043" },
+	{ name = "zst", text = "\U000FE043" },
+	{ name = "7z", text = "\U000FE043" },
+	{ name = "rar", text = "\U000FE043" },
+	{ name = "bz2", text = "\U000FE043" },
+	{ name = "tgz", text = "\U000FE043" },
+	{ name = "tar", text = "\U000FE043" },
+	{ name = "iso", text = "\U000FE043" },
+	# books
+	{ name = "pdf", text = "\U000FE040" },
+	{ name = "epub", text = "\U000FE040" },
+	{ name = "mobi", text = "\U000FE040" },
+	{ name = "fb2", text = "\U000FE040" },
+	{ name = "cbz", text = "\U000FE040" },
+	{ name = "cbr", text = "\U000FE040" },
+	{ name = "cb7", text = "\U000FE040" },
+	# documents and text
+	{ name = "doc", text = "\U000FE041" },
+	{ name = "docx", text = "\U000FE041" },
+	{ name = "odt", text = "\U000FE041" },
+	{ name = "rtf", text = "\U000FE041" },
+	{ name = "md", text = "\U000FE041" },
+	{ name = "txt", text = "\U000FE041" },
+	{ name = "org", text = "\U000FE041" },
+	{ name = "log", text = "\U000FE041" },
+	# tables
+	{ name = "xls", text = "\U000FE045" },
+	{ name = "xlsx", text = "\U000FE045" },
+	{ name = "ods", text = "\U000FE045" },
+	{ name = "csv", text = "\U000FE045" },
+	# slides
+	{ name = "ppt", text = "\U000FE046" },
+	{ name = "pptx", text = "\U000FE046" },
+	{ name = "odp", text = "\U000FE046" },
+	# shell scripts
+	{ name = "sh", text = "\U000FE030" },
+	{ name = "bash", text = "\U000FE030" },
+	{ name = "zsh", text = "\U000FE030" },
+	# code
+	{ name = "py", text = "\U000FE044" },
+	{ name = "c", text = "\U000FE044" },
+	{ name = "h", text = "\U000FE044" },
+	{ name = "cpp", text = "\U000FE044" },
+	{ name = "rs", text = "\U000FE044" },
+	{ name = "go", text = "\U000FE044" },
+	{ name = "js", text = "\U000FE044" },
+	{ name = "ts", text = "\U000FE044" },
+	{ name = "lua", text = "\U000FE044" },
+	{ name = "html", text = "\U000FE044" },
+	{ name = "css", text = "\U000FE044" },
+	{ name = "xml", text = "\U000FE044" },
+	# settings
+	{ name = "json", text = "\U000FE025" },
+	{ name = "toml", text = "\U000FE025" },
+	{ name = "yaml", text = "\U000FE025" },
+	{ name = "yml", text = "\U000FE025" },
+	{ name = "conf", text = "\U000FE025" },
+	{ name = "ini", text = "\U000FE025" },
+	# changes
+	{ name = "diff", text = "\U000FE02B" },
+	{ name = "patch", text = "\U000FE02B" },
+	# torrents
+	{ name = "torrent", text = "\U000FE047" },
+]
+conds = [
+	{ if = "orphan", text = "\U000FE048" },
+	{ if = "link", text = "\U000FE048" },
+	{ if = "block", text = "\U000FE02E" },
+	{ if = "char", text = "\U000FE02E" },
+	{ if = "fifo", text = "\U000FE042" },
+	{ if = "sock", text = "\U000FE042" },
+	{ if = "sticky", text = "\U000FE032" },
+	{ if = "dummy", text = "\U000FE042" },
+	{ if = "dir", text = "\U000FE032" },
+	{ if = "exec", text = "\U000FE030" },
+	{ if = "!dir", text = "\U000FE042" },
+]

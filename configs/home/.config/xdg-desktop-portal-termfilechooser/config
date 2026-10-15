@@ -1,0 +1,16 @@
+# ~/.config/xdg-desktop-portal-termfilechooser/config — the file dialog (the FileChooser
+# portal; see ../xdg-desktop-portal/wlroots-portals.conf). xdg-desktop-portal-termfilechooser
+# (built by setup.sh) hands every Open / Save dialog to kawa-pick: yazi in a small floating
+# terminal. The portal is started by systemd --user, whose PATH has no ~/.local/bin, so the
+# helper is named by its full path. Read when the portal starts: a change here takes
+# effect at the next login (or: systemctl --user restart xdg-desktop-portal-termfilechooser).
+[filechooser]
+cmd=@HOME@/.local/bin/kawa-pick
+# where a dialog opens when the app suggests no folder
+default_dir=@HOME@
+# the folder the app suggests (Brave: where you last saved or uploaded)
+open_mode=suggested
+save_mode=suggested
+# saving: the portal makes the file under the suggested name, with a short note in it, so
+# yazi has it to show and Enter saves it; kawa-pick takes it away again when you cancel
+create_help_file=1
