@@ -58,8 +58,10 @@ act() {
     status) bash "$REPO_DIR/setup.sh" --status ;;
     conf)   # conf [FILE] — FILE (an edited copy) checked, and only then made the settings
             f=${2:-$REPO_DIR/fedokawai.conf}
-            # read once, into root's own copy: what is checked is exactly what is saved
-            t=$(mktemp) && cat -- "$f" >"$t" || { rm -f "${t:-}"; die "cannot read $f"; }
+            # read once, into root's own copy: what is checked is exactly what is saved. Read
+            # as whoever ran sudo — the copy is theirs: root never follows a link in it
+            r=(cat --); [[ -n ${SUDO_USER:-} && $SUDO_USER != root ]] && r=(runuser -u "$SUDO_USER" -- cat --)
+            t=$(mktemp) && "${r[@]}" "$f" >"$t" || { rm -f "${t:-}"; die "cannot read $f"; }
             p=$(conf_problems "$t")
             [[ -z $p ]] || { rm -f "$t"; die "not saved — fedokawai.conf would have:"$'\n'"$(sed 's/^/    /' <<<"$p")"; }
             if [[ $f != "$REPO_DIR/fedokawai.conf" ]]; then write_file "$REPO_DIR/fedokawai.conf" 0644 <"$t"; fi

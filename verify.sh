@@ -66,8 +66,11 @@ else pass "$((${#WANT[@]} - ${#ret[@]})) of ${#WANT[@]} manifest packages instal
 # ── zero redundancy ──────────────────────────────────────────────────────────
 section "zero redundancy"
 forbid=("${FORBIDDEN_PKGS[@]}"); [[ $GPU_KIND == amd ]] && forbid+=("${FORBIDDEN_amd[@]}")
-present=$(rpm -q "${forbid[@]}" 2>/dev/null | grep -v 'is not installed' | tr '\n' ' ' || true)
-if [[ -z ${present// /} ]]; then pass "none of ${#forbid[@]} forbidden packages present"
+q=$(rpm -q "${forbid[@]}" 2>/dev/null || true)          # (one line per name, whichever the answer)
+present=$(grep -v 'is not installed' <<<"$q" | tr '\n' ' ' || true)
+if (($(grep -c . <<<"$q" || true) < ${#forbid[@]})); then
+  fail "forbidden packages: rpm gave no answer" "its database may be damaged: sudo rpm --rebuilddb, then verify again"
+elif [[ -z ${present// /} ]]; then pass "none of ${#forbid[@]} forbidden packages present"
 else fail "forbidden packages present" "$present"; fi
 # what you installed yourself (reason "user", or an rpm outside dnf): a package a comps group
 # brought in — kmscon, which Fedora 45's core group gained, arriving with the move — is the
@@ -111,7 +114,8 @@ check "the toolkit: root's own copy, writable by root alone" \
 check "the control: fedokawai is the toolkit's"         cmp -s "$TK/system/fedokawai" /usr/local/bin/fedokawai
 check "the manifest's packages marked as yours (dnf's clean-up never takes them)" \
   bash -c 'u=$(dnf repoquery --userinstalled --qf "%{name}\n" 2>/dev/null) || exit 1
-           for p; do n=$(rpm -q --qf "%{NAME}\n" --whatprovides "$p" 2>/dev/null | awk "NR == 1"); grep -qx "${n:-$p}" <<<"$u" || exit 1; done' \
+           for p; do n=$p; rpm -q "$p" >/dev/null 2>&1 || n=$(rpm -q --qf "%{NAME}\n" --whatprovides "$p" 2>/dev/null | awk "NR == 1")
+                     grep -qx "${n:-$p}" <<<"$u" || exit 1; done' \
   _ greetd NetworkManager sudo snapper
 
 # ── boot & kernel ────────────────────────────────────────────────────────────
@@ -267,7 +271,7 @@ if ((PRE == 0)); then
   section "snapshots"
   check "snapper config for /"                         bash -c 'snapper list-configs | grep -q "^root "'
   # (yours to delete when space runs short — the next move to a Fedora takes a new one)
-  if snapper -c root list 2>/dev/null | grep -q "fedokawai baseline"; then pass "baseline snapshot exists"
+  if [[ $(snapper -c root list 2>/dev/null) == *"fedokawai baseline"* ]]; then pass "baseline snapshot exists"
   else warn "no baseline snapshot" "deleted? the next move to a new Fedora takes one; or now: sudo snapper -c root create -d \"fedokawai baseline\""; fi
   check "pre/post snapshot around every dnf run"       test -x /usr/local/sbin/kawa-snap -a -f /etc/dnf/libdnf5-plugins/actions.d/fedokawai-snapper.actions
   check "snapshots kept within bounds (a fifth of the disk stays free)" \
@@ -388,6 +392,7 @@ fi
 
 ((${#FAILS[@]} == 0)) || _out "  ${C_DIM}most of these fix themselves: fedokawai repair${C_RESET}"
 summary "verified"; rc=$?
+((rc == 0)) || rc=3          # (3: it ran, and things need you — 1 is verify itself failing)
 # the outcome, for the menu (Super+U) and repair: WHEN PASSED FAILED WARNINGS
 ((PRE)) || printf '%s %s %s %s\n' "$(date +%s)" "$PASS" "${#FAILS[@]}" "${#WARNS[@]}" \
   | write_file "$STATE_DIR/last-verify" 0644 || true

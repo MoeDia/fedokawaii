@@ -394,23 +394,26 @@ demo_repo() {   # (replaces shoot.sh's) ~/repos/fedokawai with a history: the re
   ci "2026-09-13T09:20:00+04:00" "kawa-weather: wttr.in in the bar" bin/kawa-weather
   gd="2026-09-14T11:02:00+04:00" g merge -q --no-ff -m "Merge branch 'wallpaper'" wallpaper
   ci "2026-09-18T18:44:00+04:00" "kawa-share, kawa-screenshot: screen sharing and grabs" bin/kawa-share bin/kawa-screenshot src/kawa-clipkeep
-  ci "2026-09-22T21:07:00+04:00" "system: greeter, kernel prune timer, snapshots" system/kawa-greeter system/kawa-kernel-prune* system/kawa-snap
+  ci "2026-09-22T21:07:00+04:00" "system: the greeter, snapshots around dnf" system/kawa-greeter system/kawa-snap
   ci "2026-10-02T20:30:00+04:00" "verify.sh: check every phase and the theme" verify.sh
   ci "2026-10-08T22:15:00+04:00" "docs: the handbook (markdown + PDF)" docs bin/brave-origin
   g checkout -q -b torrra
   ci "2026-10-10T19:55:00+04:00" "torrra: kawa-torrra and a Prowlarr container" system/kawa-torrra system/kawa-torrra.profile.sh system/prowlarr.container
   g checkout -q main
+  # whatever the steps above did not name (helpers added since: books, notes, …), so the
+  # work in progress below is all the Files panel shows
+  ci "2026-10-11T07:40:00+04:00" "bin, system: books, notes, the clipboard and the rest" .
   gd="2026-10-11T08:00:00+04:00"
   g clone -q --bare "$d" "$KH/repos/.remote/fedokawai.git" \
     && g remote add origin "$KH/repos/.remote/fedokawai.git" && g fetch -q origin \
     && g branch -q -u origin/main
   printf '\n<!-- draft -->\n' >>"$d/docs/fedokawai-guide.md"
   gd="2026-10-14T22:41:00+04:00" g commit -q -am "guide: draft of the apps chapter"   # ↑1
-  sed -i '/^#    \.\/theme\.sh --check/a #    ./theme.sh --diff                the same, as a diff against the installed files' \
+  sed -i '/^#    bash theme\.sh --check/a #    bash theme.sh --diff             the same, as a diff against the installed files' \
     "$d/theme.sh"; g add theme.sh                                                     # +1
   # setup.sh: a --dry-run option in the making (three hunks); verify.sh touched   ~2
   sed -i -e '/^#    sudo bash setup.sh --no-reboot/a #    sudo bash setup.sh --dry-run    what the current phase would install; nothing changes' \
-         -e 's/^MODE=build NO_REBOOT=0$/MODE=build NO_REBOOT=0 DRY_RUN=0/' \
+         -e 's/^MODE=build NO_REBOOT=0 /MODE=build NO_REBOOT=0 DRY_RUN=0 /' \
          -e '/^    --no-reboot) NO_REBOOT=1 ;;$/a \    --dry-run) DRY_RUN=1 ;;' "$d/setup.sh"
   printf '\n' >>"$d/verify.sh"
   printf 'notes\n' >"$d/TODO.txt"                                                   # ?1
@@ -568,8 +571,8 @@ lazygit_open() {   # lazygit_open NAME — lazygit in the demo repository, its i
 
 shot_lazygit_log() {   # 4: the Commits panel — the graph (a merged branch), a commit's diff beside it
   lazygit_open lazygit-log || return
-  k wtype -s 300 "4" -s 400 $(printf -- '-k Down -s 120 %.0s' {1..8}) >/dev/null 2>&1   # "kawa-weather: …",
-  # below the merge: the graph of the wallpaper branch in view
+  k wtype -s 300 "4" -s 400 $(printf -- '-k Down -s 120 %.0s' {1..8}) >/dev/null 2>&1   # "kawa-wallpaper: …",
+  # on the merged branch, below the merge: its graph in view
   sleep 1.5
   capture lazygit-log "$TAPP" 1.5
   term_close -k q
@@ -584,14 +587,14 @@ shot_lazygit_commit() {   # c with theme.sh staged: the commit message box, a su
   term_close -k Escape -s 300 -k q                # (Esc closes the box, the message is not committed)
 }
 
-shot_lazygit_stage() {   # setup.sh: Enter → its first hunk staged with Space → back to Files (Esc);
-  # the file is now half staged (MM): the Files panel focused, unstaged and staged diffs beside it
+shot_lazygit_stage() {   # setup.sh: Enter opens its staging view, a selects a whole hunk, Space
+  # stages it: the unstaged hunks on one side, the staged one on the other, the next selected
   lazygit_open lazygit-stage || return
-  k wtype -s 300 -k Down -s 150 -k Down >/dev/null 2>&1; sleep 1        # setup.sh (?? TODO, M setup, M theme, M verify)
-  k wtype -s 300 -k Return -s 600 "a" -s 300 -k space -s 600 -k Escape >/dev/null 2>&1   # a: select the hunk
+  k wtype -s 300 -k Down -s 150 -k Down >/dev/null 2>&1; sleep 1        # setup.sh (/ · ?? TODO · M setup · M theme · M verify)
+  k wtype -s 300 -k Return -s 600 "a" -s 300 -k space >/dev/null 2>&1   # a: select the hunk
   sleep 1.5
   capture lazygit-stage "$TAPP" 1.5
-  term_close -k q
+  term_close -k Escape -s 300 -k q
 }
 
 shot_yazi_preview() {   # yazi in ~/Pictures, a picture hovered: its preview (sixel, foot)

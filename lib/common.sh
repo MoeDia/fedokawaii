@@ -191,7 +191,8 @@ validate_conf() {                   # prints one line per problem; empty = valid
                                                 || echo "MONITOR_HZ must be a number 30–540 (is '$MONITOR_HZ')"
   [[ $DNF_PARALLEL =~ ^[0-9]+$ ]] && ((DNF_PARALLEL >= 1 && DNF_PARALLEL <= 20)) \
                                                 || echo "DNF_PARALLEL must be 1–20, dnf5's maximum (is '$DNF_PARALLEL')"
-  [[ -f /usr/share/zoneinfo/$TIMEZONE ]]        || echo "TIMEZONE '$TIMEZONE' is not a known zone (see timedatectl list-timezones)"
+  [[ $TIMEZONE =~ ^[A-Za-z0-9_+-]+(/[A-Za-z0-9_+-]+)*$ && -f /usr/share/zoneinfo/$TIMEZONE ]] \
+                                                || echo "TIMEZONE '$TIMEZONE' is not a known zone (see timedatectl list-timezones)"
   [[ $NIGHT_LIGHT =~ ^-?[0-9]+(\.[0-9]+)?:-?[0-9]+(\.[0-9]+)?$ ]] \
                                                 || echo "NIGHT_LIGHT must be latitude:longitude like 25.35:55.40 (is '$NIGHT_LIGHT')"
   [[ $KB_LAYOUTS =~ ^[a-z]+(,[a-z]+)*$ ]]       || echo "KB_LAYOUTS must look like us,ara (is '$KB_LAYOUTS')"
@@ -213,9 +214,11 @@ CONF_KEYS=(USERNAME GPU STEAM SSH_SERVER MONITOR_HZ KB_LAYOUTS KB_TOGGLE TIMEZON
            NIGHT_LIGHT THEME WALLPAPER_PACK BOOT_MENU_SECONDS DNF_PARALLEL DWL_TAG DWL_COMMIT
            DWL_WLROOTS TFC_TAG TFC_COMMIT)
 CONF_PROBLEMS=()
+# one setting line: KEY="value", KEY='value' or KEY=value, then an optional # comment
+# (the value: BASH_REMATCH[3], [4] or [5], whichever matched)
+CONF_RE='^[[:space:]]*([A-Z_]+)=("([^"]*)"|'"'"'([^'"'"']*)'"'"'|([^[:space:]#"'"'"']*))[[:space:]]*(#.*)?$'
 read_conf() {                       # read_conf FILE — sets the settings; CONF_PROBLEMS lists what is not one
-  local line k v IFS=' '
-  local re='^[[:space:]]*([A-Z_]+)=("([^"]*)"|'"'"'([^'"'"']*)'"'"'|([^[:space:]#"'"'"']*))[[:space:]]*(#.*)?$'
+  local line k v IFS=' ' re=$CONF_RE
   for k in "${CONF_KEYS[@]}"; do printf -v "$k" '%s' ""; done
   CONF_PROBLEMS=()
   [[ -r $1 ]] || { CONF_PROBLEMS+=("cannot read $1"); return 0; }

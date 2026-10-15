@@ -739,8 +739,9 @@
 ...
 
 # the level bar of the menus (icons.sh: levelbar): a 1 px frame with a 4 px fill inset by
-# one pixel; caps close it, filled cells run together into one solid bar
-@lv-l adv=2 x=0
+# one pixel; caps close it, filled cells run together into one solid bar. The left cap starts
+# one pixel in, where letters start, so a bar under a word begins exactly with it.
+@lv-l adv=3 x=1
 ##
 #.
 #.

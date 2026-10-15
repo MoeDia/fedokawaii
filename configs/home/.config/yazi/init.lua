@@ -27,15 +27,17 @@ function Tab:layout(...)
 	end
 end
 
--- One free column on both sides of every rail, as in the pop-ups (13 px): the parent and
--- current lists (and their highlight) stop one column before the rail on their right, and
--- the preview stands one column off the rail on its left.
+-- One free column on both sides of every rail, as in the pop-ups (13 px): the parent list
+-- (and its highlight) stops one column before its rail, the current list keeps one column
+-- off the rails on both sides, and the preview stands one column off the rail on its left.
 local tab_build = Tab.build
 function Tab:build(...)
 	tab_build(self, ...)
 	for _, c in ipairs(self._children or {}) do
-		if c._area and (c._id == "parent" or c._id == "current") then
+		if c._area and c._id == "parent" then
 			c._area = c._area:pad(ui.Pad(0, 1, 0, 0))
+		elseif c._area and c._id == "current" then
+			c._area = c._area:pad(ui.Pad(0, 1, 0, 1))
 		elseif c._id == "preview" and c._area then
 			c._area = c._area:pad(ui.Pad(0, 0, 0, 1))
 		end

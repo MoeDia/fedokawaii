@@ -64,8 +64,8 @@ while :; do
   if [[ $mic == *MUTED* ]]; then add "$ICON_MIC  unmute microphone" micmute; else add "$ICON_MIC_OFF  mute microphone" micmute; fi
   add "$ICON_SLIDERS  mixer…" mixer
 
-  # the title, one line: the speaker, the menus' framed bar (icons.sh: 20 cells of 5 %, 84 px
-  # — twelve columns exactly, standing over the labels below: they too start in column 4)
+  # the title, one line: the speaker, the menus' framed bar (icons.sh: 20 cells of 5 %) —
+  # starting in column 4 with the labels below, its frame on their letters' first pixel —
   # and the level. (fuzzel wraps a title line longer than the menu's width in characters,
   # and the bar is 22 of them: this line is exactly the 30 that fit.)
   [[ $pct =~ ^[0-9]+$ ]] || pct=0

@@ -4,7 +4,7 @@ subtitle: "A Fedora Server install turned into a hand-drawn dwl desktop: how to 
 date: "October 2026 · Fedora 44 / 45 · dwl 0.9 · wlroots 0.20"
 ---
 
-<!-- fig:desktop-dark | The desktop on the dark theme: the bar on top, a terminal with the prompt and fetch, the clipboard history open over it. -->
+<!-- fig:desktop-dark | The desktop on the dark theme: the bar on top, a terminal with the prompt, fetch and a listing. -->
 
 <!-- fig:desktop-light | The same desktop on the light theme — switched live with Super+Shift+W. -->
 
@@ -102,7 +102,7 @@ that names it.
 |---|---|---|
 | `USERNAME` | empty | the desktop user; empty = whoever ran `sudo` |
 | `GPU` | `auto` | `auto`, `amd` or `intel` — drivers, video decoding, and mpv's scaling |
-| `STEAM` | `yes` | Steam, gamescope, gamemode, MangoHud, GE-Proton |
+| `STEAM` | `yes` | Steam, gamescope, gamemode, MangoHud, GE-Proton; switched to `no`, the next update hands those packages back to dnf (`sudo dnf autoremove` removes them; your games stay in your home) |
 | `SSH_SERVER` | `no` | `no` disables sshd and closes ssh/cockpit in the firewall |
 | `MONITOR_HZ` | `144` | the highest refresh rate at or below this is used |
 | `KB_LAYOUTS` | `us,ara` | keyboard layouts; the first one is always used for shortcuts |
@@ -121,7 +121,7 @@ that names it.
 
 ## 4.1 The bar
 
-<!-- fig:bar | The bar, dark and light, at its real size: the left end, the middle, the right end. -->
+<!-- fig:bar | The bar, dark and light, at twice its size: the left end, the middle, the right end. -->
 
 | Part | What it shows | Click |
 |---|---|---|
@@ -353,7 +353,7 @@ picks one (`neko`, `daruma`, `torii`, `pc`, `fuji`, `onigiri`, `chochin`, `casse
 
 ## 4.7 Lock, login, boot
 
-<!-- fig:lock | The middle of the lock screen on both themes, at twice its size: the day's kanji seal, the pixel padlock (its keyhole holds the typing indicator) and the date. -->
+<!-- fig:lock | The middle of the lock screen on both themes, at twice its size: the day's kanji seal, the pixel padlock (the typing indicator appears in its keyhole) and the date. -->
 
 The **lock screen** is the theme's plain ground with a pixel padlock in the exact centre — paper
 on ink, or ink on paper. Above it the day of the week sits in a small vermilion seal, in kanji
@@ -502,7 +502,7 @@ Your microphone itself travels as usual; check it in the audio menu (Super+A →
 
 ## 4.11 Books — Super+R
 
-<!-- fig:books | The books window (Super+R): the ones being read first, each with its page and a bar; the cover of the one under the cursor beside. -->
+<!-- fig:books | The books window (Super+R). Dark: the ones being read first, each with its page and a bar, the cover of the one under the cursor beside. Light: adding books (Ctrl+A) from Downloads, Documents and Desktop. -->
 
 **Super+R** opens your library: every book in **`~/Books`** (and its folders) — PDF, EPUB,
 MOBI, FB2, XPS and comic books (CBZ, CBR, CB7) — in a small floating window, the ones you
@@ -591,7 +591,7 @@ inside the 11 px bar, say) it keeps the normal smoothing, which reads better tha
 
 ## 5.2 Icons
 
-<!-- fig:icons | The icons of Sumi Icons, at 6× their size (each pixel of the drawing is one pixel on screen); the vermilion marks are the text baseline. -->
+<!-- fig:icons | The icons of Sumi Icons, eight times their size: each square is one pixel on screen. Here each is centred in its tile; in the font it sits on the text's middle line. -->
 
 Every icon is drawn as text in `art/icons.txt` — `#` for a pixel, `.` for nothing — on the same
 11 px grid as Departure Mono, ten pixels tall and centred on the middle of the text line.
@@ -644,7 +644,7 @@ whatever is running to look again.
 | mako | `include=current/mako` (outside any section, as mako requires); the file carries its own sections for low-urgency, critical and level notices | `makoctl reload` |
 | GTK 4 / libadwaita | one `gtk.css` with both palettes, chosen by GTK's color-scheme media query | gsettings `color-scheme` |
 | GTK 3 | two GTK themes of its own, `Fedokawai` and `Fedokawai-dark` (adw-gtk3 + the palette, in `~/.local/share/themes`) | gsettings `gtk-theme` — every open window, the file dialog included |
-| Brave | GTK mode (set by Theme): its tab strip, toolbar, address bar and menus come from the GTK theme, a few rules in it reach Brave alone; the new-tab page is the ground colour (`light-dark()`); web pages follow the portal's dark / light | live |
+| Brave | GTK mode (set by Theme): its tab strip, toolbar and menus come from the GTK theme, a few rules in it reach Brave alone (the address bar keeps Brave's own colours); the new-tab page is the ground colour (`light-dark()`); web pages follow the portal's dark / light | live |
 | Qt | `qt6ct.conf` is a link into the theme | the link is replaced; qt6ct watches its folder |
 | mpv | `include` of `current/mpv.conf`: on-screen text, the controller, menus | every open player loads the new file over its socket |
 | btop | `color_theme = "fedokawai"`: `~/.config/btop/themes/fedokawai.theme` is a link through `current` (btop takes themes only by name) | SIGUSR2 |
@@ -709,7 +709,7 @@ date; **Esc** (or **q**) closes it.
 | update | the season's update (§6.2) | when the next is due; **due** in red once it is |
 | upgrade to Fedora N | the move to the next release (§6.4) | when it is expected or offered; **ready** in red once it has settled |
 | verify | every check (§6.7); changes nothing | **passed**, or how many to fix |
-| repair | verify, put right what it found — packages, services, the login, dwl (rebuilt if it will not start), the session, the tools, the configs where the theme was chosen — and verify again; offline too, as far as it can | |
+| repair | verify, put right what it found — packages, services, the login, dwl (rebuilt if it will not start; work of yours in its folder is set aside as a branch or a stash, never lost), the session, the tools, neovim's plugins, the configs where the theme was chosen — and verify again; offline too, as far as it can | |
 | snapshots | the snapshots of `/` (§7.2) | how many |
 | theme, applied again | every config back as the toolkit has it (yours kept in the backup) | |
 | drift | the configs that differ from the toolkit's; changes nothing | |
@@ -736,10 +736,14 @@ never goes on the network. The season is in `~/.config/fedokawai/upkeep.conf`: `
 in `/usr/local/lib/fedokawai`, owned by root, so nothing running as you can change it; the
 `fedokawai` command is installed from it. The folder you installed from can go once setup is
 done. *settings* edits the toolkit's own `fedokawai.conf`. To change any other file of the
-toolkit, change it in a copy of the project and run one action from there
-(`sudo bash fedokawai.sh theme`): that copy becomes the toolkit — keeping the toolkit's
-`fedokawai.conf` (your settings), unless you changed the copy's since the toolkit was last
-made from a copy.
+toolkit, change it in a copy of the project and run an update or a repair from there
+(`sudo bash fedokawai.sh update`): that copy becomes the toolkit. Its `fedokawai.conf` is
+merged key by key: a value you saved through *settings* stays, unless the copy changed that
+key since the toolkit was last made from a copy — then the copy's is meant. The log names
+every value taken from the copy, and the toolkit's file before is kept as
+`/var/lib/fedokawai/fedokawai.conf.before`. The toolkit holds plain files and folders only:
+a copy with a symbolic link in it is refused — the toolkit stays as it was, and the update
+or repair stops there, before anything is applied.
 
 ## 6.2 The season's update
 
@@ -1891,7 +1895,7 @@ onto a buffer: splitting the screen shows two files side by side, or two places 
 | Ctrl+W `=` | make all windows the same size |
 | Space Tab Tab · Space Tab d | a new tab, a whole new layout of windows · close it |
 
-<!-- fig:nvim-split | Two windows side by side: a shell script and its notes, the open buffers listed along the top. -->
+<!-- fig:nvim-split | Two windows side by side, two shell scripts, the file explorer on the left and the open buffers listed along the top. -->
 
 ### Finding
 
@@ -2409,7 +2413,7 @@ everything back; once it has finished, **z** undoes it.
 ### History and diffs
 
 
-<!-- fig:lazygit-log | The commit history: hashes coloured by where they are, the branch graph, one commit's changes on the right. -->
+<!-- fig:lazygit-log | The commit history: the branch graph beside the hashes, one commit's changes on the right. -->
 
 | Keys | Does |
 |---|---|
@@ -2559,7 +2563,7 @@ instead.
 
 ## 11.9 Brave Origin — the browser
 
-<!-- fig:app-brave | Brave Origin's new-tab page on both themes: the tab strip, toolbar and address bar in the palette, no window buttons. -->
+<!-- fig:app-brave | Brave Origin's new-tab page on both themes: the tab strip and toolbar in the palette, no window buttons; the address bar, focused, keeps Brave's own grey (white on paper) and blue ring. -->
 
 **Super+B**. Brave Origin is Brave with Rewards, Wallet, VPN, Leo, News and the Tor windows
 removed from the build; the Shields (ad and tracker blocking) remain. It is free on Linux and
@@ -2570,10 +2574,10 @@ the only browser here (`verify` fails if another appears).
 Very little, on purpose:
 
 * **The desktop's colours.** Brave runs in its GTK mode (Theme sets it in the profile while
-  Brave is closed): the tab strip, toolbar, address bar, menus and dialogs take the palette
-  from the GTK theme, the new-tab page is the theme's ground, and both follow a theme switch
-  live. Web pages that offer a dark version follow the portal's dark / light. Brave's own
-  pages (settings, Shields) keep Brave's greys.
+  Brave is closed): the tab strip, toolbar, menus and dialogs take the palette from the GTK
+  theme, the new-tab page is the theme's ground, and both follow a theme switch live. Web
+  pages that offer a dark version follow the portal's dark / light. The address bar and
+  Brave's own pages (settings, Shields) keep Brave's greys.
 * **No window buttons** — the tab strip ends at the tab list; Super+Q closes the window.
 * **File dialogs.** Upload buttons and *Save as* open the desktop's file dialog, served by the
   portal (§4.9).
@@ -3041,7 +3045,7 @@ GE-Proton builds, so a game forced to an older one needs a new choice under *Com
 
 # 12. Torrents: searching and downloading
 
-<!-- fig:app-torrra | torrra after a search: results sorted by seeders, sizes and sources, in the terminal's colours. -->
+<!-- fig:app-torrra | torrra after a search: twelve results with their sizes and seeders:leechers, in the terminal's colours. -->
 
 Two pieces work together. **Prowlarr** (a small service in a container, §11.20) knows how to
 search hundreds of torrent sites — *indexers* — and answers one search for all of them.

@@ -9,7 +9,7 @@
 #                                     the kernel command line, installing dwl)
 #    sudo bash theme.sh --user NAME   as root, for that user (default: USERNAME in
 #                                     fedokawai.conf, else whoever ran sudo)
-#    bash theme.sh --check            list files that differ from the repo; exit 1 if any
+#    bash theme.sh --check            list files that differ from the repo; exit 3 if any
 #
 #  configs/home/   mirrors $HOME   →  copied as-is (tokens @HOME@ etc. rendered; fonts
 #                                     copied byte for byte); *.xpm pixel art is also
@@ -498,7 +498,7 @@ if [[ -r $BRAVE_SYS_DESKTOP ]]; then
 fi
 
 # ── 4c. Brave: the desktop's colours ─────────────────────────────────────────
-# Brave's GTK theme mode paints its tab strip, toolbar, address bar, menus and dialogs from
+# Brave's GTK theme mode paints its tab strip, toolbar, menus and dialogs from
 # the GTK 3 theme kawa-theme switches (Fedokawai / Fedokawai-dark, which carry a few rules
 # for Brave alone) and follows every switch live; web pages follow the portal's dark/light.
 # The new-tab page gets the ground colour as CSS light-dark(), so it switches by itself.
@@ -573,7 +573,7 @@ if ((CHECK)); then
   # (the wallpaper pack depends on the network: verify.sh reports it as a warning instead)
   if ((${#DRIFT[@]})); then
     printf '%s✘ %d of %d files differ from the repo:%s\n' "$C_RED" "${#DRIFT[@]}" "$TOTAL" "$C_RESET"
-    printf '  %s\n' "${DRIFT[@]}"; exit 1
+    printf '  %s\n' "${DRIFT[@]}"; exit 3   # (3: it ran, and things differ — 1 is an error)
   fi
   printf '%s✔ theme in sync — %d files match the repo%s\n' "$C_OK" "$TOTAL" "$C_RESET"; exit 0
 fi

@@ -92,32 +92,116 @@ set_phase() { printf '%s\n' "$1" | write_file "$STATE_DIR/phase" 0644; }   # (wh
 # never from your clone — anything running as you could change a script there: from a
 # root-owned copy in /usr/local/lib/fedokawai, made at the first reboot and used from then
 # on by everything (the `fedokawai` command, Super+U, setup's later phases). Your clone
-# can go once setup is done. A newer clone, run once (sudo bash fedokawai.sh …), replaces
-# the copy.
+# can go once setup is done. A newer clone, run once (sudo bash fedokawai.sh update, or
+# repair), replaces the copy — its fedokawai.conf merged with your saved settings (conf_merge).
 install_toolkit() {
-  local mark=$STATE_DIR/conf-from-copy.sha256 sum
+  local sum
   if [[ $REPO_DIR != "$TOOLKIT" ]]; then
-    # a link in the copy would follow into root's toolkit and point it at a file of yours
-    sum=$(find "$REPO_DIR" -path "$REPO_DIR/.git" -prune -o -type l -print -quit)
-    [[ -z $sum ]] || die "the project folder holds a symbolic link ($sum) — the toolkit is made only of plain files"
     rm -rf "$TOOLKIT.new" "$TOOLKIT.old"
     mkdir -p "${TOOLKIT%/*}"
-    cp -a "$REPO_DIR/." "$TOOLKIT.new"
-    rm -rf "$TOOLKIT.new/.git"
-    # fedokawai.conf: the toolkit's is kept — it holds what the menu's settings saved — unless
-    # the copy here was changed since the toolkit was last made from a copy: then that edit is
-    # what you mean. (By content, never by date: a fresh clone or download is always "newer".)
-    sum=$(sha256sum <"$REPO_DIR/fedokawai.conf"); sum=${sum%% *}
-    if [[ -f $TOOLKIT/fedokawai.conf && $(cat "$mark" 2>/dev/null) == "$sum" ]]; then
-      cp -p "$TOOLKIT/fedokawai.conf" "$TOOLKIT.new/fedokawai.conf"
+    # copied inside a folder only root can enter, root's own from the first byte: nothing
+    # running as you can reach the copy while it is made and checked
+    mkdir -m 0700 "$TOOLKIT.new"
+    cp -a --no-preserve=ownership "$REPO_DIR/." "$TOOLKIT.new/t"
+    rm -rf "$TOOLKIT.new/t/.git"
+    chown -R root:root "$TOOLKIT.new/t"; chmod -R u=rwX,go=rX "$TOOLKIT.new/t"   # (no set-id bits)
+    # plain files and folders only: a link would point root's toolkit at a file of yours. The
+    # copy itself is checked, once made — the clone could have changed while it was read
+    sum=$(find "$TOOLKIT.new/t" ! -type f ! -type d -print -quit)
+    if [[ -n $sum ]]; then
+      rm -rf "$TOOLKIT.new"
+      die "the project folder holds a link or other special file (${sum#"$TOOLKIT.new/t/"}) — the toolkit is made only of plain files"
     fi
-    chown -R root:root "$TOOLKIT.new"; chmod -R u+rwX,go=rX "$TOOLKIT.new"
+    cp -p "$TOOLKIT.new/t/fedokawai.conf" "$TOOLKIT.new/copy.conf"   # (as this copy has it)
+    conf_merge "$TOOLKIT.new/t/fedokawai.conf"
     if [[ -d $TOOLKIT ]]; then mv "$TOOLKIT" "$TOOLKIT.old"; fi
-    mv "$TOOLKIT.new" "$TOOLKIT"; rm -rf "$TOOLKIT.old"
-    printf '%s\n' "$sum" | write_file "$mark" 0644
+    mv "$TOOLKIT.new/t" "$TOOLKIT"
+    write_file "$STATE_DIR/conf-from-copy.conf" 0644 <"$TOOLKIT.new/copy.conf"
+    rm -rf "$TOOLKIT.new" "$TOOLKIT.old" "$STATE_DIR/conf-from-copy.sha256"
   fi
   install -m 0755 "$TOOLKIT/system/fedokawai" /usr/local/bin/fedokawai
   restorecon -R "$TOOLKIT" /usr/local/bin/fedokawai 2>/dev/null || true
+}
+
+# conf_merge NEW — fedokawai.conf, key by key, for the toolkit about to be made from this copy
+# (NEW is this copy's, and becomes the merge). What the menu's settings saved in the toolkit is
+# kept, unless this copy changed that key since the toolkit was last made from a copy: then
+# that edit is what you mean. With no earlier copy on record, the pins (DWL_*, TFC_*) are this
+# copy's and every setting the toolkit's. A key new here comes from here. (By content, never
+# by date: a fresh clone or download is always "newer".) A saved value replaced is logged,
+# and the toolkit's file before is kept: /var/lib/fedokawai/fedokawai.conf.before.
+conf_merge() {
+  local new=$1 old=$TOOLKIT/fedokawai.conf last=$STATE_DIR/conf-from-copy.conf
+  local mark=$STATE_DIR/conf-from-copy.sha256 line k v sum had=0 win s
+  local -A tv=() tl=() lv=()
+  local -a out=() taken=()
+  [[ -f $old ]] || return 0
+  while IFS= read -r line || [[ -n $line ]]; do
+    if [[ $line =~ $CONF_RE ]]; then
+      k=${BASH_REMATCH[1]}; tv[$k]=${BASH_REMATCH[3]}${BASH_REMATCH[4]}${BASH_REMATCH[5]}; tl[$k]=$line
+    fi
+  done <"$old"
+  if [[ -f $last ]]; then had=1
+  elif [[ -f $mark ]]; then   # (made before the copy itself was kept: its fingerprint then)
+    sum=$(sha256sum <"$new")
+    if [[ $(<"$mark") == "${sum%% *}" ]]; then last=$new had=1; fi
+  fi
+  if ((had)); then
+    while IFS= read -r line || [[ -n $line ]]; do
+      if [[ $line =~ $CONF_RE ]]; then lv[${BASH_REMATCH[1]}]=${BASH_REMATCH[3]}${BASH_REMATCH[4]}${BASH_REMATCH[5]}; fi
+    done <"$last"
+  fi
+  while IFS= read -r line || [[ -n $line ]]; do
+    if [[ $line =~ $CONF_RE ]]; then
+      k=${BASH_REMATCH[1]} v=${BASH_REMATCH[3]}${BASH_REMATCH[4]}${BASH_REMATCH[5]}
+      if [[ -v tv[$k] && ${tv[$k]} != "$v" ]]; then
+        if ((had)) && [[ -v lv[$k] ]]; then
+          if [[ ${lv[$k]} == "$v" ]]; then win=toolkit; else win=copy; fi
+        elif [[ $k == DWL_* || $k == TFC_* ]]; then win=copy
+        else win=toolkit; fi
+        if [[ $win == toolkit ]]; then line=${tl[$k]}; else taken+=("$k=\"$v\" (was \"${tv[$k]}\")"); fi
+      fi
+    fi
+    out+=("$line")
+  done <"$new"
+  printf '%s\n' "${out[@]}" >"$new"
+  # a saved value this copy no longer accepts: that key is this copy's (each problem line
+  # starts with its key's name); should anything still not pass, the whole file is
+  local bad=() i
+  mapfile -t bad < <(conf_problems "$new" | awk '{ print $1 }' | sort -u)
+  if ((${#bad[@]})); then
+    for k in "${bad[@]}"; do
+      [[ $k =~ ^[A-Z_]+$ ]] || continue
+      line=$(grep -m1 -E "^[[:space:]]*$k=" "$TOOLKIT.new/copy.conf") || continue
+      for i in "${!out[@]}"; do if [[ ${out[i]} =~ ^[[:space:]]*$k= ]]; then out[i]=$line; fi; done
+      taken+=("$k (the saved value no longer passes)")
+    done
+    printf '%s\n' "${out[@]}" >"$new"
+    if [[ -n $(conf_problems "$new") ]]; then
+      cp -p "$TOOLKIT.new/copy.conf" "$new"; taken=("every setting: the saved ones do not pass this copy's checks")
+    fi
+  fi
+  if ((${#taken[@]})); then
+    cp -p "$old" "$STATE_DIR/fedokawai.conf.before"
+    printf -v s '%s · ' "${taken[@]}"
+    log "fedokawai.conf, from this copy: ${s% · } — the toolkit's file before: $STATE_DIR/fedokawai.conf.before"
+  fi
+}
+# an update or repair run from a copy: the copy becomes the toolkit first, and the rest of
+# the run is the toolkit's — its fedokawai.conf (your saved settings with this copy's
+# changes) and its files (verify.sh, theme.sh, the session launcher read them). A copy the
+# toolkit refuses stops the run there, before anything is applied: never a run on the
+# copy's settings, which would undo what you saved through the menu.
+toolkit_first() {
+  [[ $REPO_DIR != "$TOOLKIT" ]] || return 0
+  install_toolkit
+  settings_from_toolkit
+}
+settings_from_toolkit() {
+  [[ $REPO_DIR != "$TOOLKIT" && -f $TOOLKIT/fedokawai.conf ]] || return 0
+  [[ -z $(conf_problems "$TOOLKIT/fedokawai.conf") ]] || return 0
+  read_conf "$TOOLKIT/fedokawai.conf"
+  REPO_DIR=$TOOLKIT
 }
 
 # ── resume across reboots: a one-shot unit takes tty1 and re-runs this script ──
@@ -172,7 +256,9 @@ contained() {
   # shellcheck disable=SC2154  # rc is assigned inside the trap string
   # shellcheck disable=SC2034  # lvl is read inside the trap string
   ( set -e; lvl=$BASH_SUBSHELL       # (deeper: a $(…) or <(…) inside FN — it just ends, as above)
-    trap 'rc=$?; ((BASH_SUBSHELL == lvl)) || exit $rc; _out "${C_RED}✘ line $LINENO${FUNCNAME[0]:+ in ${FUNCNAME[0]}()}: ${BASH_COMMAND:0:160} (exit $rc)${C_RESET}" >&2; exit $rc' ERR
+    # (a function that returned its own failure has said why: no "return 1" line after it)
+    trap 'rc=$?; ((BASH_SUBSHELL == lvl)) || exit $rc; [[ $BASH_COMMAND == return* ]] && exit $rc
+          _out "${C_RED}✘ line $LINENO${FUNCNAME[0]:+ in ${FUNCNAME[0]}()}: ${BASH_COMMAND:0:160} (exit $rc)${C_RESET}" >&2; exit $rc' ERR
     "$@" )
   CONTAINED_RC=$?
   set -e; eval "$saved"
@@ -410,10 +496,33 @@ phase2() {
 s_build() {
   dnf_install "${PKG_BUILD[@]}"
   # dwl's own copy of wlroots (lib/common.sh: wlr_keep), kept for good from here on
-  wlr_keep || die "wlroots $DWL_WLROOTS is not in this Fedora (it has $(rpm -q --qf '%{version}' wlroots-devel 2>/dev/null)) — install on a Fedora that ships it (44 or 45)"
+  wlr_keep || die "wlroots $DWL_WLROOTS is not in this Fedora (it has $(wlr_has)) — install on a Fedora that ships it (44 or 45)"
   ok "wlroots $DWL_WLROOTS kept for dwl: $(wlr_home)"
 }
 
+# dwl_keep_yours SRC — before dwl's folder is put back to the pin, your own work in it is set
+# aside, never thrown away: a HEAD of yours as a branch, edits beyond src/dwl/dwl.patch and
+# new files as a stash (cd ~/.local/src/dwl; git branch · git stash list). The patch's own
+# changes are told apart by their lines.
+dwl_keep_yours() {
+  local src=$1 head stamp mine patch
+  [[ -d $src/.git ]] || return 0
+  stamp=$(date +%Y%m%d-%H%M%S)
+  head=$(as_user git -C "$src" rev-parse HEAD 2>/dev/null) || return 0
+  # (upstream's own commits — a fresh clone stands on its newest — are not yours)
+  if [[ $head != "$DWL_COMMIT" && -z $(as_user git -C "$src" branch -r --contains HEAD 2>/dev/null) ]]; then
+    as_user git -C "$src" branch -f "before-fedokawai-$stamp" HEAD
+    log "dwl: your HEAD ${head:0:12} kept as the branch before-fedokawai-$stamp (~/.local/src/dwl)"
+  fi
+  [[ -n $(as_user git -C "$src" status --porcelain 2>/dev/null) ]] || return 0
+  mine=$(as_user git -C "$src" diff HEAD | grep -E '^[-+]' | grep -vE '^(\+\+\+|---) ' | LC_ALL=C sort | sha256sum) || mine=""
+  patch=$(grep -E '^[-+]' "$REPO_DIR/src/dwl/dwl.patch" | grep -vE '^(\+\+\+|---) ' | LC_ALL=C sort | sha256sum)
+  if [[ $mine != "$patch" || -n $(as_user git -C "$src" ls-files --others --exclude-standard 2>/dev/null) ]]; then
+    as_user git -C "$src" -c user.name=fedokawai -c user.email=fedokawai@localhost \
+      stash push --quiet --include-untracked -m "before fedokawai $stamp"   # (a stash needs a name)
+    log "dwl: your changes in ~/.local/src/dwl kept as a stash (git stash list there)"
+  fi
+}
 s_dwl() {
   local src=$TARGET_HOME/.local/src/dwl
   as_user mkdir -p "$TARGET_HOME/.local/src"
@@ -421,6 +530,7 @@ s_dwl() {
   as_user git -C "$src" fetch --quiet --tags --force
   [[ $(as_user git -C "$src" rev-parse "$DWL_TAG^{commit}") == "$DWL_COMMIT" ]] \
     || die "dwl tag $DWL_TAG does not point at the pinned commit $DWL_COMMIT — refusing to build"
+  dwl_keep_yours "$src"
   as_user git -C "$src" checkout --quiet --force "$DWL_COMMIT"
   as_user git -C "$src" clean -fdxq -e config.h
   # src/dwl/dwl.patch: keybindings read the first layout (us), so Super+Q etc. keep working
@@ -918,7 +1028,7 @@ preflight() {   # preflight ROOT_MiB — space, clock, dnf's own state, nothing 
     die "an earlier update is waiting to be installed at the next restart — restart first (or: sudo dnf offline clean)"
   fi
   dnf offline clean >/dev/null 2>&1 || true
-  if dnf -q repoquery --duplicates 2>/dev/null | grep -q .; then
+  if [[ -n $(dnf -q repoquery --duplicates 2>/dev/null) ]]; then
     log "duplicate packages left by an interrupted transaction — tidied first"
     dnf_detached -y remove --duplicates || die "dnf could not tidy the duplicates — fedokawai repair"
   fi
@@ -930,7 +1040,7 @@ snapshot_before() {   # snapshot_before WHAT [important] — a numbered snapshot
   local n imp=()
   [[ ${2:-} == important ]] && imp=(-u important=yes)
   n=$(snapper -c root create -t single -c number "${imp[@]}" -p -d "before $1" 2>/dev/null) || n=""
-  if ! [[ $n =~ ^[0-9]+$ ]] || ! snapper -c root --csvout list --columns number 2>/dev/null | grep -qx "$n"; then
+  if ! [[ $n =~ ^[0-9]+$ ]] || [[ -z $(snapper -c root --csvout list --columns number 2>/dev/null | grep -x "$n") ]]; then
     die "the snapshot before $1 could not be taken — nothing changed (sudo snapper -c root list; fedokawai repair)"
   fi
   ok "snapshot $n: before $1"
@@ -973,7 +1083,8 @@ manifest_sync() {
   # it has now (a package Fedora renamed is marked by its new name)
   ui=$(dnf repoquery --userinstalled --qf '%{name}\n' 2>/dev/null) || ui=""
   for p in "${want[@]}"; do
-    q=$(rpm -q --qf '%{NAME}\n' --whatprovides "$p" 2>/dev/null | awk 'NR == 1') || continue
+    if rpm -q "$p" >/dev/null 2>&1; then q=$p   # (itself, when installed: never another provider)
+    else q=$(rpm -q --qf '%{NAME}\n' --whatprovides "$p" 2>/dev/null | awk 'NR == 1') || continue; fi
     [[ -n $q && $q != *' '* ]] || continue
     grep -qxF -- "$q" <<<"$ui" || mine+=("$q")
   done
@@ -981,9 +1092,20 @@ manifest_sync() {
     mapfile -t mine < <(printf '%s\n' "${mine[@]}" | sort -u)
     run dnf -y mark user "${mine[@]}" >/dev/null || true
   fi
-  for p in "${RETIRED_PKGS[@]}"; do
+  # retired, or Steam's once STEAM is no: handed back to dnf (dnf autoremove clears them when
+  # nothing needs them — Steam's games and settings in your home stay)
+  local back=("${RETIRED_PKGS[@]}")
+  [[ $STEAM == yes ]] || back+=("${PKG_GAMING[@]}")
+  for p in "${back[@]}"; do
     if grep -qx "$p" <<<"$ui" && ! grep -qx "$p" "$STATE_DIR/baseline-userinstalled"; then run dnf -y mark dependency "$p" || true; fi
   done
+  # (and on AMD, the 32-bit drivers Steam's step added — by arch: the 64-bit ones stay)
+  if [[ $STEAM != yes ]]; then
+    local gi=()
+    mapfile -t gi < <(dnf repoquery --userinstalled --qf '%{name}.%{arch}\n' 2>/dev/null \
+                      | grep -xE 'mesa-(vulkan|va)-drivers-freeworld\.i686' || true)
+    if ((${#gi[@]})); then run dnf -y mark dependency "${gi[@]}" || true; fi
+  fi
   for p in "${FORBIDDEN_PKGS[@]}"; do if pkg_installed "$p"; then bad+=("$p"); fi; done
   if ((${#bad[@]})); then
     # never at the cost of something the desktop needs: what would go with them is looked at first
@@ -1058,6 +1180,7 @@ do_update() {
   wait_for_network
   local newest running result=ok e every
   hdr "Fedokawai update · Fedora $FEDORA_VER"
+  toolkit_first
   preflight 10240
   snapshot_before "update $(date +%F)"
   repos_lenient
@@ -1074,7 +1197,7 @@ do_update() {
   step_on "inbound SSH ($SSH_SERVER)" s_ssh
   step_on "the performance profile" s_tuning
   step_on "the manifest" manifest_sync
-  step_on "dwl's own wlroots" wlr_keep
+  step_on "dwl's own wlroots" wlr_step
   # the desktop's own tools: pinned, so normally nothing to do
   for e in "${UPSTREAM[@]}"; do step_on "${e%%|*}" install_upstream_bin "$e"; done
   step_on "Nerd Fonts" install_nerd_fonts
@@ -1142,9 +1265,10 @@ upkeep() {   # upkeep KEY DEFAULT → a number from your upkeep.conf (fedokawai 
   echo "$v"
 }
 # released N → Fedora N's release day (epoch) when it is out: its release tree is published
-# only then (staged ones cannot be read), and the day that tree was made is the day it came
-# out. Recorded in /var/lib/fedokawai/release-N, for the menu. Returns 1 when it is not out
-# (or Fedora's servers cannot be reached).
+# only then (staged ones cannot be read). The tree itself is the final compose, made about a
+# week before the release day: so a week after it, or today if that is sooner. Recorded in
+# /var/lib/fedokawai/release-N, for the menu. Returns 1 when it is not out (or Fedora's
+# servers cannot be reached).
 released() {
   local u h d
   if [[ -s $STATE_DIR/release-$1 ]]; then cat "$STATE_DIR/release-$1"; return 0; fi
@@ -1152,7 +1276,7 @@ released() {
            "https://download.fedoraproject.org/pub/fedora/linux/releases/$1/Everything/x86_64/os/repodata/repomd.xml"; do
     h=$("${CURL[@]}" --max-time 20 -o /dev/null -D - --head "$u" 2>/dev/null) || continue
     d=$(sed -n 's/^[Ll]ast-[Mm]odified: *//p' <<<"$h" | tr -d '\r' | tail -n1)
-    d=$(date -d "$d" +%s 2>/dev/null) || d=$(date +%s)
+    d=$(date -d "$d" +%s 2>/dev/null) && d=$((d + 7 * 86400)) || d=$(date +%s)
     ((d <= $(date +%s))) || d=$(date +%s)
     record "release-$1" "$d"; echo "$d"; return 0
   done
@@ -1267,7 +1391,7 @@ EOF
   fi
 }
 tidy_duplicates() {   # packages left twice by an interrupted transaction: the older go
-  if dnf -q repoquery --duplicates 2>/dev/null | grep -q .; then dnf_detached -y remove --duplicates; fi
+  if [[ -n $(dnf -q repoquery --duplicates 2>/dev/null) ]]; then dnf_detached -y remove --duplicates; fi
 }
 new_baseline() {   # new_baseline N — after a move: the old baselines age out with the others, a new one
   local n
@@ -1300,6 +1424,9 @@ do_after_upgrade() {
       step_on "the desktop's own tools and their libraries" r_upstream
       step_on "torrra for the new Python" torrra_up
     fi
+    # the theme and Prowlarr talk to your own systemd, which lingering starts beside this
+    # unit at boot: given a minute to come up
+    for n in {1..30}; do [[ -S /run/user/$TARGET_UID/bus ]] && break; sleep 2; done
     step_on "the theme (dwl rebuilt if needed)" r_theme
     step_on "Prowlarr (Podman may have moved its store)" prowlarr_up
     step_on "a new baseline snapshot" new_baseline "$to"
@@ -1336,7 +1463,7 @@ heal() {   # heal WHAT FUNCTION… — run one fix, remember how it went
 
 r_packages() {   # dnf's own state sound, the manifest complete, nothing forbidden
   dnf -q repoquery --installed bash >/dev/null 2>&1 || run dnf clean metadata
-  if dnf -q repoquery --duplicates 2>/dev/null | grep -q .; then run dnf -y remove --duplicates; fi
+  if [[ -n $(dnf -q repoquery --duplicates 2>/dev/null) ]]; then run dnf -y remove --duplicates; fi
   repos_lenient
   manifest_sync
 }
@@ -1360,7 +1487,10 @@ r_boot() {       # the boot: the menu's success timer, no rescue image; neovim t
 }
 r_services() {   # the services setup enabled (a package reinstalled after a move starts off)
   systemctl enable bluetooth.service fstrim.timer
-  if [[ $(cat "$STATE_DIR/gpu" 2>/dev/null) == amd ]]; then systemctl enable lactd.service; fi
+  # (LACT only while it is there: retired, or gone with its COPR, it is no longer a fault)
+  if [[ $(cat "$STATE_DIR/gpu" 2>/dev/null) == amd ]] && systemctl cat lactd.service >/dev/null 2>&1; then
+    systemctl enable lactd.service
+  fi
   i2c_dev
 }
 r_user() {       # the user's session plumbing: linger, the bus, groups, fonts, secrets.sh's mode
@@ -1389,15 +1519,27 @@ r_upstream() {   # release binaries and fonts present (each is a no-op when curr
 r_dwl() {
   local f
   wlr_keep || log "no copy of wlroots $DWL_WLROOTS, and this Fedora no longer ships it — dwl cannot be rebuilt here"
-  for f in "$(wlr_home)"/lib/*.so* /usr/local/bin/dwl; do
-    if [[ -f $f ]]; then libs_for "$f" || true; fi
+  for f in "$(wlr_home)"/lib/*.so*; do      # (dwl's own: a rebuild below links what is there now)
+    if [[ -f $f && ! -L $f ]]; then libs_for "$f" || true; fi
   done
   if [[ ! -x /usr/local/bin/dwl || ! -d $TARGET_HOME/.local/src/dwl/.git ]] \
      || [[ $(as_user git -C "$TARGET_HOME/.local/src/dwl" rev-parse HEAD 2>/dev/null) != "$DWL_COMMIT" ]] \
-     || as_user ldd /usr/local/bin/dwl 2>/dev/null | grep -q 'not found'; then
+     || [[ $(as_user ldd /usr/local/bin/dwl 2>/dev/null) == *'not found'* ]]; then
     rm -f "$STATE_DIR/dwl.sha256"; s_dwl          # (theme.sh then builds it with src/dwl/config.h)
   fi
   return 0
+}
+wlr_has() {   # the wlroots this Fedora has (rpm's "not installed" goes to stdout: not shown)
+  local v; v=$(rpm -q --qf '%{version}' wlroots-devel 2>/dev/null) || v="no wlroots-devel"; printf '%s' "$v"
+}
+wlr_step() {   # wlr_keep, saying why when it cannot
+  wlr_keep && return 0
+  log "dwl's own wlroots $DWL_WLROOTS: no copy kept, and this Fedora does not ship it (it has $(wlr_has))"
+  return 1
+}
+r_nvim() {   # LazyVim's plugins: the missing ones installed, at the lockfile's versions
+  [[ -f $TARGET_HOME/.config/nvim/init.lua ]] || return 0
+  run as_user timeout 900 nvim --headless '+Lazy! install' +qa
 }
 r_filechooser() { tfc_current || build_filechooser; }   # the yazi file dialog, built if missing or not TFC_TAG
 r_theme() {      # every config back as the repo has it, dwl and the C helpers rebuilt if needed —
@@ -1420,6 +1562,7 @@ do_repair() {
   hdr "Fedokawai repair · $TARGET_USER"
   # offline, it still puts right what needs no network: services, the session, the configs
   retry 3 5 online || { net=0; log "offline: only what needs no network is repaired now — run repair again once online"; }
+  toolkit_first          # (run from a copy: everything below is then the toolkit's)
   before=$(problems)
   log "verify found $before problem(s) — fixing what can be fixed"
   heal "the old name's leftovers" retire_old_name
@@ -1435,6 +1578,7 @@ do_repair() {
   ((net)) && heal "release binaries, fonts and GE-Proton" r_upstream
   ((net)) && heal "the yazi file dialog (termfilechooser ${TFC_TAG:-})" r_filechooser
   ((net)) && heal "torrra" torrra_up
+  ((net)) && heal "neovim's plugins (any missing)" r_nvim
   heal "Prowlarr (it starts, and takes the key from secrets.sh)" prowlarr_up
   heal "the theme (configs, dwl, helpers, wallpapers)" r_theme
   record_snapshots
@@ -1447,8 +1591,9 @@ do_repair() {
   fi
   ((net)) || log "offline: packages, release tools, the file dialog and torrra were left for the next repair"
   [[ $after == 0 ]] || log "what verify still reports: fedokawai verify"
-  # (the outcome for whoever ran it: 0 only when nothing is left to fix)
-  if ((${#STILL[@]})) || [[ $after != 0 ]]; then exit 1; fi
+  # (the outcome for whoever ran it: 0 when nothing is left to fix, 3 when something is —
+  # 1 is reserved for repair itself stopping)
+  if ((${#STILL[@]})) || [[ $after != 0 ]]; then exit 3; fi
 }
 
 # ─────────────────────────────────────────────────────────────────────────────

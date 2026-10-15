@@ -73,7 +73,7 @@ window#waybar {
 #custom-kb        { color: @quiet; }
 #custom-kb.other  { color: @accent-text; }
 
-#custom-cpu       { color: @quiet; }
+#custom-cpu       { color: @quiet; padding-right: 11px; }   /* (its "%" inks its cell to the edge: 23 px to the volume, like every gap) */
 #custom-cpu.busy  { color: @accent-text; }
 
 #wireplumber       { color: @text; }

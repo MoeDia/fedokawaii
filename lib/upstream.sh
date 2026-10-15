@@ -70,13 +70,23 @@ fetch_pinned() {
 # you: it must never run as root on a file you could have shaped — your tools, or dwl, built
 # from your folder. Only a fresh download in root's own private folder, already checked
 # against its pinned SHA-256, is looked at by root, which alone can read it there.)
-missing_libs() {
-  if [[ -n ${KAWA_TMP:-} && $1 == "$KAWA_TMP"/* ]]; then ldd "$1"; else as_user ldd "$1"; fi 2>/dev/null \
+# What gets installed is chosen only by files root can vouch for: that fresh download, or
+# root's copy of Fedora's own wlroots. A file in your home is only checked — whatever it
+# names never decides what root installs (the tool is fetched again instead).
+missing_libs() {   # (a file ldd cannot read, or a static one, needs nothing it can name)
+  { if [[ -n ${KAWA_TMP:-} && $1 == "$KAWA_TMP"/* ]]; then ldd "$1"; else as_user ldd "$1"; fi || true; } 2>/dev/null \
     | awk '/=> not found/ { print $1 }' | sort -u
 }
 libs_for() {
   local miss
-  miss=$(missing_libs "$1" | sed 's/$/()(64bit)/')
+  case $1 in
+    "${KAWA_TMP:-//}"/* | "$(wlr_home)"/lib/*) ;;
+    *) miss=$(missing_libs "$1")
+       [[ -z $miss ]] || { log "${1##*/} is missing: $(tr '\n' ' ' <<<"$miss")"; return 1; }
+       return 0 ;;
+  esac
+  # (a soname and nothing else: lib….so with its version, one per line)
+  miss=$(missing_libs "$1" | grep -E '^lib[A-Za-z0-9._+-]+\.so(\.[0-9]+)*$' | sed 's/$/()(64bit)/') || true
   [[ -z $miss ]] && return 0
   log "${1##*/} needs $(tr '\n' ' ' <<<"$miss")— installing what provides it"
   # shellcheck disable=SC2086  # one soname per word
@@ -98,8 +108,10 @@ install_upstream_bin() {
   IFS=' ' read -r -a list <<<"$bins"
   for b in "${list[@]}"; do [[ -x $TARGET_HOME/.local/bin/$b ]] || have=0; done
   if ((have)) && [[ $(up_tag "$name") == "$tag" ]]; then
-    for b in "${list[@]}"; do libs_for "$TARGET_HOME/.local/bin/$b" || return 1; done
-    log "$name $tag — in place"; return 0
+    # it still finds every library? Else fetched again: the checked copy says what it needs
+    for b in "${list[@]}"; do [[ -z $(missing_libs "$TARGET_HOME/.local/bin/$b") ]] || have=0; done
+    if ((have)); then log "$name $tag — in place"; return 0; fi
+    log "$name $tag lacks a library — fetching it again"
   fi
   fetch_pinned "https://github.com/$repo/releases/download/$tag/$asset" "$sum" || return 1
   for b in "${list[@]}"; do

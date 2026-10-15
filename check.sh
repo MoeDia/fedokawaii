@@ -45,12 +45,16 @@ else fail "a desktop environment is installed" "$desk— reinstall choosing Mini
 # shellcheck source=lib/manifest.sh
 source "$REPO_DIR/lib/manifest.sh"
 present=()
+skip=" $(IFS=' '; echo "${PKG_REMOVE[*]}") ffmpeg-free "   # (space-joined: IFS here is newline)
 for p in "${FORBIDDEN_PKGS[@]}"; do
-  [[ " ${PKG_REMOVE[*]} ffmpeg-free " == *" $p "* ]] && continue
+  [[ $skip == *" $p "* ]] && continue
   if rpm -q "$p" >/dev/null 2>&1; then present+=("$p"); fi
 done
 if ((${#present[@]} == 0)); then pass "nothing installed that the desktop replaces"
-else fail "installed, but the desktop has its own: ${present[*]}" "sudo dnf remove ${present[*]}"; fi
+else
+  p=$(IFS=' '; echo "${present[*]}")
+  fail "installed, but the desktop has its own: $p" "sudo dnf remove $p"
+fi
 if [[ -d /sys/firmware/efi ]]; then
   sb=$(od -An -tu1 -j4 -N1 /sys/firmware/efi/efivars/SecureBoot-* 2>/dev/null | tr -d ' ')
   info "UEFI boot · Secure Boot ${sb:+$([[ $sb == 1 ]] && echo on || echo off)} (both fine: Fedora's kernel and amdgpu are signed)"
