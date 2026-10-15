@@ -13,6 +13,29 @@ program_options:
   # every change: the notices and the bar's mark (kawa-drives --help)
   event_hook: ["kawa-drives", "event", "{event}", "{device_file}", "{is_external}", "{id_label}", "{drive_label}"]
 
+# Only what you plug in opens by itself — and a disk image you open yourself. The first
+# matching rule decides, for the device and then for what it is part of.
+device_config:
+  # a partition inside a disk image (most .iso files have some): the image decides, below
+  - device_file: '/dev/loop*p*'
+    skip: automount
+  # a disk image (udisksctl loop-setup -f FILE.iso): udisks counts every image as the
+  # system's, so it goes by who set it up — yours opens like a stick, any other stays closed
+  # (the number is your user ID, filled in when the theme is applied)
+  - is_loop: true
+    setup_by_uid: !!int "@UID@"
+    automount: true
+  - is_loop: true
+    automount: false
+  # the machine's own disks — a Windows partition, a second internal drive, an encrypted
+  # partition the system does not unlock at boot — stay closed: udiskie would otherwise try
+  # each at every login (and ask for the admin password, or a passphrase). An unlocked
+  # encrypted drive counts as the system's to udisks (it has no drive of its own): those go
+  # through, or a USB stick's would never open.
+  - is_external: false
+    is_luks_cleartext: false
+    automount: false
+
 notifications:
   timeout: 10              # seconds
   device_mounted: false    # (kawa-drives says these, in its own words)

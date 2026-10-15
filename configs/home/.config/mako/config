@@ -39,9 +39,14 @@ on-button-left=invoke-default-action
 [app-name=drives urgency=critical]
 default-timeout=0
 
-# udiskie's own notice when closing a drive failed: kawa-drives' eject says it, and which of
-# your programs still uses the drive (udiskie's notice of a drive that would not open stays)
-[app-name=udiskie body~="^failed to (unmount|lock|detach) "]
+# udiskie's own notice of a drive that would not open: titled like the drives' notices (the
+# theme's part), without udiskie's picture — and when closing a drive failed, none at all:
+# kawa-drives' eject says it, and which of your programs still uses the drive (a switch-off
+# or media eject refused after the drive closed: it is safe to unplug all the same)
+[app-name=udiskie]
+icons=0
+
+[app-name=udiskie body~="^failed to (unmount|lock|detach|eject) "]
 invisible=1
 
 # the level display of the volume and brightness keys (kawa-osd): a small panel at the

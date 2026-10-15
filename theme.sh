@@ -10,6 +10,8 @@
 #    sudo bash theme.sh --user NAME   as root, for that user (default: USERNAME in
 #                                     fedokawaii.conf, else whoever ran sudo)
 #    bash theme.sh --check            list files that differ from the repo; exit 3 if any
+#                                     (4: in sync, but an optional part — the boot menu,
+#                                     kawa-veil, kawa-clipkeep — could not be made here)
 #
 #  configs/home/   mirrors $HOME   →  copied as-is (tokens @HOME@ etc. rendered; fonts
 #                                     copied byte for byte); *.xpm pixel art is also
@@ -117,7 +119,7 @@ CHEVRON=$(. "$REPO_DIR/configs/home/.config/fedokawaii/icons.sh" && printf '%s' 
 render() {      # render SRC → stdout, with fedokawaii.conf values (and the chevron) filled in
   sed -e "s|@HOME@|$TARGET_HOME|g" -e "s|@MONITOR_HZ@|$MONITOR_HZ|g" \
       -e "s|@WEATHER_CITY@|$WEATHER_CITY|g" -e "s|@NIGHT_LIGHT@|$NIGHT_LIGHT|g" \
-      -e "s|@ICON_CHEVRON_RIGHT@|$CHEVRON|g" -e "s|^@MPV_SCALING@\$|$MPV_SCALING|" "$1"
+      -e "s|@ICON_CHEVRON_RIGHT@|$CHEVRON|g" -e "s|^@MPV_SCALING@\$|$MPV_SCALING|" -e "s|@UID@|$TARGET_UID|g" "$1"
 }
 
 BACKUP="$TARGET_HOME/.local/state/fedokawaii/backup/$(date +%Y%m%d-%H%M%S)"
@@ -428,6 +430,13 @@ boot_and_console() {
 
 }
 BOOT_FAILED=0
+# a theme run that could not make the boot menu or console marks what it failed on (root's,
+# beside dwl's mark): --check counts that part as optional until one of these changes
+BOOT_MARK=/var/lib/fedokawaii/boot.failed
+boot_sum() {
+  { cat "$REPO_DIR/theme.sh" "$REPO_DIR"/art/grub/* "$REPO_DIR/configs/home/.config/fedokawaii/themes/dark/colors.sh"
+    printf '%s\n' "$BOOT_MENU_SECONDS"; } 2>/dev/null | sha256sum | cut -d' ' -f1
+}
 run_boot() {   # boot_and_console in a subshell with errexit on; what it changed or found comes back
   local out saved rc t
   out=$(mktemp); saved=$(trap -p ERR)
@@ -563,9 +572,22 @@ tool_current() { [[ -x $TARGET_HOME/.local/bin/$1 && $(cat "$STATE/$1.sha256" 2>
 TOTAL=$((TOTAL + ${#TOOLS[@]}))
 
 if ((CHECK)); then
+  # the optional parts the theme run carries on without (it says so): one it could not make
+  # is a warning, not drift — else verify's final check would stop setup on it for good.
+  # (Optional only while what it failed on is unchanged: changed, the theme run tries again.)
+  OPTIONAL=() d0=${#DRIFT[@]}
   run_boot
-  ((BOOT_FAILED == 0)) || DRIFT+=("boot menu / console (could not be compared: see above)")
-  for t in "${TOOLS[@]}"; do tool_current "$t" || DRIFT+=("$TARGET_HOME/.local/bin/$t (not built from src/$t)"); done
+  if ((BOOT_FAILED)); then OPTIONAL+=("boot menu / console: could not be compared (theme.sh --check says why)")
+  elif ((${#DRIFT[@]} > d0)) && [[ $(cat "$BOOT_MARK" 2>/dev/null) == "$(boot_sum)" ]]; then
+    for x in "${DRIFT[@]:d0}"; do OPTIONAL+=("$x — the theme run could not make it (its log says why)"); done
+    DRIFT=("${DRIFT[@]:0:d0}")
+  fi
+  for t in "${TOOLS[@]}"; do
+    tool_current "$t" && continue
+    if [[ $(cat "$STATE/$t.failed" 2>/dev/null) == "$(tool_sum "$t")" ]]; then
+      OPTIONAL+=("$t did not build from src/$t (the desktop works without it; the theme run's log says why)")
+    else DRIFT+=("$TARGET_HOME/.local/bin/$t (not built from src/$t)"); fi
+  done
   [[ $(U /usr/local/bin/dwl -v 2>&1) == *"${DWL_TAG#v}"* ]] || DRIFT+=("/usr/local/bin/dwl (not $DWL_TAG)")
   dwl_current || DRIFT+=("/usr/local/bin/dwl (not built from src/dwl as it is now)")
   while IFS= read -r -d '' x; do
@@ -575,9 +597,17 @@ if ((CHECK)); then
   # (the wallpaper pack depends on the network: verify.sh reports it as a warning instead)
   if ((${#DRIFT[@]})); then
     printf '%s✘ %d of %d files differ from the repo:%s\n' "$C_RED" "${#DRIFT[@]}" "$TOTAL" "$C_RESET"
-    printf '  %s\n' "${DRIFT[@]}"; exit 3   # (3: it ran, and things differ — 1 is an error)
+    printf '  %s\n' "${DRIFT[@]}"
+  else
+    printf '%s✔ theme in sync — %d files match the repo%s\n' "$C_OK" "$TOTAL" "$C_RESET"
   fi
-  printf '%s✔ theme in sync — %d files match the repo%s\n' "$C_OK" "$TOTAL" "$C_RESET"; exit 0
+  if ((${#OPTIONAL[@]})); then
+    printf '%s! %snot made here (repair, or the next theme run, tries again):%s\n' "$C_GOLD" "${DRIFT[*]:+and }" "$C_RESET"
+    printf '  %s\n' "${OPTIONAL[@]}"
+  fi
+  ((${#DRIFT[@]} == 0)) || exit 3            # (3: it ran, and things differ — 1 is an error)
+  ((${#OPTIONAL[@]} == 0)) || exit 4         # (4: in sync but for the optional parts above)
+  exit 0
 fi
 
 hdr "Fedokawaii theme → $TARGET_USER"
@@ -591,8 +621,11 @@ if ! dwl_current; then
   U make -C "$SRC" clean >>"$LOG_FILE" 2>&1
   U make -C "$SRC" -j"$(nproc)" "${DWL_ARGS[@]}" >>"$LOG_FILE" 2>&1 || die "dwl failed to build with src/dwl/config.h — see $LOG_FILE"
   R bash -c '[[ ! -x /usr/local/bin/dwl ]] || cp -a /usr/local/bin/dwl /usr/local/bin/dwl.prev'   # (start-dwl's fallback)
-  take_built "$SRC/dwl" /usr/local/bin/dwl 0755 || die "dwl failed to install — see $LOG_FILE"
-  printf '%s\n' "$DWL_SUM" | write_file "$DWL_MARK" 0644
+  # (as root: run as yourself, theme.sh gets there through sudo — R)
+  R env TARGET_USER="$TARGET_USER" TARGET_HOME="$TARGET_HOME" TARGET_UID="$TARGET_UID" \
+    bash -c '. "$1/lib/common.sh"; take_built "$2" /usr/local/bin/dwl 0755' _ "$REPO_DIR" "$SRC/dwl" \
+    || die "dwl failed to install — see $LOG_FILE"
+  printf '%s\n' "$DWL_SUM" | R bash -c '. "$1/lib/common.sh"; write_file "$2" 0644' _ "$REPO_DIR" "$DWL_MARK"
   CHANGED+=("/usr/local/bin/dwl (rebuilt)")
   ok "dwl rebuilt with src/dwl/config.h (takes effect at next login)"
 fi
@@ -600,16 +633,22 @@ for t in "${TOOLS[@]}"; do
   tool_current "$t" && continue
   VB=$(U mktemp -d)
   tar -C "$REPO_DIR/src/$t" -cf - . | U tar -C "$VB" -xf - --no-same-owner   # (unpacked by you)
+  # (what root hands on goes through a pipe, never through a file in your folder)
   if U make -s -C "$VB" O="$VB" >>"$LOG_FILE" 2>&1; then
-    uinstall 0755 "$VB/$t" "$TARGET_HOME/.local/bin/$t"
-    tool_sum "$t" >"$VB/built-from"; uinstall 0644 "$VB/built-from" "$STATE/$t.sha256"
+    U cat -- "$VB/$t" | uinstall 0755 /dev/stdin "$TARGET_HOME/.local/bin/$t"
+    tool_sum "$t" | uinstall 0644 /dev/stdin "$STATE/$t.sha256"
+    U rm -f "$STATE/$t.failed"
     CHANGED+=("$TARGET_HOME/.local/bin/$t (built)")
-  elif [[ $t == kawa-veil ]]; then
+    U rm -rf "$VB"; continue
+  fi
+  # (what it failed on, for --check: a warning until src/$t changes or it builds)
+  tool_sum "$t" | uinstall 0644 /dev/stdin "$STATE/$t.failed"
+  if [[ $t == kawa-veil ]]; then
     log "kawa-veil did not build (details: $LOG_FILE) — theme and wallpaper changes still work, without the transition"
   else
     log "$t did not build (details: $LOG_FILE) — copy and paste still work; a copy just ends with the app it came from"
   fi
-  rm -rf "$VB"
+  U rm -rf "$VB"
 done
 
 # ── 5. derived state ─────────────────────────────────────────────────────────
@@ -671,6 +710,9 @@ if pgrep -u "$TARGET_UID" -x dwl >/dev/null; then
   log "reloaded the theme in the running session (new fonts, foot settings and dwl apply at next login)"
 fi
 run_boot                                   # 3b + 3c, contained (see above): they apply at the next boot
+if ((BOOT_FAILED)); then
+  boot_sum | R bash -c '. "$1/lib/common.sh"; write_file "$2" 0644' _ "$REPO_DIR" "$BOOT_MARK" || true
+elif [[ -e $BOOT_MARK ]]; then R rm -f -- "$BOOT_MARK"; fi
 
 if ((${#CHANGED[@]})); then
   ok "${#CHANGED[@]} of $TOTAL files updated:"; printf '    %s\n' "${CHANGED[@]/#$TARGET_HOME/\~}" | tee -a "$LOG_FILE"

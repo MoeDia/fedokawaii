@@ -22,6 +22,11 @@ border-color=#c0462a
 [grouped]
 format=<span foreground="#0f0e0c">%s</span> <span foreground="#5f594d">×%g</span>\n%b
 
+# udiskie's notice of a drive that would not open ("Job failed" — failed to mount, or to
+# unlock: a wrong passphrase): titled like the drives' own notices (kawa-drives)
+[app-name=udiskie]
+format=<span foreground="#0f0e0c">󾁉  not opened</span>\n%b
+
 # the level display (kawa-osd): the label quiet above the wedge, which brings its own colours.
 # The label's line is 22 px instead of its own 14 (line_height, in Pango units: px × 1024),
 # the 8 px shared above and below it: mako centres the text block, and this centres what

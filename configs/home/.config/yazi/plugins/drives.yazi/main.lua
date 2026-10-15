@@ -16,6 +16,7 @@ local toggle_ui = ya.sync(function(self)
 		ps.unsub("mount") -- (closed: other mounts no longer concern it)
 	else
 		self.children = Modal:children_add(self, 10)
+		self.cursor = 0 -- (each time from the top: not where it was left last time)
 	end
 	ui.render()
 end)
@@ -41,6 +42,20 @@ local move = ya.sync(function(self, step)
 end)
 
 local hovered = ya.sync(function(self) return (self.rows or {})[(self.cursor or 0) + 1] end)
+
+local set_cursor = ya.sync(function(self, n)
+	self.cursor = n
+	ui.render()
+end)
+
+-- the row of the drive yazi stands in (a file system of it), if any
+local function inside(rows, here)
+	for i, r in ipairs(rows) do
+		if r.dir ~= "" and (here == r.dir or here:sub(1, #r.dir + 1) == r.dir .. "/") then
+			return i
+		end
+	end
+end
 
 local all_rows = ya.sync(function(self) return self.rows or {} end)
 
@@ -158,17 +173,23 @@ function M:entry(job)
 	local a = job.args[1]
 	if a == "refresh" then
 		return set_rows(obtain())
-	elseif a == "media" then -- g m: where the open drives are
-		local dir = "/run/media/" .. (os.getenv("USER") or "")
-		local cha = fs.cha(Url(dir))
-		if cha and cha.is_dir then
-			return ya.emit("cd", { dir })
+	elseif a == "media" then -- g m: where the open drives are (udisks' folder, /run/media/YOU)
+		for _, r in ipairs(obtain()) do
+			if r.dir ~= "" then
+				return ya.emit("cd", { r.dir:match("^(.+)/[^/]+$") or r.dir })
+			end
 		end
 		return ya.notify { title = "Drives", content = "no drive is open (plug one in, or M)", timeout = 4 }
 	end
 
 	toggle_ui()
-	set_rows(obtain())
+	local rows = obtain()
+	set_rows(rows)
+	-- standing in a drive: the cursor starts on it (e ejects what you are looking at)
+	local at = inside(rows, cwd())
+	if at then
+		set_cursor(at - 1)
+	end
 	subscribe()
 	while true do
 		local idx = ya.which { cands = self.keys, silent = true }
@@ -195,12 +216,10 @@ function M:entry(job)
 			local r = hovered()
 			if r then
 				-- yazi standing in the drive would keep it busy: step out first
-				local here = cwd()
-				for _, x in ipairs(all_rows()) do
-					if x.disk == r.disk and x.dir ~= "" and (here == x.dir or here:sub(1, #x.dir + 1) == x.dir .. "/") then
-						ya.emit("cd", { os.getenv("HOME") or "/" })
-						break
-					end
+				local now = all_rows()
+				local at_now = inside(now, cwd())
+				if at_now and now[at_now].disk == r.disk then
+					ya.emit("cd", { os.getenv("HOME") or "/" })
 				end
 				-- handed off, and the list closed: the keys go back to yazi at once, and an eject
 				-- still flushing a slow stick goes on even if yazi ends (its notice says "safe to

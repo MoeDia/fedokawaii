@@ -97,14 +97,16 @@ apply_copy() {
       *) sys=1 ;;
     esac
   done
-  bash "$REPO_DIR/setup.sh" --toolkit
+  # (each step checked: the menu calls this under ||, where errexit is off — the old toolkit's
+  # files must not be applied as if they were the copy's)
+  bash "$REPO_DIR/setup.sh" --toolkit || { rc=$?; log "the copy did not become the toolkit — nothing was applied"; return "$rc"; }
   if ((sys)); then
     log "packages or system parts changed — repair installs and places them (and applies the theme)"
     bash "$TOOLKIT/setup.sh" --repair || rc=$?
     ((rc == 0 || rc == 3)) || return "$rc"
     ((rc == 0)) || log "repair ran; what still needs you is listed above"
   elif ((theme)); then
-    bash "$TOOLKIT/theme.sh" --user "$user"
+    bash "$TOOLKIT/theme.sh" --user "$user" || return $?
   else
     log "nothing here changes the desktop itself — the toolkit has the new files"
   fi
@@ -120,7 +122,8 @@ act() {
     theme)  [[ -n $user ]] || die "unknown desktop user — run setup first"
             # (from a copy: it becomes the toolkit first — else the next fedokawaii theme,
             # run from the toolkit, would put the old files back)
-            if from_copy; then bash "$REPO_DIR/setup.sh" --toolkit; bash "$TOOLKIT/theme.sh" --user "$user"
+            # (the menu calls this under ||, where errexit is off: hence the &&)
+            if from_copy; then bash "$REPO_DIR/setup.sh" --toolkit && bash "$TOOLKIT/theme.sh" --user "$user"
             else bash "$REPO_DIR/theme.sh" --user "$user"; fi ;;
     apply)  apply_copy ;;
     drift)  [[ -n $user ]] || die "unknown desktop user — run setup first"

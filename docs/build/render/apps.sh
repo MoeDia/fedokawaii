@@ -127,7 +127,7 @@ make_media() {   # the test video, the demo PDF/picture/notes (→ $C/media, cop
 | ryokan | ¥18,000 |
 EOF
   printf 'Receipt 2026-09-12\nKonbini, Kawaguchiko\nonigiri ×2   ¥340\ntea          ¥160\ntotal        ¥500\n' >"$m/receipt-0912.txt"
-  rm -rf "$SH/media"; mkdir -p "$SH/media"; cp -a "$m/." "$SH/media/"
+  rm -rf "${SH:?}/media"; mkdir -p "$SH/media"; cp -a "$m/." "$SH/media/"
   cp "$REPO/docs/Fedokawaii-Guide.pdf" "$SH/media/fedokawaii-guide.pdf"
   chmod -R a+rX "$SH/media"
 }

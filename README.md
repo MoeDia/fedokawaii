@@ -77,8 +77,10 @@ PACKAGES.md        what is installed, from where, and why
   terminal, with its previews and keys (GTK's dialog stays as the fallback).
 - **USB drives**: sticks, disks and SD cards open by themselves with a notice (click it for
   the files); the bar's drive mark and **M** in yazi or any file dialog open or eject them,
-  and eject says *safe to unplug*. Encrypted drives ask for their passphrase; exFAT, FAT,
-  NTFS, ext4 and Btrfs all open.
+  and eject writes out what is still on its way, then says *safe to unplug*. Encrypted
+  drives ask for their passphrase; exFAT, FAT, NTFS, ext4 and Btrfs all open; disk images
+  (`udisksctl loop-setup -f FILE.iso`) open the same way. The machine's own disks never open
+  by themselves.
 - **The terminal**: fzf on Ctrl+R / Ctrl+T / Alt+C, a `cd` that learns your folders (zoxide),
   `ls` as eza, `tldr` examples, hints to copy hashes and paths (Ctrl+Shift+Y), and a notice
   when a long command finishes in a window you are not looking at — all cached, so a new
@@ -130,6 +132,15 @@ tar -xzf /mnt/fedokawaii.tar.gz -C ~      # → ~/fedokawaii
 sudo umount /mnt
 cd ~/fedokawaii
 sudo bash fedokawaii.sh
+```
+
+Or straight from GitHub, where it is the private repository `MoeDia/fedokawaii` (git asks for
+your GitHub user name, and a *personal access token* as the password):
+
+```sh
+sudo dnf install -y git-core
+git clone https://github.com/MoeDia/fedokawaii ~/fedokawaii
+cd ~/fedokawaii && sudo bash fedokawaii.sh
 ```
 
 The menu offers **Setup** (the software) and **Theme** (the look) separately; neither forces

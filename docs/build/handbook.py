@@ -325,7 +325,7 @@ with sync_playwright() as p:
     pg.pdf(path=f"{OUT}/Fedokawaii-Guide.pdf", format="A4", print_background=True, prefer_css_page_size=True)
     b.close()
 print("pdf", os.path.getsize(f"{OUT}/Fedokawaii-Guide.pdf") // 1024, "KiB")
-# the pictures re-compressed losslessly (pdfpack.py, beside this script): under 10 MB
+# the pictures re-compressed losslessly (pdfpack.py, beside this script): every pixel the same, a tenth smaller
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import pdfpack
 pdfpack.main(f"{OUT}/Fedokawaii-Guide.pdf", f"{OUT}/Fedokawaii-Guide.packed.pdf")

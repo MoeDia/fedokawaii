@@ -305,7 +305,11 @@ for e in "${NERD_FONTS[@]}"; do
   f=${e%%|*}
   check "$f Nerd Font $NERD_FONTS_TAG"                 test "$(up_tag "nerd-$f")" = "$NERD_FONTS_TAG" -a -n "$(compgen -G "$(font_dir "$f")/*.[ot]tf")"
 done
-[[ $STEAM == yes ]] && check "GE-Proton $(up_tag ge-proton)" test -d "$(proton_dir)/$(up_tag ge-proton)"
+# (GE-Proton comes from GitHub, and setup carries on without it: Steam has its own Proton)
+if [[ $STEAM == yes ]]; then
+  if [[ -z $(up_tag ge-proton) ]]; then warn "GE-Proton not installed yet" "Steam's own Proton works meanwhile — update tries again"
+  else check "GE-Proton $(up_tag ge-proton)" test -d "$(proton_dir)/$(up_tag ge-proton)"; fi
+fi
 
 # ── applications (do they actually start?) ──────────────────────────────────
 section "applications"
@@ -349,7 +353,16 @@ if ((THEMED == 0)); then
   info "not applied — menu → Theme when you want it (setup alone gives dwl with upstream defaults)"
 else
   info "applied $(cat "$TARGET_HOME/.local/state/fedokawaii/theme-applied")"
-  check "every file in sync with the repo"             bash "$REPO_DIR/theme.sh" --user "$TARGET_USER" --check
+  # (4: in sync, but the boot menu, kawa-veil or kawa-clipkeep could not be made here — the
+  # theme run carries on without them, so they are not what stops a finished setup)
+  trc=0; tout=$(bash "$REPO_DIR/theme.sh" --user "$TARGET_USER" --check 2>&1) || trc=$?
+  case $trc in
+    0) pass "every file in sync with the repo" ;;
+    4) pass "every file in sync with the repo"
+       while IFS= read -r tl; do warn "${tl#"${tl%%[![:space:]]*}"}" "repair, or the next theme run, tries again"; done \
+         < <(sed 's/\x1b\[[0-9;]*m//g' <<<"$tout" | sed -n '/not made here/,$p' | tail -n +2) ;;
+    *) fail "every file in sync with the repo" "fedokawaii drift lists what differs; the theme run puts it back" ;;
+  esac
   if grep -q 'vt.default_red=15,' /proc/cmdline; then pass "console palette active (the login console)"
   else info "console palette recorded for the kernel; it shows after the next boot"; fi
   check "dwl built from src/dwl/config.h"            cmp -s "$REPO_DIR/src/dwl/config.h" "$TARGET_HOME/.local/src/dwl/config.h"
@@ -362,6 +375,8 @@ else
   done
   if [[ -n $fzhelp && -z $fzbad ]]; then pass "every fuzzel option the menus use exists"; else fail "fuzzel options" "${fzbad:-fuzzel missing}"; fi
   check "waybar config valid JSON"                     bash -c "grep -v '^[[:space:]]*//' $TARGET_HOME/.config/waybar/config.jsonc | jq -e ."
+  # (a typo there stops udiskie, and with it every drive opening by itself)
+  check "udiskie config valid YAML"                    U /usr/bin/python3 -c 'import sys, yaml; yaml.safe_load(open(sys.argv[1]))' "$TARGET_HOME/.config/udiskie/config.yml"
   mode=$(readlink "$TARGET_HOME/.config/fedokawaii/current"); mode=${mode##*/}
   check "theme link → ${mode:-none} (dark or light)"   test -r "$TARGET_HOME/.config/fedokawaii/current/colors.sh"
   check "Qt palette has 3 × 21 colours"                awk -F, '/_colors=/{n++; if (NF!=21) bad=1} END{exit (n!=3 || bad)}' "$TARGET_HOME/.config/fedokawaii/current/qt6ct-colors.conf"

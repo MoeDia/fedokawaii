@@ -8,7 +8,7 @@ and "light" (washi paper: warm paper ground, ink text). Both share the accents
 (vermilion, matcha, yamabuki, indigo, wisteria, asagi), deepened on paper so they keep
 their contrast. This script is the only place the colours are written down; it renders:
 
-  configs/home/.config/fedokawaii/themes/<mode>/     one folder per theme, read through
+  configs/home/.config/fedokawaii/themes/<mode>/   one folder per theme, read through
       colors.sh  waybar.css  foot.ini  fuzzel.ini  the ~/.config/fedokawaii/current
       mako  qt6ct.conf  qt6ct-colors.conf          link that kawa-theme switches
       btop.theme  zathurarc  imv  swaylock  presenterm.yaml  mpv.conf
@@ -79,7 +79,7 @@ def header(path, what):
 def colors_sh(m, p):
     keys = ["ground", "surface", "edge", "edge2", "faint", "muted", "text", "strong", "accent", "accent_text"]   # what the scripts read
     lines = [f"# {header('~/.config/fedokawaii/current/colors.sh', 'theme colours for the scripts')}",
-             "# shellcheck disable=SC2034",
+             "# shellcheck shell=bash disable=SC2034",
              f"THEME={m}"]
     lines += [f"C_{k.upper()}={p[k]}" for k in keys]
     lines.append(f"C_TEAL={p['asagi']}   # asagi: the music meter and the level display")
@@ -168,6 +168,11 @@ border-color=#{p['accent']}
 # several notices from one app, folded into one card: the count beside the title
 [grouped]
 format=<span foreground="#{p['strong']}">%s</span> <span foreground="#{p['muted']}">×%g</span>\\n%b
+
+# udiskie's notice of a drive that would not open ("Job failed" — failed to mount, or to
+# unlock: a wrong passphrase): titled like the drives' own notices (kawa-drives)
+[app-name=udiskie]
+format=<span foreground="#{p['strong']}">\U000FE049  not opened</span>\\n%b
 
 # the level display (kawa-osd): the label quiet above the wedge, which brings its own colours.
 # The label's line is 22 px instead of its own 14 (line_height, in Pango units: px × 1024),

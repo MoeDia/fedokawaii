@@ -95,7 +95,7 @@ EOF
     ln -sfn "$before" "$KH/.config/fedokawaii/current.shoot" && mv -fT "$KH/.config/fedokawaii/current.shoot" "$KH/.config/fedokawaii/current"
     chown -h "$K:$K" "$KH/.config/fedokawaii/current"
   fi
-  rm -rf "$X"/* 2>/dev/null
+  rm -rf "${X:?}"/* 2>/dev/null
   summary "${themes[@]}"
   return $rc
 }

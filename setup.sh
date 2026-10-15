@@ -949,8 +949,14 @@ s_theme() {
   run bash "$REPO_DIR/theme.sh" --user "$TARGET_USER"
 }
 s_gate() {
-  # (a driver package phase 2 could not install, or a device plugged in since: tried again)
+  # (a driver package phase 2 could not install, or a device plugged in since: tried again —
+  # so are the parts that come from GitHub and may not have come: GE-Proton, the file dialog)
   s_hardware_setup
+  if [[ $STEAM == yes && -z $(up_tag ge-proton) ]]; then
+    contained install_ge_proton
+    ((CONTAINED_RC == 0)) || log "GE-Proton is still not installed — Steam's own Proton works meanwhile; update tries again"
+  fi
+  tfc_current || s_filechooser
   run bash "$REPO_DIR/verify.sh" --pre-finalize || die "verify.sh found problems — fix them and run again"
 }
 

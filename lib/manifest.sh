@@ -10,6 +10,8 @@
 PKG_BASE=(
   dnf5-plugins          # dnf copr, dnf config-manager
   git jq gnupg2         # used by the scripts (clone, GitHub API, key check); zips: 7zip (apps)
+  diffutils man-db      # diff/cmp: the copy against the toolkit, the checks · man: the manuals
+                        #   the change menu opens (both usually there; listed, never assumed)
   NetworkManager sudo   # in @core already: listed so they are marked as yours, and dnf's
                         # clean-up (autoremove) can never take the network or sudo
   NetworkManager-tui    # nmtui

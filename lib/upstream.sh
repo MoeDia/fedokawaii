@@ -179,7 +179,10 @@ install_ge_proton() {
     | [$t, ($a.browser_download_url // ""), ($s.browser_download_url // "")] | @tsv' <<<"$json")
   [[ -n ${tag:-} && -n ${url:-} && -n ${sumurl:-} ]] || { log "no GE-Proton release file for x86_64 found"; return 1; }
   file=${url##*/}; name=${file%.tar.gz}
-  if [[ -d $dir/$name || -d $dir/$tag ]]; then log "$name — in place"; return 0; fi
+  if [[ -d $dir/$name || -d $dir/$tag ]]; then   # (put there before, or by another tool: recorded)
+    if [[ -d $dir/$name ]]; then record_tag ge-proton "$name"; else record_tag ge-proton "$tag"; fi
+    log "$name — in place"; return 0
+  fi
   # the line for this file, or the file's only hash
   want=$("${CURL[@]}" "$sumurl") || { log "GE-Proton's checksum file not reachable"; return 1; }
   want=$({ grep -F -- "$file" <<<"$want" || printf '%s\n' "$want"; } | grep -m1 -oE '\b[0-9a-f]{128}\b') \

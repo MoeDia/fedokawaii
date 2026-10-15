@@ -68,7 +68,7 @@ Source: **F** Fedora · **RF** RPM Fusion · **V** vendor repo (signed) · **C**
 | Fonts | JetBrainsMono Nerd · DepartureMono Nerd · PixelMplus 12 · Sumi Icons · Terminus (console) · Noto Sans · Noto Sans CJK · Noto Naskh Arabic · Noto Kufi Arabic · Amiri · Noto Color Emoji · Liberation | GH + F + repo | Departure = the pixel UI font; PixelMplus = Japanese in the pixel UI and the terminal; Noto Sans CJK = Japanese, Chinese, Korean in programs and subtitles; Sumi Icons = this desktop's icons; Kufi = Arabic in the pixel UI (bar, menus, notices); Liberation = metric-compatible fonts for office files |
 | Look | adw-gtk3 · qt6ct · Papirus · dconf · pointers drawn here (Adwaita beneath for rare shapes) | F + repo | dark/light switched live by `kawa-theme`; the pixel pointers come from `art/cursors.txt` |
 | Build (kept) | gcc · make · pkgconf · wayland/wlroots/xcb devel | F | theme.sh rebuilds dwl when you change a keybind, and builds kawa-veil and kawa-clipkeep |
-| Script plumbing | dnf5-plugins · git · jq · gnupg2 · libva-utils · libdnf5-plugin-actions | F | used by setup.sh / verify.sh; actions = a snapshot pair around every dnf run |
+| Script plumbing | dnf5-plugins · git · jq · gnupg2 · diffutils · man-db · libva-utils · libdnf5-plugin-actions | F | used by setup.sh / verify.sh; diff / cmp compare the copy and the toolkit, man opens the manuals the change menu lists (both usually present: listed, never assumed); actions = a snapshot pair around every dnf run |
 | Drivers and firmware | fwupd · pciutils · usbutils, and what this machine needs (`lib/hardware.sh`): microcode_ctl or amd-ucode-firmware, NetworkManager-wifi + wireless-regdb, alsa-sof-firmware, the firmware the kernel asked for (iwlwifi-…-firmware and the like), intel-media-driver beside an AMD card | F + RF | fwupd: device firmware from the LVFS, applied only by you · lspci / lsusb: which device, which driver · the per-machine packages are found from the hardware at setup, update and repair, and recorded in `/var/lib/fedokawaii/hardware-pkgs` (part of the manifest from then on) |
 | Base | NetworkManager · sudo | F | already in @core — listed so they are marked as yours and dnf's clean-up never takes them |
 | Base | NetworkManager-tui · xorg-x11-server-Xwayland · xdg-utils · xdg-user-dirs | F | nmtui (quick settings → network) · X11 programs · `xdg-open` · `~/Pictures`… |
@@ -121,6 +121,7 @@ before setup started plus the manifest — anything else is reported by name.
 | libnotify | `notify-send`, used by the helpers |
 | gtk4, libadwaita | runtime libraries of the satty binary |
 | dconf, adwaita-cursor-theme, gnupg2 | dark-mode settings · cursor · key fingerprint check |
+| diffutils, man-db | `diff` / `cmp`: the working copy against the toolkit, the checks · `man`: the manuals the change menu opens (both usually on the minimal install; listed so they are never assumed) |
 | wlopm | screens off when idle without moving windows |
 | tuned | the always-plugged performance profile |
 | xdg-terminal-exec | programs that ask for a terminal get foot |

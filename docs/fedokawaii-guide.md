@@ -150,7 +150,7 @@ sudo mount /dev/sdb1 /mnt
 tar -xzf /mnt/fedokawaii.tar.gz -C ~      # → ~/fedokawaii
 sudo umount /mnt
 cd ~/fedokawaii
-sudo bash fedokawaii.sh            # the menu: Check · Setup · Theme · Both · Verify · Update · Drift · Status · Repair
+sudo bash fedokawaii.sh                   # the menu: Check · Setup · Theme · Both · Verify …
 ```
 
 `lsblk` lists every disk and its partitions. The internal disk (`nvme0n1` or `sda`) carries the
@@ -158,6 +158,16 @@ sudo bash fedokawaii.sh            # the menu: Check · Setup · Theme · Both �
 usually `sdb`, with one `vfat` or `exfat` partition, `sdb1` — the one to mount. In the `tar`
 line, `-x` extracts, `-z` undoes the gzip compression, `-f` names the archive and `-C ~` puts
 the result in your home.
+
+Or straight from GitHub, where the project is the private repository `MoeDia/fedokawaii`. The
+minimal install has no git, so it comes first; git then asks for your GitHub user name, and a
+*personal access token* as the password (§15.2 shows where to make one):
+
+```sh
+sudo dnf install -y git-core
+git clone https://github.com/MoeDia/fedokawaii ~/fedokawaii
+cd ~/fedokawaii && sudo bash fedokawaii.sh
+```
 
 Choose **Both** for a first install. Setup walks through three phases and reboots twice
 between them; after each reboot it takes tty1 by itself (`fedokawaii-resume.service`) and
@@ -864,8 +874,8 @@ and its files are one click away. **Eject** before you pull it out; the notice
 |---|---|
 | file system | how a drive keeps files: *exFAT* (most sticks and SD cards), *FAT32* (small or old ones), *NTFS* (Windows disks), *ext4* or *Btrfs* (Linux disks) |
 | mount · mount point | to open a file system so its files show in a folder · that folder: `/run/media/YOU/LABEL` (a file system with no label: its UUID instead) |
-| label | the name a file system carries (`KINGSTON`, `CANON EOS`); a drive with none is shown by its maker and model |
-| eject | close every file system on the drive, write what is still in memory, then switch the drive off (a card reader stays on: only its card is ejected) |
+| label | the name a file system carries (`KINGSTON`, `CANON EOS`); a drive with none is shown by its maker and model (a card in the machine's own reader: *SD card*) |
+| eject | write out what is still on its way to the drive, close every file system on it, then switch the drive off — or, when it says its media come out (a card in a reader, and many sticks say so of themselves), eject the media. Either way it is safe to unplug |
 | udisks · udiskie | the system service that mounts drives for the person at the screen, without a password · the small program the session runs that asks it to mount whatever you plug in |
 | LUKS | Linux's standard disk encryption: an encrypted drive opens only with its passphrase |
 
@@ -877,7 +887,8 @@ and its files are one click away. **Eject** before you pull it out; the notice
 | click the notice | yazi opens on the stick, in a window of its own |
 | plug in an encrypted drive | a small box asks for its passphrase (typing hidden); **Esc** leaves it locked |
 | click the drive mark (or quick settings → **drives**) | the drives menu: each file system with its size, *open* or *closed*, then **eject** for each drive |
-| choose **eject KINGSTON** | **safe to unplug** — or, if a program still has a file open there, which one: close it, eject again |
+| choose **eject KINGSTON** | **safe to unplug** — or, if a program still has a file open there, which one: close it, eject again. Right after a big copy it first says it is *writing what is still on its way*, and that notice turns into **safe to unplug** when done |
+| a drive that will not open (a file system Linux cannot read, a wrong passphrase) | a notice titled **not opened**, with the reason |
 | pull a drive out without ejecting | a critical notice (the vermilion border) says so, and stays until you click it: what was still being written may be lost |
 
 <!-- fig:menu-drives | The drives menu, from the bar's drive mark (the 2: two drives plugged in): one open, one closed, each to eject. -->
@@ -889,9 +900,9 @@ and its files are one click away. **Eject** before you pull it out; the notice
 | **M** | the drives: each with its size, file system, open or closed |
 | j k · ↑ ↓ | move through the list |
 | Enter · l · → | open it (mounted first if need be; an encrypted one asks for its passphrase) and go there |
-| e | eject its drive: yazi steps out of it first, the list closes, and a notice says when it is safe to unplug |
+| e | eject its drive: yazi steps out of it first, the list closes, and a notice says when it is safe to unplug. Standing in a drive, the list opens on it — **M** then **e** ejects the drive you are looking at |
 | Esc · q · M | close the list |
-| **g m** | go to `/run/media/YOU`, where every open drive is |
+| **g m** | go to `/run/media/YOU`, where every open drive is (no drive open: a note says so) |
 
 <!-- fig:yazi-drives | M in yazi: the drives, the open one lit; Enter goes there, e ejects it. -->
 
@@ -902,14 +913,21 @@ Enter on the card → Enter on the photo.
 
 ```sh
 lsblk -o NAME,SIZE,FSTYPE,LABEL,MOUNTPOINTS     # every disk and what is on it; sdb, sdc… are drives
-kawa-drives list                                # just the drives: one line per file system (device, drive, label, size, type, folder)
+kawa-drives list                                # just the drives: a line per file system
 udisksctl mount -b /dev/sdb1                    # open one → "Mounted /dev/sdb1 at /run/media/…"
-kawa-drives eject /dev/sdb1                     # close all of that drive and switch it off
+kawa-drives eject /dev/sdb1                     # write out, close and switch off that drive
 ```
 
 `lsblk` is the map: a whole disk (`sdb`), its partitions (`sdb1`), and for each its size,
 file system, label and where it is open. The system's own disk is `nvme0n1` (or `sda` on
-SATA); the drives menu never lists it.
+SATA); the drives menu never lists it, and nothing on the machine's own disks opens by itself
+— a Windows partition or a second internal drive stays closed until you open it
+(`udisksctl mount -b …`).
+
+A **disk image** (an `.iso`, an `.img`) opens the same way: `udisksctl loop-setup -f FILE.iso`
+makes it a drive of its own, it opens with a notice, and the drives menu and **M** list it
+under its label (an image with none: under its file's name); eject closes it and frees the
+file.
 
 **Looking after a drive** — the tools for the usual file systems are installed. Each works
 on a *closed* file system: close it with `udisksctl unmount -b /dev/sdb1`, and the drive
@@ -1343,7 +1361,7 @@ installed in a special start before anything else runs. `fedokawaii upgrade` put
 above around these two commands of dnf's, so you never type them yourself:
 
 ```sh
-sudo dnf system-upgrade download --releasever=45   # every package of Fedora 45; nothing installed yet
+sudo dnf system-upgrade download --releasever=45   # all of Fedora 45; nothing installed yet
 sudo dnf system-upgrade reboot                      # restart into the installation
 ```
 
@@ -1723,7 +1741,7 @@ disk is free (`FREE_LIMIT=0.2`).
 Read them with `sudo snapper -c root get-config`. Change one with, for example:
 
 ```sh
-sudo snapper -c root set-config NUMBER_LIMIT=4-30     # keep it a range, or low space no longer trims it
+sudo snapper -c root set-config NUMBER_LIMIT=4-30     # a range, or low space no longer trims it
 sudo snapper -c home set-config TIMELINE_LIMIT_DAILY=2-5 TIMELINE_LIMIT_MONTHLY=0-1
 sudo snapper -c home set-config TIMELINE_CREATE=no    # no hourly snapshots of /home at all
 ```
@@ -2150,7 +2168,7 @@ $ xdg-user-dir DOWNLOAD
 | books and notes | — | `~/Books/` · `~/Notes/` | `~/.cache/kawa-books/` (covers, page counts) |
 | neovim | `~/.config/nvim/` (`lua/config/lazy.lua`, `lua/plugins/colorscheme.lua` from Theme; the rest is LazyVim's starter, yours) | `~/.local/share/nvim/` (plugins in `lazy/`, Mason's tools in `mason/`) · `~/.config/nvim/lazy-lock.json` (plugin versions) | `~/.local/state/nvim/` (undo history, swap files, logs) |
 | lazygit | `~/.config/lazygit/config.yml` | — | `~/.local/state/lazygit/` |
-| yazi (files and dialogs) | `~/.config/yazi/theme.toml`, `init.lua`, `keymap.toml`, `plugins/drives.yazi/` · the dialog's keys: `~/.config/fedokawaii/yazi-pick/` · `~/.config/xdg-desktop-portal-termfilechooser/config` | the trash: `~/.local/share/Trash/` | `~/.local/state/yazi/` |
+| yazi (files and dialogs) | `~/.config/yazi/theme.toml`, `init.lua`, `keymap.toml`, `plugins/drives.yazi/`, `plugins/smart-enter.yazi/` · the dialog's keys: `~/.config/fedokawaii/yazi-pick/` · `~/.config/xdg-desktop-portal-termfilechooser/config` | the trash: `~/.local/share/Trash/` | `~/.local/state/yazi/` |
 | drives (udiskie, kawa-drives) | `~/.config/udiskie/config.yml` | — | which drives are open: `$XDG_RUNTIME_DIR/kawa-drives/` (cleared at each login) |
 | zathura | `~/.config/zathura/zathurarc` | `~/.local/share/zathura/bookmarks.sqlite` (each book's page, bookmarks) | |
 | mpv and yt-dlp | `~/.config/mpv/` (`mpv.conf`, `scripts/`) · `~/.config/yt-dlp/config` | — | `~/.local/state/mpv/` (where each video stopped) |
@@ -2227,7 +2245,7 @@ never touched.
 
 | Managed by Theme (edit in the repository) | Yours (edit in place) |
 |---|---|
-| `foot/foot.ini`, `fuzzel/fuzzel.ini`, `mako/config`, `waybar/`, `btop/btop.conf`, `lazygit/config.yml`, `bat/config`, `mpv/mpv.conf` and `mpv/scripts/kawa-*.lua`, `yt-dlp/config`, `zathura/zathurarc`, `satty/config.toml`, `spotify-player/`, `yazi/theme.toml`, `yazi/init.lua`, `yazi/keymap.toml` and `yazi/plugins/drives.yazi/`, `udiskie/config.yml`, `nvim/lua/config/lazy.lua`, `nvim/lua/plugins/colorscheme.lua`, `nvim/after/ftplugin/sh.lua`, `MangoHud/MangoHud.conf`, `mimeapps.list`, `xdg-terminals.list`, the portal files (`xdg-desktop-portal/`, `xdg-desktop-portal-wlr/`, `xdg-desktop-portal-termfilechooser/`), the pointers in `~/.local/share/icons/`, `pipewire/pipewire.conf.d/60-share.conf`, `~/.bashrc.d/fedokawaii.sh`, `~/.inputrc`, `dwl/autostart.sh`, the launcher entries in `~/.local/share/applications` | every other file in `~/.config/nvim`, `yazi/yazi.toml`, `mpv/input.conf`, `cava/config`, `~/.config/fedokawaii/secrets.sh`, `~/.config/torrra/config.toml`, the browser and Steam profiles (except the two Brave settings in §2) |
+| `foot/foot.ini`, `fuzzel/fuzzel.ini`, `mako/config`, `waybar/`, `btop/btop.conf`, `lazygit/config.yml`, `bat/config`, `mpv/mpv.conf` and `mpv/scripts/kawa-*.lua`, `yt-dlp/config`, `zathura/zathurarc`, `satty/config.toml`, `spotify-player/`, `yazi/theme.toml`, `yazi/init.lua`, `yazi/keymap.toml` and `yazi/plugins/` (drives, smart-enter), `udiskie/config.yml`, `nvim/lua/config/lazy.lua`, `nvim/lua/plugins/colorscheme.lua`, `nvim/after/ftplugin/sh.lua`, `MangoHud/MangoHud.conf`, `mimeapps.list`, `xdg-terminals.list`, the portal files (`xdg-desktop-portal/`, `xdg-desktop-portal-wlr/`, `xdg-desktop-portal-termfilechooser/`), the pointers in `~/.local/share/icons/`, `pipewire/pipewire.conf.d/60-share.conf`, `~/.bashrc.d/fedokawaii.sh`, `~/.inputrc`, `dwl/autostart.sh`, the launcher entries in `~/.local/share/applications` | every other file in `~/.config/nvim`, `yazi/yazi.toml`, `mpv/input.conf`, `cava/config`, `~/.config/fedokawaii/secrets.sh`, `~/.config/torrra/config.toml`, the browser and Steam profiles (except the two Brave settings in §2) |
 
 ## 11.1 foot — the terminal
 
@@ -2545,7 +2563,7 @@ version.
 | g h · g d · g c · g t | home · Downloads · `~/.config` · the trash |
 | M · g m | the drives: open or eject a USB stick, disk or SD card · go where they open (§4.13) |
 | g Space | type a path and jump there |
-| Enter · O | open · choose what to open it with |
+| Enter · O | open the file (a folder: go into it) · choose what to open it with |
 | Space · v · Ctrl+A | select a file · select a range · select all |
 | y · x · p · P | copy · cut · paste · paste, overwriting |
 | d · D | move to the trash · **delete for good** |
@@ -2565,8 +2583,10 @@ version.
 
 ### Opening
 
-Enter uses the first *opener* — a command yazi runs to open a file — for the file's type (its
-MIME type, such as `image/png`): text and JSON open in neovim inside the same window (`:q` brings
+On a folder, Enter goes into it (yazi's own Enter would open the folder in neovim:
+`~/.config/yazi/plugins/smart-enter.yazi`). On a file, it uses the first *opener* — a command
+yazi runs to open a file — for the file's type (its MIME type, such as `image/png`): text and
+JSON open in neovim inside the same window (`:q` brings
 you back to yazi); an archive is unpacked next to itself (yazi's *Extract here*, with 7-Zip);
 pictures, PDFs, videos and the rest go to `xdg-open`, which hands them to the default program for
 that type (§4.9). **O** lists every choice for the hovered file.
@@ -5699,7 +5719,7 @@ re-applies the toolkit as it is.
 file). When you like it:
 
 ```sh
-fedokawaii keep ~/.config/waybar/style.css  # → ~/repos/fedokawaii/configs/home/.config/waybar/style.css
+fedokawaii keep ~/.config/waybar/style.css  # → the copy: configs/home/.config/waybar/style.css
 fedokawaii diff                             # the change, as the toolkit will see it
 fedokawaii apply
 ```
@@ -5721,17 +5741,19 @@ toolkit's version back (yours goes to the backup folder).
 - *A config, as it was before a theme run*: `~/.local/state/fedokawaii/backup/<time>/`.
 - *The system*: a snapshot (§7.2).
 
-**The copy and GitHub.** If the project is on GitHub, clone it to `~/repos/fedokawaii` instead
-of running `fedokawaii copy`:
+**The copy and GitHub.** The project lives on GitHub as the private repository
+`MoeDia/fedokawaii`. Clone it to `~/repos/fedokawaii` instead of running `fedokawaii copy`:
 
 ```sh
-git clone https://github.com/YOU/fedokawaii ~/repos/fedokawaii
+git clone https://github.com/MoeDia/fedokawaii ~/repos/fedokawaii
 ```
 
 A private repository asks for your GitHub user name, and for a *personal access token* as the
 password. You make the token on github.com: *Settings → Developer settings → Personal access
 tokens*. The clone's `fedokawaii.conf` is GitHub's version. Apply merges your saved settings
-into it (§6.1), so nothing you set through *settings* is lost.
+into it (§6.1): a setting you changed through *settings* stays, unless GitHub's file changes
+that same setting itself since you last applied — then GitHub's value is taken, and apply
+names it.
 
 ## 15.3 Where each thing lives
 
@@ -6972,7 +6994,7 @@ For the password it needs an **authentication agent** in your session: here
 `lxqt-policykit-agent`, started by the autostart. Try it:
 
 ```sh
-systemctl restart bluetooth.service   # no sudo: systemd asks polkit, the agent's dialog asks for your password
+systemctl restart bluetooth.service   # no sudo: polkit's dialog asks for your password
 ```
 
 On a text console there is no graphical agent, and `systemctl` asks on the terminal itself.
@@ -8014,14 +8036,15 @@ with all three (§17.7, the second chain).
 `org.freedesktop.PolicyKit1`; services ask it, and it asks your agent for a password when the
 rules want one. **udisks2** (`org.freedesktop.UDisks2`) manages disks for ordinary users:
 listing, mounting, unmounting, powering off. **udiskie**, started by the autostart, listens
-to udisks2 and mounts each new removable drive under `/run/media/you/LABEL`; every change it
-sees, it hands to `kawa-drives`, which shows the notice, lights the bar's drive mark and
-ejects (§4.13). The same calls, by hand:
+to udisks2 and mounts each new removable drive under `/run/media/you/LABEL` (the machine's own
+disks it leaves closed: udisks marks them *HintSystem*, and udiskie's config says not to open
+those by itself); every change it sees, it hands to `kawa-drives`, which shows the notice,
+lights the bar's drive mark and ejects (§4.13). The same calls, by hand:
 
 ```sh
 udisksctl status                         # the drives udisks knows: model, serial, device
 busctl --system tree org.freedesktop.UDisks2 | head   # its objects: one per drive and block device
-kawa-drives eject /dev/sdb1              # close everything on that drive and switch it off
+kawa-drives eject /dev/sdb1              # write out, close everything on that drive, switch it off
 ```
 
 *Read more:* [D-Bus specification](https://dbus.freedesktop.org/doc/dbus-specification.html) ·

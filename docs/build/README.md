@@ -8,7 +8,7 @@ the book is a mock-up. This folder keeps everything that made it, as it was run.
 | File | What it does |
 |---|---|
 | `handbook.py` | the book: the Markdown → HTML (pixel fonts, the figures framed, every picture enlarged by a whole number only) → PDF in headless Chromium, then `pdfpack.py` |
-| `pdfpack.py` | re-compresses the PDF's pictures losslessly (PNG row predictors), so it stays under 10 MB — every pixel the same |
+| `pdfpack.py` | re-compresses the PDF's pictures losslessly (PNG row predictors), so the book stays small — every pixel the same |
 | `render/shoot.sh` | the desktop: bar, menus, notices, level display, terminal, lock — both themes |
 | `render/apps.sh` | the applications and windows: yazi, neovim, lazygit, btop, mpv, zathura, the file dialog, books, notes, Super+U, torrra, Brave |
 | `render/build.sh` | builds the drawing stack (Pango, fcft, foot, fuzzel, mako, swaylock, waybar …) at Fedora 44's versions into `/opt/f44` |

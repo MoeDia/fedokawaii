@@ -56,8 +56,10 @@
 
   // the drive mark while a USB stick, disk or SD card is plugged in (lit while one is open,
   // a count past one): click for the drives menu, open or eject. kawa-drives pokes it with
-  // SIGRTMIN+13 whenever one comes, opens, closes or goes; empty hides it.
-  "custom/drives": { "exec": "kawa-drives bar", "return-type": "json", "interval": "once", "signal": 13,
+  // SIGRTMIN+13 whenever one comes, opens, closes or goes; empty hides it. Once a minute as
+  // well: a card or disc put into a reader that stays plugged in, and does not open, is
+  // news udiskie hands nobody.
+  "custom/drives": { "exec": "kawa-drives bar", "return-type": "json", "interval": 60, "signal": 13,
                      "tooltip": false, "on-click": "kawa-drives" },
 
   "custom/cpu": {

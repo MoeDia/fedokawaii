@@ -1,7 +1,9 @@
 # ~/.config/yazi/keymap.toml — the desktop's keys on top of yazi's own (for yazi 26.x; the
-# file dialog has its own, ~/.config/fedokawaii/yazi-pick/keymap.toml, with these too).
+# file dialog has its own, ~/.config/fedokawaii/yazi-pick/keymap.toml: its own Enter, and
+# the drives keys too).
 [mgr]
 prepend_keymap = [
+	{ on = "<Enter>",    run = "plugin smart-enter",     desc = "Into the folder, or open the file(s)" },
 	{ on = "M",          run = "plugin drives",          desc = "Drives: open or eject one" },
 	{ on = [ "g", "m" ], run = "plugin drives -- media", desc = "Go to the open drives" },
 ]
