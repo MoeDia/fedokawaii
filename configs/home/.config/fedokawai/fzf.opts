@@ -1,3 +1,0 @@
---layout=reverse --border=top --border-label-pos=2 --info=inline-right --no-scrollbar --no-separator --input-border=bottom --highlight-line --gutter=' ' --ellipsis='…' --prompt='@ICON_CHEVRON_RIGHT@ ' --pointer='@ICON_CHEVRON_RIGHT@' --marker='+' --footer-border=none
---color=fg:7,fg+:15,bg:-1,bg+:0,hl:9,hl+:9,info:8,prompt:9,pointer:9,marker:14,spinner:14
---color=header:7,border:8,input-border:8,separator:8,preview-border:8,label:7,query:15,gutter:-1,footer:8,preview-fg:7

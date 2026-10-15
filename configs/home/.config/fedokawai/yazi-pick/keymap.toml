@@ -1,8 +1,0 @@
-# ~/.config/fedokawai/yazi-pick/keymap.toml — the file dialog's keys on top of yazi's own
-# (kawa-pick runs the dialog's yazi with this keymap; your ~/.config/yazi/keymap.toml is
-# for yazi itself). For yazi 26.x.
-[mgr]
-prepend_keymap = [
-	{ on = "<Enter>", run = "plugin kawa-pick", desc = "Into the folder, or take the file" },
-	{ on = "<Esc>",   run = "plugin kawa-pick -- esc", desc = "Undo marks / filter / search, else cancel" },
-]
