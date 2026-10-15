@@ -1,0 +1,26 @@
+#!/usr/bin/env bash
+# stub cliphist (shoot.sh): a plausible clipboard history in cliphist's "id<TAB>preview"
+# format (newest first), including an image entry, Japanese and Arabic text
+case ${1:-} in
+  list) printf '%s\n' \
+    $'48\tsudo dnf upgrade --refresh' \
+    $'47\thttps://codeberg.org/dwl/dwl/src/branch/main/config.def.h' \
+    $'46\t[[ binary data 412 KiB png 1920x1080 ]]' \
+    $'45\tプラスティック・ラヴ — 竹内まりや' \
+    $'44\tgit commit -am "bar: centre the meter between the two halves"' \
+    $'43\t안녕하세요, 세계' \
+    $'42\tjournalctl --user -b -u pipewire --no-pager | tail -50' \
+    $'41\t#d0583a' \
+    $'40\tssh admin@192.168.1.20' \
+    $'39\tThe quick brown fox jumps over the lazy dog' \
+    $'38\t~/Pictures/Screenshots/2026-10-15_09-41-27.png' ;;
+  decode) read -r id _ || id=${2:-}
+    case $id in
+      46) cat "${STUB_STATE%/state}/lib/clip-sample.png" ;;
+      44) printf '%s\n' 'git commit -am "bar: centre the meter between the two halves"' ;;
+      42) printf '%s\n' 'journalctl --user -b -u pipewire --no-pager | tail -50' ;;
+      48) printf '%s\n' 'sudo dnf upgrade --refresh' ;;
+      *) printf 'entry %s\n' "$id" ;;
+    esac ;;
+  store|wipe|delete) cat >/dev/null 2>&1 ;;
+esac

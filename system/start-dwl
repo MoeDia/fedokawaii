@@ -1,0 +1,61 @@
+#!/bin/sh
+# /usr/local/bin/start-dwl — the session the login (agreety) starts (installed by setup.sh).
+# Works with or without theme.sh: without it, dwl runs with upstream defaults and no autostart.
+
+export XDG_SESSION_TYPE=wayland
+export XDG_SESSION_DESKTOP=dwl
+export XDG_CURRENT_DESKTOP=wlroots
+
+# keyboard (from fedokawai.conf, filled in by setup.sh)
+export XKB_DEFAULT_LAYOUT="@KB_LAYOUTS@"
+export XKB_DEFAULT_OPTIONS="@KB_TOGGLE@"
+
+# toolkits: Wayland first, XWayland when an app has no Wayland support
+export QT_QPA_PLATFORM="wayland;xcb"
+export QT_QPA_PLATFORMTHEME=qt6ct
+export GDK_BACKEND="wayland,x11"
+# file dialogs through the portal, so they are the desktop's (yazi, see wlroots-portals.conf):
+# GTK 3 programs only with this (it also sends their print dialog through the portal — the
+# same GTK dialog); GTK 4 (4.22) and Brave use the portal by themselves whenever it runs
+export GTK_USE_PORTAL=1
+# SDL_VIDEODRIVER is deliberately not set: games bundling an older SDL2 fail to start
+# when it is, and SDL3 already picks Wayland by itself.
+export _JAVA_AWT_WM_NONREPARENTING=1
+
+export EDITOR=nvim VISUAL=nvim TERMINAL=foot BROWSER=brave-origin
+export XCURSOR_THEME=Fedokawai XCURSOR_SIZE=24   # the pixel pointers (~/.local/share/icons/Fedokawai)
+export PATH="$HOME/.local/bin:$PATH"
+
+mkdir -p "$HOME/.cache"
+LOG="$HOME/.cache/dwl.log"
+
+# the compositor: dwl, or — should it be unable to start (a library missing) — the build
+# before it (dwl.prev); with neither, a rescue screen on this console instead of a login
+# that only loops back
+rescue() {
+  printf '\n  The desktop could not start: %s.\n\n' "$1"
+  printf '  This console works as usual. To put things right:\n\n'
+  printf '      fedokawai repair      finds what broke and fixes it (or: fedokawai, the menu)\n\n'
+  printf '  What dwl said: %s · Ctrl+D logs out.\n\n' "$LOG"
+  exec bash -l
+}
+runs() { [ -x "$1" ] && ! ldd "$1" 2>/dev/null | grep -q 'not found'; }
+DWL=/usr/local/bin/dwl
+if ! runs "$DWL"; then
+  if runs /usr/local/bin/dwl.prev; then DWL=/usr/local/bin/dwl.prev
+  elif [ ! -x "$DWL" ]; then rescue "dwl is not installed ($DWL)"
+  else rescue "dwl is missing a library ($(ldd "$DWL" 2>/dev/null | awk '/not found/ { print $1; exit }'))"; fi
+fi
+AUTOSTART="$HOME/.config/dwl/autostart.sh"
+started=$(date +%s)
+if [ -x "$AUTOSTART" ]; then "$DWL" -s "$AUTOSTART" >"$LOG" 2>&1; else "$DWL" >"$LOG" 2>&1; fi
+rc=$?
+# gone within five seconds, with an error: it never really started
+[ "$rc" -ne 0 ] && [ $(( $(date +%s) - started )) -lt 5 ] && rescue "dwl stopped at once (exit $rc)"
+
+# logged out: end the graphical session for systemd (the portals stop with it) and take
+# this session's display out of the environment of what systemd --user starts later
+systemctl --user stop dwl-session.target 2>/dev/null
+systemctl --user unset-environment WAYLAND_DISPLAY DISPLAY XDG_CURRENT_DESKTOP \
+  XDG_SESSION_DESKTOP XDG_SESSION_TYPE 2>/dev/null
+exit 0

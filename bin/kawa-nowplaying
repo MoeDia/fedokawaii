@@ -1,0 +1,107 @@
+#!/usr/bin/env bash
+# kawa-nowplaying — the middle of the bar: what is playing (spotify_player, mpv, Brave…),
+# drawn like the front of an old Japanese tape deck:
+#
+#   ▁▃▅▇▅▃▂▁  ⌸  artist — title  ▁▂▃▅▇▅▃▁
+#
+#   the meter   a spectrum split in two around the title, lowest notes nearest it, in
+#               segments like a fluorescent hi-fi display; a full column lights its top
+#               segment in vermilion (the peak lamp). Drawn with the eq-* pixel icons.
+#   the tape    a cassette whose reels turn while there is sound
+#   paused      a pause icon, the title in grey and no meter; no player → hidden
+#
+# Two event streams merged into one pipe, nothing polled: playerctl --follow (track and
+# play state) and cava (20 meter frames a second, started only while a player plays). Without cava the cassette and title still show, with no meter.
+# Pure bash per frame: no forks.
+set -u
+LC_ALL=C.UTF-8                                   # count characters, not bytes
+# shellcheck source=/dev/null
+. "$HOME/.config/fedokawai/icons.sh"
+# shellcheck source=/dev/null
+. "$HOME/.config/fedokawai/current/colors.sh"    # C_* colours of the dark or light theme
+MAX=48                                           # longest "artist — title" before …
+
+esc() {   # esc VAR TEXT — JSON + pango escaping into VAR
+  local s=$2
+  s=${s//[[:cntrl:]]/ }                          # tabs, ESC, CR: not valid in JSON
+  s=${s//\\/\\\\}; s=${s//\"/\\\"}
+  s=${s//&/"&amp;"}; s=${s//</"&lt;"}; s=${s//>/"&gt;"}
+  printf -v "$1" '%s' "$s"
+}
+
+PEAK="$ICON_EQ_5<span color='#$C_ACCENT'>$ICON_EQ_CAP</span>"
+meter() {   # meter VAR DIGITS — "03551" → one eq glyph per band (0–5)
+  local s=$2
+  s=${s//0/$ICON_EQ_0}; s=${s//1/$ICON_EQ_1}; s=${s//2/$ICON_EQ_2}
+  s=${s//3/$ICON_EQ_3}; s=${s//4/$ICON_EQ_4}
+  s=${s//5/$PEAK}                                # last: the markup holds digits of its own
+  # shellcheck disable=SC2089  # pango markup going into JSON: single quotes on purpose
+  printf -v "$1" "<span color='#%s'>%s</span>" "$C_TEAL" "$s"
+}
+
+status="" artist="" title="" last="" bands="" reel=0 frames=0
+show() {
+  local out text body ml mr tape
+  if [[ -z $title || ( $status != Playing && $status != Paused ) ]]; then
+    out='{"text":""}'
+  else
+    text="${artist:+$artist — }$title"
+    ((${#text} > MAX)) && text="${text:0:MAX-1}…"
+    esc body "$text"
+    if [[ $status == Paused ]]; then
+      out="{\"text\":\"$ICON_PAUSE  $body\",\"class\":\"paused\"}"
+    else
+      tape=$ICON_CASSETTE_A; ((reel)) && tape=$ICON_CASSETTE_B
+      if [[ -n $bands ]]; then
+        meter ml "${bands:0:8}"; meter mr "${bands:8:8}"
+        out="{\"text\":\"$ml  $tape  $body  $mr\",\"class\":\"playing\"}"
+      else
+        out="{\"text\":\"$tape  $body\",\"class\":\"playing\"}"
+      fi
+    fi
+  fi
+  [[ $out == "$last" ]] && return
+  printf '%s\n' "$out"; last=$out
+}
+
+echo '{"text":""}'
+# One pipe for both streams, told apart by shape: a player line holds \x1f separators (not
+# tabs: read would collapse repeats and lose an empty artist), an empty line means no
+# player, a cava frame is 16 bands of 0–5 ("0;3;5;…;"). When the player watcher stops,
+# END makes this script exit, and waybar starts it again.
+# cava runs only while a player plays: no audio capture stream (and no wake-ups) otherwise,
+# so the sound card can rest while nothing plays.
+exec {in}< <(
+  exec 2>/dev/null
+  cv=""
+  stop() { [[ -n $cv ]] && kill "$cv"; cv=""; }
+  while IFS= read -r m; do
+    printf '%s\n' "$m"
+    if [[ $m == Playing$'\x1f'* ]]; then
+      # (started again should it have ended by itself: PipeWire restarted, say)
+      { [[ -z $cv ]] || ! kill -0 "$cv" 2>/dev/null; } && command -v cava >/dev/null \
+        && { cava -p "$HOME/.config/fedokawai/cava.conf" & cv=$!; }
+    else stop; fi
+  done < <(playerctl --follow metadata --format '{{status}}'$'\x1f''{{artist}}'$'\x1f''{{title}}')
+  stop                                           # (cava would never notice on its own
+  echo END                                       #  that nobody reads it)
+)
+feeder=$!
+# and if this script goes first, take both readers along
+# shellcheck disable=SC2090  # (follows from the SC2089 note above: a false alarm)
+trap 'pkill -P "$feeder" 2>/dev/null; kill "$feeder" 2>/dev/null' EXIT
+trap 'exit 0' TERM HUP INT                     # (bash skips the EXIT trap on a bare signal)
+
+while IFS= read -r -u "$in" line; do
+  case $line in
+    END)        exit 0 ;;
+    '')         status="" artist="" title="" bands="" ;;
+    *$'\x1f'*)  IFS=$'\x1f' read -r status artist title <<<"$line"
+                [[ $status == Playing ]] || bands="" ;;
+    *)          frame=${line//;/}
+                [[ $status == Playing && ${#frame} == 16 && $frame != *[!0-5]* ]] || continue
+                [[ $frame == *[1-5]* ]] && { ((++frames % 4)) || reel=$((1 - reel)); }   # sound: turn the reels
+                bands=$frame ;;
+  esac
+  show
+done

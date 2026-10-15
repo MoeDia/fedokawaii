@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+# stub cava (shoot.sh): the raw ascii output kawa-nowplaying reads with -p cava.conf —
+# 16 bands of 0–5 ("1;2;…;"), stereo, lowest notes in the middle. One frame, sent after
+# the player line has arrived, then silence (so the screenshot is deterministic: the
+# cassette's reels show their first position).
+sleep "${STUB_CAVA_DELAY:-1.5}"
+printf '%s\n' "${STUB_CAVA_FRAME:-1;1;2;3;3;4;5;5;5;4;4;3;2;2;1;0;}"
+exec sleep infinity

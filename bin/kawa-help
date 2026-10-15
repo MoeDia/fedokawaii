@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+# kawa-help — Super+/ : every keybinding, type to filter (Esc closes); the first
+# binding is selected, not the heading above it. 68 columns: the longest line and the
+# headings' rules are 67, and fuzzel keeps its last column for a "…"
+set -u
+f="$HOME/.config/fedokawai/keybinds.txt"
+[[ -r $f ]] || { notify-send -a desktop "Help" "keybinds.txt missing — run the theme"; exit 1; }
+grep -v '^[[:space:]]*$' "$f" | kawa-menu --prompt "> " --width 68 --lines 24 --select 1 >/dev/null || true

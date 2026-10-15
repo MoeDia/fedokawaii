@@ -1,0 +1,37 @@
+#!/usr/bin/env bash
+# kawa-menu — one look for every small menu: fuzzel in dmenu mode, list order kept.
+#
+#   … | kawa-menu [--drop] [--title TEXT] [--width N] [--lines N] [--select N] [--prompt P] [--index]
+#
+#   --drop      open as a dropdown under the bar's right end (quick settings, audio,
+#               calendar, brightness); otherwise centred on screen like the launcher
+#   --title     a quiet line above the list (fuzzel --mesg)
+#   --select N  pre-select line N (0-based)
+#   --prompt P  show a filter prompt (dropdowns hide it; typing still filters)
+#   --index     print the chosen line's number (0-based) instead of its text
+# Prints the chosen line; exits 1 when the menu is dismissed (Esc or click outside).
+set -u
+C_MUTED=877f6f                                      # (the dark theme's, if none is set up)
+# shellcheck source=/dev/null
+[[ -r $HOME/.config/fedokawai/current/colors.sh ]] && . "$HOME/.config/fedokawai/current/colors.sh"
+args=(--dmenu --no-sort --minimal-lines "--message-color=${C_MUTED}ff")   # the title line, quiet
+drop=0 prompt="" idx=0
+while (($#)); do
+  case $1 in
+    --drop)   drop=1; shift ;;
+    --title)  args+=("--mesg=$2"); shift 2 ;;
+    --width)  args+=("--width=$2"); shift 2 ;;
+    --lines)  args+=("--lines=$2"); shift 2 ;;
+    --select) args+=("--select-index=$2"); shift 2 ;;
+    --prompt) prompt=$2; shift 2 ;;
+    --index)  args+=(--index); idx=1; shift ;;
+    *) echo "kawa-menu: unknown option $1" >&2; exit 2 ;;
+  esac
+done
+if ((drop)); then args+=(--anchor=top-right --x-margin=6 --y-margin=6); fi
+if [[ -n $prompt ]]; then args+=("--prompt=$prompt"); else args+=(--hide-prompt); fi
+out=$(fuzzel "${args[@]}") || exit 1
+# Enter on a filter that matches nothing hands back the typed text (or -1): with --index,
+# callers use the answer as an array index, so anything but a line number counts as dismissed
+((idx)) && [[ ! $out =~ ^[0-9]+$ ]] && exit 1
+printf '%s\n' "$out"

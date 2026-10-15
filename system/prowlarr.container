@@ -1,0 +1,45 @@
+# ~/.config/containers/systemd/prowlarr.container — rootless podman quadlet (Podman ≥ 5),
+# installed and kept current by setup.sh (setup and every update).
+# Runs on demand (see [Service] below). Web UI: `prowlarr` in a shell, or http://localhost:9696
+# while it runs · logs: journalctl --user -u prowlarr
+#
+# It runs in the image's non-root mode: you are uid 1000 inside (keep-id), so every file in
+# ~/.config/prowlarr stays yours, and the app holds no capabilities and can gain none
+# (s6 needs /run to belong to that user: the tmpfs). The API key is the one in
+# ~/.config/fedokawai/secrets.sh, handed over as a podman secret — never in a file here.
+# The web page asks for a login (set on your first visit), even from this computer.
+[Unit]
+Description=Prowlarr — indexer aggregator for torrra
+
+[Container]
+Image=lscr.io/linuxserver/prowlarr:latest
+ContainerName=prowlarr
+UserNS=keep-id:uid=1000,gid=1000
+User=1000
+Group=1000
+Tmpfs=/run:U,exec
+NoNewPrivileges=true
+Timezone=local
+PublishPort=127.0.0.1:9696:9696
+Volume=%h/.config/prowlarr:/config:Z
+Secret=prowlarr-api-key,type=env,target=PROWLARR__AUTH__APIKEY
+Environment=PROWLARR__AUTH__METHOD=Forms PROWLARR__AUTH__REQUIRED=Enabled PROWLARR__LOG__ANALYTICSENABLED=False
+# health: a quick check every 2 s while it starts (systemd counts it started once it
+# answers), then one every 5 minutes; three misses in a row restart it
+HealthCmd=curl -fsS -o /dev/null --max-time 10 http://127.0.0.1:9696/ping
+HealthInterval=5m
+HealthRetries=3
+HealthTimeout=15s
+HealthOnFailure=kill
+HealthStartupCmd=curl -fsS -o /dev/null --max-time 5 http://127.0.0.1:9696/ping
+HealthStartupInterval=2s
+HealthStartupRetries=150
+Notify=healthy
+
+[Service]
+Restart=on-failure
+RestartSec=10
+TimeoutStartSec=600
+# No [Install]: Prowlarr runs only when it is wanted — a torrra search (kawa-torrra starts
+# it and stops it again afterwards) or `prowlarr` in a shell (its web page; `prowlarr stop`
+# when done). Idle, it would hold some 300 MB of memory for nothing.

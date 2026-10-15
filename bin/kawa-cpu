@@ -1,0 +1,33 @@
+#!/usr/bin/env bash
+# kawa-cpu — CPU load for the bar: the chip icon, the last 8 readings (one every 2 s)
+# as columns of up to 5 lit segments — the same pixel segments as the music meter, the
+# newest on the right — then the load now in per cent. Grey while calm; vermilion above 80 %.
+# Pure bash on /proc/stat: no forks at all (the wait is a read with a timeout on a pipe
+# that never speaks).
+set -u
+# shellcheck source=/dev/null
+. "$HOME/.config/fedokawai/icons.sh"
+SEG=("$ICON_EQ_0" "$ICON_EQ_1" "$ICON_EQ_2" "$ICON_EQ_3" "$ICON_EQ_4" "$ICON_EQ_5")
+hist=(0 0 0 0 0 0 0 0)
+exec {quiet}<> <(:)                              # waiting on this fd = sleep without a fork
+read -r _ u n s i w q sq st _ </proc/stat
+prev_busy=$((u + n + s + q + sq + st)) prev_all=$((prev_busy + i + w))
+pct=0
+draw() {
+  local p line=""
+  for p in "${hist[@]}"; do line+=${SEG[(p + 19) / 20]}; done   # 1–20 % → 1 segment … 81–100 % → 5
+  cls=calm; ((pct > 80)) && cls=busy
+  printf '{"text":"%s %s %3d%%","class":"%s","tooltip":"CPU — the last 16 seconds"}\n' "$ICON_CPU" "$line" "$pct" "$cls"
+}
+draw                                             # at once: the bar keeps its width from the start
+while :; do
+  read -rt 2 -u "$quiet" _ || true
+  read -r _ u n s i w q sq st _ </proc/stat
+  busy=$((u + n + s + q + sq + st)) all=$((busy + i + w))
+  d=$((all - prev_all)); ((d > 0)) || d=1
+  pct=$(( (busy - prev_busy) * 100 / d ))
+  ((pct < 0)) && pct=0; ((pct > 100)) && pct=100    # iowait can step back between readings
+  prev_busy=$busy prev_all=$all
+  hist=("${hist[@]:1}" "$pct")
+  draw
+done

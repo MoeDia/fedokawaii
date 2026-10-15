@@ -1,0 +1,11 @@
+#!/usr/bin/env python3
+# test stand-in: sway's outputs printed the way wlr-randr prints them
+import json, subprocess, glob, os
+sock = glob.glob(os.environ["XDG_RUNTIME_DIR"] + "/sway-ipc.*.sock")[0]
+for o in json.loads(subprocess.run(["swaymsg", "-s", sock, "-t", "get_outputs", "-r"], capture_output=True, text=True).stdout):
+    m = o["current_mode"]
+    print(f'{o["name"]} "{o.get("make", "")}"')
+    print("  Enabled: " + ("yes" if o["active"] else "no"))
+    print("  Modes:")
+    print(f'    {m["width"]}x{m["height"]} px, {m["refresh"] / 1000:.6f} Hz (preferred, current)')
+    print(f'  Transform: {o.get("transform", "normal")}')

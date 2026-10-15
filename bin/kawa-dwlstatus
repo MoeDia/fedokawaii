@@ -1,0 +1,108 @@
+#!/usr/bin/env bash
+# kawa-dwlstatus — reads dwl's status stream on stdin (dwl -s) and writes small JSON
+# files for waybar's custom modules, then pokes only the modules that changed:
+#   SIGRTMIN+8 workspaces · +9 layout · +10 window title · +11 keyboard layout
+# `kawa-dwlstatus --poke N…` pokes waybar the same careful way for others (quick settings
+# and the screen-share portal: +12, the mode seal) and exits.
+#
+# dwl prints these lines per monitor (the last one comes from src/dwl/dwl.patch):
+#   <mon> title <text> · appid · fullscreen · floating · selmon <0|1>
+#   <mon> tags <occupied> <selected> <focused-client> <urgent> · <mon> layout <sym>
+#   <mon> kblayout <n>      the active keyboard layout, 0 = first of XKB_DEFAULT_LAYOUT
+#
+# Workspaces: 1–3 are always shown; 4–9 appear only while they hold a window, are
+# selected or are urgent. Each is its own waybar module (custom/tag1 … tag9) so the
+# stylesheet can draw it as a key: raised when occupied, pressed when selected.
+# Pure bash: no forks per update (the signals come from bash's own kill).
+set -u
+# shellcheck source=/dev/null
+. "$HOME/.config/fedokawai/icons.sh"
+DIR="${XDG_RUNTIME_DIR:?}/dwl-bar"
+mkdir -p "$DIR"
+ALWAYS=3
+
+declare -A OCC SEL URG TITLE LAYOUT KB LAST
+SELMON=""
+# keyboard layouts as the session set them (start-dwl): "us,ara" → US AR
+IFS=, read -r -a KBNAMES <<<"${XKB_DEFAULT_LAYOUT:-us}"
+
+put() {   # put NAME JSON — atomic, and only when it changed
+  [[ ${LAST[$1]:-} == "$2" ]] && return 1
+  LAST[$1]=$2
+  printf '%s\n' "$2" >"$DIR/$1.tmp" && mv -f "$DIR/$1.tmp" "$DIR/$1.json"
+}
+
+esc() {   # esc VAR TEXT — JSON + pango escaping into VAR (a variable, not $(…): no subshell)
+  local s=$2
+  s=${s//[[:cntrl:]]/ }                                    # tabs, ESC, CR: not valid in JSON
+  s=${s//\\/\\\\}; s=${s//\"/\\\"}
+  s=${s//&/"&amp;"}; s=${s//</"&lt;"}; s=${s//>/"&gt;"}   # quoted: bash 5.2 treats a bare & as "the match"
+  printf -v "$1" '%s' "$s"
+}
+
+WB=""
+poke() {   # poke N… — SIGRTMIN+N to waybar, but only once it catches them: until waybar has
+  local k v n c   # installed its handlers, a real-time signal's default action kills it
+  if [[ -z $WB ]] || ! { read -r c <"/proc/$WB/comm"; } 2>/dev/null || [[ $c != waybar ]]; then
+    WB=$(pgrep -nxu "$UID" waybar) || { WB=""; return 0; }      # not running (yet): it reads the files
+  fi                                                    # itself when it starts
+  while read -r k v; do
+    [[ $k == SigCgt: ]] || continue
+    for n; do (( 16#$v >> (33 + n) & 1 )) && kill -s "RTMIN+$n" "$WB" 2>/dev/null; done
+    return 0
+  done 2>/dev/null <"/proc/$WB/status"   # (it may have just exited)
+  return 0
+}
+if [[ ${1:-} == --poke ]]; then shift; poke "$@"; exit 0; fi
+
+emit() {
+  local mon=$1 i bit cls tg=0 ly=0 tt=0 kc=0
+  for ((i = 1; i <= 9; i++)); do
+    bit=$((1 << (i - 1)))
+    if   (( ${URG[$mon]:-0} & bit )); then cls=urgent
+    elif (( ${SEL[$mon]:-0} & bit )); then cls=selected
+    elif (( ${OCC[$mon]:-0} & bit )); then cls=occupied
+    elif (( i <= ALWAYS ));            then cls=empty
+    else cls=""; fi
+    if [[ -n $cls ]]; then put "tag$i" "{\"text\":\"$i\",\"class\":[\"tag\",\"$cls\"]}" && tg=1
+    else put "tag$i" '{"text":""}' && tg=1; fi
+  done
+  # the layout as a pixel icon (dwl's symbols: []= tile, ><> floating, [n] monocle)
+  local lt=${LAYOUT[$mon]:-[]=} icon cls title
+  case $lt in
+    '[]=')       icon=$ICON_TILE cls=tile ;;
+    '><>')       icon=$ICON_FLOAT cls=float ;;
+    '[M]')       icon=$ICON_MONOCLE cls=monocle ;;
+    \[[0-9]*\]) icon="$ICON_MONOCLE ${lt:1:-1}" cls=monocle ;;   # monocle: windows stacked
+    *)           esc icon "$lt"; cls=other ;;
+  esac
+  put layout "{\"text\":\"$icon\",\"class\":\"$cls\"}" && ly=1
+  esc title "${TITLE[$mon]:-}"
+  put title "{\"text\":\"$title\"}" && tt=1
+  # the keyboard layout, shown only when there is more than one to switch between
+  local k=${KB[$mon]:-0} name="" which=first
+  [[ $k =~ ^[0-9]+$ ]] || k=0
+  if ((${#KBNAMES[@]} > 1)); then
+    name=${KBNAMES[k]:-?}; name=${name:0:2}; ((k)) && which=other
+    put kb "{\"text\":\"${name^^}\",\"class\":\"$which\"}" && kc=1
+  else
+    put kb '{"text":""}' && kc=1
+  fi
+  local sigs=()
+  ((tg)) && sigs+=(8); ((ly)) && sigs+=(9); ((tt)) && sigs+=(10); ((kc)) && sigs+=(11)
+  ((${#sigs[@]})) && poke "${sigs[@]}"
+  return 0
+}
+
+while IFS=' ' read -r mon kind rest; do
+  case $kind in
+    tags)   IFS=' ' read -r occ sel _ urg <<<"$rest"
+            [[ $occ$sel${urg:-0} =~ ^[0-9]+$ ]] || continue   # numbers only: they go into (( ))
+            OCC[$mon]=$occ; SEL[$mon]=$sel; URG[$mon]=${urg:-0} ;;
+    title)  TITLE[$mon]=$rest ;;
+    layout|kblayout)                       # layout ends an unpatched dwl's block, kblayout ours
+            if [[ $kind == layout ]]; then LAYOUT[$mon]=$rest; else KB[$mon]=$rest; fi
+            [[ -z $SELMON || $mon == "$SELMON" ]] && emit "$mon" ;;
+    selmon) [[ $rest == 1 ]] && SELMON=$mon ;;
+  esac
+done

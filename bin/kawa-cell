@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+# kawa-cell — the terminal's character cell in pixels, printed as WxH: the clipboard and
+# wallpaper windows size their picture previews with it, so a picture fills its area
+# exactly. Asks the terminal (CSI 16 t) on its own tty; 9x21 (foot at the desktop's font,
+# scale 1) when there is no answer within half a second.
+set -u
+cell=9x21
+if [[ -t 0 ]] && saved=$(stty -g 2>/dev/null); then
+  stty raw -echo min 0 time 5
+  printf '\e[16t' >/dev/tty
+  # shellcheck disable=SC2034  # (-d t: the answer "ESC [ 6 ; H ; W t" ends in a t)
+  IFS=";" read -r -d "t" _ ch cw </dev/tty
+  stty "$saved"
+  [[ ${ch:-} =~ ^[0-9]{1,3}$ && ${cw:-} =~ ^[0-9]{1,3}$ ]] && ((cw >= 4 && ch >= 8)) && cell=${cw}x${ch}
+fi
+printf '%s\n' "$cell"

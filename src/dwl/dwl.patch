@@ -1,0 +1,241 @@
+--- a/dwl.c
++++ b/dwl.c
+@@ -120,7 +120,7 @@ typedef struct {
+ 
+ 	Monitor *mon;
+ 	struct wlr_scene_tree *scene;
+-	struct wlr_scene_rect *border[4]; /* top, bottom, left, right */
++	struct wlr_scene_rect *border[8]; /* outline top, bottom, left, right; bevel the same */
+ 	struct wlr_scene_tree *scene_surface;
+ 	struct wl_list link;
+ 	struct wl_list flink;
+@@ -421,6 +421,7 @@ static struct wlr_session_lock_v1 *cur_lock;
+ 
+ static struct wlr_seat *seat;
+ static KeyboardGroup *kb_group;
++static xkb_layout_index_t last_kblayout; /* last layout printed by printstatus() */
+ static unsigned int cursor_mode;
+ static Client *grabc;
+ static int grabcx, grabcy; /* client-relative */
+@@ -1744,7 +1745,7 @@ keypress(struct wl_listener *listener, void *data)
+ 	/* Translate libinput keycode -> xkbcommon */
+ 	uint32_t keycode = event->keycode + 8;
+ 	struct wlr_keyboard *kb = &group->wlr_group->keyboard;
+-	xkb_layout_index_t layout = xkb_state_key_get_layout(kb->xkb_state, keycode);
++	xkb_layout_index_t layout = 0; /* keybindings always read the first layout (us) */
+ 	int handled = 0;
+ 
+ 	// Get the keysyms for level 0 (normal) and level 1 (shifted)
+@@ -1804,6 +1805,11 @@ keypressmod(struct wl_listener *listener, void *data)
+ 	/* Send modifiers to the client. */
+ 	wlr_seat_keyboard_notify_modifiers(seat,
+ 			&group->wlr_group->keyboard.modifiers);
++	/* a layout switch (Alt+Shift) is a modifier event: tell the bar */
++	if (group->wlr_group->keyboard.modifiers.group != last_kblayout) {
++		last_kblayout = group->wlr_group->keyboard.modifiers.group;
++		printstatus();
++	}
+ }
+ 
+ int
+@@ -1896,11 +1902,12 @@ mapnotify(struct wl_listener *listener, void *data)
+ 		goto unset_fullscreen;
+ 	}
+ 
+-	for (i = 0; i < 4; i++) {
++	for (i = 0; i < (int)LENGTH(c->border); i++) {
+ 		c->border[i] = wlr_scene_rect_create(c->scene, 0, 0,
+-				c->isurgent ? urgentcolor : bordercolor);
++				(c->isurgent ? urgentcolor : bordercolor)[0]);
+ 		c->border[i]->node.data = c;
+ 	}
++	client_set_border_color(c, c->isurgent ? urgentcolor : bordercolor);
+ 
+ 	/* Initialize client geometry with room for border */
+ 	c->geom.width += 2 * c->bw;
+@@ -1932,6 +1939,13 @@ mapnotify(struct wl_listener *listener, void *data)
+ 	} else {
+ 		applyrules(c);
+ 	}
++	/* floating windows (rules, dialogs) open centred on their monitor; one larger than
++	 * the screen keeps its top-left corner (title, buttons) on it */
++	if (c->isfloating && c->mon)
++		resize(c, (struct wlr_box){
++			.x = c->mon->w.x + MAX(0, (c->mon->w.width - c->geom.width) / 2),
++			.y = c->mon->w.y + MAX(0, (c->mon->w.height - c->geom.height) / 2),
++			.width = c->geom.width, .height = c->geom.height}, 0);
+ 	printstatus();
+ 
+ unset_fullscreen:
+@@ -2253,6 +2267,34 @@ pointerfocus(Client *c, LayerSurface *l, struct wlr_surface *surface, double sx,
+ 	wlr_seat_pointer_notify_motion(seat, time, sx, sy);
+ }
+ 
++/* one line per value for the status reader: control characters (a newline in a title)
++ * become spaces, and bytes that are not UTF-8 (an X11 title in Latin-1) become '?', so
++ * a window's title can neither start a line of its own nor break the bar's JSON */
++static void
++printclean(const char *mon, const char *key, const char *s)
++{
++	const unsigned char *p = (const unsigned char *)s;
++	printf("%s %s ", mon, key);
++	while (p && *p) {
++		int n = *p < 0x80 ? 0 : *p >= 0xc2 && *p <= 0xdf ? 1
++			: (*p & 0xf0) == 0xe0 ? 2 : *p >= 0xf0 && *p <= 0xf4 ? 3 : -1;
++		int i = 1;
++		while (i <= n && (p[i] & 0xc0) == 0x80)
++			i++;
++		if (n < 0 || i <= n) {         /* a stray, overlong or cut-off sequence */
++			putchar('?');
++			p++;
++		} else if (n == 0) {
++			putchar(*p < 0x20 || *p == 0x7f ? ' ' : *p);
++			p++;
++		} else {
++			fwrite(p, 1, (size_t)n + 1, stdout);
++			p += n + 1;
++		}
++	}
++	putchar('\n');
++}
++
+ void
+ printstatus(void)
+ {
+@@ -2270,8 +2312,8 @@ printstatus(void)
+ 				urg |= c->tags;
+ 		}
+ 		if ((c = focustop(m))) {
+-			printf("%s title %s\n", m->wlr_output->name, client_get_title(c));
+-			printf("%s appid %s\n", m->wlr_output->name, client_get_appid(c));
++			printclean(m->wlr_output->name, "title", client_get_title(c));
++			printclean(m->wlr_output->name, "appid", client_get_appid(c));
+ 			printf("%s fullscreen %d\n", m->wlr_output->name, c->isfullscreen);
+ 			printf("%s floating %d\n", m->wlr_output->name, c->isfloating);
+ 			sel = c->tags;
+@@ -2287,6 +2329,9 @@ printstatus(void)
+ 		printf("%s tags %"PRIu32" %"PRIu32" %"PRIu32" %"PRIu32"\n",
+ 			m->wlr_output->name, occ, m->tagset[m->seltags], sel, urg);
+ 		printf("%s layout %s\n", m->wlr_output->name, m->ltsymbol);
++		/* the active keyboard layout (0 = first in XKB_DEFAULT_LAYOUT), for the bar */
++		printf("%s kblayout %u\n", m->wlr_output->name,
++			kb_group ? kb_group->wlr_group->keyboard.modifiers.group : 0);
+ 	}
+ 	fflush(stdout);
+ }
+@@ -2379,13 +2424,23 @@ resize(Client *c, struct wlr_box geo, int interact)
+ 	/* Update scene-graph, including borders */
+ 	wlr_scene_node_set_position(&c->scene->node, c->geom.x, c->geom.y);
+ 	wlr_scene_node_set_position(&c->scene_surface->node, c->bw, c->bw);
+-	wlr_scene_rect_set_size(c->border[0], c->geom.width, c->bw);
+-	wlr_scene_rect_set_size(c->border[1], c->geom.width, c->bw);
+-	wlr_scene_rect_set_size(c->border[2], c->bw, c->geom.height - 2 * c->bw);
+-	wlr_scene_rect_set_size(c->border[3], c->bw, c->geom.height - 2 * c->bw);
+-	wlr_scene_node_set_position(&c->border[1]->node, 0, c->geom.height - c->bw);
+-	wlr_scene_node_set_position(&c->border[2]->node, 0, c->bw);
+-	wlr_scene_node_set_position(&c->border[3]->node, c->geom.width - c->bw, c->bw);
++	/* the frame: a 1 px outline around a band lit along the top and left and
++	 * shaded along the bottom and right (config.h may give all three one colour:
++	 * a plain, full border), corners closed */
++	{
++		int w = c->geom.width, h = c->geom.height, o = c->bw ? 1 : 0;
++		int t = c->bw ? (int)c->bw - 1 : 0, j;
++		const int r[8][4] = {   /* x, y, width, height */
++			{ 0, 0, w, o }, { 0, h - o, w, o },
++			{ 0, o, o, h - 2 * o }, { w - o, o, o, h - 2 * o },
++			{ o, o, w - 2 * o, t }, { o, h - o - t, w - 2 * o, t },
++			{ o, o + t, t, h - 2 * o - 2 * t }, { w - o - t, o + t, t, h - 2 * o - 2 * t },
++		};
++		for (j = 0; j < 8; j++) {
++			wlr_scene_rect_set_size(c->border[j], MAX(r[j][2], 0), MAX(r[j][3], 0));
++			wlr_scene_node_set_position(&c->border[j]->node, r[j][0], r[j][1]);
++		}
++	}
+ 
+ 	client_set_size(c, c->geom.width - 2 * c->bw, c->geom.height - 2 * c->bw);
+ 	client_get_clip(c, &clip);
+@@ -2883,7 +2938,7 @@ void
+ tile(Monitor *m)
+ {
+ 	unsigned int mw, my, ty;
+-	int i, n = 0;
++	int i, n = 0, gap = (int)gappx, ww, wh;
+ 	Client *c;
+ 
+ 	wl_list_for_each(c, &clients, link)
+@@ -2892,22 +2947,27 @@ tile(Monitor *m)
+ 	if (n == 0)
+ 		return;
+ 
++	/* gappx pixels around the edge of the window area and between windows */
++	ww = m->w.width - 2 * gap;
++	wh = m->w.height - 2 * gap;
+ 	if (n > m->nmaster)
+-		mw = m->nmaster ? (int)roundf(m->w.width * m->mfact) : 0;
++		mw = m->nmaster ? (unsigned int)roundf((float)(ww + gap) * m->mfact) : 0;
+ 	else
+-		mw = m->w.width;
++		mw = (unsigned int)(ww + gap);
+ 	i = my = ty = 0;
+ 	wl_list_for_each(c, &clients, link) {
+ 		if (!VISIBLEON(c, m) || c->isfloating || c->isfullscreen)
+ 			continue;
+ 		if (i < m->nmaster) {
+-			resize(c, (struct wlr_box){.x = m->w.x, .y = m->w.y + my, .width = mw,
+-				.height = (m->w.height - my) / (MIN(n, m->nmaster) - i)}, 0);
+-			my += c->geom.height;
++			resize(c, (struct wlr_box){.x = m->w.x + gap, .y = m->w.y + gap + (int)my,
++				.width = (int)mw - gap,
++				.height = (wh - (int)my + gap) / (MIN(n, m->nmaster) - i) - gap}, 0);
++			my += (unsigned int)(c->geom.height + gap);
+ 		} else {
+-			resize(c, (struct wlr_box){.x = m->w.x + mw, .y = m->w.y + ty,
+-				.width = m->w.width - mw, .height = (m->w.height - ty) / (n - i)}, 0);
+-			ty += c->geom.height;
++			resize(c, (struct wlr_box){.x = m->w.x + gap + (int)mw, .y = m->w.y + gap + (int)ty,
++				.width = ww - (int)mw,
++				.height = (wh - (int)ty + gap) / (n - i) - gap}, 0);
++			ty += (unsigned int)(c->geom.height + gap);
+ 		}
+ 		i++;
+ 	}
+--- a/client.h
++++ b/client.h
+@@ -339,11 +339,13 @@ client_send_close(Client *c)
+ }
+ 
+ static inline void
+-client_set_border_color(Client *c, const float color[static 4])
++client_set_border_color(Client *c, const float color[static 3][4])
+ {
++	/* color[0] the outline, [1] the bevel's lit top and left, [2] its shaded bottom and right */
++	static const int part[8] = { 0, 0, 0, 0, 1, 2, 1, 2 };
+ 	int i;
+-	for (i = 0; i < 4; i++)
+-		wlr_scene_rect_set_color(c->border[i], color);
++	for (i = 0; i < 8; i++)
++		wlr_scene_rect_set_color(c->border[i], color[part[i]]);
+ }
+ 
+ static inline void
+--- a/config.def.h
++++ b/config.def.h
+@@ -6,12 +6,14 @@
+ /* appearance */
+ static const int sloppyfocus               = 1;  /* focus follows mouse */
+ static const int bypass_surface_visibility = 0;  /* 1 means idle inhibitors will disable idle tracking even if it's surface isn't visible  */
+-static const unsigned int borderpx         = 1;  /* border pixel of windows */
++static const unsigned int borderpx         = 3;  /* border pixel of windows: 1 outline + 2 bevel (dwl.patch) */
++static const unsigned int gappx            = 8;  /* gap between windows and around the edge */
+ static const unsigned int snap             = 32; /* snap pixel */
+ static const float rootcolor[]             = COLOR(0x222222ff);
+-static const float bordercolor[]           = COLOR(0x444444ff);
+-static const float focuscolor[]            = COLOR(0x005577ff);
+-static const float urgentcolor[]           = COLOR(0xff0000ff);
++/* window frames (dwl.patch): { outline, bevel lit top/left, bevel shaded bottom/right } */
++static const float bordercolor[3][4]       = { COLOR(0x222222ff), COLOR(0x555555ff), COLOR(0x333333ff) };
++static const float focuscolor[3][4]        = { COLOR(0x222222ff), COLOR(0x4f8fb0ff), COLOR(0x00384fff) };
++static const float urgentcolor[3][4]       = { COLOR(0x222222ff), COLOR(0xff5555ff), COLOR(0xa00000ff) };
+ /* This conforms to the xdg-protocol. Set the alpha to zero to restore the old behavior */
+ static const float fullscreen_bg[]         = {0.0f, 0.0f, 0.0f, 1.0f}; /* You can also use glsl colors */
+ 

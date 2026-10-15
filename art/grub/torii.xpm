@@ -1,0 +1,19 @@
+/* XPM */
+/* the torii above the boot menu (the same drawing as the bar's torii icon).
+   theme.sh enlarges it by a whole number into /boot/grub2/themes/sumi/torii.png */
+static char *torii[] = {
+"10 10 3 1",
+". c None",
+"k c #e8876d",
+"# c #d0583a",
+"k........k",
+"kkkkkkkkkk",
+".########.",
+"..#....#..",
+"##########",
+"..#....#..",
+"..#....#..",
+"..#....#..",
+"..#....#..",
+"..#....#.."
+};

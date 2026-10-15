@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+# stub bluetoothctl (shoot.sh): one powered controller (the "controller dongle")
+case ${1:-} in
+  show) cat <<'EOF'
+Controller 00:1A:7D:DA:71:13 (public)
+	Name: fedokawai
+	Alias: fedokawai
+	Class: 0x006c0104
+	Powered: yes
+	Discoverable: no
+	Pairable: yes
+	Discovering: no
+EOF
+  ;;
+  power) echo "Changing power $2 succeeded" ;;
+esac

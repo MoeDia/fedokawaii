@@ -1,0 +1,32 @@
+#!/usr/bin/env bash
+# kawa-sixel RRGGBB < PICTURE > SIXEL — a picture as a sixel for the terminal, drawn exactly.
+# The books, clipboard and wallpaper windows draw their pictures with it.
+#
+#   · pixels in the ground colour RRGGBB — or within one unit of it (sixel colours are whole
+#     percents, and ImageMagick's dither scatters such near-ground specks into a margin) —
+#     are left undrawn, so the terminal's own background shows there, exact; a picture's
+#     margins are invisible to the pixel
+#   · ImageMagick marks its sixels "unset pixels: colour 0" and ends them with a band break,
+#     so the terminal adds an empty 6 px band in the picture's first colour — on paper, a
+#     dark line under it. Here unset pixels stay unset (P2=1) and there is no last break:
+#     the picture is exactly its own height
+set -o pipefail
+[[ ${1:-} =~ ^[0-9a-fA-F]{6}$ ]] || { echo "usage: kawa-sixel RRGGBB < picture > sixel" >&2; exit 2; }
+# shellcheck disable=SC2016  # python, not shell
+magick - sixel:- | python3 -I -c '
+import re, sys
+g = sys.argv[1]
+ground = tuple(int(100 * int(g[i:i + 2], 16) / 255 + 0.5) for i in (0, 2, 4))
+s = sys.stdin.buffer.read().decode("latin1")
+s = re.sub(r"^\x1bP(\d*);\d*;", lambda m: "\x1bP" + m[1] + ";1;", s, count=1)
+s = re.sub(r"-(\x1b\\)$", r"\1", s)
+q = s.index("q") + 1
+regs = {m[1] for m in re.finditer(r"#(\d+);2;(\d+);(\d+);(\d+)", s)
+        if max(abs(int(v) - w) for v, w in zip(m.groups()[1:], ground)) <= 1}
+out, cur = [s[:q]], None
+for m in re.finditer(r"#(\d+)(?:;\d+;\d+;\d+;\d+)?|\"[0-9;]*|![0-9]+|\x1b\\|[\s\S]", s[q:]):
+    t = m.group(0)
+    if t[0] == "#": cur = m[1]                    # a colour chosen (or defined and chosen)
+    elif len(t) == 1 and "?" <= t <= "~" and cur in regs: t = "?"   # ground: nothing drawn
+    out.append(t)
+sys.stdout.buffer.write("".join(out).encode("latin1"))' "$1"

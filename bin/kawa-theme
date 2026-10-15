@@ -1,0 +1,129 @@
+#!/usr/bin/env bash
+# kawa-theme — the desktop's two themes: dark (sumi ink) and light (washi paper).
+#
+#   kawa-theme               switch to the other one (also: quick settings → theme)
+#   kawa-theme dark|light    switch to that one
+#   kawa-theme get           print the current one
+#   kawa-theme apply         re-apply the current one (login, after theme.sh)
+#   kawa-theme settings      only the GTK/portal settings (theme.sh, outside a session)
+#
+# Every app reads its colours through one link, ~/.config/fedokawai/current →
+# themes/dark or themes/light (fuzzel and foot by include, waybar and GTK by @import,
+# swaylock by -C, btop/qt6ct by path, mpv by include, imv/presenterm/qt6ct through links).
+# Switching re-points that link, then tells whatever is running to look again:
+#   foot (every window)  SIGUSR1/SIGUSR2 to the server — neovim inside follows by itself
+#   waybar               SIGUSR2 (reload)        mako      makoctl reload
+#   btop                 SIGUSR2 (reload)        zathura   SourceConfig over D-Bus
+#   GTK, libadwaita,     gsettings: color-scheme, gtk-theme, icon-theme (live) —
+#   Brave                Brave in GTK mode (theme.sh) takes its frame, toolbar and menus
+#                        from the GTK theme, and web pages their dark/light from the portal
+#   Qt (qt6ct)           its config link is replaced, which qt6ct watches (≈3 s)
+#   mpv (every player)   load-config-file over its socket (scripts/kawa-ipc.lua)
+#   wallpaper            each theme remembers its own picture (kawa-wallpaper)
+# GTK 3 apps follow at once too (their theme is a named one); dwl's borders suit both themes.
+#
+# A switch you make is drawn as a transition (kawa-veil): the screen holds still while
+# everything changes underneath, then the new theme arrives as a row of seigaiha wave
+# crests — rising from the bottom like dawn for the light theme, falling from the top
+# like nightfall for the dark one.
+set -u
+DIR=$HOME/.config/fedokawai
+LINK=$DIR/current
+
+get() {
+  local t
+  t=$(readlink "$LINK" 2>/dev/null) || t=""
+  case ${t##*/} in light) echo light ;; *) echo dark ;; esac
+}
+
+relink() {   # relink TARGET LINK — replace a link in one step (rename), so readers
+  local tmp="$2.new.$$"   # never see it missing and folder watchers see one change
+  ln -sfn "$1" "$tmp" && mv -fT "$tmp" "$2"
+}
+
+settings() {   # settings MODE — GTK 3 theme, GTK 4/libadwaita/portal colour scheme, icons
+  local m=$1 gtk=Fedokawai icons=Papirus k v     # (the GTK 3 themes: adw-gtk3 + the palette)
+  [[ $m == dark ]] && gtk=Fedokawai-dark icons=Papirus-Dark
+  command -v gsettings >/dev/null || return 1
+  for kv in "color-scheme=prefer-$m" "gtk-theme=$gtk" "icon-theme=$icons"; do
+    k=${kv%%=*} v=${kv#*=}
+    [[ $(gsettings get org.gnome.desktop.interface "$k" 2>/dev/null) == "'$v'" ]] && continue
+    gsettings set org.gnome.desktop.interface "$k" "$v" 2>/dev/null || return 1
+  done
+}
+
+signal() {   # signal USR1|USR2 NAME — only to processes that already catch it: until a
+  local sig=$1 bit=9 pid k v   # program installs its handler, these signals terminate it
+  [[ $sig == USR2 ]] && bit=11
+  for pid in $(pgrep -xu "$UID" "$2"); do
+    while read -r k v; do
+      [[ $k == SigCgt: ]] || continue
+      (( 16#$v >> bit & 1 )) && kill -s "$sig" "$pid"
+      break
+    done 2>/dev/null <"/proc/$pid/status"
+  done
+}
+
+apply() {
+  local m=$1 sig=USR1 pid
+  [[ -d $DIR/themes/$m ]] || { echo "kawa-theme: no theme '$m' in $DIR/themes (run theme.sh)" >&2; exit 1; }
+  relink "themes/$m" "$LINK"
+  [[ $m == light ]] && sig=USR2
+  signal "$sig" foot                                 # foot server: all windows + new ones
+  settings "$m"
+  signal USR2 waybar
+  pgrep -xu "$UID" mako >/dev/null && makoctl reload 2>/dev/null   # (makoctl would start one)
+  signal USR2 btop
+  [[ -L $HOME/.config/qt6ct/qt6ct.conf ]] && relink ../fedokawai/current/qt6ct.conf "$HOME/.config/qt6ct/qt6ct.conf"
+  for pid in $(pgrep -xu "$UID" zathura); do
+    busctl --user call "org.pwmt.zathura.PID-$pid" /org/pwmt/zathura org.pwmt.zathura SourceConfig >/dev/null 2>&1
+  done
+  # mpv: every open player loads the new colours (its controller restyles itself at once);
+  # scripts/kawa-ipc.lua gives each one a socket — one that refuses is a crashed mpv's
+  for s in "${XDG_RUNTIME_DIR:-/run/user/$UID}"/mpv-*.sock; do
+    [[ -S $s ]] || continue
+    python3 -I -c 'import json, socket, sys
+c = socket.socket(socket.AF_UNIX); c.settimeout(1)
+try:
+    c.connect(sys.argv[1])
+except (ConnectionRefusedError, FileNotFoundError):
+    sys.exit(3)
+c.sendall((json.dumps({"command": ["load-config-file", sys.argv[2]]}) + "\n").encode())' \
+      "$s" "$DIR/themes/$m/mpv.conf" 2>/dev/null
+    (($? == 3)) && rm -f "$s"
+  done
+  # the theme's own wallpaper, without the switch locks (fds 7 and 9): the swaybg it
+  # starts lives on. Under the veil it must be up before the reveal; otherwise it can come a moment later.
+  if [[ -n ${WAYLAND_DISPLAY:-} ]]; then
+    if [[ -n ${KAWA_VEILED:-} ]]; then kawa-wallpaper --restore >/dev/null 2>&1 7>&- 9>&-
+    else kawa-wallpaper --restore >/dev/null 2>&1 7>&- 9>&- & fi
+  fi
+  return 0
+}
+
+case ${1:-toggle} in
+  get)      get ;;
+  apply)    apply "$(get)" ;;
+  settings) settings "$(get)" ;;
+  dark|light|toggle)
+    # one switch at a time: a held key repeats ~35 times a second, and every extra press
+    # while a switch (and its transition) runs is dropped. The veiled run below inherits
+    # this lock, so it lasts until the transition is over.
+    if [[ -z ${KAWA_VEILED:-} ]]; then
+      exec 7>"${XDG_RUNTIME_DIR:?}/kawa-theme.busy"
+      flock -n 7 || exit 0
+    fi
+    want=${1:-toggle} now=$(get)
+    [[ $want == toggle ]] && { [[ $now == dark ]] && want=light || want=dark; }
+    # a visible change in a session: run the switch under the veil (dawn or nightfall)
+    if [[ $want != "$now" && -z ${KAWA_VEILED:-} && -n ${WAYLAND_DISPLAY:-} ]] \
+       && command -v kawa-veil >/dev/null; then
+      style=--rise; [[ $want == dark ]] && style=--fall
+      KAWA_VEILED=1 exec kawa-veil "$style" -- "$0" "$want"
+    fi
+    exec 9>"${XDG_RUNTIME_DIR:?}/kawa-theme.lock"
+    flock -w 10 9 || { echo "kawa-theme: another switch is still running" >&2; exit 1; }
+    apply "$want"
+    ;;
+  *) echo "usage: kawa-theme [dark|light|toggle|get|apply|settings]" >&2; exit 2 ;;
+esac

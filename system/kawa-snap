@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+# /usr/local/sbin/kawa-snap pre|post — called by libdnf5-plugin-actions around every
+# dnf transaction: a snapper "pre" snapshot before, the matching "post" after. It never
+# stops dnf; a snapshot that could not be taken is written to the journal (journalctl -t
+# kawa-snap), and `fedokawai update` takes and checks its own before it starts.
+# Inspect: sudo snapper -c root list · revert one transaction: sudo snapper -c root undochange PRE..POST
+set -u
+export LC_ALL=C.UTF-8
+state=/run/kawa-snap.pre
+case ${1:-} in
+  pre)  if ! snapper -c root create -t pre -p -c number -d "dnf $(date '+%F %H:%M')" >"$state" 2>/dev/null; then
+          rm -f "$state"; logger -t kawa-snap -p user.warning "no snapshot before this dnf run (snapper failed)"
+        fi ;;
+  post) [[ -s $state ]] || exit 0
+        snapper -c root create -t post --pre-number "$(<"$state")" -c number -d "dnf $(date '+%F %H:%M')" 2>/dev/null \
+          || logger -t kawa-snap -p user.warning "no snapshot after this dnf run (snapper failed)"
+        rm -f "$state" ;;
+esac
+exit 0

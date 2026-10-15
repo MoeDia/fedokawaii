@@ -1,0 +1,156 @@
+#!/usr/bin/env bash
+# /usr/local/bin/kawa-torrra — torrra (torrent search + download) with the Prowlarr API key
+# taken only from the environment: PROWLARR_API_KEY, kept in ~/.config/fedokawai/secrets.sh
+# (yours, mode 600). torrra itself reads the key only from its config file and writes it
+# back there on every start; here it is handed to torrra in memory instead, so
+# ~/.config/torrra/config.toml never holds it (one an older setup left there is taken out).
+# Installed by setup.sh.
+#
+#   kawa-torrra [ARGS…]     torrra ARGS… — in a shell, `torrra` is this (/etc/profile.d)
+#   kawa-torrra --open [X]  the launcher entry and magnet links / .torrent files: X is
+#                           downloaded; without X the search opens. Trouble shows as a notice
+#
+# Before a search it asks Prowlarr and says plainly what is missing, instead of an empty
+# result list (torrra itself exits 0 on every failure). One torrra at a time: downloads
+# run only while its window is open, and a second one would share them. Its colours follow
+# the theme: Textual's ansi-dark draws it in foot's own 16 colours, which change with dark
+# and light — and it reads right on both, because the desktop's palettes keep "black" a
+# shade of the ground and "white" the text either way (ansi-light assumes white is light,
+# so on paper its cursor row would be ink on blue). Any other theme you pick with Ctrl+T
+# is kept.
+set -uo pipefail
+venv=${KAWA_TORRRA_VENV:-$HOME/.local/share/pipx/venvs/torrra}
+py=$venv/bin/python
+secrets=$HOME/.config/fedokawai/secrets.sh
+open=0
+[[ ${1:-} == --open ]] && { open=1; shift; }
+
+die() {
+  printf 'torrra: %s\n' "$*" >&2
+  # from the launcher or a link the window closes with us: say it as a notice too
+  ((open)) && notify-send -u critical -a torrra torrra "$*" 2>/dev/null
+  exit 1
+}
+
+[[ -x $py ]] || die "not installed (no pipx venv at $venv) — run: update"
+if [[ -z ${PROWLARR_API_KEY:-} && -r $secrets ]]; then
+  # the shell's rule: only a file that is yours alone
+  [[ $(stat -c %a "$secrets") == 600 && -O $secrets ]] || die "$secrets must be yours and private — chmod 600 it"
+  # shellcheck source=/dev/null
+  . "$secrets"
+fi
+[[ ${PROWLARR_API_KEY:-} =~ ^[0-9a-f]{32}$ ]] || die "no PROWLARR_API_KEY (32 hex characters) in $secrets — run: update"
+
+((open && $#)) && set -- download "$1"            # a magnet link, a URL or a .torrent file
+
+# what kind of run: the search needs Prowlarr; downloads, settings and help do not, and
+# only the screens (ui) hold the one-at-a-time lock
+first="" search=0 ui=1
+for a in "$@"; do [[ $a == -* ]] || { first=$a; break; }; done
+case $first in ""|search|prowlarr) search=1 ;; config) ui=0 ;; esac
+for a in "$@"; do case $a in --help|-h|--version) ui=0 search=0 ;; esac; done
+
+if ((ui)); then
+  exec 8>"${XDG_RUNTIME_DIR:?no XDG_RUNTIME_DIR — run torrra inside your session}/kawa-torrra.lock"
+  if ! flock -n 8; then
+    if [[ $first == download ]] && command -v wl-copy >/dev/null; then
+      setsid -f wl-copy -- "${!#}" 2>/dev/null    # (its own session: outlives this window)
+      die "torrra is already open in another window — close it, then open the link again (it is on your clipboard)"
+    fi
+    die "torrra is already open in another window"
+  fi
+fi
+
+# torrra, started from here: its settings object answers the key from memory and never
+# stores it. Every name used below is checked first, so a torrra that changed underneath
+# stops with a message rather than writing the key to disk.
+read -r -d '' BOOT <<'PY' || true
+import copy, os, subprocess, sys, tomllib
+key = os.environ.pop("KAWA_KEY")
+search, notify = os.environ.pop("KAWA_SEARCH") == "1", os.environ.pop("KAWA_NOTIFY") == "1"
+
+def warn(msg, urgency="normal"):
+    print("torrra: " + msg, file=sys.stderr)
+    if notify:
+        subprocess.run(["notify-send", "-u", urgency, "-a", "torrra", "torrra", msg],
+                       stderr=subprocess.DEVNULL, check=False)
+
+def fail(msg):
+    warn(msg, "critical")
+    sys.exit(1)
+
+try:
+    import httpx, libtorrent  # noqa: F401  (a broken libtorrent shows here, not mid-download)
+    import torrra.core.config as c
+    from torrra.__main__ import cli
+    get, set_, load, _ = c.Config.get, c.Config.set, c.Config._load_config, c.CONFIG_FILE
+except (ImportError, AttributeError) as e:
+    fail(f"cannot start ({e}) — run: update")
+
+if search:
+    try:
+        r = httpx.get("http://127.0.0.1:9696/api/v1/indexer", headers={"X-Api-Key": key}, timeout=5)
+    except httpx.HTTPError:
+        fail("Prowlarr is not answering on 127.0.0.1:9696 — systemctl --user status prowlarr")
+    if r.status_code == 401:
+        fail("Prowlarr refused the key in secrets.sh — run: update (it hands Prowlarr the key again)")
+    if r.status_code != 200:
+        fail(f"Prowlarr answered HTTP {r.status_code} — journalctl --user -u prowlarr")
+    if not any(i.get("enable") for i in r.json()):
+        fail("Prowlarr has no indexers yet — open http://localhost:9696 → Indexers → Add Indexer")
+
+SECRET = "indexers.prowlarr.api_key"
+THEMES = ("ansi-dark", "ansi-light", "textual-dark")
+
+def kawa_load(self):
+    load(self)
+    readable = True                                   # a settings file with a slip in it: torrra
+    try:                                              # runs on its defaults (with Prowlarr and the
+        with open(c.CONFIG_FILE, "rb") as f:          # colours below, in memory only) and the file
+            tomllib.load(f)                           # stays exactly as you left it
+    except FileNotFoundError:
+        pass
+    except (OSError, tomllib.TOMLDecodeError) as e:
+        readable = False
+        warn(f"~/.config/torrra/config.toml does not read ({e}) — running on defaults; the file is left as it is")
+    cfg, dirty = self.config, False
+    idx = cfg.setdefault("indexers", {})
+    p = idx.setdefault("prowlarr", {})
+    if isinstance(p, dict) and p.pop("api_key", None) is not None:
+        dirty = True                                  # left by an older setup: out it goes
+    for d, k, v in ((p, "url", "http://127.0.0.1:9696"), (idx, "default", "prowlarr")):
+        if k not in d:
+            d[k], dirty = v, True
+    g = cfg.setdefault("general", {})
+    if g.get("theme", "textual-dark") in THEMES and g.get("theme") != "ansi-dark":
+        g["theme"], dirty = "ansi-dark", True         # (an ansi-light an older setup chose too)
+    if dirty and readable:
+        self._save_config()
+
+def kawa_get(self, key_path, *args, **kwargs):
+    return key if key_path == SECRET else get(self, key_path, *args, **kwargs)
+
+def kawa_set(self, key_path, value):
+    if key_path != SECRET:                            # torrra stores the key at each start
+        set_(self, key_path, value)
+
+c.Config._load_config, c.Config.get, c.Config.set = kawa_load, kawa_get, kawa_set
+if not callable(getattr(c.Config, "_save_config", None)):
+    fail("cannot start (torrra changed how it saves settings) — kawa-torrra needs an update")
+sys.argv[0] = "torrra"
+sys.exit(cli())
+PY
+
+# Prowlarr runs on demand: started here for a search (it answers once healthy — the first
+# start after boot takes up to a minute) and stopped again afterwards, if it was not running
+# — however torrra ends, the window closed during a search included (trap)
+if ((search)) && ! systemctl --user is-active --quiet prowlarr.service; then
+  printf 'torrra: starting Prowlarr…\n' >&2
+  systemctl --user start prowlarr.service 2>/dev/null \
+    || die "Prowlarr did not start — journalctl --user -u prowlarr -e"
+  trap 'systemctl --user stop --no-block prowlarr.service 2>/dev/null' EXIT
+  trap 'exit 129' HUP; trap 'exit 130' INT; trap 'exit 143' TERM
+fi
+KAWA_KEY=$PROWLARR_API_KEY KAWA_SEARCH=$search KAWA_NOTIFY=$open \
+  "$py" -I -c "$BOOT" "$@" 8>&-
+exit $?

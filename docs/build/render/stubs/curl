@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+# stub curl (shoot.sh): wttr.in answers "+31°C  Clear" (kawa-weather); anything else goes
+# to the real curl
+for a; do
+  case $a in *wttr.in*) printf '+31°C  Clear\n'; exit 0 ;; esac
+done
+exec /usr/bin/curl "$@"

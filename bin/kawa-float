@@ -1,0 +1,44 @@
+#!/usr/bin/env bash
+# kawa-float [--once NAME] [--locked-title] TITLE COLSxROWS -- CMD [ARG…] — CMD in a small
+# floating terminal window (app-id "float": dwl floats it and centres it on the screen),
+# titled TITLE (the bar shows it), and wait until it closes. The desktop's popups open this
+# way: the books, notes, clipboard, wallpaper, network and system windows and the file dialog.
+#
+#   --once NAME      one such window at a time: a call while it is open does nothing (exit
+#                    3) — a held or doubled key never stacks windows
+#   --locked-title   the title stays TITLE whatever CMD writes there
+#
+# COLSxROWS: an even number of columns and an odd number of rows, and dwl centres the
+# window to the pixel under the bar. The terminal server's window (footclient: instant); a
+# foot of its own only if that one never opened — however the window ended (an answer,
+# Esc, Super+Q), it must not open twice. Exit 0: it opened (and is closed now); 1: no
+# terminal could open one; 2: wrong use; 3: already open (--once).
+set -u
+once="" extra=()
+while [[ ${1:-} == --* ]]; do
+  case $1 in
+    --once)         once=${2:-}; shift 2 ;;
+    --locked-title) extra=(-o locked-title=yes); shift ;;
+    --)             break ;;
+    *)              echo "kawa-float: unknown option $1" >&2; exit 2 ;;
+  esac
+done
+title=${1:-} size=${2:-}
+[[ -n $title && $size =~ ^[0-9]+x[0-9]+$ && ${3:-} == -- && -n ${4:-} ]] \
+  || { echo "usage: kawa-float [--once NAME] [--locked-title] TITLE COLSxROWS -- CMD [ARG…]" >&2; exit 2; }
+shift 3
+run=${XDG_RUNTIME_DIR:?}
+if [[ -n $once ]]; then
+  [[ $once =~ ^[a-z0-9-]+$ ]] || { echo "kawa-float: --once takes a plain name" >&2; exit 2; }
+  exec 9>"$run/kawa-float-$once.lock"
+  flock -n 9 || exit 3
+fi
+mark=$(mktemp -u "$run/kawa-float.XXXXXX")
+trap 'rm -f "$mark"' EXIT
+# inside the window: mark that it opened, then become CMD (the lock is not passed on: it is
+# this script's, and goes when the window has closed)
+# shellcheck disable=SC2016  # expanded by the inner sh
+open=(sh -c ': >"$1"; shift; exec "$@"' kawa-float "$mark" "$@")
+footclient -a float -T "$title" -W "$size" "${extra[@]}" -- "${open[@]}" 9>&- 2>/dev/null
+[[ -e $mark ]] || foot -a float -T "$title" -W "$size" "${extra[@]}" -- "${open[@]}" 9>&- 2>/dev/null
+[[ -e $mark ]]

@@ -1,0 +1,35 @@
+#!/usr/bin/env bash
+# kawa-weather — one line for the quick-settings title ("☼ Sharjah  31°C  Clear", the
+# icon drawn for the sky), from a cache refreshed in the background when older than
+# 30 minutes, so it never holds a menu up. wttr.in, no API key.
+set -u
+# shellcheck source=/dev/null
+. "$HOME/.config/fedokawai/env"
+# shellcheck source=/dev/null
+. "$HOME/.config/fedokawai/icons.sh"
+CACHE="$HOME/.cache/kawa-weather"
+
+refresh() {
+  local line city
+  city=$(jq -rn --arg c "$WEATHER_CITY" '$c | @uri')   # "Saint-Étienne", "St. John's": URL-encoded
+  line=$(curl -fsS --proto '=https' --max-time 8 "https://wttr.in/$city?format=%t++%C&m" 2>/dev/null) || return 0
+  [[ $line == *°* ]] || return 0
+  printf '%s  %s\n' "$WEATHER_CITY" "${line#+}" >"$CACHE.tmp" && mv -f "$CACHE.tmp" "$CACHE"
+}
+
+if [[ ! -s $CACHE || -n $(find "$CACHE" -mmin +30 2>/dev/null) ]]; then
+  refresh &>/dev/null & disown
+fi
+line=$WEATHER_CITY cond=""
+[[ -s $CACHE ]] && read -r line <"$CACHE" && cond=${line##*  }   # "City  +31°C  Clear" → Clear
+printf -v hour '%(%H)T' -1
+sky=$ICON_SUN; ((10#$hour < 6 || 10#$hour >= 18)) && sky=$ICON_MOON
+case ${cond,,} in                        # the sky only, never the city's name ("Nice")
+  *thunder*|*storm*)                     icon=$ICON_STORM ;;
+  *snow*|*sleet*|*blizzard*|*ice*)       icon=$ICON_SNOW ;;
+  *rain*|*drizzle*|*shower*)             icon=$ICON_RAIN ;;
+  *fog*|*mist*|*haze*|*dust*|*sand*)     icon=$ICON_FOG ;;
+  *cloud*|*overcast*)                    icon=$ICON_CLOUD ;;
+  *)                                     icon=$sky ;;
+esac
+printf '%s  %s\n' "$icon" "$line"

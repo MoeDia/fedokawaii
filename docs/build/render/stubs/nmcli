@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+# stub nmcli (shoot.sh): wired network up, Wi-Fi present but unused
+case "$*" in
+  *"-t -f TYPE,STATE device"*|*"-t -f TYPE,STATE dev"*)
+    printf '%s\n' ethernet:connected wifi:disconnected loopback:connected\ \(externally\) ;;
+  *) echo "nmcli stub: $*" >&2 ;;
+esac

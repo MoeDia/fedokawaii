@@ -1,0 +1,32 @@
+#!/usr/bin/env bash
+# stub playerctl (shoot.sh): one player, playing "Mariya Takeuchi — Plastic Love".
+# STUB_PLAYER_STATUS overrides the status (Playing / Paused / "" = no player).
+status=${STUB_PLAYER_STATUS-Playing}
+artist="Mariya Takeuchi" title="Plastic Love" album="Variety"
+fmt="" follow=0 cmd=""
+while (($#)); do
+  case $1 in
+    --follow|-F) follow=1 ;;
+    --format|-f) fmt=$2; shift ;;
+    --player=*|--all-players|-a) ;;
+    -p|--player) shift ;;
+    *) [[ -z $cmd ]] && cmd=$1 ;;
+  esac
+  shift
+done
+render() {
+  local s=$fmt
+  s=${s//'{{status}}'/$status}; s=${s//'{{artist}}'/$artist}
+  s=${s//'{{title}}'/$title};   s=${s//'{{album}}'/$album}
+  printf '%s\n' "$s"
+}
+case $cmd in
+  metadata)
+    if [[ -z $status ]]; then ((follow)) && { echo; exec sleep infinity; }; echo "No players found" >&2; exit 1; fi
+    if [[ -n $fmt ]]; then render; else printf 'spotify xesam:artist %s\nspotify xesam:title %s\n' "$artist" "$title"; fi
+    ((follow)) && exec sleep infinity ;;
+  status) [[ -n $status ]] && echo "$status" || { echo "No players found" >&2; exit 1; } ;;
+  play-pause|play|pause|next|previous|stop) ;;
+  *) ;;
+esac
+exit 0

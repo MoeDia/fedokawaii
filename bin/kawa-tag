@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+# kawa-tag N — what clicking workspace N in the bar does: presses Super+N through a
+# virtual keyboard (wtype), so dwl switches exactly as if you had pressed it.
+set -u
+[[ ${1:-} =~ ^[1-9]$ ]] || { echo "usage: kawa-tag 1-9" >&2; exit 2; }
+exec wtype -M logo -k "$1" -m logo

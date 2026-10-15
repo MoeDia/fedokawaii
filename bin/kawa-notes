@@ -1,0 +1,64 @@
+#!/usr/bin/env bash
+# kawa-notes — Super+N: your notes, in a small floating window; Super+N again puts it away.
+# One plain file, ~/Notes/notes.md, read top to bottom like a diary: each day you write
+# something starts with its date as a heading, and the window opens at the end, ready to
+# type. It is neovim (the desktop's editor, its keys and colours), saving as you type —
+# whichever way the window goes, nothing is lost. A day you opened but wrote nothing under
+# leaves no heading behind.
+#
+# (--inside is its own part: what runs in the window.)
+set -u
+NOTES=${KAWA_NOTES:-$HOME/Notes/notes.md}
+SOCK=${XDG_RUNTIME_DIR:?}/kawa-notes.sock
+LOCK=$SOCK.lock
+today=$(LC_ALL=C date '+%Y-%m-%d · %a')     # (English day names: any locale)
+HEAD="## $today"
+
+if [[ ${1:-} == --inside ]]; then         # in the window: neovim, listening on SOCK
+  # as a page, with the popups' title rule (~/.config/fedokawai/notes.lua), at the end of
+  # the file, on a fresh line, typing
+  # shellcheck source=/dev/null
+  . "$HOME/.config/fedokawai/icons.sh" 2>/dev/null
+  KAWA_NOTES_ICON=${ICON_NOTE:-✎} KAWA_NOTES_WHERE=${NOTES/#"$HOME"/\~} \
+    exec nvim --listen "$SOCK" -c 'luafile ~/.config/fedokawai/notes.lua' -c 'normal! Go' -c 'startinsert!' -- "$NOTES"
+fi
+
+# open already → put it away: neovim saves and quits, and its window closes with it
+if [[ -S $SOCK ]] && timeout 1 nvim --server "$SOCK" --remote-expr 1 >/dev/null 2>&1; then
+  timeout 2 nvim --server "$SOCK" --remote-send '<C-\><C-N><Cmd>silent! wqa!<CR>' >/dev/null 2>&1
+  exit 0
+fi
+
+exec 9>"$LOCK"
+flock -n 9 || exit 0                       # (opening right now: a second press does nothing)
+rm -f "$SOCK"
+mkdir -p "${NOTES%/*}" || exit 1
+# today's heading, once a day: a blank line, the heading, a blank line (the window then
+# opens a new line under it)
+if ! grep -qxF "$HEAD" "$NOTES" 2>/dev/null; then
+  if [[ ! -s $NOTES ]]; then printf '%s\n\n' "$HEAD" >"$NOTES"
+  elif [[ -n $(tail -c1 "$NOTES") ]]; then printf '\n\n%s\n\n' "$HEAD" >>"$NOTES"   # (it ended mid-line)
+  else printf '\n%s\n\n' "$HEAD" >>"$NOTES"; fi
+fi
+# 80 × 25: an even width, an odd height — dwl centres it to the pixel
+kawa-float notes 80x25 -- "$0" --inside 9>&-
+rm -f "$SOCK"
+# tidy the end: no empty lines left by a fresh line you did not use — and a heading with
+# nothing under it goes too, with the blank line before it
+# — written beside it and moved over it in one step, so a full disk or a crash at that
+# moment leaves the diary as it was, never half-written
+if [[ -s $NOTES ]]; then
+  body=$(<"$NOTES") || exit 0              # (the file without its trailing newlines)
+  body=${body%"${body##*[![:space:]]}"}    # nor trailing blanks
+  if [[ $body == "$HEAD" || $body == *$'\n'"$HEAD" ]]; then
+    body=${body%"$HEAD"}; body=${body%"${body##*[![:space:]]}"}
+  fi
+  real=$(readlink -f -- "$NOTES")
+  cur=$(cat -- "$real"; printf x); cur=${cur%x}
+  [[ $cur == "${body:+$body$'\n'}" ]] && exit 0                   # (already tidy)
+  tmp=$(mktemp -- "$real.XXXXXX") || exit 0
+  if { [[ -z $body ]] || printf '%s\n' "$body"; } >"$tmp" && sync -- "$tmp" 2>/dev/null; then
+    chmod --reference="$real" -- "$tmp" 2>/dev/null; mv -f -- "$tmp" "$real"
+  else rm -f -- "$tmp"; fi
+fi
+exit 0

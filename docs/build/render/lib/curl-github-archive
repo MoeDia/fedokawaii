@@ -1,0 +1,25 @@
+#!/bin/bash
+# apps.sh, LazyVim install only: curl, except for GitHub source tarballs
+# (https://github.com/OWNER/REPO/archive/REV.tar.gz, how nvim-treesitter fetches a parser's
+# grammar), which this sandbox's proxy refuses (403) while git works. Those are made with git
+# instead — `git archive` of the same revision, with the directory name GitHub gives it
+# (REPO-REV, a leading v dropped) — so the parsers are built from the same sources.
+url="" out="" args=("$@")
+while (($#)); do
+  case $1 in
+    --output|-o) out=$2; shift 2 ;;
+    https://github.com/*/archive/*.tar.gz) url=$1; shift ;;
+    *) shift ;;
+  esac
+done
+if [[ -z $url || -z $out ]]; then exec /usr/bin/curl "${args[@]}"; fi
+re='^https://github.com/([^/]+)/([^/]+)/archive/(.+)\.tar\.gz$'
+[[ $url =~ $re ]] || exec /usr/bin/curl "${args[@]}"
+owner=${BASH_REMATCH[1]} repo=${BASH_REMATCH[2]} rev=${BASH_REMATCH[3]}
+dir=$rev; [[ $dir =~ ^v[0-9] ]] && dir=${dir:1}
+tmp=$(mktemp -d) || exit 1
+trap 'rm -rf "$tmp"' EXIT
+git -C "$tmp" init -q && git -C "$tmp" remote add origin "https://github.com/$owner/$repo.git" &&
+  git -C "$tmp" fetch -q --depth 1 origin "$rev" 2>"$tmp/err" &&
+  git -C "$tmp" archive --format=tar.gz --prefix="$repo-$dir/" FETCH_HEAD >"$out" \
+  || { echo "curl (git archive): $owner/$repo@$rev: $(cat "$tmp/err" 2>/dev/null)" >&2; exit 22; }

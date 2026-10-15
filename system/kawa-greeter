@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+# /usr/local/bin/kawa-greeter — the login screen: greetd runs this on tty1.
+# agreety ships with greetd: it prints /etc/issue, then asks for the user name and
+# password, exactly like a text console login. Nothing else to install or theme;
+# the console's colours come from the kernel palette that the theme sets.
+printf '\e[H\e[2J\e[3J'                 # start from an empty screen (boot messages gone)
+exec agreety --cmd /usr/local/bin/start-dwl

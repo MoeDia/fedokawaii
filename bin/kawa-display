@@ -1,0 +1,31 @@
+#!/usr/bin/env bash
+# kawa-display — every enabled output → its preferred resolution at the highest refresh
+# rate ≤ MONITOR_HZ (login, theme.sh). Screens going dark when idle is not done here but
+# with wlopm (output power), which leaves the outputs — and the windows on them — in place.
+# Parses wlr-randr's text output:   NAME "desc" / "  Enabled: yes" / "    2560x1440 px, 119.998001 Hz (preferred)"
+set -u
+MONITOR_HZ=144
+# shellcheck source=/dev/null
+. "$HOME/.config/fedokawai/env"
+
+plan() {
+  wlr-randr | awk -v want="$MONITOR_HZ" '
+    function flush() {
+      if (out == "" || !enabled) return
+      res = pref != "" ? pref : big
+      best = 0
+      for (i = 1; i <= n; i++) if (r[i] == res && hz[i] <= want + 0.5 && hz[i] > best) best = hz[i]
+      if (best > 0 && !(res == cres && best == chz)) printf "%s %s@%.6fHz\n", out, res, best
+    }
+    /^[^ ]/ { flush(); out = $1; enabled = 0; n = 0; pref = ""; big = ""; area = 0; cres = ""; chz = 0; next }
+    /^  Enabled: yes/ { enabled = 1 }
+    /^    [0-9]+x[0-9]+ px, [0-9.]+ Hz/ {
+      n++; r[n] = $1; hz[n] = $3 + 0
+      split($1, d, "x"); if (d[1] * d[2] > area) { area = d[1] * d[2]; big = $1 }
+      if ($0 ~ /preferred/) pref = $1
+      if ($0 ~ /current/) { cres = $1; chz = $3 + 0 }      # already there: no modeset flicker
+    }
+    END { flush() }'
+}
+
+plan | while read -r o m; do wlr-randr --output "$o" --mode "$m"; done

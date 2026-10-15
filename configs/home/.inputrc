@@ -1,0 +1,26 @@
+# ~/.inputrc — readline for bash (and every readline program)
+$include /etc/inputrc
+
+# completion: case-insensitive, list on first Tab, coloured like ls
+set completion-ignore-case on
+set completion-map-case on
+set show-all-if-ambiguous on
+set colored-stats on
+set colored-completion-prefix on
+set visible-stats on
+set mark-symlinked-directories on
+set skip-completed-text on
+
+# quiet, safe pasting
+set bell-style none
+set enable-bracketed-paste on
+
+# Up/Down search history by what is already typed
+"\e[A": history-search-backward
+"\e[B": history-search-forward
+# Ctrl+Left/Right move by word (foot sends these)
+"\e[1;5D": backward-word
+"\e[1;5C": forward-word
+# Ctrl+Backspace / Ctrl+Delete delete by word
+"\C-h": backward-kill-word
+"\e[3;5~": kill-word

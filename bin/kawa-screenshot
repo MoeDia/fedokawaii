@@ -1,0 +1,41 @@
+#!/usr/bin/env bash
+# kawa-screenshot [region|full|edit] — grim + slurp, copied to clipboard and
+# saved to ~/Pictures/Screenshots. "edit" opens the capture in satty for annotation.
+set -u
+# shellcheck source=/dev/null
+. "$HOME/.config/fedokawai/env"
+# shellcheck source=/dev/null
+. "$HOME/.config/fedokawai/icons.sh"
+C_ACCENT=d0583a                                     # (the dark theme's, if none is set up)
+# shellcheck source=/dev/null
+[[ -r $HOME/.config/fedokawai/current/colors.sh ]] && . "$HOME/.config/fedokawai/current/colors.sh"
+# the region picker: everything outside the selection dimmed with ink (on either theme a
+# selection reads as the lit part), the selection edged and faintly washed in vermilion
+pick() { slurp -b '#0f0e0c66' -c "#${C_ACCENT}ff" -s "#${C_ACCENT}22" -w 2; }
+mode=${1:-region}
+# one at a time: dwl repeats a held key, which would stack region pickers
+exec 9>"${XDG_RUNTIME_DIR:?}/kawa-screenshot.lock"; flock -n 9 || exit 0
+mkdir -p "$SCREENSHOT_DIR"
+base="$SCREENSHOT_DIR/$(date +%Y-%m-%d_%H-%M-%S)" file=$base.png n=2
+while [[ -e $file ]]; do file=$base-$((n++)).png; done   # two in one second: -2, -3…
+
+case "$mode" in
+  full)
+    grim "$file" || exit 1 ;;
+  region)
+    geom=$(pick) || exit 0
+    grim -g "$geom" "$file" || exit 1 ;;
+  edit)
+    geom=$(pick) || exit 0
+    exec 9>&-                                       # annotating may take a while: free the keys
+    grim -g "$geom" - | satty --filename - --output-filename "$file"   # rest: ~/.config/satty/config.toml
+    exit 0 ;;
+  *) echo "usage: kawa-screenshot [region|full|edit]" >&2; exit 2 ;;
+esac
+
+wl-copy --type image/png <"$file" 9>&-                 # (it stays to serve the copy: never with the lock)
+# the notice shows a square middle cut of the picture: a wide or tall capture scaled whole
+# into the 32 px icon would be a sliver, and every notice's text starts at the same place
+thumb=$XDG_RUNTIME_DIR/kawa-screenshot-icon.png
+magick "$file" -resize '64x64^' -gravity center -extent 64x64 "$thumb" 2>/dev/null || thumb=$file
+notify-send -a desktop -i "$thumb" "$ICON_CAMERA  Screenshot copied" "${file##*/}"

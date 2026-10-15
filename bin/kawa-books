@@ -1,0 +1,360 @@
+#!/usr/bin/env bash
+# kawa-books — Super+R: your books in a small floating terminal. Every PDF, EPUB, MOBI,
+# FB2, XPS and comic book (CBZ, CBR, CB7) in ~/Books, the ones you are reading first:
+# each with how far in you are — the page zathura remembered when you last closed it,
+# a bar, and the page count where the file has one (EPUBs flow their pages to the window,
+# so for those it is the page alone). The cover of the one under the cursor shows beside.
+#
+#   Enter     read it in zathura (it opens where you stopped)
+#   Ctrl+A    add books: the ones in ~/Downloads, ~/Documents and ~/Desktop — Tab marks
+#             several, Enter moves them into ~/Books, Esc goes back
+#   Ctrl+D    remove it: to the trash (yazi: g t), not gone for good
+#   Esc       close
+#
+# The other forms are its own parts: --tui, --rows, --preview PATH INFO…, --open PATH,
+# --remove PATH, --add. Covers are drawn once and kept in ~/.cache/kawa-books.
+set -u
+# shellcheck source=/dev/null
+. "$HOME/.config/fedokawai/icons.sh" 2>/dev/null
+C_GROUND=0f0e0c C_EDGE=2b2721 C_MUTED=877f6f        # (the dark theme's, if none is set up)
+# shellcheck source=/dev/null
+[[ -r $HOME/.config/fedokawai/current/colors.sh ]] && . "$HOME/.config/fedokawai/current/colors.sh"
+BOOKS=${KAWA_BOOKS:-$HOME/Books}
+CACHE=${XDG_CACHE_HOME:-$HOME/.cache}/kawa-books
+# every list of the desktop looks alike: one options file (rules, colours, the chevron)
+export FZF_DEFAULT_OPTS_FILE=$HOME/.config/fedokawai/fzf.opts; unset FZF_DEFAULT_OPTS
+DB=${XDG_DATA_HOME:-$HOME/.local/share}/zathura/bookmarks.sqlite
+EXT=(pdf epub mobi fb2 xps oxps cbz cbr cb7)
+mkdir -p "$BOOKS" "$CACHE"
+
+# ── the list: one python pass over ~/Books and zathura's memory (read-only) ────────────
+# path<TAB>row<TAB>info line 1<TAB>info line 2<TAB>page — the row is what you see and
+# search; the two info lines go under the cover; the page is set only for a book zathura
+# knew under another path (Enter opens it there). Page counts are kept in pages.json (by
+# size and time).
+read -r -d '' ROWS <<'PY' || true
+import calendar, json, os, sqlite3, subprocess, sys, time, unicodedata
+books, cache, db, width = sys.argv[1], sys.argv[2], sys.argv[3], int(sys.argv[4])
+exts = {e: e for e in sys.argv[5:]}; exts["oxps"] = "xps"
+IMG = (".jpg", ".jpeg", ".png", ".webp", ".gif")
+
+def cols(s):                       # display width: CJK and other wide characters take two
+    return sum(2 if unicodedata.east_asian_width(c) in "WF" else 0 if unicodedata.combining(c) else 1 for c in s)
+
+def fit(s, w):                     # cut to w columns with "…", then pad to exactly w
+    if cols(s) > w:
+        while cols(s) > w - 1: s = s[:-1]
+        s += "…"
+    return s + " " * (w - cols(s))
+
+def pages_of(path, kind):          # None where the file has no fixed pages (EPUB, MOBI, FB2)
+    try:
+        if kind == "pdf":
+            out = subprocess.run(["pdfinfo", path], capture_output=True, text=True, timeout=10).stdout
+            for line in out.splitlines():
+                if line.startswith("Pages:"): return int(line.split()[1])
+        elif kind in ("cbz", "cbr", "cb7"):   # (bsdtar: libarchive, as zathura reads them — RAR too)
+            out = subprocess.run(["bsdtar", "-tf", path], capture_output=True, text=True, timeout=20).stdout
+            return sum(1 for l in out.splitlines() if l.lower().endswith(IMG)) or None
+    except Exception:
+        return None
+    return None
+
+found = []
+for root, dirs, files in os.walk(books):
+    dirs[:] = sorted(d for d in dirs if not d.startswith("."))
+    for f in files:
+        kind = exts.get(f.rsplit(".", 1)[-1].lower()) if "." in f else None
+        if kind and not f.startswith(".") and "\t" not in f and "\n" not in f:
+            found.append((os.path.join(root, f), kind))
+
+try:
+    known = json.load(open(os.path.join(cache, "pages.json")))
+except Exception:
+    known = {}
+fresh = {}
+for path, kind in found:
+    try:
+        st = os.stat(path)        # (a dead link, or a book moved while the list was made)
+    except OSError:
+        continue
+    k = known.get(path)
+    if k and k[0] == st.st_size and k[1] == int(st.st_mtime):
+        fresh[path] = k
+    else:
+        fresh[path] = [st.st_size, int(st.st_mtime), pages_of(path, kind)]
+if fresh != known:
+    tmp = os.path.join(cache, f"pages.json.{os.getpid()}")
+    json.dump(fresh, open(tmp, "w")); os.replace(tmp, os.path.join(cache, "pages.json"))
+
+# zathura's memory: the page (from 0) and when, by the file's real path — or, for a book
+# moved since, by its name
+read, by_name = {}, {}
+try:
+    con = sqlite3.connect(f"file:{db}?mode=ro", uri=True, timeout=1)
+    for file, page, when in con.execute("SELECT file, page, time FROM fileinfo"):
+        try:
+            t = calendar.timegm(time.strptime(when, "%Y-%m-%d %H:%M:%S"))   # (zathura writes UTC)
+        except Exception:
+            t = 0
+        read[file] = (page or 0, t, False)
+        b = os.path.basename(file)
+        if b not in by_name or by_name[b][1] < t: by_name[b] = (page or 0, t, True)
+    con.close()
+except Exception:
+    pass
+
+def ago(t):
+    d = time.time() - t
+    if d < 86400: return "today"
+    if d < 2 * 86400: return "yesterday"
+    if d < 14 * 86400: return f"{int(d // 86400)} days ago"
+    if d < 60 * 86400: return f"{int(d // (7 * 86400))} weeks ago"
+    return time.strftime("%d %b %Y", time.localtime(t))
+
+def size(n):
+    for u in ("B", "KB", "MB", "GB"):
+        if n < 1024 or u == "GB": return f"{n:.0f} {u}" if u == "B" else f"{n:.1f} {u}"
+        n /= 1024
+
+R, G, T, B, S, O = "\033[91m", "\033[90m", "\033[96m", "\033[97m", "\033[37m", "\033[0m"
+rows = []
+for path, kind in found:
+    if path not in fresh:
+        continue
+    sz, mt, pages = fresh[path]
+    seen = read.get(os.path.realpath(path)) or by_name.get(os.path.basename(path))
+    title = os.path.splitext(os.path.basename(path))[0].replace("_", " ")
+    tw = width - 2 - 10 - 2 - 9
+    info2 = f"{kind} · {pages} pages · {size(sz)}" if pages else f"{kind} · {size(sz)}"
+    if seen:
+        page = seen[0] + 1
+        done = bool(pages) and page >= pages
+        # the bar: how much is read, in tenths — at least one once begun (a book without a
+        # page count shows just that one: begun, how far unknown)
+        n = 10 if done else max(round(10 * page / pages) if pages else 1, 1)
+        bar = (T if done else R) + "━" * n + G + "─" * (10 - n) + O
+        # where you are: "87/120" — or "p. 37" where the book has no fixed pages; "done"
+        mark = "done" if done else (f"{page}/{pages}" if pages else f"p. {page}")
+        info1 = (f"finished · read {ago(seen[1])}" if done else f"page {page} · read {ago(seen[1])}")
+        color, key = (G if done else B), (1, seen[1])
+        goto = str(page) if seen[2] else ""     # (found by name: moved since, so open it there)
+    else:
+        bar, mark, goto = G + "─" * 10 + O, "new", ""
+        info1, color, key = "not opened yet", S, (0, mt)
+    row = f"{color}{fit(title, tw)}{O}  {bar}  {G if not seen or mark == 'done' else S}{mark:>9}{O}"
+    rows.append((key, f"{path}\t{row}\t{info1}\t{info2}\t{goto}"))
+for _, r in sorted(rows, key=lambda x: x[0], reverse=True):
+    print(r)
+PY
+
+# the list's width: fzf's own (FZF_COLUMNS, inside its margins, as fzf tells every command it
+# runs) less the cover pane (36), its rule and padding, and the pointer — so the marks'
+# column is right however late the window got its final size (the list is asked for again
+# once fzf is up, and whenever the window changes size)
+rows() {
+  local w=${KAWA_BOOKS_W:-57}
+  [[ ${FZF_COLUMNS:-} =~ ^[0-9]+$ ]] && ((FZF_COLUMNS > 70)) && w=$((FZF_COLUMNS - 41))
+  python3 -I -c "$ROWS" "$BOOKS" "$CACHE" "$DB" "$w" "${EXT[@]}"
+}
+
+# ── the cover: the first page (PDF, comics), the book's own cover (EPUB) or a plain card ──
+cover_source() {   # cover_source PATH OUT.png — the picture a cover is made from
+  local f=$1 out=$2 kind=${1##*.}
+  case ${kind,,} in
+    pdf) pdftoppm -f 1 -l 1 -singlefile -png -scale-to 900 -- "$f" "${out%.png}" 2>/dev/null ;;
+    epub) python3 -I - "$f" "$out" 2>/dev/null <<'PY'
+import posixpath, re, sys, zipfile
+src, out = sys.argv[1], sys.argv[2]
+IMG = (".jpg", ".jpeg", ".png", ".webp", ".gif")
+with zipfile.ZipFile(src) as z:
+    names = z.namelist(); pick = None
+    try:                                               # the cover the book declares
+        opf = re.search(r'full-path="([^"]+)"', z.read("META-INF/container.xml").decode()).group(1)
+        x = z.read(opf).decode("utf-8", "replace")
+        cid = re.search(r'<meta[^>]+name="cover"[^>]+content="([^"]+)"', x) or re.search(r'<meta[^>]+content="([^"]+)"[^>]+name="cover"', x)
+        item = None
+        if cid: item = re.search(r'<item[^>]+id="%s"[^>]*>' % re.escape(cid.group(1)), x)
+        if not item: item = re.search(r'<item[^>]+properties="[^"]*cover-image[^"]*"[^>]*>', x)
+        if item:
+            href = re.search(r'href="([^"]+)"', item.group(0)).group(1)
+            pick = posixpath.normpath(posixpath.join(posixpath.dirname(opf), href))
+    except Exception:
+        pick = None
+    if pick not in names:                              # else a picture named like a cover
+        pick = next((n for n in names if "cover" in n.lower() and n.lower().endswith(IMG)), None)
+    if not pick: sys.exit(1)
+    open(out, "wb").write(z.read(pick))
+PY
+      ;;
+    cbz|cbr|cb7)    # the first picture in page order (bsdtar: libarchive, which zathura reads them with)
+      local first pat="" c i
+      first=$(bsdtar -tf "$f" 2>/dev/null | grep -iE '\.(jpe?g|png|webp|gif)$' | LC_ALL=C sort -V | head -n1)
+      [[ -n $first ]] || return 1
+      # (bsdtar takes the name as a pattern: its wildcard characters are escaped)
+      for ((i = 0; i < ${#first}; i++)); do c=${first:i:1}; [[ $c == [][*?\\] ]] && pat+=\\; pat+=$c; done
+      bsdtar -xOf "$f" "$pat" >"$out" 2>/dev/null ;;
+    *) return 1 ;;
+  esac
+  [[ -s $out ]]
+}
+
+# ── the cover pane: the cover centred, the words under it ────────────────────────────────
+# The cover sits as far from the pane's rule as from the pane's right edge, and as far
+# below the top rule as the last line of words sits above the pane's foot — equal to the
+# pixel. Its left edge is a column's edge, so the words under it start exactly there. To get
+# all of that, the cover fills a box of whole columns and of a height that balances, which
+# trims at most a few pixels off two opposite edges. It never reaches the pane's last row (a
+# picture touching it would scroll the window: fzf #2544).
+draw_cover() {   # draw_cover PATH SIX LAY — the picture (sixel) and its layout: "k tr W", title lines
+  local f=$1 six=$2 lay=$3 tmp png w0=2 h0=3 card=1 kind=${1##*.} t a b cap dsc gap k w W n hn tr Hc P d r \
+        gr=-1 best="" S title
+  local -a tl=() btl=()
+  # the pane in pixels: foot draws fzf's rules itself (lines t px thick, centred in their
+  # cells) and fzf leaves one blank column after the pane's rule; the font's letters start
+  # 4 px into a 21 px row and its descenders end 2 px above the row's foot
+  t=$(( ch >= 42 ? ch / 21 : 1 ))
+  a=$(( 2 * cw - (cw - t) / 2 - t ))            # the rule's right edge → the first column
+  b=$(( ch - (ch - t) / 2 - t ))                # the top rule's lower edge → the first row
+  cap=$(( (4 * ch + 10) / 21 )) dsc=$(( (2 * ch + 10) / 21 ))
+  gap=$(( (2 * ch + 1) / 3 ))                   # cover → the title's letters (14 px)
+  title=${f##*/}; title=${title%.*}; title=${title//_/ }
+  tmp=$(mktemp "$CACHE/cover.XXXXXX") && mv -f "$tmp" "$tmp.png" && tmp+=.png || return 1
+  png=${tmp%.png}.box.png                      # (pdftoppm names its file: NAME.png)
+  if cover_source "$f" "$tmp" && read -r w0 h0 < <(magick "${tmp}[0]" -format '%w %h\n' info: 2>/dev/null) \
+     && ((w0 > 0 && h0 > 0)); then card=0; else w0=2 h0=3; fi
+  # k: columns of margin each side — none (fzf's own blank column after the rule is the
+  # margin: 13 px each side, as in every popup), more only for a cover too tall; tr: the
+  # title's row. Every pair balances exactly; the one trimming least wins (the widest box
+  # that trims at most 6 % ends the search)
+  for ((k = 0; ; k++)); do
+    w=$(( cols * cw - 2 * k * cw - a ))
+    ((w >= 8 * cw)) || break
+    W=$(( w / cw ))                             # the words never pass the cover's right edge
+    mapfile -t tl < <(python3 -I -c '
+import sys, unicodedata
+t, w = sys.argv[1], int(sys.argv[2])
+def cols(s): return sum(2 if unicodedata.east_asian_width(c) in "WF" else 1 for c in s)
+def cut(s, n):                                  # the longest start of s that fits n columns
+    while cols(s) > n: s = s[:-1]
+    return s
+lines, cur = [], ""
+for word in t.split():
+    cand = cur + " " + word if cur else word
+    if cols(cand) <= w: cur = cand; continue
+    if cur: lines.append(cur)
+    while cols(word) > w:                       # a word longer than a line: broken
+        part = cut(word, w); lines.append(part); word = word[len(part):]
+    cur = word
+if cur: lines.append(cur)
+lines = lines or [cut(t, w)]
+if len(lines) > 2: lines = [lines[0], cut(lines[1], w - 1).rstrip() + "…"]
+print("\n".join(lines))' "$title" "$W" 2>/dev/null)
+    ((${#tl[@]})) || tl=("${title:0:W}")
+    n=$(( ${#tl[@]} + 2 ))                      # the title's lines and the two below it
+    hn=$(( w * h0 / w0 ))                       # the cover's own height at this width
+    for ((tr = 1; tr + n <= lines; tr++)); do
+      Hc=$(( 2 * tr * ch - (lines - n) * ch - dsc + b + cap - gap ))
+      P=$(( tr * ch + cap - gap - Hc ))
+      ((Hc >= 2 * ch && P >= 0 && b + P >= a + k * cw)) || continue   # (no tighter than the sides)
+      d=$(( Hc > hn ? Hc - hn : hn - Hc ))
+      r=$(( d * 1000 / (Hc > hn ? Hc : hn) ))
+      if ((gr < 0 || r < gr)); then gr=$r best="$k $tr $Hc $P $W" btl=("${tl[@]}"); fi
+    done
+    ((gr >= 0 && gr <= 60)) && break
+  done
+  [[ -n $best ]] || { rm -f "$tmp" "$png"; return 1; }
+  read -r k tr Hc P W <<<"$best"
+  w=$(( cols * cw - 2 * k * cw - a ))
+  S=$(( tr * ch / 6 * 6 ))                      # whole sixel bands, ending in row tr-1
+  if ((card)); then                             # no picture in the file: a card, its kind on it
+    magick -size "${w}x${Hc}" "xc:#$C_EDGE" -fill none -stroke "#$C_MUTED" -strokewidth 2 \
+      -draw "rectangle 1,1 $((w - 2)),$((Hc - 2))" +antialias -stroke none -fill "#$C_MUTED" \
+      -font "$(fc-match -f '%{file}' 'DepartureMono Nerd Font')" -pointsize 22 -gravity center \
+      -annotate +0+0 "${kind^^}" "PNG24:$png" 2>/dev/null
+  else
+    magick "${tmp}[0]" -resize "${w}x${Hc}^" -gravity center -extent "${w}x${Hc}" "PNG24:$png" 2>/dev/null
+  fi
+  magick -size "$((k * cw + w))x$S" "xc:#$C_GROUND" "$png" -geometry "+$((k * cw))+$P" -composite \
+      png:- 2>/dev/null | kawa-sixel "$C_GROUND" >"$six.$$" \
+    && { printf '%s %s %s\n' "$k" "$tr" "$W"; printf '%s\n' "${btl[@]}"; } >"$lay.$$" \
+    && mv -f "$six.$$" "$six" && mv -f "$lay.$$" "$lay"
+  rm -f "$tmp" "$png" "$six.$$" "$lay.$$"
+  [[ -s $six && -s $lay ]]
+}
+
+case ${1:-} in
+  --rows) rows; exit 0 ;;
+  --preview)    # PATH INFO1 INFO2: the cover, then the title and two lines about the book
+    f=${2:-} info1=${3:-} info2=${4:-}
+    [[ -f $f ]] || exit 0
+    cell=${KAWA_CELL:-9x21} cols=${FZF_PREVIEW_COLUMNS:-36} lines=${FZF_PREVIEW_LINES:-26}
+    cw=${cell%x*} ch=${cell#*x}
+    ((cw > 0 && ch > 0 && cols > 20 && lines > 8)) || exit 0
+    key=$(printf '%s\n' p5 "$f" "$(stat -c '%s %Y' -- "$f")" "$cell" "$cols" "$lines" "$C_GROUND" | sha1sum)
+    key=${key%% *}; six=$CACHE/$key.six lay=$CACHE/$key.lay
+    [[ -s $six && -s $lay ]] || draw_cover "$f" "$six" "$lay" || exit 0
+    { read -r k tr W; mapfile -t tl; } <"$lay"
+    pad=$(printf '%*s' "$k" '')
+    cat "$six"; printf '\n'                    # (the picture leaves the cursor on its last row)
+    for t in "${tl[@]}"; do printf '%s\e[97m%s\e[0m\n' "$pad" "$t"; done
+    printf '%s\e[37m%s\e[0m\n%s\e[90m%s\e[0m' "$pad" "${info1:0:W}" "$pad" "${info2:0:W}"
+    exit 0 ;;
+  --open)       # PATH [PAGE]: zathura reopens a book where it was closed; PAGE only for a book
+                # it knew under another path (moved since), so it opens there too
+    [[ -f ${2:-} ]] || exit 0
+    if [[ ${3:-} =~ ^[1-9][0-9]*$ ]]; then setsid -f zathura --page="$3" -- "$2" >/dev/null 2>&1 </dev/null
+    else setsid -f zathura -- "$2" >/dev/null 2>&1 </dev/null; fi
+    exit 0 ;;
+  --remove)
+    [[ -f ${2:-} ]] || exit 0
+    gio trash -- "$2" 2>/dev/null || notify-send -a desktop "Books" "could not move ${2##*/} to the trash"
+    exit 0 ;;
+  --add)        # books elsewhere in your home → ~/Books (moved; a name taken gets " (2)")
+    title=" $(printf '\e[91m%s\e[0m' "${ICON_BOOK:-▤}") add books "$'\e[90m'"· ~/Downloads ~/Documents ~/Desktop"$'\e[0m '
+    args=(); for e in "${EXT[@]}"; do args+=(-e "$e"); done
+    mapfile -t pick < <(fd -t f -i "${args[@]}" . \
+        "$HOME/Downloads" "$HOME/Documents" "$HOME/Desktop" 2>/dev/null \
+      | while IFS= read -r p; do [[ $p == "$BOOKS"/* ]] || printf '%s\t%s\n' "$p" "${p/#"$HOME"/\~}"; done \
+      | fzf --ansi --multi --height=100% --margin=0,1 --delimiter=$'\t' --with-nth=2 \
+          --border-label="$title" --marker='┃' --color='selected-fg:14' \
+          --footer=$'\n''tab mark  ·  enter add  ·  esc back' \
+      | cut -f1)
+    for p in "${pick[@]}"; do
+      [[ -f $p ]] || continue
+      to=$BOOKS/${p##*/} n=2
+      while [[ -e $to ]]; do to="$BOOKS/${p##*/}"; to="${to%.*} ($n).${to##*.}"; n=$((n + 1)); done
+      mv -n -- "$p" "$to" || notify-send -a desktop "Books" "could not move ${p##*/}"
+    done
+    exec "$0" --tui ;;
+  --tui) ;;
+  "")           # Super+R: the window, once (a second press while it is open does nothing)
+    exec kawa-float --once books books 100x27 -- "$0" --tui ;;
+  *) echo "usage: kawa-books   (Super+R: your books)" >&2; exit 2 ;;
+esac
+
+# ── inside the window ─────────────────────────────────────────────────────────
+find "$CACHE" -maxdepth 1 \( -name '*.six' -o -name '*.lay' \) -mtime +90 -delete 2>/dev/null   # (covers of long ago)
+KAWA_CELL=$(kawa-cell 2>/dev/null) || KAWA_CELL=9x21
+read -r _ c < <(stty size 2>/dev/null); [[ ${c:-} =~ ^[0-9]+$ ]] && ((c > 70)) || c=100
+KAWA_BOOKS_W=$((c - 43))
+export KAWA_CELL KAWA_BOOKS_W
+mapfile -t list < <(rows)
+title=" $(printf '\e[91m%s\e[0m' "${ICON_BOOK:-▤}") books "
+if ((${#list[@]})); then title+=$'\e[90m'"· ${#list[@]} in ~/Books"$'\e[0m '
+else title+=$'\e[90m· none in ~/Books yet — ctrl+a adds some\e[0m '; fi
+self=$(printf '%q' "$0")
+# (with the cover pane, the rule under the search line is fzf's separator: it ends where the
+# list ends, as an input border would not — that one runs a column on, into the gap before
+# the pane's rule)
+printf '%s\n' "${list[@]}" | fzf --ansi --no-sort --height=100% --margin=0,1 \
+  --delimiter=$'\t' --with-nth=2 --tiebreak=index --border-label="$title" \
+  --input-border=none --separator='─' \
+  --preview="$self --preview {1} {3} {4}" --preview-window='right,36,border-left,noinfo,wrap' \
+  --preview-wrap-sign=' ' \
+  --footer=$'\n''enter read  ·  ctrl+a add  ·  ctrl+d remove  ·  esc close' \
+  --bind="enter:become($self --open {1} {5})" \
+  --bind="ctrl-a:become($self --add)" \
+  --bind="start:reload-sync($self --rows)" --bind="resize:reload-sync($self --rows)" \
+  --bind="ctrl-d:execute-silent($self --remove {1})+reload-sync($self --rows)"
+exit 0

@@ -1,0 +1,36 @@
+#!/usr/bin/env bash
+# kawa-share — what to share. xdg-desktop-portal-wlr runs it when an app starts a screen
+# share (Brave's "Entire screen" or "Window", OBS, a video call): the choices arrive on
+# stdin, one per line, and the line printed back — unchanged — is shared; no answer (Esc)
+# cancels the share. Lines look like (portal 0.8 and later; 0.7 sent a bare screen name):
+#   Monitor: DP-1 Dell Inc. DELL U2720Q 1234
+#   Window: Weekly sync — Brave (brave-browser)
+# A single choice is taken at once, without a question; several get the usual menu.
+set -u
+PATH="$HOME/.local/bin:$PATH"                       # (the portal starts it with systemd's PATH)
+# shellcheck source=/dev/null
+. "$HOME/.config/fedokawai/icons.sh" 2>/dev/null
+mapfile -t lines
+((${#lines[@]})) || exit 1
+if ((${#lines[@]} == 1)); then printf '%s\n' "${lines[0]}"; exit 0; fi
+
+# each screen's current size, from wlr-randr: NAME → W×H
+declare -A size=()
+while read -r name wh; do size[$name]=$wh; done < <(wlr-randr 2>/dev/null | awk '
+  /^[^ ]/ { out = $1; next }
+  /^    [0-9]+x[0-9]+ px,.*current/ { split($1, d, "x"); print out, d[1] "×" d[2] }')
+
+rows=()
+for l in "${lines[@]}"; do
+  case $l in
+    "Window: "*) t=${l#Window: }; t=${t% (*}                         # the title, without "(app id)"
+                 t=${t//[[:cntrl:]]/ }; ((${#t} > 40)) && t="${t:0:39}…"
+                 printf -v r '%s  %s' "${ICON_WINDOW:-}" "$t" ;;
+    *)           n=${l#Monitor: }; n=${n%% *}                         # the screen's name
+                 printf -v r '%s  %-10s %s' "${ICON_TILE:-}" "$n" "${size[$n]:-}" ;;
+  esac
+  rows+=("$r")
+done
+i=$(printf '%s\n' "${rows[@]}" | kawa-menu --index --width 48 \
+      --lines $(( ${#rows[@]} < 12 ? ${#rows[@]} : 12 )) --title "share what?") || exit 1
+printf '%s\n' "${lines[i]}"

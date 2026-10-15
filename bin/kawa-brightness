@@ -1,0 +1,97 @@
+#!/usr/bin/env bash
+# kawa-brightness — real monitor brightness over DDC/CI (what Twinkle Tray does on
+# Windows): the monitor's own backlight changes, not a software dimming layer.
+#
+#   kawa-brightness           dropdown of levels, the current one ticked
+#   kawa-brightness +10|-10   step every monitor (Super+] / Super+[)
+#   kawa-brightness 40        set every monitor to 40 %
+#
+# Needs ddcutil (i2c-dev is loaded by the package; its udev rule gives the logged-in
+# user the monitors' I2C buses) and DDC/CI switched on in the monitor's own menu.
+# Detection is slow (~1 s), so the bus numbers are cached for the session (autostart
+# clears the cache at each login; a monitor that stops answering means look again).
+set -u
+# shellcheck source=/dev/null
+. "$HOME/.config/fedokawai/icons.sh"
+CACHE="${XDG_RUNTIME_DIR:?}/kawa-ddc-buses"
+
+buses() {
+  if [[ ! -s $CACHE ]]; then
+    # only "Display N" entries; "Invalid display" (no DDC/CI) is skipped
+    ddcutil detect --terse 2>/dev/null | awk '
+      /^Display [0-9]/   { ok = 1; next }
+      /^[^ ]/            { ok = 0 }
+      ok && /I2C bus:/   { sub(/.*\/dev\/i2c-/, ""); print }' >"$CACHE.tmp"
+    mv -f "$CACHE.tmp" "$CACHE"
+  fi
+  cat "$CACHE"
+}
+
+MAX=100
+get() {   # get BUS → sets NOW (percent) and MAX (the monitor's own scale, nearly always 100)
+  local _vcp _code _type cur max
+  read -r _vcp _code _type cur max <<<"$(ddcutil --bus "$1" getvcp 10 --terse 2>/dev/null)"
+  [[ $cur =~ ^[0-9]+$ && $max =~ ^[0-9]+$ && $max -gt 0 ]] || return 1
+  MAX=$max NOW=$((cur * 100 / max))
+}
+
+set_all() {   # set_all PERCENT — every monitor on its own scale (the first one's is known)
+  local b
+  for b in "${BUSES[@]}"; do
+    { m=$MAX
+      if [[ $b != "${BUSES[0]}" ]]; then
+        read -r _ _ _ _ m <<<"$(ddcutil --bus "$b" getvcp 10 --terse 2>/dev/null)"
+        [[ $m =~ ^[0-9]+$ ]] && ((m > 0)) || m=100
+      fi
+      ddcutil --bus "$b" setvcp 10 $(($1 * m / 100)) --noverify >/dev/null 2>&1; } &
+  done
+  wait
+}
+
+note() { kawa-osd "$ICON_SUN" brightness "$1"; }    # the level, shown for a moment
+
+# one DDC/CI conversation at a time: a held key repeats faster than monitors answer, and
+# overlapping read-then-write cycles would lose steps (repeats are simply dropped)
+exec 9>"${XDG_RUNTIME_DIR:?}/kawa-ddc.lock"
+arg=${1:-menu}
+if [[ $arg == menu ]]; then flock -w 5 9 || exit 0; else flock -n 9 || exit 0; fi
+
+mapfile -t BUSES < <(buses)
+if ((${#BUSES[@]} == 0)); then
+  rm -f "$CACHE"
+  notify-send -a desktop "$ICON_SUN  Brightness" "No monitor answered over DDC/CI. Turn DDC/CI on in the monitor's menu."
+  exit 1
+fi
+# the buses may have been renumbered since they were cached (a monitor plugged in or out):
+# a monitor that does not answer means look again, once
+if ! get "${BUSES[0]}"; then
+  rm -f "$CACHE"; mapfile -t BUSES < <(buses)
+  ((${#BUSES[@]})) || { rm -f "$CACHE"; exit 1; }
+fi
+NOW=50; get "${BUSES[0]}" || { [[ $arg == menu ]] || exit 0; }   # a step needs the level it starts from
+now=$NOW
+
+if [[ $arg =~ ^[+-][0-9]{1,3}$ ]]; then
+  new=$((now + 10#${arg:1} * (${arg:0:1}1))); ((new > 100)) && new=100; ((new < 0)) && new=0
+  set_all "$new"; note "$new"; exit 0
+elif [[ $arg =~ ^[0-9]{1,3}$ ]]; then
+  new=$((10#$arg)); ((new > 100)) && new=100
+  set_all "$new"; note "$new"; exit 0
+fi
+case $arg in
+  menu)
+    flock -u 9                                         # free while the menu is open
+    # each row carries its level as the menus' framed bar (icons.sh)
+    rows=() pick=0 blocks="" box="" row=""
+    for ((p = 100; p >= 10; p -= 10)); do
+      levelbar blocks 10 "$p"
+      box=$ICON_BOX_OFF
+      if (( now > p - 5 && now <= p + 5 )); then box=$ICON_BOX_ON; pick=${#rows[@]}; fi
+      printf -v row '%s  %3d%%  %s' "$box" "$p" "$blocks"; rows+=("$row")
+    done
+    i=$(printf '%s\n' "${rows[@]}" | kawa-menu --drop --index --width 24 --lines 10 --select "$pick" \
+          --title "$(printf '%s  %3d%%  brightness' "$ICON_SUN" "$now")") || exit 0
+    flock -w 5 9 || exit 0
+    set_all $((100 - i * 10)); note $((100 - i * 10)) ;;
+  *) echo "usage: kawa-brightness [+N|-N|N]" >&2; exit 2 ;;
+esac

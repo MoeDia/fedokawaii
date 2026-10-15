@@ -1,0 +1,299 @@
+#!/usr/bin/env bash
+# kawa-wallpaper             choose a wallpaper for the current theme (Super+W): a small
+#                            window lists them and shows the one under the cursor, as the
+#                            screen will; Enter sets it — it dissolves in over the old one
+#                            (kawa-veil) — Esc leaves everything as it was
+# kawa-wallpaper --restore   show the current theme's choice again (login, theme switch)
+# kawa-wallpaper --set C     show choice C and remember it (what the picker runs)
+# kawa-wallpaper --pack      fetch and draw the wallpaper pack (theme.sh runs it)
+# (--tui, --preview C and --warm are the picker window's own parts)
+#
+# Each theme (dark, light) remembers its own wallpaper. The choices are:
+#   default   a retro railway-crossing town from the pack: dawn-mart (the konbini by the
+#             crossing, by night) on the dark theme, station-street (the crossing under
+#             cherry blossom, by day) on the light — or, without the pack, fuji:
+#   fuji      drawn for this desktop: the seigaiha wave pattern tiled 1:1 with the Fuji
+#             scene along the bottom — by night on the dark theme, by day on the light
+#   the pack  pictures listed in ~/.local/share/fedokawai/wallpapers.list, fetched from
+#             GitHub and redrawn as 640×360 pixel art (32 colours). Some come in pairs
+#             (the same place by day and by night): choosing one sets both themes.
+#   your own  anything in ~/Pictures/Wallpapers, shown as it is, on either theme
+# Pixel art is enlarged by a whole number to cover each monitor (1080p ×3, 1440p ×4,
+# 4K ×6), so every pixel stays a crisp square; results are cached in ~/.cache.
+set -u
+# shellcheck source=/dev/null
+. "$HOME/.config/fedokawai/env"
+# shellcheck source=/dev/null
+. "$HOME/.config/fedokawai/icons.sh"
+# One change at a time: two quick theme switches start two of these, and the later one
+# must win. So a change waits for the lock first, then reads which theme is current.
+if [[ ${1:-} == --restore || ${1:-} == --set ]]; then
+  exec 8>"${XDG_RUNTIME_DIR:?}/kawa-wallpaper.lock"
+  flock -w 30 8 || exit 1
+fi
+THEME=dark C_GROUND=0f0e0c
+# shellcheck source=/dev/null
+[[ -r $HOME/.config/fedokawai/current/colors.sh ]] && . "$HOME/.config/fedokawai/current/colors.sh"
+SHARE=$HOME/.local/share/fedokawai
+ART=$SHARE/$THEME                                      # pattern.png, scene.png (theme.sh)
+PACK=$SHARE/wallpapers LIST=$SHARE/wallpapers.list
+STATE_DIR=$HOME/.local/state/fedokawai CACHE=$HOME/.cache/kawa-wallpaper
+PW=640 PH=360                                          # the pack's pixel size
+mkdir -p "$WALLPAPER_DIR" "$STATE_DIR" "$CACHE"
+
+outputs() {   # "NAME WxH" for every enabled output, as it stands (a turned screen: H×W)
+  wlr-randr 2>/dev/null | awk '
+    function flush() { if (out != "" && on && size != "") {
+        if (turned) { split(size, d, "x"); size = d[2] "x" d[1] }
+        print out, size } }
+    /^[^ ]/ { flush(); out = $1; on = 0; size = ""; turned = 0; next }
+    /^  Enabled: yes/ { on = 1 }
+    /^  Transform: (90|270|flipped-90|flipped-270)$/ { turned = 1 }
+    /^    [0-9]+x[0-9]+ px,.*current/ { size = $1 }
+    END { flush() }'
+}
+
+default_for() {   # default_for W H → the drawn Fuji at that size (cached)
+  # The wave tile (48 × 24) is mirror-symmetric, with an axis every 24 px: it is laid so one
+  # axis runs down the screen's middle and a row of tiles ends exactly at the bottom — the
+  # pattern sits symmetric on any screen — and the scene, enlarged by a whole number, is
+  # centred on that axis along the bottom.
+  local w=$1 h=$2 f cx cy out="$CACHE/default-$THEME-$1x$2.png"
+  f=$((h / 270)); ((f < 2)) && f=2
+  cx=$(( (24 - w / 2 % 24) % 24 )) cy=$(( (24 - h % 24) % 24 ))
+  if [[ ! -s $out || $out -ot $ART/pattern.png || $out -ot $ART/scene.png ]]; then
+    magick -size "$((w + 48))x$((h + 24))" "tile:$ART/pattern.png" -crop "${w}x${h}+${cx}+${cy}" +repage \
+      \( "$ART/scene.png" -scale "$((f * 100))%" \) -gravity south -composite "$out.tmp.png" \
+      && mv -f "$out.tmp.png" "$out"
+  fi
+  printf '%s' "$out"
+}
+
+pack_for() {   # pack_for NAME W H → that pack picture enlarged to cover W×H (cached)
+  local src="$PACK/$THEME/$1.png" w=$2 h=$3 f g out="$CACHE/$THEME-$1-$2x$3.png"
+  [[ -s $src ]] || return 1
+  f=$(( (w + PW - 1) / PW )) g=$(( (h + PH - 1) / PH )); ((g > f)) && f=$g
+  if [[ ! -s $out || $out -ot $src ]]; then
+    magick "$src" -scale "$((f * 100))%" -gravity center -extent "${w}x${h}" "$out.tmp.png" \
+      && mv -f "$out.tmp.png" "$out"
+  fi
+  printf '%s' "$out"
+}
+
+# shellcheck disable=SC2034  # read through ${!d} in resolve()
+DEFAULT_dark=dawn-mart DEFAULT_light=station-street
+resolve() {   # resolve CHOICE → what to draw: "default" is the theme's pack picture, or fuji
+  local d=DEFAULT_$THEME
+  if [[ $1 == default ]]; then
+    if [[ -n ${!d:-} && -s $PACK/$THEME/${!d}.png ]]; then printf 'pack:%s' "${!d}"; else printf fuji; fi
+  else printf '%s' "$1"; fi
+}
+
+apply() {   # apply CHOICE — default | fuji | pack:NAME | /path/to/file
+  local c=$1 r args=() name size img
+  r=$(resolve "$c")
+  case $r in
+    fuji|pack:*)
+      # any screen not sized below (plugged in later, or no wlr-randr): an unscaled fallback
+      if [[ $r == fuji ]]; then [[ -s $ART/pattern.png ]] && args=(-o '*' -i "$ART/pattern.png" -m tile)
+      else [[ -s $PACK/$THEME/${r#pack:}.png ]] || return 1; args=(-o '*' -i "$PACK/$THEME/${r#pack:}.png" -m fill); fi
+      # every screen there now: drawn at its exact size (a named output overrides '*')
+      while read -r name size; do
+        if [[ $r == fuji ]]; then img=$(default_for "${size%x*}" "${size#*x}")
+        else img=$(pack_for "${r#pack:}" "${size%x*}" "${size#*x}"); fi
+        [[ -s $img ]] && args+=(-o "$name" -i "$img" -m fill)
+      done < <(outputs) ;;
+    *) [[ -f $r ]] || return 1; args=(-i "$r" -m fill) ;;
+  esac
+  # the new picture goes up over the old one before that is closed: no bare flash between
+  local old=()
+  mapfile -t old < <(pgrep -x -u "$UID" swaybg)
+  setsid -f swaybg -c "#$C_GROUND" "${args[@]}" >/dev/null 2>&1 <&- 8>&-   # (it outlives the lock)
+  ((${#old[@]})) && { sleep 0.5; kill "${old[@]}" 2>/dev/null; }
+  printf '%s\n' "$c" >"$STATE_DIR/wallpaper-$THEME"
+}
+
+pack() {   # download, check and redraw every pack picture not drawn yet
+  local mode name pair sum url _ tmp out n=0 have=0 fail=0
+  [[ -r $LIST ]] || { echo "kawa-wallpaper: $LIST is missing (run theme.sh)" >&2; return 1; }
+  tmp=$(mktemp -d) || return 1
+  while read -r mode name pair sum url _; do
+    [[ $mode == dark || $mode == light ]] || continue          # comments and blank lines
+    out="$PACK/$mode/$name.png"
+    if [[ -s $out ]]; then have=$((have + 1)); continue; fi
+    mkdir -p "$PACK/$mode"
+    if curl -fsSL --proto '=https' --retry 2 --max-time 180 -o "$tmp/src" "$url" \
+       && [[ $(sha256sum "$tmp/src") == "$sum "* ]] \
+       && magick "$tmp/src[0]" -resize "${PW}x${PH}^" -gravity center -extent "${PW}x${PH}" \
+            +dither -colors 32 -strip "$out.tmp.png" \
+       && mv -f "$out.tmp.png" "$out"; then
+      n=$((n + 1))
+    else
+      fail=$((fail + 1)); rm -f "$out.tmp.png"
+      echo "kawa-wallpaper: could not fetch or draw '$name' ($url)" >&2
+    fi
+    rm -f "$tmp/src"
+  done <"$LIST"
+  rm -rf "$tmp"
+  # pictures the list no longer names (an older pack) go, with their enlarged copies
+  local keep=() f c gone=0
+  mapfile -t keep < <(awk '$1 == "dark" || $1 == "light" { print $1 "/" $2 ".png" }' "$LIST")
+  if ((${#keep[@]})); then
+    for f in "$PACK"/dark/*.png "$PACK"/light/*.png; do
+      [[ -e $f ]] || continue
+      [[ " ${keep[*]} " == *" ${f#"$PACK"/} "* ]] && continue
+      name=${f##*/} mode=${f%/*}; name=${name%.png} mode=${mode##*/}
+      rm -f "$f" && gone=$((gone + 1))
+      for c in "$CACHE/$mode-$name"-*x*.png; do        # its enlarged copies: NAME-WxH.png exactly
+        [[ ${c#"$CACHE/$mode-$name"-} =~ ^[0-9]+x[0-9]+\.png$ ]] && rm -f "$c"
+      done
+    done
+  fi
+  f="wallpaper pack: $n drawn, $have already here, $fail failed"; ((gone)) && f+=", $gone retired"
+  echo "$f"
+  ((fail == 0))
+}
+
+pair_of() {   # pair_of NAME → the same place in the other theme, if there is one
+  local mode name pair _
+  while read -r mode name pair _; do
+    [[ $mode == "$THEME" && $name == "$1" && $pair != - ]] && { printf '%s' "$pair"; return 0; }
+  done <"$LIST"
+  return 1
+}
+
+choices() {   # every choice for this theme: "CHOICE<TAB>LABEL" (◐ after a name: day and night)
+  local mode name pair _ word=night both
+  [[ $THEME == light ]] && word=day
+  both=$'  \e[90m'"$ICON_THEME"$'\e[0m'
+  local dflt; dflt=$(resolve default)
+  if [[ $dflt == fuji ]]; then
+    printf 'default\t%s fuji by %s (default)\n' "$ICON_TORII" "$word"
+  else
+    printf 'default\t%s %s (default)\n' "$ICON_TORII" "${dflt#pack:}"
+    printf 'fuji\t%s fuji by %s (drawn)\n' "$ICON_PICTURE" "$word"
+  fi
+  if [[ -r $LIST ]]; then
+    # the ◐ marks stand in one column: every name padded to the longest
+    local nw=0
+    while read -r mode name pair _; do
+      [[ $mode == "$THEME" ]] && ((${#name} > nw)) && nw=${#name}
+    done <"$LIST"
+    while read -r mode name pair _; do
+      [[ $mode == "$THEME" && -s $PACK/$THEME/$name.png ]] || continue
+      [[ pack:$name == "$dflt" ]] && continue                 # (listed first, as the default)
+      if [[ $pair == - ]]; then printf 'pack:%s\t%s %s\n' "$name" "$ICON_PICTURE" "$name"
+      else printf 'pack:%s\t%s %-*s%s\n' "$name" "$ICON_PICTURE" "$nw" "$name" "$both"; fi
+    done <"$LIST"
+  fi
+  # your own (a name with a tab or a line break in it cannot be listed)
+  find -L "$WALLPAPER_DIR" -type f \( -iname '*.png' -o -iname '*.jpg' -o -iname '*.jpeg' -o -iname '*.webp' \) \
+    ! -name $'*\t*' ! -name $'*\n*' \
+    | sort | while IFS= read -r f; do printf '%s\t%s %s\n' "$f" "$ICON_FOLDER" "${f#"$WALLPAPER_DIR"/}"; done
+}
+
+# ── the picker's preview: the picture as the screen shows it, smaller ─────────────────
+# The first screen's size, scaled down by the smallest whole number that fits the window's
+# preview area: the pack's pixel art (enlarged by a whole number on screen) comes back to
+# exactly its own pixels, so the preview is as crisp as the wallpaper. Centred in the area
+# (a sixel picture starts at the area's top-left corner: the margin is drawn as nothing, so
+# the terminal's own background shows — kawa-sixel), and clear of its last line (a picture
+# touching it would scroll the window: fzf #2544). Drawn once with ImageMagick, cached in
+# ~/.cache/kawa-wallpaper/preview.
+CELL=${KAWA_CELL:-9x21}                                # the terminal's cell, in pixels
+PREV_COLS=74 PREV_ROWS=20                              # the window's preview area (--tui)
+
+preview_file() {   # preview_file CHOICE → that sixel file
+  local c=$1 name size w=1920 h=1080 aw ah bw bh n m pw ph lp tp f g src key out
+  read -r name size < <(outputs)
+  [[ $size =~ ^[0-9]+x[0-9]+$ ]] && w=${size%x*} h=${size#*x}
+  aw=$((PREV_COLS * ${CELL%x*})) ah=$((PREV_ROWS * ${CELL#*x}))      # the area
+  bw=$aw bh=$((ah - ${CELL#*x}))                                     # what the picture may fill
+  ((bw > 0 && bh > 0)) || return 1
+  n=$(( (w + bw - 1) / bw )) m=$(( (h + bh - 1) / bh )); ((m > n)) && n=$m; ((n < 1)) && n=1
+  pw=$((w / n)) ph=$((h / n))
+  lp=$(( (aw - pw) / 2 )) tp=$(( (ah - ph) / 2 )); ((tp > bh - ph)) && tp=$((bh - ph))
+  c=$(resolve "$c")
+  case $c in
+    fuji)    src=$(default_for "$w" "$h") ;;
+    pack:*)  src=$PACK/$THEME/${c#pack:}.png ;;
+    *)       src=$c ;;
+  esac
+  [[ -s $src ]] || return 1
+  key=$(printf '%s\n' p3 "$THEME" "$c" "$pw" "$ph" "$lp" "$tp" "$w" "$h" "$(stat -c %Y "$src")" | sha1sum); key=${key%% *}
+  out=$CACHE/preview/$key.six
+  if [[ ! -s $out ]]; then
+    mkdir -p "$CACHE/preview"
+    if [[ $c == pack:* ]]; then
+      # the screen enlarges it by f and shows the middle; the preview is that, divided by n
+      f=$(( (w + PW - 1) / PW )) g=$(( (h + PH - 1) / PH )); ((g > f)) && f=$g
+      magick "$src" -filter Box -resize "$((PW * f / n))x$((PH * f / n))!" \
+        -gravity center -extent "${pw}x${ph}" \
+        -background "#$C_GROUND" -gravity southeast -extent "$((lp + pw))x$((tp + ph))" png:-
+    else
+      magick "${src}[0]" -filter Box -resize "${pw}x${ph}^" -gravity center -extent "${pw}x${ph}" \
+        -background "#$C_GROUND" -gravity southeast -extent "$((lp + pw))x$((tp + ph))" png:-
+    fi | kawa-sixel "$C_GROUND" >"$out.$$.tmp" || { rm -f "$out.$$.tmp"; return 1; }
+    mv -f "$out.$$.tmp" "$out"
+  fi
+  printf '%s' "$out"
+}
+
+case ${1:-menu} in
+  --restore)
+    c=$(cat "$STATE_DIR/wallpaper-$THEME" 2>/dev/null)
+    apply "${c:-default}" || apply default ;;
+  --set)
+    c=${2:-default}
+    apply "$c" || exit 1
+    if [[ $c == pack:* ]] && p=$(pair_of "${c#pack:}"); then   # the same place, other theme
+      other=dark; [[ $THEME == dark ]] && other=light
+      printf 'pack:%s\n' "$p" >"$STATE_DIR/wallpaper-$other"
+    fi ;;
+  --pack)
+    pack ;;
+  menu)        # Super+W: the picker window, once (a second press while it is open does nothing)
+    pick=$(mktemp "${XDG_RUNTIME_DIR:?}/kawa-wallpaper.XXXXXX") || exit 1
+    trap 'rm -f "$pick"' EXIT
+    # 76 × 37 (the clipboard window's width, an odd height: centred to the pixel): the list,
+    # then a 74 × 20 area for the picture — as far below its rule as above the window's foot
+    kawa-float --once wallpaper wallpaper 76x37 -- "$0" --tui "$pick" || exit 0
+    c=$(cat "$pick" 2>/dev/null)
+    cur=$(cat "$STATE_DIR/wallpaper-$THEME" 2>/dev/null)
+    [[ -n $c && $c != "$cur" ]] || exit 0
+    sleep 0.15                                # the window gone from the screen first
+    if command -v kawa-veil >/dev/null; then    # the new one dissolves in over the old
+      kawa-veil --dissolve --time 520 -- "$0" --set "$c"; exit
+    fi
+    "$0" --set "$c"; exit ;;
+  --tui)       # inside the window: the list on top, the picture under the cursor below
+    out=${2:?}
+    KAWA_CELL=$(kawa-cell 2>/dev/null) || KAWA_CELL=9x21   # the cell's pixels: previews fit exactly
+    export KAWA_CELL
+    mapfile -t rows < <(choices)
+    cur=$(cat "$STATE_DIR/wallpaper-$THEME" 2>/dev/null) pos=1
+    for i in "${!rows[@]}"; do [[ ${rows[i]%%$'\t'*} == "$cur" ]] && pos=$((i + 1)); done
+    # every preview drawn ahead, quietly, while you look: moving through the list is instant
+    setsid "$0" --warm </dev/null >/dev/null 2>&1 &   # its own group: closing stops all of it
+    warm=$!
+    trap 'kill -- -"$warm" 2>/dev/null' EXIT
+    # the title in the panel's top rule, like the clipboard window ("─ ▣ wallpaper ──")
+    title=" $(printf '\e[91m%s\e[0m' "$ICON_PICTURE") wallpaper "$'\e[90m'"· $THEME theme"$'\e[0m '
+    self=$(printf '%q' "$0")
+    export FZF_DEFAULT_OPTS_FILE=$HOME/.config/fedokawai/fzf.opts; unset FZF_DEFAULT_OPTS   # (every list alike)
+    sel=$(printf '%s\n' "${rows[@]}" | fzf --ansi --no-sort --height=100% --margin=0,1 \
+      --delimiter=$'\t' --with-nth=2.. --border-label="$title" \
+      --preview="$self --preview {1}" --preview-window='down,20,border-top,noinfo' \
+      --footer=$'\n'"enter set  ·  $ICON_THEME sets both themes  ·  esc close" \
+      --bind="start:pos($pos)") || exit 0
+    printf '%s\n' "${sel%%$'\t'*}" >"$out" ;;
+  --preview)   # fzf's preview: the picture, centred in its area
+    PREV_COLS=${FZF_PREVIEW_COLUMNS:-74} PREV_ROWS=${FZF_PREVIEW_LINES:-20}
+    if f=$(preview_file "${2:-}"); then cat "$f"; printf '\n'
+    else printf '  %s no preview\n' "${ICON_PICTURE:-▣}"; fi ;;
+  --warm)      # every preview of this theme drawn ahead (the picker starts it)
+    renice -n 19 $$ >/dev/null 2>&1
+    find "$CACHE/preview" -name '*.six' -mtime +30 -delete 2>/dev/null   # (other sizes, old ones)
+    choices | while IFS=$'\t' read -r c _; do preview_file "$c" >/dev/null 2>&1; done ;;
+  *) echo "usage: kawa-wallpaper [--restore|--set CHOICE|--pack]" >&2; exit 2 ;;
+esac

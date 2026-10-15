@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+# ~/.local/bin/brave-origin — Brave Origin, started so that sharing a whole screen or a
+# window can carry the computer's sound too ("Also share system audio" in Brave's picker).
+# That is Chromium's PulseAudio loopback for screen sharing: off by default, and no longer a
+# brave://flags switch (Brave clears it from its settings), so it goes on the command line.
+# Super+B, links (Theme points the desktop's brave-origin.desktop here) and `brave-origin`
+# in a shell all start Brave this way; everything else reaches Brave unchanged — a feature
+# list of your own is joined to this one, not replaced by it.
+set -u
+feat=PulseaudioLoopbackForScreenShare args=()
+for a in "$@"; do
+  if [[ $a == --enable-features=* ]]; then feat+=",${a#--enable-features=}"; else args+=("$a"); fi
+done
+for b in /usr/bin/brave-origin-stable /opt/brave.com/brave-origin/brave-origin /usr/bin/brave-origin; do
+  [[ -x $b ]] && exec "$b" "--enable-features=$feat" "${args[@]}"
+done
+echo "brave-origin: Brave Origin is not installed (sudo dnf install brave-origin)" >&2
+exit 127

@@ -1,0 +1,34 @@
+#!/usr/bin/env bash
+# kawa-power — Super+Shift+E (or "power" in quick settings): lock, sleep, log out,
+# restart, shut down. A small centred menu: the title and the column of choices sit in
+# the middle of the box, each choice with its own pixel icon. Esc cancels.
+set -u
+LC_ALL=C.UTF-8                 # widths count characters, not bytes
+# shellcheck source=/dev/null
+. "$HOME/.config/fedokawai/icons.sh"
+
+WIDTH=25                       # the menu's width in characters: odd, like the 13-column block
+LABEL=9                        # the label column (longest: "shut down")
+names=(lock sleep "log out" restart "shut down")
+icons=("$ICON_LOCK" "$ICON_ZZZ" "$ICON_DOOR" "$ICON_RESTART" "$ICON_POWER")
+
+# an icon is two character cells wide, then two spaces, then the label column
+pad=$(( (WIDTH - 2 - 2 - LABEL) / 2 ))
+rows=()
+for i in "${!names[@]}"; do
+  printf -v r '%*s%s  %-*s' "$pad" '' "${icons[i]}" "$LABEL" "${names[i]}"
+  rows+=("$r")
+done
+read -r up _ </proc/uptime; up=${up%.*}
+printf -v title '%s · up %dh %02dm' "$USER" $((up / 3600)) $((up / 60 % 60))
+printf -v title '%*s%s' $(( (WIDTH - ${#title}) / 2 )) '' "$title"
+
+i=$(printf '%s\n' "${rows[@]}" |
+    kawa-menu --index --width "$WIDTH" --lines ${#rows[@]} --title "$title") || exit 0
+case $i in
+  0) exec kawa-lock ;;
+  1) kawa-lock && exec systemctl suspend ;;       # locked first (swaylock -f), then sleep
+  2) exec pkill -xu "$UID" dwl ;;
+  3) exec systemctl reboot ;;
+  4) exec systemctl poweroff ;;
+esac

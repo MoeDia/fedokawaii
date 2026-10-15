@@ -1,0 +1,90 @@
+#!/usr/bin/env bash
+# kawa-audio — the volume popup (click the volume in the bar, or Super+A).
+#   louder / quieter / mute stay open so they can be tapped repeatedly;
+#   picking an output or input makes it the default and moves playing audio to it.
+# Devices come from pw-dump (JSON), so names with any characters are safe.
+set -u
+# shellcheck source=/dev/null
+. "$HOME/.config/fedokawai/icons.sh"
+note() {   # note TITLE BODY — mako reads the body as markup, and a device may be called "Tom & Jerry"
+  local b=${2//[[:cntrl:]]/ }
+  b=${b//&/"&amp;"}; b=${b//</"&lt;"}; b=${b//>/"&gt;"}   # quoted: bash 5.2 treats a bare & as "the match"
+  notify-send -a desktop -u low "$ICON_SPEAKER  $1" "$b"
+}
+
+add() { rows+=("$1"); acts+=("$2"); full+=("${3:-}"); }   # add LABEL ACTION [DEVICE NAME]
+W=30                                     # the menu's width, in characters
+fit() {    # fit NAME — a device name cut to end with the rules (W - 1 columns, after the box
+  local n=$1 m=$((W - 5))               # icon's two columns and its two spaces), "…" where cut
+  ((${#n} > m)) && n="${n:0:m-1}…"
+  printf '%s' "$n"
+}
+rule() {   # rule TITLE — a heading ruled across the menu (TITLE is plain ASCII): W - 1
+  local r="── $1 " i                     # columns, as fuzzel keeps the last one for its "…"
+  for ((i = ${#1} + 4; i < W - 1; i++)); do r+='─'; done
+  add "$r" -
+}
+
+sel=0
+while :; do
+  dump=$(pw-dump 2>/dev/null) || { note "Audio" "PipeWire is not running"; exit 1; }
+  # id <TAB> class <TAB> default(0|1) <TAB> description — one line per real device
+  mapfile -t devs < <(jq -r '
+    ([.[] | select(.type == "PipeWire:Interface:Metadata" and .props["metadata.name"] == "default")
+          | .metadata[]?] ) as $md
+    | ($md | map(select(.key == "default.audio.sink"))   | .[0].value.name // "") as $sink
+    | ($md | map(select(.key == "default.audio.source")) | .[0].value.name // "") as $src
+    | .[] | select(.type == "PipeWire:Interface:Node")
+    | .info.props as $p
+    | select($p["media.class"] == "Audio/Sink" or $p["media.class"] == "Audio/Source")
+    | [ .id, $p["media.class"],
+        (if $p["node.name"] == $sink or $p["node.name"] == $src then 1 else 0 end),
+        ($p["node.description"] // $p["node.nick"] // $p["node.name"]) ] | @tsv' <<<"$dump")
+
+  read -r _ vol muted <<<"$(wpctl get-volume @DEFAULT_AUDIO_SINK@ 2>/dev/null)"
+  pct=$(awk -v v="${vol:-0}" 'BEGIN { printf "%d", v * 100 + 0.5 }')
+  mic=$(wpctl get-volume @DEFAULT_AUDIO_SOURCE@ 2>/dev/null)
+
+  rows=() acts=() full=()
+  add "$ICON_VOL_UP  louder"  up
+  add "$ICON_VOL_DOWN  quieter" down
+  if [[ $muted == *MUTED* ]]; then add "$ICON_SPEAKER  unmute" mute; else add "$ICON_SPEAKER_OFF  mute" mute; fi
+  rule output
+  for d in "${devs[@]}"; do
+    IFS=$'\t' read -r id class def name <<<"$d"
+    [[ $class == Audio/Sink ]] || continue
+    if ((def)); then add "$ICON_BOX_ON  $(fit "$name")" -; else add "$ICON_BOX_OFF  $(fit "$name")" "sink:$id" "$name"; fi
+  done
+  rule input
+  for d in "${devs[@]}"; do
+    IFS=$'\t' read -r id class def name <<<"$d"
+    [[ $class == Audio/Source ]] || continue
+    if ((def)); then add "$ICON_BOX_ON  $(fit "$name")" -; else add "$ICON_BOX_OFF  $(fit "$name")" "source:$id" "$name"; fi
+  done
+  if [[ $mic == *MUTED* ]]; then add "$ICON_MIC  unmute microphone" micmute; else add "$ICON_MIC_OFF  mute microphone" micmute; fi
+  add "$ICON_SLIDERS  mixer…" mixer
+
+  # the title, one line: the speaker, the menus' framed bar (icons.sh: 20 cells of 5 %, 84 px
+  # — twelve columns exactly, standing over the labels below: they too start in column 4)
+  # and the level. (fuzzel wraps a title line longer than the menu's width in characters,
+  # and the bar is 22 of them: this line is exactly the 30 that fit.)
+  [[ $pct =~ ^[0-9]+$ ]] || pct=0
+  lv="" val="$pct%"
+  if [[ $muted == *MUTED* ]]; then levelbar lv 20 0; val=off; icon=$ICON_SPEAKER_OFF
+  else levelbar lv 20 "$pct"; icon=$ICON_SPEAKER; fi
+  printf -v title '%s  %s %4s' "$icon" "$lv" "$val"
+  i=$(printf '%s\n' "${rows[@]}" | kawa-menu --drop --index --width "$W" --lines 16 --select "$sel" --title "$title") || exit 0
+  sel=$i
+  case ${acts[i]:--} in
+    up)       wpctl set-volume -l 1.0 @DEFAULT_AUDIO_SINK@ 5%+ ;;
+    down)     wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%- ;;
+    mute)     wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle ;;
+    micmute)  wpctl set-mute @DEFAULT_AUDIO_SOURCE@ toggle ;;
+    sink:*|source:*)
+              wpctl set-default "${acts[i]#*:}"
+              kind=input; [[ ${acts[i]} == sink:* ]] && kind=output
+              note "Audio" "${full[i]} is now the $kind"; exit 0 ;;
+    mixer)    setsid -f pavucontrol >/dev/null 2>&1; exit 0 ;;
+    -)        ;;                       # headings and the current device: just reopen
+  esac
+done

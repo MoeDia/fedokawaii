@@ -1,0 +1,5 @@
+#!/bin/bash
+# stub gammastep (shoot.sh): just a process named gammastep, so quick settings shows the
+# night light as on (autostart starts it at login)
+sleep infinity &
+wait

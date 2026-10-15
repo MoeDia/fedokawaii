@@ -1,0 +1,291 @@
+#!/usr/bin/env bash
+# fetch — a small, cute system summary in the spirit of pfetch and nerdfetch: one of
+# ten pixel pictures drawn for this desktop, beside one icon line per fact.
+#
+#   fetch            a picture chosen at random
+#   fetch NAME       that one: neko (beckoning cat), daruma, torii (sunset over the
+#                    sea), pc (a beige computer showing Mt Fuji), fuji (dawn over the
+#                    mountain), onigiri, chochin (a paper lantern), cassette, kitsune
+#                    (a fox mask) or ramen
+#
+# The pictures are real pixel art: two pixels per character cell, drawn with half
+# blocks in 24-bit colour, which foot renders gap-free. Every colour in them is one of
+# the desktop's own (tools/build-themes.py), and each has an ink outline or its own
+# background, so it reads on the dark and the light theme alike. The icons are the
+# desktop's own (Sumi Icons); the text uses the terminal's 16 colours.
+# Pure bash reading /proc and /etc: nothing to install, prints in a few milliseconds.
+set -u
+
+# ── the pictures: 20 × 16 pixels, one letter per pixel ('.' = transparent); the first
+#    entry of each is its palette, letter=colour ─────────────────────────────────────
+# shellcheck disable=SC2034  # read through the nameref in picture()
+ART_neko=(
+  "O=2b2721 W=ece3cc w=cfc3a6 P=e8876d R=d0583a Y=e3b866 y=d29f45 K=2b2721"
+  "..OO.........OO....."
+  ".OPWO.......OWPO...."
+  ".OPWWOOOOOOOWWPO.OO."
+  ".OWWWWWWWWWWWWWOOWWO"
+  "OWWWWWWWWWWWWWWWOWWO"
+  "OWWKKWWWWWWWKKWWOWwO"
+  "OWWWWWWWPPWWWWWWOWwO"
+  "OwWWWWWKWWKWWWWwOWwO"
+  ".OwRRRRRYYRRRRwOWWO."
+  "..OWWWWYyyYWWWOWwO.."
+  ".OWWWWWWYYWWWWWWO..."
+  "OWwWWOOOOOOWWWWwO..."
+  "OWwWOYYYYYYOWWWwO..."
+  "OWwWOYyYYyYOWWWwO..."
+  ".OwWWOOOOOOWWWwO...."
+  "..OOOOOOOOOOOOO....."
+)
+# shellcheck disable=SC2034  # read through the nameref in picture()
+ART_daruma=(
+  "O=2b2721 R=d0583a r=a8342a W=ece3cc w=cfc3a6 K=161411 Y=e3b866 y=d29f45"
+  "......OOOOOOOO......"
+  "....OORRRRRRRROO...."
+  "...ORRRRRRRRRRRRO..."
+  "..ORRRWWWWWWWWRRRO.."
+  "..ORRWKKKWWKKKWRRO.."
+  ".ORRWWWWWWWWWWWWRRO."
+  ".ORRWWKKWWWWwwWWRRO."
+  ".ORRWWKKWWWWwwWWRRO."
+  ".ORRWWWWWKKWWWWWRRO."
+  ".ORRRWWWKWWKWWWRRRO."
+  ".ORRRRWWWWWWWWRRRRO."
+  ".ORRYYRRRRRRRRYYRRO."
+  ".ORYRRYRRRRRRYRRYRO."
+  "..ORRRRRRRRRRRRRRO.."
+  "...OrrrrrrrrrrrrO..."
+  "....OOOOOOOOOOOO...."
+)
+# shellcheck disable=SC2034  # read through the nameref in picture()
+ART_torii=(
+  "a=2b2721 b=6f5a8a c=942e25 d=c0462a e=d29f45 S=e3b866 K=161411 T=d0583a t=8a2f1c s=355270 z=7f9dbd m=5c4a72"
+  "aaaaaaaaaaaaaaaaaaaa"
+  "aaaKaaaaaaaaaaaaKaaa"
+  "bbbKKKKKKKKKKKKKKbbb"
+  "bbbbTTTTTTTTTTTTbbbb"
+  "cccccTTccccccTTccccc"
+  "cccTTTTTTTTTTTTTTccc"
+  "dddddTTdSSSSdTTddddd"
+  "eeeeeTTSSSSSSTTeeeee"
+  "mmmmeTTSSSSSSTTemmmm"
+  "sssssTTeeeeeeTTsssss"
+  "ssssstteeeeeettsssss"
+  "szssstteeeeesttsszss"
+  "ssssssssseesssssssss"
+  "sssszsssssssssszssss"
+  "ssssssssszzsssssssss"
+  "ssssssssssssssssssss"
+)
+# shellcheck disable=SC2034  # read through the nameref in picture()
+ART_pc=(
+  "H=ece3cc K=cfc3a6 S=b1a688 T=877f6f k=9d9278 L=a8b46f n=0f0e0c m=1f1c18 o=355270 u=d0583a v=c0462a w=ece3cc f=5f7fa0 F=3f6185 a=5e9c95 A=7fb8b0 O=2b2721"
+  ".OOOOOOOOOOOOOOOOOO."
+  ".OHHHHHHHHHHHHHHHSO."
+  ".OHKKKKKKKKKKKKKKSO."
+  ".OHKnnnnnnnnuuunKSO."
+  ".OHKnnnnnnnuuuuuKSO."
+  ".OHKmmmmwwwwuuuuKSO."
+  ".OHKmmmwwwwwwuumKSO."
+  ".OHKoofwfwwfwfooKSO."
+  ".OHKffffffffFFFoKSO."
+  ".OHKaAaaaAaaaAaaKSO."
+  ".OHKKKKKKKKKKKKLKSO."
+  ".OSSSSSSSSSSSSSSSSO."
+  ".OOOOOOTKKTOOOOOOOO."
+  "OHHHHHHHHHHHHHHHHHSO"
+  "OKkKkKkKkKkKkKkKkKSO"
+  "OOOOOOOOOOOOOOOOOOOO"
+)
+# shellcheck disable=SC2034  # read through the nameref in picture()
+ART_fuji=(
+  "b=3f6185 c=7f9dbd p=e8876d y=e3b866 R=d0583a W=ece3cc w=cfc3a6 m=355270 a=5e9c95 s=275a55 z=7fb8b0"
+  "bbbbbbbbbbbbbbbbbbbb"
+  "bbbbbbbbbbbbbbbbbbbb"
+  "bbbbbbbbbbbbbbbRRbbb"
+  "ccccccccccccccRRRRcc"
+  "ccccccccccccccRRRRcc"
+  "ccccccccWWWWcccRRccc"
+  "pppppppWWWWWWppppppp"
+  "ppppppWWwWWwWWpppppp"
+  "pppppmWmWWmWmWmppppp"
+  "yyyymmWmmmmmmWmmyyyy"
+  "yyymmmmmmmmmmmmmmyyy"
+  "yymmmmmmmmmmmmmmmmyy"
+  "ymmmmmmmmmmmmmmmmmmy"
+  "aaaaaaaaaaaaaaaaaaaa"
+  "ssszssssssszzsssszss"
+  "ssssssszssssssssssss"
+)
+# shellcheck disable=SC2034  # read through the nameref in picture()
+ART_onigiri=(
+  "O=2b2721 W=ece3cc w=cfc3a6 K=2b2721 P=e8876d n=1f1c18 h=3d372f"
+  ".........OO........."
+  "........OWWO........"
+  ".......OWWWWO......."
+  "......OWWWWWWO......"
+  ".....OWWWWWWWWO....."
+  "....OWWWWWWWWWWO...."
+  "...OWWWWWWWWWWWWO..."
+  "..OWWWKWWWWWWKWWWO.."
+  ".OWWPPWWWKKWWWPPWWO."
+  "OWWWWWWWWWWWWWWWWWWO"
+  "OWWWWWnnnnnnnnWWWWWO"
+  "OwWWWWnhnnnnnnWWWWwO"
+  "OwWWWWnnnnnnnnWWWWwO"
+  ".OwWWWnnnnnnnnWWWwO."
+  "..OwwwnnnnnnnnwwwO.."
+  "...OOOOOOOOOOOOOO..."
+)
+# shellcheck disable=SC2034  # read through the nameref in picture()
+ART_chochin=(
+  "O=2b2721 K=161411 R=d0583a r=8a2f1c W=ece3cc k=2b2721 Y=e3b866 y=d29f45"
+  ".........OO........."
+  ".........OO........."
+  ".....OOOOOOOOOO....."
+  ".....OKKKKKKKKO....."
+  "...OORRRRRRRRRROO..."
+  "..OrrrrrrrrrrrrrrO.."
+  ".ORRRRRRWWWWRRRRRRO."
+  ".OrrrrrWWkkWWrrrrrO."
+  ".ORRRRWWkWWkWWRRRRO."
+  ".OrrrrrWWkkWWrrrrrO."
+  ".ORRRRRRWWWWRRRRRRO."
+  "..OrrrrrrrrrrrrrrO.."
+  "...OORRRRRRRRRROO..."
+  ".....OKKKKKKKKO....."
+  ".....OOOOOOOOOO....."
+  "........OYyO........"
+)
+# shellcheck disable=SC2034  # read through the nameref in picture()
+ART_cassette=(
+  "O=2b2721 B=3d372f b=2b2721 Y=e3b866 R=d0583a W=ece3cc w=cfc3a6 n=161411 T=877f6f"
+  "...................."
+  "OOOOOOOOOOOOOOOOOOOO"
+  "OBBBBBBBBBBBBBBBBBBO"
+  "OBYYYYYYYYYYYYYYYYBO"
+  "OBYRRRRRRRRRRRRRRYBO"
+  "OBYYOOOOOOOOOOOOYYBO"
+  "OBYOWWWOnnnnOWWWOYBO"
+  "OBYOWnWOnnnnOWnWOYBO"
+  "OBYOWWWOnnnnOWWWOYBO"
+  "OBYYOOOOOOOOOOOOYYBO"
+  "OBYYYYYYYYYYYYYYYYBO"
+  "OBBBBBBBBBBBBBBBBBBO"
+  "OBBBBOTTTTTTTTOBBBBO"
+  "OBBBOTTnTTTTnTTOBBBO"
+  "OOOOOOOOOOOOOOOOOOOO"
+  "...................."
+)
+# shellcheck disable=SC2034  # read through the nameref in picture()
+ART_kitsune=(
+  "O=2b2721 W=ece3cc w=cfc3a6 R=d0583a r=a8342a K=161411 Y=e3b866"
+  ".OO..............OO."
+  "ORRO............ORRO"
+  "ORWRO..........ORWRO"
+  "ORWWROOOOOOOOOORWWRO"
+  "OWWWWWWWWWWWWWWWWWWO"
+  "OWWWWWWWWWWWWWWWWWWO"
+  "OWRRRWWWWWWWWWWRRRWO"
+  "OWWKKRWWWWWWWWRKKWWO"
+  ".OWWWWWWWRRWWWWWWWO."
+  ".OWWWWWWWRRWWWWWWWO."
+  "..OWWWWWWWWWWWWWWO.."
+  "...OWWWWWWWWWWWWO..."
+  "....OwWWWWWWWWWwO..."
+  ".....OwWWWWWWWwO...."
+  "......OwWKKWwO......"
+  ".......OOOOOO......."
+)
+# shellcheck disable=SC2034  # read through the nameref in picture()
+ART_ramen=(
+  "O=2b2721 R=d0583a r=8a2f1c W=ece3cc E=ece3cc Y=e3b866 N=1f1c18 P=e8876d b=d29f45 g=8e9a5b G=a8b46f T=877f6f"
+  "...................."
+  ".....T....T....T...."
+  "......T....T....T..."
+  ".....T....T....T...."
+  "......T....T....T..."
+  "...................."
+  "..OOOOOOOOOOOOOOOO.."
+  ".OEYYENNNbWPWbbgGbO."
+  "OEEEEbNNNbbWbbgbGbbO"
+  "ORRRRRRRRRRRRRRRRRRO"
+  ".ORRRRRRRRRRRRRRRRO."
+  ".OrWrWrWrWrWrWrWrWO."
+  "..ORRRRRRRRRRRRRRO.."
+  "...ORRRRRRRRRRRRO..."
+  ".....OOrrrrrrOO....."
+  ".....OOOOOOOOOO....."
+)
+NAMES=(neko daruma torii pc fuji onigiri chochin cassette kitsune ramen)
+
+rgb() { printf -v "$1" '%d;%d;%d' "0x${2:0:2}" "0x${2:2:2}" "0x${2:4:2}"; }
+
+LOGO=()
+picture() {   # picture NAME — two pixel rows → one line of ▀ / ▄ cells (fg = upper, bg = lower)
+  local -n art="ART_$1"
+  local -A pal=()
+  local kv y x top bot t b line
+  for kv in ${art[0]}; do pal[${kv%%=*}]=${kv#*=}; done
+  for ((y = 1; y < ${#art[@]}; y += 2)); do
+    line=""
+    for ((x = 0; x < ${#art[y]}; x++)); do
+      top=${art[y]:x:1} bot=${art[y + 1]:x:1}
+      if [[ $top == . && $bot == . ]]; then line+=$'\e[0m '
+      elif [[ $bot == . ]]; then rgb t "${pal[$top]}"; line+=$'\e[0;38;2;'"${t}m▀"
+      elif [[ $top == . ]]; then rgb b "${pal[$bot]}"; line+=$'\e[0;38;2;'"${b}m▄"
+      else rgb t "${pal[$top]}"; rgb b "${pal[$bot]}"; line+=$'\e[38;2;'"${t};48;2;${b}m▀"; fi
+    done
+    LOGO+=("$line"$'\e[0m')
+  done
+}
+
+# ── the facts ────────────────────────────────────────────────────────────────
+name="Linux" ver=""
+while IFS='=' read -r k v; do
+  v=${v#\"}; v=${v%\"}
+  case $k in NAME) name=${v% Linux} ;; VERSION_ID) ver=$v ;; esac
+done </etc/os-release
+read -r kernel </proc/sys/kernel/osrelease; kernel=${kernel%%-*}
+read -r host </proc/sys/kernel/hostname
+read -r up _ </proc/uptime; up=${up%.*}
+d=$((up / 86400)) h=$((up / 3600 % 24)) m=$((up / 60 % 60))
+uptime="${m}m"; ((h)) && uptime="${h}h $uptime"; ((d)) && uptime="${d}d $uptime"
+total=0 avail=0
+while read -r k v _; do
+  case $k in MemTotal:) total=$v ;; MemAvailable:) avail=$v; break ;; esac
+done </proc/meminfo
+gib() { local t=$(( $2 * 10 / 1048576 )); printf -v "$1" '%d.%d' $((t / 10)) $((t % 10)); }
+mu="" mt=""; gib mu $((total - avail)); gib mt "$total"
+
+R=$'\e[0m'
+c() { printf -v "$1" '\e[38;5;%sm' "$2"; }          # palette colour (foot's 16)
+c V 7; c K 8; c B 15; c I1 9; c I2 12; c I3 7; c I4 10; c I5 11; c I6 13; c I7 14
+dots=""; for i in 9 3 2 6 4 5 7 15; do c d "$i"; dots+="$d● "; done
+
+# icons: the desktop's own in foot (the terminal with the icon font), none anywhere else
+ICON_USER="" ICON_HAT="" ICON_CPU="" ICON_HOURGLASS="" ICON_WINDOW="" ICON_TERMINAL="" ICON_MEMORY=""
+# shellcheck source=/dev/null
+[[ $TERM == foot* && -r ~/.config/fedokawai/icons.sh ]] && . ~/.config/fedokawai/icons.sh
+INFO=(
+  "$I1$ICON_USER $R ${B}${USER:-?}${K} @ ${B}${host}$R"
+  "$I2$ICON_HAT $R ${V}${name,,} ${ver}$R"
+  "$I3$ICON_CPU $R ${V}${kernel}$R"
+  "$I4$ICON_HOURGLASS $R ${V}${uptime}$R"
+  "$I5$ICON_WINDOW $R ${V}${XDG_SESSION_DESKTOP:-tty}${K} · ${V}${TERM_PROGRAM:-${TERM:-?}}$R"
+  "$I6$ICON_TERMINAL $R ${V}bash ${BASH_VERSION%%(*}$R"
+  "$I7$ICON_MEMORY $R ${V}${mu} ${K}/${V} ${mt} GiB$R"
+  "${dots% }$R"
+)
+
+# ── print: the picture on the left when the terminal shows 24-bit colour ──────
+pick=${1:-${NAMES[RANDOM % ${#NAMES[@]}]}}
+[[ " ${NAMES[*]} " == *" $pick "* ]] || { echo "fetch: pictures are: ${NAMES[*]}" >&2; exit 2; }
+[[ $TERM == foot* || ${COLORTERM:-} == truecolor || ${COLORTERM:-} == 24bit ]] && picture "$pick"
+echo
+for i in "${!INFO[@]}"; do
+  if ((${#LOGO[@]})); then printf '  %s   %s\n' "${LOGO[i]}" "${INFO[i]}"
+  else printf '  %s\n' "${INFO[i]}"; fi
+done
+echo
