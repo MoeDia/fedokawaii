@@ -395,7 +395,7 @@ built() {
   ( . "$REPO/lib/upstream.sh"; d=/home/fkuser/.local/share/fedokawaii/syncplay
     syncplay_starter syncplay ep_client "$d" --no-gui >"$U/.local/bin/syncplay"
     syncplay_starter syncplay-server ep_server "$d" >"$U/.local/bin/syncplay-server"
-    echo "$SYNCPLAY_COMMIT" >"$U/.local/share/fedokawaii/upstream/syncplay" )
+    syncplay_pin >"$U/.local/share/fedokawaii/upstream/syncplay" )
   chmod 755 "$U/.local/bin/syncplay" "$U/.local/bin/syncplay-server"
   : >"$U/.local/share/fonts/JetBrainsMonoNerd/a.ttf"; : >"$U/.local/share/fonts/DepartureMonoNerd/a.otf"; : >"$U/.local/share/fonts/PixelMplus/PixelMplus12-Regular.ttf"
   printf '#!/bin/bash\n[[ " $* " == *" - "* ]] && cat >/dev/null\nexit 0\n' >"$U/.local/share/pipx/venvs/torrra/bin/python"; chmod 755 "$U/.local/share/pipx/venvs/torrra/bin/python"

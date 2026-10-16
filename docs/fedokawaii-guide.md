@@ -4341,12 +4341,16 @@ Theme fills in only a value that is empty; Syncplay rewrites the file whenever o
 | `Slowing down due to time difference with friend` · `Rewinded …` · `Fast-forwarded …` | one player is ahead or behind. Syncplay slows the one ahead (1.5 s), or jumps it back (4 s) or forward (5 s). Nothing to do |
 | `Connection with server failed`, then `Press enter to exit` | the server is not reachable. Check the network, then try another public port: `port = 8997` in the file above — your friend changes it too |
 | the server list | the public servers are `syncplay.pl`, ports 8995 to 8999 (France). A room on one port is not the room on another |
-| the window stays after mpv closes | Syncplay 1.7.6 now and then waits two minutes for the closed player: close the window (**Super+Q**), nothing is lost |
+| the window stays after mpv closes | it closes with mpv within a second (one of the two fixes below); should it ever stay, close it (**Super+Q**): nothing is lost |
 
 **The terminal way, and only that.** `kawa-together film.mkv` asks for the room and runs
 `syncplay --no-gui --room ROOM -- film.mkv`, which you can also type yourself
 (`-a syncplay.pl:8997` for another server). Syncplay is installed from its own source,
 without Qt (§27.7): it has no window here, and `syncplay` always starts in the terminal.
+Two fixes of this desktop's go into that source as it is installed (`src/syncplay/syncplay.patch`):
+Syncplay waits for mpv to be ready, where 1.7.6 now and then stopped at the start with
+`Could not load mpv`, and its window closes with mpv, where 1.7.6 now and then stayed open
+two minutes.
 
 **Pitfalls.** A public room is open to anyone who types its name, and they see your file's
 name: that is why your room has four random characters. Syncplay's player follows the dark and
@@ -9063,7 +9067,7 @@ update never moves them, and a download that differs by one byte is refused.
 | lazygit | 0.66.1 | its colours file and ch. 41's keys are written for it |
 | JetBrains Mono and Departure Mono (Nerd Fonts) | 3.5.1 | every alignment is measured in their pixels |
 | PixelMplus 12 | 2013 | its only release |
-| Syncplay | 1.7.6 (its tag's commit) | run from its source on Fedora's Python libraries: Fedora's package would bring Qt for a window never used |
+| Syncplay | 1.7.6 (its tag's commit) + two fixes of ours | run from its source on Fedora's Python libraries: Fedora's package would bring Qt for a window never used; the fixes (`src/syncplay/syncplay.patch`) are in the recorded pin, so a changed patch is put in by the next update |
 | torrra | 2.5.1 | its key wrapper replaces three of its methods; libtorrent under it moves to the newest |
 | GE-Proton | the newest; two kept | games are what it is for, and it changes nothing else |
 

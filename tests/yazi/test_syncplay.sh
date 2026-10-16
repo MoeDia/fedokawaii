@@ -149,6 +149,18 @@ if grep -q '^py=' "$SP"; then
     || _no "$py finds PySide6: this session would not show that Syncplay runs without Qt"
   has "$(grep '^exec' "$SP")" '"$dir" --no-gui "$@"'
 else printf '  – skipped: %s is not the starter lib/upstream.sh writes (the session below still runs)\n' "$SP"; fi
+# (src/syncplay/syncplay.patch's two fixes, in the copy that starter runs)
+if grep -q '^py=' "$SP"; then
+  spdir=$(dir=""; eval "$(grep -m1 '^py=' "$SP")"; printf %s "$dir")   # (the starter's py= dir= line)
+  while IFS= read -r ln; do
+    case $ln in
+      "case "*) case_ "${ln#case }" ;;
+      ok) _ok ;;
+      "no "*) _no "${ln#no }" ;;
+    esac
+  done < <("$py" -I "$D/syncplay_ipc.py" "$spdir" 2>"$TMP/ipc.err")
+  grep -q Traceback "$TMP/ipc.err" && _no "syncplay_ipc.py: $(tail -n 3 "$TMP/ipc.err")"
+fi
 mkdir -p "$TMP/media"
 "$FFMPEG" -loglevel error -f lavfi -i testsrc=size=160x120:rate=25:duration=60 -f lavfi -i sine=frequency=440:duration=60 \
   -c:v libx264 -preset ultrafast -g 25 -c:a aac -shortest "$TMP/media/film.mkv" \

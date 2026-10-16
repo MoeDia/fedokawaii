@@ -125,8 +125,9 @@ class Friend:
         self.logpath = os.path.join(ROOT, name + ".log")
 
     def start(self, file):
-        # (Syncplay 1.7.6 connects to mpv's socket the moment the file appears, and now and
-        # then before mpv listens: "Could not load mpv". A person starts it again; so does this)
+        # (Syncplay 1.7.6 connected to mpv's socket the moment the file appeared, now and then
+        # before mpv listened: "Could not load mpv". src/syncplay/syncplay.patch waits for it;
+        # a copy without the patch is started again here, as a person would)
         for _ in range(2):
             self.p = subprocess.Popen([TOGETHER, file], stdin=subprocess.PIPE, stdout=open(self.logpath, "a"),
                                       stderr=subprocess.STDOUT, env=env(self.home), start_new_session=True, text=True)

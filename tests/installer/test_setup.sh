@@ -77,7 +77,7 @@ has "$(cat "$FKH/snaps")" "fedokawaii baseline"
 [[ -x $W/usr/local/bin/dwl && -s $W/usr/local/lib/fedokawaii-wlroots-0.20/cflags ]] && _ok || _no "dwl or its wlroots not in place"
 for t in satty yazi ya presenterm spotify_player; do [[ -x $W/home/fkuser/.local/bin/$t ]] || _no "$t not installed"; done; _ok
 eq "$(cat "$W/home/fkuser/.local/share/fedokawaii/upstream/ge-proton" 2>/dev/null)" GE-Proton10-25
-eq "$(cat "$W/home/fkuser/.local/share/fedokawaii/upstream/syncplay" 2>/dev/null)" 993232ab095bb810593459bc705b3e6fc64ad161 "Syncplay (3.07c) at its pinned commit"
+eq "$(cat "$W/home/fkuser/.local/share/fedokawaii/upstream/syncplay" 2>/dev/null)" "$(. "$REPO/lib/upstream.sh"; syncplay_pin)" "Syncplay (3.07c) at its pinned commit, with our patch"
 [[ -x $W/home/fkuser/.local/bin/syncplay && -f $W/home/fkuser/.local/share/fedokawaii/syncplay/syncplay/client.py ]] && _ok || _no "Syncplay not installed"
 case_ "torrra: installed by pipx with its pinned libraries, pipx's own command off your PATH; 6881 open"
 called "pipx\] install --force --python python3.13 --pip-args=-c .*/system/torrra-constraints.txt torrra=="

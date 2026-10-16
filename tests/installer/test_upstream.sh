@@ -144,15 +144,19 @@ up 'install_pixelmplus'; has "$OUT" "PixelMplus 12 — in place"
 
 # ── Syncplay, from its pinned source ─────────────────────────────────────────
 sp=$W$H/.local/share/fedokawaii/syncplay spt=$W$H/.local/share/fedokawaii/upstream/syncplay
+PIN=$(. "$REPO/lib/upstream.sh"; syncplay_pin)   # (the commit, + the patch's SHA-256, 12 characters)
 as_fk() { fkrun runuser -u fkuser -- env -i HOME=$H PATH=/usr/bin:/bin "$@"; }
-case_ "install_syncplay: the tag fetched by you, checked against the pinned commit; its folder and two starters put in by you; the commit recorded"
+case_ "install_syncplay: the tag fetched by you, checked against the pinned commit, our patch applied; its folder and two starters put in by you; the pin recorded"
 back start; reset_calls
 up 'install_syncplay'; eq "$RC" 0
 has "$OUT" "✔ Syncplay v1.7.6 (no window) → ~/.local/bin (syncplay, syncplay-server)"
 called '^fkuser\[git\] -c advice.detachedHead=false clone --quiet --depth 1 --branch v1.7.6 https://github.com/Syncplay/syncplay.git '
 eq "$(fk stat -c '%U %a' "$H/.local/bin/syncplay")" "fkuser 755"; eq "$(fk stat -c '%U %a' "$H/.local/bin/syncplay-server")" "fkuser 755"
 eq "$(fk stat -c %U "$H/.local/share/fedokawaii/syncplay/syncplay/__init__.py")" fkuser
-eq "$(cat "$spt")" 993232ab095bb810593459bc705b3e6fc64ad161
+called '^fkuser\[git\] -C /tmp/.*/s apply -$'
+has "$(cat "$sp/syncplay/vendor/python_mpv_jsonipc/python_mpv_jsonipc.py" 2>/dev/null)" "# applied: src/syncplay/syncplay.patch" "the copy put in carries the patch"
+[[ $PIN =~ ^993232ab095bb810593459bc705b3e6fc64ad161\+[0-9a-f]{12}$ ]] && _ok || _no "the pin: $PIN"
+eq "$(cat "$spt")" "$PIN"
 case_ "…its starter: Fedora's python3, isolated (-I), unbuffered (-u), always without the window (--no-gui)"
 s=$(cat "$W$H/.local/bin/syncplay")
 has "$s" "py=/usr/bin/python3 dir=$H/.local/share/fedokawaii/syncplay"; has "$s" 'exec "$py" -I -u -c'
@@ -169,7 +173,16 @@ up 'install_syncplay'; eq "$RC" 1; has "$OUT" "Syncplay's tag v1.7.6 is not the 
 eq "$(cat "$W$H/.local/bin/syncplay"; cat "$sp/syncplay/__init__.py")" "$before"; eq "$(cat "$spt")" 1111111111111111111111111111111111111111
 case_ "another commit recorded (the pin moved on): fetched again, the pin recorded"
 back syncplay; echo 1111111111111111111111111111111111111111 >"$spt"; reset_calls
-up 'install_syncplay'; eq "$RC" 0; called 'git.* clone .*Syncplay'; eq "$(cat "$spt")" 993232ab095bb810593459bc705b3e6fc64ad161
+up 'install_syncplay'; eq "$RC" 0; called 'git.* clone .*Syncplay'; eq "$(cat "$spt")" "$PIN"
+case_ "the pinned commit recorded without our patch (an install from before it): fetched again, with it"
+back syncplay; echo 993232ab095bb810593459bc705b3e6fc64ad161 >"$spt"; reset_calls
+up 'install_syncplay'; eq "$RC" 0; called 'git.* clone .*Syncplay'; called 'git\] -C .* apply -$'; eq "$(cat "$spt")" "$PIN"
+case_ "the patch does not apply: refused, the copy there untouched (exit 1)"
+back syncplay; echo 1111111111111111111111111111111111111111 >"$spt"; fkh rc-git-apply 1
+before=$(cat "$W$H/.local/bin/syncplay"; cat "$sp/syncplay/__init__.py")
+up 'install_syncplay'; eq "$RC" 1; has "$OUT" "src/syncplay/syncplay.patch does not apply to Syncplay v1.7.6 — refused"
+eq "$(cat "$W$H/.local/bin/syncplay"; cat "$sp/syncplay/__init__.py")" "$before"; eq "$(cat "$spt")" 1111111111111111111111111111111111111111
+rm -f "$FKH/rc-git-apply"
 case_ "a starter gone, or one an older toolkit wrote: written again, nothing fetched"
 back syncplay; rm -f "$W$H/.local/bin/syncplay-server"; sed -i 's/ -I -u -c / -I -c /' "$W$H/.local/bin/syncplay"; reset_calls
 up 'install_syncplay'; eq "$RC" 0; has "$OUT" "Syncplay v1.7.6 — in place"; not_called 'git.* clone'

@@ -73,7 +73,7 @@ back built; rm -rf "$W/home/fkuser/.local/share/fedokawaii/syncplay" "$W/home/fk
   "$W/home/fkuser/.local/share/fedokawaii/upstream/syncplay"
 tk --repair; called 'git\] .*clone .*Syncplay'; has "$OUT" "✔ Syncplay v1.7.6 (no window)"
 [[ -x $W/home/fkuser/.local/bin/syncplay ]] && _ok || _no "syncplay not put back"
-eq "$(cat "$W/home/fkuser/.local/share/fedokawaii/upstream/syncplay")" 993232ab095bb810593459bc705b3e6fc64ad161
+eq "$(cat "$W/home/fkuser/.local/share/fedokawaii/upstream/syncplay")" "$(. "$REPO/lib/upstream.sh"; syncplay_pin)"
 case_ "repair: a boot entry that lost the console argument (no black-screen wait at boot) gets it back"
 back built; sed -i '1 s/ systemd.tty.term.console=dumb//' "$FKH/grub-args"
 tk --repair; called 'grubby\] --update-kernel=ALL --args=systemd.tty.term.console=dumb'

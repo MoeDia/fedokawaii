@@ -49,6 +49,9 @@ SYNCPLAY_REPO=https://github.com/Syncplay/syncplay.git
 SYNCPLAY_TAG=v1.7.6
 SYNCPLAY_COMMIT=993232ab095bb810593459bc705b3e6fc64ad161
 SYNCPLAY_PYTHON=/usr/bin/python3
+# Two fixes of ours to its mpv connection (a start refused now and then; a close that kept it
+# open two minutes), applied to the clone before the copy is checked — its header says more
+SYNCPLAY_PATCH=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/src/syncplay/syncplay.patch
 
 up_state_dir() { echo "$TARGET_HOME/.local/share/fedokawaii/upstream"; }
 up_tag()       { as_user cat -- "$(up_state_dir)/$1" 2>/dev/null | head -c 200 || true; }   # (yours: read as you)
@@ -216,18 +219,24 @@ syncplay_starters() {
     printf '%s\n' "$want" | user_put 0755 "$f" || return 1
   done
 }
+# syncplay_pin — what the record holds: the pinned commit, and which patch of ours it carries
+# (a changed patch is a new pin: update puts in a copy with it)
+syncplay_pin() {
+  local s; s=$(sha256sum <"$SYNCPLAY_PATCH" 2>/dev/null) || s=missing
+  printf '%s+%.12s\n' "$SYNCPLAY_COMMIT" "$s"
+}
 syncplay_current() {
-  [[ $(up_tag syncplay) == "$SYNCPLAY_COMMIT" ]] && syncplay_starters --check && syncplay_runs
+  [[ $(up_tag syncplay) == "$(syncplay_pin)" ]] && syncplay_starters --check && syncplay_runs
 }
 
-# install_syncplay — a no-op when the pinned commit is in place and loads. Else its tag is
-# fetched (as you, into a folder of yours that goes again), must be the pinned commit, and
-# the new folder must load before it replaces the old one; then the two starters. Returns 1,
-# having changed nothing, when any of that fails.
+# install_syncplay — a no-op when the pinned commit is in place, with our patch, and loads.
+# Else its tag is fetched (as you, into a folder of yours that goes again), must be the pinned
+# commit, takes the patch, and the new folder must load before it replaces the old one; then
+# the two starters. Returns 1, having changed nothing, when any of that fails.
 install_syncplay() {
   local d src
   d=$(syncplay_dir)
-  if [[ $(up_tag syncplay) == "$SYNCPLAY_COMMIT" ]] && syncplay_runs; then
+  if [[ $(up_tag syncplay) == "$(syncplay_pin)" ]] && syncplay_runs; then
     syncplay_starters || return 1
     log "Syncplay $SYNCPLAY_TAG — in place"; return 0
   fi
@@ -237,6 +246,9 @@ install_syncplay() {
   fi
   if [[ $(as_user git -C "$src/s" rev-parse "$SYNCPLAY_TAG^{commit}") != "$SYNCPLAY_COMMIT" ]]; then
     log "Syncplay's tag $SYNCPLAY_TAG is not the pinned commit $SYNCPLAY_COMMIT — refused"; as_user rm -rf "$src"; return 1
+  fi
+  if ! as_user git -C "$src/s" apply - <"$SYNCPLAY_PATCH"; then
+    log "src/syncplay/syncplay.patch does not apply to Syncplay $SYNCPLAY_TAG — refused"; as_user rm -rf "$src"; return 1
   fi
   as_user mkdir -p "$src/new" && as_user cp -R "$src/s/syncplay" "$src/new/" || { as_user rm -rf "$src"; return 1; }
   if ! syncplay_runs "$src/new"; then
@@ -251,7 +263,7 @@ install_syncplay() {
   fi
   as_user rm -rf "$d.old" "$src"
   syncplay_starters || return 1
-  record_tag syncplay "$SYNCPLAY_COMMIT"
+  record_tag syncplay "$(syncplay_pin)"
   syncplay_current || { log "Syncplay $SYNCPLAY_TAG was put in place but does not start"; return 1; }
   ok "Syncplay $SYNCPLAY_TAG (no window) → ~/.local/bin (syncplay, syncplay-server)"
 }

@@ -1,0 +1,52 @@
+src/syncplay/syncplay.patch — two fixes to Syncplay v1.7.6 (the pinned commit, lib/upstream.sh),
+applied by install_syncplay before the copy is checked and put in place. Both are in the mpv
+connection library Syncplay carries (syncplay/vendor/python_mpv_jsonipc):
+
+1. Start: mpv makes its socket file a moment before it listens on it, and Syncplay connected the
+   moment the file appeared — about one start in ten failed with "Could not load mpv"
+   (Connection refused). A refused connection is now tried again, for up to 5 s.
+2. Close: once mpv had quit, Syncplay could still send it "quit" and wait 120 s for an answer
+   that never comes (the window gone, Syncplay still open, Ctrl+C doing nothing — 5 closes in
+   63 here). It now stops waiting as soon as the connection is gone.
+
+Made with git diff in a clone of the v1.7.6 tag; git apply reads from the first "diff" line on.
+
+diff --git a/syncplay/vendor/python_mpv_jsonipc/python_mpv_jsonipc.py b/syncplay/vendor/python_mpv_jsonipc/python_mpv_jsonipc.py
+index 4d9fab3..d3b255a 100644
+--- a/syncplay/vendor/python_mpv_jsonipc/python_mpv_jsonipc.py
++++ b/syncplay/vendor/python_mpv_jsonipc/python_mpv_jsonipc.py
+@@ -132,8 +132,18 @@ class UnixSocket(threading.Thread):
+         self.ipc_socket = ipc_socket
+         self.callback = callback
+         self.quit_callback = quit_callback
+-        self.socket = socket.socket(socket.AF_UNIX)
+-        self.socket.connect(self.ipc_socket)
++        # (fedokawaii) mpv makes its socket file a moment before it listens on it: a connection
++        # refused in that moment is tried again, for up to 5 s, instead of failing the start
++        for attempt in range(50):
++            self.socket = socket.socket(socket.AF_UNIX)
++            try:
++                self.socket.connect(self.ipc_socket)
++                break
++            except (ConnectionRefusedError, FileNotFoundError):
++                self.socket.close()
++                if attempt == 49:
++                    raise
++                time.sleep(0.1)
+ 
+         if self.callback is None:
+             self.callback = lambda data: None
+@@ -329,7 +339,12 @@ class MPVInter:
+         finally:
+             self.socket_lock.release()
+ 
+-        has_event = event.wait(timeout=TIMEOUT)
++        # (fedokawaii) no answer can come once the connection is gone (mpv has quit): stop
++        # waiting then, instead of holding Syncplay open for the whole TIMEOUT
++        deadline = time.monotonic() + TIMEOUT
++        has_event = event.wait(timeout=0.25)
++        while not has_event and self.socket.is_alive() and time.monotonic() < deadline:
++            has_event = event.wait(timeout=0.25)
+         if has_event:
+             data = self.cid_result[command_id]
+             del self.cid_result[command_id]

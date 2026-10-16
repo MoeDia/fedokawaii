@@ -30,9 +30,14 @@ case $1 in
            *) echo "$2" ;;
          esac; exit 0 ;;
   branch) [[ " $* " == *" -r --contains "* ]] && echo "  origin/main"; exit 0 ;;
-  apply) [[ " $* " == *" --check "* || " $* " == *" - "* ]] && cat >/dev/null
+  apply) in=""; [[ " $* " == *" --check "* || " $* " == *" - "* ]] && in=$(cat)
          [[ " $* " == *" --reverse "* ]] && exit "$(rcfor git-reverse 0)"
          r=$(rcfor git-apply 0); ((r == 0)) || { echo "error: patch failed: dwl.c:1" >&2; exit "$r"; }
+         if [[ -d $dir/syncplay ]]; then   # (Syncplay's clone: the file the patch changes names it)
+           f=$dir/syncplay/vendor/python_mpv_jsonipc/python_mpv_jsonipc.py
+           [[ " $* " == *" --check "* ]] || { mkdir -p "${f%/*}"; printf '# applied: %s\n' "${in%%$'\n'*}" >>"$f"; }
+           exit 0
+         fi
          # applied for real: the lines verify looks for in dwl.c
          [[ " $* " == *" --check "* ]] || printf '%s\n' 'layout = 0; /* keybindings always read' 'gap = (int)gappx' 'corners closed' \
            'open centred on their monitor' 'kblayout %u' 'printclean(' >>"$dir/dwl.c"

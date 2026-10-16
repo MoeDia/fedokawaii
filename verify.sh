@@ -389,10 +389,10 @@ check "PixelMplus 12 (Japanese pixel font)"          compgen -G "$TARGET_HOME/.l
 # Syncplay, from its pinned source (setup carries on without it: update and repair fetch it)
 case $(up_tag syncplay) in
   "") warn "Syncplay not installed yet" "update and repair fetch it (watching together waits till then)" ;;
-  "$SYNCPLAY_COMMIT")
+  "$(syncplay_pin)")
     check "Syncplay $SYNCPLAY_TAG loads (Fedora's python3, Twisted with TLS, certifi, pem)" syncplay_runs
     check "syncplay runs without a window (--no-gui --version)" U timeout 20 "$TARGET_HOME/.local/bin/syncplay" --version ;;
-  *) fail "Syncplay is not the pinned $SYNCPLAY_TAG" "repair puts it back" ;;
+  *) fail "Syncplay is not the pinned $SYNCPLAY_TAG with this toolkit's fixes" "update and repair put it in" ;;
 esac
 for e in "${NERD_FONTS[@]}"; do
   f=${e%%|*}
