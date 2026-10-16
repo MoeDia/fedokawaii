@@ -116,7 +116,7 @@ Boot the Fedora 44 Server USB → **Install Fedora 44**:
 | Keyboard | English (US) — Arabic is added by the session |
 | Time & Date | Asia/Dubai, Network Time **on** |
 | Software Selection | **Minimal Install** (if the image lists only *Fedora Server Edition* / *Fedora Custom Operating System*, pick **Custom Operating System**). Nothing ticked on the right |
-| Installation Destination | disk → Storage Configuration **Custom** → Done → scheme dropdown **Btrfs** → *Click here to create them automatically* → Done → Accept. **Do not skip:** Server's *Automatic* is LVM + XFS and snapper needs Btrfs |
+| Installation Destination | disk → Storage Configuration **Custom** → Done → **if Windows is on the disk**, delete its parts first: click one under *Unknown*, **−**, tick *Delete all file systems which are only used by Unknown.*, *Delete It* (and the small *EFI System Partition* the same way, if it stays) → scheme dropdown **Btrfs** → *Click here to create them automatically* → Done → Accept (handbook §4.2). **Do not skip:** Server's *Automatic* is LVM + XFS and snapper needs Btrfs |
 | KDUMP | off |
 | Network & Host Name | ethernet **on**, hostname `fedokawaii`. Setup needs the network from its first minute, and a Minimal Install has **no Wi-Fi** support yet (setup adds it, and the radio's firmware: in phase 2, or at its last check once the radio shows after a restart): a cable, or a phone's USB tethering (it counts as wired), until setup has finished |
 | Root Account | leave it **disabled** (no root password) — everything runs through your administrator user with `sudo` |
@@ -235,3 +235,15 @@ talks to — USB drives, monitors, sound, the network, dnf — so nothing on the
 touched, and no root, display or network is needed (bash, jq and python3 are). A failed check
 prints what was expected and what came instead. The harness is `tests/lib/harness.sh`;
 `tests/drives/test_drives.sh` is the worked example to copy.
+
+## 7 · The first install on the real machine
+
+Everything above was tested without the real hardware. On the PC itself:
+
+| What | How it is checked |
+|---|---|
+| the graphics card (RX 9060 XT): video decoding, Vulkan, the settings LACT needs | by itself: `verify.sh` at the end of setup — the login is not switched on until it passes; `fedokawaii verify` repeats it any time |
+| every device has its driver; Bluetooth's service is on | by itself, the same way |
+| the old Windows disk is really cleared | your eyes, in the installer: *SUMMARY OF CHANGES* lists Windows' parts as deleted, and four new ones made — `/boot/efi`, `/boot`, `/`, `/home`. If `/boot/efi` is missing, go back |
+| the Bluetooth controller | plug its dongle in **before** setup, so setup sees it; afterwards pair it: **Super+X** → *bluetooth* → *pair a device* (handbook §8.3) |
+| how long each phase takes | optional: note the times — the handbook's are estimates |
