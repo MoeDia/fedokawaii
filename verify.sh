@@ -198,7 +198,7 @@ elif [[ -s $STATE_DIR/other-os ]]; then   # (dual boot: setup and Theme leave it
 else
   check "GRUB menu hidden (shows after a failed boot)" bash -c 'l=$(grub2-editenv - list) && grep -qx menu_auto_hide=1 <<<"$l"'
 fi
-check "boot-success timer enabled"                     bash -c 'systemctl --global is-enabled grub-boot-success.timer | grep -qx enabled'
+check "boot success marked by the desktop, not at boot"  bash -c '[[ $(systemctl --global is-enabled grub-boot-success.timer 2>/dev/null) != enabled ]]'
 mapfile -t kv < <(rpm -q --qf '%{VERSION}-%{RELEASE}.%{ARCH}\n' kernel-core 2>/dev/null | grep -v 'not installed' | sort -V)
 running=$(uname -r)
 if ((${#kv[@]} >= 1 && ${#kv[@]} <= 2)) && [[ ${kv[-1]} == "$running" ]]; then

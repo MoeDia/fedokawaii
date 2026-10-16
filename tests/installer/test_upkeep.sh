@@ -78,6 +78,10 @@ case_ "repair: a boot entry that lost the console argument (no black-screen wait
 back built; sed -i '1 s/ systemd.tty.term.console=dumb//' "$FKH/grub-args"
 tk --repair; called 'grubby\] --update-kernel=ALL --args=systemd.tty.term.console=dumb'
 eq "$(grep -c systemd.tty.term.console=dumb "$FKH/grub-args")" 2 "both entries carry it again"
+case_ "repair: Fedora's every-session boot-success timer on again (a fresh preset): off again, the desktop's stays"
+back built; fkh_add units "global-enabled grub-boot-success.timer"
+tk --repair; called 'systemctl\] --global disable grub-boot-success.timer'
+grep -qx "global-enabled grub-boot-success.timer" "$FKH/units" && _no "still on for every session" || _ok
 case_ "repair: a kernel without its boot image gets one (dracut --kver), and verify passes after"
 back built; fkh kernels "6.18.1-200.fc44.x86_64" "$(uname -r)"; echo vmlinuz >"$W/boot/vmlinuz-6.18.1-200.fc44.x86_64"
 tk --repair; has "$OUT" "kernel 6.18.1-200.fc44.x86_64 has no boot image (initramfs) — dracut makes it now"

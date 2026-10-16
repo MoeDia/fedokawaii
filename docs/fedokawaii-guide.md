@@ -9454,8 +9454,9 @@ systemctl --user list-timers               # fedokawaii-remind.timer, grub-boot-
 journalctl --user -u prowlarr -n 20        # your units' logs
 ```
 
-Your units live in `~/.config/systemd/user/` (this desktop's: `dwl-session.target` and the
-reminder's timer and service) and in `/usr/lib/systemd/user/` (the packages'). Normally a user
+Your units live in `~/.config/systemd/user/` (this desktop's: `dwl-session.target`, the
+reminder's timer and service, and a drop-in that ties Fedora's `grub-boot-success.timer` to the
+session, §29.2) and in `/usr/lib/systemd/user/` (the packages'). Normally a user
 manager starts with your first login and stops after your last logout. Setup turns on
 **linger** for you (`loginctl enable-linger`): your manager then starts at boot and stays, so
 `update`, `repair` and `verify` can reach Prowlarr and the portals even from a text console.
@@ -9856,9 +9857,12 @@ sudo grubby --update-kernel=ALL --args=quiet           # how an argument is adde
 
 The menu itself is hidden while the last boot succeeded (`menu_auto_hide` in GRUB's
 environment, `grub2-editenv - list`); a user timer, `grub-boot-success.timer`, marks a boot
-as successful two minutes after you log in. With the theme, the menu shows for
-`BOOT_MENU_SECONDS` instead (§29.3). On a machine that also starts another system —
-Windows beside Fedora — setup leaves the menu shown, as Fedora's installer does.
+as successful two minutes after the desktop starts. Your own systemd runs from boot here (it
+keeps your services reachable), so Fedora's way — the timer in every session — would count any
+boot that got that far; the desktop's autostart starts it instead, and it stops with the
+session. With the theme, the menu shows for `BOOT_MENU_SECONDS` instead (§29.3). On a machine
+that also starts another system — Windows beside Fedora — setup leaves the menu shown, as
+Fedora's installer does.
 
 ## 29.3 The boot menu
 

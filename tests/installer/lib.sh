@@ -203,6 +203,7 @@ world() {   # world fresh|built [--themed]
   echo "iwlwifi-mvm-firmware /usr/lib/firmware/iwlwifi-so-a0-gf-a0-89.ucode.xz" >"$FKH/fwfiles"
   echo "rocm-smi /usr/lib64/librocm_smi64.so.1.0" >"$FKH/files"      # (rpm -ql: the library btop opens)
   printf '%s\n' "global-enabled pipewire.socket" "global-enabled pipewire-pulse.socket" "global-enabled wireplumber.service" \
+    "global-enabled grub-boot-success.timer" \
     "enabled sshd.service" "active sshd.service" "enabled firewalld.service" "active firewalld.service" \
     "enabled fstrim.timer" >"$FKH/units"
   fake_cmd "$W/usrbin/nano"; fake_cmd "$W/usrbin/vi"     # (nano, vim-minimal: in a Minimal Install)
@@ -363,7 +364,7 @@ built() {
   echo amd-ucode-firmware >"$S/hardware-pkgs"
   printf 'enabled %s\n' greetd.service bluetooth.service snapper-timeline.timer snapper-cleanup.timer fstrim.timer lactd.service \
     fedokawaii-scrub.timer tuned.service firewalld.service >>"$FKH/units"
-  sed -i '/ sshd.service$/d' "$FKH/units"; echo "global-enabled grub-boot-success.timer" >>"$FKH/units"
+  sed -i '/ sshd.service$/d; /^global-enabled grub-boot-success\.timer$/d' "$FKH/units"   # (that timer: the desktop starts it)
   rm -f "$W/usrbin/nano" "$W/usrbin/vi"                     # (setup took them out)
   printf '%s\n' copr:copr.fedorainfracloud.org:ilyaz:LACT >"$FKH/coprs"
   mkdir -p "$W/usrshare/vulkan/icd.d" "$W/usrshare/icons/Papirus" "$W/usrshare/icons/Papirus-Dark" "$W/usrshare/icons/Adwaita/cursors"

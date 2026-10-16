@@ -69,6 +69,7 @@ has "$OUT" "✔ 3.13 verify gate"; has "$OUT" "✔ verified"
 [[ ! -e $unit ]] && _ok || _no "the resume unit is still installed"
 grep -qx 'enabled greetd.service' "$FKH/units" && _ok || _no "greetd not enabled"
 g=" $(fk id -nG fkuser) "; has "$g" " video "; has "$g" " render "; lacks "$g" " input " "never in the input group (every key readable)"
+grep -qx "global-enabled grub-boot-success.timer" "$FKH/units" && _no "Fedora's every-session boot-success timer still on: with linger any boot would count" || _ok
 [[ -s $W/var/lib/fedokawaii/input-group-out ]] && _ok || _no "not recorded: a later update would look again"
 has "$(cat "$W/etc/systemd/system/user@.service.d/fedokawaii.conf" 2>/dev/null)" $'[Service]\nTimeoutStopSec=30s' "shutdown never waits long on your services"
 has "$(cat "$W/etc/systemd/system/greetd.service.d/fedokawaii.conf")" "Conflicts=getty@tty1.service kmsconvt@tty1.service" "greetd holds tty1 against agetty and Fedora 45's kmscon"

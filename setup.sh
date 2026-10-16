@@ -383,7 +383,10 @@ other_os() {
 }
 s_boot() {
   # Hidden menu (Fedora's own mechanism): stays hidden while the last boot succeeded,
-  # appears by itself after a failed one. The timer marks a boot successful. Once the
+  # appears by itself after a failed one. The timer marks a boot successful — two minutes
+  # after the desktop starts it (autostart.sh), never at boot: with linger your own systemd
+  # starts at boot, desktop or not, so Fedora's every-session timer would count any boot
+  # that got that far, one whose desktop never came up as well. Once the
   # theme is applied, BOOT_MENU_SECONDS decides instead (theme.sh shows the themed menu).
   # Beside another system (dual boot) it stays shown, as Fedora's installer leaves it: a
   # hidden menu would look as if that system were gone.
@@ -399,7 +402,7 @@ s_boot() {
     rm -f "$STATE_DIR/other-os"
     run grub2-editenv - set menu_auto_hide=1
   fi
-  run systemctl --global enable grub-boot-success.timer
+  run systemctl --global disable grub-boot-success.timer
   # Two kernels at rest: the newest, and the one before it to fall back to from the boot
   # menu (dnf's installonly_limit=2, s_dnf) — after a kernel update, and after a move to a
   # new Fedora, the old one is still there until the next one replaces it
@@ -1979,9 +1982,9 @@ r_system() {     # failed units cleared, the session's own system pieces in plac
   s_tuning
 }
 r_ports() { s_ssh; torrent_port; }   # SSH as SSH_SERVER says; torrra's port open
-r_boot() {       # the boot: the menu's success timer, no rescue image, AMD's kernel argument, no console wait,
-                 # every kernel's image; neovim the editor
-  systemctl --global enable grub-boot-success.timer
+r_boot() {       # the boot: the menu's success timer (the desktop's, s_boot), no rescue image, AMD's kernel
+                 # argument, no console wait, every kernel's image; neovim the editor
+  systemctl --global disable grub-boot-success.timer
   editor_policy
   # (an entry without it — verify fails it — gets it again: every entry, as setup did)
   if [[ $(cat "$STATE_DIR/gpu" 2>/dev/null) == amd ]] && ! amd_arg_everywhere; then

@@ -104,6 +104,7 @@ eq "$(grep -vE '^(waybar|mako|foot|udiskie|kawa-clipkeep|wl-paste|gammastep|sway
 systemctl --user stop dwl-session.target
 systemctl --user start dwl-session.target
 systemctl --user start fedokawaii-remind.timer
+systemctl --user start grub-boot-success.timer
 kawa-display${SP}
 kawa-theme apply" "in this order, the display's modes and the theme before any helper"
 called "^waybar $"; called "^mako $"; called "^foot --server$"; called "^udiskie $"; called "^wl-paste --watch cliphist store$"
@@ -219,5 +220,10 @@ case_ "autostart.sh is clean POSIX sh (bash -n, dash -n, shellcheck)"
 rc 0 bash -n "$REPO/configs/home/.config/dwl/autostart.sh"
 command -v dash >/dev/null && rc 0 dash -n "$REPO/configs/home/.config/dwl/autostart.sh"
 rc 0 shellcheck -S warning -s sh "$REPO/configs/home/.config/dwl/autostart.sh"
+
+case_ "the two timers autostart starts end with the session (PartOf it): the reminder, and the boot-success mark — a desktop gone sooner leaves the boot unmarked"
+for f in systemd/user/fedokawaii-remind.timer systemd/user/grub-boot-success.timer.d/session.conf; do
+  grep -qx 'PartOf=dwl-session.target' "$REPO/configs/home/.config/$f" && _ok || _no "$f is not PartOf=dwl-session.target"
+done
 
 done_

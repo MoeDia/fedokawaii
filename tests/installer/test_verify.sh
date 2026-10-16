@@ -69,6 +69,7 @@ echo 'PROWLARR_API_KEY=short' >"$W/home/fkuser/.config/fedokawaii/secrets.sh"
 echo 1 >"$FKH/rc-restic"                                                   # restic broken
 echo 1111111111111111111111111111111111111111 >"$W/home/fkuser/.local/share/fedokawaii/upstream/syncplay"   # an older pin
 fkh_add installed systemd-oomd-defaults                                    # oomd's rules: a whole-session kill
+fkh_add units "global-enabled grub-boot-success.timer"                     # any boot would count as successful
 rm -f "$W/etc/modprobe.d/fedokawaii-btusb.conf" "$W/etc/systemd/system/user@.service.d/fedokawaii.conf"
 V; eq "$RC" 3
 has "$(line "✘ missing packages")" grubby; has "$(line "✘ missing packages")" man-db
@@ -83,6 +84,7 @@ has "$OUT" "✘ the last scrub found errors"
 has "$OUT" "✘ Prowlarr key in secrets.sh"
 has "$OUT" "✘ restic runs"
 has "$OUT" "✘ Syncplay is not the pinned v1.7.6"
+has "$OUT" "✘ boot success marked by the desktop, not at boot"
 has "$OUT" "checks failed:"; has "$OUT" "most of these fix themselves: fedokawaii repair"
 read -r _ _ f _ <"$W/var/lib/fedokawaii/last-verify"; ((f >= 11)) && _ok || _no "$f failures recorded"
 case_ "in the input group by your own choice (a controller, handbook §21.1): no failure"

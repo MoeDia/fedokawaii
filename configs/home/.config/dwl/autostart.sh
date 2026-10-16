@@ -30,6 +30,9 @@ systemctl --user start dwl-session.target
 # the update season's reminder (fedokawaii remind): a look two minutes in, then every six
 # hours; it stops with the session
 systemctl --user start fedokawaii-remind.timer 2>/dev/null
+# GRUB's hidden menu: this boot counts as successful once the desktop has run two minutes
+# (the timer stops with the session: one that ends sooner leaves the boot unmarked)
+systemctl --user start grub-boot-success.timer 2>/dev/null
 
 # keep CMD… — run a session helper and start it again should it ever crash; a clean exit
 # (status 0) ends it, and five crashes inside a minute give up with a notice rather than
