@@ -10,16 +10,47 @@
 #   the tape    a cassette whose reels turn while there is sound
 #   paused      a pause icon, the title in grey and no meter; no player → hidden
 #
+# Several players at once (music in spotify_player, a paused video in a Brave tab): the one
+# playing is shown — the last to start, if more than one is — else the last one paused.
+#
 # Two event streams merged into one pipe, nothing polled: playerctl --follow (track and
 # play state) and cava (20 meter frames a second, started only while a player plays). Without cava the cassette and title still show, with no meter.
 # Pure bash per frame: no forks.
+#
+# kawa-nowplaying play-pause|next|previous — the media keys and the bar's clicks: they go to
+# the player the bar shows. (playerctl on its own picks the player that started first: with
+# music playing, Play/Pause would start the paused video on top of it.)
+# Exit status: 0 done (the bar's script: its watcher ended, waybar starts it again) · 1 could
+# not (no player, playerctl missing) · 2 misuse.
 set -u
+US=$'\x1f'                                       # between the fields of a player's line
+SHOWN="${XDG_RUNTIME_DIR:-/run/user/$UID}/kawa-nowplaying.player"   # the player shown, for the keys
+case ${1:-} in
+  play-pause|next|previous)
+    command -v playerctl >/dev/null || exit 1
+    p=$(cat "$SHOWN" 2>/dev/null) play=""
+    # (asked again, should the bar lag behind or not run: a playing player goes first, the
+    # one shown if it is among them)
+    while IFS=$US read -r i s; do
+      [[ $s == Playing ]] || continue
+      [[ $i == "$p" ]] && { play=$i; break; }
+      [[ -n $play ]] || play=$i
+    done < <(timeout 2 playerctl --all-players metadata --format "{{playerInstance}}$US{{status}}" 2>/dev/null)
+    p=${play:-$p}
+    [[ -n $p ]] && timeout 2 playerctl --player="$p" "$1" 2>/dev/null && exit 0
+    exec playerctl "$1" ;;                       # (the bar not running, or its player gone)
+  "") ;;
+  -h|--help) sed -n '2,/^set -u/{/^set -u/d;s/^# \{0,1\}//;p}' "$0"; exit 0 ;;
+  *) echo "usage: kawa-nowplaying [play-pause|next|previous] (kawa-nowplaying --help)" >&2; exit 2 ;;
+esac
 LC_ALL=C.UTF-8                                   # count characters, not bytes
 # shellcheck source=/dev/null
 . "$HOME/.config/fedokawaii/icons.sh"
 # shellcheck source=/dev/null
 . "$HOME/.config/fedokawaii/current/colors.sh"   # C_* colours of the dark or light theme
 MAX=48                                           # longest "artist — title" before …
+MAXA=20                                          # longest artist: a long one (several names
+                                                 # in a row) would leave no room for the title
 
 esc() {   # esc VAR TEXT — JSON + pango escaping into VAR
   local s=$2
@@ -41,11 +72,12 @@ meter() {   # meter VAR DIGITS — "03551" → one eq glyph per band (0–5)
 
 status="" artist="" title="" last="" bands="" reel=0 frames=0
 show() {
-  local out text body ml mr tape
+  local out text body ml mr tape a=$artist
   if [[ -z $title || ( $status != Playing && $status != Paused ) ]]; then
     out='{"text":""}'
   else
-    text="${artist:+$artist — }$title"
+    ((${#a} > MAXA)) && a="${a:0:MAXA-1}…"
+    text="${a:+$a — }$title"
     ((${#text} > MAX)) && text="${text:0:MAX-1}…"
     esc body "$text"
     if [[ $status == Paused ]]; then
@@ -61,42 +93,68 @@ show() {
     fi
   fi
   [[ $out == "$last" ]] && return
-  printf '%s\n' "$out"; last=$out
+  # the bar is gone (waybar ignores SIGPIPE, and so does its child: a write just fails) —
+  # end here, cava and playerctl with it, rather than meter music for nobody
+  printf '%s\n' "$out" 2>/dev/null || exit 0
+  last=$out
 }
 
-echo '{"text":""}'
+last='{"text":""}'; printf '%s\n' "$last"         # at once: hidden until a player shows
 # One pipe for both streams, told apart by shape: a player line holds \x1f separators (not
 # tabs: read would collapse repeats and lose an empty artist), an empty line means no
 # player, a cava frame is 16 bands of 0–5 ("0;3;5;…;"). When the player watcher stops,
 # END makes this script exit, and waybar starts it again.
 # cava runs only while a player plays: no audio capture stream (and no wake-ups) otherwise,
 # so the sound card can rest while nothing plays.
+FMT="{{playerInstance}}$US{{status}}$US{{artist}}$US{{title}}"
 exec {in}< <(
   exec 2>/dev/null
   cv=""
   stop() { [[ -n $cv ]] && kill "$cv"; cv=""; }
+  # pick LINE — what to show after LINE, one player's change: itself if it plays; else a
+  # player still playing (a video paused in a tab must not hide the music); else itself if
+  # paused, or else another paused one. (One playerctl per change of a player, not per frame.)
+  pick() {
+    local l s paused=""
+    IFS=$US read -r _ s _ <<<"$1"
+    [[ $s == Playing ]] && { printf '%s\n' "$1"; return; }
+    [[ $s == Paused ]] && paused=$1
+    while IFS= read -r l; do
+      IFS=$US read -r _ s _ <<<"$l"
+      [[ $s == Playing ]] && { printf '%s\n' "$l"; return; }
+      [[ -z $paused && $s == Paused ]] && paused=$l
+    done < <(timeout 2 playerctl --all-players metadata --format "$FMT")
+    printf '%s\n' "${paused:-$1}"
+  }
   while IFS= read -r m; do
+    [[ -z $m || $m == *"$US"*"$US"*"$US"* ]] || continue   # (the rest of a title holding a line break)
+    m=$(pick "$m")
     printf '%s\n' "$m"
-    if [[ $m == Playing$'\x1f'* ]]; then
+    IFS=$US read -r _ s _ <<<"$m"
+    if [[ $s == Playing ]]; then
       # (started again should it have ended by itself: PipeWire restarted, say)
       { [[ -z $cv ]] || ! kill -0 "$cv" 2>/dev/null; } && command -v cava >/dev/null \
         && { cava -p "$HOME/.config/fedokawaii/cava.conf" & cv=$!; }
     else stop; fi
-  done < <(playerctl --follow metadata --format '{{status}}'$'\x1f''{{artist}}'$'\x1f''{{title}}')
+  done < <(playerctl --follow metadata --format "$FMT")
   stop                                           # (cava would never notice on its own
   echo END                                       #  that nobody reads it)
 )
 feeder=$!
-# and if this script goes first, take both readers along
+# and if this script goes first, take both readers along — the feeder held still meanwhile:
+# one that started cava for a song just then would leave it metering for nobody, for good
 # shellcheck disable=SC2090  # (follows from the SC2089 note above: a false alarm)
-trap 'pkill -P "$feeder" 2>/dev/null; kill "$feeder" 2>/dev/null' EXIT
+trap 'kill -STOP "$feeder" 2>/dev/null; pkill -P "$feeder" 2>/dev/null
+      kill -TERM "$feeder" 2>/dev/null; kill -CONT "$feeder" 2>/dev/null' EXIT
 trap 'exit 0' TERM HUP INT                     # (bash skips the EXIT trap on a bare signal)
 
+player=""
 while IFS= read -r -u "$in" line; do
   case $line in
     END)        exit 0 ;;
     '')         status="" artist="" title="" bands="" ;;
-    *$'\x1f'*)  IFS=$'\x1f' read -r status artist title <<<"$line"
+    *"$US"*)    IFS=$US read -r p status artist title <<<"$line"
+                [[ $p == "$player" ]] || { player=$p; printf '%s\n' "$p" >"$SHOWN"; }
                 [[ $status == Playing ]] || bands="" ;;
     *)          frame=${line//;/}
                 [[ $status == Playing && ${#frame} == 16 && $frame != *[!0-5]* ]] || continue

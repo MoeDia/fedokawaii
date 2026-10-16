@@ -1,8 +1,14 @@
 #!/usr/bin/env bash
 # kawa-help — Super+/ : every keybinding, type to filter (Esc closes); the first
 # binding is selected, not the heading above it. 68 columns: the longest line and the
-# headings' rules are 67, and fuzzel keeps its last column for a "…"
+# headings' rules are 67, and fuzzel keeps its last column for a "…". No arguments (--help:
+# this text).
 set -u
+case ${1:-} in
+  "") ;;
+  -h|--help) sed -n '2,/^set -u/{/^set -u/d;s/^# \{0,1\}//;p}' "$0"; exit 0 ;;
+  *) echo "usage: kawa-help   (no arguments: the keybinding sheet)" >&2; exit 2 ;;
+esac
 f="$HOME/.config/fedokawaii/keybinds.txt"
 [[ -r $f ]] || { notify-send -a desktop "Help" "keybinds.txt missing — run the theme"; exit 1; }
 grep -v '^[[:space:]]*$' "$f" | kawa-menu --prompt "> " --width 68 --lines 24 --select 1 >/dev/null || true

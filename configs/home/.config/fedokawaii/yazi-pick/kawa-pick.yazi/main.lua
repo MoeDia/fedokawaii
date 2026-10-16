@@ -9,7 +9,10 @@ return {
 		local mode, tab = os.getenv("KAWA_PICK") or "", cx.active
 		if job.args[1] == "esc" then
 			local cur = tab.current
-			if tab.mode.is_visual or #tab.selected > 0 or cur.files.filter or tab.finder or cur.cwd.spec.is_search then
+			-- (visual mode is select or unset: yazi 26.9 flags `mode.is_visual` as deprecated
+			-- with a notice in the dialog, and older 26.x lack its replacement `is_normal`)
+			local m = tab.mode
+			if m.is_select or m.is_unset or #tab.selected > 0 or cur.files.filter or tab.finder or cur.cwd.spec.is_search then
 				return ya.emit("escape", {})
 			end
 			return ya.emit("quit", { no_cwd_file = true })

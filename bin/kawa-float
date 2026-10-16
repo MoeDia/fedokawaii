@@ -7,6 +7,7 @@
 #   --once NAME      one such window at a time: a call while it is open does nothing (exit
 #                    3) — a held or doubled key never stacks windows
 #   --locked-title   the title stays TITLE whatever CMD writes there
+#   --help           this text
 #
 # COLSxROWS: an even number of columns and an odd number of rows, and dwl centres the
 # window to the pixel under the bar. The terminal server's window (footclient: instant); a
@@ -17,8 +18,12 @@ set -u
 once="" extra=()
 while [[ ${1:-} == --* ]]; do
   case $1 in
-    --once)         once=${2:-}; shift 2 ;;
+    --once)         # (checked here: a missing NAME would leave --once in place, and loop for ever;
+                    # classes, not a-z: in a Turkish locale that range leaves out the i)
+                    [[ ${2:-} =~ ^[[:lower:][:digit:]-]+$ ]] || { echo "kawa-float: --once takes a plain name" >&2; exit 2; }
+                    once=$2; shift 2 ;;
     --locked-title) extra=(-o locked-title=yes); shift ;;
+    --help)         sed -n '2,/^set -u/{/^set -u/d;s/^# \{0,1\}//;p}' "$0"; exit 0 ;;
     --)             break ;;
     *)              echo "kawa-float: unknown option $1" >&2; exit 2 ;;
   esac
@@ -29,7 +34,6 @@ title=${1:-} size=${2:-}
 shift 3
 run=${XDG_RUNTIME_DIR:?}
 if [[ -n $once ]]; then
-  [[ $once =~ ^[a-z0-9-]+$ ]] || { echo "kawa-float: --once takes a plain name" >&2; exit 2; }
   exec 9>"$run/kawa-float-$once.lock"
   flock -n 9 || exit 3
 fi

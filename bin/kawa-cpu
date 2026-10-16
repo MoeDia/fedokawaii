@@ -3,14 +3,24 @@
 # as columns of up to 5 lit segments — the same pixel segments as the music meter, the
 # newest on the right — then the load now in per cent. Grey while calm; vermilion above 80 %.
 # Pure bash on /proc/stat: no forks at all (the wait is a read with a timeout on a pipe
-# that never speaks).
+# that never speaks). Prints one waybar JSON line at once, then one per reading, until the
+# bar is gone (exit 0: waybar starts it again, with an empty history).
+# Exit status: 0 the bar went away · 2 misuse.
 set -u
+case ${1:-} in
+  "") ;;
+  -h|--help) sed -n '2,/^set -u/{/^set -u/d;s/^# \{0,1\}//;p}' "$0"; exit 0 ;;
+  *) echo "usage: kawa-cpu (kawa-cpu --help)" >&2; exit 2 ;;
+esac
+# (the tests point these at a stand-in /proc/stat and a shorter wait)
+STAT=${KAWA_PROC_STAT:-/proc/stat} EVERY=${KAWA_CPU_EVERY:-2}
+[[ $EVERY =~ ^[0-9]+(\.[0-9]+)?$ ]] || EVERY=2
 # shellcheck source=/dev/null
 . "$HOME/.config/fedokawaii/icons.sh"
 SEG=("$ICON_EQ_0" "$ICON_EQ_1" "$ICON_EQ_2" "$ICON_EQ_3" "$ICON_EQ_4" "$ICON_EQ_5")
 hist=(0 0 0 0 0 0 0 0)
 exec {quiet}<> <(:)                              # waiting on this fd = sleep without a fork
-read -r _ u n s i w q sq st _ </proc/stat
+read -r _ u n s i w q sq st _ <"$STAT"
 prev_busy=$((u + n + s + q + sq + st)) prev_all=$((prev_busy + i + w))
 pct=0
 draw() {
@@ -21,13 +31,13 @@ draw() {
 }
 draw                                             # at once: the bar keeps its width from the start
 while :; do
-  read -rt 2 -u "$quiet" _ || true
-  read -r _ u n s i w q sq st _ </proc/stat
+  read -rt "$EVERY" -u "$quiet" _ || true
+  read -r _ u n s i w q sq st _ <"$STAT"
   busy=$((u + n + s + q + sq + st)) all=$((busy + i + w))
   d=$((all - prev_all)); ((d > 0)) || d=1
   pct=$(( (busy - prev_busy) * 100 / d ))
   ((pct < 0)) && pct=0; ((pct > 100)) && pct=100    # iowait can step back between readings
   prev_busy=$busy prev_all=$all
   hist=("${hist[@]:1}" "$pct")
-  draw
+  draw || exit 0               # the bar is gone (waybar ignores SIGPIPE, and so does its child)
 done

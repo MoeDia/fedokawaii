@@ -8,7 +8,11 @@
 # and the ring stay exactly centred; the words sit 2 px right with the padlock art, which
 # is drawn 2 px in to meet swaylock's ring). `kawa-lock --now` (before sleep) skips that and
 # locks with the bare padlock at once; so does any failure.
+#
+# Exit: 0 locked (or it already was) · otherwise it could not lock — swaylock's own status,
+# or 1 without swaylock — so `kawa-lock && systemctl suspend` never sleeps unlocked.
 set -u
+case ${1:-} in -h|--help) sed -n '2,/^set -u/{/^set -u/d;s/^# \{0,1\}//;p}' "$0"; exit 0 ;; esac
 # It must lock even when something around it is broken (it also runs right before
 # suspend): every missing piece falls back to less decoration, never to no lock.
 THEME=dark C_GROUND=0f0e0c
@@ -16,12 +20,27 @@ CONF="$HOME/.config/fedokawaii/current/swaylock"
 # shellcheck source=/dev/null
 [[ -r $HOME/.config/fedokawaii/current/colors.sh ]] && . "$HOME/.config/fedokawaii/current/colors.sh"
 PADLOCK="$HOME/.local/share/fedokawaii/$THEME/lock.png"
-pgrep -xu "$UID" swaylock >/dev/null && exit 0        # already locked (this user's)
 now=0; [[ ${1:-} == --now ]] && { now=1; shift; }
+# one at a time: a second press while the first still draws its picture (a double press,
+# idle firing as you press) waits for it, then finds swaylock running — never two lockers.
+# Before sleep (--now) nothing waits: it locks at once, and the drawing one then stands
+# down. (No lock file, or flock stuck: carry on — locking comes first.)
+if [[ -n ${XDG_RUNTIME_DIR:-} ]] && { exec 9>"$XDG_RUNTIME_DIR/kawa-lock.busy"; } 2>/dev/null; then
+  if ((now)); then flock -n 9 2>/dev/null; else flock -w 5 9 2>/dev/null; fi
+fi
+pgrep -xu "$UID" swaylock >/dev/null && exit 0        # already locked (this user's)
+if ! command -v swaylock >/dev/null; then
+  # shellcheck source=/dev/null
+  . "$HOME/.config/fedokawaii/icons.sh" 2>/dev/null
+  notify-send -a desktop -u critical "${ICON_LOCK:-}  Could not lock the screen" "swaylock is not installed (sudo dnf install swaylock)" 2>/dev/null
+  echo "kawa-lock: swaylock is not installed" >&2; exit 1
+fi
 
 if ((now == 0)) && [[ -s $PADLOCK && -n ${XDG_RUNTIME_DIR:-} ]] && command -v magick >/dev/null; then
   K=(月 火 水 木 金 土 日); printf -v u '%(%u)T' -1; kj=${K[u - 1]}
-  dt=$(LC_ALL=C date '+%a %d %b')                       # (English: the pixel font's letters)
+  # (English capitals, the pixel font's letters — upper-cased by date in C, not by the
+  # locale: in Turkish, "Fri" would become FRİ)
+  dt=$(LC_ALL=C date '+%^a %d %^b')
   fd=$(fc-match -f '%{file}' 'DepartureMono Nerd Font' 2>/dev/null)
   fj=$(fc-match -f '%{file}' 'PixelMplus12' 2>/dev/null)
   out=$XDG_RUNTIME_DIR/kawa-lock.png
@@ -31,13 +50,14 @@ if ((now == 0)) && [[ -s $PADLOCK && -n ${XDG_RUNTIME_DIR:-} ]] && command -v ma
        +antialias -gravity center \
        \( -size 36x36 "xc:#${C_ACCENT:-d0583a}" -font "$fj" -pointsize 24 -fill "#ece3cc" \
           -annotate +1+1 "$kj" \) -geometry +2-126 -composite \
-       -font "$fd" -pointsize 22 -fill "#${C_MUTED:-877f6f}" -annotate +2+86 "${dt^^}" \
+       -font "$fd" -pointsize 22 -fill "#${C_MUTED:-877f6f}" -annotate +2+86 "$dt" \
        "PNG32:$out.tmp" 2>/dev/null; then
     mv -f "$out.tmp" "$out" && PADLOCK=$out
   fi
 fi
 
+pgrep -xu "$UID" swaylock >/dev/null && exit 0        # locked meanwhile (--now, before sleep)
 args=()
 [[ -s $PADLOCK ]] && args+=(-i "$PADLOCK")
 if [[ -r $CONF ]]; then args=(-C "$CONF" "${args[@]}"); else args+=(-c "$C_GROUND"); fi
-exec swaylock -f "${args[@]}" "$@"
+exec swaylock -f "${args[@]}" "$@" 9>&-               # (the lock ends as swaylock starts)

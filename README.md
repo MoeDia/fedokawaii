@@ -37,6 +37,8 @@ art/               source art: icons.txt (every icon, drawn as text) · cursors.
                    drawn as text) · grub/ (torii, Departure Mono)
 tools/             generators: build-icons.py (Sumi Icons, and its terminal cut) · build-themes.py
                    (one palette → every app) · build-cursors.py (the pointers)
+tests/             the self-tests: every helper, the engine and the installer, edge case by edge
+                   case, against stand-ins for the hardware (bash tests/run.sh — see §6)
 docs/              the handbook: fedokawaii-guide.md and its illustrated PDF, Fedokawaii-Guide.pdf ·
                    build/ (how the PDF and its real screenshots were made: docs/build/README.md)
 PACKAGES.md        what is installed, from where, and why
@@ -116,26 +118,31 @@ Boot the Fedora 44 Server USB → **Install Fedora 44**:
 | Software Selection | **Minimal Install** (if the image lists only *Fedora Server Edition* / *Fedora Custom Operating System*, pick **Custom Operating System**). Nothing ticked on the right |
 | Installation Destination | disk → Storage Configuration **Custom** → Done → scheme dropdown **Btrfs** → *Click here to create them automatically* → Done → Accept. **Do not skip:** Server's *Automatic* is LVM + XFS and snapper needs Btrfs |
 | KDUMP | off |
-| Network & Host Name | ethernet **on**, hostname `fedokawaii` |
+| Network & Host Name | ethernet **on**, hostname `fedokawaii`. Setup needs the network from its first minute, and a Minimal Install has **no Wi-Fi** support yet (setup adds it, and the radio's firmware: in phase 2, or at its last check once the radio shows after a restart): a cable, or a phone's USB tethering (it counts as wired), until setup has finished |
 | Root Account | leave it **disabled** (no root password) — everything runs through your administrator user with `sudo` |
-| User Creation | your user, **Make this user administrator** |
+| User Creation | your user, with **Add administrative privileges to this user account (wheel group membership)** ticked |
 
 ## 2 · Run
 
-The project is yours alone and private: bring it on a USB stick as
-`fedokawaii.tar.gz` (tar keeps every file's permissions; the minimal install has `tar`).
+The project is yours alone and private, on GitHub as `MoeDia/fedokawaii`. A Minimal Install
+has neither `tar` nor `git`, so the first command installs one (the network is up already).
+
+**On a USB stick** — on another computer, signed in to GitHub, download
+`https://github.com/MoeDia/fedokawaii/archive/refs/heads/main.tar.gz` onto the stick
+(it saves as `fedokawaii-main.tar.gz`), then on the new machine:
 
 ```sh
+sudo dnf install -y tar
 lsblk -o NAME,SIZE,LABEL,FSTYPE           # find the stick, say sdb1
 sudo mount /dev/sdb1 /mnt
-tar -xzf /mnt/fedokawaii.tar.gz -C ~      # → ~/fedokawaii
+tar -xzf /mnt/fedokawaii-main.tar.gz -C ~ && mv ~/fedokawaii-main ~/fedokawaii
 sudo umount /mnt
 cd ~/fedokawaii
 sudo bash fedokawaii.sh
 ```
 
-Or straight from GitHub, where it is the private repository `MoeDia/fedokawaii` (git asks for
-your GitHub user name, and a *personal access token* as the password):
+**Or straight from GitHub** (git asks for your GitHub user name, and a *personal access token*
+as the password — long to type on a console, so the stick is usually quicker):
 
 ```sh
 sudo dnf install -y git-core
@@ -185,7 +192,7 @@ a month before yours ends.
 ### Changing it — Super+Shift+U
 
 The desktop is changed in a **working copy** (`~/repos/fedokawaii`, a git repository of the
-toolkit), never in the toolkit itself, so every update keeps the change (handbook, chapter 15):
+toolkit), never in the toolkit itself, so every update keeps the change (handbook, chapter 42):
 
 | Command | Does |
 |---|---|
@@ -196,17 +203,18 @@ toolkit), never in the toolkit itself, so every update keeps the change (handboo
 | `fedokawaii apply` | ShellCheck's advice, every script parsed, the copy made the toolkit (your saved settings merged in), then the theme — or repair, when packages or system parts changed |
 
 Files the theme never writes are yours to edit in place: `~/.bashrc.d/local.sh`,
-`~/.config/dwl/autostart.local.sh`, `~/.config/nvim/lua/plugins/local.lua`. Chapter 16 of the
-handbook is about learning: which languages to learn and why, the ideas behind them with an
-example each, where the reliable documentation is, and where the industry stands now.
-Chapter 17 explains Linux itself from the ground up, on this machine: the boot, files,
-users, processes and services, packages and how this desktop's pieces connect, the graphics
-and sound stacks, D-Bus and the portals, security, the commands by job, and a glossary.
+`~/.config/dwl/autostart.local.sh`, `~/.config/nvim/lua/plugins/local.lua`. Chapters 43 and
+44 of the handbook are about learning: which languages to learn and why, the ideas behind them
+with an example each, where the reliable documentation is, and learning with an AI assistant.
+Part IV (chapters 22–34) explains Linux itself from the ground up, on this machine: the boot,
+files, users, processes and services, packages and how this desktop's pieces connect, the
+graphics and sound stacks, D-Bus and the portals, and security; the commands by job and the
+glossary are appendices D and E.
 
 ## 4 · First login, once
 
 - **Prowlarr** is already wired to torrra (its key's master copy is `~/.config/fedokawaii/secrets.sh`; Prowlarr gets it as a podman secret);
-  type `prowlarr` (it starts on demand and opens <http://localhost:9696>), create its login, and add your indexers (handbook §12.1).
+  type `prowlarr` (it starts on demand and opens <http://localhost:9696>), create its login, and add your indexers (handbook §20.1).
 - **spotify_player**: run it once and log in (Premium).
 - **Claude Code**: `claude` → log in. `/theme` → the *ANSI colours only* variant to use the palette.
 - **Brave Origin**: nothing to set — Theme put it in GTK mode, so it wears the palette and follows
@@ -216,5 +224,14 @@ and sound stacks, D-Bus and the portals, security, the commands by job, and a gl
 
 Two kernels: the newest, and the one before it as the way back. The themed boot menu shows for
 `BOOT_MENU_SECONDS` (2 by default); set it to 0 for Fedora's hidden menu, which appears
-only after a failed boot, or with **Shift** held (or **Esc** or **F8** pressed) as it starts. Re-run Theme after changing monitors so the
+only after a failed boot, or with **Shift** held (or **Esc** or **F8** pressed) as it starts. (Beside Windows, setup leaves the menu shown.) Re-run Theme after changing monitors so the
 boot menu matches the new resolution.
+
+## 6 · Self-tests
+
+`bash tests/run.sh` runs every test file; `bash tests/run.sh drives` runs one area. Each file
+works in a throw-away home with stand-ins ("stubs") for the hardware and services a helper
+talks to — USB drives, monitors, sound, the network, dnf — so nothing on the machine is
+touched, and no root, display or network is needed (bash, jq and python3 are). A failed check
+prints what was expected and what came instead. The harness is `tests/lib/harness.sh`;
+`tests/drives/test_drives.sh` is the worked example to copy.

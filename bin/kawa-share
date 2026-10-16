@@ -2,12 +2,20 @@
 # kawa-share — what to share. xdg-desktop-portal-wlr runs it when an app starts a screen
 # share (Brave's "Entire screen" or "Window", OBS, a video call): the choices arrive on
 # stdin, one per line, and the line printed back — unchanged — is shared; no answer (Esc)
-# cancels the share. Lines look like (portal 0.8 and later; 0.7 sent a bare screen name):
+# cancels the share (exit 1). Lines look like (portal 0.8 and later; 0.7 sent a bare
+# screen name):
 #   Monitor: DP-1 Dell Inc. DELL U2720Q 1234
-#   Window: Weekly sync — Brave (brave-browser)
-# A single choice is taken at once, without a question; several get the usual menu.
+#   Window: Weekly sync — Brave (4f2a9c1e0b7d4e21a3c5f6b7d8e9f0a1)
+# — in brackets wlroots' own token for the window, not its app id. A single choice is taken
+# at once, without a question; several get the usual menu. No arguments (--help: this text).
 set -u
+case ${1:-} in
+  "") ;;
+  -h|--help) sed -n '2,/^set -u/{/^set -u/d;s/^# \{0,1\}//;p}' "$0"; exit 0 ;;
+  *) echo "usage: … | kawa-share   (xdg-desktop-portal-wlr runs it: the choices on stdin)" >&2; exit 2 ;;
+esac
 PATH="$HOME/.local/bin:$PATH"                       # (the portal starts it with systemd's PATH)
+export LC_ALL=C.UTF-8          # widths count characters, not bytes (the portal may set no locale)
 # shellcheck source=/dev/null
 . "$HOME/.config/fedokawaii/icons.sh" 2>/dev/null
 mapfile -t lines
@@ -18,13 +26,21 @@ if ((${#lines[@]} == 1)); then printf '%s\n' "${lines[0]}"; exit 0; fi
 declare -A size=()
 while read -r name wh; do size[$name]=$wh; done < <(wlr-randr 2>/dev/null | awk '
   /^[^ ]/ { out = $1; next }
-  /^    [0-9]+x[0-9]+ px,.*current/ { split($1, d, "x"); print out, d[1] "×" d[2] }')
+  /^    [0-9]+x[0-9]+ px.*current/ { split($1, d, "x"); print out, d[1] "×" d[2] }')
 
+cut40() {   # cut40 TEXT — TEXT in at most 40 columns (a Japanese letter takes two), "…" when cut
+  local t=$1
+  (( $(wc -L <<<"$t") <= 40 )) && { printf '%s' "$t"; return; }
+  t=${t:0:40}; while (( $(wc -L <<<"$t…") > 40 )); do t=${t%?}; done
+  printf '%s…' "$t"
+}
 rows=()
 for l in "${lines[@]}"; do
   case $l in
-    "Window: "*) t=${l#Window: }; t=${t% (*}                         # the title, without "(app id)"
-                 t=${t//[[:cntrl:]]/ }; ((${#t} > 40)) && t="${t:0:39}…"
+    "Window: "*) t=${l#Window: }; a=${t##* (}; a=${a%)}; t=${t% (*}   # the title, without the token —
+                 # a window with no title: so it says, with the token's start to tell several apart
+                 [[ -z ${t// /} ]] && t="untitled window · ${a:0:6}"
+                 t=$(cut40 "${t//[[:cntrl:]]/ }")
                  printf -v r '%s  %s' "${ICON_WINDOW:-}" "$t" ;;
     *)           n=${l#Monitor: }; n=${n%% *}                         # the screen's name
                  printf -v r '%s  %-10s %s' "${ICON_TILE:-}" "$n" "${size[$n]:-}" ;;

@@ -8,13 +8,21 @@
 #  System checks always run. Theme checks run once the theme has been applied
 #  (otherwise they are listed as "not applied", which is not a failure).
 #  Every check fails if its probe fails — a broken tool can never produce a pass.
-#  Exit 0 = all passed. Log: /var/log/fedokawaii-verify.log
+#  Exit: 0 all passed · 3 something failed (listed at the end) · 2 misuse: not root,
+#  or setup has not started · 1 verify itself could not run. Log: /var/log/fedokawaii-verify.log
 # ═════════════════════════════════════════════════════════════════════════════
 set -uo pipefail
 IFS=$'\n\t'
 export LC_ALL=C.UTF-8      # every tool's output in one language and format, whatever yours is
 REPO_DIR="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" && pwd)"
-PRE=0; [[ ${1:-} == --pre-finalize ]] && PRE=1
+PRE=0
+for a in "$@"; do
+  case $a in
+    --pre-finalize) PRE=1 ;;
+    -h|--help) sed -n '3,/^# ═/p' "$0" | sed '$d'; exit 0 ;;
+    *) echo "unknown option: $a (bash verify.sh --help)" >&2; exit 2 ;;
+  esac
+done
 [[ $EUID -eq 0 ]] || { echo "run with sudo" >&2; exit 2; }
 
 STATE_DIR=/var/lib/fedokawaii
@@ -26,7 +34,7 @@ source "$REPO_DIR/lib/hygiene.sh"
 source "$REPO_DIR/lib/hardware.sh"
 read_conf "$REPO_DIR/fedokawaii.conf"
 [[ -f $STATE_DIR/user ]] || { echo "setup has not started — nothing to verify yet (try: check)" >&2; exit 2; }
-TARGET_USER=$(<"$STATE_DIR/user"); TARGET_HOME=$(getent passwd "$TARGET_USER" | cut -d: -f6)
+TARGET_USER=$(head -n1 "$STATE_DIR/user" | tr -d '[:space:]'); TARGET_HOME=$(getent passwd "$TARGET_USER" | cut -d: -f6)
 TARGET_UID=$(id -u "$TARGET_USER"); TARGET_GID=$(id -g "$TARGET_USER")
 export TARGET_USER TARGET_HOME TARGET_UID TARGET_GID
 GPU_KIND=$(cat "$STATE_DIR/gpu" 2>/dev/null || echo amd)
@@ -41,6 +49,11 @@ hdr "Fedokawaii · verify · $(date '+%F %H:%M')"
 section "system"
 # shellcheck disable=SC1091
 source /etc/os-release
+# fedokawaii.conf as it is now: each problem on a line of its own (fedokawaii settings checks
+# before it saves; an edit by hand may not have been)
+cp=$(conf_report)
+if [[ -z $cp ]]; then pass "fedokawaii.conf: every value valid"
+else while IFS= read -r l; do fail "fedokawaii.conf: $l" "fedokawaii settings"; done <<<"$cp"; fi
 check "Fedora $VERSION_ID (44 or newer)"              test "$VERSION_ID" -ge 44
 check "SELinux enforcing"                              test "$(getenforce 2>/dev/null)" = Enforcing
 check "/ is Btrfs"                                     test "$(findmnt -no FSTYPE /)" = btrfs
@@ -55,12 +68,17 @@ section "packages (lib/manifest.sh)"
 mapfile -t WANT < <(manifest_all "$GPU_KIND")
 # a package Fedora renamed counts (the new one provides the old name); one it retired, that
 # the last update could not find anywhere, is a warning — the desktop goes on without it
-miss=()
-for p in "${WANT[@]}"; do rpm -q --whatprovides "$p" >/dev/null 2>&1 || miss+=("$p"); done
+# (one rpm for them all — a few seconds less than one per package: every package answers with
+# its providers' names, or "no package provides NAME"; fewer answers than packages means rpm
+# itself failed, and that is said rather than taken for a pass)
+q=$(rpm -q --whatprovides --qf '%{NAME}\n' "${WANT[@]}" 2>&1)
+mapfile -t miss < <(sed -n 's/^no package provides //p' <<<"$q")
+nans=$(grep -cE '^(no package provides .+|[A-Za-z0-9._+-]+)$' <<<"$q")
 gone=$(cat "$STATE_DIR/unavailable" 2>/dev/null || true)
 real=() ret=()
 for p in "${miss[@]}"; do if grep -qx -- "$p" <<<"$gone"; then ret+=("$p"); else real+=("$p"); fi; done
-if ((${#miss[@]} == 0)); then pass "all ${#WANT[@]} manifest packages installed"
+if ((nans < ${#WANT[@]})); then fail "manifest packages: rpm gave no answer" "its database may be damaged: sudo rpm --rebuilddb, then verify again"
+elif ((${#miss[@]} == 0)); then pass "all ${#WANT[@]} manifest packages installed"
 elif ((${#real[@]})); then fail "missing packages" "$(IFS=' '; echo "${real[*]}")"
 else pass "$((${#WANT[@]} - ${#ret[@]})) of ${#WANT[@]} manifest packages installed"; fi
 ((${#ret[@]} == 0)) || warn "no longer in Fedora (renamed or retired)" "$(IFS=' '; echo "${ret[*]}")"
@@ -147,8 +165,16 @@ check "the manifest's packages marked as yours (dnf's clean-up never takes them)
 
 # ── boot & kernel ────────────────────────────────────────────────────────────
 section "boot & kernel"
-if ((THEMED && BOOT_MENU_SECONDS > 0)); then
+# the boot menu is the theme's one optional part: when its run could not make it (its mark,
+# theme.sh's BOOT_MARK), the theme check below already says so — as a warning while nothing
+# has changed since, which must not turn into a failure here and stop setup's gate for good
+BOOT_SKIPPED=0; ((THEMED)) && [[ -s $STATE_DIR/boot.failed ]] && BOOT_SKIPPED=1
+if ((BOOT_SKIPPED)); then
+  info "boot menu: not themed here (the theme check below says why) — left as Fedora set it"
+elif ((THEMED && BOOT_MENU_SECONDS > 0)); then
   check "GRUB menu shown for $BOOT_MENU_SECONDS s (themed)" bash -c 'l=$(grub2-editenv - list) && ! grep -qx menu_auto_hide=1 <<<"$l"'
+elif [[ -s $STATE_DIR/other-os ]]; then   # (dual boot: setup and Theme leave it shown, even at 0 s)
+  check "GRUB menu shown (this machine also starts $(paste -sd, - <"$STATE_DIR/other-os"))" bash -c 'l=$(grub2-editenv - list) && ! grep -qx menu_auto_hide=1 <<<"$l"'
 else
   check "GRUB menu hidden (shows after a failed boot)" bash -c 'l=$(grub2-editenv - list) && grep -qx menu_auto_hide=1 <<<"$l"'
 fi
@@ -167,7 +193,14 @@ fi
 
 # ── GPU & media ──────────────────────────────────────────────────────────────
 section "GPU & media"
-rnd=$(compgen -G '/dev/dri/renderD*' | head -n1)
+# the render node of the card the desktop is built for: a desktop with the CPU's own graphics
+# switched on beside an AMD card has two, and the integrated one usually comes first
+want_vendor=0x1002; [[ $GPU_KIND == intel ]] && want_vendor=0x8086
+rnd=""
+for n in /dev/dri/renderD*; do
+  [[ $(cat "/sys/class/drm/${n##*/}/device/vendor" 2>/dev/null) == "$want_vendor" ]] && { rnd=$n; break; }
+done
+[[ -n $rnd ]] || rnd=$(compgen -G '/dev/dri/renderD*' | head -n1)
 va=$(vainfo --display drm --device "$rnd" 2>/dev/null)
 for p in VAProfileH264High VAProfileHEVCMain; do check "hardware decode: ${p#VAProfile}" grep -q "$p" <<<"$va"; done
 # AV1 decoding needs AMD RDNA 2+ or Intel Tiger Lake+: older cards get a note, not a failure
@@ -278,12 +311,20 @@ if [[ $(stat -f -c %T "$TARGET_HOME") == btrfs ]]; then
   if btrfs subvolume show "$TARGET_HOME/Downloads" >/dev/null 2>&1; then pass "~/Downloads kept out of /home's snapshots (own subvolume)"
   else warn "~/Downloads is inside /home's snapshots" "a deleted download keeps its space until the last snapshot holding it expires"; fi
 fi
-ports=$(firewall-cmd --list-ports 2>/dev/null) || ports="(firewalld not answering)"
-fwsvc=$(firewall-cmd --list-services 2>/dev/null) || fwsvc="(firewalld not answering)"
-check "torrent port 6881 open (tcp + udp)"             bash -c "grep -q 6881/tcp <<<'$ports' && grep -q 6881/udp <<<'$ports'"
+# the firewall's ports — when firewalld runs (Fedora's, from @core). Without it (taken out, or
+# switched off) nothing filters at all: setup says so and goes on (s_ssh, torrent_port), and
+# so does this — a warning, never a failure that would stop setup's gate for good
+fw=1; firewall-cmd -q --state 2>/dev/null || fw=0
+if ((fw)); then
+  ports=$(firewall-cmd --list-ports 2>/dev/null) || ports="(firewalld not answering)"
+  fwsvc=$(firewall-cmd --list-services 2>/dev/null) || fwsvc="(firewalld not answering)"
+  check "torrent port 6881 open (tcp + udp)"           bash -c "grep -q 6881/tcp <<<'$ports' && grep -q 6881/udp <<<'$ports'"
+else
+  warn "no firewall running (firewalld)" "nothing filters connections from outside; torrra's port 6881 is open anyway"
+fi
 if [[ $SSH_SERVER == no ]]; then
   check "sshd off (SSH_SERVER=no)"                     bash -c '! systemctl is-enabled --quiet sshd.service'
-  check "firewall: no ssh / cockpit"                   bash -c "[[ '$fwsvc' != *'not answering'* ]] && ! grep -qwE 'ssh|cockpit' <<<'$fwsvc'"
+  ((fw)) && check "firewall: no ssh / cockpit"         bash -c "[[ '$fwsvc' != *'not answering'* ]] && ! grep -qwE 'ssh|cockpit' <<<'$fwsvc'"
 else
   check "sshd on (SSH_SERVER=yes)"                     systemctl is-enabled --quiet sshd.service
 fi
@@ -318,7 +359,7 @@ check "Brave Origin starts (headless)" \
 check "Claude Code runs"                               U timeout 20 claude --version
 check "LazyVim plugins installed"                      test -d "$TARGET_HOME/.local/share/nvim/lazy/LazyVim"
 check "torrra $TORRRA_VERSION loads (Python 3.13, libtorrent)" U "$TARGET_HOME/.local/share/pipx/venvs/torrra/bin/python" -I -c 'import sys, importlib.metadata as m, torrra, libtorrent; assert sys.version_info[:2] == (3, 13) and m.version("torrra") == sys.argv[1]' "$TORRRA_VERSION"
-check "torrra runs through kawa-torrra (key from secrets.sh)" U bash -c 'test -f /etc/profile.d/kawa-torrra.sh && kawa-torrra --version'
+check "torrra runs through kawa-torrra" U bash -c 'test -f /etc/profile.d/kawa-torrra.sh && kawa-torrra --version'
 check "torrra uses Prowlarr, and no key in its config" bash -c 'grep -qx "default = \"prowlarr\"" "$1" && ! grep -q api_key "$1"' _ "$TARGET_HOME/.config/torrra/config.toml"
 check "mpv in the bar and on the media keys (mpv-mpris)" test -f /etc/mpv/scripts/mpris.so
 check "yt-dlp can answer YouTube's challenges (Node.js ≥ 20)" bash -c 'v=$(node --version 2>/dev/null) || exit 1; v=${v#v}; ((${v%%.*} >= 20))'
@@ -392,6 +433,10 @@ else
     bash -c 'grep -qx "cmd=$1/.local/bin/kawa-pick" "$1/.config/xdg-desktop-portal-termfilechooser/config" && test -x "$1/.local/bin/kawa-pick"' _ "$TARGET_HOME"
   check "Brave starts with screen-share sound (launcher entry → ~/.local/bin/brave-origin)" \
     grep -q "^Exec=$TARGET_HOME/.local/bin/brave-origin" "$TARGET_HOME/.local/share/applications/brave-origin.desktop"
+  if [[ -r /usr/share/applications/com.brave.Origin.desktop ]]; then   # (brave/brave-browser#52193)
+    check "Brave listed once in the launcher (its second entry hidden)" \
+      bash -c 'sed -n "/^\[Desktop Entry\]/,/^\[/p" "$1" | grep -qx NoDisplay=true' _ "$TARGET_HOME/.local/share/applications/com.brave.Origin.desktop"
+  fi
   # set once by Theme; what you choose in Brave afterwards is yours, so only a note
   if jq -e '((.extensions.theme.id // "") != "" or .extensions.theme.system_theme == 1) and .brave.new_tab_page.background.type == "color"' \
        "$TARGET_HOME/.config/BraveSoftware/Brave-Origin/Default/Preferences" >/dev/null 2>&1; then
@@ -429,13 +474,13 @@ else
     else warn "wallpaper pack: $have of $want pictures drawn" "re-run Theme when online (kawa-wallpaper --pack)"; fi
   fi
   check "music meter (cava) runs"                      U timeout 5 cava -v
-  check "boot menu theme installed"                    bash -c 'test -s /boot/grub2/themes/sumi/theme.txt && grep -q /boot/grub2/themes/sumi/theme.txt /boot/grub2/grub.cfg'
+  ((BOOT_SKIPPED)) || check "boot menu theme installed" bash -c 'test -s /boot/grub2/themes/sumi/theme.txt && grep -q /boot/grub2/themes/sumi/theme.txt /boot/grub2/grub.cfg'
   # shellcheck disable=SC2088  # literal ~ in a label
   check "~/.bashrc loads ~/.bashrc.d"                  grep -q bashrc.d "$TARGET_HOME/.bashrc"
 fi
 
 # ── live session (only while you are logged in) ─────────────────────────────
-if pgrep -u "$TARGET_UID" -x dwl >/dev/null; then
+if pgrep -u "$TARGET_UID" -x 'dwl(\.prev)?' >/dev/null; then
   section "live session"
   check "PipeWire + WirePlumber active"                U systemctl --user is-active --quiet pipewire.service wireplumber.service
   # the portals behind file dialogs and screen sharing start only inside a graphical session
@@ -465,12 +510,17 @@ if pgrep -u "$TARGET_UID" -x dwl >/dev/null; then
   # brightness over DDC/CI depends on the monitor having DDC/CI switched on in its own menu
   if [[ -n $(U ddcutil detect --terse 2>/dev/null | grep -m1 '^Display [0-9]') ]]; then
     pass "a monitor answers DDC/CI (brightness control works)"
+  elif compgen -G '/sys/class/backlight/*' >/dev/null && grep -qsx connected /sys/class/drm/card*-eDP-*/status; then
+    pass "the laptop's own screen: brightness through its backlight"
   else
     warn "no monitor answered DDC/CI" "switch DDC/CI on in the monitor's on-screen menu, then try Super+]"
   fi
 fi
 
-((${#FAILS[@]} == 0)) || _out "  ${C_DIM}most of these fix themselves: fedokawaii repair${C_RESET}"
+if ((${#FAILS[@]})); then
+  if ((PRE)); then _out "  ${C_DIM}most of these fix themselves: fedokawaii repair — then run setup again${C_RESET}"
+  else _out "  ${C_DIM}most of these fix themselves: fedokawaii repair${C_RESET}"; fi
+fi
 summary "verified"; rc=$?
 ((rc == 0)) || rc=3          # (3: it ran, and things need you — 1 is verify itself failing)
 # the outcome, for the menu (Super+U) and repair: WHEN PASSED FAILED WARNINGS

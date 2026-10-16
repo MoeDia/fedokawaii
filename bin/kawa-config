@@ -4,8 +4,14 @@
 # (~/repos/fedokawaii, made from the toolkit on first use), never in the toolkit — and when
 # the editor closes, applies it if you say so. Also: the files that are yours alone (the
 # theme never writes them), what changed, its history, and where to learn each language.
-# The same work as fedokawaii copy · diff · apply (handbook, chapter 15).
+# The same work as fedokawaii copy · diff · apply (handbook, chapter 42). No arguments
+# (--help: this text).
 set -u
+case ${1:-} in
+  "") ;;
+  -h|--help) sed -n '2,/^set -u/{/^set -u/d;s/^# \{0,1\}//;p}' "$0"; exit 0 ;;
+  *) echo "usage: kawa-config   (no arguments: the menu of the desktop's parts)" >&2; exit 2 ;;
+esac
 LC_ALL=C.UTF-8                 # widths count characters, not bytes
 # shellcheck source=/dev/null
 . "$HOME/.config/fedokawaii/icons.sh"
@@ -33,11 +39,13 @@ pending() {   # how many files of the copy differ from the toolkit (fedokawaii.c
 }
 
 # edit TITLE DIR FILE… — neovim in a terminal window of its own (the folder as its project),
-# waited on until it closes
+# waited on until it closes. A foot of its own only when the terminal server is not there
+# (footclient's 220, or 230: the server failed): any other code is nvim's own (:cq), and the
+# file must not open twice
 edit() {
   local title=$1 dir=$2; shift 2
-  footclient -T "change · $title" -D "$dir" -- nvim -O -- "$@" 2>/dev/null \
-    || foot -T "change · $title" -D "$dir" -- nvim -O -- "$@"
+  footclient -T "change · $title" -D "$dir" -- nvim -O -- "$@" 2>/dev/null
+  case $? in 220|230) foot -T "change · $title" -D "$dir" -- nvim -O -- "$@" ;; esac
 }
 sums() { cat -- "$@" 2>/dev/null | cksum; }
 
@@ -131,7 +139,7 @@ return {
 learn_menu() {
   local rows=() urls=() i sec page
   l() { rows+=("$(line "$1" "$2" "$3")"); urls+=("$4"); }
-  l "$ICON_BOOK"     'this handbook' 'chapter 15: changing it'  guide
+  l "$ICON_BOOK"     'this handbook' 'chapter 42: changing it'  guide
   l "$ICON_KEYBOARD" keys            "this desktop's: Super+/"  keys
   l "$ICON_TERMINAL" bash            'The Linux Command Line'   https://linuxcommand.org/tlcl.php
   l "$ICON_TERMINAL" ShellCheck      'what each finding means'  https://www.shellcheck.net/wiki/

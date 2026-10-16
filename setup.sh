@@ -17,6 +17,8 @@
 #
 #  Installs software only. Configs, colours and keybindings are theme.sh's job;
 #  it runs near the end only when you chose "Both" (state file: with-theme).
+#  Exit: 0 done (or rebooting to go on) · 1 stopped: the line above says why · 2 misuse ·
+#        3 repair or update ran, and something still needs you
 # ═════════════════════════════════════════════════════════════════════════════
 set -Eeuo pipefail
 IFS=$'\n\t'
@@ -26,8 +28,21 @@ STATE_DIR=/var/lib/fedokawaii
 LOG_FILE=/var/log/fedokawaii.log
 RESUME_UNIT=fedokawaii-resume.service
 TOOLKIT=/usr/local/lib/fedokawaii
-MODE=build NO_REBOOT=0 UPGRADE_FLAG=""
+MODE=build NO_REBOOT=0 UPGRADE_FLAG="" RESUMED=0
 
+# (the options first: --help needs neither sudo nor a valid fedokawaii.conf, and a mistyped
+# option stops the run before anything is touched)
+for a in "$@"; do
+  case $a in
+    --resume) RESUMED=1 ;;
+    --update) MODE=update ;;  --repair) MODE=repair ;;  --status) MODE=status ;;  --reset) MODE=reset ;;
+    --toolkit) MODE=toolkit ;;
+    --upgrade) MODE=upgrade ;;  --now) UPGRADE_FLAG=--now ;;  --after-upgrade) MODE="after-upgrade" ;;
+    --no-reboot) NO_REBOOT=1 ;;
+    -h|--help) sed -n '3,/^# ═/p' "$0" | sed '$d'; exit 0 ;;
+    *) echo "unknown option: $a (sudo bash setup.sh --help lists them)" >&2; exit 2 ;;
+  esac
+done
 [[ $EUID -eq 0 ]] || { echo "run with sudo: sudo bash fedokawaii.sh" >&2; exit 2; }
 mkdir -p "$STATE_DIR"
 # the log, root's alone (it records every command): past 8 MB the old one is kept as
@@ -40,18 +55,6 @@ source "$REPO_DIR/lib/upstream.sh"
 source "$REPO_DIR/lib/hygiene.sh"
 source "$REPO_DIR/lib/hardware.sh"
 load_conf "$REPO_DIR"
-
-for a in "$@"; do
-  case $a in
-    --resume) ;;
-    --update) MODE=update ;;  --repair) MODE=repair ;;  --status) MODE=status ;;  --reset) MODE=reset ;;
-    --toolkit) MODE=toolkit ;;
-    --upgrade) MODE=upgrade ;;  --now) UPGRADE_FLAG=--now ;;  --after-upgrade) MODE="after-upgrade" ;;
-    --no-reboot) NO_REBOOT=1 ;;
-    -h|--help) sed -n '3,19p' "$0"; exit 0 ;;
-    *) die "unknown option: $a" ;;
-  esac
-done
 
 # The error report, on stderr. Inside a $(…), a <(…) or a pipeline (errtrace hands the trap
 # down) it only ends that piece, silently: what a $(…) captures, or a <(…) feeds a loop, is
@@ -69,12 +72,35 @@ if [[ $MODE == status ]]; then        # read-only, so it works while another run
 fi
 take_lock "$STATE_DIR/lock"
 make_tmp
+# A run resumed after a reboot (fedokawaii-resume.service) that stops: nobody typed a command
+# to "run again", and tty1, the service's own screen, has no login of its own until you
+# switch away and back. So it ends by saying how to carry on (the reason is above it).
+if ((RESUMED)); then
+  resume_hint() {
+    _out ""
+    if [[ $(phase) == 'done' ]]; then    # (the final check, or the baseline: the build is in place)
+      _out "${C_GOLD}  The desktop is installed, but its last steps found a problem (above).${C_RESET}"
+      _out "${C_GOLD}  Restart the computer, log in, then run:  fedokawaii repair${C_RESET}"
+      return 0
+    fi
+    _out "${C_GOLD}  Setup stopped — the reason is above. Once it is put right, carry on either way:${C_RESET}"
+    _out "${C_GOLD}    · restart the computer: setup continues by itself${C_RESET}"
+    _out "${C_GOLD}    · or press Alt+F2, log in, and run:  sudo bash $TOOLKIT/setup.sh${C_RESET}"
+  }
+  trap 'rc=$?; rm -rf "$KAWA_TMP"; [[ -n ${FOLLOWER:-} ]] && kill "$FOLLOWER" 2>/dev/null
+        ((rc == 0)) || resume_hint; true' EXIT
+fi
 
 # shellcheck disable=SC1091
 source /etc/os-release
 FEDORA_VER=$VERSION_ID
 
-if [[ -f $STATE_DIR/user ]]; then TARGET_USER=$(<"$STATE_DIR/user")
+if [[ -f $STATE_DIR/user ]]; then
+  TARGET_USER=$(head -n1 "$STATE_DIR/user" | tr -d '[:space:]')
+  # (the record of who the desktop is for: a user that is not there — the file damaged, the
+  # user renamed — would make every step fail somewhere far from the cause)
+  [[ -n $TARGET_USER && $TARGET_USER != root ]] && getent passwd "$TARGET_USER" >/dev/null \
+    || die "$STATE_DIR/user names '$TARGET_USER', who is not a user of this machine — write the desktop user's name in it (or delete it: setup then takes USERNAME, or whoever ran sudo)"
 else
   TARGET_USER=${USERNAME:-${SUDO_USER:-}}
   [[ -n $TARGET_USER && $TARGET_USER != root ]] || die "cannot tell who the desktop user is — run with sudo from your user, or set USERNAME"
@@ -83,15 +109,15 @@ TARGET_HOME=$(getent passwd "$TARGET_USER" | cut -d: -f6)
 TARGET_UID=$(id -u "$TARGET_USER"); TARGET_GID=$(id -g "$TARGET_USER")
 export TARGET_USER TARGET_HOME TARGET_UID TARGET_GID
 
-detect_gpu() {   # the GPU the desktop is built for: an AMD card wherever there is one (a
-  # desktop's discrete card, with an Intel one beside it or not), else Intel's
+detect_gpu() {   # the GPU the desktop is built for: GPU in fedokawaii.conf, else the cards'
+  # (lib/hardware.sh, hw_gpu: amd, intel — or nvidia, vm, none, which it is not built for)
   [[ $GPU != auto ]] && { echo "$GPU"; return; }
-  local v; v=$(cat /sys/class/drm/card[0-9]*/device/vendor 2>/dev/null) || v=""
-  if grep -qx 0x1002 <<<"$v"; then echo amd
-  elif grep -qx 0x8086 <<<"$v"; then echo intel
-  else echo none; fi
+  hw_gpu
 }
-phase()     { cat "$STATE_DIR/phase" 2>/dev/null || echo 1; }
+phase() {   # the phase setup is in: 1 when none is recorded (a line end from another editor is no matter)
+  local p; p=$(head -n1 "$STATE_DIR/phase" 2>/dev/null | tr -d '[:space:]') || p=""
+  echo "${p:-1}"
+}
 set_phase() { printf '%s\n' "$1" | write_file "$STATE_DIR/phase" 0644; }   # (whole or not at all)
 
 # ── the toolkit: this repository, installed for good ──────────────────────────
@@ -221,7 +247,8 @@ install_resume_unit() {
 Description=Fedokawaii setup — resume after reboot
 After=network-online.target systemd-user-sessions.service
 Wants=network-online.target
-Conflicts=getty@tty1.service kmsconvt@tty1.service
+# (greetd too: enabled near the very end, it must not take tty1 from a run that resumes there)
+Conflicts=getty@tty1.service kmsconvt@tty1.service greetd.service
 
 [Service]
 Type=oneshot
@@ -249,9 +276,13 @@ reboot_to() {
   (( NO_REBOOT )) && { log "reboot when ready — phase $1 starts by itself"; exit 0; }
   hdr "rebooting in 10 s → phase $1 continues on this screen"; sleep 10; systemctl reboot; exit 0
 }
+# wait_for_network — the network, given time to come up: minutes for a run the resume unit
+# started at boot (Wi-Fi and DHCP may still be on their way), half a minute for one you typed
+# (it is either there or not)
+online() { curl -sS -o /dev/null --proto '=https' --max-time 8 https://mirrors.fedoraproject.org/ 2>/dev/null; }
 wait_for_network() {
-  retry 30 5 curl -sS -o /dev/null --proto '=https' --max-time 8 https://mirrors.fedoraproject.org/ \
-    || die "no network — connect ethernet (nmtui) and run again"
+  local n=6; ((RESUMED)) && n=30
+  retry "$n" 5 online || die "no network — connect to one (nmtui), then run it again"
 }
 
 # contained FN [ARG…] — run FN in a subshell with errexit really on, so a failure ends FN
@@ -289,7 +320,7 @@ s_baseline() {          # what the installer + you put there, so verify.sh can s
 
 s_dnf() {
   write_file /etc/dnf/libdnf5.conf.d/90-fedokawaii.conf <<EOF
-# Fedokawaii — only values that differ from Fedora's defaults (guide: "Kernels, DNF, snapshots")
+# Fedokawaii — only values that differ from Fedora's defaults (guide: "DNF's settings on this desktop")
 [main]
 max_parallel_downloads=$DNF_PARALLEL
 fastestmirror=True
@@ -320,13 +351,28 @@ EOF
   return 0
 }
 
+# other_os → the other systems this machine starts (Windows Boot Manager…), one per line: what
+# os-prober finds, as GRUB's menu does (Fedora keeps it on). Recorded for verify.
+other_os() {
+  command -v os-prober >/dev/null || return 0
+  os-prober 2>/dev/null | cut -d: -f2 | grep . | sort -u || true
+}
 s_boot() {
   # Hidden menu (Fedora's own mechanism): stays hidden while the last boot succeeded,
   # appears by itself after a failed one. The timer marks a boot successful. Once the
   # theme is applied, BOOT_MENU_SECONDS decides instead (theme.sh shows the themed menu).
-  if [[ -f $TARGET_HOME/.local/state/fedokawaii/theme-applied ]] && ((BOOT_MENU_SECONDS > 0)); then
+  # Beside another system (dual boot) it stays shown, as Fedora's installer leaves it: a
+  # hidden menu would look as if that system were gone.
+  local others; others=$(other_os)
+  if [[ -n $others ]]; then
+    printf '%s\n' "$others" | write_file "$STATE_DIR/other-os" 0644
+    log "this machine also starts $(paste -sd, - <<<"$others" | sed 's/,/, /g') — the boot menu stays shown"
+    run grub2-editenv - unset menu_auto_hide
+  elif [[ -f $TARGET_HOME/.local/state/fedokawaii/theme-applied ]] && ((BOOT_MENU_SECONDS > 0)); then
+    rm -f "$STATE_DIR/other-os"
     log "boot menu: left to the theme (shown for $BOOT_MENU_SECONDS s)"
   else
+    rm -f "$STATE_DIR/other-os"
     run grub2-editenv - set menu_auto_hide=1
   fi
   run systemctl --global enable grub-boot-success.timer
@@ -340,6 +386,15 @@ s_update() { wait_for_network; run dnf -y upgrade --refresh; }
 s_base() {
   dnf_install "${PKG_BASE[@]}"
   timedatectl set-timezone "$TIMEZONE"; timedatectl set-ntp true
+  # a name of the machine's own: without one, NetworkManager takes whatever the network hands
+  # out, and a browser running when it changes refuses its next window ("profile in use on
+  # another computer" — the profile lock records the name). The installer's name is kept.
+  local h; h=$(hostnamectl --static 2>/dev/null) || h=""
+  if [[ -z $h || $h == localhost || $h == localhost.localdomain ]]; then
+    # (a nicety, never a reason to stop: hostnamed may not answer on a damaged system)
+    if hostnamectl set-hostname fedokawaii; then log "the machine's name: fedokawaii (none was set)"
+    else log "could not name the machine (hostnamectl) — name it later: sudo hostnamectl set-hostname NAME"; fi
+  fi
 }
 
 s_trim() {              # one editor (neovim), no rescue kernel image
@@ -462,7 +517,8 @@ EOF
 
 s_gpu() {
   local gpu; gpu=$(detect_gpu); echo "$gpu" >"$STATE_DIR/gpu"
-  [[ $gpu == none ]] && die "no AMD/Intel GPU detected — set GPU= in fedokawaii.conf"
+  [[ $gpu == amd || $gpu == intel ]] \
+    || die "no AMD or Intel GPU found (the cards are: $gpu) — the desktop is built on their open drivers; a card the kernel does not drive yet: set GPU= in fedokawaii.conf"
   log "GPU: $gpu"
   dnf_install "${PKG_GPU_COMMON[@]}"
   if [[ $gpu == amd ]]; then
@@ -476,7 +532,10 @@ s_gpu() {
     else run dnf -y install mesa-vulkan-drivers-freeworld --allowerasing; fi
     dnf_install "${PKG_GPU_amd[@]}"
     systemctl enable lactd.service
-    run grubby --update-kernel=ALL --args=amdgpu.ppfeaturemask=0xffffffff
+    # LACT's clocks, voltages and fan curves need OverDrive (bit 14), which amdgpu leaves off:
+    # its default mask (0xfff7bfff) plus that bit. Not 0xffffffff — that also switches on
+    # GFX DCS (bit 19), which amdgpu keeps off as unstable (flicker, hangs on some cards)
+    run grubby --update-kernel=ALL --args=amdgpu.ppfeaturemask=0xfff7ffff
   else
     run dnf -y install "${PKG_GPU_intel[@]}" --allowerasing
   fi
@@ -573,7 +632,8 @@ s_dwl() {
   local src=$TARGET_HOME/.local/src/dwl
   as_user mkdir -p "$TARGET_HOME/.local/src"
   [[ -d $src/.git ]] || retry 3 10 as_user git clone --quiet https://codeberg.org/dwl/dwl.git "$src"
-  as_user git -C "$src" fetch --quiet --tags --force
+  # (Codeberg has its slow minutes: the fetch is retried like the clone)
+  retry 3 10 as_user git -C "$src" fetch --quiet --tags --force || die "could not fetch dwl from codeberg.org — try again in a while"
   [[ $(as_user git -C "$src" rev-parse "$DWL_TAG^{commit}") == "$DWL_COMMIT" ]] \
     || die "dwl tag $DWL_TAG does not point at the pinned commit $DWL_COMMIT — refusing to build"
   dwl_keep_yours "$src"
@@ -581,9 +641,11 @@ s_dwl() {
   as_user git -C "$src" clean -fdxq -e config.h
   # src/dwl/dwl.patch: keybindings read the first layout (us), so Super+Q etc. keep working
   # while Arabic is active; gappx pixels of gap between tiled windows; full window
-  # borders; floating windows open centred; the active
-  # keyboard layout is printed for the bar. git apply refuses (and setup stops) if
-  # upstream ever changes the lines it touches.
+  # borders, on one window at a time; floating windows open centred; a click outside a
+  # menu closes it; a monitor plugged in later is set up again (kawa-display --hotplug);
+  # a new mode on one monitor leaves the others side by side; the active keyboard layout
+  # is printed for the bar. git apply refuses (and setup stops) if upstream ever changes
+  # the lines it touches.
   # (the patch is fed on stdin, so the repo may live where the user cannot read it)
   as_user git -C "$src" apply --check - <"$REPO_DIR/src/dwl/dwl.patch" \
     || die "src/dwl/dwl.patch no longer applies to $DWL_COMMIT — review before building"
@@ -598,7 +660,7 @@ s_dwl() {
   # copy of the one file (take_built): root runs nothing in your folders
   as_user make -C "$src" clean >>"$LOG_FILE" 2>&1
   as_user make -C "$src" -j"$(nproc)" "${args[@]}" >>"$LOG_FILE" 2>&1
-  [[ -x /usr/local/bin/dwl ]] && cp -a /usr/local/bin/dwl /usr/local/bin/dwl.prev   # (start-dwl's fallback)
+  keep_dwl_prev || log "dwl.prev not refreshed (start-dwl keeps the fallback it has)"   # (start-dwl's fallback)
   take_built "$src/dwl" /usr/local/bin/dwl 0755 || die "dwl was not built (see $LOG_FILE)"
   [[ $(as_user /usr/local/bin/dwl -v 2>&1) == *"${DWL_TAG#v}"* ]] || die "installed dwl is not $DWL_TAG"
   grep -q libxcb <<<"$(as_user ldd /usr/local/bin/dwl)" || die "dwl was built without XWayland"
@@ -949,6 +1011,10 @@ s_theme() {
   run bash "$REPO_DIR/theme.sh" --user "$TARGET_USER"
 }
 s_gate() {
+  # from here on repair may run too (do_repair): everything is installed, only the login waits
+  : >"$STATE_DIR/gate-reached"
+  # packages left twice by a transaction a power cut stopped (a restart mid-phase): the older go
+  tidy_duplicates || log "dnf could not tidy packages installed twice — verify names them"
   # (a driver package phase 2 could not install, or a device plugged in since: tried again —
   # so are the parts that come from GitHub and may not have come: GE-Proton, the file dialog)
   s_hardware_setup
@@ -957,7 +1023,14 @@ s_gate() {
     ((CONTAINED_RC == 0)) || log "GE-Proton is still not installed — Steam's own Proton works meanwhile; update tries again"
   fi
   tfc_current || s_filechooser
-  run bash "$REPO_DIR/verify.sh" --pre-finalize || die "verify.sh found problems — fix them and run again"
+  # (and LazyVim's plugins: 3.09 is done once nvim has run, even when GitHub let some clones
+  # fail — then only nvim itself fetches them again; repair cannot run before the build ends)
+  if [[ ! -d $TARGET_HOME/.local/share/nvim/lazy/LazyVim ]]; then
+    contained r_nvim
+    ((CONTAINED_RC == 0)) || log "LazyVim's plugins could not be fetched yet (why: above, or $LOG_FILE)"
+  fi
+  run bash "$REPO_DIR/verify.sh" --pre-finalize \
+    || die "verify found problems (above) — fedokawaii repair puts most of them right; then run setup again"
 }
 
 # snapshots kept within bounds for a machine left alone for months: ranges, so the clean-up
@@ -979,7 +1052,7 @@ snapper_limits() {
 s_scrub() {
   [[ $(findmnt -no FSTYPE / 2>/dev/null) == btrfs ]] || { log "/ is not Btrfs — no scrub"; return 0; }
   write_file /etc/systemd/system/fedokawaii-scrub.service <<'UNIT'
-# installed by setup.sh — the monthly check of the Btrfs file system (handbook §7.4)
+# installed by setup.sh — the monthly check of the Btrfs file system (handbook §38.2)
 [Unit]
 Description=Fedokawaii: read every block of the Btrfs file system and check it (btrfs scrub)
 ConditionPathIsMountPoint=/
@@ -1022,7 +1095,6 @@ s_finalize() {
   install_toolkit                                  # (once more: a run that never rebooted)
   systemctl enable greetd.service
   systemctl set-default graphical.target
-  remove_resume_unit
   restorecon -R "$TARGET_HOME" /usr/local
   # snapshots: config for / (and /home), timers, and pre/post around every dnf transaction
   grep -q '^root ' <<<"$(snapper list-configs)" || run snapper -c root create-config /
@@ -1034,8 +1106,11 @@ s_finalize() {
   systemctl enable --now fstrim.timer              # weekly TRIM (Fedora's preset, made explicit)
   s_scrub                                          # the monthly Btrfs scrub
   snap_hooks
-  run snapper -c root create -d "fedokawaii baseline"     # no cleanup algorithm: kept until you delete it
+  # the resume unit goes last: should anything above fail, the next start carries on here
+  # (holding greetd back meanwhile, its Conflicts=). The baseline is then the finished system
+  remove_resume_unit
   set_phase 'done'
+  run snapper -c root create -d "fedokawaii baseline"     # no cleanup algorithm: kept until you delete it
 }
 
 phase3() {
@@ -1068,7 +1143,11 @@ record() {   # record NAME LINE — /var/lib/fedokawaii/NAME, replaced in one st
   printf '%s\n' "$2" | write_file "$STATE_DIR/$1" 0644
 }
 record_snapshots() {   # how many snapshots there are (the menu cannot ask: snapper is root's)
-  local n; n=$(snapper -c root --csvout list --columns number 2>/dev/null | tail -n +2 | grep -cv '^0$') && record snapshots "$n"
+  # (snapper's own 0 is the running system, not a snapshot; none left is a count too: 0 —
+  # snapper not answering leaves the record as it was)
+  local list
+  list=$(snapper -c root --csvout list --columns number 2>/dev/null) || return 0
+  record snapshots "$(awk 'NR > 1 && /^[1-9][0-9]*$/ { n++ } END { print n + 0 }' <<<"$list")" || true
   return 0
 }
 space_free() {   # space_free PATH → bytes free (Btrfs: its own estimate, which counts snapshots)
@@ -1083,7 +1162,7 @@ space_free() {   # space_free PATH → bytes free (Btrfs: its own estimate, whic
 need_space() {   # need_space PATH MiB — stop, saying what to do, when there is not room enough
   local f; f=$(space_free "$1")
   ((f >= $2 * 1024 ** 2)) && return 0
-  die "only $(numfmt --to=iec --suffix=B "$f") free on $1 — this needs $(numfmt --to=iec --suffix=B $(($2 * 1024 ** 2))): delete old snapshots (fedokawaii snapshots, then sudo snapper -c root delete --sync N: --sync waits until Btrfs has freed the space), empty the trash, clear caches (handbook §7.4)"
+  die "only $(numfmt --to=iec --suffix=B "$f") free on $1 — this needs $(numfmt --to=iec --suffix=B $(($2 * 1024 ** 2))): delete old snapshots (fedokawaii snapshots, then sudo snapper -c root delete --sync N: --sync waits until Btrfs has freed the space), empty the trash, clear caches (handbook §38.2)"
 }
 
 # the package transaction as a system service of its own: a closed window, a desktop that
@@ -1126,8 +1205,8 @@ preflight() {   # preflight ROOT_MiB — space, clock, dnf's own state, nothing 
   dnf -q check >/dev/null 2>&1 || log "dnf check reports problems (dnf check shows them) — the update goes on; repair can help after"
 }
 snapshot_before() {   # snapshot_before WHAT [important] — a numbered snapshot, checked to exist.
-                      # A season's ends in the clean-up with the others; the one before a move
-                      # is marked important (kept among the last ten of those)
+                      # The ones before an update and before a move are marked important
+                      # (kept among the last ten of those)
   local n imp=()
   [[ ${2:-} == important ]] && imp=(-u important=yes)
   n=$(snapper -c root create -t single -c number "${imp[@]}" -p -d "before $1" 2>/dev/null) || n=""
@@ -1232,8 +1311,13 @@ third_party_off() {   # → --disablerepo=… for every repository that is not F
 # a third-party repository fail it — a signing key changed, a repository gone — it runs again
 # without them, and says so: Fedora's own updates never wait on Brave's or a COPR's
 dnf_upgrade() {
-  local off=()
-  retry 2 30 dnf_detached -y upgrade --refresh && return 0
+  local off=() i
+  for i in 1 2; do
+    dnf_detached -y upgrade --refresh && return 0
+    # (a transaction cut off half-way leaves packages twice, which the next try would trip on)
+    tidy_duplicates || true
+    if ((i == 1)); then log "the update did not go through — trying once more in 30s"; sleep 30; fi
+  done
   mapfile -t off < <(third_party_off)
   ((${#off[@]})) || return 1
   log "trying again without the third-party repositories ($(IFS=' '; echo "${off[*]#--disablerepo=}"))"
@@ -1250,7 +1334,7 @@ dnf_upgrade() {
 # menu (/var/lib/fedokawaii/last-update); a run cut short is recorded as "interrupted".
 UPDATE_STEPS_FAILED=()
 # neovim's plugins: the versions you have now are kept first (the last six), so an update that
-# breaks something can be undone (handbook: "Undo a bad update"); then brought up to date
+# breaks something can be undone (handbook: "Recipe: undo a bad update"); then brought up to date
 nvim_plugins() {
   local lock=$TARGET_HOME/.config/nvim/lazy-lock.json keep=$TARGET_HOME/.local/state/fedokawaii/lazy-lock
   if [[ -f $lock && ! -L $lock ]]; then
@@ -1278,7 +1362,7 @@ do_update() {
   repos_lenient
   # the packages first: nothing else may stand in their way (a setting that no longer
   # applies on a later Fedora is reported below, and the packages that fix it are in)
-  dnf_upgrade || die "dnf could not update (the lines above say why) — nothing was changed; try again later, or: fedokawaii repair"
+  dnf_upgrade || die "dnf could not update (the lines above say why) — the snapshot taken before it is the way back (fedokawaii snapshots); try again later, or: fedokawaii repair"
   # then the system values of fedokawaii.conf, applied again — each on its own: edit it
   # (fedokawaii settings), then update (keyboard layouts take effect at the next login)
   step_on "the toolkit's command" install_toolkit
@@ -1349,7 +1433,8 @@ upkeep() {   # upkeep KEY DEFAULT → a number from your upkeep.conf (fedokawaii
   local v                # — within the same bounds the menu keeps (EVERY 7–365, WAIT 0–180);
   # read as you (it is your file), and none at all — never written until `fedokawaii remind`
   # changes something — simply means the defaults
-  v=$(as_user sed -n "s/^$1=\([0-9]\{1,3\}\).*/\1/p" "$TARGET_HOME/.config/fedokawaii/upkeep.conf" 2>/dev/null | tail -n1) || v=""
+  # (a number in quotes too: the menu reads EVERY="30" as 30)
+  v=$(as_user sed -n "s/^$1=[\"']\{0,1\}\([0-9]\{1,3\}\).*/\1/p" "$TARGET_HOME/.config/fedokawaii/upkeep.conf" 2>/dev/null | tail -n1) || v=""
   [[ $v =~ ^[0-9]+$ ]] || { echo "$2"; return 0; }
   v=$((10#$v))                                    # (10#: "08" is eight, not octal)
   case $1 in
@@ -1519,6 +1604,10 @@ r_hygiene() {
   while IFS='|' read -r u why; do
     [[ -n $u ]] || continue
     log "your $u fights $why — switched off"; as_user systemctl --user disable --now "$u" >>"$LOG_FILE" 2>&1 || rc=1
+    # a static one (no [Install]: D-Bus or another unit starts it) cannot be disabled: masked
+    if [[ $(as_user systemctl --user is-enabled "$u" 2>/dev/null) == static ]]; then
+      as_user systemctl --user mask "$u" >>"$LOG_FILE" 2>&1 || rc=1
+    fi
   done < <(hy_user_services)
   # dependencies nothing needs any more (a package you removed left them): taken out, in a
   # dnf run that is snapshotted like every other. Yours and the manifest's are marked as
@@ -1707,13 +1796,15 @@ problems() {   # problems → how many checks verify failed (it records its outc
   local t="" p="" f=""; { IFS=' ' read -r t p f _ <"$STATE_DIR/last-verify"; } 2>/dev/null || true
   [[ ${f:-} =~ ^[0-9]+$ ]] && echo "$f" || echo "?"
 }
-online() { curl -sS -o /dev/null --proto '=https' --max-time 8 https://mirrors.fedoraproject.org/ 2>/dev/null; }
 do_repair() {
-  [[ $(phase) == 'done' ]] || die "the build is not finished — run setup again; it resumes where it stopped"
+  # (once setup reached its last check everything is installed: repair may put right what that
+  # check found, before the login is switched on)
+  [[ $(phase) == 'done' || ( $(phase) == 3 && -f $STATE_DIR/gate-reached ) ]] \
+    || die "the build is not finished — run setup again; it resumes where it stopped"
   local before after net=1
   hdr "Fedokawaii repair · $TARGET_USER"
   # offline, it still puts right what needs no network: services, the session, the configs
-  retry 3 5 online || { net=0; log "offline: only what needs no network is repaired now — run repair again once online"; }
+  retry 6 5 online || { net=0; log "offline: only what needs no network is repaired now — run repair again once online"; }
   toolkit_first          # (run from a copy: everything below is then the toolkit's)
   before=$(problems)
   log "verify found $before problem(s) — fixing what can be fixed"
@@ -1753,7 +1844,7 @@ do_repair() {
 
 # ─────────────────────────────────────────────────────────────────────────────
 case $MODE in
-  reset)  rm -f "$STATE_DIR"/done.* "$STATE_DIR"/phase "$STATE_DIR"/with-theme; remove_resume_unit
+  reset)  rm -f "$STATE_DIR"/done.* "$STATE_DIR"/phase "$STATE_DIR"/with-theme "$STATE_DIR"/gate-reached; remove_resume_unit
           echo "progress forgotten (the user and baseline records are kept)"; exit 0 ;;
   update) do_update; exit 0 ;;
   upgrade) do_upgrade "${UPGRADE_FLAG:-}"; exit 0 ;;
@@ -1768,5 +1859,5 @@ hdr "Fedokawaii setup · Fedora $FEDORA_VER · phase $(phase) · $TARGET_USER$([
 case $(phase) in
   1) phase1 ;;  2) phase2 ;;  3) phase3 ;;
   done) ok "already built — menu: Theme, Verify, Update" ;;
-  *) die "corrupt $STATE_DIR/phase" ;;
+  *) die "$STATE_DIR/phase says '$(phase)' — it should be 1, 2, 3 or done: write the phase setup was in (--status lists the finished steps), or start over: sudo bash setup.sh --reset" ;;
 esac

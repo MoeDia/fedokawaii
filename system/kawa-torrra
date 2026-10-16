@@ -32,16 +32,25 @@ die() {
   exit 1
 }
 
-[[ -x $py ]] || die "not installed (no pipx venv at $venv) — run: update"
-if [[ -z ${PROWLARR_API_KEY:-} && -r $secrets ]]; then
-  # the shell's rule: only a file that is yours alone
-  [[ $(stat -c %a "$secrets") == 600 && -O $secrets ]] || die "$secrets must be yours and private — chmod 600 it"
-  # shellcheck source=/dev/null
-  . "$secrets"
-fi
-[[ ${PROWLARR_API_KEY:-} =~ ^[0-9a-f]{32}$ ]] || die "no PROWLARR_API_KEY (32 hex characters) in $secrets — run: update"
+[[ -x $py ]] || die "not installed (no pipx venv at $venv) — run: fedokawaii update"
 
-((open && $#)) && set -- download "$1"            # a magnet link, a URL or a .torrent file
+# a magnet link, a URL or a .torrent file. xdg-open hands on a file:// URI just as it was
+# given (`xdg-open file:///…/my%20file.torrent`), and torrra takes only a path: the URI
+# becomes its path here. Anything torrra would turn away is said now — torrra itself
+# prints it in red and exits, and the window would close before it could be read.
+if ((open && $#)); then
+  t=$1
+  if [[ $t == file://* ]]; then
+    t=${t#file://}; t=${t%%[?#]*}
+    [[ $t == /* ]] || t=/${t#*/}                    # (file://localhost/… and file://HOST/…)
+    t=${t//\\/\\\\}; printf -v t '%b' "${t//%/\\x}"   # %20 → a space, %C3%A9 → é
+  fi
+  if [[ $t != magnet:* && ! $t =~ ^https?:// ]]; then
+    [[ -f $t ]] || die "no such file: $t"
+    [[ $t == *.torrent ]] || die "not a magnet link or a .torrent file: $t"
+  fi
+  set -- download "$t"
+fi
 
 # what kind of run: the search needs Prowlarr; downloads, settings and help do not, and
 # only the screens (ui) hold the one-at-a-time lock
@@ -50,8 +59,23 @@ for a in "$@"; do [[ $a == -* ]] || { first=$a; break; }; done
 case $first in ""|search|prowlarr) search=1 ;; config) ui=0 ;; esac
 for a in "$@"; do case $a in --help|-h|--version) ui=0 search=0 ;; esac; done
 
+# the key: only a search uses it (Prowlarr), so a magnet link still downloads when
+# secrets.sh is missing or not right
+if ((search)); then
+  if [[ -z ${PROWLARR_API_KEY:-} && ! -e $secrets ]]; then die "$secrets is missing — fedokawaii update makes it"; fi
+  if [[ -z ${PROWLARR_API_KEY:-} && -r $secrets ]]; then
+    # the shell's rule: only a file that is yours alone
+    [[ $(stat -c %a "$secrets") == 600 && -O $secrets ]] || die "$secrets must be yours and private — chmod 600 it"
+    # shellcheck source=/dev/null
+    . "$secrets"
+  fi
+  [[ ${PROWLARR_API_KEY:-} =~ ^[0-9a-f]{32}$ ]] || die "no PROWLARR_API_KEY (32 hex characters) in $secrets — run: fedokawaii update"
+fi
+
 if ((ui)); then
-  exec 8>"${XDG_RUNTIME_DIR:?no XDG_RUNTIME_DIR — run torrra inside your session}/kawa-torrra.lock"
+  # (su, a cron job, a plain SSH command: no session of yours, so no runtime folder to lock in)
+  [[ -n ${XDG_RUNTIME_DIR:-} && -d $XDG_RUNTIME_DIR ]] || die "run torrra inside your session (a terminal of the desktop, or an SSH login): there is no XDG_RUNTIME_DIR here"
+  exec 8>"$XDG_RUNTIME_DIR/kawa-torrra.lock"
   if ! flock -n 8; then
     if [[ $first == download ]] && command -v wl-copy >/dev/null; then
       setsid -f wl-copy -- "${!#}" 2>/dev/null    # (its own session: outlives this window)
@@ -85,7 +109,7 @@ try:
     from torrra.__main__ import cli
     get, set_, load, _ = c.Config.get, c.Config.set, c.Config._load_config, c.CONFIG_FILE
 except (ImportError, AttributeError) as e:
-    fail(f"cannot start ({e}) — run: update")
+    fail(f"cannot start ({e}) — run: fedokawaii update")
 
 if search:
     try:
@@ -93,7 +117,7 @@ if search:
     except httpx.HTTPError:
         fail("Prowlarr is not answering on 127.0.0.1:9696 — systemctl --user status prowlarr")
     if r.status_code == 401:
-        fail("Prowlarr refused the key in secrets.sh — run: update (it hands Prowlarr the key again)")
+        fail("Prowlarr refused the key in secrets.sh — run: fedokawaii update (it hands Prowlarr the key again)")
     if r.status_code != 200:
         fail(f"Prowlarr answered HTTP {r.status_code} — journalctl --user -u prowlarr -e")
     if not any(i.get("enable") for i in r.json()):
@@ -145,12 +169,21 @@ PY
 # start after boot takes up to a minute) and stopped again afterwards, if it was not running
 # — however torrra ends, the window closed during a search included (trap)
 if ((search)) && ! systemctl --user is-active --quiet prowlarr.service; then
-  printf 'torrra: starting Prowlarr…\n' >&2
-  systemctl --user start prowlarr.service 2>/dev/null \
-    || die "Prowlarr did not start — journalctl --user -u prowlarr -e"
+  # what would only fail inside systemd, said plainly first: no unit at all (podman, or the
+  # container file, missing: the quadlet generator made none), or Prowlarr's port taken
+  [[ $(systemctl --user show -p LoadState --value prowlarr.service 2>/dev/null) != not-found ]] \
+    || die "Prowlarr is not set up here (no prowlarr.service: podman or its container file is missing) — run: fedokawaii repair"
+  if command -v ss >/dev/null && [[ -n $(ss -Htln 'sport = :9696' 2>/dev/null) ]]; then
+    die "port 9696, Prowlarr's, is taken by another program — ss -ltnp 'sport = :9696' shows which"
+  fi
+  # (set before the start: a window closed, or Ctrl+C, while Prowlarr is still starting
+  # stops it too — the start goes on in systemd after systemctl itself is gone)
   trap 'systemctl --user stop --no-block prowlarr.service 2>/dev/null' EXIT
   trap 'exit 129' HUP; trap 'exit 130' INT; trap 'exit 143' TERM
+  printf 'torrra: starting Prowlarr… (its first start after a boot can take a minute or two)\n' >&2
+  systemctl --user start prowlarr.service 2>/dev/null \
+    || die "Prowlarr did not start — journalctl --user -u prowlarr -e"
 fi
-KAWA_KEY=$PROWLARR_API_KEY KAWA_SEARCH=$search KAWA_NOTIFY=$open \
+KAWA_KEY=${PROWLARR_API_KEY:-} KAWA_SEARCH=$search KAWA_NOTIFY=$open \
   "$py" -I -c "$BOOT" "$@" 8>&-
 exit $?

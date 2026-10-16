@@ -1,18 +1,31 @@
 #!/usr/bin/env bash
 # kawa-quick — the key at the bar's right end (or Super+X): quick settings as a dropdown.
 # Each line shows its current state; toggles reopen the menu so the change is visible.
+# No arguments (--help: this text).
 set -u
+case ${1:-} in
+  "") ;;
+  -h|--help) sed -n '2,/^set -u/{/^set -u/d;s/^# \{0,1\}//;p}' "$0"; exit 0 ;;
+  *) echo "usage: kawa-quick   (no arguments: the quick settings menu)" >&2; exit 2 ;;
+esac
 # shellcheck source=/dev/null
 . "$HOME/.config/fedokawaii/env"
 # shellcheck source=/dev/null
 . "$HOME/.config/fedokawaii/icons.sh"
 
-state_net() {
-  local type state
+state_net() {   # the cable or the Wi-Fi in use, wherever nmcli lists it: a VPN that holds the
+  # default route comes first there, a bridge for virtual machines rides on the cable, and a
+  # cable set up by another tool is "connected (externally)" (as the loopback always is)
+  local type state other=""
   while IFS=: read -r type state; do
-    [[ $state == connected ]] && { echo "$type"; return; }
+    [[ $state == connected || $state == "connected (externally)" ]] || continue
+    case $type in
+      ethernet|wifi) echo "$type"; return ;;
+      loopback|wireguard|tun|vpn|bridge) ;;
+      *) [[ $state == connected ]] && other=${other:-$type} ;;   # (a phone's mobile data: gsm)
+    esac
   done < <(nmcli -t -f TYPE,STATE device 2>/dev/null)
-  echo "offline"
+  echo "${other:-offline}"
 }
 # Bluetooth only when the machine has an adapter; bluetoothctl waits forever for a
 # bluetoothd that is not running, so never longer than 2 s
@@ -76,12 +89,20 @@ while :; do
     brightness) exec kawa-brightness ;;
     sound)      exec kawa-audio ;;
     network)    exec kawa-float --once network network 80x25 -- nmtui ;;
-    bt)         if [[ $bt == on ]]; then bt power off >/dev/null; else bt power on >/dev/null; fi ;;
+    bt)         if [[ $bt == on ]]; then bt power off >/dev/null
+                elif ! out=$(bt power on 2>&1); then        # (an airplane-mode key, or a switch)
+                  if [[ $out == *Blocked* ]]; then
+                    notify-send -a desktop "Bluetooth" "it is blocked — rfkill unblock bluetooth (or the machine's own switch)"
+                  else notify-send -a desktop "Bluetooth" "it did not switch on — is the bluetooth service running?"; fi
+                fi ;;
     pair)       setsid -f blueman-manager >/dev/null 2>&1; exit 0 ;;
     drives)     exec kawa-drives ;;
-    night)      if [[ $night == on ]]; then pkill -xu "$UID" gammastep
-                else setsid -f gammastep -l "$NIGHT_LIGHT" -t 6500:4200 >/dev/null 2>&1 <&-; fi
-                sleep 0.2 ;;
+    night)      if [[ $night == on ]]; then
+                  # gammastep fades back for ~4 s after a first signal, still running: a second
+                  # one ends that at once, so the menu reopens with the night light really off
+                  pkill -xu "$UID" gammastep; sleep 0.2; pkill -xu "$UID" gammastep
+                  for _ in {1..20}; do pgrep -xu "$UID" gammastep >/dev/null || break; sleep 0.05; done
+                else setsid -f gammastep -l "$NIGHT_LIGHT" -t 6500:4200 </dev/null >/dev/null 2>&1; sleep 0.2; fi ;;
     dnd)        makoctl mode -t do-not-disturb >/dev/null
                 kawa-dwlstatus --poke 12 ;;                     # the bar's 静 seal
     theme)      kawa-theme toggle ;;

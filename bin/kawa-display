@@ -2,14 +2,33 @@
 # kawa-display — every enabled output → its preferred resolution at the highest refresh
 # rate ≤ MONITOR_HZ (login, theme.sh). Screens going dark when idle is not done here but
 # with wlopm (output power), which leaves the outputs — and the windows on them — in place.
+#
+#   kawa-display             set the modes (an output already there is left alone: no flicker)
+#   kawa-display --hotplug   a monitor came (plugged in, or back after a DisplayPort monitor
+#                            slept and dropped off the cable): dwl starts it at its preferred
+#                            mode, often 60 Hz, and the wallpaper is not drawn for its size —
+#                            so the modes as above, then the wallpaper again, and the
+#                            brightness keys reach it too
+#
 # Parses wlr-randr's text output:   NAME "desc" / "  Enabled: yes" / "    2560x1440 px, 119.998001 Hz (preferred)"
+# Exit status: 0 done · 1 could not (no compositor to ask, or a mode refused) · 2 misuse.
 set -u
+case ${1:-} in
+  ""|--hotplug) ;;
+  -h|--help) sed -n '2,/^set -u/{/^set -u/d;s/^# \{0,1\}//;p}' "$0"; exit 0 ;;
+  *) echo "usage: kawa-display [--hotplug] (kawa-display --help)" >&2; exit 2 ;;
+esac
 MONITOR_HZ=144
 # shellcheck source=/dev/null
 . "$HOME/.config/fedokawaii/env"
+[[ $MONITOR_HZ =~ ^[0-9]+$ ]] || MONITOR_HZ=144   # (an env from an older install, or a typo)
 
 plan() {
-  wlr-randr | awk -v want="$MONITOR_HZ" '
+  local heads
+  heads=$(wlr-randr) || return 1
+  # LC_ALL=C: "143.973007" read and written with a point in any locale (an awk that follows
+  # LC_NUMERIC, like mawk, reads it as 143 in Turkish or German)
+  LC_ALL=C awk -v want="$MONITOR_HZ" '
     function flush() {
       if (out == "" || !enabled) return
       res = pref != "" ? pref : big
@@ -25,7 +44,34 @@ plan() {
       if ($0 ~ /preferred/) pref = $1
       if ($0 ~ /current/) { cres = $1; chz = $3 + 0 }      # already there: no modeset flicker
     }
-    END { flush() }'
+    END { flush() }' <<<"$heads"
 }
 
-plan | while read -r o m; do wlr-randr --output "$o" --mode "$m"; done
+modes() {   # every output to its mode; fails when wlr-randr cannot be asked, or refuses one
+  local todo o m r=0
+  todo=$(plan) || return 1
+  while read -r o m; do
+    [[ -n $o ]] && { wlr-randr --output "$o" --mode "$m" || r=1; }
+  done <<<"$todo"
+  return "$r"
+}
+
+if [[ ${1:-} != --hotplug ]]; then modes; exit; fi
+
+# --hotplug: monitors come back together (two screens waking) and each one calls this. The
+# first to take the lock does the work, a second after it settles; one that arrives while it
+# runs leaves a mark instead, and the work is done once more for it.
+run=${XDG_RUNTIME_DIR:?} mark=$XDG_RUNTIME_DIR/kawa-display.again
+: >"$mark"
+while [[ -e $mark ]]; do
+  exec 9>"$run/kawa-display.lock"
+  flock -n 9 || exit 0
+  while [[ -e $mark ]]; do
+    rm -f "$mark"
+    sleep 1
+    modes
+    rm -f "$run/kawa-ddc-buses"                 # (brightness: the monitors asked again, this one too)
+    kawa-wallpaper --restore </dev/null >/dev/null 2>&1 9>&-
+  done
+  exec 9>&-
+done

@@ -126,10 +126,13 @@ rules = [
 	{ mime = "**/application/{zip,rar,7z*,tar,gzip,xz,zstd,bzip*,lzma,compress,archive,cpio,arj,xar,ms-cab*}", fg = "red" },
 	{ mime = "**/application/{pdf,doc,rtf,epub+zip}", fg = "cyan" },
 	{ mime = "vfs/{absent,stale}", fg = "darkgray" },
-	{ url = "*", is = "orphan", fg = "black", bg = "red" },
+	# a broken link, and what cannot be read: vermilion, struck through. (Not ink on a red
+	# bar: under the cursor the row takes the selection ink as its ground, and ink letters
+	# on it would vanish.)
+	{ url = "*", is = "orphan", fg = "red", crossed = true },
 	{ url = "*", is = "exec", fg = "green" },
-	{ url = "*", is = "dummy", fg = "black", bg = "red" },
-	{ url = "*/", is = "dummy", fg = "black", bg = "red" },
+	{ url = "*", is = "dummy", fg = "red", crossed = true },
+	{ url = "*/", is = "dummy", fg = "red", crossed = true },
 	{ url = "*/", fg = "blue", bold = true },
 ]
 

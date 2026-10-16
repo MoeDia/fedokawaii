@@ -11,7 +11,13 @@
 #                                  rest faint; "off" when muted. Wedge and number are drawn
 #                                  at twice the pixel size (22 px), so every pixel stays a
 #                                  crisp 2×2 square.
+# Exit status: 0 shown (or left to the update already under way) · 1 not shown (no notice
+# daemon, no runtime folder) · 2 misuse.
 set -u
+case ${1:-} in
+  -h|--help) sed -n '2,/^set -u/{/^set -u/d;s/^# \{0,1\}//;p}' "$0"; exit 0 ;;
+esac
+(($# >= 3)) || { echo "usage: kawa-osd ICON LABEL PERCENT [off] (kawa-osd --help)" >&2; exit 2; }
 # shellcheck source=/dev/null
 . "$HOME/.config/fedokawaii/icons.sh"
 C_TEAL=7fb8b0 C_ACCENT=d0583a C_ACCENT_TEXT=d15b3d C_FAINT=5f584c C_STRONG=ece3cc C_MUTED=877f6f   # (dark, if no theme yet)
@@ -20,9 +26,10 @@ C_TEAL=7fb8b0 C_ACCENT=d0583a C_ACCENT_TEXT=d15b3d C_FAINT=5f584c C_STRONG=ece3c
 ID_FILE="${XDG_RUNTIME_DIR:?}/kawa-osd-id"
 
 icon=${1:-} label=${2:-} pct=${3:-0} off=${4:-}
-[[ $pct =~ ^[0-9]+$ ]] || pct=0
-pct=$((10#$pct)); ((pct > 100)) && pct=100
+[[ $pct =~ ^[0-9]{1,4}$ ]] || pct=0
+pct=$((10#$pct)); ((pct > 999)) && pct=999     # (three digits wide)
 lit=$(( (pct + 4) / 5 ))                       # 1–5 % → 1 column … 96–100 % → 20
+((lit > 20)) && lit=20                         # above 100 % (the mixer allows it): a full wedge, the real number
 [[ -n $off ]] && lit=0
 
 STEP=("$ICON_EQ_1" "$ICON_EQ_2" "$ICON_EQ_3" "$ICON_EQ_4" "$ICON_EQ_5")   # 4 columns each
@@ -44,6 +51,8 @@ body="<span font='Sumi Icons 22px'><span color='#$C_TEAL'>$on</span><span color=
 # (a held key overlaps runs), so each replaces the panel instead of opening another
 args=(-a osd -c osd -u low -h int:transient:1 -p)
 exec 8>"$ID_FILE.lock"; flock -w 1 8 || exit 0
-id=$(cat "$ID_FILE" 2>/dev/null) && [[ $id =~ ^[0-9]+$ ]] && args+=(-r "$id")
+# (a notice id is mako's uint32 counter; anything else in the file — cut short, or a number
+# notify-send refuses as out of range — would keep every panel from showing: start afresh)
+id=$(cat "$ID_FILE" 2>/dev/null) && [[ $id =~ ^[1-9][0-9]{0,8}$ ]] && args+=(-r "$id")
 id=$(notify-send "${args[@]}" "$icon  $label" "$body" 2>/dev/null) && [[ $id =~ ^[0-9]+$ ]] \
   && printf '%s\n' "$id" >"$ID_FILE"

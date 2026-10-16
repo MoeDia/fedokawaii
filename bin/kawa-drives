@@ -51,7 +51,8 @@ poke() { kawa-dwlstatus --poke 13 2>/dev/null || true; }   # the bar's mark
 # a stick; udiskie's config opens it the same way). Each file system on it is a line; an
 # encrypted one shows the file system inside once unlocked, itself while locked. LABEL: the
 # file system's name, else the encrypted volume's, else the maker and model (an image: its
-# file's name; a card in the machine's own reader: "SD card"), else sdX.
+# file's name; a card in the machine's own reader: "SD card"), else sdX. (Tab-separated as
+# they are — not jq's @tsv, which doubles a backslash in a label; a tab in one is a space.)
 external() {   # external DISK… → JSON: those udisks counts as external, or null if it did not answer
   local d a n=0 out=()
   for d; do
@@ -84,7 +85,8 @@ def rows($disk; $name):
   ( select(.fstype != null and .fstype != "swap" and (.fstype | test("_member$") | not)
            and (.fstype != "crypto_LUKS" or ((.children // []) | length) == 0))
     | [ .name, $disk.name, (.label // $name), .size, .fstype,
-        ([(.mountpoints // [])[] | select(. != null)][0] // "") ] | @tsv ),
+        ([(.mountpoints // [])[] | select(. != null)][0] // "") ]
+    | map(tostring | gsub("[\t\n\r]"; " ")) | join("\t") ),
   ( (.label // $name) as $n | .children[]? | rows($disk; $n) );
 .blockdevices[]
 | select((.type == "disk" or .type == "rom" or (.type == "loop" and $ext != null)) and removable)
@@ -93,16 +95,17 @@ def rows($disk; $name):
 | ($d | maker) as $m
 | rows($d; (if $m != "" then $m else ($d.name | sub("^/dev/"; "")) end))'
 list() {
-  local j d f files="{}"
+  local j files=""
   local -a top=()
   j=$(lsblk -J -p -o "$COLS" 2>/dev/null) || return 0
   mapfile -t top < <(jq -r '.blockdevices[] | select(.type == "disk" or .type == "rom" or .type == "loop") | .name' <<<"$j" 2>/dev/null)
-  for d in "${top[@]}"; do                      # an image: the name of the file it shows
-    [[ $d == /dev/loop* && -r /sys/block/${d#/dev/}/loop/backing_file ]] || continue
-    f=$(</sys/block/"${d#/dev/}"/loop/backing_file)
-    files=$(jq -c --arg d "$d" --arg f "${f##*/}" '. + {($d): $f}' <<<"$files")
-  done
-  jq -r --argjson ext "$(external "${top[@]}")" --argjson files "$files" "$JQ_LIST" <<<"$j" 2>/dev/null
+  # an image: the name of the file it shows (… (deleted) once that file is gone)
+  if [[ " ${top[*]}" == *" /dev/loop"* ]]; then
+    files=$(losetup --list --json --output NAME,BACK-FILE 2>/dev/null \
+              | jq -c '[.loopdevices[]? | select((."back-file" // "") != "")
+                        | {key: .name, value: (."back-file" | sub(".*/"; ""))}] | from_entries' 2>/dev/null)
+  fi
+  jq -r --argjson ext "$(external "${top[@]}")" --argjson files "${files:-"{}"}" "$JQ_LIST" <<<"$j" 2>/dev/null
 }
 
 folder_of() {   # folder_of DEVICE → where it, or the file system inside it, is open
@@ -136,6 +139,11 @@ short() {       # short TEXT N → TEXT in at most N characters (… when cut)
   local t=$1 n=$2
   ((${#t} > n)) && t="${t:0:n-1}…"
   printf '%s' "$t"
+}
+pad() {         # pad TEXT N → short TEXT N, then spaces to N characters (printf's %-Ns counts bytes)
+  local t
+  t=$(short "$1" "$2")
+  printf '%s%*s' "$t" $(($2 - ${#t})) ''
 }
 
 # ── open · eject ─────────────────────────────────────────────────────────────
@@ -187,7 +195,7 @@ eject_dev() {   # eject_dev DEVICE — its whole drive
   [[ $rid =~ ^[0-9]+$ ]] && r=(-r "$rid")
   # pulled out while that went on: said as such (what was on its way may be lost) — the
   # usual pulled-out notice stays away only for an eject that got this far
-  if [[ ! -b $disk ]]; then
+  if ! lsblk -dn -o NAME -- "$disk" >/dev/null 2>&1; then
     if remembered "$disk"; then                   # (its own pulled-out notice not yet given)
       say -u critical "${r[@]}" "$ICON_DRIVE  $label was pulled out" \
         "before it was all written out — what was still being written to it may be lost"
@@ -344,15 +352,16 @@ menu() {
   local dev disk label size fs folder r i
   local -a rows=() acts=() order=()
   local -A named=()
-  row() { printf -v r '%s  %-16s %7s  %s' "$2" "$(short "$3" 16)" "$4" "$5"; rows+=("$r"); acts+=("$1"); }
+  row() { rows+=("$2  $3"); acts+=("$1"); }      # row ACTION ICON TEXT
   while IFS=$'\t' read -r dev disk label size fs folder; do
-    row "open $dev" "$ICON_DRIVE" "$label" "$size" "$([[ -n $folder ]] && echo open || echo closed)"
+    printf -v r '%s %7s  %s' "$(pad "$label" 16)" "$size" "$([[ -n $folder ]] && echo open || echo closed)"
+    row "open $dev" "$ICON_DRIVE" "$r"
     [[ -n ${named[$disk]:-} ]] || { named[$disk]=$label; order+=("$disk"); }
   done < <(list)
-  for disk in "${order[@]}"; do
-    row "eject $disk" "$ICON_EJECT" "eject ${named[$disk]}" "" ""
+  for disk in "${order[@]}"; do                 # (the drive by the name of its first file system)
+    row "eject $disk" "$ICON_EJECT" "eject $(short "${named[$disk]}" 28)"
   done
-  ((${#rows[@]})) || row none "$ICON_DRIVE" "nothing plugged in" "" ""
+  ((${#rows[@]})) || row none "$ICON_DRIVE" "nothing plugged in"
   i=$(printf '%s\n' "${rows[@]}" | kawa-menu --drop --index --width 38 --lines ${#rows[@]} --title "drives") || exit 0
   case ${acts[i]:-} in
     "open "*)  files_dev "${acts[i]#open }" ;;

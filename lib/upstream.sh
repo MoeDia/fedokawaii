@@ -176,7 +176,8 @@ install_ge_proton() {
     | ($a.name // "" | sub("\\.tar\\.gz$"; ".sha512sum")) as $sn
     | (.assets | map(select(.name | test("\\.sha512sum$")))) as $sums
     | ($sums | map(select(.name == $sn)) | first // (if ($sums | length) == 1 then $sums[0] else null end)) as $s
-    | [$t, ($a.browser_download_url // ""), ($s.browser_download_url // "")] | @tsv' <<<"$json")
+    | [$t, ($a.browser_download_url // ""), ($s.browser_download_url // "")] | @tsv' <<<"$json") || true
+  # (an answer that is not JSON — a Wi-Fi sign-in page — reads as no release: said below)
   [[ -n ${tag:-} && -n ${url:-} && -n ${sumurl:-} ]] || { log "no GE-Proton release file for x86_64 found"; return 1; }
   file=${url##*/}; name=${file%.tar.gz}
   if [[ -d $dir/$name || -d $dir/$tag ]]; then   # (put there before, or by another tool: recorded)

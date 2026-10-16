@@ -36,8 +36,10 @@ retry() {
   local n=$1 pause=$2 i IFS=' '; shift 2
   for ((i = 1; i <= n; i++)); do
     "$@" && return 0
+    ((i < n)) || break                  # (the last try: given up at once, no pause for nothing)
     log "attempt $i/$n failed: $* — retrying in ${pause}s"; sleep "$pause"
   done
+  log "attempt $n/$n failed: $*"
   return 1
 }
 
@@ -102,7 +104,8 @@ user_put() { as_user bash -c "$USER_PUT_SH" _ "$1" "$2"; }
 
 write_file() {                      # write_file PATH [MODE] < content — never half-written:
   local t                           # beside it first, then renamed over it in one step
-  install -d -m 0755 "$(dirname "$1")"
+  # (a folder that is missing is made; one that is there keeps its mode — install -d would reset it)
+  [[ -d $(dirname "$1") ]] || install -d -m 0755 "$(dirname "$1")"
   t=$(mktemp "$(dirname "$1")/.${1##*/}.XXXXXX") || return 1
   if cat >"$t" && chmod "${2:-0644}" "$t" && mv -fT -- "$t" "$1"; then return 0; fi
   rm -f -- "$t"; return 1
@@ -157,9 +160,22 @@ dwl_make_args() {
 # Root never runs a build in the user's folders, never executes what was built there and
 # never reads a path the user could swap for a link: the user reads the file out (cat, as
 # the user), root writes it in place in one step. Its version is asked as the user too.
+# keep_dwl_prev — the dwl in place becomes start-dwl's fallback (dwl.prev) before a new build
+# replaces it. Never while a session runs on dwl.prev: dwl is then the build that failed, and
+# the fallback the only one that works. By a rename, so a running dwl.prev is never written
+# into ("Text file busy"); and only a dwl whose libraries are all there is worth falling back to
+keep_dwl_prev() {
+  local d=${KAWA_DWL_DIR:-/usr/local/bin}   # (the tests point it elsewhere)
+  [[ -x $d/dwl ]] || return 0
+  pgrep -x dwl.prev >/dev/null && return 0
+  ldd "$d/dwl" 2>/dev/null | grep -q 'not found' && return 0
+  cp -a -- "$d/dwl" "$d/.dwl.prev.$$" && mv -f -- "$d/.dwl.prev.$$" "$d/dwl.prev" \
+    || { rm -f -- "$d/.dwl.prev.$$"; return 1; }
+}
+
 take_built() {   # take_built SRC DEST MODE — 1 (nothing changed) if it cannot be read
   local t
-  install -d -m 0755 "$(dirname "$2")"
+  [[ -d $(dirname "$2") ]] || install -d -m 0755 "$(dirname "$2")"
   t=$(mktemp -p "$(dirname "$2")" ".${2##*/}.XXXXXX") || return 1
   if as_user cat -- "$1" >"$t" && [[ -s $t ]] && chmod "$3" "$t" && chown root:root "$t" && mv -fT -- "$t" "$2"; then
     restorecon "$2" 2>/dev/null || true
@@ -171,7 +187,7 @@ take_built() {   # take_built SRC DEST MODE — 1 (nothing changed) if it cannot
 # ── one run at a time; temp files always cleaned up ──────────────────────────
 take_lock() {                       # take_lock FILE|DIR (a few seconds' grace: the menu looks at it too)
   if [[ -d $1 ]]; then exec 9<"$1"; else exec 9>"$1"; fi   # a folder of yours is only ever read, never truncated
-  flock -w 5 9 || die "another Fedokawaii run is active (lock: $1)"
+  flock -w 5 9 || die "another Fedokawaii run (an update, a repair, setup or Theme) is going on — wait for it to finish"
 }
 KAWA_TMP="" FOLLOWER=""
 make_tmp() {                        # private temp dir, removed on any exit (and dnf's follower stopped)
@@ -204,7 +220,10 @@ validate_conf() {                   # prints one line per problem; empty = valid
   [[ $DWL_WLROOTS =~ ^0\.[0-9]+$ ]]             || echo "DWL_WLROOTS must look like 0.20 (is '$DWL_WLROOTS')"
   [[ $TFC_TAG =~ ^v[0-9]+\.[0-9]+(\.[0-9]+)?$ ]] || echo "TFC_TAG must look like v1.4.3 (is '$TFC_TAG')"
   [[ $TFC_COMMIT =~ ^[0-9a-f]{40}$ ]]           || echo "TFC_COMMIT must be the 40-character commit of $TFC_TAG"
-  [[ -z $USERNAME ]] || id "$USERNAME" >/dev/null 2>&1 || echo "USERNAME '$USERNAME' does not exist"
+  if [[ -z $USERNAME ]]; then :
+  elif [[ ! $USERNAME =~ ^[A-Za-z0-9_][A-Za-z0-9_.-]*$ || $USERNAME =~ ^[0-9]+$ ]]; then echo "USERNAME '$USERNAME' is not a user name"
+  elif [[ $USERNAME == root ]]; then echo "USERNAME cannot be root — name the desktop's own user, or leave it empty"
+  elif ! id -- "$USERNAME" >/dev/null 2>&1; then echo "USERNAME '$USERNAME' does not exist"; fi
   return 0
 }
 # fedokawaii.conf is read as data, never run as code: KEY="value" lines (a value in double or
@@ -213,28 +232,83 @@ validate_conf() {                   # prints one line per problem; empty = valid
 CONF_KEYS=(USERNAME GPU STEAM SSH_SERVER MONITOR_HZ KB_LAYOUTS KB_TOGGLE TIMEZONE WEATHER_CITY
            NIGHT_LIGHT THEME WALLPAPER_PACK BOOT_MENU_SECONDS DNF_PARALLEL DWL_TAG DWL_COMMIT
            DWL_WLROOTS TFC_TAG TFC_COMMIT)
-CONF_PROBLEMS=()
+CONF_PROBLEMS=() CONF_SAID=() CONF_SEEN=()
 # one setting line: KEY="value", KEY='value' or KEY=value, then an optional # comment
 # (the value: BASH_REMATCH[3], [4] or [5], whichever matched)
 CONF_RE='^[[:space:]]*([A-Z_]+)=("([^"]*)"|'"'"'([^'"'"']*)'"'"'|([^[:space:]#"'"'"']*))[[:space:]]*(#.*)?$'
+# The file is often edited by hand, and on Windows too: a byte-order mark and CRLF line ends
+# are read past. A line that is not a setting is named with what to write instead; its
+# setting is then "said" (CONF_SAID), so no second line about an empty value follows.
 read_conf() {                       # read_conf FILE — sets the settings; CONF_PROBLEMS lists what is not one
-  local line k v IFS=' ' re=$CONF_RE
+  local line k v n=0 IFS=' ' re=$CONF_RE
+  local q1='“' q2='”' q3="‘" q4="’"       # typographic quotes, as a word processor or a phone types them
+  local -A at=()
   for k in "${CONF_KEYS[@]}"; do printf -v "$k" '%s' ""; done
-  CONF_PROBLEMS=()
-  [[ -r $1 ]] || { CONF_PROBLEMS+=("cannot read $1"); return 0; }
+  CONF_PROBLEMS=() CONF_SAID=() CONF_SEEN=()
+  # (missing: that one line says it all — every setting counts as said)
+  [[ -r $1 ]] || { CONF_PROBLEMS+=("cannot read $1"); CONF_SAID=("${CONF_KEYS[@]}"); return 0; }
   while IFS= read -r line || [[ -n $line ]]; do
+    n=$((n + 1))
+    ((n > 1)) || line=${line#$'\xef\xbb\xbf'}
+    line=${line%$'\r'}
     [[ $line =~ ^[[:space:]]*(#.*)?$ ]] && continue
-    if [[ $line =~ $re ]]; then
-      k=${BASH_REMATCH[1]} v=${BASH_REMATCH[3]}${BASH_REMATCH[4]}${BASH_REMATCH[5]}
-      if [[ " ${CONF_KEYS[*]} " == *" $k "* ]]; then printf -v "$k" '%s' "$v"
-      else CONF_PROBLEMS+=("$k is not a setting of fedokawaii.conf"); fi
-    else
-      CONF_PROBLEMS+=("not a setting (KEY=\"value\"): ${line:0:60}")
+    if ! [[ $line =~ $re ]]; then conf_slip "$line"; continue; fi
+    k=${BASH_REMATCH[1]} v=${BASH_REMATCH[3]}${BASH_REMATCH[4]}${BASH_REMATCH[5]}
+    if [[ " ${CONF_KEYS[*]} " != *" $k "* ]]; then CONF_PROBLEMS+=("$k is not a setting of fedokawaii.conf"); continue; fi
+    if [[ -n ${at[$k]:-} ]]; then
+      CONF_PROBLEMS+=("$k is set twice — on line ${at[$k]} and on line $n; keep one"); CONF_SAID+=("$k")
     fi
+    at[$k]=$n
+    # (substrings, not a bracket expression: right in any locale)
+    if [[ $v == *"$q1"* || $v == *"$q2"* || $v == *"$q3"* || $v == *"$q4"* ]]; then
+      v=${v//"$q1"/}; v=${v//"$q2"/}; v=${v//"$q3"/\'}; v=${v//"$q4"/\'}
+      CONF_PROBLEMS+=("$k has curly quotes ($q1 $q2 $q3 $q4) — type straight ones: $k=\"$v\""); CONF_SAID+=("$k"); continue
+    fi
+    printf -v "$k" '%s' "$v"
   done <"$1"
+  CONF_SEEN=("${!at[@]}")
+}
+conf_slip() {   # conf_slip LINE — a line that is not KEY="value": what it most likely is, said plainly
+  local l=$1 k K sp v
+  if [[ $l =~ ^[[:space:]]*export[[:space:]]+([A-Za-z_][A-Za-z0-9_]*)= ]]; then
+    k=${BASH_REMATCH[1]}; CONF_SAID+=("${k^^}"); v=${l#*export}; v=${v#"${v%%[![:space:]]*}"}
+    v=${v%%[[:space:]]#*}; v=${v%"${v##*[![:space:]]}"}
+    CONF_PROBLEMS+=("$k is written with export in front — leave that out: $v"); return 0
+  fi
+  if ! [[ $l =~ ^[[:space:]]*([A-Za-z_][A-Za-z0-9_]*)([[:space:]]*)=([[:space:]]*)(.*)$ ]]; then
+    CONF_PROBLEMS+=("not a setting (KEY=\"value\"): ${l:0:60}"); return 0
+  fi
+  k=${BASH_REMATCH[1]} sp=${BASH_REMATCH[2]}${BASH_REMATCH[3]} v=${BASH_REMATCH[4]}; K=${k^^}
+  if [[ " ${CONF_KEYS[*]} " != *" $K "* ]]; then CONF_PROBLEMS+=("not a setting (KEY=\"value\"): ${l:0:60}"); return 0; fi
+  CONF_SAID+=("$K")
+  if [[ $k != "$K" ]]; then CONF_PROBLEMS+=("$k is not a setting — the names are in capitals: $K"); return 0; fi
+  # the value as meant — a quoted one up to its closing quote, else up to a # comment — and
+  # whether it was quoted
+  local q=0
+  case $v in
+    \"*\"*) v=${v:1}; v=${v%%\"*}; q=1 ;;
+    \'*\'*) v=${v:1}; v=${v%%\'*}; q=1 ;;
+    \"*|\'*) CONF_PROBLEMS+=("$k has a quote that is not closed: ${l:0:60}"); return 0 ;;
+    *) v=${v%%#*}; v=${v%"${v##*[![:space:]]}"} ;;
+  esac
+  if [[ -n $sp ]]; then CONF_PROBLEMS+=("$k has spaces around the = — write it $k=\"$v\"")
+  elif ((q == 0)) && [[ $v == *[[:space:]]* ]]; then CONF_PROBLEMS+=("$k has spaces in its value — put it in quotes: $k=\"$v\"")
+  else CONF_PROBLEMS+=("not a setting (KEY=\"value\"): ${l:0:60}"); fi
 }
 conf_report() {                     # the settings read last → one line per problem; empty = valid
-  { ((${#CONF_PROBLEMS[@]} == 0)) || printf '%s\n' "${CONF_PROBLEMS[@]}"; validate_conf; } | sed '/^$/d'
+  local IFS=' '
+  local said=" ${CONF_SAID[*]} " seen=" ${CONF_SEEN[*]} " k l
+  {
+    ((${#CONF_PROBLEMS[@]} == 0)) || printf '%s\n' "${CONF_PROBLEMS[@]}"
+    # a setting with no line at all (USERNAME may go: it is whoever ran sudo)
+    for k in "${CONF_KEYS[@]}"; do
+      [[ $k == USERNAME || $seen == *" $k "* || $said == *" $k "* ]] && continue
+      echo "$k is missing — add its line: $k=\"…\""; said+="$k "
+    done
+    # the values' rules; a setting already named above is not named twice (each rule's line
+    # starts with its setting's name)
+    while IFS= read -r l; do [[ $said == *" ${l%% *} "* ]] || printf '%s\n' "$l"; done < <(validate_conf)
+  } | sed '/^$/d'
 }
 # conf_base BASE → the fedokawaii.conf a working copy's settings are measured against when
 # it becomes the toolkit: the newer of what the last apply took from a copy, and BASE — what

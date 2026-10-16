@@ -8,3 +8,10 @@ mp.observe_property("eof-reached", "bool", function(_, eof)
     if eof then mp.commandv("delete-watch-later-config") end
     mp.set_property_bool("save-position-on-quit", not eof)
 end)
+-- Q (quit-watch-later) saves the spot whatever this option says: at the end it is dropped
+-- again as the file closes, after Q has written it
+mp.add_hook("on_unload", 50, function()
+    if wanted and mp.get_property_bool("eof-reached") then
+        mp.commandv("delete-watch-later-config")
+    end
+end)

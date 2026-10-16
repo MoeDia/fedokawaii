@@ -14,14 +14,20 @@ LOCK=$SOCK.lock
 today=$(LC_ALL=C date '+%Y-%m-%d · %a')     # (English day names: any locale)
 HEAD="## $today"
 
-if [[ ${1:-} == --inside ]]; then         # in the window: neovim, listening on SOCK
-  # as a page, with the popups' title rule (~/.config/fedokawaii/notes.lua), at the end of
-  # the file, on a fresh line, typing
-  # shellcheck source=/dev/null
-  . "$HOME/.config/fedokawaii/icons.sh" 2>/dev/null
-  KAWA_NOTES_ICON=${ICON_NOTE:-✎} KAWA_NOTES_WHERE=${NOTES/#"$HOME"/\~} \
-    exec nvim --listen "$SOCK" -c 'luafile ~/.config/fedokawaii/notes.lua' -c 'normal! Go' -c 'startinsert!' -- "$NOTES"
-fi
+case ${1:-} in
+  "") ;;
+  --inside)                               # in the window: neovim, listening on SOCK
+    # as a page, with the popups' title rule (~/.config/fedokawaii/notes.lua), at the end of
+    # the file, on a fresh line, typing. No swap file (-n): every change is in the file
+    # itself at once, and a window closed under neovim (Super+Q) would leave one behind —
+    # and with it a "Found a swap file" question in the next window
+    # shellcheck source=/dev/null
+    . "$HOME/.config/fedokawaii/icons.sh" 2>/dev/null
+    KAWA_NOTES_ICON=${ICON_NOTE:-✎} KAWA_NOTES_WHERE=${NOTES/#"$HOME"/\~} \
+      exec nvim -n --listen "$SOCK" -c 'luafile ~/.config/fedokawaii/notes.lua' -c 'normal! Go' -c 'startinsert!' -- "$NOTES" ;;
+  -h|--help) sed -n '2,/^set -u/{/^set -u/d;s/^# \{0,1\}//;p}' "$0"; exit 0 ;;
+  *) echo "usage: kawa-notes   (Super+N: your notes, ~/Notes/notes.md)" >&2; exit 2 ;;
+esac
 
 # open already → put it away: neovim saves and quits, and its window closes with it
 if [[ -S $SOCK ]] && timeout 1 nvim --server "$SOCK" --remote-expr 1 >/dev/null 2>&1; then
@@ -43,21 +49,27 @@ fi
 # 80 × 25: an even width, an odd height — dwl centres it to the pixel
 kawa-float notes 80x25 -- "$0" --inside 9>&-
 rm -f "$SOCK"
+sync -- "$NOTES" 2>/dev/null               # (the window writes without waiting for the disk)
 # tidy the end: no empty lines left by a fresh line you did not use — and a heading with
 # nothing under it goes too, with the blank line before it
-# — written beside it and moved over it in one step, so a full disk or a crash at that
-# moment leaves the diary as it was, never half-written
+# — only the end of the file is read (a diary years long tidies as fast as a new one), and
+# the result is written beside it and moved over it in one step, so a full disk or a crash
+# at that moment leaves the diary as it was, never half-written
 if [[ -s $NOTES ]]; then
-  body=$(<"$NOTES") || exit 0              # (the file without its trailing newlines)
-  body=${body%"${body##*[![:space:]]}"}    # nor trailing blanks
-  if [[ $body == "$HEAD" || $body == *$'\n'"$HEAD" ]]; then
-    body=${body%"$HEAD"}; body=${body%"${body##*[![:space:]]}"}
-  fi
   real=$(readlink -f -- "$NOTES")
-  cur=$(cat -- "$real"; printf x); cur=${cur%x}
-  [[ $cur == "${body:+$body$'\n'}" ]] && exit 0                   # (already tidy)
+  LC_ALL=C                                 # (bytes from here on: lengths are file offsets)
+  size=$(stat -c %s -- "$real") || exit 0
+  { end=$(tail -c 65536 -- "$real"; printf x); } 2>/dev/null; end=${end%x}
+  ((${#end} == (size < 65536 ? size : 65536))) || exit 0   # (a NUL byte: left as it is)
+  t=${end%"${end##*[![:space:]]}"}         # the end without its trailing blanks
+  if [[ $t == "$HEAD" || $t == *$'\n'"$HEAD" ]]; then
+    t=${t%"$HEAD"}; t=${t%"${t##*[![:space:]]}"}
+  fi
+  if [[ -n $t ]]; then [[ $end == "$t"$'\n' ]] && exit 0                 # (already tidy)
+  elif ((size > ${#end})); then exit 0; fi  # (blank for longer than that: left as it is)
+  keep=$(( size - ${#end} + ${#t} ))
   tmp=$(mktemp -- "$real.XXXXXX") || exit 0
-  if { [[ -z $body ]] || printf '%s\n' "$body"; } >"$tmp" && sync -- "$tmp" 2>/dev/null; then
+  if { head -c "$keep" -- "$real" && { ((keep == 0)) || printf '\n'; }; } >"$tmp" && sync -- "$tmp" 2>/dev/null; then
     chmod --reference="$real" -- "$tmp" 2>/dev/null; mv -f -- "$tmp" "$real"
   else rm -f -- "$tmp"; fi
 fi

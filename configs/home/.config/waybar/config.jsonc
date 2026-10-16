@@ -30,26 +30,28 @@
   "custom/torii": { "format": "\uDBB8\uDC00", "tooltip": false, "on-click": "fuzzel" },
 
   // workspaces: written by kawa-dwlstatus, which pokes only what changed — SIGRTMIN+8 workspaces,
-  // +9 layout, +10 title, +11 keyboard layout; an empty text hides the module.
-  // Clicking one switches to it (kawa-tag presses its Super+1…9 through a virtual keyboard).
-  "custom/tag1": { "exec": "{ IFS= read -r l <\"$XDG_RUNTIME_DIR/dwl-bar/tag1.json\"; } 2>/dev/null && printf '%s\\n' \"$l\"", "return-type": "json", "interval": "once", "signal": 8, "tooltip": false, "on-click": "kawa-tag 1" },
-  "custom/tag2": { "exec": "{ IFS= read -r l <\"$XDG_RUNTIME_DIR/dwl-bar/tag2.json\"; } 2>/dev/null && printf '%s\\n' \"$l\"", "return-type": "json", "interval": "once", "signal": 8, "tooltip": false, "on-click": "kawa-tag 2" },
-  "custom/tag3": { "exec": "{ IFS= read -r l <\"$XDG_RUNTIME_DIR/dwl-bar/tag3.json\"; } 2>/dev/null && printf '%s\\n' \"$l\"", "return-type": "json", "interval": "once", "signal": 8, "tooltip": false, "on-click": "kawa-tag 3" },
-  "custom/tag4": { "exec": "{ IFS= read -r l <\"$XDG_RUNTIME_DIR/dwl-bar/tag4.json\"; } 2>/dev/null && printf '%s\\n' \"$l\"", "return-type": "json", "interval": "once", "signal": 8, "tooltip": false, "on-click": "kawa-tag 4" },
-  "custom/tag5": { "exec": "{ IFS= read -r l <\"$XDG_RUNTIME_DIR/dwl-bar/tag5.json\"; } 2>/dev/null && printf '%s\\n' \"$l\"", "return-type": "json", "interval": "once", "signal": 8, "tooltip": false, "on-click": "kawa-tag 5" },
-  "custom/tag6": { "exec": "{ IFS= read -r l <\"$XDG_RUNTIME_DIR/dwl-bar/tag6.json\"; } 2>/dev/null && printf '%s\\n' \"$l\"", "return-type": "json", "interval": "once", "signal": 8, "tooltip": false, "on-click": "kawa-tag 6" },
-  "custom/tag7": { "exec": "{ IFS= read -r l <\"$XDG_RUNTIME_DIR/dwl-bar/tag7.json\"; } 2>/dev/null && printf '%s\\n' \"$l\"", "return-type": "json", "interval": "once", "signal": 8, "tooltip": false, "on-click": "kawa-tag 7" },
-  "custom/tag8": { "exec": "{ IFS= read -r l <\"$XDG_RUNTIME_DIR/dwl-bar/tag8.json\"; } 2>/dev/null && printf '%s\\n' \"$l\"", "return-type": "json", "interval": "once", "signal": 8, "tooltip": false, "on-click": "kawa-tag 8" },
-  "custom/tag9": { "exec": "{ IFS= read -r l <\"$XDG_RUNTIME_DIR/dwl-bar/tag9.json\"; } 2>/dev/null && printf '%s\\n' \"$l\"", "return-type": "json", "interval": "once", "signal": 8, "tooltip": false, "on-click": "kawa-tag 9" },
-  "custom/layout": { "exec": "{ IFS= read -r l <\"$XDG_RUNTIME_DIR/dwl-bar/layout.json\"; } 2>/dev/null && printf '%s\\n' \"$l\"", "return-type": "json", "interval": "once", "signal": 9, "tooltip": false },
+  // +9 layout, +10 title, +11 keyboard layout; an empty text hides the module. Each monitor's
+  // bar shows that monitor's (dwl-bar/$WAYBAR_OUTPUT_NAME/, else the focused one's).
+  // Clicking one switches to it (kawa-tag presses its Super+1…9 through a virtual keyboard:
+  // dwl acts on the monitor under the pointer, the one whose bar was clicked).
+  "custom/tag1": { "exec": "{ IFS= read -r l <\"$XDG_RUNTIME_DIR/dwl-bar/${WAYBAR_OUTPUT_NAME:-.}/tag1.json\" || IFS= read -r l <\"$XDG_RUNTIME_DIR/dwl-bar/tag1.json\"; } 2>/dev/null && printf '%s\\n' \"$l\"", "return-type": "json", "interval": "once", "signal": 8, "tooltip": false, "on-click": "kawa-tag 1" },
+  "custom/tag2": { "exec": "{ IFS= read -r l <\"$XDG_RUNTIME_DIR/dwl-bar/${WAYBAR_OUTPUT_NAME:-.}/tag2.json\" || IFS= read -r l <\"$XDG_RUNTIME_DIR/dwl-bar/tag2.json\"; } 2>/dev/null && printf '%s\\n' \"$l\"", "return-type": "json", "interval": "once", "signal": 8, "tooltip": false, "on-click": "kawa-tag 2" },
+  "custom/tag3": { "exec": "{ IFS= read -r l <\"$XDG_RUNTIME_DIR/dwl-bar/${WAYBAR_OUTPUT_NAME:-.}/tag3.json\" || IFS= read -r l <\"$XDG_RUNTIME_DIR/dwl-bar/tag3.json\"; } 2>/dev/null && printf '%s\\n' \"$l\"", "return-type": "json", "interval": "once", "signal": 8, "tooltip": false, "on-click": "kawa-tag 3" },
+  "custom/tag4": { "exec": "{ IFS= read -r l <\"$XDG_RUNTIME_DIR/dwl-bar/${WAYBAR_OUTPUT_NAME:-.}/tag4.json\" || IFS= read -r l <\"$XDG_RUNTIME_DIR/dwl-bar/tag4.json\"; } 2>/dev/null && printf '%s\\n' \"$l\"", "return-type": "json", "interval": "once", "signal": 8, "tooltip": false, "on-click": "kawa-tag 4" },
+  "custom/tag5": { "exec": "{ IFS= read -r l <\"$XDG_RUNTIME_DIR/dwl-bar/${WAYBAR_OUTPUT_NAME:-.}/tag5.json\" || IFS= read -r l <\"$XDG_RUNTIME_DIR/dwl-bar/tag5.json\"; } 2>/dev/null && printf '%s\\n' \"$l\"", "return-type": "json", "interval": "once", "signal": 8, "tooltip": false, "on-click": "kawa-tag 5" },
+  "custom/tag6": { "exec": "{ IFS= read -r l <\"$XDG_RUNTIME_DIR/dwl-bar/${WAYBAR_OUTPUT_NAME:-.}/tag6.json\" || IFS= read -r l <\"$XDG_RUNTIME_DIR/dwl-bar/tag6.json\"; } 2>/dev/null && printf '%s\\n' \"$l\"", "return-type": "json", "interval": "once", "signal": 8, "tooltip": false, "on-click": "kawa-tag 6" },
+  "custom/tag7": { "exec": "{ IFS= read -r l <\"$XDG_RUNTIME_DIR/dwl-bar/${WAYBAR_OUTPUT_NAME:-.}/tag7.json\" || IFS= read -r l <\"$XDG_RUNTIME_DIR/dwl-bar/tag7.json\"; } 2>/dev/null && printf '%s\\n' \"$l\"", "return-type": "json", "interval": "once", "signal": 8, "tooltip": false, "on-click": "kawa-tag 7" },
+  "custom/tag8": { "exec": "{ IFS= read -r l <\"$XDG_RUNTIME_DIR/dwl-bar/${WAYBAR_OUTPUT_NAME:-.}/tag8.json\" || IFS= read -r l <\"$XDG_RUNTIME_DIR/dwl-bar/tag8.json\"; } 2>/dev/null && printf '%s\\n' \"$l\"", "return-type": "json", "interval": "once", "signal": 8, "tooltip": false, "on-click": "kawa-tag 8" },
+  "custom/tag9": { "exec": "{ IFS= read -r l <\"$XDG_RUNTIME_DIR/dwl-bar/${WAYBAR_OUTPUT_NAME:-.}/tag9.json\" || IFS= read -r l <\"$XDG_RUNTIME_DIR/dwl-bar/tag9.json\"; } 2>/dev/null && printf '%s\\n' \"$l\"", "return-type": "json", "interval": "once", "signal": 8, "tooltip": false, "on-click": "kawa-tag 9" },
+  "custom/layout": { "exec": "{ IFS= read -r l <\"$XDG_RUNTIME_DIR/dwl-bar/${WAYBAR_OUTPUT_NAME:-.}/layout.json\" || IFS= read -r l <\"$XDG_RUNTIME_DIR/dwl-bar/layout.json\"; } 2>/dev/null && printf '%s\\n' \"$l\"", "return-type": "json", "interval": "once", "signal": 9, "tooltip": false },
   // keyboard layout (US / AR, switched with Alt+Shift); vermilion while it is not the first
   "custom/kb":     { "exec": "{ IFS= read -r l <\"$XDG_RUNTIME_DIR/dwl-bar/kb.json\"; } 2>/dev/null && printf '%s\\n' \"$l\"",     "return-type": "json", "interval": "once", "signal": 11, "tooltip": false },
-  "custom/title":  { "exec": "{ IFS= read -r l <\"$XDG_RUNTIME_DIR/dwl-bar/title.json\"; } 2>/dev/null && printf '%s\\n' \"$l\"",  "return-type": "json", "interval": "once", "signal": 10, "tooltip": false, "max-length": 60 },
+  "custom/title":  { "exec": "{ IFS= read -r l <\"$XDG_RUNTIME_DIR/dwl-bar/${WAYBAR_OUTPUT_NAME:-.}/title.json\" || IFS= read -r l <\"$XDG_RUNTIME_DIR/dwl-bar/title.json\"; } 2>/dev/null && printf '%s\\n' \"$l\"",  "return-type": "json", "interval": "once", "signal": 10, "tooltip": false, "max-length": 60 },
 
   // one long-running script (see its header); restarted if it ever exits
   "custom/nowplaying": {
     "exec": "kawa-nowplaying", "return-type": "json", "restart-interval": 5, "tooltip": false,
-    "on-click": "playerctl play-pause", "on-click-right": "playerctl next", "on-click-middle": "playerctl previous"
+    "on-click": "kawa-nowplaying play-pause", "on-click-right": "kawa-nowplaying next", "on-click-middle": "kawa-nowplaying previous"
   },
 
   "tray": { "icon-size": 14, "spacing": 8 },

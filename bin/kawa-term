@@ -5,7 +5,10 @@
 # the server took it — never how CMD ended (a command that fails must not open twice).
 # The "open with" entries for yazi and neovim use it (Files, Editor), so anything that
 # opens a folder or a text file — Brave's "Show in folder", xdg-open, yazi — gets a window.
+#
+# Exit: 0 the window opened (through the server) · otherwise foot's own status.
 set -u
+case ${1:-} in -h|--help) sed -n '2,/^set -u/{/^set -u/d;s/^# \{0,1\}//;p}' "$0"; exit 0 ;; esac
 # started from systemd --user (a portal, xdg-open in a service) PATH lacks ~/.local/bin,
 # where yazi and the desktop's helpers live — a standalone foot below needs it
 case :$PATH: in *":$HOME/.local/bin:"*) ;; *) PATH=$HOME/.local/bin:$PATH ;; esac

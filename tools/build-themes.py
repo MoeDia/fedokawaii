@@ -568,9 +568,12 @@ def check_copies():
         text = (ROOT / rel).read_text()
         for n, line in enumerate(text.splitlines(), 1):
             found = re.findall(r"(?:#|0x)([0-9a-fA-F]{6})(?:[0-9a-fA-F]{2})?(?![0-9A-Za-z])", line)
-            # bare ones (key=c0ffee, lists a,b,c): only with a digit in them, so no word is taken for one
-            found += [h for h in re.findall(r"(?<=[=,\s'\"])([0-9a-fA-F]{6})(?![0-9A-Za-z])", line)
+            # bare ones (key=c0ffee, lists a,b,c): only with a digit in them, so no word is taken for
+            # one — and after a space only with a letter too, so no number is ((t < 500000), sleeps)
+            found += [h for h in re.findall(r"(?<=[=,'\"])([0-9a-fA-F]{6})(?![0-9A-Za-z])", line)
                       if re.search(r"[0-9]", h)]
+            found += [h for h in re.findall(r"(?<=\s)([0-9a-fA-F]{6})(?![0-9A-Za-z])", line)
+                      if re.search(r"[0-9]", h) and re.search(r"[a-fA-F]", h)]
             for h in found:
                 if h.lower() not in known:
                     bad.append(f"{rel}:{n}: {h} is not a palette colour")

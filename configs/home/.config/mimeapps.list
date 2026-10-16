@@ -37,6 +37,36 @@ application/xml=kawa-edit.desktop
 text/x-lua=kawa-edit.desktop
 text/x-diff=kawa-edit.desktop
 text/x-patch=kawa-edit.desktop
+# … and the same kinds as `file` names them: xdg-open asks `file` on this desktop (Python
+# is text/x-script.python there, C, C++, Go and Rust text/x-c). A kind with no line here
+# goes to the browser, or to neovim's own entry, which wants a terminal xdg-open never
+# opens: neovim would start where nothing shows it, and the file would never appear
+text/x-script.python=kawa-edit.desktop
+text/x-c=kawa-edit.desktop
+text/x-c++=kawa-edit.desktop
+text/x-c++hdr=kawa-edit.desktop
+text/x-java=kawa-edit.desktop
+text/x-makefile=kawa-edit.desktop
+text/x-tex=kawa-edit.desktop
+text/x-perl=kawa-edit.desktop
+text/x-ruby=kawa-edit.desktop
+text/x-php=kawa-edit.desktop
+text/x-tcl=kawa-edit.desktop
+text/x-pascal=kawa-edit.desktop
+text/x-moc=kawa-edit.desktop
+text/x-asm=kawa-edit.desktop
+text/x-awk=kawa-edit.desktop
+text/x-lisp=kawa-edit.desktop
+text/x-msdos-batch=kawa-edit.desktop
+text/x-po=kawa-edit.desktop
+text/troff=kawa-edit.desktop
+text/english=kawa-edit.desktop
+text/xml=kawa-edit.desktop
+text/vtt=kawa-edit.desktop
+application/x-subrip=kawa-edit.desktop
+# an empty file (a note or a script just made), as `file` and GLib name it
+inode/x-empty=kawa-edit.desktop
+application/x-zerosize=kawa-edit.desktop
 # pictures: imv
 image/png=imv.desktop
 image/jpeg=imv.desktop
@@ -68,6 +98,7 @@ audio/wav=mpv.desktop
 audio/mp4=mpv.desktop
 audio/aac=mpv.desktop
 audio/x-m4a=mpv.desktop
+audio/x-hx-aac-adts=mpv.desktop
 audio/webm=mpv.desktop
 audio/x-mpegurl=mpv.desktop
 application/vnd.apple.mpegurl=mpv.desktop
@@ -87,6 +118,7 @@ application/vnd.oasis.opendocument.text=com.abisource.AbiWord.desktop
 application/msword=com.abisource.AbiWord.desktop
 application/vnd.openxmlformats-officedocument.wordprocessingml.document=com.abisource.AbiWord.desktop
 application/rtf=com.abisource.AbiWord.desktop
+text/rtf=com.abisource.AbiWord.desktop
 # spreadsheets and CSV: Gnumeric
 application/vnd.oasis.opendocument.spreadsheet=org.gnumeric.gnumeric.desktop
 application/vnd.ms-excel=org.gnumeric.gnumeric.desktop
@@ -94,6 +126,23 @@ application/vnd.openxmlformats-officedocument.spreadsheetml.sheet=org.gnumeric.g
 text/csv=org.gnumeric.gnumeric.desktop
 # handwritten notes and PDF annotation: Xournal++
 application/x-xopp=com.github.xournalpp.xournalpp.desktop
+# archives: yazi, on the archive (Enter unpacks it beside itself). A Xournal++ note is a
+# gzip file to `file` (and so to xdg-open): it comes here too, and Enter on it in yazi opens
+# Xournal++ (smart-enter.yazi)
+application/zip=kawa-files.desktop
+application/gzip=kawa-files.desktop
+application/x-gzip=kawa-files.desktop
+application/x-tar=kawa-files.desktop
+application/x-compressed-tar=kawa-files.desktop
+application/x-7z-compressed=kawa-files.desktop
+application/x-xz=kawa-files.desktop
+application/x-xz-compressed-tar=kawa-files.desktop
+application/zstd=kawa-files.desktop
+application/x-zstd-compressed-tar=kawa-files.desktop
+application/x-bzip2=kawa-files.desktop
+application/x-bzip2-compressed-tar=kawa-files.desktop
+application/x-rar=kawa-files.desktop
+application/vnd.rar=kawa-files.desktop
 # torrents: magnet links and .torrent files download in torrra (Torrents)
 x-scheme-handler/magnet=kawa-torrents.desktop
 application/x-bittorrent=kawa-torrents.desktop

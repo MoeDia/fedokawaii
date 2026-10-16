@@ -22,12 +22,18 @@
 #  Run from a working copy on a finished install, theme and update and repair make that
 #  copy the toolkit first (your saved settings merged in): what root runs, and what your
 #  home has, always come from the same files.
+#
+#  Exit status: 0 done · 1 it could not (the lines above say why) · 2 misuse (or not run
+#  with sudo) · 3 it ran, and something still needs you (verify, repair, apply, drift) ·
+#  4 drift: in sync but for an optional part · 130 stopped (Ctrl+C)
 # ═════════════════════════════════════════════════════════════════════════════
 set -Eeuo pipefail
 IFS=$'\n\t'
 REPO_DIR="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" && pwd)"
 STATE_DIR=/var/lib/fedokawaii
 LOG_FILE=/var/log/fedokawaii.log
+# (help needs no root: it only reads this header)
+if [[ ${1:-} == @(-h|--help|help) ]]; then sed -n '3,/^# ═/p' "${BASH_SOURCE[0]}" | sed '$d; s/^# \{0,2\}//'; exit 0; fi
 [[ $EUID -eq 0 ]] || { echo "run with sudo: sudo bash fedokawaii.sh" >&2; exit 2; }
 touch "$LOG_FILE"
 source "$REPO_DIR/lib/common.sh"
@@ -35,8 +41,11 @@ TOOLKIT=/usr/local/lib/fedokawaii
 
 # the desktop user: the one setup recorded; before that, USERNAME from fedokawaii.conf,
 # or whoever ran sudo
-conf_user=$(sed -n 's/^USERNAME=["'"'"']\{0,1\}\([a-z_][a-z0-9_-]*\).*/\1/p' "$REPO_DIR/fedokawaii.conf" 2>/dev/null | tail -n1)
-user=$(cat "$STATE_DIR/user" 2>/dev/null || echo "${conf_user:-${SUDO_USER:-}}")
+# (Fedora's user names: letters of either case, digits, . _ - — a leading digit too)
+# (each read `|| true`: a file not there yet is an empty answer, never the end of the script)
+conf_user=$(sed -n 's/^USERNAME=["'"'"']\{0,1\}\([A-Za-z0-9_.][A-Za-z0-9_.-]*\).*/\1/p' "$REPO_DIR/fedokawaii.conf" 2>/dev/null | tail -n1) || true
+user=$(head -n1 "$STATE_DIR/user" 2>/dev/null | tr -d '[:space:]') || true
+[[ -n $user ]] || user=${conf_user:-${SUDO_USER:-}}
 [[ $user == root ]] && user=""
 
 state_line() {
@@ -65,7 +74,7 @@ apply_copy() {
   out=$(as_desk diff -rq --exclude=.git -- "$TOOLKIT" "$REPO_DIR" 2>/dev/null) || true
   while IFS= read -r f; do
     case $f in
-      "Files $TOOLKIT/"*" differ") f=${f#"Files $TOOLKIT/"}; f=${f%% and *} ;;
+      "Files $TOOLKIT/"*" differ") f=${f#"Files $TOOLKIT/"}; f=${f% and "$REPO_DIR"/*} ;;   # (a name may hold " and ")
       "Only in $REPO_DIR"*) f=${f#"Only in $REPO_DIR"}; f=${f#/}; f=${f/: //}; f="${f#/} (new)" ;;
       "Only in $TOOLKIT"*) f=${f#"Only in $TOOLKIT"}; f=${f#/}; f=${f/: //}; f="${f#/} (gone)" ;;
       *) continue ;;
@@ -114,7 +123,14 @@ apply_copy() {
   return "$rc"                                    # (3: applied, and something still needs you)
 }
 
+misuse() { echo "fedokawaii.sh: $* — the actions: sudo bash fedokawaii.sh --help" >&2; exit 2; }
 act() {
+  # (a word more than an action takes is a slip, never ignored: `upgrade now` is no --now)
+  case $1 in
+    upgrade) (($# == 1)) || [[ $# == 2 && $2 == --now ]] || misuse "upgrade takes only --now" ;;
+    conf)    (($# <= 2)) || misuse "conf takes one file" ;;
+    *)       (($# == 1)) || misuse "$1 takes nothing more" ;;
+  esac
   case $1 in
     check)  bash "$REPO_DIR/check.sh" ;;
     setup)  rm -f "$STATE_DIR/with-theme"; bash "$REPO_DIR/setup.sh" ;;
@@ -145,7 +161,7 @@ act() {
             if [[ $f != "$REPO_DIR/fedokawaii.conf" ]]; then write_file "$REPO_DIR/fedokawaii.conf" 0644 <"$t"; fi
             rm -f "$t"
             ok "fedokawaii.conf: every value is valid — the next update applies it" ;;
-    *) die "unknown action: $1 (check setup theme all verify update upgrade repair drift status apply)" ;;
+    *) misuse "unknown action: $1 (check setup theme all verify update upgrade repair drift status apply)" ;;
   esac
 }
 

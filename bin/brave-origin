@@ -7,9 +7,10 @@
 # in a shell all start Brave this way; everything else reaches Brave unchanged — a feature
 # list of your own is joined to this one, not replaced by it.
 set -u
-feat=PulseaudioLoopbackForScreenShare args=()
-for a in "$@"; do
-  if [[ $a == --enable-features=* ]]; then feat+=",${a#--enable-features=}"; else args+=("$a"); fi
+feat=PulseaudioLoopbackForScreenShare args=() rest=""
+for a in "$@"; do                           # (after --, Chromium reads no switches: nor here)
+  if [[ -z $rest && $a == --enable-features=* ]]; then feat+=",${a#--enable-features=}"
+  else [[ $a == -- ]] && rest=1; args+=("$a"); fi
 done
 for b in /usr/bin/brave-origin-stable /opt/brave.com/brave-origin/brave-origin /usr/bin/brave-origin; do
   [[ -x $b ]] && exec "$b" "--enable-features=$feat" "${args[@]}"

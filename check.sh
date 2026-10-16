@@ -6,11 +6,18 @@
 #
 #  ✘ blocks setup · ! worth knowing, does not block · · information
 #  setup.sh runs this automatically before phase 1 and stops on any ✘.
+#  Exit: 0 ready · 1 not ready (the ✘ lines say why) · 2 misuse (not root)
 # ═════════════════════════════════════════════════════════════════════════════
 set -uo pipefail
 IFS=$'\n\t'
 export LC_ALL=C.UTF-8      # every tool's output in one language and format, whatever yours is
 REPO_DIR="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" && pwd)"
+for a in "$@"; do
+  case $a in
+    -h|--help) sed -n '3,/^# ═/p' "$0" | sed '$d'; exit 0 ;;
+    *) echo "unknown option: $a (bash check.sh --help)" >&2; exit 2 ;;
+  esac
+done
 [[ $EUID -eq 0 ]] || { echo "run with sudo: sudo bash check.sh" >&2; exit 2; }
 LOG_FILE=/var/log/fedokawaii-check.log; : >"$LOG_FILE"
 source "$REPO_DIR/lib/common.sh"
@@ -58,7 +65,8 @@ else
 fi
 if [[ -d /sys/firmware/efi ]]; then
   sb=$(od -An -tu1 -j4 -N1 /sys/firmware/efi/efivars/SecureBoot-* 2>/dev/null | tr -d ' ')
-  info "UEFI boot · Secure Boot ${sb:+$([[ $sb == 1 ]] && echo on || echo off)} (both fine: Fedora's kernel and amdgpu are signed)"
+  case $sb in 1) sb=on ;; 0) sb=off ;; *) sb="state unknown" ;; esac
+  info "UEFI boot · Secure Boot $sb (either is fine: Fedora's kernel and its drivers are signed)"
 else
   info "legacy BIOS boot (fine)"
 fi
@@ -107,7 +115,12 @@ elif [[ $sel == Permissive ]]; then fail "SELinux is permissive" "set SELINUX=en
 else fail "SELinux is ${sel:-unavailable}" "turn it back on: sudo grubby --update-kernel ALL --remove-args selinux; sudo fixfiles -F onboot; reboot"; fi
 [[ $(timedatectl show -p NTPSynchronized --value 2>/dev/null) == yes ]] && pass "clock synchronised (NTP)" \
   || warn "clock not synchronised" "TLS downloads can fail with a wrong clock: timedatectl set-ntp true"
-[[ -n ${SSH_CONNECTION:-} ]] && warn "running over SSH" "setup reboots and continues on the machine's own screen (tty1)"
+# (sudo drops SSH_CONNECTION and WAYLAND_DISPLAY from the environment: the terminal tells —
+# a pseudo-terminal is SSH or a terminal window, the machine's own console is a /dev/ttyN)
+tty_now=$(tty 2>/dev/null) || tty_now=""
+if [[ -n ${SSH_CONNECTION:-} || $tty_now == /dev/pts/* ]]; then
+  warn "running over SSH or in a terminal window (${tty_now:-SSH})" "setup reboots and continues on the machine's own screen (tty1)"
+fi
 [[ -n ${WAYLAND_DISPLAY:-}${DISPLAY:-} ]] && warn "running inside a graphical session" "run from the text console"
 
 # ── updates & reboots ────────────────────────────────────────────────────────
@@ -150,27 +163,28 @@ else warn "could not ask the repositories for wlroots $DWL_WLROOTS" "offline? se
 
 # ── hardware ─────────────────────────────────────────────────────────────────
 section "hardware"
-gpus=""
-for d in /sys/class/drm/card[0-9]*/device; do
-  [[ -r $d/vendor ]] || continue
-  case $(<"$d/vendor") in
-    0x1002) gpus+="amd:$(basename "$(readlink -f "$d/driver" 2>/dev/null)") " ;;
-    0x8086) gpus+="intel:$(basename "$(readlink -f "$d/driver" 2>/dev/null)") " ;;
-    0x10de) gpus+="nvidia " ;;
-  esac
-done
-case $gpus in
-  *amd:amdgpu*) pass "AMD GPU on the amdgpu driver" ;;
-  *amd:*)       fail "AMD GPU found but amdgpu is not driving it" "$gpus" ;;
-  *intel:*)     pass "Intel GPU (${gpus% })" ;;
-  *nvidia*)     fail "NVIDIA only" "this build targets AMD/Intel (open drivers)" ;;
-  *)            fail "no GPU detected" "set GPU= in fedokawaii.conf if this is wrong" ;;
-esac
-[[ $GPU != auto && $gpus != *"$GPU:"* ]] && warn "GPU=$GPU in fedokawaii.conf" "but detected: ${gpus:-none}"
-ls /sys/class/bluetooth/hci* >/dev/null 2>&1 && pass "Bluetooth adapter present" || warn "no Bluetooth adapter seen" "plug the dongle in before setup"
-# what setup will add for this hardware (lib/hardware.sh) — said now, nothing installed yet
 # shellcheck source=lib/hardware.sh
 source "$REPO_DIR/lib/hardware.sh"
+gpus=""      # (each card with the driver holding it, for the messages)
+for d in /sys/class/drm/card[0-9]*/device; do
+  [[ -r $d/vendor ]] || continue
+  gpus+="$(<"$d/vendor"):$(basename "$(readlink -f "$d/driver" 2>/dev/null)") "
+done
+case $(hw_gpu) in
+  amd)    if [[ $gpus == *0x1002:amdgpu* ]]; then pass "AMD GPU on the amdgpu driver"
+          else fail "AMD GPU found but amdgpu is not driving it" "${gpus% }"; fi ;;
+  intel)  pass "Intel GPU (${gpus% })" ;;
+  nvidia) fail "NVIDIA only" "this build targets AMD/Intel (open drivers)" ;;
+  vm)     fail "a virtual machine's display (${gpus% })" "the desktop needs an AMD or Intel GPU: setup's last check (hardware video decoding) cannot pass here" ;;
+  *)      # no card the kernel drives: one too new for this kernel is named in fedokawaii.conf
+          if [[ $GPU != auto ]]; then warn "no GPU seen by the kernel" "GPU=$GPU in fedokawaii.conf: setup installs its drivers"
+          else fail "no AMD or Intel GPU seen by the kernel" "a card too new for this kernel: set GPU= in fedokawaii.conf"; fi ;;
+esac
+[[ $GPU != auto && $(hw_gpu) != none && $(hw_gpu) != "$GPU" ]] && warn "GPU=$GPU in fedokawaii.conf" "but this machine's card is $(hw_gpu)"
+# the tuning is a desktop's (setup: s_tuning) — on a battery it costs hours
+hw_is_laptop && warn "a laptop" "setup tunes for an always-plugged desktop (full CPU speed, Wi-Fi never napping): the battery runs down faster"
+ls /sys/class/bluetooth/hci* >/dev/null 2>&1 && pass "Bluetooth adapter present" || warn "no Bluetooth adapter seen" "plug the dongle in before setup"
+# what setup will add for this hardware (lib/hardware.sh) — said now, nothing installed yet
 case $(hw_cpu_vendor) in
   GenuineIntel) info "Intel CPU — setup adds its microcode (microcode_ctl)" ;;
   AuthenticAMD) info "AMD CPU — setup adds its microcode (amd-ucode-firmware)" ;;

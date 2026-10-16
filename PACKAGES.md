@@ -10,7 +10,7 @@ Source: **F** Fedora · **RF** RPM Fusion · **V** vendor repo (signed) · **C**
 
 | Job | Tool | Source | Notes |
 |---|---|---|---|
-| Compositor | dwl 0.9 | git (Codeberg) | built with XWayland on; a small patch (`src/dwl/dwl.patch`): gaps, retro window frames, centred floating windows, keybindings that work in the Arabic layout, the keyboard layout reported to the bar |
+| Compositor | dwl 0.9 | git (Codeberg) | built with XWayland on; a small patch (`src/dwl/dwl.patch`): gaps, retro window frames on one window at a time, centred floating windows, keybindings that work in the Arabic layout, menus that close on a click outside, monitors plugged in later set up again (`kawa-display --hotplug`), the keyboard layout reported to the bar (and said again if the bar fell behind) |
 | Transitions | `kawa-veil` | this repository (`src/kawa-veil`, C) | the theme and wallpaper changes; built by theme.sh with dwl's build tools — nothing extra installed |
 | Clipboard keeper | `kawa-clipkeep` | this repository (`src/kawa-clipkeep`, C) | a copy stays after its program closes; the usual tool for this (wl-clip-persist) is not packaged for Fedora |
 | Login | greetd (agreety) + greetd-selinux | F | plain text login: user name, password; SELinux policy is a separate package on Fedora |
@@ -68,7 +68,7 @@ Source: **F** Fedora · **RF** RPM Fusion · **V** vendor repo (signed) · **C**
 | Fonts | JetBrainsMono Nerd · DepartureMono Nerd · PixelMplus 12 · Sumi Icons · Terminus (console) · Noto Sans · Noto Sans CJK · Noto Naskh Arabic · Noto Kufi Arabic · Amiri · Noto Color Emoji · Liberation | GH + F + repo | Departure = the pixel UI font; PixelMplus = Japanese in the pixel UI and the terminal; Noto Sans CJK = Japanese, Chinese, Korean in programs and subtitles; Sumi Icons = this desktop's icons; Kufi = Arabic in the pixel UI (bar, menus, notices); Liberation = metric-compatible fonts for office files |
 | Look | adw-gtk3 · qt6ct · Papirus · dconf · pointers drawn here (Adwaita beneath for rare shapes) | F + repo | dark/light switched live by `kawa-theme`; the pixel pointers come from `art/cursors.txt` |
 | Build (kept) | gcc · make · pkgconf · wayland/wlroots/xcb devel | F | theme.sh rebuilds dwl when you change a keybind, and builds kawa-veil and kawa-clipkeep |
-| Script plumbing | dnf5-plugins · git · jq · gnupg2 · diffutils · man-db · libva-utils · libdnf5-plugin-actions | F | used by setup.sh / verify.sh; diff / cmp compare the copy and the toolkit, man opens the manuals the change menu lists (both usually present: listed, never assumed); actions = a snapshot pair around every dnf run |
+| Script plumbing | dnf5-plugins · git · jq · gnupg2 · tar · grubby · diffutils · man-db · libva-utils · libdnf5-plugin-actions | F | used by setup.sh / verify.sh; tar unpacks the release archives and GE-Proton, grubby sets the kernel arguments (neither is in a Minimal Install's `@core`; the installer adds grubby only on a UEFI machine); diff / cmp compare the copy and the toolkit, man opens the manuals the change menu lists (both usually present: listed, never assumed); actions = a snapshot pair around every dnf run |
 | Drivers and firmware | fwupd · pciutils · usbutils, and what this machine needs (`lib/hardware.sh`): microcode_ctl or amd-ucode-firmware, NetworkManager-wifi + wireless-regdb, alsa-sof-firmware, the firmware the kernel asked for (iwlwifi-…-firmware and the like), intel-media-driver beside an AMD card | F + RF | fwupd: device firmware from the LVFS, applied only by you · lspci / lsusb: which device, which driver · the per-machine packages are found from the hardware at setup, update and repair, and recorded in `/var/lib/fedokawaii/hardware-pkgs` (part of the manifest from then on) |
 | Base | NetworkManager · sudo | F | already in @core — listed so they are marked as yours and dnf's clean-up never takes them |
 | Base | NetworkManager-tui · xorg-x11-server-Xwayland · xdg-utils · xdg-user-dirs | F | nmtui (quick settings → network) · X11 programs · `xdg-open` · `~/Pictures`… |
@@ -116,7 +116,7 @@ before setup started plus the manifest — anything else is reported by name.
 | terminus-fonts-console | a crisp, larger font on the text console (login, Ctrl+Alt+F2…) |
 | greetd-selinux | without it SELinux can block the login on Fedora |
 | tree-sitter-cli | required by LazyVim's nvim-treesitter (`main` branch) |
-| ShellCheck | changing the desktop's scripts yourself (§15 of the handbook): it catches the mistakes bash lets through |
+| ShellCheck | changing the desktop's scripts yourself (chapter 42 of the handbook): it catches the mistakes bash lets through |
 | python3.13 | torrra's libtorrent has wheels only up to 3.13 |
 | libnotify | `notify-send`, used by the helpers |
 | gtk4, libadwaita | runtime libraries of the satty binary |
@@ -142,3 +142,5 @@ before setup started plus the manifest — anything else is reported by name.
 | ntsync-autoload | Proton's faster synchronisation (with Steam) |
 | fwupd, pciutils, usbutils | firmware inside the devices (SSD, motherboard, dock), offered by update and applied by you · which device is which, and which driver holds it |
 | exfatprogs, dosfstools, ntfs-3g | the USB drives: check, repair and name exFAT and FAT sticks; NTFS opens whatever NTFS driver the kernel has |
+| python3, glib2, fontconfig | already there as other packages' dependencies; listed so they are never assumed: the helpers' Python parts and the self-tests · `gsettings`, `gio` · `fc-match`, `fc-cache` |
+| tar, grubby | not on a Minimal Install (grubby only on UEFI machines): unpacking the toolkit and the kernel's boot options |

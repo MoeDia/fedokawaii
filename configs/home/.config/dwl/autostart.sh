@@ -1,7 +1,15 @@
 #!/bin/sh
 # ~/.config/dwl/autostart.sh — run by dwl (-s). Its stdin is dwl's status stream; only the
-# status reader at the end keeps it, everything else closes it (<&-).
-. "$HOME/.config/fedokawaii/env"
+# status reader at the end keeps it, everything else reads /dev/null instead (not a closed
+# stdin: wl-paste refuses to start without one, and gave up five times at every login).
+# Run by hand while the session runs, it would start every helper a second time (a second
+# bar, the drives' notices twice) and wipe the bar's files: only dwl's pipe is taken.
+[ -p /dev/stdin ] || {
+  echo "autostart.sh: dwl runs this at login, with its status as input; to start the session's helpers again, log out and in" >&2
+  exit 2
+}
+# the session's settings (night light…); should the file be gone, the rest still starts
+[ -r "$HOME/.config/fedokawaii/env" ] && . "$HOME/.config/fedokawaii/env"
 # what the helpers keep for one session only: $XDG_RUNTIME_DIR outlives a login (linger),
 # so the last session's bar state, notice id, monitor list and open drives go now
 rm -rf "$XDG_RUNTIME_DIR/dwl-bar" "$XDG_RUNTIME_DIR/kawa-ddc-buses" "$XDG_RUNTIME_DIR/kawa-osd-id" \
@@ -25,8 +33,13 @@ systemctl --user start fedokawaii-remind.timer 2>/dev/null
 
 # keep CMD… — run a session helper and start it again should it ever crash; a clean exit
 # (status 0) ends it, and five crashes inside a minute give up with a notice rather than
-# loop. dwl ends every one of these with the session (they share its process group).
+# loop; one that is not installed is said once. dwl ends every one of these with the
+# session (they share its process group).
 keep() {
+  command -v "$1" >/dev/null || {
+    notify-send -a desktop -u critical "$1 is not installed" "the session runs without it; fedokawaii repair puts it back" 2>/dev/null
+    return 127
+  }
   n=0 t0=$(date +%s)
   while :; do
     "$@" && return 0
@@ -34,33 +47,36 @@ keep() {
     [ $((now - t0)) -gt 60 ] && n=0 t0=$now
     n=$((n + 1))
     if [ "$n" -ge 5 ]; then
-      notify-send -u critical "$1 keeps stopping" "it was restarted 4 times in a minute; see ~/.cache/dwl.log" 2>/dev/null
+      notify-send -a desktop -u critical "$1 keeps stopping" "it was restarted 4 times in a minute; see ~/.cache/dwl.log" 2>/dev/null
       return 1
     fi
     sleep 1
   done
 }
 
-kawa-display <&-                                   # resolution + refresh rate
-kawa-theme apply <&-                               # dark or light: GTK/Qt settings, wallpaper
-keep waybar <&- >"$HOME/.cache/waybar.log" 2>&1 &
-mako <&- &                                         # notifications (if it ever stops, D-Bus starts it
+kawa-display </dev/null                            # resolution + refresh rate
+kawa-theme apply </dev/null                        # dark or light: GTK/Qt settings, wallpaper
+keep waybar </dev/null >"$HOME/.cache/waybar.log" 2>&1 &
+mako </dev/null &                                  # notifications (if it ever stops, D-Bus starts it
                                                    # again with the next one — so no keep here)
+# start-dwl fell back on the build before dwl's newest, which could not start: say so
+[ -n "${KAWA_DWL_PREV:-}" ] && notify-send -a desktop -u critical "dwl could not start" \
+  "this session runs the build before it (dwl.prev); what the new one said: ~/.cache/dwl.log" </dev/null 2>/dev/null &
 # nmtui (quick settings → network) and other newt dialogs in the terminal's own 16 colours,
 # so they follow the theme like everything in foot; every terminal inherits it from here
 export NEWT_COLORS='root=lightgray,default;border=gray,default;window=lightgray,default;shadow=default,default;title=white,default;button=lightgray,black;actbutton=black,red;compactbutton=lightgray,default;checkbox=lightgray,default;actcheckbox=black,brightcyan;entry=white,black;disentry=gray,black;label=lightgray,default;listbox=lightgray,default;actlistbox=white,black;sellistbox=lightgray,black;actsellistbox=black,red;textbox=lightgray,default;acttextbox=white,black;helpline=gray,default;roottext=gray,default;emptyscale=,black;fullscale=,red'
-keep foot --server <&- &                           # Super+Return → footclient (instant)
+keep foot --server </dev/null &                    # Super+Return → footclient (instant)
 # auth dialogs: the agent wherever this Fedora puts it (its own autostart entry names it;
 # it has moved between /usr/bin and /usr/libexec before)
 polkit=$(sed -n 's/^Exec=\([^ ]*\).*/\1/p' /etc/xdg/autostart/lxqt-policykit-agent.desktop 2>/dev/null | head -n1)
 case $polkit in /*) ;; ?*) polkit=$(command -v "$polkit") ;; esac
 for p in "$polkit" /usr/libexec/lxqt-policykit-agent /usr/bin/lxqt-policykit-agent; do
-  [ -x "$p" ] && { keep "$p" <&- & break; }
+  [ -x "$p" ] && { keep "$p" </dev/null & break; }
 done
-keep udiskie <&- &                                 # drives: open when plugged in (~/.config/udiskie, kawa-drives)
-command -v kawa-clipkeep >/dev/null && keep kawa-clipkeep <&- &   # a copy outlives the app it came from
-keep wl-paste --watch cliphist store <&- &         # clipboard history (Super+V)
-gammastep -l "$NIGHT_LIGHT" -t 6500:4200 <&- &     # night light (quick settings turns it off and on)
+keep udiskie </dev/null &                          # drives: open when plugged in (~/.config/udiskie, kawa-drives)
+command -v kawa-clipkeep >/dev/null && keep kawa-clipkeep </dev/null &   # a copy outlives the app it came from
+keep wl-paste --watch cliphist store </dev/null &  # clipboard history (Super+V)
+gammastep -l "$NIGHT_LIGHT" -t 6500:4200 </dev/null &   # night light (quick settings turns it off and on)
 
 # a notice 10 s before · lock 10 min · screens off 15 min (wlopm: the outputs stay, so windows stay where they
 # are) · lock before suspend
@@ -68,12 +84,21 @@ keep swayidle -w \
   timeout 590 'notify-send -a desktop -u low -t 9500 "$(. ~/.config/fedokawaii/icons.sh; printf %s "$ICON_LOCK")  locking in 10 s"' \
   timeout 600 'kawa-lock' \
   timeout 900 "wlopm --off '*'" resume "wlopm --on '*'" \
-  before-sleep 'kawa-lock --now' <&- &
+  before-sleep 'kawa-lock --now' </dev/null &
 
 # yours: ~/.config/dwl/autostart.local.sh, if you made one — the theme never writes it. It
 # runs on its own, beside the session (it can never hold the bar back): end each program
-# that keeps running with &, as here (handbook §15.1)
-[ -f "$HOME/.config/dwl/autostart.local.sh" ] && sh "$HOME/.config/dwl/autostart.local.sh" <&- >>"$HOME/.cache/dwl.log" 2>&1 &
+# that keeps running with &, as here (handbook §42.1)
+[ -f "$HOME/.config/dwl/autostart.local.sh" ] && sh "$HOME/.config/dwl/autostart.local.sh" </dev/null >>"$HOME/.cache/dwl.log" 2>&1 &
 
-# the bar's workspaces, layout, title and keyboard layout, from dwl's status on stdin
-keep kawa-dwlstatus
+# When dwl ends, everything this session started goes with it: logging out, dwl signals this
+# script's process group; should dwl crash, its status stream just ends, and no signal comes.
+# What is no Wayland program (udiskie) would outlive it then, and run twice from the next
+# login on — and anything started in a group of its own (waybar's scripts) is reached too.
+leave() { trap '' TERM HUP; pkill -TERM -s 0 2>/dev/null; exit 0; }
+trap leave TERM HUP
+
+# the bar's workspaces, layout, title and keyboard layout, from dwl's status on stdin (should
+# the reader give up, the stream is still read to its end: the session lasts while dwl does)
+keep kawa-dwlstatus || cat >/dev/null
+leave

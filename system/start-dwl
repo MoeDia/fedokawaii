@@ -29,10 +29,28 @@ export PATH="$HOME/.local/bin:$PATH"
 mkdir -p "$HOME/.cache"
 LOG="$HOME/.cache/dwl.log"
 
+# one desktop at a time: a second dwl (start-dwl typed in a terminal, or on another console)
+# would share this one's runtime folder — the bar's files, the session's services — and
+# stop them when it ends
+pid=$(pgrep -xu "$(id -u)" 'dwl(\.prev)?' 2>/dev/null | head -n1)
+if [ -n "$pid" ]; then
+  printf 'start-dwl: the desktop is already running (dwl, process %s): one at a time.\n' "$pid" >&2
+  exit 1
+fi
+# the session before keeps its log beside the new one: what dwl said before a crash
+[ -s "$LOG" ] && mv -f "$LOG" "$LOG.old"
+: >"$LOG"
+
 # the compositor: dwl, or — should it be unable to start (a library missing) — the build
 # before it (dwl.prev); with neither, a rescue screen on this console instead of a login
 # that only loops back
 rescue() {
+  printf 'start-dwl: the desktop could not start: %s\n' "$1" >>"$LOG"
+  # a dwl that ran for a moment may have started the graphical session for systemd (its
+  # autostart): end it, so no portal waits for a display that is gone
+  systemctl --user stop dwl-session.target 2>/dev/null
+  systemctl --user unset-environment WAYLAND_DISPLAY DISPLAY XDG_CURRENT_DESKTOP \
+    XDG_SESSION_DESKTOP XDG_SESSION_TYPE 2>/dev/null
   printf '\n  The desktop could not start: %s.\n\n' "$1"
   printf '  This console works as usual. To put things right:\n\n'
   printf '      fedokawaii repair      finds what broke and fixes it (or: fedokawaii, the menu)\n\n'
@@ -45,13 +63,40 @@ if ! runs "$DWL"; then
   if runs /usr/local/bin/dwl.prev; then DWL=/usr/local/bin/dwl.prev
   elif [ ! -x "$DWL" ]; then rescue "dwl is not installed ($DWL)"
   else rescue "dwl is missing a library ($(ldd "$DWL" 2>/dev/null | awk '/not found/ { print $1; exit }'))"; fi
+  export KAWA_DWL_PREV=1
 fi
 AUTOSTART="$HOME/.config/dwl/autostart.sh"
-started=$(date +%s)
-if [ -x "$AUTOSTART" ]; then "$DWL" -s "$AUTOSTART" >"$LOG" 2>&1; else "$DWL" >"$LOG" 2>&1; fi
-rc=$?
-# gone within five seconds, with an error: it never really started
-[ "$rc" -ne 0 ] && [ $(( $(date +%s) - started )) -lt 5 ] && rescue "dwl stopped at once (exit $rc)"
+# dwl runs its startup command through sh -c: a home folder with a space or a quote in its
+# name is quoted for it
+case $AUTOSTART in
+  *[!A-Za-z0-9/._-]*) STARTUP="'$(printf '%s' "$AUTOSTART" | sed "s/'/'\\\\''/g")'" ;;
+  *)                  STARTUP=$AUTOSTART ;;
+esac
+# at_once BINARY — run the session; true when it never really started (gone within five
+# seconds, with an error; its status in rc). Timed by the uptime, not the clock: chrony may
+# set the clock back hours meanwhile (dual boot: Windows keeps the hardware clock in local
+# time), and a crash an hour later would look like one at once.
+at_once() {
+  read -r t0 _ </proc/uptime 2>/dev/null || t0=0
+  if [ -x "$AUTOSTART" ]; then "$1" -s "$STARTUP" >>"$LOG" 2>&1; else "$1" >>"$LOG" 2>&1; fi
+  rc=$?
+  read -r t1 _ </proc/uptime 2>/dev/null || t1=0
+  [ "$rc" -ne 0 ] && [ $(( ${t1%.*} - ${t0%.*} )) -lt 5 ]
+}
+if at_once "$DWL"; then
+  # a new build that starts and stops at once (a change to config.h, say): the build before
+  # it, once — autostart says so with a notice (KAWA_DWL_PREV)
+  if [ "$DWL" != /usr/local/bin/dwl.prev ] && runs /usr/local/bin/dwl.prev; then
+    first=$rc
+    printf '\nstart-dwl: dwl stopped at once (exit %s); the build before it (dwl.prev) now\n\n' "$rc" >>"$LOG"
+    export KAWA_DWL_PREV=1
+    if at_once /usr/local/bin/dwl.prev; then
+      rescue "dwl stopped at once (exit $first), and so did the build before it (exit $rc)"
+    fi
+  else
+    rescue "${DWL##*/} stopped at once (exit $rc)"
+  fi
+fi
 
 # logged out: end the graphical session for systemd (the portals stop with it) and take
 # this session's display out of the environment of what systemd --user starts later

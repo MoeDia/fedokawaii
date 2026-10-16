@@ -35,26 +35,31 @@ CHECK=0 TARGET_USER=""
 while (($#)); do
   case $1 in
     --check) CHECK=1; shift ;;
-    --user)  TARGET_USER=$2; shift 2 ;;
+    --user)  [[ -n ${2:-} && $2 != -* ]] || { echo "--user needs a user name: --user NAME" >&2; exit 2; }
+             TARGET_USER=$2; shift 2 ;;
     -h|--help) sed -n '3,/^# ═/p' "$0" | sed '$d'; exit 0 ;;
     *) echo "unknown option: $1" >&2; exit 2 ;;
   esac
 done
 
-if [[ $EUID -eq 0 ]]; then
-  conf_user=$(sed -n 's/^USERNAME=["'"'"']\{0,1\}\([a-z_][a-z0-9_-]*\).*/\1/p' "$REPO_DIR/fedokawaii.conf" 2>/dev/null | tail -n1)
-  TARGET_USER=${TARGET_USER:-${conf_user:-${SUDO_USER:-}}}
-  [[ -n $TARGET_USER && $TARGET_USER != root ]] || { echo "as root: --user NAME" >&2; exit 2; }
-  LOG_FILE=/var/log/fedokawaii.log
-else
-  TARGET_USER=$(id -un); LOG_FILE=$HOME/.cache/fedokawaii-theme.log; mkdir -p "$HOME/.cache"
-fi
-TARGET_HOME=$(getent passwd "$TARGET_USER" | cut -d: -f6)
-TARGET_UID=$(id -u "$TARGET_USER"); TARGET_GID=$(id -g "$TARGET_USER")
-export LOG_FILE TARGET_USER TARGET_HOME TARGET_UID TARGET_GID
+if [[ $EUID -eq 0 ]]; then LOG_FILE=/var/log/fedokawaii.log
+else LOG_FILE=$HOME/.cache/fedokawaii-theme.log; mkdir -p "$HOME/.cache"; fi
+export LOG_FILE
 source "$REPO_DIR/lib/common.sh"
 source "$REPO_DIR/lib/manifest.sh"
+source "$REPO_DIR/lib/hardware.sh"
 load_conf "$REPO_DIR"
+# whom it is for: as root, --user, else USERNAME (read as setup reads it), else whoever ran sudo
+if [[ $EUID -eq 0 ]]; then
+  TARGET_USER=${TARGET_USER:-${USERNAME:-${SUDO_USER:-}}}
+  [[ -n $TARGET_USER && $TARGET_USER != root ]] || { echo "as root: --user NAME" >&2; exit 2; }
+else
+  TARGET_USER=$(id -un)
+fi
+TARGET_HOME=$(getent passwd "$TARGET_USER" | cut -d: -f6) || TARGET_HOME=""
+[[ -n $TARGET_HOME ]] || die "no user $TARGET_USER on this machine"
+TARGET_UID=$(id -u "$TARGET_USER"); TARGET_GID=$(id -g "$TARGET_USER")
+export TARGET_USER TARGET_HOME TARGET_UID TARGET_GID
 # A stop half-way is safe — every file is replaced whole and the next run compares again —
 # but say where it stopped and what had already changed.
 # shellcheck disable=SC2154  # rc is assigned inside the trap string
@@ -101,17 +106,9 @@ CONSOLE_PALETTE[0]=$INK_GROUND                 # colour 0 is the console's backg
 # mpv's scaling: its high-quality profile (ewa_lanczossharp, debanding) wants a discrete
 # GPU — written for an AMD card with memory of its own (2 GiB or more: not the shared
 # memory of an APU); anywhere else mpv's own defaults, which integrated graphics keep up with
-discrete_amd() {
-  local d v
-  for d in /sys/class/drm/card[0-9]*/device; do
-    [[ -r $d/vendor && $(<"$d/vendor") == 0x1002 && -r $d/mem_info_vram_total ]] || continue
-    v=$(<"$d/mem_info_vram_total")
-    [[ $v =~ ^[0-9]+$ ]] && ((v >= 2147483648)) && return 0
-  done
-  return 1
-}
+# (lib/hardware.sh, hw_discrete_amd)
 MPV_SCALING="# scaling: mpv's own defaults (profile=high-quality is written with a discrete AMD GPU)"
-discrete_amd && MPV_SCALING="profile=high-quality              # ewa_lanczossharp scaling and debanding (discrete AMD GPU)"
+hw_discrete_amd && MPV_SCALING="profile=high-quality              # ewa_lanczossharp scaling and debanding (discrete AMD GPU)"
 
 # the pointer of every list (the fzf options file): the icon font's chevron
 CHEVRON=$(. "$REPO_DIR/configs/home/.config/fedokawaii/icons.sh" && printf '%s' "$ICON_CHEVRON_RIGHT")
@@ -402,7 +399,7 @@ boot_and_console() {
   if ((BOOT_MENU_SECONDS > 0 && autohide > 0)); then
     if ((CHECK)); then DRIFT+=("grubenv: menu_auto_hide is set (the menu stays hidden)")
     else R grub2-editenv - unset menu_auto_hide; CHANGED+=("boot menu: shown for $BOOT_MENU_SECONDS s"); fi
-  elif ((BOOT_MENU_SECONDS == 0 && autohide == 0)); then
+  elif ((BOOT_MENU_SECONDS == 0 && autohide == 0)) && ! R test -s /var/lib/fedokawaii/other-os; then   # (beside another system: shown)
     if ((CHECK)); then DRIFT+=("grubenv: menu_auto_hide is not set")
     else R grub2-editenv - set menu_auto_hide=1; CHANGED+=("boot menu: hidden (Fedora's default)"); fi
   fi
@@ -492,13 +489,19 @@ TOTAL=$((TOTAL + 1))
 # with it. Super+B and a shell find that first in PATH; links that start Brave go through
 # its launcher entry, so Brave's own entry is copied to ~/.local/share/applications with
 # its Exec lines pointing there — made again whenever Brave's own entry changes.
-BRAVE_SYS_DESKTOP=/usr/share/applications/brave-origin.desktop
-BRAVE_USR_DESKTOP=$TARGET_HOME/.local/share/applications/brave-origin.desktop
-if [[ -r $BRAVE_SYS_DESKTOP ]]; then
+# The package also ships com.brave.Origin.desktop, the name the portals look Brave up by. Its
+# NoDisplay=true sits in the wrong section (brave/brave-browser#52193), so the launcher would
+# list Brave twice, once without the screen-share sound: its copy here is hidden as meant.
+for BRAVE_ENTRY in brave-origin.desktop:show com.brave.Origin.desktop:hide; do
+  BRAVE_SYS_DESKTOP=/usr/share/applications/${BRAVE_ENTRY%:*}
+  BRAVE_USR_DESKTOP=$TARGET_HOME/.local/share/applications/${BRAVE_ENTRY%:*}
+  [[ -r $BRAVE_SYS_DESKTOP ]] || continue
   TOTAL=$((TOTAL + 1))
   BT=$(mktemp)
   sed -E "s#^Exec=/usr/bin/brave-origin(-stable)?( |\$)#Exec=$TARGET_HOME/.local/bin/brave-origin\2#" \
-    "$BRAVE_SYS_DESKTOP" >"$BT"
+    "$BRAVE_SYS_DESKTOP" \
+    | awk -v hide="$([[ ${BRAVE_ENTRY#*:} == hide ]] && echo 1)" \
+        'hide && /^NoDisplay=/ { next } { print } hide && $0 == "[Desktop Entry]" { print "NoDisplay=true" }' >"$BT"
   if cmp -s "$BT" "$BRAVE_USR_DESKTOP"; then :
   elif ((CHECK)); then DRIFT+=("$BRAVE_USR_DESKTOP (Brave's launcher entry: screen-share sound)")
   else
@@ -506,7 +509,7 @@ if [[ -r $BRAVE_SYS_DESKTOP ]]; then
     CHANGED+=("$BRAVE_USR_DESKTOP (Brave starts with screen-share sound)")
   fi
   rm -f "$BT"
-fi
+done
 
 # ── 4c. Brave: the desktop's colours ─────────────────────────────────────────
 # Brave's GTK theme mode paints its tab strip, toolbar, menus and dialogs from
@@ -620,7 +623,7 @@ if ! dwl_current; then
   # file taken in by root (take_built): root runs nothing in your folders
   U make -C "$SRC" clean >>"$LOG_FILE" 2>&1
   U make -C "$SRC" -j"$(nproc)" "${DWL_ARGS[@]}" >>"$LOG_FILE" 2>&1 || die "dwl failed to build with src/dwl/config.h — see $LOG_FILE"
-  R bash -c '[[ ! -x /usr/local/bin/dwl ]] || cp -a /usr/local/bin/dwl /usr/local/bin/dwl.prev'   # (start-dwl's fallback)
+  R bash -c '. "$1/lib/common.sh"; keep_dwl_prev' _ "$REPO_DIR" || true   # (start-dwl's fallback, kept as it is when it cannot be)
   # (as root: run as yourself, theme.sh gets there through sudo — R)
   R env TARGET_USER="$TARGET_USER" TARGET_HOME="$TARGET_HOME" TARGET_UID="$TARGET_UID" \
     bash -c '. "$1/lib/common.sh"; take_built "$2" /usr/local/bin/dwl 0755' _ "$REPO_DIR" "$SRC/dwl" \
@@ -701,7 +704,7 @@ RC
 fi
 
 # ── 6. live session: reload what can reload ─────────────────────────────────
-if pgrep -u "$TARGET_UID" -x dwl >/dev/null; then
+if pgrep -u "$TARGET_UID" -x 'dwl(\.prev)?' >/dev/null; then
   RT=/run/user/$TARGET_UID
   WD=$(find "$RT" -maxdepth 1 -name 'wayland-*' ! -name '*.lock' -printf '%f\n' -quit)
   live() { U env WAYLAND_DISPLAY="$WD" "$@" >/dev/null 2>&1 || true; }

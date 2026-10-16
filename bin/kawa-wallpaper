@@ -20,15 +20,31 @@
 #   your own  anything in ~/Pictures/Wallpapers, shown as it is, on either theme
 # Pixel art is enlarged by a whole number to cover each monitor (1080p ×3, 1440p ×4,
 # 4K ×6), so every pixel stays a crisp square; results are cached in ~/.cache.
+#
+# Exit: 0 done (or the picker closed) · 1 could not · 2 wrong use.
 set -u
+# ImageMagick reads format names and options case-blind by the locale: in Turkish, "tile:"
+# and -resize lose their "i" (kawa-sixel, kawa-clip and kawa-books do the same)
+magick() { LC_ALL=C command magick "$@"; }
+case ${1:-} in -h|--help) sed -n '2,/^set -u/{/^set -u/d;s/^# \{0,1\}//;p}' "$0"; exit 0 ;; esac
+# (without these two files — a broken install — the wallpaper still comes up at login)
+WALLPAPER_DIR=$HOME/Pictures/Wallpapers ICON_TORII=▣ ICON_PICTURE=▣ ICON_FOLDER=▤ ICON_THEME=◐
 # shellcheck source=/dev/null
-. "$HOME/.config/fedokawaii/env"
+[[ -r $HOME/.config/fedokawaii/env ]] && . "$HOME/.config/fedokawaii/env"
 # shellcheck source=/dev/null
-. "$HOME/.config/fedokawaii/icons.sh"
+[[ -r $HOME/.config/fedokawaii/icons.sh ]] && . "$HOME/.config/fedokawaii/icons.sh"
+case ${1:-menu} in
+  --restore|--set|menu)   # (the session's runtime folder: also found from a shell without it)
+    export XDG_RUNTIME_DIR=${XDG_RUNTIME_DIR:-/run/user/$UID}
+    [[ -d $XDG_RUNTIME_DIR && -w $XDG_RUNTIME_DIR ]] \
+      || { echo "kawa-wallpaper: no runtime folder $XDG_RUNTIME_DIR (not logged in to the desktop?)" >&2; exit 1; } ;;
+esac
 # One change at a time: two quick theme switches start two of these, and the later one
 # must win. So a change waits for the lock first, then reads which theme is current.
 if [[ ${1:-} == --restore || ${1:-} == --set ]]; then
-  exec 8>"${XDG_RUNTIME_DIR:?}/kawa-wallpaper.lock"
+  # (checked first: without swaybg the picture on screen must not be taken down)
+  command -v swaybg >/dev/null || { echo "kawa-wallpaper: swaybg is not installed (sudo dnf install swaybg)" >&2; exit 1; }
+  exec 8>"$XDG_RUNTIME_DIR/kawa-wallpaper.lock"
   flock -w 30 8 || exit 1
 fi
 THEME=dark C_GROUND=0f0e0c
@@ -39,6 +55,7 @@ ART=$SHARE/$THEME                                      # pattern.png, scene.png 
 PACK=$SHARE/wallpapers LIST=$SHARE/wallpapers.list
 STATE_DIR=$HOME/.local/state/fedokawaii CACHE=$HOME/.cache/kawa-wallpaper
 PW=640 PH=360                                          # the pack's pixel size
+PACK_TMP=""
 mkdir -p "$WALLPAPER_DIR" "$STATE_DIR" "$CACHE"
 
 outputs() {   # "NAME WxH" for every enabled output, as it stands (a turned screen: H×W)
@@ -49,7 +66,7 @@ outputs() {   # "NAME WxH" for every enabled output, as it stands (a turned scre
     /^[^ ]/ { flush(); out = $1; on = 0; size = ""; turned = 0; next }
     /^  Enabled: yes/ { on = 1 }
     /^  Transform: (90|270|flipped-90|flipped-270)$/ { turned = 1 }
-    /^    [0-9]+x[0-9]+ px,.*current/ { size = $1 }
+    /^    [0-9]+x[0-9]+ px.*current/ { size = $1 }    # (a custom mode may have no refresh rate)
     END { flush() }'
 }
 
@@ -110,31 +127,38 @@ apply() {   # apply CHOICE — default | fuji | pack:NAME | /path/to/file
   mapfile -t old < <(pgrep -x -u "$UID" swaybg)
   setsid -f swaybg -c "#$C_GROUND" "${args[@]}" >/dev/null 2>&1 <&- 8>&-   # (it outlives the lock)
   ((${#old[@]})) && { sleep 0.5; kill "${old[@]}" 2>/dev/null; }
-  printf '%s\n' "$c" >"$STATE_DIR/wallpaper-$THEME"
+  return 0
 }
 
 pack() {   # download, check and redraw every pack picture not drawn yet
-  local mode name pair sum url _ tmp out n=0 have=0 fail=0
+  local mode name pair sum url _ tmp out rc host n=0 have=0 fail=0 offline=0 untried=0
   [[ -r $LIST ]] || { echo "kawa-wallpaper: $LIST is missing (run theme.sh)" >&2; return 1; }
   tmp=$(mktemp -d) || return 1
+  PACK_TMP=$tmp; trap 'rm -rf "$PACK_TMP"' EXIT        # (stopped half way: nothing left behind)
   while read -r mode name pair sum url _; do
     [[ $mode == dark || $mode == light ]] || continue          # comments and blank lines
     out="$PACK/$mode/$name.png"
     if [[ -s $out ]]; then have=$((have + 1)); continue; fi
+    # every picture comes from the same host: three in a row that found no way there (no
+    # network, its name not found, no answer) and the rest are left for the next run —
+    # curl retries each one, so offline the whole list would take minutes
+    if ((offline >= 3)); then fail=$((fail + 1)) untried=$((untried + 1)); continue; fi
     mkdir -p "$PACK/$mode"
-    if curl -fsSL --proto '=https' --retry 2 --max-time 180 -o "$tmp/src" "$url" \
-       && [[ $(sha256sum "$tmp/src") == "$sum "* ]] \
+    curl -fsSL --proto '=https' --retry 2 --max-time 180 -o "$tmp/src" "$url"; rc=$?
+    if ((rc == 0)) && [[ $(sha256sum "$tmp/src") == "$sum "* ]] \
        && magick "$tmp/src[0]" -resize "${PW}x${PH}^" -gravity center -extent "${PW}x${PH}" \
             +dither -colors 32 -strip "$out.tmp.png" \
        && mv -f "$out.tmp.png" "$out"; then
-      n=$((n + 1))
+      n=$((n + 1)) offline=0
     else
       fail=$((fail + 1)); rm -f "$out.tmp.png"
+      case $rc in 5|6|7|28|35|56) offline=$((offline + 1)) host=${url#*://} ;; *) offline=0 ;; esac
       echo "kawa-wallpaper: could not fetch or draw '$name' ($url)" >&2
     fi
     rm -f "$tmp/src"
   done <"$LIST"
   rm -rf "$tmp"
+  ((untried)) && echo "kawa-wallpaper: no connection to ${host%%/*} — $untried more not tried" >&2
   # pictures the list no longer names (an older pack) go, with their enlarged copies
   local keep=() f c gone=0
   mapfile -t keep < <(awk '$1 == "dark" || $1 == "light" { print $1 "/" $2 ".png" }' "$LIST")
@@ -214,8 +238,10 @@ preview_file() {   # preview_file CHOICE → that sixel file
   pw=$((w / n)) ph=$((h / n))
   lp=$(( (aw - pw) / 2 )) tp=$(( (ah - ph) / 2 )); ((tp > bh - ph)) && tp=$((bh - ph))
   c=$(resolve "$c")
+  # (quiet: fzf shows a preview's stderr in the pane — a picture it cannot read, cut short
+  # or not a picture at all, gets the plain "no preview" line instead of ImageMagick's words)
   case $c in
-    fuji)    src=$(default_for "$w" "$h") ;;
+    fuji)    src=$(default_for "$w" "$h" 2>/dev/null) ;;
     pack:*)  src=$PACK/$THEME/${c#pack:}.png ;;
     *)       src=$c ;;
   esac
@@ -229,10 +255,10 @@ preview_file() {   # preview_file CHOICE → that sixel file
       f=$(( (w + PW - 1) / PW )) g=$(( (h + PH - 1) / PH )); ((g > f)) && f=$g
       magick "$src" -filter Box -resize "$((PW * f / n))x$((PH * f / n))!" \
         -gravity center -extent "${pw}x${ph}" \
-        -background "#$C_GROUND" -gravity southeast -extent "$((lp + pw))x$((tp + ph))" png:-
+        -background "#$C_GROUND" -gravity southeast -extent "$((lp + pw))x$((tp + ph))" png:- 2>/dev/null
     else
       magick "${src}[0]" -filter Box -resize "${pw}x${ph}^" -gravity center -extent "${pw}x${ph}" \
-        -background "#$C_GROUND" -gravity southeast -extent "$((lp + pw))x$((tp + ph))" png:-
+        -background "#$C_GROUND" -gravity southeast -extent "$((lp + pw))x$((tp + ph))" png:- 2>/dev/null
     fi | kawa-sixel "$C_GROUND" >"$out.$$.tmp" || { rm -f "$out.$$.tmp"; return 1; }
     mv -f "$out.$$.tmp" "$out"
   fi
@@ -241,11 +267,16 @@ preview_file() {   # preview_file CHOICE → that sixel file
 
 case ${1:-menu} in
   --restore)
+    # a choice not there now (deleted, or on a drive not plugged in yet) shows the default,
+    # but stays the choice: it comes back with its picture
     c=$(cat "$STATE_DIR/wallpaper-$THEME" 2>/dev/null)
     apply "${c:-default}" || apply default ;;
   --set)
     c=${2:-default}
-    apply "$c" || exit 1
+    # a picture named from the folder you are in is remembered in full: found from anywhere
+    case $c in default|fuji|pack:*|/*) ;; *) [[ -e $c ]] && c=$PWD/$c ;; esac
+    apply "$c" || { echo "kawa-wallpaper: cannot show '$c' (not there, or not a picture file)" >&2; exit 1; }
+    printf '%s\n' "$c" >"$STATE_DIR/wallpaper-$THEME"
     if [[ $c == pack:* ]] && p=$(pair_of "${c#pack:}"); then   # the same place, other theme
       other=dark; [[ $THEME == dark ]] && other=light
       printf 'pack:%s\n' "$p" >"$STATE_DIR/wallpaper-$other"
@@ -253,7 +284,7 @@ case ${1:-menu} in
   --pack)
     pack ;;
   menu)        # Super+W: the picker window, once (a second press while it is open does nothing)
-    pick=$(mktemp "${XDG_RUNTIME_DIR:?}/kawa-wallpaper.XXXXXX") || exit 1
+    pick=$(mktemp "$XDG_RUNTIME_DIR/kawa-wallpaper.XXXXXX") || exit 1
     trap 'rm -f "$pick"' EXIT
     # 76 × 37 (the clipboard window's width, an odd height: centred to the pixel): the list,
     # then a 74 × 20 area for the picture — as far below its rule as above the window's foot
@@ -295,5 +326,5 @@ case ${1:-menu} in
     renice -n 19 $$ >/dev/null 2>&1
     find "$CACHE/preview" -name '*.six' -mtime +30 -delete 2>/dev/null   # (other sizes, old ones)
     choices | while IFS=$'\t' read -r c _; do preview_file "$c" >/dev/null 2>&1; done ;;
-  *) echo "usage: kawa-wallpaper [--restore|--set CHOICE|--pack]" >&2; exit 2 ;;
+  *) echo "usage: kawa-wallpaper [--restore|--set CHOICE|--pack] (kawa-wallpaper --help)" >&2; exit 2 ;;
 esac

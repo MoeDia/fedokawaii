@@ -1,7 +1,7 @@
 /* ═══════════════════════════════════════════════════════════════════════════
  *  dwl config.h — for dwl v0.9 (wlroots 0.20) with src/dwl/dwl.patch applied (gappx,
  *  full window borders, centred floating windows, keybindings that ignore the
- *  Arabic layout, the keyboard layout for the bar).
+ *  Arabic layout, the keyboard layout for the bar, menus that close on a click outside).
  *  Installed by theme.sh into ~/.local/src/dwl/config.h, then rebuilt.
  *  Keybinding reference: Super+/
  * ═══════════════════════════════════════════════════════════════════════════ */
@@ -149,9 +149,9 @@ static const Key keys[] = {
 	{ 0,               XKB_KEY_XF86AudioLowerVolume, spawn,         SHCMD("kawa-volume down") },
 	{ 0,               XKB_KEY_XF86AudioMute,     spawn,            SHCMD("kawa-volume mute") },
 	{ 0,               XKB_KEY_XF86AudioMicMute,  spawn,            SHCMD("kawa-volume mic") },
-	{ 0,               XKB_KEY_XF86AudioPlay,     spawn,            SHCMD("playerctl play-pause") },
-	{ 0,               XKB_KEY_XF86AudioNext,     spawn,            SHCMD("playerctl next") },
-	{ 0,               XKB_KEY_XF86AudioPrev,     spawn,            SHCMD("playerctl previous") },
+	{ 0,               XKB_KEY_XF86AudioPlay,     spawn,            SHCMD("kawa-nowplaying play-pause") },
+	{ 0,               XKB_KEY_XF86AudioNext,     spawn,            SHCMD("kawa-nowplaying next") },
+	{ 0,               XKB_KEY_XF86AudioPrev,     spawn,            SHCMD("kawa-nowplaying previous") },
 	{ 0,               XKB_KEY_XF86MonBrightnessUp,   spawn,        SHCMD("kawa-brightness +10") },
 	{ 0,               XKB_KEY_XF86MonBrightnessDown, spawn,        SHCMD("kawa-brightness -10") },
 	{ MODKEY,          XKB_KEY_bracketright,      spawn,            SHCMD("kawa-brightness +10") },
@@ -205,6 +205,7 @@ static const Button buttons[] = {
 
 /* Super + mouse wheel → volume */
 static const Axis axes[] = {
-	{ MODKEY, AxisUp,   spawn, SHCMD("wpctl set-volume -l 1.0 @DEFAULT_AUDIO_SINK@ 2%+") },
-	{ MODKEY, AxisDown, spawn, SHCMD("wpctl set-volume @DEFAULT_AUDIO_SINK@ 2%-") },
+	/* Super+scroll: the volume in 2 % steps, with the level shown and up unmuting, like the keys */
+	{ MODKEY, AxisUp,   spawn, SHCMD("kawa-volume up 2") },
+	{ MODKEY, AxisDown, spawn, SHCMD("kawa-volume down 2") },
 };

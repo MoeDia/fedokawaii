@@ -4,14 +4,20 @@
 # setup.sh installs exactly these lists; verify.sh proves exactly these lists
 # are present, the FORBIDDEN ones are absent, and nothing else was added.
 # Every name verified on packages.fedoraproject.org / RPM Fusion / vendor repos
-# for Fedora 44 and 45 (2026-10-14). One tool per job — see PACKAGES.md.
+# for Fedora 44 and 45 (2026-10-14; tar, grubby 2026-10-16). One tool per job — see PACKAGES.md.
 
 # ── phase 1 ─────────────────────────────────────────────────────────────────
 PKG_BASE=(
   dnf5-plugins          # dnf copr, dnf config-manager
   git jq gnupg2         # used by the scripts (clone, GitHub API, key check); zips: 7zip (apps)
+  python3               # the helpers' small Python parts and the self-tests (tuned brings it
+                        #   too: listed, never assumed)
   diffutils man-db      # diff/cmp: the copy against the toolkit, the checks · man: the manuals
                         #   the change menu opens (both usually there; listed, never assumed)
+  tar grubby            # tar: the release archives, GE-Proton, the C helpers' builds · grubby:
+                        #   kernel arguments (amdgpu, the console palette). Neither is in a
+                        #   Minimal Install's @core: tar is @standard's, and the installer
+                        #   adds grubby only for a UEFI boot — a BIOS install has none
   NetworkManager sudo   # in @core already: listed so they are marked as yours, and dnf's
                         # clean-up (autoremove) can never take the network or sudo
   NetworkManager-tui    # nmtui
@@ -71,6 +77,8 @@ PKG_DESKTOP=(
   xdg-terminal-exec                                       # a terminal (foot) for apps that ask for one
   bluez blueman                                           # Bluetooth controller dongle
   dconf                                                   # persists GTK settings (dark mode for GTK4/libadwaita)
+  glib2 fontconfig                                        # gsettings, gio · fc-cache, fc-match: the helpers call them
+                                                          #   (NetworkManager and foot bring them too: listed, never assumed)
   gtk4 libadwaita                                         # runtime for satty (upstream binary)
 )
 PKG_LOOK=(
@@ -101,7 +109,7 @@ PKG_APPS=(
                                                     #   learns your folders (yazi's Z too) · tldr examples
   lazygit tree-sitter-cli                           # git TUI; parser builder required by LazyVim's nvim-treesitter
   ShellCheck                                        # explains what is wrong in a shell script: fedokawaii apply
-                                                    #   reads the ones you changed (and neovim's bash server, §11.5)
+                                                    #   reads the ones you changed (and neovim's bash server, §17.15)
   openrgb solaar liquidctl                          # RGB, Logitech, coolers
   snapper libdnf5-plugin-actions                    # snapshots; actions = pre/post snapshot around every dnf run
   podman python3.13 pipx                            # Prowlarr container; torrra (needs libtorrent wheels ≤ py3.13)
@@ -134,7 +142,7 @@ FORBIDDEN_amd=(mesa-va-drivers mesa-vulkan-drivers)                             
 # ── services ────────────────────────────────────────────────────────────────
 SVC_SYSTEM=(greetd.service bluetooth.service snapper-timeline.timer snapper-cleanup.timer fstrim.timer)
 SVC_SYSTEM_amd=(lactd.service)
-SVC_USER_GLOBAL=(pipewire.socket wireplumber.service)
+SVC_USER_GLOBAL=(pipewire.socket pipewire-pulse.socket wireplumber.service)   # (Fedora's presets enable them; verify checks)
 
 # ── vendor repositories ────────────────────────────────────────────────────
 BRAVE_REPO_URL="https://brave-browser-rpm-release.s3.brave.com/brave-browser.repo"

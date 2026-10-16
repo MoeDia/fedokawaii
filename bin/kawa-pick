@@ -10,7 +10,8 @@
 #   save     the file is already there, under the name the app suggests, with a note in
 #            it (the portal makes it; kawa-pick words it): Enter saves it · r renames it first · Enter on a
 #            folder takes it into that folder · Enter on another file replaces that one,
-#            after a question; cancelling removes the file made for saving again
+#            after a question; cancelling removes the file made for saving again. Where a
+#            file of that name is there already, it is "name (1).ext" (as in Brave)
 #   Esc      first undoes what yazi's Esc undoes (marks, a filter, a search), then cancels —
 #            as Esc closes every other popup
 #
@@ -49,6 +50,15 @@ is_note() {   # is_note FILE — the stand-in for the file being saved (only its
 
 say() { printf '\n  %s\n' "$1"; read -rsn1 -t 3 || true; }          # a word between two pickers
 ask() { local a=""; printf '\n  %s  [y/N] ' "$1"; read -rsn1 a; printf '\n'; [[ $a == [yY] ]]; }
+# free_name PATH — PATH while nothing is there, else the next free "name (1).ext",
+# "name (2).ext"… beside it (as Brave names a second download of the same file)
+free_name() {
+  local dir=${1%/*} stem=${1##*/} ext="" n=1
+  [[ -e $1 || -L $1 ]] || { printf '%s' "$1"; return; }
+  [[ $stem == ?*.* ]] && ext=.${stem##*.} stem=${stem%.*}
+  while [[ -e "$dir/$stem ($n)$ext" || -L "$dir/$stem ($n)$ext" ]]; do n=$((n + 1)); done
+  printf '%s' "$dir/$stem ($n)$ext"
+}
 
 # ── inside the window ─────────────────────────────────────────────────────────
 # yazi, again until MODE has its answer (WORK/answer) or there is none (cancelled).
@@ -71,6 +81,14 @@ inside() {
     KAWA_PICK=$mode YAZI_CONFIG_HOME=$y yazi "${args[@]}" -- "$here"
     chosen=() keep=()
     [[ -s $work/chosen ]] && mapfile -t chosen <"$work/chosen"
+    # one path a line, here and to the portal: a name with a line break in it would come
+    # back as two paths that are not there — said, and the dialog stays
+    for f in "${chosen[@]}"; do
+      [[ -e $f || -L $f ]] && continue
+      say "a name with a line break cannot be passed on — rename it first (r)"
+      [[ $mode == save ]] || here=$(dirname -- "${chosen[0]}")
+      continue 2
+    done
     case $mode in
       open1|openN)
         for f in "${chosen[@]}"; do [[ -d $f ]] || keep+=("$f"); done
@@ -94,8 +112,7 @@ inside() {
         if [[ -d $f ]]; then                        # Enter on a folder: the file goes in there
           [[ $f == "$(dirname -- "$here")" ]] && continue
           is_note "$here" || { say "the file to save is no longer where it was — pick it where you put it"; continue; }
-          to=$f/${here##*/}
-          while [[ -e $to || -L $to ]]; do to+=_; done   # (as the portal does: never over a file)
+          to=$(free_name "$f/${here##*/}")          # (never over a file there)
           if mv -n -- "$here" "$to" 2>/dev/null && [[ -e $to ]]; then
             here=$to; printf '%s\n' "$to" >>"$work/note-at"
           else
@@ -113,6 +130,7 @@ inside() {
 
 case ${1:-} in
   --inside) shift; (($# == 3)) || exit 2; inside "$@"; exit 0 ;;
+  -h|--help) sed -n '2,/^set -u/{/^set -u/d;s/^# \{0,1\}//;p}' "$0"; exit 0 ;;
 esac
 
 # ── called by the portal ──────────────────────────────────────────────────────
@@ -138,6 +156,15 @@ trap 'rm -rf "$work"' EXIT
 if [[ $mode == save ]] && is_note "$path"; then
   printf '%s' "$KNOTE_TEXT" >"$path" 2>/dev/null || true
   cp -- "$path" "$work/note"
+  # The portal never makes its stand-in over a file: it adds "_" until the name is free
+  # ("report.pdf_" when report.pdf is there), and Enter would save under that name, its
+  # extension gone. The stand-in takes the next free "report (1).pdf" instead, beside
+  # report.pdf (Enter on that one replaces it, after a question).
+  base=$path; while [[ $base == *_ ]]; do base=${base%_}; done
+  if [[ $base != "$path" && ( -e $base || -L $base ) ]]; then
+    to=$(free_name "$base")
+    mv -n -- "$path" "$to" 2>/dev/null && [[ -e $to ]] && path=$to
+  fi
 fi
 
 # 100 × 31 (an even width, an odd height: centred to the pixel). The title stays put (yazi

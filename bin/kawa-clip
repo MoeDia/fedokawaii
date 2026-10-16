@@ -10,6 +10,7 @@
 # The other forms are its own parts: --tui (inside the window), --list, --preview ID,
 # --copy ID, --delete ID, --wipe. Copies outlive the app they came from (kawa-clipkeep).
 set -u
+RUN=${XDG_RUNTIME_DIR:-/tmp}                         # (a shell outside the session has none)
 # shellcheck source=/dev/null
 . "$HOME/.config/fedokawaii/icons.sh" 2>/dev/null
 C_GROUND=0f0e0c                                     # (the dark theme's, if none is set up)
@@ -17,28 +18,39 @@ C_GROUND=0f0e0c                                     # (the dark theme's, if none
 [[ -r $HOME/.config/fedokawaii/current/colors.sh ]] && . "$HOME/.config/fedokawaii/current/colors.sh"
 # every list of the desktop looks alike: one options file (rules, colours, the chevron)
 export FZF_DEFAULT_OPTS_FILE=$HOME/.config/fedokawaii/fzf.opts; unset FZF_DEFAULT_OPTS
+# ImageMagick reads its format names ("info:") through the locale's letter case: in
+# Turkish an i is not an I, and it writes a file called "info:" instead of answering
+magick() { LC_ALL=C command magick "$@"; }
 
 entry() { printf '%s\t\n' "$1"; }            # cliphist's own line form: "ID<tab>…"
 
 case ${1:-} in
   --list)       # ID<tab>what the list shows: text as cliphist keeps it, pictures named
+    # (classes, not ranges: in Turkish, "i" is not within a-z)
     cliphist list 2>/dev/null | while IFS=$'\t' read -r id rest; do
-      if [[ $rest =~ ^\[\[\ binary\ data\ ([0-9.]+\ [KMG]?i?B)\ ([a-z0-9+.-]+)\ ([0-9]+)x([0-9]+)\ \]\]$ ]]; then
+      if [[ $rest =~ ^\[\[\ binary\ data\ ([0-9.]+\ [KMG]?i?B)\ ([[:alnum:]+.-]+)\ ([0-9]+)x([0-9]+)\ \]\]$ ]]; then
         printf '%s\t%s %s picture  %s×%s  ·  %s\n' "$id" "${ICON_PICTURE:-▣}" "${BASH_REMATCH[2]}" \
           "${BASH_REMATCH[3]}" "${BASH_REMATCH[4]}" "${BASH_REMATCH[1]}"
       elif [[ $rest =~ ^\[\[\ binary\ data\ (.*)\ \]\]$ ]]; then
         printf '%s\t%s data  ·  %s\n' "$id" "${ICON_BOX_OFF:-□}" "${BASH_REMATCH[1]}"
-      else
-        printf '%s\t%s\n' "$id" "$rest"
+      elif [[ $rest == *�* ]]; then   # bytes that are not text (cliphist 0.7 shows them as �,
+        # and the odd characters among them scramble the rows): named, the preview tells more
+        printf '%s\t%s data  ·  not text\n' "$id" "${ICON_BOX_OFF:-□}"
+      else      # an escape in a copy is shown as ^[ — fzf would act on it (other control
+                # characters fzf itself shows as ^G, ^H…)
+        printf '%s\t%s\n' "$id" "${rest//$'\e'/^[}"
       fi
     done
     exit 0 ;;
   --preview)    # what is under the list: the whole text, or the picture itself
     [[ ${2:-} =~ ^[0-9]+$ ]] || exit 0
-    tmp=$(mktemp "${XDG_RUNTIME_DIR}/kawa-clip.XXXXXX") || exit 0
+    tmp=$(mktemp "$RUN/kawa-clip.XXXXXX") || exit 0
     trap 'rm -f "$tmp"' EXIT
     entry "$2" | cliphist decode >"$tmp" 2>/dev/null || exit 0
-    type=$(file -b --mime-type "$tmp" 2>/dev/null)
+    # text is whatever has a character set — code, mail and keys too, which `file` names
+    # application/javascript, message/rfc822, application/pgp-keys…
+    mime=$(file -b --mime "$tmp" 2>/dev/null); type=${mime%%;*}
+    [[ $type != image/* && $mime != *charset=binary* ]] && type=text/plain
     case $type in
       image/*)
         # the picture (its first frame), never enlarged, centred in the preview: as far
@@ -67,15 +79,19 @@ case ${1:-} in
           fi
         fi
         printf '  %s picture (%s)\n' "${ICON_PICTURE:-▣}" "${type#image/}" ;;
-      text/*|application/json|application/xml|inode/x-empty)
-        # two columns in, like the list above (a wrapped line too: --preview-wrap-sign)
-        head -c 65536 "$tmp" | sed 's/^/  /' ;;
+      text/*|inode/x-empty)
+        # two columns in, like the list above (a wrapped line too: --preview-wrap-sign); an
+        # escape as ^[ (an escape code would act on the preview: colour it, clear it), a CR
+        # before a line's end left out (text from Windows)
+        head -c 65536 "$tmp" | sed -e 's/\r$//' -e 's/\x1b/^[/g' -e 's/^/  /' ;;
       *) printf '  %s %s, %s bytes\n' "${ICON_BOX_OFF:-□}" "$type" "$(stat -c %s "$tmp")" ;;
     esac
     exit 0 ;;
   --copy)       # back on the clipboard; wl-copy keeps serving it after this window closes
     [[ ${2:-} =~ ^[0-9]+$ ]] || exit 1
-    tmp=$(mktemp "${XDG_RUNTIME_DIR}/kawa-clip.XXXXXX") || exit 1
+    # (the window closes as this runs: a notice is the only way to say so)
+    command -v wl-copy >/dev/null || { notify-send -a desktop "Clipboard" "wl-copy is missing — run update or repair" 2>/dev/null; exit 1; }
+    tmp=$(mktemp "$RUN/kawa-clip.XXXXXX") || exit 1
     trap 'rm -f "$tmp"' EXIT
     entry "$2" | cliphist decode >"$tmp" 2>/dev/null && [[ -s $tmp ]] || exit 1
     setsid -f wl-copy <"$tmp"                 # its own session: closing the window keeps it
@@ -91,6 +107,7 @@ case ${1:-} in
     [[ $a == [yY] ]] && cliphist wipe
     exit 0 ;;
   --tui) ;;
+  -h|--help) sed -n '2,/^set -u/{/^set -u/d;s/^# \{0,1\}//;p}' "$0"; exit 0 ;;
   "")           # Super+V: the window, once (a second press while it is open does nothing)
     exec kawa-float --once clipboard clipboard 76x25 -- "$0" --tui ;;
   *) echo "usage: kawa-clip   (Super+V: the clipboard history)" >&2; exit 2 ;;
@@ -99,11 +116,15 @@ esac
 # ── inside the window ─────────────────────────────────────────────────────────
 KAWA_CELL=$(kawa-cell 2>/dev/null) || KAWA_CELL=9x21   # the cell's pixels: previews fit exactly
 export KAWA_CELL
+# fzf kills a preview it no longer needs outright (SIGKILL): the copies such previews were
+# reading are in memory (the runtime folder) until cleared — here, as one window is open
+rm -f -- "$RUN"/kawa-clip.?????? 2>/dev/null
 # The panel's title sits in its top rule, like a heading in the menus ("─ ⛩ clipboard ──"),
 # its torii in the same column as the entries' text; under it the search line: the
 # chevron, then what you type — in that column too — and how many entries match, right.
 title=" $(printf '\e[91m%s\e[0m' "${ICON_TORII:-⛩}") clipboard "
-if [[ -n $(cliphist list 2>/dev/null | head -c1) ]]; then title+=$'\e[90m· newest first\e[0m '
+if ! command -v cliphist >/dev/null; then title+=$'\e[90m· cliphist is missing — run update or repair\e[0m '
+elif [[ -n $(cliphist list 2>/dev/null | head -c1) ]]; then title+=$'\e[90m· newest first\e[0m '
 else title+=$'\e[90m· nothing copied yet\e[0m '; fi
 self=$(printf '%q' "$0")
 exec fzf --ansi --no-sort --height=100% --margin=0,1 \

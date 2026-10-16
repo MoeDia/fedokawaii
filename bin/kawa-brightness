@@ -10,21 +10,70 @@
 # user the monitors' I2C buses) and DDC/CI switched on in the monitor's own menu.
 # Detection is slow (~1 s), so the bus numbers are cached for the session (autostart
 # clears the cache at each login; a monitor that stops answering means look again).
+# A laptop's own screen has no DDC/CI: its backlight (/sys/class/backlight) moves with the
+# monitors, set through logind, which lets the session's own user do it without root.
+# Exit status: 0 done (or dropped: a held key's repeats) · 1 could not (no monitor answered,
+# said in a notice) · 2 misuse.
 set -u
+arg=${1:-menu}
+case $arg in
+  menu|[+-][0-9]|[+-][0-9][0-9]|[+-][0-9][0-9][0-9]|[0-9]|[0-9][0-9]|[0-9][0-9][0-9]) ;;
+  -h|--help) sed -n '2,/^set -u/{/^set -u/d;s/^# \{0,1\}//;p}' "$0"; exit 0 ;;
+  *) echo "usage: kawa-brightness [+N|-N|N] (kawa-brightness --help)" >&2; exit 2 ;;
+esac
 # shellcheck source=/dev/null
 . "$HOME/.config/fedokawaii/icons.sh"
 CACHE="${XDG_RUNTIME_DIR:?}/kawa-ddc-buses"
+SYS=${KAWA_SYSFS:-/sys}                       # (the tests point this at a made-up laptop)
+
+PANEL=""
+panel() {   # sets PANEL to a lit built-in screen's backlight (a laptop), or fails
+  local c d t r rank=3 lit=0
+  # only with a built-in panel connected: a desktop board's ACPI can offer a backlight
+  # device that drives nothing, and the monitors' level must not be read from it
+  for c in "$SYS"/class/drm/card*-eDP-* "$SYS"/class/drm/card*-LVDS-* "$SYS"/class/drm/card*-DSI-*; do
+    [[ -r $c/status && $(<"$c/status") == connected ]] && lit=1
+  done
+  ((lit)) || return 1
+  for d in "$SYS"/class/backlight/*; do       # several: the kind GNOME and KDE prefer —
+    [[ -r $d/max_brightness && -r $d/brightness ]] || continue   # firmware, platform, raw
+    t=""; [[ -r $d/type ]] && t=$(<"$d/type")
+    case $t in firmware) r=0 ;; platform) r=1 ;; *) r=2 ;; esac
+    ((r < rank)) && rank=$r PANEL=$d
+  done
+  [[ -n $PANEL ]]
+}
+panel_get() {   # → NOW, the panel's level in percent
+  local cur max
+  cur=$(<"$PANEL/brightness") max=$(<"$PANEL/max_brightness")
+  [[ $cur =~ ^[0-9]+$ && $max =~ ^[0-9]+$ ]] && ((max > 0)) || return 1
+  NOW=$(( (cur * 100 + max / 2) / max ))
+}
+panel_set() {   # panel_set PERCENT — never quite 0: a laptop panel at 0 is a black screen
+  local max v
+  max=$(<"$PANEL/max_brightness"); [[ $max =~ ^[0-9]+$ ]] && ((max > 0)) || return 1
+  v=$(( $1 * max / 100 )); ((v < 1)) && v=1
+  busctl call org.freedesktop.login1 /org/freedesktop/login1/session/auto \
+    org.freedesktop.login1.Session SetBrightness ssu backlight "${PANEL##*/}" "$v" >/dev/null 2>&1 \
+    || { [[ -w $PANEL/brightness ]] && printf '%s\n' "$v" >"$PANEL/brightness"; }
+}
 
 buses() {
-  if [[ ! -s $CACHE ]]; then
+  # (looked for again also when the list holds anything but bus numbers or "-": a list cut
+  # short or edited must not end in a false "no monitor answered")
+  if [[ ! -s $CACHE ]] || grep -qvxE -- '[0-9]+|-' "$CACHE"; then
     # only "Display N" entries; "Invalid display" (no DDC/CI) is skipped
     ddcutil detect --terse 2>/dev/null | awk '
       /^Display [0-9]/   { ok = 1; next }
       /^[^ ]/            { ok = 0 }
       ok && /I2C bus:/   { sub(/.*\/dev\/i2c-/, ""); print }' >"$CACHE.tmp"
+    # a laptop with no monitor answering keeps that answer too ("-"): its keys must not
+    # wait a second for a fresh look at every press
+    [[ -s $CACHE.tmp || -z $PANEL ]] || echo - >"$CACHE.tmp"
     mv -f "$CACHE.tmp" "$CACHE"
   fi
-  cat "$CACHE"
+  local b
+  while read -r b; do [[ $b =~ ^[0-9]+$ ]] && printf '%s\n' "$b"; done <"$CACHE"
 }
 
 MAX=100
@@ -37,6 +86,7 @@ get() {   # get BUS → sets NOW (percent) and MAX (the monitor's own scale, nea
 
 set_all() {   # set_all PERCENT — every monitor on its own scale (the first one's is known)
   local b
+  [[ -n $PANEL ]] && { panel_set "$1" & }
   for b in "${BUSES[@]}"; do
     { m=$MAX
       if [[ $b != "${BUSES[0]}" ]]; then
@@ -53,22 +103,24 @@ note() { kawa-osd "$ICON_SUN" brightness "$1"; }    # the level, shown for a mom
 # one DDC/CI conversation at a time: a held key repeats faster than monitors answer, and
 # overlapping read-then-write cycles would lose steps (repeats are simply dropped)
 exec 9>"${XDG_RUNTIME_DIR:?}/kawa-ddc.lock"
-arg=${1:-menu}
 if [[ $arg == menu ]]; then flock -w 5 9 || exit 0; else flock -n 9 || exit 0; fi
 
+panel
 mapfile -t BUSES < <(buses)
-if ((${#BUSES[@]} == 0)); then
+# the buses may have been renumbered since they were cached (a monitor plugged in or out):
+# a monitor that does not answer means look again, once
+if ((${#BUSES[@]})) && ! get "${BUSES[0]}"; then
+  rm -f "$CACHE"; mapfile -t BUSES < <(buses)
+fi
+if ((${#BUSES[@]} == 0)) && [[ -z $PANEL ]]; then
   rm -f "$CACHE"
   notify-send -a desktop "$ICON_SUN  Brightness" "No monitor answered over DDC/CI. Turn DDC/CI on in the monitor's menu."
   exit 1
 fi
-# the buses may have been renumbered since they were cached (a monitor plugged in or out):
-# a monitor that does not answer means look again, once
-if ! get "${BUSES[0]}"; then
-  rm -f "$CACHE"; mapfile -t BUSES < <(buses)
-  ((${#BUSES[@]})) || { rm -f "$CACHE"; exit 1; }
-fi
-NOW=50; get "${BUSES[0]}" || { [[ $arg == menu ]] || exit 0; }   # a step needs the level it starts from
+# a step needs the level it starts from: the laptop's own screen's, else the first monitor's
+NOW=50
+if [[ -n $PANEL ]]; then panel_get || { [[ $arg == menu ]] || exit 0; }
+else get "${BUSES[0]}" || { [[ $arg == menu ]] || exit 0; }; fi
 now=$NOW
 
 if [[ $arg =~ ^[+-][0-9]{1,3}$ ]]; then
@@ -82,7 +134,7 @@ case $arg in
   menu)
     flock -u 9                                         # free while the menu is open
     # each row carries its level as the menus' framed bar (icons.sh)
-    rows=() pick=0 blocks="" box="" row=""
+    rows=() pick=9 blocks="" box="" row=""                  # (below 5 %: the 10 % row, not 100 %)
     for ((p = 100; p >= 10; p -= 10)); do
       levelbar blocks 10 "$p"
       box=$ICON_BOX_OFF

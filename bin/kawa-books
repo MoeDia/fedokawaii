@@ -25,7 +25,10 @@ CACHE=${XDG_CACHE_HOME:-$HOME/.cache}/kawa-books
 export FZF_DEFAULT_OPTS_FILE=$HOME/.config/fedokawaii/fzf.opts; unset FZF_DEFAULT_OPTS
 DB=${XDG_DATA_HOME:-$HOME/.local/share}/zathura/bookmarks.sqlite
 EXT=(pdf epub mobi fb2 xps oxps cbz cbr cb7)
-mkdir -p "$BOOKS" "$CACHE"
+mkdir -p "$BOOKS" "$CACHE" 2>/dev/null       # (a cache that cannot be made: drawn each time)
+# ImageMagick reads its format names ("info:", "gif:-") through the locale's letter case:
+# in Turkish an i is not an I, and it writes a file called "info:" instead of answering
+magick() { LC_ALL=C command magick "$@"; }
 
 # ── the list: one python pass over ~/Books and zathura's memory (read-only) ────────────
 # path<TAB>row<TAB>info line 1<TAB>info line 2<TAB>page — the row is what you see and
@@ -33,8 +36,11 @@ mkdir -p "$BOOKS" "$CACHE"
 # knew under another path (Enter opens it there). Page counts are kept in pages.json (by
 # size and time).
 read -r -d '' ROWS <<'PY' || true
-import calendar, json, os, sqlite3, subprocess, sys, time, unicodedata
+import calendar, json, os, sqlite3, subprocess, sys, time, unicodedata, urllib.parse
+from concurrent.futures import ThreadPoolExecutor
 books, cache, db, width = sys.argv[1], sys.argv[2], sys.argv[3], int(sys.argv[4])
+# a name that is not UTF-8 (an old zip's) goes out as the bytes it is, as the path to open
+sys.stdout.reconfigure(errors="surrogateescape")
 exts = {e: e for e in sys.argv[5:]}; exts["oxps"] = "xps"
 IMG = (".jpg", ".jpeg", ".png", ".webp", ".gif")
 
@@ -72,7 +78,7 @@ try:
     known = json.load(open(os.path.join(cache, "pages.json")))
 except Exception:
     known = {}
-fresh = {}
+fresh, todo = {}, []
 for path, kind in found:
     try:
         st = os.stat(path)        # (a dead link, or a book moved while the list was made)
@@ -82,16 +88,25 @@ for path, kind in found:
     if k and k[0] == st.st_size and k[1] == int(st.st_mtime):
         fresh[path] = k
     else:
-        fresh[path] = [st.st_size, int(st.st_mtime), pages_of(path, kind)]
+        fresh[path] = [st.st_size, int(st.st_mtime), None]; todo.append((path, kind))
+# a library seen for the first time: its books counted a few at once (each is a program run)
+with ThreadPoolExecutor(max_workers=min(8, os.cpu_count() or 2)) as pool:
+    for (path, kind), n in zip(todo, pool.map(lambda pk: pages_of(*pk), todo)):
+        fresh[path][2] = n
 if fresh != known:
     tmp = os.path.join(cache, f"pages.json.{os.getpid()}")
-    json.dump(fresh, open(tmp, "w")); os.replace(tmp, os.path.join(cache, "pages.json"))
+    try:                          # (a full disk: counted again next time, the list still shown)
+        with open(tmp, "w") as f: json.dump(fresh, f)
+        os.replace(tmp, os.path.join(cache, "pages.json"))
+    except OSError:
+        try: os.remove(tmp)
+        except OSError: pass
 
 # zathura's memory: the page (from 0) and when, by the file's real path — or, for a book
 # moved since, by its name
 read, by_name = {}, {}
 try:
-    con = sqlite3.connect(f"file:{db}?mode=ro", uri=True, timeout=1)
+    con = sqlite3.connect(f"file:{urllib.parse.quote(db)}?mode=ro", uri=True, timeout=1)
     for file, page, when in con.execute("SELECT file, page, time FROM fileinfo"):
         try:
             t = calendar.timegm(time.strptime(when, "%Y-%m-%d %H:%M:%S"))   # (zathura writes UTC)
@@ -126,7 +141,7 @@ for path, kind in found:
     seen = read.get(os.path.realpath(path)) or by_name.get(os.path.basename(path))
     title = os.path.splitext(os.path.basename(path))[0].replace("_", " ")
     tw = width - 2 - 10 - 2 - 9
-    info2 = f"{kind} · {pages} pages · {size(sz)}" if pages else f"{kind} · {size(sz)}"
+    info2 = f"{kind} · {pages} page{'s' if pages != 1 else ''} · {size(sz)}" if pages else f"{kind} · {size(sz)}"
     if seen:
         page = seen[0] + 1
         done = bool(pages) and page >= pages
@@ -233,6 +248,7 @@ draw_cover() {   # draw_cover PATH SIX LAY — the picture (sixel) and its layou
     W=$(( w / cw ))                             # the words never pass the cover's right edge
     mapfile -t tl < <(python3 -I -c '
 import sys, unicodedata
+sys.stdout.reconfigure(errors="surrogateescape")
 t, w = sys.argv[1], int(sys.argv[2])
 def cols(s): return sum(2 if unicodedata.east_asian_width(c) in "WF" else 1 for c in s)
 def cut(s, n):                                  # the longest start of s that fits n columns
@@ -271,7 +287,7 @@ print("\n".join(lines))' "$title" "$W" 2>/dev/null)
     magick -size "${w}x${Hc}" "xc:#$C_EDGE" -fill none -stroke "#$C_MUTED" -strokewidth 2 \
       -draw "rectangle 1,1 $((w - 2)),$((Hc - 2))" +antialias -stroke none -fill "#$C_MUTED" \
       -font "$(fc-match -f '%{file}' 'DepartureMono Nerd Font')" -pointsize 22 -gravity center \
-      -annotate +0+0 "${kind^^}" "PNG24:$png" 2>/dev/null
+      -annotate +0+0 "$(LC_ALL=C; printf '%s' "${kind^^}")" "PNG24:$png" 2>/dev/null
   else
     magick "${tmp}[0]" -resize "${w}x${Hc}^" -gravity center -extent "${w}x${Hc}" "PNG24:$png" 2>/dev/null
   fi
@@ -303,6 +319,8 @@ case ${1:-} in
   --open)       # PATH [PAGE]: zathura reopens a book where it was closed; PAGE only for a book
                 # it knew under another path (moved since), so it opens there too
     [[ -f ${2:-} ]] || exit 0
+    # (the window closes as this runs: a notice is the only way to say so)
+    command -v zathura >/dev/null || { notify-send -a desktop "Books" "zathura is missing — run update or repair" 2>/dev/null; exit 1; }
     if [[ ${3:-} =~ ^[1-9][0-9]*$ ]]; then setsid -f zathura --page="$3" -- "$2" >/dev/null 2>&1 </dev/null
     else setsid -f zathura -- "$2" >/dev/null 2>&1 </dev/null; fi
     exit 0 ;;
@@ -328,6 +346,7 @@ case ${1:-} in
     done
     exec "$0" --tui ;;
   --tui) ;;
+  -h|--help) sed -n '2,/^set -u/{/^set -u/d;s/^# \{0,1\}//;p}' "$0"; exit 0 ;;
   "")           # Super+R: the window, once (a second press while it is open does nothing)
     exec kawa-float --once books books 100x27 -- "$0" --tui ;;
   *) echo "usage: kawa-books   (Super+R: your books)" >&2; exit 2 ;;
@@ -335,6 +354,10 @@ esac
 
 # ── inside the window ─────────────────────────────────────────────────────────
 find "$CACHE" -maxdepth 1 \( -name '*.six' -o -name '*.lay' \) -mtime +90 -delete 2>/dev/null   # (covers of long ago)
+# and what covers still being drawn when fzf moved on left: fzf kills such a preview outright
+# (SIGKILL — no trap runs), mid-way through its picture files
+find "$CACHE" -maxdepth 1 \( -name 'cover.*' -o -name '*.six.*' -o -name '*.lay.*' -o -name 'pages.json.*' \) \
+  -mmin +1 -delete 2>/dev/null
 KAWA_CELL=$(kawa-cell 2>/dev/null) || KAWA_CELL=9x21
 read -r _ c < <(stty size 2>/dev/null); [[ ${c:-} =~ ^[0-9]+$ ]] && ((c > 70)) || c=100
 KAWA_BOOKS_W=$((c - 43))

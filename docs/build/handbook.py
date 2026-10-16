@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 """Builds Fedokawaii-Guide.pdf from docs/fedokawaii-guide.md and REAL renders
 (scratchpad/real/shots/{dark,light}: the real apps at Fedora 44's versions)."""
-import re, os, sys, glob, math
+import re, os, sys, glob, math, html as H
 import markdown, numpy as np
 from PIL import Image, ImageDraw, ImageFont
 S = os.environ.get("FEDOKAWAII_SCRATCH", "/tmp/claude-0/-home-claude/6d31fcd7-1ae3-5468-8ff5-715a71fb37a1/scratchpad")
 REPO = os.environ.get("FEDOKAWAII_REPO", "/home/claude/fedokawaii")
 CHROME = os.environ.get("FEDOKAWAII_CHROME", "/opt/pw-browsers/chromium-1194/chrome-linux/chrome")
-OUT = f"{S}/guide"
+OUT = os.environ.get("FEDOKAWAII_OUT", f"{S}/guide")   # (test copy: configurable)
 IMG = f"{OUT}/img2"
 R = f"{S}/real/shots"
 NM = f"{S}/mock/node_modules/@fontsource"
@@ -220,7 +220,7 @@ add("grub", f"{S}/mock/png2/grub.png")
 add("icons", f"{S}/icons-preview.png")
 
 # ── the document ───────────────────────────────────────────────────────────────
-src = open(f"{REPO}/docs/fedokawaii-guide.md", encoding="utf-8").read()
+src = open(os.environ.get("FEDOKAWAII_GUIDE", f"{REPO}/docs/fedokawaii-guide.md"), encoding="utf-8").read()
 fm, body = re.match(r"^---\n(.*?)\n---\n(.*)$", src, re.S).groups()
 meta = dict(re.findall(r'^(\w+):\s*"(.*)"$', fm, re.M))
 missing = []
@@ -234,25 +234,63 @@ def fig(m):
 body = re.sub(r"<!--\s*fig:([\w-]+)\s*\|\s*(.*?)\s*-->", fig, body)
 html = markdown.markdown(body, extensions=["tables", "fenced_code"])
 html = html.replace("<table>", "<div class='tw'><table>").replace("</table>", "</table></div>")
-html = re.sub(r"<code>(#[0-9a-f]{6})</code>", r"<span class='sw' style='background:\1'></span><code>\1</code>", html)
+html = re.sub(r"<code>(#[0-9a-f]{6})</code>", r"<span class='swc'><span class='sw' style='background:\1'></span><code>\1</code></span>", html)   # (swatch and value: one unit)
+html = re.sub(r"<h1>((?:Part [IVXLC]+|Appendices)\b.*?)</h1>", r"<h1 class='part'>\1</h1>", html)   # book: Part title pages
+html = re.sub(r"(<h1 class='part'>.*?)(?=<h1)", r"<section class='partpage'>\1</section>", html, flags=re.S)
+_n = iter(range(1, 10**6))                            # every contents heading a link target (its page number)
+html = re.sub(r"<h([12])( class='part')?>", lambda m: f"<h{m[1]}{m[2] or ''} id='t{next(_n)}'>", html)
+def code_breaks(c):   # inline code breaks after a / of a path, never inside an --option
+    return re.sub(r"(?<![^\s(])(--?[\w.=:,+-]+)", r"<span class='nw'>\1</span>", c.replace("/", "/<wbr>"))
+html = re.sub(r"(?<!<pre>)<code>([^<]*)</code>", lambda m: "<code>" + code_breaks(m[1]) + "</code>", html)
+html = re.sub(r"<p><strong>What you learnt</strong></p>\s*<ul>.*?</ul>\s*<p><strong>Check yourself</strong></p>\s*<ol>.*?</ol>",
+              lambda m: "<div class='recap'>" + re.sub(r"<p><strong>(What you learnt|Check yourself)</strong></p>", r"<p class='lbl'>\1</p>", m[0]) + "</div>",
+              html, flags=re.S)
+html = re.sub(r"(<pre>(?:(?!<pre>).)*?</pre>)\s*<p>((?:<em>)?\(.*?)</p>",   # a block and its "(for example)" note: one unit
+              lambda m: f"<div class='grp{' cont' if m[2].endswith(':') else ''}'>{m[1]}<p class='note'>{m[2]}</p></div>", html, flags=re.S)
+html = re.sub(r"<(p|li)>((?:(?!</?\1>).)*?)</\1>(?=\s*(?:</[ou]l>\s*)?<(?:pre|div class='(?:grp|tw)|ul|ol))",   # a lead-in: "…:",
+              lambda m: f"<{m[1]} class='lead-in'>{m[2]}</{m[1]}>"                                     # a step "**2.** …",
+              if m[2].endswith(":") or re.match(r"<strong>(\d+\.|Try this)", m[2]) or len(re.sub(r"<[^>]+>", "", m[2])) <= 100
+              else m[0], html, flags=re.S)                                                          # "Try this", a label
+html = re.sub(r"<p><strong>([^<]{1,60})</strong></p>", r"<p class='lead'><strong>\1</strong></p>", html)   # a label ("Terms.", "Pitfalls.")
+def short_cols(m):   # a column whose every cell is short (a key, a name) never wraps; nor does a short header or code
+    t = m[0]
+    rows = re.findall(r"<tr>(.*?)</tr>", t, re.S)
+    cells = [re.findall(r"<t[hd][^>]*>(.*?)</t[hd]>", r, re.S) for r in rows]
+    n = min(len(c) for c in cells)
+    vis = lambda x: H.unescape(re.sub(r"<[^>]+>", "", x)).strip()
+    narrow = {i for i in range(n) if max(len(vis(c[i])) for c in cells) <= 20}
+    for r in rows:
+        cs = re.findall(r"<t[hd][^>]*>.*?</t[hd]>", r, re.S)
+        new = "".join(re.sub(r"^<(t[hd])", r"<\1 class='nw'", c) if i in narrow or (c.startswith("<th") and len(vis(c)) <= 16)
+                      else c for i, c in enumerate(cs))
+        t = t.replace(r, "\n" + new + "\n", 1)
+    return re.sub(r"<code>((?:[^<]|<wbr>|</?span[^>]*>){1,120}?)</code>", lambda c: f"<code class='nw'>{re.sub(r'<[^>]+>', '', c[1])}</code>"
+                  if len(re.sub(r"<[^>]+>", "", c[1])) <= 26 else c[0], t)
+html = re.sub(r"<table>.*?</table>", short_cols, html, flags=re.S)
 
 def ff(name, path, w="400", s="normal"):
     return f"@font-face{{font-family:'{name}';src:url('file://{path}');font-weight:{w};font-style:{s}}}"
 CSS = "\n".join([
     ff("DM", f"{S}/mock/fonts/DepartureMonoNerdFont-Regular.otf"),
     ff("SUMI", f"{S}/mock/fonts/SumiIcons.ttf"),
-    ff("Serif", f"{NM}/noto-serif/files/noto-serif-latin-400-normal.woff2"),
-    ff("Serif", f"{NM}/noto-serif/files/noto-serif-latin-700-normal.woff2", "700"),
-    ff("Serif", f"{NM}/noto-serif/files/noto-serif-latin-400-italic.woff2", "400", "italic"),
+    # (not "Serif": unquoted, that is the generic keyword, and the body fell back to the system serif)
+    ff("NotoSerif", f"{NM}/noto-serif/files/noto-serif-latin-400-normal.woff2"),
+    ff("NotoSerif", f"{NM}/noto-serif/files/noto-serif-latin-700-normal.woff2", "700"),
+    ff("NotoSerif", f"{NM}/noto-serif/files/noto-serif-latin-400-italic.woff2", "400", "italic"),
+    ff("NotoSerif", f"{NM}/noto-serif/files/noto-serif-latin-700-italic.woff2", "700", "italic"),
     ff("Sans", f"{NM}/noto-sans/files/noto-sans-latin-400-normal.woff2"),
     ff("Sans", f"{NM}/noto-sans/files/noto-sans-latin-700-normal.woff2", "700"),
+    ff("Sans", f"{NM}/noto-sans/files/noto-sans-latin-400-italic.woff2", "400", "italic"),
+    # arrows, ≥ ≈, ⌄, ✔ ✘: not in Noto's latin files; one face for them everywhere
+    ff("Sym", "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf")[:-1] + ";unicode-range:U+2190-23FF,U+25A0-27BF}",
+    ff("Sym", "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", "700")[:-1] + ";unicode-range:U+2190-23FF,U+25A0-27BF}",
     ff("JBM", f"{S}/mock/fonts/jbm/JetBrainsMonoNerdFont-Regular.ttf"),
 ]) + """
 @page { size: A4; margin: 16mm 0 18mm; background: #efe8d5;
   @bottom-center { content: counter(page); font-family: DM; font-size: 11px; color: #776f60; } }
 @page :first { margin: 0; background: #0f0e0c; @bottom-center { content: none; } }
 html { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-body { font-family: Serif, serif; font-size: 9.6pt; line-height: 1.5; color: #2b2721; margin: 0; }
+body { font-family: NotoSerif, Sym, 'Noto Serif CJK JP', serif; font-size: 9.6pt; line-height: 1.5; color: #2b2721; margin: 0; }
 /* every page the same width (the cover's, A4's): the text column is the padding, so no page
    is wider than another and nothing is ever shrunk to fit */
 main { padding: 0 15mm; }
@@ -261,16 +299,25 @@ main { padding: 0 15mm; }
 .cover .t { position: absolute; left: 18mm; right: 18mm; top: 34mm; }
 .cover h1 { break-before: auto; font-family: DM; font-weight: 400; font-size: 44px; line-height: 1.1; color: #ece3cc; margin: 0 0 10px; border: 0; letter-spacing: 1px; }
 .cover .torii { font-family: SUMI; font-size: 44px; color: #d0583a; display: block; margin-bottom: 18px; }
-.cover p.sub { font-family: Serif; font-style: italic; font-size: 13pt; color: #cfc3a6; max-width: 140mm; margin: 0 0 8px; }
+.cover p.sub { font-family: NotoSerif; font-style: italic; font-size: 13pt; color: #cfc3a6; max-width: 140mm; margin: 0 0 8px; }
 .cover p.date { font-family: DM; font-size: 11px; color: #7b7365; margin: 0; }
 .cover .rule { height: 2px; background: #d0583a; width: 40mm; margin: 14px 0 16px; }
 .toc { break-after: page; }
 .toc h1 { break-before: auto; }
-.toc ol { list-style: none; padding: 0; margin: 6px 0; columns: 2; column-gap: 10mm; font-family: Sans; font-size: 7.9pt; }
+.toc ol { list-style: none; padding: 0; margin: 6px 0; columns: 2; column-gap: 10mm; font-family: Sans, Sym, 'Noto Sans CJK JP', sans-serif; font-size: 7.9pt; }
 .toc li { margin: 1px 0; break-inside: avoid; }
+.toc li.l0 { font-family: DM; font-size: 12px; color: #c0462a; margin-top: 10px; }
 .toc li.l1 { font-family: DM; font-size: 11px; color: #0f0e0c; margin-top: 5px; }
 .toc li.l2 { padding-left: 4mm; color: #4a443a; }
 .toc li.l3 { padding-left: 8mm; color: #776f60; font-size: 7.2pt; margin: 0; }
+.toc li.l0, .toc li.l1 { break-after: avoid; }
+/* title, dotted leader after its last line, page number at the right; a long title hangs */
+.toc a { display: block; position: relative; padding-right: 2.4em; color: inherit; }
+.toc .tt { position: relative; z-index: 1; background: #efe8d5; padding-right: 5px; }
+.toc .ld { position: absolute; left: 0; right: 2.3em; bottom: 0.3em; border-bottom: 1px dotted #b3a88c; }
+.toc .pn { position: absolute; right: 0; bottom: 0; text-indent: 0; font-variant-numeric: tabular-nums; }
+.toc li.l1 a { padding-left: 4ch; text-indent: -4ch; } .toc li.l1 .ld { left: 4ch; }
+.toc li.l2 a { padding-left: 2.3em; text-indent: -2.3em; } .toc li.l2 .ld { left: 2.3em; }
 h1 { font-family: DM; font-weight: 400; font-size: 22px; color: #0f0e0c; margin: 0 0 10px; padding: 0 0 6px;
      border-bottom: 2px solid #d0583a; break-after: avoid; break-before: page; }
 h2 { font-family: DM; font-weight: 400; font-size: 16.5px; color: #2b2721; margin: 18px 0 6px; break-after: avoid; }
@@ -279,25 +326,48 @@ h1 + p, h2 + p { margin-top: 4px; }
 p { margin: 6px 0; } ul, ol { padding-left: 16px; margin: 6px 0; } li { margin: 3px 0; }
 strong { color: #0f0e0c; }
 a { color: #9c3922; text-decoration: none; }
-code { font-family: JBM, monospace; font-size: 8.2pt; background: #e2d9c2; padding: 0 3px; border-radius: 2px; overflow-wrap: anywhere; }
+code { font-family: JBM, monospace; font-size: 8.2pt; background: #e2d9c2; padding: 0 3px; border-radius: 2px; overflow-wrap: anywhere;
+       font-variant-ligatures: none; }   /* -->, !=, >= print as typed, never as one ligature glyph */
 pre { background: #161411; color: #cfc3a6; padding: 9px 11px; font-size: 8pt; line-height: 1.45; border-left: 3px solid #d0583a; break-inside: avoid; white-space: pre-wrap; }
 pre code { background: none; color: inherit; padding: 0; font-size: 8pt; }
 .tw { break-inside: auto; margin: 8px 0 12px; }
-table { border-collapse: collapse; width: 100%; font-family: Sans, sans-serif; font-size: 8.1pt; line-height: 1.4; }
+table { border-collapse: collapse; width: 100%; font-family: Sans, Sym, 'Noto Sans CJK JP', sans-serif; font-size: 8.1pt; line-height: 1.4; }
 th { font-family: DM; font-weight: 400; font-size: 11px; background: #2b2721; color: #ece3cc; text-align: left; padding: 5px 7px; }
 td { border-bottom: 1px solid #c2b79b; padding: 4px 7px; vertical-align: top; }
 tr { break-inside: avoid; }
-td code { font-size: 7.6pt; }
+td code { font-size: 7.6pt; overflow-wrap: break-word; }   /* a column never narrower than its longest name */
+th code { background: #4a443a; color: #ece3cc; } th strong, th em { color: inherit; }
+.nw { white-space: nowrap; }
+tbody tr:first-child { break-after: avoid; } tbody tr:last-child { break-before: avoid; }   /* no lone row */
+p.lead, p:has(+ p.lead) { break-after: avoid; }
+.grp { break-inside: avoid; } .grp.cont { break-after: avoid; }   /* (cont: its note ends in a lead-in, "…:") */
+.tw.keep { break-inside: avoid; }                     /* a short table whole, on one page (marked when printed) */
+/* a lead-in ("…, type:") stays with the block it introduces (a figure may go to the next page: it is referred to) */
+p.lead-in, :is(ul, ol):has(> li:last-child.lead-in) { break-after: avoid; }
 figure { margin: 10px 0 14px; break-inside: avoid; text-align: center; }
 figure img { display: block; margin: 0 auto; box-sizing: content-box; outline: 1px solid #2b2721; }
+.swc { white-space: nowrap; }
 .sw { display:inline-block; width:9px; height:9px; border:1px solid #2b2721; margin-right:3px; vertical-align:-1px; }
-figcaption { font-family: Sans; font-size: 7.8pt; color: #776f60; margin: 4px auto 0; text-align: left; max-width: 100%; }
+/* a Part: its own page, the title and opening centred on it (a little above the middle) */
+.partpage { break-before: page; break-after: page; height: 262mm; display: flex; flex-direction: column;
+            justify-content: center; padding-bottom: 24mm; box-sizing: border-box; }
+h1.part { font-size: 30px; border: 0; text-align: center; margin: 0; padding: 0; break-before: auto; }
+.partpage > p { text-align: center; font-style: italic; max-width: 125mm; margin: 4mm auto 0; color: #4a443a; }
+h1.part + p { margin-top: 6mm; }
+.recap { break-inside: avoid; margin-top: 16px; border-top: 1px solid #c2b79b; }
+.recap .lbl { font-family: DM; font-size: 12px; color: #c0462a; margin: 10px 0 4px; }
+blockquote { margin: 9px 0 11px; padding: 6px 11px; background: #e6dec6; border-left: 3px solid #5f7fa0; break-inside: avoid; }
+blockquote p { margin: 3px 0; } blockquote ul, blockquote ol { margin: 3px 0; }
+figcaption { font-family: Sans, Sym, 'Noto Sans CJK JP', sans-serif; font-size: 7.8pt; color: #776f60; margin: 4px auto 0; text-align: left; max-width: 100%; }
 """
 # a table of contents from the headings
 nocode = re.sub(r"^```.*?^```", "", body, flags=re.M | re.S)   # (a "# comment" in a code block is no heading)
-heads = re.findall(r"^(#{1,3}) (.+)$", nocode, re.M)
-toc = "<section class='toc'><h1>Contents</h1><ol>" + "".join(
-    f"<li class='l{len(h)}'>{markdown.markdown(re.sub(r'^(\d+)\. ', r'\1\\. ', t))[3:-4]}</li>" for h, t in heads) + "</ol></section>"
+heads = re.findall(r"^(#{1,%d}) (.+)$" % int(os.environ.get("BOOK_TOC_LEVELS", "2")), nocode, re.M)
+assert len(heads) == len(re.findall(r"<h[12][ >]", html)), "contents and headings differ"
+toc = "<section class='toc'><h1>Contents</h1><ol>" + "".join(   # (page numbers: 000 until the first print says where)
+    f"<li class='{'l0' if re.match(r'(Part [IVXLC]+|Appendices)\b', t) else 'l' + str(len(h))}'><a href='#t{i}'>"
+    f"<span class='tt'>{markdown.markdown(re.sub(r'^(\d+)\. ', r'\1\\. ', t))[3:-4]}</span><span class='ld'></span><span class='pn'>000</span></a></li>"
+    for i, (h, t) in enumerate(heads, 1)) + "</ol></section>"
 cover_src = "/home/kawau/.local/share/fedokawaii/dark/scene.png"
 cover_raw = cover_src if os.path.exists(cover_src) else f"{S}/mock/wall-dark.png"
 _cw = Image.open(cover_raw).width                     # the scene, full-bleed across 210 mm:
@@ -305,7 +375,7 @@ cover_bg = printable(cover_raw, 210 * MM / _cw, f"{IMG}/cover.png")   # (each ar
 torii = chr(0xFE000)
 doc = (f"<!doctype html><html><head><meta charset='utf-8'><title>Fedokawaii — the handbook</title><style>{CSS}</style></head><body>"
        f"<section class='cover'><img class='bg' src='file://{cover_bg}'><div class='t'>"
-       f"<span class='torii'>{torii}</span><h1>{meta['title']}</h1><div class='rule'></div>"
+       f"<span class='torii'>{torii}</span><h1>{'\u00a0'.join(meta['title'].rsplit(' ', 1))}</h1><div class='rule'></div>"
        f"<p class='sub'>{meta['subtitle']}</p><p class='date'>{meta['date']}</p></div></section>"
        f"<main>{toc}{html}</main></body></html>")
 open(f"{OUT}/guide2.html", "w", encoding="utf-8").write(doc)
@@ -322,7 +392,36 @@ with sync_playwright() as p:
         const r = e.getBoundingClientRect(); return r.right > document.documentElement.clientWidth - 15 * 96 / 25.4 + 0.5 && r.width > 0;
       }).slice(0, 12).map(e => e.tagName + '.' + (e.className || '') + ' ' + Math.round(e.getBoundingClientRect().right) + ' ' + (e.textContent || '').slice(0, 60))""")
     if wide: print("wider than the text column:", *wide, sep="\n  ")
-    pg.pdf(path=f"{OUT}/Fedokawaii-Guide.pdf", format="A4", print_background=True, prefer_css_page_size=True)
+    pg.evaluate("""() => {   // tables in a row with the same header (Keys | Does …) get the same column widths
+        const tws = [...document.querySelectorAll('.tw')], sig = t => [...t.querySelectorAll('th')].map(x => x.textContent).join('|');
+        let run = [];
+        const flush = () => { if (run.length > 1) { const ths = run.map(t => [...t.querySelectorAll('th')]);
+            const w = ths[0].map((_, i) => Math.max(...ths.map(r => r[i].getBoundingClientRect().width)));
+            ths.forEach(r => r.slice(0, -1).forEach((th, i) => th.style.width = w[i] + 'px')); } run = []; };
+        tws.forEach(t => { const prev = run[run.length - 1];
+            let near = prev && sig(prev) === sig(t);
+            for (let e = prev && prev.nextElementSibling; near && e && e !== t; e = e.nextElementSibling)
+                if (!['P', 'H3'].includes(e.tagName)) near = false;
+            if (!near) flush(); run.push(t); });
+        flush();
+        document.querySelectorAll('.tw').forEach(t => t.offsetHeight <= 240 && t.classList.add('keep'));   // ≤ ¼ page
+        // a paragraph of three lines or fewer is never split: Chromium keeps 2 lines (orphans) and lets one
+        // line (a widow) start the next page when it cannot keep both
+        document.querySelectorAll('main p, main li').forEach(e => {
+            if (e.offsetHeight < parseFloat(getComputedStyle(e).lineHeight) * 3.5) e.style.breakInside = 'avoid'; });
+    }""")
+    def pages():   # the page each contents heading landed on: its link's named destination
+        import pikepdf
+        with pikepdf.open(f"{OUT}/Fedokawaii-Guide.pdf") as pdf:
+            at = {page.objgen: i + 1 for i, page in enumerate(pdf.pages)}
+            dests = {str(k).lstrip("/"): v for k, v in pdf.Root.Dests.items()}
+            return [str(at[dests[f"t{i}"][0].objgen]) for i in range(1, len(heads) + 1)]
+    for _ in range(3):   # print, write the numbers in (same width: nothing moves), print again
+        pg.pdf(path=f"{OUT}/Fedokawaii-Guide.pdf", format="A4", print_background=True, prefer_css_page_size=True)
+        nums = pages()
+        if nums == pg.evaluate("() => [...document.querySelectorAll('.toc .pn')].map(e => e.textContent)"): break
+        pg.evaluate("ns => document.querySelectorAll('.toc .pn').forEach((e, i) => e.textContent = ns[i])", nums)
+    else: print("contents: page numbers still moving")
     b.close()
 print("pdf", os.path.getsize(f"{OUT}/Fedokawaii-Guide.pdf") // 1024, "KiB")
 # the pictures re-compressed losslessly (pdfpack.py, beside this script): every pixel the same, a tenth smaller

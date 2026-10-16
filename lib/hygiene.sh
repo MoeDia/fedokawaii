@@ -40,23 +40,27 @@ hy_dnf_problems() { dnf -q check 2>&1 | grep -v '^[[:space:]]*$' || true; }
 hy_unneeded()     { dnf -q repoquery --unneeded --qf '%{name}\n' 2>/dev/null | sort -u || true; }
 hy_rpmnew()       { find /etc \( -name '*.rpmnew' -o -name '*.rpmsave' \) 2>/dev/null | sort || true; }
 
+# hy_on SYSTEMCTL… UNIT — the unit starts by itself (enabled) or runs now. By what is-enabled
+# says, not its status: it answers 0 for a unit that has no [Install] at all (static — dunst,
+# which D-Bus starts on demand), and such a unit fights only while it runs
+hy_on() {
+  local u=${*: -1} st
+  st=$("${@:1:$#-1}" is-enabled "$u" 2>/dev/null) || true
+  [[ $st == enabled || $st == enabled-runtime ]] && return 0
+  "${@:1:$#-1}" is-active --quiet "$u" 2>/dev/null
+}
 hy_services() {   # → "UNIT|why" for every fighting system service that is enabled or running
   local e u why
   for e in "${CONFLICT_SERVICES[@]}"; do
     u=${e%%|*} why=${e#*|}
-    if systemctl is-enabled --quiet "$u" 2>/dev/null || systemctl is-active --quiet "$u" 2>/dev/null; then
-      printf '%s|%s\n' "$u" "$why"
-    fi
+    if hy_on systemctl "$u"; then printf '%s|%s\n' "$u" "$why"; fi
   done
 }
-hy_user_services() {   # hy_user_services USER → "UNIT|why", as above, among that user's services
+hy_user_services() {   # hy_user_services → "UNIT|why", as above, among the desktop user's services
   local e u why
   for e in "${CONFLICT_USER_SERVICES[@]}"; do
     u=${e%%|*} why=${e#*|}
-    if as_user systemctl --user is-enabled --quiet "$u" 2>/dev/null \
-       || as_user systemctl --user is-active --quiet "$u" 2>/dev/null; then
-      printf '%s|%s\n' "$u" "$why"
-    fi
+    if hy_on as_user systemctl --user "$u"; then printf '%s|%s\n' "$u" "$why"; fi
   done
 }
 hy_display_manager() {   # → the unit display-manager.service points at ("" when none)

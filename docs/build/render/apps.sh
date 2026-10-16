@@ -686,7 +686,7 @@ except socket.timeout:
 
 shot_zathura() {
   local pid
-  k zathura -P 5 "$KH/Documents/fedokawaii-guide.pdf" >"$LT/zathura.log" 2>&1 &   # page 5: text, tables, a code block
+  k zathura -P 67 "$KH/Documents/fedokawaii-guide.pdf" >"$LT/zathura.log" 2>&1 &   # page 67: chapter 11 opens (the terminal lesson)
   pid=$!
   waitfor 15 "the zathura window" win_geom org.pwmt.zathura || { kill "$pid" 2>/dev/null; return; }
   sleep 2.5

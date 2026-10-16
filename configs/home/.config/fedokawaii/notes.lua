@@ -76,25 +76,23 @@ vim.opt_local.fillchars:append({ wbr = "─" })
 vim.opt_local.winbar = " %#KawaRule#─ %#KawaIcon#" .. icon .. " %#KawaName#notes %#KawaRule#· "
   .. where .. " %=%#KawaGround# "
 
--- every change written (`update`: only when there is one): however the window goes, nothing
--- is lost. While you type, a pause of half a second writes it — not every key, each of which
--- would be a whole write and a flush to disk; leaving insert mode, the window or neovim
--- writes at once.
+-- every change written at once (`update`: only when there is one): however the window
+-- goes, nothing is lost. Super+Q closes the terminal under neovim, which then exits on the
+-- spot — no autocommand runs on a hang-up — so a change still waiting for a pause in the
+-- typing would be gone. A write per change is cheap here: fsync is off in this window (no
+-- wait for the disk on every key; the kernel writes it out within seconds, and kawa-notes
+-- has it written out as soon as the window is gone).
+vim.o.fsync = false
 local buf = vim.api.nvim_get_current_buf()
-local pending = vim.uv.new_timer()
+-- (LazyVim formats a file on every write when a formatter knows it — the Markdown extra
+-- does: here that would rewrite the page under your fingers, key by key)
+vim.b[buf].autoformat = false
 local function save()
   if vim.api.nvim_buf_is_valid(buf) then
     vim.api.nvim_buf_call(buf, function() vim.cmd("silent! update") end)
   end
 end
-vim.api.nvim_create_autocmd({ "TextChanged", "TextChangedI" }, {
+vim.api.nvim_create_autocmd({ "TextChanged", "TextChangedI", "InsertLeave", "FocusLost", "BufLeave", "VimLeavePre" }, {
   buffer = buf,
-  callback = function()
-    pending:stop()
-    pending:start(500, 0, vim.schedule_wrap(save))
-  end,
-})
-vim.api.nvim_create_autocmd({ "InsertLeave", "FocusLost", "BufLeave", "VimLeavePre" }, {
-  buffer = buf,
-  callback = function() pending:stop(); save() end,
+  callback = save,
 })

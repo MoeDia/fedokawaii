@@ -26,6 +26,8 @@
 # everything changes underneath, then the new theme arrives as a row of seigaiha wave
 # crests — rising from the bottom like dawn for the light theme, falling from the top
 # like nightfall for the dark one.
+#
+# Exit: 0 done (also a press dropped while a switch runs) · 1 could not · 2 wrong use.
 set -u
 DIR=$HOME/.config/fedokawaii
 LINK=$DIR/current
@@ -33,12 +35,21 @@ LINK=$DIR/current
 get() {
   local t
   t=$(readlink "$LINK" 2>/dev/null) || t=""
+  t=${t%/}                                       # (a link made by hand: themes/light/)
   case ${t##*/} in light) echo light ;; *) echo dark ;; esac
+}
+
+usable() {   # usable MODE — can the link be pointed at MODE? Said before anything changes
+  [[ -d $DIR/themes/$1 ]] || { echo "kawa-theme: no theme '$1' in $DIR/themes (run theme.sh)" >&2; return 1; }
+  # a real folder there (a backup or sync tool copied the link's contents): the apps read
+  # that, whatever the link would say — theme.sh puts the link back
+  [[ -L $LINK || ! -e $LINK ]] || { echo "kawa-theme: $LINK is a folder, not a link (run theme.sh to repair it)" >&2; return 1; }
 }
 
 relink() {   # relink TARGET LINK — replace a link in one step (rename), so readers
   local tmp="$2.new.$$"   # never see it missing and folder watchers see one change
-  ln -sfn "$1" "$tmp" && mv -fT "$tmp" "$2"
+  ln -sfn "$1" "$tmp" 2>/dev/null && mv -fT "$tmp" "$2" 2>/dev/null && return 0
+  rm -f "$tmp"; return 1
 }
 
 settings() {   # settings MODE — GTK 3 theme, GTK 4/libadwaita/portal colour scheme, icons
@@ -66,8 +77,9 @@ signal() {   # signal USR1|USR2 NAME — only to processes that already catch it
 
 apply() {
   local m=$1 sig=USR1 pid
-  [[ -d $DIR/themes/$m ]] || { echo "kawa-theme: no theme '$m' in $DIR/themes (run theme.sh)" >&2; exit 1; }
-  relink "themes/$m" "$LINK"
+  usable "$m" || exit 1
+  # (not switched: no app is told, so none shows a theme the others do not)
+  relink "themes/$m" "$LINK" || { echo "kawa-theme: could not switch $LINK (is ~/.config writable?)" >&2; exit 1; }
   [[ $m == light ]] && sig=USR2
   signal "$sig" foot                                 # foot server: all windows + new ones
   settings "$m"
@@ -106,24 +118,30 @@ case ${1:-toggle} in
   apply)    apply "$(get)" ;;
   settings) settings "$(get)" ;;
   dark|light|toggle)
+    # the locks live in the session's runtime folder (also found from a shell without it)
+    export XDG_RUNTIME_DIR=${XDG_RUNTIME_DIR:-/run/user/$UID}
+    [[ -d $XDG_RUNTIME_DIR && -w $XDG_RUNTIME_DIR ]] \
+      || { echo "kawa-theme: no runtime folder $XDG_RUNTIME_DIR (not logged in to the desktop?)" >&2; exit 1; }
     # one switch at a time: a held key repeats ~35 times a second, and every extra press
     # while a switch (and its transition) runs is dropped. The veiled run below inherits
     # this lock, so it lasts until the transition is over.
     if [[ -z ${KAWA_VEILED:-} ]]; then
-      exec 7>"${XDG_RUNTIME_DIR:?}/kawa-theme.busy"
+      exec 7>"$XDG_RUNTIME_DIR/kawa-theme.busy"
       flock -n 7 || exit 0
     fi
     want=${1:-toggle} now=$(get)
     [[ $want == toggle ]] && { [[ $now == dark ]] && want=light || want=dark; }
+    usable "$want" || exit 1                       # (said at once, not after a transition)
     # a visible change in a session: run the switch under the veil (dawn or nightfall)
     if [[ $want != "$now" && -z ${KAWA_VEILED:-} && -n ${WAYLAND_DISPLAY:-} ]] \
        && command -v kawa-veil >/dev/null; then
       style=--rise; [[ $want == dark ]] && style=--fall
       KAWA_VEILED=1 exec kawa-veil "$style" -- "$0" "$want"
     fi
-    exec 9>"${XDG_RUNTIME_DIR:?}/kawa-theme.lock"
+    exec 9>"$XDG_RUNTIME_DIR/kawa-theme.lock"
     flock -w 10 9 || { echo "kawa-theme: another switch is still running" >&2; exit 1; }
     apply "$want"
     ;;
-  *) echo "usage: kawa-theme [dark|light|toggle|get|apply|settings]" >&2; exit 2 ;;
+  -h|--help) sed -n '2,/^set -u/{/^set -u/d;s/^# \{0,1\}//;p}' "$0" ;;
+  *) echo "usage: kawa-theme [dark|light|toggle|get|apply|settings] (kawa-theme --help)" >&2; exit 2 ;;
 esac

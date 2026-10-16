@@ -124,13 +124,15 @@ __kawa_t0=0 __kawa_one=x __kawa_fresh=1 __kawa_j='\j' __kawa_line='' __kawa_pwd=
 __g_text='' __g_plain=''
 
 __kawa_prompt() {
-  local rc=$? now dt t p v dir here left lplain right rplain n w rule hour
+  local rc=$? now dt t p v dir here left lplain right rplain n w wide rule hour
   local LC_ALL=C.UTF-8                          # count characters, not bytes; AM/PM in English
   history -a                                    # save it now: new windows start with it
   printf '\e]133;D;%s\e\\' "$rc"                # previous command finished
   # where you are — a folder's name could carry escape sequences of its own (one from a
   # cloned repo or an archive could set the clipboard), so control characters become ?
-  p=${PWD/#$HOME/\~}; p=${p//[[:cntrl:]]/?}
+  # (~ only for your home and what is inside it: not for a /home/you2 beside it)
+  case $PWD in "$HOME"|"$HOME"/*) p=\~${PWD#"$HOME"} ;; *) p=$PWD ;; esac
+  p=${p//[[:cntrl:]]/?}
   printf '\e]2;%s\e\\' "$p"                     # window title → shown in the bar
   __kawa_osc7
   # zoxide learns a folder when you arrive in it (by cd or a bare folder name): one call
@@ -183,8 +185,12 @@ __kawa_prompt() {
   printf -v t '%(%I:%M:%S %p)T' -1
   right+="$__c_time$t$__c_off" rplain+="$t"
 
-  # the rule between them, to the window's right edge (dropped when it gets too narrow)
-  w=$(( ${COLUMNS:-80} - ${#lplain} - ${#rplain} - 3 ))   # one column spare: no wrap at the edge
+  # the rule between them, to the window's right edge (dropped when it gets too narrow).
+  # Measured in columns, not characters: Japanese, Chinese and Korean letters and emoji
+  # take two, so a folder or a branch named in them counts twice (else the clock wraps
+  # onto a line of its own)
+  wide=${lplain//[!ᄀ-ᅟ⺀-〾ぁ-㏿㐀-䶿一-鿿ꀀ-꓏가-힣豈-﫿︰-﹏！-｠￠-￦🌀-🙏🚀-🛿🤀-🧿𠀀-𿿽]/}
+  w=$(( ${COLUMNS:-80} - ${#lplain} - ${#wide} - ${#rplain} - 3 ))   # one column spare: no wrap at the edge
   if ((w >= 4)); then
     printf -v rule '%*s' "$w" ''; rule=${rule// /$__i_rule}
     __kawa_line="$left $__c_dim$rule$__c_off $right"

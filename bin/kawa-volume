@@ -1,20 +1,32 @@
 #!/usr/bin/env bash
-# kawa-volume up|down|mute|mic — the volume keys: change it, then show the level for a
-# moment (kawa-osd), updating in place while you keep pressing — also in fullscreen,
-# when the bar is hidden.
+# kawa-volume up|down [STEP] | mute | mic — the volume keys (STEP 5 %) and Super+scroll
+# (STEP 2 %): change it, then show the level for a moment (kawa-osd), updating in place while
+# you keep pressing — also in fullscreen, when the bar is hidden. Up unmutes and stops at
+# 100 %; a level set higher in the mixer stays as it is.
+# Exit status: 0 done · 1 could not (no sound output or input, PipeWire not running) · 2 misuse.
 set -u
+case ${1:-} in
+  -h|--help) sed -n '2,/^set -u/{/^set -u/d;s/^# \{0,1\}//;p}' "$0"; exit 0 ;;
+esac
 # shellcheck source=/dev/null
 . "$HOME/.config/fedokawaii/icons.sh"
 # one change at a time: a held key repeats faster than wpctl answers, so a press that comes
 # while one is still being applied is dropped (no backlog that keeps changing the volume
 # after you let go), and the level shown is always the one the last change left
+step=${2:-5}
+[[ $step =~ ^[1-9][0-9]?$ && $# -le 2 && ( $# -le 1 || ${1:-} == up || ${1:-} == down ) ]] \
+  || { echo "usage: kawa-volume up|down [STEP 1-99] | mute | mic" >&2; exit 2; }
 exec 9>"${XDG_RUNTIME_DIR:?}/kawa-volume.lock"; flock -n 9 || exit 0
 case ${1:-} in
-  up)   wpctl set-mute @DEFAULT_AUDIO_SINK@ 0; wpctl set-volume -l 1.0 @DEFAULT_AUDIO_SINK@ 5%+ ;;
-  down) wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%- ;;
+  up)   wpctl set-mute @DEFAULT_AUDIO_SINK@ 0
+        # up to 100 %; a level set higher in the mixer (pavucontrol goes to 153 %) stays as it
+        # is — wpctl's limit would pull it down to 100 %, the louder key making it quieter
+        read -r _ vol _ <<<"$(wpctl get-volume @DEFAULT_AUDIO_SINK@ 2>/dev/null)"
+        [[ $vol =~ ^[1-9][0-9]*\. ]] || wpctl set-volume -l 1.0 @DEFAULT_AUDIO_SINK@ "$step%+" ;;
+  down) wpctl set-volume @DEFAULT_AUDIO_SINK@ "$step%-" ;;
   mute) wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle ;;
   mic)  wpctl set-mute @DEFAULT_AUDIO_SOURCE@ toggle ;;
-  *)    echo "usage: kawa-volume up|down|mute|mic" >&2; exit 2 ;;
+  *)    echo "usage: kawa-volume up|down [STEP 1-99] | mute | mic" >&2; exit 2 ;;
 esac || exit 1
 
 if [[ $1 == mic ]]; then
@@ -31,4 +43,5 @@ if [[ $state == *MUTED* ]]; then
   [[ $1 == mic ]] && icon=$ICON_MIC_OFF || icon=$ICON_SPEAKER_OFF
   off=off
 fi
-kawa-osd "$icon" "$label" "$pct" $off 9>&-          # shown before the next press may change it
+# shown before the next press may change it; the change is done whether or not it shows
+kawa-osd "$icon" "$label" "$pct" $off 9>&- || :

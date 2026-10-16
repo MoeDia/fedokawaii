@@ -23,9 +23,6 @@ on-button-right=dismiss-all
 [urgency=low]
 default-timeout=3000
 
-[urgency=critical]
-default-timeout=0
-
 [app-name=desktop]
 default-timeout=2500
 
@@ -37,6 +34,12 @@ default-timeout=8000
 on-button-left=invoke-default-action
 
 [app-name=drives urgency=critical]
+default-timeout=0
+
+# a critical notice stays until you have read it, whichever app sent it ("the move to
+# Fedora … did not complete" comes from the desktop): after the apps' own times above, as
+# mako applies every section that matches, in order, and the last one wins
+[urgency=critical]
 default-timeout=0
 
 # udiskie's own notice of a drive that would not open: titled like the drives' notices (the
@@ -66,8 +69,10 @@ width=264
 padding=7,16,7,14
 default-timeout=1400
 
+# (hidden notices are not folded into a shown one: a critical card would count them, ×N)
 [mode=do-not-disturb]
 invisible=1
+group-by=none
 
 # critical messages, and the level of a key you just pressed, still show while not disturbed
 [mode=do-not-disturb urgency=critical]
@@ -80,6 +85,7 @@ invisible=0
 # ~/.config/xdg-desktop-portal-wlr/config): the same rules, so nothing private shows on it
 [mode=sharing]
 invisible=1
+group-by=none
 
 [mode=sharing urgency=critical]
 invisible=0

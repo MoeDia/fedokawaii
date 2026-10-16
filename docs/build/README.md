@@ -33,5 +33,11 @@ FEDOKAWAII_REPO=/path/to/fedokawaii FEDOKAWAII_SCRATCH=/path/to/work \
                                                                   # pikepdf, playwright
 ```
 
+`FEDOKAWAII_GUIDE` and `FEDOKAWAII_OUT` point it at another Markdown file and output folder (a
+preview). Besides its own fonts (DepartureMono, JetBrains Mono, Sumi Icons, Noto Serif and Sans from
+`@fontsource`), the book takes three from the system: Noto Serif/Sans CJK JP for kanji and kana,
+and DejaVu Sans for arrows and symbols. It prints twice: the second pass writes the contents' page
+numbers, read from the first.
+
 On the Fedokawaii desktop itself the programs are real already, so the pictures can also be
 taken there with `grim` — the book only needs the PNG names `handbook.py` reads.

@@ -4,6 +4,7 @@
 #   SIGRTMIN+8 workspaces · +9 layout · +10 window title · +11 keyboard layout
 # `kawa-dwlstatus --poke N…` pokes waybar the same careful way for others (quick settings
 # and the screen-share portal: +12, the mode seal · kawa-drives: +13, the drive mark) and exits.
+# Exit status: 0 the stream ended (dwl is gone) or poked · 1 no runtime folder · 2 misuse.
 #
 # dwl prints these lines per monitor (the last one comes from src/dwl/dwl.patch):
 #   <mon> title <text> · appid · fullscreen · floating · selmon <0|1>
@@ -13,32 +14,18 @@
 # Workspaces: 1–3 are always shown; 4–9 appear only while they hold a window, are
 # selected or are urgent. Each is its own waybar module (custom/tag1 … tag9) so the
 # stylesheet can draw it as a key: raised when occupied, pressed when selected.
-# Pure bash: no forks per update (the signals come from bash's own kill).
+# Each monitor's bar shows that monitor: its workspaces, layout and window title go to
+# dwl-bar/<monitor>/ (waybar names the bar's monitor to the module: WAYBAR_OUTPUT_NAME);
+# dwl-bar/ itself holds the focused monitor's, for a bar that is told no name. The keyboard
+# layout is one for all (dwl-bar/kb.json).
+# No forks per update but the rename that makes each file appear whole (the signals come
+# from bash's own kill).
 set -u
-# shellcheck source=/dev/null
-. "$HOME/.config/fedokawaii/icons.sh"
-DIR="${XDG_RUNTIME_DIR:?}/dwl-bar"
-mkdir -p "$DIR"
-ALWAYS=3
-
-declare -A OCC SEL URG TITLE LAYOUT KB LAST
-SELMON=""
-# keyboard layouts as the session set them (start-dwl): "us,ara" → US AR
-IFS=, read -r -a KBNAMES <<<"${XKB_DEFAULT_LAYOUT:-us}"
-
-put() {   # put NAME JSON — atomic, and only when it changed
-  [[ ${LAST[$1]:-} == "$2" ]] && return 1
-  LAST[$1]=$2
-  printf '%s\n' "$2" >"$DIR/$1.tmp" && mv -f "$DIR/$1.tmp" "$DIR/$1.json"
-}
-
-esc() {   # esc VAR TEXT — JSON + pango escaping into VAR (a variable, not $(…): no subshell)
-  local s=$2
-  s=${s//[[:cntrl:]]/ }                                    # tabs, ESC, CR: not valid in JSON
-  s=${s//\\/\\\\}; s=${s//\"/\\\"}
-  s=${s//&/"&amp;"}; s=${s//</"&lt;"}; s=${s//>/"&gt;"}   # quoted: bash 5.2 treats a bare & as "the match"
-  printf -v "$1" '%s' "$s"
-}
+# one fixed locale for bash's own work: control characters as UTF-8 sees them, and the
+# layout names in plain capitals (a Turkish locale would make "ir" İR); plain C should this
+# system have no C.UTF-8 (the patterns use classes, not a-z, so they hold in any locale)
+{ LC_ALL=C.UTF-8; } 2>/dev/null
+t=i; [[ ${t^^} == I ]] || LC_ALL=C
 
 WB=""
 poke() {   # poke N… — SIGRTMIN+N to waybar, but only once it catches them: until waybar has
@@ -53,10 +40,54 @@ poke() {   # poke N… — SIGRTMIN+N to waybar, but only once it catches them: 
   done 2>/dev/null <"/proc/$WB/status"   # (it may have just exited)
   return 0
 }
-if [[ ${1:-} == --poke ]]; then shift; poke "$@"; exit 0; fi
+case ${1:-} in
+  "") ;;
+  --poke)   # (numbers only: each goes into (( )), where a word is read as a variable or an expression)
+    shift
+    (($#)) || { echo "usage: kawa-dwlstatus --poke N…" >&2; exit 2; }
+    for n; do [[ $n =~ ^[0-9]{1,2}$ ]] && ((n <= 30)) || { echo "kawa-dwlstatus: --poke takes signal numbers 0–30, not $n" >&2; exit 2; }; done
+    poke "$@"; exit 0 ;;
+  -h|--help) sed -n '2,/^set -u/{/^set -u/d;s/^# \{0,1\}//;p}' "$0"; exit 0 ;;
+  *) echo "usage: kawa-dwlstatus < dwl's status · kawa-dwlstatus --poke N… (kawa-dwlstatus --help)" >&2; exit 2 ;;
+esac
 
-emit() {
-  local mon=$1 i bit cls tg=0 ly=0 tt=0 kc=0
+# shellcheck source=/dev/null
+. "$HOME/.config/fedokawaii/icons.sh" 2>/dev/null
+# (no icons.sh — a theme run that never finished: dwl's own symbols, not a reader that stops)
+: "${ICON_TILE:=[]=}" "${ICON_FLOAT:=><>}" "${ICON_MONOCLE:=[M]}"
+DIR="${XDG_RUNTIME_DIR:?}/dwl-bar"
+mkdir -p "$DIR" || exit 1
+ALWAYS=3
+
+declare -A OCC SEL URG TITLE LAYOUT KB LAST
+SELMON=""
+# keyboard layouts as the session set them (start-dwl): "us,ara" → US AR
+IFS=, read -r -a KBNAMES <<<"${XKB_DEFAULT_LAYOUT:-us}"
+
+put() {   # put NAME JSON — DIR/NAME.json (NAME may be MONITOR/…): atomic, and only when it changed;
+  # remembered only once written, so a write that failed (the runtime folder full) is tried
+  # again with the next status instead of leaving the bar behind for good
+  [[ ${LAST[$1]:-} == "$2" ]] && return 1
+  { printf '%s\n' "$2" >"$DIR/$1.tmp" && mv -f "$DIR/$1.tmp" "$DIR/$1.json"; } 2>/dev/null || return 1
+  LAST[$1]=$2
+}
+
+esc() {   # esc VAR TEXT — JSON + pango escaping into VAR (a variable, not $(…): no subshell)
+  local s=$2
+  s=${s//[[:cntrl:]]/ }                                    # tabs, ESC, CR: not valid in JSON
+  s=${s//\\/\\\\}; s=${s//\"/\\\"}
+  s=${s//&/"&amp;"}; s=${s//</"&lt;"}; s=${s//>/"&gt;"}   # quoted: bash 5.2 treats a bare & as "the match"
+  printf -v "$1" '%s' "$s"
+}
+
+emit() {   # emit MONITOR — its files (and the focused one's at the top), then the pokes
+  local mon=$1 i bit cls tg=0 ly=0 tt=0 kc=0 at
+  local -a to=("$mon/")
+  [[ -z $SELMON || $mon == "$SELMON" ]] && to+=("")
+  if [[ ! -d $DIR/$mon ]]; then
+    [[ -d $DIR ]] || LAST=()       # the whole folder gone (deleted under it): write everything again
+    mkdir -p "$DIR/$mon" 2>/dev/null || return 0
+  fi
   for ((i = 1; i <= 9; i++)); do
     bit=$((1 << (i - 1)))
     if   (( ${URG[$mon]:-0} & bit )); then cls=urgent
@@ -64,8 +95,10 @@ emit() {
     elif (( ${OCC[$mon]:-0} & bit )); then cls=occupied
     elif (( i <= ALWAYS ));            then cls=empty
     else cls=""; fi
-    if [[ -n $cls ]]; then put "tag$i" "{\"text\":\"$i\",\"class\":[\"tag\",\"$cls\"]}" && tg=1
-    else put "tag$i" '{"text":""}' && tg=1; fi
+    for at in "${to[@]}"; do
+      if [[ -n $cls ]]; then put "${at}tag$i" "{\"text\":\"$i\",\"class\":[\"tag\",\"$cls\"]}" && tg=1
+      else put "${at}tag$i" '{"text":""}' && tg=1; fi
+    done
   done
   # the layout as a pixel icon (dwl's symbols: []= tile, ><> floating, [n] monocle)
   local lt=${LAYOUT[$mon]:-[]=} icon cls title
@@ -74,14 +107,15 @@ emit() {
     '><>')       icon=$ICON_FLOAT cls=float ;;
     '[M]')       icon=$ICON_MONOCLE cls=monocle ;;
     \[[0-9]*\]) icon="$ICON_MONOCLE ${lt:1:-1}" cls=monocle ;;   # monocle: windows stacked
-    *)           esc icon "$lt"; cls=other ;;
+    *)           icon=$lt cls=other ;;
   esac
-  put layout "{\"text\":\"$icon\",\"class\":\"$cls\"}" && ly=1
-  esc title "${TITLE[$mon]:-}"
-  put title "{\"text\":\"$title\"}" && tt=1
+  esc icon "$icon"; esc title "${TITLE[$mon]:-}"
+  for at in "${to[@]}"; do
+    put "${at}layout" "{\"text\":\"$icon\",\"class\":\"$cls\"}" && ly=1
+    put "${at}title" "{\"text\":\"$title\"}" && tt=1
+  done
   # the keyboard layout, shown only when there is more than one to switch between
   local k=${KB[$mon]:-0} name="" which=first
-  [[ $k =~ ^[0-9]+$ ]] || k=0
   if ((${#KBNAMES[@]} > 1)); then
     name=${KBNAMES[k]:-?}; name=${name:0:2}; ((k)) && which=other
     put kb "{\"text\":\"${name^^}\",\"class\":\"$which\"}" && kc=1
@@ -94,6 +128,9 @@ emit() {
   return 0
 }
 
+# Only whole values are taken: when the pipe was full (the reader held up), dwl drops what it
+# cannot write, and a cut line can run into the next ("DP-1 layout []DP-1 kblayout 0") — such
+# a line is passed over, and the next whole status puts the bar right.
 while IFS=' ' read -r mon kind rest; do
   case $kind in
     tags)   IFS=' ' read -r occ sel _ urg <<<"$rest"
@@ -101,8 +138,15 @@ while IFS=' ' read -r mon kind rest; do
             OCC[$mon]=$occ; SEL[$mon]=$sel; URG[$mon]=${urg:-0} ;;
     title)  TITLE[$mon]=$rest ;;
     layout|kblayout)                       # layout ends an unpatched dwl's block, kblayout ours
-            if [[ $kind == layout ]]; then LAYOUT[$mon]=$rest; else KB[$mon]=$rest; fi
-            [[ -z $SELMON || $mon == "$SELMON" ]] && emit "$mon" ;;
+            if [[ $kind == layout ]]; then
+              [[ ${#rest} -le 15 && $rest != *' '* ]] || continue   # dwl's symbol: 15 bytes at most
+              LAYOUT[$mon]=$rest
+            else
+              [[ $rest =~ ^[0-9]{1,2}$ ]] || continue
+              KB[$mon]=$rest
+            fi
+            [[ $mon =~ ^[[:alnum:]][[:alnum:]_.-]*$ ]] && emit "$mon" ;;   # (the name becomes a folder)
     selmon) [[ $rest == 1 ]] && SELMON=$mon ;;
   esac
 done
+exit 0

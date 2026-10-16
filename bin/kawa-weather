@@ -2,26 +2,47 @@
 # kawa-weather — one line for the quick-settings title ("☼ Sharjah  31°C  Clear", the
 # icon drawn for the sky), from a cache refreshed in the background when older than
 # 30 minutes, so it never holds a menu up. wttr.in, no API key.
+# Exit status: 0 printed · 1 no city set (~/.config/fedokawaii/env) · 2 misuse.
 set -u
+case ${1:-} in
+  "") ;;
+  -h|--help) sed -n '2,/^set -u/{/^set -u/d;s/^# \{0,1\}//;p}' "$0"; exit 0 ;;
+  *) echo "usage: kawa-weather (kawa-weather --help)" >&2; exit 2 ;;
+esac
+LC_ALL=C.UTF-8                           # wttr.in's words matched as English: in Turkish, I is no i
+WEATHER_CITY=""
 # shellcheck source=/dev/null
-. "$HOME/.config/fedokawaii/env"
+. "$HOME/.config/fedokawaii/env" 2>/dev/null
+[[ -n $WEATHER_CITY ]] || exit 1
 # shellcheck source=/dev/null
 . "$HOME/.config/fedokawaii/icons.sh"
 CACHE="$HOME/.cache/kawa-weather"
+# "31°C  Partly cloudy": a temperature and the sky's words, nothing else. Whatever else comes
+# back — wttr.in's "out of queries" notice with a whole report of another city, a captive
+# portal's page, a cut-off answer — never becomes the title, and an old cache that is not
+# like this is fetched again.
+TEMP='[+-]?[0-9]{1,3}°[CF]' SKY='[[:alpha:]][[:alpha:] ,/-]{0,60}[[:alpha:]]'
 
 refresh() {
   local line city
   city=$(jq -rn --arg c "$WEATHER_CITY" '$c | @uri')   # "Saint-Étienne", "St. John's": URL-encoded
   line=$(curl -fsS --proto '=https' --max-time 8 "https://wttr.in/$city?format=%t++%C&m" 2>/dev/null) || return 0
-  [[ $line == *°* ]] || return 0
-  printf '%s  %s\n' "$WEATHER_CITY" "${line#+}" >"$CACHE.tmp" && mv -f "$CACHE.tmp" "$CACHE"
+  [[ $line =~ ^($TEMP)[[:space:]]+($SKY)[[:space:]]*$ ]] || return 0
+  mkdir -p "${CACHE%/*}"
+  printf '%s  %s  %s\n' "$WEATHER_CITY" "${BASH_REMATCH[1]#+}" "${BASH_REMATCH[2]}" >"$CACHE.tmp" \
+    && mv -f "$CACHE.tmp" "$CACHE"
 }
 
-if [[ ! -s $CACHE || -n $(find "$CACHE" -mmin +30 2>/dev/null) ]]; then
+cached=""
+[[ -s $CACHE ]] && read -r cached <"$CACHE"
+# kept for another city (the settings changed it), or not a weather line: not shown, only the
+# city's name until the new one has come
+[[ $cached == "$WEATHER_CITY  "* && ${cached#"$WEATHER_CITY  "} =~ ^$TEMP\ \ $SKY$ ]] || cached=""
+if [[ -z $cached || -n $(find "$CACHE" -mmin +30 2>/dev/null) ]]; then
   refresh &>/dev/null & disown
 fi
 line=$WEATHER_CITY cond=""
-[[ -s $CACHE ]] && read -r line <"$CACHE" && cond=${line##*  }   # "City  +31°C  Clear" → Clear
+[[ -n $cached ]] && line=$cached cond=${cached##*  }   # "City  31°C  Clear" → Clear
 printf -v hour '%(%H)T' -1
 sky=$ICON_SUN; ((10#$hour < 6 || 10#$hour >= 18)) && sky=$ICON_MOON
 case ${cond,,} in                        # the sky only, never the city's name ("Nice")

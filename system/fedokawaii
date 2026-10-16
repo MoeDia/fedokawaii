@@ -16,15 +16,20 @@
 #   fedokawaii settings    fedokawaii.conf (keyboard, refresh rate, city…), applied by update
 #   fedokawaii remind [every DAYS | wait DAYS | on | off | check]
 #                          the reminder of the update season (default: every 90 days)
-#   fedokawaii guide       the handbook (PDF)
+#   fedokawaii guide       the handbook (the PDF; on a text console, its text)
 #
-# Changing the desktop itself (handbook, chapter 15) — in your working copy, never the toolkit:
+# Changing the desktop itself (handbook, chapter 42) — in your working copy, never the toolkit:
 #   fedokawaii copy        make it, once: ~/repos/fedokawaii, a git repository of the toolkit
 #   fedokawaii keep FILE…  a config you changed in place (~/.config/…), copied into the copy
 #   fedokawaii diff        what the copy would change in the toolkit (changes nothing)
 #   fedokawaii apply       the copy checked, made the toolkit, applied (sudo)
 #   fedokawaii change      the same as a menu, part by part (Super+Shift+U)
 #   (another place for the copy: FEDOKAWAII_COPY=/path/to/it in your environment)
+#   fedokawaii help        this text
+#
+# Exit status: 0 done · 1 it could not (the lines above say why) · 2 misuse — and what a run
+# as root ended with: 3 it ran, and something still needs you (verify, repair, apply, drift),
+# 4 drift: in sync but for an optional part, 130 stopped (Ctrl+C).
 #
 # What changes the system runs as root, through sudo (it asks for your password, here):
 # the toolkit root runs is the copy setup installed in /usr/local/lib/fedokawaii — root's,
@@ -47,9 +52,11 @@ EVERY=90 WAIT=60 REMIND=yes
 load_conf() {
   local k v
   [[ -r $CONF ]] || return 0
-  while IFS='=' read -r k v; do
-    v=${v%%#*}; v=${v//[!0-9a-z]/}
-    [[ $v =~ ^[0-9]{1,3}$ ]] && v=$((10#$v))       # (10#: "08" is eight, not octal)
+  # (a last line without its newline counts too: the file may have been edited by hand)
+  while IFS='=' read -r k v || [[ -n $k ]]; do
+    k=${k//[[:space:]]/}; v=${v%%#*}; v=${v//[!0-9a-z]/}
+    # (10#: "08" is eight, not octal; a number too long for that is no setting)
+    if [[ $v =~ ^[0-9]+$ ]]; then if ((${#v} <= 9)); then v=$((10#$v)); else v=""; fi; fi
     case $k in
       EVERY)  [[ $v =~ ^[0-9]+$ ]] && ((v >= 7 && v <= 365)) && EVERY=$v ;;
       WAIT)   [[ $v =~ ^[0-9]+$ ]] && ((v <= 180)) && WAIT=$v ;;
@@ -164,23 +171,28 @@ v_next() {
     ready)    printf 'Fedora %s · ready to move to' "$n" ;;
   esac
 }
-due_at() {   # the next update: EVERY days after the last one that reached its end (a run
-             # that stopped does not count), or after setup
+last_done() {   # the last update that reached its end — a run that stopped (a power cut, a
+                # failure) is no update: until it ends, the one before stays the last
   local t res
   t=$(read_rec last-update-done) || t=""
-  if ! num "$t"; then
-    if read -r t res < <(last_update) && [[ $res != stopped ]]; then :
-    else t=$(stat -c %Y "$STATE/phase" 2>/dev/null || echo "$now"); fi
-  fi
+  num "$t" && { echo "$t"; return 0; }
+  read -r t res < <(last_update) && [[ $res != stopped ]] && { echo "$t"; return 0; }
+  return 1
+}
+due_at() {   # the next update: EVERY days after the last one, or after setup
+  local t
+  t=$(last_done) || t=$(stat -c %Y "$STATE/phase" 2>/dev/null) || t=$now
   ((t <= now)) || t=$now      # (a record written while the clock ran ahead never puts the season off)
   echo $(( t + EVERY * DAY ))
 }
 status_kv() {
   local t res from to d e l p f w run new free size n
   busy && printf 'running\037%s\n' 'an update or a repair, now'
-  printf 'release\037Fedora %s\n' "$(ver)"
-  printf 'support\037%s\n' "$(v_support)"
-  printf 'next\037%s\n' "$(v_next)"
+  if (($(ver))); then
+    printf 'release\037Fedora %s\n' "$(ver)"
+    printf 'support\037%s\n' "$(v_support)"
+    printf 'next\037%s\n' "$(v_next)"
+  else printf 'release\037%s\n' 'unknown: /etc/os-release unreadable'; fi
   # the last move between releases, for the two months after it
   if read -r t from to res < <(read_rec last-upgrade) && num "$t" && ((now - t < 60 * DAY)); then
     case $res in
@@ -189,22 +201,23 @@ status_kv() {
       *)      printf 'moved\037%s → %s · %s · repair\n' "$from" "$to" "$(day "$t")" ;;
     esac
   fi
+  if t=$(last_done); then printf 'updated\037%s · %s\n' "$(day "$t")" "$(ago "$t")"
+  else printf 'updated\037none since setup\n'; fi
   if read -r t res < <(last_update); then
-    printf 'updated\037%s · %s\n' "$(day "$t")" "$(ago "$t")"
     case $res in
       ok)      ;;
       partial) printf '\037some parts left for the next one\n' ;;
       checks)  printf '\037verify found problems: repair\n' ;;
-      *)       printf '\037stopped before the end: see the log\n' ;;
+      *)       printf '\037tried %s, stopped: see the log\n' "$(date -d "@$t" '+%-d %b' 2>/dev/null)" ;;
     esac
-  else printf 'updated\037none since setup\n'; fi
+  fi
   d=$(due_at)
   if ((d <= now)); then printf 'due\037now · every %d days\n' "$EVERY"
   else printf 'due\037%s · %s\n' "$(day "$d")" "$(inn "$d")"; fi
   if l=$(read_rec last-verify); then
     read -r t p f w <<<"$l"
     if num "$t" && num "$f" && ((f == 0)); then
-      if ((${w:-0})); then printf 'verified\037passed, %s warning%s · %s\n' "$w" "$( ((w == 1)) || echo s)" "$(ago "$t")"
+      if num "${w:-}" && ((w)); then printf 'verified\037passed, %s warning%s · %s\n' "$w" "$( ((w == 1)) || echo s)" "$(ago "$t")"
       else printf 'verified\037%s checks passed · %s\n' "$p" "$(ago "$t")"; fi
     elif num "$t" && num "$f"; then printf 'verified\037%s to fix · %s (repair)\n' "$f" "$(ago "$t")"; fi
   else printf 'verified\037not yet\n'; fi
@@ -233,9 +246,24 @@ status() {   # the status as text: the keys in a column of their own
 
 # ── running what changes the system: root, through sudo, from the toolkit ──────────────
 need_toolkit() { [[ -f $TK/fedokawaii.sh ]] || { echo "the toolkit is missing: $TK — run setup from your copy of the repository" >&2; return 1; }; }
-as_root() { need_toolkit || return 1; sudo bash "$TK/fedokawaii.sh" "$@"; }
+root() {   # root CMD… — CMD as root, through sudo; a refusal is said as what it is
+  # (asked first, on its own: a wrong password or a user who is no administrator is then
+  # told apart from the command's own failure)
+  sudo -v || { echo "  this needs root: sudo refused (a wrong password, or not an administrator)" >&2; return 1; }
+  sudo "$@"
+}
+held() {   # a run that takes root's lock (update, upgrade, repair, apply) while one goes on:
+  # said at once — no password asked, no wait for the lock
+  busy || return 1
+  echo "  an update or a repair is running now — wait for it to finish (fedokawaii status)" >&2
+}
+as_root() {
+  need_toolkit || return 1
+  case $1 in update|upgrade|repair) ! held || return 1 ;; esac
+  root bash "$TK/fedokawaii.sh" "$@"
+}
 
-# ── your working copy: where the desktop is changed (handbook §15) ──────────────────────
+# ── your working copy: where the desktop is changed (handbook, chapter 42) ──────────────────────
 COPY=${FEDOKAWAII_COPY:-$HOME/repos/fedokawaii}
 need_copy() { [[ -f $COPY/setup.sh && -f $COPY/fedokawaii.sh ]] || { echo "no working copy at $COPY — fedokawaii copy makes one" >&2; return 1; }; }
 copy_make() {   # the toolkit, copied once into a folder of yours, as a git repository
@@ -250,15 +278,17 @@ copy_make() {   # the toolkit, copied once into a folder of yours, as a git repo
     else echo "  your working copy: $COPY"; fi
     return 0
   fi
+  # (git first: a copy without its history would pass for one later, and apply needs it)
+  command -v git >/dev/null || { echo "  git is missing — fedokawaii repair puts it back" >&2; return 1; }
   mkdir -p -- "${COPY%/*}" && cp -r -- "$TK" "$COPY" && chmod -R u+w -- "$COPY" || return 1
-  git -C "$COPY" init -q -b main || return 1
+  git -C "$COPY" init -q -b main || { rm -rf -- "$COPY"; return 1; }
   # the settings as the toolkit has them now: apply measures the copy's against these, so a
   # setting you change later through the menu is never undone by this older copy
   cp -- "$TK/fedokawaii.conf" "$COPY/.git/fedokawaii-conf-base" 2>/dev/null || true
   if [[ -n $(git -C "$COPY" config user.name) && -n $(git -C "$COPY" config user.email) ]]; then
     git -C "$COPY" add -A && git -C "$COPY" commit -q -m "fedokawaii as installed ($(date +%F))"
   else
-    echo "  (git does not know your name yet — handbook §11.6: git config --global user.name …;"
+    echo "  (git does not know your name yet — handbook §41.2: git config --global user.name …;"
     echo "   then commit the copy as it is: lazygit in $COPY)"
   fi
   echo "  your working copy: $COPY — change it there (fedokawaii change), then: fedokawaii apply"
@@ -284,12 +314,15 @@ copy_diff() {   # what apply would change in the toolkit, in a pager
 # tool draws (colours, icons, pointers) or a setting fills in is not copied: its source is
 # named instead — the change belongs there.
 keep_file() {
-  local f abs rel src
+  local f abs rel src home bad=0
   need_copy || return 1
+  # (your home as the files resolve: it may itself be reached through a link)
+  home=$(realpath -e -- "$HOME" 2>/dev/null) || home=$HOME
   for f; do
+    bad=$((bad + 1))                                 # (until it is kept, or found the same)
     abs=$(realpath -e -- "$f" 2>/dev/null) || { echo "  $f: no such file" >&2; continue; }
-    [[ $abs == "$HOME"/* ]] || { echo "  $f: not in your home" >&2; continue; }
-    rel=${abs#"$HOME"/}
+    [[ $abs == "$home"/* ]] || { echo "  $f: not in your home" >&2; continue; }
+    rel=${abs#"$home"/}
     case $rel in
       .config/fedokawaii/themes/*|.config/gtk-4.0/gtk.css|.local/share/themes/*|.config/nvim/lua/plugins/colorscheme.lua)
         echo "  $f: drawn from the palettes — change tools/build-themes.py in the copy, then run it there (fedokawaii change → colours)" >&2; continue ;;
@@ -307,9 +340,10 @@ keep_file() {
     if grep -qE '@(HOME|MONITOR_HZ|WEATHER_CITY|NIGHT_LIGHT|MPV_SCALING|ICON_CHEVRON_RIGHT|UID)@' -- "$COPY/$src"; then
       echo "  $f: filled in from fedokawaii.conf when applied (@HOME@ and the like) — make the same change in $COPY/$src by hand" >&2; continue
     fi
-    if cmp -s -- "$abs" "$COPY/$src"; then echo "  $src: already the same in the copy"; continue; fi
-    cp -- "$abs" "$COPY/$src" && echo "  kept: $src — fedokawaii apply makes it the desktop's"
+    if cmp -s -- "$abs" "$COPY/$src"; then echo "  $src: already the same in the copy"; bad=$((bad - 1)); continue; fi
+    cp -- "$abs" "$COPY/$src" && echo "  kept: $src — fedokawaii apply makes it the desktop's" && bad=$((bad - 1))
   done
+  ((bad == 0))                                       # (1: something named was not kept — said above)
 }
 copy_apply() {   # the copy applied: ShellCheck's advice on the scripts you changed, then root's part
   local f sh=()
@@ -318,7 +352,7 @@ copy_apply() {   # the copy applied: ShellCheck's advice on the scripts you chan
     # the scripts you changed, and the ones you added (a new folder: every file in it)
     while IFS= read -r f; do
       case $f in
-        "Files $TK/"*) f=${f#"Files $TK/"}; f=${f%% and *} ;;
+        "Files $TK/"*) f=${f#"Files $TK/"}; f=${f% and "$COPY"/*} ;;   # (a name may hold " and ")
         "Only in $COPY"*) f=${f#"Only in $COPY"}; f=${f#/}; f=${f/: //}; f=${f#/} ;;
         *) continue ;;
       esac
@@ -336,7 +370,8 @@ copy_apply() {   # the copy applied: ShellCheck's advice on the scripts you chan
       echo "  ↑ ShellCheck's notes on the scripts you changed (each SC number explained: shellcheck.net/wiki) — apply goes on"
     fi
   fi
-  sudo bash "$COPY/fedokawaii.sh" apply
+  ! held || return 1
+  root bash "$COPY/fedokawaii.sh" apply
 }
 
 told_move() {   # the outcome of a move to a new Fedora, told once (at the first login after it)
@@ -355,6 +390,10 @@ told_move() {   # the outcome of a move to a new Fedora, told once (at the first
 }
 remind() {   # remind [check] — once a day at most: an update due, a release ready or ending
   local d st n r from e how msg="" seen
+  # (one look at a time: the session's timer and the look at login may meet — one notice)
+  if [[ ${1:-} != check ]] && mkdir -p "$CACHE" 2>/dev/null && exec 7>>"$CACHE/remind.lock"; then
+    flock -n 7 || return 0
+  fi
   [[ ${1:-} == check ]] || told_move
   [[ $REMIND == yes || ${1:-} == check ]] || return 0
   seen=$(cat "$NOTICE" 2>/dev/null)
@@ -378,7 +417,7 @@ if [[ ${TERM:-} != linux && -r $HOME/.config/fedokawaii/icons.sh ]]; then
 fi
 # every entry: ACTION<TAB>ICON  NAME<TAB>MARK (the mark at the right, like the books' column)
 rows() {
-  local d st n r from l t p f w R=$'\e[91m' G=$'\e[90m' S=$'\e[37m' O=$'\e[0m' upd up ver_ snap
+  local d st n r from l t p f w R=$'\e[91m' G=$'\e[90m' S=$'\e[37m' O=$'\e[0m' upd up ver_ snap rel nxt
   d=$(due_at); read -r st n r from < <(next_state)
   if ((d <= now)); then upd="${R}due$O"; else upd="$G$(inn "$d")$O"; fi
   case $st in
@@ -392,12 +431,14 @@ rows() {
     read -r t p f w <<<"$l"
     if num "$f" && ((f == 0)); then ver_="${S}passed$O"; elif num "$f"; then ver_="$R$f to fix$O"; fi
   fi
-  snap=$(read_rec snapshots) || snap=""
+  snap=$(read_rec snapshots) && num "$snap" || snap=""
   busy && upd="${R}running$O"
+  # (a release that cannot be read is not guessed at: no Fedora 0, no move to Fedora 1)
+  if (($(ver))); then rel="${S}Fedora $(ver)$O" nxt="upgrade to Fedora $n"; else rel="" nxt="upgrade to the next Fedora"; fi
   printf '%s\t%s\t%s\n' \
-    status    "${ICON_TORII:-·} status"                   "${S}Fedora $(ver)$O" \
+    status    "${ICON_TORII:-·} status"                   "$rel" \
     update    "${ICON_DOWNLOAD:-·} update"                "$upd" \
-    upgrade   "${ICON_RESTART:-·} upgrade to Fedora $n"   "$up" \
+    upgrade   "${ICON_RESTART:-·} $nxt"                   "$up" \
     verify    "${ICON_BOX_ON:-·} verify"                  "$ver_" \
     repair    "${ICON_SLIDERS:-·} repair"                 "" \
     snapshots "${ICON_HOURGLASS:-·} snapshots"            "$G${snap}$O" \
@@ -484,7 +525,7 @@ explain() {
                    "pair around every dnf run, one before each" \
                    "update and each move, hourly ones for a" \
                    "while, and setup's baseline. Undoing one:" \
-                   "handbook §7.2." ;;
+                   "handbook §37.2." ;;
     theme)     pick 'running'
                # shellcheck disable=SC2088  # (a path to read, not to expand)
                say "Every config the toolkit manages, back as" \
@@ -515,13 +556,22 @@ explain() {
 }
 
 edit_settings() {   # a copy edited, checked by the toolkit, and only then made the settings
-  local t rc
+  local t rc ed=() a
   need_toolkit || return 1
+  # the editor as you named it, options and all (VISUAL="code --wait")
+  read -ra ed <<<"${VISUAL:-${EDITOR:-nvim}}"
+  command -v "${ed[0]:-}" >/dev/null || { echo "  no editor: ${ed[0]:-(none)} — set VISUAL (or EDITOR) to one" >&2; return 1; }
   t=$(mktemp "${XDG_RUNTIME_DIR:-/tmp}/fedokawaii.conf.XXXXXX") || return 1
   cp -- "$TK/fedokawaii.conf" "$t"
-  "${VISUAL:-${EDITOR:-nvim}}" "$t"
-  if cmp -s -- "$t" "$TK/fedokawaii.conf"; then echo "  unchanged"; rc=0
-  else sudo bash "$TK/fedokawaii.sh" conf "$t"; rc=$?; fi
+  while :; do
+    "${ed[@]}" "$t"
+    if cmp -s -- "$t" "$TK/fedokawaii.conf"; then echo "  unchanged"; rc=0; break; fi
+    root bash "$TK/fedokawaii.sh" conf "$t"; rc=$?
+    ((rc == 0)) && break
+    # (a slip need not cost the rest of the edit: it is still there, to put right)
+    printf '\n  edit it again? y/n '; read -rsn1 a </dev/tty || a=n; echo
+    [[ $a == [yY] ]] || { echo "  not saved — fedokawaii.conf is as it was"; break; }
+  done
   rm -f -- "$t"
   return "$rc"
 }
@@ -529,7 +579,7 @@ pause() {   # pause RC [ACTION] — the outcome, and a key back to the menu
   if (($1 == 0)); then printf '\n  finished — any key goes back to the menu '
   elif [[ ${2:-} == @(verify|drift|repair|apply) && $1 == 3 ]] \
        || [[ ${2:-} == drift && $1 == 4 ]]; then   # (3: it ran; things remain · drift 4: in sync but a part)
-    printf '\n  done — some things still need you: the lines above say which — any key goes back to the menu '
+    printf '\n  done — some things still need you (the lines above) — any key goes back to the menu '
   else printf '\n  it ended with an error (%s): the lines above say why — any key goes back to the menu ' "$1"; fi
   read -rsn1 _ </dev/tty || true
 }
@@ -542,26 +592,41 @@ run() {   # run ACTION — in the menu's window: the work, its outcome, a key ba
     upgrade)   as_root upgrade; rc=$? ;;
     verify)    as_root verify; rc=$? ;;
     repair)    as_root repair; rc=$? ;;
-    snapshots) sudo snapper -c root list; rc=$? ;;
+    snapshots) snapshots; rc=$? ;;
     theme)     as_root theme; rc=$? ;;
     drift)     as_root drift; rc=$? ;;
     settings)  edit_settings; rc=$? ;;
     remind)    case $REMIND:$EVERY in yes:60) EVERY=90 ;; yes:90) EVERY=120 ;; yes:120) REMIND=no ;; *) REMIND=yes EVERY=60 ;; esac
                save_conf; return 0 ;;
-    log)       sudo nvim -R +'normal G' /var/log/fedokawaii.log; return 0 ;;
-    guide)     setsid -f zathura "$TK/docs/Fedokawaii-Guide.pdf" >/dev/null 2>&1 </dev/null; return 0 ;;
+    log)       root nvim -R +'normal G' /var/log/fedokawaii.log; return 0 ;;
+    guide)     guide && return 0; rc=1 ;;   # (a handbook that cannot open says why, and waits)
     *)         return 0 ;;
   esac
   pause "$rc" "$a"
 }
 
+snapshots() {   # the snapshots of / (snapper's list is root's) — or why there are none
+  local fs
+  command -v snapper >/dev/null || { echo "  snapper is not installed — fedokawaii repair puts it back" >&2; return 1; }
+  fs=$(findmnt -no FSTYPE / 2>/dev/null)
+  [[ $fs == btrfs ]] || { echo "  no snapshots here: / is ${fs:-of an unknown kind}, and snapshots need Btrfs" >&2; return 1; }
+  root snapper -c root list
+}
+guide() {   # the handbook: the PDF in zathura on the desktop; on a text console, its text
+  local pdf=$TK/docs/Fedokawaii-Guide.pdf md=$TK/docs/fedokawaii-guide.md
+  if [[ -z ${WAYLAND_DISPLAY:-} && -r $md ]]; then less -- "$md"; return 0; fi
+  [[ -r $pdf ]] || { echo "  the handbook is missing: $pdf — fedokawaii repair puts it back" >&2; return 1; }
+  command -v zathura >/dev/null || { echo "  zathura is not installed (fedokawaii repair puts it back) — the handbook: $pdf" >&2; return 1; }
+  setsid -f zathura "$pdf" >/dev/null 2>&1 </dev/null
+}
+
 menu_fzf() {   # → fzf's exit status (2: it could not run — the plain menu takes over)
-  local title self t res
+  local title self t
   self=$(printf '%q' "$0")
   export FZF_DEFAULT_OPTS_FILE=$HOME/.config/fedokawaii/fzf.opts; unset FZF_DEFAULT_OPTS
   [[ -r $FZF_DEFAULT_OPTS_FILE ]] || unset FZF_DEFAULT_OPTS_FILE
   ( release_check >/dev/null 2>&1 & )               # (for the next look: the menu never waits on it)
-  if read -r t res < <(last_update); then t="updated $(day "$t")"; else t="not updated since setup"; fi
+  if t=$(last_done); then t="updated $(day "$t")"; else t="not updated since setup"; fi
   title=" $(printf '\e[91m%s\e[0m' "${ICON_TORII:-⛩}") fedokawaii "$'\e[90m'"· $t"$'\e[0m '
   # twelve entries need no search: no input line — the list starts under the title, and
   # the pane's first line stands level with the first entry
@@ -584,8 +649,9 @@ menu_plain() {   # no fzf, or a text console: numbered, nothing but bash
     { printf '\n  FEDOKAWAII\n\n'; status | sed 's/^/  /'; echo
       for i in "${!acts[@]}"; do printf '  %2d  %s\n' "$((i + 1))" "${names[i]}"; done; } | ascii
     printf '\n  number (q quits): '; read -r c || exit 0
-    [[ $c == q || -z $c ]] && exit 0
-    if num "$c" && ((c >= 1 && c <= ${#acts[@]})); then run "${acts[c - 1]}"; now=$(date +%s); fi
+    [[ $c == [qQ] || -z $c ]] && exit 0
+    if num "$c" && ((10#$c >= 1 && 10#$c <= ${#acts[@]})); then run "${acts[10#$c - 1]}"; now=$(date +%s)
+    else printf '  1–%d, or q\n' "${#acts[@]}" | ascii; fi
   done
 }
 
@@ -599,11 +665,15 @@ case ${1:-} in
   --rows)     fit_rows ;;
   --explain)  explain "${2:-}" ;;
   --run)      run "${2:-}" ;;
+  # (a word more than a command takes is a slip, never ignored: `upgrade now` is no --now)
+  status|update|verify|repair|theme|drift|snapshots|log|settings|guide|copy|diff|apply)
+              (($# == 1)) || { echo "fedokawaii $1 takes nothing more (\"$2\") — fedokawaii help" >&2; exit 2; } ;;&
+  upgrade)    [[ $# == 1 || ( $# == 2 && $2 == --now ) ]] || { echo "usage: fedokawaii upgrade [--now]" >&2; exit 2; }
+              as_root upgrade ${2:+"$2"} ;;
   status)     ( release_check >/dev/null 2>&1 & ); status | ascii ;;   # (never waited on)
-  upgrade)    as_root upgrade ${2:+"$2"} ;;
   update|verify|repair|theme|drift) as_root "$1" ;;
-  snapshots)  sudo snapper -c root list ;;
-  log)        sudo less +G /var/log/fedokawaii.log ;;
+  snapshots)  snapshots ;;
+  log)        root less +G /var/log/fedokawaii.log ;;
   settings)   run settings ;;
   remind)
     case ${2:-check} in
@@ -617,7 +687,7 @@ case ${1:-} in
                 WAIT=$((10#$3)); save_conf; echo "a new release is offered $WAIT days after it is out" ;;
       *)        echo "usage: fedokawaii remind [check | every DAYS | wait DAYS | on | off]" >&2; exit 2 ;;
     esac ;;
-  guide)      setsid -f zathura "$TK/docs/Fedokawaii-Guide.pdf" >/dev/null 2>&1 </dev/null ;;
+  guide)      guide ;;
   copy)       copy_make ;;
   diff)       copy_diff ;;
   keep)       shift; (($#)) || { echo "usage: fedokawaii keep FILE…" >&2; exit 2; }; keep_file "$@" ;;
