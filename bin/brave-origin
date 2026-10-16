@@ -6,6 +6,10 @@
 # Super+B, links (Theme points the desktop's brave-origin.desktop here) and `brave-origin`
 # in a shell all start Brave this way; everything else reaches Brave unchanged — a feature
 # list of your own is joined to this one, not replaced by it.
+# The password store is pinned to Brave's basic one — the one it uses here today, with no
+# keyring running — so that a keyring a package brings later, or a Brave that chooses
+# differently, can never leave every login and cookie saved before it unreadable. (A
+# --password-store of your own comes after it: Chromium keeps a switch's last value.)
 set -u
 feat=PulseaudioLoopbackForScreenShare args=() rest=""
 for a in "$@"; do                           # (after --, Chromium reads no switches: nor here)
@@ -13,7 +17,7 @@ for a in "$@"; do                           # (after --, Chromium reads no switc
   else [[ $a == -- ]] && rest=1; args+=("$a"); fi
 done
 for b in /usr/bin/brave-origin-stable /opt/brave.com/brave-origin/brave-origin /usr/bin/brave-origin; do
-  [[ -x $b ]] && exec "$b" "--enable-features=$feat" "${args[@]}"
+  [[ -x $b ]] && exec "$b" "--enable-features=$feat" --password-store=basic "${args[@]}"
 done
 echo "brave-origin: Brave Origin is not installed (sudo dnf install brave-origin)" >&2
 exit 127

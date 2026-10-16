@@ -59,9 +59,10 @@ load_conf "$REPO_DIR"
 # The error report, on stderr. Inside a $(…), a <(…) or a pipeline (errtrace hands the trap
 # down) it only ends that piece, silently: what a $(…) captures, or a <(…) feeds a loop, is
 # then never the report itself — and the command that used it reports, here, with its line.
+# (a command run or retry saw fail is named, not the helper's own return: failed_what)
 # shellcheck disable=SC2154  # rc is assigned inside the trap string
-trap 'rc=$?; ((BASH_SUBSHELL == 0)) || exit $rc
-      _out "${C_RED}✘ line $LINENO${FUNCNAME[0]:+ in ${FUNCNAME[0]}(), called from line ${BASH_LINENO[-2]}}: ${BASH_COMMAND:0:160} (exit $rc)${C_RESET}" >&2
+trap 'rc=$?; ((BASH_SUBSHELL == 0)) || exit $rc; failed_what "${FUNCNAME[0]:-main}:$LINENO"
+      _out "${C_RED}✘ line $LINENO${FUNCNAME[0]:+ in ${FUNCNAME[0]}(), called from line ${BASH_LINENO[-2]}}: ${FAILED_SHOW:0:160} (exit $rc)${C_RESET}" >&2
       _out "  log: $LOG_FILE — fix the cause, then run the same command again (finished steps are skipped)" >&2; exit $rc' ERR
 trap '_out ""; _out "${C_RED}✘ interrupted — run the same command again to continue${C_RESET}"; exit 130' INT TERM
 if [[ $MODE == status ]]; then        # read-only, so it works while another run holds the lock
@@ -281,8 +282,24 @@ reboot_to() {
 # (it is either there or not)
 online() { curl -sS -o /dev/null --proto '=https' --max-time 8 https://mirrors.fedoraproject.org/ 2>/dev/null; }
 wait_for_network() {
-  local n=6; ((RESUMED)) && n=30
-  retry "$n" 5 online || die "no network — connect to one (nmtui), then run it again"
+  local n=6 rc=0 was; ((RESUMED)) && n=30
+  retry "$n" 5 online && return 0
+  online || rc=$?
+  if ((rc == 60)); then
+    # the network answers, but every certificate is refused (curl's 60): a clock years off —
+    # the RTC left on local time by Windows, or its battery flat — fails every https download
+    # the same way, and "no network" would send you to the wrong place. chrony is asked to
+    # set it from the network now, then one more try; failing that, the clock is named
+    was=$(date '+%F %H:%M')
+    # (makestep acts on a measurement chrony already has; waitsync gives it up to 20 s for a
+    # first one; then once more, should its own stepping allowance be used up)
+    chronyc -a makestep >/dev/null 2>&1 || true
+    chronyc waitsync 4 0 0 5 >/dev/null 2>&1 || true
+    chronyc -a makestep >/dev/null 2>&1 || true
+    if online; then log "the clock was wrong ($was) — set from the network: $(date '+%F %H:%M')"; return 0; fi
+    die "online, but every site's certificate is refused: the clock is probably wrong ($was) — set it (sudo timedatectl set-time 'YYYY-MM-DD HH:MM'; timedatectl shows it), then run it again"
+  fi
+  die "no network — connect to one (nmtui), then run it again"
 }
 
 # contained FN [ARG…] — run FN in a subshell with errexit really on, so a failure ends FN
@@ -296,9 +313,11 @@ contained() {
   # shellcheck disable=SC2154  # rc is assigned inside the trap string
   # shellcheck disable=SC2034  # lvl is read inside the trap string
   ( set -e; lvl=$BASH_SUBSHELL       # (deeper: a $(…) or <(…) inside FN — it just ends, as above)
-    # (a function that returned its own failure has said why: no "return 1" line after it)
-    trap 'rc=$?; ((BASH_SUBSHELL == lvl)) || exit $rc; [[ $BASH_COMMAND == return* ]] && exit $rc
-          _out "${C_RED}✘ line $LINENO${FUNCNAME[0]:+ in ${FUNCNAME[0]}()}: ${BASH_COMMAND:0:160} (exit $rc)${C_RESET}" >&2; exit $rc' ERR
+    # (a function that returned its own failure has said why: no "return 1" line after it —
+    # but a command run or retry saw fail is named)
+    trap 'rc=$?; ((BASH_SUBSHELL == lvl)) || exit $rc; failed_what "${FUNCNAME[0]:-main}:$LINENO"
+          [[ $FAILED_SHOW == return* ]] && exit $rc
+          _out "${C_RED}✘ line $LINENO${FUNCNAME[0]:+ in ${FUNCNAME[0]}()}: ${FAILED_SHOW:0:160} (exit $rc)${C_RESET}" >&2; exit $rc' ERR
     "$@" )
   CONTAINED_RC=$?
   set -e; eval "$saved"
@@ -328,11 +347,16 @@ minrate=50k
 timeout=20
 installonly_limit=2
 defaultyes=True
+# never as a weak dependency: Node 22 (neovim recommends tree-sitter-cli, which recommends
+# "nodejs" — nodejs22 on Fedora 44; on 45 the package named nodejs, which owns /usr/bin/node
+# as nodejs24-bin does and would stop the media step). One Node.js: the manifest's 24
+exclude_from_weak=nodejs,nodejs22*
 EOF
   local k want v dump; dump=$(dnf --dump-main-config 2>/dev/null) || dump=""
   # checked, and reported — never a reason to stop: a later dnf may print a value its own way
   # (minrate is shown in bytes: 50k = 51200)
-  for k in "max_parallel_downloads:$DNF_PARALLEL" fastestmirror:1 minrate:51200 timeout:20 installonly_limit:2 defaultyes:1; do
+  for k in "max_parallel_downloads:$DNF_PARALLEL" fastestmirror:1 minrate:51200 timeout:20 installonly_limit:2 defaultyes:1 \
+           'exclude_from_weak:nodejs,nodejs22*'; do
     want=${k#*:}; v=$(sed -n "s/^${k%%:*} *= *//p" <<<"$dump")
     [[ $v == "$want" || ( $want == 1 && $v == [Tt]rue ) || ( $want == 51200 && $v == 50[kK] ) ]] \
       || log "dnf shows ${k%%:*}='$v' where the drop-in sets $want — /etc/dnf/dnf.conf may override it"
@@ -381,7 +405,7 @@ s_boot() {
   # new Fedora, the old one is still there until the next one replaces it
 }
 
-s_update() { wait_for_network; run dnf -y upgrade --refresh; }
+s_update() { wait_for_network; tidy_after_cut; run dnf -y upgrade --refresh; }
 
 s_base() {
   dnf_install "${PKG_BASE[@]}"
@@ -407,6 +431,28 @@ s_trim() {              # one editor (neovim), no rescue kernel image
     run dnf -y remove "${rm[@]}"
   fi
   editor_policy
+  console_boot_arg
+}
+# systemd 257 and later asks the console for its size as PID 1 starts, and waits for the
+# answer; with Plymouth holding the screen (rhgb) it sometimes never comes, and about one
+# boot in ten stops on a black screen at "Starting Switch Root" until a key is pressed
+# (systemd mends it in 261). A dumb console TERM makes systemd skip the question: under
+# rhgb quiet nothing visible changes, and the login consoles set their own TERM (linux)
+console_boot_arg() { run grubby --update-kernel=ALL --args=systemd.tty.term.console=dumb; }
+# kernel_images — every kernel at rest has its boot image (/boot/initramfs-VERSION.img). dracut
+# makes it from a scriptlet of the kernel's package, and a scriptlet that fails does not fail
+# dnf: the update ends well, and the new entry does not boot (the kernel before it still does,
+# from the menu). Made again here; verify names any still missing
+kernel_images() {
+  local v rc=0
+  for v in $(rpm -q --qf '%{VERSION}-%{RELEASE}.%{ARCH}\n' kernel-core 2>/dev/null | grep -v 'not installed'); do
+    # (no kernel file either: /boot is not where it should be — nothing is written into a stand-in)
+    [[ -s /boot/vmlinuz-$v ]] || { log "no /boot/vmlinuz-$v — is /boot mounted? (findmnt /boot) nothing made"; rc=1; continue; }
+    [[ -s /boot/initramfs-$v.img ]] && continue
+    log "kernel $v has no boot image (initramfs) — dracut makes it now"
+    run dracut -f --kver "$v" || { log "dracut could not make the boot image for $v — that kernel would not start (the one before it still does); sudo dracut -f --kver $v shows why"; rc=1; }
+  done
+  return "$rc"
 }
 editor_policy() {       # neovim is the editor (EDITOR, VISUAL, vi); no rescue kernel image
   rm -f /boot/vmlinuz-0-rescue-* /boot/initramfs-0-rescue-* /boot/loader/entries/*-0-rescue*.conf
@@ -417,7 +463,7 @@ EOF
   ln -sfn /usr/bin/nvim /usr/local/bin/vi
 }
 
-s_tuning() {   # an always-plugged desktop: the CPU at full speed, Wi-Fi never napping
+s_tuning() {   # an always-plugged desktop: the CPU at full speed, Wi-Fi and Bluetooth never napping
   install -D -m 0644 "$REPO_DIR/system/tuned.conf" /etc/tuned/profiles/fedokawaii/tuned.conf
   systemctl enable --now tuned.service
   run tuned-adm profile fedokawaii
@@ -430,6 +476,12 @@ s_tuning() {   # an always-plugged desktop: the CPU at full speed, Wi-Fi never n
 wifi.powersave = 2
 EOF
   nmcli general reload conf >/dev/null 2>&1 || true
+  write_file /etc/modprobe.d/fedokawaii-btusb.conf <<'EOF'
+# Fedokawaii — Bluetooth power saving off: a controller on a USB Bluetooth dongle lags or
+# drops when the dongle sleeps between packets, and a desktop has no battery to save.
+# Read when btusb loads: from the next start
+options btusb enable_autosuspend=0
+EOF
 }
 
 # The project's earlier name was Scriptorium. What an install under that name put on the
@@ -475,9 +527,97 @@ phase1() {
 # ═════════════════════════════════════════════════════════════════════════════
 #  PHASE 2 — repositories, GPU drivers, media (drivers before their consumers)
 # ═════════════════════════════════════════════════════════════════════════════
+# ── what waits for a repository to catch up with this Fedora ──────────────────
+# RPM Fusion builds its freeworld drivers and libheif-freeworld for one exact version of the
+# Fedora package they go with (their specs: mesa-filesystem = VERSION, libheif = VERSION):
+# for a few days around a release, or a Mesa update, one is ahead of the other and dnf cannot
+# install them. A COPR may have no build for a new release yet. Neither stops setup: the rest
+# is installed, what waits is recorded (lib/manifest.sh, waiting), said once, and verify warns
+# while it waits; update and repair try again and clear the record. Any other failure stops.
+wait_add() { { waiting "$1"; echo "$2"; } | grep . | sort -u | write_file "$STATE_DIR/pending-$1" 0644; }
+wait_del() {
+  local rest; rest=$(waiting "$1" | grep -vxF -- "$2" || true)
+  if [[ -n $rest ]]; then printf '%s\n' "$rest" | write_file "$STATE_DIR/pending-$1" 0644; else rm -f "$STATE_DIR/pending-$1"; fi
+}
+rf_base() {   # rf_base PKG → the Fedora package RPM Fusion's PKG is made for, version for version
+  case ${1%.i686} in libheif-freeworld) echo libheif ;; mesa-*-freeworld) echo mesa-filesystem ;; esac
+}
+# rf_behind PKG — 0 when RPM Fusion's newest PKG is made for another version of its Fedora
+# package than the newest Fedora has: the two out of step. 1 otherwise — the versions agree, or
+# the repositories could not be asked (a failure is then something else)
+rf_behind() {
+  local base want have
+  base=$(rf_base "$1"); [[ -n $base ]] || return 1
+  want=$(dnf -q repoquery --latest-limit=1 --qf '%{version}\n' "${1%.i686}" 2>/dev/null | head -n1) || return 1
+  have=$(dnf -q repoquery --latest-limit=1 --qf '%{version}\n' "$base" 2>/dev/null | head -n1) || return 1
+  [[ -n $want && -n $have && $want != "$have" ]]
+}
+RF_SAID=""
+rf_said() {   # rf_said PKG — why it waits, in plain words, once a run for each kind
+  local k=drivers
+  [[ $1 == libheif-* ]] && k=heic
+  [[ " $RF_SAID " == *" $k "* ]] && return 0
+  RF_SAID+=" $k"
+  if [[ $k == heic ]]; then
+    log "RPM Fusion's HEIC photo support (libheif-freeworld) is not out for this Fedora yet — update or repair adds it when it is (phone photos open from then on)"
+  else
+    log "RPM Fusion's video drivers are not out for this Fedora yet — update or repair adds them when they are (Fedora's own work meanwhile)"
+  fi
+}
+# rf_get PKG [DNF ARG…] — RPM Fusion's PKG: 0 installed · 2 out of step with Fedora, recorded to
+# wait · 1 any other failure
+rf_get() {
+  local p=$1; shift
+  if dnf_install "$@" "$p"; then wait_del rpmfusion "$p"; return 0; fi
+  rf_behind "$p" || return 1
+  wait_add rpmfusion "$p"; rf_said "$p"; return 2
+}
+rf_need() {   # rf_need PKG [DNF ARG…] — rf_get, where any failure but waiting stops the run
+  local rc=0; rf_get "$@" || rc=$?
+  ((rc != 1)) || die "could not install $1 (the lines above say why)"
+}
+# copr_on OWNER/PROJECT — the COPR enabled: 0 · 2 no build for this Fedora yet (dnf: "Chroot not
+# found"), recorded to wait — its packages are left out, said once · 1 any other failure
+copr_on() {
+  local out rc=0
+  out=$(run dnf -y copr enable "$1") || rc=$?
+  printf '%s\n' "$out"
+  if ((rc == 0)); then wait_del copr "$1"; return 0; fi
+  grep -q 'Chroot not found in the given Copr project' <<<"$out" || return 1
+  wait_add copr "$1"
+  log "the COPR $1 has no build for Fedora $FEDORA_VER yet — $(copr_pkgs "$1" | tr '\n' ' ')left out until it has; update or repair adds it then"
+  return 2
+}
+not_waiting() {   # not_waiting PKG… → those not waiting for a repository, one per line
+  local w; w=$(waiting_pkgs | grep . || true)
+  if [[ -z $w ]]; then printf '%s\n' "$@"; else printf '%s\n' "$@" | grep -vxF -f <(printf '%s\n' "$w") || true; fi
+}
+# waiting_retry — what waits, tried again (by update and repair, in manifest_sync): what is in
+# leaves the record. RPM Fusion's is tried only once the versions agree
+waiting_retry() {
+  local c p r rc=0 a=()
+  while IFS= read -r c; do
+    [[ -n $c ]] || continue
+    r=0; copr_on "$c" || r=$?
+    if ((r == 0)); then log "the COPR $c has a build for Fedora $FEDORA_VER now — enabled"; elif ((r == 1)); then rc=1; fi
+  done < <(waiting copr)
+  while IFS= read -r p; do
+    [[ -n $p ]] || continue
+    # (no longer wanted: another GPU now, or Steam's 32-bit ones with STEAM=no)
+    if [[ ( $p == mesa-* && $(cat "$STATE_DIR/gpu" 2>/dev/null) != amd ) || ( $p == *.i686 && $STEAM != yes ) ]]; then
+      wait_del rpmfusion "$p"; continue
+    fi
+    rf_behind "$p" && continue                      # (still out of step: nothing to try yet)
+    a=(); [[ $p == mesa-vulkan-drivers-freeworld* ]] && a=(--allowerasing)   # (replaces Fedora's stand-in)
+    r=0; rf_get "$p" "${a[@]}" || r=$?
+    if ((r == 0)); then log "$p from RPM Fusion: in now"; elif ((r == 1)); then rc=1; fi
+  done < <(waiting rpmfusion)
+  return "$rc"
+}
+
 s_repos() {
   wait_for_network
-  local base=https://mirrors.rpmfusion.org r repos
+  local base=https://mirrors.rpmfusion.org r repos c
   pkg_installed rpmfusion-free-release || retry 3 10 dnf -y install \
     "$base/free/fedora/rpmfusion-free-release-$FEDORA_VER.noarch.rpm" \
     "$base/nonfree/fedora/rpmfusion-nonfree-release-$FEDORA_VER.noarch.rpm"
@@ -490,9 +630,10 @@ s_repos() {
   if [[ ! -f /etc/yum.repos.d/claude-code.repo ]]; then
     local key=$KAWA_TMP/claude-code.asc keys pins
     retry 3 10 "${CURL[@]}" -o "$key" "$CLAUDE_KEY_URL"
+    # (a file that is no key at all — a Wi-Fi sign-in page — holds 0 keys: said below)
     keys=$(gpg --show-keys --with-colons "$key" 2>/dev/null | grep -c '^pub:' || true)
     pins=$(gpg --show-keys --with-colons "$key" 2>/dev/null \
-             | awk -F: '/^pub:/ { want = 1; next } want && /^fpr:/ { print $10; want = 0 }')
+             | awk -F: '/^pub:/ { want = 1; next } want && /^fpr:/ { print $10; want = 0 }') || pins=""
     [[ $keys == 1 && $pins == "$CLAUDE_KEY_FPR" ]] \
       || die "Claude Code signing key: expected only $CLAUDE_KEY_FPR, the file holds $keys key(s): ${pins//$'\n'/ }"
     install -D -m 0644 "$key" /etc/pki/rpm-gpg/RPM-GPG-KEY-claude-code
@@ -507,7 +648,10 @@ gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-claude-code
 includepkgs=claude-code
 EOF
   fi
-  for r in "${COPRS[@]}"; do run dnf -y copr enable "$r"; done
+  for r in "${COPRS[@]}"; do
+    c=0; copr_on "$r" || c=$?
+    ((c != 1)) || die "could not enable the COPR $r (the lines above say why)"
+  done
   run dnf -y upgrade --refresh                     # RPM Fusion builds now match the base libraries
   repos=$(dnf repolist --enabled)
   for r in rpmfusion-free rpmfusion-nonfree brave-browser claude-code; do
@@ -515,6 +659,14 @@ EOF
   done
 }
 
+# LACT's clocks, voltages and fan curves need OverDrive (bit 14), which amdgpu leaves off: its
+# default mask (0xfff7bfff) plus that bit. Not 0xffffffff — that also switches on GFX DCS
+# (bit 19), which amdgpu keeps off as unstable (flicker, hangs on some cards)
+AMDGPU_ARG=amdgpu.ppfeaturemask=0xfff7ffff
+amd_arg_everywhere() {   # every boot entry carries it
+  local a; a=$(grubby --info=ALL 2>/dev/null | grep '^args=') || return 1
+  ! grep -vqF -- "$AMDGPU_ARG" <<<"$a"
+}
 s_gpu() {
   local gpu; gpu=$(detect_gpu); echo "$gpu" >"$STATE_DIR/gpu"
   [[ $gpu == amd || $gpu == intel ]] \
@@ -522,20 +674,22 @@ s_gpu() {
   log "GPU: $gpu"
   dnf_install "${PKG_GPU_COMMON[@]}"
   if [[ $gpu == amd ]]; then
+    # RPM Fusion's freeworld drivers (H.264 and HEVC) wait while they are out of step with
+    # Fedora's Mesa (rf_get): Fedora's own work meanwhile, and update or repair swaps them in.
     # VA: since Fedora 44 Fedora's VA drivers live inside mesa-dri-drivers (which obsoletes
     # mesa-va-drivers), and RPM Fusion's build installs beside it. Never --allowerasing for
     # it: a conflict must stop the run, not take mesa-dri-drivers — and the desktop — with it
     if pkg_installed mesa-va-drivers; then run dnf -y swap mesa-va-drivers mesa-va-drivers-freeworld
-    else run dnf -y install mesa-va-drivers-freeworld; fi
-    # Vulkan: Fedora's build and RPM Fusion's conflict by design — the one swapped for the other
-    if pkg_installed mesa-vulkan-drivers; then run dnf -y swap mesa-vulkan-drivers mesa-vulkan-drivers-freeworld --allowerasing
-    else run dnf -y install mesa-vulkan-drivers-freeworld --allowerasing; fi
-    dnf_install "${PKG_GPU_amd[@]}"
-    systemctl enable lactd.service
-    # LACT's clocks, voltages and fan curves need OverDrive (bit 14), which amdgpu leaves off:
-    # its default mask (0xfff7bfff) plus that bit. Not 0xffffffff — that also switches on
-    # GFX DCS (bit 19), which amdgpu keeps off as unstable (flicker, hangs on some cards)
-    run grubby --update-kernel=ALL --args=amdgpu.ppfeaturemask=0xfff7ffff
+    else rf_need mesa-va-drivers-freeworld; fi
+    # Vulkan: Fedora's build and RPM Fusion's conflict by design — the one replaces the other.
+    # While RPM Fusion's waits, Fedora's stands in (a desktop needs a Vulkan driver)
+    rf_need mesa-vulkan-drivers-freeworld --allowerasing
+    if waiting rpmfusion | grep -qx mesa-vulkan-drivers-freeworld; then dnf_install mesa-vulkan-drivers; fi
+    # (and LACT, from its COPR — left out while that has no build for this Fedora: s_repos)
+    local amd_pkgs; mapfile -t amd_pkgs < <(not_waiting "${PKG_GPU_amd[@]}")
+    dnf_install "${amd_pkgs[@]}"
+    if pkg_installed lact; then systemctl enable lactd.service; fi
+    run grubby --update-kernel=ALL --args="$AMDGPU_ARG"
   else
     run dnf -y install "${PKG_GPU_intel[@]}" --allowerasing
   fi
@@ -582,12 +736,18 @@ s_media() {
   # full ffmpeg first, so mpv & co. link against it instead of pulling ffmpeg-free
   if pkg_installed ffmpeg-free; then run dnf -y swap ffmpeg-free ffmpeg --allowerasing
   else run dnf -y install ffmpeg --allowerasing; fi
-  dnf_install "${PKG_MEDIA[@]}"
-  local e enc; enc=$(ffmpeg -hide_banner -encoders 2>/dev/null)
+  local media; mapfile -t media < <(printf '%s\n' "${PKG_MEDIA[@]}" | grep -vx libheif-freeworld)
+  dnf_install "${media[@]}"
+  # HEVC for HEIF photos: RPM Fusion's, made for one exact libheif — it waits like the drivers
+  rf_need libheif-freeworld
+  local e enc
+  enc=$(ffmpeg -hide_banner -encoders 2>/dev/null) \
+    || die "ffmpeg does not start (ffmpeg -version says why) — when RPM Fusion's build is behind one of Fedora's libraries, run setup again in a day or two"
   for e in libx264 libx265 libsvtav1 libaom-av1; do grep -qw "$e" <<<"$enc" || die "ffmpeg lacks encoder $e"; done
 }
 
 phase2() {
+  wait_for_network; tidy_after_cut
   step "2.1 repositories (RPM Fusion, Brave, Claude Code, COPR)" s_repos
   step "2.2 GPU drivers + amdgpu kernel argument"                s_gpu
   step "2.2b this machine's drivers and firmware"                s_hardware_setup
@@ -628,12 +788,27 @@ dwl_keep_yours() {
     log "dwl: your changes in ~/.local/src/dwl kept as a stash (git stash list there)"
   fi
 }
+# checkout_sound SRC — a source folder whose .git is no repository (a clone a stopped run cut
+# off in its first moment, a home put back from a backup that left .git out) would fail
+# every later fetch, for good, with a message about the network: it is moved aside, said,
+# and the line after clones afresh. (One git can still read is left alone, whatever its state:
+# fetch and checkout put it right.)
+checkout_sound() {
+  local src=$1 aside
+  [[ -d $src/.git ]] || return 0
+  as_user git -C "$src" rev-parse --git-dir >/dev/null 2>&1 && return 0
+  aside="$src.damaged-$(date +%Y%m%d-%H%M%S)"
+  as_user mv -- "$src" "$aside" || die "${src/#$TARGET_HOME/\~}/.git is no git repository (a clone a stopped run cut off?) — move the folder away, then run again"
+  log "${src/#$TARGET_HOME/\~}/.git was no git repository (a clone a stopped run cut off?) — moved to ${aside/#$TARGET_HOME/\~}; cloning again"
+}
 s_dwl() {
   local src=$TARGET_HOME/.local/src/dwl
   as_user mkdir -p "$TARGET_HOME/.local/src"
+  checkout_sound "$src"
   [[ -d $src/.git ]] || retry 3 10 as_user git clone --quiet https://codeberg.org/dwl/dwl.git "$src"
   # (Codeberg has its slow minutes: the fetch is retried like the clone)
-  retry 3 10 as_user git -C "$src" fetch --quiet --tags --force || die "could not fetch dwl from codeberg.org — try again in a while"
+  retry 3 10 as_user git -C "$src" fetch --quiet --tags --force \
+    || die "could not fetch dwl from codeberg.org — try again in a while (reachable, and still refused: the checkout may be damaged — move ${src/#$TARGET_HOME/\~} away, then run again)"
   [[ $(as_user git -C "$src" rev-parse "$DWL_TAG^{commit}") == "$DWL_COMMIT" ]] \
     || die "dwl tag $DWL_TAG does not point at the pinned commit $DWL_COMMIT — refusing to build"
   dwl_keep_yours "$src"
@@ -724,14 +899,18 @@ i2c_dev() {   # i2c-dev at every boot (monitor brightness over DDC/CI), and now:
   modprobe i2c-dev
 }
 s_look()    { dnf_install "${PKG_LOOK[@]}"; }
-# (tree-sitter-cli recommends "nodejs", which on Fedora 44 is Node 22: a second Node beside
-# the manifest's 24 — one tool per job, so not taken)
-s_apps()    { dnf_install --exclude='nodejs22*' "${PKG_APPS[@]}"; }
+# (tree-sitter-cli recommends "nodejs", Node 22: never taken — exclude_from_weak, s_dnf)
+s_apps()    { dnf_install "${PKG_APPS[@]}"; }
 
 s_upstream() {
   local e; for e in "${UPSTREAM[@]}"; do install_upstream_bin "$e"; done
   install_nerd_fonts
   install_pixelmplus
+}
+# Syncplay (lib/upstream.sh): never a reason to stop — update and repair try again
+s_syncplay() {
+  contained install_syncplay
+  ((CONTAINED_RC == 0)) || log "Syncplay is not installed yet (why: above, or $LOG_FILE) — update and repair try again"
 }
 
 # ── the file dialog: yazi, through xdg-desktop-portal-termfilechooser ────────
@@ -761,6 +940,7 @@ build_filechooser() {
     || die "meson, inih-devel or systemd-devel missing (lib/manifest.sh, PKG_BUILD) — update installs them"
   stage=$src/build/stage
   as_user mkdir -p "$TARGET_HOME/.local/src"
+  checkout_sound "$src"
   [[ -d $src/.git ]] || retry 3 10 as_user git clone --quiet "$TFC_REPO" "$src" || die "could not clone $TFC_REPO"
   retry 3 10 as_user git -C "$src" fetch --quiet --tags --force || die "could not fetch $TFC_REPO"
   [[ $(as_user git -C "$src" rev-parse "$TFC_TAG^{commit}") == "$TFC_COMMIT" ]] \
@@ -863,12 +1043,16 @@ prowlarr_up() {
   fi
   as_user systemctl --user daemon-reload
   if ((restart)) || ! as_user systemctl --user is-active --quiet prowlarr.service; then
-    # Notify=healthy: this returns once Prowlarr answers (first start: up to a few minutes)
-    run as_user systemctl --user restart prowlarr.service || die "Prowlarr did not start — journalctl --user -u prowlarr"
+    # Notify=healthy: this returns once Prowlarr answers (first start: up to a few minutes).
+    # One that does not start is stopped again: left, Restart=on-failure would try it every
+    # 10 s until the next boot
+    run as_user systemctl --user restart prowlarr.service \
+      || { as_user systemctl --user stop --no-block prowlarr.service || true; die "Prowlarr did not start — journalctl --user -u prowlarr"; }
   fi
   # (retry logs the command it repeats: the key travels in the environment, not in its words)
   PROWLARR_KEY=$key retry 10 3 prowlarr_accepts \
-    || die "Prowlarr does not take the key from secrets.sh — journalctl --user -u prowlarr"
+    || { ((was)) || as_user systemctl --user stop --no-block prowlarr.service || true
+         die "Prowlarr does not take the key from secrets.sh — journalctl --user -u prowlarr"; }
   # it runs on demand (torrra's search, `prowlarr`): checked, it goes back to sleep — unless
   # it was already running when this began
   ((was)) || as_user systemctl --user stop --no-block prowlarr.service || true
@@ -878,13 +1062,20 @@ prowlarr_up() {
 # by kawa-torrra, and its settings: Prowlarr as the indexer, best-seeded results first,
 # downloads in ~/Downloads, the terminal's own colours — and no key in them
 torrra_up() {
-  local py=$TARGET_HOME/$TORRRA_VENV/bin/python
-  local probe='import sys, importlib.metadata as m, torrra, libtorrent, torrra.__main__; sys.exit(m.version("torrra") != sys.argv[1])'
+  local py=$TARGET_HOME/$TORRRA_VENV/bin/python old=$TARGET_HOME/.local/bin/torrra
+  # (torrra.app: the whole program loads — Textual, Rich and httpx with it, not only libtorrent)
+  local probe='import sys, importlib.metadata as m, torrra, libtorrent, torrra.__main__, torrra.app; sys.exit(m.version("torrra") != sys.argv[1])'
   if ! as_user "$py" -I -c "$probe" "$TORRRA_VERSION" 2>/dev/null; then
-    retry 3 20 run as_user env PIPX_HOME="$TARGET_HOME/.local/share/pipx" pipx install --force --python python3.13 "torrra==$TORRRA_VERSION" \
+    # its libraries at the versions torrra was released with (system/torrra-constraints.txt),
+    # and pipx's own `torrra` command kept in pipx's folder: on your PATH it would run torrra
+    # without the key — `torrra` is kawa-torrra's
+    retry 3 20 run as_user env PIPX_HOME="$TARGET_HOME/.local/share/pipx" PIPX_BIN_DIR="$TARGET_HOME/.local/share/pipx/bin" \
+      pipx install --force --python python3.13 --pip-args="-c $REPO_DIR/system/torrra-constraints.txt" "torrra==$TORRRA_VERSION" \
       || die "torrra did not install"
   fi
-  as_user "$py" -I -c "$probe" "$TORRRA_VERSION" || die "torrra $TORRRA_VERSION is installed but does not load (libtorrent)"
+  as_user "$py" -I -c "$probe" "$TORRRA_VERSION" || die "torrra $TORRRA_VERSION is installed but does not load (libtorrent, or a library under it)"
+  # pipx's `torrra` an older setup left in ~/.local/bin (a link into its venv): gone
+  if [[ -L $old && $(readlink -- "$old") == */pipx/venvs/torrra/* ]]; then as_user rm -f -- "$old"; fi
   install -m 0755 "$REPO_DIR/system/kawa-torrra" /usr/local/bin/kawa-torrra
   install -m 0644 "$REPO_DIR/system/kawa-torrra.profile.sh" /etc/profile.d/kawa-torrra.sh
   restorecon /usr/local/bin/kawa-torrra /etc/profile.d/kawa-torrra.sh
@@ -945,6 +1136,7 @@ s_torrents() {
   # linger: your user manager runs without a login too, so update, repair and verify (as
   # root, from a text console as well) can reach your services — Prowlarr, the portals
   loginctl enable-linger "$TARGET_USER"
+  user_stop
   retry 15 2 test -S "/run/user/$TARGET_UID/bus" || die "user systemd instance did not start"
   as_user podman system migrate >/dev/null 2>&1 || true      # picks up new sub-IDs
   downloads_subvolume
@@ -952,10 +1144,26 @@ s_torrents() {
   prowlarr_up
   torrent_port
 }
+user_stop() {   # with linger your own systemd runs until shutdown: then it never holds the machine long
+  write_file /etc/systemd/system/user@.service.d/fedokawaii.conf <<'EOF'
+# installed by setup.sh — with linger, Prowlarr and the portals stop at shutdown: your own
+# systemd has 30 s for all of them, then what is left is ended. 30 s, not less: a container
+# writing its database needs a moment
+[Service]
+TimeoutStopSec=30s
+EOF
+  systemctl daemon-reload
+}
 torrent_port() {   # torrra's port, open in the firewall (when firewalld runs: otherwise said)
-  if firewall-cmd -q --state 2>/dev/null; then
-    firewall-cmd -q --permanent --add-port=6881/tcp --add-port=6881/udp && firewall-cmd -q --reload
-  else log "firewalld is not running — torrra's port 6881 is left as it is"; fi
+  local p
+  firewall-cmd -q --state 2>/dev/null || { log "firewalld is not running — torrra's port 6881 is left as it is"; return 0; }
+  # asked first, then added where missing — saved and running alike — so a repair changes
+  # nothing when it is open already, and never reloads firewalld (a reload drops what other
+  # programs added while it runs: Docker's rules, should you install it)
+  for p in 6881/tcp 6881/udp; do
+    firewall-cmd -q --permanent --query-port="$p" || firewall-cmd -q --permanent --add-port="$p"
+    firewall-cmd -q --query-port="$p" || firewall-cmd -q --add-port="$p"
+  done
 }
 
 s_lazyvim() {
@@ -971,11 +1179,18 @@ s_lazyvim() {
 
 s_gaming() {
   [[ $STEAM == yes ]] || return 0
-  # Steam needs 32-bit Mesa; on AMD it must be RPM Fusion's freeworld build too, or dnf
-  # picks Fedora's mesa-vulkan-drivers.i686 (forbidden: the freeworld one conflicts with it)
-  local extra=()
-  [[ $(cat "$STATE_DIR/gpu" 2>/dev/null) == amd ]] && extra=(mesa-vulkan-drivers-freeworld.i686 mesa-va-drivers-freeworld.i686)
-  dnf_install "${PKG_GAMING[@]}" "${extra[@]}"
+  # Steam needs 32-bit Mesa; on AMD it must be RPM Fusion's freeworld build too, put in first,
+  # or dnf picks Fedora's mesa-vulkan-drivers.i686 (forbidden: the freeworld one conflicts with
+  # it). Out of step with Fedora's Mesa, they wait (Fedora's stand in, through Steam itself)
+  local x a
+  if [[ $(cat "$STATE_DIR/gpu" 2>/dev/null) == amd ]]; then
+    for x in mesa-vulkan-drivers-freeworld.i686 mesa-va-drivers-freeworld.i686; do
+      if waiting rpmfusion | grep -qx "${x%.i686}"; then wait_add rpmfusion "$x"; continue; fi   # (its 64-bit one waits: so does it)
+      a=(); [[ $x == mesa-vulkan* ]] && a=(--allowerasing)
+      rf_need "$x" "${a[@]}"
+    done
+  fi
+  dnf_install "${PKG_GAMING[@]}"
   modprobe ntsync 2>/dev/null || true             # now too, not only from the next boot on
   usermod -aG gamemode "$TARGET_USER"             # gamemode's CPU/GPU boosts are for this group
   # GE-Proton comes from GitHub: down, or changed in a way this cannot follow, it must not
@@ -984,7 +1199,19 @@ s_gaming() {
   ((CONTAINED_RC == 0)) || log "GE-Proton is not installed yet (why: above, or $LOG_FILE) — Steam's own Proton works meanwhile; update tries again"
 }
 
-s_groups() { usermod -aG video,input,render "$TARGET_USER"; }   # (subuids: s_torrents)
+s_groups() { usermod -aG video,render "$TARGET_USER"; input_group_out; }   # (subuids: s_torrents)
+# Earlier builds put you in the input group too. Nothing here needs it — logind hands the
+# session its keyboard and mouse, Steam's rules (steam-devices) open a controller — and while
+# you are in it, any program you run can read every key you press. Taken out once, and said;
+# put back by hand (a controller no game sees: handbook §21.1), it stays — the record says so
+input_group_out() {
+  [[ -f $STATE_DIR/input-group-out ]] && return 0
+  if [[ " $(id -nG "$TARGET_USER") " == *" input "* ]]; then
+    gpasswd -d "$TARGET_USER" input >/dev/null
+    log "$TARGET_USER is out of the input group (in it, any program could read every key pressed) — from the next login; a controller no game sees: handbook §21.1"
+  fi
+  record input-group-out "$(date +%s)"
+}
 
 s_ssh() {                       # a desktop doesn't need inbound SSH (SSH_SERVER=no)
   local z s
@@ -994,16 +1221,22 @@ s_ssh() {                       # a desktop doesn't need inbound SSH (SSH_SERVER
   # sshd's state above is what counts, and that is said rather than stopping the run
   z=$(firewall-cmd --get-default-zone 2>/dev/null) \
     || { log "firewalld is not running — its ssh/cockpit ports are left as they are"; return 0; }
+  # asked first, then changed where needed — saved and running alike — so nothing is reloaded:
+  # a reload drops what other programs added while firewalld runs (Docker's rules, should you
+  # install it), and a repair that finds the ports right changes nothing
   if [[ $SSH_SERVER == no ]]; then
     for s in ssh cockpit; do
       if firewall-cmd -q --permanent --zone="$z" --query-service="$s"; then
         firewall-cmd -q --permanent --zone="$z" --remove-service="$s"
       fi
+      if firewall-cmd -q --zone="$z" --query-service="$s"; then
+        firewall-cmd -q --zone="$z" --remove-service="$s"
+      fi
     done
   else
     firewall-cmd -q --permanent --zone="$z" --query-service=ssh || firewall-cmd -q --permanent --zone="$z" --add-service=ssh
+    firewall-cmd -q --zone="$z" --query-service=ssh || firewall-cmd -q --zone="$z" --add-service=ssh
   fi
-  firewall-cmd -q --reload
 }
 
 s_theme() {
@@ -1023,6 +1256,7 @@ s_gate() {
     ((CONTAINED_RC == 0)) || log "GE-Proton is still not installed — Steam's own Proton works meanwhile; update tries again"
   fi
   tfc_current || s_filechooser
+  syncplay_current || s_syncplay
   # (and LazyVim's plugins: 3.09 is done once nvim has run, even when GitHub let some clones
   # fail — then only nvim itself fetches them again; repair cannot run before the build ends)
   if [[ ! -d $TARGET_HOME/.local/share/nvim/lazy/LazyVim ]]; then
@@ -1114,7 +1348,7 @@ s_finalize() {
 }
 
 phase3() {
-  wait_for_network
+  wait_for_network; tidy_after_cut
   step "3.01 build dependencies"                       s_build
   step "3.02 dwl $DWL_TAG (pinned commit)"             s_dwl
   step "3.03 login: greetd + agreety + SELinux"        s_session
@@ -1123,6 +1357,7 @@ phase3() {
   step "3.06 applications"                             s_apps
   step "3.07 upstream binaries (checksummed)"          s_upstream
   step "3.07b file dialog: yazi (termfilechooser ${TFC_TAG:-})" s_filechooser
+  step "3.07c Syncplay $SYNCPLAY_TAG (pinned commit, no window)" s_syncplay
   step "3.08 Prowlarr + torrra (wired together)"       s_torrents
   step "3.09 LazyVim + plugins"                        s_lazyvim
   step "3.10 Steam + GE-Proton"                        s_gaming
@@ -1221,16 +1456,26 @@ snapshot_before() {   # snapshot_before WHAT [important] — a numbered snapshot
 # marked as yours (so `dnf autoremove` never takes one that first came as a dependency),
 # nothing forbidden, and the packages dropped from the manifest handed back to dnf
 manifest_sync() {
-  local p q avail gpu rc=0 want=() miss=() gone=() failed=() bad=() mine=() ui others
+  local p q avail gpu rc=0 r want=() miss=() gone=() failed=() bad=() mine=() ui others wait
   gpu=$(cat "$STATE_DIR/gpu" 2>/dev/null || echo amd)
   mapfile -t want < <(manifest_all "$gpu")
-  # on AMD, Fedora's own Vulkan driver (brought back by a move, say) swapped for RPM Fusion's
-  # again, as setup did — the two conflict, and the freeworld one is the desktop's
-  if [[ $gpu == amd ]] && pkg_installed mesa-vulkan-drivers; then
-    run dnf -y swap mesa-vulkan-drivers mesa-vulkan-drivers-freeworld --allowerasing \
-      || { log "could not swap mesa-vulkan-drivers for the freeworld build — repair tries again"; rc=1; }
+  # what waited for RPM Fusion or a COPR to catch up with this Fedora: tried again first
+  waiting_retry || rc=1
+  # on AMD, Fedora's own Vulkan driver (brought back by a move, say) replaced by RPM Fusion's
+  # again, as setup did — the two conflict, and the freeworld one is the desktop's (unless it
+  # waits: then Fedora's stands in) — the 32-bit one too, for Steam
+  if [[ $gpu == amd ]]; then
+    for p in mesa-vulkan-drivers mesa-vulkan-drivers.i686; do
+      pkg_installed "$p" || continue
+      q=mesa-vulkan-drivers-freeworld${p#mesa-vulkan-drivers}
+      waiting rpmfusion | grep -qxF "$q" && continue
+      r=0; rf_get "$q" --allowerasing || r=$?
+      ((r != 1)) || { log "could not put RPM Fusion's $q in place of Fedora's $p — repair tries again"; rc=1; }
+    done
   fi
-  for p in "${want[@]}"; do pkg_provided "$p" || miss+=("$p"); done
+  # (what waits is not missing: verify warns about it, and the next update tries again)
+  wait=$(waiting_pkgs)
+  for p in "${want[@]}"; do grep -qxF -- "$p" <<<"$wait" && continue; pkg_provided "$p" || miss+=("$p"); done
   if ((${#miss[@]})); then
     log "missing from the manifest: $(IFS=' '; echo "${miss[*]}")"
     for p in "${miss[@]}"; do
@@ -1241,6 +1486,10 @@ manifest_sync() {
     if ((${#failed[@]})); then
       log "could not be installed now: $(IFS=' '; echo "${failed[*]}") — the next update or repair tries again"; rc=1
     fi
+  fi
+  # LACT's service, once LACT is in (its COPR may have had no build when setup ran)
+  if [[ $gpu == amd ]] && pkg_installed lact && ! systemctl is-enabled --quiet lactd.service 2>/dev/null; then
+    systemctl enable lactd.service || rc=1
   fi
   # the list of what Fedora no longer has — rewritten only when every package could be asked about
   if ((${#failed[@]} == 0)); then
@@ -1351,7 +1600,8 @@ step_on() {   # step_on WHAT FN… — one contained step; a failure is remember
 }
 do_update() {
   [[ $(phase) == 'done' ]] || die "finish the build first"
-  record last-update "$(date +%s) stopped"         # (until it gets to the end)
+  # (until it gets to the end; a disk too full to hold even this: preflight says so, below)
+  record last-update "$(date +%s) stopped" 2>/dev/null || true
   wait_for_network
   local newest running result=ok e every
   hdr "Fedokawaii update · Fedora $FEDORA_VER"
@@ -1367,11 +1617,13 @@ do_update() {
   # (fedokawaii settings), then update (keyboard layouts take effect at the next login)
   step_on "the toolkit's command" install_toolkit
   step_on "the old name's leftovers" retire_old_name
+  step_on "out of the input group (once)" input_group_out
   step_on "dnf's settings" s_dnf
   step_on "the time zone" timedatectl set-timezone "$TIMEZONE"
   step_on "the session launcher (keyboard)" install_start_dwl
   step_on "inbound SSH ($SSH_SERVER)" s_ssh
   step_on "the performance profile" s_tuning
+  step_on "your services' stop at shutdown" user_stop
   step_on "the manifest" manifest_sync
   step_on "the machine's own drivers and firmware" s_hardware
   step_on "nothing doubled or fighting" r_hygiene
@@ -1380,6 +1632,7 @@ do_update() {
   for e in "${UPSTREAM[@]}"; do step_on "${e%%|*}" install_upstream_bin "$e"; done
   step_on "Nerd Fonts" install_nerd_fonts
   step_on "PixelMplus 12" install_pixelmplus
+  step_on "Syncplay" install_syncplay
   if [[ $STEAM == yes ]]; then step_on "GE-Proton" install_ge_proton; fi
   if ! tfc_current; then step_on "the yazi file dialog" build_filechooser; fi
   # torrra: libtorrent (the part that talks to the network) to its newest; torrra itself
@@ -1395,6 +1648,7 @@ do_update() {
   step_on "Prowlarr" prowlarr_up
   as_user podman image prune -f >/dev/null 2>&1 || true
   step_on "neovim's plugins" nvim_plugins
+  step_on "the kernels' boot images (dracut)" kernel_images   # (a new kernel whose scriptlet failed)
   bash "$REPO_DIR/verify.sh" || result=checks
   ((${#UPDATE_STEPS_FAILED[@]} == 0)) || result=partial
   record last-update "$(date +%s) $result"
@@ -1472,7 +1726,7 @@ libs_ready() {   # libs_ready N — the libraries our own builds need, all in Fe
   local -A users=() core=()
   kept=$(wlr_home)/lib
   for f in /usr/local/bin/dwl "$kept"/*.so* /usr/local/libexec/xdg-desktop-portal-termfilechooser \
-           "$TARGET_HOME"/.local/bin/{kawa-veil,kawa-clipkeep,satty,spotify_player,yazi,ya,presenterm}; do
+           "$TARGET_HOME"/.local/bin/{kawa-veil,kawa-clipkeep,satty,spotify_player,yazi,ya,presenterm,lazygit}; do
     [[ -f $f ]] || continue
     while read -r so; do
       [[ -e $kept/$so ]] && continue                              # (dwl's own copies)
@@ -1572,6 +1826,9 @@ EOF
 tidy_duplicates() {   # packages left twice by an interrupted transaction: the older go
   if [[ -n $(dnf -q repoquery --duplicates 2>/dev/null) ]]; then dnf_detached -y remove --duplicates; fi
 }
+# a power cut or a restart in the middle of a dnf run leaves packages installed twice, on
+# which the next one trips: tidied before each phase's first package step (setup)
+tidy_after_cut() { tidy_duplicates || log "dnf could not tidy packages installed twice — verify names them"; }
 # r_hygiene — nothing doubled, nothing fighting (lib/hygiene.sh has the scan, verify shows
 # it): packages installed twice, what dnf check finds, services that fight the desktop's own,
 # a login other than greetd, dependencies nothing needs, what a stopped run left. Each part
@@ -1722,9 +1979,16 @@ r_system() {     # failed units cleared, the session's own system pieces in plac
   s_tuning
 }
 r_ports() { s_ssh; torrent_port; }   # SSH as SSH_SERVER says; torrra's port open
-r_boot() {       # the boot: the menu's success timer, no rescue image; neovim the editor
+r_boot() {       # the boot: the menu's success timer, no rescue image, AMD's kernel argument, no console wait,
+                 # every kernel's image; neovim the editor
   systemctl --global enable grub-boot-success.timer
   editor_policy
+  # (an entry without it — verify fails it — gets it again: every entry, as setup did)
+  if [[ $(cat "$STATE_DIR/gpu" 2>/dev/null) == amd ]] && ! amd_arg_everywhere; then
+    run grubby --update-kernel=ALL --args="$AMDGPU_ARG"
+  fi
+  console_boot_arg
+  kernel_images
 }
 r_services() {   # the services setup enabled (a package reinstalled after a move starts off)
   systemctl enable bluetooth.service fstrim.timer
@@ -1734,9 +1998,10 @@ r_services() {   # the services setup enabled (a package reinstalled after a mov
   fi
   i2c_dev
 }
-r_user() {       # the user's session plumbing: linger, the bus, groups, fonts, secrets.sh's mode
+r_user() {       # the user's session plumbing: linger and its stop, the bus, groups, fonts, secrets.sh's mode
   local sec=$TARGET_HOME/.config/fedokawaii/secrets.sh
   loginctl enable-linger "$TARGET_USER"
+  user_stop
   s_groups
   if [[ $STEAM == yes ]]; then usermod -aG gamemode "$TARGET_USER"; fi
   retry 15 2 test -S "/run/user/$TARGET_UID/bus"
@@ -1752,6 +2017,7 @@ r_upstream() {   # release binaries and fonts present (each is a no-op when curr
   for e in "${UPSTREAM[@]}"; do install_upstream_bin "$e" || rc=1; done
   install_nerd_fonts || rc=1
   install_pixelmplus || rc=1
+  install_syncplay || rc=1
   if [[ $STEAM == yes ]]; then install_ge_proton || rc=1; fi
   return "$rc"
 }
@@ -1814,14 +2080,14 @@ do_repair() {
   heal "nothing doubled or fighting (twice-installed, services, the login, unneeded, leftovers)" r_hygiene
   heal "system services, login, snapshots" r_system
   heal "the login (greetd and its greeter)" greetd_config
-  heal "the boot (success timer, no rescue image) and the editor" r_boot
+  heal "the boot (success timer, no rescue image, the GPU's kernel argument) and the editor" r_boot
   heal "services (Bluetooth, TRIM, the GPU tool, i2c-dev)" r_services
   heal "dnf's settings" s_dnf
   heal "the time zone ($TIMEZONE)" timedatectl set-timezone "$TIMEZONE"
   heal "inbound SSH ($SSH_SERVER) and the torrent port" r_ports
   heal "your session (linger, groups, fonts, secrets.sh mode)" r_user
   ((net)) && heal "dwl (its wlroots, libraries, binary)" r_dwl
-  ((net)) && heal "release binaries, fonts and GE-Proton" r_upstream
+  ((net)) && heal "release binaries, fonts, Syncplay and GE-Proton" r_upstream
   ((net)) && heal "the yazi file dialog (termfilechooser ${TFC_TAG:-})" r_filechooser
   ((net)) && heal "torrra" torrra_up
   ((net)) && heal "neovim's plugins (any missing)" r_nvim

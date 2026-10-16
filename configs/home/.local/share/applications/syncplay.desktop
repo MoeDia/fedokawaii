@@ -1,0 +1,13 @@
+[Desktop Entry]
+# Syncplay, the terminal way (it has no window here: lib/upstream.sh installs it without
+# Qt): kawa-together in a window of its own asks for the room, then Syncplay runs there and
+# the film plays in mpv beside it. No file types: films keep opening in mpv (mimeapps.list).
+Type=Application
+Name=Syncplay
+GenericName=Watch together
+Comment=Watch a film with friends, in step (Syncplay in a terminal)
+Icon=syncplay
+Exec=@HOME@/.local/bin/kawa-term kawa-together %f
+Terminal=false
+Categories=AudioVideo;Video;
+Keywords=syncplay;together;watch;party;sync;friends;

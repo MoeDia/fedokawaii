@@ -12,10 +12,12 @@
 #   fedokawaii theme       every config back as the toolkit has it (dwl rebuilt if needed)
 #   fedokawaii drift       the configs that differ from the toolkit's (changes nothing)
 #   fedokawaii snapshots   the system's snapshots, newest last
+#   fedokawaii backup      your files to the backup drive, now (kawa-backup; chapter 37)
 #   fedokawaii log         the last run's log
 #   fedokawaii settings    fedokawaii.conf (keyboard, refresh rate, city…), applied by update
 #   fedokawaii remind [every DAYS | wait DAYS | on | off | check]
-#                          the reminder of the update season (default: every 90 days)
+#                          the reminder of the update season (default: every 90 days) — and
+#                          of a backup older than BACKUP_REMIND_DAYS (fedokawaii.conf)
 #   fedokawaii guide       the handbook (the PDF; on a text console, its text)
 #
 # Changing the desktop itself (handbook, chapter 42) — in your working copy, never the toolkit:
@@ -45,7 +47,23 @@ STATE=/var/lib/fedokawaii                  # the toolkit's records (root writes,
 CONF=${XDG_CONFIG_HOME:-$HOME/.config}/fedokawaii/upkeep.conf
 CACHE=${XDG_CACHE_HOME:-$HOME/.cache}/fedokawaii
 NOTICE=$CACHE/reminded                     # the day the last reminder was shown
+BACKUP_REC=${XDG_STATE_HOME:-$HOME/.local/state}/fedokawaii/last-backup   # kawa-backup's record: "EPOCH<tab>…"
+BACKUP_TOLD=$CACHE/reminded-backup         # the day the last backup reminder was shown
 DAY=86400
+# the backup settings (none: no backups set up), from the toolkit's fedokawaii.conf as settings
+# saved it — they count at once — by lib/common.sh's parser (data, never run); the copy the
+# theme wrote into ~/.config/fedokawaii/env only where the toolkit cannot be read
+BACKUP_TARGET="" BACKUP_REMIND_DAYS=7
+if [[ -r $TK/fedokawaii.conf && -r $TK/lib/common.sh ]] \
+   && l=$(LOG_FILE=/dev/null; . "$TK/lib/common.sh" >/dev/null 2>&1 && read_conf "$TK/fedokawaii.conf" \
+          && printf '%s\037%s' "$BACKUP_TARGET" "$BACKUP_REMIND_DAYS"); then
+  IFS=$'\037' read -r BACKUP_TARGET BACKUP_REMIND_DAYS <<<"$l"
+else
+  # shellcheck source=/dev/null
+  . "$HOME/.config/fedokawaii/env" 2>/dev/null || true
+fi
+unset l
+[[ $BACKUP_REMIND_DAYS =~ ^[0-9]{1,3}$ ]] || BACKUP_REMIND_DAYS=7
 
 # ── settings: how often, and how long to let a new Fedora settle ───────────────────────
 EVERY=90 WAIT=60 REMIND=yes
@@ -179,6 +197,17 @@ last_done() {   # the last update that reached its end — a run that stopped (a
   read -r t res < <(last_update) && [[ $res != stopped ]] && { echo "$t"; return 0; }
   return 1
 }
+last_backup() {   # the epoch of the last backup that ended (1: none yet)
+  local t _
+  IFS=$'\t' read -r t _ 2>/dev/null <"$BACKUP_REC" && num "$t" && { echo "$t"; return 0; }
+  return 1
+}
+backup_late() {   # the last backup is older than BACKUP_REMIND_DAYS (or there is none); 0 days: never late
+  local t
+  ((BACKUP_REMIND_DAYS > 0)) || return 1
+  t=$(last_backup) || return 0
+  ((now - t >= BACKUP_REMIND_DAYS * DAY))
+}
 due_at() {   # the next update: EVERY days after the last one, or after setup
   local t
   t=$(last_done) || t=$(stat -c %Y "$STATE/phase" 2>/dev/null) || t=$now
@@ -224,6 +253,10 @@ status_kv() {
   run=$(uname -r); new=$(rpm -q --last kernel-core 2>/dev/null | head -n1); new=${new%% *}; new=${new#kernel-core-}
   if [[ -n $new && $new != "$run" ]]; then printf 'kernel\037%s · restart for it\n' "${new%.x86_64}"
   else printf 'kernel\037%s\n' "$run"; fi
+  # the last backup to another disk (kawa-backup): its day — none yet, or none set up, in red
+  if [[ -z $BACKUP_TARGET ]]; then printf 'backup\037not set up (BACKUP_TARGET)\n'
+  elif t=$(last_backup); then printf 'backup\037%s · %s\n' "$(day "$t")" "$(ago "$t")"
+  else printf 'backup\037none yet · quick settings → backup\n'; fi
   if read -r size free < <(df -B1 --output=size,avail / 2>/dev/null | tail -n1) && num "$free" && num "$size"; then
     if ((free < 20 * 1000 ** 3)); then printf 'disk\037%s free of %s · low\n' "$(gb "$free")" "$(gb "$size")"
     else printf 'disk\037%s free of %s\n' "$(gb "$free")" "$(gb "$size")"; fi
@@ -337,7 +370,7 @@ keep_file() {
     esac
     [[ -f $COPY/$src ]] || { echo "  $f: not one of the toolkit's files — yours already: the theme never replaces it" >&2; continue; }
     # (theme.sh's tokens only: @DEFAULT_AUDIO_SINK@ and the like are wpctl's own names)
-    if grep -qE '@(HOME|MONITOR_HZ|WEATHER_CITY|NIGHT_LIGHT|MPV_SCALING|ICON_CHEVRON_RIGHT|UID)@' -- "$COPY/$src"; then
+    if grep -qE '@(HOME|MONITOR_HZ|WEATHER_CITY|NIGHT_LIGHT|BACKUP_TARGET|BACKUP_REMIND_DAYS|MPV_SCALING|ICON_CHEVRON_RIGHT|UID)@' -- "$COPY/$src"; then
       echo "  $f: filled in from fedokawaii.conf when applied (@HOME@ and the like) — make the same change in $COPY/$src by hand" >&2; continue
     fi
     if cmp -s -- "$abs" "$COPY/$src"; then echo "  $src: already the same in the copy"; bad=$((bad - 1)); continue; fi
@@ -397,27 +430,44 @@ remind() {   # remind [check] — once a day at most: an update due, a release r
   [[ ${1:-} == check ]] || told_move
   [[ $REMIND == yes || ${1:-} == check ]] || return 0
   seen=$(cat "$NOTICE" 2>/dev/null)
-  [[ ${1:-} != check && $seen == "$(date +%F)" ]] && return 0
-  d=$(due_at); read -r st n r from < <(next_state); read -r e how < <(eol_of "$(ver)")
-  if [[ $how == exact ]] && ((e < now + 30 * DAY)); then msg="Fedora $(ver)'s support ends $(day "$e") — move to Fedora $n (Super+U)"
-  elif [[ $st == ready ]]; then msg="Fedora $n has settled — the move to it is ready (Super+U)"
-  elif ((d <= now)); then msg="the update season is here: $(( (now - d) / DAY + EVERY )) days since the last update (Super+U)"
+  if [[ ${1:-} == check || $seen != "$(date +%F)" ]]; then   # (the backup's reminder below keeps its own day)
+    d=$(due_at); read -r st n r from < <(next_state); read -r e how < <(eol_of "$(ver)")
+    if [[ $how == exact ]] && ((e < now + 30 * DAY)); then msg="Fedora $(ver)'s support ends $(day "$e") — move to Fedora $n (Super+U)"
+    elif [[ $st == ready ]]; then msg="Fedora $n has settled — the move to it is ready (Super+U)"
+    elif ((d <= now)); then msg="the update season is here: $(( (now - d) / DAY + EVERY )) days since the last update (Super+U)"
+    fi
+    if [[ -n $msg ]]; then
+      if [[ ${1:-} == check ]]; then echo "$msg"
+      elif notify-send -a desktop "upkeep" "$msg" 2>/dev/null; then mkdir -p "$CACHE"; date +%F >"$NOTICE"; fi
+    elif [[ ${1:-} == check ]]; then echo "nothing due — the next update $(inn "$d") ($(day "$d"))"; fi
   fi
-  if [[ -n $msg ]]; then
-    if [[ ${1:-} == check ]]; then echo "$msg"
-    elif notify-send -a desktop "upkeep" "$msg" 2>/dev/null; then mkdir -p "$CACHE"; date +%F >"$NOTICE"; fi
-  elif [[ ${1:-} == check ]]; then echo "nothing due — the next update $(inn "$d") ($(day "$d"))"; fi
+  remind_backup "${1:-}"
+  return 0
+}
+remind_backup() {   # remind_backup [check] — a notice of its own, once a day: no backup for BACKUP_REMIND_DAYS days
+  local t msg
+  [[ -n $BACKUP_TARGET ]] && backup_late || return 0
+  [[ $1 == check || $(cat "$BACKUP_TOLD" 2>/dev/null) != "$(date +%F)" ]] || return 0
+  if t=$(last_backup); then msg="the last backup was $(ago "$t") — plug in $BACKUP_TARGET, then quick settings → backup"
+  else msg="no backup yet — plug in $BACKUP_TARGET, then quick settings → backup"; fi
+  if [[ $1 == check ]]; then echo "$msg"
+  elif notify-send -a desktop "backup" "$msg" 2>/dev/null; then mkdir -p "$CACHE"; date +%F >"$BACKUP_TOLD"; fi
   return 0
 }
 
 # ── the menu ────────────────────────────────────────────────────────────────────────────
-if [[ ${TERM:-} != linux && -r $HOME/.config/fedokawaii/icons.sh ]]; then
+# a text console: no icon font, maybe no · — … either. The kernel's (TERM=linux), or Fedora
+# 45's kmscon, which marks the terminals it draws (TERM=kmscon, TERM_SESSION_TYPE=kms or fb)
+on_console() {
+  [[ ${TERM:-} == linux || ${TERM:-} == kmscon* || ${TERM_SESSION_TYPE:-} == kms || ${TERM_SESSION_TYPE:-} == fb ]]
+}
+if ! on_console && [[ -r $HOME/.config/fedokawaii/icons.sh ]]; then
   # shellcheck source=/dev/null
   . "$HOME/.config/fedokawaii/icons.sh"
 fi
 # every entry: ACTION<TAB>ICON  NAME<TAB>MARK (the mark at the right, like the books' column)
 rows() {
-  local d st n r from l t p f w R=$'\e[91m' G=$'\e[90m' S=$'\e[37m' O=$'\e[0m' upd up ver_ snap rel nxt
+  local d st n r from l t p f w R=$'\e[91m' G=$'\e[90m' S=$'\e[37m' O=$'\e[0m' upd up ver_ snap bk rel nxt
   d=$(due_at); read -r st n r from < <(next_state)
   if ((d <= now)); then upd="${R}due$O"; else upd="$G$(inn "$d")$O"; fi
   case $st in
@@ -432,6 +482,10 @@ rows() {
     if num "$f" && ((f == 0)); then ver_="${S}passed$O"; elif num "$f"; then ver_="$R$f to fix$O"; fi
   fi
   snap=$(read_rec snapshots) && num "$snap" || snap=""
+  # the backup: its age, red once the reminder's days have passed (none set up: red too)
+  if [[ -z $BACKUP_TARGET ]]; then bk="${R}none$O"
+  elif t=$(last_backup); then bk="$G$(ago "$t")$O"; backup_late && bk="$R$(ago "$t")$O"
+  else bk="${R}never$O"; fi
   busy && upd="${R}running$O"
   # (a release that cannot be read is not guessed at: no Fedora 0, no move to Fedora 1)
   if (($(ver))); then rel="${S}Fedora $(ver)$O" nxt="upgrade to Fedora $n"; else rel="" nxt="upgrade to the next Fedora"; fi
@@ -442,6 +496,7 @@ rows() {
     verify    "${ICON_BOX_ON:-·} verify"                  "$ver_" \
     repair    "${ICON_SLIDERS:-·} repair"                 "" \
     snapshots "${ICON_HOURGLASS:-·} snapshots"            "$G${snap}$O" \
+    backup    "${ICON_ARCHIVE:-·} backup"                 "$bk" \
     theme     "${ICON_THEME:-·} theme, applied again"     "" \
     drift     "${ICON_BRANCH:-·} drift"                   "" \
     settings  "${ICON_KEYBOARD:-·} settings"              "" \
@@ -490,7 +545,7 @@ explain() {
   }
   say() { local l; for l; do printf '%s%s%s\n' "$S" "$l" "$O"; done; }
   case $a in
-    status)    pick 'running|release|support|next|moved|updated|due|verified|kernel|disk|retired|compare' ;;
+    status)    pick 'running|release|support|next|moved|updated|due|verified|backup|kernel|disk|retired|compare' ;;
     update)    pick 'running|updated|due'
                say "Everything in one go: a snapshot first," \
                    "then Fedora's packages, the desktop's own" \
@@ -526,6 +581,14 @@ explain() {
                    "update and each move, hourly ones for a" \
                    "while, and setup's baseline. Undoing one:" \
                    "handbook §37.2." ;;
+    backup)    pick 'running|backup'
+               say "Your home — minus ~/Downloads, caches and" \
+                   "what can be downloaded again — to the" \
+                   "drive named in BACKUP_TARGET, with restic." \
+                   "Plug it in first. The first backup copies" \
+                   "everything; the next ones only what" \
+                   "changed. Snapshots live on this disk; this" \
+                   "survives it. A file back: handbook §37.6." ;;
     theme)     pick 'running'
                # shellcheck disable=SC2088  # (a path to read, not to expand)
                say "Every config the toolkit manages, back as" \
@@ -539,7 +602,8 @@ explain() {
                    "rate, city, time zone, SSH… — a copy, in" \
                    "neovim. When you close it, every value is" \
                    "checked; only a valid file is saved (as" \
-                   "root). The next update applies it." ;;
+                   "root). The next update applies it; the" \
+                   "backup's two settings count at once." ;;
     remind)    pick 'running|due'
                say "A notice when the update season comes round," \
                    "when a new Fedora has settled, and a month" \
@@ -593,6 +657,7 @@ run() {   # run ACTION — in the menu's window: the work, its outcome, a key ba
     verify)    as_root verify; rc=$? ;;
     repair)    as_root repair; rc=$? ;;
     snapshots) snapshots; rc=$? ;;
+    backup)    backup_now; rc=$? ;;
     theme)     as_root theme; rc=$? ;;
     drift)     as_root drift; rc=$? ;;
     settings)  edit_settings; rc=$? ;;
@@ -605,6 +670,10 @@ run() {   # run ACTION — in the menu's window: the work, its outcome, a key ba
   pause "$rc" "$a"
 }
 
+backup_now() {   # kawa-backup, as you (the backup is yours, never root's)
+  command -v kawa-backup >/dev/null || { echo "  kawa-backup is missing — fedokawaii repair puts it back" >&2; return 1; }
+  kawa-backup
+}
 snapshots() {   # the snapshots of / (snapper's list is root's) — or why there are none
   local fs
   command -v snapper >/dev/null || { echo "  snapper is not installed — fedokawaii repair puts it back" >&2; return 1; }
@@ -628,7 +697,7 @@ menu_fzf() {   # → fzf's exit status (2: it could not run — the plain menu t
   ( release_check >/dev/null 2>&1 & )               # (for the next look: the menu never waits on it)
   if t=$(last_done); then t="updated $(day "$t")"; else t="not updated since setup"; fi
   title=" $(printf '\e[91m%s\e[0m' "${ICON_TORII:-⛩}") fedokawaii "$'\e[90m'"· $t"$'\e[0m '
-  # twelve entries need no search: no input line — the list starts under the title, and
+  # thirteen entries need no search: no input line — the list starts under the title, and
   # the pane's first line stands level with the first entry
   fit_rows | fzf --ansi --no-sort --no-input --height=100% --margin=0,1 --delimiter=$'\t' --with-nth=2 \
     --border-label="$title" --tiebreak=index \
@@ -640,7 +709,7 @@ menu_fzf() {   # → fzf's exit status (2: it could not run — the plain menu t
 }
 
 ascii() {   # for a text console whose font may lack them: plain stand-ins
-  if [[ ${TERM:-} == linux ]]; then sed 's/·/-/g; s/—/-/g; s/…/.../g; s/→/->/g; s/§/s./g'; else cat; fi
+  if on_console; then sed 's/·/-/g; s/—/-/g; s/…/.../g; s/→/->/g; s/§/s./g'; else cat; fi
 }
 menu_plain() {   # no fzf, or a text console: numbered, nothing but bash
   local acts=() names=() a l m i c
@@ -657,22 +726,23 @@ menu_plain() {   # no fzf, or a text console: numbered, nothing but bash
 
 # ── commands ────────────────────────────────────────────────────────────────────────────
 case ${1:-} in
-  "")         if [[ -t 0 && -t 1 && ${TERM:-} != linux ]] && command -v fzf >/dev/null; then
+  "")         if [[ -t 0 && -t 1 ]] && ! on_console && command -v fzf >/dev/null; then
                 menu_fzf; (($? == 2)) && menu_plain
               else menu_plain; fi
               exit 0 ;;
-  --window)   exec kawa-float --once system system 88x15 -- "$0" ;;   # (the title, 12 entries, the footer)
+  --window)   exec kawa-float --once system system 88x17 -- "$0" ;;   # (title, 13 entries, footer, a row spare: odd heights centre to the pixel)
   --rows)     fit_rows ;;
   --explain)  explain "${2:-}" ;;
   --run)      run "${2:-}" ;;
   # (a word more than a command takes is a slip, never ignored: `upgrade now` is no --now)
-  status|update|verify|repair|theme|drift|snapshots|log|settings|guide|copy|diff|apply)
+  status|update|verify|repair|theme|drift|snapshots|backup|log|settings|guide|copy|diff|apply)
               (($# == 1)) || { echo "fedokawaii $1 takes nothing more (\"$2\") — fedokawaii help" >&2; exit 2; } ;;&
   upgrade)    [[ $# == 1 || ( $# == 2 && $2 == --now ) ]] || { echo "usage: fedokawaii upgrade [--now]" >&2; exit 2; }
               as_root upgrade ${2:+"$2"} ;;
   status)     ( release_check >/dev/null 2>&1 & ); status | ascii ;;   # (never waited on)
   update|verify|repair|theme|drift) as_root "$1" ;;
   snapshots)  snapshots ;;
+  backup)     backup_now ;;
   log)        root less +G /var/log/fedokawaii.log ;;
   settings)   run settings ;;
   remind)

@@ -8,7 +8,8 @@
 #   sudo ./apps.sh light               one theme
 #   sudo APPS_ONLY="yazi nvim" ./apps.sh dark     only some groups:
 #        yazi nvim lazygit btop mpv zathura filechooser share torrra brave (default: all)
-#        books notes system nvim-whichkey nvim-picker nvim-grep nvim-split nvim-lsp lazygit-log
+#        books notes system wiremix bluetui visidata
+#        nvim-whichkey nvim-picker nvim-grep nvim-split nvim-lsp lazygit-log
 #        lazygit-commit lazygit-stage yazi-preview yazi-drives
 #
 # Shots → shots/<theme>/app-<group>.png (the window 1:1) and app-<group>-full.png (the whole
@@ -34,10 +35,10 @@ SELF=$APPS_SELF
 SH=/tmp/shoot-kawa-apps            # staged helpers (readable by $K); shoot.sh's is /tmp/shoot-kawa
 X=/tmp/xdg-kawa-apps               # the session's XDG_RUNTIME_DIR
 C=$R/apps-cache
-REPO=/home/claude/fedokawaii
+REPO=${FEDOKAWAII_REPO:-/home/claude/fedokawaii}
 ALL_GROUPS="yazi nvim lazygit btop mpv zathura filechooser share torrra brave books notes system
   nvim-whichkey nvim-picker nvim-grep nvim-split nvim-lsp lazygit-log lazygit-commit lazygit-stage yazi-preview
-  yazi-drives"
+  yazi-drives wiremix bluetui visidata"
 ALL_GROUPS=$(echo $ALL_GROUPS)
 ONLY=${APPS_ONLY:-$ALL_GROUPS}
 KEY=0123456789abcdef0123456789abcdef       # the stand-in Prowlarr's API key
@@ -380,7 +381,7 @@ demo_repo() {   # (replaces shoot.sh's) ~/repos/fedokawaii with a history: the r
     g add -A -- "$@" && g commit -q -m "$m"
   }
   local gd="2026-09-01T21:14:00+04:00"
-  cp -a /home/claude/fedokawaii "$d" 2>/dev/null || { warn "repo copy failed"; return; }
+  cp -a "$REPO" "$d" 2>/dev/null || { warn "repo copy failed"; return; }
   rm -rf "$d/.git"; chown -R "$K:$K" "$d"
   g init -q -b main
   ci "2026-09-01T21:14:00+04:00" "fedokawaii: setup.sh, the package list, the menu" \
@@ -791,7 +792,7 @@ exec bash "$SH/fedokawaii"
 EOF
   install -m 755 "$REPO/system/fedokawaii" "$SH/fedokawaii"
   chmod 755 "$sb"/*; chmod -R a+rX "$sb"
-  k kawa-float --once system system 88x15 -- "$sb/menu" >"$LT/system.log" 2>&1 &
+  k kawa-float --once system system 88x17 -- "$sb/menu" >"$LT/system.log" 2>&1 &   # (as fedokawaii --window)
   pid=$!
   waitfor 10 "the system window" win_geom float || { umount /var/lib/fedokawaii; return; }
   sleep 3
@@ -883,6 +884,66 @@ shot_brave() {   # Brave Origin on its new-tab page: GTK mode (theme.sh's Prefer
   waitpid 10 "$pid" || warn "$T: Brave had to be killed"
 }
 
+shot_wiremix() {   # Super+A → mixer: wiremix (Fedora's 0.11.0) in its floating window, as kawa-audio
+                   # opens it, the test film's sound playing (mpv, no picture) on its Playback tab
+  local p pid pp
+  # (this mpv speaks PulseAudio, not PipeWire's own protocol as Fedora's does: PipeWire's
+  # PulseAudio server for the length of the shot)
+  k pipewire-pulse >"$LT/wiremix-pulse.log" 2>&1 &
+  pp=$!
+  waitfor 5 "PipeWire's PulseAudio server" test -S "$X/pulse/native" || { kill "$pp" 2>/dev/null; return; }
+  k "$SH/mpv/bin/mpv" --no-video --ao=pulse --loop-file=inf --volume=80 "$KH/Videos/fuji-dawn.mkv" >"$LT/wiremix-mpv.log" 2>&1 &
+  p=$!
+  sleep 2
+  k kawa-float --once mixer mixer 96x29 -- wiremix >"$LT/wiremix.log" 2>&1 &
+  pid=$!
+  waitfor 10 "the mixer window" win_geom float || { kill "$p" "$pp" 2>/dev/null; return; }
+  sleep 3                                         # (the meters settle on the sound)
+  FLOAT=1 capture wiremix float 1.0
+  k wtype -s 300 -k Escape >/dev/null 2>&1
+  waitpid 5 "$pid" || warn "$T: the mixer window had to be closed"
+  kill "$p" 2>/dev/null; wait "$p" 2>/dev/null
+  kill "$pp" 2>/dev/null; wait "$pp" 2>/dev/null
+}
+
+shot_bluetui() {   # quick settings → pair a device: bluetui (v0.8.2) in its floating window, as
+                   # kawa-quick opens it, against a stand-in BlueZ on a private bus (lib/fakebluez.py:
+                   # a paired controller and headphones; s scans, and a phone nearby shows)
+  local d=$W/bt bus db fb pid
+  install -d -m 700 -o "$K" -g "$K" "$d"; bus=$d/bus
+  k dbus-daemon --session --nofork --address="unix:path=$bus" >"$LT/bluez-bus.log" 2>&1 &
+  db=$!
+  waitfor 5 "the stand-in bus" test -S "$bus" || { kill "$db" 2>/dev/null; return; }
+  k /opt/kit-tools/venv/bin/python -I "$SH/lib/fakebluez.py" "unix:path=$bus" adapter >"$LT/fakebluez.log" 2>&1 &
+  fb=$!
+  sleep 1.5
+  k kawa-float --once pair pair 96x29 -- env DBUS_SYSTEM_BUS_ADDRESS="unix:path=$bus" bluetui >"$LT/bluetui.log" 2>&1 &
+  pid=$!
+  waitfor 10 "the pairing window" win_geom float || { kill "$fb" "$db" 2>/dev/null; return; }
+  sleep 2
+  k wtype -s 300 -k s >/dev/null 2>&1; sleep 3   # s: a scan, the phone found
+  FLOAT=1 capture bluetui float 1.0
+  k wtype -s 300 -k Escape >/dev/null 2>&1
+  waitpid 5 "$pid" || warn "$T: the pairing window had to be closed"
+  kill "$fb" "$db" 2>/dev/null; wait "$fb" "$db" 2>/dev/null
+}
+
+shot_visidata() {   # VisiData (3.3) on the handbook's weather.csv (§16.7): the temp column a number,
+                    # sorted, its sum under the table — the Try this, key by key
+  local f=$KH/practice/weather.csv
+  install -d -m 755 -o "$K" -g "$K" "$KH/practice"
+  printf 'city,temp,day\nSharjah,41,Mon\nDubai,40,Tue\nAjman,38,Wed\n' >"$f"; chown "$K:$K" "$f"
+  term visidata "$KH/practice" vd weather.csv || return
+  sleep 2
+  k wtype -s 300 -k l >/dev/null 2>&1; sleep 0.6
+  k wtype -s 300 '#' >/dev/null 2>&1; sleep 0.6
+  k wtype -s 300 '[' >/dev/null 2>&1; sleep 0.6
+  k wtype -s 300 '+' >/dev/null 2>&1; sleep 1
+  k wtype -s 300 sum -k Return >/dev/null 2>&1; sleep 1.5
+  NOKBD=1 capture visidata "$TAPP" 0.8 15
+  term_close -k q -k q
+}
+
 inner_apps() {
   local i
   T=$1 OT=$OUT/$1 LT=$LOG/$1/apps W=$SH/work-apps-$1
@@ -936,6 +997,9 @@ inner_apps() {
   want notes       && shot_notes
   want system      && shot_system
   want torrra      && shot_torrra
+  want wiremix     && shot_wiremix
+  want bluetui     && shot_bluetui
+  want visidata    && shot_visidata
   want brave       && shot_brave
   want btop        && shot_btop
   exec 7>&-

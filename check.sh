@@ -39,7 +39,8 @@ source /etc/os-release
 check "x86_64 CPU ($(uname -m))"                   test "$(uname -m)" = x86_64
 if [[ ${ID:-} != fedora ]]; then fail "Fedora Linux" "this is ${PRETTY_NAME:-unknown}"
 elif ((VERSION_ID < 44)); then fail "Fedora $VERSION_ID" "too old — needs 44 or 45 (dnf5, wlroots 0.20). Upgrade or reinstall"
-elif ((VERSION_ID > 45)); then warn "Fedora $VERSION_ID" "newer than tested (44/45); check DWL_TAG matches its wlroots"
+elif [[ ${REDHAT_BUGZILLA_PRODUCT_VERSION:-} == rawhide ]]; then warn "Fedora Rawhide ($VERSION_ID)" "Fedora's development branch, changing every day — tested on the releases 44 and 45"
+elif ((VERSION_ID > 45)); then warn "Fedora $VERSION_ID" "newer than tested (44/45): setup can build dwl only if this release has its wlroots (network, below)"
 else pass "Fedora $VERSION_ID (supported)"; fi
 if [[ ${VARIANT_ID:-} == server ]]; then pass "Fedora Server edition"
 else warn "edition is '${VARIANT_ID:-none}'" "built for Server minimal; other editions may carry a desktop already"; fi
@@ -116,9 +117,23 @@ else fail "SELinux is ${sel:-unavailable}" "turn it back on: sudo grubby --updat
 [[ $(timedatectl show -p NTPSynchronized --value 2>/dev/null) == yes ]] && pass "clock synchronised (NTP)" \
   || warn "clock not synchronised" "TLS downloads can fail with a wrong clock: timedatectl set-ntp true"
 # (sudo drops SSH_CONNECTION and WAYLAND_DISPLAY from the environment: the terminal tells —
-# a pseudo-terminal is SSH or a terminal window, the machine's own console is a /dev/ttyN)
-tty_now=$(tty 2>/dev/null) || tty_now=""
-if [[ -n ${SSH_CONNECTION:-} || $tty_now == /dev/pts/* ]]; then
+# a pseudo-terminal is SSH or a terminal window, the machine's own console is a /dev/ttyN.
+# sudo may run the command in a pseudo-terminal of its own (its default since 1.9.14):
+# SUDO_TTY (sudo 1.9.17 on) names the one you typed in.
+# Fedora 45's consoles are pseudo-terminals too, of kmscon, which draws them: it is up the
+# line of this run's parent processes, before any dwl or foot)
+on_kmscon() {
+  local p=$PPID n c
+  for ((n = 0; n < 40 && p > 1; n++)); do
+    c=$(cat "/proc/$p/comm" 2>/dev/null) || return 1
+    case $c in kmscon) return 0 ;; dwl*|foot) return 1 ;; esac
+    p=$(sed -n 's/^PPid:[[:space:]]*//p' "/proc/$p/status" 2>/dev/null)
+    [[ $p =~ ^[0-9]+$ ]] || return 1
+  done
+  return 1
+}
+tty_now=${SUDO_TTY:-$(tty 2>/dev/null)} || tty_now=""
+if [[ -n ${SSH_CONNECTION:-} ]] || { [[ $tty_now == /dev/pts/* ]] && ! on_kmscon; }; then
   warn "running over SSH or in a terminal window (${tty_now:-SSH})" "setup reboots and continues on the machine's own screen (tty1)"
 fi
 [[ -n ${WAYLAND_DISPLAY:-}${DISPLAY:-} ]] && warn "running inside a graphical session" "run from the text console"
@@ -141,14 +156,20 @@ if [[ -f $STATE_DIR/phase ]]; then info "setup already started: phase $(<"$STATE
 section "network"
 if ip route show default 2>/dev/null | grep -q .; then pass "default route ($(ip route show default | awk '{print $5; exit}'))"
 else fail "no default route" "connect ethernet (nmtui)"; fi
-reachable() {   # reachable HOST — any HTTP answer at all counts
-  [[ $(curl -sS -o /dev/null -w '%{http_code}' --proto '=https' --connect-timeout 10 --max-time 20 "https://$1/" 2>/dev/null) =~ ^[1-5][0-9][0-9]$ ]]
+reachable() {   # reachable HOST — any HTTP answer at all counts (CURL_RC: curl's own status)
+  local code
+  code=$(curl -sS -o /dev/null -w '%{http_code}' --proto '=https' --connect-timeout 10 --max-time 20 "https://$1/" 2>/dev/null); CURL_RC=$?
+  [[ $code =~ ^[1-5][0-9][0-9]$ ]]
 }
+CURL_RC=0
 for h in mirrors.fedoraproject.org mirrors.rpmfusion.org copr.fedorainfracloud.org \
          brave-browser-rpm-release.s3.brave.com downloads.claude.ai codeberg.org \
          api.github.com github.com release-assets.githubusercontent.com raw.githubusercontent.com \
          lscr.io ghcr.io pypi.org files.pythonhosted.org; do
-  if reachable "$h"; then pass "reachable: $h"; else fail "unreachable: $h" "DNS, firewall or proxy?"; fi
+  if reachable "$h"; then pass "reachable: $h"
+  # (60: the site answered, its certificate was refused — a clock years off does that to every site)
+  elif ((CURL_RC == 60)); then fail "unreachable: $h" "its certificate is refused: the clock is wrong? ($(date '+%F %H:%M') — timedatectl set-ntp true)"
+  else fail "unreachable: $h" "DNS, firewall or proxy?"; fi
 done
 # the weather line is a nicety, not part of the build: it may be down without stopping setup
 if reachable wttr.in; then pass "reachable: wttr.in (weather)"; else warn "unreachable: wttr.in" "quick settings shows the city without the weather until it answers"; fi
@@ -160,6 +181,17 @@ elif w=$(dnf -q repoquery --whatprovides "pkgconfig(wlroots-$DWL_WLROOTS)" --qf 
   if [[ -n $w ]]; then pass "wlroots $DWL_WLROOTS in this Fedora ($(head -n1 <<<"$w")) — dwl $DWL_TAG builds"
   else fail "wlroots $DWL_WLROOTS is not in Fedora $VERSION_ID" "dwl $DWL_TAG needs it: install Fedora 44 or 45, then move up with fedokawaii upgrade"; fi
 else warn "could not ask the repositories for wlroots $DWL_WLROOTS" "offline? setup checks again when it builds dwl"; fi
+# …and the COPR (LACT): one not built for this release yet — a new Fedora's first days — is
+# only a warning: setup leaves its packages out, and update or repair add them once it is built
+ch=fedora-$VERSION_ID-x86_64; [[ ${REDHAT_BUGZILLA_PRODUCT_VERSION:-} == rawhide ]] && ch=fedora-rawhide-x86_64
+re="\"$ch\"[[:space:]]*:"
+for c in "${COPRS[@]}"; do
+  j=$(curl -fsS --proto '=https' --connect-timeout 10 --max-time 20 \
+        "https://copr.fedorainfracloud.org/api_3/project?ownername=${c%%/*}&projectname=${c#*/}" 2>/dev/null) || j=""
+  if [[ $j != *'"chroot_repos"'* ]]; then warn "could not ask COPR whether $c builds for Fedora $VERSION_ID" "setup finds out in phase 2"
+  elif [[ $j =~ $re ]]; then pass "COPR $c builds for Fedora $VERSION_ID"
+  else warn "COPR $c has nothing for Fedora $VERSION_ID yet" "setup leaves $(copr_pkgs "$c" | tr '\n' ' ')out; update or repair add it once it is built"; fi
+done
 
 # ── hardware ─────────────────────────────────────────────────────────────────
 section "hardware"

@@ -119,11 +119,15 @@ application/msword=com.abisource.AbiWord.desktop
 application/vnd.openxmlformats-officedocument.wordprocessingml.document=com.abisource.AbiWord.desktop
 application/rtf=com.abisource.AbiWord.desktop
 text/rtf=com.abisource.AbiWord.desktop
-# spreadsheets and CSV: Gnumeric
+# spreadsheets: Gnumeric
 application/vnd.oasis.opendocument.spreadsheet=org.gnumeric.gnumeric.desktop
 application/vnd.ms-excel=org.gnumeric.gnumeric.desktop
 application/vnd.openxmlformats-officedocument.spreadsheetml.sheet=org.gnumeric.gnumeric.desktop
-text/csv=org.gnumeric.gnumeric.desktop
+# CSV and TSV: VisiData in a terminal window (Tables in ~/.local/share/applications). `file`
+# names a CSV text/csv but a TSV text/plain, so from xdg-open a .tsv goes to neovim; from
+# Brave and the GTK programs (GLib types by name) both come here
+text/csv=kawa-tables.desktop
+text/tab-separated-values=kawa-tables.desktop
 # handwritten notes and PDF annotation: Xournal++
 application/x-xopp=com.github.xournalpp.xournalpp.desktop
 # archives: yazi, on the archive (Enter unpacks it beside itself). A Xournal++ note is a

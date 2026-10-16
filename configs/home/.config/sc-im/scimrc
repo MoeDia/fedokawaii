@@ -1,0 +1,22 @@
+# ~/.config/sc-im/scimrc — sc-im, the terminal spreadsheet (handbook §16.7); it reads this
+# file at start (`:set` inside it lists every option, `:help` the manual).
+# Colours: none here. sc-im draws with the terminal's eight named colours (BLACK … WHITE),
+# so its yellow headings and black-on-yellow cursor are foot's palette already, in both
+# themes — nothing per theme, no REDEFINE_COLOR (that would repaint the terminal's palette).
+
+# a digit, a 0 or a . typed on a cell starts a number, as in Excel (sc-im's own rule: a count
+# for the next key); Enter after an entry moves down a row
+set numeric
+set numeric_zero
+set numeric_decimal
+set newline_action=j
+
+# the clipboard (:ccopy, :cpaste): Wayland's wl-copy and wl-paste, not the X11 xclip the
+# build names; cells as tab-separated columns, so they paste into Gnumeric as a range
+set default_copy_to_clipboard_cmd="wl-copy <"
+set default_paste_from_clipboard_cmd="wl-paste"
+set copy_to_clipboard_delimited_tab=1
+
+# a copy of the open sheet every minute (.FILE.bak beside it): sc-im offers it back after a
+# crash or a power cut
+set autobackup=60

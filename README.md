@@ -185,7 +185,8 @@ a month before yours ends.
 | `fedokawaii verify` (or `verify`) | full check, including your running session |
 | `fedokawaii repair` (or `repair`) | verify, then fix what can be fixed by itself — packages, drivers and firmware, anything doubled or fighting, services, your session, release tools, torrra, Prowlarr, drifted configs — and verify again; offline, what needs no network |
 | `fedokawaii theme` · `fedokawaii drift` | apply the configs again (dwl rebuilt only if needed) · list files that differ |
-| `fedokawaii status` · `snapshots` · `log` · `settings` · `remind` | how it stands · the snapshots · the last log · `fedokawaii.conf` · the season |
+| `fedokawaii status` · `snapshots` · `log` · `settings` · `remind` | how it stands (the last backup's day among it) · the snapshots · the last log · `fedokawaii.conf` · the season |
+| `fedokawaii backup` (or `kawa-backup`; quick settings → backup) | your home — minus `~/Downloads`, caches and what can be downloaded again — to the drive `BACKUP_TARGET` names in `fedokawaii.conf` (it counts as soon as *settings* saves it), with restic; `kawa-backup restore PATH` brings a file or folder back into `~/Restored/`; a notice when the last backup is older than `BACKUP_REMIND_DAYS` (7) |
 | `kawa-theme` | switch dark ⇄ light (`kawa-theme dark`, `light`, `get`) |
 | `Super+/` | every keybinding, searchable |
 
@@ -215,7 +216,13 @@ glossary are appendices D and E.
 
 - **Prowlarr** is already wired to torrra (its key's master copy is `~/.config/fedokawaii/secrets.sh`; Prowlarr gets it as a podman secret);
   type `prowlarr` (it starts on demand and opens <http://localhost:9696>), create its login, and add your indexers (handbook §20.1).
+- **Backups**: name your USB drive or external disk in `fedokawaii.conf` (`BACKUP_TARGET`, Super+U → settings), put a
+  password in `~/.config/fedokawaii/secrets.sh` (`RESTIC_PASSWORD="…"` — keep a copy of it elsewhere: without it the backup
+  cannot be read), plug the drive in, quick settings → *backup* (handbook §37.6).
 - **spotify_player**: run it once and log in (Premium).
+- **Syncplay** (watching a film with friends, in step): nothing to set — Theme started
+  `~/.config/syncplay.ini` (the public server syncplay.pl, your name, a room of your own); **W** on a
+  film in yazi, or *Syncplay* in the launcher, asks for the room (handbook §15.7).
 - **Claude Code**: `claude` → log in. `/theme` → the *ANSI colours only* variant to use the palette.
 - **Brave Origin**: nothing to set — Theme put it in GTK mode, so it wears the palette and follows
   the dark/light switch, and starts it so a screen share can carry the computer's sound.
@@ -246,4 +253,6 @@ Everything above was tested without the real hardware. On the PC itself:
 | every device has its driver; Bluetooth's service is on | by itself, the same way |
 | the old Windows disk is really cleared | your eyes, in the installer: *SUMMARY OF CHANGES* lists Windows' parts as deleted, and four new ones made — `/boot/efi`, `/boot`, `/`, `/home`. If `/boot/efi` is missing, go back |
 | the Bluetooth controller | plug its dongle in **before** setup, so setup sees it; afterwards pair it: **Super+X** → *bluetooth* → *pair a device* (handbook §8.3) |
+| the controller does not lag or drop | play a while: setup already keeps the dongle from sleeping (`/etc/modprobe.d/fedokawaii-btusb.conf`). If it still lags, the stronger version keeps every USB device awake: `sudo grubby --update-kernel=ALL --args=usbcore.autosuspend=-1`, then restart |
+| btop shows the graphics card | your eyes: open btop (click the bar's CPU part) — one line in the CPU box, `GPU`, then the card's load, memory, heat and watts; **5** opens its full box (**Super+F** first: it needs the room). Nothing there: `fedokawaii verify` says whether rocm-smi has the library btop opens |
 | how long each phase takes | optional: note the times — the handbook's are estimates |

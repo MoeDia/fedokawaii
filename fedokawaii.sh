@@ -160,7 +160,8 @@ act() {
             [[ -z $p ]] || { rm -f "$t"; die "not saved — fedokawaii.conf would have:"$'\n'"$(sed 's/^/    /' <<<"$p")"; }
             if [[ $f != "$REPO_DIR/fedokawaii.conf" ]]; then write_file "$REPO_DIR/fedokawaii.conf" 0644 <"$t"; fi
             rm -f "$t"
-            ok "fedokawaii.conf: every value is valid — the next update applies it" ;;
+            ok "fedokawaii.conf: every value is valid — the next update applies it"
+            log "BACKUP_TARGET and BACKUP_REMIND_DAYS count at once: the backup and its reminder read the file itself" ;;
     *) misuse "unknown action: $1 (check setup theme all verify update upgrade repair drift status apply)" ;;
   esac
 }

@@ -15,10 +15,12 @@ Linux you install and understand yourself. The book takes you there from nothing
 making the installer stick on Windows, one rung at a time, up to how the kernel starts the
 machine.
 
-**Who it is for.** One reader: new to Linux, at home on Windows, at ease with SQL, Power BI and
-DAX. You learn best from a small example first, then the rule it shows — so every chapter is
-written that way. Where a Windows habit helps or misleads, a note says so; where a query
-explains a command better than prose, a note shows the query.
+**Who it is for.** One reader: new to Linux, and at home on Windows. You have met many ideas in
+computing from a distance — heard of them, seen them — but use none of them every day. So here
+you are a beginner, and the book starts there: every term is explained the first time it
+appears. You learn best from a small example first, then the rule it shows — so every chapter
+is written that way. Where a Windows habit helps or misleads, a note says so; where something
+from daily life makes an idea plain, a note tells it that way.
 
 **The ladder.** Read it in order the first time; each Part stands on the one before.
 
@@ -78,7 +80,7 @@ you
 | **In this chapter** | the chapter's aims, and what it needs |
 | **Word — …** | one term, defined |
 | **On Windows** | a bridge from a Windows habit: what is the same, what is not |
-| **In SQL terms** | a command explained as a query, or a Power BI idea |
+| **In everyday terms** | an idea told with something from daily life: a spreadsheet, a library catalogue, a car's service sticker |
 | **Careful** | something that deletes data or locks you out — read it before the step under it |
 
 **Looking things up.** The glossary (appendix E) lists every Word box's term in one
@@ -158,8 +160,8 @@ theme pack. The name is Fedora + *kawaii* (かわいい), the Japanese word for 
 - **A working desktop**: a bar across the top, windows that arrange themselves, a browser,
   a terminal, a file manager, music and video — the two pictures at the front of the book.
 - **A system that looks after itself**: one menu, **Super+U** (**Super** is the Windows
-  key), updates it every 90 days, checks it, repairs it, and goes back in time when a change
-  goes wrong.
+  key), updates it when its 90-day reminder comes, checks it, repairs it, and goes back in
+  time when a change goes wrong.
 - **A book that explains it**: every program, every key and every file, from the first USB
   stick up to how Linux works underneath.
 
@@ -353,8 +355,9 @@ Why Fedora for this book:
   which a gaming PC with a new graphics card needs.
 - **Close to upstream**: programs as their authors made them, so their own documentation
   fits (§2.2).
-- **Btrfs by default**: a file system that can take instant snapshots — frozen copies to go
-  back to when an update goes wrong (ch. 37).
+- **Btrfs by default** on its desktop editions, and one choice away on Server (§4.2): a file
+  system that can take instant snapshots — frozen copies to go back to when an update goes
+  wrong (ch. 37).
 - **Red Hat's backing**: paid engineers, careful testing, and SELinux, a strong lock on what
   each program may touch.
 
@@ -469,8 +472,9 @@ disk: write it down, away from the PC.
 > **Word — image.** One file holding a whole disc or stick, byte for byte — an `.iso` file.
 > Written onto a stick, it makes a stick the PC can start from.
 
-On Windows, open **fedoraproject.org/server/download** in your browser. Download two files
-from the *x86_64* row:
+On Windows, open **fedoraproject.org/server/download** in your browser. Under *For Intel and
+AMD x86_64 systems*, download two files: the *DVD* image, and the checksum file that its
+*Verify Your Download* panel offers (*Download the checksum file*):
 
 | File | What it is |
 |---|---|
@@ -478,7 +482,8 @@ from the *x86_64* row:
 | `Fedora-Server-44-1.7-x86_64-CHECKSUM` | a small text file of fingerprints, one per image |
 
 Both land in your *Downloads* folder. (If the page offers a newer release, take that one and
-read its number wherever this book says 44.)
+read its number wherever this book says 44. The desktop is made for 44 and 45 alike; a box
+headed *On Fedora 45* marks each place where 45 looks different.)
 
 > **Word — checksum.** A short fingerprint computed from every byte of a file. Change one byte
 > and the fingerprint changes completely. Like the two check digits in an IBAN, which catch a
@@ -516,14 +521,10 @@ SHA256 (Fedora-Server-dvd-x86_64-44-1.7.iso) =
 PowerShell writes the hash in capitals; the file in small letters. They are **the same** hash:
 case does not matter in these letters. Compare the two, character by character — the first
 eight, the last eight, and a few in the middle. Fedora's download page shows the same value
-under the file too.
+too, in the image's *Verify Your Download* panel.
 
 **Check:** the two hashes are equal. If they differ, delete the image and download it again;
 never write a stick from an image that does not match.
-
-> **In SQL terms.** Trino has the same fingerprint: `SELECT to_hex(sha256(to_utf8('Sharjah')))`
-> returns 64 characters. Change one letter — `'sharjah'` — and every character of the result
-> changes. Equal hashes mean equal input.
 
 Part IV explains where else this desktop uses SHA-256: every tool it downloads from GitHub is
 checked the same way (§27.7).
@@ -536,8 +537,8 @@ Fedora's own tool, and it runs on Windows.
 > **Careful.** Writing the image **erases the whole stick**. Take a stick with nothing you
 > need on it, and unplug every other USB drive first, so you cannot pick the wrong one.
 
-**1.** Install it. Download it from the same Fedora page (*Fedora Media Writer* → *Windows*),
-or in PowerShell:
+**1.** Install it. Download it from the same Fedora page (*Fedora Media Writer* → *Windows and
+Mac* leads to its GitHub release page: take `FedoraMediaWriter-win64-….exe`), or in PowerShell:
 
 ```sh
 winget install -e --id Fedora.FedoraMediaWriter    # Fedora's own package of it
@@ -694,6 +695,10 @@ The first screen says **WELCOME TO FEDORA 44.** and asks *What language would yo
 use during the installation process?* Choose *English* and *English (United States)*, then
 *Continue*.
 
+> **On Fedora 45.** The menu reads *Install Fedora 45* and the first screen *WELCOME TO
+> FEDORA 45.*; every other screen in this chapter is the same, word for word, in another
+> typeface. Fedora 45's new web-based installer is for its Atomic desktops, not for Server.
+
 The next screen is the centre of the installer: **INSTALLATION SUMMARY**.
 
 > **Word — spoke.** One item on the installer's summary screen — *Keyboard*, *Time & Date*,
@@ -747,7 +752,8 @@ settings (§8.2).
 **Installation Destination, step by step.**
 
 1. Click *Installation Destination*. Under *Local Standard Disks*, click the PC's own disk so
-   it shows a tick. Only that one: the installer stick is listed too — leave it unticked.
+   it shows a tick (if it shows one already, the installer ticked it: leave it — a click takes
+   the tick away). Only that one: the installer stick is listed too — leave it unticked.
 2. Under *Storage Configuration*, choose **Custom**. Leave *Encrypt my data.* unticked, unless
    you want to type a passphrase at every start (`check.sh` accepts both). Click *Done*.
 3. **MANUAL PARTITIONING** opens. If the disk held Windows, its old parts are listed under
@@ -795,6 +801,10 @@ Password:
 ```
 
 *(for example: the name before `login:` is the machine's name)*
+
+> **On Fedora 45.** The same `login:` line, in a font of its own: the console is drawn by
+> **kmscon**, a program, instead of by the kernel (§11.1). Everything in this chapter works
+> on it as written.
 
 The last line is the **prompt**: the computer is waiting for a command.
 
@@ -1039,7 +1049,7 @@ nano fedokawaii.conf      # in ~/fedokawaii
 ```
 
 nano shows the file, with its keys listed along the bottom: `^O Write Out`, `^X Exit` and
-more (`^` means **Ctrl**). It needs four of them:
+more (`^` means **Ctrl**). You need only these:
 
 | Key | Does |
 |---|---|
@@ -1250,7 +1260,7 @@ The table below names the steps; a few of their words first:
 | Term | Plain meaning |
 |---|---|
 | RPM Fusion | a community repository for software Fedora does not ship itself, such as the full ffmpeg and the *freeworld* video drivers |
-| COPR | Fedora's build service, where anyone can publish a small repository; LACT and lazygit come from two (`dnf copr list` shows them) |
+| COPR | Fedora's build service, where anyone can publish a small repository; LACT comes from one (`dnf copr list` shows it) |
 | pinned commit | one exact version of dwl's source, named by its commit hash; setup refuses to build if the tag `v0.9` points anywhere else |
 | patch | a file of line changes applied to dwl's source before it is built (`src/dwl/dwl.patch`): keys, gaps, frames, centring, menus that close on a click outside, the layout for the bar — and a monitor plugged in later, or back from sleep, set to its best refresh rate and given its wallpaper again (dwl runs `kawa-display --hotplug` for it) |
 | greetd | the login manager: it holds tty1, asks for your user name and password through its plain prompt, agreety, then starts the desktop |
@@ -1261,7 +1271,7 @@ The phases, step by step:
 | Phase | Steps | Why this order |
 |---|---|---|
 | **1** | readiness check → record what is installed → DNF tuning → boot-menu and two-kernel policy → full update → base tools → the performance profile → remove nano, vim, rescue kernel → SSH policy → **reboot** | the record lets `verify.sh` spot anything extra later; tuning first so the big update downloads ten at a time; update before any third-party repository so RPM Fusion matches the base libraries; SSH closed before the first reboot, so a run that stops early never leaves it open |
-| **2** | RPM Fusion, Brave, Claude Code (key fingerprint checked), COPRs → GPU drivers → this machine's drivers and firmware → full ffmpeg and media tools → **reboot** | drivers before the programs that use them, so nothing pulls the wrong variant; the reboot activates the GPU kernel argument |
+| **2** | RPM Fusion, Brave, Claude Code (key fingerprint checked), COPRs → GPU drivers → this machine's drivers and firmware → full ffmpeg and media tools → **reboot** | drivers before the programs that use them, so nothing pulls the wrong variant; the reboot activates the GPU kernel argument. Near a new release RPM Fusion can be a few days behind Fedora's Mesa, and a COPR may have no build yet: what waits is left out with a note, Fedora's own drivers stand in, and `update` or `repair` adds it later (`verify` warns meanwhile) |
 | **3** | build tools → dwl (pinned commit + patch) → greetd login → desktop → fonts and toolkit themes → apps → release binaries → the yazi file dialog → Prowlarr + torrra → LazyVim → Steam → groups → theme (if chosen) → **verify gate** → enable the login, snapshots, baseline | the login is enabled last, only after verification, so a failure never leaves you at a black screen |
 
 What takes tty1 is `fedokawaii-resume.service`, a *systemd unit*: a small file that tells
@@ -1320,19 +1330,25 @@ finished step is recorded, and the next run skips it.
 what to do:
 
 ```text
-09:14:02 ✘ no network — connect ethernet (nmtui) and run again
+09:14:02 ✘ no network — connect to one (nmtui), then run it again
 ```
 
-When a command inside a step fails, setup names the line of the script and the command, then
-points to the log:
+When a command inside a step fails, its own complaint comes first. Then a red line names the
+command that failed and where setup stopped, and the line under it points to the log:
 
 ```text
-✘ line 360 in s_update(), called from line 1809: run dnf -y upgrade --refresh (exit 1)
+09:14:02 $ dnf -y install ffmpeg --allowerasing
+…
+✘ line 695 in s_media(), called from line 2030: dnf -y install ffmpeg --allowerasing (exit 1)
   log: /var/log/fedokawaii.log — fix the cause, then run the same command again (finished
 steps are skipped)
 ```
 
-*(for example; the second line is one line on the screen)*
+*(for example; shortened, and the last line is one line on the screen)*
+
+Here the command is `dnf -y install ffmpeg --allowerasing`, in the step for media (`s_media`);
+the two line numbers only matter to someone reading `setup.sh`. A command setup tries three
+times shows *attempt 1/3 failed: …* lines above the red one first.
 
 **Read the log.** The lines above the red one usually say why. The log keeps them all:
 
@@ -1363,7 +1379,7 @@ lines, below the reason:
 ```
 
 There is no login prompt on tty1 itself: **Alt+F2** switches to the second console, where you
-log in. (On a text console, **Alt+F2** does what **Ctrl+Alt+F2** does.) If the build was already in place and only its last check failed, the lines say
+log in. (On a text console, **Alt+F2** does what **Ctrl+Alt+F2** does. On Fedora 45 the second console is kmscon's, which takes only the Ctrl+Alt keys: **Ctrl+Alt+F1** comes back.) If the build was already in place and only its last check failed, the lines say
 instead: *Restart the computer, log in, then run: fedokawaii repair*.
 
 **Part I, looking back.**
@@ -1534,7 +1550,7 @@ table below walks along it from left to right.
 | 4 | **title** | the focused window | |
 | 5 | **now playing** | artist — title, with a cassette whose reels turn while sound plays, between the two halves of a spectrum meter drawn like an old hi-fi's fluorescent display: lowest notes nearest the title, a full column lights its top segment in vermilion | play/pause · right: next · middle: previous |
 | 6 | **mode seal** | a small vermilion seal while something is on that you should not forget: **静** (*quiet*) while do-not-disturb holds notices back, **共有** (*sharing*) while the screen is being shared; nothing otherwise | quick settings |
-| 7 | **tray** | the small icons some programs put there while they run (Steam, Solaar, OpenRGB); nothing otherwise | the program · right: its menu |
+| 7 | **tray** | the small icons some programs put there while they run (Steam, OpenRGB); nothing otherwise | the program · right: its menu |
 | 8 | **drive mark** | the drive icon while a USB stick, disk or SD card is plugged in: quiet, then lit once one of them is open; a number beside it for two or more | the drives menu: open or eject (ch. 13) |
 | 9 | **US / AR** | the keyboard layout (vermilion while it is not the first) | |
 | 10 | **CPU** | the chip icon, the last eight readings (one every two seconds, the newest on the right) in the same segment style, then the load now in per cent; vermilion above 80 % | opens btop |
@@ -1903,7 +1919,7 @@ the one on screen and opens its own.
 
 | Menu | Open with | Inside |
 |---|---|---|
-| quick settings | ⌄ key, **Super+X** | **theme** first, as a two-way switch (■ dark □ light) · brightness · night light · wallpaper · sound · network · Bluetooth on/off and pair a device (only when the PC has a Bluetooth adapter) · drives · do not disturb · screenshot · keybindings · **system** (the control, §35.1) · **change** (chapter 42) · power; the weather on top |
+| quick settings | ⌄ key, **Super+X** | **theme** first, as a two-way switch (■ dark □ light) · brightness · night light · wallpaper · sound · network · Bluetooth on/off and pair a device (only when the PC has a Bluetooth adapter) · drives · **backup** (the last one's age beside it; §37.6) · do not disturb · screenshot · keybindings · **system** (the control, §35.1) · **change** (chapter 42) · power; the weather on top |
 | power | **Super+Shift+E** | lock · sleep · log out · restart · shut down — centred, with your uptime; when the system says no (another user logged in, something holding it off), a notice says why |
 | audio | volume, **Super+A** | the level as a framed bar at the top · louder / quieter / mute (stay open for repeated taps), every output and input (not *Share*, which is picked per program, §14.4) — picking one moves playing sound to it — microphone mute, the full mixer |
 | calendar | the clock, **Super+C** | this month (Monday first, today in brackets), previous / next |
@@ -2012,23 +2028,51 @@ PING fedoraproject.org (…) 56(84) bytes of data.
 online yet, or has no DNS. Ch. 33 explains the parts, and its checklist
 (§33.4) finds which one is missing.
 
-## 8.3 Bluetooth: pairing headphones
+## 8.3 Bluetooth: pairing a controller or headphones
 
 Quick settings shows two Bluetooth lines, but only when the computer has a Bluetooth adapter:
-*bluetooth*, with *on* or *off*, and *pair a device*.
+*bluetooth*, with *on* or *off*, and *pair a device*. Pairing happens in **bluetui**, a small
+program in a floating terminal window: the keyboard does everything, and a line at its foot
+names the keys.
+
+**Try this.** Pair the game controller.
 
 1. **Super+X**: if *bluetooth* says *off*, choose it. The menu opens again, now saying *on*.
-2. Put the headphones into pairing mode — on most, hold the power button until a light flashes
-   (their manual says how).
-3. **Super+X** → *pair a device*. Blueman's window, *Bluetooth Devices*, opens floating.
-4. Press **Search** in its toolbar. Devices nearby appear in the list.
-5. Right-click the headphones and choose *Pair*; when that is done, right-click again and choose
-   *Connect*. *Trust*, in the same menu, lets them connect later without asking.
-6. **Super+A**: the headphones are a new line under *output*. Choose it. A notice says
-   *… is now the output*, and whatever is playing moves to them.
+2. Put the controller into pairing mode — on most, hold its pairing button until its light
+   flashes fast (the controller's manual says which button).
+3. **Super+X** → *pair a device*. bluetui opens: *Paired Devices* at the top, *Adapter* at the
+   bottom, the keys along the foot.
+4. Press **s** to scan. A *Scanning* list appears between the two, and the controller shows in
+   it after a few seconds, by name.
+5. **Tab** moves the frame to *Scanning*; **j** and **k** move to the controller; **Enter**
+   pairs it. Notices at the top right follow: *Start pairing with the device …*, *Device
+   paired*, *Device trusted*, *Device connected* — a device you have just paired is trusted
+   and connected by itself.
+6. The controller is now a line under *Paired Devices*, *Trusted* and *Connected* both *true*.
+   **Esc** (or **q**) closes the window; its light stops flashing, and a game sees it at once.
 
-Next time, switch the headphones on: once paired, most connect by themselves. If not, *pair a
-device* → right-click → *Connect* again.
+Headphones pair the same way: hold their power button until the light flashes, **s**, **Tab**,
+**Enter**. Some ask you to confirm a six-figure number shown in the window: *Yes* is already
+chosen, so **Enter** (**Tab** moves to *No*). Then **Super+A**: the headphones are a new line under *output*. Choose it. A notice
+says *… is now the output*, and whatever is playing moves to them.
+
+<!-- fig:app-bluetui | bluetui, the pairing window, with a controller and headphones paired and a scan running, on the dark theme; the same on the light. -->
+
+Next time, switch the device on: trusted, it connects by itself. If not, *pair a device*,
+**j**/**k** to its line under *Paired Devices*, **Enter** connects (and disconnects).
+
+| In bluetui | Does |
+|---|---|
+| **s** | start or stop scanning for devices nearby |
+| **Tab** · **Shift+Tab** | move the frame: *Paired Devices*, *Scanning*, *Adapter* |
+| **Enter** | pair the found device; connect or disconnect the paired one |
+| **t** · **u** | trust or untrust the device (connect by itself later) · unpair it (it asks first) |
+| **e** · **f** | rename the device · mark it a favourite |
+| **o** · **p** | with the frame on *Adapter*: power on or off · pairable on or off |
+| **Esc** · **q** | close the window |
+
+Pairing needs no password: BlueZ lets every user of the machine talk to it (its D-Bus policy,
+`bluetooth.conf`, allows any sender to *org.bluez*), and bluetui only speaks to BlueZ.
 
 When quick settings cannot switch Bluetooth on, a notice says why:
 
@@ -2109,7 +2153,7 @@ Ch. 35 explains the control, and ch. 36 what an update does.
 - Every menu is the same box: type to filter, **Enter** to choose; **Esc**, a click outside or its own key again closes it.
 - Quick settings (**Super+X**) holds the theme, brightness, network, Bluetooth, drives and do not disturb.
 - Wi-Fi: *network* → *Activate a connection*; `ping -c 3 fedoraproject.org` checks you are online.
-- Pair in Blueman (*Search*, *Pair*, *Connect*), then choose the headphones in **Super+A**.
+- Pair in bluetui (**s** scans, **Tab** to the list, **Enter** pairs), then choose the headphones in **Super+A**.
 - A click closes a notice, **Super+Shift+N** closes all; do not disturb (**静**) lets only critical ones through.
 - When the *upkeep* notice says the update season is here: **Super+U** → *update*.
 
@@ -2346,8 +2390,8 @@ A short, fixed layout makes them quick to find, to back up and to clean:
 | `~/Books/` | books and comics, in folders of your own if you like | the books window reads it (§16.2); its Ctrl+A moves books here from `~/Downloads`, `~/Documents` and `~/Desktop` |
 | `~/Notes/` | `notes.md` (Super+N), and any other notes you start | plain Markdown: searchable with `rg`, readable anywhere (§16.3) |
 
-Snapshots are not backups: they live on the same disk (ch. 37). Copy the folders
-in this table to another disk or machine now and then.
+Snapshots are not backups: they live on the same disk (ch. 37). Every folder in this table
+but `~/Downloads` goes to your backup drive with quick settings → *backup* (§37.6).
 
 ## 10.3 yazi, the file manager
 
@@ -2405,6 +2449,7 @@ Those seven keys are most of daily use. The whole list follows; **~** shows it i
 | gg · G · H · L | top · bottom · back · forward through visited folders |
 | g h · g d · g c · g t | home · Downloads · `~/.config` · the trash |
 | M · g m | the drives: open or eject a USB stick, disk or SD card · go where they open (ch. 13) |
+| W | watch the film under the cursor together with a friend (Syncplay, §15.7) |
 | g Space | type a path and jump there |
 | Enter · O | open the file (a folder: go into it) · choose what to open it with |
 | Space · v · Ctrl+A | select a file · select a range · select all |
@@ -2489,9 +2534,9 @@ in Brave opens yazi too, as the file dialog (§10.4, §14.3).
   Esc — or Ctrl+C — cancels.
 * Three files are the desktop's: `theme.toml` (colours, the file-kind icons — the desktop's
   own pixel icons), `init.lua` (the frame: one free column at each edge, as every popup has,
-  and the file dialog's title rule and key line) and `keymap.toml` (**M** and **g m**, the
-  drives), with the drives plugin in `plugins/`. Your own openers go in `yazi.toml`, which you
-  create; your own keys go in `keymap.toml` in your working copy (chapter 42), so the next
+  and the file dialog's title rule and key line) and `keymap.toml` (Enter, and **M** and
+  **g m**, the drives), with their plugins in `plugins/`. Your own openers go in `yazi.toml`,
+  which you create; your own keys go in `keymap.toml` in your working copy (chapter 42), so the next
   Theme keeps them (an example follows this list). yazi itself is held at the version these
   files are written for (§27.7).
 * Search results (s, S) are a temporary list; Esc leaves it, Ctrl+S stops a search still running.
@@ -2504,6 +2549,7 @@ then apply:
 # keymap.toml — these keys are tried before yazi's own
 [mgr]
 prepend_keymap = [
+  { on = "<Enter>",    run = "plugin smart-enter", desc = "Into the folder, or open the file(s)" },
   { on = "M",          run = "plugin drives",          desc = "Drives: open or eject one" },
   { on = [ "g", "m" ], run = "plugin drives -- media", desc = "Go to the open drives" },
   { on = [ "g", "r" ], run = "cd ~/repos",             desc = "Go to ~/repos" },   # yours
@@ -2587,7 +2633,8 @@ The whole list:
 | PDF, EPUB, XPS, FictionBook | zathura |
 | comic books (CBZ/CBR) | zathura |
 | Word / OpenDocument text, RTF | AbiWord |
-| spreadsheets, CSV | Gnumeric |
+| spreadsheets (`.xlsx`, `.ods`) | Gnumeric |
+| CSV and TSV tables | VisiData (in a terminal window; §16.7) |
 | Xournal++ notes | Xournal++ (to `file` a note is gzip, so opened from elsewhere it shows in yazi first — Enter there opens Xournal++) |
 | archives (`.zip`, `.tar.gz`, `.7z`, `.rar` …) | yazi, on the archive — Enter unpacks it beside itself |
 | magnet links, `.torrent` files | torrra (ch. 20) |
@@ -2676,6 +2723,9 @@ On Fedora 44 the consoles are drawn by the kernel itself. Fedora 45 moves them t
 a console that runs as an ordinary program and draws through KMS (§31.1), with
 its own font and colours; greetd keeps tty1 for itself (its drop-in declares a conflict with
 `kmsconvt@tty1.service`), so the login looks the same on both.
+
+> **On Fedora 45.** `tty` on **Ctrl+Alt+F2** prints a PTY — `/dev/pts/0`, say — not
+> `/dev/tty2`: kmscon is a terminal emulator, like foot, with a PTY for each console.
 
 ## 11.2 The shell's words
 
@@ -3034,10 +3084,10 @@ git-upload-pack
 `ls /usr/bin` lists the folder of programs — over two thousand names. `grep ^git` keeps only
 the lines that start (`^`) with *git*.
 
-> **In SQL terms.** `ls -l --sort=size ~/Downloads` reads like
-> `SELECT * FROM downloads ORDER BY size`: the command is the verb, options shape the result,
-> the argument names the table. A pipe chains steps: `ls /usr/bin | grep ^git` is
-> `… WHERE name LIKE 'git%'`.
+> **In everyday terms.** `ls -l --sort=size ~/Downloads` reads like an instruction: the command
+> is the verb (*list*), the argument what to act on (*my Downloads*), the options how (*with
+> details, by size*). A pipe passes the result on, and `grep ^git` works like a filter on a
+> spreadsheet column: only the names starting with *git* stay.
 
 Pipes and the `>` of step 5 are explained properly in
 §25.2.
@@ -3813,10 +3863,14 @@ Very little, on purpose:
   portal (§10.4).
 * **Screen sharing** goes through the portal and the *share what?* menu; a tab's sound always
   travels, and *Also share system audio* is turned on for screens and windows (§14.4).
+* **Saved logins** stay in Brave's *basic* store — the one it uses here anyway, with no
+  keyring running, guarded by your home folder's permissions rather than a password of its
+  own — pinned by the launcher (`--password-store=basic`), so a keyring arriving later can
+  never leave every saved password and cookie unreadable.
 * **No flags file** — Chromium 140 and later choose Wayland by themselves. Whether videos are
   decoded by the GPU is Brave's own default; `brave://gpu` → *Video Decode* shows it.
 * Links opened elsewhere — foot's URL mode, lazygit, spotify_player's sign-in — open in
-  Brave, and magnet links clicked in Brave open in torrra (§20).
+  Brave, and magnet links clicked in Brave open in torrra (ch. 20).
 
 ### Worth checking once
 
@@ -3870,7 +3924,7 @@ back so they never appear in the call — critical ones and the level display st
 |---|---|
 | the sound of a **Brave tab** (a video you are showing) | share the tab and keep *Also share tab audio* ticked — Brave captures it itself |
 | the **computer's sound** with a whole screen or a window | tick *Also share system audio* in Brave's picker (Theme turned this Brave feature on). It carries everything you hear — including the call itself, so others may hear an echo of their own voices. Headphones do not help; use it for a moment, or use the next row instead |
-| **only certain programs** (a game, a player), in any call program | in pavucontrol (audio menu → mixer → *Playback*) move those programs to the **Share** output — you still hear them — then pick **Share (as microphone)** as the microphone, or as a second audio input, in the call program. Only what you moved there is sent, never the call |
+| **only certain programs** (a game, a player), in any call program | in the mixer (audio menu → *mixer…* → *Playback*) move those programs to the **Share** output — you still hear them — then pick **Share (as microphone)** as the microphone, or as a second audio input, in the call program. Only what you moved there is sent, never the call |
 
 > **Word — PipeWire.** The sound server: the program that carries every other program's sound
 > to the speakers or headphones — and the pictures of a screen share to the call.
@@ -3906,7 +3960,7 @@ Your microphone itself travels as usual; check it in the audio menu (Super+A →
 
 1. You type `browser` in the launcher and nothing appears. Why? → *it matches program names only: type `brave`*
 2. Which key closes one tab, and which closes them all? → *Ctrl+W one tab; Super+Q the whole window*
-3. How can a call hear a game but not the call itself? → *move the game to **Share** in pavucontrol, and choose Share (as microphone) in the call*
+3. How can a call hear a game but not the call itself? → *move the game to **Share** in the mixer, and choose Share (as microphone) in the call*
 
 # 15. Pictures, video, music and sound
 
@@ -4161,16 +4215,17 @@ The audio menu (**Super+A**, §8.1) covers everyday needs: volume, mute, the out
 input. Two programs go further.
 
 **Above 100 %.** The volume keys, Super+scroll and the audio menu's *louder* all stop at
-100 %. Only the mixer goes further: its sliders reach 153 %. A level set there is left alone —
+100 %. Only the mixer goes further: its sliders reach 150 %. A level set there is left alone —
 *louder*, the volume key and Super+scroll up do nothing above 100 % — while *quieter*, the key
 and Super+scroll down still lower it.
 
-**pavucontrol**, the full mixer: audio menu → *mixer…*. It opens floating. Its tabs:
-*Playback* — a volume and an output device for **each program** (send a call to headphones
-and music to speakers, or a game to the **Share** output for a call, §14.4); *Recording* —
-which microphone each program listens to, shown while it records; *Output* and *Input
-Devices* — levels and ports of each device; *Configuration* — the card's profile (for example
-HDMI against analogue, or turning a card off).
+**wiremix**, the full mixer: audio menu → *mixer…*. It is a terminal program, and opens in a
+floating window of its own; the tabs are named along its foot. *Playback* — a volume and an
+output device for **each program** (send a call to headphones and music to speakers, or a game
+to the **Share** output for a call, §14.4); *Recording* — which microphone each program listens
+to, shown while it records; *Output Devices* and *Input Devices* — each device's level, with a
+meter of what is playing; *Configuration* — the card's profile (for example HDMI against
+analogue, or turning a card off).
 
 > **On Windows.** The *Playback* tab is the volume mixer of Windows' sound settings: one
 > slider and one output per program. The audio menu is the speaker icon on the taskbar.
@@ -4178,12 +4233,32 @@ HDMI against analogue, or turning a card off).
 **Try this.** Make one program quieter than the rest, and send it elsewhere.
 
 1. Play something: music in spotify_player, or a video in mpv.
-2. **Super+A**, then *mixer…* at the foot of the menu. pavucontrol opens on *Playback*, and
-   the player has a row of its own.
-3. Move that row's slider to the left: only that program gets quieter.
-4. The button at the right of the row names its output. Choose another one (headphones, a
-   monitor's speakers) and the program's sound moves there alone.
-5. **Super+Q** closes the mixer; your choices stay.
+2. **Super+A**, then *mixer…* at the foot of the menu. wiremix opens on *Playback*, and the
+   player has a row of its own: its name, the output it plays to at the right (◇ marks the
+   default one), a bar for its level. One row is always there, *share_sink.out: Share output*:
+   the **Share** device (§14.4) passing on to your speakers what you send it — leave it at 100 %.
+3. **j** and **k** move the marker to that row; **h** (or **←**) lowers its level, one per cent
+   a step, **1** to **9** set it to 10 % to 90 %, **0** to 100 %. Only that program gets quieter.
+4. **Enter** opens the list of outputs for the row. **j**/**k** to another one (headphones, a
+   monitor's speakers), **Enter** again, and the program's sound moves there alone.
+5. **Esc** (or **q**) closes the mixer; your choices stay. A click on a row works too: the
+   mouse drags the bars, a right click on a device makes it the default.
+
+<!-- fig:app-wiremix | wiremix, the mixer, on its Playback tab with mpv playing: the level bar in teal, the peak meter in matcha, the chosen row marked vermilion, on the dark theme; the same on the light. -->
+
+| In wiremix | Does |
+|---|---|
+| **Tab** · **Shift+Tab** | the next tab · the previous one |
+| **j** / **k** · **h** / **l** | down / up a row · quieter / louder by 1 % |
+| **m** · **d** | mute the row · make the device the default (*Output* and *Input Devices*) |
+| **Enter** | open the row's list (its output, its microphone, a card's profile); choose in it |
+| **?** | the whole list of keys |
+| **Esc** · **q** | close the mixer — from an open list too (**Enter** chooses there) |
+
+The mixer wears the theme (ch. 9): the level bars in the teal of the level display, the
+meters in matcha, red past 0 dB. It reads its colours when it opens, so a mixer left open
+through a theme switch keeps the old ones until you open it again. Its file is
+`~/.config/wiremix/wiremix.toml`, a link into the theme in use.
 
 **EasyEffects** (from the launcher; on Fedora 44 it is a Qt 6 program): effects in real
 time. *Output* effects change what you hear — an equaliser, bass, loudness. *Input* effects
@@ -4206,8 +4281,76 @@ that is yours alone (§42.1: the theme never writes it):
 easyeffects --service-mode --hide-window &   # at every login, window hidden; & keeps it running
 ```
 
-It takes effect at the next login. A program you have moved to a device in pavucontrol stays
+It takes effect at the next login. A program you have moved to a device in the mixer stays
 there; choosing another output in the audio menu no longer moves it.
+
+## 15.7 Watching together: Syncplay
+
+A friend in another city has the same film as you. You want to watch it at the same moment,
+with one pause for both of you. Syncplay does that: each of you plays your own copy, and a
+Syncplay server keeps the two players in step. Only play, pause, the position and chat travel.
+
+> **Word — room.** A name on a Syncplay server. Everyone who types the same name on the same
+> server watches together: no account, no invitation.
+
+**Try this.** Watch a film with a friend.
+
+**1.** Send your friend the name of a room. Theme made one for you, your name and four
+characters (for example `you-3f9a`); any name you both agree on works as well.
+
+**2.** In yazi, stand on the film and press **W** (or open *Syncplay* from the launcher). A
+terminal window opens and asks for the room, with the last one already typed: **Enter**.
+
+```text
+room (the one your friends use): you-3f9a
+[21:04:10] Attempting to connect to syncplay.pl:8999
+[21:04:10] Attempting secure connection
+[21:04:11] Secure connection established (TLSv1.3)
+[21:04:11] Successfully connected to server
+[21:05:02] friend has joined the room: 'you-3f9a'
+```
+
+*(for example; shortened)* mpv opens beside the window, paused.
+
+**3.** Press **Space** in mpv. Your friend is not ready yet, so the film stays paused and the
+terminal says `You are now set as ready - unpause again to unpause`. When your friend presses
+**Space** too, both films play.
+
+**4.** Pause, or jump with **→**: your friend's player does the same, and the terminal says who
+did it (`friend jumped from 12:01 to 12:06`).
+
+**5.** Press **Enter** in mpv, type `popcorn?` and press **Enter** again: the line appears on
+your friend's picture. **Esc** leaves the chat line unsent.
+
+The rule: same server, same room, same file — then one player's pause, seek and chat are
+everyone's. mpv keeps its keys; only **Enter** opens the chat line. Inside Syncplay mpv
+opens no saved spot and keeps none by itself (§15.2; **Q** still keeps one): the room decides
+where the film is, and the spot you saved watching alone stays as it was.
+
+> **On Windows.** Your friend can stay on Windows: Syncplay for Windows (syncplay.pl) works the
+> same way with mpv, MPC-HC or VLC. Only the room and the server have to match.
+
+The terminal takes commands too: `t` ready or not, `p` pause, `ch hello` chat, `l` who is in
+the room, `r NAME` another room, `h` all of them. Your settings live in
+`~/.config/syncplay.ini`: `host` and `port` (the server), `name`, `room` and `playerpath`.
+Theme fills in only a value that is empty; Syncplay rewrites the file whenever one changes.
+
+| If this happens | Do this |
+|---|---|
+| `Your file differs in the following way(s): name, size, duration` | different files. A different name alone is fine; another size or duration is another cut: get the same release |
+| `Slowing down due to time difference with friend` · `Rewinded …` · `Fast-forwarded …` | one player is ahead or behind. Syncplay slows the one ahead (1.5 s), or jumps it back (4 s) or forward (5 s). Nothing to do |
+| `Connection with server failed`, then `Press enter to exit` | the server is not reachable. Check the network, then try another public port: `port = 8997` in the file above — your friend changes it too |
+| the server list | the public servers are `syncplay.pl`, ports 8995 to 8999 (France). A room on one port is not the room on another |
+| the window stays after mpv closes | Syncplay 1.7.6 now and then waits two minutes for the closed player: close the window (**Super+Q**), nothing is lost |
+
+**The terminal way, and only that.** `kawa-together film.mkv` asks for the room and runs
+`syncplay --no-gui --room ROOM -- film.mkv`, which you can also type yourself
+(`-a syncplay.pl:8997` for another server). Syncplay is installed from its own source,
+without Qt (§27.7): it has no window here, and `syncplay` always starts in the terminal.
+
+**Pitfalls.** A public room is open to anyone who types its name, and they see your file's
+name: that is why your room has four random characters. Syncplay's player follows the dark and
+light switch like every mpv.
 
 **What you learnt**
 
@@ -4215,14 +4358,16 @@ there; choosing another output in the audio menu no longer moves it.
 - mpv remembers where you stopped; **i** shows a file's codecs; **q** quits.
 - `yt-dlp 'LINK'` keeps a web video; `-x --audio-format mp3` keeps only its sound.
 - The media keys and clicks on *now playing* act on the player that is playing.
-- **Super+A** for everyday sound; *mixer…* (pavucontrol) for each program's own level and
+- **Super+A** for everyday sound; *mixer…* (wiremix) for each program's own level and
   output; only the mixer goes above 100 %.
+- **W** on a film in yazi watches it with a friend (Syncplay): the same server, room and file;
+  **Enter** in mpv chats.
 
 **Check yourself**
 
 1. A file ends in `.mkv`. Does that tell you its video codec? → *no: `.mkv` is the container; **i** in mpv shows the codecs inside*
 2. Music plays in spotify_player while a video waits, paused, in Brave. What does Play/Pause do? → *it pauses the music: the keys act on the player that is playing*
-3. How do you get the volume above 100 %? → *only in the mixer, pavucontrol, up to 153 %; the keys stop at 100 %*
+3. How do you get the volume above 100 %? → *only in the mixer, wiremix, up to 150 %; the keys stop at 100 %*
 
 # 16. Reading, documents and notes
 
@@ -4231,7 +4376,7 @@ there; choosing another output in the audio menu no longer moves it.
 > - read and search PDFs and e-books, in a library that remembers your page
 > - keep a diary of notes that saves itself as you type
 > - convert office files and PDFs, and present slides from a text file
-> - calculate with units, money and dates
+> - calculate with units and money; sort, sum and filter a CSV in the terminal
 >
 > **You need:** §10.3 (yazi) and §11.4 (the first commands).
 
@@ -4401,8 +4546,11 @@ Markdown is optional in your notes, but it makes them quicker to scan later:
 
 **Tips.** To find something from any terminal: `rg -i rice ~/Notes`. Notes are plain text in
 your home, so the snapshots of `/home` keep their history too (§37.2). Want a separate file
-for a project? Start one in `~/Notes` from neovim (`:e ~/Notes/japan-trip.md`); Super+N
-always opens `notes.md`.
+for a project? Start one in `~/Notes` from neovim (`:e ~/Notes/japan-trip.md`) — in the
+notes window too, where it saves itself as you type, its name in the rule; Super+N
+always opens `notes.md`. Add a line from a terminal while the window is open —
+`echo '- call the bank' >> ~/Notes/notes.md` — and it appears in the window at once: changes
+made elsewhere (another editor, a sync tool) are taken in, and typing carries on.
 
 ## 16.4 Documents: Xournal++, AbiWord, Gnumeric and the PDF tools
 
@@ -4412,7 +4560,8 @@ marks in a separate `.xopp` file and never changes the PDF; *File → Export as 
 new PDF with the marks in it — that is the file to send.
 
 **AbiWord** for letters and simple documents, **Gnumeric** for spreadsheets (both from the
-launcher, both the defaults for their file types). Both open Microsoft and OpenDocument files;
+launcher, both the defaults for their file types — a `.csv` opens in VisiData instead, §16.7).
+Both open Microsoft and OpenDocument files;
 *File → Save As* lists what each can write. The Liberation fonts stand in for Arial, Times New
 Roman and Courier New with the same widths, so pages break where their authors meant. From a
 terminal: `abiword --to=pdf letter.docx` and `ssconvert sheet.xlsx sheet.csv` convert without
@@ -4561,6 +4710,106 @@ work, `footclient -a float qalc` opens it in a small floating window.
 **Read more:** `man qalc`, and the [project's site](https://qalculate.github.io/) for the full
 list of units and functions.
 
+## 16.7 Tables in the terminal: VisiData and sc-im
+
+A CSV — a table saved as plain text, one line per row, commas between the columns — wants
+sorting, summing and filtering before it wants a spreadsheet. **VisiData** (`vd`)
+does that in the terminal, on a file of any size, and opens at once: **Enter** on a `.csv` or
+`.tsv` in yazi (**q** brings yazi back), a download from Brave in a terminal window of its own
+(the *Tables* entry, §10.5), or `vd file.csv` in a terminal.
+
+<!-- fig:app-visidata | VisiData on a small CSV, the cursor on the temp column: its name lit, the sum row under the table, the status line below; on the dark theme, the same on the light. -->
+
+**Try this.** Make a small CSV, open it, then sort, sum and filter one column.
+
+```text
+$ cd ~/practice
+$ printf 'city,temp,day\nSharjah,41,Mon\nDubai,40,Tue\nAjman,38,Wed\n' > weather.csv
+$ vd weather.csv
+```
+
+Three rows under a line of column names, the cursor on *city*. Then, key by key:
+
+| You press | It means |
+|---|---|
+| **l** (or **→**) | move to the *temp* column: its name lights up |
+| **#** | *this column holds whole numbers* — a `#` appears by its name; until then it is text, and `9` sorts after `40` |
+| **[** | sort the sheet by it, smallest first (**]** largest first) |
+| **+**, then `sum` and **Enter** | a row under the table with the column's sum: `119` |
+| **\|**, then `4` and **Enter** | select the rows whose *temp* contains a 4: Sharjah and Dubai, marked at the left |
+| **"** | a new sheet of the selected rows only; its sum row says `81`; **q** returns to the whole table |
+| **q** | close the sheet; with unsaved changes it asks first |
+
+> **In everyday terms.** These are a spreadsheet's moves, made with keys: **#** then **[** sorts
+> the *temp* column smallest to largest; **+** `sum` puts its total under it; **\|** then **"**
+> is a filter that shows only the matching rows; **Shift+F** counts how many rows hold each
+> value of a column.
+
+Column types matter: a CSV holds text, so VisiData reads every column as text until you say
+otherwise, and text sorts and sums as text. Set the type first, then sort or sum.
+
+| Keys | Does |
+|---|---|
+| **↑ ↓ ← →** · **Home** · **End** | move · the top · the bottom |
+| **/** text · **n** | search this column · the next match |
+| **_** · **-** · **gv** | widen the column to fit · hide it · unhide all |
+| **#** · **%** · **$** · **@** · **~** | the column's type: whole number · decimal · currency · date · text |
+| **[** · **]** | sort by this column, ascending · descending |
+| **+** · **z+** | a row under the table with this column's sum, average, count, min, max… · the same once, in the status line |
+| **s** · **u** · **\|** pattern · **,** | select this row · unselect it · select the rows matching a pattern · select the rows with this cell's value |
+| **"** · **gs** · **gu** | a sheet of the selected rows only · select all · unselect all |
+| **Shift+F** · **Shift+I** | how many rows of each value in this column (and the sums of columns with a **+**) · a summary of every column: distinct values, min, max, sum, median |
+| **e** · **d** · **U** | edit the cell · delete the row · undo |
+| **Ctrl+S** name | save: the extension chooses the format — `.csv`, `.tsv`, `.json`, `.md` (a Markdown table) |
+| **Shift+S** · **q** · **gq** | the open sheets (each file, each filter is one) · close this sheet · close them all |
+| **F1** · **z Ctrl+H** · **Space** | the manual · this sheet's keys · the command palette: every command by name |
+
+Nothing changes on disk until **Ctrl+S**: sorting, filtering and deleting rows happen in the
+sheet. VisiData loads in the background, so a file of a million rows shows its first rows at
+once while the row count in the status line, bottom left, keeps climbing; the whole table is
+held in memory, more than the file's own size. Before a file larger than your memory, set
+`options.min_memory_mb = 1000` in `~/.visidatarc`: loading stops when free memory falls below
+that, instead of the machine freezing. It opens TSV, JSON (one row per object; **(** expands a
+nested column) and SQLite databases (the list of tables; **Enter** opens one) the same way;
+`.xlsx` needs the Python module `openpyxl`, which is not installed — Excel files are
+Gnumeric's, below.
+
+**sc-im** is the other half: a spreadsheet, in the terminal, with vi's keys. For formulas
+across cells, a quick budget, or a CSV that needs a column computed from two others.
+
+**Try this.** Open the same CSV in sc-im and sum the column with a formula.
+
+```sh
+sc-im weather.csv
+```
+
+Type `goB4` (go to cell B4 — sc-im counts rows from 0, so the names are row 0 and the three
+cities rows 1 to 3), then `=@sum(B1:B3)` and **Enter**: B4 shows `119`. `:w weather.sc` keeps
+the sheet with its formula in sc-im's own format; `:e csv weather-sum.csv` writes the values,
+not the formulas, to a new CSV; `:q` quits (`:q!` without saving).
+
+| Keys | Does |
+|---|---|
+| **h j k l** (or the arrows) · `go` cell | move · go to a cell, `goB4` |
+| a digit · **=** · **<** · **>** | start a number · a number or formula (`=@sum(B1:B3)`, `=B1*1.05`) · text, left · text, right |
+| **e** · **E** · **x** · **u** | edit the number · edit the text · clear the cell · undo |
+| **ir** · **ic** · **dr** · **dc** | insert a row · a column · delete the row · the column |
+| **yy** · **p** · **v** | copy the cell · paste · select a range (then **y**, **x**, or **:sort**) |
+| **fl** · **fh** | the column wider · narrower |
+| **:w** name · **:e csv** name · **:load** file | save as `.sc` (formulas kept) · write the values to a CSV · open another file |
+| **:help** · **:q** | the manual (**:q** back) · quit |
+
+> **On Windows.** Gnumeric is the Excel here (§16.4): for a `.xlsx` someone sent you, for
+> charts, or for a sheet you will send back. VisiData is for looking at data; sc-im for a
+> few formulas without a mouse. Both read a CSV; only Gnumeric reads Excel files.
+
+Both draw with the terminal's sixteen colours, so they follow the dark and light theme like
+the shell does (ch. 9); `~/.visidatarc` and `~/.config/sc-im/scimrc` hold their settings.
+
+**Read more:** [VisiData's documentation](https://www.visidata.org/docs/) (the *Quick
+reference* lists every key) and `man vd`; [sc-im's manual](https://github.com/andmarti1424/sc-im/blob/main/src/doc)
+(`:help` inside it).
+
 **What you learnt**
 
 - **Enter** on a PDF or e-book opens zathura: `/` searches, **Ctrl+R** recolours, **q** closes
@@ -4569,6 +4818,8 @@ list of units and functions.
 - **Super+N** is one diary file, `~/Notes/notes.md`: type at once, and it saves itself.
 - `abiword --to=pdf` and `ssconvert` convert office files; `qpdf` picks, joins and counts pages.
 - `presenterm talk.md` shows a Markdown file as slides; `qalc` calculates with units and money.
+- `vd file.csv`: **#** then **[** sorts a column as numbers, **+** sums it, **|** then **"**
+  filters; sc-im is the spreadsheet with vi's keys; Excel files stay with Gnumeric.
 
 **Check yourself**
 
@@ -5215,7 +5466,7 @@ by its description — type *split* or *comment*.
 | Space , · Space f r | the open buffers · recent files |
 | Space f c · Space f n | a file of neovim's own config · a new empty file |
 | Space e | the file tree |
-| Space g g | lazygit, in a floating window (§41) |
+| Space g g | lazygit, in a floating window (ch. 41) |
 | Space g b · Space g f · Space g l | the history of this line · of this file · of the project |
 | Space b d | close the buffer |
 | Space - · Space \| · Space w d | split below · split right · close the window |
@@ -5260,7 +5511,7 @@ neovim's list of places to step through — and
 step through the list; Space x q shows it.
 
 **Tip:** run a project-wide replace in a git repository with everything committed first: lazygit
-then shows exactly what changed, and discarding takes it all back (§41).
+then shows exactly what changed, and discarding takes it all back (ch. 41).
 
 ## 17.15 Language servers
 
@@ -5381,7 +5632,7 @@ or ERROR, with advice. `:LazyHealth` loads every plugin first, so none is skippe
    for a file, `r` for a recent one.
 3. Work. Ctrl+S saves; Space / finds anything in the project; Shift+H and Shift+L move between
    the open files; `gd` and `K` explain code.
-4. Space g g: read the diff, stage, commit, push (§41); `q` returns to the editor.
+4. Space g g: read the diff, stage, commit, push (ch. 41); `q` returns to the editor.
 5. Space q q quits. The session of this folder is saved by itself, ready for step 2 tomorrow.
 
 ## 17.22 A learning path
@@ -5543,7 +5794,7 @@ the list, matched loosely:
 | `update` · `verify` · `repair` | §35.1 |
 | `snaps` | the snapshot list (§37.4) |
 | `dwl-log` | the compositor's log, opened at the end |
-| `torrra` · `prowlarr` | torrra through its key wrapper · Prowlarr's web page, started first (`prowlarr stop` when done) (§20) |
+| `torrra` · `prowlarr` | torrra through its key wrapper · Prowlarr's web page, started first (`prowlarr stop` when done) (ch. 20) |
 | `ssh` | always reaches the server as `xterm-256color`: few servers know foot's own terminal type |
 | `history` | shows the date and time of each command |
 | `EDITOR`, `VISUAL`, `vi` | all neovim; `man` pages open in neovim too (`q` closes; `gO` lists the sections) |
@@ -5709,10 +5960,6 @@ $ du -xh -d1 ~ | sort -h | tail -5
 The last line is your whole home. `~/Downloads` is missing: it is a subvolume of its own,
 which `-x` steps over (§38.2) — `du -sh ~/Downloads` measures it alone. Steam's games live in
 `~/.local/share`, which is why `.local` is often the largest.
-
-> **In SQL terms.** The pipeline reads like
-> `SELECT size, folder FROM du ORDER BY size LIMIT 5` — except that `sort` goes smallest first,
-> so `tail` keeps the last five rows instead of the first.
 
 *If you see `du: invalid maximum depth 'l'`:* the option is `-d1`, with the digit one.
 
@@ -6414,9 +6661,9 @@ next to the original; `ssconvert` writes the name you give.
 | CSV → Excel | `ssconvert "Expenses October.csv" "Expenses October.xlsx"` |
 | Excel → PDF · → OpenDocument | `ssconvert budget.xlsx budget.pdf` · `ssconvert budget.xlsx budget.ods` |
 
-> **In SQL terms.** A CSV from `ssconvert` is a table ready to load anywhere: Power BI's *Get
-> data → Text/CSV*, or a database's import. With `-S`, each sheet becomes a CSV of its own — one
-> table per sheet.
+> **In everyday terms.** A CSV is a sheet with only its values left: no formulas, no colours,
+> no second sheet. That is why `-S` writes one CSV per sheet, and why almost any program, Excel
+> included, can read one.
 
 **Pitfalls.** Ordinary letters and sheets convert well; tracked changes, text boxes, macros and
 elaborate layouts do not survive. Gnumeric writes dates and numbers into a CSV the way it
@@ -6551,8 +6798,8 @@ of showing an empty list.
 Open **Torrents** from the launcher, or type `torrra` in a terminal (`torrra search 'debian
 13'` searches straight away; `torrra downloads` shows only the downloads). Its colours are the
 terminal's, so it follows the theme. When Prowlarr is not running, a search starts it first —
-`torrra: starting Prowlarr…` — which takes up to a minute the first time after the computer
-starts.
+`torrra: starting Prowlarr…` — which can take a minute or two the first time after the
+computer starts.
 
 | Keys | Does |
 |---|---|
@@ -6581,7 +6828,7 @@ step. Move anything you keep out of `~/Downloads` — nothing there is in a snap
 watch torrents work.
 
 1. Open **Torrents** from the launcher. If Prowlarr is not running yet, the window first says
-   `torrra: starting Prowlarr…` — up to a minute after the computer starts.
+   `torrra: starting Prowlarr…` — a minute or two, the first time after the computer starts.
 2. Type `debian 13` and press Enter. The results arrive, most seeders first.
 3. **Enter** on one shows its details; **Enter** again lists its files, every one ticked;
    **Enter** once more starts the download.
@@ -6631,9 +6878,9 @@ torrra is already open.
 
 ## 20.4 When something is wrong
 
-torrra itself exits quietly on every failure; its wrapper (`kawa-torrra`) checks Prowlarr
-first and says what is missing — in the terminal, or as a notice when torrra was opened from the
-launcher or a link:
+torrra itself prints a short error in red and closes on a failure — from the launcher, too fast
+to read; its wrapper (`kawa-torrra`) checks Prowlarr first and says what is missing — in the
+terminal, or as a notice when torrra was opened from the launcher or a link:
 
 | Message | Do |
 |---|---|
@@ -6653,6 +6900,7 @@ launcher or a link:
 | no such file: … | the .torrent file was moved or deleted before torrra opened it — download it again |
 | not a magnet link or a .torrent file: … | only magnet links, http(s) links to a torrent, and files ending in .torrent open in torrra |
 | a search finds nothing although indexers are set | test them in Prowlarr (**Indexers → Test All**); one may be down or need FlareSolverr |
+| a download stops growing and stays *Stalled* | the disk may be full — torrra does not say so, and `~/Downloads` shares the disk with the whole system. `fedokawaii status` shows the free space; make room, then close torrra and open it again: the download carries on |
 
 **Read more:** [torrra's usage guide](https://torrra.readthedocs.io/en/stable/usage.html) (for
 version 2.5.1, the one installed), [Prowlarr's indexer pages](https://wiki.servarr.com/prowlarr/indexers)
@@ -6678,6 +6926,7 @@ and the [magnet link format](https://bittorrent.org/beps/bep_0009.html).
 >
 > - install and play Windows games through Steam and Proton
 > - add the performance overlay and gamemode to a game
+> - pair a game controller for Steam
 > - control RGB lighting, Logitech devices, coolers and an AMD graphics card
 >
 > **You need:** §14.1 (the launcher) and §7.3 (workspaces).
@@ -6745,18 +6994,51 @@ GE-Proton builds, so a game forced to an older one needs a new choice under *Com
 (its launch options), [gamescope](https://github.com/ValveSoftware/gamescope#readme) and
 [MangoHud](https://github.com/flightlessmango/MangoHud#readme).
 
-## 21.2 Hardware — OpenRGB, Solaar, liquidctl, LACT
+### Controllers
 
-Four programs, each for one kind of device. Try the ones for the hardware you have; the others
-find nothing to control.
+A game controller on Bluetooth pairs the way headphones do (§8.3):
+
+1. Put the controller into pairing mode. On an Xbox controller, hold the small pair button on
+   its top edge until the Xbox button flashes fast; on a PlayStation one, hold **Share** (or
+   **Create**) and the **PS** button together until the light bar flashes.
+2. **Super+X** → *pair a device*; in bluetui, **s** scans, **Tab** moves to *Scanning*, **j**/**k**
+   to the controller, **Enter** pairs it — trusted and connected by itself.
+3. Start Steam: *Settings → Controller* lists it, and every game sees it.
+
+No driver needs adding. Fedora's kernel drives the common ones itself — Xbox (`hid-microsoft`),
+PlayStation (`hid-playstation`), Switch Pro and 8BitDo in Switch mode (`hid-nintendo`) — and
+Steam reaches them through `steam-devices`, rules that let your user open a controller.
+
+The Bluetooth dongle never sleeps. A controller on a dongle that naps between packets lags or
+drops, so setup switches the dongle's power saving off, from the next start on
+(`options btusb enable_autosuspend=0` in `/etc/modprobe.d/fedokawaii-btusb.conf`).
+
+**A controller no game sees.** One that pairs but that no game sees may need the `input`
+group, which opens every input device to your programs directly. Setup leaves you out of it,
+because while you are in it any program you run can read every key you press. To try it:
+
+```sh
+sudo usermod -aG input $USER    # then log out and in again
+```
+
+Update and repair leave you in it; `sudo gpasswd -d $USER input` takes you out again.
+
+**Pitfall.** Microsoft's own USB receiver for Xbox controllers, the *Xbox Wireless Adapter*, is
+not Bluetooth. It needs `xone`, a driver built outside Fedora's kernel, which Secure Boot
+refuses to load unless you enrol a signing key of your own. Pair the controller over Bluetooth
+instead.
+
+## 21.2 Hardware — OpenRGB and LACT
+
+Two programs, each for one kind of device: the lights, and the graphics card. A mouse or
+keyboard on a USB receiver needs neither: it works as soon as the receiver is plugged in.
 
 **Try this.** Look before you change anything.
 
 1. **Super+Space**, `lact`, Enter (AMD graphics cards only): LACT shows the card's clocks,
    temperatures and power. Read them, change nothing, and close it with **Super+Q**.
-2. In a terminal, `solaar show` lists a Logitech receiver and what is paired to it, with the
-   battery levels; `liquidctl list` lists the coolers and fan hubs it can drive. Each lists
-   only what is plugged in.
+2. **Super+Space**, `openrgb`, Enter: OpenRGB lists the lights it can reach. An empty list means
+   your lights hang on something it cannot drive — a hub with its own button or remote.
 
 **OpenRGB** (launcher) sets the lighting of RGB devices from one window: find the devices,
 choose colours and effects, save a *profile*. Nothing starts it at login, so the lighting
@@ -6768,32 +7050,17 @@ lighting controllers hang on; if those devices do not appear, see OpenRGB's own 
 this desktop sets up nothing beyond loading `i2c-dev` (for monitor brightness, which uses the
 same kind of bus). Its window takes the Qt palette, so it follows the theme.
 
-**Solaar** (launcher) manages Logitech receivers and their devices: pair a mouse or keyboard
-to a receiver, read battery levels, change buttons and pointer settings. `solaar show` lists
-everything in a terminal. Like EasyEffects, its autostart entry is for full desktops, so it
-runs only when you start it.
-
-**liquidctl** controls AIO coolers, fan hubs and some power supplies from the terminal:
-`liquidctl list` finds them, `liquidctl initialize all` prepares them (needed after every
-boot on many devices), `liquidctl status` shows temperatures and speeds,
-`liquidctl set pump speed 70` and `liquidctl set fan speed 20 30 40 60 50 100` set them. The
-fan line is a curve, read in pairs of temperature and duty (the share of full speed):
-
-| Liquid at | Fans at |
-|---|---|
-| 20 °C | 30 % |
-| 40 °C | 60 % |
-| 50 °C | 100 % |
-
-On liquid coolers the temperature is the coolant's, from the cooler's own probe, not the CPU's.
-Most devices forget these settings when powered off, and nothing here applies them again at
-boot; liquidctl's [README](https://github.com/liquidctl/liquidctl#readme) shows a small systemd
-service that does.
+**Fan speeds** are not a program's job here. The case fans and the CPU cooler's fan plug into
+the motherboard, and its start-up settings (§3.6) set their speed by temperature: look for
+*Smart Fan*, *Q-Fan* or *Fan Tuning*. That curve works before Linux starts, so nothing here
+needs to apply it again.
 
 **LACT** (launcher; AMD only) shows the graphics card — clocks, temperatures, power — and
 changes it: fan curve, power limit, performance level, and, thanks to the
 `amdgpu.ppfeaturemask` kernel argument setup added, clocks and undervolting (running the chip
 at a lower voltage for the same clock: cooler and quieter, until it is too low to be stable).
+For a glance without LACT, btop's CPU box has a line for the card: load, memory, heat and
+watts (§26.5).
 Its service, `lactd`, applies the settings in `/etc/lact/config.yaml` at every boot. Change one thing at a
 time and test it: an unstable clock or voltage can freeze the machine, and LACT's wiki has a
 page on recovering from a bad overclock.
@@ -6809,7 +7076,7 @@ page on recovering from a bad overclock.
 | 18 | find any file, word, folder or earlier command in seconds |
 | 19 | do on your own computer what websites charge for |
 | 20 | search, download and seed torrents |
-| 21 | play Windows games, and tune the lights, mouse, cooler and graphics card |
+| 21 | play Windows games, and tune the lights and the graphics card |
 
 Part IV turns from using the machine to understanding it: what happens underneath each of these
 programs, one layer at a time, from the files on the disk to the network.
@@ -6819,8 +7086,8 @@ programs, one layer at a time, from the files on the disk to the network.
 - Steam opens on workspace 9 (**Super+9**); Proton runs Windows games, GE-Proton when a game needs it.
 - A game's launch options take `gamemoderun`, `mangohud` and `gamescope` before `%command%`.
 - **Right Shift+F12** shows or hides the overlay.
-- OpenRGB, Solaar, liquidctl and LACT each control one kind of device; only LACT re-applies its
-  settings at boot by itself.
+- OpenRGB sets the lights and LACT the graphics card; only LACT re-applies its settings at boot
+  by itself. Fan speeds belong to the motherboard's start-up settings.
 
 **Check yourself**
 
@@ -6948,7 +7215,7 @@ then on. Much of what Part IV describes started that way. The ones that matter h
 | 41 | DNF 5 as `dnf` (§27.2) |
 | 42 | `/usr/sbin` merged into `/usr/bin` (§23.2) |
 | 43 | RPM 6.0 (§27.1) |
-| 45 | kmscon for the text consoles (§11.1) · RPM refuses unsigned packages by default (ch. 34) |
+| 45 | kmscon for the text consoles (§11.1) · RPM refuses unsigned packages by default (§27.5) |
 
 ## 22.3 How to explore any Linux machine
 
@@ -7180,10 +7447,10 @@ The whole picture, place by place, with who writes there and what may go:
 |---|---|---|---|
 | `/etc` | system-wide settings: DNF (`/etc/dnf/libdnf5.conf.d/90-fedokawaii.conf`, the snapshot hook in `/etc/dnf/libdnf5-plugins/actions.d/`), the tuned profile, NetworkManager, `/etc/dconf`, `/etc/default/grub`, snapper's configs | Setup and Theme (as root), and Fedora's packages | no. Change Fedokawaii's own files through `fedokawaii.conf` and the toolkit (§5.5); anything else with `sudoedit FILE`, as a drop-in where the program reads one (§28.3) |
 | `~/.config` | every program's settings | Theme owns the files listed in §42.2; the rest are yours | no — but a managed file edited here is replaced at the next Theme run |
-| `~/.config/fedokawaii/` | `env`, `themes/`, `current`, `icons.sh`, `secrets.sh` | Theme (`env` is written from `fedokawaii.conf`); `secrets.sh` is yours | no |
-| `~/.local/bin` | `kawa-*` helpers, `fetch`, `brave-origin`, `kawa-veil`, `kawa-clipkeep`, the release binaries (`yazi`, `ya`, `satty`, `presenterm`, `spotify_player`), `torrra` | Theme, `update` and pipx | no. Your own scripts may live here too, under names the desktop does not use there |
+| `~/.config/fedokawaii/` | `env`, `themes/`, `current`, `icons.sh`, `backup-exclude`, `secrets.sh` | Theme (`env` is written from `fedokawaii.conf`); `secrets.sh` is yours | no |
+| `~/.local/bin` | `kawa-*` helpers, `fetch`, `brave-origin`, `kawa-veil`, `kawa-clipkeep`, the release binaries (`yazi`, `ya`, `satty`, `presenterm`, `spotify_player`, `lazygit`, `bluetui`) | Theme and `update` | no. Your own scripts may live here too, under names the desktop does not use there |
 | `~/.local/share` | program data: Steam and its games, pipx's torrra, podman's images, the trash, neovim's plugins and Mason tools, the pixel art and the wallpaper pack | the programs themselves | no, not as a whole; see §38.1 and §38.2 for the parts you can trim |
-| `~/.local/state/fedokawaii/` | theme stamps, each theme's wallpaper choice, `backup/<time>/`, `lazy-lock/` (neovim's plugin versions before each update) | Theme, `update` and the session | the old folders in `backup/` — the theme itself keeps only its newest 20 |
+| `~/.local/state/fedokawaii/` | theme stamps, each theme's wallpaper choice, `backup/<time>/`, `lazy-lock/` (neovim's plugin versions before each update), `last-backup` (when kawa-backup last ran, for the menus) | Theme, `update` and the session | the old folders in `backup/` — the theme itself keeps only its newest 20 |
 | `~/.cache` | logs, previews, the scaled wallpapers, the clipboard history, launcher counts | the programs | yes, piece by piece; every program rebuilds its part (§38.2) |
 | `~/Downloads` | what Brave, torrra and yt-dlp fetch | the programs | yes — and its space comes back at once: it is its own Btrfs subvolume, outside every snapshot |
 | `~/Pictures/Screenshots` | Print, Shift+Print, satty's Ctrl+S, mpv's `s` | the screenshot tools | yes, whenever you like |
@@ -7224,7 +7491,7 @@ TARGET          SOURCE                 FSTYPE
 
 *(for example)* Both `/` and `/home` come from the same partition, `nvme0n1p3`: they are two
 Btrfs *subvolumes* of one file system (§4.2), shown in brackets. `findmnt -no OPTIONS /`
-lists the options, among them `compress=zstd:1` (every file is compressed as it is written) and
+lists the options, among them `compress=zstd:1` (files are compressed as they are written, where that saves space) and
 `subvol=/root`. `/proc`, `/sys`, `/run` and `/tmp` are mounts too, of file systems that live
 in memory: `findmnt /tmp` shows `tmpfs`.
 
@@ -7489,9 +7756,9 @@ you:x:1000:1000:You:/home/you:/bin/bash
 | 5 | `You` | a description, usually the full name |
 | 6, 7 | `/home/you`, `/bin/bash` | the home folder and the login shell |
 
-> **In SQL terms.** `/etc/passwd` is a table: one row per user, seven columns, `:` between
-> them. `getent passwd you` is `SELECT * FROM passwd WHERE name = 'you'`, and the UID is the
-> key that every file's owner column refers to.
+> **In everyday terms.** `/etc/passwd` is a sheet saved as text: one row per user, seven
+> columns, a `:` where the cell borders would be. `getent passwd you` finds your row. A file
+> records its owner as the number in column 3, the UID; the name is looked up here to show it.
 
 **root** is UID 0: the kernel lets it past every permission check (SELinux still applies).
 On this machine root has no password and cannot log in (§4.2); administrators borrow its
@@ -7504,7 +7771,7 @@ it with less power than root.
 
 ```text
 $ id -nG
-you wheel video input render gamemode
+you wheel video render gamemode
 ```
 
 *(for example)*
@@ -7513,7 +7780,7 @@ you wheel video input render gamemode
 |---|---|---|
 | `wheel` | administrator: `sudo`, and polkit's password prompts accept your password | the installer (*Add administrative privileges to this user account* ticked) |
 | `video`, `render` | the GPU's device files, also outside a graphical session | setup |
-| `input` | input devices directly | setup |
+| `input` | every keyboard, mouse and controller, read directly — so any program you run could read every key you press. Not given here; only for a controller no game sees (§21.1) | you, if ever |
 | `gamemode` | gamemode's CPU and GPU boosts | setup, with Steam |
 
 Group changes reach a session only at the next login.
@@ -7876,9 +8143,9 @@ history | awk '{print $4}' | sort | uniq -c | sort -rn | head -5
 | `sort -rn` | by that number (`-n`), largest first (`-r`) |
 | `head -5` | the first five lines only |
 
-> **In SQL terms.** That pipeline is a query: `history` is the `FROM`, `awk` picks one column,
-> `sort | uniq -c` is `GROUP BY` with `COUNT(*)`, `sort -rn` is `ORDER BY count DESC`, and
-> `head -5` is `LIMIT 5`. Each bar hands its rows to the next clause.
+> **In everyday terms.** It counts the way you would count votes on paper slips: keep only the
+> name on each slip (`awk`), sort the slips so the same names lie together (`sort`), count each
+> heap (`uniq -c`), put the biggest heap first (`sort -rn`), and read the top five (`head -5`).
 
 **Redirection.**
 
@@ -8031,8 +8298,8 @@ Two kinds of pattern look alike and are not: a glob matches file names, a regula
 matches text.
 
 > **Word — regular expression.** A pattern for matching text, with its own small language: `.`
-> any character, `*` repeated, `[a-z]` one of a range, `^` the start of a line. Like SQL's
-> `LIKE`, but richer: `LIKE 'kawa-%'` is roughly `^kawa-`.
+> any character, `*` repeated, `[a-z]` one of a range, `^` the start of a line. Like Notepad's
+> *Find*, but for a shape of text, not one exact word: `^kawa-` finds every line starting *kawa-*.
 
 | | A glob | A regular expression |
 |---|---|---|
@@ -8211,7 +8478,8 @@ $ space ~/practice/'old notes'
 *If ShellCheck still reports SC2086:* one `$1` is still bare; both lines need the quotes.
 
 The script is yours, in your home: Theme and `update` never touch it. It is step 2 of the
-ladder of first projects (§43.6).
+ladder of first projects (§43.6). It answers *how much is left*; for *what fills it*, `gdu ~`
+(§38.2).
 
 ## 25.7 History rules
 
@@ -8332,9 +8600,9 @@ $ ps -o pid,ppid,user,args -p 1,$$,$PPID
 
 *(for example: `$$` is this shell's PID, `$PPID` its parent's; the order is by PID)*
 
-> **In SQL terms.** `ps -o pid,ppid,user,args` is a `SELECT` of four columns from a table of
-> processes; `-p 1,$$,$PPID` is the `WHERE pid IN (…)`. PPID is a foreign key into the same
-> table, so the process tree is a self-join: each row points at its parent's row.
+> **In everyday terms.** `ps` prints a sheet with one row per running program: `-o` picks the
+> columns, `-p` picks the rows. Each row names its parent by number, the PPID — a family tree
+> written as a list: from any program you started, follow the parents up and you reach PID 1.
 
 **Exit status.** A process ends with a number for its parent: 0 is success, anything else a
 failure (§11.2). A process killed by a signal reports 128 plus the signal's number:
@@ -8467,9 +8735,12 @@ Click the **CPU** part of the bar: btop opens in a floating window. Or type `bto
 **Pitfalls.** Changes made in btop's own options menu last until you close it: the config
 says `save_config_on_exit = False`, so `~/.config/btop/btop.conf` stays exactly as the
 repository has it. Make lasting changes in your working copy (`configs/home/.config/btop/btop.conf`)
-and apply (chapter 42). On AMD, btop reads the card through the ROCm SMI library, which is not
-installed: it finds no GPU, so **5** shows no GPU box at all. LACT (§21.2) shows the card
-instead.
+and apply (chapter 42). On AMD, btop reads the card through the ROCm SMI library (the
+`rocm-smi` package): one line in the CPU box — `GPU`, then its load, memory, heat and watts
+— and **5** opens the card's own box with the graphs, which needs a taller window than the
+bar's floating one (make it fullscreen with **Super+F** first, or run `btop` in a tiled
+terminal). `verify` checks the library is there under the name btop looks for. LACT
+(§21.2) shows more, and changes things.
 
 **Read more:** [btop's README](https://github.com/aristocratos/btop#readme); **F1** (or **?**)
 inside btop lists every key.
@@ -8627,7 +8898,7 @@ dnf's job. Asking rpm is always safe:
 
 Fedora 43 brought **RPM 6.0**, which identifies keys by their full fingerprint and makes
 `rpmkeys` the tool for them. From Fedora 45 rpm also refuses, by default, any package whose
-signature it cannot check (ch. 34).
+signature it cannot check (§27.5).
 
 ## 27.2 dnf5
 
@@ -8672,7 +8943,7 @@ sudo dnf history undo 57     # the reverse transaction: remove what it installed
 ## 27.3 DNF's settings on this desktop
 
 `/etc/dnf/libdnf5.conf.d/90-fedokawaii.conf` holds only what differs from Fedora's defaults —
-its six settings, each with what it does and DNF's own default:
+its seven settings, each with what it does and DNF's own default:
 
 ```ini
 [main]
@@ -8688,18 +8959,24 @@ timeout=20
 installonly_limit=2
 # Enter means yes at dnf's question (default no)
 defaultyes=True
+# never installed only because another package recommends it: Node.js 22 (default: none)
+exclude_from_weak=nodejs,nodejs22*
 ```
 
-Setup and `verify` check all six with `dnf --dump-main-config`, which prints every setting as
+The last one keeps this desktop to one Node.js, the 24 the manifest names: neovim recommends
+tree-sitter-cli, which recommends `nodejs` — Node 22 on Fedora 44 and 45 (§27.4).
+
+Setup and `verify` check all seven with `dnf --dump-main-config`, which prints every setting as
 DNF sees it once all its files are read:
 
 ```sh
 dnf --dump-main-config |
-  grep -E '^(defaultyes|fastestmirror|installonly_limit|max_parallel_downloads|minrate|timeout) '
+  grep -E '^(defaultyes|exclude_from_weak|fastestmirror|installonly_limit|max_parallel_downloads|minrate|timeout) '
 ```
 
 ```text
 defaultyes = 1
+exclude_from_weak = nodejs,nodejs22*
 fastestmirror = 1
 installonly_limit = 2
 max_parallel_downloads = 10
@@ -8716,7 +8993,7 @@ Not every dependency is a must, and dnf remembers why each package is there:
 | Idea | Means | See it |
 |---|---|---|
 | **Requires** | must be there, or the package is not installed | `dnf repoquery --requires mpv` |
-| **Recommends** (a weak dependency) | installed by default too, but may be left out or removed | `dnf repoquery --recommends tree-sitter-cli` → `nodejs` — the reason setup installs it with `--exclude='nodejs22*'`: this desktop has Node 24 under its own name, and keeps one Node.js |
+| **Recommends** (a weak dependency) | installed by default too, but may be left out or removed | `dnf repoquery --recommends tree-sitter-cli` → `nodejs` — and neovim recommends tree-sitter-cli. That is Node 22, so DNF's settings never take it this way (`exclude_from_weak`, §27.3): this desktop has Node 24 under its own name, and keeps one Node.js |
 | **install reason** | why a package is here: *User* (asked for by name), *Dependency*, *Weak Dependency*, *Group* | `dnf repoquery --installed --qf '%{name} %{reason}\n' mpv ffmpeg-libs` → `mpv User` and `ffmpeg-libs Dependency` |
 | **group** (comps) | a named set of packages Fedora defines; the installer's *Minimal Install* is the `core` group | `dnf group list --installed` |
 
@@ -8750,6 +9027,10 @@ signature does not match. `includepkgs` limits what this repository may install 
 package. Setup checks the key's fingerprint against the one in `lib/manifest.sh` before
 trusting it; Fedora's own keys come with Fedora, in `/etc/pki/rpm-gpg/`.
 
+> **On Fedora 45.** `ls /usr/share/dnf5/repos.d/` lists Fedora's own repository files, and
+> its keys are in `/usr/share/pki/rpm-gpg/`: Fedora 45 moved both out of `/etc`. The files
+> setup adds — Claude Code's, Brave's, the COPRs' — stay in `/etc/yum.repos.d/`.
+
 *Read more:* [Enforcing signature checking by default](https://fedoraproject.org/wiki/Changes/Enforcing_signature_checking_by_default).
 
 ## 27.6 The repositories this desktop uses
@@ -8767,7 +9048,6 @@ dnf repolist          # the enabled ones, by id and name
 | `brave-browser` | Brave's own, signed | `brave-origin` |
 | `claude-code` | Anthropic's own, signed, fingerprint checked | `claude-code` |
 | `copr:copr.fedorainfracloud.org:ilyaz:LACT` | a COPR (§5.4) | LACT, the AMD GPU control |
-| `copr:copr.fedorainfracloud.org:dejan:lazygit` | a COPR | lazygit |
 
 ## 27.7 Pinned tools, and why
 
@@ -8780,13 +9060,15 @@ update never moves them, and a download that differs by one byte is refused.
 |---|---|---|
 | yazi | 26.9.1 | its theme, and the file dialog's layout code, use its internals |
 | satty · presenterm · spotify_player | 0.22.0 · 0.16.1 · 0.25.1 | their configs are written for these |
+| lazygit | 0.66.1 | its colours file and ch. 41's keys are written for it |
 | JetBrains Mono and Departure Mono (Nerd Fonts) | 3.5.1 | every alignment is measured in their pixels |
 | PixelMplus 12 | 2013 | its only release |
+| Syncplay | 1.7.6 (its tag's commit) | run from its source on Fedora's Python libraries: Fedora's package would bring Qt for a window never used |
 | torrra | 2.5.1 | its key wrapper replaces three of its methods; libtorrent under it moves to the newest |
 | GE-Proton | the newest; two kept | games are what it is for, and it changes nothing else |
 
 dwl is built from a pinned commit (`DWL_COMMIT`), and so is the file dialog's portal
-(`TFC_COMMIT`).
+(`TFC_COMMIT`); Syncplay's source is held at one too (`SYNCPLAY_COMMIT`).
 
 A *SHA-256* is the kind of checksum you compared on Windows before writing the installer stick
 (§3.3): a 64-character fingerprint of a file's exact bytes — change one byte and it changes
@@ -8852,7 +9134,7 @@ $ rpm -q --whatprovides 'libavcodec.so.62()(64bit)'
 ffmpeg-libs-8.1.1-1.fc44.x86_64
 $ dnf repoquery --installed --qf '%{name}  %{from_repo}\n' mpv ffmpeg-libs
 ffmpeg-libs  rpmfusion-free-updates
-mpv  updates
+mpv  fedora
 ```
 
 *(for example)*
@@ -9013,12 +9295,13 @@ Version         : 0.41.0
 Release         : 5.fc44
 Architecture    : x86_64
 …
-From repository : updates
+From repository : fedora
 Summary         : Movie player playing most video formats and DVDs
 …
 ```
 
-*(for example, shortened)* `From repository` names where it came from: Fedora's `updates`.
+*(for example, shortened)* `From repository` names where it came from: `fedora`, the release as
+it shipped (`updates`, once a newer build has replaced it).
 
 *If you see `Available packages` below as well:* a newer mpv is waiting for the next update.
 
@@ -9037,10 +9320,10 @@ libva.so.2()(64bit)
 libraries mpv links to (§27.8), and a few
 package names.
 
-> **In SQL terms.** `dnf repoquery` is a `SELECT` over the package database. `--installed` is a
-> `WHERE`, `--qf '%{name} %{reason}\n'` the column list, and `| wc -l` a `COUNT(*)`:
-> `dnf repoquery --installed --qf '%{name} %{reason}\n'` reads like
-> `SELECT name, reason FROM packages WHERE installed`.
+> **In everyday terms.** `dnf repoquery` searches a library's card catalogue, one card per
+> package; reading the cards installs nothing. `--installed` keeps the cards of packages on this
+> machine, `--qf '%{name} %{reason}\n'` copies two lines from each (the name, why it is here),
+> and `| wc -l` counts the answers.
 
 *If you see `No match for argument`:* the package name is misspelt; `dnf search mpv` finds it.
 
@@ -9078,7 +9361,7 @@ list into its count.
 - dnf refreshes, solves, asks, downloads and checks, then installs in one transaction — here
   between two snapshots.
 - Every repository is signed and checked; this desktop adds RPM Fusion, Brave, Claude Code and
-  two COPRs to Fedora's own.
+  a COPR to Fedora's own.
 - Programs need sonames, not packages; drivers are loaded by name at run time, which dnf
   cannot see — `verify` tests them.
 - `rpm -qf`, `dnf info`, `dnf repoquery` and `dnf history` answer *whose, what, needs what,
@@ -9180,8 +9463,9 @@ manager starts with your first login and stops after your last logout. Setup tur
 > read after the main file and overrides only the lines it sets — like a sticky note on a
 > printed form, which leaves the form itself untouched.
 
-This desktop puts everything system-wide into a drop-in folder (`*.d/`) or under `/usr/local`
-(appendix B lists each place, §B.3), never into a file Fedora's packages own — so a
+This desktop puts its system-wide settings into a drop-in folder (`*.d/`), a file of its own or
+`/usr/local` (appendix B lists each place, §B.3); only the installer's `/etc/default/grub` and
+`/etc/vconsole.conf` get a few lines changed in place — so a
 Fedora update never fights its settings, and removing one of them removes it cleanly. A
 drop-in folder sits beside the file it changes; each `.conf` file in it is read after the main
 file and overrides only what it sets. greetd's is a small example (shortened: the real file also
@@ -9271,12 +9555,8 @@ Filters narrow it down:
 | `-f` | follow new lines as they come; Ctrl+C stops | `journalctl -f -u greetd` |
 | `-n N` · `-e` | the last N lines · jump to the end | `journalctl -n 50` |
 
-> **In SQL terms.** Each filter is one condition of a `WHERE`, joined by `AND`:
-> `journalctl -b -u NetworkManager -p err --since today` reads like `SELECT * FROM journal
-> WHERE boot = current AND unit = 'NetworkManager.service' AND priority <= 'err' AND time >= today`.
-
-Several filters at once narrow further: `journalctl -b -p warning -u greetd` is this boot's
-warnings and errors from the login alone.
+Several filters at once narrow further — a line shows only if it passes every one:
+`journalctl -b -p warning -u greetd` is this boot's warnings and errors from the login alone.
 
 > **On Windows.** The journal is Event Viewer's *Windows Logs*, in a terminal: one list for
 > the system and every program, each entry with its time, source and level. `-p err` is the
@@ -9441,8 +9721,8 @@ manager has no such unit.
 - `start` runs a unit now, `enable` at every boot; `--user` talks to your own systemd, which
   linger keeps running.
 - A drop-in changes a packaged unit or config without editing it, so updates never fight it.
-- Timers replace cron; the journal holds every log, and `journalctl`'s filters narrow it like
-  a `WHERE`.
+- Timers replace cron; the journal holds every log, and each of `journalctl`'s filters narrows
+  it further.
 - Every unit lives in a cgroup, so systemd always knows which processes are whose.
 
 **Check yourself**
@@ -9609,6 +9889,7 @@ vt.default_red=15,… vt.default_grn=… vt.default_blu=…`)*
 | `rootflags=subvol=root` | on Btrfs, the subvolume called `root` | the installer |
 | `rhgb quiet` | a graphical boot screen if one is installed; fewer kernel messages | the installer |
 | `amdgpu.ppfeaturemask=0xfff7ffff` | amdgpu's own default plus OverDrive: the clock, voltage and fan controls LACT uses (all bits set would also switch on GFX DCS, which amdgpu keeps off as unstable) | setup (AMD only) |
+| `systemd.tty.term.console=dumb` | systemd (257 and later) asks the console for its size as it starts and waits for the answer; with the boot screen holding the console the answer sometimes never comes, and the boot stops on a black screen at *Starting Switch Root* until you press a key. A "dumb" console terminal makes it skip the question; your login consoles set their own `TERM` | setup |
 | `vt.default_red=…` and its two partners | the text console's 16 colours | Theme (§6.1) |
 
 ## 29.5 Two kernels, and the way back
@@ -9729,6 +10010,10 @@ notice) and otherwise shows a rescue screen with a shell, instead of a login tha
 It runs one desktop at a time: started again while the desktop runs (typed in a terminal, or on
 another console), it says so and stops. Each login keeps the log of the session before as
 `~/.cache/dwl.log.old` — what dwl said before a crash.
+
+> **On Fedora 45.** `start-dwl` typed on a console of kmscon's (**Ctrl+Alt+F2**…) first asks
+> kmscon to hand over the screen, through `kmscon-launch-gui`; when the desktop ends, kmscon
+> takes the screen back and shows that console again.
 
 *Read more:* [loginctl(1)](https://man7.org/linux/man-pages/man1/loginctl.1.html).
 
@@ -9936,7 +10221,7 @@ keyboard layout itself comes from **XKB** (`XKB_DEFAULT_LAYOUT`,
 ## 30.3 Bluetooth: BlueZ
 
 **BlueZ** is the Bluetooth stack: the kernel part, and the daemon `bluetoothd`
-(`bluetooth.service`). Quick settings and Blueman use it; so can you:
+(`bluetooth.service`). Quick settings and bluetui use it; so can you:
 
 ```sh
 bluetoothctl show          # the adapter: powered, discoverable
@@ -9977,6 +10262,10 @@ than a disk, so a large copy never stalls the desktop:
 tuned-adm active                       # → Current active profile: fedokawaii
 sysctl vm.swappiness vm.dirty_ratio    # → vm.swappiness = 100, vm.dirty_ratio = 20
 ```
+
+Should memory and zram both run out, the kernel's own out-of-memory killer ends one program,
+normally the largest. Fedora's *systemd-oomd* rules (`systemd-oomd-defaults`) are kept off:
+they end a whole cgroup, and every program you run sits in one, your session's (§28.6).
 
 Wi-Fi power saving is off as well (`wifi.powersave = 2`, meaning *disable*, in
 `/etc/NetworkManager/conf.d/90-fedokawaii.conf`), so the connection never naps.
@@ -10019,7 +10308,7 @@ Bus 001 Device 003: ID 046d:c52b Logitech, Inc. Unifying Receiver
 ```
 
 *(for example, shortened)* Each line: where it is plugged in, its maker's and model's numbers,
-and its name. Solaar (§21.2) manages that Logitech receiver.
+and its name. A mouse on that receiver needs no program: it works as soon as the receiver is in.
 
 *If you see only `root hub` lines:* nothing is plugged in by USB; plug in a stick and look
 again.
@@ -10939,6 +11228,10 @@ bound to `127.0.0.1` only, the SELinux type `container_t` for its processes and
 | quadlet | a small file that tells systemd how to run a container as a service |
 | health check | a command run inside the container from time to time, asking whether it still answers |
 
+> **On Windows.** Docker Desktop runs containers there. Here podman does: the same images, and
+> mostly the same commands (`podman ps` for `docker ps`). Nothing on this desktop needs Docker.
+> Installed later, it shares only port numbers with Prowlarr — torrra says so if one takes 9696.
+
 podman runs one container here: **Prowlarr**, the indexer service torrra searches through
 (ch. 20). It runs rootless, as you — you are its user inside too, so every file in
 `~/.config/prowlarr` is yours — holds no capabilities and can gain none, runs **only when
@@ -11083,7 +11376,7 @@ of it.
 
 > **In this chapter**
 >
-> - open the system's control and run any of its twelve entries
+> - open the system's control and run any of its thirteen entries
 > - read the status page and the marks beside each entry
 > - read verify's report: passed, failed, worth knowing
 >
@@ -11112,7 +11405,7 @@ These words come up throughout this Part. The ones Part IV taught are there for 
 <!-- fig:system | The system's control (Super+U): what is due at the right of each entry, how things stand in the pane — the status on the dark theme, the move to the next Fedora on the light. -->
 
 **Super+U** opens it (also quick settings → *system*, or `fedokawaii` in a terminal): a small
-window with nothing to search, only twelve entries — **↑ ↓** (or **j k**) to choose, the mark
+window with nothing to search, only thirteen entries — **↑ ↓** (or **j k**) to choose, the mark
 at the right of each saying what is due, and beside them a pane with how things stand for the
 entry under the cursor. **Enter** runs it in the same window — what changes the system asks
 for your password — and a key afterwards brings the menu back with its marks brought up to
@@ -11126,15 +11419,16 @@ date; **Esc** (or **q**) closes it.
 | verify | every check (§35.2); changes nothing | **passed**, or how many to fix |
 | repair | verify, put right what it found — packages, this machine's drivers and firmware (§30.1), anything doubled or fighting (a package twice, a second login manager, an unneeded dependency…), services, the login, dwl (rebuilt if it will not start; work of yours in its folder is set aside as a branch or a stash, never lost), the session, the tools, neovim's plugins, the configs where the theme was chosen — and verify again; offline too, as far as it can | |
 | snapshots | the snapshots of `/` (§37.2) | how many |
+| backup | your home to the backup drive, with restic (§37.6); runs as you, not as root | the last one's age; **never**, or an age past `BACKUP_REMIND_DAYS`, in red; **none** while no drive is named |
 | theme, applied again | every config back as the toolkit has it (yours kept in the backup) | |
 | drift | the configs that differ from the toolkit's; changes nothing | |
-| settings | a copy of `fedokawaii.conf` in neovim; when you close it every value is checked, and only a valid file replaces the toolkit's (a wrong one is shown, and **y** opens your edit again to put it right; **n** leaves everything as it was); the next update applies it | |
+| settings | a copy of `fedokawaii.conf` in neovim; when you close it every value is checked, and only a valid file replaces the toolkit's (a wrong one is shown, and **y** opens your edit again to put it right; **n** leaves everything as it was); the next update applies it — the backup's `BACKUP_TARGET` and `BACKUP_REMIND_DAYS` count at once (§37.6) | |
 | reminders | Enter changes the season: every 60 · 90 · 120 days · off | the season |
 | log | the last run's log, at its end | |
 | handbook | this book (on a text console: its text, in less) | |
 
 Every entry is a command too — `fedokawaii status`, `update`, `upgrade` (`--now`: without
-waiting), `verify`, `repair`, `theme`, `drift`, `snapshots`, `log`, `settings`, `guide`,
+waiting), `verify`, `repair`, `theme`, `drift`, `snapshots`, `backup`, `log`, `settings`, `guide`,
 `remind [check | every DAYS | wait DAYS | on | off]` — and `update`, `verify` and `repair` work on
 their own in a terminal. On a text console (Ctrl+Alt+F3), or should fzf ever fail to start,
 `fedokawaii` shows the same menu as a numbered list: the system can be looked after even when
@@ -11224,9 +11518,10 @@ system
 
 *(shortened)*
 
-> **In SQL terms.** verify is a suite of data-quality tests: each check is a query that must
-> come back clean — like `SELECT name FROM installed EXCEPT SELECT name FROM manifest` returning
-> no rows. A ✘ line names the rows that broke the rule.
+> **In everyday terms.** verify is mostly a stock-take with the toolkit's lists in hand:
+> everything on a list must be on the machine, and some things must not be there at all — a
+> forbidden package, a second login manager. It only looks and ticks; a ✘ line names what is
+> missing or out of place.
 
 ✔ passed · ✘ failed (`fedokawaii repair` fixes most) · ! worth knowing, never a failure; a line
 after a dim dot only reports (which driver opens NTFS, say). The outcome is kept for the menu
@@ -11238,19 +11533,20 @@ cat /var/lib/fedokawaii/last-verify    # → 1792039927 212 0 1
 
 | Area | Checks |
 |---|---|
-| system | Fedora ≥ 44 · SELinux enforcing · Btrfs root · no root-owned files in your home · groups · neovim as the editor · the tuned profile · Wi-Fi power saving off · `secrets.sh` private · linger · ntsync and i2c-dev · the SSH policy and firewall ports (6881 for torrents) |
-| packages and redundancy | every manifest package installed · none of the forbidden ones · nothing user-installed beyond the pre-setup record and the manifest · no Flatpak or Snap · no package installed twice · `dnf check` clean · no service that fights the desktop's own (a second login manager, power-profiles-daemon, a second notification daemon…) · the login greetd's alone · dependencies nothing needs (a warning) · configuration files an update could not merge (a warning) · nothing left behind by a stopped run |
+| system | `fedokawaii.conf` valid · Fedora ≥ 44 · SELinux enforcing · Btrfs root · no root-owned files in your home · groups · neovim as the editor · i2c-dev |
+| packages (lib/manifest.sh) | every manifest package installed · what waits for RPM Fusion or a COPR to catch up with this Fedora (a warning) · a package Fedora no longer has (a warning) |
+| zero redundancy | none of the forbidden ones · nothing user-installed beyond the pre-setup record and the manifest · no Flatpak or Snap · one editor · no package installed twice · `dnf check` clean · no service that fights the desktop's own (a second login manager, power-profiles-daemon, a second notification daemon…) · the login greetd's alone · dependencies nothing needs (a warning) · configuration files an update could not merge (a warning) · nothing left behind by a stopped run |
+| repositories & dnf | RPM Fusion, Brave, Claude Code, COPRs · all seven DNF values |
+| upkeep (fedokawaii · Super+U) | the toolkit root's alone · the `fedokawaii` command the toolkit's · the manifest marked as yours |
+| boot & kernel | the boot-menu setting · the boot-success timer · at most two kernels, the newest running · every kernel's boot image · no rescue image · no console-size wait · the GPU kernel argument |
+| GPU & media | hardware video decoding · Vulkan · btop's view of an AMD card (the ROCm SMI library) · ffmpeg encoders |
 | drivers and firmware | every package this hardware needs (microcode, Wi-Fi, sound DSP, missing firmware, Intel's video decoding beside an AMD card; one missing is a warning: update and repair install it) · microcode loaded at boot · every network, display, sound and USB device held by a driver · Wi-Fi managed by NetworkManager · device firmware updates, when fwupd knows of any (shown, never a fault) · udisks answers, so drives open · which driver opens NTFS |
-| repositories and DNF | RPM Fusion, Brave, Claude Code, COPRs · all six DNF values |
-| upkeep | the toolkit root's alone · the `fedokawaii` command the toolkit's · the manifest marked as yours · the snapshots' bounds |
-| boot | the boot-menu setting · at most two kernels, the newest running · no rescue image · the GPU kernel argument |
-| GPU and media | hardware video decoding · Vulkan · ffmpeg encoders |
-| compositor and login | dwl version and pinned commit, XWayland, its own wlroots and every library, the patch (keys, gaps, frames, centring, layout), built from `config.h` · the session launcher and its rescue screen · the greetd SELinux module, agreety · the boot-success timer |
-| services | greetd, Bluetooth, snapper timers, fstrim, PipeWire, Prowlarr · the monthly Btrfs scrub, and what the last one found |
-| torrents | the key in `secrets.sh` · Prowlarr's container file current, running, answering, taking the key · its files yours · indexers (a warning when there are none) · podman's database · `~/Downloads` outside the snapshots |
-| release binaries | present, every library resolves, `--version` runs · fonts |
-| applications | Brave Origin actually starts · Claude Code · LazyVim · torrra loads and runs through its wrapper, with no key in its config · mpv in the bar · yt-dlp's JavaScript runtime · lazygit · qalc |
-| theme | every file in sync · foot and fuzzel accept their configs · waybar config parses · GTK and the portal follow the current theme · no window buttons · default programs · Brave in the desktop's colours · Qt palette · fonts resolve (Arabic, Japanese, Chinese, Korean) · mpv's colours · pixel art drawn for both themes · the two C helpers built · the clipboard window · the wallpaper pack · the pixel pointers · the yazi file dialog · cava · the boot menu theme |
+| compositor & login | dwl version and pinned commit, XWayland, its own wlroots and every library, the patch (keys, gaps, frames, centring, layout) · the session launcher and its keyboard layouts · the greetd SELinux module, agreety · the yazi file dialog built and known to the portals |
+| services | greetd, Bluetooth, snapper timers, fstrim, PipeWire · the tuned profile · Wi-Fi power saving off · the Bluetooth dongle's power saving off · ntsync · linger · shutdown's 30 s for your services · `secrets.sh` private · Prowlarr: its key in `secrets.sh`, its container file current, running, answering, taking the key, its files yours, indexers (a warning when there are none) · podman's database · `~/Downloads` outside the snapshots · the SSH policy and firewall ports (6881 for torrents) |
+| upstream binaries (lib/upstream.sh) | present, every library resolves, `--version` runs · fonts · Syncplay · GE-Proton |
+| applications | Brave Origin actually starts · Claude Code · LazyVim · torrra loads and runs through its wrapper, with no key in its config · mpv in the bar · yt-dlp's JavaScript runtime · lazygit · qalc · restic |
+| snapshots | a snapper config for `/` · the baseline snapshot (a warning when it is gone) · a snapshot pair around every DNF run · the snapshots' bounds · the monthly Btrfs scrub, and what the last one found |
+| theme | every file in sync · dwl built from `config.h` · foot and fuzzel accept their configs · waybar config parses · GTK and the portal follow the current theme · no window buttons · default programs · Brave in the desktop's colours · Qt palette · fonts resolve (Arabic, Japanese, Chinese, Korean) · mpv's colours · pixel art drawn for both themes · the two C helpers built · the clipboard window · the wallpaper pack · the pixel pointers · the yazi file dialog · cava · the boot menu theme |
 | live session | bar, notifications, terminal server, wallpaper, idle, automount, status readers, polkit agent, clipboard history and keeper, the update reminder · the graphical session known to systemd · the file-dialog and screen-sharing portals · the "Share" sound devices · the refresh rate is the best available · a monitor answers DDC/CI · night light (shown, never a fault: it is yours to switch off) |
 
 The *live session* area appears only while your desktop session runs (verify looks for dwl):
@@ -11258,7 +11554,7 @@ with nobody logged in, verify checks everything else.
 
 **What you learnt**
 
-- **Super+U** (or `fedokawaii`) opens the control: twelve entries, each with what is due at
+- **Super+U** (or `fedokawaii`) opens the control: thirteen entries, each with what is due at
   its right.
 - Every entry is also a command: `fedokawaii status`, `update`, `verify`, `repair`…
 - On a text console the same menu appears as a numbered list.
@@ -11329,9 +11625,10 @@ systemctl --user list-timers fedokawaii-remind.timer    # when the quiet check r
 In the menu, *reminders* does the same with **Enter**: each press moves the season on —
 every 60, 90 or 120 days, then off.
 
-> **In SQL terms.** Think of a Power BI dataset with no scheduled refresh: it stays exactly
-> as of its last refresh until you press *Refresh*. The season is the note on the report that
-> says "refreshed 90 days ago — time to refresh".
+> **In everyday terms.** The season works like the service sticker on a car's windscreen:
+> between services nobody touches the engine, and the sticker says when the next one is due.
+> The notice is that date coming round; *update* is the service. The check only reminds — it
+> never starts the update.
 
 ## 36.2 The season's update
 
@@ -11466,6 +11763,8 @@ sudo dnf system-upgrade reboot                      # restart into the installat
    the desktop needs come back afterwards), anything else stops with nothing changed.
 5. The computer restarts into the installation: 20–40 minutes, then the login. A minute or
    two later a notice says the move is finished; the status lists anything to look at.
+   The last steps run while the login already shows: give it ten minutes before you log in,
+   or expect the theme to reload once while you work.
 
 ## 36.7 Built to be left alone
 
@@ -11513,6 +11812,7 @@ years is handled one way — checked for, worked around, or reported, never a si
 > - list the snapshots and see what changed between two of them
 > - undo one transaction, one file, or a whole bad update
 > - read how many snapshots are kept, and change it
+> - back up your home to a USB drive, and get one file back from it
 >
 > **You need:** §23.5 (how Btrfs makes them)
 > and §36.2 (the update takes one first).
@@ -11547,8 +11847,8 @@ that disk dies, is stolen or is wiped, the snapshots go with it.
 > an external drive, a cloud drive. Snapshots undo mistakes; only a backup survives the loss
 > of the disk.
 
-So both: snapshots for "undo", a backup for "the disk is gone" (the seasonal routine in
-§38.4 ends with one).
+So both: snapshots for "undo", a backup for "the disk is gone" (§37.6 sets it up; the
+seasonal routine in §38.4 ends with one).
 
 ## 37.2 Snapshots on this desktop
 
@@ -11627,10 +11927,6 @@ $ sudo snapper -c root status 45..46
 +..... /usr/bin/htop
 c..... /usr/lib/sysimage/rpm/rpmdb.sqlite
 ```
-
-> **In SQL terms.** A snapshot is time travel: Trino reads an Iceberg table as it was with
-> `SELECT … FROM t FOR TIMESTAMP AS OF …`. `status 41..0` is the diff between that old state
-> and now — the rows (here, files) added, removed and changed.
 
 ### Undoing
 
@@ -11798,6 +12094,114 @@ If the problem is the new kernel, use the boot menu instead (§29.5). If the des
 start at all, log in on a text console (**Ctrl+Alt+F3**) and run the same commands there
 (§39.4).
 
+## 37.6 Backups: restic
+
+A snapshot lives on the disk it protects. A backup lives on another one: here a USB drive or
+an external disk, written by **restic**, Fedora's own package for it. restic keeps every
+version of your files, stores each piece of data once, and encrypts the lot with a password.
+Nothing runs by itself: you back up when the drive is plugged in, and a reminder comes when
+the last backup grows old.
+
+**Try this.** Set it up once, then make the first backup.
+
+**1.** Plug in the drive and read its name in the drives menu (the bar's drive mark) — say
+*KINGSTON*. Name it in **Super+U** → *settings*. The backup reads these two settings as soon
+as the file is saved — they do not wait for the next update:
+
+```ini
+BACKUP_TARGET="KINGSTON"          # the drive's name, as the drives menu shows it
+BACKUP_REMIND_DAYS="7"            # a notice when the last backup is older than this; 0 = off
+```
+
+**2.** Choose a password — a sentence of your own — and add one line to
+`~/.config/fedokawaii/secrets.sh`, the file that already holds Prowlarr's key (yours alone,
+mode 600, §20.1): `RESTIC_PASSWORD="…"`. Write the sentence down somewhere that is not this
+disk.
+
+**3.** Quick settings (**Super+X**) → *backup*. A small window shows restic at work, and a
+notice says *KINGSTON · backing up*; at the end the notice changes to what was done:
+
+```text
+$ kawa-backup
+  the first backup to /run/media/you/KINGSTON/fedokawaii-backup: the repository is made now
+  created restic repository 1d979833e1 at /run/media/you/KINGSTON/fedokawaii-backup
+  …
+Files:          31 new,     0 changed,     0 unmodified
+Added to the repository: 43.763 KiB (21.426 KiB stored)
+
+processed 31 files, 27.412 KiB in 0:00
+snapshot 71e2220b saved
+kawa-backup: KINGSTON · backed up — 31 files, 43.763 KiB new, in 0:01
+```
+
+*(for example: a tiny home — yours takes longer the first time, and says more)*. The backup
+lives in a folder *fedokawaii-backup* on the drive; it needs restic and the password to read.
+
+Next week the reminder comes: *the last backup was 7 days ago — plug in KINGSTON, then quick
+settings → backup*. Plug it in: the drive's own notice now reads *your backup drive · click to
+back up now (last backup: 7 days ago)*, and a click does it. Only what changed since goes
+over, so the second backup is short where the first was long.
+
+**Getting a file back.** You emptied a spreadsheet by mistake and saved it. Ask for it as it
+was:
+
+```text
+$ kawa-backup restore ~/Documents/expenses.ods
+  Summary: Restored 1 files/dirs (6 B) in 0:00
+  restored: /home/you/Restored/2026-10-16-110312/expenses.ods
+```
+
+*(for example)*. The rule: a restore never writes over the original. The file (or the folder:
+name a folder the same way) lands in a new folder under `~/Restored/`, and you copy what you
+want back into place. `kawa-backup list` shows every backup with its id; `kawa-backup restore
+PATH ID` takes the file from an older one.
+
+| Command | Does |
+|---|---|
+| `kawa-backup` | back up now (also quick settings → *backup*, **Super+U** → *backup*, the drive's notice) |
+| `kawa-backup list` | every backup there, oldest first, each with its id |
+| `kawa-backup restore PATH [ID]` | PATH as it was, into `~/Restored/<date>/` — from the newest backup, or from ID |
+| `kawa-backup check` | reads a tenth of the data on the drive and checks it: once a season |
+| `kawa-backup prune` | thins old backups out: the last 7 daily, 4 weekly and 12 monthly ones stay |
+| `kawa-backup where` | where the backup is right now — or why the drive cannot be reached |
+| `fedokawaii status` | the last backup's day, on the status page (and the age at the right of the menu's *backup* entry) |
+
+**What is left out, and why.** The whole of your home goes, except what is listed in
+`~/.config/fedokawaii/backup-exclude`. First `~/Downloads`, by the same rule as the snapshots
+(§37.2): it holds arrivals — torrents, ISO files, installers — which are big and can be
+fetched again. Move what you keep into `~/Documents` or another folder (§10.2), and the next
+backup has it.
+
+The rest is what a program would download again by itself: `~/.cache` and the browser's
+caches; the trash; Steam's games and GE-Proton (the saves of Windows games, in
+`steamapps/compatdata`, stay in); neovim's plugins, torrra's Python environment, Prowlarr's
+container image, the desktop's release binaries and the wallpaper pack (the update fetches
+each again); and `~/Restored` itself. To change the list — say, to back up `~/Downloads`
+after all, delete its line — change it in your working copy and apply (chapter 42).
+
+> **Careful.** Lose the password and the backup is lost with it: restic cannot open the
+> drive without it, and nobody can help. Keep `RESTIC_PASSWORD` written down away from this
+> machine — on paper, or in a password manager on your phone.
+
+A reminder, never a timer: a timer would fail every day the drive is not plugged in. When
+the last backup is older than `BACKUP_REMIND_DAYS`, the session's reminder (§36.1) shows one
+notice a day, the menu's *backup* entry turns red, and `fedokawaii remind check` says it in
+words. A drive that is not plugged in, a missing password, a full drive or a run already
+going on are each said in a notice too, in those words.
+
+> **On Windows.** This is *File History* with an external drive — or *Backup and Restore*'s
+> "back up to an external drive" — with one difference: nothing runs on a schedule here, you
+> choose the moment, and a reminder tells you when it is time.
+
+**Another place.** `BACKUP_TARGET` also takes a folder's path, or a restic address — a
+disk on the network over SSH (`sftp:you@nas:/backups`), a cloud bucket (`s3:…`, `b2:…`), or
+anything rclone reaches (`rclone:gdrive:fedokawaii`). The keys such a place needs go in
+`secrets.sh` too, with `export` in front, under the names restic's documentation gives them.
+Everything else stays the same.
+
+*Read more:* [restic.readthedocs.io](https://restic.readthedocs.io/) — the manual, with the
+addresses and keys of every backend.
+
 **What you learnt**
 
 - A snapshot is a subvolume frozen at one moment: instant, and costing only what changes after.
@@ -11806,6 +12210,8 @@ start at all, log in on a text console (**Ctrl+Alt+F3**) and run the same comman
 - One of your own files comes back with a plain copy out of `/home/.snapshots/N/snapshot/`.
 - The cleanup keeps 4–20 numbered, 4–10 important, a few hourly, daily and monthly ones;
   the baseline and your own stay until you delete them.
+- `kawa-backup` (quick settings → *backup*) puts your home on the backup drive with restic;
+  `kawa-backup restore PATH` brings a file back into `~/Restored/`, never over the original.
 
 **Check yourself**
 
@@ -11877,7 +12283,7 @@ uname -r             # the one running: normally the newest
 
 | What | Where | Clean with |
 |---|---|---|
-| torrra (pipx) | `~/.local/share/pipx/venvs/torrra` | nothing to do: torrra stays at its version, and `update` moves libtorrent under it to the newest. `pipx list` shows it; do not `pipx uninstall` it — `verify` checks it |
+| torrra (pipx) | `~/.local/share/pipx/venvs/torrra` | nothing to do: torrra stays at its version, and `update` moves libtorrent under it to the newest. `pipx list` shows it (its `torrra` link "missing": on purpose — `torrra` is `kawa-torrra`); do not `pipx uninstall` it — `verify` checks it |
 | Prowlarr's image | podman's storage in `~/.local/share/containers` | `podman system df` shows the size; `podman image prune` removes *dangling* images — older versions left without a name when a newer one was pulled (`update` already runs it). Not `podman image prune -a`: Prowlarr's container exists only while it runs, so that would delete its current image too |
 | GE-Proton | `~/.local/share/Steam/compatibilitytools.d` | nothing: `update` keeps the newest two |
 | games | `~/.local/share/Steam/steamapps` | Steam's *Settings → Storage*: uninstall games there. Each game's Proton prefix (`steamapps/compatdata`) and shader cache (`steamapps/shadercache`) can grow to gigabytes; a folder there for a game you no longer have can go |
@@ -11918,8 +12324,46 @@ has not yet handed to data or metadata (see *balance* below). *Exclusive* is wha
 folder would free at once: all of `~/Downloads`, which no snapshot holds, but little of
 Steam's — the rest is shared with the `home` snapshots and comes back only as they expire.
 
-`compsize`, `gdu` and `ncdu` are not in the manifest; `du`, `btrfs filesystem du` and `fd`
-do the job.
+### What fills it: gdu
+
+`du` gives numbers; **gdu** walks them. It scans a folder and lists what is inside, largest
+first, with a bar for each: **Enter** goes into a folder, **←** comes back out.
+
+**Try this.** Scan your home, then step into the biggest folder.
+
+```text
+$ gdu ~
+ gdu ~ Use arrow keys to navigate, press ? for help
+ --- /home/you ---
+   61.2 GiB ████████████████████▏▏/.local
+   38.4 GiB ████████████▌         ▏/Downloads
+    2.0 GiB ▋                     ▏/Videos
+  496.0 MiB ▏                     ▏/.cache
+   24.0 MiB ▏                     ▏/Documents
+ Total disk usage: 102.1 GiB Apparent size: 102.1 GiB Items: 48231 Sorting by: size desc
+```
+
+*(for example; shortened)* The scan takes a few seconds for a home of this size. **Enter** on
+`/.local` shows `share`, then `Steam` inside it: the games. **←** at each step comes back up.
+
+| Keys | Does |
+|---|---|
+| **↑ ↓** · **Enter** (or **→**) · **←** | move · into the folder · back out |
+| **n** · **s** · **c** | sort by name · by size (the default) · show how many items each holds |
+| **a** | apparent size instead of disk usage (what the files claim, not what they take) |
+| **i** · **v** | details of the item · show a file's content |
+| **r** · **/** text | scan again · find a name in this listing |
+| **d** · **e** | delete the item · empty it (both ask first) |
+| **q** · **?** | quit · every key |
+
+> **Careful.** **d** in gdu deletes at once, like `rm`: there is no trash. A `home` snapshot
+> may still hold the file (ch. 37), but the space comes back only when it expires. Delete here
+> only what you are sure of; for the rest, note the path and use yazi's trash.
+
+`gdu` counts what it sees, like `du`: a snapshot sharing a file's blocks makes the number
+larger than what deleting it would free. For the Btrfs answer, `btrfs filesystem du` above.
+`compsize` and `ncdu` are not in the manifest; `du`, `btrfs filesystem du`, `fd` and `gdu` do
+the job. gdu draws with the terminal's colours and reads `~/.config/gdu/gdu.yaml`.
 
 ### The journal
 
@@ -11998,7 +12442,7 @@ catches up once a week. Two more tools exist; neither is needed often:
 ## 38.3 Recipe: free disk space
 
 1. Look first: `sudo btrfs filesystem usage /` for the real picture (`df` is not reliable with
-   snapshots), and `du -xh -d1 ~ | sort -h | tail` for the biggest folders in your home.
+   snapshots), and `gdu ~` to walk the biggest folders in your home (§38.2).
 2. Snapshots hold deleted files: `snaps`, then delete old ranges you do not need,
    `sudo snapper -c root delete 30-60`. Keep the baseline (it is never cleaned up by itself).
 3. The trash: **g t** in yazi, or `gio trash --empty`.
@@ -12019,13 +12463,13 @@ Once a season, with the update (§36.2):
 | check the result | the status in the same menu: every check passed, nothing listed to look at |
 | once a year | **Super+U** → upgrade, once the menu offers the next Fedora (§36.5) |
 | drop unneeded dependencies | nothing to do: the update does it (`dnf repoquery --unneeded` shows what is left) |
-| look at the space | `sudo btrfs filesystem usage /` |
+| look at the space | `sudo btrfs filesystem usage /`, then `gdu ~` for what grew |
 | sort the downloads | move keepers out of `~/Downloads`, delete the rest; same for `~/Pictures/Screenshots` |
 | empty the trash | **g t** in yazi → *Empty trash bin*, or `gio trash --empty` |
 | prune snapshots you made by hand | `snaps`, then `sudo snapper -c root delete N` |
 | trim the journal | `sudo journalctl --rotate --vacuum-time=4weeks` |
 | check the disk | nothing to do: a scrub runs every month; `sudo btrfs scrub status /` shows the last one |
-| back up | copy `~/repos`, `~/Documents` and your other folders to another disk |
+| back up | plug in the backup drive, quick settings → *backup* (§37.6) |
 
 Most of these take a minute; the update itself takes longest, and runs on its own once
 started.
@@ -12038,6 +12482,7 @@ started.
   deleting a folder would free at once.
 - The journal stays within systemd's limits; `journalctl --vacuum-…` trims it further.
 - Caches can go; a deleted file's space returns only when the last snapshot holding it does.
+- `gdu ~` walks what fills your home, largest first; **d** there deletes at once.
 - Once a season: update, look at the space, sort the downloads, back up.
 
 **Check yourself**
@@ -12282,12 +12727,16 @@ $ fedokawaii
 Type **5** and **Enter** for *repair*. Afterwards a key brings the list back; **q** leaves it.
 **Ctrl+Alt+F1** returns to the first console, where the login is.
 
+> **On Fedora 45.** **Ctrl+Alt+F3** shows a console drawn by kmscon (§11.1), a program rather
+> than the kernel. Should kmscon itself fail to start, systemd puts the kernel's own console
+> there instead, with the same `login:` line.
+
 **Try this** — now, while everything works, so the console is familiar on a bad day:
 
 | You do | You see | It means |
 |---|---|---|
 | **Ctrl+Alt+F3** | a black screen and a `login:` line | a console of its own, beside the desktop |
-| log in, type `fedokawaii`, **Enter** | the status and twelve numbered entries | the same control as **Super+U** |
+| log in, type `fedokawaii`, **Enter** | the status and thirteen numbered entries | the same control as **Super+U** |
 | **1**, **Enter**, then a key | the status page, then the list again | an entry runs and comes back |
 | **q**, then `exit` | the login line again | you are logged out of that console |
 | **Ctrl+Alt+F1** | your desktop, as you left it | the desktop runs on the first console |
@@ -12307,7 +12756,7 @@ read it with `status`, put it back with `undochange`, reboot, and run `fedokawai
 
 | Chapter | You can now |
 |---|---|
-| 35 | run the control's twelve entries, and read verify's report |
+| 35 | run the control's thirteen entries, and read verify's report |
 | 36 | update once a season, and move to a new Fedora once a year |
 | 37 | find, compare and undo changes with snapshots |
 | 38 | keep packages lean, free disk space, and follow the seasonal routine |
@@ -12432,7 +12881,7 @@ below read.
 
 | App | Reads the theme by | On a switch |
 |---|---|---|
-| foot (and everything in it: neovim, btop, yazi, lazygit, torrra, spotify_player, bat, nmtui, the clipboard window) | both palettes in `foot.ini`; `include=` picks the one to start in | SIGUSR1 / SIGUSR2 to the foot server switches every window; neovim notices by itself |
+| foot (and everything in it: neovim, btop, yazi, lazygit, torrra, spotify_player, bat, nmtui, VisiData, sc-im, gdu, the clipboard window) | both palettes in `foot.ini`; `include=` picks the one to start in | SIGUSR1 / SIGUSR2 to the foot server switches every window; neovim notices by itself |
 | neovim | gruvbox.nvim with the palette remapped; `background` is never forced | follows the terminal (DEC mode 2031) |
 | yazi, lazygit, bat, torrra, the clipboard window, nmtui | the terminal's 16 colours by name (yazi's `theme.toml`, lazygit's config, bat's `ansi` theme, torrra's `ansi-dark` (right on both: the palettes keep "black" a shade of the ground), `NEWT_COLORS` for nmtui) | with foot, at once |
 | waybar | `@import` of `current/waybar.css` | SIGUSR2 (reload) |
@@ -12718,10 +13167,6 @@ commits there; *pull* brings in the commits made elsewhere — on your other mac
 dotfiles and notes, that means every change is recorded with its reason, any old version is a
 few keys away, and the same files live on every machine you use.
 
-> **In SQL terms.** The history is an audit log: one row per commit — who, when, why — and rows
-> are added, not edited. A branch is a copy of a table to try changes on, like
-> `SELECT * INTO main_test FROM main`; a merge writes them back into `main`.
-
 A small history, as `git log --oneline` prints it in a terminal — newest first, one commit
 per line:
 
@@ -12757,7 +13202,7 @@ git config --global pull.rebase false            # pull joins two diverged histo
 ```
 
 **Try this.** Type the four lines, with your own name and address, then read them back. They
-are kept in `~/.gitconfig`; git writes the names in lower case:
+are kept in `~/.gitconfig`; git lists the names in lower case:
 
 ```text
 $ git config --global --list
@@ -13175,7 +13620,7 @@ fix is the file as it should be, with the three marker lines gone — here perha
 1. lazygit reports the conflicts; *Files* lists the files concerned, marked `UU`.
 2. Select one and press **Enter**. The main view shows each conflict: your side (`HEAD`), then the
    incoming side, between git's `<<<<<<<`, `=======` and `>>>>>>>` lines.
-3. ↑ ↓ choose a side and **Space** keeps it; **b** keeps both; ← → go to the next or previous
+3. ↑ ↓ choose a side and **Space** keeps it; **b** keeps both; ← → go to the previous or next
    conflict; **z** takes a choice back. Or **e** edits the file in neovim: write the lines as they
    should be, delete the three marker lines, `:wq`.
 4. When a file has no conflict left, lazygit stages it. When none remain, it asks *All merge
@@ -13436,7 +13881,7 @@ fedokawaii drift      # the managed configs that differ from the toolkit (change
 
 | Managed by Theme (edit in the working copy) | Yours (edit in place) |
 |---|---|
-| `foot/foot.ini`, `fuzzel/fuzzel.ini`, `mako/config`, `waybar/`, `btop/btop.conf`, `lazygit/config.yml`, `bat/config`, `mpv/mpv.conf` and `mpv/scripts/kawa-*.lua`, `yt-dlp/config`, `zathura/zathurarc`, `satty/config.toml`, `spotify-player/`, `yazi/theme.toml`, `yazi/init.lua`, `yazi/keymap.toml` and `yazi/plugins/` (drives, smart-enter), `udiskie/config.yml`, `nvim/lua/config/lazy.lua`, `nvim/lua/plugins/colorscheme.lua`, `nvim/after/ftplugin/sh.lua`, `MangoHud/MangoHud.conf`, `mimeapps.list`, `xdg-terminals.list`, the portal files (`xdg-desktop-portal/`, `xdg-desktop-portal-wlr/`, `xdg-desktop-portal-termfilechooser/`), the pointers in `~/.local/share/icons/`, `pipewire/pipewire.conf.d/60-share.conf`, `~/.bashrc.d/fedokawaii.sh`, `~/.inputrc`, `dwl/autostart.sh`, the launcher entries in `~/.local/share/applications` | every other file in `~/.config/nvim`, `yazi/yazi.toml`, `mpv/input.conf`, `cava/config`, `~/.config/fedokawaii/secrets.sh`, `~/.config/torrra/config.toml`, the browser and Steam profiles (except the two Brave settings Theme makes — its colours and its launcher entry, §5.3) |
+| `foot/foot.ini`, `fuzzel/fuzzel.ini`, `mako/config`, `waybar/`, `btop/btop.conf`, `lazygit/config.yml`, `bat/config`, `mpv/mpv.conf` and `mpv/scripts/kawa-*.lua`, `yt-dlp/config`, `zathura/zathurarc`, `satty/config.toml`, `spotify-player/`, `yazi/theme.toml`, `yazi/init.lua`, `yazi/keymap.toml` and `yazi/plugins/` (drives, smart-enter), `udiskie/config.yml`, `nvim/lua/config/lazy.lua`, `nvim/lua/plugins/colorscheme.lua`, `nvim/after/ftplugin/sh.lua`, `MangoHud/MangoHud.conf`, `~/.visidatarc`, `sc-im/scimrc`, `gdu/gdu.yaml`, `mimeapps.list`, `xdg-terminals.list`, the portal files (`xdg-desktop-portal/`, `xdg-desktop-portal-wlr/`, `xdg-desktop-portal-termfilechooser/`), the pointers in `~/.local/share/icons/`, `pipewire/pipewire.conf.d/60-share.conf`, `~/.bashrc.d/fedokawaii.sh`, `~/.inputrc`, `dwl/autostart.sh`, the launcher entries in `~/.local/share/applications` | every other file in `~/.config/nvim`, `yazi/yazi.toml`, `mpv/input.conf`, `cava/config`, `~/.config/fedokawaii/secrets.sh`, `~/.config/torrra/config.toml`, `~/.config/syncplay.ini`, the browser and Steam profiles (except the two Brave settings Theme makes — its colours and its launcher entry, §5.3) |
 
 ## 42.3 Where each thing lives
 
@@ -13668,8 +14113,8 @@ the tests' job, and they run only when you run them.
 
 When the copy holds the change you want, apply makes it the desktop's: `fedokawaii apply` in a
 terminal, or *apply* in **Super+Shift+U**. After an edit, the menu offers *apply now*, *later*
-(then `fedokawaii apply` when you are ready) or *what changed*. Apply asks for your password once
-(sudo), lists the files that differ from the toolkit, then works in order:
+(then `fedokawaii apply` when you are ready) or *what changed*. Apply works in order; after the
+first step it asks for your password once (sudo) and lists the files that differ from the toolkit:
 
 1. ShellCheck reads the shell scripts you changed and prints its notes. These are advice:
    apply goes on.
@@ -13745,7 +14190,7 @@ commit `fedokawaii copy` made: the toolkit as it came.
    Change their source — the palette, `art/icons.txt`, `art/cursors.txt` — and run the tool. The next run of
    the tool replaces any hand edit.
 3. **Tokens are filled in at apply**: `@HOME@`, `@MONITOR_HZ@`, `@WEATHER_CITY@`,
-   `@NIGHT_LIGHT@`, `@MPV_SCALING@`, `@ICON_CHEVRON_RIGHT@`. Leave them as they are.
+   `@NIGHT_LIGHT@`, `@MPV_SCALING@`, `@ICON_CHEVRON_RIGHT@`, `@UID@`. Leave them as they are.
    (`@DEFAULT_AUDIO_SINK@` is no token: it is wpctl's own name for the default output.)
 4. **A script's first line decides its mode.** The theme makes a file executable when it
    starts with `#!`, so a new script in `bin/` begins with `#!/usr/bin/env bash`.
@@ -13796,8 +14241,8 @@ comes first.
    which installs every package the manifest has gained, then runs `verify`.
 
 A package from Fedora or RPM Fusion needs nothing more. One from a new COPR also needs its
-name in `COPRS` and `sudo dnf copr enable owner/project` by hand — `update` does not add
-repositories. Flatpak and Snap are refused outright.
+name in `COPRS`, the packages it brings in `copr_pkgs` beside it, and `sudo dnf copr enable
+owner/project` by hand — `update` does not add repositories. Flatpak and Snap are refused outright.
 
 ## 42.13 Taking a package out
 
@@ -13922,7 +14367,7 @@ db = sqlite3.connect(":memory:")  # a database that lives only while this runs
 db.execute("CREATE TABLE books (title TEXT, pages INTEGER)")
 db.executemany("INSERT INTO books VALUES (?, ?)", [("Kokoro", 248), ("Snow Country", 175)])
 for title, pages in db.execute("SELECT title, pages FROM books WHERE pages > 200"):
-    print(title, pages)           # Kokoro 248
+    print(title, pages)           # Kokoro 248 — the one book over 200 pages
 ```
 
 ```ts
@@ -14041,7 +14486,7 @@ holds `ice`, and its weather would always show snow. *The rule:* `case` picks th
 that matches, and the patterns are globs (§25.4).
 
 Now read the whole file from the top. Most lines are these five ideas again; the others — a
-function, `refresh() { … }`, a pattern test, `[[ … =~ … ]]`, an `if`, a sum inside `(( … ))` —
+function, `refresh() { … }`, a pattern test, `[[ … =~ … ]]`, an `if`, a test on numbers inside `(( … ))` —
 are in the bash manual
 (§43.5), and their comments say what they are for. Its self-tests are
 `tests/status/test_weather.sh` (§42.6).
@@ -14107,11 +14552,6 @@ zram0
 | `.name` | of each one left, print the name |
 | `-r` | raw text: the names without their quotes |
 
-> **In SQL terms.** A jq filter is a small query, read left to right:
-> `.blockdevices[] | select(.type == "disk") | .name` is
-> `SELECT name FROM blockdevices WHERE type = 'disk'`. The `[]` is the FROM, `select()` the
-> WHERE, and the field at the end the column list.
-
 ## 43.5 Where to read
 
 Reliable, free and kept up to date. Official documentation comes first.
@@ -14166,7 +14606,7 @@ you change on the way (§42.6).
   ideas, in 56 lines.
 - `NAME=value` stores, `[[ … ]]` asks, `$( … )` captures output, `${NAME#…}` cuts, `case`
   picks by pattern.
-- `jq` asks JSON a question the way `SELECT … WHERE` asks a table.
+- `jq` picks what you need out of JSON, left to right: every entry, then a filter, then a field.
 - The manual first (`tldr`, `man`, `--help`), then the sources in §43.5; a first project
   from the ladder above.
 
@@ -14174,7 +14614,7 @@ you change on the way (§42.6).
 
 1. What does `${line#+}` make of `+31°C  Clear`? → *`31°C  Clear`: one `+` cut from the start*
 2. Two patterns of a `case` match. Which one runs? → *the first, from the top*
-3. In `jq '.blockdevices[] | select(.type == "disk") | .name'`, which part plays WHERE? → *`select(.type == "disk")`*
+3. In `jq '.blockdevices[] | select(.type == "disk") | .name'`, which part keeps only the disks? → *`select(.type == "disk")`*
 
 # 44. Learning with an AI assistant
 
@@ -14332,6 +14772,9 @@ a package is §42.11.
 | fetch | `fetch` (this repository) | replaces fastfetch: a few milliseconds, pictures drawn here |
 | torrents | torrra + Prowlarr | a terminal client that searches through Prowlarr's hundreds of indexers |
 | video | mpv (+ mpv-mpris, yt-dlp, Node.js) | plays nearly any file, and web links through yt-dlp; Node.js answers YouTube's JavaScript challenges for yt-dlp |
+| tables | VisiData · sc-im (Gnumeric for Excel files) | a CSV opens at once, sorts, sums and filters like a spreadsheet; sc-im for a few formulas; both in the terminal's colours |
+| disk usage | gdu | what fills a folder, largest first, in a window you can walk |
+| the graphics card in btop | rocm-smi | the library btop opens to read an AMD card; without it btop shows no GPU |
 
 **Removed as redundant** across versions: tuigreet (agreety is part of greetd), wlogout (a
 fuzzel menu), fastfetch (own `fetch`), a separate clock script (waybar's clock), starship
@@ -14358,7 +14801,7 @@ follow the XDG folders (§23.3): settings in `~/.config`, data in `~/.local/shar
 | `~/Pictures/Screenshots/` | Print, Shift+Print, satty's Ctrl+S, mpv's `s` | |
 | `~/Pictures/Wallpapers/` | your own wallpapers, on both themes | |
 | `~/repos/` | your git repositories | |
-| `~/.config/fedokawaii/secrets.sh` | API keys, as `export NAME=value` (and Prowlarr's, deliberately without `export`) | yours, mode 600; nothing else holds a key |
+| `~/.config/fedokawaii/secrets.sh` | API keys, as `export NAME=value` (and Prowlarr's, deliberately without `export`); the backup's password, `RESTIC_PASSWORD` (§37.6) | yours, mode 600; nothing else holds a key |
 
 The standard folders were made at setup by `xdg-user-dirs-update`, which records them in
 `~/.config/user-dirs.dirs`; programs ask for them by name:
@@ -14372,7 +14815,7 @@ $ xdg-user-dir DOWNLOAD
 
 | Program | Settings | Data | Cache, state, logs |
 |---|---|---|---|
-| the desktop (dwl, bar, menus) | `~/.config/fedokawaii/` (`env`, `themes/`, `current`, `icons.sh`, `keybinds.txt`, `cava.conf`, `fzf.opts` — the look of every list) · `~/.config/{waybar,mako,fuzzel,dwl}/` · dwl's `~/.local/src/dwl/config.h` | `~/.local/share/fedokawaii/` (pixel art, `wallpapers.list`, the pack in `wallpapers/`, `upstream/`) | `~/.cache/dwl.log`, `waybar.log`, `fedokawaii-theme.log`, `kawa-wallpaper/` · `~/.local/state/fedokawaii/` (each theme's wallpaper, stamps, `backup/`, `lazy-lock/`) |
+| the desktop (dwl, bar, menus) | `~/.config/fedokawaii/` (`env`, `themes/`, `current`, `icons.sh`, `keybinds.txt`, `cava.conf`, `backup-exclude`, `fzf.opts` — the look of every list) · `~/.config/{waybar,mako,fuzzel,dwl}/` · dwl's `~/.local/src/dwl/config.h` | `~/.local/share/fedokawaii/` (pixel art, `wallpapers.list`, the pack in `wallpapers/`, `upstream/`) | `~/.cache/dwl.log`, `waybar.log`, `fedokawaii-theme.log`, `kawa-wallpaper/` · `~/.local/state/fedokawaii/` (each theme's wallpaper, stamps, `backup/`, `lazy-lock/`) |
 | upkeep (Super+U) | `~/.config/fedokawaii/upkeep.conf` (the season) · `~/.config/systemd/user/fedokawaii-remind.{timer,service}` (the reminder) | — | `~/.cache/fedokawaii/` (when the next Fedora came out, the day of the last reminder) |
 | foot and bash | `~/.config/foot/foot.ini` · `~/.bashrc.d/fedokawaii.sh` · `~/.inputrc` | `~/.bash_history` · zoxide's folders: `~/.local/share/zoxide/` | `~/.cache/fedokawaii/` (fzf's and zoxide's shell code) |
 | the clipboard | — | `~/.cache/cliphist/db` (the history) | |
@@ -14388,6 +14831,7 @@ $ xdg-user-dir DOWNLOAD
 | Brave Origin | `~/.config/BraveSoftware/Brave-Origin/` (profile, settings, extensions) | the same folder | `~/.cache/BraveSoftware/` |
 | spotify_player | `~/.config/spotify-player/` (`app.toml`, `theme.toml`) | | `~/.cache/spotify-player/` (login, cover art) |
 | btop | `~/.config/btop/btop.conf` | | |
+| VisiData · sc-im · gdu | `~/.visidatarc` · `~/.config/sc-im/scimrc` · `~/.config/gdu/gdu.yaml` | | `~/.cache/sc-iminfo` (sc-im's command history) |
 | tldr | its colours and refresh in `~/.bashrc.d/fedokawaii.sh` | | `~/.cache/tldr/` (the pages) |
 | Steam and games | | `~/.local/share/Steam/` · GE-Proton in `compatibilitytools.d/` there | |
 | GTK, Qt, pointers | `~/.config/gtk-4.0/` · `~/.config/qt6ct/` · `/etc/dconf` | `~/.local/share/themes/Fedokawaii*` · `~/.local/share/icons/Fedokawaii/` (pointers) | |
@@ -14397,12 +14841,17 @@ $ xdg-user-dir DOWNLOAD
 | Path | What |
 |---|---|
 | `/usr/local/lib/fedokawaii/` | the toolkit: this project, root's own copy, run by every update, repair and move (§5.5) |
-| `/usr/local/bin/` | `fedokawaii` (the control, Super+U), `dwl` and `dwl.prev` (the build before it), `start-dwl`, `kawa-greeter`, `kawa-torrra` |
+| `/usr/local/bin/` | `fedokawaii` (the control, Super+U), `dwl` and `dwl.prev` (the build before it), `start-dwl`, `kawa-greeter`, `kawa-torrra`, `vi` (a link to neovim) |
 | `/usr/local/lib/fedokawaii-wlroots-0.20/` | dwl's own copy of wlroots, kept from Fedora's build (§36.7) |
 | `/usr/local/sbin/` | `kawa-snap` (the DNF snapshots) |
 | `/usr/local/libexec/xdg-desktop-portal-termfilechooser` (+ its service files under `/usr/local/lib` and `/usr/local/share`) | the yazi file dialog's portal, built by setup |
 | `/etc/dnf/libdnf5.conf.d/90-fedokawaii.conf` · `/etc/dnf/libdnf5-plugins/actions.d/` | DNF's settings · the snapshot around every DNF run |
-| `/etc/tuned/profiles/fedokawaii/` · `/etc/NetworkManager/conf.d/90-fedokawaii.conf` | the performance profile · Wi-Fi power saving off |
+| `/etc/tuned/profiles/fedokawaii/` · `/etc/NetworkManager/conf.d/90-fedokawaii.conf` · `/etc/modprobe.d/fedokawaii-btusb.conf` | the performance profile · Wi-Fi power saving off · the Bluetooth dongle's power saving off (§21.1) |
+| `/etc/yum.repos.d/` | the repositories setup adds: Brave's, Claude Code's (its key in `/etc/pki/rpm-gpg/`), the two COPRs; RPM Fusion's come with its release packages (§27.6) |
+| `/etc/profile.d/editor.sh` · `/etc/profile.d/kawa-torrra.sh` · `/etc/modules-load.d/fedokawaii-i2c.conf` | neovim as the editor · `torrra` run through `kawa-torrra` · `i2c-dev` at every start (monitor brightness) |
+| `/etc/systemd/system/fedokawaii-scrub.{service,timer}` | the monthly Btrfs scrub (§38.2) |
+| `/etc/systemd/system/user@.service.d/fedokawaii.conf` | at shutdown, your own systemd gets 30 s to stop Prowlarr and the portals |
+| `/etc/default/grub` · `/etc/vconsole.conf` | the boot menu's theme, mode and timeout · the console's font (lines set by Theme) |
 | `/etc/dconf/db/local.d/00-fedokawaii` | GTK's defaults: theme, icons, pointers, fonts |
 | `/etc/greetd/fedokawaii.toml` · `/etc/systemd/system/greetd.service.d/fedokawaii.conf` | the login: agreety on tty1 · greetd pointed at that file |
 | `/etc/snapper/configs/` (`root`, `home`) · `/.snapshots` and `/home/.snapshots` | the snapshot settings · the snapshots |
@@ -14472,6 +14921,7 @@ the full lists are in §7.2 (and on screen with **Super+/**) for the desktop, §
 | f · / | filter as you type · find |
 | z · Z | jump below here (fzf) · to a folder you use (zoxide) |
 | M · g m | drives: open or eject one · go where they open |
+| W | watch the film together (Syncplay) |
 | c c | copy the file's full path |
 | Tab | details of the file |
 | ~ · q | every key · quit |
@@ -14518,9 +14968,9 @@ the full lists are in §7.2 (and on screen with **Super+/**) for the desktop, §
 # D. Commands by job
 
 Every command here is installed on this desktop: Fedora's minimal set (coreutils,
-util-linux, procps-ng, iproute, iputils, findutils, grep, sed, gawk, tar, systemd, dnf5, rpm,
+util-linux, procps-ng, iproute, iputils, findutils, grep, sed, gawk, systemd, dnf5, rpm,
 and from the same `@core` group `less`, `man`, `curl`, firewalld, SELinux's tools and the audit
-tools) plus what the manifest adds. `tldr NAME` gives more examples; `man NAME` the full
+tools) plus what the manifest adds (`tar` among them). `tldr NAME` gives more examples; `man NAME` the full
 manual — §11.7 shows how to read both, and `--help`. Rows whose *Does* changes
 something — copy, move, delete, install — act at once: read the example before you run it.
 
@@ -14555,6 +15005,7 @@ something — copy, move, delete, install — act at once: read the example befo
 | `file` | what kind of file it really is | `file ~/Downloads/*` |
 | `wc` | count lines, words, bytes | `wc -l ~/Notes/notes.md` |
 | `nvim -R` | open read-only in neovim | `nvim -R /etc/greetd/fedokawaii.toml` |
+| `vd` | a CSV, TSV, JSON or SQLite file as a table: sort, sum, filter (§16.7) | `vd ~/Downloads/statement.csv` |
 
 ## D.3 Searching
 
@@ -14672,6 +15123,7 @@ something — copy, move, delete, install — act at once: read the example befo
 | `findmnt` | what is mounted where, as a tree | `findmnt -no OPTIONS /` |
 | `df -h` | space per file system (on Btrfs, ask Btrfs: §38.2) | `df -h / /boot` |
 | `du -sh` | space a folder's files use | `du -sh ~/Videos` |
+| `gdu` | the same, walked: what is inside, largest first (§38.2) | `gdu ~` |
 | `btrfs filesystem usage` | the real space on Btrfs | `sudo btrfs filesystem usage /` |
 | `btrfs subvolume list` | the subvolumes and snapshots | `sudo btrfs subvolume list /` |
 | `snapper list` · `snaps` | the snapshots of `/` | `snaps` |
@@ -14763,7 +15215,7 @@ commands themselves are in appendix D.
 | container | a program fenced off from the rest of the system, with its own files, sharing the kernel (ch. 20) |
 | container format | the file type that holds a video's streams together: `.mkv`, `.mp4`, `.webm` (§15.2) |
 | contrast ratio | how much lighter one colour is than another, 1 : 1 to 21 : 1; text needs 4.5 : 1 (§40.1) |
-| COPR | Fedora's build service, where anyone may publish a small repository; lazygit and LACT come from two (§5.4) |
+| COPR | Fedora's build service, where anyone may publish a small repository; LACT comes from one (§5.4) |
 | copy-on-write | writing a changed block to a new place instead of over the old one, which snapshots keep (§23.5) |
 | cron | the older way to run jobs on a schedule; systemd timers do it here (§28.4) |
 | D-Bus | the desktop's message system: programs send each other short messages over it (§15.5) |
@@ -14779,7 +15231,7 @@ commands themselves are in appendix D.
 | drop-in | a file in a `NAME.d/` folder that overrides lines of a config or unit without editing it (§28.3) |
 | dwl | the tiling Wayland compositor of this desktop: a small C program built on wlroots (§2.3) |
 | edition | one of Fedora's starting sets for a purpose: Workstation, Server… (§2.2) |
-| EFI system partition | the small FAT partition at `/boot/efi` from which the firmware loads shim (§23.2) |
+| EFI system partition | the small FAT partition at `/boot/efi` from which the firmware loads shim (§29.1) |
 | eject | write out what is still on its way to a drive, close it, and say *safe to unplug* (§13.1) |
 | encoding | how letters are stored as bytes: UTF-8 today, Windows-1256 in many older Arabic files (ch. 19) |
 | environment variable | a variable marked with `export`, so every program started afterwards gets a copy (§11.2) |
@@ -14856,7 +15308,7 @@ commands themselves are in appendix D.
 | MIME type | the standard name for a kind of file: `application/pdf`, `image/png`, `text/plain` (§10.5) |
 | mode (neovim) | what keys do at the moment: give commands (Normal), type text (Insert), select (Visual) (ch. 17) |
 | mount · mount point | to attach a file system to a folder, so its files appear there · that folder (§5.1) |
-| MPRIS | the D-Bus standard through which players say what they play and take play and pause (§15.2) |
+| MPRIS | the D-Bus standard through which players say what they play and take play and pause (§15.5) |
 | NetworkManager | the service that runs the network connections: `nmcli`, `nmtui` (§33.1) |
 | NEVRA | name, epoch, version, release, architecture: a package's exact identity (§27.1) |
 | nice value | a process's place in the queue for the CPU, from −20 (served first) to 19 (last) (§26.4) |
@@ -15060,7 +15512,7 @@ What changed from Fedora 41 to 45, and what it means here:
 | 43 (October 2025) | GNOME's X11 session removed from Fedora; RPM 6.0, with enforced signatures put off | nothing for dwl, which is Wayland; Steam still runs through XWayland (§21.1) |
 | 44 (April 2026) | the `ntsync` module offered to Wine and Steam through a package recommendation | the driver GE-Proton uses (§21.1) |
 | 45 | **kmscon** draws the text consoles instead of the kernel | **Ctrl+Alt+F2…F6** keep their own colours and font (§6.1) |
-| 45 | RPM refuses an unsigned package by default | a downloaded `.rpm` without a valid signature is refused; `rpm --nosignature` overrides it for one command |
+| 45 | RPM refuses an unsigned package by default | `rpm -i` refuses a downloaded `.rpm` without a valid signature (`--nosignature` overrides it for one command); `dnf install ./file.rpm` still takes it, as dnf does not check a local file's signature unless told to (`localpkg_gpgcheck`) |
 | 45 | `ptrace` restricted (`kernel.yama.ptrace_scope=1`) unless debugging tools are installed | `gdb -p PID` or `strace -p PID` on a running program needs `yama-ptrace-enable`, which Fedora's gdb and strace are meant to bring |
 | 45 | oo7 replaces GNOME Keyring as the desktops' password store | the manifest lists no keyring: nothing changes |
 | 45 | a kernel panic shows a QR code that opens an explanation page | scan it with a phone; the trace travels in the link, not to Fedora's server |

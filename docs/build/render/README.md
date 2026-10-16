@@ -186,10 +186,11 @@ from there; shoot.sh calls `/usr/bin/dconf update` and the real `fc-cache` itsel
 ```sh
 sudo ./apps.sh                                   # both themes (≈6 minutes)
 sudo APPS_ONLY="yazi nvim" ./apps.sh light       # groups: yazi nvim lazygit btop mpv zathura
-                                                 #   filechooser share torrra brave
+                                                 #   filechooser share torrra brave books notes
+                                                 #   system wiremix bluetui visidata
                                                  #   nvim-whichkey nvim-picker nvim-grep nvim-split
                                                  #   nvim-lsp lazygit-log lazygit-commit lazygit-stage
-                                                 #   yazi-preview
+                                                 #   yazi-preview yazi-drives
 ```
 
 It reads shoot.sh's functions (without its main part) and uses the same session; then it
@@ -229,6 +230,9 @@ and bind-mounted over `/etc/dconf/db/local` (this sandbox's `local.d` still hold
 | `app-share` | `kawa-share` fed four xdg-desktop-portal-wlr 0.8.4 lines; `wlr-randr` answers for DP-1 and HDMI-A-1 |
 | `app-torrra`, `app-torrra-search` | `kawa-torrra --open` (the launcher's way) with `lib/fakeprowlarr.py` on 127.0.0.1:9696; "ubuntu 24.04" typed |
 | `app-brave` | Brave Origin new-tab page, second start, `--no-first-run --no-default-browser-check`, `brave.origin.free_tier_accepted` set (the one-time Origin question answered "Proceed") |
+| `app-wiremix` | `kawa-float --once mixer mixer 96x29 -- wiremix` (the bar's volume click, Super+X → *audio mixer*) while `mpv --no-video` plays the test video: one stream on the Playback tab |
+| `app-bluetui` | `kawa-float --once pair pair 96x29 -- bluetui` (Super+X → *pair a device*) on a private session bus where `lib/fakebluez.py` answers as BlueZ (adapter `fedokawaii`; a game controller and a headset paired, a phone found nearby), after **s** (scan) |
+| `app-visidata` | `vd weather.csv` in `~/practice` (a small made-up table), a column made numeric (`#`), sorted (`[`), summed (`+` → sum): the frequency line at the bottom |
 
 Fetched once into `apps-cache/` (kept): yazi (latest release, as lib/upstream.sh),
 lazygit, neovim, tree-sitter (GitHub releases, newest tags via `git ls-remote`: the API is
@@ -238,6 +242,12 @@ mounted as `~/.local/share/nvim`). nvim-treesitter's GitHub tarballs and Mason's
 `lib/curl-github-archive` (the same tarball made with `git archive`) and `lib/nvim-mason.lua`
 (the registry tag from `git ls-remote`). apt: btop 1.3.0, zathura 0.5.4 +
 zathura-pdf-poppler (Fedora: mupdf).
+
+Not packaged for this Ubuntu, kept in `/opt/kit-tools/bin` (and linked into the test user's
+`~/.local/bin`): wiremix v0.11.0 (built from its tag with `cargo build --locked`), bluetui
+0.8.2 (the upstream static musl release file, the one lib/upstream.sh pins), gdu v5.32.0 and
+sc-im 0.8.5, and VisiData 3.3 with dbus-next 0.2.3 in `/opt/kit-tools/venv` (pip; dbus-next
+is what `lib/fakebluez.py` runs on).
 
 Debugging: `APPS_HOLD=1` keeps a theme's session up until `/tmp/shoot-kawa-apps/release`
 exists (enter it with `nsenter -t <PID 1 of the namespace> -m -p`).

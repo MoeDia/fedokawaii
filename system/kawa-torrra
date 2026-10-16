@@ -66,8 +66,11 @@ if ((search)); then
   if [[ -z ${PROWLARR_API_KEY:-} && -r $secrets ]]; then
     # the shell's rule: only a file that is yours alone
     [[ $(stat -c %a "$secrets") == 600 && -O $secrets ]] || die "$secrets must be yours and private — chmod 600 it"
+    # only the key is taken from it, read in a shell of its own (as setup and verify read
+    # it): your other keys there stay out of torrra's environment, and a slip in the file
+    # (a name that is not set) stops nothing here
     # shellcheck source=/dev/null
-    . "$secrets"
+    PROWLARR_API_KEY=$(set +u; . "$secrets" >/dev/null 2>&1; printf %s "${PROWLARR_API_KEY:-}")
   fi
   [[ ${PROWLARR_API_KEY:-} =~ ^[0-9a-f]{32}$ ]] || die "no PROWLARR_API_KEY (32 hex characters) in $secrets — run: fedokawaii update"
 fi
@@ -165,8 +168,9 @@ sys.argv[0] = "torrra"
 sys.exit(cli())
 PY
 
-# Prowlarr runs on demand: started here for a search (it answers once healthy — the first
-# start after boot takes up to a minute) and stopped again afterwards, if it was not running
+# Prowlarr runs on demand: started here for a search (the start returns once it is healthy —
+# the first after a boot can take a minute or two; systemd gives up after 10 minutes, the
+# unit's TimeoutStartSec) and stopped again afterwards, if it was not running
 # — however torrra ends, the window closed during a search included (trap)
 if ((search)) && ! systemctl --user is-active --quiet prowlarr.service; then
   # what would only fail inside systemd, said plainly first: no unit at all (podman, or the

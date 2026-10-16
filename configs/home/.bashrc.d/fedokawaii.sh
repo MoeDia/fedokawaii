@@ -228,7 +228,14 @@ alias update='fedokawaii update' verify='fedokawaii verify' repair='fedokawaii r
 # prowlarr: its web page (Prowlarr started for it) · prowlarr stop: done with it
 prowlarr() {
   if [[ ${1:-} == stop ]]; then systemctl --user stop prowlarr.service; return; fi
-  systemctl --user start prowlarr.service && xdg-open http://localhost:9696 >/dev/null 2>&1
+  systemctl --user is-active --quiet prowlarr.service \
+    || echo 'starting Prowlarr… (its first start after a boot can take a minute or two)'
+  # one that does not start is stopped again: left, it would try every 10 s until the next boot
+  if ! systemctl --user start prowlarr.service; then
+    systemctl --user stop --no-block prowlarr.service
+    echo 'Prowlarr did not start — journalctl --user -u prowlarr -e says why' >&2; return 1
+  fi
+  xdg-open http://localhost:9696 >/dev/null 2>&1
 }
 alias snaps='sudo snapper -c root list'
 alias dwl-log='less +G ~/.cache/dwl.log'

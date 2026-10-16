@@ -3,7 +3,8 @@
 #
 # udiskie (started with the session) mounts what you plug in, under /run/media/$USER, and
 # hands every change to this script (~/.config/udiskie/config.yml). From there:
-#   · a notice when a drive opens — click it, and yazi opens on it
+#   · a notice when a drive opens — click it, and yazi opens on it (the backup drive, the
+#     one BACKUP_TARGET names: click it, and kawa-backup backs up to it)
 #   · the bar's drive mark while one is plugged in — click it for this menu
 #   · yazi's M (in the file dialog too): the drives, Enter opens one, e ejects it
 #   · eject: what is still being written finished, every file system on the drive closed,
@@ -41,6 +42,7 @@ say() {   # say [-u URGENCY] [-t MS] [-r ID] SUMMARY BODY — a notice of the dr
   notify-send "${a[@]}" -- "$1" "$2" 2>/dev/null || printf '%s: %s\n' "$1" "$2" >&2
 }
 poke() { kawa-dwlstatus --poke 13 2>/dev/null || true; }   # the bar's mark
+backup_drive() { kawa-backup target 2>/dev/null; }   # → the drive's name in BACKUP_TARGET (fedokawaii.conf)
 
 # ── what is plugged in ───────────────────────────────────────────────────────
 # A drive is a disk (or an optical drive) udisks counts as not the system's own — its
@@ -265,7 +267,7 @@ recent() {   # recent FILE — made in the last minute (an eject at work, an ope
   [[ -n $(find "$1" -maxdepth 0 -newermt '-60 seconds' 2>/dev/null) ]]
 }
 event() {
-  local ev=$1 dev=$2 ext=$3 name=${4:-} drive=${5:-} f disk label state t size fs ejecting
+  local ev=$1 dev=$2 ext=$3 name=${4:-} drive=${5:-} f disk label state t size fs ejecting act=open
   # the machine's own disks are none of ours. An unlocked encrypted volume (/dev/dm-N) has no
   # drive of its own, so udisks counts it as the system's: it is ours when its drive is
   if [[ $ext != True && ! -f $STATE/${dev##*/} ]]; then
@@ -283,9 +285,16 @@ event() {
       poke
       # opened because you asked (the menu, M in yazi): you are on your way there already
       if [[ -n $disk ]] && recent "$STATE/asked.${disk##*/}"; then return 0; fi
-      # the notice waits for its click in the background: udiskie goes on at once
-      setsid -f "$0" notice-open "$dev" "$ICON_DRIVE  $label" \
-        "${size:+$size }${fs:+$fs }· click to open it in the files" >/dev/null 2>&1 </dev/null
+      # the notice waits for its click in the background: udiskie goes on at once — the
+      # backup drive's click backs up to it (kawa-backup), any other's opens it
+      [[ $label == "$(backup_drive)" ]] && act=backup
+      if [[ $act == backup ]]; then
+        setsid -f "$0" notice-open "$dev" "$ICON_DRIVE  $label" \
+          "your backup drive · click to back up now (last backup: $(kawa-backup status 2>/dev/null || echo '?'))" backup >/dev/null 2>&1 </dev/null
+      else
+        setsid -f "$0" notice-open "$dev" "$ICON_DRIVE  $label" \
+          "${size:+$size }${fs:+$fs }· click to open it in the files" >/dev/null 2>&1 </dev/null
+      fi
       ;;
     device_unmounted)
       f=$STATE/${dev##*/}
@@ -319,10 +328,11 @@ event() {
     *) poke ;;
   esac
 }
-notice_open() {   # notice_open DEVICE SUMMARY BODY — click: the files
+notice_open() {   # notice_open DEVICE SUMMARY BODY [backup] — click: the files (or the backup)
   local act
-  act=$(notify-send -a drives -A default=open -- "$2" "$3" 2>/dev/null) || return 0
-  [[ $act == default ]] && files_dev "$1"
+  act=$(notify-send -a drives -A default="${4:-open}" -- "$2" "$3" 2>/dev/null) || return 0
+  [[ $act == default ]] || return 0
+  if [[ ${4:-} == backup ]]; then kawa-backup --window; else files_dev "$1"; fi
 }
 
 passphrase() {   # passphrase DEVICE LABEL DRIVE → the passphrase on stdout (Esc: nothing, status 1)
@@ -377,7 +387,7 @@ case ${1:-menu} in
   eject)       [[ -n ${2:-} ]] || exit 2; eject_dev "$2" ;;
   bar)         bar ;;
   event)       (($# >= 4)) || exit 2; shift; event "$@" ;;
-  notice-open) (($# == 4)) || exit 2; shift; notice_open "$@" ;;
+  notice-open) (($# == 4 || $# == 5)) || exit 2; shift; notice_open "$@" ;;
   passphrase)  shift; passphrase "$@" ;;
   -h|--help)   sed -n '2,/^set -u/{/^set -u/d;s/^# \{0,1\}//;p}' "$0" ;;
   *)           echo "kawa-drives: unknown command ${1} (kawa-drives --help)" >&2; exit 2 ;;

@@ -45,6 +45,7 @@ state_drives() {   # USB sticks, disks, SD cards plugged in (kawa-drives: one li
   n=$(kawa-drives list 2>/dev/null | cut -f2 | sort -u | grep -c .)
   if ((n == 0)); then echo none; else echo "$n plugged in"; fi
 }
+state_backup() { kawa-backup status 2>/dev/null || echo '…'; }   # the last backup's age (never · 3 days ago · not set up)
 
 row() {   # row ACTION ICON NAME STATE
   local r; printf -v r '%s  %-16s%s' "$2" "$3" "$4"; rows+=("$r"); acts+=("$1")
@@ -73,6 +74,7 @@ while :; do
     row pair     "$ICON_BLUETOOTH" 'pair a device' '…'
   fi
   row drives     "$ICON_DRIVE"    drives "$(state_drives)"
+  row backup     "$ICON_ARCHIVE"  backup "$(state_backup)"
   row dnd        "$dndicon"       'do not disturb' "$dnd"
   row shot       "$ICON_CAMERA"   screenshot region
   row keys       "$ICON_KEYBOARD" keybindings '…'
@@ -95,8 +97,9 @@ while :; do
                     notify-send -a desktop "Bluetooth" "it is blocked — rfkill unblock bluetooth (or the machine's own switch)"
                   else notify-send -a desktop "Bluetooth" "it did not switch on — is the bluetooth service running?"; fi
                 fi ;;
-    pair)       setsid -f blueman-manager >/dev/null 2>&1; exit 0 ;;
+    pair)       exec kawa-float --once pair 'pair a device' 96x29 -- bluetui ;;   # (the paired, the found, the adapter)
     drives)     exec kawa-drives ;;
+    backup)     exec kawa-backup --window ;;
     night)      if [[ $night == on ]]; then
                   # gammastep fades back for ~4 s after a first signal, still running: a second
                   # one ends that at once, so the menu reopens with the night light really off

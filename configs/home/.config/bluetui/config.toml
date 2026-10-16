@@ -1,0 +1,9 @@
+# ~/.config/bluetui/config.toml — Bluetooth pairing (quick settings → pair a device), in a
+# floating terminal window. Its colours are foot's own 16, so it follows the theme as the
+# terminal does. Everything else is bluetui's default: s scans, Enter pairs a found device
+# or connects a paired one, u unpairs, t trusts (connects by itself next time), Tab moves
+# between the adapter, the paired and the found devices, q quits.
+
+# Esc closes the window too, as it closes every popup here (bluetui's own Esc only leaves a
+# question — a PIN, an unpair — and that still comes first)
+esc_quit = true

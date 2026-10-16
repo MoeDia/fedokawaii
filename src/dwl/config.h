@@ -49,8 +49,6 @@ static const Rule rules[] = {
 	 * "Upload"/"Save as" opens through the portal, and the password prompt for admin rights */
 	{ "xdg-desktop-portal-gtk", NULL,     0,            1,           -1 },
 	{ "lxqt-policykit-agent", NULL,       0,            1,           -1 },
-	{ "org.pulseaudio.pavucontrol", NULL, 0,            1,           -1 },
-	{ "blueman-manager",      NULL,       0,            1,           -1 },
 	{ "imv",                  NULL,       0,            1,           -1 },
 	{ "steam",                "Steam",    1 << 8,       0,           -1 }, /* the Steam client → workspace 9; games open where you are */
 	/* no catch-all { NULL, NULL, … } rule: dwl applies every rule that matches, in

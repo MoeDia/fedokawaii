@@ -66,8 +66,9 @@ if pick then
 			ui.Span(" " .. pick[1] .. " "):fg("gray"),
 		}
 		local where = ya.readable_path(tostring(self._current.cwd)) .. self:flags()
-		where = ui.truncate("· " .. where, { max = math.max(0, room - head:width() - 2), rtl = true })
-		local line = ui.Line { head, ui.Span(where .. " "):fg("darkgray") }
+		-- (a long folder loses its start, "…" in its place — the "· " before it stays)
+		where = ui.truncate(where, { max = math.max(0, room - head:width() - 4), rtl = true })
+		local line = ui.Line { head, ui.Span("· " .. where .. " "):fg("darkgray") }
 		return ui.Line { line, ui.Span(string.rep("─", math.max(0, room - line:width()))):fg("darkgray") }
 	end, 1000, Header.LEFT)
 	for id = 1, 6 do -- mode, size, name · permissions, percent, position

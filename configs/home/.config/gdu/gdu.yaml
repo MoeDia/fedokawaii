@@ -1,0 +1,20 @@
+# ~/.config/gdu/gdu.yaml — gdu, what fills the disk (handbook §38.2). gdu reads it at start
+# (its configuration.md lists every key; `gdu --write-config` would overwrite it with them all).
+# Colours: gdu's own are fixed hex blues and an orange (#2479D0, #e67100 …), in neither
+# palette. These are the terminal's own, by tcell's names for the 16 (black = 0 … white = 15),
+# so they are foot's and follow the theme like the shell's: nothing per theme here.
+#   white (15) the strongest ink · black (0) the selection ink · yellow (11) yamabuki · aqua (14) asagi
+style:
+  header:
+    text-color: white
+    background-color: black
+  footer:
+    text-color: white
+    background-color: black
+    number-color: yellow
+  selected-row:
+    text-color: white
+    background-color: black
+  result-row:
+    number-color: yellow
+    directory-color: aqua

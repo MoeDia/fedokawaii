@@ -108,7 +108,7 @@ demo_repo() {   # ~/repos/fedokawaii: a copy of the repo with work in progress, 
   g() { setpriv --reuid="$KUID" --regid="$KGID" --init-groups env -i HOME="$KH" PATH=/usr/bin:/bin \
           GIT_AUTHOR_NAME=kawau GIT_AUTHOR_EMAIL=kawau@fedokawaii GIT_COMMITTER_NAME=kawau \
           GIT_COMMITTER_EMAIL=kawau@fedokawaii GIT_CONFIG_NOSYSTEM=1 git -C "$d" "$@" >/dev/null 2>&1; }
-  cp -a /home/claude/fedokawaii "$d" 2>/dev/null || { warn "repo copy failed"; return; }
+  cp -a "${FEDOKAWAII_REPO:-/home/claude/fedokawaii}" "$d" 2>/dev/null || { warn "repo copy failed"; return; }
   rm -rf "$d/.git"; chown -R "$K:$K" "$d"
   g init -q -b main && g add -A && g commit -q -m "fedokawaii: initial" \
     && g clone -q --bare "$d" "$KH/repos/.remote/fedokawaii.git" \

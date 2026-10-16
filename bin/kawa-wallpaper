@@ -324,7 +324,9 @@ case ${1:-menu} in
     else printf '  %s no preview\n' "${ICON_PICTURE:-▣}"; fi ;;
   --warm)      # every preview of this theme drawn ahead (the picker starts it)
     renice -n 19 $$ >/dev/null 2>&1
-    find "$CACHE/preview" -name '*.six' -mtime +30 -delete 2>/dev/null   # (other sizes, old ones)
+    # (other sizes, old ones — and what previews fzf killed half-way left: it kills one you
+    # moved on from outright, SIGKILL, mid-way through its file)
+    find "$CACHE/preview" \( -name '*.six' -mtime +30 -o -name '*.six.*.tmp' -mmin +1 \) -delete 2>/dev/null
     choices | while IFS=$'\t' read -r c _; do preview_file "$c" >/dev/null 2>&1; done ;;
   *) echo "usage: kawa-wallpaper [--restore|--set CHOICE|--pack] (kawa-wallpaper --help)" >&2; exit 2 ;;
 esac

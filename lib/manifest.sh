@@ -4,7 +4,8 @@
 # setup.sh installs exactly these lists; verify.sh proves exactly these lists
 # are present, the FORBIDDEN ones are absent, and nothing else was added.
 # Every name verified on packages.fedoraproject.org / RPM Fusion / vendor repos
-# for Fedora 44 and 45 (2026-10-14; tar, grubby 2026-10-16). One tool per job — see PACKAGES.md.
+# for Fedora 44 and 45 (2026-10-14; tar, grubby, wiremix, visidata, sc-im, gdu, rocm-smi,
+# Syncplay's Python libraries 2026-10-16). One tool per job — see PACKAGES.md.
 
 # ── phase 1 ─────────────────────────────────────────────────────────────────
 PKG_BASE=(
@@ -29,7 +30,8 @@ PKG_BASE=(
   pciutils usbutils     # lspci · lsusb: which device is which, and which driver holds it
 )
 PKG_REMOVE=(nano nano-default-editor vim-minimal vim-enhanced vim-default-editor   # one editor: neovim
-            dracut-config-rescue)                                                  # no rescue boot entry
+            dracut-config-rescue                                                   # no rescue boot entry
+            systemd-oomd-defaults)                                                 # no whole-session kills (FORBIDDEN_PKGS)
 
 # ── phase 2 ─────────────────────────────────────────────────────────────────
 PKG_RELEASE=(rpmfusion-free-release rpmfusion-nonfree-release)
@@ -45,7 +47,8 @@ PKG_MEDIA=(
   libheif-freeworld     # HEVC for HEIF: iPhone photos (.heic) open in imv, yazi and ImageMagick
 )
 PKG_GPU_COMMON=(mesa-dri-drivers vulkan-loader linux-firmware)
-PKG_GPU_amd=(amd-gpu-firmware mesa-va-drivers-freeworld mesa-vulkan-drivers-freeworld lact)
+PKG_GPU_amd=(amd-gpu-firmware mesa-va-drivers-freeworld mesa-vulkan-drivers-freeworld lact
+             rocm-smi)   # the ROCm SMI library: btop reads the card through it (load, memory, heat, watts)
 PKG_GPU_intel=(intel-media-driver mesa-vulkan-drivers)
 
 # ── phase 3 ─────────────────────────────────────────────────────────────────
@@ -64,7 +67,7 @@ PKG_SESSION=(greetd greetd-selinux xorg-x11-server-Xwayland)   # greetd brings a
 PKG_DESKTOP=(
   pipewire wireplumber pipewire-pulseaudio pipewire-alsa  # audio (Pulse API for Brave/Steam, ALSA for spotify_player)
   pipewire-utils                                          # pw-dump: the audio popup lists outputs/inputs from it
-  pavucontrol easyeffects playerctl cava                  # per-app mixer, EQ, media keys, the bar's music meter
+  wiremix easyeffects playerctl cava                      # per-app mixer (a terminal window), EQ, media keys, the bar's music meter
   waybar mako fuzzel foot                                 # bar, notifications, launcher+menus, terminal
   swaybg swayidle swaylock wlr-randr wlopm                # wallpaper, idle, lock, output modes, screens off
   ddcutil wtype                                           # monitor brightness over DDC/CI · bar clicks → Super+1…9
@@ -75,7 +78,7 @@ PKG_DESKTOP=(
   exfatprogs dosfstools ntfs-3g                           # drives: check, repair and name exFAT and FAT sticks and
                                                           #   SD cards; NTFS opens whatever NTFS driver the kernel has
   xdg-terminal-exec                                       # a terminal (foot) for apps that ask for one
-  bluez blueman                                           # Bluetooth controller dongle
+  bluez                                                   # Bluetooth controller dongle (pairing: bluetui, lib/upstream.sh)
   dconf                                                   # persists GTK settings (dark mode for GTK4/libadwaita)
   glib2 fontconfig                                        # gsettings, gio · fc-cache, fc-match: the helpers call them
                                                           #   (NetworkManager and foot bring them too: listed, never assumed)
@@ -101,26 +104,42 @@ PKG_APPS=(
   ghostscript                                       #   PDF compression (`gs`)
   tesseract tesseract-langpack-eng tesseract-langpack-ara   # text from scans and pictures (OCR)
   imv ImageMagick ImageMagick-heic qalculate        # images, conversions (phone HEIC photos too), `qalc`
+  python3-twisted python3-twisted+tls python3-pyOpenSSL python3-certifi python3-pem
+                                                    # what Syncplay needs (watching together, kawa-together): lib/upstream.sh
+                                                    #   runs its pinned source on Fedora's python3 — Twisted with its TLS
+                                                    #   extra (+tls brings service-identity, idna), certifi (Fedora's CA
+                                                    #   list), pem. Not the syncplay package: PySide6 and 27 Qt modules with it
   qrencode wf-recorder                              # QR codes · screen recordings
   btop bat ripgrep fd-find                          # monitor, pager; rg/fd also power LazyVim pickers
-  fzf file 7zip                                     # the clipboard and wallpaper windows' lists, the shell's
+  visidata sc-im                                    # tables in the terminal: vd opens CSV, TSV, JSON and
+                                                    #   SQLite (sort, sum, filter, group — Excel files stay
+                                                    #   Gnumeric's) · sc-im, a vi-like spreadsheet
+  gdu                                               # what fills the disk (gdu ~), folder by folder
+  fzf file 7zip                                    # the clipboard and wallpaper windows' lists, the shell's
                                                     #   Ctrl+R / Ctrl+T / Alt+C, yazi's z; file types; archives
   eza zoxide tldr                                   # the shell: ls with git status and trees · a cd that
                                                     #   learns your folders (yazi's Z too) · tldr examples
-  lazygit tree-sitter-cli                           # git TUI; parser builder required by LazyVim's nvim-treesitter
+  tree-sitter-cli                                   # parser builder required by LazyVim's nvim-treesitter
+                                                    #   (lazygit, the git TUI: lib/upstream.sh)
   ShellCheck                                        # explains what is wrong in a shell script: fedokawaii apply
                                                     #   reads the ones you changed (and neovim's bash server, §17.15)
-  openrgb solaar liquidctl                          # RGB, Logitech, coolers
+  openrgb                                           # RGB lighting (fan speeds: the motherboard's firmware)
   snapper libdnf5-plugin-actions                    # snapshots; actions = pre/post snapshot around every dnf run
+  restic                                            # backups to another disk (kawa-backup)
   podman python3.13 pipx                            # Prowlarr container; torrra (needs libtorrent wheels ≤ py3.13)
 )
 PKG_GAMING=(steam gamescope gamemode mangohud
-            ntsync-autoload)   # /dev/ntsync at boot: Proton's faster Windows synchronisation
+            ntsync-autoload    # /dev/ntsync at boot: Proton's faster Windows synchronisation
+            steam-devices)     # the rules that let Steam (and Proton's games) open a controller:
+                               #   Steam brings it today — listed, never assumed
 
 # ── dropped from the manifest: Update hands them back to dnf as dependencies, so they
 #    are no longer "yours" and dnf autoremove clears them when nothing needs them. Move a
 #    package here when you take it out of the lists above ───────────────────────────────
-RETIRED_PKGS=(unzip mediainfo)   # unzip: 7zip opens zips too · mediainfo: ffprobe does its job
+RETIRED_PKGS=(unzip mediainfo    # unzip: 7zip opens zips too · mediainfo: ffprobe does its job
+              pavucontrol blueman   # the mixer and the pairing window are terminal programs now: wiremix, bluetui
+              lazygit               # its COPR is no longer kept: lazygit comes from its release (lib/upstream.sh)
+              solaar liquidctl)     # nothing here to drive: a mouse on a receiver needs no app; no liquid cooler
 
 # ── never present after setup (removed, replaced, or out of scope) ─────────
 FORBIDDEN_PKGS=(
@@ -129,9 +148,12 @@ FORBIDDEN_PKGS=(
   alacritty kitty xterm konsole gnome-terminal                                 # terminals: foot only
   rofi wofi wmenu bemenu                                                       # launchers: fuzzel only
   tuigreet wlogout fastfetch neofetch                                          # replaced: agreety, fuzzel menus, own fetch
+  pavucontrol blueman                                                          # replaced: wiremix, bluetui (terminal windows)
   polkit-gnome hyprpolkitagent network-manager-applet                          # one polkit agent, no tray NM
-  dunst swaync                                                                 # notifications: mako only
+  dunst SwayNotificationCenter                                                 # notifications: mako only (swaync's package)
   power-profiles-daemon                                                        # power: tuned only (both would set the CPU)
+  systemd-oomd-defaults                                                        # oomd's rules: under memory pressure it ends a whole cgroup —
+                                                                               #   the session's holds every program you run (the kernel's OOM killer stays)
   gdm sddm lightdm lxdm                                                        # logins: greetd only
   flatpak snapd PackageKit gnome-software                                      # dnf only
   dracut-config-rescue                                                         # no rescue image
@@ -149,7 +171,20 @@ BRAVE_REPO_URL="https://brave-browser-rpm-release.s3.brave.com/brave-browser.rep
 CLAUDE_REPO_BASEURL="https://downloads.claude.ai/claude-code/rpm/stable"
 CLAUDE_KEY_URL="https://downloads.claude.ai/keys/claude-code.asc"
 CLAUDE_KEY_FPR="31DDDE24DDFAB679F42D7BD2BAA929FF1A7ECACE"
-COPRS=(ilyaz/LACT dejan/lazygit)
+COPRS=(ilyaz/LACT)
+copr_pkgs() { case $1 in ilyaz/LACT) echo lact ;; esac; }   # what each COPR brings
+
+# waiting PART → what waits for a repository to catch up with this Fedora, one name per line
+# (setup.sh records it; update and repair try again and clear it): "rpmfusion" — RPM Fusion's
+# builds made for another version of the Fedora package they go with (the freeworld drivers,
+# libheif-freeworld); "copr" — a COPR with no build for this release yet
+waiting() { cat "${STATE_DIR:-/var/lib/fedokawaii}/pending-$1" 2>/dev/null || true; }
+waiting_pkgs() {   # → every package left out for now: RPM Fusion's, and the waiting COPRs'
+  local c
+  waiting rpmfusion
+  while IFS= read -r c; do [[ -n $c ]] && copr_pkgs "$c"; done < <(waiting copr)
+  return 0
+}
 
 # manifest_all GPU → every package setup.sh installs on purpose, one per line
 manifest_all() {

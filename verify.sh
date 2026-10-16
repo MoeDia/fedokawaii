@@ -58,7 +58,7 @@ check "Fedora $VERSION_ID (44 or newer)"              test "$VERSION_ID" -ge 44
 check "SELinux enforcing"                              test "$(getenforce 2>/dev/null)" = Enforcing
 check "/ is Btrfs"                                     test "$(findmnt -no FSTYPE /)" = btrfs
 check "no root-owned files in your home"               bash -c 'o=$(find "$1" -xdev -user root -print -quit) && [ -z "$o" ]' _ "$TARGET_HOME"
-check "user in video, input, render"                   bash -c "id -nG $TARGET_USER | tr ' ' '\n' | grep -cxE 'video|input|render' | grep -qx 3"
+check "user in video, render"                          bash -c "id -nG $TARGET_USER | tr ' ' '\n' | grep -cxE 'video|render' | grep -qx 2"
 check "EDITOR=nvim system-wide"                        grep -qx 'export EDITOR=nvim' /etc/profile.d/editor.sh
 check "vi → nvim"                                       test "$(readlink -f /usr/local/bin/vi)" = /usr/bin/nvim
 check "i2c-dev loaded (monitor brightness over DDC/CI)" test -d /sys/module/i2c_dev
@@ -75,17 +75,32 @@ q=$(rpm -q --whatprovides --qf '%{NAME}\n' "${WANT[@]}" 2>&1)
 mapfile -t miss < <(sed -n 's/^no package provides //p' <<<"$q")
 nans=$(grep -cE '^(no package provides .+|[A-Za-z0-9._+-]+)$' <<<"$q")
 gone=$(cat "$STATE_DIR/unavailable" 2>/dev/null || true)
-real=() ret=()
-for p in "${miss[@]}"; do if grep -qx -- "$p" <<<"$gone"; then ret+=("$p"); else real+=("$p"); fi; done
+# what waits for RPM Fusion or a COPR to catch up with this Fedora (setup recorded it): a warning
+WAITING=$(waiting_pkgs)
+real=() ret=() wt=()
+for p in "${miss[@]}"; do
+  if grep -qx -- "$p" <<<"$gone"; then ret+=("$p"); elif grep -qxF -- "$p" <<<"$WAITING"; then wt+=("$p"); else real+=("$p"); fi
+done
 if ((nans < ${#WANT[@]})); then fail "manifest packages: rpm gave no answer" "its database may be damaged: sudo rpm --rebuilddb, then verify again"
 elif ((${#miss[@]} == 0)); then pass "all ${#WANT[@]} manifest packages installed"
 elif ((${#real[@]})); then fail "missing packages" "$(IFS=' '; echo "${real[*]}")"
-else pass "$((${#WANT[@]} - ${#ret[@]})) of ${#WANT[@]} manifest packages installed"; fi
+else pass "$((${#WANT[@]} - ${#ret[@]} - ${#wt[@]})) of ${#WANT[@]} manifest packages installed"; fi
 ((${#ret[@]} == 0)) || warn "no longer in Fedora (renamed or retired)" "$(IFS=' '; echo "${ret[*]}")"
+w=$(waiting rpmfusion | tr '\n' ' ')
+[[ -z $w ]] || warn "waiting for RPM Fusion to catch up with Fedora $VERSION_ID" "$w— update or repair adds them when they are out (Fedora's own drivers work meanwhile)"
+for c in $(waiting copr); do
+  warn "the COPR $c has no build for Fedora $VERSION_ID yet" "$(copr_pkgs "$c" | tr '\n' ' ')left out — update or repair adds it when it has one"
+done
 
 # ── zero redundancy ──────────────────────────────────────────────────────────
 section "zero redundancy"
-forbid=("${FORBIDDEN_PKGS[@]}"); [[ $GPU_KIND == amd ]] && forbid+=("${FORBIDDEN_amd[@]}")
+forbid=("${FORBIDDEN_PKGS[@]}") standin=()
+# (on AMD Fedora's own Mesa drivers: never — but while RPM Fusion's waits, Fedora's stands in)
+if [[ $GPU_KIND == amd ]]; then
+  for p in "${FORBIDDEN_amd[@]}"; do
+    if waiting rpmfusion | grep -qx "$p-freeworld"; then standin+=("$p"); else forbid+=("$p"); fi
+  done
+fi
 q=$(rpm -q "${forbid[@]}" 2>/dev/null || true)          # (one line per name, whichever the answer)
 present=$(grep -v 'is not installed' <<<"$q" | tr '\n' ' ' || true)
 if (($(grep -c . <<<"$q" || true) < ${#forbid[@]})); then
@@ -100,7 +115,7 @@ if ui=$(dnf repoquery --userinstalled --qf '%{name} %{reason}\n' 2>/dev/null) &&
 elif ui=$(dnf repoquery --userinstalled --qf '%{name}\n' 2>/dev/null) && [[ -n $ui ]]; then :; else ui=""; fi
 if [[ -n $ui ]]; then
   # (the manifest by its names, and by the names its packages have now — Fedora renames some)
-  extras=$(comm -23 <(sort -u <<<"$ui") <({ cat "$STATE_DIR/baseline-userinstalled" 2>/dev/null; printf '%s\n' "${WANT[@]}"
+  extras=$(comm -23 <(sort -u <<<"$ui") <({ cat "$STATE_DIR/baseline-userinstalled" 2>/dev/null; printf '%s\n' "${WANT[@]}" "${standin[@]}"
                                              rpm -q --qf '%{NAME}\n' --whatprovides "${WANT[@]}" 2>/dev/null | grep -v ' '; } | sort -u) \
            | grep -v '^kernel' | tr '\n' ' ')
   if [[ -z $extras ]]; then pass "nothing user-installed beyond the manifest"; else fail "installed outside the manifest" "$extras"; fi
@@ -139,7 +154,10 @@ enabled=$(dnf repolist --enabled 2>/dev/null | awk 'NR>1{print $1}')
 for r in fedora updates rpmfusion-free rpmfusion-free-updates rpmfusion-nonfree rpmfusion-nonfree-updates brave-browser claude-code; do
   check "repo $r enabled" grep -qx "$r" <<<"$enabled"
 done
-for c in "${COPRS[@]}"; do check "COPR $c enabled" grep -q "copr.*${c#*/}" <<<"$enabled"; done
+for c in "${COPRS[@]}"; do
+  waiting copr | grep -qxF "$c" && continue        # (no build for this Fedora yet: warned above)
+  check "COPR $c enabled" grep -q "copr.*${c#*/}" <<<"$enabled"
+done
 for pr in brave-origin:brave-browser claude-code:claude-code; do
   check "${pr%%:*} from ${pr#*:} (gpgcheck=1)" \
     bash -c "test \"\$(dnf repoquery --installed --qf '%{from_repo}' ${pr%%:*})\" = ${pr#*:} && grep -qx gpgcheck=1 /etc/yum.repos.d/${pr#*:}.repo"
@@ -150,6 +168,8 @@ check "dnf timeout=20 (slow mirrors dropped)"          test "$(dnfopt timeout)" 
 check "dnf installonly_limit=2 (dnf5 minimum)"         test "$(dnfopt installonly_limit)" = 2
 check "dnf minrate=50k (stalled mirrors dropped)"      grep -qxE '51200|50[kK]' <<<"$(dnfopt minrate)"
 check "dnf defaultyes on"                              grep -qxiE '1|true' <<<"$(dnfopt defaultyes)"
+# (a list: other files may add to it — both names in it is what counts)
+check "dnf never takes Node 22 as a weak dependency"   bash -c 'l=$(tr ", " "\n\n" <<<"$1"); grep -qx nodejs <<<"$l" && grep -qxF "nodejs22*" <<<"$l"' _ "$(dnfopt exclude_from_weak)"
 
 # ── upkeep: the toolkit and its control ──────────────────────────────────────
 section "upkeep (fedokawaii · Super+U)"
@@ -185,7 +205,14 @@ if ((${#kv[@]} >= 1 && ${#kv[@]} <= 2)) && [[ ${kv[-1]} == "$running" ]]; then
   pass "kernels: the newest running ($running)$( ((${#kv[@]} == 2)) && echo ", the one before kept to fall back to")"
 elif ((${#kv[@]} >= 1 && ${#kv[@]} <= 2)); then warn "new kernel ${kv[-1]} installed" "restart to use it (running: $running)"
 else fail "at most two kernels" "installed: $(IFS=" "; echo "${kv[*]:-none}") · running: $running"; fi
+# (dracut makes a kernel's boot image from the package's scriptlet, which can fail without
+# failing dnf: that entry would not start — repair makes the image again)
+noimg=(); for v in "${kv[@]}"; do [[ -s /boot/initramfs-$v.img ]] || noimg+=("$v"); done
+if ((${#noimg[@]} == 0)); then pass "every kernel has its boot image (initramfs)"
+else fail "kernels without a boot image (initramfs)" "$(IFS=' '; echo "${noimg[*]}") — would not start; repair makes them (dracut)"; fi
 check "no rescue kernel or boot entry"                 bash -c '! ls /boot/vmlinuz-0-rescue-* /boot/loader/entries/*-0-rescue*.conf 2>/dev/null | grep -q .'
+check "no console-size wait at boot (systemd.tty.term.console=dumb on every entry)" \
+  bash -c 'a=$(grubby --info=ALL | grep "^args=") && [ -n "$a" ] && ! printf "%s\n" "$a" | grep -vq systemd.tty.term.console=dumb'
 if [[ $GPU_KIND == amd ]]; then
   check "amdgpu.ppfeaturemask on the kernel"           bash -c 'a=$(grubby --info=ALL | grep "^args=") && [ -n "$a" ] && ! printf "%s\n" "$a" | grep -vq amdgpu.ppfeaturemask'
   check "amdgpu.ppfeaturemask active now"              grep -q amdgpu.ppfeaturemask /proc/cmdline
@@ -202,12 +229,25 @@ for n in /dev/dri/renderD*; do
 done
 [[ -n $rnd ]] || rnd=$(compgen -G '/dev/dri/renderD*' | head -n1)
 va=$(vainfo --display drm --device "$rnd" 2>/dev/null)
-for p in VAProfileH264High VAProfileHEVCMain; do check "hardware decode: ${p#VAProfile}" grep -q "$p" <<<"$va"; done
+# (Fedora's own VA driver leaves H.264 and HEVC out: while RPM Fusion's waits, a warning)
+for p in VAProfileH264High VAProfileHEVCMain; do
+  if grep -q "$p" <<<"$va"; then pass "hardware decode: ${p#VAProfile}"
+  elif [[ $GPU_KIND == amd ]] && waiting rpmfusion | grep -qx mesa-va-drivers-freeworld; then
+    warn "no hardware decode: ${p#VAProfile} yet" "RPM Fusion's VA driver waits for this Fedora's Mesa — such video plays on the CPU meanwhile"
+  else fail "hardware decode: ${p#VAProfile}"; fi
+done
 # AV1 decoding needs AMD RDNA 2+ or Intel Tiger Lake+: older cards get a note, not a failure
 if grep -q VAProfileAV1Profile0 <<<"$va"; then pass "hardware decode: AV1Profile0"
 elif [[ -n $va ]]; then warn "no AV1 hardware decode" "this GPU predates it; AV1 video decodes on the CPU"
 else fail "hardware decode" "vainfo found no VA-API driver on ${rnd:-any render node}"; fi
 check "Vulkan driver present"                          compgen -G '/usr/share/vulkan/icd.d/*.json'
+if [[ $GPU_KIND == amd ]]; then
+  # btop opens the ROCm SMI library by name — librocm_smi64.so.1.0 is, of the names it tries
+  # (btop_collect.cpp), the one Fedora's rocm-smi ships; a new soname would quietly lose it
+  # the card (the manifest check above already says whether the package is there)
+  if rpm -ql rocm-smi 2>/dev/null | grep -qx /usr/lib64/librocm_smi64.so.1.0; then pass "ROCm SMI library for btop (librocm_smi64.so.1.0)"
+  else warn "btop's view of the card" "rocm-smi has no librocm_smi64.so.1.0 — btop finds no GPU until it learns the new name (LACT still shows the card)"; fi
+fi
 enc=$(ffmpeg -hide_banner -encoders 2>/dev/null)
 for e in libx264 libx265 libsvtav1 libaom-av1; do check "ffmpeg encoder $e" grep -qw "$e" <<<"$enc"; done
 
@@ -274,13 +314,16 @@ section "services"
 svcs=("${SVC_SYSTEM[@]}"); [[ $GPU_KIND == amd ]] && svcs+=("${SVC_SYSTEM_amd[@]}")
 for s in "${svcs[@]}"; do
   [[ $PRE == 1 && ( $s == greetd.service || $s == snapper-* ) ]] && continue
+  [[ $s == lactd.service ]] && grep -qx lact <<<"$WAITING" && continue   # (LACT waits for its COPR: warned above)
   check "$s enabled" systemctl is-enabled --quiet "$s"
 done
 for s in "${SVC_USER_GLOBAL[@]}"; do check "user unit $s enabled" bash -c "systemctl --global is-enabled $s | grep -qx enabled"; done
 check "tuned profile fedokawaii (always-plugged desktop)" bash -c 'tuned-adm active 2>/dev/null | grep -q fedokawaii'
 check "Wi-Fi power saving off"                         test -f /etc/NetworkManager/conf.d/90-fedokawaii.conf
+check "Bluetooth dongle power saving off (btusb)"      grep -qx 'options btusb enable_autosuspend=0' /etc/modprobe.d/fedokawaii-btusb.conf
 [[ $STEAM == yes ]] && check "ntsync ready for Proton (/dev/ntsync)" test -c /dev/ntsync
 check "linger on (update, repair, verify reach your services)" test -f "/var/lib/systemd/linger/$TARGET_USER"
+check "shutdown waits 30 s at most for your services"  grep -qx 'TimeoutStopSec=30s' '/etc/systemd/system/user@.service.d/fedokawaii.conf'
 check "secrets.sh private (yours, chmod 600)"          bash -c '[[ ! -e $1 ]] || [[ $(stat -c "%a %U" "$1") == "600 $2" ]]' _ "$TARGET_HOME/.config/fedokawaii/secrets.sh" "$TARGET_USER"
 # torrents: one key, in secrets.sh only; Prowlarr takes it, torrra gets it from kawa-torrra
 # shellcheck disable=SC2016  # expanded by the user's bash, after sourcing the file
@@ -295,6 +338,7 @@ check "Prowlarr container file current"                cmp -s "$REPO_DIR/system/
 # Prowlarr runs on demand: started for these checks, and stopped again after if it was not
 # running before
 prowlarr_was=0; U systemctl --user is-active --quiet prowlarr.service && prowlarr_was=1
+((prowlarr_was)) || info "starting Prowlarr to check it — its first start after a boot can take a minute or two"
 check "Prowlarr starts (it runs on demand)"           U systemctl --user start prowlarr.service
 check "Prowlarr answers on 127.0.0.1:9696"             U curl -fsS --max-time 5 -o /dev/null http://127.0.0.1:9696/ping
 check "Prowlarr takes the key from secrets.sh"         prowlarr_get health
@@ -342,6 +386,14 @@ for e in "${UPSTREAM[@]}"; do
   done
 done
 check "PixelMplus 12 (Japanese pixel font)"          compgen -G "$TARGET_HOME/.local/share/fonts/PixelMplus/PixelMplus12-*.ttf"
+# Syncplay, from its pinned source (setup carries on without it: update and repair fetch it)
+case $(up_tag syncplay) in
+  "") warn "Syncplay not installed yet" "update and repair fetch it (watching together waits till then)" ;;
+  "$SYNCPLAY_COMMIT")
+    check "Syncplay $SYNCPLAY_TAG loads (Fedora's python3, Twisted with TLS, certifi, pem)" syncplay_runs
+    check "syncplay runs without a window (--no-gui --version)" U timeout 20 "$TARGET_HOME/.local/bin/syncplay" --version ;;
+  *) fail "Syncplay is not the pinned $SYNCPLAY_TAG" "repair puts it back" ;;
+esac
 for e in "${NERD_FONTS[@]}"; do
   f=${e%%|*}
   check "$f Nerd Font $NERD_FONTS_TAG"                 test "$(up_tag "nerd-$f")" = "$NERD_FONTS_TAG" -a -n "$(compgen -G "$(font_dir "$f")/*.[ot]tf")"
@@ -358,13 +410,14 @@ check "Brave Origin starts (headless)" \
   U sh -c 'd=$(mktemp -d); timeout 60 brave-origin --headless --disable-gpu --user-data-dir="$d" --dump-dom about:blank 2>/dev/null | grep -q "<html"; r=$?; rm -rf "$d"; exit $r'
 check "Claude Code runs"                               U timeout 20 claude --version
 check "LazyVim plugins installed"                      test -d "$TARGET_HOME/.local/share/nvim/lazy/LazyVim"
-check "torrra $TORRRA_VERSION loads (Python 3.13, libtorrent)" U "$TARGET_HOME/.local/share/pipx/venvs/torrra/bin/python" -I -c 'import sys, importlib.metadata as m, torrra, libtorrent; assert sys.version_info[:2] == (3, 13) and m.version("torrra") == sys.argv[1]' "$TORRRA_VERSION"
+check "torrra $TORRRA_VERSION loads (Python 3.13, libtorrent, Textual)" U "$TARGET_HOME/.local/share/pipx/venvs/torrra/bin/python" -I -c 'import sys, importlib.metadata as m, torrra, libtorrent, torrra.app; assert sys.version_info[:2] == (3, 13) and m.version("torrra") == sys.argv[1]' "$TORRRA_VERSION"
 check "torrra runs through kawa-torrra" U bash -c 'test -f /etc/profile.d/kawa-torrra.sh && kawa-torrra --version'
 check "torrra uses Prowlarr, and no key in its config" bash -c 'grep -qx "default = \"prowlarr\"" "$1" && ! grep -q api_key "$1"' _ "$TARGET_HOME/.config/torrra/config.toml"
 check "mpv in the bar and on the media keys (mpv-mpris)" test -f /etc/mpv/scripts/mpris.so
 check "yt-dlp can answer YouTube's challenges (Node.js ≥ 20)" bash -c 'v=$(node --version 2>/dev/null) || exit 1; v=${v#v}; ((${v%%.*} >= 20))'
 check "lazygit runs"                                   U lazygit --version
 check "qalc runs"                                      U qalc -t 1+1
+check "restic runs (backups to another disk: kawa-backup)" U restic version
 [[ $STEAM == yes ]] && check "user in gamemode group"  bash -c "id -nG $TARGET_USER | grep -qw gamemode"
 
 # ── snapshots ────────────────────────────────────────────────────────────────
@@ -448,6 +501,9 @@ else
   check "Arabic → Noto Naskh Arabic"                   grep -q Naskh <<<"$(U fc-match 'sans-serif:lang=ar' 2>&1)"
   check "Japanese / Chinese / Korean → Noto Sans CJK"  U bash -c 'for l in ja zh-cn ko; do [[ $(fc-match "sans-serif:lang=$l") == *"Noto Sans CJK"* ]] || exit 1; done'
   check "mpv: the theme's colours, players follow switches" test -r "$TARGET_HOME/.config/fedokawaii/current/mpv.conf" -a -f "$TARGET_HOME/.config/mpv/scripts/kawa-ipc.lua"
+  # (the backup itself is not checked: its drive may not be plugged in — fedokawaii status says when the last one was)
+  check "the backup's exclude list in place (kawa-backup)" test -s "$TARGET_HOME/.config/fedokawaii/backup-exclude"
+  check "Syncplay plays in mpv (~/.config/syncplay.ini)" grep -q '^playerpath = .*mpv$' "$TARGET_HOME/.config/syncplay.ini"
   check "neovim colourscheme gruvbox (remapped)"       U sh -c 'timeout 60 nvim --headless "+lua io.write(vim.g.colors_name or \"\")" +qa 2>&1 | grep -q gruvbox'
   check "icon themes present (Papirus, Adwaita beneath the pointers)" test -d /usr/share/icons/Papirus-Dark -a -d /usr/share/icons/Papirus -a -d /usr/share/icons/Adwaita/cursors
   check "pixel pointers in place (Fedokawaii, with their X11 names)" test -s "$TARGET_HOME/.local/share/icons/Fedokawaii/cursors/default" \

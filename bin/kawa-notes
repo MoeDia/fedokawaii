@@ -39,12 +39,16 @@ exec 9>"$LOCK"
 flock -n 9 || exit 0                       # (opening right now: a second press does nothing)
 rm -f "$SOCK"
 mkdir -p "${NOTES%/*}" || exit 1
+# notes written on Windows end their lines in CR LF: what is added here does the same (the
+# window keeps them so too) — a file of both kinds shows a ^M at the end of every old line
+nl=$'\n'
+{ IFS= read -r first <"$NOTES" && [[ $first == *$'\r' ]] && nl=$'\r\n'; } 2>/dev/null
 # today's heading, once a day: a blank line, the heading, a blank line (the window then
 # opens a new line under it)
-if ! grep -qxF "$HEAD" "$NOTES" 2>/dev/null; then
+if ! grep -qxF -e "$HEAD" -e "$HEAD"$'\r' "$NOTES" 2>/dev/null; then
   if [[ ! -s $NOTES ]]; then printf '%s\n\n' "$HEAD" >"$NOTES"
-  elif [[ -n $(tail -c1 "$NOTES") ]]; then printf '\n\n%s\n\n' "$HEAD" >>"$NOTES"   # (it ended mid-line)
-  else printf '\n%s\n\n' "$HEAD" >>"$NOTES"; fi
+  elif [[ -n $(tail -c1 "$NOTES") ]]; then printf '%s' "$nl$nl$HEAD$nl$nl" >>"$NOTES"   # (it ended mid-line)
+  else printf '%s' "$nl$HEAD$nl$nl" >>"$NOTES"; fi
 fi
 # 80 × 25: an even width, an odd height — dwl centres it to the pixel
 kawa-float notes 80x25 -- "$0" --inside 9>&-
@@ -65,11 +69,11 @@ if [[ -s $NOTES ]]; then
   if [[ $t == "$HEAD" || $t == *$'\n'"$HEAD" ]]; then
     t=${t%"$HEAD"}; t=${t%"${t##*[![:space:]]}"}
   fi
-  if [[ -n $t ]]; then [[ $end == "$t"$'\n' ]] && exit 0                 # (already tidy)
+  if [[ -n $t ]]; then [[ $end == "$t$nl" ]] && exit 0                    # (already tidy)
   elif ((size > ${#end})); then exit 0; fi  # (blank for longer than that: left as it is)
   keep=$(( size - ${#end} + ${#t} ))
   tmp=$(mktemp -- "$real.XXXXXX") || exit 0
-  if { head -c "$keep" -- "$real" && { ((keep == 0)) || printf '\n'; }; } >"$tmp" && sync -- "$tmp" 2>/dev/null; then
+  if { head -c "$keep" -- "$real" && { ((keep == 0)) || printf '%s' "$nl"; }; } >"$tmp" && sync -- "$tmp" 2>/dev/null; then
     chmod --reference="$real" -- "$tmp" 2>/dev/null; mv -f -- "$tmp" "$real"
   else rm -f -- "$tmp"; fi
 fi

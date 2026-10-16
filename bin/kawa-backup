@@ -1,0 +1,260 @@
+#!/usr/bin/env bash
+# kawa-backup — your files on another disk, with restic. Snapshots (snapper) undo mistakes on
+# the same disk; a backup is what is left when that disk is gone. Nothing runs by itself: you
+# back up when the drive is plugged in (quick settings → backup, Super+U → backup, the drive's
+# own notice), and a reminder comes when the last one is older than BACKUP_REMIND_DAYS.
+#
+#   kawa-backup                  back up now: your home, minus ~/Downloads, caches and what can
+#                                be downloaded again (~/.config/fedokawaii/backup-exclude), to
+#                                BACKUP_TARGET.
+#                                A notice at the start and at the end — or why not (the drive is
+#                                not plugged in, no password, the drive is full, restic missing)
+#   kawa-backup list             the backups there, oldest first (each with its id)
+#   kawa-backup restore PATH [SNAPSHOT]
+#                                PATH (a file or a folder) as it was in SNAPSHOT (an id from
+#                                list; latest if none), into ~/Restored/<date>/ — never over
+#                                the original
+#   kawa-backup check            the repository read and checked (restic check, a tenth of the data)
+#   kawa-backup prune            old backups thinned out: the last 7 daily, 4 weekly and 12
+#                                monthly ones kept, the space given back
+#   kawa-backup init             the repository made, once (the first backup makes it too)
+#   kawa-backup status           the last backup's age in a word or two (the menus show it)
+#   kawa-backup where            where BACKUP_TARGET is right now — or why it cannot be reached
+#   kawa-backup target           BACKUP_TARGET as settings saved it (empty: none yet, or not valid)
+#   kawa-backup --window         the backup in a small window of its own (quick settings)
+#
+# BACKUP_TARGET (fedokawaii.conf, Super+U → settings: it counts as soon as it is saved): a
+# drive's name — the label the drives menu shows; the backup lives in a folder
+# fedokawaii-backup on it, wherever udiskie opens it — or a folder's path, or a restic address
+# (sftp:…, rest:…, s3:…, b2:…, rclone:…). The password is RESTIC_PASSWORD in
+# ~/.config/fedokawaii/secrets.sh (yours alone, mode 600): without it the backup cannot be
+# read, by anyone — keep a copy of it somewhere else. The keys a cloud target needs go in
+# secrets.sh too, with export in front, under the names restic documents.
+# Exit status: 0 done · 1 it could not be done (said in a notice, or on stderr) · 2 misuse.
+set -u
+export LC_ALL=C.UTF-8
+case :$PATH: in *":$HOME/.local/bin:"*) ;; *) PATH=$HOME/.local/bin:$PATH ;; esac
+ICON_ARCHIVE=""
+# shellcheck source=/dev/null
+. "$HOME/.config/fedokawaii/icons.sh" 2>/dev/null
+# BACKUP_TARGET: from the toolkit's fedokawaii.conf, the file Super+U → settings saves — so a
+# change counts at once, with no theme run. Read by the toolkit's own parser (lib/common.sh's
+# read_conf: the file is data, never run; both are root's, readable by all) and held to its
+# rule (validate_conf). Only where the toolkit cannot be read (before setup made it): the copy
+# the theme wrote into ~/.config/fedokawaii/env.
+TK=${KAWA_TOOLKIT:-/usr/local/lib/fedokawaii}    # (the tests point it elsewhere)
+BACKUP_TARGET="" CONF_WHY=""
+settings() {
+  local l
+  if [[ -r $TK/fedokawaii.conf && -r $TK/lib/common.sh ]] \
+     && l=$(LOG_FILE=/dev/null; . "$TK/lib/common.sh" >/dev/null 2>&1 && read_conf "$TK/fedokawaii.conf" \
+            && printf '%s\037%s' "$BACKUP_TARGET" "$(validate_conf | grep -m1 '^BACKUP_TARGET ')"); then
+    IFS=$'\037' read -r BACKUP_TARGET CONF_WHY <<<"$l"
+  else
+    # shellcheck source=/dev/null
+    . "$HOME/.config/fedokawaii/env" 2>/dev/null
+  fi
+}
+settings
+EXCLUDE=$HOME/.config/fedokawaii/backup-exclude
+SECRETS=$HOME/.config/fedokawaii/secrets.sh
+STATE=${XDG_STATE_HOME:-$HOME/.local/state}/fedokawaii
+RECORD=$STATE/last-backup                        # "EPOCH<tab>ADDED<tab>TARGET": the last backup that ended
+LOGDIR=${XDG_CACHE_HOME:-$HOME/.cache}/fedokawaii
+LOG=$LOGDIR/backup.log                           # restic's own words from the last run
+LOCK=${XDG_RUNTIME_DIR:-$LOGDIR}/kawa-backup.lock
+FOLDER=fedokawaii-backup                         # the backup's folder on a drive
+REPO="" WHY=""
+DAY=86400
+
+say() {   # say [-u URGENCY] [-r ID] SUMMARY BODY — a notice of the backup's own, and the same line on stderr
+  local a=(-a backup)
+  while [[ ${1:-} == -[ur] ]]; do a+=("$1" "$2"); shift 2; done
+  notify-send "${a[@]}" -- "$ICON_ARCHIVE  $1" "$2" 2>/dev/null || true
+  printf 'kawa-backup: %s — %s\n' "$1" "$2" >&2
+}
+err() { printf 'kawa-backup: %s\n' "$*" >&2; }
+ago() {   # ago EPOCH → today · yesterday · 12 days ago
+  local d=$(( (EPOCHSECONDS - $1) / DAY ))
+  if ((d <= 0)); then echo today; elif ((d == 1)); then echo yesterday; else echo "$d days ago"; fi
+}
+last() {   # last → the epoch of the last backup (1: none yet)
+  local t _
+  IFS=$'\t' read -r t _ 2>/dev/null <"$RECORD" && [[ $t =~ ^[0-9]+$ ]] && { echo "$t"; return 0; }
+  return 1
+}
+status() {
+  local t
+  [[ -n $BACKUP_TARGET ]] || { echo "not set up"; return 0; }
+  if t=$(last); then ago "$t"; else echo never; fi
+}
+
+# ── where the backup goes ─────────────────────────────────────────────────────
+# A drive goes by the name the drives menu shows (kawa-drives list: one line per file system,
+# DEVICE DISK LABEL SIZE TYPE FOLDER); closed, it is opened first. A path must be a folder
+# that is there — a drive that is not plugged in has none. An address is restic's own.
+resolve() {   # → REPO, or WHY (status 1)
+  local t=$BACKUP_TARGET dev label folder
+  REPO="" WHY=""
+  [[ -n $t ]] || { WHY="no BACKUP_TARGET yet — name the drive in fedokawaii.conf (Super+U → settings)"; return 1; }
+  [[ -z $CONF_WHY ]] || { WHY="fedokawaii.conf: $CONF_WHY — Super+U → settings"; return 1; }
+  if [[ $t =~ ^(sftp|rest|s3|b2|azure|gs|rclone|swift|local):. ]]; then REPO=$t; return 0; fi
+  if [[ $t == /* ]]; then
+    [[ -d $t ]] || { WHY="$t is not there — is the drive plugged in?"; return 1; }
+    REPO=$t; return 0
+  fi
+  while IFS=$'\t' read -r dev _ label _ _ folder; do
+    [[ $label == "$t" ]] || continue
+    if [[ -z $folder ]]; then
+      folder=$(kawa-drives open "$dev" 2>/dev/null) || { WHY="$t could not be opened (the drives menu says why)"; return 1; }
+    fi
+    REPO=$folder/$FOLDER; return 0
+  done < <(kawa-drives list 2>/dev/null)
+  WHY="$t is not plugged in"
+  return 1
+}
+short() { local r=$REPO; [[ $r == */$FOLDER ]] && r=${r%/$FOLDER}; printf '%s' "${r##*/}"; }   # the drive's name, for a notice
+
+# ── what is needed before restic runs ─────────────────────────────────────────
+ready() {   # ready [quiet] → REPO set, the password in the environment; else WHY (status 1)
+  WHY=""
+  command -v restic >/dev/null || { WHY="restic is not installed — fedokawaii repair puts it back"; return 1; }
+  [[ -s $EXCLUDE ]] || { WHY="$EXCLUDE is missing — Super+U → theme, applied again"; return 1; }
+  resolve || return 1
+  if [[ -z ${RESTIC_PASSWORD:-} && -e $SECRETS ]]; then
+    # the shell's rule: only a file that is yours alone
+    [[ $(stat -c %a "$SECRETS" 2>/dev/null) == 600 && -O $SECRETS ]] \
+      || { WHY="$SECRETS must be yours and private — chmod 600 it"; return 1; }
+    # shellcheck source=/dev/null
+    . "$SECRETS"
+  fi
+  [[ -n ${RESTIC_PASSWORD:-} ]] \
+    || { WHY="no RESTIC_PASSWORD in $SECRETS — add a line RESTIC_PASSWORD=\"…\" (and keep a copy of it elsewhere)"; return 1; }
+  export RESTIC_PASSWORD
+  # (su, a cron job: no session of yours, so the lock goes in the cache instead)
+  mkdir -p "${LOCK%/*}" 2>/dev/null
+  exec 8>"$LOCK"
+  flock -n 8 || { WHY="a backup is running already — wait for its notice"; return 1; }
+  return 0
+}
+r() { restic -r "$REPO" "$@"; }
+# the repository as it stands: 0 there · 10 none yet · 12 wrong password · else restic's words in WHY
+probe() {
+  local out rc
+  out=$(r cat config 2>&1 >/dev/null); rc=$?
+  case $rc in
+    0|10) ;;
+    12) WHY="the password in $SECRETS is not this backup's (RESTIC_PASSWORD)" ;;
+    *)  WHY="restic could not open $REPO: ${out##*$'\n'}" ;;
+  esac
+  return "$rc"
+}
+# a lock left by a run that was killed (a power cut, Super+Q) stops check and prune: restic
+# removes only such stale ones here, never another run's
+unlock_stale() { r unlock >/dev/null 2>&1 || true; }
+open_repo() {   # ready, the repository there, its stale lock cleared — or why not
+  local rc
+  ready || { err "$WHY"; return 1; }
+  probe; rc=$?
+  case $rc in
+    0)  ;;
+    10) err "no backup at $REPO yet — kawa-backup (or kawa-backup init) makes one"; return 1 ;;
+    *)  err "$WHY"; return 1 ;;
+  esac
+  unlock_stale
+}
+
+# ── the backup ────────────────────────────────────────────────────────────────
+backup() {
+  local rc rid added files took label
+  local -a rr=()
+  ready || { say -u critical "not backed up" "$WHY"; return 1; }
+  label=$(short)
+  probe; rc=$?
+  case $rc in
+    0)  ;;
+    10) printf '  the first backup to %s: the repository is made now\n' "$REPO"
+        r init 2>&1 | sed 's/^/  /'
+        probe || { say -u critical "$label · not backed up" "the repository at $REPO could not be made"; return 1; } ;;
+    *)  say -u critical "$label · not backed up" "$WHY"; return 1 ;;
+  esac
+  unlock_stale
+  mkdir -p "$LOGDIR" "$STATE" 2>/dev/null
+  rid=$(notify-send -a backup -p -t 0 -- "$ICON_ARCHIVE  $label · backing up" "your home, minus downloads and caches — a notice comes when it is done" 2>/dev/null) || rid=""
+  [[ $rid =~ ^[0-9]+$ ]] && rr=(-r "$rid")          # (the end's notice takes its place)
+  SECONDS=0
+  # (--exclude-caches: folders that mark themselves as caches, CACHEDIR.TAG, stay out too)
+  r backup --exclude-file "$EXCLUDE" --exclude-caches -- "$HOME" 2>&1 | tee "$LOG"
+  rc=${PIPESTATUS[0]}
+  took=$(printf '%d:%02d' $((SECONDS / 60)) $((SECONDS % 60)))
+  added=$(sed -n 's/^Added to the repository: \([^(]*[^ (]\) *(.*/\1/p' "$LOG" | tail -n1)
+  files=$(sed -n 's/^processed \([0-9]*\) files,.*/\1/p' "$LOG" | tail -n1)
+  case $rc in
+    0|3)
+      printf '%s\t%s\t%s\n' "$EPOCHSECONDS" "${added:-?}" "$BACKUP_TARGET" >"$RECORD.$$" && mv -f "$RECORD.$$" "$RECORD"
+      if ((rc == 0)); then say "${rr[@]}" "$label · backed up" "${files:+$files files, }${added:+$added new, }in $took"
+      else say -u critical "${rr[@]}" "$label · backed up, but not all of it" "some files could not be read — the log: $LOG"; fi
+      return 0 ;;
+    130) say "${rr[@]}" "$label · stopped" "the backup was interrupted — run it again: it goes on from where it was" ;;
+    *)
+      if grep -qi 'no space left on device' "$LOG"; then
+        say -u critical "${rr[@]}" "$label · not backed up: the drive is full" "kawa-backup prune frees what only old backups hold — or a bigger drive"
+      else say -u critical "${rr[@]}" "$label · not backed up" "restic ended with $rc — the log: $LOG"; fi ;;
+  esac
+  return 1
+}
+
+# ── restore, list, check, prune, init ────────────────────────────────────────
+restore() {   # restore PATH [SNAPSHOT] — into ~/Restored/<date>/, never over the original
+  local p=$1 snap=${2:-latest} dir base parent name out rc n
+  [[ $p == /* ]] || p=$PWD/$p
+  p=${p%/}
+  [[ -n $p && $p != / ]] || { err "restore takes a file or a folder of yours: kawa-backup restore ~/Documents/report.ods"; return 2; }
+  [[ $snap =~ ^([0-9a-f]{8,64}|latest)$ ]] || { err "SNAPSHOT is an id from kawa-backup list (or latest), not \"$snap\""; return 2; }
+  open_repo || return 1
+  parent=${p%/*}; name=${p##*/}; [[ -n $parent ]] || parent=/
+  # a folder of its own for each restore (a second one in the same second: .2, .3 …)
+  base=$HOME/Restored/$(date '+%Y-%m-%d-%H%M%S'); dir=$base; n=1
+  while [[ -e $dir ]]; do n=$((n + 1)); dir=$base.$n; done
+  mkdir -p "$dir" || return 1
+  out=$(r restore "$snap:$parent" --target "$dir" --include "/$name" 2>&1); rc=$?
+  grep -v '^restoring ' <<<"$out" | sed 's/^/  /'
+  if ((rc)); then rmdir "$dir" 2>/dev/null; err "nothing restored — is $p in that backup? (kawa-backup list)"; return 1; fi
+  if [[ -z $(find "$dir" -mindepth 1 -print -quit 2>/dev/null) ]]; then
+    rmdir "$dir" 2>/dev/null
+    err "not in that backup: $p (kawa-backup list shows the backups; restic -r \"$REPO\" ls $snap what is in one)"; return 1
+  fi
+  printf '  restored: %s/%s\n' "$dir" "$name"
+}
+list()  { open_repo && r snapshots; }
+check() { open_repo && { printf '  reading a tenth of the data: a few minutes on a USB drive\n'; r check --read-data-subset=10%; }; }
+prune() { open_repo && r forget --keep-daily 7 --keep-weekly 4 --keep-monthly 12 --prune; }
+init()  {
+  local rc
+  ready || { err "$WHY"; return 1; }
+  probe; rc=$?
+  case $rc in
+    0)  err "there is a backup at $REPO already"; return 1 ;;
+    10) r init ;;
+    *)  err "$WHY"; return 1 ;;
+  esac
+}
+wait_key() { printf '\n  any key closes this window '; read -rsn1 _ </dev/tty 2>/dev/null || true; }
+
+case ${1:-} in
+  "")        backup ;;
+  --window)  exec kawa-float --once backup backup 80x25 -- "$0" --wait ;;
+  --wait)    backup; wait_key ;;
+  status)    (($# == 1)) || exit 2; status ;;
+  target)    (($# == 1)) || exit 2; [[ -n $CONF_WHY ]] || printf '%s\n' "$BACKUP_TARGET" ;;   # (one that breaks its rule: none)
+  where)     (($# == 1)) || exit 2
+             if resolve; then printf '%s\n' "$REPO"; else err "$WHY"; exit 1; fi ;;
+  list)      (($# == 1)) || exit 2; list ;;
+  check)     (($# == 1)) || exit 2; check ;;
+  prune)     (($# == 1)) || exit 2; prune ;;
+  init)      (($# == 1)) || exit 2; init ;;
+  restore)   (($# == 2 || $# == 3)) || { echo "usage: kawa-backup restore PATH [SNAPSHOT]" >&2; exit 2; }
+             restore "$2" "${3:-}" ;;
+  -h|--help) sed -n '2,/^set -u/{/^set -u/d;s/^# \{0,1\}//;p}' "$0" ;;
+  *)         echo "kawa-backup: unknown command ${1} (kawa-backup --help)" >&2; exit 2 ;;
+esac

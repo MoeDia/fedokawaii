@@ -1,0 +1,42 @@
+# ~/.config/fedokawaii/backup-exclude — what kawa-backup leaves out of your home: ~/Downloads,
+# caches, and what a program downloads again by itself. Everything else in your home is backed
+# up. One pattern a line, restic's way: a path (the home filled in), or * for any name; a line
+# starting with # is a comment. Changing it: in your working copy
+# (configs/home/.config/fedokawaii/backup-exclude, then fedokawaii apply), never here — the
+# theme writes this file.
+# ~/Downloads: arrivals — torrents, ISO files, installers — big, and fetched again; it is
+# outside the snapshots for the same reason (its own subvolume, §37.2). What you keep, move
+# into ~/Documents and the like. To back it up as well, delete the line below
+@HOME@/Downloads
+@HOME@/.cache
+@HOME@/.local/share/Trash
+# Steam: the games (Steam downloads them again) and the shader caches — the saves of Windows
+# games (steamapps/compatdata) and Steam's own settings stay in
+@HOME@/.local/share/Steam/steamapps/common
+@HOME@/.local/share/Steam/steamapps/downloading
+@HOME@/.local/share/Steam/steamapps/shadercache
+@HOME@/.local/share/Steam/steamapps/temp
+@HOME@/.local/share/Steam/ubuntu12_32
+@HOME@/.local/share/Steam/ubuntu12_64
+# GE-Proton: update fetches it
+@HOME@/.local/share/Steam/compatibilitytools.d
+# torrra's Python environment (update makes it), neovim's plugins and language servers (update
+# fetches them; ~/.config/nvim/lazy-lock.json, which is backed up, holds their versions)
+@HOME@/.local/share/pipx
+@HOME@/.local/share/nvim/lazy
+@HOME@/.local/share/nvim/mason
+# Prowlarr's container image (update pulls it again); its settings, ~/.config/prowlarr, stay in
+@HOME@/.local/share/containers
+# the desktop's release binaries and the wallpaper pack: update and Theme fetch them again
+@HOME@/.local/share/fedokawaii/upstream
+@HOME@/.local/share/fedokawaii/wallpapers
+# the browser's caches (its bookmarks, passwords and settings stay in)
+@HOME@/.config/BraveSoftware/*/*/Cache
+@HOME@/.config/BraveSoftware/*/*/Code Cache
+@HOME@/.config/BraveSoftware/*/*/GPUCache
+@HOME@/.config/BraveSoftware/*/*/Service Worker/CacheStorage
+@HOME@/.config/BraveSoftware/*/*/DawnGraphiteCache
+@HOME@/.config/BraveSoftware/*/*/DawnWebGPUCache
+@HOME@/.config/BraveSoftware/*/ShaderCache
+# a backup of a backup: what restore put back is already in one
+@HOME@/Restored

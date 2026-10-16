@@ -17,29 +17,48 @@ fi
 
 _ts()  { date '+%H:%M:%S'; }
 # (each joins its words with spaces: the scripts' IFS is newline + tab)
-_out() { printf '%s\n' "$1" | tee -a "$LOG_FILE"; }
+# (a log that cannot be written — a full disk — never stops a run: the line still shows, so
+# the run gets as far as saying why, such as need_space's "only … free")
+_out() { printf '%s\n' "$1" | tee -a "$LOG_FILE" 2>/dev/null || true; }
 log()  { local IFS=' '; _out "${C_DIM}$(_ts)${C_RESET} ${C_GOLD}▸${C_RESET} $*"; }
 ok()   { local IFS=' '; _out "${C_DIM}$(_ts)${C_RESET} ${C_OK}✔${C_RESET} $*"; }
 die()  { local IFS=' '; _out "${C_DIM}$(_ts)${C_RESET} ${C_RED}✘ $*${C_RESET}" >&2; exit 1; }   # (stderr: never swallowed by a $( ))
 hdr()  { local IFS=' '; _out ""; _out "${C_BOLD}${C_GOLD}── $* ${C_RESET}"; }
 
-# run CMD… — echo + log the command; its status is the command's status
+# A command that run or retry saw fail is remembered (FAILED_CMD, with where it was called
+# from: FAILED_AT), so the scripts' error report names it: the line the report would see is
+# the helper's own last one — its return — never the command that failed.
+FAILED_CMD="" FAILED_AT="" FAILED_SHOW=""
+# failed_what FUNCTION:LINE — for an ERR trap, where it fired: the command to name (FAILED_SHOW)
+# shellcheck disable=SC2034  # FAILED_SHOW is read by the scripts' ERR traps
+failed_what() {
+  FAILED_SHOW=$BASH_COMMAND
+  if [[ $BASH_COMMAND == return* && -n $FAILED_CMD && $1 == "$FAILED_AT" ]]; then FAILED_SHOW=$FAILED_CMD; fi
+  return 0
+}
+
+# run CMD… — echo + log the command; its status is the command's status (the log is never
+# what stops a run: a log that cannot be written is no failure of the command)
 run() {
-  local IFS=' '
+  local IFS=' ' rc=0
+  FAILED_CMD=""
   _out "${C_DIM}$(_ts) \$ $*${C_RESET}"
-  "$@" 2>&1 | tee -a "$LOG_FILE"
-  return "${PIPESTATUS[0]}"
+  { "$@" 2>&1 | tee -a "$LOG_FILE"; rc=${PIPESTATUS[0]}; } || true
+  ((rc == 0)) || FAILED_CMD=$* FAILED_AT=${FUNCNAME[1]:-main}:${BASH_LINENO[0]}
+  return "$rc"
 }
 
 # retry N PAUSE CMD… — for network-bound commands
 retry() {
   local n=$1 pause=$2 i IFS=' '; shift 2
+  FAILED_CMD=""
   for ((i = 1; i <= n; i++)); do
     "$@" && return 0
     ((i < n)) || break                  # (the last try: given up at once, no pause for nothing)
     log "attempt $i/$n failed: $* — retrying in ${pause}s"; sleep "$pause"
   done
   log "attempt $n/$n failed: $*"
+  FAILED_CMD=$* FAILED_AT=${FUNCNAME[1]:-main}:${BASH_LINENO[0]}
   return 1
 }
 
@@ -215,6 +234,13 @@ validate_conf() {                   # prints one line per problem; empty = valid
   [[ $KB_TOGGLE =~ ^[a-z0-9_]+:[a-z0-9_]+$ ]]   || echo "KB_TOGGLE must be an XKB option like grp:alt_shift_toggle (is '$KB_TOGGLE')"
   local city_re="^[[:alnum:] .,'-]+$"           # letters of any script, digits, space . , ' -
   [[ $WEATHER_CITY =~ $city_re ]]               || echo "WEATHER_CITY must be a plain city name: letters, digits, spaces, . , ' - (is '$WEATHER_CITY')"
+  # a drive's name, a folder's path or a restic address: letters of any script, digits and
+  # . _ - : / @ + = , spaces — nothing a shell or sed would read as more (it reaches ~/.config/fedokawaii/env)
+  local target_re="^[[:alnum:]/][[:alnum:] ._:/@+=,-]*$"
+  [[ -z $BACKUP_TARGET || $BACKUP_TARGET =~ $target_re ]] \
+                                                || echo "BACKUP_TARGET must be a drive's name, a folder's path or a restic address like sftp:you@nas:/backups (is '$BACKUP_TARGET')"
+  [[ $BACKUP_REMIND_DAYS =~ ^[0-9]+$ ]] && ((BACKUP_REMIND_DAYS <= 365)) \
+                                                || echo "BACKUP_REMIND_DAYS must be 0–365 (0 = no reminder) (is '$BACKUP_REMIND_DAYS')"
   [[ $DWL_TAG =~ ^v[0-9]+\.[0-9]+(\.[0-9]+)?$ ]] || echo "DWL_TAG must look like v0.9 (is '$DWL_TAG')"
   [[ $DWL_COMMIT =~ ^[0-9a-f]{40}$ ]]           || echo "DWL_COMMIT must be the 40-character commit of $DWL_TAG"
   [[ $DWL_WLROOTS =~ ^0\.[0-9]+$ ]]             || echo "DWL_WLROOTS must look like 0.20 (is '$DWL_WLROOTS')"
@@ -230,8 +256,8 @@ validate_conf() {                   # prints one line per problem; empty = valid
 # single quotes, or a bare word; a # comment after it), only the settings below. Anything
 # else in it is reported as a problem, and the values are checked before anything runs.
 CONF_KEYS=(USERNAME GPU STEAM SSH_SERVER MONITOR_HZ KB_LAYOUTS KB_TOGGLE TIMEZONE WEATHER_CITY
-           NIGHT_LIGHT THEME WALLPAPER_PACK BOOT_MENU_SECONDS DNF_PARALLEL DWL_TAG DWL_COMMIT
-           DWL_WLROOTS TFC_TAG TFC_COMMIT)
+           NIGHT_LIGHT THEME WALLPAPER_PACK BOOT_MENU_SECONDS DNF_PARALLEL BACKUP_TARGET
+           BACKUP_REMIND_DAYS DWL_TAG DWL_COMMIT DWL_WLROOTS TFC_TAG TFC_COMMIT)
 CONF_PROBLEMS=() CONF_SAID=() CONF_SEEN=()
 # one setting line: KEY="value", KEY='value' or KEY=value, then an optional # comment
 # (the value: BASH_REMATCH[3], [4] or [5], whichever matched)

@@ -18,12 +18,15 @@ WIDTH=30
 prev=" $ICON_CHEVRON_LEFT  previous" next=" $ICON_CHEVRON_RIGHT  next" back=" $ICON_CALENDAR  back to today"
 off=0                                   # months away from the current one
 while :; do
-  first=$(date -d "$(date +%Y-%m-01) $off month" +%F) || exit 1
+  # today read once: at midnight a second reading could be the next day (the 1st marked
+  # in the month just ending, or no day marked at all)
+  now=$(date +%Y-%m-%d) || exit 1
+  first=$(date -d "${now%-*}-01 $off month" +%F) || exit 1
   # the month short and in English, like every date on the desktop: "Oct 2026", always 8
   # characters — an even length, so it centres over the grid to the pixel
   read -r year month mname lead <<<"$(LC_ALL=C date -d "$first" '+%Y %m %b %u')"
   days=$(date -d "$first +1 month -1 day" +%d)
-  today=""; [[ $(date +%Y-%m) == "$year-$month" ]] && today=$((10#$(date +%d)))
+  today=""; [[ ${now%-*} == "$year-$month" ]] && today=$((10#${now##*-}))
 
   rows=("  Mo  Tu  We  Th  Fr  Sa  Su") line=" " col=0 pick=0
   for ((i = 1; i < lead; i++)); do line+="    "; col=$((col + 1)); done

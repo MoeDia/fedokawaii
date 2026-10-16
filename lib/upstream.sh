@@ -18,6 +18,9 @@ UPSTREAM=(
   "yazi|sxyazi/yazi|v26.9.1|yazi-x86_64-unknown-linux-musl.zip|9b9c39decccf8cb0ff53a7d637d38f8a79d93bbd0099f4ea9c619ef6bb392f5d|yazi ya"
   "presenterm|mfontanini/presenterm|v0.16.1|presenterm-0.16.1-x86_64-unknown-linux-musl.tar.gz|87512d7c88c3d961c7687aca3519f83c2b7611a550cf769c67c6f7948e8b8f54|presenterm"
   "spotify_player|aome510/spotify-player|v0.25.1|spotify_player-x86_64-unknown-linux-gnu.tar.gz|e68dce205e995f80107149c55ace7b93125dbf73805363b7b0f9bfe8475c50ba|spotify_player"
+  # (Bluetooth pairing in a terminal; its release file is the binary itself, static — measured 2026-10-16)
+  "bluetui|pythops/bluetui|v0.8.2|bluetui-x86_64-linux-musl|b476ee473cb4f7a48cd75d440e991bedc835ff5ac704aac1f1992f8e826222fd|bluetui"
+  "lazygit|jesseduffield/lazygit|v0.66.1|lazygit_0.66.1_linux_x86_64.tar.gz|7b3f30c2c06a42cf575280f907e58d7ea08411408b6b62bc926bc91cbc6c3f46|lazygit"
 )
 # the fonts: terminal + code · bar, menus, notifications, lock — Nerd Fonts v3.5.1
 NERD_FONTS_TAG=v3.5.1
@@ -36,6 +39,16 @@ GE_PROTON_REPO="GloriousEggroll/proton-ge-custom"; GE_PROTON_ASSET='^GE-Proton[0
 # key by replacing three methods of its settings class, so a newer torrra is taken only
 # after that has been checked against it.
 TORRRA_VERSION=2.5.1
+# Syncplay (watching together: kawa-together starts it) runs from its own source, held at the
+# v1.7.6 tag's commit as the file dialog's is: Fedora's package would bring PySide6 and 27 Qt
+# modules for a window the terminal way never opens. It is pure Python, so its syncplay/
+# folder runs on Fedora's python3 and the libraries the manifest lists (Twisted with TLS,
+# pyOpenSSL, certifi, pem) — Syncplay's own Makefile installs it the same way: the folder,
+# and a starter that finds it. A newer Python (Fedora 45: 3.15) needs no new copy.
+SYNCPLAY_REPO=https://github.com/Syncplay/syncplay.git
+SYNCPLAY_TAG=v1.7.6
+SYNCPLAY_COMMIT=993232ab095bb810593459bc705b3e6fc64ad161
+SYNCPLAY_PYTHON=/usr/bin/python3
 
 up_state_dir() { echo "$TARGET_HOME/.local/share/fedokawaii/upstream"; }
 up_tag()       { as_user cat -- "$(up_state_dir)/$1" 2>/dev/null | head -c 200 || true; }   # (yours: read as you)
@@ -47,7 +60,8 @@ record_tag() {   # (every write into the home is the user's own: user_put)
   printf '%s\n' "$2" | user_put 0644 "$(up_state_dir)/$1"
 }
 
-# fetch_pinned URL SHA256 → downloaded, checked, unpacked into a fresh dir; sets REL_DIR.
+# fetch_pinned URL SHA256 [NAME] → downloaded, checked, unpacked into a fresh dir; sets REL_DIR.
+# A release file that is no archive (bluetui's is the binary itself) is put there as NAME.
 # Returns 1 (nothing installed) when the download fails or its checksum is not the pinned one.
 fetch_pinned() {
   local url=$1 want=$2 file
@@ -61,6 +75,7 @@ fetch_pinned() {
     *.zip)    7z x -y -bso0 -bsp0 -o"$REL_DIR/x" "$file" ;;
     *.tar.gz) tar -xzf "$file" -C "$REL_DIR/x" --no-same-owner ;;
     *.tar.xz) tar -xJf "$file" -C "$REL_DIR/x" --no-same-owner ;;
+    *)        cp -- "$file" "$REL_DIR/x/${3:-${file##*/}}" ;;
   esac
 }
 
@@ -113,22 +128,25 @@ install_upstream_bin() {
     if ((have)); then log "$name $tag — in place"; return 0; fi
     log "$name $tag lacks a library — fetching it again"
   fi
-  fetch_pinned "https://github.com/$repo/releases/download/$tag/$asset" "$sum" || return 1
+  fetch_pinned "https://github.com/$repo/releases/download/$tag/$asset" "$sum" "${list[0]}" || return 1
   for b in "${list[@]}"; do
     src=$(find "$REL_DIR/x" -type f -name "$b" -print -quit)
     [[ -n $src ]] || { log "$b not found inside the $name $tag archive"; return 1; }
     libs_for "$src" || return 1
   done
   as_user mkdir -p "$TARGET_HOME/.local/bin"
+  # (each write checked, the tag recorded only after all of them: repair calls this where
+  # errexit is off)
   for b in "${list[@]}"; do
-    user_put 0755 "$TARGET_HOME/.local/bin/$b" <"$(find "$REL_DIR/x" -type f -name "$b" -print -quit)"
+    user_put 0755 "$TARGET_HOME/.local/bin/$b" <"$(find "$REL_DIR/x" -type f -name "$b" -print -quit)" \
+      || { log "could not write ~/.local/bin/$b (is the disk full?)"; return 1; }
   done
   record_tag "$name" "$tag"; rm -rf "$REL_DIR"
   ok "$name $tag → ~/.local/bin ($(IFS=' '; echo "${list[*]}"))"
 }
 
 install_nerd_fonts() {    # each family from its own release file, checksum-pinned
-  local e name sum dir f failed=0
+  local e name sum dir f failed=0 bad
   for e in "${NERD_FONTS[@]}"; do
     IFS='|' read -r name sum <<<"$e"; dir=$(font_dir "$name")
     if [[ $(up_tag "nerd-$name") == "$NERD_FONTS_TAG" ]] && compgen -G "$dir/*.[ot]tf" >/dev/null; then
@@ -137,10 +155,12 @@ install_nerd_fonts() {    # each family from its own release file, checksum-pinn
     fetch_pinned "https://github.com/ryanoasis/nerd-fonts/releases/download/$NERD_FONTS_TAG/$name.tar.xz" "$sum" \
       || { failed=1; continue; }
     compgen -G "$REL_DIR/x/*.[ot]tf" >/dev/null || { log "the $name archive held no font files"; failed=1; continue; }
-    as_user rm -rf "$dir"; as_user mkdir -p "$dir"
-    while IFS= read -r -d '' f; do user_put 0644 "$dir/${f##*/}" <"$f"; done \
+    as_user rm -rf "$dir"; as_user mkdir -p "$dir"; bad=0
+    while IFS= read -r -d '' f; do user_put 0644 "$dir/${f##*/}" <"$f" || bad=1; done \
       < <(find "$REL_DIR/x" \( -name '*.ttf' -o -name '*.otf' \) -print0)
-    record_tag "nerd-$name" "$NERD_FONTS_TAG"; rm -rf "$REL_DIR"
+    rm -rf "$REL_DIR"
+    if ((bad)); then log "could not write the $name fonts into $dir (is the disk full?)"; failed=1; continue; fi
+    record_tag "nerd-$name" "$NERD_FONTS_TAG"
     ok "$name Nerd Font $NERD_FONTS_TAG"
   done
   as_user fc-cache -f >/dev/null
@@ -160,12 +180,88 @@ install_pixelmplus() {   # pinned archive → ~/.local/share/fonts/PixelMplus (1
   ok "PixelMplus 12 (Japanese pixel font)"
 }
 
+# ── Syncplay ──────────────────────────────────────────────────────────────────
+syncplay_dir() { echo "$TARGET_HOME/.local/share/fedokawaii/syncplay"; }
+
+# syncplay_starter NAME MODULE DIR [ARG…] — the small script ~/.local/bin/NAME: Syncplay's
+# MODULE from DIR, run by Fedora's python3, isolated (-I: nothing of yours on its path) and
+# unbuffered (-u: its lines reach a pipe or a log as they happen, as they reach a terminal)
+syncplay_starter() {
+  local name=$1 module=$2 dir=$3; shift 3
+  printf '#!/bin/sh\n# %s — Syncplay %s without its window, from its folder; lib/upstream.sh writes it\n' "$name" "$SYNCPLAY_TAG"
+  printf '# (setup, update and repair keep it)\npy=%q dir=%q\n' "$SYNCPLAY_PYTHON" "$dir"
+  printf 'exec "$py" -I -u -c '"'"'import sys; sys.argv[0] = "%s"; sys.path.insert(0, sys.argv.pop(1)); from syncplay.%s import main; main()'"'"' "$dir"%s "$@"\n' \
+    "$name" "$module" "${*:+ $*}"
+}
+
+# syncplay_runs [DIR] — that folder loads with Fedora's python3: the client and server and,
+# for the secure connection, Twisted's TLS, certifi and pem (a missing one would turn TLS off
+# without a word); its version is the pinned one
+syncplay_runs() {
+  as_user "$SYNCPLAY_PYTHON" -I -c 'import sys; sys.path.insert(0, sys.argv[1])
+import syncplay, syncplay.client, syncplay.server, certifi, pem
+from twisted.internet.ssl import optionsForClientTLS
+sys.exit(syncplay.version != sys.argv[2])' "${1:-$(syncplay_dir)}" "${SYNCPLAY_TAG#v}" >/dev/null 2>&1
+}
+# syncplay_starters [--check] — the two starters as this toolkit writes them (written again
+# when they differ: a newer toolkit's, or one gone); --check only says whether they do
+syncplay_starters() {
+  local e name module want f
+  for e in "syncplay ep_client --no-gui" "syncplay-server ep_server"; do
+    IFS=' ' read -r name module want <<<"$e"
+    want=$(syncplay_starter "$name" "$module" "$(syncplay_dir)" $want); f=$TARGET_HOME/.local/bin/$name
+    [[ -x $f && $(as_user cat -- "$f" 2>/dev/null) == "$want" ]] && continue
+    [[ ${1:-} == --check ]] && return 1
+    as_user mkdir -p "$TARGET_HOME/.local/bin"
+    printf '%s\n' "$want" | user_put 0755 "$f" || return 1
+  done
+}
+syncplay_current() {
+  [[ $(up_tag syncplay) == "$SYNCPLAY_COMMIT" ]] && syncplay_starters --check && syncplay_runs
+}
+
+# install_syncplay — a no-op when the pinned commit is in place and loads. Else its tag is
+# fetched (as you, into a folder of yours that goes again), must be the pinned commit, and
+# the new folder must load before it replaces the old one; then the two starters. Returns 1,
+# having changed nothing, when any of that fails.
+install_syncplay() {
+  local d src
+  d=$(syncplay_dir)
+  if [[ $(up_tag syncplay) == "$SYNCPLAY_COMMIT" ]] && syncplay_runs; then
+    syncplay_starters || return 1
+    log "Syncplay $SYNCPLAY_TAG — in place"; return 0
+  fi
+  src=$(as_user mktemp -d) || return 1
+  if ! retry 3 10 as_user git -c advice.detachedHead=false clone --quiet --depth 1 --branch "$SYNCPLAY_TAG" "$SYNCPLAY_REPO" "$src/s"; then
+    log "could not fetch Syncplay $SYNCPLAY_TAG ($SYNCPLAY_REPO)"; as_user rm -rf "$src"; return 1
+  fi
+  if [[ $(as_user git -C "$src/s" rev-parse "$SYNCPLAY_TAG^{commit}") != "$SYNCPLAY_COMMIT" ]]; then
+    log "Syncplay's tag $SYNCPLAY_TAG is not the pinned commit $SYNCPLAY_COMMIT — refused"; as_user rm -rf "$src"; return 1
+  fi
+  as_user mkdir -p "$src/new" && as_user cp -R "$src/s/syncplay" "$src/new/" || { as_user rm -rf "$src"; return 1; }
+  if ! syncplay_runs "$src/new"; then
+    log "Syncplay $SYNCPLAY_TAG does not load with $SYNCPLAY_PYTHON — are the manifest's python3-twisted+tls, python3-certifi and python3-pem installed?"
+    as_user rm -rf "$src"; return 1
+  fi
+  as_user mkdir -p "$(dirname "$d")"
+  as_user rm -rf "$d.old"; if [[ -d $d ]]; then as_user mv -T "$d" "$d.old"; fi
+  if ! as_user mv -T "$src/new" "$d"; then
+    [[ -d $d.old ]] && as_user mv -T "$d.old" "$d"
+    log "could not put Syncplay in $d"; as_user rm -rf "$src"; return 1
+  fi
+  as_user rm -rf "$d.old" "$src"
+  syncplay_starters || return 1
+  record_tag syncplay "$SYNCPLAY_COMMIT"
+  syncplay_current || { log "Syncplay $SYNCPLAY_TAG was put in place but does not start"; return 1; }
+  ok "Syncplay $SYNCPLAY_TAG (no window) → ~/.local/bin (syncplay, syncplay-server)"
+}
+
 # GE-Proton: its newest release (the GitHub API names it; its own .sha512sum file — the one
 # for that very file — checks it). The newest two are kept, so a game pinned to the
 # previous one still starts. Returns 1, having changed nothing, when GitHub cannot be
 # reached or the file does not check out. Its folder is named as the archive names it.
 install_ge_proton() {
-  local json tag url sumurl dir want got file name top
+  local json tag url sumurl dir want got file name top part
   dir=$(proton_dir)
   json=$("${CURL[@]}" -H 'Accept: application/vnd.github+json' \
          "https://api.github.com/repos/$GE_PROTON_REPO/releases/latest") || { log "GitHub not reachable for GE-Proton"; return 1; }
@@ -197,8 +293,16 @@ install_ge_proton() {
   top=$(find "$REL_DIR/x" -mindepth 1 -maxdepth 1 -type d -name 'GE-Proton*' -printf '%f\n')
   [[ -n $top && $top != *$'\n'* && -f $REL_DIR/x/$top/compatibilitytool.vdf ]] \
     || { log "the GE-Proton archive did not hold one GE-Proton folder with compatibilitytool.vdf"; return 1; }
-  as_user mkdir -p "$dir"
-  tar -C "$REL_DIR/x" -cf - "$top" | as_user tar -C "$dir" -xf - --no-same-owner   # (unpacked by you)
+  # unpacked by you into a folder of its own, then moved into place in one step: a power cut or
+  # a full disk half-way leaves nothing half-made that a later run would take for installed
+  # (each step checked: repair calls this where errexit is off)
+  part=$dir/.fedokawaii-unpack
+  if ! { as_user mkdir -p "$dir" && as_user rm -rf -- "$part" && as_user mkdir -- "$part" \
+         && tar -C "$REL_DIR/x" -cf - "$top" | as_user tar -C "$part" -xf - --no-same-owner \
+         && as_user mv -T -- "$part/$top" "$dir/$top"; }; then
+    as_user rm -rf -- "$part"; log "GE-Proton could not be unpacked into $dir (is the disk full?)"; return 1
+  fi
+  as_user rm -rf -- "$part"
   as_user find "$dir" -mindepth 1 -maxdepth 1 -type d -name 'GE-Proton*' -printf '%f\n' | sort -V | head -n -2 \
     | while read -r old; do as_user rm -rf "${dir:?}/$old"; log "removed old $old"; done
   record_tag ge-proton "$top"; rm -rf "$REL_DIR"

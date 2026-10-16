@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+# kawa-together [FILE] — watch FILE with friends, each at their own computer (Syncplay): this
+# terminal shows the room's news and takes Syncplay's commands (help lists them); the film
+# plays in mpv beside it, and pause, seek, ready and chat there reach everyone in the room.
+# It asks for the room first (Enter keeps the last one: type the same name as your friends).
+# Server, name and player come from ~/.config/syncplay.ini, which theme.sh starts for you —
+# what you change there (or Syncplay remembers) stays. Without FILE mpv opens empty: drop a
+# file on it, or the room's own file is found in ~/Videos or ~/Downloads by its name.
+# The launcher's Syncplay and W in yazi (on a film; on a folder: none) open it in a window.
+# Exit: Syncplay's own status · 2 no room (none typed, none remembered).
+set -u
+case ${1:-} in -h|--help) sed -n '2,/^set -u/{/^set -u/d;s/^# \{0,1\}//;p}' "$0"; exit 0 ;; esac
+ini=${XDG_CONFIG_HOME:-$HOME/.config}/syncplay.ini
+room=$(sed -n 's/^room[[:space:]]*=[[:space:]]*//p' "$ini" 2>/dev/null | head -n1)
+if [[ -t 0 ]]; then                      # (Syncplay without its window never asks)
+  last=$room room=""
+  while [[ -z ${room//[[:space:]]/} ]]; do
+    read -r -e -p "room (the one your friends use): " -i "$last" room || exit 2
+  done
+fi
+room=${room#"${room%%[![:space:]]*}"}; room=${room%"${room##*[![:space:]]}"}
+[[ -n $room ]] || { echo "kawa-together: no room — give one (any name you and your friends agree on)" >&2; exit 2; }
+# (--: a file named like -x is a file, never an option)
+if (($#)) && [[ ! -d $1 ]]; then exec syncplay --no-gui --room "$room" -- "$1"; fi
+exec syncplay --no-gui --room "$room"

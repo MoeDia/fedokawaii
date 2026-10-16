@@ -64,7 +64,8 @@ export TARGET_USER TARGET_HOME TARGET_UID TARGET_GID
 # but say where it stopped and what had already changed.
 # shellcheck disable=SC2154  # rc is assigned inside the trap string
 # (on stderr; inside a $(…) or <(…) it only ends that piece, silently — see setup.sh)
-trap 'rc=$?; ((BASH_SUBSHELL == 0)) || exit $rc; _out "${C_RED}✘ line $LINENO${FUNCNAME[0]:+ in ${FUNCNAME[0]}(), called from line ${BASH_LINENO[-2]}}: ${BASH_COMMAND:0:160} (exit $rc)${C_RESET}" >&2; exit $rc' ERR
+# (as setup.sh's: a command lib/common.sh's run or retry saw fail is named, not their return)
+trap 'rc=$?; ((BASH_SUBSHELL == 0)) || exit $rc; failed_what "${FUNCNAME[0]:-main}:$LINENO"; _out "${C_RED}✘ line $LINENO${FUNCNAME[0]:+ in ${FUNCNAME[0]}(), called from line ${BASH_LINENO[-2]}}: ${FAILED_SHOW:0:160} (exit $rc)${C_RESET}" >&2; exit $rc' ERR
 on_exit() {                  # (explicit "return 0": a bare return in a trap handler would
   local rc=$?                # hand back the exit status and set off the ERR trap)
   ((rc == 0 || CHECK)) && return 0
@@ -88,8 +89,13 @@ if ((CHECK == 0)); then
   [[ -d $STATE && ! -L $STATE ]] || die "$STATE is not a folder"
   take_lock "$STATE"                                                  # your folder, opened read-only
 fi
+# dwl is the system's own, built from the desktop user's source (setup's record of who that
+# is): for anyone else — a second person on the machine — the theme does their home alone,
+# and their sessions run that same dwl
+DESK_USER=$(head -n1 /var/lib/fedokawaii/user 2>/dev/null | tr -d '[:space:]') || DESK_USER=""
+DWL_MINE=1; [[ -n $DESK_USER && $DESK_USER != "$TARGET_USER" ]] && DWL_MINE=0
 # the theme styles installed software; it cannot run before setup has built dwl
-[[ -x /usr/local/bin/dwl && -d $TARGET_HOME/.local/src/dwl ]] \
+[[ -x /usr/local/bin/dwl ]] && { ((DWL_MINE == 0)) || [[ -d $TARGET_HOME/.local/src/dwl ]]; } \
   || die "the software is not installed yet — run Setup first (sudo bash fedokawaii.sh setup)"
 
 # The boot menu and the text console are always ink-dark: their colours come from the
@@ -116,6 +122,7 @@ CHEVRON=$(. "$REPO_DIR/configs/home/.config/fedokawaii/icons.sh" && printf '%s' 
 render() {      # render SRC → stdout, with fedokawaii.conf values (and the chevron) filled in
   sed -e "s|@HOME@|$TARGET_HOME|g" -e "s|@MONITOR_HZ@|$MONITOR_HZ|g" \
       -e "s|@WEATHER_CITY@|$WEATHER_CITY|g" -e "s|@NIGHT_LIGHT@|$NIGHT_LIGHT|g" \
+      -e "s|@BACKUP_TARGET@|$BACKUP_TARGET|g" -e "s|@BACKUP_REMIND_DAYS@|$BACKUP_REMIND_DAYS|g" \
       -e "s|@ICON_CHEVRON_RIGHT@|$CHEVRON|g" -e "s|^@MPV_SCALING@\$|$MPV_SCALING|" -e "s|@UID@|$TARGET_UID|g" "$1"
 }
 
@@ -168,7 +175,7 @@ for f in "$REPO_DIR"/bin/*; do place "$f" "$TARGET_HOME/.local/bin/${f##*/}" use
 # ── 2b. the theme link, and the configs that are links into it ───────────────
 # ~/.config/fedokawaii/current → themes/dark or themes/light. It is created once (from
 # THEME in fedokawaii.conf) and then belongs to kawa-theme: re-running this script
-# keeps whichever theme you switched to. Three apps have no include mechanism, so their
+# keeps whichever theme you switched to. Four apps have no include mechanism, so their
 # whole config file is a link into the current theme; btop reads a colour theme only by
 # name from its own themes folder, so "fedokawaii" there is a link too.
 CUR=$TARGET_HOME/.config/fedokawaii/current
@@ -176,12 +183,21 @@ TOTAL=$((TOTAL + 1))
 if [[ ! -L $CUR || ! -d $CUR ]]; then                     # missing or broken: start in $THEME
   if ((CHECK)); then DRIFT+=("$CUR (no theme chosen)")
   else
+    # a real folder in its place (a backup or sync tool copied the link as a folder; the
+    # handbook's "current is a folder, not a link"): kept in the backup first, like any file
+    # replaced — whatever was edited inside it is yours
+    if [[ -d $CUR && ! -L $CUR ]]; then
+      U mkdir -p "$(dirname "$BACKUP${CUR#"$TARGET_HOME"}")"
+      U cp -a -- "$CUR" "$BACKUP${CUR#"$TARGET_HOME"}" 2>/dev/null || log "could not keep a copy of $CUR"
+      log "${CUR/#$TARGET_HOME/\~} was a folder, not a link — kept in the backup; the link to themes/$THEME is in its place"
+    fi
     U rm -rf -- "$CUR"; U ln -sfn "themes/$THEME" "$CUR"; CHANGED+=("$CUR → themes/$THEME")
   fi
 fi
 LINKS=("../fedokawaii/current/qt6ct.conf:.config/qt6ct/qt6ct.conf"
        "../fedokawaii/current/imv:.config/imv/config"
        "../fedokawaii/current/presenterm.yaml:.config/presenterm/config.yaml"
+       "../fedokawaii/current/wiremix.toml:.config/wiremix/wiremix.toml"
        "../../fedokawaii/current/btop.theme:.config/btop/themes/fedokawaii.theme")
 for l in "${LINKS[@]}"; do
   target=${l%%:*} link=$TARGET_HOME/${l#*:}
@@ -298,8 +314,8 @@ boot_and_console() {
   # GRUB gets a pixel theme in the desktop's own language, at the monitor's native
   # resolution: plain sumi ink with a hem of seigaiha waves along the bottom edge, fading
   # upwards in an ordered dither (the grain of the desktop's transitions); the torii above
-  # a quiet box of boot entries in Departure Mono (2× or 3× its pixel grid), the chosen
-  # entry marked by a vermilion bar, and a thin vermilion line counting down.
+  # a quiet box of boot entries in Departure Mono (2×, 3× or 4× its pixel grid: 22, 33 or
+  # 44 px), the chosen entry marked by a vermilion bar, and a thin vermilion line counting down.
   # BOOT_MENU_SECONDS=0 keeps Fedora's hidden menu (shown after a failed boot, or by holding
   # Shift or pressing F8 as the machine starts).
   # The text console (login, Ctrl+Alt+F2…F6) gets Terminus bold, larger from 1440p up.
@@ -441,7 +457,7 @@ run_boot() {   # boot_and_console in a subshell with errexit on; what it changed
   # shellcheck disable=SC2154  # rc is assigned inside the trap string
   # shellcheck disable=SC2034  # lvl is read inside the trap string
   ( set -e; lvl=$BASH_SUBSHELL
-    trap 'rc=$?; ((BASH_SUBSHELL == lvl)) || exit $rc; _out "${C_RED}✘ boot menu / console: line $LINENO${FUNCNAME[0]:+ in ${FUNCNAME[0]}()}: ${BASH_COMMAND:0:160} (exit $rc)${C_RESET}" >&2; exit $rc' ERR
+    trap 'rc=$?; ((BASH_SUBSHELL == lvl)) || exit $rc; failed_what "${FUNCNAME[0]:-main}:$LINENO"; _out "${C_RED}✘ boot menu / console: line $LINENO${FUNCNAME[0]:+ in ${FUNCNAME[0]}()}: ${FAILED_SHOW:0:160} (exit $rc)${C_RESET}" >&2; exit $rc' ERR
     n=${#CHANGED[@]} d=${#DRIFT[@]}
     trap 'rm -rf "${GT:-}"; { echo "T$TOTAL"; for x in "${CHANGED[@]:n}"; do echo "C$x"; done; for x in "${DRIFT[@]:d}"; do echo "D$x"; done; } >"$out"' EXIT
     boot_and_console )
@@ -460,12 +476,14 @@ run_boot() {   # boot_and_console in a subshell with errexit on; what it changed
 
 # ── 4. dwl keybindings + colours ─────────────────────────────────────────────
 SRC=$TARGET_HOME/.local/src/dwl
-[[ -d $SRC ]] || die "dwl source missing at $SRC — run setup.sh first"
-place "$REPO_DIR/src/dwl/config.h" "$SRC/config.h" user
+if ((DWL_MINE)); then
+  [[ -d $SRC ]] || die "dwl source missing at $SRC — run setup.sh first"
+  place "$REPO_DIR/src/dwl/config.h" "$SRC/config.h" user
+fi
 # the source must carry the current src/dwl/dwl.patch: a newer repo may extend it (setup
 # applied the version it had). Restore dwl's own files and apply this one.
 TOTAL=$((TOTAL + 1))
-if ! U git -C "$SRC" apply --reverse --check - <"$REPO_DIR/src/dwl/dwl.patch" >/dev/null 2>&1; then
+if ((DWL_MINE)) && ! U git -C "$SRC" apply --reverse --check - <"$REPO_DIR/src/dwl/dwl.patch" >/dev/null 2>&1; then
   if ((CHECK)); then DRIFT+=("$SRC (src/dwl/dwl.patch not applied as it is now)")
   else
     U git -C "$SRC" checkout --quiet "$DWL_COMMIT" -- dwl.c client.h config.def.h
@@ -564,6 +582,57 @@ for BP in "${BRAVE_PREFS[@]}"; do
   fi
 done
 
+# ── 4d. Syncplay: watching together ──────────────────────────────────────────
+# ~/.config/syncplay.ini is Syncplay's own: it writes the whole file again whenever you change
+# something (a room given with -r, its window's settings). So only what is missing or empty
+# is filled in here: Syncplay's public server (syncplay.pl, port 8999, its default), your
+# login name, a room of your own (name-xxxx: tell it to your friends, or agree on another),
+# mpv as the player, ~/Videos and ~/Downloads to find the room's file in by its name, and no
+# update checks (dnf brings new versions). Every value already there stays as it is.
+SYNCPLAY_INI=$TARGET_HOME/.config/syncplay.ini
+TOTAL=$((TOTAL + 1))
+if [[ -L $SYNCPLAY_INI ]]; then
+  log "$SYNCPLAY_INI is a link — Syncplay's settings left as they are"
+elif SP=$(U python3 -I - "$SYNCPLAY_INI" "$TARGET_USER" "$TARGET_HOME" "$CHECK" <<'PY'
+import configparser, os, secrets, sys
+path, user, home, check = sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4] == "1"
+want = {("server_data", "host"): "syncplay.pl", ("server_data", "port"): "8999",
+        ("client_settings", "name"): user, ("client_settings", "room"): f"{user}-{secrets.token_hex(2)}",
+        ("client_settings", "playerpath"): "/usr/bin/mpv",
+        ("client_settings", "mediasearchdirectories"): repr([home + "/Videos", home + "/Downloads"]),
+        ("general", "checkforupdatesautomatically"): "False"}
+cfg = configparser.RawConfigParser(strict=False)        # (as Syncplay reads it: a doubled %% stays)
+try:
+    with open(path, encoding="utf-8-sig") as f:
+        cfg.read_file(f)
+except FileNotFoundError:
+    pass
+except (configparser.Error, UnicodeError):
+    sys.exit(4)
+gaps = [k for k in want if cfg.get(*k, fallback="").strip() in ("", "None", "{}", "[]")]
+print(", ".join(k[1] for k in gaps))
+if check or not gaps:
+    sys.exit(3 if gaps else 0)
+for sec, key in gaps:
+    if not cfg.has_section(sec):
+        cfg.add_section(sec)
+    cfg.set(sec, key, want[sec, key].replace("%", "%%"))
+tmp = path + ".kawa"
+with open(os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600), "w", encoding="utf-8") as f:
+    cfg.write(f)                                         # (600: a server password may join it)
+if os.path.exists(path):
+    os.chmod(tmp, os.stat(path).st_mode & 0o777)
+os.replace(tmp, path)
+PY
+); then
+  [[ -n $SP ]] && CHANGED+=("$SYNCPLAY_INI (Syncplay: $SP)")
+else
+  case $? in
+    3) DRIFT+=("$SYNCPLAY_INI (Syncplay: $SP not set)") ;;
+    *) log "$SYNCPLAY_INI does not read as Syncplay's settings — left as it is" ;;
+  esac
+fi
+
 # ── 4b. the desktop's two C helpers (src/, built with the tools that build dwl) ──
 #   kawa-veil      the theme and wallpaper transitions
 #   kawa-clipkeep  keeps a copy on the clipboard after the app it came from is closed
@@ -592,7 +661,7 @@ if ((CHECK)); then
     else DRIFT+=("$TARGET_HOME/.local/bin/$t (not built from src/$t)"); fi
   done
   [[ $(U /usr/local/bin/dwl -v 2>&1) == *"${DWL_TAG#v}"* ]] || DRIFT+=("/usr/local/bin/dwl (not $DWL_TAG)")
-  dwl_current || DRIFT+=("/usr/local/bin/dwl (not built from src/dwl as it is now)")
+  ((DWL_MINE == 0)) || dwl_current || DRIFT+=("/usr/local/bin/dwl (not built from src/dwl as it is now)")
   while IFS= read -r -d '' x; do
     xh=$TARGET_HOME/${x#"$REPO_DIR/configs/home/"} png=${xh%.xpm}.png
     [[ -s $png && $png -nt $xh ]] || DRIFT+=("$png (not drawn from its .xpm)")
@@ -614,7 +683,7 @@ if ((CHECK)); then
 fi
 
 hdr "Fedokawaii theme → $TARGET_USER"
-if ! dwl_current; then
+if ((DWL_MINE)) && ! dwl_current; then
   # against dwl's own copy of wlroots (lib/common.sh), made now if setup predates it
   wlr_kept || R bash -c '. "$1/lib/common.sh"; DWL_WLROOTS=$2; wlr_keep' _ "$REPO_DIR" "$DWL_WLROOTS" \
     || die "dwl cannot be built: no copy of wlroots $DWL_WLROOTS, and this Fedora no longer ships it — the dwl you have stays"

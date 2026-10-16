@@ -1,0 +1,16 @@
+[Desktop Entry]
+# CSV and TSV files open in VisiData (vd), in a terminal window of its own (the default for
+# text/csv and text/tab-separated-values in ~/.config/mimeapps.list): a download from Brave,
+# xdg-open, yazi's O. Hidden from the launcher: visidata's own entry is there. Excel files
+# (.xlsx, .ods) keep Gnumeric — vd would need python3-openpyxl for them.
+# (`--`: a file named like -b or -o is opened as a file, never read as an option)
+Type=Application
+Name=Tables
+GenericName=Table viewer
+Comment=VisiData in a terminal window
+Icon=x-office-spreadsheet
+Exec=@HOME@/.local/bin/kawa-term vd -- %F
+Terminal=false
+NoDisplay=true
+MimeType=text/csv;text/tab-separated-values;
+Categories=Office;Spreadsheet;

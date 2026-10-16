@@ -2,10 +2,21 @@
 """Builds Fedokawaii-Guide.pdf from docs/fedokawaii-guide.md and REAL renders
 (scratchpad/real/shots/{dark,light}: the real apps at Fedora 44's versions)."""
 import re, os, sys, glob, math, html as H
+from pathlib import Path
+USAGE = """usage: python3 docs/build/handbook.py        builds docs/Fedokawaii-Guide.pdf (a few minutes)
+       python3 docs/build/handbook.py --help  this text
+The repository is the one this script sits in (FEDOKAWAII_REPO overrides it); the renders and
+the scratch folder come from FEDOKAWAII_SCRATCH, the output folder from FEDOKAWAII_OUT."""
+# (anything but no argument at all is not a build: a stray --help must never start one)
+if len(sys.argv) > 1:
+    print(USAGE, file=sys.stdout if sys.argv[1] in ("-h", "--help") else sys.stderr)
+    sys.exit(0 if sys.argv[1] in ("-h", "--help") else 2)
 import markdown, numpy as np
 from PIL import Image, ImageDraw, ImageFont
 S = os.environ.get("FEDOKAWAII_SCRATCH", "/tmp/claude-0/-home-claude/6d31fcd7-1ae3-5468-8ff5-715a71fb37a1/scratchpad")
-REPO = os.environ.get("FEDOKAWAII_REPO", "/home/claude/fedokawaii")
+# the repository this script belongs to (docs/build/ → its root), never a fixed path: run from a
+# copy, it builds that copy
+REPO = os.environ.get("FEDOKAWAII_REPO", str(Path(__file__).resolve().parents[2]))
 CHROME = os.environ.get("FEDOKAWAII_CHROME", "/opt/pw-browsers/chromium-1194/chrome-linux/chrome")
 OUT = os.environ.get("FEDOKAWAII_OUT", f"{S}/guide")   # (test copy: configurable)
 IMG = f"{OUT}/img2"
@@ -135,7 +146,7 @@ if os.path.exists(f"{R}/dark/wallpaper-picker.png") and os.path.exists(f"{R}/lig
 lk = both("lock-center", 2)
 if lk: add("lock", grid([[lk[0], lk[1]]], f"{IMG}/lock.png"))
 for app in ("app-yazi", "app-nvim", "app-lazygit", "app-btop", "app-mpv", "app-zathura", "app-filechooser",
-            "app-share", "app-torrra", "app-brave"):
+            "app-share", "app-torrra", "app-brave", "app-wiremix", "app-bluetui", "app-visidata"):
     b = both(app)
     if b:
         vertical = b[0].width > 900

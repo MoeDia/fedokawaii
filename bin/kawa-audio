@@ -2,8 +2,10 @@
 # kawa-audio — the volume popup (click the volume in the bar, or Super+A).
 #   louder / quieter / mute stay open so they can be tapped repeatedly;
 #   picking an output or input makes it the default and moves playing audio to it.
-# Devices come from pw-dump (JSON), so names with any characters are safe.
-# Exit status: 0 done (or dismissed) · 1 could not (PipeWire not running) · 2 misuse.
+# Devices come from pw-dump (JSON), so names with any characters are safe. mixer… opens
+# wiremix in a floating terminal window (kawa-float), one at a time.
+# Exit status: 0 done (or dismissed) · 1 could not (PipeWire not running, no terminal for the
+# mixer) · 2 misuse · 3 the mixer is open already.
 set -u
 case ${1:-} in
   "") ;;
@@ -97,7 +99,7 @@ while :; do
                 kind=input; [[ ${acts[i]} == sink:* ]] && kind=output
                 note "Audio" "${full[i]} is now the $kind"; exit 0
               fi ;;
-    mixer)    setsid -f pavucontrol >/dev/null 2>&1; exit 0 ;;
+    mixer)    exec kawa-float --once mixer mixer 96x29 -- wiremix ;;   # (7 rows of 4 lines, the tabs)
     -)        ;;                       # headings and the current device: just reopen
   esac
 done

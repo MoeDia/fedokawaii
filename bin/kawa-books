@@ -44,8 +44,17 @@ sys.stdout.reconfigure(errors="surrogateescape")
 exts = {e: e for e in sys.argv[5:]}; exts["oxps"] = "xps"
 IMG = (".jpg", ".jpeg", ".png", ".webp", ".gif")
 
-def cols(s):                       # display width: CJK and other wide characters take two
-    return sum(2 if unicodedata.east_asian_width(c) in "WF" else 0 if unicodedata.combining(c) else 1 for c in s)
+def cols(s):                       # display width, as foot and fzf count it: CJK and emoji take
+    n = w = 0; zwj = False         # two; accents, joiners, skin tones and what a joiner joins
+    for c in s:                    # add nothing (👨‍👩‍👧 is two); an emoji selector makes two (❤️)
+        o = ord(c)
+        if unicodedata.category(c) in ("Mn", "Me", "Cf") or 0x1F3FB <= o <= 0x1F3FF \
+           or zwj and unicodedata.category(c) == "So":
+            if o == 0xFE0F: w = 2
+            zwj = o == 0x200D
+            continue
+        zwj = False; n += w; w = 2 if unicodedata.east_asian_width(c) in "WF" else 1
+    return n + w
 
 def fit(s, w):                     # cut to w columns with "…", then pad to exactly w
     if cols(s) > w:
@@ -179,7 +188,7 @@ cover_source() {   # cover_source PATH OUT.png — the picture a cover is made f
   case ${kind,,} in
     pdf) pdftoppm -f 1 -l 1 -singlefile -png -scale-to 900 -- "$f" "${out%.png}" 2>/dev/null ;;
     epub) python3 -I - "$f" "$out" 2>/dev/null <<'PY'
-import posixpath, re, sys, zipfile
+import posixpath, re, sys, urllib.parse, zipfile
 src, out = sys.argv[1], sys.argv[2]
 IMG = (".jpg", ".jpeg", ".png", ".webp", ".gif")
 with zipfile.ZipFile(src) as z:
@@ -193,7 +202,8 @@ with zipfile.ZipFile(src) as z:
         if not item: item = re.search(r'<item[^>]+properties="[^"]*cover-image[^"]*"[^>]*>', x)
         if item:
             href = re.search(r'href="([^"]+)"', item.group(0)).group(1)
-            pick = posixpath.normpath(posixpath.join(posixpath.dirname(opf), href))
+            # (an href is a URL: "front%20page.jpg" is the file "front page.jpg")
+            pick = posixpath.normpath(posixpath.join(posixpath.dirname(opf), urllib.parse.unquote(href)))
     except Exception:
         pick = None
     if pick not in names:                              # else a picture named like a cover
@@ -307,7 +317,7 @@ case ${1:-} in
     cell=${KAWA_CELL:-9x21} cols=${FZF_PREVIEW_COLUMNS:-36} lines=${FZF_PREVIEW_LINES:-26}
     cw=${cell%x*} ch=${cell#*x}
     ((cw > 0 && ch > 0 && cols > 20 && lines > 8)) || exit 0
-    key=$(printf '%s\n' p5 "$f" "$(stat -c '%s %Y' -- "$f")" "$cell" "$cols" "$lines" "$C_GROUND" | sha1sum)
+    key=$(printf '%s\n' p6 "$f" "$(stat -c '%s %Y' -- "$f")" "$cell" "$cols" "$lines" "$C_GROUND" | sha1sum)
     key=${key%% *}; six=$CACHE/$key.six lay=$CACHE/$key.lay
     [[ -s $six && -s $lay ]] || draw_cover "$f" "$six" "$lay" || exit 0
     { read -r k tr W; mapfile -t tl; } <"$lay"

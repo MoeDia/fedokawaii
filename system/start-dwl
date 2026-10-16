@@ -37,6 +37,15 @@ if [ -n "$pid" ]; then
   printf 'start-dwl: the desktop is already running (dwl, process %s): one at a time.\n' "$pid" >&2
   exit 1
 fi
+# Fedora 45 draws its text consoles (Ctrl+Alt+F2…) with kmscon, a program that holds the
+# screen itself: started from one, the session asks kmscon to hand the screen over, and to
+# take it back afterwards — through the helper kmscon names in KMS_START_SCRIPT
+# (kmscon-launch-gui). The session starts again without kmscon's two marks, knowing it was
+# handed over (KAWA_KMSCON, for the rescue screen below).
+if [ -n "${KMS_START_SCRIPT:-}" ] && command -v "$KMS_START_SCRIPT" >/dev/null 2>&1; then
+  exec "$KMS_START_SCRIPT" env -u KMS_START_SCRIPT -u TERM_SESSION_TYPE KAWA_KMSCON=1 "$0"
+fi
+from_kmscon=${KAWA_KMSCON:-}; unset KAWA_KMSCON
 # the session before keeps its log beside the new one: what dwl said before a crash
 [ -s "$LOG" ] && mv -f "$LOG" "$LOG.old"
 : >"$LOG"
@@ -55,6 +64,9 @@ rescue() {
   printf '  This console works as usual. To put things right:\n\n'
   printf '      fedokawaii repair      finds what broke and fixes it (or: fedokawaii, the menu)\n\n'
   printf '  What dwl said: %s · Ctrl+D logs out.\n\n' "$LOG"
+  # (handed over by kmscon: back to the shell you started from, once kmscon shows it again —
+  # a new one now would wait unseen, while kmscon still keeps the screen dark)
+  [ -n "$from_kmscon" ] && exit 1
   exec bash -l
 }
 runs() { [ -x "$1" ] && ! ldd "$1" 2>/dev/null | grep -q 'not found'; }

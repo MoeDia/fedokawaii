@@ -6,4 +6,6 @@ prepend_keymap = [
 	{ on = "<Enter>",    run = "plugin smart-enter",     desc = "Into the folder, or open the file(s)" },
 	{ on = "M",          run = "plugin drives",          desc = "Drives: open or eject one" },
 	{ on = [ "g", "m" ], run = "plugin drives -- media", desc = "Go to the open drives" },
+	# Syncplay in a terminal window of its own (kawa-together asks for the room)
+	{ on = "W",          run = "shell --orphan -- kawa-term kawa-together %h", desc = "Watch it together (Syncplay)" },
 ]

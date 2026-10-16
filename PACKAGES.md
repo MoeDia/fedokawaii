@@ -30,7 +30,7 @@ Source: **F** Fedora · **RF** RPM Fusion · **V** vendor repo (signed) · **C**
 | Clipboard | wl-clipboard + cliphist + fzf | F | Super+V: the history in a small window (fzf), pictures previewed in the terminal (ImageMagick draws them as sixels) |
 | Screenshots | grim + slurp + satty | F + GH | satty needs gtk4 + libadwaita (listed) |
 | Night light | gammastep | F | |
-| Audio | PipeWire + WirePlumber (+ pulse/alsa shims) + pipewire-utils | F | pavucontrol, EasyEffects, playerctl; `pw-dump` feeds the audio menu |
+| Audio | PipeWire + WirePlumber (+ pulse/alsa shims) + pipewire-utils | F | wiremix (the mixer: a terminal program, in a floating window, in the theme's colours), EasyEffects, playerctl; `pw-dump` feeds the audio menu |
 | Music meter | cava | F | the bar's spectrum meter, only while sound plays (sleeps through silence) |
 | Monitor brightness | ddcutil | F | DDC/CI, like Twinkle Tray on Windows |
 | Bar clicks | wtype | F | clicking a workspace presses its key (Super+1…9) |
@@ -39,7 +39,7 @@ Source: **F** Fedora · **RF** RPM Fusion · **V** vendor repo (signed) · **C**
 | Terminal for apps | xdg-terminal-exec | F | programs that ask for a terminal get foot |
 | Auth dialogs | lxqt-policykit | F | |
 | USB drives | udiskie + udisks2 + `kawa-drives` · exfatprogs · dosfstools · ntfs-3g | F | sticks, disks and SD cards open by themselves under `/run/media/$USER`; `kawa-drives` gives the notices, the bar's drive mark, yazi's **M** and the eject that says "safe to unplug"; exFAT and FAT tools check, repair and name the usual sticks; ntfs-3g opens NTFS whether or not the kernel has its own NTFS driver (Fedora's kernels have changed which one they build) |
-| Bluetooth | bluez + blueman | F | controller dongle |
+| Bluetooth | bluez + bluetui | F + GH (musl, SHA-256 pinned) | controller dongle; pairing in a floating terminal window (quick settings → *pair a device*) |
 | Files | yazi + 7zip + file | GH (musl) + F | 7-Zip: archive previews and extraction; `file`: types |
 | Office | AbiWord + Gnumeric | F | |
 | Reading | zathura (+ mupdf, cb) · bsdtar | F | PDF, EPUB, CBZ; bsdtar opens comics for the books window's covers and page counts |
@@ -51,20 +51,24 @@ Source: **F** Fedora · **RF** RPM Fusion · **V** vendor repo (signed) · **C**
 | Screen recording | wf-recorder | F | the whole screen or a region (slurp) to MP4, with or without sound |
 | Calculator | qalc (`qalculate`) | F | |
 | Video | mpv + mpv-mpris + yt-dlp + nodejs24 (+ -bin, -npm-bin) | F | mpv-mpris: mpv in the bar and on the media keys; Node.js: yt-dlp's JavaScript runtime for YouTube, and npm for Mason's language servers |
+| Watching together | Syncplay 1.7.6 (no window) | git (GitHub, pinned commit) + F | its source at the v1.7.6 tag's commit, run by Fedora's python3 with python3-twisted (+tls) · python3-pyOpenSSL · python3-certifi · python3-pem (lib/upstream.sh); Fedora's syncplay package is left out: it brings PySide6 and 27 Qt modules for a window never used. `kawa-together`: the room, then Syncplay beside mpv; pause, seek, ready and chat reach friends through a public server (syncplay.pl) |
 | Codecs | ffmpeg (full) | RF | replaces ffmpeg-free |
 | Music | spotify_player | GH (sha256) | Premium |
-| Torrents | torrra (on Python 3.13) + Prowlarr | pipx + podman | libtorrent has no Python 3.14 wheel yet; `kawa-torrra` hands torrra the key from `secrets.sh` |
-| Git | git + lazygit | F + C | |
+| Torrents | torrra (on Python 3.13) + Prowlarr | pipx + podman | libtorrent has no Python 3.14 wheel yet; its libraries pinned to torrra 2.5.1's own lock (`system/torrra-constraints.txt`; libtorrent and certifi left free); `kawa-torrra` hands torrra the key from `secrets.sh` |
+| Git | git + lazygit | F + GH | lazygit from its own release, pinned like yazi (its COPR is no longer kept) |
 | Script checking | ShellCheck | F | `fedokawaii apply` reads the scripts you changed with it; every finding has a page (SC number) that explains it |
-| System monitor | btop | F | |
+| System monitor | btop (+ rocm-smi on AMD) | F | rocm-smi is the ROCm SMI library btop opens to read the card: load, memory, heat and watts in the CPU box, and a GPU box on **5** |
+| Tables in the terminal | visidata (`vd`) · sc-im | F | `vd file.csv`: CSV, TSV, JSON and SQLite — sort, sum, filter, group, save; the default for CSV and TSV files (a `.xlsx` needs python3-openpyxl, which is not installed: Excel files stay with Gnumeric) · sc-im: a vi-like spreadsheet for `.sc` files and quick sums |
+| Disk usage | gdu | F | `gdu ~`: what fills a folder, largest first; **d** deletes |
 | Search / view | ripgrep · fd-find · bat | F | rg and fd also power LazyVim's pickers |
 | Performance | tuned | F | the `fedokawaii` profile: throughput-performance for an always-plugged desktop |
 | Fetch | `fetch` (own, pure bash) | repo | ten pixel pictures; replaces fastfetch |
 | Snapshots | snapper | F | Timeshift can't use Fedora's subvolume names |
+| Backups | restic | F | your home to a USB drive, an external disk or a restic address, deduplicated and encrypted; `kawa-backup` runs it (quick settings → backup) — nothing on a timer, the drive may not be plugged in |
 | Containers | podman | F | for Prowlarr |
-| GPU | Mesa freeworld (VA-API + Vulkan) · LACT | RF + C | amdgpu feature mask for LACT |
-| Peripherals | OpenRGB · Solaar · liquidctl | F | |
-| Gaming | Steam · gamescope · gamemode · MangoHud · GE-Proton · ntsync-autoload | RF + F + GH | GE-Proton keeps the newest two; ntsync: Proton's faster synchronisation |
+| GPU | Mesa freeworld (VA-API + Vulkan) · LACT · rocm-smi | RF + C + F | amdgpu feature mask for LACT; rocm-smi: the library btop reads the card through (AMD only); while RPM Fusion is behind this Fedora's Mesa, or the COPR has no build for it, they wait (recorded, Fedora's drivers standing in) and update or repair adds them |
+| Peripherals | OpenRGB | F | RGB lighting on the motherboard's headers; fan speeds are the motherboard firmware's (§21.2) |
+| Gaming | Steam · gamescope · gamemode · MangoHud · GE-Proton · ntsync-autoload · steam-devices | RF + F + GH | GE-Proton keeps the newest two; ntsync: Proton's faster synchronisation |
 | Fonts | JetBrainsMono Nerd · DepartureMono Nerd · PixelMplus 12 · Sumi Icons · Terminus (console) · Noto Sans · Noto Sans CJK · Noto Naskh Arabic · Noto Kufi Arabic · Amiri · Noto Color Emoji · Liberation | GH + F + repo | Departure = the pixel UI font; PixelMplus = Japanese in the pixel UI and the terminal; Noto Sans CJK = Japanese, Chinese, Korean in programs and subtitles; Sumi Icons = this desktop's icons; Kufi = Arabic in the pixel UI (bar, menus, notices); Liberation = metric-compatible fonts for office files |
 | Look | adw-gtk3 · qt6ct · Papirus · dconf · pointers drawn here (Adwaita beneath for rare shapes) | F + repo | dark/light switched live by `kawa-theme`; the pixel pointers come from `art/cursors.txt` |
 | Build (kept) | gcc · make · pkgconf · wayland/wlroots/xcb devel | F | theme.sh rebuilds dwl when you change a keybind, and builds kawa-veil and kawa-clipkeep |
@@ -82,9 +86,12 @@ Origin (firefox, chromium, brave-browser) · other terminals and launchers (alac
 konsole, gnome-terminal, rofi, wofi, wmenu, bemenu) · second polkit agents and tray NM
 (polkit-gnome, hyprpolkitagent, network-manager-applet) · flatpak, snapd, PackageKit,
 gnome-software · ffmpeg-free · tuigreet, wlogout, fastfetch, neofetch (replaced by agreety,
-fuzzel menus and the own `fetch`) · second notification daemons (dunst, swaync) ·
-power-profiles-daemon (tuned only) · other login managers (gdm, sddm, lightdm, lxdm) · on AMD,
-the non-freeworld mesa-va-drivers / mesa-vulkan-drivers.
+fuzzel menus and the own `fetch`) · pavucontrol, blueman (replaced by wiremix and bluetui, in
+terminal windows) · second notification daemons (dunst, SwayNotificationCenter: swaync) ·
+power-profiles-daemon (tuned only) · other login managers (gdm, sddm, lightdm, lxdm) ·
+systemd-oomd-defaults (systemd-oomd's rules: its out-of-memory killer acts on whole cgroups, so
+under memory pressure it can end the whole desktop session, where every program runs; the
+kernel's own OOM killer stays) · on AMD, the non-freeworld mesa-va-drivers / mesa-vulkan-drivers.
 
 On top of that list, verify.sh compares everything *user-installed* against a snapshot taken
 before setup started plus the manifest — anything else is reported by name.
@@ -96,7 +103,7 @@ before setup started plus the manifest — anything else is reported by name.
 | a separate clock script | waybar's own clock module shows seconds and wakes on the second by itself |
 | tuigreet, wlogout, fastfetch | agreety (part of greetd), a fuzzel power menu, the own `fetch` |
 | npm for Claude Code | Claude Code now ships an official signed dnf repo (Node.js and npm are back, for yt-dlp and Mason — see below) |
-| Rust + cargo (+ openssl/alsa/dbus devel, cmake) | yazi, presenterm, spotify_player come as release binaries — 15 min faster setup |
+| Rust + cargo (+ openssl/alsa/dbus devel, cmake) | yazi, presenterm, spotify_player, bluetui come as release binaries — 15 min faster setup |
 | GStreamer plugins + `@multimedia` group | nothing installed uses GStreamer (mpv = ffmpeg; Brave and Steam bundle their own) |
 | x264, x265, svt-av1, libaom, dav1d, opus, lame, flac, … CLI/lib packages | pulled in by ffmpeg where needed; the CLI encoders duplicated ffmpeg |
 | google-noto-sans-arabic-fonts | fontconfig sends Arabic to Noto Naskh; Sans Arabic was never used |
@@ -105,8 +112,11 @@ before setup started plus the manifest — anything else is reported by name.
 | `settings.ini` for GTK | GTK reads GSettings (dconf) on Wayland — single source |
 | unzip | 7zip opens zip files too (`7z x`) |
 | mediainfo | ffprobe (part of ffmpeg) tells the same about a video or song |
+| pavucontrol, blueman | terminal programs first: wiremix (Fedora's package) is the mixer, bluetui (GitHub release, pinned) pairs devices — both open in a floating foot window and wear the theme; no GTK window, nothing to start at login |
 | Brave flags file | Chromium ≥ 140 picks Wayland automatically |
 | `keepcache`, `skip_if_unavailable`, `clean_requirements_on_remove` in dnf config | already Fedora's defaults |
+| lazygit's COPR (dejan/lazygit) | its description says it is no longer maintained; lazygit now comes from its GitHub release, pinned (SHA-256) |
+| solaar, liquidctl | nothing to drive on this machine: the mouse (on a USB receiver) needs no app, and the cooler is an air cooler — liquidctl is for liquid coolers and fan hubs |
 
 ## Added since the previous version, and why
 
@@ -140,7 +150,11 @@ before setup started plus the manifest — anything else is reported by name.
 | 7zip, file | yazi's archive previews and extraction; file types for the clipboard window |
 | google-noto-sans-cjk-vf-fonts | Japanese, Chinese and Korean in programs, web pages and subtitles |
 | ntsync-autoload | Proton's faster synchronisation (with Steam) |
+| steam-devices | the rules that let Steam open a game controller (Bluetooth or USB); Steam brings it today — listed so dnf's clean-up can never take it |
 | fwupd, pciutils, usbutils | firmware inside the devices (SSD, motherboard, dock), offered by update and applied by you · which device is which, and which driver holds it |
 | exfatprogs, dosfstools, ntfs-3g | the USB drives: check, repair and name exFAT and FAT sticks; NTFS opens whatever NTFS driver the kernel has |
 | python3, glib2, fontconfig | already there as other packages' dependencies; listed so they are never assumed: the helpers' Python parts and the self-tests · `gsettings`, `gio` · `fc-match`, `fc-cache` |
 | tar, grubby | not on a Minimal Install (grubby only on UEFI machines): unpacking the toolkit and the kernel's boot options |
+| visidata, sc-im | tables in the terminal: `vd` opens a CSV at once (sort, sum, filter, group — like ORDER BY, SUM, WHERE, GROUP BY), sc-im is a spreadsheet with vi keys; Gnumeric stays for Excel files |
+| gdu | what fills the disk, folder by folder, with a delete key — the question `space` (handbook §25.6) cannot answer |
+| rocm-smi (AMD) | the ROCm SMI library btop opens to show the graphics card; without it btop finds no GPU |

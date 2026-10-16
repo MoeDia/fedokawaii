@@ -10,18 +10,19 @@ the book is a mock-up. This folder keeps everything that made it, as it was run.
 | `handbook.py` | the book: the Markdown → HTML (pixel fonts, the figures framed, every picture enlarged by a whole number only) → PDF in headless Chromium, then `pdfpack.py` |
 | `pdfpack.py` | re-compresses the PDF's pictures losslessly (PNG row predictors), so the book stays small — every pixel the same |
 | `render/shoot.sh` | the desktop: bar, menus, notices, level display, terminal, lock — both themes |
-| `render/apps.sh` | the applications and windows: yazi, neovim, lazygit, btop, mpv, zathura, the file dialog, books, notes, Super+U, torrra, Brave |
+| `render/apps.sh` | the applications and windows: yazi, neovim, lazygit, btop, mpv, zathura, the file dialog, books, notes, Super+U, torrra, Brave, the mixer (wiremix), pairing (bluetui), VisiData |
 | `render/build.sh` | builds the drawing stack (Pango, fcft, foot, fuzzel, mako, swaylock, waybar …) at Fedora 44's versions into `/opt/f44` |
 | `render/sway.conf` | the headless compositor that stands in for dwl, drawing dwl's 2 px frame |
 | `render/README.md` | the render kit in detail: what is real, what stands in, every output file |
-| `render/lib/`, `render/stubs/` | small helpers and stand-ins for hardware the sandbox lacks (Bluetooth, DDC/CI, a player, a monitor list) |
+| `render/lib/`, `render/stubs/` | small helpers and stand-ins for hardware the sandbox lacks (Bluetooth, DDC/CI, a player, a monitor list; `lib/fakebluez.py` answers as BlueZ for bluetui) |
 
 ## Where it ran
 
 The kit was written for the sandbox the book was made in (Ubuntu, no GPU, no monitor) and
 is kept exactly as it ran there: paths at the top of each script point into that sandbox's
-scratch folder (`S=…`; `handbook.py` takes `FEDOKAWAII_REPO`, `FEDOKAWAII_SCRATCH` and
-`FEDOKAWAII_CHROME` from the environment), and `render/stubs/` expects an fzf 0.74 binary
+scratch folder (`S=…`; `handbook.py` takes `FEDOKAWAII_REPO` — by default the repository it
+sits in —, `FEDOKAWAII_SCRATCH` and `FEDOKAWAII_CHROME` from the environment, and
+`handbook.py --help` lists them), and `render/stubs/` expects an fzf 0.74 binary
 beside the scripts (not kept here: 5 MB). To rebuild elsewhere, set those paths, build the
 stack once (`sudo render/build.sh`), then:
 
