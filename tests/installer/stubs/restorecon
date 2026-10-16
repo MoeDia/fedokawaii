@@ -1,0 +1,5 @@
+#!/bin/bash
+# restorecon of the fake Fedora: logged; its exit status from $FKH/rc-restorecon (0)
+. /usr/local/bin/_lib.sh
+fkh_log "$*"
+exit "$(rcfor restorecon 0)"

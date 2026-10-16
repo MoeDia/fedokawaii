@@ -1,0 +1,7 @@
+#!/bin/bash
+# runuser -u USER -- CMD… of the fake Fedora: the same switch of user through setpriv, without
+# PAM's session set-up (hundreds of calls in a theme run: a test would wait minutes on PAM)
+[[ $1 == -u ]] || exec /usr/sbin/runuser "$@"
+u=$2; shift 2; [[ ${1:-} == -- ]] && shift
+g=$(id -g -- "$u") || { echo "runuser: user $u does not exist or the user entry does not contain all the required fields" >&2; exit 1; }
+exec setpriv --reuid="$u" --regid="$g" --init-groups -- "$@"

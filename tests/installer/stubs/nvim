@@ -1,0 +1,9 @@
+#!/bin/bash
+# nvim --headless '+Lazy! sync': LazyVim's plugins appear (unless $FKH/rc-nvim says otherwise)
+. /usr/local/bin/_lib.sh
+fkh_log "$*"
+r=$(rcfor nvim 0); ((r == 0)) || exit "$r"
+# ($FKH/fail-nvim-plugins = N: the first N runs end well, but GitHub let the clones fail)
+if [[ " $* " == *Lazy!* ]] && ! countdown nvim-plugins; then mkdir -p "$HOME/.local/share/nvim/lazy/LazyVim"; fi
+[[ " $* " == *colors_name* ]] && printf gruvbox
+exit 0

@@ -1,0 +1,17 @@
+#!/bin/bash
+# firewall-cmd of the fake Fedora: $FKH/firewalld-down = not running; services in $FKH/fw-services
+. /usr/local/bin/_lib.sh
+fkh_log "$*"
+[[ -f $FKH/firewalld-down ]] && { echo "FirewallD is not running" >&2; exit 252; }
+[[ -f $FKH/fw-services ]] || printf '%s\n' dhcpv6-client ssh cockpit >"$FKH/fw-services"
+case " $* " in
+  *" --state "*) exit 0 ;;
+  *" --get-default-zone "*) echo FedoraServer ;;
+  *" --query-service="*) s=$(sed -n 's/.*--query-service=\([^ ]*\).*/\1/p' <<<"$*"); has fw-services "$s" || exit 1 ;;
+  *" --remove-service="*) del fw-services "$(sed -n 's/.*--remove-service=\([^ ]*\).*/\1/p' <<<"$*")" ;;
+  *" --add-service="*) add fw-services "$(sed -n 's/.*--add-service=\([^ ]*\).*/\1/p' <<<"$*")" ;;
+  *" --add-port="*) for x in "$@"; do [[ $x == --add-port=* ]] && add fw-ports "${x#--add-port=}"; done ;;
+  *" --list-ports "*) tr '\n' ' ' <"$FKH/fw-ports" 2>/dev/null; echo ;;
+  *" --list-services "*) tr '\n' ' ' <"$FKH/fw-services"; echo ;;
+esac
+exit 0

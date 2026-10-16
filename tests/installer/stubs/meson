@@ -1,0 +1,15 @@
+#!/bin/bash
+# meson of the fake Fedora: install --destdir STAGE puts termfilechooser's four files there
+. /usr/local/bin/_lib.sh
+fkh_log "$*"
+r=$(rcfor meson 0); ((r == 0)) || exit "$r"
+countdown meson && { echo "meson: ERROR: Dependency \"inih\" not found" >&2; exit 1; }   # ($FKH/fail-meson = N: the first N calls)
+if [[ $1 == install ]]; then
+  d=""; while (($#)); do [[ $1 == --destdir ]] && d=$2; shift; done
+  mkdir -p "$d/usr/local/libexec" "$d/usr/local/lib/systemd/user" "$d/usr/local/share/dbus-1/services" "$d/usr/local/share/xdg-desktop-portal/portals"
+  printf '#!/bin/sh\necho "xdg-desktop-portal-termfilechooser 1.4.3"\n' >"$d/usr/local/libexec/xdg-desktop-portal-termfilechooser"
+  chmod 755 "$d/usr/local/libexec/xdg-desktop-portal-termfilechooser"
+  for f in lib/systemd/user/xdg-desktop-portal-termfilechooser.service share/dbus-1/services/org.freedesktop.impl.portal.desktop.termfilechooser.service \
+           share/xdg-desktop-portal/portals/termfilechooser.portal; do echo "[x]" >"$d/usr/local/$f"; done
+fi
+exit 0

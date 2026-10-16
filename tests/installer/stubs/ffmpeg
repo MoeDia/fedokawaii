@@ -1,0 +1,4 @@
+#!/bin/bash
+# ffmpeg -encoders: RPM Fusion's build has them all ($FKH/ffmpeg-free: Fedora's has not)
+[[ -f /var/lib/fkh/ffmpeg-free ]] && { echo " V....D libopenh264"; exit 0; }
+printf ' V....D %s\n' libx264 libx265 libsvtav1 libaom-av1

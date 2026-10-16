@@ -1,0 +1,11 @@
+#!/bin/bash
+# grub2-editenv - list|set K=V|unset K, on $FKH/grubenv
+. /usr/local/bin/_lib.sh
+fkh_log "$*"
+e=$FKH/grubenv; touch "$e"
+case $2 in
+  list) cat "$e" ;;
+  set) k=${3%%=*}; sed -i "/^$k=/d" "$e"; echo "$3" >>"$e" ;;
+  unset) sed -i "/^$3=/d" "$e" ;;
+esac
+exit "$(rcfor grub2-editenv 0)"

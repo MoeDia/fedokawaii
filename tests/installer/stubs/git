@@ -1,0 +1,35 @@
+#!/bin/bash
+# git of the fake Fedora: clone makes a source folder; tags resolve to the pinned commits
+# ($FKH/tag-TAG overrides); $FKH/fail-git-fetch = N fails the fetch N times
+. /usr/local/bin/_lib.sh
+fkh_log "$*"
+[[ -f $FKH/real-git ]] && exec /usr/bin/git "$@"
+dir=. ; [[ $1 == -C ]] && { dir=$2; shift 2; }
+while [[ $1 == -c ]]; do shift 2; done
+case $1 in
+  clone) net_on || { echo "fatal: unable to access" >&2; exit 128; }
+         countdown git-clone && { echo "fatal: unable to access: timed out" >&2; exit 128; }
+         d=${*: -1}; mkdir -p "$d/.git"
+         if [[ " $* " == *LazyVim/starter* ]]; then echo 'require("config.lazy")' >"$d/init.lua"
+         else printf 'static const unsigned int gappx = 5;\nstatic float bordercolor[3][4];\n' >"$d/config.def.h"; fi
+         exit 0 ;;
+  fetch) net_on || { echo "fatal: unable to access 'https://codeberg.org/dwl/dwl.git/'" >&2; exit 128; }
+         countdown git-fetch && { echo "fatal: unable to access 'https://codeberg.org/dwl/dwl.git/': Operation timed out" >&2; exit 128; }
+         exit 0 ;;
+  rev-parse)
+         case $2 in
+           "v0.9^{commit}") cat "$FKH/tag-v0.9" 2>/dev/null || echo 98bea2c27f99c549023fb394bfd983a439d8ccb9 ;;
+           "v1.4.3^{commit}") cat "$FKH/tag-v1.4.3" 2>/dev/null || echo cb8cec0b30aa6e2cc36b1b5cb34d6dc9a1face29 ;;
+           HEAD) cat "$FKH/dwl-head" 2>/dev/null || echo 98bea2c27f99c549023fb394bfd983a439d8ccb9 ;;
+           *) echo "$2" ;;
+         esac; exit 0 ;;
+  branch) [[ " $* " == *" -r --contains "* ]] && echo "  origin/main"; exit 0 ;;
+  apply) [[ " $* " == *" --check "* || " $* " == *" - "* ]] && cat >/dev/null
+         [[ " $* " == *" --reverse "* ]] && exit "$(rcfor git-reverse 0)"
+         r=$(rcfor git-apply 0); ((r == 0)) || { echo "error: patch failed: dwl.c:1" >&2; exit "$r"; }
+         # applied for real: the lines verify looks for in dwl.c
+         [[ " $* " == *" --check "* ]] || printf '%s\n' 'layout = 0; /* keybindings always read' 'gap = (int)gappx' 'corners closed' \
+           'open centred on their monitor' 'kblayout %u' 'printclean(' >>"$dir/dwl.c"
+         exit 0 ;;
+esac
+exit 0

@@ -1,0 +1,16 @@
+#!/bin/bash
+# usermod -aG G1,G2 USER (groups made if missing, in the fake /etc/group); sub-ids: logged
+. /usr/local/bin/_lib.sh
+fkh_log "$*"
+r=$(rcfor usermod 0); ((r == 0)) || exit "$r"
+if [[ $1 == -aG ]]; then
+  IFS=, read -ra gs <<<"$2"
+  for g in "${gs[@]}"; do
+    if ! grep -q "^$g:" /etc/group; then
+      id=3300; while cut -d: -f3 /etc/group | grep -qx "$id"; do id=$((id + 1)); done
+      echo "$g:x:$id:" >>/etc/group
+    fi
+    grep -qE "^$g:[^:]*:[^:]*:(.*,)?$3(,|$)" /etc/group || sed -i -E "s/^($g:[^:]*:[^:]*:)(.+)\$/\\1\\2,$3/; s/^($g:[^:]*:[^:]*:)\$/\\1$3/" /etc/group
+  done
+fi
+exit 0

@@ -1,0 +1,6 @@
+#!/bin/bash
+# 7z x -y -bso0 -bsp0 -oDIR FILE.zip (unpacked with Python's zipfile)
+. /usr/local/bin/_lib.sh
+fkh_log "$*"
+o="" f=""; for x in "$@"; do case $x in -o*) o=${x#-o} ;; *.zip) f=$x ;; esac; done
+python3 -m zipfile -e "$f" "$o"

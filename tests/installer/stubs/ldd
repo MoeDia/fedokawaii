@@ -1,0 +1,17 @@
+#!/bin/bash
+# ldd of the fake Fedora: a script stands for a program when it carries "# ldd: …" lines (what
+# that program links); $FKH/ldd-missing ("FILE-NAME LIBRARY" lines) makes a library not found —
+# until a package that provides it ($FKH/provides: "LIBRARY()(64bit) PACKAGE") is installed
+F=/var/lib/fkh
+f=${*: -1}
+while read -r n l; do
+  [[ $n == "${f##*/}" ]] || continue
+  p=$(awk -v c="$l()(64bit)" '$1 == c { print $2; exit }' "$F/provides" 2>/dev/null)
+  [[ -n $p ]] && grep -qxF "$p" "$F/installed" 2>/dev/null && continue
+  printf '\t%s => not found\n' "$l"
+done < <(cat "$F/ldd-missing" 2>/dev/null)
+if [[ -f $f && $(head -c2 "$f" 2>/dev/null) == '#!' ]]; then
+  grep -q '^# ldd: ' "$f" || { echo "	not a dynamic executable"; exit 1; }
+  sed -n 's/^# ldd: /\t/p' "$f"; exit 0
+fi
+exec /usr/bin/ldd "$@"

@@ -1,0 +1,5 @@
+#!/bin/bash
+# dconf of the fake Fedora: logged; its exit status from $FKH/rc-dconf (0)
+. /usr/local/bin/_lib.sh
+fkh_log "$*"
+exit "$(rcfor dconf 0)"

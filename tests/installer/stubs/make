@@ -1,0 +1,18 @@
+#!/bin/bash
+# make of the fake Fedora: dwl's build leaves a dwl that prints its version; kawa-veil's and
+# kawa-clipkeep's (make -s -C DIR O=DIR) leave their binary — $FKH/rc-make-NAME fails one
+. /usr/local/bin/_lib.sh
+fkh_log "$*"
+d="" o=""
+while (($#)); do case $1 in -C) d=$2; shift ;; O=*) o=${1#O=} ;; clean) exit 0 ;; esac; shift; done
+if [[ -n $o ]]; then
+  for t in kawa-veil kawa-clipkeep; do
+    grep -qs "$t" "$o/Makefile" || continue
+    r=$(rcfor "make-$t" 0); ((r == 0)) || { echo "cc: error: $t.c: something" >&2; exit "$r"; }
+    printf '#!/bin/sh\n[ "$1" = -- ] && shift; exec "$@"\n' >"$o/$t"; chmod 755 "$o/$t"
+  done; exit 0
+fi
+r=$(rcfor make-dwl 0); ((r == 0)) || exit "$r"
+w=/usr/local/lib/fedokawaii-wlroots-0.20/lib/libwlroots-0.20.so
+[[ -n $d ]] && printf '#!/bin/sh\n# ldd: libxcb.so.1 => /usr/lib64/libxcb.so.1 (0x1)\n# ldd: libwlroots-0.20.so => %s (0x2)\necho "dwl 0.9"\n' "$w" >"$d/dwl" && chmod 755 "$d/dwl"
+exit 0

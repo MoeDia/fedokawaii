@@ -1,0 +1,19 @@
+#!/bin/bash
+# pkg-config of the fake Fedora: wlroots once wlroots-devel is installed (its files in
+# /usr/local/fkh-sys, a stand-in for /usr), inih and libsystemd once their -devel are
+. /usr/local/bin/_lib.sh
+fkh_log "$*"
+v=$(cat "$FKH/wlroots-pc" 2>/dev/null || echo 0.20)
+for x in "$@"; do
+  case $x in
+    wlroots-*) [[ $x == "wlroots-$v" ]] && has installed wlroots-devel || exit 1 ;;
+    inih) has installed inih-devel || exit 1 ;;
+    libsystemd) has installed systemd-devel || exit 1 ;;
+  esac
+done
+case $1 in
+  --variable=includedir) echo /usr/local/fkh-sys/include ;;
+  --variable=libdir) echo /usr/local/fkh-sys/lib64 ;;
+  --cflags) echo "-I/usr/local/fkh-sys/include/wlroots-$v -I/usr/include/pixman-1 -DWLR_USE_UNSTABLE" ;;
+esac
+exit 0

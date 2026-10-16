@@ -1,0 +1,128 @@
+#!/bin/bash
+# dnf (dnf5) of the fake Fedora: packages are names in $FKH/installed, $FKH/available and
+# $FKH/userinstalled ("NAME User"); repositories follow what was installed or added
+. /usr/local/bin/_lib.sh
+fkh_log "$*"
+a=" $* "
+# a forced failure for any invocation matching a pattern (one regex per line)
+if [[ -f $FKH/dnf-fail ]]; then while IFS= read -r re; do [[ -n $re && $* =~ $re ]] && { echo "dnf stub: forced failure ($re)" >&2; exit 1; }; done <"$FKH/dnf-fail"; fi
+repos() {   # the enabled repositories, one id per line
+  printf '%s\n' fedora updates
+  if has installed rpmfusion-free-release; then printf '%s\n' rpmfusion-free rpmfusion-free-updates; fi
+  if has installed rpmfusion-nonfree-release; then printf '%s\n' rpmfusion-nonfree rpmfusion-nonfree-updates; fi
+  [[ -f /etc/yum.repos.d/brave-browser.repo ]] && echo brave-browser
+  [[ -f /etc/yum.repos.d/claude-code.repo ]] && echo claude-code
+  cat "$FKH/coprs" 2>/dev/null
+  return 0
+}
+# what a package brings beside being listed: the files the checks look for
+hook() {   # hook install|remove NAME
+  local f=""
+  case $2 in
+    greetd) f="/usr/bin/agreety /usr/bin/greetd"
+            if [[ $1 == install ]] && ! grep -q '^greetd:' /etc/passwd; then
+              echo 'greetd:x:968:968:greetd:/var/lib/greetd:/sbin/nologin' >>/etc/passwd; echo 'greetd:x:968:' >>/etc/group
+            fi ;;
+    mpv-mpris) f=/etc/mpv/scripts/mpris.so ;;
+    mesa-vulkan-drivers-freeworld) f=/usr/share/vulkan/icd.d/radeon_icd.x86_64.json ;;
+    mesa-vulkan-drivers) f=/usr/share/vulkan/icd.d/intel_icd.x86_64.json ;;
+    papirus-icon-theme) f="/usr/share/icons/Papirus/index.theme /usr/share/icons/Papirus-Dark/index.theme" ;;
+    adwaita-cursor-theme) f=/usr/share/icons/Adwaita/cursors/default ;;
+    nano) f=/usr/bin/nano ;; vim-minimal) f=/usr/bin/vi ;; vim-enhanced) f=/usr/bin/vim ;; emacs) f=/usr/bin/emacs ;;
+    flatpak) f=/usr/bin/flatpak ;;
+  esac
+  for x in $f; do
+    if [[ $1 == install ]]; then mkdir -p "${x%/*}"; printf '#!/bin/sh\nexit 0\n' >"$x"; chmod 755 "$x"; else rm -f "$x"; fi
+  done
+  return 0
+}
+mark_user() {   # (an i686 package is listed by its name alone, as dnf shows %{name})
+  add installed "$1"; hook install "$1"
+  grep -q "^$1 " "$FKH/userinstalled" 2>/dev/null || echo "$1 User" >>"$FKH/userinstalled"
+}
+unmark() { del installed "$1"; hook remove "$1"; sed -i "/^${1//./\\.} /d" "$FKH/userinstalled"; }
+case "$a" in
+  " --version "*) echo "dnf5 version 5.2.17.0"; exit 0;;
+  *" --dump-main-config "*)
+      declare -A v=([max_parallel_downloads]=3 [fastestmirror]=0 [minrate]=1000 [timeout]=30 [installonly_limit]=3 [defaultyes]=0)
+      while IFS='=' read -r k x; do k=${k// /}; x=${x// /}; [[ -n ${v[$k]+x} ]] && v[$k]=$x; done \
+        < <(grep -h '=' /etc/dnf/libdnf5.conf.d/*.conf 2>/dev/null)
+      [[ ${v[minrate]} == 50k ]] && v[minrate]=51200
+      [[ ${v[fastestmirror]} == True ]] && v[fastestmirror]=1; [[ ${v[defaultyes]} == True ]] && v[defaultyes]=1
+      for k in "${!v[@]}"; do printf '%s = %s\n' "$k" "${v[$k]}"; done; exit 0;;
+  *" repo list "*"--json"*) repos | jq -R . | jq -sc 'map({id: .})'; exit 0;;
+  *" repolist "*) echo "repo id   repo name"; repos | sed 's/$/ The repository/'; exit 0;;
+  *" config-manager addrepo "*)
+      net_on || exit 1
+      f=$(sed -n 's/.*--from-repofile=\([^ ]*\).*/\1/p' <<<"$*"); mkdir -p /etc/yum.repos.d; printf '[x]\ngpgcheck=1\n' >"/etc/yum.repos.d/${f##*/}"; exit 0;;
+  *" config-manager "*) exit 0;;
+  *" copr enable "*) net_on || exit 1; c=${*: -1}; add coprs "copr:copr.fedorainfracloud.org:${c/\//:}"; exit 0;;
+  *" offline clean "*|*" system-upgrade clean "*|*" clean metadata "*) exit 0;;
+  *" check-upgrade "*) net_on || exit 1; r=$(rcfor check-upgrade 0); ((r == 100)) && printf 'bash.x86_64 5.3-1 updates\nkernel-core.x86_64 6.19-1 updates\n'; exit "$r";;
+  *" check "*) [[ -s $FKH/dnfcheck ]] || exit 0; cat "$FKH/dnfcheck"; exit 1;;
+  *" distro-sync "*) net_on || exit 1; [[ -f $FKH/distro-sync-fixes ]] && : >"$FKH/dnfcheck"; exit 0;;
+  *" --unneeded "*) cat "$FKH/unneeded" 2>/dev/null; exit 0;;
+  *" autoremove "*) while IFS= read -r p; do unmark "$p"; done < <(cat "$FKH/unneeded" 2>/dev/null); : >"$FKH/unneeded"; exit 0;;
+  *" --whatprovides /usr/lib/firmware/"*|*" --whatprovides=/usr/lib/firmware/"*)
+      wp=() next=0
+      for x in "$@"; do
+        if ((next)); then IFS=, read -ra wp <<<"$x"; next=0; continue; fi
+        case $x in --whatprovides) next=1 ;; --whatprovides=*) IFS=, read -ra wp <<<"${x#*=}" ;; esac
+      done
+      for w in "${wp[@]}"; do awk -v f="$w" '$2 == f { print $1 }' "$FKH/fwfiles" 2>/dev/null; done | sort -u
+      exit 0;;
+  *" remove --duplicates "*) : >"$FKH/dups"; exit 0;;
+  *repoquery*--duplicates*) cat "$FKH/dups" 2>/dev/null; exit 0;;
+  *" --userinstalled "*)
+      if [[ $a == *arch* ]]; then awk '{ print ($1 ~ /\.i686$/) ? $1 : $1 ".x86_64" }' "$FKH/userinstalled" 2>/dev/null
+      elif [[ $a == *reason* ]]; then sed 's/\.i686 / /' "$FKH/userinstalled" 2>/dev/null | sort -u
+      else awk '{ sub(/\.i686$/, "", $1); print $1 }' "$FKH/userinstalled" 2>/dev/null | sort -u; fi; exit 0;;
+  *" --installed "*"%{from_repo}"*)
+      p=${*: -1}; has installed "$p" || exit 0
+      case $p in brave-origin) echo brave-browser ;; claude-code) echo claude-code ;; *) echo fedora ;; esac; exit 0;;
+  *" --releasever="*" repoquery "*)
+      net_on || { echo "Failed to download metadata" >&2; exit 1; }
+      caps=$(sed -n 's/.*--whatprovides=\([^ ]*\).*/\1/p' <<<"$*"); IFS=, read -ra cs <<<"$caps"
+      for c in "${cs[@]}"; do has libs-missing "$c" || echo "$c"; done; exit 0;;
+  *" repoquery "*"pkgconfig(wlroots-"*)
+      net_on || { echo "Failed to download metadata for repo 'fedora'" >&2; exit 1; }
+      has available wlroots-devel && echo "wlroots-devel-$(cat "$FKH/wlroots-version" 2>/dev/null || echo 0.20.2)"; exit 0;;
+  *" repoquery "*"--available"*"--whatprovides "*)
+      net_on || { echo "Failed to download metadata for repo 'fedora'" >&2; exit 1; }
+      p=${*: -1}; has available "$p" && echo "$p-1.0-1.fc44.x86_64"; exit 0;;
+  *" repoquery "*"--installed"*"--whatrequires"*) cat "$FKH/whatrequires" 2>/dev/null; exit 0;;
+  *" repoquery "*"--installed"*"--extras"*) exit 0;;
+  *" repoquery "*"--installed"*" bash "*) exit 0;;
+  *" install "*)
+      net_on || { echo "Curl error (6): Could not resolve host" >&2; exit 1; }
+      countdown dnf-install && { echo "dnf stub: a mirror timed out" >&2; exit 1; }
+      rc=0 skip=0; [[ $a == *" --skip-unavailable "* ]] && skip=1
+      for p in "$@"; do
+        [[ $p == -* || $p == install ]] && continue
+        if [[ $p == https://*.rpm ]]; then p=${p##*/}; p=${p%-[0-9]*.noarch.rpm}; mark_user "$p"; continue; fi
+        q=$(awk -v c="$p" '$1 == c { print $2; exit }' "$FKH/provides" 2>/dev/null); [[ -n $q ]] && p=$q
+        if ((skip)) && ! has available "$p"; then echo "dnf stub: skipping unavailable $p" >&2; continue; fi
+        if has uninstallable "$p" || ! has available "$p"; then echo "dnf stub: no match for argument: $p" >&2; rc=1; else mark_user "$p"; fi
+      done; exit $rc;;
+  *" mark "*)
+      how=""; for x in "$@"; do case $x in user|dependency) how=$x; continue;; -*|mark) continue;; esac
+        [[ -n $how ]] || continue
+        sed -i "/^$x /d" "$FKH/userinstalled"; [[ $how == user ]] && echo "$x User" >>"$FKH/userinstalled"
+      done; exit 0;;
+  *" swap "*)
+      net_on || exit 1; r=$(rcfor swap 0); ((r == 0)) || exit "$r"
+      mapfile -t ab < <(printf '%s\n' "$@" | grep -v '^-' | grep -vx swap); unmark "${ab[0]}"; mark_user "${ab[1]}"; exit 0;;
+  *" remove "*)
+      for p in "$@"; do [[ $p == -* || $p == remove ]] && continue; unmark "$p"; done; exit 0;;
+  *" system-upgrade download "*) net_on || exit 1; [[ $a == *--assumeno* ]] && { echo "would remove: foo"; exit 1; }; exit "$(rcfor sysup 0)";;
+  *" system-upgrade reboot "*) exit "$(rcfor reboot 0)";;
+  *" upgrade "*)
+      net_on || { echo "Curl error (6): Could not resolve host" >&2; exit 1; }
+      # $FKH/fail-dnf-upgrade = N: cut off half-way N times, each leaving packages twice — on
+      # which a later transaction trips until they are tidied
+      if countdown dnf-upgrade; then echo "kernel-core-6.19.2-200.fc44.x86_64" >>"$FKH/dups"; echo "Transaction failed: cut off" >&2; exit 1; fi
+      [[ -s $FKH/dups ]] && { echo "Problem: duplicate packages installed: $(head -n1 "$FKH/dups")" >&2; exit 1; }
+      if [[ $a == *--disablerepo=* ]]; then exit "$(rcfor upgrade-off 0)"; fi
+      exit "$(rcfor upgrade 0)";;
+esac
+echo "dnf stub: unhandled: $*" >&2; fkh_log "UNHANDLED $*"; exit 0

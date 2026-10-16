@@ -1,0 +1,7 @@
+#!/bin/bash
+. /usr/local/bin/_lib.sh
+fkh_log "$*"
+case $1 in
+  show) cat "$FKH/ntp" 2>/dev/null || echo yes ;;
+  set-timezone) [[ -f /usr/share/zoneinfo/$2 ]] || { echo "Failed to set time zone: Invalid or not installed time zone '$2'" >&2; exit 1; }; echo "$2" >"$FKH/timezone" ;;
+esac; exit 0

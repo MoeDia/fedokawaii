@@ -1,0 +1,6 @@
+#!/bin/bash
+case $3 in
+  inode/directory) echo kawa-files.desktop ;; text/plain) echo kawa-edit.desktop ;;
+  x-scheme-handler/https) echo brave-origin.desktop ;;
+  x-scheme-handler/magnet|application/x-bittorrent) echo kawa-torrents.desktop ;;
+esac

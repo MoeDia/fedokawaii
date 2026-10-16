@@ -1,0 +1,8 @@
+#!/bin/bash
+# df of the fake Fedora: $FKH/df-free-gb GB free everywhere (200)
+g=$(cat /var/lib/fkh/df-free-gb 2>/dev/null || echo 200)
+case " $* " in
+  *" -BG "*) printf 'Avail\n %sG\n' "$g" ;;
+  *" -B1 "*) printf 'Avail\n %s\n' $((g * 1024 * 1024 * 1024)) ;;
+  *) exec /bin/df "$@" ;;
+esac

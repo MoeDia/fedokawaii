@@ -1,0 +1,5 @@
+#!/bin/bash
+# ip route show default: the fake machine's route ($FKH/no-route: none)
+[[ -f /var/lib/fkh/no-route ]] && exit 0
+[[ " $* " == *" route "* ]] && echo "default via 192.168.1.1 dev $(cat /var/lib/fkh/route-dev 2>/dev/null || echo enp5s0) proto dhcp metric 100"
+exit 0

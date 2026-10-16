@@ -1,0 +1,17 @@
+#!/bin/bash
+# grubby of the fake Fedora — present only once installed (a BIOS install has none at first);
+# the boot entries' arguments are $FKH/grub-args (one entry per line)
+. /usr/local/bin/_lib.sh
+has installed grubby || { echo "bash: grubby: command not found" >&2; exit 127; }
+fkh_log "$*"
+[[ -f $FKH/grub-args ]] || printf '%s\n' "ro rootflags=subvol=root rhgb quiet" "ro rootflags=subvol=root rhgb quiet" >"$FKH/grub-args"
+case " $* " in
+  *" --info=ALL "*) n=0; while IFS= read -r l; do n=$((n + 1)); printf 'index=%d\nkernel="/boot/vmlinuz-6.19.%d"\nargs="%s"\n' "$n" "$n" "$l"; done <"$FKH/grub-args"; exit 0 ;;
+  *" --update-kernel=ALL "*)
+     for x in "$@"; do
+       case $x in --args=*) for w in ${x#--args=}; do
+                               k=${w%%=*}; sed -i -E "s/(^| )${k//./\\.}=[^ ]*//g; s/\$/ $w/" "$FKH/grub-args"; done ;;
+       esac
+     done; exit "$(rcfor grubby 0)" ;;
+esac
+exit 0

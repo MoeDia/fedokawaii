@@ -1,0 +1,10 @@
+#!/bin/bash
+# loginctl enable-linger USER: the linger mark, and that user's manager (its bus socket) up
+. /usr/local/bin/_lib.sh
+fkh_log "$*"
+if [[ $1 == enable-linger ]]; then
+  mkdir -p /var/lib/systemd/linger; : >"/var/lib/systemd/linger/$2"
+  u=$(id -u "$2") && [[ ! -f $FKH/no-user-bus ]] && mkdir -p "/run/user/$u" && chown "$2:" "/run/user/$u" \
+    && python3 -c 'import socket,sys; socket.socket(socket.AF_UNIX).bind(sys.argv[1])' "/run/user/$u/bus" 2>/dev/null
+fi
+exit "$(rcfor loginctl 0)"

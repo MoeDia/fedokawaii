@@ -1,0 +1,8 @@
+#!/bin/bash
+# hostnamectl of the fake Fedora: the static name is $FKH/hostname (none: no file)
+. /usr/local/bin/_lib.sh
+fkh_log "$*"
+case $1 in
+  --static) [[ -f $FKH/hostname ]] && cat "$FKH/hostname"; exit 0 ;;
+  set-hostname) r=$(rcfor hostnamectl 0); ((r == 0)) || exit "$r"; echo "$2" >"$FKH/hostname" ;;
+esac; exit 0

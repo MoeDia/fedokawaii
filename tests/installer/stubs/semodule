@@ -1,0 +1,5 @@
+#!/bin/bash
+# semodule -l: greetd's module once greetd-selinux is installed
+. /usr/local/bin/_lib.sh
+fkh_log "$*"
+has installed greetd-selinux && echo greetd; echo base; exit 0

@@ -1,0 +1,5 @@
+#!/bin/bash
+# fc-cache of the fake Fedora: logged; its exit status from $FKH/rc-fc-cache (0)
+. /usr/local/bin/_lib.sh
+fkh_log "$*"
+exit "$(rcfor fc-cache 0)"

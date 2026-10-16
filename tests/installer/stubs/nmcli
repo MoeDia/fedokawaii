@@ -1,0 +1,6 @@
+#!/bin/bash
+# nmcli of the fake Fedora: devices from $FKH/nm-devices ("TYPE:STATE" lines)
+. /usr/local/bin/_lib.sh
+fkh_log "$*"
+case " $* " in *" device"*) cat "$FKH/nm-devices" 2>/dev/null ;; esac
+exit "$(rcfor nmcli 0)"

@@ -1,0 +1,12 @@
+#!/bin/bash
+# pipx install … torrra: a venv whose python answers the load probe
+. /usr/local/bin/_lib.sh
+fkh_log "$*"
+r=$(rcfor pipx 0); ((r == 0)) || exit "$r"
+if [[ " $* " == *" install "* ]]; then
+  v=${PIPX_HOME:-$HOME/.local/share/pipx}/venvs/torrra/bin; mkdir -p "$v"
+  # (its settings script, read on stdin: what it writes, written — Prowlarr the indexer, no key)
+  printf '#!/bin/bash\nif [[ " $* " == *" - "* ]]; then cat >/dev/null; [[ -n ${3:-} ]] && printf "[indexers]\\ndefault = \\"prowlarr\\"\\n" >"$3"; fi\nexit 0\n' >"$v/python"
+  chmod 755 "$v/python"
+fi
+exit 0

@@ -1,0 +1,2 @@
+#!/bin/bash
+echo "<html><head></head><body></body></html>"

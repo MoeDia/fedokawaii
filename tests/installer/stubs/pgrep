@@ -1,0 +1,6 @@
+#!/bin/bash
+# pgrep of the fake Fedora: the "running" processes are the lines of $FKH/procs (command lines)
+x="" f=""; while (($#)); do case $1 in -u) shift ;; -x) x=$2; shift ;; -f) f=$2; shift ;; esac; shift; done
+p=/var/lib/fkh/procs; [[ -f $p ]] || exit 1
+if [[ -n $x ]]; then awk '{print $1}' "$p" | sed 's|.*/||' | grep -qxE -- "$x"; exit; fi   # (pgrep: an extended regular expression, whole name)
+grep -qE -- "$f" "$p"

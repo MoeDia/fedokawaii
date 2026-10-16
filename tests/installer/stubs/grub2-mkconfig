@@ -1,0 +1,7 @@
+#!/bin/bash
+# grub2-mkconfig -o FILE: the menu made from /etc/default/grub (only its theme line matters here)
+. /usr/local/bin/_lib.sh
+fkh_log "$*"
+r=$(rcfor grub2-mkconfig 0); ((r == 0)) || exit "$r"
+o=/boot/grub2/grub.cfg; [[ $1 == -o ]] && o=$2
+mkdir -p "${o%/*}"; { echo "# made by grub2-mkconfig"; grep '^GRUB_THEME=' /etc/default/grub | sed 's/^GRUB_THEME=/set theme=/'; } >"$o"

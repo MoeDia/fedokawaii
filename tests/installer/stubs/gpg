@@ -1,0 +1,7 @@
+#!/bin/bash
+# gpg --show-keys --with-colons of the fake Fedora: the keys named in $FKH/gpg-keys (fingerprints)
+. /usr/local/bin/_lib.sh
+fkh_log "$*"
+[[ " $* " == *" --show-keys "* ]] || exit 0
+while read -r f; do [[ -n $f ]] && printf 'pub:-:4096:1:%s:1700000000:::-:::scESC::::::23::0:\nfpr:::::::::%s:\n' "${f: -16}" "$f"; done \
+  < <(cat "$FKH/gpg-keys" 2>/dev/null || echo 31DDDE24DDFAB679F42D7BD2BAA929FF1A7ECACE)

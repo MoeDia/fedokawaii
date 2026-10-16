@@ -1,0 +1,9 @@
+#!/bin/bash
+. /usr/local/bin/_lib.sh
+fkh_log "$*"
+case " $* " in
+  *" filesystem usage "*) printf 'Overall:\n    Free (estimated):\t\t  999999999999\t(min: 1)\n';;
+  *" subvolume show "*) has subvolumes "${*: -1}" || exit 1;;
+  *" subvolume create "*) mkdir -p "${*: -1}"; add subvolumes "${*: -1}";;
+  *" scrub status "*) [[ -f $FKH/scrub-status ]] || exit 1; cat "$FKH/scrub-status";;
+esac; exit 0

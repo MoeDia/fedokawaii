@@ -1,0 +1,22 @@
+#!/bin/bash
+# rpm of the fake Fedora: answers from $FKH/installed (and $FKH/provides: "CAP PACKAGE")
+. /usr/local/bin/_lib.sh
+fkh_log "$*"
+[[ -f $FKH/rpm-broken ]] && { echo "error: rpmdb: BDB0113 damaged" >&2; exit 1; }
+qf="" wp=0 last=0 names=()
+while (($#)); do
+  case $1 in
+    -q) ;; --qf|--queryformat) qf=$2; shift ;; --whatprovides) wp=1 ;; --last) last=1 ;; --import) exit 0 ;;
+    -*) ;; *) names+=("$1") ;;
+  esac; shift
+done
+if ((last)); then printf 'kernel-core-%s                Thu 01 Oct 2026\n' "$(cat "$FKH/newest-kernel" 2>/dev/null || uname -r)"; exit 0; fi
+miss=0
+for n in "${names[@]}"; do
+  if [[ $n == kernel-core && -n $qf ]]; then cat "$FKH/kernels" 2>/dev/null || uname -r; continue; fi
+  if [[ $n == wlroots-devel && $qf == '%{version}' ]] && has installed wlroots-devel; then printf '0.20.2'; continue; fi
+  if ((wp)); then p=$(provider "$n") || { echo "no package provides $n"; miss=$((miss+1)); continue; }
+  else has installed "$n" && p=$n || { echo "package $n is not installed"; miss=$((miss+1)); continue; }; fi
+  if [[ -n $qf ]]; then printf '%s\n' "$p"; else echo "$p-1.0-1.fc44.x86_64"; fi
+done
+exit $miss

@@ -1,0 +1,4 @@
+{"loopdevices": [
+  {"name": "/dev/loop0", "back-file": "/home/me/Pictures/holiday photos.img"},
+  {"name": "/dev/loop1", "back-file": "/var/lib/libvirt/images/Fedora-Workstation-Live-44.iso"}
+]}

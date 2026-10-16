@@ -1,0 +1,5 @@
+#!/bin/bash
+# makoctl of the fake Fedora: logged; its exit status from $FKH/rc-makoctl (0)
+. /usr/local/bin/_lib.sh
+fkh_log "$*"
+exit "$(rcfor makoctl 0)"

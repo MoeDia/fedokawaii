@@ -1,0 +1,5 @@
+#!/bin/bash
+# os-prober of the fake Fedora: the other systems in $FKH/os-prober (none: a machine of its own)
+. /usr/local/bin/_lib.sh
+fkh_log "$*"
+cat "$FKH/os-prober" 2>/dev/null; exit 0

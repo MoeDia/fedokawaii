@@ -1,0 +1,19 @@
+#!/bin/bash
+# snapper of the fake Fedora: snapshots are "N,description" lines of $FKH/snaps; configs in $FKH/snapper-configs
+. /usr/local/bin/_lib.sh
+fkh_log "$*"
+a=" $* "
+[[ -f $FKH/snapper-fail ]] && { echo "snapper stub: failing" >&2; exit 1; }
+nums() { cat "$FKH/snaps" 2>/dev/null; }
+next() { echo $(( $(nums | tail -n1 | cut -d, -f1) + 1 )); }
+case "$a" in
+  *" create-config "*) c=$(sed -n 's/.* -c \([^ ]*\) .*/\1/p' <<<"$a"); add snapper-configs "$c"; exit 0;;
+  *" create "*" -p "*) n=$(next); d=$(sed -n 's/.* -d \(.*\)/\1/p' <<<"$*"); echo "$n,$d" >>"$FKH/snaps"; echo "$n"; exit 0;;
+  *" create "*"-d "*) n=$(next); d=$(sed -n 's/.* -d \(.*\)/\1/p' <<<"$*"); echo "$n,$d" >>"$FKH/snaps"; exit 0;;
+  *" --csvout list --columns number,description "*) echo "number,description"; echo "0,current"; nums; exit 0;;
+  *" --csvout list --columns number "*) echo "number"; echo "0"; nums | cut -d, -f1; exit 0;;
+  *" --csvout "*" get-config "*) echo "key,value"; cat "$FKH/snapper-free" 2>/dev/null || echo "FREE_LIMIT,0.2"; exit 0;;
+  *" list-configs "*) printf 'Config | Subvolume\n-------+----------\n'; while read -r c; do printf '%-6s | /%s\n' "$c" "${c/root/}"; done < <(cat "$FKH/snapper-configs" 2>/dev/null); exit 0;;
+  *" list "*) printf ' # | Type   | Description\n---+--------+-----------\n0  | single | current\n'; nums | awk -F, '{printf "%s  | single | %s\n", $1, $2}'; exit 0;;
+esac
+exit 0

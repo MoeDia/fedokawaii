@@ -1,0 +1,5 @@
+#!/bin/bash
+# dracut of the fake Fedora: logged; its exit status from $FKH/rc-dracut (0)
+. /usr/local/bin/_lib.sh
+fkh_log "$*"
+exit "$(rcfor dracut 0)"

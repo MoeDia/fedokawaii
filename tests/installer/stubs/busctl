@@ -1,0 +1,5 @@
+#!/bin/bash
+# busctl of the fake Fedora: logged; its exit status from $FKH/rc-busctl (0)
+. /usr/local/bin/_lib.sh
+fkh_log "$*"
+exit "$(rcfor busctl 0)"

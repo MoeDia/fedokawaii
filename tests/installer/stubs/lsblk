@@ -1,0 +1,2 @@
+#!/bin/bash
+cat /var/lib/fkh/lsblk-types 2>/dev/null || printf 'disk\npart\npart\npart\n'

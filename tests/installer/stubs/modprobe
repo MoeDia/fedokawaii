@@ -1,0 +1,11 @@
+#!/bin/bash
+# modprobe of the fake Fedora: ntsync makes /dev/ntsync (a character device: /dev/null stands in)
+. /usr/local/bin/_lib.sh
+fkh_log "$*"
+r=$(rcfor modprobe 0); ((r == 0)) || exit "$r"
+# (and kept for the fake machine's later runs, as the loaded module stays: $FK_W/dev/ntsync)
+if [[ " $* " == *" ntsync "* ]]; then
+  [[ -e /dev/ntsync ]] || { : >/dev/ntsync && mount --bind /dev/null /dev/ntsync; }
+  [[ -n ${FK_W:-} ]] && : >"$FK_W/dev/ntsync"
+fi
+exit 0

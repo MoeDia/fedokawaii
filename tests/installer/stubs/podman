@@ -1,0 +1,11 @@
+#!/bin/bash
+. /usr/local/bin/_lib.sh
+fkh_log "$*"
+case " $* " in
+  *" info "*) cat "$FKH/podman-db" 2>/dev/null || echo sqlite; exit 0;;
+  *" secret inspect "*) [[ -f $FKH/podman-secret ]] || exit 125; cat "$FKH/podman-secret"; exit 0;;
+  *" secret create "*) cat >"$FKH/podman-secret"; exit 0;;
+  *" image exists "*) [[ -f $FKH/podman-image ]] && exit 0; exit 1;;
+  *" pull "*) net_on || { echo "podman: no network" >&2; exit 125; }; : >"$FKH/podman-image"; exit 0;;
+esac
+exit 0

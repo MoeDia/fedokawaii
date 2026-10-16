@@ -1,0 +1,4 @@
+#!/bin/bash
+. /usr/local/bin/_lib.sh
+fkh_log "$*"
+exit "$(rcfor ddcutil 0)"

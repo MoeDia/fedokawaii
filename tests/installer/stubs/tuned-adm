@@ -1,0 +1,7 @@
+#!/bin/bash
+. /usr/local/bin/_lib.sh
+fkh_log "$*"
+case $1 in
+  profile) echo "$2" >"$FKH/tuned-profile" ;;
+  active) echo "Current active profile: $(cat "$FKH/tuned-profile" 2>/dev/null || echo throughput-performance)" ;;
+esac; exit 0

@@ -1,0 +1,6 @@
+#!/bin/bash
+case $3 in
+  color-scheme) echo "'prefer-$(basename "$(readlink "$HOME/.config/fedokawaii/current")")'" ;;
+  gtk-theme) [[ $(readlink "$HOME/.config/fedokawaii/current") == */dark ]] && echo "'Fedokawaii-dark'" || echo "'Fedokawaii'" ;;
+  button-layout) echo "':'" ;;
+esac

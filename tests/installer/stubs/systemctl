@@ -1,0 +1,50 @@
+#!/bin/bash
+# systemctl of the fake Fedora: unit states are lines of $FKH/units — "enabled U", "active U",
+# "user-enabled U", "user-active U", "global-enabled U"; reboot is recorded, never done
+. /usr/local/bin/_lib.sh
+fkh_log "$*"
+a=" $* "
+if [[ -f $FKH/systemctl-fail ]]; then while IFS= read -r re; do [[ -n $re && $* =~ $re ]] && { echo "systemctl stub: forced failure ($re)" >&2; exit 1; }; done <"$FKH/systemctl-fail"; fi
+touch "$FKH/units"
+pre=""; [[ $a == *" --user "* ]] && pre=user-; [[ $a == *" --global "* ]] && pre=global-
+units=() verb=""
+for x in "$@"; do
+  case $x in
+    --user|--quiet|--now|-q|--no-block|--global|--system) ;;
+    is-enabled|is-active|enable|disable|cat|daemon-reload|reset-failed|start|stop|restart|set-default|reload|reboot|mask) [[ -z $verb ]] && verb=$x ;;
+    *) [[ -n $verb ]] && units+=("$x") ;;
+  esac
+done
+dm=/etc/systemd/system/display-manager.service
+case $verb in
+  is-enabled) q=1; [[ $a == *" --quiet "* || $a == *" -q "* ]] && q=0
+              for u in "${units[@]}"; do
+                if grep -qx "${pre}masked $u" "$FKH/units"; then ((q)) && echo masked; exit 1; fi
+                if grep -qx "${pre}static $u" "$FKH/units"; then ((q)) && echo static; exit 0; fi
+                grep -qx "${pre}enabled $u" "$FKH/units" || { ((q)) && echo disabled; exit 1; }
+              done
+              ((q)) && echo enabled; exit 0 ;;
+  mask)       for u in "${units[@]}"; do echo "${pre}masked $u" >>"$FKH/units"; done; exit 0 ;;
+  is-active)  for u in "${units[@]}"; do grep -qx "${pre}active $u" "$FKH/units" || exit 3; done; exit 0 ;;
+  enable)     for u in "${units[@]}"; do
+                grep -qx "${pre}enabled $u" "$FKH/units" || echo "${pre}enabled $u" >>"$FKH/units"
+                [[ $a == *" --now "* ]] && ! grep -qx "${pre}active $u" "$FKH/units" && echo "${pre}active $u" >>"$FKH/units"
+                if [[ -z $pre && $u == greetd.service ]]; then
+                  if [[ -L $dm && $(readlink "$dm") != */greetd.service ]]; then echo "Failed to enable unit: $dm already exists" >&2; exit 1; fi
+                  mkdir -p /etc/systemd/system; ln -sfn ../../../usr/lib/systemd/system/greetd.service "$dm"; fi
+              done; exit 0 ;;
+  disable)    for u in "${units[@]}"; do sed -i "/^${pre}enabled ${u//./\\.}\$/d" "$FKH/units"
+                [[ $a == *" --now "* ]] && sed -i "/^${pre}active ${u//./\\.}\$/d" "$FKH/units"
+                if [[ -z $pre && -L $dm && $(readlink "$dm") == */"$u" ]]; then rm -f "$dm"; fi
+              done; exit 0 ;;
+  start|restart) r=$(rcfor "start-${units[0]:-x}" 0); ((r == 0)) || exit "$r"
+              for u in "${units[@]}"; do grep -qx "${pre}active $u" "$FKH/units" || echo "${pre}active $u" >>"$FKH/units"; done; exit 0 ;;
+  stop)       for u in "${units[@]}"; do sed -i "/^${pre}active ${u//./\\.}\$/d" "$FKH/units"; done; exit 0 ;;
+  cat)        u=${units[0]:-}
+              if [[ -d /etc/systemd/system/$u.d ]]; then cat /etc/systemd/system/"$u".d/*.conf; exit 0; fi
+              [[ -f /etc/systemd/system/$u ]] && { cat "/etc/systemd/system/$u"; exit 0; }
+              has unitfiles "$u" && exit 0; exit 1 ;;
+  set-default) echo "${units[0]:-}" >"$FKH/default-target"; exit 0 ;;
+  reboot)     date +%s >>"$FKH/rebooted"; exit 0 ;;
+esac
+exit 0

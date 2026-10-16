@@ -1,0 +1,8 @@
+#!/bin/bash
+# journalctl of the fake Fedora: the kernel log is $FKH/kmsg (written in 4 KB blocks, as
+# journalctl's stdio does); -f follows nothing until killed
+case " $* " in
+  *" -f "*) exec /bin/sleep 1000 ;;
+  *" -k "*) [[ -f /var/lib/fkh/kmsg ]] && exec dd if=/var/lib/fkh/kmsg bs=4096 status=none; exit 0 ;;
+esac
+echo "JOURNAL-COPY $*"; exit 0

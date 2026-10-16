@@ -1,0 +1,37 @@
+#!/bin/bash
+# curl of the fake Fedora: downloads come from $FKH/dl/<file name>; $FKH/net = off is offline;
+# $FKH/partial-<file> cuts that download half-way; $FKH/fail-curl-<file> = N fails it N times
+. /usr/local/bin/_lib.sh
+fkh_log "$*"
+out="" url="" code=0 cfg=0
+args=("$@")
+for ((i = 0; i < ${#args[@]}; i++)); do
+  case ${args[i]} in
+    -o) out=${args[i+1]} ;; -w) code=1 ;; -K) [[ ${args[i+1]} == - ]] && cfg=1 ;;
+    http*://*) url=${args[i]} ;;
+  esac
+done
+((cfg)) && cat >/dev/null
+if [[ $url == http://127.0.0.1:9696/* ]]; then
+  r=$(rcfor prowlarr 0); ((r == 0)) || exit "$r"
+  [[ $url == */indexer ]] && { cat "$FKH/prowlarr-indexers" 2>/dev/null || echo '[]'; }
+  exit 0
+fi
+host=${url#https://}; host=${host%%/*}
+if ! net_on || has unreachable "$host"; then
+  ((code)) && printf '000'; echo "curl: (6) Could not resolve host: $host" >&2; exit 6
+fi
+((code)) && { printf '200'; exit 0; }
+case $url in
+  https://mirrors.fedoraproject.org/) exit 0 ;;
+  https://api.github.com/repos/GloriousEggroll/*) countdown curl-ge-api && { echo "curl: (22) The requested URL returned error: 403" >&2; exit 22; }
+     cat "$FKH/ge.json" 2>/dev/null || { echo "curl: (22) 404" >&2; exit 22; }; exit 0 ;;
+esac
+f=${url##*/}
+countdown "curl-$f" && { echo "curl: (28) Operation timed out" >&2; exit 28; }
+[[ -f $FKH/dl/$f ]] || { echo "curl: (22) The requested URL returned error: 404 ($url)" >&2; exit 22; }
+if [[ -f $FKH/partial-$f ]]; then
+  s=$(stat -c %s "$FKH/dl/$f"); head -c $((s / 2)) "$FKH/dl/$f" >"${out:-/dev/stdout}"
+  echo "curl: (18) transfer closed with outstanding read data remaining" >&2; exit 18
+fi
+if [[ -n $out ]]; then cat "$FKH/dl/$f" >"$out"; else cat "$FKH/dl/$f"; fi

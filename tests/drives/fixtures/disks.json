@@ -1,0 +1,255 @@
+{
+ "blockdevices": [
+  {
+   "name": "/dev/sdb",
+   "type": "disk",
+   "rm": true,
+   "hotplug": true,
+   "tran": "usb",
+   "label": null,
+   "size": "28.9G",
+   "fstype": null,
+   "mountpoints": [
+    null
+   ],
+   "vendor": "Kingston",
+   "model": "DataTraveler 3.0",
+   "children": [
+    {
+     "name": "/dev/sdb1",
+     "type": "part",
+     "rm": true,
+     "hotplug": true,
+     "tran": null,
+     "label": "KINGSTON",
+     "size": "28.9G",
+     "fstype": "vfat",
+     "mountpoints": [
+      "@MNT@/KINGSTON"
+     ],
+     "vendor": null,
+     "model": null
+    }
+   ]
+  },
+  {
+   "name": "/dev/sdc",
+   "type": "disk",
+   "rm": false,
+   "hotplug": true,
+   "tran": "usb",
+   "label": null,
+   "size": "931.5G",
+   "fstype": null,
+   "mountpoints": [
+    null
+   ],
+   "vendor": "WD      ",
+   "model": "Elements 25A2   ",
+   "children": [
+    {
+     "name": "/dev/sdc1",
+     "type": "part",
+     "rm": false,
+     "hotplug": true,
+     "tran": null,
+     "label": null,
+     "size": "500G",
+     "fstype": "crypto_LUKS",
+     "mountpoints": [
+      null
+     ],
+     "vendor": null,
+     "model": null,
+     "children": [
+      {
+       "name": "/dev/mapper/luks-1234",
+       "type": "crypt",
+       "rm": false,
+       "hotplug": false,
+       "tran": null,
+       "label": "BACKUP",
+       "size": "500G",
+       "fstype": "ext4",
+       "mountpoints": [
+        "@MNT@/BACKUP"
+       ],
+       "vendor": null,
+       "model": null
+      }
+     ]
+    },
+    {
+     "name": "/dev/sdc2",
+     "type": "part",
+     "rm": false,
+     "hotplug": true,
+     "tran": null,
+     "label": null,
+     "size": "431.5G",
+     "fstype": "ntfs",
+     "mountpoints": [
+      null
+     ],
+     "vendor": null,
+     "model": null
+    }
+   ]
+  },
+  {
+   "name": "/dev/mmcblk0",
+   "type": "disk",
+   "rm": false,
+   "hotplug": false,
+   "tran": null,
+   "label": null,
+   "size": "59.5G",
+   "fstype": null,
+   "mountpoints": [
+    null
+   ],
+   "vendor": null,
+   "model": null,
+   "children": [
+    {
+     "name": "/dev/mmcblk0p1",
+     "type": "part",
+     "rm": false,
+     "hotplug": false,
+     "tran": null,
+     "label": null,
+     "size": "59.5G",
+     "fstype": "exfat",
+     "mountpoints": [
+      null
+     ],
+     "vendor": null,
+     "model": null
+    }
+   ]
+  },
+  {
+   "name": "/dev/sr0",
+   "type": "rom",
+   "rm": true,
+   "hotplug": false,
+   "tran": "sata",
+   "label": null,
+   "size": "1024M",
+   "fstype": null,
+   "mountpoints": [
+    null
+   ],
+   "vendor": "HL-DT-ST",
+   "model": "DVDRAM GUD1N"
+  },
+  {
+   "name": "/dev/loop0",
+   "type": "loop",
+   "rm": false,
+   "hotplug": false,
+   "tran": null,
+   "label": null,
+   "size": "2G",
+   "fstype": "vfat",
+   "mountpoints": [
+    "@MNT@/IMAGE"
+   ],
+   "vendor": null,
+   "model": null
+  },
+  {
+   "name": "/dev/loop1",
+   "type": "loop",
+   "rm": false,
+   "hotplug": false,
+   "tran": null,
+   "label": "Fedora-WS-Live",
+   "size": "2.3G",
+   "fstype": "iso9660",
+   "mountpoints": [
+    null
+   ],
+   "vendor": null,
+   "model": null
+  },
+  {
+   "name": "/dev/nvme0n1",
+   "type": "disk",
+   "rm": false,
+   "hotplug": false,
+   "tran": "nvme",
+   "label": null,
+   "size": "476.9G",
+   "fstype": null,
+   "mountpoints": [
+    null
+   ],
+   "vendor": null,
+   "model": "Samsung SSD 980 PRO 512GB",
+   "children": [
+    {
+     "name": "/dev/nvme0n1p1",
+     "type": "part",
+     "rm": false,
+     "hotplug": false,
+     "tran": null,
+     "label": "EFI",
+     "size": "600M",
+     "fstype": "vfat",
+     "mountpoints": [
+      "/boot/efi"
+     ],
+     "vendor": null,
+     "model": null
+    },
+    {
+     "name": "/dev/nvme0n1p2",
+     "type": "part",
+     "rm": false,
+     "hotplug": false,
+     "tran": null,
+     "label": null,
+     "size": "1G",
+     "fstype": "ext4",
+     "mountpoints": [
+      "/boot"
+     ],
+     "vendor": null,
+     "model": null
+    },
+    {
+     "name": "/dev/nvme0n1p3",
+     "type": "part",
+     "rm": false,
+     "hotplug": false,
+     "tran": null,
+     "label": "fedora",
+     "size": "475.3G",
+     "fstype": "btrfs",
+     "mountpoints": [
+      "/home",
+      "/"
+     ],
+     "vendor": null,
+     "model": null
+    }
+   ]
+  },
+  {
+   "name": "/dev/zram0",
+   "type": "disk",
+   "rm": false,
+   "hotplug": false,
+   "tran": null,
+   "label": null,
+   "size": "8G",
+   "fstype": "swap",
+   "mountpoints": [
+    "[SWAP]"
+   ],
+   "vendor": null,
+   "model": null
+  }
+ ]
+}

@@ -1,0 +1,7 @@
+#!/bin/bash
+. /usr/local/bin/_lib.sh
+fkh_log "$*"
+case $1 in
+  refresh) exit 2 ;;
+  get-updates) if [[ -f $FKH/fwupd.json ]]; then cat "$FKH/fwupd.json"; exit 0; fi; echo '{"Devices":[]}'; exit 2 ;;
+esac; exit 0
