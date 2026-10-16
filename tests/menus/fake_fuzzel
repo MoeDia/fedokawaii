@@ -1,0 +1,46 @@
+#!/bin/bash
+# tests/menus/fake_fuzzel — fuzzel 1.14 in dmenu mode, as the menus see it. Installed as
+# "fuzzel" on the test PATH (a direct #!/bin/bash, so the process is called fuzzel, as the
+# real one is). The rows come on stdin; the answer is the first line of $FZ/answers:
+#   esc          Esc or a right click (fuzzel exits 2 in dmenu mode)
+#   lost         a click outside: the keyboard focus goes, fuzzel exits 1
+#   enter        Enter on the pre-selected row (--select-index, else the first)
+#   row N        Enter on row N (0-based)
+#   pick TEXT    Enter on the first row containing TEXT
+#   typed TEXT   Enter on a filter that matches nothing (--index: -1; else the text)
+#   hang         stays open until it is killed (the menu on screen)
+# (no answer left: esc). Like the real one it takes $XDG_RUNTIME_DIR/fuzzel-$WAYLAND_DISPLAY.lock
+# and exits 1 at once when another holds it. Every call leaves $FZ/args.N (one argument a
+# line), $FZ/in.N (the rows) and "fuzzel ARGS" in $CALLS; $FZ/n is the count.
+set -u
+FZ=${FZ:?}
+n=$(($(cat "$FZ/n" 2>/dev/null || echo 0) + 1)); echo "$n" >"$FZ/n"
+printf 'fuzzel %s\n' "$*" >>"${CALLS:-/dev/null}"
+printf '%s\n' "$@" >"$FZ/args.$n"
+# (a lock file that cannot be made: the real one warns and runs anyway)
+if [[ -n ${WAYLAND_DISPLAY:-} ]] && { exec 8>>"${XDG_RUNTIME_DIR:-/tmp}/fuzzel-$WAYLAND_DISPLAY.lock"; } 2>/dev/null; then
+  flock -n 8 || { echo "fuzzel already running?" >&2; echo busy >"$FZ/out.$n"; exit 1; }
+fi
+mapfile -t rows; printf '%s\n' "${rows[@]}" >"$FZ/in.$n"
+index=0 sel=0 a=""
+for x; do
+  case $x in --index) index=1 ;; --select-index=*) sel=${x#*=} ;; esac
+done
+if [[ -s $FZ/answers ]]; then a=$(head -n1 "$FZ/answers"); sed -i 1d "$FZ/answers"; fi
+choose() {   # choose N — Enter on row N
+  if ((index)); then echo "$1"; else printf '%s\n' "${rows[$1]}"; fi
+}
+echo "${a:-esc}" >"$FZ/out.$n"
+case ${a:-esc} in
+  esc)     exit 2 ;;
+  lost)    exit 1 ;;
+  enter)   choose "$sel" ;;
+  row\ *)  choose "${a#row }" ;;
+  pick\ *) for i in "${!rows[@]}"; do [[ ${rows[i]} == *"${a#pick }"* ]] && { choose "$i"; exit 0; }; done
+           echo "fake fuzzel: no row has [${a#pick }]" >&2; exit 2 ;;
+  typed\ *) if ((index)); then echo -1; else printf '%s\n' "${a#typed }"; fi ;;
+  hang)    echo $$ >"$FZ/hang.$n"; rm -f "$FZ/hold.$n"; mkfifo "$FZ/hold.$n"
+           read -r -t 20 <>"$FZ/hold.$n"; exit 1 ;;    # (builtins only: killed, nothing lingers)
+  *)       echo "fake fuzzel: unknown answer [$a]" >&2; exit 3 ;;
+esac
+exit 0

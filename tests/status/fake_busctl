@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+# fake busctl (from the display review's kit, review12/B): logind's Session.SetBrightness
+# writes the made-up sysfs ($KAWA_SYSFS/class/backlight/DEVICE/brightness), as logind does for
+# the active session's user; $LOGIND_REFUSE set: refused, as for a session that is not active.
+if [[ $* == *SetBrightness* ]]; then
+  [[ -n ${LOGIND_REFUSE:-} ]] && { echo "Call failed: Access denied" >&2; exit 1; }
+  v=${*: -1} f=$KAWA_SYSFS/class/backlight/${*: -2:1}/brightness
+  m=$(stat -c %a "$f"); chmod u+w "$f"; echo "$v" >"$f"; chmod "$m" "$f"   # (logind is root)
+  exit 0
+fi
+echo "fake busctl: $*" >&2; exit 1

@@ -1,0 +1,35 @@
+#!/usr/bin/env bash
+# fake ddcutil (from the display review's kit, review12/B): monitors on the I2C buses in
+# $DDC_BUSES ("5 7"); a bus in $DDC_DEAD answers detect as "Invalid display" (DDC/CI off) and
+# nothing else. Each monitor's level is in $DDC/b<bus> (70 if none), its maximum in
+# $DDC/max<bus> (100 if none). Every call takes $DDC_DELAY seconds (0) and is logged to $DDC/log.
+st=$DDC
+echo "$(date +%s.%N) $$ $*" >>"$st/log"
+[[ ${DDC_DELAY:-0} != 0 ]] && /bin/sleep "$DDC_DELAY"
+buses=${DDC_BUSES:-} bus="" args=("$@")
+for ((i = 0; i < ${#args[@]}; i++)); do [[ ${args[i]} == --bus ]] && bus=${args[i + 1]}; done
+live() { [[ " $buses " == *" $1 "* && " ${DDC_DEAD:-} " != *" $1 "* ]]; }
+case " $* " in
+  *" detect "*)
+    n=1
+    for b in $buses; do
+      if [[ " ${DDC_DEAD:-} " == *" $b "* ]]; then
+        printf 'Invalid display\n   I2C bus:  /dev/i2c-%s\n   DRM_connector:           card1-HDMI-A-%s\n   Monitor:                 XXX:Dumb:0\n\n' "$b" "$b"
+      else
+        printf 'Display %d\n   I2C bus:  /dev/i2c-%s\n   DRM_connector:           card1-DP-%s\n   Monitor:                 DEL:DELL S2721DGF:4KVCR8%s\n\n' "$n" "$b" "$b" "$b"
+        n=$((n + 1))
+      fi
+    done
+    ((n > 1)) || [[ -n $buses ]] || echo "No displays found."
+    ;;
+  *" getvcp 10 "*)
+    live "$bus" || { echo "Display not found" >&2; exit 1; }
+    cur=$(cat "$st/b$bus" 2>/dev/null); [[ $cur =~ ^[0-9]+$ ]] || cur=70
+    max=$(cat "$st/max$bus" 2>/dev/null); [[ $max =~ ^[0-9]+$ ]] || max=100
+    echo "VCP 10 C $cur $max" ;;
+  *" setvcp 10 "*)
+    live "$bus" || { echo "Display not found" >&2; exit 1; }
+    set -- "$@"; while [[ $1 != setvcp ]]; do shift; done
+    [[ $3 =~ ^[0-9]+$ ]] && echo "$3" >"$st/b$bus" ;;
+  *) echo "ddcutil stub: $*" >&2; exit 1 ;;
+esac

@@ -1,0 +1,38 @@
+#!/bin/bash
+# tests/menus/fake_yazi — yazi 26 as kawa-pick drives it: "yazi --chooser-file=F
+# [--cwd-file=C] -- DIR". What you do in it is the first line of $W/yazi, steps split by " ; ":
+#   choose P[|P…]   Enter (or Space-marked files, then Enter): the paths into F, then quit
+#   q [DIR]         quit, yazi writing the folder you are in (DIR, default the start) to C
+#   esc             Esc with nothing to undo: quit without writing C (kawa-pick's plugin)
+#   mv A => B       rename or move A to B first (r in yazi; d/p…)
+# Paths are relative to $P unless absolute; "\n" in them is a line break. (no line left: esc)
+# Logs "yazi MODE DIR" in $CALLS and what YAZI_CONFIG_HOME holds in $W/yazi-config.
+set -u
+chooser="" cwdf="" dir=""
+while (($#)); do
+  case $1 in
+    --chooser-file=*) chooser=${1#*=} ;;
+    --cwd-file=*)     cwdf=${1#*=} ;;
+    --)               dir=${2:-}; shift ;;
+  esac
+  shift
+done
+printf 'yazi %s %s\n' "${KAWA_PICK:-}" "$dir" >>"$CALLS"
+[[ -e $W/yazi-config ]] || (cd "${YAZI_CONFIG_HOME:-/nonexistent}" 2>/dev/null &&
+  find . -maxdepth 2 -printf '%p -> %l\n' | sort >"$W/yazi-config")
+abs() { local p; p=$(printf '%b' "$1"); [[ $p == /* ]] && printf '%s' "$p" || printf '%s' "$P/$p"; }
+a=esc
+if [[ -s $W/yazi ]]; then a=$(head -n1 "$W/yazi"); sed -i 1d "$W/yazi"; fi
+while [[ -n $a ]]; do
+  step=${a%% ; *}; [[ $step == "$a" ]] && a="" || a=${a#* ; }
+  case $step in
+    choose\ *) IFS='|' read -ra ps <<<"${step#choose }"
+               for p in "${ps[@]}"; do printf '%s\n' "$(abs "$p")"; done >"$chooser"; exit 0 ;;
+    q)         [[ -n $cwdf ]] && printf '%s' "$dir" >"$cwdf"; exit 0 ;;
+    q\ *)      [[ -n $cwdf ]] && printf '%s' "$(abs "${step#q }")" >"$cwdf"; exit 0 ;;
+    esc)       exit 0 ;;
+    mv\ *)     x=${step#mv }; mv -- "$(abs "${x%% => *}")" "$(abs "${x#* => }")" ;;
+    *)         echo "fake yazi: unknown step [$step]" >&2; exit 3 ;;
+  esac
+done
+exit 0

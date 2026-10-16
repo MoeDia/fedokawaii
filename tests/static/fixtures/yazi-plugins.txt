@@ -1,0 +1,4 @@
+# tests/static/fixtures/yazi-plugins.txt — the plugins yazi 26.9.1 carries itself (its
+# yazi-plugin/preset/plugins, v26.9.1 tag): a keymap may name these without a folder of its own
+archive code dds empty extract file folder font fzf image json magick mime mime-dir mime-local
+mime-remote multi noop null pdf session svg trash vfs video zoxide

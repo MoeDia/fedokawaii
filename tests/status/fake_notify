@@ -1,0 +1,35 @@
+#!/usr/bin/env bash
+# fake notify-send (lib.sh: notices): ids handed out the way mako does. Logs each notice as
+# "NOTICE <id> <app> | <summary> | <body>" to $NOTIFY_STATE/log.
+st=$NOTIFY_STATE app="" rid="" print=0 pos=()
+while (($#)); do
+  case $1 in
+    -a|--app-name) app=$2; shift ;;
+    --app-name=*) app=${1#*=} ;;
+    -r|--replace-id) rid=$2; shift ;;
+    --replace-id=*) rid=${1#*=} ;;
+    -p|--print-id) print=1 ;;
+    -u|-c|-h|-t|-i|-e|--urgency|--category|--hint|--expire-time|--icon) shift ;;
+    --) shift; pos+=("$@"); break ;;
+    -*) ;;
+    *) pos+=("$1") ;;
+  esac
+  shift
+done
+[[ -n ${NOTIFY_SLOW:-} ]] && /bin/sleep "$NOTIFY_SLOW"
+# libnotify 0.8: -r is a gint — anything else is refused before the bus is asked
+if [[ -n $rid ]]; then
+  [[ $rid =~ ^-?[0-9]+$ ]] || { echo "Cannot parse integer value '$rid' for -r" >&2; exit 1; }
+  ((${#rid} > 10 || rid > 2147483647)) && { echo "Integer value '$rid' for -r out of range" >&2; exit 1; }
+fi
+if [[ -n ${NOTIFY_DOWN:-} ]]; then
+  echo "GDBus.Error:org.freedesktop.DBus.Error.ServiceUnknown: The name org.freedesktop.Notifications was not provided by any .service files" >&2
+  ((print)) && echo "${rid:-0}"
+  exit 1
+fi
+exec 9>"$st/lock"; flock 9
+if [[ -n $rid && $rid != 0 ]] && grep -qx "$rid" "$st/live"; then id=$rid
+else id=$(($(<"$st/n") + 1)); echo "$id" >"$st/n"; echo "$id" >>"$st/live"; fi
+printf 'NOTICE %s %s | %s | %s\n' "$id" "$app" "${pos[0]:-}" "${pos[1]:-}" >>"$st/log"
+((print)) && echo "$id"
+exit 0

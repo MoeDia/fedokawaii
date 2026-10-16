@@ -1,0 +1,22 @@
+# tests/static/fixtures/yazi-builtin.txt — what yazi 26.9.1 runs by itself (its preset
+# yazi-default.toml and preset plugins, read from the v26.9.1 tag), which this desktop
+# relies on without naming it (guide §10.3: openers, previews, search, z / Z).
+#   PROGRAM   WHAT IN YAZI USES IT   [optional: yazi copes without it]
+file        mime-local.lua, file.lua: every file's type (file -bL --mime-type) and the Tab details
+7z          archive.lua: archive previews; extract (Enter on an archive: "Extract here")
+7zz         archive.lua tries 7zz first, then 7z  optional
+ya          the extract opener (ya pub extract)
+ffmpeg      video.lua: video stills
+ffprobe     video.lua: a video's length and streams
+magick      magick.lua and font.lua: HEIC / AVIF / JXL pictures, fonts
+pdftoppm    pdf.lua: the first page of a PDF
+jq          json.lua: JSON previews
+fzf         fzf.lua: z
+zoxide      zoxide.lua: Z
+fd          s: search file names
+rg          S: search file contents
+xdg-open    the open, play and reveal openers (pictures, PDFs, video…)
+vi          the edit opener, ${EDITOR:-vi} (EDITOR=nvim from start-dwl; /usr/local/bin/vi is nvim)
+resvg       svg.lua: SVG previews (not packaged for Fedora; the guide says so)  optional
+mediainfo   the play opener's "Show media info" (O on a video or song)  optional
+exiftool    the reveal opener's "Show EXIF" (O on any file)  optional

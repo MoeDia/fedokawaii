@@ -1,0 +1,206 @@
+# tests/static/fixtures/programs.txt — where each program the desktop runs comes from, on a
+# fresh Fedora 44 Server "Minimal Install" after setup. tests/static/test_deps.sh holds every
+# program found in the scripts and configs against this list (deps.py says how it reads them).
+#
+#   PROGRAM   KIND      WHAT
+#   manifest  PACKAGE   lib/manifest.sh installs PACKAGE, which has the program (the test
+#                       checks PACKAGE is in manifest_all)
+#   minimal   PACKAGE   a Minimal Install has PACKAGE: in comps' @core, or a hard dependency of
+#                       something there (the chain is in the comment). Listed in the manifest,
+#                       it must say manifest instead (the test checks that too)
+#   dep       PACKAGE BY  not on a Minimal Install, but a hard dependency of BY, a manifest
+#                       package (the test checks BY is in manifest_all): there, though
+#                       nothing lists it
+#   upstream  -         a binary of lib/upstream.sh's table (checked)
+#   built     NAME      setup.sh or theme.sh builds or installs it (NAME: what they call it)
+#   optional  -         installed by nothing on purpose: every call must be guarded
+#                       (command -v, or a fallback after ||)
+# The desktop's own programs (bin/, system/) need no line.
+#
+# Package → file: mdapi.fedoraproject.org/f44/files/<package> (checked 2026-10-16 where it
+# says "f44"); @core: comps "Minimal Install" = core (+ its defaults), checked against
+# forge.fedoraproject.org/releng/fedora-comps comps-f44.xml.in on 2026-10-16; the chains: mdapi requires.
+
+# ── a Minimal Install ─────────────────────────────────────────────────────────────────────
+bash                minimal   bash              # @core
+sh                  minimal   bash              # @core (/usr/bin/sh)
+cat                 minimal   coreutils         # @core: coreutils, every one below
+chmod               minimal   coreutils
+cksum               minimal   coreutils
+cp                  minimal   coreutils
+cut                 minimal   coreutils
+date                minimal   coreutils
+df                  minimal   coreutils
+dirname             minimal   coreutils
+head                minimal   coreutils
+ln                  minimal   coreutils
+ls                  minimal   coreutils
+mkdir               minimal   coreutils
+mktemp              minimal   coreutils
+mv                  minimal   coreutils
+numfmt              minimal   coreutils
+paste               minimal   coreutils
+readlink            minimal   coreutils
+realpath            minimal   coreutils
+rm                  minimal   coreutils
+sha1sum             minimal   coreutils
+sha256sum           minimal   coreutils
+sleep               minimal   coreutils
+sort                minimal   coreutils
+stat                minimal   coreutils
+stty                minimal   coreutils
+sync                minimal   coreutils
+tail                minimal   coreutils
+timeout             minimal   coreutils
+tr                  minimal   coreutils
+uname               minimal   coreutils
+wc                  minimal   coreutils
+basename            minimal   coreutils
+touch               minimal   coreutils
+tee                 minimal   coreutils
+id                  minimal   coreutils
+whoami              minimal   coreutils
+env                 minimal   coreutils
+seq                 minimal   coreutils
+od                  minimal   coreutils
+tac                 minimal   coreutils
+du                  minimal   coreutils
+nproc               minimal   coreutils
+install             minimal   coreutils
+chown               minimal   coreutils
+md5sum              minimal   coreutils
+base64              minimal   coreutils
+fold                minimal   coreutils
+comm                minimal   coreutils
+nohup               minimal   coreutils
+nice                minimal   coreutils
+tty                 minimal   coreutils
+printf              minimal   coreutils
+true                minimal   coreutils
+false               minimal   coreutils
+test                minimal   coreutils
+expr                minimal   coreutils
+flock               minimal   util-linux-core   # f44: util-linux-core (util-linux, @core, requires it)
+logger              minimal   util-linux-core   # f44
+losetup             minimal   util-linux-core   # f44
+renice              minimal   util-linux-core   # f44
+setsid              minimal   util-linux-core   # f44
+lsblk               minimal   util-linux        # @core (not in -core, f44)
+findmnt             minimal   util-linux-core   # f44
+mountpoint          minimal   util-linux-core   # f44
+blkid               minimal   util-linux-core   # f44
+pgrep               minimal   procps-ng         # @core
+pkill               minimal   procps-ng
+ps                  minimal   procps-ng
+free                minimal   procps-ng
+pidof               minimal   procps-ng
+uptime              minimal   procps-ng
+grep                minimal   grep              # dracut requires it (f44); the kernel needs dracut
+sed                 minimal   sed               # dracut (f44)
+find                minimal   findutils         # dracut (f44)
+awk                 minimal   gawk              # policycoreutils and audit-rules (@core) require gawk (f44)
+busctl              minimal   systemd           # @core
+systemctl           minimal   systemd
+ldd                 minimal   glibc-common      # f44: /usr/bin/ldd; glibc requires glibc-common
+getent              minimal   glibc-common      # f44
+iconv               minimal   glibc-common      # f44
+locale              minimal   glibc-common      # f44
+journalctl          minimal   systemd           # @core
+loginctl            minimal   systemd
+systemd-run         minimal   systemd
+xargs               minimal   findutils         # dracut (f44)
+less                minimal   less              # @core
+ss                  minimal   iproute           # @core (ip, ss)
+ip                  minimal   iproute
+curl                minimal   curl              # @core
+rpm                 minimal   rpm               # @core
+nmcli               manifest  NetworkManager    # (@core too; the manifest lists it)
+sudo                manifest  sudo              # (@core too)
+
+# ── what the manifest installs ───────────────────────────────────────────────────────────
+git                 manifest  git
+jq                  manifest  jq
+cmp                 manifest  diffutils
+diff                manifest  diffutils
+man                 manifest  man-db
+nvim                manifest  neovim
+nmtui               manifest  NetworkManager-tui
+mpv                 manifest  mpv
+node                manifest  nodejs24-bin      # f44: /usr/bin/node (yt-dlp's --js-runtimes node)
+playerctl           manifest  playerctl
+cava                manifest  cava
+pavucontrol         manifest  pavucontrol
+pw-dump             manifest  pipewire-utils    # f44
+wpctl               manifest  wireplumber
+waybar              manifest  waybar
+mako                manifest  mako
+makoctl             manifest  mako
+fuzzel              manifest  fuzzel
+foot                manifest  foot              # f44: foot, footclient (+ foot.desktop, footclient.desktop)
+footclient          manifest  foot
+swaybg              manifest  swaybg
+swayidle            manifest  swayidle
+swaylock            manifest  swaylock
+wlr-randr           manifest  wlr-randr
+wlopm               manifest  wlopm
+ddcutil             manifest  ddcutil
+wtype               manifest  wtype
+wl-copy             manifest  wl-clipboard
+wl-paste            manifest  wl-clipboard
+cliphist            manifest  cliphist
+grim                manifest  grim
+slurp               manifest  slurp
+gammastep           manifest  gammastep
+notify-send         manifest  libnotify
+xdg-open            manifest  xdg-utils
+udiskie             manifest  udiskie           # f44: udiskie, udiskie-info, -mount, -umount
+udiskie-mount       manifest  udiskie
+udiskie-umount      manifest  udiskie
+bluetoothctl        manifest  bluez
+blueman-manager     manifest  blueman
+zathura             manifest  zathura
+bsdtar              manifest  bsdtar            # f44
+pdfinfo             manifest  poppler-utils
+pdftoppm            manifest  poppler-utils
+xournalpp           manifest  xournalpp         # f44
+magick              manifest  ImageMagick       # f44: ImageMagick 7 (magick)
+btop                manifest  btop
+fd                  manifest  fd-find           # f44: /usr/bin/fd
+fzf                 manifest  fzf
+file                manifest  file
+eza                 manifest  eza
+zoxide              manifest  zoxide
+lazygit             manifest  lazygit           # (COPR dejan/lazygit)
+shellcheck          manifest  ShellCheck
+snapper             manifest  snapper
+agreety             manifest  greetd            # f44: /usr/bin/agreety
+brave-origin        manifest  brave-origin      # (Brave's own repo)
+7z                  manifest  7zip              # f44: /usr/bin/7z only (no 7zz)
+ffmpeg              manifest  ffmpeg
+ffprobe             manifest  ffmpeg
+rg                  manifest  ripgrep
+
+# ── there through a dependency of a manifest package ─────────────────────────────────────
+gio                 dep       glib2 NetworkManager   # libnm; gtk4 and waybar too
+gsettings           dep       glib2 NetworkManager
+fc-match            dep       fontconfig foot   # libfontconfig; fuzzel, waybar, mako too
+python3             dep       python3 tuned     # tuned is a python program (firewalld, @core, too)
+
+# ── yazi and the rest from their releases, and what setup builds ─────────────────────────
+satty               upstream  -
+yazi                upstream  -
+ya                  upstream  -
+kawa-veil           built     kawa-veil         # theme.sh, from src/kawa-veil (callers cope without it)
+kawa-clipkeep       built     kawa-clipkeep     # theme.sh, from src/kawa-clipkeep
+dwl                 built     DWL_TAG           # setup.sh, from codeberg + src/dwl
+vi                  built     /usr/local/bin/vi # setup.sh: a link to nvim (yazi's ${EDITOR:-vi})
+
+# ── installed by nothing, on purpose ─────────────────────────────────────────────────────
+dbus-update-activation-environment  optional  -  # dbus-tools: only dbus-daemon needs it, and Fedora
+                                                 # runs dbus-broker; autostart falls back to
+                                                 # systemctl --user import-environment (enough there)
+resvg               optional  -                  # yazi's SVG preview: not packaged (the guide says so)
+7zz                 optional  -                  # yazi tries 7zz, then 7z (Fedora's 7zip has 7z only)
+mediainfo           optional  -                  # yazi's own "Show media info" under O: retired from the
+                                                 # manifest (ffprobe does its job) — see the review13 Y report
+exiftool            optional  -                  # yazi's own "Show EXIF" under O — the same

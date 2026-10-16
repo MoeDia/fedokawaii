@@ -1,0 +1,155 @@
+#!/usr/bin/env bash
+# tests/installer/test_setup.sh — setup.sh from a fresh Fedora 44 Server (Minimal Install) to the
+# finished desktop in the fake machine: phase 1 → reboot → 2 → reboot → 3, the resume unit that
+# carries it across restarts (and keeps greetd off tty1 meanwhile), a run stopped half-way and
+# started again (a power cut mid-phase: duplicates tidied at the gate), the state files missing
+# or damaged, the verify gate and repair before the login exists, misuse, --status, --reset.
+# (Hardware and network cases: test_setup_hw.sh)
+. "$(dirname "$0")/lib.sh"
+CLONE=/home/fkuser/fedokawaii
+TK=/usr/local/lib/fedokawaii
+setup() { fkrun bash "$CLONE/setup.sh" "$@"; }          # as you start it: from your clone, with sudo
+resume() { fkrun bash "$TK/setup.sh" --resume "$@"; }   # as the resume unit starts it after a restart
+
+world fresh; releases
+unit=$W/etc/systemd/system/fedokawaii-resume.service
+keep fresh
+
+# ── the whole build ──────────────────────────────────────────────────────────
+case_ "phase 1: the check, then each step; then the resume unit, the toolkit, and a restart"
+setup; eq "$RC" 0 "exit"
+has "$OUT" "READY for setup"; has "$OUT" "✔ 1.7 inbound SSH (no)"
+eq "$(state phase)" 2; eq "$(state user)" fkuser
+[[ -f $unit ]] && _ok || _no "no resume unit"
+has "$(cat "$unit")" "ExecStart=/usr/bin/bash $TK/setup.sh --resume"
+has "$(cat "$unit")" "Conflicts=getty@tty1.service kmsconvt@tty1.service greetd.service" "greetd held off tty1 while setup resumes"
+has "$(cat "$unit")" "TTYPath=/dev/tty1"
+called 'systemctl\] enable fedokawaii-resume.service'
+[[ -f $W$TK/setup.sh && -x $W/usr/local/bin/fedokawaii ]] && _ok || _no "the toolkit and its command not installed"
+eq "$(fk stat -c %U "$TK/setup.sh")" root "the toolkit is root's"
+called 'systemctl\] reboot'
+pkg_has tar && pkg_has grubby && pkg_has diffutils && pkg_has man-db && _ok || _no "the base tools (tar, grubby, diffutils, man-db) not installed"
+pkg_has nano && _no "nano still there" || _ok
+eq "$(cat "$FKH/hostname" 2>/dev/null)" fedokawaii "a machine with no name gets one"
+eq "$(cat "$FKH/timezone" 2>/dev/null)" "Asia/Dubai"
+has "$(cat "$W/etc/dnf/libdnf5.conf.d/90-fedokawaii.conf")" "max_parallel_downloads=10"
+has "$(cat "$FKH/grubenv")" "menu_auto_hide=1" "one system: Fedora's hidden menu"
+lacks "$(cat "$FKH/fw-services")" "ssh" "SSH_SERVER=no closes ssh in the firewall"
+grep -qx 'enabled sshd.service' "$FKH/units" && _no "sshd still enabled" || _ok
+reboot_world; keep phase2
+
+case_ "phase 2 (resumed by the unit after the restart): repositories, the GPU's drivers, media"
+resume --no-reboot; eq "$RC" 0
+eq "$(state phase)" 3; eq "$(state gpu)" amd
+for p in rpmfusion-free-release rpmfusion-nonfree-release mesa-va-drivers-freeworld mesa-vulkan-drivers-freeworld lact ffmpeg mpv amd-ucode-firmware; do
+  pkg_has "$p" || _no "$p not installed"
+done; _ok
+has "$(head -n1 "$FKH/grub-args")" "amdgpu.ppfeaturemask=0xfff7ffff"
+called 'dracut\] -f --regenerate-all'
+eq "$(state hardware-pkgs)" amd-ucode-firmware
+reboot_world; keep phase3
+
+case_ "phase 3: dwl and the desktop, the gate, then the login enabled last and the resume unit gone"
+# (GitHub refusing GE-Proton's release list once, the file dialog's first build failing, and
+# LazyVim's plugin clones failing the first time: none stops the build, the gate tries again)
+fkh fail-curl-ge-api 1; fkh fail-meson 1; fkh fail-nvim-plugins 1
+resume --no-reboot; eq "$RC" 0
+eq "$(state phase)" "done"
+has "$OUT" "✔ 3.13 verify gate"; has "$OUT" "✔ verified"
+[[ ! -e $unit ]] && _ok || _no "the resume unit is still installed"
+grep -qx 'enabled greetd.service' "$FKH/units" && _ok || _no "greetd not enabled"
+eq "$(cat "$FKH/default-target")" graphical.target
+has "$(cat "$FKH/snaps")" "fedokawaii baseline"
+[[ -x $W/usr/local/bin/dwl && -s $W/usr/local/lib/fedokawaii-wlroots-0.20/cflags ]] && _ok || _no "dwl or its wlroots not in place"
+for t in satty yazi ya presenterm spotify_player; do [[ -x $W/home/fkuser/.local/bin/$t ]] || _no "$t not installed"; done; _ok
+eq "$(cat "$W/home/fkuser/.local/share/fedokawaii/upstream/ge-proton" 2>/dev/null)" GE-Proton10-25
+case_ "the gate's second tries: GE-Proton, the yazi file dialog and LazyVim's plugins, each put in place there"
+has "$OUT" "GE-Proton is not installed yet"; has "$OUT" "file dialogs stay GTK's for now"
+has "$OUT" "✔ GE-Proton10-25 → Steam compatibilitytools.d"; has "$OUT" "file dialogs: yazi (termfilechooser v1.4.3)"
+called "nvim\] --headless \+Lazy! install"
+[[ -d $W/home/fkuser/.local/share/nvim/lazy/LazyVim && -x $W/usr/local/libexec/xdg-desktop-portal-termfilechooser ]] && _ok || _no "LazyVim or the file dialog missing"
+case_ "after the build: verify passes (exit 0), and setup run again only says so"
+fkrun bash "$TK/verify.sh"; eq "$RC" 0 "verify: $(grep '✘' <<<"$OUT" | head -n3 | tr '\n' '|')"; has "$OUT" "✔ verified"
+reset_calls; setup; eq "$RC" 0; has "$OUT" "already built"
+not_called 'dnf\] -y install'
+
+# ── stopped half-way, started again ──────────────────────────────────────────
+case_ "a step that fails (a mirror down for good): the line and the log named, exit 1, the phase kept"
+back phase2; fkh dnf-fail 'install .*ffmpeg'
+resume --no-reboot; eq "$RC" 1
+has "$OUT" "✘ line"; has "$OUT" "log: /var/log/fedokawaii.log"
+has "$OUT" "Setup stopped — the reason is above"; has "$OUT" "restart the computer: setup continues by itself"
+has "$OUT" "Alt+F2"
+eq "$(state phase)" 2
+case_ "…the next start: the finished steps skipped, on from the one that failed"
+rm -f "$FKH/dnf-fail"; resume --no-reboot; eq "$RC" 0
+has "$OUT" "skip (done): 2.1 repositories"; has "$OUT" "skip (done): 2.2 GPU drivers"; has "$OUT" "✔ 2.3 ffmpeg"
+eq "$(state phase)" 3
+
+case_ "a power cut mid-transaction and a dnf problem: duplicates tidied at the gate; the check stops it before the login"
+back phase3; fkh dups "kernel-core-6.19.1-200.fc44.x86_64"
+fkh dnfcheck "package: foo-1.0-1.fc44.x86_64" "  dependency: libbar.so.1()(64bit)" "   problem: missing dependency"
+resume --no-reboot; eq "$RC" 1
+called 'dnf\] -y remove --duplicates'; eq "$(cat "$FKH/dups")" "" "the older copies removed"
+has "$OUT" "verify found problems"; has "$OUT" "fedokawaii repair"; has "$OUT" "then run setup again"
+has "$OUT" "most of these fix themselves: fedokawaii repair — then run setup again"
+eq "$(state phase)" 3
+grep -qx 'enabled greetd.service' "$FKH/units" && _no "greetd enabled before the gate passed" || _ok
+case_ "…repair may run now (before, it would only say the build is not finished), and puts it right"
+fkh distro-sync-fixes; fkrun bash "$TK/setup.sh" --repair
+lacks "$OUT" "the build is not finished"; has "$OUT" "repair: nothing doubled or fighting"
+eq "$(cat "$FKH/dnfcheck")" "" "dnf's problem fixed"
+case_ "…the final check failing after the login is on: the resumed run says restart, log in, run repair"
+fkh systemctl-fail 'is-enabled --quiet fedokawaii-scrub.timer'
+resume --no-reboot; [[ $RC != 0 ]] && _ok || _no "a failed final check ended 0"
+has "$OUT" "skip (done): 3.12 theme"; has "$OUT" "✔ 3.13 verify gate"
+has "$OUT" "The desktop is installed, but its last steps found a problem"; has "$OUT" "fedokawaii repair"
+eq "$(state phase)" "done"
+case_ "repair before the build reached its gate: refused, with what to do"
+back phase2; fkrun bash "$TK/setup.sh" --repair; eq "$RC" 1; has "$OUT" "the build is not finished — run setup again"
+
+# ── the state files ──────────────────────────────────────────────────────────
+case_ "the phase file gone: phase 1 again, every finished step skipped, nothing redone"
+back phase3; rm -f "$W/var/lib/fedokawaii/phase"
+setup --no-reboot; eq "$RC" 0
+has "$OUT" "skip (done): 1.0 readiness check"; has "$OUT" "skip (done): 1.7 inbound SSH"
+eq "$(state phase)" 2
+case_ "the phase file with a Windows line end, or blank lines: read as the phase it says"
+back phase3; printf '3\r\n\n' >"$W/var/lib/fedokawaii/phase"
+fkh dnf-fail 'install .*gcc'                          # (stops at 3.01: enough to see which phase ran)
+resume --no-reboot; has "$OUT" "phase 3 · fkuser"; has "$OUT" "── 3.01 build dependencies"
+rm -f "$FKH/dnf-fail"
+case_ "the phase file damaged: stops, says what it should hold and how to start over (exit 1)"
+back phase3; printf 'garbage\n' >"$W/var/lib/fedokawaii/phase"
+resume --no-reboot; eq "$RC" 1
+has "$OUT" "should be 1, 2, 3 or done"; has "$OUT" "--reset"
+case_ "the user record names nobody (damaged, or the user renamed): said at once, nothing done"
+back phase3; printf 'ghost\n' >"$W/var/lib/fedokawaii/user"
+resume --no-reboot; eq "$RC" 1; has "$OUT" "names 'ghost', who is not a user of this machine"
+not_called 'dnf\] -y'
+case_ "the user record empty: the same"
+back phase3; : >"$W/var/lib/fedokawaii/user"
+resume --no-reboot; eq "$RC" 1; has "$OUT" "is not a user of this machine"
+case_ "a second run while one is going (the lock): refused, exit 1"
+back phase3
+fkrun bash -c "exec 9>/var/lib/fedokawaii/lock; flock 9; bash $TK/setup.sh --no-reboot; exit \$?"
+eq "$RC" 1; has "$OUT" "another Fedokawaii run (an update, a repair, setup or Theme) is going on"
+
+# ── options ──────────────────────────────────────────────────────────────────
+case_ "misuse: an unknown option (exit 2, nothing touched); not root (exit 2); --help (0)"
+back fresh
+setup --frobnicate; eq "$RC" 2; has "$OUT" "unknown option: --frobnicate"
+[[ ! -e $W/var/lib/fedokawaii/lock && ! -e $W/var/log/fedokawaii.log ]] && _ok || _no "a misused run touched the system"
+fkrun runuser -u fkuser -- bash "$CLONE/setup.sh"; eq "$RC" 2; has "$OUT" "run with sudo"
+setup --help; eq "$RC" 0; has "$OUT" "--no-reboot"
+case_ "--status: the phase, the user, the finished steps — read-only, also while a run holds the lock"
+back phase3
+fkrun bash -c "exec 9>/var/lib/fedokawaii/lock; flock 9; bash $TK/setup.sh --status; exit \$?"
+eq "$RC" 0; has "$OUT" "phase 3 · user fkuser · Fedora 44"; has "$OUT" "✔ 2.2 GPU drivers"
+case_ "--reset: progress forgotten (the user and the baseline kept), the resume unit gone"
+fkrun bash "$TK/setup.sh" --reset; eq "$RC" 0
+eq "$(state phase)" ""; eq "$(state user)" fkuser; [[ -s $W/var/lib/fedokawaii/baseline-userinstalled ]] && _ok || _no "baseline lost"
+compgen -G "$W/var/lib/fedokawaii/done.*" >/dev/null && _no "done marks left" || _ok
+[[ ! -e $unit ]] && _ok || _no "resume unit left"
+
+done_

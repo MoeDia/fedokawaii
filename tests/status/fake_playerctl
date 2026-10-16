@@ -1,0 +1,51 @@
+#!/usr/bin/env bash
+# fake playerctl (2.4's command line, as kawa-nowplaying uses it), over a scripted world in $NP:
+#   $NP/players         the players now, one a line: instance \x1f status \x1f artist \x1f title
+#   $NP/steps/NN.emit   what `playerctl --follow metadata` prints at step NN (a player's line,
+#   $NP/steps/NN.state  or an empty line: no player left) and the players from then on.
+#                       Steps come $NP_GAP seconds apart (0.3); after the last one the stream
+#                       ends — unless $NP/hold exists, then it stays open (killed with the bar).
+#   --all-players metadata --format F    every player in $NP/players (F with {{artist}}: all
+#                       four fields; else instance and status); none: "No players found", 1
+#   [--player=P] play-pause|next|previous    noted in $NP/acted as "CMD P" (no --player: the
+#                       first player, as playerctl picks); P not there, or none: status 1
+set -u
+fmt="" follow=0 player="" cmd=""
+while (($#)); do
+  case $1 in
+    --all-players|-a) ;;
+    --follow|-F) follow=1 ;;
+    --player=*) player=${1#*=} ;;
+    -p|--player) player=$2; shift ;;
+    --format=*) fmt=${1#*=} ;;
+    -f|--format) fmt=$2; shift ;;
+    -*) ;;
+    *) [[ -z $cmd ]] && cmd=$1 ;;
+  esac
+  shift
+done
+US=$'\x1f'
+none() { echo "No players found" >&2; exit 1; }
+case $cmd in
+  metadata)
+    if ((follow)); then
+      echo $$ >>"$NP/pids"
+      for e in "$NP"/steps/*.emit; do
+        [[ -e $e ]] || break
+        cp "${e%.emit}.state" "$NP/players"
+        cat "$e"
+        /bin/sleep "${NP_GAP:-0.3}"
+      done
+      [[ -e $NP/hold ]] && exec /bin/sleep 30
+      exit 0
+    fi
+    [[ -s $NP/players ]] || none
+    if [[ $fmt == *'{{artist}}'* ]]; then cat "$NP/players"; else cut -d"$US" -f1,2 "$NP/players"; fi ;;
+  play-pause|next|previous)
+    [[ -s $NP/players ]] || none
+    if [[ -n $player ]]; then
+      grep -q "^$player$US" "$NP/players" || none
+    else player=$(head -n 1 "$NP/players" | cut -d"$US" -f1); fi
+    echo "$cmd $player" >>"$NP/acted" ;;
+  *) echo "fake playerctl: $cmd" >&2; exit 1 ;;
+esac

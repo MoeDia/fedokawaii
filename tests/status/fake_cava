@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+# fake cava (kawa-nowplaying's tests): `cava -p FILE` prints the frames in $NP/frames (raw
+# ascii, "0;3;5;…;" a line), notes its pid in $NP/cava.pids, then keeps quiet until killed —
+# as cava 0.10 does once its sleep_timer finds silence.
+echo $$ >>"$NP/cava.pids"
+[[ -f $NP/frames ]] && cat "$NP/frames"
+exec /bin/sleep 30

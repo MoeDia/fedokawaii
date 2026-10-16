@@ -1,0 +1,5 @@
+#!/bin/bash
+# xdg-user-dirs-update of the fake Fedora: logged; its exit status from $FKH/rc-xdg-user-dirs-update (0)
+. /usr/local/bin/_lib.sh
+fkh_log "$*"
+exit "$(rcfor xdg-user-dirs-update 0)"

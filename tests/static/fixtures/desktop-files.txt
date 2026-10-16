@@ -1,0 +1,14 @@
+# tests/static/fixtures/desktop-files.txt — the launcher entries ~/.config/mimeapps.list and
+# ~/.config/xdg-terminals.list name that a package installs (the desktop's own are in
+# configs/home/.local/share/applications). Checked on mdapi.fedoraproject.org/f44/files/PKG.
+#   ENTRY                                    PACKAGE (in lib/manifest.sh)
+brave-origin.desktop                         brave-origin       # Brave's repo; theme.sh copies it to ~/.local/share/applications
+imv.desktop                                  imv                # f44 (also imv-dir.desktop)
+mpv.desktop                                  mpv                # f44
+org.pwmt.zathura-pdf-mupdf.desktop           zathura-pdf-mupdf  # f44
+org.pwmt.zathura-cb.desktop                  zathura-cb         # f44
+com.abisource.AbiWord.desktop                abiword            # f44
+org.gnumeric.gnumeric.desktop                gnumeric           # f44
+com.github.xournalpp.xournalpp.desktop       xournalpp          # f44
+foot.desktop                                 foot               # f44 (with footclient.desktop, foot-server.desktop)
+footclient.desktop                           foot               # f44

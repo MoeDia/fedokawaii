@@ -1,0 +1,23 @@
+{
+  "running": true,
+  "configured": {},
+  "nodes": [
+    {"id": 36, "class": "Stream/Output/Audio", "name": "share_sink.out", "desc": "Share", "prio": 0, "vol": 1.0,
+     "props": {"node.passive": true, "node.link-group": "loopback-1520-29"}},
+    {"id": 37, "class": "Audio/Sink", "name": "share_sink", "desc": "Share", "prio": 0, "vol": 1.0,
+     "props": {"node.link-group": "loopback-1520-29"}},
+    {"id": 38, "class": "Audio/Source/Virtual", "name": "share_source", "desc": "Share (as microphone)", "prio": 0, "vol": 1.0,
+     "props": {"node.link-group": "loopback-1520-30"}},
+    {"id": 39, "class": "Stream/Input/Audio", "name": "share_source.in", "desc": "Share (as microphone)", "prio": 0, "vol": 1.0,
+     "props": {"node.passive": true, "stream.capture.sink": true, "node.link-group": "loopback-1520-30"}},
+    {"id": 62, "class": "Audio/Sink", "name": "alsa_output.pci-0000_0e_00.4.analog-stereo",
+     "desc": "Starship/Matisse HD Audio Controller Analog Stereo", "prio": 1009, "vol": 0.4,
+     "props": {"node.nick": "ALC1220 Analog", "device.api": "alsa"}},
+    {"id": 73, "class": "Audio/Sink", "name": "alsa_output.pci-0000_0c_00.1.hdmi-stereo",
+     "desc": "Navi 31 HDMI/DP Audio Digital Stereo (HDMI)", "prio": 900, "vol": 1.0,
+     "props": {"node.nick": "DELL S2721DGF", "device.api": "alsa"}},
+    {"id": 67, "class": "Audio/Source", "name": "alsa_input.pci-0000_0e_00.4.analog-stereo",
+     "desc": "Starship/Matisse HD Audio Controller Analog Stereo", "prio": 2009, "vol": 0.8,
+     "props": {"node.nick": "ALC1220 Analog", "device.api": "alsa"}}
+  ]
+}
