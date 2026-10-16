@@ -43,7 +43,7 @@ run() {
   local IFS=' ' rc=0
   FAILED_CMD=""
   _out "${C_DIM}$(_ts) \$ $*${C_RESET}"
-  { "$@" 2>&1 | tee -a "$LOG_FILE"; rc=${PIPESTATUS[0]}; } || true
+  { RUN_SHOWN=1 "$@" 2>&1 | tee -a "$LOG_FILE"; rc=${PIPESTATUS[0]}; } || true
   ((rc == 0)) || FAILED_CMD=$* FAILED_AT=${FUNCNAME[1]:-main}:${BASH_LINENO[0]}
   return "$rc"
 }

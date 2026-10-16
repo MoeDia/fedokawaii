@@ -1411,7 +1411,8 @@ need_space() {   # need_space PATH MiB — stop, saying what to do, when there i
 dnf_detached() {   # dnf_detached ARG… — dnf ARG…, detached from this session; its exit status
   local unit rc IFS=' '
   unit=fedokawaii-dnf-$(date +%s)-$$
-  _out "${C_DIM}$(_ts) \$ dnf $*  (as $unit)${C_RESET}"
+  if [[ ${RUN_SHOWN:-} == 1 ]]; then _out "${C_DIM}    (as $unit)${C_RESET}"   # (run said the command already)
+  else _out "${C_DIM}$(_ts) \$ dnf $*  (as $unit)${C_RESET}"; fi
   journalctl -f -n 0 -o cat -u "$unit.service" 2>/dev/null 9>&- &
   FOLLOWER=$!
   systemd-run --quiet --unit="$unit" --service-type=exec --wait --collect \
@@ -1420,6 +1421,22 @@ dnf_detached() {   # dnf_detached ARG… — dnf ARG…, detached from this sess
   sleep 1; kill "$FOLLOWER" 2>/dev/null || true; wait "$FOLLOWER" 2>/dev/null || true; FOLLOWER=""
   journalctl -o cat --no-pager "_SYSTEMD_UNIT=$unit.service" >>"$LOG_FILE" 2>/dev/null || true
   return "$rc"
+}
+
+# detach_dnf — from here on, every dnf that changes packages runs as dnf_detached does. Update
+# and repair run in a window you can close (Super+U): the big upgrade was already its own unit,
+# and now the small changes after it (the manifest's installs, swaps, removals, autoremove,
+# distro-sync) are too, so closing the window never cuts a transaction in half. Queries and the
+# rest (repoquery, mark, copr, makecache …) still go straight to dnf.
+detach_dnf() {
+  dnf() {
+    local a sub=""
+    for a in "$@"; do [[ $a == -* ]] || { sub=$a; break; }; done
+    case $sub in
+      install|remove|swap|autoremove|distro-sync|upgrade|downgrade|reinstall) dnf_detached "$@" ;;
+      *) command dnf "$@" ;;
+    esac
+  }
 }
 
 # before an update or a move: everything that could make it go wrong, checked first, while
@@ -1603,6 +1620,7 @@ step_on() {   # step_on WHAT FN… — one contained step; a failure is remember
 }
 do_update() {
   [[ $(phase) == 'done' ]] || die "finish the build first"
+  detach_dnf
   # (until it gets to the end; a disk too full to hold even this: preflight says so, below)
   record last-update "$(date +%s) stopped" 2>/dev/null || true
   wait_for_network
@@ -2070,6 +2088,7 @@ do_repair() {
   # check found, before the login is switched on)
   [[ $(phase) == 'done' || ( $(phase) == 3 && -f $STATE_DIR/gate-reached ) ]] \
     || die "the build is not finished — run setup again; it resumes where it stopped"
+  detach_dnf
   local before after net=1
   hdr "Fedokawaii repair · $TARGET_USER"
   # offline, it still puts right what needs no network: services, the session, the configs

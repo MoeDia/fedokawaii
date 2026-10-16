@@ -1168,7 +1168,7 @@ platform
   ✔ Fedora 44 (supported)
   ✔ Fedora Server edition
 …
-✔ READY for setup — 41 checks passed, 1 warning(s)
+✔ READY for setup — 44 checks passed, 1 warning(s)
 ```
 
 *(for example; shortened)*
@@ -11460,7 +11460,7 @@ support  until 2 Jun 2027 · in 230 days
 next     Fedora 45 · due about Oct 2026
 updated  17 Jul 2026 · 90 days ago
 due      now · every 90 days
-verified 212 checks passed · 90 days ago
+verified 136 checks passed · 90 days ago
 …        (then the running kernel and the free disk space)
 ```
 
@@ -11521,7 +11521,7 @@ system
   …
   ! Prowlarr has no indexers yet — open http://localhost:9696 → Indexers → Add Indexer (torrra…
   …
-✔ verified — 212 checks passed, 1 warning(s)
+✔ verified — 135 checks passed, 1 warning(s)
 ```
 
 *(shortened)*
@@ -11656,6 +11656,10 @@ every 60, 90 or 120 days, then off.
 | torrra · Prowlarr | libtorrent to its newest under torrra; Prowlarr's newest image, then started and checked | |
 | neovim's plugins | your current versions kept first (`~/.local/state/fedokawaii/lazy-lock/`, the last six), then `Lazy! sync` | |
 | verify | every check, the outcome recorded for the menu | |
+
+Every later package change of the update — the manifest's installs, a swap, a removal,
+`autoremove` — runs as a service of its own the same way, and so does each of repair's: closing
+the window never cuts one in half. (Only what reads, such as `dnf repoquery`, runs in the window.)
 
 The dnf transaction itself also gets its pre/post pair of snapshots. At the end the update
 says whether a new kernel waits for a restart, and notes whether the next Fedora is out. The
@@ -12547,7 +12551,7 @@ live session
   …
   ! no monitor answered DDC/CI — switch DDC/CI on in the monitor's on-screen menu, then try Super+]
 …
-✔ verified — 212 checks passed, 1 warning(s)
+✔ verified — 135 checks passed, 1 warning(s)
 ```
 
 *(for example; shortened)*
@@ -15330,7 +15334,7 @@ commands themselves are in appendix D.
 | package | one program or library in Fedora's format, an `.rpm` file, installed and removed as one (§2.3) |
 | PAM | the library every login uses to check a password and open a session (§29.8) |
 | partition | a fixed part of a disk used as if it were a disk of its own; Windows' *C:* is one (§4.2) |
-| patch | a file of line changes applied to a program's source before it is built: `src/dwl/dwl.patch` (§5.4) |
+| patch | a file of line changes applied to a program's source before it is built or installed: `src/dwl/dwl.patch` (§5.4), `src/syncplay/syncplay.patch` (§15.7) |
 | path | the address of a file or folder: `/home/you/Documents/tenancy.pdf` (§10.1) |
 | `PATH` | the folders searched, in order, for a command typed by its name (§25.1) |
 | peer · seeder · leecher | a computer sharing a torrent · one that has all of it · one still downloading (ch. 20) |

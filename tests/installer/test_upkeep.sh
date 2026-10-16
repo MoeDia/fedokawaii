@@ -3,7 +3,8 @@
 # (the fake machine): offline they say so within half a minute, not after minutes; a package
 # transaction cut off half-way is tidied before it is tried again, and a failure never claims
 # "nothing was changed"; a fighting service of yours that cannot be disabled (static: D-Bus
-# starts it) is masked; your upkeep.conf counts with quotes too. A machine set up earlier:
+# starts it) is masked; your upkeep.conf counts with quotes too; every package change runs as
+# a service of its own (a closed window cuts none in half). A machine set up earlier:
 # taken out of the input group once (never again once you put yourself back), the Bluetooth
 # dongle's and the shutdown's settings put back, systemd-oomd's rules taken out.
 . "$(dirname "$0")/lib.sh"
@@ -97,6 +98,16 @@ back built; fkh kernels "6.18.1-200.fc44.x86_64" "$(uname -r)"
 tk --repair; has "$OUT" "no /boot/vmlinuz-6.18.1-200.fc44.x86_64 — is /boot mounted?"
 not_called 'dracut\] -f --kver'; [[ ! -e $W/boot/initramfs-6.18.1-200.fc44.x86_64.img ]] && _ok || _no "an image written beside a missing kernel"
 
+case_ "repair: each package change a service of its own (closing the window cuts none in half); what only asks dnf stays in the window"
+back built; fkh_del installed bat; fkh_add installed systemd-oomd-defaults; reset_calls
+tk --repair; pkg_has bat && _ok || _no "bat not put back"
+called 'systemd-run\] .*--wait .* /usr/bin/dnf -y install bat$'
+called 'systemd-run\] .*--wait .* /usr/bin/dnf -y remove .*systemd-oomd-defaults'
+not_called 'systemd-run\] .* /usr/bin/dnf .*repoquery'; called '^root\[dnf\] -q repoquery --available --whatprovides bat$'
+has "$OUT" "(as fedokawaii-dnf-"
+case_ "update: the manifest's install after the upgrade is detached too"
+back built; fkh_del installed bat; reset_calls
+tk --update; called 'systemd-run\] .*--wait .* /usr/bin/dnf -y upgrade --refresh'; called 'systemd-run\] .*--wait .* /usr/bin/dnf -y install bat$'
 # ── a machine set up before these: the user in input, no record of it; no Bluetooth or
 #    shutdown setting; systemd-oomd-defaults brought by something ───────────────────────
 earlier() { fk usermod -aG input fkuser; rm -f "$W/var/lib/fedokawaii/input-group-out" \

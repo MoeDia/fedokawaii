@@ -22,15 +22,17 @@ system/            what setup installs: `fedokawaii` (the system's control and i
                    the session launcher (with its rescue screen), greeter, snapshots around dnf,
                    the performance profile, torrra's key wrapper, and the Prowlarr container
                    (→ ~/.config/containers/systemd)
-src/               what is compiled here: dwl/ (config.h — keys, colours — and dwl.patch: gaps,
+src/               what is compiled or patched here: dwl/ (config.h — keys, colours — and dwl.patch: gaps,
                    full window borders, centred dialogs, Arabic-proof keys, the layout for the bar) ·
                    kawa-veil/ (the theme and wallpaper transitions, C) · kawa-clipkeep/
-                   (copies outlive the program they came from, C)
+                   (copies outlive the program they came from, C) · syncplay/ (syncplay.patch:
+                   two fixes to Syncplay's mpv connection, applied as it is installed)
 bin/               the kawa-* helpers (→ ~/.local/bin): menus, bar modules, theme, wallpaper
                    picker, level display, lock, clipboard history, books, notes, the file dialog,
                    the drives (kawa-drives: notices, the bar's mark, eject),
-                   screen-share picker, fetch, the popup window (kawa-float) and its pictures
-                   (kawa-sixel), brave-origin (Brave with screen-share sound)
+                   screen-share picker, backups (kawa-backup), watching together (kawa-together),
+                   fetch, the popup window (kawa-float) and its pictures (kawa-sixel),
+                   brave-origin (Brave with screen-share sound)
 configs/           what theme installs: home/ mirrors $HOME (foot, waybar, fuzzel, mako, gtk,
                    qt, bash, nvim, both themes, the pixel art, the icon font) · system/ mirrors /etc
 art/               source art: icons.txt (every icon, drawn as text) · cursors.txt (the pointers,

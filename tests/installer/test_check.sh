@@ -19,7 +19,7 @@ has "$OUT" "✔ reachable: codeberg.org"; has "$OUT" "✔ wlroots 0.20 in this F
 has "$OUT" "✔ COPR ilyaz/LACT builds for Fedora 44"; lacks "$OUT" "dejan/lazygit" "lazygit is a release now, not a COPR"
 has "$OUT" "READY for setup"; lacks "$OUT" "✘"
 [[ -s $W/var/log/fedokawaii-check.log ]] && _ok || _no "no log"
-not_called 'dnf\] -y|systemctl\] (enable|disable)|grubby\] --update' 
+not_called 'dnf\] -y|systemctl\] (enable|disable)|grubby\] --update'
 case_ "misuse: an unknown option, not root (exit 2); --help (0)"
 chk --frobnicate; eq "$RC" 2; has "$OUT" "unknown option"
 fkrun runuser -u fkuser -- bash "$C"; eq "$RC" 2; has "$OUT" "run with sudo"
