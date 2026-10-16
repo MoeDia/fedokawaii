@@ -17,3 +17,16 @@ provider() {  # provider CAP → installed package providing it, or empty
 rcfor() { cat "$FKH/rc-$1" 2>/dev/null || echo "${2:-0}"; }
 # countdown NAME — 0 while $FKH/fail-NAME still holds a number > 0 (decremented): fails N times
 countdown() { local n; n=$(cat "$FKH/fail-$1" 2>/dev/null) || return 1; ((n > 0)) || return 1; echo $((n - 1)) >"$FKH/fail-$1"; return 0; }
+# fake_syncplay_source DIR — what a clone of Syncplay's v1.7.6 tag holds, as far as the desktop
+# looks: its syncplay/ folder, whose client and server load Twisted's TLS, certifi, pem and
+# pyOpenSSL (the fake machine's own, tests/installer/lib.sh), and which says its version
+fake_syncplay_source() {
+  mkdir -p "$1/syncplay"
+  printf "version = '%s'\nmilestone = 'Yoitsu'\n" "$(cat "$FKH/syncplay-version" 2>/dev/null || echo 1.7.6)" >"$1/syncplay/__init__.py"
+  printf 'import twisted.internet.ssl, certifi, pem\n' >"$1/syncplay/client.py"
+  printf 'import OpenSSL\n' >"$1/syncplay/server.py"
+  printf '%s\n' 'import sys' 'def main():' '    if "--version" in sys.argv:' \
+    '        print("You'"'"'re using Syncplay version 1.7.6 (Yoitsu)")' '        return' \
+    '    print("syncplay (fake):", " ".join(sys.argv[1:]))' >"$1/syncplay/ep_client.py"
+  printf '%s\n' 'def main():' '    print("syncplay-server (fake)")' >"$1/syncplay/ep_server.py"
+}

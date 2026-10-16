@@ -241,6 +241,47 @@ quit
 EOF
 eq "$(last_dir)" "$W/empty"; not_called '^(editor|xdg-open|xournalpp)'
 
+# a table opens in VisiData, in yazi's own window (block: the terminal is handed over, as to
+# the editor); yazi's own rules would send it to the editor (text/csv is text/*). The two
+# tables sort after p.png (8 and 9), so the keys above still land where they did.
+printf 'city,day\nSharjah,Mon\n' >"$W/trip to Japan.csv"; printf 'city\tday\nDubai\tTue\n' >"$W/weather.tsv"
+stub vd '[ -t 0 ] && : >"$TMP/vd.tty"; : >"$TMP/hit.vd"'
+case_ "Enter on a .csv opens it in VisiData, in this window (a name with spaces intact); not the editor"
+reset_calls
+y <<'EOF'
+wait a.txt
+settle
+key jjjjjjjj
+settle
+key <Enter>
+waitfile $TMP/hit.vd
+settle
+quit
+EOF
+called "^vd -- $W/trip to Japan\.csv$"; not_called '^editor'; not_called '^xdg-open'
+[[ -e $TMP/vd.tty ]] && _ok || _no "vd did not get the terminal (not a blocking shell)"
+eq "$(last_dir)" "$W" "it stays in the folder"
+case_ "a .csv and a .tsv selected: one VisiData with both; a selected text file still goes to the editor"
+reset_calls
+y <<'EOF'
+wait a.txt
+settle
+key jjj
+settle
+key <Space>
+key jjjj
+settle
+key <Space>
+key <Space>
+settle
+key <Enter>
+waitfile $TMP/hit.vd
+waitfile $TMP/hit.editor
+settle
+quit
+EOF
+called "^vd -- $W/trip to Japan\.csv $W/weather\.tsv$"; called "^editor $W/a.txt$"; not_called "^editor .*sv$"
+
 # ── M: the drives ────────────────────────────────────────────────────────────────────────
 setup
 out=$(y <<'EOF'
@@ -511,6 +552,96 @@ EOF
 )
 has "$out" "Into the folder, or open the file(s)"; has "$out" "Drives: open or eject one"
 has "$out" "Go to the open drives"
+
+# ── a film: W watches it together ──────────────────────────────────────────────────────
+case_ "W on a film: Syncplay in a terminal window of its own (kawa-term kawa-together FILE)"
+setup; reset_calls
+stub kawa-term ': >"$TMP/hit.kawa-term"'
+mkdir -p "$TMP/films"; cp "$W/p.png" "$TMP/films/our film's night.mkv"   # (any file: W does not ask its type)
+CWD=$TMP/films y <<'EOF'
+wait night.mkv
+settle
+key W
+waitfile $TMP/hit.kawa-term
+settle
+quit
+EOF
+called "^kawa-term kawa-together $TMP/films/our film's night\.mkv$"; not_called '^xdg-open'
+eq "$(last_dir)" "$TMP/films" "yazi stays"
+case_ "~ lists W with its words"
+out=$(CWD=$TMP/films y 120x40 <<'EOF'
+wait night.mkv
+settle
+key ~
+wait Watch it together
+settle
+screen
+key <Esc>
+key <Esc>
+gone Watch it together
+quit
+EOF
+)
+has "$out" "Watch it together (Syncplay)"
+# ── the file dialog (kawa-pick): its own yazi, Enter and Esc, its title ─────────────────
+# (the dialog's yazi as kawa-pick runs it inside its window; the answer lands in $TMP/pk)
+pick() {   # pick MODE DIR [SIZE] — driven by the steps on stdin
+  rm -rf "$TMP/pk"; mkdir -p "$TMP/pk"
+  python3 "$D/drive.py" --size "${3:-100x31}" --cwd "$2" -- kawa-pick --inside "$1" "$2" "$TMP/pk" 2>"$TMP/drive.err" \
+    || { cat "$TMP/drive.err" >&2; echo "the session: $(head -n 1 "$TMP/drive.err")" >>"$SF"; }
+}
+answer() { tr '\n' '|' 2>/dev/null <"$TMP/pk/answer"; }
+setup; config .config/fedokawaii/yazi-pick; ln -sf "$YAZI" "$STUBS/yazi"
+case_ "the dialog: Enter on a folder goes into it, Enter on a file takes it"
+pick open1 "$W" <<'EOF'
+wait a.txt
+settle
+key jj
+settle
+key <Enter>
+wait No items
+settle
+key h
+wait a.txt
+settle
+key j
+settle
+key <Enter>
+waitfile $TMP/pk/answer
+EOF
+eq "$(answer)" "$W/a.txt|"
+case_ "the dialog's Esc: first the marks go (it stays open), then it cancels"
+out=$(pick openN "$W" <<'EOF'
+wait a.txt
+settle
+key jjj
+settle
+key <Space>
+key <Space>
+settle
+key <Esc>
+settle
+screen
+key <Esc>
+sleep 1
+EOF
+)
+has "$out" "space mark  ·  enter open" "(open after the first Esc)"; eq "$(answer)" "" "cancelled: no answer"
+case_ "a long folder in the dialog's title: cut at its start with …, the '· ' before it kept, the rule to the edge"
+L="$W/とても長い日本語のフォルダの名前がここにありますとても長い日本語のフォルダの名前/مجلد"
+mkdir -p "$L"; echo x >"$L/x.txt"
+out=$(pick open1 "$L" <<'EOF'
+wait x.txt
+settle
+screen
+key <Esc>
+sleep 1
+EOF
+)
+head1=$(sed -n 1p <<<"$out")
+has "$head1" "open file · …"; has "$head1" "/مجلد ─"
+eq "$(python3 -I -B -c 'import sys; sys.path.insert(0, sys.argv[1]); import drive
+print(sum(drive.width(c) for c in sys.stdin.read().rstrip("\n")))' "$D" <<<"$head1")" 99 "(the title rule: the window less its free column)"
 
 flush; rm -f "$SF"
 done_

@@ -1,8 +1,10 @@
 #!/usr/bin/env bash
 # tests/content/test_configs.sh — the content helpers' configs, read as their programs read
 # them: zathura's (and each theme's colours it includes), bat's, btop's (and each theme's
-# colours), the fzf options every list of the desktop shares — and the clipboard and books
-# windows' own fzf command lines, parsed by the real fzf when this machine has it.
+# colours), VisiData's, sc-im's and gdu's (terminal colours only, so they follow the theme
+# through foot; run by the real vd and sc-im when this machine has them), the fzf options
+# every list of the desktop shares — and the clipboard and books windows' own fzf command
+# lines, parsed by the real fzf when this machine has it.
 . "$(dirname "$0")/lib.sh"
 sandbox
 TH=$REPO/configs/home/.config/fedokawaii/themes
@@ -97,11 +99,14 @@ while IFS= read -r line; do
   case $k in
     graph_symbol) [[ $v =~ ^\"(braille|block|tty)\"$ ]] && _ok || _no "$k = $v" ;;
     color_theme) [[ $v =~ ^\"[^\"/]+\"$ ]] && _ok || _no "$k = $v" ;;
+    show_gpu_info) [[ $v =~ ^\"(Auto|On|Off)\"$ ]] && _ok || _no "$k = $v" ;;
     *) [[ $v == True || $v == False ]] && _ok || _no "$k = $v (True or False)" ;;
   esac
 done <"$HOME/.config/btop/btop.conf"
 case_ "btop.conf: kept as written (btop rewrites a config whose first line lacks its version unless told not to)"
 has "$(cat "$HOME/.config/btop/btop.conf")" "save_config_on_exit = False"
+case_ "btop.conf: the graphics card's line in the CPU box is on (the guide's §26.5: load, memory, heat, watts)"
+has "$(cat "$HOME/.config/btop/btop.conf")" 'show_gpu_info = "On"'
 case_ "btop's theme, both: a file of that name for color_theme, every key btop's, every value a colour"
 name=$(sed -n 's/^color_theme = "\(.*\)"/\1/p' "$HOME/.config/btop/btop.conf"); eq "$name" fedokawaii
 BKEYS=" main_bg main_fg title hi_fg selected_bg selected_fg inactive_fg graph_text meter_bg proc_misc
@@ -117,6 +122,190 @@ for t in dark light; do
       && _ok || _no "$t: $line"
   done <"$TH/$t/btop.theme"
 done
+
+# ── visidata ─────────────────────────────────────────────────────────────────
+# (vd on this machine: the one on PATH — Fedora's visidata, or a venv's — else the live checks
+# are skipped; the file itself is checked all the same)
+config .visidatarc
+VRC=$HOME/.visidatarc
+case_ ".visidatarc: every colour one of the terminal's 16 (a number 0-15 or a curses name) and attributes — never the 256-colour cube; every option set once"
+out=$(python3 -I - "$VRC" <<'EOF'
+import ast, re, sys
+src = open(sys.argv[1]).read()
+names = {"black", "red", "green", "yellow", "blue", "magenta", "cyan", "white"}
+attrs = {"bold", "underline", "reverse", "italic", "dim", "normal", "blink", "standout", "on", "fg", "bg"}
+seen, bad = {}, []
+for node in ast.parse(src).body:
+    if not (isinstance(node, ast.Assign) and len(node.targets) == 1 and isinstance(node.targets[0], ast.Attribute)
+            and isinstance(node.targets[0].value, ast.Name) and node.targets[0].value.id == "options"):
+        bad.append(f"line {node.lineno}: not an options.NAME = VALUE line"); continue
+    k, v = node.targets[0].attr, node.value
+    if k in seen: bad.append(f"line {node.lineno}: {k} set again (line {seen[k]})")
+    seen[k] = node.lineno
+    if k.startswith("color_") or k == "plot_colors":
+        if not isinstance(v, ast.Constant) or not isinstance(v.value, str):
+            bad.append(f"line {node.lineno}: {k} is not a string"); continue
+        for w in v.value.split():
+            if w in names or w in attrs or (w.isdigit() and 0 <= int(w) <= 15): continue
+            bad.append(f"line {node.lineno}: {k}: {w!r} is not one of the terminal's 16 colours")
+print("\n".join(bad))
+EOF
+)
+eq "$out" ""
+case_ ".visidatarc: the defaults vd takes from the 256-colour cube are all overridden (the ones its 3.3 options list has)"
+for k in color_default_hdr color_current_col color_key_col color_selected_row color_note_type color_note_row color_edit_cell \
+         color_edit_unfocused color_status color_active_status color_keystrokes color_aggregator color_code color_error \
+         color_warning color_working color_menu color_menu_active color_menu_spec color_menu_help color_cmdpalette color_sidebar \
+         color_longname_guide color_guide_unwritten color_graph_hidden plot_colors; do
+  grep -q "^options\.$k = " "$VRC" && _ok || _no "$k is left at vd's default"
+done
+case_ ".visidatarc: what vd draws together stays readable in both palettes (foot.ini's dark and light) — the cursor's column name, each part of the status line: 3:1 or more"
+out=$(python3 -I - "$VRC" "$REPO/configs/home/.config/foot/foot.ini" <<'EOF'
+import ast, re, sys
+opts = {n.targets[0].attr: n.value.value for n in ast.parse(open(sys.argv[1]).read()).body}
+NAMES = "black red green yellow blue magenta cyan white".split()
+def spec(name, default=""):        # "bold 0 on 9" → (0, 9): None where it sets no colour
+    fg = bg = None; on = False
+    for w in opts.get(name, default).split():
+        if w == "on": on = True; continue
+        n = int(w) if w.isdigit() else NAMES.index(w) if w in NAMES else None
+        if n is None: continue
+        if on and bg is None: bg = n
+        elif not on and fg is None: fg = n
+    return fg, bg
+def first(*xs): return next((x for x in xs if x is not None), None)
+ini = open(sys.argv[2]).read()
+def lum(h):
+    c = [int(h[i:i + 2], 16) / 255 for i in (0, 2, 4)]
+    c = [x / 12.92 if x <= 0.04045 else ((x + 0.055) / 1.055) ** 2.4 for x in c]
+    return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2]
+bad = []
+for theme in ("dark", "light"):
+    sec = re.search(r"^\[colors-%s\]\n(.*?)(?=^\[|\Z)" % theme, ini, re.M | re.S).group(1)
+    kv = dict(re.findall(r"^(\w+)=([0-9a-fA-F]{6})", sec, re.M))
+    pal = {i: kv["regular%d" % i] for i in range(8)} | {8 + i: kv["bright%d" % i] for i in range(8)}
+    FG, BG = kv["foreground"], kv["background"]
+    col = lambda n, d: pal[n] if n is not None else d
+    # VisiData 3.3 (update_attr): a colour fills what is not set yet, and replaces what is
+    # set only at a higher precedence — the header's two are equal, a status markup is higher
+    dflt, hdr, cur = spec("color_default"), spec("color_default_hdr"), spec("color_current_hdr")
+    pairs = {"the cursor's column name": (first(hdr[0], dflt[0], cur[0]), first(hdr[1], dflt[1], cur[1]))}
+    st = spec("color_active_status")
+    pairs["the status line"] = st
+    for part, d in (("color_longname_status", "white"), ("color_keystrokes", ""), ("color_working", "")):
+        f, b = spec(part, d)
+        pairs["the status line's " + part[6:]] = (first(f, st[0]), first(b, st[1]))
+    for what, (f, b) in pairs.items():
+        lf, lb = lum(col(f, FG)), lum(col(b, BG))
+        r = (max(lf, lb) + 0.05) / (min(lf, lb) + 0.05)
+        if r < 3: bad.append(f"{theme}: {what}: colour {f} on {b} — {r:.1f}:1")
+print("\n".join(bad))
+EOF
+)
+eq "$out" ""
+case_ ".visidatarc: q asks before dropping unsaved changes (quitguard)"
+has "$(cat "$VRC")" "options.quitguard = True"
+case_ ".visidatarc: vd fetches nothing at start (its message of the day from visidata.org is off)"
+has "$(cat "$VRC")" "options.motd_url = ''"
+if [[ -n $REAL_VD ]]; then
+  mkdir -p "$HOME/t"; cd "$HOME/t" || exit 1
+  printf 'city,temp,day\nSharjah,41,Mon\nDubai,40,Tue\n\xd8\xa7\xd9\x84\xd8\xb9\xd9\x8a\xd9\x86,38,Wed\n\xe6\x9d\xb1\xe4\xba\xac,24,Thu\n' >"trip to Japan.csv"
+  case_ "vd reads .visidatarc without a complaint (batch mode: no screen), and loads a CSV with spaces in its name and Arabic and Japanese cells"
+  "$REAL_VD" -b -o out.csv -- "trip to Japan.csv" >"$TMP/vd.out" 2>&1; r=$?
+  eq "$r" 0 "$(tail -n 3 "$TMP/vd.out" | tr '\n' '|')"
+  lacks "$(cat "$TMP/vd.out")" "unknown option"; lacks "$(cat "$TMP/vd.out")" "Traceback"; lacks "$(cat "$TMP/vd.out")" "rror"
+  eq "$(wc -l <out.csv)" 5; has "$(cat out.csv)" $'\xd8\xa7\xd9\x84\xd8\xb9\xd9\x8a\xd9\x86,38,Wed'; has "$(cat out.csv)" $'\xe6\x9d\xb1\xe4\xba\xac,24,Thu'
+  case_ "vd sorts a column as a number and saves (a replayed command log: # then [ on temp — the guide's example)"
+  printf '%s\n' '{"sheet":"trip to Japan","col":"temp","row":"","longname":"type-int","input":"","keystrokes":"#"}' \
+                '{"sheet":"trip to Japan","col":"temp","row":"","longname":"sort-asc","input":"","keystrokes":"["}' >sort.vdj
+  "$REAL_VD" -b -p sort.vdj -o sorted.csv -- "trip to Japan.csv" >"$TMP/vd.out" 2>&1; r=$?
+  eq "$r" 0 "$(tail -n 3 "$TMP/vd.out" | tr '\n' '|')"
+  eq "$(cut -d, -f2 sorted.csv | tr '\n' ' ')" "temp 24 38 40 41 "
+  case_ "an empty file, and a broken one (a quote never closed): vd opens them and says so, never a traceback"
+  : >empty.csv; printf 'a,b\n1,"open\n' >broken.csv
+  "$REAL_VD" -b -o e.tsv -- empty.csv >"$TMP/vd.out" 2>&1; r=$?; eq "$r" 0 "$(tail -n 2 "$TMP/vd.out" | tr '\n' '|')"
+  lacks "$(cat "$TMP/vd.out")" "Traceback"
+  "$REAL_VD" -b -o b.tsv -- broken.csv >"$TMP/vd.out" 2>&1; r=$?; eq "$r" 0 "$(tail -n 2 "$TMP/vd.out" | tr '\n' '|')"
+  lacks "$(cat "$TMP/vd.out")" "Traceback"
+  case_ "a large CSV (200,000 rows): loaded and saved in one piece, well within a minute"
+  python3 -I -c 'cities = "Sharjah Dubai Ajman".split()
+with open("big.csv", "w") as f:
+    f.write("id,city,amount\n")
+    for i in range(200000): f.write(f"{i},{cities[i % 3]},{i % 997}\n")'
+  SECONDS=0; "$REAL_VD" -b -o big.tsv -- big.csv >"$TMP/vd.out" 2>&1; r=$?
+  eq "$r" 0 "$(tail -n 2 "$TMP/vd.out" | tr '\n' '|')"; eq "$(wc -l <big.tsv)" 200001
+  ((SECONDS < 60)) && _ok || _no "took ${SECONDS}s"
+  case_ "vd on the terminal (a pseudo-terminal of its own) with this file: the column names and the status line, then q quits"
+  out=$(python3 -I "$C/pty_run.py" --cols 100 --rows 30 --timeout 30 --send 4 'q' -- "$REAL_VD" -- "trip to Japan.csv" 2>/dev/null | sed 's/\x1b\[[0-9;?]*[a-zA-Z]//g')
+  has "$out" "city"; has "$out" "temp"; has "$out" "Sharjah"; lacks "$out" "Traceback"
+  cd / || exit 1
+else skip "vd is not installed (dnf install visidata) — .visidatarc is checked, vd itself is not run"; fi
+
+# ── sc-im ────────────────────────────────────────────────────────────────────
+config .config/sc-im/scimrc
+SRC=$HOME/.config/sc-im/scimrc
+# sc-im 0.8.5's configuration variables (src/conf.c, default_config)
+SOPTS=" autobackup autocalc autowrap command_timeout copy_to_clipboard_delimited_tab copy_to_clipboard_wysiwyg
+debug default_copy_to_clipboard_cmd default_open_file_under_cursor_cmd default_paste_from_clipboard_cmd exec_lua
+external_functions half_page_scroll help ignore_hidden ignorecase import_delimited_to_text input_bar_bottom
+input_edit_mode mapping_timeout newline_action nocurses numeric numeric_decimal numeric_zero overlap quiet
+quit_afterload show_cursor tm_gmtoff trigger truncate underline_grid version xlsx_readformulas "
+case_ "scimrc: every line a comment or a set of a variable sc-im 0.8.5 has; no colour line (the terminal's palette does that), no REDEFINE_COLOR"
+while IFS= read -r line; do
+  [[ -z ${line//[[:space:]]/} || $line == \#* ]] && continue
+  if [[ $line =~ ^set\ ([a-z_]+)(=.*)?$ ]]; then
+    [[ $SOPTS == *[[:space:]]"${BASH_REMATCH[1]}"[[:space:]]* ]] && _ok || _no "unknown variable ${BASH_REMATCH[1]}"
+  else _no "not a set line: $line"; fi
+done <"$SRC"
+lacks "$(cat "$SRC")" $'\ncolor '; lacks "$(cat "$SRC")" $'\nREDEFINE_COLOR'; lacks "$(cat "$SRC")" $'\nDEFINE_COLOR'
+case_ "scimrc: the clipboard is Wayland's (wl-copy, wl-paste — the build's xclip is not installed)"
+has "$(cat "$SRC")" 'set default_copy_to_clipboard_cmd="wl-copy <"'; has "$(cat "$SRC")" 'set default_paste_from_clipboard_cmd="wl-paste"'
+if [[ -n $REAL_SCIM ]]; then
+  mkdir -p "$HOME/t"; cd "$HOME/t" || exit 1
+  printf 'city,temp\nSharjah,41\nDubai,40\n' >"trip to Japan.csv"
+  # (--nocurses draws no screen, but sc-im still opens /dev/tty: a pseudo-terminal of its own)
+  case_ "sc-im reads scimrc and a CSV with spaces in its name without a complaint (no screen: --nocurses --quit_afterload)"
+  python3 -I "$C/pty_run.py" --timeout 20 -- "$REAL_SCIM" --nocurses --quit_afterload "trip to Japan.csv" >"$TMP/sc.out" 2>&1; r=$?
+  eq "$r" 0 "$(tail -n 3 "$TMP/sc.out" | tr '\n' '|')"; lacks "$(cat "$TMP/sc.out")" "rror"
+  case_ "sc-im on a file that does not exist yet: starts on an empty sheet to be saved under that name"
+  python3 -I "$C/pty_run.py" --timeout 20 -- "$REAL_SCIM" --nocurses --quit_afterload new-budget.sc >"$TMP/sc.out" 2>&1; r=$?
+  eq "$r" 0 "$(tail -n 3 "$TMP/sc.out" | tr '\n' '|')"; lacks "$(cat "$TMP/sc.out")" "rror"
+  [[ ! -e new-budget.sc ]] && _ok || _no "a file was written without :w"
+  cd / || exit 1
+else skip "sc-im is not installed (dnf install sc-im) — scimrc is checked, sc-im itself is not run"; fi
+
+# ── gdu ──────────────────────────────────────────────────────────────────────
+config .config/gdu/gdu.yaml
+GDU=$HOME/.config/gdu/gdu.yaml
+case_ "gdu.yaml: a style block only, every key gdu 5.32's (configuration.md), every colour one of tcell's 16 terminal names"
+out=$(python3 -I - "$GDU" <<'EOF'
+import re, sys
+keys = {"style": {"header": {"text-color", "background-color", "hidden"}, "footer": {"text-color", "background-color", "number-color"},
+                  "selected-row": {"text-color", "background-color"}, "result-row": {"number-color", "directory-color"},
+                  "progress-modal": {"current-item-path-max-len"}, "use-old-size-bar": None}}
+names = {"black", "maroon", "green", "olive", "navy", "purple", "teal", "silver", "gray", "red", "lime", "yellow", "blue", "fuchsia", "aqua", "white"}
+path, bad = [], []
+for n, ln in enumerate(open(sys.argv[1]), 1):
+    if not ln.strip() or ln.lstrip().startswith("#"): continue
+    m = re.match(r"( *)([a-z-]+):(?: (.*))?$", ln.rstrip("\n"))
+    if not m: bad.append(f"line {n}: not key: value"); continue
+    depth = len(m.group(1)) // 2
+    path = path[:depth] + [m.group(2)]
+    d = keys
+    for k in path[:-1]: d = d.get(k) if isinstance(d, dict) else None
+    if not isinstance(d, (dict, set)) or path[-1] not in d: bad.append(f"line {n}: {'.'.join(path)} is not a key gdu has"); continue
+    if m.group(3) is not None and path[-1].endswith("-color") and m.group(3) not in names:
+        bad.append(f"line {n}: {m.group(3)!r} is not one of tcell's 16 terminal colours")
+print("\n".join(bad))
+EOF
+)
+eq "$out" ""
+if [[ -n $REAL_GDU ]]; then
+  case_ "gdu reads gdu.yaml (no screen: --non-interactive) and sizes a folder"
+  mkdir -p "$HOME/t/sub"; head -c 300000 /dev/zero >"$HOME/t/sub/big"; : >"$HOME/t/small"
+  out=$("$REAL_GDU" --config-file "$GDU" --non-interactive --no-progress "$HOME/t" 2>&1); r=$?
+  eq "$r" 0 "$(tail -n 2 <<<"$out" | tr '\n' '|')"; has "$out" "sub"; lacks "$out" "rror"
+else skip "gdu is not installed (dnf install gdu) — gdu.yaml is checked, gdu itself is not run"; fi
 
 # ── fzf ──────────────────────────────────────────────────────────────────────
 config .config/fedokawaii/fzf.opts

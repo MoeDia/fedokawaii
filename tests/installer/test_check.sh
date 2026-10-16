@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # tests/installer/test_check.sh — check.sh, the readiness check setup runs first, on a fake fresh
-# Fedora 44 Server: ready as the README's installer settings leave it (exit 0) — and each
+# Fedora 44 Server (and 45): ready as the README's installer settings leave it (exit 0) — and each
 # installer choice or machine state that would stop setup hours in named as ✘ (exit 1), what
 # does not block as !, and misuse as exit 2. (Its GPU, laptop, Wi-Fi and boot lines: test_hardware.sh)
 . "$(dirname "$0")/lib.sh"
@@ -16,6 +16,7 @@ chk; eq "$RC" 0 "$(grep '✘' <<<"$OUT" | head -n3 | tr '\n' '|')"
 has "$OUT" "✔ all values valid"; has "$OUT" "✔ Fedora 44 (supported)"; has "$OUT" "✔ Fedora Server edition"
 has "$OUT" "✔ / is Btrfs"; has "$OUT" "✔ desktop user: fkuser"; has "$OUT" "✔ fkuser is an administrator (wheel)"
 has "$OUT" "✔ reachable: codeberg.org"; has "$OUT" "✔ wlroots 0.20 in this Fedora"
+has "$OUT" "✔ COPR ilyaz/LACT builds for Fedora 44"; lacks "$OUT" "dejan/lazygit" "lazygit is a release now, not a COPR"
 has "$OUT" "READY for setup"; lacks "$OUT" "✘"
 [[ -s $W/var/log/fedokawaii-check.log ]] && _ok || _no "no log"
 not_called 'dnf\] -y|systemctl\] (enable|disable)|grubby\] --update' 
@@ -74,8 +75,35 @@ chk; eq "$RC" 0; has "$OUT" "! ~/.bashrc does not load ~/.bashrc.d"
 case_ "offline: the repositories cannot be asked — every host ✘, the wlroots question a warning"
 back fresh; fkh net off
 chk; eq "$RC" 1; has "$OUT" "✘ unreachable: mirrors.fedoraproject.org"; has "$OUT" "! could not ask the repositories for wlroots 0.20"
+case_ "a wrong clock: every site's certificate refused — the clock named, not DNS or a firewall"
+back fresh; fkh clock wrong
+chk; eq "$RC" 1; has "$OUT" "✘ unreachable: mirrors.fedoraproject.org — its certificate is refused: the clock is wrong?"
+has "$OUT" "timedatectl set-ntp true"; lacks "$OUT" "DNS, firewall or proxy?"
 case_ "setup already started: said"
 back fresh; echo 2 >"$W/var/lib/fedokawaii/phase"
 chk; has "$OUT" "setup already started: phase 2"
+
+case_ "a fresh Fedora 45 Server: supported, ready (exit 0)"
+back fresh; fedora_release 45
+chk; eq "$RC" 0 "$(grep '✘' <<<"$OUT" | head -n3 | tr '\n' '|')"
+has "$OUT" "✔ Fedora 45 (supported)"; has "$OUT" "READY for setup"
+case_ "where it runs: sudo's own pseudo-terminal is looked past (SUDO_TTY) — the console says nothing, SSH or a window warns"
+fkrun env SUDO_TTY=/dev/pts/0 kmscon bash "$C"; eq "$RC" 0
+lacks "$OUT" "running over SSH" "Fedora 45's console is kmscon's pseudo-terminal: the machine's own screen"
+fkrun env SUDO_TTY=/dev/pts/3 bash "$C"; has "$OUT" "! running over SSH or in a terminal window (/dev/pts/3)"
+back fresh; fkrun env SUDO_TTY=/dev/tty1 bash "$C"; lacks "$OUT" "running over SSH" "Fedora 44's console, /dev/tty1"
+case_ "Rawhide: named as Fedora's development branch — a warning, not a stop"
+back fresh; osr VERSION_ID 46; echo REDHAT_BUGZILLA_PRODUCT_VERSION=rawhide >>"$W/etc/os-release"
+fkh copr-without "ilyaz/LACT fedora-46-x86_64"       # (until 46 branches off, COPR builds it as fedora-rawhide)
+chk; eq "$RC" 0; has "$OUT" "! Fedora Rawhide (46) — Fedora's development branch"
+has "$OUT" "✔ COPR ilyaz/LACT builds for Fedora 46" "Rawhide's COPR builds are fedora-rawhide"
+case_ "a COPR not built for this release yet (a new Fedora's first days): a warning — setup leaves LACT out and adds it later"
+back fresh; fedora_release 45; fkh copr-without "ilyaz/LACT fedora-45-x86_64"
+chk; eq "$RC" 0 "a COPR that waits never stops the check"
+has "$OUT" "! COPR ilyaz/LACT has nothing for Fedora 45 yet — setup leaves lact out; update or repair add it once it is built"
+lacks "$OUT" "✘ COPR"
+case_ "… COPR not answering: a warning, setup finds out itself"
+back fresh; fkh unreachable copr.fedorainfracloud.org
+chk; has "$OUT" "! could not ask COPR whether ilyaz/LACT builds for Fedora 44"
 
 done_

@@ -87,6 +87,13 @@ done
 case_ "the key written as the shell would: export, quotes, a comment"
 fresh; printf '# torrra\nexport PROWLARR_API_KEY='"'"'%s'"'"'   # Prowlarr\n' "$KEY" >"$HOME/.config/fedokawaii/secrets.sh"
 out=$(kawa-torrra 2>&1); eq "$?" 0; eq "$(seen "$out" key)" "$KEY"
+case_ "secrets.sh with your other keys (exported) beside it: only Prowlarr's is taken — the rest stay out of torrra"
+fresh; printf 'export KAWA_TEST_OTHER_KEY=sk-other-123\nPROWLARR_API_KEY=%s\n' "$KEY" >"$HOME/.config/fedokawaii/secrets.sh"
+out=$(env -u KAWA_TEST_OTHER_KEY kawa-torrra 2>&1); eq "$?" 0; eq "$(seen "$out" key)" "$KEY"
+eq "$(seen "$out" env_other)" "None" "another key of secrets.sh reached torrra's environment"
+case_ "a line in secrets.sh naming a variable that is not set: the search still runs (no 'unbound variable')"
+fresh; printf 'export GH_TOKEN="$NOT_SET_ANYWHERE"\nPROWLARR_API_KEY=%s\n' "$KEY" >"$HOME/.config/fedokawaii/secrets.sh"
+out=$(kawa-torrra 2>&1); eq "$?" 0; lacks "$out" "unbound variable"; eq "$(seen "$out" key)" "$KEY"
 
 # ── Prowlarr ─────────────────────────────────────────────────────────────────
 case_ "Prowlarr not answering: said, with where to look"
@@ -136,6 +143,11 @@ case_ "--open a magnet link: downloaded — no key needed, no Prowlarr"
 fresh; rm "$HOME/.config/fedokawaii/secrets.sh"
 out=$(kawa-torrra --open 'magnet:?xt=urn:btih:abc&dn=a b' 2>&1); eq "$?" 0
 eq "$(seen "$out" argv)" "['torrra', 'download', 'magnet:?xt=urn:btih:abc&dn=a b']"; not_called systemctl
+case_ "--open a magnet link with quotes, \$( ), backticks and ; in its name: handed on word for word, nothing run"
+m='magnet:?xt=urn:btih:abc&dn=it'"'"'s "a" $(touch '"$TMP"'/ran) `touch '"$TMP"'/ran`; é'
+out=$(kawa-torrra --open "$m" 2>&1); eq "$?" 0
+eq "$(tail -n1 <<<"$out" | python3 -c 'import json,sys; print(json.load(sys.stdin)["argv"][2])')" "$m"
+[[ ! -e $TMP/ran ]] && _ok || _no "a part of the link was run"
 case_ "--open a URL of a .torrent"
 out=$(kawa-torrra --open 'https://example.org/x.torrent' 2>&1); eq "$?" 0; has "$(seen "$out" argv)" "https://example.org/x.torrent"
 case_ "--open a file:// link: spaces and accents decoded, file://localhost too"

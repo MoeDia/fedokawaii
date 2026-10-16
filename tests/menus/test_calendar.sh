@@ -90,6 +90,15 @@ eq "$(fz_rows 2 | sed -n "$(($(fz_arg select-index 2) + 1))p" | sed 's/^ *//')" 
 case_ "on the 31st, next is the next month (not two ahead), previous the one before"
 setup 2026-01-31; answer "pick next" "pick previous" "pick previous" esc; cal
 eq "$(for n in 1 2 3 4; do fz_arg mesg $n | sed 's/^ *//'; echo; done | tr '\n' ',')" "Jan 2026,Feb 2026,Jan 2026,Dec 2025,"
+case_ "opened on the stroke of midnight at a month's end: the day it read, marked in its month"
+# (the clock reads 31 October for the first look at "now", 1 November from then on)
+setup 2026-10-31; export NOWS=$TMP/nows
+# shellcheck disable=SC2016  # (expanded by the stand-in)
+stub date 'for a; do case $a in -d*|--date*) exec /bin/date "$@" ;; esac; done
+n=$(cat "$NOWS" 2>/dev/null || echo 0); echo $((n + 1)) >"$NOWS"
+[ "$n" = 0 ] && exec /bin/date -d "2026-10-31 23:59:59" "$@"; exec /bin/date -d "2026-11-01 00:00:00" "$@"'
+answer esc; cal
+eq "$(fz_arg mesg | sed 's/^ *//')" "Oct 2026"; has "$(grid)" "[31]"; lacks "$(grid)" "[ 1]"
 case_ "back to today: this month again, today selected, the way back gone"
 setup 2026-10-16; answer "pick next" "pick next" "pick back to today" esc; cal
 eq "$(fz_arg mesg 4 | sed 's/^ *//')" "Oct 2026"; eq "$(fz_arg select-index 4)" 3; lacks "$(fz_rows 4)" "back to today"

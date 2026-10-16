@@ -44,7 +44,7 @@ unmark() { del installed "$1"; hook remove "$1"; sed -i "/^${1//./\\.} /d" "$FKH
 case "$a" in
   " --version "*) echo "dnf5 version 5.2.17.0"; exit 0;;
   *" --dump-main-config "*)
-      declare -A v=([max_parallel_downloads]=3 [fastestmirror]=0 [minrate]=1000 [timeout]=30 [installonly_limit]=3 [defaultyes]=0)
+      declare -A v=([max_parallel_downloads]=3 [fastestmirror]=0 [minrate]=1000 [timeout]=30 [installonly_limit]=3 [defaultyes]=0 [exclude_from_weak]="")
       while IFS='=' read -r k x; do k=${k// /}; x=${x// /}; [[ -n ${v[$k]+x} ]] && v[$k]=$x; done \
         < <(grep -h '=' /etc/dnf/libdnf5.conf.d/*.conf 2>/dev/null)
       [[ ${v[minrate]} == 50k ]] && v[minrate]=51200
@@ -56,7 +56,12 @@ case "$a" in
       net_on || exit 1
       f=$(sed -n 's/.*--from-repofile=\([^ ]*\).*/\1/p' <<<"$*"); mkdir -p /etc/yum.repos.d; printf '[x]\ngpgcheck=1\n' >"/etc/yum.repos.d/${f##*/}"; exit 0;;
   *" config-manager "*) exit 0;;
-  *" copr enable "*) net_on || exit 1; c=${*: -1}; add coprs "copr:copr.fedorainfracloud.org:${c/\//:}"; exit 0;;
+  *" copr enable "*) net_on || exit 1; c=${*: -1}
+      # $FKH/copr-nochroot: the COPRs with no build for this release (dnf5's copr plugin says so)
+      if has copr-nochroot "$c"; then
+        printf 'Chroot not found in the given Copr project (fedora-44-x86_64).\nYou can choose one of the available chroots explicitly:\n fedora-43-x86_64\n' >&2; exit 1
+      fi
+      add coprs "copr:copr.fedorainfracloud.org:${c/\//:}"; exit 0;;
   *" offline clean "*|*" system-upgrade clean "*|*" clean metadata "*) exit 0;;
   *" check-upgrade "*) net_on || exit 1; r=$(rcfor check-upgrade 0); ((r == 100)) && printf 'bash.x86_64 5.3-1 updates\nkernel-core.x86_64 6.19-1 updates\n'; exit "$r";;
   *" check "*) [[ -s $FKH/dnfcheck ]] || exit 0; cat "$FKH/dnfcheck"; exit 1;;
@@ -84,6 +89,10 @@ case "$a" in
       net_on || { echo "Failed to download metadata" >&2; exit 1; }
       caps=$(sed -n 's/.*--whatprovides=\([^ ]*\).*/\1/p' <<<"$*"); IFS=, read -ra cs <<<"$caps"
       for c in "${cs[@]}"; do has libs-missing "$c" || echo "$c"; done; exit 0;;
+  *" repoquery "*"--latest-limit=1 "*"%{version}"*)   # (a package's newest version: $FKH/versions "NAME VERSION", else 1.0)
+      net_on || { echo "Failed to download metadata for repo 'fedora'" >&2; exit 1; }
+      p=${*: -1}; has available "$p" || exit 0
+      ver=$(awk -v n="$p" '$1 == n { print $2; exit }' "$FKH/versions" 2>/dev/null); echo "${ver:-1.0}"; exit 0;;
   *" repoquery "*"pkgconfig(wlroots-"*)
       net_on || { echo "Failed to download metadata for repo 'fedora'" >&2; exit 1; }
       has available wlroots-devel && echo "wlroots-devel-$(cat "$FKH/wlroots-version" 2>/dev/null || echo 0.20.2)"; exit 0;;
@@ -102,7 +111,15 @@ case "$a" in
         if [[ $p == https://*.rpm ]]; then p=${p##*/}; p=${p%-[0-9]*.noarch.rpm}; mark_user "$p"; continue; fi
         q=$(awk -v c="$p" '$1 == c { print $2; exit }' "$FKH/provides" 2>/dev/null); [[ -n $q ]] && p=$q
         if ((skip)) && ! has available "$p"; then echo "dnf stub: skipping unavailable $p" >&2; continue; fi
+        # $FKH/behind: RPM Fusion's builds out of step with Fedora (what dnf then says)
+        if has behind "$p"; then
+          printf 'Problem: package %s-1.0-1.fc44 requires mesa-filesystem(x86-64) = 1.0, but none of the providers can be installed\n' "$p" >&2; rc=1; continue
+        fi
         if has uninstallable "$p" || ! has available "$p"; then echo "dnf stub: no match for argument: $p" >&2; rc=1; else mark_user "$p"; fi
+        # (RPM Fusion's Vulkan driver conflicts with Fedora's: --allowerasing takes Fedora's out)
+        if [[ $p == mesa-vulkan-drivers-freeworld* && $a == *" --allowerasing "* ]] && has installed "$p"; then
+          unmark "mesa-vulkan-drivers${p#mesa-vulkan-drivers-freeworld}"
+        fi
       done; exit $rc;;
   *" mark "*)
       how=""; for x in "$@"; do case $x in user|dependency) how=$x; continue;; -*|mark) continue;; esac

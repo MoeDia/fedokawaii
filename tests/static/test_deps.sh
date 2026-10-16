@@ -123,7 +123,8 @@ case_ "the guide's promises hold in mimeapps.list"
 ma=$REPO/configs/home/.config/mimeapps.list
 for pair in text/plain=kawa-edit.desktop inode/directory=kawa-files.desktop image/png=imv.desktop \
             video/mp4=mpv.desktop audio/flac=mpv.desktop application/pdf=org.pwmt.zathura-pdf-mupdf.desktop \
-            application/vnd.comicbook+zip=org.pwmt.zathura-cb.desktop text/csv=org.gnumeric.gnumeric.desktop \
+            application/vnd.comicbook+zip=org.pwmt.zathura-cb.desktop text/csv=kawa-tables.desktop \
+            text/tab-separated-values=kawa-tables.desktop application/vnd.ms-excel=org.gnumeric.gnumeric.desktop \
             application/zip=kawa-files.desktop x-scheme-handler/magnet=kawa-torrents.desktop \
             x-scheme-handler/https=brave-origin.desktop text/x-script.python=kawa-edit.desktop \
             application/x-xopp=com.github.xournalpp.xournalpp.desktop; do

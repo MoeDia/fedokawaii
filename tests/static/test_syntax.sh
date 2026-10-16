@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 # tests/static/test_syntax.sh — every file of the desktop reads as what it is: the shell
 # scripts (bash -n, shellcheck), the shell inside configs (waybar's clicks, dwl's keys…),
-# every JSON / TOML / YAML / INI / desktop / XML / Lua file, and the configs the programs
-# themselves can check (mako, foot, fuzzel) — read by those programs when they are here.
+# every JSON / TOML / YAML / INI / desktop / XML / Lua file (and .visidatarc, which is Python),
+# and the configs the programs themselves can check (mako, foot, fuzzel) — read by those
+# programs when they are here.
 # The configs are read as theme.sh installs them: rendered into the throw-away home.
 . "$(dirname "$0")/../lib/harness.sh"
 S=$(cd "$(dirname "$0")" && pwd)
@@ -60,7 +61,7 @@ data=$(python3 "$S/parsecheck.py" data "$REPO" "$HOME")
 while IFS= read -r ln; do
   case $ln in ok\ *) _ok ;; skip\ *) skipped "${ln#skip }" ;; *) _no "$ln" ;; esac
 done <<<"$data"
-for k in jsonc toml desktop xml mimeapps systemd ini ini-top mpv mako; do
+for k in jsonc toml desktop xml mimeapps systemd ini ini-top mpv mako python; do
   has "$data" "ok $k " "no $k file was read at all"
 done
 

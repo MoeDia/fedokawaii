@@ -55,6 +55,15 @@ case_ "...and closed without writing: as it was (with a newline at its end)"
 setup; mkdir -p "${N%/*}"; printf 'no newline at the end' >"$N"; TYPED='\n'
 kawa-notes; eq "$(bytes "$N")" "$(printf 'no newline at the end\n' | od -An -c | tr -s ' \n' ' ')"
 
+case_ "notes written on Windows (CR LF line ends): closed without writing, exactly as they were"
+setup; mkdir -p "${N%/*}"; printf 'from windows\r\nsecond\r\n' >"$N"; before=$(bytes "$N")
+kawa-notes; eq "$(bytes "$N")" "$before"
+case_ "...something written: the heading and the tidy-up end their lines in CR LF too"
+export TYPED='typed\r\n'; kawa-notes
+eq "$(bytes "$N")" "$(printf 'from windows\r\nsecond\r\n\r\n%s\r\n\r\ntyped\r\n' "$H" | od -An -c | tr -s ' \n' ' ')"
+case_ "...and the same day again: no second heading"
+TYPED='\r\n'; kawa-notes; eq "$(grep -c '^## ' "$N")" 1
+
 case_ "the window's day is the day it opened (closed after midnight: that heading tidied)"
 setup; export DATE_N=$TMP/date.n
 stub date 'n=$(cat "$DATE_N" 2>/dev/null || echo 0); echo $((n + 1)) >"$DATE_N"
@@ -243,6 +252,53 @@ else
   eq "$(find "$XDG_STATE_HOME" -name '*.sw?' 2>/dev/null)" "" "no swap file kept"
   case_ "...and no neovim is left running"
   sleep 0.3; eq "$(pgrep -f "$XDG_RUNTIME_DIR/kawa-notes.sock" 2>/dev/null)" ""
+
+  # the notes changed elsewhere while the window is open: once "hello" is saved, a line is
+  # added from outside (a sync tool, a shell), then " world" typed — through neovim's own
+  # socket, so it comes after the change whatever the machine's speed
+  elsewhere() {   # elsewhere 'SHELL CODE' — run on $N once "hello" is in it
+    for _ in {1..200}; do grep -q hello "$N" 2>/dev/null && break; sleep 0.05; done
+    N=$N sh -c "$1"; sleep 0.5
+    "$REAL_NVIM" --server "$XDG_RUNTIME_DIR/kawa-notes.sock" --remote-send ' world' 2>/dev/null
+  }
+  for how in 'printf "from the phone\n" >>"$N"' \
+             '{ cat "$N"; echo "from the phone"; } >"$N.new" && mv "$N.new" "$N"'; do
+    case_ "notes changed elsewhere while open ($how): taken in, no write-anyway question, typing goes on"
+    printf '%s\n\nfirst\n' "$H" >"$N"
+    elsewhere "$how" & bg=$!
+    out=$(python3 -I "$C/pty_run.py" --timeout 20 --answer 'saved as you type' 'hello' --hangup +3 -- kawa-notes --inside | tr -d '\0')
+    wait "$bg"
+    eq "$(cat "$N")" "$H"$'\n\nfirst\nhello world\nfrom the phone'
+    lacks "$out" "really want to write"; lacks "$out" "changed since"
+  done
+  case_ "notes deleted elsewhere while open: the page stays, the next key writes it back"
+  printf '%s\n\nfirst\n' "$H" >"$N"
+  elsewhere 'rm "$N"' & bg=$!
+  out=$(python3 -I "$C/pty_run.py" --timeout 20 --answer 'saved as you type' 'hello' --hangup +3 -- kawa-notes --inside | tr -d '\0')
+  wait "$bg"
+  eq "$(cat "$N" 2>/dev/null)" "$H"$'\n\nfirst\nhello world'; lacks "$out" "really want to write"
+  case_ "another file opened in the window (:e ~/Notes/trip.md): a page too — its name in the rule, saved as you type"
+  printf '%s\n\nfirst\n' "$H" >"$N"
+  ( for _ in {1..200}; do [[ -S $XDG_RUNTIME_DIR/kawa-notes.sock ]] && break; sleep 0.05; done; sleep 0.5
+    "$REAL_NVIM" --server "$XDG_RUNTIME_DIR/kawa-notes.sock" --remote-send '<Esc>:e ~/Notes/trip.md<CR>ibuy a SIM card' ) & bg=$!
+  out=$(python3 -I "$C/pty_run.py" --timeout 20 --answer 'saved as you type' '' --hangup +2.5 -- kawa-notes --inside | tr -d '\0')
+  wait "$bg"
+  eq "$(cat "$HOME/Notes/trip.md" 2>&1)" "buy a SIM card" "(closed by Super+Q: nothing lost)"
+  eq "$(cat "$N")" "$H"$'\n\nfirst' "(the notes as they were)"
+  out=$(KAWA_NOTES_ICON=X nvim --headless -c 'luafile ~/.config/fedokawaii/notes.lua' -c 'e ~/Notes/trip.md' \
+    -c "lua io.stdout:write(vim.inspect({vim.api.nvim_eval_statusline(vim.wo.winbar, {winid = 0, use_winbar = true}).str, vim.wo.number, vim.wo.foldcolumn, vim.wo.wrap}))" \
+    -c 'qa!' -- "$N" 2>/dev/null)
+  has "$out" "─ X notes · ~/Notes/trip.md"; has "$out" 'false, "3", true }'
+  case_ "a change elsewhere in the very moment of a key: no question; the file's version stays, the page follows it"
+  printf 'one\n' >"$N"
+  out=$(timeout 10 nvim --headless -n -c 'luafile ~/.config/fedokawaii/notes.lua' -c "lua vim.defer_fn(function()
+      vim.api.nvim_buf_set_lines(0, -1, -1, false, { 'the key' })
+      local f = io.open(vim.api.nvim_buf_get_name(0), 'a'); f:write('from the phone\n'); f:close()
+      vim.cmd('doautocmd <nomodeline> TextChangedI')
+      vim.defer_fn(function() io.stdout:write(table.concat(vim.api.nvim_buf_get_lines(0, 0, -1, false), '|')); vim.cmd('qa!') end, 300)
+    end, 100)" -- "$N" 2>&1); r=$?
+  eq "$r" 0 "(neovim did not stop to ask)"; eq "$out" "one|from the phone"
+  eq "$(cat "$N")" $'one\nfrom the phone'
   ours
 fi
 

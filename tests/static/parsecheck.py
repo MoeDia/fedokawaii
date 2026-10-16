@@ -263,6 +263,8 @@ def kind_of(rel):
         return "options"
     if name == "mako" or rel.endswith(".config/mako/config"):
         return "mako"
+    if name == ".visidatarc":                 # VisiData's options file is Python
+        return "python"
     return None
 
 
@@ -367,6 +369,7 @@ def main(argv):
             "keyvalue": check_keyvalue, "btop": lambda t: check_keyvalue(t),
             "btop-theme": check_btop_theme, "zathura": check_zathurarc, "options": check_options,
             "mako": lambda t: check_ini(t, dup_ok=False, top_ok=True, key_re=r"[a-z-]+"),
+            "python": lambda t: compile(t, "visidatarc", "exec"),
         }
         for kind, rel in data_files(repo):
             if kind == "lua":

@@ -125,6 +125,18 @@ mk pdf "$B/$(printf 'tab\there').pdf" 1; mk pdf "$B/$(printf 'new\nline').pdf" 1
 eq "$(kawa-books --rows | wc -l)" "$n0"
 lacks "$(kawa-books --rows)" "tab"$'\t'"here"
 
+case_ "emoji and accents in a title: padded as foot draws them, so the bars still line up"
+setup
+# (a cluster takes the sum of its characters' columns, two at most, as foot counts it —
+# 👨‍👩‍👧 two, 👍🏽 two, ❤️ two with its emoji selector; an accent written apart adds none)
+for t in "family 👨‍👩‍👧 photos:16" "thumbs 👍🏽 up:12" "❤️ heart:8" "1️⃣ one:6" "runner 🏃‍♀️ x:11" \
+         "$(printf 'cafe\xcc\x81') au lait:12" "🇯🇵 trip:7"; do
+  mk pdf "$B/${t%:*}.pdf" 1
+  r=$(FZF_COLUMNS=100 kawa-books --rows | grep -F -- "$B/${t%:*}.pdf"$'\t' | field 2 | plain)
+  pad=${r#"${t%:*}"}; pad=${pad%%[!\ ]*}
+  eq "${#pad}" $((36 + 2 - ${t##*:})) "${t%:*}: its padding (title column 36, then 2 spaces)"
+done
+
 case_ "no books, ~/Books missing: an empty list, the folder made"
 setup; rmdir "$B"
 eq "$(kawa-books --rows)" ""; [[ -d $B ]] && _ok || _no "~/Books not made"
@@ -202,6 +214,11 @@ for n in "Reading Now.pdf" "Flow.epub" "Japanese/日本語の本.epub" "named co
 done
 has "$(cover "$B/Reading Now.pdf" | sixel_info | jget colours)" "82,35,23" "the PDF's red page"
 has "$(cover "$B/Flow.epub" | sixel_info | jget colours)" "37,50,63" "the EPUB's blue cover"
+case_ "an EPUB whose cover's address has %20 for a space (an href is a URL): its cover"
+mk epub "$B/encoded.epub" encoded
+info=$(cover "$B/encoded.epub" | sixel_info)
+lacks "$(jget colours <<<"$info")" "17,15,13" "the plain card instead of its cover"
+has "$(jget colours <<<"$info")" "37,50,63" "the EPUB's blue cover"
 case_ "no picture in it, or corrupt: a plain card with its kind"
 printf '%%PDF-1.4 broken' >"$B/corrupt.pdf"; printf 'xx' >"$B/corrupt.cbz"
 for n in "no cover.epub" corrupt.pdf corrupt.cbz; do

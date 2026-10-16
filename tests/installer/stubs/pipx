@@ -8,5 +8,7 @@ if [[ " $* " == *" install "* ]]; then
   # (its settings script, read on stdin: what it writes, written — Prowlarr the indexer, no key)
   printf '#!/bin/bash\nif [[ " $* " == *" - "* ]]; then cat >/dev/null; [[ -n ${3:-} ]] && printf "[indexers]\\ndefault = \\"prowlarr\\"\\n" >"$3"; fi\nexit 0\n' >"$v/python"
   chmod 755 "$v/python"
+  # (its own `torrra` command linked where PIPX_BIN_DIR says, as pipx does)
+  : >"$v/torrra"; chmod 755 "$v/torrra"; b=${PIPX_BIN_DIR:-$HOME/.local/bin}; mkdir -p "$b"; ln -sfnr "$v/torrra" "$b/torrra"   # (relative: it stays inside the fake machine)
 fi
 exit 0

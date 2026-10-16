@@ -3,12 +3,13 @@
 # volume): the outputs and inputs from pw-dump, louder/quieter/mute that keep it open, a
 # device picked made the default. PipeWire is fake_pw.py's machine (fixtures/pw.json: an
 # analog output and input, an HDMI output, and 60-share.conf's two "Share" loopbacks, which
-# wpctl lists under Filters); the menu is fake_menu (rows kept, answers from a list).
+# wpctl lists under Filters); the menu is fake_menu (rows kept, answers from a list). Then the
+# mixer, wiremix: opened in a floating terminal (kawa-float), its theme files, the manifest.
 . "$(dirname "$0")/lib.sh"
 setup() {
   box; pw_world; notices; . "$HOME/.config/fedokawaii/icons.sh"
   export MENU=$TMP/menu; mkdir -p "$MENU"; : >"$MENU/answers"
-  stub kawa-menu 'exec bash '"$SD"'/fake_menu "$@"'; stub setsid; stub pavucontrol
+  stub kawa-menu 'exec bash '"$SD"'/fake_menu "$@"'; stub setsid; stub kawa-float
 }
 answers() { printf '%s\n' "$@" >"$MENU/answers"; }
 rows() { cat "$MENU/rows.${1:-1}" 2>/dev/null; }
@@ -105,9 +106,13 @@ EOF" >"$MENU/hook.1"
 rc 0 kawa-audio
 eq "$(note)" "" "no notice"; eq "$(opened)" 2; lacks "$(rows 2)" "Navi 31"
 
-case_ "mixer…: pavucontrol on its own, the menu closes"
+case_ "mixer…: wiremix in a floating terminal of its own, one at a time; the menu closes"
 setup; answers "~mixer"
-rc 0 kawa-audio; called 'setsid -f pavucontrol'; eq "$(opened)" 1
+rc 0 kawa-audio; called '^kawa-float --once mixer mixer 96x29 -- wiremix$'; eq "$(opened)" 1
+not_called 'setsid|pavucontrol'
+case_ "…while the mixer is open already: nothing more opens (kawa-float's 3 is passed on)"
+setup; answers "~mixer"; stub kawa-float 'exit 3'
+rc 3 kawa-audio; eq "$(opened)" 1
 
 case_ "Esc: nothing changed"
 setup; answers esc
@@ -210,5 +215,61 @@ for loc in tr_TR.UTF-8 ar_EG.UTF-8; do
   LC_ALL=$loc kawa-audio 2>/dev/null
   has "$(arg 1 --title)" " 45%" "$loc"
 done
+
+# ── the mixer itself: wiremix 0.11.0 (Fedora 44's), its theme files and its place ───────────
+case_ "the two wiremix.toml are TOML; the theme named is the one defined; only wiremix's own style keys"
+# (the style keys of wiremix 0.11.0's [themes.*] — tsowell/wiremix wiremix.toml at v0.11.0; an
+# unknown one makes wiremix refuse to start)
+keys="default_device default_stream selector tab tab_selected tab_marker list_more node_title node_target volume
+volume_empty volume_filled meter_inactive meter_active meter_overload meter_center_inactive meter_center_active
+config_device config_profile dropdown_icon dropdown_border dropdown_item dropdown_selected dropdown_more
+help_border help_item help_more"
+for m in dark light; do
+  f=$REPO/configs/home/.config/fedokawaii/themes/$m/wiremix.toml
+  out=$(python3 -I - "$f" "$keys" <<'EOF'
+import sys, tomllib
+f, keys = sys.argv[1], set(sys.argv[2].split())
+c = tomllib.load(open(f, "rb"))
+t = c["themes"][c["theme"]]
+bad = sorted(set(t) - keys)
+print("unknown keys:" if bad else "keys ok", *bad)
+print("esc exits" if {"key": "Esc", "action": "Exit"} in c["keybindings"] else "no Esc binding")
+print("max enforced" if c.get("enforce_max_volume") is True else "max not enforced")
+print(len(t), "styles")
+EOF
+  )
+  has "$out" "keys ok" "$m: $out"; has "$out" "esc exits" "$m"; has "$out" "max enforced" "$m"; has "$out" "27 styles" "$m: every key styled"
+done
+case_ "every colour in them is the palette's of that theme (tools/build-themes.py), and the two differ"
+out=$(python3 -I - "$REPO" <<'EOF'
+import sys, re, pathlib, importlib.util, tomllib
+sys.dont_write_bytecode = True                 # (-I ignores PYTHONDONTWRITEBYTECODE: no __pycache__ in tools/)
+repo = pathlib.Path(sys.argv[1])
+spec = importlib.util.spec_from_file_location("bt", repo / "tools/build-themes.py")
+bt = importlib.util.module_from_spec(spec); spec.loader.exec_module(bt)
+for m in ("dark", "light"):
+    f = repo / f"configs/home/.config/fedokawaii/themes/{m}/wiremix.toml"
+    known = {v for v in bt.P[m].values() if isinstance(v, str) and re.fullmatch(r"[0-9a-f]{6}", v)}
+    used = set(re.findall(r'"#([0-9a-fA-F]{6})"', f.read_text()))
+    bad = sorted(c for c in used if c.lower() not in known)
+    print(m, "ok" if not bad else "foreign: " + " ".join(bad), len(used), "colours")
+d = (repo / "configs/home/.config/fedokawaii/themes/dark/wiremix.toml").read_text()
+l = (repo / "configs/home/.config/fedokawaii/themes/light/wiremix.toml").read_text()
+print("differ" if d != l else "the same file twice")
+EOF
+)
+has "$out" "dark ok"; has "$out" "light ok"; has "$out" "differ"
+case_ "wiremix reads ~/.config/wiremix/wiremix.toml: theme.sh links it into the theme in use"
+has "$(grep -F 'LINKS=(' -A5 "$REPO/theme.sh")" '"../fedokawaii/current/wiremix.toml:.config/wiremix/wiremix.toml"'
+case_ "the window: app-id float, which dwl floats (config.h); the old GUI rules are gone"
+has "$(grep -E '^\s*\{ "float",' "$REPO/src/dwl/config.h")" '1,           -1'
+lacks "$(cat "$REPO/src/dwl/config.h")" pavucontrol; lacks "$(cat "$REPO/src/dwl/config.h")" blueman
+has "$(grep -E 'footclient -a float' "$REPO/bin/kawa-float")" '-a float'
+case_ "the manifest: wiremix installed, pavucontrol never again (forbidden) and handed back to dnf (retired)"
+m() { (. "$REPO/lib/manifest.sh"; eval "$1"); }
+has " $(m 'manifest_all amd' | tr '\n' ' ') " " wiremix "; lacks " $(m 'manifest_all amd' | tr '\n' ' ') " " pavucontrol "
+has " $(m 'echo "${FORBIDDEN_PKGS[*]}"') " " pavucontrol "; has " $(m 'echo "${RETIRED_PKGS[*]}"') " " pavucontrol "
+has "$(grep -E '^wiremix ' "$REPO/tests/static/fixtures/programs.txt")" "manifest  wiremix"
+lacks "$(cat "$REPO/tests/static/fixtures/programs.txt")" pavucontrol
 
 done_

@@ -117,6 +117,27 @@ eq "$RC" 1; has "$OUT" "already running"; has "$OUT" "4242"
 not_called "^dwl"; not_called "^systemctl"; not_called "^bash"
 eq "$(cat "$LOG")" "the running session"; [[ ! -e $LOG.old ]] && _ok || _no "the running session's log was moved"
 called "^pgrep -xu $(id -u) "
+case_ "started on a Fedora 45 text console (kmscon): handed to the helper kmscon names, which runs it again without kmscon's marks$n"
+setup; dwl dwl; chmod +x "$TMP/start-dwl"
+stub kmscon-launch-gui '"$@"'
+KMS_START_SCRIPT=kmscon-launch-gui TERM_SESSION_TYPE=kms start
+eq "$RC" 0; called "^kmscon-launch-gui env -u KMS_START_SCRIPT -u TERM_SESSION_TYPE KAWA_KMSCON=1 $TMP/start-dwl$"
+called "^dwl -s $HOME/.config/dwl/autostart.sh$"; eq "$(grep -c '^dwl' "$CALLS")" 1 "dwl started once"
+eq "$(envof dwl KMS_START_SCRIPT)" "" "the session does not think it is on kmscon"; eq "$(envof dwl TERM_SESSION_TYPE)" ""
+eq "$(envof dwl KAWA_KMSCON)" "" "the hand-over's own mark stays with start-dwl"
+case_ "… handed over, and dwl cannot start: the rescue text, then back to the console's own shell (none started under the hidden screen)$n"
+setup; dwl dwl 'exit 3'; chmod +x "$TMP/start-dwl"; stub kmscon-launch-gui '"$@"'
+KMS_START_SCRIPT=kmscon-launch-gui start
+has "$OUT" "The desktop could not start: dwl stopped at once (exit 3)."; has "$OUT" "fedokawaii repair"
+called "^kmscon-launch-gui "; not_called "^bash -l$"
+case_ "… a helper named that is not there: the session starts as on any console$n"
+setup; dwl dwl; KMS_START_SCRIPT=no-such-helper start
+eq "$RC" 0; called "^dwl -s"
+case_ "… and a second start while the desktop runs is refused before any hand-over$n"
+setup; dwl dwl; stub kmscon-launch-gui '"$@"'; stub pgrep 'echo 4242'
+KMS_START_SCRIPT=kmscon-launch-gui start
+eq "$RC" 1; has "$OUT" "already running"; not_called "^kmscon-launch-gui"
+
 case_ "leftovers of a session that crashed (Wayland socket and lock, the bar's folder, a float lock): a normal start$n"
 setup; dwl dwl
 mkdir -p "$XDG_RUNTIME_DIR/dwl-bar/DP-1"; : >"$XDG_RUNTIME_DIR/wayland-0"; : >"$XDG_RUNTIME_DIR/wayland-0.lock"

@@ -19,6 +19,7 @@ has "$(line verified "$out")" "not yet"
 has "$(line due "$out")" "in 60 days" "the season counts from setup (30 days ago, every 90)"
 has "$(line kernel "$out")" "6.17.1-300.fc44.x86_64"
 has "$(line disk "$out")" "641 GB free of 2.0 TB"
+has "$(line backup "$out")" "not set up (BACKUP_TARGET)"
 lacks "$out" "running"; lacks "$out" "low"
 case_ "every status line fits the menu's pane (9 + 35 characters)"
 (( $(widest "$out") <= 44 )) && _ok || _no "a line of $(widest "$out") characters: $out"
@@ -189,6 +190,58 @@ case_ "remind quiet with reminders off: silent; nothing due: silent"
 fresh; rec last-update-done "$(ago_s 95)"; fedokawaii remind off >/dev/null; reset_calls
 fedokawaii remind quiet; not_called 'notify-send'
 fresh; rec last-update-done "$(ago_s 5)"; fedokawaii remind quiet; not_called 'notify-send'
+
+# ── the backup (kawa-backup's record, the theme's env) ───────────────────────
+backed_up() { mkdir -p "$HOME/.local/state/fedokawaii"; printf '%s\t43.763 KiB\tKINGSTON\n' "$(ago_s "$1")" >"$HOME/.local/state/fedokawaii/last-backup"; }
+case_ "status: a drive named, no backup yet — said, with where to start it; then its day and age"
+fresh; setting BACKUP_TARGET KINGSTON
+out=$(fedokawaii status); has "$(line backup "$out")" "none yet · quick settings → backup"
+(( $(widest "$out") <= 44 )) && _ok || _no "a line of $(widest "$out") characters: $out"
+backed_up 3; out=$(fedokawaii status)
+has "$(line backup "$out")" "$(date -d "@$(ago_s 3)" '+%-d %b %Y') · 3 days ago"
+backed_up 0; has "$(line backup "$(fedokawaii status)")" "· today"
+case_ "status: a corrupt backup record (garbage, a command, empty): none yet, nothing run"
+printf 'rm -rf %s\n' "$TMP/pwned" >"$HOME/.local/state/fedokawaii/last-backup"; mkdir -p "$TMP/pwned"
+has "$(line backup "$(fedokawaii status)")" "none yet"; [[ -d $TMP/pwned ]] && _ok || _no "the record ran"
+: >"$HOME/.local/state/fedokawaii/last-backup"; has "$(line backup "$(fedokawaii status)")" "none yet"
+case_ "remind check: no backup for 7 days (BACKUP_REMIND_DAYS) — said, after the season's line, naming the drive"
+fresh; setting BACKUP_TARGET KINGSTON; backed_up 7
+out=$(fedokawaii remind check)
+eq "$(grep -c . <<<"$out")" 2; has "$(head -n1 <<<"$out")" "nothing due"
+has "$(tail -n1 <<<"$out")" "the last backup was 7 days ago — plug in KINGSTON, then quick settings → backup"
+backed_up 6; eq "$(grep -c . <<<"$(fedokawaii remind check)")" 1 "6 days: not yet"
+rm -f "$HOME/.local/state/fedokawaii/last-backup"; has "$(fedokawaii remind check)" "no backup yet — plug in KINGSTON"
+case_ "remind check: no drive named, or BACKUP_REMIND_DAYS=0 — no backup line"
+fresh; eq "$(grep -c . <<<"$(fedokawaii remind check)")" 1
+fresh; setting BACKUP_TARGET KINGSTON; setting BACKUP_REMIND_DAYS 0; backed_up 400
+eq "$(grep -c . <<<"$(fedokawaii remind check)")" 1
+case_ "remind check: BACKUP_REMIND_DAYS=30 — late at 30, not at 29"
+fresh; setting BACKUP_TARGET KINGSTON; setting BACKUP_REMIND_DAYS 30
+backed_up 29; eq "$(grep -c . <<<"$(fedokawaii remind check)")" 1; backed_up 30; has "$(fedokawaii remind check)" "30 days ago"
+case_ "remind quiet: the backup's notice, once a day, on its own day count (an upkeep notice the same day does not hide it)"
+fresh; setting BACKUP_TARGET KINGSTON; backed_up 10; rec last-update-done "$(ago_s 95)"
+fedokawaii remind quiet
+called 'notify-send -a desktop upkeep the update season is here'; called 'notify-send -a desktop backup the last backup was 10 days ago — plug in KINGSTON'
+reset_calls; fedokawaii remind quiet; not_called 'notify-send'
+case_ "remind quiet: a backup notice that could not be shown is shown at the next look; reminders off: silent"
+fresh; setting BACKUP_TARGET KINGSTON; backed_up 10; stub notify-send 'exit 1'
+fedokawaii remind quiet; stub notify-send; reset_calls; fedokawaii remind quiet; called 'notify-send -a desktop backup'
+fedokawaii remind off >/dev/null; rm -f "$HOME/.cache/fedokawaii/reminded-backup"; reset_calls
+fedokawaii remind quiet; not_called 'notify-send'
+case_ "a garbage BACKUP_REMIND_DAYS (fedokawaii.conf edited by hand, as root): the default, 7"
+fresh; setting BACKUP_TARGET KINGSTON; setting BACKUP_REMIND_DAYS soon; backed_up 7
+has "$(fedokawaii remind check)" "7 days ago"
+
+case_ "status and remind: a drive named in settings counts at once (the theme's env still says none)"
+fresh; setting BACKUP_TARGET KINGSTON; has "$(cat "$HOME/.config/fedokawaii/env")" 'BACKUP_TARGET=""'
+has "$(line backup "$(fedokawaii status)")" "none yet"; has "$(fedokawaii remind check)" "no backup yet — plug in KINGSTON"
+setting BACKUP_REMIND_DAYS 0; eq "$(grep -c . <<<"$(fedokawaii remind check)")" 1 "0: off, at once"
+case_ "…and only where the toolkit cannot be read (before setup), env's settings"
+fresh; TEST_BACKUP_TARGET=OLD TEST_BACKUP_REMIND_DAYS=3 config .config/fedokawaii/env; backed_up 3; rm -f "$R/toolkit/fedokawaii.conf"
+has "$(line backup "$(fedokawaii status)")" "3 days ago"; has "$(fedokawaii remind check)" "plug in OLD"
+case_ "a value in fedokawaii.conf holding a command: read as text, never run"
+fresh; setting BACKUP_TARGET "\$(touch $TMP/ran)"; fedokawaii status >/dev/null; fedokawaii remind check >/dev/null; fedokawaii --rows >/dev/null
+[[ ! -e $TMP/ran ]] && _ok || _no "a setting was run"
 
 case_ "a move's outcome: told once at the next login, critical when it failed"
 fresh; rec last-upgrade "$(ago_s 0) 43 44 failed"; rec last-update-done "$(ago_s 0)"

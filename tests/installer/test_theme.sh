@@ -33,10 +33,12 @@ eq "$(fk stat -c %U:%G "$H/.config/fedokawaii/env")" fkuser:fkuser "the home's f
 called 'dconf\] update'
 
 case_ "render: no @TOKEN@ left anywhere in the home; each filled from fedokawaii.conf"
-left=$(grep -rlE '@(HOME|UID|MONITOR_HZ|WEATHER_CITY|NIGHT_LIGHT|ICON_CHEVRON_RIGHT|MPV_SCALING)@' "$W$H" 2>/dev/null | grep -v "^$W$H/fedokawaii/" || true)
+left=$(grep -rlE '@(HOME|UID|MONITOR_HZ|WEATHER_CITY|NIGHT_LIGHT|BACKUP_TARGET|BACKUP_REMIND_DAYS|ICON_CHEVRON_RIGHT|MPV_SCALING)@' "$W$H" 2>/dev/null | grep -v "^$W$H/fedokawaii/" || true)
 eq "$left" "" "tokens left in: $left"
 env=$(cat "$W$H/.config/fedokawaii/env")
 has "$env" 'MONITOR_HZ=144'; has "$env" 'WEATHER_CITY="Sharjah"'; has "$env" 'NIGHT_LIGHT="25.35:55.40"'
+has "$env" 'BACKUP_TARGET=""'; has "$env" 'BACKUP_REMIND_DAYS=7' "the backup settings reach env (kawa-backup, the menus read them)"
+has "$(cat "$W$H/.config/fedokawaii/backup-exclude")" "$H/.cache" "@HOME@ in the backup's exclude list"
 has "$(cat "$W$H/.config/xdg-desktop-portal-termfilechooser/config")" "cmd=$H/.local/bin/kawa-pick" "@HOME@: the user's home"
 has "$(cat "$W$H/.config/udiskie/config.yml")" "setup_by_uid: !!int \"$FK_UID\"" "@UID@: the user's id"
 has "$(cat "$W$H/.config/fedokawaii/fzf.opts")" "$(. "$REPO/configs/home/.config/fedokawaii/icons.sh"; printf '%s' "$ICON_CHEVRON_RIGHT")" "@ICON_CHEVRON_RIGHT@"
@@ -56,10 +58,19 @@ eq "$(stat -c %a "$W$H/.config/fedokawaii/env")" 644 "a plain file marked execut
 
 case_ "the theme link starts as THEME says; the configs that are links point into it"
 eq "$(readlink "$W$H/.config/fedokawaii/current")" themes/light
-for l in .config/qt6ct/qt6ct.conf .config/imv/config .config/presenterm/config.yaml .config/btop/themes/fedokawaii.theme; do
+for l in .config/qt6ct/qt6ct.conf .config/imv/config .config/presenterm/config.yaml .config/wiremix/wiremix.toml .config/btop/themes/fedokawaii.theme; do
   [[ -L $W$H/$l && -e $W$H/$l ]] && _ok || _no "$l is not a working link into the current theme"
 done
 [[ -s $W$H/.local/share/fedokawaii/dark/pattern.png && -s $W$H/.local/share/fedokawaii/light/lock.png ]] && _ok || _no "pixel art not drawn"
+
+case_ "Syncplay's settings started: its public server, your name, a room of your own, mpv (yours, 600)"
+ini=$W$H/.config/syncplay.ini
+s=$(cat "$ini" 2>/dev/null)
+has "$s" "host = syncplay.pl"; has "$s" "port = 8999"; has "$s" "name = fkuser"
+grep -qE '^room = fkuser-[0-9a-f]{4}$' "$ini" && _ok || _no "no room of your own: $(grep '^room' "$ini")"
+has "$s" "playerpath = /usr/bin/mpv"; has "$s" "mediasearchdirectories = ['$H/Videos', '$H/Downloads']"
+has "$s" "checkforupdatesautomatically = False"
+eq "$(fk stat -c '%U %a' "$H/.config/syncplay.ini")" "fkuser 600"
 
 # ── the second run, and --check ──────────────────────────────────────────────
 case_ "a second run: nothing changes, it says so, no new backup folder — and your theme switch stays"
@@ -96,5 +107,15 @@ nb=$(backups | tail -n1)
 has "$(cat "$nb/.config/foot/foot.ini" 2>/dev/null)" "# mine" "your foot.ini kept"
 eq "$(cat "$nb/.config/imv/config" 2>/dev/null)" "x" "your imv config kept"
 theme --check; eq "$RC" 0 "in sync after the run"
+
+case_ "Syncplay's settings stay yours (it rewrites them itself): only what is empty is filled again"
+sed -i -e 's/^host = .*/host = films.example.org/' -e 's/^name = .*/name = Mo/' \
+  -e 's/^room = .*/room = Friday%%night/' -e 's/^playerpath = .*/playerpath = None/' "$ini"
+theme --check; eq "$RC" 3; has "$OUT" "syncplay.ini (Syncplay: playerpath not set)"
+theme; eq "$RC" 0; has "$OUT" "syncplay.ini (Syncplay: playerpath)"
+s=$(cat "$ini")
+has "$s" "host = films.example.org"; has "$s" "name = Mo"; has "$s" "room = Friday%%night"
+has "$s" "playerpath = /usr/bin/mpv"
+theme --check; eq "$RC" 0
 
 done_

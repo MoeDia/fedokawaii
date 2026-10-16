@@ -5,9 +5,14 @@
 #
 #   . "$(dirname "$0")/../lib/harness.sh"
 #   sandbox                          a fresh home, runtime folder and stub folder (PATH first),
-#                                    with the icons, both themes (dark current) and ~/.config/fedokawaii/env
+#                                    with the icons, both themes (dark current) and ~/.config/fedokawaii/env;
+#                                    KAWA_TOOLKIT (the toolkit the helpers read settings from) is
+#                                    $TMP/toolkit — absent until a test makes it (toolkit, below)
+#   toolkit [KEY=VALUE…]             $TMP/toolkit: fedokawaii.conf (those settings changed, as
+#                                    Super+U → settings saves them) and lib/common.sh
 #   config REL…                      configs/home/REL (a file or a folder) into the home, rendered
-#                                    as theme.sh does (@HOME@, @UID@, fedokawaii.conf's values)
+#                                    as theme.sh does (@HOME@, @UID@, fedokawaii.conf's values;
+#                                    the backup settings: $TEST_BACKUP_TARGET, $TEST_BACKUP_REMIND_DAYS)
 #   stub NAME [BODY]                 a stand-in: logs "NAME args" to $CALLS, then runs BODY (sh);
 #                                    $TMP, $STUBS and $CALLS are exported for it
 #   on_exit 'CMD'                    run CMD when the file ends (also on Ctrl+C)
@@ -39,7 +44,7 @@ sandbox() {   # sandbox — every test file starts here (call again for a clean 
   export HOME=$TMP/home XDG_RUNTIME_DIR=$TMP/run XDG_CONFIG_HOME=$TMP/home/.config \
          XDG_CACHE_HOME=$TMP/home/.cache XDG_STATE_HOME=$TMP/home/.local/state \
          XDG_DATA_HOME=$TMP/home/.local/share LC_ALL=C.UTF-8 USER=${USER:-tester} \
-         PYTHONDONTWRITEBYTECODE=1
+         PYTHONDONTWRITEBYTECODE=1 KAWA_TOOLKIT=$TMP/toolkit
   # the scripts under test come straight from the repository; anything they call is a stub first
   export PATH="$STUBS:$REPO/bin:/usr/local/bin:/usr/bin:/bin"
   # the icon names and the dark theme's colours, as theme.sh installs them
@@ -64,6 +69,7 @@ config() {
         *.ttf|*.otf|*.png) cp "$f" "$HOME/${f#"$REPO/configs/home/"}" ;;
         *) sed -e "s|@HOME@|$HOME|g" -e "s|@MONITOR_HZ@|144|g" -e "s|@WEATHER_CITY@|Sharjah|g" \
                -e "s|@NIGHT_LIGHT@|25.35:55.40|g" -e "s|@ICON_CHEVRON_RIGHT@|>|g" \
+               -e "s|@BACKUP_TARGET@|${TEST_BACKUP_TARGET:-}|g" -e "s|@BACKUP_REMIND_DAYS@|${TEST_BACKUP_REMIND_DAYS:-7}|g" \
                -e "s|^@MPV_SCALING@\$|# scaling: mpv's own defaults|" -e "s|@UID@|$UID|g" \
                "$f" >"$HOME/${f#"$REPO/configs/home/"}"
            [[ -x $f ]] && chmod +x "$HOME/${f#"$REPO/configs/home/"}" ;;
@@ -71,6 +77,25 @@ config() {
     done < <(find "$src" -type f -print0)
   done
   return 0
+}
+
+# toolkit [KEY=VALUE…] — the toolkit's settings as the helpers read them (never the machine's own)
+toolkit() {
+  local kv
+  mkdir -p "$KAWA_TOOLKIT/lib"
+  cp "$REPO/lib/common.sh" "$KAWA_TOOLKIT/lib/"
+  cp "$REPO/fedokawaii.conf" "$KAWA_TOOLKIT/"
+  for kv; do conf_set "${kv%%=*}" "${kv#*=}" "$KAWA_TOOLKIT/fedokawaii.conf"; done
+}
+conf_set() {  # conf_set KEY VALUE FILE — that setting's line, KEY="VALUE" (its comment kept)
+  python3 -I - "$@" <<'PY'
+import re, sys
+k, v, f = sys.argv[1:]
+t = open(f, encoding="utf-8").read()
+t, n = re.subn(r'(?m)^%s=("[^"]*"|\S*)' % re.escape(k), lambda m: '%s="%s"' % (k, v), t)
+if n != 1: sys.exit("conf_set: no %s line in %s" % (k, f))
+open(f, "w", encoding="utf-8").write(t)
+PY
 }
 
 # on_exit 'COMMAND' — run at the end, before the throw-away folder goes (sandbox sets the traps)

@@ -29,7 +29,7 @@ case_ "an unknown command: exit 2, and how to get help"
 out=$(fedokawaii frobnicate 2>&1); eq "$?" 2; has "$out" 'unknown command "frobnicate"'; has "$out" "fedokawaii help"
 rc 2 fedokawaii -x; rc 2 fedokawaii "up date"; rc 2 fedokawaii $'update\nrepair'
 case_ "a command given more than it takes: exit 2, root's side never asked"
-for c in update verify repair theme drift snapshots log status copy diff apply guide settings; do
+for c in update verify repair theme drift snapshots backup log status copy diff apply guide settings; do
   rc 2 fedokawaii "$c" extra
 done
 rc 2 fedokawaii upgrade now; rc 2 fedokawaii upgrade --now extra
@@ -74,10 +74,10 @@ case_ "the lock let go (its run crashed, the file left behind): runs again"
 reset_calls; rc 0 fedokawaii update; called '^sudo bash .*fedokawaii.sh update'
 
 # ── the menu's rows ──────────────────────────────────────────────────────────
-case_ "rows: twelve entries, in order, each fitting the 35-column list"
+case_ "rows: thirteen entries, in order, each fitting the 35-column list"
 fresh; rec last-update-done "$(ago_s 10)"; rec snapshots 14; rec last-verify "$(ago_s 1) 180 2 0"
 out=$(fedokawaii --rows)
-eq "$(cut -f1 <<<"$out" | tr '\n' ' ')" "status update upgrade verify repair snapshots theme drift settings remind log guide "
+eq "$(cut -f1 <<<"$out" | tr '\n' ' ')" "status update upgrade verify repair snapshots backup theme drift settings remind log guide "
 (( $(widest "$(cut -f2 <<<"$out")") <= 35 )) && _ok || _no "a row wider than 35: $(plain "$out")"
 has "$(row update)" "in 80 days"; has "$(row snapshots)" "14"; has "$(row verify)" "2 to fix"; has "$(row remind)" "every 90 days"
 has "$(row status)" "Fedora 44"; has "$(row upgrade)" "upgrade to Fedora 45"
@@ -102,6 +102,32 @@ lacks "$(row snapshots)" "xxx"
 (( $(widest "$(fedokawaii --rows | cut -f2)") <= 35 )) && _ok || _no "too wide"
 case_ "rows: os-release unreadable: no made-up Fedora 1"
 rm -f "$R/os-release"; lacks "$(fedokawaii --rows)" "Fedora 1"; lacks "$(fedokawaii --rows)" "Fedora 0"
+# the backup's mark reads kawa-backup's record (~/.local/state/fedokawaii/last-backup) and the
+# toolkit's fedokawaii.conf as settings saved it (BACKUP_TARGET, BACKUP_REMIND_DAYS)
+backed_up() { mkdir -p "$HOME/.local/state/fedokawaii"; printf '%s\t43.763 KiB\tKINGSTON\n' "$(ago_s "$1")" >"$HOME/.local/state/fedokawaii/last-backup"; }
+case_ "rows: no backup set up (BACKUP_TARGET empty): none, in red"
+fresh; has "$(grep '^backup' <<<"$(fedokawaii --rows)")" $'\e[91mnone'
+case_ "rows: a drive named, no backup yet: never, in red; one 3 days ago: its age, grey; past the reminder's days: red"
+fresh; setting BACKUP_TARGET KINGSTON
+has "$(grep '^backup' <<<"$(fedokawaii --rows)")" $'\e[91mnever'
+backed_up 3; has "$(grep '^backup' <<<"$(fedokawaii --rows)")" $'\e[90m3 days ago'
+backed_up 7; has "$(grep '^backup' <<<"$(fedokawaii --rows)")" $'\e[91m7 days ago'
+backed_up 0; has "$(grep '^backup' <<<"$(fedokawaii --rows)")" $'\e[90mtoday'
+case_ "rows: BACKUP_REMIND_DAYS=0 — never red, however old"
+fresh; setting BACKUP_TARGET KINGSTON; setting BACKUP_REMIND_DAYS 0; backed_up 400
+has "$(grep '^backup' <<<"$(fedokawaii --rows)")" $'\e[90m400 days ago'
+(( $(widest "$(fedokawaii --rows | cut -f2)") <= 35 )) && _ok || _no "too wide"
+case_ "rows: a garbage record, or one holding a command: never, nothing run"
+printf 'rm -rf %s\tx\n' "$TMP/pwned" >"$HOME/.local/state/fedokawaii/last-backup"; mkdir -p "$TMP/pwned"
+has "$(grep '^backup' <<<"$(fedokawaii --rows)")" never; [[ -d $TMP/pwned ]] && _ok || _no "the record ran"
+case_ "rows: a setting counts as soon as settings saves it — the theme's env, older, does not matter"
+fresh; TEST_BACKUP_TARGET=OLD config .config/fedokawaii/env; setting BACKUP_TARGET KINGSTON; backed_up 3
+has "$(grep '^backup' <<<"$(fedokawaii --rows)")" $'\e[90m3 days ago'
+setting BACKUP_REMIND_DAYS 2; has "$(grep '^backup' <<<"$(fedokawaii --rows)")" $'\e[91m3 days ago' "2 days: late at once"
+setting BACKUP_TARGET ""; has "$(grep '^backup' <<<"$(fedokawaii --rows)")" $'\e[91mnone' "none named: none, whatever env says"
+case_ "rows: the toolkit's settings unreadable (before setup): env's; neither: none, no error"
+rm -f "$R/toolkit/fedokawaii.conf"; has "$(grep '^backup' <<<"$(fedokawaii --rows)")" "3 days ago" "env names OLD"
+rm -f "$HOME/.config/fedokawaii/env"; out=$(fedokawaii --rows 2>&1); has "$(grep '^backup' <<<"$out")" none; lacks "$out" "No such file"
 
 # ── the right pane ───────────────────────────────────────────────────────────
 case_ "the pane, for every entry, with every record at its longest: ≤ 14 lines of ≤ 44"
@@ -112,7 +138,8 @@ rec last-upgrade "$(ago_s 3) 43 44 partial"; rec last-update "$(ago_s 0) stopped
 rec last-verify "$(ago_s 365) 1800 0 12"; echo 6.17.10-1300.fc44.x86_64 >"$R/newest-kernel"
 echo "2000000000000 12000000000" >"$R/df"; printf '%s\n' a-very-long-package-name another-long-one >"$R/state/unavailable"
 printf '/etc/x.rpmnew\n' >"$R/state/rpmnew"
-for a in status update upgrade verify repair snapshots theme drift settings remind log guide; do
+setting BACKUP_TARGET "a drive with a long name"; backed_up 1000
+for a in status update upgrade verify repair snapshots backup theme drift settings remind log guide; do
   out=$(fedokawaii --explain "$a")
   (( $(wc -l <<<"$out") <= 14 )) && _ok || _no "$a: $(wc -l <<<"$out") lines"
   (( $(widest "$out") <= 44 )) && _ok || _no "$a: a line of $(widest "$out")"
@@ -157,6 +184,13 @@ if has_script; then
   eq "$?" 0
 else _ok; fi
 
+case_ "backup: kawa-backup, as you (never through sudo); its status comes back"
+fresh; stub kawa-backup 'exit "$(cat "$FK_R/rc-backup" 2>/dev/null || echo 0)"'
+has "$(outcome backup)" "finished"; called '^kawa-backup $'; not_called '^sudo'
+echo 1 >"$R/rc-backup"; has "$(outcome backup)" "it ended with an error (1)"
+reset_calls; rc 1 fedokawaii backup; called '^kawa-backup $'; not_called '^sudo'
+case_ "backup without kawa-backup installed: said plainly"
+out=$(without kawa-backup -- fedokawaii backup 2>&1); eq "$?" 1; has "$out" "kawa-backup is missing"
 case_ "snapshots: snapper's list, as root"
 fresh; out=$(outcome snapshots); has "$out" "finished"; called '^sudo snapper -c root list'
 case_ "snapshots without snapper, or on a root that is not Btrfs: said plainly"
@@ -227,30 +261,38 @@ tty_free fedokawaii --run settings </dev/null >/dev/null 2>&1; has "$(cat "$R/to
 unset VISUAL
 
 # ── the plain menu (no fzf, a text console) ──────────────────────────────────
-case_ "plain menu: the status, twelve numbered entries; q, Q, Enter and end of input all leave"
+case_ "plain menu: the status, thirteen numbered entries; q, Q, Enter and end of input all leave"
 fresh
 for k in q Q "" ; do out=$(printf '%s\n' "$k" | tty_free fedokawaii 2>&1); eq "$?" 0 "[$k]"; done
 out=$(tty_free fedokawaii </dev/null 2>&1); eq "$?" 0 "end of input"
-has "$out" "FEDOKAWAII"; has "$out" "release  Fedora 44"; has "$out" " 1  status"; has "$out" "12  handbook"
+has "$out" "FEDOKAWAII"; has "$out" "release  Fedora 44"; has "$out" " 1  status"; has "$out" "13  handbook"
+has "$out" " 7  backup"; has "$out" "backup   not set up"
 case_ "plain menu: a number runs its entry, then the menu again"
 out=$(printf '2\nq\n' | tty_free fedokawaii 2>&1)
 eq "$(front_calls)" "front update"; eq "$(grep -c FEDOKAWAII <<<"$out")" 2
 case_ "plain menu: a wrong answer says what is wanted, and runs nothing"
-fresh; out=$(printf '0\n13\nx\n1x\n-1\n\n' | tty_free fedokawaii 2>&1)
-eq "$(grep -c '1–12, or q' <<<"$out")" 5 "each of the five wrong answers"; eq "$(front_calls)" ""
+fresh; out=$(printf '0\n14\nx\n1x\n-1\n\n' | tty_free fedokawaii 2>&1)
+eq "$(grep -c '1–13, or q' <<<"$out")" 5 "each of the five wrong answers"; eq "$(front_calls)" ""
 case_ "plain menu on the text console: no characters the console font may lack"
 fresh; out=$(printf 'q\n' | TERM=linux tty_free fedokawaii 2>&1)
 lacks "$out" "·"; lacks "$out" "—"; lacks "$out" "…"; lacks "$out" "→"; has "$out" "status"
 out=$(TERM=linux fedokawaii status); lacks "$out" "·"
+case_ "Fedora 45's text consoles are kmscon's (TERM=kmscon, TERM_SESSION_TYPE=kms or fb): the plain menu, plain characters — not fzf"
+out=$(TERM=kmscon fedokawaii status); lacks "$out" "·"
+out=$(TERM=xterm-256color TERM_SESSION_TYPE=fb fedokawaii status); lacks "$out" "·" "kmscon under another TERM"
+if has_script; then
+  fresh; stub fzf 'cat >/dev/null; exit 130'
+  out=$(TERM=kmscon TERM_SESSION_TYPE=kms on_tty "q"$'\n' fedokawaii); has "$out" "13  handbook"; lacks "$out" "·"; not_called '^fzf'
+else _ok; fi
 case_ "plain menu when fzf cannot run (old fzf: exit 2) on a terminal"
 if has_script; then
   fresh; stub fzf 'exit 2'
-  out=$(on_tty "q"$'\n' fedokawaii); has "$out" "FEDOKAWAII"; has "$out" "12  handbook"
+  out=$(on_tty "q"$'\n' fedokawaii); has "$out" "FEDOKAWAII"; has "$out" "13  handbook"
   case_ "fzf menu: Esc closes it (exit 0)"
   stub fzf 'cat >/dev/null; exit 130'; on_tty "" fedokawaii >/dev/null; eq "$?" 0; called '^fzf --ansi'
 else _ok; fi
 case_ "Super+U: the menu in a window of its own"
-fresh; fedokawaii --window; called "^kawa-float --once system system 88x15 -- .*fedokawaii$"
+fresh; fedokawaii --window; called "^kawa-float --once system system 88x17 -- .*fedokawaii$"
 case_ "change: the part-by-part menu"
 fedokawaii change; called '^kawa-config'
 

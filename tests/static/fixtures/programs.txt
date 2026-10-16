@@ -43,6 +43,7 @@ paste               minimal   coreutils
 readlink            minimal   coreutils
 realpath            minimal   coreutils
 rm                  minimal   coreutils
+rmdir               minimal   coreutils
 sha1sum             minimal   coreutils
 sha256sum           minimal   coreutils
 sleep               minimal   coreutils
@@ -129,7 +130,7 @@ mpv                 manifest  mpv
 node                manifest  nodejs24-bin      # f44: /usr/bin/node (yt-dlp's --js-runtimes node)
 playerctl           manifest  playerctl
 cava                manifest  cava
-pavucontrol         manifest  pavucontrol
+wiremix             manifest  wiremix           # f44: 0.11.0 (rust-wiremix)
 pw-dump             manifest  pipewire-utils    # f44
 wpctl               manifest  wireplumber
 waybar              manifest  waybar
@@ -157,7 +158,6 @@ udiskie             manifest  udiskie           # f44: udiskie, udiskie-info, -m
 udiskie-mount       manifest  udiskie
 udiskie-umount      manifest  udiskie
 bluetoothctl        manifest  bluez
-blueman-manager     manifest  blueman
 zathura             manifest  zathura
 bsdtar              manifest  bsdtar            # f44
 pdfinfo             manifest  poppler-utils
@@ -165,14 +165,15 @@ pdftoppm            manifest  poppler-utils
 xournalpp           manifest  xournalpp         # f44
 magick              manifest  ImageMagick       # f44: ImageMagick 7 (magick)
 btop                manifest  btop
+vd                  manifest  visidata          # f44: /usr/bin/vd (and visidata); the Tables entry, yazi's Enter on a .csv
 fd                  manifest  fd-find           # f44: /usr/bin/fd
 fzf                 manifest  fzf
 file                manifest  file
 eza                 manifest  eza
 zoxide              manifest  zoxide
-lazygit             manifest  lazygit           # (COPR dejan/lazygit)
 shellcheck          manifest  ShellCheck
 snapper             manifest  snapper
+restic              manifest  restic
 agreety             manifest  greetd            # f44: /usr/bin/agreety
 brave-origin        manifest  brave-origin      # (Brave's own repo)
 7z                  manifest  7zip              # f44: /usr/bin/7z only (no 7zz)
@@ -190,10 +191,13 @@ python3             dep       python3 tuned     # tuned is a python program (fir
 satty               upstream  -
 yazi                upstream  -
 ya                  upstream  -
+bluetui             upstream  -
+lazygit             upstream  -                 # (its release; the COPR dejan/lazygit is no longer kept)
 kawa-veil           built     kawa-veil         # theme.sh, from src/kawa-veil (callers cope without it)
 kawa-clipkeep       built     kawa-clipkeep     # theme.sh, from src/kawa-clipkeep
 dwl                 built     DWL_TAG           # setup.sh, from codeberg + src/dwl
 vi                  built     /usr/local/bin/vi # setup.sh: a link to nvim (yazi's ${EDITOR:-vi})
+syncplay            built     install_syncplay  # setup.sh (lib/upstream.sh): its pinned source, a starter in ~/.local/bin
 
 # ── installed by nothing, on purpose ─────────────────────────────────────────────────────
 dbus-update-activation-environment  optional  -  # dbus-tools: only dbus-daemon needs it, and Fedora

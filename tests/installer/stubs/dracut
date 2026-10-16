@@ -2,4 +2,8 @@
 # dracut of the fake Fedora: logged; its exit status from $FKH/rc-dracut (0)
 . /usr/local/bin/_lib.sh
 fkh_log "$*"
-exit "$(rcfor dracut 0)"
+r=$(rcfor dracut 0)
+# --kver V makes /boot/initramfs-V.img (when it succeeds)
+a=$*
+if ((r == 0)) && [[ " $a " == *" --kver "* ]]; then v=${a#*--kver }; v=${v%% *}; echo initramfs >"/boot/initramfs-$v.img"; fi
+exit "$r"

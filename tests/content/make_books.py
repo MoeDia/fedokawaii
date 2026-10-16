@@ -7,7 +7,8 @@ from nothing but the standard library (no ImageMagick, no PIL):
   pdf OUT PAGES [RRGGBB]          a PDF of PAGES pages, 100×150 pt; the first page coloured
   epub OUT COVER                  an EPUB; COVER: meta (EPUB 2 <meta name="cover">),
                                   property (EPUB 3 cover-image), named (just a file called
-                                  cover.jpg… here .png), none
+                                  cover.jpg… here .png), encoded (a meta cover whose
+                                  href has %20 for a space), none
   cbz OUT NAME…                   a comic book: each NAME a picture (a .txt NAME: text)
   sqlite DB FILE PAGE WHEN …      zathura's bookmarks.sqlite: a fileinfo row per triple
 """
@@ -45,11 +46,13 @@ def pdf_bytes(pages, colour="d0583a"):
 
 def epub(out, cover):
     pic = png_bytes(60, 90, "5f7fa0", "e3b866")
-    meta = '<meta name="cover" content="cov"/>' if cover == "meta" else ""
+    meta = '<meta name="cover" content="cov"/>' if cover in ("meta", "encoded") else ""
     prop = ' properties="cover-image"' if cover == "property" else ""
     items = '<item id="text" href="text.xhtml" media-type="application/xhtml+xml"/>'
     if cover in ("meta", "property"):
         items += '<item id="cov" href="images/front.png" media-type="image/png"%s/>' % prop
+    if cover == "encoded":                 # (an href is a URL: a space in the name is %20)
+        items += '<item id="cov" href="images/front%20page.png" media-type="image/png"/>'
     opf = ('<?xml version="1.0"?><package xmlns="http://www.idpf.org/2007/opf" version="3.0">'
            '<metadata>%s</metadata><manifest>%s</manifest><spine><itemref idref="text"/></spine></package>'
            % (meta, items))
@@ -62,6 +65,7 @@ def epub(out, cover):
         z.writestr("OEBPS/text.xhtml", "<html><body><p>once upon a time</p></body></html>")
         if cover in ("meta", "property"): z.writestr("OEBPS/images/front.png", pic)
         if cover == "named": z.writestr("OEBPS/images/Cover.png", pic)
+        if cover == "encoded": z.writestr("OEBPS/images/front page.png", pic)
 
 
 def main(a):

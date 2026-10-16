@@ -1,0 +1,5 @@
+#!/bin/bash
+. /usr/local/bin/_lib.sh
+fkh_log "$*"
+[[ $1 == version ]] && echo "restic 0.19.1 compiled with go1.26.4 on linux/amd64"
+exit "$(rcfor restic 0)"

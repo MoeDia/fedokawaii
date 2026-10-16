@@ -105,6 +105,30 @@ has "$(state /dev/sdb1)" $'/dev/sdb\tKINGSTON\topen'
 called 'kawa-dwlstatus --poke 13'
 called 'setsid -f .*kawa-drives notice-open /dev/sdb1 .*KINGSTON 28.9G vfat · click to open it in the files'
 
+case_ "the notice's click: the files on the drive (notify-send's default action)"
+stub notify-send 'echo default'
+kawa-drives notice-open /dev/sdb1 "KINGSTON" "click to open it in the files"
+called 'notify-send -a drives -A default=open -- KINGSTON click to open'; called "kawa-term yazi $MNT/KINGSTON"
+reset_calls; stub notify-send; kawa-drives notice-open /dev/sdb1 "KINGSTON" "…"; not_called kawa-term "closed or timed out: nothing opens"
+rc 2 kawa-drives notice-open /dev/sdb1 "KINGSTON"
+
+case_ "the backup drive (BACKUP_TARGET as settings saved it — the real kawa-backup reads it): the notice says so, its click backs up"
+setup; toolkit BACKUP_TARGET=BACKUP                                 # (the theme's env still names none)
+kawa-drives event device_mounted /dev/mapper/luks-1234 False BACKUP ""
+called 'notice-open /dev/mapper/luks-1234 .*BACKUP your backup drive · click to back up now \(last backup: never\) backup$'
+reset_calls; kawa-drives event device_mounted /dev/sdb1 True KINGSTON ""
+called 'notice-open /dev/sdb1 .*KINGSTON 28.9G vfat · click to open it in the files$' "another drive: the usual notice"
+stub notify-send 'echo default'; reset_calls
+stub kawa-backup; kawa-drives notice-open /dev/mapper/luks-1234 "BACKUP" "your backup drive · click to back up now" backup
+called 'notify-send -a drives -A default=backup -- '; called '^kawa-backup --window$'; not_called kawa-term
+case_ "no BACKUP_TARGET (none in settings, no toolkit, no env), or kawa-backup missing: every drive's notice is the usual one"
+setup; toolkit; kawa-drives event device_mounted /dev/mapper/luks-1234 False BACKUP ""
+called 'notice-open /dev/mapper/luks-1234 .*click to open it in the files$'
+setup; rm -f "$HOME/.config/fedokawaii/env"; kawa-drives event device_mounted /dev/sdb1 True KINGSTON ""
+called 'click to open it in the files$'
+setup; toolkit BACKUP_TARGET=BACKUP; stub kawa-backup 'exit 127'
+kawa-drives event device_mounted /dev/mapper/luks-1234 False BACKUP ""; called 'click to open it in the files$'
+
 case_ "opened because you asked (the menu, M in yazi): no notice"
 setup; mkdir -p "$XDG_RUNTIME_DIR/kawa-drives"; : >"$XDG_RUNTIME_DIR/kawa-drives/asked.sdb"
 kawa-drives event device_mounted /dev/sdb1 True KINGSTON ""

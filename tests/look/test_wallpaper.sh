@@ -348,4 +348,13 @@ before=$(find "$CACHE/preview" -name '*.six' -printf '%f %T@\n' | sort)
 kawa-wallpaper --preview "$WP/a.png" >/dev/null
 eq "$(find "$CACHE/preview" -name '*.six' -printf '%f %T@\n' | sort)" "$before" "showing one draws nothing new: it was ready"
 
+case_ "a preview killed half-way (fzf kills one you moved on from): its half-made file cleared next time"
+setup
+photo "$WP/a.png"; mkdir -p "$CACHE/preview"
+: >"$CACHE/preview/abc.six.4242.tmp"; touch -d '5 minutes ago' "$CACHE/preview/abc.six.4242.tmp"
+: >"$CACHE/preview/def.six.4343.tmp"                  # (one being drawn right now: left alone)
+kawa-wallpaper --warm
+[[ ! -e $CACHE/preview/abc.six.4242.tmp ]] && _ok || _no "the half-made preview stayed"
+[[ -e $CACHE/preview/def.six.4343.tmp ]] && _ok || _no "a preview being drawn was removed"
+
 done_

@@ -18,7 +18,8 @@
 #                 hw_laptop · hw_bios · hw_secureboot   (each replaces the GPU part, or adds)
 #   pkg_has NAME · state FILE · fkh FILE [CONTENT] — the fake machine's records, read or set
 # The fake Fedora's records are in $FKH ($W/var/lib/fkh): installed, available, userinstalled,
-# units, calls.log (every stub's call: "user[command] args") — $CALLS, for called/not_called.
+# files (what rpm -ql lists), units, calls.log (every stub's call: "user[command] args") —
+# $CALLS, for called/not_called.
 # Not root: the whole test file runs again inside a user namespace of this user's own ids, as
 # its root — the fake machine needs root, and in there this machine's own files are out of
 # reach (its root is not mapped: they are nobody's). A file that never makes a fake machine
@@ -118,6 +119,20 @@ usr_farm() {
   for n in /usr/share/icons/*; do [[ $n == */Papirus* || $n == */Adwaita ]] || ln -s "$W/.usr$n" "$s/icons/${n##*/}"; done
 }
 fake_cmd() { printf '#!/bin/sh\nexit 0\n' >"$1"; chmod 755 "$1"; }
+# fake_pylibs — the Python libraries Syncplay needs (Fedora's python3-twisted+tls, -pyOpenSSL,
+# -certifi, -pem), as stand-ins this machine's python3 finds inside the fake machine: in its
+# /usr/local site folder, which is the fake machine's own. (FK_PYLIBS: that folder, for a test)
+fake_pylibs() {
+  local pp m
+  pp=$(python3 -I -c 'import sys; print(next((p for p in sys.path if p.startswith("/usr/local/lib/python")), ""))')
+  [[ -n $pp ]] || { echo "harness: this python3 has no /usr/local site folder — Syncplay's steps will fail" >&2; return 0; }
+  FK_PYLIBS=$W$pp
+  mkdir -p "$FK_PYLIBS/twisted/internet"
+  for m in twisted/__init__ twisted/internet/__init__ certifi/__init__ pem/__init__ OpenSSL/__init__; do
+    mkdir -p "$FK_PYLIBS/${m%/*}"; : >"$FK_PYLIBS/$m.py"
+  done
+  printf 'def optionsForClientTLS(*a, **k):\n    pass\n' >"$FK_PYLIBS/twisted/internet/ssl.py"
+}
 
 pkg_has() { grep -qxF -- "$1" "$FKH/installed"; }
 state() { cat "$W/var/lib/fedokawaii/$1" 2>/dev/null; }
@@ -136,9 +151,11 @@ world() {   # world fresh|built [--themed]
   mkdir -p "$W"/{etc,var/lib/fedokawaii,var/lib/systemd/linger,var/log,var/tmp,boot/grub2,home,root,runuser,dev/dri,proc} \
     "$W"/usr/local/{bin,lib,sbin,libexec,share} "$W"/sys/{class/drm,bus/pci/devices,bus/pci/drivers,firmware,module/i2c_dev} "$FKH/dl"
   chmod 1777 "$W/var/tmp"
+  echo vmlinuz >"$W/boot/vmlinuz-$(uname -r)"; echo initramfs >"$W/boot/initramfs-$(uname -r).img"   # (the running kernel, as the installer left it)
   # (owned by whoever makes the fake machine — its root: out here a user's own files may show as nobody's)
   cp -a --no-preserve=ownership /etc/. "$W/etc/" 2>/dev/null
   usr_farm
+  fake_pylibs
   # the desktop user, an administrator; Fedora's os-release; GRUB's defaults
   sed -i '/^fkuser:/d; /^greetd:/d' "$W/etc/passwd" "$W/etc/group"
   echo "fkuser:x:$FK_UID:$FK_UID:Fk User:/home/fkuser:/bin/bash" >>"$W/etc/passwd"
@@ -184,6 +201,7 @@ world() {   # world fresh|built [--themed]
       NetworkManager-wifi wireless-regdb alsa-sof-firmware iwlwifi-mvm-firmware realtek-firmware kernel-core
     cat "$FKH/installed"; } | sort -u >"$FKH/available"
   echo "iwlwifi-mvm-firmware /usr/lib/firmware/iwlwifi-so-a0-gf-a0-89.ucode.xz" >"$FKH/fwfiles"
+  echo "rocm-smi /usr/lib64/librocm_smi64.so.1.0" >"$FKH/files"      # (rpm -ql: the library btop opens)
   printf '%s\n' "global-enabled pipewire.socket" "global-enabled pipewire-pulse.socket" "global-enabled wireplumber.service" \
     "enabled sshd.service" "active sshd.service" "enabled firewalld.service" "active firewalld.service" \
     "enabled fstrim.timer" >"$FKH/units"
@@ -197,6 +215,16 @@ world() {   # world fresh|built [--themed]
   hw_amd
   [[ $kind == built ]] && built "$themed"
   fk_perms
+}
+# fedora_release N — the fake machine as Fedora N Server instead (44 as made): its os-release;
+# from 45 on, kmscon (the core group's) drawing the consoles — `kmscon CMD…` runs CMD as a
+# kmscon console's login does, under a parent process named kmscon
+fedora_release() {
+  sed -i -E "s/^VERSION=\"[0-9]+/VERSION=\"$1/; s/^VERSION_ID=.*/VERSION_ID=$1/; s/^PRETTY_NAME=\"Fedora Linux [0-9]+/PRETTY_NAME=\"Fedora Linux $1/" "$W/etc/os-release"
+  if (($1 >= 45)); then
+    pkg_has kmscon || fkh_add installed kmscon
+    printf '#!/bin/bash\n"$@"\nexit $?\n' >"$W/usr/local/bin/kmscon"; chmod 755 "$W/usr/local/bin/kmscon"
+  fi
 }
 reboot_world() {   # what a restart changes: the kernel's arguments as recorded; what loads at boot
   if [[ -s $FKH/grub-args ]]; then head -n1 "$FKH/grub-args" | sed 's|^|BOOT_IMAGE=(hd0,gpt2)/vmlinuz-6.19 root=UUID=x |' >"$W/proc/cmdline"; fi
@@ -247,9 +275,11 @@ releases() {
   local r=$TMP/rel d f sum name file old
   rm -rf "$r"; mkdir -p "$r"
   tool() { printf '#!/bin/sh\necho "%s %s"\n' "$1" "$2" >"$3"; chmod 755 "$3"; }
-  mkdir -p "$r/satty" "$r/yazi/yazi-x86_64-unknown-linux-musl" "$r/pres/presenterm-0.16.1" "$r/sp" "$r/jb" "$r/dm" "$r/pm/PixelMplus-20130602" "$r/ge/GE-Proton10-25"
+  mkdir -p "$r/satty" "$r/yazi/yazi-x86_64-unknown-linux-musl" "$r/pres/presenterm-0.16.1" "$r/sp" "$r/lg" "$r/jb" "$r/dm" "$r/pm/PixelMplus-20130602" "$r/ge/GE-Proton10-25"
   tool satty 0.22.0 "$r/satty/satty"; tool yazi 26.9.1 "$r/yazi/yazi-x86_64-unknown-linux-musl/yazi"; tool ya 26.9.1 "$r/yazi/yazi-x86_64-unknown-linux-musl/ya"
   tool presenterm 0.16.1 "$r/pres/presenterm-0.16.1/presenterm"; tool spotify_player 0.25.1 "$r/sp/spotify_player"
+  tool bluetui 0.8.2 "$FKH/dl/bluetui-x86_64-linux-musl"     # (no archive: the release file is the binary)
+  tool lazygit 0.66.1 "$r/lg/lazygit"; echo licence >"$r/lg/LICENSE"; echo readme >"$r/lg/README.md"   # (as its release: beside them)
   echo font >"$r/jb/JetBrainsMonoNerdFont-Regular.ttf"; echo font >"$r/dm/DepartureMonoNerdFont-Regular.otf"
   echo font >"$r/pm/PixelMplus-20130602/PixelMplus12-Regular.ttf"; echo font >"$r/pm/PixelMplus-20130602/PixelMplus10-Regular.ttf"; echo licence >"$r/pm/PixelMplus-20130602/LICENSE_E"
   echo '"compatibilitytools" { }' >"$r/ge/GE-Proton10-25/compatibilitytool.vdf"
@@ -257,6 +287,7 @@ releases() {
   (cd "$r/yazi" && python3 -m zipfile -c "$FKH/dl/yazi-x86_64-unknown-linux-musl.zip" yazi-x86_64-unknown-linux-musl)
   tar -czf "$FKH/dl/presenterm-0.16.1-x86_64-unknown-linux-musl.tar.gz" -C "$r/pres" .
   tar -czf "$FKH/dl/spotify_player-x86_64-unknown-linux-gnu.tar.gz" -C "$r/sp" .
+  tar -czf "$FKH/dl/lazygit_0.66.1_linux_x86_64.tar.gz" -C "$r/lg" LICENSE README.md lazygit
   tar -cJf "$FKH/dl/JetBrainsMono.tar.xz" -C "$r/jb" .; tar -cJf "$FKH/dl/DepartureMono.tar.xz" -C "$r/dm" .
   (cd "$r/pm" && python3 -m zipfile -c "$FKH/dl/PixelMplus-20130602.zip" PixelMplus-20130602)
   tar -czf "$FKH/dl/GE-Proton10-25.tar.gz" -C "$r/ge" GE-Proton10-25
@@ -286,11 +317,12 @@ built() {
   local themed=$1 S=$W/var/lib/fedokawaii U=$W/home/fkuser p
   echo "done" >"$S/phase"; echo fkuser >"$S/user"; echo amd >"$S/gpu"
   local gid=3100
-  for p in video input render gamemode; do gid=$((gid + 1))
+  for p in video render gamemode; do gid=$((gid + 1))
     if grep -q "^$p:" "$W/etc/group"; then sed -i -E "s/^($p:[^:]*:[^:]*:)(.+)\$/\\1\\2,fkuser/; s/^($p:[^:]*:[^:]*:)\$/\\1fkuser/" "$W/etc/group"
     else echo "$p:x:$gid:fkuser" >>"$W/etc/group"; fi
   done
   printf '%s\n' bash sudo NetworkManager >"$S/baseline-userinstalled"
+  echo 1792000000 >"$S/input-group-out"                      # (setup's groups step: never in input)
   # the toolkit: this repository, installed for good
   mkdir -p "$W/usr/local/lib/fedokawaii"; cp -a "$U/fedokawaii/." "$W/usr/local/lib/fedokawaii/"
   cp "$W/usr/local/lib/fedokawaii/system/fedokawaii" "$W/usr/local/bin/fedokawaii"
@@ -308,7 +340,10 @@ built() {
   printf '[Service]\nExecStart=\nExecStart=/usr/bin/greetd --config /etc/greetd/fedokawaii.toml\n' >"$W/etc/systemd/system/greetd.service.d/fedokawaii.conf"
   printf 'export EDITOR=nvim\nexport VISUAL=nvim\n' >"$W/etc/profile.d/editor.sh"; : >"$W/etc/profile.d/kawa-torrra.sh"
   ln -sfn ../../bin/nvim "$W/usr/local/bin/vi"; : >"$W/etc/NetworkManager/conf.d/90-fedokawaii.conf"; : >"$W/etc/mpv/scripts/mpris.so"
-  printf '[main]\nmax_parallel_downloads=10\nfastestmirror=True\nminrate=50k\ntimeout=20\ninstallonly_limit=2\ndefaultyes=True\n' >"$W/etc/dnf/libdnf5.conf.d/90-fedokawaii.conf"
+  mkdir -p "$W/etc/modprobe.d" "$W/etc/systemd/system/user@.service.d"
+  echo 'options btusb enable_autosuspend=0' >"$W/etc/modprobe.d/fedokawaii-btusb.conf"
+  printf '[Service]\nTimeoutStopSec=30s\n' >"$W/etc/systemd/system/user@.service.d/fedokawaii.conf"
+  printf '[main]\nmax_parallel_downloads=10\nfastestmirror=True\nminrate=50k\ntimeout=20\ninstallonly_limit=2\ndefaultyes=True\nexclude_from_weak=nodejs,nodejs22*\n' >"$W/etc/dnf/libdnf5.conf.d/90-fedokawaii.conf"
   printf '[x]\ngpgcheck=1\n' >"$W/etc/yum.repos.d/brave-browser.repo"; cp "$W/etc/yum.repos.d/brave-browser.repo" "$W/etc/yum.repos.d/claude-code.repo"
   printf '#!/bin/sh\nexit 0\n' >"$W/usr/local/sbin/kawa-snap"; chmod 755 "$W/usr/local/sbin/kawa-snap"; : >"$W/etc/dnf/libdnf5-plugins/actions.d/fedokawaii-snapper.actions"
   mkdir -p "$W/etc/systemd/system"; ln -sfn ../../../usr/lib/systemd/system/greetd.service "$W/etc/systemd/system/display-manager.service"
@@ -330,13 +365,14 @@ built() {
     fedokawaii-scrub.timer tuned.service firewalld.service >>"$FKH/units"
   sed -i '/ sshd.service$/d' "$FKH/units"; echo "global-enabled grub-boot-success.timer" >>"$FKH/units"
   rm -f "$W/usrbin/nano" "$W/usrbin/vi"                     # (setup took them out)
-  printf '%s\n' copr:copr.fedorainfracloud.org:ilyaz:LACT copr:copr.fedorainfracloud.org:dejan:lazygit >"$FKH/coprs"
+  printf '%s\n' copr:copr.fedorainfracloud.org:ilyaz:LACT >"$FKH/coprs"
   mkdir -p "$W/usrshare/vulkan/icd.d" "$W/usrshare/icons/Papirus" "$W/usrshare/icons/Papirus-Dark" "$W/usrshare/icons/Adwaita/cursors"
   : >"$W/usrshare/vulkan/icd.d/radeon_icd.x86_64.json"; fake_cmd "$W/usrbin/greetd"
   printf '%s\n' root home >"$FKH/snapper-configs"; echo "1,fedokawaii baseline" >"$FKH/snaps"
   echo fedokawaii >"$FKH/tuned-profile"; printf '%s\n' dhcpv6-client >"$FKH/fw-services"; printf '%s\n' 6881/tcp 6881/udp >"$FKH/fw-ports"
   echo menu_auto_hide=1 >"$FKH/grubenv"
-  printf '%s\n' "ro rootflags=subvol=root rhgb quiet amdgpu.ppfeaturemask=0xfff7ffff" "ro rootflags=subvol=root rhgb quiet amdgpu.ppfeaturemask=0xfff7ffff" >"$FKH/grub-args"
+  printf '%s\n' "ro rootflags=subvol=root rhgb quiet systemd.tty.term.console=dumb amdgpu.ppfeaturemask=0xfff7ffff" \
+    "ro rootflags=subvol=root rhgb quiet systemd.tty.term.console=dumb amdgpu.ppfeaturemask=0xfff7ffff" >"$FKH/grub-args"
   sed -i 's/quiet$/quiet amdgpu.ppfeaturemask=0xfff7ffff/' "$W/proc/cmdline"
   echo fedokawaii >"$FKH/hostname"; : >"$FKH/podman-image"
   echo 'a1b2c3d4e5f60718293a4b5c6d7e8f90' >"$FKH/podman-secret"
@@ -354,6 +390,13 @@ built() {
   done < <(. "$REPO/lib/upstream.sh"; printf '%s\n' "${UPSTREAM[@]}")
   echo v3.5.1 >"$U/.local/share/fedokawaii/upstream/nerd-JetBrainsMono"; echo v3.5.1 >"$U/.local/share/fedokawaii/upstream/nerd-DepartureMono"
   echo GE-Proton10-25 >"$U/.local/share/fedokawaii/upstream/ge-proton"
+  # Syncplay from its pinned source: the folder, the two starters, the commit recorded
+  ( . "$TI/stubs/_lib.sh"; FKH=$FKH fake_syncplay_source "$U/.local/share/fedokawaii/syncplay" )
+  ( . "$REPO/lib/upstream.sh"; d=/home/fkuser/.local/share/fedokawaii/syncplay
+    syncplay_starter syncplay ep_client "$d" --no-gui >"$U/.local/bin/syncplay"
+    syncplay_starter syncplay-server ep_server "$d" >"$U/.local/bin/syncplay-server"
+    echo "$SYNCPLAY_COMMIT" >"$U/.local/share/fedokawaii/upstream/syncplay" )
+  chmod 755 "$U/.local/bin/syncplay" "$U/.local/bin/syncplay-server"
   : >"$U/.local/share/fonts/JetBrainsMonoNerd/a.ttf"; : >"$U/.local/share/fonts/DepartureMonoNerd/a.otf"; : >"$U/.local/share/fonts/PixelMplus/PixelMplus12-Regular.ttf"
   printf '#!/bin/bash\n[[ " $* " == *" - "* ]] && cat >/dev/null\nexit 0\n' >"$U/.local/share/pipx/venvs/torrra/bin/python"; chmod 755 "$U/.local/share/pipx/venvs/torrra/bin/python"
   printf 'PROWLARR_API_KEY=a1b2c3d4e5f60718293a4b5c6d7e8f90\n' >"$U/.config/fedokawaii/secrets.sh"; chmod 600 "$U/.config/fedokawaii/secrets.sh"
@@ -361,6 +404,7 @@ built() {
   printf '[general]\ndefault = "prowlarr"\n' >"$U/.config/torrra/config.toml"; sed -i 's/^\[general\]/[indexers]/' "$U/.config/torrra/config.toml"
   echo '{}' >"$U/.config/nvim/lazy-lock.json"; echo 'x' >"$U/.config/nvim/init.lua"
   printf 'static const unsigned int gappx = 5;\nstatic float bordercolor[3][4];\n' >"$U/.local/src/dwl/config.h"
+  echo "ref: refs/heads/main" >"$U/.local/src/dwl/.git/HEAD"              # (a repository git can read)
   printf '%s\n' 'layout = 0; /* keybindings always read' 'gap = (int)gappx' 'corners closed' 'open centred on their monitor' 'kblayout %u' 'printclean(' >"$U/.local/src/dwl/dwl.c"
   mkdir -p "$W/runuser/$FK_UID"; chmod 700 "$W/runuser/$FK_UID"
   ((themed)) && themed_home

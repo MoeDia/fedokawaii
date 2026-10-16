@@ -175,6 +175,22 @@ has "$(cat "$TMP/mpv.got")" "{\"command\": [\"load-config-file\", \"$DIR/themes/
 [[ ! -e $XDG_RUNTIME_DIR/mpv-222.sock ]] && _ok || _no "a crashed player's socket was kept"
 [[ -e $XDG_RUNTIME_DIR/mpv-333.sock ]] && _ok || _no "a file that is no socket was removed"
 
+case_ "mpv in Syncplay (its own socket): told too; a dead one of Syncplay's is left to Syncplay"
+setup
+mkdir -p "$XDG_RUNTIME_DIR/syncplay-ab12" "$XDG_RUNTIME_DIR/syncplay-cd34"
+python3 -I -c '
+import socket, sys
+s = socket.socket(socket.AF_UNIX); s.bind(sys.argv[1]); s.listen(1); s.settimeout(10)
+open(sys.argv[2] + ".up", "w").close()
+c, _ = s.accept(); open(sys.argv[2], "wb").write(c.recv(4096))' "$XDG_RUNTIME_DIR/syncplay-ab12/mpv-socket" "$TMP/sp.got" &
+mpv=$!
+for _ in {1..300}; do [[ -e $TMP/sp.got.up ]] && break; /bin/sleep 0.01; done
+python3 -I -c 'import socket, sys; s = socket.socket(socket.AF_UNIX); s.bind(sys.argv[1])' "$XDG_RUNTIME_DIR/syncplay-cd34/mpv-socket"
+kawa-theme light
+wait "$mpv"
+has "$(cat "$TMP/sp.got")" "{\"command\": [\"load-config-file\", \"$DIR/themes/light/mpv.conf\"]}"
+[[ -S $XDG_RUNTIME_DIR/syncplay-cd34/mpv-socket ]] && _ok || _no "Syncplay's socket was removed"
+
 case_ "while the screen is locked: the switch happens, the lock screen is not touched"
 setup
 read -r lockpid locklog < <(catcher swaylock USR1 USR2)

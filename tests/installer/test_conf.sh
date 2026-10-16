@@ -127,6 +127,30 @@ has "$p" "TIMEZONE 'Asia/Nowhere' is not a known zone"; has "$p" "NIGHT_LIGHT mu
 has "$p" "BOOT_MENU_SECONDS must be 0–10"; has "$p" "DNF_PARALLEL must be 1–20"
 eq "$(lines "$p")" 6
 
+case_ "BACKUP_TARGET: empty (none yet), a drive's name — with spaces, in Arabic — a folder's path, a restic address: valid"
+eq "$(value BACKUP_TARGET "$CONF")" ""; eq "$(value BACKUP_REMIND_DAYS "$CONF")" 7
+for t in KINGSTON "WD Elements 25A2" "نسخة احتياطية" /mnt/backup "/run/media/you/My Passport" "sftp:you@nas:/backups/desktop" \
+         "rclone:gdrive:fedokawaii" "s3:s3.amazonaws.com/my-bucket" "rest:https://nas:8000/"; do
+  variant -e "s|^BACKUP_TARGET=.*|BACKUP_TARGET=\"$t\"|"
+  eq "$(problems)" "" "BACKUP_TARGET=$t"; eq "$(value BACKUP_TARGET)" "$t"
+done
+case_ "BACKUP_TARGET holding \$( ), backticks, ;, | or a quote (it reaches a shell file, env): refused as text, never run"
+for t in '$(touch '"$TMP"'/ran)' '`id`' 'KINGSTON; rm -rf ~' 'a|b' "it's" '-rf' 'x&y' 'a\b' '~/backups'; do
+  variant -e '/^BACKUP_TARGET=/d'; printf 'BACKUP_TARGET="%s"\n' "$t" >>"$TMP/c.conf"
+  p=$(problems); has "$p" "BACKUP_TARGET must be a drive's name, a folder's path or a restic address" "BACKUP_TARGET=$t"
+  eq "$(lines "$p")" 1 "BACKUP_TARGET=$t: one line"
+done
+[[ ! -e $TMP/ran ]] && _ok || _no "a BACKUP_TARGET was run as a command"
+case_ "BACKUP_REMIND_DAYS: 0 (off) to 365; anything else named with its rule"
+for d in 0 1 7 30 365; do variant -e "s|^BACKUP_REMIND_DAYS=.*|BACKUP_REMIND_DAYS=\"$d\"|"; eq "$(problems)" "" "BACKUP_REMIND_DAYS=$d"; done
+for d in 366 -1 7.5 soon ""; do
+  variant -e "s|^BACKUP_REMIND_DAYS=.*|BACKUP_REMIND_DAYS=\"$d\"|"
+  has "$(problems)" "BACKUP_REMIND_DAYS must be 0–365 (0 = no reminder) (is '$d')" "BACKUP_REMIND_DAYS=$d"
+done
+case_ "the backup lines deleted (a fedokawaii.conf from before them): each named as missing"
+variant -e '/^BACKUP_TARGET=/d' -e '/^BACKUP_REMIND_DAYS=/d'
+p=$(problems); eq "$(lines "$p")" 2; has "$p" 'BACKUP_TARGET is missing'; has "$p" 'BACKUP_REMIND_DAYS is missing'
+
 case_ "a time zone that walks out of the zone folder (../): refused"
 variant -e 's|^TIMEZONE=.*|TIMEZONE="../../etc/passwd"|'; has "$(problems)" "TIMEZONE"
 

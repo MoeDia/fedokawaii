@@ -32,6 +32,43 @@ reset_calls; lib 'c=0; f() { c=$((c + 1)); ((c >= 2)); }; retry 3 5 f; echo "rc=
 has "$OUT" "rc=0 c=2"; eq "$(grep -c '^sleep' "$CALLS")" 1
 reset_calls; lib 'retry 3 5 true; echo "rc=$?"'; has "$OUT" "rc=0"; not_called '^sleep'
 
+# trapped CODE · trapped_theme CODE — CODE under setup.sh's (theme.sh's) own error report: its ERR
+# trap as the script sets it, errexit and pipefail on, contained as setup has it
+SETUP_TRAP=$(awk '/^trap .rc=\$\?; \(\(BASH_SUBSHELL == 0\)\)/ { on = 1 } on { print } on && /. ERR$/ { exit }' "$REPO/setup.sh")
+THEME_TRAP=$(grep -m1 "^trap 'rc=\$?; ((BASH_SUBSHELL == 0))" "$REPO/theme.sh")
+CONTAINED=$(awk '/^contained\(\) \{/ { on = 1 } on { print } on && /^}/ { exit }' "$REPO/setup.sh")
+[[ $SETUP_TRAP == *"' ERR" && $THEME_TRAP == *"' ERR" && $CONTAINED == *"CONTAINED_RC=\$?"* ]] || echo "test_common: setup.sh's or theme.sh's trap not found" >&2
+trapped() {   # (a script file, as setup is one: its lines and its call stack as a script's)
+  printf '%s\n' 'set -Eeuo pipefail' "IFS=\$'\\n\\t'" ". '$REPO/lib/common.sh'" 'CONTAINED_RC=0' "$CONTAINED" \
+    "${TRAP:-$SETUP_TRAP}" "$1" >"$TMP/trapped.sh"
+  OUT=$(LOG_FILE=${LOGF:-$TMP/log} bash "$TMP/trapped.sh" 2>&1); RC=$?
+}
+trapped_theme() { TRAP=$THEME_TRAP trapped "$@"; }
+
+case_ "setup's error report names the command that failed: run's — not run's own tee or return"
+trapped 's_media() { run sh -c "echo from dnf; exit 3"; echo after; }; s_media'
+eq "$RC" 3; has "$OUT" "from dnf"; has "$OUT" "in s_media()"; has "$OUT" ": sh -c echo from dnf; exit 3 (exit 3)"
+lacks "$OUT" "tee -a"; lacks "$OUT" ": return"; lacks "$OUT" "after"
+case_ "…retry's (dnf_install is a retry): the command tried, not retry's return"
+stub dnf 'exit 1'
+trapped 's_base() { dnf_install foo bar; echo after; }; s_base'
+eq "$RC" 1; has "$OUT" "attempt 3/3 failed: dnf -y install foo bar"; has "$OUT" ": dnf -y install foo bar (exit 1)"
+lacks "$OUT" ": return"; lacks "$OUT" "after"
+trapped 's_dwl() { retry 2 10 false --fetch codeberg; }; s_dwl'; has "$OUT" "in s_dwl(), called from line"; has "$OUT" ": false --fetch codeberg (exit 1)"
+case_ "…a plain command as it is; one run saw fail earlier, and dealt with, is never named for another"
+trapped 'f() { echo x | grep -q y; echo after; }; f'; has "$OUT" ": grep -q y (exit 1)"; lacks "$OUT" after
+trapped $'run false || true\ng() { return 4; }\ng'; has "$OUT" ": return 4 (exit 4)"; lacks "$OUT" ": false"
+case_ "…inside contained (update's and repair's steps): run's command named; a function that said why stays quiet"
+trapped $'contained run sh -c "exit 5"; echo "rc=$CONTAINED_RC"\nf() { log "f: the reason"; return 1; }\ncontained f; echo "rc=$CONTAINED_RC"'
+has "$OUT" ": sh -c exit 5 (exit 5)"; has "$OUT" "rc=5"; has "$OUT" "f: the reason"; has "$OUT" "rc=1"; lacks "$OUT" ": return 1"
+case_ "theme.sh's error report: the same"
+trapped_theme 'f() { run sh -c "exit 6"; }; f'; eq "$RC" 6; has "$OUT" "in f(), called from line"; has "$OUT" ": sh -c exit 6 (exit 6)"
+trapped_theme 'false'; has "$OUT" ": false (exit 1)"
+case_ "a log that cannot be written (a full disk) never stops a run: run's status is its command's"
+LOGF=$TMP/no-such-folder/log trapped 'log "one"; run true; run sh -c "echo two"; echo "went on"'
+eq "$RC" 0; has "$OUT" "▸ one"; has "$OUT" "two"; has "$OUT" "went on"
+LOGF=$TMP/no-such-folder/log trapped 'run sh -c "exit 7"; echo after'; eq "$RC" 7; has "$OUT" ": sh -c exit 7 (exit 7)"
+
 case_ "step: runs once, recorded; a second time skipped; a '/' in its name never makes a folder"
 lib 'f() { echo ran; }; step "1.2 a/b step" f; step "1.2 a/b step" f'
 eq "$(grep -c '^ran$' <<<"$OUT")" 1; has "$OUT" "skip (done): 1.2 a/b step"

@@ -21,9 +21,20 @@ host=${url#https://}; host=${host%%/*}
 if ! net_on || has unreachable "$host"; then
   ((code)) && printf '000'; echo "curl: (6) Could not resolve host: $host" >&2; exit 6
 fi
+# $FKH/clock = wrong: the machine's clock is years off — every https certificate is refused
+if [[ $(cat "$FKH/clock" 2>/dev/null) == wrong ]]; then
+  ((code)) && printf '000'; echo "curl: (60) SSL certificate problem: certificate is not yet valid" >&2; exit 60
+fi
 ((code)) && { printf '200'; exit 0; }
 case $url in
   https://mirrors.fedoraproject.org/) exit 0 ;;
+  # a COPR project: built for Fedora 44–46 and Rawhide, less "OWNER/PROJECT CHROOT" lines in $FKH/copr-without
+  https://copr.fedorainfracloud.org/api_3/project\?*)
+     o=${url#*ownername=}; o=${o%%&*}; pn=${url#*projectname=}; pn=${pn%%&*}; js=""
+     for chr in fedora-44-x86_64 fedora-45-x86_64 fedora-46-x86_64 fedora-rawhide-x86_64; do
+       has copr-without "$o/$pn $chr" || js+="${js:+, }\"$chr\": \"https://download.copr.fedorainfracloud.org/results/$o/$pn/$chr/\""
+     done
+     printf '{"full_name": "%s/%s", "chroot_repos": {%s}}\n' "$o" "$pn" "$js"; exit 0 ;;
   https://api.github.com/repos/GloriousEggroll/*) countdown curl-ge-api && { echo "curl: (22) The requested URL returned error: 403" >&2; exit 22; }
      cat "$FKH/ge.json" 2>/dev/null || { echo "curl: (22) 404" >&2; exit 22; }; exit 0 ;;
 esac

@@ -98,6 +98,7 @@ front </dev/null >/dev/null 2>&1; eq "$?" 0 "end of input"
 case_ "conf FILE (the menu's edited copy): checked, then made the toolkit's settings"
 fresh; cp "$R/toolkit/fedokawaii.conf" "$TMP/edit.conf"; sed -i 's/^STEAM="yes"/STEAM="no"/' "$TMP/edit.conf"
 out=$(front conf "$TMP/edit.conf" 2>&1); eq "$?" 0; has "$out" "every value is valid"
+has "$out" "BACKUP_TARGET and BACKUP_REMIND_DAYS count at once" "the backup's two need no update: said"
 has "$(cat "$R/toolkit/fedokawaii.conf")" 'STEAM="no"'
 called "^runuser -u kawa -- cat -- $TMP/edit.conf" "read as whoever ran sudo, never as root"
 case_ "conf with a slip: not saved, every problem listed, the settings as they were"

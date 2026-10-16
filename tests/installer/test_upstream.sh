@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # tests/installer/test_upstream.sh — lib/upstream.sh: the desktop's pinned tools from GitHub
-# releases (satty, yazi, presenterm, spotify_player), the Nerd Fonts, PixelMplus and GE-Proton,
+# releases (satty, yazi, presenterm, spotify_player, bluetui), the Nerd Fonts, PixelMplus and GE-Proton,
 # in the fake machine with fake releases. Each is fetched, checked against its pinned SHA-256
 # and put in the user's home by the user; a second run finds it in place; a download that
 # differs by a byte, is cut off half-way or cannot happen at all changes nothing; a library
@@ -35,6 +35,17 @@ reset_calls; up "install_upstream_bin $satty"; eq "$RC" 0; has "$OUT" "satty v0.
 case_ "yazi (a zip with two binaries in a folder): both installed"
 up 'install_upstream_bin "${UPSTREAM[1]}"'; eq "$RC" 0
 [[ -x $W$H/.local/bin/yazi && -x $W$H/.local/bin/ya ]] && _ok || _no "yazi or ya missing"
+case_ "bluetui (the release file is the binary itself, no archive): installed under the tool's name"
+up 'install_upstream_bin "${UPSTREAM[4]}"'; eq "$RC" 0
+has "$OUT" "verified: bluetui-x86_64-linux-musl"; has "$OUT" "✔ bluetui v0.8.2 → ~/.local/bin (bluetui)"
+eq "$(fk "$H/.local/bin/bluetui" 2>&1)" "bluetui 0.8.2" "runs as ~/.local/bin/bluetui"
+eq "$(cat "$W$H/.local/share/fedokawaii/upstream/bluetui")" v0.8.2
+
+case_ "lazygit (its binary at the archive's top, beside LICENSE and README): installed alone, its tag recorded"
+up 'install_upstream_bin "$(printf "%s\n" "${UPSTREAM[@]}" | grep "^lazygit|")"'; eq "$RC" 0
+has "$OUT" "✔ lazygit v0.66.1 → ~/.local/bin (lazygit)"
+[[ -x $W$H/.local/bin/lazygit && ! -e $W$H/.local/bin/LICENSE && ! -e $W$H/.local/bin/README.md ]] && _ok || _no "lazygit missing, or its LICENSE / README put in ~/.local/bin"
+eq "$(cat "$W$H/.local/share/fedokawaii/upstream/lazygit")" v0.66.1
 case_ "an older tag recorded: fetched again, the new tag recorded"
 echo v0.21.0 >"$W$H/.local/share/fedokawaii/upstream/satty"
 reset_calls; up "install_upstream_bin $satty"; eq "$RC" 0; called 'curl.*satty-x86_64'
@@ -118,10 +129,66 @@ case_ "one family's download altered: that one refused (exit 1), the other insta
 back start; printf 'x' >>"$dl/JetBrainsMono.tar.xz"
 up 'install_nerd_fonts'; eq "$RC" 1
 [[ ! -e $W$H/.local/share/fonts/JetBrainsMonoNerd && -s $W$H/.local/share/fonts/DepartureMonoNerd/DepartureMonoNerdFont-Regular.otf ]] && _ok || _no "wrong families installed"
+case_ "a file that cannot be written (a full home; here a folder you cannot write): failed and said, no tag — also where errexit is off (repair calls these under ||)"
+back start; mkdir -p "$W$H/.local/bin" "$W$H/.local/share/fonts"; fk chown -R fkuser:fkuser "$H/.local"
+fk chmod 555 "$H/.local/bin" "$H/.local/share/fonts"
+up "install_upstream_bin $satty || echo FAILED"; has "$OUT" "FAILED"; lacks "$OUT" "✔ satty"
+[[ ! -e $W$H/.local/share/fedokawaii/upstream/satty ]] && _ok || _no "the tag recorded for a binary not written"
+up 'install_nerd_fonts || echo FAILED'; has "$OUT" "FAILED"
+[[ ! -e $W$H/.local/share/fedokawaii/upstream/nerd-JetBrainsMono ]] && _ok || _no "the tag recorded for fonts not written"
+fk chmod 755 "$H/.local/bin" "$H/.local/share/fonts"
 case_ "PixelMplus: only the 12 px faces and the licence"
 back start; up 'install_pixelmplus'; eq "$RC" 0
 eq "$(ls "$W$H/.local/share/fonts/PixelMplus" | tr '\n' ' ')" "LICENSE_E PixelMplus12-Regular.ttf "
 up 'install_pixelmplus'; has "$OUT" "PixelMplus 12 — in place"
+
+# ── Syncplay, from its pinned source ─────────────────────────────────────────
+sp=$W$H/.local/share/fedokawaii/syncplay spt=$W$H/.local/share/fedokawaii/upstream/syncplay
+as_fk() { fkrun runuser -u fkuser -- env -i HOME=$H PATH=/usr/bin:/bin "$@"; }
+case_ "install_syncplay: the tag fetched by you, checked against the pinned commit; its folder and two starters put in by you; the commit recorded"
+back start; reset_calls
+up 'install_syncplay'; eq "$RC" 0
+has "$OUT" "✔ Syncplay v1.7.6 (no window) → ~/.local/bin (syncplay, syncplay-server)"
+called '^fkuser\[git\] -c advice.detachedHead=false clone --quiet --depth 1 --branch v1.7.6 https://github.com/Syncplay/syncplay.git '
+eq "$(fk stat -c '%U %a' "$H/.local/bin/syncplay")" "fkuser 755"; eq "$(fk stat -c '%U %a' "$H/.local/bin/syncplay-server")" "fkuser 755"
+eq "$(fk stat -c %U "$H/.local/share/fedokawaii/syncplay/syncplay/__init__.py")" fkuser
+eq "$(cat "$spt")" 993232ab095bb810593459bc705b3e6fc64ad161
+case_ "…its starter: Fedora's python3, isolated (-I), unbuffered (-u), always without the window (--no-gui)"
+s=$(cat "$W$H/.local/bin/syncplay")
+has "$s" "py=/usr/bin/python3 dir=$H/.local/share/fedokawaii/syncplay"; has "$s" 'exec "$py" -I -u -c'
+as_fk "$H/.local/bin/syncplay" --version; has "$OUT" "You're using Syncplay version 1.7.6 (Yoitsu)"
+as_fk "$H/.local/bin/syncplay" --room 'film night'; eq "$OUT" "syncplay (fake): --no-gui --room film night"
+as_fk "$H/.local/bin/syncplay-server"; eq "$OUT" "syncplay-server (fake)"
+case_ "a second run: in place, nothing fetched"
+reset_calls; up 'install_syncplay'; eq "$RC" 0; has "$OUT" "Syncplay v1.7.6 — in place"; not_called 'git.* clone'
+keep syncplay
+case_ "the tag no longer the pinned commit: refused, the copy there untouched (exit 1)"
+fkh tag-v1.7.6 0123456789012345678901234567890123456789; echo 1111111111111111111111111111111111111111 >"$spt"
+before=$(cat "$W$H/.local/bin/syncplay"; cat "$sp/syncplay/__init__.py")
+up 'install_syncplay'; eq "$RC" 1; has "$OUT" "Syncplay's tag v1.7.6 is not the pinned commit 993232ab095bb810593459bc705b3e6fc64ad161 — refused"
+eq "$(cat "$W$H/.local/bin/syncplay"; cat "$sp/syncplay/__init__.py")" "$before"; eq "$(cat "$spt")" 1111111111111111111111111111111111111111
+case_ "another commit recorded (the pin moved on): fetched again, the pin recorded"
+back syncplay; echo 1111111111111111111111111111111111111111 >"$spt"; reset_calls
+up 'install_syncplay'; eq "$RC" 0; called 'git.* clone .*Syncplay'; eq "$(cat "$spt")" 993232ab095bb810593459bc705b3e6fc64ad161
+case_ "a starter gone, or one an older toolkit wrote: written again, nothing fetched"
+back syncplay; rm -f "$W$H/.local/bin/syncplay-server"; sed -i 's/ -I -u -c / -I -c /' "$W$H/.local/bin/syncplay"; reset_calls
+up 'install_syncplay'; eq "$RC" 0; has "$OUT" "Syncplay v1.7.6 — in place"; not_called 'git.* clone'
+[[ -x $W$H/.local/bin/syncplay-server ]] && _ok || _no "syncplay-server not put back"
+has "$(cat "$W$H/.local/bin/syncplay")" 'exec "$py" -I -u -c' "the older starter not written again"
+case_ "Fedora's Twisted missing: said what the manifest installs, the copy there stays (exit 1)"
+back syncplay; mv "$FK_PYLIBS/twisted" "$TMP/twisted.away"; echo 1111111111111111111111111111111111111111 >"$spt"
+up 'install_syncplay'; eq "$RC" 1
+has "$OUT" "does not load with /usr/bin/python3 — are the manifest's python3-twisted+tls"
+[[ -f $sp/syncplay/client.py && -x $W$H/.local/bin/syncplay ]] && _ok || _no "the copy there was taken away"
+mv "$TMP/twisted.away" "$FK_PYLIBS/twisted"
+case_ "a copy whose libraries went since: not 'in place' (fetched again, and said when it still does not load)"
+back syncplay; mv "$FK_PYLIBS/twisted" "$TMP/twisted.away"
+up 'install_syncplay'; eq "$RC" 1; lacks "$OUT" "in place"
+mv "$TMP/twisted.away" "$FK_PYLIBS/twisted"
+case_ "offline: three tries (the pause stubbed), then said; nothing installed (exit 1)"
+back start; fkh net off
+up 'install_syncplay'; eq "$RC" 1; has "$OUT" "attempt 3/3 failed"; has "$OUT" "could not fetch Syncplay v1.7.6"
+[[ ! -e $W$H/.local/bin/syncplay && ! -e $sp && ! -e $spt ]] && _ok || _no "something installed while offline"
 
 # ── GE-Proton ────────────────────────────────────────────────────────────────
 pd=$W$H/.local/share/Steam/compatibilitytools.d
@@ -160,6 +227,21 @@ up 'install_ge_proton'; eq "$RC" 1; has "$OUT" "no GE-Proton release file for x8
 fkh ge.json 'this is not JSON'; up 'install_ge_proton'; eq "$RC" 1
 up 'set -e; install_ge_proton'; eq "$RC" 1; has "$OUT" "no GE-Proton release file" "not JSON (a Wi-Fi sign-in page), under set -e as setup runs it: said plainly"
 eq "$(ls "$pd" | tr '\n' ' ')" "GE-Proton10-25 "
+case_ "unpacking cut off half-way (a power cut, a full home): nothing half-made is left to pass for installed"
+# (your tar stops with Steam's file not yet written, once, while $FKH/cut-unpack is there)
+cut_tar() { stub tar 'case " $* " in *" -xf - "*) /usr/bin/tar "$@"
+  [ -f /var/lib/fkh/cut-unpack ] && { rm -f /var/lib/fkh/cut-unpack; find "$2" -name compatibilitytool.vdf -delete; exit 2; } ;;
+  *) exec /usr/bin/tar "$@" ;; esac'; fkh cut-unpack; }
+back start; cut_tar; up 'set -e; install_ge_proton'; [[ $RC != 0 ]] && _ok || _no "a cut-off unpack ended 0 (under set -e, as setup runs it)"
+[[ -z $(ls "$pd" 2>/dev/null) ]] && _ok || _no "left in compatibilitytools.d: $(ls -A "$pd" | tr '\n' ' ')"
+eq "$(cat "$W$H/.local/share/fedokawaii/upstream/ge-proton" 2>/dev/null)" "" "nothing recorded"
+up 'install_ge_proton'; eq "$RC" 0; lacks "$OUT" "in place"
+[[ -f $pd/GE-Proton10-25/compatibilitytool.vdf ]] && _ok || _no "the next run did not put it in whole"
+case_ "…the same where errexit is off (repair calls it under ||): failed, said, nothing recorded"
+back start; cut_tar; up 'install_ge_proton || echo "FAILED"'; has "$OUT" "FAILED"
+eq "$(cat "$W$H/.local/share/fedokawaii/upstream/ge-proton" 2>/dev/null)" "" "nothing recorded"
+[[ -z $(ls "$pd" 2>/dev/null) ]] && _ok || _no "left in compatibilitytools.d: $(ls -A "$pd" | tr '\n' ' ')"
+rm -f "$STUBS/tar"
 case_ "an archive holding two top folders (or none with Steam's file): refused"
 ge_release GE-Proton10-27; r=$TMP/two; mkdir -p "$r/GE-Proton10-27" "$r/GE-ProtonX"; : >"$r/GE-Proton10-27/compatibilitytool.vdf"
 tar -czf "$dl/GE-Proton10-27.tar.gz" -C "$r" .; (cd "$dl" && sha512sum GE-Proton10-27.tar.gz >GE-Proton10-27.sha512sum)

@@ -1,0 +1,8 @@
+#!/bin/bash
+# chronyc of the fake Fedora: `makestep` sets a wrong clock right ($FKH/clock = wrong goes)
+# when the network can be asked for the time ($FKH/clock-from-network is there); else nothing
+. /usr/local/bin/_lib.sh
+fkh_log "$*"
+if [[ " $* " == *" makestep "* ]] && [[ -f $FKH/clock-from-network ]]; then rm -f "$FKH/clock"; fi
+echo "200 OK"
+exit 0

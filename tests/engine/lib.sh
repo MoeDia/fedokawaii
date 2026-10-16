@@ -9,6 +9,7 @@
 #   front_world         $R/toolkit/fedokawaii.sh is the real front (fedokawaii.sh), with
 #                       stand-ins for setup.sh, theme.sh, check.sh and verify.sh
 #   rec NAME LINE       one of root's records
+#   setting KEY VALUE   one setting of the toolkit's fedokawaii.conf, as Super+U → settings saves it
 #   ago_s DAYS          the epoch DAYS days ago
 #   tty_free CMD…       CMD with no terminal of its own (pause reads /dev/tty: never waits)
 #   on_tty KEYS CMD…    CMD on a terminal of its own (script), KEYS typed into it
@@ -45,7 +46,7 @@ engine_world() {
   printf 'NAME="Fedora Linux"\nID=fedora\nVERSION_ID=44\nSUPPORT_END=2027-05-19\n' >"$R/os-release"
   export FEDOKAWAII_OS_RELEASE=$R/os-release
   # the toolkit: what the engine reads of it (its front is a stand-in unless front_world)
-  cp "$REPO/fedokawaii.conf" "$R/toolkit/"
+  cp "$REPO/fedokawaii.conf" "$R/toolkit/"; cp "$REPO/lib/common.sh" "$R/toolkit/lib/"   # (the engine reads settings with its parser)
   printf '%%PDF-1.4 the handbook\n' >"$R/toolkit/docs/Fedokawaii-Guide.pdf"
   printf '#!/usr/bin/env bash\necho setup\n' >"$R/toolkit/setup.sh"
   printf '[main]\nfont=x\n' >"$R/toolkit/configs/home/.config/foot/foot.ini"
@@ -116,6 +117,7 @@ stand_ins() {   # stand_ins DIR — setup.sh, theme.sh, check.sh, verify.sh ther
 }
 
 rec() { printf '%s\n' "$2" >"$R/state/$1"; }
+setting() { conf_set "$1" "$2" "$R/toolkit/fedokawaii.conf"; }
 ago_s() { echo $(( $(date +%s) - $1 * DAY )); }
 tty_free() { "$SETSID" -w "$@"; }     # (stdin as given: the plain menu reads it)
 plain() { sed 's/\x1b\[[0-9;]*[A-Za-z]//g' <<<"$1"; }      # (colours, and the screen-clearing codes)

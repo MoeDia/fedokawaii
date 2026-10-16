@@ -241,7 +241,10 @@ works in a throw-away home with stand-ins ("stubs") for the hardware and service
 talks to — USB drives, monitors, sound, the network, dnf — so nothing on the machine is
 touched, and no root, display or network is needed (bash, jq and python3 are). A failed check
 prints what was expected and what came instead. The harness is `tests/lib/harness.sh`;
-`tests/drives/test_drives.sh` is the worked example to copy.
+`tests/drives/test_drives.sh` is the worked example to copy. `run.sh` tests a throw-away copy
+of the project in which every script (`#!`) is executable: a clone of this repository has no
+executable bits (GitHub's upload page commits every file without them), and nothing here
+depends on them — setup runs its scripts with `bash`, and the theme sets each file's mode.
 
 ## 7 · The first install on the real machine
 

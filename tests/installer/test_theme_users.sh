@@ -44,6 +44,19 @@ case_ "the state folder a link: the run refuses before anything"
 back themed; rm -rf "$W$H/.local/state/fedokawaii"; ln -s ../../../../etc "$W$H/.local/state/fedokawaii"
 theme; eq "$RC" 1; has "$OUT" "is not a folder"
 
+# ── the theme link copied as a folder (a backup or sync tool followed the link) ───────────
+# shellcheck disable=SC2088  # (a literal ~ in the name)
+case_ "~/.config/fedokawaii/current a real folder, edited inside: kept in the backup, the link put in its place, said"
+back themed
+rm -f "$W$H/.config/fedokawaii/current"; cp -r "$W$H/.config/fedokawaii/themes/dark" "$W$H/.config/fedokawaii/current"
+echo "# my edit" >>"$W$H/.config/fedokawaii/current/colors.sh"; fk chown -R fkuser:fkuser "$H/.config/fedokawaii/current"
+theme; eq "$RC" 0
+eq "$(readlink "$W$H/.config/fedokawaii/current")" themes/dark "the link again (THEME in fedokawaii.conf)"
+has "$OUT" "current was a folder, not a link — kept in the backup"
+nb=$(backups | tail -n1)
+has "$(cat "$nb/.config/fedokawaii/current/colors.sh" 2>/dev/null)" "# my edit" "the folder, edits and all, in this run's backup"
+eq "$(fk stat -c %U "${nb#"$W"}/.config/fedokawaii/current/colors.sh" 2>/dev/null)" fkuser "the backup is yours"
+
 # ── whom it runs for ─────────────────────────────────────────────────────────
 case_ "misuse: an unknown option, --user without a name, root with no user to name (exit 2); --help (0)"
 back plain
@@ -69,6 +82,14 @@ fkrun bash "$TK/theme.sh" --user kawa-chan42
 eq "$RC" 0 "kawa-chan42: exit"
 has "$(cat "$W/home/kawa-chan42/.config/xdg-desktop-portal-termfilechooser/config" 2>/dev/null)" "default_dir=/home/kawa-chan42" "kawa-chan42: @HOME@"
 eq "$(fk stat -c %U /home/kawa-chan42/.config/fedokawaii/env 2>/dev/null)" kawa-chan42 "kawa-chan42: owns its files"
+case_ "a second person on the machine (no dwl source of their own — dwl is the system's): their home themed, dwl left as it is"
+echo "guest:x:32100:32100::/home/guest:/bin/bash" >>"$W/etc/passwd"; echo "guest:x:32100:" >>"$W/etc/group"
+mkdir -p "$W/home/guest"; fk chown -R guest:guest /home/guest; reset_calls
+fkrun bash "$TK/theme.sh" --user guest; eq "$RC" 0 "$(grep -E '✘' <<<"$OUT" | head -n2 | tr '\n' '|')"
+[[ -s $W/home/guest/.config/foot/foot.ini && -s $W/home/guest/.config/dwl/autostart.sh ]] && _ok || _no "the guest's configs not written"
+[[ ! -e $W/home/guest/.local/src ]] && _ok || _no "a dwl source made in the guest's home"
+not_called 'make\] .*src/dwl'; not_called 'guest\[git\]'
+fkrun bash "$TK/theme.sh" --user guest --check; [[ $RC == 0 || $RC == 4 ]] && _ok || _no "the guest's check: exit $RC — $(grep -A3 'differ' <<<"$OUT" | tr '\n' '|')"
 case_ "USERNAME with a dot in fedokawaii.conf (no --user, no sudo): that user — not the part before the dot"
 tconf 's/^USERNAME=.*/USERNAME="Mo.Eldoush"/'
 fkrun env -u SUDO_USER bash "$TK/theme.sh"; eq "$RC" 0; has "$OUT" "theme → Mo.Eldoush"

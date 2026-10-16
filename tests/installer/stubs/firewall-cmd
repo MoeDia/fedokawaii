@@ -10,6 +10,7 @@ case " $* " in
   *" --query-service="*) s=$(sed -n 's/.*--query-service=\([^ ]*\).*/\1/p' <<<"$*"); has fw-services "$s" || exit 1 ;;
   *" --remove-service="*) del fw-services "$(sed -n 's/.*--remove-service=\([^ ]*\).*/\1/p' <<<"$*")" ;;
   *" --add-service="*) add fw-services "$(sed -n 's/.*--add-service=\([^ ]*\).*/\1/p' <<<"$*")" ;;
+  *" --query-port="*) has fw-ports "$(sed -n 's/.*--query-port=\([^ ]*\).*/\1/p' <<<"$*")" || exit 1 ;;
   *" --add-port="*) for x in "$@"; do [[ $x == --add-port=* ]] && add fw-ports "${x#--add-port=}"; done ;;
   *" --list-ports "*) tr '\n' ' ' <"$FKH/fw-ports" 2>/dev/null; echo ;;
   *" --list-services "*) tr '\n' ' ' <"$FKH/fw-services"; echo ;;

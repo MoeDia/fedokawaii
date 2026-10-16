@@ -4,7 +4,8 @@
 # blocked; the night light; do not disturb; the theme; drives) and what each choice does.
 # The machine is made up: nmcli, busctl, bluetoothctl, makoctl, gammastep (a process table in
 # a file), kawa-theme, kawa-drives and kawa-weather are stand-ins; whether there is a
-# Bluetooth adapter is a tmpfs over /sys/class in a namespace of its own (ns).
+# Bluetooth adapter is a tmpfs over /sys/class in a namespace of its own (ns). The backup row
+# shows what kawa-backup status says (a stand-in: $W/backup).
 . "$(dirname "$0")/../lib/harness.sh"
 . "$(dirname "$0")/lib.sh"
 
@@ -36,8 +37,9 @@ else cat "$W/modes"; fi'
   stub kawa-theme '[ "$1" = toggle ] || exit 2
 cd "$HOME/.config/fedokawaii" && if [ "$(readlink current)" = themes/dark ]; then ln -sfn themes/light current; else ln -sfn themes/dark current; fi'
   stub kawa-drives '[ "$1" = list ] && cat "$W/drives"'
+  stub kawa-backup 'case $1 in status) cat "$W/backup" ;; esac'; echo never >"$W/backup"
   stub sleep
-  for s in kawa-brightness kawa-audio kawa-float kawa-screenshot kawa-wallpaper kawa-help fedokawaii kawa-config kawa-power blueman-manager; do stub "$s"; done
+  for s in kawa-brightness kawa-audio kawa-float kawa-screenshot kawa-wallpaper kawa-help fedokawaii kawa-config kawa-power; do stub "$s"; done
 }
 QENV=(LC_ALL=C.UTF-8)
 quick() {   # quick — kawa-quick on the made-up machine (an adapter or none: $BT; locale: $QENV)
@@ -56,7 +58,7 @@ case_ "every row, in order, each with its state; the weather on top; a dropdown 
 answer esc; quick; rc 0 true
 names=$(fz_rows | sed 's/^.  //; s/  .*//; s/ *$//' | tr '\n' ',')
 if ((NS)); then
-  eq "$names" "theme,brightness,night light,wallpaper,sound,network,bluetooth,pair a device,drives,do not disturb,screenshot,keybindings,system,change,power,"
+  eq "$names" "theme,brightness,night light,wallpaper,sound,network,bluetooth,pair a device,drives,backup,do not disturb,screenshot,keybindings,system,change,power,"
 else has "$names" "theme,brightness,night light,wallpaper,sound,network,"; fi
 eq "$(fz_arg mesg)" "$ICON_SUN  Sharjah  +31°C  Clear"
 eq "$(fz_arg anchor)" top-right; eq "$(fz_arg width)" 38; eq "$(fz_arg index)" set
@@ -66,16 +68,17 @@ eq "$(st theme)" "$ICON_BOX_ON dark  $ICON_BOX_OFF light" "the theme: a two-way 
 eq "$(icon network)" "$ICON_ETHERNET"; eq "$(st network)" ethernet
 eq "$(st 'night light')" off; eq "$(st 'do not disturb')" off; eq "$(icon 'do not disturb')" "$ICON_BELL"
 eq "$(st drives)" none; eq "$(st screenshot)" region
+eq "$(st backup)" never; eq "$(icon backup)" "$ICON_ARCHIVE"
 ((NS)) && eq "$(st bluetooth)" on
 fits
 
-case_ "the widest states still fit: light theme, 12 drives plugged in, everything on"
-ln -sfn themes/light "$HOME/.config/fedokawaii/current"; echo gammastep >"$W/procs"
+case_ "the widest states still fit: light theme, 12 drives plugged in, everything on, a backup 1000 days ago"
+ln -sfn themes/light "$HOME/.config/fedokawaii/current"; echo gammastep >"$W/procs"; echo "1000 days ago" >"$W/backup"
 printf 'do-not-disturb\nsharing\n' >"$W/modes"
 for i in {1..12}; do printf '/dev/sd%s1\t/dev/sd%s\tSTICK %s\t8G\tvfat\t\n' "$i" "$i" "$i"; done >"$W/drives"
 answer esc; quick
 eq "$(st theme)" "$ICON_BOX_OFF dark  $ICON_BOX_ON light"
-eq "$(st drives)" "12 plugged in"; eq "$(st 'night light')" on
+eq "$(st drives)" "12 plugged in"; eq "$(st 'night light')" on; eq "$(st backup)" "1000 days ago"
 eq "$(st 'do not disturb')" on "on, though sharing is on too"; eq "$(icon 'do not disturb')" "$ICON_BELL_OFF"
 fits
 case_ "a drive with two file systems counts once"
@@ -139,10 +142,24 @@ if ((NS)); then
   setup; echo 'b false' >"$W/bt"; : >"$W/rfkill"; answer "pick bluetooth" esc; quick
   eq "$(st bluetooth 2)" off
   called 'notify-send -a desktop .*Bluetooth.*rfkill unblock bluetooth'
-  case_ "pair a device: the Bluetooth manager, and the menu closes"
+  case_ "pair a device: bluetui in a floating terminal of its own (once), and the menu closes"
   setup; answer "pick pair a device"; quick
-  called '^setsid -f blueman-manager$'; eq "$(fz_n)" 1
+  called "^kawa-float --once pair pair a device 96x29 -- bluetui\$"; eq "$(fz_n)" 1
+  not_called 'setsid|blueman'
 fi
+case_ "bluetui's config: TOML, Esc quits (its own key q does too); its colours are the terminal's"
+f=$REPO/configs/home/.config/bluetui/config.toml
+eq "$(python3 -I -c 'import sys, tomllib; c = tomllib.load(open(sys.argv[1], "rb")); print(c.get("esc_quit"), sorted(c))' "$f")" "True ['esc_quit']"
+lacks "$(cat "$f")" "#[0-9a-f]"
+case_ "bluetui comes from lib/upstream.sh, pinned (a static x86_64 binary, v0.8.2); blueman is forbidden and retired"
+e=$(. "$REPO/lib/upstream.sh"; printf '%s\n' "${UPSTREAM[@]}" | grep '^bluetui|')
+eq "$(cut -d'|' -f2-4,6 <<<"$e")" "pythops/bluetui|v0.8.2|bluetui-x86_64-linux-musl|bluetui"
+[[ $(cut -d'|' -f5 <<<"$e") =~ ^[0-9a-f]{64}$ ]] && _ok || _no "no SHA-256 pinned"
+m() { (. "$REPO/lib/manifest.sh"; eval "$1"); }
+lacks " $(m 'manifest_all amd' | tr '\n' ' ') " " blueman "; has " $(m 'manifest_all amd' | tr '\n' ' ') " " bluez "
+has " $(m 'echo "${FORBIDDEN_PKGS[*]}"') " " blueman "; has " $(m 'echo "${RETIRED_PKGS[*]}"') " " blueman "
+has "$(grep -E '^bluetui ' "$REPO/tests/static/fixtures/programs.txt")" "upstream"
+lacks "$(cat "$REPO/tests/static/fixtures/programs.txt" "$REPO/src/dwl/config.h")" blueman
 
 # ── night light ───────────────────────────────────────────────────────────────────────
 case_ "night light off → on: gammastep starts at the configured place, the row says on"
@@ -185,6 +202,14 @@ eq "$(grep -c '^kawa-weather' "$CALLS")" 1
 case_ "screenshot: the menu closes first, then the region picker"
 setup; answer "pick screenshot"; quick
 called '^sleep 0.2$'; called '^kawa-screenshot region$'; eq "$(fz_n)" 1
+case_ "backup: the last backup's age (kawa-backup status: not set up · never · 3 days ago); choosing it: the backup, in its window"
+setup; echo "not set up" >"$W/backup"; answer esc; quick; eq "$(st backup)" "not set up"
+echo "3 days ago" >"$W/backup"; answer "pick backup"; quick; called '^kawa-backup --window$'; eq "$(fz_n)" 2 "the menu closes"
+case_ "backup: the real kawa-backup status — never, then yesterday — from its record and the drive named in settings"
+setup; rm -f "$STUBS/kawa-backup"; toolkit BACKUP_TARGET=KINGSTON   # (the theme's env still names none)
+answer esc; quick; eq "$(st backup)" never
+mkdir -p "$HOME/.local/state/fedokawaii"; printf '%s\t1 B\tKINGSTON\n' "$(( $(date +%s) - 86400 ))" >"$HOME/.local/state/fedokawaii/last-backup"
+answer esc; quick; eq "$(st backup)" yesterday
 case_ "each of the other rows opens its own window or menu"
 for pair in "brightness:^kawa-brightness *$" "sound:^kawa-audio *$" "drives:^kawa-drives *$" "wallpaper:^kawa-wallpaper *$" \
             "keybindings:^kawa-help *$" "system:^fedokawaii --window$" "change:^kawa-config *$" "power:^kawa-power *$"; do

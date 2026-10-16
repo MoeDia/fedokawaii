@@ -1,0 +1,11 @@
+#!/bin/bash
+# gpasswd -d USER GROUP of the fake Fedora: USER taken out of GROUP in the fake /etc/group
+. /usr/local/bin/_lib.sh
+fkh_log "$*"
+r=$(rcfor gpasswd 0); ((r == 0)) || exit "$r"
+if [[ $1 == -d ]]; then
+  grep -qE "^$3:[^:]*:[^:]*:(.*,)?$2(,|$)" /etc/group || { echo "gpasswd: user '$2' is not a member of '$3'" >&2; exit 3; }
+  sed -i -E "/^$3:/ { s/([:,])$2(,|$)/\\1\\2/; s/,,/,/; s/,$//; s/:,/:/ }" /etc/group
+  echo "Removing user $2 from group $3"
+fi
+exit 0

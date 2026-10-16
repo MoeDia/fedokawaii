@@ -48,6 +48,25 @@ back wifi-p2; fkh net off
 setup --no-reboot; eq "$RC" 1
 n=$(grep -c 'curl\] .*mirrors.fedoraproject.org' "$CALLS"); ((n <= 7)) && _ok || _no "$n tries for a run you typed"
 
+case_ "a Wi-Fi sign-in page served instead of Claude Code's signing key: said plainly (never a raw error), nothing trusted"
+back wifi-p2; echo '<html>sign in to this network</html>' >"$FKH/dl/claude-code.asc"
+resume --no-reboot; eq "$RC" 1; has "$OUT" "Claude Code signing key: expected only 31DDDE24DDFAB679F42D7BD2BAA929FF1A7ECACE, the file holds 0 key(s)"
+lacks "$OUT" "✘ line"; [[ ! -e $W/etc/yum.repos.d/claude-code.repo ]] && _ok || _no "the repository added anyway"
+# ── the clock years off (Windows left the RTC on local time, or its battery is flat): the
+#    network is there, but every https certificate is refused ───────────────────────────
+case_ "a wrong clock, chrony able to set it from the network: set, said, and the run goes on"
+back wifi-p2; fkh clock wrong; fkh clock-from-network
+resume --no-reboot; eq "$RC" 0 "$(grep '✘' <<<"$OUT" | head -n3 | tr '\n' '|')"
+has "$OUT" "the clock was wrong"; has "$OUT" "set from the network"
+called 'chronyc\] -a makestep'
+lacks "$OUT" "no network — connect to one" "a refused certificate is not a missing network"
+case_ "a wrong clock that cannot be set (chrony has no sources yet): the clock named, not the network"
+back wifi-p2; fkh clock wrong
+resume --no-reboot; eq "$RC" 1
+has "$OUT" "the clock is probably wrong"; has "$OUT" "timedatectl set-time"
+lacks "$OUT" "no network — connect to one"
+eq "$(state phase)" 2
+
 case_ "dwl's tag moved upstream to another commit: refused before building"
 back wifi-p2; resume --no-reboot; reboot_world; keep p3
 fkh dnf-fail 'install .*greetd'                       # (nothing after dwl needed here)
@@ -59,6 +78,19 @@ back p3; fkh fail-git-fetch 3
 resume --no-reboot; eq "$RC" 1; has "$OUT" "could not fetch dwl from codeberg.org — try again in a while"
 has "$OUT" "attempt 3/3 failed"
 [[ ! -e $W/usr/local/bin/dwl ]] && _ok || _no "dwl installed anyway"
+case_ "a clone a power cut stopped in its first moment (a .git that is no repository): moved aside, said, cloned again"
+back p3; fkh dnf-fail 'install .*greetd'              # (nothing after dwl needed here)
+mkdir -p "$W/home/fkuser/.local/src/dwl/.git"; fk chown -R fkuser:fkuser /home/fkuser/.local/src   # (empty: no HEAD, no objects)
+resume --no-reboot
+# shellcheck disable=SC2088  # (a literal ~ in the message)
+has "$OUT" "~/.local/src/dwl/.git was no git repository (a clone a stopped run cut off?) — moved to ~/.local/src/dwl.damaged-"
+has "$OUT" "✔ 3.02 dwl"
+lacks "$OUT" "could not fetch dwl" "the network was never the problem"
+called 'git\] clone --quiet https://codeberg.org/dwl/dwl.git /home/fkuser/.local/src/dwl'
+[[ -f $W/home/fkuser/.local/src/dwl/.git/HEAD ]] && _ok || _no "no fresh clone"
+compgen -G "$W/home/fkuser/.local/src/dwl.damaged-*" >/dev/null && _ok || _no "the damaged folder was not kept aside"
+eq "$(fk stat -c %U "$(compgen -G "$W/home/fkuser/.local/src/dwl.damaged-*" | head -n1 | sed "s|^$W||")" 2>/dev/null)" fkuser "moved as you"
+rm -f "$FKH/dnf-fail"
 
 # ── the machine's name ───────────────────────────────────────────────────────
 world fresh; releases
@@ -92,6 +124,7 @@ setup --no-reboot; eq "$RC" 0; has "$OUT" "! a laptop"
 reboot_world; resume --no-reboot; eq "$RC" 0
 eq "$(state gpu)" intel; pkg_has intel-media-driver && pkg_has microcode_ctl && _ok || _no "Intel's packages missing"
 lacks "$(cat "$FKH/grub-args")" "amdgpu"; pkg_has lact && _no "LACT (AMD's) installed" || _ok
+pkg_has rocm-smi && _no "rocm-smi (AMD's, for btop) installed" || _ok
 
 # ── dual boot ────────────────────────────────────────────────────────────────
 case_ "a Windows beside it: the boot menu stays shown (never hidden), the other system recorded and said"
