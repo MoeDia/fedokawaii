@@ -169,7 +169,9 @@ check "dnf installonly_limit=2 (dnf5 minimum)"         test "$(dnfopt installonl
 check "dnf minrate=50k (stalled mirrors dropped)"      grep -qxE '51200|50[kK]' <<<"$(dnfopt minrate)"
 check "dnf defaultyes on"                              grep -qxiE '1|true' <<<"$(dnfopt defaultyes)"
 # (a list: other files may add to it — both names in it is what counts)
-check "dnf never takes Node 22 as a weak dependency"   bash -c 'l=$(tr ", " "\n\n" <<<"$1"); grep -qx nodejs <<<"$l" && grep -qxF "nodejs22*" <<<"$l"' _ "$(dnfopt exclude_from_weak)"
+check "no package downloads in the background (dnf's makecache timer masked)" \
+  bash -c 'for u in dnf5-makecache.timer dnf-makecache.timer; do systemctl cat "$u" >/dev/null 2>&1 || continue; [[ $(systemctl is-enabled "$u" 2>/dev/null) == masked ]] || exit 1; done'
+check "dnf never takes Node 22 or PackageKit as a weak dependency" bash -c 'l=$(tr ", " "\n\n" <<<"$1"); grep -qx nodejs <<<"$l" && grep -qxF "nodejs22*" <<<"$l" && grep -qx PackageKit <<<"$l"' _ "$(dnfopt exclude_from_weak)"
 
 # ── upkeep: the toolkit and its control ──────────────────────────────────────
 section "upkeep (fedokawaii · Super+U)"
@@ -201,10 +203,14 @@ fi
 check "boot success marked by the desktop, not at boot"  bash -c '[[ $(systemctl --global is-enabled grub-boot-success.timer 2>/dev/null) != enabled ]]'
 mapfile -t kv < <(rpm -q --qf '%{VERSION}-%{RELEASE}.%{ARCH}\n' kernel-core 2>/dev/null | grep -v 'not installed' | sort -V)
 running=$(uname -r)
-if ((${#kv[@]} >= 1 && ${#kv[@]} <= 2)) && [[ ${kv[-1]} == "$running" ]]; then
-  pass "kernels: the newest running ($running)$( ((${#kv[@]} == 2)) && echo ", the one before kept to fall back to")"
-elif ((${#kv[@]} >= 1 && ${#kv[@]} <= 2)); then warn "new kernel ${kv[-1]} installed" "restart to use it (running: $running)"
-else fail "at most two kernels" "installed: $(IFS=" "; echo "${kv[*]:-none}") · running: $running"; fi
+# one kernel at rest, the newest (setup.sh: old_kernels_out) — two only while the newest waits for
+# a restart, or for its first start to reach the desktop
+if ((${#kv[@]} == 1)) && [[ ${kv[0]} == "$running" ]]; then pass "one kernel, the newest, running ($running)"
+elif ((${#kv[@]} == 2)) && [[ ${kv[-1]} == "$running" ]]; then
+  warn "the kernel before $running is still installed" "it goes a quarter of an hour into a start that reaches the desktop — or now: fedokawaii repair"
+elif ((${#kv[@]} >= 1 && ${#kv[@]} <= 2)); then warn "new kernel ${kv[-1]} installed" "restart to use it (running: $running); the one before goes after that"
+else fail "one kernel (two at most while a new one settles in)" "installed: $(IFS=" "; echo "${kv[*]:-none}") · running: $running — fedokawaii repair keeps the newest"; fi
+check "one kernel kept at every start (fedokawaii-kernels.timer)" systemctl is-enabled --quiet fedokawaii-kernels.timer
 # (dracut makes a kernel's boot image from the package's scriptlet, which can fail without
 # failing dnf: that entry would not start — repair makes the image again)
 noimg=(); for v in "${kv[@]}"; do [[ -s /boot/initramfs-$v.img ]] || noimg+=("$v"); done
@@ -323,6 +329,7 @@ check "Wi-Fi power saving off"                         test -f /etc/NetworkManag
 check "Bluetooth dongle power saving off (btusb)"      grep -qx 'options btusb enable_autosuspend=0' /etc/modprobe.d/fedokawaii-btusb.conf
 [[ $STEAM == yes ]] && check "ntsync ready for Proton (/dev/ntsync)" test -c /dev/ntsync
 check "linger on (update, repair, verify reach your services)" test -f "/var/lib/systemd/linger/$TARGET_USER"
+check "sleep is suspend only (no hibernation)"           grep -qx 'AllowHibernation=no' /etc/systemd/sleep.conf.d/90-fedokawaii.conf
 check "shutdown waits 30 s at most for your services"  grep -qx 'TimeoutStopSec=30s' '/etc/systemd/system/user@.service.d/fedokawaii.conf'
 check "secrets.sh private (yours, chmod 600)"          bash -c '[[ ! -e $1 ]] || [[ $(stat -c "%a %U" "$1") == "600 $2" ]]' _ "$TARGET_HOME/.config/fedokawaii/secrets.sh" "$TARGET_USER"
 # torrents: one key, in secrets.sh only; Prowlarr takes it, torrra gets it from kawa-torrra
@@ -406,8 +413,18 @@ fi
 
 # ── applications (do they actually start?) ──────────────────────────────────
 section "applications"
-check "Brave Origin starts (headless)" \
-  U sh -c 'd=$(mktemp -d); timeout 60 brave-origin --headless --disable-gpu --user-data-dir="$d" --dump-dom about:blank 2>/dev/null | grep -q "<html"; r=$?; rm -rf "$d"; exit $r'
+# Brave, hidden (no screen needed), in a profile of its own: started is when its DevTools port
+# answers — the browser process up and serving. (Not --dump-dom: Brave Origin's headless mode
+# keeps running without ever carrying it out.) Its whole process group is ended after
+check "Brave Origin starts (headless: its DevTools port answers)" \
+  U bash -c 'd=$(mktemp -d); setsid brave-origin --headless --disable-gpu --user-data-dir="$d" --remote-debugging-port=0 about:blank >/dev/null 2>&1 & p=$! r=1
+    for _ in $(seq 60); do
+      if [[ -s $d/DevToolsActivePort ]]; then
+        curl -s --max-time 5 "http://127.0.0.1:$(head -n1 "$d/DevToolsActivePort")/json/version" | grep -q "\"Browser\"" && r=0; break
+      fi
+      kill -0 "$p" 2>/dev/null || break; sleep 1
+    done
+    kill -- -"$p" 2>/dev/null; sleep 1; kill -9 -- -"$p" 2>/dev/null; rm -rf "$d"; exit $r'
 check "Claude Code runs"                               U timeout 20 claude --version
 check "LazyVim plugins installed"                      test -d "$TARGET_HOME/.local/share/nvim/lazy/LazyVim"
 check "torrra $TORRRA_VERSION loads (Python 3.13, libtorrent, Textual)" U "$TARGET_HOME/.local/share/pipx/venvs/torrra/bin/python" -I -c 'import sys, importlib.metadata as m, torrra, libtorrent, torrra.app; assert sys.version_info[:2] == (3, 13) and m.version("torrra") == sys.argv[1]' "$TORRRA_VERSION"
@@ -423,7 +440,7 @@ check "restic runs (backups to another disk: kawa-backup)" U restic version
 # ── snapshots ────────────────────────────────────────────────────────────────
 if ((PRE == 0)); then
   section "snapshots"
-  check "snapper config for /"                         bash -c 'snapper list-configs | grep -q "^root "'
+  check "snapper config for /"                         test -f /etc/snapper/configs/root
   # (yours to delete when space runs short — the next move to a Fedora takes a new one)
   if [[ $(snapper -c root list 2>/dev/null) == *"fedokawaii baseline"* ]]; then pass "baseline snapshot exists"
   else warn "no baseline snapshot" "deleted? the next move to a new Fedora takes one; or now: sudo snapper -c root create -d \"fedokawaii baseline\""; fi
@@ -530,7 +547,7 @@ else
     else warn "wallpaper pack: $have of $want pictures drawn" "re-run Theme when online (kawa-wallpaper --pack)"; fi
   fi
   check "music meter (cava) runs"                      U timeout 5 cava -v
-  ((BOOT_SKIPPED)) || check "boot menu theme installed" bash -c 'test -s /boot/grub2/themes/sumi/theme.txt && grep -q /boot/grub2/themes/sumi/theme.txt /boot/grub2/grub.cfg'
+  ((BOOT_SKIPPED)) || check "boot menu theme installed" bash -c 'test -s /boot/grub2/themes/sumi/theme.txt && grep -q grub2/themes/sumi/theme.txt /boot/grub2/grub.cfg'
   # shellcheck disable=SC2088  # literal ~ in a label
   check "~/.bashrc loads ~/.bashrc.d"                  grep -q bashrc.d "$TARGET_HOME/.bashrc"
 fi

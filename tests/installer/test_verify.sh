@@ -78,7 +78,7 @@ has "$OUT" "✘ Bluetooth dongle power saving off (btusb)"; has "$OUT" "✘ shut
 has "$OUT" "✘ installed outside the manifest — htop"
 has "$OUT" "✘ user unit wireplumber.service enabled"
 has "$OUT" "✘ firewall: no ssh / cockpit"
-has "$OUT" "✘ at most two kernels"
+has "$OUT" "✘ one kernel (two at most while a new one settles in)"
 has "$OUT" "✘ hardware decode — vainfo found no VA-API driver on /dev/dri/renderD128"
 has "$OUT" "✘ the last scrub found errors"
 has "$OUT" "✘ Prowlarr key in secrets.sh"
@@ -172,11 +172,30 @@ V; has "$OUT" "✘ Wi-Fi managed by NetworkManager"
 fkh nm-devices "ethernet:connected" "wifi:disconnected"; V; has "$OUT" "✔ Wi-Fi managed by NetworkManager"
 
 # ── DNF's settings ───────────────────────────────────────────────────────────
-case_ "Node 22 as a weak dependency: kept out by DNF's settings (both names), else a failure"
-back built; V; has "$OUT" "✔ dnf never takes Node 22 as a weak dependency"
+case_ "Node 22 and PackageKit as weak dependencies: kept out by DNF's settings (every name), else a failure"
+n="dnf never takes Node 22 or PackageKit as a weak dependency"
+back built; V; has "$OUT" "✔ $n"
 sed -i '/^exclude_from_weak=/d' "$W/etc/dnf/libdnf5.conf.d/90-fedokawaii.conf"
-V; eq "$RC" 3; has "$OUT" "✘ dnf never takes Node 22 as a weak dependency"
-echo 'exclude_from_weak=nodejs22*' >>"$W/etc/dnf/libdnf5.conf.d/90-fedokawaii.conf"
-V; has "$OUT" "✘ dnf never takes Node 22 as a weak dependency" "Fedora 45's package named nodejs left out"
+V; eq "$RC" 3; has "$OUT" "✘ $n"
+echo 'exclude_from_weak=nodejs22*,PackageKit' >>"$W/etc/dnf/libdnf5.conf.d/90-fedokawaii.conf"
+V; has "$OUT" "✘ $n" "Fedora 45's package named nodejs left out"
+sed -i 's/^exclude_from_weak=.*/exclude_from_weak=nodejs,nodejs22*/' "$W/etc/dnf/libdnf5.conf.d/90-fedokawaii.conf"
+V; has "$OUT" "✘ $n" "PackageKit left out"
+
+case_ "dnf's metadata timer not masked (static, on by its package's link): a failure — it downloads in the background"
+back built; sed -i 's/^masked dnf5-makecache.timer$/static dnf5-makecache.timer/' "$FKH/units"
+V; eq "$RC" 3; has "$OUT" "✘ no package downloads in the background (dnf's makecache timer masked)"
+back built; V; has "$OUT" "✔ no package downloads in the background (dnf's makecache timer masked)"
+
+# ── Brave ────────────────────────────────────────────────────────────────────
+case_ "Brave Origin: started hidden, it is 'started' when its DevTools port answers — and nothing of it is left running"
+back built; V
+has "$OUT" "✔ Brave Origin starts (headless: its DevTools port answers)"
+p=$(cat "$FKH/brave-pid" 2>/dev/null); [[ -n $p ]] && ! kill -0 "$p" 2>/dev/null && _ok || _no "Brave left running after the check (pid ${p:-none})"
+case_ "Brave Origin that cannot start: a failure, said at once (not after the full minute)"
+fkh brave broken; t0=$SECONDS; V; eq "$RC" 3
+has "$OUT" "✘ Brave Origin starts (headless: its DevTools port answers)"
+((SECONDS - t0 < 50)) && _ok || _no "waited $((SECONDS - t0)) s for a Brave that had exited"
+rm -f "$FKH/brave"
 
 done_

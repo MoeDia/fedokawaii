@@ -4,4 +4,8 @@
 fkh_log "$*"
 r=$(rcfor grub2-mkconfig 0); ((r == 0)) || exit "$r"
 o=/boot/grub2/grub.cfg; [[ $1 == -o ]] && o=$2
-mkdir -p "${o%/*}"; { echo "# made by grub2-mkconfig"; grep '^GRUB_THEME=' /etc/default/grub | sed 's/^GRUB_THEME=/set theme=/'; } >"$o"
+# ($FKH/boot-separate: /boot a partition of its own, as the installer's Btrfs layout makes it —
+# GRUB then names the theme from that partition's root: ($root)/grub2/…, as 00_header does)
+t=$(sed -n 's/^GRUB_THEME=//p' /etc/default/grub | tr -d '"')
+[[ -n $t && -e $FKH/boot-separate ]] && t="(\$root)${t#/boot}"
+mkdir -p "${o%/*}"; { echo "# made by grub2-mkconfig"; [[ -z $t ]] || echo "set theme=$t"; } >"$o"

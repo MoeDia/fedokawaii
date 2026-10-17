@@ -46,10 +46,15 @@ PKG_MEDIA=(
   libva-utils           # vainfo — used by verify.sh
   libheif-freeworld     # HEVC for HEIF: iPhone photos (.heic) open in imv, yazi and ImageMagick
 )
-PKG_GPU_COMMON=(mesa-dri-drivers vulkan-loader linux-firmware)
-PKG_GPU_amd=(amd-gpu-firmware mesa-va-drivers-freeworld mesa-vulkan-drivers-freeworld lact
+# Vulkan: Fedora's own driver (RADV on AMD, ANV on Intel), 64- and 32-bit. RPM Fusion's
+# freeworld build of it adds only Vulkan's own H.264/HEVC video, which nothing here uses (mpv
+# and Brave decode through VA-API: mesa-va-drivers-freeworld), and its 64- and 32-bit packages
+# have clashed over a shared file (Fedora 44, Mesa 26.1/26.2): installing Steam's 32-bit one
+# took the 64-bit one out again
+PKG_GPU_COMMON=(mesa-dri-drivers mesa-vulkan-drivers vulkan-loader linux-firmware)
+PKG_GPU_amd=(amd-gpu-firmware mesa-va-drivers-freeworld lact
              rocm-smi)   # the ROCm SMI library: btop reads the card through it (load, memory, heat, watts)
-PKG_GPU_intel=(intel-media-driver mesa-vulkan-drivers)
+PKG_GPU_intel=(intel-media-driver)
 
 # ── phase 3 ─────────────────────────────────────────────────────────────────
 PKG_BUILD=(             # kept installed: theme.sh rebuilds dwl (config.h, patch) and builds kawa-veil and
@@ -158,8 +163,9 @@ FORBIDDEN_PKGS=(
   flatpak snapd PackageKit gnome-software                                      # dnf only
   dracut-config-rescue                                                         # no rescue image
   ffmpeg-free                                                                  # RPM Fusion ffmpeg only
+  mesa-vulkan-drivers-freeworld                                                # Vulkan: Fedora's own (PKG_GPU_COMMON)
 )
-FORBIDDEN_amd=(mesa-va-drivers mesa-vulkan-drivers)                             # freeworld builds only (mesa-va-drivers: before F44)
+FORBIDDEN_amd=(mesa-va-drivers)                                                 # VA-API: the freeworld build only (mesa-va-drivers: before F44)
 
 # ── services ────────────────────────────────────────────────────────────────
 SVC_SYSTEM=(greetd.service bluetooth.service snapper-timeline.timer snapper-cleanup.timer fstrim.timer)

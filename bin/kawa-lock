@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# kawa-lock — locks the screen (Super+Escape, idle, before sleep, the power menu): the
+# kawa-lock — locks the screen (Super+Escape, before sleep, the power menu): the
 # theme's plain ground with the pixel padlock in the very centre — paper on ink, or ink on
 # paper. swaylock's tiny ring sits inside the padlock's keyhole (current/swaylock), so the
 # keyhole lights up as you type. Above the padlock, the day of the week as a vermilion
@@ -8,6 +8,12 @@
 # and the ring stay exactly centred; the words sit 2 px right with the padlock art, which
 # is drawn 2 px in to meet swaylock's ring). `kawa-lock --now` (before sleep) skips that and
 # locks with the bare padlock at once; so does any failure.
+#
+# `kawa-lock --sleep` (Super+Escape, the power menu's "lock"): a lock you asked for — still
+# locked 90 seconds later, the computer sleeps (unlock before then and it stays awake). That
+# is the only way it sleeps by itself: nothing sleeps or locks on its own when you are just
+# away (the screens only go dark after an hour: autostart.sh). (KAWA_LOCK_SLEEP=SECONDS in
+# its environment sets another wait, 0 none: the tests use it.)
 #
 # Exit: 0 locked (or it already was) · otherwise it could not lock — swaylock's own status,
 # or 1 without swaylock — so `kawa-lock && systemctl suspend` never sleeps unlocked.
@@ -20,7 +26,11 @@ CONF="$HOME/.config/fedokawaii/current/swaylock"
 # shellcheck source=/dev/null
 [[ -r $HOME/.config/fedokawaii/current/colors.sh ]] && . "$HOME/.config/fedokawaii/current/colors.sh"
 PADLOCK="$HOME/.local/share/fedokawaii/$THEME/lock.png"
-now=0; [[ ${1:-} == --now ]] && { now=1; shift; }
+now=0 sleep_after=0
+case ${1:-} in
+  --now) now=1; shift ;;
+  --sleep) sleep_after=90; [[ ${KAWA_LOCK_SLEEP:-} =~ ^[0-9]+$ ]] && sleep_after=$KAWA_LOCK_SLEEP; shift ;;
+esac
 # one at a time: a second press while the first still draws its picture (a double press,
 # idle firing as you press) waits for it, then finds swaylock running — never two lockers.
 # Before sleep (--now) nothing waits: it locks at once, and the drawing one then stands
@@ -60,4 +70,13 @@ pgrep -xu "$UID" swaylock >/dev/null && exit 0        # locked meanwhile (--now,
 args=()
 [[ -s $PADLOCK ]] && args+=(-i "$PADLOCK")
 if [[ -r $CONF ]]; then args=(-C "$CONF" "${args[@]}"); else args+=(-c "$C_GROUND"); fi
-exec swaylock -f "${args[@]}" "$@" 9>&-               # (the lock ends as swaylock starts)
+((sleep_after > 0)) || exec swaylock -f "${args[@]}" "$@" 9>&-   # (the lock ends as swaylock starts)
+# -f: swaylock returns once the screen is locked, and runs on; its exit status is the lock's
+swaylock -f "${args[@]}" "$@" 9>&- || exit
+exec 9>&-
+# the sleep after a lock you asked for: tied to this very lock — unlocked (swaylock gone)
+# before the time is up, nothing happens; a second lock later has its own count
+pid=$(pgrep -nxu "$UID" swaylock) || exit 0
+setsid -f bash -c 'for ((i = 0; i < $1; i++)); do sleep 1; kill -0 "$2" 2>/dev/null || exit 0; done
+  systemctl suspend' _ "$sleep_after" "$pid" </dev/null >/dev/null 2>&1
+exit 0

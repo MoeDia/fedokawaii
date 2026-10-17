@@ -270,7 +270,7 @@ ICON_USER="" ICON_HAT="" ICON_CPU="" ICON_HOURGLASS="" ICON_WINDOW="" ICON_TERMI
 # shellcheck source=/dev/null
 [[ $TERM == foot* && -r ~/.config/fedokawaii/icons.sh ]] && . ~/.config/fedokawaii/icons.sh
 INFO=(
-  "$I1$ICON_USER $R ${B}${USER:-?}${K} @ ${B}${host}$R"
+  "$I1$ICON_USER $R ${B}${USER:-?}${K}@${B}${host}$R"
   "$I2$ICON_HAT $R ${V}${name,,}${ver:+ $ver}$R"
   "$I3$ICON_CPU $R ${V}${kernel}$R"
   "$I4$ICON_HOURGLASS $R ${V}${uptime}$R"

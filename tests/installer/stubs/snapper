@@ -7,7 +7,9 @@ a=" $* "
 nums() { cat "$FKH/snaps" 2>/dev/null; }
 next() { echo $(( $(nums | tail -n1 | cut -d, -f1) + 1 )); }
 case "$a" in
-  *" create-config "*) c=$(sed -n 's/.* -c \([^ ]*\) .*/\1/p' <<<"$a"); add snapper-configs "$c"; exit 0;;
+  *" create-config "*) c=$(sed -n 's/.* -c \([^ ]*\) .*/\1/p' <<<"$a")
+     [[ -f /etc/snapper/configs/$c ]] && { echo "Creating config failed (config already exists)." >&2; exit 1; }
+     add snapper-configs "$c"; mkdir -p /etc/snapper/configs; echo 'SUBVOLUME="/"' >"/etc/snapper/configs/$c"; exit 0;;
   *" create "*" -p "*) n=$(next); d=$(sed -n 's/.* -d \(.*\)/\1/p' <<<"$*"); echo "$n,$d" >>"$FKH/snaps"; echo "$n"; exit 0;;
   *" create "*"-d "*) n=$(next); d=$(sed -n 's/.* -d \(.*\)/\1/p' <<<"$*"); echo "$n,$d" >>"$FKH/snaps"; exit 0;;
   *" --csvout list --columns number,description "*) echo "number,description"; echo "0,current"; nums; exit 0;;

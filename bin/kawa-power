@@ -50,7 +50,7 @@ act() {
   exit 1
 }
 case $i in
-  0) exec kawa-lock ;;
+  0) exec kawa-lock --sleep ;;                     # (still locked 90 s later: sleep)
   1) kawa-lock && act sleep suspend ;;            # locked first (swaylock -f), then sleep
   2) exec pkill -xu "$UID" 'dwl(\.prev)?' ;;     # (dwl.prev: start-dwl's fallback)
   3) act restart reboot ;;

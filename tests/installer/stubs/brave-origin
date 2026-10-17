@@ -1,2 +1,13 @@
 #!/bin/bash
+# brave-origin of the fake machine: hidden with a DevTools port, it writes DevToolsActivePort in
+# its profile (as Brave does) and stays up until stopped; $FKH/brave = broken: it exits at once
+. /usr/local/bin/_lib.sh
+fkh_log "$*"
+[[ $(cat "$FKH/brave" 2>/dev/null) == broken ]] && { echo "brave: cannot start" >&2; exit 1; }
+d=""; for a in "$@"; do [[ $a == --user-data-dir=* ]] && d=${a#--user-data-dir=}; done
+if [[ -n $d && " $* " == *" --remote-debugging-port=0 "* ]]; then
+  printf '9229\n/devtools/browser/fake\n' >"$d/DevToolsActivePort"
+  echo $$ >"$FKH/brave-pid"                    # (the test checks it was stopped)
+  exec sleep 300
+fi
 echo "<html><head></head><body></body></html>"

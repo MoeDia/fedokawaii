@@ -81,12 +81,12 @@ command -v kawa-clipkeep >/dev/null && keep kawa-clipkeep </dev/null &   # a cop
 keep wl-paste --watch cliphist store </dev/null &  # clipboard history (Super+V)
 gammastep -l "$NIGHT_LIGHT" -t 6500:4200 </dev/null &   # night light (quick settings turns it off and on)
 
-# a notice 10 s before · lock 10 min · screens off 15 min (wlopm: the outputs stay, so windows stay where they
-# are) · lock before suspend
+# away: nothing locks and nothing sleeps — the screens only go dark after an hour (wlopm: the
+# outputs stay, so windows stay where they are; a key wakes them). Sleep is yours to ask for:
+# the power menu, or a lock (Super+Escape) left locked for 90 s (kawa-lock --sleep). Every
+# sleep is locked first
 keep swayidle -w \
-  timeout 590 'notify-send -a desktop -u low -t 9500 "$(. ~/.config/fedokawaii/icons.sh; printf %s "$ICON_LOCK")  locking in 10 s"' \
-  timeout 600 'kawa-lock' \
-  timeout 900 "wlopm --off '*'" resume "wlopm --on '*'" \
+  timeout 3600 "wlopm --off '*'" resume "wlopm --on '*'" \
   before-sleep 'kawa-lock --now' </dev/null &
 
 # yours: ~/.config/dwl/autostart.local.sh, if you made one — the theme never writes it. It

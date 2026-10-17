@@ -38,7 +38,7 @@ ROWS = {
     "Super+Shift+N":           ("dismiss notifications", ["spawn:makoctl dismiss -a"]),
     "Super+U":                 ("the system: update, new Fedora, repair", ["spawn:fedokawaii --window"]),
     "Super+Shift+U":           ("change the desktop", ["spawn:kawa-config"]),
-    "Super+Escape":            ("lock screen", ["spawn:kawa-lock"]),
+    "Super+Escape":            ("lock screen (then sleep after 90 s)", ["spawn:kawa-lock --sleep"]),
     "Super+Shift+E":           ("power menu", ["spawn:kawa-power"]),
     "Print":                   ("region", ["spawn:kawa-screenshot region"]),
     "Shift+Print":             ("full screen", ["spawn:kawa-screenshot full"]),

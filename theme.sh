@@ -420,7 +420,9 @@ boot_and_console() {
     else R grub2-editenv - set menu_auto_hide=1; CHANGED+=("boot menu: hidden (Fedora's default)"); fi
   fi
   TOTAL=$((TOTAL + 1))
-  if ((BOOT_CHANGED)) || ! R grep -q "$GRUB_THEME_DIR/theme.txt" /boot/grub2/grub.cfg; then
+  # (grub.cfg names the theme as GRUB reaches it: ($root)/grub2/themes/… when /boot is a
+  # partition of its own — the installer's Btrfs layout — and /boot/grub2/themes/… otherwise)
+  if ((BOOT_CHANGED)) || ! R grep -q "${GRUB_THEME_DIR#/boot/}/theme.txt" /boot/grub2/grub.cfg; then
     if ((CHECK)); then DRIFT+=("/boot/grub2/grub.cfg (not regenerated with the theme)")
     else
       R grub2-mkconfig -o /boot/grub2/grub.cfg >>"$LOG_FILE" 2>&1 || die "grub2-mkconfig failed — see $LOG_FILE"

@@ -15,6 +15,12 @@ if ((last)); then printf 'kernel-core-%s                Thu 01 Oct 2026\n' "$(ca
 miss=0
 for n in "${names[@]}"; do
   if [[ $n == kernel-core && -n $qf ]]; then cat "$FKH/kernels" 2>/dev/null || uname -r; continue; fi
+  # a kernel's own packages by NAME-VERSION (kernel, -core, -modules, -modules-core: what a
+  # Fedora kernel installs) for each version in $FKH/kernels
+  if [[ $n =~ ^kernel(-core|-modules|-modules-core)?-([0-9].*)$ ]]; then
+    grep -qxF -- "${BASH_REMATCH[2]}" <(cat "$FKH/kernels" 2>/dev/null || uname -r) && { echo "$n"; continue; }
+    echo "package $n is not installed"; miss=$((miss+1)); continue
+  fi
   if [[ $n == wlroots-devel && $qf == '%{version}' ]] && has installed wlroots-devel; then printf '0.20.2'; continue; fi
   if ((wp)); then p=$(provider "$n") || { echo "no package provides $n"; miss=$((miss+1)); continue; }
   else has installed "$n" && p=$n || { echo "package $n is not installed"; miss=$((miss+1)); continue; }; fi

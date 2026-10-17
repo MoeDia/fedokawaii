@@ -47,6 +47,16 @@ theme; eq "$RC" 0
 grep -q 'theme=/boot/grub2/themes/sumi/theme.txt\|/boot/grub2/themes/sumi/theme.txt' "$W/boot/grub2/grub.cfg" && _ok || _no "grub.cfg without the theme"
 theme --check; eq "$RC" 0
 
+case_ "/boot a partition of its own (the installer's Btrfs layout): grub.cfg names the theme from /boot's root — in sync, and verify sees it"
+touch "$FKH/boot-separate"; rm -f "$W/boot/grub2/grub.cfg"
+theme; eq "$RC" 0
+grep -qxF 'set theme=($root)/grub2/themes/sumi/theme.txt' "$W/boot/grub2/grub.cfg" && _ok || _no "grub.cfg: $(cat "$W/boot/grub2/grub.cfg")"
+theme --check; eq "$RC" 0 "$(grep -i grub <<<"$OUT" | head -n2 | tr '\n' '|')"
+reset_calls; theme; not_called grub2-mkconfig
+fkrun bash "$TK/verify.sh" --pre-finalize
+has "$OUT" "✔ boot menu theme installed"; lacks "$OUT" "✘ every file in sync"
+rm -f "$FKH/boot-separate"; rm -f "$W/boot/grub2/grub.cfg"; theme; eq "$RC" 0
+
 case_ "the boot menu: the console palette on every boot entry, BOOT_MENU_SECONDS shown, Fedora's auto-hide off"
 has "$(cat "$FKH/grub-args")" "vt.default_red="; eq "$(grep -c 'vt.default_red=' "$FKH/grub-args")" 2 "both entries"
 has "$(cat "$W/etc/default/grub")" "GRUB_TIMEOUT=2"; has "$(cat "$W/etc/default/grub")" 'GRUB_GFXMODE="2560x1440,auto"'

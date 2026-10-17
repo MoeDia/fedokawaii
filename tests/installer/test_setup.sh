@@ -35,8 +35,11 @@ pkg_has systemd-oomd-defaults && _no "systemd-oomd-defaults still there (its kil
 eq "$(grep -v '^#' "$W/etc/modprobe.d/fedokawaii-btusb.conf" 2>/dev/null)" "options btusb enable_autosuspend=0" "the Bluetooth dongle never sleeps"
 # (Node 22, which neovim brings through tree-sitter-cli's recommendation, never taken as a weak
 # dependency — set before the first install, and dnf reads it back so)
-has "$(cat "$W/etc/dnf/libdnf5.conf.d/90-fedokawaii.conf")" "exclude_from_weak=nodejs,nodejs22*"
+has "$(cat "$W/etc/dnf/libdnf5.conf.d/90-fedokawaii.conf")" "exclude_from_weak=nodejs,nodejs22*,PackageKit"
 lacks "$OUT" "dnf shows exclude_from_weak"
+# (dnf's metadata timer, static on Fedora 44: masked — `disable` cannot turn a static unit off)
+grep -qx "masked dnf5-makecache.timer" "$FKH/units" && _ok || _no "dnf5-makecache.timer not masked"
+not_called 'systemctl\] disable --now dnf5-makecache'
 eq "$(cat "$FKH/hostname" 2>/dev/null)" fedokawaii "a machine with no name gets one"
 eq "$(cat "$FKH/timezone" 2>/dev/null)" "Asia/Dubai"
 has "$(cat "$W/etc/dnf/libdnf5.conf.d/90-fedokawaii.conf")" "max_parallel_downloads=10"
@@ -51,9 +54,10 @@ reboot_world; keep phase2
 case_ "phase 2 (resumed by the unit after the restart): repositories, the GPU's drivers, media"
 resume --no-reboot; eq "$RC" 0
 eq "$(state phase)" 3; eq "$(state gpu)" amd
-for p in rpmfusion-free-release rpmfusion-nonfree-release mesa-va-drivers-freeworld mesa-vulkan-drivers-freeworld lact rocm-smi ffmpeg mpv amd-ucode-firmware; do
+for p in rpmfusion-free-release rpmfusion-nonfree-release mesa-va-drivers-freeworld mesa-vulkan-drivers lact rocm-smi ffmpeg mpv amd-ucode-firmware; do
   pkg_has "$p" || _no "$p not installed"
 done; _ok
+pkg_has mesa-vulkan-drivers-freeworld && _no "RPM Fusion's Vulkan driver installed" || _ok
 has "$(head -n1 "$FKH/grub-args")" "amdgpu.ppfeaturemask=0xfff7ffff"
 called 'dracut\] -f --regenerate-all'
 eq "$(state hardware-pkgs)" amd-ucode-firmware
@@ -80,6 +84,10 @@ for t in satty yazi ya presenterm spotify_player; do [[ -x $W/home/fkuser/.local
 eq "$(cat "$W/home/fkuser/.local/share/fedokawaii/upstream/ge-proton" 2>/dev/null)" GE-Proton10-25
 eq "$(cat "$W/home/fkuser/.local/share/fedokawaii/upstream/syncplay" 2>/dev/null)" "$(. "$REPO/lib/upstream.sh"; syncplay_pin)" "Syncplay (3.07c) at its pinned commit, with our patch"
 [[ -x $W/home/fkuser/.local/bin/syncplay && -f $W/home/fkuser/.local/share/fedokawaii/syncplay/syncplay/client.py ]] && _ok || _no "Syncplay not installed"
+# (the clone setup was started from: gone at the end — the toolkit has all of it)
+[[ ! -e $W$CLONE ]] && _ok || _no "the clone ~/fedokawaii is still there"
+has "$OUT" "~/fedokawaii removed: the toolkit has all of it"
+[[ -x $W$TK/setup.sh ]] && _ok || _no "the toolkit went with it"
 case_ "torrra: installed by pipx with its pinned libraries, pipx's own command off your PATH; 6881 open"
 called "pipx\] install --force --python python3.13 --pip-args=-c .*/system/torrra-constraints.txt torrra=="
 [[ -L $W/home/fkuser/.local/share/pipx/bin/torrra && ! -e $W/home/fkuser/.local/bin/torrra && ! -L $W/home/fkuser/.local/bin/torrra ]] \
@@ -92,8 +100,16 @@ called "nvim\] --headless \+Lazy! install"
 [[ -d $W/home/fkuser/.local/share/nvim/lazy/LazyVim && -x $W/usr/local/libexec/xdg-desktop-portal-termfilechooser ]] && _ok || _no "LazyVim or the file dialog missing"
 case_ "after the build: verify passes (exit 0), and setup run again only says so"
 fkrun bash "$TK/verify.sh"; eq "$RC" 0 "verify: $(grep '✘' <<<"$OUT" | head -n3 | tr '\n' '|')"; has "$OUT" "✔ verified"
-reset_calls; setup; eq "$RC" 0; has "$OUT" "already built"
+reset_calls; fkrun bash "$TK/setup.sh"; eq "$RC" 0; has "$OUT" "already built"      # (the clone is gone: the toolkit's)
 not_called 'dnf\] -y install'
+case_ "the clone holds a file of yours (or a changed fedokawaii.conf): it stays, and the log says why"
+back phase3; echo "my notes" >"$W$CLONE/notes.txt"; chown "$FK_UID:$FK_UID" "$W$CLONE/notes.txt"
+resume --no-reboot; eq "$RC" 0; eq "$(state phase)" "done"
+[[ -f $W$CLONE/notes.txt ]] && _ok || _no "the clone with a file of yours was removed"
+has "$OUT" "~/fedokawaii kept: it differs from the toolkit"
+back phase3; sed -i 's/^MONITOR_HZ=.*/MONITOR_HZ="60"/' "$W$CLONE/fedokawaii.conf"; chown "$FK_UID:$FK_UID" "$W$CLONE/fedokawaii.conf"
+resume --no-reboot; [[ -d $W$CLONE ]] && _ok || _no "removed despite its own fedokawaii.conf"
+has "$OUT" "~/fedokawaii kept: its fedokawaii.conf changed after setup read it"
 case_ "Fedora 45: phase 2 takes RPM Fusion's release packages for 45, and goes on as on 44"
 back phase2; fedora_release 45
 resume --no-reboot; eq "$RC" 0; eq "$(state phase)" 3; has "$OUT" "Fedora 45 · phase 2"
@@ -129,15 +145,23 @@ back phase2; fkh dups "glibc-2.43-2.fc44.x86_64"
 resume --no-reboot; eq "$RC" 0 "$(grep -E '✘' <<<"$OUT" | head -n2 | tr '\n' '|')"
 eq "$(cat "$FKH/dups")" "" "no package left twice"; eq "$(state phase)" 3
 
-case_ "a power cut mid-transaction and a dnf problem: duplicates tidied at the gate; the check stops it before the login"
+case_ "the gate finds a problem repair can fix (a dnf problem distro-sync clears): setup repairs it itself, checks again, and goes on to the login"
+back phase3; fkh dnfcheck "package: foo-1.0-1.fc44.x86_64" "  dependency: libbar.so.1()(64bit)" "   problem: missing dependency"
+fkh distro-sync-fixes
+resume --no-reboot; eq "$RC" 0 "$(grep -E '✘' <<<"$OUT" | head -n3 | tr '\n' '|')"
+has "$OUT" "verify found problems (above) — setup repairs them now"; has "$OUT" "repaired: verify passes now"
+eq "$(cat "$FKH/dnfcheck")" "" "dnf's problem fixed"
+eq "$(state phase)" "done"; grep -qx 'enabled greetd.service' "$FKH/units" && _ok || _no "the login not switched on"
+rm -f "$FKH/distro-sync-fixes"
+case_ "a power cut mid-transaction and a dnf problem repair cannot fix: duplicates tidied, repaired once, then it stops before the login"
 back phase3; fkh dups "kernel-core-6.19.1-200.fc44.x86_64"
 fkh dnfcheck "package: foo-1.0-1.fc44.x86_64" "  dependency: libbar.so.1()(64bit)" "   problem: missing dependency"
 resume --no-reboot; eq "$RC" 1
 called 'dnf\] -y remove --duplicates'; eq "$(cat "$FKH/dups")" "" "the older copies removed"
-has "$OUT" "verify found problems"; has "$OUT" "fedokawaii repair"; has "$OUT" "then run setup again"
-has "$OUT" "most of these fix themselves: fedokawaii repair — then run setup again"
+has "$OUT" "setup repairs them now"; has "$OUT" "repair: nothing doubled or fighting"
+has "$OUT" "verify still finds problems after repairing"; has "$OUT" "then run setup again"
 eq "$(state phase)" 3
-grep -qx 'enabled greetd.service' "$FKH/units" && _no "greetd enabled before the gate passed" || _ok
+grep -qx 'enabled greetd.service' "$FKH/units" && _no "greetd enabled before the gate passed (by its repair, too)" || _ok
 case_ "…repair may run now (before, it would only say the build is not finished), and puts it right"
 fkh distro-sync-fixes; fkrun bash "$TK/setup.sh" --repair
 lacks "$OUT" "the build is not finished"; has "$OUT" "repair: nothing doubled or fighting"

@@ -83,20 +83,20 @@ case_ "repair: Fedora's every-session boot-success timer on again (a fresh prese
 back built; fkh_add units "global-enabled grub-boot-success.timer"
 tk --repair; called 'systemctl\] --global disable grub-boot-success.timer'
 grep -qx "global-enabled grub-boot-success.timer" "$FKH/units" && _no "still on for every session" || _ok
-case_ "repair: a kernel without its boot image gets one (dracut --kver), and verify passes after"
-back built; fkh kernels "6.18.1-200.fc44.x86_64" "$(uname -r)"; echo vmlinuz >"$W/boot/vmlinuz-6.18.1-200.fc44.x86_64"
-tk --repair; has "$OUT" "kernel 6.18.1-200.fc44.x86_64 has no boot image (initramfs) — dracut makes it now"
-called 'dracut\] -f --kver 6.18.1-200.fc44.x86_64'
-[[ -s $W/boot/initramfs-6.18.1-200.fc44.x86_64.img ]] && _ok || _no "no image made"
+case_ "repair: a new kernel (waiting for its restart) without its boot image gets one (dracut --kver), and verify passes after"
+back built; fkh kernels "6.99.1-200.fc44.x86_64" "$(uname -r)"; echo vmlinuz >"$W/boot/vmlinuz-6.99.1-200.fc44.x86_64"
+tk --repair; has "$OUT" "kernel 6.99.1-200.fc44.x86_64 has no boot image (initramfs) — dracut makes it now"
+called 'dracut\] -f --kver 6.99.1-200.fc44.x86_64'
+[[ -s $W/boot/initramfs-6.99.1-200.fc44.x86_64.img ]] && _ok || _no "no image made"
 has "$OUT" "problem(s) before, 0 now"
 case_ "update: the same, counted among the parts that failed when dracut cannot"
-back built; fkh kernels "6.18.1-200.fc44.x86_64" "$(uname -r)"; echo vmlinuz >"$W/boot/vmlinuz-6.18.1-200.fc44.x86_64"; fkh rc-dracut 1
-tk --update; has "$OUT" "dracut could not make the boot image for 6.18.1-200.fc44.x86_64"
+back built; fkh kernels "6.99.1-200.fc44.x86_64" "$(uname -r)"; echo vmlinuz >"$W/boot/vmlinuz-6.99.1-200.fc44.x86_64"; fkh rc-dracut 1
+tk --update; has "$OUT" "dracut could not make the boot image for 6.99.1-200.fc44.x86_64"
 has "$OUT" "not updated this time"; has "$OUT" "the kernels' boot images (dracut)"; rm -f "$FKH/rc-dracut"
 case_ "repair: /boot not mounted (no vmlinuz either): said, nothing written into the empty folder"
-back built; fkh kernels "6.18.1-200.fc44.x86_64" "$(uname -r)"
-tk --repair; has "$OUT" "no /boot/vmlinuz-6.18.1-200.fc44.x86_64 — is /boot mounted?"
-not_called 'dracut\] -f --kver'; [[ ! -e $W/boot/initramfs-6.18.1-200.fc44.x86_64.img ]] && _ok || _no "an image written beside a missing kernel"
+back built; fkh kernels "6.99.1-200.fc44.x86_64" "$(uname -r)"
+tk --repair; has "$OUT" "no /boot/vmlinuz-6.99.1-200.fc44.x86_64 — is /boot mounted?"
+not_called 'dracut\] -f --kver'; [[ ! -e $W/boot/initramfs-6.99.1-200.fc44.x86_64.img ]] && _ok || _no "an image written beside a missing kernel"
 
 case_ "repair: each package change a service of its own (closing the window cuts none in half); what only asks dnf stays in the window"
 back built; fkh_del installed bat; fkh_add installed systemd-oomd-defaults; reset_calls
@@ -138,5 +138,43 @@ printf 'EVERY="30"     # days\nWAIT=\x2745\x27\n' >"$W/home/fkuser/.config/fedok
 tk --update; has "$OUT" "the next one in 30 days"
 printf 'EVERY=400\n' >"$W/home/fkuser/.config/fedokawaii/upkeep.conf"
 tk --update; has "$OUT" "the next one in 90 days" "out of bounds: the default"
+
+case_ "repair: dnf's metadata timer on again (static, as Fedora 44 ships it) — masked again, never a bare disable"
+back built; sed -i 's/^masked dnf5-makecache.timer$/static dnf5-makecache.timer/' "$FKH/units"
+reset_calls; tk --repair
+called 'systemctl\] mask --now dnf5-makecache.timer'; not_called 'disable --now dnf5-makecache'
+grep -qx "masked dnf5-makecache.timer" "$FKH/units" && _ok || _no "not masked"
+has "$OUT" "problem(s) before, 0 now"
+case_ "repair before setup's own end made the snapshot configs: the missing one made (/home too), an existing one never again"
+back built; rm -f "$W/etc/snapper/configs/home"; sed -i '/^home$/d' "$FKH/snapper-configs"
+reset_calls; tk --repair
+called 'snapper\] -c home create-config /home'; not_called 'snapper\] -c root create-config'
+[[ -f $W/etc/snapper/configs/home ]] && _ok || _no "no config for /home"
+lacks "$OUT" "config already exists"
+
+# ── one kernel ───────────────────────────────────────────────────────────────
+case_ "repair: the kernel before the running newest — removed (all its packages), no repository asked; the start-up timer in place"
+back built; fkh kernels "6.18.1-200.fc44.x86_64" "$(uname -r)"; rm -f "$W/etc/systemd/system/fedokawaii-kernels.timer"
+echo vmlinuz >"$W/boot/vmlinuz-6.18.1-200.fc44.x86_64"; : >"$W/boot/initramfs-6.18.1-200.fc44.x86_64.img"
+reset_calls; tk --repair
+called "dnf\] -y --disable-repo=\* remove kernel-6.18.1-200.fc44.x86_64 kernel-core-6.18.1-200.fc44.x86_64 kernel-modules-6.18.1-200.fc44.x86_64 kernel-modules-core-6.18.1-200.fc44.x86_64$"
+eq "$(cat "$FKH/kernels")" "$(uname -r)" "one kernel left"
+[[ -f $W/etc/systemd/system/fedokawaii-kernels.timer ]] && _ok || _no "no start-up timer"
+grep -qx "enabled fedokawaii-kernels.timer" "$FKH/units" && _ok || _no "timer not enabled"
+has "$OUT" "problem(s) before, 0 now"
+case_ "repair or update with a new kernel not yet running: both kept, said — nothing removed"
+back built; fkh kernels "$(uname -r)" "6.99.1-200.fc44.x86_64"; echo vmlinuz >"$W/boot/vmlinuz-6.99.1-200.fc44.x86_64"; : >"$W/boot/initramfs-6.99.1-200.fc44.x86_64.img"
+reset_calls; tk --repair; not_called 'remove kernel'
+has "$OUT" "kernel 6.99.1-200.fc44.x86_64 is installed and waits for a restart"
+reset_calls; tk --update; not_called 'remove kernel'
+case_ "the start-up run (a quarter of an hour in): only once this start reached the desktop (boot_success=1) — then the one before goes"
+back built; fkh kernels "6.18.1-200.fc44.x86_64" "$(uname -r)"; echo boot_success=0 >"$FKH/grubenv"
+reset_calls; tk --kernels; eq "$RC" 0; not_called 'remove kernel'
+has "$OUT" "this start has not reached the desktop for two minutes"
+echo boot_success=1 >"$FKH/grubenv"; tk --kernels; eq "$RC" 0
+called 'remove kernel-6.18.1-200.fc44.x86_64'; eq "$(cat "$FKH/kernels")" "$(uname -r)"
+case_ "the start-up run while another run holds the lock, or before setup has finished: nothing, quietly"
+back built; fkh kernels "6.18.1-200.fc44.x86_64" "$(uname -r)"; echo boot_success=1 >"$FKH/grubenv"
+echo 3 >"$W/var/lib/fedokawaii/phase"; reset_calls; tk --kernels; eq "$RC" 0; not_called 'remove kernel'
 
 done_

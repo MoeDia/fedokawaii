@@ -130,7 +130,9 @@ case "$a" in
       net_on || exit 1; r=$(rcfor swap 0); ((r == 0)) || exit "$r"
       mapfile -t ab < <(printf '%s\n' "$@" | grep -v '^-' | grep -vx swap); unmark "${ab[0]}"; mark_user "${ab[1]}"; exit 0;;
   *" remove "*)
-      for p in "$@"; do [[ $p == -* || $p == remove ]] && continue; unmark "$p"; done; exit 0;;
+      for p in "$@"; do [[ $p == -* || $p == remove ]] && continue; unmark "$p"
+        [[ $p == kernel-core-[0-9]* && -f $FKH/kernels ]] && sed -i "/^${p#kernel-core-}\$/d" "$FKH/kernels"   # (a kernel's version gone)
+      done; exit 0;;
   *" system-upgrade download "*) net_on || exit 1; [[ $a == *--assumeno* ]] && { echo "would remove: foo"; exit 1; }; exit "$(rcfor sysup 0)";;
   *" system-upgrade reboot "*) exit "$(rcfor reboot 0)";;
   *" upgrade "*)

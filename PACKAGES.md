@@ -23,7 +23,7 @@ Source: **F** Fedora · **RF** RPM Fusion · **V** vendor repo (signed) · **C**
 | Launcher + all menus | fuzzel | F | `--dmenu` for quick settings, power, audio, calendar, brightness, screen-share picker, help (the wallpaper and clipboard windows are fzf) |
 | Bar | waybar | F | dwl tags via `kawa-dwlstatus`; its own clock module (seconds, no script) |
 | Notifications | mako + libnotify | F | |
-| Lock / idle | swaylock · swayidle | F | the power menu is a fuzzel menu (`kawa-power`) |
+| Lock / idle | swaylock · swayidle | F | the power menu is a fuzzel menu (`kawa-power`); away, nothing locks or sleeps (the screens go dark after an hour); a lock you ask for (Super+Escape) sleeps 90 s later; sleep is suspend only — hibernation off (`/etc/systemd/sleep.conf.d/90-fedokawaii.conf`) |
 | Level display | mako (category `osd`) | F | `kawa-osd`: volume, microphone, brightness — no separate OSD program |
 | Wallpaper | swaybg | F | |
 | Outputs | wlr-randr · wlopm | F | `kawa-display` picks the best refresh rate ≤ `MONITOR_HZ` · `wlopm` powers screens off when idle without moving windows |
@@ -66,7 +66,7 @@ Source: **F** Fedora · **RF** RPM Fusion · **V** vendor repo (signed) · **C**
 | Snapshots | snapper | F | Timeshift can't use Fedora's subvolume names |
 | Backups | restic | F | your home to a USB drive, an external disk or a restic address, deduplicated and encrypted; `kawa-backup` runs it (quick settings → backup) — nothing on a timer, the drive may not be plugged in |
 | Containers | podman | F | for Prowlarr |
-| GPU | Mesa freeworld (VA-API + Vulkan) · LACT · rocm-smi | RF + C + F | amdgpu feature mask for LACT; rocm-smi: the library btop reads the card through (AMD only); while RPM Fusion is behind this Fedora's Mesa, or the COPR has no build for it, they wait (recorded, Fedora's drivers standing in) and update or repair adds them |
+| GPU | Mesa freeworld VA-API · LACT · rocm-smi | RF + C + F | amdgpu feature mask for LACT; rocm-smi: the library btop reads the card through (AMD only); while RPM Fusion is behind this Fedora's Mesa, or the COPR has no build for it, they wait (recorded, Fedora's drivers standing in) and update or repair adds them |
 | Peripherals | OpenRGB | F | RGB lighting on the motherboard's headers; fan speeds are the motherboard firmware's (§21.2) |
 | Gaming | Steam · gamescope · gamemode · MangoHud · GE-Proton · ntsync-autoload · steam-devices | RF + F + GH | GE-Proton keeps the newest two; ntsync: Proton's faster synchronisation |
 | Fonts | JetBrainsMono Nerd · DepartureMono Nerd · PixelMplus 12 · Sumi Icons · Terminus (console) · Noto Sans · Noto Sans CJK · Noto Naskh Arabic · Noto Kufi Arabic · Amiri · Noto Color Emoji · Liberation | GH + F + repo | Departure = the pixel UI font; PixelMplus = Japanese in the pixel UI and the terminal; Noto Sans CJK = Japanese, Chinese, Korean in programs and subtitles; Sumi Icons = this desktop's icons; Kufi = Arabic in the pixel UI (bar, menus, notices); Liberation = metric-compatible fonts for office files |
@@ -76,7 +76,7 @@ Source: **F** Fedora · **RF** RPM Fusion · **V** vendor repo (signed) · **C**
 | Drivers and firmware | fwupd · pciutils · usbutils, and what this machine needs (`lib/hardware.sh`): microcode_ctl or amd-ucode-firmware, NetworkManager-wifi + wireless-regdb, alsa-sof-firmware, the firmware the kernel asked for (iwlwifi-…-firmware and the like), intel-media-driver beside an AMD card | F + RF | fwupd: device firmware from the LVFS, applied only by you · lspci / lsusb: which device, which driver · the per-machine packages are found from the hardware at setup, update and repair, and recorded in `/var/lib/fedokawaii/hardware-pkgs` (part of the manifest from then on) |
 | Base | NetworkManager · sudo | F | already in @core — listed so they are marked as yours and dnf's clean-up never takes them |
 | Base | NetworkManager-tui · xorg-x11-server-Xwayland · xdg-utils · xdg-user-dirs | F | nmtui (quick settings → network) · X11 programs · `xdg-open` · `~/Pictures`… |
-| GPU base | mesa-dri-drivers · vulkan-loader · linux-firmware · amd-gpu-firmware (AMD) · intel-media-driver + mesa-vulkan-drivers (Intel) | F + RF | the freeworld Mesa builds on AMD; Intel's VA-API driver from RPM Fusion, Fedora's Vulkan |
+| GPU base | mesa-dri-drivers · mesa-vulkan-drivers · vulkan-loader · linux-firmware · amd-gpu-firmware (AMD) · intel-media-driver (Intel) | F + RF | Vulkan: Fedora's own on both (RPM Fusion's freeworld Vulkan build adds only Vulkan's H.264/HEVC video, unused here, and its 64- and 32-bit packages have clashed); VA-API: the freeworld build on AMD, Intel's driver from RPM Fusion |
 | Repositories | rpmfusion-free-release · rpmfusion-nonfree-release | RF | |
 
 ## Never present (verify.sh fails if any appear)
@@ -91,7 +91,8 @@ terminal windows) · second notification daemons (dunst, SwayNotificationCenter:
 power-profiles-daemon (tuned only) · other login managers (gdm, sddm, lightdm, lxdm) ·
 systemd-oomd-defaults (systemd-oomd's rules: its out-of-memory killer acts on whole cgroups, so
 under memory pressure it can end the whole desktop session, where every program runs; the
-kernel's own OOM killer stays) · on AMD, the non-freeworld mesa-va-drivers / mesa-vulkan-drivers.
+kernel's own OOM killer stays) · mesa-vulkan-drivers-freeworld (Vulkan: Fedora's own) · on AMD, the non-freeworld mesa-va-drivers.
+PackageKit is also kept from arriving as a weak dependency (dnf's `exclude_from_weak`: PackageKit-Qt6 recommends it).
 
 On top of that list, verify.sh compares everything *user-installed* against a snapshot taken
 before setup started plus the manifest — anything else is reported by name.

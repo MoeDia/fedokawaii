@@ -42,8 +42,14 @@ elif ((VERSION_ID < 44)); then fail "Fedora $VERSION_ID" "too old — needs 44 o
 elif [[ ${REDHAT_BUGZILLA_PRODUCT_VERSION:-} == rawhide ]]; then warn "Fedora Rawhide ($VERSION_ID)" "Fedora's development branch, changing every day — tested on the releases 44 and 45"
 elif ((VERSION_ID > 45)); then warn "Fedora $VERSION_ID" "newer than tested (44/45): setup can build dwl only if this release has its wlroots (network, below)"
 else pass "Fedora $VERSION_ID (supported)"; fi
-if [[ ${VARIANT_ID:-} == server ]]; then pass "Fedora Server edition"
-else warn "edition is '${VARIANT_ID:-none}'" "built for Server minimal; other editions may carry a desktop already"; fi
+# the starting point: the installer's Custom Operating System (Fedora's core, no edition named:
+# os-release has no VARIANT_ID — what the handbook picks) or Server's Minimal Install. Any other
+# edition is a desktop edition, which brings a desktop of its own
+case ${VARIANT_ID:-} in
+  "")     pass "Fedora's minimal base (Custom Operating System, no edition)" ;;
+  server) pass "Fedora Server edition (Minimal Install)" ;;
+  *)      warn "edition is '$VARIANT_ID'" "built for a minimal install (Custom Operating System, or Server's Minimal Install); a desktop edition brings a desktop of its own" ;;
+esac
 check "dnf5 is the package manager"                bash -c 'dnf --version 2>&1 | grep -q "dnf5"'
 
 desk=$(rpm -q gnome-shell plasma-workspace gdm sddm lightdm xfce4-session cinnamon 2>/dev/null | grep -v 'not installed' | tr '\n' ' ')

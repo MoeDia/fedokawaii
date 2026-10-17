@@ -9,7 +9,7 @@
 setup() {   # setup — a sandbox and a made-up machine in $R (fetch's copy: $TMP/fetch)
   sandbox
   R=$TMP/root; mkdir -p "$R/etc" "$R/usr/lib" "$R/proc/sys/kernel"
-  printf 'NAME="Fedora Linux"\nVERSION="44 (Server Edition)"\nID=fedora\nVERSION_ID=44\nPRETTY_NAME="Fedora Linux 44 (Server Edition)"\n' >"$R/usr/lib/os-release"
+  printf 'NAME="Fedora Linux"\nVERSION="44 (Forty Four)"\nID=fedora\nVERSION_ID=44\nPRETTY_NAME="Fedora Linux 44 (Forty Four)"\n' >"$R/usr/lib/os-release"
   ln -s ../usr/lib/os-release "$R/etc/os-release"
   echo 6.17.1-300.fc44.x86_64 >"$R/proc/sys/kernel/osrelease"
   echo fedora >"$R/proc/sys/kernel/hostname"
@@ -37,10 +37,10 @@ eq "$(grep -c "$R" "$TMP/fetch")" "$(grep -cE '/etc/os-release|/usr/lib/os-relea
 eq "$(grep -oE '<[[:space:]]*/[^ ;)]+' "$TMP/fetch" | grep -v "^<$R/")" "" "a file read from / that the test does not stand in for"
 
 # ── the facts ────────────────────────────────────────────────────────────────
-case_ "the facts: you @ the host, the system, the kernel, the uptime, the session, bash, memory, the colours"
+case_ "the facts: you@the host (no spaces), the system, the kernel, the uptime, the session, bash, memory, the colours"
 setup
 out=$(F neko | sed 's/\x1b\[[0-9;]*m//g')
-has "$out" "kawau @ fedora"; has "$out" "fedora 44"; has "$out" " 6.17.1"
+has "$out" "kawau@fedora"; lacks "$out" "kawau @"; has "$out" "fedora 44"; has "$out" " 6.17.1"
 has "$out" "3h 12m"; has "$out" "dwl · foot"; has "$out" "bash ${BASH_VERSION%%(*}"
 has "$out" "3.2 / 15.5 GiB"; has "$out" "● ● ● ● ● ● ● ●"
 eq "$(F neko | grep -c .)" 8 "eight lines between two blank ones"
@@ -67,7 +67,7 @@ eq "$r" 0; lacks "$out" "No such file"; has "$out" " linux"$'\n'
 
 case_ "no USER, no session (a TTY, ssh): the rest still there"
 setup; out=$(env -u USER -u XDG_SESSION_DESKTOP "$TMP/fetch" neko | sed 's/\x1b\[[0-9;]*m//g')
-has "$out" "? @ fedora"; has "$out" "tty · foot"
+has "$out" "?@fedora"; has "$out" "tty · foot"
 
 # ── the width ────────────────────────────────────────────────────────────────
 # the facts here are 18 columns at most (+1 for an icon drawn two wide): the picture needs

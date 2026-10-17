@@ -155,7 +155,11 @@ cd ~/fedokawaii && sudo bash fedokawaii.sh
 The menu offers **Setup** (the software) and **Theme** (the look) separately; neither forces
 the other. Setup walks itself through three phases with a reboot between each, resumed
 automatically on tty1, and
-refuses to enable the login until `verify.sh` passes, then takes a baseline snapshot.
+refuses to enable the login until `verify.sh` passes — what it finds there it repairs itself
+first, the same fixes as `fedokawaii repair`, and checks again — then takes a baseline snapshot,
+clears the build's download caches and removes `~/fedokawaii` (kept, with the reason in the log,
+if it holds anything of yours). Later changes: `fedokawaii copy` (a working copy in
+`~/repos/fedokawaii`), or a fresh clone run once with `sudo bash fedokawaii.sh repair`.
 If anything fails it prints the line and the log (`/var/log/fedokawaii.log`, root's: `sudo
 less` it); fix it and run it again — finished steps are skipped. At the first reboot setup
 installs the project for good as `/usr/local/lib/fedokawaii` (root's own; everything runs from
@@ -231,7 +235,7 @@ glossary are appendices D and E.
 
 ## 5 · Kernels and the boot menu
 
-Two kernels: the newest, and the one before it as the way back. The themed boot menu shows for
+One kernel: the newest. After an update the one before stays as the way back only until the new one has reached the desktop; a quarter of an hour into that start it is removed (`fedokawaii-kernels.timer`, handbook §29.5). The themed boot menu shows for
 `BOOT_MENU_SECONDS` (2 by default); set it to 0 for Fedora's hidden menu, which appears
 only after a failed boot, or with **Shift** held (or **Esc** or **F8** pressed) as it starts. (Beside Windows, setup leaves the menu shown.) Re-run Theme after changing monitors so the
 boot menu matches the new resolution.

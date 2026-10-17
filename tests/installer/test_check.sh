@@ -6,14 +6,16 @@
 . "$(dirname "$0")/lib.sh"
 C=/home/fkuser/fedokawaii/check.sh
 chk() { fkrun bash "$C" "$@"; }
-osr() { sed -i "s/^$1=.*/$1=$2/" "$W/etc/os-release"; }
+osr() {   # osr KEY VALUE — os-release's KEY set, added when it has none (VARIANT_ID: Custom OS)
+  if grep -q "^$1=" "$W/etc/os-release"; then sed -i "s/^$1=.*/$1=$2/" "$W/etc/os-release"; else echo "$1=$2" >>"$W/etc/os-release"; fi
+}
 
 world fresh
 keep fresh
 
 case_ "the machine as the README's installer settings leave it, with the shipped fedokawaii.conf: ready (exit 0)"
 chk; eq "$RC" 0 "$(grep '✘' <<<"$OUT" | head -n3 | tr '\n' '|')"
-has "$OUT" "✔ all values valid"; has "$OUT" "✔ Fedora 44 (supported)"; has "$OUT" "✔ Fedora Server edition"
+has "$OUT" "✔ all values valid"; has "$OUT" "✔ Fedora 44 (supported)"; has "$OUT" "✔ Fedora's minimal base (Custom Operating System, no edition)"
 has "$OUT" "✔ / is Btrfs"; has "$OUT" "✔ desktop user: fkuser"; has "$OUT" "✔ fkuser is an administrator (wheel)"
 has "$OUT" "✔ reachable: codeberg.org"; has "$OUT" "✔ wlroots 0.20 in this Fedora"
 has "$OUT" "✔ COPR ilyaz/LACT builds for Fedora 44"; lacks "$OUT" "dejan/lazygit" "lazygit is a release now, not a COPR"
@@ -44,6 +46,12 @@ has "$OUT" "✘ SELinux is permissive"; has "$OUT" "✘ could not query updates"
 has "$OUT" "✘ no default route"; has "$OUT" "✘ unreachable: codeberg.org"
 has "$OUT" "✘ wlroots 0.20 is not in Fedora 43"
 has "$OUT" "NOT READY — fix the ✘ items above"
+case_ "Server's Minimal Install instead (its os-release names the Server edition): passed as well, no warning"
+back fresh; sed -i 's/ (Forty Four)/ (Server Edition)/' "$W/etc/os-release"
+printf '%s\n' 'VARIANT="Server Edition"' 'VARIANT_ID=server' >>"$W/etc/os-release"
+chk; eq "$RC" 0
+has "$OUT" "✔ Fedora Server edition (Minimal Install)"; lacks "$OUT" "! edition is"
+
 case_ "nano and vim, the rescue image, ffmpeg-free: setup takes those out itself — never a ✘"
 back fresh; fkh_add installed ffmpeg-free vim-enhanced
 chk; eq "$RC" 0; has "$OUT" "✔ nothing installed that the desktop replaces"

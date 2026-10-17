@@ -13,7 +13,8 @@ all() { m "manifest_all ${1:-amd}"; }
 case_ "every list parses; the manifest for AMD and for Intel"
 a=$(all amd); i=$(all intel)
 ((${#a} > 0 && ${#i} > 0)) && _ok || _no "empty manifest"
-has "$a" lact; lacks "$i" lact; has "$i" intel-media-driver; has "$a" mesa-vulkan-drivers-freeworld
+has "$a" lact; lacks "$i" lact; has "$i" intel-media-driver
+has "$a" mesa-vulkan-drivers; has "$i" mesa-vulkan-drivers; lacks "$a" mesa-vulkan-drivers-freeworld   # Vulkan: Fedora's own
 has "$a" rocm-smi; lacks "$i" rocm-smi                      # btop's view of an AMD card
 for p in visidata sc-im gdu; do has "$a" "$p"; has "$i" "$p"; done   # the terminal's tables and disk usage
 

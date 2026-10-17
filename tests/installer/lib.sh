@@ -163,9 +163,9 @@ world() {   # world fresh|built [--themed]
   if grep -q '^wheel:' "$W/etc/group"; then sed -i -E 's/^(wheel:[^:]*:[^:]*:)(.*)$/\1\2,fkuser/; s/^(wheel:[^:]*:[^:]*:),/\1/' "$W/etc/group"
   else echo "wheel:x:3010:fkuser" >>"$W/etc/group"; fi
   rm -f "$W/etc/os-release"
-  printf '%s\n' 'NAME="Fedora Linux"' 'VERSION="44 (Server Edition)"' 'ID=fedora' 'VERSION_ID=44' \
-    'PRETTY_NAME="Fedora Linux 44 (Server Edition)"' 'VARIANT="Server Edition"' 'VARIANT_ID=server' \
-    'SUPPORT_END=2027-05-19' >"$W/etc/os-release"
+  # (as the installer's Custom Operating System writes it — the handbook's choice: no edition)
+  printf '%s\n' 'NAME="Fedora Linux"' 'VERSION="44 (Forty Four)"' 'ID=fedora' 'VERSION_ID=44' \
+    'PRETTY_NAME="Fedora Linux 44 (Forty Four)"' 'SUPPORT_END=2027-05-19' >"$W/etc/os-release"
   mkdir -p "$W/etc/default"
   printf '%s\n' 'GRUB_TIMEOUT=5' 'GRUB_DISTRIBUTOR="$(sed '"'"'s, release .*$,,g'"'"' /etc/system-release)"' \
     'GRUB_DEFAULT=saved' 'GRUB_DISABLE_SUBMENU=true' 'GRUB_TERMINAL_OUTPUT="console"' \
@@ -197,7 +197,7 @@ world() {   # world fresh|built [--themed]
   printf '%s\n' bash sudo NetworkManager kernel-core grub2-tools grubby firewalld openssh-server nano \
     vim-minimal dracut-config-rescue | sed 's/$/ User/' >"$FKH/userinstalled"
   { ( STATE_DIR=/nonexistent STEAM=yes; . "$REPO/lib/manifest.sh"; manifest_all amd; manifest_all intel; printf '%s\n' "${FORBIDDEN_amd[@]}" )
-    printf '%s\n' mesa-vulkan-drivers-freeworld.i686 mesa-va-drivers-freeworld.i686 amd-ucode-firmware microcode_ctl \
+    printf '%s\n' mesa-vulkan-drivers.i686 mesa-vulkan-drivers-freeworld mesa-vulkan-drivers-freeworld.i686 mesa-va-drivers-freeworld.i686 amd-ucode-firmware microcode_ctl \
       NetworkManager-wifi wireless-regdb alsa-sof-firmware iwlwifi-mvm-firmware realtek-firmware kernel-core
     cat "$FKH/installed"; } | sort -u >"$FKH/available"
   echo "iwlwifi-mvm-firmware /usr/lib/firmware/iwlwifi-so-a0-gf-a0-89.ucode.xz" >"$FKH/fwfiles"
@@ -205,7 +205,8 @@ world() {   # world fresh|built [--themed]
   printf '%s\n' "global-enabled pipewire.socket" "global-enabled pipewire-pulse.socket" "global-enabled wireplumber.service" \
     "global-enabled grub-boot-success.timer" \
     "enabled sshd.service" "active sshd.service" "enabled firewalld.service" "active firewalld.service" \
-    "enabled fstrim.timer" >"$FKH/units"
+    "enabled fstrim.timer" "static dnf5-makecache.timer" >"$FKH/units"
+  echo dnf5-makecache.timer >"$FKH/unitfiles"      # (Fedora 44's: static — on by its package's own link)
   fake_cmd "$W/usrbin/nano"; fake_cmd "$W/usrbin/vi"     # (nano, vim-minimal: in a Minimal Install)
   printf '%s\n' "ethernet:connected" >"$FKH/nm-devices"
   printf '%s\n' "fedokawaii-setup-host" >/dev/null
@@ -344,7 +345,8 @@ built() {
   mkdir -p "$W/etc/modprobe.d" "$W/etc/systemd/system/user@.service.d"
   echo 'options btusb enable_autosuspend=0' >"$W/etc/modprobe.d/fedokawaii-btusb.conf"
   printf '[Service]\nTimeoutStopSec=30s\n' >"$W/etc/systemd/system/user@.service.d/fedokawaii.conf"
-  printf '[main]\nmax_parallel_downloads=10\nfastestmirror=True\nminrate=50k\ntimeout=20\ninstallonly_limit=2\ndefaultyes=True\nexclude_from_weak=nodejs,nodejs22*\n' >"$W/etc/dnf/libdnf5.conf.d/90-fedokawaii.conf"
+  mkdir -p "$W/etc/systemd/sleep.conf.d"; printf '[Sleep]\nAllowHibernation=no\nAllowHybridSleep=no\nAllowSuspendThenHibernate=no\n' >"$W/etc/systemd/sleep.conf.d/90-fedokawaii.conf"
+  printf '[main]\nmax_parallel_downloads=10\nfastestmirror=True\nminrate=50k\ntimeout=20\ninstallonly_limit=2\ndefaultyes=True\nexclude_from_weak=nodejs,nodejs22*,PackageKit\n' >"$W/etc/dnf/libdnf5.conf.d/90-fedokawaii.conf"
   printf '[x]\ngpgcheck=1\n' >"$W/etc/yum.repos.d/brave-browser.repo"; cp "$W/etc/yum.repos.d/brave-browser.repo" "$W/etc/yum.repos.d/claude-code.repo"
   printf '#!/bin/sh\nexit 0\n' >"$W/usr/local/sbin/kawa-snap"; chmod 755 "$W/usr/local/sbin/kawa-snap"; : >"$W/etc/dnf/libdnf5-plugins/actions.d/fedokawaii-snapper.actions"
   mkdir -p "$W/etc/systemd/system"; ln -sfn ../../../usr/lib/systemd/system/greetd.service "$W/etc/systemd/system/display-manager.service"
@@ -358,18 +360,20 @@ built() {
   # every manifest package installed and marked as yours; the services setup enabled
   ( STATE_DIR=/nonexistent STEAM=yes; . "$REPO/lib/manifest.sh"; manifest_all amd ) | sort -u >"$TMP/manifest"
   grep -vxF -e nano -e nano-default-editor -e vim-minimal -e dracut-config-rescue "$FKH/installed" \
-    | cat - "$TMP/manifest" <(echo mesa-vulkan-drivers-freeworld.i686) <(echo amd-ucode-firmware) | sort -u >"$FKH/installed.n"
+    | cat - "$TMP/manifest" <(echo mesa-vulkan-drivers.i686) <(echo amd-ucode-firmware) | sort -u >"$FKH/installed.n"
   mv "$FKH/installed.n" "$FKH/installed"
   { printf '%s\n' bash sudo NetworkManager; cat "$TMP/manifest"; echo amd-ucode-firmware; } | sort -u | sed 's/$/ User/' >"$FKH/userinstalled"
   echo amd-ucode-firmware >"$S/hardware-pkgs"
   printf 'enabled %s\n' greetd.service bluetooth.service snapper-timeline.timer snapper-cleanup.timer fstrim.timer lactd.service \
-    fedokawaii-scrub.timer tuned.service firewalld.service >>"$FKH/units"
+    fedokawaii-scrub.timer fedokawaii-kernels.timer tuned.service firewalld.service >>"$FKH/units"
   sed -i '/ sshd.service$/d; /^global-enabled grub-boot-success\.timer$/d' "$FKH/units"   # (that timer: the desktop starts it)
   rm -f "$W/usrbin/nano" "$W/usrbin/vi"                     # (setup took them out)
   printf '%s\n' copr:copr.fedorainfracloud.org:ilyaz:LACT >"$FKH/coprs"
   mkdir -p "$W/usrshare/vulkan/icd.d" "$W/usrshare/icons/Papirus" "$W/usrshare/icons/Papirus-Dark" "$W/usrshare/icons/Adwaita/cursors"
   : >"$W/usrshare/vulkan/icd.d/radeon_icd.x86_64.json"; fake_cmd "$W/usrbin/greetd"
   printf '%s\n' root home >"$FKH/snapper-configs"; echo "1,fedokawaii baseline" >"$FKH/snaps"
+  mkdir -p "$W/etc/snapper/configs"; for c in root home; do echo 'SUBVOLUME="/"' >"$W/etc/snapper/configs/$c"; done
+  sed -i 's/^static dnf5-makecache.timer$/masked dnf5-makecache.timer/' "$FKH/units"
   echo fedokawaii >"$FKH/tuned-profile"; printf '%s\n' dhcpv6-client >"$FKH/fw-services"; printf '%s\n' 6881/tcp 6881/udp >"$FKH/fw-ports"
   echo menu_auto_hide=1 >"$FKH/grubenv"
   printf '%s\n' "ro rootflags=subvol=root rhgb quiet systemd.tty.term.console=dumb amdgpu.ppfeaturemask=0xfff7ffff" \

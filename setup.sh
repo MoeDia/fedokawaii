@@ -36,7 +36,7 @@ for a in "$@"; do
   case $a in
     --resume) RESUMED=1 ;;
     --update) MODE=update ;;  --repair) MODE=repair ;;  --status) MODE=status ;;  --reset) MODE=reset ;;
-    --toolkit) MODE=toolkit ;;
+    --toolkit) MODE=toolkit ;;  --kernels) MODE=kernels ;;
     --upgrade) MODE=upgrade ;;  --now) UPGRADE_FLAG=--now ;;  --after-upgrade) MODE="after-upgrade" ;;
     --no-reboot) NO_REBOOT=1 ;;
     -h|--help) sed -n '3,/^# ═/p' "$0" | sed '$d'; exit 0 ;;
@@ -71,7 +71,9 @@ if [[ $MODE == status ]]; then        # read-only, so it works while another run
   echo "phase $(cat "$STATE_DIR/phase" 2>/dev/null || echo 1) · user $(cat "$STATE_DIR/user" 2>/dev/null || echo '(not chosen yet)') · Fedora $VERSION_ID · theme $([[ -f $STATE_DIR/with-theme ]] && echo 'with setup' || echo separate)"
   find "$STATE_DIR" -name 'done.*' -printf '  ✔ %f\n' | sed 's/done\.//' | sort; exit 0
 fi
-take_lock "$STATE_DIR/lock"
+if [[ $MODE == kernels ]]; then     # (the boot's own run: never waits — another run is on, so next start)
+  exec 9>"$STATE_DIR/lock"; flock -n 9 || exit 0
+else take_lock "$STATE_DIR/lock"; fi
 make_tmp
 # A run resumed after a reboot (fedokawaii-resume.service) that stops: nobody typed a command
 # to "run again", and tty1, the service's own screen, has no login of its own until you
@@ -130,6 +132,11 @@ set_phase() { printf '%s\n' "$1" | write_file "$STATE_DIR/phase" 0644; }   # (wh
 # repair), replaces the copy — its fedokawaii.conf merged with your saved settings (conf_merge).
 install_toolkit() {
   local sum b
+  # (the folder the build was started from — your clone or download: once setup is done it is
+  # removed, if nothing in it is yours alone; s_finalize, clone_done)
+  if [[ $MODE == build && $REPO_DIR != "$TOOLKIT" && $(phase) != 'done' && $REPO_DIR == "$TARGET_HOME"/?* ]]; then
+    printf '%s\n' "$REPO_DIR" | write_file "$STATE_DIR/started-from" 0644
+  fi
   if [[ $REPO_DIR != "$TOOLKIT" ]]; then
     rm -rf "$TOOLKIT.new" "$TOOLKIT.old"
     mkdir -p "${TOOLKIT%/*}"
@@ -349,14 +356,16 @@ installonly_limit=2
 defaultyes=True
 # never as a weak dependency: Node 22 (neovim recommends tree-sitter-cli, which recommends
 # "nodejs" — nodejs22 on Fedora 44; on 45 the package named nodejs, which owns /usr/bin/node
-# as nodejs24-bin does and would stop the media step). One Node.js: the manifest's 24
-exclude_from_weak=nodejs,nodejs22*
+# as nodejs24-bin does and would stop the media step). One Node.js: the manifest's 24.
+# Nor PackageKit, the background updater of software centres (forbidden: dnf only), which
+# PackageKit-Qt6, a library some Qt programs link, recommends
+exclude_from_weak=nodejs,nodejs22*,PackageKit
 EOF
   local k want v dump; dump=$(dnf --dump-main-config 2>/dev/null) || dump=""
   # checked, and reported — never a reason to stop: a later dnf may print a value its own way
   # (minrate is shown in bytes: 50k = 51200)
   for k in "max_parallel_downloads:$DNF_PARALLEL" fastestmirror:1 minrate:51200 timeout:20 installonly_limit:2 defaultyes:1 \
-           'exclude_from_weak:nodejs,nodejs22*'; do
+           'exclude_from_weak:nodejs,nodejs22*,PackageKit'; do
     want=${k#*:}; v=$(sed -n "s/^${k%%:*} *= *//p" <<<"$dump")
     [[ $v == "$want" || ( $want == 1 && $v == [Tt]rue ) || ( $want == 51200 && $v == 50[kK] ) ]] \
       || log "dnf shows ${k%%:*}='$v' where the drop-in sets $want — /etc/dnf/dnf.conf may override it"
@@ -366,11 +375,14 @@ EOF
   # manifest's packages are marked as yours instead, so dnf's clean-up never takes them.)
   # package metadata is fetched when you update (`dnf upgrade --refresh`), not every hour or
   # so in the background by dnf's makecache timer: no downloads and no work between updates
+  # Masked, not disabled: Fedora 44's dnf5-makecache.timer is a static unit (switched on by a
+  # link its package ships, not by an [Install] section), which `disable` cannot turn off — it
+  # only prints why. A mask holds through dnf updates; `systemctl unmask` undoes it
   local u
   for u in dnf5-makecache.timer dnf-makecache.timer; do
-    if systemctl cat "$u" >/dev/null 2>&1 && systemctl is-enabled --quiet "$u" 2>/dev/null; then
-      run systemctl disable --now "$u"
-    fi
+    systemctl cat "$u" >/dev/null 2>&1 || continue
+    [[ $(systemctl is-enabled "$u" 2>/dev/null) == masked ]] && continue
+    run systemctl mask --now "$u"
   done
   return 0
 }
@@ -403,9 +415,64 @@ s_boot() {
     run grub2-editenv - set menu_auto_hide=1
   fi
   run systemctl --global disable grub-boot-success.timer
-  # Two kernels at rest: the newest, and the one before it to fall back to from the boot
-  # menu (dnf's installonly_limit=2, s_dnf) — after a kernel update, and after a move to a
-  # new Fedora, the old one is still there until the next one replaces it
+  s_kernels
+}
+
+# ── one kernel ────────────────────────────────────────────────────────────────
+# One kernel at rest: the newest. dnf keeps two while an update installs one (installonly_limit=2,
+# its minimum; the one running is never taken), and the one before goes once the newest has
+# proven itself: it is the one running and — for the run at boot — this start has reached the
+# desktop for two minutes (grubenv's boot_success: GRUB clears it at every start, the
+# desktop's grub-boot-success timer sets it). Until then the one before stays in the boot menu
+# as the way back. Setup, update and repair (run from a working machine) need only the first.
+KERNEL_PKGS=(kernel kernel-core kernel-modules kernel-modules-core kernel-modules-extra kernel-devel kernel-devel-matched)
+old_kernels_out() {   # old_kernels_out [desktop]
+  local now v n vers=() pk=()
+  now=$(uname -r)
+  mapfile -t vers < <(rpm -q --qf '%{VERSION}-%{RELEASE}.%{ARCH}\n' kernel-core 2>/dev/null | grep -v 'not installed' | sort -V)
+  ((${#vers[@]} > 1)) || return 0
+  if [[ ${vers[-1]} != "$now" ]]; then
+    log "kernel ${vers[-1]} is installed and waits for a restart — $now stays until it runs"; return 0
+  fi
+  if [[ ${1:-} == desktop ]] && ! grub2-editenv - list 2>/dev/null | grep -qx boot_success=1; then
+    log "this start has not reached the desktop for two minutes — the kernel before $now stays as the way back"; return 0
+  fi
+  for v in "${vers[@]:0:${#vers[@]}-1}"; do
+    for n in "${KERNEL_PKGS[@]}"; do rpm -q "$n-$v" >/dev/null 2>&1 && pk+=("$n-$v"); done
+  done
+  ((${#pk[@]})) || return 0
+  log "one kernel: $now stays, the one before it goes — ${pk[*]}"
+  # (no repository needed to remove: none is asked, so it works offline too)
+  run dnf -y --disable-repo='*' remove "${pk[@]}"
+}
+one_kernel() { s_kernels; old_kernels_out; }   # (setup: the installer's kernel, once the newest runs)
+# s_kernels — the rule at every start: a quarter of an hour in, the boot's own run
+s_kernels() {
+  write_file /etc/systemd/system/fedokawaii-kernels.service <<UNIT
+# installed by setup.sh — one kernel: the ones before the newest go once it has reached the
+# desktop (handbook §29.5)
+[Unit]
+Description=Fedokawaii: one kernel — the one before the newest removed once the newest has proven itself
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/bash $TOOLKIT/setup.sh --kernels
+Nice=19
+UNIT
+  write_file /etc/systemd/system/fedokawaii-kernels.timer <<'UNIT'
+# installed by setup.sh — a quarter of an hour after every start (the desktop marks a good
+# start after two minutes)
+[Unit]
+Description=Fedokawaii: one kernel, checked after every start
+
+[Timer]
+OnBootSec=15min
+
+[Install]
+WantedBy=timers.target
+UNIT
+  systemctl daemon-reload
+  systemctl is-enabled --quiet fedokawaii-kernels.timer || systemctl enable fedokawaii-kernels.timer
 }
 
 s_update() { wait_for_network; tidy_after_cut; run dnf -y upgrade --refresh; }
@@ -441,7 +508,11 @@ s_trim() {              # one editor (neovim), no rescue kernel image
 # boot in ten stops on a black screen at "Starting Switch Root" until a key is pressed
 # (systemd mends it in 261). A dumb console TERM makes systemd skip the question: under
 # rhgb quiet nothing visible changes, and the login consoles set their own TERM (linux)
-console_boot_arg() { run grubby --update-kernel=ALL --args=systemd.tty.term.console=dumb; }
+console_boot_arg() {   # on every boot entry (only when one lacks it: grubby is not run for nothing)
+  local a; a=$(grubby --info=ALL 2>/dev/null | grep '^args=') || a=""
+  [[ -n $a ]] && ! grep -vqF -- systemd.tty.term.console=dumb <<<"$a" && return 0
+  run grubby --update-kernel=ALL --args=systemd.tty.term.console=dumb
+}
 # kernel_images — every kernel at rest has its boot image (/boot/initramfs-VERSION.img). dracut
 # makes it from a scriptlet of the kernel's package, and a scriptlet that fails does not fail
 # dnf: the update ends well, and the new entry does not boot (the kernel before it still does,
@@ -467,9 +538,12 @@ EOF
 }
 
 s_tuning() {   # an always-plugged desktop: the CPU at full speed, Wi-Fi and Bluetooth never napping
+  local new=0
+  cmp -s "$REPO_DIR/system/tuned.conf" /etc/tuned/profiles/fedokawaii/tuned.conf || new=1
   install -D -m 0644 "$REPO_DIR/system/tuned.conf" /etc/tuned/profiles/fedokawaii/tuned.conf
   systemctl enable --now tuned.service
-  run tuned-adm profile fedokawaii
+  # (applied when it is new or another is active — not again on every run)
+  if ((new)) || [[ $(tuned-adm active 2>/dev/null) != *": fedokawaii" ]]; then run tuned-adm profile fedokawaii; fi
   [[ $(tuned-adm active 2>/dev/null) == *fedokawaii* ]] \
     || log "tuned does not show the fedokawaii profile yet (tuned-adm active) — verify checks it; update and repair apply it again"
   write_file /etc/NetworkManager/conf.d/90-fedokawaii.conf <<'EOF'
@@ -484,6 +558,16 @@ EOF
 # drops when the dongle sleeps between packets, and a desktop has no battery to save.
 # Read when btusb loads: from the next start
 options btusb enable_autosuspend=0
+EOF
+  # sleep is suspend alone — never hibernation (memory written to disk), nor its mixes: a
+  # desktop that sleeps only when asked, with its swap in compressed memory (zram), has no use
+  # for them, and a hibernation that cannot resume loses the session
+  write_file /etc/systemd/sleep.conf.d/90-fedokawaii.conf <<'EOF'
+# Fedokawaii — suspend only: no hibernation, hybrid sleep or suspend-then-hibernate
+[Sleep]
+AllowHibernation=no
+AllowHybridSleep=no
+AllowSuspendThenHibernate=no
 EOF
 }
 
@@ -598,7 +682,7 @@ not_waiting() {   # not_waiting PKG… → those not waiting for a repository, o
 # waiting_retry — what waits, tried again (by update and repair, in manifest_sync): what is in
 # leaves the record. RPM Fusion's is tried only once the versions agree
 waiting_retry() {
-  local c p r rc=0 a=()
+  local c p r rc=0
   while IFS= read -r c; do
     [[ -n $c ]] || continue
     r=0; copr_on "$c" || r=$?
@@ -606,13 +690,14 @@ waiting_retry() {
   done < <(waiting copr)
   while IFS= read -r p; do
     [[ -n $p ]] || continue
-    # (no longer wanted: another GPU now, or Steam's 32-bit ones with STEAM=no)
-    if [[ ( $p == mesa-* && $(cat "$STATE_DIR/gpu" 2>/dev/null) != amd ) || ( $p == *.i686 && $STEAM != yes ) ]]; then
+    # (no longer wanted: another GPU now, Steam's 32-bit ones with STEAM=no, or RPM Fusion's
+    # Vulkan driver, which Fedora's replaced — vulkan_fedora)
+    if [[ ( $p == mesa-* && $(cat "$STATE_DIR/gpu" 2>/dev/null) != amd ) || ( $p == *.i686 && $STEAM != yes ) \
+          || $p == mesa-vulkan-drivers-freeworld* ]]; then
       wait_del rpmfusion "$p"; continue
     fi
     rf_behind "$p" && continue                      # (still out of step: nothing to try yet)
-    a=(); [[ $p == mesa-vulkan-drivers-freeworld* ]] && a=(--allowerasing)   # (replaces Fedora's stand-in)
-    r=0; rf_get "$p" "${a[@]}" || r=$?
+    r=0; rf_get "$p" || r=$?
     if ((r == 0)); then log "$p from RPM Fusion: in now"; elif ((r == 1)); then rc=1; fi
   done < <(waiting rpmfusion)
   return "$rc"
@@ -662,6 +747,17 @@ EOF
   done
 }
 
+# vulkan_fedora — RPM Fusion's Vulkan driver (an earlier setup's), 64- and 32-bit, swapped for
+# Fedora's own: the two conflict, so each is one dnf swap (lib/manifest.sh says why Fedora's)
+vulkan_fedora() {
+  local p
+  for p in mesa-vulkan-drivers-freeworld mesa-vulkan-drivers-freeworld.i686; do
+    wait_del rpmfusion "$p"
+    pkg_installed "$p" || continue
+    run dnf -y swap --allowerasing "$p" "mesa-vulkan-drivers${p#mesa-vulkan-drivers-freeworld}" || return 1
+  done
+}
+
 # LACT's clocks, voltages and fan curves need OverDrive (bit 14), which amdgpu leaves off: its
 # default mask (0xfff7bfff) plus that bit. Not 0xffffffff — that also switches on GFX DCS
 # (bit 19), which amdgpu keeps off as unstable (flicker, hangs on some cards)
@@ -675,6 +771,7 @@ s_gpu() {
   [[ $gpu == amd || $gpu == intel ]] \
     || die "no AMD or Intel GPU found (the cards are: $gpu) — the desktop is built on their open drivers; a card the kernel does not drive yet: set GPU= in fedokawaii.conf"
   log "GPU: $gpu"
+  vulkan_fedora || die "could not put Fedora's Vulkan driver in place of RPM Fusion's (the lines above say why)"
   dnf_install "${PKG_GPU_COMMON[@]}"
   if [[ $gpu == amd ]]; then
     # RPM Fusion's freeworld drivers (H.264 and HEVC) wait while they are out of step with
@@ -684,10 +781,7 @@ s_gpu() {
     # it: a conflict must stop the run, not take mesa-dri-drivers — and the desktop — with it
     if pkg_installed mesa-va-drivers; then run dnf -y swap mesa-va-drivers mesa-va-drivers-freeworld
     else rf_need mesa-va-drivers-freeworld; fi
-    # Vulkan: Fedora's build and RPM Fusion's conflict by design — the one replaces the other.
-    # While RPM Fusion's waits, Fedora's stands in (a desktop needs a Vulkan driver)
-    rf_need mesa-vulkan-drivers-freeworld --allowerasing
-    if waiting rpmfusion | grep -qx mesa-vulkan-drivers-freeworld; then dnf_install mesa-vulkan-drivers; fi
+    # (Vulkan: Fedora's own, in PKG_GPU_COMMON above — lib/manifest.sh says why)
     # (and LACT, from its COPR — left out while that has no build for this Fedora: s_repos)
     local amd_pkgs; mapfile -t amd_pkgs < <(not_waiting "${PKG_GPU_amd[@]}")
     dnf_install "${amd_pkgs[@]}"
@@ -1182,16 +1276,14 @@ s_lazyvim() {
 
 s_gaming() {
   [[ $STEAM == yes ]] || return 0
-  # Steam needs 32-bit Mesa; on AMD it must be RPM Fusion's freeworld build too, put in first,
-  # or dnf picks Fedora's mesa-vulkan-drivers.i686 (forbidden: the freeworld one conflicts with
-  # it). Out of step with Fedora's Mesa, they wait (Fedora's stand in, through Steam itself)
-  local x a
+  # Steam needs 32-bit Mesa: Fedora's Vulkan driver, named, so that no other build of it is
+  # picked for Steam; on AMD also RPM Fusion's VA driver, as the 64-bit one (out of step with
+  # Fedora's Mesa, it waits with its 64-bit one — Fedora's stands in, through Steam itself)
+  local x=mesa-va-drivers-freeworld.i686
+  dnf_install mesa-vulkan-drivers.i686
   if [[ $(cat "$STATE_DIR/gpu" 2>/dev/null) == amd ]]; then
-    for x in mesa-vulkan-drivers-freeworld.i686 mesa-va-drivers-freeworld.i686; do
-      if waiting rpmfusion | grep -qx "${x%.i686}"; then wait_add rpmfusion "$x"; continue; fi   # (its 64-bit one waits: so does it)
-      a=(); [[ $x == mesa-vulkan* ]] && a=(--allowerasing)
-      rf_need "$x" "${a[@]}"
-    done
+    if waiting rpmfusion | grep -qx "${x%.i686}"; then wait_add rpmfusion "$x"   # (its 64-bit one waits: so does it)
+    else rf_need "$x"; fi
   fi
   dnf_install "${PKG_GAMING[@]}"
   modprobe ntsync 2>/dev/null || true             # now too, not only from the next boot on
@@ -1266,18 +1358,38 @@ s_gate() {
     contained r_nvim
     ((CONTAINED_RC == 0)) || log "LazyVim's plugins could not be fetched yet (why: above, or $LOG_FILE)"
   fi
-  run bash "$REPO_DIR/verify.sh" --pre-finalize \
-    || die "verify found problems (above) — fedokawaii repair puts most of them right; then run setup again"
+  # the last check: what it finds is repaired here and now — the same fixes as fedokawaii
+  # repair — and checked again; only what is still wrong after that stops setup
+  if ! run bash "$REPO_DIR/verify.sh" --pre-finalize; then
+    local net=1
+    log "verify found problems (above) — setup repairs them now, as fedokawaii repair would, and checks again"
+    online || { net=0; log "offline: only what needs no network is repaired"; }
+    heal_all "$net"
+    run bash "$REPO_DIR/verify.sh" --pre-finalize \
+      || die "verify still finds problems after repairing (above): each line says what to do — then run setup again (it resumes here)"
+    ok "repaired: verify passes now"
+  fi
 }
 
 # snapshots kept within bounds for a machine left alone for months: ranges, so the clean-up
 # removes more when space runs low (FREE_LIMIT: a fifth of the disk stays free), hourly ones
 # for a few hours, daily ones for a week, at most two monthly ones, none for years — so a
 # deleted file's space comes back within two months at most (sooner when space runs low)
+# snapper_has NAME — snapper has a config NAME: its file, which is what snapper keeps (read
+# directly: list-configs is a table whose layout changes between snapper versions)
+snapper_has() { [[ -f /etc/snapper/configs/$1 ]]; }
+# snapper_configs — the configs for / and, when it is Btrfs, /home (setup's end, and repair)
+snapper_configs() {
+  snapper_has root || run snapper -c root create-config / || return 1
+  if [[ $(findmnt -no FSTYPE /home) == btrfs ]]; then
+    snapper_has home || run snapper -c home create-config /home || return 1
+  fi
+  return 0
+}
 snapper_limits() {
   local c
   for c in root home; do
-    grep -q "^$c " <<<"$(snapper list-configs)" || continue
+    snapper_has "$c" || continue
     run snapper -c "$c" set-config NUMBER_LIMIT=4-20 NUMBER_LIMIT_IMPORTANT=4-10 TIMELINE_LIMIT_HOURLY=2-8 \
       TIMELINE_LIMIT_DAILY=2-7 TIMELINE_LIMIT_WEEKLY=0 TIMELINE_LIMIT_MONTHLY=0-2 TIMELINE_LIMIT_YEARLY=0 FREE_LIMIT=0.2
   done
@@ -1334,10 +1446,7 @@ s_finalize() {
   systemctl set-default graphical.target
   restorecon -R "$TARGET_HOME" /usr/local
   # snapshots: config for / (and /home), timers, and pre/post around every dnf transaction
-  grep -q '^root ' <<<"$(snapper list-configs)" || run snapper -c root create-config /
-  if [[ $(findmnt -no FSTYPE /home) == btrfs ]]; then
-    grep -q '^home ' <<<"$(snapper list-configs)" || run snapper -c home create-config /home
-  fi
+  snapper_configs
   snapper_limits
   systemctl enable --now snapper-timeline.timer snapper-cleanup.timer
   systemctl enable --now fstrim.timer              # weekly TRIM (Fedora's preset, made explicit)
@@ -1348,6 +1457,50 @@ s_finalize() {
   remove_resume_unit
   set_phase 'done'
   run snapper -c root create -d "fedokawaii baseline"     # no cleanup algorithm: kept until you delete it
+  # (the tidying last: none of it can stop a finished build)
+  clean_caches || true
+  clone_done || true
+}
+
+# clone_done — the folder the build was started from (started-from: your clone of the project,
+# or where you unpacked it) removed: the toolkit holds all of it now, and `fedokawaii copy`
+# makes a working copy when you want to change something. Only when nothing in it is yours
+# alone — the same files as the toolkit (fedokawaii.conf as the toolkit took it), and in git no
+# commit, stash or untracked file of your own; else it stays, and the log says why
+clone_done() {
+  local d why=""
+  d=$(head -n1 "$STATE_DIR/started-from" 2>/dev/null) || return 0
+  rm -f "$STATE_DIR/started-from"
+  [[ -n $d && -d $d && ! -L $d && $d == "$TARGET_HOME"/?* && $d != "$TARGET_HOME/repos/fedokawaii" ]] || return 0
+  [[ -f $d/setup.sh && -f $d/fedokawaii.sh && -f $d/lib/manifest.sh ]] || return 0
+  if [[ -n $(find "$d" -path "$d/.git" -prune -o ! -type f ! -type d -print -quit) ]]; then why="it holds links"
+  elif ! cmp -s "$d/fedokawaii.conf" "$STATE_DIR/conf-from-copy.conf" && ! cmp -s "$d/fedokawaii.conf" "$TOOLKIT/fedokawaii.conf"; then
+    why="its fedokawaii.conf changed after setup read it"
+  elif [[ -n $(diff -rq --exclude=.git --exclude=fedokawaii.conf "$d" "$TOOLKIT" 2>&1) ]]; then
+    why="it differs from the toolkit (a file of yours, or a newer version)"
+  elif [[ -d $d/.git ]]; then
+    if [[ -n $(as_user git -C "$d" status --porcelain --untracked-files=normal -- . ':!fedokawaii.conf' 2>&1) ]]; then why="git has changes of yours in it"
+    elif [[ -n $(as_user git -C "$d" stash list 2>&1) ]]; then why="git has a stash in it"
+    elif [[ $(as_user git -C "$d" rev-list --count HEAD --not --remotes 2>/dev/null || echo x) != 0 ]]; then why="git has commits of yours not on GitHub"
+    fi
+  fi
+  if [[ -n $why ]]; then log "${d/#$TARGET_HOME/\~} kept: $why — delete it yourself when you are done with it"; return 0; fi
+  rm -rf -- "$d" && log "${d/#$TARGET_HOME/\~} removed: the toolkit has all of it (fedokawaii copy makes a working copy when you want one)"
+}
+
+# clean_caches — what a build or an update leaves behind and nothing reads again: dnf's
+# downloaded packages, pip's and npm's download caches (torrra, neovim's language servers:
+# fetched again if ever needed), the folders of runs a power cut stopped. Never what is used:
+# dnf's metadata, the sources dwl and the file dialog are rebuilt from, the plugins
+clean_caches() {
+  local f
+  run dnf clean packages >/dev/null 2>&1 || true
+  rm -rf -- "$TARGET_HOME/.cache/pip" "$TARGET_HOME/.npm/_cacache" "$TARGET_HOME/.npm/_npx" 2>/dev/null
+  rm -rf -- /root/.cache/pip 2>/dev/null
+  for f in "${TMPDIR:-/var/tmp}"/fedokawaii.*; do
+    [[ -d $f && $f != "${KAWA_TMP:-}" ]] && rm -rf -- "$f"
+  done
+  return 0
 }
 
 phase3() {
@@ -1366,6 +1519,7 @@ phase3() {
   step "3.10 Steam + GE-Proton"                        s_gaming
   step "3.11 groups"                                   s_groups
   step "3.12 theme (only if chosen)"                   s_theme
+  step "3.12b one kernel (the newest)"                 one_kernel
   step "3.13 verify gate"                              s_gate
   step "3.14 enable login, snapshots, baseline"        s_finalize
   bash "$REPO_DIR/verify.sh" || die "final verification failed — see above"
@@ -1481,18 +1635,8 @@ manifest_sync() {
   mapfile -t want < <(manifest_all "$gpu")
   # what waited for RPM Fusion or a COPR to catch up with this Fedora: tried again first
   waiting_retry || rc=1
-  # on AMD, Fedora's own Vulkan driver (brought back by a move, say) replaced by RPM Fusion's
-  # again, as setup did — the two conflict, and the freeworld one is the desktop's (unless it
-  # waits: then Fedora's stands in) — the 32-bit one too, for Steam
-  if [[ $gpu == amd ]]; then
-    for p in mesa-vulkan-drivers mesa-vulkan-drivers.i686; do
-      pkg_installed "$p" || continue
-      q=mesa-vulkan-drivers-freeworld${p#mesa-vulkan-drivers}
-      waiting rpmfusion | grep -qxF "$q" && continue
-      r=0; rf_get "$q" --allowerasing || r=$?
-      ((r != 1)) || { log "could not put RPM Fusion's $q in place of Fedora's $p — repair tries again"; rc=1; }
-    done
-  fi
+  # RPM Fusion's Vulkan driver (an earlier setup's) swapped for Fedora's own, both arches
+  vulkan_fedora || { log "could not put Fedora's Vulkan driver in place of RPM Fusion's — repair tries again"; rc=1; }
   # (what waits is not missing: verify warns about it, and the next update tries again)
   wait=$(waiting_pkgs)
   for p in "${want[@]}"; do grep -qxF -- "$p" <<<"$wait" && continue; pkg_provided "$p" || miss+=("$p"); done
@@ -1538,11 +1682,11 @@ manifest_sync() {
   for p in "${back[@]}"; do
     if grep -qx "$p" <<<"$ui" && ! grep -qx "$p" "$STATE_DIR/baseline-userinstalled"; then run dnf -y mark dependency "$p" || true; fi
   done
-  # (and on AMD, the 32-bit drivers Steam's step added — by arch: the 64-bit ones stay)
+  # (and the 32-bit drivers Steam's step added — by arch: the 64-bit ones stay)
   if [[ $STEAM != yes ]]; then
     local gi=()
     mapfile -t gi < <(dnf repoquery --userinstalled --qf '%{name}.%{arch}\n' 2>/dev/null \
-                      | grep -xE 'mesa-(vulkan|va)-drivers-freeworld\.i686' || true)
+                      | grep -xE 'mesa-va-drivers-freeworld\.i686|mesa-vulkan-drivers\.i686' || true)
     if ((${#gi[@]})); then run dnf -y mark dependency "${gi[@]}" || true; fi
   fi
   for p in "${FORBIDDEN_PKGS[@]}"; do if pkg_installed "$p"; then bad+=("$p"); fi; done
@@ -1668,7 +1812,9 @@ do_update() {
   step_on "Prowlarr's image" run as_user podman pull --quiet "$(prowlarr_image)"
   step_on "Prowlarr" prowlarr_up
   as_user podman image prune -f >/dev/null 2>&1 || true
+  clean_caches || true                              # (what this update downloaded and no longer needs)
   step_on "neovim's plugins" nvim_plugins
+  step_on "one kernel" old_kernels_out                         # (last season's; this update's new one waits for a restart)
   step_on "the kernels' boot images (dracut)" kernel_images   # (a new kernel whose scriptlet failed)
   bash "$REPO_DIR/verify.sh" || result=checks
   ((${#UPDATE_STEPS_FAILED[@]} == 0)) || result=partial
@@ -1859,8 +2005,10 @@ r_hygiene() {
   # the login first: switching off a login manager that fights greetd (below) also takes
   # the display-manager link, so greetd is put back here whatever holds that link — another
   # login manager, or nothing at all
+  # (only once setup has finished: before that the login stays off — setup's own last step
+  # switches it on, and until then its resume unit has the screen)
   dm=$(hy_display_manager)
-  if [[ $dm != greetd.service ]]; then
+  if [[ $(phase) == 'done' && $dm != greetd.service ]]; then
     log "the login was ${dm:-no login manager at all} — greetd again"
     [[ -z $dm ]] || systemctl disable "$dm" >>"$LOG_FILE" 2>&1 || true
     systemctl enable greetd.service >>"$LOG_FILE" 2>&1 || rc=1
@@ -1991,9 +2139,9 @@ r_system() {     # failed units cleared, the session's own system pieces in plac
   install_start_dwl
   [[ -x /usr/local/bin/kawa-greeter ]] || install -m 0755 "$REPO_DIR/system/kawa-greeter" /usr/local/bin/
   restorecon -R /usr/local/bin /usr/local/sbin /etc/greetd 2>/dev/null || true
-  systemctl is-enabled --quiet greetd.service || systemctl enable greetd.service
+  [[ $(phase) != 'done' ]] || systemctl is-enabled --quiet greetd.service || systemctl enable greetd.service
   systemctl enable --now snapper-timeline.timer snapper-cleanup.timer 2>/dev/null || true
-  grep -q '^root ' <<<"$(snapper list-configs)" || run snapper -c root create-config /
+  snapper_configs
   snapper_limits
   snap_hooks
   s_scrub
@@ -2009,6 +2157,8 @@ r_boot() {       # the boot: the menu's success timer (the desktop's, s_boot), n
     run grubby --update-kernel=ALL --args="$AMDGPU_ARG"
   fi
   console_boot_arg
+  s_kernels
+  old_kernels_out       # (first: no boot image is made for a kernel that is about to go)
   kernel_images
 }
 r_services() {   # the services setup enabled (a package reinstalled after a move starts off)
@@ -2083,19 +2233,11 @@ problems() {   # problems → how many checks verify failed (it records its outc
   local t="" p="" f=""; { IFS=' ' read -r t p f _ <"$STATE_DIR/last-verify"; } 2>/dev/null || true
   [[ ${f:-} =~ ^[0-9]+$ ]] && echo "$f" || echo "?"
 }
-do_repair() {
-  # (once setup reached its last check everything is installed: repair may put right what that
-  # check found, before the login is switched on)
-  [[ $(phase) == 'done' || ( $(phase) == 3 && -f $STATE_DIR/gate-reached ) ]] \
-    || die "the build is not finished — run setup again; it resumes where it stopped"
-  detach_dnf
-  local before after net=1
-  hdr "Fedokawaii repair · $TARGET_USER"
-  # offline, it still puts right what needs no network: services, the session, the configs
-  retry 6 5 online || { net=0; log "offline: only what needs no network is repaired now — run repair again once online"; }
-  toolkit_first          # (run from a copy: everything below is then the toolkit's)
-  before=$(problems)
-  log "verify found $before problem(s) — fixing what can be fixed"
+# heal_all NET — every fix repair makes, in order (NET 0: only what needs no network); each one
+# contained, so one that fails never stops the rest. Repair runs it, and so does setup's last
+# check when it finds something wrong (s_gate)
+heal_all() {
+  local net=$1
   heal "the old name's leftovers" retire_old_name
   ((net)) && heal "packages (dnf's state, the manifest complete, nothing forbidden)" r_packages
   ((net)) && heal "this machine's drivers and firmware" s_hardware
@@ -2115,6 +2257,21 @@ do_repair() {
   ((net)) && heal "neovim's plugins (any missing)" r_nvim
   heal "Prowlarr (it starts, and takes the key from secrets.sh)" prowlarr_up
   heal "the theme (configs, dwl, helpers, wallpapers)" r_theme
+}
+do_repair() {
+  # (once setup reached its last check everything is installed: repair may put right what that
+  # check found, before the login is switched on)
+  [[ $(phase) == 'done' || ( $(phase) == 3 && -f $STATE_DIR/gate-reached ) ]] \
+    || die "the build is not finished — run setup again; it resumes where it stopped"
+  detach_dnf
+  local before after net=1
+  hdr "Fedokawaii repair · $TARGET_USER"
+  # offline, it still puts right what needs no network: services, the session, the configs
+  retry 6 5 online || { net=0; log "offline: only what needs no network is repaired now — run repair again once online"; }
+  toolkit_first          # (run from a copy: everything below is then the toolkit's)
+  before=$(problems)
+  log "verify found $before problem(s) — fixing what can be fixed"
+  heal_all "$net"
   record_snapshots
   after=$(problems)
   hdr "repair done — verify: $before problem(s) before, $after now"
@@ -2138,6 +2295,7 @@ case $MODE in
   upgrade) do_upgrade "${UPGRADE_FLAG:-}"; exit 0 ;;
   after-upgrade) do_after_upgrade; exit 0 ;;
   repair) do_repair; exit 0 ;;
+  kernels) [[ $(phase) == 'done' ]] || exit 0; old_kernels_out desktop; exit 0 ;;
   toolkit) [[ $(phase) == 'done' ]] || die "the build is not finished — setup makes the toolkit itself"
            [[ $REPO_DIR != "$TOOLKIT" ]] || { ok "this is the toolkit already"; exit 0; }
            toolkit_first; install_toolkit           # (the second: the fedokawaii command, from it)

@@ -109,7 +109,7 @@ kawa-display${SP}
 kawa-theme apply" "in this order, the display's modes and the theme before any helper"
 called "^waybar $"; called "^mako $"; called "^foot --server$"; called "^udiskie $"; called "^wl-paste --watch cliphist store$"
 called "^gammastep -l 25.35:55.40 -t 6500:4200$"; called "^lxqt-policykit-agent $"
-called "^swayidle -w timeout 590 .*locking in 10 s.* timeout 600 kawa-lock timeout 900 wlopm --off '\*' resume wlopm --on '\*' before-sleep kawa-lock --now$"
+called "^swayidle -w timeout 3600 wlopm --off '\*' resume wlopm --on '\*' before-sleep kawa-lock --now$"
 not_called "^kawa-clipkeep" ; not_called "^notify-send"
 for d in waybar mako foot udiskie wl-paste gammastep swayidle kawa-dwlstatus; do eq "$(running "$d")" 1 "one $d"; done
 [[ ! -e $XDG_RUNTIME_DIR/dwl-bar/OLD ]] && _ok || _no "the last session's bar state was kept"

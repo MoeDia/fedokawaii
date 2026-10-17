@@ -764,7 +764,7 @@ shot_system() {   # Super+U: the system's control (fedokawaii), from records as 
   rm -rf "$st" "$sb"; mkdir -p "$st" "$sb"
   d=$(date -d '2026-09-02 19:40' +%s)
   printf '%s ok\n' "$d" >"$st/last-update"                  # an update six weeks ago, complete
-  printf '%s 136 0 0\n' "$((d + 600))" >"$st/last-verify"     # (verify ran at its end: a finished install's count)
+  printf '%s 179 0 0\n' "$((d + 600))" >"$st/last-verify"     # (verify ran at its end: a finished install's count)
   printf '14\n' >"$st/snapshots"
   : >"$st/lock"
   chmod -R a+rX "$st"

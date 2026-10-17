@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# tests/look/test_lock.sh — kawa-lock (Super+Escape, idle, before sleep, the power menu) and
-# the idle chain autostart.sh sets up: a notice, the lock, the screens off. swaylock is a
+# tests/look/test_lock.sh — kawa-lock (Super+Escape, before sleep, the power menu) and the
+# idle chain autostart.sh sets up: the screens off after an hour, nothing else. swaylock is a
 # stand-in that keeps its arguments and stays "running" like swaylock -f; ImageMagick is the
 # real one, so the decorated padlock is checked as a picture.
 . "$(dirname "$0")/../lib/harness.sh"
@@ -98,6 +98,36 @@ case_ "a held key (20 presses in a row): one lock"
 setup
 for _ in {1..20}; do kawa-lock --now; done
 eq "$(locks)" 1
+
+# ── a lock you asked for: sleep 90 s later ─────────────────────────────────────
+case_ "Super+Escape (--sleep): locked, and still locked when the time is up — the computer sleeps"
+setup; stub systemctl
+KAWA_LOCK_SLEEP=1 kawa-lock --sleep; r=$?
+eq "$r" 0; eq "$(locks)" 1
+for _ in {1..40}; do grep -q '^systemctl suspend' "$CALLS" && break; /bin/sleep 0.1; done
+called '^systemctl suspend$'
+case_ "--sleep, unlocked before the time is up: it stays awake"
+setup; stub systemctl
+KAWA_LOCK_SLEEP=2 kawa-lock --sleep
+pid=$(awk '$1 == "swaylock" { p = $2 } END { print p }' "$FAKE_PROCS"); kill "$pid" 2>/dev/null
+/bin/sleep 3
+not_called '^systemctl suspend'
+case_ "--sleep: 90 s unless KAWA_LOCK_SLEEP says otherwise (0: never); --now and a plain lock never sleep"
+grep -q 'sleep_after=90' "$REPO/bin/kawa-lock" && _ok || _no "the default is not 90 s"
+setup; stub systemctl
+KAWA_LOCK_SLEEP=0 kawa-lock --sleep; /bin/sleep 1.5; not_called '^systemctl'
+setup; stub systemctl
+KAWA_LOCK_SLEEP=1 kawa-lock --now; /bin/sleep 1.5; not_called '^systemctl'
+setup; stub systemctl
+KAWA_LOCK_SLEEP=1 kawa-lock; /bin/sleep 1.5; not_called '^systemctl'
+case_ "--sleep when swaylock fails: no sleep (never an unlocked one), the failure returned"
+setup; stub systemctl; argv swaylock 'exit 1'
+KAWA_LOCK_SLEEP=1 kawa-lock --sleep; r=$?
+eq "$r" 1; /bin/sleep 1.5; not_called '^systemctl'
+case_ "the key and the power menu's lock ask for it (--sleep); the power menu's sleep does not wait"
+grep -q 'XKB_KEY_Escape, *spawn, *SHCMD("kawa-lock --sleep")' "$REPO/src/dwl/config.h" && _ok || _no "Super+Escape"
+grep -q '0) exec kawa-lock --sleep ;;' "$REPO/bin/kawa-power" && _ok || _no "power menu lock"
+grep -q '1) kawa-lock && act sleep suspend ;;' "$REPO/bin/kawa-power" && _ok || _no "power menu sleep"
 
 # ── when something is missing or broken it still locks ─────────────────────────
 case_ "the theme link missing: the plain ground colour, still the padlock"
@@ -210,20 +240,19 @@ idle() {   # idle — autostart.sh's own swayidle arguments, played through
   eval "$block"
   unset -f keep swayidle
 }
-case_ "idle: a notice 10 s ahead, then the lock, then the screens off; back on at a key"
+case_ "away: nothing locks or sleeps — only the screens go dark after an hour; back on at a key"
 setup
 argv wlopm
 argv notify-send
 idle
-eq "$(tr '\n' ' ' <"$TMP/idle.times")" "590 600 900 " "the times, in order"
-args_eq notify-send 1 -a desktop -u low -t 9500 "$ICON_LOCK  locking in 10 s"
-eq "$(locks)" 1 "locked at 600 s"
-args_eq swaylock 1 -f -C "$CONF" -i "$PIC"
+eq "$(tr '\n' ' ' <"$TMP/idle.times")" "3600 " "one time: an hour"
+eq "$(locks)" 1 "locked only for the sleep (below), never by itself"
+not_called '^systemctl'
 args_eq wlopm 1 --off '*'
 args_eq wlopm 2 --on '*'
 eq "$(grep -E '^(idle|resume|before|notify|swaylock|wlopm)' "$CALLS" | cut -d' ' -f1-2 | tr '\n' '|')" \
-  "idle 590s|notify-send -a|idle 600s|swaylock -f|idle 900s|wlopm --off|resume|wlopm --on|before-sleep|" \
-  "the order: notice, lock, screens off, on again; before sleep: already locked, nothing more"
+  "idle 3600s|wlopm --off|resume|wlopm --on|before-sleep|swaylock -f|" \
+  "screens off, on again; before a sleep: locked at once"
 case_ "a suspend while unlocked: locked at once (the bare padlock) before the machine sleeps"
 setup
 idle_bs=$(sed -n "s/^  before-sleep '\(.*\)' <\/dev\/null &\$/\1/p" "$REPO/configs/home/.config/dwl/autostart.sh")

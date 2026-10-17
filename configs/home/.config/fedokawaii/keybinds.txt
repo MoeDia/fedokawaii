@@ -15,7 +15,7 @@ Super+N                 notes (again: put them away)
 Super+Shift+N           dismiss notifications
 Super+U                 the system: update, new Fedora, repair
 Super+Shift+U           change the desktop: keys, bar, colours…
-Super+Escape            lock screen
+Super+Escape            lock screen (then sleep after 90 s)
 Super+Shift+E           power menu
 ── screenshots (clipboard + ~/Pictures/Screenshots) ───────────────
 Print                   region

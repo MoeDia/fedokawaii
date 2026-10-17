@@ -136,7 +136,7 @@ static const Key keys[] = {
 	{ MODKEY,          XKB_KEY_u,                 spawn,            SHCMD("fedokawaii --window") },
 	{ MODKEY|SHIFT,    XKB_KEY_u,                 spawn,            SHCMD("kawa-config") },
 	{ MODKEY|SHIFT,    XKB_KEY_n,                 spawn,            SHCMD("makoctl dismiss -a") },
-	{ MODKEY,          XKB_KEY_Escape,            spawn,            SHCMD("kawa-lock") },
+	{ MODKEY,          XKB_KEY_Escape,            spawn,            SHCMD("kawa-lock --sleep") },
 	{ MODKEY|SHIFT,    XKB_KEY_e,                 spawn,            SHCMD("kawa-power") },
 	/* ── screenshots ── */
 	{ 0,               XKB_KEY_Print,             spawn,            SHCMD("kawa-screenshot region") },

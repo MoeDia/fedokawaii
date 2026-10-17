@@ -30,7 +30,7 @@ eq "$(fz_rows | python3 -I "$MD/cols.py" | sort -u)" 19 "all 19 columns: the blo
 
 act() { setup; answer "pick $1"; power; }
 case_ "lock: the lock screen"
-act lock; called '^kawa-lock *$'; not_called '^systemctl'
+act lock; called '^kawa-lock --sleep$'; not_called '^systemctl'
 case_ "sleep: locked first, then suspended"
 act sleep; eq "$(grep -E '^(kawa-lock|systemctl)' "$CALLS" | tr '\n' '|')" "kawa-lock |systemctl suspend|"
 case_ "sleep, but the lock screen did not come up: no suspend (never an unlocked sleep)"

@@ -303,8 +303,10 @@ and on Linux alike.
 Fedora is a community distribution sponsored by Red Hat. It comes in **editions**, each a
 different starting set of packages for one purpose: Workstation (GNOME), KDE Plasma, Server,
 Cloud, CoreOS and IoT, with Atomic desktops, Spins and Labs beside them. This desktop starts
-from **Server** with *Minimal Install* (§4.2): the smallest set that boots, logs in and
-connects to a network — Fedora's `@core` package group — and adds everything else on purpose.
+from the **Server** installer, choosing **Custom Operating System** (§4.2) instead of the Server
+edition itself: the smallest set that boots, logs in and connects to a network — Fedora's
+`@core` package group — and adds everything else on purpose. A system installed that way
+belongs to no edition: it calls itself plain *Fedora Linux 44*.
 
 | Fact | Value |
 |---|---|
@@ -770,6 +772,26 @@ settings (§8.2).
 
 Back on the hub, the spoke reads *Custom partitioning selected*.
 
+> **If the disk held Linux before** (an earlier Fedora, a first try at this install), its old
+> parts are listed under that system's name — *Fedora Linux 44 for x86_64*, or *New Fedora 44
+> Installation* for mount points made on a try that was cut short. Delete every such group as
+> in step 3 until the bottom left reads *Available space* almost equal to *Total space*;
+> **Click here to create them automatically** only fills free space, and says *not enough
+> space* while the old parts are there.
+>
+> **If the old parts are not listed at all**, and the spoke says *Failed to find a suitable
+> stage1 device … cannot be of type xfs … lvmpv*: the disk holds an old Server layout (LVM and
+> XFS) the installer cannot take apart. Wipe it from the installer's own shell — this erases
+> the whole disk:
+>
+> 1. **Ctrl+Alt+F2** opens a shell (`#`). `lsblk -o NAME,SIZE,TYPE,FSTYPE,MODEL` — find the
+>    PC's disk by its size and model (the installer stick is the small one); here `nvme0n1`.
+> 2. `vgchange -an` (the old LVM let go), then
+>    `for p in /dev/nvme0n1p*; do wipefs -a "$p"; done; wipefs -a /dev/nvme0n1`.
+>    *Device or resource busy*: `swapoff -a`, then again.
+> 3. **Ctrl+Alt+F6** (or **F1**) back to the installer; *Installation Destination* →
+>    **Refresh…** → **Rescan Disks** → **OK**, then steps 1–6 above.
+
 
 **User Creation, step by step.** Type your full name, a user name (short, lower case:
 `you` in this book's examples) and a password twice. Then tick **Add administrative
@@ -1166,7 +1188,7 @@ fedokawaii.conf
 platform
   ✔ x86_64 CPU (x86_64)
   ✔ Fedora 44 (supported)
-  ✔ Fedora Server edition
+  ✔ Fedora's minimal base (Custom Operating System, no edition)
 …
 ✔ READY for setup — 44 checks passed, 1 warning(s)
 ```
@@ -1315,7 +1337,12 @@ What that means for you now:
 |---|---|---|
 | setup runs from | the folder you unpacked (`~/fedokawaii`) | `/usr/local/lib/fedokawaii`, owned by root |
 | the `fedokawaii` command | not there yet | `/usr/local/bin/fedokawaii`, installed from that copy |
-| `~/fedokawaii` | needed | can be deleted once setup is done |
+| `~/fedokawaii` | needed | removed by setup's last step — unless it holds something of yours (a file you added, a commit, a changed `fedokawaii.conf`): then it stays, and the log says why |
+
+Setup's last step also clears what the build downloaded and no longer needs: dnf's downloaded
+packages, pip's and npm's download caches, and the work folders of any run a power cut
+stopped (each `update` does the same). What is used again stays: dnf's package lists, the
+sources dwl and the file dialog are rebuilt from, neovim's plugins.
 
 Where this book says *the repository* after the install, it means that copy. You never edit
 it directly: to change the desktop for good you change your own *working copy* of it and
@@ -1577,14 +1604,23 @@ of a second. Before sleep it locks with the bare padlock at once, so the lid can
 
 swaylock's indicator is shrunk to a 15-pixel ring that sits inside the padlock's keyhole,
 clear of its face: it is invisible until you type, then the keyhole glows — vermilion while
-typing, teal while checking, red when wrong. It locks before sleep, with **Super+Escape**, and
-by itself when you are away:
+typing, teal while checking, red when wrong.
 
-| Idle for | What happens |
+The computer locks and sleeps only when you ask it to. Left alone, it stays awake and
+unlocked; only the screens go dark:
+
+| What you do | What happens |
 |---|---|
-| 9 min 50 s | a quiet notice, *locking in 10 s* — touch a key and nothing more happens |
-| 10 min | the screen locks |
-| 15 min | the screens power off (windows stay where they were); the first key wakes them |
+| nothing, for an hour | the screens power off (windows stay where they were); the first key wakes them — nothing locks, nothing sleeps |
+| **Super+Escape** (or *lock* in the power menu) | the screen locks; still locked 90 seconds later, the computer sleeps. Unlock before then and it stays awake |
+| *sleep* in the power menu (**Super+Shift+E**) | locked, then asleep at once |
+
+There is no hibernation: sleep is always *suspend* — memory kept powered, back in seconds at
+a key. (Hibernation writes memory to disk and switches off; setup turns it off for good in
+`/etc/systemd/sleep.conf.d/90-fedokawaii.conf`, and `verify` checks it.) A video playing in
+mpv or Brave keeps the screens on by itself. Both times are yours to change through your
+working copy (ch. 42): the 90 seconds are `sleep_after=90` in `bin/kawa-lock`, the hour is the
+`timeout 3600` of the `swayidle` line in `configs/home/.config/dwl/autostart.sh`.
 
 The password goes in in the keyboard layout that was active (the bar showed it before the
 lock); if the keyhole turns red although the password is right, press Alt+Shift and type it
@@ -1630,7 +1666,8 @@ the long press for a machine that answers nothing else (ch. 39).
 - The login is two lines: your user name, then a password that does not show as you type.
 - The bar runs along the top; there are no desktop icons and no window buttons.
 - **Super+Space** starts any program by name; **Super+/** lists every key; **Super+Q** closes.
-- **Super+Escape** locks; the screen also locks itself after 10 minutes away.
+- **Super+Escape** locks — and, left locked for 90 seconds, puts the computer to sleep. Away
+  without locking, nothing locks or sleeps; the screens go dark after an hour.
 - **Super+Shift+E** logs out, restarts or shuts down — save your work first.
 
 **Check yourself**
@@ -2096,8 +2133,6 @@ ordinary one, and a critical one with its vermilion border.
 | the desktop's own (*Screenshot copied*, *… is now the output*) | 2.5 seconds |
 | a drive's (*click to open it in the files*) | 8 seconds |
 | critical — the vermilion border | until you click it |
-
-A notice can also set its own time: *locking in 10 s* stays 9.5 seconds, nearly to the lock.
 
 A **left click** closes a notice — except a drive's, which opens its files (ch. 13). A
 **right click** closes every notice on screen, and so does **Super+Shift+N**. `makoctl restore`
@@ -7606,14 +7641,15 @@ bin  dev   home  lib64  mnt    proc  run   srv   tmp  var
 ```text
 $ cat /etc/os-release
 NAME="Fedora Linux"
-VERSION="44 (Server Edition)"
+VERSION="44 (Forty Four)"
 …
-PRETTY_NAME="Fedora Linux 44 (Server Edition)"
+PRETTY_NAME="Fedora Linux 44 (Forty Four)"
 …
 ```
 
-*(shortened)* The installer was Fedora Server's, so the file still says *Server Edition*; the
-desktop was added by setup.
+*(shortened)* No edition is named: the installer's *Custom Operating System* installs Fedora's
+core alone, and the desktop was added by setup. (Had you picked the *Fedora Server Edition*
+instead, it would say *Server Edition* here — `check.sh` accepts both.)
 
 *If you see `No such file or directory`:* `os-release` has a hyphen, not a dot or a space.
 
@@ -8959,16 +8995,21 @@ fastestmirror=True
 minrate=50k
 # … for 20 seconds is dropped (defaults: 1000 bytes/s, 30 s)
 timeout=20
-# keep two kernels (default 3)
+# two kernels at most while an update installs a new one (default 3; 2 is DNF 5's minimum —
+# setup keeps one at rest, §29.5)
 installonly_limit=2
 # Enter means yes at dnf's question (default no)
 defaultyes=True
-# never installed only because another package recommends it: Node.js 22 (default: none)
-exclude_from_weak=nodejs,nodejs22*
+# never installed only because another package recommends it: Node.js 22, PackageKit (default: none)
+exclude_from_weak=nodejs,nodejs22*,PackageKit
 ```
 
-The last one keeps this desktop to one Node.js, the 24 the manifest names: neovim recommends
-tree-sitter-cli, which recommends `nodejs` — Node 22 on Fedora 44 and 45 (§27.4).
+The last one keeps two things out that would otherwise arrive unasked:
+
+| Left out | Who recommends it | Why not |
+|---|---|---|
+| Node 22 (`nodejs`) | tree-sitter-cli, which neovim recommends (§27.4) | this desktop keeps one Node.js, the 24 the manifest names |
+| PackageKit | PackageKit-Qt6, a library some Qt programs use | a software centre's background updater: here dnf alone installs and updates (§27.10) |
 
 Setup and `verify` check all seven with `dnf --dump-main-config`, which prints every setting as
 DNF sees it once all its files are read:
@@ -8980,7 +9021,7 @@ dnf --dump-main-config |
 
 ```text
 defaultyes = 1
-exclude_from_weak = nodejs,nodejs22*
+exclude_from_weak = nodejs,nodejs22*,PackageKit
 fastestmirror = 1
 installonly_limit = 2
 max_parallel_downloads = 10
@@ -9047,7 +9088,7 @@ dnf repolist          # the enabled ones, by id and name
 |---|---|---|
 | `fedora` · `updates` | the release as it shipped · every fix since | nearly everything |
 | `fedora-cisco-openh264` | Cisco's H.264 codec, built and shipped by Cisco for licensing reasons | enabled by Fedora by default |
-| `rpmfusion-free` (+ `-updates`) | free software Fedora leaves out, mostly for patent reasons | the full **ffmpeg**, Mesa's **freeworld** VA-API and Vulkan drivers (H.264 and HEVC), `libheif-freeworld` |
+| `rpmfusion-free` (+ `-updates`) | free software Fedora leaves out, mostly for patent reasons | the full **ffmpeg**, Mesa's **freeworld** VA-API driver (H.264 and HEVC), `libheif-freeworld` |
 | `rpmfusion-nonfree` (+ `-updates`) | software that is free to use but not open source | **Steam**; Intel's full VA-API driver |
 | `brave-browser` | Brave's own, signed | `brave-origin` |
 | `claude-code` | Anthropic's own, signed, fingerprint checked | `claude-code` |
@@ -9826,11 +9867,11 @@ uses are part of Fedora's signed kernel.
 ## 29.2 Stage 3: GRUB and the boot entries
 
 GRUB reads one small file per installed kernel, in the **Boot Loader Specification** format,
-from `/boot/loader/entries/`. With two kernels kept (§29.5) there are two:
+from `/boot/loader/entries/`. With one kernel kept (§29.5) there is one — two only for the
+short while after an update brings a new kernel:
 
 ```text
 $ sudo ls /boot/loader/entries
-3f9c…e1-7.2.7-200.fc44.x86_64.conf
 3f9c…e1-7.2.8-200.fc44.x86_64.conf
 ```
 
@@ -9900,16 +9941,30 @@ vt.default_red=15,… vt.default_grn=… vt.default_blu=…`)*
 | `systemd.tty.term.console=dumb` | systemd (257 and later) asks the console for its size as it starts and waits for the answer; with the boot screen holding the console the answer sometimes never comes, and the boot stops on a black screen at *Starting Switch Root* until you press a key. A "dumb" console terminal makes it skip the question; your login consoles set their own `TERM` | setup |
 | `vt.default_red=…` and its two partners | the text console's 16 colours | Theme (§6.1) |
 
-## 29.5 Two kernels, and the way back
+## 29.5 One kernel, and the way back
 
-DNF keeps two kernels: the newest and the one before it (`installonly_limit=2`, the DNF 5
-minimum; DNF's default keeps three). Should a new one fail to boot or to start the desktop,
-choose the older one in the boot menu (if it is hidden, hold **Shift**, or press **Esc** or
-**F8**, as the machine starts); the next update replaces it.
+This desktop keeps **one kernel: the newest**. An update that brings a new one installs it
+beside the one running (DNF never removes the kernel in use; `installonly_limit=2` is DNF 5's
+minimum), so for a short while there are two. The older one goes by itself once the new one
+has proven itself:
+
+| When | What happens |
+|---|---|
+| the update ends | both kernels stay: the new one waits for the restart |
+| the next start, on the new kernel | GRUB starts the newest; the older one is still in the boot menu |
+| the desktop has run for two minutes | the start is marked good (`boot_success=1` in GRUB's settings file) |
+| a quarter of an hour after the start | `fedokawaii-kernels.timer` removes the older kernel — only if the newest is running and this start was marked good |
+
+So the way back stays exactly as long as it can matter: should a new kernel fail to boot or
+to start the desktop, choose the older one in the boot menu (if it is hidden, hold
+**Shift**, or press **Esc** or **F8**, as the machine starts) — a start that never reaches
+the desktop is never marked good, and nothing is removed. `fedokawaii repair` (and the next
+update) also removes it, when the newest is the one running.
 
 ```sh
-rpm -q kernel-core    # the kernels installed: at most two lines
-uname -r              # the one running now
+rpm -q kernel-core      # the kernels installed: one (two right after an update)
+uname -r                # the one running now
+systemctl list-timers fedokawaii-kernels.timer    # the check after each start
 ```
 
 ## 29.6 Stage 5: the initramfs and early microcode
@@ -10044,7 +10099,7 @@ portals wait for), and then starts the helpers:
 | `udiskie` | mounts USB drives as you plug them in, and hands each change to `kawa-drives` (ch. 13, §32.6) | yes |
 | `kawa-clipkeep` and `wl-paste --watch cliphist store` | copies that outlive their program; the clipboard history | yes |
 | `gammastep` | night light | — |
-| `swayidle` | the notice, the lock and the screens off when you are away | yes |
+| `swayidle` | the screens off after an hour away, and the lock before any sleep | yes |
 | `kawa-dwlstatus` | reads dwl's status for the bar's workspaces, layout, title and keyboard | yes, in the foreground |
 
 `keep` is a small shell function in the file: it runs the program again when it exits with an
@@ -10104,7 +10159,7 @@ dwl and what it starts write to `~/.cache/dwl.log` instead.
 - Secure Boot can stay on: shim is signed by Microsoft, and checks GRUB and the kernel with
   Fedora's key.
 - Boot entries live in `/boot/loader/entries/`; `grubby` changes the kernel's arguments in
-  all of them; two kernels are kept.
+  all of them; one kernel is kept, the newest (two only until a new one has proven itself).
 - The initramfs mounts `/` for the kernel; early microcode fixes the CPU before anything runs.
 - systemd starts towards `graphical.target`; greetd, PAM and logind open your session; dwl and
   the autostart build the desktop.
@@ -10451,14 +10506,18 @@ calls into the GPU's own commands. Each GPU family has one of each:
 
 | GPU | Kernel driver | OpenGL (Mesa) | Vulkan (Mesa) | Video decoding (VA-API) |
 |---|---|---|---|---|
-| AMD Radeon | `amdgpu` | radeonsi | **RADV** | radeonsi, RPM Fusion's freeworld build |
+| AMD Radeon | `amdgpu` | radeonsi | **RADV** (Fedora's) | radeonsi, RPM Fusion's freeworld build |
 | Intel, up to Meteor Lake and Arc Alchemist | `i915` | iris | **ANV** | iHD (`intel-media-driver`) |
 | Intel Lunar Lake, Arc Battlemage, Panther Lake | `xe` | iris | ANV | iHD |
 
 Facts worth knowing for 2025–2026:
 
 * **RADV** is the Vulkan driver for AMD. AMD ended its own open driver, AMDVLK, in September
-  2025 and now backs RADV.
+  2025 and now backs RADV. This desktop uses Fedora's build of it, 64- and 32-bit (Steam's
+  games need both). RPM Fusion also makes a freeworld Vulkan build, but all it adds is
+  Vulkan's own H.264 and HEVC video, which nothing here uses — mpv and Brave decode through
+  VA-API — and its 64- and 32-bit packages have clashed over a shared file, so installing
+  the one took the other out. `repair` swaps it for Fedora's if an older setup put it in.
 * Intel's new kernel driver **xe** is the default for Lunar Lake and Battlemage since Linux
   6.12, and for Panther Lake since 6.17. Meteor Lake was the last generation to use `i915` by
   default; older chips stay on it.
@@ -11401,7 +11460,7 @@ These words come up throughout this Part. The ones Part IV taught are there for 
 |---|---|
 | update | newer versions of the packages of the release you have: Fedora 44 stays 44 |
 | upgrade, the move | going to the next release, 44 → 45: nearly every package is replaced in one go |
-| kernel | the core of Linux, which drives the hardware (§2.1); each new one is installed beside the one before |
+| kernel | the core of Linux, which drives the hardware (§2.1); each new one is installed beside the one before, which goes once the new one has proven itself (§29.5) |
 | transaction | one `dnf` run that installs, updates or removes a set of packages together (ch. 27) |
 | SELinux | Fedora's mandatory access control (ch. 34): rules in the kernel that limit what each program may touch, even when it runs as root. *Enforcing* means the rules are applied, not only logged; `getenforce` says which |
 | linger | systemd keeps your own services (Prowlarr, the portals) available with nobody logged in, so a run as root can reach them |
@@ -11460,7 +11519,7 @@ support  until 2 Jun 2027 · in 230 days
 next     Fedora 45 · due about Oct 2026
 updated  17 Jul 2026 · 90 days ago
 due      now · every 90 days
-verified 136 checks passed · 90 days ago
+verified 179 checks passed · 90 days ago
 …        (then the running kernel and the free disk space)
 ```
 
@@ -11521,7 +11580,7 @@ system
   …
   ! Prowlarr has no indexers yet — open http://localhost:9696 → Indexers → Add Indexer (torrra…
   …
-✔ verified — 135 checks passed, 1 warning(s)
+✔ verified — 179 checks passed, 1 warning(s)
 ```
 
 *(shortened)*
@@ -11536,7 +11595,7 @@ after a dim dot only reports (which driver opens NTFS, say). The outcome is kept
 as one line — when, passed, failed, warnings:
 
 ```sh
-cat /var/lib/fedokawaii/last-verify    # → 1792039927 212 0 1
+cat /var/lib/fedokawaii/last-verify    # → 1792039927 179 0 1
 ```
 
 | Area | Checks |
@@ -11546,7 +11605,7 @@ cat /var/lib/fedokawaii/last-verify    # → 1792039927 212 0 1
 | zero redundancy | none of the forbidden ones · nothing user-installed beyond the pre-setup record and the manifest · no Flatpak or Snap · one editor · no package installed twice · `dnf check` clean · no service that fights the desktop's own (a second login manager, power-profiles-daemon, a second notification daemon…) · the login greetd's alone · dependencies nothing needs (a warning) · configuration files an update could not merge (a warning) · nothing left behind by a stopped run |
 | repositories & dnf | RPM Fusion, Brave, Claude Code, COPRs · all seven DNF values |
 | upkeep (fedokawaii · Super+U) | the toolkit root's alone · the `fedokawaii` command the toolkit's · the manifest marked as yours |
-| boot & kernel | the boot-menu setting · the boot-success timer · at most two kernels, the newest running · every kernel's boot image · no rescue image · no console-size wait · the GPU kernel argument |
+| boot & kernel | the boot-menu setting · the boot-success timer · one kernel, the newest, running (two only while a new one settles in) · the start-up check that keeps it one · every kernel's boot image · no rescue image · no console-size wait · the GPU kernel argument |
 | GPU & media | hardware video decoding · Vulkan · btop's view of an AMD card (the ROCm SMI library) · ffmpeg encoders |
 | drivers and firmware | every package this hardware needs (microcode, Wi-Fi, sound DSP, missing firmware, Intel's video decoding beside an AMD card; one missing is a warning: update and repair install it) · microcode loaded at boot · every network, display, sound and USB device held by a driver · Wi-Fi managed by NetworkManager · device firmware updates, when fwupd knows of any (shown, never a fault) · udisks answers, so drives open · which driver opens NTFS |
 | compositor & login | dwl version and pinned commit, XWayland, its own wlroots and every library, the patch (keys, gaps, frames, centring, layout) · the session launcher and its keyboard layouts · the greetd SELinux module, agreety · the yazi file dialog built and known to the portals |
@@ -11689,7 +11748,7 @@ the background:
 
 | Would otherwise | Here |
 |---|---|
-| DNF fetches package lists every three hours or so (its *makecache* timer: ten minutes after boot, then three hours after each run, plus up to an hour at random) | off: lists are fetched when you update (`dnf upgrade --refresh`); `systemctl is-enabled dnf5-makecache.timer` says `disabled` |
+| DNF fetches package lists every three hours or so (its *makecache* timer: ten minutes after boot, then three hours after each run, plus up to an hour at random) | off: lists are fetched when you update (`dnf upgrade --refresh`). The timer is *masked*, not just disabled — Fedora 44 ships it switched on by a link of its own package, which `disable` cannot undo; `systemctl is-enabled dnf5-makecache.timer` says `masked` (`systemctl unmask` would undo it) |
 | neovim's plugin manager looks for new plugin versions | off (`checker = { enabled = false }` in `lua/config/lazy.lua`); plugins move only with an update, which keeps the old versions first |
 | Prowlarr's image is replaced as soon as a new one appears | fetched by an update only; its next start uses it |
 | tldr refreshes its pages | at most once a quarter, and only when you run it |
@@ -11787,7 +11846,7 @@ years is handled one way — checked for, worked around, or reported, never a si
 |---|---|
 | Fedora moves to a newer wlroots and drops the one dwl is written for | dwl uses its own copy, kept from Fedora's build at the first install (`/usr/local/lib/fedokawaii-wlroots-0.20`); a move checks the new release has every library under it |
 | dwl cannot start — a library missing, or it stops within seconds | the login starts the build before it (`dwl.prev`, a notice says so); with neither, a rescue screen on the console says what to do, instead of a login that loops back |
-| a new kernel misbehaves | the one before it stays installed, in the boot menu |
+| a new kernel misbehaves | the one before it stays installed, in the boot menu, until the new one has reached the desktop — a start that does not is never counted, and nothing is removed while you run the older one |
 | a package is renamed or retired | listed, never fatal: the rest goes on without it |
 | a third-party repository is down, changes its key, or has nothing yet for a new release | skipped with a warning; Fedora's own updates never wait on it |
 | a release tool's download changes | refused by its checksum; the version in place stays |
@@ -12278,17 +12337,17 @@ honest; these keep the disk lean.
 | `dnf repoquery --installed --whatrequires NAME` | which installed packages require NAME |
 | `rpm -qf FILE` | which package a file belongs to, for example `rpm -qf /usr/bin/foot` |
 | `sudo dnf clean all` | empties DNF's download and metadata caches in `/var/cache/libdnf5` (they come back at the next upgrade). `dnf` run without `sudo` keeps its own copy in `~/.cache/libdnf5`; `dnf clean all` without `sudo` empties that |
-| `rpm -q kernel-core` | two kernels at most: the newest, and the one before it; `uname -r` names the one running |
+| `rpm -q kernel-core` | one kernel, the newest (two only until a new one has proven itself, §29.5); `uname -r` names the one running |
 
 ### Kernels
 
-Two at most: the newest and the one before it, kept as the way back should a new one
-misbehave (§29.5). DNF removes the oldest by itself when a third arrives — never the one
-running — and `dnf autoremove` never removes a kernel; there is nothing to clean by hand:
+One: the newest. After an update brings a new one, the one before stays only until the new
+one has reached the desktop, then goes by itself (§29.5); `dnf autoremove` never removes a
+kernel, and there is nothing to clean by hand:
 
 ```sh
-rpm -q kernel-core   # two lines, one per kernel
-uname -r             # the one running: normally the newest
+rpm -q kernel-core   # one line (two in the short while after an update)
+uname -r             # the one running: the newest
 ```
 
 ### The rest of what this desktop installs
@@ -12551,7 +12610,7 @@ live session
   …
   ! no monitor answered DDC/CI — switch DDC/CI on in the monitor's on-screen menu, then try Super+]
 …
-✔ verified — 135 checks passed, 1 warning(s)
+✔ verified — 179 checks passed, 1 warning(s)
 ```
 
 *(for example; shortened)*
@@ -12757,7 +12816,8 @@ Type **5** and **Enter** for *repair*. Afterwards a key brings the list back; **
 new kernel waits for a restart — start the one before it. Restart; the boot menu shows for two
 seconds (if it is hidden, hold **Shift**, or press **Esc** or **F8**, as the machine starts).
 Choose the entry below the first: it carries the older kernel's number. If the desktop comes
-back, the new kernel was the cause; the one before stays installed as the way back (§29.5).
+back, the new kernel was the cause; the one before stays installed as the way back (§29.5)
+— nothing removes it while you run it. The next update brings the new kernel's fix.
 
 **Undo with snapper.** If a change to the system caused it, the same commands as on the
 desktop work at the console: find the pair with `sudo snapper -c root list --type pre-post`,
