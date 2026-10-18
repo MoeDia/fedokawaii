@@ -4,8 +4,8 @@ what its keys really do in dwl's config.h? One line per mismatch; exit 1 if any.
 
 tests/static/keybinds.py checks that the sheet and config.h name the same keys. This one
 checks the meaning: Super+J is "focus next" only if config.h binds it to focusstack +1, the
-"terminal" row spawns foot's client, Super+T / Y / M are the layouts the words name (and
-layouts[] really holds tile, floating and monocle in that order)… ROWS below is the meaning of
+"terminal" row spawns foot's client, Super+S / T / Y / M are the layouts the words name (and
+layouts[] really holds spiral, columns, floating and monocle in that order)… ROWS below is the meaning of
 each row of the sheet's dwl sections; a row this check does not know is reported, so a new or
 reworded row is looked at here too. Also: no key bound twice (the second binding would be
 dead), every kawa-* a key runs exists and takes the word it is given.
@@ -33,6 +33,7 @@ ROWS = {
     "Super+W":                 ("wallpaper picker", ["spawn:kawa-wallpaper"]),
     "Super+Shift+W":           ("dark / light theme", ["spawn:kawa-theme"]),
     "Super+V":                 ("clipboard history", ["spawn:kawa-clip"]),
+    "Super+Z":                 ("shrink or convert", ["spawn:kawa-shrink"]),
     "Super+R":                 ("books", ["spawn:kawa-books"]),
     "Super+N":                 ("notes", ["spawn:kawa-notes"]),
     "Super+Shift+N":           ("dismiss notifications", ["spawn:makoctl dismiss -a"]),
@@ -45,16 +46,16 @@ ROWS = {
     "Super+Print":             ("region → annotate", ["spawn:kawa-screenshot edit"]),
     "Super+Q":                 ("close window", ["killclient:0"]),
     "Super+J / K":             ("focus next / previous", ["focusstack:+1", "focusstack:-1"]),
-    "Super+H / L":             ("shrink / grow the main area", ["setmfact:-0.05f", "setmfact:+0.05f"]),
-    "Super+I / D":             ("more / fewer windows in the main area", ["incnmaster:+1", "incnmaster:-1"]),
-    "Super+Shift+Return":      ("move window to the main area", ["zoom:0"]),
+    "Super+H / L":             ("spiral: the first window narrower / wider", ["setmfact:-0.05f", "setmfact:+0.05f"]),
+    "Super+Shift+Return":      ("move window to the first (largest) place", ["zoom:0"]),
     "Super+F":                 ("fullscreen", ["togglefullscreen:0"]),
     "Super+Shift+Space":       ("float / unfloat", ["togglefloating:0"]),
     "Super+middle-click":      ("float / unfloat", ["togglefloating:0"]),
     "Super+drag / right-drag": ("move / resize", ["moveresize:CurMove", "moveresize:CurResize"]),
-    "Super+T / Y / M":         ("layout: tile · float · one at a time",
-                                ["setlayout:&layouts[0]", "setlayout:&layouts[1]", "setlayout:&layouts[2]"]),
-    "Super+Shift+T":           ("previous layout", ["setlayout:0"]),
+    "Super+S":                 ("layout: golden spiral (the default)", ["setlayout:&layouts[0]"]),
+    "Super+T":                 ("layout: columns, left to right", ["setlayout:&layouts[1]"]),
+    "Super+Y / M":             ("layout: floating · one at a time", ["setlayout:&layouts[2]", "setlayout:&layouts[3]"]),
+    "Super+Shift+T":           ("the layout used before", ["setlayout:0"]),
     "Super+1…9":               ("go to workspace", [f"view:{t}" for t in TAGS]),
     "Super+Shift+1…9":         ("send window to workspace", [f"tag:{t}" for t in TAGS]),
     "Super+Ctrl+1…9":          ("also show workspace", [f"toggleview:{t}" for t in TAGS]),
@@ -71,6 +72,7 @@ ROWS = {
     "Super+scroll":            ("volume ±2 %", ["spawn:kawa-volume up 2", "spawn:kawa-volume down 2"]),
     "Super+] / Super+[":       ("monitor brightness up / down", ["spawn:kawa-brightness +10", "spawn:kawa-brightness -10"]),
     "Brightness keys":         ("the same", ["spawn:kawa-brightness +10", "spawn:kawa-brightness -10"]),
+    "Sleep key":               ("locked first, then asleep", ["spawn:kawa-power sleep"]),
     "Super+Ctrl+Shift+Q":      ("log out (quit dwl)", ["quit:0"]),
     "Ctrl+Alt+F2…F6":          ("text consoles", [f"chvt:({n})" for n in range(2, 7)]),
     "Ctrl+Alt+F1":             ("back here", ["chvt:(1)"]),
@@ -80,7 +82,8 @@ KEYS = {"Return": "Return", "Space": "space", "/": "slash", "Escape": "Escape", 
         "Tab": "Tab", ",": "comma", ".": "period", "]": "bracketright", "[": "bracketleft"}
 MEDIA = {"Volume": ["XF86AudioRaiseVolume", "XF86AudioLowerVolume"], "Mute": ["XF86AudioMute"],
          "Mic": ["XF86AudioMicMute"], "Play": ["XF86AudioPlay"], "Next": ["XF86AudioNext"],
-         "Previous": ["XF86AudioPrev"], "Brightness keys": ["XF86MonBrightnessUp", "XF86MonBrightnessDown"]}
+         "Previous": ["XF86AudioPrev"], "Brightness keys": ["XF86MonBrightnessUp", "XF86MonBrightnessDown"],
+         "Sleep key": ["XF86Sleep"]}
 POINTER = {"drag": "BTN_LEFT", "right-drag": "BTN_RIGHT", "middle-click": "BTN_MIDDLE", "scroll": None}
 
 
@@ -205,9 +208,9 @@ def check(repo):
         if k[0] == frozenset({"Ctrl", "Alt"}) and re.fullmatch(r"F\d+", k[1]):
             continue                                   # the other text consoles: the sheet names 1–6
         out.append(f"config.h binds {'+'.join(sorted(k[0]) + [k[1]])} ({binds[k][0]}), the help sheet never says so")
-    want_layouts = [("[]=", "tile"), ("><>", "NULL"), ("[M]", "monocle")]
-    if layouts[:3] != want_layouts:
-        out.append(f"layouts[] is {layouts[:3]}: Super+T / Y / M say tile · float · one at a time ({want_layouts})")
+    want_layouts = [("(@)", "spiral"), ("|||", "tile"), ("><>", "NULL"), ("[M]", "monocle")]
+    if layouts[:4] != want_layouts:
+        out.append(f"layouts[] is {layouts[:4]}: Super+S / T / Y / M say spiral · columns · float · one at a time ({want_layouts})")
     # every helper a key runs: there, and it takes the word it is given
     for acts in binds.values():
         a = acts[0]

@@ -79,30 +79,30 @@ image/svg+xml=imv.desktop
 image/x-xpixmap=imv.desktop
 image/heic=imv.desktop
 image/jxl=imv.desktop
-# video, music and playlists: mpv
-video/mp4=mpv.desktop
-video/x-matroska=mpv.desktop
-video/webm=mpv.desktop
-video/quicktime=mpv.desktop
-video/x-msvideo=mpv.desktop
-video/mpeg=mpv.desktop
-video/ogg=mpv.desktop
-video/x-flv=mpv.desktop
-video/3gpp=mpv.desktop
-audio/mpeg=mpv.desktop
-audio/flac=mpv.desktop
-audio/ogg=mpv.desktop
-audio/opus=mpv.desktop
-audio/x-wav=mpv.desktop
-audio/wav=mpv.desktop
-audio/mp4=mpv.desktop
-audio/aac=mpv.desktop
-audio/x-m4a=mpv.desktop
-audio/x-hx-aac-adts=mpv.desktop
-audio/webm=mpv.desktop
-audio/x-mpegurl=mpv.desktop
-application/vnd.apple.mpegurl=mpv.desktop
-audio/x-scpls=mpv.desktop
+# video, music and playlists: mpv, in the window already open (kawa-play)
+video/mp4=kawa-play.desktop
+video/x-matroska=kawa-play.desktop
+video/webm=kawa-play.desktop
+video/quicktime=kawa-play.desktop
+video/x-msvideo=kawa-play.desktop
+video/mpeg=kawa-play.desktop
+video/ogg=kawa-play.desktop
+video/x-flv=kawa-play.desktop
+video/3gpp=kawa-play.desktop
+audio/mpeg=kawa-play.desktop
+audio/flac=kawa-play.desktop
+audio/ogg=kawa-play.desktop
+audio/opus=kawa-play.desktop
+audio/x-wav=kawa-play.desktop
+audio/wav=kawa-play.desktop
+audio/mp4=kawa-play.desktop
+audio/aac=kawa-play.desktop
+audio/x-m4a=kawa-play.desktop
+audio/x-hx-aac-adts=kawa-play.desktop
+audio/webm=kawa-play.desktop
+audio/x-mpegurl=kawa-play.desktop
+application/vnd.apple.mpegurl=kawa-play.desktop
+audio/x-scpls=kawa-play.desktop
 # PDF and e-books: zathura
 application/pdf=org.pwmt.zathura-pdf-mupdf.desktop
 application/epub+zip=org.pwmt.zathura-pdf-mupdf.desktop
@@ -113,16 +113,23 @@ application/vnd.comicbook+zip=org.pwmt.zathura-cb.desktop
 application/x-cbz=org.pwmt.zathura-cb.desktop
 application/x-cbr=org.pwmt.zathura-cb.desktop
 application/vnd.comicbook-rar=org.pwmt.zathura-cb.desktop
-# documents: AbiWord
-application/vnd.oasis.opendocument.text=com.abisource.AbiWord.desktop
-application/msword=com.abisource.AbiWord.desktop
-application/vnd.openxmlformats-officedocument.wordprocessingml.document=com.abisource.AbiWord.desktop
-application/rtf=com.abisource.AbiWord.desktop
-text/rtf=com.abisource.AbiWord.desktop
-# spreadsheets: Gnumeric
-application/vnd.oasis.opendocument.spreadsheet=org.gnumeric.gnumeric.desktop
-application/vnd.ms-excel=org.gnumeric.gnumeric.desktop
-application/vnd.openxmlformats-officedocument.spreadsheetml.sheet=org.gnumeric.gnumeric.desktop
+# documents: LibreOffice Writer (Word's .docx and .doc, OpenDocument's .odt, RTF). An old
+# Office file `file` cannot tell apart (application/vnd.ms-office: a .doc, .xls or .ppt) comes
+# here too: LibreOffice looks inside and opens each in the right one of the three
+application/vnd.openxmlformats-officedocument.wordprocessingml.document=libreoffice-writer.desktop
+application/msword=libreoffice-writer.desktop
+application/vnd.oasis.opendocument.text=libreoffice-writer.desktop
+application/rtf=libreoffice-writer.desktop
+text/rtf=libreoffice-writer.desktop
+application/vnd.ms-office=libreoffice-writer.desktop
+# spreadsheets: LibreOffice Calc (Excel's .xlsx and .xls, OpenDocument's .ods; CSV: VisiData, below)
+application/vnd.openxmlformats-officedocument.spreadsheetml.sheet=libreoffice-calc.desktop
+application/vnd.ms-excel=libreoffice-calc.desktop
+application/vnd.oasis.opendocument.spreadsheet=libreoffice-calc.desktop
+# presentations: LibreOffice Impress (PowerPoint's .pptx and .ppt, OpenDocument's .odp)
+application/vnd.openxmlformats-officedocument.presentationml.presentation=libreoffice-impress.desktop
+application/vnd.ms-powerpoint=libreoffice-impress.desktop
+application/vnd.oasis.opendocument.presentation=libreoffice-impress.desktop
 # CSV and TSV: VisiData in a terminal window (Tables in ~/.local/share/applications). `file`
 # names a CSV text/csv but a TSV text/plain, so from xdg-open a .tsv goes to neovim; from
 # Brave and the GTK programs (GLib types by name) both come here

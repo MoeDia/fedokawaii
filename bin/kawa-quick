@@ -1,12 +1,25 @@
 #!/usr/bin/env bash
-# kawa-quick — the key at the bar's right end (or Super+X): quick settings as a dropdown.
-# Each line shows its current state; toggles reopen the menu so the change is visible.
-# No arguments (--help: this text).
+# kawa-quick — quick settings: the panel under the bar's right end (its cat, or Super+X), and
+# what it shows and does. The panel itself is kawa-panel (it draws; this knows the machine).
+#
+#   kawa-quick                  the panel opens, or closes if it is open
+#   kawa-quick --state          how everything stands, one "KEY<TAB>VALUE" a line: theme,
+#                               brightness, night, vrr, wallpaper, sound, nettype, network,
+#                               bluetooth and devices (only with a Bluetooth adapter), drives,
+#                               backup, dnd
+#   kawa-quick --do ACTION [N]  one thing done: theme · night · vrr · bluetooth · dnd (each
+#                               switched over) · brightness N · volume N (set, in %) · sound ·
+#                               network · devices · drives · backup · wallpaper · screenshot ·
+#                               power (each opens its own menu or window)
+#
+# Exit: 0 done · 1 it could not (said) · 2 wrong use.
 set -u
+usage() { echo "usage: kawa-quick [--state | --do ACTION [N]] (kawa-quick --help)" >&2; exit 2; }
 case ${1:-} in
-  "") ;;
+  ""|--state) (($# <= 1)) || usage ;;
+  --do) (($# == 2 || $# == 3)) || usage ;;
   -h|--help) sed -n '2,/^set -u/{/^set -u/d;s/^# \{0,1\}//;p}' "$0"; exit 0 ;;
-  *) echo "usage: kawa-quick   (no arguments: the quick settings menu)" >&2; exit 2 ;;
+  *) usage ;;
 esac
 # shellcheck source=/dev/null
 . "$HOME/.config/fedokawaii/env"
@@ -15,17 +28,19 @@ esac
 
 state_net() {   # the cable or the Wi-Fi in use, wherever nmcli lists it: a VPN that holds the
   # default route comes first there, a bridge for virtual machines rides on the cable, and a
-  # cable set up by another tool is "connected (externally)" (as the loopback always is)
-  local type state other=""
-  while IFS=: read -r type state; do
+  # cable set up by another tool is "connected (externally)" (as the loopback always is).
+  # → "TYPE NAME": the Wi-Fi's own name (its connection), the cable as "wired"
+  local type state conn other=""
+  while IFS=: read -r type state conn; do
     [[ $state == connected || $state == "connected (externally)" ]] || continue
     case $type in
-      ethernet|wifi) echo "$type"; return ;;
+      ethernet) echo "ethernet wired"; return ;;
+      wifi)     echo "wifi ${conn:-Wi-Fi}"; return ;;
       loopback|wireguard|tun|vpn|bridge) ;;
       *) [[ $state == connected ]] && other=${other:-$type} ;;   # (a phone's mobile data: gsm)
     esac
-  done < <(nmcli -t -f TYPE,STATE device 2>/dev/null)
-  echo "${other:-offline}"
+  done < <(nmcli -t -f TYPE,STATE,CONNECTION device 2>/dev/null)
+  echo "${other:-offline} ${other:-offline}"
 }
 # Bluetooth only when the machine has an adapter; bluetoothctl waits forever for a
 # bluetoothd that is not running, so never longer than 2 s
@@ -39,82 +54,112 @@ state_bt()    {
 }
 state_theme() { [[ $(readlink "$HOME/.config/fedokawaii/current" 2>/dev/null) == */light ]] && echo light || echo dark; }
 state_night() { pgrep -xu "$UID" gammastep >/dev/null && echo on || echo off; }
+VRR=$HOME/.config/fedokawaii/vrr
+state_vrr()   {   # FreeSync (variable refresh, dwl reads the file): in games (a full-screen
+  # window: the screen follows the game's frames, no tearing, no stutter), always, or off
+  case $(cat "$VRR" 2>/dev/null) in always) echo always ;; off) echo off ;; *) echo 'in games' ;; esac
+}
 state_dnd()   { [[ $(makoctl mode 2>/dev/null) == *do-not-disturb* ]] && echo on || echo off; }
-state_drives() {   # USB sticks, disks, SD cards plugged in (kawa-drives: one line per file system)
-  local n
-  n=$(kawa-drives list 2>/dev/null | cut -f2 | sort -u | grep -c .)
-  if ((n == 0)); then echo none; else echo "$n plugged in"; fi
+state_drives() {   # USB sticks, disks, SD cards plugged in (kawa-drives: one line per file system):
+  # one by its name and size ("SANDISK 58G"), more by the first one's name and how many more
+  # ("SANDISK +2") — the count alone is the bar's drive mark, right above
+  local -a l; local n label
+  mapfile -t l < <(kawa-drives list 2>/dev/null)
+  n=$(printf '%s\n' "${l[@]}" | cut -f2 | sort -u | grep -c .)
+  if ((n == 0)); then echo none
+  elif ((n == 1)); then IFS=$'\t' read -r _ _ label size _ <<<"${l[0]}"; echo "$label $size"
+  else IFS=$'\t' read -r _ _ label _ <<<"${l[0]}"; echo "$label +$((n - 1))"; fi
 }
-state_backup() { kawa-backup status 2>/dev/null || echo '…'; }   # the last backup's age (never · 3 days ago · not set up)
-
-row() {   # row ACTION ICON NAME STATE
-  local r; printf -v r '%s  %-16s%s' "$2" "$3" "$4"; rows+=("$r"); acts+=("$1")
+state_backup() { kawa-backup status 2>/dev/null || echo 'not set up'; }   # the last backup's age (never · 3 days ago · not set up)
+state_sound() {   # the output's level, or muted
+  local v; v=$(wpctl get-volume @DEFAULT_AUDIO_SINK@ 2>/dev/null) || { echo "no output"; return; }
+  [[ $v == *MUTED* ]] && { echo muted; return; }
+  [[ $v =~ ([0-9]+)\.([0-9]{2}) ]] && echo "$((10#${BASH_REMATCH[1]} * 100 + 10#${BASH_REMATCH[2]}))%" || echo "no output"
+}
+state_bright() {  # the monitors' level (the last read or set; read once if never)
+  local l; l=$(timeout 3 kawa-brightness --level 2>/dev/null)
+  [[ $l =~ ^[0-9]+$ ]] && echo "$l%" || echo "no DDC/CI"
+}
+state_wall() {    # the wallpaper this theme shows (its name, as the picker lists it)
+  local c; c=$(cat "$HOME/.local/state/fedokawaii/wallpaper-$(state_theme)" 2>/dev/null)
+  case ${c:-default} in default) echo default ;; pack:*) echo "${c#pack:}" ;; *) local b=${c##*/}; echo "${b%.*}" ;; esac
+}
+state_paired() {  # the Bluetooth devices connected now: one by name, more by their count
+  local -a d
+  [[ $1 == on ]] || { echo off; return; }
+  mapfile -t d < <(bt devices Connected 2>/dev/null | sed -n 's/^Device [0-9A-Fa-f:]\{17\} //p')
+  if ((${#d[@]} == 0)); then echo none
+  elif ((${#d[@]} == 1)); then echo "${d[0]}"
+  else echo "${#d[@]} connected"; fi
 }
 
-sel=0
-weather=$(kawa-weather)                    # (the title: once, not after every toggle)
-while :; do
-  net=$(state_net) night=$(state_night) dnd=$(state_dnd) mode=$(state_theme)
-  case $net in ethernet) neticon=$ICON_ETHERNET ;; wifi) neticon=$ICON_WIFI ;; *) neticon=$ICON_OFFLINE ;; esac
-  dndicon=$ICON_BELL; [[ $dnd == on ]] && dndicon=$ICON_BELL_OFF
-  # the theme as a two-way switch: the lit box marks the one in use
-  if [[ $mode == dark ]]; then themestate="$ICON_BOX_ON dark  $ICON_BOX_OFF light"
-  else themestate="$ICON_BOX_OFF dark  $ICON_BOX_ON light"; fi
-  rows=() acts=()
-  # the screen · sound and connections · quiet · tools
-  row theme      "$ICON_THEME"    theme "$themestate"
-  row brightness "$ICON_SUN"      brightness '…'
-  row night      "$ICON_LANTERN"  'night light' "$night"
-  row wallpaper  "$ICON_PICTURE"  wallpaper '…'
-  row sound      "$ICON_SPEAKER"  sound '…'
-  row network    "$neticon"       network "$net"
+state() {   # everything, KEY<TAB>VALUE (a value's tabs and line breaks become spaces: a name
+  local nettype net bt   # of yours — a Wi-Fi, a drive, a picture — cannot break a line)
+  kv() { local v=${2//[$'\t\n\r']/ }; printf '%s\t%s\n' "$1" "$v"; }
+  read -r nettype net <<<"$(state_net)"
+  kv theme "$(state_theme)"; kv brightness "$(state_bright)"; kv night "$(state_night)"
+  kv vrr "$(state_vrr)"; kv wallpaper "$(state_wall)"; kv sound "$(state_sound)"
+  kv nettype "$nettype"; kv network "$net"
   if compgen -G '/sys/class/bluetooth/hci*' >/dev/null; then
-    bt=$(state_bt)
-    row bt       "$ICON_BLUETOOTH" bluetooth "$bt"
-    row pair     "$ICON_BLUETOOTH" 'pair a device' '…'
+    bt=$(state_bt); kv bluetooth "$bt"; kv devices "$(state_paired "$bt")"
   fi
-  row drives     "$ICON_DRIVE"    drives "$(state_drives)"
-  row backup     "$ICON_ARCHIVE"  backup "$(state_backup)"
-  row dnd        "$dndicon"       'do not disturb' "$dnd"
-  row shot       "$ICON_CAMERA"   screenshot region
-  row keys       "$ICON_KEYBOARD" keybindings '…'
-  row system     "$ICON_TORII"    system '…'
-  row change     "$ICON_CODE"     change '…'
-  row power      "$ICON_POWER"    power '…'
-  # 38 columns: the theme row is the widest, 37 — icon (2) + 2 + name (16) + "▣ dark  ☐ light"
-  # (17: the boxes are icons, two columns each) — and fuzzel fills one column less than its
-  # width (the last is kept for its "…")
-  i=$(printf '%s\n' "${rows[@]}" | kawa-menu --drop --index --width 38 --lines ${#rows[@]} --select "$sel" \
-        --title "$weather") || exit 0
-  sel=$i
-  case ${acts[i]:-} in
-    brightness) exec kawa-brightness ;;
-    sound)      exec kawa-audio ;;
-    network)    exec kawa-float --once network network 80x25 -- nmtui ;;
-    bt)         if [[ $bt == on ]]; then bt power off >/dev/null
-                elif ! out=$(bt power on 2>&1); then        # (an airplane-mode key, or a switch)
-                  if [[ $out == *Blocked* ]]; then
-                    notify-send -a desktop "Bluetooth" "it is blocked — rfkill unblock bluetooth (or the machine's own switch)"
-                  else notify-send -a desktop "Bluetooth" "it did not switch on — is the bluetooth service running?"; fi
-                fi ;;
-    pair)       exec kawa-float --once pair 'pair a device' 96x29 -- bluetui ;;   # (the paired, the found, the adapter)
-    drives)     exec kawa-drives ;;
-    backup)     exec kawa-backup --window ;;
-    night)      if [[ $night == on ]]; then
+  kv drives "$(state_drives)"; kv backup "$(state_backup)"; kv dnd "$(state_dnd)"
+}
+
+act() {   # act ACTION [N] — the panel's choices
+  local v
+  case $1 in brightness|volume) (($# == 2)) || usage ;; *) (($# == 1)) || usage ;; esac
+  case $1 in
+    theme)      kawa-theme toggle ;;
+    night)      if [[ $(state_night) == on ]]; then
                   # gammastep fades back for ~4 s after a first signal, still running: a second
-                  # one ends that at once, so the menu reopens with the night light really off
+                  # one ends that at once, so the panel shows the night light really off
                   pkill -xu "$UID" gammastep; sleep 0.2; pkill -xu "$UID" gammastep
                   for _ in {1..20}; do pgrep -xu "$UID" gammastep >/dev/null || break; sleep 0.05; done
                 else setsid -f gammastep -l "$NIGHT_LIGHT" -t 6500:4200 </dev/null >/dev/null 2>&1; sleep 0.2; fi ;;
+    vrr)        mkdir -p "${VRR%/*}"   # in games → always → off → in games (dwl takes it up at the next window change)
+                case $(state_vrr) in 'in games') v=always ;; always) v=off ;; *) v=games ;; esac
+                echo "$v" >"$VRR" ;;
+    bluetooth)  if [[ $(state_bt) == on ]]; then bt power off >/dev/null
+                elif ! v=$(bt power on 2>&1); then        # (an airplane-mode key, or a switch)
+                  if [[ $v == *Blocked* ]]; then
+                    notify-send -a desktop "Bluetooth" "it is blocked — rfkill unblock bluetooth (or the machine's own switch)"
+                  else notify-send -a desktop "Bluetooth" "it did not switch on — is the bluetooth service running?"; fi
+                  return 1
+                fi ;;
     dnd)        makoctl mode -t do-not-disturb >/dev/null
                 kawa-dwlstatus --poke 12 ;;                     # the bar's 静 seal
-    theme)      kawa-theme toggle ;;
-    shot)       sleep 0.2; exec kawa-screenshot region ;;      # let the menu close before slurp
+    brightness) [[ ${2:-} =~ ^[0-9]{1,3}$ ]] && ((10#$2 <= 100)) || usage
+                kawa-brightness "$((10#$2))" ;;
+    volume)     [[ ${2:-} =~ ^[0-9]{1,3}$ ]] && ((10#$2 <= 100)) || usage
+                wpctl set-mute @DEFAULT_AUDIO_SINK@ 0 && wpctl set-volume @DEFAULT_AUDIO_SINK@ "$((10#$2))%" ;;
+    sound)      exec kawa-audio ;;                               # (outputs, the microphone)
+    network)    exec kawa-float --once network network 80x25 -- nmtui ;;
+    devices)    exec kawa-float --once pair 'pair a device' 96x29 -- bluetui ;;   # (the paired, the found, the adapter)
+    drives)     exec kawa-drives ;;
+    backup)     exec kawa-backup --window ;;
     wallpaper)  exec kawa-wallpaper ;;
-    keys)       exec kawa-help ;;
-    system)     exec fedokawaii --window ;;
-    change)     exec kawa-config ;;
+    screenshot) exec kawa-screenshot region ;;
     power)      exec kawa-power ;;
-    *)          exit 0 ;;
+    *)          usage ;;
   esac
-done
+}
+
+# the panel: kawa-panel runs all session long (autostart), hidden until asked — SIGUSR1 opens
+# or closes it. Should it not be running (it crashed and autostart has not started it again
+# yet), it is started, open
+toggle() {
+  local run=${XDG_RUNTIME_DIR:-/run/user/$UID} pid a
+  pid=$(cat "$run/kawa-panel.pid" 2>/dev/null)
+  if [[ $pid =~ ^[1-9][0-9]*$ ]] && a=$(tr '\0' ' ' <"/proc/$pid/cmdline" 2>/dev/null) && [[ $a == *kawa-panel* ]]; then
+    kill -USR1 "$pid"
+  else
+    setsid -f kawa-panel --open </dev/null >/dev/null 2>&1
+  fi
+}
+
+case ${1:-} in
+  "")      toggle ;;
+  --state) state ;;
+  --do)    act "${@:2}" ;;
+esac

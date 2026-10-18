@@ -1,0 +1,13 @@
+[Desktop Entry]
+# One terminal in the launcher: a window of the session's terminal server, as Super+Enter
+# opens it (foot's own three entries — Foot, Foot Client, Foot Server — would be three
+# names for one job; foot.desktop and foot-server.desktop here hide the other two)
+Type=Application
+Name=Terminal
+GenericName=Terminal
+Comment=foot, a window of the session's terminal server (as Super+Enter)
+Icon=foot
+Exec=footclient
+Terminal=false
+Categories=System;TerminalEmulator;
+Keywords=foot;shell;prompt;command;commandline;

@@ -132,10 +132,10 @@ for c in "New York:New%20York" "St. John's:St.%20John%27s" "Saint-Étienne:Saint
 done
 
 # ── environment, misuse ──────────────────────────────────────────────────────
-case_ "no env file (or one from before WEATHER_CITY): nothing to show, could not (1), no fetch"
+case_ "no env file (a broken install): said, could not (1), no fetch"
 setup; rm "$HOME/.config/fedokawaii/env"
 out=$(kawa-weather 2>&1); r=$?
-eq "$out" ""; eq "$r" 1; /bin/sleep 0.2; not_called curl
+has "$out" "fedokawaii/env"; eq "$r" 1; /bin/sleep 0.2; not_called curl
 case_ "HOME with a space in it"
 setup; mv "$HOME" "$TMP/my home"; export HOME="$TMP/my home"
 eq "$(sky)" "$ICON_SUN  Sharjah"; fetched; eq "$(sky)" "$ICON_SUN  Sharjah  31°C  Clear"

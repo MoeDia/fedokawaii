@@ -22,7 +22,7 @@ eq "$(fz_arg anchor)" "" "centred (no anchor)"; eq "$(fz_arg mesg)" "" "no title
 case_ "every option reaches fuzzel"
 answer enter; out=$(pick --drop --title "pick one" --width 30 --lines 3 --select 2 --prompt "> " --index)
 eq "$out" 2 "Enter on the pre-selected row prints its number"
-eq "$(fz_arg anchor)" top-right; eq "$(fz_arg x-margin)" 6; eq "$(fz_arg y-margin)" 6
+eq "$(fz_arg anchor)" top-right; eq "$(fz_arg x-margin)" 8 "gappx from the edge"; eq "$(fz_arg y-margin)" 8 "gappx under the bar"
 eq "$(fz_arg mesg)" "pick one"; eq "$(fz_arg width)" 30; eq "$(fz_arg lines)" 3
 eq "$(fz_arg select-index)" 2; eq "$(fz_arg prompt)" "> "; eq "$(fz_arg hide-prompt)" "" "a prompt shown"
 eq "$(fz_arg index)" set
@@ -33,9 +33,9 @@ ln -sfn themes/light "$HOME/.config/fedokawaii/current"
 answer "row 0"; pick --title x >/dev/null
 eq "$(fz_arg message-color)" "${C_MUTED}ff"
 ln -sfn themes/dark "$HOME/.config/fedokawaii/current"
-case_ "no theme at all yet: the dark theme's colour"
-rm "$HOME/.config/fedokawaii/current"; answer "row 0"; pick >/dev/null
-eq "$(fz_arg message-color)" 877f6fff
+case_ "no theme at all yet (a theme run that never finished): no menu in made-up colours — exit 1, fuzzel not started"
+rm "$HOME/.config/fedokawaii/current"; n=$(fz_n)
+pick >/dev/null 2>&1; eq "$?" 1; eq "$(fz_n)" "$n" "fuzzel not started"
 ln -s themes/dark "$HOME/.config/fedokawaii/current"
 
 case_ "an empty title is no title (not a blank line on top)"
@@ -78,7 +78,7 @@ has "$(kawa-menu --nope 2>&1)" "unknown option --nope"
 case_ "fuzzel missing: exit 1 and a notice that says so"
 p=$(without fuzzel); reset_calls
 PATH=$p rc 1 pick
-called 'notify-send -a desktop -u critical Menus fuzzel is missing'
+called 'notify-send -a desktop -u critical menus fuzzel is missing'
 install -m 755 "$MD/fake_fuzzel" "$STUBS/fuzzel"
 
 case_ "no runtime folder (XDG_RUNTIME_DIR unset): the menu still works"

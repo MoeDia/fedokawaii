@@ -8,7 +8,7 @@
 . "$(dirname "$0")/../lib/harness.sh"
 . "$(dirname "$0")/lib.sh"
 AS=$HOME/.config/dwl/autostart.sh
-DAEMONS="waybar mako foot udiskie wl-paste gammastep swayidle"
+DAEMONS="waybar kawa-panel mako foot udiskie wl-paste gammastep swayidle kawa-drives kawa-clipkeep"
 SETSID=$(command -v setsid) PKILL=$(command -v pkill) SIDS=()
 # tell — dwl prints its status (stdin) into the pipe; should its reader be gone, an error, not
 # the end of the test (SIGPIPE stays ignored in this subshell only: autostart keeps the default)
@@ -27,21 +27,18 @@ setup() {   # setup [SHELL] — a home with the autostart, every program it star
   ASH=${1:-sh=bash}
   config .config/dwl/autostart.sh
   # the system's own places (the polkit agent's) under $TMP/root
-  sed -i -e "s|/etc/xdg/|$TMP/root/etc/xdg/|g" -e "s|/usr/libexec/|$TMP/root/usr/libexec/|g" \
-    -e "s|/usr/bin/lxqt|$TMP/root/usr/bin/lxqt|g" "$HOME/.config/dwl/autostart.sh"
+  sed -i "s|/usr/libexec/lxqt|$TMP/root/usr/libexec/lxqt|g" "$HOME/.config/dwl/autostart.sh"
   AS=$HOME/.config/dwl/autostart.sh
-  mkdir -p "$TMP/root/etc/xdg/autostart" "$TMP/root/usr/libexec" "$TMP/root/usr/bin" "$TMP/sys" "$TMP/shbin"
+  mkdir -p "$TMP/root/usr/libexec" "$TMP/sys" "$TMP/shbin"
   # copies, never links: a write to a linked name would go through to /usr/bin or the repo
   cp "$BASH" "$TMP/shbin/sh"                    # bash as sh: Fedora's /bin/sh
   local t; for t in bash cat date env head id mkdir mv pkill rm sed wc; do cp "$(command -v "$t")" "$TMP/sys/$t"; done
   cp "$(command -v sleep)" "$TMP/sys/zzz"; cp "$BASH" "$TMP/sys/sh"
   mkdir -p "$TMP/kbin"; cp "$REPO/bin/kawa-dwlstatus" "$TMP/kbin/"   # the one helper of ours it runs
   daemon $DAEMONS
-  stub systemctl; stub dbus-update-activation-environment; stub kawa-display; stub kawa-theme; stub sleep
-  printf '[Desktop Entry]\nExec=lxqt-policykit-agent\n' >"$TMP/root/etc/xdg/autostart/lxqt-policykit-agent.desktop"
-  daemon lxqt-policykit-agent
+  stub systemctl; stub dbus-update-activation-environment; stub kawa-display; stub kawa-theme; stub kawa-steam; stub sleep
+  daemon lxqt-policykit-agent; mv "$STUBS/lxqt-policykit-agent" "$TMP/root/usr/libexec/"   # (its one place)
   export WAYLAND_DISPLAY=wayland-1 DISPLAY=:1
-  unset KAWA_DWL_PREV
 }
 # up — autostart as dwl starts it: setsid, its stdin the status pipe ($TMP/st, fd 6 is dwl's end)
 up() {
@@ -98,20 +95,20 @@ for SHL in sh=bash dash; do
   n=" [$SHL]"
 case_ "login: the session handed to systemd first, then the display, the theme, the helpers$n"
 setup "$SHL"; mkdir -p "$XDG_RUNTIME_DIR/dwl-bar/OLD"; up
-settled waybar mako foot udiskie wl-paste gammastep swayidle kawa-dwlstatus lxqt-policykit-agent && _ok || _no "not all started: $(cat "$CALLS" | tr '\n' '|')"
-eq "$(grep -vE '^(waybar|mako|foot|udiskie|kawa-clipkeep|wl-paste|gammastep|swayidle|lxqt-policykit-agent|pgrep|sleep|notify-send)( |$)' "$CALLS")" \
-"dbus-update-activation-environment --systemd WAYLAND_DISPLAY DISPLAY XDG_CURRENT_DESKTOP XDG_SESSION_DESKTOP XDG_SESSION_TYPE
+settled waybar kawa-panel mako foot udiskie wl-paste gammastep swayidle kawa-dwlstatus lxqt-policykit-agent kawa-clipkeep && _ok || _no "not all started: $(cat "$CALLS" | tr '\n' '|')"
+eq "$(grep -vE '^(waybar|kawa-panel|mako|foot|udiskie|kawa-drives|kawa-clipkeep|kawa-steam|wl-paste|gammastep|swayidle|lxqt-policykit-agent|pgrep|sleep|notify-send)( |$)' "$CALLS")" \
+"dbus-update-activation-environment --systemd WAYLAND_DISPLAY DISPLAY XDG_CURRENT_DESKTOP XDG_SESSION_DESKTOP XDG_SESSION_TYPE GTK_USE_PORTAL GDK_DEBUG
 systemctl --user stop dwl-session.target
 systemctl --user start dwl-session.target
 systemctl --user start fedokawaii-remind.timer
 systemctl --user start grub-boot-success.timer
 kawa-display${SP}
 kawa-theme apply" "in this order, the display's modes and the theme before any helper"
-called "^waybar $"; called "^mako $"; called "^foot --server$"; called "^udiskie $"; called "^wl-paste --watch cliphist store$"
-called "^gammastep -l 25.35:55.40 -t 6500:4200$"; called "^lxqt-policykit-agent $"
+called "^waybar $"; called "^kawa-panel $"; called "^mako $"; called "^foot --server$"; called "^udiskie $"; called "^wl-paste --watch kawa-clip --store$"
+called "^gammastep -l 25.35:55.40 -t 6500:4200$"; called "^lxqt-policykit-agent $"; called "^kawa-drives watch$"
 called "^swayidle -w timeout 3600 wlopm --off '\*' resume wlopm --on '\*' before-sleep kawa-lock --now$"
-not_called "^kawa-clipkeep" ; not_called "^notify-send"
-for d in waybar mako foot udiskie wl-paste gammastep swayidle kawa-dwlstatus; do eq "$(running "$d")" 1 "one $d"; done
+called "^kawa-clipkeep $"; called "^kawa-steam --warm$"; not_called "^notify-send"
+for d in waybar kawa-panel mako foot udiskie wl-paste gammastep swayidle kawa-dwlstatus kawa-clipkeep; do eq "$(running "$d")" 1 "one $d"; done
 [[ ! -e $XDG_RUNTIME_DIR/dwl-bar/OLD ]] && _ok || _no "the last session's bar state was kept"
 case_ "dwl's status reaches the bar (one monitor)$n"
 block DP-1 1 3 2 0 '[]=' 0 "hello" | tell
@@ -184,13 +181,10 @@ called "^notify-send -a desktop -u critical kawa-dwlstatus is not installed"
 head -c 300000 /dev/zero | tr '\0' '\n' | timeout 60 cat >&6 2>/dev/null && _ok || _no "the status pipe was not read (dwl would lose its status)"
 kill -0 "$ASPID" 2>/dev/null && _ok || _no "the session ended with its reader"
 crash; eq "$ASRC" 0; down
-case_ "no polkit agent anywhere: nothing tried; one in /usr/libexec only: that one"
-setup; rm "$TMP/root/etc/xdg/autostart/lxqt-policykit-agent.desktop" "$STUBS/lxqt-policykit-agent"; up; settled waybar foot
-not_called "lxqt-policykit-agent"; quit; down
-setup; rm "$TMP/root/etc/xdg/autostart/lxqt-policykit-agent.desktop" "$STUBS/lxqt-policykit-agent"
-printf '#!/bin/sh\necho "libexec agent" >>"%s"\n"%s/sys/zzz" 600\n' "$CALLS" "$TMP" >"$TMP/root/usr/libexec/lxqt-policykit-agent"; chmod +x "$TMP/root/usr/libexec/lxqt-policykit-agent"
-up; settled waybar foot; until_has "$CALLS" 'libexec agent'
-called "^libexec agent$"; quit; down
+case_ "the polkit agent missing from /usr/libexec: said, like any helper the session keeps"
+setup; rm "$TMP/root/usr/libexec/lxqt-policykit-agent"; up; settled waybar foot
+until_has "$CALLS" 'lxqt-policykit-agent is not installed'
+called "^notify-send -a desktop -u critical .*/usr/libexec/lxqt-policykit-agent is not installed"; not_called "^lxqt-policykit-agent"; quit; down
 
 case_ "a slow display set-up (kawa-display): the helpers wait for it; dwl's status meanwhile is kept"
 setup; stub kawa-display '"'"$TMP"'/sys/zzz" 2'; up
@@ -201,13 +195,6 @@ case_ "a slow helper (udiskie taking its time) holds back nothing"
 setup; stub udiskie '"'"$TMP"'/sys/zzz" 3; trap "exit 0" TERM; "'"$TMP"'/sys/zzz" 600 & wait $!'; up
 settled waybar foot swayidle kawa-dwlstatus && _ok; quit; down
 
-case_ "the build before dwl's newest is running (KAWA_DWL_PREV): a notice says so"
-setup; export KAWA_DWL_PREV=1; up; settled waybar
-until_has "$CALLS" 'dwl could not start'
-called "^notify-send -a desktop -u critical dwl could not start this session runs the build before it \(dwl.prev\); what the new one said: ~/.cache/dwl.log$"
-unset KAWA_DWL_PREV; quit; down
-case_ "kawa-clipkeep installed: kept running too"
-setup; daemon kawa-clipkeep; up; settled kawa-clipkeep waybar; eq "$(running kawa-clipkeep)" 1; quit; down
 case_ "your own autostart.local.sh: run beside the session, its output in dwl.log, ended with it"
 setup; printf 'echo "mine started"\n"%s/sys/zzz" 600 &\n' "$TMP" >"$HOME/.config/dwl/autostart.local.sh"; up; settled waybar
 until_has "$HOME/.cache/dwl.log" 'mine started'

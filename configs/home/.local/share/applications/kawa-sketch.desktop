@@ -1,0 +1,12 @@
+[Desktop Entry]
+# A blank page to draw on (kawa-sketch): Xournal++ on a new sketch in ~/Pictures/Sketches,
+# landscape, plain paper — for the drawing tablet's pen, or the mouse.
+Type=Application
+Name=Sketch
+GenericName=Drawing
+Comment=A blank page to draw on, with the pen or the mouse (Xournal++)
+Icon=com.github.xournalpp.xournalpp
+Exec=@HOME@/.local/bin/kawa-sketch
+Terminal=false
+Categories=Graphics;2DGraphics;
+Keywords=draw;drawing;sketch;paint;pen;tablet;doodle;

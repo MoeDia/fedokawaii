@@ -5,7 +5,7 @@
 # yazi's opener (the editor, xdg-open), a Xournal++ note in Xournal++ — the selection first,
 # wherever the cursor is. M (drives.yazi): the drives as kawa-drives lists them — Enter opens
 # one and goes there, e ejects, the list starts at the top (or on the drive you stand in) ·
-# g m: where the open drives are. kawa-drives, setsid, xdg-open, xournalpp and the editor are
+# g d: ~/Drives, the open drives. kawa-drives, setsid, xdg-open, xournalpp and the editor are
 # stand-ins; `file` is the real one. Skipped (not failed) where yazi is not installed.
 . "$(dirname "$0")/../lib/harness.sh"
 D=$(cd "$(dirname "$0")" && pwd)
@@ -509,31 +509,19 @@ case_ "a narrow window (50 columns): the list fits, cut to the window"
 out=$(drives_screen 50x20)
 has "$out" "enter open"; has "$out" "exfat"
 
-# ── g m ──────────────────────────────────────────────────────────────────────────────────
-case_ "g m goes to the folder the open drives are in"
+# ── g d ──────────────────────────────────────────────────────────────────────────────────
+case_ "g d goes to ~/Drives, where each open drive is a folder by its name (kawa-drives keeps it)"
 setup; reset_calls
+mkdir -p "$HOME/Drives"; ln -s "$MNT" "$HOME/Drives/KINGSTON 29G"
 y <<'EOF'
 wait a.txt
 settle
-key gm
+key gd
 wait KINGSTON
 settle
 quit
 EOF
-eq "$(last_dir)" "$MNT"
-case_ "g m with no drive open: a note says so, yazi stays"
-printf '/dev/sdc2\t/dev/sdc\tWD Elements\t431.5G\tntfs\t\n' >"$KD/list"
-out=$(y <<'EOF'
-wait a.txt
-settle
-key gm
-wait no drive is open
-sleep 0.6
-screen
-quit
-EOF
-)
-has "$out" "no drive is open (plug one in, or M)"; eq "$(last_dir)" "$W"
+eq "$(last_dir)" "$HOME/Drives"
 
 # ── the keys' names in yazi's own help ───────────────────────────────────────────────────
 case_ "~ lists the desktop's keys with their words"
@@ -551,7 +539,7 @@ quit
 EOF
 )
 has "$out" "Into the folder, or open the file(s)"; has "$out" "Drives: open or eject one"
-has "$out" "Go to the open drives"
+has "$out" "Go to your drives (~/Drives: one per open drive)"
 
 # ── a film: W watches it together ──────────────────────────────────────────────────────
 case_ "W on a film: Syncplay in a terminal window of its own (kawa-term kawa-together FILE)"

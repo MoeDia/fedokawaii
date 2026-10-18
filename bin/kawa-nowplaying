@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# kawa-nowplaying — the middle of the bar: what is playing (spotify_player, mpv, Brave…),
+# kawa-nowplaying — the middle of the bar: what is playing (Spotify, mpv, Brave…),
 # drawn like the front of an old Japanese tape deck:
 #
 #   ▁▃▅▇▅▃▂▁  ⌸  artist — title  ▁▂▃▅▇▅▃▁
@@ -10,7 +10,7 @@
 #   the tape    a cassette whose reels turn while there is sound
 #   paused      a pause icon, the title in grey and no meter; no player → hidden
 #
-# Several players at once (music in spotify_player, a paused video in a Brave tab): the one
+# Several players at once (music in Spotify, a paused video in a Brave tab): the one
 # playing is shown — the last to start, if more than one is — else the last one paused.
 #
 # Two event streams merged into one pipe, nothing polled: playerctl --follow (track and

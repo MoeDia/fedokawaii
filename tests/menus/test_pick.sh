@@ -38,7 +38,7 @@ stamp() { touch "$TMP/stamp"; sleep 0.01; }
 case_ "open one file: Enter on it — its URI, nothing else"
 setup; does "choose alpha.txt"; out=$(portal open 0 0 "$P")
 eq "$out" "$(uri "$P/alpha.txt")"
-called "^yazi open1 $P$"; called "^kawa-float --locked-title open file 100x31 -- $PORTAL_CMD --inside open1 $P "
+called "^yazi open1 $P$"; called "^kawa-float --dialog --locked-title open file 100x31 -- $PORTAL_CMD --inside open1 $P "
 case_ "open one, Enter on a folder: into it (yazi again, there), then the file"
 setup; does "choose gamma dir" "choose gamma dir/inner.txt"; out=$(portal open 0 0 "$P")
 eq "$out" "$(uri "$P/gamma dir/inner.txt")"; called "^yazi open1 $P/gamma dir$"
@@ -46,7 +46,7 @@ case_ "open one, two marked: only the first (an app asking for one file hangs on
 setup; does "choose alpha.txt|beta.txt"; eq "$(portal open 0 0 "$P")" "$(uri "$P/alpha.txt")"
 case_ "open several: every marked file, in order; marked folders left out"
 setup; does "choose beta.txt|gamma dir|alpha.txt"; out=$(portal open 1 0 "$P")
-eq "$out" "$(uri "$P/beta.txt")"$'\n'"$(uri "$P/alpha.txt")"; called "^kawa-float --locked-title open files "
+eq "$out" "$(uri "$P/beta.txt")"$'\n'"$(uri "$P/alpha.txt")"; called "^kawa-float --dialog --locked-title open files "
 case_ "open several, only folders marked: into the first (nothing to hand back yet)"
 setup; does "choose gamma dir|ünï 日本" "choose ünï 日本/ファイル.txt"; out=$(portal open 1 0 "$P")
 eq "$out" "$(uri "$P/ünï 日本/ファイル.txt")" "Japanese and accents, percent-encoded by the portal"
@@ -67,7 +67,7 @@ has "$(cat "$W/screen")" "a name with a line break cannot be passed on"
 # ── folders ───────────────────────────────────────────────────────────────────────────
 case_ "folder: Enter on a folder takes it"
 setup; does "choose gamma dir"; eq "$(portal open 0 1 "$P")" "$(uri "$P/gamma dir")"; called "^yazi folder1 $P$"
-called "^kawa-float --locked-title open folder "
+called "^kawa-float --dialog --locked-title open folder "
 case_ "folder: q takes the folder you are in"
 setup; does "q gamma dir"; eq "$(portal open 0 1 "$P")" "$(uri "$P/gamma dir")"
 case_ "folder: Enter on a file takes the folder it is in"
@@ -83,7 +83,7 @@ case_ "save: the stand-in under the suggested name, in the dialog's words; Enter
 setup; stamp; does "choose report.pdf"; out=$(portal save "$P" report.pdf)
 eq "$out" "made $P/report.pdf"$'\n'"$(uri "$P/report.pdf")"
 has "$(head -n1 "$P/report.pdf")" "the file being saved" "kawa-pick's note replaces the portal's instructions"
-called "^yazi save $P/report.pdf$"; called "^kawa-float --locked-title save file "
+called "^yazi save $P/report.pdf$"; called "^kawa-float --dialog --locked-title save file "
 eq "$(left)" "$P/report.pdf" "nothing else made"
 case_ "save under a name that is taken: report (1).pdf beside it (the portal's report.pdf_ renamed)"
 setup; echo "mine" >"$P/report.pdf"; stamp; does "choose report (1).pdf"; out=$(portal save "$P" report.pdf)
@@ -153,7 +153,7 @@ has "$(cat "$W/yazi-config")" "./plugins/kawa-pick.yazi -> $HOME/.config/fedokaw
 has "$(cat "$W/yazi-config")" "./theme.toml -> $HOME/.config/yazi/theme.toml"
 has "$(cat "$W/yazi-config")" "./init.lua -> $HOME/.config/yazi/init.lua"
 has "$(cat "$W/yazi-config")" "./plugins/drives.yazi -> $HOME/.config/yazi/plugins/drives.yazi"
-case_ "the dialog's keymap parses (TOML) and binds Enter and Esc to its plugin, M and g m to the drives"
+case_ "the dialog's keymap parses (TOML) and binds Enter and Esc to its plugin, M to the drives and g d to ~/Drives"
 out=$(python3 -I - "$HOME/.config/fedokawaii/yazi-pick/keymap.toml" <<'PY'
 import sys, tomllib
 k = tomllib.load(open(sys.argv[1], "rb"))["mgr"]["prepend_keymap"]
@@ -163,7 +163,7 @@ for b in k:
 PY
 )
 has "$out" "<Enter> = plugin kawa-pick"; has "$out" "<Esc> = plugin kawa-pick -- esc"
-has "$out" "M = plugin drives"; has "$out" "g m = plugin drives -- media"
+has "$out" "M = plugin drives"; has "$out" "g d = cd ~/Drives"
 [[ -f $HOME/.config/fedokawaii/yazi-pick/kawa-pick.yazi/main.lua && -f $HOME/.config/yazi/plugins/drives.yazi/main.lua ]] \
   && _ok || _no "a plugin the keymap names is missing"
 case_ "nothing left behind: no work folder in the runtime folder"
@@ -172,10 +172,10 @@ case_ "yazi missing: a critical notice, exit 1 (the portal: an error, the stand-
 setup; p=$(without yazi); stamp
 out=$(PATH="$p" python3 -I "$MD/portal.py" save "$P" report.pdf 2>/dev/null)
 has "$out" "error"; eq "$(left)" ""
-called 'notify-send -a desktop -u critical File picker yazi is missing — run update or repair'
+called 'notify-send -a desktop -u critical file picker yazi is missing — fedokawaii repair puts it back'
 case_ "no terminal window could open: a critical notice, cancelled"
 setup; : >"$W/no-terminal"; eq "$(portal open 0 0 "$P")" cancelled
-called 'notify-send -a desktop -u critical File picker no terminal window opened'
+called 'notify-send -a desktop -u critical file picker no terminal window opened'
 case_ "the portal's debug flag (1): a trace on stderr"
 setup; does esc; PORTAL_DEBUG=1 portal open 0 0 "$P" >/dev/null; has "$(cat "$TMP/stderr")" "+ "
 case_ "--help: what it is, exit 0; called wrongly: the usage, exit 2"

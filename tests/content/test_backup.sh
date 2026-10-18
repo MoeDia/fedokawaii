@@ -15,7 +15,7 @@
 RESTIC=$(command -v restic 2>/dev/null)
 
 setup() {   # setup [plugged|closed|unplugged] — a fresh home; KINGSTON in that state (plugged)
-  sandbox; unset TEST_BACKUP_TARGET; toolkit BACKUP_TARGET=KINGSTON
+  sandbox; toolkit BACKUP_TARGET=KINGSTON
   config .config/fedokawaii/env .config/fedokawaii/backup-exclude   # (env: BACKUP_TARGET="", from before)
   W=$TMP/world; mkdir -p "$W"; export W
   DRIVE=$W/media/KINGSTON; mkdir -p "$DRIVE"; export DRIVE
@@ -56,16 +56,13 @@ eq "$(kawa-backup status)" never
 record 0; eq "$(kawa-backup status)" today; record 1; eq "$(kawa-backup status)" yesterday; record 12; eq "$(kawa-backup status)" "12 days ago"
 printf 'garbage\n' >"$HOME/$REC"; eq "$(kawa-backup status)" never "a corrupt record reads as none"
 toolkit BACKUP_TARGET=""; eq "$(kawa-backup status)" "not set up"
-rm -rf "$KAWA_TOOLKIT" "$HOME/.config/fedokawaii/env"; eq "$(kawa-backup status 2>&1)" "not set up" "no toolkit, no env: not set up, no error"
+case_ "no toolkit (its one place for the settings): said, exit 1"
+rm -rf "$KAWA_TOOLKIT"; rc 1 kawa-backup status; has "$(kawa-backup status 2>&1)" "cannot read the toolkit"
 
-case_ "BACKUP_TARGET counts as soon as settings saves it: read from the toolkit's fedokawaii.conf, not the theme's older env"
-setup; has "$(cat "$HOME/.config/fedokawaii/env")" 'BACKUP_TARGET=""' "env, as the theme wrote it before the drive was named"
+case_ "BACKUP_TARGET counts as soon as settings saves it: read from the toolkit's fedokawaii.conf, its one place"
+setup; lacks "$(cat "$HOME/.config/fedokawaii/env")" 'BACKUP_' "the theme's env holds no copy"
 eq "$(kawa-backup target)" KINGSTON; eq "$(kawa-backup where)" "$DRIVE/fedokawaii-backup"; eq "$(kawa-backup status)" never
 conf_set BACKUP_TARGET "" "$KAWA_TOOLKIT/fedokawaii.conf"; eq "$(kawa-backup target)" ""; eq "$(kawa-backup status)" "not set up" "taken out: at once too"
-setup; TEST_BACKUP_TARGET=OLD config .config/fedokawaii/env; eq "$(kawa-backup target)" KINGSTON "the toolkit's value wins over env's"
-case_ "…env only where the toolkit cannot be read (before setup made it); none in either: none"
-rm -rf "$KAWA_TOOLKIT"; eq "$(kawa-backup target)" OLD
-TEST_BACKUP_TARGET="" config .config/fedokawaii/env; eq "$(kawa-backup target)" ""
 case_ "a toolkit fedokawaii.conf from before the backup settings: none yet, no error"
 setup; sed -i '/^BACKUP_/d' "$KAWA_TOOLKIT/fedokawaii.conf"; eq "$(kawa-backup status 2>&1)" "not set up"
 case_ "a value against its rule (the file edited by hand, as root): said with its rule and where to put it right — never run"

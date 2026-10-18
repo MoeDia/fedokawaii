@@ -13,7 +13,7 @@
 @define-color accent           #d0583a;
 @define-color accent-hi        #e8876d;
 @define-color accent-lo        #8a2f1c;
-@define-color strong-on-accent #ece3cc;
+@define-color strong-on-accent #0f0e0c;
 @define-color accent-text      #d15b3d;
 @define-color lit              #cfc3a6;
 @define-color lit-text         #0f0e0c;
@@ -21,3 +21,4 @@
 @define-color lit-lo           #8a8170;
 @define-color urgent           #7fb8b0;
 @define-color urgent-text      #0f0e0c;
+@define-color hairline         #53452a;

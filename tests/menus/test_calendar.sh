@@ -15,20 +15,21 @@ setup() {
 exec /bin/date -d "$NOW 13:00" "$@"'
 }
 cal() { kawa-calendar; }
-grid() { fz_rows "${1:-}" | sed -n '2,/previous$/p' | sed '$d'; }     # the week rows of menu N
+grid() { fz_rows "${1:-}" | sed -n '3,/previous$/p' | sed '$d' | sed '/^$/d'; }     # the week rows of menu N
 W() { fz_arg width "${1:-}"; }
 
 # ── a month ───────────────────────────────────────────────────────────────────────────
 case_ "October 2026, today Friday the 16th: the grid, today bracketed and selected, a dropdown"
 setup 2026-10-16; answer esc; cal; rc 0 true
-eq "$(fz_rows | sed -n 1p | sed 's/^ *//')" "Mo  Tu  We  Th  Fr  Sa  Su"
+eq "$(fz_rows | sed -n 2p | sed 's/^ *//')" "Mo  Tu  We  Th  Fr  Sa  Su"
 eq "$(grid | sed 's/^ *//; s/  */ /g')" $'1 2 3 4\n5 6 7 8 9 10 11\n12 13 14 15 [16] 17 18\n19 20 21 22 23 24 25\n26 27 28 29 30 31'
-eq "$(fz_arg select-index)" 3 "today's week selected"
-eq "$(fz_arg anchor)" top-right; eq "$(fz_arg lines)" 10
+eq "$(fz_arg select-index)" 4 "today's week selected"
+eq "$(fz_rows | sed -n 1p)" "" "an empty row under the month, as under every menu's title"
+eq "$(fz_arg anchor)" top-right; eq "$(fz_arg lines)" 12
 lacks "$(fz_rows)" "back to today" "this month: no way back needed"
 fits
 case_ "the days sit under their weekday's name (each column 4 wide)"
-h=$(fz_rows | sed -n 1p); r=$(fz_rows | grep -F '[16]'); r2=$(fz_rows | grep -F ' 23 ')
+h=$(fz_rows | sed -n 2p); r=$(fz_rows | grep -F '[16]'); r2=$(fz_rows | grep -F ' 23 ')
 eq "$(awk -v s="$h" 'BEGIN{print index(s, "Fr")}')" "$(awk -v s="$r" 'BEGIN{print index(s, "16")}')" "16 right under Fr"
 eq "$(awk -v s="$h" 'BEGIN{print index(s, "Fr")}')" "$(awk -v s="$r2" 'BEGIN{print index(s, "23")}')" "23 too"
 case_ "the title: the month short and in English, centred over the grid to the column"
@@ -49,7 +50,7 @@ done
 case_ "today a Sunday at the end of a week row (Oct 18 2026): the row has its closing bracket"
 setup 2026-10-18; answer esc; cal
 r=$(fz_rows | grep -F '[18]'); eq "${r: -4}" "[18]"
-(( $(cols "$r") <= $(W) - 1 )) && _ok || _no "the [18] row is $(cols "$r") columns: fuzzel cuts it to '[18…' at width $(W)"
+(( $(printf "%s\n" "$r" | python3 -I "$MD/cols.py" --px) <= $(W) * 6 - 10 )) && _ok || _no "the [18] row is $(cols "$r") columns: fuzzel cuts it to '[18…' at width $(W)"
 case_ "today the 1st and a Monday (Feb 1 2027): the marker first in its row"
 setup 2027-02-01; answer esc; cal
 eq "$(grid | sed -n 1p | sed 's/^ *//')" "[ 1]  2   3   4   5   6   7"
@@ -61,17 +62,17 @@ case_ "February in a leap year (2028): 29 days"
 setup 2028-02-10; answer esc; cal; eq "$(lastday)" 29; eq "$(fz_arg mesg | sed 's/^ *//')" "Feb 2028"
 case_ "February in a plain year (2026): 28 days, starting on a Sunday: alone in its first row"
 setup 2026-02-10; answer esc; cal; eq "$(lastday)" 28
-eq "$(grid | sed -n 1p | sed 's/^ *//')" "1" ; eq "$(grid | sed -n 1p | awk '{print length}')" "$(fz_rows | sed -n 1p | awk '{print length}')" "under Su"
+eq "$(grid | sed -n 1p | sed 's/^ *//')" "1" ; eq "$(grid | sed -n 1p | awk '{print length}')" "$(fz_rows | sed -n 2p | awk '{print length}')" "under Su"
 eq "$(weeks)" 5
 case_ "February 2027 starts on a Monday: exactly four rows"
 setup 2027-02-10; answer esc; cal; eq "$(weeks)" 4; eq "$(lastday)" 28
 case_ "February 2100 (not a leap year) and 2000 (a leap year)"
 setup 2100-02-03; answer esc; cal; eq "$(lastday)" 28
 setup 2000-02-03; answer esc; cal; eq "$(lastday)" 29
-case_ "a six-week month (March 2026: the 1st a Sunday, 31 days), paged to: still fits 10 lines"
+case_ "a six-week month (March 2026: the 1st a Sunday, 31 days), paged to: still fits 12 lines"
 setup 2026-02-10; answer "pick next" esc; cal
 eq "$(fz_arg mesg 2 | sed 's/^ *//')" "Mar 2026"; eq "$(weeks 2)" 6; eq "$(lastday 2)" 31
-eq "$(fz_rows 2 | wc -l)" 10 "header, 6 weeks, previous, next, back to today"
+eq "$(fz_rows 2 | wc -l)" 12 "an empty row, the header, 6 weeks, an empty row, previous, next, back to today"
 fits 2
 case_ "a six-week month as this month (August 2026: the 1st a Saturday)"
 setup 2026-08-20; answer esc; cal; eq "$(weeks)" 6; eq "$(lastday)" 31; fits
@@ -101,7 +102,7 @@ answer esc; cal
 eq "$(fz_arg mesg | sed 's/^ *//')" "Oct 2026"; has "$(grid)" "[31]"; lacks "$(grid)" "[ 1]"
 case_ "back to today: this month again, today selected, the way back gone"
 setup 2026-10-16; answer "pick next" "pick next" "pick back to today" esc; cal
-eq "$(fz_arg mesg 4 | sed 's/^ *//')" "Oct 2026"; eq "$(fz_arg select-index 4)" 3; lacks "$(fz_rows 4)" "back to today"
+eq "$(fz_arg mesg 4 | sed 's/^ *//')" "Oct 2026"; eq "$(fz_arg select-index 4)" 4; lacks "$(fz_rows 4)" "back to today"
 has "$(fz_rows 2)" "back to today"
 case_ "a day row, Esc, a click outside, typed text: closes, exit 0"
 for a in "row 3" esc lost "typed 12"; do setup; answer "$a"; rc 0 cal; eq "$(fz_n)" 1; done
@@ -115,7 +116,7 @@ eq "$(fz_arg mesg 25 | sed 's/^ *//')" "Oct 2024"
 case_ "Turkish, Arabic, Japanese, German locales: the month and days stay English"
 for loc in tr_TR.UTF-8 ar_EG.UTF-8 ja_JP.UTF-8 de_DE.UTF-8; do
   setup 2026-05-16; answer esc; env "$(locale_ "$loc")" LC_ALL="$loc" kawa-calendar 2>/dev/null
-  eq "$(fz_arg mesg | sed 's/^ *//')" "May 2026" "$loc"; has "$(fz_rows | sed -n 1p)" "Mo  Tu" "$loc"
+  eq "$(fz_arg mesg | sed 's/^ *//')" "May 2026" "$loc"; has "$(fz_rows | sed -n 2p)" "Mo  Tu" "$loc"
   has "$(fz_rows)" "[16]" "$loc"; fits "" "$loc"
 done
 case_ "LC_TIME alone set to Arabic (LANG English): still English"

@@ -56,7 +56,7 @@ local PICK = {
 }
 local pick = PICK[os.getenv("KAWA_PICK") or ""]
 if pick then
-	local ICON = "\243\190\128\178" -- Sumi Icons: folder (U+FE032), as in icons.sh
+	local ICON = "\243\190\128\177" -- Sumi Icons: folder (U+FE031), as in icons.sh
 	Header:children_remove(1, Header.LEFT) -- the bare path
 	Header:children_add(function(self)
 		local room = self._area.w - 1 - (self._right_width or 0)

@@ -7,7 +7,7 @@
 # checks. Pure: no fake machine.
 FK_PURE=1 . "$(dirname "$0")/lib.sh"
 sandbox
-m() { ( STATE_DIR=$TMP/state; STEAM=${STEAM:-yes}; . "$REPO/lib/manifest.sh"; eval "$1" ); }
+m() { ( STATE_DIR=$TMP/state; STEAM=${STEAM:-yes} SPOTIFY=${SPOTIFY:-yes}; . "$REPO/lib/manifest.sh"; eval "$1" ); }
 all() { m "manifest_all ${1:-amd}"; }
 
 case_ "every list parses; the manifest for AMD and for Intel"
@@ -16,7 +16,23 @@ a=$(all amd); i=$(all intel)
 has "$a" lact; lacks "$i" lact; has "$i" intel-media-driver
 has "$a" mesa-vulkan-drivers; has "$i" mesa-vulkan-drivers; lacks "$a" mesa-vulkan-drivers-freeworld   # Vulkan: Fedora's own
 has "$a" rocm-smi; lacks "$i" rocm-smi                      # btop's view of an AMD card
-for p in visidata sc-im gdu; do has "$a" "$p"; has "$i" "$p"; done   # the terminal's tables and disk usage
+for p in visidata gdu; do has "$a" "$p"; has "$i" "$p"; done   # the terminal's tables and disk usage
+
+case_ "office is LibreOffice — Writer, Calc, Impress, drawn by GTK 3, English and Arabic spelling — and nothing more of it"
+for p in libreoffice-writer libreoffice-calc libreoffice-impress libreoffice-gtk3 hunspell-en hunspell-ar; do
+  grep -qx "$p" <<<"$a" || _no "$p not in the manifest"
+done; _ok
+eq "$(grep -E '^libreoffice' <<<"$a" | sort | tr '\n' ' ')" "libreoffice-calc libreoffice-gtk3 libreoffice-impress libreoffice-writer " "no other part of the suite"
+case_ "AbiWord, Gnumeric and sc-im: forbidden (update removes them) and handed back to dnf"
+f=$(m 'printf "%s\n" "${FORBIDDEN_PKGS[@]}"'); r=$(m 'printf "%s\n" "${RETIRED_PKGS[@]}"')
+for p in abiword gnumeric sc-im; do grep -qx "$p" <<<"$f" && grep -qx "$p" <<<"$r" && _ok || _no "$p not forbidden and retired"; done
+case_ "Spotify: its recipe in the manifest; the package lpf builds from it counted apart (no repository has it)"
+grep -qx lpf-spotify-client <<<"$a" && _ok || _no "lpf-spotify-client not in the manifest"
+eq "$(m 'echo "${LPF_BUILT[*]}"')" spotify-client
+grep -qx spotify-client <<<"$a" && _no "spotify-client in manifest_all: update would look for it in the repositories" || _ok
+case_ "SPOTIFY=no (its terms not accepted): the recipe out of the manifest; yes: in"
+SPOTIFY=no; lacks "$(all amd)" lpf-spotify-client; has "$(all amd)" mpv; SPOTIFY=yes
+grep -qx lpf-spotify-client <<<"$(all amd)" && _ok || _no "SPOTIFY=yes without the recipe"
 
 case_ "no package listed twice"
 eq "$(all amd | sort | uniq -d)" "" "twice in the AMD manifest"

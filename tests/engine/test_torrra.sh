@@ -24,10 +24,10 @@ fresh() {
   *is-active*) [ -e "'"$TMP"'/active" ]; exit $? ;;
   *"show -p LoadState"*) [ -e "'"$TMP"'/no-unit" ] && echo not-found || echo loaded ;;
   *" start "*) [ -e "'"$TMP"'/start-fails" ] && { echo "Job for prowlarr.service failed." >&2; exit 1; }; : >"'"$TMP"'/active" ;;
-  *" stop "*) rm -f "'"$TMP"'/active" ;;
+  *" stop "*prowlarr.service*) rm -f "'"$TMP"'/active" ;;
 esac'
   stub ss                                     # (port 9696 free)
-  stub wl-copy; stub setsid
+  stub wl-copy; stub setsid; stub systemd-run; stub xdg-open
   cp "$REPO/system/kawa-torrra" "$STUBS/kawa-torrra"      # (a copy, as setup installs it: never a link into the repository)
   CFG=$HOME/.config/torrra/config.toml
 }
@@ -47,11 +47,15 @@ lacks "$(cat "$CFG")" "api_key"
 eq "$(seen "$out" env_key)" "None" "the key is not left in torrra's environment"
 case_ "…its settings put right for this desktop: Prowlarr's address, the default, the colours"
 eq "$(seen "$out" url)" "http://127.0.0.1:9696"; eq "$(seen "$out" default)" prowlarr; eq "$(seen "$out" theme)" ansi-dark
-case_ "…and Prowlarr stopped again afterwards (it was not running before)"
-called '^systemctl --user stop --no-block prowlarr.service'
+case_ "…and Prowlarr left to sleep 30 minutes after the window closes (a second search soon after finds it awake)"
+called '^systemd-run --user --quiet --unit=prowlarr-idle --on-active=30min --timer-property=AccuracySec=30s systemctl --user stop prowlarr.service$'
+not_called 'stop --no-block prowlarr.service'
 case_ "Prowlarr already running (the web page open): used, left running"
 fresh; : >"$TMP/active"
-kawa-torrra >/dev/null 2>&1; not_called ' start '; not_called ' stop '
+kawa-torrra >/dev/null 2>&1; not_called ' start prowlarr'; not_called '^systemctl --user stop prowlarr.service'; called 'systemd-run .*--on-active=30min'
+case_ "a search while its sleep is planned: the sleep called off, then planned anew when the window closes"
+fresh; : >"$TMP/active"; kawa-torrra >/dev/null 2>&1
+eq "$(grep -n 'stop prowlarr-idle.timer\|systemd-run' "$CALLS" | cut -d: -f2- | cut -c1-40 | tr '\n' '|')" "systemctl --user stop prowlarr-idle.time|systemctl --user stop prowlarr-idle.time|systemd-run --user --quiet --unit=prowla|"
 case_ "the key from the environment wins; secrets.sh then not even read"
 fresh; chmod 644 "$HOME/.config/fedokawaii/secrets.sh"
 out=$(PROWLARR_API_KEY=ffffffffffffffffffffffffffffffff kawa-torrra 2>&1); eq "$?" 0
@@ -99,15 +103,15 @@ out=$(kawa-torrra 2>&1); eq "$?" 0; lacks "$out" "unbound variable"; eq "$(seen 
 case_ "Prowlarr not answering: said, with where to look"
 fresh; export FAKE_PROWLARR=down
 out=$(kawa-torrra 2>&1); eq "$?" 1; has "$out" "Prowlarr is not answering on 127.0.0.1:9696"
-called ' stop --no-block' "stopped again"
+called 'systemd-run .*--on-active=30min' "left to sleep 30 minutes later"
 case_ "Prowlarr too slow to answer (the 5 s timeout): said the same way"
 FAKE_PROWLARR=slow; out=$(kawa-torrra 2>&1); eq "$?" 1; has "$out" "not answering"
 case_ "Prowlarr refusing the key (401): which command hands it the key again"
 FAKE_PROWLARR=401; out=$(kawa-torrra 2>&1); eq "$?" 1; has "$out" "refused the key"; has "$out" "fedokawaii update"
 case_ "Prowlarr failing (HTTP 500): its log named"
 FAKE_PROWLARR=500; out=$(kawa-torrra 2>&1); eq "$?" 1; has "$out" "Prowlarr answered HTTP 500"
-case_ "Prowlarr with no indexers yet (its first start): where to add one"
-FAKE_PROWLARR=noindexers; out=$(kawa-torrra 2>&1); eq "$?" 1; has "$out" "no indexers yet"; has "$out" "http://localhost:9696"
+case_ "Prowlarr with no indexers switched on: repair adds the usual ones, or its page"
+FAKE_PROWLARR=noindexers; out=$(kawa-torrra 2>&1); eq "$?" 1; has "$out" "no indexers switched on"; has "$out" "fedokawaii repair"
 case_ "Prowlarr's container failing to start: said, and nothing left starting"
 fresh; : >"$TMP/start-fails"
 out=$(kawa-torrra 2>&1); eq "$?" 1; has "$out" "Prowlarr did not start"; has "$out" "journalctl --user -u prowlarr"
@@ -118,12 +122,12 @@ out=$(kawa-torrra 2>&1); eq "$?" 1; has "$out" "Prowlarr is not set up here"; ha
 case_ "port 9696 taken by another program: said, before anything is started"
 fresh; stub ss 'echo "LISTEN 0 4096 127.0.0.1:9696 0.0.0.0:*"'
 out=$(kawa-torrra 2>&1); eq "$?" 1; has "$out" "port 9696"; has "$out" "another program"; not_called ' start '
-case_ "the window closed (HUP) or Ctrl+C while Prowlarr starts: it is stopped again"
+case_ "the window closed (HUP) or Ctrl+C while Prowlarr starts: its sleep is planned all the same"
 for sig in HUP INT; do
-  fresh; stub systemctl 'case "$*" in *is-active*) exit 3 ;; *LoadState*) echo loaded ;; *" start "*) kill -'"$sig"' $PPID; sleep 0.3 ;; esac'
+  fresh; stub systemctl 'case "$*" in *is-active*) echo activating; exit 3 ;; *LoadState*) echo loaded ;; *" start "*) kill -'"$sig"' $(ps -o ppid= -p $PPID); sleep 0.3 ;; esac'   # (kawa-torrra: kawa-prowlarr starts it
   kawa-torrra >/dev/null 2>&1; r=$?
   [[ $r == 129 || $r == 130 ]] && _ok || _no "$sig: exit $r"
-  called ' stop --no-block prowlarr.service'
+  called 'systemd-run .*--on-active=30min'
 done
 case_ "the first start's wait is explained (it can take a minute or two)"
 fresh; has "$(kawa-torrra 2>&1)" "first start"
@@ -170,7 +174,7 @@ fresh; chmod 644 "$HOME/.config/fedokawaii/secrets.sh"; reset_calls
 kawa-torrra --open >/dev/null 2>&1; called '^notify-send -u critical -a torrra torrra .*chmod 600'
 reset_calls; kawa-torrra >/dev/null 2>&1; not_called notify-send
 case_ "Prowlarr's trouble from the launcher: a notice as well"
-fresh; export FAKE_PROWLARR=noindexers; kawa-torrra --open >/dev/null 2>&1; called '^notify-send -u critical -a torrra torrra Prowlarr has no indexers'
+fresh; export FAKE_PROWLARR=noindexers; kawa-torrra --open >/dev/null 2>&1; called '^notify-send -u critical -a torrra torrra Prowlarr has no indexers switched on'
 
 # ── one torrra at a time ─────────────────────────────────────────────────────
 hold() { ( exec 8>"$XDG_RUNTIME_DIR/kawa-torrra.lock"; flock 8; exec sleep 30 ) >/dev/null 2>&1 & holder=$!

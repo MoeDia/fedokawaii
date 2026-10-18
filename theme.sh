@@ -10,17 +10,19 @@
 #    sudo bash theme.sh --user NAME   as root, for that user (default: USERNAME in
 #                                     fedokawaii.conf, else whoever ran sudo)
 #    bash theme.sh --check            list files that differ from the repo; exit 3 if any
-#                                     (4: in sync, but an optional part — the boot menu,
-#                                     kawa-veil, kawa-clipkeep — could not be made here)
+#                                     (4: in sync, but the boot menu and console could not
+#                                     be made here — the one part that runs contained)
 #
 #  configs/home/   mirrors $HOME   →  copied as-is (tokens @HOME@ etc. rendered; fonts
-#                                     copied byte for byte); *.xpm pixel art is also
-#                                     drawn to .png beside it
+#                                     and pointers copied byte for byte; the pointers'
+#                                     other names made links, from art/cursor-names.txt)
+#  pointers        Sumi-dark/light →  /usr/share/icons; ~/.local/share/icons/default links to
+#                                     the one of the theme in use (kawa-theme keeps it so)
 #  themes          dark + light    →  ~/.config/fedokawaii/current links to the one in
 #                                     use (THEME in fedokawaii.conf on a new install;
 #                                     afterwards whatever kawa-theme last chose)
-#  wallpaper pack                  →  fetched once and redrawn as pixel art (WALLPAPER_PACK)
-#  configs/system/ mirrors /       →  /etc/dconf (GTK defaults, root)
+#  wallpaper pack                  →  fetched once, kept as it came (WALLPAPER_PACK)
+#  configs/system/ mirrors /       →  /etc/dconf (GTK and LibreOffice defaults, root)
 #  bin/*                           →  ~/.local/bin (menus, bar helpers, fetch)
 #  src/dwl/config.h + dwl.patch    →  ~/.local/src/dwl, dwl rebuilt only if it changed
 #  boot + console                  →  the GRUB menu's pixel theme, the text console's 16
@@ -122,7 +124,6 @@ CHEVRON=$(. "$REPO_DIR/configs/home/.config/fedokawaii/icons.sh" && printf '%s' 
 render() {      # render SRC → stdout, with fedokawaii.conf values (and the chevron) filled in
   sed -e "s|@HOME@|$TARGET_HOME|g" -e "s|@MONITOR_HZ@|$MONITOR_HZ|g" \
       -e "s|@WEATHER_CITY@|$WEATHER_CITY|g" -e "s|@NIGHT_LIGHT@|$NIGHT_LIGHT|g" \
-      -e "s|@BACKUP_TARGET@|$BACKUP_TARGET|g" -e "s|@BACKUP_REMIND_DAYS@|$BACKUP_REMIND_DAYS|g" \
       -e "s|@ICON_CHEVRON_RIGHT@|$CHEVRON|g" -e "s|^@MPV_SCALING@\$|$MPV_SCALING|" -e "s|@UID@|$TARGET_UID|g" "$1"
 }
 
@@ -163,7 +164,8 @@ place() {
 # ── 1. home tree ─────────────────────────────────────────────────────────────
 while IFS= read -r -d '' f; do
   rel=${f#"$REPO_DIR/configs/home/"}
-  [[ $STEAM != yes && $rel == .config/MangoHud/* ]] && continue    # the game overlay: with Steam only
+  [[ $STEAM != yes && ( $rel == .config/MangoHud/* || $rel == .local/share/applications/steam.desktop ) ]] && continue   # the game overlay, Steam's entry: with Steam only
+  set_aside "$rel" "$f" && continue        # repair took it out (it broke something): until it changes
   place "$f" "$TARGET_HOME/$rel" user
 done < <(find "$REPO_DIR/configs/home" -type f -print0 | sort -z)
 # the user units among them (the session target, the reminder): systemd --user reads them again
@@ -175,7 +177,7 @@ for f in "$REPO_DIR"/bin/*; do place "$f" "$TARGET_HOME/.local/bin/${f##*/}" use
 # ── 2b. the theme link, and the configs that are links into it ───────────────
 # ~/.config/fedokawaii/current → themes/dark or themes/light. It is created once (from
 # THEME in fedokawaii.conf) and then belongs to kawa-theme: re-running this script
-# keeps whichever theme you switched to. Four apps have no include mechanism, so their
+# keeps whichever theme you switched to. Three apps have no include mechanism, so their
 # whole config file is a link into the current theme; btop reads a colour theme only by
 # name from its own themes folder, so "fedokawaii" there is a link too.
 CUR=$TARGET_HOME/.config/fedokawaii/current
@@ -196,7 +198,6 @@ if [[ ! -L $CUR || ! -d $CUR ]]; then                     # missing or broken: s
 fi
 LINKS=("../fedokawaii/current/qt6ct.conf:.config/qt6ct/qt6ct.conf"
        "../fedokawaii/current/imv:.config/imv/config"
-       "../fedokawaii/current/presenterm.yaml:.config/presenterm/config.yaml"
        "../fedokawaii/current/wiremix.toml:.config/wiremix/wiremix.toml"
        "../../fedokawaii/current/btop.theme:.config/btop/themes/fedokawaii.theme")
 for l in "${LINKS[@]}"; do
@@ -214,52 +215,36 @@ for l in "${LINKS[@]}"; do
   CHANGED+=("$link → $target")
 done
 
-# files an earlier version installed that would now get in the way: moved to the backup,
-# but only while they are still ours (their content says so)
-#   ~/.config/gtk-3.0/gtk.css — GTK 3 colours now live in the Fedokawaii themes; the old
-#   file would pin one palette over both
+# files an earlier version installed that would now get in the way, or that belong to programs
+# the desktop no longer has: moved to the backup (their folder too, once empty), but only
+# while they are still ours — a file's content says so, or a link's target
 retire() {   # retire FILE PATTERN
   local f=$TARGET_HOME/$1
-  [[ -f $f && ! -L $f ]] && grep -q -- "$2" "$f" || return 0
+  if [[ -L $f ]]; then [[ $(readlink "$f") == *"$2"* ]] || return 0
+  else [[ -f $f ]] && grep -q -- "$2" "$f" || return 0; fi
   TOTAL=$((TOTAL + 1))
   if ((CHECK)); then DRIFT+=("$f (no longer used)"); return 0; fi
   U mkdir -p "$(dirname "$BACKUP/$1")"
   U cp -P -- "$f" "$BACKUP/$1" && U rm -f -- "$f"
+  U rmdir --ignore-fail-on-non-empty -- "$(dirname "$f")"
   CHANGED+=("$f (retired)")
 }
+#   ~/.config/gtk-3.0/gtk.css — GTK 3 colours now live in the Fedokawaii themes; the old
+#   file would pin one palette over both
 retire .config/gtk-3.0/gtk.css 'current/gtk3.css'
 #   ~/.bashrc.d/scriptorium.sh — this project's old name: a second prompt and its aliases
 retire .bashrc.d/scriptorium.sh 'scriptorium'
+#   presenterm, sc-im and spotify_player — slides, sheets and Spotify are LibreOffice's and
+#   Spotify's own app now: presenterm's link into the theme, the others' settings
+retire .config/presenterm/config.yaml 'fedokawaii/current/'
+retire .config/sc-im/scimrc 'sc-im'
+retire .config/spotify-player/app.toml 'spotify_player'
+retire .config/spotify-player/theme.toml 'spotify_player'
+#   ~/.local/share/icons/default/index.theme — made the old pointers (Fedokawaii) the default;
+#   the folder is now a link to the Sumi pointers of the theme in use (2c)
+retire .local/share/icons/default/index.theme 'Inherits=Fedokawaii'
 
-# ── 2c. the pointers' other names ────────────────────────────────────────────
-# The pointer theme (~/.local/share/icons/Fedokawaii, tools/build-cursors.py) draws each
-# shape once, under its standard name; programs also ask by older X11 names (left_ptr,
-# hand2, xterm…), which are links to it here. Names not drawn come from Adwaita.
-CURSORS=$TARGET_HOME/.local/share/icons/Fedokawaii/cursors
-CURSOR_LINKS=(
-  "default:left_ptr arrow top_left_arrow left_arrow"
-  "pointer:hand2 hand1 hand pointing_hand 9d800788f1b08800ae810202380a0822 e29285e634086352946a0e7090d73106"
-  "text:xterm ibeam"
-  "wait:watch"
-  "progress:left_ptr_watch half-busy 00000000000000020006000e7e9ffc3f 08e8e1c95fe2fc01f976f1e063a24ccd 3ecb610c1bf2410f44200f48c40d3599"
-  "crosshair:cross tcross cross_reverse diamond_cross"
-  "move:fleur all-scroll size_all"
-  "not-allowed:crossed_circle forbidden no-drop circle 03b6e0fcb3499374a867c041f52298f0"
-  "ns-resize:n-resize s-resize row-resize sb_v_double_arrow v_double_arrow top_side bottom_side size_ver 00008160000006810000408080010102"
-  "ew-resize:e-resize w-resize col-resize sb_h_double_arrow h_double_arrow left_side right_side size_hor 028006030e0e7ebffc7f7070c0600140"
-  "nwse-resize:nw-resize se-resize size_fdiag bd_double_arrow top_left_corner bottom_right_corner c7088f0f3e6c8088236ef8e1e3e70000"
-  "nesw-resize:ne-resize sw-resize size_bdiag fd_double_arrow top_right_corner bottom_left_corner fcf1c3c7cd4491d801f1e1c78f100000")
-for l in "${CURSOR_LINKS[@]}"; do
-  IFS=' ' read -ra names <<<"${l#*:}"
-  for name in "${names[@]}"; do
-    TOTAL=$((TOTAL + 1))
-    [[ $(readlink "$CURSORS/$name" 2>/dev/null) == "${l%%:*}" ]] && continue
-    if ((CHECK)); then DRIFT+=("$CURSORS/$name (not a link to ${l%%:*})"); continue; fi
-    U ln -sfn "${l%%:*}" "$CURSORS/$name"; CHANGED+=("$CURSORS/$name → ${l%%:*}")
-  done
-done
-
-# ── 3. system tree (/etc) ────────────────────────────────────────────────────
+# ── 3. system tree (/etc, /usr/share/icons) ──────────────────────────────────
 while IFS= read -r -d '' f; do
   place "$f" "/${f#"$REPO_DIR/configs/system/"}" root
 done < <(find "$REPO_DIR/configs/system" -type f -print0 | sort -z)
@@ -271,6 +256,53 @@ if [[ -e $OLD_DCONF ]]; then
   if ((CHECK)); then DRIFT+=("$OLD_DCONF (the old name's GTK defaults)")
   else R rm -f "$OLD_DCONF"; CHANGED+=("$OLD_DCONF (removed: the old name's GTK defaults)"); fi
 fi
+
+# ── 3a. the pointers ─────────────────────────────────────────────────────────
+# Two pointer themes, Sumi-dark and Sumi-light (/usr/share/icons, for every account and the
+# login screen; tools/build-cursors.py), each drawing every shape once under its standard
+# name — placed with the system tree above. The other names programs ask by (left_ptr,
+# hand2, xterm…) are links beside it, made here from art/cursor-names.txt (the toolkit holds
+# only plain files).
+while IFS=" " read -r name shape <&3; do
+  [[ -z $name || $name == \#* ]] && continue
+  for v in dark light; do
+    link=/usr/share/icons/Sumi-$v/cursors/$name
+    TOTAL=$((TOTAL + 1))
+    [[ $(readlink "$link" 2>/dev/null) == "$shape" ]] && continue
+    if ((CHECK)); then DRIFT+=("$link (not a link to $shape)"); continue; fi
+    R ln -sfn "$shape" "$link"; CHANGED+=("$link → $shape")
+  done
+done 3<"$REPO_DIR/art/cursor-names.txt"
+# ~/.local/share/icons/default → /usr/share/icons/Sumi-dark or Sumi-light: the pointers of
+# whatever asks for "the default" theme — dwl itself, XWayland, and every program
+# start-dwl's XCURSOR_THEME=default sends there. It wears the theme in use (the theme link,
+# made above); kawa-theme re-points it with every switch.
+MODE=$(readlink "$CUR" 2>/dev/null) || MODE=themes/$THEME
+MODE=${MODE%/}; MODE=${MODE##*/}; [[ $MODE == light ]] || MODE=dark
+DEFAULT=$TARGET_HOME/.local/share/icons/default
+TOTAL=$((TOTAL + 1))
+if [[ $(readlink "$DEFAULT" 2>/dev/null) != "/usr/share/icons/Sumi-$MODE" ]]; then
+  if ((CHECK)); then DRIFT+=("$DEFAULT (not a link to /usr/share/icons/Sumi-$MODE)")
+  else
+    # a folder in its place (an earlier version's, its index.theme retired above): kept in
+    # the backup first, should anything of yours be left in it
+    if [[ -d $DEFAULT && ! -L $DEFAULT && -n $(ls -A -- "$DEFAULT") ]]; then
+      U mkdir -p "$(dirname "$BACKUP${DEFAULT#"$TARGET_HOME"}")"
+      U cp -a -- "$DEFAULT" "$BACKUP${DEFAULT#"$TARGET_HOME"}" 2>/dev/null || log "could not keep a copy of $DEFAULT"
+    fi
+    U mkdir -p "${DEFAULT%/*}"
+    U rm -rf -- "$DEFAULT"; U ln -sfn "/usr/share/icons/Sumi-$MODE" "$DEFAULT"; CHANGED+=("$DEFAULT → /usr/share/icons/Sumi-$MODE")
+  fi
+fi
+# the pointers before Sumi (~/.local/share/icons/Fedokawaii, while its index.theme still
+# says so): replaced whole, so they go
+OLD_POINTERS=$TARGET_HOME/.local/share/icons/Fedokawaii
+if [[ -d $OLD_POINTERS && ! -L $OLD_POINTERS ]] && grep -qx 'Name=Fedokawaii' "$OLD_POINTERS/index.theme" 2>/dev/null; then
+  TOTAL=$((TOTAL + 1))
+  if ((CHECK)); then DRIFT+=("$OLD_POINTERS (the pointers before Sumi)")
+  else U rm -rf -- "$OLD_POINTERS"; CHANGED+=("$OLD_POINTERS (removed: the pointers before Sumi)"); fi
+fi
+
 
 # ── 3b + 3c. boot menu, console palette and font ─────────────────────────────
 # The one part of the theme that leans on tools Fedora may change around it (grubby, GRUB,
@@ -314,8 +346,11 @@ boot_and_console() {
   # GRUB gets a pixel theme in the desktop's own language, at the monitor's native
   # resolution: plain sumi ink with a hem of seigaiha waves along the bottom edge, fading
   # upwards in an ordered dither (the grain of the desktop's transitions); the torii above
-  # a quiet box of boot entries in Departure Mono (2×, 3× or 4× its pixel grid: 22, 33 or
-  # 44 px), the chosen entry marked by a vermilion bar, and a thin vermilion line counting down.
+  # a quiet box of boot entries in Fusion Pixel (2×, 3× or 4× its pixel grid: 24, 36 or
+  # 48 px), the chosen entry filled whole in vermilion — the desktop's one sign of what is
+  # active — and a thin vermilion line counting down. Once an entry is chosen, nothing: the
+  # box GRUB keeps for its own messages while it loads the system is drawn invisible (Fedora
+  # prints none), so the screen stays plain until the boot splash takes over.
   # BOOT_MENU_SECONDS=0 keeps Fedora's hidden menu (shown after a failed boot, or by holding
   # Shift or pressing F8 as the machine starts).
   # The text console (login, Ctrl+Alt+F2…F6) gets Terminus bold, larger from 1440p up.
@@ -332,7 +367,7 @@ boot_and_console() {
   }
   MODE=$(native_mode); MH=${MODE#*x}
   GS=$((MH / 720)); ((GS < 2)) && GS=2; ((GS > 4)) && GS=4   # pixel scale: 1080p/1440p ×2, 4K ×3, 5K ×4
-  FS=$((11 * GS))                            # Departure Mono on a whole multiple of its 11 px grid
+  FS=$((12 * GS))                            # Fusion Pixel on a whole multiple of its 12 px grid
   GT=$(mktemp -d)
   # same pixels → same bytes on every run; PNG24/PNG32 below because GRUB reads only 8-bit
   # channels (ImageMagick would otherwise write tiny 1- or 2-bit palette files it rejects)
@@ -341,40 +376,55 @@ boot_and_console() {
   # turned into an 8×8 ordered dither, enlarged ×GS and laid along the bottom
   HW=$(( ${MODE%x*} / GS + 1 )) HH=$((24 * 5))
   magick -size "$MODE" "xc:#$INK_GROUND" \
-    \( -size "${HW}x$HH" "tile:$REPO_DIR/configs/home/.local/share/fedokawaii/dark/pattern.xpm" \
+    \( -size "${HW}x$HH" "tile:$REPO_DIR/art/grub/pattern.xpm" \
        -colorspace gray -auto-level -colorspace sRGB +level-colors "#$INK_GROUND,#$INK_EDGE2" \
        \( -size "${HW}x$HH" gradient:black-white -ordered-dither o8x8 \) \
        -alpha off -compose CopyOpacity -composite -scale "$((GS * 100))%" \) \
     -gravity south -compose over -composite "${PNG[@]}" "PNG24:$GT/background.png"
   magick "$REPO_DIR/art/grub/torii.xpm" -scale "$((GS * 400))%" "${PNG[@]}" "PNG32:$GT/torii.png"
-  for px in "menu_c:$INK_SURFACE" {menu_n,menu_s,menu_e,menu_w,menu_nw,menu_ne,menu_sw,menu_se,select_c}":$INK_EDGE"; do
+  for px in "menu_c:$INK_SURFACE" {menu_n,menu_s,menu_e,menu_w,menu_nw,menu_ne,menu_sw,menu_se}":$INK_EDGE" \
+            "select_c:$INK_ACCENT"; do
     magick -size 1x1 "xc:#${px#*:}" "${PNG[@]}" "PNG24:$GT/${px%%:*}.png"
   done
-  magick -size "$((GS * 2))x1" "xc:#$INK_ACCENT" "${PNG[@]}" "PNG24:$GT/select_w.png"   # the vermilion bar
-  # Departure Mono in GRUB's own bitmap format, made once with the same GRUB version as
-  # Fedora's (grub2-mkfont 2.12 --no-hinting -s N -n Departure -r 0x20-0x7E,0xA0-0xFF,
-  # 0x2010-0x2026, from DepartureMonoNerdFont-Regular.otf); GRUB names it "Departure Regular N"
-  cp "$REPO_DIR/art/grub/departure-$FS.pf2" "$GT/departure.pf2"
-  BW=$((440 * GS)) BH=$((84 * GS))           # the menu box: room for Fedora's long entry names, five tall
+  # the chosen entry's fill reaches 4·GS px past its words either side (GRUB draws a pixmap's
+  # west and east parts outside the entry), as a menu's row does around its text
+  for px in select_w select_e; do magick -size "$((4 * GS))x1" "xc:#$INK_ACCENT" "${PNG[@]}" "PNG24:$GT/$px.png"; done
+  # the countdown, a thin trough under the menu (a 1 px edge round GS px of ground) that the
+  # vermilion fills. GRUB 2.12 makes a progress bar at least 28 px tall, so it is drawn with
+  # pixmaps as tall as its box (14·GS), clear but for the trough at their top
+  PH=$((14 * GS))
+  magick -size "1x$PH" xc:none -fill "#$INK_EDGE" -draw "point 0,0" -draw "point 0,$((GS + 1))" \
+    -fill "#$INK_SURFACE" -draw "rectangle 0,1 0,$GS" "${PNG[@]}" "PNG32:$GT/bar_c.png"
+  magick -size "1x$PH" xc:none -fill "#$INK_EDGE" -draw "rectangle 0,0 0,$((GS + 1))" "${PNG[@]}" "PNG32:$GT/bar_w.png"
+  cp "$GT/bar_w.png" "$GT/bar_e.png"
+  magick -size "1x$PH" xc:none -fill "#$INK_ACCENT" -draw "rectangle 0,1 0,$GS" "${PNG[@]}" "PNG32:$GT/hl_c.png"
+  for px in term_c term_n term_s term_e term_w term_nw term_ne term_sw term_se; do   # the invisible box
+    magick -size 1x1 xc:none "${PNG[@]}" "PNG32:$GT/$px.png"
+  done
+  # Fusion Pixel in GRUB's own bitmap format, made once with the same GRUB version as
+  # Fedora's (grub-mkfont 2.12 --no-hinting -s N -n Fusion -r 0x20-0x7E,0xA0-0xFF,
+  # 0x2010-0x2026, from fusion-pixel-12px-monospaced-ja.ttf); GRUB names it "Fusion Regular N"
+  cp "$REPO_DIR/art/grub/fusion-$FS.pf2" "$GT/fusion.pf2"
+  BW=$((440 * GS)) BH=$((84 * GS))           # the menu box: room for Fedora's entry names (70 letters;
+                                             # setup keeps no rescue entry), five tall
   {
     printf '# /boot/grub2/themes/sumi/theme.txt — written by theme.sh for a %s screen;\n' "$MODE"
     printf '# re-run theme.sh after changing monitors.\n'
     printf 'desktop-image: "background.png"\ndesktop-color: "#%s"\ntitle-text: ""\n' "$INK_GROUND"
-    printf 'terminal-font: "Departure Regular %d"\nterminal-box: "menu_*.png"\n\n' "$FS"
+    printf 'terminal-font: "Fusion Regular %d"\nterminal-box: "term_*.png"\n\n' "$FS"
     printf '+ image {\n    left = 50%%-%d top = 50%%-%d\n    file = "torii.png"\n}\n' \
-      $((20 * GS)) $((BH / 2 + 56 * GS))
+      $((22 * GS)) $((BH / 2 + 60 * GS))   # (44·GS square: 11 pixels × 4·GS; 16·GS above the box)
     printf '+ boot_menu {\n    left = 50%%-%d top = 50%%-%d width = %d height = %d\n' $((BW / 2)) $((BH / 2)) "$BW" "$BH"
     printf '    menu_pixmap_style = "menu_*.png"\n    selected_item_pixmap_style = "select_*.png"\n'
-    printf '    item_font = "Departure Regular %d"\n    selected_item_font = "Departure Regular %d"\n' "$FS" "$FS"
-    printf '    item_color = "#%s"\n    selected_item_color = "#%s"\n' "$INK_TEXT" "$INK_STRONG"
-    printf '    item_height = %d item_padding = %d item_spacing = 0\n' $((16 * GS)) $((6 * GS))
+    printf '    item_font = "Fusion Regular %d"\n    selected_item_font = "Fusion Regular %d"\n' "$FS" "$FS"
+    printf '    item_color = "#%s"\n    selected_item_color = "#%s"\n' "$INK_TEXT" "$INK_STRONG"   # (paper on the vermilion)
+    printf '    item_height = %d item_padding = %d item_spacing = 0\n' $((16 * GS)) $((8 * GS))
     printf '    item_icon_space = 0 icon_width = 0 icon_height = 0\n    scrollbar = false\n}\n'
-    # GRUB fills height − 2 inside a 1 px border: GS px of vermilion inside a hairline
     printf '+ progress_bar {\n    id = "__timeout__"\n    left = 50%%-%d top = 50%%+%d width = %d height = %d\n' \
-      $((BW / 2)) $((BH / 2 + 4 * GS - 1)) "$BW" $((GS + 2))
-    printf '    fg_color = "#%s" bg_color = "#%s" border_color = "#%s"\n}\n' "$INK_ACCENT" "$INK_SURFACE" "$INK_EDGE"
-    printf '+ label {\n    left = 0 top = 50%%+%d width = 100%% align = "center"\n' $((BH / 2 + 12 * GS))
-    printf '    font = "Departure Regular %d" color = "#%s"\n' "$FS" "$INK_FAINT"
+      $((BW / 2)) $((BH / 2 + 4 * GS - 1)) "$BW" "$PH"
+    printf '    bar_style = "bar_*.png" highlight_style = "hl_*.png"\n}\n'
+    printf '+ label {\n    left = 0 top = 50%%+%d width = 100%% align = "center"\n' $((BH / 2 + 18 * GS))   # (below the bar's box)
+    printf '    font = "Fusion Regular %d" color = "#%s"\n' "$FS" "$INK_FAINT"
     printf '    text = "enter  boot     e  edit     c  console"\n}\n'
   } >"$GT/theme.txt"
   BOOT_CHANGED=0
@@ -392,7 +442,42 @@ boot_and_console() {
     R install -D -m 0644 -o root -g root "$f" "$GRUB_THEME_DIR/${f##*/}"
     CHANGED+=("$GRUB_THEME_DIR/${f##*/}"); BOOT_CHANGED=1
   done
+  # what an earlier theme put there and this one no longer makes goes (GRUB would still read
+  # it: a select_n.png left over would draw over the chosen entry)
+  while IFS= read -r f <&3; do
+    [[ -e $GT/$f ]] && continue
+    TOTAL=$((TOTAL + 1))
+    if ((CHECK)); then DRIFT+=("$GRUB_THEME_DIR/$f: left over"); continue; fi
+    R rm -f "$GRUB_THEME_DIR/$f"; CHANGED+=("$GRUB_THEME_DIR/$f removed"); BOOT_CHANGED=1
+  done 3< <(R find "$GRUB_THEME_DIR" -maxdepth 1 -type f -printf '%f\n' 2>/dev/null)
   rm -rf "$GT"
+
+  # the boot splash (Plymouth's script plugin, system/plymouth/sumi): after the menu, the same
+  # ink and torii with "起動中 · starting Fedora", and the lock screen's box should a disk ask
+  # for its password. It lives in the boot images, so a change remakes them (dracut, ~1 min)
+  SPLASH_DIR=/usr/share/plymouth/themes/sumi SPLASH_CHANGED=0
+  for f in "$REPO_DIR"/system/plymouth/sumi/*; do
+    TOTAL=$((TOTAL + 1))
+    same "$f" "$SPLASH_DIR/${f##*/}" && continue
+    if ((CHECK)); then DRIFT+=("$SPLASH_DIR/${f##*/}"); continue; fi
+    R install -D -m 0644 -o root -g root "$f" "$SPLASH_DIR/${f##*/}"
+    CHANGED+=("$SPLASH_DIR/${f##*/}"); SPLASH_CHANGED=1
+  done
+  while IFS= read -r f <&3; do                      # (left overs go, as the menu's)
+    [[ -e $REPO_DIR/system/plymouth/sumi/$f ]] && continue
+    TOTAL=$((TOTAL + 1))
+    if ((CHECK)); then DRIFT+=("$SPLASH_DIR/$f: left over"); continue; fi
+    R rm -f "$SPLASH_DIR/$f"; CHANGED+=("$SPLASH_DIR/$f removed"); SPLASH_CHANGED=1
+  done 3< <(R find "$SPLASH_DIR" -maxdepth 1 -type f -printf '%f\n' 2>/dev/null)
+  TOTAL=$((TOTAL + 1))
+  if [[ $(R plymouth-set-default-theme 2>/dev/null) != sumi ]]; then
+    if ((CHECK)); then DRIFT+=("boot splash: not the sumi theme")
+    else R plymouth-set-default-theme sumi; CHANGED+=("boot splash: the sumi theme"); SPLASH_CHANGED=1; fi
+  fi
+  if ((SPLASH_CHANGED)); then
+    R dracut -f --regenerate-all >>"$LOG_FILE" 2>&1 || die "dracut could not remake the boot images with the splash (see $LOG_FILE)"
+    CHANGED+=("boot images remade with the splash (next boot)")
+  fi
 
   # /etc/default/grub: the graphical menu with this theme, at the native mode
   grub_set() {   # grub_set KEY VALUE — one KEY=VALUE line, replaced or appended
@@ -449,7 +534,7 @@ BOOT_FAILED=0
 # beside dwl's mark): --check counts that part as optional until one of these changes
 BOOT_MARK=/var/lib/fedokawaii/boot.failed
 boot_sum() {
-  { cat "$REPO_DIR/theme.sh" "$REPO_DIR"/art/grub/* "$REPO_DIR/configs/home/.config/fedokawaii/themes/dark/colors.sh"
+  { cat "$REPO_DIR/theme.sh" "$REPO_DIR"/art/grub/* "$REPO_DIR"/system/plymouth/sumi/* "$REPO_DIR/configs/home/.config/fedokawaii/themes/dark/colors.sh"
     printf '%s\n' "$BOOT_MENU_SECONDS"; } 2>/dev/null | sha256sum | cut -d' ' -f1
 }
 run_boot() {   # boot_and_console in a subshell with errexit on; what it changed or found comes back
@@ -482,8 +567,14 @@ if ((DWL_MINE)); then
   [[ -d $SRC ]] || die "dwl source missing at $SRC — run setup.sh first"
   place "$REPO_DIR/src/dwl/config.h" "$SRC/config.h" user
 fi
-# the source must carry the current src/dwl/dwl.patch: a newer repo may extend it (setup
-# applied the version it had). Restore dwl's own files and apply this one.
+# the source must be the pinned commit, whole (setup and update put it there: never three of
+# its files moved by hand, which would build a mix of two versions) …
+if ((DWL_MINE)) && [[ $(U git -C "$SRC" rev-parse HEAD 2>/dev/null) != "$DWL_COMMIT" ]]; then
+  if ((CHECK)); then DRIFT+=("$SRC (not at DWL_COMMIT $DWL_COMMIT)")
+  else die "dwl's source in $SRC is not at DWL_COMMIT ($DWL_TAG) — fedokawaii repair fetches it"; fi
+fi
+# … and carry the current src/dwl/dwl.patch: a newer repo may extend it (setup applied the
+# version it had). Restore dwl's own files and apply this one.
 TOTAL=$((TOTAL + 1))
 if ((DWL_MINE)) && ! U git -C "$SRC" apply --reverse --check - <"$REPO_DIR/src/dwl/dwl.patch" >/dev/null 2>&1; then
   if ((CHECK)); then DRIFT+=("$SRC (src/dwl/dwl.patch not applied as it is now)")
@@ -518,7 +609,7 @@ for BRAVE_ENTRY in brave-origin.desktop:show com.brave.Origin.desktop:hide; do
   [[ -r $BRAVE_SYS_DESKTOP ]] || continue
   TOTAL=$((TOTAL + 1))
   BT=$(mktemp)
-  sed -E "s#^Exec=/usr/bin/brave-origin(-stable)?( |\$)#Exec=$TARGET_HOME/.local/bin/brave-origin\2#" \
+  sed -E "s#^Exec=/usr/bin/brave-origin-stable( |\$)#Exec=$TARGET_HOME/.local/bin/brave-origin\1#" \
     "$BRAVE_SYS_DESKTOP" \
     | awk -v hide="$([[ ${BRAVE_ENTRY#*:} == hide ]] && echo 1)" \
         'hide && /^NoDisplay=/ { next } { print } hide && $0 == "[Desktop Entry]" { print "NoDisplay=true" }' >"$BT"
@@ -635,20 +726,79 @@ else
   esac
 fi
 
+# ── 4e. Xournal++ (Sketch): the pen's two buttons ────────────────────────────
+# A tablet's pen has two buttons on its side (the XP-Pen Star G430S's P01: the lower one is
+# "button 1", the upper "button 2"). Xournal++ leaves both doing nothing until told, in its
+# own settings.xml — which it writes whole again at every change. So once, a button still at
+# Xournal++'s own "nothing" is given its tool here: the lower one erases while held, the
+# upper one holds the page to drag it (the hand). After that (state: xournalpp-pen) the
+# buttons are yours: a tool you choose — "nothing" too — stays as it is.
+XPP_XML=$TARGET_HOME/.config/xournalpp/settings.xml
+XPP_DONE=$TARGET_HOME/.local/state/fedokawaii/xournalpp-pen
+TOTAL=$((TOTAL + 1))
+if [[ -e $XPP_DONE ]]; then :
+elif [[ -L $XPP_XML ]]; then
+  log "$XPP_XML is a link — Xournal++'s settings left as they are"
+elif XP=$(U python3 -I - "$XPP_XML" "$CHECK" <<'PY'
+import os, sys, xml.etree.ElementTree as ET
+path, check = sys.argv[1], sys.argv[2] == "1"
+want = {"stylus": "eraser", "stylus2": "hand"}          # (Xournal++'s names: button 1, button 2)
+try:
+    tree = ET.parse(path); root = tree.getroot()
+except FileNotFoundError:
+    root = ET.Element("settings"); tree = ET.ElementTree(root)
+except ET.ParseError:
+    sys.exit(4)
+if root.tag != "settings":
+    sys.exit(4)
+bc = root.find("data[@name='buttonConfig']")
+if bc is None:
+    bc = ET.SubElement(root, "data", name="buttonConfig")
+gaps = []
+for button, tool in want.items():
+    d = bc.find(f"data[@name='{button}']")
+    if d is None:
+        d = ET.SubElement(bc, "data", name=button)
+    a = d.find("attribute[@name='tool']")
+    if a is not None and a.get("value", "none") != "none":
+        continue                                         # (yours: chosen in its preferences)
+    gaps.append(button)
+    if a is None:
+        a = ET.SubElement(d, "attribute", name="tool", type="string")
+    a.set("type", "string"); a.set("value", tool)
+print(", ".join(f"{b} → {want[b]}" for b in gaps))
+if check or not gaps:
+    sys.exit(3 if gaps else 0)
+os.makedirs(os.path.dirname(path), exist_ok=True)
+tmp = path + ".kawa"
+tree.write(tmp, encoding="UTF-8", xml_declaration=True)
+os.replace(tmp, path)
+PY
+); then
+  [[ -n $XP ]] && CHANGED+=("$XPP_XML (the pen's buttons: $XP)")
+  ((CHECK)) || U bash -c 'mkdir -p "${1%/*}" && : >"$1"' _ "$XPP_DONE"
+else
+  case $? in
+    3) DRIFT+=("$XPP_XML (the pen's buttons: $XP not set)") ;;
+    *) log "$XPP_XML does not read as Xournal++'s settings — left as it is" ;;
+  esac
+fi
+
 # ── 4b. the desktop's two C helpers (src/, built with the tools that build dwl) ──
 #   kawa-veil      the theme and wallpaper transitions
 #   kawa-clipkeep  keeps a copy on the clipboard after the app it came from is closed
 # Built as you whenever their sources change; the hash of what each was built from is
-# kept beside the state, so a re-run knows without rebuilding.
+# kept beside the state, so a re-run knows without rebuilding. Parts of the desktop like
+# dwl: one that does not build stops the theme run.
 TOOLS=(kawa-veil kawa-clipkeep)
 tool_sum() { local s; s=$(cat "$REPO_DIR/src/$1/Makefile" "$REPO_DIR/src/$1"/*.c "$REPO_DIR/src/$1"/*.xml | sha256sum); printf '%s' "${s%% *}"; }
 tool_current() { [[ -x $TARGET_HOME/.local/bin/$1 && $(cat "$STATE/$1.sha256" 2>/dev/null) == "$(tool_sum "$1")" ]]; }
 TOTAL=$((TOTAL + ${#TOOLS[@]}))
 
 if ((CHECK)); then
-  # the optional parts the theme run carries on without (it says so): one it could not make
-  # is a warning, not drift — else verify's final check would stop setup on it for good.
-  # (Optional only while what it failed on is unchanged: changed, the theme run tries again.)
+  # the boot menu and console, the part the theme run carries on without (it says so): one it
+  # could not make is a warning, not drift — else verify's final check would stop setup on it
+  # for good. (Only while what it failed on is unchanged: changed, the theme run tries again.)
   OPTIONAL=() d0=${#DRIFT[@]}
   run_boot
   if ((BOOT_FAILED)); then OPTIONAL+=("boot menu / console: could not be compared (theme.sh --check says why)")
@@ -657,17 +807,10 @@ if ((CHECK)); then
     DRIFT=("${DRIFT[@]:0:d0}")
   fi
   for t in "${TOOLS[@]}"; do
-    tool_current "$t" && continue
-    if [[ $(cat "$STATE/$t.failed" 2>/dev/null) == "$(tool_sum "$t")" ]]; then
-      OPTIONAL+=("$t did not build from src/$t (the desktop works without it; the theme run's log says why)")
-    else DRIFT+=("$TARGET_HOME/.local/bin/$t (not built from src/$t)"); fi
+    tool_current "$t" || DRIFT+=("$TARGET_HOME/.local/bin/$t (not built from src/$t)")
   done
   [[ $(U /usr/local/bin/dwl -v 2>&1) == *"${DWL_TAG#v}"* ]] || DRIFT+=("/usr/local/bin/dwl (not $DWL_TAG)")
   ((DWL_MINE == 0)) || dwl_current || DRIFT+=("/usr/local/bin/dwl (not built from src/dwl as it is now)")
-  while IFS= read -r -d '' x; do
-    xh=$TARGET_HOME/${x#"$REPO_DIR/configs/home/"} png=${xh%.xpm}.png
-    [[ -s $png && $png -nt $xh ]] || DRIFT+=("$png (not drawn from its .xpm)")
-  done < <(find "$REPO_DIR/configs/home" -name '*.xpm' -print0)
   # (the wallpaper pack depends on the network: verify.sh reports it as a warning instead)
   if ((${#DRIFT[@]})); then
     printf '%s✘ %d of %d files differ from the repo:%s\n' "$C_RED" "${#DRIFT[@]}" "$TOTAL" "$C_RESET"
@@ -680,7 +823,7 @@ if ((CHECK)); then
     printf '  %s\n' "${OPTIONAL[@]}"
   fi
   ((${#DRIFT[@]} == 0)) || exit 3            # (3: it ran, and things differ — 1 is an error)
-  ((${#OPTIONAL[@]} == 0)) || exit 4         # (4: in sync but for the optional parts above)
+  ((${#OPTIONAL[@]} == 0)) || exit 4         # (4: in sync but for the boot menu and console)
   exit 0
 fi
 
@@ -694,7 +837,6 @@ if ((DWL_MINE)) && ! dwl_current; then
   # file taken in by root (take_built): root runs nothing in your folders
   U make -C "$SRC" clean >>"$LOG_FILE" 2>&1
   U make -C "$SRC" -j"$(nproc)" "${DWL_ARGS[@]}" >>"$LOG_FILE" 2>&1 || die "dwl failed to build with src/dwl/config.h — see $LOG_FILE"
-  R bash -c '. "$1/lib/common.sh"; keep_dwl_prev' _ "$REPO_DIR" || true   # (start-dwl's fallback, kept as it is when it cannot be)
   # (as root: run as yourself, theme.sh gets there through sudo — R)
   R env TARGET_USER="$TARGET_USER" TARGET_HOME="$TARGET_HOME" TARGET_UID="$TARGET_UID" \
     bash -c '. "$1/lib/common.sh"; take_built "$2" /usr/local/bin/dwl 0755' _ "$REPO_DIR" "$SRC/dwl" \
@@ -708,20 +850,10 @@ for t in "${TOOLS[@]}"; do
   VB=$(U mktemp -d)
   tar -C "$REPO_DIR/src/$t" -cf - . | U tar -C "$VB" -xf - --no-same-owner   # (unpacked by you)
   # (what root hands on goes through a pipe, never through a file in your folder)
-  if U make -s -C "$VB" O="$VB" >>"$LOG_FILE" 2>&1; then
-    U cat -- "$VB/$t" | uinstall 0755 /dev/stdin "$TARGET_HOME/.local/bin/$t"
-    tool_sum "$t" | uinstall 0644 /dev/stdin "$STATE/$t.sha256"
-    U rm -f "$STATE/$t.failed"
-    CHANGED+=("$TARGET_HOME/.local/bin/$t (built)")
-    U rm -rf "$VB"; continue
-  fi
-  # (what it failed on, for --check: a warning until src/$t changes or it builds)
-  tool_sum "$t" | uinstall 0644 /dev/stdin "$STATE/$t.failed"
-  if [[ $t == kawa-veil ]]; then
-    log "kawa-veil did not build (details: $LOG_FILE) — theme and wallpaper changes still work, without the transition"
-  else
-    log "$t did not build (details: $LOG_FILE) — copy and paste still work; a copy just ends with the app it came from"
-  fi
+  U make -s -C "$VB" O="$VB" >>"$LOG_FILE" 2>&1 || { U rm -rf "$VB"; die "$t failed to build from src/$t — see $LOG_FILE"; }
+  U cat -- "$VB/$t" | uinstall 0755 /dev/stdin "$TARGET_HOME/.local/bin/$t"
+  tool_sum "$t" | uinstall 0644 /dev/stdin "$STATE/$t.sha256"
+  CHANGED+=("$TARGET_HOME/.local/bin/$t (built)")
   U rm -rf "$VB"
 done
 
@@ -740,15 +872,10 @@ elif [[ $(stat -c %a "$SECRETS") != 600 ]]; then
   U chmod 600 "$SECRETS"; CHANGED+=("$SECRETS (made private again: chmod 600)")
 fi
 U mkdir -p "$TARGET_HOME/Pictures/Wallpapers" "$TARGET_HOME/Pictures/Screenshots" "$TARGET_HOME/.local/share/fedokawaii"
-# pixel art (wave tile, Fuji scene, padlock — one set per theme) lives in the repo as XPM
-# text; swaybg and swaylock read PNG, so each .xpm gets a .png beside it when it changes
-while IFS= read -r -d '' x; do
-  png=${x%.xpm}.png
-  if changed "$x" || [[ ! -s $png || $x -nt $png ]]; then
-    U magick "$x" "$png" || die "could not draw ${png##*/} from ${x##*/}"
-  fi
-done < <(find "$TARGET_HOME/.local/share/fedokawaii" -name '*.xpm' -print0)
-# the wallpaper pack: fetched and redrawn once; pictures already drawn are skipped
+# the drawn wallpaper and the old lock's picture, from before (the wallpapers are the pack's
+# and your own, at full quality; the lock draws its own): their files go
+U rm -f "$TARGET_HOME"/.local/share/fedokawaii/{dark,light}/{pattern,scene,lock}.{xpm,png}
+# the wallpaper pack: fetched once; pictures already here are skipped
 if [[ $WALLPAPER_PACK == yes ]]; then
   if U kawa-wallpaper --pack >>"$LOG_FILE" 2>&1; then ok "wallpaper pack ready ($(tail -n1 "$LOG_FILE"))"
   else log "wallpaper pack: some pictures could not be fetched — re-run theme.sh later (details: $LOG_FILE)"; fi

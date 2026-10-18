@@ -11,7 +11,7 @@ their contrast. This script is the only place the colours are written down; it r
   configs/home/.config/fedokawaii/themes/<mode>/   one folder per theme, read through
       colors.sh  waybar.css  foot.ini  fuzzel.ini  the ~/.config/fedokawaii/current
       mako  qt6ct.conf  qt6ct-colors.conf          link that kawa-theme switches
-      btop.theme  zathurarc  imv  swaylock  presenterm.yaml  mpv.conf  wiremix.toml
+      btop.theme  zathurarc  imv  gtklock.css  mpv.conf  wiremix.toml  washi.png
   configs/home/.config/foot/foot.ini              the [colors-dark] / [colors-light] block
   configs/home/.config/gtk-4.0/gtk.css            both themes, chosen by GTK's media query
   configs/home/.local/share/themes/Fedokawaii{,-dark}/   the two GTK 3 themes
@@ -39,10 +39,11 @@ P = {
         ground="0f0e0c", surface="161411", key="1f1c18", edge="2b2721", edge2="3d372f",
         hi="4a443a", lo="070605", faint="5f584c", muted="877f6f", text="cfc3a6",
         strong="ece3cc", view="161411",
-        accent="d0583a", accent_hi="e8876d", accent_lo="8a2f1c", on_accent="ece3cc", accent_text="d15b3d",
-        text_on_accent="0f0e0c",   # words on vermilion or red: ink (4.7 : 1); on_accent is for icons
+        accent="d0583a", accent_hi="e8876d", accent_lo="8a2f1c", accent_text="d15b3d",
+        text_on_accent="0f0e0c",   # anything drawn on vermilion — words, seals, icons, the meters' lit squares: ink (4.7 : 1)
         lit="cfc3a6", lit_text="0f0e0c", lit_hi="ece3cc", lit_lo="8a8170", urgent_text="0f0e0c",
         asagi="7fb8b0",                 # the meters, urgency and checking: the bright teal on ink
+        hairline="53452a",              # the bar's lower edge: gold ink, faded into the paper
         red="d64b4b", green="8e9a5b", yellow="d29f45", blue="5f7fa0", purple="9079a9", teal="5e9c95",
         bred="e66a5f", bgreen="a8b46f", byellow="e3b866", bblue="7f9dbd", bpurple="ab96c2", bteal="7fb8b0",
         ansi0="2b2721", ansi7="cfc3a6", ansi8="7a7262", ansi15="ece3cc",
@@ -52,10 +53,11 @@ P = {
         ground="e9e1cb", surface="dcd2b8", key="efe8d5", edge="c2b79b", edge2="b1a688",
         hi="fbf7ec", lo="9d9278", faint="9b927e", muted="5f594d", text="2b2721",
         strong="0f0e0c", view="f1ebda",
-        accent="c0462a", accent_hi="e07a5c", accent_lo="7e2a18", on_accent="fbf7ec", accent_text="9c3922",
-        text_on_accent="fbf7ec",   # words on vermilion or red: paper (4.7 : 1)
+        accent="c0462a", accent_hi="e07a5c", accent_lo="7e2a18", accent_text="9c3922",
+        text_on_accent="fbf7ec",   # anything drawn on vermilion — words, seals, icons, the meters' lit squares: paper (4.7 : 1)
         lit="2b2721", lit_text="ece3cc", lit_hi="5f584c", lit_lo="0f0e0c", urgent_text="fbf7ec",
         asagi="2f6e67",                 # the deep teal on paper
+        hairline="b49c6c",              # the bar's lower edge: brown-gold ink on paper
         red="a8342a", green="5c682d", yellow="845b0f", blue="3f6185", purple="6f5a8a", teal="2f6e67",
         # on paper the "bright" colours are the deeper ones, so they read at least as well
         bred="942e25", bgreen="4d5625", byellow="6d4b0d", bblue="355270", bpurple="5c4a72", bteal="275a55",
@@ -91,12 +93,61 @@ def waybar_css(m, p):
     rows = [("bar", p["surface"]), ("key", p["key"]), ("edge", p["edge"]), ("edge2", p["edge2"]), ("faint", p["faint"]), ("muted", p["muted"]), ("hi", p["hi"]), ("lo", p["lo"]),
             ("quiet", p["muted"]), ("text", p["text"]), ("strong", p["strong"]),
             ("accent", p["accent"]), ("accent-hi", p["accent_hi"]), ("accent-lo", p["accent_lo"]),
-            ("strong-on-accent", p["on_accent"]), ("accent-text", p["accent_text"]),
+            ("strong-on-accent", p["text_on_accent"]), ("accent-text", p["accent_text"]),
             ("lit", p["lit"]), ("lit-text", p["lit_text"]), ("lit-hi", p["lit_hi"]), ("lit-lo", p["lit_lo"]),
-            ("urgent", p["asagi"]), ("urgent-text", p["urgent_text"])]
+            ("urgent", p["asagi"]), ("urgent-text", p["urgent_text"]), ("hairline", p["hairline"])]
     out = [f"/* {header('~/.config/fedokawaii/current/waybar.css', NAMES[m] + ' colours for the bar')} */"]
     out += [f"@define-color {k:<17}#{v};" for k, v in rows]
     return "\n".join(out) + "\n"
+
+
+def washi_png(m, p):
+    """The bar's paper: a 96 × 96 tile of the bar's own colour with a faint grain — single
+    pixels and short fibres a shade lighter or darker, as in washi. Deterministic (the same
+    bytes every run), and quiet enough to read as texture, never as a pattern."""
+    import random
+    import struct
+    import zlib
+    rnd = random.Random("washi-" + m)
+    base = [int(p["surface"][i:i + 2], 16) for i in (0, 2, 4)]
+    W = H = 96
+    px = [[list(base) for _ in range(W)] for _ in range(H)]
+    def shade(x, y, d):
+        px[y % H][x % W] = [max(0, min(255, c + d)) for c in px[y % H][x % W]]
+    step = 3 if m == "dark" else 4          # (paper shows grain less than ink does)
+    for _ in range(W * H // 14):            # grain: single pixels
+        shade(rnd.randrange(W), rnd.randrange(H), rnd.choice((-step, step)) // 2 or 1)
+    for _ in range(60):                     # fibres: short, mostly level strokes
+        x, y, d = rnd.randrange(W), rnd.randrange(H), rnd.choice((-step, step))
+        for _ in range(rnd.randrange(4, 11)):
+            shade(x, y, d)
+            x += 1
+            if rnd.random() < 0.25:
+                y += rnd.choice((-1, 1))
+    raw = b"".join(b"\x00" + bytes(c for px_ in row for c in px_) for row in px)
+    def chunk(t, d):
+        return struct.pack(">I", len(d)) + t + d + struct.pack(">I", zlib.crc32(t + d) & 0xffffffff)
+    return (b"\x89PNG\r\n\x1a\n" + chunk(b"IHDR", struct.pack(">IIBBBBB", W, H, 8, 2, 0, 0, 0))
+            + chunk(b"IDAT", zlib.compress(raw, 9)) + chunk(b"IEND", b""))
+
+
+def png_rgba(W, H, rows):
+    """A plain RGBA PNG from rows of (r, g, b, a) tuples."""
+    import struct
+    import zlib
+    raw = b"".join(b"\x00" + bytes(c for px_ in row for c in px_) for row in rows)
+    def chunk(t, d):
+        return struct.pack(">I", len(d)) + t + d + struct.pack(">I", zlib.crc32(t + d) & 0xffffffff)
+    return (b"\x89PNG\r\n\x1a\n" + chunk(b"IHDR", struct.pack(">IIBBBBB", W, H, 8, 6, 0, 0, 0))
+            + chunk(b"IDAT", zlib.compress(raw, 9)) + chunk(b"IEND", b""))
+
+
+def stitch_png(m, p):
+    """The bar's separator: a sashiko running stitch — 3 px of thread, 2 px of paper — in the
+    faint ink, 1 px wide. The bar repeats it down a 23 px button-high strip (4 × 5 + 3), so it
+    starts and ends with a stitch."""
+    ink = tuple(int(p["faint"][i:i + 2], 16) for i in (0, 2, 4))
+    return png_rgba(1, 5, [[ink + (255,)]] * 3 + [[(0, 0, 0, 0)]] * 2)
 
 
 def foot_mode(m, p):
@@ -121,11 +172,18 @@ def foot_block():
                 f"search-box-match={p['ground']} {p['ansi7']}"]
         out += [f"regular{i}={a[i]}" for i in range(8)]
         out += [f"bright{i}={a[8 + i]}" for i in range(8)]
+        # the desktop's own three, past the sixteen, for every list in a terminal (fzf.opts,
+        # VisiData): 16 the fill of what is selected (vermilion), 17 the words on it, 18 the
+        # soft fill under the pointer — switched with the theme like the rest
+        out += [f"16={p['accent']}", f"17={p['text_on_accent']}", f"18={p['edge']}"]
     out.append("# <<< colours")
     return "\n".join(out)
 
 
 def fuzzel_ini(m, p):
+    # the chosen row filled whole in vermilion, its words in text_on_accent — as fzf's (foot
+    # colours 16/17) and every other "active" thing; on the fill a match keeps the same colour
+    # (fuzzel cannot underline it), the letters you typed are still in the prompt
     return f"""# {header('~/.config/fedokawaii/current/fuzzel.ini', NAMES[m] + ' colours for every menu')}
 icon-theme={p['icons']}
 
@@ -136,9 +194,9 @@ prompt={p['accent_text']}ff
 placeholder={p['muted']}ff
 input={p['strong']}ff
 match={p['accent_text']}ff
-selection={p['edge']}ff
-selection-text={p['strong']}ff
-selection-match={p['accent_hi'] if m == 'dark' else p['accent_lo']}ff
+selection={p['accent']}ff
+selection-text={p['text_on_accent']}ff
+selection-match={p['text_on_accent']}ff
 counter={p['muted']}ff
 border={p['muted']}ff
 """
@@ -172,7 +230,7 @@ format=<span foreground="#{p['strong']}">%s</span> <span foreground="#{p['muted'
 # udiskie's notice of a drive that would not open ("Job failed" — failed to mount, or to
 # unlock: a wrong passphrase): titled like the drives' own notices (kawa-drives)
 [app-name=udiskie]
-format=<span foreground="#{p['strong']}">\U000FE049  not opened</span>\\n%b
+format=<span foreground="#{p['strong']}">\U000FE044  not opened</span>\\n%b
 
 # the level display (kawa-osd): the label quiet above the wedge, which brings its own colours.
 # The label's line is 22 px instead of its own 14 (line_height, in Pango units: px × 1024),
@@ -358,49 +416,47 @@ overlay_background_alpha = e6
 """
 
 
-def swaylock(m, p):
-    g = p["ground"]
-    return f"""# {header('~/.config/fedokawaii/current/swaylock', 'the lock screen in ' + NAMES[m])}
-# kawa-lock runs swaylock -C with this file and the pixel padlock as its picture: the
-# plain ground, the padlock in the centre. The indicator is a 15 px ring that sits inside
-# the padlock's keyhole, clear of its face: hidden until you type, then the keyhole glows —
-# vermilion while typing, teal while checking, red when wrong. No text: the keyboard
-# layout your password goes in is the one the bar showed (Alt+Shift switches it here too).
-scaling=center
-color={g}
-ignore-empty-password
-hide-keyboard-layout
-disable-caps-lock-text
-indicator-radius=6
-indicator-thickness=3
-# ring = the keyhole's rim · inside = the keyhole itself
-inside-color={g}
-inside-clear-color={g}
-inside-ver-color={g}
-inside-wrong-color={g}
-inside-caps-lock-color={g}
-ring-color={p['faint']}
-ring-clear-color={p['muted']}
-ring-ver-color={p['bteal']}
-ring-wrong-color={p['red']}
-ring-caps-lock-color={p['yellow']}
-key-hl-color={p['accent']}
-bs-hl-color={p['muted']}
-caps-lock-key-hl-color={p['yellow']}
-caps-lock-bs-hl-color={p['muted']}
-# no line around the ring: the ring alone, in its full colour
-line-color=00000000
-line-clear-color=00000000
-line-ver-color=00000000
-line-wrong-color=00000000
-line-caps-lock-color=00000000
-separator-color=00000000
-# no words inside a 6 px circle
-text-color=00000000
-text-clear-color=00000000
-text-ver-color=00000000
-text-wrong-color=00000000
-text-caps-lock-color=00000000
+def gtklock_css(m, p):
+    """The lock screen (gtklock, kawa-lock) and the login screen (kawa-greet) share it: the
+    plain ground, the day's seal and the padlock (pictures), the date, and one box for the
+    password — square, a 2 px frame in the edge colour that turns vermilion while you type,
+    each typed character a vermilion ◆."""
+    return f"""/* {header('~/.config/fedokawaii/current/gtklock.css', 'the lock and login screens in ' + NAMES[m])} */
+window, #window-box {{ background-color: #{p['ground']}; }}
+* {{ font-family: "Fusion Pixel 12px Mono ja"; font-size: 24px; color: #{p['text']}; box-shadow: none; text-shadow: none; }}
+/* the column stands in the screen's middle by what shows: the two message lines under the box
+   keep their room while empty, so the seal above takes as much again */
+#seal {{ margin-top: 40px; }}
+#clock-label {{ color: #{p['text']}; font-size: 36px; margin-top: 14px; }}
+#date-label {{ color: #{p['muted']}; font-size: 12px; margin-top: 4px; }}
+#input-field {{
+  font-size: 24px;
+  min-width: 288px;
+  min-height: 0;
+  padding: 8px 14px;
+  margin-top: 26px;
+  color: #{p['accent']};
+  caret-color: #{p['accent']};
+  background-color: #{p['surface']};
+  background-image: none;
+  border: 2px solid #{p['edge2']};
+  border-radius: 0;
+  outline: none;
+}}
+#input-field:focus {{ border-color: #{p['accent']}; }}
+#input-field selection {{ background-color: #{p['accent']}; color: #{p['text_on_accent']}; }}
+#input-label {{ color: #{p['faint']}; font-size: 12px; margin-top: 8px; }}
+#error-label {{ color: #{p['red']}; font-size: 12px; margin-top: 8px; }}
+#warning-label {{ color: #{p['yellow']}; font-size: 12px; margin-top: 8px; }}
+/* the login screen's buttons (kawa-greet): quiet words; under the pointer or the keyboard's
+   focus filled whole in vermilion — the desktop's one rule for what is active */
+button {{ background: none; border: none; border-radius: 0; padding: 6px 12px; min-height: 0; outline: none; }}
+button label {{ font-size: 12px; color: #{p['muted']}; }}
+button:hover, button:focus {{ background-color: #{p['accent']}; }}
+button:hover label, button:focus label {{ color: #{p['text_on_accent']}; }}
+#user-field {{ font-size: 24px; min-width: 288px; padding: 8px 14px; margin-top: 26px; color: #{p['text']};
+  background-color: #{p['surface']}; background-image: none; border: 2px solid #{p['edge2']}; border-radius: 0; }}
+#user-field:focus {{ border-color: #{p['accent']}; }}
 """
 
 
@@ -437,12 +493,6 @@ def qt6ct_conf(m, p):
             "custom_palette=true\n"
             f"icon_theme={p['icons']}\n"
             "standard_dialogs=default\nstyle=Fusion\n")
-
-
-def presenterm(m, p):
-    return (f"# {header('~/.config/presenterm/config.yaml', 'presenterm draws with the terminal colours')}\n"
-            f"# (a link to ~/.config/fedokawaii/current/presenterm.yaml, switched with the theme)\n"
-            f"defaults:\n  theme: terminal-{m}\n")
 
 
 def wiremix(m, p):
@@ -508,11 +558,8 @@ GRUVBOX = [
 
 
 def nvim_colorscheme():
-    rows = []
-    for r in GRUVBOX:
-        rows.append(f"        {r}" if isinstance(r, str) else
-                    "        " + " ".join(f'{k} = "#{v}",' for k, v in r))
-    body = "\n".join(rows)
+    dark = lua_table(GRUVBOX, "        ")
+    light = lua_table(GRUVBOX_LIGHT, "        ")
     return f"""-- ~/.config/nvim/lua/plugins/colorscheme.lua — added on top of the LazyVim starter.
 -- gruvbox.nvim with its palette remapped to the desktop's colours: on the dark theme ink
 -- ground and paper text (gruvbox's dark/bright colours), on the light theme paper ground
@@ -523,24 +570,38 @@ return {{
   {{
     "ellisonleao/gruvbox.nvim",
     priority = 1000,
-    -- the line under the cursor: the palette's surface on both grounds (gruvbox would take
-    -- the light theme's text colour for it there — far heavier on paper than on ink)
+    -- the line under the cursor: a shade of the ground that shows (gruvbox would take the
+    -- light theme's text colour for it on paper — far too heavy there)
     init = function()
+      -- the palette for the ground Neovim has: gruvbox reads it each time it loads — at the
+      -- start, and again whenever foot tells Neovim the ground changed
+      local dark = {{
+{dark}
+      }}
+      local light = vim.tbl_extend("force", dark, {{
+{light}
+      }})
+      vim.api.nvim_create_autocmd("ColorSchemePre", {{
+        group = vim.api.nvim_create_augroup("kawa_ground", {{ clear = true }}),
+        pattern = "gruvbox",
+        callback = function()
+          local ok, g = pcall(require, "gruvbox")
+          if ok then g.config.palette_overrides = vim.o.background == "light" and light or dark end
+        end,
+      }})
       vim.api.nvim_create_autocmd("ColorScheme", {{
         group = vim.api.nvim_create_augroup("kawa_cursorline", {{ clear = true }}),
         pattern = "gruvbox",
         callback = function()
-          local bg = vim.o.background == "light" and "#{P['light']['surface']}" or "#{P['dark']['surface']}"
+          local bg = vim.o.background == "light" and "#{P['light']['surface']}" or "#{P['dark']['edge']}"
           vim.api.nvim_set_hl(0, "CursorLine", {{ bg = bg }})
+          -- the picker's counts ("12/403"): in the comments' quiet ink, not the faint one
+          -- gruvbox gives them (close to the ground itself)
+          vim.api.nvim_set_hl(0, "SnacksPickerTotals", {{ link = "Comment" }})
         end,
       }})
     end,
-    opts = {{
-      contrast = "hard",
-      palette_overrides = {{
-{body}
-      }},
-    }},
+    opts = {{ contrast = "hard" }},
   }},
   {{ "LazyVim/LazyVim", opts = {{ colorscheme = "gruvbox" }} }},
   -- the statusline in the same colours (lualine's own "gruvbox" theme has gruvbox's stock
@@ -554,7 +615,7 @@ return {{
       local function theme()
         local p = P[vim.o.background] or P.dark
         local function mode(c)
-          return {{ a = {{ bg = c, fg = p.ground, gui = "bold" }}, b = {{ bg = p.key, fg = p.text }},
+          return {{ a = {{ bg = c, fg = c == p.accent and p.on_accent or p.ground, gui = "bold" }}, b = {{ bg = p.key, fg = p.text }},
                    c = {{ bg = p.bar, fg = p.muted }} }}
         end
         local quiet = {{ bg = p.bar, fg = p.muted }}
@@ -564,6 +625,13 @@ return {{
       end
       opts.options = opts.options or {{}}
       opts.options.theme = theme()
+      -- plain: no powerline separators (the pixel font has other glyphs at their code points)
+      -- and no icons (the Nerd Font's would stand among the pixel ones); no clock (the bar's)
+      opts.options.section_separators = {{ left = "", right = "" }}
+      opts.options.component_separators = {{ left = "", right = "" }}
+      opts.options.icons_enabled = false
+      opts.sections = opts.sections or {{}}
+      opts.sections.lualine_z = {{}}
       vim.api.nvim_create_autocmd("ColorScheme", {{
         group = vim.api.nvim_create_augroup("kawa_lualine", {{ clear = true }}),
         callback = function()
@@ -580,13 +648,32 @@ return {{
 """
 
 
+# …and on the light theme, the same slots with paper as the ground: gruvbox takes its
+# grounds from light* and its words from dark* there, so on paper each slot holds the light
+# palette's own shade (floats on the paper's surface, words in ink, comments muted)
+GRUVBOX_LIGHT = [
+    [("light0_hard", L["ground"]), ("light0", L["ground"]), ("light0_soft", L["view"])],
+    [("light1", L["surface"]), ("light2", L["edge"]), ("light3", L["edge2"]), ("light4", L["faint"])],
+    [("dark0_hard", L["strong"]), ("dark0", L["strong"]), ("dark1", L["text"]), ("dark2", L["text"])],
+    [("dark3", L["muted"]), ("dark4", L["muted"]), ("gray", L["muted"])],
+    [("faded_red", L["red"]), ("faded_green", L["green"]), ("faded_yellow", L["yellow"])],
+    [("faded_blue", L["blue"]), ("faded_purple", L["purple"]), ("faded_aqua", L["asagi"])],
+    [("faded_orange", EDITOR["orange_deep"])],
+]
+
+
+def lua_table(rows, indent):
+    return "\n".join(f"{indent}{r}" if isinstance(r, str) else indent + " ".join(f'{k} = "#{v}",' for k, v in r)
+                     for r in rows)
+
+
 def lualine_palettes():
     out = []
     for m, p in P.items():
         blue = p["bblue"] if m == "dark" else p["blue"]
         vals = [("ground", p["ground"]), ("bar", p["surface"]), ("key", p["key"]), ("text", p["text"]),
                 ("muted", p["muted"]), ("accent", p["accent"]), ("teal", p["asagi"]), ("yellow", p["yellow"]),
-                ("blue", blue), ("red", p["red"])]
+                ("blue", blue), ("red", p["red"]), ("on_accent", p["text_on_accent"])]
         out.append(f"        {m} = {{ " + ", ".join(f'{k} = "#{v}"' for k, v in vals) + " },")
     return "\n".join(out)
 
@@ -619,11 +706,29 @@ def check_copies():
         raise SystemExit("colours outside the palettes:\n  " + "\n  ".join(bad))
 
 
+def panel_conf(m, p):
+    """kawa-panel, quick settings: it draws itself (every square and seal on the pixel grid),
+    so it takes the colours by name rather than as CSS."""
+    keys = ("surface", "key", "edge", "edge2", "faint", "muted", "text", "strong", "accent",
+            "accent_text", "accent_lo", "text_on_accent", "asagi")
+    return (f"# {header('~/.config/fedokawaii/current/panel.conf', 'quick settings in ' + NAMES[m])}\n"
+            + "".join(f"{k}={p[k]}\n" for k in keys))
+
+
+def dwl_colors(m, p):
+    """dwl's window borders — the focused window's, the others', one asking for attention —
+    the same as the menus' and notices' frames in this theme. dwl reads the file at its start
+    and again at every switch (kawa-theme sends it SIGUSR1)."""
+    return (f"# {header('~/.config/fedokawaii/current/dwl.colors', 'the window borders in ' + NAMES[m])}\n"
+            f"focus {p['accent']}\nborder {p['muted']}\nurgent {p['asagi']}\n")
+
+
 FILES = {
     "colors.sh": colors_sh, "waybar.css": waybar_css, "foot.ini": foot_mode, "fuzzel.ini": fuzzel_ini,
     "mako": mako, "qt6ct-colors.conf": qt_colors, "btop.theme": btop_theme,
-    "zathurarc": zathurarc, "imv": imv, "swaylock": swaylock, "presenterm.yaml": presenterm,
+    "zathurarc": zathurarc, "imv": imv, "gtklock.css": gtklock_css,
     "qt6ct.conf": qt6ct_conf, "mpv.conf": mpv_conf, "wiremix.toml": wiremix,
+    "panel.conf": panel_conf, "dwl.colors": dwl_colors,
 }
 
 
@@ -635,6 +740,9 @@ def main():
         for name, fn in FILES.items():
             (d / name).write_text(fn(m, p))
             written += 1
+        (d / "washi.png").write_bytes(washi_png(m, p))
+        (d / "stitch.png").write_bytes(stitch_png(m, p))
+        written += 1
     foot = HOME / ".config/foot/foot.ini"
     text = foot.read_text()
     new, n = re.subn(r"# >>> colours.*?# <<< colours", lambda _: foot_block(), text, flags=re.S)

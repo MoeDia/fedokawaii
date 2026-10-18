@@ -79,7 +79,7 @@ import json, sys
 t = json.load(open(sys.argv[1])); t["blockdevices"] = [d for d in t["blockdevices"] if d["name"] in ("/dev/sdb", "/dev/nvme0n1")]
 json.dump(t, open(sys.argv[1], "w"))
 EOF
-eq "$(kawa-drives bar)" "{\"text\":\"$(. "$HOME/.config/fedokawaii/icons.sh"; printf '%s' "$ICON_DRIVE")\",\"class\":\"closed\"}" "one drive: no count"
+eq "$(kawa-drives bar)" "{\"text\":\"$(. "$HOME/.config/fedokawaii/icons.sh"; printf '%s' "$ICON_USB")\",\"class\":\"closed\"}" "one drive: no count"
 
 case_ "a label with quotes, a dollar and a backslash reaches the bar as JSON-safe text and is never run"
 setup
@@ -91,7 +91,7 @@ json.dump(t, open(sys.argv[1], "w"))
 EOF
 out=$(kawa-drives list)
 has "$out" 'my "stick" $(touch /tmp/kawa-pwned) \ ü'
-stub kawa-menu 'cat >/dev/null; echo 0'
+stub kawa-menu 'cat >/dev/null; echo 1'                 # (row 0 is the drives' heading)
 kawa-drives menu >/dev/null 2>&1
 called "kawa-term yazi $MNT/KINGSTON"
 [[ ! -e /tmp/kawa-pwned ]] && _ok || { _no "a label ran as a command"; rm -f /tmp/kawa-pwned; }
@@ -103,11 +103,11 @@ setup
 kawa-drives event device_mounted /dev/sdb1 True KINGSTON "DataTraveler 3.0"
 has "$(state /dev/sdb1)" $'/dev/sdb\tKINGSTON\topen'
 called 'kawa-dwlstatus --poke 13'
-called 'setsid -f .*kawa-drives notice-open /dev/sdb1 .*KINGSTON 28.9G vfat · click to open it in the files'
+called 'setsid -f .*kawa-drives notice-open /dev/sdb1 .*KINGSTON 28.9G vfat · click to open it'
 
 case_ "the notice's click: the files on the drive (notify-send's default action)"
 stub notify-send 'echo default'
-kawa-drives notice-open /dev/sdb1 "KINGSTON" "click to open it in the files"
+kawa-drives notice-open /dev/sdb1 "KINGSTON" "click to open it"
 called 'notify-send -a drives -A default=open -- KINGSTON click to open'; called "kawa-term yazi $MNT/KINGSTON"
 reset_calls; stub notify-send; kawa-drives notice-open /dev/sdb1 "KINGSTON" "…"; not_called kawa-term "closed or timed out: nothing opens"
 rc 2 kawa-drives notice-open /dev/sdb1 "KINGSTON"
@@ -117,17 +117,17 @@ setup; toolkit BACKUP_TARGET=BACKUP                                 # (the theme
 kawa-drives event device_mounted /dev/mapper/luks-1234 False BACKUP ""
 called 'notice-open /dev/mapper/luks-1234 .*BACKUP your backup drive · click to back up now \(last backup: never\) backup$'
 reset_calls; kawa-drives event device_mounted /dev/sdb1 True KINGSTON ""
-called 'notice-open /dev/sdb1 .*KINGSTON 28.9G vfat · click to open it in the files$' "another drive: the usual notice"
+called 'notice-open /dev/sdb1 .*KINGSTON 28.9G vfat · click to open it$' "another drive: the usual notice"
 stub notify-send 'echo default'; reset_calls
 stub kawa-backup; kawa-drives notice-open /dev/mapper/luks-1234 "BACKUP" "your backup drive · click to back up now" backup
 called 'notify-send -a drives -A default=backup -- '; called '^kawa-backup --window$'; not_called kawa-term
 case_ "no BACKUP_TARGET (none in settings, no toolkit, no env), or kawa-backup missing: every drive's notice is the usual one"
 setup; toolkit; kawa-drives event device_mounted /dev/mapper/luks-1234 False BACKUP ""
-called 'notice-open /dev/mapper/luks-1234 .*click to open it in the files$'
+called 'notice-open /dev/mapper/luks-1234 .*click to open it$'
 setup; rm -f "$HOME/.config/fedokawaii/env"; kawa-drives event device_mounted /dev/sdb1 True KINGSTON ""
-called 'click to open it in the files$'
+called 'click to open it$'
 setup; toolkit BACKUP_TARGET=BACKUP; stub kawa-backup 'exit 127'
-kawa-drives event device_mounted /dev/mapper/luks-1234 False BACKUP ""; called 'click to open it in the files$'
+kawa-drives event device_mounted /dev/mapper/luks-1234 False BACKUP ""; called 'click to open it$'
 
 case_ "opened because you asked (the menu, M in yazi): no notice"
 setup; mkdir -p "$XDG_RUNTIME_DIR/kawa-drives"; : >"$XDG_RUNTIME_DIR/kawa-drives/asked.sdb"
@@ -322,18 +322,29 @@ eq "$r" 1 "Esc must fail so udiskie leaves it locked"; eq "$out" ""
 case_ "passphrase: a very long name is cut to fit"
 stub fuzzel 'echo x'
 kawa-drives passphrase /dev/sdc1 "A really very extremely long volume name indeed" "" >/dev/null
-called 'A really very extremely…'
+called 'A really very extremel…'
 
 # ── the menu ─────────────────────────────────────────────────────────────────
 case_ "menu: the rows, then each choice does what it says"
 setup; umount_ok
-stub kawa-menu 'cat >"$TMP_MENU"; echo 6'
+stub kawa-menu 'cat >"$TMP_MENU"; echo 9'
 export TMP_MENU=$TMP/menu.txt
 kawa-drives menu
 rows=$(cat "$TMP_MENU")
-has "$rows" "KINGSTON"; has "$rows" "eject KINGSTON"; has "$rows" "eject BACKUP" "a drive is named by its first file system"
-eq "$(grep -c . <<<"$rows")" 9 "5 file systems + 4 drives to eject"
+ICON_GAP=$(. "$HOME/.config/fedokawaii/icons.sh"; printf '%s' "$ICON_GAP")
+ICON_EJECT=$(. "$HOME/.config/fedokawaii/icons.sh"; printf '%s' "$ICON_EJECT")
+eq "$(head -n1 <<<"$rows" | cut -d' ' -f1)" "盤$ICON_GAP" "the drives under their heading, as Super+U heads its parts"
+ej=$(sed -n '/^出/,$p' <<<"$rows")
+has "$ej" "$ICON_EJECT  KINGSTON"; has "$ej" "$ICON_EJECT  BACKUP" "a drive is named by its first file system, under the eject heading"
+lacks "$rows" "eject KINGSTON" "the heading says eject: the rows do not again"
+eq "$(sed -n 7p <<<"$rows")" "" "an empty row above the second heading"
+eq "$(grep -c . <<<"$rows")" 11 "a heading, 5 file systems, a heading, 4 drives to eject"
 called 'notify-send .*(safe to unplug|closed)'
+case_ "menu: a heading chosen — the menu again, on that part's first entry (as every menu)"
+reset_calls; stub kawa-menu 'n=$(cat "$TMP/menu-n" 2>/dev/null || echo 0); echo $((n + 1)) >"$TMP/menu-n"; cat >/dev/null; [ "$n" = 0 ] && echo 7 || exit 1'
+rm -f "$TMP/menu-n"; rc 0 kawa-drives menu
+called 'kawa-menu .*--select 1( |$)' "opened on the first drive"
+called 'kawa-menu .*--select 8( |$)' "the eject heading: again on the first drive to eject"
 case_ "menu: Esc does nothing"
 reset_calls; stub kawa-menu 'exit 1'
 rc 0 kawa-drives menu
@@ -342,5 +353,18 @@ case_ "menu with nothing plugged in: one quiet row"
 printf '{"blockdevices": []}\n' >"$FAKE_DISKS"
 stub kawa-menu 'cat >"$TMP_MENU"; exit 1'
 kawa-drives menu; has "$(cat "$TMP_MENU")" "nothing plugged in"
+
+# ── ~/Drives: a folder per open drive ────────────────────────────────────────
+case_ "~/Drives: each open drive a link by its menu name; the folder there with none open too"
+setup; stub udisksctl 'exit 0'                         # (the monitor: no events, then gone)
+mounted /dev/sdb1 ""; mounted /dev/mapper/luks-1234 ""; mounted /dev/loop0 ""
+kawa-drives watch; [[ -d $HOME/Drives && -z $(ls -A "$HOME/Drives") ]] && _ok || _no "no empty ~/Drives: $(ls -A "$HOME/Drives" 2>&1)"
+mounted /dev/sdb1 "$MNT/KINGSTON"
+kawa-drives watch; eq "$(readlink "$HOME/Drives/KINGSTON")" "$MNT/KINGSTON"
+case_ "~/Drives: a link left by a drive since closed goes; yours (a file, a link elsewhere) stay"
+ln -s /run/media/me/OLD "$HOME/Drives/OLD"; ln -s "$TMP" "$HOME/Drives/mine"; echo n >"$HOME/Drives/notes.txt"
+kawa-drives watch
+[[ ! -L $HOME/Drives/OLD ]] && _ok || _no "the closed drive's link stayed"
+[[ -L $HOME/Drives/mine && -f $HOME/Drives/notes.txt && -L $HOME/Drives/KINGSTON ]] && _ok || _no "$(ls -A "$HOME/Drives" | tr '\n' '|')"
 
 done_

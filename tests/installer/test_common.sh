@@ -130,21 +130,4 @@ eq "$?" 1; has "$(cat "$TMP/guard")" "THIS MACHINE CHANGED: $TMP/acct"
 # shellcheck disable=SC2034
 ( HOST_FILES=("$TMP/acct"); HOST_SUMS=$(host_sums); host_guard ); eq "$?" 0 "unchanged: quiet"
 
-case_ "keep_dwl_prev: the dwl in place becomes the fallback, by a rename (never written into)"
-mkdir -p "$TMP/dwlbin"; printf '#!/bin/sh\necho new\n' >"$TMP/dwlbin/dwl"; chmod 755 "$TMP/dwlbin/dwl"
-printf '#!/bin/sh\necho old\n' >"$TMP/dwlbin/dwl.prev"; chmod 755 "$TMP/dwlbin/dwl.prev"; ino=$(stat -c %i "$TMP/dwlbin/dwl.prev")
-lib "KAWA_DWL_DIR='$TMP/dwlbin' keep_dwl_prev"; eq "$RC" 0
-eq "$(cat "$TMP/dwlbin/dwl.prev")" "$(cat "$TMP/dwlbin/dwl")" "dwl.prev is now the dwl that was in place"
-[[ $(stat -c %i "$TMP/dwlbin/dwl.prev") != "$ino" ]] && _ok || _no "dwl.prev written into, not replaced (a running one: Text file busy)"
-[[ -z $(find "$TMP/dwlbin" -name '.dwl.prev.*') ]] && _ok || _no "a temporary copy left behind"
-case_ "keep_dwl_prev: while a session runs on dwl.prev (the new build failed), the fallback is kept as it is"
-printf '#!/bin/sh\necho good\n' >"$TMP/dwlbin/dwl.prev"; printf '#!/bin/sh\necho broken\n' >"$TMP/dwlbin/dwl"
-cp /bin/sleep "$TMP/dwl.prev"; "$TMP/dwl.prev" 30 & runner=$!   # (the real sleep: this file stubs sleep)
-for _ in 1 2 3 4 5 6 7 8 9 10; do pgrep -x dwl.prev >/dev/null && break; /bin/sleep 0.1; done
-lib "KAWA_DWL_DIR='$TMP/dwlbin' keep_dwl_prev"; eq "$RC" 0
-eq "$(cat "$TMP/dwlbin/dwl.prev")" "$(printf '#!/bin/sh\necho good')" "the working fallback kept"
-kill "$runner" 2>/dev/null; wait "$runner" 2>/dev/null
-case_ "keep_dwl_prev: no dwl yet — nothing to keep, no error"
-rm -f "$TMP/dwlbin/dwl"; lib "KAWA_DWL_DIR='$TMP/dwlbin' keep_dwl_prev"; eq "$RC" 0
-
 done_

@@ -1,19 +1,21 @@
 /* XPM */
-/* the torii above the boot menu (the same drawing as the bar's torii icon).
-   theme.sh enlarges it by a whole number into /boot/grub2/themes/sumi/torii.png */
+/* the torii above the boot menu and on the boot splash (the same drawing as the bar's
+   torii icon, art/icons.txt). theme.sh enlarges it by a whole number into
+   /boot/grub2/themes/sumi/torii.png; tools/build-art.py into the splash's torii.png */
 static char *torii[] = {
-"10 10 3 1",
+"11 11 3 1",
 ". c None",
 "k c #e8876d",
 "# c #d0583a",
-"k........k",
-"kkkkkkkkkk",
-".########.",
-"..#....#..",
-"##########",
-"..#....#..",
-"..#....#..",
-"..#....#..",
-"..#....#..",
-"..#....#.."
+"k.........k",
+"kkkkkkkkkkk",
+".#########.",
+"...#...#...",
+"###########",
+"...#...#...",
+"...#...#...",
+"...#...#...",
+"...#...#...",
+"...#...#...",
+"...#...#..."
 };

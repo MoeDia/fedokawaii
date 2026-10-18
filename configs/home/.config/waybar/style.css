@@ -1,13 +1,26 @@
-/* ~/.config/waybar/style.css — one thin bar, pixel font, workspaces drawn as keys.
-   Colours come from the current theme (dark ink or light paper): kawa-theme switches
+/* ~/.config/waybar/style.css — the bar as a hanging scroll (kakejiku): a strip of washi
+   paper across the top, a fine line of gold ink under it, and one kind of button for
+   everything on it. Colours come from the current theme (ink or paper): kawa-theme switches
    ~/.config/fedokawaii/current and reloads the bar.
-   Departure Mono and Sumi Icons are pixel fonts on an 11 px grid: keep font-size at
-   11px (or 22px) so every glyph lands on whole pixels. Reload: pkill -USR2 waybar */
+
+   One rule for every button (the torii, the workspaces, the layout, the day, the cat) — the
+   desktop's "active" rule: at rest the glyph alone on the paper; under the pointer a soft
+   fill; active — the workspace you are on, an open menu, a game — filled whole in vermilion,
+   the glyph in paper. Nothing underlined, no edge marks. The right side's groups are
+   parted by a sashiko stitch — a running stitch of faint thread down the paper.
+
+   Fusion Pixel and Sumi Icons are pixel fonts on a 12 px grid: keep font-size at 12px so
+   every pixel lands on a whole screen pixel. Every button is 23 × 23 — odd, because the
+   kanji's ink is 11 × 11 (columns 0–10, rows 1–11 of the 12 px line), and so are the
+   buttons' icons ("seal-sized", art/icons.txt): 6 px of fill on every side of each, to the
+   pixel. Kanji buttons pad 6 left · 5 right (+ the 12 px advance = 23), 5 above · 6 below
+   (+ the 12 px line = 23); icon buttons are 23 wide and centre their odd advance. Reload:
+   pkill -USR2 waybar */
 @import url("../fedokawaii/current/waybar.css");
 
 * {
-  font-family: "DepartureMono Nerd Font", "Sumi Icons", "PixelMplus12", "Noto Kufi Arabic";
-  font-size: 11px;
+  font-family: "Fusion Pixel 12px Mono ja", "Sumi Icons", "Noto Kufi Arabic";
+  font-size: 12px;
   min-height: 0;
   border: none;
   border-radius: 0;
@@ -16,99 +29,109 @@
 }
 
 window#waybar {
-  background: @bar;
+  background-color: @bar;
+  background-image: url("../fedokawaii/current/washi.png");
   color: @text;
-  border-bottom: 1px solid @edge;
+  border-bottom: 1px solid @hairline;
 }
 
-/* every module: the same horizontal rhythm */
-#custom-layout, #custom-title, #custom-nowplaying, #tray, #custom-drives, #custom-kb, #custom-cpu, #wireplumber {
-  padding: 0 10px;
+/* ── buttons: one size, one behaviour ─────────────────────────────────────────── */
+#custom-torii, .tag, #custom-layout, #custom-menu, #custom-day, #custom-steam, #custom-mode {
+  min-width: 23px;
+  padding: 5px 0 6px 0;            /* 5 + 12 px line + 6 = 23 tall */
+  margin: 4px 0 5px 3px;           /* 4 + 23 + 5 = 32 (the hairline is painted over the last row): 4 of paper above, 4 below */
+  transition: background-color 120ms ease-out, color 120ms ease-out;
+}
+/* a kanji in a button: its 12 px advance holds 11 px of ink from the left edge, so one more
+   pixel of padding on the left than on the right centres it exactly */
+.tag, #custom-day, #custom-mode { min-width: 0; padding: 5px 5px 6px 6px; }
+#custom-torii:hover, .tag:hover, #custom-layout:hover, #custom-menu:hover,
+#custom-steam:hover, #custom-mem:hover, #wireplumber:hover, #custom-weather:hover,
+#custom-drives:hover, #clock:hover, #custom-mode:hover {
+  background-color: @edge;         /* the soft fill under the pointer */
 }
 
-/* a key: raised face, light top-left edge, dark bottom-right edge (old keyboard keys).
-   Every key is 18 px tall; its width keeps the glyph exactly centred (GTK puts a spare
-   half pixel on the right): the 10 px-wide icons in an even 24 px key, the 5 px-wide
-   digits in an odd 23 px one. */
-#custom-torii, #custom-menu, .tag {
-  min-width: 18px;
-  margin: 4px 0 5px 4px;            /* 27 px bar: the last row is the hairline below it */
-  padding: 0 2px;
-  border: 1px solid transparent;
-}
-.tag { min-width: 17px; }
+/* the torii key at the far left (opens the launcher): the gate in vermilion ink — the only
+   filled seal on this side stays the workspace you are on. Its button stands 8 px from the
+   screen's edge, on the line the windows' borders keep (dwl's gap), as the cat's does at the
+   other end */
+#custom-torii { margin-left: 8px; color: @accent-text; }
 
-/* the torii key at the far left (opens the launcher): a vermilion key */
-#custom-torii {
-  margin-left: 6px;
-  margin-right: 0;                  /* the next key's own 4 px: every gap in the row is 4 px */
-  color: @strong-on-accent;
-  background: @accent;
-  border-color: @accent-hi @accent-lo @accent-lo @accent-hi;
-}
+/* ── workspaces: 一 二 三 … as seals ───────────────────────────────────────────────
+   empty: the numeral faint on the paper · holding windows: the numeral in ink, ringed ·
+   the one you are on: a vermilion seal · asking for you: an asagi seal. Fixed width, so
+   nothing moves when the selection does. */
+.tag          { color: @faint; }
+.tag.occupied { color: @text; box-shadow: inset 0 0 0 1px @edge2; }
+.tag.selected { color: @strong-on-accent; background-color: @accent; box-shadow: none; }
+.tag.selected:hover { background-color: @accent-hi; }
+.tag.urgent   { color: @urgent-text; background-color: @urgent; box-shadow: none; }
 
-/* ── workspaces as keys ─────────────────────────────────────────────────────
-   empty: a flat outlined key, quiet · occupied: a raised key · selected: the lit key (paper on the
-   dark theme, ink on the light one) with a vermilion stamp along its bottom edge ·
-   urgent: a teal key. Fixed width, so nothing shifts when the selection moves. */
-.tag          { color: @quiet; border-color: @edge; }   /* empty: a flat key, outlined only — the row stays whole */
-.tag.occupied { color: @text; background: @key; border-color: @hi @lo @lo @hi; }
-.tag.selected {
-  color: @lit-text;
-  background: @lit;
-  border-color: @lit-hi @lit-lo @lit-lo @lit-hi;
-  box-shadow: inset 0 -2px @accent;
-}
-.tag.urgent   { color: @urgent-text; background: @urgent; border-color: @hi @lo @lo @hi; }
+/* the layout: a button like the others, a little apart from the workspaces */
+#custom-layout { color: @muted; margin-left: 9px; }
+#custom-title  { color: @text; padding: 0 12px; }
 
-#custom-layout { color: @quiet; margin-left: 11px; }   /* 23 px after the last key, the bar's word gap */
-#custom-title  { color: @text; }
-
-/* now playing: the meter colours are set inside the text (kawa-nowplaying) */
-#custom-nowplaying        { color: @text; }
+/* ── the middle: now playing (its meter colours come inside the text) ────────────── */
+#custom-nowplaying        { color: @text; padding: 0 12px; }
 #custom-nowplaying.paused { color: @quiet; }
 
-#tray > .needs-attention { background: alpha(@accent, 0.5); }
-
-/* the drive mark: quiet while plugged in, the text colour once a drive on it is open */
+/* ── the right: groups parted by a stitch ────────────────────────────────────────────
+   #status (mode, drives, Steam, keyboard, memory, volume, weather) and #when (date, the
+   day's seal, time). In a group each module pads 7 px a side, so 14 px of paper lie between
+   two of them; a stitch has 18 px of paper between it and the ink on either side (measured
+   on the bar: 7 of padding + 1 of the letters' own side bearing + 10 to its left, 11 + 7
+   to its right; before the cat, 13 + the 5 px inside the cat's button) */
+#status, #when { margin: 4px 0 5px 0; }
+/* the stitch: 1 px of thread, 3 on and 2 off (current/stitch.png, repeated down), as tall as
+   a button — 23 px = 4 × 5 + 3, so it begins and ends with a stitch */
+#custom-sep1, #custom-sep2 {
+  min-width: 1px;
+  padding: 0;
+  margin: 4px 11px 5px 10px;
+  background-image: url("../fedokawaii/current/stitch.png");
+  background-repeat: repeat-y;
+  background-position: 0 0;
+  color: transparent;
+}
+#custom-sep2 { margin-right: 13px; }
+#custom-mode, #custom-drives, #custom-kb, #custom-mem, #wireplumber, #custom-weather,
+#clock.date, #clock.time {
+  padding: 5px 7px 6px 7px;        /* the same line as the buttons: 23 tall */
+  margin: 0;
+  transition: background-color 120ms ease-out, color 120ms ease-out;
+}
+#custom-mode, #custom-day { margin: 0; }
+/* the gamepad is a button (23 px, its 13 px of ink 5 from either side): 4 px of paper each
+   side keep it as far from its neighbours' letters as they are from one another (17 px) */
+#custom-steam { margin: 0 4px; }
 #custom-drives       { color: @quiet; }
 #custom-drives.open  { color: @text; }
-#custom-drives.count { padding-right: 11px; }   /* (a digit has 1 px of air where the icon has 2: 23 px to the next, like every gap) */
+#custom-steam        { color: @text; }
+#custom-steam.starting { color: @faint; }
+#custom-steam.game   { color: @strong-on-accent; background-color: @accent; }
+#custom-kb           { color: @quiet; }
+#custom-kb.other     { color: @accent-text; }
+#custom-mem          { color: @quiet; }
+#custom-mem.high     { color: @accent-text; }
+#wireplumber         { color: @text; }
+#wireplumber.muted   { color: @accent-text; }
+#custom-weather      { color: @text; }
 
-#custom-kb        { color: @quiet; }
-#custom-kb.other  { color: @accent-text; }
-
-#custom-cpu       { color: @quiet; padding-right: 11px; }   /* (its "%" inks its cell to the edge: 23 px to the volume, like every gap) */
-#custom-cpu.busy  { color: @accent-text; }
-
-#wireplumber       { color: @text; }
-#wireplumber.muted { color: @accent-text; }
-
-/* the seals — the weekday's kanji, and the mode — are PixelMplus at its own 12 px grid: a
-   glyph 11 × 12 px (the cell's last column and its 2 px descent stay empty). Padding
-   2 left · 1 right · 2 top · 0 bottom puts 2 px of seal round every glyph: a 15 × 16 box
-   (共有: 27 × 16), at rows 5–20 of the 27 px bar, so its middle meets the words' middle */
-#custom-day, #custom-mode { font-family: "PixelMplus12"; font-size: 12px; padding: 2px 1px 0 2px; }
-#custom-day        { color: @strong-on-accent; background: @accent; margin: 5px 9px 6px 2px; }
-/* the mode seal: quiet (outlined, inside the same box) for do-not-disturb, vermilion while a
-   screen is shared */
-#custom-mode       { margin: 5px 12px 6px 0; }   /* 23 px to the keyboard layout, like every gap */
+/* the mode — 静 quiet, 共有 shared — a kanji seal like the day's */
+#custom-mode       { padding: 5px 5px 6px 6px; }
 #custom-mode.dnd   { color: @quiet; box-shadow: inset 0 0 0 1px @edge2; }
-#custom-mode.share { color: @strong-on-accent; background: @accent; }
+#custom-mode.share { color: @strong-on-accent; background-color: @accent; }
 
-/* the clock: date quiet, time bright, between two hairlines */
-#clock.date { color: @quiet; padding: 0 7px 0 10px; border-left: 1px solid @edge; }   /* + the 2 px of the glyphs' own sides: one 9 px word gap */
-#clock.time { color: @strong; padding: 0 10px 0 0; border-right: 1px solid @edge; }
+/* ── the clock: date quiet · the day's seal · time bright ────────────────────────── */
+#clock.date { color: @quiet; }
+#custom-day { color: @strong-on-accent; background-color: @accent; }
+#clock.time { color: @strong; }
 
-/* the key that opens quick settings */
-#custom-menu {
-  margin: 4px 6px 5px 11px;   /* 11 px from the time's hairline: the same on both its sides */
-  color: @text;
-  background: @key;
-  border-color: @hi @lo @lo @hi;
-}
-#custom-menu:hover, #custom-torii:hover { box-shadow: inset 0 -2px @strong; }
-.tag:hover:not(.selected)               { box-shadow: inset 0 -2px @quiet; }
+/* the cat that opens quick settings: it smiles, filled vermilion, while a dropdown is open.
+   Its button ends 8 px from the screen's edge — the line the windows' borders keep, and the
+   panels and notices that drop from it: the panel's right edge is the button's */
+#custom-menu      { color: @text; margin: 4px 8px 5px 0; }
+#custom-menu.open { color: @strong-on-accent; background-color: @accent; }
 
 tooltip { background: @bar; border: 2px solid @muted; border-radius: 0; }   /* framed like every menu */
-tooltip label { color: @text; padding: 2px 4px; }
+tooltip label { color: @text; padding: 3px 6px; }

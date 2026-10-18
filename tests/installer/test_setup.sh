@@ -33,9 +33,10 @@ pkg_has tar && pkg_has grubby && pkg_has diffutils && pkg_has man-db && _ok || _
 pkg_has nano && _no "nano still there" || _ok
 pkg_has systemd-oomd-defaults && _no "systemd-oomd-defaults still there (its kill would take the whole session)" || _ok
 eq "$(grep -v '^#' "$W/etc/modprobe.d/fedokawaii-btusb.conf" 2>/dev/null)" "options btusb enable_autosuspend=0" "the Bluetooth dongle never sleeps"
+eq "$(grep -v '^#' "$W/etc/systemd/logind.conf.d/90-fedokawaii.conf" 2>/dev/null | tr '\n' ' ')" "[Login] HandleSuspendKey=ignore HandleSuspendKeyLongPress=ignore InhibitDelayMaxSec=15 " "the Sleep key left to dwl (locked first), any sleep waiting for the lock"
 # (Node 22, which neovim brings through tree-sitter-cli's recommendation, never taken as a weak
 # dependency — set before the first install, and dnf reads it back so)
-has "$(cat "$W/etc/dnf/libdnf5.conf.d/90-fedokawaii.conf")" "exclude_from_weak=nodejs,nodejs22*,PackageKit"
+has "$(cat "$W/etc/dnf/libdnf5.conf.d/90-fedokawaii.conf")" "exclude_from_weak=nodejs,nodejs22*,PackageKit,java-*-openjdk-headless,libreoffice-help-*"
 lacks "$OUT" "dnf shows exclude_from_weak"
 # (dnf's metadata timer, static on Fedora 44: masked — `disable` cannot turn a static unit off)
 grep -qx "masked dnf5-makecache.timer" "$FKH/units" && _ok || _no "dnf5-makecache.timer not masked"
@@ -67,6 +68,10 @@ case_ "phase 3: dwl and the desktop, the gate, then the login enabled last and t
 # (GitHub refusing GE-Proton's release list once, the file dialog's first build failing, and
 # LazyVim's plugin clones failing the first time: none stops the build, the gate tries again)
 fkh fail-curl-ge-api 1; fkh fail-meson 1; fkh fail-nvim-plugins 1
+# (garbage the end sweeps: the download the clone was unpacked from, twelve theme runs' backups)
+B=$W/home/fkuser/.local/state/fedokawaii/backup
+for i in $(seq -w 1 12); do mkdir -p "$B/202601${i}-120000"; done; mkdir -p "$W/home/fkuser/Downloads"; : >"$W/home/fkuser/Downloads/fedokawaii.zip"; touch -d '1 hour ago' "$W/home/fkuser/Downloads/fedokawaii.zip"   # (downloaded before it was unpacked)
+chown "$FK_UID:$FK_UID" "$W/home/fkuser/.local"; chown -R "$FK_UID:$FK_UID" "$W/home/fkuser/.local/state" "$W/home/fkuser/Downloads"
 resume --no-reboot; eq "$RC" 0
 eq "$(state phase)" "done"
 has "$OUT" "✔ 3.13 verify gate"; has "$OUT" "✔ verified"
@@ -80,19 +85,27 @@ has "$(cat "$W/etc/systemd/system/greetd.service.d/fedokawaii.conf")" "Conflicts
 eq "$(cat "$FKH/default-target")" graphical.target
 has "$(cat "$FKH/snaps")" "fedokawaii baseline"
 [[ -x $W/usr/local/bin/dwl && -s $W/usr/local/lib/fedokawaii-wlroots-0.20/cflags ]] && _ok || _no "dwl or its wlroots not in place"
-for t in satty yazi ya presenterm spotify_player; do [[ -x $W/home/fkuser/.local/bin/$t ]] || _no "$t not installed"; done; _ok
+for t in satty yazi ya bluetui lazygit; do [[ -x $W/home/fkuser/.local/bin/$t ]] || _no "$t not installed"; done; _ok
 eq "$(cat "$W/home/fkuser/.local/share/fedokawaii/upstream/ge-proton" 2>/dev/null)" GE-Proton10-25
 eq "$(cat "$W/home/fkuser/.local/share/fedokawaii/upstream/syncplay" 2>/dev/null)" "$(. "$REPO/lib/upstream.sh"; syncplay_pin)" "Syncplay (3.07c) at its pinned commit, with our patch"
 [[ -x $W/home/fkuser/.local/bin/syncplay && -f $W/home/fkuser/.local/share/fedokawaii/syncplay/syncplay/client.py ]] && _ok || _no "Syncplay not installed"
+eq "$(cat "$W/home/fkuser/.local/share/fedokawaii/upstream/blesh" 2>/dev/null)" "$(. "$REPO/lib/upstream.sh"; echo "$BLESH_COMMIT")" "ble.sh (3.07d) at its pinned commit"
+[[ -f $W/home/fkuser/.local/share/blesh/ble.sh ]] && _ok || _no "ble.sh not installed"
 # (the clone setup was started from: gone at the end — the toolkit has all of it)
 [[ ! -e $W$CLONE ]] && _ok || _no "the clone ~/fedokawaii is still there"
 has "$OUT" "~/fedokawaii removed: the toolkit has all of it"
 [[ -x $W$TK/setup.sh ]] && _ok || _no "the toolkit went with it"
+[[ ! -e $W/home/fkuser/Downloads/fedokawaii.zip && -d $W/home/fkuser/Downloads ]] && _ok || _no "the download it came from is still there (or Downloads went with it)"
+eq "$(ls "$B" | wc -l)" 10 "ten theme backups kept: $(ls "$B" | tr '\n' ' ')"
+[[ -d $B/20260112-120000 && -d $B/20260103-120000 && ! -e $B/20260102-120000 && ! -e $B/20260101-120000 ]] && _ok || _no "not the newest kept: $(ls "$B" | tr '\n' ' ')"
+# the sweep before the baseline (a snapshot keeps every cached download for good)
+c=$(grep -n '\[dnf\] clean packages' "$W/var/lib/fkh/calls.log" | tail -n1 | cut -d: -f1); b=$(grep -n 'fedokawaii baseline' "$W/var/lib/fkh/calls.log" | tail -n1 | cut -d: -f1)
+[[ -n $c && -n $b ]] && ((c < b)) && _ok || _no "dnf's packages cleaned at line [$c], the baseline taken at [$b]"
 case_ "torrra: installed by pipx with its pinned libraries, pipx's own command off your PATH; 6881 open"
 called "pipx\] install --force --python python3.13 --pip-args=-c .*/system/torrra-constraints.txt torrra=="
 [[ -L $W/home/fkuser/.local/share/pipx/bin/torrra && ! -e $W/home/fkuser/.local/bin/torrra && ! -L $W/home/fkuser/.local/bin/torrra ]] \
   && _ok || _no "pipx's torrra is in ~/.local/bin"
-eq "$(sort "$FKH/fw-ports" | tr '\n' ' ')" "6881/tcp 6881/udp "
+eq "$(sort "$FKH/fw-ports" | tr '\n' ' ')" "53317/tcp 53317/udp 6881/tcp 6881/udp " "torrra's port and LocalSend's"
 case_ "the gate's second tries: GE-Proton, the yazi file dialog and LazyVim's plugins, each put in place there"
 has "$OUT" "GE-Proton is not installed yet"; has "$OUT" "file dialogs stay GTK's for now"
 has "$OUT" "✔ GE-Proton10-25 → Steam compatibilitytools.d"; has "$OUT" "file dialogs: yazi (termfilechooser v1.4.3)"
@@ -102,14 +115,36 @@ case_ "after the build: verify passes (exit 0), and setup run again only says so
 fkrun bash "$TK/verify.sh"; eq "$RC" 0 "verify: $(grep '✘' <<<"$OUT" | head -n3 | tr '\n' '|')"; has "$OUT" "✔ verified"
 reset_calls; fkrun bash "$TK/setup.sh"; eq "$RC" 0; has "$OUT" "already built"      # (the clone is gone: the toolkit's)
 not_called 'dnf\] -y install'
-case_ "the clone holds a file of yours (or a changed fedokawaii.conf): it stays, and the log says why"
+case_ "the clone holds a file of yours (or a changed fedokawaii.conf): packed into ~/.local/state first; the project's files go, yours stays"
 back phase3; echo "my notes" >"$W$CLONE/notes.txt"; chown "$FK_UID:$FK_UID" "$W$CLONE/notes.txt"
 resume --no-reboot; eq "$RC" 0; eq "$(state phase)" "done"
-[[ -f $W$CLONE/notes.txt ]] && _ok || _no "the clone with a file of yours was removed"
-has "$OUT" "~/fedokawaii kept: it differs from the toolkit"
+eq "$(ls -A "$W$CLONE" 2>&1)" "notes.txt" "only your file is left"
+has "$OUT" "~/fedokawaii: the project's files removed; the rest is yours and stays (notes.txt)"
+has "$OUT" "~/fedokawaii: it differs from the toolkit — the whole folder is kept, packed, in ~/.local/state/fedokawaii/started-from-"
+a=$(ls "$W"/home/fkuser/.local/state/fedokawaii/started-from-*.tar.gz 2>/dev/null | tail -n1)
+eq "$(tar -xzOf "$a" fedokawaii/notes.txt 2>/dev/null)" "my notes" "your file is in the pack"
+eq "$(fk stat -c %U "${a#"$W"}")" fkuser "the pack is yours"
 back phase3; sed -i 's/^MONITOR_HZ=.*/MONITOR_HZ="60"/' "$W$CLONE/fedokawaii.conf"; chown "$FK_UID:$FK_UID" "$W$CLONE/fedokawaii.conf"
-resume --no-reboot; [[ -d $W$CLONE ]] && _ok || _no "removed despite its own fedokawaii.conf"
-has "$OUT" "~/fedokawaii kept: its fedokawaii.conf changed after setup read it"
+resume --no-reboot; [[ ! -e $W$CLONE ]] && _ok || _no "the clone is still there"
+has "$OUT" "~/fedokawaii: its fedokawaii.conf changed after this run read it — the whole folder is kept, packed"
+case_ "the pack cannot be made (a file in it you cannot read, the disk full): the clone stays, and the log says so"
+back phase3; echo "mine" >"$W$CLONE/notes.txt"; chown "$FK_UID:$FK_UID" "$W$CLONE/notes.txt"; chmod 000 "$W$CLONE/notes.txt"   # (unreadable)
+resume --no-reboot; eq "$(state phase)" "done"
+[[ -f $W$CLONE/notes.txt ]] && _ok || _no "removed without its pack"
+has "$OUT" "kept: it differs from the toolkit, and it could not be packed first"
+eq "$(ls "$W"/home/fkuser/.local/state/fedokawaii/started-from-* 2>/dev/null)" "" "no half-made pack left"
+case_ "a working copy fedokawaii copy made (its .git knows the settings it was made with): never removed"
+back phase3; mkdir -p "$W$CLONE/.git"; : >"$W$CLONE/.git/fedokawaii-conf-base"; chown -R "$FK_UID:$FK_UID" "$W$CLONE/.git"
+resume --no-reboot; [[ -d $W$CLONE ]] && _ok || _no "your working copy was removed"
+has "$OUT" "~/fedokawaii kept: it is your working copy"
+case_ "phase 3 run from the clone (as setup is started again by hand): the clone goes after the final check, which runs from the toolkit"
+back phase3; reset_calls
+setup --no-reboot; eq "$RC" 0 "$(grep -E '✘' <<<"$OUT" | head -n3 | tr '\n' '|')"
+eq "$(state phase)" "done"; has "$OUT" "~/fedokawaii removed: the toolkit has all of it"
+lacks "$OUT" "No such file"; lacks "$OUT" "final verification failed"
+[[ ! -e $W$CLONE ]] && _ok || _no "the clone is still there"
+[[ $(grep -n 'removed: the toolkit' <<<"$OUT" | cut -d: -f1) -gt $(grep -n '✔ verified' <<<"$OUT" | tail -n1 | cut -d: -f1) ]] && _ok || _no "removed before the final check"
+
 case_ "Fedora 45: phase 2 takes RPM Fusion's release packages for 45, and goes on as on 44"
 back phase2; fedora_release 45
 resume --no-reboot; eq "$RC" 0; eq "$(state phase)" 3; has "$OUT" "Fedora 45 · phase 2"

@@ -14,6 +14,8 @@ case ${1:-} in
 esac
 # shellcheck source=/dev/null
 . "$HOME/.config/fedokawaii/icons.sh"
+# shellcheck source=/dev/null
+. "$HOME/.config/fedokawaii/width.sh"
 note() {   # note TITLE BODY — mako reads the body as markup, and a device may be called "Tom & Jerry"
   local b=${2//[[:cntrl:]]/ }
   b=${b//&/"&amp;"}; b=${b//</"&lt;"}; b=${b//>/"&gt;"}   # quoted: bash 5.2 treats a bare & as "the match"
@@ -21,20 +23,16 @@ note() {   # note TITLE BODY — mako reads the body as markup, and a device may
 }
 
 add() { rows+=("$1"); acts+=("$2"); full+=("${3:-}"); }   # add LABEL ACTION [DEVICE NAME]
-W=30                                     # the menu's width, in characters
-fit() {    # fit NAME — a device name cut to end with the rules (W - 1 columns, after the box
-  local LC_ALL=C.UTF-8                  # icon's two columns and its two spaces), "…" where cut —
-  local n=$1 m=$((W - 5))               # counted in characters, whatever the session's locale
-  ((${#n} > m)) && n="${n:0:m-1}…"
-  printf '%s' "$n"
-}
-rule() {   # rule TITLE — a heading ruled across the menu (TITLE is plain ASCII): W - 1
-  local r="── $1 " i                     # columns, as fuzzel keeps the last one for its "…"
-  for ((i = ${#1} + 4; i < W - 1; i++)); do r+='─'; done
-  add "$r" -
+W=34                                     # the menu's width, in characters
+fit() {    # fit NAME — a device name in at most W - 6 columns (cut_cols: width.sh): after the
+  cut_cols "$1" $((W - 6))   # box icon and its two spaces (26 px) it ends with the headings'
+}                            # rules, as near as the icon's 14 px let it (2 px past)
+heading_row() {   # heading_row KANJI NAME — a heading, as Super+U's (width.sh), a gap above it but at the top
+  ((${#rows[@]})) && add "" head
+  add "$(heading "$1" "$2" "$W")" head
 }
 
-sel=0
+sel=1                                    # (row 0 is the first heading)
 while :; do
   dump=$(pw-dump 2>/dev/null) || { note "Audio" "PipeWire is not running"; exit 1; }
   # id, class, default (0|1), description — one line per real device, the fields apart by
@@ -55,51 +53,47 @@ while :; do
         ($p["node.description"] // $p["node.nick"] // $p["node.name"]) ]
     | map(tostring | gsub("[[:cntrl:]]"; " ")) | join("\u001f")' <<<"$dump")
 
-  read -r _ vol muted <<<"$(wpctl get-volume @DEFAULT_AUDIO_SINK@ 2>/dev/null)"
-  pct=$(awk -v v="${vol:-0}" 'BEGIN { printf "%d", v * 100 + 0.5 }')
+  read -r _ _ muted <<<"$(wpctl get-volume @DEFAULT_AUDIO_SINK@ 2>/dev/null)"
   mic=$(wpctl get-volume @DEFAULT_AUDIO_SOURCE@ 2>/dev/null)
 
   rows=() acts=() full=()
+  heading_row 音 sound
   add "$ICON_VOL_UP  louder"  up
   add "$ICON_VOL_DOWN  quieter" down
   if [[ $muted == *MUTED* ]]; then add "$ICON_SPEAKER  unmute" mute; else add "$ICON_SPEAKER_OFF  mute" mute; fi
-  rule output
+  add "$ICON_SLIDERS  mixer…" mixer
+  heading_row 出 output
   for d in "${devs[@]}"; do
     IFS=$'\x1f' read -r id class def name <<<"$d"
     [[ $class == Audio/Sink ]] || continue
     if ((def)); then add "$ICON_BOX_ON  $(fit "$name")" -; else add "$ICON_BOX_OFF  $(fit "$name")" "sink:$id" "$name"; fi
   done
-  rule input
+  heading_row 入 input
   for d in "${devs[@]}"; do
     IFS=$'\x1f' read -r id class def name <<<"$d"
     [[ $class == Audio/Source ]] || continue
     if ((def)); then add "$ICON_BOX_ON  $(fit "$name")" -; else add "$ICON_BOX_OFF  $(fit "$name")" "source:$id" "$name"; fi
   done
   if [[ $mic == *MUTED* ]]; then add "$ICON_MIC  unmute microphone" micmute; else add "$ICON_MIC_OFF  mute microphone" micmute; fi
-  add "$ICON_SLIDERS  mixer…" mixer
 
-  # the title, one line: the speaker, the menus' framed bar (icons.sh: 20 cells of 5 %) —
-  # starting in column 4 with the labels below, its frame on their letters' first pixel —
-  # and the level. (fuzzel wraps a title line longer than the menu's width in characters,
-  # and the bar is 22 of them: this line is exactly the 30 that fit.)
-  [[ $pct =~ ^[0-9]+$ ]] || pct=0
-  lv="" val="$pct%"
-  if [[ $muted == *MUTED* ]]; then levelbar lv 20 0; val=off; icon=$ICON_SPEAKER_OFF
-  else levelbar lv 20 "$pct"; icon=$ICON_SPEAKER; fi
-  printf -v title '%s  %s %4s' "$icon" "$lv" "$val"
-  i=$(printf '%s\n' "${rows[@]}" | kawa-menu --drop --index --width "$W" --lines 16 --select "$sel" --title "$title") || exit 0
+  # (no title: the level is the bar's, right above the menu, and it moves as louder and
+  # quieter are pressed — the menu does not say it again)
+  i=$(printf '%s\n' "${rows[@]}" | kawa-menu --drop --index --width "$W" --lines "${#rows[@]}" --select "$sel") || exit 0
   sel=$i
   case ${acts[i]:--} in
-    up)       ((pct >= 100)) || wpctl set-volume -l 1.0 @DEFAULT_AUDIO_SINK@ 5%+ ;;   # (never down: above 100 % is the mixer's)
-    down)     wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%- ;;
-    mute)     wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle ;;
-    micmute)  wpctl set-mute @DEFAULT_AUDIO_SOURCE@ toggle ;;
+    # (the volume as the keys change it: kawa-volume — up unmutes and stops at 100 %, the
+    # level shown at the foot of the screen)
+    up)       kawa-volume up ;;
+    down)     kawa-volume down ;;
+    mute)     kawa-volume mute ;;
+    micmute)  kawa-volume mic ;;
     sink:*|source:*)                   # (one unplugged while the menu was open: just reopen)
               if wpctl set-default "${acts[i]#*:}" >/dev/null 2>&1; then
                 kind=input; [[ ${acts[i]} == sink:* ]] && kind=output
                 note "Audio" "${full[i]} is now the $kind"; exit 0
               fi ;;
     mixer)    exec kawa-float --once mixer mixer 96x29 -- wiremix ;;   # (7 rows of 4 lines, the tabs)
-    -)        ;;                       # headings and the current device: just reopen
+    head)     while [[ ${acts[sel]:-} == head ]]; do sel=$((sel + 1)); done ;;   # (a heading or a gap: the menu again on its part's first entry, as every menu)
+    -)        ;;                       # (the current device: nothing to change)
   esac
 done

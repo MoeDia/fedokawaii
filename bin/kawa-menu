@@ -3,9 +3,12 @@
 #
 #   … | kawa-menu [--drop] [--title TEXT] [--width N] [--lines N] [--select N] [--prompt P] [--index]
 #
-#   --drop      open as a dropdown under the bar's right end (quick settings, audio,
-#               calendar, brightness); otherwise centred on screen like the launcher
+#   --drop      open as a dropdown under the bar's right end (audio, calendar, drives,
+#               Steam's — where quick settings' panel opens too); otherwise centred like the
+#               launcher
 #   --title     a quiet line above the list (fuzzel --mesg)
+#   --width N   N columns of 6 px; a row shows whole up to N × 6 − 10 px (fuzzel keeps the
+#               rest for its "…", 10 px of ink): N − 2 plain columns, and 2 px
 #   --select N  pre-select line N (0-based)
 #   --prompt P  show a filter prompt (dropdowns hide it; typing still filters)
 #   --index     print the chosen line's number (0-based) instead of its text
@@ -18,9 +21,8 @@
 # again) or cannot open, 2 on wrong use.
 set -u
 usage() { echo "usage: … | kawa-menu [--drop] [--title TEXT] [--width N] [--lines N] [--select N] [--prompt P] [--index]" >&2; exit 2; }
-C_MUTED=877f6f                                      # (the dark theme's, if none is set up)
 # shellcheck source=/dev/null
-[[ -r $HOME/.config/fedokawaii/current/colors.sh ]] && . "$HOME/.config/fedokawaii/current/colors.sh"
+. "$HOME/.config/fedokawaii/current/colors.sh"
 args=(--dmenu --no-sort --minimal-lines "--message-color=${C_MUTED}ff")   # the title line, quiet
 drop=0 prompt="" idx=0
 while (($#)); do
@@ -41,9 +43,18 @@ while (($#)); do
   esac
   shift 2
 done
-if ((drop)); then args+=(--anchor=top-right --x-margin=6 --y-margin=6); fi
+# a dropdown hangs 8 px under the bar and 8 px from the screen's edge: the gap (gappx) the
+# windows keep, so its border lines up with a window's there to the pixel
+if ((drop)); then args+=(--anchor=top-right --x-margin=8 --y-margin=8); fi
 if [[ -n $prompt ]]; then args+=("--prompt=$prompt"); else args+=(--hide-prompt); fi
-command -v fuzzel >/dev/null || { notify-send -a desktop -u critical "Menus" "fuzzel is missing — run update or repair" 2>/dev/null; exit 1; }
+command -v fuzzel >/dev/null || { notify-send -a desktop -u critical "menus" "fuzzel is missing — fedokawaii repair puts it back" 2>/dev/null; exit 1; }
+# a dropdown lights the bar's cat (happy) while it is open (the cat's module reads this file;
+# SIGRTMIN+15 tells it)
+lit() {
+  ((drop)) && [[ -n ${XDG_RUNTIME_DIR:-} ]] || return 0
+  if [[ $1 == on ]]; then : >"$XDG_RUNTIME_DIR/kawa-drop.open"; else rm -f "$XDG_RUNTIME_DIR/kawa-drop.open"; fi
+  kawa-dwlstatus --poke 15 2>/dev/null || true
+}
 
 # ── one menu at a time ────────────────────────────────────────────────────────────────
 # $rec says which menu is on screen: fuzzel's pid, when (µs), how it stands — open; lost (a
@@ -95,8 +106,10 @@ if [[ -n $rec ]]; then
   for _ in {1..2000}; do read -r c 2>/dev/null </proc/$fz/comm || break; [[ $c == fuzzel ]] && break; done
   printf '%s %s open %s\n' "$fz" "$(now)" "$me" >"$rec"
   flock -u 9
+  lit on
   IFS= read -r -d '' out <&4; out=${out%$'\n'}
   wait "$fz"; rc=$?
+  lit off
   if flock -w 2 9; then
     read -r pid at how who <"$rec"
     # (unless another menu or its own key closed it, and wrote so)
@@ -108,7 +121,8 @@ if [[ -n $rec ]]; then
   fi
   ((rc == 0)) || exit 1
 else
-  out=$(fuzzel "${args[@]}") || exit 1
+  lit on; out=$(fuzzel "${args[@]}"); rc=$?; lit off
+  ((rc == 0)) || exit 1
 fi
 # Enter on a filter that matches nothing hands back the typed text (or -1): with --index,
 # callers use the answer as an array index, so anything but a line number counts as dismissed

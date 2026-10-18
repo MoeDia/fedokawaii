@@ -124,7 +124,7 @@ if search:
     if r.status_code != 200:
         fail(f"Prowlarr answered HTTP {r.status_code} — journalctl --user -u prowlarr -e")
     if not any(i.get("enable") for i in r.json()):
-        fail("Prowlarr has no indexers yet — open http://localhost:9696 → Indexers → Add Indexer")
+        fail("Prowlarr has no indexers switched on — fedokawaii repair adds the usual ones (or: prowlarr → Indexers)")
 
 SECRET = "indexers.prowlarr.api_key"
 THEMES = ("ansi-dark", "ansi-light", "textual-dark")
@@ -168,25 +168,24 @@ sys.argv[0] = "torrra"
 sys.exit(cli())
 PY
 
-# Prowlarr runs on demand: started here for a search (the start returns once it is healthy —
-# the first after a boot can take a minute or two; systemd gives up after 10 minutes, the
-# unit's TimeoutStartSec) and stopped again afterwards, if it was not running
-# — however torrra ends, the window closed during a search included (trap)
-if ((search)) && ! systemctl --user is-active --quiet prowlarr.service; then
+# Prowlarr runs on demand: woken here for a search (kawa-prowlarr --busy: the start returns
+# once it is healthy — the first after a boot can take a minute or two; systemd gives up
+# after 10 minutes, the unit's TimeoutStartSec), and left to sleep 30 minutes after this
+# window closes (kawa-prowlarr --idle) — however torrra ends, the window closed during a
+# search included (trap) — so a second search soon after finds it awake
+if ((search)); then
   # what would only fail inside systemd, said plainly first: no unit at all (podman, or the
   # container file, missing: the quadlet generator made none), or Prowlarr's port taken
   [[ $(systemctl --user show -p LoadState --value prowlarr.service 2>/dev/null) != not-found ]] \
     || die "Prowlarr is not set up here (no prowlarr.service: podman or its container file is missing) — run: fedokawaii repair"
-  if command -v ss >/dev/null && [[ -n $(ss -Htln 'sport = :9696' 2>/dev/null) ]]; then
+  if ! systemctl --user is-active --quiet prowlarr.service && [[ -n $(ss -Htln 'sport = :9696' 2>/dev/null) ]]; then
     die "port 9696, Prowlarr's, is taken by another program — ss -ltnp 'sport = :9696' shows which"
   fi
   # (set before the start: a window closed, or Ctrl+C, while Prowlarr is still starting
-  # stops it too — the start goes on in systemd after systemctl itself is gone)
-  trap 'systemctl --user stop --no-block prowlarr.service 2>/dev/null' EXIT
+  # plans its sleep too — the start goes on in systemd after systemctl itself is gone)
+  trap 'kawa-prowlarr --idle 2>/dev/null' EXIT
   trap 'exit 129' HUP; trap 'exit 130' INT; trap 'exit 143' TERM
-  printf 'torrra: starting Prowlarr… (its first start after a boot can take a minute or two)\n' >&2
-  systemctl --user start prowlarr.service 2>/dev/null \
-    || die "Prowlarr did not start — journalctl --user -u prowlarr -e"
+  kawa-prowlarr --busy || die "Prowlarr did not start — journalctl --user -u prowlarr -e"
 fi
 KAWA_KEY=${PROWLARR_API_KEY:-} KAWA_SEARCH=$search KAWA_NOTIFY=$open \
   "$py" -I -c "$BOOT" "$@" 8>&-

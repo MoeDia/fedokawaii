@@ -232,13 +232,13 @@ case_ "a garbage BACKUP_REMIND_DAYS (fedokawaii.conf edited by hand, as root): t
 fresh; setting BACKUP_TARGET KINGSTON; setting BACKUP_REMIND_DAYS soon; backed_up 7
 has "$(fedokawaii remind check)" "7 days ago"
 
-case_ "status and remind: a drive named in settings counts at once (the theme's env still says none)"
-fresh; setting BACKUP_TARGET KINGSTON; has "$(cat "$HOME/.config/fedokawaii/env")" 'BACKUP_TARGET=""'
+case_ "status and remind: a drive named in settings counts at once (fedokawaii.conf, its one place)"
+fresh; setting BACKUP_TARGET KINGSTON; lacks "$(cat "$HOME/.config/fedokawaii/env")" 'BACKUP_' "the theme's env holds no copy"
 has "$(line backup "$(fedokawaii status)")" "none yet"; has "$(fedokawaii remind check)" "no backup yet — plug in KINGSTON"
 setting BACKUP_REMIND_DAYS 0; eq "$(grep -c . <<<"$(fedokawaii remind check)")" 1 "0: off, at once"
-case_ "…and only where the toolkit cannot be read (before setup), env's settings"
-fresh; TEST_BACKUP_TARGET=OLD TEST_BACKUP_REMIND_DAYS=3 config .config/fedokawaii/env; backed_up 3; rm -f "$R/toolkit/fedokawaii.conf"
-has "$(line backup "$(fedokawaii status)")" "3 days ago"; has "$(fedokawaii remind check)" "plug in OLD"
+case_ "…the toolkit's fedokawaii.conf unreadable: none — no other copy is read"
+fresh; backed_up 3; rm -f "$R/toolkit/fedokawaii.conf"
+has "$(line backup "$(fedokawaii status)")" "not set up"; lacks "$(fedokawaii remind check)" "plug in"
 case_ "a value in fedokawaii.conf holding a command: read as text, never run"
 fresh; setting BACKUP_TARGET "\$(touch $TMP/ran)"; fedokawaii status >/dev/null; fedokawaii remind check >/dev/null; fedokawaii --rows >/dev/null
 [[ ! -e $TMP/ran ]] && _ok || _no "a setting was run"

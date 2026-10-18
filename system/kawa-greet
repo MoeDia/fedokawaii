@@ -1,0 +1,173 @@
+#!/usr/bin/python3
+"""/usr/local/bin/kawa-greet USER — the login screen. greetd runs it in cage (a kiosk
+compositor: one full-screen window) on tty1, as its own user (greetd).
+
+It is the lock screen's twin: the theme's plain ground and, in the middle, the day's seal,
+the pixel padlock, the time, the date, and one box for your password — each character a
+vermilion ◆. A wrong password empties the box and says so under it; the right one starts
+the desktop (/usr/local/bin/start-dwl). Under it, two quiet words: restart and power off,
+filled vermilion under the pointer or the keyboard's focus (Tab).
+
+There is one person on this computer, so there is no user name to type: setup writes yours
+into greetd's settings (/etc/greetd/fedokawaii.toml), which hand it to this program.
+
+Its look: /usr/local/share/fedokawaii/greeter/<theme>/ (gtklock.css, padlock.png,
+seal-1.png … seal-7.png — setup installs both themes), dark or light as the desktop is
+(kawa-theme writes the name into /var/lib/fedokawaii-greeter/theme, a file of yours).
+
+greetd's protocol: JSON messages over the socket in $GREETD_SOCK, each after its length
+(4 bytes, the machine's byte order) — create_session, post_auth_message_response,
+start_session, cancel_session (man 7 greetd-ipc).
+"""
+import json
+import locale
+import os
+import socket
+import struct
+import subprocess
+import sys
+import time
+
+import gi
+
+gi.require_version("Gtk", "3.0")
+from gi.repository import GLib, Gtk  # noqa: E402
+
+SESSION = ["/usr/local/bin/start-dwl"]
+SHARE = "/usr/local/share/fedokawaii/greeter"
+THEME_FILE = "/var/lib/fedokawaii-greeter/theme"
+
+
+class Greetd:
+    def __init__(self, path):
+        self.sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+        self.sock.connect(path)
+
+    def ask(self, **msg):
+        data = json.dumps(msg).encode()
+        self.sock.sendall(struct.pack("=I", len(data)) + data)
+        head = self._read(4)
+        return json.loads(self._read(struct.unpack("=I", head)[0]))
+
+    def _read(self, n):
+        buf = b""
+        while len(buf) < n:
+            chunk = self.sock.recv(n - len(buf))
+            if not chunk:
+                raise ConnectionError("greetd closed the connection")
+            buf += chunk
+        return buf
+
+
+def theme():
+    try:
+        with open(THEME_FILE) as f:
+            name = f.read().strip()
+    except OSError:
+        name = "dark"                      # (before your first login: the desktop starts dark)
+    return name if name in ("dark", "light") else "dark"
+
+
+class Greeter(Gtk.Window):
+    def __init__(self, user, greetd):
+        super().__init__(title="login")
+        self.user, self.greetd = user, greetd
+        art = f"{SHARE}/{theme()}"
+        css = Gtk.CssProvider()
+        css.load_from_path(f"{art}/gtklock.css")
+        Gtk.StyleContext.add_provider_for_screen(self.get_screen(), css, Gtk.STYLE_PROVIDER_PRIORITY_USER)
+
+        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, name="window-box",
+                      halign=Gtk.Align.CENTER, valign=Gtk.Align.CENTER)
+        info = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=18, name="info-box",
+                       halign=Gtk.Align.CENTER)
+        info.add(Gtk.Image.new_from_file(f"{art}/seal-{time.strftime('%u')}.png"))
+        info.add(Gtk.Image.new_from_file(f"{art}/padlock.png"))
+        times = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, name="time-box")
+        self.clock = Gtk.Label(name="clock-label")
+        self.date = Gtk.Label(name="date-label")
+        times.add(self.clock)
+        times.add(self.date)
+        info.add(times)
+        box.add(info)
+
+        self.entry = Gtk.Entry(name="input-field", halign=Gtk.Align.CENTER, xalign=0.5,
+                               visibility=False, invisible_char="◆", caps_lock_warning=False,
+                               input_purpose=Gtk.InputPurpose.PASSWORD)
+        self.entry.connect("activate", self.login)
+        box.add(self.entry)
+        box.add(Gtk.Label(name="input-label", label=f"{user} · パスワード · password"))
+        self.error = Gtk.Label(name="error-label")
+        box.add(self.error)
+
+        power = Gtk.Box(spacing=12, halign=Gtk.Align.CENTER, margin_top=40)
+        for label, verb in (("再起動 · restart", "reboot"), ("電源 · power off", "poweroff")):
+            b = Gtk.Button(label=label, can_focus=True)
+            b.connect("clicked", lambda _b, v=verb: subprocess.Popen(["systemctl", v]))
+            power.add(b)
+        box.add(power)
+
+        self.add(box)
+        self.tick()
+        GLib.timeout_add_seconds(1, self.tick)
+        self.fullscreen()
+        self.show_all()
+        self.entry.grab_focus()
+
+    def tick(self):
+        self.clock.set_text(time.strftime("%I:%M %p"))
+        self.date.set_text(time.strftime("%a %d %b"))
+        return True
+
+    def say(self, text):
+        self.error.set_text(text)
+
+    def login(self, _entry):
+        self.say("")
+        password = self.entry.get_text()
+        self.entry.set_text("")
+        self.entry.set_sensitive(False)
+        try:
+            ok = self.run_pam(password)
+        except (OSError, ConnectionError, ValueError) as e:
+            self.say(f"the login service did not answer ({e})")
+            ok = False
+        if ok:
+            Gtk.main_quit()
+            return
+        self.entry.set_sensitive(True)
+        self.entry.grab_focus()
+
+    def run_pam(self, password):
+        r = self.greetd.ask(type="create_session", username=self.user)
+        while r.get("type") == "auth_message":
+            kind = r.get("auth_message_type")
+            if kind in ("secret", "visible"):
+                r = self.greetd.ask(type="post_auth_message_response", response=password)
+            else:                          # info or error from PAM: shown, then acknowledged
+                self.say(r.get("auth_message", "").strip())
+                r = self.greetd.ask(type="post_auth_message_response")
+        if r.get("type") == "success":
+            r = self.greetd.ask(type="start_session", cmd=SESSION, env=[])
+            if r.get("type") == "success":
+                return True
+        self.greetd.ask(type="cancel_session")
+        if r.get("error_type") == "auth_error":
+            self.say("ちがう · wrong password")
+        else:
+            self.say(r.get("description", "the login failed"))
+        return False
+
+
+def main():
+    if len(sys.argv) != 2:
+        sys.exit("usage: kawa-greet USER (greetd runs it: /etc/greetd/fedokawaii.toml)")
+    locale.setlocale(locale.LC_TIME, "C")  # the words in English (the seal says the rest), as on the lock
+    greetd = Greetd(os.environ["GREETD_SOCK"])
+    win = Greeter(sys.argv[1], greetd)
+    win.connect("destroy", Gtk.main_quit)
+    Gtk.main()
+
+
+if __name__ == "__main__":
+    main()

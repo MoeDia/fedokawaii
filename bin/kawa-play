@@ -1,0 +1,60 @@
+#!/usr/bin/env bash
+# kawa-play — videos and music open in the mpv window already open: what you open (Enter in
+# yazi, a download in Brave, any xdg-open) replaces what plays there, so one window serves
+# the evening. A film opened while Syncplay's player is open goes to that one: Syncplay sees
+# the new file and tells the room. With no mpv open, a new window.
+#
+#   kawa-play FILE|URL…        in the open window (the first replaces, the rest follow it)
+#   kawa-play --new FILE|URL…  in a new window of its own (Alt+Enter in yazi; the launcher's
+#                              "mpv" too)
+#
+# The window chosen: Syncplay's, if one is open; else the mpv started last. Each mpv answers
+# on a socket of its own (~/.config/mpv/scripts/kawa-ipc.lua; Syncplay's, its own); one that
+# no longer answers (a crashed mpv) is passed over.
+# Exit: 0 played (handed over, or a new window started) · 2 wrong use.
+set -u
+shopt -s extglob
+case ${1:-} in -h|--help) sed -n '2,/^set -u/{/^set -u/d;s/^# \{0,1\}//;p}' "$0"; exit 0 ;; esac
+new=0; [[ ${1:-} == --new ]] && { new=1; shift; }
+[[ ${1:-} == -- ]] && shift
+(($#)) || { echo "usage: kawa-play [--new] FILE|URL… (kawa-play --help)" >&2; exit 2; }
+# a file named from here, made whole: the player runs in another folder
+items=()
+for f; do if [[ $f == [[:alpha:]]*([[:alnum:]+.-])://* || $f == /* ]]; then items+=("$f"); else items+=("$PWD/$f"); fi; done
+run=${XDG_RUNTIME_DIR:-/run/user/$UID}
+if ((!new)); then
+  shopt -s nullglob
+  socks=("$run"/syncplay-*/mpv-socket)
+  mapfile -t -O "${#socks[@]}" socks < <(ls -t -- "$run"/mpv-*.sock 2>/dev/null)
+  for s in "${socks[@]}"; do
+    [[ -S $s ]] || continue
+    # loadfile: the first replaces what plays, the rest are queued after it; mpv's answer to
+    # each says it took it (a socket that refuses, or no answer in 2 s: the next window)
+    python3 -I - "$s" "${items[@]}" <<'PY' && exit 0
+import json, socket, sys
+c = socket.socket(socket.AF_UNIX); c.settimeout(2)
+try:
+    c.connect(sys.argv[1])
+    for i, f in enumerate(sys.argv[2:]):
+        c.sendall((json.dumps({"command": ["loadfile", f, "append" if i else "replace"],
+                               "request_id": i + 1}) + "\n").encode())
+    c.sendall((json.dumps({"command": ["set_property", "pause", False], "request_id": 0}) + "\n").encode())
+    want, buf = set(range(len(sys.argv) - 1)), b""
+    while want:
+        chunk = c.recv(65536)
+        if not chunk:
+            sys.exit(1)
+        buf += chunk
+        *lines, buf = buf.split(b"\n")
+        for l in lines:
+            m = json.loads(l)
+            if m.get("request_id") in want:
+                if m.get("error") != "success":
+                    sys.exit(1)
+                want.discard(m["request_id"])
+except (OSError, ValueError):
+    sys.exit(1)
+PY
+  done
+fi
+exec mpv --player-operation-mode=pseudo-gui -- "${items[@]}"

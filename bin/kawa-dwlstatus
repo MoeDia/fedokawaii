@@ -3,7 +3,8 @@
 # files for waybar's custom modules, then pokes only the modules that changed:
 #   SIGRTMIN+8 workspaces · +9 layout · +10 window title · +11 keyboard layout
 # `kawa-dwlstatus --poke N…` pokes waybar the same careful way for others (quick settings
-# and the screen-share portal: +12, the mode seal · kawa-drives: +13, the drive mark) and exits.
+# and the screen-share portal: +12, the mode seal · kawa-drives: +13, the drive mark ·
+# kawa-menu: +15, the cat) and exits.
 # Exit status: 0 the stream ended (dwl is gone) or poked · 1 no runtime folder · 2 misuse.
 #
 # dwl prints these lines per monitor (the last one comes from src/dwl/dwl.patch):
@@ -52,9 +53,9 @@ case ${1:-} in
 esac
 
 # shellcheck source=/dev/null
-. "$HOME/.config/fedokawaii/icons.sh" 2>/dev/null
-# (no icons.sh — a theme run that never finished: dwl's own symbols, not a reader that stops)
-: "${ICON_TILE:=[]=}" "${ICON_FLOAT:=><>}" "${ICON_MONOCLE:=[M]}"
+. "$HOME/.config/fedokawaii/icons.sh"
+# the workspaces by their kanji numerals, as the bar shows them
+KANJI=(一 二 三 四 五 六 七 八 九)
 DIR="${XDG_RUNTIME_DIR:?}/dwl-bar"
 mkdir -p "$DIR" || exit 1
 ALWAYS=3
@@ -96,14 +97,15 @@ emit() {   # emit MONITOR — its files (and the focused one's at the top), then
     elif (( i <= ALWAYS ));            then cls=empty
     else cls=""; fi
     for at in "${to[@]}"; do
-      if [[ -n $cls ]]; then put "${at}tag$i" "{\"text\":\"$i\",\"class\":[\"tag\",\"$cls\"]}" && tg=1
+      if [[ -n $cls ]]; then put "${at}tag$i" "{\"text\":\"${KANJI[i - 1]}\",\"class\":[\"tag\",\"$cls\"]}" && tg=1
       else put "${at}tag$i" '{"text":""}' && tg=1; fi
     done
   done
-  # the layout as a pixel icon (dwl's symbols: []= tile, ><> floating, [n] monocle)
-  local lt=${LAYOUT[$mon]:-[]=} icon cls title
+  # the layout as a pixel icon (dwl's symbols: (@) spiral, ||| columns, ><> floating, [n] monocle)
+  local lt=${LAYOUT[$mon]:-(@)} icon cls title
   case $lt in
-    '[]=')       icon=$ICON_TILE cls=tile ;;
+    '(@)')       icon=$ICON_SPIRAL cls=spiral ;;
+    '|||')       icon=$ICON_TILE cls=columns ;;
     '><>')       icon=$ICON_FLOAT cls=float ;;
     '[M]')       icon=$ICON_MONOCLE cls=monocle ;;
     \[[0-9]*\]) icon="$ICON_MONOCLE ${lt:1:-1}" cls=monocle ;;   # monocle: windows stacked

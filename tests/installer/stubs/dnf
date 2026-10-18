@@ -30,6 +30,7 @@ hook() {   # hook install|remove NAME
     adwaita-cursor-theme) f=/usr/share/icons/Adwaita/cursors/default ;;
     nano) f=/usr/bin/nano ;; vim-minimal) f=/usr/bin/vi ;; vim-enhanced) f=/usr/bin/vim ;; emacs) f=/usr/bin/emacs ;;
     flatpak) f=/usr/bin/flatpak ;;
+    lpf-spotify-client) if [[ $1 == install ]]; then fake_lpf; else rm -rf /usr/share/lpf; fi ;;
   esac
   for x in $f; do
     if [[ $1 == install ]]; then mkdir -p "${x%/*}"; printf '#!/bin/sh\nexit 0\n' >"$x"; chmod 755 "$x"; else rm -f "$x"; fi
@@ -109,7 +110,17 @@ case "$a" in
       for p in "$@"; do
         [[ $p == -* || $p == install ]] && continue
         if [[ $p == https://*.rpm ]]; then p=${p##*/}; p=${p%-[0-9]*.noarch.rpm}; mark_user "$p"; continue; fi
+        if [[ $p == /*.rpm ]]; then [[ -f $p ]] || { echo "dnf stub: no such file: $p" >&2; rc=1; continue; }   # (a package built here: lpf's)
+          p=${p##*/}; mark_user "${p%%-[0-9]*}"; continue; fi
         q=$(awk -v c="$p" '$1 == c { print $2; exit }' "$FKH/provides" 2>/dev/null); [[ -n $q ]] && p=$q
+        # NAME-VERSION.ARCH (a version asked for by name, from updates-testing): that package —
+        # and RPM Fusion's builds waiting for that very version ($FKH/behind-until "PKG NAME-VERSION")
+        # are out of step no more
+        if [[ $p =~ ^(.+)-([0-9][0-9.]*)\.(x86_64|i686)$ ]] && has available "${BASH_REMATCH[1]}"; then
+          v=${BASH_REMATCH[1]}-${BASH_REMATCH[2]}; mark_user "${BASH_REMATCH[1]}"
+          while read -r w until; do [[ $until == "$v" ]] && del behind "$w"; done < <(cat "$FKH/behind-until" 2>/dev/null)
+          continue
+        fi
         if ((skip)) && ! has available "$p"; then echo "dnf stub: skipping unavailable $p" >&2; continue; fi
         # $FKH/behind: RPM Fusion's builds out of step with Fedora (what dnf then says)
         if has behind "$p"; then

@@ -1,16 +1,30 @@
 #!/usr/bin/env bash
-# kawa-tag N — what clicking workspace N in the bar does: presses Super+N through a
-# virtual keyboard (wtype), so dwl switches exactly as if you had pressed it.
+# kawa-tag N            what clicking workspace N in the bar does: presses Super+N
+# kawa-tag layout next  what clicking the layout icon does: the next layout — spiral →
+# kawa-tag layout prev  columns → floating → one at a time → spiral (right-click: back)
+# Both press dwl's own keys through a virtual keyboard (wtype), so dwl acts exactly as if
+# you had pressed them — on the monitor under the pointer, the one whose bar was clicked.
 # Exit status: 0 pressed · 1 could not (wtype missing or refused) · 2 misuse.
 set -u
 case ${1:-} in
   -h|--help) sed -n '2,/^set -u/{/^set -u/d;s/^# \{0,1\}//;p}' "$0"; exit 0 ;;
 esac
-[[ $# == 1 && $1 =~ ^[1-9]$ ]] || { echo "usage: kawa-tag 1-9" >&2; exit 2; }
+key=""
+if [[ $# == 1 && $1 =~ ^[1-9]$ ]]; then key=$1
+elif [[ $# == 2 && $1 == layout && $2 =~ ^(next|prev)$ ]]; then
+  # the layout shown now (kawa-dwlstatus: the monitor's own file, else the focused one's)
+  order=(spiral columns float monocle); keys=(s t y m); now=0
+  f=$XDG_RUNTIME_DIR/dwl-bar/${WAYBAR_OUTPUT_NAME:-.}/layout.json   # (the clicked bar's monitor)
+  [[ -r $f ]] || f=$XDG_RUNTIME_DIR/dwl-bar/layout.json
+  for i in 0 1 2 3; do grep -q "\"class\":\"${order[i]}\"" "$f" 2>/dev/null && now=$i; done
+  if [[ $2 == next ]]; then key=${keys[(now + 1) % 4]}; else key=${keys[(now + 3) % 4]}; fi
+else
+  echo "usage: kawa-tag 1-9 · kawa-tag layout next|prev" >&2; exit 2
+fi
 # (a click that does nothing would say nothing: the bar's clicks have no terminal to print to)
 command -v wtype >/dev/null || {
   echo "kawa-tag: wtype is missing" >&2
-  notify-send -a desktop "Workspaces" "wtype is missing, so the bar cannot switch workspaces: fedokawaii repair puts it back" 2>/dev/null
+  notify-send -a desktop "workspaces" "wtype is missing, so the bar cannot switch workspaces or layouts: fedokawaii repair puts it back" 2>/dev/null
   exit 1
 }
-exec wtype -M logo -k "$1" -m logo
+exec wtype -M logo -k "$key" -m logo

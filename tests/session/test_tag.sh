@@ -12,6 +12,17 @@ case_ "the bar's own clicks: every custom/tagN runs kawa-tag N"
 eq "$(grep -oE '"custom/tag[1-9]": \{.*"on-click": "kawa-tag [1-9]"' "$REPO/configs/home/.config/waybar/config.jsonc" \
   | sed -E 's/"custom\/tag([1-9])".*"kawa-tag ([1-9])"/\1=\2/' | tr '\n' ' ')" "1=1 2=2 3=3 4=4 5=5 6=6 7=7 8=8 9=9 "
 
+case_ "the layout icon: next / the one before, from the layout shown — spiral → columns → float → monocle → spiral"
+sandbox; stub wtype; mkdir -p "$XDG_RUNTIME_DIR/dwl-bar/DP-2"
+lay() { printf '{"text":"x","class":"%s"}\n' "$1" >"$XDG_RUNTIME_DIR/dwl-bar/${2:-}layout.json"; }
+lay spiral; rc 0 kawa-tag layout next; called "^wtype -M logo -k t -m logo$"
+lay monocle; reset_calls; kawa-tag layout next; called "^wtype -M logo -k s -m logo$" "monocle → spiral"
+lay spiral; reset_calls; kawa-tag layout prev; called "^wtype -M logo -k m -m logo$" "spiral ← monocle"
+lay float; reset_calls; kawa-tag layout prev; called "^wtype -M logo -k t -m logo$"
+case_ "…on the clicked bar's monitor: its own layout, not the focused one's"
+lay spiral; lay columns DP-2/; reset_calls
+WAYBAR_OUTPUT_NAME=DP-2 kawa-tag layout next; called "^wtype -M logo -k y -m logo$" "DP-2: columns → float"
+WAYBAR_OUTPUT_NAME=HDMI-A-1 kawa-tag layout next; called "^wtype -M logo -k t -m logo$" "no file of its own: the focused one's"
 case_ "anything but 1–9: exit 2, usage said, no key pressed"
 sandbox; stub wtype
 for a in 0 10 -1 a "" " 1" "1 " $'1\n2' 01 "\$(touch $TMP/pwned)" '1;id' '*'; do

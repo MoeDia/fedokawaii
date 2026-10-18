@@ -2,9 +2,11 @@
 # kawa-brightness — real monitor brightness over DDC/CI (what Twinkle Tray does on
 # Windows): the monitor's own backlight changes, not a software dimming layer.
 #
-#   kawa-brightness           dropdown of levels, the current one ticked
 #   kawa-brightness +10|-10   step every monitor (Super+] / Super+[)
-#   kawa-brightness 40        set every monitor to 40 %
+#   kawa-brightness 40        set every monitor to 40 % (quick settings' meter: shown there,
+#                             so no level pops up over it)
+#   kawa-brightness --level   the level now, in percent (quick settings shows it): the last
+#                             one read or set this session, else read from the monitor
 #
 # Needs ddcutil (i2c-dev is loaded by the package; its udev rule gives the logged-in
 # user the monitors' I2C buses) and DDC/CI switched on in the monitor's own menu.
@@ -15,15 +17,21 @@
 # Exit status: 0 done (or dropped: a held key's repeats) · 1 could not (no monitor answered,
 # said in a notice) · 2 misuse.
 set -u
-arg=${1:-menu}
+arg=${1:-}
 case $arg in
-  menu|[+-][0-9]|[+-][0-9][0-9]|[+-][0-9][0-9][0-9]|[0-9]|[0-9][0-9]|[0-9][0-9][0-9]) ;;
+  --level) ;;
+  [+-][0-9]|[+-][0-9][0-9]|[+-][0-9][0-9][0-9]|[0-9]|[0-9][0-9]|[0-9][0-9][0-9]) ;;
   -h|--help) sed -n '2,/^set -u/{/^set -u/d;s/^# \{0,1\}//;p}' "$0"; exit 0 ;;
   *) echo "usage: kawa-brightness [+N|-N|N] (kawa-brightness --help)" >&2; exit 2 ;;
 esac
 # shellcheck source=/dev/null
 . "$HOME/.config/fedokawaii/icons.sh"
 CACHE="${XDG_RUNTIME_DIR:?}/kawa-ddc-buses"
+LEVEL="$XDG_RUNTIME_DIR/kawa-brightness.level"   # (the last level read or set: instant to show)
+if [[ $arg == --level ]]; then
+  l=$(cat "$LEVEL" 2>/dev/null)
+  [[ $l =~ ^[0-9]{1,3}$ ]] && { echo "$l"; exit 0; }
+fi
 SYS=${KAWA_SYSFS:-/sys}                       # (the tests point this at a made-up laptop)
 
 PANEL=""
@@ -98,12 +106,12 @@ set_all() {   # set_all PERCENT — every monitor on its own scale (the first on
   wait
 }
 
-note() { kawa-osd "$ICON_SUN" brightness "$1"; }    # the level, shown for a moment
+note() { echo "$1" >"$LEVEL"; kawa-osd "$ICON_SUN" brightness "$1"; }   # the level, shown for a moment
 
 # one DDC/CI conversation at a time: a held key repeats faster than monitors answer, and
 # overlapping read-then-write cycles would lose steps (repeats are simply dropped)
 exec 9>"${XDG_RUNTIME_DIR:?}/kawa-ddc.lock"
-if [[ $arg == menu ]]; then flock -w 5 9 || exit 0; else flock -n 9 || exit 0; fi
+if [[ $arg == --level ]]; then flock -w 5 9 || exit 0; else flock -n 9 || exit 0; fi
 
 panel
 mapfile -t BUSES < <(buses)
@@ -114,36 +122,22 @@ if ((${#BUSES[@]})) && ! get "${BUSES[0]}"; then
 fi
 if ((${#BUSES[@]} == 0)) && [[ -z $PANEL ]]; then
   rm -f "$CACHE"
-  notify-send -a desktop "$ICON_SUN  Brightness" "No monitor answered over DDC/CI. Turn DDC/CI on in the monitor's menu."
+  [[ $arg == --level ]] && exit 1
+  notify-send -a desktop "$ICON_SUN  brightness" "no monitor answered over DDC/CI — turn DDC/CI on in the monitor's own menu"
   exit 1
 fi
 # a step needs the level it starts from: the laptop's own screen's, else the first monitor's
 NOW=50
-if [[ -n $PANEL ]]; then panel_get || { [[ $arg == menu ]] || exit 0; }
-else get "${BUSES[0]}" || { [[ $arg == menu ]] || exit 0; }; fi
+if [[ -n $PANEL ]]; then panel_get || exit 0
+else get "${BUSES[0]}" || exit 0; fi
 now=$NOW
+echo "$now" >"$LEVEL"
+[[ $arg == --level ]] && { echo "$now"; exit 0; }
 
 if [[ $arg =~ ^[+-][0-9]{1,3}$ ]]; then
   new=$((now + 10#${arg:1} * (${arg:0:1}1))); ((new > 100)) && new=100; ((new < 0)) && new=0
   set_all "$new"; note "$new"; exit 0
-elif [[ $arg =~ ^[0-9]{1,3}$ ]]; then
+else   # (a level: the usage above lets nothing else through; quick settings' meter shows it)
   new=$((10#$arg)); ((new > 100)) && new=100
-  set_all "$new"; note "$new"; exit 0
+  set_all "$new"; echo "$new" >"$LEVEL"
 fi
-case $arg in
-  menu)
-    flock -u 9                                         # free while the menu is open
-    # each row carries its level as the menus' framed bar (icons.sh)
-    rows=() pick=9 blocks="" box="" row=""                  # (below 5 %: the 10 % row, not 100 %)
-    for ((p = 100; p >= 10; p -= 10)); do
-      levelbar blocks 10 "$p"
-      box=$ICON_BOX_OFF
-      if (( now > p - 5 && now <= p + 5 )); then box=$ICON_BOX_ON; pick=${#rows[@]}; fi
-      printf -v row '%s  %3d%%  %s' "$box" "$p" "$blocks"; rows+=("$row")
-    done
-    i=$(printf '%s\n' "${rows[@]}" | kawa-menu --drop --index --width 24 --lines 10 --select "$pick" \
-          --title "$(printf '%s  %3d%%  brightness' "$ICON_SUN" "$now")") || exit 0
-    flock -w 5 9 || exit 0
-    set_all $((100 - i * 10)); note $((100 - i * 10)) ;;
-  *) echo "usage: kawa-brightness [+N|-N|N]" >&2; exit 2 ;;
-esac

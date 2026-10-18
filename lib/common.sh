@@ -110,6 +110,28 @@ as_user() {
     "$@"
 }
 
+# pw_steady — PipeWire and WirePlumber run, and keep running: the same PipeWire process 3 s
+# later (one that crashes at every start is "active" for a moment between crashes; verify and
+# repair both ask this). 0 steady · 1 not
+pw_steady() {
+  local a b
+  as_user systemctl --user start pipewire.socket pipewire.service wireplumber.service >/dev/null 2>&1
+  a=$(as_user systemctl --user show -p MainPID --value pipewire.service 2>/dev/null)
+  [[ $a =~ ^[1-9][0-9]*$ ]] || return 1
+  sleep 3
+  b=$(as_user systemctl --user show -p MainPID --value pipewire.service 2>/dev/null)
+  [[ $b == "$a" ]] && as_user systemctl --user is-active --quiet pipewire.service wireplumber.service
+}
+
+# The files repair set aside because they broke something (one PipeWire crashed on at every
+# start): "SHA256 PATH-IN-HOME" lines. theme.sh leaves such a file out while the repo carries
+# that very version of it — a new version is tried again.
+set_aside_list() { echo "$TARGET_HOME/.local/state/fedokawaii/set-aside.list"; }
+set_aside() {   # set_aside REL REPO-FILE → 0 when that version of REL was set aside
+  local l; l=$(set_aside_list)
+  [[ -r $l ]] && grep -qxF "$(sha256sum <"$2" | cut -c1-64) $1" "$l"
+}
+
 # user_put MODE DEST < CONTENT — a file in the user's home, written by the user: never by
 # root, so a link planted there can never steer root's write to a file of the system's.
 # Written beside it, then renamed over it in one step (a link in its place is replaced, not
@@ -140,6 +162,15 @@ write_file() {                      # write_file PATH [MODE] < content — never
 # copy. Everything else it uses keeps its name for years (Wayland, libinput, Mesa,
 # xkbcommon, pixman, libseat, udev, xcb) — and before a move to a new Fedora, the move
 # checks that the new release has every one of them (setup.sh, libs_ready).
+# the project's own top level: what a clone or download of it holds (tests/static checks it
+# against the repository), so that setup's end can tell the project's files from yours
+# shellcheck disable=SC2034  # (setup.sh reads it)
+PROJECT_TOP=(PACKAGES.md README.md art bin check.sh configs docs fedokawaii.conf fedokawaii.sh
+             lib setup.sh src system tests theme.sh tools verify.sh .git .gitignore .gitattributes)
+# the boot's own arguments, on every boot entry (setup.sh's console_boot_arg puts them there,
+# verify.sh checks them): the splash's rhgb quiet, and no console-size wait at boot
+# shellcheck disable=SC2034  # (setup.sh and verify.sh read it)
+BOOT_ARGS=(rhgb quiet systemd.tty.term.console=dumb)
 wlr_home() { echo "/usr/local/lib/fedokawaii-wlroots-$DWL_WLROOTS"; }   # (beside the toolkit, never inside: a new toolkit replaces that folder whole)
 wlr_kept() {
   local h; h=$(wlr_home)
@@ -179,19 +210,6 @@ dwl_make_args() {
 # Root never runs a build in the user's folders, never executes what was built there and
 # never reads a path the user could swap for a link: the user reads the file out (cat, as
 # the user), root writes it in place in one step. Its version is asked as the user too.
-# keep_dwl_prev — the dwl in place becomes start-dwl's fallback (dwl.prev) before a new build
-# replaces it. Never while a session runs on dwl.prev: dwl is then the build that failed, and
-# the fallback the only one that works. By a rename, so a running dwl.prev is never written
-# into ("Text file busy"); and only a dwl whose libraries are all there is worth falling back to
-keep_dwl_prev() {
-  local d=${KAWA_DWL_DIR:-/usr/local/bin}   # (the tests point it elsewhere)
-  [[ -x $d/dwl ]] || return 0
-  pgrep -x dwl.prev >/dev/null && return 0
-  ldd "$d/dwl" 2>/dev/null | grep -q 'not found' && return 0
-  cp -a -- "$d/dwl" "$d/.dwl.prev.$$" && mv -f -- "$d/.dwl.prev.$$" "$d/dwl.prev" \
-    || { rm -f -- "$d/.dwl.prev.$$"; return 1; }
-}
-
 take_built() {   # take_built SRC DEST MODE — 1 (nothing changed) if it cannot be read
   local t
   [[ -d $(dirname "$2") ]] || install -d -m 0755 "$(dirname "$2")"
@@ -218,6 +236,7 @@ make_tmp() {                        # private temp dir, removed on any exit (and
 validate_conf() {                   # prints one line per problem; empty = valid
   [[ $GPU =~ ^(auto|amd|intel)$ ]]              || echo "GPU must be auto, amd or intel (is '$GPU')"
   [[ $STEAM =~ ^(yes|no)$ ]]                    || echo "STEAM must be yes or no (is '$STEAM')"
+  [[ $SPOTIFY =~ ^(yes|no)$ ]]                  || echo "SPOTIFY must be yes or no (is '$SPOTIFY') — yes accepts Spotify's terms"
   [[ $SSH_SERVER =~ ^(yes|no)$ ]]               || echo "SSH_SERVER must be yes or no (is '$SSH_SERVER')"
   [[ $THEME =~ ^(dark|light)$ ]]                || echo "THEME must be dark or light (is '$THEME')"
   [[ $WALLPAPER_PACK =~ ^(yes|no)$ ]]           || echo "WALLPAPER_PACK must be yes or no (is '$WALLPAPER_PACK')"
@@ -255,7 +274,7 @@ validate_conf() {                   # prints one line per problem; empty = valid
 # fedokawaii.conf is read as data, never run as code: KEY="value" lines (a value in double or
 # single quotes, or a bare word; a # comment after it), only the settings below. Anything
 # else in it is reported as a problem, and the values are checked before anything runs.
-CONF_KEYS=(USERNAME GPU STEAM SSH_SERVER MONITOR_HZ KB_LAYOUTS KB_TOGGLE TIMEZONE WEATHER_CITY
+CONF_KEYS=(USERNAME GPU STEAM SPOTIFY SSH_SERVER MONITOR_HZ KB_LAYOUTS KB_TOGGLE TIMEZONE WEATHER_CITY
            NIGHT_LIGHT THEME WALLPAPER_PACK BOOT_MENU_SECONDS DNF_PARALLEL BACKUP_TARGET
            BACKUP_REMIND_DAYS DWL_TAG DWL_COMMIT DWL_WLROOTS TFC_TAG TFC_COMMIT)
 CONF_PROBLEMS=() CONF_SAID=() CONF_SEEN=()

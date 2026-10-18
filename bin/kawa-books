@@ -15,10 +15,9 @@
 # --remove PATH, --add. Covers are drawn once and kept in ~/.cache/kawa-books.
 set -u
 # shellcheck source=/dev/null
-. "$HOME/.config/fedokawaii/icons.sh" 2>/dev/null
-C_GROUND=0f0e0c C_EDGE=2b2721 C_MUTED=877f6f        # (the dark theme's, if none is set up)
+. "$HOME/.config/fedokawaii/icons.sh"
 # shellcheck source=/dev/null
-[[ -r $HOME/.config/fedokawaii/current/colors.sh ]] && . "$HOME/.config/fedokawaii/current/colors.sh"
+. "$HOME/.config/fedokawaii/current/colors.sh"
 BOOKS=${KAWA_BOOKS:-$HOME/Books}
 CACHE=${XDG_CACHE_HOME:-$HOME/.cache}/kawa-books
 # every list of the desktop looks alike: one options file (rules, colours, the chevron)
@@ -56,10 +55,10 @@ def cols(s):                       # display width, as foot and fzf count it: CJ
         zwj = False; n += w; w = 2 if unicodedata.east_asian_width(c) in "WF" else 1
     return n + w
 
-def fit(s, w):                     # cut to w columns with "…", then pad to exactly w
+def fit(s, w):                     # cut to w columns with "…" (never after a space), then pad to exactly w
     if cols(s) > w:
         while cols(s) > w - 1: s = s[:-1]
-        s += "…"
+        s = s.rstrip() + "…"
     return s + " " * (w - cols(s))
 
 def pages_of(path, kind):          # None where the file has no fixed pages (EPUB, MOBI, FB2)
@@ -150,7 +149,6 @@ for path, kind in found:
     seen = read.get(os.path.realpath(path)) or by_name.get(os.path.basename(path))
     title = os.path.splitext(os.path.basename(path))[0].replace("_", " ")
     tw = width - 2 - 10 - 2 - 9
-    info2 = f"{kind} · {pages} page{'s' if pages != 1 else ''} · {size(sz)}" if pages else f"{kind} · {size(sz)}"
     if seen:
         page = seen[0] + 1
         done = bool(pages) and page >= pages
@@ -158,16 +156,23 @@ for path, kind in found:
         # page count shows just that one: begun, how far unknown)
         n = 10 if done else max(round(10 * page / pages) if pages else 1, 1)
         bar = (T if done else R) + "━" * n + G + "─" * (10 - n) + O
-        # where you are: "87/120" — or "p. 37" where the book has no fixed pages; "done"
-        mark = "done" if done else (f"{page}/{pages}" if pages else f"p. {page}")
-        info1 = (f"finished · read {ago(seen[1])}" if done else f"page {page} · read {ago(seen[1])}")
+        # where you are, one way for every book: "87/120" — "37/–" where the book has no
+        # fixed pages (an EPUB's depend on the window); "done"
+        mark = "done" if done else (f"{page}/{pages}" if pages else f"{page}/–")
+        info1 = f"read {ago(seen[1])}"         # (the page, and whether it is done: the list's)
         color, key = (G if done else B), (1, seen[1])
         goto = str(page) if seen[2] else ""     # (found by name: moved since, so open it there)
     else:
         bar, mark, goto = G + "─" * 10 + O, "new", ""
-        info1, color, key = "not opened yet", S, (0, mt)
+        info1, color, key = "", S, (0, mt)     # (not opened yet: the list's "new" says it)
+    # the kind and size, and the page count only where the list's mark does not show it
+    # ("87/120" does; "new" and "done" do not)
+    shown = "/" in mark
+    info2 = f"{kind} · {pages} page{'s' if pages != 1 else ''} · {size(sz)}" if pages and not shown else f"{kind} · {size(sz)}"
     row = f"{color}{fit(title, tw)}{O}  {bar}  {G if not seen or mark == 'done' else S}{mark:>9}{O}"
-    rows.append((key, f"{path}\t{row}\t{info1}\t{info2}\t{goto}"))
+    # the caption under the cover names the book only when the list had to cut its title
+    whole = title if cols(title) > tw else ""
+    rows.append((key, f"{path}\t{row}\t{info1}\t{info2}\t{goto}\t{whole}"))
 for _, r in sorted(rows, key=lambda x: x[0], reverse=True):
     print(r)
 PY
@@ -177,8 +182,8 @@ PY
 # column is right however late the window got its final size (the list is asked for again
 # once fzf is up, and whenever the window changes size)
 rows() {
-  local w=${KAWA_BOOKS_W:-57}
-  [[ ${FZF_COLUMNS:-} =~ ^[0-9]+$ ]] && ((FZF_COLUMNS > 70)) && w=$((FZF_COLUMNS - 41))
+  local w=${KAWA_BOOKS_W:-58}   # (the 104-column window)
+  [[ ${FZF_COLUMNS:-} =~ ^[0-9]+$ ]] && ((FZF_COLUMNS > 70)) && w=$((FZF_COLUMNS - 42))   # (a column of air before the cursor bar's end)
   python3 -I -c "$ROWS" "$BOOKS" "$CACHE" "$DB" "$w" "${EXT[@]}"
 }
 
@@ -232,29 +237,41 @@ PY
 # trims at most a few pixels off two opposite edges. It never reaches the pane's last row (a
 # picture touching it would scroll the window: fzf #2544).
 draw_cover() {   # draw_cover PATH SIX LAY — the picture (sixel) and its layout: "k tr W", title lines
-  local f=$1 six=$2 lay=$3 tmp png w0=2 h0=3 card=1 kind=${1##*.} t a b cap dsc gap k w W n hn tr Hc P d r \
-        gr=-1 best="" S title
+  local f=$1 six=$2 lay=$3 tmp png w0=2 h0=3 card=1 kind=${1##*.} t a b cap dsc gap k w W n hn tr Hc Hb P C j \
+        best="" S title
   local -a tl=() btl=()
-  # the pane in pixels: foot draws fzf's rules itself (lines t px thick, centred in their
-  # cells) and fzf leaves one blank column after the pane's rule; the font's letters start
-  # 4 px into a 21 px row and its descenders end 2 px above the row's foot
+  # the pane in pixels: foot draws fzf's rule itself (a line t px thick, centred in its
+  # cells) and fzf leaves one blank column after it; the pane has that rule on its left
+  # only (border-left), so its first row starts at the top of fzf's area (b: no rule above
+  # it); the font's letters start 4 px into a 21 px row and its descenders end 2 px above
+  # the row's foot
   t=$(( ch >= 42 ? ch / 21 : 1 ))
   a=$(( 2 * cw - (cw - t) / 2 - t ))            # the rule's right edge → the first column
-  b=$(( ch - (ch - t) / 2 - t ))                # the top rule's lower edge → the first row
+  b=0
   cap=$(( (4 * ch + 10) / 21 )) dsc=$(( (2 * ch + 10) / 21 ))
   gap=$(( (2 * ch + 1) / 3 ))                   # cover → the title's letters (14 px)
-  title=${f##*/}; title=${title%.*}; title=${title//_/ }
+  title=$CAP_TITLE                              # (empty: the list shows it whole)
   tmp=$(mktemp "$CACHE/cover.XXXXXX") && mv -f "$tmp" "$tmp.png" && tmp+=.png || return 1
   png=${tmp%.png}.box.png                      # (pdftoppm names its file: NAME.png)
   if cover_source "$f" "$tmp" && read -r w0 h0 < <(magick "${tmp}[0]" -format '%w %h\n' info: 2>/dev/null) \
      && ((w0 > 0 && h0 > 0)); then card=0; else w0=2 h0=3; fi
-  # k: columns of margin each side — none (fzf's own blank column after the rule is the
-  # margin: 13 px each side, as in every popup), more only for a cover too tall; tr: the
-  # title's row. Every pair balances exactly; the one trimming least wins (the widest box
-  # that trims at most 6 % ends the search)
+  # The biggest cover the pane holds. k: columns of margin each side — none (fzf's own blank
+  # column after the rule is the margin: 13 px each side, as in every popup), one more each
+  # side only while the cover would be taller than the pane leaves it. Its box is the
+  # cover's own shape, or trimmed by at most 6 % (top and bottom) to stand that much taller
+  # no longer. tr: the title's row — the cover, the title and its two lines are one block
+  # in the middle of the pane (above and below it within a row of each other), and neither
+  # above nor below it is there less paper than fzf's own margin at its sides (a).
+  # The cover is w wide: the pane less k columns each side and less a (the paper between the
+  # rule and the first column), so standing k columns in it has as much paper on its right
+  # (to the pane's end, where the title's rule ends too) as on its left (to the rule)
+  # (a pane too small for any cover trimmed by 6 % at most: then the one trimmed least)
+  local keep
+  for keep in 94 0; do
   for ((k = 0; ; k++)); do
     w=$(( cols * cw - 2 * k * cw - a ))
     ((w >= 8 * cw)) || break
+    j=$k
     W=$(( w / cw ))                             # the words never pass the cover's right edge
     mapfile -t tl < <(python3 -I -c '
 import sys, unicodedata
@@ -276,34 +293,40 @@ if cur: lines.append(cur)
 lines = lines or [cut(t, w)]
 if len(lines) > 2: lines = [lines[0], cut(lines[1], w - 1).rstrip() + "…"]
 print("\n".join(lines))' "$title" "$W" 2>/dev/null)
-    ((${#tl[@]})) || tl=("${title:0:W}")
-    n=$(( ${#tl[@]} + 2 ))                      # the title's lines and the two below it
+    [[ -z $title ]] && tl=()
+    [[ -n $title && ${#tl[@]} == 0 ]] && tl=("${title:0:W}")
+    n=$(( ${#tl[@]} + ${CAP_LINES:-2} ))        # the title's lines (if any) and the lines about it
     hn=$(( w * h0 / w0 ))                       # the cover's own height at this width
-    for ((tr = 1; tr + n <= lines; tr++)); do
-      Hc=$(( 2 * tr * ch - (lines - n) * ch - dsc + b + cap - gap ))
+    # above the block (from the top rule's lower edge) minus below it (to the pane's foot),
+    # for the title in row tr and a box Hc tall: 2·tr·ch + C − Hc
+    C=$(( b + cap - gap - (lines - n) * ch - dsc ))
+    for ((Hc = hn; Hc * 100 >= hn * keep && Hc >= 2 * ch; Hc--)); do
+      tr=$(( (Hc - C + ch) / (2 * ch) ))         # (the nearest balance, rounded)
+      ((tr >= 1 && tr + n <= lines)) || continue
+      # (and then to the pixel: a box that much shorter, while the trim allows it)
+      Hb=$(( 2 * tr * ch + C )); ((Hb < Hc && Hb * 100 >= hn * keep && Hb >= 2 * ch)) && Hc=$Hb
       P=$(( tr * ch + cap - gap - Hc ))
-      ((Hc >= 2 * ch && P >= 0 && b + P >= a + k * cw)) || continue   # (no tighter than the sides)
-      d=$(( Hc > hn ? Hc - hn : hn - Hc ))
-      r=$(( d * 1000 / (Hc > hn ? Hc : hn) ))
-      if ((gr < 0 || r < gr)); then gr=$r best="$k $tr $Hc $P $W" btl=("${tl[@]}"); fi
+      ((b + P >= a && (lines - tr - n) * ch + dsc >= a)) || continue   # (never nearer the pane's top or foot than its sides)
+      best="$k $tr $Hc $P $W $j" btl=("${tl[@]}"); break 3
     done
-    ((gr >= 0 && gr <= 60)) && break
+  done
   done
   [[ -n $best ]] || { rm -f "$tmp" "$png"; return 1; }
-  read -r k tr Hc P W <<<"$best"
+  read -r k tr Hc P W j <<<"$best"
   w=$(( cols * cw - 2 * k * cw - a ))
+  k=$j                                          # (from here on: the columns the cover stands in)
   S=$(( tr * ch / 6 * 6 ))                      # whole sixel bands, ending in row tr-1
   if ((card)); then                             # no picture in the file: a card, its kind on it
     magick -size "${w}x${Hc}" "xc:#$C_EDGE" -fill none -stroke "#$C_MUTED" -strokewidth 2 \
       -draw "rectangle 1,1 $((w - 2)),$((Hc - 2))" +antialias -stroke none -fill "#$C_MUTED" \
-      -font "$(fc-match -f '%{file}' 'DepartureMono Nerd Font')" -pointsize 22 -gravity center \
+      -font "$(fc-match -f '%{file}' 'Fusion Pixel 12px Mono ja')" -pointsize 24 -gravity center \
       -annotate +0+0 "$(LC_ALL=C; printf '%s' "${kind^^}")" "PNG24:$png" 2>/dev/null
   else
     magick "${tmp}[0]" -resize "${w}x${Hc}^" -gravity center -extent "${w}x${Hc}" "PNG24:$png" 2>/dev/null
   fi
   magick -size "$((k * cw + w))x$S" "xc:#$C_GROUND" "$png" -geometry "+$((k * cw))+$P" -composite \
       png:- 2>/dev/null | kawa-sixel "$C_GROUND" >"$six.$$" \
-    && { printf '%s %s %s\n' "$k" "$tr" "$W"; printf '%s\n' "${btl[@]}"; } >"$lay.$$" \
+    && { printf '%s %s %s\n' "$k" "$tr" "$W"; ((${#btl[@]} == 0)) || printf '%s\n' "${btl[@]}"; } >"$lay.$$" \
     && mv -f "$six.$$" "$six" && mv -f "$lay.$$" "$lay"
   rm -f "$tmp" "$png" "$six.$$" "$lay.$$"
   [[ -s $six && -s $lay ]]
@@ -311,40 +334,43 @@ print("\n".join(lines))' "$title" "$W" 2>/dev/null)
 
 case ${1:-} in
   --rows) rows; exit 0 ;;
-  --preview)    # PATH INFO1 INFO2: the cover, then the title and two lines about the book
-    f=${2:-} info1=${3:-} info2=${4:-}
+  --preview)    # PATH INFO1 INFO2 [TITLE]: the cover, then the title (only when the list cut
+                # it), and the lines about the book: when it was read (none: new), its kind and size
+    f=${2:-} info1=${3:-} info2=${4:-} CAP_TITLE=${5:-} CAP_LINES=1
+    [[ -n $info1 ]] && CAP_LINES=2
     [[ -f $f ]] || exit 0
     cell=${KAWA_CELL:-9x21} cols=${FZF_PREVIEW_COLUMNS:-36} lines=${FZF_PREVIEW_LINES:-26}
     cw=${cell%x*} ch=${cell#*x}
     ((cw > 0 && ch > 0 && cols > 20 && lines > 8)) || exit 0
-    key=$(printf '%s\n' p6 "$f" "$(stat -c '%s %Y' -- "$f")" "$cell" "$cols" "$lines" "$C_GROUND" | sha1sum)
+    key=$(printf '%s\n' p11 "$f" "$(stat -c '%s %Y' -- "$f")" "$cell" "$cols" "$lines" "$C_GROUND" "$CAP_TITLE" "$CAP_LINES" | sha1sum)
     key=${key%% *}; six=$CACHE/$key.six lay=$CACHE/$key.lay
     [[ -s $six && -s $lay ]] || draw_cover "$f" "$six" "$lay" || exit 0
     { read -r k tr W; mapfile -t tl; } <"$lay"
     pad=$(printf '%*s' "$k" '')
     cat "$six"; printf '\n'                    # (the picture leaves the cursor on its last row)
     for t in "${tl[@]}"; do printf '%s\e[97m%s\e[0m\n' "$pad" "$t"; done
-    printf '%s\e[37m%s\e[0m\n%s\e[90m%s\e[0m' "$pad" "${info1:0:W}" "$pad" "${info2:0:W}"
+    [[ -n $info1 ]] && printf '%s\e[37m%s\e[0m\n' "$pad" "${info1:0:W}"
+    printf '%s\e[90m%s\e[0m' "$pad" "${info2:0:W}"
     exit 0 ;;
   --open)       # PATH [PAGE]: zathura reopens a book where it was closed; PAGE only for a book
                 # it knew under another path (moved since), so it opens there too
     [[ -f ${2:-} ]] || exit 0
     # (the window closes as this runs: a notice is the only way to say so)
-    command -v zathura >/dev/null || { notify-send -a desktop "Books" "zathura is missing — run update or repair" 2>/dev/null; exit 1; }
+    command -v zathura >/dev/null || { notify-send -a desktop "books" "zathura is missing — fedokawaii repair puts it back" 2>/dev/null; exit 1; }
     if [[ ${3:-} =~ ^[1-9][0-9]*$ ]]; then setsid -f zathura --page="$3" -- "$2" >/dev/null 2>&1 </dev/null
     else setsid -f zathura -- "$2" >/dev/null 2>&1 </dev/null; fi
     exit 0 ;;
   --remove)
     [[ -f ${2:-} ]] || exit 0
-    gio trash -- "$2" 2>/dev/null || notify-send -a desktop "Books" "could not move ${2##*/} to the trash"
+    gio trash -- "$2" 2>/dev/null || notify-send -a desktop "books" "could not move ${2##*/} to the trash"
     exit 0 ;;
   --add)        # books elsewhere in your home → ~/Books (moved; a name taken gets " (2)")
-    title=" $(printf '\e[91m%s\e[0m' "${ICON_BOOK:-▤}") add books "$'\e[90m'"· ~/Downloads ~/Documents ~/Desktop"$'\e[0m '
+    title=" $(printf '\e[91m%s\e[0m' "$ICON_BOOK")  add books "$'\e[90m'"· ~/Downloads ~/Documents ~/Desktop"$'\e[0m '
     args=(); for e in "${EXT[@]}"; do args+=(-e "$e"); done
     mapfile -t pick < <(fd -t f -i "${args[@]}" . \
         "$HOME/Downloads" "$HOME/Documents" "$HOME/Desktop" 2>/dev/null \
       | while IFS= read -r p; do [[ $p == "$BOOKS"/* ]] || printf '%s\t%s\n' "$p" "${p/#"$HOME"/\~}"; done \
-      | fzf --ansi --multi --height=100% --margin=0,1 --delimiter=$'\t' --with-nth=2 \
+      | fzf --ansi --multi --height=100% --margin=1,2 --delimiter=$'\t' --with-nth=2 \
           --border-label="$title" --marker='┃' --color='selected-fg:14' \
           --footer=$'\n''tab mark  ·  enter add  ·  esc back' \
       | cut -f1)
@@ -352,13 +378,13 @@ case ${1:-} in
       [[ -f $p ]] || continue
       to=$BOOKS/${p##*/} n=2
       while [[ -e $to ]]; do to="$BOOKS/${p##*/}"; to="${to%.*} ($n).${to##*.}"; n=$((n + 1)); done
-      mv -n -- "$p" "$to" || notify-send -a desktop "Books" "could not move ${p##*/}"
+      mv -n -- "$p" "$to" || notify-send -a desktop "books" "could not move ${p##*/}"
     done
     exec "$0" --tui ;;
   --tui) ;;
   -h|--help) sed -n '2,/^set -u/{/^set -u/d;s/^# \{0,1\}//;p}' "$0"; exit 0 ;;
   "")           # Super+R: the window, once (a second press while it is open does nothing)
-    exec kawa-float --once books books 100x27 -- "$0" --tui ;;
+    exec kawa-float --once books books 104x29 -- "$0" --tui ;;
   *) echo "usage: kawa-books   (Super+R: your books)" >&2; exit 2 ;;
 esac
 
@@ -369,21 +395,22 @@ find "$CACHE" -maxdepth 1 \( -name '*.six' -o -name '*.lay' \) -mtime +90 -delet
 find "$CACHE" -maxdepth 1 \( -name 'cover.*' -o -name '*.six.*' -o -name '*.lay.*' -o -name 'pages.json.*' \) \
   -mmin +1 -delete 2>/dev/null
 KAWA_CELL=$(kawa-cell 2>/dev/null) || KAWA_CELL=9x21
-read -r _ c < <(stty size 2>/dev/null); [[ ${c:-} =~ ^[0-9]+$ ]] && ((c > 70)) || c=100
-KAWA_BOOKS_W=$((c - 43))
+read -r _ c < <(stty size 2>/dev/null); [[ ${c:-} =~ ^[0-9]+$ ]] && ((c > 70)) || c=104   # (the window kawa-float opens: 104 columns)
+KAWA_BOOKS_W=$((c - 46))   # (fzf's width is the window's less its margins: as FZF_COLUMNS - 42)
 export KAWA_CELL KAWA_BOOKS_W
 mapfile -t list < <(rows)
-title=" $(printf '\e[91m%s\e[0m' "${ICON_BOOK:-▤}") books "
-if ((${#list[@]})); then title+=$'\e[90m'"· ${#list[@]} in ~/Books"$'\e[0m '
+title=" $(printf '\e[91m%s\e[0m' "$ICON_BOOK")  books "
+# (how many: fzf's own count says it, beside the search — the title says where they are)
+if ((${#list[@]})); then title+=$'\e[90m'"· ~/Books"$'\e[0m '
 else title+=$'\e[90m· none in ~/Books yet — ctrl+a adds some\e[0m '; fi
 self=$(printf '%q' "$0")
 # (with the cover pane, the rule under the search line is fzf's separator: it ends where the
 # list ends, as an input border would not — that one runs a column on, into the gap before
 # the pane's rule)
-printf '%s\n' "${list[@]}" | fzf --ansi --no-sort --height=100% --margin=0,1 \
+printf '%s\n' "${list[@]}" | fzf --ansi --no-sort --height=100% --margin=1,2 \
   --delimiter=$'\t' --with-nth=2 --tiebreak=index --border-label="$title" \
   --input-border=none --separator='─' \
-  --preview="$self --preview {1} {3} {4}" --preview-window='right,36,border-left,noinfo,wrap' \
+  --preview="$self --preview {1} {3} {4} {6}" --preview-window='right,36,border-left,noinfo,wrap' \
   --preview-wrap-sign=' ' \
   --footer=$'\n''enter read  ·  ctrl+a add  ·  ctrl+d remove  ·  esc close' \
   --bind="enter:become($self --open {1} {5})" \

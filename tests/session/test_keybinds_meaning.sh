@@ -28,10 +28,10 @@ copy; sed -i -e 's/XKB_KEY_j,                 focusstack,       {.i = +1}/XKB_KE
 says "Super+J / K (Super+j) is 'focus next / previous', but config.h does focusstack:-1"
 case_ "… the browser key running something else"
 copy; sed -i 's/"brave-origin", NULL/"firefox", NULL/' "$CH"; says "config.h does spawn:firefox"
-case_ "… the layouts in another order (Super+Y would tile)"
+case_ "… the layouts in another order (Super+Y would arrange in columns)"
 copy; python3 -I - "$CH" <<'EOF'
 import sys; p = sys.argv[1]; s = open(p).read()
-s = s.replace('{ "[]=",      tile },', '@T@').replace('{ "><>",      NULL },', '{ "[]=",      tile },').replace('@T@', '{ "><>",      NULL },')
+s = s.replace('{ "|||",      tile },', '@T@').replace('{ "><>",      NULL },', '{ "|||",      tile },').replace('@T@', '{ "><>",      NULL },')
 open(p, "w").write(s)
 EOF
 says "layouts[] is"

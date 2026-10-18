@@ -10,7 +10,7 @@ sockets, the way a person would press keys; what Syncplay says is read from its 
 MEDIA holds film.mkv and other.mkv. Prints "case TEXT", then "ok" or "no WHY" per check (the
 test file turns them into its report); anything else is commentary.
 """
-import glob, json, os, re, shutil, signal, socket, subprocess, sys, tempfile, time
+import glob, json, os, re, shutil, signal, socket, subprocess, sys, time
 
 TEMPLATE, MEDIA, SPDIR, MPV, TOGETHER = sys.argv[1:6]
 FILM, OTHER = MEDIA + "/film.mkv", MEDIA + "/other.mkv"

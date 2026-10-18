@@ -1,0 +1,9 @@
+[Desktop Entry]
+# Hidden from the launcher: its one terminal is footclient.desktop ("Terminal")
+Type=Application
+Name=Foot
+Exec=foot
+Icon=foot
+Terminal=false
+Categories=System;TerminalEmulator;
+NoDisplay=true

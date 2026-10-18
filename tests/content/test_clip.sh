@@ -2,8 +2,10 @@
 # tests/content/test_clip.sh — kawa-clip (Super+V) against a stand-in clipboard history that
 # answers as cliphist 0.7 does (fake_cliphist.py): text with newlines, tabs and leading
 # dashes, a huge copy, pictures of every kind Go reads, binary data, a broken picture, an
-# empty history, and wl-copy or cliphist missing. fzf and the window are stand-ins; the
-# previews are drawn for real (ImageMagick, kawa-sixel) and read back pixel by pixel.
+# empty history, and wl-copy or cliphist missing; and what is kept of each copy (--store,
+# behind wl-paste --watch): a screenshot, Brave's "Copy image", spreadsheet cells, a secret,
+# copies too big, the hundredth. fzf, wl-paste and the window are stand-ins; the previews are
+# drawn for real (ImageMagick, kawa-sixel) and read back pixel by pixel.
 . "$(dirname "$0")/lib.sh"
 
 setup() {   # setup — a fresh sandbox, an empty history, the window's parts as stand-ins
@@ -41,10 +43,10 @@ has "$out" $'2\t-rf --no-preserve-root /' "a leading dash is just text"
 has "$out" $'3\t日本語 العربية $(touch '"$TMP"'/pwned) `id`'
 [[ ! -e $TMP/pwned ]] && _ok || _no "a copied \$(…) ran"
 case_ "pictures are named: kind, size in pixels and bytes"
-has "$out" $'4\t'"$ICON_PICTURE png picture  640×480  ·  "
-has "$out" $'5\t'"$ICON_PICTURE jpeg picture  64×32  ·  "
+has "$out" $'4\t'"$ICON_PICTURE  png picture  640×480  ·  "
+has "$out" $'5\t'"$ICON_PICTURE  jpeg picture  64×32  ·  "
 case_ "binary data that is not a picture: a row of its own, named"
-eq "$(grep $'^6\t' <<<"$out")" $'6\t'"$ICON_BOX_OFF data  ·  not text"
+eq "$(grep $'^6\t' <<<"$out")" $'6\t'"$ICON_BOX_OFF  data  ·  not text"
 
 case_ "an escape in a copy (colour codes, a clear-screen): shown as ^[, never acted on"
 setup
@@ -54,7 +56,7 @@ lacks "$out" $'\e' "an escape in the list (fzf --ansi would act on it)"
 has "$out" $'1\tred ^[[31mtext^[[0m, a clear ^[[2J and a bell \a' "(other control characters: fzf shows them as ^G)"
 case_ "bytes that are not text (cliphist shows them as �): a 'data' row, not the scrambling bytes"
 binary | python3 -I "$C/fake_cliphist.py" store
-eq "$(kawa-clip --list | grep $'^2\t')" $'2\t'"$ICON_BOX_OFF data  ·  not text"
+eq "$(kawa-clip --list | grep $'^2\t')" $'2\t'"$ICON_BOX_OFF  data  ·  not text"
 case_ "an escape in a text's preview: shown as ^[; tabs and lines kept; Windows line ends quiet"
 eq "$(prev 1)" $'  red ^[[31mtext^[[0m, a clear ^[[2J and a bell \a'
 put 'one\r\ntwo\tcolumns\r\n'
@@ -93,9 +95,9 @@ eq "$(prev "$(newest)")" '  {"a": [1, 2]}' "JSON"
 
 case_ "binary data: its kind and size, not its bytes"
 binary | python3 -I "$C/fake_cliphist.py" store
-eq "$(prev "$(newest)")" "  $ICON_BOX_OFF application/octet-stream, 3000 bytes"
+eq "$(prev "$(newest)")" "  $ICON_BOX_OFF  application/octet-stream, 3000 bytes"
 head -c 100 /dev/zero | python3 -I "$C/fake_cliphist.py" store
-eq "$(prev "$(newest)")" "  $ICON_BOX_OFF application/octet-stream, 100 bytes" "zero bytes"
+eq "$(prev "$(newest)")" "  $ICON_BOX_OFF  application/octet-stream, 100 bytes" "zero bytes"
 
 case_ "no XDG_RUNTIME_DIR (a shell outside the session): the preview and the copy still work"
 eq "$(env -u XDG_RUNTIME_DIR FZF_PREVIEW_COLUMNS=74 FZF_PREVIEW_LINES=9 kawa-clip --preview 1 2>&1)" $'  line one\n  \tline two\twith tab\n  line three'
@@ -147,14 +149,14 @@ case_ "a broken picture (cut short): its kind in words, nothing on stderr"
 magick -size 640x480 plasma: png:- 2>/dev/null | head -c 300 | python3 -I "$C/fake_cliphist.py" store
 id=$(newest); err=$(prev "$id" 2>&1 >/dev/null); out=$(prev "$id" 2>/dev/null)
 eq "$err" "" "an fzf preview shows stderr"
-[[ $out == *$'\e'Pq* || $out == *$'\e'P0\;1\;* || $out == "  $ICON_PICTURE picture (png)" ]] && _ok \
+[[ $out == *$'\e'Pq* || $out == *$'\e'P0\;1\;* || $out == "  $ICON_PICTURE  picture (png)" ]] && _ok \
   || _no "neither a picture nor its kind: ${out:0:80}"
 printf 'GIF89a\x10\x00\x10\x00garbage' | python3 -I "$C/fake_cliphist.py" store
-eq "$(prev "$(newest)" 2>&1)" "  $ICON_PICTURE picture (gif)" "a header and nothing after it"
+eq "$(prev "$(newest)" 2>&1)" "  $ICON_PICTURE  picture (gif)" "a header and nothing after it"
 
 case_ "a preview too short or too narrow for a picture: its kind in words"
-eq "$(LINES_=2 prev 1 2>&1)" "  $ICON_PICTURE picture (png)"
-eq "$(COLS=0 prev 1 2>&1)" "  $ICON_PICTURE picture (png)"
+eq "$(LINES_=2 prev 1 2>&1)" "  $ICON_PICTURE  picture (png)"
+eq "$(COLS=0 prev 1 2>&1)" "  $ICON_PICTURE  picture (png)"
 has "$(COLS=1 prev 1 | sixel_info | jget raster)" "[1, 1, 9, 168]" "one column: a picture one column wide"
 
 case_ "Turkish and Arabic locales: the list and the picture as in English, no stray files"
@@ -171,7 +173,7 @@ unset LOCPATH
 
 case_ "kawa-sixel failing: the kind in words, never its error"
 stub kawa-sixel 'cat >/dev/null; echo "kawa-sixel: boom" >&2; exit 1'
-eq "$(prev 1 2>/dev/null)" "  $ICON_PICTURE picture (png)"
+eq "$(prev 1 2>/dev/null)" "  $ICON_PICTURE  picture (png)"
 
 case_ "a preview killed half-way (fzf kills one when you move on): its copy does not stay in memory"
 setup
@@ -185,6 +187,99 @@ eq "$left" 1 "(the test itself: a leftover to clean)"
 kawa-clip --tui
 eq "$(count "$XDG_RUNTIME_DIR"/kawa-clip.*)" 0 "the next window clears what killed previews left"
 
+# ── what is kept: --store, behind wl-paste --watch ───────────────────────────
+# offer TYPE… — the copy on the clipboard is offered in these types (wl-paste --list-types);
+# each one's bytes are $TMP/offer/TYPE (/ as _). store [STATE] — wl-paste --watch's call:
+# what it chose on stdin (from $TMP/stdin), CLIPBOARD_STATE as given (data by default)
+offer() { printf '%s\n' "$@" >"$TMP/types"; }
+bytes() { mkdir -p "$TMP/offer"; cat >"$TMP/offer/${1//\//_}"; }
+store() { CLIPBOARD_STATE=${1:-data} kawa-clip --store <"$TMP/stdin"; }
+store_setup() {
+  setup
+  stub wl-paste 'case $1 in --list-types) cat "$TMP/types" ;; --no-newline) [ "$2" = --type ] && t=$(printf %s "$3" | tr / _) && cat "$TMP/offer/$t" ;; esac'
+}
+newest_bytes() { cat "$CLIP_DB/$(newest)"; }
+
+case_ "a screenshot (a picture and nothing else): kept as the picture, named in the list"
+store_setup
+magick -size 1920x1080 xc:'#d0583a' png:- >"$TMP/shot.png"
+offer image/png; bytes image/png <"$TMP/shot.png"; cp "$TMP/shot.png" "$TMP/stdin"
+rc 0 store
+cmp -s "$CLIP_DB/1" "$TMP/shot.png" && _ok || _no "the screenshot's bytes changed on the way"
+has "$(kawa-clip --list)" $'1\t'"$ICON_PICTURE  png picture  1920×1080  ·  "
+has "$(prev 1 | sixel_info | jget raster)" "666, 168" "previewed as a sixel"
+
+case_ "Brave's Copy image (the picture, its <img> tag and its link — wl-paste hands over the link): the picture"
+store_setup
+magick -size 640x480 xc:'#7fb8b0' png:- >"$TMP/cat.png"
+offer text/html image/png text/plain 'text/plain;charset=utf-8'
+bytes image/png <"$TMP/cat.png"; printf 'https://example.com/cat.png\n' >"$TMP/stdin"
+rc 0 store
+cmp -s "$(ls -d "$CLIP_DB"/* | sort -V | tail -n1)" "$TMP/cat.png" && _ok || _no "not the picture: $(kawa-clip --list)"
+eq "$(ls "$CLIP_DB" | wc -l)" 1 "one entry: the picture, not its link beside it"
+called '^wl-paste --no-newline --type image/png$'
+case_ "… its link a data: URL, or no plain text offered at all (only the <img> tag): the picture too"
+printf 'data:image/png;base64,iVBORw0KGgo=' >"$TMP/stdin"; magick -size 20x10 xc:'#d0583a' png:- | bytes image/png
+store; eq "$(file -b --mime-type "$CLIP_DB/$(newest)")" image/png
+offer text/html image/png; printf '<img src="https://example.com/a.png">' >"$TMP/stdin"
+magick -size 30x10 xc:'#d0583a' png:- | bytes image/png
+store; eq "$(file -b --mime-type "$CLIP_DB/$(newest)")" image/png
+case_ "… PNG when the picture is offered in several kinds; else the first kind offered"
+offer image/bmp image/png; magick -size 40x10 xc:'#5f7fa0' bmp:- | bytes image/bmp; magick -size 40x10 xc:'#5f7fa0' png:- | bytes image/png
+: >"$TMP/stdin"; reset_calls; store; called '^wl-paste --no-newline --type image/png$'
+offer image/jpeg image/bmp; magick -size 50x10 xc:'#5f7fa0' jpg:- | bytes image/jpeg
+reset_calls; store; called '^wl-paste --no-newline --type image/jpeg$'
+eq "$(file -b --mime-type "$CLIP_DB/$(newest)")" image/jpeg
+
+case_ "text that comes with a picture of itself (cells from a spreadsheet, a paragraph): the text"
+store_setup
+offer 'text/plain;charset=utf-8' text/html image/png image/bmp
+magick -size 64x32 xc:'#d0583a' png:- | bytes image/png
+printf 'name\tamount\nrent\t4500\n' >"$TMP/stdin"
+rc 0 store
+eq "$(newest_bytes)" $'name\tamount\nrent\t4500'
+not_called '^wl-paste --no-newline'
+case_ "… and two links, or a sentence with a link in it, are text too"
+printf 'https://a.example\nhttps://b.example\n' >"$TMP/stdin"; store
+eq "$(newest_bytes)" $'https://a.example\nhttps://b.example'
+printf 'the cat: https://example.com/cat.png' >"$TMP/stdin"; store
+eq "$(newest_bytes)" 'the cat: https://example.com/cat.png'
+case_ "plain text, no picture: kept as it came, byte for byte"
+offer 'text/plain;charset=utf-8' text/plain UTF8_STRING
+printf -- '-n\ttab \\ $(id)\n' >"$TMP/stdin"; store
+eq "$(od -c <"$CLIP_DB/$(newest)")" "$(printf -- '-n\ttab \\ $(id)\n' | od -c)"
+
+case_ "a copy marked secret (a password manager's): not kept, nothing asked of the clipboard"
+store_setup; offer 'text/plain;charset=utf-8' x-kde-passwordManagerHint; printf 'hunter2' >"$TMP/stdin"
+rc 0 store sensitive
+eq "$(ls "$CLIP_DB" | wc -l)" 0; not_called '^wl-paste'
+case_ "the clipboard cleared by its program: the newest entry goes, as cliphist does it"
+offer 'text/plain;charset=utf-8'; printf 'one' >"$TMP/stdin"; store; printf 'two' >"$TMP/stdin"; store
+: >"$TMP/stdin"; store clear
+eq "$(newest_bytes)" one
+case_ "a copy kawa-clipkeep offers again (its program closed): stored when it was made, not twice"
+store_setup; offer 'text/plain;charset=utf-8' application/x-kawa-clipkeep; printf 'kept' >"$TMP/stdin"
+rc 0 store; eq "$(ls "$CLIP_DB" | wc -l)" 0
+
+case_ "a copy bigger than 20 MiB is not kept — up to 20 MiB is, text or picture"
+store_setup
+offer image/png; head -c $((20 << 20)) /dev/zero | bytes image/png; : >"$TMP/stdin"
+store; eq "$(stat -c %s "$CLIP_DB/1" 2>&1)" $((20 << 20))
+head -c $((20 << 20 + 1)) /dev/zero | bytes image/png; store
+eq "$(ls "$CLIP_DB" | wc -l)" 1 "a picture one byte over"
+offer 'text/plain;charset=utf-8'; python3 -c 'print("x" * (20 * 1024 * 1024 + 1), end="")' >"$TMP/stdin"; store
+eq "$(ls "$CLIP_DB" | wc -l)" 1 "text one byte over"
+
+case_ "the history keeps the newest 100 (cliphist is told so at every copy)"
+store_setup; offer 'text/plain;charset=utf-8'
+for i in $(seq 1 105); do printf 'copy %d' "$i" >"$TMP/stdin"; store; done
+eq "$(kawa-clip --list | wc -l)" 100
+eq "$(kawa-clip --list | head -n1 | cut -f2)" "copy 105"; eq "$(kawa-clip --list | tail -n1 | cut -f2)" "copy 6"
+has "$(cat "$CLIP_DB.log")" "-max-items 100 store"
+
+case_ "nothing left behind in the runtime folder"
+eq "$(count "$XDG_RUNTIME_DIR"/kawa-clip-store.*)" 0
+
 # ── copy, forget, forget all ─────────────────────────────────────────────────
 case_ "enter: the entry back on the clipboard, byte for byte, by a wl-copy of its own"
 setup
@@ -195,6 +290,10 @@ eq "$(od -c <"$COPIED")" "$(printf -- '-n\ttab\nnewline \\ backslash' | od -c)"
 magick -size 64x32 xc:'#d0583a' png:- | tee "$TMP/pic.png" | python3 -I "$C/fake_cliphist.py" store
 rc 0 kawa-clip --copy 2
 cmp -s "$COPIED" "$TMP/pic.png" && _ok || _no "the picture's bytes changed on the way"
+case_ "enter on a picture: offered as the picture it is (image/png, image/jpeg) — text as wl-copy finds it"
+called '^wl-copy --type image/png$'; called '^wl-copy $'
+magick -size 64x32 xc:'#d0583a' jpg:- | python3 -I "$C/fake_cliphist.py" store
+reset_calls; rc 0 kawa-clip --copy 3; called '^wl-copy --type image/jpeg$'
 
 case_ "copy of an entry that is gone, or not an id: fails, the clipboard untouched"
 setup; reset_calls
@@ -233,7 +332,7 @@ eq "$(kawa-clip --list | wc -l)" 1
 case_ "Super+V: the floating window, once"
 setup; reset_calls
 kawa-clip
-called "^kawa-float --once clipboard clipboard 76x25 -- $REPO/bin/kawa-clip --tui\$"
+called "^kawa-float --once clipboard clipboard 80x27 -- $REPO/bin/kawa-clip --tui\$"
 
 case_ "inside: fzf with the desktop's options file, the list, the cell size for the previews"
 setup; put 'one'; put 'two'

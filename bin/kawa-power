@@ -1,14 +1,25 @@
 #!/usr/bin/env bash
 # kawa-power — Super+Shift+E (or "power" in quick settings): lock, sleep, log out,
 # restart, shut down. A small centred menu: the title and the column of choices sit in
-# the middle of the box, each choice with its own pixel icon. Esc cancels. No arguments
-# (--help: this text). A choice the system refuses (another user logged in, something
-# inhibiting it, no password agent for polkit) says why in a notice, and exits 1.
+# the middle of the box, each choice with its own pixel icon. Esc cancels (--help: this text).
+#   kawa-power         the menu
+#   kawa-power sleep   locked, then asleep, with no menu (a keyboard's Sleep key)
+# A choice the system refuses (another user logged in, something inhibiting it, no password
+# agent for polkit) says why in a notice, and exits 1.
 set -u
+# act WHAT SYSTEMCTL-VERB — logind's answer, when it says no, as a notice (its first line)
+act() {
+  local err
+  err=$(systemctl "$2" 2>&1 >/dev/null) && return 0
+  err=${err%%$'\n'*}
+  notify-send -a desktop -u critical "power" "could not $1${err:+ — $err}"
+  exit 1
+}
 case ${1:-} in
   "") ;;
+  sleep) kawa-lock && act sleep suspend; exit ;;   # locked first (kawa-lock returns once locked), then sleep
   -h|--help) sed -n '2,/^set -u/{/^set -u/d;s/^# \{0,1\}//;p}' "$0"; exit 0 ;;
-  *) echo "usage: kawa-power   (no arguments: the power menu)" >&2; exit 2 ;;
+  *) echo "usage: kawa-power [sleep]" >&2; exit 2 ;;
 esac
 LC_ALL=C.UTF-8                 # widths count characters, not bytes
 # shellcheck source=/dev/null
@@ -21,38 +32,30 @@ icons=("$ICON_LOCK" "$ICON_ZZZ" "$ICON_DOOR" "$ICON_RESTART" "$ICON_POWER")
 
 # an icon is two character cells wide, then two spaces, then the label column
 pad=$(( (WIDTH - 2 - 2 - LABEL) / 2 ))
-rows=()
+rows=()                        # (no empty row under the title: the rows keep the title's rhythm,
+                               # one row apart — a menu with headings has its gap above each heading)
 for i in "${!names[@]}"; do
   printf -v r '%*s%s  %-*s' "$pad" '' "${icons[i]}" "$LABEL" "${names[i]}"
   rows+=("$r")
 done
 # the title: how long the machine has been up, as the hourglass and ten characters always —
-# "up 03h 07m", "up 04d 03h", "up 15w 02d" — so it is 13 columns whatever the uptime: odd
-# like WIDTH, so it centres to the pixel, right over the icons and names below. (A user
-# name or an uptime of changing length would sit half a column off whenever its length was
-# even.)
+# "up 03h 07m", "up 04d 03h", "up 15w 02d" — set as the rows are: the hourglass over their
+# icons, two spaces, the words over their labels, whatever the uptime. (A user name or an
+# uptime of changing length would not stand still.)
 read -r up _ </proc/uptime; up=${up%.*}
 h=$((up / 3600)) d=$((up / 86400))
 if ((h < 24)); then printf -v t 'up %02dh %02dm' "$h" $((up / 60 % 60))
 elif ((d < 100)); then printf -v t 'up %02dd %02dh' "$d" $((h % 24))
 else w=$((d / 7)) r=$((d % 7)); ((w > 99)) && w=99 r=6        # (as far as it can count)
      printf -v t 'up %02dw %02dd' "$w" "$r"; fi
-printf -v title '%*s%s %s' $(( (WIDTH - 2 - 1 - ${#t}) / 2 )) '' "$ICON_HOURGLASS" "$t"
+printf -v title '%*s%s  %s' $(( (WIDTH - 2 - 1 - ${#t}) / 2 )) '' "$ICON_HOURGLASS" "$t"   # (its icon over the rows' icons, two spaces as theirs)
 
 i=$(printf '%s\n' "${rows[@]}" |
-    kawa-menu --index --width "$WIDTH" --lines ${#rows[@]} --title "$title") || exit 0
-# act WHAT SYSTEMCTL-VERB — logind's answer, when it says no, as a notice (its first line)
-act() {
-  local err
-  err=$(systemctl "$2" 2>&1 >/dev/null) && return 0
-  err=${err%%$'\n'*}
-  notify-send -a desktop -u critical "Power" "could not $1${err:+ — $err}"
-  exit 1
-}
+    kawa-menu --index --width "$WIDTH" --lines ${#rows[@]} --select 0 --title "$title") || exit 0
 case $i in
   0) exec kawa-lock --sleep ;;                     # (still locked 90 s later: sleep)
-  1) kawa-lock && act sleep suspend ;;            # locked first (swaylock -f), then sleep
-  2) exec pkill -xu "$UID" 'dwl(\.prev)?' ;;     # (dwl.prev: start-dwl's fallback)
+  1) kawa-lock && act sleep suspend ;;            # locked first (gtklock: kawa-lock returns once locked), then sleep
+  2) exec pkill -xu "$UID" dwl ;;
   3) act restart reboot ;;
   4) act "shut down" poweroff ;;
 esac

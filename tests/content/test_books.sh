@@ -75,17 +75,17 @@ lacks "$out" "gone.pdf"
 case_ "reading: page and total, a bar in tenths, read today"
 r=$(row "Reading Now.pdf")
 has "$(field 2 <<<"$r" | plain)" "━━━━━━━───     87/120"
-eq "$(field 3 <<<"$r")" "page 87 · read today"
-eq "$(field 4 <<<"$r")" "pdf · 120 pages · 25.4 KB"
+eq "$(field 3 <<<"$r")" "read today" "when (the page is the list's)"
+eq "$(field 4 <<<"$r")" "pdf · 25.4 KB" "the caption: no page count, the list's 87/120 says it"
 eq "$(field 5 <<<"$r")" "" "found by its own path: zathura opens it where it was"
 case_ "finished: 'done', a full teal bar, when"
 r=$(row "Done Book.pdf")
 has "$(field 2 <<<"$r" | plain)" "━━━━━━━━━━       done"; has "$(field 2 <<<"$r")" $'\e[96m━'
-eq "$(field 3 <<<"$r")" "finished · read 2 weeks ago"
+eq "$(field 3 <<<"$r")" "read 2 weeks ago" "when (done is the list's)"
 case_ "moved since zathura saw it: found by name, the page kept, opened there (field 5)"
 r=$(row "Flow.epub")
-has "$(field 2 <<<"$r" | plain)" "━─────────      p. 37"
-eq "$(field 3 <<<"$r")" "page 37 · read 3 days ago"; eq "$(field 5 <<<"$r")" 37
+has "$(field 2 <<<"$r" | plain)" "━─────────       37/–" "no fixed pages: the same N/M, the M unknown"
+eq "$(field 3 <<<"$r")" "read 3 days ago"; eq "$(field 5 <<<"$r")" 37
 case_ "new: a grey bar, 'new', what it is"
 r=$(row "New Comic.cbz")
 has "$(field 2 <<<"$r" | plain)" "──────────        new"
@@ -102,14 +102,14 @@ mk pdf "$B/a_long_title_here.pdf" 1
 has "$(row a_long_title_here.pdf | field 2 | plain)" "a long title here "
 
 case_ "every row is exactly the list's width, CJK counted as two (fzf 100 wide, 300, 71; the default)"
-eq "$(FZF_COLUMNS=100 kawa-books --rows | widths)" "59 "
-eq "$(FZF_COLUMNS=300 kawa-books --rows | widths)" "259 "
-eq "$(FZF_COLUMNS=71 kawa-books --rows | widths)" "30 "
-eq "$(FZF_COLUMNS=40 kawa-books --rows | widths)" "57 " "too narrow to trust: the window's own width"
-eq "$(kawa-books --rows | widths)" "57 "
+eq "$(FZF_COLUMNS=100 kawa-books --rows | widths)" "58 "
+eq "$(FZF_COLUMNS=300 kawa-books --rows | widths)" "258 "
+eq "$(FZF_COLUMNS=71 kawa-books --rows | widths)" "29 "
+eq "$(FZF_COLUMNS=40 kawa-books --rows | widths)" "58 " "too narrow to trust: the window's own width"
+eq "$(kawa-books --rows | widths)" "58 "
 case_ "a title longer than its column is cut with …"
 mk pdf "$B/$(printf 'word %.0s' {1..30}).pdf" 1
-has "$(FZF_COLUMNS=71 kawa-books --rows | grep 'word word' | field 2 | plain)" "word w…  ──" "7 columns: six letters and …"
+has "$(FZF_COLUMNS=71 kawa-books --rows | grep 'word word' | field 2 | plain)" "word…   ──" "6 columns: the word and …, never a space before it"
 
 case_ "a name that is not UTF-8 (an old zip's), in a real UTF-8 locale: listed, the rest too"
 if locale_of en_US; then L=$LOC
@@ -134,7 +134,7 @@ for t in "family 👨‍👩‍👧 photos:16" "thumbs 👍🏽 up:12" "❤️ h
   mk pdf "$B/${t%:*}.pdf" 1
   r=$(FZF_COLUMNS=100 kawa-books --rows | grep -F -- "$B/${t%:*}.pdf"$'\t' | field 2 | plain)
   pad=${r#"${t%:*}"}; pad=${pad%%[!\ ]*}
-  eq "${#pad}" $((36 + 2 - ${t##*:})) "${t%:*}: its padding (title column 36, then 2 spaces)"
+  eq "${#pad}" $((35 + 2 - ${t##*:})) "${t%:*}: its padding (title column 35, then 2 spaces)"
 done
 
 case_ "no books, ~/Books missing: an empty list, the folder made"
@@ -181,7 +181,7 @@ has "$(kawa-books --rows)" "pdf · 7 pages"
 case_ "corrupt books: listed by kind and size, without a page count"
 printf '%%PDF-1.4 broken' >"$B/corrupt.pdf"; printf 'xx' >"$B/corrupt.cbz"; printf 'not a zip' >"$B/corrupt.epub"
 out=$(kawa-books --rows 2>&1)
-has "$out" $'\tnot opened yet\tpdf · 15 B\t'; has "$out" $'\tnot opened yet\tcbz · 2 B\t'; has "$out" $'\tnot opened yet\tepub · 9 B\t'
+has "$out" $'\t\tpdf · 15 B\t'; has "$out" $'\t\tcbz · 2 B\t'; has "$out" $'\t\tepub · 9 B\t'
 
 case_ "500 books (150 PDF, 100 comics, 250 EPUB): listed in reasonable time the first time, at once after that"
 setup
@@ -201,7 +201,7 @@ eq "$n" 500; t1=$(( (${e/./} - ${s/./}) / 1000 ))
 s=$EPOCHREALTIME; n=$(kawa-books --rows | wc -l); e=$EPOCHREALTIME
 eq "$n" 500; t2=$(( (${e/./} - ${s/./}) / 1000 ))
 ((t2 < 2000)) && _ok || _no "second listing took $t2 ms"
-eq "$(kawa-books --rows | widths)" "57 "
+eq "$(kawa-books --rows | widths)" "58 "
 printf '    (500 books: %d ms the first time, %d ms after)\n' "$t1" "$t2"
 
 # ── the cover ────────────────────────────────────────────────────────────────
@@ -230,7 +230,7 @@ case_ "a comic whose pages have glob characters in their names: its first page"
 mk cbz "$B/glob.cbz" 'p[1].png' 'q*2.png' 'r?3.png'      # (as a pattern, p[1].png would be p1.png)
 lacks "$(cover "$B/glob.cbz" | sixel_info | jget colours)" "17,15,13"
 
-case_ "the pane: cover centred between the rule and the edge, the words under it, inside the pane"
+case_ "the pane: cover centred between the rule and the pane's end (where the title's rule ends), the words under it, inside the pane"
 for size in "36 24" "36 26" "50 30" "21 9" "40 12"; do
   read -r cols lines <<<"$size"
   out=$(cover "$B/Reading Now.pdf" "$cols" "$lines"); info=$(sixel_info <<<"$out")
@@ -238,7 +238,9 @@ for size in "36 24" "36 26" "50 30" "21 9" "40 12"; do
   read -r x0 _ x1 _ < <(tr -d '[],' <<<"$bb")
   a=$(( 2 * 9 - (9 - 1) / 2 - 1 ))                       # the rule's right edge → the first column
   ((w <= cols * 9 - a)) && _ok || _no "$size: the picture ($w px) is wider than the pane"
-  eq "$x0" "$(( cols * 9 - a - x1 ))" "$size: the margins left and right of the cover"
+  L=$(( a + x0 )) R=$(( cols * 9 - x1 ))
+  (( L - R <= 1 && R - L <= 1 )) && _ok || _no "$size: the paper left ($L px) and right ($R px) of the cover"
+  (( x1 <= cols * 9 - a )) && _ok || _no "$size: the cover passes the pane's edge"
   after=$(jrepr after <<<"$info")
   text=$(python3 -I -c 'import sys,ast; print(ast.literal_eval(sys.argv[1]))' "$after" | plain)
   rows=$(( (h + 20) / 21 + $(wc -l <<<"$text") - 1 ))
@@ -248,10 +250,17 @@ for l in sys.stdin.read().splitlines():
     w = sum(2 if unicodedata.east_asian_width(c) in "WF" else 1 for c in l)
     if w > int(sys.argv[1]): sys.exit(1)' "$cols" <<<"$text" && _ok || _no "$size: a line of words wider than the pane"
 done
-case_ "a long Japanese title: two lines at most, cut with …, inside the pane"
+case_ "a long Japanese title (the list cut it, so the caption names it): two lines at most, cut with …, inside the pane"
 mk epub "$B/$(printf '長い題名%.0s' {1..12}).epub" meta
-text=$(cover "$B/$(printf '長い題名%.0s' {1..12}).epub" | sixel_info | jrepr after | python3 -I -c 'import sys,ast; print(ast.literal_eval(sys.stdin.read()))' | plain)
+long=$(printf '長い題名%.0s' {1..12})
+whole=$(kawa-books --rows | grep -F -- "$B/$long.epub"$'\t' | field 6)
+eq "$whole" "$long" "the list cuts it: its whole title goes to the caption (field 6)"
+text=$(FZF_PREVIEW_COLUMNS=36 FZF_PREVIEW_LINES=24 KAWA_CELL=9x21 kawa-books --preview "$B/$long.epub" "info one" "info two" "$whole" \
+       | sixel_info | jrepr after | python3 -I -c 'import sys,ast; print(ast.literal_eval(sys.stdin.read()))' | plain)
 eq "$(grep -c '長' <<<"$text")" 2; has "$text" "…"
+case_ "a title the list shows whole: the caption does not repeat it"
+text=$(cover "$B/Reading Now.pdf" | sixel_info | jrepr after | python3 -I -c 'import sys,ast; print(ast.literal_eval(sys.stdin.read()))' | plain)
+lacks "$text" "Reading Now"; eq "$(kawa-books --rows | grep -F -- "$B/Reading Now.pdf"$'\t' | field 6)" ""
 case_ "a pane too narrow or too short for a cover, or a book gone: nothing, quietly"
 eq "$(cover "$B/Reading Now.pdf" 20 24 2>&1)" ""; eq "$(cover "$B/Reading Now.pdf" 36 8 2>&1)" ""
 eq "$(cover "$B/nothing here.pdf" 2>&1)" ""; rc 0 cover "$B/nothing here.pdf"
@@ -308,7 +317,7 @@ reset_calls; rc 0 kawa-books --remove "$B/it's \"quoted\" \$(id) \`id\`.pdf"
 called "^gio trash -- $B/it's \"quoted\" \\\$\\(id\\) \`id\`\\.pdf\$" "the name reached gio as it is"
 stub gio 'exit 1'
 rc 0 kawa-books --remove "$B/Done Book.pdf"
-called 'notify-send -a desktop Books could not move Done Book.pdf to the trash'
+called 'notify-send -a desktop books could not move Done Book.pdf to the trash'
 
 case_ "ctrl+a: books in Downloads, Documents, Desktop listed; the marked ones moved in; a taken name gets (2)"
 setup; mk pdf "$B/Taken.pdf" 1
@@ -337,11 +346,11 @@ fi
 # ── the window ───────────────────────────────────────────────────────────────
 case_ "Super+R: the floating window, once"
 setup; reset_calls; kawa-books
-called "^kawa-float --once books books 100x27 -- $REPO/bin/kawa-books --tui\$"
+called "^kawa-float --once books books 104x29 -- $REPO/bin/kawa-books --tui\$"
 case_ "inside: the list, its count in the title, the keys"
 library; kawa-books --tui
 eq "$(cat "$FZF_IN")" "$(kawa-books --rows)"
-has "$(cat "$FZF_ARGS")" "· 10 in ~/Books"
+has "$(cat "$FZF_ARGS")" "· ~/Books"; lacks "$(cat "$FZF_ARGS")" "10 in" "the count is fzf's, beside the search"
 has "$(cat "$FZF_ARGS")" "--bind=enter:become($REPO/bin/kawa-books --open {1} {5})"
 case_ "inside, no books yet: the title says how to add some"
 setup; kawa-books --tui; has "$(cat "$FZF_ARGS")" "none in ~/Books yet — ctrl+a adds some"

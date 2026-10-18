@@ -1,0 +1,53 @@
+#!/usr/bin/env bash
+# kawa-prowlarr — Prowlarr, which finds torrents for torrra, runs only while it is wanted:
+# it holds some 300 MB of memory, so it starts when something needs it and goes back to
+# sleep 30 minutes after the last thing that did (a search window closed, its page opened).
+#
+#   kawa-prowlarr          its web page (the launcher's "Prowlarr", `prowlarr` in a shell):
+#                          started if asleep, opened in the browser once it answers
+#   kawa-prowlarr stop     asleep now (`prowlarr stop`)
+#   kawa-prowlarr --busy   in use (torrra's search starts): started, no sleep planned
+#   kawa-prowlarr --idle   done for now (torrra's window closes): asleep in 30 minutes,
+#                          unless something wants it again before then
+#
+# The sleep is a timer of systemd's (prowlarr-idle.timer, made here each time, gone once it
+# has run or been called off): `systemctl --user list-timers` shows when it comes.
+# Exit: 0 done · 1 Prowlarr did not start (a notice says why) · 2 wrong use.
+set -u
+IDLE_MIN=${KAWA_PROWLARR_IDLE_MIN:-30}
+URL=http://localhost:9696
+case ${1:-} in -h|--help) sed -n '2,/^set -u/{/^set -u/d;s/^# \{0,1\}//;p}' "$0"; exit 0 ;; esac
+
+calm() {   # call off a planned sleep
+  systemctl --user stop prowlarr-idle.timer 2>/dev/null
+  systemctl --user reset-failed prowlarr-idle.timer prowlarr-idle.service 2>/dev/null
+  return 0
+}
+start() {   # Prowlarr up and answering (the start returns once it is healthy)
+  calm
+  systemctl --user is-active --quiet prowlarr.service && return 0
+  echo 'starting Prowlarr… (its first start after a boot can take a minute or two)' >&2
+  if ! systemctl --user start prowlarr.service; then
+    # one that does not start is stopped again: left, it would try every 10 s until the next boot
+    systemctl --user stop --no-block prowlarr.service
+    notify-send -u critical -a torrra "Prowlarr did not start" "journalctl --user -u prowlarr -e says why" 2>/dev/null
+    echo 'kawa-prowlarr: Prowlarr did not start — journalctl --user -u prowlarr -e says why' >&2
+    return 1
+  fi
+}
+idle() {   # asleep in IDLE_MIN minutes (also one still starting: a window closed mid-start)
+  calm
+  case $(systemctl --user is-active prowlarr.service 2>/dev/null) in inactive|failed) return 0 ;; esac
+  systemd-run --user --quiet --unit=prowlarr-idle --on-active="${IDLE_MIN}min" --timer-property=AccuracySec=30s \
+    systemctl --user stop prowlarr.service
+}
+
+case ${1:-} in
+  "")      start || exit 1
+           xdg-open "$URL" >/dev/null 2>&1 &
+           idle ;;                                   # (the page open: asleep 30 minutes from now)
+  stop)    calm; systemctl --user stop prowlarr.service ;;
+  --busy)  start ;;
+  --idle)  idle ;;
+  *)       echo "usage: kawa-prowlarr [stop|--busy|--idle] (kawa-prowlarr --help)" >&2; exit 2 ;;
+esac

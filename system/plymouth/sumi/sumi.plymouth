@@ -1,0 +1,10 @@
+# /usr/share/plymouth/themes/sumi/sumi.plymouth — the boot splash (installed by theme.sh, the
+# pictures drawn by tools/build-art.py). Plymouth's script plugin runs sumi.script.
+[Plymouth Theme]
+Name=Sumi
+Description=fedokawaii: the torii on sumi ink, 起動中 · starting Fedora
+ModuleName=script
+
+[script]
+ImageDir=/usr/share/plymouth/themes/sumi
+ScriptFile=/usr/share/plymouth/themes/sumi/sumi.script

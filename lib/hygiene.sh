@@ -69,7 +69,9 @@ hy_display_manager() {   # → the unit display-manager.service points at ("" wh
 }
 hy_leftovers() {   # → paths a stopped run left behind (safe to remove: nothing uses them)
   local d
-  for d in /usr/local/lib/fedokawaii.new /usr/local/lib/fedokawaii.old; do [[ -e $d ]] && echo "$d"; done
+  # (the old one only beside a toolkit: alone, it is the toolkit, and toolkit_back puts it back)
+  [[ -e /usr/local/lib/fedokawaii.new ]] && echo /usr/local/lib/fedokawaii.new
+  [[ -e /usr/local/lib/fedokawaii.old && -d /usr/local/lib/fedokawaii ]] && echo /usr/local/lib/fedokawaii.old
   # temp folders of runs that ended more than a day ago (a live run's is younger, and in use)
   find /var/tmp -maxdepth 1 -name 'fedokawaii.*' -user root -mmin +1440 2>/dev/null || true
 }

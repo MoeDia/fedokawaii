@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # tests/status/test_brightness.sh — kawa-brightness: monitors over DDC/CI (fake_ddcutil: buses,
 # dead buses, renumbering, slow answers) and a laptop's own panel through logind (fake_busctl
-# over a made-up /sys, KAWA_SYSFS). The level display is the real kawa-osd, the menu fake_menu.
+# over a made-up /sys, KAWA_SYSFS). The level display is the real kawa-osd.
 # Turned from the display review's live runs (review12/B) into checks.
 . "$(dirname "$0")/lib.sh"
 setup() {
@@ -11,8 +11,6 @@ setup() {
   echo connected >"$KAWA_SYSFS/class/drm/card1-DP-1/status"
   stub ddcutil 'exec bash '"$SD"'/fake_ddcutil "$@"'
   stub busctl 'exec bash '"$SD"'/fake_busctl "$@"'
-  export MENU=$TMP/menu; mkdir -p "$MENU"; : >"$MENU/answers"
-  stub kawa-menu 'exec bash '"$SD"'/fake_menu "$@"'
 }
 b() { cat "$DDC/b$1" 2>/dev/null || echo 70; }          # b BUS — a monitor's level now
 cache() { cat "$XDG_RUNTIME_DIR/kawa-ddc-buses" 2>/dev/null; }
@@ -35,7 +33,8 @@ case_ "one monitor at 70 %: +10 → 80, the panel says so; -10 → 70; 40 → 40
 setup
 rc 0 kawa-brightness +10; eq "$(b 5)" 80; eq "$(osd | cut -d'|' -f2,3)" "$ICON_SUN  brightness|80%"
 rc 0 kawa-brightness -10; eq "$(b 5)" 70
-rc 0 kawa-brightness 40;  eq "$(b 5)" 40; eq "$(shown)" 40%
+rc 0 kawa-brightness 40;  eq "$(b 5)" 40; eq "$(kawa-brightness --level)" 40
+eq "$(shown)" 70% "a level set from quick settings pops nothing up over its meter (the -10 step's 70 % stays the last shown)"
 case_ "the ends: never above 100 or below 0 (a monitor's 0 is its dimmest, not dark)"
 kawa-brightness +100; eq "$(b 5)" 100; kawa-brightness +10; eq "$(b 5)" 100
 kawa-brightness 150;  eq "$(b 5)" 100
@@ -70,15 +69,15 @@ rc 0 kawa-brightness +10; eq "$(b 5)" 80; eq "$(notice)" ""; eq "$(cache)" 5
 case_ "no monitor answers (DDC/CI off everywhere, or a TV): a notice that says what to do, could not (1)"
 setup; export DDC_BUSES=""
 rc 1 kawa-brightness +10
-eq "$(notice)" " $ICON_SUN  Brightness | No monitor answered over DDC/CI. Turn DDC/CI on in the monitor's menu."
+eq "$(notice)" " $ICON_SUN  brightness | no monitor answered over DDC/CI — turn DDC/CI on in the monitor's own menu"
 eq "$(cache)" "" "nothing kept: the next press looks again"
 eq "$(osd)" "" "no level shown"
 case_ "… every bus there, all dead: the same"
 setup; export DDC_BUSES="5 7" DDC_DEAD="5 7"
-rc 1 kawa-brightness -10; has "$(notice)" "No monitor answered"
+rc 1 kawa-brightness -10; has "$(notice)" "no monitor answered"
 case_ "the monitor that was there stopped answering: the notice comes at the first press"
 setup; echo 5 >"$XDG_RUNTIME_DIR/kawa-ddc-buses"; export DDC_BUSES=""
-rc 1 kawa-brightness +10; has "$(notice)" "No monitor answered"
+rc 1 kawa-brightness +10; has "$(notice)" "no monitor answered"
 
 # ── a held key, the lock ─────────────────────────────────────────────────────
 case_ "a held key (35 presses a second, monitors answering in 50 ms): repeats dropped, both monitors in step, never past 100"
@@ -96,35 +95,9 @@ case_ "a stale lock from a press that was killed: the next press works"
 setup; : >"$XDG_RUNTIME_DIR/kawa-ddc.lock"
 rc 0 kawa-brightness +10; eq "$(b 5)" 80
 
-# ── the menu ─────────────────────────────────────────────────────────────────
-case_ "the menu: ten levels, the current one ticked and picked, every row fits its 24 columns"
-setup; echo esc >"$MENU/answers"
-rc 0 kawa-brightness
-r=$(cat "$MENU/rows.1")
-eq "$(wc -l <<<"$r")" 10
-lv=""; levelbar lv 10 70; eq "$(sed -n 4p <<<"$r")" "$ICON_BOX_ON   70%  $lv"
-eq "$(grep -c "$ICON_BOX_ON" <<<"$r")" 1
-eq "$(grep -A1 -x -- --select "$MENU/args.1" | tail -n 1)" 3
-fits "$r" 23
-fits "$(grep -A1 -x -- --title "$MENU/args.1" | tail -n 1)" 24
-case_ "a level picked: every monitor set to it, the panel shows it"
-setup; export DDC_BUSES="5 7"; echo "~ 40%" >"$MENU/answers"
-kawa-brightness menu
-eq "$(b 5)" 40; eq "$(b 7)" 40; eq "$(shown)" 40%
-case_ "Esc: nothing changed"
-setup; echo esc >"$MENU/answers"; kawa-brightness; eq "$(b 5)" 70; eq "$(osd)" ""
-case_ "at 3 % (below every row): nothing ticked, the 10 % row picked — not the 100 % one"
-setup; echo 3 >"$DDC/b5"; echo esc >"$MENU/answers"
-kawa-brightness
-eq "$(grep -c "$ICON_BOX_ON" "$MENU/rows.1")" 0
-eq "$(grep -A1 -x -- --select "$MENU/args.1" | tail -n 1)" 9
-case_ "a key press while the menu is open still works (the lock is free while you choose)"
-setup; echo esc >"$MENU/answers"
-printf '%s\n' "kawa-brightness +10" >"$MENU/hook.1"
-kawa-brightness; eq "$(b 5)" 80
-case_ "no monitor: the menu does not open, the notice comes"
-setup; export DDC_BUSES=""; echo 0 >"$MENU/answers"
-rc 1 kawa-brightness; eq "$(cat "$MENU/n" 2>/dev/null)" ""; has "$(notice)" "No monitor answered"
+# ── use ──────────────────────────────────────────────────────────────────────
+case_ "no level given, or one it cannot read: exit 2, nothing touched (quick settings' meter gives one)"
+setup; rc 2 kawa-brightness; rc 2 kawa-brightness menu; rc 2 kawa-brightness +x; eq "$(b 5)" 70; eq "$(osd)" ""
 
 # ── a laptop's own panel ─────────────────────────────────────────────────────
 case_ "a laptop (firmware backlight, 0–100): +10 through logind, no DDC monitor, no notice"
@@ -139,7 +112,7 @@ setup; export DDC_BUSES=""; laptop amdgpu_bl1 raw 255 255
 kawa-brightness -10; eq "$(bl amdgpu_bl1)" 229; eq "$(shown)" 90%
 kawa-brightness 50; eq "$(bl amdgpu_bl1)" 127
 case_ "never 0 on a panel (that is a black screen): 0 and a step below are its lowest, 1"
-kawa-brightness 0; eq "$(bl amdgpu_bl1)" 1; eq "$(shown)" 0%
+kawa-brightness 0; eq "$(bl amdgpu_bl1)" 1; eq "$(kawa-brightness --level)" 0
 kawa-brightness +10; eq "$(bl amdgpu_bl1)" 25 "from the lowest, one step up"
 kawa-brightness -10; kawa-brightness -10; eq "$(bl amdgpu_bl1)" 1
 case_ "several backlights: firmware before platform before raw (as GNOME and KDE choose), whatever their names"
@@ -176,7 +149,7 @@ kawa-brightness -10; eq "$(b 5)" 60 "from the monitor's level, not the stray dev
 eq "$(bl acpi_video0)" 100; not_called SetBrightness
 case_ "… and with no DDC monitor: the notice, not the stray device"
 setup; export DDC_BUSES=""; backlight acpi_video0 firmware 100 100
-rc 1 kawa-brightness +10; has "$(notice)" "No monitor answered"; eq "$(cache)" ""
+rc 1 kawa-brightness +10; has "$(notice)" "no monitor answered"; eq "$(cache)" ""
 
 # ── a monitor plugged in later (kawa-display --hotplug drops the bus list) ───
 case_ "laptop, then a monitor plugged in: after kawa-display --hotplug the keys reach it too"

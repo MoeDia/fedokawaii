@@ -1,0 +1,12 @@
+[Desktop Entry]
+# Videos and music open in the mpv window already open (kawa-play): the default for every
+# film and song in ~/.config/mimeapps.list. Hidden from the launcher, whose "mpv" (Fedora's
+# entry) opens a new window, as Alt+Enter in yazi does.
+Type=Application
+Name=Play in mpv
+Comment=In the mpv window already open
+Icon=mpv
+Exec=@HOME@/.local/bin/kawa-play %U
+Terminal=false
+NoDisplay=true
+MimeType=video/mp4;video/x-matroska;video/webm;video/quicktime;video/x-msvideo;video/mpeg;video/ogg;video/x-flv;video/3gpp;audio/mpeg;audio/flac;audio/ogg;audio/opus;audio/x-wav;audio/wav;audio/mp4;audio/aac;audio/x-m4a;audio/x-hx-aac-adts;audio/webm;audio/x-mpegurl;application/vnd.apple.mpegurl;audio/x-scpls;

@@ -1,0 +1,158 @@
+#!/usr/bin/env bash
+# kawa-shrink — Super+Z: make a picture or a PDF small enough to send, or turn a picture into
+# another kind (JPEG, WebP, PNG), in two keys. It works on what you copied: files copied in
+# yazi (Ctrl+C), a screenshot, a picture copied in Brave — or on the files you name (Alt+S
+# in yazi runs it on the selection).
+#
+#   kawa-shrink               what is on the clipboard
+#   kawa-shrink FILE…         those files
+#
+# A menu says the size it has and offers what fits it:
+#   pictures   email · under 1 MB         JPEG, at most 2560 px wide or tall
+#              chat · under 500 KB        JPEG, at most 1600 px
+#              a size of your own…        JPEG under it (300 KB, 2 MB, 1.5mb…)
+#              JPEG · WebP · PNG          the same picture as that kind (JPEG and WebP at
+#                                         quality 85, PNG losslessly)
+#   PDFs       email (150 dpi pictures) · smallest (72 dpi) · print (300 dpi), through
+#              Ghostscript; a PDF that would come out no smaller is left as it was
+# The result goes beside the original ("holiday (email).jpg"; a copied picture with no file
+# into ~/Pictures), never over anything, and onto the clipboard, ready for Ctrl+V: one
+# picture as the picture itself (a mail or a chat takes it so), anything else as files. A
+# notice says what came of it: "4.2 MB → 912 KB". Metadata (where a photo was taken) goes.
+# Exit: 0 done · 1 nothing to work on, or it failed (a notice says why) · 2 wrong use.
+set -u
+case ${1:-} in -h|--help) sed -n '2,/^set -u/{/^set -u/d;s/^# \{0,1\}//;p}' "$0"; exit 0 ;; -*) echo "usage: kawa-shrink [FILE…] (kawa-shrink --help)" >&2; exit 2 ;; esac
+# shellcheck source=/dev/null
+. "$HOME/.config/fedokawaii/icons.sh"
+. "$HOME/.config/fedokawaii/files.sh"   # free_name
+magick() { LC_ALL=C command magick "$@"; }
+say() { notify-send -a desktop "$ICON_PICTURE  $1" "${2:-}"; }
+work=$(mktemp -d "${XDG_RUNTIME_DIR:-/tmp}/kawa-shrink.XXXXXX") || exit 1
+trap 'rm -rf "$work"' EXIT
+
+human() {   # human BYTES → "912 KB", "4.2 MB"
+  awk -v b="$1" 'BEGIN { if (b < 1000) printf "%d B", b; else if (b < 1000000) printf "%d KB", b / 1000 + 0.5;
+                         else printf "%.1f MB", b / 1000000 }'
+}
+bytes() {   # bytes "750 KB" | 1.5mb | 2m | 300 → bytes (a bare number is KB); 1 if unreadable
+  local t=${1,,}; t=${t// /}
+  [[ $t =~ ^([0-9]+([.,][0-9]+)?)(k|kb|m|mb)?$ ]] || return 1
+  awk -v n="${BASH_REMATCH[1]/,/.}" -v u="${BASH_REMATCH[3]}" 'BEGIN { m = (u ~ /^m/) ? 1000000 : 1000; v = n * m; if (v < 10000) exit 1; printf "%d\n", v }'
+}
+kind() { file -b --mime-type -- "$1" 2>/dev/null; }
+
+# ── what to work on ─────────────────────────────────────────────────────────────────────
+files=()
+if (($#)); then
+  for f; do [[ -f $f ]] && files+=("$(realpath -- "$f")"); done
+else
+  types=$(wl-paste --list-types 2>/dev/null)
+  if grep -qx text/uri-list <<<"$types"; then
+    while IFS= read -r u; do
+      u=${u%$'\r'}; [[ $u == file://* ]] || continue
+      u=${u#file://}; [[ $u == /* ]] || u=/${u#*/}       # (file://localhost/…)
+      printf -v u '%b' "${u//%/\\x}"; [[ -f $u ]] && files+=("$u")
+    done < <(wl-paste --no-newline --type text/uri-list)
+  elif img=$(grep -m1 -E '^image/(png|jpeg|webp|gif|bmp|tiff)$' <<<"$types"); then
+    # a picture with no file: kept in ~/Pictures as "copied DATE"
+    mkdir -p "$HOME/Pictures"
+    printf -v name 'copied %(%Y-%m-%d %H.%M.%S)T.%s' -1 "${img#image/}"
+    f="$work/${name/.jpeg/.jpg}"
+    wl-paste --no-newline --type "$img" >"$f" && [[ -s $f ]] && files+=("$f") NOFILE=1
+  fi
+fi
+pics=() pdfs=() total=0
+for f in "${files[@]}"; do
+  case $(kind "$f") in
+    image/*) pics+=("$f") ;;
+    application/pdf) pdfs+=("$f") ;;
+    *) continue ;;
+  esac
+  total=$((total + $(stat -c %s -- "$f")))
+done
+if ((${#pics[@]} + ${#pdfs[@]} == 0)); then
+  say "nothing to shrink" "copy a picture or a PDF first (Ctrl+C in yazi, or a screenshot), then Super+Z"
+  exit 1
+fi
+what="${#pics[@]} picture$( ((${#pics[@]} != 1)) && echo s)"
+((${#pdfs[@]})) && what="$( ((${#pics[@]})) && echo "$what, ")${#pdfs[@]} PDF$( ((${#pdfs[@]} != 1)) && echo s)"
+
+# ── the choice ──────────────────────────────────────────────────────────────────────────
+rows=() acts=()
+row() { rows+=("$2"); acts+=("$1"); }
+if ((${#pics[@]})); then
+  row email "$ICON_PICTURE  email · under 1 MB"
+  row chat  "$ICON_PICTURE  chat · under 500 KB"
+  row own   "$ICON_SLIDERS  a size of your own…"
+  row jpg   "$ICON_FILE  as JPEG"
+  row webp  "$ICON_FILE  as WebP"
+  row png   "$ICON_FILE  as PNG (lossless)"
+fi
+if ((${#pdfs[@]})); then
+  row pdf-ebook   "$ICON_BOOK  PDF · email (150 dpi pictures)"
+  row pdf-screen  "$ICON_BOOK  PDF · smallest (72 dpi)"
+  row pdf-printer "$ICON_BOOK  PDF · print (300 dpi)"
+fi
+i=$(printf '%s\n' "${rows[@]}" | kawa-menu --index --title "$what · $(human "$total")" --width 40 --lines ${#rows[@]}) || exit 0
+act=${acts[i]}
+target=0 edge=0
+case $act in
+  email) target=1000000 edge=2560 ;;
+  chat)  target=500000 edge=1600 ;;
+  own)   s=$(printf '%s\n' "300 KB" "500 KB" "1 MB" "2 MB" "5 MB" | kawa-menu --prompt "under: " --title "type a size, or pick one" --width 40 --lines 5) || exit 0
+         target=$(bytes "$s") || { say "not a size: $s" "say it as 300 KB, 2 MB or 1.5mb"; exit 1; }
+         act="under $(human "$target")" ;;
+esac
+
+# ── the work ────────────────────────────────────────────────────────────────────────────
+out=() before=0 after=0 failed=0
+place() {   # place SRC LABEL EXT → where the result goes: beside it ("NAME (LABEL).EXT"), or ~/Pictures
+  local d=${1%/*} n=${1##*/}
+  [[ ${NOFILE:-} ]] && d=$HOME/Pictures
+  n=${n%.*}; [[ -n $2 ]] && n+=" ($2)"
+  free_name "$d/$n.$3"
+}
+for f in "${pics[@]}"; do
+  [[ $act == pdf-* ]] && continue                       # (a PDF's choice: the pictures stay as they are)
+  case $act in
+    jpg)  to=$(place "$f" "" jpg);  [[ $to == "$f" ]] && to=$(place "$f" copy jpg)
+          magick "${f}[0]" -auto-orient -strip -quality 85 -sampling-factor 4:2:0 "$to" ;;
+    webp) to=$(place "$f" "" webp); magick "${f}[0]" -auto-orient -strip -quality 85 -define webp:method=6 "$to" ;;
+    png)  to=$(place "$f" "" png);  magick "${f}[0]" -auto-orient -strip -define png:compression-level=9 "$to" ;;
+    *)    to=$(place "$f" "$act" jpg)
+          # (a picture larger than the screen it will be seen on is scaled down first; then
+          # ImageMagick finds the best JPEG quality that stays under the size)
+          scale=(); ((edge)) && scale=(-resize "${edge}x${edge}>")
+          magick "${f}[0]" -auto-orient -strip "${scale[@]}" -sampling-factor 4:2:0 -define "jpeg:extent=$((target / 1000))kb" "$to"
+          # still too big at the lowest quality (a huge picture and a tiny size): smaller, until it fits
+          while ((target)) && [[ -s $to ]] && (($(stat -c %s -- "$to") > target)); do
+            magick "$to" -resize 80% -define "jpeg:extent=$((target / 1000))kb" "$to.tmp.jpg" && mv -f "$to.tmp.jpg" "$to" || break
+          done ;;
+  esac
+  if [[ -s ${to:-} ]]; then out+=("$to"); before=$((before + $(stat -c %s -- "$f"))); after=$((after + $(stat -c %s -- "$to")))
+  else failed=$((failed + 1)); rm -f "${to:-}"; fi
+done
+for f in "${pdfs[@]}"; do
+  [[ $act == pdf-* ]] || continue
+  setting=${act#pdf-}
+  case $setting in ebook) label=email ;; screen) label=smallest ;; printer) label=print ;; esac
+  to=$(place "$f" "$label" pdf)
+  gs -q -dNOPAUSE -dBATCH -dSAFER -sDEVICE=pdfwrite -dCompatibilityLevel=1.6 "-dPDFSETTINGS=/$setting" \
+     -dDetectDuplicateImages=true -sOutputFile="$to" -- "$f" >/dev/null 2>&1
+  if [[ ! -s $to ]]; then failed=$((failed + 1)); rm -f "$to"; continue; fi
+  if (($(stat -c %s -- "$to") >= $(stat -c %s -- "$f"))); then   # (no smaller: the original it is)
+    rm -f "$to"; to=$f
+  fi
+  out+=("$to"); before=$((before + $(stat -c %s -- "$f"))); after=$((after + $(stat -c %s -- "$to")))
+done
+((${#out[@]})) || { say "it did not work" "the file may be damaged — $failed could not be read"; exit 1; }
+
+# ── onto the clipboard ──────────────────────────────────────────────────────────────────
+if ((${#out[@]} == 1)) && [[ $(kind "${out[0]}") == image/* ]]; then
+  wl-copy --type "$(kind "${out[0]}")" <"${out[0]}"
+else
+  kawa-clipfiles copy --quiet "${out[@]}"
+fi
+body="${out[0]##*/}$( ((${#out[@]} > 1)) && echo " and $((${#out[@]} - 1)) more") · on the clipboard (Ctrl+V)"
+((failed)) && body+=" · $failed could not be read"
+say "$(human "$before") → $(human "$after")" "$body"

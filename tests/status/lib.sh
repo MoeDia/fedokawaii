@@ -60,6 +60,9 @@ fits() {
   over=$(paste <(printf '%s\n' "$w") <(printf '%s\n' "$1") | awk -F'\t' -v n="$2" '$1 == "bad" || $1 + 0 > n + 0.001')
   [[ -z $over ]] && _ok || _no "${3:-wider than $2 columns}: $over"
 }
+# rows_fit TEXT W [MSG] — every line of TEXT shows whole in a menu W columns wide: fuzzel draws
+# a row up to W × 6 − 10 px (the rest is kept for its "…"; kawa-menu --help)
+rows_fit() { fits "$1" "$(awk -v w="$2" 'BEGIN { printf "%.4f", (w * 6 - 10) / 6 }')" "${3:-}"; }
 # text_of JSON — the "text" of a waybar line, decoded
 text_of() { python3 -I -c 'import json,sys; print(json.loads(sys.argv[1]).get("text",""))' "$1"; }
 # waitfor SECONDS CMD… — poll until CMD succeeds (0.05 s steps); fails when time runs out

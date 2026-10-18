@@ -5,7 +5,17 @@
 prepend_keymap = [
 	{ on = "<Enter>",    run = "plugin smart-enter",     desc = "Into the folder, or open the file(s)" },
 	{ on = "M",          run = "plugin drives",          desc = "Drives: open or eject one" },
-	{ on = [ "g", "m" ], run = "plugin drives -- media", desc = "Go to the open drives" },
-	# Syncplay in a terminal window of its own (kawa-together asks for the room)
+	{ on = [ "g", "d" ], run = "cd ~/Drives",           desc = "Go to your drives (~/Drives: one per open drive)" },
+	# files on the clipboard, as in Windows: for another folder here, or any app that takes
+	# files (a chat, a mail, an upload); Ctrl+V also saves a picture on the clipboard as a
+	# file (kawa-clipfiles). yazi's own y / x / p work inside yazi as ever
+	{ on = "<C-c>",      run = "shell -- kawa-clipfiles copy %s",  desc = "Copy the file(s) to the clipboard" },
+	{ on = "<C-x>",      run = "shell -- kawa-clipfiles cut %s",   desc = "Cut the file(s) to the clipboard" },
+	{ on = "<C-v>",      run = "shell -- kawa-clipfiles paste .",  desc = "Paste files (or a picture) from the clipboard here" },
+	# Syncplay in a terminal window of its own (kawa-together: server, room and name first)
 	{ on = "W",          run = "shell --orphan -- kawa-term kawa-together %h", desc = "Watch it together (Syncplay)" },
+	{ on = "<A-Enter>",  run = "shell --orphan -- kawa-play --new -- %s", desc = "Play in a new mpv window (Enter: in the one open)" },
+	# pictures and PDFs made small enough to send, or turned into JPEG, WebP or PNG (as
+	# Super+Z does with what you copied): the result beside each, and on the clipboard
+	{ on = "<A-s>",      run = "shell --orphan -- kawa-shrink %s", desc = "Shrink or convert the picture(s) or PDF(s)" },
 ]

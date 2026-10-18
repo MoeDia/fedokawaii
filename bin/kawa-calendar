@@ -11,11 +11,13 @@ esac
 # shellcheck source=/dev/null
 . "$HOME/.config/fedokawaii/icons.sh"
 export LC_TIME=C                        # English month names whatever the system locale
-# 30 columns, every row one space in: the grid's digits (26 columns) sit centred with two
-# columns either side, and today in brackets on a Sunday ends in column 29 — fuzzel keeps the
-# last for its "…" (at 28, "[18]" on a Sunday showed as "[18…")
-WIDTH=30
-prev=" $ICON_CHEVRON_LEFT  previous" next=" $ICON_CHEVRON_RIGHT  next" back=" $ICON_CALENDAR  back to today"
+# 32 columns, every row two spaces in: the grid's digits (26 columns) sit centred with three
+# columns either side, and today in brackets on a Sunday ends in column 30 — 180 px, within
+# the 182 fuzzel draws whole at this width (kawa-menu --help; at 30, "[18]" on a Sunday
+# would show as "[18…")
+WIDTH=32
+# (paging under the grid, apart from it by an empty row, each icon over the grid's first letter)
+prev="   $ICON_CHEVRON_LEFT  previous" next="   $ICON_CHEVRON_RIGHT  next" back="   $ICON_CALENDAR  back to today"
 off=0                                   # months away from the current one
 while :; do
   # today read once: at midnight a second reading could be the next day (the 1st marked
@@ -28,29 +30,30 @@ while :; do
   days=$(date -d "$first +1 month -1 day" +%d)
   today=""; [[ ${now%-*} == "$year-$month" ]] && today=$((10#${now##*-}))
 
-  rows=("  Mo  Tu  We  Th  Fr  Sa  Su") line=" " col=0 pick=0
+  rows=("" "   Mo  Tu  We  Th  Fr  Sa  Su") line="  " col=0 pick=1   # (an empty row under the month, as under every menu's title)
   for ((i = 1; i < lead; i++)); do line+="    "; col=$((col + 1)); done
   for ((d = 1; d <= 10#$days; d++)); do
     if [[ $d == "$today" ]]; then printf -v cell '[%2d]' "$d"; pick=${#rows[@]}
     else printf -v cell ' %2d ' "$d"; fi
     line+=$cell
     col=$((col + 1))
-    if ((col == 7)); then rows+=("${line% }"); line=" " col=0; fi
+    if ((col == 7)); then rows+=("${line% }"); line="  " col=0; fi
   done
   [[ -n ${line// /} ]] && rows+=("${line% }")
-  rows+=("$prev" "$next")
-  title="$mname $year"; printf -v title '%*s%s' $(( (WIDTH - ${#title}) / 2 )) '' "$title"   # centred over the grid's ink (columns 2–27)
+  rows+=("" "$prev" "$next")
+  title="$mname $year"; printf -v title '%*s%s' $(( (WIDTH - ${#title}) / 2 )) '' "$title"   # centred over the grid's ink (columns 3–28)
   ((off != 0)) && rows+=("$back")
   # paging on: the choice stays on "previous" / "next", so Enter pages again
   for ((i = 1; i < ${#rows[@]}; i++)); do [[ -n ${again:-} && ${rows[i]} == "$again" ]] && pick=$i; done
 
-  i=$(printf '%s\n' "${rows[@]}" | kawa-menu --drop --index --width "$WIDTH" --lines 10 \
+  i=$(printf '%s\n' "${rows[@]}" | kawa-menu --drop --index --width "$WIDTH" --lines 12 \
         --select "$pick" --title "$title") || exit 0
   again=${rows[i]}
   case $again in
     "$prev") off=$((off - 1)) ;;
     "$next") off=$((off + 1)) ;;
     "$back") off=0 again="" ;;               # (today, selected as on opening)
+    "")      ;;                              # (the gap: the month again)
     *)       exit 0 ;;
   esac
 done

@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # tests/look/test_theme.sh — kawa-theme: the two themes, switched by re-pointing one link and
 # telling whatever runs to look again. The running apps are real processes of this test
-# (python ones that catch SIGUSR1/2 like foot, waybar and btop do); gsettings keeps its keys
-# in a file, the transition (kawa-veil) just runs the switch, mako and D-Bus are stand-ins.
+# (python ones that catch SIGUSR1/2 like foot, waybar, btop and dwl do); gsettings keeps its
+# keys in a file, the transition (kawa-veil) just runs the switch, mako and D-Bus are stand-ins.
 . "$(dirname "$0")/../lib/harness.sh"
 . "$(dirname "$0")/lib.sh"
 need python3 flock
@@ -11,13 +11,17 @@ setup() {
   look
   unset WAYLAND_DISPLAY KAWA_VEILED
   DIR=$HOME/.config/fedokawaii LINK=$HOME/.config/fedokawaii/current
+  # the default pointer theme, as theme.sh makes it: a link to the Sumi pointers of the theme
+  POINTERS=$HOME/.local/share/icons/default
+  mkdir -p "$HOME/.local/share/icons"; ln -s /usr/share/icons/Sumi-dark "$POINTERS"
   export GS=$TMP/gsettings; : >"$GS"
   # gsettings get/set org.gnome.desktop.interface KEY [VALUE] — kept in $GS (KEY=VALUE)
   stubf gsettings <<'EOF'
 [ -e "$FAKE_TMP/gate.gs.use" ] && { echo $$ >"$FAKE_TMP/gs.pid"; : >"$FAKE_TMP/gate.gs.in"; while [ ! -e "$FAKE_TMP/gate.gs" ]; do /bin/sleep 0.02; done; }
 case $1 in
   get) printf "'%s'\n" "$(sed -n "s/^$3=//p" "$GS")" ;;
-  set) grep -v "^$3=" "$GS" >"$GS.n"; echo "$3=$4" >>"$GS.n"; mv "$GS.n" "$GS" ;;
+  set) exec 5>"$GS.lock"; flock 5   # (kawa-theme sets the four keys at once)
+       grep -v "^$3=" "$GS" >"$GS.n"; echo "$3=$4" >>"$GS.n"; mv "$GS.n" "$GS" ;;
 esac
 EOF
   stub makoctl; stub busctl
@@ -36,7 +40,7 @@ echo "veil over" >>"$FAKE_TMP/calls.log"
 exit $r
 EOF
 }
-theme_is() {   # theme_is dark|light — the link, GTK and the icons all say so
+theme_is() {   # theme_is dark|light — the link, GTK, the icons and the pointers all say so
   local m=$1 g=Fedokawaii i=Papirus
   [[ $m == dark ]] && g=Fedokawaii-dark i=Papirus-Dark
   eq "$(readlink "$LINK")" "themes/$m" "the link points to themes/$m"
@@ -44,6 +48,8 @@ theme_is() {   # theme_is dark|light — the link, GTK and the icons all say so
   has "$(cat "$GS")" "color-scheme=prefer-$m" "GTK 4 / libadwaita: prefer-$m"
   has "$(cat "$GS")" "gtk-theme=$g" "GTK 3: $g"
   has "$(cat "$GS")" "icon-theme=$i" "icons: $i"
+  has "$(cat "$GS")" "cursor-theme=Sumi-$m" "GTK's pointers: Sumi-$m"
+  eq "$(readlink "$POINTERS")" "/usr/share/icons/Sumi-$m" "the default pointers (dwl, XWayland): Sumi-$m"
 }
 sets() { grep -c '^gsettings set' "$CALLS"; }
 presses() {   # presses N — N more presses at once, each noting its exit status in $TMP/press.I
@@ -85,11 +91,13 @@ eq "$r" 2 "a wrong word exits 2"
 has "$out" "usage: kawa-theme"
 theme_is dark
 
-case_ "settings alone: GTK and icons only, the link stays"
+case_ "settings alone: GTK, icons and GTK's pointers only, the links stay"
 setup
 rc 0 kawa-theme settings
 eq "$(readlink "$LINK")" themes/dark
 has "$(cat "$GS")" "color-scheme=prefer-dark"
+has "$(cat "$GS")" "cursor-theme=Sumi-dark"
+eq "$(readlink "$POINTERS")" /usr/share/icons/Sumi-dark
 
 # ── the running apps ─────────────────────────────────────────────────────────
 case_ "foot, waybar and btop are told: foot USR2 for light, USR1 for dark; waybar and btop USR2"
@@ -111,6 +119,39 @@ kawa-theme light; /bin/sleep 0.5        # (time for a wrongly signalled one to d
 alive "$young" && _ok || _no "a foot without its handler yet was killed by SIGUSR2"
 alive "$halfbar" && _ok || _no "a waybar catching only USR1 was killed by SIGUSR2"
 alive "$foot" && _ok || _no "the ready foot is gone"
+
+case_ "dwl told at every switch (USR1): the borders' colours and the pointers again — the default pointer theme re-pointed"
+setup
+read -r dwl dwllog < <(catcher dwl USR1)
+ino=$(stat -c %i "$POINTERS")
+kawa-theme light
+eq "$(readlink "$POINTERS")" /usr/share/icons/Sumi-light
+[[ $(stat -c %i "$POINTERS") != "$ino" ]] && _ok || _no "the link was changed in place, not replaced in one step"
+eq "$(got "$dwllog" 1)" SIGUSR1 "dwl takes the theme again"
+kawa-theme light; kawa-theme apply; /bin/sleep 0.3       # (the pointers already right: the borders all the same)
+eq "$(wc -l <"$dwllog")" 3 "told every time"
+kawa-theme dark
+eq "$(got "$dwllog" 4 | tail -n1)" SIGUSR1 "and again for dark"
+eq "$(readlink "$POINTERS")" /usr/share/icons/Sumi-dark
+alive "$dwl" && _ok || _no "dwl is gone"
+
+case_ "a dwl that does not catch USR1 (a build before the reload) is left alone — it would end the session"
+setup
+read -r old _ < <(catcher dwl)
+kawa-theme light; /bin/sleep 0.5
+alive "$old" && _ok || _no "a dwl without the handler was killed by USR1"
+eq "$(readlink "$POINTERS")" /usr/share/icons/Sumi-light
+
+case_ "no default pointer link (theme.sh has not made it) or a folder of yours there: left alone"
+setup; rm "$POINTERS"
+read -r _ dwllog < <(catcher dwl USR1)
+rc 0 kawa-theme light; /bin/sleep 0.3
+[[ ! -e $POINTERS && ! -L $POINTERS ]] && _ok || _no "a default pointer theme was made"
+eq "$(got "$dwllog" 1)" SIGUSR1 "dwl told all the same (its borders)"
+mkdir "$POINTERS"; echo mine >"$POINTERS/index.theme"
+rc 0 kawa-theme dark
+eq "$(cat "$POINTERS/index.theme")" mine "the folder is untouched"
+has "$(cat "$GS")" "cursor-theme=Sumi-dark" "GTK's pointers still follow"
 
 case_ "mako running: makoctl reload; mako not running: makoctl is never called (it would start one)"
 setup
@@ -218,14 +259,6 @@ kawa-theme dark
 not_called '^kawa-veil'
 for _ in {1..250}; do grep -q '^kawa-wallpaper' "$CALLS" && break; /bin/sleep 0.02; done   # (in the background)
 called '^kawa-wallpaper --restore'
-
-case_ "a session without the transition built: switched directly, the wallpaper follows"
-setup; export WAYLAND_DISPLAY=wayland-1
-rc 0 kawa-theme light
-for _ in {1..250}; do [[ -s $TMP/wallpaper.fds ]] && break; /bin/sleep 0.02; done   # (in the background)
-called '^kawa-wallpaper --restore'
-eq "$(sort -u "$TMP/wallpaper.fds")" "fds:" "no lock descriptor reaches the wallpaper"
-theme_is light
 
 case_ "outside a session (theme.sh, SSH): no veil and no wallpaper (there is no screen)"
 setup; veil

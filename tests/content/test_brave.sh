@@ -2,14 +2,14 @@
 # tests/content/test_brave.sh — brave-origin, the launcher in ~/.local/bin that Super+B, links
 # and a shell all go through: Brave started with the PulseAudio loopback for screen sharing
 # (the "Also share system audio" switch) and its password store pinned to the basic one, a
-# feature list of your own joined to it, every other argument passed on as it is; Brave missing. Brave is a stand-in at each place the
-# package may put it, under a made-up root (the launcher is run as a copy looking there).
+# feature list of your own joined to it, every other argument passed on as it is; Brave missing. Brave is a stand-in at the
+# package's one launcher, under a made-up root (the launcher is run as a copy looking there).
 . "$(dirname "$0")/lib.sh"
 
 setup() {   # setup — a sandbox, nothing installed yet under $R
   sandbox
-  R=$TMP/root; mkdir -p "$R/usr/bin" "$R/opt/brave.com/brave-origin"
-  sed -e "2,\$ s#/usr/bin/#$R/usr/bin/#g" -e "2,\$ s#/opt/#$R/opt/#g" "$REPO/bin/brave-origin" >"$TMP/brave-origin"   # (not the #! line)
+  R=$TMP/root; mkdir -p "$R/usr/bin"
+  sed -e "2,\$ s#/usr/bin/#$R/usr/bin/#g" "$REPO/bin/brave-origin" >"$TMP/brave-origin"   # (not the #! line)
   chmod +x "$TMP/brave-origin"
   export ARGS=$TMP/args
 }
@@ -23,7 +23,7 @@ FEAT=--enable-features=PulseaudioLoopbackForScreenShare PS=--password-store=basi
 
 case_ "the copy looks only under the made-up root"
 setup
-eq "$(grep -c "$R" "$TMP/brave-origin")" "$(tail -n +2 "$REPO/bin/brave-origin" | grep -cE '/usr/bin/|/opt/')"
+eq "$(grep -c "$R" "$TMP/brave-origin")" "$(tail -n +2 "$REPO/bin/brave-origin" | grep -c '/usr/bin/')"
 
 case_ "not installed: says so and how to get it, status 127, nothing started"
 setup
@@ -46,14 +46,8 @@ case_ "a password store of your own comes after the pinned one (Chromium keeps a
 B --password-store=gnome-libsecret; eq "$(got | tail -n +3)" "$PS
 --password-store=gnome-libsecret"
 
-case_ "where the package puts it: brave-origin-stable first, then /opt, then brave-origin"
-setup; install_at "$R/usr/bin/brave-origin"; install_at "$R/opt/brave.com/brave-origin/brave-origin"
-B; eq "$(got | head -n1)" "$R/opt/brave.com/brave-origin/brave-origin"
-install_at "$R/usr/bin/brave-origin-stable"; B; eq "$(got | head -n1)" "$R/usr/bin/brave-origin-stable"
-setup; install_at "$R/usr/bin/brave-origin"; B; eq "$(got | head -n1)" "$R/usr/bin/brave-origin"
-case_ "a file there that cannot run is passed over"
-setup; install_at "$R/usr/bin/brave-origin"; : >"$R/usr/bin/brave-origin-stable"
-B; eq "$(got | head -n1)" "$R/usr/bin/brave-origin"
+case_ "only its one launcher: a brave-origin beside it is not Brave Origin's"
+setup; install_at "$R/usr/bin/brave-origin"; rc 127 B; eq "$(got)" ""
 
 case_ "your own feature list is joined to it, once, whatever its place"
 setup; install_at "$R/usr/bin/brave-origin-stable"

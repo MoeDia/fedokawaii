@@ -59,11 +59,17 @@ copy_made() { mkdir -p "${COPY%/*}"; cp -r "$TK" "$COPY"; mkdir -p "$COPY/.git";
 title() { fz_arg mesg "${1:-}"; }
 
 # ── the menu, and the copy's state in its title ──────────────────────────────────────
-case_ "no working copy yet: every part, 50 wide, the title says it is made on first use"
+case_ "no working copy yet: every part in five, each headed, 51 wide, the title says it is made on first use"
 setup; answer esc; rc 0 config_
-eq "$(fz_rows | sed 's/^.  //; s/  .*//; s/ *$//' | tr '\n' ',')" "keys,bar,bar look,colours,terminal,shell,launcher,notifications,files,drives,autostart,icons,packages,settings,yours alone,what changed,history,apply,learn,"
+eq "$(fz_rows | grep -v -e '–$' -e '^$' | sed 's/^.  //; s/  .*//; s/ *$//' | tr '\n' ',')" "colours,bar,bar look,icons,notifications,launcher,keys,terminal,shell,files,drives,autostart,settings,packages,yours alone,what changed,history,apply,learn,"
+eq "$(fz_rows | grep '–$' | sed 's/ –*$//; s/^.*  //' | tr '\n' ',')" "look,use,system,history,help," "the headings, as Super+U's: a kanji, the name, a rule"
+eq "$(fz_rows | grep -c '–$')" 5; eq "$(fz_rows | grep -c '^$')" 5 "an empty row above every heading (the first's: under the title, as Super+U's)"
+eq "$(fz_arg select-index)" 2 "the cursor on the first entry, not its heading"
 eq "$(title)" "change · ~/repos/fedokawaii · made on first use"
-eq "$(fz_arg width)" 50; eq "$(fz_arg lines)" 19; fits
+eq "$(fz_arg width)" 51; eq "$(fz_arg lines)" 29; fits
+case_ "a heading chosen: the menu again, on that part's first entry"
+setup; answer "pick use –" esc; rc 0 config_
+eq "$(fz_n)" 2; eq "$(fz_arg select-index 2)" 10
 not_called '^fedokawaii copy' "nothing made by just looking"
 case_ "a copy the same as the toolkit: nothing to apply"
 setup; copy_made; answer esc; config_; eq "$(title)" "change · ~/repos/fedokawaii"
@@ -151,7 +157,7 @@ eq "$(fz_n)" 1
 case_ "what changed (no copy yet: made first), apply, history (lazygit in the copy)"
 setup; answer "pick what changed"; config_; called '^fedokawaii copy'; called '^kawa-float --once diff what changed 120x41 '
 setup; copy_made; answer "pick apply"; config_; called '^kawa-float --once apply apply 100x33 '
-setup; copy_made; answer "pick history"; config_; called "^footclient -N -D $COPY -- lazygit$"
+setup; copy_made; answer "pick history  "; config_; called "^footclient -N -D $COPY -- lazygit$"
 case_ "yours alone: each file made the first time with a word of what it is for, then opened"
 for p in "shell additions:.bashrc.d/local.sh:Fedora's ~/.bashrc reads every" "autostart:.config/dwl/autostart.local.sh:run at every login" \
          "neovim plugins:.config/nvim/lua/plugins/local.lua:LazyVim reads every file"; do

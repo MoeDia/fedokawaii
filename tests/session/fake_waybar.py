@@ -11,7 +11,6 @@ SIGRTMAX asks for a "flush" line: it is queued after every poke already sent, so
 The first line, "ready", says the handlers are in place.
 """
 import ctypes
-import os
 import signal
 import sys
 import time

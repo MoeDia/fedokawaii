@@ -42,18 +42,18 @@ done
 case_ "the value is always the same width: '  5%', ' 70%', '100%', ' off'"
 setup
 for p in 5 70 100; do kawa-osd "$ICON_SUN" brightness "$p"; done; kawa-osd "$ICON_SUN" brightness 5 off
-v=$(sed -n 's/^NOTICE .*DepartureMono Nerd Font 22px.> \(.*\)<\/span>$/\1/p' "$NOTIFY_STATE/log" \
+v=$(sed -n 's/^NOTICE .*Fusion Pixel 12px Mono ja 24px.> \(.*\)<\/span>$/\1/p' "$NOTIFY_STATE/log" \
     | sed -e 's/<[^>]*>//g')
 eq "$(printf '%s\n' "$v" | awk '{ print length($0) }' | sort -u)" 4 "every value 4 characters: [$(tr '\n' '|' <<<"$v")]"
 
-case_ "the theme's colours (light), else the dark ones when no theme is set up yet"
+case_ "the theme's colours (light); no theme set up: no panel in made-up colours, a failure"
 setup; ln -sfn themes/light "$HOME/.config/fedokawaii/current"
 . "$HOME/.config/fedokawaii/themes/light/colors.sh"
 kawa-osd "$ICON_SUN" brightness 50
 has "$(tail -n1 "$NOTIFY_STATE/log")" "color='#$C_TEAL'"
-rm "$HOME/.config/fedokawaii/current"
-kawa-osd "$ICON_SUN" brightness 50
-has "$(tail -n1 "$NOTIFY_STATE/log")" "color='#7fb8b0'" "the dark teal without a theme"
+rm "$HOME/.config/fedokawaii/current"; n=$(wc -l <"$NOTIFY_STATE/log")
+kawa-osd "$ICON_SUN" brightness 50 2>/dev/null && _no "exit 0 without a theme" || _ok
+eq "$(wc -l <"$NOTIFY_STATE/log")" "$n" "nothing shown"
 
 # ── one panel, updated in place ──────────────────────────────────────────────
 case_ "a held key (20 presses): one panel, replaced in place — never a second one"

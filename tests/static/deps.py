@@ -38,13 +38,15 @@ def shell_files(repo):
                 out.append(f)
     out += [repo / "configs/home/.config/dwl/autostart.sh"]
     out += sorted((repo / "configs/home/.bashrc.d").glob("*.sh"))
+    out += [repo / "configs/home/.config/blesh/init.sh"]      # (ble.sh's settings: the shell too)
     return out
 
 
 def helper_funcs(repo):
-    """functions the scripts source from elsewhere (icons.sh's levelbar, lib/common.sh's …)."""
+    """functions the scripts source from elsewhere (width.sh's cols and heading, files.sh's free_name, lib/common.sh's …)."""
     names = set()
-    for f in [repo / "configs/home/.config/fedokawaii/icons.sh", *sorted((repo / "lib").glob("*.sh"))]:
+    for f in [repo / "configs/home/.config/fedokawaii/icons.sh", repo / "configs/home/.config/fedokawaii/width.sh", repo / "configs/home/.config/fedokawaii/files.sh",
+              *sorted((repo / "lib").glob("*.sh"))]:
         names |= shcmds.funcs_of(f.read_text())
     return names
 

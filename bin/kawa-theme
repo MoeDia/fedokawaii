@@ -9,7 +9,7 @@
 #
 # Every app reads its colours through one link, ~/.config/fedokawaii/current →
 # themes/dark or themes/light (fuzzel and foot by include, waybar and GTK by @import,
-# swaylock by -C, btop/qt6ct by path, mpv by include, imv/presenterm/qt6ct/wiremix through links).
+# gtklock by -s, btop/qt6ct by path, mpv by include, imv/qt6ct/wiremix through links).
 # Switching re-points that link, then tells whatever is running to look again:
 #   foot (every window)  SIGUSR1/SIGUSR2 to the server — neovim inside follows by itself
 #   waybar               SIGUSR2 (reload)        mako      makoctl reload
@@ -20,7 +20,15 @@
 #   Qt (qt6ct)           its config link is replaced, which qt6ct watches (≈3 s)
 #   mpv (every player)   load-config-file over its socket (scripts/kawa-ipc.lua; Syncplay's own)
 #   wallpaper            each theme remembers its own picture (kawa-wallpaper)
-# GTK 3 apps follow at once too (their theme is a named one); dwl's borders suit both themes.
+#   dwl                  SIGUSR1 (src/dwl/dwl.patch): the window borders take the theme's
+#                        colours (current/dwl.colors), and the pointers their theme —
+#   pointers             ~/.local/share/icons/default → /usr/share/icons/Sumi-dark or -light,
+#                        loaded again by dwl, and every window under the pointer asks anew — Wayland programs that ask dwl for a pointer by
+#                        name (GTK 4, foot, Qt, Brave) change at once; GTK 3 by gsettings
+#                        cursor-theme; programs drawing their own from XCURSOR_THEME
+#                        (XWayland ones, some games) take the new one when next started
+#   the login screen     /var/lib/fedokawaii-greeter/theme (yours; kawa-greet reads it)
+# GTK 3 apps follow at once too (their theme is a named one).
 #
 # A switch you make is drawn as a transition (kawa-veil): the screen holds still while
 # everything changes underneath, then the new theme arrives as a row of seigaiha wave
@@ -31,6 +39,7 @@
 set -u
 DIR=$HOME/.config/fedokawaii
 LINK=$DIR/current
+POINTERS=$HOME/.local/share/icons/default
 
 get() {
   local t
@@ -52,21 +61,32 @@ relink() {   # relink TARGET LINK — replace a link in one step (rename), so re
   rm -f "$tmp"; return 1
 }
 
-settings() {   # settings MODE — GTK 3 theme, GTK 4/libadwaita/portal colour scheme, icons
-  local m=$1 gtk=Fedokawaii icons=Papirus k v     # (the GTK 3 themes: adw-gtk3 + the palette)
+settings() {   # settings MODE — GTK 3 theme, GTK 4/libadwaita/portal colour scheme, icons, pointers
+  local m=$1 gtk=Fedokawaii icons=Papirus kv pids=() pid ok=0   # (the GTK 3 themes: adw-gtk3 + the palette)
   [[ $m == dark ]] && gtk=Fedokawaii-dark icons=Papirus-Dark
   command -v gsettings >/dev/null || return 1
-  for kv in "color-scheme=prefer-$m" "gtk-theme=$gtk" "icon-theme=$icons"; do
-    k=${kv%%=*} v=${kv#*=}
-    [[ $(gsettings get org.gnome.desktop.interface "$k" 2>/dev/null) == "'$v'" ]] && continue
-    gsettings set org.gnome.desktop.interface "$k" "$v" 2>/dev/null || return 1
+  # the four at once (each gsettings is a process of its own: one after the other they
+  # held a switch up); one already right is not written again (no app told to look again)
+  for kv in "color-scheme=prefer-$m" "gtk-theme=$gtk" "icon-theme=$icons" "cursor-theme=Sumi-$m"; do
+    { [[ $(gsettings get org.gnome.desktop.interface "${kv%%=*}" 2>/dev/null) == "'${kv#*=}'" ]] \
+        || gsettings set org.gnome.desktop.interface "${kv%%=*}" "${kv#*=}" 2>/dev/null; } & pids+=($!)
   done
+  for pid in "${pids[@]}"; do wait "$pid" || ok=1; done
+  return "$ok"
+}
+
+declare -A RUNNING=()
+scan() {   # RUNNING[NAME]="PID…" — the programs a switch tells, found with one pgrep (one for
+  local pid name   # each held a switch up: a dozen processes, one after the other)
+  RUNNING=()
+  while read -r pid name; do RUNNING[$name]+="$pid "; done \
+    < <(pgrep -lxu "$UID" 'foot|dwl|waybar|btop|mako|zathura')
 }
 
 signal() {   # signal USR1|USR2 NAME — only to processes that already catch it: until a
   local sig=$1 bit=9 pid k v   # program installs its handler, these signals terminate it
   [[ $sig == USR2 ]] && bit=11
-  for pid in $(pgrep -xu "$UID" "$2"); do
+  for pid in ${RUNNING[$2]:-}; do
     while read -r k v; do
       [[ $k == SigCgt: ]] || continue
       (( 16#$v >> bit & 1 )) && kill -s "$sig" "$pid"
@@ -81,13 +101,23 @@ apply() {
   # (not switched: no app is told, so none shows a theme the others do not)
   relink "themes/$m" "$LINK" || { echo "kawa-theme: could not switch $LINK (is ~/.config writable?)" >&2; exit 1; }
   [[ $m == light ]] && sig=USR2
+  scan
   signal "$sig" foot                                 # foot server: all windows + new ones
   settings "$m"
+  # the pointers: the default theme re-pointed (theme.sh made it a link); then dwl told to
+  # take the borders' colours and the pointers again (signal: only a dwl that catches it —
+  # an older build would end the session)
+  if [[ -L $POINTERS && $(readlink "$POINTERS") != "/usr/share/icons/Sumi-$m" ]]; then
+    relink "/usr/share/icons/Sumi-$m" "$POINTERS"
+  fi
+  signal USR1 dwl
+  # the login screen (kawa-greet) wears the theme you last had (setup made the folder yours)
+  [[ -w /var/lib/fedokawaii-greeter ]] && printf '%s\n' "$m" >/var/lib/fedokawaii-greeter/theme
   signal USR2 waybar
-  pgrep -xu "$UID" mako >/dev/null && makoctl reload 2>/dev/null   # (makoctl would start one)
+  [[ -n ${RUNNING[mako]:-} ]] && makoctl reload 2>/dev/null   # (makoctl would start one)
   signal USR2 btop
   [[ -L $HOME/.config/qt6ct/qt6ct.conf ]] && relink ../fedokawaii/current/qt6ct.conf "$HOME/.config/qt6ct/qt6ct.conf"
-  for pid in $(pgrep -xu "$UID" zathura); do
+  for pid in ${RUNNING[zathura]:-}; do
     busctl --user call "org.pwmt.zathura.PID-$pid" /org/pwmt/zathura org.pwmt.zathura SourceConfig >/dev/null 2>&1
   done
   # mpv: every open player loads the new colours (its controller restyles itself at once);
@@ -134,8 +164,7 @@ case ${1:-toggle} in
     [[ $want == toggle ]] && { [[ $now == dark ]] && want=light || want=dark; }
     usable "$want" || exit 1                       # (said at once, not after a transition)
     # a visible change in a session: run the switch under the veil (dawn or nightfall)
-    if [[ $want != "$now" && -z ${KAWA_VEILED:-} && -n ${WAYLAND_DISPLAY:-} ]] \
-       && command -v kawa-veil >/dev/null; then
+    if [[ $want != "$now" && -z ${KAWA_VEILED:-} && -n ${WAYLAND_DISPLAY:-} ]]; then
       style=--rise; [[ $want == dark ]] && style=--fall
       KAWA_VEILED=1 exec kawa-veil "$style" -- "$0" "$want"
     fi

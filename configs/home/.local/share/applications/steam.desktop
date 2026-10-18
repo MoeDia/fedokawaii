@@ -1,0 +1,14 @@
+[Desktop Entry]
+# Steam through kawa-steam (in place of Steam's own entry, which has the same name): its
+# window brought up when it already runs in the background, else started with a notice that
+# says so; steam:// links (a game's page, "install" buttons on the web) go the same way.
+# Installed only when STEAM=yes (theme.sh). No GPU hint (Steam's own entry has one): with the
+# processor's graphics left on, "the other GPU" would be that one, not the card the screen is on.
+Type=Application
+Name=Steam
+Comment=Games: the store and your library
+Icon=steam
+Exec=@HOME@/.local/bin/kawa-steam %U
+Terminal=false
+Categories=Game;
+MimeType=x-scheme-handler/steam;x-scheme-handler/steamlink;

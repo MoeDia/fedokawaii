@@ -8,19 +8,22 @@
 #   Esc       close, the clipboard exactly as it was
 #
 # The other forms are its own parts: --tui (inside the window), --list, --preview ID,
-# --copy ID, --delete ID, --wipe. Copies outlive the app they came from (kawa-clipkeep).
+# --copy ID, --delete ID, --wipe, and --store, which keeps each new copy: the session's
+# wl-paste --watch runs it (autostart.sh). Text and pictures are kept — the last 100 copies,
+# none bigger than 20 MiB. Copies outlive the app they came from (kawa-clipkeep).
 set -u
 RUN=${XDG_RUNTIME_DIR:-/tmp}                         # (a shell outside the session has none)
 # shellcheck source=/dev/null
-. "$HOME/.config/fedokawaii/icons.sh" 2>/dev/null
-C_GROUND=0f0e0c                                     # (the dark theme's, if none is set up)
+. "$HOME/.config/fedokawaii/icons.sh"
 # shellcheck source=/dev/null
-[[ -r $HOME/.config/fedokawaii/current/colors.sh ]] && . "$HOME/.config/fedokawaii/current/colors.sh"
+. "$HOME/.config/fedokawaii/current/colors.sh"
 # every list of the desktop looks alike: one options file (rules, colours, the chevron)
 export FZF_DEFAULT_OPTS_FILE=$HOME/.config/fedokawaii/fzf.opts; unset FZF_DEFAULT_OPTS
 # ImageMagick reads its format names ("info:") through the locale's letter case: in
 # Turkish an i is not an I, and it writes a file called "info:" instead of answering
 magick() { LC_ALL=C command magick "$@"; }
+KEEP=(-max-items 100)                                # cliphist: the newest 100 copies, the rest forgotten
+MAX_BYTES=$((20 << 20))                              # a bigger copy is not kept (a 20 MiB picture is ~5000×4000)
 
 entry() { printf '%s\t\n' "$1"; }            # cliphist's own line form: "ID<tab>…"
 
@@ -29,13 +32,13 @@ case ${1:-} in
     # (classes, not ranges: in Turkish, "i" is not within a-z)
     cliphist list 2>/dev/null | while IFS=$'\t' read -r id rest; do
       if [[ $rest =~ ^\[\[\ binary\ data\ ([0-9.]+\ [KMG]?i?B)\ ([[:alnum:]+.-]+)\ ([0-9]+)x([0-9]+)\ \]\]$ ]]; then
-        printf '%s\t%s %s picture  %s×%s  ·  %s\n' "$id" "${ICON_PICTURE:-▣}" "${BASH_REMATCH[2]}" \
+        printf '%s\t%s  %s picture  %s×%s  ·  %s\n' "$id" "$ICON_PICTURE" "${BASH_REMATCH[2]}" \
           "${BASH_REMATCH[3]}" "${BASH_REMATCH[4]}" "${BASH_REMATCH[1]}"
       elif [[ $rest =~ ^\[\[\ binary\ data\ (.*)\ \]\]$ ]]; then
-        printf '%s\t%s data  ·  %s\n' "$id" "${ICON_BOX_OFF:-□}" "${BASH_REMATCH[1]}"
+        printf '%s\t%s  data  ·  %s\n' "$id" "$ICON_BOX_OFF" "${BASH_REMATCH[1]}"
       elif [[ $rest == *�* ]]; then   # bytes that are not text (cliphist 0.7 shows them as �,
         # and the odd characters among them scramble the rows): named, the preview tells more
-        printf '%s\t%s data  ·  not text\n' "$id" "${ICON_BOX_OFF:-□}"
+        printf '%s\t%s  data  ·  not text\n' "$id" "$ICON_BOX_OFF"
       else      # an escape in a copy is shown as ^[ — fzf would act on it (other control
                 # characters fzf itself shows as ^G, ^H…)
         printf '%s\t%s\n' "$id" "${rest//$'\e'/^[}"
@@ -78,24 +81,51 @@ case ${1:-} in
             printf '\n'; exit 0
           fi
         fi
-        printf '  %s picture (%s)\n' "${ICON_PICTURE:-▣}" "${type#image/}" ;;
+        printf '  %s  picture (%s)\n' "$ICON_PICTURE" "${type#image/}" ;;
       text/*|inode/x-empty)
         # two columns in, like the list above (a wrapped line too: --preview-wrap-sign); an
         # escape as ^[ (an escape code would act on the preview: colour it, clear it), a CR
         # before a line's end left out (text from Windows)
         head -c 65536 "$tmp" | sed -e 's/\r$//' -e 's/\x1b/^[/g' -e 's/^/  /' ;;
-      *) printf '  %s %s, %s bytes\n' "${ICON_BOX_OFF:-□}" "$type" "$(stat -c %s "$tmp")" ;;
+      *) printf '  %s  %s, %s bytes\n' "$ICON_BOX_OFF" "$type" "$(stat -c %s "$tmp")" ;;
     esac
     exit 0 ;;
   --copy)       # back on the clipboard; wl-copy keeps serving it after this window closes
     [[ ${2:-} =~ ^[0-9]+$ ]] || exit 1
     # (the window closes as this runs: a notice is the only way to say so)
-    command -v wl-copy >/dev/null || { notify-send -a desktop "Clipboard" "wl-copy is missing — run update or repair" 2>/dev/null; exit 1; }
+    command -v wl-copy >/dev/null || { notify-send -a desktop "clipboard" "wl-copy is missing — fedokawaii repair puts it back" 2>/dev/null; exit 1; }
     tmp=$(mktemp "$RUN/kawa-clip.XXXXXX") || exit 1
     trap 'rm -f "$tmp"' EXIT
     entry "$2" | cliphist decode >"$tmp" 2>/dev/null && [[ -s $tmp ]] || exit 1
-    setsid -f wl-copy <"$tmp"                 # its own session: closing the window keeps it
+    # its own session: closing the window keeps it. A picture is offered as what it is
+    # (image/png…), so the program you paste into takes a picture; text as wl-copy finds it
+    type=$(file -b --mime-type "$tmp" 2>/dev/null)
+    if [[ $type == image/* ]]; then setsid -f wl-copy --type "$type" <"$tmp"
+    else setsid -f wl-copy <"$tmp"; fi
     exit 0 ;;
+  --store)      # a new copy into the history: wl-paste --watch runs this at every copy, with the
+                # copy on stdin as wl-paste chose it (text, when there is any) and how it went in
+                # CLIPBOARD_STATE — "data", or "sensitive" (a password manager's), "clear", "nil"
+    [[ ${CLIPBOARD_STATE:-} == data ]] || exec cliphist "${KEEP[@]}" store   # (cliphist's own way with those)
+    types=$(wl-paste --list-types 2>/dev/null)
+    # kawa-clipkeep offering a copy again once its program closed: stored when it was made
+    if grep -qxF application/x-kawa-clipkeep <<<"$types"; then cat >/dev/null; exit 0; fi
+    tmp=$(mktemp "$RUN/kawa-clip-store.XXXXXX") || exit 0
+    trap 'rm -f "$tmp"' EXIT
+    head -c $((MAX_BYTES + 1)) >"$tmp"; cat >/dev/null      # (all read: the copying program never waits)
+    # A picture is kept as the picture — PNG when it is offered as one — unless the copy is
+    # text that only comes with a picture of itself (cells from a spreadsheet). Text that is
+    # just the picture's address counts as none: Brave's "Copy image" offers the picture,
+    # its <img> tag and its link, and wl-paste hands over the link
+    pic=$(grep -m1 -x image/png <<<"$types" || grep -m1 '^image/' <<<"$types")
+    if [[ -n $pic ]] && { ! grep -qxE 'text/plain(;charset=utf-8)?|UTF8_STRING|STRING|TEXT' <<<"$types" \
+                          || { (($(grep -c '' "$tmp") <= 1)) \
+                               && grep -qE '^[[:space:]]*(https?|file|data|blob):[^[:space:]]+[[:space:]]*$' "$tmp"; }; }; then
+      wl-paste --no-newline --type "$pic" 2>/dev/null | head -c $((MAX_BYTES + 1)) >"$tmp"
+    fi
+    (($(stat -c %s "$tmp") <= MAX_BYTES)) || exit 0
+    cliphist "${KEEP[@]}" store <"$tmp"
+    exit ;;
   --delete)
     [[ ${2:-} =~ ^[0-9]+$ ]] && entry "$2" | cliphist delete
     exit 0 ;;
@@ -109,7 +139,7 @@ case ${1:-} in
   --tui) ;;
   -h|--help) sed -n '2,/^set -u/{/^set -u/d;s/^# \{0,1\}//;p}' "$0"; exit 0 ;;
   "")           # Super+V: the window, once (a second press while it is open does nothing)
-    exec kawa-float --once clipboard clipboard 76x25 -- "$0" --tui ;;
+    exec kawa-float --once clipboard clipboard 80x27 -- "$0" --tui ;;
   *) echo "usage: kawa-clip   (Super+V: the clipboard history)" >&2; exit 2 ;;
 esac
 
@@ -119,15 +149,15 @@ export KAWA_CELL
 # fzf kills a preview it no longer needs outright (SIGKILL): the copies such previews were
 # reading are in memory (the runtime folder) until cleared — here, as one window is open
 rm -f -- "$RUN"/kawa-clip.?????? 2>/dev/null
-# The panel's title sits in its top rule, like a heading in the menus ("─ ⛩ clipboard ──"),
-# its torii in the same column as the entries' text; under it the search line: the
+# The panel's title sits in its top rule, like a heading in the menus ("─ ICON clipboard ──"),
+# its icon (the clipboard's) in the same column as the entries' text; under it the search line: the
 # chevron, then what you type — in that column too — and how many entries match, right.
-title=" $(printf '\e[91m%s\e[0m' "${ICON_TORII:-⛩}") clipboard "
-if ! command -v cliphist >/dev/null; then title+=$'\e[90m· cliphist is missing — run update or repair\e[0m '
+title=" $(printf '\e[91m%s\e[0m' "$ICON_CLIPBOARD")  clipboard "
+if ! command -v cliphist >/dev/null; then title+=$'\e[90m· cliphist is missing — fedokawaii repair puts it back\e[0m '
 elif [[ -n $(cliphist list 2>/dev/null | head -c1) ]]; then title+=$'\e[90m· newest first\e[0m '
 else title+=$'\e[90m· nothing copied yet\e[0m '; fi
 self=$(printf '%q' "$0")
-exec fzf --ansi --no-sort --height=100% --margin=0,1 \
+exec fzf --ansi --no-sort --height=100% --margin=1,2 \
   --delimiter=$'\t' --with-nth=2.. --scheme=history --border-label="$title" \
   --preview="$self --preview {1}" --preview-window='down,9,wrap-word,border-top,noinfo' --preview-wrap-sign='  ' \
   --footer=$'\n''enter copy  ·  ctrl+d forget  ·  ctrl+x forget all  ·  esc close' \

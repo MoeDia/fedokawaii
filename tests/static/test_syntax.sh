@@ -22,8 +22,15 @@ cd "$REPO" || exit 1
 # ── shell ────────────────────────────────────────────────────────────────────────────────
 mapfile -t SH < <(python3 "$S/parsecheck.py" shell "$REPO")
 mapfile -t SOURCED < <(python3 "$S/parsecheck.py" sourced "$REPO")
+# (the Python programs — kawa-panel, kawa-greet — are compiled below instead)
+PY=(); for f in bin/* system/*; do [[ -f $f && $(head -n1 "$f") =~ ^#!.*python3$ ]] && PY+=("$f"); done
 case_ "the file list is whole: every script in bin/ and system/, the libraries, the session"
-eq "$(printf '%s\n' "${SH[@]}" | grep -c '^bin/')" "$(find bin -type f | wc -l)" "a script in bin/ is not seen as shell"
+eq "$(printf '%s\n' "${SH[@]}" | grep -c '^bin/')" "$(( $(find bin -type f | wc -l) - $(printf '%s\n' "${PY[@]}" | grep -c '^bin/') ))" "a script in bin/ is not seen as shell"
+case_ "the Python programs in bin/ and system/ compile (Python's own parser; nothing written)"
+((${#PY[@]} >= 2)) && _ok || _no "only ${#PY[@]} found: ${PY[*]}"
+for f in "${PY[@]}"; do
+  out=$(python3 -I -c 'import sys; compile(open(sys.argv[1], encoding="utf-8").read(), sys.argv[1], "exec")' "$f" 2>&1) && _ok || _no "$f: $out"
+done
 has "${SH[*]}" lib/common.sh; has "${SH[*]}" system/start-dwl; has "${SH[*]}" configs/home/.config/dwl/autostart.sh
 has "${SH[*]}" configs/home/.bashrc.d/fedokawaii.sh; has "${SH[*]}" setup.sh; has "${SH[*]}" system/kawa-torrra.profile.sh
 

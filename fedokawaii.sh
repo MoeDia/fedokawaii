@@ -173,6 +173,11 @@ item() {   # item KEY NAME WHAT [NOTE] — gold key, aligned columns, notes dimm
 }
 
 while :; do
+  # (setup removes the folder it was started from once it is done: this menu then hands over)
+  if [[ ! -f $REPO_DIR/setup.sh ]]; then
+    printf '\n  %sthis folder was removed at the end of setup — from now on: fedokawaii (or Super+U on the desktop)%s\n' "$C_GOLD" "$C_RESET"
+    cd / 2>/dev/null; exit 0
+  fi
   printf '\n  %s%sF E D O K A W A I I%s\n  %s%s%s\n\n' "$C_BOLD" "$C_GOLD" "$C_RESET" "$C_DIM" "$(state_line)" "$C_RESET"
   item 1 Check  "is this machine ready?"              "read-only"
   item 2 Setup  "install the software only"

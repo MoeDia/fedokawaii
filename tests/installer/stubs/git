@@ -1,13 +1,21 @@
 #!/bin/bash
 # git of the fake Fedora: clone makes a source folder (Syncplay's: fake_syncplay_source); tags
 # resolve to the pinned commits
-# ($FKH/tag-TAG overrides); $FKH/fail-git-fetch = N fails the fetch N times
+# ($FKH/tag-TAG overrides); $FKH/fail-git-fetch = N fails the fetch N times. A commit fetched
+# into a new repository whose origin is ble.sh's is checked out as fake_blesh_source;
+# $FKH/fail-git-submodule = N fails its submodule update N times
 . /usr/local/bin/_lib.sh
 fkh_log "$*"
 [[ -f $FKH/real-git ]] && exec /usr/bin/git "$@"
 dir=. ; [[ $1 == -C ]] && { dir=$2; shift 2; }
 while [[ $1 == -c ]]; do shift 2; done
 case $1 in
+  init)  d=${*: -1}; [[ $d == /* ]] && { mkdir -p "$d/.git"; echo "ref: refs/heads/main" >"$d/.git/HEAD"; }; exit 0 ;;
+  remote) [[ $2 == add ]] && printf '%s\n' "$4" >"$dir/.git/fk-origin"; exit 0 ;;
+  checkout) [[ $(cat "$dir/.git/fk-origin" 2>/dev/null) == */ble.sh.git ]] && fake_blesh_source "$dir"; exit 0 ;;
+  submodule) net_on || { echo "fatal: unable to access 'https://github.com/akinomyoga/blesh-contrib.git/'" >&2; exit 128; }
+         countdown git-submodule && { echo "fatal: unable to access: timed out" >&2; exit 128; }
+         mkdir -p "$dir/contrib"; exit 0 ;;
   clone) net_on || { echo "fatal: unable to access" >&2; exit 128; }
          countdown git-clone && { echo "fatal: unable to access: timed out" >&2; exit 128; }
          d=${*: -1}; mkdir -p "$d/.git"; echo "ref: refs/heads/main" >"$d/.git/HEAD"
@@ -38,9 +46,6 @@ case $1 in
            [[ " $* " == *" --check "* ]] || { mkdir -p "${f%/*}"; printf '# applied: %s\n' "${in%%$'\n'*}" >>"$f"; }
            exit 0
          fi
-         # applied for real: the lines verify looks for in dwl.c
-         [[ " $* " == *" --check "* ]] || printf '%s\n' 'layout = 0; /* keybindings always read' 'gap = (int)gappx' 'corners closed' \
-           'open centred on their monitor' 'kblayout %u' 'printclean(' >>"$dir/dwl.c"
          exit 0 ;;
 esac
 exit 0

@@ -7,13 +7,13 @@
 Outputs (all committed, so a normal install needs neither Python nor fontTools):
     configs/home/.local/share/fonts/SumiIcons.ttf       "Sumi Icons": bar, menus, notices
     configs/home/.local/share/fonts/SumiIconsTerm.ttf   "Sumi Icons Term": the same drawings
-        2 px higher, centred on the terminal font's capitals, and without their 2 px of air
-        on the left (foot draws each in a 9 px cell from its left edge, so the air would
-        only push the icon into the space after it: prompt, fetch, the pop-ups' titles)
+        without their 2 px of air on the left (foot draws each from the left edge of its
+        cell — Fusion Pixel's 6 px, 12 at the terminal's 2× — so the air would only push
+        the icon into the space after it: prompt, fetch, the pop-ups' titles)
     configs/home/.config/fedokawaii/icons.sh
 
-The font copies Departure Mono's grid: 550 units per em, 50 units per pixel, so at
-11 px (or 22, 33…) every pixel of the drawing lands on exactly one screen pixel.
+The font copies Fusion Pixel 12's grid: 1200 units per em, 100 units per pixel, so at
+12 px (or 24, 36…) every pixel of the drawing lands on exactly one screen pixel.
 Each run of '#' is merged into rectangles, so the outlines are few and gap-free.
 Needs: python3-fonttools (dnf install python3-fonttools).
 """
@@ -31,12 +31,12 @@ ROOT = pathlib.Path(__file__).resolve().parent.parent
 SRC = ROOT / "art" / "icons.txt"
 TTF = ROOT / "configs/home/.local/share/fonts/SumiIcons.ttf"
 TERM_TTF = ROOT / "configs/home/.local/share/fonts/SumiIconsTerm.ttf"
-TERM_RAISE = 2                    # pixels: Departure Mono's capitals are 8 px, JetBrains Mono's 11
+TERM_RAISE = 0                    # pixels: the terminal's font is Fusion Pixel too, same middle
 TERM_SHIFT = 2                    # pixels to the left: an icon's ink starts at its cell's edge
 SH = ROOT / "configs/home/.config/fedokawaii/icons.sh"
 
-UPM, PX = 550, 50                 # Departure Mono: 11 px em, 50 units per pixel
-ASC, DESC = 550, -150             # same line metrics, so mixing the fonts keeps the line
+UPM, PX = 1200, 100               # Fusion Pixel 12: 12 px em, 100 units per pixel
+ASC, DESC = 1000, -200            # same line metrics, so mixing the fonts keeps the line
 FIRST = 0xFE000                   # Supplementary Private Use Area A
 MIDDLE = 4                        # text middle in pixels above the baseline
 
@@ -77,10 +77,13 @@ def parse(text):
         if len(widths) != 1:
             sys.exit(f"icons.txt:{ic['line']}: {name} rows differ in width {sorted(widths)}")
         w, h = widths.pop(), len(rows)
-        if h % 2:
-            sys.exit(f"icons.txt:{ic['line']}: {name} is {h} rows; heights must be even")
-        if "x" not in ic and w % 2:
-            sys.exit(f"icons.txt:{ic['line']}: {name} is {w} wide; widths must be even")
+        # two kinds: even × even, centred on the Latin capitals (beside words); and seal-sized,
+        # 11 rows, odd × odd, centred exactly like Fusion Pixel's kanji (ink rows 1–11 of
+        # the line, columns 0–10) — the bar's buttons, which hold kanji and icons alike
+        if h % 2 and h != 11:
+            sys.exit(f"icons.txt:{ic['line']}: {name} is {h} rows; heights are even, or 11 (seal-sized)")
+        if "x" not in ic and (w % 2) != (h % 2):
+            sys.exit(f"icons.txt:{ic['line']}: {name} is {w} × {h}; even × even, or odd × 11")
         ic["w"], ic["h"] = w, h
         ic.setdefault("adv", w + 4)
         ic.setdefault("x", (ic["adv"] - w) // 2)
@@ -130,12 +133,12 @@ def build(icons, path=TTF, family="Sumi Icons", raise_px=0, shift=0):
     fb.setupGlyphOrder(names)
     fb.setupCharacterMap({0x20: "space", **{FIRST + i: names[i + 2] for i in range(len(icons))}})
     notdef = TTGlyphPen(None)                # a hollow box: outer clockwise, inner hole anticlockwise
-    notdef.moveTo((50, 0)); notdef.lineTo((50, 400)); notdef.lineTo((300, 400)); notdef.lineTo((300, 0))
+    notdef.moveTo((100, 0)); notdef.lineTo((100, 800)); notdef.lineTo((600, 800)); notdef.lineTo((600, 0))
     notdef.closePath()
-    notdef.moveTo((100, 50)); notdef.lineTo((250, 50)); notdef.lineTo((250, 350)); notdef.lineTo((100, 350))
+    notdef.moveTo((200, 100)); notdef.lineTo((500, 100)); notdef.lineTo((500, 700)); notdef.lineTo((200, 700))
     notdef.closePath()
     glyphs = {".notdef": notdef.glyph(), "space": TTGlyphPen(None).glyph()}
-    metrics = {".notdef": (350, 50), "space": (350, 0)}
+    metrics = {".notdef": (700, 100), "space": (600, 0)}
     for ic, name in zip(icons, names[2:]):
         glyphs[name] = glyph(ic, raise_px, shift)
         metrics[name] = (ic["adv"] * PX, ic["x"] * PX)
@@ -186,17 +189,6 @@ def write_sh(icons):
         esc = "".join(f"\\x{c:02x}" for c in b)
         var = "ICON_" + ic["name"].upper().replace("-", "_")
         out.append(f"{var}=$'{esc}'")
-    out += [
-        "",
-        "# levelbar VAR CELLS PERCENT — a framed level bar of CELLS cells: a solid fill up to",
-        "# PERCENT, the rest an empty track (the lv-* icons), stored in VAR without a fork",
-        "levelbar() {",
-        "  local i n s=$ICON_LV_L",
-        "  n=$(( (${3:-0} * $2 + 50) / 100 ))",
-        "  for ((i = 0; i < $2; i++)); do if ((i < n)); then s+=$ICON_LV_ON; else s+=$ICON_LV_OFF; fi; done",
-        "  printf -v \"$1\" '%s' \"$s$ICON_LV_R\"",
-        "}",
-    ]
     SH.parent.mkdir(parents=True, exist_ok=True)
     SH.write_text("\n".join(out) + "\n")
 

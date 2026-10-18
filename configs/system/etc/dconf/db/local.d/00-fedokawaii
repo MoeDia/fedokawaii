@@ -1,10 +1,10 @@
-# /etc/dconf/db/local.d/00-fedokawaii — system defaults read by GTK 3/4, libadwaita
-# and xdg-desktop-portal-gtk (→ Brave's dark mode). Compiled by `dconf update`.
+# /etc/dconf/db/local.d/00-fedokawaii — system defaults read by GTK 3/4, libadwaita,
+# xdg-desktop-portal-gtk (→ Brave's dark mode) and LibreOffice. Compiled by `dconf update`.
 [org/gnome/desktop/interface]
 color-scheme='prefer-dark'
 gtk-theme='Fedokawaii-dark'
 icon-theme='Papirus-Dark'
-cursor-theme='Fedokawaii'
+cursor-theme='Sumi-dark'
 cursor-size=24
 font-name='Noto Sans 10.5'
 document-font-name='Liberation Serif 11'
@@ -16,3 +16,16 @@ font-hinting='slight'
 # (GTK headers, Brave's tab strip) carry none: ':' is "nothing left, nothing right"
 [org/gnome/desktop/wm/preferences]
 button-layout=':'
+
+# LibreOffice reads its defaults from here too (under /org/libreoffice/registry/, after its
+# own and before yours: what you set in Tools → Options wins). Arabic: text in a right-to-left
+# script is "complex text" to it, and complex text with no language of its own is Hindi unless
+# the system's language is one of them — so Arabic typed into a new document was checked
+# against no dictionary. Here it is Arabic (UAE: hunspell-ar's ar_AE), and the complex-text
+# settings show (Format → Character: the Arabic font and language). Its look needs nothing
+# here: it follows the GTK theme kawa-theme switches, dark or light (libreoffice-gtk3)
+[org/libreoffice/registry/org.openoffice.Office.Linguistic/General]
+DefaultLocale_CTL='ar-AE'
+
+[org/libreoffice/registry/org.openoffice.Office.Common/I18N/CTL]
+CTLFont=true

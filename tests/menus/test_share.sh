@@ -83,12 +83,12 @@ case_ "a long title, Latin or Japanese or Arabic: cut to 40 columns with …, ev
 setup; answer esc
 share "$M1" "Window: $(printf 'a%.0s' {1..80}) ($ID)" "Window: 夜の音楽 — 坂本龍一 Ryuichi Sakamoto async 2017 (Live at Park Avenue Armory) ($ID)" \
       "Window: مرحبا بالعالم — مشغل الموسيقى ($ID)" "Window: 🎵 ♪ emoji title 🎶🎶🎶🎶🎶🎶🎶🎶🎶🎶🎶🎶🎶🎶🎶🎶🎶🎶🎶🎶 ($ID)" >/dev/null
-fits; eq "$(fz_rows | sed -n 2p | python3 -I "$MD/cols.py")" 44 "icon (2) + 2 + 40"
+fits; eq "$(fz_rows | sed -n 2p | python3 -I "$MD/cols.py" --px)" 266 "icon (14 px) + 2 + 40 columns (38 and …)"
 has "$(fz_rows | sed -n 3p)" "…"; has "$(fz_rows | sed -n 4p)" "مرحبا بالعالم"
-case_ "a title of exactly 40 columns stays whole; 41 is cut (to 39 and …)"
+case_ "a title of exactly 40 columns stays whole; 41 is cut (to 38 and …, two columns)"
 setup; answer esc; share "$M1" "Window: $(printf 'b%.0s' {1..40}) ($ID)" "Window: $(printf 'c%.0s' {1..41}) ($ID)" >/dev/null
 eq "$(fz_rows | sed -n 2p | sed 's/^.  //')" "$(printf 'b%.0s' {1..40})"
-eq "$(fz_rows | sed -n 3p | sed 's/^.  //')" "$(printf 'c%.0s' {1..39})…"
+eq "$(fz_rows | sed -n 3p | sed 's/^.  //')" "$(printf 'c%.0s' {1..38})…"
 case_ "control characters in a title (a tab, an escape): shown as spaces; the line comes back as it came"
 setup; answer "row 1"; t=$'Window: a\tb\e[31mred ('"$ID)"; out=$(share "$M1" "$t")
 eq "$out" "$t"; lacks "$(fz_rows)" $'\t'; lacks "$(fz_rows)" $'\e'
@@ -113,7 +113,7 @@ out=$(printf '%s\n' "$M1" "$long" | env "${unset_lc[@]}" LANG=C PATH="$STUBS:/us
 eq "$out" "$long"
 fz_rows | sed -n 2p | iconv -f UTF-8 -t UTF-8 >/dev/null 2>&1 && _ok || _no "the cut title is not valid UTF-8 (cut inside a character)"
 fits "" "C locale"
-eq "$(fz_rows | sed -n 2p | python3 -I "$MD/cols.py")" 44 "cut to 40 columns (a and 19 wide letters, then …), not to 39 bytes"
+eq "$(fz_rows | sed -n 2p | python3 -I "$MD/cols.py" --px)" 260 "cut by columns (a and 18 wide letters, then …: 14 + 12 + 234 px), not by bytes"
 
 case_ "--help: what it is, exit 0; anything else: exit 2, no menu"
 setup; has "$(kawa-share --help </dev/null)" "what to share"; rc 0 kawa-share --help </dev/null

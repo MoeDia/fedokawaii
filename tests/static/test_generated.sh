@@ -54,6 +54,26 @@ same
 
 # ── icons ────────────────────────────────────────────────────────────────────────────────
 ICONS=$REPO/configs/home/.config/fedokawaii/icons.sh
+case_ "PROJECT_TOP (lib/common.sh) names every entry at the repository's top level (setup's end tells the project's files from yours by it)"
+missing=$(cd "$REPO" && . lib/common.sh >/dev/null 2>&1; for e in * .[!.]*; do [[ -e $e && $e != .git ]] || continue; [[ " ${PROJECT_TOP[*]} " == *" $e "* ]] || printf '%s ' "$e"; done)
+eq "$missing" "" "top-level entries PROJECT_TOP lacks"
+case_ "build-width.py: width.sh is what art/fusion-wide.txt makes"
+python3 "$REPO/tools/build-width.py" --check && _ok || _no "width.sh is out of date: run tools/build-width.py"
+case_ "width.sh's cols counts as the font draws (tests/menus/cols.py, from the same list and the font's rules)"
+bad=""
+while IFS= read -r t; do
+  a=$(LC_ALL=C bash -c '. "$1"; cols "$2"' _ "$REPO/configs/home/.config/fedokawaii/width.sh" "$t")
+  b=$(printf '%s\n' "$t" | python3 -I "$REPO/tests/menus/cols.py")
+  [[ $a == "$b" ]] || bad+="[$t] $a≠$b · "
+done <<'EOF'
+plain ascii text
+── launch ──
+Super+1…9 → go
+Logitech® G Pro™ X — Wireless
+写真のバックアップ · Ørsted
+مرحبا بالعالم
+EOF
+eq "$bad" "" "cols and cols.py disagree"
 case_ "every \$ICON_… used anywhere is defined in icons.sh"
 mapfile -t used < <(cd "$REPO" && grep -rhoE '\bICON_[A-Z0-9_]*[A-Z0-9]\b' bin system lib configs src setup.sh theme.sh \
   verify.sh check.sh fedokawaii.sh --exclude=icons.sh | sort -u)
@@ -84,12 +104,12 @@ for f in sorted((repo / "configs").rglob("*")):
         cps = [ord(c) for c in ln if pua(ord(c))]                               # raw UTF-8
         cps += [0x10000 + ((int(a, 16) - 0xD800) << 10) + (int(b, 16) - 0xDC00)   # JSON's \uD8xx\uDCxx
                 for a, b in re.findall(r"\\u(D[89AB][0-9A-F]{2})\\u(D[C-F][0-9A-F]{2})", ln, re.I)]
-        for esc in re.findall(r'"((?:\\\d{1,3}){4})"', ln):                      # Lua's "\243\190\128\178"
+        for esc in re.findall(r'"((?:\\\d{1,3}){4})"', ln):                      # Lua's "\243\190\128\177"
             cps.append(ord(bytes(int(x) for x in esc.split("\\")[1:]).decode()))
         for cp in cps:
             if pua(cp) and cp not in by_cp:
                 bad.append(f"{rel}:{n}: U+{cp:X} is no icon of icons.sh")
-        # "Sumi Icons: drive (U+FE049)": that name, that character
+        # "Sumi Icons: drive (U+FE048)": that name, that character
         for name, cp in re.findall(r"Sumi Icons: ([\w -]+?) \(U\+([0-9A-F]+)\)", ln):
             key = "ICON_" + name.strip().upper().replace(" ", "_").replace("-", "_")
             if icons.get(key) != int(cp, 16):
@@ -106,9 +126,15 @@ c=json.loads(p.strip_jsonc(open(sys.argv[2]).read())); print(eval(sys.argv[3]))'
 # shellcheck source=/dev/null
 icon() { (. "$ICONS"; printf '%s' "${!1}"); }
 eq "$(bar 'c["custom/torii"]["format"]')" "$(icon ICON_TORII)" "the torii key"
-eq "$(bar 'c["custom/menu"]["format"]')" "$(icon ICON_CHEVRON)" "the quick-settings chevron"
-eq "$(bar 'c["wireplumber"]["format-muted"]')" "$(icon ICON_SPEAKER_OFF) ---" "muted: speaker-off"
-eq "$(bar '" ".join(c["wireplumber"]["format-icons"])')" "$(icon ICON_SPEAKER_LOW) $(icon ICON_SPEAKER)" "speaker-low, speaker"
+m=$(bar 'c["custom/menu"]["exec"]')
+has "$m" "\"text\":\"$(icon ICON_CAT)\"}" "the quick-settings cat"
+has "$m" "\"text\":\"$(icon ICON_CAT_HAPPY)\",\"class\":\"open\"" "the cat smiling while a dropdown is open"
+eq "$(bar 'c["wireplumber"]["format-muted"]')" "$(icon ICON_VOL_MUTE) <span fgalpha='55%'>off</span>" "muted: vol-mute, 'off' as the level display says"
+eq "$(bar '" ".join(sorted(set(c["wireplumber"]["format-icons"]), key=c["wireplumber"]["format-icons"].index))')" \
+   "$(icon ICON_VOL_0) $(icon ICON_VOL_1) $(icon ICON_VOL_2) $(icon ICON_VOL_3) $(icon ICON_VOL_4)" "vol-0 … vol-4"
+eq "$(bar 'len(c["wireplumber"]["format-icons"])')" 100 "one icon a per cent: waybar picks icon N for N %"
+eq "$(bar '" ".join(c["wireplumber"]["format-icons"][i] for i in (0, 1, 25, 26, 50, 51, 75, 76, 99))')" \
+   "$(for n in 0 1 1 2 2 3 3 4 4; do printf '%s ' "$(icon "ICON_VOL_$n")"; done | sed 's/ $//')" "0 % none; 1–25 one wave; … 76–100 four"
 
 # ── tokens ───────────────────────────────────────────────────────────────────────────────
 case_ "every @TOKEN@ in configs/home is one theme.sh's render() fills"

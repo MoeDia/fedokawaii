@@ -7,8 +7,9 @@ imv.desktop                                  imv                # f44 (also imv-
 mpv.desktop                                  mpv                # f44
 org.pwmt.zathura-pdf-mupdf.desktop           zathura-pdf-mupdf  # f44
 org.pwmt.zathura-cb.desktop                  zathura-cb         # f44
-com.abisource.AbiWord.desktop                abiword            # f44
-org.gnumeric.gnumeric.desktop                gnumeric           # f44
+libreoffice-writer.desktop                   libreoffice-writer # f44 (Exec: libreoffice --writer, libreoffice-core)
+libreoffice-calc.desktop                     libreoffice-calc   # f44
+libreoffice-impress.desktop                  libreoffice-impress # f44
 com.github.xournalpp.xournalpp.desktop       xournalpp          # f44
 foot.desktop                                 foot               # f44 (with footclient.desktop, foot-server.desktop)
 footclient.desktop                           foot               # f44

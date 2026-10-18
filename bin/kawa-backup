@@ -34,28 +34,21 @@
 set -u
 export LC_ALL=C.UTF-8
 case :$PATH: in *":$HOME/.local/bin:"*) ;; *) PATH=$HOME/.local/bin:$PATH ;; esac
-ICON_ARCHIVE=""
 # shellcheck source=/dev/null
-. "$HOME/.config/fedokawaii/icons.sh" 2>/dev/null
+. "$HOME/.config/fedokawaii/icons.sh"
 # BACKUP_TARGET: from the toolkit's fedokawaii.conf, the file Super+U → settings saves — so a
 # change counts at once, with no theme run. Read by the toolkit's own parser (lib/common.sh's
 # read_conf: the file is data, never run; both are root's, readable by all) and held to its
-# rule (validate_conf). Only where the toolkit cannot be read (before setup made it): the copy
-# the theme wrote into ~/.config/fedokawaii/env.
+# rule (validate_conf): their one place.
 TK=${KAWA_TOOLKIT:-/usr/local/lib/fedokawaii}    # (the tests point it elsewhere)
 BACKUP_TARGET="" CONF_WHY=""
 settings() {
   local l
-  if [[ -r $TK/fedokawaii.conf && -r $TK/lib/common.sh ]] \
-     && l=$(LOG_FILE=/dev/null; . "$TK/lib/common.sh" >/dev/null 2>&1 && read_conf "$TK/fedokawaii.conf" \
-            && printf '%s\037%s' "$BACKUP_TARGET" "$(validate_conf | grep -m1 '^BACKUP_TARGET ')"); then
-    IFS=$'\037' read -r BACKUP_TARGET CONF_WHY <<<"$l"
-  else
-    # shellcheck source=/dev/null
-    . "$HOME/.config/fedokawaii/env" 2>/dev/null
-  fi
+  l=$(LOG_FILE=/dev/null; . "$TK/lib/common.sh" >/dev/null && read_conf "$TK/fedokawaii.conf" \
+      && printf '%s\037%s' "$BACKUP_TARGET" "$(validate_conf | grep -m1 '^BACKUP_TARGET ')") \
+    || { err "cannot read the toolkit ($TK) — run setup.sh from the repository again"; exit 1; }
+  IFS=$'\037' read -r BACKUP_TARGET CONF_WHY <<<"$l"
 }
-settings
 EXCLUDE=$HOME/.config/fedokawaii/backup-exclude
 SECRETS=$HOME/.config/fedokawaii/secrets.sh
 STATE=${XDG_STATE_HOME:-$HOME/.local/state}/fedokawaii
@@ -74,6 +67,7 @@ say() {   # say [-u URGENCY] [-r ID] SUMMARY BODY — a notice of the backup's o
   printf 'kawa-backup: %s — %s\n' "$1" "$2" >&2
 }
 err() { printf 'kawa-backup: %s\n' "$*" >&2; }
+settings
 ago() {   # ago EPOCH → today · yesterday · 12 days ago
   local d=$(( (EPOCHSECONDS - $1) / DAY ))
   if ((d <= 0)); then echo today; elif ((d == 1)); then echo yesterday; else echo "$d days ago"; fi
@@ -113,7 +107,7 @@ resolve() {   # → REPO, or WHY (status 1)
   WHY="$t is not plugged in"
   return 1
 }
-short() { local r=$REPO; [[ $r == */$FOLDER ]] && r=${r%/$FOLDER}; printf '%s' "${r##*/}"; }   # the drive's name, for a notice
+short() { local r=$REPO; [[ $r == */"$FOLDER" ]] && r=${r%/"$FOLDER"}; printf '%s' "${r##*/}"; }   # the drive's name, for a notice
 
 # ── what is needed before restic runs ─────────────────────────────────────────
 ready() {   # ready [quiet] → REPO set, the password in the environment; else WHY (status 1)

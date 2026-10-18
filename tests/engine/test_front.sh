@@ -94,6 +94,12 @@ out=$(printf '5\nx\n10\nq\n' | front 2>&1); eq "$?" 0; has "$out" "1–9 or q"; 
 for k in q Q ""; do printf '%s\n' "$k" | front >/dev/null 2>&1; eq "$?" 0 "[$k]"; done
 front </dev/null >/dev/null 2>&1; eq "$?" 0 "end of input"
 
+case_ "the menu after setup removed the folder it was started from: says where to go from now on, and leaves (exit 0)"
+fresh; printf '#!/bin/bash\nrm -f -- "$0"\nexit 0\n' >"$R/toolkit/setup.sh"
+out=$(printf '2\n5\nq\n' | front 2>&1); eq "$?" 0
+has "$out" "this folder was removed at the end of setup — from now on: fedokawaii (or Super+U on the desktop)"
+eq "$(grep -c 'F E D O' <<<"$out")" 1 "the menu not shown again"; eq "$(front_calls | grep -c verify)" 0 "nothing run from the gone folder"
+
 # ── conf: the settings, checked before they are saved ────────────────────────
 case_ "conf FILE (the menu's edited copy): checked, then made the toolkit's settings"
 fresh; cp "$R/toolkit/fedokawaii.conf" "$TMP/edit.conf"; sed -i 's/^STEAM="yes"/STEAM="no"/' "$TMP/edit.conf"

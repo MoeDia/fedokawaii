@@ -141,11 +141,11 @@ rc 0 kawa-volume mic
 eq "$(osd | cut -d'|' -f2-)" "$ICON_MIC  microphone|80%|16/20"
 eq "$(pw_vol sink)" 0.40 "the output untouched"
 
-case_ "mic with no microphone (Share (as microphone) is never the default): could not (1), no panel"
+case_ "mic with no microphone (Share's monitor is never the default): could not (1), no panel"
 setup
 pw_edit "st['nodes'] = [n for n in st['nodes'] if n['class'] != 'Audio/Source']"
 rc 1 kawa-volume mic
-eq "$(wpctl get-volume 38)" "Volume: 1.00" "Share (as microphone) untouched"
+eq "$(wpctl get-volume 37)" "Volume: 1.00" "Share untouched"
 eq "$(osd)" ""
 
 # ── Super+scroll (config.h) ──────────────────────────────────────────────────

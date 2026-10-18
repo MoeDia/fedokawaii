@@ -5,13 +5,15 @@
 # colours and icons of the current theme (also the quieter text of low-urgency notices and
 # the vermilion edge of critical ones); mako takes include only outside a [section]
 include=~/.config/fedokawaii/current/mako
-font=DepartureMono Nerd Font,Sumi Icons,PixelMplus12,Noto Kufi Arabic 11px
+font=Fusion Pixel 12px Mono ja,Sumi Icons,JetBrainsMono Nerd Font,Noto Kufi Arabic 12px
 border-size=2
 border-radius=0
 padding=10,16
-# 6 px from the screen's edge and below the bar: the same right edge as the dropdown menus
-margin=6
-width=340
+# 8 px from the screen's edge and below the bar: the windows' gap (dwl's gappx), so a notice
+# lines up with the windows and the dropdown menus to the pixel; as wide as quick settings'
+# panel (kawa-panel), so the two make one column under the bar's right end
+margin=8
+width=304
 height=140
 default-timeout=5000
 layer=overlay
@@ -54,7 +56,7 @@ invisible=1
 
 # the level display of the volume and brightness keys (kawa-osd): a small panel at the
 # bottom centre, replaced in place while a key is held. Its width is its content exactly
-# (230 px, see kawa-osd) + 16 + 14 padding + 2 × 2 border: the left padding is 2 px less
+# (220 px, see kawa-osd) + 16 + 14 padding + 2 × 2 border: the left padding is 2 px less
 # because the label's icon and the wedge both start 2 px into their own boxes, so 16 px of
 # panel shows on both sides; an even width, so it is centred to the pixel on any screen. 72 px above the bottom edge: mako leaves
 # out the last notice's own bottom margin, so the distance is the outer margin. Padding
@@ -65,7 +67,7 @@ invisible=1
 anchor=bottom-center
 margin=0
 outer-margin=0,0,72,0
-width=264
+width=254
 padding=7,16,7,14
 default-timeout=1400
 

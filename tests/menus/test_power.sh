@@ -20,13 +20,14 @@ power() {   # power [SECONDS] — kawa-power, the machine up for SECONDS (defaul
 # ── the choices ───────────────────────────────────────────────────────────────────────
 case_ "the menu: five choices, centred, 25 wide, the uptime on top"
 setup; answer esc; power
-eq "$(fz_rows | sed 's/^ *.  //; s/ *$//' | tr '\n' ',')" "lock,sleep,log out,restart,shut down,"
+eq "$(fz_rows | sed 's/^ *.  //; s/ *$//' | tr '\n' ',')" "lock,sleep,log out,restart,shut down," "the rows right under the uptime, one row apart (no empty row: no headings here)"
+eq "$(fz_arg select-index)" 0 "the cursor on lock"
 eq "$(fz_arg width)" 25; eq "$(fz_arg lines)" 5; eq "$(fz_arg index)" set; eq "$(fz_arg anchor)" "" "centred"
-has "$(fz_arg mesg)" "$ICON_HOURGLASS up "
+has "$(fz_arg mesg)" "$ICON_HOURGLASS  up "
 fits
 case_ "every row: the icon and label block starts in the same column (6 spaces in)"
 eq "$(fz_rows | sed 's/^\( *\).*/\1/' | awk '{print length}' | sort -u)" 6
-eq "$(fz_rows | python3 -I "$MD/cols.py" | sort -u)" 19 "all 19 columns: the block is 13, centred in 25"
+eq "$(fz_rows | python3 -I "$MD/cols.py" --px | sort -u)" 116 "all 116 px: an 80 px block (icon 14, 2 spaces, 9 letters) 36 px in, 34 from the end of 150 — centred to a pixel"
 
 act() { setup; answer "pick $1"; power; }
 case_ "lock: the lock screen"
@@ -35,8 +36,8 @@ case_ "sleep: locked first, then suspended"
 act sleep; eq "$(grep -E '^(kawa-lock|systemctl)' "$CALLS" | tr '\n' '|')" "kawa-lock |systemctl suspend|"
 case_ "sleep, but the lock screen did not come up: no suspend (never an unlocked sleep)"
 setup; stub kawa-lock 'exit 1'; answer "pick sleep"; power; not_called '^systemctl suspend'
-case_ "log out: dwl ended (or the build before it, dwl.prev)"
-act "log out"; called '^pkill -xu '"$UID"' dwl\(\\\.prev\)\?$'
+case_ "log out: dwl ended"
+act "log out"; called '^pkill -xu '"$UID"' dwl$'
 case_ "restart, shut down: systemctl reboot / poweroff"
 act restart; called '^systemctl reboot$'
 act "shut down"; called '^systemctl poweroff$'
@@ -47,15 +48,21 @@ for a in esc lost "typed reboot"; do setup; answer "$a"; rc 0 power; not_called 
 case_ "restart refused (another user logged in, an inhibitor): a notice with logind's reason"
 setup; stub systemctl 'echo "User kawab is logged in on tty2. Please retry operation after closing inhibitors and logging out other users." >&2; exit 1'
 answer "pick restart"; rc 1 power
-called 'notify-send -a desktop -u critical Power could not restart .*User kawab is logged in on tty2'
+called 'notify-send -a desktop -u critical power could not restart .*User kawab is logged in on tty2'
 case_ "shut down refused without a password agent (polkit): a notice"
 setup; stub systemctl 'echo "Failed to power off system via logind: Interactive authentication required." >&2; exit 1'
 answer "pick shut down"; rc 1 power
-called 'notify-send -a desktop -u critical Power could not shut down .*Interactive authentication required'
+called 'notify-send -a desktop -u critical power could not shut down .*Interactive authentication required'
 case_ "sleep refused (no suspend on this machine): a notice"
 setup; stub systemctl 'echo "Failed to suspend system via logind: Sleep verb \"suspend\" not supported" >&2; exit 1'
 answer "pick sleep"; rc 1 power
-called 'notify-send -a desktop -u critical Power could not sleep .*not supported'
+called 'notify-send -a desktop -u critical power could not sleep .*not supported'
+
+case_ "kawa-power sleep (the Sleep key): no menu — locked first, then suspended"
+setup; rc 0 kawa-power sleep; eq "$(fz_n)" 0
+eq "$(grep -E '^(kawa-lock|systemctl)' "$CALLS" | tr '\n' '|')" "kawa-lock |systemctl suspend|"
+case_ "kawa-power sleep, but the lock screen did not come up: no suspend"
+setup; stub kawa-lock 'exit 1'; kawa-power sleep; not_called '^systemctl suspend'
 
 case_ "--help: what it is, exit 0; anything else: exit 2, no menu"
 setup; has "$(kawa-power --help)" "lock, sleep, log out"; rc 0 kawa-power --help
@@ -63,7 +70,7 @@ rc 2 kawa-power now; eq "$(fz_n)" 0
 
 # ── the uptime in the title ───────────────────────────────────────────────────────────
 if ((NS)); then
-  up() { setup; answer esc; power "$1"; t=$(fz_arg mesg); printf '%s' "${t#*"$ICON_HOURGLASS" }"; }
+  up() { setup; answer esc; power "$1"; t=$(fz_arg mesg); printf '%s' "${t#*"$ICON_HOURGLASS"  }"; }
   case_ "uptime: always 'up' and ten characters, at the edges of each form"
   eq "$(up 0)" "up 00h 00m" "just booted"
   eq "$(up 59)" "up 00h 00m"
@@ -75,10 +82,10 @@ if ((NS)); then
   eq "$(up $((99 * 7 * 86400 + 6 * 86400)))" "up 99w 06d" "the most it can say"
   eq "$(up $((100 * 7 * 86400 + 3 * 86400)))" "up 99w 06d" "more than 99 weeks: the most it can say, not a wrong remainder"
   eq "$(up $((2000 * 7 * 86400)))" "up 99w 06d"
-  case_ "the title is centred over the rows whatever the uptime: 6 spaces, then 13 columns"
+  case_ "the title stands as the rows do whatever the uptime: 6 spaces, its icon over theirs, its words over their labels (two spaces, as theirs)"
   for s in 0 86399 86400 8639999 8640000 99999999; do
     setup; answer esc; power "$s"; t=$(fz_arg mesg)
-    eq "$(cols "$t")" 19 "uptime $s s"; eq "${t%%[! ]*}" "      " "uptime $s s: six spaces"
+    eq "$(printf '%s\n' "$t" | python3 -I "$MD/cols.py" --px)" 122 "uptime $s s"; eq "${t%%[! ]*}" "      " "uptime $s s: six spaces"
   done
   case_ "a Turkish or Arabic locale: the same ten characters"
   for loc in tr_TR.UTF-8 ar_EG.UTF-8; do

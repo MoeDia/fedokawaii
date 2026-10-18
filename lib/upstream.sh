@@ -16,22 +16,28 @@
 UPSTREAM=(
   "satty|gabm/Satty|v0.22.0|satty-x86_64-unknown-linux-gnu.tar.gz|eb7a028c4a5ce331c2f355add8e2b807a7d697fe4495f7e1965786a4f6bcd5b8|satty"
   "yazi|sxyazi/yazi|v26.9.1|yazi-x86_64-unknown-linux-musl.zip|9b9c39decccf8cb0ff53a7d637d38f8a79d93bbd0099f4ea9c619ef6bb392f5d|yazi ya"
-  "presenterm|mfontanini/presenterm|v0.16.1|presenterm-0.16.1-x86_64-unknown-linux-musl.tar.gz|87512d7c88c3d961c7687aca3519f83c2b7611a550cf769c67c6f7948e8b8f54|presenterm"
-  "spotify_player|aome510/spotify-player|v0.25.1|spotify_player-x86_64-unknown-linux-gnu.tar.gz|e68dce205e995f80107149c55ace7b93125dbf73805363b7b0f9bfe8475c50ba|spotify_player"
   # (Bluetooth pairing in a terminal; its release file is the binary itself, static — measured 2026-10-16)
   "bluetui|pythops/bluetui|v0.8.2|bluetui-x86_64-linux-musl|b476ee473cb4f7a48cd75d440e991bedc835ff5ac704aac1f1992f8e826222fd|bluetui"
   "lazygit|jesseduffield/lazygit|v0.66.1|lazygit_0.66.1_linux_x86_64.tar.gz|7b3f30c2c06a42cf575280f907e58d7ea08411408b6b62bc926bc91cbc6c3f46|lazygit"
 )
-# the fonts: terminal + code · bar, menus, notifications, lock — Nerd Fonts v3.5.1
+# the release binaries an earlier version installed and this one no longer has: presenterm
+# (slides are LibreOffice Impress's now) and spotify_player (Spotify's own app, built by lpf:
+# setup.sh) — taken out of ~/.local/bin, with their records, by update and repair
+UPSTREAM_RETIRED=(presenterm spotify_player)
+# the apps' monospace font (code, and the Nerd Font symbols programs draw) — Nerd Fonts v3.5.1
 NERD_FONTS_TAG=v3.5.1
 NERD_FONTS=(
   "JetBrainsMono|04d5e8f903693f9dd13e16f867e994834e681eb3c72c0d337a770dcda09010cf"
-  "DepartureMono|7d2d86db20730e26ee4fc926e3c64429d6f9da6fce91e74c325fe1c5ee74d9ee"
 )
-# PixelMplus 12: a 12 px pixel font with Japanese (kana + kanji), for the small Japanese
-# touches in the bar and menus. Its only release is from 2013.
-PIXELMPLUS_URL="https://github.com/itouhiro/PixelMplus/releases/download/v1.0.0/PixelMplus-20130602.zip"
-PIXELMPLUS_SHA256="ca4b5eecc9cf869e85d480000084ecc0fb24c16fc8b37b4046145ecd642fae11"
+# Fusion Pixel 12 (SIL OFL): a 12 px pixel font with Latin and Japanese (kana + kanji) in
+# one face — the desktop's one font: the terminal at 2× (24 px), the bar, menus and
+# notifications at 1× (12 px), the lock and login screens and the boot menu at 2× and 3×.
+# The monospaced cut, its Japanese glyph forms ("ja"). Installed for every account
+# (/usr/local/share/fonts): the login screen runs as its own system user.
+FUSION_DIR=/usr/local/share/fonts/fusion-pixel
+FUSION_TAG=2026.08.11
+FUSION_URL="https://github.com/TakWolf/fusion-pixel-font/releases/download/$FUSION_TAG/fusion-pixel-font-12px-monospaced-ttf-v$FUSION_TAG.zip"
+FUSION_SHA256="efbfb4c4cbcd156c8ec2739ff9eaf275490bf5c65279314f28b7a122c2d0d295"
 # (its files were GE-ProtonN-M.tar.gz; since GE-Proton 11 there is one per architecture:
 # GE-ProtonN-M-x86_64.tar.gz beside -aarch64 — either form is taken, never the aarch64 one)
 GE_PROTON_REPO="GloriousEggroll/proton-ge-custom"; GE_PROTON_ASSET='^GE-Proton[0-9]+-[0-9]+(-x86_64)?\.tar\.gz$'
@@ -52,6 +58,25 @@ SYNCPLAY_PYTHON=/usr/bin/python3
 # Two fixes of ours to its mpv connection (a start refused now and then; a close that kept it
 # open two minutes), applied to the clone before the copy is checked — its header says more
 SYNCPLAY_PATCH=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/src/syncplay/syncplay.patch
+# ble.sh, the Bash Line Editor (the shell's colours as you type, its suggestions and its
+# completion menu: ~/.bashrc.d/fedokawaii.sh loads it), is built from its source at this
+# commit (0.4.0-devel4+d81fd54, 2026-09-08). Not a release file: its tagged releases
+# (v0.3.4, v0.4.0-devel3, both 2023) know nothing of bash 5.3, which Fedora ships since 43,
+# and its nightly file is replaced in place, so no checksum of it could stay pinned. A
+# commit fetched by its hash is the pin: git checks every file against it, and the contrib/
+# part (a submodule) comes at the commit this one names. Its own build (make install: bash
+# and gawk, no compiler) puts it in ~/.local/share/blesh, yours.
+# LocalSend — files between this computer and a phone or another computer on the same
+# network (Wi-Fi or cable): no account, no cloud. Its Linux release is a folder (the app, its
+# libraries, its data), kept whole in ~/.local/share/localsend; ~/.local/bin/localsend points
+# into it. Its ports (tcp: the files · udp: devices finding each other) are open in the
+# firewall (setup.sh, open_ports)
+LOCALSEND_TAG=v1.18.0
+LOCALSEND_ASSET=LocalSend-1.18.0-linux-x86-64.tar.gz
+LOCALSEND_SHA256=5054f970dda73787a95fcd706dac62cdfb810ff4bde8c5a20f1332ee5d908afb
+LOCALSEND_PORT=53317
+BLESH_REPO=https://github.com/akinomyoga/ble.sh.git
+BLESH_COMMIT=d81fd54feb0d996fdff20dca27eaf0201f7015cc
 
 up_state_dir() { echo "$TARGET_HOME/.local/share/fedokawaii/upstream"; }
 up_tag()       { as_user cat -- "$(up_state_dir)/$1" 2>/dev/null | head -c 200 || true; }   # (yours: read as you)
@@ -148,6 +173,37 @@ install_upstream_bin() {
   ok "$name $tag → ~/.local/bin ($(IFS=' '; echo "${list[*]}"))"
 }
 
+localsend_dir() { echo "$TARGET_HOME/.local/share/localsend"; }
+install_localsend() {   # the pinned release, whole, into ~/.local/share/localsend (yours)
+  local dir; dir=$(localsend_dir)
+  if [[ $(up_tag localsend) == "$LOCALSEND_TAG" && -x $dir/localsend_app && -L $TARGET_HOME/.local/bin/localsend ]] \
+     && [[ -z $(missing_libs "$dir/localsend_app") ]]; then
+    log "LocalSend $LOCALSEND_TAG — in place"; return 0
+  fi
+  fetch_pinned "https://github.com/localsend/localsend/releases/download/$LOCALSEND_TAG/$LOCALSEND_ASSET" "$LOCALSEND_SHA256" || return 1
+  [[ -f $REL_DIR/x/localsend_app ]] || { log "localsend_app not found inside the LocalSend $LOCALSEND_TAG archive"; return 1; }
+  libs_for "$REL_DIR/x/localsend_app" || return 1      # (its tray: libayatana-appindicator)
+  # the new folder made beside the old one, then put in its place: never half of each
+  as_user rm -rf -- "$dir.new" && as_user mkdir -p -- "$dir.new" || return 1
+  (cd "$REL_DIR/x" && tar -cf - .) | as_user tar -xf - -C "$dir.new" --no-same-owner \
+    || { as_user rm -rf -- "$dir.new"; log "could not write ${dir/#$TARGET_HOME/\~} (is the disk full?)"; return 1; }
+  as_user rm -rf -- "$dir" && as_user mv -T -- "$dir.new" "$dir" || return 1
+  as_user mkdir -p "$TARGET_HOME/.local/bin"
+  as_user ln -sfn ../share/localsend/localsend_app "$TARGET_HOME/.local/bin/localsend" || return 1
+  record_tag localsend "$LOCALSEND_TAG"; rm -rf "$REL_DIR"
+  ok "LocalSend $LOCALSEND_TAG → ~/.local/share/localsend (localsend)"
+}
+localsend_current() { [[ $(up_tag localsend) == "$LOCALSEND_TAG" && -x $(localsend_dir)/localsend_app ]]; }
+
+retire_upstream() {   # UPSTREAM_RETIRED out: each binary (only one its record says we put there) and its record
+  local n
+  for n in "${UPSTREAM_RETIRED[@]}"; do
+    [[ -n $(up_tag "$n") ]] || continue
+    as_user rm -f -- "$TARGET_HOME/.local/bin/$n" "$(up_state_dir)/$n" || return 1
+    log "$n — no longer part of the desktop: taken out of ~/.local/bin"
+  done
+}
+
 install_nerd_fonts() {    # each family from its own release file, checksum-pinned
   local e name sum dir f failed=0 bad
   for e in "${NERD_FONTS[@]}"; do
@@ -170,20 +226,43 @@ install_nerd_fonts() {    # each family from its own release file, checksum-pinn
   return "$failed"
 }
 
-install_pixelmplus() {   # pinned archive → ~/.local/share/fonts/PixelMplus (12 px faces only)
-  local dir=$TARGET_HOME/.local/share/fonts/PixelMplus f
-  if compgen -G "$dir/PixelMplus12-*.ttf" >/dev/null; then log "PixelMplus 12 — in place"; return 0; fi
-  fetch_pinned "$PIXELMPLUS_URL" "$PIXELMPLUS_SHA256" || return 1
-  as_user mkdir -p "$dir"
-  while IFS= read -r -d '' f; do user_put 0644 "$dir/${f##*/}" <"$f"; done \
-    < <(find "$REL_DIR/x" \( -name 'PixelMplus12-*.ttf' -o -name 'LICENSE_E' \) -print0)
+install_fusion() {   # pinned archive → /usr/local/share/fonts/fusion-pixel (the face, its licence)
+  local f
+  if [[ -s $FUSION_DIR/fusion-pixel-12px-monospaced-ja.ttf && $(cat "$FUSION_DIR/.version" 2>/dev/null) == "$FUSION_TAG" ]]; then
+    log "Fusion Pixel 12 $FUSION_TAG — in place"; return 0
+  fi
+  fetch_pinned "$FUSION_URL" "$FUSION_SHA256" || return 1
+  f=$(find "$REL_DIR/x" -name fusion-pixel-12px-monospaced-ja.ttf -print -quit)
+  [[ -s $f ]] || { rm -rf "$REL_DIR"; log "the Fusion Pixel archive held no Japanese 12 px face"; return 1; }
+  install -d -m 0755 "$FUSION_DIR" && install -m 0644 "$f" "$FUSION_DIR/" \
+    && install -m 0644 "$(find "$REL_DIR/x" -name OFL.txt -print -quit)" "$FUSION_DIR/" \
+    || { rm -rf "$REL_DIR"; log "could not write $FUSION_DIR (is the disk full?)"; return 1; }
   rm -rf "$REL_DIR"
-  compgen -G "$dir/PixelMplus12-*.ttf" >/dev/null || { log "the PixelMplus archive held no 12 px fonts"; return 1; }
-  as_user fc-cache -f >/dev/null
-  ok "PixelMplus 12 (Japanese pixel font)"
+  printf '%s\n' "$FUSION_TAG" >"$FUSION_DIR/.version"
+  # the pixel fonts before it, in the home: Fusion Pixel draws all they did
+  as_user rm -rf "$TARGET_HOME/.local/share/fonts/PixelMplus" "$TARGET_HOME/.local/share/fonts/DepartureMonoNerd" \
+    "$TARGET_HOME/.local/share/fonts/FusionPixel"
+  as_user rm -f "$(up_state_dir)/nerd-DepartureMono"
+  fc-cache -f "$FUSION_DIR" >/dev/null; as_user fc-cache -f >/dev/null
+  ok "Fusion Pixel 12 $FUSION_TAG (the desktop's font, Latin and Japanese)"
+}
+
+# swap_in NEW DIR NAME — the folder NEW (built, and found to work) in DIR's place, the old one
+# kept aside until it is: a move that fails puts the old one back (returns 1, said)
+swap_in() {
+  local new=$1 d=$2
+  as_user mkdir -p "$(dirname "$d")"
+  as_user rm -rf "$d.old"; if [[ -d $d ]]; then as_user mv -T "$d" "$d.old"; fi
+  if ! as_user mv -T "$new" "$d"; then
+    [[ -d $d.old ]] && as_user mv -T "$d.old" "$d"
+    log "could not put $3 in $d"; return 1
+  fi
+  as_user rm -rf "$d.old"
 }
 
 # ── Syncplay ──────────────────────────────────────────────────────────────────
+# (kawa-together reads Syncplay's public servers and its port from this folder: keep the two
+# in step)
 syncplay_dir() { echo "$TARGET_HOME/.local/share/fedokawaii/syncplay"; }
 
 # syncplay_starter NAME MODULE DIR [ARG…] — the small script ~/.local/bin/NAME: Syncplay's
@@ -212,7 +291,7 @@ syncplay_starters() {
   local e name module want f
   for e in "syncplay ep_client --no-gui" "syncplay-server ep_server"; do
     IFS=' ' read -r name module want <<<"$e"
-    want=$(syncplay_starter "$name" "$module" "$(syncplay_dir)" $want); f=$TARGET_HOME/.local/bin/$name
+    want=$(syncplay_starter "$name" "$module" "$(syncplay_dir)" ${want:+"$want"}); f=$TARGET_HOME/.local/bin/$name
     [[ -x $f && $(as_user cat -- "$f" 2>/dev/null) == "$want" ]] && continue
     [[ ${1:-} == --check ]] && return 1
     as_user mkdir -p "$TARGET_HOME/.local/bin"
@@ -255,17 +334,48 @@ install_syncplay() {
     log "Syncplay $SYNCPLAY_TAG does not load with $SYNCPLAY_PYTHON — are the manifest's python3-twisted+tls, python3-certifi and python3-pem installed?"
     as_user rm -rf "$src"; return 1
   fi
-  as_user mkdir -p "$(dirname "$d")"
-  as_user rm -rf "$d.old"; if [[ -d $d ]]; then as_user mv -T "$d" "$d.old"; fi
-  if ! as_user mv -T "$src/new" "$d"; then
-    [[ -d $d.old ]] && as_user mv -T "$d.old" "$d"
-    log "could not put Syncplay in $d"; as_user rm -rf "$src"; return 1
-  fi
-  as_user rm -rf "$d.old" "$src"
+  swap_in "$src/new" "$d" Syncplay || { as_user rm -rf "$src"; return 1; }
+  as_user rm -rf "$src"
   syncplay_starters || return 1
   record_tag syncplay "$(syncplay_pin)"
   syncplay_current || { log "Syncplay $SYNCPLAY_TAG was put in place but does not start"; return 1; }
   ok "Syncplay $SYNCPLAY_TAG (no window) → ~/.local/bin (syncplay, syncplay-server)"
+}
+
+# ── ble.sh ────────────────────────────────────────────────────────────────────
+blesh_dir() { echo "$TARGET_HOME/.local/share/blesh"; }
+# blesh_runs [DIR] — that copy loads and is the pinned commit (its version names it)
+blesh_runs() {
+  [[ $(as_user bash "${1:-$(blesh_dir)}/ble.sh" --version 2>/dev/null) == *"+${BLESH_COMMIT:0:7}" ]]
+}
+blesh_current() { [[ $(up_tag blesh) == "$BLESH_COMMIT" ]] && blesh_runs; }
+
+# install_blesh — a no-op when the pinned commit is in place and loads. Else that commit is
+# fetched by its hash (as you, into a folder of yours that goes again) with its contrib/
+# part, built into a new folder, and that folder must load before it replaces the old one.
+# Returns 1, having changed nothing, when any of that fails.
+install_blesh() {
+  local d src
+  d=$(blesh_dir)
+  if blesh_current; then log "ble.sh ${BLESH_COMMIT:0:7} — in place"; return 0; fi
+  src=$(as_user mktemp -d) || return 1
+  as_user git init -q "$src/s" && as_user git -C "$src/s" remote add origin "$BLESH_REPO" \
+    || { as_user rm -rf "$src"; return 1; }
+  if ! retry 3 10 as_user git -C "$src/s" fetch -q --depth 1 origin "$BLESH_COMMIT" \
+     || ! as_user git -C "$src/s" -c advice.detachedHead=false checkout -q FETCH_HEAD \
+     || ! retry 3 10 as_user git -C "$src/s" submodule update -q --init --depth 1; then
+    log "could not fetch ble.sh ${BLESH_COMMIT:0:7} ($BLESH_REPO)"; as_user rm -rf "$src"; return 1
+  fi
+  if ! as_user make -C "$src/s" install INSDIR="$src/new" >>"$LOG_FILE" 2>&1; then
+    log "ble.sh ${BLESH_COMMIT:0:7} did not build ($LOG_FILE says why)"; as_user rm -rf "$src"; return 1
+  fi
+  if ! blesh_runs "$src/new"; then
+    log "the ble.sh just built does not load as ${BLESH_COMMIT:0:7} — refused"; as_user rm -rf "$src"; return 1
+  fi
+  swap_in "$src/new" "$d" ble.sh || { as_user rm -rf "$src"; return 1; }
+  as_user rm -rf "$src"
+  record_tag blesh "$BLESH_COMMIT"
+  ok "ble.sh ${BLESH_COMMIT:0:7} (the shell's colours, suggestions and menus) → ~/.local/share/blesh"
 }
 
 # GE-Proton: its newest release (the GitHub API names it; its own .sha512sum file — the one

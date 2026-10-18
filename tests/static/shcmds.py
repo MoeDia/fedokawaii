@@ -455,7 +455,7 @@ class Parser:
         self.t, self.sink, self.fallback = toks, sink, False
 
     def call(self, name, line):
-        if name.startswith(("/usr/bin/", "/bin/", "/usr/sbin/", "/sbin/", "/usr/local/bin/", "/usr/local/sbin/")):
+        if name.startswith(("/usr/bin/", "/bin/", "/usr/sbin/", "/sbin/", "/usr/local/bin/", "/usr/local/sbin/", "/usr/libexec/")):
             name = name.rsplit("/", 1)[1]
         elif name.startswith("~/.local/bin/"):
             name = name.rsplit("/", 1)[1]

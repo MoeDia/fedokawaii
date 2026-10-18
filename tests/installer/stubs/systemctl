@@ -11,7 +11,7 @@ units=() verb=""
 for x in "$@"; do
   case $x in
     --user|--quiet|--now|-q|--no-block|--global|--system) ;;
-    is-enabled|is-active|enable|disable|cat|daemon-reload|reset-failed|start|stop|restart|set-default|reload|reboot|mask) [[ -z $verb ]] && verb=$x ;;
+    is-enabled|is-active|enable|disable|cat|daemon-reload|reset-failed|start|stop|restart|set-default|reload|reboot|mask|show) [[ -z $verb ]] && verb=$x ;;
     *) [[ -n $verb ]] && units+=("$x") ;;
   esac
 done
@@ -44,6 +44,17 @@ case $verb in
               if [[ -d /etc/systemd/system/$u.d ]]; then cat /etc/systemd/system/"$u".d/*.conf; exit 0; fi
               [[ -f /etc/systemd/system/$u ]] && { cat "/etc/systemd/system/$u"; exit 0; }
               has unitfiles "$u" && exit 0; exit 1 ;;
+  # show -p MainPID --value U: an active unit's process, read from $FKH/pid-U — one line per
+  # call while several are left (each call takes the first: a process that crashes and is
+  # started again shows a new one), the last line for ever after; 4242 when there is no file
+  show)       prop="" u=""; set -- "${units[@]}"
+              while (($#)); do case $1 in -p) prop=$2; shift 2 ;; --value) shift ;; *) u=$1; shift ;; esac; done
+              if [[ $prop == MainPID ]]; then
+                grep -qx "${pre}active $u" "$FKH/units" || { echo 0; exit 0; }
+                f=$FKH/pid-$u
+                [[ -s $f ]] || { echo 4242; exit 0; }
+                head -n1 "$f"; (($(wc -l <"$f") > 1)) && sed -i 1d "$f"
+              fi; exit 0 ;;
   set-default) echo "${units[0]:-}" >"$FKH/default-target"; exit 0 ;;
   reboot)     date +%s >>"$FKH/rebooted"; exit 0 ;;
 esac

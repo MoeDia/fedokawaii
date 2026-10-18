@@ -1,0 +1,3 @@
+#!/bin/sh
+# the screenshot kit's gtklock: 4.0.0 built against Fedora 44's GTK (/opt/r18)
+LD_LIBRARY_PATH=/opt/r18/usr/lib:/opt/f44/lib exec /opt/r18/usr/bin/gtklock "$@"

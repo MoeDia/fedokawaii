@@ -1,16 +1,13 @@
 #!/usr/bin/env bash
-# kawa-term CMD [ARG…] — CMD in a new terminal window: footclient (instant, through the
-# foot server the session keeps running), or a standalone foot if that server is down.
-# footclient -N hands the window over and returns at once, so its status says only whether
-# the server took it — never how CMD ended (a command that fails must not open twice).
+# kawa-term CMD [ARG…] — CMD in a new terminal window: footclient, through the foot server
+# the session keeps running (instant). footclient -N hands the window over and returns at
+# once, so its status says only whether the server took it — never how CMD ended.
 # The "open with" entries for yazi and neovim use it (Files, Editor), so anything that
 # opens a folder or a text file — Brave's "Show in folder", xdg-open, yazi — gets a window.
 #
-# Exit: 0 the window opened (through the server) · otherwise foot's own status.
+# Exit: 0 the window opened · otherwise footclient's own status (the server down: autostart
+# keeps it running; it says so when it cannot).
 set -u
 case ${1:-} in -h|--help) sed -n '2,/^set -u/{/^set -u/d;s/^# \{0,1\}//;p}' "$0"; exit 0 ;; esac
-# started from systemd --user (a portal, xdg-open in a service) PATH lacks ~/.local/bin,
-# where yazi and the desktop's helpers live — a standalone foot below needs it
-case :$PATH: in *":$HOME/.local/bin:"*) ;; *) PATH=$HOME/.local/bin:$PATH ;; esac
 (($#)) || set -- "${SHELL:-bash}"
-footclient -N -- "$@" 2>/dev/null || exec foot -- "$@"
+exec footclient -N -- "$@"

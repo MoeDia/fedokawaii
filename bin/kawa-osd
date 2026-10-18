@@ -9,7 +9,7 @@
 #                                  volume scale of an old hi-fi; lit in asagi with the top
 #                                  one vermilion (the peak lamp of the music meter), the
 #                                  rest faint; "off" when muted. Wedge and number are drawn
-#                                  at twice the pixel size (22 px), so every pixel stays a
+#                                  at twice the pixel size (24 px), so every pixel stays a
 #                                  crisp 2×2 square.
 # Exit status: 0 shown (or left to the update already under way) · 1 not shown (no notice
 # daemon, no runtime folder) · 2 misuse.
@@ -20,9 +20,8 @@ esac
 (($# >= 3)) || { echo "usage: kawa-osd ICON LABEL PERCENT [off] (kawa-osd --help)" >&2; exit 2; }
 # shellcheck source=/dev/null
 . "$HOME/.config/fedokawaii/icons.sh"
-C_TEAL=7fb8b0 C_ACCENT=d0583a C_ACCENT_TEXT=d15b3d C_FAINT=5f584c C_STRONG=ece3cc C_MUTED=877f6f   # (dark, if no theme yet)
 # shellcheck source=/dev/null
-[[ -r $HOME/.config/fedokawaii/current/colors.sh ]] && . "$HOME/.config/fedokawaii/current/colors.sh"
+. "$HOME/.config/fedokawaii/current/colors.sh"
 ID_FILE="${XDG_RUNTIME_DIR:?}/kawa-osd-id"
 
 icon=${1:-} label=${2:-} pct=${3:-0} off=${4:-}
@@ -38,14 +37,15 @@ for ((i = 0; i < 20; i++)); do
   g=${STEP[i / 4]}
   if ((i < lit - 1)); then on+=$g; elif ((i == lit - 1)); then peak=$g; else rest+=$g; fi
 done
-# the value is always 49 px wide (" 70%": three 14 px digits and a 7 px sign; a 7 px space
+# the value is always 42 px wide (" 70%": three 12 px digits and a 6 px sign; a 6 px space
 # and "off"), so the panel never changes width, its two sides stay equal and the value
 # ends at the same edge either way
-if [[ -n $off ]]; then value="<span font='DepartureMono Nerd Font 11px'> </span><span color='#$C_ACCENT_TEXT'>off</span>"
-else printf -v value "<span color='#%s'>%3d</span><span font='DepartureMono Nerd Font 11px' color='#%s'>%%</span>" "$C_STRONG" "$pct" "$C_MUTED"; fi
-# wedge 160 px · gap 21 px (a 7 px and a 14 px space) · value 49 px = 230 px: an even
-# width, so the panel (mako: 230 + 16 + 14 + 2 × 2 = 264) sits exactly in the screen's centre
-body="<span font='Sumi Icons 22px'><span color='#$C_TEAL'>$on</span><span color='#$C_ACCENT'>$peak</span><span color='#$C_FAINT'>$rest</span></span><span font='DepartureMono Nerd Font 11px'> </span><span font='DepartureMono Nerd Font 22px'> $value</span>"
+F="Fusion Pixel 12px Mono ja"
+if [[ -n $off ]]; then value="<span font='$F 12px'> </span><span color='#$C_ACCENT_TEXT'>off</span>"
+else printf -v value "<span color='#%s'>%3d</span><span font='%s 12px' color='#%s'>%%</span>" "$C_STRONG" "$pct" "$F" "$C_MUTED"; fi
+# wedge 160 px · gap 18 px (a 6 px and a 12 px space) · value 42 px = 220 px: an even
+# width, so the panel (mako: 220 + 16 + 14 + 2 × 2 = 254) sits exactly in the screen's centre
+body="<span font='Sumi Icons 24px'><span color='#$C_TEAL'>$on</span><span color='#$C_ACCENT'>$peak</span><span color='#$C_FAINT'>$rest</span></span><span font='$F 12px'> </span><span font='$F 24px'> $value</span>"
 
 # its own app name, so mako never groups it with other notices; and one update at a time
 # (a held key overlaps runs), so each replaces the panel instead of opening another

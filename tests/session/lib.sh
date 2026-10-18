@@ -81,13 +81,15 @@ jtext() {
   local j; rd j "$1"; j=${j#'{"text":"'}; j=${j%'"}'}; j=${j%'","class":'*}
   j=${j//\\\\/$'\x01'}; j=${j//\\\"/\"}; printf '%s\n' "${j//$'\x01'/\\}"
 }
-# tagrow [MON/] — the nine workspaces as the bar shows them: "1:sel 2:occ 3:emp 4:- …" (- hidden)
+# tagrow [MON/] — the nine workspaces as the bar shows them: "1:sel 2:occ 3:emp 4:- …" (- hidden;
+# each is its kanji numeral on the bar)
+KANJI_DIGITS=(一 二 三 四 五 六 七 八 九)
 tagrow() {
   local i j c out=""
   for i in 1 2 3 4 5 6 7 8 9; do
     rd j "${1:-}tag$i"
     if [[ $j == '{"text":""}' ]]; then c=-
-    elif [[ $j =~ \"class\":\[\"tag\",\"([a-z]+)\"\] && $j == *"\"text\":\"$i\""* ]]; then c=${BASH_REMATCH[1]:0:3}
+    elif [[ $j =~ \"class\":\[\"tag\",\"([a-z]+)\"\] && $j == *"\"text\":\"${KANJI_DIGITS[i - 1]}\""* ]]; then c=${BASH_REMATCH[1]:0:3}
     else c="?"; fi
     out+="$i:$c "
   done

@@ -80,13 +80,12 @@ case_ "keep a name with spaces"
 cp "$R/toolkit/configs/home/.config/foot/notes and todo.sh" "$HOME/.config/foot/"; echo "# mine" >>"$HOME/.config/foot/notes and todo.sh"
 out=$(fedokawaii keep "$HOME/.config/foot/notes and todo.sh" 2>&1); has "$out" "kept: configs/home/.config/foot/notes and todo.sh"
 case_ "keep what is drawn or filled in: never copied, its source named"
-mkdir -p "$HOME/.local/share/themes/Fedokawaii" "$HOME/.local/share/icons/Fedokawaii"
-for f in .config/fedokawaii/themes/dark/colors.sh .local/share/themes/Fedokawaii/x.css .config/fedokawaii/icons.sh .local/share/icons/Fedokawaii/cursor .config/fedokawaii/env; do
+mkdir -p "$HOME/.local/share/themes/Fedokawaii"
+for f in .config/fedokawaii/themes/dark/colors.sh .local/share/themes/Fedokawaii/x.css .config/fedokawaii/icons.sh .config/fedokawaii/env; do
   mkdir -p "$(dirname "$HOME/$f")"; [[ -e $HOME/$f ]] || echo x >"$HOME/$f"
 done
 out=$(fedokawaii keep "$HOME/.config/fedokawaii/themes/dark/colors.sh" 2>&1); has "$out" "tools/build-themes.py"
 out=$(fedokawaii keep "$HOME/.config/fedokawaii/icons.sh" 2>&1); has "$out" "art/icons.txt"
-out=$(fedokawaii keep "$HOME/.local/share/icons/Fedokawaii/cursor" 2>&1); has "$out" "art/cursors.txt"
 out=$(fedokawaii keep "$HOME/.config/fedokawaii/env" 2>&1); has "$out" "fedokawaii settings"
 case_ "keep a config with theme.sh's tokens: the change made by hand in the copy"
 mkdir -p "$HOME/.config/waybar"; echo '{ "home": "/home/me/x", "more": 1 }' >"$HOME/.config/waybar/config"

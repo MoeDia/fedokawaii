@@ -30,3 +30,24 @@ fake_syncplay_source() {
     '    print("syncplay (fake):", " ".join(sys.argv[1:]))' >"$1/syncplay/ep_client.py"
   printf '%s\n' 'def main():' '    print("syncplay-server (fake)")' >"$1/syncplay/ep_server.py"
 }
+# fake_lpf — what lpf-spotify-client (and lpf with it) brings, as far as setup.sh looks: lpf's
+# build account pkg-build (its home /var/lib/lpf, its own), the two scripts setup.sh runs
+# (stubs/lpf: lpf-pkgbuild, lpf-sudo-builddep) and the recipe, Spotify's terms beside it
+fake_lpf() {
+  grep -q '^pkg-build:' /etc/passwd || { echo 'pkg-build:x:975:975:lpf local package build user:/var/lib/lpf:/sbin/nologin' >>/etc/passwd; echo 'pkg-build:x:975:' >>/etc/group; }
+  mkdir -p /usr/share/lpf/scripts /usr/share/lpf/packages/spotify-client/eula /var/lib/lpf/packages/spotify-client
+  cp /usr/local/bin/lpf/* /usr/share/lpf/scripts/
+  echo 'Name: spotify-client' >/usr/share/lpf/packages/spotify-client/spotify-client.spec
+  echo 'You may not re-distribute the package' >/usr/share/lpf/packages/spotify-client/eula/license.txt
+  chown -R 975:975 /var/lib/lpf
+}
+# fake_blesh_source DIR — what ble.sh's pinned commit holds, as far as the desktop looks: its
+# make file and main source (ble.pp), whose build the fake make knows
+fake_blesh_source() { mkdir -p "$1"; echo '# ble.sh (fake source)' >"$1/ble.pp"; echo 'install:' >"$1/GNUmakefile"; }
+# fake_blesh_install DIR — what ble.sh's build installs there: its ble.sh, which says its
+# version ($FKH/blesh-version, else the pinned commit's)
+fake_blesh_install() {
+  mkdir -p "$1/lib" "$1/contrib/integration"
+  printf '#!/bin/bash\n# ble.sh (fake)\n[[ $1 == --version ]] && echo "ble.sh (Bash Line Editor), version %s"\n' \
+    "$(cat "$FKH/blesh-version" 2>/dev/null || echo 0.4.0-devel4+d81fd54)" >"$1/ble.sh"
+}

@@ -1,0 +1,15 @@
+[Desktop Entry]
+# LocalSend (lib/upstream.sh: its pinned release, kept whole in ~/.local/share/localsend):
+# files to and from a phone or another computer on the same network, no account, no cloud.
+# Its ports are open in the firewall (setup.sh); the phone needs the LocalSend app too.
+# (Its icon: Papirus's, as every other entry's in the launcher.)
+Type=Application
+Name=LocalSend
+GenericName=Send files nearby
+Comment=Files to and from a phone or another computer on this network
+Icon=org.localsend.localsend_app
+TryExec=@HOME@/.local/bin/localsend
+Exec=@HOME@/.local/bin/localsend
+Terminal=false
+Categories=Network;FileTransfer;
+Keywords=localsend;airdrop;send;share;phone;transfer;nearby;

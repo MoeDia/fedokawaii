@@ -31,21 +31,19 @@ case_ "cava.conf: quiet when nothing plays (sleep_timer), PulseAudio input (Pipe
 eq "$(ini input method)" pulse
 
 strip() { sed -e 's/#.*//' "$SHARE"; }
-case_ "60-share.conf: two loopbacks, braces and brackets balanced"
-eq "$(strip | grep -c 'libpipewire-module-loopback')" 2
+case_ "60-share.conf: one loopback, braces and brackets balanced"
+eq "$(strip | grep -c 'libpipewire-module-loopback')" 1 "one loopback only (a second, recording Share, crashed PipeWire 1.6)"
 eq "$(strip | tr -cd '{' | wc -c)" "$(strip | tr -cd '}' | wc -c)" "{ }"
 eq "$(strip | tr -cd '[' | wc -c)" "$(strip | tr -cd ']' | wc -c)" "[ ]"
 case_ "60-share.conf: 'Share' is the output share_sink — the very name kawa-audio keeps out of its list"
-has "$(strip | grep -A3 'capture.props' | head -n 4)" 'node.name       = "share_sink"'
-has "$(strip)" 'media.class     = "Audio/Sink"'
+has "$(strip | grep -A3 'capture.props' | head -n 4)" 'node.name        = "share_sink"'
+has "$(strip)" 'media.class      = "Audio/Sink"'
 has "$(grep -o 'node.name"\] != "[a-z_]*"' "$REPO/bin/kawa-audio")" '"share_sink"'
-case_ "60-share.conf: 'Share (as microphone)' is a virtual source (kawa-audio lists only Audio/Source), recording share_sink"
-has "$(strip)" 'media.class     = "Audio/Source/Virtual"'
-has "$(strip)" 'target.object       = "share_sink"'
-has "$(strip)" 'stream.capture.sink = true'
-case_ "60-share.conf: neither ever becomes a default device (priority.session 0)"
-eq "$(strip | grep -c 'priority.session = 0')" 2
+case_ "60-share.conf: nothing records a sink (stream.capture.sink, the crash), no virtual source"
+lacks "$(strip)" 'stream.capture.sink'; lacks "$(strip)" 'Audio/Source'; lacks "$(strip)" 'as microphone'
+case_ "60-share.conf: never the default output (priority.session 0)"
+eq "$(strip | grep -c 'priority.session = 0')" 1
 case_ "60-share.conf: the names the handbook uses"
-has "$(strip)" 'node.description = "Share"'; has "$(strip)" 'node.description = "Share (as microphone)"'
+has "$(strip)" 'node.description = "Share"'; has "$(sed -n '1,12p' "$SHARE")" '"Monitor of Share"'
 
 done_

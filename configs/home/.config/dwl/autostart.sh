@@ -21,7 +21,12 @@ rm -rf "$XDG_RUNTIME_DIR/dwl-bar" "$XDG_RUNTIME_DIR/kawa-ddc-buses" "$XDG_RUNTIM
 # only inside one). Stopping the session target first ends anything an earlier login
 # left behind — your user manager outlives a login (linger keeps it, so update, repair and
 # verify can reach your services even from a text console).
-SESSION_VARS="WAYLAND_DISPLAY DISPLAY XDG_CURRENT_DESKTOP XDG_SESSION_DESKTOP XDG_SESSION_TYPE"
+# Every GTK program's Open and Save dialogs through the portal — yazi (kawa-pick) — the GTK 3
+# ones too (they draw their own dialog unless told; GTK 4 asks the portal by itself). Only a
+# program that builds GTK's dialog itself keeps it — LibreOffice does: its dialogs are GTK's,
+# in the desktop's GTK theme. Exported before anything starts, handed to D-Bus and systemd
+export GTK_USE_PORTAL=1 GDK_DEBUG=portals
+SESSION_VARS="WAYLAND_DISPLAY DISPLAY XDG_CURRENT_DESKTOP XDG_SESSION_DESKTOP XDG_SESSION_TYPE GTK_USE_PORTAL GDK_DEBUG"
 # shellcheck disable=SC2086  # a list of names
 dbus-update-activation-environment --systemd $SESSION_VARS 2>/dev/null \
   || systemctl --user import-environment $SESSION_VARS
@@ -60,26 +65,23 @@ keep() {
 kawa-display </dev/null                            # resolution + refresh rate
 kawa-theme apply </dev/null                        # dark or light: GTK/Qt settings, wallpaper
 keep waybar </dev/null >"$HOME/.cache/waybar.log" 2>&1 &
+# quick settings (the bar's cat, Super+X): drawn once, then hidden until asked, so it opens
+# at once — kawa-quick asks it (SIGUSR1)
+keep kawa-panel </dev/null >"$HOME/.cache/kawa-panel.log" 2>&1 &
 mako </dev/null &                                  # notifications (if it ever stops, D-Bus starts it
                                                    # again with the next one — so no keep here)
-# start-dwl fell back on the build before dwl's newest, which could not start: say so
-[ -n "${KAWA_DWL_PREV:-}" ] && notify-send -a desktop -u critical "dwl could not start" \
-  "this session runs the build before it (dwl.prev); what the new one said: ~/.cache/dwl.log" </dev/null 2>/dev/null &
 # nmtui (quick settings → network) and other newt dialogs in the terminal's own 16 colours,
 # so they follow the theme like everything in foot; every terminal inherits it from here
 export NEWT_COLORS='root=lightgray,default;border=gray,default;window=lightgray,default;shadow=default,default;title=white,default;button=lightgray,black;actbutton=black,red;compactbutton=lightgray,default;checkbox=lightgray,default;actcheckbox=black,brightcyan;entry=white,black;disentry=gray,black;label=lightgray,default;listbox=lightgray,default;actlistbox=white,black;sellistbox=lightgray,black;actsellistbox=black,red;textbox=lightgray,default;acttextbox=white,black;helpline=gray,default;roottext=gray,default;emptyscale=,black;fullscale=,red'
 keep foot --server </dev/null &                    # Super+Return → footclient (instant)
-# auth dialogs: the agent wherever this Fedora puts it (its own autostart entry names it;
-# it has moved between /usr/bin and /usr/libexec before)
-polkit=$(sed -n 's/^Exec=\([^ ]*\).*/\1/p' /etc/xdg/autostart/lxqt-policykit-agent.desktop 2>/dev/null | head -n1)
-case $polkit in /*) ;; ?*) polkit=$(command -v "$polkit") ;; esac
-for p in "$polkit" /usr/libexec/lxqt-policykit-agent /usr/bin/lxqt-policykit-agent; do
-  [ -x "$p" ] && { keep "$p" </dev/null & break; }
-done
+keep /usr/libexec/lxqt-policykit-agent </dev/null &   # auth dialogs (an app asking for your password;
+                                                   # Fedora keeps it out of PATH, in libexec)
 keep udiskie </dev/null &                          # drives: open when plugged in (~/.config/udiskie, kawa-drives)
-command -v kawa-clipkeep >/dev/null && keep kawa-clipkeep </dev/null &   # a copy outlives the app it came from
-keep wl-paste --watch cliphist store </dev/null &  # clipboard history (Super+V)
+keep kawa-drives watch </dev/null &               # the bar's USB mark and ~/Drives, on every change
+keep kawa-clipkeep </dev/null &                   # a copy outlives the app it came from
+keep wl-paste --watch kawa-clip --store </dev/null &   # clipboard history (Super+V): text and pictures
 gammastep -l "$NIGHT_LIGHT" -t 6500:4200 </dev/null &   # night light (quick settings turns it off and on)
+kawa-steam --warm </dev/null &                    # Steam, quietly, a minute in (its menu turns it off; STEAM=no: nothing)
 
 # away: nothing locks and nothing sleeps — the screens only go dark after an hour (wlopm: the
 # outputs stay, so windows stay where they are; a key wakes them). Sleep is yours to ask for:

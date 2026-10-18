@@ -1,82 +1,75 @@
 #!/usr/bin/env bash
-# kawa-lock — locks the screen (Super+Escape, before sleep, the power menu): the
-# theme's plain ground with the pixel padlock in the very centre — paper on ink, or ink on
-# paper. swaylock's tiny ring sits inside the padlock's keyhole (current/swaylock), so the
-# keyhole lights up as you type. Above the padlock, the day of the week as a vermilion
-# kanji seal; below it, the date — drawn into the picture at lock time (ImageMagick, a few
-# tenths of a second; the picture grows by the same amount on every side, so the padlock
-# and the ring stay exactly centred; the words sit 2 px right with the padlock art, which
-# is drawn 2 px in to meet swaylock's ring). `kawa-lock --now` (before sleep) skips that and
-# locks with the bare padlock at once; so does any failure.
+# kawa-lock — locks the screen (Super+Escape, before sleep, the power menu) with gtklock: the
+# theme's plain ground, and in the middle of each screen the day's seal (土 on a Saturday),
+# the pixel padlock, the time, the date, and one box for the password — each character you
+# type shows as a vermilion ◆; a wrong one empties the box and says so under it (ちがう ·
+# wrong password). The login screen (kawa-greet) is its twin. The layout is
+# ~/.config/fedokawaii/lock.ui, the colours current/gtklock.css (dark or light), the
+# pictures ~/.local/share/fedokawaii/<theme>/ (tools/build-art.py).
 #
 # `kawa-lock --sleep` (Super+Escape, the power menu's "lock"): a lock you asked for — still
 # locked 90 seconds later, the computer sleeps (unlock before then and it stays awake). That
 # is the only way it sleeps by itself: nothing sleeps or locks on its own when you are just
 # away (the screens only go dark after an hour: autostart.sh). (KAWA_LOCK_SLEEP=SECONDS in
 # its environment sets another wait, 0 none: the tests use it.)
+# `kawa-lock --now` (swayidle, right before sleep) is the same lock; both return only once
+# the screens are locked.
 #
-# Exit: 0 locked (or it already was) · otherwise it could not lock — swaylock's own status,
-# or 1 without swaylock — so `kawa-lock && systemctl suspend` never sleeps unlocked.
+# Exit: 0 locked (or it already was) · 1 it could not lock (gtklock missing, stopped, or it
+# did not lock within 10 s — said in a notice) — so `kawa-lock && systemctl suspend` never sleeps
+# unlocked.
 set -u
 case ${1:-} in -h|--help) sed -n '2,/^set -u/{/^set -u/d;s/^# \{0,1\}//;p}' "$0"; exit 0 ;; esac
-# It must lock even when something around it is broken (it also runs right before
-# suspend): every missing piece falls back to less decoration, never to no lock.
-THEME=dark C_GROUND=0f0e0c
-CONF="$HOME/.config/fedokawaii/current/swaylock"
+THEME=dark
 # shellcheck source=/dev/null
 [[ -r $HOME/.config/fedokawaii/current/colors.sh ]] && . "$HOME/.config/fedokawaii/current/colors.sh"
-PADLOCK="$HOME/.local/share/fedokawaii/$THEME/lock.png"
-now=0 sleep_after=0
+# shellcheck source=/dev/null
+. "$HOME/.config/fedokawaii/icons.sh" 2>/dev/null
+sleep_after=0
 case ${1:-} in
-  --now) now=1; shift ;;
+  --now) shift ;;
   --sleep) sleep_after=90; [[ ${KAWA_LOCK_SLEEP:-} =~ ^[0-9]+$ ]] && sleep_after=$KAWA_LOCK_SLEEP; shift ;;
 esac
-# one at a time: a second press while the first still draws its picture (a double press,
-# idle firing as you press) waits for it, then finds swaylock running — never two lockers.
-# Before sleep (--now) nothing waits: it locks at once, and the drawing one then stands
-# down. (No lock file, or flock stuck: carry on — locking comes first.)
-if [[ -n ${XDG_RUNTIME_DIR:-} ]] && { exec 9>"$XDG_RUNTIME_DIR/kawa-lock.busy"; } 2>/dev/null; then
-  if ((now)); then flock -n 9 2>/dev/null; else flock -w 5 9 2>/dev/null; fi
-fi
-pgrep -xu "$UID" swaylock >/dev/null && exit 0        # already locked (this user's)
-if ! command -v swaylock >/dev/null; then
-  # shellcheck source=/dev/null
-  . "$HOME/.config/fedokawaii/icons.sh" 2>/dev/null
-  notify-send -a desktop -u critical "${ICON_LOCK:-}  Could not lock the screen" "swaylock is not installed (sudo dnf install swaylock)" 2>/dev/null
-  echo "kawa-lock: swaylock is not installed" >&2; exit 1
-fi
+run=${XDG_RUNTIME_DIR:-/run/user/$UID}
+fail() {
+  notify-send -a desktop -u critical "${ICON_LOCK:-}  could not lock the screen" "$1" 2>/dev/null
+  echo "kawa-lock: $1" >&2; exit 1
+}
+# one at a time: a second press while the first is still starting (a double press, idle
+# firing as you press) waits for it, then finds the screen locked
+{ exec 9>"$run/kawa-lock.busy"; } 2>/dev/null && flock -w 10 9 2>/dev/null   # (exec … 2>/dev/null alone would silence the whole script)
+pgrep -xu "$UID" gtklock >/dev/null && exit 0               # already locked (this user's)
+command -v gtklock >/dev/null || fail "gtklock is not installed — fedokawaii repair puts it back"
 
-if ((now == 0)) && [[ -s $PADLOCK && -n ${XDG_RUNTIME_DIR:-} ]] && command -v magick >/dev/null; then
-  K=(月 火 水 木 金 土 日); printf -v u '%(%u)T' -1; kj=${K[u - 1]}
-  # (English capitals, the pixel font's letters — upper-cased by date in C, not by the
-  # locale: in Turkish, "Fri" would become FRİ)
-  dt=$(LC_ALL=C date '+%^a %d %^b')
-  fd=$(fc-match -f '%{file}' 'DepartureMono Nerd Font' 2>/dev/null)
-  fj=$(fc-match -f '%{file}' 'PixelMplus12' 2>/dev/null)
-  out=$XDG_RUNTIME_DIR/kawa-lock.png
-  # pixel fonts at whole multiples of their grids (Departure 2 × 11 px, PixelMplus 2 × 12),
-  # unsmoothed: every pixel a crisp square, like the padlock
-  if [[ -s $fd && -s $fj ]] && LC_ALL=C.UTF-8 timeout 3 magick "$PADLOCK" -bordercolor "#$C_GROUND" -border 240x170 \
-       +antialias -gravity center \
-       \( -size 36x36 "xc:#${C_ACCENT:-d0583a}" -font "$fj" -pointsize 24 -fill "#ece3cc" \
-          -annotate +1+1 "$kj" \) -geometry +2-126 -composite \
-       -font "$fd" -pointsize 22 -fill "#${C_MUTED:-877f6f}" -annotate +2+86 "$dt" \
-       "PNG32:$out.tmp" 2>/dev/null; then
-    mv -f "$out.tmp" "$out" && PADLOCK=$out
-  fi
-fi
+# today's seal and the theme's padlock into a copy of the layout (pictures drawn once, at
+# build time: nothing to draw now, so the lock is up at once)
+art=$HOME/.local/share/fedokawaii/$THEME
+printf -v day '%(%u)T' -1
+ui=$run/kawa-lock.ui
+sed -e "s|{SEAL}|$art/seal-$day.png|" -e "s|{PADLOCK}|$art/padlock.png|" \
+  "$HOME/.config/fedokawaii/lock.ui" >"$ui.tmp" 2>/dev/null && mv -f "$ui.tmp" "$ui" \
+  || fail "the lock screen's layout is missing (~/.config/fedokawaii/lock.ui) — fedokawaii repair puts it back"
 
-pgrep -xu "$UID" swaylock >/dev/null && exit 0        # locked meanwhile (--now, before sleep)
-args=()
-[[ -s $PADLOCK ]] && args+=(-i "$PADLOCK")
-if [[ -r $CONF ]]; then args=(-C "$CONF" "${args[@]}"); else args+=(-c "$C_GROUND"); fi
-((sleep_after > 0)) || exec swaylock -f "${args[@]}" "$@" 9>&-   # (the lock ends as swaylock starts)
-# -f: swaylock returns once the screen is locked, and runs on; its exit status is the lock's
-swaylock -f "${args[@]}" "$@" 9>&- || exit
+locked=$run/kawa-lock.locked
+rm -f "$locked"
+# gtklock runs on (it is the lock); --lock-command marks the moment every screen is locked.
+# The date in English whatever the language (C), the ◆ box and the seal say the rest; its two
+# messages in the desktop's words (LANGUAGE=fk: the catalogue setup installs, art/gtklock.mo)
+setsid -f env LC_TIME=C LANGUAGE=fk gtklock -s "$HOME/.config/fedokawaii/current/gtklock.css" -x "$ui" \
+  --date-format '%a %d %b' --time-format '%I:%M %p' \
+  --lock-command "touch $locked" </dev/null >/dev/null 2>&1 9>&-
+# (gone after a second without locking — it could not start: said at once, not after 10 s)
+for ((i = 0; i < 100; i++)); do
+  [[ -e $locked ]] && break
+  ((i >= 10)) && ! pgrep -xu "$UID" gtklock >/dev/null && fail "gtklock stopped before it locked"
+  sleep 0.1
+done
+[[ -e $locked ]] || { pkill -xu "$UID" gtklock; fail "gtklock did not lock within 10 s"; }
 exec 9>&-
-# the sleep after a lock you asked for: tied to this very lock — unlocked (swaylock gone)
+((sleep_after > 0)) || exit 0
+# the sleep after a lock you asked for: tied to this very lock — unlocked (gtklock gone)
 # before the time is up, nothing happens; a second lock later has its own count
-pid=$(pgrep -nxu "$UID" swaylock) || exit 0
+pid=$(pgrep -nxu "$UID" gtklock) || exit 0
 setsid -f bash -c 'for ((i = 0; i < $1; i++)); do sleep 1; kill -0 "$2" 2>/dev/null || exit 0; done
   systemctl suspend' _ "$sleep_after" "$pid" </dev/null >/dev/null 2>&1
 exit 0

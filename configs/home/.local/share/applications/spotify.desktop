@@ -1,0 +1,18 @@
+[Desktop Entry]
+# Spotify's own entry (the spotify-client package, which lpf builds here: setup.sh), drawn by
+# Wayland itself instead of through XWayland: sharp at any scale, and its window behaves as
+# every other one. Spotify's app is Chromium inside (CEF), which picks X11 unless it is told:
+# --ozone-platform=wayland tells it (Spotify 1.2.96 and later run there). Everything else is
+# as the package has it; this one stands in for it (same name), in the launcher and for
+# spotify: links. Hidden until Spotify is installed (TryExec). It plays through PipeWire, and
+# its MPRIS player ("spotify") puts it in the bar and on the media keys.
+Type=Application
+Name=Spotify
+GenericName=Music Player
+Comment=Listen to music using Spotify
+Icon=spotify-client
+TryExec=spotify
+Exec=spotify --ozone-platform=wayland %U
+Terminal=false
+Categories=Audio;AudioVideo;Player;
+MimeType=x-scheme-handler/spotify;

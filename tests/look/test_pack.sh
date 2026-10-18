@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # tests/look/test_pack.sh — kawa-wallpaper --pack: the wallpaper pack fetched from GitHub,
-# checked by SHA-256 and redrawn as pixel art. curl is a stand-in that serves pictures made
-# here (nothing is ever downloaded); ImageMagick is the real one.
+# checked by SHA-256 and kept as it came (drawn for each screen later, at full quality:
+# test_wallpaper.sh). curl is a stand-in that serves pictures made here (nothing is ever
+# downloaded); ImageMagick is the real one.
 . "$(dirname "$0")/../lib/harness.sh"
 . "$(dirname "$0")/lib.sh"
 need magick python3
@@ -11,9 +12,9 @@ setup() {
   SHARE=$HOME/.local/share/fedokawaii; PACK=$SHARE/wallpapers CACHE=$HOME/.cache/kawa-wallpaper
   LIST=$SHARE/wallpapers.list
 }
-art() {   # art FILE — a 640×360 pack picture
+art() {   # art FILE — a pack file already here
   mkdir -p "$(dirname "$1")"
-  magick -size 640x360 pattern:gray50 "PNG24:$1"
+  magick -size 64x36 pattern:gray50 "JPG:$1"
 }
 size_of() { magick "$1" -format '%wx%h' info: 2>/dev/null; }
 
@@ -27,7 +28,7 @@ packsetup() {   # packsetup N — a list of N pictures (p1…pN), each served co
   local i
   for ((i = 1; i <= $1; i++)); do
     magick -size 800x500 "gradient:rgb($((i * 20)),40,90)-rgb(250,$((i * 20)),30)" "$TMP/src/p$i.jpg"
-    printf 'dark  p%s  -  %s  https://raw.githubusercontent.com/someone/pics/abc/p%s.jpg  Test (CC0)\n' \
+    printf 'dark  p%s  -  center  %s  https://raw.githubusercontent.com/someone/pics/abc/p%s.jpg  Test (CC0)\n' \
       "$i" "$(sha256sum <"$TMP/src/p$i.jpg" | cut -d' ' -f1)" "$i" >>"$LIST"
     echo "https://raw.githubusercontent.com/someone/pics/abc/p$i.jpg 0 $TMP/src/p$i.jpg" >>"$TMP/net"
   done
@@ -43,18 +44,18 @@ cp "$3" "$o"
 EOF
 }
 net() { sed -i "s|/p$1.jpg .*|/p$1.jpg $2 ${3:-$TMP/src/p$1.jpg}|" "$TMP/net"; }   # net N CODE [FILE]
-pics() { find "$PACK" -name '*.png' 2>/dev/null | wc -l; }
+pics() { find "$PACK" -name '*.src' 2>/dev/null | wc -l; }
 
-case_ "online: every picture fetched, checked and drawn as 640×360 pixel art in 32 colours"
+case_ "online: every picture fetched, checked and kept exactly as it came (nothing redrawn)"
 packsetup 4
 out=$(kawa-wallpaper --pack 2>&1); r=$?
 eq "$r" 0
-eq "$(tail -n1 <<<"$out")" "wallpaper pack: 4 drawn, 0 already here, 0 failed"
-eq "$(size_of "$PACK/dark/p1.png")" 640x360
-(( $(magick "$PACK/dark/p2.png" -format '%k' info:) <= 32 )) && _ok || _no "more than 32 colours"
+eq "$(tail -n1 <<<"$out")" "wallpaper pack: 4 fetched, 0 already here, 0 failed"
+cmp -s "$PACK/dark/p1.src" "$TMP/src/p1.jpg" && _ok || _no "the picture was changed"
+eq "$(size_of "$PACK/dark/p2.src")" 800x500
 case_ "run again: nothing fetched"
 reset_calls
-eq "$(kawa-wallpaper --pack 2>&1)" "wallpaper pack: 0 drawn, 4 already here, 0 failed"
+eq "$(kawa-wallpaper --pack 2>&1)" "wallpaper pack: 0 fetched, 4 already here, 0 failed"
 not_called '^curl'
 eq "$(ls -A "$TMPDIR")" "" "no temporary folders left"
 
@@ -66,7 +67,7 @@ out=$(kawa-wallpaper --pack 2>&1); r=$?
 eq "$r" 1
 eq "$(grep -c '^curl' "$CALLS")" 3 "three tries, not ten"
 has "$out" "no connection to raw.githubusercontent.com — 7 more not tried"
-eq "$(tail -n1 <<<"$out")" "wallpaper pack: 0 drawn, 0 already here, 10 failed"
+eq "$(tail -n1 <<<"$out")" "wallpaper pack: 0 fetched, 0 already here, 10 failed"
 ((SECONDS - start < 10)) && _ok || _no "took $((SECONDS - start)) s"
 eq "$(pics)" 0
 
@@ -79,7 +80,7 @@ packsetup 6
 for i in 1 2 3 4; do net $i 22; done
 out=$(kawa-wallpaper --pack 2>&1)
 eq "$(grep -c '^curl' "$CALLS")" 6 "all six tried"
-eq "$(tail -n1 <<<"$out")" "wallpaper pack: 2 drawn, 0 already here, 4 failed"
+eq "$(tail -n1 <<<"$out")" "wallpaper pack: 2 fetched, 0 already here, 4 failed"
 
 case_ "a connection that comes and goes: only three failures in a row give up"
 packsetup 7
@@ -94,23 +95,24 @@ echo "tampered" >"$TMP/src/bad.jpg"; net 2 0 "$TMP/src/bad.jpg"
 out=$(kawa-wallpaper --pack 2>&1); r=$?
 eq "$r" 1
 has "$out" "could not fetch or draw 'p2'"
-eq "$(tail -n1 <<<"$out")" "wallpaper pack: 2 drawn, 0 already here, 1 failed"
-[[ ! -e $PACK/dark/p2.png ]] && _ok || _no "the tampered picture was drawn"
+eq "$(tail -n1 <<<"$out")" "wallpaper pack: 2 fetched, 0 already here, 1 failed"
+[[ ! -e $PACK/dark/p2.src ]] && _ok || _no "the tampered picture was kept"
 eq "$(find "$PACK" -name '*.tmp*' | wc -l)" 0 "no half-made files"
 
 case_ "a download that is no picture (but matches): refused the same way"
 packsetup 2
 echo "<html>rate limited</html>" >"$TMP/src/html.jpg"
-sed -i "s|^\(dark  p1  -  \)[0-9a-f]*|\1$(sha256sum <"$TMP/src/html.jpg" | cut -d' ' -f1)|" "$LIST"; net 1 0 "$TMP/src/html.jpg"
+sed -i "s|^\(dark  p1  -  center  \)[0-9a-f]*|\1$(sha256sum <"$TMP/src/html.jpg" | cut -d' ' -f1)|" "$LIST"; net 1 0 "$TMP/src/html.jpg"
 out=$(kawa-wallpaper --pack 2>&1)
-eq "$(tail -n1 <<<"$out")" "wallpaper pack: 1 drawn, 0 already here, 1 failed"
+eq "$(tail -n1 <<<"$out")" "wallpaper pack: 1 fetched, 0 already here, 1 failed"
+[[ ! -e $PACK/dark/p1.src ]] && _ok || _no "a page kept as a picture"
 eq "$(find "$PACK" -name '*.tmp*' | wc -l)" 0
 
 case_ "partly there already: only the missing ones are fetched"
 packsetup 4
 kawa-wallpaper --pack >/dev/null 2>&1
-rm "$PACK/dark/p2.png" "$PACK/dark/p4.png"; reset_calls
-eq "$(kawa-wallpaper --pack 2>&1)" "wallpaper pack: 2 drawn, 2 already here, 0 failed"
+rm "$PACK/dark/p2.src" "$PACK/dark/p4.src"; reset_calls
+eq "$(kawa-wallpaper --pack 2>&1)" "wallpaper pack: 2 fetched, 2 already here, 0 failed"
 eq "$(grep -c '^curl' "$CALLS")" 2
 
 case_ "interrupted (Ctrl+C) mid-fetch, then run again: it picks up where it was, nothing left over"
@@ -121,31 +123,31 @@ at_gate curl || _no "never reached the third picture"
 kill -INT -- -"$k"; kill -TERM "$k"; wait "$k" 2>/dev/null
 for _ in {1..200}; do kill -0 -- -"$k" 2>/dev/null || break; /bin/sleep 0.01; done
 rm -f "$TMP/gate.curl.use"
-eq "$(pics)" 2 "two drawn before the stop"
+eq "$(pics)" 2 "two fetched before the stop"
 eq "$(ls -A "$TMPDIR")" "" "its temporary folder went with it"
-eq "$(kawa-wallpaper --pack 2>&1)" "wallpaper pack: 2 drawn, 2 already here, 0 failed"
+eq "$(kawa-wallpaper --pack 2>&1)" "wallpaper pack: 2 fetched, 2 already here, 0 failed"
 
-case_ "a half-drawn file from a crash: cleared quietly, the picture drawn again"
+case_ "a half-moved file from a crash: cleared quietly, the picture fetched again"
 packsetup 2
 kawa-wallpaper --pack >/dev/null 2>&1
-rm "$PACK/dark/p2.png"; echo junk >"$PACK/dark/p2.png.tmp.png"
-eq "$(kawa-wallpaper --pack 2>&1)" "wallpaper pack: 1 drawn, 1 already here, 0 failed"
-[[ ! -e $PACK/dark/p2.png.tmp.png ]] && _ok || _no "the half-drawn file is still there"
+rm "$PACK/dark/p2.src"; echo junk >"$PACK/dark/p2.src.tmp"
+eq "$(kawa-wallpaper --pack 2>&1)" "wallpaper pack: 1 fetched, 1 already here, 0 failed"
+[[ ! -e $PACK/dark/p2.src.tmp ]] && _ok || _no "the half-moved file is still there"
 
-case_ "a picture the list no longer names: removed with its enlarged copies (and nothing else)"
+case_ "pictures the list no longer names, and the old pack's redrawn copies: removed, with the screen-sized drawings"
 packsetup 1
 kawa-wallpaper --pack >/dev/null 2>&1
-art "$PACK/dark/old-one.png"; art "$PACK/light/old-two.png"
-mkdir -p "$CACHE"; : >"$CACHE/dark-old-one-1920x1080.png"; : >"$CACHE/dark-old-one-extra-1920x1080.png"
-: >"$CACHE/default-dark-1920x1080.png"
-eq "$(kawa-wallpaper --pack 2>&1)" "wallpaper pack: 0 drawn, 1 already here, 0 failed, 2 retired"
-[[ ! -e $PACK/dark/old-one.png && ! -e $CACHE/dark-old-one-1920x1080.png ]] && _ok || _no "not retired"
-[[ -e $CACHE/dark-old-one-extra-1920x1080.png && -e $CACHE/default-dark-1920x1080.png ]] && _ok || _no "another picture's copy went too"
+art "$PACK/dark/old-one.src"; art "$PACK/light/old-two.src"; art "$PACK/dark/p1.png"   # (the pack before: NAME.png)
+mkdir -p "$CACHE/preview"; : >"$CACHE/1920x1080-abc.png"; : >"$CACHE/preview/x.six"
+eq "$(kawa-wallpaper --pack 2>&1)" "wallpaper pack: 0 fetched, 1 already here, 0 failed, 3 retired"
+[[ ! -e $PACK/dark/old-one.src && ! -e $PACK/light/old-two.src && ! -e $PACK/dark/p1.png ]] && _ok || _no "not retired"
+[[ -e $PACK/dark/p1.src ]] && _ok || _no "a listed picture went too"
+[[ ! -e $CACHE/1920x1080-abc.png ]] && _ok || _no "the drawings of retired pictures stayed"
 
 case_ "an empty list (comments only) retires nothing; a missing list says so"
-setup; art "$PACK/dark/dawn-mart.png"; printf '# nothing\n\n' >"$LIST"
-eq "$(kawa-wallpaper --pack 2>&1)" "wallpaper pack: 0 drawn, 0 already here, 0 failed"
-[[ -e $PACK/dark/dawn-mart.png ]] && _ok || _no "an empty list wiped the pack"
+setup; art "$PACK/dark/dawn-mart.src"; printf '# nothing\n\n' >"$LIST"
+eq "$(kawa-wallpaper --pack 2>&1)" "wallpaper pack: 0 fetched, 0 already here, 0 failed"
+[[ -e $PACK/dark/dawn-mart.src ]] && _ok || _no "an empty list wiped the pack"
 rm "$LIST"
 out=$(kawa-wallpaper --pack 2>&1); r=$?
 eq "$r" 1; has "$out" "is missing (run theme.sh)"

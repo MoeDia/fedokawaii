@@ -11,22 +11,20 @@ setup() {   # setup — a fresh sandbox; the window writes $TYPED into $NOTES_FI
             # saves it: a fresh line opened under the end (Go), what was typed on it
   sandbox; unset LOCPATH KAWA_NOTES
   export N=$HOME/Notes/notes.md NOTES_FILE=$HOME/Notes/notes.md TYPED='\n'   # (nothing typed)
-  stub kawa-float '[ -f "$NOTES_FILE" ] && printf "$TYPED" >>"$NOTES_FILE"; sleep "${WINDOW_SECS:-0}"'
-  stub nvim 'exit 1'                                  # (no notes window open)
+  # (one window at a time, as kawa-float --once keeps it: a call while one is open exits 3)
+  stub kawa-float 'exec 8>"$HOME/.float.lock"; flock -n 8 || exit 3; echo x >>"$HOME/windows"
+[ -f "$NOTES_FILE" ] && printf "$TYPED" >>"$NOTES_FILE"; sleep "${WINDOW_SECS:-0}"'
   stub date 'echo "2026-10-16 · Fri"'
 }
 day() { stub date "echo '$1'"; }                       # day "2026-10-17 · Sat"
 bytes() { od -An -c "$1" | tr -s ' \n' ' '; }
-sock() {   # sock PATH — a unix socket left there, as a running (or crashed) neovim leaves it
-  python3 -I -c 'import socket, sys; socket.socket(socket.AF_UNIX).bind(sys.argv[1])' "$1"
-}
 H='## 2026-10-16 · Fri'
 
 # ── a day in the diary ───────────────────────────────────────────────────────
 case_ "first time: ~/Notes made, today's heading, the window (80×25) on the notes"
 setup
 rc 0 kawa-notes
-called "^kawa-float notes 80x25 -- $REPO/bin/kawa-notes --inside\$"
+called "^kawa-float --once notes notes 80x25 -- $REPO/bin/kawa-notes --inside\$"
 case_ "...closed without writing: no heading left behind, an empty file"
 eq "$(bytes "$N")" ""; [[ -f $N ]] && _ok || _no "the notes file went"
 
@@ -77,32 +75,22 @@ case_ "only blank lines written: no heading left"
 setup; TYPED='\n\n   \n\t\n'; kawa-notes; eq "$(bytes "$N")" ""
 
 # ── one window ───────────────────────────────────────────────────────────────
-case_ "Super+N while it is open: neovim saves and quits (the window goes), nothing else"
-setup; mkdir -p "${N%/*}"; printf 'kept\n' >"$N"
-sock "$XDG_RUNTIME_DIR/kawa-notes.sock"; stub nvim 'exit 0'
+case_ "Super+N while it is open: the window closes (kawa-float --once: neovim, saving as you type, goes with it); this press tidies nothing"
+setup; mkdir -p "${N%/*}"; printf '%s\n\nkept\n\n\n' "$H" >"$N"
+stub kawa-float 'exit 3'                           # (open: its key closed it)
 rc 0 kawa-notes
-called "^nvim --server $XDG_RUNTIME_DIR/kawa-notes.sock --remote-expr 1"
-called "^nvim --server $XDG_RUNTIME_DIR/kawa-notes.sock --remote-send <C-\\\\><C-N><Cmd>silent! wqa!<CR>"
-not_called kawa-float; eq "$(cat "$N")" "kept"
-case_ "a socket left by a neovim that crashed: the window opens all the same"
-setup; sock "$XDG_RUNTIME_DIR/kawa-notes.sock"
-rc 0 kawa-notes; called '^kawa-float'
-[[ ! -e $XDG_RUNTIME_DIR/kawa-notes.sock ]] && _ok || _no "the dead socket stayed"
-case_ "a neovim that hangs on the socket: given up on in about a second, the window opens"
-setup; sock "$XDG_RUNTIME_DIR/kawa-notes.sock"; stub nvim 'exec sleep 30'
-s=$EPOCHREALTIME; kawa-notes; e=$EPOCHREALTIME
-called '^kawa-float'; (( ${e/./} - ${s/./} < 4000000 )) && _ok || _no "took $(( (${e/./} - ${s/./}) / 1000 )) ms"
+eq "$(cat "$N"; printf x)" "$H"$'\n\nkept\n\n\nx' "the window that is closing tidies, not this press"
 
 case_ "a second press while it is still opening: does nothing"
 setup; export WINDOW_SECS=1
 kawa-notes & first=$!; sleep 0.3
 rc 0 kawa-notes
 wait "$first"; unset WINDOW_SECS
-eq "$(grep -c '^kawa-float' "$CALLS")" 1
+eq "$(wc -l <"$HOME/windows")" 1 "one window"
 case_ "Super+N held (20 presses at once): one window, one heading"
 setup; export WINDOW_SECS=1 TYPED='once\n'
 for _ in {1..20}; do kawa-notes & done; wait; unset WINDOW_SECS
-eq "$(grep -c '^kawa-float' "$CALLS")" 1; eq "$(cat "$N")" "$H"$'\n\nonce'
+eq "$(wc -l <"$HOME/windows")" 1 "one window"; eq "$(cat "$N")" "$H"$'\n\nonce'
 case_ "killed while open, then pressed again: the window opens (the lock is not stuck)"
 setup; stub kawa-float 'echo $$ >"$HOME/float.pid"; exec sleep 30'
 kawa-notes & first=$!
@@ -177,13 +165,11 @@ for l in tr_TR ar_EG; do
 done
 
 # ── inside the window ────────────────────────────────────────────────────────
-case_ "inside: neovim on the notes, listening, the page set up, at the end, typing"
+case_ "inside: neovim on the notes, the page set up, at the end, typing"
 setup; stub nvim 'printf "%s\n" "$@" >"$HOME/nvim.args"; env >"$HOME/nvim.env"'
 export KAWA_NOTES="$HOME/Notes/50% off.md"
 kawa-notes --inside
 eq "$(cat "$HOME/nvim.args")" "-n
---listen
-$XDG_RUNTIME_DIR/kawa-notes.sock
 -c
 luafile ~/.config/fedokawaii/notes.lua
 -c
@@ -205,7 +191,8 @@ if [[ -z $REAL_NVIM ]]; then
   skip "no neovim here: notes.lua not run"
 else
   setup; rm -f "$STUBS/nvim" "$STUBS/date"; config .config/fedokawaii/notes.lua
-  stub nvim "exec '$REAL_NVIM' --clean \"\$@\""     # (the page alone, without LazyVim)
+  # (the window's neovim, listening on a socket of the test's: keys are typed in through it)
+  stub nvim "exec '$REAL_NVIM' --clean --listen '$XDG_RUNTIME_DIR/kawa-notes.sock' \"\$@\""     # (the page alone, without LazyVim)
   ask() {   # ask LUA-EXPR [FILE] — the value, from neovim set up as the window sets it up
     KAWA_NOTES_ICON=X KAWA_NOTES_WHERE='~/Notes/50% off.md' nvim --headless \
       -c 'luafile ~/.config/fedokawaii/notes.lua' -c "lua io.stdout:write(vim.inspect($1))" -c 'qa!' -- "${2:-$TMP/n.md}" 2>/dev/null
@@ -241,7 +228,8 @@ else
   ours() { local p; for p in $(pgrep -f "$TMP" 2>/dev/null); do kill -KILL "$p" 2>/dev/null; done; }
   case_ "the window closed (Super+Q) just after typing: nothing lost"
   setup; rm -f "$STUBS/nvim" "$STUBS/date"; config .config/fedokawaii/notes.lua
-  stub nvim "exec '$REAL_NVIM' --clean \"\$@\""
+  # (the window's neovim, listening on a socket of the test's: keys are typed in through it)
+  stub nvim "exec '$REAL_NVIM' --clean --listen '$XDG_RUNTIME_DIR/kawa-notes.sock' \"\$@\""
   mkdir -p "${N%/*}"; printf '%s\n\n' "$H" >"$N"
   python3 -I "$C/pty_run.py" --timeout 20 --answer 'saved as you type' 'hello world' --hangup +0.05 -- kawa-notes --inside >/dev/null
   eq "$(cat "$N")" "$H"$'\n\nhello world'

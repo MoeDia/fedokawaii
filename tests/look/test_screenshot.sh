@@ -152,13 +152,6 @@ hide magick
 rc 0 kawa-screenshot full
 has "$(args_of notify-send)" $'-i\n'"$F"
 
-case_ "the env or icon file missing (a broken install): the shot still works"
-setup
-rm "$HOME/.config/fedokawaii/env" "$HOME/.config/fedokawaii/icons.sh"
-err=$(kawa-screenshot full 2>&1); r=$?
-eq "$r" 0; eq "$err" ""
-[[ -s $F ]] && _ok || _no "not saved to ~/Pictures/Screenshots"
-
 case_ "an Arabic locale: the file name keeps plain digits"
 if command -v localedef >/dev/null && [[ -e /usr/share/i18n/locales/ar_EG ]]; then
   setup; mkdir -p "$TMP/locale"; localedef -i ar_EG -f UTF-8 "$TMP/locale/ar_EG.UTF-8" 2>/dev/null

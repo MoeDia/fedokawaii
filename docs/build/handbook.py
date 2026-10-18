@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Builds Fedokawaii-Guide.pdf from docs/fedokawaii-guide.md and REAL renders
-(scratchpad/real/shots/{dark,light}: the real apps at Fedora 44's versions)."""
-import re, os, sys, glob, math, html as H
+($FEDOKAWAII_SCRATCH/real/shots/{dark,light}: the real apps at Fedora 44's versions)."""
+import re, os, sys, math, html as H
 from pathlib import Path
 USAGE = """usage: python3 docs/build/handbook.py        builds docs/Fedokawaii-Guide.pdf (a few minutes)
        python3 docs/build/handbook.py --help  this text
@@ -13,7 +13,7 @@ if len(sys.argv) > 1:
     sys.exit(0 if sys.argv[1] in ("-h", "--help") else 2)
 import markdown, numpy as np
 from PIL import Image, ImageDraw, ImageFont
-S = os.environ.get("FEDOKAWAII_SCRATCH", "/tmp/claude-0/-home-claude/6d31fcd7-1ae3-5468-8ff5-715a71fb37a1/scratchpad")
+S = os.environ.get("FEDOKAWAII_SCRATCH") or sys.exit("handbook.py: FEDOKAWAII_SCRATCH names the folder with the renders (real/shots)")
 # the repository this script belongs to (docs/build/ → its root), never a fixed path: run from a
 # copy, it builds that copy
 REPO = os.environ.get("FEDOKAWAII_REPO", str(Path(__file__).resolve().parents[2]))
@@ -24,7 +24,14 @@ R = f"{S}/real/shots"
 NM = f"{S}/mock/node_modules/@fontsource"
 GAP = (90, 90, 90)
 os.makedirs(IMG, exist_ok=True)
-DM = ImageFont.truetype(f"{S}/mock/fonts/DepartureMonoNerdFont-Regular.otf", 22)
+# the desktop's own faces: Fusion Pixel (as setup installs it) for headings and labels, the
+# toolkit's Sumi Icons; the cover is the dark theme's default wallpaper, ink-ridges-night
+PIXEL = os.environ.get("FEDOKAWAII_PIXEL_FONT", "/usr/local/share/fonts/fusion-pixel/fusion-pixel-12px-monospaced-ja.ttf")
+SUMI = f"{REPO}/configs/home/.local/share/fonts/SumiIcons.ttf"
+COVER = os.environ.get("FEDOKAWAII_COVER", "/home/kawau/.local/share/fedokawaii/wallpapers/dark/ink-ridges-night.src")
+for need in (PIXEL, SUMI, COVER):
+    if not os.path.exists(need): sys.exit(f"handbook.py: {need} is missing")
+DM = ImageFont.truetype(PIXEL, 24)                      # (24 px: the pixel font's grid × 2)
 
 def im(p): return Image.open(p).convert("RGB")
 
@@ -197,16 +204,15 @@ if os.path.exists(f"{R}/dark/terminal-full.png"):
 # the pack: two pictures, then the whole sheet
 W = "/home/kawau/.local/share/fedokawaii/wallpapers"
 entries = [l.split()[:2] for l in open(f"{REPO}/configs/home/.local/share/fedokawaii/wallpapers.list") if l.split()[:1] in (["dark"], ["light"])]
-if os.path.exists(f"{W}/dark/dawn-mart.png") and os.path.exists(f"{W}/light/station-street.png"):
-    add("pack", grid([[im(f"{W}/dark/dawn-mart.png"), im(f"{W}/light/station-street.png")]], f"{IMG}/pack.png"))
+# (each kept as fetched: NAME.src, any size, a painting rather than pixel art — scaled smoothly)
+def wall(mode, name, w, h): return im(f"{W}/{mode}/{name}.src").resize((w, h), Image.LANCZOS)
+add("pack", grid([[wall("dark", "ink-ridges-night", 960, 540), wall("light", "ink-ridges", 960, 540)]], f"{IMG}/pack.png"))
 tw, th, cols = 320, 180, 6
 rows = -(-len(entries) // cols)
 sheet = Image.new("RGB", (cols * (tw + 12) + 12, rows * (th + 40) + 12), (15, 14, 12)); d = ImageDraw.Draw(sheet)
 for i, (mode, name) in enumerate(entries):
-    p = f"{W}/{mode}/{name}.png"
-    if not os.path.exists(p): continue
     x = 12 + (i % cols) * (tw + 12); y = 12 + (i // cols) * (th + 40)
-    sheet.paste(im(p).resize((tw, th), Image.NEAREST), (x, y))
+    sheet.paste(wall(mode, name, tw, th), (x, y))
     d.text((x, y + th + 6), name, font=DM, fill=(207, 195, 166) if mode == "dark" else (232, 135, 109))
 sheet.save(f"{IMG}/packsheet.png"); add("packsheet", f"{IMG}/packsheet.png")
 
@@ -227,8 +233,9 @@ for n, (name, body) in enumerate(arts):
                 if ch != ".": fd.rectangle([ox + x * k, oy + y * k, ox + x * k + k - 1, oy + y * k + k - 1], fill="#" + pal[ch])
 fimg.save(f"{IMG}/fetch.png"); add("fetch", f"{IMG}/fetch.png")
 
-add("grub", f"{S}/mock/png2/grub.png")
-add("icons", f"{S}/icons-preview.png")
+add("grub", f"{R}/grub.png")                            # (render/grub.sh: GRUB itself, in QEMU)
+subprocess.run(["python3", f"{REPO}/tools/build-icons.py", "--preview", f"{IMG}/icons.png"], check=True, capture_output=True)
+add("icons", f"{IMG}/icons.png")
 
 # ── the document ───────────────────────────────────────────────────────────────
 src = open(os.environ.get("FEDOKAWAII_GUIDE", f"{REPO}/docs/fedokawaii-guide.md"), encoding="utf-8").read()
@@ -282,8 +289,8 @@ html = re.sub(r"<table>.*?</table>", short_cols, html, flags=re.S)
 def ff(name, path, w="400", s="normal"):
     return f"@font-face{{font-family:'{name}';src:url('file://{path}');font-weight:{w};font-style:{s}}}"
 CSS = "\n".join([
-    ff("DM", f"{S}/mock/fonts/DepartureMonoNerdFont-Regular.otf"),
-    ff("SUMI", f"{S}/mock/fonts/SumiIcons.ttf"),
+    ff("DM", PIXEL),
+    ff("SUMI", SUMI),
     # (not "Serif": unquoted, that is the generic keyword, and the body fell back to the system serif)
     ff("NotoSerif", f"{NM}/noto-serif/files/noto-serif-latin-400-normal.woff2"),
     ff("NotoSerif", f"{NM}/noto-serif/files/noto-serif-latin-700-normal.woff2", "700"),
@@ -298,7 +305,7 @@ CSS = "\n".join([
     ff("JBM", f"{S}/mock/fonts/jbm/JetBrainsMonoNerdFont-Regular.ttf"),
 ]) + """
 @page { size: A4; margin: 16mm 0 18mm; background: #efe8d5;
-  @bottom-center { content: counter(page); font-family: DM; font-size: 11px; color: #776f60; } }
+  @bottom-center { content: counter(page); font-family: DM; font-size: 12px; color: #776f60; } }
 @page :first { margin: 0; background: #0f0e0c; @bottom-center { content: none; } }
 html { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 body { font-family: NotoSerif, Sym, 'Noto Serif CJK JP', serif; font-size: 9.6pt; line-height: 1.5; color: #2b2721; margin: 0; }
@@ -306,19 +313,20 @@ body { font-family: NotoSerif, Sym, 'Noto Serif CJK JP', serif; font-size: 9.6pt
    is wider than another and nothing is ever shrunk to fit */
 main { padding: 0 15mm; }
 .cover { height: 297mm; width: 210mm; background: #0f0e0c; color: #cfc3a6; position: relative; overflow: hidden; break-after: page; }
-.cover img.bg { position: absolute; left: 0; bottom: 0; width: 100%; }
-.cover .t { position: absolute; left: 18mm; right: 18mm; top: 34mm; }
-.cover h1 { break-before: auto; font-family: DM; font-weight: 400; font-size: 44px; line-height: 1.1; color: #ece3cc; margin: 0 0 10px; border: 0; letter-spacing: 1px; }
+.cover img.bg { position: absolute; left: 0; top: 0; width: 100%; height: 100%; }
+.cover .shade { position: absolute; left: 0; bottom: 0; width: 100%; height: 55%; background: linear-gradient(#0f0e0c00 0, #0f0e0c99 50%, #0f0e0ce6 100%); }
+.cover .t { position: absolute; left: 18mm; right: 18mm; bottom: 30mm; }
+.cover h1 { break-before: auto; font-family: DM; font-weight: 400; font-size: 48px; line-height: 1.1; color: #ece3cc; margin: 0 0 10px; border: 0; letter-spacing: 1px; }
 .cover .torii { font-family: SUMI; font-size: 44px; color: #d0583a; display: block; margin-bottom: 18px; }
 .cover p.sub { font-family: NotoSerif; font-style: italic; font-size: 13pt; color: #cfc3a6; max-width: 140mm; margin: 0 0 8px; }
-.cover p.date { font-family: DM; font-size: 11px; color: #7b7365; margin: 0; }
+.cover p.date { font-family: DM; font-size: 12px; color: #b9ad92; margin: 0; }
 .cover .rule { height: 2px; background: #d0583a; width: 40mm; margin: 14px 0 16px; }
 .toc { break-after: page; }
 .toc h1 { break-before: auto; }
 .toc ol { list-style: none; padding: 0; margin: 6px 0; columns: 2; column-gap: 10mm; font-family: Sans, Sym, 'Noto Sans CJK JP', sans-serif; font-size: 7.9pt; }
 .toc li { margin: 1px 0; break-inside: avoid; }
 .toc li.l0 { font-family: DM; font-size: 12px; color: #c0462a; margin-top: 10px; }
-.toc li.l1 { font-family: DM; font-size: 11px; color: #0f0e0c; margin-top: 5px; }
+.toc li.l1 { font-family: DM; font-size: 12px; color: #0f0e0c; margin-top: 5px; }
 .toc li.l2 { padding-left: 4mm; color: #4a443a; }
 .toc li.l3 { padding-left: 8mm; color: #776f60; font-size: 7.2pt; margin: 0; }
 .toc li.l0, .toc li.l1 { break-after: avoid; }
@@ -329,10 +337,10 @@ main { padding: 0 15mm; }
 .toc .pn { position: absolute; right: 0; bottom: 0; text-indent: 0; font-variant-numeric: tabular-nums; }
 .toc li.l1 a { padding-left: 4ch; text-indent: -4ch; } .toc li.l1 .ld { left: 4ch; }
 .toc li.l2 a { padding-left: 2.3em; text-indent: -2.3em; } .toc li.l2 .ld { left: 2.3em; }
-h1 { font-family: DM; font-weight: 400; font-size: 22px; color: #0f0e0c; margin: 0 0 10px; padding: 0 0 6px;
+h1 { font-family: DM; font-weight: 400; font-size: 24px; color: #0f0e0c; margin: 0 0 10px; padding: 0 0 6px;
      border-bottom: 2px solid #d0583a; break-after: avoid; break-before: page; }
-h2 { font-family: DM; font-weight: 400; font-size: 16.5px; color: #2b2721; margin: 18px 0 6px; break-after: avoid; }
-h3 { font-family: DM; font-weight: 400; font-size: 13px; color: #2b2721; margin: 14px 0 4px; break-after: avoid; }
+h2 { font-family: DM; font-weight: 400; font-size: 18px; color: #2b2721; margin: 18px 0 6px; break-after: avoid; }
+h3 { font-family: DM; font-weight: 400; font-size: 12px; color: #2b2721; margin: 14px 0 4px; break-after: avoid; }
 h1 + p, h2 + p { margin-top: 4px; }
 p { margin: 6px 0; } ul, ol { padding-left: 16px; margin: 6px 0; } li { margin: 3px 0; }
 strong { color: #0f0e0c; }
@@ -343,7 +351,7 @@ pre { background: #161411; color: #cfc3a6; padding: 9px 11px; font-size: 8pt; li
 pre code { background: none; color: inherit; padding: 0; font-size: 8pt; }
 .tw { break-inside: auto; margin: 8px 0 12px; }
 table { border-collapse: collapse; width: 100%; font-family: Sans, Sym, 'Noto Sans CJK JP', sans-serif; font-size: 8.1pt; line-height: 1.4; }
-th { font-family: DM; font-weight: 400; font-size: 11px; background: #2b2721; color: #ece3cc; text-align: left; padding: 5px 7px; }
+th { font-family: DM; font-weight: 400; font-size: 12px; background: #2b2721; color: #ece3cc; text-align: left; padding: 5px 7px; }
 td { border-bottom: 1px solid #c2b79b; padding: 4px 7px; vertical-align: top; }
 tr { break-inside: avoid; }
 td code { font-size: 7.6pt; overflow-wrap: break-word; }   /* a column never narrower than its longest name */
@@ -379,13 +387,14 @@ toc = "<section class='toc'><h1>Contents</h1><ol>" + "".join(   # (page numbers:
     f"<li class='{'l0' if re.match(r'(Part [IVXLC]+|Appendices)\b', t) else 'l' + str(len(h))}'><a href='#t{i}'>"
     f"<span class='tt'>{markdown.markdown(re.sub(r'^(\d+)\. ', r'\1\\. ', t))[3:-4]}</span><span class='ld'></span><span class='pn'>000</span></a></li>"
     for i, (h, t) in enumerate(heads, 1)) + "</ol></section>"
-cover_src = "/home/kawau/.local/share/fedokawaii/dark/scene.png"
-cover_raw = cover_src if os.path.exists(cover_src) else f"{S}/mock/wall-dark.png"
-_cw = Image.open(cover_raw).width                     # the scene, full-bleed across 210 mm:
-cover_bg = printable(cover_raw, 210 * MM / _cw, f"{IMG}/cover.png")   # (each art pixel an exact block)
+# ink-ridges-night, cut to the page (210 × 297): the moon and the ridges under it, from the
+# right of the picture, the moon high in the sky; the title on the dark ridges, shaded under the words
+_c = Image.open(COVER).convert("RGB")
+_h = _c.height; _w = round(_h * 210 / 297); _x = round(_c.width * 0.473)
+cover_bg = f"{IMG}/cover.jpg"; _c.crop((_x, 0, _x + _w, _h)).save(cover_bg, quality=92)
 torii = chr(0xFE000)
 doc = (f"<!doctype html><html><head><meta charset='utf-8'><title>Fedokawaii — the handbook</title><style>{CSS}</style></head><body>"
-       f"<section class='cover'><img class='bg' src='file://{cover_bg}'><div class='t'>"
+       f"<section class='cover'><img class='bg' src='file://{cover_bg}'><div class='shade'></div><div class='t'>"
        f"<span class='torii'>{torii}</span><h1>{'\u00a0'.join(meta['title'].rsplit(' ', 1))}</h1><div class='rule'></div>"
        f"<p class='sub'>{meta['subtitle']}</p><p class='date'>{meta['date']}</p></div></section>"
        f"<main>{toc}{html}</main></body></html>")
@@ -436,6 +445,7 @@ with sync_playwright() as p:
     b.close()
 print("pdf", os.path.getsize(f"{OUT}/Fedokawaii-Guide.pdf") // 1024, "KiB")
 # the pictures re-compressed losslessly (pdfpack.py, beside this script): every pixel the same, a tenth smaller
+sys.dont_write_bytecode = True                 # (no __pycache__ left in the repository)
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import pdfpack
 pdfpack.main(f"{OUT}/Fedokawaii-Guide.pdf", f"{OUT}/Fedokawaii-Guide.packed.pdf")

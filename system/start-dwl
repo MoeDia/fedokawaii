@@ -23,7 +23,9 @@ export GTK_USE_PORTAL=1
 export _JAVA_AWT_WM_NONREPARENTING=1
 
 export EDITOR=nvim VISUAL=nvim TERMINAL=foot BROWSER=brave-origin
-export XCURSOR_THEME=Fedokawaii XCURSOR_SIZE=24   # the pixel pointers (~/.local/share/icons/Fedokawaii)
+# the pointers: "default" is ~/.local/share/icons/default, a link to the Sumi pointers of the
+# theme in use (kawa-theme re-points it), so programs reading this follow the theme too
+export XCURSOR_THEME=default XCURSOR_SIZE=24
 export PATH="$HOME/.local/bin:$PATH"
 
 mkdir -p "$HOME/.cache"
@@ -50,9 +52,9 @@ from_kmscon=${KAWA_KMSCON:-}; unset KAWA_KMSCON
 [ -s "$LOG" ] && mv -f "$LOG" "$LOG.old"
 : >"$LOG"
 
-# the compositor: dwl, or — should it be unable to start (a library missing) — the build
-# before it (dwl.prev); with neither, a rescue screen on this console instead of a login
-# that only loops back
+# the compositor: dwl — or, should it be unable to start (missing, a library missing, or it
+# stops at once), a rescue screen on this console instead of a login that only loops back:
+# fedokawaii repair builds it again
 rescue() {
   printf 'start-dwl: the desktop could not start: %s\n' "$1" >>"$LOG"
   # a dwl that ran for a moment may have started the graphical session for systemd (its
@@ -72,10 +74,8 @@ rescue() {
 runs() { [ -x "$1" ] && ! ldd "$1" 2>/dev/null | grep -q 'not found'; }
 DWL=/usr/local/bin/dwl
 if ! runs "$DWL"; then
-  if runs /usr/local/bin/dwl.prev; then DWL=/usr/local/bin/dwl.prev
-  elif [ ! -x "$DWL" ]; then rescue "dwl is not installed ($DWL)"
+  if [ ! -x "$DWL" ]; then rescue "dwl is not installed ($DWL)"
   else rescue "dwl is missing a library ($(ldd "$DWL" 2>/dev/null | awk '/not found/ { print $1; exit }'))"; fi
-  export KAWA_DWL_PREV=1
 fi
 AUTOSTART="$HOME/.config/dwl/autostart.sh"
 # dwl runs its startup command through sh -c: a home folder with a space or a quote in its
@@ -95,20 +95,8 @@ at_once() {
   read -r t1 _ </proc/uptime 2>/dev/null || t1=0
   [ "$rc" -ne 0 ] && [ $(( ${t1%.*} - ${t0%.*} )) -lt 5 ]
 }
-if at_once "$DWL"; then
-  # a new build that starts and stops at once (a change to config.h, say): the build before
-  # it, once — autostart says so with a notice (KAWA_DWL_PREV)
-  if [ "$DWL" != /usr/local/bin/dwl.prev ] && runs /usr/local/bin/dwl.prev; then
-    first=$rc
-    printf '\nstart-dwl: dwl stopped at once (exit %s); the build before it (dwl.prev) now\n\n' "$rc" >>"$LOG"
-    export KAWA_DWL_PREV=1
-    if at_once /usr/local/bin/dwl.prev; then
-      rescue "dwl stopped at once (exit $first), and so did the build before it (exit $rc)"
-    fi
-  else
-    rescue "${DWL##*/} stopped at once (exit $rc)"
-  fi
-fi
+# (a build that starts and stops at once — a change to config.h, say — is a rescue too)
+if at_once "$DWL"; then rescue "dwl stopped at once (exit $rc)"; fi
 
 # logged out: end the graphical session for systemd (the portals stop with it) and take
 # this session's display out of the environment of what systemd --user starts later

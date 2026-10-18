@@ -1,0 +1,685 @@
+#!/usr/bin/python3
+"""kawa-panel — quick settings, the panel under the bar's right end (its cat, or Super+X).
+
+    kawa-panel          run, hidden, for the whole session (autostart starts it): it opens
+                        at once when asked (kawa-quick sends SIGUSR1: open, or close)
+    kawa-panel --open   the same, open from the start (kawa-quick, should it not be running)
+
+What it shows, top to bottom, on one 12 px grid (the day, the time, the weather and the
+volume's number are the bar's, right above it, so they are not said again here):
+    two meters    明 brightness and 音 sound: twelve squares each; brightness's level beside
+                  them (sound's is the bar's), or the words when there is no level
+    the tiles     theme · night light · freesync · network · bluetooth · devices (those two
+                  only with a Bluetooth adapter) · drives · backup · dnd — each its icon, a
+                  kanji seal, its name and how it stands; the seal is stamped vermilion
+                  while the thing is on
+    three keys    wallpaper · screenshot · power (its icon alone), centred
+The one filled in vermilion is the one under the pointer or the keyboard's cursor — the
+desktop's one rule for what is active, as in every menu.
+
+Keys: arrows or h j k l move · on a meter ← → (h l) change it by 5 · Enter or Space does it ·
+Tab goes round · Esc closes. The mouse: a click does it; on a meter a click or a drag sets
+the level there, the wheel moves it by 5. A click outside closes it, as with every menu.
+Switches (theme, night light, freesync, bluetooth, dnd) stay open and show the new state; the
+rest close it and open their own menu or window. Everything is done by kawa-quick (--state,
+--do), which knows the machine; this only draws it and listens.
+
+Its colours are the theme's (~/.config/fedokawaii/current/panel.conf): a theme switch
+restyles it at once. Exit: 0 · 2 wrong use.
+"""
+import os
+import signal
+import sys
+import time
+
+sys.dont_write_bytecode = True
+
+HOME = os.path.expanduser("~")
+CURRENT = os.path.join(HOME, ".config/fedokawaii/current")
+ICONS_SH = os.path.join(HOME, ".config/fedokawaii/icons.sh")
+RUN = os.environ.get("XDG_RUNTIME_DIR") or f"/run/user/{os.getuid()}"
+PIDFILE = os.path.join(RUN, "kawa-panel.pid")
+DROP = os.path.join(RUN, "kawa-drop.open")          # lights the bar's cat (kawa-dwlstatus)
+LOST_GRACE = 0.6      # a toggle this soon after a click outside closed it is that same click
+
+# ── the grid (pixels) ─────────────────────────────────────────────────────────────────────
+BORDER, PAD = 2, 12                  # the frame and the margin inside it: as fuzzel's menus
+TILE_W, TILE_H, GAP = 88, 64, 6      # three tiles a row: 3 × 88 + 2 × 6 = 276, the content
+INNER = 3 * TILE_W + 2 * GAP
+SEAL = 23                            # the bar's seal: an 11 px kanji with 6 px all round
+RULE = 21                            # a section's rule: 10 px, the stitch, 10 px
+METER_H, METER_GAP = 20, 2           # a meter's row (its words 4 px from the top)
+SEGS, SEG_W, SEG_GAP, SEG_H = 12, 10, 2, 8
+KEY_H, KEY_W, KEY_GAP = 24, 94, 6    # the three keys at the foot: 94 · 94 · 24 (power)
+LINE = 12                            # a line of text, Fusion Pixel 12
+STAMP = "outline"                    # how a tile's seal is stamped (see seal() in main)
+
+
+
+def icons(path=ICONS_SH):
+    """Each icon by its name (moon, sun…) → its character, from icons.sh (tools/build-icons.py
+    writes both)."""
+    out = {}
+    with open(path, encoding="utf-8") as f:
+        text = f.read()
+    for line in text.splitlines():
+        if line.startswith("ICON_") and "=$'" in line:
+            k, v = line.split("=", 1)
+            raw = v[2:v.index("'", 2)]
+            out[k[5:].lower()] = bytes(int(h, 16) for h in raw.split("\\x")[1:]).decode("utf-8")
+    return out
+
+
+def colours(path):
+    """panel.conf: NAME=rrggbb → NAME: (r, g, b) in 0…1."""
+    out = {}
+    for line in open(path, encoding="utf-8"):
+        line = line.strip()
+        if line and not line.startswith("#") and "=" in line:
+            k, v = line.split("=", 1)
+            out[k] = tuple(int(v[i:i + 2], 16) / 255 for i in (0, 2, 4))
+    return out
+
+
+def parse_state(text):
+    s = {}
+    for line in text.splitlines():
+        if "\t" in line:
+            k, v = line.split("\t", 1)
+            s[k] = v
+    return s
+
+
+def percent(v):
+    """'70%' → 70; anything else (no DDC/CI, muted, no output) → None."""
+    return int(v[:-1]) if v.endswith("%") and v[:-1].isdigit() else None
+
+
+# ── what is shown ─────────────────────────────────────────────────────────────────────────
+class Item:
+    def __init__(self, key, kind, x, y, w, h, row, **kw):
+        self.key, self.kind, self.x, self.y, self.w, self.h, self.row = key, kind, x, y, w, h, row
+        self.__dict__.update(kw)
+
+    def inside(self, x, y):
+        return self.x <= x < self.x + self.w and self.y <= y < self.y + self.h
+
+    def centre(self):
+        return self.x + self.w / 2
+
+
+def tiles_of(s):
+    """(key, icon, kanji, name, value, stamped) for each tile, in order."""
+    dark = s.get("theme", "dark") != "light"
+    net = s.get("nettype", "offline")
+    t = [("theme", "moon" if dark else "sun", "夜" if dark else "昼", "theme", "dark" if dark else "light", True),
+         ("night", "lantern", "灯", "night light", s.get("night", "off"), s.get("night") == "on"),
+         ("vrr", "window", "滑", "freesync", s.get("vrr", "in games"), s.get("vrr") != "off"),
+         ("network", {"ethernet": "ethernet", "wifi": "wifi"}.get(net, "offline"), "網", "network",
+          s.get("network", "offline"), net in ("ethernet", "wifi") or s.get("network", "offline") != "offline")]
+    if "bluetooth" in s:
+        dev = s.get("devices", "off")
+        t += [("bluetooth", "bluetooth", "青", "bluetooth", s["bluetooth"], s["bluetooth"] == "on"),
+              ("devices", "headphones", "対", "devices", dev, dev not in ("none", "off"))]
+    b = s.get("backup", "not set up")
+    t += [("drives", "drive", "盤", "drives", s.get("drives", "none"), s.get("drives", "none") != "none"),
+          ("backup", "archive", "蔵", "backup", b, b not in ("never", "not set up")),
+          ("dnd", "bell_off" if s.get("dnd") == "on" else "bell", "静", "dnd", s.get("dnd", "off"), s.get("dnd") == "on")]
+    return t
+
+
+def rows_of(n):
+    """How many tiles each row holds: three a row; a short last row takes from the one above,
+    so no row is ever a lone tile (7 → 3 2 2; 8 → 3 3 2)."""
+    rows = [3] * (n // 3) + ([n % 3] if n % 3 else [])
+    if len(rows) > 1 and rows[-1] == 1:
+        rows[-2] -= 1
+        rows[-1] += 1
+    return rows
+
+
+def layout(s):
+    """Every item's place (in the panel's own pixels), the content's top left, the rules',
+    the size."""
+    x0 = y = BORDER + PAD
+    items, rules, r = [], [], 0
+    head = (x0, y)
+    for key, kanji, name in (("brightness", "明", "brightness"), ("sound", "音", "sound")):
+        items.append(Item(key, "meter", x0, y, INNER, METER_H, r, kanji=kanji, name=name, value=s.get(key, "")))
+        y += METER_H + METER_GAP
+        r += 1
+    y += RULE - METER_GAP
+    rules.append(y - RULE + 10)
+    t = tiles_of(s)
+    i = 0
+    for n in rows_of(len(t)):
+        w = (INNER - (n - 1) * GAP) // n
+        for c in range(n):
+            key, ic, kanji, name, value, lit = t[i]
+            items.append(Item(key, "tile", x0 + c * (w + GAP), y, w, TILE_H, r, icon=ic, kanji=kanji,
+                              name=name, value=value, lit=lit))
+            i += 1
+        y += TILE_H + GAP
+        r += 1
+    y += RULE - GAP
+    rules.append(y - RULE + 10)
+    keys = [("wallpaper", "picture", "wallpaper", KEY_W), ("screenshot", "camera", "screenshot", KEY_W),
+            ("power", "power", "", KEY_H)]
+    x = x0 + (INNER - sum(k[3] for k in keys) - GAP * (len(keys) - 1)) // 2
+    for key, ic, name, w in keys:
+        items.append(Item(key, "key", x, y, w, KEY_H, r, icon=ic, name=name,
+                          tip=s.get("wallpaper", "") if key == "wallpaper" else ""))
+        x += w + KEY_GAP
+    y += KEY_H + PAD + BORDER
+    return items, head, rules, (INNER + 2 * (PAD + BORDER), y)
+
+
+SWITCHES = ("theme", "night", "vrr", "bluetooth", "dnd")       # done in place: the panel stays
+OPENERS = ("network", "devices", "drives", "backup", "wallpaper", "screenshot", "power", "sound")
+
+
+class Panel:
+    """Everything but the drawing: what is open, where the cursor is, what a key or a click
+    does. The window, the processes and the clock are the ui's (GTK's in main())."""
+
+    def __init__(self, ui):
+        self.ui = ui
+        self.state = {}
+        self.items, self.head, self.rules, self.size = layout(self.state)
+        self.focus = "theme"
+        self.visible = False
+        self.lost_at = -1e9
+        self.reading = False
+        self.again = False
+        self.busy = {}          # a meter's level being set, and the next one asked meanwhile
+        self.wanted = {}
+
+    # the state
+    def refresh(self):
+        if self.reading:
+            self.again = True
+            return
+        self.reading = True
+        self.ui.run(["kawa-quick", "--state"], self.got_state)
+
+    def got_state(self, rc, out):
+        self.reading = False
+        if rc == 0:
+            new = parse_state(out)
+            for k, v in self.wanted.items():           # (a level still being set shows as asked)
+                new[k] = f"{v}%"
+            self.state = new
+            self.items, self.head, self.rules, self.size = layout(self.state)
+            if self.focus not in [i.key for i in self.items]:
+                self.focus = "theme"
+            self.ui.redraw()
+        if self.again:
+            self.again = False
+            self.refresh()
+
+    # open, closed
+    def toggle(self):
+        if self.visible:
+            self.close("toggled")
+        elif self.ui.now() - self.lost_at >= LOST_GRACE:
+            self.open()
+
+    def open(self):
+        self.ui.close_menu()                          # a fuzzel menu on screen goes first
+        self.visible = True
+        self.ui.show()
+        self.ui.light(True)
+        self.refresh()
+
+    def close(self, how):
+        if not self.visible:
+            return
+        self.visible = False
+        if how == "lost":
+            self.lost_at = self.ui.now()
+        self.ui.hide()
+        self.ui.light(False)
+
+    # doing
+    def item(self, key):
+        return next((i for i in self.items if i.key == key), None)
+
+    def activate(self, key):
+        if key in SWITCHES:
+            self.ui.run(["kawa-quick", "--do", key], lambda rc, out: self.refresh())
+        elif key in OPENERS:
+            self.close("chosen")
+            self.ui.launch(["kawa-quick", "--do", key])
+        elif key == "brightness":
+            pass                                       # (its meter is all there is)
+
+    def set_level(self, key, pct):
+        pct = max(0, min(100, int(round(pct / 5.0) * 5)))
+        self.wanted[key] = pct
+        self.state[key] = f"{pct}%"
+        self.items, self.head, self.rules, self.size = layout(self.state)
+        self.ui.redraw()
+        if not self.busy.get(key):
+            self._send(key)
+
+    def _send(self, key):
+        pct = self.wanted.get(key)
+        if pct is None:
+            return
+        self.busy[key] = pct
+        do = "brightness" if key == "brightness" else "volume"
+        self.ui.run(["kawa-quick", "--do", do, str(pct)], lambda rc, out, k=key: self._sent(k))
+
+    def _sent(self, key):
+        sent = self.busy.pop(key, None)
+        if self.wanted.get(key) != sent:
+            self._send(key)                           # (moved again meanwhile: the latest)
+        else:
+            self.wanted.pop(key, None)
+            self.refresh()
+
+    def step(self, key, d):
+        now = percent(self.state.get(key, ""))
+        if now is not None:
+            self.set_level(key, now + d)
+
+    def meter_at(self, item, x):
+        """The level a click at x on a meter's squares means (None: not on them)."""
+        x0 = item.x + item.w - 6 - 4 * 6 - 8 - (SEGS * SEG_W + (SEGS - 1) * SEG_GAP)
+        span = SEGS * SEG_W + (SEGS - 1) * SEG_GAP
+        if x0 - 4 <= x < x0 + span + 4:
+            return max(0.0, min(1.0, (x - x0) / span)) * 100
+        return None
+
+    # keys
+    def key(self, name):
+        cur = self.item(self.focus) or self.items[0]
+        if name in ("Escape",):
+            self.close("chosen")
+        elif name in ("Return", "KP_Enter", "space"):
+            self.activate(cur.key)
+        elif name in ("Left", "h", "Right", "l") and cur.kind == "meter":
+            self.step(cur.key, -5 if name in ("Left", "h") else 5)
+        elif name in ("Left", "h", "Right", "l"):
+            row = [i for i in self.items if i.row == cur.row]
+            j = row.index(cur) + (-1 if name in ("Left", "h") else 1)
+            if 0 <= j < len(row):
+                self.move(row[j].key)
+        elif name in ("Up", "k", "Down", "j"):
+            r = cur.row + (-1 if name in ("Up", "k") else 1)
+            row = [i for i in self.items if i.row == r]
+            if row:
+                self.move(min(row, key=lambda i: (abs(i.centre() - cur.centre()), i.x)).key)
+        elif name in ("Tab", "ISO_Left_Tab"):
+            keys = [i.key for i in self.items]
+            j = (keys.index(cur.key) + (-1 if name == "ISO_Left_Tab" else 1)) % len(keys)
+            self.move(keys[j])
+
+    def move(self, key):
+        if key != self.focus:
+            self.focus = key
+            self.ui.redraw()
+
+    # the mouse
+    def at(self, x, y):
+        return next((i for i in self.items if i.inside(x, y)), None)
+
+    def hover(self, x, y, dragging=False):
+        it = self.at(x, y)
+        if dragging and self.dragging:
+            m = self.item(self.dragging)
+            v = self.meter_at(m, x) if m else None
+            if v is not None:
+                self.set_level(m.key, v)
+            return
+        if it:
+            self.move(it.key)
+
+    dragging = None
+
+    def press(self, x, y):
+        it = self.at(x, y)
+        if not it:
+            return
+        self.move(it.key)
+        if it.kind == "meter":
+            v = self.meter_at(it, x)
+            if v is not None:
+                self.dragging = it.key
+                self.set_level(it.key, v)
+                return
+        self.activate(it.key)
+
+    def release(self):
+        self.dragging = None
+
+    def scroll(self, x, y, up):
+        it = self.at(x, y)
+        if it and it.kind == "meter":
+            self.step(it.key, 5 if up else -5)
+
+
+# ── on screen ─────────────────────────────────────────────────────────────────────────────
+def main(argv):
+    if len(argv) > 1 and argv[1] in ("-h", "--help"):
+        print(__doc__.strip())
+        return 0
+    if argv[1:] not in ([], ["--open"]):
+        print("usage: kawa-panel [--open] (kawa-panel --help)", file=sys.stderr)
+        return 2
+    # one at a time: another one running is asked to open instead
+    try:
+        pid = int(open(PIDFILE).read())
+        if pid != os.getpid() and b"kawa-panel" in open(f"/proc/{pid}/cmdline", "rb").read():
+            if argv[1:] == ["--open"]:
+                os.kill(pid, signal.SIGUSR1)
+            return 0
+    except (OSError, ValueError):
+        pass
+    import gi
+    gi.require_version("Gtk", "3.0")
+    gi.require_version("Gdk", "3.0")
+    gi.require_version("GtkLayerShell", "0.1")
+    gi.require_version("PangoCairo", "1.0")
+    from gi.repository import Gdk, Gio, GLib, Gtk, GtkLayerShell, Pango, PangoCairo
+    import cairo
+
+    # a press that comes while the panel is still being built (right after login, or after a
+    # restart) is kept, not fatal: SIGUSR1's default would end it before GLib takes the signal
+    early = []
+    signal.signal(signal.SIGUSR1, lambda *_: early.append(1))
+    with open(PIDFILE, "w") as f:
+        f.write(str(os.getpid()))
+    ic = icons()
+    pal = {}
+
+    def restyle():
+        pal.clear()
+        pal.update(colours(os.path.join(CURRENT, "panel.conf")))
+
+    restyle()
+
+    # a window of its own each time it opens (as each menu is a fuzzel of its own): one
+    # hidden and shown again can come back without the keyboard and the mouse, after a
+    # click outside took them from it
+    view = {"win": None, "area": None}
+
+    def make_window():
+        win = Gtk.Window()
+        win.set_title("quick settings")
+        GtkLayerShell.init_for_window(win)
+        GtkLayerShell.set_namespace(win, "kawa-panel")
+        GtkLayerShell.set_layer(win, GtkLayerShell.Layer.OVERLAY)
+        # as kawa-menu --drop: under the bar's right end, 8 px from it and from the screen's edge
+        # (the gap the windows keep), its border in line with a window's there
+        for edge in (GtkLayerShell.Edge.TOP, GtkLayerShell.Edge.RIGHT):
+            GtkLayerShell.set_anchor(win, edge, True)
+            GtkLayerShell.set_margin(win, edge, 8)
+        GtkLayerShell.set_keyboard_mode(win, GtkLayerShell.KeyboardMode.EXCLUSIVE)
+        # the keys and the mouse are the window's own (the drawing fills it, pixel for pixel)
+        win.add_events(Gdk.EventMask.POINTER_MOTION_MASK | Gdk.EventMask.BUTTON_PRESS_MASK
+                       | Gdk.EventMask.BUTTON_RELEASE_MASK | Gdk.EventMask.SCROLL_MASK
+                       | Gdk.EventMask.SMOOTH_SCROLL_MASK | Gdk.EventMask.KEY_PRESS_MASK)
+        win.set_has_tooltip(True)
+        area = Gtk.DrawingArea()
+        win.add(area)
+        area.connect("draw", draw)
+        win.connect("key-press-event", on_key)
+        win.connect("motion-notify-event", on_motion)
+        win.connect("button-press-event", on_press)
+        win.connect("button-release-event", on_release)
+        win.connect("scroll-event", on_scroll)
+        win.connect("query-tooltip", on_tip)
+        # a click outside (dwl takes the keyboard back), or another menu taking it: closed
+        win.connect("focus-out-event", lambda w, ev: panel.close("lost") or False)
+        area.set_size_request(*panel.size)
+        view["win"], view["area"] = win, area
+        return win
+
+    class UI:
+        def now(self):
+            return time.monotonic()
+
+        def redraw(self):
+            if view["area"]:
+                view["area"].set_size_request(*panel.size)
+                view["area"].queue_draw()
+
+        def show(self):
+            self.hide()
+            make_window().show_all()
+
+        def hide(self):
+            if view["win"]:
+                w, view["win"], view["area"] = view["win"], None, None
+                w.hide()
+                GLib.idle_add(w.destroy)            # (not inside its own focus-out handler)
+
+        def light(self, on):
+            try:
+                if on:
+                    open(DROP, "w").close()
+                else:
+                    os.unlink(DROP)
+            except OSError:
+                pass
+            self.launch(["kawa-dwlstatus", "--poke", "15"])
+
+        def close_menu(self):
+            # kawa-menu's record: "PID WHEN HOW WHO"; a fuzzel open on screen is closed
+            rec = os.path.join(RUN, f"kawa-menu-{os.environ.get('WAYLAND_DISPLAY', '')}.state")
+            try:
+                pid, _, how = open(rec).read().split()[:3]
+                if how == "open" and open(f"/proc/{int(pid)}/comm").read().strip() == "fuzzel":
+                    os.kill(int(pid), signal.SIGTERM)
+            except (OSError, ValueError):
+                pass
+
+        def run(self, argv, done):
+            p = Gio.Subprocess.new(argv, Gio.SubprocessFlags.STDOUT_PIPE | Gio.SubprocessFlags.STDERR_SILENCE)
+
+            def fin(proc, res):
+                try:
+                    _, out, _ = proc.communicate_utf8_finish(res)
+                except GLib.Error:
+                    out = ""
+                done(proc.get_exit_status() if proc.get_if_exited() else 1, out or "")
+            p.communicate_utf8_async(None, None, fin)
+
+        def launch(self, argv):
+            Gio.Subprocess.new(argv, Gio.SubprocessFlags.STDOUT_SILENCE | Gio.SubprocessFlags.STDERR_SILENCE)
+
+    panel = Panel(UI())
+
+    # ── drawing: every square on whole pixels, the letters unsmoothed ──
+    fo = cairo.FontOptions()
+    fo.set_antialias(cairo.ANTIALIAS_NONE)
+    fo.set_hint_style(cairo.HINT_STYLE_FULL)
+    fo.set_hint_metrics(cairo.HINT_METRICS_ON)
+    font = Pango.FontDescription.from_string("Fusion Pixel 12px Mono ja, Sumi Icons")
+    font.set_absolute_size(12 * Pango.SCALE)
+
+    def col(cr, name):
+        cr.set_source_rgb(*pal[name])
+
+    def box(cr, x, y, w, h, name):
+        col(cr, name)
+        cr.rectangle(x, y, w, h)
+        cr.fill()
+
+    def frame(cr, x, y, w, h, name, t=1):
+        box(cr, x, y, w, t, name)
+        box(cr, x, y + h - t, w, t, name)
+        box(cr, x, y + t, t, h - 2 * t, name)
+        box(cr, x + w - t, y + t, t, h - 2 * t, name)
+
+    def text_layout(cr, s):
+        lay = PangoCairo.create_layout(cr)
+        PangoCairo.context_set_font_options(lay.get_context(), fo)
+        lay.set_font_description(font)
+        lay.set_text(s, -1)
+        return lay
+
+    def text(cr, x, y, s, name, right=False, width=None):
+        """s on the line whose 12 px box starts at y; cut to width with … if it would not fit."""
+        lay = text_layout(cr, s)
+        if width is not None and lay.get_pixel_extents()[1].width > width:
+            while s and text_layout(cr, s + "…").get_pixel_extents()[1].width > width:
+                s = s[:-1]
+            lay = text_layout(cr, s.rstrip() + "…")
+        ink, log = lay.get_pixel_extents()
+        col(cr, name)
+        cr.move_to(x - log.width if right else x, y - log.y - (log.height - LINE))
+        PangoCairo.show_layout(cr, lay)
+        return log.width
+
+    def glyph(cr, x, y, ch, name, box_w=None, box_h=None):
+        """An icon or a kanji, its ink centred in a box_w × box_h box at x, y (a line if not given)."""
+        lay = text_layout(cr, ch)
+        ink, log = lay.get_pixel_extents()
+        col(cr, name)
+        gx = x + ((box_w - ink.width) // 2 - ink.x if box_w else 0)
+        gy = y + ((box_h - ink.height) // 2 - ink.y if box_h else -log.y - (log.height - LINE))
+        cr.move_to(gx, gy)
+        PangoCairo.show_layout(cr, lay)
+
+    def seal(cr, x, y, ch, stamped, on_fill):
+        """A tile's seal. On: stamped in vermilion ink as a real hanko is — the kanji and a
+        2 px frame (朱文: red letters on the paper, lighter than the day's filled seal at the
+        top, so nine of them never shout). Off: a faint 1 px outline, the kanji faint."""
+        if STAMP == "filled" and stamped:
+            box(cr, x, y, SEAL, SEAL, "text_on_accent" if on_fill else "accent")
+            glyph(cr, x, y, ch, "accent" if on_fill else "text_on_accent", SEAL, SEAL)
+        elif stamped:
+            frame(cr, x, y, SEAL, SEAL, "text_on_accent" if on_fill else "accent_text", 2)
+            glyph(cr, x, y, ch, "text_on_accent" if on_fill else "accent_text", SEAL, SEAL)
+        else:
+            frame(cr, x, y, SEAL, SEAL, "accent_lo" if on_fill else "edge2")
+            glyph(cr, x, y, ch, "accent_lo" if on_fill else "faint", SEAL, SEAL)
+
+    def stitch(cr, x, y, w):
+        col(cr, "edge2")
+        for sx in range(x, x + w, 5):
+            cr.rectangle(sx, y, min(3, x + w - sx), 1)
+        cr.fill()
+
+    def draw(widget, cr):
+        W, H = panel.size
+        box(cr, 0, 0, W, H, "surface")
+        frame(cr, 0, 0, W, H, "muted", BORDER)
+        hx, hy = panel.head
+        for ry in panel.rules:
+            stitch(cr, hx, ry, INNER)
+        for it in panel.items:
+            on = it.key == panel.focus
+            if it.kind == "meter":
+                if on:
+                    box(cr, it.x, it.y, it.w, it.h, "accent")
+                ty = it.y + (it.h - LINE) // 2
+                glyph(cr, it.x + 6, ty, it.kanji, "text_on_accent" if on else "accent_text")
+                text(cr, it.x + 6 + LINE + 6, ty, it.name, "text_on_accent" if on else "text")
+                pct = percent(it.value)
+                if pct is None or it.key != "sound":     # (the volume's number: the bar's, above)
+                    text(cr, it.x + it.w - 6, ty, it.value, "text_on_accent" if on else "muted", right=True)
+                if pct is None:
+                    continue                          # (no DDC/CI, muted, no output: the words alone)
+                span = SEGS * SEG_W + (SEGS - 1) * SEG_GAP
+                sx = it.x + it.w - 6 - 4 * 6 - 8 - span
+                lit = round((pct or 0) * SEGS / 100)
+                for i in range(SEGS):
+                    # (on the vermilion fill the lit squares in the colour of everything on vermilion)
+                    name = ("text_on_accent" if on else "asagi") if i < lit else ("accent_lo" if on else "edge2")
+                    box(cr, sx + i * (SEG_W + SEG_GAP), it.y + (it.h - SEG_H) // 2, SEG_W, SEG_H, name)
+            elif it.kind == "tile":
+                if on:
+                    box(cr, it.x, it.y, it.w, it.h, "accent")
+                else:
+                    box(cr, it.x, it.y, it.w, it.h, "key")
+                    frame(cr, it.x, it.y, it.w, it.h, "edge")
+                ink = "text_on_accent" if on else "text"
+                glyph(cr, it.x + 6, it.y + 6, ic[it.icon], ink, None, SEAL)
+                seal(cr, it.x + it.w - 6 - SEAL, it.y + 6, it.kanji, it.lit, on)
+                tw = it.w - 12
+                text(cr, it.x + 6, it.y + 6 + SEAL + 4, it.name, "text_on_accent" if on else ("strong" if it.lit else "text"), width=tw)
+                text(cr, it.x + 6, it.y + 6 + SEAL + 4 + LINE + 1, it.value, "text_on_accent" if on else "muted", width=tw)
+            else:
+                if on:
+                    box(cr, it.x, it.y, it.w, it.h, "accent")
+                else:
+                    box(cr, it.x, it.y, it.w, it.h, "key")
+                    frame(cr, it.x, it.y, it.w, it.h, "edge")
+                ink = "text_on_accent" if on else "text"
+                ty = it.y + (it.h - LINE) // 2
+                if it.name:
+                    lw = text_layout(cr, it.name).get_pixel_extents()[1].width
+                    x = it.x + (it.w - (LINE + 6 + lw)) // 2
+                    glyph(cr, x, ty, ic[it.icon], ink)
+                    text(cr, x + LINE + 6, ty, it.name, ink)
+                else:
+                    glyph(cr, it.x, it.y, ic[it.icon], ink, it.w, it.h)
+        return True
+
+    def on_key(w, ev):
+        panel.key(Gdk.keyval_name(ev.keyval) or "")
+        return True
+
+    def on_motion(w, ev):
+        panel.hover(ev.x, ev.y, dragging=bool(ev.state & Gdk.ModifierType.BUTTON1_MASK))
+        return True
+
+    def on_press(w, ev):
+        if ev.button == 1 and ev.type == Gdk.EventType.BUTTON_PRESS:
+            panel.press(ev.x, ev.y)
+        return True
+
+    def on_release(w, ev):
+        panel.release()
+        return True
+
+    def on_scroll(w, ev):
+        if ev.direction == Gdk.ScrollDirection.SMOOTH:
+            _, dx, dy = ev.get_scroll_deltas()
+            if dy:
+                panel.scroll(ev.x, ev.y, dy < 0)
+        elif ev.direction in (Gdk.ScrollDirection.UP, Gdk.ScrollDirection.DOWN):
+            panel.scroll(ev.x, ev.y, ev.direction == Gdk.ScrollDirection.UP)
+        return True
+
+    def on_tip(w, x, y, kb, tip):
+        it = panel.at(x, y)
+        if it and getattr(it, "tip", ""):
+            tip.set_text(it.tip)
+            return True
+        return False
+
+    # a theme switch re-points ~/.config/fedokawaii/current: the new colours at once
+    mon = Gio.File.new_for_path(os.path.dirname(CURRENT)).monitor_directory(Gio.FileMonitorFlags.WATCH_MOVES, None)
+
+    def on_dir(m, f, other, ev):
+        if os.path.basename((other or f).get_path()) == "current" or f.get_basename() == "current":
+            try:
+                restyle()
+            except OSError:
+                return
+            panel.ui.redraw()
+    mon.connect("changed", on_dir)
+
+    GLib.unix_signal_add(GLib.PRIORITY_DEFAULT, signal.SIGUSR1, lambda: panel.toggle() or True)
+    GLib.unix_signal_add(GLib.PRIORITY_DEFAULT, signal.SIGTERM, lambda: Gtk.main_quit() or False)
+    panel.refresh()
+    if argv[1:] == ["--open"] or len(early) % 2:
+        panel.open()
+    try:
+        Gtk.main()
+    finally:
+        panel.ui.light(False) if panel.visible else None
+        try:
+            if int(open(PIDFILE).read()) == os.getpid():
+                os.unlink(PIDFILE)
+        except (OSError, ValueError):
+            pass
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv))

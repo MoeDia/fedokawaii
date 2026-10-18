@@ -23,6 +23,7 @@ has "$OUT" "✔ verified"; lacks "$OUT" "✘"
 read -r t p f w <"$W/var/lib/fedokawaii/last-verify"
 [[ $t =~ ^[0-9]+$ ]] && ((p > 100)) && _ok || _no "last-verify: $t $p $f $w"; eq "$f" 0
 has "$OUT" "✔ all " ; has "$OUT" "manifest packages installed"
+has "$OUT" "(built here by lpf)" "Spotify, built here: counted, and said"
 has "$OUT" "✔ user unit wireplumber.service enabled"; has "$OUT" "✔ hardware decode: H264High"
 has "$OUT" "✔ torrent port 6881 open"; has "$OUT" "✔ firewall: no ssh / cockpit"
 has "$OUT" "✔ ROCm SMI library for btop (librocm_smi64.so.1.0)"
@@ -40,20 +41,29 @@ fkh_add units "user-active prowlarr.service"
 V; eq "$RC" 0; lacks "$OUT" "starting Prowlarr"; has "$OUT" "✔ Prowlarr starts"
 
 # ── warnings: never a failure ────────────────────────────────────────────────
-case_ "warnings only (no firewall running, no AV1 decoding, GE-Proton not yet, the file dialog not built, Syncplay not yet, a driver package missing): exit 0"
+case_ "warnings only (no firewall running, no AV1 decoding, GE-Proton not yet, Syncplay and ble.sh not yet, a driver package missing): exit 0"
 back built
 fkh firewalld-down
 printf '      VAProfileH264High   : VAEntrypointVLD\n      VAProfileHEVCMain   : VAEntrypointVLD\n' >"$FKH/vainfo-renderD128"
-rm -f "$W/home/fkuser/.local/share/fedokawaii/upstream/ge-proton" "$W/usr/local/libexec/xdg-desktop-portal-termfilechooser"
-rm -f "$W/home/fkuser/.local/share/fedokawaii/upstream/syncplay"
+rm -f "$W/home/fkuser/.local/share/fedokawaii/upstream/ge-proton"
+rm -f "$W/home/fkuser/.local/share/fedokawaii/upstream/syncplay" "$W/home/fkuser/.local/share/fedokawaii/upstream/blesh"
 fkh kmsg '[ 3.1] iwlwifi 0000:00:14.3: Direct firmware load for iwlwifi-so-a0-gf-a0-89.ucode failed with error -2'
 fkh fwfiles "iwlwifi-mvm-firmware /usr/lib/firmware/iwlwifi-so-a0-gf-a0-89.ucode.xz"
 V; eq "$RC" 0 "$(grep '✘' <<<"$OUT" | head -n3 | tr '\n' '|')"
 has "$OUT" "! no firewall running (firewalld)"; lacks "$OUT" "torrent port 6881"; lacks "$OUT" "firewall: no ssh"
 has "$OUT" "! no AV1 hardware decode"; has "$OUT" "! GE-Proton not installed yet"
-has "$OUT" "! yazi file dialog not built"; has "$OUT" "! driver packages this machine needs — iwlwifi-mvm-firmware"
-has "$OUT" "! Syncplay not installed yet"
+has "$OUT" "! driver packages this machine needs — iwlwifi-mvm-firmware"
+has "$OUT" "! Syncplay not installed yet"; has "$OUT" "! ble.sh not installed yet"
 has "$OUT" "warning(s)"; read -r _ _ _ w <"$W/var/lib/fedokawaii/last-verify"; ((w >= 5)) && _ok || _no "$w warnings recorded"
+case_ "the yazi file dialog not built: a failure — apps could not open or save a file"
+back built
+rm -f "$W/usr/local/libexec/xdg-desktop-portal-termfilechooser"
+V; eq "$RC" 3 "a failure: verify ran, something needs you"; has "$OUT" "✘ yazi file dialog not built (termfilechooser)"
+
+case_ "dwl's source without the whole patch (it would not come off cleanly): a failure, named"
+back built; echo 1 >"$FKH/rc-git-reverse"
+V; eq "$RC" 3; has "$OUT" "✘ dwl.patch applied"
+rm -f "$FKH/rc-git-reverse"; V; lacks "$OUT" "✘ dwl.patch applied" "the whole patch in place: passes"
 
 # ── failures: each named, exit 3 ─────────────────────────────────────────────
 case_ "a damaged system: each failure named in place and in the list at the end, exit 3"
@@ -68,6 +78,7 @@ fkh scrub-status $'Scrub started: x\nError summary:    csum=3\n  Corrected:     
 echo 'PROWLARR_API_KEY=short' >"$W/home/fkuser/.config/fedokawaii/secrets.sh"
 echo 1 >"$FKH/rc-restic"                                                   # restic broken
 echo 1111111111111111111111111111111111111111 >"$W/home/fkuser/.local/share/fedokawaii/upstream/syncplay"   # an older pin
+sed -i 's/+d81fd54/+0123456/' "$W/home/fkuser/.local/share/blesh/ble.sh"   # ble.sh: a copy of another commit
 fkh_add installed systemd-oomd-defaults                                    # oomd's rules: a whole-session kill
 fkh_add units "global-enabled grub-boot-success.timer"                     # any boot would count as successful
 rm -f "$W/etc/modprobe.d/fedokawaii-btusb.conf" "$W/etc/systemd/system/user@.service.d/fedokawaii.conf"
@@ -76,6 +87,7 @@ has "$(line "✘ missing packages")" grubby; has "$(line "✘ missing packages")
 has "$OUT" "✘ forbidden packages present — nano"; has "$(line "✘ forbidden packages present")" systemd-oomd-defaults
 has "$OUT" "✘ Bluetooth dongle power saving off (btusb)"; has "$OUT" "✘ shutdown waits 30 s at most for your services"
 has "$OUT" "✘ installed outside the manifest — htop"
+lacks "$(line "✘ installed outside the manifest")" spotify-client "Spotify (built here by lpf) is the desktop's"
 has "$OUT" "✘ user unit wireplumber.service enabled"
 has "$OUT" "✘ firewall: no ssh / cockpit"
 has "$OUT" "✘ one kernel (two at most while a new one settles in)"
@@ -83,7 +95,7 @@ has "$OUT" "✘ hardware decode — vainfo found no VA-API driver on /dev/dri/re
 has "$OUT" "✘ the last scrub found errors"
 has "$OUT" "✘ Prowlarr key in secrets.sh"
 has "$OUT" "✘ restic runs"
-has "$OUT" "✘ Syncplay is not the pinned v1.7.6"
+has "$OUT" "✘ Syncplay is not the pinned v1.7.6"; has "$OUT" "✘ ble.sh d81fd54 loads"
 has "$OUT" "✘ boot success marked by the desktop, not at boot"
 has "$OUT" "checks failed:"; has "$OUT" "most of these fix themselves: fedokawaii repair"
 read -r _ _ f _ <"$W/var/lib/fedokawaii/last-verify"; ((f >= 11)) && _ok || _no "$f failures recorded"
@@ -99,8 +111,12 @@ V; eq "$RC" 3; has "$OUT" "✘ manifest packages: rpm gave no answer"; has "$OUT
 lacks "$OUT" "✔ all "
 case_ "one boot entry without the console argument (a kernel added by hand, say): named, exit 3"
 back built; sed -i '2 s/ systemd.tty.term.console=dumb//' "$FKH/grub-args"
-V; eq "$RC" 3; has "$OUT" "✘ no console-size wait at boot (systemd.tty.term.console=dumb on every entry)"
-has "$OUT" "✔ amdgpu.ppfeaturemask on the kernel" "the other argument's check unmoved"
+V; eq "$RC" 3; has "$OUT" "✘ systemd.tty.term.console=dumb on every boot entry"
+has "$OUT" "✔ amdgpu.ppfeaturemask on the kernel" "the other argument's check unmoved"; has "$OUT" "✔ rhgb on every boot entry"
+case_ "an install whose entries lack rhgb quiet (no splash): named, each, exit 3"
+back built; sed -i 's/ rhgb quiet//' "$FKH/grub-args"
+V; eq "$RC" 3; has "$OUT" "✘ rhgb on every boot entry"; has "$OUT" "✘ quiet on every boot entry"
+has "$OUT" "✔ systemd.tty.term.console=dumb on every boot entry"
 case_ "a kernel whose boot image dracut could not make (dnf does not fail on that): named, exit 3"
 back built; fkh kernels "6.18.1-200.fc44.x86_64" "$(uname -r)"              # the older one at rest, no image for it
 V; eq "$RC" 3; has "$OUT" "✘ kernels without a boot image (initramfs) — 6.18.1-200.fc44.x86_64 — would not start; repair makes them (dracut)"
@@ -172,8 +188,8 @@ V; has "$OUT" "✘ Wi-Fi managed by NetworkManager"
 fkh nm-devices "ethernet:connected" "wifi:disconnected"; V; has "$OUT" "✔ Wi-Fi managed by NetworkManager"
 
 # ── DNF's settings ───────────────────────────────────────────────────────────
-case_ "Node 22 and PackageKit as weak dependencies: kept out by DNF's settings (every name), else a failure"
-n="dnf never takes Node 22 or PackageKit as a weak dependency"
+case_ "Node 22, PackageKit, Java and LibreOffice's offline help as weak dependencies: kept out by DNF's settings (every name), else a failure"
+n="dnf never takes Node 22, PackageKit, Java or LibreOffice's offline help as a weak dependency"
 back built; V; has "$OUT" "✔ $n"
 sed -i '/^exclude_from_weak=/d' "$W/etc/dnf/libdnf5.conf.d/90-fedokawaii.conf"
 V; eq "$RC" 3; has "$OUT" "✘ $n"
@@ -181,6 +197,8 @@ echo 'exclude_from_weak=nodejs22*,PackageKit' >>"$W/etc/dnf/libdnf5.conf.d/90-fe
 V; has "$OUT" "✘ $n" "Fedora 45's package named nodejs left out"
 sed -i 's/^exclude_from_weak=.*/exclude_from_weak=nodejs,nodejs22*/' "$W/etc/dnf/libdnf5.conf.d/90-fedokawaii.conf"
 V; has "$OUT" "✘ $n" "PackageKit left out"
+sed -i 's/^exclude_from_weak=.*/exclude_from_weak=nodejs,nodejs22*,PackageKit,libreoffice-help-*/' "$W/etc/dnf/libdnf5.conf.d/90-fedokawaii.conf"
+V; has "$OUT" "✘ $n" "Java left out"
 
 case_ "dnf's metadata timer not masked (static, on by its package's link): a failure — it downloads in the background"
 back built; sed -i 's/^masked dnf5-makecache.timer$/static dnf5-makecache.timer/' "$FKH/units"

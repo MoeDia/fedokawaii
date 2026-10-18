@@ -1,6 +1,6 @@
 # Real renders of the fedokawaii desktop (headless, Fedora 44 versions)
 
-`shoot.sh` starts the real apps — waybar, fuzzel, mako, foot/footclient, swaylock — with
+`shoot.sh` starts the real apps — waybar, fuzzel, mako, foot/footclient, gtklock, quick settings' panel — with
 the test user's configs (what `theme.sh --user kawau` installed), in a headless sway on a
 1920×1080 output at scale 1, and captures them with grim for the dark and the light theme.
 The apps, and the libraries that draw their text, are built at the versions Fedora 44
@@ -37,9 +37,9 @@ Debugging: `SHOOT_SWAY_DEBUG=1` (sway -d into the sway log), `SHOOT_FOOT_DEBUG=1
 | `desktop.png` | wallpaper + bar |
 | `bar.png`, `bar-left.png`, `bar-center.png`, `bar-right.png` | the bar (1920×27) and its thirds (overlapping) |
 | `bar-right-muted.png` | the bar's right end while the sink is muted |
-| `menu-quick.png` | quick settings (`kawa-quick`) on a machine with a Bluetooth adapter |
+| `menu-quick.png` | quick settings (`kawa-panel`) on a machine with a Bluetooth adapter |
 | `menu-quick-nobt.png` | the same without one (this sandbox's real state) |
-| `menu-power.png` `menu-audio.png` `menu-calendar.png` `menu-brightness.png` `menu-wallpaper.png` `menu-help.png` | the other `kawa-*` menus |
+| `menu-power.png` `menu-audio.png` `menu-calendar.png` `menu-wallpaper.png` `menu-help.png` | the other `kawa-*` menus |
 | `menu-clipboard.png` | `cliphist list \| kawa-menu --prompt '> ' --width 60 --title clipboard` (Super+V) |
 | `launcher.png` | `fuzzel` (Super+Space) with the user's config |
 | `notify-normal.png` | `kawa-screenshot`'s notice (`-a desktop`, the picture as icon) |
@@ -48,10 +48,10 @@ Debugging: `SHOOT_SWAY_DEBUG=1` (sway -d into the sway log), `SHOOT_FOOT_DEBUG=1
 | `osd-volume.png` `osd-brightness.png` `osd-muted.png` | the level display: `kawa-volume up` (57→62 %), `kawa-brightness +10` (60→70 %), `kawa-volume mute` |
 | `terminal.png` (+ `terminal-full.png`) | footclient 1100×700 (foot snaps it to 1100×692: whole cells), typed for real: `sleep 3.2`, `fetch neko`, `ls` in a git repo with changes |
 | `colors.png` | footclient showing the 16 colours as swatches, as text colours, and bold/dim/italic/underline/reverse/strike |
-| `lock.png`, `lock-center.png`, `lock-typing-center.png` | `kawa-lock` (swaylock -f -C current/swaylock + the padlock), and its centre while typing |
+| `lock.png`, `lock-center.png`, `lock-typing-center.png` | `kawa-lock` (gtklock with the theme's lock style and module), and its centre while typing (the ◆ dots) |
 
 `logs/<theme>/` — every app's stdout/stderr (`waybar.log`, `mako.log`, `menu-*.log`,
-`foot-server.log`, `swaylock.log`, …), `fuzzel --check-config` and `foot --check-config`
+`foot-server.log`, `gtklock.log`, …), `fuzzel --check-config` and `foot --check-config`
 results, `libs.txt` (the drawing libraries each running app actually mapped) and
 `audio.log` (`wpctl status` and every PipeWire node).
 `logs/warnings.txt` — the lines of those logs that look like warnings or errors.
@@ -99,7 +99,7 @@ Fedora's own hosts are not reachable from this sandbox).
 | waybar | 0.15.0 | 0.15.0 | github.com/Alexays/Waybar tag (spdlog 1.15.2 / fmt 12.0.0 wraps from GitHub) |
 | fuzzel | 1.14.0 | 1.14.0 | tag 1.14.0 from the GitHub fork yangyingchao/fuzzel-x — Daniel Eklöf's PGP-signed tag object, verified with the key Debian ships (B19964FB…C116573F) |
 | mako | 1.11.0 | 1.11.0 | github.com/emersion/mako tag v1.11.0 |
-| swaylock | 1.8.6 | 1.8.6 | github.com/swaywm/swaylock tag v1.8.6 |
+| gtklock | 4.0.0 | 4.0.0 | github.com/jovanlanik/gtklock tag v4.0.0, built against the GTK above into `/opt/r18` (`stubs/gtklock` runs it) |
 | foot | 1.27.0 | 1.27.0 | foot_1.27.0.orig.tar.xz (Ubuntu pool; sha256 matches the .dsc) |
 | fcft | 3.3.3 | 3.3.3 | fcft_3.3.3.orig.tar.xz (Ubuntu pool) |
 | tllist | 1.1.0 | 1.1.0 | tllist_1.1.0.orig.tar.gz (Ubuntu pool) |
@@ -245,8 +245,8 @@ zathura-pdf-poppler (Fedora: mupdf).
 
 Not packaged for this Ubuntu, kept in `/opt/kit-tools/bin` (and linked into the test user's
 `~/.local/bin`): wiremix v0.11.0 (built from its tag with `cargo build --locked`), bluetui
-0.8.2 (the upstream static musl release file, the one lib/upstream.sh pins), gdu v5.32.0 and
-sc-im 0.8.5, and VisiData 3.3 with dbus-next 0.2.3 in `/opt/kit-tools/venv` (pip; dbus-next
+0.8.2 (the upstream static musl release file, the one lib/upstream.sh pins) and gdu v5.32.0,
+and VisiData 3.3 with dbus-next 0.2.3 in `/opt/kit-tools/venv` (pip; dbus-next
 is what `lib/fakebluez.py` runs on).
 
 Debugging: `APPS_HOLD=1` keeps a theme's session up until `/tmp/shoot-kawa-apps/release`

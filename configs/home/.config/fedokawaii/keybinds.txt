@@ -3,20 +3,22 @@ Super+Return            terminal (foot)
 Super+Space             launcher
 Super+B                 browser (Brave Origin)
 Super+E                 files (yazi)
-Super+X                 quick settings (also the 󾀦 key in the bar)
+Super+X                 quick settings (also the cat in the bar)
 Super+A                 sound: volume, output, input
 Super+C                 calendar (also click the clock)
 Super+/                 this help
 Super+W                 wallpaper picker, for the current theme
 Super+Shift+W           dark / light theme (also in quick settings)
-Super+V                 clipboard history
+Super+V                 clipboard history: text and pictures
+Super+Z                 shrink or convert what you copied
 Super+R                 books: read, add, remove
 Super+N                 notes (again: put them away)
 Super+Shift+N           dismiss notifications
 Super+U                 the system: update, new Fedora, repair
-Super+Shift+U           change the desktop: keys, bar, colours…
+Super+Shift+U           change the desktop, part by part
 Super+Escape            lock screen (then sleep after 90 s)
 Super+Shift+E           power menu
+Sleep key               locked first, then asleep
 ── screenshots (clipboard + ~/Pictures/Screenshots) ───────────────
 Print                   region
 Shift+Print             full screen
@@ -24,14 +26,15 @@ Super+Print             region → annotate (Enter copies)
 ── windows ────────────────────────────────────────────────────────
 Super+Q                 close window
 Super+J / K             focus next / previous
-Super+H / L             shrink / grow the main area
-Super+I / D             more / fewer windows in the main area
-Super+Shift+Return      move window to the main area
+Super+H / L             spiral: the first window narrower / wider
+Super+Shift+Return      move window to the first (largest) place
 Super+F                 fullscreen
 Super+Shift+Space       float / unfloat (or Super+middle-click)
 Super+drag / right-drag move / resize
-Super+T / Y / M         layout: tile · float · one at a time
-Super+Shift+T           previous layout
+Super+S                 layout: golden spiral (the default)
+Super+T                 layout: columns, left to right
+Super+Y / M             layout: floating · one at a time
+Super+Shift+T           the layout used before
 ── workspaces ─────────────────────────────────────────────────────
 Super+1…9               go to workspace (or click it in the bar)
 Super+Shift+1…9         send window to workspace
@@ -58,17 +61,30 @@ Ctrl+Shift+R            search scrollback
 Ctrl+Shift+O            open a URL on screen
 Ctrl+Shift+Y            copy a hash, IP or path on screen
 Ctrl+Shift+C / V        copy / paste (selecting also copies)
+→ or End                take the grey suggestion (Ctrl+→: a word)
+Tab                     complete; several: a menu (arrows move)
 Up / Down               history matching what you typed
 Ctrl+R                  search the whole history (fzf)
 Ctrl+T · Alt+C          insert a path · go into a folder (fzf)
 cd NAME                 jump to a folder you use (zoxide)
 fetch                   system summary
+── files (yazi) ───────────────────────────────────────────────────
+Enter on a film         it plays in the mpv window open
+Alt+Enter on a film     it plays in a new mpv window
+Ctrl+C / X / V          copy / cut / paste files (other apps too)
+W on a film             watch it together (Syncplay)
+Alt+S on a picture, PDF shrink or convert it (Super+Z: copied)
 ── drives: USB sticks, disks, SD cards ────────────────────────────
 plug one in             it opens; click its notice for its files
 the bar's drive mark    open or eject a drive (quick settings too)
 M in yazi or a dialog   the drives: Enter opens one, e ejects it
-g m in yazi or a dialog go where the open drives are
+g d in yazi or a dialog ~/Drives: every open drive
 eject first             unplug once it says "safe to unplug"
 ── session ────────────────────────────────────────────────────────
 Super+Ctrl+Shift+Q      log out (quit dwl)
 Ctrl+Alt+F2…F6          text consoles (Ctrl+Alt+F1: back here)
+── drawing tablet: its pen in Sketch (Xournal++) ──────────────────
+pen tip                 draw: press harder for a thicker line
+lower button            the eraser, while held
+upper button            the hand, while held: drag the page
+over other windows      mouse: tip left, lower right, upper middle

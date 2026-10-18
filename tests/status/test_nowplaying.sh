@@ -96,20 +96,20 @@ eq "$(last "$(bar)")" "|"
 # ── several players ──────────────────────────────────────────────────────────
 case_ "music plays, then a video in a Brave tab is paused: the music stays on the bar"
 setup
-step "$(P spotify_player Playing Artist Song)" "$(P spotify_player Playing Artist Song)"
-step "$(P brave.instance42 Paused 'Some Channel' 'A video')" "$(P brave.instance42 Paused 'Some Channel' 'A video')" "$(P spotify_player Playing Artist Song)"
+step "$(P spotify Playing Artist Song)" "$(P spotify Playing Artist Song)"
+step "$(P brave.instance42 Paused 'Some Channel' 'A video')" "$(P brave.instance42 Paused 'Some Channel' 'A video')" "$(P spotify Playing Artist Song)"
 out=$(bar)
 eq "$(last "$out")" "playing|$ICON_CASSETTE_A  Artist — Song"
-eq "$(cat "$XDG_RUNTIME_DIR/kawa-nowplaying.player")" spotify_player
+eq "$(cat "$XDG_RUNTIME_DIR/kawa-nowplaying.player")" spotify
 case_ "both paused: the last one paused is shown"
 setup
-step "$(P spotify_player Paused Artist Song)" "$(P spotify_player Paused Artist Song)"
-step "$(P mpv Paused '' film.mkv)" "$(P spotify_player Paused Artist Song)" "$(P mpv Paused '' film.mkv)"
+step "$(P spotify Paused Artist Song)" "$(P spotify Paused Artist Song)"
+step "$(P mpv Paused '' film.mkv)" "$(P spotify Paused Artist Song)" "$(P mpv Paused '' film.mkv)"
 eq "$(last "$(bar)")" "paused|$ICON_PAUSE  film.mkv"
 case_ "the player shown quits mid-song: the other one (paused) takes its place"
 setup
-step "$(P mpv Playing '' film.mkv)" "$(P spotify_player Paused Artist Song)" "$(P mpv Playing '' film.mkv)"
-step "$(P spotify_player Paused Artist Song)" "$(P spotify_player Paused Artist Song)"
+step "$(P mpv Playing '' film.mkv)" "$(P spotify Paused Artist Song)" "$(P mpv Playing '' film.mkv)"
+step "$(P spotify Paused Artist Song)" "$(P spotify Paused Artist Song)"
 out=$(bar)
 eq "$(last "$out")" "paused|$ICON_PAUSE  Artist — Song"
 case_ "the last player quits: hidden"
@@ -202,12 +202,12 @@ json_lines "$(cat "$TMP/out")"
 keys() { printf '%s\n' "$@" >"$NP/players"; }
 acted() { cat "$NP/acted" 2>/dev/null; }
 case_ "play-pause with music playing and a video paused (the video started first): the music"
-setup; keys "$(P brave.instance42 Paused Ch Video)" "$(P spotify_player Playing A Song)"
+setup; keys "$(P brave.instance42 Paused Ch Video)" "$(P spotify Playing A Song)"
 rc 0 kawa-nowplaying play-pause
-eq "$(acted)" "play-pause spotify_player"
+eq "$(acted)" "play-pause spotify"
 case_ "next / previous: to the player that plays"
 : >"$NP/acted"; kawa-nowplaying next; kawa-nowplaying previous
-eq "$(acted)" "next spotify_player"$'\n'"previous spotify_player"
+eq "$(acted)" "next spotify"$'\n'"previous spotify"
 case_ "two playing: the one the bar shows"
 setup; keys "$(P mpv Playing '' film)" "$(P spotify Playing A Song)"; echo spotify >"$XDG_RUNTIME_DIR/kawa-nowplaying.player"
 kawa-nowplaying play-pause; eq "$(acted)" "play-pause spotify"

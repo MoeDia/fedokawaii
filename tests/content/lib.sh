@@ -11,8 +11,8 @@ C=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 REAL_FZF=$(command -v fzf 2>/dev/null)
 # shellcheck disable=SC2034
 REAL_NVIM=$(command -v nvim 2>/dev/null)
-# shellcheck disable=SC2034  # (the tables' programs: Fedora's packages, or a venv's vd and a built sc-im put first on PATH)
-REAL_VD=$(command -v vd 2>/dev/null) REAL_SCIM=$(command -v sc-im 2>/dev/null) REAL_GDU=$(command -v gdu 2>/dev/null)
+# shellcheck disable=SC2034  # (the tables' program and gdu: Fedora's packages, or a venv's vd put first on PATH)
+REAL_VD=$(command -v vd 2>/dev/null) REAL_GDU=$(command -v gdu 2>/dev/null)
 count() { local n=0 f; for f in "$@"; do [[ -e $f ]] && n=$((n + 1)); done; echo "$n"; }   # count GLOB… — files that exist
 
 skip() { printf '  - skipped: %s\n' "$*"; }          # a check this machine cannot make

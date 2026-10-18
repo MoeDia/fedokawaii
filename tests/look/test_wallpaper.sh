@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
-# tests/look/test_wallpaper.sh — kawa-wallpaper: each theme's own wallpaper, drawn at every
-# monitor's exact size; the picker; the pack fetched from GitHub. ImageMagick is the real one
-# (the pictures are checked to the pixel); swaybg, the monitors (wlr-randr), fzf, the
-# picker's window and curl are stand-ins — nothing is ever downloaded.
+# tests/look/test_wallpaper.sh — kawa-wallpaper: each theme's own wallpaper, drawn at full
+# quality at every monitor's exact size; the picker; its previews. ImageMagick is the real one
+# (the pictures are checked to the pixel); swaybg, the monitors (wlr-randr), fzf and the
+# picker's window are stand-ins (the pack's fetching: test_pack.sh).
 . "$(dirname "$0")/../lib/harness.sh"
 . "$(dirname "$0")/lib.sh"
 need magick python3 flock
@@ -27,64 +27,89 @@ settled() {   # settled N — swaybg processes alive, once the killed ones are g
   local n i; for i in {1..250}; do n=$(running); ((n <= $1)) && break; /bin/sleep 0.02; done; echo "$n"
 }
 last() { ncalls swaybg; }
-art() {   # art FILE — a 640×360 pack picture: a one-pixel black-and-white checkerboard
-  mkdir -p "$(dirname "$1")"
-  magick -size 640x360 pattern:gray50 "PNG24:$1"
+art() {   # art NAME [WxH] [GRAVITY-TEST] — a pack picture (NAME.src, as fetched: a JPEG) for the
+  # current theme folder given in NAME's path; a smooth gradient, or with "split" its top
+  # quarter red and the rest blue (to see which part a crop keeps)
+  local f=$1 size=${2:-3840x2160}
+  mkdir -p "$(dirname "$f")"
+  if [[ ${3:-} == split ]]; then
+    magick -size "${size%x*}x$(( ${size#*x} / 4 ))" xc:red -size "${size%x*}x$(( ${size#*x} * 3 / 4 ))" xc:blue -append "JPG:$f"
+  else magick -size "$size" gradient:'#203050'-'#e0c080' "JPG:$f"; fi
 }
 px() { magick "$1" -format "%[pixel:p{$2,$3}]" info: 2>/dev/null; }
 photo() { mkdir -p "$(dirname "$1")"; magick -size 64x40 gradient:red-blue "$1"; }   # photo FILE
+shown() { args_of swaybg "${1:-$(last)}" | sed -n '/^-i$/{n;p}' | head -n1; }        # the first picture handed over
+colours() { magick "$1" -format '%k' info: 2>/dev/null; }
+cover_of() {   # cover_of SRC — the drawing kawa-wallpaper keeps of SRC for the 1080p monitor
+  local k; k=$(printf '%s\n' c1 "$1" "$(stat -c %Y "$1")" 1920 1080 center | sha1sum); printf '%s' "$CACHE/1920x1080-${k%% *}.png"
+}
 
 # ── --restore: the theme's choice, every monitor at its size ───────────────────
 setup
-case_ "first login, no pack: the drawn Fuji, made at the monitor's exact size"
+case_ "before the pack is here: the theme's plain ground, nothing else"
 rc 0 kawa-wallpaper --restore
-args_eq swaybg 1 -c '#0f0e0c' -o '*' -i "$SHARE/dark/pattern.png" -m tile \
-  -o DP-1 -i "$CACHE/default-dark-1920x1080.png" -m fill
-eq "$(size_of "$CACHE/default-dark-1920x1080.png")" 1920x1080
+args_eq swaybg 1 -c '#0f0e0c'
 eq "$(running)" 1 "one swaybg"
+
+case_ "with the pack: the theme's default, drawn at the monitor's exact size at full quality"
+setup
+art "$PACK/dark/ink-ridges-night.src"
+rc 0 kawa-wallpaper --restore
+img=$(shown)
+args_eq swaybg 1 -c '#0f0e0c' -o DP-1 -i "$img" -m fill
+[[ $img == "$CACHE"/1920x1080-*.png ]] && _ok || _no "not a cached 1080p picture: $img"
+eq "$(size_of "$img")" 1920x1080
+(( $(colours "$img") > 500 )) && _ok || _no "only $(colours "$img") colours: redrawn coarsely, not at full quality"
 
 case_ "two monitors of different sizes, one turned, one switched off: each its own size"
 setup
+art "$PACK/dark/ink-ridges-night.src"
 screens "DP-1 2560x1440@164.998993" "HDMI-A-1 3840x2160@60.000000" "DP-2 1920x1080 turned" "DP-3 1920x1080 off"
 rc 0 kawa-wallpaper --restore
 a=$(args_of swaybg)
-has "$a" $'-o\nDP-1\n-i\n'"$CACHE/default-dark-2560x1440.png"
-has "$a" $'-o\nHDMI-A-1\n-i\n'"$CACHE/default-dark-3840x2160.png"
-has "$a" $'-o\nDP-2\n-i\n'"$CACHE/default-dark-1080x1920.png" "the turned screen: tall"
+for o in DP-1:2560x1440 HDMI-A-1:3840x2160 DP-2:1080x1920; do
+  f=$(grep -A2 -x "${o%:*}" <<<"$a" | sed -n 3p)
+  eq "$(size_of "$f")" "${o#*:}" "${o%:*}"
+done
 lacks "$a" DP-3 "a switched-off monitor is left out"
-eq "$(size_of "$CACHE/default-dark-3840x2160.png")" 3840x2160
-eq "$(size_of "$CACHE/default-dark-1080x1920.png")" 1080x1920
 
-case_ "a custom mode with no refresh rate, and no wlr-randr at all"
+case_ "the crop: from the middle, or towards the side the list names"
 setup
+{ echo "dark  tall-one  -  north   0  https://x/a.jpg  Test"; echo "dark  tall-two  -  center  0  https://x/b.jpg  Test"; } >>"$SHARE/wallpapers.list"
+art "$PACK/dark/tall-one.src" 1920x2160 split; art "$PACK/dark/tall-two.src" 1920x2160 split
+kawa-wallpaper --set pack:tall-one
+[[ $(px "$(shown)" 960 2) =~ ^srgb\(2[0-9][0-9],[0-9],[0-9]\)$ ]] && _ok || _no "north: the top (red) not kept: $(px "$(shown)" 960 2)"
+kawa-wallpaper --set pack:tall-two
+[[ $(px "$(shown)" 960 2) =~ ^srgb\([0-9],[0-9],2[0-9][0-9]\)$ ]] && _ok || _no "centre: not the middle (blue at its top edge): $(px "$(shown)" 960 2)"
+
+case_ "a custom mode with no refresh rate; no wlr-randr at all: the plain ground"
+setup
+art "$PACK/dark/ink-ridges-night.src"
 screens "DP-1 1920x1200@none"
 kawa-wallpaper --restore
-has "$(args_of swaybg)" "default-dark-1920x1200.png"
-setup; hide wlr-randr
+eq "$(size_of "$(shown)")" 1920x1200 "16:10: covered and cut to size"
+setup; art "$PACK/dark/ink-ridges-night.src"; hide wlr-randr
 kawa-wallpaper --restore
-args_eq swaybg 1 -c '#0f0e0c' -o '*' -i "$SHARE/dark/pattern.png" -m tile
+args_eq swaybg 1 -c '#0f0e0c'
 
-case_ "with the pack: the theme's default picture, each art pixel a crisp square (1080p ×3, 1440p ×4, 4K ×6)"
+case_ "drawn once: a second restore uses the same file, nothing redrawn"
 setup
-art "$PACK/dark/dawn-mart.png"
-screens "DP-1 1920x1080" "DP-2 2560x1440" "DP-3 3840x2160" "DP-4 1920x1200"
+art "$PACK/dark/ink-ridges-night.src"
+kawa-wallpaper --restore; first=$(shown 1); t=$(stat -c %Y "$first")
+/bin/sleep 1.1; kawa-wallpaper --restore
+eq "$(shown 2)" "$first"; eq "$(stat -c %Y "$first")" "$t"
+case_ "a picture replaced under the same name: drawn again"
+art "$PACK/dark/ink-ridges-night.src" 3840x2160 split; touch -d '+5 seconds' "$PACK/dark/ink-ridges-night.src"
 kawa-wallpaper --restore
-a=$(args_of swaybg)
-has "$a" $'-o\n*\n-i\n'"$PACK/dark/dawn-mart.png"$'\n-m\nfill'
-for s in 1920x1080:3 2560x1440:4 3840x2160:6; do
-  f=$CACHE/dark-dawn-mart-${s%:*}.png n=${s#*:}
-  eq "$(size_of "$f")" "${s%:*}"
-  eq "$(px "$f" $((n - 1)) $((n - 1)))" "$(px "$f" 0 0)" "${s%:*}: an art pixel fills $n × $n"
-  [[ $(px "$f" "$n" $((n - 1))) != "$(px "$f" 0 0)" ]] && _ok || _no "${s%:*}: the next art pixel starts at $n"
-done
-eq "$(size_of "$CACHE/dark-dawn-mart-1920x1200.png")" 1920x1200 "16:10: covered and cut to size"
+[[ $(shown 3) != "$first" ]] && _ok || _no "the old drawing was shown"
 
-case_ "the light theme: its own art, ground and choice"
+case_ "the light theme: its own default (ink-ridges), ground and choice"
 setup
 ln -sfn themes/light "$HOME/.config/fedokawaii/current"
+art "$PACK/light/ink-ridges.src"
 kawa-wallpaper --restore
-args_eq swaybg 1 -c '#e9e1cb' -o '*' -i "$SHARE/light/pattern.png" -m tile \
-  -o DP-1 -i "$CACHE/default-light-1920x1080.png" -m fill
+eq "$(args_of swaybg | head -n2 | tail -n1)" '#e9e1cb'
+[[ -n $(shown) ]] && _ok || _no "ink-ridges not shown"
 [[ ! -e $STATE/wallpaper-dark ]] && _ok || _no "the dark theme's choice was written by a light restore"
 
 case_ "the old swaybg goes once the new one is up: one left after many changes"
@@ -102,63 +127,65 @@ eq "$(settled 1)" 1
 
 case_ "swaybg not installed: says so, exit 1, the old wallpaper stays and the choice is kept"
 setup
+art "$PACK/dark/enso.src"
 kawa-wallpaper --restore; old=$(pgrep -x swaybg)
-echo "pack:dawn-mart" >"$STATE/wallpaper-dark"
+echo "pack:ink-ridges-night" >"$STATE/wallpaper-dark"
 hide swaybg
-out=$(kawa-wallpaper --set fuji 2>&1); r=$?
+out=$(kawa-wallpaper --set pack:enso 2>&1); r=$?
 eq "$r" 1
 has "$out" "swaybg"
 alive "$old" && _ok || _no "the wallpaper on screen was taken down"
-eq "$(cat "$STATE/wallpaper-dark")" "pack:dawn-mart"
+eq "$(cat "$STATE/wallpaper-dark")" "pack:ink-ridges-night"
 rc 1 kawa-wallpaper --restore
 
 # ── --set: a choice, remembered per theme ─────────────────────────────────────
 case_ "a pack picture with a pair: both themes get the same place"
 setup
-art "$PACK/dark/canal-walk-night.png"; art "$PACK/light/canal-walk.png"
+art "$PACK/dark/canal-walk-night.src" 1920x1080; art "$PACK/light/canal-walk.src" 1920x1080
 rc 0 kawa-wallpaper --set pack:canal-walk-night
 eq "$(cat "$STATE/wallpaper-dark")" pack:canal-walk-night
 eq "$(cat "$STATE/wallpaper-light")" pack:canal-walk "the light theme: the same canal by day"
-art "$PACK/dark/pixel-alley.png"
-rc 0 kawa-wallpaper --set pack:pixel-alley
+art "$PACK/dark/seaside-train.src" 1920x1080
+rc 0 kawa-wallpaper --set pack:seaside-train
 eq "$(cat "$STATE/wallpaper-light")" pack:canal-walk "no pair: the other theme keeps its own"
 
-case_ "your own picture with an odd name: handed to swaybg exactly, remembered exactly"
+case_ "your own picture with an odd name: drawn to the screen's size (a small one enlarged to cover), remembered exactly"
 setup
 odd="$WP/my "'"best" it'\''s $(touch pwned) `id` ü日本 العربية -x.png'
 photo "$odd"
 ( cd "$TMP" && kawa-wallpaper --set "$odd" ); r=$?
 eq "$r" 0
-args_eq swaybg 1 -c '#0f0e0c' -i "$odd" -m fill
+eq "$(size_of "$(shown)")" 1920x1080
 eq "$(cat "$STATE/wallpaper-dark")" "$odd"
 [[ ! -e $TMP/pwned ]] && _ok || _no "a file name ran as a command"
 kawa-wallpaper --restore
-args_eq swaybg 2 -c '#0f0e0c' -i "$odd" -m fill
+eq "$(shown 2)" "$(shown 1)" "the same drawing at login"
 
 case_ "a name with a line break or a leading dash, set directly: still exact"
 setup
 nl="$WP/two"$'\n'"lines.png"; photo "$nl"
 rc 0 kawa-wallpaper --set "$nl"
-args_eq swaybg 1 -c '#0f0e0c' -i "$nl" -m fill
-kawa-wallpaper --restore
-args_eq swaybg 2 -c '#0f0e0c' -i "$nl" -m fill
+eq "$(size_of "$(shown)")" 1920x1080
+eq "$(cat "$STATE/wallpaper-dark")" "$nl"
+dash="$WP/-x.png"; photo "$dash"
+rc 0 kawa-wallpaper --set "$dash"; eq "$(cat "$STATE/wallpaper-dark")" "$dash"
 
 case_ "a choice that is gone: --set says no; --restore shows the default but keeps remembering it"
 setup
+art "$PACK/dark/ink-ridges-night.src" 1920x1080
 rc 1 kawa-wallpaper --set "$WP/nothing.png"
 eq "$(last)" 0 "nothing was drawn"
 photo "$WP/later.png"; kawa-wallpaper --set "$WP/later.png"
 mv "$WP/later.png" "$TMP/away.png"                 # (on a drive not there yet, or deleted)
 rc 0 kawa-wallpaper --restore
-args_eq swaybg 2 -c '#0f0e0c' -o '*' -i "$SHARE/dark/pattern.png" -m tile \
-  -o DP-1 -i "$CACHE/default-dark-1920x1080.png" -m fill
+eq "$(shown 2)" "$(cover_of "$PACK/dark/ink-ridges-night.src")" "the default (ink-ridges-night) instead"
 eq "$(cat "$STATE/wallpaper-dark")" "$WP/later.png" "the choice is still yours"
 mv "$TMP/away.png" "$WP/later.png"
 kawa-wallpaper --restore
-args_eq swaybg 3 -c '#0f0e0c' -i "$WP/later.png" -m fill
+eq "$(shown 3)" "$(shown 1)" "back, with its picture"
 echo "pack:retired-one" >"$STATE/wallpaper-dark"
 rc 0 kawa-wallpaper --restore
-has "$(args_of swaybg 4)" "default-dark-1920x1080.png" "a pack picture no longer there: the default"
+eq "$(shown 4)" "$(cover_of "$PACK/dark/ink-ridges-night.src")" "a pack picture no longer there: the default"
 
 case_ "--set by hand with a name relative to the folder you are in: remembered in full"
 setup
@@ -166,41 +193,31 @@ photo "$WP/rel.png"
 ( cd "$WP" && kawa-wallpaper --set rel.png ); r=$?
 eq "$r" 0
 eq "$(cat "$STATE/wallpaper-dark")" "$WP/rel.png" "a full path: --restore at login finds it from any folder"
-args_eq swaybg 1 -c '#0f0e0c' -i "$WP/rel.png" -m fill
 out=$(kawa-wallpaper --set "$WP/nope.png" 2>&1); r=$?
 eq "$r" 1
 has "$out" "nope.png" "a choice that is not there is named"
 
 case_ "an empty or garbled state file: the default"
 setup
+art "$PACK/dark/ink-ridges-night.src" 1920x1080
 mkdir -p "$STATE"; : >"$STATE/wallpaper-dark"
 rc 0 kawa-wallpaper --restore
-has "$(args_of swaybg)" "default-dark-1920x1080.png"
+eq "$(shown)" "$(cover_of "$PACK/dark/ink-ridges-night.src")"
 printf '\x00\xff garbage' >"$STATE/wallpaper-dark"
 rc 0 kawa-wallpaper --restore
-has "$(args_of swaybg 2)" "default-dark-1920x1080.png"
-
-case_ "the env file missing (a broken install): the wallpaper still comes up"
-setup
-rm "$HOME/.config/fedokawaii/env"
-err=$(kawa-wallpaper --restore 2>&1); r=$?
-eq "$r" 0
-eq "$err" ""
-has "$(args_of swaybg)" "default-dark-1920x1080.png"
-
-case_ "the art missing (no theme.sh yet): a plain ground, no error"
-setup
-rm -f "$SHARE"/dark/*.png
+eq "$(shown 2)" "$(cover_of "$PACK/dark/ink-ridges-night.src")"
+case_ "an old choice from before (the drawn Fuji, gone): the default"
+echo fuji >"$STATE/wallpaper-dark"
 rc 0 kawa-wallpaper --restore
-args_eq swaybg 1 -c '#0f0e0c'
+eq "$(shown 3)" "$(cover_of "$PACK/dark/ink-ridges-night.src")"
 
 case_ "HOME with a space: everything still lands where it should"
 setup
 mkdir -p "$TMP/my home"; cp -a "$HOME/." "$TMP/my home/"; export HOME="$TMP/my home"
-SHARE=$HOME/.local/share/fedokawaii CACHE=$HOME/.cache/kawa-wallpaper
+SHARE=$HOME/.local/share/fedokawaii CACHE=$HOME/.cache/kawa-wallpaper PACK=$HOME/.local/share/fedokawaii/wallpapers
+art "$PACK/dark/ink-ridges-night.src" 1920x1080
 rc 0 kawa-wallpaper --restore
-args_eq swaybg 1 -c '#0f0e0c' -o '*' -i "$SHARE/dark/pattern.png" -m tile \
-  -o DP-1 -i "$CACHE/default-dark-1920x1080.png" -m fill
+[[ $(shown) == "$CACHE"/1920x1080-*.png && -s $(shown) ]] && _ok || _no "not drawn into the cache: $(shown)"
 
 case_ "no runtime folder: exit 1 with a plain message"
 setup
@@ -225,31 +242,29 @@ picker() {
 case ${FZF_PICK:-esc} in esc) exit 130 ;; esac
 grep -m1 -F "$FZF_PICK	" "$FAKE_TMP/rows" || exit 1'
   stub kawa-float 'while [ "$1" != "--" ]; do shift; done; shift; "$@"'
-  stub kawa-cell 'echo 9x21'
+  stub kawa-cell 'echo 12x24'
 }
 rows() { cat "$TMP/rows"; }
 nrows() { wc -l <"$TMP/rows"; }
 setup; picker
-case_ "nothing but the drawn Fuji: one row"
+case_ "before the pack, nothing of your own: no rows"
 kawa-wallpaper --tui "$TMP/out"
-eq "$(rows)" "default	$ICON_TORII fuji by night (default)"
-case_ "one picture of your own: listed after the default"
+eq "$(nrows)" 0
+case_ "one picture of your own: listed"
 photo "$WP/only one.png"
 kawa-wallpaper --tui "$TMP/out"
-eq "$(nrows)" 2
-eq "$(sed -n 2p "$TMP/rows")" "$WP/only one.png	$ICON_FOLDER only one.png"
+eq "$(rows)" "$WP/only one.png	$ICON_FOLDER  only one.png"
 rm "$WP/only one.png"
 
-case_ "the pack and your own: the default first, the drawn Fuji, the pack in list order, then yours"
-art "$PACK/dark/dawn-mart.png"; art "$PACK/dark/canal-walk-night.png"; art "$PACK/dark/pixel-alley.png"
-art "$PACK/dark/enso.png"; art "$PACK/light/station-street.png"
+case_ "the pack and your own: the default first, the pack in list order, then yours"
+art "$PACK/dark/ink-ridges-night.src" 64x40; art "$PACK/dark/canal-walk-night.src" 64x40; art "$PACK/dark/seaside-train.src" 64x40
+art "$PACK/dark/enso.src" 64x40; art "$PACK/light/red-fuji.src" 64x40
 photo "$WP/b.png"; photo "$WP/a.jpg"; photo "$WP/sub dir/c.webp"
 kawa-wallpaper --tui "$TMP/out"
-eq "$(sed -n 1p "$TMP/rows")" "default	$ICON_TORII dawn-mart (default)"
-eq "$(sed -n 2p "$TMP/rows")" "fuji	$ICON_PICTURE fuji by night (drawn)"
-eq "$(cut -f1 "$TMP/rows" | tr '\n' ' ')" "default fuji pack:pixel-alley pack:canal-walk-night pack:enso $WP/a.jpg $WP/b.png $WP/sub dir/c.webp "
-has "$(rows)" "$WP/sub dir/c.webp	$ICON_FOLDER sub dir/c.webp"
-lacks "$(rows)" station-street "the other theme's pictures are not offered"
+eq "$(sed -n 1p "$TMP/rows")" "default	$ICON_TORII  ink-ridges-night (default)"
+eq "$(cut -f1 "$TMP/rows" | tr '\n' ' ')" "default pack:canal-walk-night pack:seaside-train pack:enso $WP/a.jpg $WP/b.png $WP/sub dir/c.webp "
+has "$(rows)" "$WP/sub dir/c.webp	$ICON_FOLDER  sub dir/c.webp"
+lacks "$(rows)" red-fuji "the other theme's pictures are not offered"
 
 case_ "the ◐ marks of the paired pictures stand in one column"
 cols=$(grep -F "$ICON_THEME" "$TMP/rows" | cut -f2 | while IFS= read -r l; do p=${l%%"$ICON_THEME"*}; p=$(sed 's/\x1b\[[0-9;]*m//g' <<<"$p"); echo "${#p}"; done | sort -u)
@@ -264,10 +279,10 @@ for n in "my photo.png" "ü日本 العربية.jpg" "it's \"quoted\".png" '$(t
 done
 kawa-wallpaper --tui "$TMP/out"
 for n in "my photo.png" "ü日本 العربية.jpg" "it's \"quoted\".png" '$(touch pwned).png' '`touch pwned2`.png' "-leading.png" "UPPER.PNG"; do
-  has "$(rows)" "$WP/$n	$ICON_FOLDER $n"
+  has "$(rows)" "$WP/$n	$ICON_FOLDER  $n"
 done
 lacks "$(rows)" "tab"; lacks "$(rows)" "line.png"; lacks "$(rows)" "notes.txt"; lacks "$(rows)" "no-ext"
-eq "$(nrows)" 8
+eq "$(nrows)" 7
 [[ ! -e $TMP/pwned && ! -e pwned && ! -e $TMP/pwned2 ]] && _ok || _no "a file name ran as a command"
 
 case_ "1000 pictures of your own: all listed, quickly"
@@ -277,15 +292,15 @@ for i in $(seq -w 1 1000); do ln "$TMP/one.png" "$WP/p$i.png"; done
 start=$(date +%s%N)
 kawa-wallpaper --tui "$TMP/out"
 ms=$(( ($(date +%s%N) - start) / 1000000 ))
-eq "$(nrows)" 1001
+eq "$(nrows)" 1000
 ((ms < 10000)) && _ok || _no "the list took $ms ms"
-eq "$(sed -n '1001p' "$TMP/rows" | cut -f1)" "$WP/p1000.png"
+eq "$(sed -n '1000p' "$TMP/rows" | cut -f1)" "$WP/p1000.png"
 
 case_ "the cursor starts on the current choice"
 FZF_PICK=esc kawa-wallpaper --tui "$TMP/out"
 echo "$WP/p0500.png" >"$STATE/wallpaper-dark"
 kawa-wallpaper --tui "$TMP/out"
-has "$(args_of fzf "$(ncalls fzf)")" "start:pos(501)"
+has "$(args_of fzf "$(ncalls fzf)")" "start:pos(500)"
 
 case_ "Super+W, Enter on an odd name: set exactly, through the dissolve"
 setup; picker
@@ -296,7 +311,7 @@ odd="$WP/\$(touch pwned) it's.png"; photo "$odd"
 FZF_PICK="$odd" kawa-wallpaper; r=$?
 eq "$r" 0
 called '^kawa-veil --dissolve --time 520 -- '
-args_eq swaybg 1 -c '#0f0e0c' -i "$odd" -m fill
+eq "$(size_of "$(shown)")" 1920x1080
 eq "$(cat "$STATE/wallpaper-dark")" "$odd"
 [[ ! -e $TMP/pwned ]] && _ok || _no "the name ran as a command"
 
@@ -312,12 +327,6 @@ stub kawa-float 'exit 3'; reset_calls
 rc 0 kawa-wallpaper
 not_called '^fzf'
 
-case_ "without the transition built: set directly"
-setup; picker
-photo "$WP/x.png"
-FZF_PICK="$WP/x.png" kawa-wallpaper
-args_eq swaybg 1 -c '#0f0e0c' -i "$WP/x.png" -m fill
-
 # ── the preview pane ─────────────────────────────────────────────────────────
 case_ "a preview: a sixel picture; broken or missing pictures just say 'no preview', quietly"
 setup
@@ -328,13 +337,12 @@ eq "$(cat "$TMP/err")" ""
 head -c 200 "$WP/ok.png" >"$WP/cut.png"; echo "not a picture" >"$WP/fake.jpg"
 for f in "$WP/cut.png" "$WP/fake.jpg" "$WP/missing.png" pack:not-there ""; do
   out=$(kawa-wallpaper --preview "$f" 2>"$TMP/err")
-  eq "$out" "  $ICON_PICTURE no preview" "[$f]"
+  eq "$out" "  $ICON_PICTURE  no preview" "[$f]"
   eq "$(cat "$TMP/err")" "" "[$f]: nothing on stderr"
 done
-art "$PACK/dark/enso.png"
+art "$PACK/dark/enso.src" 1920x1080
 out=$(kawa-wallpaper --preview pack:enso 2>/dev/null); [[ $out == $'\eP'* ]] && _ok || _no "no pack preview"
-out=$(kawa-wallpaper --preview fuji 2>/dev/null); [[ $out == $'\eP'* ]] && _ok || _no "no fuji preview"
-out=$(FZF_PREVIEW_COLUMNS=1 FZF_PREVIEW_LINES=1 kawa-wallpaper --preview fuji 2>"$TMP/err")
+out=$(FZF_PREVIEW_COLUMNS=1 FZF_PREVIEW_LINES=1 kawa-wallpaper --preview pack:enso 2>"$TMP/err")
 eq "$(cat "$TMP/err")" "" "a tiny pane: no error"
 
 case_ "--warm (while the picker is open): every preview drawn ahead; month-old ones cleared"
@@ -342,7 +350,7 @@ setup
 photo "$WP/a.png"; photo "$WP/b.png"
 mkdir -p "$CACHE/preview"; : >"$CACHE/preview/old.six"; touch -d '40 days ago' "$CACHE/preview/old.six"
 kawa-wallpaper --warm
-eq "$(find "$CACHE/preview" -name '*.six' | wc -l)" 3 "fuji and the two pictures"
+eq "$(find "$CACHE/preview" -name '*.six' | wc -l)" 2 "the two pictures"
 [[ ! -e $CACHE/preview/old.six ]] && _ok || _no "a month-old preview was kept"
 before=$(find "$CACHE/preview" -name '*.six' -printf '%f %T@\n' | sort)
 kawa-wallpaper --preview "$WP/a.png" >/dev/null

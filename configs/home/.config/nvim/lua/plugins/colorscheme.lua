@@ -8,21 +8,12 @@ return {
   {
     "ellisonleao/gruvbox.nvim",
     priority = 1000,
-    -- the line under the cursor: the palette's surface on both grounds (gruvbox would take
-    -- the light theme's text colour for it there — far heavier on paper than on ink)
+    -- the line under the cursor: a shade of the ground that shows (gruvbox would take the
+    -- light theme's text colour for it on paper — far too heavy there)
     init = function()
-      vim.api.nvim_create_autocmd("ColorScheme", {
-        group = vim.api.nvim_create_augroup("kawa_cursorline", { clear = true }),
-        pattern = "gruvbox",
-        callback = function()
-          local bg = vim.o.background == "light" and "#dcd2b8" or "#161411"
-          vim.api.nvim_set_hl(0, "CursorLine", { bg = bg })
-        end,
-      })
-    end,
-    opts = {
-      contrast = "hard",
-      palette_overrides = {
+      -- the palette for the ground Neovim has: gruvbox reads it each time it loads — at the
+      -- start, and again whenever foot tells Neovim the ground changed
+      local dark = {
         dark0_hard = "#0f0e0c", dark0 = "#0f0e0c", dark0_soft = "#161411",
         dark1 = "#161411", dark2 = "#1f1c18", dark3 = "#2b2721", dark4 = "#3d372f",
         gray = "#7b7365",
@@ -36,8 +27,37 @@ return {
         faded_red = "#a8342a", faded_green = "#5c682d", faded_yellow = "#845b0f",
         faded_blue = "#3f6185", faded_purple = "#6f5a8a", faded_aqua = "#2f6e67",
         faded_orange = "#a8551f",
-      },
-    },
+      }
+      local light = vim.tbl_extend("force", dark, {
+        light0_hard = "#e9e1cb", light0 = "#e9e1cb", light0_soft = "#f1ebda",
+        light1 = "#dcd2b8", light2 = "#c2b79b", light3 = "#b1a688", light4 = "#9b927e",
+        dark0_hard = "#0f0e0c", dark0 = "#0f0e0c", dark1 = "#2b2721", dark2 = "#2b2721",
+        dark3 = "#5f594d", dark4 = "#5f594d", gray = "#5f594d",
+        faded_red = "#a8342a", faded_green = "#5c682d", faded_yellow = "#845b0f",
+        faded_blue = "#3f6185", faded_purple = "#6f5a8a", faded_aqua = "#2f6e67",
+        faded_orange = "#a8551f",
+      })
+      vim.api.nvim_create_autocmd("ColorSchemePre", {
+        group = vim.api.nvim_create_augroup("kawa_ground", { clear = true }),
+        pattern = "gruvbox",
+        callback = function()
+          local ok, g = pcall(require, "gruvbox")
+          if ok then g.config.palette_overrides = vim.o.background == "light" and light or dark end
+        end,
+      })
+      vim.api.nvim_create_autocmd("ColorScheme", {
+        group = vim.api.nvim_create_augroup("kawa_cursorline", { clear = true }),
+        pattern = "gruvbox",
+        callback = function()
+          local bg = vim.o.background == "light" and "#dcd2b8" or "#2b2721"
+          vim.api.nvim_set_hl(0, "CursorLine", { bg = bg })
+          -- the picker's counts ("12/403"): in the comments' quiet ink, not the faint one
+          -- gruvbox gives them (close to the ground itself)
+          vim.api.nvim_set_hl(0, "SnacksPickerTotals", { link = "Comment" })
+        end,
+      })
+    end,
+    opts = { contrast = "hard" },
   },
   { "LazyVim/LazyVim", opts = { colorscheme = "gruvbox" } },
   -- the statusline in the same colours (lualine's own "gruvbox" theme has gruvbox's stock
@@ -46,13 +66,13 @@ return {
     "nvim-lualine/lualine.nvim",
     opts = function(_, opts)
       local P = {
-        dark = { ground = "#0f0e0c", bar = "#161411", key = "#1f1c18", text = "#cfc3a6", muted = "#877f6f", accent = "#d0583a", teal = "#7fb8b0", yellow = "#d29f45", blue = "#7f9dbd", red = "#d64b4b" },
-        light = { ground = "#e9e1cb", bar = "#dcd2b8", key = "#efe8d5", text = "#2b2721", muted = "#5f594d", accent = "#c0462a", teal = "#2f6e67", yellow = "#845b0f", blue = "#3f6185", red = "#a8342a" },
+        dark = { ground = "#0f0e0c", bar = "#161411", key = "#1f1c18", text = "#cfc3a6", muted = "#877f6f", accent = "#d0583a", teal = "#7fb8b0", yellow = "#d29f45", blue = "#7f9dbd", red = "#d64b4b", on_accent = "#0f0e0c" },
+        light = { ground = "#e9e1cb", bar = "#dcd2b8", key = "#efe8d5", text = "#2b2721", muted = "#5f594d", accent = "#c0462a", teal = "#2f6e67", yellow = "#845b0f", blue = "#3f6185", red = "#a8342a", on_accent = "#fbf7ec" },
       }
       local function theme()
         local p = P[vim.o.background] or P.dark
         local function mode(c)
-          return { a = { bg = c, fg = p.ground, gui = "bold" }, b = { bg = p.key, fg = p.text },
+          return { a = { bg = c, fg = c == p.accent and p.on_accent or p.ground, gui = "bold" }, b = { bg = p.key, fg = p.text },
                    c = { bg = p.bar, fg = p.muted } }
         end
         local quiet = { bg = p.bar, fg = p.muted }
@@ -62,6 +82,13 @@ return {
       end
       opts.options = opts.options or {}
       opts.options.theme = theme()
+      -- plain: no powerline separators (the pixel font has other glyphs at their code points)
+      -- and no icons (the Nerd Font's would stand among the pixel ones); no clock (the bar's)
+      opts.options.section_separators = { left = "", right = "" }
+      opts.options.component_separators = { left = "", right = "" }
+      opts.options.icons_enabled = false
+      opts.sections = opts.sections or {}
+      opts.sections.lualine_z = {}
       vim.api.nvim_create_autocmd("ColorScheme", {
         group = vim.api.nvim_create_augroup("kawa_lualine", { clear = true }),
         callback = function()

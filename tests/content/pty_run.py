@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""pty_run.py [--cols N] [--rows N] [--answer QUERY REPLY] [--delay S] [--send AT TEXT] [--hangup AT] [--timeout S] -- CMD…
+"""pty_run.py [--cols N] [--rows N] [--answer QUERY REPLY] [--delay S] [--send AT TEXT] [--hangup AT] [--timeout S] [--each MARK --line TEXT…] -- CMD…
 
 CMD in a terminal of its own (a pseudo-terminal that is its controlling tty, so /dev/tty,
 stty and bash's checkwinsize all work), the size given. What CMD writes is copied to stdout
@@ -13,8 +13,11 @@ seconds after the first --answer was typed.
 --answer: plays the terminal's part in a query — whenever QUERY (backslash escapes, e.g.
 '\\x1b[16t') first appears in what CMD writes, REPLY is typed back after --delay seconds.
 Several --answer pairs may be given; each is answered once.
+
+--each MARK --line TEXT…: a session typed line by line — each time MARK (backslash escapes,
+e.g. a prompt's '\\x1b]133;A') appears anew, the next --line is typed, then Enter.
 """
-import os, pty, select, signal, struct, sys, termios, fcntl, time
+import codecs, os, pty, select, signal, struct, sys, termios, fcntl, time
 
 
 def unescape(s):
@@ -23,6 +26,7 @@ def unescape(s):
 
 def main(argv):
     cols, rows, delay, timeout, answers, sends, hangup = 80, 24, 0.0, 20.0, [], [], None
+    each, lines, marks = None, [], 0
     i = 0
     while i < len(argv) and argv[i] != "--":
         a = argv[i]
@@ -33,6 +37,8 @@ def main(argv):
         elif a == "--answer": answers.append((unescape(argv[i + 1]), unescape(argv[i + 2]))); i += 3
         elif a == "--send": sends.append((float(argv[i + 1]), unescape(argv[i + 2]))); i += 3
         elif a == "--hangup": hangup = argv[i + 1]; i += 2
+        elif a == "--each": each = unescape(argv[i + 1]); i += 2
+        elif a == "--line": lines.append(codecs.escape_decode(argv[i + 1].encode())[0] + b"\r"); i += 2   # (any script)
         else: sys.exit(f"pty_run: unknown option {a}")
     cmd = argv[i + 1:]
     if not cmd: sys.exit("pty_run: no command")
@@ -78,6 +84,8 @@ def main(argv):
             if not chunk:
                 break
             out += chunk
+            if each is not None and lines and out.count(each) > marks:
+                marks = out.count(each); os.write(fd, lines.pop(0))
             for q, reply in answers:                 # each new appearance of a query
                 start = max(0, seen - len(q) + 1)
                 if q in done: continue

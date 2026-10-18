@@ -6,5 +6,5 @@ prepend_keymap = [
 	{ on = "<Enter>", run = "plugin kawa-pick", desc = "Into the folder, or take the file" },
 	{ on = "<Esc>",   run = "plugin kawa-pick -- esc", desc = "Undo marks / filter / search, else cancel" },
 	{ on = "M",          run = "plugin drives",          desc = "Drives: open or eject one" },
-	{ on = [ "g", "m" ], run = "plugin drives -- media", desc = "Go to the open drives" },
+	{ on = [ "g", "d" ], run = "cd ~/Drives",           desc = "Go to your drives (~/Drives: one per open drive)" },
 ]

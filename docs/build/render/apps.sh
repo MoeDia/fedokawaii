@@ -35,7 +35,7 @@ SELF=$APPS_SELF
 SH=/tmp/shoot-kawa-apps            # staged helpers (readable by $K); shoot.sh's is /tmp/shoot-kawa
 X=/tmp/xdg-kawa-apps               # the session's XDG_RUNTIME_DIR
 C=$R/apps-cache
-REPO=${FEDOKAWAII_REPO:-/home/claude/fedokawaii}
+REPO=${FEDOKAWAII_REPO:-/opt/kit-repo}   # (the copy theme.sh was run from: kit.sh keeps it the merge copy)
 ALL_GROUPS="yazi nvim lazygit btop mpv zathura filechooser share torrra brave books notes system
   nvim-whichkey nvim-picker nvim-grep nvim-split nvim-lsp lazygit-log lazygit-commit lazygit-stage yazi-preview
   yazi-drives wiremix bluetui visidata"
@@ -151,7 +151,7 @@ stage() {
 for_window [app_id="^app-"] floating enable, resize set 1104 704, move position center
 for_window [app_id="^mpv$"] floating enable, move position center
 for_window [app_id="^org.pwmt.zathura$"] floating enable, resize set 1104 764, move position center
-for_window [app_id="^kawa-filechooser$"] floating enable, move position center
+for_window [app_id="^kawa-dialog$"] floating enable, move position center   # (kawa-float --dialog: the file dialog)
 for_window [app_id="^xdg-desktop-portal-gtk$"] floating enable, move position center
 for_window [app_id="^brave"] floating enable, resize set 1284 804, move position center
 EOF
@@ -388,7 +388,7 @@ demo_repo() {   # (replaces shoot.sh's) ~/repos/fedokawaii with a history: the r
      setup.sh fedokawaii.sh fedokawaii.conf PACKAGES.md README.md lib check.sh
   ci "2026-09-03T22:40:00+04:00" "dwl: config.h, the patch and start-dwl" src/dwl system/start-dwl system/tuned.conf
   ci "2026-09-06T10:05:00+04:00" "theme.sh: configs, palettes, dark and light" theme.sh tools art configs
-  ci "2026-09-09T19:31:00+04:00" "bin: the kawa-* menus and bar helpers" bin/kawa-{menu,quick,power,audio,volume,brightness,calendar,help,osd,cpu,cell,tag,dwlstatus,nowplaying,display,clip,lock,term} bin/fetch
+  ci "2026-09-09T19:31:00+04:00" "bin: the kawa-* menus and bar helpers" bin/kawa-{menu,quick,power,audio,volume,brightness,calendar,help,osd,mem,cell,tag,dwlstatus,nowplaying,display,clip,lock,term} bin/fetch
   g checkout -q -b wallpaper
   ci "2026-09-11T20:12:00+04:00" "kawa-wallpaper: packs, pixel-art redraw, the picker" bin/kawa-wallpaper
   ci "2026-09-12T23:48:00+04:00" "kawa-veil: the seigaiha transition between themes" src/kawa-veil bin/kawa-theme
@@ -396,7 +396,7 @@ demo_repo() {   # (replaces shoot.sh's) ~/repos/fedokawaii with a history: the r
   ci "2026-09-13T09:20:00+04:00" "kawa-weather: wttr.in in the bar" bin/kawa-weather
   gd="2026-09-14T11:02:00+04:00" g merge -q --no-ff -m "Merge branch 'wallpaper'" wallpaper
   ci "2026-09-18T18:44:00+04:00" "kawa-share, kawa-screenshot: screen sharing and grabs" bin/kawa-share bin/kawa-screenshot src/kawa-clipkeep
-  ci "2026-09-22T21:07:00+04:00" "system: the greeter, snapshots around dnf" system/kawa-greeter system/kawa-snap
+  ci "2026-09-22T21:07:00+04:00" "system: the greeter, snapshots around dnf" system/kawa-greet system/kawa-snap
   ci "2026-10-02T20:30:00+04:00" "verify.sh: check every phase and the theme" verify.sh
   ci "2026-10-08T22:15:00+04:00" "docs: the handbook (markdown + PDF)" docs bin/brave-origin
   g checkout -q -b torrra
@@ -699,13 +699,13 @@ shot_filechooser() {   # the file dialog: yazi through kawa-pick, started as the
   local pid out=$KH/.cache/kawa-pick.out           # ("open file": one file, from ~/Documents)
   k kawa-pick 0 0 0 "$KH/Documents" "$out" >"$LT/filechooser.log" 2>&1 &
   pid=$!
-  waitfor 10 "the file dialog" win_geom float || { kill "$pid" 2>/dev/null; return; }
+  waitfor 10 "the file dialog" win_geom kawa-dialog || { kill "$pid" 2>/dev/null; return; }
   sleep 2.5
   k wtype -s 300 -k Down >/dev/null 2>&1; sleep 1.5   # (a file under the cursor: its preview)
-  FLOAT=1 capture filechooser float 1.0
+  FLOAT=1 capture filechooser kawa-dialog 1.0
   k wtype -s 300 q >/dev/null 2>&1                   # q: cancelled
   waitpid 6 "$pid" || { warn "$T: the file dialog had to be killed"; pkill -u "$K" -f kawa-pick 2>/dev/null; }
-  waitfor 5 "the file dialog to close" bash -c '! swaymsg -t get_tree | grep -q "\"app_id\": \"float\""' || true
+  waitfor 5 "the file dialog to close" bash -c '! swaymsg -t get_tree | grep -q "\"app_id\": \"kawa-dialog\""' || true
 }
 
 shot_books() {   # Super+R: the library — the ones being read first, the cover of the second
@@ -792,7 +792,7 @@ exec bash "$SH/fedokawaii"
 EOF
   install -m 755 "$REPO/system/fedokawaii" "$SH/fedokawaii"
   chmod 755 "$sb"/*; chmod -R a+rX "$sb"
-  k kawa-float --once system system 88x17 -- "$sb/menu" >"$LT/system.log" 2>&1 &   # (as fedokawaii --window)
+  k kawa-float --once system system 100x27 -- "$sb/menu" >"$LT/system.log" 2>&1 &   # (as fedokawaii --window)
   pid=$!
   waitfor 10 "the system window" win_geom float || { umount /var/lib/fedokawaii; return; }
   sleep 3

@@ -4,8 +4,9 @@
 # setup.sh installs exactly these lists; verify.sh proves exactly these lists
 # are present, the FORBIDDEN ones are absent, and nothing else was added.
 # Every name verified on packages.fedoraproject.org / RPM Fusion / vendor repos
-# for Fedora 44 and 45 (2026-10-14; tar, grubby, wiremix, visidata, sc-im, gdu, rocm-smi,
-# Syncplay's Python libraries 2026-10-16). One tool per job — see PACKAGES.md.
+# for Fedora 44 and 45 (2026-10-14; tar, grubby, wiremix, visidata, gdu, rocm-smi,
+# Syncplay's Python libraries 2026-10-16; LibreOffice's parts, the hunspell dictionaries and
+# lpf-spotify-client 2026-10-17). One tool per job — see PACKAGES.md.
 
 # ── phase 1 ─────────────────────────────────────────────────────────────────
 PKG_BASE=(
@@ -68,16 +69,21 @@ PKG_BUILD=(             # kept installed: theme.sh rebuilds dwl (config.h, patch
 )
 # dwl's config.mk ships XWayland commented out; Steam and other X11 apps need it on
 DWL_MAKE=(XWAYLAND=-DXWAYLAND "XLIBS=xcb xcb-icccm")
-PKG_SESSION=(greetd greetd-selinux xorg-x11-server-Xwayland)   # greetd brings agreety, the text login
+PKG_SESSION=(greetd greetd-selinux xorg-x11-server-Xwayland    # the login manager, X11 apps
+  cage python3-gobject gtk3                                     # the login screen: kawa-greet (GTK) in cage, a kiosk compositor
+  plymouth-plugin-script)                                       # the boot splash (the "sumi" Plymouth theme is a script)
 PKG_DESKTOP=(
-  pipewire wireplumber pipewire-pulseaudio pipewire-alsa  # audio (Pulse API for Brave/Steam, ALSA for spotify_player)
+  pipewire wireplumber pipewire-pulseaudio pipewire-alsa  # audio (Pulse API for Brave/Steam/Spotify; ALSA for
+                                                          #   programs that open it directly: games)
   pipewire-utils                                          # pw-dump: the audio popup lists outputs/inputs from it
   wiremix easyeffects playerctl cava                      # per-app mixer (a terminal window), EQ, media keys, the bar's music meter
   waybar mako fuzzel foot                                 # bar, notifications, launcher+menus, terminal
-  swaybg swayidle swaylock wlr-randr wlopm                # wallpaper, idle, lock, output modes, screens off
+  gtk-layer-shell                                         # quick settings: kawa-panel (GTK 3 and Python's
+                                                          #   GObject with cairo come with the login screen)
+  swaybg swayidle gtklock wlr-randr wlopm                 # wallpaper, idle, lock, output modes, screens off
   ddcutil wtype                                           # monitor brightness over DDC/CI · bar clicks → Super+1…9
   wl-clipboard cliphist grim slurp gammastep libnotify    # clipboard, screenshots, night light, notify-send
-  xdg-desktop-portal-wlr xdg-desktop-portal-gtk           # screencast/screenshot + file dialogs/settings
+  xdg-desktop-portal-wlr xdg-desktop-portal-gtk           # screencast/screenshot + settings (dark/light), print, open with
   xdg-utils xdg-user-dirs udiskie lxqt-policykit          # xdg-open, ~/Pictures…, USB automount, auth dialogs
   udisks2                                                 # what udiskie asks to mount (only a weak dependency brings it otherwise)
   exfatprogs dosfstools ntfs-3g                           # drives: check, repair and name exFAT and FAT sticks and
@@ -90,7 +96,7 @@ PKG_DESKTOP=(
   gtk4 libadwaita                                         # runtime for satty (upstream binary)
 )
 PKG_LOOK=(
-  adw-gtk3-theme qt6ct papirus-icon-theme adwaita-cursor-theme
+  adw-gtk3-theme qt6ct papirus-icon-theme
   liberation-fonts-all            # metric-compatible Arial/Times/Courier for office documents
   google-noto-sans-fonts          # UI sans
   google-noto-naskh-arabic-fonts amiri-fonts   # Arabic sans / serif
@@ -101,7 +107,15 @@ PKG_LOOK=(
 )
 PKG_APPS=(
   brave-origin claude-code                          # browser, AI (vendor repos)
-  abiword gnumeric                                  # office
+  gh                                                # GitHub from the terminal: sign in once (gh auth login),
+                                                    #   then clone, pull requests, issues, releases
+  libreoffice-writer libreoffice-calc libreoffice-impress
+                                                    # office: Word, Excel and PowerPoint files (and
+                                                    #   OpenDocument), opened and edited — only these three
+  libreoffice-gtk3                                  #   LibreOffice drawn by GTK 3: it follows the desktop's
+                                                    #   GTK theme, dark and light (its other toolkits: not here)
+  hunspell-en hunspell-ar                           # spelling dictionaries, English and Arabic (LibreOffice;
+                                                    #   Arabic is its language for right-to-left text: theme.sh)
   zathura zathura-pdf-mupdf zathura-cb              # PDF / EPUB / comic book reader
   bsdtar                                            #   comics' covers and pages for the books window
                                                     #   (libarchive, as zathura-cb: CBZ, CBR, CB7)
@@ -116,9 +130,9 @@ PKG_APPS=(
                                                     #   list), pem. Not the syncplay package: PySide6 and 27 Qt modules with it
   qrencode wf-recorder                              # QR codes · screen recordings
   btop bat ripgrep fd-find                          # monitor, pager; rg/fd also power LazyVim pickers
-  visidata sc-im                                    # tables in the terminal: vd opens CSV, TSV, JSON and
-                                                    #   SQLite (sort, sum, filter, group — Excel files stay
-                                                    #   Gnumeric's) · sc-im, a vi-like spreadsheet
+  visidata                                          # tables in the terminal: vd opens CSV, TSV, JSON and
+                                                    #   SQLite (sort, sum, filter, group — Excel files are
+                                                    #   LibreOffice Calc's)
   gdu                                               # what fills the disk (gdu ~), folder by folder
   fzf file 7zip                                    # the clipboard and wallpaper windows' lists, the shell's
                                                     #   Ctrl+R / Ctrl+T / Alt+C, yazi's z; file types; archives
@@ -144,7 +158,8 @@ PKG_GAMING=(steam gamescope gamemode mangohud
 RETIRED_PKGS=(unzip mediainfo    # unzip: 7zip opens zips too · mediainfo: ffprobe does its job
               pavucontrol blueman   # the mixer and the pairing window are terminal programs now: wiremix, bluetui
               lazygit               # its COPR is no longer kept: lazygit comes from its release (lib/upstream.sh)
-              solaar liquidctl)     # nothing here to drive: a mouse on a receiver needs no app; no liquid cooler
+              solaar liquidctl      # nothing here to drive: a mouse on a receiver needs no app; no liquid cooler
+              abiword gnumeric sc-im)   # office is LibreOffice now: Writer, Calc (and VisiData for CSV)
 
 # ── never present after setup (removed, replaced, or out of scope) ─────────
 FORBIDDEN_PKGS=(
@@ -152,8 +167,10 @@ FORBIDDEN_PKGS=(
   firefox chromium brave-browser                                               # browsers: Brave Origin only
   alacritty kitty xterm konsole gnome-terminal                                 # terminals: foot only
   rofi wofi wmenu bemenu                                                       # launchers: fuzzel only
-  tuigreet wlogout fastfetch neofetch                                          # replaced: agreety, fuzzel menus, own fetch
+  tuigreet gtkgreet wlogout fastfetch neofetch                                 # replaced: kawa-greet, fuzzel menus, own fetch
+  swaylock                                                                     # the lock: gtklock only
   pavucontrol blueman                                                          # replaced: wiremix, bluetui (terminal windows)
+  abiword gnumeric sc-im                                                       # replaced: LibreOffice Writer and Calc
   polkit-gnome hyprpolkitagent network-manager-applet                          # one polkit agent, no tray NM
   dunst SwayNotificationCenter                                                 # notifications: mako only (swaync's package)
   power-profiles-daemon                                                        # power: tuned only (both would set the CPU)
@@ -180,6 +197,14 @@ CLAUDE_KEY_FPR="31DDDE24DDFAB679F42D7BD2BAA929FF1A7ECACE"
 COPRS=(ilyaz/LACT)
 copr_pkgs() { case $1 in ilyaz/LACT) echo lact ;; esac; }   # what each COPR brings
 
+# ── built on this machine: lpf makes these packages from a manifest package's recipe
+#    (setup.sh, spotify_client). No repository has them, so they are not in manifest_all
+#    (update would look for them there); verify counts them as the desktop's own ─────────
+LPF_BUILT=(spotify-client)
+# Spotify (SPOTIFY=yes, your acceptance of its terms): RPM Fusion's recipe, which lpf builds
+# into the spotify-client package on this machine (setup.sh)
+PKG_SPOTIFY=(lpf-spotify-client)
+
 # waiting PART → what waits for a repository to catch up with this Fedora, one name per line
 # (setup.sh records it; update and repair try again and clear it): "rpmfusion" — RPM Fusion's
 # builds made for another version of the Fedora package they go with (the freeworld drivers,
@@ -198,9 +223,10 @@ manifest_all() {
   printf '%s\n' "${PKG_BASE[@]}" "${PKG_RELEASE[@]}" "${PKG_MEDIA[@]}" \
     "${PKG_GPU_COMMON[@]}" "${!gpu_pkgs}" "${PKG_BUILD[@]}" "${PKG_SESSION[@]}" \
     "${PKG_DESKTOP[@]}" "${PKG_LOOK[@]}" "${PKG_APPS[@]}"
-  [[ ${STEAM:-yes} == yes ]] && printf '%s\n' "${PKG_GAMING[@]}"
+  [[ $STEAM == yes ]] && printf '%s\n' "${PKG_GAMING[@]}"
+  [[ $SPOTIFY == yes ]] && printf '%s\n' "${PKG_SPOTIFY[@]}"
   # libraries a release binary needed that Fedora stopped pulling in by itself (say
-  # openssl3-libs for spotify_player on Fedora 45): installed and recorded by lib/upstream.sh
+  # openssl3-libs, once Fedora 45 moved to OpenSSL 4): installed and recorded by lib/upstream.sh
   cat "${STATE_DIR:-/var/lib/fedokawaii}/upstream-libs" 2>/dev/null || true
   # what this machine's own hardware needs — its firmware, the CPU's microcode, the Wi-Fi's
   # plumbing (lib/hardware.sh): found and recorded by setup, update and repair

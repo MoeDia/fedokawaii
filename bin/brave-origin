@@ -16,8 +16,9 @@ for a in "$@"; do                           # (after --, Chromium reads no switc
   if [[ -z $rest && $a == --enable-features=* ]]; then feat+=",${a#--enable-features=}"
   else [[ $a == -- ]] && rest=1; args+=("$a"); fi
 done
-for b in /usr/bin/brave-origin-stable /opt/brave.com/brave-origin/brave-origin /usr/bin/brave-origin; do
-  [[ -x $b ]] && exec "$b" "--enable-features=$feat" --password-store=basic "${args[@]}"
-done
-echo "brave-origin: Brave Origin is not installed (sudo dnf install brave-origin)" >&2
-exit 127
+# (the package's launcher, which its own brave-origin.desktop runs: Chromium's installer names
+# it PACKAGE-channel, PACKAGE being brave-core's brave-origin, under /opt/brave.com/brave-origin;
+# its profile is ~/.config/BraveSoftware/Brave-Origin)
+b=/usr/bin/brave-origin-stable
+[[ -x $b ]] || { echo "brave-origin: Brave Origin is not installed (sudo dnf install brave-origin)" >&2; exit 127; }
+exec "$b" "--enable-features=$feat" --password-store=basic "${args[@]}"

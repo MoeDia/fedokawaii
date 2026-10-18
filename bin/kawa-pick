@@ -2,7 +2,7 @@
 # kawa-pick — the file dialog. Brave's "Upload" and "Save as…" and the Open/Save dialogs of
 # GTK programs ask the file chooser portal; ~/.config/xdg-desktop-portal/wlroots-portals.conf
 # sends that to xdg-desktop-portal-termfilechooser (built by setup.sh), which runs this:
-# yazi in a small floating terminal (foot, app-id "float"), in the desktop's colours.
+# yazi in a small floating terminal (foot, app-id "kawa-dialog": a dialog, not a popup), in the desktop's colours.
 #
 #   open     Enter takes the file under the cursor (Space marks several first, where the
 #            app takes several) · Enter on a folder goes into it
@@ -27,6 +27,8 @@
 # never gets a file. Inside the window it runs itself again: kawa-pick --inside MODE PATH WORK.
 set -u
 PATH="$HOME/.local/bin:$PATH"                       # (the portal starts it with systemd's PATH)
+# shellcheck source=/dev/null
+. "$HOME/.config/fedokawaii/files.sh"            # free_name: never over a file
 
 # what the portal writes into the file it makes for saving (its first line) — and what
 # kawa-pick writes there instead, in the dialog's own words, since yazi shows that file's
@@ -50,15 +52,6 @@ is_note() {   # is_note FILE — the stand-in for the file being saved (only its
 
 say() { printf '\n  %s\n' "$1"; read -rsn1 -t 3 || true; }          # a word between two pickers
 ask() { local a=""; printf '\n  %s  [y/N] ' "$1"; read -rsn1 a; printf '\n'; [[ $a == [yY] ]]; }
-# free_name PATH — PATH while nothing is there, else the next free "name (1).ext",
-# "name (2).ext"… beside it (as Brave names a second download of the same file)
-free_name() {
-  local dir=${1%/*} stem=${1##*/} ext="" n=1
-  [[ -e $1 || -L $1 ]] || { printf '%s' "$1"; return; }
-  [[ $stem == ?*.* ]] && ext=.${stem##*.} stem=${stem%.*}
-  while [[ -e "$dir/$stem ($n)$ext" || -L "$dir/$stem ($n)$ext" ]]; do n=$((n + 1)); done
-  printf '%s' "$dir/$stem ($n)$ext"
-}
 
 # ── inside the window ─────────────────────────────────────────────────────────
 # yazi, again until MODE has its answer (WORK/answer) or there is none (cancelled).
@@ -146,7 +139,7 @@ else mode=open1 title="open file"; [[ $multiple == 1 ]] && mode=openN title="ope
 fi
 : >"$out" || exit 1                                 # empty = cancelled, until there is an answer
 if ! command -v yazi >/dev/null; then
-  notify-send -a desktop -u critical "File picker" "yazi is missing — run update or repair" 2>/dev/null
+  notify-send -a desktop -u critical "file picker" "yazi is missing — fedokawaii repair puts it back" 2>/dev/null
   exit 1
 fi
 
@@ -169,8 +162,8 @@ fi
 
 # 100 × 31 (an even width, an odd height: centred to the pixel). The title stays put (yazi
 # would write its folder there), so the bar says what the window is for.
-kawa-float --locked-title "$title" 100x31 -- "$0" --inside "$mode" "$path" "$work" \
-  || notify-send -a desktop -u critical "File picker" "no terminal window opened (foot)" 2>/dev/null
+kawa-float --dialog --locked-title "$title" 100x31 -- "$0" --inside "$mode" "$path" "$work" \
+  || notify-send -a desktop -u critical "file picker" "no terminal window opened (foot)" 2>/dev/null
 
 [[ -s $work/answer ]] && cat -- "$work/answer" >"$out"
 

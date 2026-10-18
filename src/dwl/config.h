@@ -1,7 +1,10 @@
 /* ═══════════════════════════════════════════════════════════════════════════
  *  dwl config.h — for dwl v0.9 (wlroots 0.20) with src/dwl/dwl.patch applied (gappx,
- *  full window borders, centred floating windows, keybindings that ignore the
- *  Arabic layout, the keyboard layout for the bar, menus that close on a click outside).
+ *  full window borders, the spiral and columns layouts, centred floating windows, popups
+ *  that close when they lose the focus, windows shown once drawn and faded in, games that
+ *  take the keyboard, FreeSync, keybindings that ignore the Arabic layout, the keyboard
+ *  layout for the bar, menus that close on a click outside, the pointers loaded again
+ *  when the theme switches, the borders in the theme's colours, a drawing tablet's pen as a pen).
  *  Installed by theme.sh into ~/.local/src/dwl/config.h, then rebuilt.
  *  Keybinding reference: Super+/
  * ═══════════════════════════════════════════════════════════════════════════ */
@@ -12,10 +15,11 @@
                         (hex & 0xFF) / 255.0f }
 
 /* ── colours ─────────────────────────────────────────────────────────────────
- * The desktop's own (tools/build-themes.py), compiled in, so they suit both the dark
- * and the light theme. Every window has a plain, full 2 px border, one solid colour:
- * vermilion around the focused one, warm grey around the others, asagi around one that
- * asks for attention — the same frame the menus and notices wear. */
+ * The desktop's own (tools/build-themes.py). Every window has a plain, full 2 px border,
+ * one solid colour: vermilion around the focused one, warm grey around the others, asagi
+ * around one that asks for attention — the same frame the menus and notices wear. These
+ * are the dark theme's; the theme in use replaces them from its dwl.colors, at dwl's start
+ * and at every switch (dwl.patch: loadcolours). */
 #define SUMI      0x0f0e0cff   /* ink: behind the wallpaper, seen only before it loads */
 #define NEZUMI    0x877f6fff   /* the other windows: warm grey                         */
 #define SHU       0xd0583aff   /* the focused window: vermilion                        */
@@ -29,9 +33,9 @@ static const unsigned int gappx            = 8;  /* gap between windows and arou
 static const unsigned int snap             = 16; /* snap pixel */
 static const float rootcolor[]             = COLOR(SUMI);
 /* { outline, band top/left, band bottom/right }: one colour each, a plain full border */
-static const float bordercolor[3][4]       = { COLOR(NEZUMI), COLOR(NEZUMI), COLOR(NEZUMI) };
-static const float focuscolor[3][4]        = { COLOR(SHU), COLOR(SHU), COLOR(SHU) };
-static const float urgentcolor[3][4]       = { COLOR(ASAGI), COLOR(ASAGI), COLOR(ASAGI) };
+static float bordercolor[3][4]             = { COLOR(NEZUMI), COLOR(NEZUMI), COLOR(NEZUMI) };
+static float focuscolor[3][4]              = { COLOR(SHU), COLOR(SHU), COLOR(SHU) };
+static float urgentcolor[3][4]             = { COLOR(ASAGI), COLOR(ASAGI), COLOR(ASAGI) };
 static const float fullscreen_bg[]         = {0.059f, 0.055f, 0.047f, 1.0f};
 
 /* tagging - TAGCOUNT must be no greater than 31 */
@@ -41,34 +45,42 @@ static const float fullscreen_bg[]         = {0.059f, 0.055f, 0.047f, 1.0f};
 static int log_level = WLR_ERROR;
 
 static const Rule rules[] = {
-	/* app_id                 title       tags mask     isfloating   monitor */
-	/* small tools open floating and centred (dwl.patch); "float" is the app-id the
-	 * menus give their terminal windows: footclient -a float … */
-	{ "float",                NULL,       0,            1,           -1 },
-	/* dialogs that belong to no window of their own: the file chooser every app's
-	 * "Upload"/"Save as" opens through the portal, and the password prompt for admin rights */
-	{ "xdg-desktop-portal-gtk", NULL,     0,            1,           -1 },
-	{ "lxqt-policykit-agent", NULL,       0,            1,           -1 },
-	{ "imv",                  NULL,       0,            1,           -1 },
-	{ "steam",                "Steam",    1 << 8,       0,           -1 }, /* the Steam client → workspace 9; games open where you are */
+	/* app_id                 title       tags mask     isfloating   monitor
+	 * (dwl.patch: "=text" matches that exact app-id or title, plain text any that holds it) */
+	/* popups open floating and centred (dwl.patch), and close when they lose the focus:
+	 * "float" is the app-id kawa-float gives the desktop's own windows (the system menu,
+	 * notes, the clipboard, books, btop …; the small menus are fuzzel's, not windows) */
+	{ "=float",               NULL,       0,            1,           -1 },
+	/* dialogs that float but stay while you answer them: the file dialog (kawa-pick) every
+	 * app's "Open"/"Save as" opens, and the password prompt for admin rights */
+	{ "=kawa-dialog",         NULL,       0,            1,           -1 },
+	{ "=lxqt-policykit-agent", NULL,      0,            1,           -1 },
+	{ "=imv",                 NULL,       0,            1,           -1 },
+	/* Steam: its small windows (sign in, settings, friends, news, the update box) float,
+	 * centred on the screen you are on; the library window — titled exactly "Steam" —
+	 * tiles. Games (app-id steam_app_…) are not Steam's: they open where you are */
+	{ "=steam",               NULL,       0,            1,           -1 },
+	{ "=steam",               "=Steam",   0,            0,           -1 },
 	/* no catch-all { NULL, NULL, … } rule: dwl applies every rule that matches, in
 	 * order, so a catch-all at the end would un-float everything above it */
 };
 
-/* layout(s) */
+/* layout(s) — the first is every workspace's own at the start. The bar (kawa-dwlstatus)
+ * draws each symbol as a pixel icon; monocle rewrites its symbol to [n], the number of
+ * windows it stacks */
 static const Layout layouts[] = {
 	/* symbol     arrange function */
-	/* dwl's own symbols; the bar (kawa-dwlstatus) draws each as a pixel icon.
-	 * monocle rewrites its symbol to [n], the number of windows it stacks */
-	{ "[]=",      tile },
-	{ "><>",      NULL },    /* floating */
-	{ "[M]",      monocle },
+	{ "(@)",      spiral },  /* the golden spiral (dwl.patch): Super+S */
+	{ "|||",      tile },    /* columns, left to right (dwl.patch's tile): Super+T */
+	{ "><>",      NULL },    /* floating, each window centred as it opens: Super+Y */
+	{ "[M]",      monocle }, /* one at a time, full size: Super+M */
 };
 
 /* monitors — resolution/refresh are applied by kawa-display at login (wlr-randr) */
 static const MonitorRule monrules[] = {
 	/* name       mfact  nmaster scale layout       rotate/reflect                x    y */
-	{ NULL,       0.55f, 1,      1,    &layouts[0], WL_OUTPUT_TRANSFORM_NORMAL,   -1,  -1 },
+	/* mfact 0.618: the golden ratio — the spiral's share for each next window */
+	{ NULL,       0.618f, 1,     1,    &layouts[0], WL_OUTPUT_TRANSFORM_NORMAL,   -1,  -1 },
 };
 
 /* keyboard — layouts/toggle come from XKB_DEFAULT_* set in /usr/local/bin/start-dwl */
@@ -131,6 +143,7 @@ static const Key keys[] = {
 	{ MODKEY,          XKB_KEY_w,                 spawn,            SHCMD("kawa-wallpaper") },
 	{ MODKEY|SHIFT,    XKB_KEY_w,                 spawn,            SHCMD("kawa-theme") },
 	{ MODKEY,          XKB_KEY_v,                 spawn,            SHCMD("kawa-clip") },
+	{ MODKEY,          XKB_KEY_z,                 spawn,            SHCMD("kawa-shrink") },
 	{ MODKEY,          XKB_KEY_r,                 spawn,            SHCMD("kawa-books") },
 	{ MODKEY,          XKB_KEY_n,                 spawn,            SHCMD("kawa-notes") },
 	{ MODKEY,          XKB_KEY_u,                 spawn,            SHCMD("fedokawaii --window") },
@@ -138,6 +151,7 @@ static const Key keys[] = {
 	{ MODKEY|SHIFT,    XKB_KEY_n,                 spawn,            SHCMD("makoctl dismiss -a") },
 	{ MODKEY,          XKB_KEY_Escape,            spawn,            SHCMD("kawa-lock --sleep") },
 	{ MODKEY|SHIFT,    XKB_KEY_e,                 spawn,            SHCMD("kawa-power") },
+	{ 0,               XKB_KEY_XF86Sleep,         spawn,            SHCMD("kawa-power sleep") },   /* (logind leaves the key to dwl: setup.sh) */
 	/* ── screenshots ── */
 	{ 0,               XKB_KEY_Print,             spawn,            SHCMD("kawa-screenshot region") },
 	{ SHIFT,           XKB_KEY_Print,             spawn,            SHCMD("kawa-screenshot full") },
@@ -158,18 +172,18 @@ static const Key keys[] = {
 	{ MODKEY,          XKB_KEY_q,                 killclient,       {0} },
 	{ MODKEY,          XKB_KEY_j,                 focusstack,       {.i = +1} },
 	{ MODKEY,          XKB_KEY_k,                 focusstack,       {.i = -1} },
+	/* the spiral's share: the first window narrower or wider (and every turn after it) */
 	{ MODKEY,          XKB_KEY_h,                 setmfact,         {.f = -0.05f} },
 	{ MODKEY,          XKB_KEY_l,                 setmfact,         {.f = +0.05f} },
-	{ MODKEY,          XKB_KEY_i,                 incnmaster,       {.i = +1} },
-	{ MODKEY,          XKB_KEY_d,                 incnmaster,       {.i = -1} },
 	{ MODKEY|SHIFT,    XKB_KEY_Return,            zoom,             {0} },
 	{ MODKEY,          XKB_KEY_Tab,               view,             {0} },
 	{ MODKEY,          XKB_KEY_f,                 togglefullscreen, {0} },
 	{ MODKEY|SHIFT,    XKB_KEY_space,             togglefloating,   {0} },
 	/* ── layouts ── */
-	{ MODKEY,          XKB_KEY_t,                 setlayout,        {.v = &layouts[0]} },
-	{ MODKEY,          XKB_KEY_y,                 setlayout,        {.v = &layouts[1]} },
-	{ MODKEY,          XKB_KEY_m,                 setlayout,        {.v = &layouts[2]} },
+	{ MODKEY,          XKB_KEY_s,                 setlayout,        {.v = &layouts[0]} },
+	{ MODKEY,          XKB_KEY_t,                 setlayout,        {.v = &layouts[1]} },
+	{ MODKEY,          XKB_KEY_y,                 setlayout,        {.v = &layouts[2]} },
+	{ MODKEY,          XKB_KEY_m,                 setlayout,        {.v = &layouts[3]} },
 	{ MODKEY|SHIFT,    XKB_KEY_t,                 setlayout,        {0} },  /* toggle last layout */
 	/* ── tags ── */
 	{ MODKEY,          XKB_KEY_0,                 view,             {.ui = ~0} },

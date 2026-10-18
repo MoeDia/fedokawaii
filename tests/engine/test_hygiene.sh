@@ -11,7 +11,7 @@ fresh() {
   local me=() ; [[ $(id -un) == root ]] || me=("s|-user root |-user $(id -un) |")   # (root's leftovers: yours, here)
   pointed "$REPO/lib/hygiene.sh" "$TMP/hygiene.sh" \
     "s|find /etc |find $FS/etc |" "s|/etc/systemd/system/display-manager.service|$FS/etc/systemd/system/display-manager.service|" \
-    "s|/usr/local/lib/fedokawaii.new /usr/local/lib/fedokawaii.old|$FS/usr/local/lib/fedokawaii.new $FS/usr/local/lib/fedokawaii.old|" \
+    "s|/usr/local/lib/fedokawaii|$FS/usr/local/lib/fedokawaii|g" \
     "s|find /var/tmp |find $FS/var/tmp |" "${me[@]}"
   # shellcheck source=/dev/null
   . "$TMP/hygiene.sh"
@@ -97,11 +97,13 @@ fresh; eq "$(strict hy_rpmnew)" ""
 mkdir -p "$FS/etc/private"; : >"$FS/etc/private/z.rpmnew"; chmod 000 "$FS/etc/private"
 strict hy_rpmnew >/dev/null 2>&1; eq "$?" 0; chmod 755 "$FS/etc/private"
 case_ "hy_leftovers: a half-made toolkit, the one before it, temp folders of runs over a day old"
-fresh; mkdir -p "$FS/usr/local/lib/fedokawaii.new" "$FS/usr/local/lib/fedokawaii.old" "$FS/var/tmp/fedokawaii.old1" "$FS/var/tmp/fedokawaii.live" "$FS/var/tmp/other.x"
+fresh; mkdir -p "$FS/usr/local/lib/fedokawaii" "$FS/usr/local/lib/fedokawaii.new" "$FS/usr/local/lib/fedokawaii.old" "$FS/var/tmp/fedokawaii.old1" "$FS/var/tmp/fedokawaii.live" "$FS/var/tmp/other.x"
 touch -d '-2 days' "$FS/var/tmp/fedokawaii.old1" "$FS/var/tmp/other.x"
 out=$(strict hy_leftovers); eq "$?" 0
 has "$out" "$FS/usr/local/lib/fedokawaii.new"; has "$out" "$FS/usr/local/lib/fedokawaii.old"; has "$out" "$FS/var/tmp/fedokawaii.old1"
 lacks "$out" "fedokawaii.live" "a running update's own temp folder"; lacks "$out" other.x
+case_ "hy_leftovers: the one before alone (an update cut off as it replaced the toolkit) — not a leftover: it is the toolkit"
+fresh; mkdir -p "$FS/usr/local/lib/fedokawaii.old"; lacks "$(strict hy_leftovers)" fedokawaii.old
 case_ "hy_leftovers: nothing left — nothing, and no failure"
 fresh; eq "$(strict hy_leftovers)" ""; eq "$?" 0
 

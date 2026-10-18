@@ -42,8 +42,8 @@ def save():
 
 
 def default(kind):
-    # (without a microphone there is no default input: "Share (as microphone)", a virtual
-    # source, is never chosen — while "Share" is, as an output, when it is the only one)
+    # (without a microphone there is no default input: "Share"'s monitor is never chosen —
+    # while "Share" is, as an output, when it is the only one)
     classes = ("Audio/Sink",) if kind == "sink" else ("Audio/Source",)
     want = st.get("configured", {}).get(kind)
     cand = [n for n in nodes if n["class"] in classes]

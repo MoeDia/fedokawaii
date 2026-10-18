@@ -315,7 +315,7 @@ def lua_check(paths):
 WAYBAR_BUILTIN = re.compile(r"(backlight|battery|bluetooth|clock|cpu|disk|group|idle_inhibitor|image|"
                             r"keyboard-state|memory|mpd|mpris|network|power-profiles-daemon|privacy|"
                             r"pulseaudio|sndio|systemd-failed-units|temperature|tray|upower|user|"
-                            r"wireplumber|cava|cffi|load|gamemode|jack|custom/[\w-]+)(#[\w-]+)?$")
+                            r"wireplumber|cava|cffi|load|gamemode|jack|custom/[\w-]+|group/[\w-]+)(#[\w-]+)?$")
 
 
 def waybar_check(path):
@@ -323,15 +323,21 @@ def waybar_check(path):
     bars = conf if isinstance(conf, list) else [conf]
     bad = []
     for bar in bars:
+        # a group (group/NAME) is listed on a side and lists modules of its own
+        groups = {k: bar[k].get("modules", []) for k in bar if k.startswith("group/")}
+        for g, mods in groups.items():
+            if not mods:
+                bad.append(f"{g}: a group with no modules")
         for side in ("modules-left", "modules-center", "modules-right"):
-            for m in bar.get(side, []):
+            for m in bar.get(side, []) + [x for g in bar.get(side, []) for x in groups.get(g, [])]:
                 if not WAYBAR_BUILTIN.match(m):
                     bad.append(f"{m}: not a waybar module")
-                elif m.startswith("custom/") and m not in bar:
+                elif (m.startswith("custom/") or m.startswith("group/")) and m not in bar:
                     bad.append(f"{m}: listed, never configured")
                 elif m.startswith("custom/") and not ({"exec", "format"} & set(bar[m])):
                     bad.append(f"{m}: neither exec nor format")
         listed = {m for s in ("modules-left", "modules-center", "modules-right") for m in bar.get(s, [])}
+        listed |= {x for g in listed for x in groups.get(g, [])}
         for k in bar:
             if WAYBAR_BUILTIN.match(k) and k not in listed:
                 bad.append(f"{k}: configured, but no side lists it")

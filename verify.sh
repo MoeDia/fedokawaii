@@ -86,11 +86,26 @@ elif ((${#miss[@]} == 0)); then pass "all ${#WANT[@]} manifest packages installe
 elif ((${#real[@]})); then fail "missing packages" "$(IFS=' '; echo "${real[*]}")"
 else pass "$((${#WANT[@]} - ${#ret[@]} - ${#wt[@]})) of ${#WANT[@]} manifest packages installed"; fi
 ((${#ret[@]} == 0)) || warn "no longer in Fedora (renamed or retired)" "$(IFS=' '; echo "${ret[*]}")"
-w=$(waiting rpmfusion | tr '\n' ' ')
-[[ -z $w ]] || warn "waiting for RPM Fusion to catch up with Fedora $VERSION_ID" "$w— update or repair adds them when they are out (Fedora's own drivers work meanwhile)"
+# each one RPM Fusion has not matched yet, with both versions: what it is made for, what
+# Fedora has (the base package: libheif for libheif-freeworld, Mesa for the drivers)
+while IFS= read -r p; do
+  [[ -n $p ]] || continue
+  case ${p%.i686} in libheif-freeworld) b=libheif ;; mesa-*-freeworld) b=mesa-filesystem ;; *) b="" ;; esac
+  rv=$(dnf -q repoquery --latest-limit=1 --qf '%{version}\n' "${p%.i686}" 2>/dev/null | head -n1)
+  fv=${b:+$(rpm -q --qf '%{version}\n' "$b" 2>/dev/null | head -n1)}
+  if [[ -z $rv ]]; then warn "$p: RPM Fusion has none for Fedora $VERSION_ID yet" "update or repair adds it when it is out"
+  else warn "$p $rv waits for Fedora's $b $rv (this machine has ${fv:-?})" "it installs itself at the update after Fedora's $b reaches $rv"; fi
+done < <(waiting rpmfusion)
 for c in $(waiting copr); do
   warn "the COPR $c has no build for Fedora $VERSION_ID yet" "$(copr_pkgs "$c" | tr '\n' ' ')left out — update or repair adds it when it has one"
 done
+# Spotify, built here by lpf from RPM Fusion's recipe (setup carries on without it: update and
+# repair build it; a recipe newer than the package — a Spotify release — waits for the update)
+if [[ $SPOTIFY != yes ]]; then info "Spotify not wanted (SPOTIFY=no)"
+elif ! rpm -q spotify-client >/dev/null 2>&1; then warn "Spotify not built yet" "update and repair build it (lpf, from Spotify's download)"
+elif [[ $(cat /var/lib/lpf/packages/spotify-client/state 2>/dev/null) != OK ]]; then
+  warn "a newer Spotify waits to be built" "update builds it (lpf's log: /var/lib/lpf/log/spotify-client.log)"
+else pass "Spotify $(rpm -q --qf '%{version}' spotify-client) (built here by lpf)"; fi
 
 # ── zero redundancy ──────────────────────────────────────────────────────────
 section "zero redundancy"
@@ -115,7 +130,7 @@ if ui=$(dnf repoquery --userinstalled --qf '%{name} %{reason}\n' 2>/dev/null) &&
 elif ui=$(dnf repoquery --userinstalled --qf '%{name}\n' 2>/dev/null) && [[ -n $ui ]]; then :; else ui=""; fi
 if [[ -n $ui ]]; then
   # (the manifest by its names, and by the names its packages have now — Fedora renames some)
-  extras=$(comm -23 <(sort -u <<<"$ui") <({ cat "$STATE_DIR/baseline-userinstalled" 2>/dev/null; printf '%s\n' "${WANT[@]}" "${standin[@]}"
+  extras=$(comm -23 <(sort -u <<<"$ui") <({ cat "$STATE_DIR/baseline-userinstalled" 2>/dev/null; printf '%s\n' "${WANT[@]}" "${standin[@]}" "${LPF_BUILT[@]}"
                                              rpm -q --qf '%{NAME}\n' --whatprovides "${WANT[@]}" 2>/dev/null | grep -v ' '; } | sort -u) \
            | grep -v '^kernel' | tr '\n' ' ')
   if [[ -z $extras ]]; then pass "nothing user-installed beyond the manifest"; else fail "installed outside the manifest" "$extras"; fi
@@ -171,7 +186,8 @@ check "dnf defaultyes on"                              grep -qxiE '1|true' <<<"$
 # (a list: other files may add to it — both names in it is what counts)
 check "no package downloads in the background (dnf's makecache timer masked)" \
   bash -c 'for u in dnf5-makecache.timer dnf-makecache.timer; do systemctl cat "$u" >/dev/null 2>&1 || continue; [[ $(systemctl is-enabled "$u" 2>/dev/null) == masked ]] || exit 1; done'
-check "dnf never takes Node 22 or PackageKit as a weak dependency" bash -c 'l=$(tr ", " "\n\n" <<<"$1"); grep -qx nodejs <<<"$l" && grep -qxF "nodejs22*" <<<"$l" && grep -qx PackageKit <<<"$l"' _ "$(dnfopt exclude_from_weak)"
+check "dnf never takes Node 22, PackageKit, Java or LibreOffice's offline help as a weak dependency" \
+  bash -c 'l=$(tr ", " "\n\n" <<<"$1"); for w in nodejs "nodejs22*" PackageKit "java-*-openjdk-headless" "libreoffice-help-*"; do grep -qxF "$w" <<<"$l" || exit 1; done' _ "$(dnfopt exclude_from_weak)"
 
 # ── upkeep: the toolkit and its control ──────────────────────────────────────
 section "upkeep (fedokawaii · Super+U)"
@@ -217,8 +233,10 @@ noimg=(); for v in "${kv[@]}"; do [[ -s /boot/initramfs-$v.img ]] || noimg+=("$v
 if ((${#noimg[@]} == 0)); then pass "every kernel has its boot image (initramfs)"
 else fail "kernels without a boot image (initramfs)" "$(IFS=' '; echo "${noimg[*]}") — would not start; repair makes them (dracut)"; fi
 check "no rescue kernel or boot entry"                 bash -c '! ls /boot/vmlinuz-0-rescue-* /boot/loader/entries/*-0-rescue*.conf 2>/dev/null | grep -q .'
-check "no console-size wait at boot (systemd.tty.term.console=dumb on every entry)" \
-  bash -c 'a=$(grubby --info=ALL | grep "^args=") && [ -n "$a" ] && ! printf "%s\n" "$a" | grep -vq systemd.tty.term.console=dumb'
+for b in "${BOOT_ARGS[@]}"; do   # (setup.sh's console_boot_arg: the splash's rhgb quiet, no console-size wait)
+  check "$b on every boot entry" \
+    bash -c 'a=$(grubby --info=ALL | grep "^args=") && [ -n "$a" ] && ! printf "%s\n" "$a" | grep -vqE "[\" ]$1([\" ]|\$)"' _ "$b"
+done
 if [[ $GPU_KIND == amd ]]; then
   check "amdgpu.ppfeaturemask on the kernel"           bash -c 'a=$(grubby --info=ALL | grep "^args=") && [ -n "$a" ] && ! printf "%s\n" "$a" | grep -vq amdgpu.ppfeaturemask'
   check "amdgpu.ppfeaturemask active now"              grep -q amdgpu.ppfeaturemask /proc/cmdline
@@ -291,23 +309,27 @@ section "compositor & login"
 check "dwl $DWL_TAG installed"                         U bash -c "/usr/local/bin/dwl -v 2>&1 | grep -q '${DWL_TAG#v}'"
 check "dwl at the pinned commit"                       test "$(U git -C "$TARGET_HOME/.local/src/dwl" rev-parse HEAD 2>/dev/null)" = "$DWL_COMMIT"
 check "dwl built with XWayland (Steam, X11 apps)"      U bash -c 'ldd /usr/local/bin/dwl | grep -q libxcb'
-check "dwl.patch applied (keys, gaps, frames, centring, layout, clean status)" \
-  bash -c 'grep -q "layout = 0; /\* keybindings always read" "$1" && grep -q "gap = (int)gappx" "$1" && grep -qF "corners closed" "$1" && grep -q "open centred on their monitor" "$1" && grep -q "kblayout %u" "$1" && grep -q "^printclean(" "$1"' _ "$TARGET_HOME/.local/src/dwl/dwl.c"
+# (the whole patch, as theme.sh tests it: it would come off cleanly — fed on stdin, as root
+# reads the toolkit's copy)
+dwl_patched() { U git -C "$TARGET_HOME/.local/src/dwl" apply --reverse --check - <"$REPO_DIR/src/dwl/dwl.patch" >/dev/null 2>&1; }
+check "dwl.patch applied (keys, gaps, frames, centring, layout, the pen, the theme's borders)" dwl_patched
 check "dwl's own wlroots $DWL_WLROOTS kept"             wlr_kept
 check "dwl finds every library (its wlroots: its own)"  U bash -c 'l=$(ldd /usr/local/bin/dwl) && ! grep -q "not found" <<<"$l" && grep -qF "$1/lib/libwlroots" <<<"$l"' _ "$(wlr_home)"
 check "session launcher (start-dwl)"                   test -x /usr/local/bin/start-dwl
 check "keyboard layouts $KB_LAYOUTS"                   grep -q "XKB_DEFAULT_LAYOUT=\"$KB_LAYOUTS\"" /usr/local/bin/start-dwl
 check "greetd SELinux module loaded"                   bash -c 'semodule -l | grep -qw greetd'
-check "greetd runs kawa-greeter"                       grep -q '/usr/local/bin/kawa-greeter' /etc/greetd/fedokawaii.toml
+check "greetd runs the login screen (kawa-greet in cage) for $TARGET_USER" grep -qxF "command = \"env \\\"XCURSOR_THEME=Sumi-\$(cat /var/lib/fedokawaii-greeter/theme)\\\" cage -d -s -- /usr/local/bin/kawa-greet $TARGET_USER\"" /etc/greetd/fedokawaii.toml
 check "greetd reads fedokawaii.toml"                   bash -c 'systemctl cat greetd.service | grep -qx "ExecStart=/usr/bin/greetd --config /etc/greetd/fedokawaii.toml"'
-check "agreety (greetd's text greeter) installed"      test -x /usr/bin/agreety
-check "kawa-greeter starts agreety → start-dwl"       grep -q 'exec agreety --cmd /usr/local/bin/start-dwl' /usr/local/bin/kawa-greeter
-# the file dialog: yazi through xdg-desktop-portal-termfilechooser, which setup.sh builds. Not
-# built (its build failed): the dialogs are GTK's meanwhile — a warning. Installed but not
-# running would leave apps with no file dialog at all — a failure.
+check "the login screen (kawa-greet) installed"          test -x /usr/local/bin/kawa-greet
+check "the login screen's look, both themes (/usr/local/share/fedokawaii/greeter)" bash -c 'for t in dark light; do d=/usr/local/share/fedokawaii/greeter/$t; for f in gtklock.css padlock.png seal-{1..7}.png; do [[ -s $d/$f ]] || exit 1; done; done'
+check "the login screen follows your theme (/var/lib/fedokawaii-greeter is yours)" test "$(stat -c %U /var/lib/fedokawaii-greeter 2>/dev/null)" = "$TARGET_USER"
+check "the pixel font crisp for every account (/etc/fonts/conf.d)" test -s /etc/fonts/conf.d/60-fedokawaii-pixel.conf
+check "the lock screen's words (\"ちがう · wrong password\")" cmp -s "$REPO_DIR/art/gtklock.mo" /usr/share/locale/fk/LC_MESSAGES/gtklock.mo
+# the file dialog: yazi through xdg-desktop-portal-termfilechooser, which setup.sh builds — the
+# only one (portals.conf names no other), so not built means apps have no file dialog at all
 tfc=/usr/local/libexec/xdg-desktop-portal-termfilechooser
 if [[ ! -e $tfc ]]; then
-  warn "yazi file dialog not built (termfilechooser)" "file dialogs are GTK's meanwhile — update or repair builds it"
+  fail "yazi file dialog not built (termfilechooser): apps cannot open or save files" "update or repair builds it"
 else
   check "yazi file dialog: termfilechooser ${TFC_TAG:-?} runs" U bash -c '[[ $("$1" -v 2>/dev/null) == "xdg-desktop-portal-termfilechooser ${2#v}" ]]' _ "$tfc" "${TFC_TAG:-}"
   check "termfilechooser known to the portals, D-Bus, systemd" test -f /usr/local/share/xdg-desktop-portal/portals/termfilechooser.portal \
@@ -330,6 +352,7 @@ check "Bluetooth dongle power saving off (btusb)"      grep -qx 'options btusb e
 [[ $STEAM == yes ]] && check "ntsync ready for Proton (/dev/ntsync)" test -c /dev/ntsync
 check "linger on (update, repair, verify reach your services)" test -f "/var/lib/systemd/linger/$TARGET_USER"
 check "sleep is suspend only (no hibernation)"           grep -qx 'AllowHibernation=no' /etc/systemd/sleep.conf.d/90-fedokawaii.conf
+check "every sleep locked first (the Sleep key is dwl's)"    grep -qx 'HandleSuspendKey=ignore' /etc/systemd/logind.conf.d/90-fedokawaii.conf
 check "shutdown waits 30 s at most for your services"  grep -qx 'TimeoutStopSec=30s' '/etc/systemd/system/user@.service.d/fedokawaii.conf'
 check "secrets.sh private (yours, chmod 600)"          bash -c '[[ ! -e $1 ]] || [[ $(stat -c "%a %U" "$1") == "600 $2" ]]' _ "$TARGET_HOME/.config/fedokawaii/secrets.sh" "$TARGET_USER"
 # torrents: one key, in secrets.sh only; Prowlarr takes it, torrra gets it from kawa-torrra
@@ -350,9 +373,14 @@ check "Prowlarr starts (it runs on demand)"           U systemctl --user start p
 check "Prowlarr answers on 127.0.0.1:9696"             U curl -fsS --max-time 5 -o /dev/null http://127.0.0.1:9696/ping
 check "Prowlarr takes the key from secrets.sh"         prowlarr_get health
 check "Prowlarr's files are yours (~/.config/prowlarr)" bash -c '[[ -d $1 && -z $(find "$1" ! -user "$2" -print -quit) ]]' _ "$TARGET_HOME/.config/prowlarr" "$TARGET_USER"
-nidx=$(prowlarr_get indexer 2>/dev/null | jq '[.[] | select(.enable)] | length' 2>/dev/null) || nidx=""
-if [[ $nidx =~ ^[1-9] ]]; then pass "Prowlarr has $nidx indexer(s)"
-else warn "Prowlarr has no indexers yet" "open http://localhost:9696 → Indexers → Add Indexer (torrra finds nothing until then)"; fi
+# the usual public indexers setup adds (system/prowlarr-indexers.py): each there, by its
+# definition (switched off by you counts: yours to decide)
+ix_want=$(sed -n 's/^INDEXERS = \[\(.*\)/\1/p; /^            (/p' "$REPO_DIR/system/prowlarr-indexers.py" | grep -o '("[A-Za-z0-9]*"' | tr -d '("' | tr 'A-Z' 'a-z' | sort)
+ix_have=$(prowlarr_get indexer 2>/dev/null | jq -r '.[].definitionName // empty' 2>/dev/null | tr 'A-Z' 'a-z' | sort)
+ix_miss=$(comm -23 <(printf '%s\n' "$ix_want") <(printf '%s\n' "$ix_have") | paste -sd ' ')
+nidx=$(prowlarr_get indexer 2>/dev/null | jq '[.[] | select(.enable)] | length' 2>/dev/null) || nidx=0
+if [[ -z $ix_miss ]]; then pass "Prowlarr's indexers: all $(wc -l <<<"$ix_want") of the usual ones, $nidx switched on"
+else warn "Prowlarr's indexers missing: $ix_miss" "fedokawaii repair adds them (online)"; fi
 ((prowlarr_was)) || U systemctl --user stop --no-block prowlarr.service 2>/dev/null || true
 dbb=$(U podman info --format '{{.Host.DatabaseBackend}}' 2>/dev/null) || dbb=""
 if [[ $dbb == sqlite ]]; then pass "podman database: sqlite (ready for Podman 6)"
@@ -370,8 +398,9 @@ if ((fw)); then
   ports=$(firewall-cmd --list-ports 2>/dev/null) || ports="(firewalld not answering)"
   fwsvc=$(firewall-cmd --list-services 2>/dev/null) || fwsvc="(firewalld not answering)"
   check "torrent port 6881 open (tcp + udp)"           bash -c "grep -q 6881/tcp <<<'$ports' && grep -q 6881/udp <<<'$ports'"
+  check "LocalSend's port $LOCALSEND_PORT open (tcp + udp)" bash -c "grep -q $LOCALSEND_PORT/tcp <<<'$ports' && grep -q $LOCALSEND_PORT/udp <<<'$ports'"
 else
-  warn "no firewall running (firewalld)" "nothing filters connections from outside; torrra's port 6881 is open anyway"
+  warn "no firewall running (firewalld)" "nothing filters connections from outside; the ports of torrra (6881) and LocalSend ($LOCALSEND_PORT) are open anyway"
 fi
 if [[ $SSH_SERVER == no ]]; then
   check "sshd off (SSH_SERVER=no)"                     bash -c '! systemctl is-enabled --quiet sshd.service'
@@ -392,7 +421,7 @@ for e in "${UPSTREAM[@]}"; do
     check "$b $tag runs" U timeout 10 "$f" --version
   done
 done
-check "PixelMplus 12 (Japanese pixel font)"          compgen -G "$TARGET_HOME/.local/share/fonts/PixelMplus/PixelMplus12-*.ttf"
+check "Fusion Pixel 12 $FUSION_TAG (the desktop's font, for every account)" test -s "$FUSION_DIR/fusion-pixel-12px-monospaced-ja.ttf" -a "$(cat "$FUSION_DIR/.version" 2>/dev/null)" = "$FUSION_TAG"
 # Syncplay, from its pinned source (setup carries on without it: update and repair fetch it)
 case $(up_tag syncplay) in
   "") warn "Syncplay not installed yet" "update and repair fetch it (watching together waits till then)" ;;
@@ -400,6 +429,21 @@ case $(up_tag syncplay) in
     check "Syncplay $SYNCPLAY_TAG loads (Fedora's python3, Twisted with TLS, certifi, pem)" syncplay_runs
     check "syncplay runs without a window (--no-gui --version)" U timeout 20 "$TARGET_HOME/.local/bin/syncplay" --version ;;
   *) fail "Syncplay is not the pinned $SYNCPLAY_TAG with this toolkit's fixes" "update and repair put it in" ;;
+esac
+# LocalSend, its pinned release (setup carries on without it: update and repair fetch it)
+case $(up_tag localsend) in
+  "") warn "LocalSend not installed yet" "update and repair fetch it (sending to a phone waits till then)" ;;
+  "$LOCALSEND_TAG")
+    check "LocalSend $LOCALSEND_TAG finds every library it needs" \
+      bash -c 'test -x "$1/localsend_app" && ! ldd "$1/localsend_app" | grep -q "not found"' _ "$(localsend_dir)"
+    check "localsend starts it (~/.local/bin/localsend)" test "$(readlink -f "$TARGET_HOME/.local/bin/localsend")" = "$(localsend_dir)/localsend_app" ;;
+  *) fail "LocalSend is not the pinned $LOCALSEND_TAG" "update and repair put it in" ;;
+esac
+# ble.sh, from its pinned source (setup carries on without it: the shell is plain bash meanwhile)
+case $(up_tag blesh) in
+  "") warn "ble.sh not installed yet" "update and repair fetch it (till then the shell types without colours or suggestions)" ;;
+  "$BLESH_COMMIT") check "ble.sh ${BLESH_COMMIT:0:7} loads (the shell's colours, suggestions and menus)" blesh_runs ;;
+  *) fail "ble.sh is not the pinned ${BLESH_COMMIT:0:7}" "update and repair put it in" ;;
 esac
 for e in "${NERD_FONTS[@]}"; do
   f=${e%%|*}
@@ -464,8 +508,8 @@ if ((THEMED == 0)); then
   info "not applied — menu → Theme when you want it (setup alone gives dwl with upstream defaults)"
 else
   info "applied $(cat "$TARGET_HOME/.local/state/fedokawaii/theme-applied")"
-  # (4: in sync, but the boot menu, kawa-veil or kawa-clipkeep could not be made here — the
-  # theme run carries on without them, so they are not what stops a finished setup)
+  # (4: in sync, but the boot menu and console could not be made here — the theme run
+  # carries on without them, so they are not what stops a finished setup)
   trc=0; tout=$(bash "$REPO_DIR/theme.sh" --user "$TARGET_USER" --check 2>&1) || trc=$?
   case $trc in
     0) pass "every file in sync with the repo" ;;
@@ -497,8 +541,8 @@ else
   check "no window buttons in title bars (GTK, Brave)"  grep -qx "':'" <<<"$(U gsettings get org.gnome.desktop.wm.preferences button-layout 2>&1)"
   check "folders open in yazi, text in neovim"         test "$(U xdg-mime query default inode/directory) $(U xdg-mime query default text/plain)" = "kawa-files.desktop kawa-edit.desktop"
   check "links open in Brave Origin"                   test "$(U xdg-mime query default x-scheme-handler/https)" = brave-origin.desktop
-  check "file dialogs → yazi (FileChooser: termfilechooser, then gtk)" \
-    grep -qx 'org.freedesktop.impl.portal.FileChooser=termfilechooser;gtk' "$TARGET_HOME/.config/xdg-desktop-portal/wlroots-portals.conf"
+  check "file dialogs → yazi (FileChooser: termfilechooser, the only one)" \
+    grep -qx 'org.freedesktop.impl.portal.FileChooser=termfilechooser' "$TARGET_HOME/.config/xdg-desktop-portal/wlroots-portals.conf"
   check "the file dialog runs kawa-pick (executable)" \
     bash -c 'grep -qx "cmd=$1/.local/bin/kawa-pick" "$1/.config/xdg-desktop-portal-termfilechooser/config" && test -x "$1/.local/bin/kawa-pick"' _ "$TARGET_HOME"
   check "Brave starts with screen-share sound (launcher entry → ~/.local/bin/brave-origin)" \
@@ -522,32 +566,33 @@ else
   check "the backup's exclude list in place (kawa-backup)" test -s "$TARGET_HOME/.config/fedokawaii/backup-exclude"
   check "Syncplay plays in mpv (~/.config/syncplay.ini)" grep -q '^playerpath = .*mpv$' "$TARGET_HOME/.config/syncplay.ini"
   check "neovim colourscheme gruvbox (remapped)"       U sh -c 'timeout 60 nvim --headless "+lua io.write(vim.g.colors_name or \"\")" +qa 2>&1 | grep -q gruvbox'
-  check "icon themes present (Papirus, Adwaita beneath the pointers)" test -d /usr/share/icons/Papirus-Dark -a -d /usr/share/icons/Papirus -a -d /usr/share/icons/Adwaita/cursors
-  check "pixel pointers in place (Fedokawaii, with their X11 names)" test -s "$TARGET_HOME/.local/share/icons/Fedokawaii/cursors/default" \
-    -a -L "$TARGET_HOME/.local/share/icons/Fedokawaii/cursors/left_ptr" -a -s "$TARGET_HOME/.local/share/icons/default/index.theme"
-  check "UI font → DepartureMono Nerd Font"           grep -q DepartureMono <<<"$(U fc-match 'DepartureMono Nerd Font' 2>&1)"
+  check "icon themes present (Papirus)"                test -d /usr/share/icons/Papirus-Dark -a -d /usr/share/icons/Papirus
+  # both Sumi variants, each with its other names (left_ptr: a link that leads to a pointer),
+  # and the default theme the one of the theme in use (kawa-theme keeps them together)
+  check "Sumi pointers in place (both, with their X11 names; the default the theme's)" \
+    bash -c 'for v in dark light; do [[ -s $1/Sumi-$v/cursors/default && -L $1/Sumi-$v/cursors/left_ptr && -s $1/Sumi-$v/cursors/left_ptr ]] || exit 1; done
+             m=$(readlink "$2"); m=${m%/}; [[ ${m##*/} == light ]] && m=light || m=dark
+             [[ $(readlink "$3") == "$1/Sumi-$m" ]]' _ /usr/share/icons "$TARGET_HOME/.config/fedokawaii/current" "$TARGET_HOME/.local/share/icons/default"
+  check "desktop font → Fusion Pixel 12, crisp at 24 px (no smoothing)" grep -q '^Fusion Pixel 12px Mono ja False$' <<<"$(U fc-match -f '%{family} %{antialias}' 'Fusion Pixel 12px Mono ja:pixelsize=24' 2>&1)"
   check "pixel icons → Sumi Icons"                     grep -q 'Sumi Icons' <<<"$(U fc-match 'Sumi Icons' 2>&1)"
   check "pixel icons in the terminal → Sumi Icons Term"  grep -q 'Sumi Icons Term' <<<"$(U fc-match 'Sumi Icons Term' 2>&1)"
-  # without a Wayland display it simply runs the command: proves it was built and links
-  # two niceties built from src/: without them the desktop works the same, only plainer
-  if U env -u WAYLAND_DISPLAY "$TARGET_HOME/.local/bin/kawa-veil" -- true >/dev/null 2>&1; then pass "transitions (kawa-veil) built and runnable"
-  else warn "transitions (kawa-veil) not built" "theme and wallpaper changes work, without the fade — repair builds it"; fi
-  if [[ -x $TARGET_HOME/.local/bin/kawa-clipkeep ]]; then pass "clipboard keeper (kawa-clipkeep) built"
-  else warn "clipboard keeper (kawa-clipkeep) not built" "copy and paste work; a copy just ends with its app — repair builds it"; fi
+  # without a Wayland display it simply runs the command: proves it links (that it was built
+  # from src/ the theme check above says)
+  check "transitions (kawa-veil) runnable"             U env -u WAYLAND_DISPLAY "$TARGET_HOME/.local/bin/kawa-veil" -- true
   check "clipboard and wallpaper windows (fzf ≥ 0.68)" bash -c 'v=$(fzf --version 2>/dev/null) || exit 1; IFS=. read -r a b _ <<<"${v%% *}"; ((a > 0 || b >= 68))'
   check "wallpaper previews (ImageMagick draws sixels)" bash -c 'magick -size 2x2 xc:black sixel:- | grep -q "^.P"'
   art=$TARGET_HOME/.local/share/fedokawaii
-  check "pixel art drawn for both themes (waves, Fuji, padlock)" \
-    test -s "$art/dark/pattern.png" -a -s "$art/dark/scene.png" -a -s "$art/dark/lock.png" \
-      -a -s "$art/light/pattern.png" -a -s "$art/light/scene.png" -a -s "$art/light/lock.png"
+  check "the lock screen's pictures, both themes (padlock, the seven seals)" \
+    bash -c 'for t in dark light; do for f in padlock seal-{1..7}; do [[ -s $1/$t/$f.png ]] || exit 1; done; done' _ "$art"
   if [[ $WALLPAPER_PACK == yes ]]; then
     want=$(grep -cE '^(dark|light) ' "$art/wallpapers.list" 2>/dev/null || echo 0)
-    have=$(find "$art/wallpapers" -name '*.png' 2>/dev/null | wc -l)
-    if ((have >= want && want > 0)); then pass "wallpaper pack: $have pictures drawn"
-    else warn "wallpaper pack: $have of $want pictures drawn" "re-run Theme when online (kawa-wallpaper --pack)"; fi
+    have=$(find "$art/wallpapers" -name '*.src' 2>/dev/null | wc -l)
+    if ((have >= want && want > 0)); then pass "wallpaper pack: $have pictures"
+    else warn "wallpaper pack: $have of $want pictures fetched" "re-run Theme when online (kawa-wallpaper --pack)"; fi
   fi
   check "music meter (cava) runs"                      U timeout 5 cava -v
   ((BOOT_SKIPPED)) || check "boot menu theme installed" bash -c 'test -s /boot/grub2/themes/sumi/theme.txt && grep -q grub2/themes/sumi/theme.txt /boot/grub2/grub.cfg'
+  ((BOOT_SKIPPED)) || check "boot splash: the sumi theme (起動中 · starting Fedora)" bash -c '[[ $(plymouth-set-default-theme) == sumi ]] && test -s /usr/share/plymouth/themes/sumi/sumi.script'
   # shellcheck disable=SC2088  # literal ~ in a label
   check "~/.bashrc loads ~/.bashrc.d"                  grep -q bashrc.d "$TARGET_HOME/.bashrc"
 fi
@@ -555,25 +600,26 @@ fi
 # ── live session (only while you are logged in) ─────────────────────────────
 if pgrep -u "$TARGET_UID" -x 'dwl(\.prev)?' >/dev/null; then
   section "live session"
-  check "PipeWire + WirePlumber active"                U systemctl --user is-active --quiet pipewire.service wireplumber.service
+  check "PipeWire + WirePlumber running steadily (no crash at start)" pw_steady
   # the portals behind file dialogs and screen sharing start only inside a graphical session
   check "graphical session known to systemd"           U systemctl --user is-active --quiet dwl-session.target graphical-session.target
   portal() { U busctl --user get-property org.freedesktop.portal.Desktop /org/freedesktop/portal/desktop "$@" 2>/dev/null; }
   fcv=$(portal org.freedesktop.portal.FileChooser version) scs=$(portal org.freedesktop.portal.ScreenCast AvailableSourceTypes)
   check "file dialog portal (FileChooser ${fcv#u })"     bash -c '[[ $1 =~ ^u\ ([0-9]+)$ ]] && ((BASH_REMATCH[1] >= 3))' _ "$fcv"
   check "screen sharing portal: screens + windows"     test "$scs" = "u 3"
-  check "\"Share\" sink + source for calls (PipeWire)"  grep -q "Share (as microphone)" <<<"$(U wpctl status 2>/dev/null)"
+  check "\"Share\" output for calls (PipeWire; \"Monitor of Share\" is its microphone)" grep -q "Share" <<<"$(U wpctl status 2>/dev/null)"
   if ((THEMED)); then
-    for p in waybar mako foot swaybg swayidle udiskie kawa-dwlstatus kawa-nowplaying kawa-cpu lxqt-policykit-agent; do
+    for p in waybar kawa-panel mako foot swaybg swayidle udiskie kawa-dwlstatus kawa-nowplaying kawa-mem lxqt-policykit-agent; do
       check "$p running" pgrep -u "$TARGET_UID" -f "(^|/)$p( |$)"
     done
     # night light is yours to switch off (quick settings): off is not a fault
     if pgrep -u "$TARGET_UID" -x gammastep >/dev/null; then pass "night light running"
     else info "night light off (quick settings turns it on)"; fi
     WD=$(find "/run/user/$TARGET_UID" -maxdepth 1 -name 'wayland-*' ! -name '*.lock' -printf '%f\n' -quit)
-    check "clipboard history running"                  pgrep -u "$TARGET_UID" -f 'wl-paste --watch cliphist'
+    check "clipboard history running"                  pgrep -u "$TARGET_UID" -f 'wl-paste --watch kawa-clip --store'
+    check "the drives watcher running (the bar's USB mark at once)" pgrep -u "$TARGET_UID" -f 'kawa-drives watch'
     check "the update season's reminder (timer) running" U systemctl --user is-active --quiet fedokawaii-remind.timer
-    [[ -x $TARGET_HOME/.local/bin/kawa-clipkeep ]] && check "copies outlive their app (kawa-clipkeep)" pgrep -u "$TARGET_UID" -x kawa-clipkeep
+    check "copies outlive their app (kawa-clipkeep)"   pgrep -u "$TARGET_UID" -x kawa-clipkeep
     IFS=' ' read -r cur best < <(U env WAYLAND_DISPLAY="$WD" wlr-randr | awk -v want="$MONITOR_HZ" '
       /^[^ ]/ { if (c) exit } /^    [0-9]+x[0-9]+ px/ { r[++n] = $1; hz[n] = $3 + 0; if ($0 ~ /current/) { c = $1; ch = $3 + 0 } }
       END { for (i = 1; i <= n; i++) if (r[i] == c && hz[i] <= want + 0.5 && hz[i] > b) b = hz[i]; printf "%d %d\n", ch + 0.5, b + 0.5 }')

@@ -21,6 +21,7 @@ X=/tmp/xdg-kawa                    # the session's XDG_RUNTIME_DIR
 SH=/tmp/shoot-kawa                 # stubs, helpers, state: readable by $K ($R may not be)
 OUT=$R/shots LOG=$R/logs
 ONLY=${SHOOT_ONLY:-bar menus notify term lock}
+GLS=${SHOOT_GLS:-/opt/kit-gls}       # a gtk-layer-shell typelib for python3.12 (the panel; see shot_menus)
 
 say()  { printf '\e[1m[shoot %s]\e[0m %s\n' "$(date +%T)" "$*" >&2; }
 warn() { printf '\e[33m[shoot]\e[0m %s\n' "$*" >&2; }
@@ -208,8 +209,14 @@ session() {
   { k wpctl status; k sh -c 'pw-dump | jq -r ".[] | select(.type==\"PipeWire:Interface:Node\") | [.id, .info.props[\"media.class\"], .info.props[\"node.name\"], .info.props[\"node.description\"], .info.props[\"factory.name\"]] | @tsv"'; } >"$LT/audio.log" 2>&1
 
   say "$T: sway (headless, 1920×1080)"
+  # window borders in the theme's own colours, read from its dwl.colors as dwl reads them
+  # (sway.conf holds the dark ones: focus d0583a, border 877f6f, urgent 7fb8b0)
+  local focus=d0583a border=877f6f urgent=7fb8b0 key val
+  while read -r key val; do case $key in focus) focus=$val ;; border) border=$val ;; urgent) urgent=$val ;; esac
+  done < <(grep -E '^(focus|border|urgent) [0-9a-fA-F]{6}$' "$KH/.config/fedokawaii/themes/$T/dwl.colors" 2>/dev/null)
+  sed "s/#d0583a/#$focus/g; s/#877f6f/#$border/g; s/#7fb8b0/#$urgent/g" "$SH/sway.conf" >"$SH/sway-$T.conf"
   k env WLR_BACKENDS=headless WLR_RENDERER=pixman WLR_LIBINPUT_NO_DEVICES=1 WLR_HEADLESS_OUTPUTS=1 \
-    sway ${SHOOT_SWAY_DEBUG:+-d} -c "$SH/sway.conf" >"$LT/sway.log" 2>&1 &
+    sway ${SHOOT_SWAY_DEBUG:+-d} -c "$SH/sway-$T.conf" >"$LT/sway.log" 2>&1 &
   waitfor 20 "sway's IPC socket" compgen -G "$X/sway-ipc.*.sock"
   local wl; wl=$(cd "$X" && ls wayland-[0-9] 2>/dev/null | head -1)
   [[ -n $wl ]] || die "$T: sway did not start (see $LT/sway.log)"
@@ -248,11 +255,15 @@ session() {
   k kawa-dwlstatus <"$X/dwl-status" >"$LT/kawa-dwlstatus.log" 2>&1 &
   exec 7>"$X/dwl-status"
   printf '%s\n' "DP-1 title ~/repos/fedokawaii" "DP-1 appid foot" "DP-1 fullscreen 0" "DP-1 floating 0" \
-    "DP-1 selmon 1" "DP-1 tags 27 1 1 16" "DP-1 layout []=" "DP-1 kblayout 0" >&7
+    "DP-1 selmon 1" "DP-1 tags 27 1 1 16" "DP-1 layout (@)" "DP-1 kblayout 0" >&7
   waitfor 10 "kawa-dwlstatus's files" test -s "$X/dwl-bar/kb.json"
   waitfor 10 "mako on the bus" k busctl --user status org.freedesktop.Notifications
   waitfor 10 "the foot server socket" compgen -G "$X/foot-$wl.sock"
 
+  # Steam running and ready (the bar's gamepad): two sleeping processes named as Steam's
+  mkdir -p "$X/fake-steam"; cp /bin/sleep "$X/fake-steam/steam"; cp /bin/sleep "$X/fake-steam/steamwebhelper"
+  chown -R "$K:$K" "$X/fake-steam"
+  k "$X/fake-steam/steam" 3600 & k "$X/fake-steam/steamwebhelper" 3600 &
   say "$T: waybar"
   WB_T0=$SECONDS
   k waybar >"$LT/waybar.log" 2>&1 &
@@ -312,16 +323,18 @@ menu() {   # menu NAME CMD… — open a menu, capture it once drawn and still, 
 
 shot_menus() {
   local kcmd=(setpriv --reuid="$KUID" --regid="$KGID" --init-groups -- env -i "${KENV[@]}")
-  # quick settings as on the real machine, which has a Bluetooth adapter (the dongle):
-  # only this menu's processes see a /sys/class/bluetooth/hci0
+  # quick settings (kawa-panel, open for 6 s) as on the real machine, which has a Bluetooth
+  # adapter (the dongle): only this panel's processes see a /sys/class/bluetooth/hci0.
+  # (This machine's python3 has no working GTK bindings: the panel runs on its python3.12,
+  # with a gtk-layer-shell built for them, in $GLS)
+  local qs="env GI_TYPELIB_PATH=$GLS/girepository-1.0 LD_LIBRARY_PATH=$GLS python3.12 \"\$(command -v kawa-panel)\" --open & p=\$!; sleep 6; kill \$p"
   menu menu-quick unshare --mount --propagation private -- sh -c \
     'mount -t tmpfs -o size=64k,mode=755 tmpfs /sys/class && mkdir -p /sys/class/bluetooth/hci0 && exec "$@"' \
-    sh "${kcmd[@]}" kawa-quick
-  menu menu-quick-nobt k kawa-quick
+    sh "${kcmd[@]}" sh -c "$qs"
+  menu menu-quick-nobt k sh -c "$qs"
   menu menu-power      k kawa-power
   menu menu-audio      k kawa-audio
   menu menu-calendar   k kawa-calendar
-  menu menu-brightness k kawa-brightness
   menu menu-help       k kawa-help
   menu menu-change     k kawa-config
   menu menu-drives     k kawa-drives       # the drives (the bar's drive mark): stubs/lsblk's stick and disk
@@ -469,21 +482,36 @@ exec sleep 86399'
 
 shot_lock() {
   img grab "$W/base.ppm"
-  k kawa-lock >"$LT/swaylock.log" 2>&1 &
+  k kawa-lock >"$LT/gtklock.log" 2>&1 &
   local r
-  if r=$(img capture "$W/base.ppm" "$OT/lock.png" "$W/lock-crop.png" --timeout 8 --min 0.8 --settle 0.5 2>>"$LT/swaylock.log"); then
+  if r=$(img capture "$W/base.ppm" "$OT/lock.png" "$W/lock-crop.png" --timeout 10 --min 0.8 --settle 0.8 2>>"$LT/gtklock.log"); then
     say "$T: lock.png"
-    # the padlock at 1:1, and again while typing (the keyhole lights)
-    python3 -I -c 'import sys; from PIL import Image; im=Image.open(sys.argv[1]); w,h=im.size; im.crop((w//2-120,h//2-160,w//2+120,h//2+110)).save(sys.argv[2])' \
+    # the middle at 1:1, and again with a password half typed (the ◆ dots)
+    python3 -I -c 'import sys; from PIL import Image; im=Image.open(sys.argv[1]); w,h=im.size; im.crop((w//2-220,h//2-230,w//2+220,h//2+230)).save(sys.argv[2])' \
       "$OT/lock.png" "$OT/lock-center.png"
-    k wtype "abc"; sleep 0.25
-    grim "$W/typing.png" && python3 -I -c 'import sys; from PIL import Image; im=Image.open(sys.argv[1]); w,h=im.size; im.crop((w//2-120,h//2-160,w//2+120,h//2+110)).save(sys.argv[2])' \
+    k wtype "secret"; sleep 0.4
+    grim "$W/typing.png" && python3 -I -c 'import sys; from PIL import Image; im=Image.open(sys.argv[1]); w,h=im.size; im.crop((w//2-220,h//2-230,w//2+220,h//2+230)).save(sys.argv[2])' \
       "$W/typing.png" "$OT/lock-typing-center.png"
   else
-    warn "$T: the lock screen could not be captured (see $LT/swaylock.log)"
+    warn "$T: the lock screen could not be captured (see $LT/gtklock.log)"
   fi
-  pkill -USR1 -x swaylock 2>/dev/null                    # swaylock unlocks on SIGUSR1
-  waitfor 5 "swaylock to unlock" bash -c '! pgrep -x swaylock'
+  pkill -x gtklock 2>/dev/null
+}
+
+time_switch() {   # how long a theme switch takes before anything moves (round 18 #141)
+  local other=light i; [[ $T == light ]] && other=dark
+  # 1. the apply alone, every command timed (bash xtrace with timestamps)
+  k env KAWA_VEILED=1 PS4='+ $EPOCHREALTIME ' bash -x "$(k sh -c 'command -v kawa-theme')" "$other" >"$LT/switch-trace.log" 2>&1
+  k env KAWA_VEILED=1 PS4='+ $EPOCHREALTIME ' bash -x "$(k sh -c 'command -v kawa-theme')" "$T" >>"$LT/switch-trace.log" 2>&1
+  # 2. the full switch, veil and all: frames grabbed while it runs, first change timed
+  img grab "$W/sw0.ppm"
+  local t0; t0=$EPOCHREALTIME
+  k kawa-theme "$other" >"$LT/switch-full.log" 2>&1 &
+  local pid=$!
+  for ((i = 1; i <= 60; i++)); do img grab "$W/sw$i.ppm"; echo "$i $EPOCHREALTIME" >>"$LT/switch-frames.log"; kill -0 $pid 2>/dev/null || break; done
+  wait $pid; echo "total $(bc <<<"$EPOCHREALTIME - $t0") t0 $t0" >>"$LT/switch-frames.log"
+  for ((j = 1; j <= i; j++)); do echo "$j $(img bbox "$W/sw0.ppm" "$W/sw$j.ppm")" ; done >>"$LT/switch-frames.log"
+  k env KAWA_VEILED=1 kawa-theme "$T" >/dev/null 2>&1
 }
 
 inner() {
@@ -498,6 +526,7 @@ inner() {
   want notify && shot_notify
   want term   && shot_term
   want lock   && shot_lock
+  want switch && time_switch
   # let the apps say goodbye (flushes their logs), then the namespace ends
   exec 7>&-
   pkill -TERM -u "$K" 2>/dev/null; sleep 1

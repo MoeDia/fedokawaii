@@ -11,8 +11,7 @@
 #   toolkit [KEY=VALUE…]             $TMP/toolkit: fedokawaii.conf (those settings changed, as
 #                                    Super+U → settings saves them) and lib/common.sh
 #   config REL…                      configs/home/REL (a file or a folder) into the home, rendered
-#                                    as theme.sh does (@HOME@, @UID@, fedokawaii.conf's values;
-#                                    the backup settings: $TEST_BACKUP_TARGET, $TEST_BACKUP_REMIND_DAYS)
+#                                    as theme.sh does (@HOME@, @UID@, fedokawaii.conf's values)
 #   stub NAME [BODY]                 a stand-in: logs "NAME args" to $CALLS, then runs BODY (sh);
 #                                    $TMP, $STUBS and $CALLS are exported for it
 #   on_exit 'CMD'                    run CMD when the file ends (also on Ctrl+C)
@@ -47,9 +46,9 @@ sandbox() {   # sandbox — every test file starts here (call again for a clean 
          PYTHONDONTWRITEBYTECODE=1 KAWA_TOOLKIT=$TMP/toolkit
   # the scripts under test come straight from the repository; anything they call is a stub first
   export PATH="$STUBS:$REPO/bin:/usr/local/bin:/usr/bin:/bin"
-  # the icon names and the dark theme's colours, as theme.sh installs them
+  # the icon names, the menus' width helper and the dark theme's colours, as theme.sh installs them
   mkdir -p "$HOME/.config/fedokawaii"
-  cp "$REPO/configs/home/.config/fedokawaii/icons.sh" "$HOME/.config/fedokawaii/"
+  cp "$REPO/configs/home/.config/fedokawaii/icons.sh" "$REPO/configs/home/.config/fedokawaii/width.sh" "$REPO/configs/home/.config/fedokawaii/files.sh" "$HOME/.config/fedokawaii/"
   cp -r "$REPO/configs/home/.config/fedokawaii/themes" "$HOME/.config/fedokawaii/"
   ln -s themes/dark "$HOME/.config/fedokawaii/current"
   config .config/fedokawaii/env
@@ -69,7 +68,6 @@ config() {
         *.ttf|*.otf|*.png) cp "$f" "$HOME/${f#"$REPO/configs/home/"}" ;;
         *) sed -e "s|@HOME@|$HOME|g" -e "s|@MONITOR_HZ@|144|g" -e "s|@WEATHER_CITY@|Sharjah|g" \
                -e "s|@NIGHT_LIGHT@|25.35:55.40|g" -e "s|@ICON_CHEVRON_RIGHT@|>|g" \
-               -e "s|@BACKUP_TARGET@|${TEST_BACKUP_TARGET:-}|g" -e "s|@BACKUP_REMIND_DAYS@|${TEST_BACKUP_REMIND_DAYS:-7}|g" \
                -e "s|^@MPV_SCALING@\$|# scaling: mpv's own defaults|" -e "s|@UID@|$UID|g" \
                "$f" >"$HOME/${f#"$REPO/configs/home/"}"
            [[ -x $f ]] && chmod +x "$HOME/${f#"$REPO/configs/home/"}" ;;

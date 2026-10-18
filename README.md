@@ -23,7 +23,8 @@ system/            what setup installs: `fedokawaii` (the system's control and i
                    the performance profile, torrra's key wrapper, and the Prowlarr container
                    (→ ~/.config/containers/systemd)
 src/               what is compiled or patched here: dwl/ (config.h — keys, colours — and dwl.patch: gaps,
-                   full window borders, centred dialogs, Arabic-proof keys, the layout for the bar) ·
+                   full window borders, centred dialogs, Arabic-proof keys, the layout for the bar,
+                   the pointers following the theme) ·
                    kawa-veil/ (the theme and wallpaper transitions, C) · kawa-clipkeep/
                    (copies outlive the program they came from, C) · syncplay/ (syncplay.patch:
                    two fixes to Syncplay's mpv connection, applied as it is installed)
@@ -69,16 +70,24 @@ PACKAGES.md        what is installed, from where, and why
   second, and the quick-settings key.
 - **Level display**: the volume, microphone and brightness keys show a hi-fi level wedge of
   pixel columns at the bottom centre, updating in place while a key is held.
-- **Clipboard**: Super+V opens a small window with the clipboard history — searchable, with
-  the full text or the picture itself as a preview; a copy stays on the clipboard after the
-  program it came from is closed.
+- **Clipboard**: Super+V opens a small window with the clipboard history — text and pictures
+  (screenshots, Brave's *Copy image*), searchable, with the full text or the picture itself as
+  a preview, and Enter puts a picture back as a picture; a copy stays on the clipboard after
+  the program it came from is closed.
 - **No window buttons**: dwl tiles and Super+Q closes, so no app (GTK or Brave) draws any.
 - **Books and notes**: Super+R lists every book in `~/Books` (PDF, EPUB, comics) with the
   page you stopped on, a reading bar and the cover — Enter reads it in zathura, Ctrl+A adds
   books from Downloads, Ctrl+D removes. Super+N opens `~/Notes/notes.md`, a dated diary of
   quick notes, and puts it away again; it saves as you type.
+- **Drawing**: *Sketch* in the launcher opens Xournal++ on a blank page the shape of the
+  screen, saved as you draw in `~/Pictures/Sketches`. A drawing tablet (an XP-Pen Star G430S
+  here) needs no driver: its pen draws with pressure, its lower button erases and its upper
+  one drags the page while held, and the pad keeps the screen's proportions.
 - **File dialogs**: every Open, Upload and Save as — Brave's too — is yazi in a floating
-  terminal, with its previews and keys (GTK's dialog stays as the fallback).
+  terminal, with its previews and keys — the one dialog (LibreOffice alone shows GTK's: it
+  builds that dialog itself, without the portal).
+- **Office**: LibreOffice Writer, Calc and Impress open and edit Word, Excel and PowerPoint
+  files, in the desktop's theme, with English and Arabic spelling.
 - **USB drives**: sticks, disks and SD cards open by themselves with a notice (click it for
   the files); the bar's drive mark and **M** in yazi or any file dialog open or eject them,
   and eject writes out what is still on its way, then says *safe to unplug*. Encrypted
@@ -89,21 +98,24 @@ PACKAGES.md        what is installed, from where, and why
   `ls` as eza, `tldr` examples, hints to copy hashes and paths (Ctrl+Shift+Y), and a notice
   when a long command finishes in a window you are not looking at — all cached, so a new
   shell starts no extra process.
-- **Wallpapers**: the default is a retro railway town — a konbini by a level crossing at night,
-  the same kind of crossing under cherry blossom by day — from a curated pack of 70
-  (`WALLPAPER_PACK="yes"`), fetched from GitHub and redrawn as 640×360 pixel art: all
-  Japanese and retro, all in the themes' colours, no two alike — Hiroshige and Hokusai, ink
-  and brush, Shōwa streets and stations in pixel art, shrines in rain and snow, anime
-  (credits and licences in `configs/home/.local/share/fedokawaii/wallpapers.list`). Mt Fuji
-  over the seigaiha waves, drawn here, stays one choice away (and is the default without the pack).
-  Each theme keeps its own; day/night pairs switch together; a new one dissolves in.
-- **Prompt**: a ledger line — torii, path, git, a dotted rule, time taken, a vermilion seal
-  with the exit code when a command fails, sun or moon, the time to the second.
+- **Wallpapers**: the default is one quiet place by night and by day — layers of ink-wash
+  ridges under a pale moon on the dark theme, the same ridges on paper under a vermilion sun
+  on the light — from a curated pack of 53 (`WALLPAPER_PACK="yes"`), fetched from GitHub at
+  pinned commits, checked by SHA-256 and shown at full quality: all Japanese — Hokusai and
+  Hiroshige, ink and brush, towns by night, shrines in rain and snow, anime (credits and
+  licences in `configs/home/.local/share/fedokawaii/wallpapers.list`). Without the pack, the
+  theme's plain ground. Each theme keeps its own; day/night pairs switch together; a new one
+  dissolves in.
+- **Prompt**: a ledger line — torii, path, git, a dotted rule, then after each command a green
+  ✓ or a vermilion ✗ with its exit code and the time a slow one took, sun or moon, the time to
+  the second. Typing is ble.sh's: the line coloured as you type, a grey suggestion from your
+  history (→ takes it), a completion menu — all in the theme's colours.
 - **fetch**: one of ten pixel pictures (beckoning cat, daruma, torii at sunset, a beige
   computer showing Fuji, Fuji at dawn, onigiri, a paper lantern, a cassette, a fox mask,
   ramen), coloured only from the desktop's palette, beside the system facts.
-- **Pointers**: a pixel mouse pointer drawn for the desktop — the classic arrow and hand in
-  ink and paper, thin shapes with a paper rim, vermilion accents — crisp at 1× and 2×.
+- **Pointers**: "Sumi", an ink brush in crisp pixels — the arrow a brush stroke with a dry
+  streak, busy an ensō drawn as you wait, "not here" the one vermilion seal — pale ink for the
+  dark theme, sumi ink for the light one, switching with it; crisp at 24, 32 and 48 px.
 - **Lock, boot, console**: the lock screen is the plain ground with a pixel padlock whose
   keyhole lights as you type, the day as a vermilion kanji seal above it and the date below;
   the GRUB menu is sumi ink with a hem of seigaiha waves fading upwards in a dither, at your
@@ -156,9 +168,11 @@ The menu offers **Setup** (the software) and **Theme** (the look) separately; ne
 the other. Setup walks itself through three phases with a reboot between each, resumed
 automatically on tty1, and
 refuses to enable the login until `verify.sh` passes — what it finds there it repairs itself
-first, the same fixes as `fedokawaii repair`, and checks again — then takes a baseline snapshot,
-clears the build's download caches and removes `~/fedokawaii` (kept, with the reason in the log,
-if it holds anything of yours). Later changes: `fedokawaii copy` (a working copy in
+first, the same fixes as `fedokawaii repair`, and checks again — then clears what the build left (dnf's
+packages, pip/npm caches, unneeded dependencies, Spotify's build folders, old theme backups),
+takes a baseline snapshot and, as its very last step after the final check, removes
+`~/fedokawaii` and the download it came from (anything of yours in it packed first into
+`~/.local/state/fedokawaii/`). Update and repair run from a fresh clone end the same way. Later changes: `fedokawaii copy` (a working copy in
 `~/repos/fedokawaii`), or a fresh clone run once with `sudo bash fedokawaii.sh repair`.
 If anything fails it prints the line and the log (`/var/log/fedokawaii.log`, root's: `sudo
 less` it); fix it and run it again — finished steps are skipped. At the first reboot setup
@@ -204,7 +218,7 @@ toolkit), never in the toolkit itself, so every update keeps the change (handboo
 | Command | Does |
 |---|---|
 | `fedokawaii copy` | makes the working copy, once |
-| **Super+Shift+U** · `fedokawaii change` | every part by name — keys, bar, bar look, colours, terminal, shell, launcher, notifications, files, drives, autostart, icons, packages, settings — opened in neovim in the copy; *apply now* when you close it |
+| **Super+Shift+U** · `fedokawaii change` | every part by name, in five parts — 見 *look* (colours, bar, bar look, icons, notifications, launcher) · 手 *use* (keys, terminal, shell, files, drives, autostart) · 系 *system* (settings, packages, yours alone) · 史 *history* (what changed, history, apply) · 案 *help* (learn) — opened in neovim in the copy; *apply now* when you close it |
 | `fedokawaii keep FILE` | a config you tried in place (`~/.config/…`), taken into the copy |
 | `fedokawaii diff` | what the copy would change |
 | `fedokawaii apply` | ShellCheck's advice, every script parsed, the copy made the toolkit (your saved settings merged in), then the theme — or repair, when packages or system parts changed |
@@ -225,7 +239,9 @@ glossary are appendices D and E.
 - **Backups**: name your USB drive or external disk in `fedokawaii.conf` (`BACKUP_TARGET`, Super+U → settings), put a
   password in `~/.config/fedokawaii/secrets.sh` (`RESTIC_PASSWORD="…"` — keep a copy of it elsewhere: without it the backup
   cannot be read), plug the drive in, quick settings → *backup* (handbook §37.6).
-- **spotify_player**: run it once and log in (Premium).
+- **Spotify**: *Spotify* in the launcher → sign in (free or Premium). Setup built it on this machine with lpf from
+  RPM Fusion's recipe — `SPOTIFY="yes"` in `fedokawaii.conf` is your acceptance of Spotify's terms (`/usr/share/lpf/packages/spotify-client/eula/`); each update builds
+  a new version when one comes out (handbook §15.4).
 - **Syncplay** (watching a film with friends, in step): nothing to set — Theme started
   `~/.config/syncplay.ini` (the public server syncplay.pl, your name, a room of your own); **W** on a
   film in yazi, or *Syncplay* in the launcher, asks for the room (handbook §15.7).
@@ -261,7 +277,7 @@ Everything above was tested without the real hardware. On the PC itself:
 | the graphics card (RX 9060 XT): video decoding, Vulkan, the settings LACT needs | by itself: `verify.sh` at the end of setup — the login is not switched on until it passes; `fedokawaii verify` repeats it any time |
 | every device has its driver; Bluetooth's service is on | by itself, the same way |
 | the old Windows disk is really cleared | your eyes, in the installer: *SUMMARY OF CHANGES* lists Windows' parts as deleted, and four new ones made — `/boot/efi`, `/boot`, `/`, `/home`. If `/boot/efi` is missing, go back |
-| the Bluetooth controller | plug its dongle in **before** setup, so setup sees it; afterwards pair it: **Super+X** → *bluetooth* → *pair a device* (handbook §8.3) |
+| the Bluetooth controller | plug its dongle in **before** setup, so setup sees it; afterwards pair it: **Super+X** → *devices* (it opens *pair a device*, handbook §8.3) |
 | the controller does not lag or drop | play a while: setup already keeps the dongle from sleeping (`/etc/modprobe.d/fedokawaii-btusb.conf`). If it still lags, the stronger version keeps every USB device awake: `sudo grubby --update-kernel=ALL --args=usbcore.autosuspend=-1`, then restart |
-| btop shows the graphics card | your eyes: open btop (click the bar's CPU part) — one line in the CPU box, `GPU`, then the card's load, memory, heat and watts; **5** opens its full box (**Super+F** first: it needs the room). Nothing there: `fedokawaii verify` says whether rocm-smi has the library btop opens |
+| btop shows the graphics card | your eyes: open btop (click the bar's memory part) — one line in the CPU box, `GPU`, then the card's load, memory, heat and watts; **5** opens its full box (**Super+F** first: it needs the room). Nothing there: `fedokawaii verify` says whether rocm-smi has the library btop opens |
 | how long each phase takes | optional: note the times — the handbook's are estimates |

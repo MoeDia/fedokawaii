@@ -3,10 +3,9 @@
 -- sticks, external disks, SD cards, as kawa-drives lists them. Enter opens one (mounted
 -- first if need be: an encrypted one asks for its passphrase) and goes there · e ejects
 -- its drive (closed, switched off; a notice says when it is safe to unplug) · Esc closes.
--- `plugin drives -- media` (g m) goes to the folder every open drive is in.
 -- Modelled on yazi-rs/plugins' mount.yazi (MIT), dressed like the desktop's pop-ups.
 
-local ICON_DRIVE = "\243\190\129\137" -- Sumi Icons: drive (U+FE049), as in icons.sh
+local ICON_DRIVE = "\243\190\129\132" -- Sumi Icons: drive (U+FE044), as in icons.sh
 local WIDTH = 60 -- columns, borders included
 
 local toggle_ui = ya.sync(function(self)
@@ -173,13 +172,6 @@ function M:entry(job)
 	local a = job.args[1]
 	if a == "refresh" then
 		return set_rows(obtain())
-	elseif a == "media" then -- g m: where the open drives are (udisks' folder, /run/media/YOU)
-		for _, r in ipairs(obtain()) do
-			if r.dir ~= "" then
-				return ya.emit("cd", { r.dir:match("^(.+)/[^/]+$") or r.dir })
-			end
-		end
-		return ya.notify { title = "Drives", content = "no drive is open (plug one in, or M)", timeout = 4 }
 	end
 
 	toggle_ui()

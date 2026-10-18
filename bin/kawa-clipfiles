@@ -1,0 +1,94 @@
+#!/usr/bin/env bash
+# kawa-clipfiles — files on the clipboard, as in Windows: copy or cut them in yazi
+# (Ctrl+C, Ctrl+X), then paste them into another folder (Ctrl+V in yazi) — or into any app
+# that takes files: a chat, a mail, a browser's upload, LibreOffice. yazi's keys run it
+# (~/.config/yazi/keymap.toml); yazi's own y / x / p still copy and move inside yazi.
+#
+#   kawa-clipfiles copy FILE…   the files on the clipboard (as a list of file:// links,
+#                               text/uri-list: what file managers and browsers read)
+#   kawa-clipfiles cut FILE…    the same, marked to be moved by the next paste
+#   (copy --quiet: no notice — for a tool that says what it did itself, as kawa-shrink)
+#   kawa-clipfiles paste DIR    into DIR: the files on the clipboard (copied, or moved after
+#                               a cut — then the clipboard is emptied, as a cut is used up),
+#                               or a picture on it (a screenshot, an image copied in the
+#                               browser) saved as "pasted 2026-10-17 18.04.12.png"
+# Nothing is ever overwritten: a name already there gets " (1)", " (2)"… before its
+# extension. What happened is said in a notice (a paste can take a while: big files).
+# Exit: 0 done · 1 nothing to paste, or some files could not be copied (said) · 2 wrong use.
+set -u
+case ${1:-} in -h|--help) sed -n '2,/^set -u/{/^set -u/d;s/^# \{0,1\}//;p}' "$0"; exit 0 ;; esac
+# shellcheck source=/dev/null
+. "$HOME/.config/fedokawaii/icons.sh"
+. "$HOME/.config/fedokawaii/files.sh"   # free_name
+CUT=${XDG_RUNTIME_DIR:-/run/user/$UID}/kawa-clipfiles.cut   # the list a cut put on the clipboard
+say() { notify-send -a desktop "$ICON_FOLDER  $1" "${2:-}"; }
+
+uri() {   # uri PATH → file:///… with every byte outside the safe set %-encoded
+  local LC_ALL=C p=$1 out="" c i
+  for ((i = 0; i < ${#p}; i++)); do
+    c=${p:i:1}
+    case $c in [A-Za-z0-9/._~-]) out+=$c ;; *) printf -v c '%%%02X' "'$c"; out+=$c ;; esac
+  done
+  printf 'file://%s' "$out"
+}
+unuri() {   # unuri file:///… → the path (%XX decoded; another host's file: nothing)
+  local u=${1%$'\r'}
+  [[ $u == file://* ]] || return 1
+  u=${u#file://}; [[ $u == /* ]] || { [[ ${u%%/*} == localhost ]] || return 1; u=/${u#*/}; }
+  printf -v u '%b' "${u//%/\\x}"; printf '%s' "$u"
+}
+
+put() {   # put copy|cut [--quiet] FILE…
+  local mode=$1 f list="" n=0 quiet=0; shift
+  [[ ${1:-} == --quiet ]] && { quiet=1; shift; }
+  (($#)) || { echo "kawa-clipfiles: no files given" >&2; exit 2; }
+  local -A seen=()
+  for f; do
+    [[ -e $f || -L $f ]] || continue
+    f=$(realpath -s -- "$f"); [[ -n ${seen[$f]:-} ]] && continue; seen[$f]=1
+    list+="$(uri "$f")"$'\r\n'; n=$((n + 1))                      # (text/uri-list: CRLF)
+  done
+  ((n)) || { echo "kawa-clipfiles: none of those files exist" >&2; exit 1; }
+  printf '%s' "$list" | wl-copy --type text/uri-list
+  if [[ $mode == cut ]]; then printf '%s' "$list" >"$CUT"; else rm -f "$CUT"; fi
+  ((quiet)) || say "$( ((n == 1)) && echo "1 file" || echo "$n files") $( [[ $mode == cut ]] && echo cut || echo copied)" \
+      "paste them with Ctrl+V in yazi, or in any app that takes files"
+}
+
+paste() {   # paste DIR
+  local dir=$1 types list u f to n=0 bad=0 moved=0 img=""
+  [[ -d $dir && -w $dir ]] || { say "cannot paste here" "$dir is not a folder you can write to"; exit 1; }
+  types=$(wl-paste --list-types 2>/dev/null)
+  if grep -qx text/uri-list <<<"$types"; then
+    list=$(wl-paste --no-newline --type text/uri-list)
+    [[ -s $CUT && $(cat "$CUT") == "$list" ]] && moved=1
+    while IFS= read -r u; do
+      [[ -z ${u%$'\r'} || $u == \#* ]] && continue                   # (blank lines, comments)
+      f=$(unuri "$u") && [[ -e $f || -L $f ]] || { bad=$((bad + 1)); continue; }
+      # into the folder it is in already: a copy beside it ("name (1)"); a cut there: nothing
+      if [[ $(realpath -s -- "$(dirname -- "$f")") == "$(realpath -s -- "$dir")" ]] && ((moved)); then n=$((n + 1)); continue; fi
+      [[ -d $f && $(realpath -- "$dir")/ == "$(realpath -- "$f")"/* ]] && { bad=$((bad + 1)); continue; }   # (a folder into itself)
+      to=$(free_name "$dir/$(basename -- "$f")")
+      if ((moved)); then mv -n -- "$f" "$to" || { bad=$((bad + 1)); continue; }
+      else cp -a --reflink=auto -- "$f" "$to" || { bad=$((bad + 1)); continue; }; fi
+      n=$((n + 1))
+    done <<<"$list"
+    if ((moved)); then rm -f "$CUT"; wl-copy --clear; fi
+    ((n)) && say "$( ((n == 1)) && echo "1 file" || echo "$n files") $( ((moved)) && echo moved || echo pasted)" "into ${dir/#$HOME/\~}"
+    ((bad)) && { say "$bad could not be pasted" "gone since they were copied, or not allowed"; exit 1; }
+    exit 0
+  fi
+  img=$(grep -m1 -E '^image/(png|jpeg|webp|gif)$' <<<"$types")
+  if [[ -n $img ]]; then
+    printf -v to 'pasted %(%Y-%m-%d %H.%M.%S)T.%s' -1 "${img#image/}"; to=$(free_name "$dir/${to/.jpeg/.jpg}")
+    wl-paste --no-newline --type "$img" >"$to" && [[ -s $to ]] || { rm -f "$to"; say "the picture could not be pasted"; exit 1; }
+    say "picture pasted" "${to##*/}"; exit 0
+  fi
+  say "nothing to paste" "the clipboard holds no files or picture"; exit 1
+}
+
+case ${1:-} in
+  copy|cut) m=$1; shift; put "$m" "$@" ;;
+  paste)    (($# == 2)) || { echo "usage: kawa-clipfiles paste DIR" >&2; exit 2; }; paste "$2" ;;
+  *)        echo "usage: kawa-clipfiles copy|cut FILE… | paste DIR (kawa-clipfiles --help)" >&2; exit 2 ;;
+esac

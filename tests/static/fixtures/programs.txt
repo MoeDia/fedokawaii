@@ -120,6 +120,8 @@ sudo                manifest  sudo              # (@core too)
 
 # ── what the manifest installs ───────────────────────────────────────────────────────────
 git                 manifest  git
+gh                  manifest  gh
+gs                  manifest  ghostscript       # PDFs made smaller (kawa-shrink)
 jq                  manifest  jq
 cmp                 manifest  diffutils
 diff                manifest  diffutils
@@ -141,7 +143,9 @@ foot                manifest  foot              # f44: foot, footclient (+ foot.
 footclient          manifest  foot
 swaybg              manifest  swaybg
 swayidle            manifest  swayidle
-swaylock            manifest  swaylock
+gtklock             manifest  gtklock           # f44: gtklock 4
+cage                manifest  cage
+plymouth-set-default-theme dep plymouth plymouth-plugin-script   # f44: /usr/sbin/plymouth-set-default-theme
 wlr-randr           manifest  wlr-randr
 wlopm               manifest  wlopm
 ddcutil             manifest  ddcutil
@@ -157,6 +161,8 @@ xdg-open            manifest  xdg-utils
 udiskie             manifest  udiskie           # f44: udiskie, udiskie-info, -mount, -umount
 udiskie-mount       manifest  udiskie
 udiskie-umount      manifest  udiskie
+lxqt-policykit-agent manifest lxqt-policykit   # f44: /usr/libexec/lxqt-policykit-agent (not in PATH: the autostart names it whole)
+udisksctl           dep       udisks2 udiskie   # f44: udisks2 (/usr/bin/udisksctl), required by udiskie
 bluetoothctl        manifest  bluez
 zathura             manifest  zathura
 bsdtar              manifest  bsdtar            # f44
@@ -170,11 +176,11 @@ fd                  manifest  fd-find           # f44: /usr/bin/fd
 fzf                 manifest  fzf
 file                manifest  file
 eza                 manifest  eza
+bat                 manifest  bat               # the shell's cat (and fzf's previews)
 zoxide              manifest  zoxide
 shellcheck          manifest  ShellCheck
 snapper             manifest  snapper
 restic              manifest  restic
-agreety             manifest  greetd            # f44: /usr/bin/agreety
 brave-origin        manifest  brave-origin      # (Brave's own repo)
 7z                  manifest  7zip              # f44: /usr/bin/7z only (no 7zz)
 ffmpeg              manifest  ffmpeg
@@ -193,11 +199,17 @@ yazi                upstream  -
 ya                  upstream  -
 bluetui             upstream  -
 lazygit             upstream  -                 # (its release; the COPR dejan/lazygit is no longer kept)
+localsend           built     install_localsend # lib/upstream.sh: its release, a folder (~/.local/share/localsend), linked from ~/.local/bin
 kawa-veil           built     kawa-veil         # theme.sh, from src/kawa-veil (callers cope without it)
 kawa-clipkeep       built     kawa-clipkeep     # theme.sh, from src/kawa-clipkeep
 dwl                 built     DWL_TAG           # setup.sh, from codeberg + src/dwl
 vi                  built     /usr/local/bin/vi # setup.sh: a link to nvim (yazi's ${EDITOR:-vi})
 syncplay            built     install_syncplay  # setup.sh (lib/upstream.sh): its pinned source, a starter in ~/.local/bin
+spotify             built     spotify_client    # setup.sh: lpf builds spotify-client from RPM Fusion's recipe (lpf-spotify-client); its entry
+ble-attach          built     install_blesh     # setup.sh (lib/upstream.sh): ble.sh's commands, built from its
+ble-face            built     install_blesh     #   pinned commit into ~/.local/share/blesh; the shell loads it
+ble-import          built     install_blesh     #   (~/.bashrc.d/fedokawaii.sh) and its settings
+bleopt              built     install_blesh     #   (~/.config/blesh/init.sh)
 
 # ── installed by nothing, on purpose ─────────────────────────────────────────────────────
 dbus-update-activation-environment  optional  -  # dbus-tools: only dbus-daemon needs it, and Fedora
@@ -208,3 +220,4 @@ resvg               optional  -                  # yazi's SVG preview: not packa
 mediainfo           optional  -                  # yazi's own "Show media info" under O: retired from the
                                                  # manifest (ffprobe does its job) — see the review13 Y report
 exiftool            optional  -                  # yazi's own "Show EXIF" under O — the same
+steam               optional  -                  # with STEAM=yes only (PKG_GAMING, RPM Fusion nonfree): every call is guarded

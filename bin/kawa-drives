@@ -23,6 +23,10 @@
 #   kawa-drives eject DEVICE     the drive DEVICE is on: written out, closed, switched off
 #                                (or its media ejected), "safe to unplug"
 #   kawa-drives bar              the bar's mark (waybar JSON), poked with SIGRTMIN+13
+#   kawa-drives watch            the session's watcher: on every drive that comes, opens,
+#                                closes or goes (udisks says so as it happens), the bar's
+#                                mark is redrawn and ~/Drives kept: one link per open drive,
+#                                by its name ("~/Drives/SANDISK 58G"), gone when it closes
 #   kawa-drives event EVENT DEVICE EXTERNAL LABEL DRIVE   udiskie's event hook
 #   kawa-drives passphrase DEVICE LABEL DRIVE             udiskie's passphrase prompt
 # Exit status: 0 done · 1 it could not be done (said in a notice, or on stderr) · 2 misuse.
@@ -30,9 +34,10 @@ set -u
 LC_ALL=C.UTF-8                                  # widths count characters, not bytes
 export LC_ALL
 case :$PATH: in *":$HOME/.local/bin:"*) ;; *) PATH=$HOME/.local/bin:$PATH ;; esac
-ICON_DRIVE="" ICON_EJECT="" ICON_LOCK=""
 # shellcheck source=/dev/null
-. "$HOME/.config/fedokawaii/icons.sh" 2>/dev/null
+. "$HOME/.config/fedokawaii/icons.sh"
+# shellcheck source=/dev/null
+. "$HOME/.config/fedokawaii/width.sh"
 STATE=${XDG_RUNTIME_DIR:-/run/user/$UID}/kawa-drives   # which drives are open (see event)
 PULLED=3                                        # seconds: closed this shortly before it went = pulled out
 
@@ -137,15 +142,11 @@ holders() {     # holders FOLDER… → your programs with a file or their worki
   done < <(find /proc/[0-9]*/cwd /proc/[0-9]*/fd/ -maxdepth 1 -type l -printf '%p\t%l\n' 2>/dev/null) \
     | sort -u | paste -sd, - | sed 's/,/, /g'
 }
-short() {       # short TEXT N → TEXT in at most N characters (… when cut)
-  local t=$1 n=$2
-  ((${#t} > n)) && t="${t:0:n-1}…"
-  printf '%s' "$t"
-}
-pad() {         # pad TEXT N → short TEXT N, then spaces to N characters (printf's %-Ns counts bytes)
+short() { cut_cols "$1" "$2"; }   # short TEXT N → TEXT in at most N columns of a menu (width.sh)
+pad() {         # pad TEXT N → short TEXT N, then spaces to N columns (printf's %-Ns counts bytes)
   local t
   t=$(short "$1" "$2")
-  printf '%s%*s' "$t" $(($2 - ${#t})) ''
+  printf '%s%*s' "$t" $(($2 - $(cols "$t"))) ''
 }
 
 # ── open · eject ─────────────────────────────────────────────────────────────
@@ -293,7 +294,7 @@ event() {
           "your backup drive · click to back up now (last backup: $(kawa-backup status 2>/dev/null || echo '?'))" backup >/dev/null 2>&1 </dev/null
       else
         setsid -f "$0" notice-open "$dev" "$ICON_DRIVE  $label" \
-          "${size:+$size }${fs:+$fs }· click to open it in the files" >/dev/null 2>&1 </dev/null
+          "${size:+$size }${fs:+$fs }· click to open it" >/dev/null 2>&1 </dev/null
       fi
       ;;
     device_unmounted)
@@ -350,7 +351,7 @@ bar() {   # the drive mark while one is plugged in: lit while one is open; a cou
     disks[$disk]=1; [[ -n $folder ]] && cls=open
   done < <(list)
   if ((${#disks[@]} == 0)); then printf '{"text":""}\n'; return; fi
-  text=$ICON_DRIVE
+  text=$ICON_USB
   if ((${#disks[@]} > 1)); then
     printf '{"text":"%s %d","class":["%s","count"]}\n' "$text" "${#disks[@]}" "$cls"
   else
@@ -358,24 +359,71 @@ bar() {   # the drive mark while one is plugged in: lit while one is open; a cou
   fi
 }
 
-menu() {
+# ~/Drives — a link per open drive, named as the menu names it; only links of its own are
+# touched (a file or folder you put there stays), and a link whose drive closed goes. The
+# folder is always there (empty with no drive open): g d in yazi always lands in it
+DRIVES=$HOME/Drives
+links() {
+  local dev disk label size fs folder name l t
+  local -A want=()
+  while IFS=$'\t' read -r dev disk label size fs folder; do
+    [[ -n $folder && -d $folder ]] || continue
+    name=${label//\//-}; [[ -n ${want[$name]:-} ]] && name="$name $size"
+    want[$name]=$folder
+  done < <(list)
+  mkdir -p "$DRIVES" || return 0
+  for l in "$DRIVES"/*; do
+    [[ -L $l ]] || continue
+    t=$(readlink -- "$l")
+    [[ $t == /run/media/* ]] || continue                 # (a link of yours: left alone)
+    [[ ${want[${l##*/}]:-} == "$t" ]] || rm -f -- "$l"
+  done
+  for name in "${!want[@]}"; do
+    [[ -e $DRIVES/$name || -L $DRIVES/$name ]] && continue
+    ln -s -- "${want[$name]}" "$DRIVES/$name"
+  done
+}
+watch() {   # udisks' own events → the bar and ~/Drives, within a moment of each change
+  command -v udisksctl >/dev/null || { echo "kawa-drives: udisksctl is missing" >&2; return 1; }
+  links; kawa-dwlstatus --poke 13 2>/dev/null
+  local line
+  while IFS= read -r line; do
+    case $line in
+      *Added*|*Removed*|*"Properties Changed"*)
+        while IFS= read -r -t 0.3 _; do :; done          # (a burst of changes: one redraw)
+        links; kawa-dwlstatus --poke 13 2>/dev/null ;;
+    esac
+  done < <(udisksctl monitor 2>/dev/null)
+}
+
+menu() {   # menu [ROW] — the cursor on ROW (a heading's part: its first entry), else the first drive
   local dev disk label size fs folder r i
   local -a rows=() acts=() order=()
   local -A named=()
   row() { rows+=("$2  $3"); acts+=("$1"); }      # row ACTION ICON TEXT
+  heading_row() {   # heading_row KANJI NAME — a heading (width.sh), with a gap above it but at the top
+    ((${#rows[@]})) && { rows+=(""); acts+=(-); }
+    rows+=("$(heading "$1" "$2" 38)"); acts+=(-)
+  }
   while IFS=$'\t' read -r dev disk label size fs folder; do
+    ((${#rows[@]})) || heading_row 盤 drives
     printf -v r '%s %7s  %s' "$(pad "$label" 16)" "$size" "$([[ -n $folder ]] && echo open || echo closed)"
     row "open $dev" "$ICON_DRIVE" "$r"
     [[ -n ${named[$disk]:-} ]] || { named[$disk]=$label; order+=("$disk"); }
   done < <(list)
+  ((${#order[@]})) && heading_row 出 eject
   for disk in "${order[@]}"; do                 # (the drive by the name of its first file system)
-    row "eject $disk" "$ICON_EJECT" "eject $(short "${named[$disk]}" 28)"
+    row "eject $disk" "$ICON_EJECT" "$(short "${named[$disk]}" 32)"   # (under its heading: the name alone — icon, 2, 32: 218 px)
   done
   ((${#rows[@]})) || row none "$ICON_DRIVE" "nothing plugged in"
-  i=$(printf '%s\n' "${rows[@]}" | kawa-menu --drop --index --width 38 --lines ${#rows[@]} --title "drives") || exit 0
+  local s=${1:-0}
+  while [[ ${acts[s]:-} == - ]]; do s=$((s + 1)); done   # (never on a heading or a gap)
+  ((s < ${#rows[@]})) || s=0
+  i=$(printf '%s\n' "${rows[@]}" | kawa-menu --drop --index --width 38 --lines ${#rows[@]} --select "$s") || exit 0   # (no title: its headings say it, under the bar's own drive mark)
   case ${acts[i]:-} in
     "open "*)  files_dev "${acts[i]#open }" ;;
     "eject "*) eject_dev "${acts[i]#eject }" ;;
+    -)         menu "$i" ;;                     # (a heading or a gap: the menu again, on that part's first entry — as every menu)
   esac
 }
 
@@ -386,6 +434,7 @@ case ${1:-menu} in
   files)       [[ -n ${2:-} ]] || exit 2; files_dev "$2" ;;
   eject)       [[ -n ${2:-} ]] || exit 2; eject_dev "$2" ;;
   bar)         bar ;;
+  watch)       watch ;;
   event)       (($# >= 4)) || exit 2; shift; event "$@" ;;
   notice-open) (($# == 4 || $# == 5)) || exit 2; shift; notice_open "$@" ;;
   passphrase)  shift; passphrase "$@" ;;

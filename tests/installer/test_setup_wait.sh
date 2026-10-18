@@ -35,8 +35,8 @@ for p in ffmpeg mpv yt-dlp amd-gpu-firmware rpmfusion-free-release; do pkg_has "
 pkg_has mesa-vulkan-drivers && _ok || _no "no Vulkan driver: Fedora's is the desktop's"
 pkg_has lact && _no "LACT installed without its COPR" || _ok
 grep -qx 'enabled lactd.service' "$FKH/units" && _no "lactd enabled without LACT" || _ok
-eq "$(grep -c "RPM Fusion's video drivers are not out for this Fedora yet — update or repair adds them when they are" <<<"$OUT")" 1 "said once"
-has "$OUT" "RPM Fusion's HEIC photo support (libheif-freeworld) is not out for this Fedora yet"
+eq "$(grep -c "mesa-va-drivers-freeworld 26.2.4 from RPM Fusion is made for mesa-filesystem 26.2.4; Fedora has mesa-filesystem 26.2.5" <<<"$OUT")" 1 "said once, with both versions"
+has "$OUT" "libheif-freeworld 1.23.5 from RPM Fusion is made for libheif 1.23.5; Fedora has libheif 1.23.6"
 has "$OUT" "the COPR ilyaz/LACT has no build for Fedora 44 yet — lact left out until it has"
 reboot_world; keep phase3
 
@@ -46,7 +46,7 @@ eq "$(state phase)" "done"
 lacks "$(state pending-rpmfusion)" vulkan; has "$(state pending-rpmfusion)" mesa-va-drivers-freeworld.i686
 pkg_has mesa-vulkan-drivers.i686 && _ok || _no "Steam's 32-bit Vulkan driver (Fedora's) not installed"
 pkg_has steam && _ok || _no "Steam not installed"
-has "$OUT" "! waiting for RPM Fusion to catch up with Fedora 44 — libheif-freeworld mesa-va-drivers-freeworld"
+has "$OUT" "! libheif-freeworld 1.23.5 waits for Fedora's libheif 1.23.5"; has "$OUT" "! mesa-va-drivers-freeworld 26.2.4 waits for Fedora's mesa-filesystem 26.2.4"
 has "$OUT" "! the COPR ilyaz/LACT has no build for Fedora 44 yet — lact left out"
 lacks "$OUT" "✘ forbidden packages present"; lacks "$OUT" "✘ installed outside the manifest"; lacks "$OUT" "✘ missing packages"
 keep waiting
@@ -99,7 +99,22 @@ called 'dnf\] -y swap --allowerasing mesa-vulkan-drivers-freeworld.i686 mesa-vul
 for p in mesa-vulkan-drivers mesa-vulkan-drivers.i686; do pkg_has "$p" || _no "$p not installed"; done; _ok
 for p in mesa-vulkan-drivers-freeworld mesa-vulkan-drivers-freeworld.i686 PackageKit; do pkg_has "$p" && _no "$p still installed"; done; _ok
 lacks "$(state pending-rpmfusion)" vulkan
-fkrun bash "$TK/verify.sh"; lacks "$OUT" "✘ forbidden packages present"; has "$OUT" "✔ dnf never takes Node 22 or PackageKit as a weak dependency"
+fkrun bash "$TK/verify.sh"; lacks "$OUT" "✘ forbidden packages present"; has "$OUT" "✔ dnf never takes Node 22, PackageKit, Java or LibreOffice's offline help as a weak dependency"
+
+# ── RPM Fusion ahead of Fedora's stable (its build made for a libheif still in testing) ──
+case_ "libheif-freeworld made for the libheif in updates-testing: that libheif taken from testing, then libheif-freeworld — nothing waits"
+back phase2; caught_up
+fkh behind libheif-freeworld; fkh versions "mesa-va-drivers-freeworld 26.2.5" "mesa-filesystem 26.2.5" \
+  "libheif-freeworld 1.23.6" "libheif 1.23.5" "libheif-1.23.6 1.23.6"
+fkh_add available libheif-1.23.6; echo "libheif-freeworld libheif-1.23.6" >"$FKH/behind-until"
+resume --no-reboot; eq "$RC" 0 "$(grep '✘' <<<"$OUT" | head -n3 | tr '\n' '|')"
+called 'dnf\] -y install --enablerepo=updates-testing libheif-1.23.6.x86_64$'
+pkg_has libheif-freeworld && _ok || _no "libheif-freeworld not installed"
+lacks "$(state pending-rpmfusion)" libheif-freeworld
+called 'dnf\] -y mark dependency libheif$' "Fedora's libheif: needed by something, as before — not yours"
+case_ "…but RPM Fusion behind Fedora (its build for an older libheif): no testing packages, it waits"
+back phase2; out_of_step; rm -f "$FKH/behind-until"; reset_calls
+resume --no-reboot; not_called 'enablerepo=updates-testing'; has "$(state pending-rpmfusion)" libheif-freeworld
 
 # ── any other failure still stops ─────────────────────────────────────────────
 case_ "a freeworld driver that will not install while the versions agree (a mirror broken, say): phase 2 stops as before"

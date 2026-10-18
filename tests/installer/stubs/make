@@ -1,10 +1,15 @@
 #!/bin/bash
 # make of the fake Fedora: dwl's build leaves a dwl that prints its version; kawa-veil's and
-# kawa-clipkeep's (make -s -C DIR O=DIR) leave their binary — $FKH/rc-make-NAME fails one
+# kawa-clipkeep's (make -s -C DIR O=DIR) leave their binary; ble.sh's (make -C SRC install
+# INSDIR=DIR) its ble.sh in DIR (fake_blesh_install) — $FKH/rc-make-NAME fails one
 . /usr/local/bin/_lib.sh
 fkh_log "$*"
-d="" o=""
-while (($#)); do case $1 in -C) d=$2; shift ;; O=*) o=${1#O=} ;; clean) exit 0 ;; esac; shift; done
+d="" o="" ins=""
+while (($#)); do case $1 in -C) d=$2; shift ;; O=*) o=${1#O=} ;; INSDIR=*) ins=${1#INSDIR=} ;; clean) exit 0 ;; esac; shift; done
+if [[ -n $ins && -f $d/ble.pp ]]; then
+  r=$(rcfor make-blesh 0); ((r == 0)) || { echo "make: *** [GNUmakefile:120: out/ble.sh] Error 1" >&2; exit "$r"; }
+  fake_blesh_install "$ins"; exit 0
+fi
 if [[ -n $o ]]; then
   for t in kawa-veil kawa-clipkeep; do
     grep -qs "$t" "$o/Makefile" || continue

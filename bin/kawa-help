@@ -1,8 +1,13 @@
 #!/usr/bin/env bash
 # kawa-help — Super+/ : every keybinding, type to filter (Esc closes); the first
-# binding is selected, not the heading above it. 68 columns: the longest line and the
-# headings' rules are 67, and fuzzel keeps its last column for a "…". No arguments (--help:
-# this text).
+# binding is selected, not the heading above it. 73 columns: the longest line is 67, set in
+# by the 4 an icon takes in the other menus, and fuzzel keeps the rest for its "…" (kawa-menu
+# --help). Each part is headed as Super+U heads its own — its kanji where the other menus have
+# their icons, the part's name over the keys, a rule to the edge (width.sh: heading) — with
+# an empty line above it. keybinds.txt counts one column a character, as a terminal
+# does; the menu's pixel font draws ─ … → ← and the like two columns wide (width.sh), so the
+# key column is set for it here: one space fewer for each wide letter there. No arguments
+# (--help: this text).
 set -u
 case ${1:-} in
   "") ;;
@@ -10,5 +15,35 @@ case ${1:-} in
   *) echo "usage: kawa-help   (no arguments: the keybinding sheet)" >&2; exit 2 ;;
 esac
 f="$HOME/.config/fedokawaii/keybinds.txt"
-[[ -r $f ]] || { notify-send -a desktop "Help" "keybinds.txt missing — run the theme"; exit 1; }
-grep -v '^[[:space:]]*$' "$f" | kawa-menu --prompt "> " --width 68 --lines 24 --select 1 >/dev/null || true
+[[ -r $f ]] || { notify-send -a desktop "help" "keybinds.txt is missing — fedokawaii repair puts it back"; exit 1; }
+export LC_ALL=C.UTF-8                            # (a column a character)
+# shellcheck source=/dev/null
+. "$HOME/.config/fedokawaii/icons.sh"
+# shellcheck source=/dev/null
+. "$HOME/.config/fedokawaii/width.sh"
+# each part's kanji, by the first word of its name (a part of your own: 節, "a section")
+kanji() {
+  case ${1%%[^a-z]*} in
+    launch) echo 起 ;; screenshots) echo 写 ;; windows) echo 窓 ;; workspaces) echo 場 ;;
+    sound) echo 音 ;; terminal) echo 端 ;; files) echo 書 ;; drives) echo 盤 ;; session) echo 席 ;;
+    drawing) echo 筆 ;;
+    *) echo 節 ;;
+  esac
+}
+sheet() {
+  local l k n t first=1
+  while IFS= read -r l; do
+    [[ -n ${l//[[:space:]]/} ]] || continue
+    if [[ $l == ─* ]]; then                         # "── name ────": the part's heading
+      t=${l#"${l%%[!─ ]*}"}; t=${t%"${t##*[!─ ]}"}
+      ((first)) || printf '\n'; first=0
+      l=$(heading "$(kanji "$t")" "$t" 73)
+    else
+      k=${l:0:24}; n=$(($(cols "$k") - ${#k}))       # the key column, and how many of its letters are wide
+      if ((n > 0)); then t=${k: -n}; [[ -z ${t// /} ]] && k=${k:0:24-n}; fi
+      l="    $ICON_GAP$k${l:24}"                   # (in by an icon and its two spaces: the text column of every menu)
+    fi
+    printf '%s\n' "$l"
+  done <"$f"
+}
+sheet | kawa-menu --prompt "> " --width 73 --lines 24 --select 1 >/dev/null || true

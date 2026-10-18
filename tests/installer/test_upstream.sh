@@ -1,11 +1,13 @@
 #!/usr/bin/env bash
 # tests/installer/test_upstream.sh — lib/upstream.sh: the desktop's pinned tools from GitHub
-# releases (satty, yazi, presenterm, spotify_player, bluetui), the Nerd Fonts, PixelMplus and GE-Proton,
+# releases (satty, yazi, bluetui, lazygit), the Nerd Font, Fusion Pixel and GE-Proton,
 # in the fake machine with fake releases. Each is fetched, checked against its pinned SHA-256
 # and put in the user's home by the user; a second run finds it in place; a download that
 # differs by a byte, is cut off half-way or cannot happen at all changes nothing; a library
 # the binary needs is installed from whichever package provides it now; GE-Proton follows its
-# newest release and keeps the two newest.
+# newest release and keeps the two newest. Syncplay and ble.sh come from their pinned commits:
+# fetched and built by the user, put in only once they load. LocalSend's release is a folder,
+# kept whole.
 . "$(dirname "$0")/lib.sh"
 H=/home/fkuser
 LIB=/home/fkuser/fedokawaii/lib
@@ -36,7 +38,7 @@ case_ "yazi (a zip with two binaries in a folder): both installed"
 up 'install_upstream_bin "${UPSTREAM[1]}"'; eq "$RC" 0
 [[ -x $W$H/.local/bin/yazi && -x $W$H/.local/bin/ya ]] && _ok || _no "yazi or ya missing"
 case_ "bluetui (the release file is the binary itself, no archive): installed under the tool's name"
-up 'install_upstream_bin "${UPSTREAM[4]}"'; eq "$RC" 0
+up 'install_upstream_bin "${UPSTREAM[2]}"'; eq "$RC" 0
 has "$OUT" "verified: bluetui-x86_64-linux-musl"; has "$OUT" "✔ bluetui v0.8.2 → ~/.local/bin (bluetui)"
 eq "$(fk "$H/.local/bin/bluetui" 2>&1)" "bluetui 0.8.2" "runs as ~/.local/bin/bluetui"
 eq "$(cat "$W$H/.local/share/fedokawaii/upstream/bluetui")" v0.8.2
@@ -79,20 +81,38 @@ has "$OUT" "satty-gtk not found inside the satty v0.22.0 archive"
 
 # ── libraries ────────────────────────────────────────────────────────────────
 case_ "a library the binary needs and Fedora no longer pulls in: installed by its name, recorded for the manifest"
-back start; fkh ldd-missing "spotify_player libssl.so.3"; fkh provides "libssl.so.3()(64bit) openssl3-libs"; fkh_add available openssl3-libs
-up 'install_upstream_bin "${UPSTREAM[3]}"'; eq "$RC" 0
-has "$OUT" "spotify_player needs libssl.so.3()(64bit)"; pkg_has openssl3-libs && _ok || _no "openssl3-libs not installed"
+back start; fkh ldd-missing "satty libssl.so.3"; fkh provides "libssl.so.3()(64bit) openssl3-libs"; fkh_add available openssl3-libs
+up "install_upstream_bin $satty"; eq "$RC" 0
+has "$OUT" "satty needs libssl.so.3()(64bit)"; pkg_has openssl3-libs && _ok || _no "openssl3-libs not installed"
 eq "$(cat "$W/var/lib/fedokawaii/upstream-libs")" openssl3-libs
-fkrun bash -c '. /home/fkuser/fedokawaii/lib/manifest.sh; STATE_DIR=/var/lib/fedokawaii manifest_all amd'
+fkrun bash -c '. /home/fkuser/fedokawaii/lib/manifest.sh; STEAM=yes SPOTIFY=yes STATE_DIR=/var/lib/fedokawaii manifest_all amd'
 has "$OUT" openssl3-libs "the manifest counts it (verify never takes it for something you added)"
 case_ "…none provides it: nothing installed (exit 1)"
-back start; fkh ldd-missing "spotify_player libssl.so.3"
-up 'install_upstream_bin "${UPSTREAM[3]}"'; eq "$RC" 1; has "$OUT" "spotify_player is still missing: libssl.so.3"
-[[ ! -e $W$H/.local/bin/spotify_player ]] && _ok || _no "installed without its library"
+back start; fkh ldd-missing "satty libssl.so.3"
+up "install_upstream_bin $satty"; eq "$RC" 1; has "$OUT" "satty is still missing: libssl.so.3"
+[[ ! -e $W$H/.local/bin/satty ]] && _ok || _no "installed without its library"
 case_ "the copy in your home lost a library since: fetched again (its fresh copy says what it needs)"
 back start; up "install_upstream_bin $satty"; fkh ldd-missing "satty libgtk-4.so.1"
 fkh provides "libgtk-4.so.1()(64bit) gtk4"; fkh_add available gtk4
 up "install_upstream_bin $satty"; eq "$RC" 0; has "$OUT" "satty v0.22.0 lacks a library — fetching it again"; pkg_has gtk4 && _ok || _no "gtk4 not installed"
+
+# ── the tools the desktop no longer has ──────────────────────────────────────
+case_ "retire_upstream: presenterm and spotify_player (ours: their records say so) out of ~/.local/bin, records too"
+back start; up "install_upstream_bin $satty"
+for t in presenterm spotify_player; do
+  printf '#!/bin/sh\n' >"$W$H/.local/bin/$t"; echo v0.1.0 >"$W$H/.local/share/fedokawaii/upstream/$t"
+done
+printf '#!/bin/sh\n# mine\n' >"$W$H/.local/bin/presenterm-mine"
+fk chown -hR fkuser:fkuser "$H/.local"
+up retire_upstream; eq "$RC" 0
+has "$OUT" "presenterm — no longer part of the desktop"; has "$OUT" "spotify_player — no longer part of the desktop"
+[[ ! -e $W$H/.local/bin/presenterm && ! -e $W$H/.local/bin/spotify_player ]] && _ok || _no "a retired binary stayed"
+[[ ! -e $W$H/.local/share/fedokawaii/upstream/presenterm && ! -e $W$H/.local/share/fedokawaii/upstream/spotify_player ]] && _ok || _no "a record stayed"
+[[ -x $W$H/.local/bin/satty && -f $W$H/.local/bin/presenterm-mine ]] && _ok || _no "a current tool, or a file of yours, went too"
+case_ "…a presenterm of your own (no record of ours): left alone; a second run says nothing"
+printf '#!/bin/sh\n' >"$W$H/.local/bin/presenterm"; fk chown fkuser:fkuser "$H/.local/bin/presenterm"
+up retire_upstream; eq "$RC" 0; lacks "$OUT" "no longer part"
+[[ -e $W$H/.local/bin/presenterm ]] && _ok || _no "yours was taken"
 
 # ── what is written into the home ────────────────────────────────────────────
 case_ "record_tag: a link planted where the tag goes is replaced, never followed (root's file untouched)"
@@ -119,16 +139,16 @@ fkrun bash -c 'LOG_FILE=/dev/null; . /home/fkuser/fedokawaii/lib/common.sh; expo
 has "$OUT" "rc=1"; [[ ! -e $W/etc/fk-new ]] && _ok || _no "the user wrote into /etc"
 
 # ── fonts ────────────────────────────────────────────────────────────────────
-case_ "the Nerd Fonts: each family in its folder, by you, tags recorded, the font cache made"
+case_ "the Nerd Font: in its folder, by you, its tag recorded, the font cache made"
 back start; up 'install_nerd_fonts'; eq "$RC" 0
-[[ -s $W$H/.local/share/fonts/JetBrainsMonoNerd/JetBrainsMonoNerdFont-Regular.ttf && -s $W$H/.local/share/fonts/DepartureMonoNerd/DepartureMonoNerdFont-Regular.otf ]] && _ok || _no "a family missing"
-eq "$(cat "$W$H/.local/share/fedokawaii/upstream/nerd-DepartureMono")" v3.5.1
+[[ -s $W$H/.local/share/fonts/JetBrainsMonoNerd/JetBrainsMonoNerdFont-Regular.ttf ]] && _ok || _no "the family missing"
+eq "$(cat "$W$H/.local/share/fedokawaii/upstream/nerd-JetBrainsMono")" v3.5.1
 called 'fkuser\[fc-cache\] -f'
 reset_calls; up 'install_nerd_fonts'; has "$OUT" "JetBrainsMono Nerd Font v3.5.1 — in place"; not_called curl
-case_ "one family's download altered: that one refused (exit 1), the other installed"
+case_ "the download altered: refused (exit 1), nothing installed, no tag"
 back start; printf 'x' >>"$dl/JetBrainsMono.tar.xz"
 up 'install_nerd_fonts'; eq "$RC" 1
-[[ ! -e $W$H/.local/share/fonts/JetBrainsMonoNerd && -s $W$H/.local/share/fonts/DepartureMonoNerd/DepartureMonoNerdFont-Regular.otf ]] && _ok || _no "wrong families installed"
+[[ ! -e $W$H/.local/share/fonts/JetBrainsMonoNerd && ! -e $W$H/.local/share/fedokawaii/upstream/nerd-JetBrainsMono ]] && _ok || _no "an altered download installed"
 case_ "a file that cannot be written (a full home; here a folder you cannot write): failed and said, no tag — also where errexit is off (repair calls these under ||)"
 back start; mkdir -p "$W$H/.local/bin" "$W$H/.local/share/fonts"; fk chown -R fkuser:fkuser "$H/.local"
 fk chmod 555 "$H/.local/bin" "$H/.local/share/fonts"
@@ -137,10 +157,18 @@ up "install_upstream_bin $satty || echo FAILED"; has "$OUT" "FAILED"; lacks "$OU
 up 'install_nerd_fonts || echo FAILED'; has "$OUT" "FAILED"
 [[ ! -e $W$H/.local/share/fedokawaii/upstream/nerd-JetBrainsMono ]] && _ok || _no "the tag recorded for fonts not written"
 fk chmod 755 "$H/.local/bin" "$H/.local/share/fonts"
-case_ "PixelMplus: only the 12 px faces and the licence"
-back start; up 'install_pixelmplus'; eq "$RC" 0
-eq "$(ls "$W$H/.local/share/fonts/PixelMplus" | tr '\n' ' ')" "LICENSE_E PixelMplus12-Regular.ttf "
-up 'install_pixelmplus'; has "$OUT" "PixelMplus 12 — in place"
+case_ "Fusion Pixel: for every account (/usr/local/share/fonts), only the Japanese face and the licence; the fonts before it gone from the home"
+back start; mkdir -p "$W$H/.local/share/fonts/PixelMplus" "$W$H/.local/share/fonts/DepartureMonoNerd" "$W$H/.local/share/fedokawaii/upstream"
+echo v3.5.1 >"$W$H/.local/share/fedokawaii/upstream/nerd-DepartureMono"; fk chown -R fkuser:fkuser "$H/.local"
+up 'install_fusion'; eq "$RC" 0
+eq "$(ls -A "$W/usr/local/share/fonts/fusion-pixel" | tr '\n' ' ')" ".version OFL.txt fusion-pixel-12px-monospaced-ja.ttf "
+eq "$(stat -c '%U %a' "$W/usr/local/share/fonts/fusion-pixel/fusion-pixel-12px-monospaced-ja.ttf")" "root 644"
+[[ ! -e $W$H/.local/share/fonts/PixelMplus && ! -e $W$H/.local/share/fonts/DepartureMonoNerd && ! -e $W$H/.local/share/fedokawaii/upstream/nerd-DepartureMono ]] && _ok || _no "an old pixel font left in the home"
+called '^root\[fc-cache\] -f /usr/local/share/fonts/fusion-pixel'
+reset_calls; up 'install_fusion'; has "$OUT" "Fusion Pixel 12 2026.08.11 — in place"; not_called curl
+case_ "Fusion Pixel's download altered: refused, nothing installed"
+back start; printf 'x' >>"$dl/$(. "$REPO/lib/upstream.sh"; echo "${FUSION_URL##*/}")"
+up 'install_fusion'; eq "$RC" 1; [[ ! -e $W/usr/local/share/fonts/fusion-pixel ]] && _ok || _no "an altered font installed"
 
 # ── Syncplay, from its pinned source ─────────────────────────────────────────
 sp=$W$H/.local/share/fedokawaii/syncplay spt=$W$H/.local/share/fedokawaii/upstream/syncplay
@@ -203,6 +231,45 @@ back start; fkh net off
 up 'install_syncplay'; eq "$RC" 1; has "$OUT" "attempt 3/3 failed"; has "$OUT" "could not fetch Syncplay v1.7.6"
 [[ ! -e $W$H/.local/bin/syncplay && ! -e $sp && ! -e $spt ]] && _ok || _no "something installed while offline"
 
+# ── ble.sh, from its pinned commit ───────────────────────────────────────────
+bd=$W$H/.local/share/blesh bt=$W$H/.local/share/fedokawaii/upstream/blesh
+BLESH=$(. "$REPO/lib/upstream.sh"; echo "$BLESH_COMMIT")
+case_ "install_blesh: the pinned commit fetched by its hash, by you, with its contrib/ part; built by you into a new folder; that copy put in and the commit recorded"
+back start; reset_calls
+up 'install_blesh'; eq "$RC" 0
+has "$OUT" "✔ ble.sh ${BLESH:0:7} (the shell's colours, suggestions and menus) → ~/.local/share/blesh"
+called "^fkuser\[git\] init -q /tmp/[^ ]*/s$"
+called "^fkuser\[git\] -C /tmp/[^ ]*/s remote add origin https://github.com/akinomyoga/ble.sh.git$"
+called "^fkuser\[git\] -C /tmp/[^ ]*/s fetch -q --depth 1 origin $BLESH$"
+called "^fkuser\[git\] -C /tmp/[^ ]*/s -c advice.detachedHead=false checkout -q FETCH_HEAD$"
+called "^fkuser\[git\] -C /tmp/[^ ]*/s submodule update -q --init --depth 1$"
+called "^fkuser\[make\] -C /tmp/[^ ]*/s install INSDIR=/tmp/[^ ]*/new$"
+eq "$(fk stat -c %U "$H/.local/share/blesh/ble.sh")" fkuser
+eq "$(cat "$bt")" "$BLESH"
+as_fk bash "$H/.local/share/blesh/ble.sh" --version; eq "$OUT" "ble.sh (Bash Line Editor), version 0.4.0-devel4+${BLESH:0:7}"
+case_ "a second run: in place, nothing fetched"
+reset_calls; up 'install_blesh'; eq "$RC" 0; has "$OUT" "ble.sh ${BLESH:0:7} — in place"; not_called '\[git\]'; not_called '\[make\]'
+keep blesh
+case_ "another commit recorded (the pin moved on), or a copy that is another commit: fetched and built again"
+echo 1111111111111111111111111111111111111111 >"$bt"; reset_calls
+up 'install_blesh'; eq "$RC" 0; called "git\] .* fetch -q --depth 1 origin $BLESH$"; eq "$(cat "$bt")" "$BLESH"
+back blesh; sed -i "s/+${BLESH:0:7}/+0123456/" "$bd/ble.sh"; reset_calls
+up 'install_blesh'; eq "$RC" 0; called 'make\] -C'; has "$(cat "$bd/ble.sh")" "+${BLESH:0:7}"
+case_ "the build fails, or builds a copy that is not the pinned commit: refused, the copy there untouched (exit 1)"
+back blesh; echo 1111111111111111111111111111111111111111 >"$bt"; before=$(cat "$bd/ble.sh"); fkh rc-make-blesh 2
+up 'install_blesh'; eq "$RC" 1; has "$OUT" "ble.sh ${BLESH:0:7} did not build"
+eq "$(cat "$bd/ble.sh")" "$before"; eq "$(cat "$bt")" 1111111111111111111111111111111111111111
+rm -f "$FKH/rc-make-blesh"; fkh blesh-version 0.4.0-devel4+0123456
+up 'install_blesh'; eq "$RC" 1; has "$OUT" "the ble.sh just built does not load as ${BLESH:0:7} — refused"
+eq "$(cat "$bd/ble.sh")" "$before"; rm -f "$FKH/blesh-version"
+case_ "its contrib/ part cut off once: tried again, put in"
+back start; fkh fail-git-submodule 1
+up 'install_blesh'; eq "$RC" 0; has "$OUT" "attempt 1/3 failed"; eq "$(cat "$bt")" "$BLESH"
+case_ "offline: three tries (the pause stubbed), then said; nothing installed (exit 1)"
+back start; fkh net off
+up 'install_blesh'; eq "$RC" 1; has "$OUT" "attempt 3/3 failed"; has "$OUT" "could not fetch ble.sh ${BLESH:0:7}"
+[[ ! -e $bd && ! -e $bt ]] && _ok || _no "something installed while offline"
+
 # ── GE-Proton ────────────────────────────────────────────────────────────────
 pd=$W$H/.local/share/Steam/compatibilitytools.d
 ge_release() {   # ge_release NAME [TOP-FOLDER] — a newer release on the fake GitHub
@@ -259,5 +326,28 @@ case_ "an archive holding two top folders (or none with Steam's file): refused"
 ge_release GE-Proton10-27; r=$TMP/two; mkdir -p "$r/GE-Proton10-27" "$r/GE-ProtonX"; : >"$r/GE-Proton10-27/compatibilitytool.vdf"
 tar -czf "$dl/GE-Proton10-27.tar.gz" -C "$r" .; (cd "$dl" && sha512sum GE-Proton10-27.tar.gz >GE-Proton10-27.sha512sum)
 up 'install_ge_proton'; eq "$RC" 1; has "$OUT" "did not hold one GE-Proton folder"
+
+# ── LocalSend: a release that is a whole folder ─────────────────────────────────────────
+case_ "install_localsend: the folder whole in ~/.local/share/localsend, yours; localsend points into it; its tag recorded"
+back start; up "install_localsend"; eq "$RC" 0 "$OUT"
+has "$OUT" "verified: LocalSend-1.18.0-linux-x86-64.tar.gz"; has "$OUT" "✔ LocalSend v1.18.0 → ~/.local/share/localsend (localsend)"
+[[ -x $W$H/.local/share/localsend/localsend_app && -f $W$H/.local/share/localsend/lib/libapp.so && -f $W$H/.local/share/localsend/data/flutter_assets/assets/img/logo-512.png ]] \
+  && _ok || _no "the folder is not whole: $(cd "$W$H/.local/share/localsend" 2>/dev/null && find . | tr '\n' ' ')"
+eq "$(readlink "$W$H/.local/bin/localsend")" ../share/localsend/localsend_app
+eq "$(fk "$H/.local/bin/localsend" 2>&1)" "localsend_app 1.18.0" "runs through the link"
+eq "$(fk stat -c %U "$H/.local/share/localsend/localsend_app")" fkuser
+eq "$(cat "$W$H/.local/share/fedokawaii/upstream/localsend")" v1.18.0
+case_ "…a second run: in place, nothing downloaded"
+reset_calls; up "install_localsend"; eq "$RC" 0; has "$OUT" "LocalSend v1.18.0 — in place"; not_called 'curl'
+case_ "…an older release there: replaced whole (no file of the old one left), the new tag recorded"
+echo v1.17.0 >"$W$H/.local/share/fedokawaii/upstream/localsend"; echo old >"$W$H/.local/share/localsend/lib/libold.so"
+up "install_localsend"; eq "$RC" 0
+[[ ! -e $W$H/.local/share/localsend/lib/libold.so && ! -e $W$H/.local/share/localsend.new ]] && _ok || _no "the old release's file stayed"
+eq "$(cat "$W$H/.local/share/fedokawaii/upstream/localsend")" v1.18.0
+case_ "…a download that differs by one byte: refused, the copy there untouched (exit 1)"
+printf 'x' >>"$dl/LocalSend-1.18.0-linux-x86-64.tar.gz"; echo v1.17.0 >"$W$H/.local/share/fedokawaii/upstream/localsend"
+up "install_localsend"; eq "$RC" 1; has "$OUT" "its SHA-256 is not the pinned one — refused"
+[[ -x $W$H/.local/share/localsend/localsend_app ]] && _ok || _no "the working copy was touched"
+eq "$(cat "$W$H/.local/share/fedokawaii/upstream/localsend")" v1.17.0
 
 done_

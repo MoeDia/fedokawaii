@@ -1,19 +1,35 @@
 #!/usr/bin/env bash
-# kawa-weather — one line for the quick-settings title ("☼ Sharjah  31°C  Clear", the
-# icon drawn for the sky), from a cache refreshed in the background when older than
-# 30 minutes, so it never holds a menu up. wttr.in, no API key.
-# Exit status: 0 printed · 1 no city set (~/.config/fedokawaii/env) · 2 misuse.
+# kawa-weather — the weather of WEATHER_CITY (~/.config/fedokawaii/env), from wttr.in (no
+# API key), from a cache refreshed in the background when older than 30 minutes, so it
+# never holds the bar up:
+#   kawa-weather              one line: "☼ Sharjah  31°C  Clear" (the icon drawn for the sky)
+#   kawa-weather --bar        the bar's module: the sky's icon and the temperature ("☼ 31°"),
+#                             the city and the sky's words as its tooltip (waybar JSON)
+#   kawa-weather --forecast   the next days, hour by hour, in a window (a click on the bar's)
+# Exit status: 0 printed · 1 no city set · 2 misuse.
 set -u
+mode=line
 case ${1:-} in
   "") ;;
+  --bar) mode=bar ;;
+  --forecast) mode=forecast ;;
+  --inside) mode=inside ;;
   -h|--help) sed -n '2,/^set -u/{/^set -u/d;s/^# \{0,1\}//;p}' "$0"; exit 0 ;;
-  *) echo "usage: kawa-weather (kawa-weather --help)" >&2; exit 2 ;;
+  *) echo "usage: kawa-weather [--bar | --forecast] (kawa-weather --help)" >&2; exit 2 ;;
 esac
 LC_ALL=C.UTF-8                           # wttr.in's words matched as English: in Turkish, I is no i
-WEATHER_CITY=""
 # shellcheck source=/dev/null
-. "$HOME/.config/fedokawaii/env" 2>/dev/null
-[[ -n $WEATHER_CITY ]] || exit 1
+. "$HOME/.config/fedokawaii/env"
+if [[ -z $WEATHER_CITY ]]; then [[ $mode == bar ]] && echo '{"text":""}'; exit 1; fi
+if [[ $mode == forecast ]]; then
+  exec kawa-float --once weather "weather · $WEATHER_CITY" 64x37 -- "$0" --inside
+elif [[ $mode == inside ]]; then           # in the window: wttr.in's own forecast, narrow, quiet
+  city=$(jq -rn --arg c "$WEATHER_CITY" '$c | @uri')
+  printf '\n'
+  curl -fsS --proto '=https' --max-time 10 "https://wttr.in/$city?2nqFm" 2>/dev/null | sed 's/^/ /' \
+    || printf '  the forecast did not come (offline, or wttr.in is busy) — try again in a while\n'
+  printf '\n  any key closes this window '; read -rsn1 _; exit 0
+fi
 # shellcheck source=/dev/null
 . "$HOME/.config/fedokawaii/icons.sh"
 CACHE="$HOME/.cache/kawa-weather"
@@ -53,4 +69,10 @@ case ${cond,,} in                        # the sky only, never the city's name (
   *cloud*|*overcast*)                    icon=$ICON_CLOUD ;;
   *)                                     icon=$sky ;;
 esac
+if [[ $mode == bar ]]; then
+  if [[ -z $cond ]]; then echo '{"text":""}'; exit 0; fi       # (nothing known yet: no module)
+  t=${line#*  }; t=${t%%  *}; t=${t%C}; t=${t%F}               # "31°C" → "31°"
+  jq -cn --arg t "$icon $t" --arg tip "$WEATHER_CITY · $cond" '{text: $t, tooltip: $tip, class: "sky"}'
+  exit 0
+fi
 printf '%s  %s\n' "$icon" "$line"

@@ -17,7 +17,9 @@ esac
 PATH="$HOME/.local/bin:$PATH"                       # (the portal starts it with systemd's PATH)
 export LC_ALL=C.UTF-8          # widths count characters, not bytes (the portal may set no locale)
 # shellcheck source=/dev/null
-. "$HOME/.config/fedokawaii/icons.sh" 2>/dev/null
+. "$HOME/.config/fedokawaii/icons.sh"
+# shellcheck source=/dev/null
+. "$HOME/.config/fedokawaii/width.sh"
 mapfile -t lines
 ((${#lines[@]})) || exit 1
 if ((${#lines[@]} == 1)); then printf '%s\n' "${lines[0]}"; exit 0; fi
@@ -28,12 +30,7 @@ while read -r name wh; do size[$name]=$wh; done < <(wlr-randr 2>/dev/null | awk 
   /^[^ ]/ { out = $1; next }
   /^    [0-9]+x[0-9]+ px.*current/ { split($1, d, "x"); print out, d[1] "×" d[2] }')
 
-cut40() {   # cut40 TEXT — TEXT in at most 40 columns (a Japanese letter takes two), "…" when cut
-  local t=$1
-  (( $(wc -L <<<"$t") <= 40 )) && { printf '%s' "$t"; return; }
-  t=${t:0:40}; while (( $(wc -L <<<"$t…") > 40 )); do t=${t%?}; done
-  printf '%s…' "$t"
-}
+cut40() { cut_cols "$1" 40; }   # cut40 TEXT — TEXT in at most 40 columns of the menu (width.sh)
 rows=()
 for l in "${lines[@]}"; do
   case $l in
@@ -41,9 +38,9 @@ for l in "${lines[@]}"; do
                  # a window with no title: so it says, with the token's start to tell several apart
                  [[ -z ${t// /} ]] && t="untitled window · ${a:0:6}"
                  t=$(cut40 "${t//[[:cntrl:]]/ }")
-                 printf -v r '%s  %s' "${ICON_WINDOW:-}" "$t" ;;
+                 printf -v r '%s  %s' "$ICON_WINDOW" "$t" ;;
     *)           n=${l#Monitor: }; n=${n%% *}                         # the screen's name
-                 printf -v r '%s  %-10s %s' "${ICON_TILE:-}" "$n" "${size[$n]:-}" ;;
+                 printf -v r '%s  %-10s %s' "$ICON_PICTURE" "$n" "${size[$n]:-}" ;;
   esac
   rows+=("$r")
 done

@@ -64,9 +64,10 @@ fits() {
   local n=${1:-$(fz_n)} why=${2:-} w t bad
   w=$(fz_arg width "$n"); t=$(fz_arg mesg "$n")
   [[ -n $w ]] || { _no "menu $n has no --width"; return; }
-  bad=$(fz_rows "$n" | python3 -I "$MD/cols.py" | paste - <(fz_rows "$n") |
-        awk -F'\t' -v w="$w" '$1 > w - 1 { printf "%s cols: %s | ", $1, $2 }')
-  [[ -z $bad ]] && _ok || _no "${why:+$why: }rows wider than $((w - 1)) columns: $bad"
+  # fuzzel draws a row whole up to its width × 6 − 10 px (the rest is kept for its "…")
+  bad=$(fz_rows "$n" | python3 -I "$MD/cols.py" --px | paste - <(fz_rows "$n") |
+        awk -F'\t' -v w="$w" '$1 > w * 6 - 10 { printf "%s px: %s | ", $1, $2 }')
+  [[ -z $bad ]] && _ok || _no "${why:+$why: }rows wider than $((w * 6 - 10)) px: $bad"
   if [[ -n $t && ${FITS_WRAP:-0} == 1 ]]; then
     bad=$(tr ' ' '\n' <<<"$t" | python3 -I "$MD/cols.py" | sort -n | tail -n1)
     ((bad <= w)) && _ok || _no "${why:+$why: }title [$t] has a word of $bad columns: wider than $w"

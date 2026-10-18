@@ -1,25 +1,296 @@
 #!/usr/bin/env bash
-# kawa-together [FILE] — watch FILE with friends, each at their own computer (Syncplay): this
-# terminal shows the room's news and takes Syncplay's commands (help lists them); the film
-# plays in mpv beside it, and pause, seek, ready and chat there reach everyone in the room.
-# It asks for the room first (Enter keeps the last one: type the same name as your friends).
-# Server, name and player come from ~/.config/syncplay.ini, which theme.sh starts for you —
-# what you change there (or Syncplay remembers) stays. Without FILE mpv opens empty: drop a
-# file on it, or the room's own file is found in ~/Videos or ~/Downloads by its name.
-# The launcher's Syncplay and W in yazi (on a film; on a folder: none) open it in a window.
-# Exit: Syncplay's own status · 2 no room (none typed, none remembered).
+# kawa-together [FILE] — watch FILE with friends, each at their own computer (Syncplay). The
+# launcher's Syncplay and W in yazi (on a film; on a folder: none) open it in a terminal
+# window of its own. First a small form there, in the desktop's list look:
+#
+#   join      Enter starts the session it names. The form opens on this row, so Enter
+#             alone rejoins the server and room you used last time, under the same name
+#   server    the ones you used (newest first), then Syncplay's public ones; or type
+#             another (host, or host:port) and take it from the bottom of the list
+#   room      the ones you used; or type a new one the same way: the name your friends type
+#   name      what the others see you as
+#   password  only for a server that is not on Syncplay's public list: asked the first time
+#             you choose that server, never shown, remembered for it (Enter on the row: change)
+#   film      FILE, or one chosen in the file dialog (cancelled there: none). With none, mpv
+#             opens empty and finds the room's film by its name in ~/Videos or ~/Downloads
+#
+# Then Syncplay (without its window) runs in that terminal: it shows the room's news and
+# takes Syncplay's commands (help lists them); the film plays in mpv beside it.
+#
+# Where each thing is kept — one place each:
+#   ~/.config/syncplay.ini           Syncplay's own settings. The form starts from the server,
+#                                    room, name and password there and writes your choice
+#                                    back before Syncplay starts, which reads it (so nothing
+#                                    secret is on a command line); 600, as it holds a password
+#   ~/.local/state/fedokawaii/together/   yours alone (700):
+#     servers · rooms · names        what you used, newest first, the last 10 of each
+#     passwords                      the password of each of those servers (600)
+# The public servers are Syncplay's own list, read from the copy lib/upstream.sh installs
+# (~/.local/share/fedokawaii/syncplay): a newer Syncplay brings its newer list.
+#
+# Mesa's Vulkan driver for the newest AMD cards (RADV on RDNA 4) prints "WARNING: radv is
+# not a conformant Vulkan implementation, testing use only." each time mpv starts. Mesa's
+# own switch for exactly that line, MESA_VK_IGNORE_CONFORMANCE_WARNING, is set for Syncplay
+# and its mpv: everything else they print reaches the terminal as before.
+#
+# Without a terminal (a script, a pipe) there is no form: Syncplay starts as syncplay.ini
+# says. (--list KIND QUERY is its own part: the rows of a list, which fzf asks for as you type.)
+# Exit: Syncplay's own status · 1 cancelled (Esc), or syncplay.ini or Syncplay's folder could
+# not be read or written.
 set -u
 case ${1:-} in -h|--help) sed -n '2,/^set -u/{/^set -u/d;s/^# \{0,1\}//;p}' "$0"; exit 0 ;; esac
-ini=${XDG_CONFIG_HOME:-$HOME/.config}/syncplay.ini
-room=$(sed -n 's/^room[[:space:]]*=[[:space:]]*//p' "$ini" 2>/dev/null | head -n1)
-if [[ -t 0 ]]; then                      # (Syncplay without its window never asks)
-  last=$room room=""
-  while [[ -z ${room//[[:space:]]/} ]]; do
-    read -r -e -p "room (the one your friends use): " -i "$last" room || exit 2
+INI=${XDG_CONFIG_HOME:-$HOME/.config}/syncplay.ini
+DIR=${XDG_STATE_HOME:-$HOME/.local/state}/fedokawaii/together
+SPDIR=$HOME/.local/share/fedokawaii/syncplay        # (lib/upstream.sh: syncplay_dir)
+KEEP=10
+export MESA_VK_IGNORE_CONFORMANCE_WARNING=1
+
+# trim TEXT — without the spaces around it
+trim() { local s=$1; s=${s#"${s%%[![:space:]]*}"}; printf '%s' "${s%"${s##*[![:space:]]}"}"; }
+
+# norm_server TEXT — host:port as Syncplay takes it (a bare host gets Syncplay's own port,
+# $TOGETHER_PORT); fails for anything else. (Classes, not ranges: a-z leaves out a Turkish i.)
+norm_server() {
+  local s p
+  s=$(trim "$1")
+  if [[ $s =~ ^(\[[[:xdigit:]:.]+\]|[[:alnum:]._-]+):([[:digit:]]{1,5})$ ]]; then p=${BASH_REMATCH[2]}
+  elif [[ $s =~ ^(\[[[:xdigit:]:.]+\]|[[:alnum:]._-]+)$ && -n ${TOGETHER_PORT:-} ]]; then p=$TOGETHER_PORT s+=:$p
+  else return 1; fi
+  ((10#$p >= 1 && 10#$p <= 65535)) || return 1
+  printf '%s' "$s"
+}
+
+# list KIND QUERY — a picker's rows, tag<TAB>value<TAB>what the row shows: the value now
+# chosen, then what you used (newest first), for servers Syncplay's public ones, and last
+# what you typed, as a new one ("bad" when it is no server address). The picker's own
+# values come in its environment: TOGETHER_NOW, TOGETHER_PUBLIC, TOGETHER_PORT.
+list() {
+  local kind=$1 q v a l t w=0 vals=() notes=() i
+  local -A at=()
+  add() { [[ -n $1 ]] || return 0
+          if [[ -n ${at[$1]+x} ]]; then i=${at[$1]}; notes[i]+="${notes[i]:+ }· $2"; return 0; fi
+          at[$1]=${#vals[@]}; vals+=("$1"); notes+=("${2:+· $2}"); }
+  add "${TOGETHER_NOW:-}" now
+  while IFS= read -r v; do add "$v" ""; done < <(cat -- "$DIR/$kind" 2>/dev/null)
+  if [[ $kind == servers ]]; then
+    while IFS=$'\t' read -r a l; do add "$a" "public${l:+, $l}"; done <<<"${TOGETHER_PUBLIC:-}"
+  fi
+  q=$(trim "$2")
+  if [[ -n $q && $kind == servers ]] && ! q=$(norm_server "$q"); then
+    printf 'bad\t\t  %s is not a server: host, or host:port\n' "$(trim "$2")"; q=""
+  fi
+  [[ -n $q && -z ${at[$q]+x} ]] && add "$q" new
+  for v in "${vals[@]}"; do ((${#v} > w)) && w=${#v}; done          # (the notes in one column)
+  for i in "${!vals[@]}"; do
+    [[ ${notes[i]} == "· new" ]] && t=new a="+ " || t=old a="  "
+    printf '%s\t%s\t%s%-*s  %s\n' "$t" "${vals[i]}" "$a" "$w" "${vals[i]}" "${notes[i]}"
   done
+  return 0
+}
+if [[ ${1:-} == --list ]]; then list "${2:-}" "${3:-}"; exit 0; fi
+
+film=() from=$HOME                       # the file Syncplay opens (none: []), where the dialog starts
+if (($#)); then
+  if [[ -d $1 ]]; then from=$1; else film=("$1") from=$(dirname -- "$1"); fi
 fi
-room=${room#"${room%%[![:space:]]*}"}; room=${room%"${room##*[![:space:]]}"}
-[[ -n $room ]] || { echo "kawa-together: no room — give one (any name you and your friends agree on)" >&2; exit 2; }
 # (--: a file named like -x is a file, never an option)
-if (($#)) && [[ ! -d $1 ]]; then exec syncplay --no-gui --room "$room" -- "$1"; fi
-exec syncplay --no-gui --room "$room"
+start() { if ((${#film[@]})); then exec syncplay --no-gui -- "${film[0]}"; fi; exec syncplay --no-gui; }
+[[ -t 0 ]] || start                      # no terminal: no form, syncplay.ini as it is
+
+# ── the form ─────────────────────────────────────────────────────────────────────────────
+say() { printf '\n  %s\n\n  any key closes this window ' "$1" >&2; read -rsn1; exit 1; }
+
+# Syncplay's settings as Syncplay reads them (a doubled %% is one %; "None" is what it writes
+# for an empty value): host[:port], port, room, name, password — each ended by a NUL
+ini_read() {
+  python3 -I - "$INI" <<'PY'
+import configparser, sys
+cfg = configparser.ConfigParser(strict=False)
+try:
+    with open(sys.argv[1], encoding="utf-8-sig") as f:
+        cfg.read_file(f)
+except FileNotFoundError:
+    pass
+except (OSError, configparser.Error, UnicodeError):
+    sys.exit(4)
+out = []
+for sec, key in (("server_data", "host"), ("server_data", "port"), ("client_settings", "room"),
+                 ("client_settings", "name"), ("server_data", "password")):
+    try:
+        v = cfg.get(sec, key, fallback="").strip()
+    except configparser.Error:
+        sys.exit(4)
+    out.append("" if v == "None" else v)
+sys.stdout.write("\0".join(out) + "\0")
+PY
+}
+# ini_write HOST PORT NAME ROOM — the choice into syncplay.ini, the password from $KAWA_PW (the
+# environment, which only you can read — never an argument, which anyone's ps shows). The
+# rest of the file stays; it is written whole and replaced at once, mode 600.
+ini_write() {
+  python3 -I - "$INI" "$@" <<'PY'
+import configparser, os, sys
+path = os.path.realpath(sys.argv[1])
+host, port, name, room = sys.argv[2:6]
+cfg = configparser.RawConfigParser(strict=False)        # (as theme.sh writes it: % doubled)
+try:
+    with open(path, encoding="utf-8-sig") as f:
+        cfg.read_file(f)
+except FileNotFoundError:
+    pass
+except (OSError, configparser.Error, UnicodeError):
+    sys.exit(4)
+for sec, key, val in (("server_data", "host", host), ("server_data", "port", port),
+                      ("server_data", "password", os.environ["KAWA_PW"]),
+                      ("client_settings", "name", name), ("client_settings", "room", room)):
+    if not cfg.has_section(sec):
+        cfg.add_section(sec)
+    cfg.set(sec, key, val.replace("%", "%%"))
+tmp = path + ".kawa"
+try:
+    with open(os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600), "w", encoding="utf-8") as f:
+        cfg.write(f)
+    os.chmod(tmp, 0o600)
+    os.replace(tmp, path)
+except OSError:
+    sys.exit(4)
+PY
+}
+# Syncplay's own port, then its public servers (address<TAB>where), from the installed copy
+public() {
+  python3 -I - "$SPDIR" <<'PY' 2>/dev/null
+import sys
+sys.path.insert(0, sys.argv[1])
+from syncplay import constants as c
+print(c.DEFAULT_PORT)
+for name, addr in c.FALLBACK_PUBLIC_SYNCPLAY_SERVERS:
+    print(addr + "\t" + name.replace(addr, "").strip().strip("()"))
+PY
+}
+
+mapfile -t pub < <(public)
+[[ ${pub[0]:-} =~ ^[0-9]+$ ]] || say "Syncplay's folder (${SPDIR/#"$HOME"/\~}) does not load — fedokawaii repair puts it back"
+TOGETHER_PORT=${pub[0]}
+PUBLIC=$(printf '%s\n' "${pub[@]:1}")
+is_public() { [[ -n $1 && $'\n'$PUBLIC$'\n' == *$'\n'"$1"$'\t'* ]]; }
+
+mapfile -d '' -t ini < <(ini_read)
+((${#ini[@]} == 5)) || say "${INI/#"$HOME"/\~} does not read as Syncplay's settings — correct it, or remove it"
+# (Syncplay keeps the port apart, and a port written into host wins, as in Syncplay)
+h=${ini[0]}; [[ -n ${ini[1]} && ! $h =~ :[[:digit:]]+$ ]] && h+=:${ini[1]}
+server="" room=${ini[2]} name=${ini[3]}
+[[ -n ${ini[0]} ]] && { server=$(norm_server "$h") || server=""; }
+
+# the passwords you gave, per server ("" = it has none); syncplay.ini's counts for its server
+declare -A PW=()
+if [[ -r $DIR/passwords ]]; then
+  while IFS= read -r l; do [[ $l == *$'\t'* ]] && PW[${l%%$'\t'*}]=${l#*$'\t'}; done <"$DIR/passwords"
+fi
+[[ -n $server && -n ${ini[4]} ]] && ! is_public "$server" && PW[$server]=${ini[4]}
+unset 'ini[4]'
+
+# the desktop's list look (one options file: rules, colours, the chevron), its icons
+export FZF_DEFAULT_OPTS_FILE=$HOME/.config/fedokawaii/fzf.opts; unset FZF_DEFAULT_OPTS
+# shellcheck source=/dev/null
+. "$HOME/.config/fedokawaii/icons.sh"
+self=$(printf '%q' "$0")
+label() { printf ' \e[91m%s\e[0m  %s \e[90m· %s\e[0m ' "$ICON_TORII" "$1" "$2"; }
+
+# the form's rows: what<TAB>icon, name, value
+line() { printf '%s\t%s  %-10s%s\n' "$1" "$2" "$3" "$4"; }
+rows() {
+  local j="$room  on $server  as $name"
+  [[ -n $name ]] || j="first choose your name"
+  [[ -n $room ]] || j="first choose a room"
+  [[ -n $server ]] || j="first choose a server"
+  line join "$ICON_TORII" join "$j"
+  if is_public "$server"; then line server "$ICON_LINK" server "$server  · public"
+  else line server "$ICON_LINK" server "${server:-—}"; fi
+  line room "$ICON_DOOR" room "${room:-—}"
+  line name "$ICON_USER" name "${name:-—}"
+  if [[ -n $server ]] && ! is_public "$server"; then
+    if [[ -n ${PW[$server]:-} ]]; then line password "$ICON_LOCK" password "remembered"
+    else line password "$ICON_LOCK" password "none"; fi
+  fi
+  if ((${#film[@]})); then line film "$ICON_FILE" film "${film[0]/#"$HOME"/\~}"
+  else line film "$ICON_FILE" film "none — mpv finds the room's film by its name"; fi
+}
+
+# choose KIND NOW WHAT — a value from that list, or a new one typed (printed); 1: Esc
+choose() {
+  local got
+  got=$(TOGETHER_NOW=$2 TOGETHER_PUBLIC=$PUBLIC TOGETHER_PORT=$TOGETHER_PORT \
+        fzf --ansi --no-sort --no-extended --height=100% --margin=1,2 --delimiter=$'\t' --with-nth=3 \
+          --border-label="$(label "$3" "${4:-pick one, or type a new one}")" \
+          --footer=$'\n''enter take  ·  esc back' \
+          --bind="start:reload-sync($self --list $1 '')" --bind="change:reload-sync($self --list $1 {q})" \
+          --bind='enter:transform:[ {1} = bad ] || echo accept' </dev/null) || return 1
+  got=${got#*$'\t'}; printf '%s' "${got%%$'\t'*}"
+}
+# ask_pw SERVER — its password, typed unseen (Enter alone: it has none; Ctrl+D: as it was)
+ask_pw() {
+  local p
+  printf '\e[H\e[2J\n  \e[91m%s\e[0m  password \e[90m· %s\e[0m\n\n' "$ICON_TORII" "$1"
+  printf '  the password for this server — Enter alone if it has none\n  (nothing shows as you type)\n\n  %s ' "$ICON_CHEVRON_RIGHT"
+  IFS= read -rs p || return 0
+  PW[$1]=$p
+}
+# the file dialog (kawa-pick, as every program's Open): the film, or none when cancelled
+pick_film() {
+  local out
+  out=$(mktemp "${XDG_RUNTIME_DIR:-/tmp}/kawa-together.XXXXXX") || return 0
+  kawa-pick 0 0 0 "$from" "$out"
+  film=()
+  [[ -s $out ]] && film=("$(head -n1 -- "$out")") from=$(dirname -- "$(head -n1 -- "$out")")
+  rm -f -- "$out"
+}
+# remember KIND VALUE — first in that list, once, the last $KEEP kept
+remember() {
+  local v out=("$2")
+  local -A seen=(["$2"]=1)
+  while IFS= read -r v; do
+    [[ -n $v && -z ${seen[$v]+x} ]] && out+=("$v") && seen[$v]=1
+  done < <(cat -- "$DIR/$1" 2>/dev/null)
+  printf '%s\n' "${out[@]:0:KEEP}" >"$DIR/$1.new" && mv -f -- "$DIR/$1.new" "$DIR/$1"
+}
+# the passwords of the servers still remembered, written where only you can read them
+# (printf is the shell's own: no password is ever an argument of a program)
+save_pw() {
+  local s
+  rm -f -- "$DIR/passwords.new"
+  (umask 077
+   while IFS= read -r s; do if [[ -n ${PW[$s]+x} ]]; then printf '%s\t%s\n' "$s" "${PW[$s]}"; fi; done <"$DIR/servers" \
+     >"$DIR/passwords.new") && chmod 600 -- "$DIR/passwords.new" && mv -f -- "$DIR/passwords.new" "$DIR/passwords"
+}
+join() {
+  local pw=""
+  { mkdir -p -- "$DIR" && chmod 700 -- "$DIR"; } || say "cannot keep your choices in ${DIR/#"$HOME"/\~}"
+  { remember servers "$server" && remember rooms "$room" && remember names "$name"; } \
+    || say "cannot keep your choices in ${DIR/#"$HOME"/\~}"
+  if ! is_public "$server"; then PW[$server]=${PW[$server]-}; pw=${PW[$server]}; fi
+  save_pw || say "cannot keep the password in ${DIR/#"$HOME"/\~}"
+  KAWA_PW=$pw ini_write "${server%:*}" "${server##*:}" "$name" "$room" \
+    || say "cannot write ${INI/#"$HOME"/\~} — is it yours?"
+  printf '\e[H\e[2J'
+  start
+}
+
+msg=()
+while :; do
+  pick=$(rows | fzf --ansi --no-sort --no-input --height=100% --margin=1,2 --delimiter=$'\t' --with-nth=2 \
+           --border-label="$(label "watch together" Syncplay)" "${msg[@]}" \
+           --footer=$'\n''enter choose  ·  esc cancel') || exit 1
+  msg=()
+  case ${pick%%$'\t'*} in
+    join)     if [[ -n $server && -n $room && -n $name ]]; then join; fi
+              msg=(--header="first choose a server, a room and your name") ;;
+    server)   if v=$(choose servers "$server" server "pick one, or type host:port"); then
+                server=$v
+                is_public "$server" || [[ -n ${PW[$server]+x} ]] || ask_pw "$server"
+              fi ;;
+    room)     v=$(choose rooms "$room" room "the one your friends use") && room=$v ;;
+    name)     v=$(choose names "$name" name "what the others see") && name=$v ;;
+    password) ask_pw "$server" ;;
+    film)     pick_film ;;
+  esac
+done

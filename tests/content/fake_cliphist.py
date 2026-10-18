@@ -1,13 +1,21 @@
 #!/usr/bin/env python3
-"""fake_cliphist.py list|decode|delete|wipe|store — cliphist 0.7's answers from a folder
-($CLIP_DB): each entry a file named by its id (the newest has the highest), its bytes the
-copy. What `list` shows for an entry is what cliphist 0.7.0 shows (checked against it):
+"""fake_cliphist.py [-max-items N] list|decode|delete|wipe|store — cliphist 0.7's answers from
+a folder ($CLIP_DB): each entry a file named by its id (the newest has the highest), its bytes
+the copy. What `list` shows for an entry is what cliphist 0.7.0 shows (checked against it):
 a picture Go can read (PNG, JPEG, GIF, BMP) as "[[ binary data SIZE FORMAT WxH ]]", anything
 else as text — whitespace runs as one space, cut at 100 characters with "…", bytes that
-are not UTF-8 as U+FFFD, other control characters (NUL, ESC) left as they are."""
+are not UTF-8 as U+FFFD, other control characters (NUL, ESC) left as they are. `store` as
+cliphist's: CLIPBOARD_STATE "sensitive" keeps nothing, "clear" forgets the newest, anything
+else stores what is not blank — the same bytes again move to the top — and keeps the newest
+-max-items (750 unless given). Every call is logged to $CLIP_DB.log, its options with it."""
 import os, re, struct, sys
 
 db = os.environ["CLIP_DB"]
+with open(db + ".log", "a") as log:
+    log.write(" ".join(sys.argv[1:]) + "\n")
+max_items = 750
+while len(sys.argv) > 2 and sys.argv[1] == "-max-items":
+    max_items = int(sys.argv[2]); del sys.argv[1:3]
 
 
 def ids():
@@ -79,9 +87,18 @@ elif cmd == "delete":
 elif cmd == "wipe":
     for i in ids(): os.remove(os.path.join(db, str(i)))
 elif cmd == "store":
-    b = sys.stdin.buffer.read()
-    if b.strip():
-        n = (ids() or [0])[0] + 1
-        open(os.path.join(db, str(n)), "wb").write(b)
+    state = os.environ.get("CLIPBOARD_STATE", "")
+    if state == "clear":
+        if ids(): os.remove(os.path.join(db, str(ids()[0])))
+    elif state != "sensitive":
+        b = sys.stdin.buffer.read()
+        if b.strip():
+            for i in ids():
+                if open(os.path.join(db, str(i)), "rb").read() == b: os.remove(os.path.join(db, str(i)))
+            n = (ids() or [0])[0] + 1
+            n = max(n, int(open(db + ".seq").read()) + 1) if os.path.exists(db + ".seq") else n
+            open(db + ".seq", "w").write(str(n))
+            open(os.path.join(db, str(n)), "wb").write(b)
+            for i in ids()[max_items:]: os.remove(os.path.join(db, str(i)))
 else:
     sys.stderr.write("fake cliphist: %s?\n" % cmd); sys.exit(2)

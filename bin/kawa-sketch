@@ -1,0 +1,34 @@
+#!/usr/bin/env bash
+# kawa-sketch — a blank page to draw on, with the drawing tablet's pen (its pressure makes the
+# line thicker) or the mouse: Xournal++ on a new sketch, a landscape page the shape of the
+# screen, plain paper. ("Sketch" in the launcher.)
+#
+#   kawa-sketch          a new sketch: ~/Pictures/Sketches/sketch 2026-10-17 21.40.xopp
+#
+# Xournal++ saves it as you draw (its autosave) and Ctrl+S keeps it; File → Export as…
+# (Ctrl+E) makes a PNG of it to send, File → Export as PDF a PDF. A sketch opened again later
+# (Enter on it in yazi) goes on
+# where you left off. Xournal++ is the desktop's pen program for notes and PDFs as well.
+# Exit: 0 Xournal++ started · 1 it could not (said) · 2 wrong use.
+set -u
+case ${1:-} in
+  "") ;;
+  -h|--help) sed -n '2,/^set -u/{/^set -u/d;s/^# \{0,1\}//;p}' "$0"; exit 0 ;;
+  *) echo "usage: kawa-sketch   (a new sketch in ~/Pictures/Sketches)" >&2; exit 2 ;;
+esac
+# shellcheck source=/dev/null
+. "$HOME/.config/fedokawaii/files.sh"            # free_name
+dir=$HOME/Pictures/Sketches
+mkdir -p "$dir" || { notify-send -a desktop "sketch" "cannot make $dir"; exit 1; }
+printf -v name 'sketch %(%Y-%m-%d %H.%M)T' -1
+f=$(free_name "$dir/$name.xopp")                # (a second in the same minute: "… (1).xopp")
+# a page of 1280 × 720 points (16:9, as the screen), white, no lines: Xournal++'s own file
+# format, gzipped XML
+printf '%s\n' '<?xml version="1.0" standalone="no"?>' \
+  '<xournal creator="fedokawaii kawa-sketch" fileversion="4">' \
+  '<title>Xournal++ document - see https://xournalpp.github.io/</title>' \
+  '<page width="1280.00" height="720.00"><background type="solid" color="#ffffffff" style="plain"/><layer/></page>' \
+  '</xournal>' | python3 -I -c 'import gzip, sys; gzip.GzipFile(sys.argv[1], "wb", mtime=0).write(sys.stdin.buffer.read())' "$f" \
+  || { rm -f "$f"; notify-send -a desktop "sketch" "could not write $f (is the disk full?)"; exit 1; }
+command -v xournalpp >/dev/null || { notify-send -a desktop -u critical "sketch" "Xournal++ is missing — fedokawaii repair puts it back"; exit 1; }
+setsid -f xournalpp -- "$f" >/dev/null 2>&1 </dev/null

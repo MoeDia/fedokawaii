@@ -57,25 +57,125 @@ up_world; : >"$TMP/active"                                  # (its unit current:
 mkdir -p "$HOME/.config/containers/systemd"; cp "$REPO/system/prowlarr.container" "$HOME/.config/containers/systemd/"
 : >"$TMP/key-refused"; up; eq "$RC" 1; not_called 'stop'; [[ -e $TMP/active ]] && _ok || _no "your Prowlarr was stopped"
 
-# ── the `prowlarr` shell command ─────────────────────────────────────────────
+# ── kawa-prowlarr: its page (`prowlarr`, the launcher), and its sleep ─────────────
 sh_world() {
-  sandbox; user_systemd; stub xdg-open
-  sed -n '/^prowlarr() {/,/^}/p' "$REPO/configs/home/.bashrc.d/fedokawaii.sh" >"$TMP/fn.sh"
-  [[ -s $TMP/fn.sh ]] || { echo "fixture: the prowlarr function is not in .bashrc.d/fedokawaii.sh" >&2; exit 1; }
+  sandbox; user_systemd; stub xdg-open; stub systemd-run
+  # (the stand-in's stop of anything but prowlarr.service — the planned sleep — leaves it running)
+  stub systemctl 'case "$*" in
+  *is-active*) [ -e "'"$TMP"'/active" ] && { echo active; exit 0; }; echo inactive; exit 3 ;;
+  *" start "*|*" restart "*) [ -e "'"$TMP"'/start-fails" ] && { echo "Job for prowlarr.service failed." >&2; exit 1; }; : >"'"$TMP"'/active" ;;
+  *" stop "*prowlarr.service*) rm -f "'"$TMP"'/active" ;;
+esac'
 }
-pw() { OUT=$(bash -c '. "$1"; shift; prowlarr "$@"' _ "$TMP/fn.sh" "$@" 2>&1); RC=$?; }
+pw() { OUT=$(kawa-prowlarr "$@" 2>&1); RC=$?; }
+SLEEP='^systemd-run --user --quiet --unit=prowlarr-idle --on-active=30min --timer-property=AccuracySec=30s systemctl --user stop prowlarr.service$'
 
-case_ "prowlarr: started (the wait said), then its page opened"
+case_ "prowlarr (the page): started (the wait said), the page opened, asleep again 30 minutes later"
 sh_world; pw; eq "$RC" 0; has "$OUT" "starting Prowlarr"
-called '^systemctl --user start prowlarr.service'; called '^xdg-open http://localhost:9696'; not_called ' stop '
-case_ "prowlarr, already running: the page only, no wait to announce"
-sh_world; : >"$TMP/active"; pw; eq "$RC" 0; lacks "$OUT" "starting"; called '^xdg-open'
-case_ "prowlarr, a start that fails: said, stopped again (never left retrying), no page"
+called '^systemctl --user start prowlarr.service'; for _ in {1..50}; do grep -q '^xdg-open' "$CALLS" && break; /bin/sleep 0.05; done
+called '^xdg-open http://localhost:9696$'; called "$SLEEP"; not_called '^systemctl --user stop prowlarr.service'
+case_ "…already running: the page only, no wait to announce; a sleep already planned, planned anew"
+sh_world; : >"$TMP/active"; pw; eq "$RC" 0; lacks "$OUT" "starting"; called '^systemctl --user stop prowlarr-idle.timer'; called "$SLEEP"
+case_ "…a start that fails: said (a notice too), stopped again (never left retrying), no page, no sleep planned"
 sh_world; : >"$TMP/start-fails"; pw; eq "$RC" 1
 has "$OUT" "Prowlarr did not start"; has "$OUT" "journalctl --user -u prowlarr"
-called '^systemctl --user stop --no-block prowlarr.service'; not_called xdg-open
-case_ "prowlarr stop"
+called '^systemctl --user stop --no-block prowlarr.service'; not_called xdg-open; not_called systemd-run
+called '^notify-send -u critical -a torrra Prowlarr did not start'
+case_ "prowlarr stop: asleep now, its planned sleep called off"
 sh_world; : >"$TMP/active"; pw stop; eq "$RC" 0; called '^systemctl --user stop prowlarr.service'; [[ ! -e $TMP/active ]] && _ok || _no "still running"
+called '^systemctl --user stop prowlarr-idle.timer'
+case_ "--busy (a search starts): started, the planned sleep called off, none planned"
+sh_world; pw --busy; eq "$RC" 0; called '^systemctl --user start prowlarr.service'; called 'stop prowlarr-idle.timer'; not_called systemd-run
+case_ "--idle (the search window closed): the sleep planned; nothing planned for one already asleep"
+sh_world; : >"$TMP/active"; pw --idle; called "$SLEEP"
+sh_world; pw --idle; eq "$RC" 0; not_called systemd-run
+case_ "KAWA_PROWLARR_IDLE_MIN sets another wait (the tests' own knob); a wrong word says how it is used"
+sh_world; : >"$TMP/active"; KAWA_PROWLARR_IDLE_MIN=5 kawa-prowlarr --idle; called 'on-active=5min'
+pw bogus; eq "$RC" 2; has "$OUT" "usage: kawa-prowlarr"
+case_ "the shell's prowlarr and the launcher entry both go through kawa-prowlarr"
+grep -q 'Exec=@HOME@/.local/bin/kawa-prowlarr$' "$REPO/configs/home/.local/share/applications/kawa-prowlarr.desktop" && _ok || _no "the launcher entry"
+
+# ── setup's indexers (system/prowlarr-indexers.py), against a stand-in Prowlarr ─────
+# a small HTTP server speaking Prowlarr's API: the indexers it has ($TMP/have.json), the
+# schema of every known one, POST (which fails its connection test for names in $TMP/unreachable)
+# and PUT ?forceSave; every request logged to $TMP/api.log with the key it carried
+api_world() {
+  sandbox
+  cat >"$TMP/fake.py" <<'PY'
+import json, os, sys
+from http.server import BaseHTTPRequestHandler, HTTPServer
+T = sys.argv[1]
+KNOWN = ["nyaasi", "SubsPlease", "tokyotosho", "thepiratebay", "yts", "Knaben", "limetorrents", "torrentdownloads", "eztv"]
+def have():
+    try: return json.load(open(f"{T}/have.json"))
+    except FileNotFoundError: return []
+class H(BaseHTTPRequestHandler):
+    def log_message(self, *a): pass
+    def send(self, code, obj=None):
+        self.send_response(code); self.end_headers()
+        if obj is not None: self.wfile.write(json.dumps(obj).encode())
+    def note(self, body=""):
+        with open(f"{T}/api.log", "a") as f: f.write(f"{self.command} {self.path} key={self.headers.get('X-Api-Key')} {body}\n")
+    def do_GET(self):
+        self.note()
+        if self.headers.get("X-Api-Key") != "k3y": return self.send(401)
+        if self.path == "/api/v1/indexer": return self.send(200, have())
+        if self.path == "/api/v1/indexer/schema":
+            return self.send(200, [{"definitionName": d, "name": d.title(), "implementation": "Cardigann", "fields": [{"name": "baseUrl"}], "presets": [], "enable": False, "priority": 25} for d in KNOWN])
+        if self.path == "/api/v1/appprofile": return self.send(200, [{"id": 7, "name": "Standard"}])
+        self.send(404)
+    def do_POST(self):
+        body = json.loads(self.rfile.read(int(self.headers["Content-Length"])))
+        self.note(json.dumps({k: body.get(k) for k in ("definitionName", "enable", "priority", "appProfileId", "tags")} | {"presets": "presets" in body}))
+        unreachable = open(f"{T}/unreachable").read().split() if os.path.exists(f"{T}/unreachable") else []
+        if body["enable"] and body["definitionName"] in unreachable:
+            return self.send(400, [{"errorMessage": "Unable to connect to indexer"}])
+        h = have(); body["id"] = len(h) + 1; h.append(body); json.dump(h, open(f"{T}/have.json", "w"))
+        self.send(201, body)
+    def do_PUT(self):
+        body = json.loads(self.rfile.read(int(self.headers["Content-Length"])))
+        self.note(json.dumps({"id": body.get("id"), "enable": body.get("enable")}))
+        h = [body if i["id"] == body["id"] else i for i in have()]; json.dump(h, open(f"{T}/have.json", "w"))
+        self.send(202, body)
+s = HTTPServer(("127.0.0.1", 0), H)
+open(f"{T}/port", "w").write(str(s.server_address[1]))
+s.serve_forever()
+PY
+  python3 -I "$TMP/fake.py" "$TMP" & FAKE_PID=$!
+  on_exit "kill $FAKE_PID 2>/dev/null"
+  for _ in {1..100}; do [[ -s $TMP/port ]] && break; /bin/sleep 0.05; done
+  URL=http://127.0.0.1:$(cat "$TMP/port")
+}
+ix() { OUT=$(printf %s "${1:-k3y}" | python3 -I "$REPO/system/prowlarr-indexers.py" "$URL" 2>&1); RC=$?; }
+log_of() { grep "^$1" "$TMP/api.log"; }
+
+case_ "a new Prowlarr: the eight added, each with its priority, the profile, no tags, the schema's settings (its presets left out)"
+api_world; ix; eq "$RC" 0 "$OUT"
+eq "$(log_of POST | wc -l)" 8
+for e in nyaasi:1 SubsPlease:5 tokyotosho:10 thepiratebay:10 yts:10 Knaben:15 limetorrents:20 torrentdownloads:25; do
+  has "$(log_of POST)" "\"definitionName\": \"${e%:*}\", \"enable\": true, \"priority\": ${e#*:}, \"appProfileId\": 7, \"tags\": [], \"presets\": false}"
+done
+lacks "$(cat "$TMP/api.log")" eztv "a Cloudflare site added"
+eq "$(grep -c 'key=k3y' "$TMP/api.log")" "$(wc -l <"$TMP/api.log")" "every request carried the key"
+case_ "run again (every update): nothing added, said so"
+ix; eq "$RC" 0; has "$OUT" "all 8 in place"; eq "$(log_of POST | wc -l)" 8 "no second POST"
+case_ "one you have (renamed, switched off): left as it is — matched by its kind, any letter case"
+api_world; echo '[{"id": 1, "name": "My Nyaa", "definitionName": "NyaaSi", "enable": false}]' >"$TMP/have.json"
+ix; eq "$RC" 0; lacks "$(log_of POST)" '"nyaasi"'; eq "$(log_of POST | wc -l)" 7
+has "$(cat "$TMP/have.json")" '"name": "My Nyaa", "definitionName": "NyaaSi", "enable": false'
+case_ "a site Prowlarr cannot reach now: saved switched off, then switched on without the test — the rest go on"
+api_world; echo "yts limetorrents" >"$TMP/unreachable"
+ix; eq "$RC" 0 "$OUT"; has "$OUT" "yts: added (not reachable just now"
+has "$(log_of PUT)" "forceSave=true"; eq "$(log_of PUT | wc -l)" 2
+eq "$(python3 -c 'import json,sys; print(sum(1 for i in json.load(open(sys.argv[1])) if i["enable"]))' "$TMP/have.json")" 8 "all eight switched on"
+case_ "a wrong key: refused, said, exit 2, nothing added"
+api_world; ix wrong; eq "$RC" 2; has "$OUT" "refused (401)"; not_called POST; [[ ! -e $TMP/have.json ]] && _ok || _no "added with a wrong key"
+case_ "Prowlarr not answering: said, exit 2"
+api_world; kill "$FAKE_PID"; wait "$FAKE_PID" 2>/dev/null; ix; eq "$RC" 2; has "$OUT" "did not answer"
+case_ "setup runs it with the key on stdin (never on a command line), and goes on whatever it says"
+grep -q 'printf %s "$key" | as_user python3 -I "$REPO_DIR/system/prowlarr-indexers.py"' "$REPO/setup.sh" && _ok || _no "setup's line changed"
+case_ "verify knows the same eight"
+has "$(sed -n '/^INDEXERS = /,/]$/p' "$REPO/system/prowlarr-indexers.py")" '("torrentdownloads", 25)'
 
 # ── setup.sh's torrra_up ─────────────────────────────────────────────────────
 # a venv of the real python3 with the stand-in torrra (fixtures/torrra: its screens fail to
@@ -148,12 +248,12 @@ else _ok; fi
 : >"$TMP/textual-broken"
 FAKE_TEXTUAL_BROKEN=$TMP/textual-broken "$V/bin/python" -I -c "$vp" "$TV" 2>/dev/null && _no "a broken Textual passes verify's check" || _ok
 
-# ── setup.sh's torrent_port ──────────────────────────────────────────────────
+# ── setup.sh's open_ports (torrra's 6881, LocalSend's 53317) ──────────────────────────────────────────────────
 # firewalld: its saved ports in $TMP/fw-perm, its running ones in $TMP/fw-run; a reload
 # makes the running ones the saved ones (dropping what was added only while it runs)
 tp_world() {
   sandbox
-  sed -n '/^torrent_port() {/,/^}/p' "$REPO/setup.sh" >"$TMP/tp.sh"
+  { grep '^OPEN_PORTS=' "$REPO/setup.sh"; sed -n '/^open_ports() {/,/^}/p' "$REPO/setup.sh"; } >"$TMP/tp.sh"
   : >"$TMP/fw-perm"; : >"$TMP/fw-run"
   stub firewall-cmd 'f="$TMP/fw-run"; for a in "$@"; do [ "$a" = --permanent ] && f="$TMP/fw-perm"; done
 for a in "$@"; do case $a in
@@ -163,21 +263,21 @@ for a in "$@"; do case $a in
   --reload) cp "$TMP/fw-perm" "$TMP/fw-run" ;;
 esac; done'
 }
-tp() { OUT=$(LOG_FILE=$TMP/fk.log bash -c 'set -Eeuo pipefail; . "$1/lib/common.sh"; . "$2"; torrent_port' _ "$REPO" "$TMP/tp.sh" 2>&1); RC=$?; }
-both() { printf '%s\n' 6881/tcp 6881/udp; }
+tp() { OUT=$(LOG_FILE=$TMP/fk.log bash -c 'set -Eeuo pipefail; . "$1/lib/common.sh"; LOCALSEND_PORT=53317; . "$2"; open_ports' _ "$REPO" "$TMP/tp.sh" 2>&1); RC=$?; }
+both() { printf '%s\n' 6881/tcp 6881/udp 53317/tcp 53317/udp; }
 
-case_ "torrent_port, 6881 open already (saved and running): nothing changed, firewalld not reloaded"
+case_ "open_ports, 6881 open already (saved and running): nothing changed, firewalld not reloaded"
 tp_world; both >"$TMP/fw-perm"; both >"$TMP/fw-run"; tp; eq "$RC" 0 "$OUT"
 not_called 'add-port'; not_called 'reload'
-case_ "torrent_port, closed: opened, saved and running, without a reload"
+case_ "open_ports, closed: opened, saved and running, without a reload"
 tp_world; tp; eq "$RC" 0 "$OUT"
-eq "$(sort "$TMP/fw-perm" | tr '\n' ' ')" "6881/tcp 6881/udp "; eq "$(sort "$TMP/fw-run" | tr '\n' ' ')" "6881/tcp 6881/udp "
+eq "$(sort "$TMP/fw-perm" | tr '\n' ' ')" "53317/tcp 53317/udp 6881/tcp 6881/udp "; eq "$(sort "$TMP/fw-run" | tr '\n' ' ')" "53317/tcp 53317/udp 6881/tcp 6881/udp "
 not_called 'reload'
-case_ "torrent_port, saved but not running (another rule added at run time stays): opened while it runs"
+case_ "open_ports, saved but not running (another rule added at run time stays): opened while it runs"
 tp_world; both >"$TMP/fw-perm"; echo 8080/tcp >"$TMP/fw-run"; tp; eq "$RC" 0
 has "$(cat "$TMP/fw-run")" "8080/tcp" "a rule added while firewalld runs was dropped"; has "$(cat "$TMP/fw-run")" "6881/udp"
 not_called '\-\-permanent \-\-add-port'
-case_ "torrent_port, firewalld not running: said, nothing done"
+case_ "open_ports, firewalld not running: said, nothing done"
 tp_world; : >"$TMP/fw-down"; tp; eq "$RC" 0; has "$OUT" "firewalld is not running"; not_called 'port'
 
 done_

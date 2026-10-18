@@ -72,7 +72,7 @@ eq "$(guarded 'wl-copy x && notify-send y; grim | wl-copy; resvg a b')" "" "&& a
 
 # ── the closure ──────────────────────────────────────────────────────────────────────────
 pkgs() {   # pkgs GPU STEAM → every package setup installs for that machine
-  (STEAM=$2 STATE_DIR=$TMP/nostate; . "$REPO/lib/manifest.sh"; manifest_all "$1") >"$TMP/pkgs.$1.$2"
+  (STEAM=$2 SPOTIFY=yes STATE_DIR=$TMP/nostate; . "$REPO/lib/manifest.sh"; manifest_all "$1") >"$TMP/pkgs.$1.$2"
 }
 pkgs amd yes; pkgs intel yes; pkgs amd no
 
@@ -122,9 +122,11 @@ eq "$r" 0
 case_ "the guide's promises hold in mimeapps.list"
 ma=$REPO/configs/home/.config/mimeapps.list
 for pair in text/plain=kawa-edit.desktop inode/directory=kawa-files.desktop image/png=imv.desktop \
-            video/mp4=mpv.desktop audio/flac=mpv.desktop application/pdf=org.pwmt.zathura-pdf-mupdf.desktop \
+            video/mp4=kawa-play.desktop audio/flac=kawa-play.desktop application/pdf=org.pwmt.zathura-pdf-mupdf.desktop \
             application/vnd.comicbook+zip=org.pwmt.zathura-cb.desktop text/csv=kawa-tables.desktop \
-            text/tab-separated-values=kawa-tables.desktop application/vnd.ms-excel=org.gnumeric.gnumeric.desktop \
+            text/tab-separated-values=kawa-tables.desktop application/vnd.ms-excel=libreoffice-calc.desktop \
+            application/vnd.openxmlformats-officedocument.wordprocessingml.document=libreoffice-writer.desktop \
+            application/vnd.openxmlformats-officedocument.presentationml.presentation=libreoffice-impress.desktop \
             application/zip=kawa-files.desktop x-scheme-handler/magnet=kawa-torrents.desktop \
             x-scheme-handler/https=brave-origin.desktop text/x-script.python=kawa-edit.desktop \
             application/x-xopp=com.github.xournalpp.xournalpp.desktop; do
@@ -134,7 +136,7 @@ case_ "GIO (gio open, every GTK program) reads each default exactly as mimeapps.
 GIO=$( [[ -x /opt/f44/bin/gio ]] && echo /opt/f44/bin/gio || command -v gio 2>/dev/null)
 if [[ -n $GIO ]]; then
   config .config/mimeapps.list .local/share/applications
-  cp "$REPO/bin/kawa-term" "$HOME/.local/bin/"            # (an entry whose program is missing is skipped)
+cp "$REPO/bin/kawa-term" "$REPO/bin/kawa-play" "$HOME/.local/bin/"   # (an entry whose program is missing is skipped)
   # the packages' own entries, as stand-ins without a MimeType of their own: the default must
   # hold by mimeapps.list alone
   mkdir -p "$TMP/sys/applications"

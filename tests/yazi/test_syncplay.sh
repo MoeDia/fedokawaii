@@ -1,8 +1,15 @@
 #!/usr/bin/env bash
 # tests/yazi/test_syncplay.sh — watching together (Syncplay), the terminal way:
-#   kawa-together   asks for the room (the last one offered), then Syncplay without its window
-#                   in that terminal, your typing reaching it; without a terminal the room from
-#                   syncplay.ini; no room at all: exit 2
+#   kawa-together   in a terminal, the form (the real fzf, driven by keys): syncplay.ini's server,
+#                   room and name on the first run, the join row under the cursor (Enter alone
+#                   starts); the lists: what you used newest first, once each, the last 10,
+#                   Syncplay's public servers, a typed one as new at the bottom; the choice
+#                   written into syncplay.ini, so Enter alone next time rejoins it; a server of
+#                   your own: its password asked unseen, kept for it alone (600, in a 700
+#                   folder), never on the screen, Syncplay's command line or its environment;
+#                   the film from the file dialog; Esc starts nothing. RADV's "not a conformant
+#                   Vulkan implementation" line: Mesa's own switch set, what else is printed
+#                   still shown. Without a terminal: no form, syncplay.ini as it is
 #   the launcher    Syncplay's entry opens kawa-together in a terminal window and claims no file
 #                   types (films keep opening in mpv)
 #   yazi            W on a film starts it (keymap.toml; with the real yazi: test_yazi.sh); on a
@@ -20,18 +27,82 @@ D=$(cd "$(dirname "$0")" && pwd)
 MPV=$(command -v mpv 2>/dev/null || true)
 SP=$(command -v syncplay 2>/dev/null || true)
 FFMPEG=$(command -v ffmpeg 2>/dev/null || true)
+FZF=$(command -v fzf 2>/dev/null || true)
 sandbox
 INI=$HOME/.config/syncplay.ini
+ST=$HOME/.local/state/fedokawaii/together
+RADV="WARNING: radv is not a conformant Vulkan implementation, testing use only."
 
 # ── kawa-together ────────────────────────────────────────────────────────────────────────
-# a stand-in Syncplay: says how it was started, then what it reads (a command, then "bye")
-stub syncplay 'printf "args:"; printf " [%s]" "$@"; printf "\n"; read -r l; echo "it read: $l"; read -r l'
-printf '[client_settings]\nname = kawau\nroom = film-night\nroomlist = []\n' >"$INI"
-together() { python3 "$D/drive.py" --size 200x12 --cwd "$HOME" -- "$REPO/bin/kawa-together" "$@"; }
+# a stand-in Syncplay: says how it was started, prints what Mesa prints when mpv starts on an
+# RDNA 4 card (that line only while Mesa's switch is off, as vk_util.c does) and another
+# warning, then what it reads, until "bye"
+stub syncplay 'printf "args:"; printf " [%s]" "$@"; printf "\n"
+case ${MESA_VK_IGNORE_CONFORMANCE_WARNING:-0} in 0|n|no|f|false) echo "'"$RADV"'" >&2 ;; esac
+echo "[vo/gpu-next] another warning" >&2
+echo "pw in its environment: ${KAWA_PW-none}"
+while read -r l; do echo "it read: $l"; [ "$l" = bye ] && break; done'
+# Syncplay's folder as lib/upstream.sh installs it: only what the form reads (its own port,
+# its public servers — as in 1.7.6)
+mkdir -p "$HOME/.local/share/fedokawaii/syncplay/syncplay"
+: >"$HOME/.local/share/fedokawaii/syncplay/syncplay/__init__.py"
+cat >"$HOME/.local/share/fedokawaii/syncplay/syncplay/constants.py" <<'EOF'
+DEFAULT_PORT = 8999
+FALLBACK_PUBLIC_SYNCPLAY_SERVERS = [
+    ['syncplay.pl:8995 (France)', 'syncplay.pl:8995'],
+    ['syncplay.pl:8997 (France)', 'syncplay.pl:8997'],
+    ['syncplay.pl:8999 (France)', 'syncplay.pl:8999']]
+EOF
+config .config/fedokawaii/fzf.opts
+# syncplay.ini as theme.sh starts it
+theme_ini() { printf '[server_data]\nhost = syncplay.pl\nport = 8999\npassword = None\n\n[client_settings]\nname = kawau\nroom = kawau-3f9a\nplayerpath = /usr/bin/mpv\n' >"$INI"; chmod 600 "$INI"; }
+ini() { python3 -I -c 'import configparser, sys; c = configparser.ConfigParser(); c.read(sys.argv[1]); print(c.get(sys.argv[2], sys.argv[3]))' "$INI" "$@"; }
+together() { python3 "$D/drive.py" --size 100x16 --cwd "$HOME" -- "$REPO/bin/kawa-together" "$@"; }
+# (its exit status, said on the screen once it has ended)
+together_rc() { python3 "$D/drive.py" --size 100x16 --cwd "$HOME" -- sh -c '"$0" "$@"; echo "ended: $?"; sleep 3' "$REPO/bin/kawa-together" "$@"; }
 
-case_ "in a terminal: it asks for the room, the last one offered — Enter keeps it"
-out=$(together "$TMP/a film's.mkv" <<'EOF'
-wait room (the one your friends use): film-night
+case_ "without a terminal (piped): no form — Syncplay as syncplay.ini says, the film after --"
+theme_ini
+out=$(kawa-together "$TMP/x.mkv" <<<"" 2>&1)
+has "$out" "args: [--no-gui] [--] [$TMP/x.mkv]"
+lacks "$out" "$RADV" "Mesa's switch is set: its RADV line stays out"
+has "$out" "[vo/gpu-next] another warning" "anything else on stderr still shows"
+eq "$(ini client_settings room) $(ini server_data host)" "kawau-3f9a syncplay.pl" "syncplay.ini was changed"
+[[ ! -e $ST ]] && _ok || _no "the form's memory was made without a form"
+case_ "--help shows how to use it"
+has "$(kawa-together --help)" "kawa-together [FILE]"
+
+case_ "the lists (--list, as fzf asks for them): the value now, then the ones used, newest first, once each"
+mkdir -p "$ST"; printf 'b\nc\nb\nd\n' >"$ST/rooms"
+eq "$(TOGETHER_NOW=c kawa-together --list rooms '' | cut -f1,2 | tr '\t\n' ':,')" "old:c,old:b,old:d,"
+has "$(TOGETHER_NOW=c kawa-together --list rooms '')" "c  · now"
+case_ "…what you type, new, at the bottom (not when it is one of them); spaces around it trimmed"
+eq "$(TOGETHER_NOW=c kawa-together --list rooms '  Movie Club 7 ' | tail -n1 | cut -f1,2)" $'new\tMovie Club 7'
+has "$(TOGETHER_NOW=c kawa-together --list rooms '  Movie Club 7 ' | tail -n1)" "+ Movie Club 7"
+lacks "$(TOGETHER_NOW=c kawa-together --list rooms 'b' | cut -f1)" "new"
+case_ "…servers: Syncplay's public ones after yours; a bare host gets Syncplay's port; anything else is no server"
+printf 'friends.example:9000\nsyncplay.pl:8997\n' >"$ST/servers"
+pub=$'syncplay.pl:8995\tFrance\nsyncplay.pl:8997\tFrance'
+srv() { TOGETHER_NOW=friends.example:9000 TOGETHER_PUBLIC=$pub TOGETHER_PORT=8999 kawa-together --list servers "$1"; }
+eq "$(srv '' | cut -f2 | tr '\n' ,)" "friends.example:9000,syncplay.pl:8997,syncplay.pl:8995,"
+has "$(srv '' | sed -n 2p)" "syncplay.pl:8997      · public, France"
+eq "$(srv 'films.example' | tail -n1 | cut -f1,2)" $'new\tfilms.example:8999'
+eq "$(srv '[::1]:9001' | tail -n1 | cut -f1,2)" $'new\t[::1]:9001'
+eq "$(srv 'two words' | cut -f1 | sort -u | tr '\n' ,)" "bad,old,"
+eq "$(srv 'host:99999' | head -n1 | cut -f1)" "bad"
+rm -rf "$ST"
+
+if [[ -z $FZF ]]; then printf '  – skipped: fzf is not installed (the form)\n'
+else
+ln -s "$FZF" "$STUBS/fzf"
+
+case_ "first run: syncplay.ini's server, room and name; the join row under the cursor — Enter starts Syncplay"
+theme_ini
+out=$(together "$TMP/a film's.mkv" 2>&1 <<'EOF'
+wait join
+settle
+screen
+lit
 key <Enter>
 wait args:
 key help<Enter>
@@ -39,45 +110,264 @@ wait it read: help
 screen
 quit bye<Enter>
 EOF
-); rc=$?
-eq "$rc" 0 "the session: $out"
-has "$out" "args: [--no-gui] [--room] [film-night] [--] [$TMP/a film's.mkv]" "Syncplay without its window, the file after --"
+); r=$?
+eq "$r" 0 "the session: $out"
+has "$out" "join      kawau-3f9a  on syncplay.pl:8999  as kawau"
+has "$out" "server    syncplay.pl:8999  · public"
+lacks "$out" "password" "a public server has no password row"
+has "$out" "film      $TMP/a film's.mkv"
+has "$out" "args: [--no-gui] [--] [$TMP/a film's.mkv]" "Syncplay without its window, the film after --, nothing else"
 has "$out" "it read: help" "what you type reaches Syncplay"
+lacks "$out" "$RADV" "Mesa's RADV line stays out of the terminal"
+has "$out" "[vo/gpu-next] another warning" "anything else Syncplay and mpv print still shows"
+eq "$(cat "$ST/servers") $(cat "$ST/rooms") $(cat "$ST/names")" "syncplay.pl:8999 kawau-3f9a kawau"
+eq "$(ini server_data host):$(ini server_data port) $(ini client_settings room) $(ini client_settings name)" "syncplay.pl:8999 kawau-3f9a kawau"
+eq "$(ini server_data password)" "" "a public server: no password in syncplay.ini"
+eq "$(ini client_settings playerpath)" "/usr/bin/mpv" "the rest of syncplay.ini stays"
+eq "$(stat -c %a "$ST") $(stat -c %a "$INI")" "700 600"
 
-case_ "another room typed over the last one"
-out=$(together <<'EOF'
-wait film-night
-key <C-u>Movie Club 7<Enter>
-wait args:
+case_ "the cursor starts on join (its row is the highlighted one)"
+out=$(together 2>&1 <<'EOF'
+wait join
+settle
+lit
+key <Esc>
+EOF
+)
+eq "$(grep -c . <<<"$out")" 1 "one row lit: $out"
+has "$out" "join      kawau-3f9a"
+
+case_ "another room typed: offered as new, taken; Syncplay, syncplay.ini and the list agree"
+out=$(together 2>&1 <<'EOF'
+wait join
+key <Down><Down><Enter>
+wait the one your friends use
+key Movie Club 7
+wait + Movie Club 7
+settle
 screen
-key list<Enter>
+key <Enter>
+wait join      Movie Club 7  on syncplay.pl:8999  as kawau
+key <Enter>
+wait args:
+settle
+screen
 quit bye<Enter>
 EOF
-)
-has "$out" "args: [--no-gui] [--room] [Movie Club 7]" "$out"
-lacks "$out" "[--]" "no file: none passed"
+); r=$?
+eq "$r" 0 "$out"
+has "$out" "+ Movie Club 7  · new"
+eq "$(ini client_settings room)" "Movie Club 7"
+eq "$(tr '\n' , <"$ST/rooms")" "Movie Club 7,kawau-3f9a,"
 
-case_ "an empty answer asks again; Ctrl+D gives up (exit 2), Syncplay never started"
-reset_calls
-out=$(together <<'EOF'
-wait film-night
-key <C-u><Enter>
-wait room (the one your friends use):
-key <C-d>
-sleep 0.5
+case_ "next time: the last choice is there — Enter alone rejoins it"
+out=$(together 2>&1 <<'EOF'
+wait join      Movie Club 7  on syncplay.pl:8999  as kawau
+key <Enter>
+wait args:
+settle
 screen
+quit bye<Enter>
+EOF
+); r=$?
+eq "$r" 0 "$out"
+has "$out" "args: [--no-gui]"
+eq "$(ini client_settings room)" "Movie Club 7"
+eq "$(tr '\n' , <"$ST/rooms")" "Movie Club 7,kawau-3f9a," "rejoined: still once"
+
+case_ "the lists keep the last 10, newest first, each once (a doubled line in the file too)"
+printf 'r1\nr2\nr3\nr2\nr4\nr5\nr6\nr7\nr8\nr9\nr10\nr11\n' >"$ST/rooms"
+out=$(together 2>&1 <<'EOF'
+wait join
+key <Down><Down><Enter>
+wait the one your friends use
+settle
+screen
+key r5
+settle
+key <Enter>
+wait join      r5
+key <Enter>
+wait args:
+settle
+screen
+quit bye<Enter>
+EOF
+); r=$?
+eq "$r" 0 "$out"
+has "$out" "Movie Club 7  · now" "the room now, first"
+eq "$(tr '\n' , <"$ST/rooms")" "r5,r1,r2,r3,r4,r6,r7,r8,r9,r10,"
+
+case_ "a server of your own, typed without a port: Syncplay's 8999 added, its password asked unseen"
+out=$(together 2>&1 <<'EOF'
+wait join
+key <Down><Enter>
+wait type host:port
+key films.example
+wait + films.example:8999
+key <Enter>
+wait the password for this server
+key pa55 word
+settle
+screen
+key <Enter>
+wait password  remembered
+settle
+screen
+key <Enter>
+wait args:
+settle
+screen
+quit bye<Enter>
+EOF
+); r=$?
+eq "$r" 0 "$out"
+has "$out" "join      r5  on films.example:8999  as kawau"
+lacks "$out" "pa55" "the password was shown"
+has "$out" "pw in its environment: none" "the password is not in Syncplay's environment"
+lacks "$out" "[--password]" "nor on its command line"
+eq "$(ini server_data host) $(ini server_data port)" "films.example 8999"
+eq "$(ini server_data password)" "pa55 word" "Syncplay reads it from syncplay.ini"
+eq "$(stat -c %a "$INI") $(stat -c %a "$ST/passwords")" "600 600"
+eq "$(cat "$ST/passwords")" $'films.example:8999\tpa55 word'
+eq "$(head -n1 "$ST/servers")" "films.example:8999"
+
+case_ "a public server again: no password row, none in syncplay.ini — and the other's stays remembered"
+out=$(together 2>&1 <<'EOF'
+wait password  remembered
+key <Down><Enter>
+wait type host:port
+key 8997
+wait syncplay.pl:8997
+settle
+key <Enter>
+wait join      r5  on syncplay.pl:8997
+settle
+screen
+key <Enter>
+wait args:
+settle
+screen
+quit bye<Enter>
+EOF
+); r=$?
+eq "$r" 0 "$out"
+lacks "$(sed -n '/on syncplay.pl:8997/,$p' <<<"$out")" "password" "a public server has no password row"
+eq "$(ini server_data port) $(ini server_data password)" "8997 "
+eq "$(cat "$ST/passwords")" $'films.example:8999\tpa55 word'
+
+case_ "back to it: its password from memory, not asked again"
+out=$(together 2>&1 <<'EOF'
+wait join
+key <Down><Enter>
+wait type host:port
+key films
+wait films.example:8999
+settle
+key <Enter>
+wait password  remembered
+key <Enter>
+wait args:
+settle
+screen
+quit bye<Enter>
+EOF
+); r=$?
+eq "$r" 0 "$out"
+lacks "$out" "the password for this server"
+eq "$(ini server_data password)" "pa55 word"
+
+case_ "the password row: Enter asks again; Enter alone there: the server has none"
+out=$(together 2>&1 <<'EOF'
+wait password  remembered
+key <Down><Down><Down><Down><Enter>
+wait the password for this server
+key <Enter>
+wait password  none
+key <Esc>
+EOF
+); r=$?
+eq "$r" 0 "$out"
+eq "$(ini server_data password)" "pa55 word" "Esc: nothing written"
+
+case_ "the film: Enter on its row opens the file dialog where the film is; cancelled there: none"
+mkdir -p "$TMP/films"; : >"$TMP/films/one.mkv"; : >"$TMP/films/two.mkv"
+stub kawa-pick 'printf "%s\n" "$TMP/films/two.mkv" >"$5"'
+out=$(together "$TMP/films/one.mkv" 2>&1 <<'EOF'
+wait film      $TMP/films/one.mkv
+key <Down><Down><Down><Down><Down><Enter>
+wait film      $TMP/films/two.mkv
+key <Enter>
+wait args:
+settle
+screen
+quit bye<Enter>
+EOF
+); r=$?
+eq "$r" 0 "$out"
+called "^kawa-pick 0 0 0 $TMP/films "
+has "$out" "args: [--no-gui] [--] [$TMP/films/two.mkv]"
+stub kawa-pick ': >"$5"'
+out=$(together "$TMP/films/one.mkv" 2>&1 <<'EOF'
+wait film      $TMP/films/one.mkv
+key <Down><Down><Down><Down><Down><Enter>
+wait film      none
+key <Enter>
+wait args:
+settle
+screen
+quit bye<Enter>
+EOF
+); r=$?
+eq "$r" 0 "$out"
+has "$out" "args: [--no-gui]"; lacks "$out" "[--]" "cancelled: no film"
+case_ "W on a folder: no film; the dialog starts in that folder"
+reset_calls
+out=$(together "$TMP/films" 2>&1 <<'EOF'
+wait film      none
+key <Down><Down><Down><Down><Down><Enter>
+settle
+key <Esc>
 EOF
 )
-not_called '^syncplay'
+called "^kawa-pick 0 0 0 $TMP/films "
 
-case_ "without a terminal (piped): the remembered room; none remembered: exit 2, said"
-eq "$(kawa-together "$TMP/x.mkv" <<<"" 2>&1 | head -n1)" "args: [--no-gui] [--room] [film-night] [--] [$TMP/x.mkv]"
-printf '[client_settings]\nname = kawau\n' >"$INI"
-out=$(kawa-together </dev/null 2>&1); rc=$?
-eq "$rc" 2; has "$out" "no room"
-rm -f "$INI"; rc 2 kawa-together </dev/null
-case_ "--help shows how to use it"
-has "$(kawa-together --help)" "kawa-together [FILE]"
+case_ "Esc in the form: nothing started (exit 1), nothing written"
+reset_calls; sum=$(cat "$INI" "$ST"/* | cksum)
+out=$(together_rc 2>&1 <<'EOF'
+wait join
+key <Down><Down><Enter>
+wait the one your friends use
+key <Esc>
+wait join
+key <Esc>
+wait ended: 1
+EOF
+); r=$?
+eq "$r" 0 "$out"
+not_called '^syncplay'
+eq "$(cat "$INI" "$ST"/* | cksum)" "$sum"
+
+case_ "syncplay.ini that does not read, or no Syncplay folder: said, nothing started"
+printf '[client_settings\nroom = x\n' >"$INI"
+out=$(together_rc 2>&1 <<'EOF'
+wait does not read as Syncplay's settings
+key x
+wait ended: 1
+EOF
+); r=$?
+eq "$r" 0 "$out"
+theme_ini; mv "$HOME/.local/share/fedokawaii/syncplay" "$TMP/sp-away"
+out=$(together_rc 2>&1 <<'EOF'
+wait fedokawaii repair puts it back
+key x
+wait ended: 1
+EOF
+); r=$?
+eq "$r" 0 "$out"
+mv "$TMP/sp-away" "$HOME/.local/share/fedokawaii/syncplay"
+not_called '^syncplay'
+fi
 
 # ── the launcher and yazi ────────────────────────────────────────────────────────────────
 config .local/share/applications .config/yazi
@@ -91,7 +381,7 @@ has "$(cat "$HOME/.config/yazi/keymap.toml")" 'on = "W",          run = "shell -
 case_ "W on a folder: Syncplay starts with no film (the room's is found by name)"
 mkdir -p "$TMP/a folder"
 printf '[client_settings]\nroom = film-night\n' >"$INI"
-eq "$(kawa-together "$TMP/a folder" </dev/null 2>&1 | head -n1)" "args: [--no-gui] [--room] [film-night]"
+eq "$(kawa-together "$TMP/a folder" </dev/null 2>&1 | head -n1)" "args: [--no-gui]"
 
 # ── kawa-resume.lua in a player Syncplay started ─────────────────────────────────────────
 if [[ -z $MPV ]]; then printf '  – skipped: mpv is not installed (kawa-resume.lua and the real session)\n'; done_; exit; fi

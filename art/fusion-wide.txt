@@ -1,0 +1,12 @@
+# art/fusion-wide.txt — the letters below U+3000 that Fusion Pixel 12px Mono ja
+# (lib/upstream.sh FUSION_TAG 2026.08.11) draws two columns wide (12 px): ─ … → — © and
+# more that a terminal counts as one. From U+3000 on the font follows Unicode's East Asian
+# width. tools/build-width.py turns this list into the menus' width helper
+# (configs/home/.config/fedokawaii/width.sh); tests/menus/cols.py reads it too. Made from
+# the font itself (fontTools, its hmtx): a new FUSION_TAG means making it again.
+
+00A9 00AE 00BC-00BE 2010 2014-2017 2020-2027 2030-2031 203B 2043 2103
+2109 2116 2122 2126-2127 212A-212B 212E 2150-218B 2190-21FF 230C-231F 23CE-23CF
+23E8-23FF 2460-2614 2616-2621 2624-2625 2628-266F 2680-2695 2698-269A 26AA-26AC 26B2-26B5 26B8
+26BC 26BF 26C4-26CC 26CE-26CF 26D2-26D4 26D8-26DE 26E0-26EF 26F1-26F3 26F5-26F6 26F8
+26FC-26FD 26FF 2708-2709 2766-2767 2776-2793 2E80-2E99 2E9B-2EF3 2F00-2FD5 2FF0-2FFF

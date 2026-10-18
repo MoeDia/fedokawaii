@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# kawa-config — Super+Shift+U (or "change" in quick settings): change the desktop itself,
+# kawa-config — Super+Shift+U (or "change the desktop" in the Super+U menu): change the desktop itself,
 # part by part. Each part opens the file behind it in neovim — in your working copy
 # (~/repos/fedokawaii, made from the toolkit on first use), never in the toolkit — and when
 # the editor closes, applies it if you say so. Also: the files that are yours alone (the
@@ -15,9 +15,11 @@ esac
 LC_ALL=C.UTF-8                 # widths count characters, not bytes
 # shellcheck source=/dev/null
 . "$HOME/.config/fedokawaii/icons.sh"
+# shellcheck source=/dev/null
+. "$HOME/.config/fedokawaii/width.sh"
 TK=/usr/local/lib/fedokawaii
 COPY=${FEDOKAWAII_COPY:-$HOME/repos/fedokawaii}
-WIDTH=50                       # icon (2) + 2 + the name (16) + the note (29); fuzzel keeps a column
+WIDTH=51                       # icon (14 px) + 2 + the name (16) + the note (29): 296 px = 51 × 6 − 10
 
 say() { notify-send -a desktop "change" "$*" 2>/dev/null; }
 
@@ -164,32 +166,49 @@ learn_menu() {
 }
 
 # ── the menu ──────────────────────────────────────────────────────────────────────────
+# in five parts, each under a heading as Super+U heads its own (width.sh: heading) — the look,
+# what you use, the system, the copy's history, help; a heading chosen opens the menu again
 rows=() acts=()
 row() { local r; printf -v r '%s  %-16s%s' "$2" "$3" "$4"; rows+=("$r"); acts+=("$1"); }
-row keys      "$ICON_KEYBOARD"  keys           "dwl's, and the help sheet"
-row bar       "$ICON_WINDOW"    bar            "what it shows"
-row barlook   "$ICON_WINDOW"    'bar look'     "sizes, spacing (CSS)"
+heading_row() {   # heading_row KANJI NAME — an empty row above it, as Super+U parts its parts (the first's: under the title)
+  rows+=(""); acts+=(-)
+  rows+=("$(heading "$1" "$2" "$WIDTH")"); acts+=(-)
+}
+heading_row 見 look
 row colours   "$ICON_THEME"     colours        "the dark and light palettes"
-row terminal  "$ICON_TERMINAL"  terminal       "font, size, keys"
-row shell     "$ICON_TERMINAL"  shell          "prompt, aliases"
-row launcher  "$ICON_CHEVRON_RIGHT" launcher   "every menu's look"
+row bar       "$ICON_WINDOW"    bar            "what it shows"
+row barlook   "$ICON_CODE"      'bar look'     "sizes, spacing (CSS)"
+row icons     "$ICON_PICTURE"   icons          "the pixel icons (text grids)"
 row notify    "$ICON_BELL"      notifications  "look, how long they stay"
+row launcher  "$ICON_CHEVRON_RIGHT" launcher   "every menu's look"
+heading_row 手 use
+row keys      "$ICON_KEYBOARD"  keys           "dwl's, and the help sheet"
+row terminal  "$ICON_TERMINAL"  terminal       "font, size, keys"
+row shell     "$ICON_PROMPT"    shell          "prompt, aliases"
 row files     "$ICON_FOLDER"    files          "yazi's panes, colours, keys"
 row drives    "$ICON_DRIVE"     drives         "notices, eject, passphrase"
 row autostart "$ICON_HOURGLASS" autostart      "programs, idle and lock times"
-row icons     "$ICON_TILE"      icons          "the pixel icons (text grids)"
+heading_row 系 system
+row settings  "$ICON_SLIDERS"   settings       "keyboard, city, refresh rate"
 row packages  "$ICON_ARCHIVE"   packages       "what is installed"
-row settings  "$ICON_SLIDERS"   settings       "keyboard, city, refresh rate…"
-row yours     "$ICON_USER"      'yours alone'  "…"
-row changed   "$ICON_BRANCH"    'what changed' "the copy against the toolkit"
+row yours     "$ICON_USER"      'yours alone'  "what the theme never touches"
+heading_row 史 history
+row changed   "$ICON_DIFF"      'what changed' "the copy against the toolkit"
 row history   "$ICON_BRANCH"    history        "commit, undo, push (lazygit)"
 row apply     "$ICON_DOWNLOAD"  apply          "the copy becomes the desktop"
-row learn     "$ICON_BOOK"      learn          "…"
+heading_row 案 help
+row learn     "$ICON_BOOK"      learn          "the handbook, manuals, wikis"
 n=$(pending)
 title="change · ${COPY/#$HOME/\~}"
 if [[ ! -d $COPY ]]; then title+=" · made on first use"
 elif ((n)); then title+=" · $n not applied"; fi
-i=$(printf '%s\n' "${rows[@]}" | kawa-menu --index --width $WIDTH --lines ${#rows[@]} --title "$title") || exit 0
+sel=2
+while :; do
+  i=$(printf '%s\n' "${rows[@]}" | kawa-menu --index --width $WIDTH --lines ${#rows[@]} --select "$sel" --title "$title") || exit 0
+  [[ ${acts[i]} == - ]] || break
+  sel=$i                                       # (a heading or a gap: the menu again, on its part's first entry)
+  while [[ ${acts[sel]:-} == - ]]; do sel=$((sel + 1)); done
+done
 
 H=configs/home
 case ${acts[i]} in

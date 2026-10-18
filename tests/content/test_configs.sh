@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # tests/content/test_configs.sh — the content helpers' configs, read as their programs read
 # them: zathura's (and each theme's colours it includes), bat's, btop's (and each theme's
-# colours), VisiData's, sc-im's and gdu's (terminal colours only, so they follow the theme
-# through foot; run by the real vd and sc-im when this machine has them), the fzf options
+# colours), VisiData's and gdu's (terminal colours only, so they follow the theme through
+# foot; run by the real vd when this machine has it), the fzf options
 # every list of the desktop shares — and the clipboard and books windows' own fzf command
 # lines, parsed by the real fzf when this machine has it.
 . "$(dirname "$0")/lib.sh"
@@ -100,6 +100,7 @@ while IFS= read -r line; do
     graph_symbol) [[ $v =~ ^\"(braille|block|tty)\"$ ]] && _ok || _no "$k = $v" ;;
     color_theme) [[ $v =~ ^\"[^\"/]+\"$ ]] && _ok || _no "$k = $v" ;;
     show_gpu_info) [[ $v =~ ^\"(Auto|On|Off)\"$ ]] && _ok || _no "$k = $v" ;;
+    clock_format) [[ $v =~ ^\"[^\"]*\"$ ]] && _ok || _no "$k = $v" ;;   # ("": no clock in the CPU box)
     *) [[ $v == True || $v == False ]] && _ok || _no "$k = $v (True or False)" ;;
   esac
 done <"$HOME/.config/btop/btop.conf"
@@ -128,7 +129,7 @@ done
 # are skipped; the file itself is checked all the same)
 config .visidatarc
 VRC=$HOME/.visidatarc
-case_ ".visidatarc: every colour one of the terminal's 16 (a number 0-15 or a curses name) and attributes — never the 256-colour cube; every option set once"
+case_ ".visidatarc: every colour one of the terminal's 16 (a number 0-15 or a curses name), or the desktop's own 16 and 17 (foot.ini: the selection's fill and words), and attributes — never the rest of the 256-colour cube; every option set once"
 out=$(python3 -I - "$VRC" <<'EOF'
 import ast, re, sys
 src = open(sys.argv[1]).read()
@@ -146,7 +147,7 @@ for node in ast.parse(src).body:
         if not isinstance(v, ast.Constant) or not isinstance(v.value, str):
             bad.append(f"line {node.lineno}: {k} is not a string"); continue
         for w in v.value.split():
-            if w in names or w in attrs or (w.isdigit() and 0 <= int(w) <= 15): continue
+            if w in names or w in attrs or (w.isdigit() and 0 <= int(w) <= 17): continue
             bad.append(f"line {node.lineno}: {k}: {w!r} is not one of the terminal's 16 colours")
 print("\n".join(bad))
 EOF
@@ -160,7 +161,7 @@ for k in color_default_hdr color_current_col color_key_col color_selected_row co
   grep -q "^options\.$k = " "$VRC" && _ok || _no "$k is left at vd's default"
 done
 case_ ".visidatarc: what vd draws together stays readable in both palettes (foot.ini's dark and light) — the cursor's column name, each part of the status line: 3:1 or more"
-out=$(python3 -I - "$VRC" "$REPO/configs/home/.config/foot/foot.ini" <<'EOF'
+out=$(python3 -I - "$VRC" "$REPO/configs/home/.config/foot/foot.ini" 2>&1 <<'EOF'
 import ast, re, sys
 opts = {n.targets[0].attr: n.value.value for n in ast.parse(open(sys.argv[1]).read()).body}
 NAMES = "black red green yellow blue magenta cyan white".split()
@@ -183,7 +184,8 @@ bad = []
 for theme in ("dark", "light"):
     sec = re.search(r"^\[colors-%s\]\n(.*?)(?=^\[|\Z)" % theme, ini, re.M | re.S).group(1)
     kv = dict(re.findall(r"^(\w+)=([0-9a-fA-F]{6})", sec, re.M))
-    pal = {i: kv["regular%d" % i] for i in range(8)} | {8 + i: kv["bright%d" % i] for i in range(8)}
+    pal = {i: kv["regular%d" % i] for i in range(8)} | {8 + i: kv["bright%d" % i] for i in range(8)} \
+        | {16: kv["16"], 17: kv["17"]}                     # (the desktop's own: the selection's fill and words)
     FG, BG = kv["foreground"], kv["background"]
     col = lambda n, d: pal[n] if n is not None else d
     # VisiData 3.3 (update_attr): a colour fills what is not set yet, and replaces what is
@@ -240,39 +242,6 @@ with open("big.csv", "w") as f:
   has "$out" "city"; has "$out" "temp"; has "$out" "Sharjah"; lacks "$out" "Traceback"
   cd / || exit 1
 else skip "vd is not installed (dnf install visidata) — .visidatarc is checked, vd itself is not run"; fi
-
-# ── sc-im ────────────────────────────────────────────────────────────────────
-config .config/sc-im/scimrc
-SRC=$HOME/.config/sc-im/scimrc
-# sc-im 0.8.5's configuration variables (src/conf.c, default_config)
-SOPTS=" autobackup autocalc autowrap command_timeout copy_to_clipboard_delimited_tab copy_to_clipboard_wysiwyg
-debug default_copy_to_clipboard_cmd default_open_file_under_cursor_cmd default_paste_from_clipboard_cmd exec_lua
-external_functions half_page_scroll help ignore_hidden ignorecase import_delimited_to_text input_bar_bottom
-input_edit_mode mapping_timeout newline_action nocurses numeric numeric_decimal numeric_zero overlap quiet
-quit_afterload show_cursor tm_gmtoff trigger truncate underline_grid version xlsx_readformulas "
-case_ "scimrc: every line a comment or a set of a variable sc-im 0.8.5 has; no colour line (the terminal's palette does that), no REDEFINE_COLOR"
-while IFS= read -r line; do
-  [[ -z ${line//[[:space:]]/} || $line == \#* ]] && continue
-  if [[ $line =~ ^set\ ([a-z_]+)(=.*)?$ ]]; then
-    [[ $SOPTS == *[[:space:]]"${BASH_REMATCH[1]}"[[:space:]]* ]] && _ok || _no "unknown variable ${BASH_REMATCH[1]}"
-  else _no "not a set line: $line"; fi
-done <"$SRC"
-lacks "$(cat "$SRC")" $'\ncolor '; lacks "$(cat "$SRC")" $'\nREDEFINE_COLOR'; lacks "$(cat "$SRC")" $'\nDEFINE_COLOR'
-case_ "scimrc: the clipboard is Wayland's (wl-copy, wl-paste — the build's xclip is not installed)"
-has "$(cat "$SRC")" 'set default_copy_to_clipboard_cmd="wl-copy <"'; has "$(cat "$SRC")" 'set default_paste_from_clipboard_cmd="wl-paste"'
-if [[ -n $REAL_SCIM ]]; then
-  mkdir -p "$HOME/t"; cd "$HOME/t" || exit 1
-  printf 'city,temp\nSharjah,41\nDubai,40\n' >"trip to Japan.csv"
-  # (--nocurses draws no screen, but sc-im still opens /dev/tty: a pseudo-terminal of its own)
-  case_ "sc-im reads scimrc and a CSV with spaces in its name without a complaint (no screen: --nocurses --quit_afterload)"
-  python3 -I "$C/pty_run.py" --timeout 20 -- "$REAL_SCIM" --nocurses --quit_afterload "trip to Japan.csv" >"$TMP/sc.out" 2>&1; r=$?
-  eq "$r" 0 "$(tail -n 3 "$TMP/sc.out" | tr '\n' '|')"; lacks "$(cat "$TMP/sc.out")" "rror"
-  case_ "sc-im on a file that does not exist yet: starts on an empty sheet to be saved under that name"
-  python3 -I "$C/pty_run.py" --timeout 20 -- "$REAL_SCIM" --nocurses --quit_afterload new-budget.sc >"$TMP/sc.out" 2>&1; r=$?
-  eq "$r" 0 "$(tail -n 3 "$TMP/sc.out" | tr '\n' '|')"; lacks "$(cat "$TMP/sc.out")" "rror"
-  [[ ! -e new-budget.sc ]] && _ok || _no "a file was written without :w"
-  cd / || exit 1
-else skip "sc-im is not installed (dnf install sc-im) — scimrc is checked, sc-im itself is not run"; fi
 
 # ── gdu ──────────────────────────────────────────────────────────────────────
 config .config/gdu/gdu.yaml

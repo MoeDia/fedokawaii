@@ -21,21 +21,18 @@ look() {   # look — a fresh sandbox for the look helpers (call again for a cle
   export FAKE_PROCS=$PROCS FAKE_TMP=$TMP
   # pgrep [-x] [-u UID | -xu UID] NAME: this sandbox's live processes called NAME — a
   # stand-in running under that name, or one the test listed in $FAKE_PROCS ("NAME PID")
-  stub pgrep 'for a; do n=$a; done; r=1
+  # (-l: "PID NAME"; NAME may be names joined by |, as kawa-theme asks for them all at once)
+  stub pgrep 'l=""; for a; do n=$a; case $a in -l*|-*l*) [ "${a#-}" != "$a" ] && case $a in *l*) l=1 ;; esac ;; esac; done; r=1
 mine() { { tr "\0" " " <"/proc/$1/cmdline"; } 2>/dev/null | grep -qF "$FAKE_TMP"; }   # (it may end meanwhile)
+is() { printf "%s\n" "$n" | tr "|" "\n" | sed "s/\\\\//g" | grep -qxF -- "$1"; }
+say() { if [ -n "$l" ]; then echo "$1 $2"; else echo "$1"; fi; }
 for d in /proc/[0-9]*; do
   c=""; { read -r c <"$d/comm"; } 2>/dev/null
-  [ "$c" = "$n" ] && mine "${d#/proc/}" && { echo "${d#/proc/}"; r=0; }
+  [ -n "$c" ] && is "$c" && mine "${d#/proc/}" && { say "${d#/proc/}" "$c"; r=0; }
 done
-while read -r name pid; do [ "$name" = "$n" ] && mine "$pid" && { echo "$pid"; r=0; }; done <"$FAKE_PROCS"
+while read -r name pid; do is "$name" && mine "$pid" && { say "$pid" "$name"; r=0; }; done <"$FAKE_PROCS"
 exit $r'
-  # the pixel art theme.sh draws from the repository's .xpm files (wave tile, Fuji scene, padlock)
-  local x mode
-  for x in "$REPO"/configs/home/.local/share/fedokawaii/{dark,light}/*.xpm; do
-    mode=$(basename "$(dirname "$x")")
-    mkdir -p "$HOME/.local/share/fedokawaii/$mode"
-    command -v magick >/dev/null && magick "$x" "$HOME/.local/share/fedokawaii/$mode/$(basename "$x" .xpm).png" 2>/dev/null
-  done
+  mkdir -p "$HOME/.local/share/fedokawaii"
   cp "$REPO/configs/home/.local/share/fedokawaii/wallpapers.list" "$HOME/.local/share/fedokawaii/"
 }
 

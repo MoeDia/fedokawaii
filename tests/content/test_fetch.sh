@@ -16,7 +16,7 @@ setup() {   # setup — a sandbox and a made-up machine in $R (fetch's copy: $TM
   echo "11523.47 40000.00" >"$R/proc/uptime"                     # 3h 12m
   printf 'MemTotal:       16252928 kB\nMemFree:         9000000 kB\nMemAvailable:   12897484 kB\n' >"$R/proc/meminfo"
   # the copy: every file fetch reads, read under $R — and nothing else read from / at all
-  sed -e "s#/etc/os-release#$R/etc/os-release#g" -e "s#/usr/lib/os-release#$R/usr/lib/os-release#g" \
+  sed -e "s#/etc/os-release#$R/etc/os-release#g" \
       -e "s#/proc/#$R/proc/#g" "$REPO/bin/fetch" >"$TMP/fetch"
   chmod +x "$TMP/fetch"
   export USER=kawau XDG_SESSION_DESKTOP=dwl TERM=foot TERM_PROGRAM=
@@ -33,7 +33,7 @@ has_picture() { grep -q '[▀▄]' <<<"$1"; }
 
 case_ "the copy reads only the made-up machine (fetch reads nothing else from /)"
 setup
-eq "$(grep -c "$R" "$TMP/fetch")" "$(grep -cE '/etc/os-release|/usr/lib/os-release|/proc/' "$REPO/bin/fetch")"
+eq "$(grep -c "$R" "$TMP/fetch")" "$(grep -cE '/etc/os-release|/proc/' "$REPO/bin/fetch")"
 eq "$(grep -oE '<[[:space:]]*/[^ ;)]+' "$TMP/fetch" | grep -v "^<$R/")" "" "a file read from / that the test does not stand in for"
 
 # ── the facts ────────────────────────────────────────────────────────────────
@@ -53,17 +53,14 @@ echo "59.9 1.0" >"$R/proc/uptime"; has "$(F neko | sed 's/\x1b\[[0-9;]*m//g')" "
 echo "90061.0 1.0" >"$R/proc/uptime"; has "$(F neko | sed 's/\x1b\[[0-9;]*m//g')" " 1d 1h 1m"
 echo "86460.0 1.0" >"$R/proc/uptime"; has "$(F neko | sed 's/\x1b\[[0-9;]*m//g')" " 1d 1m"
 
-case_ "os-release: quotes of either kind, a field missing, the file missing (Fedora's own fallback too)"
+case_ "os-release: quotes of either kind, a field missing (NAME's own default: Linux)"
 setup
 printf "NAME='Fedora Linux'\nVERSION_ID='44'\n" >"$R/usr/lib/os-release"
 out=$(F neko 2>&1 | sed 's/\x1b\[[0-9;]*m//g'); has "$out" " fedora 44"; lacks "$out" "'"
 printf 'NAME="Fedora Linux"\n' >"$R/usr/lib/os-release"
 out=$(F neko 2>&1 | sed 's/\x1b\[[0-9;]*m//g'); has "$out" " fedora"$'\n' "no version: no trailing space"
-rm "$R/etc/os-release"; printf 'NAME="Fedora Linux"\nVERSION_ID=45\n' >"$R/usr/lib/os-release"
-out=$(F neko 2>&1 | sed 's/\x1b\[[0-9;]*m//g'); has "$out" " fedora 45" "/usr/lib/os-release when /etc has none"
-rm "$R/usr/lib/os-release"
-out=$(F neko 2>&1 | sed 's/\x1b\[[0-9;]*m//g'); r=$?
-eq "$r" 0; lacks "$out" "No such file"; has "$out" " linux"$'\n'
+printf 'VERSION_ID=45\n' >"$R/usr/lib/os-release"
+out=$(F neko 2>&1 | sed 's/\x1b\[[0-9;]*m//g'); has "$out" " linux 45"
 
 case_ "no USER, no session (a TTY, ssh): the rest still there"
 setup; out=$(env -u USER -u XDG_SESSION_DESKTOP "$TMP/fetch" neko | sed 's/\x1b\[[0-9;]*m//g')

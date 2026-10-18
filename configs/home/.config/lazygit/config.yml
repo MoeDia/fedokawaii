@@ -3,9 +3,11 @@
 # The panel you are in has a vermilion frame, like the focused window; the others a quiet
 # warm grey (one hex that reads on ink and on paper, for their titles too).
 gui:
-  nerdFontsVersion: "3"
+  nerdFontsVersion: ""          # (no file icons: the Nerd Font's would stand among the pixel ones)
   border: single
   showRandomTip: false          # (a quiet start: no tip of the day under the panels)
+  showBottomLine: false         # (no "Donate · Ask Question · version" line: ? lists the keys)
+  showCommandLog: false         # (no log of git's commands under the panels: @ shows it)
   theme:
     activeBorderColor: [red, bold]
     inactiveBorderColor: ["#877f6f"]

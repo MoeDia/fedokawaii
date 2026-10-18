@@ -1,0 +1,6 @@
+#!/bin/bash
+# plymouth-set-default-theme of the fake Fedora: logged; no argument prints the theme in use
+# ($FKH/plymouth-theme, else Fedora's bgrt), one sets it
+. /usr/local/bin/_lib.sh
+fkh_log "$*"
+if (($# == 0)); then cat "$FKH/plymouth-theme" 2>/dev/null || echo bgrt; else echo "$1" >"$FKH/plymouth-theme"; fi

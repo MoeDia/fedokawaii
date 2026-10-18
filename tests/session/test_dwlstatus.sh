@@ -71,7 +71,7 @@ LOCPID=$!; BG_PIDS+=("$LOCPID")
 case_ "a whole recorded session (one monitor, real dwl): the bar ends where dwl did, every file valid JSON"
 rc 0 status "$F/one-monitor.status"
 eq "$(tagrow)" "1:emp 2:sel 3:emp 4:- 5:- 6:- 7:- 8:- 9:-" "after quitting: no windows, workspace 2 shown"
-eq "$(bar layout)" "{\"text\":\"$ICON_TILE\",\"class\":\"tile\"}"
+eq "$(bar layout)" "{\"text\":\"$ICON_SPIRAL\",\"class\":\"spiral\"}"
 eq "$(bar title)" '{"text":""}'
 eq "$(bar kb)" '{"text":"US","class":"first"}'
 eq "$(json_ok)" ""
@@ -131,26 +131,26 @@ eq "$(json_ok)" ""
 
 # ── the workspaces ───────────────────────────────────────────────────────────
 case_ "1–3 always; 4–9 only while they hold a window, are shown or ask for attention"
-rm -rf "$BAR"; block DP-1 1 $((1 << 5)) 1 $((1 << 7)) '[]=' 0 x | kawa-dwlstatus
+rm -rf "$BAR"; block DP-1 1 $((1 << 5)) 1 $((1 << 7)) '(@)' 0 x | kawa-dwlstatus
 eq "$(tagrow)" "1:sel 2:emp 3:emp 4:- 5:- 6:occ 7:- 8:urg 9:-"
-rm -rf "$BAR"; block DP-1 1 0 $((1 << 8)) 0 '[]=' 0 | kawa-dwlstatus
+rm -rf "$BAR"; block DP-1 1 0 $((1 << 8)) 0 '(@)' 0 | kawa-dwlstatus
 eq "$(tagrow)" "1:emp 2:emp 3:emp 4:- 5:- 6:- 7:- 8:- 9:sel" "an empty workspace 9 you went to"
 case_ "a workspace that leaves the bar again when its last window goes"
-rm -rf "$BAR"; { block DP-1 1 $((1 << 4 | 1)) 1 0 '[]=' 0 x; block DP-1 1 1 1 0 '[]=' 0 x; } | kawa-dwlstatus
+rm -rf "$BAR"; { block DP-1 1 $((1 << 4 | 1)) 1 0 '(@)' 0 x; block DP-1 1 1 1 0 '(@)' 0 x; } | kawa-dwlstatus
 eq "$(bar tag5)" '{"text":""}'
 case_ "Super+0 (all at once): every workspace shown as selected; urgent wins over selected"
-rm -rf "$BAR"; block DP-1 1 511 511 4 '[]=' 0 x | kawa-dwlstatus
+rm -rf "$BAR"; block DP-1 1 511 511 4 '(@)' 0 x | kawa-dwlstatus
 eq "$(tagrow)" "1:sel 2:sel 3:urg 4:sel 5:sel 6:sel 7:sel 8:sel 9:sel"
 case_ "tags past the ninth (a mask dwl would never print) and odd lines are no harm"
-rm -rf "$BAR"; { block DP-1 1 1023 1 0 '[]=' 0 x; printf 'DP-1 tags\nDP-1 tags a b c d\nDP-1 tags 1 $(id) 0 0\n'; block DP-1 1 1 1 0 '[]=' 0 x; } | kawa-dwlstatus
+rm -rf "$BAR"; { block DP-1 1 1023 1 0 '(@)' 0 x; printf 'DP-1 tags\nDP-1 tags a b c d\nDP-1 tags 1 $(id) 0 0\n'; block DP-1 1 1 1 0 '(@)' 0 x; } | kawa-dwlstatus
 eq "$(tagrow)" "1:sel 2:emp 3:emp 4:- 5:- 6:- 7:- 8:- 9:-"
 eq "$(json_ok)" ""
 
 # ── the layout ───────────────────────────────────────────────────────────────
 case_ "each of dwl's layout symbols as its pixel icon; monocle with its count"
-for t in "[]=|$ICON_TILE|tile" "><>|$ICON_FLOAT|float" "[M]|$ICON_MONOCLE|monocle" "[3]|$ICON_MONOCLE 3|monocle" \
-         "[12]|$ICON_MONOCLE 12|monocle"; do
-  IFS='|' read -r sym icon cls <<<"$t"
+for t in "(@)#$ICON_SPIRAL#spiral" "|||#$ICON_TILE#columns" "><>#$ICON_FLOAT#float" "[M]#$ICON_MONOCLE#monocle" \
+         "[3]#$ICON_MONOCLE 3#monocle" "[12]#$ICON_MONOCLE 12#monocle"; do
+  IFS='#' read -r sym icon cls <<<"$t"
   rm -rf "$BAR"; block DP-1 1 1 1 0 "$sym" 0 x | kawa-dwlstatus
   eq "$(bar layout)" "{\"text\":\"$icon\",\"class\":\"$cls\"}" "layout $sym"
 done
@@ -161,7 +161,7 @@ eq "$(jtext layout)" '&lt;&amp;"\&gt;'; eq "$(json_ok)" ""
 # ── the window title ─────────────────────────────────────────────────────────
 case_ "titles: JSON and markup breakers, Arabic, Japanese, emoji — valid JSON and markup, shown as typed"
 while IFS='|' read -r raw want; do
-  rm -rf "$BAR"; block DP-1 1 1 1 0 '[]=' 0 "$raw" | kawa-dwlstatus
+  rm -rf "$BAR"; block DP-1 1 1 1 0 '(@)' 0 "$raw" | kawa-dwlstatus
   eq "$(title_is "$want")" "" "title [$raw]"
 done <<'EOF'
 say "hi" \n \\ A /|say "hi" \n \\ A /
@@ -173,29 +173,29 @@ say "hi" \n \\ A /|say "hi" \n \\ A /
 EOF
 # (the probe names a file in this test's own folder: should a title ever run, nothing outside it is touched)
 probe='$(touch '"$TMP"'/pwned) `touch '"$TMP"'/pwned` ${HOME} %s %n'
-rm -rf "$BAR"; block DP-1 1 1 1 0 '[]=' 0 "$probe" | kawa-dwlstatus
+rm -rf "$BAR"; block DP-1 1 1 1 0 '(@)' 0 "$probe" | kawa-dwlstatus
 eq "$(title_is "$probe")" "" "title [\$(…) \`…\` \${HOME} %s]"
 [[ ! -e $TMP/pwned ]] && _ok || _no "a title ran as a command"
 case_ "control characters (should dwl ever pass one): a space, never a broken file"
-rm -rf "$BAR"; block DP-1 1 1 1 0 '[]=' 0 $'a\tb\x1b[31mc\rd\x7fe\x01f' | kawa-dwlstatus
+rm -rf "$BAR"; block DP-1 1 1 1 0 '(@)' 0 $'a\tb\x1b[31mc\rd\x7fe\x01f' | kawa-dwlstatus
 eq "$(jtext title)" "a b [31mc d e f"; eq "$(json_ok)" ""
 case_ "an empty title, and one of spaces: an empty title"
-rm -rf "$BAR"; block DP-1 1 1 1 0 '[]=' 0 "" | kawa-dwlstatus; eq "$(bar title)" '{"text":""}'
-rm -rf "$BAR"; block DP-1 1 1 1 0 '[]=' 0 "     " | kawa-dwlstatus; eq "$(bar title)" '{"text":""}'
+rm -rf "$BAR"; block DP-1 1 1 1 0 '(@)' 0 "" | kawa-dwlstatus; eq "$(bar title)" '{"text":""}'
+rm -rf "$BAR"; block DP-1 1 1 1 0 '(@)' 0 "     " | kawa-dwlstatus; eq "$(bar title)" '{"text":""}'
 case_ "an 8 KB title of nothing but < & > (the most an X11 program gets through XWayland): written whole, valid"
 long=$(printf '%.0s<&>' {1..2731})
-rm -rf "$BAR"; block DP-1 1 1 1 0 '[]=' 0 "$long" | kawa-dwlstatus
+rm -rf "$BAR"; block DP-1 1 1 1 0 '(@)' 0 "$long" | kawa-dwlstatus
 eq "$(jtext title | wc -c)" 35504 "every < & > escaped (13 bytes for the three, + newline)"
 eq "$(json_ok)" ""
 
 # ── the keyboard layout ──────────────────────────────────────────────────────
 case_ "us,ara: US then AR; a third layout's index past the list: ?; a single layout: nothing shown"
-rm -rf "$BAR"; block DP-1 1 1 1 0 '[]=' 0 x | kawa-dwlstatus; eq "$(bar kb)" '{"text":"US","class":"first"}'
-rm -rf "$BAR"; block DP-1 1 1 1 0 '[]=' 1 x | kawa-dwlstatus; eq "$(bar kb)" '{"text":"AR","class":"other"}'
-rm -rf "$BAR"; block DP-1 1 1 1 0 '[]=' 2 x | kawa-dwlstatus; eq "$(bar kb)" '{"text":"?","class":"other"}'
-rm -rf "$BAR"; block DP-1 1 1 1 0 '[]=' 2 x | XKB_DEFAULT_LAYOUT=de,us,ara kawa-dwlstatus; eq "$(bar kb)" '{"text":"AR","class":"other"}'
-rm -rf "$BAR"; block DP-1 1 1 1 0 '[]=' 0 x | XKB_DEFAULT_LAYOUT=us kawa-dwlstatus; eq "$(bar kb)" '{"text":""}'
-rm -rf "$BAR"; block DP-1 1 1 1 0 '[]=' 0 x | env -u XKB_DEFAULT_LAYOUT kawa-dwlstatus; eq "$(bar kb)" '{"text":""}'
+rm -rf "$BAR"; block DP-1 1 1 1 0 '(@)' 0 x | kawa-dwlstatus; eq "$(bar kb)" '{"text":"US","class":"first"}'
+rm -rf "$BAR"; block DP-1 1 1 1 0 '(@)' 1 x | kawa-dwlstatus; eq "$(bar kb)" '{"text":"AR","class":"other"}'
+rm -rf "$BAR"; block DP-1 1 1 1 0 '(@)' 2 x | kawa-dwlstatus; eq "$(bar kb)" '{"text":"?","class":"other"}'
+rm -rf "$BAR"; block DP-1 1 1 1 0 '(@)' 2 x | XKB_DEFAULT_LAYOUT=de,us,ara kawa-dwlstatus; eq "$(bar kb)" '{"text":"AR","class":"other"}'
+rm -rf "$BAR"; block DP-1 1 1 1 0 '(@)' 0 x | XKB_DEFAULT_LAYOUT=us kawa-dwlstatus; eq "$(bar kb)" '{"text":""}'
+rm -rf "$BAR"; block DP-1 1 1 1 0 '(@)' 0 x | env -u XKB_DEFAULT_LAYOUT kawa-dwlstatus; eq "$(bar kb)" '{"text":""}'
 case_ "no letter ranges in the helpers' =~ patterns: in a Turkish locale [a-z] leaves out the i (classes instead)"
 for f in kawa-dwlstatus kawa-float kawa-tag; do
   eq "$(grep -nE '=~[^#]*\[[^]]*(a-z|A-Z)' "$REPO/bin/$f")" "" "$f"
@@ -208,7 +208,7 @@ mkdir -p "$TMP/locale-tr"; cp -r "$TMP/locale/tr_TR.UTF-8" "$TMP/locale-tr/" 2>/
 for loc in tr_TR.UTF-8 ar_EG.UTF-8 tr_TR.UTF-8:locale-tr; do
   l=${loc%%:*} d=locale; [[ $loc == *:* ]] && d=${loc#*:}
   rm -rf "$BAR"
-  { block HDMI-A-1 1 1 1 0 '[]=' 1 "قائمة — liste ışık"; } | XKB_DEFAULT_LAYOUT=fi,ir LOCPATH=$TMP/$d LC_ALL=$l kawa-dwlstatus 2>/dev/null
+  { block HDMI-A-1 1 1 1 0 '(@)' 1 "قائمة — liste ışık"; } | XKB_DEFAULT_LAYOUT=fi,ir LOCPATH=$TMP/$d LC_ALL=$l kawa-dwlstatus 2>/dev/null
   eq "$(bar kb)" '{"text":"IR","class":"other"}' "$loc"
   eq "$(title_is "قائمة — liste ışık")" "" "$loc"
   eq "$(tagrow HDMI-A-1/)" "1:sel 2:emp 3:emp 4:- 5:- 6:- 7:- 8:- 9:-" "$loc: HDMI-A-1 (an i in its name) has its own files"
@@ -217,7 +217,7 @@ done
 # ── the per-monitor files, as each bar reads them ────────────────────────────
 case_ "each bar shows its own monitor; a bar told no name, or a monitor not reported yet: the focused one's"
 rm -rf "$BAR"
-{ block DP-1 0 3 1 0 '[]=' 0 "on the left"; block HDMI-A-1 1 $((1 << 4)) $((1 << 4)) 0 '[M]' 0 "on the right"; } | kawa-dwlstatus
+{ block DP-1 0 3 1 0 '(@)' 0 "on the left"; block HDMI-A-1 1 $((1 << 4)) $((1 << 4)) 0 '[M]' 0 "on the right"; } | kawa-dwlstatus
 for m in tag1 tag5 layout title; do
   ex=$(wbexec "custom/$m")
   eq "$(WAYBAR_OUTPUT_NAME=DP-1 sh -c "$ex")" "$(bar "DP-1/$m")" "$m on DP-1"
@@ -229,41 +229,41 @@ eq "$(WAYBAR_OUTPUT_NAME=DP-1 sh -c "$(wbexec custom/title)")" '{"text":"on the 
 eq "$(WAYBAR_OUTPUT_NAME=DP-1 sh -c "$(wbexec custom/kb)")" '{"text":"US","class":"first"}' "the keyboard: one for all"
 case_ "the focus moves to the other monitor: the top files follow it, in either order dwl lists them"
 rm -rf "$BAR"
-{ block DP-1 0 3 1 0 '[]=' 0 "left"; block HDMI-A-1 1 1 1 0 '><>' 0 "right"
-  block DP-1 1 3 1 0 '[]=' 0 "left"; block HDMI-A-1 0 1 1 0 '><>' 0 "right"; } | kawa-dwlstatus
+{ block DP-1 0 3 1 0 '(@)' 0 "left"; block HDMI-A-1 1 1 1 0 '><>' 0 "right"
+  block DP-1 1 3 1 0 '(@)' 0 "left"; block HDMI-A-1 0 1 1 0 '><>' 0 "right"; } | kawa-dwlstatus
 eq "$(jtext title)" "left"; eq "$(bar layout)" "$(bar DP-1/layout)"
-{ block DP-1 1 3 1 0 '[]=' 0 "left"; block HDMI-A-1 0 1 1 0 '><>' 0 "right"
-  block DP-1 0 3 1 0 '[]=' 0 "left"; block HDMI-A-1 1 1 1 0 '><>' 0 "right"; } | kawa-dwlstatus
+{ block DP-1 1 3 1 0 '(@)' 0 "left"; block HDMI-A-1 0 1 1 0 '><>' 0 "right"
+  block DP-1 0 3 1 0 '(@)' 0 "left"; block HDMI-A-1 1 1 1 0 '><>' 0 "right"; } | kawa-dwlstatus
 eq "$(jtext title)" "right"; eq "$(bar layout)" "$(bar HDMI-A-1/layout)"
 case_ "an output name that is no folder name (should one ever come): ignored, nothing outside dwl-bar"
-rm -rf "$BAR"; for m in ../x .. . 'a b' -x; do block "$m" 1 1 1 0 '[]=' 0 "evil" | kawa-dwlstatus; done
+rm -rf "$BAR"; for m in ../x .. . 'a b' -x; do block "$m" 1 1 1 0 '(@)' 0 "evil" | kawa-dwlstatus; done
 eq "$(ls -A "$XDG_RUNTIME_DIR" | tr '\n' ' ')" "dwl-bar "; eq "$(ls -A "$BAR")" ""
 
 # ── the stream itself ────────────────────────────────────────────────────────
 case_ "a line that comes in two pieces (a slow pipe) is read as one"
 rm -rf "$BAR"; mkfifo "$TMP/pipe"
 kawa-dwlstatus <"$TMP/pipe" & sp=$!
-{ printf 'DP-1 title half a '; sleep 0.3; printf 'title\n'; block DP-1 1 1 1 0 '[]=' 0 | tail -n +2; } >"$TMP/pipe"
+{ printf 'DP-1 title half a '; sleep 0.3; printf 'title\n'; block DP-1 1 1 1 0 '(@)' 0 | tail -n +2; } >"$TMP/pipe"
 wait "$sp"; eq "$(jtext title)" "half a title"
 case_ "dwl stops mid-line (it crashed): the cut line is dropped, the bar keeps the last whole state, exit 0"
-rm -rf "$BAR"; { block DP-1 1 3 2 0 '[]=' 0 "whole"; printf 'DP-1 title cu'; } >"$TMP/s"
+rm -rf "$BAR"; { block DP-1 1 3 2 0 '(@)' 0 "whole"; printf 'DP-1 title cu'; } >"$TMP/s"
 rc 0 kawa-dwlstatus <"$TMP/s"; eq "$(jtext title)" "whole"
-{ block DP-1 1 3 2 0 '[]=' 0 "whole"; printf 'DP-1 title next\nDP-1 selmon 0\n'; } >"$TMP/s"
+{ block DP-1 1 3 2 0 '(@)' 0 "whole"; printf 'DP-1 title next\nDP-1 selmon 0\n'; } >"$TMP/s"
 rc 0 kawa-dwlstatus <"$TMP/s"
 case_ "an empty stream (dwl gone at once), and no stream: nothing written, exit 0"
 rm -rf "$BAR"; rc 0 kawa-dwlstatus </dev/null; eq "$(ls -A "$BAR" 2>/dev/null)" ""
 case_ "lines cut and run together (dwl drops what a full pipe cannot take): no garbage in the bar"
 rm -rf "$BAR"
-{ block DP-1 1 3 2 0 '[]=' 1 "before"
+{ block DP-1 1 3 2 0 '(@)' 1 "before"
   printf 'DP-1 layout []DP-1 kblayout 0\nDP-1 kblayout 1DP-1 title x\nDP-1 tags 3 2DP-1 layout []=\nDP-1 layout [DP-1 title y\n'
   printf 'DP-1 tags 7 1 1 0\nDP-1 kblayout 1\n'; } | kawa-dwlstatus
-eq "$(bar layout)" "{\"text\":\"$ICON_TILE\",\"class\":\"tile\"}" "the layout stays the last good one"
+eq "$(bar layout)" "{\"text\":\"$ICON_SPIRAL\",\"class\":\"spiral\"}" "the layout stays the last good one"
 eq "$(bar kb)" '{"text":"AR","class":"other"}' "the keyboard stays the last good one"
 eq "$(tagrow)" "1:sel 2:occ 3:occ 4:- 5:- 6:- 7:- 8:- 9:-" "the next whole tags line counts"
 eq "$(json_ok)" ""
 case_ "a burst of 1000 lines (125 title changes at once): all read, the last one shown, quickly"
 rm -rf "$BAR"; pokes >/dev/null
-for i in $(seq 1 125); do block DP-1 1 3 1 0 '[]=' 0 "title number $i"; done >"$TMP/burst"
+for i in $(seq 1 125); do block DP-1 1 3 1 0 '(@)' 0 "title number $i"; done >"$TMP/burst"
 eq "$(wc -l <"$TMP/burst")" 1000
 t0=$EPOCHREALTIME; kawa-dwlstatus <"$TMP/burst"; t1=$EPOCHREALTIME
 eq "$(jtext title)" "title number 125"
@@ -272,34 +272,34 @@ eq "$(pokes | tr ' ' '\n' | grep -c '^10$')" 125 "one title poke per change, non
 
 # ── what is poked ────────────────────────────────────────────────────────────
 case_ "the first status: every module once (8 workspaces, 9 layout, 10 title, 11 keyboard)"
-rm -rf "$BAR"; pokes >/dev/null; block DP-1 1 1 1 0 '[]=' 0 x | kawa-dwlstatus; eq "$(pokes)" "8 9 10 11"
-block DP-1 1 1 1 0 '[]=' 0 x >"$TMP/a"
+rm -rf "$BAR"; pokes >/dev/null; block DP-1 1 1 1 0 '(@)' 0 x | kawa-dwlstatus; eq "$(pokes)" "8 9 10 11"
+block DP-1 1 1 1 0 '(@)' 0 x >"$TMP/a"
 case_ "only what changed is poked"
-block DP-1 1 1 1 0 '[]=' 0 x >"$TMP/b"; eq "$(delta "$TMP/a" "$TMP/b")" "" "the same status again: nothing"
-block DP-1 1 1 1 0 '[]=' 0 y >"$TMP/b"; eq "$(delta "$TMP/a" "$TMP/b")" "10" "a new title"
-block DP-1 1 3 2 0 '[]=' 0 x >"$TMP/b"; eq "$(delta "$TMP/a" "$TMP/b")" "8" "another workspace"
+block DP-1 1 1 1 0 '(@)' 0 x >"$TMP/b"; eq "$(delta "$TMP/a" "$TMP/b")" "" "the same status again: nothing"
+block DP-1 1 1 1 0 '(@)' 0 y >"$TMP/b"; eq "$(delta "$TMP/a" "$TMP/b")" "10" "a new title"
+block DP-1 1 3 2 0 '(@)' 0 x >"$TMP/b"; eq "$(delta "$TMP/a" "$TMP/b")" "8" "another workspace"
 block DP-1 1 1 1 0 '[M]' 0 x >"$TMP/b"; eq "$(delta "$TMP/a" "$TMP/b")" "9" "another layout"
-block DP-1 1 1 1 0 '[]=' 1 x >"$TMP/b"; eq "$(delta "$TMP/a" "$TMP/b")" "11" "Alt+Shift"
+block DP-1 1 1 1 0 '(@)' 1 x >"$TMP/b"; eq "$(delta "$TMP/a" "$TMP/b")" "11" "Alt+Shift"
 block DP-1 1 3 2 0 '[2]' 0 y >"$TMP/b"; eq "$(delta "$TMP/a" "$TMP/b")" "8 9 10" "a window sent away"
 case_ "two monitors: a change on the one not focused still pokes (its own bar shows it)"
-{ block DP-1 1 1 1 0 '[]=' 0 x; block HDMI-A-1 0 1 1 0 '[]=' 0 z; } >"$TMP/a"
-{ block DP-1 1 1 1 0 '[]=' 0 x; block HDMI-A-1 0 1 1 0 '[]=' 0 z2; } >"$TMP/b"
+{ block DP-1 1 1 1 0 '(@)' 0 x; block HDMI-A-1 0 1 1 0 '(@)' 0 z; } >"$TMP/a"
+{ block DP-1 1 1 1 0 '(@)' 0 x; block HDMI-A-1 0 1 1 0 '(@)' 0 z2; } >"$TMP/b"
 eq "$(delta "$TMP/a" "$TMP/b")" "10"
-{ block DP-1 0 1 1 0 '[]=' 0 x; block HDMI-A-1 1 1 1 0 '[]=' 0 z; } >"$TMP/b"
+{ block DP-1 0 1 1 0 '(@)' 0 x; block HDMI-A-1 1 1 1 0 '(@)' 0 z; } >"$TMP/b"
 eq "$(delta "$TMP/a" "$TMP/b")" "10" "the focus moves: the top title changes; the workspaces look the same"
 
 case_ "waybar still starting (no handlers yet): never poked — the signal would kill it"
 waybar_down; waybar_up ignore
-rm -rf "$BAR"; block DP-1 1 1 1 0 '[]=' 0 x | kawa-dwlstatus; rc 0 kawa-dwlstatus --poke 12
+rm -rf "$BAR"; block DP-1 1 1 1 0 '(@)' 0 x | kawa-dwlstatus; rc 0 kawa-dwlstatus --poke 12
 kill -0 "$WBPID" 2>/dev/null && _ok || _no "waybar was killed by a poke"
 eq "$(json_ok)" "" "the files are written all the same: waybar reads them when it is up"
 case_ "waybar not running: the files are written, nothing fails"
 waybar_down; rm -rf "$BAR"; rc 0 status "$F/one-monitor.status"; eq "$(tagrow)" "1:emp 2:sel 3:emp 4:- 5:- 6:- 7:- 8:- 9:-"
 case_ "waybar restarted (a new PID) while the reader runs: the new one is found and poked"
 waybar_up; rm -rf "$BAR"; mkfifo "$TMP/p2"; kawa-dwlstatus <"$TMP/p2" & sp=$!; exec 7>"$TMP/p2"
-block DP-1 1 1 1 0 '[]=' 0 a >&7; sleep 0.5; pokes >/dev/null
+block DP-1 1 1 1 0 '(@)' 0 a >&7; sleep 0.5; pokes >/dev/null
 waybar_down; waybar_up
-block DP-1 1 1 1 0 '[]=' 0 b >&7; exec 7>&-; wait "$sp"
+block DP-1 1 1 1 0 '(@)' 0 b >&7; exec 7>&-; wait "$sp"
 eq "$(pokes)" "10"
 
 # ── --poke, for the others ───────────────────────────────────────────────────
@@ -324,29 +324,27 @@ rc 2 timeout 5 kawa-dwlstatus --bogus </dev/null
 case_ "a write that fails (the runtime folder full): the bar catches up with the next status"
 rm -rf "$BAR"; mkdir -p "$BAR/title.tmp"     # (a folder where the file goes: fails even for root)
 mkfifo "$TMP/p3"; kawa-dwlstatus <"$TMP/p3" 2>"$TMP/err" & sp=$!; exec 7>"$TMP/p3"
-block DP-1 1 1 1 0 '[]=' 0 "new title" >&7; sleep 0.5; rmdir "$BAR/title.tmp"
-block DP-1 1 1 1 0 '[]=' 0 "new title" >&7; exec 7>&-; wait "$sp"
+block DP-1 1 1 1 0 '(@)' 0 "new title" >&7; sleep 0.5; rmdir "$BAR/title.tmp"
+block DP-1 1 1 1 0 '(@)' 0 "new title" >&7; exec 7>&-; wait "$sp"
 eq "$(jtext title)" "new title"
 eq "$(cat "$TMP/err")" "" "no error flood in dwl.log"
 case_ "the bar's folder deleted under it: the files come back with the next status"
 mkfifo "$TMP/p4"; kawa-dwlstatus <"$TMP/p4" & sp=$!; exec 7>"$TMP/p4"
-block DP-1 1 1 1 0 '[]=' 0 "same" >&7; sleep 0.5; rm -rf "$BAR"
-block DP-1 1 1 1 0 '[]=' 0 "same" >&7; exec 7>&-; wait "$sp"
+block DP-1 1 1 1 0 '(@)' 0 "same" >&7; sleep 0.5; rm -rf "$BAR"
+block DP-1 1 1 1 0 '(@)' 0 "same" >&7; exec 7>&-; wait "$sp"
 eq "$(jtext title)" "same"; eq "$(tagrow)" "1:sel 2:emp 3:emp 4:- 5:- 6:- 7:- 8:- 9:-"
 case_ "a runtime folder with a space in its path"
-mkdir -p "$TMP/run time"; XDG_RUNTIME_DIR="$TMP/run time" kawa-dwlstatus < <(block DP-1 1 1 1 0 '[]=' 0 "spaced")
+mkdir -p "$TMP/run time"; XDG_RUNTIME_DIR="$TMP/run time" kawa-dwlstatus < <(block DP-1 1 1 1 0 '(@)' 0 "spaced")
 eq "$(cat "$TMP/run time/dwl-bar/title.json")" '{"text":"spaced"}'
-case_ "icons.sh missing (a theme run that never finished): dwl's own symbols, the reader goes on"
+case_ "icons.sh missing (a theme run that never finished): no made-up symbols — it stops, said (autostart drains dwl's pipe meanwhile)"
 mv "$HOME/.config/fedokawaii/icons.sh" "$TMP/icons.sh"; rm -rf "$BAR"
-{ block DP-1 1 1 1 0 '><>' 0 "first"; block DP-1 1 1 1 0 '[2]' 0 "second"; } | kawa-dwlstatus 2>/dev/null; r=$?
-eq "$r" 0; eq "$(jtext layout)" "[M] 2"; eq "$(jtext title)" "second"
-rm -rf "$BAR"; block DP-1 1 1 1 0 '><>' 0 x | kawa-dwlstatus 2>/dev/null
-eq "$(bar layout)" '{"text":"&gt;&lt;&gt;","class":"float"}' "escaped for the bar's markup"; eq "$(json_ok)" ""
+err=$({ block DP-1 1 1 1 0 '[2]' 0 "second"; } | kawa-dwlstatus 2>&1 >/dev/null); r=$?
+[[ $r != 0 ]] && _ok || _no "it went on without its icons"; has "$err" "icons.sh"
 mv "$TMP/icons.sh" "$HOME/.config/fedokawaii/icons.sh"
 case_ "a home folder with a space"
 mkdir -p "$TMP/my home/.config/fedokawaii"; cp "$HOME/.config/fedokawaii/icons.sh" "$TMP/my home/.config/fedokawaii/"
-rm -rf "$BAR"; HOME="$TMP/my home" kawa-dwlstatus < <(block DP-1 1 1 1 0 '[]=' 0 "home")
-eq "$(bar layout)" "{\"text\":\"$ICON_TILE\",\"class\":\"tile\"}"
+rm -rf "$BAR"; HOME="$TMP/my home" kawa-dwlstatus < <(block DP-1 1 1 1 0 '(@)' 0 "home")
+eq "$(bar layout)" "{\"text\":\"$ICON_SPIRAL\",\"class\":\"spiral\"}"
 case_ "no runtime folder at all: exit 1, said"
 rc 1 env -u XDG_RUNTIME_DIR kawa-dwlstatus </dev/null
 has "$(env -u XDG_RUNTIME_DIR kawa-dwlstatus </dev/null 2>&1)" "XDG_RUNTIME_DIR"
