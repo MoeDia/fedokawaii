@@ -15,21 +15,22 @@
 rm -rf "$XDG_RUNTIME_DIR/dwl-bar" "$XDG_RUNTIME_DIR/kawa-ddc-buses" "$XDG_RUNTIME_DIR/kawa-osd-id" \
   "$XDG_RUNTIME_DIR/kawa-drives"
 
-# Hand this session to systemd --user and D-Bus, so the services they start on demand —
-# the portals behind every file dialog and screen share, the notification daemon — open
-# their windows here. Then tell systemd a graphical session is running (the portals start
+# Hand this session to systemd --user, so the services D-Bus starts on demand — the portals
+# behind every file dialog and screen share, the notification daemon — open their windows
+# here (Fedora's D-Bus, dbus-broker, starts each through systemd: its environment is theirs). Then tell systemd a graphical session is running (the portals start
 # only inside one). Stopping the session target first ends anything an earlier login
 # left behind — your user manager outlives a login (linger keeps it, so update, repair and
 # verify can reach your services even from a text console).
 # Every GTK program's Open and Save dialogs through the portal — yazi (kawa-pick) — the GTK 3
 # ones too (they draw their own dialog unless told; GTK 4 asks the portal by itself). Only a
 # program that builds GTK's dialog itself keeps it — LibreOffice does: its dialogs are GTK's,
-# in the desktop's GTK theme. Exported before anything starts, handed to D-Bus and systemd
+# in the desktop's GTK theme. Exported before anything starts, handed to systemd
 export GTK_USE_PORTAL=1 GDK_DEBUG=portals
 SESSION_VARS="WAYLAND_DISPLAY DISPLAY XDG_CURRENT_DESKTOP XDG_SESSION_DESKTOP XDG_SESSION_TYPE GTK_USE_PORTAL GDK_DEBUG"
 # shellcheck disable=SC2086  # a list of names
-dbus-update-activation-environment --systemd $SESSION_VARS 2>/dev/null \
-  || systemctl --user import-environment $SESSION_VARS
+systemctl --user import-environment $SESSION_VARS \
+  || notify-send -a desktop -u critical "the session's settings did not reach systemd" \
+       "apps they start may miss the display or the file dialog; see ~/.cache/dwl.log" 2>/dev/null
 systemctl --user stop dwl-session.target 2>/dev/null
 systemctl --user start dwl-session.target
 # the update season's reminder (fedokawaii remind): a look two minutes in, then every six
@@ -41,19 +42,30 @@ systemctl --user start grub-boot-success.timer 2>/dev/null
 
 # keep CMD… — run a session helper and start it again should it ever crash; a clean exit
 # (status 0) ends it, and five crashes inside a minute give up with a notice rather than
-# loop; one that is not installed is said once. dwl ends every one of these with the
-# session (they share its process group).
+# loop; one that is not installed is said once. swayidle alone is never given up on (it locks
+# the screen before every sleep): five crashes in a minute pause it 30 s instead, with sleep
+# blocked meanwhile (systemd-inhibit), and a notice the first time. dwl ends every one of
+# these with the session (they share its process group).
 keep() {
+  always=0; [ "$1" = swayidle ] && always=1
   command -v "$1" >/dev/null || {
     notify-send -a desktop -u critical "$1 is not installed" "the session runs without it; fedokawaii repair puts it back" 2>/dev/null
     return 127
   }
-  n=0 t0=$(date +%s)
+  n=0 t0=$(date +%s) said=0
   while :; do
     "$@" && return 0
     now=$(date +%s)
     [ $((now - t0)) -gt 60 ] && n=0 t0=$now
     n=$((n + 1))
+    if [ "$n" -ge 5 ] && [ "$always" = 1 ]; then
+      [ "$said" = 1 ] || notify-send -a desktop -u critical "$1 keeps stopping" \
+        "it is started again every 30 s, and the computer cannot sleep meanwhile; see ~/.cache/dwl.log" 2>/dev/null
+      said=1
+      systemd-inhibit --what=sleep --mode=block --who="$1" --why="$1 keeps stopping: nothing would lock before a sleep" sleep 30
+      n=0 t0=$(date +%s)
+      continue
+    fi
     if [ "$n" -ge 5 ]; then
       notify-send -a desktop -u critical "$1 keeps stopping" "it was restarted 4 times in a minute; see ~/.cache/dwl.log" 2>/dev/null
       return 1
@@ -86,7 +98,7 @@ kawa-steam --warm </dev/null &                    # Steam, quietly, a minute in 
 # away: nothing locks and nothing sleeps — the screens only go dark after an hour (wlopm: the
 # outputs stay, so windows stay where they are; a key wakes them). Sleep is yours to ask for:
 # the power menu, or a lock (Super+Escape) left locked for 90 s (kawa-lock --sleep). Every
-# sleep is locked first
+# sleep is locked first (so swayidle, which does it, is never given up on: see keep)
 keep swayidle -w \
   timeout 3600 "wlopm --off '*'" resume "wlopm --on '*'" \
   before-sleep 'kawa-lock --now' </dev/null &

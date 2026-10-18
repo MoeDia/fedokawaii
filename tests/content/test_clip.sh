@@ -179,7 +179,7 @@ case_ "a preview killed half-way (fzf kills one when you move on): its copy does
 setup
 magick -size 640x480 xc:'#5f7fa0' png:- | python3 -I "$C/fake_cliphist.py" store
 stub magick 'sleep 30'
-/usr/bin/setsid kawa-clip --preview 1 >/dev/null 2>&1 & pg=$!
+KAWA_CELL=9x21 /usr/bin/setsid kawa-clip --preview 1 >/dev/null 2>&1 & pg=$!
 for _ in {1..50}; do (($(count "$XDG_RUNTIME_DIR"/kawa-clip.*))) && break; sleep 0.05; done
 kill -KILL -- -"$pg" 2>/dev/null; wait "$pg" 2>/dev/null
 left=$(count "$XDG_RUNTIME_DIR"/kawa-clip.*)
@@ -343,9 +343,8 @@ has "$(cat "$FZF_ENV")" "FZF_DEFAULT_OPTS_FILE=$HOME/.config/fedokawaii/fzf.opts
 lacks "$(cat "$FZF_ENV")" "FZF_DEFAULT_OPTS=" "a FZF_DEFAULT_OPTS of the user's own is not mixed in"
 has "$(cat "$FZF_ENV")" "KAWA_CELL=18x42"
 has "$(cat "$FZF_ARGS")" "newest first"
-case_ "inside: the cell size unknown → foot's 9×21"
-stub kawa-cell 'exit 1'; kawa-clip --tui
-has "$(cat "$FZF_ENV")" "KAWA_CELL=9x21"
+case_ "inside: the terminal does not say its cell size → the window ends (no guessed size)"
+stub kawa-cell 'exit 1'; rm -f "$FZF_ENV"; rc 1 kawa-clip --tui; [[ ! -e $FZF_ENV ]] && _ok || _no "fzf ran with a guessed cell"
 case_ "inside, nothing copied yet: the title says so"
 setup; kawa-clip --tui
 has "$(cat "$FZF_ARGS")" "nothing copied yet"

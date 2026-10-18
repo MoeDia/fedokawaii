@@ -93,6 +93,27 @@ rmdir "$XDG_RUNTIME_DIR/kawa-menu-$WAYLAND_DISPLAY.state"
 case_ "nothing left behind in the runtime folder: its record and fuzzel's lock only"
 eq "$(find "$XDG_RUNTIME_DIR" -mindepth 1 ! -name fuzzel-wayland-test.lock ! -name kawa-menu-wayland-test.state)" ""
 
+case_ "quick settings open: closed first (SIGUSR2 to kawa-panel, found by its pid file and command line) — keys to this menu"
+catch2() {   # catch2 LOG WORD… — a process catching SIGUSR2 (its command line: WORD…), its pid printed
+  python3 -I -c 'import signal, sys, time
+signal.signal(signal.SIGUSR2, lambda *a: open(sys.argv[1], "a").write("usr2\n"))
+open(sys.argv[1] + ".up", "w").close(); time.sleep(30)' "$@" >/dev/null 2>&1 & echo $!
+  for _ in {1..100}; do [[ -e $1.up ]] && break; sleep 0.05; done
+}
+pp=$(catch2 "$TMP/panel.log" kawa-panel); echo "$pp" >"$XDG_RUNTIME_DIR/kawa-panel.pid"
+answer "row 1"; eq "$(pick)" beta
+for _ in {1..50}; do [[ -s $TMP/panel.log ]] && break; sleep 0.05; done
+eq "$(cat "$TMP/panel.log" 2>/dev/null)" usr2 "the panel was asked to close"
+answer "row 1"; eq "$(env -u WAYLAND_DISPLAY bash -c 'printf "a\nb\nc\n" | kawa-menu')" b
+for _ in {1..50}; do [[ $(wc -l <"$TMP/panel.log") == 2 ]] && break; sleep 0.05; done
+eq "$(wc -l <"$TMP/panel.log")" 2 "also with no display name"
+kill "$pp" 2>/dev/null; wait "$pp" 2>/dev/null
+op=$(catch2 "$TMP/other.log" something-else); echo "$op" >"$XDG_RUNTIME_DIR/kawa-panel.pid"
+answer "row 1"; eq "$(pick)" beta; sleep 0.3
+[[ ! -s $TMP/other.log ]] && _ok || _no "a stale pid file's process (not the panel) was signalled"
+kill "$op" 2>/dev/null; wait "$op" 2>/dev/null
+rm -f "$XDG_RUNTIME_DIR/kawa-panel.pid" "$TMP/panel.log.up" "$TMP/other.log.up"
+
 case_ "fuzzel.ini (every menu's look) passes the real fuzzel's own check, in both themes"
 real=$(PATH=/usr/local/bin:/usr/bin:/bin command -v fuzzel || ls /opt/f44/bin/fuzzel 2>/dev/null)
 if [[ -n $real ]]; then

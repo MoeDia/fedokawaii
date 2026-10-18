@@ -2,7 +2,7 @@
 # tests/session/test_float.sh — kawa-float, the small floating terminal window every popup of
 # the desktop opens in (books, notes, clipboard, wallpaper, network, system, file dialog): the
 # terminal server's window (never a second terminal beside it), one at a time with --once
-# — its key again closes it — and its exit status (0 opened · 1 no window · 2 misuse · 3
+# — its key again closes it (a dialog's never) — and its exit status (0 opened · 1 no window · 2 misuse · 3
 # toggled closed, or closed a moment ago).
 # footclient and foot are stand-ins: "open" runs the window's command as the terminal would.
 . "$(dirname "$0")/../lib/harness.sh"
@@ -30,7 +30,7 @@ mkinside() { stub inside '[ -e /proc/self/fd/9 ] && echo "inside holds fd 9" >>"
 case_ "the terminal server opens it: app-id float, the title, the size; the command runs inside; exit 0"
 setup; mkinside
 rc 0 kawa-float books 100x27 -- inside --tui "a b" 'c"d'
-called '^footclient -a float -T books -W 100x27 -- sh -c : >"\$1"; \[ -n "\$2" \] && echo \$\$ >"\$2"; shift 2; exec "\$@" kawa-float .*/kawa-float\.[A-Za-z0-9]+  inside --tui a b c"d$'
+called '^footclient -a float -T books -W 100x27 -- sh -c : >"\$1"; \[ -n "\$2" \] && echo \$\$ >"\$2"; m=\$1; shift 2; "\$@"; r=\$\?; echo ended >"\$m"; exit \$r kawa-float .*/kawa-float\.[A-Za-z0-9]+  inside --tui a b c"d$'
 called '^inside --tui a b c"d$'; not_called '^foot '
 m=("$RUN"/kawa-float.*); [[ ! -e ${m[0]} ]] && _ok || _no "its mark is left behind: ${m[*]}"
 case_ "the command's own exit status is not kawa-float's: it opened (exit 0)"
@@ -66,6 +66,23 @@ case_ "--once: the click on its bar button that just closed it (by clicking outs
 rc 3 kawa-float --once books books 100x27 -- inside third; not_called '^inside third'
 touch -d '2 seconds ago' "$RUN/kawa-float-books.closed"
 rc 0 kawa-float --once books books 100x27 -- inside fourth; called '^inside fourth'
+case_ "--once: a window that ended by itself (Esc) opens again at once with the same key — only one closed from outside waits"
+setup; mkinside
+rc 0 kawa-float --once books books 100x27 -- inside fifth
+[[ ! -e $RUN/kawa-float-books.closed ]] && _ok || _no "a window that ended by itself is marked closed from outside"
+rc 0 kawa-float --once books books 100x27 -- inside sixth; called '^inside sixth'
+KF_RC=1 rc 0 kawa-float --once books books 100x27 -- inside seventh   # (Esc in a menu: its own non-zero end)
+rc 0 kawa-float --once books books 100x27 -- inside eighth; called '^inside eighth'
+
+case_ "--once --dialog: its key again leaves it open (exit 3) — a job in it is never cut short; app-id kawa-dialog"
+setup; mkinside; export KF_WAIT=$TMP/close
+kawa-float --once job --dialog job 100x27 -- inside job & p=$!
+for ((i = 0; i < 500; i++)); do grep -q '^inside job' "$CALLS" && break; nap 0.01; done
+called '^footclient -a kawa-dialog -T job -W 100x27 -- '
+touch -d '1 second ago' "$RUN/kawa-float-job.pid"
+rc 3 kawa-float --once job --dialog job 100x27 -- inside again; not_called '^inside again'
+nap 0.3; kill -0 "$p" 2>/dev/null && _ok || _no "the dialog's key again closed it"
+: >"$KF_WAIT"; wait "$p"; eq "$?" 0 "it ran to its end"; unset KF_WAIT
 
 case_ "--once with the key held (20 calls at once): exactly one window"
 setup; mkinside; export KF_WAIT=$TMP/close; pids=()

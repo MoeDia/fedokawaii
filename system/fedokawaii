@@ -1,8 +1,10 @@
 #!/usr/bin/env bash
 # /usr/local/bin/fedokawaii — the system's own control: how it stands, and all its upkeep.
 #
-#   fedokawaii             the menu (Super+U opens it in a window of its own; on a text
-#                          console, or with no working fzf, a plain numbered menu)
+#   fedokawaii             the menu (Super+U opens it in a window of its own, and a job
+#                          started there — an update, a backup — in a window that stays open
+#                          until it ends; on a text console, or with no working fzf, a plain
+#                          numbered menu)
 #   fedokawaii status      how it stands, as text — instant, from what is known
 #   fedokawaii update      the season's update: packages, the desktop's own tools, checks
 #   fedokawaii upgrade     move to the next Fedora release, once it has settled
@@ -700,16 +702,43 @@ edit_settings() {   # a copy edited, checked by the toolkit, and only then made 
   rm -f -- "$t"
   return "$rc"
 }
+BACK="goes back to the menu"   # (a job's own window: "closes this window")
 pause() {   # pause RC [ACTION] — the outcome, and a key back to the menu
-  if (($1 == 0)); then printf '\n  finished — any key goes back to the menu '
+  if (($1 == 0)); then printf '\n  finished — any key %s ' "$BACK"
   elif [[ ${2:-} == @(verify|drift|repair|apply) && $1 == 3 ]] \
        || [[ ${2:-} == drift && $1 == 4 ]]; then   # (3: it ran; things remain · drift 4: in sync but a part)
-    printf '\n  done — some things still need you (the lines above) — any key goes back to the menu '
-  else printf '\n  it ended with an error (%s): the lines above say why — any key goes back to the menu ' "$1"; fi
+    printf '\n  done — some things still need you (the lines above) — any key %s ' "$BACK"
+  else printf '\n  it ended with an error (%s): the lines above say why — any key %s ' "$1" "$BACK"; fi
   read -rsn1 _ </dev/tty || true
+}
+# the entries that run a job — dnf, a backup, an edit, or root's password asked: in Super+U's
+# popup they are handed to a window of their own (hand), which a click elsewhere, another
+# window or Super+U again never closes
+JOBS='update|upgrade|verify|repair|theme|drift|snapshots|backup|settings|log'
+hand() {   # hand ACTION — the job in a dialog window, on its own: the popup closes behind it
+  setsid -f "$0" --job "$1" >/dev/null 2>&1 </dev/null
+}
+job_window() {   # job_window ACTION — the dialog (one at a time), or a notice of why there is none
+  local rc
+  kawa-float --once system-job --dialog "system · $1" 100x27 -- "$0" --job-run "$1"; rc=$?
+  case $rc in
+    0) ;;
+    3) notify-send -a desktop "upkeep" "a job of the system menu is running in its window — it stays open until it ends" ;;
+    1) notify-send -a desktop -u critical "upkeep" "the terminal server is not running — fedokawaii repair puts it back" ;;
+    *) notify-send -a desktop -u critical "upkeep" "the job's window could not open (kawa-float: $rc) — fedokawaii repair puts it back" ;;
+  esac
+  return "$rc"
+}
+log_view() {   # root's log at its end — less as you: a pager run as root would give a root shell (!)
+  # (the password asked first, alone: it never fights less for the keys)
+  root true || return 1
+  root cat -- /var/log/fedokawaii.log | less +G
 }
 run() {   # run ACTION — in the menu's window: the work, its outcome, a key back to the menu
   local a=$1 rc=0
+  # (Super+U's popup: a job goes to a window of its own, and the menu ends — dwl would close
+  # the popup, and the job with it, at a click outside it)
+  if [[ ${FEDOKAWAII_POPUP:-} == yes && $a == @($JOBS) ]]; then hand "$a"; exit 0; fi
   printf '\e[H\e[2J\e[3J'                       # (the screen cleared: no ncurses needed)
   case $a in
     status)    status; rc=0 ;;
@@ -724,7 +753,7 @@ run() {   # run ACTION — in the menu's window: the work, its outcome, a key ba
     settings)  edit_settings; rc=$? ;;
     remind)    case $REMIND:$EVERY in yes:60) EVERY=90 ;; yes:90) EVERY=120 ;; yes:120) REMIND=no ;; *) REMIND=yes EVERY=60 ;; esac
                save_conf; return 0 ;;
-    log)       root less +G /var/log/fedokawaii.log; return 0 ;;   # (as `fedokawaii log`)
+    log)       log_view; return 0 ;;   # (as `fedokawaii log`)
     change)    setsid -f kawa-config >/dev/null 2>&1 </dev/null; return 0 ;;   # (its own menu, by the bar)
     keys)      setsid -f kawa-help >/dev/null 2>&1 </dev/null; return 0 ;;     # (the sheet, by the bar)
     guide)     guide && return 0; rc=1 ;;   # (a handbook that cannot open says why, and waits)
@@ -753,8 +782,10 @@ guide() {   # the handbook: the PDF in zathura on the desktop; on a text console
 }
 
 menu_fzf() {   # → fzf's exit status (2: it could not run — the plain menu takes over)
-  local title self
+  local title self pop=""
   self=$(printf '%q' "$0")
+  # (in Super+U's popup a job, too, ends the menu: it is handed to a window of its own)
+  [[ ${FEDOKAWAII_POPUP:-} == yes ]] && pop="|$JOBS"
   export FZF_DEFAULT_OPTS_FILE=$HOME/.config/fedokawaii/fzf.opts; unset FZF_DEFAULT_OPTS
   [[ -r $FZF_DEFAULT_OPTS_FILE ]] || unset FZF_DEFAULT_OPTS_FILE
   ( release_check >/dev/null 2>&1 & )               # (for the next look: the menu never waits on it)
@@ -776,7 +807,7 @@ menu_fzf() {   # → fzf's exit status (2: it could not run — the plain menu t
     --bind="start:reload-sync($self --items)" --bind="resize:reload-sync($self --items)" \
     --bind="result:transform:[[ \$FZF_RAW == 0 ]] && echo down-match" \
     --bind="down:down-match,up:up-match,j:down-match,k:up-match,q:abort" \
-    --bind="enter:transform:case {1} in -) ;; change|keys) echo 'become($self --run {1})' ;; *) echo 'execute($self --run {1})+reload-sync($self --items)' ;; esac" >/dev/null
+    --bind="enter:transform:case {1} in -) ;; change|keys${pop}) echo 'become($self --run {1})' ;; *) echo 'execute($self --run {1})+reload-sync($self --items)' ;; esac" >/dev/null
 }
 
 ascii() {   # for a text console whose font may lack them: plain stand-ins
@@ -800,15 +831,18 @@ menu_plain() {   # no fzf, or a text console: numbered, nothing but bash
 
 # ── commands ────────────────────────────────────────────────────────────────────────────
 case ${1:-} in
-  "")         if [[ -t 0 && -t 1 ]] && ! on_console && command -v fzf >/dev/null; then
+  ""|--popup) [[ ${1:-} == --popup ]] && export FEDOKAWAII_POPUP=yes   # (Super+U's: jobs handed on)
+              if [[ -t 0 && -t 1 ]] && ! on_console && command -v fzf >/dev/null; then
                 menu_fzf; (($? == 2)) && menu_plain
               else menu_plain; fi
               exit 0 ;;
-  --window)   exec kawa-float --once system system 100x27 -- "$0" ;;   # (fzf's margin row above, the title and the gap under it, 15 entries, 3 headings and the 2 gaps above them, a row more above the footer's two, fzf's margin row below — as much paper below as above: 27, odd, so the window centres to the pixel)
+  --window)   exec kawa-float --once system system 100x27 -- "$0" --popup ;;   # (fzf's margin row above, the title and the gap under it, 15 entries, 3 headings and the 2 gaps above them, a row more above the footer's two, fzf's margin row below — as much paper below as above: 27, odd, so the window centres to the pixel)
   --rows)     fit_rows ;;
   --items)    fit_items ;;
   --explain)  explain "${2:-}" ;;
   --run)      run "${2:-}" ;;
+  --job)      job_window "${2:-}" ;;                                # (hand's: the job's window)
+  --job-run)  BACK="closes this window"; unset FEDOKAWAII_POPUP; run "${2:-}" ;;            # (inside it)
   # (a word more than a command takes is a slip, never ignored: `upgrade now` is no --now)
   status|update|verify|repair|theme|drift|snapshots|backup|log|settings|guide|copy|diff|apply)
               (($# == 1)) || { echo "fedokawaii $1 takes nothing more (\"$2\") — fedokawaii help" >&2; exit 2; } ;;&
@@ -818,7 +852,7 @@ case ${1:-} in
   update|verify|repair|theme|drift) as_root "$1" ;;
   snapshots)  snapshots ;;
   backup)     backup_now ;;
-  log)        root less +G /var/log/fedokawaii.log ;;
+  log)        log_view ;;
   settings)   run settings ;;
   remind)
     case ${2:-check} in

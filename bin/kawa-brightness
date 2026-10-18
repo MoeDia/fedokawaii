@@ -7,6 +7,10 @@
 #                             so no level pops up over it)
 #   kawa-brightness --level   the level now, in percent (quick settings shows it): the last
 #                             one read or set this session, else read from the monitor
+#   kawa-brightness --bar     the bar's module (waybar JSON): the sun, drawn in five steps as
+#                             the volume's speaker is, and the level — from the last level
+#                             known, never a DDC/CI conversation; nothing (the module hidden)
+#                             until a monitor has answered. Poked with SIGRTMIN+14
 #
 # Needs ddcutil (i2c-dev is loaded by the package; its udev rule gives the logged-in
 # user the monitors' I2C buses) and DDC/CI switched on in the monitor's own menu.
@@ -19,7 +23,7 @@
 set -u
 arg=${1:-}
 case $arg in
-  --level) ;;
+  --level|--bar) ;;
   [+-][0-9]|[+-][0-9][0-9]|[+-][0-9][0-9][0-9]|[0-9]|[0-9][0-9]|[0-9][0-9][0-9]) ;;
   -h|--help) sed -n '2,/^set -u/{/^set -u/d;s/^# \{0,1\}//;p}' "$0"; exit 0 ;;
   *) echo "usage: kawa-brightness [+N|-N|N] (kawa-brightness --help)" >&2; exit 2 ;;
@@ -28,6 +32,20 @@ esac
 . "$HOME/.config/fedokawaii/icons.sh"
 CACHE="${XDG_RUNTIME_DIR:?}/kawa-ddc-buses"
 LEVEL="$XDG_RUNTIME_DIR/kawa-brightness.level"   # (the last level read or set: instant to show)
+poke() { kawa-dwlstatus --poke 14 2>/dev/null || true; }   # (the bar's module reads $LEVEL)
+if [[ $arg == --bar ]]; then
+  l=$(cat "$LEVEL" 2>/dev/null)
+  if [[ $l =~ ^[0-9]{1,3}$ ]]; then
+    icons=("$ICON_BRI_0" "$ICON_BRI_1" "$ICON_BRI_2" "$ICON_BRI_3" "$ICON_BRI_4")
+    i=$((l / 20)); ((i > 4)) && i=4
+    printf '{"text":"%s %s<span fgalpha=\x2755%%\x27>%%</span>","tooltip":false}\n' "${icons[i]}" "$l"
+  else
+    # (not known yet: asked once, quietly, in the background — the answer pokes the bar)
+    printf '{"text":""}\n'
+    [[ -e $XDG_RUNTIME_DIR/kawa-brightness.asked ]] || { : >"$XDG_RUNTIME_DIR/kawa-brightness.asked"; setsid -f "$0" --level >/dev/null 2>&1 </dev/null; }
+  fi
+  exit 0
+fi
 if [[ $arg == --level ]]; then
   l=$(cat "$LEVEL" 2>/dev/null)
   [[ $l =~ ^[0-9]{1,3}$ ]] && { echo "$l"; exit 0; }
@@ -106,7 +124,7 @@ set_all() {   # set_all PERCENT — every monitor on its own scale (the first on
   wait
 }
 
-note() { echo "$1" >"$LEVEL"; kawa-osd "$ICON_SUN" brightness "$1"; }   # the level, shown for a moment
+note() { echo "$1" >"$LEVEL"; poke; kawa-osd "$ICON_SUN" brightness "$1"; }   # the level, shown for a moment
 
 # one DDC/CI conversation at a time: a held key repeats faster than monitors answer, and
 # overlapping read-then-write cycles would lose steps (repeats are simply dropped)
@@ -131,7 +149,7 @@ NOW=50
 if [[ -n $PANEL ]]; then panel_get || exit 0
 else get "${BUSES[0]}" || exit 0; fi
 now=$NOW
-echo "$now" >"$LEVEL"
+echo "$now" >"$LEVEL"; poke
 [[ $arg == --level ]] && { echo "$now"; exit 0; }
 
 if [[ $arg =~ ^[+-][0-9]{1,3}$ ]]; then
@@ -139,5 +157,5 @@ if [[ $arg =~ ^[+-][0-9]{1,3}$ ]]; then
   set_all "$new"; note "$new"; exit 0
 else   # (a level: the usage above lets nothing else through; quick settings' meter shows it)
   new=$((10#$arg)); ((new > 100)) && new=100
-  set_all "$new"; echo "$new" >"$LEVEL"
+  set_all "$new"; echo "$new" >"$LEVEL"; poke
 fi

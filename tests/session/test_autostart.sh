@@ -97,7 +97,7 @@ case_ "login: the session handed to systemd first, then the display, the theme, 
 setup "$SHL"; mkdir -p "$XDG_RUNTIME_DIR/dwl-bar/OLD"; up
 settled waybar kawa-panel mako foot udiskie wl-paste gammastep swayidle kawa-dwlstatus lxqt-policykit-agent kawa-clipkeep && _ok || _no "not all started: $(cat "$CALLS" | tr '\n' '|')"
 eq "$(grep -vE '^(waybar|kawa-panel|mako|foot|udiskie|kawa-drives|kawa-clipkeep|kawa-steam|wl-paste|gammastep|swayidle|lxqt-policykit-agent|pgrep|sleep|notify-send)( |$)' "$CALLS")" \
-"dbus-update-activation-environment --systemd WAYLAND_DISPLAY DISPLAY XDG_CURRENT_DESKTOP XDG_SESSION_DESKTOP XDG_SESSION_TYPE GTK_USE_PORTAL GDK_DEBUG
+"systemctl --user import-environment WAYLAND_DISPLAY DISPLAY XDG_CURRENT_DESKTOP XDG_SESSION_DESKTOP XDG_SESSION_TYPE GTK_USE_PORTAL GDK_DEBUG
 systemctl --user stop dwl-session.target
 systemctl --user start dwl-session.target
 systemctl --user start fedokawaii-remind.timer
@@ -159,6 +159,16 @@ until_has "$CALLS" 'keeps stopping'
 eq "$(grep -c '^waybar' "$CALLS")" 5
 called "^notify-send -a desktop -u critical waybar keeps stopping it was restarted 4 times in a minute; see ~/.cache/dwl.log$"
 eq "$(running foot)" 1 "the rest runs on"; quit; down
+case_ "swayidle (what locks before a sleep) crashing: never given up — paused with sleep blocked, said once"
+setup; stub swayidle 'exit 1'; stub systemd-inhibit; up; settled foot
+ncalls swayidle 11 && _ok || _no "swayidle was not started again after a pause: $(grep -c '^swayidle' "$CALLS") starts"
+called "^systemd-inhibit --what=sleep --mode=block --who=swayidle --why=swayidle keeps stopping: nothing would lock before a sleep sleep 30$"
+eq "$(grep -c '^notify-send.*swayidle keeps stopping' "$CALLS")" 1 "one notice"
+not_called "it was restarted 4 times in a minute"; quit; down
+case_ "the session's settings not handed to systemd: a notice, no other way tried"
+setup; stub systemctl 'case "$*" in *import-environment*) exit 1 ;; esac'; up; settled foot swayidle
+called "^notify-send -a desktop -u critical the session's settings did not reach systemd"
+not_called "dbus-update-activation-environment"; quit; down
 case_ "crashes far apart (more than a minute between): restarted every time, no notice"
 setup; printf '0\n' >"$TMP/n"
 stub waybar 'n=$(cat "'"$TMP"'/n"); echo $((n + 1)) >"'"$TMP"'/n"; [ "$n" -lt 6 ] && exit 1; trap "exit 0" TERM; "'"$TMP"'/sys/zzz" 600 & wait $!'

@@ -114,7 +114,20 @@ eq "$(py 'i = kp.icons(); print(len(i) > 40, sorted(k for k in ("moon","sun","la
 case_ "its key opens it: a fuzzel menu on screen goes first, it shows, the bar's cat lights, the state is read"
 eq "$(py 'fresh(); p.toggle(); print(", ".join(u.calls))')" "close menu, show, light on, run kawa-quick --state"
 case_ "its key again closes it, the cat dark again"
-eq "$(py 'fresh(); p.toggle(); u.calls.clear(); p.toggle(); print(", ".join(u.calls), p.visible)')" "hide, light off False"
+eq "$(py 'fresh(); p.toggle(); u.calls.clear(); u.t += 0.6; p.toggle(); print(", ".join(u.calls), p.visible)')" "hide, light off False"
+case_ "its key held (dwl repeats it): a toggle within half a second of the last is ignored — no flicker"
+eq "$(py 'fresh(); p.toggle(); u.calls.clear(); u.t += 0.1; p.toggle(); u.t += 0.3; p.toggle(); print(u.calls, p.visible)')" "[] True"
+eq "$(py 'fresh(); p.toggle(); u.t += 0.6; p.toggle(); u.calls.clear(); u.t += 0.2; p.toggle(); print(u.calls, p.visible)')" "[] False" "held after closing: stays closed"
+case_ "another menu's key (SIGUSR2): closed as chosen — its key then opens it at once"
+eq "$(py 'fresh(); p.toggle(); u.calls.clear(); p.close("chosen"); u.t += 0.1; p.toggle(); print(p.visible)')" True
+has "$(cat "$REPO/bin/kawa-panel")" 'signal.SIGUSR2, lambda: panel.close("chosen")'
+case_ "the bar's cat: lit by a marker of its own (a dropdown's, kawa-drop.open, is kawa-menu's)"
+eq "$(py 'import os; print(os.path.basename(kp.MARK))')" kawa-panel.open
+lacks "$(grep -v '^ *#' "$REPO/bin/kawa-panel" | grep -v '# own: a dropdown')" 'kawa-drop.open'
+has "$(cat "$REPO/bin/kawa-panel")" '"kawa-dwlstatus", "--poke", "15"'
+case_ "the meters: no number beside the squares (the bar shows both levels) — words only when there is no level"
+lacks "$(cat "$REPO/bin/kawa-panel")" 'it.key != "sound"'
+has "$(python3 -I "$REPO/bin/kawa-panel" --help)" "their levels are the"
 case_ "Esc closes it"
 eq "$(py 'fresh(); p.toggle(); u.calls.clear(); p.key("Escape"); print(", ".join(u.calls))')" "hide, light off"
 case_ "a click outside closes it — and the click on the cat that did so does not open it again at once"
@@ -188,7 +201,7 @@ for n in surface key edge edge2 faint muted text strong accent accent_text accen
 
 # ── use ───────────────────────────────────────────────────────────────────────────────
 case_ "--help: what it is; anything else: exit 2"
-out=$(python3 -I "$REPO/bin/kawa-panel" --help); has "$out" "quick settings"; has "$out" "SIGUSR1"
+out=$(python3 -I "$REPO/bin/kawa-panel" --help); has "$out" "quick settings"; has "$out" "SIGUSR1"; has "$out" "SIGUSR2: close"
 rc 2 python3 -I "$REPO/bin/kawa-panel" --bogus; rc 2 python3 -I "$REPO/bin/kawa-panel" --open extra
 case_ "one at a time: with one running, a second exits at once — or, with --open, asks it to open"
 export XDG_RUNTIME_DIR=$TMP/run; mkdir -p "$XDG_RUNTIME_DIR"

@@ -102,7 +102,13 @@ fresh; stub kawa-config; stub kawa-help
 WAYLAND_DISPLAY=wayland-1 fedokawaii --run change </dev/null; WAYLAND_DISPLAY=wayland-1 fedokawaii --run keys </dev/null
 for _ in 1 2 3 4 5 6 7 8 9 10; do grep -q kawa-help "$CALLS" && grep -q kawa-config "$CALLS" && break; sleep 0.1; done
 called '^setsid -f kawa-config$'; called '^setsid -f kawa-help$'
-has "$(cat "$(command -v fedokawaii)")" "enter:transform:case {1} in -) ;; change|keys) echo 'become("
+has "$(cat "$(command -v fedokawaii)")" "enter:transform:case {1} in -) ;; change|keys\${pop}) echo 'become("
+case_ "Super+U's popup (--popup): the menu closes for a job too (fzf becomes the run, which hands it on); a plain menu, not"
+if has_script; then
+  fresh; stub fzf 'cat >/dev/null; exit 130'
+  on_tty "" fedokawaii --popup >/dev/null; called 'enter:transform:case \{1\} in -\) ;; change\|keys\|update\|upgrade\|verify\|repair\|theme\|drift\|snapshots\|backup\|settings\|log\) echo .become\('
+  reset_calls; on_tty "" fedokawaii >/dev/null; called 'enter:transform:case \{1\} in -\) ;; change\|keys\) echo .become\('
+else _ok; fi
 case_ "rows: the mark at the right edge, wider with a wider window (FZF_COLUMNS)"
 w=$(widest "$(entries "$(FZF_COLUMNS=120 fedokawaii --rows)")"); eq "$w" 67
 w=$(widest "$(entries "$(FZF_COLUMNS=96 fedokawaii --rows)")"); eq "$w" 43 "the 100-column window: 43"
@@ -237,9 +243,14 @@ for want in "EVERY=120" "REMIND=no" "EVERY=60" "EVERY=90"; do
   has "$(cat "$HOME/.config/fedokawaii/upkeep.conf")" "$want"
 done
 
-case_ "log: root's log at its end, in less (as `fedokawaii log`)"
-fresh; tty_free fedokawaii --run log </dev/null >/dev/null 2>&1
-called "^sudo less \+G $R/fedokawaii.log"
+case_ "log: root's log at its end, in less — root reads it, less runs as you (a root pager's ! would be a root shell)"
+fresh; printf 'first line\nlast line\n' >"$R/fedokawaii.log"
+tty_free fedokawaii --run log </dev/null >/dev/null 2>&1
+called "^sudo cat -- $R/fedokawaii.log$"; called '^less \+G$'; not_called '^sudo less'
+eq "$(cat "$R/less.out")" $'first line\nlast line' "less shows the log"
+reset_calls; rm -f "$R/less.out"; fedokawaii log >/dev/null 2>&1; called "^sudo cat -- $R/fedokawaii.log$"; called '^less \+G$'
+case_ "log with sudo refusing: said, and no pager"
+fresh; : >"$R/sudo-refused"; out=$(fedokawaii log 2>&1); has "$out" "needs root"; not_called '^less'
 case_ "the handbook: zathura, on its own (the menu never waits for it)"
 fresh; export WAYLAND_DISPLAY=wayland-1
 tty_free fedokawaii --run guide </dev/null >/dev/null 2>&1; called "^setsid -f zathura $R/toolkit/docs/Fedokawaii-Guide.pdf"
@@ -321,8 +332,26 @@ if has_script; then
   case_ "fzf menu: Esc closes it (exit 0)"
   stub fzf 'cat >/dev/null; exit 130'; on_tty "" fedokawaii >/dev/null; eq "$?" 0; called '^fzf --read0 --ansi'
 else _ok; fi
-case_ "Super+U: the menu in a window of its own"
-fresh; fedokawaii --window; called "^kawa-float --once system system 100x27 -- .*fedokawaii$"
+case_ "Super+U: the menu in a window of its own (a popup)"
+fresh; fedokawaii --window; called "^kawa-float --once system system 100x27 -- .*fedokawaii --popup$"
+case_ "Super+U's popup: a job is handed to a window of its own (a click outside, or Super+U again, never kills it) and the menu ends"
+for a in update upgrade verify repair theme drift snapshots backup settings log; do
+  reset_calls; FEDOKAWAII_POPUP=yes tty_free fedokawaii --run "$a" </dev/null >/dev/null 2>&1; eq "$?" 0 "$a"
+  called "^setsid -f .*fedokawaii --job $a$"; eq "$(front_calls)" "" "$a: not run in the popup"; not_called '^sudo'
+done
+case_ "Super+U's popup: a quick entry still runs in place, and comes back to the menu"
+reset_calls; out=$(FEDOKAWAII_POPUP=yes tty_free fedokawaii --run status </dev/null 2>&1)
+has "$out" "finished — any key goes back to the menu"; not_called 'fedokawaii --job'
+case_ "the job's window: a dialog, one at a time; inside, the job, then a key that closes it"
+fresh; rc 0 fedokawaii --job update
+called "^kawa-float --once system-job --dialog system · update 100x27 -- .*fedokawaii --job-run update$"; not_called '^notify-send'
+out=$(FEDOKAWAII_POPUP=yes tty_free fedokawaii --job-run update </dev/null 2>&1)
+eq "$(front_calls)" "front update" "run inside, never handed on again"; has "$out" "finished — any key closes this window"
+case_ "the job's window that cannot open, or one already running: a notice says so"
+stub kawa-float 'exit 1'; reset_calls; rc 1 fedokawaii --job update
+called '^notify-send -a desktop -u critical upkeep the terminal server is not running — fedokawaii repair puts it back$'
+stub kawa-float 'exit 3'; reset_calls; rc 3 fedokawaii --job backup
+called '^notify-send -a desktop upkeep a job of the system menu is running in its window'
 case_ "change: the part-by-part menu"
 fedokawaii change; called '^kawa-config'
 

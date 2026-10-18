@@ -5,9 +5,9 @@
 //   centre: now playing between the two halves of a segment meter (hidden when nothing
 //           plays) — waybar centres it on the screen
 //   right:  mode seal · drives · Steam's gamepad (while it runs) · keyboard layout · memory ·
-//           volume · weather ┆ date · day seal · time ┆ the cat (quick settings: it smiles while
+//           volume · brightness · weather ┆ date · day seal · time ┆ the cat (quick settings: it smiles while
 //           a dropdown is open) — ┆ a sashiko stitch down the paper
-// Network, Bluetooth, brightness, night light, theme… live in the quick-settings dropdown,
+// Network, Bluetooth, night light, theme… live in the quick-settings dropdown,
 // so the bar stays quiet. No tray: the desktop's own modules stand for what apps would put
 // there (Steam's gamepad). Reload without logging out: pkill -USR2 waybar
 //
@@ -33,7 +33,7 @@
   // cat, a sashiko stitch: a running stitch of faint thread down the paper (style.css draws
   // it; the text is a zero-width space, as an empty one would hide the module)
   "group/status": { "orientation": "horizontal",
-                    "modules": ["custom/mode", "custom/drives", "custom/steam", "custom/kb", "custom/mem", "wireplumber", "custom/weather"] },
+                    "modules": ["custom/mode", "custom/drives", "custom/steam", "custom/kb", "custom/mem", "wireplumber", "custom/brightness", "custom/weather"] },
   "group/when":   { "orientation": "horizontal", "modules": ["clock#date", "custom/day", "clock#time"] },
   "custom/sep1":  { "format": "\u200b", "tooltip": false },
   "custom/sep2":  { "format": "\u200b", "tooltip": false },
@@ -98,6 +98,13 @@
     "max-volume": 100
   },
 
+  // the monitor's brightness beside the sound's level, drawn the same way: the sun in five
+  // steps (a hollow disc when dim … every ray when bright) and the level. Only while a monitor
+  // answers over DDC/CI (hidden otherwise). Scrolling over it steps it as Super+] / Super+[ do;
+  // a click opens quick settings. Poked with SIGRTMIN+14 by every change (kawa-brightness)
+  "custom/brightness": { "exec": "kawa-brightness --bar", "return-type": "json", "interval": "once", "signal": 14,
+                         "on-click": "kawa-quick", "on-scroll-up": "kawa-brightness +10", "on-scroll-down": "kawa-brightness -10" },
+
   // the weather: the sky's icon and the temperature (the city and the words in the tooltip);
   // click: the forecast for the next days
   "custom/weather": { "exec": "kawa-weather --bar", "return-type": "json", "interval": 600,
@@ -112,14 +119,15 @@
                    "tooltip": false, "on-click": "kawa-quick" },
 
   // the day of the week as its kanji (月 火 水 木 金 土 日), a vermilion seal between the date and the time
+  // (so the date beside it says only the day and month: "18 Oct" — the day is the seal's)
   "custom/day": { "exec": "set -- 月 火 水 木 金 土 日; shift $(( $(date +%u) - 1 )); printf '%s\\n' \"$1\"",
                   "interval": 60, "tooltip": false, "on-click": "kawa-calendar" },
-  "clock#date": { "format": "{:%a %d %b}", "interval": 60, "locale": "C", "tooltip": false, "on-click": "kawa-calendar" },
+  "clock#date": { "format": "{:%d %b}", "interval": 60, "locale": "C", "tooltip": false, "on-click": "kawa-calendar" },
   "clock#time": { "format": "{:%I:%M:%S %p}", "interval": 1, "locale": "C", "tooltip": false, "on-click": "kawa-calendar" },
 
   // the cat (quick settings): it smiles, filled vermilion, while any dropdown is on screen —
   // the panel, or a menu dropping from the bar (audio, calendar, drives, Steam's): kawa-menu
   // says so with SIGRTMIN+15. (the cat and cat-happy icons)
-  "custom/menu": { "exec": "if [ -e \"$XDG_RUNTIME_DIR/kawa-drop.open\" ]; then echo '{\"text\":\"\uDBB8\uDC52\",\"class\":\"open\"}'; else echo '{\"text\":\"\uDBB8\uDC51\"}'; fi",
+  "custom/menu": { "exec": "if [ -e \"$XDG_RUNTIME_DIR/kawa-drop.open\" ] || [ -e \"$XDG_RUNTIME_DIR/kawa-panel.open\" ]; then echo '{\"text\":\"\uDBB8\uDC52\",\"class\":\"open\"}'; else echo '{\"text\":\"\uDBB8\uDC51\"}'; fi",
                    "return-type": "json", "interval": "once", "signal": 15, "tooltip": false, "on-click": "kawa-quick" }
 }

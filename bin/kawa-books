@@ -339,7 +339,7 @@ case ${1:-} in
     f=${2:-} info1=${3:-} info2=${4:-} CAP_TITLE=${5:-} CAP_LINES=1
     [[ -n $info1 ]] && CAP_LINES=2
     [[ -f $f ]] || exit 0
-    cell=${KAWA_CELL:-9x21} cols=${FZF_PREVIEW_COLUMNS:-36} lines=${FZF_PREVIEW_LINES:-26}
+    cell=${KAWA_CELL:?} cols=${FZF_PREVIEW_COLUMNS:-36} lines=${FZF_PREVIEW_LINES:-26}
     cw=${cell%x*} ch=${cell#*x}
     ((cw > 0 && ch > 0 && cols > 20 && lines > 8)) || exit 0
     key=$(printf '%s\n' p11 "$f" "$(stat -c '%s %Y' -- "$f")" "$cell" "$cols" "$lines" "$C_GROUND" "$CAP_TITLE" "$CAP_LINES" | sha1sum)
@@ -394,7 +394,7 @@ find "$CACHE" -maxdepth 1 \( -name '*.six' -o -name '*.lay' \) -mtime +90 -delet
 # (SIGKILL — no trap runs), mid-way through its picture files
 find "$CACHE" -maxdepth 1 \( -name 'cover.*' -o -name '*.six.*' -o -name '*.lay.*' -o -name 'pages.json.*' \) \
   -mmin +1 -delete 2>/dev/null
-KAWA_CELL=$(kawa-cell 2>/dev/null) || KAWA_CELL=9x21
+KAWA_CELL=$(kawa-cell) || exit 1
 read -r _ c < <(stty size 2>/dev/null); [[ ${c:-} =~ ^[0-9]+$ ]] && ((c > 70)) || c=104   # (the window kawa-float opens: 104 columns)
 KAWA_BOOKS_W=$((c - 46))   # (fzf's width is the window's less its margins: as FZF_COLUMNS - 42)
 export KAWA_CELL KAWA_BOOKS_W

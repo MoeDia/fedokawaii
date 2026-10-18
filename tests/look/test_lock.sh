@@ -23,7 +23,7 @@ echo "gtklock $!" >>"$FAKE_PROCS"'
 }
 locks() { grep -c '^gtklock' "$CALLS"; }              # (counted safely when two run at once)
 lockargs() {   # the arguments every lock gets, for THEME's stylesheet
-  echo -s "$CSS" -x "$UI" --date-format '%a %d %b' --time-format '%I:%M %p' --lock-command "touch $XDG_RUNTIME_DIR/kawa-lock.locked"
+  echo -s "$CSS" -x "$UI" --date-format '%d %b' --time-format '%I:%M %p' --lock-command "touch $XDG_RUNTIME_DIR/kawa-lock.locked"
 }
 waitfor() { local i; for i in {1..50}; do eval "$1" && return 0; /bin/sleep 0.1; done; return 1; }
 
@@ -32,7 +32,7 @@ setup
 case_ "Super+Escape: gtklock with the theme's stylesheet and the layout, the date in English, the desktop's words"
 rc 0 kawa-lock
 eq "$(locks)" 1
-args_eq gtklock 1 -s "$CSS" -x "$UI" --date-format '%a %d %b' --time-format '%I:%M %p' --lock-command "touch $XDG_RUNTIME_DIR/kawa-lock.locked"
+args_eq gtklock 1 -s "$CSS" -x "$UI" --date-format '%d %b' --time-format '%I:%M %p' --lock-command "touch $XDG_RUNTIME_DIR/kawa-lock.locked"
 eq "$(cat "$TMP/gtklock.env")" "LANGUAGE=fk LC_TIME=C" "LANGUAGE=fk (ちがう · wrong password), LC_TIME=C"
 [[ ! -e $TMP/fd9 ]] && _ok || _no "gtklock keeps kawa-lock's lock: every later call would wait"
 
@@ -54,7 +54,7 @@ setup
 ln -sfn themes/light "$HOME/.config/fedokawaii/current"
 kawa-lock --now
 has "$(cat "$UI")" "$SHARE/light/padlock.png"
-args_eq gtklock 1 -s "$CSS" -x "$UI" --date-format '%a %d %b' --time-format '%I:%M %p' --lock-command "touch $XDG_RUNTIME_DIR/kawa-lock.locked"
+args_eq gtklock 1 -s "$CSS" -x "$UI" --date-format '%d %b' --time-format '%I:%M %p' --lock-command "touch $XDG_RUNTIME_DIR/kawa-lock.locked"
 
 case_ "already locked (a second press, idle while locked): nothing more"
 setup
@@ -133,17 +133,18 @@ argv gtklock 'bash -c '"'"'exec -a "$0" /bin/sleep 300'"'"' "fake-gtklock-of-$FA
 echo "gtklock $!" >>"$FAKE_PROCS"'
 out=$( { kawa-lock && echo suspended; } 2>/dev/null)
 eq "$out" "" "a lock that never came does not suspend"
-case_ "the layout missing: says so and fails"
+case_ "the layout missing: it still locks (plain: gtklock's own look) and says what to repair — a sleep never finds it unlocked"
 setup
 rm "$HOME/.config/fedokawaii/lock.ui"
 out=$(kawa-lock 2>&1); r=$?
-eq "$r" 1; has "$out" "lock.ui"; eq "$(locks)" 0
+eq "$r" 0; eq "$(locks)" 1; called 'notify-send .*lock screen .*lock.ui.*fedokawaii repair'
+lacks "$(grep "^gtklock" "$CALLS")" " -x "
 
 case_ "HOME with a space: the stylesheet and picture paths arrive whole"
 setup
 mkdir -p "$TMP/my home"; cp -a "$HOME/." "$TMP/my home/"; export HOME="$TMP/my home"
 kawa-lock --now
-args_eq gtklock 1 -s "$HOME/.config/fedokawaii/current/gtklock.css" -x "$UI" --date-format '%a %d %b' --time-format '%I:%M %p' --lock-command "touch $XDG_RUNTIME_DIR/kawa-lock.locked"
+args_eq gtklock 1 -s "$HOME/.config/fedokawaii/current/gtklock.css" -x "$UI" --date-format '%d %b' --time-format '%I:%M %p' --lock-command "touch $XDG_RUNTIME_DIR/kawa-lock.locked"
 has "$(cat "$UI")" "$HOME/.local/share/fedokawaii/dark/padlock.png"
 
 case_ "--help shows how it is used"

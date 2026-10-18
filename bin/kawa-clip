@@ -62,7 +62,7 @@ case ${1:-} in
         # drawn one line shorter and a line of ground is put above it
         # — and, so its margins are equal to the pixel, a width and height of the same
         # parity as the area's (one edge row or column trimmed if need be, never resampled)
-        cell=${KAWA_CELL:-9x21}; ch=${cell#*x}
+        cell=${KAWA_CELL:?}; ch=${cell#*x}
         aw=$(( ${FZF_PREVIEW_COLUMNS:-74} * ${cell%x*} )) bh=$(( (${FZF_PREVIEW_LINES:-9} - 2) * ch ))
         w0=0 h0=0; read -r w0 h0 < <(magick "${tmp}[0]" -format '%w %h\n' info: 2>/dev/null)
         if ((aw > 0 && bh > 0 && w0 > 0 && h0 > 0)); then
@@ -144,7 +144,7 @@ case ${1:-} in
 esac
 
 # ── inside the window ─────────────────────────────────────────────────────────
-KAWA_CELL=$(kawa-cell 2>/dev/null) || KAWA_CELL=9x21   # the cell's pixels: previews fit exactly
+KAWA_CELL=$(kawa-cell) || exit 1   # the cell's pixels: previews fit exactly
 export KAWA_CELL
 # fzf kills a preview it no longer needs outright (SIGKILL): the copies such previews were
 # reading are in memory (the runtime folder) until cleared — here, as one window is open

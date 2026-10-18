@@ -181,7 +181,7 @@ check "dnf max_parallel_downloads=$DNF_PARALLEL"       test "$(dnfopt max_parall
 check "dnf fastestmirror on"                           grep -qxiE '1|true' <<<"$(dnfopt fastestmirror)"
 check "dnf timeout=20 (slow mirrors dropped)"          test "$(dnfopt timeout)" = 20
 check "dnf installonly_limit=2 (dnf5 minimum)"         test "$(dnfopt installonly_limit)" = 2
-check "dnf minrate=50k (stalled mirrors dropped)"      grep -qxE '51200|50[kK]' <<<"$(dnfopt minrate)"
+check "dnf minrate=5k (stalled mirrors dropped)"       grep -qxE '5120|5[kK]' <<<"$(dnfopt minrate)"
 check "dnf defaultyes on"                              grep -qxiE '1|true' <<<"$(dnfopt defaultyes)"
 # (a list: other files may add to it — both names in it is what counts)
 check "no package downloads in the background (dnf's makecache timer masked)" \
@@ -238,8 +238,10 @@ for b in "${BOOT_ARGS[@]}"; do   # (setup.sh's console_boot_arg: the splash's rh
     bash -c 'a=$(grubby --info=ALL | grep "^args=") && [ -n "$a" ] && ! printf "%s\n" "$a" | grep -vqE "[\" ]$1([\" ]|\$)"' _ "$b"
 done
 if [[ $GPU_KIND == amd ]]; then
-  check "amdgpu.ppfeaturemask on the kernel"           bash -c 'a=$(grubby --info=ALL | grep "^args=") && [ -n "$a" ] && ! printf "%s\n" "$a" | grep -vq amdgpu.ppfeaturemask'
-  check "amdgpu.ppfeaturemask active now"              grep -q amdgpu.ppfeaturemask /proc/cmdline
+  # (this exact value, a whole argument: an older one, or one LACT cannot use, does not pass)
+  check "$AMDGPU_ARG on every boot entry" \
+    bash -c 'a=$(grubby --info=ALL | grep "^args=") && [ -n "$a" ] && ! printf "%s\n" "$a" | grep -vqE "[\" ]$1([\" ]|\$)"' _ "$AMDGPU_ARG"
+  check "$AMDGPU_ARG active now"                       bash -c 'tr " " "\n" </proc/cmdline | grep -qxF -- "$1"' _ "$AMDGPU_ARG"
 fi
 
 # ── GPU & media ──────────────────────────────────────────────────────────────
@@ -318,7 +320,7 @@ check "dwl finds every library (its wlroots: its own)"  U bash -c 'l=$(ldd /usr/
 check "session launcher (start-dwl)"                   test -x /usr/local/bin/start-dwl
 check "keyboard layouts $KB_LAYOUTS"                   grep -q "XKB_DEFAULT_LAYOUT=\"$KB_LAYOUTS\"" /usr/local/bin/start-dwl
 check "greetd SELinux module loaded"                   bash -c 'semodule -l | grep -qw greetd'
-check "greetd runs the login screen (kawa-greet in cage) for $TARGET_USER" grep -qxF "command = \"env \\\"XCURSOR_THEME=Sumi-\$(cat /var/lib/fedokawaii-greeter/theme)\\\" cage -d -s -- /usr/local/bin/kawa-greet $TARGET_USER\"" /etc/greetd/fedokawaii.toml
+check "greetd runs the login screen (kawa-greet in cage) for $TARGET_USER" grep -qxF "command = \"env \$(/usr/local/bin/start-dwl --gpu) \\\"XCURSOR_THEME=Sumi-\$(cat /var/lib/fedokawaii-greeter/theme)\\\" cage -d -s -- /usr/local/bin/kawa-greet $TARGET_USER\"" /etc/greetd/fedokawaii.toml
 check "greetd reads fedokawaii.toml"                   bash -c 'systemctl cat greetd.service | grep -qx "ExecStart=/usr/bin/greetd --config /etc/greetd/fedokawaii.toml"'
 check "the login screen (kawa-greet) installed"          test -x /usr/local/bin/kawa-greet
 check "the login screen's look, both themes (/usr/local/share/fedokawaii/greeter)" bash -c 'for t in dark light; do d=/usr/local/share/fedokawaii/greeter/$t; for f in gtklock.css padlock.png seal-{1..7}.png; do [[ -s $d/$f ]] || exit 1; done; done'
@@ -431,11 +433,14 @@ case $(up_tag syncplay) in
   *) fail "Syncplay is not the pinned $SYNCPLAY_TAG with this toolkit's fixes" "update and repair put it in" ;;
 esac
 # LocalSend, its pinned release (setup carries on without it: update and repair fetch it)
+localsend_libs_ok() {   # (ldd runs as you: the file is yours, and root never runs what is in your home)
+  U test -x "$(localsend_dir)/localsend_app" && [[ -z $(missing_libs "$(localsend_dir)/localsend_app") ]]
+}
 case $(up_tag localsend) in
   "") warn "LocalSend not installed yet" "update and repair fetch it (sending to a phone waits till then)" ;;
   "$LOCALSEND_TAG")
     check "LocalSend $LOCALSEND_TAG finds every library it needs" \
-      bash -c 'test -x "$1/localsend_app" && ! ldd "$1/localsend_app" | grep -q "not found"' _ "$(localsend_dir)"
+      localsend_libs_ok
     check "localsend starts it (~/.local/bin/localsend)" test "$(readlink -f "$TARGET_HOME/.local/bin/localsend")" = "$(localsend_dir)/localsend_app" ;;
   *) fail "LocalSend is not the pinned $LOCALSEND_TAG" "update and repair put it in" ;;
 esac
@@ -598,7 +603,7 @@ else
 fi
 
 # ── live session (only while you are logged in) ─────────────────────────────
-if pgrep -u "$TARGET_UID" -x 'dwl(\.prev)?' >/dev/null; then
+if pgrep -u "$TARGET_UID" -x dwl >/dev/null; then
   section "live session"
   check "PipeWire + WirePlumber running steadily (no crash at start)" pw_steady
   # the portals behind file dialogs and screen sharing start only inside a graphical session

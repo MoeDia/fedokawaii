@@ -107,13 +107,13 @@ setup; copy_made; echo change >"$W/edit"; answer "pick terminal" "pick apply now
 eq "$(fz_n)" 2; eq "$(title 2)" "the terminal server reads it at your next login"
 eq "$(fz_rows 2 | sed 's/^.  //; s/  .*//' | tr '\n' ',')" "apply now,later,what changed,"
 FITS_WRAP=1 fits 2 "(the when-text wraps at its spaces)"
-called '^kawa-float --once apply apply 100x33 -- bash -c .* _ fedokawaii apply$'
+called '^kawa-float --once apply --dialog apply 100x33 -- bash -c .* _ fedokawaii apply$'
 case_ "… later: nothing runs now"
 setup; copy_made; echo change >"$W/edit"; answer "pick terminal" "pick later"; config_
 not_called '^kawa-float'
 case_ "… what changed: fedokawaii diff in a window"
 setup; copy_made; echo change >"$W/edit"; answer "pick terminal" "pick what changed"; config_
-called '^kawa-float --once diff what changed 120x41 -- bash -c .* _ fedokawaii diff$'
+called '^kawa-float --once diff --dialog what changed 120x41 -- bash -c .* _ fedokawaii diff$'
 case_ "… Esc: nothing runs"
 setup; copy_made; echo change >"$W/edit"; answer "pick terminal" esc; config_; not_called '^kawa-float'
 case_ "two files in one part (keys: dwl's config.h and the help sheet), side by side"
@@ -129,10 +129,15 @@ done
 case_ "the editor quit with an error (nvim :cq): no second editor window opens"
 setup; copy_made; echo 1 >"$W/editrc"; answer "pick bar"; config_
 eq "$(grep -c '^foot ' "$CALLS")" 0 "foot not started after footclient's editor closed"
-case_ "the terminal server is down (footclient 220): a foot of its own opens the file"
+case_ "the terminal server is down (footclient 220): said in a notice — never a foot of its own"
 setup; copy_made; echo 220 >"$W/rc.footclient"; echo change >"$W/edit"; answer "pick bar" esc; config_
-called "^foot -T change · bar -D $COPY -- nvim -O -- configs/home/.config/waybar/config.jsonc$"
-eq "$(fz_n)" 2 "and its change is seen"
+not_called '^foot '; called '^notify-send -a desktop change the terminal server is not running — fedokawaii repair puts it back$'
+eq "$(fz_n)" 1 "no apply question after it"
+case_ "the terminal server is down: your scripts (yazi) and the history (lazygit) say so too"
+setup; echo 220 >"$W/rc.footclient"; answer "pick yours alone" "pick your scripts"; config_
+not_called '^foot '; called '^notify-send -a desktop change the terminal server is not running'
+setup; copy_made; echo 220 >"$W/rc.footclient"; answer "pick history  "; config_
+not_called '^foot '; called '^notify-send -a desktop change the terminal server is not running'
 
 case_ "colours changed: the palettes drawn again in the copy before asking"
 setup; copy_made; echo change >"$W/edit"; answer "pick colours" esc; config_
@@ -155,8 +160,8 @@ eq "$(fz_n)" 1
 
 # ── the rest of the menu ──────────────────────────────────────────────────────────────
 case_ "what changed (no copy yet: made first), apply, history (lazygit in the copy)"
-setup; answer "pick what changed"; config_; called '^fedokawaii copy'; called '^kawa-float --once diff what changed 120x41 '
-setup; copy_made; answer "pick apply"; config_; called '^kawa-float --once apply apply 100x33 '
+setup; answer "pick what changed"; config_; called '^fedokawaii copy'; called '^kawa-float --once diff --dialog what changed 120x41 '
+setup; copy_made; answer "pick apply"; config_; called '^kawa-float --once apply --dialog apply 100x33 '
 setup; copy_made; answer "pick history  "; config_; called "^footclient -N -D $COPY -- lazygit$"
 case_ "yours alone: each file made the first time with a word of what it is for, then opened"
 for p in "shell additions:.bashrc.d/local.sh:Fedora's ~/.bashrc reads every" "autostart:.config/dwl/autostart.local.sh:run at every login" \

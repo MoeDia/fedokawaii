@@ -142,9 +142,9 @@ if ((NS)); then
   not_called '^busctl'; not_called '^bluetoothctl'
   case_ "an adapter, powered off: off"
   setup; echo 'b false' >"$W/bt"; eq "$(st bluetooth)" off
-  case_ "bluetoothd not running: off, at once (busctl fails; bluetoothctl gets 2 s at most)"
-  setup; : >"$W/bt"; SECONDS=0; eq "$(st bluetooth)" off
-  ((SECONDS <= 4)) && _ok || _no "took ${SECONDS}s"
+  case_ "bluetoothd not running: off, at once (busctl fails) — bluetoothctl never asked instead"
+  setup; : >"$W/bt"; reset_calls; SECONDS=0; eq "$(st bluetooth)" off
+  ((SECONDS <= 2)) && _ok || _no "took ${SECONDS}s"; not_called '^bluetoothctl'
   case_ "switching it: off → on → off, the state following"
   setup; echo 'b false' >"$W/bt"; rc 0 quick --do bluetooth; eq "$(st bluetooth)" on
   rc 0 quick --do bluetooth; eq "$(st bluetooth)" off

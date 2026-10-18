@@ -55,6 +55,16 @@ lit() {
   if [[ $1 == on ]]; then : >"$XDG_RUNTIME_DIR/kawa-drop.open"; else rm -f "$XDG_RUNTIME_DIR/kawa-drop.open"; fi
   kawa-dwlstatus --poke 15 2>/dev/null || true
 }
+# quick settings open (kawa-panel): closed first, SIGUSR2 — on the overlay, with the keyboard
+# its own, it would leave this menu no keys (found as kawa-quick finds it: its pid file, and
+# that pid's command line)
+panel_off() {
+  local p a
+  p=$(cat "${XDG_RUNTIME_DIR:-/run/user/$UID}/kawa-panel.pid" 2>/dev/null) || return 0
+  [[ $p =~ ^[1-9][0-9]*$ ]] && a=$(tr '\0' ' ' <"/proc/$p/cmdline" 2>/dev/null) && [[ $a == *kawa-panel* ]] \
+    && kill -USR2 "$p" 2>/dev/null
+  return 0
+}
 
 # ── one menu at a time ────────────────────────────────────────────────────────────────
 # $rec says which menu is on screen: fuzzel's pid, when (µs), how it stands — open; lost (a
@@ -98,6 +108,7 @@ if [[ -n $rec ]]; then
     flock -n -E 75 "$XDG_RUNTIME_DIR/fuzzel-$WAYLAND_DISPLAY.lock" true 2>/dev/null
     (($? == 75)) && exit 1
   fi
+  panel_off
   # fuzzel on the side, so its pid is known: it can then be closed by the next menu
   exec 3<&0
   exec 4< <(exec fuzzel "${args[@]}" <&3 3<&- 9>&-)
@@ -121,7 +132,7 @@ if [[ -n $rec ]]; then
   fi
   ((rc == 0)) || exit 1
 else
-  lit on; out=$(fuzzel "${args[@]}"); rc=$?; lit off
+  panel_off; lit on; out=$(fuzzel "${args[@]}"); rc=$?; lit off
   ((rc == 0)) || exit 1
 fi
 # Enter on a filter that matches nothing hands back the typed text (or -1): with --index,

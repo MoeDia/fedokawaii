@@ -1232,6 +1232,13 @@ can be run (and re-run) whenever you like, and **Both** runs them in order. To i
 only file you edit is `fedokawaii.conf`; everything else can be changed afterwards, the
 chapter 42 way.
 
+For a first install, choose **Both**. Setup ends by restarting and, as its very last step,
+removes `~/fedokawaii`, so after **Setup** alone there is no menu left to choose Theme from:
+the first login is plain dwl, without the bar. To get the look from there, press
+**Ctrl+Alt+F2**, log in on the text console, and run `fedokawaii theme` — the installed
+toolkit's own Theme, which asks for your password (§35.1). When it is done, `sudo reboot`, and
+log in at the login screen: the desktop now has its look.
+
 Each menu entry is also an argument of the same script, for running one part directly:
 
 ```sh
@@ -1617,16 +1624,17 @@ it is, and the cat.
 | 9 | **US / AR** | the keyboard layout, only when you have more than one (vermilion while it is not the first) | |
 | 10 | **memory** | the chip icon and how much memory the programs hold (`5.2G`), counted as btop and Windows count it — not the files Linux keeps in spare memory; vermilion past 85 % | opens btop |
 | 11 | **volume** | the speaker, its waves showing the level (none at 0, then one to four as it rises), and the number; *off* with the speaker crossed out (as the level display says) | the audio menu · right: mute · scroll: ±2 % |
-| 12 | **weather** | the sky's icon and the temperature (`☼ 31°`) of `WEATHER_CITY`; point at it for the city and the sky in words | the forecast for the next days |
-| 13 | **date, day, time** | `Wed 14 Oct` 水 `08:52:07 PM`: the date, the day of the week as a vermilion kanji seal (月 火 水 木 金 土 日, Monday to Sunday), the time to the second | the calendar |
-| 14 | **the cat** | quick settings; the cat smiles, filled vermilion, while the panel or any menu dropping from the bar is on screen | quick settings |
+| 12 | **brightness** | a sun from the desktop's Sumi Icons and the monitor's brightness in percent (`☼ 70%`). The sun grows with the level in five steps, as the speaker's waves do: a hollow disc when dim, then fuller, up to the whole sun with its rays when bright; there only while a monitor answers over DDC/CI (§8.1) | quick settings · scroll: ±10 %, as **Super+]** / **Super+[** |
+| 13 | **weather** | the sky's icon and the temperature (`☼ 31°`) of `WEATHER_CITY`; point at it for the city and the sky in words | the forecast for the next days |
+| 14 | **date, day, time** | `14 Oct` 水 `08:52:07 PM`: the date, the day of the week as a vermilion kanji seal (月 火 水 木 金 土 日, Monday to Sunday), the time to the second. The date leaves the weekday out, because the seal beside it already says the day; the lock and login screens write the date the same way | the calendar |
+| 15 | **the cat** | quick settings: the cat, centred between the last stitch and the screen's edge (13 px from each); it smiles, filled vermilion, while the panel or any menu dropping from the bar is on screen | quick settings |
 
 There is no tray: the few programs that would put an icon there either have a place of their
 own on the bar (Steam's gamepad) or a key. How busy the processor is shows in btop (a click on
 the memory).
 
-**Try this.** Click the clock (13): the calendar drops down; **Esc** closes it. Point at the
-volume (11) and turn the mouse wheel: the number moves 2 at a time. Click the cat (14): quick
+**Try this.** Click the clock (14): the calendar drops down; **Esc** closes it. Point at the
+volume (11) and turn the mouse wheel: the number moves 2 at a time. Click the cat (15): quick
 settings, and the cat smiles; **Esc** again.
 
 Which players show in *now playing* is in ch. 15; why the bar costs almost nothing
@@ -1639,7 +1647,8 @@ while it waits is in ch. 40.
 The **lock screen** (gtklock, started by `kawa-lock`) is the theme's plain ground — paper on
 ink, or ink on paper — with one column in the middle of each screen: the day of the week in a
 small vermilion seal, in kanji (月 Monday, 火 Tuesday, 水 Wednesday, 木 Thursday, 金 Friday,
-土 Saturday, 日 Sunday), the pixel padlock, the time and the date in the desktop's pixel letters,
+土 Saturday, 日 Sunday), the pixel padlock, the time and the date in the desktop's pixel letters
+(`14 Oct`, without the weekday: the seal already says it, as on the bar and the login screen),
 and one box for your password with `パスワード · password` under it. The pictures are drawn once,
 when the desktop is built, so the lock is up at once — before sleep too, so the lid can close.
 
@@ -1660,9 +1669,15 @@ unlocked; only the screens go dark:
 
 There is no hibernation: sleep is always *suspend* — memory kept powered, back in seconds at
 a key. (Hibernation writes memory to disk and switches off; setup turns it off for good in
-`/etc/systemd/sleep.conf.d/90-fedokawaii.conf`, and `verify` checks it.) A keyboard's Sleep
-key is dwl's, not the system's (`/etc/systemd/logind.conf.d/90-fedokawaii.conf`): the system
-would sleep first and lock as it woke. A video playing in
+`/etc/systemd/sleep.conf.d/90-fedokawaii.conf`, and `verify` checks it.)
+
+A keyboard's Sleep key belongs to the desktop, not to the system: dwl runs `kawa-power sleep`,
+which locks first and then sleeps. Left to the system, the key would put the machine to sleep
+first and lock it only as it woke. So setup tells the system to leave the key alone, and to
+give the lock up to 15 seconds before any other sleep — two lines in
+`/etc/systemd/logind.conf.d/90-fedokawaii.conf`, `HandleSuspendKey=ignore` and
+`InhibitDelayMaxSec=15` — and `verify` checks that the key is left to the desktop. A video
+playing in
 mpv or Brave keeps the screens on by itself. Both times are yours to change through your
 working copy (ch. 42): the 90 seconds are `sleep_after=90` in `bin/kawa-lock`, the hour is the
 `timeout 3600` of the `swayidle` line in `configs/home/.config/dwl/autostart.sh`.
@@ -1677,7 +1692,7 @@ it again.
 ## 6.7 Logging out, restarting and shutting down
 
 **Super+Shift+E** opens the power menu: five choices in a small box in the middle of the
-screen, and above them how long the machine has been up (*up 03h 07m*). Type a few letters or
+screen, and right above them, with no empty row between, how long the machine has been up (*up 03h 07m*). Type a few letters or
 use ↑ ↓, then **Enter**; **Esc** closes it.
 
 | Choice | Does | Your open windows |
@@ -2022,10 +2037,10 @@ or one click on the bar away. They all work the same way, so learning one teache
 
 **Quick settings** (**Super+X**, or the bar's cat at its right end) is a panel of its own,
 dropping down from the bar's right end. It never repeats what the bar right above it says (the
-day, the time, the weather, the volume's number). From the top:
+day, the time, the weather, the volume's and the brightness's numbers). From the top:
 
 - **two meters**: 明 *brightness* (the monitor's real backlight, over DDC/CI) and 音 *sound*,
-  twelve squares each, brightness's level beside them (sound's number is the bar's). Click or drag on the squares to set the
+  twelve squares each, with no number beside them: both numbers are on the bar (§6.5). Click or drag on the squares to set the
   level there, or turn the wheel over them (5 % a step). *no DDC/CI* or *muted* stands in
   place of the squares when there is no level to show. **Enter** on *sound* opens the audio
   menu (outputs, the microphone);
@@ -2085,7 +2100,10 @@ the wallpaper itself shown as you move — §9.2), the clipboard history (**Supe
 control (**Super+U** — §35.1). Each is one window at a time, and its own key pressed again
 closes it. Like a menu, it also closes when you click outside it, another window opens or you
 switch workspace — except for a dialog that opens over it (the file dialog, the password
-prompt), which you can answer first.
+prompt), which you can answer first. A long job is the other exception: one started from
+**Super+U** (*update*, *upgrade*, *repair*, *theme*, *settings*, *backup*) or from the change
+menu (*apply*, *what changed*) runs in a window that stays open when you click elsewhere or
+switch workspace, so you can do something else while it works.
 
 The volume, microphone and brightness keys show a **level display** for a moment at the bottom
 centre — also over fullscreen windows and while *do not disturb* is on. It is drawn like the
@@ -2230,9 +2248,14 @@ ordinary one, and a critical one with its vermilion border.
 |---|---|
 | ordinary | 5 seconds |
 | quiet (a program marks it *low* urgency) | 3 seconds |
-| the desktop's own (*Screenshot copied*, *… is now the output*) | 2.5 seconds |
+| the desktop's own (*screenshot copied*, *… is now the output*) | 2.5 seconds |
 | a drive's (*click to open it*) | 8 seconds |
 | critical — the vermilion border | until you click it |
+
+The desktop's own notices are titled in lower case, as its menus are — *backup*, *upkeep*,
+*sketch*, *workspaces* — with a name kept as it is spelt (*Steam*, *Bluetooth*). When a key
+needs a program that is not there, its notice names it and says how to mend it: *fuzzel is
+missing — fedokawaii repair puts it back* (§35.1).
 
 A **left click** closes a notice — except a drive's, which opens its files (ch. 13). A
 **right click** closes every notice on screen, and so does **Super+Shift+N**. `makoctl restore`
@@ -2332,9 +2355,10 @@ crests rise; both windows are light now, and so is the bar. Press it again for t
 
 <!-- fig:pack | The two default wallpapers, one place by night and by day: ink-ridges-night on the dark theme, ink-ridges on the light. -->
 
-**Super+W** (or *wallpaper* in quick settings) opens the picker: a small window with the
-current theme's wallpapers listed on top and, underneath, the one under the cursor — the
-picture itself, as your screen will show it, only smaller. Move with ↑/↓ or the mouse, type to search; **Enter** sets it, **Esc** leaves
+**Super+W** (or *wallpaper* in quick settings) opens the picker: a small window, 80
+columns by 37 rows (the clipboard window's width), with the current theme's wallpapers listed
+on top and, in the 18 rows underneath, the one under the cursor — the picture itself, as your
+screen will show it, only smaller. Move with ↑/↓ or the mouse, type to search; **Enter** sets it, **Esc** leaves
 everything as it was. A ◐ after a name means the place also comes in the other theme's light
 (see the pairs below), and choosing it sets both.
 
@@ -3391,7 +3415,8 @@ Type the second line as `cd ` and **Alt+.** — not by hand. Then `cd ..`, **Ctr
 `kyoto`, **Enter** twice: you are back in `kyoto`. `cd` takes you home.
 
 The full set — **Ctrl+T** to insert a path, **Alt+C** to jump into a folder, `**` and Tab, and
-the rest — is in §18.1.
+the rest — is in §18.1; ble.sh, which draws the suggestion, the colours and the menu, is
+§18.3.
 
 ## 11.9 foot, the terminal
 
@@ -3414,6 +3439,13 @@ and its marks are described in §11.3.
 | Ctrl++ · Ctrl+- · Ctrl+0 | larger · smaller · normal text (Ctrl+wheel too) |
 | double · triple · four clicks | select a word · the text inside the quotes around it (the whole line where there are none) · the whole line |
 | Ctrl+drag | select a rectangle, such as one column of `ll`'s output |
+
+**The letters.** The text is Fusion Pixel 12 at 24 px — twice its pixel grid, so every pixel
+of the font is a sharp 2 × 2 square; a Latin letter takes one cell, a kanji two. The font's own
+lines are exactly 24 px tall, so the tallest letters of one line would touch the next:
+`line-height=26px` in `foot.ini` puts 2 px of air — one pixel of the font — between lines.
+Each character cell is therefore 12 × 26 pixels, and `kawa-cell` typed in a terminal prints
+it (`12x26`).
 
 **Recommended.** A terminal started as `footclient -a float` opens floating and centred, like
 the network window from quick settings, btop from the bar and the clipboard history; good for
@@ -3636,7 +3668,7 @@ Three keys, one for each kind of picture:
 
 While you drag, everything outside the box is dimmed and the box is edged in vermilion. Print
 and Shift+Print do two things at once: they save the picture in `~/Pictures/Screenshots/`, and
-put it on the clipboard, ready to paste. A notice, *Screenshot copied*, shows a small square
+put it on the clipboard, ready to paste. A notice, *screenshot copied*, shows a small square
 cut from the picture and the file's name.
 
 Each file is named after the moment it was taken, `2026-10-16_09-12-03.png`; two in the same
@@ -6044,6 +6076,7 @@ plugin by plugin: [lazyvim.org/keymaps](https://www.lazyvim.org/keymaps), with t
 > - find an earlier command, a file or a folder by typing a few letters of it
 > - jump to a folder you use by one word of its name
 > - read, search and list files with `bat`, `rg`, `fd` and `eza`
+> - take, refuse or switch off ble.sh's suggestions, and read its colours
 >
 > **You need:** §11.8 (Tab, history and Ctrl+R) and ch. 17 (to edit what you find).
 
@@ -6058,7 +6091,7 @@ are in §11.3, the invisible OSC 7 / 133 marks in §40.7; this is the rest of wh
 file and `~/.inputrc` set. The typing itself is **ble.sh**'s, the *Bash Line Editor*: it
 colours the line as you type, offers the grey suggestion and draws the completion menu
 (§11.8) — in the terminal's sixteen colours, so a theme switch recolours it too. Its settings
-are `~/.config/blesh/init.sh`. A handful of small tools make it quicker, each doing one job:
+are `~/.config/blesh/init.sh` (§18.3). A handful of small tools make it quicker, each doing one job:
 
 | Tool | Job | Replaces |
 |---|---|---|
@@ -6182,11 +6215,73 @@ a few marks narrow the search:
 
 zoxide ranks by *frecency* — a score of how often and how recently you went to a folder — so
 the folder you live in wins after a day or two; `zoxide query -ls` lists the scores.
+zoxide's own commands are `z` and `zi`; this desktop starts it as `zoxide init bash --cmd cd`,
+which names them `cd` and `cdi` instead. On another machine with zoxide, type `z proj` and `zi`.
 
 **Read more:** `man rg`, `man fd` and `man fzf` (they open in neovim here), or `tldr` with any
 of these names.
 
-## 18.3 Practice: find a file, a word, a folder
+## 18.3 ble.sh, the line editor
+
+Bash reads what you type with a small library of its own, *readline*. **ble.sh**, the *Bash
+Line Editor*, takes over that one job: it is written in bash itself, and while you type it
+colours the line, offers the grey suggestion and draws the completion menu (§11.8). Fedora
+does not package it, so setup builds it from its source, at one pinned commit, into
+`~/.local/share/blesh` (`lib/upstream.sh`); `~/.bashrc.d/fedokawaii.sh` loads it first and
+attaches it last, once every alias and key is in place. It is here because it gives bash the
+comforts of the fish shell while the shell stays bash — the language every script, every
+server and this book speak.
+
+| You want | Keys or command |
+|---|---|
+| the whole grey suggestion | **→**, **End**, **Ctrl+F** or **Ctrl+E** |
+| one word of it | **Ctrl+→** or **Alt+F** |
+| the suggestion, run at once | **Ctrl+J** |
+| not the suggestion | type on, or **Enter**: only what you typed runs. **Ctrl+G** drops it |
+| a name finished | **Tab**; with several choices, the menu: Tab and the arrows move, typing narrows, **Esc** closes |
+| one shell without ble.sh | `ble-detach` — the next prompt is plain bash's readline; `ble-attach` brings it back |
+| a bare bash, nothing of this desktop's | `bash --norc` (no ble.sh, no aliases, a plain prompt); `exit` returns |
+| no suggestions in this shell | `bleopt complete_auto_complete=` (back: `bleopt complete_auto_complete=1`) |
+| which version runs | `echo $BLE_VERSION` |
+
+The colours say what bash will make of the line before you press **Enter**. They are the
+terminal's sixteen, so a theme switch recolours them too:
+
+| Colour | Means |
+|---|---|
+| asagi (teal) | a command bash can run |
+| vermilion | a mistake: a command it does not know, a quote never closed |
+| yamabuki (yellow) | quoted text |
+| indigo | options (`-l`), and the shell's joins: `|` `;` `&&` `>` |
+| wisteria | the shell's own words (`if`, `for`, `do`) and variables |
+| underlined | a file or folder that exists — a folder in indigo, a program in matcha |
+| faint | a comment, and the suggestion itself |
+
+**Where its settings live.** `~/.config/blesh/init.sh`, read while ble.sh loads: the colours
+above, the keys it hands to fzf and zoxide (Ctrl+R, Ctrl+T, Alt+C, `cd` completion), and the
+two things it is told to keep quiet — no bell, and no `[ble: exit 1]` lines, because the prompt
+already shows how a command ended (§11.3). That file is Theme's, put back at its next run
+(§42.5). A setting of your own goes in `~/.bashrc.d/local.sh` (§42.1), which is read after
+ble.sh has attached.
+
+**Try this.** Turn the suggestions off for one terminal, and back on.
+
+```text
+$ bleopt complete_auto_complete=
+$ cat
+$ bleopt complete_auto_complete=1
+```
+
+After the first line, type `cat ` slowly: no grey text follows it. Delete it, run the third
+line, and type `cat ` again: an earlier command reappears in grey. A new terminal starts with
+the suggestions on whatever you did here; to have them off for good, put the first line in
+`~/.bashrc.d/local.sh`.
+
+**Pitfall.** ble.sh reads the keys itself, so a `bind` line copied from a web page for
+readline may do nothing here; ble.sh's own `ble-bind` does that job (`ble-bind -P` lists every
+key). Its manual is the README in `~/.local/share/blesh/doc/`, and the project's page, [github.com/akinomyoga/ble.sh](https://github.com/akinomyoga/ble.sh).
+
+## 18.4 Practice: find a file, a word, a folder
 
 Five everyday "where is it?" questions, each answered from a terminal. Your files are your own,
 so your lines will differ: what matters is their shape.
@@ -7276,7 +7371,9 @@ Start **Steam** from the launcher. Its entry there is the desktop's own (`kawa-s
 place of Steam's entry of the same name): when Steam already runs in the background its window
 comes up at once; when it does not, Steam starts, with a notice — *starting Steam…*, or
 *updating itself* on its very first start — that goes once its window is there. `steam://`
-links (a game's page, an *Install* button on the web) go the same way. The library window
+links (a game's page, an *Install* button on the web) go the same way. Unlike Steam's own
+entry, it carries no hint to start on "the other GPU": with the processor's graphics left on,
+that would be the processor's, not the card the screen is on. The library window
 tiles on the workspace you are on, like any window; Steam's small windows (sign in, settings,
 friends, news) float, centred. Games open where you are too. Steam runs through XWayland, and
 its own interface ignores the desktop's themes (§39.2).
@@ -7810,7 +7907,7 @@ The whole picture, place by place, with who writes there and what may go:
 | `~/.config/fedokawaii/` | `env`, `themes/`, `current`, `icons.sh`, `width.sh`, `files.sh`, `backup-exclude`, `secrets.sh` | Theme (`env` is written from `fedokawaii.conf`); `secrets.sh` is yours | no |
 | `~/.local/bin` | `kawa-*` helpers, `fetch`, `brave-origin`, `kawa-veil`, `kawa-clipkeep`, the release binaries (`yazi`, `ya`, `satty`, `lazygit`, `bluetui`) | Theme and `update` | no. Your own scripts may live here too, under names the desktop does not use there |
 | `~/.local/share` | program data: Steam and its games, pipx's torrra, podman's images, the trash, neovim's plugins and Mason tools, the lock screen's pictures and the wallpaper pack | the programs themselves | no, not as a whole; see §38.1 and §38.2 for the parts you can trim |
-| `~/.local/state/fedokawaii/` | theme stamps, each theme's wallpaper choice, `backup/<time>/`, `lazy-lock/` (neovim's plugin versions before each update), `last-backup` (when kawa-backup last ran, for the menus), `together/` (the servers, rooms, names and server passwords you used watching together, §15.7) | Theme, `update` and the session | the old folders in `backup/` — the theme itself keeps only its newest 20 |
+| `~/.local/state/fedokawaii/` | theme stamps, each theme's wallpaper choice, `backup/<time>/`, `lazy-lock/` (neovim's plugin versions before each update), `last-backup` (when kawa-backup last ran, for the menus), `together/` (the servers, rooms, names and server passwords you used watching together, §15.7) | Theme, `update` and the session | the old folders in `backup/` — the theme itself keeps only its newest 10 |
 | `~/.cache` | logs, previews, the scaled wallpapers, the clipboard history, launcher counts | the programs | yes, piece by piece; every program rebuilds its part (§38.2) |
 | `~/Downloads` | what Brave, torrra and yt-dlp fetch | the programs | yes — and its space comes back at once: it is its own Btrfs subvolume, outside every snapshot |
 | `~/Pictures/Screenshots` | Print, Shift+Print, satty's Ctrl+S, mpv's `s` | the screenshot tools | yes, whenever you like |
@@ -9320,8 +9417,8 @@ its seven settings, each with what it does and DNF's own default:
 max_parallel_downloads=10
 # use the mirror that connects fastest (default off)
 fastestmirror=True
-# a mirror sending 50 kB/s or less …
-minrate=50k
+# a mirror sending 5 kB/s or less …
+minrate=5k
 # … for 20 seconds is dropped (defaults: 1000 bytes/s, 30 s)
 timeout=20
 # two kernels at most while an update installs a new one (default 3; 2 is DNF 5's minimum —
@@ -9357,11 +9454,11 @@ exclude_from_weak = nodejs,nodejs22*,PackageKit,java-*-openjdk-headless,libreoff
 fastestmirror = 1
 installonly_limit = 2
 max_parallel_downloads = 10
-minrate = 51200
+minrate = 5120
 timeout = 20
 ```
 
-(`minrate` is shown in bytes: 50k = 51 200.) *Read more:* [dnf5.conf(5)](https://dnf5.readthedocs.io/en/latest/dnf5.conf.5.html).
+(`minrate` is shown in bytes: 5k = 5 120.) *Read more:* [dnf5.conf(5)](https://dnf5.readthedocs.io/en/latest/dnf5.conf.5.html).
 
 ## 27.4 Weak dependencies, install reasons and groups
 
@@ -11844,7 +11941,9 @@ window with nothing to search, only fifteen entries in three parts (守 upkeep, 
 at the right of each saying what is due, and beside them a pane with how things stand for the
 entry under the cursor. **Enter** runs it in the same window — what changes the system asks
 for your password — and a key afterwards brings the menu back with its marks brought up to
-date; **Esc** (or **q**) closes it.
+date; **Esc** (or **q**) closes it. The long jobs — *update*, *upgrade*, *repair*, *theme*,
+*settings*, *backup* — run in a window that stays open when you click elsewhere or switch
+workspace (§8.1): leave it working, and come back to it.
 
 | Entry | Does | Its mark |
 |---|---|---|
@@ -12610,6 +12709,22 @@ PATH ID` takes the file from an older one.
 | `kawa-backup where` | where the backup is right now — or why the drive cannot be reached |
 | `fedokawaii status` | the last backup's day, on the status page (and the age at the right of the menu's *backup* entry) |
 
+**restic by hand.** `kawa-backup` is a thin layer over restic, and restic itself answers
+questions it does not ask. Tell restic where the backup is and its password — both are
+already known to your shell — and it reads the drive directly:
+
+```sh
+export RESTIC_REPOSITORY=$(kawa-backup where) RESTIC_PASSWORD   # the drive plugged in
+restic snapshots                    # every backup: id, date, what it holds
+restic ls latest ~/Documents        # the files the newest backup holds below a folder
+restic find expenses.ods            # which backups hold a file of that name
+restic diff 1d979833 5c2e7a10       # what changed between two backups (ids from the list)
+restic stats                        # how much the backups hold
+```
+
+These change nothing in the backups. Leave the rest — a backup, `forget`, `prune` — to `kawa-backup`, which knows
+which folders to leave out and how many backups to keep.
+
 **What is left out, and why.** The whole of your home goes, except what is listed in
 `~/.config/fedokawaii/backup-exclude`. First `~/Downloads`, by the same rule as the snapshots
 (§37.2): it holds arrivals — torrents, ISO files, installers — which are big and can be
@@ -13363,7 +13478,7 @@ checks that each one is still a palette colour (it stops if not).
 
 | Font | Where | Why |
 |---|---|---|
-| **Fusion Pixel 12** (`Fusion Pixel 12px Mono ja`) | everything the desktop draws itself: the terminal and all in it (neovim, yazi, btop…) at 24 px; the bar, menus and notifications at 12 px; the lock and login screens; the boot menu at 24, 36 or 48 px; the game overlay | one pixel font with Latin, kana and kanji in one face, on a 12 px grid — set at 12 px or a whole multiple, never in points, with smoothing off. Installed for every account in `/usr/local/share/fonts/fusion-pixel`, because the login screen runs as its own user |
+| **Fusion Pixel 12** (`Fusion Pixel 12px Mono ja`) | everything the desktop draws itself: the terminal and all in it (neovim, yazi, btop…) at 24 px, on 26 px lines (§11.9); the bar, menus and notifications at 12 px; the lock and login screens; the boot menu at 24, 36 or 48 px; the game overlay | one pixel font with Latin, kana and kanji in one face, on a 12 px grid — set at 12 px or a whole multiple, never in points, with smoothing off. Installed for every account in `/usr/local/share/fonts/fusion-pixel`, because the login screen runs as its own user |
 | **Sumi Icons** | every icon in the bar, menus and notifications — and, as *Sumi Icons Term*, in the prompt, fetch and the clipboard and wallpaper windows | the desktop's own icon font, built from `art/icons.txt` on the same grid |
 | **JetBrains Mono** (Nerd Font) | the `monospace` font of GTK and Qt programs; in the terminal, only the symbols Fusion Pixel lacks (yazi's file icons) | readable code in apps, and the Nerd Font symbols terminal programs draw |
 | **Noto Sans CJK** | Japanese, Chinese and Korean in programs, web pages and subtitles | a full, smooth face where text is read at length |
@@ -14059,10 +14174,26 @@ in *Status* are current. Reading them, in a repository called `notes`:
 | `↓1 notes → main` | one commit on the remote, not here yet | **p** |
 | `↓1↑1 notes → main` | both sides moved on: the branch has *diverged* | **p** (it merges), then **P** |
 
-**GitHub from the terminal: gh.** `gh auth login` once (it opens Brave to sign in, and keeps
-a token for git too: no SSH key needed), then `gh repo create notes --private --source . --push`
-makes the repository and pushes in one step; `gh repo clone USER/NAME` fetches one;
-`gh pr create`, `gh issue list` and `gh release download` do the rest without the website.
+**GitHub from the terminal: gh.** gh is GitHub's own command-line program. Sign in once, and
+the website's everyday jobs — a new repository, a clone, an issue, a pull request — are one
+line each, in the folder you are already in. Its sign-in is kept in `~/.config/gh/`, and it
+serves git too, so a push over HTTPS asks for no token and needs no SSH key.
+
+| Command | Does |
+|---|---|
+| `gh auth login` | sign in, once: choose *GitHub.com*, *HTTPS*, *Yes* to git, then *Login with a web browser* — Brave opens to confirm a short code |
+| `gh auth status` | which account is signed in, and whether its token still works |
+| `gh repo create notes --private --source . --push` | this folder's repository on GitHub, private, pushed in one step |
+| `gh repo clone USER/NAME` | a copy of a repository, its remote already set |
+| `gh browse` | this repository's page in Brave |
+| `gh issue list` · `gh issue create` | the open issues · a new one, asked for line by line |
+| `gh pr create` · `gh pr list` · `gh pr checkout 12` | a pull request from this branch · the open ones · pull request 12 as a local branch |
+| `gh release download --repo OWNER/NAME` | the files of a project's newest release, here |
+
+**Recipe: put a new folder on GitHub.** In the folder, with a first commit made (§41.6):
+`gh auth status` (sign in if it says so), then
+`gh repo create notes --private --source . --push`, then `gh browse` to see it there. From
+then on **P** in lazygit pushes to it.
 
 After amending or rebasing commits that were already pushed, **P** says the branch has diverged
 and offers a *force push*: Enter replaces the remote's history with yours. lazygit pushes with
@@ -15270,6 +15401,35 @@ a package is §42.11.
 | GitHub | gh | make, clone and push repositories, pull requests and releases from the terminal; its sign-in serves git too |
 | the graphics card in btop | rocm-smi | the library btop opens to read an AMD card; without it btop shows no GPU |
 
+**The quiet pieces.** These each do one small job that the desktop's own scripts, or other
+programs, call for you; you meet most of them only by name, in `PACKAGES.md` or in verify's
+report.
+
+| Package | What it is | How it serves here |
+|---|---|---|
+| diffutils | `diff` and `cmp`: how two files differ · whether they differ at all | `fedokawaii diff` and the checks compare your working copy with the toolkit (§42.4) |
+| man-db | the `man` command and its index | the manuals; they open in neovim here (§11.7) |
+| bash-completion | Tab completion for the options of hundreds of commands | `git che`, Tab, finishes `checkout`; `dnf in`, Tab, `install` (§11.8) |
+| pciutils · usbutils | `lspci` · `lsusb` | which device is which, and which driver holds it (§30.5) |
+| NetworkManager-tui | `nmtui`, NetworkManager's menu in a terminal | the *network* window of quick settings (§8.2) |
+| libva-utils | `vainfo` | verify asks it whether the graphics card decodes video (§27.8) |
+| grim · slurp | a screenshot of an output or a region · drawing that region with the mouse | the two halves of `kawa-screenshot` (§12.2) |
+| wtype | types keys as if from the keyboard | a click on a workspace in the bar presses Super+1…9 (`kawa-tag`) |
+| gtk-layer-shell | lets a GTK window sit on a layer of the screen, as the bar does | quick settings' panel (`kawa-panel`) drops from the bar (§31.4) |
+| exfatprogs · dosfstools · ntfs-3g | the tools to check, repair and name exFAT, FAT and NTFS drives | a USB stick or SD card checked or renamed (§13.6) |
+| xdg-terminal-exec | the standard way for a program to ask for "a terminal" | such a program gets foot (`~/.config/xdg-terminals.list`) |
+| udisks2 · lxqt-policykit | the service that mounts drives · the small window that asks your password for a system action | what udiskie asks to mount (§32.6) · the password prompt over the desktop (§24.4) |
+| dconf · glib2 · fontconfig | GTK's settings store (`gsettings`, `gio`) · the font library (`fc-match`, `fc-cache`) | dark or light for GTK 4 programs · the right font for every script (§40.3) |
+| adw-gtk3-theme · qt6ct · papirus-icon-theme | the GTK 3 theme that matches GTK 4 · Qt's settings · the launcher's icons | GTK and Qt programs in the desktop's two palettes (§40.2) · the icons in the launcher (§14.1) |
+| hunspell-en · hunspell-ar | spelling dictionaries, English and Arabic | LibreOffice underlines a misspelt word (§16.4) |
+| poppler-utils | `pdftotext`, `pdfinfo`, `pdftoppm`, `pdfunite` and their kin | text out of a PDF, pages to pictures (ch. 19) |
+| 7zip | `7z`: zip, 7z, ISO and RAR archives | packing and unpacking (§19.10) |
+| libdnf5-plugin-actions | runs a command before and after each DNF transaction | the *pre* and *post* snapshot around every install (`kawa-snap`, §37.2) |
+| tree-sitter-cli · ShellCheck | builds the parsers neovim colours code with · finds mistakes in shell scripts | LazyVim's syntax colours (ch. 17) · `shellcheck script` explains a mistake (§25.6), and `fedokawaii apply` reads the scripts you changed |
+| fwupd | `fwupdmgr`: firmware for the SSD, motherboard and dock, from the LVFS | *update* lists what is new; `fwupdmgr update` applies it when you choose (§30.1) |
+| tuned | sets the processor, disks and network for a desktop that is always plugged in | the *fedokawaii* profile (§30.4) |
+| steam-devices · ntsync-autoload | the rules that let Steam open a controller · `/dev/ntsync` at boot | a gamepad works in games · Proton's faster Windows synchronisation (ch. 21) |
+
 **Removed as redundant** across versions: tuigreet and agreety (kawa-greet), wlogout (a
 fuzzel menu), fastfetch (own `fetch`), a separate clock script (waybar's clock), starship
 (native prompt), GStreamer plugins (nothing uses them), and the Rust toolchain (release
@@ -15352,6 +15512,7 @@ $ xdg-user-dir DOWNLOAD
 | `/etc/profile.d/editor.sh` · `/etc/profile.d/kawa-torrra.sh` · `/etc/modules-load.d/fedokawaii-i2c.conf` | neovim as the editor · `torrra` run through `kawa-torrra` · `i2c-dev` at every start (monitor brightness) |
 | `/etc/systemd/system/fedokawaii-scrub.{service,timer}` | the monthly Btrfs scrub (§38.2) |
 | `/etc/systemd/system/user@.service.d/fedokawaii.conf` | at shutdown, your own systemd gets 30 s to stop Prowlarr and the portals |
+| `/etc/systemd/sleep.conf.d/90-fedokawaii.conf` · `/etc/systemd/logind.conf.d/90-fedokawaii.conf` | sleep is suspend only, no hibernation · the Sleep key left to the desktop, and any other sleep waits up to 15 s for the lock (§6.6) |
 | `/etc/default/grub` · `/etc/vconsole.conf` | the boot menu's theme, mode and timeout · the console's font (lines set by Theme) |
 | `/etc/dconf/db/local.d/00-fedokawaii` | GTK's defaults: theme, icons, pointers, fonts; LibreOffice's language for right-to-left text (Arabic) |
 | `/var/lib/lpf/` · `/usr/share/lpf/` | lpf's: Spotify's recipe and terms, its build account's home (`pkg-build`), the state of each build and its log (`log/spotify-client.log`) |
@@ -15698,6 +15859,34 @@ The keys and the bar run these; each also works typed in a terminal, and each sa
 | `kawa-display` | every monitor at its best refresh rate (≤ `MONITOR_HZ`) | `kawa-display` |
 | `kawa-prowlarr` | Prowlarr's web page (it starts when asked, sleeps after) · asleep now | `kawa-prowlarr stop` |
 | `fetch` | the small system summary with a pixel picture | `fetch` |
+| `kawa-help` | every keybinding in one list, type to filter (Super+/) | `kawa-help` |
+| `kawa-power` | the power menu (Super+Shift+E) · `sleep`: locked, then asleep, with no menu (the Sleep key) | `kawa-power sleep` |
+| `kawa-lock` | the lock screen · `--sleep`: still locked 90 seconds later, the computer sleeps (Super+Escape) | `kawa-lock` |
+| `kawa-audio` | the audio menu: louder, quieter, mute, the output and the input (Super+A) | `kawa-audio` |
+| `kawa-calendar` | this month, today in [brackets] (a click on the clock) | `kawa-calendar` |
+| `kawa-quick` | quick settings (Super+X) · how each tile stands · one tile's action | `kawa-quick --state` · `kawa-quick --do night` |
+| `kawa-config` | the change menu: a part of the desktop to edit in your working copy (Super+Shift+U, ch. 42) | `kawa-config` |
+| `kawa-clipfiles` | files on the clipboard, as yazi's Ctrl+C, Ctrl+X and Ctrl+V do | `kawa-clipfiles copy a.pdf` · `kawa-clipfiles paste ~/Documents` |
+| `kawa-cell` | the terminal's character cell in pixels; no answer from the terminal: nothing printed, exit 1 — never a guess | `kawa-cell` → `12x26` |
+| `kawa-menu` | one small menu in the desktop's look: each line of its input is a choice, the chosen one is printed | `kawa-menu --title pick < list.txt` |
+
+The rest are called by the bar, the keys and other programs, not by you; each still answers
+`--help`:
+
+| Command | Who runs it | Does |
+|---|---|---|
+| `kawa-osd` | the volume, microphone and brightness keys | the level display at the bottom centre (§8.1) |
+| `kawa-tag` | a click on a workspace or the layout icon in the bar | presses Super+1…9, or picks the next or previous layout |
+| `kawa-dwlstatus` | the session, reading dwl's status | the bar's workspaces, layout, title and keyboard layout |
+| `kawa-nowplaying` · `kawa-mem` | the bar | *now playing* (and its clicks) · the memory figure |
+| `kawa-panel` | the session, hidden until asked | draws quick settings; `kawa-quick` knows the machine behind it |
+| `kawa-pick` | the file chooser portal | the file dialog: yazi in a window (§10.4) |
+| `kawa-share` | xdg-desktop-portal-wlr, when an app shares the screen | asks what to share (§14.4) |
+| `kawa-sixel` | the books, clipboard and wallpaper windows | a picture as a sixel, drawn exactly, in the terminal |
+| `brave-origin` (in `~/.local/bin`) | Super+B, the launcher and every link you open | Brave Origin, started so a shared screen can carry the computer's sound (§14.4) |
+| `kawa-greet` · `start-dwl` | greetd | the login screen (§6.1) · the session it starts: dwl and its autostart (§29.9) |
+| `kawa-snap` | DNF, around every transaction | the *pre* and *post* snapshots (§37.2) |
+| `kawa-torrra` | the launcher's *Torrents*, and `torrra` typed in a terminal | torrra with the Prowlarr key from `secrets.sh` (ch. 20) |
 
 # E. Glossary, A–Z
 

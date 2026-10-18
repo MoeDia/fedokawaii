@@ -56,11 +56,14 @@ lacks "$out" /dev/sr0 "an empty DVD drive (nothing to open)"
 lacks "$out" $'/dev/sdc1\t' "the locked-and-unlocked LUKS container itself (its inside is listed)"
 eq "$(wc -l <<<"$out")" 5 "five file systems"
 
-case_ "udisks not answering: removable, hot-plugged, USB and MMC by the kernel's word; no images"
+case_ "udisks not answering: nothing listed, and said — never a guess from the kernel's removable, hot-plugged, USB flags"
 stub busctl 'exit 1'
-out=$(kawa-drives list)
-has "$out" /dev/sdb1; has "$out" /dev/mmcblk0p1; has "$out" /dev/sdc2
-lacks "$out" nvme0n1; lacks "$out" /dev/loop0 "an image needs udisks' word that it is yours"
+out=$(kawa-drives list 2>/dev/null); eq "$?" 1; eq "$out" ""
+has "$(kawa-drives list 2>&1 >/dev/null)" "udisks is not answering"
+eq "$(kawa-drives bar)" '{"text":""}' "the bar: no mark"
+stub kawa-menu 'cat >"'"$TMP"'/rows"; exit 1'; kawa-drives menu
+has "$(cat "$TMP/rows")" "udisks is not answering"; lacks "$(cat "$TMP/rows")" "nothing plugged in"
+stub kawa-menu 'cat >/dev/null; exit 1'
 
 case_ "no drives at all: an empty list, an empty bar"
 setup; printf '{"blockdevices": []}\n' >"$FAKE_DISKS"

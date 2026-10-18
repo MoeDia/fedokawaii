@@ -72,7 +72,7 @@ ROWS = {
     "Super+scroll":            ("volume ±2 %", ["spawn:kawa-volume up 2", "spawn:kawa-volume down 2"]),
     "Super+] / Super+[":       ("monitor brightness up / down", ["spawn:kawa-brightness +10", "spawn:kawa-brightness -10"]),
     "Brightness keys":         ("the same", ["spawn:kawa-brightness +10", "spawn:kawa-brightness -10"]),
-    "Sleep key":               ("locked first, then asleep", ["spawn:kawa-power sleep"]),
+    "Sleep key":               ("locked first, then asleep", ["spawn:kawa-power sleep", "spawn:kawa-power sleep"]),
     "Super+Ctrl+Shift+Q":      ("log out (quit dwl)", ["quit:0"]),
     "Ctrl+Alt+F2…F6":          ("text consoles", [f"chvt:({n})" for n in range(2, 7)]),
     "Ctrl+Alt+F1":             ("back here", ["chvt:(1)"]),
@@ -83,7 +83,7 @@ KEYS = {"Return": "Return", "Space": "space", "/": "slash", "Escape": "Escape", 
 MEDIA = {"Volume": ["XF86AudioRaiseVolume", "XF86AudioLowerVolume"], "Mute": ["XF86AudioMute"],
          "Mic": ["XF86AudioMicMute"], "Play": ["XF86AudioPlay"], "Next": ["XF86AudioNext"],
          "Previous": ["XF86AudioPrev"], "Brightness keys": ["XF86MonBrightnessUp", "XF86MonBrightnessDown"],
-         "Sleep key": ["XF86Sleep"]}
+         "Sleep key": ["XF86Sleep", "XF86Suspend"]}
 POINTER = {"drag": "BTN_LEFT", "right-drag": "BTN_RIGHT", "middle-click": "BTN_MIDDLE", "scroll": None}
 
 

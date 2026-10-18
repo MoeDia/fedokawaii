@@ -41,9 +41,10 @@ case ${1:-} in
     command -v steam >/dev/null && warm_on || exit 0
     sleep 60
     running && exit 0
-    # -silent: no window; low CPU priority and idle I/O (a scope of its own): it never slows
-    # the first minutes of the session
-    setsid -f systemd-run --user --scope --quiet -p Nice=10 -p IOSchedulingClass=idle steam -silent </dev/null >/dev/null 2>&1
+    # -silent: no window, a minute into the session (in a scope of its own). No lower priority:
+    # the games Steam starts are its children and would inherit it (and a scope takes no
+    # Nice= or IOSchedulingClass= — systemd-run refuses them)
+    setsid -f systemd-run --user --scope --quiet -- steam -silent </dev/null >/dev/null 2>&1
     exit 0 ;;
   --menu)
     command -v steam >/dev/null || exit 1

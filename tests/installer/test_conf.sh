@@ -143,10 +143,13 @@ done
 [[ ! -e $TMP/ran ]] && _ok || _no "a BACKUP_TARGET was run as a command"
 case_ "BACKUP_REMIND_DAYS: 0 (off) to 365; anything else named with its rule"
 for d in 0 1 7 30 365; do variant -e "s|^BACKUP_REMIND_DAYS=.*|BACKUP_REMIND_DAYS=\"$d\"|"; eq "$(problems)" "" "BACKUP_REMIND_DAYS=$d"; done
-for d in 366 -1 7.5 soon ""; do
+for d in 366 -1 7.5 soon "" 08 007; do
   variant -e "s|^BACKUP_REMIND_DAYS=.*|BACKUP_REMIND_DAYS=\"$d\"|"
   has "$(problems)" "BACKUP_REMIND_DAYS must be 0–365 (0 = no reminder) (is '$d')" "BACKUP_REMIND_DAYS=$d"
 done
+case_ "a number with a leading zero (08, 0144: bash would read it as octal, or refuse it): named"
+variant -e 's/^MONITOR_HZ=.*/MONITOR_HZ="0144"/' -e 's/^DNF_PARALLEL=.*/DNF_PARALLEL="08"/'
+p=$(problems); has "$p" "MONITOR_HZ must be a number 30–540 (is '0144')"; has "$p" "DNF_PARALLEL must be 1–20, dnf5's maximum (is '08')"
 case_ "the backup lines deleted (a fedokawaii.conf from before them): each named as missing"
 variant -e '/^BACKUP_TARGET=/d' -e '/^BACKUP_REMIND_DAYS=/d'
 p=$(problems); eq "$(lines "$p")" 2; has "$p" 'BACKUP_TARGET is missing'; has "$p" 'BACKUP_REMIND_DAYS is missing'

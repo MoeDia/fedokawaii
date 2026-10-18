@@ -151,7 +151,9 @@ static const Key keys[] = {
 	{ MODKEY|SHIFT,    XKB_KEY_n,                 spawn,            SHCMD("makoctl dismiss -a") },
 	{ MODKEY,          XKB_KEY_Escape,            spawn,            SHCMD("kawa-lock --sleep") },
 	{ MODKEY|SHIFT,    XKB_KEY_e,                 spawn,            SHCMD("kawa-power") },
-	{ 0,               XKB_KEY_XF86Sleep,         spawn,            SHCMD("kawa-power sleep") },   /* (logind leaves the key to dwl: setup.sh) */
+	/* the keyboard's sleep key (some send Sleep, some Suspend): logind leaves both to dwl (setup.sh) */
+	{ 0,               XKB_KEY_XF86Sleep,         spawn,            SHCMD("kawa-power sleep") },
+	{ 0,               XKB_KEY_XF86Suspend,       spawn,            SHCMD("kawa-power sleep") },
 	/* ── screenshots ── */
 	{ 0,               XKB_KEY_Print,             spawn,            SHCMD("kawa-screenshot region") },
 	{ SHIFT,           XKB_KEY_Print,             spawn,            SHCMD("kawa-screenshot full") },

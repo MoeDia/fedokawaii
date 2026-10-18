@@ -110,6 +110,23 @@ as_user() {
     "$@"
 }
 
+# prune_theme_backups [AS…] — theme.sh's backup folders (one per run that replaced something,
+# named for its time: YYYYMMDD-HHMMSS) past the newest ten removed, by AS (as_user from root:
+# in your home root never deletes through a path you could have made a link; nothing when the
+# caller is you already). Only folders named so: anything else there is left alone.
+# → how many were removed
+THEME_BACKUPS_KEPT=10
+prune_theme_backups() {
+  local f=$TARGET_HOME/.local/state/fedokawaii/backup d n=0
+  if [[ -d $f && ! -L $f ]]; then
+    while IFS= read -r d; do
+      "$@" rm -rf --one-file-system -- "$f/$d" && n=$((n + 1))
+    done < <("$@" find "$f" -mindepth 1 -maxdepth 1 -type d -regextype posix-extended \
+               -regex '.*/[0-9]{8}-[0-9]{6}' -printf '%f\n' | sort -r | tail -n +$((THEME_BACKUPS_KEPT + 1)))
+  fi
+  echo "$n"
+}
+
 # pw_steady — PipeWire and WirePlumber run, and keep running: the same PipeWire process 3 s
 # later (one that crashes at every start is "active" for a moment between crashes; verify and
 # repair both ask this). 0 steady · 1 not
@@ -171,6 +188,12 @@ PROJECT_TOP=(PACKAGES.md README.md art bin check.sh configs docs fedokawaii.conf
 # verify.sh checks them): the splash's rhgb quiet, and no console-size wait at boot
 # shellcheck disable=SC2034  # (setup.sh and verify.sh read it)
 BOOT_ARGS=(rhgb quiet systemd.tty.term.console=dumb)
+# an AMD card's: LACT's clocks, voltages and fan curves need OverDrive (bit 14), which amdgpu
+# leaves off: its default mask (0xfff7bfff) plus that bit. Not 0xffffffff — that also switches
+# on GFX DCS (bit 19), which amdgpu keeps off as unstable (flicker, hangs on some cards).
+# (setup.sh puts it on every boot entry, verify.sh checks this exact value)
+# shellcheck disable=SC2034  # (setup.sh and verify.sh read it)
+AMDGPU_ARG=amdgpu.ppfeaturemask=0xfff7ffff
 wlr_home() { echo "/usr/local/lib/fedokawaii-wlroots-$DWL_WLROOTS"; }   # (beside the toolkit, never inside: a new toolkit replaces that folder whole)
 wlr_kept() {
   local h; h=$(wlr_home)
@@ -241,9 +264,9 @@ validate_conf() {                   # prints one line per problem; empty = valid
   [[ $THEME =~ ^(dark|light)$ ]]                || echo "THEME must be dark or light (is '$THEME')"
   [[ $WALLPAPER_PACK =~ ^(yes|no)$ ]]           || echo "WALLPAPER_PACK must be yes or no (is '$WALLPAPER_PACK')"
   [[ $BOOT_MENU_SECONDS =~ ^([0-9]|10)$ ]]      || echo "BOOT_MENU_SECONDS must be 0–10 (is '$BOOT_MENU_SECONDS')"
-  [[ $MONITOR_HZ =~ ^[0-9]+$ ]] && ((MONITOR_HZ >= 30 && MONITOR_HZ <= 540)) \
+  [[ $MONITOR_HZ =~ ^[1-9][0-9]*$ ]] && ((MONITOR_HZ >= 30 && MONITOR_HZ <= 540)) \
                                                 || echo "MONITOR_HZ must be a number 30–540 (is '$MONITOR_HZ')"
-  [[ $DNF_PARALLEL =~ ^[0-9]+$ ]] && ((DNF_PARALLEL >= 1 && DNF_PARALLEL <= 20)) \
+  [[ $DNF_PARALLEL =~ ^[1-9][0-9]*$ ]] && ((DNF_PARALLEL >= 1 && DNF_PARALLEL <= 20)) \
                                                 || echo "DNF_PARALLEL must be 1–20, dnf5's maximum (is '$DNF_PARALLEL')"
   [[ $TIMEZONE =~ ^[A-Za-z0-9_+-]+(/[A-Za-z0-9_+-]+)*$ && -f /usr/share/zoneinfo/$TIMEZONE ]] \
                                                 || echo "TIMEZONE '$TIMEZONE' is not a known zone (see timedatectl list-timezones)"
@@ -258,7 +281,7 @@ validate_conf() {                   # prints one line per problem; empty = valid
   local target_re="^[[:alnum:]/][[:alnum:] ._:/@+=,-]*$"
   [[ -z $BACKUP_TARGET || $BACKUP_TARGET =~ $target_re ]] \
                                                 || echo "BACKUP_TARGET must be a drive's name, a folder's path or a restic address like sftp:you@nas:/backups (is '$BACKUP_TARGET')"
-  [[ $BACKUP_REMIND_DAYS =~ ^[0-9]+$ ]] && ((BACKUP_REMIND_DAYS <= 365)) \
+  [[ $BACKUP_REMIND_DAYS =~ ^(0|[1-9][0-9]*)$ ]] && ((BACKUP_REMIND_DAYS <= 365)) \
                                                 || echo "BACKUP_REMIND_DAYS must be 0–365 (0 = no reminder) (is '$BACKUP_REMIND_DAYS')"
   [[ $DWL_TAG =~ ^v[0-9]+\.[0-9]+(\.[0-9]+)?$ ]] || echo "DWL_TAG must look like v0.9 (is '$DWL_TAG')"
   [[ $DWL_COMMIT =~ ^[0-9a-f]{40}$ ]]           || echo "DWL_COMMIT must be the 40-character commit of $DWL_TAG"

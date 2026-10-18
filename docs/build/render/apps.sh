@@ -148,7 +148,8 @@ stage() {
 
 # apps.sh: the applications at the sizes of the handbook's shots (dwl would tile them; the
 # file chooser it floats and centres, as here)
-for_window [app_id="^app-"] floating enable, resize set 1104 704, move position center
+# (the app windows centred under the bar: 176 px above and below them)
+for_window [app_id="^app-"] floating enable, resize set 1104 704, move position center, move down 4 px
 for_window [app_id="^mpv$"] floating enable, move position center
 for_window [app_id="^org.pwmt.zathura$"] floating enable, resize set 1104 764, move position center
 for_window [app_id="^kawa-dialog$"] floating enable, move position center   # (kawa-float --dialog: the file dialog)

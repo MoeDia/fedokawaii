@@ -37,7 +37,7 @@ bin/               the kawa-* helpers (→ ~/.local/bin): menus, bar modules, th
 configs/           what theme installs: home/ mirrors $HOME (foot, waybar, fuzzel, mako, gtk,
                    qt, bash, nvim, both themes, the pixel art, the icon font) · system/ mirrors /etc
 art/               source art: icons.txt (every icon, drawn as text) · cursors.txt (the pointers,
-                   drawn as text) · grub/ (torii, Departure Mono)
+                   drawn as text) · grub/ (torii, Fusion Pixel)
 tools/             generators: build-icons.py (Sumi Icons, and its terminal cut) · build-themes.py
                    (one palette → every app) · build-cursors.py (the pointers)
 tests/             the self-tests: every helper, the engine and the installer, edge case by edge
@@ -57,17 +57,20 @@ PACKAGES.md        what is installed, from where, and why
   notifications, GTK, Qt, Brave (in its GTK mode), mpv, btop, zathura, the lock screen and the
   wallpaper all follow, live. Every colour used for reading reaches 4.5 : 1; only decoration
   meant to recede sits lower.
-- **Pixel fonts and pixel icons**: Departure Mono on its 11 px grid, and *Sumi Icons* —
-  icons drawn for this desktop (`art/icons.txt`), no icon packs in the bar or menus.
+- **One pixel font and pixel icons**: Fusion Pixel 12 (Latin, kana and kanji in one face) —
+  the terminal at 24 px on 26 px lines, the bar, menus and notices at 12 px — and *Sumi
+  Icons*, icons drawn for this desktop (`art/icons.txt`), no icon packs in the bar or menus.
 - **Full borders**: every window has a plain 2-pixel border — vermilion for the focused one,
   warm grey for the others; menus and notices are solid cards with the same warm-grey border.
-- **The bar**: a vermilion torii key (launcher), workspaces as keyboard keys (1–3 always,
-  more as you use them), the layout as an icon, the window title; in the middle, what is
-  playing between the two halves of a fluorescent-display spectrum meter, with a cassette
+- **The bar**: a vermilion torii key (launcher), workspaces as kanji numerals (一 二 三
+  always, more as you use them), the layout as an icon, the window title; in the middle, what
+  is playing between the two halves of a fluorescent-display spectrum meter, with a cassette
   whose reels turn; on the right a seal while do-not-disturb (静) or screen sharing (共有)
-  is on, the tray, a drive mark while a USB drive is plugged in, the keyboard layout
-  (US / AR), CPU history and load, volume, date, the weekday as a kanji seal, time to the
-  second, and the quick-settings key.
+  is on, a drive mark while a USB drive is plugged in, Steam's gamepad while it runs, the
+  keyboard layout (US / AR), memory, volume, the monitor's brightness (when it answers over
+  DDC/CI), the weather, the date (`18 Oct`), the weekday as a kanji seal, the time to the
+  second, and the cat — quick settings — centred between the last stitch and the screen's
+  edge. No tray.
 - **Level display**: the volume, microphone and brightness keys show a hi-fi level wedge of
   pixel columns at the bottom centre, updating in place while a key is held.
 - **Clipboard**: Super+V opens a small window with the clipboard history — text and pictures
@@ -165,7 +168,10 @@ cd ~/fedokawaii && sudo bash fedokawaii.sh
 ```
 
 The menu offers **Setup** (the software) and **Theme** (the look) separately; neither forces
-the other. Setup walks itself through three phases with a reboot between each, resumed
+the other. For a first install choose **Both**: Setup removes `~/fedokawaii` at its very end,
+so after Setup alone the menu is gone and the first login is plain dwl without the bar — then
+press Ctrl+Alt+F2, log in on the text console and run `fedokawaii theme`, then `sudo reboot` and log
+in again. Setup walks itself through three phases with a reboot between each, resumed
 automatically on tty1, and
 refuses to enable the login until `verify.sh` passes — what it finds there it repairs itself
 first, the same fixes as `fedokawaii repair`, and checks again — then clears what the build left (dnf's

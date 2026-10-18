@@ -81,7 +81,7 @@ make_tmp
 if ((RESUMED)); then
   resume_hint() {
     _out ""
-    if [[ $(phase) == 'done' ]]; then    # (the final check, or the baseline: the build is in place)
+    if [[ $(phase) == 'done' ]]; then    # (the final check: the build is in place)
       _out "${C_GOLD}  The desktop is installed, but its last steps found a problem (above).${C_RESET}"
       _out "${C_GOLD}  Restart the computer, log in, then run:  fedokawaii repair${C_RESET}"
       return 0
@@ -257,7 +257,9 @@ toolkit_first() {
 }
 settings_from_toolkit() {
   [[ $REPO_DIR != "$TOOLKIT" && -f $TOOLKIT/fedokawaii.conf ]] || return 0
-  [[ -z $(conf_problems "$TOOLKIT/fedokawaii.conf") ]] || return 0
+  local bad
+  bad=$(conf_problems "$TOOLKIT/fedokawaii.conf")
+  [[ -z $bad ]] || die "the toolkit's fedokawaii.conf has problems — nothing applied: ${bad//$'\n'/ · }"
   read_conf "$TOOLKIT/fedokawaii.conf"
   REPO_DIR=$TOOLKIT
 }
@@ -365,7 +367,7 @@ s_dnf() {
 [main]
 max_parallel_downloads=$DNF_PARALLEL
 fastestmirror=True
-minrate=50k
+minrate=5k
 timeout=20
 installonly_limit=2
 defaultyes=True
@@ -380,11 +382,12 @@ exclude_from_weak=nodejs,nodejs22*,PackageKit,java-*-openjdk-headless,libreoffic
 EOF
   local k want v dump; dump=$(dnf --dump-main-config 2>/dev/null) || dump=""
   # checked, and reported — never a reason to stop: a later dnf may print a value its own way
-  # (minrate is shown in bytes: 50k = 51200)
-  for k in "max_parallel_downloads:$DNF_PARALLEL" fastestmirror:1 minrate:51200 timeout:20 installonly_limit:2 defaultyes:1 \
+  # (minrate is shown in bytes: 5k = 5120 — low enough for a slow phone tether, a stalled
+  # mirror still dropped after timeout=20 s)
+  for k in "max_parallel_downloads:$DNF_PARALLEL" fastestmirror:1 minrate:5120 timeout:20 installonly_limit:2 defaultyes:1 \
            'exclude_from_weak:nodejs,nodejs22*,PackageKit,java-*-openjdk-headless,libreoffice-help-*'; do
     want=${k#*:}; v=$(sed -n "s/^${k%%:*} *= *//p" <<<"$dump")
-    [[ $v == "$want" || ( $want == 1 && $v == [Tt]rue ) || ( $want == 51200 && $v == 50[kK] ) ]] \
+    [[ $v == "$want" || ( $want == 1 && $v == [Tt]rue ) || ( $want == 5120 && $v == 5[kK] ) ]] \
       || log "dnf shows ${k%%:*}='$v' where the drop-in sets $want — /etc/dnf/dnf.conf may override it"
   done
   # (no protected list of our own: dnf also refuses a protected package's replacement — a
@@ -596,13 +599,18 @@ AllowSuspendThenHibernate=no
 EOF
   # every sleep is locked first: a keyboard's Sleep key is dwl's (kawa-power sleep: the lock,
   # then the sleep), not logind's, which would sleep first and lock as it wakes; any other
-  # sleep waits up to 15 s for the lock (swayidle's before-sleep: kawa-lock waits up to 10)
+  # sleep waits up to 15 s for the lock (swayidle's before-sleep: kawa-lock waits up to 10).
+  # (Some keyboards' Sleep key sends KEY_SUSPEND, which logind takes for the hibernate key:
+  # that one is dwl's too.)
   write_file /etc/systemd/logind.conf.d/90-fedokawaii.conf <<'EOF'
-# Fedokawaii — the Sleep key is the desktop's (locked, then asleep); a sleep from elsewhere
-# waits for the lock. Read by systemd-logind when it starts: from the next start
+# Fedokawaii — the Sleep key is the desktop's (locked, then asleep), whichever key code it
+# sends (KEY_SLEEP: logind's suspend key; KEY_SUSPEND: its hibernate key); a sleep from
+# elsewhere waits for the lock. Read by systemd-logind when it starts: from the next start
 [Login]
 HandleSuspendKey=ignore
 HandleSuspendKeyLongPress=ignore
+HandleHibernateKey=ignore
+HandleHibernateKeyLongPress=ignore
 InhibitDelayMaxSec=15
 EOF
 }
@@ -820,10 +828,7 @@ vulkan_fedora() {
   done
 }
 
-# LACT's clocks, voltages and fan curves need OverDrive (bit 14), which amdgpu leaves off: its
-# default mask (0xfff7bfff) plus that bit. Not 0xffffffff — that also switches on GFX DCS
-# (bit 19), which amdgpu keeps off as unstable (flicker, hangs on some cards)
-AMDGPU_ARG=amdgpu.ppfeaturemask=0xfff7ffff
+# (AMDGPU_ARG, the kernel argument LACT needs: lib/common.sh)
 amd_arg_everywhere() {   # every boot entry carries it
   local a; a=$(grubby --info=ALL 2>/dev/null | grep '^args=') || return 1
   ! grep -vqF -- "$AMDGPU_ARG" <<<"$a"
@@ -874,6 +879,16 @@ s_hardware() {
     if [[ $p == microcode_ctl || $p == amd-ucode-firmware ]] && pkg_installed "$p"; then
       log "the CPU's microcode: the boot images made again, so the next start loads it early"
       run dracut -f --regenerate-all || rc=1; break
+    fi
+  done
+  # NetworkManager's Wi-Fi part, new: NetworkManager takes up its plugins only as it starts —
+  # restarted now (if it runs), so the radio is managed before verify looks; the connection
+  # it drops meanwhile is waited for
+  for p in "${need[@]}"; do
+    if [[ $p == NetworkManager-wifi ]] && pkg_installed "$p"; then
+      log "NetworkManager's Wi-Fi part is in: NetworkManager restarted, so it manages the radio now"
+      run systemctl try-restart NetworkManager.service || rc=1
+      wait_for_network; break
     fi
   done
   # a device driver missing altogether is a kernel matter: said, so it is known
@@ -1044,12 +1059,13 @@ greetd_config() {   # the login: the greeter, its look, and greetd pointed at ou
 # /etc/greetd/fedokawaii.toml — installed by setup.sh (greetd reads it: greetd.service.d/
 # fedokawaii.conf). The login screen: kawa-greet in cage (one full-screen window, -d: no
 # window frame, -s: Ctrl+Alt+F2… still reach the text consoles), for $TARGET_USER — with the
-# desktop's pointer of the theme you last had (greetd runs this line through /bin/sh).
+# desktop's pointer of the theme you last had, on the card the desktop draws on (start-dwl
+# --gpu: WLR_DRM_DEVICES, or nothing). greetd runs this line through /bin/sh.
 [terminal]
 vt = 1
 
 [default_session]
-command = "env \\"XCURSOR_THEME=Sumi-\$(cat /var/lib/fedokawaii-greeter/theme)\\" cage -d -s -- /usr/local/bin/kawa-greet $TARGET_USER"
+command = "env \$(/usr/local/bin/start-dwl --gpu) \\"XCURSOR_THEME=Sumi-\$(cat /var/lib/fedokawaii-greeter/theme)\\" cage -d -s -- /usr/local/bin/kawa-greet $TARGET_USER"
 user = "greetd"
 EOF
   write_file /etc/systemd/system/greetd.service.d/fedokawaii.conf <<'EOF'
@@ -1219,7 +1235,7 @@ build_filechooser() {
 }
 s_filechooser() {
   contained build_filechooser
-  ((CONTAINED_RC == 0)) || log "file dialogs stay GTK's for now: termfilechooser did not build (why: above, or $LOG_FILE) — update or repair try again"
+  ((CONTAINED_RC == 0)) || log "no file dialog yet: termfilechooser did not build (why: above, or $LOG_FILE), and the portals name only it — update or repair build it"
 }
 
 # ── torrents: Prowlarr (a rootless container) finds them, torrra downloads them ──
@@ -1618,13 +1634,14 @@ s_finalize() {
   dnf_unneeded_out || true
   clean_caches || true
   snap_hooks
-  # the resume unit goes last: should anything above fail, the next start carries on here
-  # (holding greetd back meanwhile, its Conflicts=). The baseline is then the finished system
-  remove_resume_unit
-  set_phase 'done'
   run snapper -c root create -d "fedokawaii baseline"     # no cleanup algorithm: kept until you delete it
   record setup-done "$(date +%s)"                  # (the menu's title: "set up 17 Oct")
   record_snapshots                                 # (the menu's count: the baseline included)
+  # the resume unit and the phase go last: should anything above fail, the next start carries
+  # on here (holding greetd back meanwhile, its Conflicts=). (So the baseline still holds both:
+  # a rollback to it ends the build once more at its next start, a new baseline included.)
+  remove_resume_unit
+  set_phase 'done'
   # (the clone goes after the final check, at the very end of phase3: this run may still be
   # reading its scripts from it)
 }
@@ -1742,7 +1759,7 @@ clone_done() {
 # ten runs. Never what is used: dnf's metadata, the sources dwl and the file dialog are
 # rebuilt from, the plugins, lpf's record of what it built
 clean_caches() {
-  local f d n=0
+  local f n
   run dnf clean packages >/dev/null 2>&1 || true
   # (as you: in your home root never deletes through a path you could have made a link)
   as_user rm -rf --one-file-system -- "$TARGET_HOME/.cache/pip" "$TARGET_HOME/.npm/_cacache" "$TARGET_HOME/.npm/_npx" 2>/dev/null || true
@@ -1755,13 +1772,9 @@ clean_caches() {
     rm -rf -- /var/lib/lpf/rpms/*/*.rpm /var/lib/lpf/rpmbuild/{BUILD,BUILDROOT,RPMS,SOURCES,SRPMS}/* 2>/dev/null
   fi
   as_user podman image prune -f >/dev/null 2>&1 || true
-  f=$TARGET_HOME/.local/state/fedokawaii/backup      # (as you: nothing can lead root elsewhere)
-  if [[ -d $f && ! -L $f ]]; then
-    while IFS= read -r d; do
-      as_user rm -rf --one-file-system -- "$f/$d" && n=$((n + 1))
-    done < <(as_user find "$f" -mindepth 1 -maxdepth 1 -type d -name '[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]-[0-9][0-9][0-9][0-9][0-9][0-9]' -printf '%f\n' | sort -r | tail -n +11)
-    ((n)) && log "the theme's $n oldest backup folder(s) removed (the newest ten kept: ${f/#$TARGET_HOME/\~})"
-  fi
+  n=$(prune_theme_backups as_user)                  # (as you: nothing can lead root elsewhere)
+  f=$TARGET_HOME/.local/state/fedokawaii/backup
+  ((n)) && log "the theme's $n oldest backup folder(s) removed (the newest $THEME_BACKUPS_KEPT kept: ${f/#$TARGET_HOME/\~})"
   return 0
 }
 
@@ -2166,7 +2179,8 @@ support_end() {   # → this release's end of support (os-release SUPPORT_END), 
   local d; d=$(. /etc/os-release 2>/dev/null; printf '%s' "${SUPPORT_END:-}")
   [[ -n $d ]] && date -d "$d" +%s 2>/dev/null
 }
-libs_ready() {   # libs_ready N — the libraries our own builds need, all in Fedora N?
+libs_ready() {   # libs_ready N [--disablerepo=…] — the libraries our own builds need, all in Fedora N
+                 # (asked without the repositories named: the COPRs left out of the move)?
                  # 0 yes (or only a tool's is missing: reported) · 1 one dwl needs is missing ·
                  # 2 Fedora N's repositories could not be asked (nothing is concluded)
   local f so kept provided missing=() hard=0 caps list
@@ -2185,7 +2199,7 @@ libs_ready() {   # libs_ready N — the libraries our own builds need, all in Fe
   ((${#users[@]})) || return 0
   # one question for all of them: which of these does Fedora N provide?
   caps=$(for so in "${!users[@]}"; do printf '%s()(64bit),' "$so"; done)
-  provided=$(dnf -q --releasever="$1" repoquery --whatprovides="${caps%,}" --qf '%{provides}\n' 2>/dev/null) \
+  provided=$(dnf -q --releasever="$1" "${@:2}" repoquery --whatprovides="${caps%,}" --qf '%{provides}\n' 2>/dev/null) \
     || { log "Fedora $1's repositories could not be asked which libraries they have"; return 2; }
   for so in "${!users[@]}"; do
     grep -qxF "${so}()(64bit)" <<<"$provided" && continue
@@ -2223,7 +2237,7 @@ do_upgrade() {
   done
   preflight 20480
   wlr_keep || die "dwl's own wlroots is missing and cannot be kept from this Fedora — moving on would leave dwl unable to start; fedokawaii repair first"
-  libs_ready "$to" && r=0 || r=$?
+  libs_ready "$to" "${skip[@]}" && r=0 || r=$?
   ((r != 2)) || die "Fedora $to's repositories could not be asked which libraries they have — nothing changed; try again later"
   ((r == 0)) || die "a library dwl needs is not in Fedora $to (above) — staying on Fedora $FEDORA_VER, which is safe until its support ends"
   if [[ $(as_user podman info --format '{{.Host.DatabaseBackend}}' 2>/dev/null) != sqlite ]]; then
@@ -2497,13 +2511,15 @@ wlr_step() {   # wlr_keep, saying why when it cannot
   log "dwl's own wlroots $DWL_WLROOTS: no copy kept, and this Fedora does not ship it (it has $(wlr_has))"
   return 1
 }
-# r_sound — sound that keeps running. PipeWire restarted clean first; if it still will not
+# r_sound — sound that keeps running. Steady already: left alone (a restart would cut the
+# sound of everything playing). Else PipeWire restarted clean first; if it still will not
 # stay up, fedokawaii's own PipeWire and WirePlumber files are taken out one at a time
 # (~/.local/state/fedokawaii/set-aside/) until it does — the one it crashed on stays out
 # (and theme.sh leaves that version out: set_aside), the others go back. Without a session
 # manager running (no login since boot, linger off) there is nothing to try.
 r_sound() {
   [[ -S /run/user/$TARGET_UID/bus ]] || return 0
+  pw_steady && return 0
   as_user systemctl --user reset-failed pipewire.service pipewire.socket wireplumber.service 2>/dev/null || true
   as_user systemctl --user restart pipewire.socket pipewire.service wireplumber.service 2>/dev/null || true
   pw_steady && return 0

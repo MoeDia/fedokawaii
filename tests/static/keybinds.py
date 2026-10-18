@@ -21,7 +21,7 @@ NAMES = {"/": "slash", ",": "comma", ".": "period", "]": "bracketright", "[": "b
 MEDIA = {"volume": ["XF86AudioRaiseVolume", "XF86AudioLowerVolume"], "mute": ["XF86AudioMute"],
          "mic": ["XF86AudioMicMute"], "play": ["XF86AudioPlay"], "next": ["XF86AudioNext"],
          "previous": ["XF86AudioPrev"], "brightness keys": ["XF86MonBrightnessUp", "XF86MonBrightnessDown"],
-         "sleep key": ["XF86Sleep"]}
+         "sleep key": ["XF86Sleep", "XF86Suspend"]}
 
 
 def norm_key(k):

@@ -109,6 +109,7 @@ locale              minimal   glibc-common      # f44
 journalctl          minimal   systemd           # @core
 loginctl            minimal   systemd
 systemd-run         minimal   systemd
+systemd-inhibit     minimal   systemd
 xargs               minimal   findutils         # dracut (f44)
 less                minimal   less              # @core
 ss                  minimal   iproute           # @core (ip, ss)
@@ -213,8 +214,8 @@ bleopt              built     install_blesh     #   (~/.config/blesh/init.sh)
 
 # ── installed by nothing, on purpose ─────────────────────────────────────────────────────
 dbus-update-activation-environment  optional  -  # dbus-tools: only dbus-daemon needs it, and Fedora
-                                                 # runs dbus-broker; autostart falls back to
-                                                 # systemctl --user import-environment (enough there)
+                                                 # runs dbus-broker; autostart uses systemctl --user
+                                                 # import-environment (enough there)
 resvg               optional  -                  # yazi's SVG preview: not packaged (the guide says so)
 7zz                 optional  -                  # yazi tries 7zz, then 7z (Fedora's 7zip has 7z only)
 mediainfo           optional  -                  # yazi's own "Show media info" under O: retired from the

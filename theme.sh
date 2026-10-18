@@ -172,7 +172,10 @@ done < <(find "$REPO_DIR/configs/home" -type f -print0 | sort -z)
 ((CHECK)) || U systemctl --user daemon-reload 2>/dev/null || true
 
 # ── 2. helpers ───────────────────────────────────────────────────────────────
-for f in "$REPO_DIR"/bin/*; do place "$f" "$TARGET_HOME/.local/bin/${f##*/}" user; done
+for f in "$REPO_DIR"/bin/*; do   # (files only: a stray folder there, a __pycache__, is no helper)
+  [[ -f $f ]] || continue
+  place "$f" "$TARGET_HOME/.local/bin/${f##*/}" user
+done
 
 # ── 2b. the theme link, and the configs that are links into it ───────────────
 # ~/.config/fedokawaii/current → themes/dark or themes/light. It is created once (from
@@ -902,7 +905,7 @@ RC
 fi
 
 # ── 6. live session: reload what can reload ─────────────────────────────────
-if pgrep -u "$TARGET_UID" -x 'dwl(\.prev)?' >/dev/null; then
+if pgrep -u "$TARGET_UID" -x dwl >/dev/null; then
   RT=/run/user/$TARGET_UID
   WD=$(find "$RT" -maxdepth 1 -name 'wayland-*' ! -name '*.lock' -printf '%f\n' -quit)
   live() { U env WAYLAND_DISPLAY="$WD" "$@" >/dev/null 2>&1 || true; }
@@ -921,7 +924,6 @@ if ((${#CHANGED[@]})); then
 else
   ok "all $TOTAL files already in sync"
 fi
-# the backups: the newest 20 runs kept (each folder holds only what that run replaced)
-U bash -c 'cd -- "$1" 2>/dev/null || exit 0; ls -1d -- */ 2>/dev/null | sort | head -n -20 | xargs -r -d "\n" rm -rf --' \
-  _ "$TARGET_HOME/.local/state/fedokawaii/backup" || true
+# the backups: the newest ten runs kept (each folder holds only what that run replaced)
+prune_theme_backups U >/dev/null
 T=$(mktemp); date '+%F %T' >"$T"; uinstall 0644 "$T" "$STATE/theme-applied"; rm -f "$T"

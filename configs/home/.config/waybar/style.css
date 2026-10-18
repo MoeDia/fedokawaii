@@ -46,7 +46,7 @@ window#waybar {
    pixel of padding on the left than on the right centres it exactly */
 .tag, #custom-day, #custom-mode { min-width: 0; padding: 5px 5px 6px 6px; }
 #custom-torii:hover, .tag:hover, #custom-layout:hover, #custom-menu:hover,
-#custom-steam:hover, #custom-mem:hover, #wireplumber:hover, #custom-weather:hover,
+#custom-steam:hover, #custom-mem:hover, #wireplumber:hover, #custom-brightness:hover, #custom-weather:hover,
 #custom-drives:hover, #clock:hover, #custom-mode:hover {
   background-color: @edge;         /* the soft fill under the pointer */
 }
@@ -93,8 +93,11 @@ window#waybar {
   background-position: 0 0;
   color: transparent;
 }
-#custom-sep2 { margin-right: 13px; }
-#custom-mode, #custom-drives, #custom-kb, #custom-mem, #wireplumber, #custom-weather,
+/* the last stitch is the cat's left wall: 8 px of paper + the button's 5 put it 13 px from the
+   cat's ink, as far as the cat's ink is from the screen's edge (its button's 8 + 5) — the cat
+   centred between the stitch and the edge */
+#custom-sep2 { margin-right: 8px; }
+#custom-mode, #custom-drives, #custom-kb, #custom-mem, #wireplumber, #custom-brightness, #custom-weather,
 #clock.date, #clock.time {
   padding: 5px 7px 6px 7px;        /* the same line as the buttons: 23 tall */
   margin: 0;
@@ -115,6 +118,7 @@ window#waybar {
 #custom-mem.high     { color: @accent-text; }
 #wireplumber         { color: @text; }
 #wireplumber.muted   { color: @accent-text; }
+#custom-brightness   { color: @text; }
 #custom-weather      { color: @text; }
 
 /* the mode — 静 quiet, 共有 shared — a kanji seal like the day's */

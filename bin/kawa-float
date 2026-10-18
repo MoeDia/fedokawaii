@@ -9,10 +9,13 @@
 # when you click outside it, another window opens or you switch workspace (dwl.patch).
 #
 #   --once NAME      one such window at a time, and its key toggles it: a call while it is
-#                    open closes it (exit 3); a call within half a second of it closing
-#                    (the click on its bar button that closed it) does nothing (exit 3)
-#   --dialog         a dialog, not a popup (app-id "kawa-dialog": the file dialog): it floats
-#                    centred too, but stays open while you answer it, wherever you click
+#                    open closes it (exit 3); a call within half a second of it being closed
+#                    from outside (the click on its bar button that closed it) does nothing
+#                    (exit 3) — one that ended by itself (Esc, q) opens again at once
+#   --dialog         a dialog, not a popup (app-id "kawa-dialog": the file dialog, and a job
+#                    that must run to its end: an update, a backup): it floats centred too,
+#                    but stays open while you answer it, wherever you click. With --once, a
+#                    call while it is open leaves it open (exit 3): never a job cut short
 #   --locked-title   the title stays TITLE whatever CMD writes there
 #   --help           this text
 #
@@ -48,26 +51,30 @@ if [[ -n $once ]]; then
     # open: its key again closes it — the window's own process group gets the hang-up a
     # closed window gives (what runs inside saves first: notes write as you type)
     # — but not one opened less than half a second ago: that is the same key, held (dwl
-    # repeats a held binding), or a window still on its way up (no process to close yet)
+    # repeats a held binding), or a window still on its way up (no process to close yet);
+    # and never a dialog: what runs in it (dnf, a backup) ends by itself, or by its own key
+    [[ $app == kawa-dialog ]] && exit 3
     t=$(stat -c %.3Y "$pidf" 2>/dev/null) || exit 3
     (( $(date +%s%3N) - 10#${t/./} < 500 )) && exit 3
     p=$(cat "$pidf" 2>/dev/null)
     [[ $p =~ ^[1-9][0-9]*$ ]] && kill -HUP -- "-$p" 2>/dev/null
     exit 3
   fi
-  # closed a moment ago — by the very click on its bar button that runs this (dwl closes a
-  # popup on any press outside it, before the button's command starts): not opened again
+  # closed from outside a moment ago — by the very click on its bar button that runs this
+  # (dwl closes a popup on any press outside it, before the button's command starts): not
+  # opened again
   if t=$(stat -c %.3Y "$closed" 2>/dev/null) && (( $(date +%s%3N) - 10#${t/./} < 500 )); then
     exit 3
   fi
 fi
 mark=$(mktemp -u "$run/kawa-float.XXXXXX")
 trap 'rm -f "$mark"' EXIT
-# inside the window: mark that it opened (and, with --once, which process to close), then
-# become CMD (the lock is not passed on: it is this script's, and goes when the window has
-# closed)
+# inside the window: mark that it opened (and, with --once, which process to close), run
+# CMD, and mark that it ended by itself — a window closed from outside hangs up the whole
+# group, this sh too, before that (the lock is not passed on: it is this script's, and goes
+# when the window has closed)
 # shellcheck disable=SC2016  # expanded by the inner sh
-open=(sh -c ': >"$1"; [ -n "$2" ] && echo $$ >"$2"; shift 2; exec "$@"' kawa-float "$mark" "$pidf" "$@")
+open=(sh -c ': >"$1"; [ -n "$2" ] && echo $$ >"$2"; m=$1; shift 2; "$@"; r=$?; echo ended >"$m"; exit $r' kawa-float "$mark" "$pidf" "$@")
 footclient -a "$app" -T "$title" -W "$size" "${extra[@]}" -- "${open[@]}" 9>&- 2>/dev/null
-if [[ -n $once ]]; then rm -f "$pidf"; touch "$closed"; fi
+if [[ -n $once ]]; then rm -f "$pidf"; [[ -s $mark ]] || touch "$closed"; fi
 [[ -e $mark ]]

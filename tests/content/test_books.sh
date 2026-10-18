@@ -289,7 +289,7 @@ eq "$(ls "$K"/*.six | wc -l)" $((n - 1))
 case_ "a cover killed half-way (fzf kills a preview you moved on from): its half-made files cleared"
 setup; mk pdf "$B/One.pdf" 3
 stub magick 'sleep 30'
-/usr/bin/setsid bash -c 'FZF_PREVIEW_COLUMNS=36 FZF_PREVIEW_LINES=24 exec kawa-books --preview "$1" a b' _ "$B/One.pdf" >/dev/null 2>&1 & pg=$!
+/usr/bin/setsid bash -c 'KAWA_CELL=9x21 FZF_PREVIEW_COLUMNS=36 FZF_PREVIEW_LINES=24 exec kawa-books --preview "$1" a b' _ "$B/One.pdf" >/dev/null 2>&1 & pg=$!
 for _ in {1..80}; do (($(count "$K"/cover.*))) && break; sleep 0.05; done
 sleep 0.3; kill -KILL -- -"$pg" 2>/dev/null; wait "$pg" 2>/dev/null
 (($(count "$K"/cover.*))) && _ok || _no "(the test itself: no leftover to clean)"

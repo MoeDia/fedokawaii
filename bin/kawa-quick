@@ -45,12 +45,11 @@ state_net() {   # the cable or the Wi-Fi in use, wherever nmcli lists it: a VPN 
 # Bluetooth only when the machine has an adapter; bluetoothctl waits forever for a
 # bluetoothd that is not running, so never longer than 2 s
 bt()          { compgen -G '/sys/class/bluetooth/hci*' >/dev/null && timeout 2 bluetoothctl "$@"; }
-# (Bluetooth asked over D-Bus: instant, where bluetoothctl takes its time to connect)
+# (Bluetooth asked over D-Bus: instant, where bluetoothctl takes its time to connect; no
+# answer — bluetoothd not running — is off)
 state_bt()    {
-  local p
-  p=$(busctl --system get-property org.bluez /org/bluez/hci0 org.bluez.Adapter1 Powered 2>/dev/null) \
-    || p=$([[ $(bt show 2>/dev/null) == *"Powered: yes"* ]] && echo 'b true')
-  [[ $p == 'b true' ]] && echo on || echo off
+  [[ $(busctl --system get-property org.bluez /org/bluez/hci0 org.bluez.Adapter1 Powered 2>/dev/null) == 'b true' ]] \
+    && echo on || echo off
 }
 state_theme() { [[ $(readlink "$HOME/.config/fedokawaii/current" 2>/dev/null) == */light ]] && echo light || echo dark; }
 state_night() { pgrep -xu "$UID" gammastep >/dev/null && echo on || echo off; }

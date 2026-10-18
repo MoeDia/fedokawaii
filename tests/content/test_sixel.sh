@@ -67,9 +67,10 @@ has "$(kawa-sixel 2>&1 </dev/null)" "usage: kawa-sixel RRGGBB"
 rc 0 kawa-sixel --help; has "$(kawa-sixel --help)" "sixel"
 
 # ── kawa-cell ────────────────────────────────────────────────────────────────
-case_ "not in a terminal: foot's 9×21 at once"
-s=$EPOCHREALTIME; out=$(kawa-cell </dev/null); e=$EPOCHREALTIME
-eq "$out" 9x21; (( ${e/./} - ${s/./} < 300000 )) && _ok || _no "it waited for an answer that cannot come"
+case_ "not in a terminal: nothing printed, exit 1 at once (never a guess)"
+s=$EPOCHREALTIME; out=$(kawa-cell </dev/null 2>"$TMP/err"); r=$?; e=$EPOCHREALTIME
+eq "$out" ""; eq "$r" 1; has "$(cat "$TMP/err")" "did not say its cell size"
+(( ${e/./} - ${s/./} < 300000 )) && _ok || _no "it waited for an answer that cannot come"
 
 case_ "the terminal answers: its cell (foot at scale 1, at scale 2, another font)"
 has "$(cell --answer '\x1b[16t' '\x1b[6;21;9t' -- kawa-cell)" $'9x21\r'
@@ -78,17 +79,17 @@ has "$(cell --answer '\x1b[16t' '\x1b[6;25;11t' -- kawa-cell)" $'11x25\r'
 case_ "keys typed just before the answer do not spoil it"
 has "$(cell --answer '\x1b[16t' 'ab\x1b[6;42;18t' -- kawa-cell)" $'18x42\r'
 
-case_ "the terminal never answers: 9×21 within about half a second, no hang"
-s=$EPOCHREALTIME; out=$(cell -- kawa-cell); r=$?; e=$EPOCHREALTIME
-eq "$r" 0 "(124: it hung until killed)"; has "$out" $'9x21\r'
+case_ "the terminal never answers: exit 1 within about half a second, no hang, no guess"
+s=$EPOCHREALTIME; out=$(cell -- bash -c 'kawa-cell; echo "rc=$?"'); e=$EPOCHREALTIME
+has "$out" "rc=1" "(124 or nothing: it hung until killed)"; lacks "$out" "x2"
 (( ${e/./} - ${s/./} < 2000000 )) && _ok || _no "took $(( (${e/./} - ${s/./}) / 1000 )) ms"
-case_ "an answer too late (1.5 s): 9×21, no hang"
-s=$EPOCHREALTIME; out=$(cell --delay 1.5 --answer '\x1b[16t' '\x1b[6;42;18t' -- kawa-cell); e=$EPOCHREALTIME
-has "$out" $'9x21\r'; (( ${e/./} - ${s/./} < 2000000 )) && _ok || _no "took $(( (${e/./} - ${s/./}) / 1000 )) ms"
+case_ "an answer too late (1.5 s): exit 1, no hang"
+s=$EPOCHREALTIME; out=$(cell --delay 1.5 --answer '\x1b[16t' '\x1b[6;42;18t' -- bash -c 'kawa-cell; echo "rc=$?"'); e=$EPOCHREALTIME
+has "$out" "rc=1"; lacks "$out" "18x42"; (( ${e/./} - ${s/./} < 2000000 )) && _ok || _no "took $(( (${e/./} - ${s/./}) / 1000 )) ms"
 
-case_ "a nonsense answer: 9×21"
+case_ "a nonsense answer: exit 1, nothing taken from it"
 for a in '\x1b[6;abc;9t' '\x1b[6;0;0t' '\x1b[6;5;2t' '\x1b[6;99999;9t' 'xyz t'; do
-  has "$(cell --answer '\x1b[16t' "$a" -- kawa-cell)" $'9x21\r' "answer $a"
+  has "$(cell --answer '\x1b[16t' "$a" -- bash -c 'kawa-cell; echo "rc=$?"')" "rc=1" "answer $a"
 done
 
 case_ "the terminal is left as it was, and the answer never shows on screen"

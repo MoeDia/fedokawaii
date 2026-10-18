@@ -48,7 +48,7 @@ case "$a" in
       declare -A v=([max_parallel_downloads]=3 [fastestmirror]=0 [minrate]=1000 [timeout]=30 [installonly_limit]=3 [defaultyes]=0 [exclude_from_weak]="")
       while IFS='=' read -r k x; do k=${k// /}; x=${x// /}; [[ -n ${v[$k]+x} ]] && v[$k]=$x; done \
         < <(grep -h '=' /etc/dnf/libdnf5.conf.d/*.conf 2>/dev/null)
-      [[ ${v[minrate]} == 50k ]] && v[minrate]=51200
+      [[ ${v[minrate]} == 5k ]] && v[minrate]=5120
       [[ ${v[fastestmirror]} == True ]] && v[fastestmirror]=1; [[ ${v[defaultyes]} == True ]] && v[defaultyes]=1
       for k in "${!v[@]}"; do printf '%s = %s\n' "$k" "${v[$k]}"; done; exit 0;;
   *" repo list "*"--json"*) repos | jq -R . | jq -sc 'map({id: .})'; exit 0;;

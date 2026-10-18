@@ -39,10 +39,10 @@ while [[ -e $file ]]; do file=$base-$((n++)).png; done   # two in one second: -2
 
 case "$mode" in
   full)
-    grim "$file" 2>/dev/null || { rm -f "$file"; fail "Screenshot failed" "grim could not capture the screen"; } ;;
+    grim "$file" 2>/dev/null || { rm -f "$file"; fail "screenshot failed" "grim could not capture the screen"; } ;;
   region)
     geom=$(pick) || exit 0
-    grim -g "$geom" "$file" 2>/dev/null || { rm -f "$file"; fail "Screenshot failed" "grim could not capture the screen"; } ;;
+    grim -g "$geom" "$file" 2>/dev/null || { rm -f "$file"; fail "screenshot failed" "grim could not capture the screen"; } ;;
   edit)
     geom=$(pick) || exit 0
     exec 9>&-                                       # annotating may take a while: free the keys
@@ -50,10 +50,10 @@ case "$mode" in
     exit 0 ;;
 esac
 
-title="Screenshot copied"                       # (no clipboard helper: it is saved all the same)
-wl-copy --type image/png <"$file" 9>&- 2>/dev/null || title="Screenshot saved"   # (it stays to serve the copy: never with the lock)
+title="screenshot copied"                       # (no clipboard helper: it is saved all the same)
+wl-copy --type image/png <"$file" 9>&- 2>/dev/null || title="screenshot saved"   # (it stays to serve the copy: never with the lock)
 # the notice shows a square middle cut of the picture: a wide or tall capture scaled whole
 # into the 32 px icon would be a sliver, and every notice's text starts at the same place
 thumb=$XDG_RUNTIME_DIR/kawa-screenshot-icon.png
 magick "$file" -resize '64x64^' -gravity center -extent 64x64 "$thumb" 2>/dev/null || thumb=$file
-notify-send -a desktop -i "$thumb" "$ICON_CAMERA  $title" "${file##*/}$note"
+notify-send -a desktop -i "$thumb" "$title" "${file##*/}$note"   # (the picture is its icon: no second one)

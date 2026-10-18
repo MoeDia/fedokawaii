@@ -38,7 +38,7 @@ args_eq slurp 1 -b '#0f0e0c66' -c '#d0583aff' -s '#d0583a22' -w 2
 args_eq grim 1 -g "10,20 300x100" "$F"
 args_eq wl-copy 1 --type image/png
 cmp -s "$TMP/clip" "$F" && _ok || _no "the clipboard does not hold the saved picture"
-args_eq notify-send 1 -a desktop -i "$XDG_RUNTIME_DIR/kawa-screenshot-icon.png" "$ICON_CAMERA  Screenshot copied" "2026-10-16_09-30-05.png"
+args_eq notify-send 1 -a desktop -i "$XDG_RUNTIME_DIR/kawa-screenshot-icon.png" "screenshot copied" "2026-10-16_09-30-05.png"
 eq "$(size_of "$XDG_RUNTIME_DIR/kawa-screenshot-icon.png")" 64x64 "a square thumbnail"
 [[ ! -e $TMP/fd9 ]] && _ok || _no "the clipboard keeps the shot's lock (the next Print would do nothing)"
 
@@ -133,17 +133,17 @@ case_ "the clipboard helper missing or failing: saved, and the notice says saved
 setup
 hide wl-copy
 rc 0 kawa-screenshot full
-has "$(args_of notify-send)" "Screenshot saved"
+has "$(args_of notify-send)" "screenshot saved"
 setup
 argv wl-copy 'exit 1'
 rc 0 kawa-screenshot full
-has "$(args_of notify-send)" "Screenshot saved"
+has "$(args_of notify-send)" "screenshot saved"
 
 case_ "grim failing (no screen to capture): exit 1, a notice, no empty file"
 setup
 argv grim 'exit 1'
 rc 1 kawa-screenshot full
-has "$(args_of notify-send)" "Screenshot failed"
+has "$(args_of notify-send)" "screenshot failed"
 eq "$(shots)" ""
 
 case_ "ImageMagick missing: the notice shows the shot itself as its picture"

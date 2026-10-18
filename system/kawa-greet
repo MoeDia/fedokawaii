@@ -116,7 +116,7 @@ class Greeter(Gtk.Window):
 
     def tick(self):
         self.clock.set_text(time.strftime("%I:%M %p"))
-        self.date.set_text(time.strftime("%a %d %b"))
+        self.date.set_text(time.strftime("%d %b"))   # (the day is the seal's, above)
         return True
 
     def say(self, text):

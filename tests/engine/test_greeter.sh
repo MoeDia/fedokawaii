@@ -97,9 +97,9 @@ echo '../../etc' >"$TMP/theme"; eq "$(th)" dark "a name that is not a theme: dar
 case_ "kawa-theme notes the theme for it, where setup gave you a folder"
 grep -q '/var/lib/fedokawaii-greeter/theme' "$REPO/bin/kawa-theme" && _ok || _no "kawa-theme does not write the greeter's theme"
 
-case_ "setup's greetd settings and verify's check agree (cage, kawa-greet, your name)"
-grep -qF 'command = "env \\"XCURSOR_THEME=Sumi-\$(cat /var/lib/fedokawaii-greeter/theme)\\" cage -d -s -- /usr/local/bin/kawa-greet $TARGET_USER"' "$REPO/setup.sh" && _ok || _no "setup.sh's greetd command changed"
-grep -qF 'command = \"env \\\"XCURSOR_THEME=Sumi-\$(cat /var/lib/fedokawaii-greeter/theme)\\\" cage -d -s -- /usr/local/bin/kawa-greet $TARGET_USER\"' "$REPO/verify.sh" && _ok || _no "verify.sh's check does not match setup's line"
+case_ "setup's greetd settings and verify's check agree (cage on the desktop's card, kawa-greet, your name)"
+grep -qF 'command = "env \$(/usr/local/bin/start-dwl --gpu) \\"XCURSOR_THEME=Sumi-\$(cat /var/lib/fedokawaii-greeter/theme)\\" cage -d -s -- /usr/local/bin/kawa-greet $TARGET_USER"' "$REPO/setup.sh" && _ok || _no "setup.sh's greetd command changed"
+grep -qF 'command = \"env \$(/usr/local/bin/start-dwl --gpu) \\\"XCURSOR_THEME=Sumi-\$(cat /var/lib/fedokawaii-greeter/theme)\\\" cage -d -s -- /usr/local/bin/kawa-greet $TARGET_USER\"' "$REPO/verify.sh" && _ok || _no "verify.sh's check does not match setup's line"
 
 case_ "its look: every file it loads is one setup installs (both themes)"
 for f in gtklock.css padlock.png seal-1.png seal-7.png; do

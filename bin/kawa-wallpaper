@@ -210,15 +210,15 @@ choices() {   # every choice for this theme: "CHOICE<TAB>LABEL" (◐ after a nam
 # margin is drawn as nothing, so the terminal's own background shows — kawa-sixel), and
 # clear of its last line (a picture touching it would scroll the window: fzf #2544). Drawn
 # once, cached in ~/.cache/kawa-wallpaper/preview.
-CELL=${KAWA_CELL:-12x24}                               # the terminal's cell, in pixels
-PREV_COLS=74 PREV_ROWS=20                              # the window's preview area (--tui)
+PREV_COLS=74 PREV_ROWS=18                              # the window's preview area (--tui)
 
 preview_file() {   # preview_file CHOICE → that sixel file
   local c=$1 name size w=1920 h=1080 aw ah bw bh n m pw ph lp tp screen key out
   read -r name size < <(outputs)
   [[ $size =~ ^[0-9]+x[0-9]+$ ]] && w=${size%x*} h=${size#*x}
-  aw=$((PREV_COLS * ${CELL%x*})) ah=$((PREV_ROWS * ${CELL#*x}))      # the area
-  bw=$aw bh=$((ah - ${CELL#*x}))                                     # what the picture may fill
+  local cell=${KAWA_CELL:?}                                          # the terminal's cell, in pixels (--tui)
+  aw=$((PREV_COLS * ${cell%x*})) ah=$((PREV_ROWS * ${cell#*x}))      # the area
+  bw=$aw bh=$((ah - ${cell#*x}))                                     # what the picture may fill
   ((bw > 0 && bh > 0)) || return 1
   n=$(( (w + bw - 1) / bw )) m=$(( (h + bh - 1) / bh )); ((m > n)) && n=$m; ((n < 1)) && n=1
   pw=$((w / n)) ph=$((h / n))
@@ -260,9 +260,10 @@ case ${1:-menu} in
   menu)        # Super+W: the picker window, once (a second press while it is open closes it: kawa-float --once)
     pick=$(mktemp "$XDG_RUNTIME_DIR/kawa-wallpaper.XXXXXX") || exit 1
     trap 'rm -f "$pick"' EXIT
-    # 80 × 39 (the clipboard window's width, an odd height: centred to the pixel): the list,
-    # then a 20-row area for the picture — as far below its rule as above the window's foot
-    kawa-float --once wallpaper wallpaper 80x39 -- "$0" --tui "$pick" || exit 0
+    # 80 × 37 (the clipboard window's width, an odd height: centred to the pixel, and the
+    # tallest that fits under the bar): the list, then an 18-row area for the picture — as
+    # far below its rule as above the window's foot
+    kawa-float --once wallpaper wallpaper 80x37 -- "$0" --tui "$pick" || exit 0
     c=$(cat "$pick" 2>/dev/null)
     cur=$(cat "$STATE_DIR/wallpaper-$THEME" 2>/dev/null)
     [[ -n $c && $c != "$cur" ]] || exit 0
@@ -285,12 +286,12 @@ case ${1:-menu} in
     export FZF_DEFAULT_OPTS_FILE=$HOME/.config/fedokawaii/fzf.opts; unset FZF_DEFAULT_OPTS   # (every list alike)
     sel=$(for r in "${rows[@]}"; do printf '%s\n' "$r"; done | fzf --ansi --no-sort --height=100% --margin=1,2 \
       --delimiter=$'\t' --with-nth=2.. --border-label="$title" \
-      --preview="$self --preview {1}" --preview-window='down,20,border-top,noinfo' \
+      --preview="$self --preview {1}" --preview-window='down,18,border-top,noinfo' \
       --footer=$'\n'"enter set  ·  $ICON_THEME  sets both themes  ·  esc close" \
       --bind="start:pos($pos)") || exit 0
     printf '%s\n' "${sel%%$'\t'*}" >"$out" ;;
   --preview)   # fzf's preview: the picture, centred in its area
-    PREV_COLS=${FZF_PREVIEW_COLUMNS:-74} PREV_ROWS=${FZF_PREVIEW_LINES:-20}
+    PREV_COLS=${FZF_PREVIEW_COLUMNS:-74} PREV_ROWS=${FZF_PREVIEW_LINES:-18}
     if f=$(preview_file "${2:-}"); then cat "$f"; printf '\n'
     else printf '  %s  no preview\n' "$ICON_PICTURE"; fi ;;
   --warm)      # every preview of this theme drawn ahead (the picker starts it)

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # tests/installer/test_theme_users.sh — theme.sh's safety and whom it runs for: links planted
 # in the home (a config, a config folder, the state folder) never steer a write of root's; the
-# newest 20 backups kept; misuse (exit 2); USERNAME and --user; user names with a dot,
+# newest 10 backups kept; misuse (exit 2); USERNAME and --user; user names with a dot,
 # capitals, digits or a dash; a user that does not exist; the software not installed yet.
 . "$(dirname "$0")/lib.sh"
 H=/home/fkuser
@@ -28,8 +28,8 @@ eq "$(cat "$W/etc/fk-secret")" "root secret" "root's file"
 nb=$(backups | tail -n1)
 [[ -L $nb/.config/foot/foot.ini ]] && _ok || _no "the backup should hold the link itself"
 lacks "$(cat "$W/home/fkuser/.config/foot/foot.ini")" "root secret" "the secret never copied into the home"
-case_ "the newest 20 runs' backups kept, older ones removed"
-eq "$(backups | wc -l)" 20
+case_ "the newest 10 runs' backups kept, older ones removed"
+eq "$(backups | wc -l)" 10
 lacks "$(backups)" "20250101-000001" "the oldest gone"; lacks "$(backups | tail -n1)" "20250101-" "this run's own is the newest"
 
 case_ "a config folder replaced by a link to a folder of root's: nothing written there; the run stops and names it"

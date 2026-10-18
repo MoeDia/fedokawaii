@@ -1,6 +1,34 @@
 #!/bin/sh
-# /usr/local/bin/start-dwl — the session the login (agreety) starts (installed by setup.sh).
+# /usr/local/bin/start-dwl — the session the login (kawa-greet) starts (installed by setup.sh).
 # Works with or without theme.sh: without it, dwl runs with upstream defaults and no autostart.
+
+# gpu_card — the graphics card the desktop draws on: of two (a graphics card beside the CPU's
+# own graphics, switched on), the one with the most video memory — wlroots would otherwise
+# take the one the firmware started on, often the CPU's, and games and video follow it.
+# One card: that one. → /dev/dri/cardN, or nothing, with why on stderr (wlroots then picks)
+gpu_card() {
+  sys=${KAWA_SYSFS:-/sys}; best="" most=-1 cards=0 only=""
+  for d in "$sys"/class/drm/card*; do
+    c=${d##*/}
+    case $c in card*-*|'card*') continue ;; esac     # (card1-DP-1: a screen's socket, not a card)
+    cards=$((cards + 1)); only=$c
+    v=$(cat "$d/device/mem_info_vram_total" 2>/dev/null) || continue
+    case $v in ''|*[!0-9]*) continue ;; esac
+    if [ "$v" -gt "$most" ]; then most=$v best=$c; fi
+  done
+  if [ "$cards" -eq 1 ]; then echo "/dev/dri/$only"; return 0; fi
+  if [ "$cards" -eq 0 ]; then echo "start-dwl: no graphics card in $sys/class/drm — wlroots picks" >&2; return 0; fi
+  if [ -z "$best" ]; then echo "start-dwl: $cards graphics cards, none saying its video memory — wlroots picks" >&2; return 0; fi
+  echo "start-dwl: $cards graphics cards: drawing on $best, the one with the most video memory" >&2
+  echo "/dev/dri/$best"
+}
+# start-dwl --gpu: that card as WLR_DRM_DEVICES=…, or nothing — the login screen's cage takes
+# it too (setup.sh's greetd command), so both draw on the same card
+if [ "${1:-}" = --gpu ]; then
+  card=$(gpu_card)
+  [ -n "$card" ] && echo "WLR_DRM_DEVICES=$card"
+  exit 0
+fi
 
 export XDG_SESSION_TYPE=wayland
 export XDG_SESSION_DESKTOP=dwl
@@ -34,7 +62,7 @@ LOG="$HOME/.cache/dwl.log"
 # one desktop at a time: a second dwl (start-dwl typed in a terminal, or on another console)
 # would share this one's runtime folder — the bar's files, the session's services — and
 # stop them when it ends
-pid=$(pgrep -xu "$(id -u)" 'dwl(\.prev)?' 2>/dev/null | head -n1)
+pid=$(pgrep -xu "$(id -u)" dwl 2>/dev/null | head -n1)
 if [ -n "$pid" ]; then
   printf 'start-dwl: the desktop is already running (dwl, process %s): one at a time.\n' "$pid" >&2
   exit 1
@@ -51,6 +79,9 @@ from_kmscon=${KAWA_KMSCON:-}; unset KAWA_KMSCON
 # the session before keeps its log beside the new one: what dwl said before a crash
 [ -s "$LOG" ] && mv -f "$LOG" "$LOG.old"
 : >"$LOG"
+# the card dwl draws on (gpu_card above; its one list separator is ':', a path has none)
+card=$(gpu_card 2>>"$LOG")
+[ -n "$card" ] && export WLR_DRM_DEVICES="$card"
 
 # the compositor: dwl — or, should it be unable to start (missing, a library missing, or it
 # stops at once), a rescue screen on this console instead of a login that only loops back:

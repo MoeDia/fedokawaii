@@ -118,8 +118,8 @@ rc 1 kawa-backup; has "$(notice)" "a backup is running already — wait for its 
 rc 1 kawa-backup prune; rc 1 kawa-backup check; rc 1 kawa-backup list
 [[ ! -e $W/restic.log ]] && _ok || _no "restic ran under another run's lock"
 kill "$holder" 2>/dev/null; wait "$holder" 2>/dev/null
-case_ "--window: the backup in a floating window of its own (one at a time)"
-setup; kawa-backup --window; called '^kawa-float --once backup backup 80x25 -- .*kawa-backup --wait$'
+case_ "--window: the backup in a floating window of its own (one at a time; a dialog: a click elsewhere never stops it)"
+setup; kawa-backup --window; called '^kawa-float --once backup --dialog backup 80x25 -- .*kawa-backup --wait$'
 case_ "a home folder with a space: the same words"
 setup unplugged; mv "$HOME" "$TMP/my home"; export HOME="$TMP/my home"; rc 1 kawa-backup; has "$(notice)" "KINGSTON is not plugged in"
 

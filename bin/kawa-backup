@@ -21,7 +21,8 @@
 #   kawa-backup status           the last backup's age in a word or two (the menus show it)
 #   kawa-backup where            where BACKUP_TARGET is right now — or why it cannot be reached
 #   kawa-backup target           BACKUP_TARGET as settings saved it (empty: none yet, or not valid)
-#   kawa-backup --window         the backup in a small window of its own (quick settings)
+#   kawa-backup --window         the backup in a small window of its own (quick settings),
+#                                open until it ends: a click elsewhere never stops it
 #
 # BACKUP_TARGET (fedokawaii.conf, Super+U → settings: it counts as soon as it is saved): a
 # drive's name — the label the drives menu shows; the backup lives in a folder
@@ -237,7 +238,7 @@ wait_key() { printf '\n  any key closes this window '; read -rsn1 _ </dev/tty 2>
 
 case ${1:-} in
   "")        backup ;;
-  --window)  exec kawa-float --once backup backup 80x25 -- "$0" --wait ;;
+  --window)  exec kawa-float --once backup --dialog backup 80x25 -- "$0" --wait ;;   # (a dialog: nothing but its own key ends a backup)
   --wait)    backup; wait_key ;;
   status)    (($# == 1)) || exit 2; status ;;
   target)    (($# == 1)) || exit 2; [[ -n $CONF_WHY ]] || printf '%s\n' "$BACKUP_TARGET" ;;   # (one that breaks its rule: none)

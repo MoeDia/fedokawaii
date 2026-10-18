@@ -46,17 +46,23 @@ command -v gtklock >/dev/null || fail "gtklock is not installed — fedokawaii r
 art=$HOME/.local/share/fedokawaii/$THEME
 printf -v day '%(%u)T' -1
 ui=$run/kawa-lock.ui
+# The layout missing is no reason not to lock: the screen still locks, in gtklock's own plain
+# look, and a notice says what to repair (the one place a lesser way is taken — a sleep must
+# never find the screen unlocked)
+layout=(-x "$ui")
 sed -e "s|{SEAL}|$art/seal-$day.png|" -e "s|{PADLOCK}|$art/padlock.png|" \
-  "$HOME/.config/fedokawaii/lock.ui" >"$ui.tmp" 2>/dev/null && mv -f "$ui.tmp" "$ui" \
-  || fail "the lock screen's layout is missing (~/.config/fedokawaii/lock.ui) — fedokawaii repair puts it back"
+  "$HOME/.config/fedokawaii/lock.ui" >"$ui.tmp" 2>/dev/null && mv -f "$ui.tmp" "$ui" || {
+  layout=()
+  notify-send -a desktop -u critical "${ICON_LOCK:-}  lock screen" "its layout is missing (~/.config/fedokawaii/lock.ui), so it locks plain — fedokawaii repair puts it back" 2>/dev/null
+}
 
 locked=$run/kawa-lock.locked
 rm -f "$locked"
 # gtklock runs on (it is the lock); --lock-command marks the moment every screen is locked.
 # The date in English whatever the language (C), the ◆ box and the seal say the rest; its two
 # messages in the desktop's words (LANGUAGE=fk: the catalogue setup installs, art/gtklock.mo)
-setsid -f env LC_TIME=C LANGUAGE=fk gtklock -s "$HOME/.config/fedokawaii/current/gtklock.css" -x "$ui" \
-  --date-format '%a %d %b' --time-format '%I:%M %p' \
+setsid -f env LC_TIME=C LANGUAGE=fk gtklock -s "$HOME/.config/fedokawaii/current/gtklock.css" "${layout[@]}" \
+  --date-format '%d %b' --time-format '%I:%M %p' \
   --lock-command "touch $locked" </dev/null >/dev/null 2>&1 9>&-
 # (gone after a second without locking — it could not start: said at once, not after 10 s)
 for ((i = 0; i < 100; i++)); do

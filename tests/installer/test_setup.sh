@@ -33,7 +33,7 @@ pkg_has tar && pkg_has grubby && pkg_has diffutils && pkg_has man-db && _ok || _
 pkg_has nano && _no "nano still there" || _ok
 pkg_has systemd-oomd-defaults && _no "systemd-oomd-defaults still there (its kill would take the whole session)" || _ok
 eq "$(grep -v '^#' "$W/etc/modprobe.d/fedokawaii-btusb.conf" 2>/dev/null)" "options btusb enable_autosuspend=0" "the Bluetooth dongle never sleeps"
-eq "$(grep -v '^#' "$W/etc/systemd/logind.conf.d/90-fedokawaii.conf" 2>/dev/null | tr '\n' ' ')" "[Login] HandleSuspendKey=ignore HandleSuspendKeyLongPress=ignore InhibitDelayMaxSec=15 " "the Sleep key left to dwl (locked first), any sleep waiting for the lock"
+eq "$(grep -v '^#' "$W/etc/systemd/logind.conf.d/90-fedokawaii.conf" 2>/dev/null | tr '\n' ' ')" "[Login] HandleSuspendKey=ignore HandleSuspendKeyLongPress=ignore HandleHibernateKey=ignore HandleHibernateKeyLongPress=ignore InhibitDelayMaxSec=15 " "the Sleep key left to dwl (locked first), any sleep waiting for the lock"
 # (Node 22, which neovim brings through tree-sitter-cli's recommendation, never taken as a weak
 # dependency — set before the first install, and dnf reads it back so)
 has "$(cat "$W/etc/dnf/libdnf5.conf.d/90-fedokawaii.conf")" "exclude_from_weak=nodejs,nodejs22*,PackageKit,java-*-openjdk-headless,libreoffice-help-*"
@@ -107,7 +107,7 @@ called "pipx\] install --force --python python3.13 --pip-args=-c .*/system/torrr
   && _ok || _no "pipx's torrra is in ~/.local/bin"
 eq "$(sort "$FKH/fw-ports" | tr '\n' ' ')" "53317/tcp 53317/udp 6881/tcp 6881/udp " "torrra's port and LocalSend's"
 case_ "the gate's second tries: GE-Proton, the yazi file dialog and LazyVim's plugins, each put in place there"
-has "$OUT" "GE-Proton is not installed yet"; has "$OUT" "file dialogs stay GTK's for now"
+has "$OUT" "GE-Proton is not installed yet"; has "$OUT" "no file dialog yet: termfilechooser did not build"
 has "$OUT" "✔ GE-Proton10-25 → Steam compatibilitytools.d"; has "$OUT" "file dialogs: yazi (termfilechooser v1.4.3)"
 called "nvim\] --headless \+Lazy! install"
 [[ -d $W/home/fkuser/.local/share/nvim/lazy/LazyVim && -x $W/usr/local/libexec/xdg-desktop-portal-termfilechooser ]] && _ok || _no "LazyVim or the file dialog missing"

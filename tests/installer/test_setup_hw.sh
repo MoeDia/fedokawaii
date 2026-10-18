@@ -34,6 +34,7 @@ resume --no-reboot; eq "$RC" 0 "$(grep '✘' <<<"$OUT" | head -n3 | tr '\n' '|')
 has "$OUT" "attempt 1/3 failed: as_user git -C /home/fkuser/.local/src/dwl fetch"; has "$OUT" "✔ 3.02 dwl"
 pkg_has NetworkManager-wifi && pkg_has wireless-regdb && _ok || _no "the Wi-Fi part not added at the gate"
 has "$(state hardware-pkgs)" NetworkManager-wifi
+called 'systemctl\] try-restart NetworkManager.service$' # (the radio managed before verify looks)
 eq "$(state phase)" "done"
 has "$(cat "$W/etc/NetworkManager/conf.d/90-fedokawaii.conf")" "wifi.powersave = 2"
 

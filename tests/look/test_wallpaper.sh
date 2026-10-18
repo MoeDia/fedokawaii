@@ -328,6 +328,8 @@ rc 0 kawa-wallpaper
 not_called '^fzf'
 
 # ── the preview pane ─────────────────────────────────────────────────────────
+# (the picker's previews always have the cell the window measured: --tui exports it)
+export KAWA_CELL=12x26
 case_ "a preview: a sixel picture; broken or missing pictures just say 'no preview', quietly"
 setup
 photo "$WP/ok.png"

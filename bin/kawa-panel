@@ -2,13 +2,14 @@
 """kawa-panel — quick settings, the panel under the bar's right end (its cat, or Super+X).
 
     kawa-panel          run, hidden, for the whole session (autostart starts it): it opens
-                        at once when asked (kawa-quick sends SIGUSR1: open, or close)
+                        at once when asked (kawa-quick sends SIGUSR1: open, or close; a
+                        menu about to open sends SIGUSR2: close)
     kawa-panel --open   the same, open from the start (kawa-quick, should it not be running)
 
 What it shows, top to bottom, on one 12 px grid (the day, the time, the weather and the
 volume's number are the bar's, right above it, so they are not said again here):
-    two meters    明 brightness and 音 sound: twelve squares each; brightness's level beside
-                  them (sound's is the bar's), or the words when there is no level
+    two meters    明 brightness and 音 sound: twelve squares each (their levels are the
+                  bar's), or the words when there is no level
     the tiles     theme · night light · freesync · network · bluetooth · devices (those two
                   only with a Bluetooth adapter) · drives · backup · dnd — each its icon, a
                   kanji seal, its name and how it stands; the seal is stamped vermilion
@@ -39,8 +40,10 @@ CURRENT = os.path.join(HOME, ".config/fedokawaii/current")
 ICONS_SH = os.path.join(HOME, ".config/fedokawaii/icons.sh")
 RUN = os.environ.get("XDG_RUNTIME_DIR") or f"/run/user/{os.getuid()}"
 PIDFILE = os.path.join(RUN, "kawa-panel.pid")
-DROP = os.path.join(RUN, "kawa-drop.open")          # lights the bar's cat (kawa-dwlstatus)
+MARK = os.path.join(RUN, "kawa-panel.open")         # lights the bar's cat (kawa-dwlstatus) — its
+                                                    # own: a dropdown's (kawa-drop.open) is kawa-menu's
 LOST_GRACE = 0.6      # a toggle this soon after a click outside closed it is that same click
+REPEAT = 0.5          # a toggle this soon after the last is its key held (dwl repeats it)
 
 # ── the grid (pixels) ─────────────────────────────────────────────────────────────────────
 BORDER, PAD = 2, 12                  # the frame and the margin inside it: as fuzzel's menus
@@ -189,6 +192,7 @@ class Panel:
         self.focus = "theme"
         self.visible = False
         self.lost_at = -1e9
+        self.toggled_at = -1e9
         self.reading = False
         self.again = False
         self.busy = {}          # a meter's level being set, and the next one asked meanwhile
@@ -219,6 +223,10 @@ class Panel:
 
     # open, closed
     def toggle(self):
+        now = self.ui.now()
+        if now - self.toggled_at < REPEAT:            # (its key held: no flicker)
+            return
+        self.toggled_at = now
         if self.visible:
             self.close("toggled")
         elif self.ui.now() - self.lost_at >= LOST_GRACE:
@@ -235,6 +243,8 @@ class Panel:
         if not self.visible:
             return
         self.visible = False
+        if how != "toggled":
+            self.toggled_at = -1e9                    # (closed otherwise: its key opens it at once)
         if how == "lost":
             self.lost_at = self.ui.now()
         self.ui.hide()
@@ -388,6 +398,7 @@ def main(argv):
     # restart) is kept, not fatal: SIGUSR1's default would end it before GLib takes the signal
     early = []
     signal.signal(signal.SIGUSR1, lambda *_: early.append(1))
+    signal.signal(signal.SIGUSR2, lambda *_: early.clear())     # (a menu opened meanwhile: closed)
     with open(PIDFILE, "w") as f:
         f.write(str(os.getpid()))
     ic = icons()
@@ -458,9 +469,9 @@ def main(argv):
         def light(self, on):
             try:
                 if on:
-                    open(DROP, "w").close()
+                    open(MARK, "w").close()
                 else:
-                    os.unlink(DROP)
+                    os.unlink(MARK)
             except OSError:
                 pass
             self.launch(["kawa-dwlstatus", "--poke", "15"])
@@ -579,10 +590,11 @@ def main(argv):
                 glyph(cr, it.x + 6, ty, it.kanji, "text_on_accent" if on else "accent_text")
                 text(cr, it.x + 6 + LINE + 6, ty, it.name, "text_on_accent" if on else "text")
                 pct = percent(it.value)
-                if pct is None or it.key != "sound":     # (the volume's number: the bar's, above)
-                    text(cr, it.x + it.w - 6, ty, it.value, "text_on_accent" if on else "muted", right=True)
+                # (no DDC/CI, muted, no output: the words alone; a level's number is the bar's,
+                # above — the squares stand where the sound's do)
                 if pct is None:
-                    continue                          # (no DDC/CI, muted, no output: the words alone)
+                    text(cr, it.x + it.w - 6, ty, it.value, "text_on_accent" if on else "muted", right=True)
+                    continue
                 span = SEGS * SEG_W + (SEGS - 1) * SEG_GAP
                 sx = it.x + it.w - 6 - 4 * 6 - 8 - span
                 lit = round((pct or 0) * SEGS / 100)
@@ -665,6 +677,9 @@ def main(argv):
     mon.connect("changed", on_dir)
 
     GLib.unix_signal_add(GLib.PRIORITY_DEFAULT, signal.SIGUSR1, lambda: panel.toggle() or True)
+    # another menu's key (kawa-menu): closed for it — on the overlay, with the keyboard its
+    # own, the panel would leave the menu no keys
+    GLib.unix_signal_add(GLib.PRIORITY_DEFAULT, signal.SIGUSR2, lambda: panel.close("chosen") or True)
     GLib.unix_signal_add(GLib.PRIORITY_DEFAULT, signal.SIGTERM, lambda: Gtk.main_quit() or False)
     panel.refresh()
     if argv[1:] == ["--open"] or len(early) % 2:

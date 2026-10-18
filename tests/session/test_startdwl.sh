@@ -18,6 +18,7 @@ setup() {   # setup — start-dwl rendered as setup.sh installs it, its /usr/loc
   printf '#!/bin/sh\necho "autostart ran in $HOME" >>"%s/autostart.ran"\n' "$TMP" >"$HOME/.config/dwl/autostart.sh"
   chmod +x "$HOME/.config/dwl/autostart.sh"
   LOG=$HOME/.cache/dwl.log
+  export KAWA_SYSFS=$TMP/sysfs; mkdir -p "$KAWA_SYSFS/class/drm"   # (no graphics card, unless gpus says)
   stub systemctl; stub bash; stub pgrep 'exit 1'
   stub ldd 'for f; do :; done; [ -e "$f.nolib" ] && printf "\tlibwlroots-0.20.so => not found\n"; printf "\tlibc.so.6 => /lib64/libc.so.6\n"'
 }
@@ -27,6 +28,15 @@ dwl() {
   printf '#!/bin/sh\nprintf "%%s\\n" "%s $*" >>"%s"\nenv >"%s/%s.env"\n[ "$1" = -s ] && sh -c "$2" </dev/null\necho "%s said something" >&2\n%s\n' \
     "$1" "$CALLS" "$TMP" "$1" "$1" "${2:-exit 0}" >"$BIN/$1"
   chmod +x "$BIN/$1"
+}
+# gpus NAME[:VRAM]… — the graphics cards in the fake sysfs, each with its video memory in bytes
+# (none given: a card that does not say it); a screen's socket beside them (card0-DP-1)
+gpus() {
+  local g; rm -rf "$KAWA_SYSFS/class/drm"; mkdir -p "$KAWA_SYSFS/class/drm/card0-DP-1"
+  for g; do
+    mkdir -p "$KAWA_SYSFS/class/drm/${g%%:*}/device"
+    [[ $g == *:* ]] && echo "${g#*:}" >"$KAWA_SYSFS/class/drm/${g%%:*}/device/mem_info_vram_total"
+  done
 }
 nolib() { : >"$BIN/$1.nolib"; }   # nolib NAME — ldd: NAME misses a library
 envof() { grep -E "^$2=" "$TMP/$1.env" | cut -d= -f2-; }   # envof NAME VAR — what NAME was given
@@ -52,12 +62,27 @@ for v in XDG_SESSION_TYPE=wayland XDG_SESSION_DESKTOP=dwl XDG_CURRENT_DESKTOP=wl
   eq "$(envof dwl "${v%%=*}")" "${v#*=}" "${v%%=*}"
 done
 eq "$(envof dwl SDL_VIDEODRIVER)" "" "SDL_VIDEODRIVER not set (old SDL2 games)"
+eq "$(envof dwl WLR_DRM_DEVICES)" "" "no graphics card found: WLR_DRM_DEVICES not set (wlroots picks)"
 has "$(cat "$LOG")" "dwl said something"; lacks "$(cat "$LOG")" "the last session"
 case_ "the session before is kept beside the new log (dwl.log.old: what a crash said)$n"
 eq "$(cat "$LOG.old")" "the last session"
 case_ "logged out: the graphical session ends for systemd, its display leaves systemd's environment$n"
 called "^systemctl --user stop dwl-session.target$"
 called "^systemctl --user unset-environment WAYLAND_DISPLAY DISPLAY XDG_CURRENT_DESKTOP XDG_SESSION_DESKTOP XDG_SESSION_TYPE$"
+case_ "two graphics cards (the CPU's own beside a graphics card): dwl draws on the one with the most video memory$n"
+dwl dwl; gpus card0:536870912 card1:17163091968; start
+eq "$RC" 0; eq "$(envof dwl WLR_DRM_DEVICES)" /dev/dri/card1; has "$(cat "$LOG")" "drawing on card1, the one with the most video memory"
+gpus card0:17163091968 card1:536870912; start; eq "$(envof dwl WLR_DRM_DEVICES)" /dev/dri/card0 "the card first this time"
+case_ "one graphics card, its memory not said (Intel's): that one$n"
+gpus card0; start; eq "$(envof dwl WLR_DRM_DEVICES)" /dev/dri/card0
+case_ "two cards, neither saying its video memory: WLR_DRM_DEVICES not set, and the log says why$n"
+gpus card0 card1; start; eq "$(envof dwl WLR_DRM_DEVICES)" ""; has "$(cat "$LOG")" "2 graphics cards, none saying its video memory"
+case_ "start-dwl --gpu (the login screen's cage): the same card as WLR_DRM_DEVICES=…, nothing when it cannot tell — dwl not started$n"
+sh=$TMP/shbin/sh; [[ $SHL == dash ]] && sh=$(command -v dash)
+: >"$CALLS"; gpus card0:536870912 card1:17163091968
+eq "$("$sh" "$TMP/start-dwl" --gpu 2>/dev/null)" "WLR_DRM_DEVICES=/dev/dri/card1"
+gpus card0 card1; eq "$("$sh" "$TMP/start-dwl" --gpu 2>/dev/null)" ""
+not_called "^dwl"; gpus
 
 case_ "no autostart (Setup without Theme): dwl alone, with upstream defaults$n"
 setup; dwl dwl; rm "$HOME/.config/dwl/autostart.sh"; start

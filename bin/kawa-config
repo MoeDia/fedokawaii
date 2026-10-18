@@ -22,6 +22,7 @@ COPY=${FEDOKAWAII_COPY:-$HOME/repos/fedokawaii}
 WIDTH=51                       # icon (14 px) + 2 + the name (16) + the note (29): 296 px = 51 × 6 − 10
 
 say() { notify-send -a desktop "change" "$*" 2>/dev/null; }
+noterm() { say "the terminal server is not running — fedokawaii repair puts it back"; return 1; }
 
 # the working copy: made once, from the toolkit (fedokawaii copy), before the first edit
 ensure_copy() {
@@ -41,20 +42,21 @@ pending() {   # how many files of the copy differ from the toolkit (fedokawaii.c
 }
 
 # edit TITLE DIR FILE… — neovim in a terminal window of its own (the folder as its project),
-# waited on until it closes. A foot of its own only when the terminal server is not there
-# (footclient's 220, or 230: the server failed): any other code is nvim's own (:cq), and the
-# file must not open twice
+# waited on until it closes. The terminal server not there (footclient's 220, or 230: the
+# server failed): said, and nothing opens (1); any other code is nvim's own (:cq)
 edit() {
   local title=$1 dir=$2; shift 2
   footclient -T "change · $title" -D "$dir" -- nvim -O -- "$@" 2>/dev/null
-  case $? in 220|230) foot -T "change · $title" -D "$dir" -- nvim -O -- "$@" ;; esac
+  case $? in 220|230) noterm; return 1 ;; esac
+  return 0
 }
 sums() { cat -- "$@" 2>/dev/null | cksum; }
 
-# a window that runs CMD and waits for a key, so its last lines can be read
+# a window that runs CMD and waits for a key, so its last lines can be read — a dialog, not a
+# popup: a click elsewhere, another window or the same entry again never cuts CMD short
 hold() {   # hold NAME TITLE COLSxROWS CMD…
   local name=$1 title=$2 size=$3; shift 3
-  kawa-float --once "$name" "$title" "$size" -- bash -c '"$@"; printf "\n  any key closes this window "; read -rsn1' _ "$@"
+  kawa-float --once "$name" --dialog "$title" "$size" -- bash -c '"$@"; printf "\n  any key closes this window "; read -rsn1' _ "$@"
 }
 apply_now() { hold apply "apply" 100x33 fedokawaii apply; }
 
@@ -91,7 +93,7 @@ part() {
   local title=$1 when=$2 hook=$3 before; shift 3
   ensure_copy || return 1
   before=$(cd "$COPY" && sums "$@")
-  edit "$title" "$COPY" "$@"
+  edit "$title" "$COPY" "$@" || return 1
   [[ $(cd "$COPY" && sums "$@") == "$before" ]] && return 0          # (closed unchanged)
   case $hook in
     colours) draw_colours || return 1 ;;
@@ -104,7 +106,7 @@ part() {
 yours() {   # yours TITLE WHEN FILE HEADER
   local title=$1 when=$2 f=$3
   if [[ ! -e $f ]]; then mkdir -p -- "${f%/*}" && printf '%s\n' "$4" >"$f"; fi
-  edit "$title" "${f%/*}" "$f"
+  edit "$title" "${f%/*}" "$f" || return 1
   say "${f/#$HOME/\~} — yours: nothing to apply; $when"
 }
 line() { local r; printf -v r '%s  %-16s%s' "$1" "$2" "$3"; printf '%s\n' "$r"; }   # icon, name, note
@@ -133,7 +135,7 @@ yours_menu() {
 return {
   -- { \"folke/zen-mode.nvim\", cmd = \"ZenMode\" },
 }" ;;
-    3) mkdir -p "$HOME/.local/bin"; footclient -N -- yazi "$HOME/.local/bin" 2>/dev/null || foot -- yazi "$HOME/.local/bin" ;;
+    3) mkdir -p "$HOME/.local/bin"; footclient -N -- yazi "$HOME/.local/bin" 2>/dev/null || noterm ;;
   esac
 }
 
@@ -230,7 +232,7 @@ case ${acts[i]} in
   settings)  part settings "apply puts each value in place (it runs repair)" - fedokawaii.conf ;;
   yours)     yours_menu ;;
   changed)   ensure_copy && hold diff "what changed" 120x41 fedokawaii diff ;;
-  history)   ensure_copy && { footclient -N -D "$COPY" -- lazygit 2>/dev/null || foot -D "$COPY" -- lazygit; } ;;
+  history)   ensure_copy && { footclient -N -D "$COPY" -- lazygit 2>/dev/null || noterm; } ;;
   apply)     ensure_copy && apply_now ;;
   learn)     learn_menu ;;
 esac
