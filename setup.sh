@@ -979,9 +979,11 @@ s_dwl() {
   local src=$TARGET_HOME/.local/src/dwl
   as_user mkdir -p "$TARGET_HOME/.local/src"
   checkout_sound "$src"
-  [[ -d $src/.git ]] || retry 3 10 as_user git clone --quiet https://codeberg.org/dwl/dwl.git "$src"
-  # (Codeberg has its slow minutes: the fetch is retried like the clone)
-  retry 3 10 as_user git -C "$src" fetch --quiet --tags --force \
+  # (Codeberg has its slow minutes: a transfer slower than 1 KB/s for a minute is given up
+  # and tried again — a stalled connection would otherwise hold the clone for ever)
+  local slow=(-c http.lowSpeedLimit=1000 -c http.lowSpeedTime=60)
+  [[ -d $src/.git ]] || retry 3 10 as_user git "${slow[@]}" clone --quiet https://codeberg.org/dwl/dwl.git "$src"
+  retry 3 10 as_user git -C "$src" "${slow[@]}" fetch --quiet --tags --force \
     || die "could not fetch dwl from codeberg.org — try again in a while (reachable, and still refused: the checkout may be damaged — move ${src/#$TARGET_HOME/\~} away, then run again)"
   [[ $(as_user git -C "$src" rev-parse "$DWL_TAG^{commit}") == "$DWL_COMMIT" ]] \
     || die "dwl tag $DWL_TAG does not point at the pinned commit $DWL_COMMIT — refusing to build"

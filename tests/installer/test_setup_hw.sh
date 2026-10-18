@@ -31,7 +31,7 @@ has "$(state hardware-pkgs)" iwlwifi-mvm-firmware
 case_ "Wi-Fi only, phase 3 after the restart (the radio up now) — and Codeberg failing twice: retried, built"
 reboot_world; hw_wifi; fkh kmsg ""; fkh fail-git-fetch 2
 resume --no-reboot; eq "$RC" 0 "$(grep '✘' <<<"$OUT" | head -n3 | tr '\n' '|')"
-has "$OUT" "attempt 1/3 failed: as_user git -C /home/fkuser/.local/src/dwl fetch"; has "$OUT" "✔ 3.02 dwl"
+has "$OUT" "attempt 1/3 failed: as_user git -C /home/fkuser/.local/src/dwl -c http.lowSpeedLimit=1000 -c http.lowSpeedTime=60 fetch"; has "$OUT" "✔ 3.02 dwl"
 pkg_has NetworkManager-wifi && pkg_has wireless-regdb && _ok || _no "the Wi-Fi part not added at the gate"
 has "$(state hardware-pkgs)" NetworkManager-wifi
 called 'systemctl\] try-restart NetworkManager.service$' # (the radio managed before verify looks)
@@ -87,7 +87,7 @@ resume --no-reboot
 has "$OUT" "~/.local/src/dwl/.git was no git repository (a clone a stopped run cut off?) — moved to ~/.local/src/dwl.damaged-"
 has "$OUT" "✔ 3.02 dwl"
 lacks "$OUT" "could not fetch dwl" "the network was never the problem"
-called 'git\] clone --quiet https://codeberg.org/dwl/dwl.git /home/fkuser/.local/src/dwl'
+called 'git\] -c http.lowSpeedLimit=1000 -c http.lowSpeedTime=60 clone --quiet https://codeberg.org/dwl/dwl.git /home/fkuser/.local/src/dwl'
 [[ -f $W/home/fkuser/.local/src/dwl/.git/HEAD ]] && _ok || _no "no fresh clone"
 compgen -G "$W/home/fkuser/.local/src/dwl.damaged-*" >/dev/null && _ok || _no "the damaged folder was not kept aside"
 eq "$(fk stat -c %U "$(compgen -G "$W/home/fkuser/.local/src/dwl.damaged-*" | head -n1 | sed "s|^$W||")" 2>/dev/null)" fkuser "moved as you"
