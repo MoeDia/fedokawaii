@@ -1,5 +1,6 @@
--- ~/.config/nvim/lua/config/lazy.lua — LazyVim's starter file, with one change: no update
--- checks in the background. Plugins move only when you run `update` (it backs up
+-- ~/.config/nvim/lua/config/lazy.lua — LazyVim's starter file, with two changes: no update
+-- checks in the background, and no luarocks (no plugin here needs a rock: lazy.nvim would
+-- want luarocks and Lua 5.1 for nothing, and :checkhealth lazy said ERROR for their lack). Plugins move only when you run `update` (it backs up
 -- lazy-lock.json first, then `Lazy! sync`) or `:Lazy sync` yourself; lazy-lock.json holds
 -- every plugin at the exact commit you have, and `:Lazy restore` goes back to it.
 local lazypath = vim.fn.stdpath("data") .. "/lazy/lazy.nvim"
@@ -29,6 +30,7 @@ require("lazy").setup({
   },
   install = { colorscheme = { "gruvbox", "habamax" } },
   checker = { enabled = false }, -- no network, no update notices between your updates
+  rocks = { enabled = false }, -- no luarocks: no plugin here needs one
   change_detection = { notify = false },
   performance = {
     rtp = {

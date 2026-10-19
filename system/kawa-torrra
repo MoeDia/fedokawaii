@@ -113,6 +113,7 @@ try:
     import httpx, libtorrent  # noqa: F401  (a broken libtorrent shows here, not mid-download)
     import torrra.core.config as c
     from torrra.__main__ import cli
+    from torrra.core.constants import DEFAULT_MAX_RETRIES, DEFAULT_TIMEOUT
     get, set_, load, _ = c.Config.get, c.Config.set, c.Config._load_config, c.CONFIG_FILE
 except (ImportError, AttributeError) as e:
     fail(f"cannot start ({e}) — run: fedokawaii update")
@@ -130,6 +131,7 @@ if search:
         fail("Prowlarr has no indexers switched on — fedokawaii repair adds the usual ones (or: prowlarr → Indexers)")
 
 SECRET = "indexers.prowlarr.api_key"
+SEARCH_WAIT = 60                                      # seconds: a search's answer from Prowlarr
 THEMES = ("ansi-dark", "ansi-light", "textual-dark")
 
 def kawa_load(self):
@@ -154,6 +156,13 @@ def kawa_load(self):
     g = cfg.setdefault("general", {})
     if g.get("theme", "textual-dark") in THEMES and g.get("theme") != "ansi-dark":
         g["theme"], dirty = "ansi-dark", True         # (an ansi-light an older setup chose too)
+    # Prowlarr answers a search once the slowest of its eight sites has (one slow, or blocked
+    # here, takes its time); torrra's own wait — 10 s, tried three times, each try a whole
+    # new search — gave up first: "Search failed", "Nothing found". A minute, once. A wait
+    # or a number of tries you set yourself stays
+    for k, ours, theirs in (("timeout", SEARCH_WAIT, DEFAULT_TIMEOUT), ("max_retries", 1, DEFAULT_MAX_RETRIES)):
+        if g.get(k, theirs) == theirs:
+            g[k], dirty = ours, True
     if dirty and readable:
         self._save_config()
 
@@ -172,7 +181,7 @@ sys.exit(cli())
 PY
 
 # Prowlarr runs on demand: woken here for a search (kawa-prowlarr --busy: the start returns
-# once it is healthy — the first after a boot can take a minute or two; systemd gives up
+# once it is healthy, a few seconds; systemd gives up
 # after 10 minutes, the unit's TimeoutStartSec), and left to sleep 30 minutes after this
 # window closes (kawa-prowlarr --idle) — however torrra ends, the window closed during a
 # search included (trap) — so a second search soon after finds it awake

@@ -72,7 +72,7 @@ eq "$(guarded 'wl-copy x && notify-send y; grim | wl-copy; resvg a b')" "" "&& a
 
 # ── the closure ──────────────────────────────────────────────────────────────────────────
 pkgs() {   # pkgs GPU STEAM → every package setup installs for that machine
-  (STEAM=$2 SPOTIFY=yes STATE_DIR=$TMP/nostate; . "$REPO/lib/manifest.sh"; manifest_all "$1") >"$TMP/pkgs.$1.$2"
+  (STEAM=$2 STATE_DIR=$TMP/nostate; . "$REPO/lib/manifest.sh"; manifest_all "$1") >"$TMP/pkgs.$1.$2"
 }
 pkgs amd yes; pkgs intel yes; pkgs amd no
 

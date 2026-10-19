@@ -31,7 +31,7 @@ bl() { cat "$KAWA_SYSFS/class/backlight/$1/brightness"; }
 # ── one monitor ──────────────────────────────────────────────────────────────
 case_ "one monitor at 70 %: +10 → 80, the panel says so; -10 → 70; 40 → 40"
 setup
-rc 0 kawa-brightness +10; eq "$(b 5)" 80; eq "$(osd | cut -d'|' -f2,3)" "$ICON_SUN  brightness|80%"
+rc 0 kawa-brightness +10; eq "$(b 5)" 80; eq "$(osd | cut -d'|' -f2,3)" "明  brightness|80%"
 rc 0 kawa-brightness -10; eq "$(b 5)" 70
 rc 0 kawa-brightness 40;  eq "$(b 5)" 40; eq "$(kawa-brightness --level)" 40
 eq "$(shown)" 70% "a level set from quick settings pops nothing up over its meter (the -10 step's 70 % stays the last shown)"

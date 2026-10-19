@@ -30,7 +30,7 @@ hook() {   # hook install|remove NAME
     adwaita-cursor-theme) f=/usr/share/icons/Adwaita/cursors/default ;;
     nano) f=/usr/bin/nano ;; vim-minimal) f=/usr/bin/vi ;; vim-enhanced) f=/usr/bin/vim ;; emacs) f=/usr/bin/emacs ;;
     flatpak) f=/usr/bin/flatpak ;;
-    lpf-spotify-client) if [[ $1 == install ]]; then fake_lpf; else rm -rf /usr/share/lpf; fi ;;
+    lpf) [[ $1 == remove ]] && rm -rf /usr/share/lpf /etc/sudoers.d/pkg-build ;;   # (its files: the user and /var/lib/lpf stay)
   esac
   for x in $f; do
     if [[ $1 == install ]]; then mkdir -p "${x%/*}"; printf '#!/bin/sh\nexit 0\n' >"$x"; chmod 755 "$x"; else rm -f "$x"; fi
@@ -42,6 +42,7 @@ mark_user() {   # (an i686 package is listed by its name alone, as dnf shows %{n
   grep -q "^$1 " "$FKH/userinstalled" 2>/dev/null || echo "$1 User" >>"$FKH/userinstalled"
 }
 unmark() { del installed "$1"; hook remove "$1"; sed -i "/^${1//./\\.} /d" "$FKH/userinstalled"; }
+orphans() { local p; while IFS= read -r p; do has installed "$p" && ! grep -q "^$p " "$FKH/userinstalled" 2>/dev/null && echo "$p"; done < <(cat "$FKH/orphans" 2>/dev/null); return 0; }
 case "$a" in
   " --version "*) echo "dnf5 version 5.2.17.0"; exit 0;;
   *" --dump-main-config "*)
@@ -67,8 +68,9 @@ case "$a" in
   *" check-upgrade "*) net_on || exit 1; r=$(rcfor check-upgrade 0); ((r == 100)) && printf 'bash.x86_64 5.3-1 updates\nkernel-core.x86_64 6.19-1 updates\n'; exit "$r";;
   *" check "*) [[ -s $FKH/dnfcheck ]] || exit 0; cat "$FKH/dnfcheck"; exit 1;;
   *" distro-sync "*) net_on || exit 1; [[ -f $FKH/distro-sync-fixes ]] && : >"$FKH/dnfcheck"; exit 0;;
-  *" --unneeded "*) cat "$FKH/unneeded" 2>/dev/null; exit 0;;
-  *" autoremove "*) while IFS= read -r p; do unmark "$p"; done < <(cat "$FKH/unneeded" 2>/dev/null); : >"$FKH/unneeded"; exit 0;;
+  # (and $FKH/orphans: packages nothing needs — unneeded once they are no longer yours)
+  *" --unneeded "*) { cat "$FKH/unneeded" 2>/dev/null; orphans; } | sort -u; exit 0;;
+  *" autoremove "*) while IFS= read -r p; do unmark "$p"; done < <({ cat "$FKH/unneeded" 2>/dev/null; orphans; } | sort -u); : >"$FKH/unneeded"; exit 0;;
   *" --whatprovides /usr/lib/firmware/"*|*" --whatprovides=/usr/lib/firmware/"*)
       wp=() next=0
       for x in "$@"; do
@@ -110,8 +112,6 @@ case "$a" in
       for p in "$@"; do
         [[ $p == -* || $p == install ]] && continue
         if [[ $p == https://*.rpm ]]; then p=${p##*/}; p=${p%-[0-9]*.noarch.rpm}; mark_user "$p"; continue; fi
-        if [[ $p == /*.rpm ]]; then [[ -f $p ]] || { echo "dnf stub: no such file: $p" >&2; rc=1; continue; }   # (a package built here: lpf's)
-          p=${p##*/}; mark_user "${p%%-[0-9]*}"; continue; fi
         q=$(awk -v c="$p" '$1 == c { print $2; exit }' "$FKH/provides" 2>/dev/null); [[ -n $q ]] && p=$q
         # NAME-VERSION.ARCH (a version asked for by name, from updates-testing): that package —
         # and RPM Fusion's builds waiting for that very version ($FKH/behind-until "PKG NAME-VERSION")

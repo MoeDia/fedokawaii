@@ -23,7 +23,7 @@ has "$OUT" "✔ verified"; lacks "$OUT" "✘"
 read -r t p f w <"$W/var/lib/fedokawaii/last-verify"
 [[ $t =~ ^[0-9]+$ ]] && ((p > 100)) && _ok || _no "last-verify: $t $p $f $w"; eq "$f" 0
 has "$OUT" "✔ all " ; has "$OUT" "manifest packages installed"
-has "$OUT" "(built here by lpf)" "Spotify, built here: counted, and said"
+has "$OUT" "✔ no lpf, nothing it left (Spotify is its web player)"
 has "$OUT" "✔ user unit wireplumber.service enabled"; has "$OUT" "✔ hardware decode: H264High"
 has "$OUT" "✔ torrent port 6881 open"; has "$OUT" "✔ firewall: no ssh / cockpit"
 has "$OUT" "✔ ROCm SMI library for btop (librocm_smi64.so.1.0)"
@@ -31,6 +31,7 @@ has "$OUT" "✔ restic runs (backups to another disk: kawa-backup)"   # (the exc
 has "$OUT" "✔ Syncplay v1.7.6 loads (Fedora's python3, Twisted with TLS, certifi, pem)"; has "$OUT" "✔ syncplay runs without a window"
 has "$OUT" "✔ user in video, render"; lacks "$OUT" "input, render"
 has "$OUT" "✔ Bluetooth dongle power saving off (btusb)"; has "$OUT" "✔ shutdown waits 30 s at most for your services"
+has "$OUT" "✔ the sound card never naps (no click at a volume change)"; has "$OUT" "✔ a restart waits for Steam to close properly (25 s at most)"
 
 case_ "your home: a root-owned file in ~/.cache (a program run as root with your HOME) or ~/Downloads (its own subvolume) fails, named; podman's storage (its containers' own ids) does not"
 back built
@@ -43,7 +44,7 @@ V; has "$OUT" "✘ files in your home that are not yours: root ~/Downloads/x.tor
 back built; V
 
 case_ "Prowlarr not running: verify says it starts it, and why that may take a while, before it waits"
-i=$(grep -n "· starting Prowlarr to check it — its first start after a boot can take a minute or two" <<<"$OUT" | cut -d: -f1)
+i=$(grep -n "· starting Prowlarr to check it (a few seconds)" <<<"$OUT" | cut -d: -f1)
 s=$(grep -n "✔ Prowlarr starts" <<<"$OUT" | cut -d: -f1)
 [[ -n $i && -n $s ]] && ((i < s)) && _ok || _no "the line before the start: [$i] [$s]"
 case_ "…already running: nothing to wait for, so nothing said"
@@ -54,6 +55,10 @@ has "$OUT" "✔ Prowlarr's start waits on nothing online"
 case_ "a Prowlarr unit still waiting for the network to be online (podman's wait unit, 90 s at a boot that never wants network-online.target): a failure"
 fkh pw-prowlarr-deps "podman-user-wait-network-online.service default.target"
 V; eq "$RC" 3; has "$OUT" "✘ Prowlarr's start waits for the network to be online"; rm -f "$FKH/pw-prowlarr-deps"
+case_ "Prowlarr's page with no login: said; one that still asks for a login (an older container file): a failure"
+V; has "$OUT" "✔ Prowlarr's page opens with no login (it answers on 127.0.0.1 only)"
+fkh prowlarr-auth forms; V; eq "$RC" 3
+has "$OUT" "✘ Prowlarr's page opens with no login — authentication: forms, its page answered 302"; rm -f "$FKH/prowlarr-auth"
 
 # ── warnings: never a failure ────────────────────────────────────────────────
 case_ "warnings only (no firewall running, no AV1 decoding, GE-Proton not yet, Syncplay and ble.sh not yet, a driver package missing): exit 0"
@@ -96,13 +101,13 @@ echo 1111111111111111111111111111111111111111 >"$W/home/fkuser/.local/share/fedo
 sed -i 's/+d81fd54/+0123456/' "$W/home/fkuser/.local/share/blesh/ble.sh"   # ble.sh: a copy of another commit
 fkh_add installed systemd-oomd-defaults                                    # oomd's rules: a whole-session kill
 fkh_add units "global-enabled grub-boot-success.timer"                     # any boot would count as successful
-rm -f "$W/etc/modprobe.d/fedokawaii-btusb.conf" "$W/etc/systemd/system/user@.service.d/fedokawaii.conf"
+rm -f "$W/etc/modprobe.d/fedokawaii-btusb.conf" "$W/etc/modprobe.d/fedokawaii-audio.conf" "$W/etc/systemd/system/user@.service.d/fedokawaii.conf"
 V; eq "$RC" 3
 has "$(line "✘ missing packages")" grubby; has "$(line "✘ missing packages")" man-db
 has "$OUT" "✘ forbidden packages present — nano"; has "$(line "✘ forbidden packages present")" systemd-oomd-defaults
 has "$OUT" "✘ Bluetooth dongle power saving off (btusb)"; has "$OUT" "✘ shutdown waits 30 s at most for your services"
+has "$OUT" "✘ the sound card never naps (no click at a volume change) — /etc/modprobe.d/fedokawaii-audio.conf missing"
 has "$OUT" "✘ installed outside the manifest — htop"
-lacks "$(line "✘ installed outside the manifest")" spotify-client "Spotify (built here by lpf) is the desktop's"
 has "$OUT" "✘ user unit wireplumber.service enabled"
 has "$OUT" "✘ firewall: no ssh / cockpit"
 has "$OUT" "✘ one kernel (two at most while a new one settles in)"

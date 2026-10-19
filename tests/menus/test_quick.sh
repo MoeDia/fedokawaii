@@ -46,7 +46,7 @@ cd "$HOME/.config/fedokawaii" && if [ "$(readlink current)" = themes/dark ]; the
   # the brightness kawa-brightness last read (its --level), the sound's level (wpctl)
   stub kawa-brightness '[ "$1" = --level ] && cat "$W/bright" 2>/dev/null'; echo 70 >"$W/bright"
   stub wpctl '[ "$1" = get-volume ] && cat "$W/vol"'; echo 'Volume: 0.62' >"$W/vol"
-  for s in kawa-audio kawa-float kawa-screenshot kawa-wallpaper kawa-power; do stub "$s"; done
+  for s in kawa-panel kawa-float kawa-screenshot kawa-wallpaper kawa-power; do stub "$s"; done
   stub kawa-brightness '[ "$1" = --level ] && { cat "$W/bright" 2>/dev/null; exit; }; echo "$1" >"$W/bright"'
   stub wpctl 'case $1 in get-volume) cat "$W/vol" ;; set-volume) echo "Volume: 0.$(printf %02d "${3%%%}")" >"$W/vol" ;; esac'
 }
@@ -171,7 +171,7 @@ case_ "bluetui comes from lib/upstream.sh, pinned (a static x86_64 binary, v0.8.
 e=$(. "$REPO/lib/upstream.sh"; printf '%s\n' "${UPSTREAM[@]}" | grep '^bluetui|')
 eq "$(cut -d'|' -f2-4,6 <<<"$e")" "pythops/bluetui|v0.8.2|bluetui-x86_64-linux-musl|bluetui"
 [[ $(cut -d'|' -f5 <<<"$e") =~ ^[0-9a-f]{64}$ ]] && _ok || _no "no SHA-256 pinned"
-m() { (STEAM=yes SPOTIFY=yes; . "$REPO/lib/manifest.sh"; eval "$1"); }
+m() { (STEAM=yes; . "$REPO/lib/manifest.sh"; eval "$1"); }
 lacks " $(m 'manifest_all amd' | tr '\n' ' ') " " blueman "; has " $(m 'manifest_all amd' | tr '\n' ' ') " " bluez "
 has " $(m 'echo "${FORBIDDEN_PKGS[*]}"') " " blueman "; has " $(m 'echo "${RETIRED_PKGS[*]}"') " " blueman "
 has "$(grep -E '^bluetui ' "$REPO/tests/static/fixtures/programs.txt")" "upstream"
@@ -243,7 +243,7 @@ eq "$(st backup)" never
 mkdir -p "$HOME/.local/state/fedokawaii"; printf '%s\t1 B\tKINGSTON\n' "$(( $(date +%s) - 86400 ))" >"$HOME/.local/state/fedokawaii/last-backup"
 eq "$(st backup)" yesterday
 case_ "each of the others opens its own window or menu"
-for pair in "sound:^kawa-audio *$" "drives:^kawa-drives *$" "wallpaper:^kawa-wallpaper *$" \
+for pair in "sound:^kawa-panel --sound$" "drives:^kawa-drives *$" "wallpaper:^kawa-wallpaper *$" \
             "screenshot:^kawa-screenshot region$" "power:^kawa-power *$"; do
   setup; rc 0 quick --do "${pair%%:*}"; called "${pair#*:}"
 done

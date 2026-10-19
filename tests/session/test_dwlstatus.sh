@@ -81,9 +81,9 @@ case_ "recorded: a window asks for attention on workspace 1 while 2 is shown; 5 
 rm -rf "$BAR"; blk "$F/one-monitor.status" "tags 19 2 2 1" | kawa-dwlstatus
 eq "$(tagrow)" "1:urg 2:sel 3:emp 4:- 5:occ 6:- 7:- 8:- 9:-"
 eq "$(jtext title)" "日本語のタイトル・テスト"
-case_ "recorded: monocle with two windows, then the floating layout"
+case_ "recorded: monocle's [2] (an older session; monocle is gone): a symbol it does not know, as text; then the floating layout"
 rm -rf "$BAR"; blk "$F/one-monitor.status" "layout [2]" | kawa-dwlstatus
-eq "$(bar layout)" "{\"text\":\"$ICON_MONOCLE 2\",\"class\":\"monocle\"}"
+eq "$(bar layout)" '{"text":"[2]","class":"other"}'
 eq "$(title_is 'bell &lt;b&gt;&amp;amp; "q" \x $(id) `id`')" "" "a title with markup, quotes, \$(…) and backticks: shown as typed"
 rm -rf "$BAR"; blk "$F/one-monitor.status" "layout ><>" | kawa-dwlstatus
 eq "$(bar layout)" "{\"text\":\"$ICON_FLOAT\",\"class\":\"float\"}"
@@ -147,9 +147,8 @@ eq "$(tagrow)" "1:sel 2:emp 3:emp 4:- 5:- 6:- 7:- 8:- 9:-"
 eq "$(json_ok)" ""
 
 # ── the layout ───────────────────────────────────────────────────────────────
-case_ "each of dwl's layout symbols as its pixel icon; monocle with its count"
-for t in "(@)#$ICON_SPIRAL#spiral" "|||#$ICON_TILE#columns" "><>#$ICON_FLOAT#float" "[M]#$ICON_MONOCLE#monocle" \
-         "[3]#$ICON_MONOCLE 3#monocle" "[12]#$ICON_MONOCLE 12#monocle"; do
+case_ "each of dwl's layout symbols as its pixel icon"
+for t in "(@)#$ICON_SPIRAL#spiral" "|||#$ICON_TILE#columns" "><>#$ICON_FLOAT#float"; do
   IFS='#' read -r sym icon cls <<<"$t"
   rm -rf "$BAR"; block DP-1 1 1 1 0 "$sym" 0 x | kawa-dwlstatus
   eq "$(bar layout)" "{\"text\":\"$icon\",\"class\":\"$cls\"}" "layout $sym"
@@ -217,7 +216,7 @@ done
 # ── the per-monitor files, as each bar reads them ────────────────────────────
 case_ "each bar shows its own monitor; a bar told no name, or a monitor not reported yet: the focused one's"
 rm -rf "$BAR"
-{ block DP-1 0 3 1 0 '(@)' 0 "on the left"; block HDMI-A-1 1 $((1 << 4)) $((1 << 4)) 0 '[M]' 0 "on the right"; } | kawa-dwlstatus
+{ block DP-1 0 3 1 0 '(@)' 0 "on the left"; block HDMI-A-1 1 $((1 << 4)) $((1 << 4)) 0 '><>' 0 "on the right"; } | kawa-dwlstatus
 for m in tag1 tag5 layout title; do
   ex=$(wbexec "custom/$m")
   eq "$(WAYBAR_OUTPUT_NAME=DP-1 sh -c "$ex")" "$(bar "DP-1/$m")" "$m on DP-1"
@@ -278,9 +277,9 @@ case_ "only what changed is poked"
 block DP-1 1 1 1 0 '(@)' 0 x >"$TMP/b"; eq "$(delta "$TMP/a" "$TMP/b")" "" "the same status again: nothing"
 block DP-1 1 1 1 0 '(@)' 0 y >"$TMP/b"; eq "$(delta "$TMP/a" "$TMP/b")" "10" "a new title"
 block DP-1 1 3 2 0 '(@)' 0 x >"$TMP/b"; eq "$(delta "$TMP/a" "$TMP/b")" "8" "another workspace"
-block DP-1 1 1 1 0 '[M]' 0 x >"$TMP/b"; eq "$(delta "$TMP/a" "$TMP/b")" "9" "another layout"
+block DP-1 1 1 1 0 '|||' 0 x >"$TMP/b"; eq "$(delta "$TMP/a" "$TMP/b")" "9" "another layout"
 block DP-1 1 1 1 0 '(@)' 1 x >"$TMP/b"; eq "$(delta "$TMP/a" "$TMP/b")" "11" "Alt+Shift"
-block DP-1 1 3 2 0 '[2]' 0 y >"$TMP/b"; eq "$(delta "$TMP/a" "$TMP/b")" "8 9 10" "a window sent away"
+block DP-1 1 3 2 0 '|||' 0 y >"$TMP/b"; eq "$(delta "$TMP/a" "$TMP/b")" "8 9 10" "a window sent away"
 case_ "two monitors: a change on the one not focused still pokes (its own bar shows it)"
 { block DP-1 1 1 1 0 '(@)' 0 x; block HDMI-A-1 0 1 1 0 '(@)' 0 z; } >"$TMP/a"
 { block DP-1 1 1 1 0 '(@)' 0 x; block HDMI-A-1 0 1 1 0 '(@)' 0 z2; } >"$TMP/b"
@@ -338,25 +337,26 @@ mkdir -p "$TMP/run time"; XDG_RUNTIME_DIR="$TMP/run time" kawa-dwlstatus < <(blo
 eq "$(cat "$TMP/run time/dwl-bar/title.json")" '{"text":"spaced"}'
 case_ "icons.sh missing (a theme run that never finished): no made-up symbols — it stops, said (autostart drains dwl's pipe meanwhile)"
 mv "$HOME/.config/fedokawaii/icons.sh" "$TMP/icons.sh"; rm -rf "$BAR"
-err=$({ block DP-1 1 1 1 0 '[2]' 0 "second"; } | kawa-dwlstatus 2>&1 >/dev/null); r=$?
+err=$({ block DP-1 1 1 1 0 '(@)' 0 "second"; } | kawa-dwlstatus 2>&1 >/dev/null); r=$?
 [[ $r != 0 ]] && _ok || _no "it went on without its icons"; has "$err" "icons.sh"
 mv "$TMP/icons.sh" "$HOME/.config/fedokawaii/icons.sh"
 case_ "a home folder with a space"
 mkdir -p "$TMP/my home/.config/fedokawaii"; cp "$HOME/.config/fedokawaii/icons.sh" "$TMP/my home/.config/fedokawaii/"
 rm -rf "$BAR"; HOME="$TMP/my home" kawa-dwlstatus < <(block DP-1 1 1 1 0 '(@)' 0 "home")
 eq "$(bar layout)" "{\"text\":\"$ICON_SPIRAL\",\"class\":\"spiral\"}"
-case_ "the cat: lit only while a marker's opener runs (a pid that died leaves it dark; an empty marker counts)"
+case_ "the cat: lit only while quick settings' marker holds a live pid (a pid that died, an empty or broken marker, a dropdown's: dark)"
 cat_ex=$(wbexec custom/menu)
-for m in kawa-drop.open kawa-panel.open; do
-  rm -f "$XDG_RUNTIME_DIR"/kawa-*.open
-  lacks "$(sh -c "$cat_ex")" '"open"' "no marker: dark"
-  : >"$XDG_RUNTIME_DIR/$m"; has "$(sh -c "$cat_ex")" '"class":"open"' "$m empty: lit"
-  echo $$ >"$XDG_RUNTIME_DIR/$m"; has "$(sh -c "$cat_ex")" '"class":"open"' "$m with a live pid: lit"
-  sleep 0 & dead=$!; wait "$dead"; echo "$dead" >"$XDG_RUNTIME_DIR/$m"
-  lacks "$(sh -c "$cat_ex")" '"open"' "$m with a dead pid: dark"
-  echo "-1" >"$XDG_RUNTIME_DIR/$m"; lacks "$(sh -c "$cat_ex")" '"open"' "$m not a pid (-1 would be every process): dark"
-  lacks "$(bash -c "$cat_ex" 2>&1)" "No such" "no error from a dead marker"
-done
+lit_=$(. "$HOME/.config/fedokawaii/icons.sh"; printf '{"text":"%s","class":"active"}' "$ICON_CAT_HAPPY")
+dark_=$(. "$HOME/.config/fedokawaii/icons.sh"; printf '{"text":"%s"}' "$ICON_CAT")
+rm -f "$XDG_RUNTIME_DIR"/kawa-*.open
+eq "$(sh -c "$cat_ex")" "$dark_" "no marker: dark"
+echo $$ >"$XDG_RUNTIME_DIR/kawa-panel.open"; eq "$(sh -c "$cat_ex")" "$lit_" "a live pid: lit"
+sleep 0 & dead=$!; wait "$dead"; echo "$dead" >"$XDG_RUNTIME_DIR/kawa-panel.open"
+eq "$(sh -c "$cat_ex")" "$dark_" "a dead pid: dark"
+for junk in "" "-1" "x"; do printf '%s\n' "$junk" >"$XDG_RUNTIME_DIR/kawa-panel.open"; eq "$(sh -c "$cat_ex")" "$dark_" "[$junk]: dark"; done
+rm -f "$XDG_RUNTIME_DIR/kawa-panel.open"; echo "$$ kawa-calendar" >"$XDG_RUNTIME_DIR/kawa-drop.open"
+eq "$(sh -c "$cat_ex")" "$dark_" "a dropdown lights its own button, not the cat"
+lacks "$(bash -c "$cat_ex" 2>&1)" "No such" "no error from a dead marker"
 rm -f "$XDG_RUNTIME_DIR"/kawa-*.open
 
 case_ "no runtime folder at all: exit 1, said"

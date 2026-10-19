@@ -190,4 +190,13 @@ has "$(cat "$(backups | tail -n1)/.local/share/icons/default/index.theme" 2>/dev
   "the old default/index.theme kept in the backup"
 theme --check; eq "$RC" 0 "in sync after the run"
 
+case_ "a live session: the running desktop reloads; a /run/user entry root cannot read never ends the run"
+# (on the real machine the document portal's FUSE mount in /run/user/UID is unreadable to root:
+# find's "Permission denied" on it once ended the whole run here, before the boot part)
+mkdir -p "$W/run/user/$FK_UID/doc"; python3 -c 'import socket,sys; s=socket.socket(socket.AF_UNIX); s.bind(sys.argv[1])' "$W/run/user/$FK_UID/wayland-1"
+echo "/usr/local/bin/dwl" >>"$W/var/lib/fkh/procs"
+theme; eq "$RC" 0
+has "$OUT" "reloaded the theme in the running session"
+sed -i '\|/usr/local/bin/dwl|d' "$W/var/lib/fkh/procs"; rm -rf "$W/run/user/$FK_UID/doc" "$W/run/user/$FK_UID/wayland-1"
+
 done_

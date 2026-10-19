@@ -7,7 +7,9 @@
 # ~/.config/prowlarr stays yours, and the app holds no capabilities and can gain none
 # (s6 needs /run to belong to that user: the tmpfs). The API key is the one in
 # ~/.config/fedokawaii/secrets.sh, handed over as a podman secret — never in a file here.
-# The web page asks for a login (set on your first visit), even from this computer.
+# No login: Prowlarr answers on this computer only (127.0.0.1), so its page opens straight
+# away — authentication "External", Prowlarr's own way of saying none is wanted (set here, it
+# outranks config.xml; the first visit asks nothing). Programs still need the API key.
 [Unit]
 Description=Prowlarr — indexer aggregator for torrra
 
@@ -23,7 +25,7 @@ Timezone=local
 PublishPort=127.0.0.1:9696:9696
 Volume=%h/.config/prowlarr:/config:Z
 Secret=prowlarr-api-key,type=env,target=PROWLARR__AUTH__APIKEY
-Environment=PROWLARR__AUTH__METHOD=Forms PROWLARR__AUTH__REQUIRED=Enabled PROWLARR__LOG__ANALYTICSENABLED=False
+Environment=PROWLARR__AUTH__METHOD=External PROWLARR__AUTH__REQUIRED=DisabledForLocalAddresses PROWLARR__LOG__ANALYTICSENABLED=False
 # health: a quick check every 2 s while it starts (systemd counts it started once it
 # answers), then one every 5 minutes; three misses in a row restart it
 HealthCmd=curl -fsS -o /dev/null --max-time 10 http://127.0.0.1:9696/ping

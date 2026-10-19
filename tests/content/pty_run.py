@@ -1,11 +1,13 @@
 #!/usr/bin/env python3
-"""pty_run.py [--cols N] [--rows N] [--answer QUERY REPLY] [--delay S] [--send AT TEXT] [--hangup AT] [--timeout S] [--each MARK --line TEXT…] -- CMD…
+"""pty_run.py [--cols N] [--rows N] [--answer QUERY REPLY] [--delay S] [--send AT TEXT] [--resize AT COLSxROWS] [--hangup AT] [--timeout S] [--each MARK --line TEXT…] -- CMD…
 
 CMD in a terminal of its own (a pseudo-terminal that is its controlling tty, so /dev/tty,
 stty and bash's checkwinsize all work), the size given. What CMD writes is copied to stdout
 as is; the exit status is CMD's (124 when it ran past --timeout and was killed).
 
---send AT TEXT: types TEXT (backslash escapes) AT seconds after the start. --hangup AT: the
+--send AT TEXT: types TEXT (backslash escapes) AT seconds after the start. --resize AT
+COLSxROWS: the terminal takes that size AT seconds after the start (CMD is sent SIGWINCH, as
+when a tiled window changes size). --hangup AT: the
 terminal goes away AT seconds after the start (as when its window is closed): the pty's
 master is closed, CMD gets SIGHUP; what it wrote until then is copied out. --hangup +S: S
 seconds after the first --answer was typed.
@@ -36,6 +38,7 @@ def main(argv):
         elif a == "--timeout": timeout = float(argv[i + 1]); i += 2
         elif a == "--answer": answers.append((unescape(argv[i + 1]), unescape(argv[i + 2]))); i += 3
         elif a == "--send": sends.append((float(argv[i + 1]), unescape(argv[i + 2]))); i += 3
+        elif a == "--resize": sends.append((float(argv[i + 1]), tuple(map(int, argv[i + 2].split("x"))))); i += 3
         elif a == "--hangup": hangup = argv[i + 1]; i += 2
         elif a == "--each": each = unescape(argv[i + 1]); i += 2
         elif a == "--line": lines.append(codecs.escape_decode(argv[i + 1].encode())[0] + b"\r"); i += 2   # (any script)
@@ -59,7 +62,11 @@ def main(argv):
     while True:
         now = time.monotonic()
         for p in [p for p in pending if p[0] <= now]:
-            os.write(fd, p[1]); pending.remove(p)
+            if isinstance(p[1], tuple):
+                fcntl.ioctl(fd, termios.TIOCSWINSZ, struct.pack("HHHH", p[1][1], p[1][0], 0, 0))
+            else:
+                os.write(fd, p[1])
+            pending.remove(p)
             if answered is None and p[2:] == ("answer",): answered = now
         if now > end:
             os.kill(pid, signal.SIGKILL); os.waitpid(pid, 0); status = 124; break

@@ -15,14 +15,16 @@ area() { awk -v a="$1" '$0 == a { on = 1; next } /^[0-9]+\. / || /^── / { on
 
 world built
 # the machine as the owner's was found (19 Oct): a secret in the settings and in the install's
-# log; a program installed but broken; Spotify and Steam (optional) not here; crashes — 26 of a
+# log; a program installed but broken; Steam (optional) not here; lpf's folder left; crashes — 26 of a
 # package's helper while dnf ran, one of the bar, one before setup finished; files of root's
 # in the home, and podman's storage (the containers' own ids); a ✘ in the log with what led to it
 printf 'GH_TOKEN="ghp_never-copied-1"\n' >>"$W$TK/fedokawaii.conf"
 printf '  ✘ 3.04 tools: password: hunter2-never-copied\n' >>"$W/var/log/fedokawaii.log"
 printf '#!/bin/sh\necho "foot: error while loading shared libraries: libfcft.so.4" >&2\nexit 3\n' >"$W/usr/local/bin/foot"
 chmod 755 "$W/usr/local/bin/foot"
-rm -f "$W/usr/local/bin/spotify" "$W/home/fkuser/.local/bin/spotify"
+mkdir -p "$W/var/lib/lpf/packages"   # (lpf's folder, left behind when Spotify became its web player)
+mkdir -p "$W/home/fkuser/.local/share/applications"   # (Spotify's entry: its web player)
+sed 's|@HOME@|/home/fkuser|g' "$REPO/configs/home/.local/share/applications/spotify.desktop" >"$W/home/fkuser/.local/share/applications/spotify.desktop"
 fk date -d '2026-10-19 04:00:00' +%s >"$W/var/lib/fedokawaii/setup-done"   # (the fake machine's own time zone)
 mkdir -p "$W/usr/local/sbin"
 { printf '#!/bin/sh\n[ "$1" = list ] || exit 0\n'
@@ -91,15 +93,17 @@ case_ "as you: the commands meant for your session run as you, in your home (nev
 lacks "$REP" "failed to run command ‘runuser’"; lacks "$REP" "failed to run command ‘asu’"
 has "$(grep -A3 '^── the fonts the desktop uses (as fkuser)' <<<"$REP")" "Fusion Pixel 12px Mono ja"
 grep -qP '^INFO\t18\. screen sharing and the file dialog\tSHARE-05 the share log\t\(no screen shared yet: /home/fkuser/\.cache/kawa-share\.log\)$' <<<"$REP" && _ok || _no "a row as you did not see your home: $(grep -P '\tSHARE-05 the share log\t' <<<"$REP")"
-grep -qP '^ok\t27\. applications\tFETCH-01 the prompt \(ble\.sh\)\t' <<<"$REP" && _ok || _no "ble.sh (a file in your home, not a program) not found"
+l=$(grep -P '^(ok|FAIL)\t27\. applications\tFETCH-01 the prompt \(ble\.sh\)\t' <<<"$REP"); [[ -n $l && $l != *"not installed"* ]] && _ok || _no "ble.sh (a file in your home, not a program) not found: $l"
+lacks "$(sed -n '/^── 9\. the session.s programs · RES-04/,/^── /p' <<<"$REP" | grep -E '^T')" "bash" "the shell probe left a stopped bash behind"   # (zombies: the test machine's own, its PID 1 reaps none)
 
 case_ "every program, run: a broken one FAILs with its output, a missing optional one WARNs"
 a=$(area "27. applications")
 has "$a" "FAIL  foot: installed but broken (exit 3) — expected: prints its version"
 has "$a" "| foot: error while loading shared libraries: libfcft.so.4" "the broken one's output, in the findings"
-has "$a" "WARN  spotify: not installed (optional)"; has "$a" "WARN  steam: not installed (optional)"
-lacks "$a" "FAIL  spotify"; lacks "$a" "FAIL  steam"
+has "$a" "WARN  SPOT-05 lpf's leftovers are gone (exit 1)" "lpf's folder left behind: a WARN"; has "$a" "WARN  steam: not installed (optional)"
+lacks "$a" "SPOT-04"; lacks "$a" "SPOT-06"; lacks "$a" "FAIL  steam"
 t=$(sed -n '/^── by area: each check/,/^── fine/p' <<<"$REP")
+grep -qE '^  ok    SPOT-06 Spotify opens its web player ' <<<"$t" && _ok || _no "the web player's entry not ok: $(grep ' SPOT-06 ' <<<"$t")"
 grep -qE '^  ok    fuzzel ' <<<"$t" && _ok || _no "fuzzel (a working stand-in) not ok: $(grep ' fuzzel ' <<<"$t")"
 grep -qE '^  FAIL  foot +[0-9]+ ms  prints its version' <<<"$t" && _ok || _no "foot not FAIL in the table"
 grep -qE '^  (ok  |FAIL)  kawa-drives ' <<<"$t" && _ok || _no "the kawa-* helpers are not in the table"
@@ -127,7 +131,7 @@ has "$a" "WARN  SEC-03 4 files in your home belong to root"
 lacks "$a" "another user"
 b=$(sed -n '/^── files in your home not yours/,/^── /p' <<<"$REP")
 grep -qP '^ +3  root\t~/\.cache/oops$' <<<"$b" && _ok || _no "root's files not grouped by folder: $b"
-grep -qP '^ +1  root\t~/Downloads$' <<<"$b" && _ok || _no "~/Downloads not searched: $b"
+grep -qP '^ +1  root\t~/Downloads$' <<<"$b" && _ok || _no "your Downloads folder not searched: $b"
 has "$b" "podman's storage (~/.local/share/containers/storage): 3 files of podman's containers' own (subordinate) ids — by design"
 lacks "$(grep -P '^ +[0-9]+  ' <<<"$b")" "containers"
 

@@ -2,7 +2,7 @@
 """tests/session/fake_waybar.py LOG [catch|ignore] — a stand-in for waybar, named "waybar" (as
 pgrep and /proc/PID/comm see it), that writes one line to LOG per real-time signal it gets.
 
-  catch    handles SIGRTMIN+8 … +13 like waybar's custom modules do (SigCgt shows them), and
+  catch    handles SIGRTMIN+8 … +20 like waybar's custom modules do (SigCgt shows them), and
            logs each delivery: "8", "9" … in the order the kernel hands them over
   ignore   has not installed its handlers yet (waybar still starting): a poke would kill it
 
@@ -25,7 +25,7 @@ if mode == "ignore":
     out.write("ready\n")
     while True:
         time.sleep(3600)
-sigs = [signal.SIGRTMIN + n for n in range(8, 14)]
+sigs = [signal.SIGRTMIN + n for n in range(8, 21)]
 for s in sigs + [signal.SIGRTMAX]:
     signal.signal(s, lambda *_: None)   # a handler: the bit in SigCgt that kawa-dwlstatus checks
 # blocked, then taken one by one: every queued delivery is counted, in order

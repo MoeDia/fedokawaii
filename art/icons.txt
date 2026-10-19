@@ -1157,3 +1157,26 @@
 ..#....#..
 ..#....#..
 ..#....#..
+
+# a meter's square (the level display, kawa-osd): quick settings' own — 10 × 8 on a 12 px
+# pitch, its foot on the baseline, so on a 20 px row it stands where the panel draws it;
+# lit (asagi) or not (edge2), and hollow for a level kept but not heard (muted)
+@seg adv=12 x=0
+##########
+##########
+##########
+##########
+##########
+##########
+##########
+##########
+
+@seg-hollow adv=12 x=0
+##########
+#........#
+#........#
+#........#
+#........#
+#........#
+#........#
+##########

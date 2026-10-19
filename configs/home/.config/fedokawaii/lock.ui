@@ -1,12 +1,18 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!-- ~/.config/fedokawaii/lock.ui — the lock screen's layout (gtklock, through kawa-lock). One
-     column in the middle of each screen: the day's seal, the pixel padlock, the time (large),
-     the date, the password box, a quiet word under it. kawa-lock fills in {SEAL} (today's seal) and {PADLOCK} (the
-     theme's padlock) and hands gtklock a copy; the colours are current/gtklock.css.
-     The objects gtklock looks for by id must all be here (it reads them whether shown or
-     not): window-box, info-box, time-box, clock-label, date-label, body-revealer, body-grid,
-     input-label, input-field, message-revealer, message-scrolled-window, message-box,
-     unlock-button, error-label, warning-label. -->
+     panel in the middle of each screen, built from the design system's parts
+     (docs/design-system.md; the colours and sizes are current/gtklock.css):
+       [月] Mon 19 Oct ╌╌╌╌╌╌╌╌╌╌╌╌╌╌    the heading: the day's seal, the date, the stitch
+              (padlock)                 the pixel padlock
+              08:31 AM                  the time
+       ちがう · wrong password             what went wrong, when something did
+       [          ◆◆◆◆◆           ]    the password's field ("パスワード · password" while empty)
+     kawa-lock fills in {SEAL} (today's seal) and {PADLOCK} (the theme's padlock) and hands
+     gtklock a copy. The objects gtklock looks for by id must all be here (it reads them
+     whether shown or not): window-box, info-box, time-box, clock-label, date-label,
+     body-revealer, body-grid, input-label, input-field, message-revealer,
+     message-scrolled-window, message-box, unlock-button, error-label, warning-label.
+     input-label is kept but never shown: the field's own placeholder says it. -->
 <interface>
 	<object class="GtkBox" id="window-box">
 		<property name="name">window-box</property>
@@ -16,14 +22,31 @@
 		<child>
 			<object class="GtkBox" id="info-box">
 				<property name="name">info-box</property>
-				<property name="halign">center</property>
 				<property name="orientation">vertical</property>
-				<property name="spacing">18</property>
 				<child>
-					<object class="GtkImage" id="seal">
-						<property name="name">seal</property>
-						<property name="halign">center</property>
-						<property name="file">{SEAL}</property>
+					<object class="GtkBox" id="heading">
+						<property name="name">heading</property>
+						<property name="orientation">horizontal</property>
+						<child>
+							<object class="GtkImage" id="seal">
+								<property name="name">seal</property>
+								<property name="valign">center</property>
+								<property name="file">{SEAL}</property>
+							</object>
+						</child>
+						<child>
+							<object class="GtkLabel" id="date-label">
+								<property name="name">date-label</property>
+								<property name="valign">center</property>
+							</object>
+						</child>
+						<child>
+							<object class="GtkBox" id="stitch">
+								<property name="name">stitch</property>
+								<property name="hexpand">1</property>
+								<property name="valign">center</property>
+							</object>
+						</child>
 					</object>
 				</child>
 				<child>
@@ -44,12 +67,6 @@
 								<property name="halign">center</property>
 							</object>
 						</child>
-						<child>
-							<object class="GtkLabel" id="date-label">
-								<property name="name">date-label</property>
-								<property name="halign">center</property>
-							</object>
-						</child>
 					</object>
 				</child>
 			</object>
@@ -60,18 +77,26 @@
 				<property name="reveal-child">1</property>
 				<child>
 					<object class="GtkGrid" id="body-grid">
-						<property name="halign">center</property>
 						<child>
-							<object class="GtkEntry" id="input-field">
-								<property name="name">input-field</property>
-								<property name="halign">center</property>
-								<property name="xalign">0.5</property>
-								<property name="visibility">0</property>
-								<property name="invisible-char">◆</property>
-								<property name="invisible-char-set">1</property>
-								<property name="caps-lock-warning">0</property>
-								<property name="input-purpose">password</property>
-								<signal name="activate" handler="window_pw_check"/>
+							<!-- one line for what went wrong: the wrong password at the left, Caps Lock at
+							     the right (gtklock fills them in; empty, the line is the 18 px between
+							     the time and the field) -->
+							<object class="GtkBox" id="messages">
+								<property name="name">messages</property>
+								<property name="orientation">horizontal</property>
+								<child>
+									<object class="GtkLabel" id="error-label">
+										<property name="name">error-label</property>
+										<property name="halign">start</property>
+										<property name="hexpand">1</property>
+									</object>
+								</child>
+								<child>
+									<object class="GtkLabel" id="warning-label">
+										<property name="name">warning-label</property>
+										<property name="halign">end</property>
+									</object>
+								</child>
 							</object>
 							<packing>
 								<property name="left-attach">0</property>
@@ -79,10 +104,17 @@
 							</packing>
 						</child>
 						<child>
-							<object class="GtkLabel" id="input-label">
-								<property name="name">input-label</property>
-								<property name="halign">center</property>
-								<property name="label">パスワード · password</property>
+							<object class="GtkEntry" id="input-field">
+								<property name="name">input-field</property>
+								<property name="hexpand">1</property>
+								<property name="xalign">0.5</property>
+								<property name="visibility">0</property>
+								<property name="invisible-char">◆</property>
+								<property name="invisible-char-set">1</property>
+								<property name="caps-lock-warning">0</property>
+								<property name="input-purpose">password</property>
+								<property name="placeholder-text">パスワード · password</property>
+								<signal name="activate" handler="window_pw_check"/>
 							</object>
 							<packing>
 								<property name="left-attach">0</property>
@@ -90,23 +122,15 @@
 							</packing>
 						</child>
 						<child>
-							<object class="GtkLabel" id="error-label">
-								<property name="name">error-label</property>
-								<property name="halign">center</property>
+							<object class="GtkLabel" id="input-label">
+								<property name="name">input-label</property>
+								<property name="no-show-all">1</property>
+								<property name="visible">0</property>
+								<property name="label">パスワード · password</property>
 							</object>
 							<packing>
 								<property name="left-attach">0</property>
 								<property name="top-attach">2</property>
-							</packing>
-						</child>
-						<child>
-							<object class="GtkLabel" id="warning-label">
-								<property name="name">warning-label</property>
-								<property name="halign">center</property>
-							</object>
-							<packing>
-								<property name="left-attach">0</property>
-								<property name="top-attach">3</property>
 							</packing>
 						</child>
 						<child>
@@ -133,11 +157,11 @@
 							</object>
 							<packing>
 								<property name="left-attach">0</property>
-								<property name="top-attach">4</property>
+								<property name="top-attach">3</property>
 							</packing>
 						</child>
 						<child>
-							<!-- (gtklock reads it; Enter in the box does the same) -->
+							<!-- (gtklock reads it; Enter in the field does the same) -->
 							<object class="GtkButton" id="unlock-button">
 								<property name="name">unlock-button</property>
 								<property name="no-show-all">1</property>
@@ -146,7 +170,7 @@
 							</object>
 							<packing>
 								<property name="left-attach">0</property>
-								<property name="top-attach">5</property>
+								<property name="top-attach">4</property>
 							</packing>
 						</child>
 					</object>

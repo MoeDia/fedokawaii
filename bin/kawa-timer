@@ -1,15 +1,17 @@
 #!/usr/bin/env bash
-# kawa-timer — click the time: a kitchen timer, or a stopwatch, counting beside the time.
+# kawa-timer — the bar's time, and a click on it: a kitchen timer, or a stopwatch, counting
+# beside the time.
 #
 #   kawa-timer                   the menu: 5 · 10 · 25 · 45 · 60 min, stopwatch (and cancel
-#                                while one runs) — a dropdown under the clock
+#                                while one runs) — a dropdown under the time
 #   kawa-timer start MINUTES     a timer of 1 to 1440 minutes (one at a time: a new one
 #                                takes the place of the one before)
 #   kawa-timer stopwatch         a stopwatch, from zero
 #   kawa-timer cancel            the timer or stopwatch stopped (a stopwatch says where it stood)
-#   kawa-timer bar               the bar's module (waybar JSON): the hourglass and the time
-#                                left (vermilion) or gone by (asagi), a line each second; empty,
-#                                hidden, while none runs
+#   kawa-timer bar               the bar's module (waybar JSON, a line each second): the
+#                                time ("08:52:07 PM"), and beside it the hourglass and the
+#                                time left (vermilion) or gone by (asagi) while one runs; lit
+#                                (class "active") while its menu is open (kawa-bar)
 #   kawa-timer ring END          what start leaves behind: at END (epoch seconds) a critical
 #                                notice with the bell, and a chime (pw-play)
 #
@@ -39,9 +41,10 @@ running() {   # running → KIND A B C from the state (1: none, or a timer alrea
   [[ $k == stopwatch ]] || { [[ $k == timer ]] && ((a > EPOCHSECONDS)); } || return 1
   printf '%s %s %s %s\n' "$k" "$a" "${b:-}" "${c:-}"
 }
-wake() {   # every bar draws the change at once (each listens on a fifo of its own)
+wake() {   # every bar draws the change at once (each listens on a fifo of its own, as the
+  # bar's other long-running modules do: kawa-dwlstatus --wake writes to them all)
   local w
-  for w in "$RUN"/kawa-timer.wake.*; do [[ -p $w ]] && { printf '\n' 1<>"$w"; } 2>/dev/null; done
+  for w in "$RUN"/kawa-bar.wake.*; do [[ -p $w ]] && { printf '\n' 1<>"$w"; } 2>/dev/null; done
   return 0
 }
 stop_ring() { pkill -u "$UID" -f '(^|/)kawa-timer ring [0-9]+$' 2>/dev/null; return 0; }   # (the one before)
@@ -106,24 +109,33 @@ ring() {
 
 # ── the bar ─────────────────────────────────────────────────────────────────────
 bar() {
-  local w=$RUN/kawa-timer.wake.$$ fd k a b c s t line last="" us frac
+  local w=$RUN/kawa-bar.wake.$$ fd k a b c s t now line last="" us frac cls tm
+  # (the timer's hourglass in the theme's own colours: inside the text, so a lit or pointed-at
+  # time — the whole module recoloured — keeps the timer's own)
+  # shellcheck source=/dev/null
+  . "$HOME/.config/fedokawaii/current/colors.sh"
+  # shellcheck source=kawa-bar
+  . "${BASH_SOURCE[0]%/*}/kawa-bar"                 # bar_lit (bash alone)
   trap 'exit 0' TERM HUP INT PIPE                 # (waybar closing it: its fifo goes too)
-  for line in "$RUN"/kawa-timer.wake.*; do   # (a bar that was killed: its fifo goes)
+  for line in "$RUN"/kawa-bar.wake.* "$RUN"/kawa-timer.wake.*; do   # (a bar that was killed: its fifo goes)
     [[ -p $line ]] && ! kill -0 "${line##*.}" 2>/dev/null && rm -f -- "$line"
   done
   mkfifo -m 600 -- "$w" && exec {fd}<>"$w" || return 1
   trap 'rm -f -- "$w"' EXIT
   while :; do
-    line='{"text":""}'
+    printf -v now '%(%I:%M:%S %p)T' -1
+    tm="" cls=""
     if read -r k a b c 2>/dev/null <"$STATE" && [[ $a =~ ^[0-9]+$ ]]; then
       if [[ $k == timer ]] && ((a > EPOCHSECONDS)); then
         clock t $((a - EPOCHSECONDS))
-        line="{\"text\":\"$ICON_HOURGLASS $t\",\"class\":\"timer\"}"
+        tm="  <span color='#$C_ACCENT_TEXT'>$ICON_HOURGLASS $t</span>" cls='"timer"'
       elif [[ $k == stopwatch ]]; then
         s=$((EPOCHSECONDS - a)); ((s < 0)) && s=0; clock t "$s"
-        line="{\"text\":\"$ICON_HOURGLASS $t\",\"class\":\"stopwatch\"}"
+        tm="  <span color='#$C_TEAL'>$ICON_HOURGLASS $t</span>" cls='"stopwatch"'
       fi
     fi
+    if bar_lit time; then cls="[${cls:+$cls,}\"active\"]"; fi
+    line="{\"text\":\"$now$tm\"${cls:+,\"class\":$cls}}"
     [[ $line == "$last" ]] || { printf '%s\n' "$line" || exit 0; last=$line; }
     # to the next whole second, with no process started: a read that times out (or a wake)
     us=${EPOCHREALTIME#*.}; us=$((1000000 - 10#$us)); printf -v frac '%06d' $((us % 1000000))

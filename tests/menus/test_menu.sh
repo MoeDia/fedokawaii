@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
-# tests/menus/test_menu.sh — kawa-menu, the fuzzel wrapper every menu uses: what it hands
-# fuzzel, what it prints back, wrong use, and one menu at a time (its key again closes it,
-# another menu takes its place, a held key is one press, a click on its own bar button
-# closes it). fuzzel is fake_fuzzel, answering as each case says.
+# tests/menus/test_menu.sh — kawa-menu, what every menu goes through: what it hands the panel
+# (kawa-panel --menu, its backend; fuzzel the launcher's), what it prints back, wrong use, and
+# one menu at a time (its key again closes it, another menu takes its place, a held key is one
+# press, a click on its own bar button closes it). The panel is fake_panel, fuzzel fake_fuzzel,
+# answering as each case says.
 . "$(dirname "$0")/../lib/harness.sh"
 . "$(dirname "$0")/lib.sh"
 
@@ -10,45 +11,44 @@ menus_sandbox
 rows=$'alpha\nbeta\ngamma'
 pick() { printf '%s\n' "$rows" | kawa-menu "$@"; }   # pick ARGS — the three rows into the menu
 
-# ── what fuzzel is told ───────────────────────────────────────────────────────────────
-case_ "plain: dmenu, list order kept, as few lines as rows, the quiet title colour, no prompt"
+# ── what the panel is told ────────────────────────────────────────────────────────────
+case_ "plain: the panel's menu (kawa-panel --menu), list order kept, no option it was not given"
 answer "row 1"; out=$(pick)
 eq "$out" beta "the chosen row's text"
-eq "$(fz_rows)" "$rows" "the rows reach fuzzel unchanged"
-for a in dmenu no-sort minimal-lines hide-prompt; do eq "$(fz_arg "$a")" set "--$a"; done
-eq "$(fz_arg message-color)" 877f6fff "the dark theme's muted colour"
-eq "$(fz_arg anchor)" "" "centred (no anchor)"; eq "$(fz_arg mesg)" "" "no title"
+eq "$(fz_rows)" "$rows" "the rows reach the panel unchanged"
+eq "$(fz_args)" "" "no options: centred, no title, no prompt (the panel's defaults)"
+called '^kawa-panel --menu $'; not_called '^fuzzel'
 
-case_ "every option reaches fuzzel"
+case_ "every option reaches the panel"
 answer enter; out=$(pick --drop --title "pick one" --width 30 --lines 3 --select 2 --prompt "> " --index)
-eq "$out" 2 "Enter on the pre-selected row prints its number"
-eq "$(fz_arg anchor)" top-right; eq "$(fz_arg x-margin)" 8 "gappx from the edge"; eq "$(fz_arg y-margin)" 8 "gappx under the bar"
-eq "$(fz_arg mesg)" "pick one"; eq "$(fz_arg width)" 30; eq "$(fz_arg lines)" 3
-eq "$(fz_arg select-index)" 2; eq "$(fz_arg prompt)" "> "; eq "$(fz_arg hide-prompt)" "" "a prompt shown"
-eq "$(fz_arg index)" set
+eq "$out" 2 "Enter on the --select line prints its number"
+eq "$(fz_arg drop)" set "dropped from the bar (the panel places it: under the click, or the bar's right end)"
+eq "$(fz_arg title)" "pick one"; eq "$(fz_arg width)" 30; eq "$(fz_arg lines)" 3
+eq "$(fz_arg select)" 2; eq "$(fz_arg prompt)" "> "; eq "$(fz_arg index)" set
+lacks "$(fz_args)" "anchor"; lacks "$(fz_args)" "margin"
 
-case_ "the light theme: its own muted colour for the title"
-ln -sfn themes/light "$HOME/.config/fedokawaii/current"
-. "$HOME/.config/fedokawaii/themes/light/colors.sh"
-answer "row 0"; pick --title x >/dev/null
-eq "$(fz_arg message-color)" "${C_MUTED}ff"
-ln -sfn themes/dark "$HOME/.config/fedokawaii/current"
-case_ "no theme at all yet (a theme run that never finished): no menu in made-up colours — exit 1, fuzzel not started"
-rm "$HOME/.config/fedokawaii/current"; n=$(fz_n)
-pick >/dev/null 2>&1; eq "$?" 1; eq "$(fz_n)" "$n" "fuzzel not started"
+case_ "the panel's own line format passes through as it is (parts, rows with detail and value, keys)"
+lines=$'part\t天\tSharjah\train\nrow\t☼\tMon 19\thot\t31°\noff\t□\tnot now\nkey\t<\tback'
+answer "row 1"; eq "$(printf '%s\n' "$lines" | kawa-menu --index)" 1; eq "$(fz_rows)" "$lines"
+answer "row 1"; eq "$(printf '%s\n' "$lines" | kawa-menu)" "Mon 19" "without --index: the row's name"
+
+case_ "no theme needed: kawa-menu reads no colours (the panel draws in the theme's)"
+lacks "$(grep -v '^ *#' "$REPO/bin/kawa-menu")" "colors.sh"
+rm "$HOME/.config/fedokawaii/current"
+answer "row 0"; eq "$(pick)" alpha
 ln -s themes/dark "$HOME/.config/fedokawaii/current"
 
-case_ "an empty title is no title (not a blank line on top)"
+case_ "an empty title passes as given (the panel draws none)"
 answer "row 0"; pick --title "" >/dev/null
-eq "$(fz_arg mesg)" ""
+eq "$(fz_args | tr '\n' '|')" "--title||"
 
-case_ "Esc, a right click, a click outside: nothing printed, exit 1"
+case_ "Esc, a click outside: nothing printed, exit 1"
 answer esc; rc 1 pick; answer lost; rc 1 pick; forget
 answer esc; eq "$(pick --index)" ""
 
 case_ "--index: typed text that matches nothing is no line number — dismissed"
 answer "typed zeta"; rc 1 pick --index
-answer "typed zeta"; eq "$(pick)" zeta "(without --index the text comes back: kawa-help ignores it)"
+answer "typed zeta"; eq "$(pick)" zeta "(without --index the text comes back: kawa-shrink's own size)"
 
 case_ "index mode with the same row twice: the second one's own number"
 answer "row 3"; eq "$(printf 'same\nother\nsame\nsame\n' | kawa-menu --index)" 3
@@ -59,25 +59,27 @@ printf -v odd '%s\n' '夜の音楽 — 坂本龍一' 'مرحبا بالعالم'
 odd=${odd%$'\n'}
 answer "row 2"; out=$(printf '%s\n' "$odd" | kawa-menu --title '音楽 · موسيقى $(id)' --width 40)
 eq "$out" '🎵 "quoted" $(touch '"$TMP"'/pwned) `id` \ end'
-eq "$(fz_rows)" "$odd"; eq "$(fz_arg mesg)" '音楽 · موسيقى $(id)'
+eq "$(fz_rows)" "$odd"; eq "$(fz_arg title)" '音楽 · موسيقى $(id)'
 [[ ! -e $TMP/pwned ]] && _ok || _no "a row ran as a command"
 answer "row 3"; eq "$(printf '%s\n' "$odd" | kawa-menu)" " -leading dash" "a row starting with a dash is text"
 answer "row 0"; eq "$(printf '%s\n' "$odd" | kawa-menu --index --width 12 --lines 2)" 0
 eq "$(fz_arg width)" 12; eq "$(fz_arg lines)" 2
 
-case_ "--help: the usage, exit 0"
+case_ "--help: the usage and the line format, exit 0"
 out=$(kawa-menu --help); rc 0 kawa-menu --help
-has "$out" "kawa-menu [--drop]"; has "$out" "--index"
-case_ "wrong use: exit 2 and fuzzel never opens"
+has "$out" "kawa-menu [--drop]"; has "$out" "--index"; has "$out" "part"; has "$out" "row|on|off GLYPH NAME [DETAIL [VALUE]]"
+case_ "wrong use: exit 2 and no menu opens"
 n=$(fz_n)
 rc 2 kawa-menu --bogus; rc 2 kawa-menu --title; rc 2 kawa-menu --width
 rc 2 kawa-menu --width wide; rc 2 kawa-menu --lines -3; rc 2 kawa-menu --select 1x
+rc 2 kawa-menu --launcher --index; rc 2 kawa-menu --launcher --title x
 eq "$(fz_n)" "$n"
 has "$(kawa-menu --nope 2>&1)" "unknown option --nope"
 
-case_ "fuzzel missing: exit 1 and a notice that says so"
+case_ "fuzzel missing: the menus open all the same (the panel's); the launcher says it is missing"
 p=$(without fuzzel); reset_calls
-PATH=$p rc 1 pick
+answer "row 1"; eq "$(PATH=$p pick)" beta
+PATH=$p rc 1 kawa-menu --launcher
 called 'notify-send -a desktop -u critical -- .*  menus fuzzel is missing'
 install -m 755 "$MD/fake_fuzzel" "$STUBS/fuzzel"
 
@@ -93,28 +95,31 @@ rmdir "$XDG_RUNTIME_DIR/kawa-menu-$WAYLAND_DISPLAY.state"
 case_ "nothing left behind in the runtime folder: its record and fuzzel's lock only"
 eq "$(find "$XDG_RUNTIME_DIR" -mindepth 1 ! -name fuzzel-wayland-test.lock ! -name kawa-menu-wayland-test.state)" ""
 
-case_ "quick settings open: closed first (SIGUSR2 to kawa-panel, found by its pid file and command line) — keys to this menu"
+case_ "quick settings open: a menu asks nothing of it (the panel shows the menu in its place); the launcher closes it first (SIGUSR2)"
 catch2() {   # catch2 LOG WORD… — a process catching SIGUSR2 (its command line: WORD…), its pid printed
   python3 -I -c 'import signal, sys, time
 signal.signal(signal.SIGUSR2, lambda *a: open(sys.argv[1], "a").write("usr2\n"))
 open(sys.argv[1] + ".up", "w").close(); time.sleep(30)' "$@" >/dev/null 2>&1 & echo $!
   for _ in {1..100}; do [[ -e $1.up ]] && break; sleep 0.05; done
 }
+: >"$TMP/panel.log"
 pp=$(catch2 "$TMP/panel.log" kawa-panel); echo "$pp" >"$XDG_RUNTIME_DIR/kawa-panel.pid"
-answer "row 1"; eq "$(pick)" beta
+answer "row 1"; eq "$(pick)" beta; sleep 0.3
+eq "$(cat "$TMP/panel.log")" "" "a menu: no signal (it would close the menu itself)"
+answer esc; kawa-menu --launcher
 for _ in {1..50}; do [[ -s $TMP/panel.log ]] && break; sleep 0.05; done
-eq "$(cat "$TMP/panel.log" 2>/dev/null)" usr2 "the panel was asked to close"
-answer "row 1"; eq "$(env -u WAYLAND_DISPLAY bash -c 'printf "a\nb\nc\n" | kawa-menu')" b
+eq "$(cat "$TMP/panel.log" 2>/dev/null)" usr2 "the launcher: the panel asked to close"
+answer esc; env -u WAYLAND_DISPLAY kawa-menu --launcher
 for _ in {1..50}; do [[ $(wc -l <"$TMP/panel.log") == 2 ]] && break; sleep 0.05; done
 eq "$(wc -l <"$TMP/panel.log")" 2 "also with no display name"
 kill "$pp" 2>/dev/null; wait "$pp" 2>/dev/null
 op=$(catch2 "$TMP/other.log" something-else); echo "$op" >"$XDG_RUNTIME_DIR/kawa-panel.pid"
-answer "row 1"; eq "$(pick)" beta; sleep 0.3
+answer esc; kawa-menu --launcher; sleep 0.3
 [[ ! -s $TMP/other.log ]] && _ok || _no "a stale pid file's process (not the panel) was signalled"
 kill "$op" 2>/dev/null; wait "$op" 2>/dev/null
 rm -f "$XDG_RUNTIME_DIR/kawa-panel.pid" "$TMP/panel.log.up" "$TMP/other.log.up"
 
-case_ "fuzzel.ini (every menu's look) passes the real fuzzel's own check, in both themes"
+case_ "fuzzel.ini (the launcher's look) passes the real fuzzel's own check, in both themes"
 real=$(PATH=/usr/local/bin:/usr/bin:/bin command -v fuzzel || ls /opt/f44/bin/fuzzel 2>/dev/null)
 if [[ -n $real ]]; then
   config .config/fuzzel/fuzzel.ini
@@ -138,9 +143,9 @@ fresh() {
   done
 }
 waitfor() { local _; for _ in {1..100}; do [[ -e $1 ]] && return 0; sleep 0.05; done; return 1; }
-alive() { [[ -e /proc/$1 && $(cat "/proc/$1/comm" 2>/dev/null) == fuzzel ]]; }
+alive() { [[ -e /proc/$1 && $(cat "/proc/$1/comm" 2>/dev/null) == kawa-panel ]]; }
 at() { local ms=$1; shift; KAWA_MENU_TIME=$((1000000000000 + ms * 1000)) "$@"; }   # at MS CMD — CMD MS ms in
-open_one() {   # open_one MS MENU — MENU on screen from MS ms (fuzzel open, $hp, until closed); $bg its script
+open_one() {   # open_one MS MENU — MENU on screen from MS ms (the panel's menu open, $hp, until closed); $bg its script
   local n=$(($(fz_n) + 1))
   answer hang; at "$1" "$TMP/bin/$2" & bg=$!
   waitfor "$FZ/hang.$n" || _no "the menu did not open"; hp=$(cat "$FZ/hang.$n" 2>/dev/null)
@@ -149,7 +154,7 @@ open_one() {   # open_one MS MENU — MENU on screen from MS ms (fuzzel open, $h
 case_ "its own key again (a second later, by the clock): the menu closes, no second one opens"
 fresh; open_one 0 quick
 sleep 0.6; "$TMP/bin/quick"; wait "$bg"
-eq "$(fz_n)" 1 "no second fuzzel"
+eq "$(fz_n)" 1 "no second menu"
 alive "$hp" && _no "the first menu is still open" || _ok
 eq "$(sort "$TMP/ended" | tr '\n' ' ')" "quick 1 quick 1 " "both end as dismissed"
 case_ "… the same, its time stood in for (1.2 s later)"

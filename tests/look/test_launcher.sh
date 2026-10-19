@@ -15,7 +15,7 @@ A=$REPO/configs/home/.local/share/applications
 key() { awk -F= -v k="$2" '/^\[/ { s = ($0 == "[Desktop Entry]") } s && $1 == k { sub(/^[^=]*=/, ""); print; exit }' "$1"; }
 
 case_ "the package entries hidden from the launcher: exactly these, each a whole entry"
-HIDDEN="btop calf foot foot-server lpf lpf-gui lpf-notify lpf-spotify-client mpv nvim org.pwmt.zathura qt6ct visidata"
+HIDDEN="btop calf foot foot-server mpv nvim org.pwmt.zathura qt6ct visidata"
 got=$(for f in "$A"/*.desktop; do n=${f##*/}; n=${n%.desktop}
         [[ $n == kawa-* ]] && continue; [[ $(key "$f" NoDisplay) == true ]] && printf '%s ' "$n"; done)
 eq "$(tr ' ' '\n' <<<"${got% }" | LC_ALL=C sort | tr '\n' ' ')" "$(tr ' ' '\n' <<<"$HIDDEN" | LC_ALL=C sort | tr '\n' ' ')"
@@ -28,7 +28,7 @@ eq "$(key "$A/kawa-edit.desktop" NoDisplay)" "" "Editor (neovim through kawa-ter
 for n in kawa-play kawa-tables; do eq "$(key "$A/$n.desktop" NoDisplay)" true "$n: an opener only"; done
 
 case_ "every listed entry: its program's own icon (hicolor names its packages install, or its own picture by path)"
-OFFICIAL=" foot nvim mpv com.github.xournalpp.xournalpp steam spotify-client @BRAVE_ICON@ "
+OFFICIAL=" foot nvim mpv com.github.xournalpp.xournalpp steam @BRAVE_ICON@ "
 for f in "$A"/*.desktop; do
   [[ $(key "$f" NoDisplay) == true ]] && continue
   i=$(key "$f" Icon)
@@ -38,6 +38,8 @@ done
 has "$(key "$A/syncplay.desktop" Icon)" "/.local/share/fedokawaii/syncplay/syncplay/resources/hicolor/" "Syncplay's own, from its copy"
 has "$(key "$A/localsend.desktop" Icon)" "/.local/share/localsend/data/flutter_assets/assets/img/logo-" "LocalSend's own, from its release"
 eq "$(key "$A/kawa-prowlarr.desktop" Icon)" "@BRAVE_ICON@" "Prowlarr's page: Brave's own (theme.sh reads it from Brave's entry)"
+eq "$(key "$A/spotify.desktop" Icon)" "@BRAVE_ICON@" "Spotify (its web player in Brave): Brave's own"
+eq "$(key "$A/spotify.desktop" Exec)" "@HOME@/.local/bin/brave-origin --app=https://open.spotify.com" "Spotify: a Brave app window"
 
 case_ "no icon pack: nothing names Papirus (the manifest only to retire it, the report to see it gone), fuzzel keeps its default (hicolor)"
 bad=$(grep -rli papirus "$REPO"/{configs,bin,lib,tools,system,theme.sh,setup.sh,verify.sh} 2>/dev/null | grep -v '__pycache__' \

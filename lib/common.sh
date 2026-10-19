@@ -263,7 +263,6 @@ make_tmp() {                        # private temp dir, removed on any exit (and
 validate_conf() {                   # prints one line per problem; empty = valid
   [[ $GPU =~ ^(auto|amd|intel)$ ]]              || echo "GPU must be auto, amd or intel (is '$GPU')"
   [[ $STEAM =~ ^(yes|no)$ ]]                    || echo "STEAM must be yes or no (is '$STEAM')"
-  [[ $SPOTIFY =~ ^(yes|no)$ ]]                  || echo "SPOTIFY must be yes or no (is '$SPOTIFY') — yes accepts Spotify's terms"
   [[ $SSH_SERVER =~ ^(yes|no)$ ]]               || echo "SSH_SERVER must be yes or no (is '$SSH_SERVER')"
   [[ $THEME =~ ^(dark|light)$ ]]                || echo "THEME must be dark or light (is '$THEME')"
   [[ $WALLPAPER_PACK =~ ^(yes|no)$ ]]           || echo "WALLPAPER_PACK must be yes or no (is '$WALLPAPER_PACK')"
@@ -274,8 +273,11 @@ validate_conf() {                   # prints one line per problem; empty = valid
                                                 || echo "DNF_PARALLEL must be 1–20, dnf5's maximum (is '$DNF_PARALLEL')"
   [[ $TIMEZONE =~ ^[A-Za-z0-9_+-]+(/[A-Za-z0-9_+-]+)*$ && -f /usr/share/zoneinfo/$TIMEZONE ]] \
                                                 || echo "TIMEZONE '$TIMEZONE' is not a known zone (see timedatectl list-timezones)"
-  [[ $NIGHT_LIGHT =~ ^-?[0-9]+(\.[0-9]+)?:-?[0-9]+(\.[0-9]+)?$ ]] \
-                                                || echo "NIGHT_LIGHT must be latitude:longitude like 25.35:55.40 (is '$NIGHT_LIGHT')"
+  # where you are, for gammastep's sunset and the weather's forecast: a latitude short of the
+  # poles and a longitude short of the date line, either way (north and east positive)
+  [[ $NIGHT_LIGHT =~ ^-?([0-9]{1,2})(\.[0-9]+)?:-?([0-9]{1,3})(\.[0-9]+)?$ ]] \
+    && ((10#${BASH_REMATCH[1]} < 90 && 10#${BASH_REMATCH[3]} < 180)) \
+                                                || echo "NIGHT_LIGHT must be latitude:longitude like 25.35:55.40, latitude within ±90, longitude within ±180 (is '$NIGHT_LIGHT')"
   [[ $KB_LAYOUTS =~ ^[a-z]+(,[a-z]+)*$ ]]       || echo "KB_LAYOUTS must look like us,ara (is '$KB_LAYOUTS')"
   [[ $KB_TOGGLE =~ ^[a-z0-9_]+:[a-z0-9_]+$ ]]   || echo "KB_TOGGLE must be an XKB option like grp:alt_shift_toggle (is '$KB_TOGGLE')"
   local city_re="^[[:alnum:] .,'-]+$"           # letters of any script, digits, space . , ' -
@@ -301,9 +303,12 @@ validate_conf() {                   # prints one line per problem; empty = valid
 # fedokawaii.conf is read as data, never run as code: KEY="value" lines (a value in double or
 # single quotes, or a bare word; a # comment after it), only the settings below. Anything
 # else in it is reported as a problem, and the values are checked before anything runs.
-CONF_KEYS=(USERNAME GPU STEAM SPOTIFY SSH_SERVER MONITOR_HZ KB_LAYOUTS KB_TOGGLE TIMEZONE WEATHER_CITY
+CONF_KEYS=(USERNAME GPU STEAM SSH_SERVER MONITOR_HZ KB_LAYOUTS KB_TOGGLE TIMEZONE WEATHER_CITY
            NIGHT_LIGHT THEME WALLPAPER_PACK BOOT_MENU_SECONDS DNF_PARALLEL BACKUP_TARGET
            BACKUP_REMIND_DAYS DWL_TAG DWL_COMMIT DWL_WLROOTS TFC_TAG TFC_COMMIT)
+# settings an earlier version had, gone since: read past in a file not yet merged (update's
+# conf_merge takes their lines out) — SPOTIFY (Spotify's app, built here; its web player now)
+CONF_RETIRED=(SPOTIFY)
 CONF_PROBLEMS=() CONF_SAID=() CONF_SEEN=()
 # one setting line: KEY="value", KEY='value' or KEY=value, then an optional # comment
 # (the value: BASH_REMATCH[3], [4] or [5], whichever matched)
@@ -326,6 +331,7 @@ read_conf() {                       # read_conf FILE — sets the settings; CONF
     [[ $line =~ ^[[:space:]]*(#.*)?$ ]] && continue
     if ! [[ $line =~ $re ]]; then conf_slip "$line"; continue; fi
     k=${BASH_REMATCH[1]} v=${BASH_REMATCH[3]}${BASH_REMATCH[4]}${BASH_REMATCH[5]}
+    [[ " ${CONF_RETIRED[*]} " == *" $k "* ]] && continue
     if [[ " ${CONF_KEYS[*]} " != *" $k "* ]]; then CONF_PROBLEMS+=("$k is not a setting of fedokawaii.conf"); continue; fi
     if [[ -n ${at[$k]:-} ]]; then
       CONF_PROBLEMS+=("$k is set twice — on line ${at[$k]} and on line $n; keep one"); CONF_SAID+=("$k")

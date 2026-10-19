@@ -47,6 +47,14 @@ lacks "$(cat "$CFG")" "api_key"
 eq "$(seen "$out" env_key)" "None" "the key is not left in torrra's environment"
 case_ "…its settings put right for this desktop: Prowlarr's address, the default, the colours"
 eq "$(seen "$out" url)" "http://127.0.0.1:9696"; eq "$(seen "$out" default)" prowlarr; eq "$(seen "$out" theme)" ansi-dark
+case_ "…and a search waits a minute, once, for Prowlarr's answer (its eight sites at once): torrra's 10 s, three times over, gave up first"
+eq "$(seen "$out" timeout)" 60; eq "$(seen "$out" max_retries)" 1
+case_ "…a wait and tries of your own kept"
+fresh; mkdir -p "${CFG%/*}"; printf '[general]\ntimeout = 25\nmax_retries = 2\n' >"$CFG"
+out=$(kawa-torrra 2>&1); eq "$(seen "$out" timeout)" 25; eq "$(seen "$out" max_retries)" 2
+case_ "…torrra's own defaults written in the file (an older torrra wrote them): ours instead"
+fresh; mkdir -p "${CFG%/*}"; printf '[general]\ntimeout = 10\nmax_retries = 3\n' >"$CFG"
+out=$(kawa-torrra 2>&1); eq "$(seen "$out" timeout)" 60; has "$(cat "$CFG")" "timeout = 60"
 case_ "…and Prowlarr left to sleep 30 minutes after the window closes (a second search soon after finds it awake)"
 called '^systemd-run --user --quiet --unit=prowlarr-idle --on-active=30min --timer-property=AccuracySec=30s systemctl --user stop prowlarr.service$'
 not_called 'stop --no-block prowlarr.service'
@@ -129,8 +137,8 @@ for sig in HUP INT; do
   [[ $r == 129 || $r == 130 ]] && _ok || _no "$sig: exit $r"
   called 'systemd-run .*--on-active=30min'
 done
-case_ "the first start's wait is explained (it can take a minute or two)"
-fresh; has "$(kawa-torrra 2>&1)" "first start"
+case_ "Prowlarr's start is said in the window before it is waited for"
+fresh; has "$(kawa-torrra 2>&1)" "starting Prowlarr… (a few seconds)"
 
 # ── what needs no key, and no lock ───────────────────────────────────────────
 case_ "--version, --help, config: no key, no Prowlarr, no lock (verify runs --version)"

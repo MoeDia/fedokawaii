@@ -5,8 +5,8 @@
 # are present, the FORBIDDEN ones are absent, and nothing else was added.
 # Every name verified on packages.fedoraproject.org / RPM Fusion / vendor repos
 # for Fedora 44 and 45 (2026-10-14; tar, grubby, wiremix, visidata, gdu, rocm-smi,
-# Syncplay's Python libraries 2026-10-16; LibreOffice's parts, the hunspell dictionaries and
-# lpf-spotify-client 2026-10-17). One tool per job — see PACKAGES.md.
+# Syncplay's Python libraries 2026-10-16; LibreOffice's parts and the hunspell dictionaries
+# 2026-10-17). One tool per job — see PACKAGES.md.
 
 # ── phase 1 ─────────────────────────────────────────────────────────────────
 PKG_BASE=(
@@ -73,7 +73,7 @@ PKG_SESSION=(greetd greetd-selinux xorg-x11-server-Xwayland    # the login manag
   cage python3-gobject gtk3                                     # the login screen: kawa-greet (GTK) in cage, a kiosk compositor
   plymouth-plugin-script)                                       # the boot splash (the "sumi" Plymouth theme is a script)
 PKG_DESKTOP=(
-  pipewire wireplumber pipewire-pulseaudio pipewire-alsa  # audio (Pulse API for Brave/Steam/Spotify; ALSA for
+  pipewire wireplumber pipewire-pulseaudio pipewire-alsa  # audio (Pulse API for Brave and Steam; ALSA for
                                                           #   programs that open it directly: games)
   pipewire-utils                                          # pw-dump: the audio popup lists outputs/inputs from it
   wiremix easyeffects playerctl cava                      # per-app mixer (a terminal window), EQ, media keys, the bar's music meter
@@ -81,6 +81,7 @@ PKG_DESKTOP=(
   gtk-layer-shell                                         # quick settings: kawa-panel (GTK 3 and Python's
                                                           #   GObject with cairo come with the login screen)
   swaybg swayidle gtklock wlr-randr wlopm                 # wallpaper, idle, lock, output modes, screens off
+  wayland-utils                                           # wayland-info: what the compositor offers (the health report)
   ddcutil wtype                                           # monitor brightness over DDC/CI · bar clicks → Super+1…9
   wl-clipboard cliphist grim slurp gammastep libnotify    # clipboard, screenshots, night light, notify-send
   xdg-desktop-portal-wlr xdg-desktop-portal-gtk           # screencast/screenshot + settings (dark/light), print, open with
@@ -160,7 +161,9 @@ RETIRED_PKGS=(unzip mediainfo    # unzip: 7zip opens zips too · mediainfo: ffpr
               lazygit               # its COPR is no longer kept: lazygit comes from its release (lib/upstream.sh)
               solaar liquidctl      # nothing here to drive: a mouse on a receiver needs no app; no liquid cooler
               abiword gnumeric sc-im   # office is LibreOffice now: Writer, Calc (and VisiData for CSV)
-              papirus-icon-theme)      # every app shows its own icon now (hicolor), not an icon pack's
+              papirus-icon-theme       # every app shows its own icon now (hicolor), not an icon pack's
+              lpf-spotify-client lpf spotify-client)   # Spotify is its web player in a Brave app window
+                                                       #   now; lpf's account and folder: setup.sh, lpf_leftovers_out
 
 # ── never present after setup (removed, replaced, or out of scope) ─────────
 FORBIDDEN_PKGS=(
@@ -198,14 +201,6 @@ CLAUDE_KEY_FPR="31DDDE24DDFAB679F42D7BD2BAA929FF1A7ECACE"
 COPRS=(ilyaz/LACT)
 copr_pkgs() { case $1 in ilyaz/LACT) echo lact ;; esac; }   # what each COPR brings
 
-# ── built on this machine: lpf makes these packages from a manifest package's recipe
-#    (setup.sh, spotify_client). No repository has them, so they are not in manifest_all
-#    (update would look for them there); verify counts them as the desktop's own ─────────
-LPF_BUILT=(spotify-client)
-# Spotify (SPOTIFY=yes, your acceptance of its terms): RPM Fusion's recipe, which lpf builds
-# into the spotify-client package on this machine (setup.sh)
-PKG_SPOTIFY=(lpf-spotify-client)
-
 # waiting PART → what waits for a repository to catch up with this Fedora, one name per line
 # (setup.sh records it; update and repair try again and clear it): "rpmfusion" — RPM Fusion's
 # builds made for another version of the Fedora package they go with (the freeworld drivers,
@@ -225,7 +220,6 @@ manifest_all() {
     "${PKG_GPU_COMMON[@]}" "${!gpu_pkgs}" "${PKG_BUILD[@]}" "${PKG_SESSION[@]}" \
     "${PKG_DESKTOP[@]}" "${PKG_LOOK[@]}" "${PKG_APPS[@]}"
   [[ $STEAM == yes ]] && printf '%s\n' "${PKG_GAMING[@]}"
-  [[ $SPOTIFY == yes ]] && printf '%s\n' "${PKG_SPOTIFY[@]}"
   # libraries a release binary needed that Fedora stopped pulling in by itself (say
   # openssl3-libs, once Fedora 45 moved to OpenSSL 4): installed and recorded by lib/upstream.sh
   cat "${STATE_DIR:-/var/lib/fedokawaii}/upstream-libs" 2>/dev/null || true

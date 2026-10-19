@@ -38,8 +38,12 @@ while IFS=$'\t' read -r mod ev cmd; do
   : >"$TMP/acts"; rm -f "$XDG_RUNTIME_DIR"/kawa-menu-* "$XDG_RUNTIME_DIR"/kawa-float-* 2>/dev/null
   t0=$(date +%s%N)
   timeout 8 sh -c "$cmd" >/dev/null 2>&1 </dev/null
-  sleep 0.1                                    # (what it started in the background: stamped too)
-  read -r what at <"$TMP/acts" 2>/dev/null || { what="" at=""; }
+  # (what it started apart from the bar — setsid -f, as every opener — stamps when it comes:
+  # looked for until 900 ms after the click)
+  what="" at=""
+  while [[ -z $what ]] && (( ($(date +%s%N) - t0) / 1000000 < 1500 )); do
+    read -r what at <"$TMP/acts" 2>/dev/null || { what="" at=""; sleep 0.02; }
+  done
   if [[ -z $what ]]; then _no "$mod $ev ($cmd): nothing happened at all"; continue; fi
   ms=$(( (at - t0) / 1000000 ))
   ((ms <= 900)) && _ok || _no "$mod $ev ($cmd): $what only after $ms ms"

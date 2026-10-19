@@ -1,10 +1,9 @@
 #!/usr/bin/env bash
 # kawa-tag N            what clicking workspace N in the bar does: presses Super+N
 # kawa-tag layout next  what clicking the layout icon does: the next tiling layout — spiral →
-# kawa-tag layout prev  columns → spiral (right-click: back). Floating and one at a time pile
-#                       the windows on top of each other: only their own keys (Super+Y,
-#                       Super+M) choose them; from either, a click goes to the spiral
-#                       (right-click: columns)
+# kawa-tag layout prev  columns → spiral (right-click: back). Floating piles the windows on
+#                       top of each other: only its own key (Super+Y) chooses it; from it,
+#                       a click goes to the spiral (right-click: columns)
 # Both press dwl's own keys through a virtual keyboard (wtype), so dwl acts exactly as if
 # you had pressed them — on the monitor under the pointer, the one whose bar was clicked.
 # Exit status: 0 pressed · 1 could not (wtype missing or refused) · 2 misuse.
@@ -20,7 +19,7 @@ elif [[ $# == 2 && $1 == layout && $2 =~ ^(next|prev)$ ]]; then
   f=$XDG_RUNTIME_DIR/dwl-bar/${WAYBAR_OUTPUT_NAME:-.}/layout.json   # (the clicked bar's monitor)
   [[ -r $f ]] || f=$XDG_RUNTIME_DIR/dwl-bar/layout.json
   for ((i = 0; i < n; i++)); do grep -q "\"class\":\"${order[i]}\"" "$f" 2>/dev/null && now=$i; done
-  if ((now < 0)); then   # floating or monocle shown (or no file): into the cycle
+  if ((now < 0)); then   # floating shown (or no file): into the cycle
     if [[ $2 == next ]]; then key=${keys[0]}; else key=${keys[n - 1]}; fi
   elif [[ $2 == next ]]; then key=${keys[(now + 1) % n]}; else key=${keys[(now + n - 1) % n]}; fi
 else

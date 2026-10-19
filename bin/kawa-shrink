@@ -1,10 +1,12 @@
 #!/usr/bin/env bash
 # kawa-shrink — Super+Z: make a picture or a PDF small enough to send, or turn a picture into
 # another kind (JPEG, WebP, PNG), in two keys. It works on what you copied: files copied in
-# yazi (Ctrl+C), a screenshot, a picture copied in Brave — or on the files you name (Alt+S
-# in yazi runs it on the selection).
+# yazi (Ctrl+C), a screenshot, a picture copied in Brave — or on an earlier copy, the one
+# under the cursor in the clipboard history (Super+V) — or on the files you name (Alt+S in
+# yazi runs it on the selection).
 #
-#   kawa-shrink               what is on the clipboard
+#   kawa-shrink               what is on the clipboard — or, while the clipboard history
+#                             (Super+V) is open, the entry its cursor is on
 #   kawa-shrink FILE…         those files
 #
 # A menu says the size it has and offers what fits it:
@@ -16,7 +18,8 @@
 #   PDFs       email (150 dpi pictures) · smallest (72 dpi) · print (300 dpi), through
 #              Ghostscript; a PDF that would come out no smaller is left as it was
 # The result goes beside the original ("holiday (email).jpg"; a copied picture with no file
-# into ~/Pictures), never over anything, and onto the clipboard, ready for Ctrl+V: one
+# into ~/Pictures), never over anything — a result shrunk again is a new file again — and onto
+# the clipboard (and so to the top of the history, under its cursor), ready for Ctrl+V: one
 # picture as the picture itself (a mail or a chat takes it so), anything else as files. A
 # notice says what came of it: "4.2 MB → 912 KB". Metadata (where a photo was taken) goes.
 # Exit: 0 done · 1 nothing to work on, or it failed (a notice says why) · 2 wrong use.
@@ -42,23 +45,43 @@ bytes() {   # bytes "750 KB" | 1.5mb | 2m | 300 → bytes (a bare number is KB);
 kind() { file -b --mime-type -- "$1" 2>/dev/null; }
 
 # ── what to work on ─────────────────────────────────────────────────────────────────────
-files=()
+files=() hint="copy a picture or a PDF first (Ctrl+C in yazi, or a screenshot), then Super+Z"
+uris() {    # the files a text/uri-list on stdin names (file:// links), those that are there
+  local u
+  while IFS= read -r u || [[ -n $u ]]; do          # (the last line may have no line end)
+    u=${u%$'\r'}; [[ $u == file://* ]] || continue
+    u=${u#file://}; [[ $u == /* ]] || u=/${u#*/}       # (file://localhost/…)
+    printf -v u '%b' "${u//%/\\x}"; [[ -f $u ]] && files+=("$u")
+  done
+}
+nofile() {  # nofile IMAGE-TYPE — a picture with no file, on stdin: named "copied DATE", and its
+  local name f   # results go into ~/Pictures
+  mkdir -p "$HOME/Pictures"
+  printf -v name 'copied %(%Y-%m-%d %H.%M.%S)T.%s' -1 "${1#image/}"
+  f="$work/${name/.jpeg/.jpg}"
+  cat >"$f" && [[ -s $f ]] && files+=("$f") NOFILE=1
+}
+pictype='^image/(png|jpeg|webp|gif|bmp|tiff)$'
 if (($#)); then
   for f; do [[ -f $f ]] && files+=("$(realpath -- "$f")"); done
+elif id=$(kawa-clip --held 2>/dev/null); then
+  # the clipboard history is open (Super+V; this key is dwl's, so it comes here): the entry
+  # under its cursor, whatever the clipboard holds — taken out of the history now, before the
+  # menu (the window may close meanwhile). A picture as a copied one; a copy of files (yazi's
+  # Ctrl+C keeps its file:// links) as those files; anything else is nothing to shrink
+  hint="the entry under the cursor in the clipboard history is not a picture, a PDF, or files"
+  e=$work/entry
+  if [[ $id =~ ^[0-9]+$ ]] && printf '%s\t\n' "$id" | cliphist decode >"$e" 2>/dev/null && [[ -s $e ]]; then
+    t=$(kind "$e")
+    if [[ $t =~ $pictype ]]; then nofile "$t" <"$e"
+    elif [[ $t == text/* ]]; then uris <"$e"; fi
+  fi
 else
   types=$(wl-paste --list-types 2>/dev/null)
   if grep -qx text/uri-list <<<"$types"; then
-    while IFS= read -r u; do
-      u=${u%$'\r'}; [[ $u == file://* ]] || continue
-      u=${u#file://}; [[ $u == /* ]] || u=/${u#*/}       # (file://localhost/…)
-      printf -v u '%b' "${u//%/\\x}"; [[ -f $u ]] && files+=("$u")
-    done < <(wl-paste --no-newline --type text/uri-list)
-  elif img=$(grep -m1 -E '^image/(png|jpeg|webp|gif|bmp|tiff)$' <<<"$types"); then
-    # a picture with no file: kept in ~/Pictures as "copied DATE"
-    mkdir -p "$HOME/Pictures"
-    printf -v name 'copied %(%Y-%m-%d %H.%M.%S)T.%s' -1 "${img#image/}"
-    f="$work/${name/.jpeg/.jpg}"
-    wl-paste --no-newline --type "$img" >"$f" && [[ -s $f ]] && files+=("$f") NOFILE=1
+    uris < <(wl-paste --no-newline --type text/uri-list)
+  elif img=$(grep -m1 -E "$pictype" <<<"$types"); then
+    nofile "$img" < <(wl-paste --no-newline --type "$img")
   fi
 fi
 pics=() pdfs=() total=0
@@ -71,7 +94,7 @@ for f in "${files[@]}"; do
   total=$((total + $(stat -c %s -- "$f")))
 done
 if ((${#pics[@]} + ${#pdfs[@]} == 0)); then
-  say "nothing to shrink" "copy a picture or a PDF first (Ctrl+C in yazi, or a screenshot), then Super+Z"
+  say "nothing to shrink" "$hint"
   exit 1
 fi
 what="${#pics[@]} picture$( ((${#pics[@]} != 1)) && echo s)"
@@ -105,7 +128,7 @@ case $act in
 esac
 
 # ── the work ────────────────────────────────────────────────────────────────────────────
-out=() before=0 after=0 failed=0
+out=() before=0 after=0 failed=0 same=0
 place() {   # place SRC LABEL EXT → where the result goes: beside it ("NAME (LABEL).EXT"), or ~/Pictures
   local d=${1%/*} n=${1##*/}
   [[ ${NOFILE:-} ]] && d=$HOME/Pictures
@@ -141,7 +164,7 @@ for f in "${pdfs[@]}"; do
      -dDetectDuplicateImages=true -sOutputFile="$to" -- "$f" >/dev/null 2>&1
   if [[ ! -s $to ]]; then failed=$((failed + 1)); rm -f "$to"; continue; fi
   if (($(stat -c %s -- "$to") >= $(stat -c %s -- "$f"))); then   # (no smaller: the original it is)
-    rm -f "$to"; to=$f
+    rm -f "$to"; to=$f; same=$((same + 1))
   fi
   out+=("$to"); before=$((before + $(stat -c %s -- "$f"))); after=$((after + $(stat -c %s -- "$to")))
 done
@@ -154,5 +177,6 @@ else
   kawa-clipfiles copy --quiet "${out[@]}"
 fi && on=" · on the clipboard (Ctrl+V)" || on=" · saved, but the clipboard did not take it"
 body="${out[0]##*/}$( ((${#out[@]} > 1)) && echo " and $((${#out[@]} - 1)) more")$on"
+((same)) && body+=" · $same no smaller than it was: the original"
 ((failed)) && body+=" · $failed could not be read"
 say "$(human "$before") → $(human "$after")" "$body"

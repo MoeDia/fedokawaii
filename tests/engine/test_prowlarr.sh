@@ -121,11 +121,19 @@ class H(BaseHTTPRequestHandler):
         if self.headers.get("X-Api-Key") != "k3y": return self.send(401)
         if self.path == "/api/v1/indexer": return self.send(200, have())
         if self.path == "/api/v1/indexer/schema":
-            return self.send(200, [{"definitionName": d, "name": d.title(), "implementation": "Cardigann", "fields": [{"name": "baseUrl"}], "presets": [], "enable": False, "priority": 25} for d in KNOWN])
+            # (a first start: $T/no-defs — only the sites built into Prowlarr, until it has
+            # fetched its list: the IndexerDefinitionUpdate command)
+            known = ["SubsPlease", "Knaben"] if os.path.exists(f"{T}/no-defs") else KNOWN
+            return self.send(200, [{"definitionName": d, "name": d.title(), "implementation": "Cardigann", "fields": [{"name": "baseUrl"}], "presets": [], "enable": False, "priority": 25} for d in known])
+        if self.path == "/api/v1/command/31": return self.send(200, {"id": 31, "name": "IndexerDefinitionUpdate", "status": "completed"})
         if self.path == "/api/v1/appprofile": return self.send(200, [{"id": 7, "name": "Standard"}])
         self.send(404)
     def do_POST(self):
         body = json.loads(self.rfile.read(int(self.headers["Content-Length"])))
+        if self.path == "/api/v1/command":
+            self.note(json.dumps(body))
+            if body.get("name") == "IndexerDefinitionUpdate" and os.path.exists(f"{T}/no-defs"): os.remove(f"{T}/no-defs")
+            return self.send(201, {"id": 31, "name": body.get("name"), "status": "queued"})
         self.note(json.dumps({k: body.get(k) for k in ("definitionName", "enable", "priority", "appProfileId", "tags")} | {"presets": "presets" in body}))
         unreachable = open(f"{T}/unreachable").read().split() if os.path.exists(f"{T}/unreachable") else []
         if body["enable"] and body["definitionName"] in unreachable:
@@ -168,6 +176,12 @@ api_world; echo "yts limetorrents" >"$TMP/unreachable"
 ix; eq "$RC" 0 "$OUT"; has "$OUT" "yts: added (not reachable just now"
 has "$(log_of PUT)" "forceSave=true"; eq "$(log_of PUT | wc -l)" 2
 eq "$(python3 -c 'import json,sys; print(sum(1 for i in json.load(open(sys.argv[1])) if i["enable"]))' "$TMP/have.json")" 8 "all eight switched on"
+case_ "a first start, Prowlarr's list of sites not fetched yet: fetched there and then (its IndexerDefinitionUpdate, waited for), then all eight added"
+api_world; : >"$TMP/no-defs"
+ix; eq "$RC" 0 "$OUT"; has "$(log_of POST)" '"name": "IndexerDefinitionUpdate"'
+has "$(cat "$TMP/api.log")" "GET /api/v1/command/31"; eq "$(log_of 'POST /api/v1/indexer' | wc -l)" 8
+case_ "…its list complete already: not asked again"
+api_world; ix; lacks "$(cat "$TMP/api.log")" "IndexerDefinitionUpdate"
 case_ "a wrong key: refused, said, exit 2, nothing added"
 api_world; ix wrong; eq "$RC" 2; has "$OUT" "refused (401)"; not_called POST; [[ ! -e $TMP/have.json ]] && _ok || _no "added with a wrong key"
 case_ "Prowlarr not answering: said, exit 2"

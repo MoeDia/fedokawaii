@@ -1,38 +1,61 @@
 #!/usr/bin/python3
-"""kawa-panel — quick settings, the panel under the bar's right end (its cat, or Super+X).
+"""kawa-panel — the panels under the bar: quick settings (its cat, or Super+X), the sound panel
+(the bar's volume, or Super+A) and the brightness slider (the bar's brightness).
 
-    kawa-panel          run, hidden, for the whole session (autostart starts it): it opens
-                        at once when asked (kawa-quick sends SIGUSR1: open, or close; a
-                        menu about to open sends SIGUSR2: close)
-    kawa-panel --open   the same, open from the start (kawa-quick, should it not be running)
+    kawa-panel               run, hidden, for the whole session (autostart starts it): it opens
+                             at once when asked (kawa-quick sends SIGUSR1: open, or close; a
+                             menu about to open sends SIGUSR2: close)
+    kawa-panel --open        quick settings, open (kawa-quick, should it not be running)
+    kawa-panel --sound       the sound panel: open, or closed if it is open
+    kawa-panel --brightness  the brightness slider: open, or closed if it is open
+(--sound and --brightness ask the running panel — the mode in kawa-panel.ask, then SIGUSR1 —
+or, with none running, become it, open.) One panel at a time: opening one closes the other.
 
-What it shows, top to bottom, on one 12 px grid (the day, the time, the weather and the
+Quick settings, top to bottom, on one 12 px grid (the day, the time, the weather and the
 volume's number are the bar's, right above it, so they are not said again here):
     two meters    明 brightness and 音 sound: twelve squares each (their levels are the
-                  bar's), or the words when there is no level
+                  bar's), or the words when there is no level; Enter (or a click on its
+                  name) on 音 sound opens the sound panel
     the tiles     theme · night light · freesync · network · bluetooth · devices (those two
                   only with a Bluetooth adapter) · drives · backup · dnd — each its icon, a
                   kanji seal, its name and how it stands; the seal is stamped vermilion
                   while the thing is on
     three keys    wallpaper · screenshot · power (its icon alone), centred
-The one filled in vermilion is the keyboard's cursor (the arrows, Tab). The pointer draws no
-box: the item under it keeps its look, only its icon (a meter's kanji) and its name turn
-vermilion — at once, no easing. A click moves the cursor there.
+The sound panel, three parts under kanji seals: 音 sound — the volume's squares (hollow
+while muted; its icon the bar's) and two keys, mute and mixer (wiremix) · 出 output and
+入 input — every device (not "Share"), the one in use ticked: a click makes another the
+default, playing audio moves to it · the input's foot: mute microphone.
+The brightness slider: the brightness meter alone, as in quick settings.
+Opened by a click on the bar, each hangs right under the pointer (dwl's dwl-pointer, written
+as it clicks), kept 8 px inside its output; opened by its key, under its own module: quick
+settings at the right end, the others under the volume and the brightness (fixed margins,
+measured on a 1920 px bar).
 
-Keys: arrows or h j k l move · on a meter ← → (h l) change it by 5 · Enter or Space does it ·
-Tab goes round · Esc closes. The mouse: a click does it; on a meter a click or a drag sets
-the level there, the wheel moves it by 5. A click outside closes it, as with every menu.
-Switches (theme, night light, freesync, bluetooth, dnd) stay open and show the new state; the
+The pointer draws no box: the item under it keeps its look, only its icon (a meter's kanji)
+and its name turn vermilion — at once, no easing, also right after it opens. A click does
+what is under the pointer. The keyboard's cursor (filled in vermilion) is not there until a
+key asks for it: the first arrow, Tab or Enter puts it on the first item, every open starts
+without it (nothing remembered from the last time).
+
+Keys: arrows or h j k l move · on a meter ← → (h l) change it by 5 (the slider's from the
+first press: it is all there is) · Enter or Space does it · Tab goes round · Esc closes.
+The mouse: a click does it; on a meter a click or a drag sets the level there, the wheel moves
+it by 5. A click outside closes it, as with every menu. Switches (theme, night light,
+freesync, bluetooth, dnd; mute, an output, an input) stay open and show the new state; the
 rest close it and open their own menu or window. Everything is done by kawa-quick (--state,
 --do), which knows the machine; this only draws it and listens.
 
+While open each says so to the bar: a marker holding its pid, kawa-panel.open (the cat),
+kawa-panel-sound.open and kawa-panel-brightness.open, and a poke (SIGRTMIN+15, +16, +14).
 Its colours are the theme's (~/.config/fedokawaii/current/panel.conf): a theme switch
 restyles it at once. Exit: 0 · 2 wrong use.
 """
 import os
+import re
 import signal
 import sys
 import time
+import unicodedata
 
 sys.dont_write_bytecode = True
 
@@ -41,10 +64,29 @@ CURRENT = os.path.join(HOME, ".config/fedokawaii/current")
 ICONS_SH = os.path.join(HOME, ".config/fedokawaii/icons.sh")
 RUN = os.environ.get("XDG_RUNTIME_DIR") or f"/run/user/{os.getuid()}"
 PIDFILE = os.path.join(RUN, "kawa-panel.pid")
-MARK = os.path.join(RUN, "kawa-panel.open")         # lights the bar's cat (kawa-dwlstatus) — its
-                                                    # own: a dropdown's (kawa-drop.open) is kawa-menu's;
-                                                    # it holds the panel's pid (one left by a panel
-                                                    # gone is no open panel)
+ASK = os.path.join(RUN, "kawa-panel.ask")           # the mode a --sound or --brightness asks for
+MODES = ("quick", "sound", "brightness")
+# the markers: each holds the panel's pid while that mode is open (one left by a panel gone is
+# no open panel). kawa-panel.open lights the bar's cat (kawa-dwlstatus) — its own: a
+# dropdown's (kawa-drop.open) is kawa-menu's
+MARKS = {"quick": os.path.join(RUN, "kawa-panel.open"),
+         "sound": os.path.join(RUN, "kawa-panel-sound.open"),
+         "brightness": os.path.join(RUN, "kawa-panel-brightness.open")}
+MARK = MARKS["quick"]
+POKE = {"quick": 15, "sound": 16, "brightness": 14}  # the bar's module told (SIGRTMIN+N)
+# where each hangs, 8 px under the bar. Opened by a click on the bar: centred under the
+# pointer, on its output, kept EDGE px inside the output's edges (dwl writes where the click
+# was, POINTER: "X Y OUTPUT OUTPUT_X OUTPUT_WIDTH", before waybar runs the module's command —
+# fresh: under FRESH s old). Opened by its key: its right edge this far from the screen's —
+# quick settings 8 px from it (the gap the windows keep), the others under their module on a
+# 1920 px bar, the panel's first glyph (14 px in) right under the module's icon (the speaker
+# at x 1544, the sun at 1601: 1920 − (1544 − 14 + 304) = 86, 1920 − (1601 − 14 + 304) = 29)
+POINTER = os.path.join(RUN, "dwl-pointer")
+FRESH = 1.0
+EDGE = 8
+MARGIN = {"quick": 8, "sound": 86, "brightness": 29, "menu": 8}
+TITLE = {"quick": "quick settings", "sound": "sound", "brightness": "brightness", "menu": "menu"}
+SOCK = os.path.join(RUN, "kawa-panel.sock")         # menus are asked for here (kawa-panel --menu)
 LOST_GRACE = 0.6      # a toggle this soon after a click outside closed it is that same click
 REPEAT = 0.5          # a toggle this soon after the last is its key held (dwl repeats it)
 
@@ -54,9 +96,10 @@ TILE_W, TILE_H, GAP = 88, 64, 6      # three tiles a row: 3 × 88 + 2 × 6 = 276
 INNER = 3 * TILE_W + 2 * GAP
 SEAL = 23                            # the bar's seal: an 11 px kanji with 6 px all round
 RULE = 21                            # a section's rule: 10 px, the stitch, 10 px
-METER_H, METER_GAP = 20, 2           # a meter's row (its words 4 px from the top)
+METER_H, METER_GAP = 20, 2           # a meter's row (its words 4 px from the top); a device's
 SEGS, SEG_W, SEG_GAP, SEG_H = 12, 10, 2, 8
 KEY_H, KEY_W, KEY_GAP = 24, 94, 6    # the three keys at the foot: 94 · 94 · 24 (power)
+SECTION = 18                         # the sound panel: a part's last row to the next seal
 LINE = 12                            # a line of text, Fusion Pixel 12
 STAMP = "outline"                    # how a tile's seal is stamped (see seal() in main)
 
@@ -96,9 +139,118 @@ def parse_state(text):
     return s
 
 
+# ── a sound device's short name ───────────────────────────────────────────────────────────
+# PipeWire names a device after its card's chip ("Ryzen HD Audio Controller Analog Stereo",
+# "Navi 48 HDMI/DP Audio Controller Digital Stereo (HDMI)"): long, alike, and saying nothing
+# of where the sound goes. The panel says it shortly, from PipeWire's own words, in this
+# order: the port in use ("Line Out" → line out, "Rear Microphone" → rear mic) — but an
+# HDMI port says only HDMI —, the nick when it is a name (an HDMI output's: the monitor's,
+# "LG ULTRAGEAR"; a chip's, "ALC1220 Analog", is not), the card when it is a product (a USB
+# microphone's, "Yeti Stereo Microphone"; a controller is not). An output adds its form
+# (analog, HDMI, S/PDIF, bluetooth): "line out · analog", "LG ULTRAGEAR · HDMI"; an input
+# needs none ("rear mic"). Lower case but for names and abbreviations. Two alike are told
+# apart by their cards ("HDMI · Navi 48", "HDMI · Radeon"), else by number.
+CHIP_CARD = re.compile(r"\b(controller|hd audio|high definition audio|audio device|hdmi/dp|generic)\b", re.I)
+CHIP_NICK = re.compile(r"\b(hdmi|hda|dp|analog|digital|alc\d+\w*|usb audio|s/pdif|iec958)\b", re.I)
+BARE_PORT = re.compile(r"^(analog|digital) (output|input)$|hdmi|displayport|s/pdif|iec958", re.I)
+CARD_WORDS = re.compile(r"\b(hd|high|definition|audio|controller|hdmi/dp|device|generic)\b", re.I)
+
+
+def lower_words(t):
+    """Lower case, but for abbreviations (USB, S/PDIF) and numbers."""
+    return " ".join(w if (w.isupper() and len(w) > 1) or "/" in w else w.lower() for w in t.split())
+
+
+def form_of(profile, desc, card, api):
+    """An output's form, from its profile's description (or its description's tail)."""
+    if api == "bluez5":
+        return "bluetooth"
+    p = profile or (desc[len(card):].strip() if card and desc.startswith(card) else "")
+    if not p:
+        m = re.search(r"\b((?:Analog|Digital|Pro)\b.*)$", desc)
+        p = m.group(1) if m else ""
+    m = re.fullmatch(r"Digital [\w. ]*\((.+)\)", p)
+    if m:
+        return "S/PDIF" if m.group(1) == "IEC958" else m.group(1)
+    m = re.fullmatch(r"Analog (Stereo|Mono|Surround ([\d.]+))", p)
+    if m:
+        return "analog" + (f" {m.group(2)}" if m.group(2) else "")
+    return lower_words(p) if p else ""
+
+
+def port_of(port):
+    """The port in use, said shortly ("Rear Microphone" → rear mic); none for a port that says
+    no more than the form (HDMI / DisplayPort, Digital Output (S/PDIF), Analog Output)."""
+    if not port or BARE_PORT.search(port):
+        return ""
+    return lower_words(re.sub(r"\bMicrophone\b", "mic", port))
+
+
+def device_name(kind, desc, port="", nick="", card="", profile="", api=""):
+    """A device's short name (see above): kind is output or input."""
+    first = (port_of(port)
+             or (nick if nick and nick != desc and not CHIP_NICK.search(nick) else "")
+             or (card if card and not CHIP_CARD.search(card) else "")
+             or (desc if api == "bluez5" else ""))
+    form = form_of(profile, desc, card, api)
+    if kind == "input":
+        return first or form or desc
+    return " · ".join(x for x in (first, form) if x) or desc
+
+
+def card_short(card):
+    """A card's own words, without the chip's ("Navi 48 HDMI/DP Audio Controller" → Navi 48)."""
+    return " ".join(CARD_WORDS.sub(" ", card).split())
+
+
+def device_names(devs):
+    """Each device's short name — those alike told apart: by their cards if those differ, else
+    by number (2, 3… after the first). devs: [(kind, desc, port, nick, card, profile, api)]."""
+    names = [device_name(*d) for d in devs]
+    for n in set(names):
+        same = [i for i, m in enumerate(names) if m == n]
+        if len(same) < 2:
+            continue
+        cards = [card_short(devs[i][4]) for i in same]
+        by_card = all(cards) and len(set(cards)) == len(cards)
+        for k, i in enumerate(same):
+            names[i] = f"{n} · {cards[k]}" if by_card else (n if k == 0 else f"{n} {k + 1}")
+    return names
+
+
+def parse_sound(text):
+    """kawa-quick --state sound: sound (its level, also while muted), muted (on|off), mic
+    (on|muted|none) as KEY<TAB>VALUE; each device a line "output|input<TAB>ID<TAB>1|0 (the
+    default)<TAB>DESCRIPTION<TAB>PORT<TAB>NICK<TAB>CARD<TAB>PROFILE<TAB>API" → outputs and
+    inputs, in order, each (id, default, its short name: device_names)."""
+    s = {"outputs": [], "inputs": []}
+    devs = []
+    for line in text.splitlines():
+        f = line.split("\t")
+        if f[0] in ("output", "input") and len(f) == 9 and f[1].isdigit():
+            devs.append(f)
+        elif len(f) == 2:
+            s[f[0]] = f[1]
+    for kind in ("output", "input"):                 # (alike within a list: the outputs, the inputs)
+        mine = [f for f in devs if f[0] == kind]
+        for f, name in zip(mine, device_names([(f[0], *f[3:]) for f in mine])):
+            s[kind + "s"].append((f[1], f[2] == "1", name))
+    return s
+
+
 def percent(v):
     """'70%' → 70; anything else (no DDC/CI, muted, no output) → None."""
     return int(v[:-1]) if v.endswith("%") and v[:-1].isdigit() else None
+
+
+def vol_icon(pct, muted):
+    """The sound panel's meter's icon: the bar's own for that level (its speaker with no wave
+    at 0, one up to 25 %, two to 50, three to 75, four above; crossed out while muted)."""
+    if muted:
+        return "vol_mute"
+    if not pct:
+        return "vol_0"
+    return f"vol_{min(4, (pct + 24) // 25)}"
 
 
 # ── a meter's squares and its level: one rule both ways ───────────────────────────────────
@@ -149,10 +301,57 @@ def snap(now, d):
     return max(0, min(100, v))
 
 
+def bar_click(text, age):
+    """dwl's record of the last click on the bar (POINTER's text, age seconds old) → (x, the
+    output's x, its width), or None: too old (not this opening's: a key opened it), or not
+    such a record."""
+    if not -FRESH < age < FRESH:
+        return None
+    f = text.split()
+    if len(f) != 5:
+        return None
+    try:
+        return int(float(f[0])), int(f[3]), int(f[4])
+    except ValueError:
+        return None
+
+
+def hang(x, out_x, out_w, w):
+    """The left margin, on its output, of a panel w wide centred under x (the layout's x):
+    kept EDGE px inside the output's edges (the bar's last icons: the panel hangs from the
+    edge instead)."""
+    return max(EDGE, min(out_w - w - EDGE, x - out_x - w // 2))
+
+
+def where(mode, click, w):
+    """Where the panel hangs: ("left", margin, the output's x) under a click, else ("right",
+    its module's margin, None)."""
+    if click:
+        x, out_x, out_x_w = click
+        return "left", hang(x, out_x, out_x_w, w), out_x
+    return "right", MARGIN[mode], None
+
+
+def menu_place(drop, click, w):
+    """A menu's: dropped from the bar (--drop) as a panel is — under the click, or 8 px from
+    the right edge —, any other in the middle of the screen."""
+    return where("menu", click, w) if drop else ("centre", 0, None)
+
+
+def real_leave(mode, detail):
+    """Whether a leave-notify (GDK's crossing mode and detail, by their nicks) is the pointer
+    really gone: not into a child's window (inferior), not a grab taking the pointer while it
+    stays over the panel (grab, gtk-grab, state-changed) — those leave it where it is."""
+    return detail != "inferior" and mode not in ("grab", "gtk-grab", "state-changed")
+
+
 # ── what is shown ─────────────────────────────────────────────────────────────────────────
 class Item:
     def __init__(self, key, kind, x, y, w, h, row, **kw):
         self.key, self.kind, self.x, self.y, self.w, self.h, self.row = key, kind, x, y, w, h, row
+        self.kanji = self.icon = self.glyph = None
+        self.lit = self.muted = self.scrolls = False
+        self.name = self.value = self.tip = self.detail = ""
         self.__dict__.update(kw)
 
     def inside(self, x, y):
@@ -192,9 +391,221 @@ def rows_of(n):
     return rows
 
 
-def layout(s):
-    """Every item's place (in the panel's own pixels), the content's top left, the rules',
-    the size."""
+class Layout:
+    """Every item's place (in the panel's own pixels), the content's top left, the rules'
+    heights, the headings (kanji, name, x, y[, value]) and the empty lists' "none" (x, y), the
+    size; a menu's too: what is drawn but not chosen (marks: its title, a disabled row, a
+    grid's cells, the filter's line) and the part of it that scrolls (view: its top and
+    height, and how tall what scrolls in it is — None: nothing scrolls)."""
+
+    def __init__(self, items, head, rules, size, heads=(), nones=(), marks=(), view=None):
+        self.items, self.head, self.rules, self.size = items, head, rules, size
+        self.heads, self.nones, self.marks, self.view = list(heads), list(nones), list(marks), view
+
+
+# ── a menu (kawa-panel --menu, kawa-menu's): a list read from its caller ──────────────────
+# One line a thing, its fields apart by tabs; the line's number (from 0) is what --index
+# prints, so a caller's own list of what each line does stays its own:
+#     part  KANJI  NAME [VALUE]     a part's heading: its seal, its name, the stitch to the
+#                                   right edge (a value at its end, quiet: "up 03h 07m")
+#     row   GLYPH  NAME [DETAIL [VALUE]]
+#                                   a choice: its glyph (an icon, ▣ □ — any character), its
+#                                   name, a detail in a column of its own (every row's starts
+#                                   at the same place, after the longest name), its value
+#                                   right-aligned, quiet (an empty field: none)
+#     on    GLYPH  NAME [DETAIL [VALUE]]   the same, the one in use (glyph and name strong)
+#     off   GLYPH  NAME [DETAIL [VALUE]]   the same, not to be chosen now (faint: the cursor
+#                                   and the pointer pass it)
+#     key   GLYPH  NAME             a key button; keys one after another share a row
+#     cell  TEXT   [STATE]          a grid's cell, seven a row (a month): STATE today (stamped,
+#                                   as a lit seal), dim (another month's day), head (a weekday)
+#     note  TEXT                    a quiet line
+#     (an empty line)               nothing (it keeps the numbering)
+#     any other line                a choice of that text (a plain menu's line, as dmenu's)
+# Printed: the chosen line's number (--index), else its name (with --prompt, Enter on what
+# matches nothing: what was typed). Exit 0 chosen, 1 dismissed (Esc, a click outside, its key
+# again, another menu or panel), 2 wrong use.
+LINE_KINDS = ("part", "row", "on", "off", "key", "cell", "note")
+ROW_KINDS = ("row", "on", "off")
+CELL_W, CELL_GAP = 36, 4             # seven cells a row: 7 × 36 + 6 × 4 = 276, the content
+MENU_MAX_H = 1080 - 31 - 8 - 8       # (a list taller than the screen under the bar: it scrolls)
+
+
+def parse_line(i, line):
+    """A line of a menu → (number, kind, fields): kind one of LINE_KINDS, plain (a choice of
+    the whole line) or blank."""
+    if not line.strip():
+        return i, "blank", []
+    f = line.split("\t")
+    if f[0] in LINE_KINDS and len(f) >= 2:
+        return i, f[0], f[1:]
+    return i, "plain", [line]
+
+
+class Menu:
+    """A menu as asked: its lines and options (drop, title, width in columns, lines shown at
+    most, the line the first key puts the cursor on, a prompt — typing filters —, index), and
+    what has been typed."""
+
+    def __init__(self, lines, drop=False, title="", width=0, lines_shown=0, select=None,
+                 prompt=None, index=False):
+        self.lines = [parse_line(i, l) for i, l in enumerate(lines)]
+        self.drop, self.title, self.width, self.shown = drop, title, width, lines_shown
+        self.select, self.prompt, self.index = select, prompt, index
+        self.query = ""
+
+    def inner(self):
+        """The content's width: as wide as its widest line needs (a row: 6 px, its glyph, 6,
+        the name — the details' column after the longest name, 12 px on —, 12 px before its
+        value, 6 at the end; a heading with its value; keys; a grid's 276), or the columns
+        asked for if wider. (Widths in the font's columns: 6 px, a wide letter 12.)"""
+        rows = [f for _, k, f in self.lines if k in ROW_KINDS]
+        named = [px_of(fld(f, 1)) for f in rows if fld(f, 2)]
+        dx = 24 + (max(named) if named else 0) + 12
+        need = [6 + px_of(self.title) + 6 if self.title else 0]
+        for _, k, f in self.lines:
+            if k in ROW_KINDS:
+                need.append((dx + px_of(fld(f, 2)) if fld(f, 2) else 24 + px_of(fld(f, 1)))
+                            + (12 + px_of(fld(f, 3)) if fld(f, 3) else 0) + 6)
+            elif k == "plain":
+                need.append(24 + px_of(f[0]) + 6)
+            elif k == "part":
+                need.append(SEAL + 6 + px_of(fld(f, 1)) + 6 + 24 + (6 + px_of(fld(f, 2)) if fld(f, 2) else 0))
+            elif k == "key":
+                need.append(12 + 18 + px_of(fld(f, 1)))
+            elif k == "cell":
+                need.append(INNER)
+            elif k == "note":
+                need.append(6 + px_of(f[0]) + 6)
+        return max(need + [6 * self.width + 12 if self.width else 0, 120])
+
+    def matches(self, *words):
+        """A choice the typed words all find (in its name, detail or value, in any case)."""
+        hay = " ".join(words).lower()
+        return all(w in hay for w in self.query.lower().split())
+
+    def name_of(self, i):
+        _, kind, f = self.lines[i]
+        return f[0] if kind == "plain" else (f[1] if len(f) > 1 and f[1] else f[0])
+
+
+def px_of(t):
+    """Its width in the font: 6 px a letter, 12 a wide one (a kanji, a full-width sign)."""
+    return sum(12 if unicodedata.east_asian_width(c) in "WF" else 6 for c in t)
+
+
+def fld(f, i):
+    return f[i] if len(f) > i else ""
+
+
+def layout_menu(m):
+    """A menu's place for each thing, as the sound panel's: parts under seals (18 px between
+    parts), rows of 20 px 2 px apart, keys 24 px high sharing a row 6 px apart, a grid's cells.
+    While something is typed only the choices it finds show, under their parts."""
+    x0 = BORDER + PAD
+    w = m.inner()
+    y = x0
+    items, heads, marks, r = [], [], [], 0
+    if m.title:
+        marks.append(("note", x0, y, w, m.title))
+        y += METER_H + GAP
+    if m.prompt is not None:
+        marks.append(("input", x0, y, w, KEY_H, m.prompt, m.query))
+        y += KEY_H + GAP
+    top = y
+    lines = m.lines
+    if m.query:                                   # (typing: the choices it finds, under their parts)
+        keep, part = [], None
+        for ln in lines:
+            if ln[1] == "part":
+                part = ln
+            elif ln[1] in ("row", "on", "plain") and m.matches(*ln[2][1:]):
+                if part is not None:
+                    keep.append(part)
+                    part = None
+                keep.append(ln)
+        lines = keep
+    prev = None                                   # (what came before: the space before this)
+    k = 0
+    while k < len(lines):
+        i, kind, f = lines[k]
+        if kind == "blank":
+            k += 1
+            continue
+        if kind == "part":
+            if prev is not None:
+                y += SECTION - (METER_GAP if prev in ("row", "cell") else 0)
+            heads.append((f[0], f[1] if len(f) > 1 else "", x0, y) + ((f[2],) if len(f) > 2 and f[2] else ()))
+            y += SEAL + GAP
+            prev = None
+        elif kind == "key":
+            run = []
+            while k < len(lines) and lines[k][1] == "key":
+                run.append(lines[k])
+                k += 1
+            k -= 1
+            if prev in ("row", "cell", "note"):
+                y += GAP - METER_GAP
+            elif prev == "key":
+                y += GAP
+            n = len(run)
+            kw = (w - (n - 1) * GAP) // n
+            for c, (j, _, g) in enumerate(run):
+                xx = x0 + c * (kw + GAP)
+                items.append(Item(str(j), "key", xx, y, (w - xx + x0) if c == n - 1 else kw, KEY_H, r,
+                                  glyph=g[0], name=g[1] if len(g) > 1 else ""))
+            y += KEY_H
+            r += 1
+            prev = "key"
+        elif kind == "cell":
+            run = []
+            while k < len(lines) and lines[k][1] == "cell":
+                run.append(lines[k])
+                k += 1
+            k -= 1
+            if prev == "key":
+                y += GAP
+            cw = (w - 6 * CELL_GAP) // 7
+            for c, (j, _, g) in enumerate(run):
+                if c and c % 7 == 0:
+                    y += METER_H + METER_GAP
+                xx = x0 + (c % 7) * (cw + CELL_GAP)
+                marks.append(("cell", xx, y, cw, METER_H, g[0], g[1] if len(g) > 1 else ""))
+            y += METER_H + METER_GAP
+            prev = "cell"
+        else:                                     # a row (row, on, off, plain) or a note
+            if prev == "key":
+                y += GAP
+            if kind == "note":
+                marks.append(("note", x0, y, w, f[0]))
+            elif kind == "off":
+                marks.append(("off", x0, y, w, f[0], fld(f, 1), fld(f, 2), fld(f, 3)))
+            elif kind == "plain":
+                items.append(Item(str(i), "row", x0, y, w, METER_H, r, glyph="", name=f[0]))
+                r += 1
+            else:
+                items.append(Item(str(i), "row", x0, y, w, METER_H, r, glyph=f[0], name=fld(f, 1),
+                                  detail=fld(f, 2), value=fld(f, 3), lit=kind == "on"))
+                r += 1
+            y += METER_H + METER_GAP
+            prev = "row" if kind != "note" else "note"
+        k += 1
+    if prev in ("row", "cell", "note"):
+        y -= METER_GAP
+    if m.query and not items:
+        marks.append(("none", x0, y))             # (nothing found: Enter gives what was typed)
+        y += METER_H
+    height = y - top
+    view_h = min(height, MENU_MAX_H - top - PAD - BORDER)
+    if m.shown:
+        view_h = min(view_h, m.shown * (METER_H + METER_GAP) - METER_GAP)
+    for it in items:
+        it.scrolls = True
+    return Layout(items, (x0, x0), [], (w + 2 * (PAD + BORDER), top + view_h + PAD + BORDER), heads,
+                  [], marks, (top, view_h, height) if view_h < height else None)
+
+
+def layout_quick(s):
     x0 = y = BORDER + PAD
     items, rules, r = [], [], 0
     head = (x0, y)
@@ -225,116 +636,240 @@ def layout(s):
                           tip=s.get("wallpaper", "") if key == "wallpaper" else ""))
         x += w + KEY_GAP
     y += KEY_H + PAD + BORDER
-    return items, head, rules, (INNER + 2 * (PAD + BORDER), y)
+    return Layout(items, head, rules, (INNER + 2 * (PAD + BORDER), y))
+
+
+def layout_sound(s):
+    """音 sound: the volume's meter, then mute and mixer side by side · 出 output and 入 input:
+    a row per device (a list with none says "none") · mute microphone at the input's foot.
+    Each part under its seal; a seal's stitch runs to the right edge."""
+    x0 = y = BORDER + PAD
+    items, heads, nones, r = [], [], [], 0
+    muted = s.get("muted") == "on"
+    heads.append(("音", "sound", x0, y))
+    y += SEAL + GAP
+    items.append(Item("sound", "meter", x0, y, INNER, METER_H, r, name="volume", value=s.get("sound", ""),
+                      muted=muted))
+    y += METER_H + GAP
+    r += 1
+    half = (INNER - GAP) // 2
+    items.append(Item("mute", "key", x0, y, half, KEY_H, r, icon="speaker" if muted else "speaker_off",
+                      name="unmute" if muted else "mute"))
+    items.append(Item("mixer", "key", x0 + half + GAP, y, INNER - half - GAP, KEY_H, r, icon="sliders", name="mixer"))
+    y += KEY_H
+    r += 1
+    for kanji, name, pre, devs in (("出", "output", "out", s.get("outputs", [])),
+                                   ("入", "input", "in", s.get("inputs", []))):
+        y += SECTION
+        heads.append((kanji, name, x0, y))
+        y += SEAL + GAP
+        if not devs:
+            nones.append((x0, y))
+            y += METER_H + METER_GAP
+        for dev_id, default, label in devs:
+            items.append(Item(f"{pre}:{dev_id}", "row", x0, y, INNER, METER_H, r, icon="box_on" if default else "box_off",
+                              name=label, lit=default))
+            y += METER_H + METER_GAP
+            r += 1
+        y -= METER_GAP
+    if s.get("mic", "none") != "none":                # (no input: no microphone to mute)
+        mic_muted = s.get("mic") == "muted"
+        y += GAP
+        items.append(Item("mic", "key", x0, y, INNER, KEY_H, r, icon="mic" if mic_muted else "mic_off",
+                          name="unmute microphone" if mic_muted else "mute microphone"))
+        y += KEY_H
+    y += PAD + BORDER
+    return Layout(items, (x0, x0), [], (INNER + 2 * (PAD + BORDER), y), heads, nones)
+
+
+def layout_brightness(s):
+    """The brightness meter alone, as in quick settings (the same row, the same squares)."""
+    x0 = BORDER + PAD
+    it = Item("brightness", "meter", x0, x0, INNER, METER_H, 0, kanji="明", name="brightness",
+              value=s.get("brightness", ""))
+    return Layout([it], (x0, x0), [], (INNER + 2 * (PAD + BORDER), x0 + METER_H + PAD + BORDER))
+
+
+def layout(s, mode="quick"):
+    return {"quick": layout_quick, "sound": layout_sound, "brightness": layout_brightness,
+            "menu": layout_menu}[mode](s)
 
 
 def look(it, focused, hot):
     """How an item is drawn — the colours' names: fill (None: none of its own), frame (None:
     none), glyph (its icon, or a meter's kanji), label (its name), value (its words, a meter's
-    words with no level), on_fill (its seal and squares drawn as on vermilion).
+    words with no level), on_fill (its seal and squares drawn as on vermilion), detail (a menu
+    row's second column: text, its ink on the cursor's fill).
     The keyboard's cursor (focused) is filled in vermilion, its ink text_on_accent. The pointer
     (hot) draws no box: an item under it keeps its resting look and only its glyph and its name
     turn accent_text; under the pointer and the cursor both, it is drawn as the cursor (ink on
     vermilion keeps its contrast).
-    A tile's seal says whether the thing is on, so the pointer leaves it as it is."""
+    A tile's seal says whether the thing is on, so the pointer leaves it as it is. A device's
+    row: the one in use ticked and in strong ink, the others' box quiet."""
     if focused:
         ink = "text_on_accent"
         return {"fill": "accent", "frame": None, "glyph": ink, "label": ink,
-                "value": ink, "on_fill": True}
-    rest = {"fill": None if it.kind == "meter" else "key", "frame": None if it.kind == "meter" else "edge",
-            "glyph": "accent_text" if it.kind == "meter" else "text",
-            "label": "strong" if it.kind == "tile" and it.lit else "text",
-            "value": "muted", "on_fill": False}
+                "value": ink, "on_fill": True, "detail": ink}
+    bare = it.kind in ("meter", "row")
+    glyph = {"meter": "accent_text", "row": "strong" if it.lit else "muted"}.get(it.kind, "text")
+    rest = {"fill": None if bare else "key", "frame": None if bare else "edge", "glyph": glyph,
+            "label": "strong" if it.kind in ("tile", "row") and it.lit else "text",
+            "value": "muted", "on_fill": False, "detail": "text"}
     if hot:
         rest["glyph"] = rest["label"] = "accent_text"
     return rest
 
 
 SWITCHES = ("theme", "night", "vrr", "bluetooth", "dnd")       # done in place: the panel stays
-OPENERS = ("network", "devices", "drives", "backup", "wallpaper", "screenshot", "power", "sound")
+OPENERS = ("network", "devices", "drives", "backup", "wallpaper", "screenshot", "power")
+METERS = ("brightness", "sound")
+MOVES = ("Left", "h", "Right", "l", "Up", "k", "Down", "j", "Tab", "ISO_Left_Tab")
+ENTER = ("Return", "KP_Enter", "space")
 
 
 class Panel:
-    """Everything but the drawing: what is open, where the cursor is, what a key or a click
-    does. The window, the processes and the clock are the ui's (GTK's in main())."""
+    """Everything but the drawing: which panel is open, where the cursor is, what a key or a
+    click does. The window, the processes and the clock are the ui's (GTK's in main())."""
 
     def __init__(self, ui):
         self.ui = ui
-        self.state = {}
-        self.items, self.head, self.rules, self.size = layout(self.state)
-        self.focus = "theme"    # the keyboard's cursor: filled in vermilion
-        self.hot = None         # the item under the pointer: its glyph and name lit, no box
+        self.mode = "quick"      # the panel open (or the last one open)
+        self.states = {m: {} for m in MODES}
+        self.states["menu"] = Menu([])
+        self.reply = None        # a menu's answer to its caller (rc, text), until it is given
+        self.scroll = 0          # how far a menu's list is scrolled (px)
+        self.relayout()
+        self.focus = None        # the keyboard's cursor (filled in vermilion): none until a key
+        self.hot = None          # the item under the pointer: its glyph and name lit, no box
+        self.pointer = None      # where the pointer is over the panel (None: not over it)
+        self.dragging = None     # the meter being dragged
         self.visible = False
-        self.lost_at = -1e9
-        self.toggled_at = -1e9
-        self.reading = False
-        self.again = False
-        self.busy = {}          # a meter's level being set, and the next one asked meanwhile
+        self.place = where(self.mode, None, self.size[0])
+        self.lost_at, self.lost_mode = -1e9, None
+        self.toggled_at, self.toggled_mode = -1e9, None
+        self.reading = set()     # the modes whose state is being read
+        self.again = set()       # … and asked again meanwhile
+        self.busy = {}           # a meter's level being set, and the next one asked meanwhile
         self.wanted = {}
         # a level set here is the truth until confirmed: a state read started before its last
         # change (or answered while it is dragged or being set) does not move it back
-        self.seq = 0            # counts the meters' changes
-        self.changed = {}       # meter → self.seq at its last change
-        self.read_seq = 0       # self.seq when the state read under way started
-        self.read_hold = set()  # the meters being dragged or set when it started
+        self.seq = 0             # counts the meters' changes
+        self.changed = {}        # meter → self.seq at its last change
+        self.read_seq = {}       # mode → self.seq when its state read under way started
+        self.read_hold = {}      # mode → the meters being dragged or set when it started
         self.scrolled = (None, 0.0)   # a touchpad's small scrolls, summed per meter
 
+    @property
+    def state(self):
+        return self.states[self.mode]
+
+    def relayout(self):
+        lay = layout(self.state, self.mode)
+        self.items, self.head, self.rules, self.size = lay.items, lay.head, lay.rules, lay.size
+        self.heads, self.nones, self.marks, self.view = lay.heads, lay.nones, lay.marks, lay.view
+        if self.view:
+            self.scroll = max(0, min(self.scroll, self.view[2] - self.view[1]))
+        else:
+            self.scroll = 0
+
     # the state
-    def refresh(self):
-        if self.reading:
-            self.again = True
+    def refresh(self, mode=None):
+        mode = mode or self.mode
+        if mode in self.reading:
+            self.again.add(mode)
             return
-        self.reading = True
-        self.read_seq = self.seq
-        self.read_hold = {k for k in ("brightness", "sound") if self.setting(k)}
-        self.ui.run(["kawa-quick", "--state"], self.got_state)
+        self.reading.add(mode)
+        self.read_seq[mode] = self.seq
+        self.read_hold[mode] = {k for k in METERS if self.setting(k)}
+        self.ui.run(["kawa-quick", "--state"] + ([] if mode == "quick" else [mode]),
+                    lambda rc, out: self.got_state(mode, rc, out))
 
     def setting(self, key):
         """Dragged, or a level of it being set or waiting to be."""
         return self.dragging == key or key in self.wanted or key in self.busy
 
-    def held(self, key):
-        """A meter whose level here outranks a state read now coming back: dragged, being set,
-        or changed after that read started, or dragged or being set when it started (it would
-        show the level from before)."""
-        return self.setting(key) or self.changed.get(key, -1) > self.read_seq or key in self.read_hold
+    def held(self, key, mode="quick"):
+        """A meter whose level here outranks a state read (of mode) now coming back: dragged,
+        being set, or changed after that read started, or dragged or being set when it started
+        (it would show the level from before)."""
+        return (self.setting(key) or self.changed.get(key, -1) > self.read_seq.get(mode, -1)
+                or key in self.read_hold.get(mode, ()))
 
-    def got_state(self, rc, out):
-        self.reading = False
+    def got_state(self, mode, rc, out):
+        self.reading.discard(mode)
         if rc == 0:
-            new = parse_state(out)
-            for k in ("brightness", "sound"):
-                if self.held(k) and k in self.state:
-                    new[k] = self.state[k]
-            self.state = new
-            self.items, self.head, self.rules, self.size = layout(self.state)
-            if self.focus not in [i.key for i in self.items]:
-                self.focus = "theme"
-            if self.hot not in [i.key for i in self.items]:
-                self.hot = None
-            self.ui.redraw()
-        if self.again:
-            self.again = False
-            self.refresh()
+            new = parse_sound(out) if mode == "sound" else parse_state(out)
+            old = self.states[mode]
+            for k in METERS:
+                if k in old and self.held(k, mode):
+                    new[k] = old[k]
+                    if k == "sound" and "muted" in old:
+                        new["muted"] = old["muted"]
+            self.states[mode] = new
+            if mode == self.mode:
+                self.relayout()
+                keys = [i.key for i in self.items]
+                if self.focus not in keys:
+                    self.focus = None
+                self.rehot()
+                self.ui.redraw()
+        if mode in self.again:
+            self.again.discard(mode)
+            self.refresh(mode)
 
     # open, closed
-    def toggle(self):
+    def toggle(self, mode="quick"):
+        """Its key (or its module's click): open, or closed if it is the one open; another
+        one open is closed for it."""
         now = self.ui.now()
-        if now - self.toggled_at < REPEAT:            # (its key held: no flicker)
+        if mode == self.toggled_mode and now - self.toggled_at < REPEAT:   # (its key held: no flicker)
             return
-        self.toggled_at = now
-        if self.visible:
+        self.toggled_at, self.toggled_mode = now, mode
+        if self.visible and self.mode == mode:
             self.close("toggled")
-        elif self.ui.now() - self.lost_at >= LOST_GRACE:
-            self.open()
+        elif mode == self.lost_mode and now - self.lost_at < LOST_GRACE:
+            pass                                      # (the click outside that closed it: it stays closed)
+        else:
+            self.open(mode)
 
-    def open(self):
+    def open(self, mode="quick"):
         self.ui.close_menu()                          # a fuzzel menu on screen goes first
+        if self.visible:
+            self.close("switched")                    # (one panel or menu at a time)
+        self.mode = mode
         self.visible = True
-        self.hot = None                               # (a new window: the pointer says anew)
+        # a new window, nothing remembered: no cursor, nothing hot until the pointer says
+        # (it says at once if it is over the panel: enter-notify), no drag
+        self.focus = self.hot = self.pointer = self.dragging = None
+        self.scrolled = (None, 0.0)
+        self.relayout()
+        self.place = where(mode, self.ui.clicked(), self.size[0])   # (under the click, or its key's place)
         self.ui.show()
-        self.ui.light(True)
+        self.ui.light(mode, True)
         self.refresh()
+
+    def open_menu(self, menu, reply):
+        """A menu asked for (kawa-panel --menu): shown at once in place of whatever panel or
+        menu is on screen (that one dismissed); reply(rc, text) answers its caller once."""
+        self.ui.close_menu()
+        if self.visible:
+            self.close("switched")
+        self.mode = "menu"
+        self.states["menu"] = menu
+        self.reply = reply
+        self.visible = True
+        self.focus = self.hot = self.pointer = self.dragging = None
+        self.scrolled = (None, 0.0)
+        self.scroll = 0
+        self.relayout()
+        self.place = menu_place(menu.drop, self.ui.clicked() if menu.drop else None, self.size[0])
+        self.ui.show()
+
+    def answer(self, rc, text=""):
+        """The menu's caller told, once."""
+        reply, self.reply = self.reply, None
+        if reply:
+            reply(rc, text)
 
     def close(self, how):
         if not self.visible:
@@ -343,36 +878,68 @@ class Panel:
         if how != "toggled":
             self.toggled_at = -1e9                    # (closed otherwise: its key opens it at once)
         if how == "lost":
-            self.lost_at = self.ui.now()
-        self.ui.hide()
-        self.ui.light(False)
+            self.lost_at, self.lost_mode = self.ui.now(), self.mode
+        self.focus = self.hot = self.pointer = self.dragging = None
+        try:
+            self.ui.hide()
+        finally:                                      # (whatever else fails:)
+            if self.mode == "menu":
+                self.answer(1)                        # a menu dismissed, unless it was answered
+            else:
+                self.ui.light(self.mode, False)       # a panel's marker gone
 
     # doing
     def item(self, key):
         return next((i for i in self.items if i.key == key), None)
 
     def activate(self, key):
-        if key in SWITCHES:
-            self.ui.run(["kawa-quick", "--do", key], lambda rc, out: self.refresh())
-        elif key in OPENERS:
-            self.close("chosen")
-            self.ui.launch(["kawa-quick", "--do", key])
-        elif key == "brightness":
-            pass                                       # (its meter is all there is)
+        if self.mode == "menu":
+            m = self.state
+            if self.item(key) is not None:
+                self.answer(0, key if m.index else m.name_of(int(key)))
+                self.close("chosen")
+            return
+        if self.mode == "quick":
+            if key in SWITCHES:
+                self.ui.run(["kawa-quick", "--do", key], lambda rc, out: self.refresh())
+            elif key == "sound":
+                self.open("sound")                    # (its own panel: the outputs, the inputs)
+            elif key in OPENERS:
+                self.close("chosen")
+                self.ui.launch(["kawa-quick", "--do", key])
+        elif self.mode == "sound":
+            it = self.item(key)
+            if key in ("mute", "mic"):
+                self.ui.run(["kawa-quick", "--do", "mute" if key == "mute" else "micmute"],
+                            lambda rc, out: self.refresh())
+            elif key == "mixer":
+                self.close("chosen")
+                self.ui.launch(["kawa-quick", "--do", "mixer"])
+            elif it and it.kind == "row" and not it.lit:   # (the one in use: nothing to change)
+                pre, dev = key.split(":", 1)
+                self.ui.run(["kawa-quick", "--do", "output" if pre == "out" else "input", dev],
+                            lambda rc, out: self.refresh())
+        # (a meter's Enter elsewhere: the meter is all there is)
 
     def set_level(self, key, pct):
         """The meter at pct at once (only it redrawn); the level sent when none is being set,
-        else the newest asked goes when that one is done. The same level again does nothing."""
+        else the newest asked goes when that one is done. The same level again does nothing
+        (but unmutes a muted sound: a level set is a level heard)."""
         pct = max(0, min(100, int(pct)))
-        if percent(self.state.get(key, "")) == pct:
+        muted = key == "sound" and self.state.get("muted") == "on"
+        if percent(self.state.get(key, "")) == pct and not muted:
             return
         self.seq += 1
         self.changed[key] = self.seq
         self.wanted[key] = pct
-        self.state[key] = f"{pct}%"
+        for st in (self.states[m] for m in MODES):    # (every panel shows it: the same level)
+            if key in st:
+                st[key] = f"{pct}%"
+        if key == "sound" and "muted" in self.states["sound"]:
+            self.states["sound"]["muted"] = "off"     # (kawa-quick --do volume unmutes)
         it = self.item(key)
         if it:
-            it.value = self.state[key]
+            it.value, it.muted = self.state[key], False
         self.ui.redraw(*([it] if it else []))
         if key not in self.busy:
             self._send(key)
@@ -412,11 +979,23 @@ class Panel:
         return level_at(off)
 
     # keys
-    def key(self, name):
-        cur = self.item(self.focus) or self.items[0]
-        if name in ("Escape",):
+    def key(self, name, char=""):
+        if name == "Escape":
             self.close("chosen")
-        elif name in ("Return", "KP_Enter", "space"):
+            return
+        if self.mode == "menu" and self.state.prompt is not None and self.typed(name, char):
+            return
+        cur = self.item(self.focus)
+        if cur is None:
+            # no cursor yet (every open starts without one): the first key puts it on the
+            # first item — but a lone meter (the brightness slider) is all there is, so ← →
+            # change it from the first press
+            if len(self.items) == 1 and self.items[0].kind == "meter" and name in ("Left", "h", "Right", "l"):
+                self.step(self.items[0].key, -5 if name in ("Left", "h") else 5)
+            elif name in MOVES + ENTER and self.items:
+                self.move(self.first_key())
+            return
+        if name in ENTER:
             self.activate(cur.key)
         elif name in ("Left", "h", "Right", "l") and cur.kind == "meter":
             self.step(cur.key, -5 if name in ("Left", "h") else 5)
@@ -435,31 +1014,91 @@ class Panel:
             j = (keys.index(cur.key) + (-1 if name == "ISO_Left_Tab" else 1)) % len(keys)
             self.move(keys[j])
 
+    def first_key(self):
+        """Where the first key puts the cursor: a menu's --select line, else the first item."""
+        sel = self.state.select if self.mode == "menu" else None
+        return str(sel) if sel is not None and self.item(str(sel)) else self.items[0].key
+
+    def typed(self, name, char):
+        """A menu with a prompt: a letter typed, or one taken back — the choices it finds
+        shown, the cursor on the first (Enter takes it; on none, Enter gives what was typed).
+        Whether the key was one of those."""
+        m = self.state
+        if name == "BackSpace":
+            if not m.query:
+                return True
+            m.query = m.query[:-1]
+        elif name in ENTER and not self.items and m.query:
+            self.answer(0, m.query)
+            self.close("chosen")
+            return True
+        elif char and char.isprintable() and name not in ENTER:
+            m.query += char
+        else:
+            return False
+        self.scroll = 0
+        self.relayout()
+        self.focus = self.items[0].key if m.query and self.items else None
+        self.rehot()
+        self.ui.redraw()
+        return True
+
     def move(self, key):
         if key != self.focus:
             old, self.focus = self.item(self.focus), key
+            if self.view and self.seen(self.item(key)):
+                self.ui.redraw()
+                return
             self.ui.redraw(*[i for i in (old, self.item(key)) if i])
+
+    def seen(self, it):
+        """A menu's list scrolled so the item is whole in view; whether it had to move."""
+        top, h, _ = self.view
+        y0, y1 = it.y - self.scroll, it.y + it.h - self.scroll
+        old = self.scroll
+        if y0 < top:
+            self.scroll -= top - y0
+        elif y1 > top + h:
+            self.scroll += y1 - (top + h)
+        return self.scroll != old
 
     # the mouse
     def at(self, x, y):
-        return next((i for i in self.items if i.inside(x, y)), None)
+        if self.view:                                 # (a menu's list that scrolls: only what shows)
+            top, h, _ = self.view
+            if not top <= y < top + h:
+                return None
+        return next((i for i in self.items if i.inside(x, y + (self.scroll if i.scrolls else 0))), None)
 
     def hover(self, x, y, dragging=False):
         """The pointer moved: during a drag the meter follows it; otherwise the item under it is
         the hot one (the keyboard's cursor stays where it is) — only the two that changed are
         redrawn."""
+        self.pointer = (x, y)
         if dragging and self.dragging:
             m = self.item(self.dragging)
             v = self.meter_at(m, x, held=True) if m else None
             if v is not None:
                 self.set_level(m.key, v)
             return
-        it = self.at(x, y)
-        self.set_hot(it.key if it else None)
+        self.rehot()
+
+    def enter(self, x, y):
+        """The pointer came over the panel (or the panel opened under it): what is there is hot
+        at once, before any motion."""
+        self.pointer = (x, y)
+        if not self.dragging:
+            self.rehot()
 
     def leave(self):
         """The pointer left the panel: nothing is under it."""
+        self.pointer = None
         self.set_hot(None)
+
+    def rehot(self):
+        """The hot item: the one under the pointer now (the layout may have moved under it)."""
+        it = self.at(*self.pointer) if self.pointer else None
+        self.set_hot(it.key if it else None)
 
     def set_hot(self, key):
         if key != self.hot:
@@ -468,13 +1107,17 @@ class Panel:
             if changed:                                # (none: nothing to redraw — not all)
                 self.ui.redraw(*changed)
 
-    dragging = None
-
     def press(self, x, y):
+        """A click does what is under it, there and then (the pointer's item is hot whether
+        or not a motion said so). The keyboard's cursor, if a key has shown it, moves there;
+        none is shown for a click."""
+        self.pointer = (x, y)
         it = self.at(x, y)
+        self.set_hot(it.key if it else None)
         if not it:
             return
-        self.move(it.key)
+        if self.focus is not None:
+            self.move(it.key)
         if it.kind == "meter":
             v = self.meter_at(it, x)
             if v is not None:
@@ -483,19 +1126,38 @@ class Panel:
                 return
         self.activate(it.key)
 
-    def release(self):
+    def release(self, x=None, y=None):
         key, self.dragging = self.dragging, None
+        if x is not None and self.visible:
+            self.pointer = (x, y)
+            self.rehot()                               # (a drag may end anywhere)
         if key and key not in self.busy and key not in self.wanted:
             self.refresh()                             # (its level confirmed: read back)
 
-    def scroll(self, x, y, up):
+    def wheel(self, x, y, up):
+        if self.view:
+            self.scroll_list((-3 if up else 3) * (METER_H + METER_GAP))
+            return
         it = self.at(x, y)
         if it and it.kind == "meter":
             self.step(it.key, 5 if up else -5)
 
+    def scroll_list(self, dy):
+        """A menu's list moved by dy px (the wheel: three rows a notch), within its ends."""
+        top, h, full = self.view
+        new = max(0, min(full - h, int(self.scroll + dy)))
+        if new != self.scroll:
+            self.scroll = new
+            if self.pointer:
+                self.rehot()
+            self.ui.redraw()
+
     def scroll_by(self, x, y, dy):
         """A smooth scroll (dy < 0: up): a wheel's notch is 1, a touchpad sends small parts —
         summed, a step per whole one, so a touchpad does not race through the levels."""
+        if self.view:
+            self.scroll_list(dy * 3 * (METER_H + METER_GAP))
+            return
         it = self.at(x, y)
         if not it or it.kind != "meter":
             self.scrolled = (None, 0.0)
@@ -508,23 +1170,149 @@ class Panel:
         self.scrolled = (it.key, acc)
 
 
+def mark(mode, on):
+    """Its module told the panel is open (the marker holds this pid) or closed (no marker)."""
+    try:
+        if on:
+            with open(MARKS[mode] + ".new", "w") as f:
+                f.write(f"{os.getpid()}\n")
+            os.replace(MARKS[mode] + ".new", MARKS[mode])
+        else:
+            os.unlink(MARKS[mode])
+    except OSError:
+        pass
+
+
+def stale_marks():
+    """The markers a panel that ended without closing (killed, crashed) left: taken away, as
+    it starts; → the modes whose module must be told (poked)."""
+    gone = []
+    for mode in MODES:
+        if os.path.lexists(MARKS[mode]):
+            try:
+                os.unlink(MARKS[mode])
+            except OSError:
+                pass
+            gone.append(mode)
+    return gone
+
+
+def running():
+    """The panel running now (its pid file, that pid's command line), or None."""
+    try:
+        pid = int(open(PIDFILE).read())
+        if pid != os.getpid() and b"kawa-panel" in open(f"/proc/{pid}/cmdline", "rb").read():
+            return pid
+    except (OSError, ValueError):
+        pass
+    return None
+
+
+def ask(pid, mode):
+    """The running panel asked to open (or close) mode: the mode in ASK, then SIGUSR1 (alone,
+    as kawa-quick sends it: quick settings)."""
+    if mode != "quick":
+        with open(ASK + ".new", "w") as f:
+            f.write(mode + "\n")
+        os.replace(ASK + ".new", ASK)
+    os.kill(pid, signal.SIGUSR1)
+
+
+def asked():
+    """The mode a SIGUSR1 asks for (ASK, taken: read once), quick settings with none."""
+    try:
+        with open(ASK) as f:
+            mode = f.read().strip()
+        os.unlink(ASK)
+    except OSError:
+        return "quick"
+    return mode
+
+
+def menu_args(args):
+    """kawa-panel --menu's options → the request's, or None (wrong use): --drop, --index,
+    --title TEXT, --width N, --lines N, --select N, --prompt TEXT."""
+    req = {"drop": False, "index": False, "title": "", "width": 0, "lines": 0, "select": None, "prompt": None}
+    i = 0
+    while i < len(args):
+        a = args[i]
+        if a in ("--drop", "--index"):
+            req[a[2:]] = True
+            i += 1
+            continue
+        if a not in ("--title", "--width", "--lines", "--select", "--prompt") or i + 1 >= len(args):
+            return None
+        v = args[i + 1]
+        if a in ("--width", "--lines", "--select"):
+            if not v.isdigit():
+                return None
+            v = int(v)
+        req[a[2:]] = v
+        i += 2
+    return req
+
+
+def menu_client(args, rows_in=sys.stdin, out=sys.stdout):
+    """kawa-panel --menu: the rows read, the running panel asked to show them (its socket;
+    one started, should none run), its answer printed. Exit as the panel says: 0 chosen, 1
+    dismissed; 2 wrong use."""
+    import json
+    import socket
+    import subprocess
+    req = menu_args(args)
+    if req is None:
+        print("usage: … | kawa-panel --menu [--drop] [--index] [--title TEXT] [--width N] [--lines N] "
+              "[--select N] [--prompt TEXT]", file=sys.stderr)
+        return 2
+    req["rows"] = rows_in.read().split("\n")
+    if req["rows"] and req["rows"][-1] == "":
+        req["rows"].pop()                         # (the last line's own end)
+    sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+    started = False
+    for _ in range(60):                           # (a panel just started: 3 s to listen)
+        try:
+            sock.connect(SOCK)
+            break
+        except OSError:
+            if not started and not running():
+                subprocess.Popen(["kawa-panel"], start_new_session=True, stdin=subprocess.DEVNULL,
+                                 stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                started = True
+            time.sleep(0.05)
+    else:
+        print("kawa-panel: no panel to show the menu (is the session's kawa-panel running?)", file=sys.stderr)
+        return 1
+    sock.sendall((json.dumps(req) + "\n").encode())
+    data = b""
+    while not data.endswith(b"\n"):
+        chunk = sock.recv(65536)
+        if not chunk:
+            return 1                              # (the panel gone without a word: dismissed)
+        data += chunk
+    ans = json.loads(data)
+    if ans.get("rc") == 0:
+        out.write(ans.get("out", "") + "\n")
+    return ans.get("rc", 1)
+
+
 # ── on screen ─────────────────────────────────────────────────────────────────────────────
 def main(argv):
     if len(argv) > 1 and argv[1] in ("-h", "--help"):
         print(__doc__.strip())
         return 0
-    if argv[1:] not in ([], ["--open"]):
-        print("usage: kawa-panel [--open] (kawa-panel --help)", file=sys.stderr)
+    if len(argv) > 1 and argv[1] == "--menu":
+        return menu_client(argv[2:])
+    flags = {(): None, ("--open",): "quick", ("--sound",): "sound", ("--brightness",): "brightness"}
+    if tuple(argv[1:]) not in flags:
+        print("usage: kawa-panel [--open | --sound | --brightness | --menu …] (kawa-panel --help)", file=sys.stderr)
         return 2
+    want = flags[tuple(argv[1:])]
     # one at a time: another one running is asked to open instead
-    try:
-        pid = int(open(PIDFILE).read())
-        if pid != os.getpid() and b"kawa-panel" in open(f"/proc/{pid}/cmdline", "rb").read():
-            if argv[1:] == ["--open"]:
-                os.kill(pid, signal.SIGUSR1)
-            return 0
-    except (OSError, ValueError):
-        pass
+    pid = running()
+    if pid:
+        if want:
+            ask(pid, want)
+        return 0
     import gi
     gi.require_version("Gtk", "3.0")
     gi.require_version("Gdk", "3.0")
@@ -538,16 +1326,16 @@ def main(argv):
     early = []
     signal.signal(signal.SIGUSR1, lambda *_: early.append(1))
     signal.signal(signal.SIGUSR2, lambda *_: early.clear())     # (a menu opened meanwhile: closed)
+    try:
+        os.unlink(ASK)                                # (one left by a panel gone: not asked now)
+    except OSError:
+        pass
     with open(PIDFILE, "w") as f:
         f.write(str(os.getpid()))
-    # a marker left by a panel that ended without closing (killed, crashed): the cat goes dark
-    if os.path.lexists(MARK):
+    # a marker left by a panel that ended without closing (killed, crashed): its module dark
+    for mode in stale_marks():
         try:
-            os.unlink(MARK)
-        except OSError:
-            pass
-        try:
-            Gio.Subprocess.new(["kawa-dwlstatus", "--poke", "15"],
+            Gio.Subprocess.new(["kawa-dwlstatus", "--poke", str(POKE[mode])],
                                Gio.SubprocessFlags.STDOUT_SILENCE | Gio.SubprocessFlags.STDERR_SILENCE)
         except GLib.Error:
             pass
@@ -577,34 +1365,54 @@ def main(argv):
 
     def make_window():
         win = Gtk.Window()
-        win.set_title("quick settings")
+        win.set_title(TITLE[panel.mode])
         GtkLayerShell.init_for_window(win)
         GtkLayerShell.set_namespace(win, "kawa-panel")
         GtkLayerShell.set_layer(win, GtkLayerShell.Layer.OVERLAY)
-        # as kawa-menu --drop: under the bar's right end, 8 px from it and from the screen's edge
-        # (the gap the windows keep), its border in line with a window's there
-        for edge in (GtkLayerShell.Edge.TOP, GtkLayerShell.Edge.RIGHT):
+        # under the bar, 8 px from it: under the click on its output (the output whose x it is),
+        # or, opened by its key, quick settings 8 px from the screen's edge (as kawa-menu --drop:
+        # its border in line with a window's there), the others under their module
+        # (a menu not dropped from the bar — power, help, change —: no anchor, the middle)
+        side, margin, out_x = panel.place
+        if side != "centre":
+            edge = GtkLayerShell.Edge.LEFT if side == "left" else GtkLayerShell.Edge.RIGHT
+            GtkLayerShell.set_anchor(win, GtkLayerShell.Edge.TOP, True)
             GtkLayerShell.set_anchor(win, edge, True)
-            GtkLayerShell.set_margin(win, edge, 8)
+            GtkLayerShell.set_margin(win, GtkLayerShell.Edge.TOP, 8)
+            GtkLayerShell.set_margin(win, edge, margin)
+        if side == "left":
+            disp = Gdk.Display.get_default()
+            for i in range(disp.get_n_monitors()):
+                if disp.get_monitor(i).get_geometry().x == out_x:
+                    GtkLayerShell.set_monitor(win, disp.get_monitor(i))
+        # the keyboard its own while open (exclusive, as fuzzel): every key reaches it at once,
+        # never a window behind — and dwl treats it as a menu: a click outside or a workspace
+        # switch takes the keyboard back, which closes it (focus-out). On-demand would leave
+        # it open behind a click, and its keys to whoever has the focus
         GtkLayerShell.set_keyboard_mode(win, GtkLayerShell.KeyboardMode.EXCLUSIVE)
-        # the keys and the mouse are the window's own (the drawing fills it, pixel for pixel)
+        # the keys and the mouse are the window's own (the drawing fills it, pixel for pixel);
+        # the pointer's coming in counts as much as its moving: enter-notify lights what is
+        # under it at once (it opened under the pointer, or the pointer came back and stopped)
         win.add_events(Gdk.EventMask.POINTER_MOTION_MASK | Gdk.EventMask.BUTTON_PRESS_MASK
                        | Gdk.EventMask.BUTTON_RELEASE_MASK | Gdk.EventMask.SCROLL_MASK
                        | Gdk.EventMask.SMOOTH_SCROLL_MASK | Gdk.EventMask.KEY_PRESS_MASK
-                       | Gdk.EventMask.LEAVE_NOTIFY_MASK)
+                       | Gdk.EventMask.ENTER_NOTIFY_MASK | Gdk.EventMask.LEAVE_NOTIFY_MASK)
         win.set_has_tooltip(True)
         area = Gtk.DrawingArea()
         win.add(area)
         area.connect("draw", draw)
         win.connect("key-press-event", on_key)
         win.connect("motion-notify-event", on_motion)
+        win.connect("enter-notify-event", on_enter)
         win.connect("leave-notify-event", on_leave)
         win.connect("button-press-event", on_press)
         win.connect("button-release-event", on_release)
         win.connect("scroll-event", on_scroll)
         win.connect("query-tooltip", on_tip)
-        # a click outside (dwl takes the keyboard back), or another menu taking it: closed
-        win.connect("focus-out-event", lambda w, ev: panel.close("lost") or False)
+        # a click outside (dwl takes the keyboard back), or another menu taking it: closed.
+        # Only this window's: the one before (just replaced — another mode, or opened again
+        # at once) loses the keyboard too, a moment later, and must not close this one
+        win.connect("focus-out-event", lambda w, ev: (w is view["win"] and panel.close("lost")) or False)
         # taken off the screen some other way (the compositor closed its surface): closed too,
         # so the bar's cat never stays lit over nothing
         win.connect("unmap-event", lambda w, ev: (w is view["win"] and panel.close("lost")) or False)
@@ -621,7 +1429,7 @@ def main(argv):
             a = view["area"]
             if not a:
                 return
-            if items and view.get("size") == panel.size:
+            if items and view.get("size") == panel.size and not panel.view:
                 for it in items:
                     a.queue_draw_area(it.x, it.y, it.w, it.h)
                 return
@@ -639,17 +1447,19 @@ def main(argv):
                 w.hide()
                 GLib.idle_add(w.destroy)            # (not inside its own focus-out handler)
 
-        def light(self, on):
+        def light(self, mode, on):
+            mark(mode, on)
+            self.launch(["kawa-dwlstatus", "--poke", str(POKE[mode])])
+
+        def clicked(self):
+            """The bar's click that opened it (dwl's record, fresh), or None (its key)."""
             try:
-                if on:
-                    with open(MARK + ".new", "w") as f:
-                        f.write(f"{os.getpid()}\n")
-                    os.replace(MARK + ".new", MARK)
-                else:
-                    os.unlink(MARK)
+                with open(POINTER) as f:
+                    text = f.read()
+                age = time.time() - os.stat(POINTER).st_mtime
             except OSError:
-                pass
-            self.launch(["kawa-dwlstatus", "--poke", "15"])
+                return None
+            return bar_click(text, age)
 
         def close_menu(self):
             # kawa-menu's record: "PID WHEN HOW WHO"; a fuzzel open on screen is closed
@@ -749,6 +1559,57 @@ def main(argv):
             cr.rectangle(sx, y, min(3, x + w - sx), 1)
         cr.fill()
 
+    def heading(cr, kanji, name, x, y, value=""):
+        """A part of a panel or a menu: its kanji in a seal (a 1 px frame, the kanji vermilion
+        — a label, not a state: quieter than a tile's stamp), its name, and the stitch on to
+        the right edge, through the seal's middle (to a value at its end, quiet)."""
+        right = panel.size[0] - PAD - BORDER
+        frame(cr, x, y, SEAL, SEAL, "edge2")
+        glyph(cr, x, y, kanji, "accent_text", SEAL, SEAL)
+        ty = y + (SEAL - LINE) // 2
+        w = text(cr, x + SEAL + 6, ty, name, "text")
+        if value:
+            right -= text(cr, right, ty, value, "muted", right=True) + 6
+        sx = x + SEAL + 6 + w + 6
+        stitch(cr, sx, y + SEAL // 2, right - sx)
+
+    def mark_(cr, m):
+        """What a menu draws but does not offer: its title, a row not to be chosen, a grid's
+        cell, the filter's line, "none" found."""
+        k = m[0]
+        if k == "note":
+            _, x, y, w, t = m
+            text(cr, x + 6, y + (METER_H - LINE) // 2, t, "muted", width=w - 12)
+        elif k == "off":
+            _, x, y, w, g, name, detail, value = m
+            dx = detail_x[0]
+            ty = y + (METER_H - LINE) // 2
+            glyph(cr, x + 6, ty, g, "faint")
+            right = x + w - 6 - ((text(cr, x + w - 6, ty, value, "faint", right=True) + 12) if value else 0)
+            text(cr, x + 6 + LINE + 6, ty, name, "faint", width=(dx if detail else right) - (x + 24) - 6)
+            if detail:
+                text(cr, dx, ty, detail, "faint", width=right - dx)
+        elif k == "cell":
+            _, x, y, w, h, t, state = m
+            if state == "today":                  # (stamped, as a lit seal)
+                frame(cr, x, y - 1, w, h + 2, "accent_text", 2)
+            lw = text_layout(cr, t).get_pixel_extents()[1].width
+            name = {"today": "accent_text", "dim": "faint", "head": "muted"}.get(state, "text")
+            text(cr, x + (w - lw) // 2, y + (h - LINE) // 2, t, name)
+        elif k == "input":
+            _, x, y, w, h, prompt, query = m
+            box(cr, x, y, w, h, "key")
+            frame(cr, x, y, w, h, "edge")
+            ty = y + (h - LINE) // 2
+            pw = text(cr, x + 6, ty, prompt, "muted") if prompt else 0
+            qw = text(cr, x + 6 + pw, ty, query, "text", width=w - 12 - pw - 2)
+            box(cr, x + 6 + pw + qw + 1, ty, 1, LINE, "accent_text")   # (the caret: still, no blink)
+        elif k == "none":
+            _, x, y = m
+            text(cr, x + 6 + LINE + 6, y + (METER_H - LINE) // 2, "none", "faint")
+
+    detail_x = [0]
+
     def draw(widget, cr):
         W, H = panel.size
         box(cr, 0, 0, W, H, "surface")
@@ -756,59 +1617,112 @@ def main(argv):
         hx, hy = panel.head
         for ry in panel.rules:
             stitch(cr, hx, ry, INNER)
+        # (a menu's list that scrolls: what is in it drawn moved up, cut to its view)
+        top, vh = (panel.view[0], panel.view[1]) if panel.view else (H, 0)
+
+        def listed(y, draw_it):
+            if y < top:
+                draw_it()
+                return
+            cr.save()
+            cr.rectangle(0, top, W, vh)
+            cr.clip()
+            cr.translate(0, -panel.scroll)
+            draw_it()
+            cr.restore()
+        # a menu's details in a column of their own: after its longest name (of a row with one)
+        named = [it.name for it in panel.items if it.kind == "row" and it.detail]
+        named += [m[5] for m in panel.marks if m[0] == "off" and m[6]]
+        detail_x[0] = hx + 6 + LINE + 6 + max((text_layout(cr, n).get_pixel_extents()[1].width for n in named),
+                                               default=0) + 12
+        for hd in panel.heads:
+            listed(hd[3], lambda hd=hd: heading(cr, *hd))
+        for x, y in panel.nones:
+            text(cr, x + 6 + LINE + 6, y + (METER_H - LINE) // 2, "none", "faint")
+        for m in panel.marks:
+            listed(m[2], lambda m=m: mark_(cr, m))
         for it in panel.items:
-            # the keyboard's cursor filled in vermilion; the pointer's item only its glyph and
-            # name lit (look(), above main) — no box behind it, no easing: drawn at once
-            lk = look(it, it.key == panel.focus, it.key == panel.hot)
-            on = lk["on_fill"]
-            if lk["fill"]:
-                box(cr, it.x, it.y, it.w, it.h, lk["fill"])
-            if lk["frame"]:
-                frame(cr, it.x, it.y, it.w, it.h, lk["frame"])
-            if it.kind == "meter":
-                ty = it.y + (it.h - LINE) // 2
-                glyph(cr, it.x + 6, ty, it.kanji, lk["glyph"])
-                text(cr, it.x + 6 + LINE + 6, ty, it.name, lk["label"])
-                pct = percent(it.value)
-                # (no DDC/CI, muted, no output: the words alone; a level's number is the bar's,
-                # above — the squares stand where the sound's do)
-                if pct is None:
-                    text(cr, it.x + it.w - 6, ty, it.value, lk["value"], right=True)
-                    continue
-                sx = Panel.squares_x(it)
-                lit = lit_of(pct)
-                for i in range(SEGS):
-                    # (on the vermilion fill the lit squares in the colour of everything on vermilion)
-                    name = ("text_on_accent" if on else "asagi") if i < lit else ("accent_lo" if on else "edge2")
-                    box(cr, sx + i * (SEG_W + SEG_GAP), it.y + (it.h - SEG_H) // 2, SEG_W, SEG_H, name)
-            elif it.kind == "tile":
-                glyph(cr, it.x + 6, it.y + 6, ic[it.icon], lk["glyph"], None, SEAL)
-                seal(cr, it.x + it.w - 6 - SEAL, it.y + 6, it.kanji, it.lit, on)
-                tw = it.w - 12
-                text(cr, it.x + 6, it.y + 6 + SEAL + 4, it.name, lk["label"], width=tw)
-                text(cr, it.x + 6, it.y + 6 + SEAL + 4 + LINE + 1, it.value, lk["value"], width=tw)
-            else:
-                ty = it.y + (it.h - LINE) // 2
-                if it.name:
-                    lw = text_layout(cr, it.name).get_pixel_extents()[1].width
-                    x = it.x + (it.w - (LINE + 6 + lw)) // 2
-                    glyph(cr, x, ty, ic[it.icon], lk["glyph"])
-                    text(cr, x + LINE + 6, ty, it.name, lk["label"])
-                else:
-                    glyph(cr, it.x, it.y, ic[it.icon], lk["glyph"], it.w, it.h)
+            listed(it.y if it.scrolls else 0, lambda it=it: item_(cr, it))
         return True
 
+    def item_(cr, it):
+        """An item: its fill and frame, its glyph, name, value (look() says in which colours)."""
+        # the keyboard's cursor filled in vermilion; the pointer's item only its glyph and
+        # name lit (look(), above main) — no box behind it, no easing: drawn at once
+        lk = look(it, it.key == panel.focus, it.key == panel.hot)
+        on = lk["on_fill"]
+        if lk["fill"]:
+            box(cr, it.x, it.y, it.w, it.h, lk["fill"])
+        if lk["frame"]:
+            frame(cr, it.x, it.y, it.w, it.h, lk["frame"])
+        if it.kind == "meter":
+            ty = it.y + (it.h - LINE) // 2
+            pct = percent(it.value)
+            mark = it.kanji or ic[vol_icon(pct, it.muted)]
+            glyph(cr, it.x + 6, ty, mark, lk["glyph"])
+            text(cr, it.x + 6 + LINE + 6, ty, it.name, lk["label"])
+            # (no DDC/CI, muted, no output: the words alone; a level's number is the bar's,
+            # above — the squares stand where the sound's do)
+            if pct is None:
+                text(cr, it.x + it.w - 6, ty, it.value, lk["value"], right=True)
+                return
+            sx = Panel.squares_x(it)
+            lit = lit_of(pct)
+            for i in range(SEGS):
+                # (on the vermilion fill the lit squares in the colour of everything on
+                # vermilion; muted, the level kept but not heard: the lit ones hollow)
+                name = ("text_on_accent" if on else "asagi") if i < lit else ("accent_lo" if on else "edge2")
+                sq = (sx + i * (SEG_W + SEG_GAP), it.y + (it.h - SEG_H) // 2, SEG_W, SEG_H, name)
+                frame(cr, *sq) if it.muted and i < lit else box(cr, *sq)
+        elif it.kind == "tile":
+            glyph(cr, it.x + 6, it.y + 6, ic[it.icon], lk["glyph"], None, SEAL)
+            seal(cr, it.x + it.w - 6 - SEAL, it.y + 6, it.kanji, it.lit, on)
+            tw = it.w - 12
+            text(cr, it.x + 6, it.y + 6 + SEAL + 4, it.name, lk["label"], width=tw)
+            text(cr, it.x + 6, it.y + 6 + SEAL + 4 + LINE + 1, it.value, lk["value"], width=tw)
+        elif it.kind == "row":
+            ty = it.y + (it.h - LINE) // 2
+            g = it.glyph if it.glyph is not None else ic[it.icon]
+            if g:
+                glyph(cr, it.x + 6, ty, g, lk["glyph"])
+            right = it.x + it.w - 6
+            if it.value:
+                right -= text(cr, right, ty, it.value, lk["value"], right=True) + 12
+            end = detail_x[0] - 6 if it.detail else right
+            text(cr, it.x + 6 + LINE + 6, ty, it.name, lk["label"], width=end - (it.x + 6 + LINE + 6))
+            if it.detail:
+                text(cr, detail_x[0], ty, it.detail, lk["detail"], width=right - detail_x[0])
+        else:
+            ty = it.y + (it.h - LINE) // 2
+            g = it.glyph if it.glyph is not None else ic[it.icon]
+            if it.name:
+                lw = text_layout(cr, it.name).get_pixel_extents()[1].width
+                x = it.x + (it.w - ((LINE + 6) if g else 0) - lw) // 2
+                if g:
+                    glyph(cr, x, ty, g, lk["glyph"])
+                    x += LINE + 6
+                text(cr, x, ty, it.name, lk["label"])
+            else:
+                glyph(cr, it.x, it.y, g, lk["glyph"], it.w, it.h)
+
     def on_key(w, ev):
-        panel.key(Gdk.keyval_name(ev.keyval) or "")
+        c = Gdk.keyval_to_unicode(ev.keyval)
+        ctrl = ev.state & (Gdk.ModifierType.CONTROL_MASK | Gdk.ModifierType.MOD1_MASK | Gdk.ModifierType.MOD4_MASK)
+        panel.key(Gdk.keyval_name(ev.keyval) or "", chr(c) if c and not ctrl else "")
         return True
 
     def on_motion(w, ev):
         panel.hover(ev.x, ev.y, dragging=bool(ev.state & Gdk.ModifierType.BUTTON1_MASK))
         return True
 
+    def on_enter(w, ev):
+        panel.enter(ev.x, ev.y)
+        return False
+
     def on_leave(w, ev):
-        # (the pointer gone into a child's window is still over the panel: only a real leave)
-        if ev.detail != Gdk.NotifyType.INFERIOR:
+        # (the pointer gone into a child's window, or a grab's crossing, is still over the
+        # panel: only a real leave)
+        if real_leave(ev.mode.value_nick, ev.detail.value_nick):
             panel.leave()
         return False
 
@@ -818,7 +1732,7 @@ def main(argv):
         return True
 
     def on_release(w, ev):
-        panel.release()
+        panel.release(ev.x, ev.y)
         return True
 
     def on_scroll(w, ev):
@@ -827,12 +1741,12 @@ def main(argv):
             if dy:
                 panel.scroll_by(ev.x, ev.y, dy)
         elif ev.direction in (Gdk.ScrollDirection.UP, Gdk.ScrollDirection.DOWN):
-            panel.scroll(ev.x, ev.y, ev.direction == Gdk.ScrollDirection.UP)
+            panel.wheel(ev.x, ev.y, ev.direction == Gdk.ScrollDirection.UP)
         return True
 
     def on_tip(w, x, y, kb, tip):
         it = panel.at(x, y)
-        if it and getattr(it, "tip", ""):
+        if it and it.tip:
             tip.set_text(it.tip)
             return True
         return False
@@ -849,20 +1763,78 @@ def main(argv):
             panel.ui.redraw()
     mon.connect("changed", on_dir)
 
-    GLib.unix_signal_add(GLib.PRIORITY_DEFAULT, signal.SIGUSR1, lambda: panel.toggle() or True)
+    def on_usr1():
+        mode = asked()
+        if mode in MODES:
+            panel.toggle(mode)
+        return True
+
+    # menus asked for (kawa-panel --menu, kawa-menu's): one request a connection — a line of
+    # JSON —, answered on it once; the asker gone (killed: another menu, its own key again)
+    # takes its menu away
+    import json
+    try:
+        os.unlink(SOCK)                               # (one left by a panel gone)
+    except OSError:
+        pass
+    service = Gio.SocketService()
+    service.add_address(Gio.UnixSocketAddress.new(SOCK), Gio.SocketType.STREAM,
+                        Gio.SocketProtocol.DEFAULT, None)
+
+    def on_incoming(svc, conn, src):
+        ins = Gio.DataInputStream.new(conn.get_input_stream())
+
+        def answer(rc, out):
+            try:
+                conn.get_output_stream().write_all((json.dumps({"rc": rc, "out": out}) + "\n").encode(), None)
+                conn.close(None)
+            except GLib.Error:
+                pass
+
+        def gone(stream, res):
+            try:
+                stream.read_bytes_finish(res)
+            except GLib.Error:
+                pass
+            if panel.reply is answer:                 # (its menu still on screen: away with it)
+                panel.reply = None
+                panel.close("gone")
+
+        def got(stream, res):
+            try:
+                line, _ = stream.read_line_finish_utf8(res)
+                req = json.loads(line or "")
+                menu = Menu(req["rows"], drop=req["drop"], title=req["title"], width=req["width"],
+                            lines_shown=req["lines"], select=req["select"], prompt=req["prompt"],
+                            index=req["index"])
+            except (GLib.Error, ValueError, KeyError, TypeError):
+                answer(2, "")
+                return
+            panel.open_menu(menu, answer)
+            ins.read_bytes_async(1, GLib.PRIORITY_DEFAULT, None, gone)
+        ins.read_line_async(GLib.PRIORITY_DEFAULT, None, got)
+        return True
+    service.connect("incoming", on_incoming)
+    service.start()
+
+    GLib.unix_signal_add(GLib.PRIORITY_DEFAULT, signal.SIGUSR1, on_usr1)
     # another menu's key (kawa-menu): closed for it — on the overlay, with the keyboard its
     # own, the panel would leave the menu no keys
     GLib.unix_signal_add(GLib.PRIORITY_DEFAULT, signal.SIGUSR2, lambda: panel.close("chosen") or True)
-    # ended (logout, a restart, Ctrl+C): closed first — the marker goes, the cat goes dark
+    # ended (logout, a restart, Ctrl+C): closed first — the marker goes, the module goes dark
     for sig in (signal.SIGTERM, signal.SIGHUP, signal.SIGINT):
         GLib.unix_signal_add(GLib.PRIORITY_DEFAULT, sig, lambda: Gtk.main_quit() or False)
-    panel.refresh()
-    if argv[1:] == ["--open"] or len(early) % 2:
-        panel.open()
+    # every panel's state read now, so each opens on it at once (read again as it opens)
+    for mode in MODES:
+        panel.refresh(mode)
+    first = want or (asked() if len(early) % 2 else None)
+    if first in MODES:
+        panel.open(first)
     try:
         Gtk.main()
     finally:
-        panel.ui.light(False) if panel.visible else None
+        if panel.visible and panel.mode in MARKS:       # (a panel's marker; a menu's are kawa-menu's)
+            panel.ui.light(panel.mode, False)
         try:
             if int(open(PIDFILE).read()) == os.getpid():
                 os.unlink(PIDFILE)

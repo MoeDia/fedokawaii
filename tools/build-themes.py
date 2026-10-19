@@ -170,25 +170,34 @@ def foot_block():
                 f"search-box-match={p['ground']} {p['ansi7']}"]
         out += [f"regular{i}={a[i]}" for i in range(8)]
         out += [f"bright{i}={a[8 + i]}" for i in range(8)]
-        # the desktop's own three, past the sixteen, for every list in a terminal (fzf.opts,
-        # VisiData): 16 the fill of what is selected (vermilion), 17 the words on it, 18 the
-        # soft fill under the pointer — switched with the theme like the rest
-        out += [f"16={p['accent']}", f"17={p['text_on_accent']}", f"18={p['edge']}"]
+        # the desktop's own four, past the sixteen, for every list in a terminal (fzf.opts,
+        # VisiData) and the shell's prompt: 16 the fill of what is selected (vermilion), 17
+        # the words on it, 18 the soft fill under the pointer, 19 the stitched rules (edge2:
+        # a heading's ╌, as in the panels), and the text screens' own inks (docs/design-system.md
+        # §7, ~/.config/fedokawaii/screen.sh): 20 accent_text (a heading's kanji), 21 muted (a
+        # value, a footer), 22 faint (what is not there yet), 23 strong — the words are the
+        # foreground (text) — switched with the theme like the rest
+        out += [f"16={p['accent']}", f"17={p['text_on_accent']}", f"18={p['edge']}", f"19={p['edge2']}",
+                f"20={p['accent_text']}", f"21={p['muted']}", f"22={p['faint']}", f"23={p['strong']}"]
     out.append("# <<< colours")
     return "\n".join(out)
 
 
 def fuzzel_ini(m, p):
-    # the chosen row filled whole in vermilion, its words in text_on_accent — as fzf's (foot
-    # colours 16/17) and every other "active" thing; on the fill a match keeps the same colour
-    # (fuzzel cannot underline it), the letters you typed are still in the prompt
+    # The panel's inks (docs/design-system.md): the surface ground in a 2 px muted frame; the
+    # prompt's kanji in accent_text and what you type in text — a heading's seal and name;
+    # "search" before you type in faint (words not there yet); the letters that match in
+    # accent_text, as a hovered name. The chosen row filled whole in vermilion, its words in
+    # text_on_accent — as fzf's (foot colours 16/17) and every other cursor; on the fill a
+    # match keeps the same colour (fuzzel cannot underline it), the letters you typed are
+    # still in the prompt. (fuzzel draws its text cursor in the input's colour: text.)
     return f"""# {header('~/.config/fedokawaii/current/fuzzel.ini', NAMES[m] + ' colours for every menu')}
 [colors]
 background={p['surface']}ff
 text={p['text']}ff
 prompt={p['accent_text']}ff
-placeholder={p['muted']}ff
-input={p['strong']}ff
+placeholder={p['faint']}ff
+input={p['text']}ff
 match={p['accent_text']}ff
 selection={p['accent']}ff
 selection-text={p['text_on_accent']}ff
@@ -202,39 +211,37 @@ def mako(m, p):
     return f"""# {header('~/.config/fedokawaii/current/mako', NAMES[m] + ' colours for notifications')}
 # Included at the top of ~/.config/mako/config (mako allows include only outside a
 # [section]); this file starts at the top level again, so it can have sections of its own.
+# A card is a panel (docs/design-system.md): the surface ground, the 2 px muted frame (the
+# main config: border-size, square corners, 12 px of pad). Its title — the glyph, two spaces,
+# the name — stands on a 20 px row as a heading does (line_height, in Pango units: px × 1024),
+# in the strongest ink: mako hands the title over as plain text, so its glyph cannot take a
+# colour of its own (no accent_text glyph as in a seal); the pixel fonts have no bold face,
+# and a synthesised one smears their pixels. The body under it in text, 12 px a line.
 background-color=#{p['surface']}ff
 text-color=#{p['text']}
 border-color=#{p['muted']}
-progress-color=over #{p['edge']}
-# the title in the strongest ink instead of bold: the pixel fonts have no bold face, and
-# a synthesised one smears their pixels
-format=<span foreground="#{p['strong']}">%s</span>\\n%b
+# an app's own progress (the hint "value"): mako fills the card from the left, under the
+# words — asagi, the meters' colour, thinned so the words keep their contrast
+progress-color=over #{p['asagi']}40
+format=<span foreground="#{p['strong']}" line_height="20480">%s</span>\\n%b
 
-# the scripts' own short notices (an audio output chosen…): quieter text
-[urgency=low]
-text-color=#{p['muted']}
-
-# critical: a vermilion border (the main config keeps these on screen until dismissed)
+# critical: the frame in vermilion (the main config keeps these on screen until dismissed)
 [urgency=critical]
 border-color=#{p['accent']}
 
-# several notices from one app, folded into one card: the count beside the title
+# several notices from one app, folded into one card: the count beside the title, muted
 [grouped]
-format=<span foreground="#{p['strong']}">%s</span> <span foreground="#{p['muted']}">×%g</span>\\n%b
+format=<span foreground="#{p['strong']}" line_height="20480">%s <span foreground="#{p['muted']}">×%g</span></span>\\n%b
 
 # udiskie's notice of a drive that would not open ("Job failed" — failed to mount, or to
 # unlock: a wrong passphrase): titled like the drives' own notices (kawa-drives)
 [app-name=udiskie]
-format=<span foreground="#{p['strong']}">\U000FE044  not opened</span>\\n%b
+format=<span foreground="#{p['strong']}" line_height="20480">\U000FE044  not opened</span>\\n%b
 
-# the level display (kawa-osd): the label quiet above the wedge, which brings its own colours.
-# The label's line is 22 px instead of its own 14 (line_height, in Pango units: px × 1024),
-# the 8 px shared above and below it: mako centres the text block, and this centres what
-# you see — 6 px from the block's top to the label's letters, 6 px from the wedge's foot
-# (which stands on the number's baseline) to the block's bottom (the 22 px line keeps that
-# much under its baseline)
+# the level display (kawa-osd): one meter row, as quick settings' — its glyph, its name, the
+# twelve squares, the number — which brings its own colours and its 20 px row
 [category=osd]
-format=<span foreground="#{p['muted']}" line_height="22528">%s</span>\\n%b
+format=%b
 """
 
 
@@ -261,29 +268,72 @@ def gtk_vars(m, p):
 # that border. Every window, dialog, decoration and popover fills its border exactly; buttons,
 # entries and the rest are square too (a radio button stays a circle: that is how it differs
 # from a check box), and a dialog's default button is the accent, as in the menus.
-SQUARE_NOTE = ["/* Square, as the rest of the desktop: dwl draws each window's border, so a window's",
-               "   rounded corners and the shadow around it (client-side decorations: a margin",
-               "   outside the window) would leave a gap inside that border. Every window, dialog,",
-               "   decoration and popover fills its border exactly; buttons and entries are square",
-               "   too (a radio button stays round), and a dialog's default button is the accent.",
+SQUARE_NOTE = ["/* The desktop's parts (docs/design-system.md), as far as GTK draws them. Square, as the",
+               "   rest of the desktop: dwl draws each window's border, so a window's rounded corners",
+               "   and the shadow around it (client-side decorations: a margin outside the window)",
+               "   would leave a gap inside that border. Every window, dialog, decoration and popover",
+               "   fills its border exactly. A button is a key — the key fill in a 1 px edge frame;",
+               "   under the pointer only its words and icon turn accent_text, no box; pressed or",
+               "   switched on it is filled vermilion, its ink text_on_accent, as a dialog's default",
+               "   button always is. A check box or a radio button is the panels' check: □, and ▣",
+               "   when chosen (an 8 px frame, the 4 px square in it). What is selected — a row, the",
+               "   words in a field — is filled vermilion, ink on it; the text cursor is vermilion.",
                "   GTK's CSS has no !important: each rule carries :not(#kawa-…) twice, which counts",
                "   as two ids and so outweighs the base theme's own rules, whatever their classes. */"]
 WIN = ["window", "window.csd", "window.solid-csd", "window.dialog", "window.popup", "decoration",
        ".csd decoration", ".titlebar", "headerbar", "messagedialog", "dialog", "popover", "menu", ".menu",
        ".context-menu", ".background.csd"]
+# the panels' inks the rules below use (gtk_vars gives the vermilion: accent_bg/fg_color)
+KAWA = ("key", "edge", "faint", "muted", "strong", "accent_text")
+# a key: every button but the flat ones (a toolbar's icons), a window's own, a link, a spin
+# button's arrows — and, filled with the accent, the default one
+KEY = ":not(.flat):not(.titlebutton):not(.link):not(.up):not(.down)"
 
 
 def square_rules(gtk):
     w = ":not(#kawa-square):not(#kawa-sq)"                       # two ids' weight
-    accent = ("@accent_bg_color", "@accent_fg_color") if gtk == 3 else ("var(--accent-bg-color)", "var(--accent-fg-color)")
+    if gtk == 3:
+        accent, on = "@accent_bg_color", "@accent_fg_color"
+        c = {k: f"@kawa_{k}" for k in KAWA}
+    else:
+        accent, on = "var(--accent-bg-color)", "var(--accent-fg-color)"
+        c = {k: f"var(--kawa-{k.replace('_', '-')})" for k in KAWA}
     wins = WIN + (["window.message"] if gtk == 3 else ["window.messagedialog", "popover > contents", "popover > arrow"])
-    sel = lambda xs: ", ".join(x + w for x in xs)
-    return [f"*{w} {{ border-radius: 0; }}",
-            f"{sel(['radio'] if gtk == 3 else ['radio', 'radio check'])}:not(#kawa-round) {{ border-radius: 9999px; }}",
-            f"{sel(wins)} {{ border-radius: 0; box-shadow: none; }}",
-            f"{sel(['decoration', '.csd decoration', 'window.csd', 'window.solid-csd'])} {{ margin: 0; }}",
-            f"{sel(['button.default:not(:disabled)', 'button.suggested-action:not(:disabled)'])} "
-            f"{{ background-image: none; background-color: {accent[0]}; color: {accent[1]}; }}"]
+    sel = lambda xs, s="": ", ".join(x + w + s for x in xs)
+    rows = (["row", "treeview.view", "iconview", "flowboxchild", ".view"] if gtk == 3
+            else ["row", "gridview > child", "flowboxchild", ".view"])
+    fill = f"background-image: none; background-color: {accent}; color: {on};"
+    rules = [f"*{w} {{ border-radius: 0; }}",
+             f"{sel(wins)} {{ border-radius: 0; box-shadow: none; }}",
+             f"{sel(['decoration', '.csd decoration', 'window.csd', 'window.solid-csd'])} {{ margin: 0; }}",
+             # the key at rest, under the pointer, pressed or on
+             f"button{w}{KEY} {{ background-image: none; background-color: {c['key']}; "
+             f"border: 1px solid {c['edge']}; box-shadow: none; text-shadow: none; }}",
+             f"button{w}{KEY}:hover, button.flat{w}:hover {{ background-image: none; color: {c['accent_text']}; }}",
+             f"button.flat{w}:hover {{ background-color: transparent; box-shadow: none; }}",
+             f"{sel(['button'], KEY + ':active')}, {sel(['button'], KEY + ':checked')}, "
+             f"{sel(['button.flat'], ':active')}, {sel(['button.flat'], ':checked')} {{ {fill} }}",
+             # the default button: the accent at rest and under the pointer
+             f"{sel(['button.default', 'button.suggested-action'], KEY + ':not(:disabled)')}, "
+             f"{sel(['button.default', 'button.suggested-action'], KEY + ':not(:disabled):hover')} "
+             f"{{ {fill} border-color: {accent}; }}",
+             # □ and ▣
+             f"{sel(['check', 'radio'])} {{ min-width: 4px; min-height: 4px; padding: 1px; margin: 0 6px 0 0; "
+             f"border: 1px solid {c['muted']}; border-radius: 0; background-image: none; "
+             f"background-color: transparent; background-clip: content-box; box-shadow: none; "
+             f"-gtk-icon-source: none; color: transparent; }}",
+             f"{sel(['check', 'radio'], ':checked')} {{ border-color: {c['strong']}; background-color: {c['strong']}; }}",
+             f"{sel(['check', 'radio'], ':indeterminate')} {{ border-color: {c['strong']}; background-color: {c['muted']}; }}",
+             f"{sel(['check', 'radio'], ':hover')} {{ border-color: {c['accent_text']}; }}",
+             f"{sel(['check', 'radio'], ':checked:hover')} {{ background-color: {c['accent_text']}; }}",
+             f"{sel(['check', 'radio'], ':disabled')} {{ border-color: {c['faint']}; }}",
+             f"{sel(['check', 'radio'], ':checked:disabled')} {{ background-color: {c['faint']}; }}",
+             # what is selected, and the text cursor
+             f"{sel(rows, ':selected')}, {sel(['selection'])} {{ {fill} }}",
+             f"{sel(['entry', 'textview', 'text'])} {{ caret-color: {accent}; }}"]
+    if gtk == 4:   # (GTK 4 knows a focus the keyboard moved: the cursor, filled as in the panels)
+        rules.append(f"button{w}{KEY}:focus-visible {{ {fill} outline: none; }}")
+    return rules
 
 
 def gtk3_theme(m, p):
@@ -296,6 +346,7 @@ def gtk3_theme(m, p):
            "   (the redefined colours after the import replace adw-gtk3's own) */",
            f'@import url("file:///usr/share/themes/{p["base"]}/gtk-3.0/gtk.css");']
     out += [f"@define-color {k:<26}#{v};" for k, v in gtk_vars(m, p)]
+    out += [f"@define-color {'kawa_' + k:<26}#{p[k]};" for k in KAWA]
     out += ["",
             "/* Brave (Chromium's GTK mode, theme.sh sets it) samples these same colours for its tab",
             "   strip, toolbar and menus (its address bar keeps Brave's own). Chromium gives every",
@@ -320,7 +371,8 @@ def gtk3_index(m, p):
 
 def gtk4_css():
     def block(m, indent):
-        return "\n".join(f"{indent}--{k.replace('_', '-')}: #{v};" for k, v in gtk_vars(m, P[m]))
+        rows = gtk_vars(m, P[m]) + [("kawa_" + k, P[m][k]) for k in KAWA]
+        return "\n".join(f"{indent}--{k.replace('_', '-')}: #{v};" for k, v in rows)
     return f"""/* ~/.config/gtk-4.0/gtk.css — GTK 4 / libadwaita apps (Satty, LACT…)
    in the desktop's two palettes. Generated by tools/build-themes.py; edit the palette there.
    libadwaita ≥ 1.6 reads CSS variables (the old @define-color names no longer reach its
@@ -345,24 +397,25 @@ QT_ROLES = ["WindowText", "Button", "Light", "Midlight", "Dark", "Mid", "Text", 
 
 
 def qt_colors(m, p):
-    fg = p["strong"] if m == "dark" else p["text"]
+    """Qt's palette roles, each one of the panels' tokens (docs/design-system.md): the window
+    on the ground as GTK's; buttons and fields the key fill, their bevels and frames the
+    edges (flat: no shade darker than the stitch); what is selected filled vermilion with
+    its ink; links accent_text, visited ones the dim vermilion; words not there yet faint;
+    a disabled window's words faint and its selection the edge."""
+    fg = p["strong"] if m == "dark" else p["text"]      # (the words of a window, as GTK's)
     base = {
-        "WindowText": fg, "Button": p["surface"], "Light": p["edge"] if m == "dark" else p["hi"],
-        "Midlight": p["key"], "Dark": "0a0908" if m == "dark" else p["lo"], "Mid": p["surface"] if m == "dark" else p["edge"],
-        "Text": fg, "BrightText": "ffffff", "ButtonText": fg, "Base": p["ground"] if m == "dark" else p["view"],
-        "Window": p["ground"], "Shadow": "050404" if m == "dark" else "6b6352",
+        "WindowText": fg, "Button": p["key"], "Light": p["edge2"], "Midlight": p["edge"],
+        "Dark": p["edge2"], "Mid": p["edge"], "Text": fg, "BrightText": p["text_on_accent"],
+        "ButtonText": fg, "Base": p["key"], "Window": p["ground"], "Shadow": p["edge2"],
         "Highlight": p["accent"], "HighlightedText": p["text_on_accent"],
-        "Link": p["accent_text"], "LinkVisited": p["red"] if m == "dark" else p["purple"],
-        "AlternateBase": p["surface"], "NoRole": "000000", "ToolTipBase": p["surface"] if m == "dark" else p["view"],
-        "ToolTipText": fg,
+        "Link": p["accent_text"], "LinkVisited": p["accent_lo"],
+        "AlternateBase": p["surface"], "NoRole": p["ground"], "ToolTipBase": p["surface"],
+        "ToolTipText": fg, "PlaceholderText": p["faint"],
     }
 
     def line(text, hl):
         vals = []
         for r in QT_ROLES:
-            if r == "PlaceholderText":
-                vals.append(f"#80{p['muted']}")
-                continue
             c = base[r]
             if r in ("WindowText", "Text", "ButtonText", "ToolTipText"):
                 c = text
@@ -373,8 +426,8 @@ def qt_colors(m, p):
     return (f"# {header('~/.config/fedokawaii/current/qt6ct-colors.conf', NAMES[m] + ' colours for Qt (qt6ct)')}\n"
             "[ColorScheme]\n"
             f"active_colors={line(fg, p['accent'])}\n"
-            f"disabled_colors={line(p['muted'], p['edge'])}\n"
-            f"inactive_colors={line(p['text'] if m == 'dark' else p['text'], p['accent_lo'] if m == 'light' else '8f3c28')}\n")
+            f"disabled_colors={line(p['faint'], p['edge'])}\n"
+            f"inactive_colors={line(fg, p['accent'])}\n")
 
 
 def btop_theme(m, p):
@@ -446,46 +499,54 @@ overlay_background_alpha = e6
 
 
 def gtklock_css(m, p):
-    """The lock screen (gtklock, kawa-lock) and the login screen (kawa-greet) share it: the
-    plain ground, the day's seal and the padlock (pictures), the date, and one box for the
-    password — square, a 2 px frame in the edge colour that turns vermilion while you type,
-    each typed character a vermilion ◆."""
+    """The lock screen (gtklock, kawa-lock) and the login screen (kawa-greet) share it: on the
+    plain ground, one panel in the middle — the panels' own parts (docs/design-system.md): the
+    surface in a 2 px muted frame, 12 px of pad; a heading (the day's seal — a picture,
+    tools/build-art.py — the date, the stitch to the right edge); the pixel padlock; the time;
+    a line for what went wrong; the password's field (the key fill in a 1 px edge frame, 24 px
+    high, each typed character a ◆ in accent_text, the text cursor vermilion, "パスワード ·
+    password" in faint while it is empty); on the login screen a rule and two keys. One size
+    of type, Fusion Pixel at 12 px, as in every panel."""
+    ink = lambda k: f"#{p[k]}"
+    stitch = (f"repeating-linear-gradient(to right, {ink('edge2')} 0px, {ink('edge2')} 3px, "
+              f"transparent 3px, transparent 5px)")
     return f"""/* {header('~/.config/fedokawaii/current/gtklock.css', 'the lock and login screens in ' + NAMES[m])} */
-window, #window-box {{ background-color: #{p['ground']}; }}
-* {{ font-family: "Fusion Pixel 12px Mono ja"; font-size: 24px; color: #{p['text']}; box-shadow: none; text-shadow: none; }}
-/* the column stands in the screen's middle by what shows: the two message lines under the box
-   keep their room while empty, so the seal above takes as much again */
-#seal {{ margin-top: 40px; }}
-#clock-label {{ color: #{p['text']}; font-size: 36px; margin-top: 14px; }}
-#date-label {{ color: #{p['muted']}; font-size: 12px; margin-top: 4px; }}
+window {{ background-color: {ink('ground')}; }}
+* {{ font-family: "Fusion Pixel 12px Mono ja"; font-size: 12px; color: {ink('text')}; box-shadow: none;
+  text-shadow: none; outline: none; -gtk-icon-shadow: none; }}
+/* the panel: 276 px inside, 304 with pad and frame */
+#window-box {{ background-color: {ink('surface')}; border: 2px solid {ink('muted')}; padding: 12px; min-width: 276px; }}
+/* the heading: the seal (23 × 23), 6 px, the date, 6 px, the stitch — 3 px on, 2 off — through
+   the seal's middle to the right edge */
+#heading {{ min-height: 23px; }}
+#date-label {{ color: {ink('text')}; margin-left: 6px; }}
+#stitch {{ margin-left: 6px; min-height: 1px; background-image: {stitch}; }}
+#padlock {{ margin-top: 6px; }}
+#clock-label {{ color: {ink('strong')}; min-height: 20px; margin-top: 6px; }}
+/* what went wrong (ちがう · wrong password, Caps Lock · 大文字): a 12 px line in the 18 px
+   between the time and the field, empty until then */
+#messages {{ min-height: 12px; margin: 3px 0; }}
+#error-label, #warning-label {{ color: {ink('accent_text')}; margin: 0 6px; }}
 #input-field {{
-  font-size: 24px;
-  min-width: 288px;
-  min-height: 0;
-  padding: 8px 14px;
-  margin-top: 26px;
-  color: #{p['accent']};
-  caret-color: #{p['accent']};
-  background-color: #{p['surface']};
-  background-image: none;
-  border: 2px solid #{p['edge2']};
-  border-radius: 0;
-  outline: none;
+  min-width: 262px; min-height: 22px; padding: 0 6px; margin: 0;
+  color: {ink('accent_text')}; caret-color: {ink('accent')};
+  background-color: {ink('key')}; background-image: none;
+  border: 1px solid {ink('edge')}; border-radius: 0;
 }}
-#input-field:focus {{ border-color: #{p['accent']}; }}
-#input-field selection {{ background-color: #{p['accent']}; color: #{p['text_on_accent']}; }}
-#input-label {{ color: #{p['faint']}; font-size: 12px; margin-top: 8px; }}
-#error-label {{ color: #{p['red']}; font-size: 12px; margin-top: 8px; }}
-#warning-label {{ color: #{p['yellow']}; font-size: 12px; margin-top: 8px; }}
-/* the login screen's buttons (kawa-greet): quiet words; under the pointer or the keyboard's
-   focus filled whole in vermilion — the desktop's one rule for what is active */
-button {{ background: none; border: none; border-radius: 0; padding: 6px 12px; min-height: 0; outline: none; }}
-button label {{ font-size: 12px; color: #{p['muted']}; }}
-button:hover, button:focus {{ background-color: #{p['accent']}; }}
-button:hover label, button:focus label {{ color: #{p['text_on_accent']}; }}
-#user-field {{ font-size: 24px; min-width: 288px; padding: 8px 14px; margin-top: 26px; color: #{p['text']};
-  background-color: #{p['surface']}; background-image: none; border: 2px solid #{p['edge2']}; border-radius: 0; }}
-#user-field:focus {{ border-color: #{p['accent']}; }}
+#input-field:focus {{ border-color: {ink('edge')}; }}
+#input-field selection {{ background-color: {ink('accent')}; color: {ink('text_on_accent')}; }}
+#input-label {{ color: {ink('faint')}; }}
+/* the login screen (kawa-greet): a rule — 10 px, the stitch, 10 px — then its two keys, 24 px
+   high, 6 px apart: the key fill in a 1 px edge frame; under the pointer the words turn
+   accent_text; the keyboard's focus (Tab) fills one vermilion, its words on it */
+#rule {{ min-height: 21px; background-image: {stitch}; background-size: 100% 1px;
+  background-position: 0 10px; background-repeat: no-repeat; }}
+button {{ min-height: 22px; padding: 0; border: 1px solid {ink('edge')}; border-radius: 0;
+  background-color: {ink('key')}; background-image: none; }}
+button label {{ color: {ink('text')}; }}
+button:hover label {{ color: {ink('accent_text')}; }}
+button:focus {{ background-color: {ink('accent')}; border-color: {ink('accent')}; }}
+button:focus label {{ color: {ink('text_on_accent')}; }}
 """
 
 

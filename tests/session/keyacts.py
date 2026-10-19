@@ -5,7 +5,7 @@ what its keys really do in dwl's config.h? One line per mismatch; exit 1 if any.
 tests/static/keybinds.py checks that the sheet and config.h name the same keys. This one
 checks the meaning: Super+J is "focus next" only if config.h binds it to focusstack +1, the
 "terminal" row spawns foot's client, Super+S / T / Y / M are the layouts the words name (and
-layouts[] really holds spiral, columns, floating and monocle in that order)… ROWS below is the meaning of
+layouts[] really holds spiral, columns and floating, in that order, and nothing else)… ROWS below is the meaning of
 each row of the sheet's dwl sections; a row this check does not know is reported, so a new or
 reworded row is looked at here too. Also: no key bound twice (the second binding would be
 dead), every kawa-* a key runs exists and takes the word it is given.
@@ -23,11 +23,11 @@ MODS = {"MODKEY": "Super", "SHIFT": "Shift", "CTRL": "Ctrl", "WLR_MODIFIER_ALT":
 TAGS = [f"{1 << i}" for i in range(9)]
 ROWS = {
     "Super+Return":            ("terminal (foot)", ["spawn:footclient"]),
-    "Super+Space":             ("launcher", ["spawn:fuzzel"]),
+    "Super+Space":             ("launcher", ["spawn:kawa-menu --launcher"]),
     "Super+B":                 ("browser (Brave Origin)", ["spawn:brave-origin"]),
     "Super+E":                 ("files (yazi)", ["spawn:footclient yazi"]),
     "Super+X":                 ("quick settings", ["spawn:kawa-quick"]),
-    "Super+A":                 ("sound: volume, output, input", ["spawn:kawa-audio"]),
+    "Super+A":                 ("sound panel", ["spawn:kawa-panel --sound"]),
     "Super+C":                 ("calendar", ["spawn:kawa-calendar"]),
     "Super+/":                 ("this help", ["spawn:kawa-help"]),
     "Super+W":                 ("wallpaper picker", ["spawn:kawa-wallpaper"]),
@@ -54,7 +54,7 @@ ROWS = {
     "Super+drag / right-drag": ("move / resize", ["moveresize:CurMove", "moveresize:CurResize"]),
     "Super+S":                 ("layout: golden spiral (the default)", ["setlayout:&layouts[0]"]),
     "Super+T":                 ("layout: columns, left to right", ["setlayout:&layouts[1]"]),
-    "Super+Y / M":             ("layout: floating · one at a time", ["setlayout:&layouts[2]", "setlayout:&layouts[3]"]),
+    "Super+Y":                 ("layout: floating", ["setlayout:&layouts[2]"]),
     "Super+Shift+T":           ("the tiling layout used before", ["setlayout:0"]),
     "Super+1…9":               ("go to workspace", [f"view:{t}" for t in TAGS]),
     "Super+Shift+1…9":         ("send window to workspace", [f"tag:{t}" for t in TAGS]),
@@ -208,9 +208,9 @@ def check(repo):
         if k[0] == frozenset({"Ctrl", "Alt"}) and re.fullmatch(r"F\d+", k[1]):
             continue                                   # the other text consoles: the sheet names 1–6
         out.append(f"config.h binds {'+'.join(sorted(k[0]) + [k[1]])} ({binds[k][0]}), the help sheet never says so")
-    want_layouts = [("(@)", "spiral"), ("|||", "tile"), ("><>", "NULL"), ("[M]", "monocle")]
-    if layouts[:4] != want_layouts:
-        out.append(f"layouts[] is {layouts[:4]}: Super+S / T / Y / M say spiral · columns · float · one at a time ({want_layouts})")
+    want_layouts = [("(@)", "spiral"), ("|||", "tile"), ("><>", "NULL")]
+    if layouts != want_layouts:
+        out.append(f"layouts[] is {layouts}: Super+S / T / Y say spiral · columns · float ({want_layouts})")
     # every helper a key runs: there, and it takes the word it is given
     for acts in binds.values():
         a = acts[0]

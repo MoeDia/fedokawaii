@@ -28,6 +28,12 @@
 @define-color warning_color             #6d4b0d;
 @define-color error_bg_color            #a8342a;
 @define-color error_color               #942e25;
+@define-color kawa_key                  #efe8d5;
+@define-color kawa_edge                 #c2b79b;
+@define-color kawa_faint                #9b927e;
+@define-color kawa_muted                #5f594d;
+@define-color kawa_strong               #0f0e0c;
+@define-color kawa_accent_text          #9c3922;
 
 /* Brave (Chromium's GTK mode, theme.sh sets it) samples these same colours for its tab
    strip, toolbar and menus (its address bar keeps Brave's own). Chromium gives every
@@ -41,15 +47,32 @@ tooltip.background.chromium { background-color: @popover_bg_color; border-color:
 tooltip.chromium * { color: @popover_fg_color; text-shadow: none; }
 headerbar.chromium:backdrop { background-color: @headerbar_bg_color; }
 
-/* Square, as the rest of the desktop: dwl draws each window's border, so a window's
-   rounded corners and the shadow around it (client-side decorations: a margin
-   outside the window) would leave a gap inside that border. Every window, dialog,
-   decoration and popover fills its border exactly; buttons and entries are square
-   too (a radio button stays round), and a dialog's default button is the accent.
+/* The desktop's parts (docs/design-system.md), as far as GTK draws them. Square, as the
+   rest of the desktop: dwl draws each window's border, so a window's rounded corners
+   and the shadow around it (client-side decorations: a margin outside the window)
+   would leave a gap inside that border. Every window, dialog, decoration and popover
+   fills its border exactly. A button is a key — the key fill in a 1 px edge frame;
+   under the pointer only its words and icon turn accent_text, no box; pressed or
+   switched on it is filled vermilion, its ink text_on_accent, as a dialog's default
+   button always is. A check box or a radio button is the panels' check: □, and ▣
+   when chosen (an 8 px frame, the 4 px square in it). What is selected — a row, the
+   words in a field — is filled vermilion, ink on it; the text cursor is vermilion.
    GTK's CSS has no !important: each rule carries :not(#kawa-…) twice, which counts
    as two ids and so outweighs the base theme's own rules, whatever their classes. */
 *:not(#kawa-square):not(#kawa-sq) { border-radius: 0; }
-radio:not(#kawa-square):not(#kawa-sq):not(#kawa-round) { border-radius: 9999px; }
 window:not(#kawa-square):not(#kawa-sq), window.csd:not(#kawa-square):not(#kawa-sq), window.solid-csd:not(#kawa-square):not(#kawa-sq), window.dialog:not(#kawa-square):not(#kawa-sq), window.popup:not(#kawa-square):not(#kawa-sq), decoration:not(#kawa-square):not(#kawa-sq), .csd decoration:not(#kawa-square):not(#kawa-sq), .titlebar:not(#kawa-square):not(#kawa-sq), headerbar:not(#kawa-square):not(#kawa-sq), messagedialog:not(#kawa-square):not(#kawa-sq), dialog:not(#kawa-square):not(#kawa-sq), popover:not(#kawa-square):not(#kawa-sq), menu:not(#kawa-square):not(#kawa-sq), .menu:not(#kawa-square):not(#kawa-sq), .context-menu:not(#kawa-square):not(#kawa-sq), .background.csd:not(#kawa-square):not(#kawa-sq), window.message:not(#kawa-square):not(#kawa-sq) { border-radius: 0; box-shadow: none; }
 decoration:not(#kawa-square):not(#kawa-sq), .csd decoration:not(#kawa-square):not(#kawa-sq), window.csd:not(#kawa-square):not(#kawa-sq), window.solid-csd:not(#kawa-square):not(#kawa-sq) { margin: 0; }
-button.default:not(:disabled):not(#kawa-square):not(#kawa-sq), button.suggested-action:not(:disabled):not(#kawa-square):not(#kawa-sq) { background-image: none; background-color: @accent_bg_color; color: @accent_fg_color; }
+button:not(#kawa-square):not(#kawa-sq):not(.flat):not(.titlebutton):not(.link):not(.up):not(.down) { background-image: none; background-color: @kawa_key; border: 1px solid @kawa_edge; box-shadow: none; text-shadow: none; }
+button:not(#kawa-square):not(#kawa-sq):not(.flat):not(.titlebutton):not(.link):not(.up):not(.down):hover, button.flat:not(#kawa-square):not(#kawa-sq):hover { background-image: none; color: @kawa_accent_text; }
+button.flat:not(#kawa-square):not(#kawa-sq):hover { background-color: transparent; box-shadow: none; }
+button:not(#kawa-square):not(#kawa-sq):not(.flat):not(.titlebutton):not(.link):not(.up):not(.down):active, button:not(#kawa-square):not(#kawa-sq):not(.flat):not(.titlebutton):not(.link):not(.up):not(.down):checked, button.flat:not(#kawa-square):not(#kawa-sq):active, button.flat:not(#kawa-square):not(#kawa-sq):checked { background-image: none; background-color: @accent_bg_color; color: @accent_fg_color; }
+button.default:not(#kawa-square):not(#kawa-sq):not(.flat):not(.titlebutton):not(.link):not(.up):not(.down):not(:disabled), button.suggested-action:not(#kawa-square):not(#kawa-sq):not(.flat):not(.titlebutton):not(.link):not(.up):not(.down):not(:disabled), button.default:not(#kawa-square):not(#kawa-sq):not(.flat):not(.titlebutton):not(.link):not(.up):not(.down):not(:disabled):hover, button.suggested-action:not(#kawa-square):not(#kawa-sq):not(.flat):not(.titlebutton):not(.link):not(.up):not(.down):not(:disabled):hover { background-image: none; background-color: @accent_bg_color; color: @accent_fg_color; border-color: @accent_bg_color; }
+check:not(#kawa-square):not(#kawa-sq), radio:not(#kawa-square):not(#kawa-sq) { min-width: 4px; min-height: 4px; padding: 1px; margin: 0 6px 0 0; border: 1px solid @kawa_muted; border-radius: 0; background-image: none; background-color: transparent; background-clip: content-box; box-shadow: none; -gtk-icon-source: none; color: transparent; }
+check:not(#kawa-square):not(#kawa-sq):checked, radio:not(#kawa-square):not(#kawa-sq):checked { border-color: @kawa_strong; background-color: @kawa_strong; }
+check:not(#kawa-square):not(#kawa-sq):indeterminate, radio:not(#kawa-square):not(#kawa-sq):indeterminate { border-color: @kawa_strong; background-color: @kawa_muted; }
+check:not(#kawa-square):not(#kawa-sq):hover, radio:not(#kawa-square):not(#kawa-sq):hover { border-color: @kawa_accent_text; }
+check:not(#kawa-square):not(#kawa-sq):checked:hover, radio:not(#kawa-square):not(#kawa-sq):checked:hover { background-color: @kawa_accent_text; }
+check:not(#kawa-square):not(#kawa-sq):disabled, radio:not(#kawa-square):not(#kawa-sq):disabled { border-color: @kawa_faint; }
+check:not(#kawa-square):not(#kawa-sq):checked:disabled, radio:not(#kawa-square):not(#kawa-sq):checked:disabled { background-color: @kawa_faint; }
+row:not(#kawa-square):not(#kawa-sq):selected, treeview.view:not(#kawa-square):not(#kawa-sq):selected, iconview:not(#kawa-square):not(#kawa-sq):selected, flowboxchild:not(#kawa-square):not(#kawa-sq):selected, .view:not(#kawa-square):not(#kawa-sq):selected, selection:not(#kawa-square):not(#kawa-sq) { background-image: none; background-color: @accent_bg_color; color: @accent_fg_color; }
+entry:not(#kawa-square):not(#kawa-sq), textview:not(#kawa-square):not(#kawa-sq), text:not(#kawa-square):not(#kawa-sq) { caret-color: @accent_bg_color; }

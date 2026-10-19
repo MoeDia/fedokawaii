@@ -6,7 +6,9 @@
 #   kawa-power sleep   locked, then asleep, with no menu (a keyboard's Sleep key)
 # A choice the system refuses (another user logged in, something inhibiting it, no password
 # agent for polkit) says why in a notice, and exits 1. A sleep, and what became of it, goes
-# to the journal too (journalctl -t kawa-power; the lock's own lines: -t kawa-lock).
+# to the journal too (journalctl -t kawa-power; the lock's own lines: -t kawa-lock). Log out
+# closes Steam properly first (kawa-steam --quit); restart and shut down leave that to
+# kawa-steam --guard, which logind tells before the computer stops, whoever asked.
 set -u
 # (the icons first: a sleep that is refused says so with the power icon too)
 # shellcheck source=/dev/null
@@ -72,7 +74,8 @@ i=$(printf '%s\n' "${rows[@]}" |
 case $i in
   0) exec kawa-lock --sleep ;;                     # (still locked 90 s later: sleep)
   1) sleep_now ;;
-  2) exec pkill -xu "$UID" dwl ;;
+  2) kawa-steam --quit logout                     # (Steam closed properly first: its saves to Steam
+     exec pkill -xu "$UID" dwl ;;                 #  Cloud — it ends with the desktop otherwise)
   3) act restart reboot ;;
   4) act "shut down" poweroff ;;
 esac

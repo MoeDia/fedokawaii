@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+# fake pw-metadata (kawa-nowplaying's tests): `pw-metadata -n default -m` prints PipeWire's
+# default output as the real one does (its other keys around it), and — when $NP/sink-later
+# names one — that one half a second later; then keeps watching (quiet) until killed. Its
+# arguments go to $NP/pwmeta.args, its pid to $NP/pwmeta.pids.
+echo $$ >>"$NP/pwmeta.pids"; printf '%s\n' "$*" >"$NP/pwmeta.args"
+sink() { printf "update: id:0 key:'default.audio.sink' value:'{\"name\":\"%s\"}' type:'Spa:String:JSON'\n" "$1"; }
+printf 'Found "default" metadata 31\n'
+printf "update: id:0 key:'default.configured.audio.sink' value:'{\"name\":\"speakers\"}' type:'Spa:String:JSON'\n"
+sink speakers
+if [[ -s $NP/sink-later ]]; then
+  /bin/sleep 0.5
+  printf "update: id:0 key:'default.audio.source' value:'{\"name\":\"mic\"}' type:'Spa:String:JSON'\n"
+  sink "$(cat "$NP/sink-later")"
+fi
+exec /bin/sleep 30

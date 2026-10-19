@@ -3,12 +3,15 @@
    one kind of button for everything on it. Colours come from the current theme (ink or paper): kawa-theme switches
    ~/.config/fedokawaii/current and reloads the bar.
 
-   One rule for every button (the torii, the workspaces, the layout, the day, the cat) — the
-   desktop's "active" rule: at rest the glyph alone on the paper; under the pointer the
-   glyph itself turns vermilion (no fill, no box, no fade: pixels change, nothing else);
-   active — the workspace you are on, an open menu, a game — filled whole in vermilion, the
-   glyph in paper (under the pointer, its glyph in ink). Nothing underlined, no edge marks. The right side's groups are
-   parted by a sashiko stitch — a running stitch of faint thread down the paper.
+   One rule for everything on it (the torii, the layout, the date and its day, the time, the
+   volume, the cat …): at rest the glyph and its words alone on the paper, in ink; under the
+   pointer, and while what it opened is on screen (its menu, its panel, its window: the
+   class "active"), they turn vermilion — no fill, no box, no fade: pixels change, nothing
+   else. What is vermilion at rest (the torii, the day's kanji, a game, a shared screen …)
+   turns to the strongest ink instead. Only the workspaces are seals: the one you are on
+   filled vermilion, one asking for you filled asagi. Nothing underlined, no edge marks.
+   The right side's groups are parted by a sashiko stitch — a running stitch of faint
+   thread down the paper.
 
    Fusion Pixel and Sumi Icons are pixel fonts on a 12 px grid: keep font-size at 12px so
    every pixel lands on a whole screen pixel. Every button is 23 × 23 — odd, because the
@@ -53,7 +56,7 @@ button, button:hover, button:active, button:checked {
 .tag, #custom-day, #custom-mode { min-width: 0; padding: 5px 5px 6px 6px; }
 
 /* the torii key at the far left (opens the launcher): the gate in vermilion ink — the only
-   filled seal on this side stays the workspace you are on. Its button stands 8 px from the
+   filled seal on this side is the workspace you are on. Its button stands 8 px from the
    screen's edge, on the line the windows' borders keep (dwl's gap), as the cat's does at the
    other end */
 #custom-torii { margin-left: 8px; color: @accent-text; }
@@ -77,7 +80,7 @@ button, button:hover, button:active, button:checked {
 
 /* ── the right: groups parted by a stitch ────────────────────────────────────────────
    #status (mode, drives, Steam, keyboard, memory, volume, brightness, weather) and #when
-   (date, the day's seal, time, a running timer). In a group each module pads 7 px a side, so 14 px of paper lie between
+   (date, the day's kanji, the time and a running timer). In a group each module pads 7 px a side, so 14 px of paper lie between
    two of them; a stitch has 18 px of paper between it and the ink on either side (measured
    on the bar: 7 of padding + 1 of the letters' own side bearing + 10 to its left, 11 + 7
    to its right; before the cat, 13 + the 5 px inside the cat's button) */
@@ -97,8 +100,8 @@ button, button:hover, button:active, button:checked {
    cat's ink, as far as the cat's ink is from the screen's edge (its button's 8 + 5) — the cat
    centred between the stitch and the edge */
 #custom-sep2 { margin-right: 8px; }
-#custom-mode, #custom-drives, #custom-kb, #custom-mem, #wireplumber, #custom-brightness, #custom-weather,
-#clock.date, #clock.time, #custom-timer {
+#custom-mode, #custom-drives, #custom-kb, #custom-mem, #custom-volume, #custom-brightness, #custom-weather,
+#custom-date, #custom-time {
   padding: 5px 7px 6px 7px;        /* the same line as the buttons: 23 tall */
   margin: 0;
 }
@@ -110,46 +113,54 @@ button, button:hover, button:active, button:checked {
 #custom-drives.open  { color: @text; }
 #custom-steam        { color: @text; }
 #custom-steam.starting { color: @faint; }
-#custom-steam.game   { color: @strong-on-accent; background-color: @accent; }
+#custom-steam.game   { color: @accent-text; }
 #custom-kb           { color: @quiet; }
 #custom-kb.other     { color: @accent-text; }
 #custom-mem          { color: @quiet; }
 #custom-mem.high     { color: @accent-text; }
-#wireplumber         { color: @text; }
-#wireplumber.muted   { color: @accent-text; }
+/* the volume and the brightness hold the width of their widest ("󾁊 100%": 42 px), their
+   icon where it stands (the config aligns them left): a level going from 9 to 10 % never
+   moves the bar */
+#custom-volume, #custom-brightness { min-width: 42px; }
+#custom-volume       { color: @text; }
+#custom-volume.muted { color: @accent-text; }
 #custom-brightness   { color: @text; }
 #custom-weather      { color: @text; }
+#custom-weather.stale { color: @muted; }   /* a forecast over an hour old: said quietly */
 
-/* the mode — 静 quiet, 共有 shared — a kanji seal like the day's */
+/* the mode — 静 quiet, 共有 shared — a kanji in the day's place of honour: quiet in faint
+   ink, a shared screen in vermilion */
 #custom-mode       { padding: 5px 5px 6px 6px; }
-#custom-mode.dnd   { color: @quiet; box-shadow: inset 0 0 0 1px @edge2; }
-#custom-mode.share { color: @strong-on-accent; background-color: @accent; }
+#custom-mode.dnd   { color: @quiet; }
+#custom-mode.share { color: @accent-text; }
 
-/* ── the clock: date quiet · the day's seal · time bright ────────────────────────── */
-#clock.date { color: @quiet; }
-#custom-day { color: @strong-on-accent; background-color: @accent; }
-#clock.time { color: @strong; }
-/* a timer beside it: the hourglass and the time left in vermilion; a stopwatch in asagi */
-#custom-timer            { color: @accent-text; }
-#custom-timer.stopwatch  { color: @urgent; }
+/* ── the clock: the date quiet · the day's kanji in vermilion ink · the time bright ── */
+#custom-date { color: @quiet; }
+#custom-day  { color: @accent-text; }
+#custom-time { color: @strong; }
+/* (a timer beside the time draws its own colours — the time left vermilion, a stopwatch's
+   asagi — inside the text: kawa-timer) */
 
-/* the cat that opens quick settings: it smiles, filled vermilion, while a dropdown is open.
-   Its button ends 8 px from the screen's edge — the line the windows' borders keep, and the
-   panels and notices that drop from it: the panel's right edge is the button's */
-#custom-menu      { color: @text; margin: 4px 8px 4px 0; }
-#custom-menu.open { color: @strong-on-accent; background-color: @accent; }
+/* the cat that opens quick settings: it smiles while they are open. Its button ends 8 px
+   from the screen's edge — the line the windows' borders keep, and the panels and notices
+   that drop from it: the panel's right edge is the button's */
+#custom-menu { color: @text; margin: 4px 8px 4px 0; }
 
-/* ── under the pointer ──────────────────────────────────────────────────────────────
-   the glyph and its text take the vermilion ink, at once — nothing behind them changes.
-   What is vermilion already (the torii, memory running high, the sound muted) turns to the strongest ink instead; so does the glyph of a filled seal (the
-   workspace you are on, one asking for you, the day, an open menu, a game, a shared screen),
-   which keeps its fill: the active look stays apart from hover's */
+/* ── under the pointer, and open ────────────────────────────────────────────────────
+   the glyph and its text take the vermilion ink, at once — nothing behind them changes; so
+   does a button whose menu, panel or window is open (class "active"), until it closes. What
+   is vermilion already (the torii, the day's kanji, memory running high, the sound muted, a
+   game, a shared screen, a workspace's seal) turns to the strongest ink instead */
 .tag:hover, #custom-layout:hover, #custom-menu:hover, #custom-nowplaying:hover,
-#custom-steam:hover, #custom-mem:hover, #wireplumber:hover, #custom-brightness:hover, #custom-weather:hover,
-#custom-drives:hover, #clock:hover, #custom-mode:hover, #custom-timer.stopwatch:hover { color: @accent-text; }
-#custom-torii:hover, #custom-mem.high:hover, #wireplumber.muted:hover, #custom-timer.timer:hover,
-.tag.selected:hover, .tag.urgent:hover, #custom-day:hover, #custom-menu.open:hover,
-#custom-steam.game:hover, #custom-mode.share:hover { color: @strong; }
+#custom-steam:hover, #custom-mem:hover, #custom-volume:hover, #custom-brightness:hover, #custom-weather:hover,
+#custom-drives:hover, #custom-date:hover, #custom-time:hover, #custom-mode:hover,
+#custom-layout.active, #custom-menu.active, #custom-steam.active, #custom-mem.active, #custom-volume.active,
+#custom-brightness.active, #custom-weather.active, #custom-drives.active, #custom-date.active,
+#custom-time.active, #custom-mode.active { color: @accent-text; }
+#custom-torii:hover, #custom-day:hover, #custom-mem.high:hover, #custom-volume.muted:hover,
+.tag.selected:hover, .tag.urgent:hover, #custom-steam.game:hover, #custom-mode.share:hover,
+#custom-torii.active, #custom-day.active, #custom-mem.high.active, #custom-volume.muted.active,
+#custom-steam.game.active, #custom-mode.share.active { color: @strong; }
 
 tooltip { background: @bar; border: 2px solid @muted; border-radius: 0; }   /* framed like every menu */
 tooltip label { color: @text; padding: 3px 6px; }

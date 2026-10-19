@@ -66,20 +66,18 @@ static const Rule rules[] = {
 };
 
 /* layout(s) — the first is every workspace's own at the start. The bar (kawa-dwlstatus)
- * draws each symbol as a pixel icon; monocle rewrites its symbol to [n], the number of
- * windows it stacks */
+ * draws each symbol as a pixel icon */
 static const Layout layouts[] = {
 	/* symbol     arrange function */
 	{ "(@)",      spiral },  /* the golden spiral (dwl.patch): Super+S */
 	{ "|||",      tile },    /* columns, left to right (dwl.patch's tile): Super+T */
 	{ "><>",      NULL },    /* floating, each window centred as it opens: Super+Y */
-	{ "[M]",      monocle }, /* one at a time, full size: Super+M */
 };
 
 /* monitors — resolution/refresh are applied by kawa-display at login (wlr-randr) */
 static const MonitorRule monrules[] = {
 	/* name       mfact  nmaster scale layout       rotate/reflect                x    y */
-	/* mfact 0.618: the golden ratio — the spiral's share for each next window */
+	/* mfact 0.618: the golden ratio — the spiral's first window's share of the width */
 	{ NULL,       0.618f, 1,     1,    &layouts[0], WL_OUTPUT_TRANSFORM_NORMAL,   -1,  -1 },
 };
 
@@ -122,7 +120,7 @@ static const enum libinput_config_tap_button_map button_map = LIBINPUT_CONFIG_TA
 
 /* commands */
 static const char *termcmd[]     = { "footclient", NULL };
-static const char *menucmd[]     = { "fuzzel", NULL };
+static const char *menucmd[]     = { "kawa-menu", "--launcher", NULL };   /* the torii's: one menu at a time */
 static const char *browsercmd[]  = { "brave-origin", NULL };
 static const char *filescmd[]    = { "footclient", "yazi", NULL };
 
@@ -137,7 +135,7 @@ static const Key keys[] = {
 	{ MODKEY,          XKB_KEY_b,                 spawn,            {.v = browsercmd} },
 	{ MODKEY,          XKB_KEY_e,                 spawn,            {.v = filescmd} },
 	{ MODKEY,          XKB_KEY_x,                 spawn,            SHCMD("kawa-quick") },
-	{ MODKEY,          XKB_KEY_a,                 spawn,            SHCMD("kawa-audio") },
+	{ MODKEY,          XKB_KEY_a,                 spawn,            SHCMD("kawa-panel --sound") },
 	{ MODKEY,          XKB_KEY_c,                 spawn,            SHCMD("kawa-calendar") },
 	{ MODKEY,          XKB_KEY_slash,             spawn,            SHCMD("kawa-help") },
 	{ MODKEY,          XKB_KEY_w,                 spawn,            SHCMD("kawa-wallpaper") },
@@ -174,7 +172,7 @@ static const Key keys[] = {
 	{ MODKEY,          XKB_KEY_q,                 killclient,       {0} },
 	{ MODKEY,          XKB_KEY_j,                 focusstack,       {.i = +1} },
 	{ MODKEY,          XKB_KEY_k,                 focusstack,       {.i = -1} },
-	/* the spiral's share: the first window narrower or wider (and every turn after it) */
+	/* the spiral's first window narrower or wider (never below 600 px, nor what is beside it) */
 	{ MODKEY,          XKB_KEY_h,                 setmfact,         {.f = -0.05f} },
 	{ MODKEY,          XKB_KEY_l,                 setmfact,         {.f = +0.05f} },
 	{ MODKEY|SHIFT,    XKB_KEY_Return,            zoom,             {0} },
@@ -185,7 +183,6 @@ static const Key keys[] = {
 	{ MODKEY,          XKB_KEY_s,                 setlayout,        {.v = &layouts[0]} },
 	{ MODKEY,          XKB_KEY_t,                 setlayout,        {.v = &layouts[1]} },
 	{ MODKEY,          XKB_KEY_y,                 setlayout,        {.v = &layouts[2]} },
-	{ MODKEY,          XKB_KEY_m,                 setlayout,        {.v = &layouts[3]} },
 	{ MODKEY|SHIFT,    XKB_KEY_t,                 setlayout,        {0} },  /* toggle last layout */
 	/* ── tags ── */
 	{ MODKEY,          XKB_KEY_0,                 view,             {.ui = ~0} },

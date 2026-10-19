@@ -8,6 +8,14 @@ gui:
   showRandomTip: false          # (a quiet start: no tip of the day under the panels)
   showBottomLine: false         # (no "Donate · Ask Question · version" line: ? lists the keys)
   showCommandLog: false         # (no log of git's commands under the panels: @ shows it)
+  # A tall, narrow window (84 columns or fewer: a tile half the screen wide or less) shows
+  # the panels above the diff rather than beside it, both the window's full width — chosen
+  # again whenever the window changes size. lazygit's own threshold for that is 46 rows,
+  # more than a tile of a 1080-pixel screen ever has (40): here from 30. In a small tile,
+  # + gives the panel you are in half the window, then all of it (_ goes back).
+  portraitMode: auto
+  portraitModeAutoMaxWidth: 84
+  portraitModeAutoMinHeight: 30
   theme:
     activeBorderColor: [red, bold]
     inactiveBorderColor: ["#877f6f"]

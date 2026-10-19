@@ -1,8 +1,11 @@
 [Desktop Entry]
 # herdr, in a terminal window of its own (tiled, not a popup: it is where you work, beside an
-# editor, and a popup would close at the first click elsewhere). Closing the window only
-# detaches: the agents keep working in herdr's background server, and the next start shows
-# them again where they were.
+# editor, and a popup would close at the first click elsewhere; dwl gives it its tile's size).
+# Closing the window only detaches: the agents keep working in herdr's background server, and
+# the next start shows them again where they were.
+# Its own app-id (kawa-agents) and title ("Agents", then "Agents · <workspace>" as herdr sets
+# it); it starts in ~/repos, where your projects are (theme.sh makes the folder) — herdr's
+# first workspace is the folder it was started in.
 # Its icon: foot's, the terminal that draws its window (herdr ships none of its own; the
 # launcher shows each program's own icon, never an icon pack's).
 Type=Application
@@ -10,7 +13,7 @@ Name=Agents
 GenericName=Coding agents side by side
 Comment=herdr: Claude Code sessions in panes, each marked working, blocked or idle
 Icon=foot
-Exec=@HOME@/.local/bin/kawa-term herdr
+Exec=footclient -N -a kawa-agents -T Agents -D @HOME@/repos -- herdr
 Terminal=false
 Categories=Development;
 Keywords=herdr;claude;agents;ai;worktree;

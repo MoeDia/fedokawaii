@@ -184,10 +184,12 @@ case ${1:-toggle} in
     want=${1:-toggle} now=$(get)
     [[ $want == toggle ]] && { [[ $now == dark ]] && want=light || want=dark; }
     usable "$want" || exit 1                       # (said at once, not after a transition)
-    # a visible change in a session: run the switch under the veil (dawn or nightfall)
+    # a visible change in a session: run the switch under the veil (dawn or nightfall) — the
+    # crests sweep the screen in 450 ms (kawa-veil's own default, 650, is the wallpaper's
+    # slower dissolve): with the switch itself and the apps' redraw, about a second in all
     if [[ $want != "$now" && -z ${KAWA_VEILED:-} && -n ${WAYLAND_DISPLAY:-} ]]; then
       style=--rise; [[ $want == dark ]] && style=--fall
-      KAWA_VEILED=1 exec kawa-veil "$style" -- "$0" "$want"
+      KAWA_VEILED=1 exec kawa-veil "$style" --time 450 -- "$0" "$want"
     fi
     exec 9>"$XDG_RUNTIME_DIR/kawa-theme.lock"
     flock -w 10 9 || { echo "kawa-theme: another switch is still running" >&2; exit 1; }

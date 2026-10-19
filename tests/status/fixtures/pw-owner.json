@@ -1,0 +1,29 @@
+{
+  "running": true,
+  "configured": {},
+  "devices": [
+    {"id": 41, "desc": "Ryzen HD Audio Controller",
+     "routes": [{"direction": "Output", "device": 4, "name": "analog-output-lineout", "description": "Line Out"},
+                {"direction": "Input", "device": 3, "name": "analog-input-rear-mic", "description": "Rear Microphone"}]},
+    {"id": 52, "desc": "Navi 48 HDMI/DP Audio Controller",
+     "routes": [{"direction": "Output", "device": 3, "name": "hdmi-output-0", "description": "HDMI / DisplayPort"}]}
+  ],
+  "nodes": [
+    {"id": 36, "class": "Stream/Output/Audio", "name": "share_sink.out", "desc": "Share", "prio": 0, "vol": 1.0,
+     "props": {"node.passive": true, "node.link-group": "loopback-1520-29"}},
+    {"id": 37, "class": "Audio/Sink", "name": "share_sink", "desc": "Share", "prio": 0, "vol": 1.0,
+     "props": {"node.link-group": "loopback-1520-29"}},
+    {"id": 62, "class": "Audio/Sink", "name": "alsa_output.pci-0000_15_00.6.analog-stereo",
+     "desc": "Ryzen HD Audio Controller Analog Stereo", "prio": 1009, "vol": 0.62,
+     "props": {"node.nick": "ALC1220 Analog", "device.api": "alsa", "device.id": 41, "card.profile.device": 4,
+               "device.profile.name": "analog-stereo", "device.profile.description": "Analog Stereo"}},
+    {"id": 73, "class": "Audio/Sink", "name": "alsa_output.pci-0000_03_00.1.hdmi-stereo",
+     "desc": "Navi 48 HDMI/DP Audio Controller Digital Stereo (HDMI)", "prio": 1008, "vol": 1.0,
+     "props": {"node.nick": "LG ULTRAGEAR", "device.api": "alsa", "device.id": 52, "card.profile.device": 3,
+               "device.profile.name": "hdmi-stereo", "device.profile.description": "Digital Stereo (HDMI)"}},
+    {"id": 67, "class": "Audio/Source", "name": "alsa_input.pci-0000_15_00.6.analog-stereo",
+     "desc": "Ryzen HD Audio Controller Analog Stereo", "prio": 2009, "vol": 0.8,
+     "props": {"node.nick": "ALC1220 Analog", "device.api": "alsa", "device.id": 41, "card.profile.device": 3,
+               "device.profile.name": "analog-stereo", "device.profile.description": "Analog Stereo"}}
+  ]
+}

@@ -45,7 +45,7 @@ setup
 case_ "Super+Escape: gtklock with the theme's stylesheet and the layout, the date in English, the desktop's words"
 rc 0 kawa-lock
 eq "$(locks)" 1
-args_eq gtklock 1 -s "$CSS" -x "$UI" --date-format '%d %b' --time-format '%I:%M %p' --lock-command "kawa-lock --up"
+args_eq gtklock 1 -s "$CSS" -x "$UI" --date-format '%a %d %b' --time-format '%I:%M %p' --lock-command "kawa-lock --up"
 eq "$(cat "$TMP/gtklock.env")" "LANGUAGE=fk LC_TIME=C" "LANGUAGE=fk (ちがう · wrong password), LC_TIME=C"
 [[ ! -e $TMP/fd9 ]] && _ok || _no "gtklock keeps kawa-lock's lock: every later call would wait"
 [[ ! -e $TMP/fd8 ]] && _ok || _no "gtklock keeps its keeper's lock: the desktop would look locked after the password"
@@ -77,7 +77,7 @@ setup
 ln -sfn themes/light "$HOME/.config/fedokawaii/current"
 kawa-lock --now
 has "$(cat "$UI")" "$SHARE/light/padlock.png"
-args_eq gtklock 1 -s "$CSS" -x "$UI" --date-format '%d %b' --time-format '%I:%M %p' --lock-command "kawa-lock --up"
+args_eq gtklock 1 -s "$CSS" -x "$UI" --date-format '%a %d %b' --time-format '%I:%M %p' --lock-command "kawa-lock --up"
 
 case_ "already locked (a second press, idle while locked): nothing more"
 setup
@@ -218,7 +218,7 @@ case_ "HOME with a space: the stylesheet and picture paths arrive whole"
 setup
 mkdir -p "$TMP/my home"; cp -a "$HOME/." "$TMP/my home/"; export HOME="$TMP/my home"
 kawa-lock --now
-args_eq gtklock 1 -s "$HOME/.config/fedokawaii/current/gtklock.css" -x "$UI" --date-format '%d %b' --time-format '%I:%M %p' --lock-command "kawa-lock --up"
+args_eq gtklock 1 -s "$HOME/.config/fedokawaii/current/gtklock.css" -x "$UI" --date-format '%a %d %b' --time-format '%I:%M %p' --lock-command "kawa-lock --up"
 has "$(cat "$UI")" "$HOME/.local/share/fedokawaii/dark/padlock.png"
 
 case_ "--help shows how it is used"

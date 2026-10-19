@@ -1,7 +1,17 @@
 #!/usr/bin/env bash
-# stub curl (shoot.sh): wttr.in answers "+31°C  Clear" (kawa-weather); anything else goes
-# to the real curl
+# stub curl (shoot.sh): Open-Meteo answers a week of Sharjah's October (kawa-weather): 33° and
+# clear now, its days starting on today in Asia/Dubai; anything else goes to the real curl
 for a; do
-  case $a in *wttr.in*) printf '+31°C  Clear\n'; exit 0 ;; esac
+  case $a in
+    *api.open-meteo.com*)
+      exec jq -cn --arg t "$(TZ=Asia/Dubai date +%F)" '
+        {latitude: 25.375, longitude: 55.375, generationtime_ms: 0.21, utc_offset_seconds: 14400,
+         timezone: "Asia/Dubai", timezone_abbreviation: "GMT+4", elevation: 7.0,
+         current: {time: "\($t)T14:15", interval: 900, temperature_2m: 33.4, weather_code: 0, is_day: 1},
+         daily: {time: [range(7) as $i | ($t | strptime("%Y-%m-%d") | mktime) + $i * 86400 | strftime("%Y-%m-%d")],
+                 weather_code: [0, 1, 2, 3, 45, 61, 0],
+                 temperature_2m_mean: [31.2, 30.8, 30.1, 29.4, 28.6, 26.3, 27.5],
+                 apparent_temperature_mean: [38.4, 36.2, 33.0, 30.9, 28.7, 25.1, 27.9]}}' ;;
+  esac
 done
 exec /usr/bin/curl "$@"

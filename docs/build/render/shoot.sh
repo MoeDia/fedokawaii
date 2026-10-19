@@ -197,11 +197,14 @@ session() {
   k pipewire >"$LT/pipewire.log" 2>&1 &
   waitfor 10 "pipewire" test -S "$X/pipewire-0"
   k wireplumber >"$LT/wireplumber.log" 2>&1 &
-  # the machine's audio devices (null devices standing in for the ALSA cards)
-  k pw-cli create-node adapter '{ factory.name=support.null-audio-sink node.name=alsa_output.pci-0000_0e_00.4.analog-stereo node.description="Starship/Matisse HD Audio Controller Analog Stereo" media.class=Audio/Sink object.linger=true audio.position=[FL FR] priority.session=1009 priority.driver=1009 }' >/dev/null
-  k pw-cli create-node adapter '{ factory.name=support.null-audio-sink node.name=alsa_output.pci-0000_0c_00.1.hdmi-stereo node.description="Navi 31 HDMI/DP Audio Digital Stereo (HDMI)" media.class=Audio/Sink object.linger=true audio.position=[FL FR] priority.session=900 priority.driver=900 }' >/dev/null
-  k pw-cli create-node adapter '{ factory.name=support.null-audio-sink node.name=alsa_input.pci-0000_0e_00.4.analog-stereo node.description="Starship/Matisse HD Audio Controller Analog Stereo" media.class=Audio/Source object.linger=true audio.position=[FL FR] priority.session=2009 priority.driver=2009 }' >/dev/null
-  waitfor 15 "a default sink" k sh -c 'wpctl inspect @DEFAULT_AUDIO_SINK@ 2>&1 | grep -q "node.name = \"alsa_output.pci-0000_0e"'
+  # the machine's audio devices, as the owner's (his report: an MSI board's ALC1220 behind the
+  # Ryzen's HD audio controller, an RX 9060 XT's HDMI to an LG ULTRAGEAR): null devices
+  # standing in for the ALSA cards, with the props ALSA gives a node (its nick, its profile's
+  # description, its card and place on it); stubs/pw-dump adds the cards and their routes
+  k pw-cli create-node adapter '{ factory.name=support.null-audio-sink node.name=alsa_output.pci-0000_15_00.6.analog-stereo node.description="Ryzen HD Audio Controller Analog Stereo" node.nick="ALC1220 Analog" device.profile.description="Analog Stereo" device.api=alsa card.profile.device=4 media.class=Audio/Sink object.linger=true audio.position=[FL FR] priority.session=1009 priority.driver=1009 }' >/dev/null
+  k pw-cli create-node adapter '{ factory.name=support.null-audio-sink node.name=alsa_output.pci-0000_03_00.1.hdmi-stereo node.description="Navi 48 HDMI/DP Audio Controller Digital Stereo (HDMI)" node.nick="LG ULTRAGEAR" device.profile.description="Digital Stereo (HDMI)" device.api=alsa card.profile.device=3 media.class=Audio/Sink object.linger=true audio.position=[FL FR] priority.session=900 priority.driver=900 }' >/dev/null
+  k pw-cli create-node adapter '{ factory.name=support.null-audio-sink node.name=alsa_input.pci-0000_15_00.6.analog-stereo node.description="Ryzen HD Audio Controller Analog Stereo" node.nick="ALC1220 Analog" device.profile.description="Analog Stereo" device.api=alsa card.profile.device=3 media.class=Audio/Source object.linger=true audio.position=[FL FR] priority.session=2009 priority.driver=2009 }' >/dev/null
+  waitfor 15 "a default sink" k sh -c 'wpctl inspect @DEFAULT_AUDIO_SINK@ 2>&1 | grep -q "node.name = \"alsa_output.pci-0000_15"'
   waitfor 10 "a default source" k sh -c 'wpctl inspect @DEFAULT_AUDIO_SOURCE@ 2>&1 | grep -q "node.name = \"alsa_input"'
   k wpctl set-volume @DEFAULT_AUDIO_SINK@ 0.62
   k wpctl set-volume @DEFAULT_AUDIO_SOURCE@ 0.80
@@ -242,10 +245,11 @@ session() {
   img grab "$W/wallpaper.ppm" && python3 -I -c 'import sys; from PIL import Image; Image.open(sys.argv[1]).save(sys.argv[2])' \
     "$W/wallpaper.ppm" "$OT/wallpaper.png"
 
-  # a session that has been up a while has the weather cached (kawa-weather refreshes it
-  # in the background; curl is stubbed: "+31°C  Clear")
+  # a session that has been up a while has the forecast cached (kawa-weather fetches it in
+  # the background; curl is stubbed: Open-Meteo's week, 33° and clear now)
+  rm -f "$KH/.cache/kawa-weather.json" "$KH/.cache/kawa-weather.failed"
   k kawa-weather >/dev/null 2>&1
-  waitfor 10 "the weather cache" test -s "$KH/.cache/kawa-weather"
+  waitfor 10 "the weather cache" test -s "$KH/.cache/kawa-weather.json"
   k mako >"$LT/mako.log" 2>&1 &
   k env ${SHOOT_FOOT_DEBUG:+WAYLAND_DEBUG=1} foot --server >"$LT/foot-server.log" 2>&1 &
   k gammastep >/dev/null 2>&1 &
@@ -332,12 +336,20 @@ shot_menus() {
     'mount -t tmpfs -o size=64k,mode=755 tmpfs /sys/class && mkdir -p /sys/class/bluetooth/hci0 && exec "$@"' \
     sh "${kcmd[@]}" sh -c "$qs"
   menu menu-quick-nobt k sh -c "$qs"
+  # its siblings, opened by their keys (Super+A; the bar's brightness): the sound panel —
+  # also muted (the level's squares hollow, unmute offered) — and the brightness slider
+  menu menu-sound      k sh -c "${qs/--open/--sound}"
+  menu menu-sound-muted k sh -c "wpctl set-mute @DEFAULT_AUDIO_SINK@ 1; ${qs/--open/--sound}; wpctl set-mute @DEFAULT_AUDIO_SINK@ 0"
+  menu menu-brightness k sh -c "${qs/--open/--brightness}"
   menu menu-power      k kawa-power
-  menu menu-audio      k kawa-audio
   menu menu-calendar   k kawa-calendar
   menu menu-help       k kawa-help
   menu menu-change     k kawa-config
   menu menu-drives     k kawa-drives       # the drives (the bar's drive mark): stubs/lsblk's stick and disk
+  menu menu-weather    k kawa-weather --menu   # the week (the bar's weather): stubs/curl's Open-Meteo forecast
+  # … and as it is after three hours offline: the same days, their age said above them
+  k sh -c 'touch -d "-3 hours" "$HOME/.cache/kawa-weather.json" && echo offline >"$HOME/.cache/kawa-weather.failed"'
+  menu menu-weather-offline k kawa-weather --menu
   # the launcher (Super+Space): fuzzel with the user's config; the applications are the
   # Fedora .desktop files of what setup.sh installs (xdg/), the icons Papirus
   menu launcher        k env XDG_DATA_DIRS="$SH/xdg/share" fuzzel

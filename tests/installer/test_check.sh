@@ -56,16 +56,16 @@ case_ "nano and vim, the rescue image, ffmpeg-free: setup takes those out itself
 back fresh; fkh_add installed ffmpeg-free vim-enhanced
 chk; eq "$RC" 0; has "$OUT" "✔ nothing installed that the desktop replaces"
 
-case_ "what does not block: a newer Fedora, 30 GB free, 6 GB RAM, the clock not synced, updates pending, a newer kernel, over SSH, no Bluetooth, wttr.in down"
+case_ "what does not block: a newer Fedora, 30 GB free, 6 GB RAM, the clock not synced, updates pending, a newer kernel, over SSH, no Bluetooth, Open-Meteo down"
 back fresh; osr VERSION_ID 46; fkh df-free-gb 30
 printf 'MemTotal:        6000000 kB\n' >"$W/proc/meminfo"
 fkh ntp no; fkh rc-check-upgrade 100; fkh newest-kernel 6.19.9-200.fc44.x86_64
-rm -rf "$W/sys/class/bluetooth"; fkh unreachable wttr.in
+rm -rf "$W/sys/class/bluetooth"; fkh unreachable api.open-meteo.com
 fkrun env SSH_CONNECTION="10.0.0.2 5000 10.0.0.1 22" bash "$C"; eq "$RC" 0 "$(grep '✘' <<<"$OUT" | head -n3 | tr '\n' '|')"
 has "$OUT" "! Fedora 46 — newer than tested"; has "$OUT" "! 30 GB free on /"; has "$OUT" "! 6 GB RAM"
 has "$OUT" "! clock not synchronised"; has "$OUT" "2 package updates pending"
 has "$OUT" "! a newer kernel (6.19.9-200.fc44.x86_64) is installed but not running"
-has "$OUT" "! running over SSH"; has "$OUT" "! no Bluetooth adapter seen"; has "$OUT" "! unreachable: wttr.in"
+has "$OUT" "! running over SSH"; has "$OUT" "! no Bluetooth adapter seen"; has "$OUT" "! unreachable: api.open-meteo.com"
 has "$OUT" "READY for setup"
 
 case_ "a 4 GB machine (the kernel shows about 3.7 GiB): enough, with a note"

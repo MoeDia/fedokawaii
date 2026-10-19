@@ -45,10 +45,11 @@ not_called '^wlopm'; wait "$p"; called '^wlopm --off \*$'
 case_ "sleep, but the lock screen did not come up: no suspend (never an unlocked sleep), and the journal says so"
 setup; stub kawa-lock 'exit 1'; answer "pick sleep"; power; not_called '^systemctl suspend'
 called '^logger -t kawa-power -- not locked — no sleep$'
-case_ "log out: dwl ended"
-act "log out"; called '^pkill -xu '"$UID"' dwl$'
+case_ "log out: Steam closed properly first (its saves to Steam Cloud), then dwl ended"
+setup; stub kawa-steam; answer "pick log out"; power
+eq "$(grep -E '^(kawa-steam|pkill)' "$CALLS" | tr '\n' '|')" "kawa-steam --quit logout|pkill -xu $UID dwl|"
 case_ "restart, shut down: systemctl reboot / poweroff"
-act restart; called '^systemctl reboot$'
+act restart; called '^systemctl reboot$'; not_called '^kawa-steam' "(restart: kawa-steam --guard, told by logind)"
 act "shut down"; called '^systemctl poweroff$'
 not_called '^loginctl'
 case_ "Esc, a click outside, typed text: nothing happens, exit 0"

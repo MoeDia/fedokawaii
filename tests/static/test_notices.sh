@@ -25,7 +25,7 @@ for p in files:
         if not m or "command -v" in code: continue
         where = f"{p.relative_to(root)}:{n}"
         args = m.group(1)
-        if args.startswith('"${args[@]}"'): continue          # (kawa-osd: the level display, a category of its own)
+        if args.startswith('-a osd -c osd '): continue          # (kawa-osd: the level display, a category of its own)
         if args.startswith('"${a[@]}"'):                         # a helper's: its array names the app
             body = "\n".join(lines[max(0, n - 6):n])
             am = re.search(r'local a=\(-a (\w+)', body)

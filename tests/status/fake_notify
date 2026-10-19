@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # fake notify-send (lib.sh: notices): ids handed out the way mako does. Logs each notice as
 # "NOTICE <id> <app> | <summary> | <body>" to $NOTIFY_STATE/log.
-st=$NOTIFY_STATE app="" rid="" print=0 pos=()
+st=$NOTIFY_STATE app="" rid="" print=0 pos=() sync=""
 while (($#)); do
   case $1 in
     -a|--app-name) app=$2; shift ;;
@@ -9,7 +9,8 @@ while (($#)); do
     -r|--replace-id) rid=$2; shift ;;
     --replace-id=*) rid=${1#*=} ;;
     -p|--print-id) print=1 ;;
-    -u|-c|-h|-t|-i|-e|--urgency|--category|--hint|--expire-time|--icon) shift ;;
+    -h|--hint) [[ $2 == string:x-canonical-private-synchronous:* ]] && sync=${2##*:}; shift ;;
+    -u|-c|-t|-i|-e|--urgency|--category|--expire-time|--icon) shift ;;
     --) shift; pos+=("$@"); break ;;
     -*) ;;
     *) pos+=("$1") ;;
@@ -28,8 +29,11 @@ if [[ -n ${NOTIFY_DOWN:-} ]]; then
   exit 1
 fi
 exec 9>"$st/lock"; flock 9
+# mako's synchronous tag: the live notice of the same app and tag is replaced in place
+[[ -n $sync && -z $rid && -s "$st/sync.$app.$sync" ]] && rid=$(<"$st/sync.$app.$sync")
 if [[ -n $rid && $rid != 0 ]] && grep -qx "$rid" "$st/live"; then id=$rid
 else id=$(($(<"$st/n") + 1)); echo "$id" >"$st/n"; echo "$id" >>"$st/live"; fi
+[[ -n $sync ]] && echo "$id" >"$st/sync.$app.$sync"
 printf 'NOTICE %s %s | %s | %s\n' "$id" "$app" "${pos[0]:-}" "${pos[1]:-}" >>"$st/log"
 ((print)) && echo "$id"
 exit 0

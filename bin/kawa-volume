@@ -3,6 +3,13 @@
 # (STEP 2 %): change it, then show the level for a moment (kawa-osd), updating in place while
 # you keep pressing — also in fullscreen, when the bar is hidden. Up unmutes and stops at
 # 100 %; a level set higher in the mixer stays as it is.
+# kawa-volume bar — the bar's volume (waybar JSON, a line whenever it changes): the speaker,
+# its waves showing the level (none at 0, one up to 25 %, two to 50, three to 75, four above)
+# and the number, its % quiet; muted: the speaker crossed out and "off". Lit (class "active")
+# while the sound panel, which a click on it opens, is on screen (kawa-bar). It follows
+# PipeWire's own events (pw-mon: a level, a mute, another output) and the panel's poke
+# (kawa-dwlstatus wakes it: a fifo of its own, $XDG_RUNTIME_DIR/kawa-bar.wake.PID); nothing
+# is polled. It ends when PipeWire does (waybar starts it again).
 # Exit status: 0 done · 1 could not (no sound output or input, PipeWire not running) · 2 misuse.
 set -u
 case ${1:-} in
@@ -10,6 +17,53 @@ case ${1:-} in
 esac
 # shellcheck source=/dev/null
 . "$HOME/.config/fedokawaii/icons.sh"
+
+bar() {
+  local w=${XDG_RUNTIME_DIR:?}/kawa-bar.wake.$$ fd feeder line last="" vol state pct icon cls tip
+  # shellcheck source=kawa-bar
+  . "${BASH_SOURCE[0]%/*}/kawa-bar"                 # bar_lit (bash alone)
+  mkfifo -m 600 -- "$w" && exec {fd}<>"$w" || return 1
+  # PipeWire's changes, as a line into the same fifo: pw-mon writes a block per change of any
+  # object; a Node's (a level, a mute) or the Metadata's (the default output) are this one's —
+  # not a Client's, which every wpctl below is (it would wake this again, for ever)
+  (
+    exec 2>/dev/null
+    while IFS= read -r line; do
+      case $line in *'type: PipeWire:Interface:Node'*|*'type: PipeWire:Interface:Metadata'*) printf '\n' >&"$fd" ;; esac
+    done < <(exec pw-mon -N -o -a)
+    printf 'END\n' >&"$fd"                        # (PipeWire gone: so is this, until waybar's restart)
+  ) &
+  feeder=$!
+  trap 'pkill -P "$feeder" 2>/dev/null; kill "$feeder" 2>/dev/null; rm -f -- "$w"' EXIT
+  trap 'exit 0' TERM HUP INT PIPE
+  while :; do
+    vol="" state=""
+    read -r _ vol state < <(wpctl get-volume @DEFAULT_AUDIO_SINK@ 2>/dev/null)
+    if [[ $vol =~ ^([0-9]+)\.([0-9]{2}) ]]; then
+      pct=$((10#${BASH_REMATCH[1]} * 100 + 10#${BASH_REMATCH[2]}))
+      cls=""
+      if [[ $state == *MUTED* ]]; then
+        line="$ICON_VOL_MUTE <span fgalpha='55%'>off</span>" cls='"muted"' tip="volume off ($pct %)"
+      else
+        if ((pct == 0)); then icon=$ICON_VOL_0; elif ((pct <= 25)); then icon=$ICON_VOL_1
+        elif ((pct <= 50)); then icon=$ICON_VOL_2; elif ((pct <= 75)); then icon=$ICON_VOL_3
+        else icon=$ICON_VOL_4; fi
+        line="$icon $pct<span fgalpha='55%'>%</span>" tip="volume $pct %"
+      fi
+      bar_lit volume && cls="[${cls:+$cls,}\"active\"]"
+      line="{\"text\":\"$line\",\"tooltip\":\"$tip · click: the sound panel · right-click: mute · scroll: ±2 %\"${cls:+,\"class\":$cls}}"
+    else
+      line='{"text":""}'                           # (no output: hidden)
+    fi
+    [[ $line == "$last" ]] || { printf '%s\n' "$line" || exit 0; last=$line; }
+    IFS= read -r -u "$fd" line
+    [[ $line == END ]] && exit 0
+    # a burst of changes (a key held, an output plugged in): one look once it has settled —
+    # or after 50 of them, should it never settle
+    for _ in {1..50}; do IFS= read -r -t 0.03 -u "$fd" line || break; [[ $line == END ]] && exit 0; done
+  done
+}
+[[ ${1:-} == bar ]] && { (($# == 1)) || { echo "usage: kawa-volume bar" >&2; exit 2; }; bar; exit; }
 # one change at a time: a held key repeats faster than wpctl answers, so a press that comes
 # while one is still being applied is dropped (no backlog that keeps changing the volume
 # after you let go), and the level shown is always the one the last change left
@@ -34,13 +88,21 @@ if [[ $1 == mic ]]; then
   icon=$ICON_MIC label=microphone
 else
   read -r _ vol state <<<"$(wpctl get-volume @DEFAULT_AUDIO_SINK@ 2>/dev/null)"
-  icon=$ICON_SPEAKER label=volume
+  label=volume
 fi
 [[ $vol =~ ^([0-9]+)\.([0-9]{2}) ]] || exit 0                 # "Volume: 0.62 [MUTED]"
 pct=$((10#${BASH_REMATCH[1]} * 100 + 10#${BASH_REMATCH[2]}))
 off=""
+# the volume's glyph as the sound panel's meter has it (and the bar): the speaker with its
+# waves for the level — none at 0, one to 25 %, two to 50, three to 75, four above —
+# crossed out while muted
+if [[ $1 != mic ]]; then
+  if ((pct == 0)); then icon=$ICON_VOL_0; elif ((pct <= 25)); then icon=$ICON_VOL_1
+  elif ((pct <= 50)); then icon=$ICON_VOL_2; elif ((pct <= 75)); then icon=$ICON_VOL_3
+  else icon=$ICON_VOL_4; fi
+fi
 if [[ $state == *MUTED* ]]; then
-  [[ $1 == mic ]] && icon=$ICON_MIC_OFF || icon=$ICON_SPEAKER_OFF
+  [[ $1 == mic ]] && icon=$ICON_MIC_OFF || icon=$ICON_VOL_MUTE
   off=off
 fi
 # shown before the next press may change it; the change is done whether or not it shows

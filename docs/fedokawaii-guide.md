@@ -1088,23 +1088,26 @@ Most values are right as they stand. These five are the ones people change:
 |---|---|---|
 | `USERNAME` | empty | never, normally: empty means whoever runs `sudo` — you |
 | `TIMEZONE` | `Asia/Dubai` | you live in another zone (`timedatectl list-timezones` lists the names) |
-| `WEATHER_CITY` | `Sharjah` | the weather in the bar should be another city's |
-| `NIGHT_LIGHT` | `25.35:55.40` | you live elsewhere: your latitude:longitude, for sunset and sunrise |
+| `WEATHER_CITY` | `Sharjah` | you live elsewhere: the name the weather is headed with |
+| `NIGHT_LIGHT` | `25.35:55.40` | you live elsewhere: your latitude:longitude, for sunset and sunrise and for the weather's forecast |
 | `KB_LAYOUTS` | `us,ara` | you want other keyboard layouts; the first is used for the shortcuts |
 
 For example, for a computer that will live in Dubai, two lines change. Before:
 
 ```ini
-WEATHER_CITY="Sharjah"            # bar weather (wttr.in)
-NIGHT_LIGHT="25.35:55.40"         # gammastep latitude:longitude
+WEATHER_CITY="Sharjah"            # the weather's name for where you are (the bar, its week)
+NIGHT_LIGHT="25.35:55.40"         # where you are, latitude:longitude: night light, weather
 ```
 
 After:
 
 ```ini
-WEATHER_CITY="Dubai"              # bar weather (wttr.in)
-NIGHT_LIGHT="25.20:55.27"         # gammastep latitude:longitude
+WEATHER_CITY="Dubai"              # the weather's name for where you are (the bar, its week)
+NIGHT_LIGHT="25.20:55.27"         # where you are, latitude:longitude: night light, weather
 ```
+
+The two go together: the forecast is for the place `NIGHT_LIGHT` names, and `WEATHER_CITY`
+is only what the weather calls it.
 
 Keep the straight double quotes, and no spaces around `=`.
 
@@ -1133,16 +1136,15 @@ GPU="amd"` — and so is a setting written twice or missing. After the install, 
 | `USERNAME` | empty | the desktop user; empty = whoever ran `sudo` |
 | `GPU` | `auto` | `auto`, `amd` or `intel` — drivers, video decoding, and mpv's scaling. Set it when the kernel does not drive the card yet (too new): setup installs its drivers. NVIDIA alone and virtual machines are not supported; the check says so before anything is installed |
 | `STEAM` | `yes` | Steam, gamescope, gamemode, MangoHud, GE-Proton; switched to `no`, the next update hands those packages back to dnf, and its clean-up removes them (your games stay in your home) |
-| `SPOTIFY` | `yes` | Spotify's own app, built on this machine by lpf from Spotify's download. `yes` is your acceptance of Spotify's terms (`/usr/share/lpf/packages/spotify-client/eula/`), so setup never stops to ask; switched to `no`, the next update hands Spotify and its recipe back to dnf, and its clean-up removes them |
 | `SSH_SERVER` | `no` | `no` disables sshd and closes ssh/cockpit in the firewall |
 | `MONITOR_HZ` | `144` | the highest refresh rate at or below this is used (30–540) |
 | `KB_LAYOUTS` | `us,ara` | keyboard layouts by their XKB names; the first one is always used for shortcuts. `localectl list-x11-keymap-layouts` lists the names |
 | `KB_TOGGLE` | `grp:alt_shift_toggle` | Alt+Shift switches layout; the bar shows US / AR. `localectl list-x11-keymap-options` lists the others (the switches start with `grp:`) |
 | `TIMEZONE` | `Asia/Dubai` | your time zone, as `timedatectl list-timezones` names it |
-| `WEATHER_CITY` | `Sharjah` | the weather in the bar (wttr.in, no key) |
-| `NIGHT_LIGHT` | `25.35:55.40` | latitude:longitude for gammastep, which works out sunset and sunrise from it (north and east are positive) |
+| `WEATHER_CITY` | `Sharjah` | the name the weather goes by: the heading of the week's menu, the bar's tooltip |
+| `NIGHT_LIGHT` | `25.35:55.40` | where you are, latitude:longitude (north and east are positive; within ±90 and ±180): gammastep works out sunset and sunrise from it, and the weather is Open-Meteo's forecast for it (free, no key) |
 | `THEME` | `dark` | the theme a new install starts in; afterwards it is whatever you last switched to |
-| `WALLPAPER_PACK` | `yes` | fetch the wallpaper pack once (120 pictures, about 360 MB, kept as they came); with `no`, each theme shows its plain ground until you add pictures of your own |
+| `WALLPAPER_PACK` | `yes` | fetch the wallpaper pack once (120 pictures, about 375 MB, kept as they came); with `no`, each theme shows its plain ground until you add pictures of your own |
 | `BOOT_MENU_SECONDS` | `2` | how long the themed boot menu shows (0–10); `0` = Fedora's hidden menu |
 | `DNF_PARALLEL` | `10` | parallel downloads (1–20) |
 | `DWL_TAG`, `DWL_COMMIT`, `DWL_WLROOTS` | `v0.9`, pinned, `0.20` | dwl is built from exactly this commit, against wlroots 0.20; should the tag point anywhere else, setup refuses to build |
@@ -1373,14 +1375,12 @@ build left and nothing reads again:
 | dnf's downloaded packages | `/var/cache/libdnf5` |
 | pip's and npm's download caches | `~/.cache/pip`, `~/.npm` |
 | packages the build pulled in that nothing needs any more | `dnf autoremove` |
-| Spotify's build, once it is installed | `/var/lib/lpf` (its download, build folders and package) |
 | Prowlarr's images it no longer runs | `podman image prune` |
 | half-made toolkit copies, the work folders of runs a power cut stopped | `/usr/local/lib/fedokawaii.new`, `/var/tmp/fedokawaii.*` |
 | the theme's backups of your replaced files, beyond the newest ten runs | `~/.local/state/fedokawaii/backup/` |
 
 Each `update` and `repair` does the same. What is used again stays: dnf's package lists, the
-sources dwl and the file dialog are rebuilt from, neovim's plugins, lpf's record of what it
-built.
+sources dwl and the file dialog are rebuilt from, neovim's plugins.
 
 Where this book says *the repository* after the install, it means that copy. You never edit
 it directly: to change the desktop for good you change your own *working copy* of it and
@@ -1596,7 +1596,7 @@ Five words come up on every page from here on.
 | Term | Plain meaning |
 |---|---|
 | workspace | a separate set of windows, one set at a time on a screen; dwl calls them *tags*, and a window can be on more than one |
-| spiral · columns · floating · monocle | dwl's four layouts here: windows sharing the screen, never overlapping — in a spiral (the default) or in columns · windows placed freely, by you · one window at a time, at full size |
+| spiral · columns · floating | dwl's three layouts here: windows sharing the screen, never overlapping — in a spiral (the default) or in columns · windows placed freely, by you |
 | first place | the largest part of the spiral, on the left: the first window's; each later window takes a smaller place, winding inward |
 | launcher | the box that starts a program by its name (fuzzel) |
 | focus | the window that receives what you type; its frame is vermilion |
@@ -1616,7 +1616,7 @@ it is, and the cat.
 |---|---|---|---|
 | 1 | **torii key** | the vermilion torii at the far left | opens the launcher |
 | 2 | **workspaces** | kanji numerals: 一 二 三 (1, 2, 3) always; 四 to 九 (4–9) only while they hold a window, are the one you are on or want attention. Faint on the paper = empty; in ink with a thin ring = windows on it; a filled vermilion seal = the one you are on; an asagi (teal) seal = something there wants attention | goes to it |
-| 3 | **layout icon** | spiral (the default), columns, floating, or monocle (with the number of stacked windows) — §7.1 | spiral ⇄ columns (from floating or monocle: spiral · right: columns) |
+| 3 | **layout icon** | spiral (the default), columns or floating — §7.1 | spiral ⇄ columns (from floating: spiral · right: columns) |
 | 4 | **title** | the focused window | |
 | 5 | **now playing** | artist — title, with a cassette whose reels turn while sound plays, between the two halves of a spectrum meter drawn like an old hi-fi's fluorescent display: lowest notes nearest the title, a full column lights its top segment in vermilion | play/pause · right: next · middle: previous |
 | 6 | **mode seal** | a small vermilion seal while something is on that you should not forget: **静** (*quiet*) while do-not-disturb holds notices back, **共有** (*sharing*) while the screen is being shared; nothing otherwise | quick settings |
@@ -1624,9 +1624,9 @@ it is, and the cat.
 | 8 | **gamepad** | only while Steam runs: dim while it starts, lit once it is ready, filled vermilion while a game runs | Steam's window · right: its menu — Library, Downloads, Friends, Settings, start with the desktop, quit Steam (ch. 21) |
 | 9 | **US / AR** | the keyboard layout, only when you have more than one (vermilion while it is not the first) | |
 | 10 | **memory** | the chip icon and how much memory the programs hold (`5.2G`), counted as btop and Windows count it — not the files Linux keeps in spare memory; vermilion past 85 % | opens btop |
-| 11 | **volume** | the speaker, its waves showing the level (none at 0, then one to four as it rises), and the number; *off* with the speaker crossed out (as the level display says) | quick settings (its sound slider) · right: mute · scroll: ±2 % |
-| 12 | **brightness** | a sun from the desktop's Sumi Icons and the monitor's brightness in percent (`☼ 70%`). The sun grows with the level in five steps, as the speaker's waves do: a hollow disc when dim, then fuller, up to the whole sun with its rays when bright; there only while a monitor answers over DDC/CI (§8.1) | quick settings · scroll: ±10 %, as **Super+]** / **Super+[** |
-| 13 | **weather** | the sky's icon and the temperature (`☼ 31°`) of `WEATHER_CITY`; point at it for the city and the sky in words | the forecast for the next days, in a window titled with your city as `WEATHER_CITY` spells it (wttr.in's own name for the place — often Arabic letters, which a terminal cannot join — is left out) |
+| 11 | **volume** | the speaker, its waves showing the level (none at 0, then one to four as it rises), and the number; *off* with the speaker crossed out (as the level display says) | the sound panel, right under it (§8.1): the volume, mute, the outputs and inputs · right: mute · scroll: ±2 % |
+| 12 | **brightness** | a sun from the desktop's Sumi Icons and the monitor's brightness in percent (`☼ 70%`). The sun grows with the level in five steps, as the speaker's waves do: a hollow disc when dim, then fuller, up to the whole sun with its rays when bright; there only while a monitor answers over DDC/CI (§8.1) | the brightness slider, right under it (§8.1) · scroll: ±10 %, as **Super+]** / **Super+[** |
+| 13 | **weather** | the sky's icon and the temperature now (`☼ 31°`) where you are (`NIGHT_LIGHT`'s place, from Open-Meteo); point at it for the city and the sky in words — and, once the reading is over an hour old, how old and why (`offline · 3 h old`) | the week, dropping down under it: 天 and your city, then today and the six days after it — the sky, the weekday, how the day feels and its mean temperature (below) |
 | 14 | **date, day, time** | `14 Oct` 水 `08:52:07 PM`: the date, the day of the week as a vermilion kanji seal (月 火 水 木 金 土 日, Monday to Sunday), the time to the second. The date leaves the weekday out, because the seal beside it already says the day; the lock and login screens write the date the same way. While a timer runs, beside the time: the hourglass and what is left (`24:59`, vermilion) — a stopwatch's time gone by in asagi | date or day: the calendar · time: the timer — 5, 10, 25, 45 or 60 minutes, or a stopwatch; when a timer ends, a notice with the bell that stays, and a short chime |
 | 15 | **the cat** | quick settings: the cat, centred between the last stitch and the screen's edge (13 px from each); it smiles, filled vermilion, while the panel or any menu dropping from the bar is on screen | quick settings |
 
@@ -1639,6 +1639,31 @@ time and pick *5 min*: the hourglass counts down beside it (pick *cancel the tim
 same menu to stop it; a restart of the bar keeps it, `kawa-timer --help` says more). Point at the
 volume (11) and turn the mouse wheel: the number moves 2 at a time. Click the cat (15): quick
 settings, and the cat smiles; **Esc** again.
+
+**The week.** Click the weather (13) and the week drops down under it, drawn as every
+dropdown is: the seal 天 (*ten*, the sky — 天気 is the weather) and your city, then a row a
+day, today first — the sky, the weekday and date, how the day feels, and the temperature on
+the right:
+
+```text
+天  Sharjah ┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄
+☼  Mon 19  scorching             31°
+☁  Wed 21  hot                   30°
+```
+
+The number is the day's mean temperature; the word is how the day feels — its mean
+*apparent* temperature, the air as your body takes it, humidity and wind in it — on one scale
+from cold to hot, set for a hot climate:
+
+| freezing | cold | cool | mild | warm | hot | scorching |
+|---|---|---|---|---|---|---|
+| under 4° | 4–13° | 14–19° | 20–25° | 26–31° | 32–37° | 38° and up |
+
+Choosing a day only closes the menu; so does **Esc**, a click outside, or the weather again.
+The forecast is fetched every half hour behind the bar, so the menu opens at once; when it
+could not be fetched for over an hour, a quiet line above the heading says why and how old the
+days are (`offline · 3 h old`), and days already gone are left out. The scale is
+`FEEL` near the top of `bin/kawa-weather` (ch. 43 reads that script).
 
 Which players show in *now playing* is in ch. 15; why the bar costs almost nothing
 while it waits is in ch. 40.
@@ -1677,9 +1702,10 @@ a key. (Hibernation writes memory to disk and switches off; setup turns it off f
 A keyboard's Sleep key belongs to the desktop, not to the system: dwl runs `kawa-power sleep`,
 which locks first and then sleeps. Left to the system, the key would put the machine to sleep
 first and lock it only as it woke. So setup tells the system to leave the key alone, and to
-give the lock up to 15 seconds before any other sleep — two lines in
+give the lock time before any other sleep — two lines in
 `/etc/systemd/logind.conf.d/90-fedokawaii.conf`, `HandleSuspendKey=ignore` and
-`InhibitDelayMaxSec=15` — and `verify` checks that the key is left to the desktop. A video
+`InhibitDelayMaxSec=25` (the same wait lets Steam close properly before a restart, §21.1) —
+and `verify` checks that the key is left to the desktop. A video
 playing in
 mpv or Brave keeps the screens on by itself. Both times are yours to change through your
 working copy (ch. 42): the 90 seconds are `sleep_after=90` in `bin/kawa-lock`, the hour is the
@@ -1805,8 +1831,8 @@ rest:
 
 The rule: **each new window takes the next place, turning a quarter each time — left, top,
 right, bottom — so the windows wind inward like a shell's spiral; those already open keep their
-places, only smaller.** A **third window** shows it: the right part splits, top and bottom, in
-the same ratio:
+places, only smaller.** Only the first split is golden; every later one is even. A **third
+window** shows it: the right part splits, top and bottom, into two equal halves:
 
 ```text
 ┌───────────────────────────┐┌───────────────┐
@@ -1819,12 +1845,28 @@ the same ratio:
 └───────────────────────────┘└───────────────┘
 ```
 
-A fourth takes the right part of the third's place, and so on. The first window is always the
-largest: **Super+Shift+Return** moves the focused window into the first place, and **Super+H**
-and **Super+L** make the first window narrower or wider (every turn after it follows).
+The spiral never makes a window too small to work in. The smallest it gives is 600 × 336
+pixels, frame included: 48 columns by 12 rows of terminal text, enough for a shell, yazi or an
+editor. Three such columns fit across a 1920-pixel screen, and three such rows fit under the
+bar. When the next turn would make a window smaller than that, the spiral stops turning, and the
+windows still to be placed share the last place in even rows and columns. On a 1080p screen:
+
+| Windows | What you get |
+|---|---|
+| 1–3 | as in the pictures |
+| 4 | the first place as before; 2, 3 and 4 in three equal rows on the right |
+| 5 | three columns: the first window on the left, a little wider than the others; two rows in each of the other two columns |
+| 6–7 | the same three columns, with three rows in the right column (6) or in both right columns (7) |
+| 8–9 | an even grid of three columns (more windows than that: a finer grid, the windows smaller) |
+
+The first window is always the largest: **Super+Shift+Return** moves the focused window into the
+first place, and **Super+H** and **Super+L** make the first window narrower or wider. It stops
+where it, or what is beside it, would be narrower than 600 pixels.
 
 **Columns** (**Super+T**) set the windows side by side instead — left to right in the order they
-opened, each as wide as the others — and **Super+S** brings the spiral back:
+opened, each as wide as the others. There are only as many columns as fit at 600 pixels or wider
+(three on a 1920-pixel screen). Any further windows share those columns as even rows, starting
+with the columns on the right. **Super+S** brings the spiral back:
 
 ```text
 ┌─────────────┐┌─────────────┐┌──────────────┐
@@ -1840,22 +1882,6 @@ opened, each as wide as the others — and **Super+S** brings the spiral back:
 Between and around the windows runs an 8-pixel gap, and each window wears a 2-pixel frame
 (`gappx` and `borderpx` in `src/dwl/config.h`). The focus follows the mouse: point at a window
 and it receives your typing.
-
-**Monocle** (**Super+M**, its own key only: a click on the layout icon and Super+Shift+T
-never pick it) shows one window at a time, filling the whole space under the bar;
-the others wait behind it, and the bar's layout icon shows how many — `[3]` here. **Super+J**
-and **Super+K** bring each to the front in turn:
-
-```text
-┌────────────────────────────────────────────┐
-│ 3   (2 and 1 wait behind it)               │
-│                                            │
-│                                            │
-│                                            │
-│                                            │
-│                                            │
-└────────────────────────────────────────────┘
-```
 
 A **floating** window (**Super+Shift+Space**) leaves the tiling and lies on top; the others
 close the gap beneath it. Super+drag moves it, Super+right-drag resizes it. **Super+Y** floats
@@ -1876,7 +1902,7 @@ themselves:
 
 > **On Windows.** Snap (**Win+←**, **Win+→**) puts two windows side by side when you ask.
 > Here that happens to every window, always, and the first place is the large left part you
-> would snap to. Maximising is **Super+M** (monocle) or **Super+F** (fullscreen, over the bar too).
+> would snap to. Maximising is **Super+F** (fullscreen, over the bar too).
 
 **Try this.** Watch the pattern happen. Start on an empty workspace.
 
@@ -1884,10 +1910,9 @@ themselves:
 |---|---|
 | **Super+Return** three times | three terminals, as in the third picture: the first on the left, the newest bottom right |
 | **Super+J**, again, again | the vermilion frame moves from window to window, and round to the first |
-| **Super+L**, then **Super+H** | the first window grows by 5 % of the width, then shrinks back (its share stays between 10 % and 90 %) |
+| **Super+L**, then **Super+H** | the first window grows by 5 % of the width, then shrinks back (neither it nor what is beside it goes below 600 pixels) |
 | **Super+K** (to terminal 3), then **Super+Shift+Return** | terminal 3 moves into the first place; the others move along a place. On the first window, the same key swaps the next one in |
 | **Super+T**, then **Super+S** | three equal columns, left to right; then the spiral again |
-| **Super+M**, **Super+J**, **Super+S** | monocle — one window, the bar shows `[3]` — the next one, then the spiral again |
 | **Super+Shift+Space**, then again | one terminal floats on top, then rejoins the tiling |
 | **Super+Q** three times | each closes; the others grow to fill the space |
 
@@ -1904,7 +1929,7 @@ a two-page selection to keep beside the keyboard.
 |---|---|
 | **Super+Return · Space · B · E** | terminal · launcher · Brave Origin · files (yazi) |
 | **Super+X · V · /** | quick settings · clipboard history · help |
-| Super+A · C · W | audio · calendar · wallpaper |
+| Super+A · C · W | sound · calendar · wallpaper |
 | Super+R · Super+N | books (§16.2) · notes, and again to put them away (§16.3) |
 | Super+Z | shrink or convert what you copied: a picture or a PDF small enough to send (§12.6) |
 | **Super+Q** | close the window |
@@ -1923,7 +1948,7 @@ a two-page selection to keep beside the keyboard.
 | Super+H / L | spiral: the first window narrower / wider |
 | **Super+Shift+Return** · F · Shift+Space | move to the first (largest) place · fullscreen · float/unfloat (also Super+middle-click) |
 | Super+drag / right-drag | move / resize |
-| Super+S / T / Y / M · Shift+T | spiral (the default) · columns · floating · monocle · the tiling layout used before, spiral or columns (the bar's layout icon: a click switches between spiral and columns, a right-click too; floating and monocle pile windows on top of each other, so only Super+Y and Super+M choose them) |
+| Super+S / T / Y · Shift+T | spiral (the default) · columns · floating · the tiling layout used before, spiral or columns (the bar's layout icon: a click switches between spiral and columns, a right-click too; floating piles windows on top of each other, so only Super+Y chooses it) |
 
 **Workspaces**
 
@@ -2031,7 +2056,7 @@ If the new screen is now the one the machine starts on, apply the theme again (*
 
 - Windows wind inward in a golden spiral: the first keeps the largest place, each new one takes the next.
 - **Super+J/K** move the focus; **Super+Shift+Return** moves a window into the first place.
-- **Super+T** sets columns, **Super+M** one window at a time, **Super+S** the spiral again; **Super+Shift+Space** floats one.
+- **Super+T** sets columns, **Super+S** the spiral again; **Super+Shift+Space** floats one.
 - Nine workspaces: **Super+1…9** to go, **Super+Shift+1…9** to send a window, **Super+Tab** to go back.
 - **Super+/** lists every key; the vermilion frame marks the window you type into.
 
@@ -2039,7 +2064,7 @@ If the new screen is now the one the machine starts on, apply the theme again (*
 
 1. Two terminals are open, side by side, and you start Brave. Where does it go? → *into the next place: the first terminal keeps the left, the second moves to the top right, Brave goes below it*
 2. How do you put the focused terminal on workspace 4? → *Super+Shift+4*
-3. Which key shows one window at a time, full size? → *Super+M (monocle); Super+S brings the spiral back*
+3. Which key fills the whole screen with the focused window? → *Super+F (fullscreen); Super+F again brings it back into the spiral*
 
 # 8. Menus, settings and notices
 
@@ -2057,7 +2082,7 @@ or one click on the bar away. They all work the same way, so learning one teache
 
 ## 8.1 Menus
 
-<!-- fig:menus | Quick settings, the power menu, the calendar and the audio menu, on both themes. -->
+<!-- fig:menus | Quick settings, the sound panel, the power menu and the calendar, on both themes. -->
 
 **Quick settings** (**Super+X**, or the bar's cat at its right end) is a panel of its own,
 dropping down from the bar's right end. It never repeats what the bar right above it says (the
@@ -2066,8 +2091,8 @@ day, the time, the weather, the volume's and the brightness's numbers). From the
 - **two meters**: 明 *brightness* (the monitor's real backlight, over DDC/CI) and 音 *sound*,
   twelve squares each, with no number beside them: both numbers are on the bar (§6.5). Click or drag on the squares to set the
   level there, or turn the wheel over them (5 % a step). *no DDC/CI* or *muted* stands in
-  place of the squares when there is no level to show. **Enter** on *sound* opens the audio
-  menu (outputs, the microphone);
+  place of the squares when there is no level to show. **Enter** on *sound* (or a click on its
+  name) opens the sound panel in its place (below: outputs, inputs, the microphone);
 - **the tiles**: *theme* · *night light* · *freesync* · *network* · *bluetooth* · *devices* (those
   two only when the PC has a Bluetooth adapter) · *drives* · *backup* (the last one's age,
   §37.6) · *dnd* (do not disturb). Each shows its icon, its name and how it stands, with a kanji
@@ -2078,12 +2103,34 @@ day, the time, the weather, the volume's and the brightness's numbers). From the
 - **three keys**: *wallpaper* (point at it: the one shown now), *screenshot*, and the power
   icon for the power menu.
 
-The keyboard's cursor fills its tile, meter or key in vermilion. The pointer draws no box: the
-item under it keeps its look, and only its icon (a meter's kanji) and its name turn vermilion,
-at once, with no fade. A click moves the cursor to what it clicked. **Arrows** (or **h j k l**)
-move the cursor, **← →** on a meter change it,
-**Enter** or **Space** chooses, **Tab** goes round, **Esc** closes it, and so do a click outside
-and its own key pressed again.
+**The pointer** draws no box: the item under it keeps its look, and only its icon (a meter's
+kanji) and its name turn vermilion — at once, with no fade, also the moment the panel opens
+under the pointer or the pointer comes back over it and stops. A click always does what is
+under the pointer, whether or not the panel has the keyboard.
+**The keys**: the panel has the keyboard while it is open, so they always reach it. It opens
+with no cursor (nothing is remembered from the last time — not the meter you dragged, nor the
+tile you chose); the first **arrow**, **Tab** or **Enter** puts the cursor, a vermilion fill, on
+the first item. Then **arrows** (or **h j k l**) move it, **← →** on a meter change it, **Enter**
+or **Space** chooses, **Tab** goes round. **Esc** closes it, and so do a click outside and its
+own key pressed again.
+
+**The sound panel** (**Super+A**, or a click on the bar's volume) drops from the bar under the
+volume, drawn as quick settings is, in three parts under kanji seals:
+
+- 音 *sound*: the volume's twelve squares — click, drag, the wheel or **← →**, as in quick
+  settings; while muted they turn hollow (the level kept, not heard), and setting a level
+  unmutes — then *mute* (*unmute* while muted) and *mixer* (wiremix, every program's own level);
+- 出 *output* and 入 *input*: every device, the one in use ticked; click another and it becomes
+  the default at once, the panel staying open to show it, and what plays moves to it (*Share*
+  is not listed: it is picked per program, §14.4). At the foot of 入, *mute microphone*.
+
+**The brightness slider** (a click on the bar's brightness) is the 明 meter alone, under the
+sun: click, drag, the wheel or **← →** straight away.
+
+A panel opened by a click on the bar hangs right under what you clicked (kept 8 px inside the
+screen); opened by its key, under its module (quick settings at the right end). One panel is
+open at a time: opening another — or any menu — closes it; its own key or click again closes
+it, as do **Esc** and a click outside.
 
 Every other menu is the same fuzzel window, so they look and behave alike: type to filter,
 arrows or mouse to choose. **Esc** closes a menu, and so does a click outside it, or its own key
@@ -2094,7 +2141,8 @@ closes the one on screen and opens its own (quick settings too).
 |---|---|---|
 | quick settings | the bar's cat, **Super+X** | the panel above: brightness and sound · theme, night light, FreeSync, network, Bluetooth and its devices, drives, backup, dnd · wallpaper, screenshot, power |
 | power | **Super+Shift+E** | lock · sleep · log out · restart · shut down — centred, with your uptime; when the system says no (another user logged in, something holding it off), a notice says why |
-| audio | volume, **Super+A** | three parts, headed: 音 sound — louder / quieter / mute (stay open for repeated taps) and the full mixer; 出 output and 入 input — every device (not *Share*, which is picked per program, §14.4), picking one moves playing sound to it, and microphone mute. No level of its own: the bar's, right above it |
+| sound panel | the bar's volume, **Super+A** | a panel, as quick settings: 音 sound — the volume's squares, mute, the full mixer; 出 output and 入 input — every device (not *Share*, which is picked per program, §14.4), picking one moves playing sound to it, and microphone mute. No number of its own: the bar's, right above it |
+| brightness slider | the bar's brightness | the 明 meter alone |
 | calendar | the clock, **Super+C** | this month (Monday first, today in brackets), previous / next |
 | share what? | a screen share | the screens and windows you can share (§14.4) |
 | drives | the bar's drive mark, quick settings | every file system on a USB stick, disk or SD card — open it in yazi — and **eject** for each drive (ch. 13) |
@@ -2108,7 +2156,7 @@ closes the one on screen and opens its own (quick settings too).
 | Menu | Do this | You see |
 |---|---|---|
 | quick settings, **Super+X** | click *dnd* | its seal 静 is stamped, the tile says *on*, and **静** stands in the bar too; click it again to turn it off |
-| audio, **Super+A** | choose *quieter* twice, then *louder* twice | the bar's volume falls, then rises, 5 % a step; the menu stays open until **Esc** |
+| sound panel, **Super+A** | press **→** (the cursor lands on the volume), then **←** twice and **→** twice | the bar's volume falls, then rises, 5 % a step; the panel stays open until **Esc** |
 | calendar, **Super+C** | choose *next*, then *back to today* | next month, then this one, today in brackets |
 | power, **Super+Shift+E** | read the top line, then **Esc** | how long the machine has been up: *up 00h 25m* |
 | help, **Super+/** | type `print` | the list narrows to the lines that match: the screenshot keys among them |
@@ -2234,8 +2282,8 @@ names the keys.
 
 Headphones pair the same way: hold their power button until the light flashes, **s**, **Tab**,
 **Enter**. Some ask you to confirm a six-figure number shown in the window: *Yes* is already
-chosen, so **Enter** (**Tab** moves to *No*). Then **Super+A**: the headphones are a new line under *output*. Choose it. A notice
-says *… is now the output*, and whatever is playing moves to them.
+chosen, so **Enter** (**Tab** moves to *No*). Then **Super+A**: the headphones are a new line under *output*. Click it.
+The tick moves to them, and whatever is playing moves to them too.
 
 <!-- fig:app-bluetui | bluetui, the pairing window, with a controller and headphones paired and a scan running, on the dark theme; the same on the light. -->
 
@@ -2385,8 +2433,15 @@ crests rise; both windows are light now, and so is the bar. Press it again for t
 columns by 37 rows (the clipboard window's width), with the current theme's wallpapers listed
 on top and, in the 18 rows underneath, the one under the cursor — the picture itself, as your
 screen will show it, only smaller. Move with ↑/↓ or the mouse, type to search; **Enter** sets it, **Esc** leaves
-everything as it was. A ◐ after a name means the place also comes in the other theme's light
-(see the pairs below), and choosing it sets both.
+everything as it was. It is a text screen like the desktop's others: its heading (壁, *wallpaper*,
+the stitch), then a row per picture — its glyph and name, the theme's own marked *default* at
+the right; a ◐ there means the place also comes in the other theme's light (see the pairs
+below), and choosing it sets both.
+
+Holding ↓ runs through the pictures without a pause: each preview is drawn ahead, already the
+size of the pane, so showing one is only reading a small file (a few hundred KB, a few
+milliseconds) — and **Enter** shows the new wallpaper at once, from a copy already the size of
+your screen.
 
 <!-- fig:wallpaper-picker | The wallpaper picker (Super+W) on both themes: the list on top, the picture under the cursor as the screen will show it. -->
 
@@ -2402,24 +2457,24 @@ Each theme remembers its own wallpaper. The choices:
   sparing, in the themes' own ink, paper and vermilion. Before the pack is
   fetched — or with `WALLPAPER_PACK="no"` — the screen shows the theme's plain ground.
 * **the pack** (`WALLPAPER_PACK="yes"`) — 120 pictures (60 for the dark theme, 60 for the
-  light), about 360 MB, fetched once from GitHub at pinned commits and checked by SHA-256. They
+  light), about 375 MB, fetched once from GitHub at pinned commits and checked by SHA-256. They
   are kept exactly as they came (`~/.local/share/fedokawaii/wallpapers/dark/` and `light/`,
   each `NAME.src`), nothing redrawn. Offline, the fetch stops after three pictures that could
   not reach GitHub and leaves the rest for the next run. Every one is Japanese, and the picker
   lists them grouped by kind, the theme's default first:
 
     - *dark*: ink and brush (the ink ridges, a ronin by the waves, a dragon in grey on black,
-      moonlit fields and a moonlit road in pen and ink, a torii in moonlight); woodblock
-      prints by night (Hiroshige's Tōkaidō in twilight, mist, night snow and rain, a bridge in
-      a shower, Kyoto's Shimabara at dawn, the autumn moon over Tamachi, Ushiwakamaru by
+      moonlit fields and a moonlit road in pen and ink); woodblock prints by night
+      (Hiroshige's Tōkaidō in twilight, mist, night snow and rain, a departure by lantern
+      before dawn, a bridge in a shower, Kyoto's Shimabara at dawn, the autumn moon over Tamachi, Ushiwakamaru by
       moonlight; Hokusai's storm beneath Fuji and a fire by a snowbound hut; Kuniyoshi's
       Nichiren on the stormy sea; Shōtei's Fuji at dusk and junks under a crescent moon,
       Kiyosu Bridge at dusk, Kōhō's moonlit beach, Hasui's rain at the Sakurada Gate and
       Ryūga Island at dusk, Yoshida's Fuji at first light); towns, trains and streets by night
       (a train by the sea, laundry on old Tokyo houses, pylons and power lines at dusk,
-      vending machines in the snow, level crossings, hydrangeas in the rain, a moonlit bay, a
-      van on a country road at sunset, lamps on the wires, windows and balconies over the
-      town at dusk, a cat at the window, an old street corner, lanterns before a shrine); and
+      vending machines in the snow, level crossings, hydrangeas in the rain, a moonlit bay,
+      lamps on the wires, windows and balconies over the town at dusk, a cat at the window,
+      an old street corner, a ramen stall at dusk, a late train, lanterns before a shrine); and
       anime film (Totoro, Your Name, 5 Centimeters per Second, Chainsaw Man, a Shinjuku
       corner at dusk, rain at a crossing signal).
     - *light*: Hokusai (Red Fuji, the Great Wave, snow at Koishikawa, cranes at Umezawa, the
@@ -2450,13 +2505,40 @@ exactly — no bars at the sides — and what sticks out is cropped:
 |---|---|
 | scale | a Lanczos filter, the sharpest clean one, in linear light, so colours mix as light does and edges do not darken; the pack's pictures are all at least as large as a 1080p screen, so there they are only ever made smaller |
 | crop | from the middle — or, for the five pictures whose subject sits high, from the top: the *crop* column of `wallpapers.list` says `north` for those |
-| keep | drawn once per screen size, cached in `~/.cache/kawa-wallpaper` with the picker's previews |
+| keep | drawn once per screen size and kept: `~/.cache/fedokawaii/wallpaper-screens/<size>/`, with the picker's previews in `wallpaper-previews/` |
 
 Your own pictures are scaled and cropped the same way, from the middle. A new choice dissolves
 in over the old one.
 
-**Tip:** `~/.cache/kawa-wallpaper` can be deleted at any time; `kawa-wallpaper --restore`
-draws the current wallpaper again.
+**Drawn ahead.** Decoding a 4K picture and scaling it takes seconds; showing one already the
+screen's size takes a fraction of one. So the pack is drawn once, right after it is fetched
+(Theme, `kawa-wallpaper --pack`), on every core at once, its progress in the Theme log:
+
+| What | Where (`~/.cache/fedokawaii/`) | Made |
+|---|---|---|
+| each picture at your screen's exact size (about 2–3 MB at 1080p) | `wallpaper-screens/1920x1080/NAME.SHA.CROP.png` | after the fetch, for the monitors connected then; for a new screen size, once, in the background after login or the hotplug |
+| each picture as the picker's preview, already a sixel for the pane | `wallpaper-previews/SCREEN-CELL-GROUND/NAME.SHA.CROP.COLSxROWS.six` | with the above, once the picker has been opened once (the pane's size comes from it); the first time, while the picker is open, nearest the cursor first |
+| your own pictures, the same two | the same folders | the first time each is shown or set |
+
+A file's name holds the picture's name, the first 16 hex digits of its SHA-256 (the list's, for
+the pack; your own pictures' are read once and remembered by size and date in
+`wallpaper-sums`) and its crop — so a changed picture is drawn again, and drawings of pictures
+that are gone (retired from the pack, deleted from your folder) are tidied away. A screen size
+not used for a month goes too. About 300 MB for the pack at 1080p, plus some 35 MB of
+previews. The originals stay exactly as they came: everything here is made again from them.
+
+| Command | What it does |
+|---|---|
+| `kawa-wallpaper --cache` | draws whatever is missing now, for every monitor connected |
+| `kawa-wallpaper --cache-status` | says whether every pack picture is drawn and current (Verify asks it too) |
+
+The switch itself starts the new picture before the old one goes, and takes the old one down
+only once the new one is on screen — no flash of bare colour in between, and the dissolve
+starts on the new wallpaper. How long each change took is kept in
+`~/.cache/fedokawaii/wallpaper.log`.
+
+**Tip:** `~/.cache/fedokawaii/wallpaper-screens` and `wallpaper-previews` can be deleted at any
+time; `kawa-wallpaper --cache` draws them again (or the next login does, in the background).
 
 <!-- fig:packsheet | The whole pack: the dark theme's pictures first, then the light theme's. -->
 
@@ -3003,7 +3085,7 @@ says where you are, then `›`, after which you type.
 Three prompts, and what each says. **In your home**, in a new terminal:
 
 ```text
-⛩  ~ ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈ ☾  08:52:07 PM
+⛩   ~ ╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌ ☾  08:52:07 PM
 ›
 ```
 
@@ -3016,7 +3098,7 @@ from the output above it.
 **After a command that failed**, in `~/practice`:
 
 ```text
-⛩  ~/practice ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈ ✗  1  ☾  08:53:10 PM
+⛩   ~/practice ╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌ ✗  1  ☾  08:53:10 PM
 ›
 ```
 
@@ -3027,7 +3109,7 @@ so the next prompt shows neither.
 **In a git repository with changes**, after a command that took 4.2 seconds and succeeded:
 
 ```text
-⛩  ~/repos/site   main +2 ~1 ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈ ✓  4.2s  ☾  08:52:07 PM
+⛩   ~/repos/site   main +2 ~1 ╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌ ✓  4.2s  ☾  08:52:07 PM
 ›
 ```
 
@@ -3039,9 +3121,9 @@ is ch. 41); the command succeeded and took 4.2 s.
 | Part | Shows |
 |---|---|
 | torii | where every entry starts |
-| path | the folders above in the text colour, the one you are in bright and bold (the last three; `…/` for the rest); `user@host` first over SSH |
+| path | the folders above in the text colour, the one you are in bright — the whole path while it fits (below: how it shortens); `user@host` first over SSH |
 | git | branch, then only what is non-zero: `+` staged, `~` modified, `?` untracked, `!` conflicted, `↑` ahead, `↓` behind — one `git status` call, parsed in bash |
-| rule | a dotted line to the right edge, so each command reads as a new entry |
+| stitch | `╌` to the right edge, in the colour of the stitched rules under every menu heading — the same line as a heading's (a glyph, two spaces, the name, the stitch), so each command reads as a new entry |
 | right end | after a command: `✓` in green when it succeeded, `✗` and its exit code in vermilion when it failed, then the time it took when that was 3 s or more (`4.2s`, `1m05s`) · sun by day, moon by night · the time to the second |
 | when they apply | `you@host` before the path over SSH · a Python virtual environment's name, `(venv)` · `jobs 1` while a program waits in the background (§26.3) |
 | `›` | the chevron you type after — the same one the desktop's list windows (the clipboard, the wallpapers, the system's control) show |
@@ -3052,6 +3134,44 @@ desktop's own pixel icons, each as wide as a kanji, so each has a space of its o
 and nothing touches it. Nothing on the header line has a background, so the cursor below
 never touches it either. Outside a git repository the prompt runs entirely inside bash — it
 starts no process to draw itself.
+
+### At every width
+
+A terminal is as wide as the place the tiling gives it, and that changes whenever a window
+opens or closes beside it (§7.1). The header always stays on one line and ends one column short
+of the edge, at the width the window has *now*: when the width changes under a prompt that is
+already up, ble.sh draws it again and the header is laid out anew — its mark, the time taken
+and the clock stay those of the command that ended. When the stitch would be shorter than six
+columns, the header gives up, in this order and only as far as it must:
+
+| Order | Gives up | `~/repos/fedokawaii/configs/home/.config` becomes |
+|---|---|---|
+| 1 | the folders above, to their first letter | `~/r/f/c/h/.config` |
+| 2 | the sun or moon and the clock (the bar shows the time) | |
+| 3 | the folders above altogether | `… /.config` |
+| 4 | git's counts (the branch stays) | |
+| 5 | the time the command took | |
+| 6 | the branch | |
+
+The same entry — a deep folder in a repository, a command that succeeded — at the widths of a
+1920 × 1080 screen's tiles:
+
+```text
+156 columns (one window)    ⛩   ~/repos/fedokawaii/configs/home/.config   main +1 ~2 ?1 ↑ 1 ╌╌╌╌╌ … ╌╌╌ ✓  ☀  03:02:39 PM
+ 77 (half the screen)       ⛩   ~/r/f/c/h/.config   main +1 ~2 ?1 ↑ 1 ╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌ ✓  ☀  03:02:39 PM
+ 58 (a third)               ⛩   ~/r/f/c/h/.config   main +1 ~2 ?1 ↑ 1 ╌╌╌╌╌╌╌╌╌╌╌ ✓
+ 37 (a quarter)             ⛩   … /.config   main ╌╌╌╌╌╌╌╌╌╌ ✓
+ 20 (spiral's smallest)     ⛩   … /.config   ✓
+```
+
+Under 30 columns there is no stitch: the torii, the folder, and the mark at the right edge; a
+folder whose name alone is longer than that is cut in its middle (`a-fol… wide`). The mark of
+how the last command ended is never given up.
+
+Lines already printed are the terminal's: when a window narrows, foot re-wraps what is above
+the prompt — an earlier entry's stitch, a listing's columns — to the new width, and joins it
+again when the window widens. Only the prompt you are at, and full-screen programs, are drawn
+anew.
 
 A command that ran **10 seconds or more** also sends a notice — *done in 1m05s* or *failed (1)
 after 12.0s*, with the folder — which foot shows only while you are in another window: start a
@@ -3487,6 +3607,42 @@ lines are exactly 24 px tall, so the tallest letters of one line would touch the
 Each character cell is therefore 12 × 26 pixels, and `kawa-cell` typed in a terminal prints
 it (`12x26`).
 
+### In every tile
+
+The text is the same size in every terminal, whatever the size of its window: a 24 px letter
+in the largest window is a 24 px letter in the smallest, so text reads alike across the
+screen and nothing jumps when windows come and go. What changes with the window is the
+*content*: each program lays itself out for the columns it gets.
+
+| Window (on a 1920 × 1080 screen) | Columns × rows | The prompt | yazi | lazygit | btop |
+|---|---|---|---|---|---|
+| one, alone | 156 × 40 | everything | parent, list, preview 1 : 3 : 4 | panels beside the diff | all four boxes |
+| half (spiral's big one: 95) | 77–95 × 40 | the path shortens | 1 : 4 : 3 | panels above the diff (77) | CPU over processes (77) |
+| a third, a quarter (tall) | 37–58 × 40 | path and counts shorten | the list above the preview | panels above the diff | processes · memory and network |
+| spiral's middle | 58 × 24 | no clock | list and preview side by side | panels beside the diff | processes |
+| spiral's small ones | 20–34 × 4–14 | torii, folder, mark | the list alone | too small: `+` | too small (btop needs 36 × 6) |
+
+* **The prompt** — §11.3, *At every width*.
+* **yazi** chooses its panes again whenever its window changes size: the preview gets the most
+  room in a wide window; under 60 columns the parent column goes, and the list and the preview
+  share the window — one above the other, with the stitch between them, when the window is
+  tall. Its status line drops the permissions, then the size, rather than run words together.
+  A ratio of your own (`[mgr] ratio` in `~/.config/yazi/yazi.toml`) is kept at every width.
+* **lazygit** puts its panels above the diff in a tall window of 84 columns or fewer, and
+  beside it otherwise — chosen again as the window changes. In a small tile, `+` gives the
+  panel you are in half the window, then all of it (`_` goes back).
+* **btop**, typed in a terminal, starts in the richest layout its window holds: all four
+  boxes from 80 × 24, then the CPU over the processes, the CPU, the processes, memory over
+  network, memory. Its layouts are the presets in `btop.conf` and **p** cycles through them;
+  btop picks one only as it starts, and draws nothing in less than 36 × 6. From the bar it
+  opens floating at 112 × 33, room for all four.
+* **neovim** lays itself out already: the code is cut at the window's edge, never wrapped.
+
+A tiled window is rarely a whole number of cells wide: the pixels left over (up to 11 across,
+25 down) sit on the right and at the bottom, after the 10 px of paper. The text keeps its
+place at the top left, so the left edges of all the terminals on the screen line up, and it
+does not move when the windows around it change.
+
 **Recommended.** A terminal started as `footclient -a float` opens floating and centred, like
 the network window from quick settings, btop from the bar and the clipboard history; good for
 a quick look at something without disturbing the tiling. In programs that use the mouse
@@ -3683,6 +3839,7 @@ themselves too: there the text is what is kept.
 | Keys | Does |
 |---|---|
 | Enter | put that entry back on the clipboard and close; then paste as usual |
+| Super+Z | shrink or convert that entry — a picture, a PDF, or files copied in yazi (§12.6); the result lands on the clipboard and at the top of the list, under the cursor, so Super+Z again converts the result |
 | Ctrl+D | forget that entry |
 | Ctrl+X | forget them all (it asks first; the clipboard itself stays) |
 | Esc | close, the clipboard exactly as it was |
@@ -3804,6 +3961,13 @@ a photo was taken, and the like, is stripped from it. In yazi, **Alt+S** does th
 files you selected, without copying first. Nothing is overwritten, and a PDF that would come
 out no smaller is left as it is. A copied picture that has no file of its own (a screenshot,
 an image copied in Brave) gets one in `~/Pictures`: `copied DATE (chat).jpg`.
+
+**An earlier copy.** With the clipboard history open (**Super+V**, §12.1), Super+Z works on
+the entry under the cursor instead of on what the clipboard holds now. The menu opens over
+the history; the result goes to the clipboard and shows at the top of the list with the
+cursor on it. A result can be converted again, as often as you like: say a chat-sized JPEG
+that should be a WebP. Each conversion makes a new file and never replaces the last one. On
+a text entry, Super+Z only says *nothing to shrink*.
 
 ## 12.7 To and from your phone: LocalSend
 
@@ -4137,11 +4301,11 @@ remember it.
 * Each entry shows its program's **own icon**, as its package ships it — no icon pack. An
   entry of this desktop's own for a terminal program (Files, Torrents, Agents) shows foot's,
   the terminal its window is; Prowlarr shows Brave's, where its page opens.
-* Only what you start is listed: the helpers that come with packages — lpf's build windows
-  (Spotify's builder), Qt's settings (qt6ct), LibreOffice's start centre, and mpv and
-  zathura with nothing to open — are hidden by entries of the same name in
-  `~/.local/share/applications` (`NoDisplay=true`); the programs still work, and films and
-  documents still open in them. **Spotify** appears once lpf has built it (§15.4).
+* Only what you start is listed: the helpers that come with packages — Qt's settings
+  (qt6ct), LibreOffice's start centre, and mpv and zathura with nothing to open — are hidden
+  by entries of the same name in `~/.local/share/applications` (`NoDisplay=true`); the
+  programs still work, and films and documents still open in them. **Spotify** is its web
+  player in a Brave app window (§15.4).
 * The tools installed as release binaries — satty, lazygit, bluetui — have no launcher
   entry; start them in a terminal.
 
@@ -4195,7 +4359,7 @@ Very little, on purpose:
   never leave every saved password and cookie unreadable.
 * **No flags file** — Chromium 140 and later choose Wayland by themselves. Whether videos are
   decoded by the GPU is Brave's own default; `brave://gpu` → *Video Decode* shows it.
-* Links opened elsewhere — foot's URL mode, lazygit, LibreOffice, Spotify — open in
+* Links opened elsewhere — foot's URL mode, lazygit, LibreOffice — open in
   Brave, and magnet links clicked in Brave open in torrra (ch. 20).
 
 ### Worth checking once
@@ -4270,7 +4434,7 @@ back so they never appear in the call — critical ones and the level display st
 |---|---|
 | the sound of a **Brave tab** (a video you are showing) | share the tab and keep *Also share tab audio* ticked — Brave captures it itself |
 | the **computer's sound** with a whole screen or a window | tick *Also share system audio* in Brave's picker (Theme turned this Brave feature on). It carries everything you hear — including the call itself, so others may hear an echo of their own voices. Headphones do not help; use it for a moment, or use the next row instead |
-| **only certain programs** (a game, a player), in any call program | in the mixer (audio menu → *mixer…* → *Playback*) move those programs to the **Share** output — you still hear them — then pick **Share (as microphone)** as the microphone, or as a second audio input, in the call program. Only what you moved there is sent, never the call |
+| **only certain programs** (a game, a player), in any call program | in the mixer (sound panel → *mixer* → *Playback*) move those programs to the **Share** output — you still hear them — then pick **Share (as microphone)** as the microphone, or as a second audio input, in the call program. Only what you moved there is sent, never the call |
 
 > **Word — PipeWire.** The sound server: the program that carries every other program's sound
 > to the speakers or headphones — and the pictures of a screen share to the call.
@@ -4282,7 +4446,7 @@ back so they never appear in the call — critical ones and the level display st
 loopback there, never by its description) — so look for `share_sink`, not "Share"; verify
 asks PipeWire itself (`pw-dump`) for the node `share_sink`.
 
-Your microphone itself travels as usual; check it in the audio menu (Super+A → input).
+Your microphone itself travels as usual; check it in the sound panel (Super+A → input).
 
 ## 14.5 Recipe: share your screen, with sound, in a call
 
@@ -4296,7 +4460,7 @@ Your microphone itself travels as usual; check it in the audio menu (Super+A →
    *Reselect*, or starting the share over — let 10 seconds pass since your first choice:
    until then the menu answers with it, without opening.
 3. Notifications are held back while you share; critical ones still show.
-4. Your microphone travels as usual; check it in the audio menu (Super+A → input).
+4. Your microphone travels as usual; check it in the sound panel (Super+A → input).
 
 **What you learnt**
 
@@ -4323,7 +4487,7 @@ Your microphone itself travels as usual; check it in the audio menu (Super+A →
 > - play Spotify, and pause any player with the media keys
 > - send each program's sound where you want it, and clean your microphone
 >
-> **You need:** §10.3 (yazi) and §8.1 (the audio menu).
+> **You need:** §10.3 (yazi) and §8.1 (the sound panel).
 
 Every program in this chapter opens from yazi with **Enter** on a file: the desktop knows which
 one fits each kind (§10.5). What follows is what to press once it is
@@ -4477,31 +4641,27 @@ Naskh. If `i` shows dropped frames on a weak GPU, try `mpv --interpolation=no fi
 
 ## 15.4 Music: Spotify and cava
 
-**Spotify** is Spotify's own app: type `spotify` in the launcher (**Super+Space**), or click it
-there. Sign in once in its window — a free account works (with adverts), Premium without them
-— and it stays signed in. It plays through PipeWire like everything else, appears in the bar's
-*now playing* with the meter moving, and answers the media keys (§15.5).
+**Spotify** is Spotify's web player, `open.spotify.com`, in a window of its own: type
+`spotify` in the launcher (**Super+Space**), or click it there. It is Brave's *app window* —
+no tabs, no address bar, tiled and moved like every other window, with Brave's icon in the
+launcher (no Spotify icon is installed). Sign in once — a free account works (with adverts),
+Premium without them — and Brave keeps you signed in. Its colours are Spotify's own dark ones,
+whatever the theme.
 
-It is drawn by Wayland itself, like the desktop's other windows: sharp at any scale, tiled and
-moved like the rest. (Spotify's app is a web browser inside; on its own it would draw itself
-through XWayland. Its launcher entry, `~/.local/share/applications/spotify.desktop`, tells it
-`--ozone-platform=wayland`.) Its colours are Spotify's own dark ones, whatever the theme.
+It plays through Brave, so everything Brave's sound does, it does: it appears in the bar's
+*now playing* with the meter moving (Brave tells the desktop what plays over MPRIS, and the
+meter listens to the speakers), and the media keys play, pause and skip it (§15.5).
 
-> **Why it is built here.** Spotify may not be passed on by anyone else, so no repository has
-> the app itself. RPM Fusion ships its *recipe* (`lpf-spotify-client`), and **lpf** — the local
-> package factory — makes the `spotify-client` package from Spotify's own download, on your
-> machine, as its own user (`pkg-build`). Setup does that for you, and so does each update when
-> Spotify brings out a new version. Spotify's terms come with the recipe
-> (`/usr/share/lpf/packages/spotify-client/eula/`): `SPOTIFY="yes"` in `fedokawaii.conf` is
-> your acceptance of them (`no` leaves Spotify out), recorded as lpf records an approval (its
-> approve file) — lpf never asks. Nothing to do by hand. Should the build fail during setup
-> (Spotify's server down), setup stops at that step with lpf's own words — the end of
-> `/var/lib/lpf/log/spotify-client.log`, copied into `/var/log/fedokawaii.log` — and resumes
-> there when started again; it never carries on without Spotify. Should a later update's build
-> of a new version fail, the update says so, the Spotify you have stays, and verify warns
-> *a newer Spotify waits to be built* until the next update or `fedokawaii repair` builds it;
-> with no Spotify at all, verify fails (*Spotify not built yet*). Until it is built the launcher has no Spotify entry (one would start nothing), and lpf's
-> own entries stay hidden: `rpm -q spotify-client` says whether it is built, lpf's log why not.
+> **Widevine.** Spotify's player plays only in a browser that has *Widevine*, the module
+> for protected media. Theme switches it on in Brave once, before Brave's first start (Brave's
+> own setting: `brave://settings` → *Widevine*); Brave then fetches the module by itself.
+> Switch it off there and it stays off — Theme never turns it on again.
+
+> **Why not Spotify's app.** It was built on this machine by lpf from an RPM Fusion recipe
+> until October 2026, when the recipe pointed at a download Spotify had already taken down —
+> and the web player does everything the app did. An update hands lpf, the recipe and the app
+> back to dnf, whose clean-up takes them; repair then removes what lpf leaves behind (its
+> account `pkg-build` and `/var/lib/lpf`). `verify` says *no lpf, nothing it left*.
 
 | In Spotify | Does |
 |---|---|
@@ -4512,8 +4672,13 @@ through XWayland. Its launcher entry, `~/.local/share/applications/spotify.deskt
 | the media keys, or a click on the bar's title | play / pause, next, previous (§15.5) |
 | the speaker icon at its foot, right | Spotify Connect: play on a phone or speaker signed in to the same account — or play here, chosen from the phone |
 
-**cava** draws the bar's music meter (§6.5) with its own config in `~/.config/fedokawaii`. Type
-`cava` in a terminal for the classic full-window bars: Up / Down sensitivity, Left / Right bar
+**cava** draws the bar's music meter (§6.5) with its own config in `~/.config/fedokawaii`:
+60 frames a second, so the columns rise and fall smoothly — about 2–3 % of one core for the
+bar to draw them. It listens to the default output, whatever plays there (Spotify, a video, a
+game); plug in headphones or switch to a Bluetooth headset and the meter moves to it within
+a moment (`kawa-nowplaying` starts cava again on the new default, as PipeWire announces it).
+Sound you send to *Share* (§14.4) still plays on your speakers, so the meter shows it too.
+Type `cava` in a terminal for the classic full-window bars: Up / Down sensitivity, Left / Right bar
 width, `f` / `b` colours, `r` reloads the config after an edit, `q` quits. That copy reads
 `~/.config/cava/config`, which it creates on first run and which is yours to change.
 
@@ -4524,11 +4689,15 @@ width, `f` / `b` colours, `r` reloads the config after an edit, `q` quits. That 
    *now playing* shows it with the meter moving.
 3. Open a terminal (**Super+Return**) and type `cava`: the same music, as bars across the
    window. **q** closes cava.
-4. Press the **Play/Pause** key: Spotify pauses. **Super+Q** on its window closes Spotify.
+4. Press the **Play/Pause** key: Spotify pauses. **Super+Q** on its window closes it.
 
-**Read more:** [Spotify's keyboard shortcuts](https://support.spotify.com/article/keyboard-shortcuts/),
-[lpf's README](https://github.com/sergiomb2/lpf#readme) (how the local package factory works)
-and [cava's](https://github.com/karlstav/cava#readme).
+**Pitfalls.** *"Playback of protected content is not enabled"*: Widevine is off in Brave —
+`brave://settings`, search *Widevine*, switch it on, and restart Brave. Nothing in *now
+playing*: Brave's media integration is on by default — a flag you added in
+`brave://flags` that turns off *hardware media key handling* takes it away.
+
+**Read more:** [Spotify's keyboard shortcuts](https://support.spotify.com/article/keyboard-shortcuts/)
+and [cava's README](https://github.com/karlstav/cava#readme).
 
 ## 15.5 Now playing, and the media keys
 
@@ -4536,7 +4705,7 @@ and [cava's](https://github.com/karlstav/cava#readme).
 > it — "what are you playing?", "pause". Chapter 32 shows how it works.
 
 Every player that speaks MPRIS shows in *now playing* and answers the media keys:
-Spotify, Brave (a video or a tab playing sound), and mpv (through the mpv-mpris
+Brave (Spotify's web player, a video or a tab playing sound) and mpv (through the mpv-mpris
 plugin). *MPRIS* is the standard D-Bus interface through which a player says what it plays
 and takes play, pause and skip from anyone.
 
@@ -4546,10 +4715,11 @@ and takes play, pause and skip from anyone.
 | the next track | the **Next** key, or right-click the title |
 | the previous track | the **Previous** key, or middle-click the title |
 
-With several players at once — music in Spotify and a paused video in a Brave tab —
+With several players at once — music in Spotify (Brave) and a paused film in mpv —
 the bar shows the one playing (the last to start, if more than one does), else the last one
 paused. The keys and the clicks run `kawa-nowplaying play-pause`, `next` or `previous`, which
-act on the player that is **playing**: the music pauses, and the paused video stays as it was.
+act on the player that is **playing**: the music pauses, and the paused film stays as it was.
+(Brave is one player for all its tabs and windows: it shows the one that plays last.)
 Plain `playerctl` would pick the player that started first, and could start the video on top
 of the music.
 
@@ -4582,15 +4752,22 @@ Paused
 
 ## 15.6 Sound: the mixer and effects
 
-The audio menu (**Super+A**, §8.1) covers everyday needs: volume, mute, the output and the
-input. Two programs go further.
+The sound panel (**Super+A**, or a click on the bar's volume, §8.1) covers everyday needs:
+volume, mute, the output and the input. Two programs go further.
 
-**Above 100 %.** The volume keys, Super+scroll and the audio menu's *louder* all stop at
-100 %. Only the mixer goes further: its sliders reach 150 %. A level set there is left alone —
-*louder*, the volume key and Super+scroll up do nothing above 100 % — while *quieter*, the key
-and Super+scroll down still lower it.
+**No click.** Fedora lets the sound card's codec power down after a second of silence, and
+waking it clicks in the speakers — at each volume change, each notice. Setup keeps it awake:
+`options snd_hda_intel power_save=0` in `/etc/modprobe.d/fedokawaii-audio.conf`, read as the
+driver loads, and set at once too; `verify` checks both (*the sound card never naps*), and
+`repair` puts it back.
 
-**wiremix**, the full mixer: audio menu → *mixer…*. It is a terminal program, and opens in a
+**Above 100 %.** The volume keys, Super+scroll and the sound panel's squares all stop at
+100 %. Only the mixer goes further: its sliders reach 150 %. A level set there is left alone by
+the volume key and Super+scroll up — they do nothing above 100 % — while the key and
+Super+scroll down still lower it; the panel shows all twelve squares lit, and a click on them
+sets the level you click.
+
+**wiremix**, the full mixer: sound panel → *mixer*. It is a terminal program, and opens in a
 floating window of its own; the tabs are named along its foot. *Playback* — a volume and an
 output device for **each program** (send a call to headphones and music to speakers, or a game
 to the **Share** output for a call, §14.4); *Recording* — which microphone each program listens
@@ -4599,12 +4776,12 @@ meter of what is playing; *Configuration* — the card's profile (for example HD
 analogue, or turning a card off).
 
 > **On Windows.** The *Playback* tab is the volume mixer of Windows' sound settings: one
-> slider and one output per program. The audio menu is the speaker icon on the taskbar.
+> slider and one output per program. The sound panel is the speaker icon on the taskbar.
 
 **Try this.** Make one program quieter than the rest, and send it elsewhere.
 
 1. Play something: music in Spotify, or a video in mpv.
-2. **Super+A**, then *mixer…*, the last line of 音 *sound*. wiremix opens on *Playback*, and the
+2. **Super+A**, then *mixer*, the key beside *mute* under 音 *sound*. wiremix opens on *Playback*, and the
    player has a row of its own: its name, the output it plays to at the right (◇ marks the
    default one), a bar for its level. One row is always there, *share_sink.out: Share output*:
    the **Share** device (§14.4) passing on to your speakers what you send it — leave it at 100 %.
@@ -4653,7 +4830,7 @@ easyeffects --service-mode --hide-window &   # at every login, window hidden; & 
 ```
 
 It takes effect at the next login. A program you have moved to a device in the mixer stays
-there; choosing another output in the audio menu no longer moves it.
+there; choosing another output in the sound panel no longer moves it.
 
 ## 15.7 Watching together: Syncplay
 
@@ -4773,7 +4950,7 @@ light switch like every mpv.
 - mpv remembers where you stopped; **i** shows a file's codecs; **q** quits.
 - `yt-dlp 'LINK'` keeps a web video; `-x --audio-format mp3` keeps only its sound.
 - The media keys and clicks on *now playing* act on the player that is playing.
-- **Super+A** for everyday sound; *mixer…* (wiremix) for each program's own level and
+- **Super+A** (or a click on the bar's volume) for everyday sound; *mixer* (wiremix) for each program's own level and
   output; only the mixer goes above 100 %.
 - **W** on a film in yazi watches it with a friend (Syncplay): the same server, room and file;
   the form remembers your last choice, so **Enter** rejoins it; **Enter** in mpv chats.
@@ -4781,7 +4958,7 @@ light switch like every mpv.
 **Check yourself**
 
 1. A file ends in `.mkv`. Does that tell you its video codec? → *no: `.mkv` is the container; **i** in mpv shows the codecs inside*
-2. Music plays in Spotify while a video waits, paused, in Brave. What does Play/Pause do? → *it pauses the music: the keys act on the player that is playing*
+2. Music plays in Spotify while a film waits, paused, in mpv. What does Play/Pause do? → *it pauses the music: the keys act on the player that is playing*
 3. How do you get the volume above 100 %? → *only in the mixer, wiremix, up to 150 %; the keys stop at 100 %*
 
 # 16. Reading, documents and notes
@@ -6038,7 +6215,9 @@ Inside neovim, `:Lazy` (Space l) shows them: `U` update, `S` sync, `R` restore t
 the lock file — the way back when an update breaks something. Mason's tools are **not** part of
 `update`: open `:Mason` and press `U` now and then. Space L shows LazyVim's changelog.
 `:checkhealth` explains anything that does not work: every plugin and tool reports OK, WARNING
-or ERROR, with advice. `:LazyHealth` loads every plugin first, so none is skipped.
+or ERROR, with advice. `:LazyHealth` loads every plugin first, so none is skipped. (lazy.nvim's
+*luarocks* support is off — `rocks = { enabled = false }` in `lua/config/lazy.lua`: no plugin
+here needs a Lua rock, so `:checkhealth lazy` asks for neither luarocks nor Lua 5.1.)
 
 ## 17.21 A daily workflow
 
@@ -7216,7 +7395,7 @@ Zone names come from `timedatectl list-timezones | rg -i york`.
 
 > **In this chapter**
 >
-> - open Prowlarr's page once: its login, and the torrent sites setup gave it
+> - open Prowlarr's page: no login, the torrent sites setup gave it already there
 > - search, download and seed with torrra
 > - open magnet links from Brave, and act on torrra's messages when something is wrong
 >
@@ -7279,16 +7458,21 @@ something:
 | Torrent Downloads | films and series |
 
 Each is added only when Prowlarr has none of its kind yet, so one you rename, change or switch
-off stays as you left it; `update` and `repair` add one that has gone missing. Sites behind
+off stays as you left it; `update` and `repair` add one that has gone missing. (Prowlarr
+fetches its list of sites in the background after its very first start; one it does not know
+yet is fetched there and then, before anything is said missing.) Sites behind
 Cloudflare's challenge (1337x, EZTV) are left out on purpose: they need *FlareSolverr*, a
 browser that gets past those checks, which this desktop does not run.
 
-Open its page once, to make its login and see the eight:
+Nothing to set up: its page asks for no login and has no first-run questions. It answers on
+this computer only (127.0.0.1), so the container file (`~/.config/containers/systemd/prowlarr.container`)
+tells it so — authentication *External*, Prowlarr's own setting for "no login wanted here";
+programs (torrra) still need its API key. `verify` checks it: *Prowlarr's page opens with no
+login*. To look at the eight:
 
 1. Open **Prowlarr** from the launcher (**Super+Space**, type `prow`), or type `prowlarr` in a
-   terminal: it wakes Prowlarr and opens <http://localhost:9696> in Brave once it answers.
-   Prowlarr asks you to **create a login** — a user name and password for this page (it asks
-   even on this computer, so no web page can reach it behind your back). Brave can remember it.
+   terminal: it wakes Prowlarr (a few seconds) and opens <http://localhost:9696> in Brave once
+   it answers — straight onto its indexers.
 2. **Indexers** lists them; **Test All** checks each one. One that is down for a while is kept:
    Prowlarr tries it at every search and pauses one that keeps failing. To add another site:
    **Add Indexer**, filter by language or type, **Test**, save — and skip those marked as
@@ -7307,9 +7491,12 @@ when none is switched on, instead of showing an empty list.
 
 Open **Torrents** from the launcher, or type `torrra` in a terminal (`torrra search 'debian
 13'` searches straight away; `torrra downloads` shows only the downloads). Its colours are the
-terminal's, so it follows the theme. When Prowlarr is not running, a search starts it first —
-`torrra: starting Prowlarr…` — which can take a minute or two the first time after the
-computer starts.
+terminal's, so it follows the theme. When Prowlarr is not running, opening torrra starts it
+first — `starting Prowlarr… (a few seconds)` — then its search box is there, ready to type in.
+A search waits up to a minute for Prowlarr's answer, which comes once the slowest of the
+eight sites has answered (one slow or blocked here takes its time); torrra's own wait, ten
+seconds tried three times, gave up before that with *Search failed*. Set `timeout` (seconds)
+or `max_retries` in `~/.config/torrra/config.toml` yourself and yours stays.
 
 | Keys | Does |
 |---|---|
@@ -7338,7 +7525,7 @@ step. Move anything you keep out of `~/Downloads` — nothing there is in a snap
 watch torrents work.
 
 1. Open **Torrents** from the launcher. If Prowlarr is not running yet, the window first says
-   `torrra: starting Prowlarr…` — a minute or two, the first time after the computer starts.
+   `starting Prowlarr… (a few seconds)`; then torrra's search box is there, ready to type in.
 2. Type `debian 13` and press Enter. The results arrive, most seeders first.
 3. **Enter** on one shows its details; **Enter** again lists its files, every one ticked;
    **Enter** once more starts the download.
@@ -7465,6 +7652,22 @@ on — and the bar's **gamepad** shows it: dim while it starts, lit once it is r
 vermilion during a game. A click brings the window up; a right-click opens Steam's menu:
 *Library · Downloads · Friends · Settings*, *start with the desktop* (on or off: off ends the
 warm start), and *quit Steam*.
+
+**Steam Cloud: Steam always closes properly.** As Steam closes, it sends your games' saves to
+Steam Cloud — but only when it is *asked* to close, as its own *Exit* asks. Killed, it sends
+nothing, and the next start (here or on Windows) can find the cloud older than your last
+session, or ask which copy to keep. Steam draws through XWayland, which ends with the desktop,
+so the desktop asks first, every time:
+
+| When | What closes Steam |
+|---|---|
+| *quit Steam* in the gamepad's menu | `kawa-steam --quit` — Steam's own close (`steam -shutdown`), waited for |
+| the power menu's *log out* | the same, before the desktop ends; a notice says *closing — your saves go to Steam Cloud first* |
+| restart or shut down — the power menu, the power button, `systemctl reboot`, an update's restart | `kawa-steam --guard`, which the session starts: logind warns it before the computer stops (a *delay lock*, waited for up to 25 s), and it closes Steam the same way while the desktop still runs |
+
+Each close goes to the journal with how long it took: `journalctl -t kawa-steam` —
+*asked Steam to quit (logout), done in 3.2 s*. Only **Super+Ctrl+Shift+Q**, the emergency way
+out of the desktop, does not wait: quit Steam first if you use it.
 
 > **On Windows.** It is the same Steam, signed in to the same account, with the same library.
 > A Windows game runs here through Proton, which answers its Windows calls with Linux ones.
@@ -7969,7 +8172,7 @@ default folders:
 | settings | `~/.config` (`XDG_CONFIG_HOME`) | `~/.config/foot/foot.ini` |
 | data: what you would miss | `~/.local/share` (`XDG_DATA_HOME`) | `~/.local/share/zathura/bookmarks.sqlite`: the page you reached in each book |
 | state: worth keeping, not precious | `~/.local/state` (`XDG_STATE_HOME`) | `~/.local/state/mpv/`: where each video stopped |
-| cache: can be made again | `~/.cache` (`XDG_CACHE_HOME`) | `~/.cache/kawa-wallpaper/`: the scaled wallpapers |
+| cache: can be made again | `~/.cache` (`XDG_CACHE_HOME`) | `~/.cache/fedokawaii/wallpaper-screens/`: the wallpapers drawn at the screen's size |
 | your own programs | `~/.local/bin` | the `kawa-*` helpers |
 
 **Read more:** [XDG Base Directory Specification](https://specifications.freedesktop.org/basedir/latest/).
@@ -9797,8 +10000,8 @@ waybar                          the bar
 | a click → the player | `"on-click": "kawa-nowplaying play-pause"`: a D-Bus call to the player the bar shows | the button in the bar |
 
 The script prints lines such as `{"text":"…  artist — title  …","class":"playing"}`;
-waybar puts the text in the bar and the class in its stylesheet. Spotify's player and Brave
-join the same way, because they register MPRIS names too.
+waybar puts the text in the bar and the class in its stylesheet. Brave (Spotify's web player
+among its tabs and windows) joins the same way, because it registers an MPRIS name too.
 
 ## 27.10 The manifest, setup and verify
 
@@ -12210,7 +12413,7 @@ cat /var/lib/fedokawaii/last-verify    # → 1792039927 179 0 1
 | Area | Checks |
 |---|---|
 | system | `fedokawaii.conf` valid · Fedora ≥ 44 · SELinux enforcing · Btrfs root · every file in your home yours (`~/.cache` and `~/Downloads` included; podman's container storage, owned by its containers' ids, aside) · groups · neovim as the editor · i2c-dev |
-| packages (lib/manifest.sh) | every manifest package installed · Spotify built here (`SPOTIFY="yes"`: none is a failure; a newer recipe waiting, a warning) · what waits for RPM Fusion or a COPR to catch up with this Fedora (a warning) · a package Fedora no longer has (a warning) |
+| packages (lib/manifest.sh) | every manifest package installed · no lpf, nor what it left (it built Spotify's old app: a warning until update and repair take it out) · what waits for RPM Fusion or a COPR to catch up with this Fedora (a warning) · a package Fedora no longer has (a warning) |
 | zero redundancy | none of the forbidden ones · nothing user-installed beyond the pre-setup record and the manifest · no Flatpak or Snap · one editor · no package installed twice · `dnf check` clean · no service that fights the desktop's own (a second login manager, power-profiles-daemon, a second notification daemon…) · the login greetd's alone · dependencies nothing needs (a warning) · configuration files an update could not merge (a warning) · nothing left behind by a stopped run |
 | repositories & dnf | RPM Fusion, Brave, Claude Code, COPRs · all seven DNF values |
 | upkeep (fedokawaii · Super+U) | the toolkit root's alone · the `fedokawaii` command the toolkit's · the manifest marked as yours |
@@ -13105,7 +13308,7 @@ result.
 
 | What | Clear with | Comes back |
 |---|---|---|
-| scaled wallpapers and picker previews | `rm -r ~/.cache/kawa-wallpaper` | at the next wallpaper change, or `kawa-wallpaper --restore` |
+| scaled wallpapers and picker previews | `rm -r ~/.cache/fedokawaii/wallpaper-screens ~/.cache/fedokawaii/wallpaper-previews` | in the background at the next login, or now: `kawa-wallpaper --cache` |
 | thumbnails other programs share (the freedesktop.org folder; yazi keeps its own previews under `/tmp`, emptied at every restart) | `rm -r ~/.cache/thumbnails` | when a program needs them again |
 | the clipboard history | Super+V, then Ctrl+X (or `cliphist wipe`) | from your next copy |
 | the launcher's counts (a single file) | `rm ~/.cache/fuzzel` | the order of programs starts afresh |
@@ -14723,11 +14926,11 @@ For the desktop itself, look the part up here. Every path is inside your working
 | frame and border colours | the palette in `tools/build-themes.py` (it writes each theme's `dwl.colors`, which dwl reads at its start and at every switch; `src/dwl/config.h` holds the dark theme's as the colours it starts from) | Python | after apply | colours |
 | the bar: modules, their order | `configs/home/.config/waybar/config.jsonc` | JSON with comments | at once | bar |
 | the bar: sizes, spacing | `configs/home/.config/waybar/style.css` (its colours come from the palette) | CSS, as GTK reads it | at once | bar look |
-| what a bar module shows | `bin/kawa-mem`, `kawa-nowplaying`, `kawa-dwlstatus`, `kawa-drives`… (the weather above quick settings: `kawa-weather`) | bash | at once | — |
-| quick settings | `bin/kawa-panel` (the panel: Python and GTK), `bin/kawa-quick` (what each tile does and says) | Python · bash | at the next login (the panel runs all session); `kawa-quick` at once | — |
+| what a bar module shows | `bin/kawa-mem`, `kawa-nowplaying`, `kawa-dwlstatus`, `kawa-drives`… (the weather and its week: `kawa-weather`) | bash | at once | — |
+| quick settings, the sound panel, the brightness slider | `bin/kawa-panel` (the panels: Python and GTK), `bin/kawa-quick` (what each tile, device and key does and says) | Python · bash | at the next login (the panel runs all session); `kawa-quick` at once | — |
 | the login screen | `system/kawa-greet` (Python and GTK); its look is the lock screen's | Python | after `fedokawaii repair` | — |
 | the boot menu · the boot splash | `theme.sh` (the GRUB theme is written there) · `system/plymouth/sumi/` | bash · Plymouth script | the next boot, after Theme | — |
-| the menus | `bin/kawa-power`, `kawa-audio`, `kawa-calendar`, `kawa-drives`, `kawa-config`… (quick settings: `kawa-panel`, a panel of its own); their look: `bin/kawa-menu` and `configs/home/.config/fuzzel/fuzzel.ini` | bash · INI | the next menu that opens | launcher |
+| the menus | `bin/kawa-power`, `kawa-calendar`, `kawa-drives`, `kawa-config`… (quick settings, the sound panel and the brightness slider: `kawa-panel`, panels of their own); their look: `bin/kawa-menu` and `configs/home/.config/fuzzel/fuzzel.ini` | bash · INI | the next menu that opens | launcher |
 | every colour, both themes | `tools/build-themes.py` (the palettes near its top) — the menu runs it after you save | Python: a table of hex colours | at once; the terminal's at the next login | colours |
 | the terminal | `configs/home/.config/foot/foot.ini` | INI | next login (the terminal server) | terminal |
 | the shell: prompt, aliases, the tools' settings | `configs/home/.bashrc.d/fedokawaii.sh` | bash | every new terminal | shell |
@@ -14892,7 +15095,7 @@ lists the areas:
 |---|---|
 | `drives` | `kawa-drives`: sticks, disks, SD cards, eject |
 | `status` | the bar and its keys: `kawa-mem`, `kawa-nowplaying`, `kawa-weather`, the volume and brightness keys |
-| `menus` | quick settings (`kawa-panel`, `kawa-quick`), the power menu, the calendar, Super+/, Super+Shift+U |
+| `menus` | quick settings, the sound panel and the brightness slider (`kawa-panel`, `kawa-quick`), the power menu, the calendar, Super+/, Super+Shift+U |
 | `look` | the theme switch, the wallpapers, the lock, screenshots |
 | `session` | the autostart, the workspaces in the bar, the floating windows, what each key means |
 | `content` | the clipboard, backups, books, notes, `kawa-shrink`, `kawa-sketch`, the shell's prompt |
@@ -15190,9 +15393,10 @@ echo "hello, $name — it is $(date +%H:%M)"   # e.g. hello, Kyoto — it is 21:
 ```python
 # 2. Python — save as ~/hello.py, then: python3 ~/hello.py
 import json, urllib.request       # parts of Python itself: nothing to install
-with urllib.request.urlopen("https://wttr.in/Sharjah?format=j1") as r:
-    now = json.load(r)["current_condition"][0]
-print(f"{now['temp_C']} °C, {now['weatherDesc'][0]['value']}")   # e.g. 31 °C, Sunny
+url = "https://api.open-meteo.com/v1/forecast?latitude=25.35&longitude=55.40&current=temperature_2m"
+with urllib.request.urlopen(url) as r:
+    now = json.load(r)["current"]
+print(f"{now['temperature_2m']} °C in Sharjah")   # e.g. 31.4 °C in Sharjah
 ```
 
 ```python
@@ -15228,103 +15432,107 @@ things matter more than before:
 
 ## 43.3 Read a real script: the weather line
 
-Step 1 of the table ends in `bin/kawa-weather`: the script behind the weather in the bar and at
-the top of quick settings. It is 79 lines long, a fifth of them comments, and most of the rest
-use one of the five ideas below, one idea each. Run it, then open it beside this page with
-`bat ~/repos/fedokawaii/bin/kawa-weather`.
+Step 1 of the table ends in `bin/kawa-weather`: the script behind the weather in the bar and
+the week that drops down under it (§6.5). It is about 200 lines long, a quarter of them
+comments, and most of the rest use one of the five ideas below, one idea each. Run it, then
+open it beside this page with `bat ~/repos/fedokawaii/bin/kawa-weather`.
 
 ```text
 $ kawa-weather
-☼  Sharjah  31°C  Clear
+☼  Sharjah  33°  clear
 ```
 
-*(for example: the sun is the desktop's own icon, and the weather is today's.)* The very first
-time it prints only the city: the weather is fetched in the background and shows from the next
-run.
+*(for example: the sun is the desktop's own icon, and the weather is now's.)* The very first
+time it prints only the city: the forecast is fetched in the background and shows from the
+next run.
 
 **1. A variable.**
 
 ```sh
-CACHE="$HOME/.cache/kawa-weather"
+CACHE=${XDG_CACHE_HOME:-$HOME/.cache}/kawa-weather.json
 ```
 
-`CACHE` now holds `/home/you/.cache/kawa-weather`: bash put your home folder in place of
-`$HOME` before storing it, and every later `$CACHE` stands for that path. *The rule:*
-`NAME=value`, with no spaces round `=`; `$NAME` reads it back. A few lines higher,
-`. "$HOME/.config/fedokawaii/env"` reads another file into the script — that is where
-`WEATHER_CITY="Sharjah"` comes from (your `fedokawaii.conf`, §5.2).
+`CACHE` now holds `/home/you/.cache/kawa-weather.json`: bash put the folder in before storing
+it, and every later `$CACHE` stands for that path. `${XDG_CACHE_HOME:-$HOME/.cache}` is
+`XDG_CACHE_HOME` when that is set, and `~/.cache` when it is not — the folder Linux keeps for
+caches. *The rule:* `NAME=value`, with no spaces round `=`; `$NAME` reads it back. Near the
+top, `. "$HOME/.config/fedokawaii/env"` reads another file into the script — that is where
+`WEATHER_CITY="Sharjah"` and `NIGHT_LIGHT="25.35:55.40"` come from (your `fedokawaii.conf`,
+§5.2).
 
 **2. A question, and `&&`.**
 
 ```sh
-[[ -s $CACHE ]] && read -r cached <"$CACHE"
+[[ -s $FAILED ]] && read -r failed <"$FAILED"
 ```
 
 `[[ -s FILE ]]` is true when the file exists and is not empty; only then does `&&` run `read`,
-which puts the file's first line into `cached`. *The rule:* `[[ … ]]` answers with an exit
-status, and `&&` (or `||`) acts on it (§25.1). Ask the same question yourself:
-`[[ -s ~/.cache/kawa-weather ]] && echo cached || echo empty`.
+which puts the file's first line into `failed` — why the last fetch brought nothing, `offline`
+say. *The rule:* `[[ … ]]` answers with an exit status, and `&&` (or `||`) acts on it (§25.1).
+Ask the same question yourself: `[[ -s ~/.cache/kawa-weather.json ]] && echo cached || echo empty`.
 
 **3. A command's output as a value.**
 
 ```sh
-line=$(curl -fsS … "https://wttr.in/$city?format=%t++%C&m" 2>/dev/null) || return 0
+json=$(curl -fsS … "$API?latitude=${NIGHT_LIGHT%:*}&longitude=${NIGHT_LIGHT#*:}&$ASK" 2>/dev/null); r=$?
 ```
 
-*(shortened)* `$( … )` runs curl and keeps what it prints — `+31°C  Clear` — in `line`. If curl
-fails, offline say, `|| return 0` leaves quietly and the old line stays. *The rule:* `$(command)`
-turns output into a value. See the raw answer:
+*(shortened)* `$( … )` runs curl and keeps what it prints — Open-Meteo's forecast, as JSON —
+in `json`; `r=$?` keeps curl's exit status, which says whether it worked (0) or why not (6:
+the name could not be looked up, offline say). *The rule:* `$(command)` turns output into a
+value. See a raw answer, the temperature now:
 
 ```text
-$ curl -fsS "https://wttr.in/Sharjah?format=%t++%C&m"
-+31°C  Clear
+$ curl -fsS "https://api.open-meteo.com/v1/forecast?latitude=25.35&longitude=55.40&current=temperature_2m"
+{"latitude":25.375,"longitude":55.375,…,"current":{"time":"2026-10-19T14:15","interval":900,"temperature_2m":33.4}}
 ```
 
-*(for example)*
+*(for example, shortened)* — then pick it out of the JSON with jq (§43.4):
+`curl -fsS "…" | jq .current.temperature_2m` prints `33.4`.
 
 **4. Cutting text.**
 
 ```sh
-printf '%s  %s  %s\n' "$WEATHER_CITY" "${BASH_REMATCH[1]#+}" "${BASH_REMATCH[2]}" >"$CACHE.tmp" \
-  && mv -f "$CACHE.tmp" "$CACHE"
+${NIGHT_LIGHT%:*}    ${NIGHT_LIGHT#*:}
 ```
 
-The line just before it checked curl's answer against a regular expression (`[[ $line =~ … ]]`)
-and kept its two parts: `${BASH_REMATCH[1]}`, the temperature `+31°C`, and `${BASH_REMATCH[2]}`,
-the sky `Clear`. `${BASH_REMATCH[1]#+}` is the temperature with one `+` cut from its start:
-`31°C`. (The line goes to a new file that is then renamed over the old one, so the bar and quick settings never
-read half a line.) *The rule:* `${NAME#text}` cuts from the start, `${NAME%text}` from the end.
+The line above asked for `latitude=${NIGHT_LIGHT%:*}` and `longitude=${NIGHT_LIGHT#*:}`.
+`NIGHT_LIGHT` is `25.35:55.40`; `%:*` cuts the shortest `:…` from its end, leaving the
+latitude `25.35`, and `#*:` cuts the shortest `…:` from its start, leaving the longitude
+`55.40`. One setting, two numbers, no other program. *The rule:* `${NAME#text}` cuts from the
+start, `${NAME%text}` from the end; `*` stands for any text, as in a file name.
 
 ```text
-$ line='+31°C  Clear'
-$ echo "${line#+}"
-31°C  Clear
+$ NIGHT_LIGHT=25.35:55.40
+$ echo "${NIGHT_LIGHT%:*} and ${NIGHT_LIGHT#*:}"
+25.35 and 55.40
 ```
 
 **5. Choosing by pattern.**
 
 ```sh
-case ${cond,,} in                        # the sky only, never the city's name ("Nice")
-  *thunder*|*storm*)                     icon=$ICON_STORM ;;
-  *snow*|*sleet*|*blizzard*|*ice*)       icon=$ICON_SNOW ;;
-  *rain*|*drizzle*|*shower*)             icon=$ICON_RAIN ;;
-  *fog*|*mist*|*haze*|*dust*|*sand*)     icon=$ICON_FOG ;;
-  *cloud*|*overcast*)                    icon=$ICON_CLOUD ;;
-  *)                                     icon=$sky ;;
+case $1 in
+  0)  icon=$sun words=clear ;;
+  1)  icon=$sun words="mostly clear" ;;
+  2)  icon=$ICON_CLOUD words="partly cloudy" ;;
+  …
+  56|57) icon=$ICON_RAIN words="freezing drizzle" ;;
+  …
+  *)  return 1 ;;                     # (not a WMO code: that day is not shown)
 esac
 ```
 
-`${cond,,}` is the sky in small letters — `clear`. `case` tries each pattern from the top and
-runs the first that matches; `clear` matches none until `*)`, which takes anything, so the icon
-is the sun (or the moon at night). The comment explains why only the sky is matched: *Nice*
-holds `ice`, and its weather would always show snow. *The rule:* `case` picks the first pattern
-that matches, and the patterns are globs (§25.4).
+*(shortened)* Open-Meteo says the sky as a number, the code weather stations have used since
+the 1950s (WMO's): 0 clear, 2 partly cloudy, 61 light rain, 95 a thunderstorm. `case` tries
+each pattern from the top and runs the first that matches; `56|57` matches either number, and
+`*)` takes anything — here a code that is none of these, which draws no icon rather than a
+made-up one. *The rule:* `case` picks the first pattern that matches, and the patterns are
+globs (§25.4).
 
 Now read the whole file from the top. Most lines are these five ideas again; the others — a
-function, `refresh() { … }`, a pattern test, `[[ … =~ … ]]`, an `if`, a test on numbers inside
-`(( … ))`, and at the end the bar's version of the same line, written as JSON by `jq` —
-are in the bash manual
-(§43.5), and their comments say what they are for. Its self-tests are
+function, `refresh() { … }`, a pattern test, `[[ … =~ … ]]`, an `if`, a loop over the scale of
+words (`FEEL`), a test on numbers inside `(( … ))`, and the JSON read and checked by `jq` —
+are in the bash manual (§43.5), and their comments say what they are for. Its self-tests are
 `tests/status/test_weather.sh` (§42.6).
 
 ## 43.4 Ideas, defined, with an example each
@@ -15348,7 +15556,7 @@ are in the bash manual
 | **version control** · **commit** · **branch** | a history of every change · one saved change · a line of work | `git log --oneline` in any repository | ch. 41 |
 | **container** | a program with its own files, sharing the computer's kernel | Prowlarr runs in one (§34.5) | §34.4 |
 | **compositor** | the program that draws every window on the screen and handles input | dwl, on Wayland | §31.3 |
-| **API** · **HTTP** · **JSON** | a program's way in for other programs · how the web asks and answers · text that holds data | `kawa-weather` asks wttr.in's API (§43.3) | below |
+| **API** · **HTTP** · **JSON** | a program's way in for other programs · how the web asks and answers · text that holds data | `kawa-weather` asks Open-Meteo's API (§43.3) | below |
 | **type** | what kind of value something is: a number, text, a list | `area(1920, 1080)`, the TypeScript example above | §43.2 |
 | **compile** · **interpret** | turn the whole program into machine code first · run it line by line | dwl is compiled (C); bash and Python are interpreted | — |
 | **LLM** · **token** · **context** · **prompt** | a large language model · the pieces of text it reads and writes · everything it can see at once · what you ask it | `claude` in your working copy | ch. 44 |
@@ -15439,7 +15647,7 @@ you change on the way (§42.6).
 - Learn one language at a time: bash first, then Python, then SQL — each step uses the one
   before.
 - Every part of this desktop is a short file you can read: `kawa-weather` is mostly five
-  ideas, in 56 lines.
+  ideas, in 150 lines.
 - `NAME=value` stores, `[[ … ]]` asks, `$( … )` captures output, `${NAME#…}` cuts, `case`
   picks by pattern.
 - `jq` picks what you need out of JSON, left to right: every entry, then a filter, then a field.
@@ -15568,8 +15776,10 @@ release, pinned (Appendix A), and does not update itself.
 ### Starting it
 
 *Agents* in the launcher (**Super+Space**, type `agents`), or `herdr` in any terminal. It opens in
-a window of its own, beside your editor, not as a popup. The first start shows one workspace
-with one pane: a shell, in your home folder.
+a window of its own, beside your editor, not as a popup; the bar names it *Agents · repos* —
+*Agents*, then the workspace you are on. The first start shows one workspace with one pane: a
+shell, in `~/repos`, where your projects are (`cd fedokawaii` takes you into your working
+copy). From then on it opens as you left it.
 
 Closing the window does not stop the agents. herdr runs them in a server of its own in the
 background; the window is only a view of it. Start *Agents* again and they are all where you
@@ -15577,13 +15787,16 @@ left them, still working or waiting. **Ctrl+B q** closes the view the same way.
 
 ### Its keys
 
-Every herdr key is **Ctrl+B**, let go, then one key — as in tmux. Everything else you type goes
-to the pane, so Claude's own keys (§44.1) work as always. The mouse works too: click a pane,
-a sidebar row or a tab; drag a border; right-click for a menu; select text to copy it.
+Every herdr key is **Ctrl+B**, let go, then one key — as in tmux; while it waits for that key,
+*PREFIX*, on red, sits at the bottom. Everything else you type goes to the pane, so Claude's own
+keys (§44.1) work as always. Only Ctrl+B itself is herdr's: a program in a pane that wants it
+(neovim and the lists scroll up with it) gets it as **Ctrl+B Ctrl+B**. The mouse works too:
+click a pane, a sidebar row or a tab; drag a border; right-click for a menu; select text to
+copy it.
 
 | Keys | Does |
 |---|---|
-| **Ctrl+B a** | a new pane with Claude Code in it, in the folder you are in (it closes when Claude does) |
+| **Ctrl+B a** | Claude Code in a pane of its own, in the folder of the pane you are on. It opens filling the window: **Ctrl+B z** shows it beside the others (it closes when Claude does) |
 | **Ctrl+B v** · **Ctrl+B -** | split the pane side by side · one above the other (a shell: type `claude`) |
 | **Ctrl+B h j k l** · **Ctrl+B Tab** | move to the pane left, below, above, right · to the next one |
 | **Ctrl+B z** | one pane fills the window; again, back to the split |
@@ -15603,11 +15816,12 @@ When an agent in another tab or workspace finishes or asks you something, a noti
 
 **Try this.** Two agents on the toolkit, one reading, one explaining.
 
-1. *Agents* in the launcher. In the shell, `cd ~/repos/fedokawaii`.
-2. **Ctrl+B a**: Claude Code starts in a pane beside the shell. Ask it *"Read
+1. *Agents* in the launcher. In the shell (it starts in `~/repos`), `cd fedokawaii`.
+2. **Ctrl+B a**: Claude Code starts in a pane of its own, filling the window. Ask it *"Read
    `bin/kawa-weather` and explain how it caches. Do not edit anything."*
 3. **Ctrl+B a** again: a second Claude, in the same folder. Ask it *"Which tests cover
-   `bin/kawa-weather`? Do not edit anything."*
+   `bin/kawa-weather`? Do not edit anything."* Then **Ctrl+B z**: the shell and the two
+   Claudes side by side.
 4. Watch the sidebar: both rows show *working*; when one has an answer, its row turns *idle*.
    If one asks to run a command, its row shows *blocked* — click the row (or **Ctrl+B h**,
    **Ctrl+B l**) and answer it there.
@@ -15708,7 +15922,7 @@ a package is §42.11.
 | torrents | torrra + Prowlarr | a terminal client that searches through Prowlarr's hundreds of indexers |
 | video | mpv (+ mpv-mpris, yt-dlp, Node.js) · `kawa-play` (this repository) | plays nearly any file, and web links through yt-dlp; Node.js answers YouTube's JavaScript challenges for yt-dlp; `kawa-play` sends what you open to the mpv window already open (Syncplay's first), so one window serves the evening |
 | office | LibreOffice Writer, Calc, Impress (+ libreoffice-gtk3, English and Arabic dictionaries) | opens and edits Word, Excel and PowerPoint files and saves back to them; drawn by GTK, so it follows the theme; only these three of the suite |
-| music | Spotify (built here by lpf from RPM Fusion's recipe) | Spotify's own app, free or Premium, run on Wayland; nobody may pass it on, so it is made on your machine |
+| music | Spotify's web player, in a Brave app window | free or Premium, in a window of its own; it plays through Brave, so the bar's now-playing, its meter and the media keys follow it (Widevine, which it needs, switched on once in Brave) |
 | tables | VisiData (LibreOffice Calc for Excel files) | a CSV opens at once, sorts, sums and filters like a spreadsheet, in the terminal's colours |
 | disk usage | gdu | what fills a folder, largest first, in a window you can walk |
 | pictures and PDFs to send | ImageMagick · Ghostscript · `kawa-shrink` (this repository) | Super+Z: a size for a mail or a chat, or another kind (JPEG, WebP, PNG), in two keys — the two tools were already here for previews and PDFs |
@@ -15788,7 +16002,7 @@ $ xdg-user-dir DOWNLOAD
 
 | Program | Settings | Data | Cache, state, logs |
 |---|---|---|---|
-| the desktop (dwl, bar, menus) | `~/.config/fedokawaii/` (`env`, `themes/`, `current`, `icons.sh`, `width.sh` (the menus' columns), `files.sh` (never a file over another), `keybinds.txt`, `cava.conf`, `backup-exclude`, `fzf.opts` — the look of every list) · `~/.config/{waybar,mako,fuzzel,dwl}/` · dwl's `~/.local/src/dwl/config.h` | `~/.local/share/fedokawaii/` (the lock screen's pictures, `wallpapers.list`, the pack in `wallpapers/`, `upstream/`) | `~/.cache/dwl.log`, `waybar.log`, `fedokawaii-theme.log`, `kawa-wallpaper/` · `~/.local/state/fedokawaii/` (each theme's wallpaper, stamps, `backup/`, `lazy-lock/`) |
+| the desktop (dwl, bar, menus) | `~/.config/fedokawaii/` (`env`, `themes/`, `current`, `icons.sh`, `width.sh` (the menus' columns), `files.sh` (never a file over another), `keybinds.txt`, `cava.conf`, `backup-exclude`, `fzf.opts` — the look of every list) · `~/.config/{waybar,mako,fuzzel,dwl}/` · dwl's `~/.local/src/dwl/config.h` | `~/.local/share/fedokawaii/` (the lock screen's pictures, `wallpapers.list`, the pack in `wallpapers/`, `upstream/`) | `~/.cache/dwl.log`, `waybar.log`, `fedokawaii-theme.log`, `fedokawaii/` (the drawn wallpapers and previews) · `~/.local/state/fedokawaii/` (each theme's wallpaper, stamps, `backup/`, `lazy-lock/`) |
 | upkeep (Super+U) | `~/.config/fedokawaii/upkeep.conf` (the season) · `~/.config/systemd/user/fedokawaii-remind.{timer,service}` (the reminder) | — | `~/.cache/fedokawaii/` (when the next Fedora came out, the day of the last reminder) |
 | foot and bash | `~/.config/foot/foot.ini` · `~/.bashrc.d/fedokawaii.sh` · `~/.inputrc` | `~/.bash_history` · zoxide's folders: `~/.local/share/zoxide/` | `~/.cache/fedokawaii/` (fzf's and zoxide's shell code) |
 | the clipboard | — | `~/.cache/cliphist/db` (the history) | |
@@ -15800,9 +16014,9 @@ $ xdg-user-dir DOWNLOAD
 | zathura | `~/.config/zathura/zathurarc` | `~/.local/share/zathura/bookmarks.sqlite` (each book's page, bookmarks) | |
 | mpv and yt-dlp | `~/.config/mpv/` (`mpv.conf`, `scripts/`) · `~/.config/yt-dlp/config` | — | `~/.local/state/mpv/` (where each video stopped) |
 | torrra (torrents) | `~/.config/torrra/config.toml` — Prowlarr's address, the download folder, colours; never the key | the program: `~/.local/share/pipx/venvs/torrra/` · downloads: `~/Downloads/` | |
-| Prowlarr | `~/.config/containers/systemd/prowlarr.container` (how it runs) · its key: `secrets.sh` | `~/.config/prowlarr/` (its database: indexers, login, history) · the image: `~/.local/share/containers/` | `journalctl --user -u prowlarr` |
+| Prowlarr | `~/.config/containers/systemd/prowlarr.container` (how it runs) · its key: `secrets.sh` | `~/.config/prowlarr/` (its database: indexers, history) · the image: `~/.local/share/containers/` | `journalctl --user -u prowlarr` |
 | Brave Origin | `~/.config/BraveSoftware/Brave-Origin/` (profile, settings, extensions) | the same folder | `~/.cache/BraveSoftware/` |
-| Spotify | `~/.config/spotify/` (its own: sign-in, settings); its launcher entry `~/.local/share/applications/spotify.desktop` (Theme's) | | `~/.cache/spotify/` (songs played lately, cover art) |
+| Spotify | Brave's profile (`~/.config/BraveSoftware/Brave-Origin/`: the sign-in, as for any site); its launcher entry `~/.local/share/applications/spotify.desktop` (Theme's) | | Brave's cache |
 | LibreOffice | `~/.config/libreoffice/` (its profile: your Tools → Options, recent files, your dictionary words); the Arabic default in `/etc/dconf` (Theme's) | | |
 | btop | `~/.config/btop/btop.conf` | | |
 | quick settings | its colours: `~/.config/fedokawaii/current/panel.conf` (Theme's) | — | `~/.config/fedokawaii/vrr` (the FreeSync setting) |
@@ -15832,7 +16046,6 @@ $ xdg-user-dir DOWNLOAD
 | `/etc/systemd/sleep.conf.d/90-fedokawaii.conf` · `/etc/systemd/logind.conf.d/90-fedokawaii.conf` | sleep is suspend only, no hibernation · the Sleep key left to the desktop, and any other sleep waits up to 15 s for the lock (§6.6) |
 | `/etc/default/grub` · `/etc/vconsole.conf` | the boot menu's theme, mode and timeout · the console's font (lines set by Theme) |
 | `/etc/dconf/db/local.d/00-fedokawaii` | GTK's defaults: theme, icons, pointers, fonts; LibreOffice's language for right-to-left text (Arabic) |
-| `/var/lib/lpf/` · `/usr/share/lpf/` | lpf's: Spotify's recipe and terms, its build account's home (`pkg-build`), the state of each build and its log (`log/spotify-client.log`) |
 | `/etc/greetd/fedokawaii.toml` · `/etc/systemd/system/greetd.service.d/fedokawaii.conf` | the login: kawa-greet in cage on tty1 · greetd pointed at that file |
 | `/etc/snapper/configs/` (`root`, `home`) · `/.snapshots` and `/home/.snapshots` | the snapshot settings · the snapshots |
 | `/boot/grub2/themes/sumi/` · `/usr/share/plymouth/themes/sumi/` | the boot menu theme · the boot splash (§29.3) |
@@ -15860,7 +16073,7 @@ the full lists are in §7.2 (and on screen with **Super+/**) for the desktop, §
 | **Super+J / K** | focus the next · previous window |
 | Super+H / L | the spiral's first window narrower · wider |
 | **Super+Shift+Return** · F · Shift+Space | move to the first (largest) place · fullscreen · float or unfloat |
-| Super+S / T / Y / M | spiral · columns · floating · monocle |
+| Super+S / T / Y | spiral · columns · floating |
 | **Super+1…9 · Shift+1…9** | go to a workspace · send the window there |
 | Super+Tab | back to the previous workspace |
 | **Super+Escape · Super+Shift+E** | lock · power menu |
@@ -16166,7 +16379,7 @@ The keys and the bar run these; each also works typed in a terminal, and each sa
 | `kawa-screenshot` | a region or the whole screen to the clipboard and `~/Pictures/Screenshots`; `edit` opens it in satty | `kawa-screenshot edit` |
 | `kawa-drives` | the drives menu · list them · open or eject one | `kawa-drives list` · `kawa-drives eject /dev/sdb1` |
 | `kawa-backup` | your home to the backup drive (restic): back up, list, restore, check | `kawa-backup restore ~/Notes` |
-| `kawa-weather` | the weather of your city, one line · the next days in a window | `kawa-weather --forecast` |
+| `kawa-weather` | the weather where you are, one line · the week, as the bar's dropdown | `kawa-weather --menu` |
 | `kawa-play` | a video, song or link in the mpv window already open · in a new one | `kawa-play --new film.mkv` |
 | `kawa-together` | watch a file with friends (Syncplay) | `kawa-together film.mkv` |
 | `kawa-books` · `kawa-notes` · `kawa-clip` · `kawa-shrink` | the books, notes, clipboard and shrink windows (Super+R, N, V, Z) | `kawa-books` |
@@ -16179,7 +16392,6 @@ The keys and the bar run these; each also works typed in a terminal, and each sa
 | `kawa-help` | every keybinding in one list, type to filter (Super+/) | `kawa-help` |
 | `kawa-power` | the power menu (Super+Shift+E) · `sleep`: locked, then asleep, with no menu (the Sleep key) | `kawa-power sleep` |
 | `kawa-lock` | the lock screen · `--sleep`: still locked 90 seconds later, the computer sleeps (Super+Escape) | `kawa-lock` |
-| `kawa-audio` | the audio menu: louder, quieter, mute, the output and the input (Super+A) | `kawa-audio` |
 | `kawa-calendar` | this month, today in [brackets] (a click on the date) | `kawa-calendar` |
 | `kawa-timer` | a timer or a stopwatch beside the bar's time (a click on the time); the bell and a chime when it ends | `kawa-timer start 25` · `kawa-timer cancel` |
 | `kawa-quick` | quick settings (Super+X) · how each tile stands · one tile's action | `kawa-quick --state` · `kawa-quick --do night` |
@@ -16197,7 +16409,7 @@ The rest are called by the bar, the keys and other programs, not by you; each st
 | `kawa-tag` | a click on a workspace or the layout icon in the bar | presses Super+1…9, or switches between spiral and columns |
 | `kawa-dwlstatus` | the session, reading dwl's status | the bar's workspaces, layout, title and keyboard layout |
 | `kawa-nowplaying` · `kawa-mem` | the bar | *now playing* (and its clicks) · the memory figure |
-| `kawa-panel` | the session, hidden until asked | draws quick settings; `kawa-quick` knows the machine behind it |
+| `kawa-panel` | the session, hidden until asked · `--sound` (Super+A, the bar's volume) · `--brightness` (the bar's brightness) | draws quick settings, the sound panel and the brightness slider, one at a time; `kawa-quick` knows the machine behind them |
 | `kawa-pick` | the file chooser portal | the file dialog: yazi in a window (§10.4) |
 | `kawa-share` | xdg-desktop-portal-wlr, when an app shares the screen | asks what to share (§14.4) |
 | `kawa-sixel` | the books, clipboard and wallpaper windows | a picture as a sixel, drawn exactly, in the terminal |
@@ -16426,7 +16638,7 @@ commands themselves are in appendix D.
 | snapshot | a frozen copy of a Btrfs subvolume at one moment, sharing unchanged blocks; not a backup (§4.2) |
 | socket activation | starting a service when the first client connects to its socket: `pipewire.socket` (§28.1) |
 | soname | a shared library's name with its major version: `libva.so.2` (§27.8) |
-| spiral · columns · floating · monocle | dwl's layouts here: windows winding inward in the golden ratio (the default) · side by side, equally wide · placed freely, by you · one at a time, at full size (§6.4, §7.1) |
+| spiral · columns · floating | dwl's layouts here: windows winding inward, the first in the golden ratio, none smaller than 600 × 336 (the default) · side by side, equally wide · placed freely, by you (§6.4, §7.1) |
 | spoke · hub | one item of the installer's summary screen · that summary screen (§4.1) |
 | staging area | git's tray, also called the index: exactly what the next commit will hold (§41.1) |
 | standard input · output · error | the three streams every program has: what it reads, what it prints, where its errors go (§25.2) |

@@ -1,13 +1,16 @@
-# tests/menus/lib.sh — what the menu tests share, on top of tests/lib/harness.sh: fuzzel as a
-# stand-in that answers as told (fake_fuzzel), and the checks that every row fits its menu.
-#   menus_sandbox            sandbox + the fake fuzzel (WAYLAND_DISPLAY set: it takes the lock)
+# tests/menus/lib.sh — what the menu tests share, on top of tests/lib/harness.sh: the panel's
+# menus (kawa-panel --menu, kawa-menu's) and fuzzel (the launcher) as stand-ins that answer as
+# told (fake_panel, fake_fuzzel), and the checks that every row fits its menu.
+#   menus_sandbox            sandbox + the fake panel and fuzzel (WAYLAND_DISPLAY set: fuzzel
+#                            takes its lock)
 #   answer A…                what the next menus answer, in order (fake_fuzzel lists them)
 #   fz_n                     how many menus opened so far
 #   fz_rows [N] · fz_args [N]   the rows / the arguments (one a line) of menu N (default: the last)
-#   fz_arg KEY [N]           the value of --KEY=… of menu N ("" when absent; "set" for a bare flag)
-#   fits [N] [WHY]           every row of menu N fits its width (fuzzel keeps the last column
-#                            for its "…"), and its title stays on one line (FITS_WRAP=1: may
-#                            wrap at its spaces, as fuzzel does, but no word is too long)
+#   fz_arg KEY [N]           the value of --KEY=… (fuzzel's) or --KEY … (the panel's) of menu N
+#                            ("" when absent; "set" for a bare flag)
+#   fits [N] [WHY]           every line of panel menu N fits its width whole (no "…": a row's
+#                            glyph, name, detail and value; a heading with its value; a key),
+#                            and its title on one line
 #   cols TEXT                the columns TEXT takes (cols.py)
 #   without CMD…             prints a PATH on which CMD… are not found (the stubs, the repo's
 #                            bin, and links to every other program of the system)
@@ -26,16 +29,22 @@ menus_sandbox() {
   export FZ=$TMP/fz WAYLAND_DISPLAY=wayland-test CALLS
   mkdir -p "$FZ"; : >"$FZ/answers"
   cp "$MD/fake_fuzzel" "$STUBS/fuzzel"; chmod 755 "$STUBS/fuzzel"
+  cp "$MD/fake_panel" "$STUBS/kawa-panel"; chmod 755 "$STUBS/kawa-panel"
 }
 answer() { printf '%s\n' "$@" >>"$FZ/answers"; }
 fz_n() { cat "$FZ/n" 2>/dev/null || echo 0; }
 fz_rows() { cat "$FZ/in.${1:-$(fz_n)}" 2>/dev/null; }
 fz_args() { cat "$FZ/args.${1:-$(fz_n)}" 2>/dev/null; }
 fz_arg() {
-  local a
+  local a next=0
   while IFS= read -r a; do
-    case $a in --"$1"=*) printf '%s' "${a#*=}"; return ;; --"$1") printf set; return ;; esac
+    ((next)) && { printf '%s' "$a"; return; }
+    case $a in
+      --"$1"=*) printf '%s' "${a#*=}"; return ;;
+      --"$1") case $1 in drop|index|launcher|dmenu|hide-prompt) printf set; return ;; esac; next=1 ;;
+    esac
   done < <(fz_args "${2:-}")
+  ((next)) && printf set
 }
 without() {
   local d=$TMP/without c
@@ -61,18 +70,7 @@ forget() { rm -f "$XDG_RUNTIME_DIR"/kawa-menu-*.state; }
 cols() { printf '%s\n' "$1" | python3 -I "$MD/cols.py"; }
 
 fits() {
-  local n=${1:-$(fz_n)} why=${2:-} w t bad
-  w=$(fz_arg width "$n"); t=$(fz_arg mesg "$n")
-  [[ -n $w ]] || { _no "menu $n has no --width"; return; }
-  # fuzzel draws a row whole up to its width × 6 − 10 px (the rest is kept for its "…")
-  bad=$(fz_rows "$n" | python3 -I "$MD/cols.py" --px | paste - <(fz_rows "$n") |
-        awk -F'\t' -v w="$w" '$1 > w * 6 - 10 { printf "%s px: %s | ", $1, $2 }')
-  [[ -z $bad ]] && _ok || _no "${why:+$why: }rows wider than $((w * 6 - 10)) px: $bad"
-  if [[ -n $t && ${FITS_WRAP:-0} == 1 ]]; then
-    bad=$(tr ' ' '\n' <<<"$t" | python3 -I "$MD/cols.py" | sort -n | tail -n1)
-    ((bad <= w)) && _ok || _no "${why:+$why: }title [$t] has a word of $bad columns: wider than $w"
-  elif [[ -n $t ]]; then
-    # fuzzel wraps a title longer than the width in characters (not columns) at a space
-    ((${#t} <= w && $(cols "$t") <= w)) && _ok || _no "${why:+$why: }title [$t] is ${#t} characters, $(cols "$t") columns: wider than $w"
-  fi
+  local n=${1:-$(fz_n)} why=${2:-} bad
+  bad=$(fz_rows "$n" | python3 -I "$MD/fits.py" "$(fz_arg width "$n")" "$(fz_arg title "$n")")
+  [[ -z $bad ]] && _ok || _no "${why:+$why: }$bad"
 }

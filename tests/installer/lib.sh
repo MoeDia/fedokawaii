@@ -73,6 +73,8 @@ FK_INNER='set -e; W=$1; shift
   for n in null zero full random urandom tty; do : >"/dev/$n"; mount --bind "$W/.dev/$n" "/dev/$n"; done
   ln -s /proc/self/fd /dev/fd; ln -s fd/0 /dev/stdin; ln -s fd/1 /dev/stdout; ln -s fd/2 /dev/stderr
   mkdir -p /dev/shm /dev/dri; mount -t tmpfs fkshm /dev/shm
+  # terminals of its own (verify starts herdr on one): a devpts instance of the fake machine'"'"'s
+  mkdir -p /dev/pts; mount -t devpts -o newinstance,ptmxmode=0666,mode=620 fkpts /dev/pts && ln -s pts/ptmx /dev/ptmx
   for n in "$W"/dev/dri/* "$W"/dev/ntsync; do
     [[ -e $n ]] || continue; t=/dev/${n#"$W"/dev/}; : >"$t"; mount --bind "$W/.dev/null" "$t"
   done
@@ -200,7 +202,7 @@ world() {   # world fresh|built [--themed]
     nano nano-default-editor vim-minimal dracut-config-rescue linux-firmware systemd >"$FKH/installed"
   printf '%s\n' bash sudo NetworkManager kernel-core grub2-tools grubby firewalld openssh-server nano \
     vim-minimal dracut-config-rescue | sed 's/$/ User/' >"$FKH/userinstalled"
-  { ( STATE_DIR=/nonexistent STEAM=yes SPOTIFY=yes; . "$REPO/lib/manifest.sh"; manifest_all amd; manifest_all intel; printf '%s\n' "${FORBIDDEN_amd[@]}" )
+  { ( STATE_DIR=/nonexistent STEAM=yes; . "$REPO/lib/manifest.sh"; manifest_all amd; manifest_all intel; printf '%s\n' "${FORBIDDEN_amd[@]}" )
     printf '%s\n' mesa-vulkan-drivers.i686 mesa-vulkan-drivers-freeworld mesa-vulkan-drivers-freeworld.i686 mesa-va-drivers-freeworld.i686 amd-ucode-firmware microcode_ctl \
       NetworkManager-wifi wireless-regdb alsa-sof-firmware iwlwifi-mvm-firmware realtek-firmware kernel-core
     cat "$FKH/installed"; } | sort -u >"$FKH/available"
@@ -276,6 +278,29 @@ hw_bios()   { rm -rf "$W/sys/firmware/efi"; fkh_del installed grubby; sed -i '/^
 hw_secureboot() {   # Secure Boot on: the EFI variable's fifth byte is 1
   printf '\x06\x00\x00\x00\x01' >"$W/sys/firmware/efi/efivars/SecureBoot-8be4df61-93ca-11d2-aa0d-00e098032b8c"; }
 
+# fake_herdr FILE — herdr, as much of it as verify's start check sees: its version, `config
+# check` (fails without a config, or with $FKH/herdr-bad-config), a start on a terminal (the
+# lines a real one logs: the window's side attached, the first workspace in the folder it was
+# started from; refused off a terminal, and nothing with $FKH/herdr-dead), `server stop`
+fake_herdr() {
+  cat >"$1" <<'EOF'
+#!/bin/sh
+L=$HOME/.config/herdr
+case ${1:-} in
+  --version) echo "herdr 0.9.5" ;;
+  config) [ -f "$L/config.toml" ] && [ ! -e /var/lib/fkh/herdr-bad-config ] || { echo "config: issues found"; exit 1; }
+          echo "config: ok" ;;
+  server) [ "${2:-}" = stop ] || exit 2 ;;
+  "") [ -t 0 ] || { echo "herdr: cannot attach without a usable terminal" >&2; exit 1; }
+      [ -e /var/lib/fkh/herdr-dead ] && { echo "herdr: (stand-in) does not start" >&2; exit 1; }
+      echo "INFO herdr::client::handshake: endpoint handshake succeeded generation=1 server_version=0.9.5" >>"$L/herdr-client.log"
+      echo "INFO herdr::server::headless::bootstrap: created startup workspace cwd=$PWD" >>"$L/herdr-server.log" ;;
+  *) exit 2 ;;
+esac
+EOF
+  chmod 755 "$1"
+}
+
 # ── the GitHub releases, faked: archives made here, and the fake machine's copies of the
 #    project pinned to them (lib/upstream.sh's SHA-256s are the real releases') ─────────────
 releases() {
@@ -285,7 +310,7 @@ releases() {
   mkdir -p "$r/satty" "$r/yazi/yazi-x86_64-unknown-linux-musl" "$r/lg" "$r/jb" "$r/fp" "$r/ge/GE-Proton10-25"
   tool satty 0.22.0 "$r/satty/satty"; tool yazi 26.9.1 "$r/yazi/yazi-x86_64-unknown-linux-musl/yazi"; tool ya 26.9.1 "$r/yazi/yazi-x86_64-unknown-linux-musl/ya"
   tool bluetui 0.8.2 "$FKH/dl/bluetui-x86_64-linux-musl"     # (no archive: the release file is the binary)
-  tool herdr 0.9.5 "$FKH/dl/herdr-linux-x86_64"              # (no archive either)
+  fake_herdr "$FKH/dl/herdr-linux-x86_64"                    # (no archive either)
   tool lazygit 0.66.1 "$r/lg/lazygit"; echo licence >"$r/lg/LICENSE"; echo readme >"$r/lg/README.md"   # (as its release: beside them)
   echo font >"$r/jb/JetBrainsMonoNerdFont-Regular.ttf"
   echo font >"$r/fp/fusion-pixel-12px-monospaced-ja.ttf"; echo font >"$r/fp/fusion-pixel-12px-monospaced-latin.ttf"; echo licence >"$r/fp/OFL.txt"
@@ -365,9 +390,10 @@ built() {
   printf '#!/bin/sh\nexec nvim "$@"\n' >"$W/usr/local/bin/vi"; chmod 755 "$W/usr/local/bin/vi"; : >"$W/etc/NetworkManager/conf.d/90-fedokawaii.conf"; : >"$W/etc/mpv/scripts/mpris.so"
   mkdir -p "$W/etc/modprobe.d" "$W/etc/systemd/system/user@.service.d"
   echo 'options btusb enable_autosuspend=0' >"$W/etc/modprobe.d/fedokawaii-btusb.conf"
+  echo 'options snd_hda_intel power_save=0' >"$W/etc/modprobe.d/fedokawaii-audio.conf"
   printf '[Service]\nTimeoutStopSec=30s\n' >"$W/etc/systemd/system/user@.service.d/fedokawaii.conf"
   mkdir -p "$W/etc/systemd/sleep.conf.d"; printf '[Sleep]\nAllowHibernation=no\nAllowHybridSleep=no\nAllowSuspendThenHibernate=no\n' >"$W/etc/systemd/sleep.conf.d/90-fedokawaii.conf"
-  mkdir -p "$W/etc/systemd/logind.conf.d"; printf '[Login]\nHandleSuspendKey=ignore\nHandleSuspendKeyLongPress=ignore\nHandleHibernateKey=ignore\nHandleHibernateKeyLongPress=ignore\nInhibitDelayMaxSec=15\n' >"$W/etc/systemd/logind.conf.d/90-fedokawaii.conf"
+  mkdir -p "$W/etc/systemd/logind.conf.d"; printf '[Login]\nHandleSuspendKey=ignore\nHandleSuspendKeyLongPress=ignore\nHandleHibernateKey=ignore\nHandleHibernateKeyLongPress=ignore\nInhibitDelayMaxSec=25\n' >"$W/etc/systemd/logind.conf.d/90-fedokawaii.conf"
   printf '[main]\nmax_parallel_downloads=10\nfastestmirror=True\nminrate=5k\ntimeout=20\ninstallonly_limit=2\ndefaultyes=True\nexclude_from_weak=nodejs,nodejs22*,PackageKit,java-*-openjdk-headless,libreoffice-help-*\n' >"$W/etc/dnf/libdnf5.conf.d/90-fedokawaii.conf"
   printf '[x]\ngpgcheck=1\n' >"$W/etc/yum.repos.d/brave-browser.repo"; cp "$W/etc/yum.repos.d/brave-browser.repo" "$W/etc/yum.repos.d/claude-code.repo"
   printf '#!/bin/sh\nexit 0\n' >"$W/usr/local/sbin/kawa-snap"; chmod 755 "$W/usr/local/sbin/kawa-snap"; : >"$W/etc/dnf/libdnf5-plugins/actions.d/fedokawaii-snapper.actions"
@@ -380,13 +406,11 @@ built() {
   : >"$W/usr/local/share/xdg-desktop-portal/portals/termfilechooser.portal"
   : >"$W/var/lib/systemd/linger/fkuser"; : >"$W/dev/ntsync"
   # every manifest package installed and marked as yours; the services setup enabled
-  ( STATE_DIR=/nonexistent STEAM=yes SPOTIFY=yes; . "$REPO/lib/manifest.sh"; manifest_all amd ) | sort -u >"$TMP/manifest"
+  ( STATE_DIR=/nonexistent STEAM=yes; . "$REPO/lib/manifest.sh"; manifest_all amd ) | sort -u >"$TMP/manifest"
   grep -vxF -e nano -e nano-default-editor -e vim-minimal -e dracut-config-rescue "$FKH/installed" \
     | cat - "$TMP/manifest" <(echo mesa-vulkan-drivers.i686) <(echo amd-ucode-firmware) | sort -u >"$FKH/installed.n"
   mv "$FKH/installed.n" "$FKH/installed"
-  { printf '%s\n' bash sudo NetworkManager; cat "$TMP/manifest"; echo amd-ucode-firmware; echo spotify-client; } | sort -u | sed 's/$/ User/' >"$FKH/userinstalled"
-  echo spotify-client >>"$FKH/installed"              # (Spotify, built here by lpf: in place)
-  fk bash -c '. /usr/local/bin/_lib.sh; fake_lpf; echo OK >/var/lib/lpf/packages/spotify-client/state; chown -R 975:975 /var/lib/lpf'
+  { printf '%s\n' bash sudo NetworkManager; cat "$TMP/manifest"; echo amd-ucode-firmware; } | sort -u | sed 's/$/ User/' >"$FKH/userinstalled"
   echo amd-ucode-firmware >"$S/hardware-pkgs"
   printf 'enabled %s\n' greetd.service bluetooth.service snapper-timeline.timer snapper-cleanup.timer fstrim.timer lactd.service \
     fedokawaii-scrub.timer fedokawaii-kernels.timer fedokawaii-report.service tuned.service firewalld.service >>"$FKH/units"
@@ -417,6 +441,7 @@ built() {
   local name tag bins b
   while IFS='|' read -r name _ tag _ _ bins; do
     for b in $bins; do printf '#!/bin/sh\necho "%s %s"\n' "$b" "$tag" >"$U/.local/bin/$b"; chmod 755 "$U/.local/bin/$b"; done
+    [[ $name == herdr ]] && fake_herdr "$U/.local/bin/herdr"
     echo "$tag" >"$U/.local/share/fedokawaii/upstream/$name"
   done < <(. "$REPO/lib/upstream.sh"; printf '%s\n' "${UPSTREAM[@]}")
   echo v3.5.1 >"$U/.local/share/fedokawaii/upstream/nerd-JetBrainsMono"

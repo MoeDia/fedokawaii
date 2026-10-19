@@ -374,6 +374,86 @@ for _ in {1..20}; do kawa-clip & done; wait
 eq "$(grep -c '^footclient' "$CALLS")" 1 "footclient started once"
 eq "$(grep -c '^fzf' "$CALLS")" 1
 
+# ── Super+Z on an entry: the cursor's entry kept while the window is open ────
+# (the window's fzf a stand-in that waits for $TMP/close; the bindings run as fzf runs them)
+cur() { cat "$XDG_RUNTIME_DIR/kawa-clip.current" 2>/dev/null; }
+open_window() {   # open_window [setsid] — kawa-clip --tui in the background, WIN its pid
+  rm -f "$TMP/close" "$FZF_ARGS"
+  stub fzf 'for a; do printf "%s\n" "$a"; done >"$FZF_ARGS"; cat >/dev/null; while [ ! -e "$TMP/close" ]; do sleep 0.05; done'
+  "$@" kawa-clip --tui 2>/dev/null & WIN=$!     # (bash says "Hangup" of a hung-up fzf)
+  on_exit "touch '$TMP/close' 2>/dev/null; kill $WIN 2>/dev/null"
+  for _ in {1..100}; do [[ -s $FZF_ARGS && -n $(cur) ]] && break; sleep 0.05; done
+}
+bind() {          # bind EVENT ID [VAR=VALUE…] — run that binding's command as fzf would ({1}: ID)
+  local c; c=$(grep -F -- "--bind=$1:" "$FZF_ARGS"); c=${c#--bind=$1:execute-silent(}
+  c=${c%%)+execute-silent(*}; c=${c%)}                 # (the first command)
+  env "${@:3}" sh -c "${c//\{1\}/$2}"
+}
+case_ "the window open: the file says so — its pid, nothing under the cursor yet"
+setup; put 'one'; put 'two'; put 'three'
+open_window
+eq "$(cur)" "$WIN "
+rc 0 kawa-clip --held; eq "$(kawa-clip --held)" ""
+case_ "… the cursor moved (fzf's focus event): that entry, for Super+Z (kawa-clip --held)"
+bind focus 2 >/dev/null 2>&1
+eq "$(cur)" "$WIN 2"; eq "$(kawa-clip --held)" 2
+case_ "… a new result (a search, a reload — the cursor on another entry in the same place): that one"
+bind result 3 FZF_MATCH_COUNT=3 >/dev/null 2>&1
+eq "$(kawa-clip --held)" 3
+case_ "… the search matching nothing (fzf runs no {1} command then): no entry under the cursor"
+c=$(grep -F -- "--bind=result:" "$FZF_ARGS"); c=${c#*+execute-silent(}; c=${c%)}
+FZF_MATCH_COUNT=0 sh -c "$c"; eq "$(cur)" "$WIN "
+FZF_MATCH_COUNT=0 bash -c "$c"; eq "$(cur)" "$WIN " "(with bash as \$SHELL)"
+bind focus 1 >/dev/null 2>&1; FZF_MATCH_COUNT=2 sh -c "$c"; eq "$(kawa-clip --held)" 1 "matches: left as it is"
+case_ "… fzf listens on its socket, for the history's reload"
+has "$(cat "$FZF_ARGS")" "--listen=$XDG_RUNTIME_DIR/kawa-clip.sock"
+has "$(cat "$FZF_ARGS")" "super+z shrink" "the footer names the key"
+case_ "a new copy while it is open (--store): the window's list reloaded, the cursor on the newest"
+stub curl
+store_setup_keep() { stub wl-paste 'case $1 in --list-types) echo "text/plain;charset=utf-8" ;; esac'; }
+store_setup_keep; printf 'four' | CLIPBOARD_STATE=data kawa-clip --store
+called "^curl .*--unix-socket $XDG_RUNTIME_DIR/kawa-clip.sock --data-binary reload\\($REPO/bin/kawa-clip --list\\)\\+first http://localhost/\$"
+eq "$(kawa-clip --list | head -n1 | cut -f2)" four
+case_ "Esc: the window's file goes with it; then there is no window (--held: exit 1)"
+touch "$TMP/close"; wait "$WIN"
+[[ ! -e $XDG_RUNTIME_DIR/kawa-clip.current ]] && _ok || _no "the file stayed: $(cur)"
+rc 1 kawa-clip --held
+case_ "… and a copy then pokes nothing"
+reset_calls; printf 'five' | CLIPBOARD_STATE=data kawa-clip --store; not_called '^curl'
+case_ "closed from outside (dwl hangs up its process group): the file goes too"
+open_window /usr/bin/setsid
+eq "$(cur)" "$WIN "
+kill -HUP -- "-$WIN"; { wait "$WIN"; } 2>/dev/null
+[[ ! -e $XDG_RUNTIME_DIR/kawa-clip.current ]] && _ok || _no "the file stayed: $(cur)"
+case_ "a file left by a window killed outright (its pid gone, or now another program's): no window"
+sh -c 'exit 0' & dead=$!; wait "$dead"
+printf '%s 1\n' "$dead" >"$XDG_RUNTIME_DIR/kawa-clip.current"; rc 1 kawa-clip --held
+sleep 30 & other=$!; on_exit "kill $other 2>/dev/null"
+printf '%s 1\n' "$other" >"$XDG_RUNTIME_DIR/kawa-clip.current"; rc 1 kawa-clip --held
+reset_calls; printf 'six' | CLIPBOARD_STATE=data kawa-clip --store; not_called '^curl'
+kill "$other" 2>/dev/null
+case_ "… nor do odd lines in it count: --focus takes a pid and an id, nothing else"
+rc 0 kawa-clip --focus 'x' 1; rc 0 kawa-clip --focus "$$" '1;touch x'
+eq "$(cur)" "$other 1" "unchanged"
+
+if [[ -z $REAL_FZF ]] || ! command -v curl >/dev/null; then
+  skip "no fzf or curl here: the window's events are not run for real"
+else
+  case_ "for real (fzf $("$REAL_FZF" --version | cut -d' ' -f1)): the cursor followed, a new copy shown on top and under it, the file gone when it closes"
+  setup; put 'one'; put 'two'; put 'three'
+  config .config/fedokawaii/fzf.opts; stub fzf "exec '$REAL_FZF' \"\$@\""
+  # ↓ twice (the list is newest first): entry 1; then a copy comes; the window is hung up at 6 s
+  python3 -I "$C/pty_run.py" --cols 80 --rows 27 --send 1.5 '\x1b[B' --send 2 '\x1b[B' --hangup 6 -- kawa-clip --tui >/dev/null 2>&1 &
+  pty=$!; on_exit "kill $pty 2>/dev/null"
+  for _ in {1..60}; do [[ $(kawa-clip --held 2>/dev/null) == 1 ]] && break; sleep 0.05; done
+  eq "$(kawa-clip --held)" 1 "the cursor two down, on the oldest"
+  store_setup_keep; printf 'four' | CLIPBOARD_STATE=data kawa-clip --store
+  for _ in {1..60}; do [[ $(kawa-clip --held 2>/dev/null) == 4 ]] && break; sleep 0.05; done
+  eq "$(kawa-clip --held)" 4 "the new copy, on top, under the cursor"
+  wait "$pty"
+  [[ ! -e $XDG_RUNTIME_DIR/kawa-clip.current && ! -e $XDG_RUNTIME_DIR/kawa-clip.sock ]] && _ok || _no "left: $(ls "$XDG_RUNTIME_DIR")"
+fi
+
 case_ "misuse and help"
 setup
 rc 2 kawa-clip --bogus; rc 2 kawa-clip list

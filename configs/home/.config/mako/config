@@ -1,14 +1,19 @@
 # ~/.config/mako/config — mako 1.11. Apply: makoctl reload (fails loudly on a bad key)
-# Solid square cards with a full 2 px warm-grey border (like every menu and window), pixel
-# font; critical ones get a vermilion border and stay.
+# Every card is a panel of the design system (docs/design-system.md): the surface in a 2 px
+# muted frame, square, never a shadow; the pixel font at its one size, 12 px. Critical ones
+# get a vermilion frame and stay.
 # "do not disturb" in quick settings switches to the mode at the end of this file.
-# colours and icons of the current theme (also the quieter text of low-urgency notices and
-# the vermilion edge of critical ones); mako takes include only outside a [section]
+# colours, the title's row and the level display's look come from the current theme (the
+# vermilion frame of critical ones too); mako takes include only outside a [section]
 include=~/.config/fedokawaii/current/mako
 font=Fusion Pixel 12px Mono ja,Sumi Icons,JetBrainsMono Nerd Font,Noto Kufi Arabic 12px
 border-size=2
 border-radius=0
-padding=10,16
+# the panel's 12 px of pad above and below; across, 12 and the 6 px a panel's row keeps
+# inside it (its glyph at x + 6): the words start at 2 + 18 = 20 and end 20 px from the
+# right edge, as a panel row's glyph and value do (an app's picture stands there, and the
+# words 18 px after it)
+padding=12,18
 # 8 px from the screen's edge and below the bar: the windows' gap (dwl's gappx), so a notice
 # lines up with the windows and the dropdown menus to the pixel; as wide as quick settings'
 # panel (kawa-panel), so the two make one column under the bar's right end
@@ -62,20 +67,16 @@ icons=0
 invisible=1
 
 # the level display of the volume and brightness keys (kawa-osd): a small panel at the
-# bottom centre, replaced in place while a key is held. Its width is its content exactly
-# (220 px, see kawa-osd) + 16 + 14 padding + 2 × 2 border: the left padding is 2 px less
-# because the label's icon and the wedge both start 2 px into their own boxes, so 16 px of
-# panel shows on both sides; an even width, so it is centred to the pixel on any screen. 72 px above the bottom edge: mako leaves
-# out the last notice's own bottom margin, so the distance is the outer margin. Padding
-# 7 above and below: with the label's taller line (the theme's format) the text block has
-# 6 px over the letters and 6 px under the wedge (whose floor stands on the number's
-# baseline), so 13 px of panel shows above and below what you see, and 16 px at the sides.
+# bottom centre, replaced in place while a key is held — quick settings' brightness panel,
+# to the pixel: 304 × 48, one meter row of 20 px in the 12 px of pad (the padding above), its
+# glyph at x 20, its twelve squares from x 110, the number ending at x 284 (kawa-osd). An
+# even width, so it is centred to the pixel on any screen; 72 px above the bottom edge (mako
+# leaves out the last notice's own bottom margin, so the distance is the outer margin).
 [category=osd]
 anchor=bottom-center
 margin=0
 outer-margin=0,0,72,0
-width=254
-padding=7,16,7,14
+width=304
 default-timeout=1400
 
 # (hidden notices are not folded into a shown one: a critical card would count them, ×N)

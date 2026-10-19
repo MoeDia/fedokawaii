@@ -97,6 +97,8 @@ keep kawa-clipkeep </dev/null &                   # a copy outlives the app it c
 keep wl-paste --watch kawa-clip --store </dev/null &   # clipboard history (Super+V): text and pictures
 gammastep -l "$NIGHT_LIGHT" -t 6500:4200 </dev/null &   # night light (quick settings turns it off and on)
 kawa-steam --warm </dev/null &                    # Steam, quietly, a minute in (its menu turns it off; STEAM=no: nothing)
+kawa-steam --guard </dev/null &                   # Steam closed properly before a restart or shut down,
+                                                   #   whoever asks (its saves to Steam Cloud; STEAM=no: nothing)
 
 # away: nothing locks and nothing sleeps — the screens only go dark after an hour (wlopm: the
 # outputs stay, so windows stay where they are; a key wakes them). Sleep is yours to ask for:
