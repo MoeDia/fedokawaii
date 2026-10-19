@@ -1,112 +1,104 @@
 #!/usr/bin/env bash
 # tests/status/test_osd.sh — kawa-osd, the level display of the volume, microphone and
-# brightness keys: one panel that updates in place (mako's replace id, kept in
-# $XDG_RUNTIME_DIR/kawa-osd-id), a 20-column wedge and a fixed-width value. The notice
-# daemon is lib.sh's fake: ids handed out as mako does.
+# brightness keys: one panel that updates in place (mako's synchronous tag), drawn as quick
+# settings' meter row (docs/design-system.md) — the glyph, the name in 12 columns, twelve
+# squares lit by the panel's own rule, a 4-column number. The notice daemon is lib.sh's fake.
 . "$(dirname "$0")/lib.sh"
-setup() { box; notices; . "$HOME/.config/fedokawaii/icons.sh"; }
-ID() { cat "$XDG_RUNTIME_DIR/kawa-osd-id" 2>/dev/null; }
+setup() { box; notices; . "$HOME/.config/fedokawaii/icons.sh"; . "$HOME/.config/fedokawaii/current/colors.sh"; }
+body() { sed -n "\$s/^NOTICE [0-9]* osd | [^|]* | //p" "$NOTIFY_STATE/log"; }   # the last panel's markup
+# panel_lit PCT — how many squares kawa-panel's own meter lights for PCT (its lit_of, run alone)
+panel_lit() {
+  python3 -I - "$REPO/bin/kawa-panel" "$1" <<'EOF'
+import ast, sys
+src = open(sys.argv[1]).read()
+tree = ast.parse(src)
+keep = [n for n in tree.body if isinstance(n, ast.FunctionDef) and n.name == "lit_of"
+        or isinstance(n, ast.Assign) and any(getattr(t, "id", "") == "SEGS" for t in getattr(n.targets[0], "elts", n.targets))]
+ns = {}
+exec(compile(ast.Module(body=keep, type_ignores=[]), "kawa-panel", "exec"), ns)
+print(ns["lit_of"](int(sys.argv[2])))
+EOF
+}
 
 # ── what it shows ────────────────────────────────────────────────────────────
-case_ "70 %: the label, 14 of 20 columns lit, the number; app and category 'osd' (mako's rule)"
+case_ "70 %: the glyph and name, 8 of 12 squares lit, the number; app and category 'osd' (mako's rule), one panel in place"
 setup
-rc 0 kawa-osd "$ICON_SUN" brightness 70
-eq "$(osd)" "1|$ICON_SUN  brightness|70%|14/20"
-called 'notify-send -a osd -c osd -u low -h int:transient:1 -p'
-eq "$(ID)" 1 "the id kept for the next press"
+rc 0 kawa-osd 明 brightness 70
+eq "$(osd | cut -d'|' -f2-)" "明  brightness|70%|8/12"
+called '^notify-send -a osd -c osd -u low -h int:transient:1 -h string:x-canonical-private-synchronous:osd '
 
-case_ "the wedge: 0 % dark, 1–5 % one column, 96–100 % all twenty"
-for p in 0:0 1:1 5:1 6:2 50:10 95:19 96:20 100:20; do
-  kawa-osd "$ICON_SPEAKER" volume "${p%:*}"
-  eq "$(osd | cut -d'|' -f3-)" "${p%:*}%|${p#*:}/20" "at ${p%:*} %"
+case_ "the squares: lit as the panel's meter lights them, at every level"
+for p in 0 1 4 5 12 13 30 42 50 62 70 87 95 96 100; do
+  kawa-osd "$ICON_VOL_2" volume "$p"
+  eq "$(osd | cut -d'|' -f3-)" "$p%|$(panel_lit "$p")/12" "at $p %"
 done
 
-case_ "above 100 % (only the mixer goes there): the wedge full, the real number"
-kawa-osd "$ICON_SPEAKER" volume 150
-eq "$(osd | cut -d'|' -f3-)" "150%|20/20"
-has "$(tail -n 1 "$NOTIFY_STATE/log")" "<span color='#$(. "$HOME/.config/fedokawaii/current/colors.sh"; echo "$C_ACCENT")'>$ICON_EQ_5</span>" \
-  "the top column still lit as the peak lamp"
-kawa-osd "$ICON_SPEAKER" volume 1000
-eq "$(osd | cut -d'|' -f3-)" "999%|20/20" "three digits at most: the panel never widens"
+case_ "above 100 % (only the mixer goes there): every square lit, the real number; three digits at most"
+kawa-osd "$ICON_VOL_4" volume 150
+eq "$(osd | cut -d'|' -f3-)" "150%|12/12"
+kawa-osd "$ICON_VOL_4" volume 1000
+eq "$(osd | cut -d'|' -f3-)" "999%|12/12" "the panel never widens"
 
-case_ "muted: 'off', nothing lit"
-kawa-osd "$ICON_SPEAKER_OFF" volume 40 off
-eq "$(osd | cut -d'|' -f2-)" "$ICON_SPEAKER_OFF  volume|off|0/20"
+case_ "muted: the level kept, its squares hollow; the number says 'off', faint"
+kawa-osd "$ICON_VOL_MUTE" volume 40 off
+eq "$(osd | cut -d'|' -f2-)" "$ICON_VOL_MUTE  volume|off|5/12"
+has "$(body)" "<span color='#$C_TEAL'>$ICON_SEG_HOLLOW$ICON_SEG_HOLLOW$ICON_SEG_HOLLOW$ICON_SEG_HOLLOW$ICON_SEG_HOLLOW</span><span color='#$C_EDGE2'>$ICON_SEG$ICON_SEG$ICON_SEG$ICON_SEG$ICON_SEG$ICON_SEG$ICON_SEG</span>"
+has "$(body)" "<span color='#$C_FAINT'> off</span>"
 
 case_ "a level that is not a number: 0, still a well-formed panel"
 for p in "" abc -5 4.5 '$(id)' '<b>'; do
-  kawa-osd "$ICON_SUN" brightness "$p"
-  eq "$(osd | cut -d'|' -f3-)" "0%|0/20" "level [$p]"
+  kawa-osd 明 brightness "$p"
+  eq "$(osd | cut -d'|' -f3-)" "0%|0/12" "level [$p]"
 done
 
-case_ "the value is always the same width: '  5%', ' 70%', '100%', ' off'"
+case_ "the panel's inks: the glyph accent_text, the name text, lit asagi, unlit edge2, the number muted"
 setup
-for p in 5 70 100; do kawa-osd "$ICON_SUN" brightness "$p"; done; kawa-osd "$ICON_SUN" brightness 5 off
-v=$(sed -n 's/^NOTICE .*Fusion Pixel 12px Mono ja 24px.> \(.*\)<\/span>$/\1/p' "$NOTIFY_STATE/log" \
-    | sed -e 's/<[^>]*>//g')
-eq "$(printf '%s\n' "$v" | awk '{ print length($0) }' | sort -u)" 4 "every value 4 characters: [$(tr '\n' '|' <<<"$v")]"
+kawa-osd 明 brightness 50
+b=$(body)
+has "$b" "<span line_height='20480'><span color='#$C_ACCENT_TEXT'>明</span>"
+has "$b" "<span color='#$C_TEXT'>brightness  </span>"
+has "$b" "<span font='Sumi Icons 12px'><span color='#$C_TEAL'>$ICON_SEG$ICON_SEG$ICON_SEG$ICON_SEG$ICON_SEG$ICON_SEG</span><span color='#$C_EDGE2'>"
+has "$b" "<span color='#$C_MUTED'> 50%</span></span>"
+
+case_ "one row on the panel's grid: the name 18 px after the glyph's pen (a kanji 12 + 6, a speaker 18 + 0, a Sumi icon 14 + 4), 12 columns of name, 12 squares, 6 px, 4 columns of number"
+setup
+kawa-osd 明 brightness 70
+has "$(body)" "明</span> <span color='#$C_TEXT'>brightness  </span>"
+kawa-osd "$ICON_VOL_3" volume 70
+has "$(body)" "$ICON_VOL_3</span><span color='#$C_TEXT'>volume      </span>"
+kawa-osd "$ICON_MIC" microphone 70
+has "$(body)" "$ICON_MIC</span><span font='Fusion Pixel 12px Mono ja 8px'> </span><span color='#$C_TEXT'>microphone  </span>"
+v=$(for p in 5 70 100; do kawa-osd 明 brightness "$p"; body | sed -e "s/.*<span color='#$C_MUTED'>//" -e 's/<.*//'; done
+    kawa-osd 明 brightness 5 off; body | sed -e "s/.*<span color='#$C_FAINT'>//" -e 's/<.*//')
+eq "$(printf '%s\n' "$v" | awk '{ print length($0) }' | sort -u)" 4 "every value 4 columns: [$(tr '\n' '|' <<<"$v")]"
+has "$(body)" "</span></span> <span color='#$C_FAINT'>" "6 px (a space) between the squares and the number"
+eq "$(kawa-osd 明 "a very long label here" 50; osd | cut -d'|' -f2)" "明  a very long label here" "the title is whole…"
+has "$(body)" "<span color='#$C_TEXT'>a very long </span>" "… the row's name cut to its 12 columns: the squares never move"
 
 case_ "the theme's colours (light); no theme set up: no panel in made-up colours, a failure"
 setup; ln -sfn themes/light "$HOME/.config/fedokawaii/current"
 . "$HOME/.config/fedokawaii/themes/light/colors.sh"
-kawa-osd "$ICON_SUN" brightness 50
-has "$(tail -n1 "$NOTIFY_STATE/log")" "color='#$C_TEAL'"
+kawa-osd 明 brightness 50
+has "$(body)" "color='#$C_TEAL'"
 rm "$HOME/.config/fedokawaii/current"; n=$(wc -l <"$NOTIFY_STATE/log")
-kawa-osd "$ICON_SUN" brightness 50 2>/dev/null && _no "exit 0 without a theme" || _ok
+kawa-osd 明 brightness 50 2>/dev/null && _no "exit 0 without a theme" || _ok
 eq "$(wc -l <"$NOTIFY_STATE/log")" "$n" "nothing shown"
 
 # ── one panel, updated in place ──────────────────────────────────────────────
-case_ "a held key (20 presses): one panel, replaced in place — never a second one"
+case_ "a held key (20 presses), and 20 at once: every one the same synchronous panel"
 setup
-for i in {1..20}; do kawa-osd "$ICON_SPEAKER" volume $((i * 5)); done
-eq "$(cut -d' ' -f2 "$NOTIFY_STATE/log" | sort -u)" 1 "every update went to notice 1"
-eq "$(grep -c -- '-r 1 ' "$CALLS")" 19 "19 replaced it"
-eq "$(osd | cut -d'|' -f3)" "100%" "the last level shown"
+for i in {1..20}; do kawa-osd "$ICON_VOL_2" volume $((i * 5)); done
+for i in {1..20}; do kawa-osd "$ICON_VOL_2" volume $((i * 5)) & done; wait
+eq "$(grep -c '^notify-send ' "$CALLS")" 40
+eq "$(grep '^notify-send ' "$CALLS" | grep -vc -- '-h string:x-canonical-private-synchronous:osd ')" 0 "each one takes the panel's place"
 
-case_ "20 at once (overlapping runs): still one panel"
+case_ "mako not running: nothing shown, a failure (1)"
 setup
-for i in {1..20}; do kawa-osd "$ICON_SPEAKER" volume $((i * 5)) & done; wait
-eq "$(cut -d' ' -f2 "$NOTIFY_STATE/log" | sort -u)" 1 "every update went to notice 1"
-
-case_ "mako restarted (the kept id is gone): a new panel, and that id kept"
-setup
-kawa-osd "$ICON_SUN" brightness 10; kawa-osd "$ICON_SUN" brightness 20
-: >"$NOTIFY_STATE/live"                                   # the daemon forgot every notice
-kawa-osd "$ICON_SUN" brightness 30
-eq "$(ID)" 2 "the new id"; eq "$(osd | cut -d'|' -f1,3)" "2|30%"
-kawa-osd "$ICON_SUN" brightness 40
-eq "$(osd | cut -d'|' -f1)" 2 "the next press replaces the new one"
-
-case_ "a corrupt id file: a fresh panel, and the file is good again"
-for junk in "" abc -1 "12 34" 0 007 99999999999 4294967296 2147483648 $'5\n6' "$(printf 'x%.0s' {1..5000})"; do
-  setup; printf '%s' "$junk" >"$XDG_RUNTIME_DIR/kawa-osd-id"
-  kawa-osd "$ICON_SUN" brightness 60
-  eq "$(osd | cut -d'|' -f3)" "60%" "shown with id file [${junk:0:20}]"
-  [[ $(ID) =~ ^[1-9][0-9]*$ ]] && _ok || _no "id file [${junk:0:20}] became [$(ID)]"
-done
-
-case_ "a stale lock from a run that was killed: no wait, no hang"
-setup; : >"$XDG_RUNTIME_DIR/kawa-osd-id.lock"
-s=$EPOCHREALTIME; kawa-osd "$ICON_SUN" brightness 60
-eq "$(osd | cut -d'|' -f3)" "60%"
-(( ${EPOCHREALTIME/./} - ${s/./} < 900000 )) && _ok || _no "took over 0.9 s"
-
-case_ "mako not running: nothing shown, the id file left alone (not the '0' notify-send prints)"
-setup; echo 7 >"$XDG_RUNTIME_DIR/kawa-osd-id"
-NOTIFY_DOWN=1 kawa-osd "$ICON_SUN" brightness 60
-eq "$(ID)" 7
+NOTIFY_DOWN=1 kawa-osd 明 brightness 60; eq "$?" 1
 eq "$(osd)" "" "no notice"
 case_ "… and once it runs again, the panel comes back"
-kawa-osd "$ICON_SUN" brightness 70
+kawa-osd 明 brightness 70
 eq "$(osd | cut -d'|' -f3)" "70%"
-
-case_ "a slow notice daemon: a run waits at most a second for the one before, then gives up"
-setup; echo 1 >"$NOTIFY_STATE/n"; echo 1 >"$NOTIFY_STATE/live"; echo 1 >"$XDG_RUNTIME_DIR/kawa-osd-id"
-NOTIFY_SLOW=3 kawa-osd "$ICON_SUN" brightness 10 & slow=$!
-waitfor 2 grep -q 'notify-send' "$CALLS"
-s=$EPOCHREALTIME; rc 0 kawa-osd "$ICON_SUN" brightness 20
-(( ${EPOCHREALTIME/./} - ${s/./} < 1600000 )) && _ok || _no "the second run waited past 1.6 s"
-kill "$slow" 2>/dev/null; wait "$slow" 2>/dev/null
 
 # ── misuse, environment ──────────────────────────────────────────────────────
 case_ "--help: what it does, nothing shown; too few arguments: misuse"
@@ -114,25 +106,22 @@ setup
 out=$(kawa-osd --help); r=$?
 eq "$r" 0; has "$out" "kawa-osd ICON LABEL PERCENT"; eq "$(osd)" ""
 rc 2 kawa-osd
-rc 2 kawa-osd "$ICON_SUN" brightness
+rc 2 kawa-osd 明 brightness
 eq "$(osd)" "" "nothing shown for misuse"
-
-case_ "XDG_RUNTIME_DIR unset: could not (1), nothing written elsewhere"
-setup
-( unset XDG_RUNTIME_DIR; kawa-osd "$ICON_SUN" brightness 50 ) 2>/dev/null; eq "$?" 1
 
 case_ "HOME with a space in it: the theme's colours still found"
 setup; mv "$HOME" "$TMP/my home"; export HOME="$TMP/my home"
-kawa-osd "$ICON_SUN" brightness 50
-has "$(tail -n 1 "$NOTIFY_STATE/log")" "color='#$(. "$HOME/.config/fedokawaii/current/colors.sh"; echo "$C_TEAL")'"
+kawa-osd 明 brightness 50
+has "$(body)" "color='#$(. "$HOME/.config/fedokawaii/current/colors.sh"; echo "$C_TEAL")'"
 eq "$(osd | cut -d'|' -f3)" "50%"
 
 case_ "Turkish and Arabic locales: the same panel"
 setup
 for loc in tr_TR.UTF-8 ar_EG.UTF-8; do
   locale_ok "$loc" || { skip "no $loc here"; continue; }
-  LC_ALL=$loc kawa-osd "$ICON_SUN" brightness 45 2>/dev/null
-  eq "$(osd | cut -d'|' -f3-)" "45%|9/20" "$loc"
+  LC_ALL=$loc kawa-osd 明 brightness 45 2>/dev/null
+  eq "$(osd | cut -d'|' -f3-)" "45%|5/12" "$loc"
+  has "$(body)" "<span color='#$C_TEXT'>brightness  </span>" "$loc: the name in its 12 columns"
 done
 
 done_

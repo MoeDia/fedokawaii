@@ -46,6 +46,8 @@ def helper_funcs(repo):
     """functions the scripts source from elsewhere (width.sh's cols and heading, files.sh's free_name, lib/common.sh's …)."""
     names = set()
     for f in [repo / "configs/home/.config/fedokawaii/icons.sh", repo / "configs/home/.config/fedokawaii/width.sh", repo / "configs/home/.config/fedokawaii/files.sh",
+              repo / "configs/home/.config/fedokawaii/screen.sh",   # (screen_heading, screen_row…: the terminal screens)
+              repo / "bin/kawa-bar",   # (bar_lit: sourced by the bar's long-running modules)
               *sorted((repo / "lib").glob("*.sh"))]:
         names |= shcmds.funcs_of(f.read_text())
     return names

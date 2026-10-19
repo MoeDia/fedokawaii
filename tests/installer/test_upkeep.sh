@@ -76,33 +76,20 @@ back built; rm -rf "$W/home/fkuser/.local/share/fedokawaii/syncplay" "$W/home/fk
 tk --repair; called 'git\] .*clone .*Syncplay'; has "$OUT" "✔ Syncplay v1.7.6 (no window)"
 [[ -x $W/home/fkuser/.local/bin/syncplay ]] && _ok || _no "syncplay not put back"
 eq "$(cat "$W/home/fkuser/.local/share/fedokawaii/upstream/syncplay")" "$(. "$REPO/lib/upstream.sh"; syncplay_pin)"
-case_ "Spotify: an update finds it in place — nothing built, no question asked"
-back built; reset_calls
-tk --update; eq "$RC" 0; has "$OUT" "Spotify spotify-client — in place"; not_called 'lpf-pkgbuild\] build'
-case_ "a new recipe (a Spotify release): built by the update — what it needs by root, the build by pkg-build in its own home, the package installed"
-back built; fkh lpf-newer; reset_calls
-tk --update; eq "$RC" 0 "$(grep -E '✘|failed' <<<"$OUT" | head -n3 | tr '\n' '|')"
-called '^root\[lpf-sudo-builddep\] /usr/share/lpf/packages/spotify-client/spotify-client.spec'
-called '^pkg-build\[lpf-pkgbuild\] build spotify-client \(as pkg-build, HOME=/var/lib/lpf\)'
-called 'dnf\] -y install /var/lib/lpf/rpms/spotify-client/spotify-client-1.3.4.258-1.fc44.x86_64.rpm'
-eq "$(cat "$W/var/lib/lpf/packages/spotify-client/state")" OK "lpf's own record: done"
-[[ ! -e $W/var/lib/lpf/rpms/spotify-client ]] && _ok || _no "the built package left in lpf's folder"
-has "$OUT" "✔ Spotify"; lacks "$OUT" "installed outside the manifest"
-called 'dnf\] -y mark dependency lsb_release' "what the build needed: marked as needed, not as yours"
-grep -q '^lsb_release User' "$FKH/userinstalled" && _no "lsb_release left as yours" || _ok
-case_ "…the build fails (Spotify's server down): the update goes on, says so with lpf's log; verify warns; repair builds it"
-back built; fkh lpf-newer; fkh lpf-build-fail
-tk --update; has "$OUT" "Spotify did not build (lpf: failed)"
-has "$OUT" "lpf │ error: Bad source" "lpf's own build log, in the install's log"
-grep -q 'lpf │ error: Bad source' "$W/var/log/fedokawaii.log" && _ok || _no "lpf's words not in /var/log/fedokawaii.log"
-has "$OUT" "not updated this time"; has "$OUT" "a newer Spotify waits to be built"
-eq "$(cat "$W/var/lib/lpf/packages/spotify-client/state")" failed
-rm -f "$FKH/lpf-build-fail"; reset_calls
-tk --repair; called 'lpf-pkgbuild\] build spotify-client'; eq "$(cat "$W/var/lib/lpf/packages/spotify-client/state")" OK
-case_ "Spotify never built (its first build failed at setup): repair builds it; verify said so meanwhile"
-back built; fkh_del installed spotify-client; sed -i '/^spotify-client /d' "$FKH/userinstalled"; echo untriaged >"$W/var/lib/lpf/packages/spotify-client/state"
-fkrun bash "$TK/verify.sh"; has "$OUT" "Spotify not built yet"
-tk --repair; pkg_has spotify-client && _ok || _no "not installed by repair"
+case_ "a machine where lpf built Spotify's app: verify says so; the update hands lpf, the recipe and the app to dnf's clean-up, then takes lpf's account and folder"
+back built; fk bash -c '. /usr/local/bin/_lib.sh; fake_lpf_era'
+fkrun bash "$TK/verify.sh"; has "$OUT" "lpf and Spotify's old app are still installed"
+reset_calls; tk --update; eq "$RC" 0 "$(grep -E '✘|failed' <<<"$OUT" | head -n3 | tr '\n' '|')"
+called 'dnf\] -y mark dependency lpf-spotify-client'; called 'dnf\] -y mark dependency spotify-client'; called 'dnf\] -y autoremove'
+for p in lpf lpf-spotify-client spotify-client; do pkg_has "$p" && _no "$p still installed" || _ok; done
+grep -q '^pkg-build:' "$W/etc/passwd" "$W/etc/group" && _no "lpf's account pkg-build left" || _ok
+[[ ! -e $W/var/lib/lpf && ! -e $W/etc/sudoers.d/pkg-build ]] && _ok || _no "lpf's folder or sudoers rule left"
+has "$OUT" "lpf's leftovers (it built Spotify's app here once) removed: /var/lib/lpf · the user pkg-build"
+has "$OUT" "✔ no lpf, nothing it left (Spotify is its web player)"; lacks "$OUT" "installed outside the manifest"
+case_ "…lpf gone but its account and folder left (removed by hand): verify warns, repair takes them out"
+back built; fk bash -c '. /usr/local/bin/_lib.sh; fake_lpf_era; sed -i "/^\(lpf\|lpf-spotify-client\|spotify-client\)\$/d" /var/lib/fkh/installed'
+fkrun bash "$TK/verify.sh"; has "$OUT" "lpf's leftovers: the user pkg-build /var/lib/lpf"
+tk --repair; [[ ! -e $W/var/lib/lpf ]] && ! grep -q '^pkg-build:' "$W/etc/passwd" && _ok || _no "repair left lpf's leftovers"
 case_ "update: presenterm and spotify_player (release binaries this desktop no longer has) leave ~/.local/bin"
 back built
 for t in presenterm spotify_player; do
@@ -110,6 +97,11 @@ for t in presenterm spotify_player; do
 done
 fk_perms; tk --update; eq "$RC" 0
 [[ ! -e $W/home/fkuser/.local/bin/presenterm && ! -e $W/home/fkuser/.local/bin/spotify_player ]] && _ok || _no "a retired tool stayed"
+case_ "repair: the sound card napping now (snd_hda_intel power_save 1: a click at each volume change): verify says so, repair sets 0 at once"
+back built; mkdir -p "$W/sys/module/snd_hda_intel/parameters"; echo 1 >"$W/sys/module/snd_hda_intel/parameters/power_save"
+fkrun bash "$TK/verify.sh"; has "$OUT" "✘ the sound card never naps (no click at a volume change) — snd_hda_intel power_save is 1 now"
+tk --repair; eq "$(cat "$W/sys/module/snd_hda_intel/parameters/power_save")" 0
+rm -rf "$W/sys/module/snd_hda_intel"
 case_ "repair: a boot entry that lost the console argument (no black-screen wait at boot) gets it back"
 back built; sed -i '1 s/ systemd.tty.term.console=dumb//' "$FKH/grub-args"
 tk --repair; called 'grubby\] --update-kernel=ALL --args=systemd.tty.term.console=dumb'
@@ -145,6 +137,17 @@ tk --repair
 [[ ! -L $W/usr/local/bin/vi ]] && _ok || _no "vi still a link"
 eq "$(cat "$W/usr/local/bin/vi")" $'#!/bin/sh\nexec nvim "$@"'
 called "dracut\\] -f --kver $(uname -r)"; [[ -s $W/boot/initramfs-$(uname -r).img ]] && _ok || _no "no image made"
+fkrun bash "$TK/verify.sh"; eq "$RC" 0 "$(grep '✘' <<<"$OUT" | head -n3 | tr '\n' '|')"
+case_ "repair, on the owner's machine as found (19 Oct): root's file in the home (an older report's), the first-start report's unit gone — handed back, put back and enabled; verify passes"
+back built
+fk bash -c 'mkdir -p /home/fkuser/Downloads; echo old >/home/fkuser/Downloads/fedokawaii-report.txt; chown 0:0 /home/fkuser/Downloads/fedokawaii-report.txt'
+rm -f "$W/etc/systemd/system/fedokawaii-report.service"; sed -i '/^enabled fedokawaii-report\.service$/d' "$FKH/units"
+fkrun bash "$TK/verify.sh"; eq "$RC" 3; has "$OUT" "✘ files in your home that are not yours: root ~/Downloads/fedokawaii-report.txt"; has "$OUT" "✘ the health report runs once, on the first start"
+tk --repair
+eq "$(fk stat -c %U /home/fkuser/Downloads/fedokawaii-report.txt)" fkuser "the file handed back"
+has "$OUT" "your home: 1 file(s) of root's handed back to you"
+has "$(cat "$W/etc/systemd/system/fedokawaii-report.service" 2>/dev/null)" "ExecStart=/usr/local/bin/fedokawaii-report --boot"
+grep -qx 'enabled fedokawaii-report.service' "$FKH/units" && _ok || _no "the report's unit not enabled"
 fkrun bash "$TK/verify.sh"; eq "$RC" 0 "$(grep '✘' <<<"$OUT" | head -n3 | tr '\n' '|')"
 case_ "… and update mends vi before dnf brings a new kernel (whose boot image dracut makes)"
 back built; ln -sfn ../../bin/nvim "$W/usr/local/bin/vi"

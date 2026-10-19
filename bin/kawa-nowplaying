@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# kawa-nowplaying — the middle of the bar: what is playing (Spotify, mpv, Brave…),
+# kawa-nowplaying — the middle of the bar: what is playing (Spotify's web player, mpv, a video
+# in Brave…),
 # drawn like the front of an old Japanese tape deck:
 #
 #   ▁▃▅▇▅▃▂▁  ⌸  artist — title  ▁▂▃▅▇▅▃▁
@@ -14,8 +15,11 @@
 # playing is shown — the last to start, if more than one is — else the last one paused.
 #
 # Two event streams merged into one pipe, nothing polled: playerctl --follow (track and
-# play state) and cava (20 meter frames a second, started only while a player plays). Without cava the cassette and title still show, with no meter.
-# Pure bash per frame: no forks.
+# play state) and cava (60 meter frames a second, started only while a player plays: about 2–3 %
+# of a core for waybar to draw them). cava listens to the default output — what you hear,
+# whatever plays it — and is started again on the output that becomes the default (headphones
+# plugged in, a Bluetooth headset), as PipeWire's own default (pw-metadata) says. Without cava
+# the cassette and title still show, with no meter. Pure bash per frame: no forks.
 #
 # kawa-nowplaying play-pause|next|previous — the media keys and the bar's clicks: they go to
 # the player the bar shows. (playerctl on its own picks the player that started first: with
@@ -110,7 +114,30 @@ FMT="{{playerInstance}}$US{{status}}$US{{artist}}$US{{title}}"
 exec {in}< <(
   exec 2>/dev/null
   cv=""
-  stop() { [[ -n $cv ]] && kill "$cv"; cv=""; }
+  # (the meter held still while its cava and watch go, then itself: never one left behind)
+  stop() { [[ -n $cv ]] && { kill -STOP "$cv"; pkill -P "$cv"; kill "$cv"; kill -CONT "$cv"; } 2>/dev/null; cv=""; }
+  # meter — cava on the default output, started again whenever another output becomes the
+  # default (cava finds the default once, as it starts). PipeWire's "default" metadata says
+  # which: its first line for default.audio.sink is the one cava found, a different one later
+  # is a change. Should that watch end (PipeWire restarted), cava runs on and it begins again.
+  meter() {
+    local c="" w="" l now="" fd
+    trap '[[ -n $c ]] && kill "$c"; [[ -n $w ]] && kill "$w"; exit 0' TERM
+    cava -p "$HOME/.config/fedokawaii/cava.conf" & c=$!
+    while :; do
+      exec {fd}< <(exec pw-metadata -n default -m 2>/dev/null); w=$!
+      while IFS= read -r -u "$fd" l; do
+        [[ $l == *"key:'default.audio.sink'"* ]] || continue
+        if [[ -z $now ]]; then now=$l
+        elif [[ $l != "$now" ]]; then
+          now=$l; kill "$c" 2>/dev/null; wait "$c" 2>/dev/null
+          cava -p "$HOME/.config/fedokawaii/cava.conf" & c=$!
+        fi
+      done
+      exec {fd}<&-; w=""
+      sleep 1 & wait "$!"                        # (the watch ended: again in a second)
+    done
+  }
   # pick LINE — what to show after LINE, one player's change: itself if it plays; else a
   # player still playing (a video paused in a tab must not hide the music); else itself if
   # paused, or else another paused one. (One playerctl per change of a player, not per frame.)
@@ -134,17 +161,20 @@ exec {in}< <(
     if [[ $s == Playing ]]; then
       # (started again should it have ended by itself: PipeWire restarted, say)
       { [[ -z $cv ]] || ! kill -0 "$cv" 2>/dev/null; } && command -v cava >/dev/null \
-        && { cava -p "$HOME/.config/fedokawaii/cava.conf" & cv=$!; }
+        && { meter & cv=$!; }
     else stop; fi
   done < <(playerctl --follow metadata --format "$FMT")
   stop                                           # (cava would never notice on its own
   echo END                                       #  that nobody reads it)
 )
 feeder=$!
-# and if this script goes first, take both readers along — the feeder held still meanwhile:
-# one that started cava for a song just then would leave it metering for nobody, for good
+# and if this script goes first, take every reader along — the feeder and its meter held still
+# meanwhile: one that started cava for a song (or for a new output) just then would leave it
+# metering for nobody, for good
 # shellcheck disable=SC2090  # (follows from the SC2089 note above: a false alarm)
-trap 'kill -STOP "$feeder" 2>/dev/null; pkill -P "$feeder" 2>/dev/null
+trap 'kill -STOP "$feeder" 2>/dev/null
+      for c in $(pgrep -P "$feeder" 2>/dev/null); do kill -STOP "$c"; pkill -P "$c"; done 2>/dev/null
+      pkill -P "$feeder" 2>/dev/null; pkill -CONT -P "$feeder" 2>/dev/null
       kill -TERM "$feeder" 2>/dev/null; kill -CONT "$feeder" 2>/dev/null' EXIT
 trap 'exit 0' TERM HUP INT                     # (bash skips the EXIT trap on a bare signal)
 
@@ -158,7 +188,7 @@ while IFS= read -r -u "$in" line; do
                 [[ $status == Playing ]] || bands="" ;;
     *)          frame=${line//;/}
                 [[ $status == Playing && ${#frame} == 16 && $frame != *[!0-5]* ]] || continue
-                [[ $frame == *[1-5]* ]] && { ((++frames % 4)) || reel=$((1 - reel)); }   # sound: turn the reels
+                [[ $frame == *[1-5]* ]] && { ((++frames % 12)) || reel=$((1 - reel)); }  # sound: turn the reels (5 a second)
                 bands=$frame ;;
   esac
   show

@@ -176,7 +176,7 @@ in again. Setup walks itself through three phases with a reboot between each, re
 automatically on tty1, and
 refuses to enable the login until `verify.sh` passes — what it finds there it repairs itself
 first, the same fixes as `fedokawaii repair`, and checks again — then clears what the build left (dnf's
-packages, pip/npm caches, unneeded dependencies, Spotify's build folders, old theme backups),
+packages, pip/npm caches, unneeded dependencies, old theme backups),
 takes a baseline snapshot and, as its very last step after the final check, removes
 `~/fedokawaii` and the download it came from (anything of yours in it packed first into
 `~/.local/state/fedokawaii/`). Update and repair run from a fresh clone end the same way. Later changes: `fedokawaii copy` (a working copy in
@@ -242,14 +242,14 @@ glossary are appendices D and E.
 
 ## 4 · First login, once
 
-- **Prowlarr** is already wired to torrra (its key's master copy is `~/.config/fedokawaii/secrets.sh`; Prowlarr gets it as a podman secret);
-  type `prowlarr` (it starts on demand and opens <http://localhost:9696>), create its login, and add your indexers (handbook §20.1).
+- **Prowlarr**: nothing to do — it is wired to torrra (its key's master copy is `~/.config/fedokawaii/secrets.sh`; Prowlarr gets
+  it as a podman secret), its eight usual sites are in, and its page asks for no login (it answers on this computer only):
+  `prowlarr` (or *Prowlarr* in the launcher) starts it on demand and opens <http://localhost:9696> (handbook §20.1).
 - **Backups**: name your USB drive or external disk in `fedokawaii.conf` (`BACKUP_TARGET`, Super+U → settings), put a
   password in `~/.config/fedokawaii/secrets.sh` (`RESTIC_PASSWORD="…"` — keep a copy of it elsewhere: without it the backup
   cannot be read), plug the drive in, quick settings → *backup* (handbook §37.6).
-- **Spotify**: *Spotify* in the launcher → sign in (free or Premium). Setup built it on this machine with lpf from
-  RPM Fusion's recipe — `SPOTIFY="yes"` in `fedokawaii.conf` is your acceptance of Spotify's terms (`/usr/share/lpf/packages/spotify-client/eula/`); each update builds
-  a new version when one comes out (handbook §15.4).
+- **Spotify**: *Spotify* in the launcher → sign in (free or Premium). It is Spotify's web player in a Brave app window;
+  Theme switched on Widevine in Brave for it, and the bar's now-playing and meter follow it (handbook §15.4).
 - **Syncplay** (watching a film with friends, in step): nothing to set — Theme started
   `~/.config/syncplay.ini` (the public server syncplay.pl, your name, a room of your own); **W** on a
   film in yazi, or *Syncplay* in the launcher, asks for the room (handbook §15.7).

@@ -14,13 +14,26 @@
 #                         quietly in the background at low priority — so the window is there
 #                         at once when you want it. Off in the gamepad's menu (the file
 #                         ~/.config/fedokawaii/steam-warm then says "no")
+#   kawa-steam --quit [WHY]  Steam closed properly — as its own menu's Exit closes it: it
+#                         first sends your games' saves to Steam Cloud — and waited for (20 s
+#                         at most), with a notice meanwhile. The power menu's log out runs it
+#                         before the desktop ends (Steam draws through XWayland, which ends
+#                         with the desktop: it would be cut off mid-upload); the menu's
+#                         "quit Steam" too. WHY (logout, shutdown, menu) goes to the journal
+#   kawa-steam --guard    for the whole session (autostart): logind's own warning before the
+#                         computer stops — a delay lock on shutdown and restart — so whatever
+#                         stops it (the power menu, the power button, `systemctl reboot`, an
+#                         update's restart) closes Steam as --quit does, while the desktop
+#                         still runs; logind waits up to 25 s (setup.sh: InhibitDelayMaxSec)
+# Each quit goes to the journal (journalctl -t kawa-steam): "asked Steam to quit (WHY), done
+# in N s" — or that it still ran after 20 s.
 # Steam keeps running when its window is closed (downloads go on); "quit Steam" ends it.
-# Exit status: 0 done · 1 could not (Steam is not installed) · 2 misuse.
+# Exit status: 0 done · 1 could not (Steam is not installed; still running after --quit) · 2 misuse.
 set -u
 case ${1:-} in
-  ""|--bar|--menu|--warm|steam://*|steamlink://*) ;;
+  ""|--bar|--menu|--warm|--quit|--guard|--guard-wait|steam://*|steamlink://*) ;;
   -h|--help) sed -n '2,/^set -u/{/^set -u/d;s/^# \{0,1\}//;p}' "$0"; exit 0 ;;
-  *) echo "usage: kawa-steam [steam://… | --bar | --menu | --warm] (kawa-steam --help)" >&2; exit 2 ;;
+  *) echo "usage: kawa-steam [steam://… | --bar | --menu | --warm | --quit [WHY] | --guard] (kawa-steam --help)" >&2; exit 2 ;;
 esac
 # shellcheck source=/dev/null
 . "$HOME/.config/fedokawaii/icons.sh"
@@ -30,7 +43,34 @@ ready()   { pgrep -xu "$UID" steamwebhelper >/dev/null; }
 ingame()  { pgrep -u "$UID" -f 'SteamLaunch AppId=' >/dev/null; }
 warm_on() { [[ $(cat "$WARM" 2>/dev/null) != no ]]; }
 
+say() { logger -t kawa-steam -- "$*" 2>/dev/null; }
 case ${1:-} in
+  --quit)
+    running || exit 0
+    why=${2:-asked}; t0=${EPOCHREALTIME/[.,]/}
+    id=$(notify-send -a desktop -p -t 0 -- "$ICON_GAMEPAD  Steam" "closing — your saves go to Steam Cloud first" 2>/dev/null)
+    say "asking Steam to quit ($why): it sends your saves to Steam Cloud first"
+    timeout 10 steam -shutdown </dev/null >/dev/null 2>&1
+    for ((t = 0; t < ${KAWA_STEAM_QUIT_WAIT:-20} * 10; t++)); do running || break; sleep 0.1; done
+    d=$(( ${EPOCHREALTIME/[.,]/} - t0 )); took=$((d / 1000000)).$((d / 100000 % 10))   # (µs → "3.4")
+    [[ -n $id ]] && makoctl dismiss -n "$id" 2>/dev/null
+    if running; then say "Steam still runs ${KAWA_STEAM_QUIT_WAIT:-20} s after it was asked to quit ($why) — left as it is"; exit 1; fi
+    say "asked Steam to quit ($why), done in $took s"
+    exit 0 ;;
+  --guard)
+    command -v steam >/dev/null || exit 0
+    exec systemd-inhibit --what=shutdown --mode=delay --who=Steam \
+      --why="Steam sends your saves to Steam Cloud before the computer stops" "$0" --guard-wait ;;
+  --guard-wait)                                  # (--guard's own half, under its lock)
+    exec {bus}< <(exec gdbus monitor --system --dest org.freedesktop.login1 --object-path /org/freedesktop/login1 2>/dev/null)
+    mon=$!
+    while IFS= read -r -u "$bus" l; do
+      [[ $l == *PrepareForShutdown*'(true'* ]] || continue
+      "$0" --quit shutdown
+      break
+    done
+    kill "$mon" 2>/dev/null
+    exit 0 ;;
   --bar)
     if ! running; then echo '{"text":""}'
     elif ingame; then printf '{"text":"%s","class":"game","tooltip":"Steam · in a game"}\n' "$ICON_GAMEPAD"
@@ -48,18 +88,27 @@ case ${1:-} in
     exit 0 ;;
   --menu)
     command -v steam >/dev/null || exit 1
-    w=on; warm_on || w=off
-    rows=("$ICON_FOLDER  library" "$ICON_DOWNLOAD  downloads" "$ICON_USER  friends" "$ICON_SLIDERS  settings"
-          "$ICON_RESTART  start with the desktop   $w" "$ICON_POWER  quit Steam")
-    i=$(printf '%s\n' "${rows[@]}" | kawa-menu --drop --index --width 34 --lines ${#rows[@]}) || exit 0
+    # in the panel's line format (kawa-menu; docs/design-system.md): 遊 Steam (遊, play), a
+    # row a page of Steam's, the start with the desktop as a check (▣ on, □ off), quit
+    c=□; warm_on && c=▣
+    rows=()
+    line() { local IFS=$'\t'; rows+=("$*"); }
+    line part 遊 Steam
+    line row "$ICON_FOLDER" library
+    line row "$ICON_DOWNLOAD" downloads
+    line row "$ICON_USER" friends
+    line row "$ICON_SLIDERS" settings
+    line row "$c" "start with the desktop"
+    line row "$ICON_POWER" "quit Steam"
+    i=$(printf '%s\n' "${rows[@]}" | kawa-menu --drop --index --select 1) || exit 0
     case $i in
-      0) exec steam steam://open/games ;;
-      1) exec steam steam://open/downloads ;;
-      2) exec steam steam://open/friends ;;
-      3) exec steam steam://open/settings ;;
-      4) mkdir -p "${WARM%/*}"; if warm_on; then echo no >"$WARM"; else echo yes >"$WARM"; fi
+      1) exec steam steam://open/games ;;
+      2) exec steam steam://open/downloads ;;
+      3) exec steam steam://open/friends ;;
+      4) exec steam steam://open/settings ;;
+      5) mkdir -p "${WARM%/*}"; if warm_on; then echo no >"$WARM"; else echo yes >"$WARM"; fi
          notify-send -a desktop -- "$ICON_GAMEPAD  Steam" "start with the desktop: $(warm_on && echo on || echo off)" ;;
-      5) exec steam -shutdown ;;
+      6) exec "$0" --quit menu ;;
     esac
     exit 0 ;;
 esac

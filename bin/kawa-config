@@ -12,14 +12,13 @@ case ${1:-} in
   -h|--help) sed -n '2,/^set -u/{/^set -u/d;s/^# \{0,1\}//;p}' "$0"; exit 0 ;;
   *) echo "usage: kawa-config   (no arguments: the menu of the desktop's parts)" >&2; exit 2 ;;
 esac
-LC_ALL=C.UTF-8                 # widths count characters, not bytes
 # shellcheck source=/dev/null
 . "$HOME/.config/fedokawaii/icons.sh"
-# shellcheck source=/dev/null
-. "$HOME/.config/fedokawaii/width.sh"
 TK=/usr/local/lib/fedokawaii
 COPY=${FEDOKAWAII_COPY:-$HOME/repos/fedokawaii}
-WIDTH=51                       # icon (14 px) + 2 + the name (16) + the note (29): 296 px = 51 × 6 − 10
+# the menus: the panel's line format (kawa-menu; docs/design-system.md) — a part under its
+# kanji, a row its icon, its name and a note in a column of its own; sized to their content
+line() { local IFS=$'\t'; printf '%s\n' "$*"; }
 
 say() { notify-send -a desktop -- "$ICON_CODE  change" "$*" 2>/dev/null; }
 noterm() { say "the terminal server is not running — fedokawaii repair puts it back"; return 1; }
@@ -77,14 +76,14 @@ draw_icons() {    # fontTools, once, into a folder of its own (it is not a packa
 
 # after an edit that changed something: apply now, or later
 after_edit() {   # after_edit WHEN
-  local i rows=()
-  printf -v i '%s  %-14s%s' "$ICON_DOWNLOAD" 'apply now' 'asks your password'; rows+=("$i")
-  printf -v i '%s  %-14s%s' "$ICON_HOURGLASS" later 'fedokawaii apply'; rows+=("$i")
-  printf -v i '%s  %-14s%s' "$ICON_BRANCH" 'what changed' 'in the copy'; rows+=("$i")
-  i=$(printf '%s\n' "${rows[@]}" | kawa-menu --index --width 38 --lines 3 --title "$1") || return 0
+  local i
+  i=$({ line part 適 apply
+        line row "$ICON_DOWNLOAD" 'apply now' 'asks your password'
+        line row "$ICON_HOURGLASS" later 'fedokawaii apply'
+        line row "$ICON_BRANCH" 'what changed' 'in the copy'; } | kawa-menu --index --select 1 --title "$1") || return 0
   case $i in
-    0) apply_now ;;
-    2) hold diff "what changed" 120x41 fedokawaii diff ;;
+    1) apply_now ;;
+    3) hold diff "what changed" 120x41 fedokawaii diff ;;
   esac
 }
 
@@ -109,40 +108,41 @@ yours() {   # yours TITLE WHEN FILE HEADER
   edit "$title" "${f%/*}" "$f" || return 1
   say "${f/#$HOME/\~} — yours: nothing to apply; $when"
 }
-line() { local r; printf -v r '%s  %-16s%s' "$1" "$2" "$3"; printf '%s\n' "$r"; }   # icon, name, note
 yours_menu() {
   local i
-  i=$({ line "$ICON_TERMINAL" 'shell additions' 'aliases, functions, exports'
-        line "$ICON_HOURGLASS" autostart 'programs at every login'
-        line "$ICON_CODE" 'neovim plugins' 'LazyVim specs'
+  i=$({ line part 己 'yours alone'
+        line row "$ICON_TERMINAL" 'shell additions' 'aliases, functions, exports'
+        line row "$ICON_HOURGLASS" autostart 'programs at every login'
+        line row "$ICON_CODE" 'neovim plugins' 'LazyVim specs'
         # shellcheck disable=SC2088  # a ~ shown, not expanded
-        line "$ICON_FOLDER" 'your scripts' '~/.local/bin, in yazi'; } | kawa-menu --index --width $WIDTH --lines 4 \
-        --title "yours alone · the theme never writes these") || return 0
+        line row "$ICON_FOLDER" 'your scripts' '~/.local/bin, in yazi'; } | kawa-menu --index --select 1 \
+        --title "the theme never writes these") || return 0
   case $i in
-    0) yours "shell additions" "every new terminal reads it" "$HOME/.bashrc.d/local.sh" \
+    1) yours "shell additions" "every new terminal reads it" "$HOME/.bashrc.d/local.sh" \
 "# ~/.bashrc.d/local.sh — yours: aliases, functions, exports. Fedora's ~/.bashrc reads every
 # file in ~/.bashrc.d, by name (so this one after fedokawaii.sh: what you set here wins), and
 # the theme never writes here.
 # alias ll='eza -l --git'" ;;
-    1) yours "autostart" "it runs at your next login" "$HOME/.config/dwl/autostart.local.sh" \
+    2) yours "autostart" "it runs at your next login" "$HOME/.config/dwl/autostart.local.sh" \
 "# ~/.config/dwl/autostart.local.sh — yours: run at every login, beside the session (the
 # theme never writes here). End each program that keeps running with &, or the next waits:
 # syncthing serve --no-browser &" ;;
-    2) yours "neovim plugins" "neovim reads it at its next start" "$HOME/.config/nvim/lua/plugins/local.lua" \
+    3) yours "neovim plugins" "neovim reads it at its next start" "$HOME/.config/nvim/lua/plugins/local.lua" \
 "-- ~/.config/nvim/lua/plugins/local.lua — yours: LazyVim reads every file in lua/plugins/
 -- (the theme writes only colorscheme.lua there). Each plugin, or a change to one, is a table:
 -- https://www.lazyvim.org/configuration/plugins
 return {
   -- { \"folke/zen-mode.nvim\", cmd = \"ZenMode\" },
 }" ;;
-    3) mkdir -p "$HOME/.local/bin"; footclient -N -- yazi "$HOME/.local/bin" 2>/dev/null || noterm ;;
+    4) mkdir -p "$HOME/.local/bin"; footclient -N -- yazi "$HOME/.local/bin" 2>/dev/null || noterm ;;
   esac
 }
 
 # where to learn each language the parts are written in
 learn_menu() {
   local rows=() urls=() i sec page
-  l() { rows+=("$(line "$1" "$2" "$3")"); urls+=("$4"); }
+  l() { rows+=("$(line row "$1" "$2" "$3")"); urls+=("$4"); }
+  rows+=("$(line part 学 learn)"); urls+=(-)
   l "$ICON_BOOK"     'this handbook' 'chapter 42: changing it'  guide
   l "$ICON_KEYBOARD" keys            "this desktop's: Super+/"  keys
   l "$ICON_TERMINAL" bash            'The Linux Command Line'   https://linuxcommand.org/tlcl.php
@@ -157,8 +157,8 @@ learn_menu() {
   l "$ICON_CODE"     LazyVim         'plugins, keys, extras'    https://www.lazyvim.org
   l "$ICON_CODE"     Lua             'Programming in Lua'       https://www.lua.org/pil/contents.html
   l "$ICON_THEME"    "GTK's CSS"     'what GTK 3 understands'   https://docs.gtk.org/gtk3/css-overview.html
-  i=$(printf '%s\n' "${rows[@]}" | kawa-menu --index --width $WIDTH --lines ${#rows[@]} \
-        --title "learn · what each part is written in") || return 0
+  i=$(printf '%s\n' "${rows[@]}" | kawa-menu --index --select 1 \
+        --title "what each part is written in") || return 0
   case ${urls[i]} in
     guide) exec fedokawaii guide ;;
     keys)  exec kawa-help ;;
@@ -168,21 +168,18 @@ learn_menu() {
 }
 
 # ── the menu ──────────────────────────────────────────────────────────────────────────
-# in five parts, each under a heading as Super+U heads its own (width.sh: heading) — the look,
-# what you use, the system, the copy's history, help; a heading chosen opens the menu again
+# in five parts, each under its kanji — the look, what you use, the system, the copy's
+# history, help
 rows=() acts=()
-row() { local r; printf -v r '%s  %-16s%s' "$2" "$3" "$4"; rows+=("$r"); acts+=("$1"); }
-heading_row() {   # heading_row KANJI NAME — an empty row above it, as Super+U parts its parts (the first's: under the title)
-  rows+=(""); acts+=(-)
-  rows+=("$(heading "$1" "$2" "$WIDTH")"); acts+=(-)
-}
+row() { rows+=("$(line row "$2" "$3" "$4")"); acts+=("$1"); }
+heading_row() { rows+=("$(line part "$1" "$2")"); acts+=(-); }   # heading_row KANJI NAME
 heading_row 見 look
 row colours   "$ICON_THEME"     colours        "the dark and light palettes"
 row bar       "$ICON_WINDOW"    bar            "what it shows"
 row barlook   "$ICON_CODE"      'bar look'     "sizes, spacing (CSS)"
 row icons     "$ICON_PICTURE"   icons          "the pixel icons (text grids)"
 row notify    "$ICON_BELL"      notifications  "look, how long they stay"
-row launcher  "$ICON_CHEVRON_RIGHT" launcher   "every menu's look"
+row launcher  "$ICON_CHEVRON_RIGHT" launcher   "the launcher's look"
 heading_row 手 use
 row keys      "$ICON_KEYBOARD"  keys           "dwl's, and the help sheet"
 row terminal  "$ICON_TERMINAL"  terminal       "font, size, keys"
@@ -204,13 +201,7 @@ n=$(pending)
 title="change · ${COPY/#$HOME/\~}"
 if [[ ! -d $COPY ]]; then title+=" · made on first use"
 elif ((n)); then title+=" · $n not applied"; fi
-sel=2
-while :; do
-  i=$(printf '%s\n' "${rows[@]}" | kawa-menu --index --width $WIDTH --lines ${#rows[@]} --select "$sel" --title "$title") || exit 0
-  [[ ${acts[i]} == - ]] || break
-  sel=$i                                       # (a heading or a gap: the menu again, on its part's first entry)
-  while [[ ${acts[sel]:-} == - ]]; do sel=$((sel + 1)); done
-done
+i=$(printf '%s\n' "${rows[@]}" | kawa-menu --index --select 1 --title "$title") || exit 0
 
 H=configs/home
 case ${acts[i]} in

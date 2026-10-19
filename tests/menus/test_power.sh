@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # tests/menus/test_power.sh — kawa-power: each choice (systemctl, loginctl and the lock are
 # stand-ins), a choice the system refuses, the uptime in its title at the edges of each form
-# (/proc/uptime replaced in a namespace of its own), and the rows and title all centred alike.
+# (/proc/uptime replaced in a namespace of its own), and the menu's lines (the panel's format).
 . "$(dirname "$0")/../lib/harness.sh"
 . "$(dirname "$0")/lib.sh"
 
@@ -19,16 +19,14 @@ power() {   # power [SECONDS] — kawa-power, the machine up for SECONDS (defaul
 . "$REPO/configs/home/.config/fedokawaii/icons.sh"
 
 # ── the choices ───────────────────────────────────────────────────────────────────────
-case_ "the menu: five choices, centred, 25 wide, the uptime on top"
+case_ "the menu: 電 power with the uptime at its end, five choices, centred, sized to its content"
 setup; answer esc; power
-eq "$(fz_rows | sed 's/^ *.  //; s/ *$//' | tr '\n' ',')" "lock,sleep,log out,restart,shut down," "the rows right under the uptime, one row apart (no empty row: no headings here)"
-eq "$(fz_arg select-index)" 0 "the cursor on lock"
-eq "$(fz_arg width)" 25; eq "$(fz_arg lines)" 5; eq "$(fz_arg index)" set; eq "$(fz_arg anchor)" "" "centred"
-has "$(fz_arg mesg)" "$ICON_HOURGLASS  up "
+eq "$(fz_rows | sed -n 1p | cut -f1-3)" "part	電	power" "the heading"
+eq "$(fz_rows | sed -n 1p | cut -f4 | cut -c1-3)" "up " "the uptime at the heading's end"
+eq "$(fz_rows | sed 1d | tr '\n' '|')" "row	$ICON_LOCK	lock|row	$ICON_ZZZ	sleep|row	$ICON_DOOR	log out|row	$ICON_RESTART	restart|row	$ICON_POWER	shut down|" "a row a choice: its icon, its name"
+eq "$(fz_arg select)" 1 "the cursor's first key on lock"
+eq "$(fz_arg width)" ""; eq "$(fz_arg lines)" ""; eq "$(fz_arg title)" ""; eq "$(fz_arg index)" set; eq "$(fz_arg drop)" "" "centred"
 fits
-case_ "every row: the icon and label block starts in the same column (6 spaces in)"
-eq "$(fz_rows | sed 's/^\( *\).*/\1/' | awk '{print length}' | sort -u)" 6
-eq "$(fz_rows | python3 -I "$MD/cols.py" --px | sort -u)" 116 "all 116 px: an 80 px block (icon 14, 2 spaces, 9 letters) 36 px in, 34 from the end of 150 — centred to a pixel"
 
 act() { setup; answer "pick $1"; power; }
 case_ "lock: the lock screen"
@@ -45,10 +43,11 @@ not_called '^wlopm'; wait "$p"; called '^wlopm --off \*$'
 case_ "sleep, but the lock screen did not come up: no suspend (never an unlocked sleep), and the journal says so"
 setup; stub kawa-lock 'exit 1'; answer "pick sleep"; power; not_called '^systemctl suspend'
 called '^logger -t kawa-power -- not locked — no sleep$'
-case_ "log out: dwl ended"
-act "log out"; called '^pkill -xu '"$UID"' dwl$'
+case_ "log out: Steam closed properly first (its saves to Steam Cloud), then dwl ended"
+setup; stub kawa-steam; answer "pick log out"; power
+eq "$(grep -E '^(kawa-steam|pkill)' "$CALLS" | tr '\n' '|')" "kawa-steam --quit logout|pkill -xu $UID dwl|"
 case_ "restart, shut down: systemctl reboot / poweroff"
-act restart; called '^systemctl reboot$'
+act restart; called '^systemctl reboot$'; not_called '^kawa-steam' "(restart: kawa-steam --guard, told by logind)"
 act "shut down"; called '^systemctl poweroff$'
 not_called '^loginctl'
 case_ "Esc, a click outside, typed text: nothing happens, exit 0"
@@ -85,9 +84,9 @@ case_ "--help: what it is, exit 0; anything else: exit 2, no menu"
 setup; has "$(kawa-power --help)" "lock, sleep, log out"; rc 0 kawa-power --help
 rc 2 kawa-power now; eq "$(fz_n)" 0
 
-# ── the uptime in the title ───────────────────────────────────────────────────────────
+# ── the uptime at the heading's end ───────────────────────────────────────────────────────────
 if ((NS)); then
-  up() { setup; answer esc; power "$1"; t=$(fz_arg mesg); printf '%s' "${t#*"$ICON_HOURGLASS"  }"; }
+  up() { setup; answer esc; power "$1"; fz_rows | sed -n 1p | cut -f4; }
   case_ "uptime: always 'up' and ten characters, at the edges of each form"
   eq "$(up 0)" "up 00h 00m" "just booted"
   eq "$(up 59)" "up 00h 00m"
@@ -99,16 +98,11 @@ if ((NS)); then
   eq "$(up $((99 * 7 * 86400 + 6 * 86400)))" "up 99w 06d" "the most it can say"
   eq "$(up $((100 * 7 * 86400 + 3 * 86400)))" "up 99w 06d" "more than 99 weeks: the most it can say, not a wrong remainder"
   eq "$(up $((2000 * 7 * 86400)))" "up 99w 06d"
-  case_ "the title stands as the rows do whatever the uptime: 6 spaces, its icon over theirs, its words over their labels (two spaces, as theirs)"
-  for s in 0 86399 86400 8639999 8640000 99999999; do
-    setup; answer esc; power "$s"; t=$(fz_arg mesg)
-    eq "$(printf '%s\n' "$t" | python3 -I "$MD/cols.py" --px)" 122 "uptime $s s"; eq "${t%%[! ]*}" "      " "uptime $s s: six spaces"
-  done
   case_ "a Turkish or Arabic locale: the same ten characters"
   for loc in tr_TR.UTF-8 ar_EG.UTF-8; do
     setup; printf '90061.5 0\n' >"$TMP/uptime"; answer esc
     ns "mount --bind '$TMP/uptime' /proc/uptime" env "$(locale_ "$loc")" LC_ALL="$loc" kawa-power 2>/dev/null
-    has "$(fz_arg mesg)" "up 01d 01h"; fits "" "$loc"
+    eq "$(fz_rows | sed -n 1p | cut -f4)" "up 01d 01h" "$loc"; fits "" "$loc"
   done
 else
   echo "  (uptime cases skipped: no user namespaces here to stand in for /proc/uptime)"

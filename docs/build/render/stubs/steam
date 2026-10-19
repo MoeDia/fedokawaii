@@ -1,0 +1,3 @@
+#!/bin/sh
+# test stand-in: Steam installed (kawa-steam --menu asks command -v steam); asked to do anything, nothing
+exit 0

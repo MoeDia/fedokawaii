@@ -350,20 +350,18 @@ stub kawa-menu 'cat >"$TMP_MENU"; echo 9'
 export TMP_MENU=$TMP/menu.txt
 kawa-drives menu
 rows=$(cat "$TMP_MENU")
-ICON_GAP=$(. "$HOME/.config/fedokawaii/icons.sh"; printf '%s' "$ICON_GAP")
 ICON_EJECT=$(. "$HOME/.config/fedokawaii/icons.sh"; printf '%s' "$ICON_EJECT")
-eq "$(head -n1 <<<"$rows" | cut -d' ' -f1)" "盤$ICON_GAP" "the drives under their heading, as Super+U heads its parts"
-ej=$(sed -n '/^出/,$p' <<<"$rows")
-has "$ej" "$ICON_EJECT  KINGSTON"; has "$ej" "$ICON_EJECT  BACKUP" "a drive is named by its first file system, under the eject heading"
+ICON_DRIVE=$(. "$HOME/.config/fedokawaii/icons.sh"; printf '%s' "$ICON_DRIVE")
+eq "$(head -n1 <<<"$rows")" "part	盤	drives" "the drives under their heading (the panel's line format)"
+eq "$(sed -n '2,6p' <<<"$rows" | cut -f1,2,4 | sort -u | tr '\n' '|')" "on	$ICON_DRIVE	open|row	$ICON_DRIVE	closed|" "a row a file system: open (lit) or closed in its own column"
+[[ $(sed -n 2p <<<"$rows" | cut -f5) =~ ^[0-9.]+[KMGT]?B?$|^[0-9.,]+\ ?[KMGT]i?B$ ]] && _ok || _no "the size as the row's value: $(sed -n 2p <<<"$rows")"
+eq "$(sed -n 7p <<<"$rows")" "part	出	eject" "the second heading right after (the panel spaces its parts)"
+ej=$(sed -n '8,$p' <<<"$rows")
+has "$ej" "row	$ICON_EJECT	KINGSTON"; has "$ej" "row	$ICON_EJECT	BACKUP" "a drive is named by its first file system, under the eject heading"
 lacks "$rows" "eject KINGSTON" "the heading says eject: the rows do not again"
-eq "$(sed -n 7p <<<"$rows")" "" "an empty row above the second heading"
 eq "$(grep -c . <<<"$rows")" 11 "a heading, 5 file systems, a heading, 4 drives to eject"
+called 'kawa-menu --drop --index --select 1$' "a dropdown, sized to its content, the cursor's first key on the first drive"
 called 'notify-send .*(safe to unplug|closed)'
-case_ "menu: a heading chosen — the menu again, on that part's first entry (as every menu)"
-reset_calls; stub kawa-menu 'n=$(cat "$TMP/menu-n" 2>/dev/null || echo 0); echo $((n + 1)) >"$TMP/menu-n"; cat >/dev/null; [ "$n" = 0 ] && echo 7 || exit 1'
-rm -f "$TMP/menu-n"; rc 0 kawa-drives menu
-called 'kawa-menu .*--select 1( |$)' "opened on the first drive"
-called 'kawa-menu .*--select 8( |$)' "the eject heading: again on the first drive to eject"
 case_ "menu: Esc does nothing"
 reset_calls; stub kawa-menu 'exit 1'
 rc 0 kawa-drives menu
@@ -371,7 +369,8 @@ not_called 'udiskie'
 case_ "menu with nothing plugged in: one quiet row"
 printf '{"blockdevices": []}\n' >"$FAKE_DISKS"
 stub kawa-menu 'cat >"$TMP_MENU"; exit 1'
-kawa-drives menu; has "$(cat "$TMP_MENU")" "nothing plugged in"
+reset_calls; kawa-drives menu; eq "$(cat "$TMP_MENU" | tr '\n' '|')" "part	盤	drives|off	$ICON_DRIVE	nothing plugged in|" "faint, nothing to choose"
+called 'kawa-menu --drop --index$' "no cursor place: nothing to choose"
 
 # ── ~/Drives: a folder per open drive ────────────────────────────────────────
 case_ "~/Drives: each open drive a link by its menu name; the folder there with none open too"

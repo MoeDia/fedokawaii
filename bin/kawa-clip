@@ -4,19 +4,30 @@
 # shows underneath. All in the terminal's 16 colours, so it follows dark/light like foot.
 #
 #   Enter     put that entry back on the clipboard (and close) — then paste as usual
+#   Super+Z   shrink or convert that entry, a picture or a PDF (kawa-shrink): the result
+#             lands on the clipboard and at the top of this list, under the cursor
 #   Ctrl+D    forget that entry          Ctrl+X   forget them all (asks first)
 #   Esc       close, the clipboard exactly as it was
 #
 # The other forms are its own parts: --tui (inside the window), --list, --preview ID,
-# --copy ID, --delete ID, --wipe, and --store, which keeps each new copy: the session's
-# wl-paste --watch runs it (autostart.sh). Text and pictures are kept — the last 100 copies,
-# none bigger than 20 MiB. Copies outlive the app they came from (kawa-clipkeep).
+# --copy ID, --delete ID, --wipe, --focus PID [ID], --held, and --store, which keeps each
+# new copy: the session's wl-paste --watch runs it (autostart.sh). Text and pictures are
+# kept — the last 100 copies, none bigger than 20 MiB. Copies outlive the app they came
+# from (kawa-clipkeep).
+#
+# While the window is open, $XDG_RUNTIME_DIR/kawa-clip.current says which entry its cursor
+# is on — "PID ID", PID the window's own kawa-clip, ID empty while the search matches
+# nothing — and fzf listens on kawa-clip.sock: --held reads the first (Super+Z, dwl's key,
+# asks it), --store pokes the second so a new copy shows at once. Both go with the window.
 set -u
 RUN=${XDG_RUNTIME_DIR:-/tmp}                         # (a shell outside the session has none)
+CUR=$RUN/kawa-clip.current SOCK=$RUN/kawa-clip.sock  # (the open window: see above)
 # shellcheck source=/dev/null
 . "$HOME/.config/fedokawaii/icons.sh"
 # shellcheck source=/dev/null
 . "$HOME/.config/fedokawaii/current/colors.sh"
+# shellcheck source=/dev/null
+. "$HOME/.config/fedokawaii/screen.sh"
 # every list of the desktop looks alike: one options file (rules, colours, the chevron)
 export FZF_DEFAULT_OPTS_FILE=$HOME/.config/fedokawaii/fzf.opts; unset FZF_DEFAULT_OPTS
 # ImageMagick reads its format names ("info:") through the locale's letter case: in
@@ -26,22 +37,45 @@ KEEP=(-max-items 100)                                # cliphist: the newest 100 
 MAX_BYTES=$((20 << 20))                              # a bigger copy is not kept (a 20 MiB picture is ~5000×4000)
 
 entry() { printf '%s\t\n' "$1"; }            # cliphist's own line form: "ID<tab>…"
+# window — the open window's kawa-clip, from $CUR: its pid, and the entry under the cursor in
+# $held. Fails when no window is open: no file, one not ours, or its process gone — a window
+# killed outright leaves the file behind, and its pid may since be another program's
+window() {
+  local p="" id="" a=() s
+  [[ -f $CUR && -O $CUR ]] && read -r p id 2>/dev/null <"$CUR" || return 1
+  [[ $p =~ ^[1-9][0-9]*$ && ( -z $id || $id =~ ^[0-9]+$ ) ]] || return 1
+  mapfile -d '' -t a 2>/dev/null <"/proc/$p/cmdline"      # (bash SCRIPT --tui)
+  s=${a[1]:-}; [[ ${s##*/} == kawa-clip && ${a[2]:-} == --tui ]] || return 1
+  held=$id
+}
+# poke — the window open: its list read again, the cursor on the top entry (the newest copy),
+# through fzf's own socket (--listen)
+poke() {
+  window || return 0
+  curl -s --max-time 2 --unix-socket "$SOCK" --data-binary "reload($(printf '%q' "$0") --list)+first" \
+    http://localhost/ >/dev/null 2>&1
+  return 0
+}
 
 case ${1:-} in
-  --list)       # ID<tab>what the list shows: text as cliphist keeps it, pictures named
+  --list)       # ID<tab>the row (docs/design-system.md §7): its glyph, what it holds — text as
+    # cliphist keeps it, a picture or data named — and, for those, its size right-aligned; W
+    # columns wide: fzf's own width less a column each side (FZF_COLUMNS, which fzf tells a
+    # reload), or the window's (80 columns: 76)
+    w=76; [[ ${FZF_COLUMNS:-} =~ ^[0-9]+$ ]] && ((FZF_COLUMNS > 20)) && w=$((FZF_COLUMNS - 2))
     # (classes, not ranges: in Turkish, "i" is not within a-z)
     cliphist list 2>/dev/null | while IFS=$'\t' read -r id rest; do
       if [[ $rest =~ ^\[\[\ binary\ data\ ([0-9.]+\ [KMG]?i?B)\ ([[:alnum:]+.-]+)\ ([0-9]+)x([0-9]+)\ \]\]$ ]]; then
-        printf '%s\t%s  %s picture  %s×%s  ·  %s\n' "$id" "$ICON_PICTURE" "${BASH_REMATCH[2]}" \
-          "${BASH_REMATCH[3]}" "${BASH_REMATCH[4]}" "${BASH_REMATCH[1]}"
+        printf '%s\t%s\n' "$id" "$(screen_row "$ICON_PICTURE" "${BASH_REMATCH[2]} picture" \
+          "${BASH_REMATCH[3]}×${BASH_REMATCH[4]} · ${BASH_REMATCH[1]}" "$w")"
       elif [[ $rest =~ ^\[\[\ binary\ data\ (.*)\ \]\]$ ]]; then
-        printf '%s\t%s  data  ·  %s\n' "$id" "$ICON_BOX_OFF" "${BASH_REMATCH[1]}"
+        printf '%s\t%s\n' "$id" "$(screen_row "$ICON_BOX_OFF" data "${BASH_REMATCH[1]}" "$w")"
       elif [[ $rest == *�* ]]; then   # bytes that are not text (cliphist 0.7 shows them as �,
         # and the odd characters among them scramble the rows): named, the preview tells more
-        printf '%s\t%s  data  ·  not text\n' "$id" "$ICON_BOX_OFF"
+        printf '%s\t%s\n' "$id" "$(screen_row "$ICON_BOX_OFF" data "not text" "$w")"
       else      # an escape in a copy is shown as ^[ — fzf would act on it (other control
-                # characters fzf itself shows as ^G, ^H…)
-        printf '%s\t%s\n' "$id" "${rest//$'\e'/^[}"
+                # characters fzf itself shows as ^G, ^H…); a long one fzf cuts at the edge
+        printf '%s\t  %s%s%s  %s\n' "$id" "$INK_MUTED" "$ICON_CLIPBOARD" "$INK_OFF" "${rest//$'\e'/^[}"
       fi
     done
     exit 0 ;;
@@ -81,13 +115,13 @@ case ${1:-} in
             printf '\n'; exit 0
           fi
         fi
-        printf '  %s  picture (%s)\n' "$ICON_PICTURE" "${type#image/}" ;;
+        printf '   %s  picture (%s)\n' "$ICON_PICTURE" "${type#image/}" ;;
       text/*|inode/x-empty)
-        # two columns in, like the list above (a wrapped line too: --preview-wrap-sign); an
+        # in the column of the list's glyphs (a wrapped line too: --preview-wrap-sign); an
         # escape as ^[ (an escape code would act on the preview: colour it, clear it), a CR
         # before a line's end left out (text from Windows)
-        head -c 65536 "$tmp" | sed -e 's/\r$//' -e 's/\x1b/^[/g' -e 's/^/  /' ;;
-      *) printf '  %s  %s, %s bytes\n' "$ICON_BOX_OFF" "$type" "$(stat -c %s "$tmp")" ;;
+        head -c 65536 "$tmp" | sed -e 's/\r$//' -e 's/\x1b/^[/g' -e 's/^/   /' ;;
+      *) printf '   %s  %s, %s bytes\n' "$ICON_BOX_OFF" "$type" "$(stat -c %s "$tmp")" ;;
     esac
     exit 0 ;;
   --copy)       # back on the clipboard; wl-copy keeps serving it after this window closes
@@ -106,7 +140,8 @@ case ${1:-} in
   --store)      # a new copy into the history: wl-paste --watch runs this at every copy, with the
                 # copy on stdin as wl-paste chose it (text, when there is any) and how it went in
                 # CLIPBOARD_STATE — "data", or "sensitive" (a password manager's), "clear", "nil"
-    [[ ${CLIPBOARD_STATE:-} == data ]] || exec cliphist "${KEEP[@]}" store   # (cliphist's own way with those)
+    # (cliphist's own way with those; the window, open, shows what came of it — of any copy)
+    [[ ${CLIPBOARD_STATE:-} == data ]] || { cliphist "${KEEP[@]}" store; r=$?; poke; exit "$r"; }
     types=$(wl-paste --list-types 2>/dev/null)
     # kawa-clipkeep offering a copy again once its program closed: stored when it was made
     if grep -qxF application/x-kawa-clipkeep <<<"$types"; then cat >/dev/null; exit 0; fi
@@ -124,10 +159,20 @@ case ${1:-} in
       wl-paste --no-newline --type "$pic" 2>/dev/null | head -c $((MAX_BYTES + 1)) >"$tmp"
     fi
     (($(stat -c %s "$tmp") <= MAX_BYTES)) || exit 0
-    cliphist "${KEEP[@]}" store <"$tmp"
-    exit ;;
+    cliphist "${KEEP[@]}" store <"$tmp"; r=$?
+    poke
+    exit "$r" ;;
   --delete)
     [[ ${2:-} =~ ^[0-9]+$ ]] && entry "$2" | cliphist delete
+    exit 0 ;;
+  --focus)      # fzf's, at each move: the window PID's cursor is on entry ID now — none, while
+                # the search matches nothing (see the top)
+    [[ ${2:-} =~ ^[1-9][0-9]*$ && ${3:-} =~ ^[0-9]*$ ]] || exit 0
+    printf '%s %s\n' "$2" "${3:-}" >"$CUR.$2" && mv -f -- "$CUR.$2" "$CUR"
+    exit 0 ;;
+  --held)       # the entry under the open window's cursor (an empty line: none); exit 1: no window
+    window || exit 1
+    printf '%s\n' "$held"
     exit 0 ;;
   --wipe)       # asks in the window itself
     n=$(cliphist list 2>/dev/null | wc -l)
@@ -149,18 +194,35 @@ export KAWA_CELL
 # fzf kills a preview it no longer needs outright (SIGKILL): the copies such previews were
 # reading are in memory (the runtime folder) until cleared — here, as one window is open
 rm -f -- "$RUN"/kawa-clip.?????? 2>/dev/null
-# The panel's title sits in its top rule, like a heading in the menus ("─ ICON clipboard ──"),
-# its icon (the clipboard's) in the same column as the entries' text; under it the search line: the
-# chevron, then what you type — in that column too — and how many entries match, right.
-title=" $(printf '\e[91m%s\e[0m' "$ICON_CLIPBOARD")  clipboard "
-if ! command -v cliphist >/dev/null; then title+=$'\e[90m· cliphist is missing — fedokawaii repair puts it back\e[0m '
-elif [[ -n $(cliphist list 2>/dev/null | head -c1) ]]; then title+=$'\e[90m· newest first\e[0m '
-else title+=$'\e[90m· nothing copied yet\e[0m '; fi
-self=$(printf '%q' "$0")
-exec fzf --ansi --no-sort --height=100% --margin=1,2 \
-  --delimiter=$'\t' --with-nth=2.. --scheme=history --border-label="$title" \
-  --preview="$self --preview {1}" --preview-window='down,9,wrap-word,border-top,noinfo' --preview-wrap-sign='  ' \
-  --footer=$'\n''enter copy  ·  ctrl+d forget  ·  ctrl+x forget all  ·  esc close' \
+# A text screen (docs/design-system.md §7, screen.sh): the heading — 写, clipboard, the stitch
+# across the window's 76 columns — then the search line, whose empty field says how the list
+# stands (newest first, or why it is empty), the list, the preview under its rule, the keys.
+head="$(screen_heading 写 clipboard 76)"$'\n '
+if ! command -v cliphist >/dev/null; then ghost='cliphist is missing — fedokawaii repair puts it back'
+elif [[ -n $(cliphist list 2>/dev/null | head -c1) ]]; then ghost='newest first'
+else ghost='nothing copied yet'; fi
+self=$(printf '%q' "$0") pid=$$
+# Which entry the cursor is on, for Super+Z (dwl's key, so kawa-shrink asks: --held): kept in
+# $CUR at every move and every new result (a search, a reload — fzf's "focus" misses a new
+# entry landing where the cursor is), and none while nothing matches (fzf runs no command
+# naming {1} then: the second one). The file goes with the window — closed by Esc or Enter,
+# or from outside (dwl hangs up its process group); one this window no longer owns stays
+gone() {
+  local p=""
+  read -r p _ 2>/dev/null <"$CUR"
+  [[ $p == "$pid" ]] && rm -f -- "$CUR"
+  rm -f -- "$CUR.$pid" "$SOCK"
+}
+trap gone EXIT; trap 'exit 129' HUP; trap 'exit 130' INT; trap 'exit 143' TERM
+rm -f -- "$SOCK"                                     # (a window killed outright left it)
+"$0" --focus "$pid"                                  # open, nothing under the cursor yet
+fzf --ansi --no-sort --height=100% \
+  --delimiter=$'\t' --with-nth=2.. --scheme=history --header="$head" --ghost="$ghost" \
+  --preview="$self --preview {1}" --preview-window='down,9,wrap-word,border-top,noinfo' --preview-wrap-sign='   ' \
+  --footer=$'\n'"$(screen_footer 'enter copy' 'super+z shrink' 'ctrl+d forget' 'ctrl+x forget all')" \
+  --listen="$SOCK" \
+  --bind="focus:execute-silent($self --focus $pid {1})" \
+  --bind="result:execute-silent($self --focus $pid {1})+execute-silent([ \"\$FZF_MATCH_COUNT\" != 0 ] || $self --focus $pid)" \
   --bind="enter:become($self --copy {1})" \
   --bind="ctrl-d:execute-silent($self --delete {1})+reload($self --list)" \
   --bind="ctrl-x:execute($self --wipe)+reload($self --list)" \

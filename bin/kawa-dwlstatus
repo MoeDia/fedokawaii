@@ -2,9 +2,16 @@
 # kawa-dwlstatus — reads dwl's status stream on stdin (dwl -s) and writes small JSON
 # files for waybar's custom modules, then pokes only the modules that changed:
 #   SIGRTMIN+8 workspaces · +9 layout · +10 window title · +11 keyboard layout
-# `kawa-dwlstatus --poke N…` pokes waybar the same careful way for others (quick settings
-# and the screen-share portal: +12, the mode seal · kawa-drives: +13, the drive mark ·
-# kawa-menu: +15, the cat) and exits.
+# `kawa-dwlstatus --poke N…` pokes waybar the same careful way for others, and wakes the bar's
+# long-running modules (kawa-timer, kawa-mem, kawa-volume: each waits on a fifo of its own,
+# $XDG_RUNTIME_DIR/kawa-bar.wake.PID), then exits; `kawa-dwlstatus --wake` only wakes them.
+# The signals, one per module (an opener pokes its module as its menu opens and as it closes:
+# the module is lit meanwhile — kawa-bar):
+#   +12 the mode seal (quick settings, the screen-share portal; and with every +15: its click
+#       opens quick settings too) · +13 the drive mark (kawa-drives) · +14 the brightness
+#   (kawa-brightness, its slider) · +15 the cat (quick settings) · +16 the volume (the sound
+#   panel; a fifo wake) · +17 Steam's gamepad · +18 the weather · +19 the date and its day
+#   (the calendar) · +20 the torii (the launcher) — the menus' through kawa-menu
 # Exit status: 0 the stream ended (dwl is gone) or poked · 1 no runtime folder · 2 misuse.
 #
 # dwl prints these lines per monitor (the last one comes from src/dwl/dwl.patch):
@@ -41,15 +48,31 @@ poke() {   # poke N… — SIGRTMIN+N to waybar, but only once it catches them: 
   done 2>/dev/null <"/proc/$WB/status"   # (it may have just exited)
   return 0
 }
+wake() {   # the bar's long-running modules look again (what they show, and whether their menu
+  # is open): a line into each one's fifo — opened read-write, so it never blocks, read or not;
+  # the fifo of one that is gone (its pid dead) is taken away
+  local w run=${XDG_RUNTIME_DIR:-}
+  [[ -n $run ]] || return 0
+  for w in "$run"/kawa-bar.wake.*; do
+    [[ -p $w ]] || continue
+    if kill -0 "${w##*.}" 2>/dev/null; then { printf '\n' 1<>"$w"; } 2>/dev/null
+    else rm -f -- "$w"; fi
+  done
+  return 0
+}
 case ${1:-} in
   "") ;;
   --poke)   # (numbers only: each goes into (( )), where a word is read as a variable or an expression)
     shift
     (($#)) || { echo "usage: kawa-dwlstatus --poke N…" >&2; exit 2; }
     for n; do [[ $n =~ ^[0-9]{1,2}$ ]] && ((n <= 30)) || { echo "kawa-dwlstatus: --poke takes signal numbers 0–30, not $n" >&2; exit 2; }; done
-    poke "$@"; exit 0 ;;
+    # quick settings opened or closed (+15): the mode seal too, whose click opens them
+    [[ " $* " == *" 15 "* && " $* " != *" 12 "* ]] && set -- "$@" 12
+    poke "$@"; wake; exit 0 ;;
+  --wake) (($# == 1)) || { echo "usage: kawa-dwlstatus --wake" >&2; exit 2; }
+    wake; exit 0 ;;
   -h|--help) sed -n '2,/^set -u/{/^set -u/d;s/^# \{0,1\}//;p}' "$0"; exit 0 ;;
-  *) echo "usage: kawa-dwlstatus < dwl's status · kawa-dwlstatus --poke N… (kawa-dwlstatus --help)" >&2; exit 2 ;;
+  *) echo "usage: kawa-dwlstatus < dwl's status · kawa-dwlstatus --poke N… · kawa-dwlstatus --wake (kawa-dwlstatus --help)" >&2; exit 2 ;;
 esac
 
 # shellcheck source=/dev/null
@@ -101,14 +124,12 @@ emit() {   # emit MONITOR — its files (and the focused one's at the top), then
       else put "${at}tag$i" '{"text":""}' && tg=1; fi
     done
   done
-  # the layout as a pixel icon (dwl's symbols: (@) spiral, ||| columns, ><> floating, [n] monocle)
+  # the layout as a pixel icon (dwl's symbols: (@) spiral, ||| columns, ><> floating)
   local lt=${LAYOUT[$mon]:-(@)} icon cls title
   case $lt in
     '(@)')       icon=$ICON_SPIRAL cls=spiral ;;
     '|||')       icon=$ICON_TILE cls=columns ;;
     '><>')       icon=$ICON_FLOAT cls=float ;;
-    '[M]')       icon=$ICON_MONOCLE cls=monocle ;;
-    \[[0-9]*\]) icon="$ICON_MONOCLE ${lt:1:-1}" cls=monocle ;;   # monocle: windows stacked
     *)           icon=$lt cls=other ;;
   esac
   esc icon "$icon"; esc title "${TITLE[$mon]:-}"

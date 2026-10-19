@@ -60,9 +60,6 @@ fits() {
   over=$(paste <(printf '%s\n' "$w") <(printf '%s\n' "$1") | awk -F'\t' -v n="$2" '$1 == "bad" || $1 + 0 > n + 0.001')
   [[ -z $over ]] && _ok || _no "${3:-wider than $2 columns}: $over"
 }
-# rows_fit TEXT W [MSG] — every line of TEXT shows whole in a menu W columns wide: fuzzel draws
-# a row up to W × 6 − 10 px (the rest is kept for its "…"; kawa-menu --help)
-rows_fit() { fits "$1" "$(awk -v w="$2" 'BEGIN { printf "%.4f", (w * 6 - 10) / 6 }')" "${3:-}"; }
 # text_of JSON — the "text" of a waybar line, decoded
 text_of() { python3 -I -c 'import json,sys; print(json.loads(sys.argv[1]).get("text",""))' "$1"; }
 # waitfor SECONDS CMD… — poll until CMD succeeds (0.05 s steps); fails when time runs out
@@ -72,9 +69,9 @@ waitfor() {
   return 1
 }
 
-# osd [N] — the Nth-last level display shown (default the last), as "ID|ICON LABEL|VALUE|LIT/20":
-# VALUE is the number or "off", LIT the wedge's lit columns (the peak lamp included); the
-# body must be well-formed Pango markup, or "bad markup" comes back
+# osd [N] — the Nth-last level display shown (default the last), as "ID|ICON LABEL|VALUE|LIT/12":
+# VALUE is the number or "off", LIT the meter's lit squares (hollow ones too, while muted);
+# the body must be well-formed Pango markup, or "bad markup" comes back
 osd() {
   local l; l=$(grep '^NOTICE [0-9]* osd ' "$NOTIFY_STATE/log" 2>/dev/null | tail -n "${1:-1}" | head -n 1)
   [[ -n $l ]] || return 0
@@ -88,9 +85,13 @@ try:
 except Exception:
     print(f"{nid}|{summary}|bad markup|"); sys.exit()
 def text(n): return "".join(c.data if c.nodeType == c.TEXT_NODE else text(c) for c in n.childNodes)
-spans = [c for c in d.childNodes if c.nodeType == c.ELEMENT_NODE]
-wedge = [c for c in spans[0].childNodes if c.nodeType == c.ELEMENT_NODE]
-lit = len(text(wedge[0])) + len(text(wedge[1])); total = lit + len(text(wedge[2]))
+# kawa-osd's row: one span (the 20 px row) holding the glyph, the name, the squares (the span
+# in the icon font: its lit ones, then the rest) and the value (the last)
+row = [c for c in d.childNodes if c.nodeType == c.ELEMENT_NODE][0]
+spans = [c for c in row.childNodes if c.nodeType == c.ELEMENT_NODE]
+squares = [s for s in spans if s.getAttribute("font") == "Sumi Icons 12px"][0]
+on, rest = [c for c in squares.childNodes if c.nodeType == c.ELEMENT_NODE]
+lit = len(text(on)); total = lit + len(text(rest))
 value = text(spans[-1]).strip()
 print(f"{nid}|{summary}|{value}|{lit}/{total}")
 EOF2

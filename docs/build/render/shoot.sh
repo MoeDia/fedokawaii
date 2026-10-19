@@ -197,11 +197,14 @@ session() {
   k pipewire >"$LT/pipewire.log" 2>&1 &
   waitfor 10 "pipewire" test -S "$X/pipewire-0"
   k wireplumber >"$LT/wireplumber.log" 2>&1 &
-  # the machine's audio devices (null devices standing in for the ALSA cards)
-  k pw-cli create-node adapter '{ factory.name=support.null-audio-sink node.name=alsa_output.pci-0000_0e_00.4.analog-stereo node.description="Starship/Matisse HD Audio Controller Analog Stereo" media.class=Audio/Sink object.linger=true audio.position=[FL FR] priority.session=1009 priority.driver=1009 }' >/dev/null
-  k pw-cli create-node adapter '{ factory.name=support.null-audio-sink node.name=alsa_output.pci-0000_0c_00.1.hdmi-stereo node.description="Navi 31 HDMI/DP Audio Digital Stereo (HDMI)" media.class=Audio/Sink object.linger=true audio.position=[FL FR] priority.session=900 priority.driver=900 }' >/dev/null
-  k pw-cli create-node adapter '{ factory.name=support.null-audio-sink node.name=alsa_input.pci-0000_0e_00.4.analog-stereo node.description="Starship/Matisse HD Audio Controller Analog Stereo" media.class=Audio/Source object.linger=true audio.position=[FL FR] priority.session=2009 priority.driver=2009 }' >/dev/null
-  waitfor 15 "a default sink" k sh -c 'wpctl inspect @DEFAULT_AUDIO_SINK@ 2>&1 | grep -q "node.name = \"alsa_output.pci-0000_0e"'
+  # the machine's audio devices, as the owner's (his report: an MSI board's ALC1220 behind the
+  # Ryzen's HD audio controller, an RX 9060 XT's HDMI to an LG ULTRAGEAR): null devices
+  # standing in for the ALSA cards, with the props ALSA gives a node (its nick, its profile's
+  # description, its card and place on it); stubs/pw-dump adds the cards and their routes
+  k pw-cli create-node adapter '{ factory.name=support.null-audio-sink node.name=alsa_output.pci-0000_15_00.6.analog-stereo node.description="Ryzen HD Audio Controller Analog Stereo" node.nick="ALC1220 Analog" device.profile.description="Analog Stereo" device.api=alsa card.profile.device=4 media.class=Audio/Sink object.linger=true audio.position=[FL FR] priority.session=1009 priority.driver=1009 }' >/dev/null
+  k pw-cli create-node adapter '{ factory.name=support.null-audio-sink node.name=alsa_output.pci-0000_03_00.1.hdmi-stereo node.description="Navi 48 HDMI/DP Audio Controller Digital Stereo (HDMI)" node.nick="LG ULTRAGEAR" device.profile.description="Digital Stereo (HDMI)" device.api=alsa card.profile.device=3 media.class=Audio/Sink object.linger=true audio.position=[FL FR] priority.session=900 priority.driver=900 }' >/dev/null
+  k pw-cli create-node adapter '{ factory.name=support.null-audio-sink node.name=alsa_input.pci-0000_15_00.6.analog-stereo node.description="Ryzen HD Audio Controller Analog Stereo" node.nick="ALC1220 Analog" device.profile.description="Analog Stereo" device.api=alsa card.profile.device=3 media.class=Audio/Source object.linger=true audio.position=[FL FR] priority.session=2009 priority.driver=2009 }' >/dev/null
+  waitfor 15 "a default sink" k sh -c 'wpctl inspect @DEFAULT_AUDIO_SINK@ 2>&1 | grep -q "node.name = \"alsa_output.pci-0000_15"'
   waitfor 10 "a default source" k sh -c 'wpctl inspect @DEFAULT_AUDIO_SOURCE@ 2>&1 | grep -q "node.name = \"alsa_input"'
   k wpctl set-volume @DEFAULT_AUDIO_SINK@ 0.62
   k wpctl set-volume @DEFAULT_AUDIO_SOURCE@ 0.80
@@ -242,10 +245,11 @@ session() {
   img grab "$W/wallpaper.ppm" && python3 -I -c 'import sys; from PIL import Image; Image.open(sys.argv[1]).save(sys.argv[2])' \
     "$W/wallpaper.ppm" "$OT/wallpaper.png"
 
-  # a session that has been up a while has the weather cached (kawa-weather refreshes it
-  # in the background; curl is stubbed: "+31°C  Clear")
+  # a session that has been up a while has the forecast cached (kawa-weather fetches it in
+  # the background; curl is stubbed: Open-Meteo's week, 33° and clear now)
+  rm -f "$KH/.cache/kawa-weather.json" "$KH/.cache/kawa-weather.failed"
   k kawa-weather >/dev/null 2>&1
-  waitfor 10 "the weather cache" test -s "$KH/.cache/kawa-weather"
+  waitfor 10 "the weather cache" test -s "$KH/.cache/kawa-weather.json"
   k mako >"$LT/mako.log" 2>&1 &
   k env ${SHOOT_FOOT_DEBUG:+WAYLAND_DEBUG=1} foot --server >"$LT/foot-server.log" 2>&1 &
   k gammastep >/dev/null 2>&1 &
@@ -306,19 +310,51 @@ EOF
 }
 
 menu() {   # menu NAME CMD… — open a menu, capture it once drawn and still, close it
-  local name=$1 pid r; shift
+  menu_keys "$1" "" "${@:2}"
+}
+# menu_keys NAME KEYS CMD… — the same, KEYS typed into it first (wtype's arguments: -k Down,
+# text…; " | " a pause, for a second menu to open) once it is drawn: the shot is what they
+# made of it (a month paged, a size typed). The keyboard (wtype's virtual one) is made before
+# the menu opens and waits for it: sway sends the focused surface a leave and an enter when a
+# keyboard is added, and the panel takes a leave for a click outside — the menu would close
+# (dwl adds keyboards to its group, with no such leave)
+menu_keys() {
+  local name=$1 keys=$2 pid r kp=""; shift 2
+  : >"$LT/$name.log"
   img grab "$W/base.ppm"
-  "$@" >"$LT/$name.log" 2>&1 &
+  if [[ -n $keys ]]; then
+    # shellcheck disable=SC2086  # (KEYS: wtype's own arguments)
+    k wtype -s 2500 -d 40 ${keys//|/-s 900} >>"$LT/$name.log" 2>&1 &
+    kp=$!
+    sleep 0.4
+  fi
+  "$@" >>"$LT/$name.log" 2>&1 &
   pid=$!
+  if [[ -n $kp ]]; then
+    waitpid 15 "$kp" || warn "$T: $name: its keys had to be killed"
+    sleep 0.6
+  fi
   if r=$(img capture "$W/base.ppm" "$OT/$name-full.png" "$OT/$name.png" --mask-top "$BARH" \
            --timeout 10 --min 1.0 --settle 0.5 2>>"$LT/$name.log"); then
     say "$T: $name ($r)"
   else
     warn "$T: $name did not appear (see $LT/$name.log)"
   fi
-  pkill -x fuzzel 2>/dev/null
+  close_menus
   waitpid 5 "$pid" || warn "$T: $name had to be killed"
   img wait-same "$W/base.ppm" --mask-top "$BARH" --timeout 5 2>/dev/null || true
+  # (a menu closed from outside counts as a click outside it, and the same menu asked for again
+  # within 0.6 s is that click landing on its own button — kawa-menu's toggle: none opens)
+  sleep 0.7
+}
+# close_menus — whatever menu is on screen goes, as another menu's key takes it away: the
+# launcher (fuzzel) ended, the session panel told to close (SIGUSR2: a menu dismissed, its
+# caller answered "dismissed")
+close_menus() {
+  local p
+  pkill -x fuzzel 2>/dev/null
+  p=$(cat "$X/kawa-panel.pid" 2>/dev/null) && [[ $p =~ ^[0-9]+$ ]] && kill -USR2 "$p" 2>/dev/null
+  return 0
 }
 
 shot_menus() {
@@ -327,17 +363,48 @@ shot_menus() {
   # adapter (the dongle): only this panel's processes see a /sys/class/bluetooth/hci0.
   # (This machine's python3 has no working GTK bindings: the panel runs on its python3.12,
   # with a gtk-layer-shell built for them, in $GLS)
-  local qs="env GI_TYPELIB_PATH=$GLS/girepository-1.0 LD_LIBRARY_PATH=$GLS python3.12 \"\$(command -v kawa-panel)\" --open & p=\$!; sleep 6; kill \$p"
+  local py="env GI_TYPELIB_PATH=$GLS/girepository-1.0 LD_LIBRARY_PATH=$GLS python3.12 \"\$(command -v kawa-panel)\""
+  local qs="$py --open & p=\$!; sleep 6; kill \$p"
   menu menu-quick unshare --mount --propagation private -- sh -c \
     'mount -t tmpfs -o size=64k,mode=755 tmpfs /sys/class && mkdir -p /sys/class/bluetooth/hci0 && exec "$@"' \
     sh "${kcmd[@]}" sh -c "$qs"
   menu menu-quick-nobt k sh -c "$qs"
+  # its siblings, opened by their keys (Super+A; the bar's brightness): the sound panel —
+  # also muted (the level's squares hollow, unmute offered) — and the brightness slider
+  menu menu-sound      k sh -c "${qs/--open/--sound}"
+  menu menu-sound-muted k sh -c "wpctl set-mute @DEFAULT_AUDIO_SINK@ 1; ${qs/--open/--sound}; wpctl set-mute @DEFAULT_AUDIO_SINK@ 0"
+  menu menu-brightness k sh -c "${qs/--open/--brightness}"
+  # the dropdowns and the centred menus: kawa-menu asks the session's panel (kawa-panel --menu,
+  # its socket), as autostart keeps one running on the real machine
+  k sh -c "exec $py" >"$LT/panel.log" 2>&1 &
+  waitfor 15 "the session panel's socket" test -S "$X/kawa-panel.sock"
   menu menu-power      k kawa-power
-  menu menu-audio      k kawa-audio
   menu menu-calendar   k kawa-calendar
+  # … paged to the next month by its keys: the cursor stays on next
+  menu_keys menu-calendar-next "-k Right -k Right -k Return" k kawa-calendar
+  menu menu-timer      k kawa-timer
+  # … with a timer running: its time left at the heading's end, cancel offered
+  k kawa-timer start 25 >/dev/null 2>&1
+  menu menu-timer-running k kawa-timer
+  k kawa-timer cancel >/dev/null 2>&1
   menu menu-help       k kawa-help
+  menu_keys menu-help-filter "volume" k kawa-help   # (typed: only the bindings it finds, under their parts)
   menu menu-change     k kawa-config
   menu menu-drives     k kawa-drives       # the drives (the bar's drive mark): stubs/lsblk's stick and disk
+  menu menu-steam      k kawa-steam --menu # (stubs/steam: installed)
+  # shrink (Super+Z) on a picture and a PDF: every part; then a size of one's own, typed
+  install -m 644 -o "$K" "$OT/wallpaper.png" "$SH/state/holiday.png"
+  python3 -I -c 'import sys; from PIL import Image; Image.new("RGB", (595, 842), "white").save(sys.argv[1])' "$SH/state/scan.pdf"
+  chown "$K" "$SH/state/scan.pdf"
+  menu menu-shrink     k kawa-shrink "$SH/state/holiday.png" "$SH/state/scan.pdf"
+  menu_keys menu-shrink-size "-k Down -k Down -k Down -k Return | 750 -k space KB" k kawa-shrink "$SH/state/holiday.png"
+  # share (the screen-share portal's chooser): a screen, two windows
+  menu menu-share      k sh -c 'printf "%s\n" "Monitor: HEADLESS-1 Headless output" "Window: notes.md — nvim (a1b2c3d4)" "Window: Weekly sync — Brave (e5f6a7b8)" | kawa-share'
+  menu menu-weather    k kawa-weather --menu   # the week (the bar's weather): stubs/curl's Open-Meteo forecast
+  # … and as it is after three hours offline: the same days, their age said above them
+  k sh -c 'touch -d "-3 hours" "$HOME/.cache/kawa-weather.json" && echo offline >"$HOME/.cache/kawa-weather.failed"'
+  menu menu-weather-offline k kawa-weather --menu
+  kill "$(cat "$X/kawa-panel.pid")" 2>/dev/null   # (the session panel: the menus done)
   # the launcher (Super+Space): fuzzel with the user's config; the applications are the
   # Fedora .desktop files of what setup.sh installs (xdg/), the icons Papirus
   menu launcher        k env XDG_DATA_DIRS="$SH/xdg/share" fuzzel

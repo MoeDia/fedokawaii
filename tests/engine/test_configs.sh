@@ -49,8 +49,10 @@ case_ "started means answering: the start waits for health, and long enough for 
 eq "$(val Container.Notify)" healthy
 i=$(val Container.HealthStartupInterval); n=$(val Container.HealthStartupRetries); t=$(val Service.TimeoutStartSec)
 (( ${i%s} * n <= t )) && _ok || _no "health startup ${i}×$n outlasts TimeoutStartSec=$t"
-case_ "a web page that asks for a login, and no data sent home"
-has "$(val Container.Environment)" "PROWLARR__AUTH__METHOD=Forms"; has "$(val Container.Environment)" "PROWLARR__AUTH__REQUIRED=Enabled"
+case_ "a web page that asks for no login (it answers on 127.0.0.1 only: External, Prowlarr's own 'none wanted'), and no data sent home"
+has "$(val Container.Environment)" "PROWLARR__AUTH__METHOD=External"; has "$(val Container.Environment)" "PROWLARR__AUTH__REQUIRED=DisabledForLocalAddresses"
+lacks "$(val Container.Environment)" "Forms"
+eq "$(val Container.PublishPort)" "127.0.0.1:9696:9696" "this computer only — what makes no login safe"
 has "$(val Container.Environment)" "PROWLARR__LOG__ANALYTICSENABLED=False"
 
 case_ "tuned.conf: read as tuned reads it (INI), the parent profile, the desktop's values"

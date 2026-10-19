@@ -46,7 +46,8 @@ if [[ $arg == --bar ]]; then
   if [[ $l =~ ^[0-9]{1,3}$ ]]; then
     icons=("$ICON_BRI_0" "$ICON_BRI_1" "$ICON_BRI_2" "$ICON_BRI_3" "$ICON_BRI_4")
     i=$((l / 20)); ((i > 4)) && i=4
-    printf '{"text":"%s %s<span fgalpha=\x2755%%\x27>%%</span>","tooltip":false}\n' "${icons[i]}" "$l"
+    # (a JSON false is shown as the word "false" — the tooltip says what the module is and does)
+    printf '{"text":"%s %s<span fgalpha=\x2755%%\x27>%%</span>","tooltip":"brightness %s %% · click: its slider · scroll: ±10 %%"}\n' "${icons[i]}" "$l" "$l"
   else
     # (not known yet: asked once, quietly, in the background — the answer pokes the bar)
     printf '{"text":""}\n'
@@ -152,7 +153,7 @@ set_all() {   # set_all PERCENT — every monitor on its own scale; 1: the first
   return "$r"
 }
 
-note() { echo "$1" >"$LEVEL"; poke; kawa-osd "$ICON_SUN" brightness "$1"; }   # the level, shown for a moment
+note() { echo "$1" >"$LEVEL"; poke; kawa-osd 明 brightness "$1"; }   # the level, shown for a moment (明: its meter's kanji, as in quick settings)
 
 want() {   # want → the level asked for and not applied yet (taken: the next ask is new)
   local v

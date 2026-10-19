@@ -179,7 +179,7 @@ startinsert!
 --
 $HOME/Notes/50% off.md"
 has "$(cat "$HOME/nvim.env")" "KAWA_NOTES_WHERE=~/Notes/50% off.md"
-has "$(cat "$HOME/nvim.env")" "KAWA_NOTES_ICON=$(. "$HOME/.config/fedokawaii/icons.sh"; printf '%s' "$ICON_NOTE")"
+lacks "$(cat "$HOME/nvim.env")" "KAWA_NOTES_ICON=" "(the heading is the kanji's: no icon handed over)"
 
 case_ "misuse and help"
 setup
@@ -194,33 +194,35 @@ else
   # (the window's neovim, listening on a socket of the test's: keys are typed in through it)
   stub nvim "exec '$REAL_NVIM' --clean --listen '$XDG_RUNTIME_DIR/kawa-notes.sock' \"\$@\""     # (the page alone, without LazyVim)
   ask() {   # ask LUA-EXPR [FILE] — the value, from neovim set up as the window sets it up
-    KAWA_NOTES_ICON=X KAWA_NOTES_WHERE='~/Notes/50% off.md' nvim --headless \
+    KAWA_NOTES_WHERE='~/Notes/50% off.md' nvim --headless \
       -c 'luafile ~/.config/fedokawaii/notes.lua' -c "lua io.stdout:write(vim.inspect($1))" -c 'qa!' -- "${2:-$TMP/n.md}" 2>/dev/null
   }
-  case_ "notes.lua: a page — no numbers, signs or spell marks, three columns in, lines wrapped at words"
+  case_ "notes.lua: a page — no numbers, signs or spell marks, four columns in, lines wrapped at words"
   eq "$(ask '{vim.wo.number, vim.wo.relativenumber, vim.wo.signcolumn, vim.wo.foldcolumn, vim.wo.wrap, vim.wo.linebreak, vim.wo.spell, vim.wo.cursorline}')" \
-     '{ false, false, "no", "3", true, true, false, false }'
-  case_ "notes.lua: the title rule names the file ('%' kept as a '%'), the keys along the bottom"
-  has "$(ask vim.wo.winbar)" "%#KawaIcon#X %#KawaName#notes %#KawaRule#· ~/Notes/50%% off.md"
-  has "$(ask vim.wo.statusline)" "saved as you type  ·  super+n puts it away"
+     '{ false, false, "no", "4", true, true, false, false }'
+  case_ "notes.lua: the heading (記, notes, the stitch: §7); the footer names the file ('%' kept as a '%') and the keys"
+  has "$(ask vim.wo.winbar)" "%#KawaGround#  %#KawaKanji#記%#KawaGround#  %#KawaName#notes %#KawaStitch#%="
+  has "$(ask "vim.opt_local.fillchars:get().wbr")" "╌"
+  has "$(ask vim.wo.statusline)" "%#KawaMuted#~/Notes/50%% off.md  ·  saved as you type  ·  super+n puts it away"
   eq "$(ask '{vim.o.laststatus, vim.o.cmdheight}')" "{ 2, 0 }"
   case_ "notes.lua: writes without waiting for the disk, and never reformats the page (LazyVim's autoformat off)"
   eq "$(ask '{vim.o.fsync, vim.b.autoformat}')" "{ false, false }"
-  hl() { KAWA_NOTES_ICON=X nvim --headless -c 'luafile ~/.config/fedokawaii/notes.lua' \
+  hl() { nvim --headless -c 'luafile ~/.config/fedokawaii/notes.lua' \
     -c "lua local h = vim.api.nvim_get_hl(0, {name='$1'}); io.stdout:write(string.format('%06x %06x', h.fg or 0, h.bg or 0))" \
     -c 'qa!' -- "$TMP/n.md" 2>/dev/null; }
-  case_ "notes.lua: the theme's colours — the rule colour 8, the icon 9, the name 7, on the ground"
-  eq "$(hl KawaRule)" "7a7262 0f0e0c"; eq "$(hl KawaIcon)" "e66a5f 0f0e0c"; eq "$(hl KawaName)" "cfc3a6 0f0e0c"
+  case_ "notes.lua: the theme's inks — the kanji accent_text, the name text, the stitch edge2, the footer muted, on the ground"
+  eq "$(hl KawaKanji)" "d15b3d 0f0e0c"; eq "$(hl KawaName)" "cfc3a6 0f0e0c"
+  eq "$(hl KawaStitch)" "3d372f 0f0e0c"; eq "$(hl KawaMuted)" "877f6f 0f0e0c"
   ln -sfn themes/light "$HOME/.config/fedokawaii/current"
-  eq "$(hl KawaRule)" "696255 e9e1cb" "on paper"
+  eq "$(hl KawaMuted)" "$(sed -n 's/^C_MUTED=\([0-9a-f]*\).*/\1/p' "$HOME/.config/fedokawaii/themes/light/colors.sh") e9e1cb" "on paper"
   rm "$HOME/.config/fedokawaii/current"
-  eq "$(hl KawaRule)" "7a7262 0f0e0c" "no theme set up: the dark one's"
+  eq "$(hl KawaMuted)" "877f6f 0f0e0c" "no theme set up: the dark one's"
   ln -s themes/dark "$HOME/.config/fedokawaii/current"
   case_ "notes.lua: a theme switch while open (ColorScheme) brings the new colours"
-  out=$(KAWA_NOTES_ICON=X nvim --headless -c 'luafile ~/.config/fedokawaii/notes.lua' \
+  out=$(nvim --headless -c 'luafile ~/.config/fedokawaii/notes.lua' \
     -c "lua vim.uv.fs_unlink(vim.fn.expand('~/.config/fedokawaii/current')); vim.uv.fs_symlink('themes/light', vim.fn.expand('~/.config/fedokawaii/current'))" \
-    -c 'doautocmd ColorScheme' -c "lua io.stdout:write(string.format('%06x', vim.api.nvim_get_hl(0, {name='KawaRule'}).fg))" -c 'qa!' -- "$TMP/n.md" 2>/dev/null)
-  eq "$out" 696255
+    -c 'doautocmd ColorScheme' -c "lua io.stdout:write(string.format('%06x', vim.api.nvim_get_hl(0, {name='KawaMuted'}).fg))" -c 'qa!' -- "$TMP/n.md" 2>/dev/null)
+  eq "$out" "$(sed -n 's/^C_MUTED=\([0-9a-f]*\).*/\1/p' "$HOME/.config/fedokawaii/themes/light/colors.sh")"
   ln -sfn themes/dark "$HOME/.config/fedokawaii/current"
 
   # the real window: kawa-notes --inside in a terminal of its own; once the page is drawn
@@ -265,7 +267,7 @@ else
   out=$(python3 -I "$C/pty_run.py" --timeout 20 --answer 'saved as you type' 'hello' --hangup +3 -- kawa-notes --inside | tr -d '\0')
   wait "$bg"
   eq "$(cat "$N" 2>/dev/null)" "$H"$'\n\nfirst\nhello world'; lacks "$out" "really want to write"
-  case_ "another file opened in the window (:e ~/Notes/trip.md): a page too — its name in the rule, saved as you type"
+  case_ "another file opened in the window (:e ~/Notes/trip.md): a page too — its name in the footer, saved as you type"
   printf '%s\n\nfirst\n' "$H" >"$N"
   ( for _ in {1..200}; do [[ -S $XDG_RUNTIME_DIR/kawa-notes.sock ]] && break; sleep 0.05; done; sleep 0.5
     "$REAL_NVIM" --server "$XDG_RUNTIME_DIR/kawa-notes.sock" --remote-send '<Esc>:e ~/Notes/trip.md<CR>ibuy a SIM card' ) & bg=$!
@@ -273,10 +275,10 @@ else
   wait "$bg"
   eq "$(cat "$HOME/Notes/trip.md" 2>&1)" "buy a SIM card" "(closed by Super+Q: nothing lost)"
   eq "$(cat "$N")" "$H"$'\n\nfirst' "(the notes as they were)"
-  out=$(KAWA_NOTES_ICON=X nvim --headless -c 'luafile ~/.config/fedokawaii/notes.lua' -c 'e ~/Notes/trip.md' \
-    -c "lua io.stdout:write(vim.inspect({vim.api.nvim_eval_statusline(vim.wo.winbar, {winid = 0, use_winbar = true}).str, vim.wo.number, vim.wo.foldcolumn, vim.wo.wrap}))" \
+  out=$(nvim --headless -c 'luafile ~/.config/fedokawaii/notes.lua' -c 'e ~/Notes/trip.md' \
+    -c "lua io.stdout:write(vim.inspect({vim.api.nvim_eval_statusline(vim.wo.winbar, {winid = 0, use_winbar = true}).str, vim.api.nvim_eval_statusline(vim.wo.statusline, {winid = 0}).str, vim.wo.number, vim.wo.foldcolumn, vim.wo.wrap}))" \
     -c 'qa!' -- "$N" 2>/dev/null)
-  has "$out" "─ X notes · ~/Notes/trip.md"; has "$out" 'false, "3", true }'
+  has "$out" "  記  notes ╌╌╌"; has "$out" "  ~/Notes/trip.md  ·  saved as you type"; has "$out" 'false, "4", true }'
   case_ "a change elsewhere in the very moment of a key: no question; the file's version stays, the page follows it"
   printf 'one\n' >"$N"
   out=$(timeout 10 nvim --headless -n -c 'luafile ~/.config/fedokawaii/notes.lua' -c "lua vim.defer_fn(function()

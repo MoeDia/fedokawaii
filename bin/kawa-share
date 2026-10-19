@@ -85,25 +85,26 @@ while read -r name wh; do size[$name]=$wh; done < <(wlr-randr 2>/dev/null | awk 
   /^    [0-9]+x[0-9]+ px.*current/ { split($1, d, "x"); print out, d[1] "×" d[2] }')
 
 cut40() { cut_cols "$1" 40; }   # cut40 TEXT — TEXT in at most 40 columns of the menu (width.sh)
+# in the panel's line format (kawa-menu; docs/design-system.md): 共 share what?, a row a screen
+# (its name, its current size right-aligned) or a window (its title); line N + 1 is lines[N]
 rows=()
-nw=0                                           # the screens' names in a column as wide as the longest
-for l in "${lines[@]}"; do [[ $l == "Monitor: "* ]] && { n=${l#Monitor: }; n=${n%% *}; ((${#n} > nw)) && nw=${#n}; }; done
+line() { local IFS=$'\t'; rows+=("$*"); }
+line part 共 "share what?"
 for l in "${lines[@]}"; do
   case $l in
     "Window: "*) t=${l#Window: }; a=${t##* (}; a=${a%)}; t=${t% (*}   # the title, without the token —
                  # a window with no title: so it says, with the token's start to tell several apart
                  [[ -z ${t// /} ]] && t="untitled window · ${a:0:6}"
-                 t=$(cut40 "${t//[[:cntrl:]]/ }")
-                 printf -v r '%s  %s' "$ICON_WINDOW" "$t" ;;
+                 line row "$ICON_WINDOW" "$(cut40 "${t//[[:cntrl:]]/ }")" ;;
     *)           n=${l#Monitor: }; n=${n%% *}                         # the screen's name
-                 printf -v r '%s  %-*s  %s' "$ICON_PICTURE" "$nw" "$n" "${size[$n]:-}" ;;
+                 line row "$ICON_PICTURE" "$n" "" "${size[$n]:-}" ;;
   esac
-  rows+=("$r")
 done
-if ! i=$(printf '%s\n' "${rows[@]}" | kawa-menu --index --width 48 \
-           --lines $(( ${#rows[@]} < 12 ? ${#rows[@]} : 12 )) --title "share what?"); then
+if ! i=$(printf '%s\n' "${rows[@]}" | kawa-menu --index --select 1 \
+           --lines $(( ${#lines[@]} < 12 ? ${#lines[@]} : 12 ))); then
   rm -f "$MEM"; done_ cancelled
 fi
+i=$((i - 1))
 now=${EPOCHREALTIME//[.,]/}                    # (the choice's own time: the menu may stay open long)
 printf '%s\t%s\n' "$now" "${lines[i]}" >"$MEM.new" && mv -f "$MEM.new" "$MEM"
 done_ asked "${lines[i]}"

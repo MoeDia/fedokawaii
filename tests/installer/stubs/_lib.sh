@@ -30,16 +30,18 @@ fake_syncplay_source() {
     '    print("syncplay (fake):", " ".join(sys.argv[1:]))' >"$1/syncplay/ep_client.py"
   printf '%s\n' 'def main():' '    print("syncplay-server (fake)")' >"$1/syncplay/ep_server.py"
 }
-# fake_lpf — what lpf-spotify-client (and lpf with it) brings, as far as setup.sh looks: lpf's
-# build account pkg-build (its home /var/lib/lpf, its own), the two scripts setup.sh runs
-# (stubs/lpf: lpf-pkgbuild, lpf-sudo-builddep) and the recipe, Spotify's terms beside it
-fake_lpf() {
+# fake_lpf_era — a machine from before Spotify became its web player: lpf built Spotify's app
+# here (lpf-spotify-client, the recipe, and spotify-client, the app: yours; lpf with them),
+# with lpf's build account pkg-build (its home /var/lib/lpf, the build's state and log). None of
+# the three is needed by anything ($FKH/orphans): marked as a dependency, dnf's clean-up takes it
+fake_lpf_era() {
   grep -q '^pkg-build:' /etc/passwd || { echo 'pkg-build:x:975:975:lpf local package build user:/var/lib/lpf:/sbin/nologin' >>/etc/passwd; echo 'pkg-build:x:975:' >>/etc/group; }
-  mkdir -p /usr/share/lpf/scripts /usr/share/lpf/packages/spotify-client/eula /var/lib/lpf/packages/spotify-client
-  cp /usr/local/bin/lpf/* /usr/share/lpf/scripts/
-  echo 'Name: spotify-client' >/usr/share/lpf/packages/spotify-client/spotify-client.spec
-  echo 'You may not re-distribute the package' >/usr/share/lpf/packages/spotify-client/eula/license.txt
+  mkdir -p /usr/share/lpf/packages/spotify-client /var/lib/lpf/packages/spotify-client /var/lib/lpf/log /etc/sudoers.d
+  echo OK >/var/lib/lpf/packages/spotify-client/state; echo 'spotify-client: build completed' >/var/lib/lpf/log/spotify-client.log
+  printf 'pkg-build ALL=(root) NOPASSWD: /usr/share/lpf/scripts/lpf-sudo-builddep\n' >/etc/sudoers.d/pkg-build
   chown -R 975:975 /var/lib/lpf
+  local p; for p in lpf lpf-spotify-client spotify-client; do add installed "$p"; add orphans "$p"; done
+  for p in lpf-spotify-client spotify-client; do grep -q "^$p " "$FKH/userinstalled" 2>/dev/null || echo "$p User" >>"$FKH/userinstalled"; done
 }
 # fake_blesh_source DIR — what ble.sh's pinned commit holds, as far as the desktop looks: its
 # make file and main source (ble.pp), whose build the fake make knows

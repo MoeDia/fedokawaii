@@ -31,10 +31,18 @@ s = re.sub(r"-(\x1b\\)$", r"\1", s)
 q = s.index("q") + 1
 regs = {m[1] for m in re.finditer(r"#(\d+);2;(\d+);(\d+);(\d+)", s)
         if max(abs(int(v) - w) for v, w in zip(m.groups()[1:], ground)) <= 1}
+# the picture data, cut at each colour chosen (or defined and chosen); in the stretches
+# drawn in a ground colour every sixel character (? to ~) becomes "?": nothing drawn
+# (repeat counts, "$" and "-" are below "?" and stay; the closing ESC \ is kept apart)
+end = "\x1b\\" if s.endswith("\x1b\\") else ""
+body = s[q:len(s) - len(end)]
+blank = bytes.maketrans(bytes(range(0x40, 0x7f)), b"?" * 0x3f).decode("latin1")
 out, cur = [s[:q]], None
-for m in re.finditer(r"#(\d+)(?:;\d+;\d+;\d+;\d+)?|\"[0-9;]*|![0-9]+|\x1b\\|[\s\S]", s[q:]):
-    t = m.group(0)
-    if t[0] == "#": cur = m[1]                    # a colour chosen (or defined and chosen)
-    elif len(t) == 1 and "?" <= t <= "~" and cur in regs: t = "?"   # ground: nothing drawn
+for i, t in enumerate(re.split(r"(#\d+(?:;\d+;\d+;\d+;\d+)?)", body)):
+    if i % 2:
+        cur = t[1:].split(";", 1)[0]
+    elif cur in regs:
+        t = t.translate(blank)
     out.append(t)
+out.append(end)
 sys.stdout.buffer.write("".join(out).encode("latin1"))' "$1"

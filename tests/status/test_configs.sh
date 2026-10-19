@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # tests/status/test_configs.sh — the two configs behind the bar's sound: cava.conf must give
 # kawa-nowplaying exactly the frames it parses (16 bands of 0–5, ';' apart, one frame a line),
-# and 60-share.conf's devices must be the ones kawa-audio and the handbook treat as "Share".
+# and 60-share.conf's devices must be the ones the sound panel (kawa-quick --state sound) and the handbook treat as "Share".
 # (That PipeWire 1.0 loads 60-share.conf and lists both under Filters was checked live.)
 . "$(dirname "$0")/lib.sh"
 box
@@ -35,10 +35,10 @@ case_ "60-share.conf: one loopback, braces and brackets balanced"
 eq "$(strip | grep -c 'libpipewire-module-loopback')" 1 "one loopback only (a second, recording Share, crashed PipeWire 1.6)"
 eq "$(strip | tr -cd '{' | wc -c)" "$(strip | tr -cd '}' | wc -c)" "{ }"
 eq "$(strip | tr -cd '[' | wc -c)" "$(strip | tr -cd ']' | wc -c)" "[ ]"
-case_ "60-share.conf: 'Share' is the output share_sink — the very name kawa-audio keeps out of its list"
+case_ "60-share.conf: 'Share' is the output share_sink — the very name kawa-quick keeps out of the sound panel's list"
 has "$(strip | grep -A3 'capture.props' | head -n 4)" 'node.name        = "share_sink"'
 has "$(strip)" 'media.class      = "Audio/Sink"'
-has "$(grep -o 'node.name"\] != "[a-z_]*"' "$REPO/bin/kawa-audio")" '"share_sink"'
+has "$(grep -o 'node.name"\] != "[a-z_]*"' "$REPO/bin/kawa-quick")" '"share_sink"'
 case_ "60-share.conf: nothing records a sink (stream.capture.sink, the crash), no virtual source"
 lacks "$(strip)" 'stream.capture.sink'; lacks "$(strip)" 'Audio/Source'; lacks "$(strip)" 'as microphone'
 case_ "60-share.conf: never the default output (priority.session 0)"

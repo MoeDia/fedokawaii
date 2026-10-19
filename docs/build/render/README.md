@@ -39,8 +39,12 @@ Debugging: `SHOOT_SWAY_DEBUG=1` (sway -d into the sway log), `SHOOT_FOOT_DEBUG=1
 | `bar-right-muted.png` | the bar's right end while the sink is muted |
 | `menu-quick.png` | quick settings (`kawa-panel`) on a machine with a Bluetooth adapter |
 | `menu-quick-nobt.png` | the same without one (this sandbox's real state) |
-| `menu-power.png` `menu-audio.png` `menu-calendar.png` `menu-wallpaper.png` `menu-help.png` | the other `kawa-*` menus |
-| `menu-clipboard.png` | `cliphist list \| kawa-menu --prompt '> ' --width 60 --title clipboard` (Super+V) |
+| `menu-sound.png` `menu-sound-muted.png` | the sound panel (`kawa-panel --sound`, Super+A), and muted |
+| `menu-brightness.png` | the brightness slider (`kawa-panel --brightness`, the bar's brightness) |
+| `menu-weather.png` | the week (`kawa-weather --menu`, the bar's weather), from `stubs/curl`'s forecast |
+| `menu-weather-offline.png` | the same three hours later, offline: its age, quiet, above the days |
+| `menu-power.png` `menu-calendar.png` `menu-timer.png` `menu-drives.png` `menu-steam.png` `menu-shrink.png` `menu-share.png` `menu-help.png` `menu-change.png` | the dropdowns and centred menus: `kawa-menu`, drawn by the session's panel (`kawa-panel --menu`, started for them; closed with SIGUSR2 between shots) |
+| `menu-calendar-next.png` `menu-timer-running.png` `menu-help-filter.png` `menu-shrink-size.png` | the same after keys (paged to next month), with a timer running, filtered by typing (`volume`), and a size of one's own typed (`750 KB`) — `menu_keys`: wtype's keyboard made before the menu opens (sway sends a leave to the focused surface when a keyboard is added) |
 | `launcher.png` | `fuzzel` (Super+Space) with the user's config |
 | `notify-normal.png` | `kawa-screenshot`'s notice (`-a desktop`, the picture as icon) |
 | `notify-app.png` | an app's notice with a Papirus icon and a wrapped body |
@@ -77,11 +81,12 @@ Stand-ins (`stubs/`, first in PATH; `xdg/`; `lib/`):
 | `/proc/stat` (first line) | `lib/fakestat.py`, bind-mounted inside the namespace: a steady synthetic load, so the CPU history does not depend on what else this shared VM is doing |
 | `nmcli`, `bluetoothctl` | wired network up; one powered controller. `/sys/class/bluetooth/hci0` exists only for the `menu-quick` process (a private mount) |
 | `ddcutil` | one DDC/CI monitor, brightness kept in a state file |
-| `curl` (wttr.in only) | "+31°C  Clear" for Sharjah; any other URL goes to the real curl |
+| `curl` (Open-Meteo only) | a week of Sharjah's October in Open-Meteo's JSON (33° and clear now; sun, cloud, fog, rain), its days from today; any other URL goes to the real curl |
+| `steam` | installed (kawa-steam --menu asks `command -v steam`); asked anything, nothing |
 | `cliphist` | a clipboard history with a URL, an image entry, Japanese and Arabic |
 | `gammastep` | a process of that name (night light on, as autostart leaves it) |
 | `wlr-randr` | `/tmp/veiltest/fakebin/wlr-randr`: sway's outputs in wlr-randr's format |
-| audio devices | PipeWire null sinks/source named like the real machine's (Starship/Matisse analog, Navi 31 HDMI) |
+| audio devices | PipeWire null sinks/source named like the owner's machine (the Ryzen HD audio controller's ALC1220 analog, the Navi 48's HDMI to an LG ULTRAGEAR); `stubs/pw-dump` adds their cards and active routes (Line Out, Rear Microphone, HDMI / DisplayPort), which null devices lack |
 | launcher entries | `xdg/share/applications`: Fedora's `.desktop` names/icons for the GUI apps setup.sh installs, plus foot's own three |
 | system identity | inside the namespace: hostname `fedokawaii`, a Fedora 44 Server `/etc/os-release` (what `fetch` prints) |
 | `~/repos/fedokawaii` | recreated each run: a copy of the repo as a git repo with +1 staged, ~2 modified, ?1 untracked, ↑1 ahead |
@@ -168,8 +173,8 @@ from there; shoot.sh calls `/usr/bin/dconf update` and the real `fc-cache` itsel
   gtkmm 3.24.9, PipeWire 1.0.5, bash 5.2.21 (Fedora 44: 5.3 — `fetch` prints it), the
   fontconfig *configuration* in /etc/fonts (Ubuntu's conf.d, read by fontconfig 2.17).
 - PixelMplus 12 is the Regular face only (no Bold in the provided fonts).
-- Time is real (Asia/Dubai): the clock, the prompt's time and its sun/moon, and the
-  weather icon follow the time of the run.
+- Time is real (Asia/Dubai): the clock and the prompt's time and its sun/moon follow the
+  time of the run, and the week's menu starts on that day.
 - kawa-theme runs as the veiled half of a switch (`KAWA_VEILED=1`), so the seigaiha
   transition (kawa-veil) is not part of the shots; the end state is the same.
 - The cursor in foot blinks; the shot is taken right after focus, when it is lit.
@@ -230,7 +235,7 @@ and bind-mounted over `/etc/dconf/db/local` (this sandbox's `local.d` still hold
 | `app-share` | `kawa-share` fed four xdg-desktop-portal-wlr 0.8.4 lines; `wlr-randr` answers for DP-1 and HDMI-A-1 |
 | `app-torrra`, `app-torrra-search` | `kawa-torrra --open` (the launcher's way) with `lib/fakeprowlarr.py` on 127.0.0.1:9696; "ubuntu 24.04" typed |
 | `app-brave` | Brave Origin new-tab page, second start, `--no-first-run --no-default-browser-check`, `brave.origin.free_tier_accepted` set (the one-time Origin question answered "Proceed") |
-| `app-wiremix` | `kawa-float --once mixer mixer 96x29 -- wiremix` (Super+A → *mixer…*, Super+X → *audio mixer*) while `mpv --no-video` plays the test video: one stream on the Playback tab |
+| `app-wiremix` | `kawa-float --once mixer mixer 96x29 -- wiremix` (Super+A → *mixer*) while `mpv --no-video` plays the test video: one stream on the Playback tab |
 | `app-bluetui` | `kawa-float --once pair pair 96x29 -- bluetui` (Super+X → *pair a device*) on a private session bus where `lib/fakebluez.py` answers as BlueZ (adapter `fedokawaii`; a game controller and a headset paired, a phone found nearby), after **s** (scan) |
 | `app-visidata` | `vd weather.csv` in `~/practice` (a small made-up table), a column made numeric (`#`), sorted (`[`), summed (`+` → sum): the frequency line at the bottom |
 

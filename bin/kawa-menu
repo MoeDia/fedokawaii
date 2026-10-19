@@ -1,78 +1,147 @@
 #!/usr/bin/env bash
-# kawa-menu — one look for every small menu: fuzzel in dmenu mode, list order kept.
+# kawa-menu — one look for every small menu: the panel's (kawa-panel --menu), drawn as the
+# sound panel is — parts under kanji seals, rows, keys —, list order kept.
 #
 #   … | kawa-menu [--drop] [--title TEXT] [--width N] [--lines N] [--select N] [--prompt P] [--index]
+#   kawa-menu --launcher
 #
-#   --drop      open as a dropdown under the bar's right end (audio, calendar, drives,
-#               Steam's — where quick settings' panel opens too); otherwise centred like the
-#               launcher
-#   --title     a quiet line above the list (fuzzel --mesg)
-#   --width N   N columns of 6 px; a row shows whole up to N × 6 − 10 px (fuzzel keeps the
-#               rest for its "…", 10 px of ink): N − 2 plain columns, and 2 px
-#   --select N  pre-select line N (0-based)
-#   --prompt P  show a filter prompt (dropdowns hide it; typing still filters)
-#   --index     print the chosen line's number (0-based) instead of its text
+#   the lines   one a thing, its fields apart by tabs (kawa-panel --help, "a menu"): part
+#               KANJI NAME [VALUE] · row|on|off GLYPH NAME [DETAIL [VALUE]] · key GLYPH NAME ·
+#               cell TEXT [today|dim|head] · note TEXT · an empty line · any other line: a
+#               choice of that text
+#   --drop      open as a dropdown from the bar: under the button just clicked (below), or
+#               from a key under the bar's right end (where quick settings' panel opens too);
+#               otherwise in the middle of the screen
+#   --launcher  the launcher itself (fuzzel's own list of programs: the torii and Super+Space),
+#               one of these menus: under the torii when clicked, centred from its key
+#   --title     a quiet line above the list
+#   --width N   at least N columns of 6 px (without it the menu is as wide as its content:
+#               the names, the details' column 12 px after them, the values' column 12 px
+#               after the details — kawa-panel's columns() —, 120 px at the least)
+#   --lines N   at most N rows show; a longer list scrolls (the wheel, the cursor)
+#   --select N  the line the first arrow, Tab or Enter puts the cursor on (it opens with none)
+#   --prompt P  a line to type in at the top, P before it: typing filters the choices (Enter
+#               on none of them gives what was typed)
+#   --index     print the chosen line's number (0-based) instead of its name
 #
 # One menu at a time, as on other desktops: the key or bar button of the menu on screen
 # closes it again, another menu's takes its place, and a key held down (dwl repeats it) is
-# one press. (A plain fuzzel — the launcher, a passphrase — is left alone: the menu then
-# does not open.)
+# one press. (A plain fuzzel — a passphrase — is left alone: the menu then does not open.)
+# Under the button: dwl writes where a click pressed ($XDG_RUNTIME_DIR/dwl-pointer: "X Y
+# OUTPUT OUTPUT_X OUTPUT_WIDTH", before waybar runs the click's command); a dropdown or the
+# launcher opened within a second of it hangs on that screen, its middle under the pointer,
+# kept 8 px inside the screen's edges (the gap the windows keep), 8 px under the bar — the
+# panel places its menus so itself (as its panels), fuzzel's launcher is placed here.
+# The bar's button stays lit while its menu is open (kawa-bar): a marker with this script's
+# pid — kawa-drop.open ("PID SCRIPT": the script that asked) or kawa-launcher.open — and a
+# poke of the button's module as it opens and however it ends.
 # Prints the chosen line; exits 1 when the menu is dismissed (Esc, a click outside, its key
 # again) or cannot open, 2 on wrong use.
 set -u
-usage() { echo "usage: … | kawa-menu [--drop] [--title TEXT] [--width N] [--lines N] [--select N] [--prompt P] [--index]" >&2; exit 2; }
-# shellcheck source=/dev/null
-. "$HOME/.config/fedokawaii/current/colors.sh"
-args=(--dmenu --no-sort --minimal-lines "--message-color=${C_MUTED}ff")   # the title line, quiet
-drop=0 prompt="" idx=0
+usage() { echo "usage: … | kawa-menu [--drop] [--title TEXT] [--width N] [--lines N] [--select N] [--prompt P] [--index] · kawa-menu --launcher" >&2; exit 2; }
+args=()                                       # (the launcher's: fuzzel's)
+pargs=()                                      # (a menu's: the panel's, kawa-panel --menu)
+drop=0 launcher=0 idx=0 other=0
 while (($#)); do
   case $1 in
-    --drop)   drop=1; shift; continue ;;
-    --index)  args+=(--index); idx=1; shift; continue ;;
+    --drop)   drop=1 other=1; pargs+=(--drop); shift; continue ;;
+    --launcher) launcher=1; shift; continue ;;
+    --index)  idx=1 other=1; pargs+=(--index); shift; continue ;;
     -h|--help) sed -n '2,/^set -u/{/^set -u/d;s/^# \{0,1\}//;p}' "$0"; exit 0 ;;
     --title|--width|--lines|--select|--prompt) (($# >= 2)) || usage ;;
     *) echo "kawa-menu: unknown option $1" >&2; usage ;;
   esac
   case $1 in
-    --width|--lines|--select) [[ $2 =~ ^[0-9]+$ ]] || { echo "kawa-menu: $1 takes a number" >&2; usage; } ;;&
-    --title)  [[ -n $2 ]] && args+=("--mesg=$2") ;;       # (an empty one would be a blank line)
-    --width)  args+=("--width=$2") ;;
-    --lines)  args+=("--lines=$2") ;;
-    --select) args+=("--select-index=$2") ;;
-    --prompt) prompt=$2 ;;
+    --width|--lines|--select) [[ $2 =~ ^[0-9]+$ ]] || { echo "kawa-menu: $1 takes a number" >&2; usage; } ;;
   esac
+  other=1; pargs+=("$1" "$2")
   shift 2
 done
-# a dropdown hangs 8 px under the bar and 8 px from the screen's edge: the gap (gappx) the
-# windows keep, so its border lines up with a window's there to the pixel
-if ((drop)); then args+=(--anchor=top-right --x-margin=8 --y-margin=8); fi
-if [[ -n $prompt ]]; then args+=("--prompt=$prompt"); else args+=(--hide-prompt); fi
-command -v fuzzel >/dev/null || { . "$HOME/.config/fedokawaii/icons.sh"; notify-send -a desktop -u critical -- "$ICON_CHEVRON  menus" "fuzzel is missing — fedokawaii repair puts it back" 2>/dev/null; exit 1; }
-# a dropdown lights the bar's cat (happy) while it is open (the cat's module reads this file;
-# SIGRTMIN+15 tells it). The file holds this menu's pid: only the menu that lit it puts it
-# out (one closed by the next dropdown must not darken that one's cat), and it goes however
-# this ends — fuzzel closed or killed, or this script stopped (SIGTERM, SIGHUP, Ctrl+C)
+if ((launcher)); then
+  ((other)) && { echo "kawa-menu: --launcher takes no other option" >&2; usage; }
+fi
+
+# where the launcher hangs. From a click: under the pointer (dwl-pointer, written within the
+# last second), its width worked out as fuzzel does — 2 × border + 2 × horizontal-pad +
+# fuzzel.ini's columns × the width of a W in fuzzel.ini's font (Fusion Pixel: half its pixel
+# size). (A menu: the panel places it, from the same dwl-pointer.)
+at_pointer() {
+  local f=${XDG_RUNTIME_DIR:-}/dwl-pointer x out ox ow t now k v px="" pad=0 border=0 cols=0 w left sect=""
+  [[ -n ${XDG_RUNTIME_DIR:-} ]] && t=$(stat -c %.3Y "$f" 2>/dev/null) || return 1
+  now=${EPOCHREALTIME//[!0-9]/}; t=${t//[!0-9]/}
+  (( now / 1000 - 10#$t >= 0 && now / 1000 - 10#$t < 1000 )) || return 1
+  read -r x _ out ox ow 2>/dev/null <"$f" || return 1
+  x=${x%%.*} ox=${ox%%.*} ow=${ow%%.*}
+  [[ $x =~ ^-?[0-9]+$ && $ox =~ ^-?[0-9]+$ && $ow =~ ^[1-9][0-9]*$ && -n $out ]] || return 1
+  while IFS='=' read -r k v; do
+    k=${k//[[:space:]]/} v=${v%%#*}
+    case $k in
+      \[*)  sect=$k ;;
+      font) [[ -z $sect || $sect == '[main]' ]] && [[ $v =~ pixelsize=([0-9]+) ]] && px=${BASH_REMATCH[1]} ;;
+      width) if [[ $sect == '[border]' ]]; then border=${v//[!0-9]/}
+             elif [[ -z $sect || $sect == '[main]' ]]; then cols=${v//[!0-9]/}; fi ;;
+      horizontal-pad) [[ -z $sect || $sect == '[main]' ]] && pad=${v//[!0-9]/} ;;
+    esac
+  done 2>/dev/null <"$HOME/.config/fuzzel/fuzzel.ini"
+  [[ $px =~ ^[0-9]+$ ]] || return 1
+  w=$(( 2 * ${border:-0} + 2 * ${pad:-0} + 10#${cols:-0} * (px / 2) ))
+  left=$(( x - ox - w / 2 ))
+  (( left > ow - w - 8 )) && left=$(( ow - w - 8 ))
+  (( left < 8 )) && left=8
+  args+=("--output=$out" --anchor=top-left "--x-margin=$left" --y-margin=8)
+}
+if ((launcher)); then
+  at_pointer || :                             # (from its key: centred, fuzzel's own place)
+  command -v fuzzel >/dev/null || { . "$HOME/.config/fedokawaii/icons.sh"; notify-send -a desktop -u critical -- "$ICON_CHEVRON  menus" "fuzzel is missing — fedokawaii repair puts it back" 2>/dev/null; exit 1; }
+fi
+# what draws it: fuzzel for the launcher, the panel for a menu (its process, by that name in
+# /proc: the one the next menu closes)
+if ((launcher)); then UI=(fuzzel "${args[@]}") UIC=fuzzel; else UI=(kawa-panel --menu "${pargs[@]}") UIC=kawa-panel; fi
+
+caller() {   # the script that asked for this menu (bash's script argument), else the program
+  local a=()
+  ((launcher)) && { printf launcher; return; }   # (the same from the torii and from its key)
+  mapfile -d '' -t a 2>/dev/null </proc/$PPID/cmdline
+  case ${a[0]:-} in */bash|bash|*/sh|sh) printf '%s' "${a[1]:-?}" ;; *) printf '%s' "${a[0]:-?}" ;; esac
+}
+me=$(caller)
+# the bar's button that opened it is lit meanwhile (kawa-bar): the marker holds this menu's pid
+# and who asked; only the menu that lit it puts it out (one closed by the next menu must not
+# darken that one's button), and it goes however this ends — fuzzel closed or killed, or this
+# script stopped (SIGTERM, SIGHUP, Ctrl+C). Each button's module is poked: SIGRTMIN+20 the
+# torii, +19 the date, +13 the drives, +17 Steam's, +18 the weather, +9 the layout; the
+# time is a long-running module, woken (kawa-dwlstatus --wake)
+MARK="" SIG=""
+if ((launcher)); then MARK=kawa-launcher.open
+elif ((drop)); then MARK=kawa-drop.open; fi
+case ${me##*/} in
+  launcher) SIG=20 ;; kawa-calendar) SIG=19 ;; kawa-drives) SIG=13 ;; kawa-steam) SIG=17 ;;
+  kawa-weather) SIG=18 ;; kawa-tag) SIG=9 ;;
+esac
 LIT=0
 lit() {
-  ((drop)) && [[ -n ${XDG_RUNTIME_DIR:-} ]] || return 0
-  local m=$XDG_RUNTIME_DIR/kawa-drop.open o=""
+  [[ -n $MARK && -n ${XDG_RUNTIME_DIR:-} ]] || return 0
+  local m=$XDG_RUNTIME_DIR/$MARK o=""
   if [[ $1 == on ]]; then
-    printf '%s\n' "$$" >"$m.$$" && mv -f "$m.$$" "$m" && LIT=1
+    printf '%s %s\n' "$$" "${me##*/}" >"$m.$$" && mv -f "$m.$$" "$m" && LIT=1
   else
     ((LIT)) || return 0
     LIT=0
-    read -r o 2>/dev/null <"$m"
+    read -r o _ 2>/dev/null <"$m"
     [[ -z $o || $o == "$$" ]] && rm -f "$m"
   fi
-  kawa-dwlstatus --poke 15 2>/dev/null || true
+  if [[ -n $SIG ]]; then kawa-dwlstatus --poke "$SIG" 2>/dev/null || true
+  else kawa-dwlstatus --wake 2>/dev/null || true; fi
 }
 trap 'lit off' EXIT
 fz=""
-trap '[[ -n $fz ]] && kill "$fz" 2>/dev/null; exit 1' TERM HUP INT   # (its fuzzel with it)
-# quick settings open (kawa-panel): closed first, SIGUSR2 — on the overlay, with the keyboard
-# its own, it would leave this menu no keys (found as kawa-quick finds it: its pid file, and
-# that pid's command line)
+trap '[[ -n $fz ]] && kill "$fz" 2>/dev/null; exit 1' TERM HUP INT   # (its fuzzel or panel menu with it)
+# quick settings open (kawa-panel) as the launcher opens: closed first, SIGUSR2 — on the
+# overlay, with the keyboard its own, it would leave fuzzel no keys (found as kawa-quick finds
+# it: its pid file, and that pid's command line). (A menu needs none of this: the panel shows
+# it in place of its panel.)
 panel_off() {
+  ((launcher)) || return 0
   local p a
   p=$(cat "${XDG_RUNTIME_DIR:-/run/user/$UID}/kawa-panel.pid" 2>/dev/null) || return 0
   [[ $p =~ ^[1-9][0-9]*$ ]] && a=$(tr '\0' ' ' <"/proc/$p/cmdline" 2>/dev/null) && [[ $a == *kawa-panel* ]] \
@@ -81,18 +150,13 @@ panel_off() {
 }
 
 # ── one menu at a time ────────────────────────────────────────────────────────────────
-# $rec says which menu is on screen: fuzzel's pid, when (µs), how it stands — open; lost (a
-# click outside closed it); toggled (its own key closed it); chosen (or Esc, or another menu
-# took its place) — and the script that opened it. Read and written under a lock: a held key
+# $rec says which menu is on screen: its process's pid (fuzzel's, or the panel menu's), when
+# (µs), how it stands — open; lost (a click outside closed it); toggled (its own key closed
+# it); chosen (or Esc, or another menu took its place) — and the script that opened it. Read and written under a lock: a held key
 # starts a dozen at once. (KAWA_MENU_TIME, in µs, stands in for the clock: tests/menus.)
 now() {
   local t=${KAWA_MENU_TIME:-$EPOCHREALTIME}
   printf '%s' "${t//[!0-9]/}"                       # (the decimal mark is the locale's)
-}
-caller() {   # the script that asked for this menu (bash's script argument), else the program
-  local a=()
-  mapfile -d '' -t a 2>/dev/null </proc/$PPID/cmdline
-  case ${a[0]:-} in */bash|bash|*/sh|sh) printf '%s' "${a[1]:-?}" ;; *) printf '%s' "${a[0]:-?}" ;; esac
 }
 rec=""
 if [[ -n ${XDG_RUNTIME_DIR:-} && -d $XDG_RUNTIME_DIR ]] \
@@ -100,35 +164,45 @@ if [[ -n ${XDG_RUNTIME_DIR:-} && -d $XDG_RUNTIME_DIR ]] \
   rec=$XDG_RUNTIME_DIR/kawa-menu-${WAYLAND_DISPLAY:-}.state
 fi
 if [[ -n $rec ]]; then
-  me=$(caller) t=$(now) pid="" at=0 how="" who="" c=""
-  read -r pid at how who <"$rec"
+  # (a menu that has just ended — the click outside it on its own button that runs this — but
+  # whose script has not yet written so: the lock let go a moment for it to; one that never
+  # does, killed, counts as no menu after 0.2 s)
+  for _ in {1..8}; do
+    pid="" at=0 how="" who="" c=""
+    read -r pid at how who <"$rec"
+    [[ $how == open && $pid =~ ^[1-9][0-9]*$ ]] && read -r c 2>/dev/null </proc/"$pid"/comm
+    [[ $c == fuzzel || $c == kawa-panel ]] && c=live
+    [[ $how == open && $c != live && $pid =~ ^[1-9][0-9]*$ ]] || break
+    flock -u 9; sleep 0.025; flock -w 2 9 || exit 1
+  done
+  t=$(now)
   [[ $at =~ ^[0-9]+$ ]] || at=0
-  [[ $how == open && $pid =~ ^[1-9][0-9]*$ ]] && read -r c 2>/dev/null </proc/"$pid"/comm
-  if [[ $who == "$me" && ( $c == fuzzel || $how == toggled ) ]] && ((t - at < 500000)); then
+  if [[ $who == "$me" && ( $c == live || $how == toggled ) ]] && ((t - at < 500000)); then
     # its key held down: dwl repeats it every 29 ms after 300 ms — still the same press
     printf '%s %s %s %s\n' "$pid" "$t" "$how" "$who" >"$rec"; exit 1
   fi
-  if [[ $c == fuzzel ]]; then
+  if [[ $c == live ]]; then
     kill "$pid" 2>/dev/null                         # (the menu that asked for it gets "dismissed")
     if [[ $who == "$me" ]]; then printf '%s %s toggled %s\n' "$pid" "$t" "$me" >"$rec"; exit 1; fi
     for _ in {1..40}; do [[ -e /proc/$pid ]] || break; sleep 0.025; done   # (fuzzel's lock goes with it)
   elif [[ $who == "$me" && $how == lost ]] && ((t - at < 600000)); then
     exit 1   # the click outside that just closed it was on its own bar button: that click's toggle
   fi
-  # a plain fuzzel (the launcher, a passphrase) holds fuzzel's own lock: left alone, and this
-  # is no "click outside" (the launcher closed by Esc, then this key at once, still opens)
+  # a plain fuzzel (a passphrase) holds fuzzel's own lock: left alone, and this is no "click
+  # outside" (one closed by Esc, then this key at once, still opens)
   # (75: the lock is held; a lock file that cannot be opened is fuzzel's to warn about)
   if [[ -n ${WAYLAND_DISPLAY:-} ]]; then
     flock -n -E 75 "$XDG_RUNTIME_DIR/fuzzel-$WAYLAND_DISPLAY.lock" true 2>/dev/null
     (($? == 75)) && exit 1
   fi
   panel_off
-  # fuzzel on the side, so its pid is known: it can then be closed by the next menu
-  exec 3<&0
-  exec 4< <(exec fuzzel "${args[@]}" <&3 3<&- 9>&-)
+  # fuzzel or the panel's menu on the side, so its pid is known: it can then be closed by the
+  # next menu
+  if ((launcher)); then exec 3</dev/null; else exec 3<&0; fi
+  exec 4< <(exec "${UI[@]}" <&3 3<&- 9>&-)
   fz=$!
-  # (recorded once it is fuzzel, not the shell about to become it)
-  for _ in {1..2000}; do read -r c 2>/dev/null </proc/$fz/comm || break; [[ $c == fuzzel ]] && break; done
+  # (recorded once it is that program, not the shell about to become it)
+  for _ in {1..2000}; do read -r c 2>/dev/null </proc/$fz/comm || break; [[ $c == "$UIC" ]] && break; done
   printf '%s %s open %s\n' "$fz" "$(now)" "$me" >"$rec"
   flock -u 9
   lit on
@@ -139,17 +213,20 @@ if [[ -n $rec ]]; then
     read -r pid at how who <"$rec"
     # (unless another menu or its own key closed it, and wrote so)
     if [[ $pid == "$fz" && $how == open ]]; then
-      how=chosen; ((rc == 1)) && how=lost            # fuzzel exits 1 when the keyboard focus goes
+      how=chosen; ((rc == 1)) && how=lost            # (fuzzel and the panel exit 1 when the keyboard focus goes)
       printf '%s %s %s %s\n' "$fz" "$(now)" "$how" "$me" >"$rec"
     fi
     flock -u 9
   fi
   ((rc == 0)) || exit 1
 else
-  panel_off; lit on; out=$(fuzzel "${args[@]}"); rc=$?; lit off
+  panel_off; lit on
+  if ((launcher)); then out=$("${UI[@]}" </dev/null); else out=$("${UI[@]}"); fi
+  rc=$?; lit off
   ((rc == 0)) || exit 1
 fi
-# Enter on a filter that matches nothing hands back the typed text (or -1): with --index,
-# callers use the answer as an array index, so anything but a line number counts as dismissed
+((launcher)) && exit 0                           # (the launcher started what was chosen itself)
+# Enter on a filter that matches nothing hands back the typed text: with --index, callers use
+# the answer as an array index, so anything but a line number counts as dismissed
 ((idx)) && [[ ! $out =~ ^[0-9]+$ ]] && exit 1
 printf '%s\n' "$out"

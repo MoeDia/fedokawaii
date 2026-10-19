@@ -16,9 +16,14 @@ done
 if [[ $url == http://127.0.0.1:9229/json/version ]]; then
   printf '{\n   "Browser": "Chrome/141.0.0.0",\n   "Protocol-Version": "1.3"\n}\n'; exit 0
 fi
+# Prowlarr: its indexers ($FKH/prowlarr-indexers), its authentication ($FKH/prowlarr-auth, else
+# "external": no login) and its page (a login's redirect, 302, under any other)
 if [[ $url == http://127.0.0.1:9696/* ]]; then
   r=$(rcfor prowlarr 0); ((r == 0)) || exit "$r"
+  auth=$(cat "$FKH/prowlarr-auth" 2>/dev/null || echo external)
   [[ $url == */indexer ]] && { cat "$FKH/prowlarr-indexers" 2>/dev/null || echo '[]'; }
+  [[ $url == */system/status ]] && printf '{"appName": "Prowlarr", "authentication": "%s"}\n' "$auth"
+  [[ $url == http://127.0.0.1:9696/ ]] && ((code)) && { [[ $auth == external ]] && printf 200 || printf 302; }
   exit 0
 fi
 host=${url#https://}; host=${host%%/*}

@@ -87,6 +87,7 @@ flock               minimal   util-linux-core   # f44: util-linux-core (util-lin
 logger              minimal   util-linux-core   # f44
 losetup             minimal   util-linux-core   # f44
 renice              minimal   util-linux-core   # f44
+ionice              minimal   util-linux        # @core (kawa-wallpaper: its background drawing at idle priority)
 setsid              minimal   util-linux-core   # f44
 lsblk               minimal   util-linux        # @core (not in -core, f44)
 findmnt             minimal   util-linux-core   # f44
@@ -152,7 +153,10 @@ playerctl           manifest  playerctl
 cava                manifest  cava
 wiremix             manifest  wiremix           # f44: 0.11.0 (rust-wiremix)
 pw-dump             manifest  pipewire-utils    # f44
+pw-metadata         manifest  pipewire-utils    # f44: kawa-nowplaying follows the default output
 pw-play             manifest  pipewire-utils    # f44 (a link to pw-cat)
+pw-mon              manifest  pipewire-utils    # f44 (the bar's volume follows PipeWire's events)
+pw-metadata         manifest  pipewire-utils    # f44 (now playing's meter follows the default output)
 wpctl               manifest  wireplumber
 waybar              manifest  waybar
 mako                manifest  mako
@@ -210,6 +214,7 @@ rg                  manifest  ripgrep
 # ── there through a dependency of a manifest package ─────────────────────────────────────
 gio                 dep       glib2 NetworkManager   # libnm; gtk4 and waybar too
 gsettings           dep       glib2 NetworkManager
+gdbus               dep       glib2 NetworkManager   # kawa-steam --guard: logind's warning before a shutdown
 fc-match            dep       fontconfig foot   # libfontconfig; fuzzel, waybar, mako too
 fc-list             dep       fontconfig foot   # the report: the Arabic fonts
 python3             dep       python3 tuned     # tuned is a python program (firewalld, @core, too)
@@ -227,7 +232,6 @@ kawa-clipkeep       built     kawa-clipkeep     # theme.sh, from src/kawa-clipke
 dwl                 built     DWL_TAG           # setup.sh, from codeberg + src/dwl
 vi                  built     /usr/local/bin/vi # setup.sh: a script that runs nvim (yazi's ${EDITOR:-vi})
 syncplay            built     install_syncplay  # setup.sh (lib/upstream.sh): its pinned source, a starter in ~/.local/bin
-spotify             built     spotify_client    # setup.sh: lpf builds spotify-client from RPM Fusion's recipe (lpf-spotify-client); its entry
 ble-attach          built     install_blesh     # setup.sh (lib/upstream.sh): ble.sh's commands, built from its
 ble-face            built     install_blesh     #   pinned commit into ~/.local/share/blesh; the shell loads it
 ble-import          built     install_blesh     #   (~/.bashrc.d/fedokawaii.sh) and its settings
@@ -242,7 +246,7 @@ resvg               optional  -                  # yazi's SVG preview: not packa
 mediainfo           optional  -                  # yazi's own "Show media info" under O: retired from the
                                                  # manifest (ffprobe does its job) — see the review13 Y report
 exiftool            optional  -                  # yazi's own "Show EXIF" under O — the same
-wayland-info        optional  -                  # wayland-utils: the report lists dwl's data-control globals
+wayland-info        manifest  wayland-utils      # wayland-utils: the report lists dwl's data-control globals
                                                  # with it where it is installed (guarded)
 desktop-file-validate optional -                 # desktop-file-utils: the report validates the launcher's
                                                  # entries with it where it is installed (guarded)

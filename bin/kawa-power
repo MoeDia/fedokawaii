@@ -1,12 +1,14 @@
 #!/usr/bin/env bash
 # kawa-power — Super+Shift+E (or "power" in quick settings): lock, sleep, log out,
-# restart, shut down. A small centred menu: the title and the column of choices sit in
-# the middle of the box, each choice with its own pixel icon. Esc cancels (--help: this text).
+# restart, shut down. A small centred menu: 電 power and the uptime over a row a choice, each
+# with its own pixel icon. Esc cancels (--help: this text).
 #   kawa-power         the menu
 #   kawa-power sleep   locked, then asleep, with no menu (a keyboard's Sleep key)
 # A choice the system refuses (another user logged in, something inhibiting it, no password
 # agent for polkit) says why in a notice, and exits 1. A sleep, and what became of it, goes
-# to the journal too (journalctl -t kawa-power; the lock's own lines: -t kawa-lock).
+# to the journal too (journalctl -t kawa-power; the lock's own lines: -t kawa-lock). Log out
+# closes Steam properly first (kawa-steam --quit); restart and shut down leave that to
+# kawa-steam --guard, which logind tells before the computer stops, whoever asked.
 set -u
 # (the icons first: a sleep that is refused says so with the power icon too)
 # shellcheck source=/dev/null
@@ -40,39 +42,30 @@ case ${1:-} in
   -h|--help) sed -n '2,/^set -u/{/^set -u/d;s/^# \{0,1\}//;p}' "$0"; exit 0 ;;
   *) echo "usage: kawa-power [sleep]" >&2; exit 2 ;;
 esac
-LC_ALL=C.UTF-8                 # widths count characters, not bytes
-
-WIDTH=25                       # the menu's width in characters: odd, like the 13-column block
-LABEL=9                        # the label column (longest: "shut down")
-names=(lock sleep "log out" restart "shut down")
-icons=("$ICON_LOCK" "$ICON_ZZZ" "$ICON_DOOR" "$ICON_RESTART" "$ICON_POWER")
-
-# an icon is two character cells wide, then two spaces, then the label column
-pad=$(( (WIDTH - 2 - 2 - LABEL) / 2 ))
-rows=()                        # (no empty row under the title: the rows keep the title's rhythm,
-                               # one row apart — a menu with headings has its gap above each heading)
-for i in "${!names[@]}"; do
-  printf -v r '%*s%s  %-*s' "$pad" '' "${icons[i]}" "$LABEL" "${names[i]}"
-  rows+=("$r")
-done
-# the title: how long the machine has been up, as the hourglass and ten characters always —
-# "up 03h 07m", "up 04d 03h", "up 15w 02d" — set as the rows are: the hourglass over their
-# icons, two spaces, the words over their labels, whatever the uptime. (A user name or an
-# uptime of changing length would not stand still.)
+# the menu (kawa-menu, the panel's line format: docs/design-system.md): 電 power, how long the
+# machine has been up at the heading's end — "up 03h 07m", "up 04d 03h", "up 15w 02d" — then a
+# row a choice, its icon and its name; the cursor's first key lands on lock
 read -r up _ </proc/uptime; up=${up%.*}
 h=$((up / 3600)) d=$((up / 86400))
 if ((h < 24)); then printf -v t 'up %02dh %02dm' "$h" $((up / 60 % 60))
 elif ((d < 100)); then printf -v t 'up %02dd %02dh' "$d" $((h % 24))
 else w=$((d / 7)) r=$((d % 7)); ((w > 99)) && w=99 r=6        # (as far as it can count)
      printf -v t 'up %02dw %02dd' "$w" "$r"; fi
-printf -v title '%*s%s  %s' $(( (WIDTH - 2 - 1 - ${#t}) / 2 )) '' "$ICON_HOURGLASS" "$t"   # (its icon over the rows' icons, two spaces as theirs)
+rows=()
+line() { local IFS=$'\t'; rows+=("$*"); }
+line part 電 power "$t"
+line row "$ICON_LOCK" lock
+line row "$ICON_ZZZ" sleep
+line row "$ICON_DOOR" "log out"
+line row "$ICON_RESTART" restart
+line row "$ICON_POWER" "shut down"
 
-i=$(printf '%s\n' "${rows[@]}" |
-    kawa-menu --index --width "$WIDTH" --lines ${#rows[@]} --select 0 --title "$title") || exit 0
+i=$(printf '%s\n' "${rows[@]}" | kawa-menu --index --select 1) || exit 0
 case $i in
-  0) exec kawa-lock --sleep ;;                     # (still locked 90 s later: sleep)
-  1) sleep_now ;;
-  2) exec pkill -xu "$UID" dwl ;;
-  3) act restart reboot ;;
-  4) act "shut down" poweroff ;;
+  1) exec kawa-lock --sleep ;;                     # (still locked 90 s later: sleep)
+  2) sleep_now ;;
+  3) kawa-steam --quit logout                     # (Steam closed properly first: its saves to Steam
+     exec pkill -xu "$UID" dwl ;;                 #  Cloud — it ends with the desktop otherwise)
+  4) act restart reboot ;;
+  5) act "shut down" poweroff ;;
 esac

@@ -41,6 +41,8 @@ export LC_ALL=C.UTF-8
 case :$PATH: in *":$HOME/.local/bin:"*) ;; *) PATH=$HOME/.local/bin:$PATH ;; esac
 # shellcheck source=/dev/null
 . "$HOME/.config/fedokawaii/icons.sh"
+# shellcheck source=/dev/null
+. "$HOME/.config/fedokawaii/screen.sh"
 # BACKUP_TARGET: from the toolkit's fedokawaii.conf, the file Super+U → settings saves — so a
 # change counts at once, with no theme run. Read by the toolkit's own parser (lib/common.sh's
 # read_conf: the file is data, never run; both are root's, readable by all) and held to its
@@ -233,14 +235,21 @@ pick_target() {   # → 0 saved (and read again) · 4 nothing to pick, or none p
     [[ -n $label && -z ${seen[$label]:-} ]] || continue
     seen[$label]=1; rows+=("$label"$'\t'"$size $fs${folder:+ · open}")
   done < <(kawa-drives list 2>/dev/null)
+  # A text screen (docs/design-system.md §7, screen.sh), in whatever terminal this runs in (the
+  # backup window, or yours): the heading — 盤, back up to, the stitch — what the choice is
+  # for, the drives (each its glyph and name, its size and file system right-aligned), the
+  # keys. Heading and rows are drawn as fzf starts, at the terminal's width (fzf has not said
+  # its own yet), and again at every resize (--drive-rows: from KAWA_BACKUP_DRIVES, the rows here)
   if ((${#rows[@]} == 0)); then
     say "no drive plugged in" "plug in the drive to keep your backup on, then back up again"
     return 4
   fi
   export FZF_DEFAULT_OPTS_FILE=$HOME/.config/fedokawaii/fzf.opts; unset FZF_DEFAULT_OPTS   # (every list alike)
-  pick=$(printf '%s\n' "${rows[@]}" | fzf --delimiter=$'\t' --tabstop=24 --no-sort --height=~12 \
-           --border-label=" $ICON_ARCHIVE  back up to " \
-           --header=$'which drive keeps your backup? it is remembered (BACKUP_TARGET)\n') \
+  local self; self=$(printf '%q' "$0")
+  pick=$(printf '%s\n' "${rows[@]}" | KAWA_BACKUP_DRIVES=$(printf '%s\n' "${rows[@]}") \
+         fzf --ansi --delimiter=$'\t' --with-nth=3 --no-sort --height=100% --with-shell='bash -c' \
+           --bind="start,resize:reload-sync[$self --drive-rows]+transform-header[$self --drive-heading]" \
+           --footer=$'\n'"$(screen_footer 'enter keep it there' 'esc cancel')") \
     || { printf '  no drive picked — nothing backed up\n' >&2; return 4; }
   label=${pick%%$'\t'*}
   t=$(mktemp "${XDG_RUNTIME_DIR:-/tmp}/fedokawaii.conf.XXXXXX") || return 1
@@ -302,6 +311,16 @@ case ${1:-} in
   "")        backup ;;
   --window)  exec kawa-float --once backup --dialog backup 80x25 -- "$0" --wait ;;   # (a dialog: nothing but its own key ends a backup)
   --wait)    backup; wait_key ;;
+  --drive-rows)      # [W] — the drive picker's rows, W columns wide (the terminal's, less two columns
+                     # each side): LABEL<TAB>VALUE<TAB>ROW
+             w=${2:-}; [[ -n $w ]] || w=$(screen_width) || exit 1
+             while IFS=$'\t' read -r l v; do
+               [[ -n $l ]] && printf '%s\t%s\t%s\n' "$l" "$v" "$(screen_row "$ICON_DRIVE" "$l" "$v" "$w")"
+             done <<<"${KAWA_BACKUP_DRIVES:-}" ;;
+  --drive-heading)   # [W] — its heading, and what the choice is for
+             w=${2:-}; [[ -n $w ]] || w=$(screen_width) || exit 1
+             printf '%s\n \n  %swhich drive keeps your backup? it is remembered (BACKUP_TARGET)%s\n ' \
+               "$(screen_heading 盤 "back up to" "$w")" "$INK_MUTED" "$INK_OFF" ;;
   status)    (($# == 1)) || exit 2; status ;;
   target)    (($# == 1)) || exit 2; [[ -n $CONF_WHY ]] || printf '%s\n' "$BACKUP_TARGET" ;;   # (one that breaks its rule: none)
   where)     (($# == 1)) || exit 2

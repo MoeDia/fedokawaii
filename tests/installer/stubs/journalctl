@@ -1,6 +1,17 @@
 #!/bin/bash
 # journalctl of the fake Fedora: the kernel log is $FKH/kmsg (written in 4 KB blocks, as
 # journalctl's stdio does); -f follows nothing until killed
+# journals a test wrote (fkh): journal-kawa-greet (-t kawa-greet), journal-err (-p err, this
+# boot), journal-unix and journal-unix.prev (-o short-unix, this boot and the one before)
+f=""
+case " $* " in
+  *" -t kawa-greet "*) f=journal-kawa-greet ;;
+  *" -b -1 "*" -o short-unix "*) f=journal-unix.prev ;;
+  *" -o short-unix "*) f=journal-unix ;;
+  *" -b -1 "*|*" -k "*) ;;
+  *" -p err "*) f=journal-err ;;
+esac
+[[ -n $f && -f /var/lib/fkh/$f ]] && exec cat "/var/lib/fkh/$f"
 case " $* " in
   *" -f "*) exec /bin/sleep 1000 ;;
   *" -k "*) [[ -f /var/lib/fkh/kmsg ]] && exec dd if=/var/lib/fkh/kmsg bs=4096 status=none; exit 0 ;;

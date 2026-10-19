@@ -125,16 +125,12 @@ bar() { python3 -B -c 'import json,sys; sys.path.insert(0,sys.argv[1]); import p
 c=json.loads(p.strip_jsonc(open(sys.argv[2]).read())); print(eval(sys.argv[3]))' "$S" "$REPO/configs/home/.config/waybar/config.jsonc" "$1"; }
 # shellcheck source=/dev/null
 icon() { (. "$ICONS"; printf '%s' "${!1}"); }
-eq "$(bar 'c["custom/torii"]["format"]')" "$(icon ICON_TORII)" "the torii key"
-m=$(bar 'c["custom/menu"]["exec"]')
-has "$m" "\"text\":\"$(icon ICON_CAT)\"}" "the quick-settings cat"
-has "$m" "\"text\":\"$(icon ICON_CAT_HAPPY)\",\"class\":\"open\"" "the cat smiling while a dropdown is open"
-eq "$(bar 'c["wireplumber"]["format-muted"]')" "$(icon ICON_VOL_MUTE) <span fgalpha='55%'>off</span>" "muted: vol-mute, 'off' as the level display says"
-eq "$(bar '" ".join(sorted(set(c["wireplumber"]["format-icons"]), key=c["wireplumber"]["format-icons"].index))')" \
-   "$(icon ICON_VOL_0) $(icon ICON_VOL_1) $(icon ICON_VOL_2) $(icon ICON_VOL_3) $(icon ICON_VOL_4)" "vol-0 … vol-4"
-eq "$(bar 'len(c["wireplumber"]["format-icons"])')" 100 "one icon a per cent: waybar picks icon N for N %"
-eq "$(bar '" ".join(c["wireplumber"]["format-icons"][i] for i in (0, 1, 25, 26, 50, 51, 75, 76, 99))')" \
-   "$(for n in 0 1 1 2 2 3 3 4 4; do printf '%s ' "$(icon "ICON_VOL_$n")"; done | sed 's/ $//')" "0 % none; 1–25 one wave; … 76–100 four"
+# (the bar's glyphs are drawn by its scripts, from icons.sh: tests/session/test_bar.sh runs them)
+eq "$(bar 'c["custom/torii"]["exec"]') | $(bar 'c["custom/menu"]["exec"]') | $(bar 'c["custom/volume"]["exec"]')" \
+   "kawa-bar torii | kawa-bar cat | kawa-volume bar" "the torii, the cat and the volume: their scripts"
+for n in ICON_TORII ICON_CAT ICON_CAT_HAPPY; do has "$(cat "$REPO/bin/kawa-bar")" "\$$n" "kawa-bar draws $n"; done
+for n in ICON_VOL_0 ICON_VOL_1 ICON_VOL_2 ICON_VOL_3 ICON_VOL_4 ICON_VOL_MUTE; do has "$(cat "$REPO/bin/kawa-volume")" "\$$n" "kawa-volume draws $n"; done
+lacks "$(grep -v '^ *//' "$REPO/configs/home/.config/waybar/config.jsonc")" '\uDBB8' "no glyph written into the config itself"
 
 # ── tokens ───────────────────────────────────────────────────────────────────────────────
 case_ "every @TOKEN@ in configs/home is one theme.sh's render() fills"

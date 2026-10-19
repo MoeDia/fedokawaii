@@ -90,7 +90,7 @@ back start; fkh ldd-missing "satty libssl.so.3"; fkh provides "libssl.so.3()(64b
 up "install_upstream_bin $satty"; eq "$RC" 0
 has "$OUT" "satty needs libssl.so.3()(64bit)"; pkg_has openssl3-libs && _ok || _no "openssl3-libs not installed"
 eq "$(cat "$W/var/lib/fedokawaii/upstream-libs")" openssl3-libs
-fkrun bash -c '. /home/fkuser/fedokawaii/lib/manifest.sh; STEAM=yes SPOTIFY=yes STATE_DIR=/var/lib/fedokawaii manifest_all amd'
+fkrun bash -c '. /home/fkuser/fedokawaii/lib/manifest.sh; STEAM=yes STATE_DIR=/var/lib/fedokawaii manifest_all amd'
 has "$OUT" openssl3-libs "the manifest counts it (verify never takes it for something you added)"
 case_ "…none provides it: nothing installed (exit 1)"
 back start; fkh ldd-missing "satty libssl.so.3"

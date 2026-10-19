@@ -21,7 +21,8 @@
 #  themes          dark + light    →  ~/.config/fedokawaii/current links to the one in
 #                                     use (THEME in fedokawaii.conf on a new install;
 #                                     afterwards whatever kawa-theme last chose)
-#  wallpaper pack                  →  fetched once, kept as it came (WALLPAPER_PACK)
+#  wallpaper pack                  →  fetched once, kept as it came (WALLPAPER_PACK), then
+#                                     drawn ahead for the monitor (~/.cache/fedokawaii)
 #  configs/system/ mirrors /       →  /etc/dconf (GTK and LibreOffice defaults, root)
 #  bin/*                           →  ~/.local/bin (menus, bar helpers, fetch)
 #  src/dwl/config.h + dwl.patch    →  ~/.local/src/dwl, dwl rebuilt only if it changed
@@ -168,13 +169,9 @@ place() {
 }
 
 # ── 1. home tree ─────────────────────────────────────────────────────────────
-# Spotify's launcher entry only once lpf has built Spotify here: the launcher (fuzzel) lists an
-# entry whatever its TryExec says, and one for a program not there yet starts nothing
-spotify_built() { [[ $SPOTIFY == yes ]] && rpm -q spotify-client >/dev/null 2>&1; }
 while IFS= read -r -d '' f; do
   rel=${f#"$REPO_DIR/configs/home/"}
   [[ $STEAM != yes && ( $rel == .config/MangoHud/* || $rel == .local/share/applications/steam.desktop ) ]] && continue   # the game overlay, Steam's entry: with Steam only
-  [[ $rel == .local/share/applications/spotify.desktop ]] && ! spotify_built && continue
   set_aside "$rel" "$f" && continue        # repair took it out (it broke something): until it changes
   place "$f" "$TARGET_HOME/$rel" user
 done < <(find "$REPO_DIR/configs/home" -type f -print0 | sort -z)
@@ -247,8 +244,11 @@ retire() {   # retire FILE PATTERN
 retire .config/gtk-3.0/gtk.css 'current/gtk3.css'
 #   ~/.bashrc.d/scriptorium.sh — this project's old name: a second prompt and its aliases
 retire .bashrc.d/scriptorium.sh 'scriptorium'
+#   ~/.local/bin/kawa-audio — the old fuzzel sound menu: the sound panel (kawa-panel --sound)
+#   took its place, and a copy left in ~/.local/bin would still answer to its name
+retire .local/bin/kawa-audio 'kawa-audio — the sound menu'
 #   presenterm, sc-im and spotify_player — slides, sheets and Spotify are LibreOffice's and
-#   Spotify's own app now: presenterm's link into the theme, the others' settings
+#   Spotify's web player now: presenterm's link into the theme, the others' settings
 retire .config/presenterm/config.yaml 'fedokawaii/current/'
 retire .config/sc-im/scimrc 'sc-im'
 retire .config/spotify-player/app.toml 'spotify_player'
@@ -256,9 +256,9 @@ retire .config/spotify-player/theme.toml 'spotify_player'
 #   ~/.local/share/icons/default/index.theme — made the old pointers (Fedokawaii) the default;
 #   the folder is now a link to the Sumi pointers of the theme in use (2c)
 retire .local/share/icons/default/index.theme 'Inherits=Fedokawaii'
-#   ~/.local/share/applications/spotify.desktop — ours (Wayland), while Spotify is not built
-#   (or not wanted): an entry that would start nothing
-spotify_built || retire .local/share/applications/spotify.desktop 'ozone-platform=wayland'
+#   ~/.local/share/applications/lpf*.desktop — lpf's entries, hidden while lpf built Spotify's
+#   app here (Spotify is its web player now, and lpf is gone: setup.sh)
+for LPF_ENTRY in lpf lpf-gui lpf-notify lpf-spotify-client; do retire ".local/share/applications/$LPF_ENTRY.desktop" 'lpf-spotify-client'; done
 
 # ── 3. system tree (/etc, /usr/share/icons) ──────────────────────────────────
 while IFS= read -r -d '' f; do
@@ -705,6 +705,30 @@ for BP in "${BRAVE_PREFS[@]}"; do
     CHANGED+=("$BP (Brave: the desktop's colours, a ground-coloured new tab)")
   fi
 done
+# Widevine, Brave's player for protected media — Spotify's web player (the launcher's Spotify)
+# plays nothing without it: switched on once, as brave://settings switches it (its Local
+# State: brave.widevine_opted_in), while Brave is closed and before its first start too.
+# Switched off in Brave afterwards, it stays off (the marker says it was set once).
+BRAVE_LS="$BRAVE_DIR/Local State" BWM=$STATE/brave-widevine
+TOTAL=$((TOTAL + 1))
+if [[ -s $BRAVE_LS ]] && jq -e '.brave.widevine_opted_in == true' "$BRAVE_LS" >/dev/null 2>&1; then
+  ((CHECK)) || [[ -e $BWM ]] || U touch "$BWM"
+elif [[ -e $BWM ]]; then :                                            # switched off in Brave since: yours
+elif ((CHECK)); then DRIFT+=("$BRAVE_LS (Widevine off: Spotify's web player cannot play)")
+elif pgrep -u "$TARGET_UID" -f '/brave-origin/brave( |$)' >/dev/null; then
+  log "Brave is open: Widevine is switched on by the next Theme run (or brave://settings → Widevine)"
+else
+  BT=$(mktemp)
+  if [[ ! -s $BRAVE_LS ]]; then jq -n '.brave.widevine_opted_in = true' >"$BT"
+  elif ! jq '.brave.widevine_opted_in = true' "$BRAVE_LS" >"$BT" 2>/dev/null; then
+    log "Brave's Local State does not read as JSON — Widevine left as it is ($BRAVE_LS)"; : >"$BT"
+  fi
+  if [[ -s $BT ]]; then
+    uinstall 0600 "$BT" "$BRAVE_LS"; U touch "$BWM"
+    CHANGED+=("$BRAVE_LS (Brave: Widevine on, for Spotify's web player)")
+  fi
+  rm -f "$BT"
+fi
 
 # ── 4d. Syncplay: watching together ──────────────────────────────────────────
 # ~/.config/syncplay.ini is Syncplay's own: it writes the whole file again whenever you change
@@ -907,14 +931,24 @@ if [[ ! -f $SECRETS ]]; then uinstall 0600 /dev/null "$SECRETS"
 elif [[ $(stat -c %a "$SECRETS") != 600 ]]; then
   U chmod 600 "$SECRETS"; CHANGED+=("$SECRETS (made private again: chmod 600)")
 fi
-U mkdir -p "$TARGET_HOME/Pictures/Wallpapers" "$TARGET_HOME/Pictures/Screenshots" "$TARGET_HOME/.local/share/fedokawaii"
+# (~/repos: where your projects go — and where Agents, herdr, opens: its launcher entry
+# starts there, and a window cannot start in a folder that is not)
+U mkdir -p "$TARGET_HOME/Pictures/Wallpapers" "$TARGET_HOME/Pictures/Screenshots" "$TARGET_HOME/.local/share/fedokawaii" \
+  "$TARGET_HOME/repos"
 # the drawn wallpaper and the old lock's picture, from before (the wallpapers are the pack's
 # and your own, at full quality; the lock draws its own): their files go
 U rm -f "$TARGET_HOME"/.local/share/fedokawaii/{dark,light}/{pattern,scene,lock}.{xpm,png}
-# the wallpaper pack: fetched once; pictures already here are skipped
+# the wallpaper cache from before (~/.cache/kawa-wallpaper: now ~/.cache/fedokawaii's
+# wallpaper-screens and wallpaper-previews)
+U rm -rf "$TARGET_HOME/.cache/kawa-wallpaper"
+# the wallpaper pack: fetched once (pictures already here are skipped), then drawn ahead for
+# the monitor — each picture at the screen's exact size, and as the picker's preview — all
+# cores at once, its progress in the log as it goes: the first login has nothing left to draw
 if [[ $WALLPAPER_PACK == yes ]]; then
-  if U kawa-wallpaper --pack >>"$LOG_FILE" 2>&1; then ok "wallpaper pack ready ($(tail -n1 "$LOG_FILE"))"
-  else log "wallpaper pack: some pictures could not be fetched — re-run theme.sh later (details: $LOG_FILE)"; fi
+  if wp=$(U kawa-wallpaper --pack 2>&1 | tee -a "$LOG_FILE"; exit "${PIPESTATUS[0]}"); then
+    ok "wallpaper pack ready ($(grep '^wallpaper pack:' <<<"$wp"))"
+  else log "wallpaper pack: some pictures could not be fetched or drawn — re-run theme.sh later (details: $LOG_FILE)"; fi
+  if wp=$(grep -E '^wallpaper cache: ([0-9]+ pictures drawn|no monitor)' <<<"$wp"); then log "$wp"; fi
 fi
 # GTK, libadwaita and the portal take the theme from your dconf settings, not a file
 U kawa-theme settings || log "GTK settings follow the theme at your next login (no user D-Bus now)"
@@ -940,7 +974,9 @@ fi
 # ── 6. live session: reload what can reload ─────────────────────────────────
 if pgrep -u "$TARGET_UID" -x dwl >/dev/null; then
   RT=/run/user/$TARGET_UID
-  WD=$(find "$RT" -maxdepth 1 -name 'wayland-*' ! -name '*.lock' -printf '%f\n' -quit)
+  # (a glob, not find: root cannot read the document portal's FUSE mount in $RT, and find's
+  # "Permission denied" on it ended the whole theme run there, before the boot part)
+  WD=""; for s in "$RT"/wayland-*; do [[ -S $s ]] || continue; WD=${s##*/}; break; done
   live() { U env WAYLAND_DISPLAY="$WD" "$@" >/dev/null 2>&1 || true; }
   live kawa-display
   live kawa-theme apply                    # terminals, bar, notifications, GTK, Qt, wallpaper

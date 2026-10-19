@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # tests/session/test_keybinds_meaning.sh — the help sheet (Super+/, keybinds.txt) against dwl's
 # config.h, by meaning: each row's keys do what its words say (Super+J "focus next" is
-# focusstack +1, "terminal" runs foot's client, T / Y / M are tile · float · monocle…), no key
+# focusstack +1, "terminal" runs foot's client, S / T / Y are spiral · columns · floating…), no key
 # is bound twice, and every kawa-* a key runs exists and knows the word it is given.
 # (tests/static/test_generated.sh checks that both name the same keys; keyacts.py has the
 # meaning of every row.)

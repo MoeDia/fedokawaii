@@ -46,9 +46,11 @@ sandbox() {   # sandbox — every test file starts here (call again for a clean 
          PYTHONDONTWRITEBYTECODE=1 KAWA_TOOLKIT=$TMP/toolkit
   # the scripts under test come straight from the repository; anything they call is a stub first
   export PATH="$STUBS:$REPO/bin:/usr/local/bin:/usr/bin:/bin"
-  # the icon names, the menus' width helper and the dark theme's colours, as theme.sh installs them
+  # the icon names, the menus' width helper, the text screens' grammar and the dark theme's
+  # colours, as theme.sh installs them
   mkdir -p "$HOME/.config/fedokawaii"
-  cp "$REPO/configs/home/.config/fedokawaii/icons.sh" "$REPO/configs/home/.config/fedokawaii/width.sh" "$REPO/configs/home/.config/fedokawaii/files.sh" "$HOME/.config/fedokawaii/"
+  cp "$REPO/configs/home/.config/fedokawaii/icons.sh" "$REPO/configs/home/.config/fedokawaii/width.sh" "$REPO/configs/home/.config/fedokawaii/files.sh" \
+     "$REPO/configs/home/.config/fedokawaii/screen.sh" "$HOME/.config/fedokawaii/"
   cp -r "$REPO/configs/home/.config/fedokawaii/themes" "$HOME/.config/fedokawaii/"
   ln -s themes/dark "$HOME/.config/fedokawaii/current"
   config .config/fedokawaii/env
@@ -115,6 +117,28 @@ _no()  { H_FAIL=$((H_FAIL + 1)); printf '  ✘ %s — %s\n' "${H_CASE:-?}" "$1";
 eq()    { [[ $1 == "$2" ]] && _ok || _no "${3:-expected [$2], got [$1]}"; }
 has()   { [[ $1 == *"$2"* ]] && _ok || _no "${3:-[$2] not in: ${1:0:300}}"; }
 lacks() { [[ $1 != *"$2"* ]] && _ok || _no "${3:-[$2] should not be in: ${1:0:300}}"; }
+# heading_ok LINE [W] [MSG] — LINE is a text screen's heading (docs/design-system.md §7,
+# ~/.config/fedokawaii/screen.sh): one kanji in accent_text (foot's colour 20), two spaces,
+# the name in the words' own ink, lower case, a space, then only the stitch (╌, at least two)
+# in edge2 (colour 19) to the end — W columns in the terminal in all, when W is given
+heading_ok() {
+  local why
+  why=$(python3 -I -c '
+import re, sys, unicodedata
+line, w = sys.argv[1], sys.argv[2]
+m = re.fullmatch(r"\x1b\[38;5;20m(.)\x1b\[0m  ([^\x1b]*[^ \x1b]) \x1b\[38;5;19m(╌{2,})\x1b\[0m", line)
+if not m:
+    sys.exit("not kanji (accent_text) + two spaces + name + a space + stitch (edge2): %r" % line)
+k, name, st = m.groups()
+if unicodedata.east_asian_width(k) != "W" or not unicodedata.name(k, "").startswith("CJK"):
+    sys.exit("the mark is no kanji: %r" % k)
+if re.search(r"[A-Z]", name):
+    sys.exit("the name is not lower case: %r" % name)
+cols = sum(2 if unicodedata.east_asian_width(c) in "WF" else 1 for c in k + "  " + name + " " + st)
+if w and cols != int(w):
+    sys.exit("%d columns, not %s: %r" % (cols, w, line))
+' "$1" "${2:-}" 2>&1) && _ok || _no "${3:+$3: }$why"
+}
 rc()    { local want=$1 got; shift; "$@" >/dev/null 2>&1; got=$?; [[ $got == "$want" ]] && _ok || _no "exit $got, wanted $want: $*"; }
 called()     { grep -Eq -- "$1" "$CALLS" && _ok || _no "no call matching [$1] — calls: $(tail -n 5 "$CALLS" | tr '\n' '|')"; }
 not_called() { grep -Eq -- "$1" "$CALLS" && _no "unexpected call matching [$1]" || _ok; }

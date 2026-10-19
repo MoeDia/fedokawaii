@@ -117,8 +117,9 @@ python3 -I - "$REPO/configs/home/.config/waybar/config.jsonc" <<'EOF' && _ok || 
 import json, re, sys
 text = re.sub(r"^\s*//.*$", "", open(sys.argv[1]).read(), flags=re.M)
 mode = json.loads(text)["custom/mode"]
-sys.exit(0 if mode["signal"] == 12 and "sharing" in mode["exec"] else 1)
+sys.exit(0 if mode["signal"] == 12 and mode["exec"] == "kawa-bar mode" else 1)
 EOF
+grep -q '\*sharing\*)' "$REPO/bin/kawa-bar" && _ok || _no "kawa-bar mode does not draw the sharing mode"
 
 case_ "the portal crashing mid-share (mako running): the drop-in clears the sharing mode and pokes the bar"
 setup

@@ -244,10 +244,10 @@ alive "$lockpid" && _ok || _no "swaylock is gone"
 case_ "in a session: the switch runs under the veil — rising to light, falling to dark"
 setup; veil; export WAYLAND_DISPLAY=wayland-1
 kawa-theme light
-called '^kawa-veil --rise -- .*kawa-theme light$'
+called '^kawa-veil --rise --time 450 -- .*kawa-theme light$'
 theme_is light
 kawa-theme dark
-called '^kawa-veil --fall -- .*kawa-theme dark$'
+called '^kawa-veil --fall --time 450 -- .*kawa-theme dark$'
 
 case_ "under the veil, the theme's wallpaper is up before the reveal — and holds neither lock"
 eq "$(grep -E '^(kawa-wallpaper|veil over)' "$CALLS" | tail -n 2 | tr '\n' '|')" "kawa-wallpaper --restore|veil over|"

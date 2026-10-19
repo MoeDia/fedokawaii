@@ -1,0 +1,123 @@
+#!/usr/bin/env bash
+# kawa-bar — the bar's buttons, each lit (its class "active": its glyph and text drawn in
+# vermilion) while what a click on it opened is on screen. waybar runs it for its modules:
+#
+#   kawa-bar torii | layout | date | day | mode | cat
+#                                                 that item, drawn here (waybar JSON)
+#   kawa-bar ITEM -- CMD [ARG…]                   CMD's own line (its module's JSON), with
+#                                                 "active" added to its class while ITEM is lit
+#   kawa-bar --lit ITEM                           exit 0 while ITEM is lit, 1 when not
+#   . kawa-bar                                    (sourced) only defines bar_lit ITEM — for the
+#                                                 bar's long-running modules (kawa-timer,
+#                                                 kawa-mem, kawa-volume): no process started
+#
+# What lights each item: a marker in $XDG_RUNTIME_DIR holding its opener's pid (and, for a
+# dropdown, the script that asked kawa-menu for it). An item is lit only while that pid lives:
+# a marker left behind by an opener that was killed (even kill -9) or crashed lights nothing.
+#   torii       the launcher               kawa-launcher.open                 kawa-menu --launcher
+#   date, day   the calendar               kawa-drop.open  "PID kawa-calendar" (kawa-menu --drop)
+#   time        the timer's menu           kawa-drop.open  "PID kawa-timer"
+#   drives      the drives menu            kawa-drop.open  "PID kawa-drives"
+#   steam       Steam's menu               kawa-drop.open  "PID kawa-steam"
+#   weather     the forecast               kawa-drop.open  "PID kawa-weather"
+#   layout      the layout menu            kawa-drop.open  "PID kawa-tag"
+#   memory      btop                       kawa-float-btop.open               kawa-float --once btop
+#   volume      the sound panel            kawa-panel-sound.open              kawa-panel --sound
+#   brightness  the brightness slider      kawa-panel-brightness.open         kawa-panel --brightness
+#   mode, cat   quick settings             kawa-panel.open                    kawa-panel
+# Each opener writes its marker and pokes the bar as it opens, and takes it away and pokes
+# again however it ends (kawa-dwlstatus --poke: the module's signal, and a wake for the
+# long-running ones).
+# Exit status: 0 printed (--lit: lit) · 1 not lit (--lit) · 2 misuse.
+
+# bar_lit ITEM — ITEM's menu or window is on screen now (bash alone: read, kill -0)
+bar_lit() {
+  local run=${XDG_RUNTIME_DIR:-/nonexistent} m p n
+  local -a marks
+  case $1 in
+    torii)       marks=("kawa-launcher.open") ;;
+    date|day)    marks=("kawa-drop.open kawa-calendar") ;;
+    time)        marks=("kawa-drop.open kawa-timer") ;;
+    drives)      marks=("kawa-drop.open kawa-drives") ;;
+    steam)       marks=("kawa-drop.open kawa-steam") ;;
+    weather)     marks=("kawa-drop.open kawa-weather") ;;
+    layout)      marks=("kawa-drop.open kawa-tag") ;;
+    memory)      marks=("kawa-float-btop.open") ;;
+    volume)      marks=("kawa-panel-sound.open") ;;
+    brightness)  marks=("kawa-panel-brightness.open") ;;
+    mode|cat)    marks=("kawa-panel.open") ;;
+    *)           return 1 ;;
+  esac
+  for m in "${marks[@]}"; do
+    p="" n=""
+    { read -r p n <"$run/${m%% *}"; } 2>/dev/null || continue
+    [[ $p =~ ^[1-9][0-9]*$ ]] || continue                 # (an empty or broken marker: nothing)
+    [[ $m != *' '* || $n == "${m#* }" ]] || continue       # (another script's dropdown)
+    kill -0 "$p" 2>/dev/null && return 0
+  done
+  return 1
+}
+[[ ${BASH_SOURCE[0]} != "$0" ]] && return 0
+
+set -u
+LC_ALL=C.UTF-8                      # English day and month names, whatever the system's language
+usage() { echo "usage: kawa-bar torii|layout|date|day|mode|cat · kawa-bar ITEM -- CMD… · kawa-bar --lit ITEM" >&2; exit 2; }
+case ${1:-} in
+  -h|--help) sed -n '2,/^# Exit status/{s/^# \{0,1\}//;p}' "$0"; exit 0 ;;
+  --lit)     (($# == 2)) || usage; bar_lit "$2"; exit ;;
+  "")        usage ;;
+esac
+item=$1; shift
+lit=0; bar_lit "$item" && lit=1
+
+lit_json() {   # lit_json LINE — LINE (a module's JSON) with "active" added to its class, while lit
+  local out=$1
+  if ((lit)) && [[ -n $out ]]; then
+    if [[ $out =~ ^(.*\"class\":)\"([^\"]*)\"(.*)$ ]]; then
+      out="${BASH_REMATCH[1]}[\"${BASH_REMATCH[2]}\",\"active\"]${BASH_REMATCH[3]}"
+    elif [[ $out =~ ^(.*\"class\":\[)(.*)$ ]]; then
+      out="${BASH_REMATCH[1]}\"active\",${BASH_REMATCH[2]}"
+    elif [[ $out == *'}' ]]; then
+      out="${out%\}},\"class\":\"active\"}"
+    fi
+  fi
+  [[ -n $out ]] && printf '%s\n' "$out"
+  return 0
+}
+
+if (($#)); then                     # kawa-bar ITEM -- CMD…: the module's own line, "active" added
+  [[ $1 == -- && $# -ge 2 ]] || usage
+  shift
+  out=$("$@"); rc=$?
+  lit_json "${out%%$'\n'*}"
+  exit "$rc"
+fi
+
+# shellcheck source=/dev/null
+. "$HOME/.config/fedokawaii/icons.sh"
+cls=""; ((lit)) && cls=',"class":"active"'
+case $item in
+  torii) printf '{"text":"%s"%s}\n' "$ICON_TORII" "$cls" ;;
+  layout) # kawa-dwlstatus's line for this bar's monitor (else the focused one's), lit
+         l=""; { IFS= read -r l <"$XDG_RUNTIME_DIR/dwl-bar/${WAYBAR_OUTPUT_NAME:-.}/layout.json" \
+                 || IFS= read -r l <"$XDG_RUNTIME_DIR/dwl-bar/layout.json"; } 2>/dev/null
+         lit_json "$l" ;;
+  cat)   # quick settings: the cat smiles while its panel is open
+         if ((lit)); then printf '{"text":"%s"%s}\n' "$ICON_CAT_HAPPY" "$cls"
+         else printf '{"text":"%s"}\n' "$ICON_CAT"; fi ;;
+  date)  # "Mon 19 Oct", in English whatever the system's language (three letters each: one width)
+         printf -v d '%(%a %d %b)T' -1
+         printf '{"text":"%s"%s}\n' "$d" "$cls" ;;
+  day)   # the day of the week as its kanji: 月 火 水 木 金 土 日, Monday first
+         k=(月 火 水 木 金 土 日); printf -v u '%(%u)T' -1
+         printf '{"text":"%s"%s}\n' "${k[u - 1]}" "$cls" ;;
+  mode)  # a seal while something is held back: 静 (quiet) while "do not disturb" is on,
+         # 共有 (shared) while a screen is shared; nothing otherwise (hidden)
+         case $(makoctl mode 2>/dev/null) in
+           *sharing*)        lit_json '{"text":"共有","class":"share","tooltip":"a screen is shared · click: quick settings"}' ;;
+           *do-not-disturb*) lit_json '{"text":"静","class":"dnd","tooltip":"do not disturb · click: quick settings"}' ;;
+           *)                echo '{"text":""}' ;;
+         esac ;;
+  *)     usage ;;
+esac
+exit 0

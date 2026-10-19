@@ -120,23 +120,31 @@ has "$(cat "$W$H/.config/mpv/mpv.conf")" "# scaling: mpv's own defaults"
 has "$(cat "$W/etc/vconsole.conf")" 'FONT="ter-v16b"'
 
 
-case_ "Spotify's launcher entry (Wayland) only once lpf has built Spotify: none before (the launcher ignores TryExec), an older copy retired; SPOTIFY=no: none"
-back plain; a=$W$H/.local/share/applications
-grep -qx spotify-client "$FKH/installed" && _ok || _no "the built world has Spotify built"
-theme; eq "$RC" 0
-has "$(cat "$a/spotify.desktop")" "Exec=spotify --ozone-platform=wayland %U"
-lacks "$(grep -v '^#' "$a/spotify.desktop")" "TryExec=" "no TryExec: the launcher reads none"
-sed -i '/^spotify-client$/d' "$FKH/installed"
-theme; eq "$RC" 0
-[[ ! -e $a/spotify.desktop ]] && _ok || _no "an entry for a Spotify not built"
-has "$OUT" "spotify.desktop (retired)"
-theme --check; lacks "$OUT" "spotify.desktop" "in sync without it"
-echo spotify-client >>"$FKH/installed"; tconf 's/^SPOTIFY=.*/SPOTIFY="no"/'
-theme; [[ ! -e $a/spotify.desktop ]] && _ok || _no "Spotify's entry with SPOTIFY=no"
-tconf 's/^SPOTIFY=.*/SPOTIFY="yes"/'
-for e in lpf lpf-gui lpf-notify lpf-spotify-client qt6ct; do
-  grep -qx 'NoDisplay=true' "$a/$e.desktop" && _ok || _no "$e.desktop not hidden in the home"
-done
+case_ "Spotify and WhatsApp: their web apps in Brave app windows (Brave's icon); the older entry for Spotify's app and lpf's hidden ones replaced or retired"
+back plain; a=$W$H/.local/share/applications; mkdir -p "$a"
+printf '[Desktop Entry]\n# Spotify (lpf)\nName=Spotify\nExec=spotify --ozone-platform=wayland %%U\n' >"$a/spotify.desktop"
+for e in lpf lpf-gui lpf-notify lpf-spotify-client; do printf '[Desktop Entry]\n# with lpf-spotify-client\nName=%s\nNoDisplay=true\n' "$e" >"$a/$e.desktop"; done
+printf '[Desktop Entry]\n# mine\nName=lpf\n' >"$a/lpf-mine.desktop"
+fk_perms; theme; eq "$RC" 0
+eq "$(sed -n 's/^Exec=//p' "$a/spotify.desktop")" "$H/.local/bin/brave-origin --app=https://open.spotify.com"
+eq "$(sed -n 's/^Icon=//p' "$a/spotify.desktop")" "$(sed -n 's/^Icon=//p' "$W/usrshare/applications/brave-origin.desktop" 2>/dev/null)" "Brave's own icon"
+lacks "$(cat "$a/spotify.desktop")" "MimeType" "no spotify: links (nothing here opens them)"
+eq "$(sed -n 's/^Exec=//p' "$a/whatsapp.desktop")" "$H/.local/bin/brave-origin --app=https://web.whatsapp.com" "WhatsApp: WhatsApp Web in a Brave app window"
+eq "$(sed -n 's/^Icon=//p' "$a/whatsapp.desktop")" "$(sed -n 's/^Icon=//p' "$W/usrshare/applications/brave-origin.desktop" 2>/dev/null)" "WhatsApp: Brave's own icon"
+for e in lpf lpf-gui lpf-notify lpf-spotify-client; do [[ ! -e $a/$e.desktop ]] && _ok || _no "$e.desktop left"; done
+has "$OUT" "lpf-spotify-client.desktop (retired)"; [[ -e $a/lpf-mine.desktop ]] && _ok || _no "an entry of yours taken"
+theme --check; lacks "$OUT" "lpf" "in sync without lpf's entries"
+grep -qx 'NoDisplay=true' "$a/qt6ct.desktop" && _ok || _no "qt6ct.desktop not hidden in the home"
+case_ "Brave: Widevine switched on once (Spotify's web player needs it) while Brave is closed; switched off in Brave later, it stays off"
+back plain; ls="$W$H/.config/BraveSoftware/Brave-Origin/Local State"
+mkdir -p "${ls%/*}"; echo '{"brave":{"origin":{"free_tier_accepted":true}}}' >"$ls"; fk_perms
+theme; eq "$(jq -c .brave "$ls")" '{"origin":{"free_tier_accepted":true},"widevine_opted_in":true}' "on, the rest as it was"
+has "$OUT" "Widevine on"
+jq '.brave.widevine_opted_in = false' "$ls" >"$ls.n" && cat "$ls.n" >"$ls" && rm "$ls.n"
+theme; eq "$(jq .brave.widevine_opted_in "$ls")" false "your choice kept"
+theme --check; lacks "$OUT" "Widevine"
+back plain; rm -rf "$W$H/.config/BraveSoftware"; theme
+eq "$(jq -c . "$W$H/.config/BraveSoftware/Brave-Origin/Local State")" '{"brave":{"widevine_opted_in":true}}' "before Brave's first start"
 
 case_ "Brave Origin's two launcher entries: its own runs the wrapper; the second (com.brave.Origin) hidden as Brave meant it (brave/brave-browser#52193)"
 back plain

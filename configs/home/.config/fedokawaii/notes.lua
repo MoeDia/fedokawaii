@@ -1,31 +1,28 @@
 -- ~/.config/fedokawaii/notes.lua — the notes window (kawa-notes, Super+N): neovim as a page.
--- Run by kawa-notes inside its window (luafile). Like every popup of the desktop it has its
--- title in a rule across the top — "─ ✎ notes · ~/Notes/notes.md ───" — the rule and the
--- file in the terminal's colour 8, the icon in 9 (vermilion), the name in 7: the theme's,
--- read from ~/.config/fedokawaii/current/colors.sh, and again whenever the theme switches.
--- The text starts three columns in, under the icon, as a list's entries do; along the
--- bottom, as every popup has, a quiet line of keys instead of the editor's statusline.
+-- Run by kawa-notes inside its window (luafile). A text screen like every other one
+-- (docs/design-system.md §7, screen.sh): along the top its heading — "記  notes ╌╌╌╌" — the
+-- kanji in accent_text, the name in text, the stitch in edge2 to the right edge, two columns
+-- in; the text four columns in, where a list's rows have their glyph; along the bottom, the
+-- footer in muted: the file and the keys, instead of the editor's statusline. The inks are
+-- the theme's, read from ~/.config/fedokawaii/current/colors.sh, and again whenever the theme
+-- switches.
 
-local icon = os.getenv("KAWA_NOTES_ICON") or "✎"
 local where = (os.getenv("KAWA_NOTES_WHERE") or "~/Notes/notes.md"):gsub("%%", "%%%%")
 
 local function colours()
-  local ground, ansi = "0f0e0c", {}
+  -- (the dark theme's, should the file be missing)
+  local c = { GROUND = "0f0e0c", EDGE2 = "3d372f", MUTED = "877f6f", TEXT = "cfc3a6", ACCENT_TEXT = "d15b3d" }
   local f = io.open(vim.fn.expand("~/.config/fedokawaii/current/colors.sh"))
   if f then
     for line in f:lines() do
-      ground = line:match("^C_GROUND=(%x+)") or ground
-      local list = line:match('^C_ANSI="([%x ]+)"')
-      if list then for hex in list:gmatch("%x+") do ansi[#ansi + 1] = hex end end
+      local k, v = line:match("^C_([%u_]+)=(%x%x%x%x%x%x)")
+      if k and c[k] then c[k] = v end
     end
     f:close()
   end
-  if #ansi < 16 then   -- (the dark theme's, should the file be missing)
-    ansi = vim.split("2b2721 d64b4b 8e9a5b d29f45 5f7fa0 9079a9 5e9c95 cfc3a6 7a7262 e66a5f a8b46f e3b866 7f9dbd ab96c2 7fb8b0 ece3cc", " ")
-  end
-  local g = "#" .. ground
-  for name, i in pairs({ KawaRule = 9, KawaIcon = 10, KawaName = 8 }) do   -- (ansi[] counts from 1)
-    vim.api.nvim_set_hl(0, name, { fg = "#" .. ansi[i], bg = g })
+  local g = "#" .. c.GROUND
+  for name, k in pairs({ KawaKanji = "ACCENT_TEXT", KawaName = "TEXT", KawaStitch = "EDGE2", KawaMuted = "MUTED" }) do
+    vim.api.nvim_set_hl(0, name, { fg = "#" .. c[k], bg = g })
   end
   vim.api.nvim_set_hl(0, "KawaGround", { bg = g })
   vim.api.nvim_set_hl(0, "StatusLine", { bg = g })
@@ -36,10 +33,13 @@ local function colours()
   vim.api.nvim_set_hl(0, "WinBarNC", { bg = g })
 end
 
--- the bottom line, as the other popups' footers: the keys, quiet, under the text's column
--- (the editor's own statusline — lualine — is for code; here it is put away, also after
+-- the bottom line, as every text screen's footer: the file and the keys, muted, two columns
+-- in (the editor's own statusline — lualine — is for code; here it is put away, also after
 -- it loads, and after a theme switch sets it up again)
-local footer = "%#KawaGround#   %#KawaRule#saved as you type  ·  super+n puts it away%=%#KawaGround# "
+local function footer_of(name)
+  return "%#KawaGround#  %#KawaMuted#" .. name .. "  ·  saved as you type  ·  super+n puts it away%=%#KawaGround# "
+end
+local footer = footer_of(where)
 local function page_footer()
   pcall(function() require("lualine").hide({ place = { "statusline" }, unhide = false }) end)
   vim.o.laststatus = 2
@@ -59,9 +59,9 @@ vim.api.nvim_create_autocmd("User", {
   callback = function() vim.defer_fn(page_footer, 30) end,
 })
 
--- a page rather than code: no line numbers, signs, folds or spell marks; three columns of
--- margin (the lists' margin, pointer and gap); long lines wrapped at words. Another file
--- opened in the window (:e ~/Notes/japan-trip.md) is a page too, its name in the rule
+-- a page rather than code: no line numbers, signs, folds or spell marks; four columns of
+-- margin (where a list row's glyph stands: the margin, the cursor's column, two spaces); long lines wrapped at words. Another file
+-- opened in the window (:e ~/Notes/japan-trip.md) is a page too, its name in the footer
 local notes = vim.api.nvim_get_current_buf()
 local function page()
   local b = vim.api.nvim_get_current_buf()
@@ -70,19 +70,19 @@ local function page()
   vim.opt_local.relativenumber = false
   vim.opt_local.signcolumn = "no"
   vim.opt_local.statuscolumn = ""
-  vim.opt_local.foldcolumn = "3"
+  vim.opt_local.foldcolumn = "4"
   vim.opt_local.foldmethod = "manual"
   vim.opt_local.foldenable = false
   vim.opt_local.spell = false
   vim.opt_local.cursorline = false          -- (a page: no bar across it, only the cursor)
   vim.opt_local.wrap = true
   vim.opt_local.linebreak = true
-  vim.opt_local.fillchars:append({ wbr = "─" })
+  vim.opt_local.fillchars:append({ wbr = "╌" })
   local name = b == notes and where
     or vim.fn.fnamemodify(vim.api.nvim_buf_get_name(b), ":~"):gsub("%%", "%%%%")
-  vim.opt_local.winbar = " %#KawaRule#─ %#KawaIcon#" .. icon .. " %#KawaName#notes %#KawaRule#· "
-    .. name .. " %=%#KawaGround# "
-  vim.wo.statusline = footer
+  -- (the stitch: the winbar's fill, ╌ in edge2, from after the name to two columns short of the edge)
+  vim.opt_local.winbar = "%#KawaGround#  %#KawaKanji#記%#KawaGround#  %#KawaName#notes %#KawaStitch#%=%#KawaGround#  "
+  vim.wo.statusline = footer_of(name)
   -- (LazyVim formats a file on every write when a formatter knows it — the Markdown extra
   -- does: here that would rewrite the page under your fingers, key by key)
   vim.b[b].autoformat = false

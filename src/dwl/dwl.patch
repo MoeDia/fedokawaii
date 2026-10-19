@@ -66,10 +66,19 @@
  static void inputdevice(struct wl_listener *listener, void *data);
  static const Key *keybinding(uint32_t mods, xkb_keysym_t sym);
  static void keypress(struct wl_listener *listener, void *data);
-@@ -332,6 +345,9 @@ static void outputmgrtest(struct wl_listener *listener, void *data);
+@@ -320,7 +333,6 @@ static void killclient(const Arg *arg);
+ static void locksession(struct wl_listener *listener, void *data);
+ static void mapnotify(struct wl_listener *listener, void *data);
+ static void maximizenotify(struct wl_listener *listener, void *data);
+-static void monocle(Monitor *m);
+ static void motionabsolute(struct wl_listener *listener, void *data);
+ static void motionnotify(uint32_t time, struct wlr_input_device *device, double sx,
+ 		double sy, double sx_unaccel, double sy_unaccel);
+@@ -332,6 +344,10 @@ static void outputmgrtest(struct wl_listener *listener, void *data);
  static void pointerfocus(Client *c, LayerSurface* l, struct wlr_surface *surface,
  		double sx, double sy, uint32_t time);
  static void printstatus(void);
++static void pointerfile(void);
 +static int retrystatus(void *data);
 +static int reloadcursors(int fd, uint32_t mask, void *data);
 +static void loadcolours(void);
@@ -111,16 +120,28 @@
  static Monitor *xytomon(double x, double y);
  static void xytonode(double x, double y, struct wlr_surface **psurface,
  		Client **pc, LayerSurface **pl, double *nx, double *ny);
-@@ -380,6 +417,8 @@ static void *exclusive_focus;
+@@ -375,11 +412,20 @@ static void zoom(const Arg *arg);
+ 
+ /* variables */
+ static pid_t child_pid = -1;
++static int status_ready; /* printstatus() speaks once run() has set stdout up (the bar's pipe):
++                          * the monitors made before it would put their status in the log */
+ static int locked;
+ static void *exclusive_focus;
  static Client *focused_client;
  static struct wl_display *dpy;
  static struct wl_event_loop *event_loop;
++/* the smallest window the tiling makes, as a place to work in at 1080p: 600x336 with the
++ * frame (2 px) — in foot (Fusion Pixel 24 px: a 12 px cell, 26 px lines, 10 px of padding)
++ * 48 columns by 12 rows, room for a shell, yazi or an editor. Three such columns fit
++ * beside each other on a 1920 px screen, three rows under the bar on 1080 */
++static const int tileminw = 600, tileminh = 336;
 +static struct wl_event_source *status_retry; /* printstatus again, when the bar's pipe was full */
 +static int cursorpipe[2] = {-1, -1}; /* SIGUSR1 → reloadcursors(), loadcolours() and updatevrr(), from the event loop */
  static struct wlr_backend *backend;
  static struct wlr_scene *scene;
  static struct wlr_scene_tree *layers[NUM_LAYERS];
-@@ -412,6 +451,14 @@ static struct wlr_relative_pointer_manager_v1 *relative_pointer_mgr;
+@@ -412,6 +458,14 @@ static struct wlr_relative_pointer_manager_v1 *relative_pointer_mgr;
  static struct wlr_pointer_constraint_v1 *active_constraint;
  
  static struct wlr_cursor *cursor;
@@ -135,7 +156,7 @@
  static struct wlr_xcursor_manager *cursor_mgr;
  
  static struct wlr_scene_rect *root_bg;
-@@ -421,6 +468,7 @@ static struct wlr_session_lock_v1 *cur_lock;
+@@ -421,6 +475,7 @@ static struct wlr_session_lock_v1 *cur_lock;
  
  static struct wlr_seat *seat;
  static KeyboardGroup *kb_group;
@@ -143,7 +164,7 @@
  static unsigned int cursor_mode;
  static Client *grabc;
  static int grabcx, grabcy; /* client-relative */
-@@ -437,6 +485,10 @@ static struct wl_listener cursor_button = {.notify = buttonpress};
+@@ -437,6 +492,10 @@ static struct wl_listener cursor_button = {.notify = buttonpress};
  static struct wl_listener cursor_frame = {.notify = cursorframe};
  static struct wl_listener cursor_motion = {.notify = motionrelative};
  static struct wl_listener cursor_motion_absolute = {.notify = motionabsolute};
@@ -154,7 +175,7 @@
  static struct wl_listener gpu_reset = {.notify = gpureset};
  static struct wl_listener layout_change = {.notify = updatemons};
  static struct wl_listener new_idle_inhibitor = {.notify = createidleinhibitor};
-@@ -492,7 +544,11 @@ applybounds(Client *c, struct wlr_box *bbox)
+@@ -492,7 +551,11 @@ applybounds(Client *c, struct wlr_box *bbox)
  	c->geom.width = MAX(1 + 2 * (int)c->bw, c->geom.width);
  	c->geom.height = MAX(1 + 2 * (int)c->bw, c->geom.height);
  
@@ -167,7 +188,7 @@
  		struct wlr_box min = {0}, max = {0};
  		client_get_size_hints(c, &max, &min);
  		c->geom.width = MAX(min.width + 2 * (int)c->bw, c->geom.width);
-@@ -529,8 +585,10 @@ applyrules(Client *c)
+@@ -529,8 +592,10 @@ applyrules(Client *c)
  	title = client_get_title(c);
  
  	for (r = rules; r < END(rules); r++) {
@@ -180,7 +201,7 @@
  			c->isfloating = r->isfloating;
  			newtags |= r->tags;
  			i = 0;
-@@ -555,7 +613,7 @@ arrange(Monitor *m)
+@@ -555,7 +620,7 @@ arrange(Monitor *m)
  
  	wl_list_for_each(c, &clients, link) {
  		if (c->mon == m) {
@@ -189,7 +210,7 @@
  			client_set_suspended(c, !VISIBLEON(c, m)
  					&& (!c->image_capture_source
  					|| wl_list_empty(&c->image_capture_source->resources)));
-@@ -585,6 +643,7 @@ arrange(Monitor *m)
+@@ -585,6 +650,7 @@ arrange(Monitor *m)
  		m->lt[m->sellt]->arrange(m);
  	motionnotify(0, NULL, 0, 0, 0, 0);
  	checkidleinhibitor(NULL);
@@ -197,10 +218,12 @@
  }
  
  void
-@@ -704,6 +763,18 @@ buttonpress(struct wl_listener *listener, void *data)
+@@ -704,6 +770,20 @@ buttonpress(struct wl_listener *listener, void *data)
  		/* Change focus if the button was _pressed_ over a client
  		   or a layer surface with on-demand keyboard interactivity */
  		xytonode(cursor->x, cursor->y, NULL, &c, &l, NULL, NULL);
++		if (l && l->layer_surface->current.layer == ZWLR_LAYER_SHELL_V1_LAYER_TOP)
++			pointerfile();
 +		/* a press outside a menu (a layer surface holding the keyboard to itself, as
 +		 * fuzzel does) takes the keyboard back: the menu closes as on Esc, and what was
 +		 * pressed — a window, the bar, the wallpaper — goes on as if it had not been open */
@@ -216,7 +239,7 @@
  		if (c && (!client_is_unmanaged(c) || client_wants_focus(c))) {
  			focusclient(c, 1);
  		} else if (l && l->layer_surface->current.keyboard_interactive) {
-@@ -739,8 +810,11 @@ buttonpress(struct wl_listener *listener, void *data)
+@@ -739,8 +819,11 @@ buttonpress(struct wl_listener *listener, void *data)
  	}
  	/* If the event wasn't handled by the compositor, notify the client with
  	 * pointer focus that a button press has occurred */
@@ -230,7 +253,7 @@
  }
  
  void
-@@ -790,6 +864,9 @@ void
+@@ -790,6 +873,9 @@ void
  cleanup(void)
  {
  	cleanuplisteners();
@@ -240,7 +263,7 @@
  #ifdef XWAYLAND
  	wlr_xwayland_destroy(xwayland);
  	xwayland = NULL;
-@@ -852,6 +929,10 @@ cleanuplisteners(void)
+@@ -852,6 +938,10 @@ cleanuplisteners(void)
  	wl_list_remove(&cursor_frame.link);
  	wl_list_remove(&cursor_motion.link);
  	wl_list_remove(&cursor_motion_absolute.link);
@@ -251,7 +274,7 @@
  	wl_list_remove(&gpu_reset.link);
  	wl_list_remove(&new_idle_inhibitor.link);
  	wl_list_remove(&layout_change.link);
-@@ -981,6 +1062,13 @@ commitnotify(struct wl_listener *listener, void *data)
+@@ -981,6 +1071,13 @@ commitnotify(struct wl_listener *listener, void *data)
  	}
  
  	resize(c, c->geom, (c->isfloating && !c->isfullscreen));
@@ -265,7 +288,7 @@
  }
  
  void
-@@ -1186,8 +1274,14 @@ createmon(struct wl_listener *listener, void *data)
+@@ -1186,8 +1283,14 @@ createmon(struct wl_listener *listener, void *data)
  	wlr_output_commit_state(wlr_output, &state);
  	wlr_output_state_finish(&state);
  
@@ -280,7 +303,7 @@
  
  	/* The xdg-protocol specifies:
  	 *
-@@ -1509,12 +1603,18 @@ focusclient(Client *c, int lift)
+@@ -1509,12 +1612,18 @@ focusclient(Client *c, int lift)
  {
  	struct wlr_surface *old = seat->keyboard_state.focused_surface;
  	int unused_lx, unused_ly, old_client_type;
@@ -300,7 +323,7 @@
  	/* Raise client in stacking order if requested */
  	if (c && lift)
  		wlr_scene_node_raise_to_top(&c->scene->node);
-@@ -1540,8 +1640,15 @@ focusclient(Client *c, int lift)
+@@ -1540,8 +1649,15 @@ focusclient(Client *c, int lift)
  
  		/* Don't change border color if there is an exclusive focus or we are
  		 * handling a drag operation */
@@ -317,7 +340,7 @@
  	}
  
  	/* If an overlay is focused, don't focus or activate the client,
-@@ -1677,15 +1784,9 @@ handlesig(int signo)
+@@ -1677,15 +1793,9 @@ handlesig(int signo)
  		while (waitpid(-1, NULL, WNOHANG) > 0);
  	else if (signo == SIGINT || signo == SIGTERM)
  		quit(NULL);
@@ -336,7 +359,7 @@
  }
  
  void
-@@ -1703,6 +1804,11 @@ inputdevice(struct wl_listener *listener, void *data)
+@@ -1703,6 +1813,11 @@ inputdevice(struct wl_listener *listener, void *data)
  	case WLR_INPUT_DEVICE_POINTER:
  		createpointer(wlr_pointer_from_input_device(device));
  		break;
@@ -348,7 +371,7 @@
  	default:
  		/* TODO handle other input device types */
  		break;
-@@ -1729,7 +1835,10 @@ keybinding(uint32_t mods, xkb_keysym_t sym)
+@@ -1729,7 +1844,10 @@ keybinding(uint32_t mods, xkb_keysym_t sym)
  	const Key *k;
  	for (k = keys; k < END(keys); k++) {
  		if (CLEANMASK(mods) == CLEANMASK(k->mod) && sym == k->keysym && k->func)
@@ -360,7 +383,7 @@
  	}
  	return NULL;
  }
-@@ -1744,7 +1853,7 @@ keypress(struct wl_listener *listener, void *data)
+@@ -1744,7 +1862,7 @@ keypress(struct wl_listener *listener, void *data)
  	/* Translate libinput keycode -> xkbcommon */
  	uint32_t keycode = event->keycode + 8;
  	struct wlr_keyboard *kb = &group->wlr_group->keyboard;
@@ -369,7 +392,7 @@
  	int handled = 0;
  
  	// Get the keysyms for level 0 (normal) and level 1 (shifted)
-@@ -1756,9 +1865,9 @@ keypress(struct wl_listener *listener, void *data)
+@@ -1756,9 +1874,9 @@ keypress(struct wl_listener *listener, void *data)
  
  	wlr_idle_notifier_v1_notify_activity(idle_notifier, seat);
  
@@ -382,7 +405,7 @@
  		for (int i = 0; i < 2; i++) {
  			const Key *key = keybinding(group->mods, group->keysyms[i]);
  			if (key) {
-@@ -1770,7 +1879,7 @@ keypress(struct wl_listener *listener, void *data)
+@@ -1770,7 +1888,7 @@ keypress(struct wl_listener *listener, void *data)
  		}
  	}
  
@@ -391,7 +414,7 @@
  		wl_event_source_timer_update(group->key_repeat_source,
  				group->wlr_group->keyboard.repeat_info.delay);
  	else
-@@ -1797,6 +1906,15 @@ keypressmod(struct wl_listener *listener, void *data)
+@@ -1797,6 +1915,15 @@ keypressmod(struct wl_listener *listener, void *data)
  	 * pressed. We simply communicate this to the client. */
  	KeyboardGroup *group = wl_container_of(listener, group, modifiers);
  
@@ -407,7 +430,7 @@
  	if (input_method_keyboard_grab_forward_modifiers(group))
  		return;
  
-@@ -1889,26 +2007,41 @@ mapnotify(struct wl_listener *listener, void *data)
+@@ -1889,26 +2016,41 @@ mapnotify(struct wl_listener *listener, void *data)
  		/* Unmanaged clients always are floating */
  		wlr_scene_node_reparent(&c->scene->node, layers[LyrUnmanaged]);
  		wlr_scene_node_set_position(&c->scene->node, c->geom.x, c->geom.y);
@@ -454,7 +477,7 @@
  
  	c->foreign_toplevel_handle = wlr_ext_foreign_toplevel_handle_v1_create(
  			foreign_toplevel_list, &foreign_toplevel_state);
-@@ -1932,7 +2065,38 @@ mapnotify(struct wl_listener *listener, void *data)
+@@ -1932,7 +2074,38 @@ mapnotify(struct wl_listener *listener, void *data)
  	} else {
  		applyrules(c);
  	}
@@ -493,7 +516,32 @@
  
  unset_fullscreen:
  	m = c->mon ? c->mon : xytomon(c->geom.x, c->geom.y);
-@@ -2165,6 +2329,17 @@ outputmgrapplyortest(struct wlr_output_configuration_v1 *config, int test)
+@@ -1960,24 +2133,6 @@ maximizenotify(struct wl_listener *listener, void *data)
+ 		wlr_xdg_surface_schedule_configure(c->surface.xdg);
+ }
+ 
+-void
+-monocle(Monitor *m)
+-{
+-	Client *c;
+-	int n = 0;
+-
+-	wl_list_for_each(c, &clients, link) {
+-		if (!VISIBLEON(c, m) || c->isfloating || c->isfullscreen)
+-			continue;
+-		resize(c, m->w, 0);
+-		n++;
+-	}
+-	if (n)
+-		snprintf(m->ltsymbol, LENGTH(m->ltsymbol), "[%d]", n);
+-	if ((c = focustop(m)))
+-		wlr_scene_node_raise_to_top(&c->scene->node);
+-}
+-
+ void
+ motionabsolute(struct wl_listener *listener, void *data)
+ {
+@@ -2165,6 +2320,17 @@ outputmgrapplyortest(struct wlr_output_configuration_v1 *config, int test)
  	if (!ok || test)
  		goto out;
  
@@ -511,7 +559,7 @@
  	for (i = 0; i < states_len; i++) {
  		struct wlr_swapchain *swapchain = wlr_output_swapchain_manager_get_swapchain(
  				&swapchain_manager, states[i].output);
-@@ -2188,9 +2363,7 @@ outputmgrapplyortest(struct wlr_output_configuration_v1 *config, int test)
+@@ -2188,9 +2354,7 @@ outputmgrapplyortest(struct wlr_output_configuration_v1 *config, int test)
  		/* Don't move monitors if position wouldn't change. This avoids
  		 * wlroots marking the output as manually configured.
  		 * wlr_output_layout_add does not like disabled outputs */
@@ -522,7 +570,7 @@
  			wlr_output_layout_add(output_layout, wlr_output,
  					config_head->state.x, config_head->state.y);
  		}
-@@ -2220,20 +2393,30 @@ outputmgrtest(struct wl_listener *listener, void *data)
+@@ -2220,20 +2384,30 @@ outputmgrtest(struct wl_listener *listener, void *data)
  	outputmgrapplyortest(config, 1);
  }
  
@@ -561,7 +609,7 @@
  
  	/* If surface is NULL, clear pointer focus */
  	if (!surface) {
-@@ -2253,6 +2436,34 @@ pointerfocus(Client *c, LayerSurface *l, struct wlr_surface *surface, double sx,
+@@ -2253,6 +2427,34 @@ pointerfocus(Client *c, LayerSurface *l, struct wlr_surface *surface, double sx,
  	wlr_seat_pointer_notify_motion(seat, time, sx, sy);
  }
  
@@ -596,7 +644,16 @@
  void
  printstatus(void)
  {
-@@ -2270,8 +2481,8 @@ printstatus(void)
+@@ -2260,6 +2462,8 @@ printstatus(void)
+ 	Client *c;
+ 	uint32_t occ, urg, sel;
+ 
++	if (!status_ready)
++		return;
+ 	wl_list_for_each(m, &mons, link) {
+ 		occ = urg = 0;
+ 		wl_list_for_each(c, &clients, link) {
+@@ -2270,8 +2474,8 @@ printstatus(void)
  				urg |= c->tags;
  		}
  		if ((c = focustop(m))) {
@@ -607,7 +664,7 @@
  			printf("%s fullscreen %d\n", m->wlr_output->name, c->isfullscreen);
  			printf("%s floating %d\n", m->wlr_output->name, c->isfloating);
  			sel = c->tags;
-@@ -2287,8 +2498,107 @@ printstatus(void)
+@@ -2287,8 +2491,135 @@ printstatus(void)
  		printf("%s tags %"PRIu32" %"PRIu32" %"PRIu32" %"PRIu32"\n",
  			m->wlr_output->name, occ, m->tagset[m->seltags], sel, urg);
  		printf("%s layout %s\n", m->wlr_output->name, m->ltsymbol);
@@ -630,6 +687,34 @@
 +				wl_event_source_timer_update(status_retry, 200);
 +		}
 +	}
++}
++
++/* a press on the bar (a layer surface in the top layer): where, for the menu its click
++ * opens to open under it — waybar cannot tell its scripts. One line in
++ * $XDG_RUNTIME_DIR/dwl-pointer, replaced whole (written aside, then renamed), before the
++ * bar hears of the press: "X Y OUTPUT OUTPUT_X OUTPUT_WIDTH" — the pointer in layout
++ * coordinates, the monitor under it, its left edge and width (X - OUTPUT_X: the pointer
++ * on that monitor) */
++void
++pointerfile(void)
++{
++	static char path[PATH_MAX], tmp[PATH_MAX];
++	Monitor *m = xytomon(cursor->x, cursor->y);
++	FILE *f;
++	if (!path[0]) {
++		const char *dir = getenv("XDG_RUNTIME_DIR");
++		if (!dir || snprintf(path, sizeof(path), "%s/dwl-pointer", dir) >= (int)sizeof(path)
++				|| snprintf(tmp, sizeof(tmp), "%s/dwl-pointer.new", dir) >= (int)sizeof(tmp)) {
++			path[0] = 0;
++			return;
++		}
++	}
++	if (!m || !(f = fopen(tmp, "w")))
++		return;
++	fprintf(f, "%d %d %s %d %d\n", (int)round(cursor->x), (int)round(cursor->y),
++			m->wlr_output->name, m->m.x, m->m.width);
++	if (fclose(f) == 0)
++		rename(tmp, path);
 +}
 +
 +int
@@ -715,7 +800,7 @@
  }
  
  void
-@@ -2322,6 +2632,17 @@ rendermon(struct wl_listener *listener, void *data)
+@@ -2322,6 +2653,17 @@ rendermon(struct wl_listener *listener, void *data)
  	 * generally at the output's refresh rate (e.g. 60Hz). */
  	Monitor *m = wl_container_of(listener, m, frame);
  	struct timespec now;
@@ -733,7 +818,7 @@
  
  	if (!wlr_scene_output_needs_frame(m->scene_output)) {
  		return;
-@@ -2379,15 +2700,29 @@ resize(Client *c, struct wlr_box geo, int interact)
+@@ -2379,15 +2721,29 @@ resize(Client *c, struct wlr_box geo, int interact)
  	/* Update scene-graph, including borders */
  	wlr_scene_node_set_position(&c->scene->node, c->geom.x, c->geom.y);
  	wlr_scene_node_set_position(&c->scene_surface->node, c->bw, c->bw);
@@ -772,7 +857,15 @@
  	client_get_clip(c, &clip);
  	wlr_scene_subsurface_tree_set_clip(&c->scene_surface->node, &clip);
  }
-@@ -2492,6 +2827,15 @@ setfloating(Client *c, int floating)
+@@ -2433,6 +2789,7 @@ run(char *startup_cmd)
+ 	if (fd_set_nonblock(STDOUT_FILENO) < 0)
+ 		close(STDOUT_FILENO);
+ 
++	status_ready = 1;
+ 	printstatus();
+ 
+ 	/* At this point the outputs are initialized, choose initial selmon based on
+@@ -2492,6 +2849,15 @@ setfloating(Client *c, int floating)
  {
  	Client *p = client_get_parent(c);
  	c->isfloating = floating;
@@ -788,7 +881,7 @@
  	/* If in floating layout do not change the client's layer */
  	if (!c->mon || !client_surface(c)->mapped || !c->mon->lt[c->mon->sellt]->arrange)
  		return;
-@@ -2516,6 +2860,10 @@ setfullscreen(Client *c, int fullscreen)
+@@ -2516,6 +2882,10 @@ setfullscreen(Client *c, int fullscreen)
  	if (fullscreen) {
  		c->prev = c->geom;
  		resize(c, c->mon->m, 0);
@@ -799,13 +892,13 @@
  	} else {
  		/* restore previous size instead of arrange for floating windows since
  		 * client positions are set by the user and cannot be recalculated */
-@@ -2530,10 +2878,26 @@ setlayout(const Arg *arg)
+@@ -2530,10 +2900,26 @@ setlayout(const Arg *arg)
  {
  	if (!selmon)
  		return;
 -	if (!arg || !arg->v || arg->v != selmon->lt[selmon->sellt])
 +	/* "the layout used before" (arg 0: Super+Shift+T) is always one that tiles — the
-+	 * spiral or columns: floating and monocle (stacks()) are never kept as it, so going
++	 * spiral or columns: floating (stacks()) is never kept as it, so going
 +	 * back never lands in a mode that piles the windows on top of each other. Back from
 +	 * one of those, the one kept is the one before it; with none kept, the first other
 +	 * tiling layout in layouts[] */
@@ -828,7 +921,24 @@
  	strncpy(selmon->ltsymbol, selmon->lt[selmon->sellt]->symbol, LENGTH(selmon->ltsymbol));
  	arrange(selmon);
  	printstatus();
-@@ -2602,9 +2966,17 @@ setsel(struct wl_listener *listener, void *data)
+@@ -2550,6 +2936,16 @@ setmfact(const Arg *arg)
+ 	f = arg->f < 1.0f ? arg->f + selmon->mfact : arg->f - 1.0f;
+ 	if (f < 0.1 || f > 0.9)
+ 		return;
++	/* the spiral's first window, and what is left beside it, never narrower than
++	 * tileminw: the share stops there */
++	if (selmon->lt[selmon->sellt]->arrange == spiral) {
++		float aw = (float)(selmon->w.width - 2 * (int)gappx), g = (float)gappx;
++		float lo = ((float)tileminw + g) / (aw + g), hi = (aw - (float)tileminw) / (aw + g);
++		if (lo <= hi)
++			f = MAX(lo, MIN(f, hi));
++		if (f == selmon->mfact)
++			return;
++	}
+ 	selmon->mfact = f;
+ 	arrange(selmon);
+ }
+@@ -2602,9 +2998,17 @@ setsel(struct wl_listener *listener, void *data)
  void
  setup(void)
  {
@@ -847,7 +957,7 @@
  
  	for (i = 0; i < (int)LENGTH(sig); i++)
  		sigaction(sig[i], &sa, NULL);
-@@ -2764,6 +3136,8 @@ setup(void)
+@@ -2764,6 +3168,8 @@ setup(void)
  	 * HiDPI support). Scaled cursors will be loaded with each output. */
  	cursor_mgr = wlr_xcursor_manager_create(NULL, 24);
  	setenv("XCURSOR_SIZE", "24", 1);
@@ -856,7 +966,7 @@
  
  	/*
  	 * wlr_cursor *only* displays an image on screen. It does not move around
-@@ -2780,6 +3154,11 @@ setup(void)
+@@ -2780,6 +3186,11 @@ setup(void)
  	wl_signal_add(&cursor->events.button, &cursor_button);
  	wl_signal_add(&cursor->events.axis, &cursor_axis);
  	wl_signal_add(&cursor->events.frame, &cursor_frame);
@@ -868,38 +978,163 @@
  
  	cursor_shape_mgr = wlr_cursor_shape_manager_v1_create(dpy, 1);
  	wl_signal_add(&cursor_shape_mgr->events.request_set_shape, &request_set_cursor_shape);
-@@ -2879,11 +3258,12 @@ tagmon(const Arg *arg)
+@@ -2879,38 +3290,306 @@ tagmon(const Arg *arg)
  		setmon(sel, dirtomon(arg->i), 0);
  }
  
-+/* columns: the windows side by side, left to right in the order they opened, each as wide
-+ * as the others, gappx between them and around the edge */
- void
- tile(Monitor *m)
+-void
+-tile(Monitor *m)
++/* ── the tiling: columns and the spiral (tileminw x tileminh: the smallest window) ── */
++
++/* how well a set of places suits its windows: the worst one's share of the smallest
++ * size (1 or more: every window at least tileminw x tileminh) */
++static double
++tilescore(const struct wlr_box *b, int n)
  {
 -	unsigned int mw, my, ty;
 -	int i, n = 0;
-+	int i = 0, n = 0, gap = (int)gappx, ww, x;
- 	Client *c;
- 
- 	wl_list_for_each(c, &clients, link)
-@@ -2891,28 +3271,209 @@ tile(Monitor *m)
- 			n++;
- 	if (n == 0)
- 		return;
-+	ww = m->w.width - 2 * gap;
-+	x = m->w.x + gap;
-+	wl_list_for_each(c, &clients, link) {
-+		int w;
-+		if (!VISIBLEON(c, m) || c->isfloating || c->isfullscreen)
-+			continue;
-+		/* (the last takes what is left: no pixel lost to rounding) */
-+		w = i == n - 1 ? m->w.x + gap + ww - x : (ww - (n - 1) * gap) / n;
-+		resize(c, (struct wlr_box){.x = x, .y = m->w.y + gap,
-+			.width = w, .height = m->w.height - 2 * gap}, 0);
-+		x += w + gap;
-+		i++;
+-	Client *c;
++	double s = 1e9, w, h;
++	int i;
++	for (i = 0; i < n; i++) {
++		w = (double)b[i].width / tileminw;
++		h = (double)b[i].height / tileminh;
++		s = MIN(s, MIN(w, h));
 +	}
++	return s;
++}
++
++/* n windows in c even columns of area a, gappx apart; a column holds n / c of them in
++ * even rows, the columns to the right one more when they do not share evenly (so the
++ * first, oldest windows keep the tallest places) */
++static void
++tilegrid(struct wlr_box a, int n, int c, struct wlr_box *out)
++{
++	int gap = (int)gappx, j, i, k = 0;
++	for (j = 0; j < c; j++) {
++		int x0 = a.x + (a.width + gap) * j / c, x1 = a.x + (a.width + gap) * (j + 1) / c - gap;
++		int r = n / c + (j >= c - n % c);
++		for (i = 0; i < r; i++, k++) {
++			int y0 = a.y + (a.height + gap) * i / r, y1 = a.y + (a.height + gap) * (i + 1) / r - gap;
++			out[k] = (struct wlr_box){.x = x0, .y = y0, .width = x1 - x0, .height = y1 - y0};
++		}
++	}
++}
++
++/* the grid of area a that suits n windows best (the fewest columns when two suit
++ * equally) */
++static void
++tilegridbest(struct wlr_box a, int n, struct wlr_box *out)
++{
++	struct wlr_box *t = calloc((size_t)n, sizeof(*t));
++	double best = -1, sc;
++	int c, bc = 1;
++	if (!t) {
++		tilegrid(a, n, 1, out);
++		return;
++	}
++	for (c = 1; c <= n; c++) {
++		tilegrid(a, n, c, t);
++		if ((sc = tilescore(t, n)) > best) {
++			best = sc;
++			bc = c;
++		}
++	}
++	free(t);
++	tilegrid(a, n, bc, out);
++}
++
++/* the spiral's places for n windows in area a from turn d on (0 left, 1 top, 2 right,
++ * 3 bottom): a part split off, the rest winding on. The first split takes mfact of the
++ * width (the golden ratio, 0.618; Super+H / L), each later one half — so the second and
++ * third windows are equals. A split happens only when the part and every place in the
++ * rest stay at least tileminw x tileminh; the first gives up width for it (never below
++ * tileminw itself), a later one is not made: the windows left share that place as an even
++ * grid instead. Returns whether every place is at least the smallest size */
++static int
++spiralplace(struct wlr_box a, int n, int d, float f, struct wlr_box *out)
++{
++	int gap = (int)gappx, size = d % 2 ? a.height : a.width, k, kmin;
++	if (n == 1) {
++		out[0] = a;
++		return a.width >= tileminw && a.height >= tileminh;
++	}
++	if (d == 0) {
++		k = (int)roundf((float)(size + gap) * f) - gap;
++		k = MAX(tileminw, MIN(k, size - gap - tileminw));
++		kmin = tileminw;
++	} else {
++		k = kmin = (size - gap) / 2;
++	}
++	for (; k >= kmin; k--) {
++		struct wlr_box b = a, r = a;
++		if (d % 2 == 0) {
++			b.width = k;
++			r.width = a.width - k - gap;
++			if (d % 4 == 0)
++				r.x = a.x + k + gap;
++			else
++				b.x = a.x + a.width - k;
++		} else {
++			b.height = k;
++			r.height = a.height - k - gap;
++			if (d % 4 == 1)
++				r.y = a.y + k + gap;
++			else
++				b.y = a.y + a.height - k;
++		}
++		if (b.width < tileminw || b.height < tileminh || r.width < tileminw || r.height < tileminh)
++			continue;
++		if (spiralplace(r, n - 1, d + 1, f, out + 1)) {
++			out[0] = b;
++			return 1;
++		}
++	}
++	tilegridbest(a, n, out);
++	return tilescore(out, n) >= 1;
++}
+ 
++/* the tiled windows on m, in the order they opened, and the area they share (gappx
++ * round it): n of them, or 0 */
++static int
++tiled(Monitor *m, struct wlr_box *a)
++{
++	int n = 0, gap = (int)gappx;
++	Client *c;
+ 	wl_list_for_each(c, &clients, link)
+ 		if (VISIBLEON(c, m) && !c->isfloating && !c->isfullscreen)
+ 			n++;
+-	if (n == 0)
++	*a = (struct wlr_box){.x = m->w.x + gap, .y = m->w.y + gap,
++		.width = m->w.width - 2 * gap, .height = m->w.height - 2 * gap};
++	return n;
++}
++
++static void
++tileapply(Monitor *m, const struct wlr_box *b)
++{
++	Client *c;
++	int i = 0;
++	wl_list_for_each(c, &clients, link)
++		if (VISIBLEON(c, m) && !c->isfloating && !c->isfullscreen)
++			resize(c, b[i++], 0);
++}
++
++/* columns: the windows side by side, left to right in the order they opened, each as wide
++ * as the others, gappx between them and around the edge — as many columns as fit at
++ * tileminw (three on 1920 px); more windows than that share them as even rows, the
++ * columns to the right first */
++void
++tile(Monitor *m)
++{
++	struct wlr_box a, *b;
++	int n = tiled(m, &a), c;
++	if (n == 0 || !(b = calloc((size_t)n, sizeof(*b))))
+ 		return;
++	c = MAX(1, MIN(n, (a.width + (int)gappx) / (tileminw + (int)gappx)));
++	tilegrid(a, n, c, b);
++	tileapply(m, b);
++	free(b);
 +}
  
 -	if (n > m->nmaster)
@@ -907,39 +1142,9 @@
 -	else
 -		mw = m->w.width;
 -	i = my = ty = 0;
-+/* a layout that piles the tiled windows on top of each other: floating (no arrange
-+ * function; each new window centred over the last) and monocle (all full size) */
-+int
-+stacks(const Layout *l)
-+{
-+	return !l->arrange || l->arrange == monocle;
-+}
-+
-+/* spiral: the golden spiral. The first window takes mfact of the area (the golden ratio,
-+ * 0.618, unless Super+H / Super+L moved it), each next one the same share of what is left,
-+ * turning a quarter each time — left, top, right, bottom — so the windows wind inward and
-+ * never stack; the last fills what remains */
-+void
-+spiral(Monitor *m)
-+{
-+	int i = 0, n = 0, gap = (int)gappx;
-+	float f;
-+	Client *c;
-+	struct wlr_box a;
-+
-+	wl_list_for_each(c, &clients, link)
-+		if (VISIBLEON(c, m) && !c->isfloating && !c->isfullscreen)
-+			n++;
-+	if (n == 0)
-+		return;
-+	a = (struct wlr_box){.x = m->w.x + gap, .y = m->w.y + gap,
-+		.width = m->w.width - 2 * gap, .height = m->w.height - 2 * gap};
-+	f = m->mfact;
- 	wl_list_for_each(c, &clients, link) {
-+		struct wlr_box b = a;
-+		int k;
- 		if (!VISIBLEON(c, m) || c->isfloating || c->isfullscreen)
- 			continue;
+-	wl_list_for_each(c, &clients, link) {
+-		if (!VISIBLEON(c, m) || c->isfloating || c->isfullscreen)
+-			continue;
 -		if (i < m->nmaster) {
 -			resize(c, (struct wlr_box){.x = m->w.x, .y = m->w.y + my, .width = mw,
 -				.height = (m->w.height - my) / (MIN(n, m->nmaster) - i)}, 0);
@@ -948,35 +1153,33 @@
 -			resize(c, (struct wlr_box){.x = m->w.x + mw, .y = m->w.y + ty,
 -				.width = m->w.width - mw, .height = (m->w.height - ty) / (n - i)}, 0);
 -			ty += c->geom.height;
-+		if (i < n - 1) {
-+			switch (i % 4) {
-+			case 0: /* the left part; what is left: the right */
-+				k = (int)roundf((float)(a.width + gap) * f) - gap;
-+				b.width = k;
-+				a.x += k + gap; a.width -= k + gap;
-+				break;
-+			case 1: /* the top part; what is left: the bottom */
-+				k = (int)roundf((float)(a.height + gap) * f) - gap;
-+				b.height = k;
-+				a.y += k + gap; a.height -= k + gap;
-+				break;
-+			case 2: /* the right part; what is left: the left */
-+				k = (int)roundf((float)(a.width + gap) * f) - gap;
-+				b.x = a.x + a.width - k; b.width = k;
-+				a.width -= k + gap;
-+				break;
-+			default: /* the bottom part; what is left: the top */
-+				k = (int)roundf((float)(a.height + gap) * f) - gap;
-+				b.y = a.y + a.height - k; b.height = k;
-+				a.height -= k + gap;
-+				break;
-+			}
- 		}
-+		resize(c, b, 0);
- 		i++;
- 	}
- }
- 
++/* a layout that piles the windows on top of each other: floating (no arrange function;
++ * each new window centred over the last) */
++int
++stacks(const Layout *l)
++{
++	return !l->arrange;
++}
++
++/* spiral: the golden spiral, kept to sizes a window is useful at (spiralplace()). Should
++ * it not fit n windows at the smallest size, the even grid that comes nearest */
++void
++spiral(Monitor *m)
++{
++	struct wlr_box a, *b, *g;
++	int n = tiled(m, &a);
++	if (n == 0 || !(b = calloc((size_t)n, sizeof(*b))))
++		return;
++	if (!spiralplace(a, n, 0, m->mfact, b) && (g = calloc((size_t)n, sizeof(*g)))) {
++		tilegridbest(a, n, g);
++		if (tilescore(g, n) > tilescore(b, n))
++			memcpy(b, g, (size_t)n * sizeof(*b));
++		free(g);
++	}
++	tileapply(m, b);
++	free(b);
++}
++
 +/* ── popups ───────────────────────────────────────────────────────────────────────
 + * A popup is a menu in a window of its own (app-id "float": kawa-float's — the system
 + * menu, notes, the clipboard, btop…). It lasts while it has the focus: another window
@@ -1081,8 +1284,9 @@
 +			if (fgets(buf, sizeof(buf), f))
 +				mode = !strncmp(buf, "off", 3) ? 0 : !strncmp(buf, "always", 6) ? 2 : 1;
 +			fclose(f);
-+		}
-+	}
+ 		}
+-		i++;
+ 	}
 +	if (!m->wlr_output->enabled)
 +		return;
 +	if (!m->wlr_output->adaptive_sync_supported) {
@@ -1101,12 +1305,10 @@
 +		fprintf(stderr, "vrr: %s %s\n", m->wlr_output->name, want ? "on" : "off");
 +	}
 +	wlr_output_state_finish(&state);
-+}
-+
+ }
+ 
  void
- togglefloating(const Arg *arg)
- {
-@@ -2991,6 +3552,10 @@ unmapnotify(struct wl_listener *listener, void *data)
+@@ -2991,6 +3670,10 @@ unmapnotify(struct wl_listener *listener, void *data)
  	}
  	if (c == focused_client)
  		focused_client = NULL;
@@ -1117,7 +1319,7 @@
  
  	if (client_is_unmanaged(c)) {
  		if (c == exclusive_focus) {
-@@ -3170,6 +3735,8 @@ view(const Arg *arg)
+@@ -3170,6 +3853,8 @@ view(const Arg *arg)
  {
  	if (!selmon || (arg->ui & TAGMASK) == selmon->tagset[selmon->seltags])
  		return;
@@ -1126,7 +1328,7 @@
  	selmon->seltags ^= 1; /* toggle sel tagset */
  	if (arg->ui & TAGMASK)
  		selmon->tagset[selmon->seltags] = arg->ui & TAGMASK;
-@@ -3178,6 +3745,206 @@ view(const Arg *arg)
+@@ -3178,6 +3863,206 @@ view(const Arg *arg)
  	printstatus();
  }
  
@@ -1399,15 +1601,16 @@
  /* This conforms to the xdg-protocol. Set the alpha to zero to restore the old behavior */
  static const float fullscreen_bg[]         = {0.0f, 0.0f, 0.0f, 1.0f}; /* You can also use glsl colors */
  
-@@ -34,6 +36,7 @@ static const Layout layouts[] = {
+@@ -33,7 +35,7 @@ static const Layout layouts[] = {
+ 	/* symbol     arrange function */
  	{ "[]=",      tile },
  	{ "><>",      NULL },    /* no layout function means floating behavior */
- 	{ "[M]",      monocle },
+-	{ "[M]",      monocle },
 +	{ "(@)",      spiral },  /* the golden spiral (dwl.patch) */
  };
  
  /* monitors */
-@@ -125,8 +128,6 @@ static const Key keys[] = {
+@@ -125,8 +127,6 @@ static const Key keys[] = {
  	{ MODKEY|WLR_MODIFIER_SHIFT, XKB_KEY_Return,      spawn,            {.v = termcmd} },
  	{ MODKEY,                    XKB_KEY_j,           focusstack,       {.i = +1} },
  	{ MODKEY,                    XKB_KEY_k,           focusstack,       {.i = -1} },
@@ -1416,3 +1619,11 @@
  	{ MODKEY,                    XKB_KEY_h,           setmfact,         {.f = -0.05f} },
  	{ MODKEY,                    XKB_KEY_l,           setmfact,         {.f = +0.05f} },
  	{ MODKEY,                    XKB_KEY_Return,      zoom,             {0} },
+@@ -134,7 +134,6 @@ static const Key keys[] = {
+ 	{ MODKEY|WLR_MODIFIER_SHIFT, XKB_KEY_c,           killclient,       {0} },
+ 	{ MODKEY,                    XKB_KEY_t,           setlayout,        {.v = &layouts[0]} },
+ 	{ MODKEY,                    XKB_KEY_f,           setlayout,        {.v = &layouts[1]} },
+-	{ MODKEY,                    XKB_KEY_m,           setlayout,        {.v = &layouts[2]} },
+ 	{ MODKEY,                    XKB_KEY_space,       setlayout,        {0} },
+ 	{ MODKEY|WLR_MODIFIER_SHIFT, XKB_KEY_space,       togglefloating,   {0} },
+ 	{ MODKEY,                    XKB_KEY_e,           togglefullscreen, {0} },

@@ -177,8 +177,8 @@ for h in mirrors.fedoraproject.org mirrors.rpmfusion.org copr.fedorainfracloud.o
   elif ((CURL_RC == 60)); then fail "unreachable: $h" "its certificate is refused: the clock is wrong? ($(date '+%F %H:%M') — timedatectl set-ntp true)"
   else fail "unreachable: $h" "DNS, firewall or proxy?"; fi
 done
-# the weather line is a nicety, not part of the build: it may be down without stopping setup
-if reachable wttr.in; then pass "reachable: wttr.in (weather)"; else warn "unreachable: wttr.in" "quick settings shows the city without the weather until it answers"; fi
+# the weather is a nicety, not part of the build: it may be down without stopping setup
+if reachable api.open-meteo.com; then pass "reachable: api.open-meteo.com (weather)"; else warn "unreachable: api.open-meteo.com" "the bar shows no weather until it answers"; fi
 # the one thing a later Fedora can lack that ends setup hours in: dwl's wlroots (a machine
 # that already keeps its own copy needs nothing from this Fedora)
 if [[ -f /usr/local/lib/fedokawaii-wlroots-$DWL_WLROOTS/cflags ]]; then

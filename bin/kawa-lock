@@ -102,7 +102,7 @@ rm -f "$locked"
 # The date in English whatever the language (C), the ◆ box and the seal say the rest; its two
 # messages in the desktop's words (LANGUAGE=fk: the catalogue setup installs, art/gtklock.mo)
 setsid -f "$0" --keep env LC_TIME=C LANGUAGE=fk gtklock -s "$HOME/.config/fedokawaii/current/gtklock.css" "${layout[@]}" \
-  --date-format '%d %b' --time-format '%I:%M %p' \
+  --date-format '%a %d %b' --time-format '%I:%M %p' \
   --lock-command "kawa-lock --up" </dev/null >/dev/null 2>&1 9>&-
 # (gone after a second without locking — it could not start: said at once, not after 10 s)
 for ((i = 0; i < 100; i++)); do

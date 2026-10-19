@@ -18,6 +18,8 @@ set -u
 . "$HOME/.config/fedokawaii/icons.sh"
 # shellcheck source=/dev/null
 . "$HOME/.config/fedokawaii/current/colors.sh"
+# shellcheck source=/dev/null
+. "$HOME/.config/fedokawaii/screen.sh"
 BOOKS=${KAWA_BOOKS:-$HOME/Books}
 CACHE=${XDG_CACHE_HOME:-$HOME/.cache}/kawa-books
 # every list of the desktop looks alike: one options file (rules, colours, the chevron)
@@ -140,7 +142,9 @@ def size(n):
         if n < 1024 or u == "GB": return f"{n:.0f} {u}" if u == "B" else f"{n:.1f} {u}"
         n /= 1024
 
-R, G, T, B, S, O = "\033[91m", "\033[90m", "\033[96m", "\033[97m", "\033[37m", "\033[0m"
+# screen.sh's inks (foot's colours past the sixteen): accent_text, muted, edge2, the words' own
+K, G, E, O = "\033[38;5;20m", "\033[38;5;21m", "\033[38;5;19m", "\033[0m"
+glyph = f"  {G}{os.environ['ICON_BOOK']}{O}  "      # (a row: two spaces, the glyph, two spaces)
 rows = []
 for path, kind in found:
     if path not in fresh:
@@ -148,28 +152,28 @@ for path, kind in found:
     sz, mt, pages = fresh[path]
     seen = read.get(os.path.realpath(path)) or by_name.get(os.path.basename(path))
     title = os.path.splitext(os.path.basename(path))[0].replace("_", " ")
-    tw = width - 2 - 10 - 2 - 9
+    tw = width - 5 - 2 - 10 - 2 - 9
     if seen:
         page = seen[0] + 1
         done = bool(pages) and page >= pages
         # the bar: how much is read, in tenths — at least one once begun (a book without a
         # page count shows just that one: begun, how far unknown)
         n = 10 if done else max(round(10 * page / pages) if pages else 1, 1)
-        bar = (T if done else R) + "━" * n + G + "─" * (10 - n) + O
+        bar = (G if done else K) + "━" * n + E + "─" * (10 - n) + O
         # where you are, one way for every book: "87/120" — "37/–" where the book has no
         # fixed pages (an EPUB's depend on the window); "done"
         mark = "done" if done else (f"{page}/{pages}" if pages else f"{page}/–")
         info1 = f"read {ago(seen[1])}"         # (the page, and whether it is done: the list's)
-        color, key = (G if done else B), (1, seen[1])
+        color, key = (G if done else O), (1, seen[1])
         goto = str(page) if seen[2] else ""     # (found by name: moved since, so open it there)
     else:
-        bar, mark, goto = G + "─" * 10 + O, "new", ""
-        info1, color, key = "", S, (0, mt)     # (not opened yet: the list's "new" says it)
+        bar, mark, goto = E + "─" * 10 + O, "new", ""
+        info1, color, key = "", O, (0, mt)     # (not opened yet: the list's "new" says it)
     # the kind and size, and the page count only where the list's mark does not show it
     # ("87/120" does; "new" and "done" do not)
     shown = "/" in mark
     info2 = f"{kind} · {pages} page{'s' if pages != 1 else ''} · {size(sz)}" if pages and not shown else f"{kind} · {size(sz)}"
-    row = f"{color}{fit(title, tw)}{O}  {bar}  {G if not seen or mark == 'done' else S}{mark:>9}{O}"
+    row = f"{glyph}{color}{fit(title, tw)}{O}  {bar}  {G}{mark:>9}{O}"
     # the caption under the cover names the book only when the list had to cut its title
     whole = title if cols(title) > tw else ""
     rows.append((key, f"{path}\t{row}\t{info1}\t{info2}\t{goto}\t{whole}"))
@@ -182,9 +186,9 @@ PY
 # column is right however late the window got its final size (the list is asked for again
 # once fzf is up, and whenever the window changes size)
 rows() {
-  local w=${KAWA_BOOKS_W:-58}   # (the 104-column window)
-  [[ ${FZF_COLUMNS:-} =~ ^[0-9]+$ ]] && ((FZF_COLUMNS > 70)) && w=$((FZF_COLUMNS - 42))   # (a column of air before the cursor bar's end)
-  python3 -I -c "$ROWS" "$BOOKS" "$CACHE" "$DB" "$w" "${EXT[@]}"
+  local w=${KAWA_BOOKS_W:-61}   # (the 104-column window)
+  [[ ${FZF_COLUMNS:-} =~ ^[0-9]+$ ]] && ((FZF_COLUMNS > 70)) && w=$((FZF_COLUMNS - 41))   # (the cursor's fill a column past the text each side)
+  ICON_BOOK=$ICON_BOOK python3 -I -c "$ROWS" "$BOOKS" "$CACHE" "$DB" "$w" "${EXT[@]}"
 }
 
 # ── the cover: the first page (PDF, comics), the book's own cover (EPUB) or a plain card ──
@@ -348,9 +352,9 @@ case ${1:-} in
     { read -r k tr W; mapfile -t tl; } <"$lay"
     pad=$(printf '%*s' "$k" '')
     cat "$six"; printf '\n'                    # (the picture leaves the cursor on its last row)
-    for t in "${tl[@]}"; do printf '%s\e[97m%s\e[0m\n' "$pad" "$t"; done
-    [[ -n $info1 ]] && printf '%s\e[37m%s\e[0m\n' "$pad" "${info1:0:W}"
-    printf '%s\e[90m%s\e[0m' "$pad" "${info2:0:W}"
+    for t in "${tl[@]}"; do printf '%s%s\n' "$pad" "$t"; done
+    [[ -n $info1 ]] && printf '%s%s\n' "$pad" "${info1:0:W}"
+    printf '%s%s%s%s' "$pad" "$INK_MUTED" "${info2:0:W}" "$INK_OFF"
     exit 0 ;;
   --open)       # PATH [PAGE]: zathura reopens a book where it was closed; PAGE only for a book
                 # it knew under another path (moved since), so it opens there too
@@ -365,14 +369,14 @@ case ${1:-} in
     gio trash -- "$2" 2>/dev/null || notify-send -a desktop -- "$ICON_BOOK  books" "could not move ${2##*/} to the trash"
     exit 0 ;;
   --add)        # books elsewhere in your home → ~/Books (moved; a name taken gets " (2)")
-    title=" $(printf '\e[91m%s\e[0m' "$ICON_BOOK")  add books "$'\e[90m'"· ~/Downloads ~/Documents ~/Desktop"$'\e[0m '
+    # (the window's 104 columns: rows and heading 100 wide; the picked rows filled, as fzf.opts has it)
     args=(); for e in "${EXT[@]}"; do args+=(-e "$e"); done
     mapfile -t pick < <(fd -t f -i "${args[@]}" . \
         "$HOME/Downloads" "$HOME/Documents" "$HOME/Desktop" 2>/dev/null \
-      | while IFS= read -r p; do [[ $p == "$BOOKS"/* ]] || printf '%s\t%s\n' "$p" "${p/#"$HOME"/\~}"; done \
-      | fzf --ansi --multi --height=100% --margin=1,2 --delimiter=$'\t' --with-nth=2 \
-          --border-label="$title" --marker='┃' --color='selected-fg:14' \
-          --footer=$'\n''tab mark  ·  enter add  ·  esc back' \
+      | while IFS= read -r p; do [[ $p == "$BOOKS"/* ]] || printf '%s\t  %s%s%s  %s\n' "$p" "$INK_MUTED" "$ICON_BOOK" "$INK_OFF" "${p/#"$HOME"/\~}"; done \
+      | fzf --ansi --multi --height=100% --delimiter=$'\t' --with-nth=2 \
+          --header="$(screen_heading 本 "add books" 100)"$'\n ' --ghost='from ~/Downloads ~/Documents ~/Desktop' \
+          --footer=$'\n'"$(screen_footer 'tab mark' 'enter add' 'esc back')" \
       | cut -f1)
     for p in "${pick[@]}"; do
       [[ -f $p ]] || continue
@@ -396,23 +400,21 @@ find "$CACHE" -maxdepth 1 \( -name 'cover.*' -o -name '*.six.*' -o -name '*.lay.
   -mmin +1 -delete 2>/dev/null
 KAWA_CELL=$(kawa-cell) || exit 1
 read -r _ c < <(stty size 2>/dev/null); [[ ${c:-} =~ ^[0-9]+$ ]] && ((c > 70)) || c=104   # (the window kawa-float opens: 104 columns)
-KAWA_BOOKS_W=$((c - 46))   # (fzf's width is the window's less its margins: as FZF_COLUMNS - 42)
+KAWA_BOOKS_W=$((c - 43))   # (fzf's width is the window's less its margins: as FZF_COLUMNS - 41)
 export KAWA_CELL KAWA_BOOKS_W
 mapfile -t list < <(rows)
-title=" $(printf '\e[91m%s\e[0m' "$ICON_BOOK")  books "
-# (how many: fzf's own count says it, beside the search — the title says where they are)
-if ((${#list[@]})); then title+=$'\e[90m'"· ~/Books"$'\e[0m '
-else title+=$'\e[90m· none in ~/Books yet — ctrl+a adds some\e[0m '; fi
+# A text screen (docs/design-system.md §7, screen.sh): the heading — 本, books, the stitch over
+# the list's width — the search line, whose empty field says where they are, the list (each
+# row its glyph, the title, how far it is read), the cover pane, the keys
+head="$(screen_heading 本 books "$KAWA_BOOKS_W")"$'\n '
+# shellcheck disable=SC2088  # (words on the screen, not a path)
+if ((${#list[@]})); then ghost='~/Books'; else ghost='none in ~/Books yet — ctrl+a adds some'; fi
 self=$(printf '%q' "$0")
-# (with the cover pane, the rule under the search line is fzf's separator: it ends where the
-# list ends, as an input border would not — that one runs a column on, into the gap before
-# the pane's rule)
-printf '%s\n' "${list[@]}" | fzf --ansi --no-sort --height=100% --margin=1,2 \
-  --delimiter=$'\t' --with-nth=2 --tiebreak=index --border-label="$title" \
-  --input-border=none --separator='─' \
+printf '%s\n' "${list[@]}" | fzf --ansi --no-sort --height=100% \
+  --delimiter=$'\t' --with-nth=2 --tiebreak=index --header="$head" --ghost="$ghost" \
   --preview="$self --preview {1} {3} {4} {6}" --preview-window='right,36,border-left,noinfo,wrap' \
   --preview-wrap-sign=' ' \
-  --footer=$'\n''enter read  ·  ctrl+a add  ·  ctrl+d remove  ·  esc close' \
+  --footer=$'\n'"$(screen_footer 'enter read' 'ctrl+a add' 'ctrl+d remove' 'esc close')" \
   --bind="enter:become($self --open {1} {5})" \
   --bind="ctrl-a:become($self --add)" \
   --bind="start:reload-sync($self --rows)" --bind="resize:reload-sync($self --rows)" \

@@ -26,6 +26,9 @@ newest() { ls "$CLIP_DB" | sort -n | tail -n1; }
 binary() { python3 -I -c 'import sys; sys.stdout.buffer.write((bytes(range(255, -1, -1)) * 12)[:3000])'; }
 prev() { FZF_PREVIEW_COLUMNS=${COLS:-74} FZF_PREVIEW_LINES=${LINES_:-9} KAWA_CELL=9x21 kawa-clip --preview "$@"; }
 . "$HOME/.config/fedokawaii/icons.sh" 2>/dev/null || . "$REPO/configs/home/.config/fedokawaii/icons.sh"
+# rows LIST — the list's rows as words: its own inks (screen.sh's: 38;5;N and the reset) out, the
+# row's indent and glyph out (checked on their own), its padding as two spaces — "ID<tab>name  value"
+rows() { sed -e $'s/\e\\[38;5;[0-9]*m//g; s/\e\\[0m//g' -e $'s/\t  [^ ]*  /\t/; s/   */  /g'; }
 
 # ── the list ─────────────────────────────────────────────────────────────────
 setup
@@ -35,32 +38,38 @@ put '日本語 العربية $(touch %s/pwned) `id`' "$TMP"
 magick -size 640x480 xc:'#5f7fa0' png:- | python3 -I "$C/fake_cliphist.py" store
 magick -size 64x32 xc:'#5f7fa0' jpg:- | python3 -I "$C/fake_cliphist.py" store
 binary | python3 -I "$C/fake_cliphist.py" store
-out=$(kawa-clip --list)
+raw=$(kawa-clip --list); out=$(rows <<<"$raw")
 case_ "the list: newest first, each row its cliphist id, a tab, and what it shows"
 eq "$(cut -f1 <<<"$out" | tr '\n' ' ')" "6 5 4 3 2 1 "
+case_ "a row as every text screen's (screen.sh): two spaces, the glyph in muted, two spaces, the name; a value right-aligned at the window's 76th column, muted"
+eq "$(grep $'^4\t' <<<"$raw" | cut -f2 | sed -e $'s/\e\\[[0-9;]*m//g' | LC_ALL=C.UTF-8 wc -L)" 76
+has "$raw" $'4\t  \e[38;5;21m'"$ICON_PICTURE"$'\e[0m  png picture  '
+has "$raw" $'3\t  \e[38;5;21m'"$ICON_CLIPBOARD"$'\e[0m  日本語'
+eq "$(FZF_COLUMNS=60 kawa-clip --list | grep $'^4\t' | cut -f2 | sed -e $'s/\e\\[[0-9;]*m//g' | LC_ALL=C.UTF-8 wc -L)" 58 "a reload: fzf's width less a column each side"
 has "$out" $'1\tline one line two with tab line three' "newlines and tabs read as spaces"
 has "$out" $'2\t-rf --no-preserve-root /' "a leading dash is just text"
 has "$out" $'3\t日本語 العربية $(touch '"$TMP"'/pwned) `id`'
 [[ ! -e $TMP/pwned ]] && _ok || _no "a copied \$(…) ran"
 case_ "pictures are named: kind, size in pixels and bytes"
-has "$out" $'4\t'"$ICON_PICTURE  png picture  640×480  ·  "
-has "$out" $'5\t'"$ICON_PICTURE  jpeg picture  64×32  ·  "
+has "$out" $'4\tpng picture  640×480 · '
+has "$out" $'5\tjpeg picture  64×32 · '
 case_ "binary data that is not a picture: a row of its own, named"
-eq "$(grep $'^6\t' <<<"$out")" $'6\t'"$ICON_BOX_OFF  data  ·  not text"
+eq "$(grep $'^6\t' <<<"$out")" $'6\tdata  not text'
+has "$raw" $'6\t  \e[38;5;21m'"$ICON_BOX_OFF"
 
 case_ "an escape in a copy (colour codes, a clear-screen): shown as ^[, never acted on"
 setup
 put 'red \033[31mtext\033[0m, a clear \033[2J and a bell \a'
-out=$(kawa-clip --list)
+out=$(kawa-clip --list | rows)
 lacks "$out" $'\e' "an escape in the list (fzf --ansi would act on it)"
 has "$out" $'1\tred ^[[31mtext^[[0m, a clear ^[[2J and a bell \a' "(other control characters: fzf shows them as ^G)"
 case_ "bytes that are not text (cliphist shows them as �): a 'data' row, not the scrambling bytes"
 binary | python3 -I "$C/fake_cliphist.py" store
-eq "$(kawa-clip --list | grep $'^2\t')" $'2\t'"$ICON_BOX_OFF  data  ·  not text"
+eq "$(kawa-clip --list | rows | grep $'^2\t')" $'2\tdata  not text'
 case_ "an escape in a text's preview: shown as ^[; tabs and lines kept; Windows line ends quiet"
-eq "$(prev 1)" $'  red ^[[31mtext^[[0m, a clear ^[[2J and a bell \a'
+eq "$(prev 1)" $'   red ^[[31mtext^[[0m, a clear ^[[2J and a bell \a'
 put 'one\r\ntwo\tcolumns\r\n'
-eq "$(prev 3)" $'  one\n  two\tcolumns'
+eq "$(prev 3)" $'   one\n   two\tcolumns'
 
 case_ "an empty history: no rows, no error"
 setup
@@ -74,33 +83,33 @@ eq "$(PATH=$(without cliphist) kawa-clip --list 2>&1)" ""
 case_ "text: the whole of it, two columns in, tabs and lines kept"
 setup
 put 'line one\n\tline two\twith tab\nline three'
-eq "$(prev 1)" $'  line one\n  \tline two\twith tab\n  line three'
+eq "$(prev 1)" $'   line one\n   \tline two\twith tab\n   line three'
 put -- '--version'
-eq "$(prev 2)" '  --version' "a leading dash is shown, not taken as an option"
+eq "$(prev 2)" '   --version' "a leading dash is shown, not taken as an option"
 
-case_ "a huge copy: the first 64 KiB, two columns in"
+case_ "a huge copy: the first 64 KiB, three columns in (the list's glyphs' column)"
 python3 -c 'print("x" * 300000, end="")' | python3 -I "$C/fake_cliphist.py" store
 id=$(newest); out=$(prev "$id")
-eq "${#out}" $((65536 + 2))
+eq "${#out}" $((65536 + 3))
 
 case_ "code, mail and keys are text too (not 'application/…, N bytes')"
 put 'const fs = require("fs");\nfunction f(a) { return a + 1; }\nmodule.exports = f;\n'
-has "$(prev "$(newest)")" '  const fs = require("fs");' "JavaScript"
+has "$(prev "$(newest)")" '   const fs = require("fs");' "JavaScript"
 put 'From: a@example.com\nTo: b@example.com\nSubject: hi\n\nbody\n'
-has "$(prev "$(newest)")" '  Subject: hi' "an e-mail"
+has "$(prev "$(newest)")" '   Subject: hi' "an e-mail"
 put -- '-----BEGIN PGP PUBLIC KEY BLOCK-----\nmQENBF\n-----END PGP PUBLIC KEY BLOCK-----\n'
-has "$(prev "$(newest)")" '  -----BEGIN PGP PUBLIC KEY BLOCK-----' "a PGP key"
+has "$(prev "$(newest)")" '   -----BEGIN PGP PUBLIC KEY BLOCK-----' "a PGP key"
 put '{"a": [1, 2]}'
-eq "$(prev "$(newest)")" '  {"a": [1, 2]}' "JSON"
+eq "$(prev "$(newest)")" '   {"a": [1, 2]}' "JSON"
 
 case_ "binary data: its kind and size, not its bytes"
 binary | python3 -I "$C/fake_cliphist.py" store
-eq "$(prev "$(newest)")" "  $ICON_BOX_OFF  application/octet-stream, 3000 bytes"
+eq "$(prev "$(newest)")" "   $ICON_BOX_OFF  application/octet-stream, 3000 bytes"
 head -c 100 /dev/zero | python3 -I "$C/fake_cliphist.py" store
-eq "$(prev "$(newest)")" "  $ICON_BOX_OFF  application/octet-stream, 100 bytes" "zero bytes"
+eq "$(prev "$(newest)")" "   $ICON_BOX_OFF  application/octet-stream, 100 bytes" "zero bytes"
 
 case_ "no XDG_RUNTIME_DIR (a shell outside the session): the preview and the copy still work"
-eq "$(env -u XDG_RUNTIME_DIR FZF_PREVIEW_COLUMNS=74 FZF_PREVIEW_LINES=9 kawa-clip --preview 1 2>&1)" $'  line one\n  \tline two\twith tab\n  line three'
+eq "$(env -u XDG_RUNTIME_DIR FZF_PREVIEW_COLUMNS=74 FZF_PREVIEW_LINES=9 kawa-clip --preview 1 2>&1)" $'   line one\n   \tline two\twith tab\n   line three'
 rc 0 env -u XDG_RUNTIME_DIR kawa-clip --copy 1
 
 case_ "the preview of an id that is not there (forgotten meanwhile), or not an id: nothing"
@@ -149,14 +158,14 @@ case_ "a broken picture (cut short): its kind in words, nothing on stderr"
 magick -size 640x480 plasma: png:- 2>/dev/null | head -c 300 | python3 -I "$C/fake_cliphist.py" store
 id=$(newest); err=$(prev "$id" 2>&1 >/dev/null); out=$(prev "$id" 2>/dev/null)
 eq "$err" "" "an fzf preview shows stderr"
-[[ $out == *$'\e'Pq* || $out == *$'\e'P0\;1\;* || $out == "  $ICON_PICTURE  picture (png)" ]] && _ok \
+[[ $out == *$'\e'Pq* || $out == *$'\e'P0\;1\;* || $out == "   $ICON_PICTURE  picture (png)" ]] && _ok \
   || _no "neither a picture nor its kind: ${out:0:80}"
 printf 'GIF89a\x10\x00\x10\x00garbage' | python3 -I "$C/fake_cliphist.py" store
-eq "$(prev "$(newest)" 2>&1)" "  $ICON_PICTURE  picture (gif)" "a header and nothing after it"
+eq "$(prev "$(newest)" 2>&1)" "   $ICON_PICTURE  picture (gif)" "a header and nothing after it"
 
 case_ "a preview too short or too narrow for a picture: its kind in words"
-eq "$(LINES_=2 prev 1 2>&1)" "  $ICON_PICTURE  picture (png)"
-eq "$(COLS=0 prev 1 2>&1)" "  $ICON_PICTURE  picture (png)"
+eq "$(LINES_=2 prev 1 2>&1)" "   $ICON_PICTURE  picture (png)"
+eq "$(COLS=0 prev 1 2>&1)" "   $ICON_PICTURE  picture (png)"
 has "$(COLS=1 prev 1 | sixel_info | jget raster)" "[1, 1, 9, 168]" "one column: a picture one column wide"
 
 case_ "Turkish and Arabic locales: the list and the picture as in English, no stray files"
@@ -173,7 +182,7 @@ unset LOCPATH
 
 case_ "kawa-sixel failing: the kind in words, never its error"
 stub kawa-sixel 'cat >/dev/null; echo "kawa-sixel: boom" >&2; exit 1'
-eq "$(prev 1 2>/dev/null)" "  $ICON_PICTURE  picture (png)"
+eq "$(prev 1 2>/dev/null)" "   $ICON_PICTURE  picture (png)"
 
 case_ "a preview killed half-way (fzf kills one when you move on): its copy does not stay in memory"
 setup
@@ -206,7 +215,7 @@ magick -size 1920x1080 xc:'#d0583a' png:- >"$TMP/shot.png"
 offer image/png; bytes image/png <"$TMP/shot.png"; cp "$TMP/shot.png" "$TMP/stdin"
 rc 0 store
 cmp -s "$CLIP_DB/1" "$TMP/shot.png" && _ok || _no "the screenshot's bytes changed on the way"
-has "$(kawa-clip --list)" $'1\t'"$ICON_PICTURE  png picture  1920×1080  ·  "
+has "$(kawa-clip --list | rows)" $'1\tpng picture  1920×1080 · '
 has "$(prev 1 | sixel_info | jget raster)" "666, 168" "previewed as a sixel"
 
 case_ "Brave's Copy image (the picture, its <img> tag and its link — wl-paste hands over the link): the picture"
@@ -274,7 +283,7 @@ case_ "the history keeps the newest 100 (cliphist is told so at every copy)"
 store_setup; offer 'text/plain;charset=utf-8'
 for i in $(seq 1 105); do printf 'copy %d' "$i" >"$TMP/stdin"; store; done
 eq "$(kawa-clip --list | wc -l)" 100
-eq "$(kawa-clip --list | head -n1 | cut -f2)" "copy 105"; eq "$(kawa-clip --list | tail -n1 | cut -f2)" "copy 6"
+eq "$(kawa-clip --list | rows | head -n1 | cut -f2)" "copy 105"; eq "$(kawa-clip --list | rows | tail -n1 | cut -f2)" "copy 6"
 has "$(cat "$CLIP_DB.log")" "-max-items 100 store"
 
 case_ "nothing left behind in the runtime folder"
@@ -361,8 +370,8 @@ for key in "--preview=" "--bind=enter:become(" "--bind=ctrl-d:execute-silent("; 
   [[ -n $line ]] && _ok || _no "no $key"
 done
 pcmd=$(grep -F -- "--preview=" "$FZF_ARGS"); pcmd=${pcmd#--preview=}
-eq "$(sh -c "${pcmd//\{1\}/1}" 2>&1)" "  hello there" "the preview, run as fzf runs it (sh -c)"
-eq "$(bash -c "${pcmd//\{1\}/1}" 2>&1)" "  hello there" "and with bash as \$SHELL"
+eq "$(sh -c "${pcmd//\{1\}/1}" 2>&1)" "   hello there" "the preview, run as fzf runs it (sh -c)"
+eq "$(bash -c "${pcmd//\{1\}/1}" 2>&1)" "   hello there" "and with bash as \$SHELL"
 ccmd=$(grep -F -- "--bind=enter:become(" "$FZF_ARGS"); ccmd=${ccmd#--bind=enter:become(}; ccmd=${ccmd%)}
 sh -c "${ccmd//\{1\}/1}"; eq "$(cat "$COPIED")" "hello there" "enter, run as fzf runs it"
 
@@ -373,6 +382,86 @@ stub footclient 'while [ "$1" != -- ]; do shift; done; shift; sleep 1; exec "$@"
 for _ in {1..20}; do kawa-clip & done; wait
 eq "$(grep -c '^footclient' "$CALLS")" 1 "footclient started once"
 eq "$(grep -c '^fzf' "$CALLS")" 1
+
+# ── Super+Z on an entry: the cursor's entry kept while the window is open ────
+# (the window's fzf a stand-in that waits for $TMP/close; the bindings run as fzf runs them)
+cur() { cat "$XDG_RUNTIME_DIR/kawa-clip.current" 2>/dev/null; }
+open_window() {   # open_window [setsid] — kawa-clip --tui in the background, WIN its pid
+  rm -f "$TMP/close" "$FZF_ARGS"
+  stub fzf 'for a; do printf "%s\n" "$a"; done >"$FZF_ARGS"; cat >/dev/null; while [ ! -e "$TMP/close" ]; do sleep 0.05; done'
+  "$@" kawa-clip --tui 2>/dev/null & WIN=$!     # (bash says "Hangup" of a hung-up fzf)
+  on_exit "touch '$TMP/close' 2>/dev/null; kill $WIN 2>/dev/null"
+  for _ in {1..100}; do [[ -s $FZF_ARGS && -n $(cur) ]] && break; sleep 0.05; done
+}
+bind() {          # bind EVENT ID [VAR=VALUE…] — run that binding's command as fzf would ({1}: ID)
+  local c; c=$(grep -F -- "--bind=$1:" "$FZF_ARGS"); c=${c#--bind=$1:execute-silent(}
+  c=${c%%)+execute-silent(*}; c=${c%)}                 # (the first command)
+  env "${@:3}" sh -c "${c//\{1\}/$2}"
+}
+case_ "the window open: the file says so — its pid, nothing under the cursor yet"
+setup; put 'one'; put 'two'; put 'three'
+open_window
+eq "$(cur)" "$WIN "
+rc 0 kawa-clip --held; eq "$(kawa-clip --held)" ""
+case_ "… the cursor moved (fzf's focus event): that entry, for Super+Z (kawa-clip --held)"
+bind focus 2 >/dev/null 2>&1
+eq "$(cur)" "$WIN 2"; eq "$(kawa-clip --held)" 2
+case_ "… a new result (a search, a reload — the cursor on another entry in the same place): that one"
+bind result 3 FZF_MATCH_COUNT=3 >/dev/null 2>&1
+eq "$(kawa-clip --held)" 3
+case_ "… the search matching nothing (fzf runs no {1} command then): no entry under the cursor"
+c=$(grep -F -- "--bind=result:" "$FZF_ARGS"); c=${c#*+execute-silent(}; c=${c%)}
+FZF_MATCH_COUNT=0 sh -c "$c"; eq "$(cur)" "$WIN "
+FZF_MATCH_COUNT=0 bash -c "$c"; eq "$(cur)" "$WIN " "(with bash as \$SHELL)"
+bind focus 1 >/dev/null 2>&1; FZF_MATCH_COUNT=2 sh -c "$c"; eq "$(kawa-clip --held)" 1 "matches: left as it is"
+case_ "… fzf listens on its socket, for the history's reload"
+has "$(cat "$FZF_ARGS")" "--listen=$XDG_RUNTIME_DIR/kawa-clip.sock"
+has "$(cat "$FZF_ARGS")" "super+z shrink" "the footer names the key"
+case_ "a new copy while it is open (--store): the window's list reloaded, the cursor on the newest"
+stub curl
+store_setup_keep() { stub wl-paste 'case $1 in --list-types) echo "text/plain;charset=utf-8" ;; esac'; }
+store_setup_keep; printf 'four' | CLIPBOARD_STATE=data kawa-clip --store
+called "^curl .*--unix-socket $XDG_RUNTIME_DIR/kawa-clip.sock --data-binary reload\\($REPO/bin/kawa-clip --list\\)\\+first http://localhost/\$"
+eq "$(kawa-clip --list | rows | head -n1 | cut -f2)" four
+case_ "Esc: the window's file goes with it; then there is no window (--held: exit 1)"
+touch "$TMP/close"; wait "$WIN"
+[[ ! -e $XDG_RUNTIME_DIR/kawa-clip.current ]] && _ok || _no "the file stayed: $(cur)"
+rc 1 kawa-clip --held
+case_ "… and a copy then pokes nothing"
+reset_calls; printf 'five' | CLIPBOARD_STATE=data kawa-clip --store; not_called '^curl'
+case_ "closed from outside (dwl hangs up its process group): the file goes too"
+open_window /usr/bin/setsid
+eq "$(cur)" "$WIN "
+kill -HUP -- "-$WIN"; { wait "$WIN"; } 2>/dev/null
+[[ ! -e $XDG_RUNTIME_DIR/kawa-clip.current ]] && _ok || _no "the file stayed: $(cur)"
+case_ "a file left by a window killed outright (its pid gone, or now another program's): no window"
+sh -c 'exit 0' & dead=$!; wait "$dead"
+printf '%s 1\n' "$dead" >"$XDG_RUNTIME_DIR/kawa-clip.current"; rc 1 kawa-clip --held
+sleep 30 & other=$!; on_exit "kill $other 2>/dev/null"
+printf '%s 1\n' "$other" >"$XDG_RUNTIME_DIR/kawa-clip.current"; rc 1 kawa-clip --held
+reset_calls; printf 'six' | CLIPBOARD_STATE=data kawa-clip --store; not_called '^curl'
+kill "$other" 2>/dev/null
+case_ "… nor do odd lines in it count: --focus takes a pid and an id, nothing else"
+rc 0 kawa-clip --focus 'x' 1; rc 0 kawa-clip --focus "$$" '1;touch x'
+eq "$(cur)" "$other 1" "unchanged"
+
+if [[ -z $REAL_FZF ]] || ! command -v curl >/dev/null; then
+  skip "no fzf or curl here: the window's events are not run for real"
+else
+  case_ "for real (fzf $("$REAL_FZF" --version | cut -d' ' -f1)): the cursor followed, a new copy shown on top and under it, the file gone when it closes"
+  setup; put 'one'; put 'two'; put 'three'
+  config .config/fedokawaii/fzf.opts; stub fzf "exec '$REAL_FZF' \"\$@\""
+  # ↓ twice (the list is newest first): entry 1; then a copy comes; the window is hung up at 6 s
+  python3 -I "$C/pty_run.py" --cols 80 --rows 27 --send 1.5 '\x1b[B' --send 2 '\x1b[B' --hangup 6 -- kawa-clip --tui >/dev/null 2>&1 &
+  pty=$!; on_exit "kill $pty 2>/dev/null"
+  for _ in {1..60}; do [[ $(kawa-clip --held 2>/dev/null) == 1 ]] && break; sleep 0.05; done
+  eq "$(kawa-clip --held)" 1 "the cursor two down, on the oldest"
+  store_setup_keep; printf 'four' | CLIPBOARD_STATE=data kawa-clip --store
+  for _ in {1..60}; do [[ $(kawa-clip --held 2>/dev/null) == 4 ]] && break; sleep 0.05; done
+  eq "$(kawa-clip --held)" 4 "the new copy, on top, under the cursor"
+  wait "$pty"
+  [[ ! -e $XDG_RUNTIME_DIR/kawa-clip.current && ! -e $XDG_RUNTIME_DIR/kawa-clip.sock ]] && _ok || _no "left: $(ls "$XDG_RUNTIME_DIR")"
+fi
 
 case_ "misuse and help"
 setup

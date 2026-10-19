@@ -108,7 +108,7 @@ kawa-theme apply" "in this order, the display's modes and the theme before any h
 called "^waybar $"; called "^kawa-panel $"; called "^mako $"; called "^foot --server$"; called "^udiskie $"; called "^wl-paste --watch kawa-clip --store$"
 called "^gammastep -l 25.35:55.40 -t 6500:4200$"; called "^lxqt-policykit-agent $"; called "^kawa-drives watch$"
 called "^swayidle -w timeout 3600 wlopm --off '\*' resume wlopm --on '\*' after-resume wlopm --on '\*'; kawa-lock --resumed before-sleep kawa-lock --now$"
-called "^kawa-clipkeep $"; called "^kawa-steam --warm$"; not_called "^notify-send"
+called "^kawa-clipkeep $"; called "^kawa-steam --warm$"; called "^kawa-steam --guard$"; not_called "^notify-send"
 for d in waybar kawa-panel mako foot udiskie wl-paste gammastep swayidle kawa-dwlstatus kawa-clipkeep; do eq "$(running "$d")" 1 "one $d"; done
 [[ ! -e $XDG_RUNTIME_DIR/dwl-bar/OLD ]] && _ok || _no "the last session's bar state was kept"
 case_ "dwl's status reaches the bar (one monitor)$n"
@@ -134,7 +134,7 @@ done
 ASH=sh=bash
 case_ "two monitors: each bar's files from dwl's status"
 setup; up; settled kawa-dwlstatus
-{ block DP-1 0 1 1 0 '[]=' 0 "left"; block HDMI-A-1 1 2 2 0 '[M]' 0 "right"; } | tell
+{ block DP-1 0 1 1 0 '[]=' 0 "left"; block HDMI-A-1 1 2 2 0 '|||' 0 "right"; } | tell
 waitfor "$BAR/HDMI-A-1/title.json"; waitfor "$BAR/kb.json"; nap 1
 eq "$(bar DP-1/title)" '{"text":"left"}'; eq "$(bar HDMI-A-1/title)" '{"text":"right"}'; eq "$(bar title)" '{"text":"right"}'
 quit; down

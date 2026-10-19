@@ -10,6 +10,7 @@ setup() {
   export NP=$TMP/np; mkdir -p "$NP/steps"; : >"$NP/players"
   stub playerctl 'exec bash '"$SD"'/fake_playerctl "$@"'
   stub cava 'exec bash '"$SD"'/fake_cava "$@"'
+  stub pw-metadata 'exec bash '"$SD"'/fake_pwmeta "$@"'
 }
 P() { printf '%s\x1f%s\x1f%s\x1f%s' "$@"; }          # P INSTANCE STATUS ARTIST TITLE — a player
 step() {   # step EMIT [PLAYER…] — the follow stream prints EMIT ("" = no player); the players then
@@ -38,7 +39,7 @@ minipath() {
   printf '%s' "$STUBS:$REPO/bin:$TMP/bin"
 }
 alive() { local p; for p in $(cat "$@" 2>/dev/null); do kill -0 "$p" 2>/dev/null && return 0; done; return 1; }
-clean() { local p; for p in $(cat "$NP/pids" "$NP/cava.pids" 2>/dev/null); do kill "$p" 2>/dev/null; done; }
+clean() { local p; for p in $(cat "$NP/pids" "$NP/cava.pids" "$NP/pwmeta.pids" 2>/dev/null); do kill "$p" 2>/dev/null; done; }
 EQ() { local s="" c; for c; do case $c in 5) s+=$ICON_EQ_5$ICON_EQ_CAP ;; *) s+=$(eval "printf %s \"\$ICON_EQ_$c\"") ;; esac; done; printf '%s' "$s"; }
 
 # ── no player, one player ────────────────────────────────────────────────────
@@ -61,12 +62,12 @@ out=$(bar)
 json_lines "$out"; markup_ok "$out"
 eq "$(last "$out")" "playing|$(EQ 0 1 2 3 4 5 5 4)  $ICON_CASSETTE_A  Mariya Takeuchi — Plastic Love  $(EQ 3 2 1 0 0 1 2 3)"
 has "$(tail -n 1 <<<"$out")" "<span color='#$(. "$HOME/.config/fedokawaii/current/colors.sh"; echo "$C_ACCENT")'>$ICON_EQ_CAP</span>" "the peak lamp"
-case_ "… the reels turn while there is sound (every 4th frame), not in silence"
-setup; for i in {1..8}; do echo "1;1;1;1;1;1;1;1;1;1;1;1;1;1;1;1;"; done >"$NP/frames"
+case_ "… the reels turn while there is sound (every 12th frame: 5 a second at 60), not in silence"
+setup; for i in {1..24}; do echo "1;1;1;1;1;1;1;1;1;1;1;1;1;1;1;1;"; done >"$NP/frames"
 step "$(P mpv Playing '' 'film.mkv')"
 out=$(bar)
 has "$out" "$ICON_CASSETTE_B"; has "$out" "$ICON_CASSETTE_A"
-setup; for i in {1..8}; do echo "0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;"; done >"$NP/frames"
+setup; for i in {1..24}; do echo "0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;"; done >"$NP/frames"
 step "$(P mpv Playing '' 'film.mkv')"
 out=$(bar); lacks "$out" "$ICON_CASSETTE_B" "silence: the reels stand still"
 case_ "a frame that is not 16 bands of 0–5: ignored"
@@ -164,12 +165,12 @@ t=$(last "$out"); t=${t#*  }; eq "${#t}" 48
 # ── the program around it ────────────────────────────────────────────────────
 case_ "playerctl missing: the module hidden, and the script ends (waybar retries in 5 s)"
 setup; rm "$STUBS/playerctl"
-out=$(PATH=$(minipath bash cat timeout pkill) timeout 10 kawa-nowplaying 2>/dev/null); r=$?
+out=$(PATH=$(minipath bash cat timeout pkill pgrep) timeout 10 kawa-nowplaying 2>/dev/null); r=$?
 eq "$out" '{"text":""}'; eq "$r" 0
 case_ "cava missing: the cassette and the title, no meter"
 setup; rm "$STUBS/cava"; printf '%s\n' "5;5;5;5;5;5;5;5;5;5;5;5;5;5;5;5;" >"$NP/frames"
 step "$(P spotify Playing A Song)"
-out=$(PATH=$(minipath bash cat timeout pkill cp cut grep head) bar)
+out=$(PATH=$(minipath bash cat timeout pkill pgrep cp cut grep head) bar)
 eq "$(last "$out")" "playing|$ICON_CASSETTE_A  A — Song"
 case_ "the bar goes away (waybar killed: SIGPIPE ignored, the next write fails): the script ends, playerctl and cava with it"
 setup; : >"$NP/hold"; printf '%s\n' "1;1;1;1;1;1;1;1;1;1;1;1;1;1;1;1;" >"$NP/frames"
@@ -197,6 +198,24 @@ waitfor 3 test -s "$NP/cava.pids"
 kill -TERM "$np"; wait "$np" 2>/dev/null
 waitfor 3 eval '! alive "$NP/pids" "$NP/cava.pids"' && _ok || { _no "playerctl or cava outlived the script"; clean; }
 json_lines "$(cat "$TMP/out")"
+
+case_ "the default output changes while a song plays (headphones, a headset): cava starts again on it, the one before gone"
+setup; : >"$NP/hold"; printf '%s\n' "1;1;1;1;1;1;1;1;1;1;1;1;1;1;1;1;" >"$NP/frames"; echo headset >"$NP/sink-later"
+step "$(P spotify Playing A Song)" "$(P spotify Playing A Song)"
+kawa-nowplaying >"$TMP/out" 2>/dev/null & np=$!
+waitfor 5 eval '(($(cat "$NP/cava.pids" 2>/dev/null | wc -l) == 2))' && _ok || _no "cava not started again ($(wc -l <"$NP/cava.pids" 2>/dev/null) start(s))"
+eq "$(cat "$NP/pwmeta.args")" "-n default -m" "PipeWire's default output, watched"
+waitfor 3 eval '! kill -0 "$(head -n 1 "$NP/cava.pids")" 2>/dev/null' && _ok || _no "the first cava still runs"
+kill -TERM "$np"; wait "$np" 2>/dev/null
+waitfor 3 eval '! alive "$NP/pids" "$NP/cava.pids" "$NP/pwmeta.pids"' && _ok || { _no "playerctl, cava or pw-metadata outlived the script"; clean; }
+case_ "… the same output said again (another key changed): cava left running"
+setup; : >"$NP/hold"; printf '%s\n' "1;1;1;1;1;1;1;1;1;1;1;1;1;1;1;1;" >"$NP/frames"; echo speakers >"$NP/sink-later"
+step "$(P spotify Playing A Song)" "$(P spotify Playing A Song)"
+kawa-nowplaying >"$TMP/out" 2>/dev/null & np=$!
+waitfor 3 test -s "$NP/cava.pids"; sleep 1.5
+eq "$(wc -l <"$NP/cava.pids")" 1 "one cava"
+kill -TERM "$np"; wait "$np" 2>/dev/null
+waitfor 3 eval '! alive "$NP/pids" "$NP/cava.pids" "$NP/pwmeta.pids"' && _ok || { _no "something outlived the script"; clean; }
 
 # ── the media keys ───────────────────────────────────────────────────────────
 keys() { printf '%s\n' "$@" >"$NP/players"; }

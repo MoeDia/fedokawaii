@@ -11,18 +11,35 @@ the scratch folder come from FEDOKAWAII_SCRATCH, the output folder from FEDOKAWA
 if len(sys.argv) > 1:
     print(USAGE, file=sys.stdout if sys.argv[1] in ("-h", "--help") else sys.stderr)
     sys.exit(0 if sys.argv[1] in ("-h", "--help") else 2)
-import markdown, numpy as np
+sys.dont_write_bytecode = True                 # (no __pycache__ left in the repository)
+import markdown, numpy as np, importlib.util
 from PIL import Image, ImageDraw, ImageFont
 S = os.environ.get("FEDOKAWAII_SCRATCH") or sys.exit("handbook.py: FEDOKAWAII_SCRATCH names the folder with the renders (real/shots)")
 # the repository this script belongs to (docs/build/ → its root), never a fixed path: run from a
 # copy, it builds that copy
 REPO = os.environ.get("FEDOKAWAII_REPO", str(Path(__file__).resolve().parents[2]))
+# the palette: the desktop's own (tools/build-themes.py, the only place a colour is written
+# down) — the light theme's tokens are the book's ink and paper, the dark theme's the cover's
+_spec = importlib.util.spec_from_file_location("build_themes", f"{REPO}/tools/build-themes.py")
+_bt = importlib.util.module_from_spec(_spec); _spec.loader.exec_module(_bt)
+LT, DK = _bt.P["light"], _bt.P["dark"]
+def rgb(h): return tuple(int(h[i:i + 2], 16) for i in (0, 2, 4))
+def stitch(col, on, per, h, k=4):
+    """the stitched rule's tile as a PNG data URL: ON px of COL then transparent to PER, H tall,
+    drawn K times larger (sharp when the page is zoomed). An image, never a CSS gradient:
+    Chromium prints a repeating gradient as a picture of its whole clip — on a table row, a
+    page-sized one per row (18 000 of them: a 135 MB PDF that took most of an hour)."""
+    import base64, io
+    t = Image.new("RGBA", (per * k, h * k), (0, 0, 0, 0))
+    t.paste(rgb(col) + (255,), (0, 0, on * k, h * k))
+    b = io.BytesIO(); t.save(b, "PNG")
+    return "url(data:image/png;base64," + base64.b64encode(b.getvalue()).decode() + ")"
 CHROME = os.environ.get("FEDOKAWAII_CHROME", "/opt/pw-browsers/chromium-1194/chrome-linux/chrome")
 OUT = os.environ.get("FEDOKAWAII_OUT", f"{S}/guide")   # (test copy: configurable)
 IMG = f"{OUT}/img2"
 R = f"{S}/real/shots"
 NM = f"{S}/mock/node_modules/@fontsource"
-GAP = (90, 90, 90)
+GAP = rgb(LT["muted"])                     # between the two themes' pictures: the panels' frame grey
 os.makedirs(IMG, exist_ok=True)
 # the desktop's own faces: Fusion Pixel (as setup installs it) for headings and labels, the
 # toolkit's Sumi Icons; the cover is the dark theme's default wallpaper, ink-ridges-night
@@ -37,7 +54,7 @@ def im(p): return Image.open(p).convert("RGB")
 
 def scale(img, k): return img.resize((img.width * k, img.height * k), Image.NEAREST) if k != 1 else img
 
-INK, PAPER = (15, 14, 12), (233, 225, 203)
+INK, PAPER = rgb(DK["ground"]), rgb(LT["ground"])
 def grid(rows, out, gap=16, bg=GAP, align="center", row_bg=None, pad=0):
     """rows: list of lists of images → one picture, rows stacked, images side by side and
     top-aligned; row_bg gives each row its own ground (the theme it shows), with pad around"""
@@ -209,11 +226,11 @@ def wall(mode, name, w, h): return im(f"{W}/{mode}/{name}.src").resize((w, h), I
 add("pack", grid([[wall("dark", "ink-ridges-night", 960, 540), wall("light", "ink-ridges", 960, 540)]], f"{IMG}/pack.png"))
 tw, th, cols = 320, 180, 6
 rows = -(-len(entries) // cols)
-sheet = Image.new("RGB", (cols * (tw + 12) + 12, rows * (th + 40) + 12), (15, 14, 12)); d = ImageDraw.Draw(sheet)
+sheet = Image.new("RGB", (cols * (tw + 12) + 12, rows * (th + 40) + 12), INK); d = ImageDraw.Draw(sheet)
 for i, (mode, name) in enumerate(entries):
     x = 12 + (i % cols) * (tw + 12); y = 12 + (i // cols) * (th + 40)
     sheet.paste(wall(mode, name, tw, th), (x, y))
-    d.text((x, y + th + 6), name, font=DM, fill=(207, 195, 166) if mode == "dark" else (232, 135, 109))
+    d.text((x, y + th + 6), name, font=DM, fill=rgb(DK["text"]) if mode == "dark" else rgb(DK["accent_hi"]))
 sheet.save(f"{IMG}/packsheet.png"); add("packsheet", f"{IMG}/packsheet.png")
 
 # fetch: the ten pictures, read from bin/fetch, on ink and on paper
@@ -221,8 +238,8 @@ src = open(f"{REPO}/bin/fetch").read()
 arts = re.findall(r"^ART_(\w+)=\(\n(.*?)\n\)", src, re.M | re.S)
 k = 8
 fw = len(arts) * (20 * k + 24) + 24
-fimg = Image.new("RGB", (fw, 2 * (16 * k + 24) + 24), (15, 14, 12)); fd = ImageDraw.Draw(fimg)
-fd.rectangle([0, 16 * k + 36, fw, fimg.height], fill=(233, 225, 203))
+fimg = Image.new("RGB", (fw, 2 * (16 * k + 24) + 24), INK); fd = ImageDraw.Draw(fimg)
+fd.rectangle([0, 16 * k + 36, fw, fimg.height], fill=PAPER)
 for n, (name, body) in enumerate(arts):
     ls = [x.strip().strip('"') for x in body.splitlines()]
     pal = dict(kv.split("=") for kv in ls[0].split())
@@ -286,6 +303,105 @@ def short_cols(m):   # a column whose every cell is short (a key, a name) never 
                   if len(re.sub(r"<[^>]+>", "", c[1])) <= 26 else c[0], t)
 html = re.sub(r"<table>.*?</table>", short_cols, html, flags=re.S)
 
+# ── the design system in print (docs/design-system.md §8) ──────────────────────
+# Every chapter opens as a panel's part does: its seal (one kanji in a 1 px edge2 frame, the
+# kanji vermilion), its name, the stitch to the right edge; its sections carry the same seal.
+# One kanji per chapter, the desktop's own where the chapter is that part of it (音 the sound
+# panel, 盤 drives, 窓 windows, 端 the terminal …, from kawa-panel, kawa-help and kawa-config);
+# a Part's seal is the workspace's: the numeral, filled vermilion, as on the bar.
+KANJI = {
+    "How to read this book": "案",   # a guide (案内; kawa-config's "help")
+    "Contents": "目",                # 目次, the contents
+    "1": "何",   # what this is
+    "2": "語",   # in plain words
+    "3": "備",   # preparing (準備)
+    "4": "導",   # installing (導入)
+    "5": "設",   # the setup (設定)
+    "6": "席",   # the first login: the session (kawa-help)
+    "7": "窓",   # windows (kawa-help)
+    "8": "品",   # menus (お品書き)
+    "9": "彩",   # theme and wallpaper: colour
+    "10": "書",  # files (kawa-help)
+    "11": "端",  # the terminal (kawa-help)
+    "12": "写",  # copy and screenshots (kawa-help)
+    "13": "盤",  # drives (kawa-panel, kawa-drives)
+    "14": "起",  # programs: launch (kawa-help)
+    "15": "音",  # sound (the sound panel)
+    "16": "読",  # reading
+    "17": "筆",  # writing: the brush (kawa-help's drawing)
+    "18": "探",  # finding
+    "19": "手",  # by your own hand (kawa-config's "use")
+    "20": "流",  # torrents: the stream
+    "21": "遊",  # games: play
+    "22": "図",  # a map (地図)
+    "23": "樹",  # the file system: a tree
+    "24": "権",  # permissions: rights (権限)
+    "25": "言",  # the shell as a language
+    "26": "動",  # processes: what moves
+    "27": "包",  # packages: wrapped
+    "28": "時",  # services and timers (kawa-timer)
+    "29": "始",  # how it starts
+    "30": "機",  # hardware: the machine
+    "31": "画",  # graphics
+    "32": "話",  # how programs talk
+    "33": "網",  # the network (quick settings)
+    "34": "守",  # security: kept safe
+    "35": "系",  # the system's control (kawa-config's "system")
+    "36": "新",  # updates: new
+    "37": "戻",  # snapshots: going back
+    "38": "掃",  # keeping it clean: sweeping
+    "39": "救",  # when something goes wrong: rescue
+    "40": "見",  # how the look is built (kawa-config's "look")
+    "41": "史",  # history (kawa-config)
+    "42": "改",  # changing it
+    "43": "学",  # learning to program
+    "44": "問",  # asking an assistant
+    "A": "具", "B": "所", "C": "鍵", "D": "令", "E": "辞", "F": "今", "G": "源",
+}
+PART_KANJI = {"I": "一", "II": "二", "III": "三", "IV": "四", "V": "五", "VI": "六", "VII": "七", "Appendices": "付"}
+def kanji_of(title):
+    t = H.unescape(re.sub(r"<[^>]+>", "", title)).strip()
+    m = re.match(r"(\d+|[A-Z])\. ", t)
+    k = KANJI.get(m[1] if m else t)
+    if not k: print(f"handbook.py: no kanji for the chapter “{t}” (KANJI): 節, a section"); k = "節"
+    return k
+def seal(k, cls="seal"): return f"<span class='{cls}'>{k}</span>"
+def heading(k, inner): return f"{seal(k)}<span class='nm'>{inner}</span><span class='st'></span>"
+def seal_heads(html):
+    k = KANJI["How to read this book"]
+    def one(m):
+        nonlocal k
+        lvl, part, hid, inner = m[1], m[2], m[3], m[4]
+        if part:
+            pk = re.match(r"Part ([IVXLC]+)\b", inner)
+            return f"<h1 class='part' id='{hid}'>{seal(PART_KANJI.get(pk[1] if pk else 'Appendices', '付'), 'wseal')}<span class='nm'>{inner}</span></h1>"
+        if lvl == "1": k = kanji_of(inner)
+        return f"<h{lvl} id='{hid}'>{heading(k, inner)}</h{lvl}>"
+    return re.sub(r"<h([12])( class='part')? id='(t\d+)'>(.*?)</h\1>", one, html, flags=re.S)
+html = seal_heads(html)
+# the end of a chapter, as a part of a panel: 習 what you learnt, 試 check yourself
+html = re.sub(r"<p class='lbl'>(What you learnt|Check yourself)</p>",
+              lambda m: f"<p class='lbl'>{heading('習' if m[1].startswith('What') else '試', m[1])}</p>", html)
+# a box's label (In this chapter, On Windows., Careful., Word — …) in the desktop's face
+html = re.sub(r"<blockquote>\s*<p><strong>(.*?)</strong>",
+              lambda m: f"<blockquote{' class=careful' if m[1].startswith('Careful') else ''}><p><strong class='cl'>{m[1]}</strong>", html, flags=re.S)
+# keys as the desktop shows them: a key button (key fill, 1 px edge) round each chord, in its face
+KEYNAME = (r"(?:Super|Shift|Ctrl|Alt|AltGr|Win|Windows|Right Shift|Left Shift|Return|Enter|Esc|Escape|Tab|Space|"
+           r"Backspace|Delete|Del|Insert|Home|End|PgUp|PgDn|Page Up|Page Down|Up|Down|Left|Right|Print|PrtScn|Menu|Fn|"
+           r"F\d{1,2}(?:…(?:F\d{1,2})?)?|\d…\d|[^\s+](?:/[^\s+])?)")
+ALONE = re.compile(r"(?:Super|Shift|Ctrl|Alt|Return|Enter|Esc|Escape|Tab|Space|Backspace|Delete|Print|PrtScn|F\d{1,2}(?:…F?\d{0,2})?|[^\s\w]|[a-z0-9])")
+CHORD = re.compile(rf"{KEYNAME}(?:\+{KEYNAME})+")
+def keys(m):
+    t = H.unescape(m[1])
+    tok = re.findall(r"(?:Right|Left|Page) (?:Shift|Up|Down)(?:\+\S+)?|\S+", t)
+    out = []
+    for i, x in enumerate(tok):
+        if x == "·" or (x == "/" and 0 < i < len(tok) - 1): out.append(f"<span class='ksep'>{H.escape(x)}</span>")
+        elif CHORD.fullmatch(x) or ALONE.fullmatch(x) or (len(tok) > 1 and re.fullmatch(KEYNAME, x)): out.append(f"<kbd>{H.escape(x)}</kbd>")
+        else: return m[0]                                  # words: an emphasis, not keys
+    return " ".join(out)
+html = re.sub(r"<strong>([^<]{1,40})</strong>", keys, html)
+
 def ff(name, path, w="400", s="normal"):
     return f"@font-face{{font-family:'{name}';src:url('file://{path}');font-weight:{w};font-style:{s}}}"
 CSS = "\n".join([
@@ -303,59 +419,74 @@ CSS = "\n".join([
     ff("Sym", "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf")[:-1] + ";unicode-range:U+2190-23FF,U+25A0-27BF}",
     ff("Sym", "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", "700")[:-1] + ";unicode-range:U+2190-23FF,U+25A0-27BF}",
     ff("JBM", f"{S}/mock/fonts/jbm/JetBrainsMonoNerdFont-Regular.ttf"),
-]) + """
-@page { size: A4; margin: 16mm 0 18mm; background: #efe8d5;
-  @bottom-center { content: counter(page); font-family: DM; font-size: 12px; color: #776f60; } }
-@page :first { margin: 0; background: #0f0e0c; @bottom-center { content: none; } }
+]) + "\n:root{" + "".join(f"--{k.replace('_', '-')}:#{v};" for k, v in LT.items() if re.fullmatch(r"[0-9a-f]{6}", str(v))) \
+   + "".join(f"--d-{k.replace('_', '-')}:#{v};" for k, v in DK.items() if re.fullmatch(r"[0-9a-f]{6}", str(v))) + "}\n" + f"""
+@page {{ size: A4; margin: 16mm 0 18mm; background: #{LT['ground']};
+  @bottom-center {{ content: counter(page); font-family: DM; font-size: 12px; color: #{LT['muted']}; }} }}
+@page :first {{ margin: 0; background: #{DK['ground']}; @bottom-center {{ content: none; }} }}
+.cover .shade {{ background: linear-gradient(#{DK['ground']}00 0, #{DK['ground']}99 50%, #{DK['ground']}e6 100%); }}
+:root {{ --stitch: {stitch(LT['edge2'], 3, 5, 1)}; --stitch2: {stitch(LT['edge2'], 6, 10, 2)};
+  --d-stitch2: {stitch(DK['edge2'], 6, 10, 2)}; }}
+""" + """
+/* ── the system in print ──────────────────────────────────────────────────────────────────
+   The panel's units at 1 px = 1 CSS px (a 12 px line of Fusion Pixel is 9 pt on paper): gap 6,
+   pad and line 12, section 18; a chapter's opening at the terminal's 2× (24 px). Colours only
+   from the palette's tokens (:root, from tools/build-themes.py); square corners everywhere. */
+:root { --u6: 6px; --u12: 12px; --u18: 18px; }   /* (--stitch, --stitch2: the tiles above, edge2's) */
 html { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-body { font-family: NotoSerif, Sym, 'Noto Serif CJK JP', serif; font-size: 9.6pt; line-height: 1.5; color: #2b2721; margin: 0; }
+* { border-radius: 0 !important; }
+body { font-family: NotoSerif, Sym, 'Noto Serif CJK JP', serif; font-size: 9.6pt; line-height: 1.5; color: var(--text); margin: 0; }
 /* every page the same width (the cover's, A4's): the text column is the padding, so no page
    is wider than another and nothing is ever shrunk to fit */
 main { padding: 0 15mm; }
-.cover { height: 297mm; width: 210mm; background: #0f0e0c; color: #cfc3a6; position: relative; overflow: hidden; break-after: page; }
-.cover img.bg { position: absolute; left: 0; top: 0; width: 100%; height: 100%; }
-.cover .shade { position: absolute; left: 0; bottom: 0; width: 100%; height: 55%; background: linear-gradient(#0f0e0c00 0, #0f0e0c99 50%, #0f0e0ce6 100%); }
-.cover .t { position: absolute; left: 18mm; right: 18mm; bottom: 30mm; }
-.cover h1 { break-before: auto; font-family: DM; font-weight: 400; font-size: 48px; line-height: 1.1; color: #ece3cc; margin: 0 0 10px; border: 0; letter-spacing: 1px; }
-.cover .torii { font-family: SUMI; font-size: 44px; color: #d0583a; display: block; margin-bottom: 18px; }
-.cover p.sub { font-family: NotoSerif; font-style: italic; font-size: 13pt; color: #cfc3a6; max-width: 140mm; margin: 0 0 8px; }
-.cover p.date { font-family: DM; font-size: 12px; color: #b9ad92; margin: 0; }
-.cover .rule { height: 2px; background: #d0583a; width: 40mm; margin: 14px 0 16px; }
-.toc { break-after: page; }
-.toc h1 { break-before: auto; }
-.toc ol { list-style: none; padding: 0; margin: 6px 0; columns: 2; column-gap: 10mm; font-family: Sans, Sym, 'Noto Sans CJK JP', sans-serif; font-size: 7.9pt; }
-.toc li { margin: 1px 0; break-inside: avoid; }
-.toc li.l0 { font-family: DM; font-size: 12px; color: #c0462a; margin-top: 10px; }
-.toc li.l1 { font-family: DM; font-size: 12px; color: #0f0e0c; margin-top: 5px; }
-.toc li.l2 { padding-left: 4mm; color: #4a443a; }
-.toc li.l3 { padding-left: 8mm; color: #776f60; font-size: 7.2pt; margin: 0; }
-.toc li.l0, .toc li.l1 { break-after: avoid; }
-/* title, dotted leader after its last line, page number at the right; a long title hangs */
-.toc a { display: block; position: relative; padding-right: 2.4em; color: inherit; }
-.toc .tt { position: relative; z-index: 1; background: #efe8d5; padding-right: 5px; }
-.toc .ld { position: absolute; left: 0; right: 2.3em; bottom: 0.3em; border-bottom: 1px dotted #b3a88c; }
-.toc .pn { position: absolute; right: 0; bottom: 0; text-indent: 0; font-variant-numeric: tabular-nums; }
-.toc li.l1 a { padding-left: 4ch; text-indent: -4ch; } .toc li.l1 .ld { left: 4ch; }
-.toc li.l2 a { padding-left: 2.3em; text-indent: -2.3em; } .toc li.l2 .ld { left: 2.3em; }
-h1 { font-family: DM; font-weight: 400; font-size: 24px; color: #0f0e0c; margin: 0 0 10px; padding: 0 0 6px;
-     border-bottom: 2px solid #d0583a; break-after: avoid; break-before: page; }
-h2 { font-family: DM; font-weight: 400; font-size: 18px; color: #2b2721; margin: 18px 0 6px; break-after: avoid; }
-h3 { font-family: DM; font-weight: 400; font-size: 12px; color: #2b2721; margin: 14px 0 4px; break-after: avoid; }
-h1 + p, h2 + p { margin-top: 4px; }
-p { margin: 6px 0; } ul, ol { padding-left: 16px; margin: 6px 0; } li { margin: 3px 0; }
-strong { color: #0f0e0c; }
-a { color: #9c3922; text-decoration: none; }
-code { font-family: JBM, monospace; font-size: 8.2pt; background: #e2d9c2; padding: 0 3px; border-radius: 2px; overflow-wrap: anywhere;
-       font-variant-ligatures: none; }   /* -->, !=, >= print as typed, never as one ligature glyph */
-pre { background: #161411; color: #cfc3a6; padding: 9px 11px; font-size: 8pt; line-height: 1.45; border-left: 3px solid #d0583a; break-inside: avoid; white-space: pre-wrap; }
-pre code { background: none; color: inherit; padding: 0; font-size: 8pt; }
-.tw { break-inside: auto; margin: 8px 0 12px; }
+
+/* the seal: one kanji in a 1 px edge2 frame, 5 px of air inside it (the 11 px kanji sits a
+   pixel below the top of its 12 px cell, as the font draws it); ×2 for a chapter's opening */
+.seal { display: inline-block; flex: none; box-sizing: border-box; width: 23px; height: 23px; border: 1px solid var(--edge2);
+        padding: 4px 0 0 5px; font: 400 12px/12px DM; color: var(--accent-text); text-align: left; }
+/* the workspace seal (a Part): the numeral filled vermilion, as on the bar — the only filled vermilion */
+.wseal { display: inline-block; flex: none; box-sizing: border-box; width: 23px; height: 23px; background: var(--accent);
+         padding: 5px 0 0 6px; font: 400 12px/12px DM; color: var(--text-on-accent); text-align: left; }
+.st { display: block; flex: 1 1 24px; min-width: 24px; height: 1px; background: var(--stitch) 0 0 / 5px 1px repeat-x; }
+
+/* headings: seal, 6, the name, 6, the stitch to the right edge through the seal's middle */
+main h1, main h2, .lbl { display: flex; align-items: flex-start; font-weight: 400; break-after: avoid; }
+main h2 { font: 400 12px/14px DM; color: var(--text); margin: var(--u18) 0 var(--u6); }
+main h2 .nm, .lbl .nm { margin: 4px var(--u6) 0; flex: 0 1 auto; }
+main h2 .st, .lbl .st { margin-top: 11px; }
+main h1 { font: 400 24px/28px DM; color: var(--strong); margin: 0 0 var(--u18); padding: var(--u6) 0 0; break-before: page; }
+main h1 .seal { width: 46px; height: 46px; border-width: 2px; padding: 8px 0 0 10px; font-size: 24px; line-height: 24px; }
+main h1 .nm { margin: 9px var(--u12) 0; flex: 0 1 auto; }
+main h1 .st { margin-top: 22px; height: 2px; background: var(--stitch2) 0 0 / 10px 2px repeat-x; }
+h3 { font: 400 12px/14px DM; color: var(--strong); margin: var(--u12) 0 var(--u6); break-after: avoid; }
+
+p { margin: var(--u6) 0; } ul, ol { padding-left: 16px; margin: var(--u6) 0; } li { margin: 3px 0; }
+strong { color: var(--strong); }
+a { color: var(--accent-text); text-decoration: none; }
+p.lead { margin: var(--u12) 0 var(--u6); }
+p.lead strong { font: 400 12px/14px DM; color: var(--strong); }
+
+/* commands and paths: the terminal's face, as typed (no ligature: -->, != print as typed) */
+code { font: 400 12px DM, SUMI, JBM, Sym, 'Noto Sans CJK JP', monospace; color: var(--strong); overflow-wrap: anywhere;
+       font-variant-ligatures: none; }
+/* a block of code: the terminal itself — foot's paper, a window's 2 px frame, two cells of air */
+pre { font: 400 12px/15px DM, SUMI, JBM, Sym, 'Noto Sans CJK JP', monospace; background: var(--ground); color: var(--text);
+      border: 2px solid var(--muted); padding: var(--u6) var(--u12); margin: var(--u12) 0; break-inside: avoid; white-space: pre-wrap;
+      font-variant-ligatures: none; }
+pre code { font: inherit; color: inherit; }
+/* keys: a key button — key fill, 1 px edge frame, the chord in the desktop's face */
+kbd { font: 400 12px/12px DM, Sym; color: var(--strong); background: var(--key); border: 1px solid var(--edge);
+      padding: 1px 3px 1px 4px; white-space: nowrap; }
+.ksep { color: var(--muted); }
+
+/* tables: the head as labels, every rule the stitch (on the row: one stitch across the cells) */
+.tw { break-inside: auto; margin: var(--u12) 0; }
 table { border-collapse: collapse; width: 100%; font-family: Sans, Sym, 'Noto Sans CJK JP', sans-serif; font-size: 8.1pt; line-height: 1.4; }
-th { font-family: DM; font-weight: 400; font-size: 12px; background: #2b2721; color: #ece3cc; text-align: left; padding: 5px 7px; }
-td { border-bottom: 1px solid #c2b79b; padding: 4px 7px; vertical-align: top; }
-tr { break-inside: avoid; }
-td code { font-size: 7.6pt; overflow-wrap: break-word; }   /* a column never narrower than its longest name */
-th code { background: #4a443a; color: #ece3cc; } th strong, th em { color: inherit; }
+tr { background: var(--stitch) 0 100% / 5px 1px repeat-x; break-inside: avoid; }
+th { font: 400 12px/14px DM; color: var(--muted); text-align: left; padding: 0 var(--u6) var(--u6); }
+td { padding: 3px var(--u6) 4px; vertical-align: top; }
+td code { overflow-wrap: break-word; }   /* a column never narrower than its longest name */
+th strong, th em, th code { color: inherit; }
 .nw { white-space: nowrap; }
 tbody tr:first-child { break-after: avoid; } tbody tr:last-child { break-before: avoid; }   /* no lone row */
 p.lead, p:has(+ p.lead) { break-after: avoid; }
@@ -363,30 +494,76 @@ p.lead, p:has(+ p.lead) { break-after: avoid; }
 .tw.keep { break-inside: avoid; }                     /* a short table whole, on one page (marked when printed) */
 /* a lead-in ("…, type:") stays with the block it introduces (a figure may go to the next page: it is referred to) */
 p.lead-in, :is(ul, ol):has(> li:last-child.lead-in) { break-after: avoid; }
-figure { margin: 10px 0 14px; break-inside: avoid; text-align: center; }
-figure img { display: block; margin: 0 auto; box-sizing: content-box; outline: 1px solid #2b2721; }
+
+figure { margin: var(--u12) 0; break-inside: avoid; text-align: center; }
+figure img { display: block; margin: 0 auto; box-sizing: content-box; outline: 1px solid var(--muted); }
+figcaption { font: 400 12px/15px DM, Sym, 'Noto Sans CJK JP'; color: var(--muted); margin: var(--u6) auto 0; text-align: left; max-width: 100%; }
 .swc { white-space: nowrap; }
-.sw { display:inline-block; width:9px; height:9px; border:1px solid #2b2721; margin-right:3px; vertical-align:-1px; }
-/* a Part: its own page, the title and opening centred on it (a little above the middle) */
+.sw { display: inline-block; width: 9px; height: 9px; border: 1px solid var(--text); margin-right: 3px; vertical-align: -1px; }
+
+/* boxes: a key — key fill, 1 px edge frame, the pad; the label in the desktop's face */
+blockquote { margin: var(--u12) 0; padding: var(--u6) var(--u12); background: var(--key); border: 1px solid var(--edge); break-inside: avoid; }
+blockquote p { margin: 3px 0; } blockquote ul, blockquote ol { margin: 3px 0; }
+strong.cl { font: 400 12px/14px DM; color: var(--strong); }
+blockquote.careful strong.cl { color: var(--accent-text); }
+/* the end of a chapter: a part of its own — 習 what you learnt, 試 check yourself */
+.recap { break-inside: avoid; margin-top: var(--u18); }
+.recap .lbl { font: 400 12px/14px DM; color: var(--text); margin: 0 0 var(--u6); }
+.recap .lbl ~ .lbl { margin-top: var(--u12); }
+
+/* a Part: its own page — the workspace seal ×3, the title, a panel's width of stitch, the opening */
 .partpage { break-before: page; break-after: page; height: 262mm; display: flex; flex-direction: column;
             justify-content: center; padding-bottom: 24mm; box-sizing: border-box; }
-h1.part { font-size: 30px; border: 0; text-align: center; margin: 0; padding: 0; break-before: auto; }
-.partpage > p { text-align: center; font-style: italic; max-width: 125mm; margin: 4mm auto 0; color: #4a443a; }
-h1.part + p { margin-top: 6mm; }
-.recap { break-inside: avoid; margin-top: 16px; border-top: 1px solid #c2b79b; }
-.recap .lbl { font-family: DM; font-size: 12px; color: #c0462a; margin: 10px 0 4px; }
-blockquote { margin: 9px 0 11px; padding: 6px 11px; background: #e6dec6; border-left: 3px solid #5f7fa0; break-inside: avoid; }
-blockquote p { margin: 3px 0; } blockquote ul, blockquote ol { margin: 3px 0; }
-figcaption { font-family: Sans, Sym, 'Noto Sans CJK JP', sans-serif; font-size: 7.8pt; color: #776f60; margin: 4px auto 0; text-align: left; max-width: 100%; }
+main h1.part { flex-direction: column; align-items: center; font-size: 24px; text-align: center; margin: 0; padding: 0; break-before: auto; }
+h1.part .wseal { width: 69px; height: 69px; padding: 15px 0 0 18px; font-size: 36px; line-height: 36px; }
+h1.part .nm { margin-top: var(--u18); }
+h1.part::after { content: ''; display: block; width: 276px; height: 2px; margin-top: var(--u18); background: var(--stitch2) 0 0 / 10px 2px repeat-x; }
+.partpage > p { text-align: center; font-style: italic; max-width: 125mm; margin: 4mm auto 0; color: var(--muted); }
+h1.part + p { margin-top: var(--u18); }
+
+/* the contents: rows as the help sheet's — a chapter's kanji, its name, the stitch as the
+   leader, the page number right-aligned; a Part opens with its seal */
+.toc { break-after: page; }
+.toc h1 { break-before: auto; }
+.toc ol { list-style: none; padding: 0; margin: var(--u6) 0; columns: 2; column-gap: 10mm; font-family: Sans, Sym, 'Noto Sans CJK JP', sans-serif; font-size: 7.9pt; }
+.toc li { margin: 1px 0; break-inside: avoid; }
+.toc li.l0 { font: 400 12px/23px DM; color: var(--strong); margin-top: var(--u12); }
+.toc li.l1 { font: 400 12px/15px DM; color: var(--strong); margin-top: var(--u6); }
+.toc li.l2 { color: var(--text); }
+.toc li.l0, .toc li.l1 { break-after: avoid; }
+.toc a { display: block; position: relative; padding-right: 2.4em; color: inherit; }
+.toc .tt { position: relative; z-index: 1; background: var(--ground); padding-right: var(--u6); }
+.toc .ld { position: absolute; left: 0; right: 2.6em; bottom: 0.45em; height: 1px; background: var(--stitch) 0 0 / 5px 1px repeat-x; }
+.toc .pn { position: absolute; right: 0; bottom: 0; text-indent: 0; font-variant-numeric: tabular-nums; color: var(--muted); }
+.toc li.l0 a { padding-left: 29px; } .toc li.l0 .wseal { position: absolute; left: 0; top: 0; }
+.toc li.l0 .ld { left: 29px; bottom: 11px; } .toc li.l0 .pn { color: var(--strong); }
+.toc .k { position: absolute; left: 0; top: 0; color: var(--accent-text); }
+.toc li.l1 a { padding-left: calc(18px + 4ch); text-indent: -4ch; } .toc li.l1 .ld { left: 18px; bottom: 5px; }
+.toc li.l2 a { padding-left: calc(18px + 2.3em); text-indent: -2.3em; } .toc li.l2 .ld { left: 18px; }
+
+/* the cover: the dark theme's ink, the moon left clear above the words */
+.cover { height: 297mm; width: 210mm; background: var(--d-ground); color: var(--d-text); position: relative; overflow: hidden; break-after: page; }
+.cover img.bg { position: absolute; left: 0; top: 0; width: 100%; height: 100%; }
+.cover .shade { position: absolute; left: 0; bottom: 0; width: 100%; height: 55%; }
+.cover .t { position: absolute; left: 18mm; right: 18mm; bottom: 30mm; }
+.cover .torii { font: 400 48px/48px SUMI; color: var(--d-accent-text); display: block; margin-bottom: var(--u18); }
+.cover h1 { font: 400 48px/56px DM; color: var(--d-strong); margin: 0; letter-spacing: 0; }
+.cover .cst { height: 2px; margin: var(--u18) 0; background: var(--d-stitch2) 0 0 / 10px 2px repeat-x; }
+.cover p.sub { font: 400 24px/30px DM; color: var(--d-text); max-width: 150mm; margin: 0 0 var(--u12); }
+.cover p.date { font: 400 12px/12px DM; color: var(--d-muted); margin: 0; }
 """
 # a table of contents from the headings
 nocode = re.sub(r"^```.*?^```", "", body, flags=re.M | re.S)   # (a "# comment" in a code block is no heading)
 heads = re.findall(r"^(#{1,%d}) (.+)$" % int(os.environ.get("BOOK_TOC_LEVELS", "2")), nocode, re.M)
 assert len(heads) == len(re.findall(r"<h[12][ >]", html)), "contents and headings differ"
-toc = "<section class='toc'><h1>Contents</h1><ol>" + "".join(   # (page numbers: 000 until the first print says where)
-    f"<li class='{'l0' if re.match(r'(Part [IVXLC]+|Appendices)\b', t) else 'l' + str(len(h))}'><a href='#t{i}'>"
+def toc_mark(h, t):   # a Part's filled seal, a chapter's kanji (as the help sheet's rows), a section none
+    p = re.match(r"Part ([IVXLC]+)\b|Appendices", t)
+    if p: return "l0", seal(PART_KANJI.get(p[1] or "Appendices", "付"), "wseal")
+    return "l" + str(len(h)), (f"<span class='k'>{kanji_of(t)}</span>" if len(h) == 1 else "")
+toc = f"<section class='toc'><h1>{heading(KANJI['Contents'], 'Contents')}</h1><ol>" + "".join(   # (page numbers: 000 until the first print says where)
+    f"<li class='{c}'><a href='#t{i}'>{mk}"
     f"<span class='tt'>{markdown.markdown(re.sub(r'^(\d+)\. ', r'\1\\. ', t))[3:-4]}</span><span class='ld'></span><span class='pn'>000</span></a></li>"
-    for i, (h, t) in enumerate(heads, 1)) + "</ol></section>"
+    for i, (h, t) in enumerate(heads, 1) for c, mk in [toc_mark(h, t)]) + "</ol></section>"
 # ink-ridges-night, cut to the page (210 × 297): the moon and the ridges under it, from the
 # right of the picture, the moon high in the sky; the title on the dark ridges, shaded under the words
 _c = Image.open(COVER).convert("RGB")
@@ -395,7 +572,7 @@ cover_bg = f"{IMG}/cover.jpg"; _c.crop((_x, 0, _x + _w, _h)).save(cover_bg, qual
 torii = chr(0xFE000)
 doc = (f"<!doctype html><html><head><meta charset='utf-8'><title>Fedokawaii — the handbook</title><style>{CSS}</style></head><body>"
        f"<section class='cover'><img class='bg' src='file://{cover_bg}'><div class='shade'></div><div class='t'>"
-       f"<span class='torii'>{torii}</span><h1>{'\u00a0'.join(meta['title'].rsplit(' ', 1))}</h1><div class='rule'></div>"
+       f"<span class='torii'>{torii}</span><h1>{'\u00a0'.join(meta['title'].rsplit(' ', 1))}</h1><div class='cst'></div>"
        f"<p class='sub'>{meta['subtitle']}</p><p class='date'>{meta['date']}</p></div></section>"
        f"<main>{toc}{html}</main></body></html>")
 open(f"{OUT}/guide2.html", "w", encoding="utf-8").write(doc)

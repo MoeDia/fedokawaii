@@ -14,7 +14,7 @@
 # highest priority.session (WirePlumber's choice; with no sound card that is "Share" — but
 # with no microphone there is no default input at all).
 # The state:
-#   {"running": true, "configured": {"sink": NAME, "source": NAME},
+#   {"running": true, "configured": {"sink": NAME, "source": NAME}, "devices": [{…a card…}],
 #    "nodes": [{"id": 62, "class": "Audio/Sink", "name": …, "desc": …, "prio": 1009,
 #               "vol": 0.4, "mute": false, "props": {…extra…}}, …]}
 # Each call is logged to $FAKE_PW.log ("wpctl ARGS").
@@ -60,6 +60,16 @@ if prog == "pw-dump":
         sys.exit(255)
     out = [{"id": 0, "type": "PipeWire:Interface:Core", "info": {"props": {}}},
            {"id": 31, "type": "PipeWire:Interface:Node", "info": {"props": {"node.name": "Dummy-Driver"}}}]
+    # a card (st["devices"]: {"id", "desc", "routes": [{"direction", "device", "name",
+    # "description"}]}) as pw-dump shows it: its description, and the routes in use — the port
+    # each of its nodes plays to or records from (a node names its card with device.id and its
+    # place on the card with card.profile.device, in its props)
+    for d in st.get("devices", []):
+        out.append({"id": d["id"], "type": "PipeWire:Interface:Device", "version": 3,
+                    "info": {"props": {"device.description": d["desc"], "media.class": "Audio/Device",
+                                       "device.api": d.get("api", "alsa")},
+                             "params": {"Route": [dict(r, index=i, available="yes", priority=0)
+                                                  for i, r in enumerate(d.get("routes", []))]}}})
     for n in nodes:
         props = {"media.class": n["class"], "node.name": n["name"], "priority.session": n.get("prio", 0)}
         if n.get("desc") is not None:

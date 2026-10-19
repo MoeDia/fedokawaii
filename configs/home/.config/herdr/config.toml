@@ -1,10 +1,9 @@
-# ~/.config/herdr/config.toml — herdr ("Agents" in the launcher): several Claude Code
+# ~/.config/herdr/config.toml — herdr 0.9.5 ("Agents" in the launcher): several Claude Code
 # sessions side by side, each in a pane of its own, with a sidebar that marks every one
-# working, blocked (it asks you something) or idle. Its colours are foot's own 16, so it
-# follows dark and light with the terminal; the accent is vermilion, like the focused
-# window's frame. Everything not set here is herdr's default: Ctrl+B, then ? lists the keys.
-# (Its settings screen, Ctrl+B s, writes into this file: the next Theme run puts this one
-# back — keep a change in your working copy instead.)
+# working, blocked (it asks you something) or idle. Every key here is one herdr 0.9.5 knows
+# (`herdr config check` says "ok"); everything not set is herdr's default: Ctrl+B, then ?
+# lists the keys. (Its settings screen, Ctrl+B s, writes into this file: the next Theme run
+# puts this one back — keep a change in your working copy instead.)
 
 # no first-run tour (it would write into this file, and open the settings screen)
 onboarding = false
@@ -16,12 +15,28 @@ version_check = false
 manifest_check = false
 
 [theme]
+# foot's own 16 colours, by name: herdr draws with the terminal's palette numbers, so it
+# follows dark and light with every other terminal window, at the switch
 name = "terminal"
 
 [theme.custom]
-accent = "red"
+# (named colours only — a value herdr does not know is no error to it, just its cyan; its
+# names: black red … white, darkgray, lightred …; bright red is "lightred". Measured in both
+# palettes, tests/content/test_agents.sh:)
+# the accent — the focused pane's frame, the mode badge (PREFIX, NAVIGATE), the tab you are
+# on: the palette's bright red, 6:1 on the background
+accent = "lightred"
+# the words on that accent: the palette's black (herdr's default, dark grey, is 1.1:1 on
+# red — the badge could not be read). The same colour draws the sidebar's dividing lines,
+# which go faint with it: the words matter more than the lines
+surface_dim = "black"
+# the space and the agent you are on: a band of the palette's black (the default, dark
+# grey, left their names at 2.5:1)
+active_row_bg = "black"
 
 [ui]
+# the window's title (the bar shows it): Agents · the workspace you are in
+window_title = "Agents · {workspace}"
 # no sound: an agent that finishes or needs you is a notice (mako), as everything else is;
 # none for the tab you are looking at
 sound.enabled = false
@@ -34,7 +49,8 @@ hide_tab_bar_when_single_tab = true
 # home: ~/repos/worktrees/<project>/<branch>
 directory = "~/repos/worktrees"
 
-# Ctrl+B a: a new pane with Claude Code in it, in the folder you are in; it closes when
+# Ctrl+B a: Claude Code in a pane of its own, in the folder the pane you are on is in. It
+# opens zoomed (the whole window); Ctrl+B z shows it beside the others. It closes when
 # Claude does
 [[keys.command]]
 key = "prefix+a"

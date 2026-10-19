@@ -1,19 +1,17 @@
 [Desktop Entry]
-# Spotify's own entry (the spotify-client package, which lpf builds here: setup.sh), drawn by
-# Wayland itself instead of through XWayland: sharp at any scale, and its window behaves as
-# every other one. Spotify's app is Chromium inside (CEF), which picks X11 unless it is told:
-# --ozone-platform=wayland tells it (Spotify 1.2.96 and later run there). Everything else is
-# as the package has it; this one stands in for it (same name), in the launcher and for
-# spotify: links. theme.sh puts it here only once Spotify is built: the launcher lists an
-# entry whatever its TryExec says, and one for a Spotify not there yet would start nothing.
-# It plays through PipeWire, and its MPRIS player ("spotify") puts it in the bar and on the
-# media keys.
+# Spotify: its web player (open.spotify.com) in a window of its own — Brave's app window: no
+# tabs, no address bar, tiled like every other window, through ~/.local/bin/brave-origin as
+# all of Brave is. Free or Premium, signed in once (Brave keeps the login). It plays through
+# Brave, so the bar's now-playing and its meter show it (Brave's media session over MPRIS,
+# cava on the output) and the media keys work it. Spotify's player needs Widevine, which
+# theme.sh switches on in Brave once (brave://settings → Widevine turns it off again).
+# Its icon: Brave's own (theme.sh reads it from Brave's entry) — no Spotify icon is installed.
 Type=Application
 Name=Spotify
 GenericName=Music Player
-Comment=Listen to music using Spotify
-Icon=spotify-client
-Exec=spotify --ozone-platform=wayland %U
+Comment=Spotify's web player, in a window of its own
+Icon=@BRAVE_ICON@
+Exec=@HOME@/.local/bin/brave-origin --app=https://open.spotify.com
 Terminal=false
 Categories=Audio;AudioVideo;Player;
-MimeType=x-scheme-handler/spotify;
+Keywords=spotify;music;songs;podcasts;

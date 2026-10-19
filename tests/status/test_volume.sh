@@ -12,11 +12,11 @@ axis() { sed -n "s/.*{ MODKEY, Axis$1, *spawn, SHCMD(\"\\(.*\\)\") },.*/\\1/p" "
 UP=$(axis Up) DOWN=$(axis Down)
 
 # ── wpctl's answers, as the keys read them ───────────────────────────────────
-case_ "Volume: 0.40 → up: 0.45, the panel says 45 %"
+case_ "Volume: 0.40 → up: 0.45, the panel says 45 % (the speaker with two waves, as the sound panel's meter)"
 setup
 rc 0 kawa-volume up
 eq "$(pw_vol sink)" 0.45
-eq "$(osd | cut -d'|' -f2-)" "$ICON_SPEAKER  volume|45%|9/20"
+eq "$(osd | cut -d'|' -f2-)" "$ICON_VOL_2  volume|45%|5/12"
 case_ "… down: 0.40 again"
 rc 0 kawa-volume down
 eq "$(pw_vol sink)" 0.40; eq "$(osd | cut -d'|' -f3)" "40%"
@@ -24,9 +24,9 @@ eq "$(pw_vol sink)" 0.40; eq "$(osd | cut -d'|' -f3)" "40%"
 case_ "Volume: 0.40 [MUTED] → mute: unmuted, the level shows; again: muted, 'off'"
 setup; pw_edit "node('$sink')['mute'] = True"
 rc 0 kawa-volume mute
-eq "$(pw_vol sink)" 0.40; eq "$(osd | cut -d'|' -f2-)" "$ICON_SPEAKER  volume|40%|8/20"
+eq "$(pw_vol sink)" 0.40; eq "$(osd | cut -d'|' -f2-)" "$ICON_VOL_2  volume|40%|5/12"
 rc 0 kawa-volume mute
-eq "$(pw_vol sink)" "0.40 [MUTED]"; eq "$(osd | cut -d'|' -f2-)" "$ICON_SPEAKER_OFF  volume|off|0/20"
+eq "$(pw_vol sink)" "0.40 [MUTED]"; eq "$(osd | cut -d'|' -f2-)" "$ICON_VOL_MUTE  volume|off|5/12"
 
 case_ "muted, then up: unmuted and one step louder"
 rc 0 kawa-volume up
@@ -39,7 +39,7 @@ eq "$(pw_vol sink)" "0.40 [MUTED]"; eq "$(osd | cut -d'|' -f3)" off
 case_ "Volume: 1.50 (the mixer goes to 153 %) → up leaves it there, never pulled down to 100"
 setup; level "$sink" 1.5
 rc 0 kawa-volume up
-eq "$(pw_vol sink)" 1.50; eq "$(osd | cut -d'|' -f3-)" "150%|20/20"
+eq "$(pw_vol sink)" 1.50; eq "$(osd | cut -d'|' -f3-)" "150%|12/12"
 not_called 'wpctl set-volume -l'
 case_ "… muted at 150 %: up unmutes it, still 150"
 pw_edit "node('$sink')['mute'] = True"
@@ -52,12 +52,12 @@ eq "$(pw_vol sink)" 1.45
 case_ "Volume: 0.97 → up stops at 1.00; at 1.00, up does nothing"
 setup; level "$sink" 0.97
 kawa-volume up; eq "$(pw_vol sink)" 1.00
-kawa-volume up; eq "$(pw_vol sink)" 1.00; eq "$(osd | cut -d'|' -f3-)" "100%|20/20"
+kawa-volume up; eq "$(pw_vol sink)" 1.00; eq "$(osd | cut -d'|' -f3-)" "100%|12/12"
 
 case_ "Volume: 0.00 → down stays 0, the panel dark; up: 5 %"
 setup; level "$sink" 0
-kawa-volume down; eq "$(pw_vol sink)" 0.00; eq "$(osd | cut -d'|' -f3-)" "0%|0/20"
-kawa-volume up; eq "$(pw_vol sink)" 0.05; eq "$(osd | cut -d'|' -f3-)" "5%|1/20"
+kawa-volume down; eq "$(pw_vol sink)" 0.00; eq "$(osd | cut -d'|' -f3-)" "0%|0/12"
+kawa-volume up; eq "$(pw_vol sink)" 0.05; eq "$(osd | cut -d'|' -f3-)" "5%|1/12"
 
 # ── a held key ───────────────────────────────────────────────────────────────
 case_ "a held key, 20 presses in a row from 40 %: 100 % exactly, never above, one panel"
@@ -68,7 +68,7 @@ for _ in {1..20}; do
   v=$(pw_vol sink); v=${v/./}; ((10#$v > peak)) && peak=$((10#$v))
 done
 eq "$(pw_vol sink)" 1.00; eq "$peak" 100 "the highest level reached"
-eq "$(cut -d' ' -f2 "$NOTIFY_STATE/log" | sort -u)" 1 "one panel, updated in place"
+eq "$(grep '^notify-send ' "$CALLS" | grep -vc -- '-h string:x-canonical-private-synchronous:osd ')" 0 "one panel, updated in place (mako's synchronous tag on every one)"
 eq "$(osd | cut -d'|' -f3)" "100%"
 case_ "… and 20 down: 0, never below"
 for _ in {1..20}; do kawa-volume down; done
@@ -136,9 +136,9 @@ case_ "mic: muted, the panel says microphone 'off'; again: back on at its level"
 setup
 rc 0 kawa-volume mic
 eq "$(pw_vol source)" "0.80 [MUTED]"
-eq "$(osd | cut -d'|' -f2-)" "$ICON_MIC_OFF  microphone|off|0/20"
+eq "$(osd | cut -d'|' -f2-)" "$ICON_MIC_OFF  microphone|off|10/12"
 rc 0 kawa-volume mic
-eq "$(osd | cut -d'|' -f2-)" "$ICON_MIC  microphone|80%|16/20"
+eq "$(osd | cut -d'|' -f2-)" "$ICON_MIC  microphone|80%|10/12"
 eq "$(pw_vol sink)" 0.40 "the output untouched"
 
 case_ "mic with no microphone (Share's monitor is never the default): could not (1), no panel"

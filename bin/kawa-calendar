@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
-# kawa-calendar — click the date: this month as a dropdown, today in [brackets].
-# "previous" / "next" page through months; Esc or a click elsewhere closes it.
-# Weeks start on Monday. No arguments (--help: this text).
+# kawa-calendar — click the date (or Super+C): this month as a dropdown, a grid of the panel's
+# (kawa-menu; docs/design-system.md): 暦 and the month, the weekdays, six weeks of days —
+# today stamped, the days of the months either side dim — and three keys under it: previous,
+# next, today. Paging keeps the cursor on the key that paged; Esc or a click elsewhere closes
+# it. Weeks start on Monday. No arguments (--help: this text).
 set -u
 case ${1:-} in
   "") ;;
@@ -11,49 +13,40 @@ esac
 # shellcheck source=/dev/null
 . "$HOME/.config/fedokawaii/icons.sh"
 export LC_TIME=C                        # English month names whatever the system locale
-# 32 columns, every row two spaces in: the grid's digits (26 columns) sit centred with three
-# columns either side, and today in brackets on a Sunday ends in column 30 — 180 px, within
-# the 182 fuzzel draws whole at this width (kawa-menu --help; at 30, "[18]" on a Sunday
-# would show as "[18…")
-WIDTH=32
-# (paging under the grid, apart from it by an empty row, each icon over the grid's first letter)
-prev="   $ICON_CHEVRON_LEFT  previous" next="   $ICON_CHEVRON_RIGHT  next" back="   $ICON_CALENDAR  back to today"
 off=0                                   # months away from the current one
+sel=()                                  # (opened clean; after paging, on the key that paged)
 while :; do
   # today read once: at midnight a second reading could be the next day (the 1st marked
   # in the month just ending, or no day marked at all)
   now=$(date +%Y-%m-%d) || exit 1
   first=$(date -d "${now%-*}-01 $off month" +%F) || exit 1
-  # the month short and in English, like every date on the desktop: "Oct 2026", always 8
-  # characters — an even length, so it centres over the grid to the pixel
+  # the month short and in English, like every date on the desktop: "Oct 2026"
   read -r year month mname lead <<<"$(LC_ALL=C date -d "$first" '+%Y %m %b %u')"
   days=$(date -d "$first +1 month -1 day" +%d)
+  before=$(date -d "$first -1 day" +%d)          # (the last day of the month before)
   today=""; [[ ${now%-*} == "$year-$month" ]] && today=$((10#${now##*-}))
 
-  rows=("" "   Mo  Tu  We  Th  Fr  Sa  Su") line="  " col=0 pick=1   # (an empty row under the month, as under every menu's title)
-  for ((i = 1; i < lead; i++)); do line+="    "; col=$((col + 1)); done
+  rows=()
+  line() { local IFS=$'\t'; rows+=("$*"); }
+  line part 暦 "$mname $year"
+  for w in Mo Tu We Th Fr Sa Su; do line cell "$w" head; done
+  # six weeks always (the grid never changes height as it pages): the month before's last
+  # days, this month's, then the next one's first, those two dim
+  for ((d = 10#$before - lead + 2; d <= 10#$before; d++)); do line cell "$d" dim; done
   for ((d = 1; d <= 10#$days; d++)); do
-    if [[ $d == "$today" ]]; then printf -v cell '[%2d]' "$d"; pick=${#rows[@]}
-    else printf -v cell ' %2d ' "$d"; fi
-    line+=$cell
-    col=$((col + 1))
-    if ((col == 7)); then rows+=("${line% }"); line="  " col=0; fi
+    if [[ $d == "$today" ]]; then line cell "$d" today; else line cell "$d"; fi
   done
-  [[ -n ${line// /} ]] && rows+=("${line% }")
-  rows+=("" "$prev" "$next")
-  title="$mname $year"; printf -v title '%*s%s' $(( (WIDTH - ${#title}) / 2 )) '' "$title"   # centred over the grid's ink (columns 3–28)
-  ((off != 0)) && rows+=("$back")
-  # paging on: the choice stays on "previous" / "next", so Enter pages again
-  for ((i = 1; i < ${#rows[@]}; i++)); do [[ -n ${again:-} && ${rows[i]} == "$again" ]] && pick=$i; done
+  for ((d = 1; ${#rows[@]} < 1 + 7 + 42; d++)); do line cell "$d" dim; done
+  k=${#rows[@]}                                   # (the keys' lines: previous, next, today)
+  line key "$ICON_CHEVRON_LEFT" previous
+  line key "$ICON_CHEVRON_RIGHT" next
+  line key "$ICON_CALENDAR" today
 
-  i=$(printf '%s\n' "${rows[@]}" | kawa-menu --drop --index --width "$WIDTH" --lines 12 \
-        --select "$pick" --title "$title") || exit 0
-  again=${rows[i]}
-  case $again in
-    "$prev") off=$((off - 1)) ;;
-    "$next") off=$((off + 1)) ;;
-    "$back") off=0 again="" ;;               # (today, selected as on opening)
-    "")      ;;                              # (the gap: the month again)
-    *)       exit 0 ;;
+  i=$(printf '%s\n' "${rows[@]}" | kawa-menu --drop --index "${sel[@]}") || exit 0
+  case $((i - k)) in
+    0) off=$((off - 1)) sel=(--select "$i") ;;
+    1) off=$((off + 1)) sel=(--select "$i") ;;
+    2) off=0 sel=(--select "$i") ;;
+    *) exit 0 ;;
   esac
 done

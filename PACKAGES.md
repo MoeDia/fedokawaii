@@ -2,9 +2,9 @@
 
 One tool per job. The authoritative list is `lib/manifest.sh` (packages) and `lib/upstream.sh`
 (release binaries); `verify.sh` proves the machine matches them exactly. Every name was checked
-for **Fedora 44 and 45** on 15 Oct 2026 (LibreOffice's parts, the dictionaries and lpf-spotify-client on 17 Oct). No Flatpak, no Snap, no fallbacks.
+for **Fedora 44 and 45** on 15 Oct 2026 (LibreOffice's parts and the dictionaries on 17 Oct). No Flatpak, no Snap, no fallbacks.
 
-Source: **F** Fedora · **RF** RPM Fusion · **lpf** built on the machine from an RPM Fusion recipe · **V** vendor repo (signed) · **C** COPR · **GH** GitHub release (pinned: an exact version and its SHA-256, measured here) · **pipx** · **podman**
+Source: **F** Fedora · **RF** RPM Fusion · **V** vendor repo (signed) · **C** COPR · **GH** GitHub release (pinned: an exact version and its SHA-256, measured here) · **pipx** · **podman**
 
 ## By job
 
@@ -29,7 +29,7 @@ Source: **F** Fedora · **RF** RPM Fusion · **lpf** built on the machine from a
 | Lock / idle | gtklock · swayidle | F | the power menu is a fuzzel menu (`kawa-power`); away, nothing locks or sleeps (the screens go dark after an hour); a lock you ask for (Super+Escape) sleeps 90 s later; sleep is suspend only — hibernation off (`/etc/systemd/sleep.conf.d/90-fedokawaii.conf`) |
 | Level display | mako (category `osd`) | F | `kawa-osd`: volume, microphone, brightness — no separate OSD program |
 | Wallpaper | swaybg | F | |
-| Outputs | wlr-randr · wlopm | F | `kawa-display` picks the best refresh rate ≤ `MONITOR_HZ` · `wlopm` powers screens off when idle without moving windows |
+| Outputs | wlr-randr · wlopm · wayland-utils | F | `kawa-display` picks the best refresh rate ≤ `MONITOR_HZ` · `wlopm` powers screens off when idle without moving windows · `wayland-info` lists what the compositor offers (the health report) |
 | Clipboard | wl-clipboard + cliphist + fzf | F | Super+V: the history in a small window (fzf) — text and pictures (screenshots, Brave's *Copy image*), the last 100, none over 20 MiB (`kawa-clip --store` behind `wl-paste --watch`); pictures previewed in the terminal (ImageMagick draws them as sixels) and copied back as pictures |
 | Screenshots | grim + slurp + satty | F + GH | satty needs gtk4 + libadwaita (listed) |
 | Night light | gammastep | F | |
@@ -55,7 +55,7 @@ Source: **F** Fedora · **RF** RPM Fusion · **lpf** built on the machine from a
 | Video | mpv + mpv-mpris + yt-dlp + nodejs24 (+ -bin, -npm-bin) | F | mpv-mpris: mpv in the bar and on the media keys; Node.js: yt-dlp's JavaScript runtime for YouTube, and npm for Mason's language servers |
 | Watching together | Syncplay 1.7.6 (no window) | git (GitHub, pinned commit) + F | its source at the v1.7.6 tag's commit with two fixes of ours (src/syncplay/syncplay.patch: mpv waited for at the start, the window closed with mpv), run by Fedora's python3 with python3-twisted (+tls) · python3-pyOpenSSL · python3-certifi · python3-pem (lib/upstream.sh); Fedora's syncplay package is left out: it brings PySide6 and 27 Qt modules for a window never used. `kawa-together`: a small form (server, room, name, password, film; your last choice ready, Enter rejoins it), then Syncplay beside mpv; pause, seek, ready and chat reach friends through a public server (syncplay.pl) |
 | Codecs | ffmpeg (full) | RF | replaces ffmpeg-free |
-| Music | Spotify (spotify-client) | lpf (RF: lpf-spotify-client) | Spotify's own app, free or Premium; nobody may pass it on, so lpf builds it here from Spotify's download (setup, then each update when a new version comes); started with `--ozone-platform=wayland` (its launcher entry); MPRIS: the bar and the media keys |
+| Music | Spotify's web player | — (Brave Origin) | open.spotify.com in a Brave app window (`spotify.desktop`), free or Premium; Widevine switched on once in Brave (Theme); Brave's MPRIS: the bar's now-playing and meter, the media keys |
 | Torrents | torrra (on Python 3.13) + Prowlarr | pipx + podman | libtorrent has no Python 3.14 wheel yet; its libraries pinned to torrra 2.5.1's own lock (`system/torrra-constraints.txt`; libtorrent and certifi left free); `kawa-torrra` hands torrra the key from `secrets.sh` |
 | Git | git + lazygit | F + GH | lazygit from its own release, pinned like yazi (its COPR is no longer kept) |
 | Script checking | ShellCheck | F | `fedokawaii apply` reads the scripts you changed with it; every finding has a page (SC number) that explains it |
@@ -123,7 +123,8 @@ before setup started plus the manifest — anything else is reported by name.
 | AbiWord, Gnumeric | LibreOffice Writer and Calc open *and edit* Word and Excel files, tracked changes and complex layouts included; update removes them |
 | sc-im | one spreadsheet is enough: Calc for formulas, VisiData for looking at data |
 | presenterm (release binary) | slides are Impress's, which opens and shows PowerPoint files; update takes the binary and its theme link out |
-| spotify_player (release binary) | Spotify's own app instead (a free account works too); update takes the binary and its settings out |
+| spotify_player (release binary) | Spotify's web player instead (a free account works too); update takes the binary and its settings out |
+| lpf, lpf-spotify-client, spotify-client | Spotify's own app, built here by lpf from RPM Fusion's recipe — until the recipe pointed at a download Spotify had taken down (Oct 2026); its web player in a Brave app window does the same. Update hands the three back to dnf, and repair removes lpf's account (pkg-build) and /var/lib/lpf |
 | papirus-icon-theme | every program shows its own icon, as its package ships it (the launcher, GTK, Qt, the notices): no icon pack over them; update hands it back to dnf |
 
 ## Added since the previous version, and why
@@ -133,7 +134,6 @@ before setup started plus the manifest — anything else is reported by name.
 | cava | the bar's music meter (one small process, asleep whenever nothing plays) |
 | libreoffice-writer, -calc, -impress, -gtk3 | open and edit Word, Excel and PowerPoint files; the GTK 3 part draws it in the desktop's theme |
 | hunspell-en, hunspell-ar | spelling in English and Arabic, as you type in LibreOffice |
-| lpf-spotify-client (RPM Fusion) | the recipe lpf builds Spotify's app from, on this machine |
 | terminus-fonts-console | a crisp, larger font on the text console (login, Ctrl+Alt+F2…) |
 | greetd-selinux | without it SELinux can block the login on Fedora |
 | tree-sitter-cli | required by LazyVim's nvim-treesitter (`main` branch) |

@@ -104,7 +104,14 @@ stub sudo '[ "$1" = -v ] && exit 0; [ "$3" = conf ] && cp "$4" "$KAWA_TOOLKIT/fe
 stub restic 'echo "restic $*" >>"$W/restic.log"; case $3 in init) : >"$W/made" ;; cat) [ -e "$W/made" ] || exit 10 ;; esac; exit 0'
 out=$(RESTIC_PASSWORD=given tty_run 100 kawa-backup 2>&1); rc=$?
 eq "$(cat "$TMP/fzf.in")" $'KINGSTON\t28.9G vfat · open' "the drives as the drives menu names them"
-has "$(cat "$TMP/fzf.args")" "back up to"
+has "$(cat "$TMP/fzf.args")" "--drive-heading"
+# the picker's screen (docs/design-system.md §7): heading and rows drawn at fzf's width
+. "$HOME/.config/fedokawaii/icons.sh"
+eq "$(KAWA_BACKUP_DRIVES=$'KINGSTON\t28.9G vfat · open' kawa-backup --drive-rows 40 | sed 's/\x1b\[[0-9;]*m//g')" \
+  $'KINGSTON\t28.9G vfat · open\t  '"$ICON_DRIVE"'  KINGSTON          28.9G vfat · open' "a row: glyph, name, its value at the 40th column"
+h=$(kawa-backup --drive-heading 40 | sed 's/\x1b\[[0-9;]*m//g')
+eq "$(head -n1 <<<"$h")" "盤  back up to ╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌" "the heading: kanji, name, the stitch to the 40th column"
+has "$h" "which drive keeps your backup?"
 called '^sudo -v'; called "^sudo bash $KAWA_TOOLKIT/fedokawaii.sh conf "
 eq "$(grep '^BACKUP_TARGET=' "$KAWA_TOOLKIT/fedokawaii.conf" | cut -c1-34)" 'BACKUP_TARGET="KINGSTON"          ' "saved, its comment where it was"
 eq "$(sed -n 's/^BACKUP_TARGET="KINGSTON" *\(#.*\)/\1/p' "$KAWA_TOOLKIT/fedokawaii.conf" | cut -c1-30)" "# where your files are backed " "the comment kept"

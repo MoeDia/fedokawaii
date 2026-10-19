@@ -4,15 +4,15 @@
 # updates in place while a key is held, also over fullscreen windows and while "do not
 # disturb" is on.
 #
-#   ☼ brightness
-#   ▁▁▁▁▂▂▂▂▃▃▃▃▄▄▄▄▅▅▅▅  70%      a wedge of 20 pixel columns, 5 % each, rising like the
-#                                  volume scale of an old hi-fi; lit in asagi with the top
-#                                  one vermilion (the peak lamp of the music meter), the
-#                                  rest faint; "off" when muted. Wedge and number are drawn
-#                                  at twice the pixel size (24 px), so every pixel stays a
-#                                  crisp 2×2 square.
-# Exit status: 0 shown (or left to the update already under way) · 1 not shown (no notice
-# daemon, no runtime folder) · 2 misuse.
+#   ┌──────────────────────────────────────────┐   quick settings' meter row, to the pixel
+#   │ 明 brightness  ■■■■■■■■□□□□   70%        │   (docs/design-system.md): the glyph in
+#   └──────────────────────────────────────────┘   accent_text, the name in text, twelve
+#                                                  squares of 10 × 8 on a 12 px pitch — lit
+#   asagi, the rest edge2; muted, the lit ones hollow — and the number, right-aligned in
+#   muted ("off" in faint while muted). A level lights the squares the panel's meter lights
+#   for it: to the nearest twelfth, at least one above 0; above 100 % (only the mixer goes
+#   there) all twelve, the real number.
+# Exit status: 0 shown · 1 not shown (no notice daemon) · 2 misuse.
 set -u
 case ${1:-} in
   -h|--help) sed -n '2,/^set -u/{/^set -u/d;s/^# \{0,1\}//;p}' "$0"; exit 0 ;;
@@ -22,37 +22,41 @@ esac
 . "$HOME/.config/fedokawaii/icons.sh"
 # shellcheck source=/dev/null
 . "$HOME/.config/fedokawaii/current/colors.sh"
-ID_FILE="${XDG_RUNTIME_DIR:?}/kawa-osd-id"
 
 icon=${1:-} label=${2:-} pct=${3:-0} off=${4:-}
 [[ $pct =~ ^[0-9]{1,4}$ ]] || pct=0
 pct=$((10#$pct)); ((pct > 999)) && pct=999     # (three digits wide)
-lit=$(( (pct + 4) / 5 ))                       # 1–5 % → 1 column … 96–100 % → 20
-((lit > 20)) && lit=20                         # above 100 % (the mixer allows it): a full wedge, the real number
-[[ -n $off ]] && lit=0
+lit=0                                          # as kawa-panel's lit_of: the nearest twelfth
+((pct > 0)) && lit=$(( (pct * 24 + 100) / 200 ))
+((pct > 0 && lit < 1)) && lit=1
+((lit > 12)) && lit=12
 
-STEP=("$ICON_EQ_1" "$ICON_EQ_2" "$ICON_EQ_3" "$ICON_EQ_4" "$ICON_EQ_5")   # 4 columns each
-on="" peak="" rest=""
-for ((i = 0; i < 20; i++)); do
-  g=${STEP[i / 4]}
-  if ((i < lit - 1)); then on+=$g; elif ((i == lit - 1)); then peak=$g; else rest+=$g; fi
-done
-# the value is always 42 px wide (" 70%": three 12 px digits and a 6 px sign; a 6 px space
-# and "off"), so the panel never changes width, its two sides stay equal and the value
-# ends at the same edge either way
+# Across, as the panel's row (mako's padding puts the first pen at x 20, the row's x + 6):
+# the name 18 px after the glyph's pen — a kanji is 12 px wide, the speaker's levels 18,
+# every other Sumi icon 14 (its 2 px of air each side), so a space of 6, none or 4 px
+# follows it (a space is half its font's pixel size) — the name in 12 columns (72 px), the
+# squares from x 110 (12 × 12 px, the last 2 px of air included), 6 px, the number in 4
+# columns ending at x 284: 264 px, mako's line exactly, the panel 304 px wide
 F="Fusion Pixel 12px Mono ja"
-if [[ -n $off ]]; then value="<span font='$F 12px'> </span><span color='#$C_ACCENT_TEXT'>off</span>"
-else printf -v value "<span color='#%s'>%3d</span><span font='%s 12px' color='#%s'>%%</span>" "$C_STRONG" "$pct" "$F" "$C_MUTED"; fi
-# wedge 160 px · gap 18 px (a 6 px and a 12 px space) · value 42 px = 220 px: an even
-# width, so the panel (mako: 220 + 16 + 14 + 2 × 2 = 254) sits exactly in the screen's centre
-body="<span font='Sumi Icons 24px'><span color='#$C_TEAL'>$on</span><span color='#$C_ACCENT'>$peak</span><span color='#$C_FAINT'>$rest</span></span><span font='$F 12px'> </span><span font='$F 24px'> $value</span>"
+case $icon in
+  "$ICON_VOL_0"|"$ICON_VOL_1"|"$ICON_VOL_2"|"$ICON_VOL_3"|"$ICON_VOL_4"|"$ICON_VOL_MUTE") gap="" ;;
+  明|音|入|出) gap=" " ;;
+  *) gap="<span font='$F 8px'> </span>" ;;
+esac
+printf -v name '%-12.12s' "$label"
+square=$ICON_SEG; [[ -n $off ]] && square=$ICON_SEG_HOLLOW
+on="" rest=""
+for ((i = 0; i < 12; i++)); do if ((i < lit)); then on+=$square; else rest+=$ICON_SEG; fi; done
+if [[ -n $off ]]; then value="<span color='#$C_FAINT'> off</span>"
+else printf -v value "<span color='#%s'>%3d%%</span>" "$C_MUTED" "$pct"; fi
+# one row of 20 px (line_height in Pango units: px × 1024), its words on the 12 px line in
+# the middle — the squares' feet on the baseline, where the panel draws them
+body="<span line_height='20480'><span color='#$C_ACCENT_TEXT'>$icon</span>$gap<span color='#$C_TEXT'>$name</span>"
+body+="<span font='Sumi Icons 12px'><span color='#$C_TEAL'>$on</span><span color='#$C_EDGE2'>$rest</span></span> $value</span>"
 
-# its own app name, so mako never groups it with other notices; and one update at a time
-# (a held key overlaps runs), so each replaces the panel instead of opening another
-args=(-a osd -c osd -u low -h int:transient:1 -p)
-exec 8>"$ID_FILE.lock"; flock -w 1 8 || exit 0
-# (a notice id is mako's uint32 counter; anything else in the file — cut short, or a number
-# notify-send refuses as out of range — would keep every panel from showing: start afresh)
-id=$(cat "$ID_FILE" 2>/dev/null) && [[ $id =~ ^[1-9][0-9]{0,8}$ ]] && args+=(-r "$id")
-id=$(notify-send "${args[@]}" "$icon  $label" "$body" 2>/dev/null) && [[ $id =~ ^[0-9]+$ ]] \
-  && printf '%s\n' "$id" >"$ID_FILE"
+# its own app name, so mako never groups it with other notices; and one panel, whatever comes:
+# mako's synchronous tag (x-canonical-private-synchronous) makes each one take the place of
+# the panel already on screen with the same tag and app — the volume's, the microphone's and
+# the brightness's alike, a held key's overlapping runs too — in place, with no id to keep
+exec notify-send -a osd -c osd -u low -h int:transient:1 -h string:x-canonical-private-synchronous:osd \
+  "$icon  $label" "$body" 2>/dev/null

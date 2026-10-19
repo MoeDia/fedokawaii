@@ -19,13 +19,11 @@ lay spiral; rc 0 kawa-tag layout next; called "^wtype -M logo -k t -m logo$" "sp
 lay columns; reset_calls; kawa-tag layout next; called "^wtype -M logo -k s -m logo$" "columns → spiral"
 lay spiral; reset_calls; kawa-tag layout prev; called "^wtype -M logo -k t -m logo$" "spiral ← columns"
 lay columns; reset_calls; kawa-tag layout prev; called "^wtype -M logo -k s -m logo$" "columns ← spiral"
-case_ "…never into floating or monocle (they stack the windows): from either, next is the spiral, prev columns"
+case_ "…never into floating (it stacks the windows), nor a key no layout has (Super+M): from floating, next is the spiral, prev columns"
 for k in y m; do
   lay spiral; reset_calls; kawa-tag layout next; kawa-tag layout prev; not_called "^wtype -M logo -k $k "
   lay columns; reset_calls; kawa-tag layout next; kawa-tag layout prev; not_called "^wtype -M logo -k $k "
 done
-lay monocle; reset_calls; kawa-tag layout next; called "^wtype -M logo -k s -m logo$" "monocle → spiral"
-lay monocle; reset_calls; kawa-tag layout prev; called "^wtype -M logo -k t -m logo$" "monocle ← columns"
 lay float; reset_calls; kawa-tag layout next; called "^wtype -M logo -k s -m logo$" "float → spiral"
 lay float; reset_calls; kawa-tag layout prev; called "^wtype -M logo -k t -m logo$" "float ← columns"
 case_ "…on the clicked bar's monitor: its own layout, not the focused one's"

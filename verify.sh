@@ -111,16 +111,13 @@ done < <(waiting rpmfusion)
 for c in $(waiting copr); do
   warn "the COPR $c has no build for Fedora $VERSION_ID yet" "$(copr_pkgs "$c" | tr '\n' ' ')left out — update or repair adds it when it has one"
 done
-# Spotify, built here by lpf from RPM Fusion's recipe (SPOTIFY=yes: setup's step fails without
-# it, so none at all is a failure — the launcher would list an app that cannot start; a recipe
-# newer than the package — a Spotify release — waits for the update)
-if [[ $SPOTIFY != yes ]]; then info "Spotify not wanted (SPOTIFY=no)"
-elif ! rpm -q spotify-client >/dev/null 2>&1; then
-  fail "Spotify not built yet (SPOTIFY=yes; rpm -q spotify-client: not installed)" \
-    "fedokawaii repair builds it (lpf, from Spotify's download; why the last build failed: /var/lib/lpf/log/spotify-client.log)"
-elif [[ $(cat /var/lib/lpf/packages/spotify-client/state 2>/dev/null) != OK ]]; then
-  warn "a newer Spotify waits to be built" "update builds it (lpf's log: /var/lib/lpf/log/spotify-client.log)"
-else pass "Spotify $(rpm -q --qf '%{version}' spotify-client) (built here by lpf)"; fi
+# lpf, which built Spotify's app here before Spotify became its web player: gone, with the
+# app and recipe (RETIRED_PKGS: dnf's clean-up) and then its account and folder (repair)
+q=$(rpm -q lpf lpf-spotify-client spotify-client 2>/dev/null | grep -v 'is not installed' | tr '\n' ' ' || true)
+left=$( { getent passwd pkg-build >/dev/null && echo "the user pkg-build"; [[ -e /var/lib/lpf ]] && echo /var/lib/lpf; } | tr '\n' ' ' || true)
+if [[ -n ${q// /} ]]; then warn "lpf and Spotify's old app are still installed: $q" "update or repair hands them to dnf's clean-up (Spotify is its web player now)"
+elif [[ -n ${left// /} ]]; then warn "lpf's leftovers: $left" "fedokawaii repair removes them"
+else pass "no lpf, nothing it left (Spotify is its web player)"; fi
 
 # ── zero redundancy ──────────────────────────────────────────────────────────
 section "zero redundancy"
@@ -145,7 +142,7 @@ if ui=$(dnf repoquery --userinstalled --qf '%{name} %{reason}\n' 2>/dev/null) &&
 elif ui=$(dnf repoquery --userinstalled --qf '%{name}\n' 2>/dev/null) && [[ -n $ui ]]; then :; else ui=""; fi
 if [[ -n $ui ]]; then
   # (the manifest by its names, and by the names its packages have now — Fedora renames some)
-  extras=$(comm -23 <(sort -u <<<"$ui") <({ cat "$STATE_DIR/baseline-userinstalled" 2>/dev/null; printf '%s\n' "${WANT[@]}" "${standin[@]}" "${LPF_BUILT[@]}"
+  extras=$(comm -23 <(sort -u <<<"$ui") <({ cat "$STATE_DIR/baseline-userinstalled" 2>/dev/null; printf '%s\n' "${WANT[@]}" "${standin[@]}"
                                              rpm -q --qf '%{NAME}\n' --whatprovides "${WANT[@]}" 2>/dev/null | grep -v ' '; } | sort -u) \
            | grep -v '^kernel' | tr '\n' ' ')
   if [[ -z $extras ]]; then pass "nothing user-installed beyond the manifest"; else fail "installed outside the manifest" "$extras"; fi
@@ -377,11 +374,19 @@ for s in "${SVC_USER_GLOBAL[@]}"; do check "user unit $s enabled" bash -c "syste
 check "tuned profile fedokawaii (always-plugged desktop)" bash -c 'tuned-adm active 2>/dev/null | grep -q fedokawaii'
 check "Wi-Fi power saving off"                         test -f /etc/NetworkManager/conf.d/90-fedokawaii.conf
 check "Bluetooth dongle power saving off (btusb)"      grep -qx 'options btusb enable_autosuspend=0' /etc/modprobe.d/fedokawaii-btusb.conf
+# the sound card's codec awake (no click as it wakes): set for every start, and in force now
+# when the driver is loaded (a card that is not Intel HDA has no such setting: nothing to say)
+if ! grep -qx 'options snd_hda_intel power_save=0' /etc/modprobe.d/fedokawaii-audio.conf 2>/dev/null; then
+  fail "the sound card never naps (no click at a volume change)" "/etc/modprobe.d/fedokawaii-audio.conf missing — repair puts it in"
+elif [[ -r /sys/module/snd_hda_intel/parameters/power_save && $(cat /sys/module/snd_hda_intel/parameters/power_save) != 0 ]]; then
+  fail "the sound card never naps (no click at a volume change)" "snd_hda_intel power_save is $(cat /sys/module/snd_hda_intel/parameters/power_save) now — repair sets 0"
+else pass "the sound card never naps (no click at a volume change)"; fi
 [[ $STEAM == yes ]] && check "ntsync ready for Proton (/dev/ntsync)" test -c /dev/ntsync
 check "linger on (update, repair, verify reach your services)" test -f "/var/lib/systemd/linger/$TARGET_USER"
 check "sleep is suspend only (no hibernation)"           grep -qx 'AllowHibernation=no' /etc/systemd/sleep.conf.d/90-fedokawaii.conf
 check "every sleep locked first (the Sleep key is dwl's)"    grep -qx 'HandleSuspendKey=ignore' /etc/systemd/logind.conf.d/90-fedokawaii.conf
 check "shutdown waits 30 s at most for your services"  grep -qx 'TimeoutStopSec=30s' '/etc/systemd/system/user@.service.d/fedokawaii.conf'
+check "a restart waits for Steam to close properly (25 s at most)" grep -qx 'InhibitDelayMaxSec=25' /etc/systemd/logind.conf.d/90-fedokawaii.conf
 check "secrets.sh private (yours, chmod 600)"          bash -c '[[ ! -e $1 ]] || [[ $(stat -c "%a %U" "$1") == "600 $2" ]]' _ "$TARGET_HOME/.config/fedokawaii/secrets.sh" "$TARGET_USER"
 # torrents: one key, in secrets.sh only; Prowlarr takes it, torrra gets it from kawa-torrra
 # shellcheck disable=SC2016  # expanded by the user's bash, after sourcing the file
@@ -407,11 +412,17 @@ else pass "Prowlarr's start waits on nothing online (it answers on 127.0.0.1 onl
 prowlarr_was=0; U systemctl --user is-active --quiet prowlarr.service && prowlarr_was=1
 if ((prowlarr_was)); then pass "Prowlarr starts (it runs on demand) — running already"
 else
-  info "starting Prowlarr to check it — its first start after a boot can take a minute or two"
+  info "starting Prowlarr to check it (a few seconds)"
   check "Prowlarr starts (it runs on demand)"         U systemctl --user start prowlarr.service
 fi
 check "Prowlarr answers on 127.0.0.1:9696"             U curl -fsS --max-time 5 -o /dev/null http://127.0.0.1:9696/ping
 check "Prowlarr takes the key from secrets.sh"         prowlarr_get health
+# no login: it answers on this computer only, so its page opens with nothing asked —
+# authentication "external" (the container file), and its page itself, not a sign-in
+pauth=$(prowlarr_get system/status 2>/dev/null | jq -r '.authentication // empty' 2>/dev/null) || pauth=""
+pcode=$(U curl -s --max-time 5 -o /dev/null -w '%{http_code}' http://127.0.0.1:9696/ 2>/dev/null) || pcode=""
+if [[ $pauth == external && $pcode == 200 ]]; then pass "Prowlarr's page opens with no login (it answers on 127.0.0.1 only)"
+else fail "Prowlarr's page opens with no login" "authentication: ${pauth:-?}, its page answered ${pcode:-nothing} — repair puts the current container file in"; fi
 check "Prowlarr's files are yours (~/.config/prowlarr)" bash -c '[[ -d $1 && -z $(find "$1" ! -user "$2" -print -quit) ]]' _ "$TARGET_HOME/.config/prowlarr" "$TARGET_USER"
 # the usual public indexers setup adds (system/prowlarr-indexers.py): each there, by its
 # definition (switched off by you counts: yours to decide)
@@ -513,6 +524,34 @@ check "Brave Origin starts (headless: its DevTools port answers)" \
     done
     kill -- -"$p" 2>/dev/null; sleep 1; kill -9 -- -"$p" 2>/dev/null; rm -rf "$d"; exit $r'
 check "Claude Code runs"                               U timeout 20 claude --version
+# herdr (Agents), started as its launcher entry starts it — on a terminal of its own (a
+# pseudo-terminal, 120×36: herdr refuses one of no size), from ~/repos, with your config —
+# but in a home of its own for the two seconds, so it neither attaches to the agents you
+# have running nor leaves a server behind: your config clean to herdr itself (no unknown
+# key, no wrong type), ~/repos there, its server up in the folder it was started from, and
+# the window's side attached to it
+herdr_starts() {
+  U bash -c 'd=$(mktemp -d /tmp/fk-herdr.XXXXXX) r=1
+    mkdir -p "$d/.config/herdr" "$d/repos" && cp ~/.config/herdr/config.toml "$d/.config/herdr/" \
+      && test -d ~/repos && HOME=$d herdr config check >/dev/null 2>&1 \
+      && (cd "$d/repos" && HOME=$d TERM=xterm-256color timeout -k 2 15 python3 -I -c "
+import fcntl, os, pty, select, signal, struct, termios, time
+pid, fd = pty.fork()
+if pid == 0:
+    fcntl.ioctl(0, termios.TIOCSWINSZ, struct.pack(\"HHHH\", 36, 120, 0, 0))
+    os.execvp(\"herdr\", [\"herdr\"])
+end = time.monotonic() + 2
+while time.monotonic() < end:
+    if select.select([fd], [], [], 0.1)[0]:
+        try: os.read(fd, 65536)
+        except OSError: break
+os.kill(pid, signal.SIGTERM); os.waitpid(pid, 0)" >/dev/null 2>&1 </dev/null; true) \
+      && grep -q "endpoint handshake succeeded" "$d/.config/herdr/herdr-client.log" \
+      && grep -qx ".*created startup workspace cwd=$d/repos" "$d/.config/herdr/herdr-server.log" && r=0
+    HOME=$d herdr server stop >/dev/null 2>&1; rm -rf "$d"; exit $r'
+}
+# (its config and its launcher entry come with the theme)
+((THEMED)) && check "herdr starts (Agents: your config clean, its server up in ~/repos, a window attached)" herdr_starts
 check "LazyVim plugins installed"                      test -d "$TARGET_HOME/.local/share/nvim/lazy/LazyVim"
 check "torrra $TORRRA_VERSION loads (Python 3.13, libtorrent, Textual)" U "$TARGET_HOME/.local/share/pipx/venvs/torrra/bin/python" -I -c 'import sys, importlib.metadata as m, torrra, libtorrent, torrra.app; assert sys.version_info[:2] == (3, 13) and m.version("torrra") == sys.argv[1]' "$TORRRA_VERSION"
 check "torrra runs through kawa-torrra" U bash -c 'test -f /etc/profile.d/kawa-torrra.sh && kawa-torrra --version'
@@ -631,6 +670,9 @@ else
     have=$(find "$art/wallpapers" -name '*.src' 2>/dev/null | wc -l)
     if ((have >= want && want > 0)); then pass "wallpaper pack: $have pictures"
     else warn "wallpaper pack: $have of $want pictures fetched" "re-run Theme when online (kawa-wallpaper --pack)"; fi
+    # drawn ahead for the monitor (a switch is then instant): complete, and none older than its picture
+    if wc=$(U kawa-wallpaper --cache-status 2>&1); then pass "wallpaper cache: every pack picture drawn for the screen and current"
+    else warn "wallpaper cache: $(grep -m1 -E 'not drawn yet|no monitor' <<<"$wc" | sed 's/^wallpaper cache: //')" "it is drawn in the background at the next login (or now: kawa-wallpaper --cache)"; fi
   fi
   check "music meter (cava) runs"                      U timeout 5 cava -v
   ((BOOT_SKIPPED)) || check "boot menu theme installed" bash -c 'test -s /boot/grub2/themes/sumi/theme.txt && grep -q grub2/themes/sumi/theme.txt /boot/grub2/grub.cfg'
@@ -654,7 +696,14 @@ if pgrep -u "$TARGET_UID" -x dwl >/dev/null; then
   # the portals behind file dialogs and screen sharing start only inside a graphical session
   check "graphical session known to systemd"           U systemctl --user is-active --quiet dwl-session.target graphical-session.target
   portal() { U busctl --user get-property org.freedesktop.portal.Desktop /org/freedesktop/portal/desktop "$@" 2>/dev/null; }
-  fcv=$(portal org.freedesktop.portal.FileChooser version) scs=$(portal org.freedesktop.portal.ScreenCast AvailableSourceTypes)
+  # (xdg-desktop-portal-wlr starts on demand, so at rest it is not running and the frontend's
+  # answer can come before it does: started here and asked again for 3 s; stopped again after
+  # when it was not running — its first share starts it the same way)
+  xdpw_was=0; U systemctl --user is-active --quiet xdg-desktop-portal-wlr.service && xdpw_was=1
+  U systemctl --user start xdg-desktop-portal-wlr.service 2>/dev/null
+  fcv=$(portal org.freedesktop.portal.FileChooser version) scs=""
+  for _ in $(seq 30); do scs=$(portal org.freedesktop.portal.ScreenCast AvailableSourceTypes); [[ $scs == "u 3" ]] && break; sleep 0.1; done
+  ((xdpw_was)) || U systemctl --user stop --no-block xdg-desktop-portal-wlr.service 2>/dev/null
   check "file dialog portal (FileChooser ${fcv#u })"     bash -c '[[ $1 =~ ^u\ ([0-9]+)$ ]] && ((BASH_REMATCH[1] >= 3))' _ "$fcv"
   check "screen sharing portal: screens + windows"     test "$scs" = "u 3"
   # "Share" (~/.config/pipewire/pipewire.conf.d/60-share.conf) asked for by its node name, in

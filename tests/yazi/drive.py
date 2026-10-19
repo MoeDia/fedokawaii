@@ -7,6 +7,9 @@
     key KEYS             keys: plain text, or <Enter> <Esc> <Down> <Up> <Left> <Right> <Tab>
                          <Space> <Backspace> <C-a>…; nothing else is sent with them
     settle               until the screen has not changed for 0.15 s
+    resize COLSxROWS     the terminal takes that size (as a tiled window does when windows
+                         come and go): what was on the screen stays where it fits, the
+                         program is told (SIGWINCH) and redraws
     waitfile PATH        until PATH exists
     ($VARIABLES in a step's argument are the environment's)
     screen               print the screen (one line per row, trailing spaces cut)
@@ -183,6 +186,16 @@ class Screen:
         elif final == "u":
             self.x, self.y = self.saved
 
+    def resize(self, cols, rows):
+        cells, lit = self.cells, self.lit
+        self.cols, self.rows = cols, rows
+        self.clear()
+        for y in range(min(rows, len(cells))):
+            for x in range(min(cols, len(cells[y]))):
+                self.cells[y][x], self.lit[y][x] = cells[y][x], lit[y][x]
+        self.x, self.y = min(self.x, cols - 1), min(self.y, rows - 1)
+        self.changed = time.time()
+
     def text(self):
         return "\n".join("".join(r).rstrip() for r in self.cells)
 
@@ -303,6 +316,11 @@ def main(argv):
             pump(0.08)
         elif cmd == "settle":
             until(lambda: time.time() - scr.changed > 0.15, 5)
+        elif cmd == "resize":
+            cols, rows = map(int, arg.split("x"))
+            scr.resize(cols, rows)
+            fcntl.ioctl(fd, termios.TIOCSWINSZ, struct.pack("HHHH", rows, cols, 0, 0))
+            pump(0.1)
         elif cmd == "sleep":
             pump(float(arg))
         elif cmd == "waitfile":

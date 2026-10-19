@@ -631,5 +631,73 @@ has "$head1" "open file · …"; has "$head1" "/مجلد ─"
 eq "$(python3 -I -B -c 'import sys; sys.path.insert(0, sys.argv[1]); import drive
 print(sum(drive.width(c) for c in sys.stdin.read().rstrip("\n")))' "$D" <<<"$head1")" 99 "(the title rule: the window less its free column)"
 
+# ── the panes by the window's size (init.lua): every tile of a 1080-p screen ─────────────
+# panes — what a screen shows of the layout: the columns of the rails (│) on its third row,
+# and "stitch A-B" when a row of ╌ (the stacked layout's rule) runs from column A to B
+panes() { python3 -I -c '
+import sys
+rows = sys.stdin.read().split("\n")
+rails = [str(i) for i, c in enumerate(rows[2]) if c == "│"] if len(rows) > 2 else []
+st = [r for r in rows if r.strip() and set(r.strip()) == {"╌"}]
+out = " ".join(rails)
+if st: out += (" " if out else "") + "stitch %d-%d" % (len(st[0]) - len(st[0].lstrip()), len(st[0].rstrip()) - 1)
+print(out or "none")'; }
+setup
+for e in "156x40:20 77" "95x40:15 58" "77x40:15 47" "58x40:stitch 1-56" "37x40:stitch 1-35" "58x24:28" "58x14:28" "34x14:none" "20x8:none"; do
+  s=${e%%:*} want=${e#*:}
+  case_ "yazi at ${s}: $(case $want in *stitch*) echo "the list above the preview, the stitch between them (one free column each end)" ;; none) echo "the list alone" ;;
+    *\ *) echo "parent, list and preview" ;; *) echo "the list and the preview side by side" ;; esac)"
+  out=$(y "$s" <<'EOF'
+wait a.txt
+settle
+screen
+quit
+EOF
+)
+  eq "$(panes <<<"$out")" "$want" "$out"
+done
+case_ "yazi's status line in a narrow window: one line, what does not fit gone (permissions, then the size), the name and the position kept"
+out=$(y 34x14 <<'EOF'
+wait a.txt
+settle
+screen
+quit
+EOF
+)
+st=$(sed -n 14p <<<"$out")
+has "$st" "NOR"; lacks "$st" "rw"; has "$st" "/8"
+eq "$(python3 -I -B -c 'import sys; sys.path.insert(0, sys.argv[1]); import drive
+print(sum(drive.width(c) for c in sys.stdin.read().rstrip("\n")) <= 34)' "$D" <<<"$st")" True "$st"
+case_ "yazi follows its window as it is resized (a window opened or closed beside it): the panes chosen again each time"
+out=$(y 156x40 <<'EOF'
+wait a.txt
+settle
+resize 58x40
+settle
+screen
+resize 34x14
+settle
+screen
+resize 156x40
+settle
+screen
+quit
+EOF
+)
+eq "$(panes <<<"$(sed -n 1,40p <<<"$out")")" "stitch 1-56"
+eq "$(panes <<<"$(sed -n 41,54p <<<"$out")")" "none"
+eq "$(panes <<<"$(sed -n 55,94p <<<"$out")")" "20 77"
+case_ "a ratio of your own (yazi.toml's [mgr] ratio) is kept at every width"
+printf '[mgr]\nratio = [1, 2, 2]\n' >"$HOME/.config/yazi/yazi.toml"
+out=$(y 58x40 <<'EOF'
+wait a.txt
+settle
+screen
+quit
+EOF
+)
+eq "$(panes <<<"$out")" "12 34" "(as yazi lays 1:2:2 out)"
+rm -f "$HOME/.config/yazi/yazi.toml"
+
 flush; rm -f "$SF"
 done_

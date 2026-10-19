@@ -78,9 +78,9 @@ has "$(field 2 <<<"$r" | plain)" "━━━━━━━───     87/120"
 eq "$(field 3 <<<"$r")" "read today" "when (the page is the list's)"
 eq "$(field 4 <<<"$r")" "pdf · 25.4 KB" "the caption: no page count, the list's 87/120 says it"
 eq "$(field 5 <<<"$r")" "" "found by its own path: zathura opens it where it was"
-case_ "finished: 'done', a full teal bar, when"
+case_ "finished: 'done', a full bar in muted, when"
 r=$(row "Done Book.pdf")
-has "$(field 2 <<<"$r" | plain)" "━━━━━━━━━━       done"; has "$(field 2 <<<"$r")" $'\e[96m━'
+has "$(field 2 <<<"$r" | plain)" "━━━━━━━━━━       done"; has "$(field 2 <<<"$r")" $'\e[38;5;21m━'
 eq "$(field 3 <<<"$r")" "read 2 weeks ago" "when (done is the list's)"
 case_ "moved since zathura saw it: found by name, the page kept, opened there (field 5)"
 r=$(row "Flow.epub")
@@ -102,14 +102,14 @@ mk pdf "$B/a_long_title_here.pdf" 1
 has "$(row a_long_title_here.pdf | field 2 | plain)" "a long title here "
 
 case_ "every row is exactly the list's width, CJK counted as two (fzf 100 wide, 300, 71; the default)"
-eq "$(FZF_COLUMNS=100 kawa-books --rows | widths)" "58 "
-eq "$(FZF_COLUMNS=300 kawa-books --rows | widths)" "258 "
-eq "$(FZF_COLUMNS=71 kawa-books --rows | widths)" "29 "
-eq "$(FZF_COLUMNS=40 kawa-books --rows | widths)" "58 " "too narrow to trust: the window's own width"
-eq "$(kawa-books --rows | widths)" "58 "
+eq "$(FZF_COLUMNS=100 kawa-books --rows | widths)" "59 "
+eq "$(FZF_COLUMNS=300 kawa-books --rows | widths)" "259 "
+eq "$(FZF_COLUMNS=71 kawa-books --rows | widths)" "30 "
+eq "$(FZF_COLUMNS=40 kawa-books --rows | widths)" "61 " "too narrow to trust: the window's own width"
+eq "$(kawa-books --rows | widths)" "61 "
 case_ "a title longer than its column is cut with …"
 mk pdf "$B/$(printf 'word %.0s' {1..30}).pdf" 1
-has "$(FZF_COLUMNS=71 kawa-books --rows | grep 'word word' | field 2 | plain)" "word…   ──" "6 columns: the word and …, never a space before it"
+has "$(FZF_COLUMNS=75 kawa-books --rows | grep 'word word' | field 2 | plain)" "word…   ──" "6 columns: the word and …, never a space before it"
 
 case_ "a name that is not UTF-8 (an old zip's), in a real UTF-8 locale: listed, the rest too"
 if locale_of en_US; then L=$LOC
@@ -133,8 +133,9 @@ for t in "family 👨‍👩‍👧 photos:16" "thumbs 👍🏽 up:12" "❤️ h
          "$(printf 'cafe\xcc\x81') au lait:12" "🇯🇵 trip:7"; do
   mk pdf "$B/${t%:*}.pdf" 1
   r=$(FZF_COLUMNS=100 kawa-books --rows | grep -F -- "$B/${t%:*}.pdf"$'\t' | field 2 | plain)
+  r=${r#  *  }                                        # (the row's indent and glyph)
   pad=${r#"${t%:*}"}; pad=${pad%%[!\ ]*}
-  eq "${#pad}" $((35 + 2 - ${t##*:})) "${t%:*}: its padding (title column 35, then 2 spaces)"
+  eq "${#pad}" $((31 + 2 - ${t##*:})) "${t%:*}: its padding (title column 31, then 2 spaces)"
 done
 
 case_ "no books, ~/Books missing: an empty list, the folder made"
@@ -201,7 +202,7 @@ eq "$n" 500; t1=$(( (${e/./} - ${s/./}) / 1000 ))
 s=$EPOCHREALTIME; n=$(kawa-books --rows | wc -l); e=$EPOCHREALTIME
 eq "$n" 500; t2=$(( (${e/./} - ${s/./}) / 1000 ))
 ((t2 < 2000)) && _ok || _no "second listing took $t2 ms"
-eq "$(kawa-books --rows | widths)" "58 "
+eq "$(kawa-books --rows | widths)" "61 "
 printf '    (500 books: %d ms the first time, %d ms after)\n' "$t1" "$t2"
 
 # ── the cover ────────────────────────────────────────────────────────────────
@@ -328,7 +329,7 @@ if [[ -z $FD ]]; then skip "no fd here: Ctrl+A not tried"; else
 stub fd "exec '$FD' \"\$@\""
 printf '%s\n' "~/Downloads/Taken.pdf" "~/Downloads/sub/Deep.epub" >"$FZF_PICK"
 kawa-books --add
-offered=$(cut -f2 "$FZF_IN.add" | sort | tr '\n' '|')
+offered=$(cut -f2 "$FZF_IN.add" | plain | sed 's/^  [^ ]*  //' | sort | tr '\n' '|')
 eq "$offered" "~/Documents/a.b.c.pdf|~/Downloads/Taken.pdf|~/Downloads/sub/Deep.epub|"
 [[ -f "$B/Taken (2).pdf" && -f $B/Deep.epub && -f $B/Taken.pdf && ! -e $HOME/Downloads/Taken.pdf ]] && _ok \
   || _no "moved wrong: $(ls "$B" | tr '\n' '|')"
@@ -350,7 +351,7 @@ called "^kawa-float --once books books 104x29 -- $REPO/bin/kawa-books --tui\$"
 case_ "inside: the list, its count in the title, the keys"
 library; kawa-books --tui
 eq "$(cat "$FZF_IN")" "$(kawa-books --rows)"
-has "$(cat "$FZF_ARGS")" "· ~/Books"; lacks "$(cat "$FZF_ARGS")" "10 in" "the count is fzf's, beside the search"
+has "$(cat "$FZF_ARGS")" "--ghost=~/Books"; lacks "$(cat "$FZF_ARGS")" "10 in" "the count is fzf's, beside the search"
 has "$(cat "$FZF_ARGS")" "--bind=enter:become($REPO/bin/kawa-books --open {1} {5})"
 case_ "inside, no books yet: the title says how to add some"
 setup; kawa-books --tui; has "$(cat "$FZF_ARGS")" "none in ~/Books yet — ctrl+a adds some"

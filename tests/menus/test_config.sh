@@ -56,20 +56,20 @@ config_() {
 mount -t tmpfs none /var/lib && mkdir /var/lib/fedokawaii && mount --bind '$VL' /var/lib/fedokawaii" kawa-config "$@"
 }
 copy_made() { mkdir -p "${COPY%/*}"; cp -r "$TK" "$COPY"; mkdir -p "$COPY/.git"; cp "$COPY/fedokawaii.conf" "$COPY/.git/fedokawaii-conf-base"; }
-title() { fz_arg mesg "${1:-}"; }
+title() { fz_arg title "${1:-}"; }
+. "$REPO/configs/home/.config/fedokawaii/icons.sh"
 
 # ── the menu, and the copy's state in its title ──────────────────────────────────────
-case_ "no working copy yet: every part in five, each headed, 51 wide, the title says it is made on first use"
+case_ "no working copy yet: every part in five, each under its kanji, sized to its content, the title says it is made on first use"
 setup; answer esc; rc 0 config_
-eq "$(fz_rows | grep -v -e '–$' -e '^$' | sed 's/^.  //; s/  .*//; s/ *$//' | tr '\n' ',')" "colours,bar,bar look,icons,notifications,launcher,keys,terminal,shell,files,drives,autostart,settings,packages,yours alone,what changed,history,apply,learn,"
-eq "$(fz_rows | grep '–$' | sed 's/ –*$//; s/^.*  //' | tr '\n' ',')" "look,use,system,history,help," "the headings, as Super+U's: a kanji, the name, a rule"
-eq "$(fz_rows | grep -c '–$')" 5; eq "$(fz_rows | grep -c '^$')" 5 "an empty row above every heading (the first's: under the title, as Super+U's)"
-eq "$(fz_arg select-index)" 2 "the cursor on the first entry, not its heading"
+eq "$(fz_rows | grep '^row' | cut -f3 | tr '\n' ',')" "colours,bar,bar look,icons,notifications,launcher,keys,terminal,shell,files,drives,autostart,settings,packages,yours alone,what changed,history,apply,learn,"
+eq "$(fz_rows | grep '^part' | cut -f2,3 | tr '\t\n' ' ,')" "見 look,手 use,系 system,史 history,案 help," "the headings: a kanji, the name"
+eq "$(fz_rows | grep -vc -e '^part	' -e '^row	')" 0 "nothing but parts and rows (the panel spaces its parts)"
+eq "$(fz_rows | grep '^row' | awk -F'\t' 'NF != 4' )" "" "every row: its icon, its name, its note"
+eq "$(fz_rows | grep -F "	launcher	" | cut -f4)" "the launcher's look"
+eq "$(fz_arg select)" 1 "the cursor's first key on the first entry, not its heading"
 eq "$(title)" "change · ~/repos/fedokawaii · made on first use"
-eq "$(fz_arg width)" 51; eq "$(fz_arg lines)" 29; fits
-case_ "a heading chosen: the menu again, on that part's first entry"
-setup; answer "pick use –" esc; rc 0 config_
-eq "$(fz_n)" 2; eq "$(fz_arg select-index 2)" 10
+eq "$(fz_arg width)" ""; eq "$(fz_arg lines)" ""; fits
 not_called '^fedokawaii copy' "nothing made by just looking"
 case_ "a copy the same as the toolkit: nothing to apply"
 setup; copy_made; answer esc; config_; eq "$(title)" "change · ~/repos/fedokawaii"
@@ -105,7 +105,7 @@ not_called '^fedokawaii copy'; eq "$(cat "$COPY/notes.txt")" mine
 case_ "a part changed: apply now runs fedokawaii apply in a window that waits for a key"
 setup; copy_made; echo change >"$W/edit"; answer "pick terminal" "pick apply now"; config_
 eq "$(fz_n)" 2; eq "$(title 2)" "the terminal server reads it at your next login"
-eq "$(fz_rows 2 | sed 's/^.  //; s/  .*//' | tr '\n' ',')" "apply now,later,what changed,"
+eq "$(fz_rows 2 | cut -f1-3 | tr '\t\n' ' ,')" "part 適 apply,row $ICON_DOWNLOAD apply now,row $ICON_HOURGLASS later,row $ICON_BRANCH what changed," "the apply question: 適 apply, three rows"
 FITS_WRAP=1 fits 2 "(the when-text wraps at its spaces)"
 called '^kawa-float --once apply --dialog apply 100x33 -- bash -c .* _ fedokawaii apply$'
 case_ "… later: nothing runs now"
@@ -136,7 +136,7 @@ eq "$(fz_n)" 1 "no apply question after it"
 case_ "the terminal server is down: your scripts (yazi) and the history (lazygit) say so too"
 setup; echo 220 >"$W/rc.footclient"; answer "pick yours alone" "pick your scripts"; config_
 not_called '^foot '; called '^notify-send -a desktop -- .*  change the terminal server is not running'
-setup; copy_made; echo 220 >"$W/rc.footclient"; answer "pick history  "; config_
+setup; copy_made; echo 220 >"$W/rc.footclient"; answer "pick 	history	"; config_
 not_called '^foot '; called '^notify-send -a desktop -- .*  change the terminal server is not running'
 
 case_ "colours changed: the palettes drawn again in the copy before asking"
@@ -162,7 +162,7 @@ eq "$(fz_n)" 1
 case_ "what changed (no copy yet: made first), apply, history (lazygit in the copy)"
 setup; answer "pick what changed"; config_; called '^fedokawaii copy'; called '^kawa-float --once diff --dialog what changed 120x41 '
 setup; copy_made; answer "pick apply"; config_; called '^kawa-float --once apply --dialog apply 100x33 '
-setup; copy_made; answer "pick history  "; config_; called "^footclient -N -D $COPY -- lazygit$"
+setup; copy_made; answer "pick 	history	"; config_; called "^footclient -N -D $COPY -- lazygit$"
 case_ "yours alone: each file made the first time with a word of what it is for, then opened"
 for p in "shell additions:.bashrc.d/local.sh:Fedora's ~/.bashrc reads every" "autostart:.config/dwl/autostart.local.sh:run at every login" \
          "neovim plugins:.config/nvim/lua/plugins/local.lua:LazyVim reads every file"; do
@@ -181,7 +181,7 @@ case_ "your scripts: yazi in ~/.local/bin"
 setup; answer "pick yours alone" "pick your scripts"; config_; called "^footclient -N -- yazi $HOME/.local/bin$"
 case_ "learn: the handbook, the help sheet, a man page, a web page"
 setup; answer "pick learn" "pick this handbook"; config_; called '^fedokawaii guide$'; fits 2
-setup; answer "pick learn" "pick keys "; config_; called '^kawa-help'
+setup; answer "pick learn" "pick 	keys	"; config_; called '^kawa-help'
 setup; answer "pick learn" "pick man foot.ini"; config_; called '^kawa-term man 5 foot.ini$'
 setup; answer "pick learn" "pick ShellCheck"; config_; called '^setsid -f xdg-open https://www.shellcheck.net/wiki/$'
 case_ "Esc, a click outside: closes, nothing made or run"

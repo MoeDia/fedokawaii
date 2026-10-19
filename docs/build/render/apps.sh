@@ -885,7 +885,7 @@ shot_brave() {   # Brave Origin on its new-tab page: GTK mode (theme.sh's Prefer
   waitpid 10 "$pid" || warn "$T: Brave had to be killed"
 }
 
-shot_wiremix() {   # Super+A → mixer: wiremix (Fedora's 0.11.0) in its floating window, as kawa-audio
+shot_wiremix() {   # Super+A → mixer: wiremix (Fedora's 0.11.0) in its floating window, as kawa-quick
                    # opens it, the test film's sound playing (mpv, no picture) on its Playback tab
   local p pid pp
   # (this mpv speaks PulseAudio, not PipeWire's own protocol as Fedora's does: PipeWire's

@@ -7,7 +7,7 @@
 # checks. Pure: no fake machine.
 FK_PURE=1 . "$(dirname "$0")/lib.sh"
 sandbox
-m() { ( STATE_DIR=$TMP/state; STEAM=${STEAM:-yes} SPOTIFY=${SPOTIFY:-yes}; . "$REPO/lib/manifest.sh"; eval "$1" ); }
+m() { ( STATE_DIR=$TMP/state; STEAM=${STEAM:-yes}; . "$REPO/lib/manifest.sh"; eval "$1" ); }
 all() { m "manifest_all ${1:-amd}"; }
 
 case_ "every list parses; the manifest for AMD and for Intel"
@@ -26,13 +26,9 @@ eq "$(grep -E '^libreoffice' <<<"$a" | sort | tr '\n' ' ')" "libreoffice-calc li
 case_ "AbiWord, Gnumeric and sc-im: forbidden (update removes them) and handed back to dnf"
 f=$(m 'printf "%s\n" "${FORBIDDEN_PKGS[@]}"'); r=$(m 'printf "%s\n" "${RETIRED_PKGS[@]}"')
 for p in abiword gnumeric sc-im; do grep -qx "$p" <<<"$f" && grep -qx "$p" <<<"$r" && _ok || _no "$p not forbidden and retired"; done
-case_ "Spotify: its recipe in the manifest; the package lpf builds from it counted apart (no repository has it)"
-grep -qx lpf-spotify-client <<<"$a" && _ok || _no "lpf-spotify-client not in the manifest"
-eq "$(m 'echo "${LPF_BUILT[*]}"')" spotify-client
-grep -qx spotify-client <<<"$a" && _no "spotify-client in manifest_all: update would look for it in the repositories" || _ok
-case_ "SPOTIFY=no (its terms not accepted): the recipe out of the manifest; yes: in"
-SPOTIFY=no; lacks "$(all amd)" lpf-spotify-client; has "$(all amd)" mpv; SPOTIFY=yes
-grep -qx lpf-spotify-client <<<"$(all amd)" && _ok || _no "SPOTIFY=yes without the recipe"
+case_ "Spotify is its web player: lpf, its recipe and the app it built are retired (handed back to dnf), none in the manifest"
+for p in lpf lpf-spotify-client spotify-client; do grep -qx "$p" <<<"$r" && _ok || _no "$p not retired"; grep -qx "$p" <<<"$a" && _no "$p in the manifest" || _ok; done
+eq "$(m 'echo "${LPF_BUILT[*]:-}${PKG_SPOTIFY[*]:-}"')" "" "no Spotify package lists left"
 
 case_ "no package listed twice"
 eq "$(all amd | sort | uniq -d)" "" "twice in the AMD manifest"

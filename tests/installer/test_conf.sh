@@ -27,6 +27,13 @@ variant -e "s/^GPU=.*/GPU='amd'/" -e 's/^STEAM=.*/STEAM=no/' -e 's/^THEME=.*/   
 eq "$(problems)" ""
 eq "$(value GPU)" amd; eq "$(value STEAM)" no; eq "$(value THEME)" light; eq "$(value SSH_SERVER)" yes
 
+case_ "a setting an earlier version had (SPOTIFY: Spotify's app, built here; its web player now): read past, no problem"
+variant -e 's/^STEAM=.*/&\nSPOTIFY="yes"                     # yes | no — Spotify'"'"'s own app/'
+grep -q '^SPOTIFY="yes"' "$TMP/c.conf" && _ok || _no "the variant has no SPOTIFY line"
+eq "$(problems)" ""; eq "$(value STEAM)" yes
+case_ "…a name nobody ever had: still a problem"
+variant -e 's/^STEAM=.*/&\nSPOTIFYY="yes"/'; has "$(problems)" "SPOTIFYY is not a setting of fedokawaii.conf"
+
 case_ "a city with spaces, an apostrophe or in Arabic or Japanese script: valid"
 for c in "New York" "N'Djamena" "St. John's" "الشارقة" "東京" "São Paulo"; do
   variant -e "s|^WEATHER_CITY=.*|WEATHER_CITY=\"$c\"|"
@@ -126,6 +133,14 @@ has "$p" "GPU must be auto, amd or intel (is 'nvidia')"; has "$p" "MONITOR_HZ mu
 has "$p" "TIMEZONE 'Asia/Nowhere' is not a known zone"; has "$p" "NIGHT_LIGHT must be latitude:longitude"
 has "$p" "BOOT_MENU_SECONDS must be 0–10"; has "$p" "DNF_PARALLEL must be 1–20"
 eq "$(lines "$p")" 6
+
+case_ "NIGHT_LIGHT: south and west, the equator; past a pole or the date line, refused"
+for ll in "-33.87:151.21" "40.71:-74.01" "0:0" "-89.99:-179.99"; do
+  variant -e "s/^NIGHT_LIGHT=.*/NIGHT_LIGHT=\"$ll\"/"; eq "$(problems)" "" "$ll"
+done
+for ll in "125.35:55.40" "25.35:255.40" "90.5:0" "0:180.1" "25.35"; do
+  variant -e "s/^NIGHT_LIGHT=.*/NIGHT_LIGHT=\"$ll\"/"; has "$(problems)" "NIGHT_LIGHT must be latitude:longitude" "$ll"
+done
 
 case_ "BACKUP_TARGET: empty (none yet), a drive's name — with spaces, in Arabic — a folder's path, a restic address: valid"
 eq "$(value BACKUP_TARGET "$CONF")" ""; eq "$(value BACKUP_REMIND_DAYS "$CONF")" 7

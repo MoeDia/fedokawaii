@@ -72,20 +72,21 @@ eq "$(ini client_settings room) $(ini server_data host)" "kawau-3f9a syncplay.pl
 case_ "--help shows how to use it"
 has "$(kawa-together --help)" "kawa-together [FILE]"
 
+plain() { sed 's/\x1b\[[0-9;]*m//g'; }   # (a row without its inks)
 case_ "the lists (--list, as fzf asks for them): the value now, then the ones used, newest first, once each"
 mkdir -p "$ST"; printf 'b\nc\nb\nd\n' >"$ST/rooms"
 eq "$(TOGETHER_NOW=c kawa-together --list rooms '' | cut -f1,2 | tr '\t\n' ':,')" "old:c,old:b,old:d,"
-has "$(TOGETHER_NOW=c kawa-together --list rooms '')" "c  · now"
+has "$(TOGETHER_NOW=c kawa-together --list rooms '' | plain)" "c  now"
 case_ "…what you type, new, at the bottom (not when it is one of them); spaces around it trimmed"
 eq "$(TOGETHER_NOW=c kawa-together --list rooms '  Movie Club 7 ' | tail -n1 | cut -f1,2)" $'new\tMovie Club 7'
-has "$(TOGETHER_NOW=c kawa-together --list rooms '  Movie Club 7 ' | tail -n1)" "+ Movie Club 7"
+has "$(TOGETHER_NOW=c kawa-together --list rooms '  Movie Club 7 ' | tail -n1 | plain)" "+  Movie Club 7  new"
 lacks "$(TOGETHER_NOW=c kawa-together --list rooms 'b' | cut -f1)" "new"
 case_ "…servers: Syncplay's public ones after yours; a bare host gets Syncplay's port; anything else is no server"
 printf 'friends.example:9000\nsyncplay.pl:8997\n' >"$ST/servers"
 pub=$'syncplay.pl:8995\tFrance\nsyncplay.pl:8997\tFrance'
 srv() { TOGETHER_NOW=friends.example:9000 TOGETHER_PUBLIC=$pub TOGETHER_PORT=8999 kawa-together --list servers "$1"; }
 eq "$(srv '' | cut -f2 | tr '\n' ,)" "friends.example:9000,syncplay.pl:8997,syncplay.pl:8995,"
-has "$(srv '' | sed -n 2p)" "syncplay.pl:8997      · public, France"
+has "$(srv '' | sed -n 2p | plain)" "syncplay.pl:8997  public, France"
 eq "$(srv 'films.example' | tail -n1 | cut -f1,2)" $'new\tfilms.example:8999'
 eq "$(srv '[::1]:9001' | tail -n1 | cut -f1,2)" $'new\t[::1]:9001'
 eq "$(srv 'two words' | cut -f1 | sort -u | tr '\n' ,)" "bad,old,"
@@ -112,10 +113,10 @@ quit bye<Enter>
 EOF
 ); r=$?
 eq "$r" 0 "the session: $out"
-has "$out" "join      kawau-3f9a  on syncplay.pl:8999  as kawau"
-has "$out" "server    syncplay.pl:8999  · public"
+has "$out" "kawau-3f9a on syncplay.pl:8999 as kawau"
+has "$out" "syncplay.pl:8999 · public"
 lacks "$out" "password" "a public server has no password row"
-has "$out" "film      $TMP/a film's.mkv"
+has "$out" "$TMP/a film's.mkv"
 has "$out" "args: [--no-gui] [--] [$TMP/a film's.mkv]" "Syncplay without its window, the film after --, nothing else"
 has "$out" "it read: help" "what you type reaches Syncplay"
 lacks "$out" "$RADV" "Mesa's RADV line stays out of the terminal"
@@ -135,7 +136,7 @@ key <Esc>
 EOF
 )
 eq "$(grep -c . <<<"$out")" 1 "one row lit: $out"
-has "$out" "join      kawau-3f9a"
+has "$out" "kawau-3f9a on"
 
 case_ "another room typed: offered as new, taken; Syncplay, syncplay.ini and the list agree"
 out=$(together 2>&1 <<'EOF'
@@ -143,11 +144,11 @@ wait join
 key <Down><Down><Enter>
 wait the one your friends use
 key Movie Club 7
-wait + Movie Club 7
+wait +  Movie Club 7
 settle
 screen
 key <Enter>
-wait join      Movie Club 7  on syncplay.pl:8999  as kawau
+wait Movie Club 7 on syncplay.pl:8999 as kawau
 key <Enter>
 wait args:
 settle
@@ -156,13 +157,13 @@ quit bye<Enter>
 EOF
 ); r=$?
 eq "$r" 0 "$out"
-has "$out" "+ Movie Club 7  · new"
+has "$out" "+  Movie Club 7"
 eq "$(ini client_settings room)" "Movie Club 7"
 eq "$(tr '\n' , <"$ST/rooms")" "Movie Club 7,kawau-3f9a,"
 
 case_ "next time: the last choice is there — Enter alone rejoins it"
 out=$(together 2>&1 <<'EOF'
-wait join      Movie Club 7  on syncplay.pl:8999  as kawau
+wait Movie Club 7 on syncplay.pl:8999 as kawau
 key <Enter>
 wait args:
 settle
@@ -186,7 +187,7 @@ screen
 key r5
 settle
 key <Enter>
-wait join      r5
+wait r5 on
 key <Enter>
 wait args:
 settle
@@ -195,7 +196,7 @@ quit bye<Enter>
 EOF
 ); r=$?
 eq "$r" 0 "$out"
-has "$out" "Movie Club 7  · now" "the room now, first"
+has "$(sed -E 's/   +/  /g' <<<"$out")" "Movie Club 7  now" "the room now, first (its note right-aligned)"
 eq "$(tr '\n' , <"$ST/rooms")" "r5,r1,r2,r3,r4,r6,r7,r8,r9,r10,"
 
 case_ "a server of your own, typed without a port: Syncplay's 8999 added, its password asked unseen"
@@ -204,14 +205,14 @@ wait join
 key <Down><Enter>
 wait type host:port
 key films.example
-wait + films.example:8999
+wait +  films.example:8999
 key <Enter>
 wait the password for this server
 key pa55 word
 settle
 screen
 key <Enter>
-wait password  remembered
+wait remembered
 settle
 screen
 key <Enter>
@@ -222,7 +223,7 @@ quit bye<Enter>
 EOF
 ); r=$?
 eq "$r" 0 "$out"
-has "$out" "join      r5  on films.example:8999  as kawau"
+has "$out" "r5 on films.example:8999 as kawau"
 lacks "$out" "pa55" "the password was shown"
 has "$out" "pw in its environment: none" "the password is not in Syncplay's environment"
 lacks "$out" "[--password]" "nor on its command line"
@@ -234,14 +235,14 @@ eq "$(head -n1 "$ST/servers")" "films.example:8999"
 
 case_ "a public server again: no password row, none in syncplay.ini — and the other's stays remembered"
 out=$(together 2>&1 <<'EOF'
-wait password  remembered
+wait remembered
 key <Down><Enter>
 wait type host:port
 key 8997
 wait syncplay.pl:8997
 settle
 key <Enter>
-wait join      r5  on syncplay.pl:8997
+wait r5 on syncplay.pl:8997
 settle
 screen
 key <Enter>
@@ -265,7 +266,7 @@ key films
 wait films.example:8999
 settle
 key <Enter>
-wait password  remembered
+wait remembered
 key <Enter>
 wait args:
 settle
@@ -279,11 +280,11 @@ eq "$(ini server_data password)" "pa55 word"
 
 case_ "the password row: Enter asks again; Enter alone there: the server has none"
 out=$(together 2>&1 <<'EOF'
-wait password  remembered
+wait remembered
 key <Down><Down><Down><Down><Enter>
 wait the password for this server
 key <Enter>
-wait password  none
+wait none
 key <Esc>
 EOF
 ); r=$?
@@ -294,9 +295,9 @@ case_ "the film: Enter on its row opens the file dialog where the film is; cance
 mkdir -p "$TMP/films"; : >"$TMP/films/one.mkv"; : >"$TMP/films/two.mkv"
 stub kawa-pick 'printf "%s\n" "$TMP/films/two.mkv" >"$5"'
 out=$(together "$TMP/films/one.mkv" 2>&1 <<'EOF'
-wait film      $TMP/films/one.mkv
+wait $TMP/films/one.mkv
 key <Down><Down><Down><Down><Down><Enter>
-wait film      $TMP/films/two.mkv
+wait $TMP/films/two.mkv
 key <Enter>
 wait args:
 settle
@@ -309,9 +310,9 @@ called "^kawa-pick 0 0 0 $TMP/films "
 has "$out" "args: [--no-gui] [--] [$TMP/films/two.mkv]"
 stub kawa-pick ': >"$5"'
 out=$(together "$TMP/films/one.mkv" 2>&1 <<'EOF'
-wait film      $TMP/films/one.mkv
+wait $TMP/films/one.mkv
 key <Down><Down><Down><Down><Down><Enter>
-wait film      none
+wait mpv finds it by its name
 key <Enter>
 wait args:
 settle
@@ -324,7 +325,7 @@ has "$out" "args: [--no-gui]"; lacks "$out" "[--]" "cancelled: no film"
 case_ "W on a folder: no film; the dialog starts in that folder"
 reset_calls
 out=$(together "$TMP/films" 2>&1 <<'EOF'
-wait film      none
+wait mpv finds it by its name
 key <Down><Down><Down><Down><Down><Enter>
 settle
 key <Esc>

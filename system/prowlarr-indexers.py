@@ -4,6 +4,11 @@ films and series, added once, so torrra's first search finds something. setup.sh
 you) at setup, every update and repair, with Prowlarr up; the API key comes on stdin (never
 on a command line). Usage: printf %s "$KEY" | prowlarr-indexers.py [URL]
 
+Prowlarr fetches its list of sites (the indexer definitions) in the background once it has
+started: right after a first start the list can still lack them. A site it does not know yet
+is asked for at once (its "Indexer Definition Update" task, waited for up to two minutes)
+before anything is said missing.
+
 Each is added only when Prowlarr has none of its kind yet (matched by its definition, so
 one you renamed, set up differently or switched off is left exactly as you have it), with
 the settings Prowlarr's own form starts with, and a priority (1 is asked first, 50 last;
@@ -31,6 +36,7 @@ Exit: 0 every one present · 1 one or more could not be added (said, one line ea
 """
 import json
 import sys
+import time
 import urllib.error
 import urllib.request
 
@@ -56,7 +62,17 @@ def main():
         if not missing:
             print(f"Prowlarr's indexers: all {len(INDEXERS)} in place")
             return 0
-        schema = {(s.get("definitionName") or "").lower(): s for s in api("GET", "/indexer/schema")}
+        def sites():
+            return {(s.get("definitionName") or "").lower(): s for s in api("GET", "/indexer/schema")}
+        schema = sites()
+        if any(d.lower() not in schema for d, _ in missing):
+            # its list of sites not fetched yet (a first start): fetched now, and waited for
+            cmd = api("POST", "/command", {"name": "IndexerDefinitionUpdate"})
+            for _ in range(60):
+                if api("GET", f"/command/{cmd['id']}").get("status") not in ("queued", "started"):
+                    break
+                time.sleep(2)
+            schema = sites()
         profile = api("GET", "/appprofile")[0]["id"]
     except urllib.error.HTTPError as e:
         print(f"Prowlarr refused ({e.code}) — is the key in secrets.sh the one it was given?", file=sys.stderr)

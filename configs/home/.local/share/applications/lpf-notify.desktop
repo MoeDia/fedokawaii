@@ -1,8 +1,0 @@
-[Desktop Entry]
-# lpf's tray watcher (with lpf-spotify-client): nothing starts it here; update builds a new Spotify.
-# Hidden from the launcher: this entry, by the same name as the package's, stands in for it
-# (NoDisplay); the program itself stays installed and works as before.
-Type=Application
-Name=lpf-notify
-Exec=/usr/share/lpf/scripts/lpf-notify notify-watch /usr/share/lpf/scripts/notify
-NoDisplay=true

@@ -1,219 +1,154 @@
 #!/usr/bin/env bash
-# tests/status/test_audio.sh — kawa-audio, the volume popup (Super+A, a click on the bar's
-# volume): the outputs and inputs from pw-dump, louder/quieter/mute that keep it open, a
-# device picked made the default. PipeWire is fake_pw.py's machine (fixtures/pw.json: an
-# analog output and input, an HDMI output, and 60-share.conf's two "Share" loopbacks, which
-# wpctl lists under Filters); the menu is fake_menu (rows kept, answers from a list). Then the
-# mixer, wiremix: opened in a floating terminal (kawa-float), its theme files, the manifest.
+# tests/status/test_audio.sh — the sound panel's machine side (kawa-panel --sound draws it,
+# Super+A or a click on the bar's volume; kawa-quick knows the machine): what --state sound
+# says — the output's level and mute, the microphone's, every output and input from pw-dump
+# with the default ticked, never "Share" — and what each --do does: an output or input picked
+# made the default (wpctl set-default), mute and the microphone's mute switched over, the
+# mixer opened. PipeWire is fake_pw.py's machine (fixtures/pw.json: an analog output and
+# input, an HDMI output, and 60-share.conf's two "Share" loopbacks, which wpctl lists under
+# Filters). Then the mixer, wiremix: its theme files, its window, the manifest. And the old
+# sound menu, kawa-audio: gone, its installed copy retired.
 . "$(dirname "$0")/lib.sh"
 setup() {
-  box; pw_world; notices; . "$HOME/.config/fedokawaii/icons.sh"
-  export MENU=$TMP/menu; mkdir -p "$MENU"; : >"$MENU/answers"
-  stub kawa-menu 'exec bash '"$SD"'/fake_menu "$@"'; stub setsid; stub kawa-float
+  box; pw_world; . "$HOME/.config/fedokawaii/icons.sh"
+  stub kawa-float; stub kawa-brightness
 }
-answers() { printf '%s\n' "$@" >"$MENU/answers"; }
-rows() { cat "$MENU/rows.${1:-1}" 2>/dev/null; }
-opened() { cat "$MENU/n" 2>/dev/null || echo 0; }
-hd() { ( . "$HOME/.config/fedokawaii/width.sh"; heading "$@" ); }   # hd KANJI NAME W — a heading, as width.sh makes it (in a subshell: its cols is not the tests')
-arg() { grep -A1 -x -- "$2" "$MENU/args.$1" | sed -n 2p; }       # arg N --title → its value
-note() { grep '^NOTICE [0-9]* desktop ' "$NOTIFY_STATE/log" 2>/dev/null | tail -n 1 | cut -d'|' -f2-; }
+sq() { kawa-quick --state sound; }
+sv() { sq | sed -n "s/^$1\t//p"; }                       # sv KEY — its value now
+devs() { sq | grep -E $'^(output|input)\t' | cut -f1-4; }   # the device lines: kind, id, default, description
+names() {   # the short names the panel shows (kawa-panel's parse_sound of what --state sound says)
+  sq | python3 -I -c 'import importlib.machinery as m, importlib.util as u, sys
+sys.dont_write_bytecode = True
+l = m.SourceFileLoader("kp", sys.argv[1]); k = u.module_from_spec(u.spec_from_loader("kp", l)); l.exec_module(k)
+s = k.parse_sound(sys.stdin.read())
+print(" | ".join(n + ("*" if d else "") for _, d, n in s["outputs"]), "/", " | ".join(n + ("*" if d else "") for _, d, n in s["inputs"]))' "$REPO/bin/kawa-panel"
+}
 dev() { pw_edit "st['nodes'].append({'id': $1, 'class': '$2', 'name': '$3', 'desc': $4, 'prio': ${5:-100}, 'vol': 1.0})"; }
 sink=alsa_output.pci-0000_0e_00.4.analog-stereo
 
-# ── what it lists ────────────────────────────────────────────────────────────
-case_ "the rows: the sound part (louder, quieter, mute, mixer), the outputs (current ticked), the inputs and the microphone — each part headed"
-setup; answers esc
-rc 0 kawa-audio
-r=$(rows)
-eq "$(sed -n 1p <<<"$r")" "$(hd 音 sound 34)" "the first part headed too, as Super+U's first"
-eq "$(sed -n 2,5p <<<"$r")" "$ICON_VOL_UP  louder"$'\n'"$ICON_VOL_DOWN  quieter"$'\n'"$ICON_SPEAKER_OFF  mute"$'\n'"$ICON_SLIDERS  mixer…"
-eq "$(sed -n 6p <<<"$r")" "" "an empty row above each heading but the first"
-eq "$(sed -n 7p <<<"$r")" "$(hd 出 output 34)" "a heading as Super+U's: kanji, name, a rule of en dashes (one column each in the font)"
-has "$(sed -n 7p <<<"$r")" "出${ICON_GAP}  output –"
-eq "$(sed -n 8p <<<"$r")" "$ICON_BOX_ON  Starship/Matisse HD Audio…" "the current output, ticked, its name cut to 28 columns (… is two)"
-eq "$(sed -n 9p <<<"$r")" "$ICON_BOX_OFF  Navi 31 HDMI/DP Audio Digi…" "no space before the …"
-eq "$(sed -n 10p <<<"$r")" ""
-eq "$(sed -n 11p <<<"$r")" "$(hd 入 input 34)"
-eq "$(sed -n 12p <<<"$r")" "$ICON_BOX_ON  Starship/Matisse HD Audio…"
-eq "$(sed -n 13p <<<"$r")" "$ICON_MIC_OFF  mute microphone"
-eq "$(wc -l <<<"$r")" 13
-eq "$(arg 1 --select)" 1 "it opens on louder, not on the heading"
+# ── what it says ─────────────────────────────────────────────────────────────
+case_ "--state sound: the level, mute, the microphone, then the outputs and the inputs (the default ticked: 1)"
+setup
+rc 0 kawa-quick --state sound
+eq "$(sq | cut -f1-4)" "$(printf '%s\n' $'sound\t40%' $'muted\toff' $'mic\ton' \
+  $'output\t62\t1\tStarship/Matisse HD Audio Controller Analog Stereo' \
+  $'output\t73\t0\tNavi 31 HDMI/DP Audio Digital Stereo (HDMI)' \
+  $'input\t67\t1\tStarship/Matisse HD Audio Controller Analog Stereo')"
+eq "$(sq | grep -c $'^output\t[0-9]*\t[01]\t[^\t]*\t[^\t]*\t[^\t]*\t[^\t]*\t[^\t]*\t[^\t]*$')" 2 "each device: nine fields (the description, port, nick, card, profile, API after it)"
+case_ "the owner's machine (his report: an MSI board's ALC1220 on the Ryzen's HD audio controller, an RX 9060 XT's HDMI to an LG ULTRAGEAR): each device with its port, nick, card, profile"
+box; export FAKE_PW=$TMP/pw.json; cp "$SD/fixtures/pw-owner.json" "$FAKE_PW"
+stub wpctl 'exec python3 -I '"$SD"'/fake_pw.py wpctl "$@"'; stub pw-dump 'exec python3 -I '"$SD"'/fake_pw.py pw-dump "$@"'
+eq "$(sq | grep -E $'^(output|input)\t')" "$(printf '%s\n' \
+  $'output\t62\t1\tRyzen HD Audio Controller Analog Stereo\tLine Out\tALC1220 Analog\tRyzen HD Audio Controller\tAnalog Stereo\talsa' \
+  $'output\t73\t0\tNavi 48 HDMI/DP Audio Controller Digital Stereo (HDMI)\tHDMI / DisplayPort\tLG ULTRAGEAR\tNavi 48 HDMI/DP Audio Controller\tDigital Stereo (HDMI)\talsa' \
+  $'input\t67\t1\tRyzen HD Audio Controller Analog Stereo\tRear Microphone\tALC1220 Analog\tRyzen HD Audio Controller\tAnalog Stereo\talsa')" \
+  "the port is the card's active route for that node (its direction and card.profile.device)"
+eq "$(names)" "line out · analog* | LG ULTRAGEAR · HDMI / rear mic*" "… and the panel's short names of them"
+case_ "headphones plugged in the front: the route changes, so does the name; a front microphone of its own"
+pw_edit "st['devices'][0]['routes'][0].update(name='analog-output-headphones', description='Headphones')"
+pw_edit "st['devices'][0]['routes'].append({'direction': 'Input', 'device': 5, 'name': 'analog-input-front-mic', 'description': 'Front Microphone'})"
+pw_edit "st['nodes'].append(dict(node('alsa_input.pci-0000_15_00.6.analog-stereo'), id=68, name='alsa_input.pci-0000_15_00.6.analog-stereo-front', prio=100, props=dict(node('alsa_input.pci-0000_15_00.6.analog-stereo')['props'], **{'card.profile.device': 5})))"
+eq "$(names)" "headphones · analog* | LG ULTRAGEAR · HDMI / rear mic* | front mic"
+case_ "a node whose card pw-dump does not list (or a null device): the port, nick and card empty, nothing breaks"
+setup; eq "$(sq | grep $'^output\t73' | cut -f5-9)" $'\tDELL S2721DGF\t\t\talsa'
+eq "$(names)" "analog* | DELL S2721DGF · HDMI / analog*"
 case_ "the Filters part: Share is never offered, nor its loopback's stream"
-lacks "$r" "Share"; lacks "$r" "share_"
-case_ "every row fits the menu (its 34 columns, less the last pixels fuzzel keeps for its …)"
-rows_fit "$r" 34
-case_ "no title: the level is the bar's, right above the menu"
-eq "$(arg 1 --title)" "" "no --title"; lacks "$(cat "$MENU/args.1")" "--title"
+lacks "$(sq)" "Share"; lacks "$(sq)" "share_"
+case_ "muted: the level still said (the panel keeps its squares, hollow), muted on; the microphone muted"
+setup; pw_edit "node('$sink')['mute'] = True"; pw_edit "node('alsa_input.pci-0000_0e_00.4.analog-stereo')['mute'] = True"
+eq "$(sv sound) $(sv muted) $(sv mic)" "40% on muted"
+case_ "above 100 % (set in the mixer): said as it is"
+setup; pw_edit "node('$sink')['vol'] = 1.3"; eq "$(sv sound)" 130%
+case_ "--state brightness: the slider's one line"
+setup; stub kawa-brightness '[ "$1" = --level ] && echo 55'
+eq "$(kawa-quick --state brightness)" $'brightness\t55%'
+stub kawa-brightness 'exit 1'; eq "$(kawa-quick --state brightness)" $'brightness\tno DDC/CI'
 
-case_ "muted: 'unmute' instead of 'mute'"
-setup; pw_edit "node('$sink')['mute'] = True"; answers esc
-kawa-audio
-has "$(rows)" "$ICON_SPEAKER  unmute"
-case_ "muted, then louder: unmuted and up a step — as the volume key (kawa-volume, one tool)"
-setup; pw_edit "node('$sink')['mute'] = True"; answers 1 esc
-kawa-audio; eq "$(pw_vol sink)" 0.45 "unmuted, 5 % up"
-case_ "the microphone muted: 'unmute microphone'"
-setup; pw_edit "node('alsa_input.pci-0000_0e_00.4.analog-stereo')['mute'] = True"; answers esc
-kawa-audio
-has "$(rows)" "$ICON_MIC  unmute microphone"
-
-
-# ── what each row does ───────────────────────────────────────────────────────
-case_ "louder: 5 % up, the menu reopens on the same row; Esc ends it"
-setup; answers 1 esc
-rc 0 kawa-audio
-eq "$(pw_vol sink)" 0.45; eq "$(opened)" 2
-eq "$(arg 2 --select)" 1 "the same row picked again"
-case_ "louder, held on (tapped 15 times): stops at 100 %"
-setup; answers 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 esc
-kawa-audio; eq "$(pw_vol sink)" 1.00
-case_ "louder above 100 %: leaves it (never pulled down)"
-setup; pw_edit "node('$sink')['vol'] = 1.3"; answers 1 esc
-kawa-audio; eq "$(pw_vol sink)" 1.30
-case_ "quieter; mute; mute microphone — each keeps the menu open"
-setup; answers 2 3 "~mute microphone" esc
-kawa-audio
-eq "$(pw_vol sink)" "0.35 [MUTED]"; eq "$(pw_vol source)" "0.80 [MUTED]"; eq "$(opened)" 4
-has "$(rows 3)" "$ICON_SPEAKER  unmute" "the row says what it will do now"
-
-case_ "another output picked: the default, a notice says so, the menu closes"
-setup; answers "~Navi 31"
-rc 0 kawa-audio
-called 'wpctl set-default 73'
-eq "$(note)" " $ICON_SPEAKER  audio | Navi 31 HDMI/DP Audio Digital Stereo (HDMI) is now the output" "the full name, not the cut one"
-eq "$(opened)" 1
-case_ "the current output picked: nothing happens, the menu stays"
-setup; answers 7 esc
-kawa-audio; not_called 'set-default'; eq "$(opened)" 2
-case_ "a heading picked: nothing, the menu stays"
-setup; answers 6 esc
-kawa-audio; not_called 'set-default'; eq "$(opened)" 2
-eq "$(arg 2 --select)" 7 "again, on its part's first entry (the current output)"
-
-case_ "a USB microphone picked as the input"
-setup; dev 90 Audio/Source alsa_input.usb-BLUE_Yeti '"Yeti Stereo Microphone"'; answers "~Yeti"
-kawa-audio
-called 'wpctl set-default 90'; has "$(note)" "Yeti Stereo Microphone is now the input"
-
-case_ "an output unplugged while the menu was open: no false notice, the menu shows what is left"
-setup; answers "~Navi 31" esc
-printf '%s\n' "python3 -I - <<'EOF'
-import json; f='$FAKE_PW'; st=json.load(open(f))
-st['nodes'] = [n for n in st['nodes'] if n['id'] != 73]; json.dump(st, open(f, 'w'))
-EOF" >"$MENU/hook.1"
-rc 0 kawa-audio
-eq "$(note)" "" "no notice"; eq "$(opened)" 2; lacks "$(rows 2)" "Navi 31"
-
-case_ "mixer…: wiremix in a floating terminal of its own, one at a time; the menu closes"
-setup; answers "~mixer"
-rc 0 kawa-audio; called '^kawa-float --once mixer mixer 96x29 -- wiremix$'; eq "$(opened)" 1
-not_called 'setsid|pavucontrol'
-case_ "…while the mixer is open already: nothing more opens (kawa-float's 3 is passed on)"
-setup; answers "~mixer"; stub kawa-float 'exit 3'
-rc 3 kawa-audio; eq "$(opened)" 1
-
-case_ "Esc: nothing changed"
-setup; answers esc
-rc 0 kawa-audio; not_called 'wpctl set'
+# ── what each does ───────────────────────────────────────────────────────────
+case_ "output ID, input ID: made the default (wpctl set-default ID), --state then ticks it"
+setup; rc 0 kawa-quick --do output 73
+grep -q '^wpctl set-default 73$' "$FAKE_PW.log" && _ok || _no "no wpctl set-default 73"
+eq "$(devs | grep $'^output\t73')" $'output\t73\t1\tNavi 31 HDMI/DP Audio Digital Stereo (HDMI)'
+eq "$(devs | grep -c $'\t1\t')" 2 "one output and one input ticked"
+setup; dev 90 Audio/Source alsa_input.usb-BLUE_Yeti '"Yeti Stereo Microphone"'
+rc 0 kawa-quick --do input 90; eq "$(devs | grep $'^input\t90')" $'input\t90\t1\tYeti Stereo Microphone'
+case_ "a device unplugged since the panel read it: could not (1), nothing else changed"
+setup; rc 1 kawa-quick --do output 99; eq "$(devs | grep $'\t1\t' | cut -f2 | tr '\n' ' ')" "62 67 "
+case_ "an id that is not a number: wrong use (2), wpctl never asked"
+setup; for a in x 7x '' -1 '$(id)'; do rc 2 kawa-quick --do output "$a"; done
+rc 2 kawa-quick --do input; rc 2 kawa-quick --do output 73 74
+grep -qs 'set-default' "$FAKE_PW.log" && _no "wpctl asked" || _ok
+case_ "mute, micmute: switched over (wpctl set-mute … toggle), and back"
+setup; rc 0 kawa-quick --do mute; eq "$(pw_vol sink)" "0.40 [MUTED]"; eq "$(sv muted)" on
+rc 0 kawa-quick --do mute; eq "$(pw_vol sink)" 0.40
+rc 0 kawa-quick --do micmute; eq "$(pw_vol source)" "0.80 [MUTED]"; eq "$(sv mic)" muted
+rc 2 kawa-quick --do mute extra
+case_ "volume N while muted: unmuted and set (the panel's meter)"
+setup; pw_edit "node('$sink')['mute'] = True"; rc 0 kawa-quick --do volume 55; eq "$(pw_vol sink)" 0.55
+case_ "mixer: wiremix in a floating terminal of its own, one at a time (kawa-float's 3 passed on)"
+setup; rc 0 kawa-quick --do mixer; called '^kawa-float --once mixer mixer 96x29 -- wiremix$'
+not_called 'pavucontrol'
+stub kawa-float 'exit 3'; rc 3 kawa-quick --do mixer
+case_ "sound: the sound panel (kawa-panel --sound)"
+setup; stub kawa-panel; rc 0 kawa-quick --do sound; called '^kawa-panel --sound$'
 
 # ── odd names ────────────────────────────────────────────────────────────────
 odd='Tom & Jerry "Mic" <USB> $(touch /tmp/kawa-pwned) `id` \\ ü'
-case_ "a name with markup, quotes, \$( ), backticks, a backslash: shown as it is, never run"
+case_ "a name with markup, quotes, \$( ), backticks, a backslash: said as it is, never run"
 setup
 pw_edit "st['nodes'].append({'id': 91, 'class': 'Audio/Sink', 'name': 'odd', 'desc': '''$odd''', 'prio': 50, 'vol': 1.0})"
-answers "~Tom & Jerry"
-kawa-audio
-has "$(rows)" "$ICON_BOX_OFF  Tom & Jerry \"Mic\" <USB> \$(…" "cut at 28 columns"
-called 'wpctl set-default 91'
-eq "$(note)" " $ICON_SPEAKER  audio | Tom &amp; Jerry \"Mic\" &lt;USB&gt; \$(touch /tmp/kawa-pwned) \`id\` \\ ü is now the output" \
-  "the notice's body escaped for mako's markup, the backslash single"
+has "$(devs)" $'output\t91\t0\tTom & Jerry "Mic" <USB> $(touch /tmp/kawa-pwned) `id` \\ ü'
 [[ ! -e /tmp/kawa-pwned ]] && _ok || { _no "a device name ran as a command"; rm -f /tmp/kawa-pwned; }
-
-case_ "a tab or a line break in a name: one row, a space in its place"
-setup; dev 92 Audio/Sink tabbed '"Desk\tSpeakers\nLeft"'; answers esc
-kawa-audio
-has "$(rows)" "$ICON_BOX_OFF  Desk Speakers Left"
-eq "$(wc -l <"$MENU/rows.1")" 14 "still one row per device"
-
-case_ "Arabic and Japanese names, long ones cut to 28 columns (a Japanese letter is two), never mid-character"
-setup
-dev 93 Audio/Sink bluez_output.1 '"سماعات محمد اللاسلكية الجديدة من سوني"'
-dev 94 Audio/Sink bluez_output.2 '"ソニーのワイヤレスノイズキャンセリングヘッドホン"'
-dev 95 Audio/Sink short '"-rf"'
-answers esc
-kawa-audio; r=$(rows)
-has "$r" "$ICON_BOX_OFF  سماعات محمد اللاسلكية الجد…"
-has "$r" "$ICON_BOX_OFF  ソニーのワイヤレスノイズキ…"
-has "$r" "$ICON_BOX_OFF  -rf" "a name starting with a dash"
-rows_fit "$r" 34
-case_ "… also under LC_ALL=C (byte counting must not cut a letter in half)"
-setup; dev 93 Audio/Sink bluez_output.1 "\"Moh's سماعات محمد اللاسلكية الجديدة\""; answers esc
-LC_ALL=C kawa-audio
-has "$(rows)" "$ICON_BOX_OFF  Moh's سماعات محمد اللاسلكي…"
-[[ $(cols "$(rows)") != *bad* ]] && _ok || _no "a row is not valid UTF-8"
-
-case_ "a very long name: cut with … to fit"
-setup; dev 96 Audio/Sink long "'$(printf 'Speaker%.0s' {1..40})'"; answers esc
-kawa-audio; rows_fit "$(rows)" 34
-
-case_ "a name with letters the font draws two columns wide (® — ™): cut by the font's columns, so it still fits"
-setup; dev 99 Audio/Sink logi '"Logitech® G Pro™ X — Wireless Gaming Headset"'; answers esc
-kawa-audio; rows_fit "$(rows)" 34; has "$(rows)" "$ICON_BOX_OFF  Logitech® G Pro™ X — Wi…"
+case_ "a tab or a line break in a name: one line, a space in its place"
+setup; dev 92 Audio/Sink tabbed '"Desk\tSpeakers\nLeft"'
+has "$(devs)" $'output\t92\t0\tDesk Speakers Left'; eq "$(devs | wc -l)" 4 "still one line per device"
+case_ "Arabic and Japanese names: whole (the panel cuts them to its width, by the font)"
+setup; dev 93 Audio/Sink bluez_output.1 '"سماعات محمد اللاسلكية الجديدة من سوني"'; dev 94 Audio/Sink bluez_output.2 '"ソニーのワイヤレスノイズキャンセリングヘッドホン"'
+has "$(devs)" $'\tسماعات محمد اللاسلكية الجديدة من سوني'; has "$(devs)" $'\tソニーのワイヤレスノイズキャンセリングヘッドホン'
 case_ "a device with no description: its nick, else its node name"
 setup
 pw_edit "st['nodes'].append({'id': 97, 'class': 'Audio/Sink', 'name': 'alsa_output.usb-dac', 'prio': 50, 'vol': 1.0, 'props': {'node.nick': 'USB DAC'}})"
 pw_edit "st['nodes'].append({'id': 98, 'class': 'Audio/Sink', 'name': 'bare_sink', 'prio': 50, 'vol': 1.0})"
-answers esc; kawa-audio
-has "$(rows)" "$ICON_BOX_OFF  USB DAC"; has "$(rows)" "$ICON_BOX_OFF  bare_sink"
+has "$(devs)" $'output\t97\t0\tUSB DAC'; has "$(devs)" $'output\t98\t0\tbare_sink'
 
 # ── how many devices ─────────────────────────────────────────────────────────
-case_ "one output, one input: just those two, ticked"
-setup; pw_edit "st['nodes'] = [n for n in st['nodes'] if n['id'] != 73]"; answers esc
-kawa-audio
-eq "$(grep -c "$ICON_BOX_ON" <<<"$(rows)")" 2; eq "$(grep -c "$ICON_BOX_OFF" <<<"$(rows)")" 0
 case_ "Bluetooth headphones connected: listed, and ticked (WirePlumber made them the default)"
-setup; pw_edit "st['nodes'].append($BT)"; answers esc
-kawa-audio
-has "$(rows)" "$ICON_BOX_ON  WH-1000XM4"; has "$(rows)" "$ICON_BOX_OFF  Starship"
-case_ "no sound card at all (Share is the default then): no device rows, Share still not offered, nothing breaks"
-setup; pw_edit "st['nodes'] = [n for n in st['nodes'] if not n['name'].startswith('alsa')]"; answers 1 esc
-rc 0 kawa-audio
-lacks "$(rows)" "$ICON_BOX_ON"; lacks "$(rows)" "$ICON_BOX_OFF"; lacks "$(rows)" Share
-eq "$(wc -l <"$MENU/rows.1")" 10 "the sound part, two headings (each with a gap above), the microphone"
-case_ "no output and no default at all: the menu opens, louder does no harm"
-setup; pw_edit "st['nodes'] = [n for n in st['nodes'] if n['class'] != 'Audio/Sink']"; answers 1 esc
-rc 0 kawa-audio; eq "$(opened)" 2
-
-case_ "an echo-cancel filter (WirePlumber lists it under Filters too): its sink and source are choices, its streams are not"
+setup; pw_edit "st['nodes'].append($BT)"
+has "$(devs)" $'output\t81\t1\tWH-1000XM4'; has "$(devs)" $'output\t62\t0\tStarship'
+case_ "no sound card at all (Share is the default then): no devices, Share still not offered"
+setup; pw_edit "st['nodes'] = [n for n in st['nodes'] if not n['name'].startswith('alsa')]"
+eq "$(devs)" ""; lacks "$(sq)" Share; eq "$(sv mic)" none "no microphone: none"
+case_ "no output and no default at all: no output, nothing breaks"
+setup; pw_edit "st['nodes'] = [n for n in st['nodes'] if n['class'] != 'Audio/Sink']"
+rc 0 kawa-quick --state sound; eq "$(sv sound)" "no output"; eq "$(devs | cut -f1 | tr '\n' ' ')" "input "
+case_ "an echo-cancel filter: its sink and source are choices, its streams are not"
 setup
 dev 100 Audio/Sink echo-cancel-sink '"Echo-Cancel Sink"' 50
 dev 101 Audio/Source echo-cancel-source '"Echo-Cancel Source"' 50
 dev 102 Stream/Input/Audio echo-cancel-capture '"Echo-Cancel Capture"'
 dev 103 Stream/Output/Audio echo-cancel-playback '"Echo-Cancel Playback"'
-answers esc; kawa-audio
-has "$(rows)" "$ICON_BOX_OFF  Echo-Cancel Sink"; has "$(rows)" "$ICON_BOX_OFF  Echo-Cancel Source"
-lacks "$(rows)" Capture; lacks "$(rows)" Playback
-
-case_ "PipeWire not running: a notice says so, no menu, could not (1)"
+has "$(devs)" $'output\t100\t0\tEcho-Cancel Sink'; has "$(devs)" $'input\t101\t0\tEcho-Cancel Source'
+lacks "$(devs)" Capture; lacks "$(devs)" Playback
+case_ "PipeWire not running: no output, no microphone, no devices — said, not failed (the panel shows it)"
 setup; pw_edit "st['running'] = False"
-rc 1 kawa-audio
-has "$(note)" "PipeWire is not running"; eq "$(opened)" 0
+rc 0 kawa-quick --state sound
+eq "$(sq)" "$(printf '%s\n' $'sound\tno output' $'muted\toff' $'mic\tnone')"
 
-# ── misuse, environment ──────────────────────────────────────────────────────
-case_ "--help (0) and an unknown argument (2): no menu"
-setup
-out=$(kawa-audio --help); r=$?
-eq "$r" 0; has "$out" "kawa-audio"
-rc 2 kawa-audio --frobnicate
-eq "$(opened)" 0
-
-case_ "Turkish and Arabic locales: the level is still read right (louder from 95 % stops at 100 %)"
+# ── use ──────────────────────────────────────────────────────────────────────
+case_ "--state takes sound or brightness, nothing else"
+setup; rc 2 kawa-quick --state bogus; rc 2 kawa-quick --state sound extra; rc 2 kawa-quick --state ''
+case_ "Turkish and Arabic locales: the level still read right"
 for loc in tr_TR.UTF-8 ar_EG.UTF-8; do
-  setup; pw_edit "node('$sink')['vol'] = 0.95"; answers 1 1 esc
+  setup; pw_edit "node('$sink')['vol'] = 0.95"
   locale_ok "$loc" || { skip "no $loc here"; continue; }
-  LC_ALL=$loc kawa-audio 2>/dev/null
-  eq "$(pw_vol sink)" 1.00 "$loc"
+  eq "$(LC_ALL=$loc kawa-quick --state sound 2>/dev/null | sed -n 's/^sound\t//p')" 95% "$loc"
 done
+
+# ── the old sound menu: gone ─────────────────────────────────────────────────
+case_ "kawa-audio, the fuzzel sound menu, is gone: nothing runs it; theme.sh retires the copy an earlier version installed"
+[[ ! -e $REPO/bin/kawa-audio ]] && _ok || _no "bin/kawa-audio still there"
+eq "$(grep -rlw 'kawa-audio' "$REPO/bin" "$REPO/configs" "$REPO/src" 2>/dev/null)" "" "no script, config or key runs it"
+has "$(cat "$REPO/theme.sh")" "retire .local/bin/kawa-audio 'kawa-audio — the sound menu'"
 
 # ── the mixer itself: wiremix 0.11.0 (Fedora 44's), its theme files and its place ───────────
 case_ "the two wiremix.toml are TOML; the theme named is the one defined; only wiremix's own style keys"
@@ -265,7 +200,7 @@ has "$(grep -E '^\s*\{ "=float",' "$REPO/src/dwl/config.h")" '1,           -1'
 lacks "$(cat "$REPO/src/dwl/config.h")" pavucontrol; lacks "$(cat "$REPO/src/dwl/config.h")" blueman
 has "$(grep -F "footclient -a \"\$app\"" "$REPO/bin/kawa-float")" "-a \"\$app\""; has "$(grep -E "^once=.* app=float" "$REPO/bin/kawa-float")" "app=float"
 case_ "the manifest: wiremix installed, pavucontrol never again (forbidden) and handed back to dnf (retired)"
-m() { (STEAM=yes SPOTIFY=yes; . "$REPO/lib/manifest.sh"; eval "$1"); }
+m() { (STEAM=yes; . "$REPO/lib/manifest.sh"; eval "$1"); }
 has " $(m 'manifest_all amd' | tr '\n' ' ') " " wiremix "; lacks " $(m 'manifest_all amd' | tr '\n' ' ') " " pavucontrol "
 has " $(m 'echo "${FORBIDDEN_PKGS[*]}"') " " pavucontrol "; has " $(m 'echo "${RETIRED_PKGS[*]}"') " " pavucontrol "
 has "$(grep -E '^wiremix ' "$REPO/tests/static/fixtures/programs.txt")" "manifest  wiremix"

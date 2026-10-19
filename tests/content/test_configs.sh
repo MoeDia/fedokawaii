@@ -101,6 +101,7 @@ while IFS= read -r line; do
     color_theme) [[ $v =~ ^\"[^\"/]+\"$ ]] && _ok || _no "$k = $v" ;;
     show_gpu_info) [[ $v =~ ^\"(Auto|On|Off)\"$ ]] && _ok || _no "$k = $v" ;;
     clock_format) [[ $v =~ ^\"[^\"]*\"$ ]] && _ok || _no "$k = $v" ;;   # ("": no clock in the CPU box)
+    presets) [[ $v =~ ^\"((cpu|mem|net|proc):[01]:(default|braille|block|tty)[, ]?)+\"$ ]] && _ok || _no "$k = $v" ;;
     *) [[ $v == True || $v == False ]] && _ok || _no "$k = $v (True or False)" ;;
   esac
 done <"$HOME/.config/btop/btop.conf"
@@ -299,5 +300,13 @@ else
   stub fd; rm -f "$HOME/fzf.err"; kawa-books --add
   eq "$(cat "$HOME/fzf.err" 2>/dev/null)" ""
 fi
+
+# ── neovim: lazy.nvim's own settings ─────────────────────────────────────────
+case_ "lazy.nvim: no luarocks (no plugin needs a rock: :checkhealth lazy has no ERROR for a missing luarocks or Lua 5.1), no update checks"
+L=$REPO/configs/home/.config/nvim/lua/config/lazy.lua
+setup_tbl=$(sed -n '/^require("lazy").setup({$/,/^})$/p' "$L")
+has "$setup_tbl" "  rocks = { enabled = false }," "rocks off, at the top of setup()"
+has "$setup_tbl" "  checker = { enabled = false },"
+eq "$(tr -cd '{' <<<"$setup_tbl" | wc -c)" "$(tr -cd '}' <<<"$setup_tbl" | wc -c)" "{ } balanced"
 
 done_

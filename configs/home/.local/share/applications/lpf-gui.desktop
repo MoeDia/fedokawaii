@@ -1,8 +1,0 @@
-[Desktop Entry]
-# lpf's window (with lpf-spotify-client): setup, update and repair build Spotify without it.
-# Hidden from the launcher: this entry, by the same name as the package's, stands in for it
-# (NoDisplay); the program itself stays installed and works as before.
-Type=Application
-Name=lpf-gui
-Exec=/usr/bin/lpf-gui
-NoDisplay=true

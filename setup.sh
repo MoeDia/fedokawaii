@@ -213,6 +213,7 @@ conf_merge() {
   while IFS= read -r line || [[ -n $line ]]; do
     if [[ $line =~ $CONF_RE ]]; then
       k=${BASH_REMATCH[1]} v=${BASH_REMATCH[3]}${BASH_REMATCH[4]}${BASH_REMATCH[5]}
+      [[ " ${CONF_RETIRED[*]} " == *" $k "* ]] && continue   # (a setting gone since: its line out)
       if [[ -v tv[$k] && ${tv[$k]} != "$v" ]]; then
         if ((had)) && [[ -v lv[$k] ]]; then
           if [[ ${lv[$k]} == "$v" ]]; then win=toolkit; else win=copy; fi
@@ -618,6 +619,17 @@ EOF
 # Read when btusb loads: from the next start
 options btusb enable_autosuspend=0
 EOF
+  # the sound card's codec never napping: Fedora's kernel lets it power down after a second
+  # of silence (power_save=1), and it clicks in the speakers as it wakes — at every volume
+  # change, every notice. Off when the driver loads, and off now (no restart needed)
+  write_file /etc/modprobe.d/fedokawaii-audio.conf <<'EOF'
+# Fedokawaii — the sound card's codec never powers down between sounds: waking, it clicks in
+# the speakers (a desktop has no battery to save). Read when snd_hda_intel loads
+options snd_hda_intel power_save=0
+EOF
+  if [[ -w /sys/module/snd_hda_intel/parameters/power_save ]]; then
+    echo 0 >/sys/module/snd_hda_intel/parameters/power_save || true
+  fi
   # sleep is suspend alone — never hibernation (memory written to disk), nor its mixes: a
   # desktop that sleeps only when asked, with its swap in compressed memory (zram), has no use
   # for them, and a hibernation that cannot resume loses the session
@@ -630,19 +642,22 @@ AllowSuspendThenHibernate=no
 EOF
   # every sleep is locked first: a keyboard's Sleep key is dwl's (kawa-power sleep: the lock,
   # then the sleep), not logind's, which would sleep first and lock as it wakes; any other
-  # sleep waits up to 15 s for the lock (swayidle's before-sleep: kawa-lock waits up to 10).
+  # sleep waits for the lock (swayidle's before-sleep: kawa-lock waits up to 10 s).
   # (Some keyboards' Sleep key sends KEY_SUSPEND, which logind takes for the hibernate key:
-  # that one is dwl's too.)
+  # that one is dwl's too.) And a restart or shut down, whoever asks, waits for Steam to close
+  # properly while the desktop still runs (kawa-steam --guard: it sends your games' saves to
+  # Steam Cloud as it closes, done in a few seconds) — logind's wait for both, 25 s at most
   write_file /etc/systemd/logind.conf.d/90-fedokawaii.conf <<'EOF'
 # Fedokawaii — the Sleep key is the desktop's (locked, then asleep), whichever key code it
 # sends (KEY_SLEEP: logind's suspend key; KEY_SUSPEND: its hibernate key); a sleep from
-# elsewhere waits for the lock. Read by systemd-logind when it starts: from the next start
+# elsewhere waits for the lock, a restart or shut down for Steam to close properly (its saves
+# to Steam Cloud). Read by systemd-logind when it starts: from the next start
 [Login]
 HandleSuspendKey=ignore
 HandleSuspendKeyLongPress=ignore
 HandleHibernateKey=ignore
 HandleHibernateKeyLongPress=ignore
-InhibitDelayMaxSec=15
+InhibitDelayMaxSec=25
 EOF
 }
 
@@ -1184,85 +1199,24 @@ s_blesh() {
   ((CONTAINED_RC == 0)) || log "ble.sh is not installed yet (why: above, or $LOG_FILE) — the gate, update and repair try again"
 }
 
-# ── Spotify: built on this machine by lpf, from RPM Fusion's recipe ──────────
-# Spotify's app may not be passed on, so RPM Fusion ships only its recipe (lpf-spotify-client,
-# in the manifest), and lpf — the local package factory — makes the spotify-client package
-# from Spotify's own download, here. lpf asks its way through that (Spotify's terms, then each
-# step); setup takes the same steps without questions, each by whom lpf has it done: the
-# recipe looked at again (lpf scan), what the build needs installed by root, the build itself
-# by lpf's own account, pkg-build (never root, never you), the package installed by root.
-# Spotify's terms (/usr/share/lpf/packages/spotify-client/eula/) are accepted by you, in
-# fedokawaii.conf: SPOTIFY="yes" says so (with "no", none of this runs, and Spotify, built
-# before, is handed back to dnf with its recipe). A new recipe — dnf brings one with each Spotify
-# release — is built at the next update. Returns 1, Spotify as it was, when a step fails
-# (Spotify's server down, say), with lpf's own words in the install's log: setup's step fails
-# there and then (it resumes at it), update and repair report it and try again.
-# Every lpf step runs through run, so what lpf prints — "build failed", a download refused —
-# is in /var/log/fedokawaii.log, and a failed build's own log (lpf writes it to
-# /var/lib/lpf/log, nowhere else) is copied in after it: the report's install-log section
-# says why, rather than a step marked done with no Spotify.
-LPF_DIR=/usr/share/lpf LPF_VAR=/var/lib/lpf
-# lpf_do STEP PKG… — one of lpf's steps, as pkg-build in its own home (the folder it runs in
-# too: setup's may be one pkg-build cannot enter — ~/fedokawaii)
-lpf_do() {
-  run runuser -u pkg-build -- env -i -C "$LPF_VAR" HOME="$LPF_VAR" USER=pkg-build LOGNAME=pkg-build \
-    PATH=/usr/bin:/bin LANG=C.UTF-8 "$LPF_DIR/scripts/lpf-pkgbuild" "$@"
-}
-lpf_state() { cat "$LPF_VAR/packages/$1/state" 2>/dev/null || echo untriaged; }
-lpf_log_tail() {   # lpf_log_tail PKG — the end of lpf's build log, into the install's log
-  local f=$LPF_VAR/log/$1.log
-  [[ -s $f ]] || { log "lpf left no build log ($f)"; return 0; }
-  log "lpf's build log, its last 40 lines ($f):"
-  tail -n 40 -- "$f" | sed 's/^/    lpf │ /' | tee -a "$LOG_FILE"
-}
-spotify_current() { [[ $(lpf_state spotify-client) == OK ]] && rpm -q spotify-client >/dev/null 2>&1; }
-spotify_client() {
-  local p=spotify-client rpms=() deps=() before st
-  [[ -f $LPF_DIR/packages/$p/$p.spec ]] || { log "lpf-spotify-client is not installed — the manifest step puts it in"; return 1; }
-  lpf_do scan || { log "lpf could not look at Spotify's recipe (lpf scan)"; return 1; }
-  st=$(lpf_state "$p")
-  case $st in
-    OK) log "Spotify $(rpm -q --qf '%{version}' "$p") — in place"; return 0 ;;
-    not-approved | approve-wait)
-      # your acceptance of Spotify's terms (SPOTIFY=yes) recorded as lpf records one — its
-      # approve file, which lpf's scan turns into build-wait — never its question on a terminal
-      [[ $st == approve-wait ]] || lpf_do set-state "$p" approve-wait
-      lpf_do create-approve-file "$p"
-      lpf_do scan ;;
-    failed) lpf_do set-state "$p" build-wait ;;   # (a build that failed before: again, as lpf update does)
-    build-wait | install-wait) ;;
-    *) log "lpf could not read Spotify's recipe (its state: $st after lpf scan)"; return 1 ;;
-  esac
-  st=$(lpf_state "$p")
-  if [[ $st == build-wait ]]; then
-    # (what the build needs comes as dnf builddep installs it — as yours; marked as needed by
-    # something instead, so verify never takes it for something you added)
-    before=$(dnf repoquery --userinstalled --qf '%{name}\n' 2>/dev/null | sort -u) || before=""
-    run "$LPF_DIR/scripts/lpf-sudo-builddep" "$LPF_DIR/packages/$p/$p.spec" \
-      || { log "the packages Spotify's build needs could not be installed"; return 1; }
-    mapfile -t deps < <(comm -13 <(printf '%s\n' "$before") \
-      <(dnf repoquery --userinstalled --qf '%{name}\n' 2>/dev/null | sort -u) | grep . || true)
-    if ((${#deps[@]})); then run dnf -y mark dependency "${deps[@]}" || true; fi
-    log "Spotify: building it from Spotify's download (a minute or two)"
-    lpf_do build "$p" || true                    # (lpf says how it went in its state, below)
-    st=$(lpf_state "$p")
-    [[ $st == install-wait ]] || { lpf_log_tail "$p"; log "Spotify did not build (lpf: $st)"; return 1; }
-  elif [[ $st != install-wait ]]; then
-    log "lpf did not take Spotify's approval (its state: $st)"; return 1
-  fi
-  mapfile -t rpms < <(find "$LPF_VAR/rpms/$p" -name '*.rpm' 2>/dev/null)
-  ((${#rpms[@]})) || { lpf_do set-state "$p" untriaged; lpf_log_tail "$p"; log "Spotify's build left no package"; return 1; }
-  run dnf -y install "${rpms[@]}" || { lpf_do set-state "$p" failed; return 1; }
-  rpm -q "$p" >/dev/null 2>&1 || { lpf_do set-state "$p" failed; log "dnf installed Spotify's package, yet rpm does not know $p"; return 1; }
-  lpf_do clear-results "$p"; lpf_do set-state "$p" OK
-  ok "Spotify $(rpm -q --qf '%{version}' "$p") (built here by lpf)"
-}
-s_spotify() {   # (the recipe first: its own step, as nothing else installs it) — built now, or the step fails
-  [[ $SPOTIFY == yes ]] || return 0
-  dnf_install "${PKG_SPOTIFY[@]}"
-  contained spotify_client
-  ((CONTAINED_RC == 0)) \
-    || die "Spotify did not build — why: the lines above (lpf's own, from /var/lib/lpf/log/spotify-client.log). Put it right (Spotify's download reachable: curl -sI https://repository.spotify.com), then run setup again: it resumes here — or set SPOTIFY=\"no\" in fedokawaii.conf"
+# ── lpf's leftovers ──────────────────────────────────────────────────────────
+# Spotify is its web player now (the launcher's Spotify: open.spotify.com in a Brave app
+# window); its app was built here by lpf until then. lpf, lpf-spotify-client and the
+# spotify-client it built are RETIRED_PKGS: handed back to dnf, whose clean-up (r_hygiene)
+# takes them — /etc/sudoers.d/pkg-build goes with lpf's package. What a package's removal
+# never takes goes here once lpf is gone: its build account (the user and group pkg-build,
+# which lpf made) and /var/lib/lpf (that account's home: the recipe's state, its build
+# folders, Spotify's download, the logs). Update and repair; nothing while lpf is installed.
+lpf_leftovers_out() {
+  pkg_installed lpf && return 0
+  local gone=()
+  if [[ -e /var/lib/lpf ]]; then rm -rf --one-file-system -- /var/lib/lpf || return 1; gone+=(/var/lib/lpf); fi
+  if getent passwd pkg-build >/dev/null; then userdel pkg-build || return 1; gone+=("the user pkg-build"); fi
+  if getent group pkg-build >/dev/null; then groupdel pkg-build || return 1; gone+=("the group pkg-build"); fi
+  if [[ -e /etc/sudoers.d/pkg-build.rpmsave ]]; then rm -f /etc/sudoers.d/pkg-build.rpmsave; gone+=(/etc/sudoers.d/pkg-build.rpmsave); fi
+  ((${#gone[@]})) || return 0
+  local e; printf -v e '%s · ' "${gone[@]}"
+  log "lpf's leftovers (it built Spotify's app here once) removed: ${e% · }"
 }
 
 # ── the file dialog: yazi, through xdg-desktop-portal-termfilechooser ────────
@@ -1616,7 +1570,6 @@ s_gate() {
   tfc_current || s_filechooser
   syncplay_current || s_syncplay
   localsend_current || s_localsend
-  [[ $SPOTIFY != yes ]] || spotify_current || s_spotify
   blesh_current || s_blesh
   # (and LazyVim's plugins: 3.09 is done once nvim has run, even when GitHub let some clones
   # fail — then only nvim itself fetches them again; repair cannot run before the build ends)
@@ -1872,12 +1825,10 @@ clone_done() {
 
 # clean_caches — what a build, an update or a repair leaves behind and nothing reads again:
 # dnf's downloaded packages; pip's and npm's download caches (torrra, neovim's language
-# servers: fetched again if ever needed); Spotify's build at lpf once it is installed (its
-# download, the build folders, the package made: a new version is built afresh); the
-# toolkit's half-made copies and the temp folders of runs a power cut stopped; Prowlarr's
-# images it no longer runs; and the theme's backups of your replaced files beyond the newest
-# ten runs. Never what is used: dnf's metadata, the sources dwl and the file dialog are
-# rebuilt from, the plugins, lpf's record of what it built
+# servers: fetched again if ever needed); the toolkit's half-made copies and the temp folders
+# of runs a power cut stopped; Prowlarr's images it no longer runs; and the theme's backups
+# of your replaced files beyond the newest ten runs. Never what is used: dnf's metadata, the
+# sources dwl and the file dialog are rebuilt from, the plugins
 clean_caches() {
   local f n
   run dnf clean packages >/dev/null 2>&1 || true
@@ -1888,9 +1839,6 @@ clean_caches() {
     [[ -d $f && $f != "${KAWA_TMP:-}" ]] && rm -rf -- "$f"
   done
   toolkit_back; rm -rf -- "$TOOLKIT.new" "$TOOLKIT.old"
-  if spotify_current; then
-    rm -rf -- /var/lib/lpf/rpms/*/*.rpm /var/lib/lpf/rpmbuild/{BUILD,BUILDROOT,RPMS,SOURCES,SRPMS}/* 2>/dev/null
-  fi
   as_user podman image prune -f >/dev/null 2>&1 || true
   n=$(prune_theme_backups as_user)                  # (as you: nothing can lead root elsewhere)
   f=$TARGET_HOME/.local/state/fedokawaii/backup
@@ -1909,7 +1857,6 @@ phase3() {
   step "3.07 upstream binaries (checksummed)"          s_upstream
   step "3.07b file dialog: yazi (termfilechooser ${TFC_TAG:-})" s_filechooser
   step "3.07c Syncplay $SYNCPLAY_TAG (pinned commit, no window)" s_syncplay
-  step "3.07d Spotify (built here by lpf)"              s_spotify
   step "3.07e ble.sh ${BLESH_COMMIT:0:7} (pinned commit: the shell's typing)" s_blesh
   step "3.08 Prowlarr + torrra (wired together)"       s_torrents
   step "3.09 LazyVim + plugins"                        s_lazyvim
@@ -2077,7 +2024,6 @@ manifest_sync() {
   # nothing needs them — Steam's games and settings in your home stay)
   local back=("${RETIRED_PKGS[@]}")
   [[ $STEAM == yes ]] || back+=("${PKG_GAMING[@]}")
-  [[ $SPOTIFY == yes ]] || back+=("${PKG_SPOTIFY[@]}" "${LPF_BUILT[@]}")   # (Spotify, and the recipe it was built from)
   for p in "${back[@]}"; do
     if grep -qx "$p" <<<"$ui" && ! grep -qx "$p" "$STATE_DIR/baseline-userinstalled"; then run dnf -y mark dependency "$p" || true; fi
   done
@@ -2205,7 +2151,6 @@ do_update() {
   step_on "LocalSend" install_localsend
   step_on "ble.sh" install_blesh
   step_on "the tools this desktop no longer has" retire_upstream
-  if [[ $SPOTIFY == yes ]]; then step_on "Spotify (a new recipe built by lpf)" spotify_client; fi
   if [[ $STEAM == yes ]]; then step_on "GE-Proton" install_ge_proton; fi
   if ! tfc_current; then step_on "the yazi file dialog" build_filechooser; fi
   # torrra: libtorrent (the part that talks to the network) to its newest; torrra itself
@@ -2460,6 +2405,7 @@ r_hygiene() {
     log "no longer needed by anything: $(tr '\n' ' ' <<<"$list")"
     run dnf -y autoremove || rc=1
   fi
+  lpf_leftovers_out || rc=1                        # (what lpf's removal leaves: its account and folder)
   while IFS= read -r u; do
     [[ -n $u ]] || continue
     rm -rf -- "$u" && log "removed what a stopped run left: $u"
@@ -2562,6 +2508,7 @@ r_system() {     # failed units cleared, the session's own system pieces in plac
   snapper_limits
   snap_hooks
   s_scrub
+  s_report                         # (the first-start report's unit: an install that lost it runs it next start)
   s_tuning
 }
 r_ports() { s_ssh; open_ports; }   # SSH as SSH_SERVER says; torrra's and LocalSend's ports open
@@ -2597,8 +2544,21 @@ r_user() {       # the user's session plumbing: linger and its stop, the bus, gr
     [[ $(stat -c %u "$sec") == "$TARGET_UID" ]] || chown -h "$TARGET_UID:$TARGET_GID" "$sec"
     as_user chmod 600 "$sec"
   fi
+  home_back
   as_user fc-cache -f >/dev/null
   as_user systemctl --user reset-failed || true
+}
+# home_back — files of root's in your home handed back to you (a program once run as root with
+# your HOME: an older health report wrote ~/Downloads/fedokawaii-report.txt so). podman's
+# storage keeps its containers' own ids; nothing outside your home, no link followed: find
+# walks it itself, and -execdir changes each file from its own folder
+home_back() {
+  local n
+  n=$(find "$TARGET_HOME" -xdev -path "$TARGET_HOME/.local/share/containers/storage" -prune -o -user 0 -print 2>/dev/null | grep -c .) || true
+  ((n)) || return 0
+  find "$TARGET_HOME" -xdev -path "$TARGET_HOME/.local/share/containers/storage" -prune -o -user 0 \
+    -execdir chown -h "$TARGET_UID:$TARGET_GID" -- {} + 2>/dev/null || true
+  log "your home: $n file(s) of root's handed back to you"
 }
 r_upstream() {   # release binaries and fonts present (each is a no-op when current) — each
   local e rc=0   # tried even when one before it failed
@@ -2706,7 +2666,6 @@ heal_all() {
   ((net)) && heal "dwl (its wlroots, libraries, binary)" r_dwl
   ((net)) && heal "release binaries, fonts, Syncplay, ble.sh and GE-Proton" r_upstream
   ((net)) && heal "the yazi file dialog (termfilechooser ${TFC_TAG:-})" r_filechooser
-  ((net)) && [[ $SPOTIFY == yes ]] && heal "Spotify (built here by lpf)" spotify_client
   ((net)) && heal "torrra" torrra_up
   ((net)) && heal "neovim's plugins (any missing)" r_nvim
   heal "Prowlarr (it starts, and takes the key from secrets.sh)" prowlarr_up

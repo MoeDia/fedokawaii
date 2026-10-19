@@ -67,14 +67,14 @@ case_ "foot: a new window's prompt carries no mark"
 eq "$(wc -l <<<"$H")" 7 "seven prompts: $(plain "$H")"
 lacks "$(nth 1)" "$ICON_CHECK"; lacks "$(nth 1)" "$ICON_CROSS"
 case_ "foot: ✓ in the theme's green after a success, alone"
-has "$(nth 2)" $'\e[92m'"$ICON_CHECK  "$'\e[0m'; lacks "$(nth 2)" "$ICON_CROSS"; lacks "$(plain "$(nth 2)")" "s  "
+has "$(nth 2)" $'\e[92m'"$ICON_CHECK "$'\e[0m'; lacks "$(nth 2)" "$ICON_CROSS"; lacks "$(plain "$(nth 2)")" "s  "
 case_ "foot: ✗ and the exit code in vermilion after a failure; foot told the status (OSC 133;D)"
 has "$(nth 3)" $'\e[91m'"$ICON_CROSS  3"$'\e[0m'; lacks "$(nth 3)" "$ICON_CHECK"
 has "$(cat "$TMP/out")" $'\e]133;D;3\e\\'
 case_ "foot: Enter on an empty line ran nothing: no mark"
 lacks "$(nth 4)" "$ICON_CHECK"; lacks "$(nth 4)" "$ICON_CROSS"
 case_ "foot: a command of 3 s or more: the time it took after its mark, faint; 10 s or more: a notice too"
-has "$(nth 5)" "$ICON_CHECK  "$'\e[0m\e[90m4.2s\e[0m  '
+has "$(nth 5)" "$ICON_CHECK "$'\e[0m \e[90m4.2s\e[0m  '
 has "$(nth 6)" $'\e[90m2m05s\e[0m'
 has "$(cat "$TMP/out")" $'\e]777;notify;done in 2m05s;'
 lacks "$(cat "$TMP/out")" "done in 4.2s"
@@ -89,7 +89,7 @@ t = sys.argv[1]
 sys.exit(any(0xFE000 <= ord(c) <= 0xFEFFF and t[i + 1:i + 3] != "  " for i, c in enumerate(t)))
 PY
 done
-[[ $(plain "$(nth 1)") == "$ICON_TORII_SMALL  ~ "* ]] && _ok || _no "the torii (the words' height, not the seal's), two spaces, the path: $(plain "$(nth 1)")"
+[[ $(plain "$(nth 1)") == "$ICON_TORII_SMALL   ~ "* ]] && _ok || _no "the torii (the words' height, not the seal's), its second half and two spaces (as after a heading's kanji), the path: $(plain "$(nth 1)")"
 case_ "foot: each header ends one column short of the window's edge (nothing wraps), whatever it shows"
 for i in 1 2 3 4 5 6 7; do eq "$(width "$(nth "$i")")" $((COLS - 1)) "header $i: $(plain "$(nth "$i")")"; done
 case_ "foot: the line you type on starts with the desktop's chevron, in paper colour"
@@ -110,8 +110,8 @@ home
 session linux true '(exit 2)'
 H=$(headers)
 lacks "$(cat "$TMP/out")" $'\xf3\xbe'
-[[ $(plain "$(nth 1)") == "# ~ "* ]] && _ok || _no "the plain torii: $(plain "$(nth 1)")"
-has "$(nth 2)" $'\e[92mok \e[0m'; has "$(nth 3)" $'\e[91mx 2\e[0m'
+[[ $(plain "$(nth 1)") == "#  ~ "* ]] && _ok || _no "the plain torii: $(plain "$(nth 1)")"
+has "$(nth 2)" $'\e[92mok\e[0m'; has "$(nth 3)" $'\e[91mx 2\e[0m'
 has "$(cat "$TMP/out")" $'\n\e[37m>\e[0m '
 for i in 1 2 3; do eq "$(width "$(nth "$i")")" $((COLS - 1)) "header $i: $(plain "$(nth "$i")")"; done
 

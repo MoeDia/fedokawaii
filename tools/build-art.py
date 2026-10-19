@@ -7,8 +7,9 @@ Writes (committed, so installing needs neither Python nor Pillow):
     configs/home/.local/share/fedokawaii/<theme>/padlock.png   the pixel padlock (18 × 19
         cells of 6 px: square pixels, shown 1:1, so every edge is sharp)
     configs/home/.local/share/fedokawaii/<theme>/seal-1.png … seal-7.png   the weekday's
-        kanji (月 火 水 木 金 土 日, Monday first, as `date +%u` counts) as a vermilion seal:
-        a 40 px square, the kanji in Fusion Pixel at 24 px (2× its grid: every pixel crisp)
+        kanji (月 火 水 木 金 土 日, Monday first, as `date +%u` counts) as a heading's seal,
+        the one that opens the lock and login screens' panel: 23 px square, a 1 px edge2
+        frame, the kanji in accent_text in Fusion Pixel at 12 px (its own grid: crisp)
     system/plymouth/sumi/*.png   the boot splash's pictures (always ink-dark, like the boot
         menu): the torii (art/grub/torii.xpm, 8× — the size the boot menu shows it at 1080p),
         "起動中 · starting Fedora", the three dots that take turns while it waits, and for a
@@ -83,15 +84,21 @@ def padlock(p):
     return im
 
 
+SEAL = 23                                 # a heading's seal (docs/design-system.md, kawa-panel)
+
+
 def seal(p, ch, font):
-    """40 × 40, vermilion, the kanji in the paper colour, pixel-exact (no smoothing)."""
-    im = Image.new("RGB", (40, 40), rgb(p["accent"]))
+    """23 × 23, a heading's seal as the panels draw it: a 1 px frame in edge2, the kanji in
+    accent_text, its ink centred (6 px all round), pixel-exact (no smoothing); the ground
+    clear, so the panel's surface shows through."""
+    im = Image.new("RGBA", (SEAL, SEAL), (0, 0, 0, 0))
     d = ImageDraw.Draw(im)
+    d.rectangle([0, 0, SEAL - 1, SEAL - 1], outline=rgb(p["edge2"]) + (255,))
     d.fontmode = "1"                      # whole pixels only: the font is a pixel font
     l, t, r, b = d.textbbox((0, 0), ch, font=font)
-    x = (40 - (r - l)) // 2 - l
-    y = (40 - (b - t)) // 2 - t
-    d.text((x, y), ch, font=font, fill=rgb(p["text_on_accent"]))
+    x = (SEAL - (r - l)) // 2 - l
+    y = (SEAL - (b - t)) // 2 - t
+    d.text((x, y), ch, font=font, fill=rgb(p["accent_text"]) + (255,))
     return im
 
 
@@ -170,6 +177,7 @@ def main():
     if not ttf or not os.path.exists(ttf):
         sys.exit("set FUSION_TTF to fusion-pixel-12px-monospaced-ja.ttf (lib/upstream.sh fetches it)")
     font = ImageFont.truetype(ttf, 24)
+    font12 = ImageFont.truetype(ttf, 12)
     n = 0
     for m, p in P.items():
         d = OUT / m
@@ -177,7 +185,7 @@ def main():
         padlock(p).save(d / "padlock.png", optimize=True)
         n += 1
         for i, ch in enumerate(KANJI, 1):
-            seal(p, ch, font).save(d / f"seal-{i}.png", optimize=True)
+            seal(p, ch, font12).save(d / f"seal-{i}.png", optimize=True)
             n += 1
     n += splash(font)
     (ROOT / "art/gtklock.mo").write_bytes(mo(MESSAGES))

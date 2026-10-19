@@ -1,79 +1,52 @@
 #!/usr/bin/env bash
 # tests/menus/test_help.sh — kawa-help (Super+/): the keybinding sheet from
-# ~/.config/fedokawaii/keybinds.txt as a searchable menu. Every row of the real sheet must fit
-# the menu; a missing sheet is said, not shown empty.
+# ~/.config/fedokawaii/keybinds.txt as a searchable menu in the panel's line format (parts under
+# their kanji, a row a binding); a missing sheet is said, not shown empty.
 . "$(dirname "$0")/../lib/harness.sh"
 . "$(dirname "$0")/lib.sh"
 
 setup() { menus_sandbox; config .config/fedokawaii/keybinds.txt; K=$HOME/.config/fedokawaii/keybinds.txt; }
-GAP=$(. "$REPO/configs/home/.config/fedokawaii/icons.sh"; printf '%s' "$ICON_GAP")
-IN="    $GAP"                                        # a row's start: in by an icon and its two spaces
-
-# what the sheet's rows are: the key (to its gap of 2+ spaces ending at column 24 or later; with
-# none, to the first word at or after 24) and its description
-KEYCOLS='
+# what the sheet's rows are, by the sheet's own rule: the key (to its gap of 2+ spaces ending
+# at column 24 or later; with none, to the first word at or after 24) and its description —
+# printed as the menu's lines should be
+LINES='
 import re, sys
-sys.dont_write_bytecode = True; sys.path.insert(0, sys.argv[1]); from cols import px
-keys, descs, heads = [], [], []
-for l in open(sys.argv[2], encoding="utf-8").read().splitlines():
+for l in open(sys.argv[1], encoding="utf-8").read().splitlines():
     if not l.strip(): continue
-    if l.startswith("─"): heads.append(l.strip("─ ")); continue
+    if l.startswith("─"): continue
     gaps = [m.end() for m in re.finditer(r"  +", l) if m.end() >= 24]
     i = gaps[0] if gaps else 24
     while not gaps and i < len(l) and not (l[i] != " " and l[i - 1] == " "): i += 1
-    keys.append(l[:i].rstrip()); descs.append(l[i:].strip())
-w = lambda t: sum(px(c) for c in t) // 6
-kw = max(map(w, keys)) + 2
-print(kw, max(4 + kw + max(map(w, descs)) + 2, max(map(w, heads)) + 8))'
+    print("row\t\t" + l[:i].strip() + "\t" + l[i:].strip())'
 
-case_ "the sheet: every line but the blank ones, a filter prompt, as wide as its longest row, 24 lines, the first binding selected"
+case_ "the sheet: every line but the blank ones, a filter prompt, sized to its content, 24 lines, the first binding selected"
 setup; answer esc; rc 0 kawa-help
-read -r KW W < <(python3 -I -c "$KEYCOLS" "$MD" "$K")
 eq "$(fz_rows | grep -c .)" "$(grep -cv '^[[:space:]]*$' "$K")"
-eq "$(fz_arg prompt)" "> "; eq "$(fz_arg width)" "$W"; eq "$(fz_arg lines)" 24; eq "$(fz_arg select-index)" 1
-eq "$(fz_rows | sed -n 2p | sed "s/^$IN//" | cut -d' ' -f1)" "Super+Return" "row 1 is a binding, not a heading"
-eq "$(fz_arg anchor)" "" "centred"
-case_ "every row of the real sheet fits the menu (the font's ─ … → are two columns, the icons 14 px), the longest to its last whole pixel"
-fits
-eq "$(fz_rows | python3 -I "$MD/cols.py" --px | sort -n | tail -n1)" "$((W * 6 - 10))" "the widest row sets the width: no column to spare"
-case_ "set for the menu's font: parts headed as Super+U's (kanji, name, a rule to the edge), a gap above each but the first, the descriptions in one column the longest key and 2 to the right of the key column"
-eq "$(fz_rows | grep -c '─')" 0 "no ─ left"
-heads=$(fz_rows | grep -- '–$')
-eq "$(python3 -I "$MD/cols.py" --px <<<"$heads" | sort -u | tr '\n' ' ')" "$((W * 6 - 10)) " "every heading's rule ends on the last pixel the menu shows whole (W × 6 − 10)"
-eq "$(python3 -I -c 'import sys; print("".join(l[0] for l in sys.stdin.read().splitlines()))' <<<"$heads")" "起写窓場音端書盤席筆" "each part's kanji, by its name"
-eq "$(fz_rows | grep -c '^$')" "$(( $(wc -l <<<"$heads") - 1 ))" "an empty row above every heading but the first"
-eq "$(fz_rows | head -n1 | grep -c -- '–$')" 1 "the sheet starts with its first heading"
-has "$(fz_rows)" "Super+1…9"
-bad=$(fz_rows | grep -v -- '–$' | grep -v '^$' | python3 -I -c '
-import sys
-sys.dont_write_bytecode = True; sys.path.insert(0, sys.argv[1]); from cols import px
-kw = int(sys.argv[2])
-for l in sys.stdin.read().splitlines():
-    i = 6 + kw                                   # the description: the first word to start
-    while i > 1 and not (l[i] != " " and l[i - 1] == " "): i -= 1   # at or before its column
-    if sum(px(c) for c in l[:i]) != 26 + 6 * kw: print(l)' "$MD" "$KW")
-eq "$bad" "" "rows whose description is out of line in the menu"
-bad=$(fz_rows | grep -v -- '–$' | grep -v '^$' | sed "s/^$IN//" | python3 -I -c '
-import sys
-sys.dont_write_bytecode = True; sys.path.insert(0, sys.argv[1]); from cols import px
-kw = int(sys.argv[2])
-for l in sys.stdin.read().splitlines():
-    n, w = 0, 0
-    while w < 6 * kw and n < len(l): w += px(l[n]); n += 1
-    if l[:n].rstrip() and not l[:n].endswith("  "): print(l)' "$MD" "$KW")
-eq "$bad" "" "rows whose key has fewer than 2 spaces before its description"
-eq "$(fz_rows | grep -v -- '–$' | grep -v '^$' | grep -vc "^$IN")" 0 "every binding starts at the text column (an icon and two spaces in, under its part's name)"
+eq "$(fz_arg prompt)" "> "; eq "$(fz_arg width)" ""; eq "$(fz_arg lines)" 24; eq "$(fz_arg select)" 1
+eq "$(fz_rows | sed -n 2p)" "row		Super+Return	terminal (foot)" "line 1 is a binding, not a heading"
+eq "$(fz_arg drop)" "" "centred"; fits
+case_ "every binding: no glyph, the key as its name, what it does as its detail (the panel's column), as the sheet says"
+eq "$(fz_rows | grep '^row')" "$(python3 -I -c "$LINES" "$K")"
+has "$(fz_rows)" "row		Super+1…9	"
+case_ "every part under its kanji and name: what follows a colon or is in brackets at the heading's end"
+eq "$(fz_rows | grep -vc -e '^part	' -e '^row	')" 0 "nothing but parts and rows (the panel spaces its parts)"
+eq "$(fz_rows | head -n1)" "part	起	launch	" "the sheet starts with its first heading"
+has "$(fz_rows)" "part	写	screenshots	clipboard + ~/Pictures/Screenshots"
+has "$(fz_rows)" "part	盤	drives	USB sticks, disks, SD cards"
+has "$(fz_rows)" "part	音	sound, music, monitor	"
+eq "$(fz_rows | grep -c '^part')" "$(grep -c '^─' "$K")"
+case_ "a part of your own: 節"
+setup; printf '%s\n' '── my keys ──' 'Super+F12               mine' >"$K"; answer esc; kawa-help
+eq "$(fz_rows | head -n1)" "part	節	my keys	"
 
-case_ "a key longer than the sheet's column (Super+drag / right-drag, and longer): its own gutter, the column set by it, the width too"
+case_ "a key longer than the sheet's column (Super+drag / right-drag, and longer): split at its own gap"
 setup
 printf '%s\n' '── windows ──' 'Super+Q                 close' 'Super+drag / right-drag move / resize' \
   'Super+Shift+Ctrl+drag / right-drag  swap and resize' 'Super+→ or End          wide arrow' >"$K"
 answer esc; rc 0 kawa-help
-read -r KW W < <(python3 -I -c "$KEYCOLS" "$MD" "$K")
-eq "$KW" 36 "the longest key (34 columns) and 2"
-has "$(fz_rows)" "${IN}Super+drag / right-drag             move / resize"
-has "$(fz_rows)" "${IN}Super+Shift+Ctrl+drag / right-drag  swap and resize"
-eq "$(fz_arg width)" "$W"; fits
+has "$(fz_rows)" "row		Super+drag / right-drag	move / resize"
+has "$(fz_rows)" "row		Super+Shift+Ctrl+drag / right-drag	swap and resize"
+has "$(fz_rows)" "row		Super+→ or End	wide arrow"; fits
 
 case_ "the sheet itself (a terminal's columns): the rules end in column 67, each description at 24"
 setup
@@ -95,7 +68,7 @@ called 'notify-send -a desktop -u critical -- .*  keybindings keybinds.txt is mi
 eq "$(fz_n)" 0
 case_ "a sheet with blank lines (edited in the copy): they are left out, not shown as empty rows"
 setup; printf 'Super+A                 one\n\n   \nSuper+B                 two\n\t\n' >"$K"; answer esc; kawa-help
-eq "$(fz_rows)" "$IN"$'Super+A  one\n'"$IN"$'Super+B  two'
+eq "$(fz_rows)" $'row\t\tSuper+A\tone\nrow\t\tSuper+B\ttwo'
 case_ "an empty sheet: an empty menu, no error"
 setup; : >"$K"; answer esc; rc 0 kawa-help
 

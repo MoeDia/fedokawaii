@@ -4,7 +4,8 @@
 # sleep 30 minutes after the last thing that did (a search window closed, its page opened).
 #
 #   kawa-prowlarr          its web page (the launcher's "Prowlarr", `prowlarr` in a shell):
-#                          started if asleep, opened in the browser once it answers
+#                          started if asleep, opened in the browser once it answers — no
+#                          login (it answers on this computer only), its sites already in
 #   kawa-prowlarr stop     asleep now (`prowlarr stop`)
 #   kawa-prowlarr --busy   in use (torrra's search starts): started, no sleep planned
 #   kawa-prowlarr --idle   done for now (torrra's window closes): asleep in 30 minutes,
@@ -26,7 +27,7 @@ calm() {   # call off a planned sleep
 start() {   # Prowlarr up and answering (the start returns once it is healthy)
   calm
   systemctl --user is-active --quiet prowlarr.service && return 0
-  echo 'starting Prowlarr… (its first start after a boot can take a minute or two)' >&2
+  echo 'starting Prowlarr… (a few seconds)' >&2
   if ! systemctl --user start prowlarr.service; then
     # one that does not start is stopped again: left, it would try every 10 s until the next boot
     systemctl --user stop --no-block prowlarr.service

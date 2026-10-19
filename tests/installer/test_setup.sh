@@ -33,7 +33,8 @@ pkg_has tar && pkg_has grubby && pkg_has diffutils && pkg_has man-db && _ok || _
 pkg_has nano && _no "nano still there" || _ok
 pkg_has systemd-oomd-defaults && _no "systemd-oomd-defaults still there (its kill would take the whole session)" || _ok
 eq "$(grep -v '^#' "$W/etc/modprobe.d/fedokawaii-btusb.conf" 2>/dev/null)" "options btusb enable_autosuspend=0" "the Bluetooth dongle never sleeps"
-eq "$(grep -v '^#' "$W/etc/systemd/logind.conf.d/90-fedokawaii.conf" 2>/dev/null | tr '\n' ' ')" "[Login] HandleSuspendKey=ignore HandleSuspendKeyLongPress=ignore HandleHibernateKey=ignore HandleHibernateKeyLongPress=ignore InhibitDelayMaxSec=15 " "the Sleep key left to dwl (locked first), any sleep waiting for the lock"
+eq "$(grep -v '^#' "$W/etc/modprobe.d/fedokawaii-audio.conf" 2>/dev/null)" "options snd_hda_intel power_save=0" "the sound card's codec never naps (no click as it wakes)"
+eq "$(grep -v '^#' "$W/etc/systemd/logind.conf.d/90-fedokawaii.conf" 2>/dev/null | tr '\n' ' ')" "[Login] HandleSuspendKey=ignore HandleSuspendKeyLongPress=ignore HandleHibernateKey=ignore HandleHibernateKeyLongPress=ignore InhibitDelayMaxSec=25 " "the Sleep key left to dwl (locked first), any sleep waiting for the lock, a restart for Steam to close"
 # (Node 22, which neovim brings through tree-sitter-cli's recommendation, never taken as a weak
 # dependency — set before the first install, and dnf reads it back so)
 has "$(cat "$W/etc/dnf/libdnf5.conf.d/90-fedokawaii.conf")" "exclude_from_weak=nodejs,nodejs22*,PackageKit,java-*-openjdk-headless,libreoffice-help-*"
@@ -104,14 +105,11 @@ for t in satty yazi ya bluetui lazygit herdr; do [[ -x $W/home/fkuser/.local/bin
 eq "$(cat "$W/home/fkuser/.local/share/fedokawaii/upstream/ge-proton" 2>/dev/null)" GE-Proton10-25
 eq "$(cat "$W/home/fkuser/.local/share/fedokawaii/upstream/syncplay" 2>/dev/null)" "$(. "$REPO/lib/upstream.sh"; syncplay_pin)" "Syncplay (3.07c) at its pinned commit, with our patch"
 [[ -x $W/home/fkuser/.local/bin/syncplay && -f $W/home/fkuser/.local/share/fedokawaii/syncplay/syncplay/client.py ]] && _ok || _no "Syncplay not installed"
-eq "$(cat "$W/home/fkuser/.local/share/fedokawaii/upstream/blesh" 2>/dev/null)" "$(. "$REPO/lib/upstream.sh"; echo "$BLESH_COMMIT")" "ble.sh (3.07d) at its pinned commit"
+eq "$(cat "$W/home/fkuser/.local/share/fedokawaii/upstream/blesh" 2>/dev/null)" "$(. "$REPO/lib/upstream.sh"; echo "$BLESH_COMMIT")" "ble.sh (3.07e) at its pinned commit"
 [[ -f $W/home/fkuser/.local/share/blesh/ble.sh ]] && _ok || _no "ble.sh not installed"
-# Spotify (3.07d): built during the install, your SPOTIFY=yes recorded as lpf's approval (its
-# approve file, never its question), lpf's steps in the install's log
-pkg_has spotify-client && _ok || _no "Spotify not built by setup"
-eq "$(cat "$W/var/lib/lpf/packages/spotify-client/state")" OK "lpf's own record: done"
-called '^pkg-build\[lpf-pkgbuild\] create-approve-file spotify-client'
-grep -q 'lpf-pkgbuild build spotify-client' "$W/var/log/fedokawaii.log" && _ok || _no "lpf's build not in the install's log"
+# Spotify is its web player (a Brave app window): nothing of lpf's, no step of its own
+pkg_has lpf || pkg_has lpf-spotify-client || pkg_has spotify-client && _no "lpf or a Spotify package installed" || _ok
+lacks "$(ls "$W/var/lib/fedokawaii")" "Spotify" "no Spotify step"
 # (the clone setup was started from: gone at the end — the toolkit has all of it)
 [[ ! -e $W$CLONE ]] && _ok || _no "the clone ~/fedokawaii is still there"
 has "$OUT" "~/fedokawaii removed: the toolkit has all of it"
@@ -186,19 +184,6 @@ case_ "…the next start: the finished steps skipped, on from the one that faile
 rm -f "$FKH/dnf-fail"; resume --no-reboot; eq "$RC" 0
 has "$OUT" "skip (done): 2.1 repositories"; has "$OUT" "skip (done): 2.2 GPU drivers"; has "$OUT" "✔ 2.3 ffmpeg"
 eq "$(state phase)" 3
-
-case_ "Spotify's build fails during the install (its download refused): 3.07d fails there and then, lpf's own words in the log — no step marked done without Spotify"
-back phase3; fkh lpf-build-fail
-resume --no-reboot; eq "$RC" 1
-has "$OUT" "Spotify did not build (lpf: failed)"; has "$OUT" "lpf │ error: Bad source"
-grep -q 'lpf │ error: Bad source' "$W/var/log/fedokawaii.log" && _ok || _no "lpf's build log not copied into the install's log"
-[[ ! -e $W/var/lib/fedokawaii/done.3.07d\ Spotify\ \(built\ here\ by\ lpf\) ]] && _ok || _no "3.07d marked done without Spotify"
-pkg_has spotify-client && _no "spotify-client installed after a failed build" || _ok
-eq "$(state phase)" 3
-case_ "…the next start, Spotify's download back: built at 3.07d, the install goes on to the end"
-rm -f "$FKH/lpf-build-fail"; resume --no-reboot; eq "$RC" 0
-pkg_has spotify-client && _ok || _no "Spotify not built on the second start"
-has "$OUT" "✔ 3.07d Spotify"; eq "$(state phase)" "done"
 
 case_ "ffmpeg installed but unable to start (RPM Fusion's build behind one of Fedora's libraries): said so, not as a missing encoder"
 back phase2; fkh ffmpeg-broken

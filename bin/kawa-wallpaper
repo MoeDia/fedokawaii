@@ -5,8 +5,10 @@
 #                            (kawa-veil) — Esc leaves everything as it was
 # kawa-wallpaper --restore   show the current theme's choice again (login, theme switch)
 # kawa-wallpaper --set C     show choice C and remember it (what the picker runs)
-# kawa-wallpaper --pack      fetch and draw the wallpaper pack (theme.sh runs it)
-# (--tui, --preview C and --warm are the picker window's own parts)
+# kawa-wallpaper --pack      fetch the wallpaper pack, then draw it for the screen (theme.sh)
+# kawa-wallpaper --cache     draw whatever of the pack is not drawn yet, for every screen
+# kawa-wallpaper --cache-status   is everything drawn? (exit 1: not all of it)
+# (--tui, --preview C, --warm and --cache-one are the picker's and the cache's own parts)
 #
 # Each theme (dark, light) remembers its own wallpaper. The choices are:
 #   default   the theme's picture from the pack, one place by night and by day: ink-ridges-night
@@ -20,11 +22,25 @@
 # Every picture is shown at full quality on each monitor: scaled with a Lanczos filter (the
 # sharpest clean one) to cover the screen exactly, and cropped to it — from the middle, or
 # the side the list names (a picture whose subject is high up keeps its top). The pack's
-# pictures are all at least as large as a 1080p screen, so on one they are only ever
-# reduced; drawn once per monitor size, cached in ~/.cache.
+# pictures are all at least as large as a 1080p screen, so on one they are only ever reduced.
+#
+# Drawn ahead, so a change is instant (~/.cache/fedokawaii):
+#   wallpaper-screens/WxH/KEY.png   each picture at a screen's exact size: swaybg loads a
+#                                   1080p picture, never decodes a 4K one. The pack's are drawn
+#                                   when it is fetched, for the monitors there (asked of the
+#                                   session, or of the kernel before the first login), in
+#                                   parallel; a new screen size has them drawn once, in the
+#                                   background, after the wallpaper is up. The originals stay
+#                                   as they came: these are made again from them at any time
+#   wallpaper-previews/SCREEN-CELL-GROUND/KEY.COLSxROWS.six
+#                                   the picker's preview of each, already a sixel at the
+#                                   window's exact size: showing one is a cat
+# KEY is the picture's name, the first 16 hex digits of its SHA-256 (the list's, for the pack;
+# your own are read once and remembered by size and time in wallpaper-sums) and its crop.
 #
 # Exit: 0 done (or the picker closed) · 1 could not · 2 wrong use.
 set -u
+T0=${EPOCHREALTIME/[.,]/}
 # ImageMagick reads format names and options case-blind by the locale: in Turkish, "tile:"
 # and -resize lose their "i" (kawa-sixel, kawa-clip and kawa-books do the same)
 magick() { LC_ALL=C command magick "$@"; }
@@ -34,6 +50,8 @@ WALLPAPER_DIR=$HOME/Pictures/Wallpapers
 . "$HOME/.config/fedokawaii/env"
 # shellcheck source=/dev/null
 . "$HOME/.config/fedokawaii/icons.sh"
+# shellcheck source=/dev/null
+. "$HOME/.config/fedokawaii/screen.sh"
 case ${1:-menu} in
   --restore|--set|menu)   # (the session's runtime folder: also found from a shell without it)
     export XDG_RUNTIME_DIR=${XDG_RUNTIME_DIR:-/run/user/$UID}
@@ -52,9 +70,11 @@ fi
 . "$HOME/.config/fedokawaii/current/colors.sh"
 SHARE=$HOME/.local/share/fedokawaii
 PACK=$SHARE/wallpapers LIST=$SHARE/wallpapers.list    # the pack: PACK/THEME/NAME.src, as fetched
-STATE_DIR=$HOME/.local/state/fedokawaii CACHE=$HOME/.cache/kawa-wallpaper
+STATE_DIR=$HOME/.local/state/fedokawaii CACHE=$HOME/.cache/fedokawaii
+SCREENS=$CACHE/wallpaper-screens PREVIEWS=$CACHE/wallpaper-previews SUMS=$CACHE/wallpaper-sums
+GEOMETRY=$CACHE/wallpaper-previews/geometry          # the picker's last preview area: "CELL COLSxROWS"
 PACK_TMP=""
-mkdir -p "$WALLPAPER_DIR" "$STATE_DIR" "$CACHE"
+mkdir -p "$WALLPAPER_DIR" "$STATE_DIR" "$SCREENS" "$PREVIEWS"
 
 outputs() {   # "NAME WxH" for every enabled output, as it stands (a turned screen: H×W)
   wlr-randr 2>/dev/null | awk '
@@ -67,28 +87,52 @@ outputs() {   # "NAME WxH" for every enabled output, as it stands (a turned scre
     /^    [0-9]+x[0-9]+ px.*current/ { size = $1 }    # (a custom mode may have no refresh rate)
     END { flush() }'
 }
-
-crop_of() {   # crop_of NAME → the side a pack picture is cropped towards (the list's crop column)
-  local mode name pair crop _
-  while read -r mode name pair crop _; do
-    [[ $mode == "$THEME" && $name == "$1" ]] && { printf '%s' "$crop"; return 0; }
-  done <"$LIST"
-  printf center
+screen_sizes() {   # every screen size to draw for, the first screen's first: the session's
+  # outputs; with no session (theme.sh before the first login), each connected monitor's
+  # preferred mode as the kernel reads it from the monitor — the mode kawa-display sets
+  local s m o seen=" "
+  o=$(outputs)
+  { if [[ -n $o ]]; then awk '{ print $2 }' <<<"$o"
+    else
+      for s in "${KAWA_SYSFS:-/sys}"/class/drm/card*-*/status; do   # (the tests: a made-up one)
+        [[ -r $s && $(<"$s") == connected ]] || continue
+        { read -r m <"${s%/status}/modes"; } 2>/dev/null && [[ $m =~ ^[0-9]+x[0-9]+ ]] && echo "${BASH_REMATCH[0]}"
+      done
+    fi; } | while read -r m; do [[ $seen == *" $m "* ]] || { seen+="$m "; echo "$m"; }; done
 }
 
-cover() {   # cover SRC W H GRAVITY → SRC reduced to cover W×H and cropped to it (cached)
-  # Lanczos, in linear light (the colours mix as light does: no darkened edges); the cache
-  # key holds the source's path and time, so a picture replaced under the same name is
-  # drawn again
-  local src=$1 w=$2 h=$3 g=$4 key out
-  key=$(printf '%s\n' c1 "$src" "$(stat -c %Y "$src" 2>/dev/null)" "$w" "$h" "$g" | sha1sum); key=${key%% *}
-  out=$CACHE/$w"x"$h-$key.png
-  if [[ ! -s $out ]]; then
-    magick "${src}[0]" -auto-orient -colorspace RGB -filter Lanczos -resize "${w}x${h}^" \
-      -colorspace sRGB -gravity "$g" -extent "${w}x${h}" -strip "PNG24:$out.$$.tmp" 2>/dev/null \
-      && mv -f "$out.$$.tmp" "$out" || { rm -f "$out.$$.tmp"; return 1; }
+# ── the list and the pictures' keys ───────────────────────────────────────────────────
+declare -A L_CROP=() L_SUM=() L_PAIR=()
+L_NAMES=()
+read_list() {   # read_list THEME — that theme's part of the list (L_NAMES, L_CROP, L_SUM, L_PAIR)
+  local mode name pair crop sum _
+  L_CROP=() L_SUM=() L_PAIR=() L_NAMES=()
+  [[ -r $LIST ]] || return 0
+  while read -r mode name pair crop sum _; do
+    [[ $mode == "$1" ]] || continue
+    L_NAMES+=("$name"); L_CROP[$name]=$crop L_SUM[$name]=$sum L_PAIR[$name]=$pair
+  done <"$LIST"
+}
+read_list "$THEME"
+
+safe_name() {   # safe_name FILE → its name without the extension, in letters a cache file may have
+  local LC_ALL=C b=${1##*/}
+  b=${b%.*}; b=${b//[^A-Za-z0-9_-]/_}
+  printf '%s' "${b:0:40}"
+}
+own_key() {   # own_key FILE → KEY of a picture of your own (its SHA-256 read once: wallpaper-sums)
+  local f=$1 st line sum=""
+  st=$(stat -L -c '%s %Y' -- "$f" 2>/dev/null) || return 1
+  if [[ $f != *$'\n'* && -r $SUMS ]]; then
+    while IFS= read -r line; do
+      [[ ${line:0:${#st}+1} == "$st " && ${line:${#st}+66} == "$f" ]] && sum=${line:${#st}+1:64}
+    done <"$SUMS"
   fi
-  printf '%s' "$out"
+  if [[ -z $sum ]]; then
+    sum=$(sha256sum <"$f" 2>/dev/null) || return 1; sum=${sum%% *}
+    [[ $f != *$'\n'* ]] && printf '%s %s %s\n' "$st" "$sum" "$f" >>"$SUMS"
+  fi
+  printf '%s.%s.center' "$(safe_name "$f")" "${sum:0:16}"
 }
 
 # shellcheck disable=SC2034  # read through ${!d} in resolve()
@@ -97,36 +141,149 @@ resolve() {   # resolve CHOICE → pack:NAME or a file ("default" is the theme's
   local d=DEFAULT_$THEME
   if [[ $1 == default ]]; then printf 'pack:%s' "${!d}"; else printf '%s' "$1"; fi
 }
-SRC="" GRAV=""
-source_of() {   # source_of pack:NAME|FILE → SRC, the picture file, and GRAV, its crop side
+SRC="" GRAV="" KEY=""
+source_of() {   # source_of pack:NAME|FILE → SRC, the picture file, GRAV, its crop side, and KEY
   # (set, not printed: a name of yours may hold a tab or a line break)
+  local n
   case $1 in
-    pack:*) SRC=$PACK/$THEME/${1#pack:}.src GRAV=$(crop_of "${1#pack:}"); [[ -s $SRC ]] ;;
-    *)      SRC=$1 GRAV=center; [[ -f $SRC ]] ;;
+    pack:*) n=${1#pack:}
+            [[ -n ${L_SUM[$n]:-} ]] || return 1          # (no longer in the list: retired)
+            SRC=$PACK/$THEME/$n.src GRAV=${L_CROP[$n]} KEY=$n.${L_SUM[$n]:0:16}.${L_CROP[$n]}
+            [[ -s $SRC ]] ;;
+    *)      SRC=$1 GRAV=center; [[ -f $SRC ]] && KEY=$(own_key "$SRC") ;;
   esac
 }
 
+cover() {   # cover WxH → SRC reduced to cover WxH and cropped to it (drawn once)
+  # Lanczos, in linear light (the colours mix as light does: no darkened edges). A picture
+  # replaced under the same name since (newer than its drawing) is drawn again
+  local w=${1%x*} h=${1#*x} out=$SCREENS/$1/$KEY.png
+  if [[ ! -s $out || $SRC -nt $out ]]; then
+    mkdir -p "${out%/*}"
+    magick "${SRC}[0]" -auto-orient -colorspace RGB -filter Lanczos -resize "${w}x${h}^" \
+      -colorspace sRGB -gravity "$GRAV" -extent "${w}x${h}" -strip "PNG24:$out.$BASHPID.tmp" 2>/dev/null \
+      && mv -f "$out.$BASHPID.tmp" "$out" || { rm -f "$out.$BASHPID.tmp"; return 1; }
+  fi
+  printf '%s' "$out"
+}
+
+# ── on screen ─────────────────────────────────────────────────────────────────────────
+# The new swaybg is started with the old one still up, and the old one goes only once the
+# new one has drawn: never a bare moment between, and a change that returns is on screen
+# (kawa-theme waits for --restore under its veil, so the veil lifts on the new wallpaper).
+# "Drawn" is read from outside, whatever swaybg loads pictures with (cairo, gdk-pixbuf, or
+# glycin's sandboxed loaders): each picture is handed over as a copy of its own in the
+# runtime folder, which nothing else reads — so when every copy that was opened is closed
+# again, and swaybg sits waiting on the compositor (in poll), its frame is committed. One
+# frame later the old one is closed. 3 s with no frame: the new one goes, the old one stays.
+# shellcheck disable=SC2016  # python, not shell
+SWAP_PY='
+import ctypes, os, select, signal, struct, subprocess, sys, time
+a = sys.argv[1:]
+n = int(a[0]); pics = a[1:1 + n]; a = a[1 + n:]
+m = int(a[0]); old = [int(p) for p in a[1:1 + m]]; cmd = a[1 + m:]
+libc = ctypes.CDLL(None, use_errno=True)
+IN_CLOSE_NOWRITE, IN_OPEN = 0x10, 0x20
+fd = libc.inotify_init1(os.O_NONBLOCK | os.O_CLOEXEC)
+if fd < 0:
+    sys.exit(1)
+seen = {}
+for f in pics:
+    wd = libc.inotify_add_watch(fd, os.fsencode(f), IN_OPEN | IN_CLOSE_NOWRITE)
+    if wd < 0:
+        sys.exit(1)
+    seen[wd] = [0, 0]
+try:
+    p = subprocess.Popen(cmd, stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
+                         stderr=subprocess.DEVNULL, start_new_session=True)
+except OSError:
+    sys.exit(1)
+def waiting():
+    try:
+        with open("/proc/%d/wchan" % p.pid) as w:
+            return "poll" in w.read()
+    except OSError:
+        return False
+watch = select.poll(); watch.register(fd, select.POLLIN)
+end = time.monotonic() + 3; calm = 0
+while time.monotonic() < end:
+    if p.poll() is not None:
+        sys.exit(1)                                   # it ended: the old one stays
+    watch.poll(2)
+    try:
+        buf = os.read(fd, 65536)
+    except BlockingIOError:
+        buf = b""
+    i = 0
+    while i + 16 <= len(buf):
+        wd, mask, _, ln = struct.unpack_from("iIII", buf, i); i += 16 + ln
+        if wd in seen:
+            seen[wd][0 if mask & IN_OPEN else 1] += 1
+    done = all(o and c >= o for o, c in seen.values())
+    calm = calm + 1 if done and waiting() else 0
+    if calm >= 2:
+        time.sleep(0.017)                             # one frame: the compositor shows it
+        for q in old:
+            try:
+                os.kill(q, signal.SIGTERM)
+            except OSError:
+                pass
+        print(p.pid)
+        sys.exit(0)
+p.kill()
+sys.exit(1)
+'
+show() {   # show [-o NAME] -i PICTURE -m fill … — swaybg's arguments; the new one up, then the old one gone
+  local run=$XDG_RUNTIME_DIR/kawa-wallpaper a=() pics=() old=() f n=0 k
+  local -A copy=()
+  mkdir -p "$run" || return 1
+  while (($#)); do
+    if [[ $1 == -i ]]; then
+      if [[ -z ${copy[$2]:-} ]]; then
+        f=$run/${EPOCHREALTIME/[.,]/}-$((n++)).png
+        cp -f -- "$2" "$f" || { rm -f "${pics[@]}"; return 1; }
+        copy[$2]=$f; pics+=("$f")
+      fi
+      a+=(-i "${copy[$2]}"); shift 2
+    else a+=("$1"); shift; fi
+  done
+  mapfile -t old < <(pgrep -x -u "$UID" swaybg)
+  if ! python3 -I -S -c "$SWAP_PY" "${#pics[@]}" "${pics[@]}" "${#old[@]}" "${old[@]}" \
+         swaybg -c "#$C_GROUND" "${a[@]}" >/dev/null 2>&1 7>&- 8>&- 9>&-; then
+    rm -f "${pics[@]}"; return 1
+  fi
+  # the copies the old ones showed
+  for f in "$run"/*.png; do
+    for k in "${pics[@]}"; do [[ $f == "$k" ]] && continue 2; done
+    rm -f "$f"
+  done
+  return 0
+}
+ground() {   # only the theme's plain ground (before the pack is here): a picture of it, so it
+  # is shown the same way
+  local g=$SCREENS/ground-$C_GROUND.png
+  [[ -s $g ]] || { magick -size 8x8 "xc:#$C_GROUND" "PNG24:$g.$$.tmp" && mv -f "$g.$$.tmp" "$g"; } || return 1
+  show -i "$g" -m fill
+}
 apply() {   # apply CHOICE — default | pack:NAME | /path/to/file; 1: no such picture now
   local args=() name size img
   source_of "$(resolve "$1")" || return 1
   # every screen there now, drawn at its exact size
   while read -r name size; do
-    img=$(cover "$SRC" "${size%x*}" "${size#*x}" "$GRAV") || return 1
+    img=$(cover "$size") || return 1
     args+=(-o "$name" -i "$img" -m fill)       # (already its exact size: shown 1:1)
   done < <(outputs)
+  ((${#args[@]})) || { ground; return; }      # (no monitor to ask about: the plain ground)
   show "${args[@]}"
 }
-show() {   # show [SWAYBG ARGS…] — a new swaybg up over the old one, the old one closed after
-  # half a second (the new one has drawn by then): no bare flash between. That wait runs
-  # on its own, so a theme switch goes on at once (its veil hides the overlap)
-  local old=()
-  mapfile -t old < <(pgrep -x -u "$UID" swaybg)
-  setsid -f swaybg -c "#$C_GROUND" "$@" >/dev/null 2>&1 <&- 8>&-   # (it outlives the lock)
-  ((${#old[@]})) && setsid -f sh -c 'sleep 0.5; kill "$@"' sh "${old[@]}" >/dev/null 2>&1 <&- 7>&- 8>&- 9>&-
+took() {   # took WHAT — how long a change took, from the start, in ~/.cache/fedokawaii/wallpaper.log
+  local log=$CACHE/wallpaper.log
+  printf '%(%F %T)T kawa-wallpaper: %s on screen in %d ms\n' -1 "$1" $(( (${EPOCHREALTIME/[.,]/} - T0) / 1000 )) >>"$log" 2>/dev/null
+  { (($(wc -l <"$log") >= 400)) && tail -n 200 "$log" >"$log.$$" && mv -f "$log.$$" "$log"; } </dev/null >/dev/null 2>&1 7>&- 8>&- 9>&- &
   return 0
 }
-ground() {   # only the theme's plain ground (before the pack is here)
-  show
+behind() {   # what is not drawn yet for these screens, drawn in the background (once at a time)
+  setsid "$0" --cache --background </dev/null >/dev/null 2>&1 7>&- 8>&- 9>&- &
 }
 
 pack() {   # download and check every pack picture not here yet; it is kept as it came
@@ -159,7 +316,7 @@ pack() {   # download and check every pack picture not here yet; it is kept as i
   rm -rf "$tmp"
   ((untried)) && echo "kawa-wallpaper: no connection to ${host%%/*} — $untried more not tried" >&2
   # pictures the list no longer names go — and every file of the pack before this one (its
-  # small redrawn copies, NAME.png) — with the screen-sized copies made of them
+  # small redrawn copies, NAME.png); their drawings go with the cache's next tidy (--cache)
   local keep=() f gone=0
   mapfile -t keep < <(awk '$1 == "dark" || $1 == "light" { print $1 "/" $2 ".src" }' "$LIST")
   if ((${#keep[@]})); then
@@ -168,75 +325,207 @@ pack() {   # download and check every pack picture not here yet; it is kept as i
       [[ " ${keep[*]} " == *" ${f#"$PACK"/} "* ]] && continue
       rm -f "$f" && gone=$((gone + 1))
     done
-    ((gone)) && find "$CACHE" -maxdepth 1 -name '*x*-*.png' -delete 2>/dev/null   # (drawn again as needed)
   fi
   f="wallpaper pack: $n fetched, $have already here, $fail failed"; ((gone)) && f+=", $gone retired"
   echo "$f"
   ((fail == 0))
 }
 
-pair_of() {   # pair_of NAME → the same place in the other theme, if there is one
-  local mode name pair _
-  while read -r mode name pair _; do
-    [[ $mode == "$THEME" && $name == "$1" && $pair != - ]] && { printf '%s' "$pair"; return 0; }
-  done <"$LIST"
-  return 1
+# ── the cache, drawn ahead ───────────────────────────────────────────────────────────
+ground_of() {   # ground_of THEME → its ground colour (RRGGBB)
+  local g; g=$(sed -n 's/^C_GROUND=\([0-9a-fA-F]\{6\}\).*/\1/p' "$HOME/.config/fedokawaii/themes/$1/colors.sh" 2>/dev/null)
+  [[ -n $g ]] && printf '%s' "$g"
 }
-
-choices() {   # every choice for this theme: "CHOICE<TAB>LABEL" (◐ after a name: day and night)
-  local mode name pair _ both dflt nw=0
-  both=$'  \e[90m'"$ICON_THEME"$'\e[0m'
-  dflt=$(resolve default)
-  [[ -s $PACK/$THEME/${dflt#pack:}.src ]] && printf 'default\t%s  %s (default)\n' "$ICON_TORII" "${dflt#pack:}"
-  # the ◐ marks stand in one column: every name padded to the longest
-  while read -r mode name pair _; do
-    [[ $mode == "$THEME" ]] && ((${#name} > nw)) && nw=${#name}
-  done <"$LIST"
-  while read -r mode name pair _; do
-    [[ $mode == "$THEME" && -s $PACK/$THEME/$name.src ]] || continue
-    [[ pack:$name == "$dflt" ]] && continue                 # (listed first, as the default)
-    if [[ $pair == - ]]; then printf 'pack:%s\t%s  %s\n' "$name" "$ICON_PICTURE" "$name"
-    else printf 'pack:%s\t%s  %-*s%s\n' "$name" "$ICON_PICTURE" "$nw" "$name" "$both"; fi
-  done <"$LIST"
-  # your own (a name with a tab or a line break in it cannot be listed)
-  find -L "$WALLPAPER_DIR" -type f \( -iname '*.png' -o -iname '*.jpg' -o -iname '*.jpeg' -o -iname '*.webp' \) \
-    ! -name $'*\t*' ! -name $'*\n*' \
-    | sort | while IFS= read -r f; do printf '%s\t%s  %s\n' "$f" "$ICON_FOLDER" "${f#"$WALLPAPER_DIR"/}"; done
+geometry() {   # geometry → "CELL COLSxROWS" of the picker's preview area, as last measured
+  local g; { read -r g <"$GEOMETRY"; } 2>/dev/null && [[ $g =~ ^[0-9]+x[0-9]+\ [0-9]+x[0-9]+$ ]] && printf '%s' "$g"
 }
-
-# ── the picker's preview: the picture as the screen shows it, smaller ─────────────────
-# The first screen's picture (drawn as the screen gets it), reduced to fit the window's
-# preview area, centred in it (a sixel picture starts at the area's top-left corner: the
-# margin is drawn as nothing, so the terminal's own background shows — kawa-sixel), and
-# clear of its last line (a picture touching it would scroll the window: fzf #2544). Drawn
-# once, cached in ~/.cache/kawa-wallpaper/preview.
-PREV_COLS=74 PREV_ROWS=18                              # the window's preview area (--tui)
-
-preview_file() {   # preview_file CHOICE → that sixel file
-  local c=$1 name size w=1920 h=1080 aw ah bw bh n m pw ph lp tp screen key out
-  read -r name size < <(outputs)
-  [[ $size =~ ^[0-9]+x[0-9]+$ ]] && w=${size%x*} h=${size#*x}
-  local cell=${KAWA_CELL:?}                                          # the terminal's cell, in pixels (--tui)
-  aw=$((PREV_COLS * ${cell%x*})) ah=$((PREV_ROWS * ${cell#*x}))      # the area
-  bw=$aw bh=$((ah - ${cell#*x}))                                     # what the picture may fill
+preview_path() {   # preview_path SCREEN CELL COLSxROWS GROUND → the sixel's file for KEY
+  printf '%s/%s-%s-%s/%s.%s.six' "$PREVIEWS" "$1" "$2" "$4" "$KEY" "$3"
+}
+make_preview() {   # make_preview SCREEN CELL COLSxROWS → KEY's sixel there (from its drawing)
+  # The picture as the screen shows it (its drawing for the first screen), reduced by a
+  # whole factor to fit the window's preview area, centred in it (a sixel picture starts at
+  # the area's top-left corner: the margin is drawn as nothing, so the terminal's own
+  # background shows — kawa-sixel), and clear of its last line (a picture touching it would
+  # scroll the window: fzf #2544)
+  local s=$1 cell=$2 area=$3 w h aw ah bw bh n m pw ph lp tp screen out
+  w=${s%x*} h=${s#*x}
+  aw=$(( ${area%x*} * ${cell%x*} )) ah=$(( ${area#*x} * ${cell#*x} ))   # the area
+  bw=$aw bh=$((ah - ${cell#*x}))                                         # what the picture may fill
   ((bw > 0 && bh > 0)) || return 1
   n=$(( (w + bw - 1) / bw )) m=$(( (h + bh - 1) / bh )); ((m > n)) && n=$m; ((n < 1)) && n=1
   pw=$((w / n)) ph=$((h / n))
+  ((pw > 0 && ph > 0)) || return 1
   lp=$(( (aw - pw) / 2 )) tp=$(( (ah - ph) / 2 )); ((tp > bh - ph)) && tp=$((bh - ph))
-  # (quiet: fzf shows a preview's stderr in the pane — a picture it cannot read, cut short
-  # or not a picture at all, gets the plain "no preview" line instead of ImageMagick's words)
-  source_of "$(resolve "$c")" || return 1
-  screen=$(cover "$SRC" "$w" "$h" "$GRAV") || return 1
-  key=$(printf '%s\n' p4 "$screen" "$pw" "$ph" "$lp" "$tp" | sha1sum); key=${key%% *}
-  out=$CACHE/preview/$key.six
-  if [[ ! -s $out ]]; then
-    mkdir -p "$CACHE/preview"
-    magick "$screen" -filter Lanczos -resize "${pw}x${ph}!" \
-      -background "#$C_GROUND" -gravity southeast -extent "$((lp + pw))x$((tp + ph))" png:- 2>/dev/null \
-      | kawa-sixel "$C_GROUND" >"$out.$$.tmp" || { rm -f "$out.$$.tmp"; return 1; }
-    mv -f "$out.$$.tmp" "$out"
-  fi
+  out=$(preview_path "$s" "$cell" "$area" "$C_GROUND")
+  [[ -s $out && ! $SRC -nt $out ]] && { printf '%s' "$out"; return 0; }
+  screen=$(cover "$s") || return 1
+  mkdir -p "${out%/*}"
+  { magick "$screen" -filter Lanczos -resize "${pw}x${ph}!" \
+      -background "#$C_GROUND" -gravity southeast -extent "$((lp + pw))x$((tp + ph))" ppm:- 2>/dev/null \
+      | kawa-sixel "$C_GROUND" && printf '\n'; } >"$out.$BASHPID.tmp" && mv -f "$out.$BASHPID.tmp" "$out" \
+    || { rm -f "$out.$BASHPID.tmp"; return 1; }
   printf '%s' "$out"
+}
+cache_one() {   # cache_one "SIZE…" "GEOMETRY" "THEME NAME" — one pack picture: every screen, its preview
+  local sizes=$1 geo=$2 mode=${3%% *} name=${3#* } s
+  THEME=$mode C_GROUND=$(ground_of "$mode") || return 1
+  read_list "$mode"
+  source_of "pack:$name" || return 1
+  for s in $sizes; do cover "$s" >/dev/null || return 1; done
+  [[ -z $geo ]] || make_preview "${sizes%% *}" "${geo% *}" "${geo#* }" >/dev/null
+}
+CS_SIZES=() CS_GEO="" CS_TODO=() CS_ALL=0
+cache_scan() {   # what the cache should hold now, and what of it is missing (CS_TODO: "THEME NAME")
+  local mode name s g need
+  mapfile -t CS_SIZES < <(screen_sizes)
+  CS_GEO=$(geometry) CS_TODO=() CS_ALL=0
+  for mode in dark light; do
+    read_list "$mode"; THEME=$mode; g=$(ground_of "$mode")
+    for name in "${L_NAMES[@]}"; do
+      source_of "pack:$name" || continue
+      CS_ALL=$((CS_ALL + 1)) need=0
+      for s in "${CS_SIZES[@]}"; do
+        [[ -s $SCREENS/$s/$KEY.png && ! $SRC -nt $SCREENS/$s/$KEY.png ]] || need=1
+      done
+      if [[ -n $CS_GEO && ${#CS_SIZES[@]} -gt 0 ]]; then
+        s=$(preview_path "${CS_SIZES[0]}" "${CS_GEO% *}" "${CS_GEO#* }" "$g")
+        [[ -s $s && ! $SRC -nt $s ]] || need=1
+      fi
+      ((need)) && CS_TODO+=("$mode $name")
+    done
+  done
+  # shellcheck source=/dev/null
+  . "$HOME/.config/fedokawaii/current/colors.sh"; read_list "$THEME"
+}
+tidy() {   # drawings of pictures no longer there (retired from the pack, your own deleted or
+  # changed), screen sizes and preview areas unused for a month, and half-made files go. Only
+  # what is older than this tidy: a picture of yours being set right now keeps its drawing
+  local -A want=() sz=()
+  local mode name d f k s p line kept=() now=$CACHE/wallpaper-tidy
+  : >"$now"
+  for mode in dark light; do
+    read_list "$mode"
+    for name in "${L_NAMES[@]}"; do want[$name.${L_SUM[$name]:0:16}.${L_CROP[$name]}]=1; done
+  done
+  if [[ -r $SUMS ]]; then      # your own: those still there, unchanged (the rest forgotten)
+    while IFS= read -r line; do
+      [[ $line =~ ^([0-9]+)\ ([0-9]+)\ ([0-9a-f]{64})\ (.+)$ ]] || continue
+      p=${BASH_REMATCH[4]}
+      [[ $(stat -L -c '%s %Y' -- "$p" 2>/dev/null) == "${BASH_REMATCH[1]} ${BASH_REMATCH[2]}" ]] || continue
+      want[$(safe_name "$p").${BASH_REMATCH[3]:0:16}.center]=1; kept+=("$line")
+    done <"$SUMS"
+    { ((${#kept[@]} == 0)) || printf '%s\n' "${kept[@]}"; } >"$SUMS.$$" && mv -f "$SUMS.$$" "$SUMS"
+  fi
+  for s in "${CS_SIZES[@]}"; do sz[$s]=1; done
+  for d in "$SCREENS"/*/; do
+    d=${d%/}; [[ -d $d ]] || continue
+    if [[ -z ${sz[${d##*/}]:-} ]] && [[ -n $(find "$d" -maxdepth 0 -mtime +30 2>/dev/null) ]]; then rm -rf "$d"; continue; fi
+    for f in "$d"/*.png; do
+      [[ -e $f && $f -ot $now ]] || continue
+      k=${f##*/}; k=${k%.png}
+      [[ -n ${want[$k]:-} ]] || rm -f "$f"
+    done
+  done
+  for d in "$PREVIEWS"/*/; do      # (SCREEN-CELL-GROUND: the one the picker uses now stays)
+    d=${d%/}; [[ -d $d ]] || continue
+    if [[ ${d##*/} != "${CS_SIZES[0]:-}-${CS_GEO%% *}-"* ]] && [[ -n $(find "$d" -maxdepth 0 -mtime +30 2>/dev/null) ]]; then
+      rm -rf "$d"; continue
+    fi
+    for f in "$d"/*.six; do
+      [[ -e $f && $f -ot $now ]] || continue
+      k=${f##*/}; k=${k%.six}; k=${k%.*}
+      [[ -n ${want[$k]:-} ]] || rm -f "$f"
+    done
+  done
+  find "$SCREENS" "$PREVIEWS" -name '*.tmp' -mmin +1 -delete 2>/dev/null
+  # shellcheck source=/dev/null
+  . "$HOME/.config/fedokawaii/current/colors.sh"; read_list "$THEME"
+  return 0
+}
+jobs_n() {   # how many pictures to draw at once: every core, as memory allows (a 8K picture
+  # takes some 600 MB while it is drawn)
+  local n mem
+  n=$(nproc 2>/dev/null) || n=1
+  mem=$(awk '/^MemAvailable:/ { print int($2 / 1024 / 600) }' /proc/meminfo 2>/dev/null)
+  [[ $mem =~ ^[0-9]+$ ]] && ((mem < n)) && n=$mem
+  ((n < 1)) && n=1
+  printf '%s' "$n"
+}
+cache_build() {   # draw what is missing, in parallel; a line every tenth, and one at the end
+  local bg=${1:-} j t0 n=0 failed=0 line step r
+  exec 6>"$CACHE/wallpaper-cache.lock"
+  flock -n 6 || { [[ -n $bg ]] && return 0; flock 6; }   # (one at a time: a second waits, or leaves it to the first)
+  if [[ -n $bg ]]; then renice -n 19 $$ >/dev/null 2>&1; ionice -c 3 -p $$ >/dev/null 2>&1; fi
+  cache_scan
+  tidy
+  if ((${#CS_SIZES[@]} == 0)); then
+    echo "wallpaper cache: no monitor found — the pack is drawn for it at the first login"
+    return 0
+  fi
+  ((${#CS_TODO[@]})) || return 0
+  j=$(jobs_n) t0=$SECONDS step=$(( (${#CS_TODO[@]} + 9) / 10 ))
+  echo "wallpaper cache: drawing ${#CS_TODO[@]} pictures for ${CS_SIZES[*]}${CS_GEO:+ (and their previews)}, $j at a time"
+  while IFS= read -r line; do
+    n=$((n + 1)); [[ $line == fail* ]] && { failed=$((failed + 1)); echo "kawa-wallpaper: could not draw '${line#fail }'" >&2; }
+    ((n % step == 0 && n < ${#CS_TODO[@]})) && echo "wallpaper cache: $n/${#CS_TODO[@]}"
+  done < <(printf '%s\0' "${CS_TODO[@]}" \
+             | MAGICK_THREAD_LIMIT=1 xargs -0 -r -n 1 -P "$j" "$0" --cache-one "${CS_SIZES[*]}" "$CS_GEO" 6>&-)
+  r="wallpaper cache: $((n - failed)) pictures drawn for ${CS_SIZES[*]} in $((SECONDS - t0)) s"
+  ((failed)) && r+=", $failed failed"
+  echo "$r · $(du -sh "$SCREENS" 2>/dev/null | cut -f1) screens, $(du -sh "$PREVIEWS" 2>/dev/null | cut -f1) previews"
+  ((failed == 0))
+}
+cache_status() {   # the report's and verify's look: complete and current?
+  local s six=0 have
+  cache_scan
+  ((${#CS_SIZES[@]})) || { echo "wallpaper cache: no monitor found"; return 1; }
+  for s in "${CS_SIZES[@]}"; do
+    have=$(find "$SCREENS/$s" -maxdepth 1 -name '*.png' 2>/dev/null | wc -l)
+    echo "wallpaper cache: $s · $have files · $(du -sh "$SCREENS/$s" 2>/dev/null | cut -f1)"
+  done
+  [[ -n $CS_GEO ]] && six=$(find "$PREVIEWS" -name "*.${CS_GEO#* }.six" 2>/dev/null | wc -l)
+  echo "wallpaper cache: previews ${CS_GEO:-(the picker not opened yet)} · $six files · $(du -sh "$PREVIEWS" 2>/dev/null | cut -f1)"
+  if ((${#CS_TODO[@]})); then
+    echo "wallpaper cache: ${#CS_TODO[@]} of $CS_ALL pack pictures not drawn yet (or older than their picture)"; return 1
+  fi
+  echo "wallpaper cache: all $CS_ALL pack pictures drawn and current"
+}
+
+# ── the picker ────────────────────────────────────────────────────────────────────────
+# A text screen (docs/design-system.md §7, in screen.sh's words, as every other one): the
+# heading — 壁, wallpaper, the stitch — then the list, each row its glyph and name, the
+# theme's own picture marked "default" and a picture with a day/night pair ◐, right-aligned
+# in muted; the cursor the accent fill. The window is fixed (kawa-float 80x37), so the rows'
+# width is known: its columns less two each side (fzf's margin and the cursor fill's)
+WIN_COLS=80 W=76
+declare -A OWN_SUM=()
+rows() {   # every choice for this theme: "CHOICE<TAB>KEY<TAB>ROW" (KEY: the preview's cache
+  # name, or empty when not known yet)
+  local name dflt p st sum t f
+  dflt=$(resolve default)
+  if source_of "$dflt"; then
+    printf 'default\t%s\t%s\n' "$KEY" "$(screen_row "$ICON_TORII" "${dflt#pack:}" default "$W")"
+  fi
+  for name in "${L_NAMES[@]}"; do
+    [[ pack:$name == "$dflt" ]] && continue                 # (listed first, as the default)
+    source_of "pack:$name" || continue
+    p=""; [[ ${L_PAIR[$name]} != - ]] && p=$ICON_THEME
+    printf 'pack:%s\t%s\t%s\n' "$name" "$KEY" "$(screen_row "$ICON_PICTURE" "$name" "$p" "$W")"
+  done
+  # your own (a name with a tab or a line break in it cannot be listed): their keys from what
+  # was read of them before — one not read yet is read when it is first shown
+  if [[ -r $SUMS ]]; then
+    while IFS= read -r t; do
+      [[ $t =~ ^([0-9]+\ [0-9]+)\ ([0-9a-f]{64})\ (.+)$ ]] && OWN_SUM["${BASH_REMATCH[1]} ${BASH_REMATCH[3]}"]=${BASH_REMATCH[2]}
+    done <"$SUMS"
+  fi
+  find -L "$WALLPAPER_DIR" -type f \( -iname '*.png' -o -iname '*.jpg' -o -iname '*.jpeg' -o -iname '*.webp' \) \
+    ! -name $'*\t*' ! -name $'*\n*' -printf '%p\t%s %T@\n' | sort | while IFS=$'\t' read -r f st; do
+      sum=${OWN_SUM["${st%.*} $f"]:-} p=""
+      [[ -n $sum ]] && p="$(safe_name "$f").${sum:0:16}.center"
+      printf '%s\t%s\t%s\n' "$f" "$p" "$(screen_row "$ICON_FOLDER" "${f#"$WALLPAPER_DIR"/}" "" "$W")"
+    done
 }
 
 case ${1:-menu} in
@@ -244,61 +533,98 @@ case ${1:-menu} in
     # a choice not there now (deleted, or on a drive not plugged in yet) shows the default,
     # but stays the choice: it comes back with its picture
     c=$(cat "$STATE_DIR/wallpaper-$THEME" 2>/dev/null)
-    apply "${c:-default}" || apply default || ground ;;
+    apply "${c:-default}" || apply default || ground || exit 1
+    took "restore ${c:-default}"
+    behind ;;
   --set)
     c=${2:-default}
     # a picture named from the folder you are in is remembered in full: found from anywhere
     case $c in default|pack:*|/*) ;; *) [[ -e $c ]] && c=$PWD/$c ;; esac
     apply "$c" || { echo "kawa-wallpaper: cannot show '$c' (not there, or not a picture file)" >&2; exit 1; }
     printf '%s\n' "$c" >"$STATE_DIR/wallpaper-$THEME"
-    if [[ $c == pack:* ]] && p=$(pair_of "${c#pack:}"); then   # the same place, other theme
+    if [[ $c == pack:* && -n ${L_PAIR[${c#pack:}]:-} && ${L_PAIR[${c#pack:}]} != - ]]; then   # the same place, other theme
       other=dark; [[ $THEME == dark ]] && other=light
-      printf 'pack:%s\n' "$p" >"$STATE_DIR/wallpaper-$other"
-    fi ;;
+      printf 'pack:%s\n' "${L_PAIR[${c#pack:}]}" >"$STATE_DIR/wallpaper-$other"
+    fi
+    took "set $c" ;;
   --pack)
-    pack ;;
+    pack; r=$?
+    cache_build || r=1
+    exit "$r" ;;
+  --cache)
+    cache_build "${2:-}" ;;
+  --cache-one)
+    cache_one "${2:-}" "${3:-}" "${4:-}" && echo "ok ${4#* }" || echo "fail ${4#* }" ;;
+  --cache-status)
+    cache_status ;;
   menu)        # Super+W: the picker window, once (a second press while it is open closes it: kawa-float --once)
     pick=$(mktemp "$XDG_RUNTIME_DIR/kawa-wallpaper.XXXXXX") || exit 1
     trap 'rm -f "$pick"' EXIT
     # 80 × 37 (the clipboard window's width, an odd height: centred to the pixel, and the
     # tallest that fits under the bar): the list, then an 18-row area for the picture — as
     # far below its rule as above the window's foot
-    kawa-float --once wallpaper wallpaper 80x37 -- "$0" --tui "$pick" || exit 0
+    kawa-float --once wallpaper wallpaper "${WIN_COLS}x37" -- "$0" --tui "$pick" || exit 0
     c=$(cat "$pick" 2>/dev/null)
     cur=$(cat "$STATE_DIR/wallpaper-$THEME" 2>/dev/null)
     [[ -n $c && $c != "$cur" ]] || exit 0
     sleep 0.15                                # the window gone from the screen first
-    kawa-veil --dissolve --time 520 -- "$0" --set "$c"; exit ;;   # the new one dissolves in over the old
+    # the new one dissolves in over the old: --set returns once it is drawn, so the veil
+    # lifts at once (no hold)
+    kawa-veil --dissolve --hold 0 --time 520 -- "$0" --set "$c"; exit ;;
   --tui)       # inside the window: the list on top, the picture under the cursor below
     out=${2:?}
     KAWA_CELL=$(kawa-cell) || exit 1                  # the cell's pixels: previews fit exactly
     export KAWA_CELL
-    mapfile -t rows < <(choices)
+    read -r _ screen < <(outputs)
+    [[ $screen =~ ^[0-9]+x[0-9]+$ ]] || exit 1
+    mapfile -t list < <(rows)
     cur=$(cat "$STATE_DIR/wallpaper-$THEME" 2>/dev/null) pos=1
-    for i in "${!rows[@]}"; do [[ ${rows[i]%%$'\t'*} == "$cur" ]] && pos=$((i + 1)); done
-    # every preview drawn ahead, quietly, while you look: moving through the list is instant
-    setsid "$0" --warm </dev/null >/dev/null 2>&1 &   # its own group: closing stops all of it
+    for i in "${!list[@]}"; do [[ ${list[i]%%$'\t'*} == "$cur" ]] && pos=$((i + 1)); done
+    # a preview is a cat of its sixel, drawn ahead (the folder: this screen, this cell, this
+    # ground; the file: the picture's key and the pane's size, as fzf gives it); one not drawn
+    # yet is drawn by --preview, and the rest of them meanwhile, nearest the cursor first
+    dir=$PREVIEWS/$screen-$KAWA_CELL-$C_GROUND
+    order=$(mktemp "$XDG_RUNTIME_DIR/kawa-wallpaper-warm.XXXXXX") || exit 1
+    for ((d = 0; d < ${#list[@]}; d++)); do
+      i=$((pos - 1 + d)); ((i < ${#list[@]})) && printf '%s\0' "${list[i]%%$'\t'*}"
+      i=$((pos - 1 - d)); ((d > 0 && i >= 0)) && printf '%s\0' "${list[i]%%$'\t'*}"
+    done >"$order"
+    setsid "$0" --warm "$order" </dev/null >/dev/null 2>&1 &   # its own group: closing stops all of it
     warm=$!
-    trap 'kill -- -"$warm" 2>/dev/null' EXIT
-    # the title in the panel's top rule, like the clipboard window ("─ ▣ wallpaper ──")
-    title=" $(printf '\e[91m%s\e[0m' "$ICON_PICTURE")  wallpaper "$'\e[90m'"· $THEME theme"$'\e[0m '
-    self=$(printf '%q' "$0")
+    trap 'kill -- -"$warm" 2>/dev/null; rm -f "$order"' EXIT
+    self=$(printf '%q' "$0") pdir=$(printf '%q' "$dir")
     export FZF_DEFAULT_OPTS_FILE=$HOME/.config/fedokawaii/fzf.opts; unset FZF_DEFAULT_OPTS   # (every list alike)
-    sel=$(for r in "${rows[@]}"; do printf '%s\n' "$r"; done | fzf --ansi --no-sort --height=100% --margin=1,2 \
-      --delimiter=$'\t' --with-nth=2.. --border-label="$title" \
-      --preview="$self --preview {1}" --preview-window='down,18,border-top,noinfo' \
-      --footer=$'\n'"enter set  ·  $ICON_THEME  sets both themes  ·  esc close" \
+    sel=$(for r in "${list[@]}"; do printf '%s\n' "$r"; done | fzf --ansi --no-sort --height=100% \
+      --delimiter=$'\t' --with-nth=3.. --header="$(screen_heading 壁 wallpaper "$W")"$'\n ' \
+      --with-shell='bash -c' \
+      --preview="f=$pdir/{2}.\${FZF_PREVIEW_COLUMNS}x\${FZF_PREVIEW_LINES}.six; [ -s \"\$f\" ] && exec cat \"\$f\"; exec $self --preview {1}" \
+      --preview-window='down,18,border-top,noinfo' \
+      --footer=$'\n'"$(screen_footer "$THEME theme" 'enter set' "$ICON_THEME  sets both themes" 'esc close')" \
       --bind="start:pos($pos)") || exit 0
     printf '%s\n' "${sel%%$'\t'*}" >"$out" ;;
-  --preview)   # fzf's preview: the picture, centred in its area
-    PREV_COLS=${FZF_PREVIEW_COLUMNS:-74} PREV_ROWS=${FZF_PREVIEW_LINES:-18}
-    if f=$(preview_file "${2:-}"); then cat "$f"; printf '\n'
+  --preview)   # fzf's preview, when its sixel is not drawn yet: drawn now, and the pane's size noted
+    c=${2:-} cell=${KAWA_CELL:-} area=${FZF_PREVIEW_COLUMNS:-}x${FZF_PREVIEW_LINES:-}
+    read -r _ screen < <(outputs)
+    # (quiet: fzf shows a preview's stderr in the pane — a picture it cannot read, cut short
+    # or not a picture at all, gets the plain "no preview" line instead of ImageMagick's words)
+    if [[ $cell =~ ^[0-9]+x[0-9]+$ && $area =~ ^[0-9]+x[0-9]+$ && ${screen:-} =~ ^[0-9]+x[0-9]+$ ]] \
+       && source_of "$(resolve "$c")" 2>/dev/null && f=$(make_preview "$screen" "$cell" "$area"); then
+      [[ $(geometry) == "$cell $area" ]] || { printf '%s %s\n' "$cell" "$area" >"$GEOMETRY.$$" && mv -f "$GEOMETRY.$$" "$GEOMETRY"; }
+      cat "$f"
     else printf '  %s  no preview\n' "$ICON_PICTURE"; fi ;;
-  --warm)      # every preview of this theme drawn ahead (the picker starts it)
-    renice -n 19 $$ >/dev/null 2>&1
-    # (other sizes, old ones — and what previews fzf killed half-way left: it kills one you
-    # moved on from outright, SIGKILL, mid-way through its file)
-    find "$CACHE/preview" \( -name '*.six' -mtime +30 -o -name '*.six.*.tmp' -mmin +1 \) -delete 2>/dev/null
-    choices | while IFS=$'\t' read -r c _; do preview_file "$c" >/dev/null 2>&1; done ;;
-  *) echo "usage: kawa-wallpaper [--restore|--set CHOICE|--pack] (kawa-wallpaper --help)" >&2; exit 2 ;;
+  --warm)      # every preview of the picker's list drawn ahead, nearest the cursor first, as
+    # many at once as there are cores (the picker starts it, and stops it when it closes)
+    renice -n 10 $$ >/dev/null 2>&1
+    # (half-made files fzf left: it kills a preview you moved on from outright, SIGKILL)
+    find "$SCREENS" "$PREVIEWS" -name '*.tmp' -mmin +1 -delete 2>/dev/null
+    # the pane's size is known once fzf has shown one preview (--preview notes it)
+    for _ in {1..100}; do [[ $(geometry) == "${KAWA_CELL:-} "* ]] && break; sleep 0.1; done
+    geo=$(geometry); [[ $geo == "${KAWA_CELL:-} "* ]] || exit 1
+    read -r _ screen < <(outputs)
+    MAGICK_THREAD_LIMIT=1 xargs -0 -r -n 4 -P "$(jobs_n)" "$0" --warm-some "$screen" "$geo" <"${2:?}" ;;
+  --warm-some)
+    screen=${2:?} geo=${3:?}; shift 3
+    for c; do source_of "$(resolve "$c")" && make_preview "$screen" "${geo% *}" "${geo#* }" >/dev/null; done 2>/dev/null
+    exit 0 ;;
+  *) echo "usage: kawa-wallpaper [--restore|--set CHOICE|--pack|--cache|--cache-status] (kawa-wallpaper --help)" >&2; exit 2 ;;
 esac

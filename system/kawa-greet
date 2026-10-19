@@ -2,11 +2,12 @@
 """/usr/local/bin/kawa-greet USER — the login screen. greetd runs it in cage (a kiosk
 compositor: one full-screen window) on tty1, as its own user (greetd).
 
-It is the lock screen's twin: the theme's plain ground and, in the middle, the day's seal,
-the pixel padlock, the time, the date, and one box for your password — each character a
-vermilion ◆. A wrong password empties the box and says so under it; the right one starts
-the desktop (/usr/local/bin/start-dwl). Under it, two quiet words: restart and power off,
-filled vermilion under the pointer or the keyboard's focus (Tab).
+It is the lock screen's twin: on the theme's plain ground, one panel of the design system
+(docs/design-system.md) — a heading (the day's seal, the date, the stitch), the pixel
+padlock, the time, and one field for your password, each character a ◆ in accent_text. A
+wrong password empties the field and says so above it; the right one starts the desktop
+(/usr/local/bin/start-dwl). Under a rule, two keys: restart and power off — their words
+accent_text under the pointer, the key filled vermilion under the keyboard's focus (Tab).
 
 There is one person on this computer, so there is no user name to type: setup writes yours
 into greetd's settings (/etc/greetd/fedokawaii.toml), which hand it to this program.
@@ -77,32 +78,39 @@ class Greeter(Gtk.Window):
         css.load_from_path(f"{art}/gtklock.css")
         Gtk.StyleContext.add_provider_for_screen(self.get_screen(), css, Gtk.STYLE_PROVIDER_PRIORITY_USER)
 
+        # the lock screen's panel (~/.config/fedokawaii/lock.ui), part for part: the heading (the
+        # day's seal, the date, the stitch), the padlock, the time, the line for what went
+        # wrong, the field — then a rule and the two keys
         box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, name="window-box",
                       halign=Gtk.Align.CENTER, valign=Gtk.Align.CENTER)
-        info = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=18, name="info-box",
-                       halign=Gtk.Align.CENTER)
-        info.add(Gtk.Image.new_from_file(f"{art}/seal-{time.strftime('%u')}.png"))
-        info.add(Gtk.Image.new_from_file(f"{art}/padlock.png"))
-        times = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, name="time-box")
-        self.clock = Gtk.Label(name="clock-label")
-        self.date = Gtk.Label(name="date-label")
-        times.add(self.clock)
-        times.add(self.date)
-        info.add(times)
+        info = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, name="info-box")
+        heading = Gtk.Box(name="heading")
+        heading.add(Gtk.Image(file=f"{art}/seal-{time.strftime('%u')}.png", name="seal", valign=Gtk.Align.CENTER))
+        self.date = Gtk.Label(name="date-label", valign=Gtk.Align.CENTER)
+        heading.add(self.date)
+        heading.add(Gtk.Box(name="stitch", hexpand=True, valign=Gtk.Align.CENTER))
+        info.add(heading)
+        info.add(Gtk.Image(file=f"{art}/padlock.png", name="padlock", halign=Gtk.Align.CENTER))
+        self.clock = Gtk.Label(name="clock-label", halign=Gtk.Align.CENTER)
+        info.add(self.clock)
         box.add(info)
 
-        self.entry = Gtk.Entry(name="input-field", halign=Gtk.Align.CENTER, xalign=0.5,
+        messages = Gtk.Box(name="messages")
+        self.error = Gtk.Label(name="error-label", halign=Gtk.Align.START, hexpand=True, xalign=0,
+                               wrap=True, max_width_chars=44)   # (a long one from PAM: whole, on more lines)
+        messages.add(self.error)
+        box.add(messages)
+        self.entry = Gtk.Entry(name="input-field", hexpand=True, xalign=0.5,
                                visibility=False, invisible_char=ord("◆"), caps_lock_warning=False,   # (a code point: GTK takes a number)
-                               input_purpose=Gtk.InputPurpose.PASSWORD)
+                               input_purpose=Gtk.InputPurpose.PASSWORD,
+                               placeholder_text=f"{user} · パスワード · password")
         self.entry.connect("activate", self.login)
         box.add(self.entry)
-        box.add(Gtk.Label(name="input-label", label=f"{user} · パスワード · password"))
-        self.error = Gtk.Label(name="error-label")
-        box.add(self.error)
 
-        power = Gtk.Box(spacing=12, halign=Gtk.Align.CENTER, margin_top=40)
+        box.add(Gtk.Box(name="rule"))
+        power = Gtk.Box(spacing=6, homogeneous=True)
         for label, verb in (("再起動 · restart", "reboot"), ("電源 · power off", "poweroff")):
-            b = Gtk.Button(label=label, can_focus=True)
+            b = Gtk.Button(label=label, can_focus=True, hexpand=True)
             b.connect("clicked", lambda _b, v=verb: subprocess.Popen(["systemctl", v]))
             power.add(b)
         box.add(power)
@@ -116,7 +124,7 @@ class Greeter(Gtk.Window):
 
     def tick(self):
         self.clock.set_text(time.strftime("%I:%M %p"))
-        self.date.set_text(time.strftime("%d %b"))   # (the day is the seal's, above)
+        self.date.set_text(time.strftime("%a %d %b"))   # ("Mon 19 Oct": the weekday in words, and its seal above)
         return True
 
     def say(self, text):
