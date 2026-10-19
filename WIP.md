@@ -87,3 +87,9 @@ tested release; do not install from `wip`.
   the "tooltip":false run, dwl-pointer, kawa-clip --held, layouts = spiral/columns/floating.
 - wallpaper picker speed work was stopped mid-way: check bin/kawa-wallpaper and its tests
   first; the preview cache / 1080p pre-scale may be half in.
+
+## Owner's request for next session
+- Full bash review for stability: bash/ble.sh, eza, fd, zoxide, lazygit, neovim — each
+  100 % installed and working, no errors or warnings at shell start or in use (aliases,
+  completions, ble.sh hooks, zoxide init, fzf keys, LazyVim :checkhealth clean).
+- A complete list of every issue reported across the project, each with its status.
