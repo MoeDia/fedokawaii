@@ -184,10 +184,14 @@ write_file() {                      # write_file PATH [MODE] < content — never
 # shellcheck disable=SC2034  # (setup.sh reads it)
 PROJECT_TOP=(PACKAGES.md README.md art bin check.sh configs docs fedokawaii.conf fedokawaii.sh
              lib setup.sh src system tests theme.sh tools verify.sh .git .gitignore .gitattributes)
-# the boot's own arguments, on every boot entry (setup.sh's console_boot_arg puts them there,
-# verify.sh checks them): the splash's rhgb quiet, and no console-size wait at boot
+# the boot's own arguments, on every boot entry (setup.sh's s_quiet_boot puts them there,
+# verify.sh checks them): the splash (rhgb), and nothing else on the screen from the power
+# button to the login — the kernel's messages only when they are critical (quiet loglevel=3;
+# the initramfs' udev likewise), no systemd status lines, no blinking cursor on the console
+# the login screen shares (tty1); and no console-size wait at boot. The journal keeps it all
 # shellcheck disable=SC2034  # (setup.sh and verify.sh read it)
-BOOT_ARGS=(rhgb quiet systemd.tty.term.console=dumb)
+BOOT_ARGS=(rhgb quiet loglevel=3 rd.udev.log_level=3 systemd.show_status=false vt.global_cursor_default=0
+           systemd.tty.term.console=dumb)
 # an AMD card's: LACT's clocks, voltages and fan curves need OverDrive (bit 14), which amdgpu
 # leaves off: its default mask (0xfff7bfff) plus that bit. Not 0xffffffff — that also switches
 # on GFX DCS (bit 19), which amdgpu keeps off as unstable (flicker, hangs on some cards).

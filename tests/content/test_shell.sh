@@ -89,7 +89,7 @@ t = sys.argv[1]
 sys.exit(any(0xFE000 <= ord(c) <= 0xFEFFF and t[i + 1:i + 3] != "  " for i, c in enumerate(t)))
 PY
 done
-[[ $(plain "$(nth 1)") == "$ICON_TORII  ~ "* ]] && _ok || _no "the torii, two spaces, the path: $(plain "$(nth 1)")"
+[[ $(plain "$(nth 1)") == "$ICON_TORII_SMALL  ~ "* ]] && _ok || _no "the torii (the words' height, not the seal's), two spaces, the path: $(plain "$(nth 1)")"
 case_ "foot: each header ends one column short of the window's edge (nothing wraps), whatever it shows"
 for i in 1 2 3 4 5 6 7; do eq "$(width "$(nth "$i")")" $((COLS - 1)) "header $i: $(plain "$(nth "$i")")"; done
 case_ "foot: the line you type on starts with the desktop's chevron, in paper colour"

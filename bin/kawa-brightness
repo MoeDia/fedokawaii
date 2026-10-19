@@ -18,8 +18,11 @@
 # clears the cache at each login; a monitor that stops answering means look again).
 # A laptop's own screen has no DDC/CI: its backlight (/sys/class/backlight) moves with the
 # monitors, set through logind, which lets the session's own user do it without root.
-# Exit status: 0 done (or dropped: a held key's repeats) · 1 could not (no monitor answered,
-# said in a notice) · 2 misuse.
+# A level (the meter, dragged) never waits and is never lost: it is noted as the one wanted
+# and one run at a time applies the newest wanted until none is left — levels passed over
+# while the monitor was busy are skipped, the last one always arrives.
+# Exit status: 0 done (or dropped: a held key's repeats; or a level handed to the run under
+# way) · 1 could not (no monitor answered, said in a notice) · 2 misuse.
 set -u
 arg=${1:-}
 case $arg in
@@ -32,6 +35,11 @@ esac
 . "$HOME/.config/fedokawaii/icons.sh"
 CACHE="${XDG_RUNTIME_DIR:?}/kawa-ddc-buses"
 LEVEL="$XDG_RUNTIME_DIR/kawa-brightness.level"   # (the last level read or set: instant to show)
+WANT="$XDG_RUNTIME_DIR/kawa-brightness.want"     # (a level asked for, not applied yet)
+MAXES="$CACHE.max"                               # (each bus's own scale, "BUS MAX": read once)
+# ddcutil 2.x: one bus named (no detection), its DDC checks skipped (detect made them), no
+# read-back of a value set; its dynamic sleep (on by default) keeps the waits short
+DDCOPT=(--skip-ddc-checks)
 poke() { kawa-dwlstatus --poke 14 2>/dev/null || true; }   # (the bar's module reads $LEVEL)
 if [[ $arg == --bar ]]; then
   l=$(cat "$LEVEL" 2>/dev/null)
@@ -102,60 +110,127 @@ buses() {
   while read -r b; do [[ $b =~ ^[0-9]+$ ]] && printf '%s\n' "$b"; done <"$CACHE"
 }
 
-MAX=100
-get() {   # get BUS → sets NOW (percent) and MAX (the monitor's own scale, nearly always 100)
+declare -A MAXOF=()
+maxes() {   # MAXOF[BUS] — each monitor's own scale, as read before this session (MAXES)
+  local b m
+  MAXOF=()
+  [[ -r $MAXES ]] || return 0
+  while read -r b m; do [[ $b =~ ^[0-9]+$ && $m =~ ^[0-9]+$ ]] && ((m > 0)) && MAXOF[$b]=$m; done <"$MAXES"
+}
+remember() {   # remember BUS MAX — kept with the bus list (dropped with it)
+  [[ ${MAXOF[$1]:-} == "$2" ]] && return 0
+  MAXOF[$1]=$2
+  local b; for b in "${!MAXOF[@]}"; do printf '%s %s\n' "$b" "${MAXOF[$b]}"; done >"$MAXES.tmp" && mv -f "$MAXES.tmp" "$MAXES"
+}
+get() {   # get BUS → sets NOW (percent), the bus's scale remembered
   local _vcp _code _type cur max
-  read -r _vcp _code _type cur max <<<"$(ddcutil --bus "$1" getvcp 10 --terse 2>/dev/null)"
+  read -r _vcp _code _type cur max <<<"$(ddcutil --bus "$1" "${DDCOPT[@]}" getvcp 10 --terse 2>/dev/null)"
   [[ $cur =~ ^[0-9]+$ && $max =~ ^[0-9]+$ && $max -gt 0 ]] || return 1
-  MAX=$max NOW=$((cur * 100 / max))
+  remember "$1" "$max"; NOW=$((cur * 100 / max))
 }
 
-set_all() {   # set_all PERCENT — every monitor on its own scale (the first one's is known)
-  local b
+set_all() {   # set_all PERCENT — every monitor on its own scale; 1: the first monitor did not answer
+  local b r=0 st=$XDG_RUNTIME_DIR/kawa-brightness.$$.st
   [[ -n $PANEL ]] && { panel_set "$1" & }
   for b in "${BUSES[@]}"; do
-    { m=$MAX
-      if [[ $b != "${BUSES[0]}" ]]; then
-        read -r _ _ _ _ m <<<"$(ddcutil --bus "$b" getvcp 10 --terse 2>/dev/null)"
-        [[ $m =~ ^[0-9]+$ ]] && ((m > 0)) || m=100
+    { m=${MAXOF[$b]:-}
+      if [[ -z $m ]]; then        # (a scale not known yet: read once, then remembered)
+        read -r _ _ _ _ m <<<"$(ddcutil --bus "$b" "${DDCOPT[@]}" getvcp 10 --terse 2>/dev/null)"
+        if [[ $m =~ ^[0-9]+$ ]] && ((m > 0)); then echo "$b $m" >"$st.max.$b"; else m=100; fi
       fi
-      ddcutil --bus "$b" setvcp 10 $(($1 * m / 100)) --noverify >/dev/null 2>&1; } &
+      ddcutil --bus "$b" "${DDCOPT[@]}" setvcp 10 $(($1 * m / 100)) --noverify >/dev/null 2>&1 \
+        || { [[ $b == "${BUSES[0]}" ]] && : >"$st"; }; } &
   done
   wait
+  [[ -e $st ]] && r=1
+  local f bm
+  for f in "$st".max.*; do
+    [[ -s $f ]] && read -r b bm <"$f" && remember "$b" "$bm"
+    rm -f "$f"
+  done
+  rm -f "$st"
+  return "$r"
 }
 
 note() { echo "$1" >"$LEVEL"; poke; kawa-osd "$ICON_SUN" brightness "$1"; }   # the level, shown for a moment
 
+want() {   # want → the level asked for and not applied yet (taken: the next ask is new)
+  local v
+  mv -f "$WANT" "$WANT.$$" 2>/dev/null || return 1
+  v=$(<"$WANT.$$"); rm -f "$WANT.$$"
+  [[ $v =~ ^[0-9]{1,3}$ ]] || return 1
+  echo "$v"
+}
+lock() { exec 9>"$XDG_RUNTIME_DIR/kawa-ddc.lock"; }
+drain() {   # every level asked for meanwhile, the newest each time, until none is left — also
+  # one asked just as the lock is let go (its asker found it held, and left it to this run)
+  local v last=""
+  while :; do
+    while v=$(want); do
+      ((10#$v > 100)) && v=100
+      set_level "$((10#$v))" && last=$v
+    done
+    [[ -n $last ]] && { echo "$((10#$last))" >"$LEVEL"; poke; last=""; }   # (the bar: the final one)
+    exec 9>&-
+    [[ -e $WANT ]] || return 0
+    lock; flock -n 9 || return 0                   # (another run took it: that one applies it)
+  done
+}
+set_level() {   # set_level PERCENT — the monitors there now (a list gone stale: looked again, once)
+  set_all "$1" && return 0
+  ((${#BUSES[@]})) || return 0
+  rm -f "$CACHE" "$MAXES"; maxes; mapfile -t BUSES < <(buses)
+  ((${#BUSES[@]})) && set_all "$1"
+}
+
+# a level: noted as the one wanted at once (the meter already shows it; --level says it too);
+# whichever run holds the monitors applies it — this one, if none does
+if [[ $arg =~ ^[0-9]{1,3}$ ]]; then
+  new=$((10#$arg)); ((new > 100)) && new=100
+  printf '%s\n' "$new" >"$WANT.new.$$" && mv -f "$WANT.new.$$" "$WANT"
+  # (and the level known from now on: quick settings reading it back mid-drag, or while the
+  # run under way still applies an older one, gets this one — its meter never jumps back)
+  printf '%s\n' "$new" >"$LEVEL.new.$$" && mv -f "$LEVEL.new.$$" "$LEVEL"
+fi
+
 # one DDC/CI conversation at a time: a held key repeats faster than monitors answer, and
 # overlapping read-then-write cycles would lose steps (repeats are simply dropped)
-exec 9>"${XDG_RUNTIME_DIR:?}/kawa-ddc.lock"
+lock
 if [[ $arg == --level ]]; then flock -w 5 9 || exit 0; else flock -n 9 || exit 0; fi
 
 panel
+maxes
 mapfile -t BUSES < <(buses)
-# the buses may have been renumbered since they were cached (a monitor plugged in or out):
-# a monitor that does not answer means look again, once
-if ((${#BUSES[@]})) && ! get "${BUSES[0]}"; then
-  rm -f "$CACHE"; mapfile -t BUSES < <(buses)
+if [[ $arg =~ ^[0-9]{1,3}$ ]]; then
+  if ((${#BUSES[@]} || ${#PANEL})); then drain; exit 0; fi
+fi
+# a step starts from the level known (the last read or set: no DDC/CI conversation before the
+# change — each one is slow); the laptop's own screen's is read (instant). --level, or nothing
+# known yet: the first monitor is asked
+NOW=""
+if [[ $arg != --level && -z $PANEL ]]; then
+  read -r NOW 2>/dev/null <"$LEVEL"; [[ $NOW =~ ^[0-9]{1,3}$ ]] || NOW=""
+fi
+if [[ -z $NOW && -z $PANEL ]] && ((${#BUSES[@]})); then
+  # the buses may have been renumbered since they were cached (a monitor plugged in or out):
+  # a monitor that does not answer means look again, once
+  if ! get "${BUSES[0]}"; then
+    rm -f "$CACHE" "$MAXES"; maxes; mapfile -t BUSES < <(buses)
+    ((${#BUSES[@]})) && { get "${BUSES[0]}" || exit 0; }
+  fi
 fi
 if ((${#BUSES[@]} == 0)) && [[ -z $PANEL ]]; then
-  rm -f "$CACHE"
+  rm -f "$CACHE" "$WANT"
   [[ $arg == --level ]] && exit 1
-  notify-send -a desktop "$ICON_SUN  brightness" "no monitor answered over DDC/CI — turn DDC/CI on in the monitor's own menu"
+  notify-send -a desktop -- "$ICON_SUN  brightness" "no monitor answered over DDC/CI — turn DDC/CI on in the monitor's own menu"
   exit 1
 fi
-# a step needs the level it starts from: the laptop's own screen's, else the first monitor's
-NOW=50
-if [[ -n $PANEL ]]; then panel_get || exit 0
-else get "${BUSES[0]}" || exit 0; fi
-now=$NOW
-echo "$now" >"$LEVEL"; poke
-[[ $arg == --level ]] && { echo "$now"; exit 0; }
+if [[ -n $PANEL ]]; then panel_get || exit 0; fi
+now=$((10#$NOW))
+if [[ $arg == --level ]]; then echo "$now" >"$LEVEL"; poke; echo "$now"; drain; exit 0; fi
 
-if [[ $arg =~ ^[+-][0-9]{1,3}$ ]]; then
-  new=$((now + 10#${arg:1} * (${arg:0:1}1))); ((new > 100)) && new=100; ((new < 0)) && new=0
-  set_all "$new"; note "$new"; exit 0
-else   # (a level: the usage above lets nothing else through; quick settings' meter shows it)
-  new=$((10#$arg)); ((new > 100)) && new=100
-  set_all "$new"; echo "$new" >"$LEVEL"; poke
-fi
+# (a step: the usage above lets nothing else through) — the new level shown at once, then set
+new=$((now + 10#${arg:1} * (${arg:0:1}1))); ((new > 100)) && new=100; ((new < 0)) && new=0
+note "$new"
+set_level "$new"
+drain

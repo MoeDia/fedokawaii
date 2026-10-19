@@ -58,14 +58,14 @@ case ${1:-} in
       2) exec steam steam://open/friends ;;
       3) exec steam steam://open/settings ;;
       4) mkdir -p "${WARM%/*}"; if warm_on; then echo no >"$WARM"; else echo yes >"$WARM"; fi
-         notify-send -a desktop "$ICON_GAMEPAD  Steam" "start with the desktop: $(warm_on && echo on || echo off)" ;;
+         notify-send -a desktop -- "$ICON_GAMEPAD  Steam" "start with the desktop: $(warm_on && echo on || echo off)" ;;
       5) exec steam -shutdown ;;
     esac
     exit 0 ;;
 esac
 
 # the window
-command -v steam >/dev/null || { notify-send -a desktop "Steam" "Steam is not installed (STEAM=yes in fedokawaii settings, then update)"; exit 1; }
+command -v steam >/dev/null || { notify-send -a desktop -- "$ICON_GAMEPAD  Steam" "Steam is not installed (STEAM=yes in fedokawaii settings, then update)"; exit 1; }
 link=${1:-steam://open/main}
 if running; then
   # (Steam hands the request to the running one, which brings its window up)
@@ -74,7 +74,7 @@ fi
 first=0; [[ -x $HOME/.local/share/Steam/ubuntu12_32/steam ]] || first=1
 if ((first)); then msg="updating itself — its very first start takes a few minutes"
 else msg="starting…"; fi
-id=$(notify-send -p -a desktop -t 0 "$ICON_GAMEPAD  Steam" "$msg" 2>/dev/null)
+id=$(notify-send -a desktop -p -t 0 -- "$ICON_GAMEPAD  Steam" "$msg" 2>/dev/null)
 setsid -f steam ${1:+"$1"} </dev/null >/dev/null 2>&1
 # the notice goes once Steam's window process is up (or after 10 minutes, whatever happened)
 for ((t = 0; t < 600; t++)); do ready && break; sleep 1; done

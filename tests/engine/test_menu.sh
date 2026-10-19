@@ -189,7 +189,7 @@ eq "$(fedokawaii --explain 2>&1)" ""; eq "$(fedokawaii --explain bogus 2>&1)" ""
 outcome() { tty_free fedokawaii --run "$1" </dev/null 2>&1 | tail -n1; }
 case_ "status: shown, then finished"
 fresh; out=$(tty_free fedokawaii --run status </dev/null 2>&1)
-has "$out" $'\e[H\e[2J'; has "$out" "release  Fedora 44"; has "$out" "finished — any key goes back to the menu"
+has "$out" $'\e[H\e[2J'; has "$out" "release   Fedora 44"; has "$out" "finished — any key goes back to the menu"
 case_ "the outcome line says what each exit status means"
 for a in update upgrade verify repair theme drift; do
   echo 0 >"$R/rc-$a"; has "$(outcome "$a")" "finished" "$a 0"
@@ -306,8 +306,8 @@ case_ "plain menu: the status, thirteen numbered entries; q, Q, Enter and end of
 fresh
 for k in q Q "" ; do out=$(printf '%s\n' "$k" | tty_free fedokawaii 2>&1); eq "$?" 0 "[$k]"; done
 out=$(tty_free fedokawaii </dev/null 2>&1); eq "$?" 0 "end of input"
-has "$out" "FEDOKAWAII"; has "$out" "release  Fedora 44"; has "$out" " 1  status"; has "$out" "12  handbook"; has "$out" "13  log"
-has "$out" " 8  backup"; lacks "$out" "upkeep"; has "$out" "backup   not set up"
+has "$out" "FEDOKAWAII"; has "$out" "release   Fedora 44"; has "$out" " 1  status"; has "$out" "12  handbook"; has "$out" "13  log"
+has "$out" " 8  backup"; lacks "$out" "upkeep"; has "$out" "backup    not set up"
 case_ "plain menu: a number runs its entry, then the menu again"
 out=$(printf '2\nq\n' | tty_free fedokawaii 2>&1)
 eq "$(front_calls)" "front update"; eq "$(grep -c FEDOKAWAII <<<"$out")" 2
@@ -349,9 +349,9 @@ out=$(FEDOKAWAII_POPUP=yes tty_free fedokawaii --job-run update </dev/null 2>&1)
 eq "$(front_calls)" "front update" "run inside, never handed on again"; has "$out" "finished — any key closes this window"
 case_ "the job's window that cannot open, or one already running: a notice says so"
 stub kawa-float 'exit 1'; reset_calls; rc 1 fedokawaii --job update
-called '^notify-send -a desktop -u critical upkeep the terminal server is not running — fedokawaii repair puts it back$'
+called '^notify-send -a desktop -u critical -- .*  upkeep the terminal server is not running — fedokawaii repair puts it back$'
 stub kawa-float 'exit 3'; reset_calls; rc 3 fedokawaii --job backup
-called '^notify-send -a desktop upkeep a job of the system menu is running in its window'
+called '^notify-send -a desktop -- .*  upkeep a job of the system menu is running in its window'
 case_ "change: the part-by-part menu"
 fedokawaii change; called '^kawa-config'
 

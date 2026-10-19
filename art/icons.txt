@@ -1145,3 +1145,15 @@
 ..#....#..
 .#..##..#.
 ....##....
+
+# the prompt's mark (the terminal's torii line): the torii at the height of the words beside
+# it, so the line under it (❯ and what you type) has the air every line has
+@torii-small
+#........#
+##########
+.########.
+..#....#..
+##########
+..#....#..
+..#....#..
+..#....#..

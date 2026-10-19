@@ -21,6 +21,17 @@ case ${1:-} in
   -h|--help) sed -n '2,/^set -u/{/^set -u/d;s/^# \{0,1\}//;p}' "$0"; exit 0 ;;
   *) usage ;;
 esac
+# the panel's key (Super+X, the cat, the sound's and the brightness's click): the panel told
+# at once, before anything else is read — no process started on the way (its pid file and
+# that pid's command line, read by bash itself)
+if [[ -z ${1:-} ]]; then
+  run=${XDG_RUNTIME_DIR:-/run/user/$UID} a=()
+  pid=""; read -r pid 2>/dev/null <"$run/kawa-panel.pid"
+  if [[ $pid =~ ^[1-9][0-9]*$ ]] && mapfile -d '' -t a 2>/dev/null <"/proc/$pid/cmdline" && [[ " ${a[*]} " == *kawa-panel* ]]; then
+    kill -USR1 "$pid" && exit 0
+  fi
+  setsid -f kawa-panel --open </dev/null >/dev/null 2>&1; exit 0
+fi
 # shellcheck source=/dev/null
 . "$HOME/.config/fedokawaii/env"
 # shellcheck source=/dev/null
@@ -92,6 +103,19 @@ state_paired() {  # the Bluetooth devices connected now: one by name, more by th
   else echo "${#d[@]} connected"; fi
 }
 
+dwl_reload() {   # SIGUSR1 to dwl — only one that catches it (src/dwl/dwl.patch): to a build
+  # without the handler the signal would end the session (as kawa-theme sends it)
+  local pid k v
+  for pid in $(pgrep -xu "$UID" dwl); do
+    while read -r k v; do
+      [[ $k == SigCgt: ]] || continue
+      (( 16#$v >> 9 & 1 )) && kill -USR1 "$pid" 2>/dev/null
+      break
+    done 2>/dev/null <"/proc/$pid/status"
+  done
+  return 0
+}
+
 state() {   # everything, KEY<TAB>VALUE (a value's tabs and line breaks become spaces: a name
   local nettype net bt   # of yours — a Wi-Fi, a drive, a picture — cannot break a line)
   kv() { local v=${2//[$'\t\n\r']/ }; printf '%s\t%s\n' "$1" "$v"; }
@@ -116,14 +140,15 @@ act() {   # act ACTION [N] — the panel's choices
                   pkill -xu "$UID" gammastep; sleep 0.2; pkill -xu "$UID" gammastep
                   for _ in {1..20}; do pgrep -xu "$UID" gammastep >/dev/null || break; sleep 0.05; done
                 else setsid -f gammastep -l "$NIGHT_LIGHT" -t 6500:4200 </dev/null >/dev/null 2>&1; sleep 0.2; fi ;;
-    vrr)        mkdir -p "${VRR%/*}"   # in games → always → off → in games (dwl takes it up at the next window change)
+    vrr)        mkdir -p "${VRR%/*}"   # in games → always → off → in games (dwl takes it up at once:
                 case $(state_vrr) in 'in games') v=always ;; always) v=off ;; *) v=games ;; esac
-                echo "$v" >"$VRR" ;;
+                echo "$v" >"$VRR"      # SIGUSR1 makes it read the file again)
+                dwl_reload ;;
     bluetooth)  if [[ $(state_bt) == on ]]; then bt power off >/dev/null
                 elif ! v=$(bt power on 2>&1); then        # (an airplane-mode key, or a switch)
                   if [[ $v == *Blocked* ]]; then
-                    notify-send -a desktop "Bluetooth" "it is blocked — rfkill unblock bluetooth (or the machine's own switch)"
-                  else notify-send -a desktop "Bluetooth" "it did not switch on — is the bluetooth service running?"; fi
+                    notify-send -a desktop -- "$ICON_BLUETOOTH  Bluetooth" "it is blocked — rfkill unblock bluetooth (or the machine's own switch)"
+                  else notify-send -a desktop -- "$ICON_BLUETOOTH  Bluetooth" "it did not switch on — is the bluetooth service running?"; fi
                   return 1
                 fi ;;
     dnd)        makoctl mode -t do-not-disturb >/dev/null
@@ -144,21 +169,11 @@ act() {   # act ACTION [N] — the panel's choices
   esac
 }
 
-# the panel: kawa-panel runs all session long (autostart), hidden until asked — SIGUSR1 opens
-# or closes it. Should it not be running (it crashed and autostart has not started it again
-# yet), it is started, open
-toggle() {
-  local run=${XDG_RUNTIME_DIR:-/run/user/$UID} pid a
-  pid=$(cat "$run/kawa-panel.pid" 2>/dev/null)
-  if [[ $pid =~ ^[1-9][0-9]*$ ]] && a=$(tr '\0' ' ' <"/proc/$pid/cmdline" 2>/dev/null) && [[ $a == *kawa-panel* ]]; then
-    kill -USR1 "$pid"
-  else
-    setsid -f kawa-panel --open </dev/null >/dev/null 2>&1
-  fi
-}
+# (the panel itself: kawa-panel runs all session long (autostart), hidden until asked —
+# SIGUSR1 opens or closes it; should it not be running (it crashed and autostart has not
+# started it again yet), it is started, open — done above, first thing)
 
 case ${1:-} in
-  "")      toggle ;;
   --state) state ;;
   --do)    act "${@:2}" ;;
 esac

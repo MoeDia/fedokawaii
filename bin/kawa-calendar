@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# kawa-calendar — click the clock: this month as a dropdown, today in [brackets].
+# kawa-calendar — click the date: this month as a dropdown, today in [brackets].
 # "previous" / "next" page through months; Esc or a click elsewhere closes it.
 # Weeks start on Monday. No arguments (--help: this text).
 set -u

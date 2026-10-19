@@ -1,11 +1,11 @@
 // ~/.config/waybar/config.jsonc — waybar 0.15. The bar as a hanging scroll (kakejiku): a thin
-// strip of paper across the top, a fine hairline under it, every button the same size.
+// strip of paper across the top, straight onto the wallpaper, every button the same size.
 //   left:   torii key (opens the launcher) · workspaces 一 二 三 (+ any others in use) ·
 //           layout icon (click: the next layout, right-click: the one before) · window title
 //   centre: now playing between the two halves of a segment meter (hidden when nothing
 //           plays) — waybar centres it on the screen
 //   right:  mode seal · drives · Steam's gamepad (while it runs) · keyboard layout · memory ·
-//           volume · brightness · weather ┆ date · day seal · time ┆ the cat (quick settings: it smiles while
+//           volume · brightness · weather ┆ date · day seal · time · timer ┆ the cat (quick settings: it smiles while
 //           a dropdown is open) — ┆ a sashiko stitch down the paper
 // Network, Bluetooth, night light, theme… live in the quick-settings dropdown,
 // so the bar stays quiet. No tray: the desktop's own modules stand for what apps would put
@@ -16,9 +16,9 @@
 {
   "layer": "top",
   "position": "top",
-  // 32 px, the hairline painted over the last row: the 12 px text line and the 23 px
-  // buttons land on whole pixels, 4 px of paper above every button and 4 below
-  "height": 32,
+  // 31 px: the 12 px text line and the 23 px buttons land on whole pixels, 4 px of paper
+  // above every button and 4 below (no rule under it: the paper meets the wallpaper)
+  "height": 31,
   "spacing": 0,
 
   "modules-left": [
@@ -34,7 +34,7 @@
   // it; the text is a zero-width space, as an empty one would hide the module)
   "group/status": { "orientation": "horizontal",
                     "modules": ["custom/mode", "custom/drives", "custom/steam", "custom/kb", "custom/mem", "wireplumber", "custom/brightness", "custom/weather"] },
-  "group/when":   { "orientation": "horizontal", "modules": ["clock#date", "custom/day", "clock#time"] },
+  "group/when":   { "orientation": "horizontal", "modules": ["clock#date", "custom/day", "clock#time", "custom/timer"] },
   "custom/sep1":  { "format": "\u200b", "tooltip": false },
   "custom/sep2":  { "format": "\u200b", "tooltip": false },
 
@@ -92,7 +92,7 @@
     "format-muted": "\uDBB8\uDC4B <span fgalpha='55%'>off</span>",
     "format-icons": ["\uDBB8\uDC46", "\uDBB8\uDC47", "\uDBB8\uDC47", "\uDBB8\uDC47", "\uDBB8\uDC47", "\uDBB8\uDC47", "\uDBB8\uDC47", "\uDBB8\uDC47", "\uDBB8\uDC47", "\uDBB8\uDC47", "\uDBB8\uDC47", "\uDBB8\uDC47", "\uDBB8\uDC47", "\uDBB8\uDC47", "\uDBB8\uDC47", "\uDBB8\uDC47", "\uDBB8\uDC47", "\uDBB8\uDC47", "\uDBB8\uDC47", "\uDBB8\uDC47", "\uDBB8\uDC47", "\uDBB8\uDC47", "\uDBB8\uDC47", "\uDBB8\uDC47", "\uDBB8\uDC47", "\uDBB8\uDC47", "\uDBB8\uDC48", "\uDBB8\uDC48", "\uDBB8\uDC48", "\uDBB8\uDC48", "\uDBB8\uDC48", "\uDBB8\uDC48", "\uDBB8\uDC48", "\uDBB8\uDC48", "\uDBB8\uDC48", "\uDBB8\uDC48", "\uDBB8\uDC48", "\uDBB8\uDC48", "\uDBB8\uDC48", "\uDBB8\uDC48", "\uDBB8\uDC48", "\uDBB8\uDC48", "\uDBB8\uDC48", "\uDBB8\uDC48", "\uDBB8\uDC48", "\uDBB8\uDC48", "\uDBB8\uDC48", "\uDBB8\uDC48", "\uDBB8\uDC48", "\uDBB8\uDC48", "\uDBB8\uDC48", "\uDBB8\uDC49", "\uDBB8\uDC49", "\uDBB8\uDC49", "\uDBB8\uDC49", "\uDBB8\uDC49", "\uDBB8\uDC49", "\uDBB8\uDC49", "\uDBB8\uDC49", "\uDBB8\uDC49", "\uDBB8\uDC49", "\uDBB8\uDC49", "\uDBB8\uDC49", "\uDBB8\uDC49", "\uDBB8\uDC49", "\uDBB8\uDC49", "\uDBB8\uDC49", "\uDBB8\uDC49", "\uDBB8\uDC49", "\uDBB8\uDC49", "\uDBB8\uDC49", "\uDBB8\uDC49", "\uDBB8\uDC49", "\uDBB8\uDC49", "\uDBB8\uDC49", "\uDBB8\uDC49", "\uDBB8\uDC4A", "\uDBB8\uDC4A", "\uDBB8\uDC4A", "\uDBB8\uDC4A", "\uDBB8\uDC4A", "\uDBB8\uDC4A", "\uDBB8\uDC4A", "\uDBB8\uDC4A", "\uDBB8\uDC4A", "\uDBB8\uDC4A", "\uDBB8\uDC4A", "\uDBB8\uDC4A", "\uDBB8\uDC4A", "\uDBB8\uDC4A", "\uDBB8\uDC4A", "\uDBB8\uDC4A", "\uDBB8\uDC4A", "\uDBB8\uDC4A", "\uDBB8\uDC4A", "\uDBB8\uDC4A", "\uDBB8\uDC4A", "\uDBB8\uDC4A", "\uDBB8\uDC4A", "\uDBB8\uDC4A"],
     "tooltip": false,
-    "on-click": "kawa-audio", "on-click-right": "kawa-volume mute",
+    "on-click": "kawa-quick", "on-click-right": "kawa-volume mute",
     // (scrolling over it: kawa-volume, as Super+scroll — up unmutes and stops at 100 %, the level shown)
     "on-scroll-up": "kawa-volume up 2", "on-scroll-down": "kawa-volume down 2",
     "max-volume": 100
@@ -111,7 +111,8 @@
                       "on-click": "kawa-weather --forecast" },
 
   // the clock: English names and AM/PM whatever the system language; waybar wakes on
-  // each whole second itself, so no script is needed. Click either part for the calendar.
+  // each whole second itself, so no script is needed. The date (and the day's seal): the
+  // calendar · the time: the timer (kawa-timer — 5 to 60 min, or a stopwatch).
   // a seal while something is held back: 静 (quiet) while "do not disturb" is on, 共有
   // (shared) in vermilion while a screen is shared; nothing otherwise. Poked with SIGRTMIN+12
   // by quick settings and the screen-sharing portal.
@@ -123,11 +124,17 @@
   "custom/day": { "exec": "set -- 月 火 水 木 金 土 日; shift $(( $(date +%u) - 1 )); printf '%s\\n' \"$1\"",
                   "interval": 60, "tooltip": false, "on-click": "kawa-calendar" },
   "clock#date": { "format": "{:%d %b}", "interval": 60, "locale": "C", "tooltip": false, "on-click": "kawa-calendar" },
-  "clock#time": { "format": "{:%I:%M:%S %p}", "interval": 1, "locale": "C", "tooltip": false, "on-click": "kawa-calendar" },
+  "clock#time": { "format": "{:%I:%M:%S %p}", "interval": 1, "locale": "C", "tooltip": false, "on-click": "kawa-timer" },
+  // beside the time while a timer runs: the hourglass and what is left, in vermilion (a
+  // stopwatch: what has gone by, in asagi); one long-running script that sleeps between
+  // seconds and draws a timer the moment it is set; its state outlives the bar
+  "custom/timer": { "exec": "kawa-timer bar", "return-type": "json", "restart-interval": 5, "tooltip": false,
+                    "on-click": "kawa-timer" },
 
   // the cat (quick settings): it smiles, filled vermilion, while any dropdown is on screen —
   // the panel, or a menu dropping from the bar (audio, calendar, drives, Steam's): kawa-menu
-  // says so with SIGRTMIN+15. (the cat and cat-happy icons)
-  "custom/menu": { "exec": "if [ -e \"$XDG_RUNTIME_DIR/kawa-drop.open\" ] || [ -e \"$XDG_RUNTIME_DIR/kawa-panel.open\" ]; then echo '{\"text\":\"\uDBB8\uDC52\",\"class\":\"open\"}'; else echo '{\"text\":\"\uDBB8\uDC51\"}'; fi",
+  // says so with SIGRTMIN+15. Each marker holds its opener's pid: lit only while that runs
+  // (a crash leaves no smiling cat; an empty marker still counts). (the cat and cat-happy icons)
+  "custom/menu": { "exec": "lit() { [ -e \"$XDG_RUNTIME_DIR/$1\" ] || return 1; p=; read -r p <\"$XDG_RUNTIME_DIR/$1\"; case $p in '') ;; *[!0-9]*) return 1 ;; *) kill -0 \"$p\" ;; esac; } 2>/dev/null; if lit kawa-drop.open || lit kawa-panel.open; then echo '{\"text\":\"\uDBB8\uDC52\",\"class\":\"open\"}'; else echo '{\"text\":\"\uDBB8\uDC51\"}'; fi",
                    "return-type": "json", "interval": "once", "signal": 15, "tooltip": false, "on-click": "kawa-quick" }
 }

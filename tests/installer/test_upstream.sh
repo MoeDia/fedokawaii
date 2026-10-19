@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # tests/installer/test_upstream.sh — lib/upstream.sh: the desktop's pinned tools from GitHub
-# releases (satty, yazi, bluetui, lazygit), the Nerd Font, Fusion Pixel and GE-Proton,
+# releases (satty, yazi, bluetui, lazygit, herdr), the Nerd Font, Fusion Pixel and GE-Proton,
 # in the fake machine with fake releases. Each is fetched, checked against its pinned SHA-256
 # and put in the user's home by the user; a second run finds it in place; a download that
 # differs by a byte, is cut off half-way or cannot happen at all changes nothing; a library
@@ -48,6 +48,11 @@ up 'install_upstream_bin "$(printf "%s\n" "${UPSTREAM[@]}" | grep "^lazygit|")"'
 has "$OUT" "✔ lazygit v0.66.1 → ~/.local/bin (lazygit)"
 [[ -x $W$H/.local/bin/lazygit && ! -e $W$H/.local/bin/LICENSE && ! -e $W$H/.local/bin/README.md ]] && _ok || _no "lazygit missing, or its LICENSE / README put in ~/.local/bin"
 eq "$(cat "$W$H/.local/share/fedokawaii/upstream/lazygit")" v0.66.1
+case_ "herdr (its release file is the binary itself, like bluetui's): installed under the tool's name"
+up 'install_upstream_bin "$(printf "%s\n" "${UPSTREAM[@]}" | grep "^herdr|")"'; eq "$RC" 0
+has "$OUT" "verified: herdr-linux-x86_64"; has "$OUT" "✔ herdr v0.9.5 → ~/.local/bin (herdr)"
+eq "$(fk "$H/.local/bin/herdr" --version 2>&1)" "herdr 0.9.5" "runs as ~/.local/bin/herdr"
+eq "$(cat "$W$H/.local/share/fedokawaii/upstream/herdr")" v0.9.5
 case_ "an older tag recorded: fetched again, the new tag recorded"
 echo v0.21.0 >"$W$H/.local/share/fedokawaii/upstream/satty"
 reset_calls; up "install_upstream_bin $satty"; eq "$RC" 0; called 'curl.*satty-x86_64'

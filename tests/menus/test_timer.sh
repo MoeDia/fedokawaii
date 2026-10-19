@@ -1,0 +1,122 @@
+#!/usr/bin/env bash
+# tests/menus/test_timer.sh — kawa-timer (a click on the bar's time): the menu, a timer and a
+# stopwatch in $XDG_RUNTIME_DIR, the bar's module drawing them (a waybar restart included), the
+# end's one critical notice with the bell and its chime, cancel. notify-send and pw-play are
+# stand-ins; the bar runs for real, read through a pipe.
+. "$(dirname "$0")/../lib/harness.sh"
+. "$(dirname "$0")/lib.sh"
+# shellcheck source=/dev/null
+. "$REPO/configs/home/.config/fedokawaii/icons.sh"
+
+BARS=() NB=0
+setup() { menus_sandbox; stub notify-send; stub pw-play; }
+st() { cat "$XDG_RUNTIME_DIR/kawa-timer" 2>/dev/null; }
+rings() { pgrep -u "$UID" -f '(^|/)kawa-timer ring [0-9]+$' | grep -c .; }
+bar_up() {   # bar_up — a bar of its own (as waybar starts one per monitor), its lines in $TMP/bar.N (N: 0, 1, …)
+  local n=$NB; NB=$((NB + 1)); : >"$TMP/bar.$n"
+  kawa-timer bar >>"$TMP/bar.$n" 2>&1 & BARS+=($!)
+  for _ in {1..50}; do [[ -s $TMP/bar.$n ]] && return; sleep 0.02; done
+}
+bars_down() { local p; for p in "${BARS[@]}"; do kill "$p" 2>/dev/null; wait "$p" 2>/dev/null; done; BARS=(); }
+on_exit 'bars_down; pkill -u "$UID" -f "(^|/)kawa-timer ring [0-9]+$" 2>/dev/null'
+last() { tail -n1 "$TMP/bar.${1:-0}"; }
+within() {   # within MS FILE TEXT — TEXT shows in a line of FILE within MS milliseconds
+  local t0=${EPOCHREALTIME/./}
+  while (( (${EPOCHREALTIME/./} - t0) / 1000 < $1 )); do
+    grep -qF -- "$3" "$2" && return 0; sleep 0.01
+  done
+  return 1
+}
+
+# ── the menu ─────────────────────────────────────────────────────────────────────────
+case_ "the clock's menu: a heading, 5 · 10 · 25 · 45 · 60 min and a stopwatch, under the bar; no cancel while none runs"
+setup; answer esc; rc 0 kawa-timer
+rows=$(fz_rows)
+has "$(sed -n 1p <<<"$rows")" "時"; has "$(sed -n 1p <<<"$rows")" "timer"
+eq "$(sed -n '2,6p' <<<"$rows" | sed "s/^$ICON_HOURGLASS  //" | tr '\n' '|')" " 5 min|10 min|25 min|45 min|60 min|" "the minutes right-aligned"
+eq "$(sed -n 7p <<<"$rows")" "$ICON_HOURGLASS  stopwatch"
+lacks "$rows" cancel; eq "$(wc -l <<<"$rows")" 7
+eq "$(fz_arg anchor)" top-right "a dropdown, as the calendar"; eq "$(fz_arg select-index)" 1 "on 5 min, not the heading"
+fits
+case_ "Esc, a click outside: nothing set"
+for a in esc lost; do setup; answer "$a"; rc 0 kawa-timer; eq "$(st)" ""; done
+
+case_ "25 min picked: the state says when it ends, one waiter left behind, and the menu offers cancel"
+setup; answer "pick 25 min"; t0=$EPOCHSECONDS; kawa-timer
+read -r k end m set <<<"$(st)"
+eq "$k" timer; eq "$m" 25
+(( end - t0 >= 1500 && end - t0 <= 1501 )) && _ok || _no "ends $((end - t0)) s from now, not 1500"
+[[ $set =~ ^[01][0-9]:[0-5][0-9]\ [AP]M$ ]] && _ok || _no "set at [$set], not as the bar's clock writes it"
+eq "$(rings)" 1 "one waiter"
+answer esc; kawa-timer; has "$(fz_rows)" "$ICON_CROSS  cancel the timer"
+case_ "another timer takes the first one's place (one waiter, the new end)"
+answer "pick 5 min"; kawa-timer
+eq "$(rings)" 1; read -r _ end2 m _ <<<"$(st)"; eq "$m" 5; ((end2 < end)) && _ok || _no "the 25 min one still stands"
+case_ "cancel from the menu: the state and the waiter gone, quietly (a timer has nothing to tell)"
+answer "pick cancel"; kawa-timer
+eq "$(st)" ""; eq "$(rings)" 0; not_called '^notify-send'
+
+# ── the bar ──────────────────────────────────────────────────────────────────────────
+case_ "the bar: empty (hidden) while none runs; a timer shows at once, its time left, vermilion's class"
+setup; bar_up
+eq "$(last)" '{"text":""}'
+kawa-timer start 10
+within 300 "$TMP/bar.0" '"class":"timer"' && _ok || _no "no timer on the bar 0.3 s after it was set: $(last)"
+has "$(last)" "\"text\":\"$ICON_HOURGLASS 10:00\""
+within 2500 "$TMP/bar.0" "$ICON_HOURGLASS 09:59" && _ok || _no "the second after: $(last)"
+case_ "two monitors, two bars: both draw it, both at once"
+bar_up; within 300 "$TMP/bar.1" "$ICON_HOURGLASS 09:5" && _ok || _no "the second bar: $(last 1)"
+case_ "waybar restarted: the new bar reads the timer from the runtime folder"
+bars_down; bar_up; has "$(last 2)" "\"class\":\"timer\"" ; has "$(last 2)" "$ICON_HOURGLASS 09:5"
+eq "$(find "$XDG_RUNTIME_DIR" -name 'kawa-timer.wake.*' | wc -l)" 1 "the killed bars' fifos gone, the live one's there"
+case_ "a stopwatch: from 0:00, counting up, asagi's class; cancel says where it stood"
+kawa-timer stopwatch; eq "$(rings)" 0 "the timer's waiter gone with it"
+within 300 "$TMP/bar.2" "\"text\":\"$ICON_HOURGLASS 00:00\",\"class\":\"stopwatch\"" && _ok || _no "$(last 2)"
+within 3000 "$TMP/bar.2" "$ICON_HOURGLASS 00:01" || within 1 "$TMP/bar.2" "$ICON_HOURGLASS 00:02" && _ok || _no "a second on: $(last 2)"
+kawa-timer cancel
+within 300 "$TMP/bar.2" '{"text":""}' && _ok || _no "still on the bar: $(last 2)"
+called "^notify-send -a desktop -- $ICON_HOURGLASS  stopwatch stopped at 00:0[1-9]$"
+case_ "a stopwatch past an hour: H:MM:SS"
+printf 'stopwatch %s\n' $((EPOCHSECONDS - 3723)) >"$XDG_RUNTIME_DIR/kawa-timer"
+within 1500 "$TMP/bar.2" "$ICON_HOURGLASS 1:02:0" && _ok || _no "$(last 2)"
+bars_down
+
+# ── the end ──────────────────────────────────────────────────────────────────────────
+case_ "the end: one critical notice with the bell, a chime through pw-play, the state gone"
+setup; e=$((EPOCHSECONDS + 1)); printf 'timer %s 25 02:05 PM\n' "$e" >"$XDG_RUNTIME_DIR/kawa-timer"
+t0=${EPOCHREALTIME/./}; kawa-timer ring "$e"; sleep 0.1
+(( (${EPOCHREALTIME/./} - t0) / 1000 <= 2100 )) && _ok || _no "it rang late"
+called "^notify-send -a desktop -u critical -- $ICON_BELL  time is up the 25 min timer set at 02:05 PM has ended$"
+eq "$(grep -c '^notify-send' "$CALLS")" 1 "exactly one notice"
+called "^pw-play $XDG_RUNTIME_DIR/kawa-timer.wav$"
+eq "$(st)" ""
+python3 -I -c 'import wave, sys; w = wave.open(sys.argv[1]); p = w.getparams()
+sys.exit(0 if (p.nchannels, p.sampwidth, p.framerate) == (1, 1, 8000) and 0.4 < p.nframes / 8000 < 0.5 else 1)' \
+  "$XDG_RUNTIME_DIR/kawa-timer.wav" && _ok || _no "the chime is not a 0.46 s 8-bit WAV"
+case_ "cancelled, or replaced, before the end: the waiter says nothing"
+setup; e=$((EPOCHSECONDS + 1)); printf 'timer %s 5 02:05 PM\n' $((e + 600)) >"$XDG_RUNTIME_DIR/kawa-timer"
+kawa-timer ring "$e"; not_called '^notify-send'; not_called '^pw-play'
+rm -f "$XDG_RUNTIME_DIR/kawa-timer"; kawa-timer ring "$e"; not_called '^notify-send'
+
+# ── the bar's wiring ─────────────────────────────────────────────────────────────────
+case_ "waybar: the time's click is the timer, the date's and the day's the calendar; the timer beside the time"
+wb() { python3 -B -c 'import json,sys; sys.path.insert(0,sys.argv[1]); import parsecheck as p
+c=json.loads(p.strip_jsonc(open(sys.argv[2]).read())); print(eval(sys.argv[3]))' "$REPO/tests/static" "$REPO/configs/home/.config/waybar/config.jsonc" "$1"; }
+eq "$(wb 'c["clock#time"]["on-click"]')" kawa-timer
+eq "$(wb 'c["clock#date"]["on-click"]')" kawa-calendar; eq "$(wb 'c["custom/day"]["on-click"]')" kawa-calendar
+eq "$(wb '" ".join(c["group/when"]["modules"])')" "clock#date custom/day clock#time custom/timer"
+eq "$(wb 'c["custom/timer"]["exec"]')" "kawa-timer bar"; eq "$(wb 'c["custom/timer"].get("interval", "")')" "" "one long-running script, no interval"
+has "$(cat "$REPO/configs/home/.config/waybar/style.css")" "#custom-timer.stopwatch"
+
+case_ "the bar's loop starts no process: each second is bash alone (no \$( ), no sleep)"
+body=$(sed -n '/^bar() {/,/^}/p' "$REPO/bin/kawa-timer" | sed -n '/while :; do/,/^  done/p')
+[[ -n $body ]] && _ok || _no "the loop was not found"
+grep -qE '\$\([^(]' <<<"$body" && _no "a command substitution in the loop" || _ok   # (\$(( )) is arithmetic)
+lacks "$body" 'sleep'; lacks "$body" '`'
+
+case_ "misuse"
+rc 2 kawa-timer start; rc 2 kawa-timer start 0; rc 2 kawa-timer start 1441; rc 2 kawa-timer start ten
+rc 2 kawa-timer frobnicate; rc 0 kawa-timer --help
+has "$(kawa-timer --help)" "kawa-timer start MINUTES"
+rc 1 env -u XDG_RUNTIME_DIR kawa-timer bar
+done_

@@ -32,7 +32,7 @@ for f in "${PY[@]}"; do
   out=$(python3 -I -c 'import sys; compile(open(sys.argv[1], encoding="utf-8").read(), sys.argv[1], "exec")' "$f" 2>&1) && _ok || _no "$f: $out"
 done
 has "${SH[*]}" lib/common.sh; has "${SH[*]}" system/start-dwl; has "${SH[*]}" configs/home/.config/dwl/autostart.sh
-has "${SH[*]}" configs/home/.bashrc.d/fedokawaii.sh; has "${SH[*]}" setup.sh; has "${SH[*]}" system/kawa-torrra.profile.sh
+has "${SH[*]}" configs/home/.bashrc.d/fedokawaii.sh; has "${SH[*]}" setup.sh; has "${SH[*]}" system/kawa-torrra.profile.sh; has "${SH[*]}" system/fedokawaii-report
 
 case_ "every shell file parses (bash -n)"
 for f in "${SH[@]}" "${SOURCED[@]}"; do

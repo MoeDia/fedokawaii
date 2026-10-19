@@ -36,6 +36,14 @@ HealthStartupInterval=2s
 HealthStartupRetries=150
 Notify=healthy
 
+# No wait for the network to be "online": quadlet's default is a dependency on
+# podman-user-wait-network-online.service, which polls the system's network-online.target for
+# up to 90 s — and nothing pulls that target in on a desktop's boot (NetworkManager-wait-online
+# runs only when something wants it), so every first start waited 90 s and then failed it.
+# Prowlarr answers on 127.0.0.1 only; the image is pulled by setup and update, not here.
+[Quadlet]
+DefaultDependencies=false
+
 [Service]
 Restart=on-failure
 RestartSec=10

@@ -26,11 +26,14 @@ rm -rf "$XDG_RUNTIME_DIR/dwl-bar" "$XDG_RUNTIME_DIR/kawa-ddc-buses" "$XDG_RUNTIM
 # program that builds GTK's dialog itself keeps it — LibreOffice does: its dialogs are GTK's,
 # in the desktop's GTK theme. Exported before anything starts, handed to systemd
 export GTK_USE_PORTAL=1 GDK_DEBUG=portals
+# the session's own notices: the window icon (Sumi Icons' "window", written as its bytes —
+# icons.sh is bash's, this is sh), two spaces, then the title, as every notice of the desktop
+SEAL=$(printf '\363\276\200\256')
 SESSION_VARS="WAYLAND_DISPLAY DISPLAY XDG_CURRENT_DESKTOP XDG_SESSION_DESKTOP XDG_SESSION_TYPE GTK_USE_PORTAL GDK_DEBUG"
 # shellcheck disable=SC2086  # a list of names
 systemctl --user import-environment $SESSION_VARS \
-  || notify-send -a desktop -u critical "the session's settings did not reach systemd" \
-       "apps they start may miss the display or the file dialog; see ~/.cache/dwl.log" 2>/dev/null
+  || notify-send -a desktop -u critical -- "$SEAL  session" \
+       "its settings did not reach systemd: apps it starts may miss the display or the file dialog; see ~/.cache/dwl.log" 2>/dev/null
 systemctl --user stop dwl-session.target 2>/dev/null
 systemctl --user start dwl-session.target
 # the update season's reminder (fedokawaii remind): a look two minutes in, then every six
@@ -49,7 +52,7 @@ systemctl --user start grub-boot-success.timer 2>/dev/null
 keep() {
   always=0; [ "$1" = swayidle ] && always=1
   command -v "$1" >/dev/null || {
-    notify-send -a desktop -u critical "$1 is not installed" "the session runs without it; fedokawaii repair puts it back" 2>/dev/null
+    notify-send -a desktop -u critical -- "$SEAL  $1 is not installed" "the session runs without it; fedokawaii repair puts it back" 2>/dev/null
     return 127
   }
   n=0 t0=$(date +%s) said=0
@@ -59,7 +62,7 @@ keep() {
     [ $((now - t0)) -gt 60 ] && n=0 t0=$now
     n=$((n + 1))
     if [ "$n" -ge 5 ] && [ "$always" = 1 ]; then
-      [ "$said" = 1 ] || notify-send -a desktop -u critical "$1 keeps stopping" \
+      [ "$said" = 1 ] || notify-send -a desktop -u critical -- "$SEAL  $1 keeps stopping" \
         "it is started again every 30 s, and the computer cannot sleep meanwhile; see ~/.cache/dwl.log" 2>/dev/null
       said=1
       systemd-inhibit --what=sleep --mode=block --who="$1" --why="$1 keeps stopping: nothing would lock before a sleep" sleep 30
@@ -67,7 +70,7 @@ keep() {
       continue
     fi
     if [ "$n" -ge 5 ]; then
-      notify-send -a desktop -u critical "$1 keeps stopping" "it was restarted 4 times in a minute; see ~/.cache/dwl.log" 2>/dev/null
+      notify-send -a desktop -u critical -- "$SEAL  $1 keeps stopping" "it was restarted 4 times in a minute; see ~/.cache/dwl.log" 2>/dev/null
       return 1
     fi
     sleep 1
@@ -98,9 +101,12 @@ kawa-steam --warm </dev/null &                    # Steam, quietly, a minute in 
 # away: nothing locks and nothing sleeps — the screens only go dark after an hour (wlopm: the
 # outputs stay, so windows stay where they are; a key wakes them). Sleep is yours to ask for:
 # the power menu, or a lock (Super+Escape) left locked for 90 s (kawa-lock --sleep). Every
-# sleep is locked first (so swayidle, which does it, is never given up on: see keep)
+# sleep is locked first (so swayidle, which does it, is never given up on: see keep); as the
+# machine wakes, the screens come on (the power menu's sleep turned them off after the lock)
+# and the journal notes the wake and whether the lock held (journalctl -t kawa-lock)
 keep swayidle -w \
   timeout 3600 "wlopm --off '*'" resume "wlopm --on '*'" \
+  after-resume "wlopm --on '*'; kawa-lock --resumed" \
   before-sleep 'kawa-lock --now' </dev/null &
 
 # yours: ~/.config/dwl/autostart.local.sh, if you made one — the theme never writes it. It

@@ -7,7 +7,18 @@
 #   Monitor: DP-1 Dell Inc. DELL U2720Q 1234
 #   Window: Weekly sync — Brave (4f2a9c1e0b7d4e21a3c5f6b7d8e9f0a1)
 # — in brackets wlroots' own token for the window, not its app id. A single choice is taken
-# at once, without a question; several get the usual menu. No arguments (--help: this text).
+# at once, without a question; several get the usual menu.
+# One share, one question. Brave (any Chromium, Electron) asks the portal more than once for
+# one share: its own picker opens a session for the preview, then the share itself opens
+# another — they are meant to be joined by a restore token, which the portal gives for a
+# screen (XDPW_PERSIST_MODE, the portal's drop-in) but never for a window. So a choice made
+# here is remembered for 10 seconds ($XDG_RUNTIME_DIR/kawa-share.last: the time in µs, a tab,
+# the line): a request in that time that offers the same window (by its token — its title
+# may have changed) or the same screen (by name) is answered with it, without a menu. The
+# 10 seconds count from the choice; Esc forgets it. Every run adds a line to
+# ~/.cache/kawa-share.log: when, how it was answered (asked · remembered, and how long ago ·
+# one choice · cancelled · nothing offered), what was offered, what was shared.
+# No arguments (--help: this text).
 set -u
 case ${1:-} in
   "") ;;
@@ -20,9 +31,52 @@ export LC_ALL=C.UTF-8          # widths count characters, not bytes (the portal 
 . "$HOME/.config/fedokawaii/icons.sh"
 # shellcheck source=/dev/null
 . "$HOME/.config/fedokawaii/width.sh"
+MEM=${XDG_RUNTIME_DIR:?kawa-share: no XDG_RUNTIME_DIR (the portal runs in a systemd --user session)}/kawa-share.last
+LOG=$HOME/.cache/kawa-share.log
+TTL=10000000                                        # how long a choice is remembered (µs)
+now=${EPOCHREALTIME//[.,]/}
 mapfile -t lines
-((${#lines[@]})) || exit 1
-if ((${#lines[@]} == 1)); then printf '%s\n' "${lines[0]}"; exit 0; fi
+
+# key LINE — what names a choice across requests: a window by its token, a screen by its name
+key() {
+  case $1 in
+    "Window: "*)  local t=${1##* (}; printf 'W %s' "${t%)}" ;;
+    "Monitor: "*) local n=${1#Monitor: }; printf 'M %s' "${n%% *}" ;;
+    *)            printf 'M %s' "$1" ;;                               # (0.7: a bare name)
+  esac
+}
+# done_ HOW [LINE] — the log's line (time, how, what was offered, what was shared), then LINE
+# printed for the portal (exit 0) or nothing (exit 1)
+done_() {
+  local s=0 w=0 l
+  for l in "${lines[@]}"; do if [[ $l == "Window: "* ]]; then ((++w)); else ((++s)); fi; done
+  [[ -d ${LOG%/*} ]] || mkdir -p "${LOG%/*}"
+  printf '%(%F %T)T.%s\t%s\tscreens %d, windows %d\t%s\n' "${now:0:-6}" "${now: -6:3}" "$1" \
+         "$s" "$w" "${2:--}" >>"$LOG"
+  if [[ -f $LOG ]] && (($(wc -l <"$LOG") > 1000)); then        # the last 500 runs are plenty for a report
+    tail -n 500 "$LOG" >"$LOG.new" && mv -f "$LOG.new" "$LOG"
+  fi
+  (($# > 1)) || exit 1
+  printf '%s\n' "$2"; exit 0
+}
+
+((${#lines[@]})) || done_ "nothing offered"
+((${#lines[@]} == 1)) && done_ "one choice" "${lines[0]}"
+
+# the choice made a moment ago, when this request offers it again
+if IFS= read -r rec 2>/dev/null <"$MEM"; then
+  then_=${rec%%$'\t'*} was=${rec#*$'\t'}
+  if [[ $then_ =~ ^[0-9]+$ ]] && ((now >= then_ && now - then_ <= TTL)); then
+    k=$(key "$was")
+    for l in "${lines[@]}"; do
+      [[ $(key "$l") == "$k" ]] || continue
+      printf -v ago '%d.%d' $(((now - then_) / 1000000)) $(((now - then_) / 100000 % 10))
+      done_ "remembered (${ago} s ago)" "$l"
+    done
+  else
+    rm -f "$MEM"
+  fi
+fi
 
 # each screen's current size, from wlr-randr: NAME → W×H
 declare -A size=()
@@ -32,6 +86,8 @@ while read -r name wh; do size[$name]=$wh; done < <(wlr-randr 2>/dev/null | awk 
 
 cut40() { cut_cols "$1" 40; }   # cut40 TEXT — TEXT in at most 40 columns of the menu (width.sh)
 rows=()
+nw=0                                           # the screens' names in a column as wide as the longest
+for l in "${lines[@]}"; do [[ $l == "Monitor: "* ]] && { n=${l#Monitor: }; n=${n%% *}; ((${#n} > nw)) && nw=${#n}; }; done
 for l in "${lines[@]}"; do
   case $l in
     "Window: "*) t=${l#Window: }; a=${t##* (}; a=${a%)}; t=${t% (*}   # the title, without the token —
@@ -40,10 +96,14 @@ for l in "${lines[@]}"; do
                  t=$(cut40 "${t//[[:cntrl:]]/ }")
                  printf -v r '%s  %s' "$ICON_WINDOW" "$t" ;;
     *)           n=${l#Monitor: }; n=${n%% *}                         # the screen's name
-                 printf -v r '%s  %-10s %s' "$ICON_PICTURE" "$n" "${size[$n]:-}" ;;
+                 printf -v r '%s  %-*s  %s' "$ICON_PICTURE" "$nw" "$n" "${size[$n]:-}" ;;
   esac
   rows+=("$r")
 done
-i=$(printf '%s\n' "${rows[@]}" | kawa-menu --index --width 48 \
-      --lines $(( ${#rows[@]} < 12 ? ${#rows[@]} : 12 )) --title "share what?") || exit 1
-printf '%s\n' "${lines[i]}"
+if ! i=$(printf '%s\n' "${rows[@]}" | kawa-menu --index --width 48 \
+           --lines $(( ${#rows[@]} < 12 ? ${#rows[@]} : 12 )) --title "share what?"); then
+  rm -f "$MEM"; done_ cancelled
+fi
+now=${EPOCHREALTIME//[.,]/}                    # (the choice's own time: the menu may stay open long)
+printf '%s\t%s\n' "$now" "${lines[i]}" >"$MEM.new" && mv -f "$MEM.new" "$MEM"
+done_ asked "${lines[i]}"

@@ -92,7 +92,9 @@ called 'dnf\] -y mark dependency lsb_release' "what the build needed: marked as 
 grep -q '^lsb_release User' "$FKH/userinstalled" && _no "lsb_release left as yours" || _ok
 case_ "…the build fails (Spotify's server down): the update goes on, says so with lpf's log; verify warns; repair builds it"
 back built; fkh lpf-newer; fkh lpf-build-fail
-tk --update; has "$OUT" "Spotify did not build — lpf's log: /var/lib/lpf/log/spotify-client.log"
+tk --update; has "$OUT" "Spotify did not build (lpf: failed)"
+has "$OUT" "lpf │ error: Bad source" "lpf's own build log, in the install's log"
+grep -q 'lpf │ error: Bad source' "$W/var/log/fedokawaii.log" && _ok || _no "lpf's words not in /var/log/fedokawaii.log"
 has "$OUT" "not updated this time"; has "$OUT" "a newer Spotify waits to be built"
 eq "$(cat "$W/var/lib/lpf/packages/spotify-client/state")" failed
 rm -f "$FKH/lpf-build-fail"; reset_calls
@@ -117,6 +119,38 @@ case_ "repair: entries without rhgb quiet (an install that left them out: no spl
 back built; sed -i 's/ rhgb quiet//' "$FKH/grub-args"
 tk --repair; called 'grubby\] --update-kernel=ALL --args=rhgb'; called 'grubby\] --update-kernel=ALL --args=quiet'
 eq "$(grep -c ' rhgb' "$FKH/grub-args")" 2 "both entries"
+case_ "repair: a quiet boot again — the arguments an entry lost, the consoles' cursor file, greetd's drop-in after the splash"
+back built; sed -i '1 s/ vt.global_cursor_default=0//; 2 s/ systemd.show_status=false//' "$FKH/grub-args"
+rm -f "$W/etc/profile.d/fedokawaii-console.sh"; sed -i 's/ plymouth-quit-wait.service//; /^OnFailure=/d' "$W/etc/systemd/system/greetd.service.d/fedokawaii.conf"
+fkrun bash "$TK/verify.sh"; eq "$RC" 3
+tk --repair
+called 'grubby\] --update-kernel=ALL --args=vt.global_cursor_default=0'; called 'grubby\] --update-kernel=ALL --args=systemd.show_status=false'
+not_called 'grubby\] --update-kernel=ALL --args=loglevel=3' "an argument every entry has: grubby not run for it"
+eq "$(grep -c 'vt.global_cursor_default=0' "$FKH/grub-args")" 2; eq "$(grep -c 'systemd.show_status=false' "$FKH/grub-args")" 2
+[[ -s $W/etc/profile.d/fedokawaii-console.sh ]] && _ok || _no "the cursor file not written again"
+has "$(cat "$W/etc/systemd/system/greetd.service.d/fedokawaii.conf")" "plymouth-quit-wait.service"
+has "$(cat "$W/etc/systemd/system/greetd.service.d/fedokawaii.conf")" "OnFailure=fedokawaii-login-failed.service"
+fkrun bash "$TK/verify.sh"; eq "$RC" 0 "$(grep '✘' <<<"$OUT" | head -n3 | tr '\n' '|')"
+case_ "update: a quiet boot too (an install from before it gets the arguments with its next update)"
+back built; sed -i 's/ loglevel=3//' "$FKH/grub-args"; rm -f "$W/etc/profile.d/fedokawaii-console.sh"
+tk --update; eq "$RC" 0 "$(grep -E '✘|failed' <<<"$OUT" | head -n3 | tr '\n' '|')"
+eq "$(grep -c 'loglevel=3' "$FKH/grub-args")" 2; [[ -s $W/etc/profile.d/fedokawaii-console.sh ]] && _ok || _no "no cursor file"
+case_ "the machine an older setup left: vi a link to nvim — dracut follows it and fails (a new kernel's scriptlet: no boot image)"
+back built; ln -sfn ../../bin/nvim "$W/usr/local/bin/vi"; rm -f "$W/boot/initramfs-$(uname -r).img"
+fkrun dracut -f --kver "$(uname -r)"; eq "$RC" 1; has "$OUT" "could not locate dependency /usr/lib64/lua/5.1/lpeg.so"
+[[ ! -e $W/boot/initramfs-$(uname -r).img ]] && _ok || _no "an image made through the link"
+fkrun bash "$TK/verify.sh"; eq "$RC" 3; has "$OUT" "✘ vi → nvim (a script"; has "$OUT" "✘ kernels without a boot image"
+case_ "… repair: vi a script first (nvim still opens through it), then the missing image is made; verify passes"
+tk --repair
+[[ ! -L $W/usr/local/bin/vi ]] && _ok || _no "vi still a link"
+eq "$(cat "$W/usr/local/bin/vi")" $'#!/bin/sh\nexec nvim "$@"'
+called "dracut\\] -f --kver $(uname -r)"; [[ -s $W/boot/initramfs-$(uname -r).img ]] && _ok || _no "no image made"
+fkrun bash "$TK/verify.sh"; eq "$RC" 0 "$(grep '✘' <<<"$OUT" | head -n3 | tr '\n' '|')"
+case_ "… and update mends vi before dnf brings a new kernel (whose boot image dracut makes)"
+back built; ln -sfn ../../bin/nvim "$W/usr/local/bin/vi"
+tk --update; eq "$RC" 0
+[[ ! -L $W/usr/local/bin/vi ]] && _ok || _no "vi still a link after the update"
+has "$OUT" "update: vi: a script for nvim" "said, before the packages (dnf_upgrade follows it)"
 case_ "repair: Fedora's every-session boot-success timer on again (a fresh preset): off again, the desktop's stays"
 back built; fkh_add units "global-enabled grub-boot-success.timer"
 tk --repair; called 'systemctl\] --global disable grub-boot-success.timer'

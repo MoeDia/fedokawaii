@@ -103,9 +103,10 @@ PACKAGES.md        what is installed, from where, and why
   shell starts no extra process.
 - **Wallpapers**: the default is one quiet place by night and by day — layers of ink-wash
   ridges under a pale moon on the dark theme, the same ridges on paper under a vermilion sun
-  on the light — from a curated pack of 53 (`WALLPAPER_PACK="yes"`), fetched from GitHub at
-  pinned commits, checked by SHA-256 and shown at full quality: all Japanese — Hokusai and
-  Hiroshige, ink and brush, towns by night, shrines in rain and snow, anime (credits and
+  on the light — from a curated pack of 100 (`WALLPAPER_PACK="yes"`), fetched from GitHub at
+  pinned commits, checked by SHA-256 and shown at full quality: all Japanese — Hokusai,
+  Hiroshige and shin-hanga prints, ink and brush, streets and trains by night and by day,
+  anime film (credits and
   licences in `configs/home/.local/share/fedokawaii/wallpapers.list`). Without the pack, the
   theme's plain ground. Each theme keeps its own; day/night pairs switch together; a new one
   dissolves in.
@@ -209,6 +210,7 @@ a month before yours ends.
 | `fedokawaii update` (or `update`) | the season's update: snapshot → `dnf upgrade` (detached, so nothing can cut it off) → the manifest, this machine's drivers and firmware, nothing doubled or fighting, the desktop's pinned tools, GE-Proton, torrra, Prowlarr, neovim's plugins → verify; a part that fails is reported and the rest goes on |
 | `fedokawaii upgrade` | move to the next Fedora once it has settled: checks RPM Fusion, the COPRs, room and every library dwl needs first; snapshot; `dnf system-upgrade`; the rest by itself after the restart |
 | `fedokawaii verify` (or `verify`) | full check, including your running session |
+| `fedokawaii report [--quick]` | the health report: `~/fedokawaii-report.txt`, about 480 checks in 28 areas — the verdict, the findings (each with what to do), every area's table, the logs, and a line per check to `diff` two runs; every program proved to run, not only installed. Made once by itself after the first start; a few minutes (`--quick`: without the timed tests); send it with any question |
 | `fedokawaii repair` (or `repair`) | verify, then fix what can be fixed by itself — packages, drivers and firmware, anything doubled or fighting, services, your session, release tools, torrra, Prowlarr, drifted configs — and verify again; offline, what needs no network |
 | `fedokawaii theme` · `fedokawaii drift` | apply the configs again (dwl rebuilt only if needed) · list files that differ |
 | `fedokawaii status` · `snapshots` · `log` · `settings` · `remind` | how it stands (the last backup's day among it) · the snapshots · the last log · `fedokawaii.conf` · the season |
@@ -252,6 +254,9 @@ glossary are appendices D and E.
   `~/.config/syncplay.ini` (the public server syncplay.pl, your name, a room of your own); **W** on a
   film in yazi, or *Syncplay* in the launcher, asks for the room (handbook §15.7).
 - **Claude Code**: `claude` → log in. `/theme` → the *ANSI colours only* variant to use the palette.
+- **Agents** (herdr): several Claude Code sessions in one window — *Agents* in the launcher, **Ctrl+B a** for
+  each new one, **Ctrl+B Shift+G** for a git worktree of its own; the sidebar marks the one that needs you
+  (handbook §44.3).
 - **Brave Origin**: nothing to set — Theme put it in GTK mode, so it wears the palette and follows
   the dark/light switch, and starts it so a screen share can carry the computer's sound.
 

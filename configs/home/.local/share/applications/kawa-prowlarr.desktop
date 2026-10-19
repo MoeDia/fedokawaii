@@ -1,11 +1,12 @@
 [Desktop Entry]
 # Prowlarr's web page (its indexers, its login): kawa-prowlarr wakes Prowlarr if it is
 # asleep, opens the page once it answers, and lets it sleep again 30 minutes later.
+# Its icon: Brave's own (theme.sh reads it from Brave's entry), the browser the page opens in.
 Type=Application
 Name=Prowlarr
 GenericName=Torrent indexers
 Comment=The sites torrra searches through
-Icon=applications-internet
+Icon=@BRAVE_ICON@
 Exec=@HOME@/.local/bin/kawa-prowlarr
 Terminal=false
 Categories=Network;P2P;

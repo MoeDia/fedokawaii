@@ -92,7 +92,7 @@ class Greeter(Gtk.Window):
         box.add(info)
 
         self.entry = Gtk.Entry(name="input-field", halign=Gtk.Align.CENTER, xalign=0.5,
-                               visibility=False, invisible_char="◆", caps_lock_warning=False,
+                               visibility=False, invisible_char=ord("◆"), caps_lock_warning=False,   # (a code point: GTK takes a number)
                                input_purpose=Gtk.InputPurpose.PASSWORD)
         self.entry.connect("activate", self.login)
         box.add(self.entry)

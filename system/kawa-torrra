@@ -19,6 +19,8 @@
 # so on paper its cursor row would be ink on blue). Any other theme you pick with Ctrl+T
 # is kept.
 set -uo pipefail
+# shellcheck source=/dev/null
+ICON=$(. "$HOME/.config/fedokawaii/icons.sh" && printf '%s' "$ICON_DOWNLOAD")   # (its notices' mark)
 venv=${KAWA_TORRRA_VENV:-$HOME/.local/share/pipx/venvs/torrra}
 py=$venv/bin/python
 secrets=$HOME/.config/fedokawaii/secrets.sh
@@ -28,7 +30,7 @@ open=0
 die() {
   printf 'torrra: %s\n' "$*" >&2
   # from the launcher or a link the window closes with us: say it as a notice too
-  ((open)) && notify-send -u critical -a torrra torrra "$*" 2>/dev/null
+  ((open)) && notify-send -a torrra -u critical -- "$ICON  torrra" "$*" 2>/dev/null
   exit 1
 }
 
@@ -95,11 +97,12 @@ read -r -d '' BOOT <<'PY' || true
 import copy, os, subprocess, sys, tomllib
 key = os.environ.pop("KAWA_KEY")
 search, notify = os.environ.pop("KAWA_SEARCH") == "1", os.environ.pop("KAWA_NOTIFY") == "1"
+icon = os.environ.pop("KAWA_ICON", "")
 
 def warn(msg, urgency="normal"):
     print("torrra: " + msg, file=sys.stderr)
     if notify:
-        subprocess.run(["notify-send", "-u", urgency, "-a", "torrra", "torrra", msg],
+        subprocess.run(["notify-send", "-a", "torrra", "-u", urgency, "--", icon + "  torrra", msg],
                        stderr=subprocess.DEVNULL, check=False)
 
 def fail(msg):
@@ -187,6 +190,6 @@ if ((search)); then
   trap 'exit 129' HUP; trap 'exit 130' INT; trap 'exit 143' TERM
   kawa-prowlarr --busy || die "Prowlarr did not start — journalctl --user -u prowlarr -e"
 fi
-KAWA_KEY=${PROWLARR_API_KEY:-} KAWA_SEARCH=$search KAWA_NOTIFY=$open \
+KAWA_KEY=${PROWLARR_API_KEY:-} KAWA_SEARCH=$search KAWA_NOTIFY=$open KAWA_ICON=$ICON \
   "$py" -I -c "$BOOT" "$@" 8>&-
 exit $?

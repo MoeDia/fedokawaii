@@ -19,7 +19,7 @@ setup() {   # setup — start-dwl rendered as setup.sh installs it, its /usr/loc
   chmod +x "$HOME/.config/dwl/autostart.sh"
   LOG=$HOME/.cache/dwl.log
   export KAWA_SYSFS=$TMP/sysfs; mkdir -p "$KAWA_SYSFS/class/drm"   # (no graphics card, unless gpus says)
-  stub systemctl; stub bash; stub pgrep 'exit 1'
+  stub systemctl; stub bash; stub pgrep 'exit 1'; stub systemd-cat 'cat >>"$TMP/journal"'
   stub ldd 'for f; do :; done; [ -e "$f.nolib" ] && printf "\tlibwlroots-0.20.so => not found\n"; printf "\tlibc.so.6 => /lib64/libc.so.6\n"'
 }
 # dwl NAME BODY — a stand-in for /usr/local/bin/NAME: logs its arguments and environment, runs
@@ -66,8 +66,8 @@ eq "$(envof dwl WLR_DRM_DEVICES)" "" "no graphics card found: WLR_DRM_DEVICES no
 has "$(cat "$LOG")" "dwl said something"; lacks "$(cat "$LOG")" "the last session"
 case_ "the session before is kept beside the new log (dwl.log.old: what a crash said)$n"
 eq "$(cat "$LOG.old")" "the last session"
-case_ "logged out: the graphical session ends for systemd, its display leaves systemd's environment$n"
-called "^systemctl --user stop dwl-session.target$"
+case_ "logged out: the graphical session ends for systemd (queued: the login screen comes back at once), its display leaves systemd's environment$n"
+called "^systemctl --user --no-block stop dwl-session.target$"
 called "^systemctl --user unset-environment WAYLAND_DISPLAY DISPLAY XDG_CURRENT_DESKTOP XDG_SESSION_DESKTOP XDG_SESSION_TYPE$"
 case_ "two graphics cards (the CPU's own beside a graphics card): dwl draws on the one with the most video memory$n"
 dwl dwl; gpus card0:536870912 card1:17163091968; start
@@ -83,6 +83,12 @@ sh=$TMP/shbin/sh; [[ $SHL == dash ]] && sh=$(command -v dash)
 eq "$("$sh" "$TMP/start-dwl" --gpu 2>/dev/null)" "WLR_DRM_DEVICES=/dev/dri/card1"
 gpus card0 card1; eq "$("$sh" "$TMP/start-dwl" --gpu 2>/dev/null)" ""
 not_called "^dwl"; gpus
+case_ "start-dwl --gpu says nothing on the console (greetd hands the login's command tty1: a line there shows at every boot and logout) — its note goes to the journal$n"
+rm -f "$TMP/journal"; gpus card0:536870912 card1:17163091968
+eq "$("$sh" "$TMP/start-dwl" --gpu 2>&1)" "WLR_DRM_DEVICES=/dev/dri/card1" "only the card, nothing else, on stdout and stderr together"
+called "^systemd-cat -t start-dwl$"; has "$(cat "$TMP/journal")" "drawing on card1, the one with the most video memory"
+gpus card0 card1; eq "$("$sh" "$TMP/start-dwl" --gpu 2>&1)" "" "nothing at all when it cannot tell"
+has "$(cat "$TMP/journal")" "2 graphics cards, none saying its video memory"; gpus
 
 case_ "no autostart (Setup without Theme): dwl alone, with upstream defaults$n"
 setup; dwl dwl; rm "$HOME/.config/dwl/autostart.sh"; start

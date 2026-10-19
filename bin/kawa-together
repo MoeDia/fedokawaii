@@ -98,7 +98,14 @@ start() { if ((${#film[@]})); then exec syncplay --no-gui -- "${film[0]}"; fi; e
 [[ -t 0 ]] || start                      # no terminal: no form, syncplay.ini as it is
 
 # ── the form ─────────────────────────────────────────────────────────────────────────────
-say() { printf '\n  %s\n\n  any key closes this window ' "$1" >&2; read -rsn1; exit 1; }
+# say TEXT — why there is no form, set in by two columns as every line here, its lines broken
+# at the words to fit the window (the terminal's own wrap would start them at its edge)
+say() {
+  local w
+  read -r _ w < <(stty size </dev/tty)
+  printf '\n' >&2; fold -s -w $((w - 4)) <<<"$1" | sed 's/^ *//; s/ *$//; s/^/  /' >&2
+  printf '\n  any key closes this window ' >&2; read -rsn1; exit 1
+}
 
 # Syncplay's settings as Syncplay reads them (a doubled %% is one %; "None" is what it writes
 # for an empty value): host[:port], port, room, name, password — each ended by a NUL
@@ -277,7 +284,8 @@ join() {
 
 msg=()
 while :; do
-  pick=$(rows | fzf --ansi --no-sort --no-input --height=100% --margin=1,2 --delimiter=$'\t' --with-nth=2 \
+  # (no input line: the list starts a row under the title, as Super+U's does)
+  pick=$(rows | fzf --ansi --no-sort --no-input --height=100% --margin=1,2 --padding=1,0,0,0 --delimiter=$'\t' --with-nth=2 \
            --border-label="$(label "watch together" Syncplay)" "${msg[@]}" \
            --footer=$'\n''enter choose  ·  esc cancel') || exit 1
   msg=()

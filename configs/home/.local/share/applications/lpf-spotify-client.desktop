@@ -1,0 +1,8 @@
+[Desktop Entry]
+# lpf-spotify-client's "build Spotify" entry: setup, update and repair build it (setup.sh: spotify_client).
+# Hidden from the launcher: this entry, by the same name as the package's, stands in for it
+# (NoDisplay); the program itself stays installed and works as before.
+Type=Application
+Name=lpf spotify-client
+Exec=/usr/bin/lpf update spotify-client
+NoDisplay=true

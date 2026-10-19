@@ -78,7 +78,7 @@ has "$(kawa-menu --nope 2>&1)" "unknown option --nope"
 case_ "fuzzel missing: exit 1 and a notice that says so"
 p=$(without fuzzel); reset_calls
 PATH=$p rc 1 pick
-called 'notify-send -a desktop -u critical menus fuzzel is missing'
+called 'notify-send -a desktop -u critical -- .*  menus fuzzel is missing'
 install -m 755 "$MD/fake_fuzzel" "$STUBS/fuzzel"
 
 case_ "no runtime folder (XDG_RUNTIME_DIR unset): the menu still works"

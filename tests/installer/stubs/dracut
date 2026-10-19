@@ -1,9 +1,22 @@
 #!/bin/bash
-# dracut of the fake Fedora: logged; its exit status from $FKH/rc-dracut (0)
+# dracut of the fake Fedora: logged; its exit status from $FKH/rc-dracut (0). Like Fedora's, it
+# puts vi into every image (the rescue shell's editor) and follows a link to the program: a vi
+# linked to nvim fails on nvim's Lua libraries, as dracut-install does. An image it makes
+# records the Plymouth theme in use (stubs/lsinitrd lists it)
 . /usr/local/bin/_lib.sh
 fkh_log "$*"
 r=$(rcfor dracut 0)
-# --kver V makes /boot/initramfs-V.img (when it succeeds)
+if [[ -L /usr/local/bin/vi && $(readlink -f /usr/local/bin/vi) == /usr/bin/nvim ]]; then
+  echo "dracut-install: ERROR: could not locate dependency /usr/lib64/lua/5.1/lpeg.so requested by '/var/tmp/dracut.fk/initramfs/usr/bin/nvim'" >&2
+  echo "dracut[F]: Resolving executable dependencies failed" >&2
+  exit 1
+fi
+theme=$(cat "$FKH/plymouth-theme" 2>/dev/null || echo bgrt)
+make_image() { printf 'initramfs\nplymouth-theme %s\n' "$theme" >"/boot/initramfs-$1.img"; }
+# --kver V makes /boot/initramfs-V.img; --regenerate-all every installed kernel's (when it succeeds)
 a=$*
-if ((r == 0)) && [[ " $a " == *" --kver "* ]]; then v=${a#*--kver }; v=${v%% *}; echo initramfs >"/boot/initramfs-$v.img"; fi
+if ((r == 0)) && [[ " $a " == *" --kver "* ]]; then v=${a#*--kver }; v=${v%% *}; make_image "$v"; fi
+if ((r == 0)) && [[ " $a " == *" --regenerate-all "* ]]; then
+  for k in /boot/vmlinuz-*; do [[ -e $k && $k != *-0-rescue-* ]] && make_image "${k#/boot/vmlinuz-}"; done
+fi
 exit "$r"

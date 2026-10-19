@@ -80,7 +80,7 @@ case_ "another output picked: the default, a notice says so, the menu closes"
 setup; answers "~Navi 31"
 rc 0 kawa-audio
 called 'wpctl set-default 73'
-eq "$(note)" " $ICON_SPEAKER  Audio | Navi 31 HDMI/DP Audio Digital Stereo (HDMI) is now the output" "the full name, not the cut one"
+eq "$(note)" " $ICON_SPEAKER  audio | Navi 31 HDMI/DP Audio Digital Stereo (HDMI) is now the output" "the full name, not the cut one"
 eq "$(opened)" 1
 case_ "the current output picked: nothing happens, the menu stays"
 setup; answers 7 esc
@@ -125,7 +125,7 @@ answers "~Tom & Jerry"
 kawa-audio
 has "$(rows)" "$ICON_BOX_OFF  Tom & Jerry \"Mic\" <USB> \$(…" "cut at 28 columns"
 called 'wpctl set-default 91'
-eq "$(note)" " $ICON_SPEAKER  Audio | Tom &amp; Jerry \"Mic\" &lt;USB&gt; \$(touch /tmp/kawa-pwned) \`id\` \\ ü is now the output" \
+eq "$(note)" " $ICON_SPEAKER  audio | Tom &amp; Jerry \"Mic\" &lt;USB&gt; \$(touch /tmp/kawa-pwned) \`id\` \\ ü is now the output" \
   "the notice's body escaped for mako's markup, the backslash single"
 [[ ! -e /tmp/kawa-pwned ]] && _ok || { _no "a device name ran as a command"; rm -f /tmp/kawa-pwned; }
 

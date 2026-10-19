@@ -32,13 +32,28 @@ has "$OUT" "✔ Syncplay v1.7.6 loads (Fedora's python3, Twisted with TLS, certi
 has "$OUT" "✔ user in video, render"; lacks "$OUT" "input, render"
 has "$OUT" "✔ Bluetooth dongle power saving off (btusb)"; has "$OUT" "✔ shutdown waits 30 s at most for your services"
 
+case_ "your home: a root-owned file in ~/.cache (a program run as root with your HOME) or ~/Downloads (its own subvolume) fails, named; podman's storage (its containers' own ids) does not"
+back built
+fk bash -c 'c=/home/fkuser/.local/share/containers/storage/overlay; runuser -u fkuser -- mkdir -p "$c/l1/diff/app" && : >"$c/l1/diff/app/Prowlarr.dll" && chown -R 100910:100910 "$c/l1"'   # (podman's own folders: yours)
+V; eq "$RC" 0 "$(grep '✘' <<<"$OUT" | head -n3 | tr '\n' '|')"; has "$OUT" "✔ no root-owned files in your home (nor anyone else's; ~/.cache and ~/Downloads included)"
+fk bash -c 'runuser -u fkuser -- mkdir -p /home/fkuser/.cache/mesa_shader_cache && : >/home/fkuser/.cache/mesa_shader_cache/index'
+V; eq "$RC" 3; has "$OUT" "✘ files in your home that are not yours: root ~/.cache/mesa_shader_cache/index"
+back built; fk bash -c 'mkdir -p /home/fkuser/Downloads && chown fkuser: /home/fkuser/Downloads && : >/home/fkuser/Downloads/x.torrent'
+V; has "$OUT" "✘ files in your home that are not yours: root ~/Downloads/x.torrent"
+back built; V
+
 case_ "Prowlarr not running: verify says it starts it, and why that may take a while, before it waits"
 i=$(grep -n "· starting Prowlarr to check it — its first start after a boot can take a minute or two" <<<"$OUT" | cut -d: -f1)
 s=$(grep -n "✔ Prowlarr starts" <<<"$OUT" | cut -d: -f1)
 [[ -n $i && -n $s ]] && ((i < s)) && _ok || _no "the line before the start: [$i] [$s]"
 case_ "…already running: nothing to wait for, so nothing said"
-fkh_add units "user-active prowlarr.service"
-V; eq "$RC" 0; lacks "$OUT" "starting Prowlarr"; has "$OUT" "✔ Prowlarr starts"
+fkh_add units "user-active prowlarr.service"; reset_calls
+V; eq "$RC" 0; lacks "$OUT" "starting Prowlarr"; has "$OUT" "✔ Prowlarr starts (it runs on demand) — running already"
+not_called 'systemctl\] --user start prowlarr.service' "one running is not started again (a start job would only re-run its dependencies)"
+has "$OUT" "✔ Prowlarr's start waits on nothing online"
+case_ "a Prowlarr unit still waiting for the network to be online (podman's wait unit, 90 s at a boot that never wants network-online.target): a failure"
+fkh pw-prowlarr-deps "podman-user-wait-network-online.service default.target"
+V; eq "$RC" 3; has "$OUT" "✘ Prowlarr's start waits for the network to be online"; rm -f "$FKH/pw-prowlarr-deps"
 
 # ── warnings: never a failure ────────────────────────────────────────────────
 case_ "warnings only (no firewall running, no AV1 decoding, GE-Proton not yet, Syncplay and ble.sh not yet, a driver package missing): exit 0"
@@ -121,6 +136,23 @@ case_ "an install whose entries lack rhgb quiet (no splash): named, each, exit 3
 back built; sed -i 's/ rhgb quiet//' "$FKH/grub-args"
 V; eq "$RC" 3; has "$OUT" "✘ rhgb on every boot entry"; has "$OUT" "✘ quiet on every boot entry"
 has "$OUT" "✔ systemd.tty.term.console=dumb on every boot entry"
+case_ "a quiet boot on a sound system: each argument on every entry, this start had them, the consoles' cursor at login, greetd after the splash"
+back built; V; eq "$RC" 0
+for b in loglevel=3 rd.udev.log_level=3 systemd.show_status=false vt.global_cursor_default=0; do has "$OUT" "✔ $b on every boot entry"; done
+has "$OUT" "✔ a quiet boot, this start too"; has "$OUT" "✔ a text console shows its cursor at login"
+has "$OUT" "✔ greetd owns tty1 and follows the boot splash (its drop-in)"
+case_ "an entry that shows the console's cursor again, and one with the kernel's messages back: each named, exit 3; this start's: only said"
+back built; sed -i '2 s/ vt.global_cursor_default=0//; 1 s/loglevel=3/loglevel=7/' "$FKH/grub-args"
+sed -i 's/ systemd.show_status=false//' "$W/proc/cmdline"
+V; eq "$RC" 3; has "$OUT" "✘ vt.global_cursor_default=0 on every boot entry"; has "$OUT" "✘ loglevel=3 on every boot entry"
+has "$OUT" "✔ systemd.show_status=false on every boot entry"
+has "$OUT" "· the boot's arguments are on every entry; this start had not all of them"; lacks "$OUT" "✔ a quiet boot, this start"
+case_ "the consoles' cursor never back at login (its profile.d file gone): named, exit 3"
+back built; rm "$W/etc/profile.d/fedokawaii-console.sh"
+V; eq "$RC" 3; has "$OUT" "✘ a text console shows its cursor at login"
+case_ "greetd's drop-in without the splash's order (an older one): named, exit 3 — repair writes it again"
+back built; sed -i 's/ plymouth-quit-wait.service//' "$W/etc/systemd/system/greetd.service.d/fedokawaii.conf"
+V; eq "$RC" 3; has "$OUT" "✘ greetd owns tty1 and follows the boot splash (its drop-in)"
 case_ "a kernel whose boot image dracut could not make (dnf does not fail on that): named, exit 3"
 back built; fkh kernels "6.18.1-200.fc44.x86_64" "$(uname -r)"              # the older one at rest, no image for it
 V; eq "$RC" 3; has "$OUT" "✘ kernels without a boot image (initramfs) — 6.18.1-200.fc44.x86_64 — would not start; repair makes them (dracut)"
@@ -184,6 +216,20 @@ echo "Display 1"
 EOF
 chmod 755 "$W/usr/local/bin/ddcutil"
 V; has "$OUT" "✔ a monitor answers DDC/CI"
+
+case_ "\"Share\" (the loopback of ~/.config/pipewire): found by its node name in PipeWire's list — WirePlumber 0.5's wpctl status shows a loopback under Filters by node.name, never \"Share\""
+back built; fkh procs "/usr/local/bin/dwl"
+cat >"$FKH/pw-dump" <<'J'
+[ { "id": 32, "type": "PipeWire:Interface:Node", "info": { "props": { "node.name": "share_sink.out", "media.class": "Stream/Output/Audio", "node.description": "Share", "node.link-group": "loopback-1904-27" } } },
+  { "id": 33, "type": "PipeWire:Interface:Node", "info": { "props": { "node.name": "share_sink", "media.class": "Audio/Sink", "node.description": "Share", "node.link-group": "loopback-1904-27" } } } ]
+J
+V; has "$OUT" "✔ \"Share\" output for calls (PipeWire node share_sink, an Audio/Sink"
+case_ "…its file not loaded (only the playback half, or nothing): a failure"
+cat >"$FKH/pw-dump" <<'J'
+[ { "id": 50, "type": "PipeWire:Interface:Node", "info": { "props": { "node.name": "alsa_output.pci-0000_0c_00.4.analog-stereo", "media.class": "Audio/Sink", "node.description": "Share-alike speakers" } } } ]
+J
+V; has "$OUT" "✘ \"Share\" output for calls"
+rm -f "$FKH/pw-dump"; V; has "$OUT" "✘ \"Share\" output for calls" "PipeWire not running: no Share"
 
 # ── Wi-Fi ────────────────────────────────────────────────────────────────────
 case_ "a Wi-Fi radio NetworkManager does not manage: a failure"

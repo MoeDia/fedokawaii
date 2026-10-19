@@ -90,7 +90,7 @@ case_ "the sound muted, no output at all; no DDC/CI monitor; a picture of your o
 setup; echo 'Volume: 0.40 [MUTED]' >"$W/vol"; : >"$W/bright"; mkdir -p "$HOME/.local/state/fedokawaii"
 echo "$HOME/Pictures/Wallpapers/my beach photo, from the long summer.jpg" >"$HOME/.local/state/fedokawaii/wallpaper-dark"
 eq "$(st sound)" muted; eq "$(st brightness)" "no DDC/CI"; eq "$(st wallpaper)" "my beach photo, from the long summer"
-echo pack:canal-walk-night >"$HOME/.local/state/fedokawaii/wallpaper-dark"; eq "$(st wallpaper)" canal-walk-night
+echo pack:riverside-night >"$HOME/.local/state/fedokawaii/wallpaper-dark"; eq "$(st wallpaper)" riverside-night
 stub wpctl 'exit 1'; eq "$(st sound)" "no output"
 case_ "a name with a tab or a line break in it: one line still"
 setup; mkdir -p "$HOME/.local/state/fedokawaii"; printf '%s\n' "$HOME/Pictures/a"$'\t'"b.jpg" >"$HOME/.local/state/fedokawaii/wallpaper-dark"
@@ -210,6 +210,21 @@ setup; a=$(st vrr); quick --do vrr; b=$(st vrr); quick --do vrr; c=$(st vrr); qu
 eq "$a / $b / $c / $d" "in games / always / off / in games"
 eq "$(cat "$HOME/.config/fedokawaii/vrr")" games
 grep -q '%s/.config/fedokawaii/vrr' "$REPO/src/dwl/dwl.patch" && _ok || _no "dwl reads another file"
+case_ "FreeSync: dwl told at once (SIGUSR1: it reads the file again) — only a dwl that catches it"
+setup
+python3 -I -c '
+import signal, sys
+signal.signal(signal.SIGUSR1, lambda *a: open(sys.argv[1], "a").write("USR1\n"))
+open(sys.argv[1] + ".up", "w").close()
+while True: signal.pause()' "$TMP/dwl.got" & dwl=$!
+/bin/sleep 300 & old=$!                     # (a dwl without the handler: the signal would end it)
+for _ in {1..300}; do [[ -e $TMP/dwl.got.up ]] && break; /bin/sleep 0.01; done
+stub pgrep '[ "$*" = "-xu '"$UID"' dwl" ] && { echo '"$dwl"'; echo '"$old"'; exit 0; }; exit 1'
+rc 0 quick --do vrr
+for _ in {1..100}; do [[ -s $TMP/dwl.got ]] && break; /bin/sleep 0.02; done
+eq "$(cat "$TMP/dwl.got" 2>/dev/null)" USR1 "dwl told"
+kill -0 "$old" 2>/dev/null && _ok || _no "a dwl without the handler was killed"
+kill "$dwl" "$old" 2>/dev/null; wait "$dwl" "$old" 2>/dev/null
 case_ "brightness N: every monitor set to N % (kawa-brightness), the state following"
 setup; rc 0 quick --do brightness 40; called '^kawa-brightness 40$'; eq "$(st brightness)" 40%
 rc 0 quick --do brightness 0; rc 0 quick --do brightness 100

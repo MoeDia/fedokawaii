@@ -230,7 +230,7 @@ and bind-mounted over `/etc/dconf/db/local` (this sandbox's `local.d` still hold
 | `app-share` | `kawa-share` fed four xdg-desktop-portal-wlr 0.8.4 lines; `wlr-randr` answers for DP-1 and HDMI-A-1 |
 | `app-torrra`, `app-torrra-search` | `kawa-torrra --open` (the launcher's way) with `lib/fakeprowlarr.py` on 127.0.0.1:9696; "ubuntu 24.04" typed |
 | `app-brave` | Brave Origin new-tab page, second start, `--no-first-run --no-default-browser-check`, `brave.origin.free_tier_accepted` set (the one-time Origin question answered "Proceed") |
-| `app-wiremix` | `kawa-float --once mixer mixer 96x29 -- wiremix` (the bar's volume click, Super+X → *audio mixer*) while `mpv --no-video` plays the test video: one stream on the Playback tab |
+| `app-wiremix` | `kawa-float --once mixer mixer 96x29 -- wiremix` (Super+A → *mixer…*, Super+X → *audio mixer*) while `mpv --no-video` plays the test video: one stream on the Playback tab |
 | `app-bluetui` | `kawa-float --once pair pair 96x29 -- bluetui` (Super+X → *pair a device*) on a private session bus where `lib/fakebluez.py` answers as BlueZ (adapter `fedokawaii`; a game controller and a headset paired, a phone found nearby), after **s** (scan) |
 | `app-visidata` | `vd weather.csv` in `~/practice` (a small made-up table), a column made numeric (`#`), sorted (`[`), summed (`+` → sum): the frequency line at the bottom |
 

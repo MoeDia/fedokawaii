@@ -90,11 +90,51 @@ toolkit BACKUP_TARGET=""; out=$(kawa-backup where 2>&1); eq "$?" 1; has "$out" "
 
 case_ "a backup with no restic: a critical notice that says so, nothing else touched"
 setup; rm -f "$STUBS/restic"; out=$(PATH=$(without restic) kawa-backup 2>&1); eq "$?" 1
-has "$(notice)" "notify-send -a backup -u critical -- "; has "$(notice)" "not backed up restic is not installed — fedokawaii repair puts it back"
+has "$(notice)" "notify-send -a backup -p -u critical -- "; has "$(notice)" "not backed up restic is not installed — fedokawaii repair puts it back"
 has "$out" "restic is not installed"; [[ ! -e $HOME/$REC && -z $(ls -A "$DRIVE") ]] && _ok || _no "something was written"
 case_ "the drive not plugged in, or no drive named: the notice says which"
 setup unplugged; rc 1 kawa-backup; has "$(notice)" "not backed up KINGSTON is not plugged in"
 toolkit BACKUP_TARGET=""; rc 1 kawa-backup; has "$(notice)" "no BACKUP_TARGET yet"
+case_ "no drive named, in a window: the drives plugged in to pick from; the one picked saved as settings save it, then the backup"
+setup; toolkit BACKUP_TARGET=""
+stub fzf 'cat >"$TMP/fzf.in"; printf "%s\n" "$*" >"$TMP/fzf.args"; head -n1 "$TMP/fzf.in"'
+# sudo: root's password asked (-v), then the toolkit's own save (fedokawaii.sh conf FILE) — here
+# the file taken as it is (the toolkit's checks are tests/installer's)
+stub sudo '[ "$1" = -v ] && exit 0; [ "$3" = conf ] && cp "$4" "$KAWA_TOOLKIT/fedokawaii.conf"'
+stub restic 'echo "restic $*" >>"$W/restic.log"; case $3 in init) : >"$W/made" ;; cat) [ -e "$W/made" ] || exit 10 ;; esac; exit 0'
+out=$(RESTIC_PASSWORD=given tty_run 100 kawa-backup 2>&1); rc=$?
+eq "$(cat "$TMP/fzf.in")" $'KINGSTON\t28.9G vfat · open' "the drives as the drives menu names them"
+has "$(cat "$TMP/fzf.args")" "back up to"
+called '^sudo -v'; called "^sudo bash $KAWA_TOOLKIT/fedokawaii.sh conf "
+eq "$(grep '^BACKUP_TARGET=' "$KAWA_TOOLKIT/fedokawaii.conf" | cut -c1-34)" 'BACKUP_TARGET="KINGSTON"          ' "saved, its comment where it was"
+eq "$(sed -n 's/^BACKUP_TARGET="KINGSTON" *\(#.*\)/\1/p' "$KAWA_TOOLKIT/fedokawaii.conf" | cut -c1-30)" "# where your files are backed " "the comment kept"
+eq "$(kawa-backup target)" KINGSTON "it counts at once"
+has "$(cat "$W/restic.log")" "restic -r $DRIVE/fedokawaii-backup backup" "then backed up to it"
+eq "$(grep -c '^notify-send' "$CALLS")" 2 "two notices — backing up, then backed up — the second in the first one's place"
+case_ "no drive plugged in: said plainly as a normal outcome (exit 4: nothing to do), one notice, nothing saved"
+setup unplugged; toolkit BACKUP_TARGET=""; stub fzf 'echo "fzf ran" >&2; exit 1'; stub sudo 'exit 1'
+out=$(tty_run 100 kawa-backup 2>&1); eq "$?" 4
+has "$out" "no drive plugged in — plug in the drive to keep your backup on, then back up again"
+lacks "$out" "error"; not_called '^sudo'; lacks "$out" "fzf ran"
+eq "$(grep -c '^notify-send' "$CALLS")" 1 "exactly one notice"
+called '^notify-send -a backup -p -- .*no drive plugged in'; not_called 'critical'
+eq "$(grep '^BACKUP_TARGET=' "$KAWA_TOOLKIT/fedokawaii.conf" | cut -c1-16)" 'BACKUP_TARGET=""'
+case_ "the list closed with Esc: nothing saved, nothing backed up, no notice"
+setup; toolkit BACKUP_TARGET=""; stub fzf 'cat >/dev/null; exit 130'; stub sudo
+out=$(tty_run 100 kawa-backup 2>&1); eq "$?" 4; has "$out" "no drive picked"; not_called '^sudo'; not_called '^notify-send'
+case_ "root's password refused: not saved, said, no backup"
+setup; toolkit BACKUP_TARGET=""; stub fzf 'head -n1'; stub sudo 'exit 1'
+out=$(tty_run 100 kawa-backup 2>&1); eq "$?" 1; has "$out" "sudo refused"; has "$out" "not saved"
+eq "$(kawa-backup target)" ""
+case_ "Super+U's job window: exit 4 reads as nothing done, not as an error"
+setup unplugged; toolkit BACKUP_TARGET=""
+out=$(tty_run 100 bash "$REPO/system/fedokawaii" --job-run backup 2>&1 </dev/null)
+has "$out" "nothing done"; lacks "$out" "ended with an error"
+case_ "two backups' notices never stack: each takes the last one's place (its id kept for the session)"
+setup unplugged; stub notify-send 'echo 41'
+kawa-backup 2>/dev/null; kawa-backup 2>/dev/null
+eq "$(grep -c -- '-r 41 ' "$CALLS")" 1 "the second replaces the first"
+
 case_ "the exclude list missing (the theme not applied): said"
 setup; rm -f "$HOME/.config/fedokawaii/backup-exclude"; rc 1 kawa-backup; has "$(notice)" "backup-exclude is missing"
 case_ "no password: secrets.sh missing, or without the line, or not private (644), or not yours — each said, no repository made"

@@ -1,0 +1,7 @@
+#!/bin/bash
+# pw-dump of the fake Fedora: PipeWire's object list is $FKH/pw-dump (JSON, as the real one
+# prints it); none: PipeWire not running (the real one's words and status)
+. /usr/local/bin/_lib.sh
+fkh_log "$*"
+[[ -f $FKH/pw-dump ]] || { echo "Error: \"failed to connect: Host is down\"" >&2; exit 255; }
+cat "$FKH/pw-dump"

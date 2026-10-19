@@ -91,16 +91,16 @@ eq "$(title)" "change · ~/my work/設定 copy"
 case_ "a part, no copy yet: the copy is made first (a notice says where), then the file opened in it"
 setup; answer "pick launcher"; config_
 called '^fedokawaii copy'
-called 'notify-send -a desktop change your working copy: ~/repos/fedokawaii — made from the toolkit'
+called 'notify-send -a desktop -- .*  change your working copy: ~/repos/fedokawaii — made from the toolkit'
 called "^footclient -T change · launcher -D $COPY -- nvim -O -- configs/home/.config/fuzzel/fuzzel.ini$"
 eq "$(fz_n)" 1 "closed unchanged: nothing to apply, no second menu"
 case_ "the copy cannot be made (git missing, so the engine fails): a notice, no editor"
 setup; : >"$W/no-git"; answer "pick bar"; config_
-called 'notify-send -a desktop change could not make the working copy in'
+called 'notify-send -a desktop -- .*  change could not make the working copy in'
 not_called '^footclient'
 case_ "something else where the copy goes: a notice, nothing overwritten"
 setup; mkdir -p "$COPY"; echo mine >"$COPY/notes.txt"; answer "pick bar"; config_
-called "notify-send -a desktop change $COPY is something else — move it, or set FEDOKAWAII_COPY"
+called "notify-send -a desktop -- .*  change $COPY is something else — move it, or set FEDOKAWAII_COPY"
 not_called '^fedokawaii copy'; eq "$(cat "$COPY/notes.txt")" mine
 case_ "a part changed: apply now runs fedokawaii apply in a window that waits for a key"
 setup; copy_made; echo change >"$W/edit"; answer "pick terminal" "pick apply now"; config_
@@ -131,30 +131,30 @@ setup; copy_made; echo 1 >"$W/editrc"; answer "pick bar"; config_
 eq "$(grep -c '^foot ' "$CALLS")" 0 "foot not started after footclient's editor closed"
 case_ "the terminal server is down (footclient 220): said in a notice — never a foot of its own"
 setup; copy_made; echo 220 >"$W/rc.footclient"; echo change >"$W/edit"; answer "pick bar" esc; config_
-not_called '^foot '; called '^notify-send -a desktop change the terminal server is not running — fedokawaii repair puts it back$'
+not_called '^foot '; called '^notify-send -a desktop -- .*  change the terminal server is not running — fedokawaii repair puts it back$'
 eq "$(fz_n)" 1 "no apply question after it"
 case_ "the terminal server is down: your scripts (yazi) and the history (lazygit) say so too"
 setup; echo 220 >"$W/rc.footclient"; answer "pick yours alone" "pick your scripts"; config_
-not_called '^foot '; called '^notify-send -a desktop change the terminal server is not running'
+not_called '^foot '; called '^notify-send -a desktop -- .*  change the terminal server is not running'
 setup; copy_made; echo 220 >"$W/rc.footclient"; answer "pick history  "; config_
-not_called '^foot '; called '^notify-send -a desktop change the terminal server is not running'
+not_called '^foot '; called '^notify-send -a desktop -- .*  change the terminal server is not running'
 
 case_ "colours changed: the palettes drawn again in the copy before asking"
 setup; copy_made; echo change >"$W/edit"; answer "pick colours" esc; config_
 called '^python3 tools/build-themes.py$'; eq "$(fz_n)" 2
 case_ "colours, the drawing stops on an error: a notice, no apply question"
 setup; copy_made; echo change >"$W/edit"; : >"$W/draw-fails"; answer "pick colours"; config_
-called 'notify-send -a desktop change tools/build-themes.py stopped'; eq "$(fz_n)" 1
+called 'notify-send -a desktop -- .*  change tools/build-themes.py stopped'; eq "$(fz_n)" 1
 case_ "icons changed, fontTools installed: drawn at once"
 setup; copy_made; echo change >"$W/edit"; answer "pick icons" esc; config_
 eq "$(fz_n)" 2; not_called 'venv python'
 case_ "icons, no fontTools: fetched once into a folder of its own, then drawn with it"
 setup; copy_made; echo change >"$W/edit"; : >"$W/no-fonttools"; answer "pick icons" esc; config_
-called 'notify-send -a desktop change the first time: fetching fontTools'; called '^venv python tools/build-icons.py'
+called 'notify-send -a desktop -- .*  change the first time: fetching fontTools'; called '^venv python tools/build-icons.py'
 eq "$(fz_n)" 2
 case_ "icons, no fontTools and offline: a notice, the half-made folder removed, no apply question"
 setup; copy_made; echo change >"$W/edit"; : >"$W/no-fonttools"; : >"$W/offline"; answer "pick icons"; config_
-called 'notify-send -a desktop change fontTools could not be fetched \(offline\?\)'
+called 'notify-send -a desktop -- .*  change fontTools could not be fetched \(offline\?\)'
 [[ ! -e $HOME/.cache/fedokawaii/fonttools ]] && _ok || _no "the venv was left half made"
 eq "$(fz_n)" 1
 
@@ -170,7 +170,7 @@ for p in "shell additions:.bashrc.d/local.sh:Fedora's ~/.bashrc reads every" "au
   setup; answer "pick yours alone" "pick $name"; config_
   has "$(cat "$HOME/$f" 2>/dev/null)" "$words" "$f"
   called "^footclient -T change · $name -D $HOME/${f%/*} -- nvim -O -- $HOME/$f$"
-  called "notify-send -a desktop change ~/$f — yours: nothing to apply"
+  called "notify-send -a desktop -- .*  change ~/$f — yours: nothing to apply"
 done
 fits 2
 case_ "yours alone, the file there already: never overwritten"

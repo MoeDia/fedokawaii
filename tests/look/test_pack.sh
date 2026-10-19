@@ -145,9 +145,9 @@ eq "$(kawa-wallpaper --pack 2>&1)" "wallpaper pack: 0 fetched, 1 already here, 0
 [[ ! -e $CACHE/1920x1080-abc.png ]] && _ok || _no "the drawings of retired pictures stayed"
 
 case_ "an empty list (comments only) retires nothing; a missing list says so"
-setup; art "$PACK/dark/dawn-mart.src"; printf '# nothing\n\n' >"$LIST"
+setup; art "$PACK/dark/seaside-train.src"; printf '# nothing\n\n' >"$LIST"
 eq "$(kawa-wallpaper --pack 2>&1)" "wallpaper pack: 0 fetched, 0 already here, 0 failed"
-[[ -e $PACK/dark/dawn-mart.src ]] && _ok || _no "an empty list wiped the pack"
+[[ -e $PACK/dark/seaside-train.src ]] && _ok || _no "an empty list wiped the pack"
 rm "$LIST"
 out=$(kawa-wallpaper --pack 2>&1); r=$?
 eq "$r" 1; has "$out" "is missing (run theme.sh)"

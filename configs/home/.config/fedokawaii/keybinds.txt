@@ -5,7 +5,7 @@ Super+B                 browser (Brave Origin)
 Super+E                 files (yazi)
 Super+X                 quick settings (also the cat in the bar)
 Super+A                 sound: volume, output, input
-Super+C                 calendar (also click the clock)
+Super+C                 calendar (also click the date)
 Super+/                 this help
 Super+W                 wallpaper picker, for the current theme
 Super+Shift+W           dark / light theme (also in quick settings)
@@ -34,7 +34,7 @@ Super+drag / right-drag move / resize
 Super+S                 layout: golden spiral (the default)
 Super+T                 layout: columns, left to right
 Super+Y / M             layout: floating · one at a time
-Super+Shift+T           the layout used before
+Super+Shift+T           the tiling layout used before
 ── workspaces ─────────────────────────────────────────────────────
 Super+1…9               go to workspace (or click it in the bar)
 Super+Shift+1…9         send window to workspace

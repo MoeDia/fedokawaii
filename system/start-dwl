@@ -23,9 +23,12 @@ gpu_card() {
   echo "/dev/dri/$best"
 }
 # start-dwl --gpu: that card as WLR_DRM_DEVICES=…, or nothing — the login screen's cage takes
-# it too (setup.sh's greetd command), so both draw on the same card
+# it too (setup.sh's greetd command), so both draw on the same card. Its note goes to the
+# journal (journalctl -t start-dwl), never the console: greetd hands the login screen's
+# command tty1 as its output, and a line there would show for a moment before cage takes
+# the screen — at every boot and every logout
 if [ "${1:-}" = --gpu ]; then
-  card=$(gpu_card)
+  card=$( { gpu_card 2>&1 >&3 | systemd-cat -t start-dwl; } 3>&1 )
   [ -n "$card" ] && echo "WLR_DRM_DEVICES=$card"
   exit 0
 fi
@@ -130,8 +133,10 @@ at_once() {
 if at_once "$DWL"; then rescue "dwl stopped at once (exit $rc)"; fi
 
 # logged out: end the graphical session for systemd (the portals stop with it) and take
-# this session's display out of the environment of what systemd --user starts later
-systemctl --user stop dwl-session.target 2>/dev/null
+# this session's display out of the environment of what systemd --user starts later. The
+# stop is queued, not waited for (--no-block): the login screen comes back at once instead
+# of after the portals have ended, while the screen shows only the blank console between
+systemctl --user --no-block stop dwl-session.target 2>/dev/null
 systemctl --user unset-environment WAYLAND_DISPLAY DISPLAY XDG_CURRENT_DESKTOP \
   XDG_SESSION_DESKTOP XDG_SESSION_TYPE 2>/dev/null
 exit 0

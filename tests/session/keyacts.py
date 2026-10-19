@@ -55,7 +55,7 @@ ROWS = {
     "Super+S":                 ("layout: golden spiral (the default)", ["setlayout:&layouts[0]"]),
     "Super+T":                 ("layout: columns, left to right", ["setlayout:&layouts[1]"]),
     "Super+Y / M":             ("layout: floating · one at a time", ["setlayout:&layouts[2]", "setlayout:&layouts[3]"]),
-    "Super+Shift+T":           ("the layout used before", ["setlayout:0"]),
+    "Super+Shift+T":           ("the tiling layout used before", ["setlayout:0"]),
     "Super+1…9":               ("go to workspace", [f"view:{t}" for t in TAGS]),
     "Super+Shift+1…9":         ("send window to workspace", [f"tag:{t}" for t in TAGS]),
     "Super+Ctrl+1…9":          ("also show workspace", [f"toggleview:{t}" for t in TAGS]),

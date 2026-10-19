@@ -57,10 +57,22 @@ else while IFS= read -r l; do fail "fedokawaii.conf: $l" "fedokawaii settings"; 
 check "Fedora $VERSION_ID (44 or newer)"              test "$VERSION_ID" -ge 44
 check "SELinux enforcing"                              test "$(getenforce 2>/dev/null)" = Enforcing
 check "/ is Btrfs"                                     test "$(findmnt -no FSTYPE /)" = btrfs
-check "no root-owned files in your home"               bash -c 'o=$(find "$1" -xdev -user root -print -quit) && [ -z "$o" ]' _ "$TARGET_HOME"
+# every file in your home is yours — ~/.cache, and ~/Downloads (its own Btrfs subvolume, where
+# -xdev would stop) included. Root's would come from a program run as root with your HOME,
+# another id's from an archive unpacked as root keeping its owners. The one exception, by
+# design: rootless podman's storage, whose image layers belong to the containers' own ids
+# (your subordinate ids: Prowlarr's thousands of files)
+hstarts=("$TARGET_HOME"); for d in .cache Downloads; do [[ -d $TARGET_HOME/$d && ! -L $TARGET_HOME/$d ]] && hstarts+=("$TARGET_HOME/$d"); done
+notmine=$(find "${hstarts[@]}" -xdev \
+            -path "$TARGET_HOME/.local/share/containers/storage" -prune -o ! -user "$TARGET_USER" -printf '%u %p\n' 2>/dev/null \
+          | sort -u | head -n 3 | sed "s|$TARGET_HOME|~|" | paste -sd ',' | sed 's/,/, /g')
+if [[ -z $notmine ]]; then pass "no root-owned files in your home (nor anyone else's; ~/.cache and ~/Downloads included)"
+else fail "files in your home that are not yours: $notmine" "a program ran as root with your HOME — send the report (sudo fedokawaii-report)"; fi
 check "user in video, render"                          bash -c "id -nG $TARGET_USER | tr ' ' '\n' | grep -cxE 'video|render' | grep -qx 2"
 check "EDITOR=nvim system-wide"                        grep -qx 'export EDITOR=nvim' /etc/profile.d/editor.sh
-check "vi → nvim"                                       test "$(readlink -f /usr/local/bin/vi)" = /usr/bin/nvim
+# (a script, never a link: dracut follows a link into nvim and fails on its Lua libraries —
+# no boot image, no splash; setup.sh's editor_policy)
+check "vi → nvim (a script: dracut never follows it into nvim)" bash -c '[[ ! -L /usr/local/bin/vi && -x /usr/local/bin/vi ]] && grep -qx "exec nvim \"\$@\"" /usr/local/bin/vi'
 check "i2c-dev loaded (monitor brightness over DDC/CI)" test -d /sys/module/i2c_dev
 
 # ── packages ─────────────────────────────────────────────────────────────────
@@ -99,10 +111,13 @@ done < <(waiting rpmfusion)
 for c in $(waiting copr); do
   warn "the COPR $c has no build for Fedora $VERSION_ID yet" "$(copr_pkgs "$c" | tr '\n' ' ')left out — update or repair adds it when it has one"
 done
-# Spotify, built here by lpf from RPM Fusion's recipe (setup carries on without it: update and
-# repair build it; a recipe newer than the package — a Spotify release — waits for the update)
+# Spotify, built here by lpf from RPM Fusion's recipe (SPOTIFY=yes: setup's step fails without
+# it, so none at all is a failure — the launcher would list an app that cannot start; a recipe
+# newer than the package — a Spotify release — waits for the update)
 if [[ $SPOTIFY != yes ]]; then info "Spotify not wanted (SPOTIFY=no)"
-elif ! rpm -q spotify-client >/dev/null 2>&1; then warn "Spotify not built yet" "update and repair build it (lpf, from Spotify's download)"
+elif ! rpm -q spotify-client >/dev/null 2>&1; then
+  fail "Spotify not built yet (SPOTIFY=yes; rpm -q spotify-client: not installed)" \
+    "fedokawaii repair builds it (lpf, from Spotify's download; why the last build failed: /var/lib/lpf/log/spotify-client.log)"
 elif [[ $(cat /var/lib/lpf/packages/spotify-client/state 2>/dev/null) != OK ]]; then
   warn "a newer Spotify waits to be built" "update builds it (lpf's log: /var/lib/lpf/log/spotify-client.log)"
 else pass "Spotify $(rpm -q --qf '%{version}' spotify-client) (built here by lpf)"; fi
@@ -233,10 +248,15 @@ noimg=(); for v in "${kv[@]}"; do [[ -s /boot/initramfs-$v.img ]] || noimg+=("$v
 if ((${#noimg[@]} == 0)); then pass "every kernel has its boot image (initramfs)"
 else fail "kernels without a boot image (initramfs)" "$(IFS=' '; echo "${noimg[*]}") — would not start; repair makes them (dracut)"; fi
 check "no rescue kernel or boot entry"                 bash -c '! ls /boot/vmlinuz-0-rescue-* /boot/loader/entries/*-0-rescue*.conf 2>/dev/null | grep -q .'
-for b in "${BOOT_ARGS[@]}"; do   # (setup.sh's console_boot_arg: the splash's rhgb quiet, no console-size wait)
+for b in "${BOOT_ARGS[@]}"; do   # (setup.sh's s_quiet_boot: the splash, nothing else on the screen, no console-size wait)
   check "$b on every boot entry" \
     bash -c 'a=$(grubby --info=ALL | grep "^args=") && [ -n "$a" ] && ! printf "%s\n" "$a" | grep -vqE "[\" ]$1([\" ]|\$)"' _ "$b"
 done
+# (the ones this start was given: an entry that just gained them shows them from the next)
+quiet_now=1; for b in "${BOOT_ARGS[@]}"; do tr ' ' '\n' </proc/cmdline 2>/dev/null | grep -qxF -- "$b" || quiet_now=0; done
+if ((quiet_now)); then pass "a quiet boot, this start too (the boot's arguments active)"
+else info "the boot's arguments are on every entry; this start had not all of them — they show from the next"; fi
+check "a text console shows its cursor at login (/etc/profile.d/fedokawaii-console.sh)" grep -qF '25h' /etc/profile.d/fedokawaii-console.sh
 if [[ $GPU_KIND == amd ]]; then
   # (this exact value, a whole argument: an older one, or one LACT cannot use, does not pass)
   check "$AMDGPU_ARG on every boot entry" \
@@ -320,8 +340,14 @@ check "dwl finds every library (its wlroots: its own)"  U bash -c 'l=$(ldd /usr/
 check "session launcher (start-dwl)"                   test -x /usr/local/bin/start-dwl
 check "keyboard layouts $KB_LAYOUTS"                   grep -q "XKB_DEFAULT_LAYOUT=\"$KB_LAYOUTS\"" /usr/local/bin/start-dwl
 check "greetd SELinux module loaded"                   bash -c 'semodule -l | grep -qw greetd'
-check "greetd runs the login screen (kawa-greet in cage) for $TARGET_USER" grep -qxF "command = \"env \$(/usr/local/bin/start-dwl --gpu) \\\"XCURSOR_THEME=Sumi-\$(cat /var/lib/fedokawaii-greeter/theme)\\\" cage -d -s -- /usr/local/bin/kawa-greet $TARGET_USER\"" /etc/greetd/fedokawaii.toml
+check "greetd runs the login screen (kawa-greet in cage) for $TARGET_USER" grep -qxF "command = \"env \$(/usr/local/bin/start-dwl --gpu) \\\"XCURSOR_THEME=Sumi-\$(cat /var/lib/fedokawaii-greeter/theme)\\\" systemd-cat -t kawa-greet cage -d -s -- /usr/local/bin/kawa-greet $TARGET_USER\"" /etc/greetd/fedokawaii.toml
 check "greetd reads fedokawaii.toml"                   bash -c 'systemctl cat greetd.service | grep -qx "ExecStart=/usr/bin/greetd --config /etc/greetd/fedokawaii.toml"'
+# (its drop-in: tty1 its own — no text login under the login screen — and started once the
+# splash has gone, never taking the screen from it: setup.sh's greetd_config)
+check "greetd owns tty1 and follows the boot splash (its drop-in)" bash -c 'u=$(systemctl cat greetd.service) && grep -qE "^Conflicts=.*getty@tty1\.service" <<<"$u" && grep -qE "^After=.*plymouth-quit-wait\.service" <<<"$u"'
+check "a login screen that cannot start is said on tty1, not a black screen (greetd's OnFailure)" bash -c 'systemctl cat greetd.service | grep -qx "OnFailure=fedokawaii-login-failed.service" && grep -q "The login screen could not start" /etc/systemd/system/fedokawaii-login-failed.service'
+check "the health report (fedokawaii-report) is the toolkit's" cmp -s "$TK/system/fedokawaii-report" /usr/local/bin/fedokawaii-report
+((PRE)) || check "the health report runs once, on the first start"  systemctl is-enabled --quiet fedokawaii-report.service   # (finalize enables it)
 check "the login screen (kawa-greet) installed"          test -x /usr/local/bin/kawa-greet
 check "the login screen's look, both themes (/usr/local/share/fedokawaii/greeter)" bash -c 'for t in dark light; do d=/usr/local/share/fedokawaii/greeter/$t; for f in gtklock.css padlock.png seal-{1..7}.png; do [[ -s $d/$f ]] || exit 1; done; done'
 check "the login screen follows your theme (/var/lib/fedokawaii-greeter is yours)" test "$(stat -c %U /var/lib/fedokawaii-greeter 2>/dev/null)" = "$TARGET_USER"
@@ -367,11 +393,23 @@ prowlarr_get() {   # prowlarr_get PATH — the key goes to curl on stdin, never 
 if [[ $pkey =~ ^[0-9a-f]{32}$ ]]; then pass "Prowlarr key in secrets.sh (PROWLARR_API_KEY)"
 else fail "Prowlarr key in secrets.sh (PROWLARR_API_KEY)" "missing or not 32 hex characters — repair makes one"; fi
 check "Prowlarr container file current"                cmp -s "$REPO_DIR/system/prowlarr.container" "$TARGET_HOME/.config/containers/systemd/prowlarr.container"
+# Its start waits for nothing online: quadlet's default dependency on podman's
+# podman-user-wait-network-online.service polls the system's network-online.target, which no
+# unit pulls in on this desktop's boots — 90 s, then a failed start ([Quadlet]
+# DefaultDependencies=false in the container file takes it out; systemd's own view asked here)
+pdeps=$(U systemctl --user show -p Wants -p After --value prowlarr.service 2>/dev/null) || pdeps=""
+if [[ $pdeps == *podman-user-wait-network-online* ]]; then
+  fail "Prowlarr's start waits for the network to be online (podman-user-wait-network-online.service: 90 s, then a failure)" "repair puts the current container file in"
+else pass "Prowlarr's start waits on nothing online (it answers on 127.0.0.1 only)"; fi
 # Prowlarr runs on demand: started for these checks, and stopped again after if it was not
-# running before
+# running before; one already running is not started again (a start job then would only
+# re-run its dependencies, and say nothing about Prowlarr)
 prowlarr_was=0; U systemctl --user is-active --quiet prowlarr.service && prowlarr_was=1
-((prowlarr_was)) || info "starting Prowlarr to check it — its first start after a boot can take a minute or two"
-check "Prowlarr starts (it runs on demand)"           U systemctl --user start prowlarr.service
+if ((prowlarr_was)); then pass "Prowlarr starts (it runs on demand) — running already"
+else
+  info "starting Prowlarr to check it — its first start after a boot can take a minute or two"
+  check "Prowlarr starts (it runs on demand)"         U systemctl --user start prowlarr.service
+fi
 check "Prowlarr answers on 127.0.0.1:9696"             U curl -fsS --max-time 5 -o /dev/null http://127.0.0.1:9696/ping
 check "Prowlarr takes the key from secrets.sh"         prowlarr_get health
 check "Prowlarr's files are yours (~/.config/prowlarr)" bash -c '[[ -d $1 && -z $(find "$1" ! -user "$2" -print -quit) ]]' _ "$TARGET_HOME/.config/prowlarr" "$TARGET_USER"
@@ -571,7 +609,6 @@ else
   check "the backup's exclude list in place (kawa-backup)" test -s "$TARGET_HOME/.config/fedokawaii/backup-exclude"
   check "Syncplay plays in mpv (~/.config/syncplay.ini)" grep -q '^playerpath = .*mpv$' "$TARGET_HOME/.config/syncplay.ini"
   check "neovim colourscheme gruvbox (remapped)"       U sh -c 'timeout 60 nvim --headless "+lua io.write(vim.g.colors_name or \"\")" +qa 2>&1 | grep -q gruvbox'
-  check "icon themes present (Papirus)"                test -d /usr/share/icons/Papirus-Dark -a -d /usr/share/icons/Papirus
   # both Sumi variants, each with its other names (left_ptr: a link that leads to a pointer),
   # and the default theme the one of the theme in use (kawa-theme keeps them together)
   check "Sumi pointers in place (both, with their X11 names; the default the theme's)" \
@@ -598,6 +635,14 @@ else
   check "music meter (cava) runs"                      U timeout 5 cava -v
   ((BOOT_SKIPPED)) || check "boot menu theme installed" bash -c 'test -s /boot/grub2/themes/sumi/theme.txt && grep -q grub2/themes/sumi/theme.txt /boot/grub2/grub.cfg'
   ((BOOT_SKIPPED)) || check "boot splash: the sumi theme (起動中 · starting Fedora)" bash -c '[[ $(plymouth-set-default-theme) == sumi ]] && test -s /usr/share/plymouth/themes/sumi/sumi.script'
+  # (in every kernel's boot image, where Plymouth reads it — whatever the boot menu's part
+  # did: a dracut that failed leaves images with Plymouth's text themes only. Repair: the
+  # theme run makes them again)
+  noimg=(); for v in "${kv[@]}"; do
+    lsinitrd "/boot/initramfs-$v.img" 2>/dev/null | grep -q usr/share/plymouth/themes/sumi/sumi.script || noimg+=("$v")
+  done
+  if ((${#kv[@]} && ${#noimg[@]} == 0)); then pass "the splash in every boot image (lsinitrd)"
+  else fail "the splash in every boot image (lsinitrd)" "not in $(IFS=' '; echo "${noimg[*]:-any}") — the boot shows text, not the splash; fedokawaii repair makes them again (dracut)"; fi
   # shellcheck disable=SC2088  # literal ~ in a label
   check "~/.bashrc loads ~/.bashrc.d"                  grep -q bashrc.d "$TARGET_HOME/.bashrc"
 fi
@@ -612,7 +657,13 @@ if pgrep -u "$TARGET_UID" -x dwl >/dev/null; then
   fcv=$(portal org.freedesktop.portal.FileChooser version) scs=$(portal org.freedesktop.portal.ScreenCast AvailableSourceTypes)
   check "file dialog portal (FileChooser ${fcv#u })"     bash -c '[[ $1 =~ ^u\ ([0-9]+)$ ]] && ((BASH_REMATCH[1] >= 3))' _ "$fcv"
   check "screen sharing portal: screens + windows"     test "$scs" = "u 3"
-  check "\"Share\" output for calls (PipeWire; \"Monitor of Share\" is its microphone)" grep -q "Share" <<<"$(U wpctl status 2>/dev/null)"
+  # "Share" (~/.config/pipewire/pipewire.conf.d/60-share.conf) asked for by its node name, in
+  # PipeWire's own list: a loopback's nodes share a node.link-group, and WirePlumber 0.5's
+  # wpctl status lists such nodes under "Filters" by node.name ("share_sink"), never by their
+  # description — grepping its output for "Share" failed with the output there
+  check "\"Share\" output for calls (PipeWire node share_sink, an Audio/Sink; \"Monitor of Share\" is its microphone)" \
+    jq -e 'any(.[]; .type == "PipeWire:Interface:Node" and .info.props["node.name"] == "share_sink"
+                   and .info.props["media.class"] == "Audio/Sink")' <<<"$(U pw-dump 2>/dev/null)"   # (no PipeWire: no input, jq -e fails)
   if ((THEMED)); then
     for p in waybar kawa-panel mako foot swaybg swayidle udiskie kawa-dwlstatus kawa-nowplaying kawa-mem lxqt-policykit-agent; do
       check "$p running" pgrep -u "$TARGET_UID" -f "(^|/)$p( |$)"

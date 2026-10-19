@@ -91,6 +91,34 @@ eq "$(cut -d' ' -f2 "$NOTIFY_STATE/log" | sort -u)" 1 "one panel, updated in pla
 case_ "… and down the same way: 0 at most, still in step"
 for _ in {1..35}; do kawa-brightness -10 & /bin/sleep 0.028; done; wait
 eq "$(b 5)" "$(b 7)"
+case_ "quick settings' meter dragged (a level every 30 ms, monitor 200 ms a change): none queued, the last one always arrives"
+setup; export DDC_DELAY=0.2; kawa-brightness --level >/dev/null; : >"$DDC/log"
+for v in 10 15 20 25 30 35 40 45 50 55 60 65; do kawa-brightness "$v" & /bin/sleep 0.03; done; wait
+eq "$(b 5)" 65 "the monitor ends where the meter did"
+eq "$(kawa-brightness --level)" 65
+n=$(grep -c setvcp "$DDC/log"); ((n >= 2 && n <= 6)) && _ok || _no "$n levels set for 12 asked (stale ones should be skipped)"
+eq "$(grep -c getvcp "$DDC/log")" 0 "a level asks the monitor nothing (its scale is known)"
+[[ ! -e $XDG_RUNTIME_DIR/kawa-brightness.want ]] && _ok || _no "a wanted level was left behind"
+case_ "… read back while the monitor is still busy with an older level (quick settings' state): the one asked, not the old one"
+setup; export DDC_DELAY=0.4; kawa-brightness --level >/dev/null
+kawa-brightness 20 & /bin/sleep 0.15
+kawa-brightness 90       # (handed to the run under way: back at once)
+eq "$(kawa-brightness --level)" 90 "the meter is not sent back"
+wait; eq "$(b 5)" 90
+case_ "… one asked while another run holds the monitors (the bar reading the level): applied by that run"
+setup; export DDC_DELAY=0.3; rm -f "$XDG_RUNTIME_DIR/kawa-brightness.level"
+kawa-brightness --level >/dev/null & /bin/sleep 0.1
+rc 0 kawa-brightness 30; wait
+eq "$(b 5)" 30 "not dropped"
+case_ "a key press: the level shows before the monitor has answered, and one DDC/CI conversation"
+setup; kawa-brightness --level >/dev/null; : >"$DDC/log"; export DDC_DELAY=1.5
+kawa-brightness +10 &
+for _ in {1..60}; do [[ $(shown) == 80% ]] && break; /bin/sleep 0.02; done
+eq "$(shown)" 80% "shown at once"
+eq "$(b 5)" 70 "(the monitor not there yet)"
+wait; eq "$(b 5)" 80
+eq "$(grep -c . "$DDC/log")" 1 "one ddcutil: the change (its level known, no read first)"
+called 'ddcutil --bus 5 --skip-ddc-checks setvcp 10 80 --noverify'
 case_ "a stale lock from a press that was killed: the next press works"
 setup; : >"$XDG_RUNTIME_DIR/kawa-ddc.lock"
 rc 0 kawa-brightness +10; eq "$(b 5)" 80

@@ -102,7 +102,7 @@ stub rpm 'exit 127'; has "$(line kernel "$(fedokawaii status)")" "6.17.1-300.fc4
 case_ "packages Fedora no longer has: listed, cut to fit"
 fresh; printf '%s\n' libfoo-tools some-long-retired-package-name another-one >"$R/state/unavailable"
 l=$(line retired "$(fedokawaii status)")
-has "$l" "libfoo-tools some-long-retired-pac…"
+has "$l" "libfoo-tools some-long-retired-pa…"
 (( ${#l} <= 44 )) && _ok || _no "retired line too long: $l"
 case_ "config files to compare after a move: counted, the list named"
 printf '/etc/a.rpmnew\n/etc/b.rpmsave\n' >"$R/state/rpmnew"
@@ -142,7 +142,7 @@ fresh; : >"$R/state/lock"
 ( exec 9>"$R/state/lock"; flock 9; exec sleep 30 ) >/dev/null 2>&1 & holder=$!   # (sleep itself holds it)
 for _ in 1 2 3 4 5 6 7 8 9 10; do flock -n "$R/state/lock" true || break; sleep 0.1; done
 out=$(fedokawaii status)
-eq "$(head -n1 <<<"$out")" "running  an update or a repair, now"
+eq "$(head -n1 <<<"$out")" "running   an update or a repair, now" "(the keys' column two clear of the longest, verified)"
 has "$(grep -m1 '^update' <<<"$(plain "$(fedokawaii --rows)")")" "running"
 kill "$holder" 2>/dev/null; wait "$holder" 2>/dev/null
 case_ "a stale lock (left by a run that crashed: the file, nobody holding it) is not a run"
@@ -175,7 +175,7 @@ has "$(fedokawaii remind check)" "Fedora 44's support ends"
 case_ "remind quiet (the session's timer): one notice a day, as the desktop's"
 fresh; rec last-update-done "$(ago_s 95)"
 fedokawaii remind quiet
-called 'notify-send -a desktop upkeep the update season is here'
+called 'notify-send -a desktop -- .*  upkeep the update season is here'
 reset_calls; fedokawaii remind quiet; not_called 'notify-send'
 case_ "remind quiet twenty times at once (timers piling up after a suspend): one notice"
 fresh; rec last-update-done "$(ago_s 95)"
@@ -185,7 +185,7 @@ reset_calls; fedokawaii remind quiet; not_called 'notify-send'
 case_ "remind quiet: a notice that could not be shown is shown at the next look"
 fresh; rec last-update-done "$(ago_s 95)"; stub notify-send 'exit 1'
 fedokawaii remind quiet; stub notify-send; reset_calls
-fedokawaii remind quiet; called 'notify-send -a desktop upkeep'
+fedokawaii remind quiet; called 'notify-send -a desktop -- .*  upkeep'
 case_ "remind quiet with reminders off: silent; nothing due: silent"
 fresh; rec last-update-done "$(ago_s 95)"; fedokawaii remind off >/dev/null; reset_calls
 fedokawaii remind quiet; not_called 'notify-send'
@@ -221,11 +221,11 @@ backed_up 29; eq "$(grep -c . <<<"$(fedokawaii remind check)")" 1; backed_up 30;
 case_ "remind quiet: the backup's notice, once a day, on its own day count (an upkeep notice the same day does not hide it)"
 fresh; setting BACKUP_TARGET KINGSTON; backed_up 10; rec last-update-done "$(ago_s 95)"
 fedokawaii remind quiet
-called 'notify-send -a desktop upkeep the update season is here'; called 'notify-send -a desktop backup the last backup was 10 days ago — plug in KINGSTON'
+called 'notify-send -a desktop -- .*  upkeep the update season is here'; called 'notify-send -a backup -- .*  backup the last backup was 10 days ago — plug in KINGSTON'
 reset_calls; fedokawaii remind quiet; not_called 'notify-send'
 case_ "remind quiet: a backup notice that could not be shown is shown at the next look; reminders off: silent"
 fresh; setting BACKUP_TARGET KINGSTON; backed_up 10; stub notify-send 'exit 1'
-fedokawaii remind quiet; stub notify-send; reset_calls; fedokawaii remind quiet; called 'notify-send -a desktop backup'
+fedokawaii remind quiet; stub notify-send; reset_calls; fedokawaii remind quiet; called 'notify-send -a backup -- .*  backup'
 fedokawaii remind off >/dev/null; rm -f "$HOME/.cache/fedokawaii/reminded-backup"; reset_calls
 fedokawaii remind quiet; not_called 'notify-send'
 case_ "a garbage BACKUP_REMIND_DAYS (fedokawaii.conf edited by hand, as root): the default, 7"
@@ -245,7 +245,7 @@ fresh; setting BACKUP_TARGET "\$(touch $TMP/ran)"; fedokawaii status >/dev/null;
 
 case_ "a move's outcome: told once at the next login, critical when it failed"
 fresh; rec last-upgrade "$(ago_s 0) 43 44 failed"; rec last-update-done "$(ago_s 0)"
-fedokawaii remind quiet; called 'notify-send -a desktop -u critical upkeep the move to Fedora 44 did not complete'
+fedokawaii remind quiet; called 'notify-send -a desktop -u critical -- .*  upkeep the move to Fedora 44 did not complete'
 reset_calls; fedokawaii remind quiet; not_called 'notify-send'
 fresh; rec last-upgrade "$(ago_s 1) 43 44 ok"; fedokawaii remind quiet; called 'Fedora 44 is in place — the move finished'
 fresh; rec last-upgrade "$(ago_s 90) 43 44 ok"; fedokawaii remind quiet; not_called 'in place'

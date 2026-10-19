@@ -2,7 +2,8 @@
 # tests/drives/test_drives.sh — kawa-drives against a made-up machine: a USB stick, an external
 # disk with an encrypted half and an NTFS half, an SD card in the machine's own reader, a DVD
 # drive with nothing in it, two disk images (one yours, one root's) and the system's own SSD.
-# lsblk answers from fixtures/disks.json (fake_lsblk.py), udisks from fixtures/hints.
+# lsblk answers from fixtures/disks.json (fake_lsblk.py), losetup from fixtures/losetup.json
+# (your image's file made in the sandbox; root's is not there, so not yours).
 . "$(dirname "$0")/../lib/harness.sh"
 D=$(cd "$(dirname "$0")" && pwd)
 
@@ -10,18 +11,12 @@ setup() {   # setup — a fresh sandbox with the fixture machine; $MNT holds rea
   sandbox
   MNT=$TMP/media; mkdir -p "$MNT/KINGSTON" "$MNT/BACKUP" "$MNT/IMAGE"
   sed -e "s|@MNT@|$MNT|g" "$D/fixtures/disks.json" >"$TMP/disks.json"
-  export FAKE_DISKS=$TMP/disks.json FAKE_HINTS=$D/fixtures/hints FAKE_UID=$UID
+  export FAKE_DISKS=$TMP/disks.json
   stub lsblk 'exec python3 '"$D"'/fake_lsblk.py "$@"'
-  # busctl get-property … block_devices/NAME IFACE PROP → the fixture's answer for NAME
-  stub busctl 'n=${4##*/}; p=$6
-case $p in
-  HintSystem) v=$(awk -v n="$n" '"'"'$1 == n { print $2 }'"'"' "$FAKE_HINTS") ;;
-  SetupByUID) v=$(awk -v n="$n" '"'"'$1 == n { print $3 }'"'"' "$FAKE_HINTS")
-            case $v in me) v=$FAKE_UID ;; other) v=$((FAKE_UID + 1)) ;; esac ;;
-esac
-[ -n "$v" ] || exit 1
-case $p in HintSystem) echo "b $v" ;; SetupByUID) echo "u $v" ;; esac'
-  stub losetup "cat '$D/fixtures/losetup.json'"
+  mkdir -p "$TMP/Pictures"; : >"$TMP/Pictures/holiday photos.img"
+  sed "s|/home/me/Pictures|$TMP/Pictures|" "$D/fixtures/losetup.json" >"$TMP/losetup.json"
+  stub losetup "cat '$TMP/losetup.json'"
+  stub busctl 'exit 1'                          # (udisks is never asked: a click never waits on it)
   stub setsid; stub udiskie-mount; stub udiskie-umount; stub kawa-term; stub makoctl
   stub pgrep 'exit 1'; stub kawa-menu 'cat >/dev/null; exit 1'
 }
@@ -56,14 +51,35 @@ lacks "$out" /dev/sr0 "an empty DVD drive (nothing to open)"
 lacks "$out" $'/dev/sdc1\t' "the locked-and-unlocked LUKS container itself (its inside is listed)"
 eq "$(wc -l <<<"$out")" 5 "five file systems"
 
-case_ "udisks not answering: nothing listed, and said — never a guess from the kernel's removable, hot-plugged, USB flags"
-stub busctl 'exit 1'
-out=$(kawa-drives list 2>/dev/null); eq "$?" 1; eq "$out" ""
-has "$(kawa-drives list 2>&1 >/dev/null)" "udisks is not answering"
-eq "$(kawa-drives bar)" '{"text":""}' "the bar: no mark"
-stub kawa-menu 'cat >"'"$TMP"'/rows"; exit 1'; kawa-drives menu
-has "$(cat "$TMP/rows")" "udisks is not answering"; lacks "$(cat "$TMP/rows")" "nothing plugged in"
-stub kawa-menu 'cat >/dev/null; exit 1'
+case_ "a plugged stick lights the bar — the kernel's word (lsblk), no daemon asked on the way"
+# (the regression: the bar asked udisks about every disk and drew nothing when it did not
+# answer — or took 25 s a disk when it hung — so on the real machine the mark was gone)
+reset_calls
+out=$(kawa-drives list); eq "$?" 0
+has "$out" $'/dev/sdb1\t/dev/sdb\tKINGSTON' "the stick listed"
+bar=$(kawa-drives bar); [[ $bar != '{"text":""}' ]] && _ok || _no "a plugged drive gave an empty bar: $bar"
+has "$bar" "$(. "$HOME/.config/fedokawaii/icons.sh"; printf '%s' "$ICON_USB")"
+not_called '^busctl'; not_called '^udisksctl'
+case_ "only the stick plugged in (the rest of the machine its own): the bar's mark, alone"
+python3 - "$FAKE_DISKS" <<'PY'
+import json, sys
+t = json.load(open(sys.argv[1])); t["blockdevices"] = [d for d in t["blockdevices"] if d["name"] in ("/dev/sdb", "/dev/nvme0n1", "/dev/zram0")]
+json.dump(t, open(sys.argv[1], "w"))
+PY
+eq "$(kawa-drives bar)" "{\"text\":\"$(. "$HOME/.config/fedokawaii/icons.sh"; printf '%s' "$ICON_USB")\",\"class\":\"open\"}"
+setup
+case_ "an image goes by its file's owner: yours listed, a service's (root's file) not"
+has "$(kawa-drives list)" $'/dev/loop0\t/dev/loop0\tholiday photos.img'
+lacks "$(kawa-drives list)" loop1
+case_ "lsblk's older flags as strings (\"1\"/\"0\") read the same"
+python3 - "$FAKE_DISKS" <<'PY'
+import json, sys
+t = json.load(open(sys.argv[1]))
+for d in t["blockdevices"]: d["rm"] = "1" if d.get("rm") else "0"; d["tran"] = None if d["name"] == "/dev/sdb" else d.get("tran")
+json.dump(t, open(sys.argv[1], "w"))
+PY
+has "$(kawa-drives list)" $'/dev/sdb1\t/dev/sdb\tKINGSTON' "removable \"1\", no transport: a drive"
+lacks "$(kawa-drives list)" nvme0n1
 
 case_ "no drives at all: an empty list, an empty bar"
 setup; printf '{"blockdevices": []}\n' >"$FAKE_DISKS"

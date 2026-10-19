@@ -40,7 +40,7 @@ preview). The book is set in the desktop's own faces: Fusion Pixel as setup inst
 (`FEDOKAWAII_PIXEL_FONT`) for headings and labels, the toolkit's Sumi Icons, JetBrains Mono for
 code, Noto Serif and Sans from `@fontsource` for the text; from the system it takes Noto
 Serif/Sans CJK JP for kanji and kana, and DejaVu Sans for arrows and symbols. The cover is the
-dark theme's default wallpaper, dawn-mart, as the theme fetched it (`FEDOKAWAII_COVER`); a
+dark theme's default wallpaper, ink-ridges-night, as the theme fetched it (`FEDOKAWAII_COVER`); a
 missing font or cover stops the build. It prints twice: the second pass writes the contents' page
 numbers, read from the first.
 

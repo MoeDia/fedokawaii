@@ -15,11 +15,52 @@
 # `kawa-lock --now` (swayidle, right before sleep) is the same lock; both return only once
 # the screens are locked.
 #
+# The lock holds until your password, whatever happens meanwhile: gtklock runs under a
+# keeper (kawa-lock --keep, started here). Should gtklock stop without the password — a
+# crash, a screen that went away as the machine slept — the desktop stays locked (dwl keeps
+# its plain locked screen) and the keeper starts gtklock again at once. What happens goes to
+# the journal (journalctl -t kawa-lock): "lock up", "unlocked", "locker exited rc=N",
+# "resumed" (swayidle runs kawa-lock --resumed as the machine wakes).
+#
 # Exit: 0 locked (or it already was) · 1 it could not lock (gtklock missing, stopped, or it
 # did not lock within 10 s — said in a notice) — so `kawa-lock && systemctl suspend` never sleeps
 # unlocked.
 set -u
 case ${1:-} in -h|--help) sed -n '2,/^set -u/{/^set -u/d;s/^# \{0,1\}//;p}' "$0"; exit 0 ;; esac
+run=${XDG_RUNTIME_DIR:-/run/user/$UID}
+locked=$run/kawa-lock.locked     # there while the desktop is locked (gtklock's --lock-command)
+held=$run/kawa-lock.held         # the keeper's: held (flock) while it runs, its process id inside
+say() { logger -t kawa-lock -- "$*" 2>/dev/null; }
+keeping() { ! flock -n "$held" true 2>/dev/null; }   # the keeper runs: the desktop is locked
+
+# keep GTKLOCK-COMMAND… — the keeper: runs gtklock until it ends with the password (status 0).
+# gtklock gone any other way after it had locked, dwl keeps the desktop locked with no lock
+# screen on it: gtklock is started again at once (after a second, should it stop again within
+# a second), for as long as the desktop runs. One that stops before it ever locked ends the
+# keeper: kawa-lock says why.
+keep() {
+  exec 8>>"$held"
+  flock -n 8 || exit 0                               # (one keeper at a time)
+  echo "$$" >"$held"
+  local rc ever=0 t0 t1
+  while :; do
+    read -r t0 _ </proc/uptime
+    "$@" </dev/null >/dev/null 2>&1 8>&-; rc=$?
+    read -r t1 _ </proc/uptime
+    [[ -e $locked ]] && ever=1
+    if ((rc == 0)); then rm -f "$locked"; say "unlocked"; exit 0; fi
+    if ((!ever)); then say "locker exited rc=$rc before it locked"; exit 1; fi
+    if ! pgrep -xu "$UID" dwl >/dev/null; then rm -f "$locked"; say "locker exited rc=$rc — the desktop has ended"; exit 0; fi
+    say "locker exited rc=$rc — the desktop stays locked: started again"
+    ((${t1%.*} - ${t0%.*} >= 1)) || sleep 1
+  done
+}
+case ${1:-} in
+  --up) : >"$locked"; say "lock up"; exit 0 ;;        # gtklock's --lock-command: every screen locked
+  --resumed) if keeping; then say "resumed — locked"; else say "resumed — not locked"; fi; exit 0 ;;
+  --keep) shift; keep "$@" ;;
+esac
+
 THEME=dark
 # shellcheck source=/dev/null
 [[ -r $HOME/.config/fedokawaii/current/colors.sh ]] && . "$HOME/.config/fedokawaii/current/colors.sh"
@@ -30,15 +71,15 @@ case ${1:-} in
   --now) shift ;;
   --sleep) sleep_after=90; [[ ${KAWA_LOCK_SLEEP:-} =~ ^[0-9]+$ ]] && sleep_after=$KAWA_LOCK_SLEEP; shift ;;
 esac
-run=${XDG_RUNTIME_DIR:-/run/user/$UID}
 fail() {
-  notify-send -a desktop -u critical "${ICON_LOCK:-}  could not lock the screen" "$1" 2>/dev/null
+  notify-send -a desktop -u critical -- "${ICON_LOCK:-}  could not lock the screen" "$1" 2>/dev/null
+  say "could not lock: $1"
   echo "kawa-lock: $1" >&2; exit 1
 }
 # one at a time: a second press while the first is still starting (a double press, idle
 # firing as you press) waits for it, then finds the screen locked
 { exec 9>"$run/kawa-lock.busy"; } 2>/dev/null && flock -w 10 9 2>/dev/null   # (exec … 2>/dev/null alone would silence the whole script)
-pgrep -xu "$UID" gtklock >/dev/null && exit 0               # already locked (this user's)
+keeping && exit 0                                     # already locked
 command -v gtklock >/dev/null || fail "gtklock is not installed — fedokawaii repair puts it back"
 
 # today's seal and the theme's padlock into a copy of the layout (pictures drawn once, at
@@ -53,29 +94,28 @@ layout=(-x "$ui")
 sed -e "s|{SEAL}|$art/seal-$day.png|" -e "s|{PADLOCK}|$art/padlock.png|" \
   "$HOME/.config/fedokawaii/lock.ui" >"$ui.tmp" 2>/dev/null && mv -f "$ui.tmp" "$ui" || {
   layout=()
-  notify-send -a desktop -u critical "${ICON_LOCK:-}  lock screen" "its layout is missing (~/.config/fedokawaii/lock.ui), so it locks plain — fedokawaii repair puts it back" 2>/dev/null
+  notify-send -a desktop -u critical -- "${ICON_LOCK:-}  lock screen" "its layout is missing (~/.config/fedokawaii/lock.ui), so it locks plain — fedokawaii repair puts it back" 2>/dev/null
 }
 
-locked=$run/kawa-lock.locked
 rm -f "$locked"
-# gtklock runs on (it is the lock); --lock-command marks the moment every screen is locked.
+# gtklock, under its keeper (above); --lock-command marks the moment every screen is locked.
 # The date in English whatever the language (C), the ◆ box and the seal say the rest; its two
 # messages in the desktop's words (LANGUAGE=fk: the catalogue setup installs, art/gtklock.mo)
-setsid -f env LC_TIME=C LANGUAGE=fk gtklock -s "$HOME/.config/fedokawaii/current/gtklock.css" "${layout[@]}" \
+setsid -f "$0" --keep env LC_TIME=C LANGUAGE=fk gtklock -s "$HOME/.config/fedokawaii/current/gtklock.css" "${layout[@]}" \
   --date-format '%d %b' --time-format '%I:%M %p' \
-  --lock-command "touch $locked" </dev/null >/dev/null 2>&1 9>&-
+  --lock-command "kawa-lock --up" </dev/null >/dev/null 2>&1 9>&-
 # (gone after a second without locking — it could not start: said at once, not after 10 s)
 for ((i = 0; i < 100; i++)); do
   [[ -e $locked ]] && break
-  ((i >= 10)) && ! pgrep -xu "$UID" gtklock >/dev/null && fail "gtklock stopped before it locked"
+  ((i >= 10)) && ! keeping && fail "gtklock stopped before it locked"
   sleep 0.1
 done
 [[ -e $locked ]] || { pkill -xu "$UID" gtklock; fail "gtklock did not lock within 10 s"; }
 exec 9>&-
 ((sleep_after > 0)) || exit 0
-# the sleep after a lock you asked for: tied to this very lock — unlocked (gtklock gone)
+# the sleep after a lock you asked for: tied to this very lock (its keeper) — unlocked
 # before the time is up, nothing happens; a second lock later has its own count
-pid=$(pgrep -nxu "$UID" gtklock) || exit 0
+pid=$(<"$held") 2>/dev/null; [[ $pid =~ ^[0-9]+$ ]] || exit 0
 setsid -f bash -c 'for ((i = 0; i < $1; i++)); do sleep 1; kill -0 "$2" 2>/dev/null || exit 0; done
-  systemctl suspend' _ "$sleep_after" "$pid" </dev/null >/dev/null 2>&1
+  logger -t kawa-lock -- "still locked after $1 s: sleep" 2>/dev/null; systemctl suspend' _ "$sleep_after" "$pid" </dev/null >/dev/null 2>&1
 exit 0

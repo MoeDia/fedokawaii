@@ -6,9 +6,12 @@
 #
 #   kawa-backup                  back up now: your home, minus ~/Downloads, caches and what can
 #                                be downloaded again (~/.config/fedokawaii/backup-exclude), to
-#                                BACKUP_TARGET.
+#                                BACKUP_TARGET. None yet, in a terminal: the drives plugged in
+#                                to pick from — the one picked saved as BACKUP_TARGET, as
+#                                settings save it (root's password asked), then the backup.
 #                                A notice at the start and at the end — or why not (the drive is
-#                                not plugged in, no password, the drive is full, restic missing)
+#                                not plugged in, no password, the drive is full, restic missing);
+#                                one at a time: each takes the last one's place
 #   kawa-backup list             the backups there, oldest first (each with its id)
 #   kawa-backup restore PATH [SNAPSHOT]
 #                                PATH (a file or a folder) as it was in SNAPSHOT (an id from
@@ -31,7 +34,8 @@
 # ~/.config/fedokawaii/secrets.sh (yours alone, mode 600): without it the backup cannot be
 # read, by anyone — keep a copy of it somewhere else. The keys a cloud target needs go in
 # secrets.sh too, with export in front, under the names restic documents.
-# Exit status: 0 done · 1 it could not be done (said in a notice, or on stderr) · 2 misuse.
+# Exit status: 0 done · 1 it could not be done (said in a notice, or on stderr) · 2 misuse ·
+# 4 nothing to do: no drive plugged in to pick, or none picked.
 set -u
 export LC_ALL=C.UTF-8
 case :$PATH: in *":$HOME/.local/bin:"*) ;; *) PATH=$HOME/.local/bin:$PATH ;; esac
@@ -45,6 +49,7 @@ TK=${KAWA_TOOLKIT:-/usr/local/lib/fedokawaii}    # (the tests point it elsewhere
 BACKUP_TARGET="" CONF_WHY=""
 settings() {
   local l
+  # shellcheck disable=SC2034  # (LOG_FILE is read by common.sh)
   l=$(LOG_FILE=/dev/null; . "$TK/lib/common.sh" >/dev/null && read_conf "$TK/fedokawaii.conf" \
       && printf '%s\037%s' "$BACKUP_TARGET" "$(validate_conf | grep -m1 '^BACKUP_TARGET ')") \
     || { err "cannot read the toolkit ($TK) — run setup.sh from the repository again"; exit 1; }
@@ -61,13 +66,28 @@ FOLDER=fedokawaii-backup                         # the backup's folder on a driv
 REPO="" WHY=""
 DAY=86400
 
-say() {   # say [-u URGENCY] [-r ID] SUMMARY BODY — a notice of the backup's own, and the same line on stderr
-  local a=(-a backup)
-  while [[ ${1:-} == -[ur] ]]; do a+=("$1" "$2"); shift 2; done
-  notify-send "${a[@]}" -- "$ICON_ARCHIVE  $1" "$2" 2>/dev/null || true
+# the backup's notices take one place on screen: each replaces the one before (its id kept
+# for the session), so a run started twice, or a start and its end, never stack up
+SLOT=${XDG_RUNTIME_DIR:-$LOGDIR}/kawa-backup.notice
+note() {   # note [-u URGENCY] [-t MS] SUMMARY BODY — the notice, in the backup's one place
+  local a=(-a backup -p) id=""
+  while [[ ${1:-} == -[ut] ]]; do a+=("$1" "$2"); shift 2; done
+  read -r id 2>/dev/null <"$SLOT"; [[ $id =~ ^[1-9][0-9]*$ ]] && a+=(-r "$id")
+  id=$(notify-send "${a[@]}" -- "$ICON_ARCHIVE  $1" "$2" 2>/dev/null) && [[ $id =~ ^[0-9]+$ ]] \
+    && printf '%s\n' "$id" >"$SLOT" 2>/dev/null
+  return 0
+}
+say() {   # say [-u URGENCY] SUMMARY BODY — the notice, and the same line on stderr
+  note "$@"
+  while [[ ${1:-} == -u ]]; do shift 2; done
   printf 'kawa-backup: %s — %s\n' "$1" "$2" >&2
 }
-err() { printf 'kawa-backup: %s\n' "$*" >&2; }
+err() {   # on a terminal (its window, a shell): indented two columns, wrapped at words to fit
+  if [[ -t 2 ]]; then
+    local c; c=$(stty size </dev/tty 2>/dev/null) && c=${c#* } || c=80
+    printf 'kawa-backup: %s\n' "$*" | fold -s -w $((c - 4)) | sed 's/^/  /' >&2
+  else printf 'kawa-backup: %s\n' "$*" >&2; fi
+}
 settings
 ago() {   # ago EPOCH → today · yesterday · 12 days ago
   local d=$(( (EPOCHSECONDS - $1) / DAY ))
@@ -161,8 +181,10 @@ open_repo() {   # ready, the repository there, its stale lock cleared — or why
 
 # ── the backup ────────────────────────────────────────────────────────────────
 backup() {
-  local rc rid added files took label
-  local -a rr=()
+  local rc added files took label
+  if [[ -z $BACKUP_TARGET && -z $CONF_WHY && -t 0 ]]; then   # (in a window: one is picked now)
+    pick_target || return
+  fi
   ready || { say -u critical "not backed up" "$WHY"; return 1; }
   label=$(short)
   probe; rc=$?
@@ -175,8 +197,7 @@ backup() {
   esac
   unlock_stale
   mkdir -p "$LOGDIR" "$STATE" 2>/dev/null
-  rid=$(notify-send -a backup -p -t 0 -- "$ICON_ARCHIVE  $label · backing up" "your home, minus downloads and caches — a notice comes when it is done" 2>/dev/null) || rid=""
-  [[ $rid =~ ^[0-9]+$ ]] && rr=(-r "$rid")          # (the end's notice takes its place)
+  note -t 0 "$label · backing up" "your home, minus downloads and caches — a notice comes when it is done"
   SECONDS=0
   # (--exclude-caches: folders that mark themselves as caches, CACHEDIR.TAG, stay out too)
   r backup --exclude-file "$EXCLUDE" --exclude-caches -- "$HOME" 2>&1 | tee "$LOG"
@@ -187,16 +208,57 @@ backup() {
   case $rc in
     0|3)
       printf '%s\t%s\t%s\n' "$EPOCHSECONDS" "${added:-?}" "$BACKUP_TARGET" >"$RECORD.$$" && mv -f "$RECORD.$$" "$RECORD"
-      if ((rc == 0)); then say "${rr[@]}" "$label · backed up" "${files:+$files files, }${added:+$added new, }in $took"
-      else say -u critical "${rr[@]}" "$label · backed up, but not all of it" "some files could not be read — the log: $LOG"; fi
+      if ((rc == 0)); then say "$label · backed up" "${files:+$files files, }${added:+$added new, }in $took"
+      else say -u critical "$label · backed up, but not all of it" "some files could not be read — the log: $LOG"; fi
       return 0 ;;
-    130) say "${rr[@]}" "$label · stopped" "the backup was interrupted — run it again: it goes on from where it was" ;;
+    130) say "$label · stopped" "the backup was interrupted — run it again: it goes on from where it was" ;;
     *)
       if grep -qi 'no space left on device' "$LOG"; then
-        say -u critical "${rr[@]}" "$label · not backed up: the drive is full" "kawa-backup prune frees what only old backups hold — or a bigger drive"
-      else say -u critical "${rr[@]}" "$label · not backed up" "restic ended with $rc — the log: $LOG"; fi ;;
+        say -u critical "$label · not backed up: the drive is full" "kawa-backup prune frees what only old backups hold — or a bigger drive"
+      else say -u critical "$label · not backed up" "restic ended with $rc — the log: $LOG"; fi ;;
   esac
   return 1
+}
+
+# ── no BACKUP_TARGET yet: a drive picked, and saved as settings save it ──────────
+# The drives plugged in (kawa-drives list: one line per file system, by the name the drives
+# menu shows) in a small list; the one picked becomes BACKUP_TARGET in the toolkit's
+# fedokawaii.conf — a copy with that one line changed, checked and saved by the toolkit as
+# root (fedokawaii.sh conf, what Super+U → settings runs) — and counts at once.
+pick_target() {   # → 0 saved (and read again) · 4 nothing to pick, or none picked · 1 not saved
+  local dev label size fs folder pick t l rest gap w rc
+  local -a rows=()
+  local -A seen=()
+  while IFS=$'\t' read -r dev _ label size fs folder; do
+    [[ -n $label && -z ${seen[$label]:-} ]] || continue
+    seen[$label]=1; rows+=("$label"$'\t'"$size $fs${folder:+ · open}")
+  done < <(kawa-drives list 2>/dev/null)
+  if ((${#rows[@]} == 0)); then
+    say "no drive plugged in" "plug in the drive to keep your backup on, then back up again"
+    return 4
+  fi
+  export FZF_DEFAULT_OPTS_FILE=$HOME/.config/fedokawaii/fzf.opts; unset FZF_DEFAULT_OPTS   # (every list alike)
+  pick=$(printf '%s\n' "${rows[@]}" | fzf --delimiter=$'\t' --tabstop=24 --no-sort --height=~12 \
+           --border-label=" $ICON_ARCHIVE  back up to " \
+           --header=$'which drive keeps your backup? it is remembered (BACKUP_TARGET)\n') \
+    || { printf '  no drive picked — nothing backed up\n' >&2; return 4; }
+  label=${pick%%$'\t'*}
+  t=$(mktemp "${XDG_RUNTIME_DIR:-/tmp}/fedokawaii.conf.XXXXXX") || return 1
+  # the one line changed, its comment where it was
+  while IFS= read -r l || [[ -n $l ]]; do
+    if [[ $l =~ ^BACKUP_TARGET=(\"[^\"]*\"|[^[:space:]]*)(.*)$ ]]; then
+      rest=${BASH_REMATCH[2]}; gap=${rest%%[![:space:]]*}
+      w=$(( ${#BASH_REMATCH[1]} + ${#gap} - ${#label} - 2 )); ((w < 1)) && w=1
+      printf -v l 'BACKUP_TARGET="%s"%*s%s' "$label" "$w" '' "${rest#"$gap"}"
+    fi
+    printf '%s\n' "$l"
+  done <"$TK/fedokawaii.conf" >"$t"
+  printf '  %s keeps your backup from now on — saving it as BACKUP_TARGET (root'"'"'s password)\n' "$label"
+  if sudo -v; then sudo bash "$TK/fedokawaii.sh" conf "$t"; rc=$?
+  else echo "  this needs root: sudo refused (a wrong password, or not an administrator)" >&2; rc=1; fi
+  rm -f -- "$t"
+  ((rc == 0)) || { err "not saved — BACKUP_TARGET is as it was"; return 1; }
+  settings
 }
 
 # ── restore, list, check, prune, init ────────────────────────────────────────

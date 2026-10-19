@@ -20,7 +20,9 @@ n=$(grep -c "^grim" "$FAKE_TMP/calls.log")
 if [ "$out" = - ]; then cat "$FAKE_TMP/shot.png"; printf "%s" "$n"
 else { cat "$FAKE_TMP/shot.png"; printf "%s" "$n"; } >"$out"; fi'
   # wl-copy: what reached the clipboard, and whether the shot's lock came with it
-  argv wl-copy 'cat >"$FAKE_TMP/clip"; [ -e /proc/$$/fd/9 ] && echo "lock held" >>"$FAKE_TMP/fd9"; exit 0'
+  argv wl-copy 'cat >"$FAKE_TMP/clip.w"; [ -e /proc/$$/fd/9 ] && echo "lock held" >>"$FAKE_TMP/fd9"; mv -f "$FAKE_TMP/clip.w" "$FAKE_TMP/clip"; exit 0'
+  # wl-paste: the clipboard offers the picture once wl-copy has it (clip_put checks it took)
+  stub wl-paste '[ "$1" = --list-types ] && [ -e "$FAKE_TMP/clip" ] && echo image/png'
   argv satty 'cat >"$FAKE_TMP/satty.in"; [ -e /proc/$$/fd/9 ] && echo "lock held" >>"$FAKE_TMP/fd9"; exit 0'
   argv notify-send
   stub date 'exec /bin/date -d "2026-10-16 09:30:05" "$@"'
@@ -38,7 +40,7 @@ args_eq slurp 1 -b '#0f0e0c66' -c '#d0583aff' -s '#d0583a22' -w 2
 args_eq grim 1 -g "10,20 300x100" "$F"
 args_eq wl-copy 1 --type image/png
 cmp -s "$TMP/clip" "$F" && _ok || _no "the clipboard does not hold the saved picture"
-args_eq notify-send 1 -a desktop -i "$XDG_RUNTIME_DIR/kawa-screenshot-icon.png" "screenshot copied" "2026-10-16_09-30-05.png"
+args_eq notify-send 1 -a desktop -i "$XDG_RUNTIME_DIR/kawa-screenshot-icon.png" -- "screenshot copied" "2026-10-16_09-30-05.png"
 eq "$(size_of "$XDG_RUNTIME_DIR/kawa-screenshot-icon.png")" 64x64 "a square thumbnail"
 [[ ! -e $TMP/fd9 ]] && _ok || _no "the clipboard keeps the shot's lock (the next Print would do nothing)"
 

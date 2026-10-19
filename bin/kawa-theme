@@ -14,7 +14,7 @@
 #   foot (every window)  SIGUSR1/SIGUSR2 to the server — neovim inside follows by itself
 #   waybar               SIGUSR2 (reload)        mako      makoctl reload
 #   btop                 SIGUSR2 (reload)        zathura   SourceConfig over D-Bus
-#   GTK, libadwaita,     gsettings: color-scheme, gtk-theme, icon-theme (live) —
+#   GTK, libadwaita,     gsettings: color-scheme, gtk-theme (live; icon-theme Adwaita) —
 #   Brave                Brave in GTK mode (theme.sh) takes its frame, toolbar and menus
 #                        from the GTK theme, and web pages their dark/light from the portal
 #   Qt (qt6ct)           its config link is replaced, which qt6ct watches (≈3 s)
@@ -62,12 +62,14 @@ relink() {   # relink TARGET LINK — replace a link in one step (rename), so re
 }
 
 settings() {   # settings MODE — GTK 3 theme, GTK 4/libadwaita/portal colour scheme, icons, pointers
-  local m=$1 gtk=Fedokawaii icons=Papirus kv pids=() pid ok=0   # (the GTK 3 themes: adw-gtk3 + the palette)
-  [[ $m == dark ]] && gtk=Fedokawaii-dark icons=Papirus-Dark
+  local m=$1 gtk=Fedokawaii kv pids=() pid ok=0   # (the GTK 3 themes: adw-gtk3 + the palette)
+  [[ $m == dark ]] && gtk=Fedokawaii-dark
   command -v gsettings >/dev/null || return 1
   # the four at once (each gsettings is a process of its own: one after the other they
   # held a switch up); one already right is not written again (no app told to look again)
-  for kv in "color-scheme=prefer-$m" "gtk-theme=$gtk" "icon-theme=$icons" "cursor-theme=Sumi-$m"; do
+  # (icons: GTK's own Adwaita in both, each app's own icon beneath it — no icon pack; set
+  # here too, so an icon pack an older version chose goes at the next switch)
+  for kv in "color-scheme=prefer-$m" "gtk-theme=$gtk" "icon-theme=Adwaita" "cursor-theme=Sumi-$m"; do
     { [[ $(gsettings get org.gnome.desktop.interface "${kv%%=*}" 2>/dev/null) == "'${kv#*=}'" ]] \
         || gsettings set org.gnome.desktop.interface "${kv%%=*}" "${kv#*=}" 2>/dev/null; } & pids+=($!)
   done
@@ -96,14 +98,43 @@ signal() {   # signal USR1|USR2 NAME — only to processes that already catch it
 }
 
 apply() {
-  local m=$1 sig=USR1 pid
+  local m=$1 sig=USR1 pid s jobs=()
   usable "$m" || exit 1
   # (not switched: no app is told, so none shows a theme the others do not)
   relink "themes/$m" "$LINK" || { echo "kawa-theme: could not switch $LINK (is ~/.config writable?)" >&2; exit 1; }
   [[ $m == light ]] && sig=USR2
+  # What takes a process of its own (the wallpaper, GTK's settings, each player, zathura) is
+  # started first and all at once — one after the other they held the switch up (and the
+  # veil with it) for their sum; the signals and links meanwhile take no time. The switch is
+  # over when the slowest of them is
+  # the theme's own wallpaper, without the switch locks (fds 7 and 9): the swaybg it starts
+  # lives on. Under the veil it must be up before the reveal; otherwise it can come a moment later.
+  if [[ -n ${WAYLAND_DISPLAY:-} ]]; then
+    kawa-wallpaper --restore >/dev/null 2>&1 7>&- 9>&- &
+    [[ -n ${KAWA_VEILED:-} ]] && jobs+=($!)
+  fi
   scan
   signal "$sig" foot                                 # foot server: all windows + new ones
-  settings "$m"
+  settings "$m" >/dev/null 2>&1 & jobs+=($!)
+  # mpv: every open player loads the new colours (its controller restyles itself at once);
+  # scripts/kawa-ipc.lua gives each one a socket — one that refuses is a crashed mpv's.
+  # A player Syncplay started answers on Syncplay's socket (left alone when it refuses)
+  for s in "${XDG_RUNTIME_DIR:-/run/user/$UID}"/mpv-*.sock "${XDG_RUNTIME_DIR:-/run/user/$UID}"/syncplay-*/mpv-socket; do
+    [[ -S $s ]] || continue
+    { python3 -I -c 'import json, socket, sys
+c = socket.socket(socket.AF_UNIX); c.settimeout(1)
+try:
+    c.connect(sys.argv[1])
+except (ConnectionRefusedError, FileNotFoundError):
+    sys.exit(3)
+c.sendall((json.dumps({"command": ["load-config-file", sys.argv[2]]}) + "\n").encode())' \
+        "$s" "$DIR/themes/$m/mpv.conf" 2>/dev/null
+      (($? == 3)) && [[ $s == */mpv-*.sock ]] && rm -f "$s"; } & jobs+=($!)
+  done
+  for pid in ${RUNNING[zathura]:-}; do
+    busctl --user call "org.pwmt.zathura.PID-$pid" /org/pwmt/zathura org.pwmt.zathura SourceConfig >/dev/null 2>&1 & jobs+=($!)
+  done
+  [[ -n ${RUNNING[mako]:-} ]] && { makoctl reload >/dev/null 2>&1 & jobs+=($!); }   # (makoctl would start one)
   # the pointers: the default theme re-pointed (theme.sh made it a link); then dwl told to
   # take the borders' colours and the pointers again (signal: only a dwl that catches it —
   # an older build would end the session)
@@ -114,33 +145,22 @@ apply() {
   # the login screen (kawa-greet) wears the theme you last had (setup made the folder yours)
   [[ -w /var/lib/fedokawaii-greeter ]] && printf '%s\n' "$m" >/var/lib/fedokawaii-greeter/theme
   signal USR2 waybar
-  [[ -n ${RUNNING[mako]:-} ]] && makoctl reload 2>/dev/null   # (makoctl would start one)
   signal USR2 btop
   [[ -L $HOME/.config/qt6ct/qt6ct.conf ]] && relink ../fedokawaii/current/qt6ct.conf "$HOME/.config/qt6ct/qt6ct.conf"
-  for pid in ${RUNNING[zathura]:-}; do
-    busctl --user call "org.pwmt.zathura.PID-$pid" /org/pwmt/zathura org.pwmt.zathura SourceConfig >/dev/null 2>&1
-  done
-  # mpv: every open player loads the new colours (its controller restyles itself at once);
-  # scripts/kawa-ipc.lua gives each one a socket — one that refuses is a crashed mpv's.
-  # A player Syncplay started answers on Syncplay's socket (left alone when it refuses)
-  for s in "${XDG_RUNTIME_DIR:-/run/user/$UID}"/mpv-*.sock "${XDG_RUNTIME_DIR:-/run/user/$UID}"/syncplay-*/mpv-socket; do
-    [[ -S $s ]] || continue
-    python3 -I -c 'import json, socket, sys
-c = socket.socket(socket.AF_UNIX); c.settimeout(1)
-try:
-    c.connect(sys.argv[1])
-except (ConnectionRefusedError, FileNotFoundError):
-    sys.exit(3)
-c.sendall((json.dumps({"command": ["load-config-file", sys.argv[2]]}) + "\n").encode())' \
-      "$s" "$DIR/themes/$m/mpv.conf" 2>/dev/null
-    (($? == 3)) && [[ $s == */mpv-*.sock ]] && rm -f "$s"
-  done
-  # the theme's own wallpaper, without the switch locks (fds 7 and 9): the swaybg it
-  # starts lives on. Under the veil it must be up before the reveal; otherwise it can come a moment later.
-  if [[ -n ${WAYLAND_DISPLAY:-} ]]; then
-    if [[ -n ${KAWA_VEILED:-} ]]; then kawa-wallpaper --restore >/dev/null 2>&1 7>&- 9>&-
-    else kawa-wallpaper --restore >/dev/null 2>&1 7>&- 9>&- & fi
-  fi
+  ((${#jobs[@]})) && wait "${jobs[@]}"
+  return 0
+}
+
+took() {   # took MODE — the switch's time, from the press, in the theme's log (fedokawaii-report
+  # reads it): "kawa-theme: switched to light in 412 ms"
+  local log=$HOME/.cache/kawa-theme.log t0=${KAWA_THEME_T0:-} ms
+  [[ $t0 =~ ^[0-9]+[.,][0-9]{6}$ ]] || return 0
+  ms=$(( (${EPOCHREALTIME//[.,]/} - ${t0//[.,]/}) / 1000 ))
+  [[ -d ${log%/*} ]] || mkdir -p "${log%/*}" 2>/dev/null
+  printf '%(%F %T)T kawa-theme: switched to %s in %d ms%s\n' -1 "$1" "$ms" "${KAWA_VEILED:+ (under the veil)}" >>"$log" 2>/dev/null
+  # (kept short, the last 200 switches — on its own: the veil lifts when this run ends)
+  { (($(wc -l <"$log") >= 400)) && tail -n 200 "$log" >"$log.$$" && mv -f "$log.$$" "$log"; } \
+    </dev/null >/dev/null 2>&1 7>&- 9>&- &
   return 0
 }
 
@@ -160,6 +180,7 @@ case ${1:-toggle} in
       exec 7>"$XDG_RUNTIME_DIR/kawa-theme.busy"
       flock -n 7 || exit 0
     fi
+    export KAWA_THEME_T0=${KAWA_THEME_T0:-$EPOCHREALTIME}   # (the press: the veiled run keeps it)
     want=${1:-toggle} now=$(get)
     [[ $want == toggle ]] && { [[ $now == dark ]] && want=light || want=dark; }
     usable "$want" || exit 1                       # (said at once, not after a transition)
@@ -171,6 +192,7 @@ case ${1:-toggle} in
     exec 9>"$XDG_RUNTIME_DIR/kawa-theme.lock"
     flock -w 10 9 || { echo "kawa-theme: another switch is still running" >&2; exit 1; }
     apply "$want"
+    took "$want"
     ;;
   -h|--help) sed -n '2,/^set -u/{/^set -u/d;s/^# \{0,1\}//;p}' "$0" ;;
   *) echo "usage: kawa-theme [dark|light|toggle|get|apply|settings] (kawa-theme --help)" >&2; exit 2 ;;

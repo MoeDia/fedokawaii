@@ -1,0 +1,8 @@
+[Desktop Entry]
+# mpv with no film: films and songs open from Files (yazi) or Brave, in mpv (kawa-play).
+# Hidden from the launcher: this entry, by the same name as the package's, stands in for it
+# (NoDisplay); the program itself stays installed and works as before.
+Type=Application
+Name=mpv Media Player
+Exec=mpv --player-operation-mode=pseudo-gui -- %U
+NoDisplay=true

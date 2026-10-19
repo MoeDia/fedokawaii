@@ -1,0 +1,9 @@
+[Desktop Entry]
+# Neovim's own entry: "Editor" (kawa-edit) stands for it in the launcher, in a window of
+# the desktop's terminal; files open there too.
+# Hidden from the launcher: this entry, by the same name as the package's, stands in for it
+# (NoDisplay); the program itself stays installed and works as before.
+Type=Application
+Name=Neovim
+Exec=nvim %F
+NoDisplay=true

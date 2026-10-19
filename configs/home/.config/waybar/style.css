@@ -1,12 +1,13 @@
 /* ~/.config/waybar/style.css — the bar as a hanging scroll (kakejiku): a strip of washi
-   paper across the top, a fine line of gold ink under it, and one kind of button for
-   everything on it. Colours come from the current theme (ink or paper): kawa-theme switches
+   paper across the top, its lower edge straight onto the wallpaper (no rule under it), and
+   one kind of button for everything on it. Colours come from the current theme (ink or paper): kawa-theme switches
    ~/.config/fedokawaii/current and reloads the bar.
 
    One rule for every button (the torii, the workspaces, the layout, the day, the cat) — the
-   desktop's "active" rule: at rest the glyph alone on the paper; under the pointer a soft
-   fill; active — the workspace you are on, an open menu, a game — filled whole in vermilion,
-   the glyph in paper. Nothing underlined, no edge marks. The right side's groups are
+   desktop's "active" rule: at rest the glyph alone on the paper; under the pointer the
+   glyph itself turns vermilion (no fill, no box, no fade: pixels change, nothing else);
+   active — the workspace you are on, an open menu, a game — filled whole in vermilion, the
+   glyph in paper (under the pointer, its glyph in ink). Nothing underlined, no edge marks. The right side's groups are
    parted by a sashiko stitch — a running stitch of faint thread down the paper.
 
    Fusion Pixel and Sumi Icons are pixel fonts on a 12 px grid: keep font-size at 12px so
@@ -14,7 +15,8 @@
    kanji's ink is 11 × 11 (columns 0–10, rows 1–11 of the 12 px line), and so are the
    buttons' icons ("seal-sized", art/icons.txt): 6 px of fill on every side of each, to the
    pixel. Kanji buttons pad 6 left · 5 right (+ the 12 px advance = 23), 5 above · 6 below
-   (+ the 12 px line = 23); icon buttons are 23 wide and centre their odd advance. Reload:
+   (+ the 12 px line = 23); icon buttons are 23 wide and centre their odd advance. The bar
+   is 31 px: 4 of paper, a 23 px button, 4 of paper. Reload:
    pkill -USR2 waybar */
 @import url("../fedokawaii/current/waybar.css");
 
@@ -32,24 +34,23 @@ window#waybar {
   background-color: @bar;
   background-image: url("../fedokawaii/current/washi.png");
   color: @text;
-  border-bottom: 1px solid @hairline;
+}
+/* GTK's own button look, should a module ever draw one: never a fill, a ring or a bevel */
+button, button:hover, button:active, button:checked {
+  background: none;
+  box-shadow: none;
+  border: none;
 }
 
 /* ── buttons: one size, one behaviour ─────────────────────────────────────────── */
 #custom-torii, .tag, #custom-layout, #custom-menu, #custom-day, #custom-steam, #custom-mode {
   min-width: 23px;
   padding: 5px 0 6px 0;            /* 5 + 12 px line + 6 = 23 tall */
-  margin: 4px 0 5px 3px;           /* 4 + 23 + 5 = 32 (the hairline is painted over the last row): 4 of paper above, 4 below */
-  transition: background-color 120ms ease-out, color 120ms ease-out;
+  margin: 4px 0 4px 3px;           /* 4 + 23 + 4 = 31: 4 of paper above, 4 below */
 }
 /* a kanji in a button: its 12 px advance holds 11 px of ink from the left edge, so one more
    pixel of padding on the left than on the right centres it exactly */
 .tag, #custom-day, #custom-mode { min-width: 0; padding: 5px 5px 6px 6px; }
-#custom-torii:hover, .tag:hover, #custom-layout:hover, #custom-menu:hover,
-#custom-steam:hover, #custom-mem:hover, #wireplumber:hover, #custom-brightness:hover, #custom-weather:hover,
-#custom-drives:hover, #clock:hover, #custom-mode:hover {
-  background-color: @edge;         /* the soft fill under the pointer */
-}
 
 /* the torii key at the far left (opens the launcher): the gate in vermilion ink — the only
    filled seal on this side stays the workspace you are on. Its button stands 8 px from the
@@ -64,7 +65,6 @@ window#waybar {
 .tag          { color: @faint; }
 .tag.occupied { color: @text; box-shadow: inset 0 0 0 1px @edge2; }
 .tag.selected { color: @strong-on-accent; background-color: @accent; box-shadow: none; }
-.tag.selected:hover { background-color: @accent-hi; }
 .tag.urgent   { color: @urgent-text; background-color: @urgent; box-shadow: none; }
 
 /* the layout: a button like the others, a little apart from the workspaces */
@@ -76,18 +76,18 @@ window#waybar {
 #custom-nowplaying.paused { color: @quiet; }
 
 /* ── the right: groups parted by a stitch ────────────────────────────────────────────
-   #status (mode, drives, Steam, keyboard, memory, volume, weather) and #when (date, the
-   day's seal, time). In a group each module pads 7 px a side, so 14 px of paper lie between
+   #status (mode, drives, Steam, keyboard, memory, volume, brightness, weather) and #when
+   (date, the day's seal, time, a running timer). In a group each module pads 7 px a side, so 14 px of paper lie between
    two of them; a stitch has 18 px of paper between it and the ink on either side (measured
    on the bar: 7 of padding + 1 of the letters' own side bearing + 10 to its left, 11 + 7
    to its right; before the cat, 13 + the 5 px inside the cat's button) */
-#status, #when { margin: 4px 0 5px 0; }
+#status, #when { margin: 4px 0 4px 0; }
 /* the stitch: 1 px of thread, 3 on and 2 off (current/stitch.png, repeated down), as tall as
    a button — 23 px = 4 × 5 + 3, so it begins and ends with a stitch */
 #custom-sep1, #custom-sep2 {
   min-width: 1px;
   padding: 0;
-  margin: 4px 11px 5px 10px;
+  margin: 4px 11px 4px 10px;
   background-image: url("../fedokawaii/current/stitch.png");
   background-repeat: repeat-y;
   background-position: 0 0;
@@ -98,10 +98,9 @@ window#waybar {
    centred between the stitch and the edge */
 #custom-sep2 { margin-right: 8px; }
 #custom-mode, #custom-drives, #custom-kb, #custom-mem, #wireplumber, #custom-brightness, #custom-weather,
-#clock.date, #clock.time {
+#clock.date, #clock.time, #custom-timer {
   padding: 5px 7px 6px 7px;        /* the same line as the buttons: 23 tall */
   margin: 0;
-  transition: background-color 120ms ease-out, color 120ms ease-out;
 }
 #custom-mode, #custom-day { margin: 0; }
 /* the gamepad is a button (23 px, its 13 px of ink 5 from either side): 4 px of paper each
@@ -130,12 +129,27 @@ window#waybar {
 #clock.date { color: @quiet; }
 #custom-day { color: @strong-on-accent; background-color: @accent; }
 #clock.time { color: @strong; }
+/* a timer beside it: the hourglass and the time left in vermilion; a stopwatch in asagi */
+#custom-timer            { color: @accent-text; }
+#custom-timer.stopwatch  { color: @urgent; }
 
 /* the cat that opens quick settings: it smiles, filled vermilion, while a dropdown is open.
    Its button ends 8 px from the screen's edge — the line the windows' borders keep, and the
    panels and notices that drop from it: the panel's right edge is the button's */
-#custom-menu      { color: @text; margin: 4px 8px 5px 0; }
+#custom-menu      { color: @text; margin: 4px 8px 4px 0; }
 #custom-menu.open { color: @strong-on-accent; background-color: @accent; }
+
+/* ── under the pointer ──────────────────────────────────────────────────────────────
+   the glyph and its text take the vermilion ink, at once — nothing behind them changes.
+   What is vermilion already (the torii, memory running high, the sound muted) turns to the strongest ink instead; so does the glyph of a filled seal (the
+   workspace you are on, one asking for you, the day, an open menu, a game, a shared screen),
+   which keeps its fill: the active look stays apart from hover's */
+.tag:hover, #custom-layout:hover, #custom-menu:hover, #custom-nowplaying:hover,
+#custom-steam:hover, #custom-mem:hover, #wireplumber:hover, #custom-brightness:hover, #custom-weather:hover,
+#custom-drives:hover, #clock:hover, #custom-mode:hover, #custom-timer.stopwatch:hover { color: @accent-text; }
+#custom-torii:hover, #custom-mem.high:hover, #wireplumber.muted:hover, #custom-timer.timer:hover,
+.tag.selected:hover, .tag.urgent:hover, #custom-day:hover, #custom-menu.open:hover,
+#custom-steam.game:hover, #custom-mode.share:hover { color: @strong; }
 
 tooltip { background: @bar; border: 2px solid @muted; border-radius: 0; }   /* framed like every menu */
 tooltip label { color: @text; padding: 3px 6px; }

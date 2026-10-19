@@ -16,11 +16,13 @@ case $mode in region|full|edit) ;; *) echo "usage: kawa-screenshot [region|full|
 . "$HOME/.config/fedokawaii/icons.sh"
 # shellcheck source=/dev/null
 . "$HOME/.config/fedokawaii/current/colors.sh"
+# shellcheck source=/dev/null
+. "$HOME/.config/fedokawaii/files.sh"   # clip_put
 # the region picker: everything outside the selection dimmed with ink (on either theme a
 # selection reads as the lit part), the selection edged and faintly washed in vermilion
 pick() { slurp -b '#0f0e0c66' -c "#${C_ACCENT}ff" -s "#${C_ACCENT}22" -w 2; }
 fail() {   # fail TITLE BODY — a key press that gave no picture says why (it has no terminal)
-  notify-send -a desktop -u critical "$ICON_CAMERA  $1" "$2"
+  notify-send -a desktop -u critical -- "$ICON_CAMERA  $1" "$2"
   echo "kawa-screenshot: $1 — $2" >&2; exit 1
 }
 export XDG_RUNTIME_DIR=${XDG_RUNTIME_DIR:-/run/user/$UID}
@@ -30,7 +32,7 @@ export XDG_RUNTIME_DIR=${XDG_RUNTIME_DIR:-/run/user/$UID}
 exec 9>"$XDG_RUNTIME_DIR/kawa-screenshot.lock"; flock -n 9 || exit 0
 # the folder first: no region is asked for a shot that could not be kept
 mkdir -p "$SCREENSHOT_DIR" 2>/dev/null && [[ -w $SCREENSHOT_DIR ]] \
-  || fail "Screenshot not saved" "${SCREENSHOT_DIR/#"$HOME"/\~} cannot be written to"
+  || fail "screenshot not saved" "${SCREENSHOT_DIR/#"$HOME"/\~} cannot be written to"
 # satty comes from GitHub (an install made offline may lack it): the shot is kept anyway
 note=""
 [[ $mode == edit ]] && ! command -v satty >/dev/null && mode=region note=" · not annotated: satty is missing"
@@ -51,9 +53,9 @@ case "$mode" in
 esac
 
 title="screenshot copied"                       # (no clipboard helper: it is saved all the same)
-wl-copy --type image/png <"$file" 9>&- 2>/dev/null || title="screenshot saved"   # (it stays to serve the copy: never with the lock)
+clip_put image/png <"$file" 9>&- 2>/dev/null || title="screenshot saved"   # (it stays to serve the copy: never with the lock)
 # the notice shows a square middle cut of the picture: a wide or tall capture scaled whole
 # into the 32 px icon would be a sliver, and every notice's text starts at the same place
 thumb=$XDG_RUNTIME_DIR/kawa-screenshot-icon.png
 magick "$file" -resize '64x64^' -gravity center -extent 64x64 "$thumb" 2>/dev/null || thumb=$file
-notify-send -a desktop -i "$thumb" "$title" "${file##*/}$note"   # (the picture is its icon: no second one)
+notify-send -a desktop -i "$thumb" -- "$title" "${file##*/}$note"   # (the picture is its icon: no second one)

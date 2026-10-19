@@ -1142,7 +1142,7 @@ GPU="amd"` — and so is a setting written twice or missing. After the install, 
 | `WEATHER_CITY` | `Sharjah` | the weather in the bar (wttr.in, no key) |
 | `NIGHT_LIGHT` | `25.35:55.40` | latitude:longitude for gammastep, which works out sunset and sunrise from it (north and east are positive) |
 | `THEME` | `dark` | the theme a new install starts in; afterwards it is whatever you last switched to |
-| `WALLPAPER_PACK` | `yes` | fetch the wallpaper pack once (53 pictures, about 205 MB, kept as they came); with `no`, each theme shows its plain ground until you add pictures of your own |
+| `WALLPAPER_PACK` | `yes` | fetch the wallpaper pack once (100 pictures, about 315 MB, kept as they came); with `no`, each theme shows its plain ground until you add pictures of your own |
 | `BOOT_MENU_SECONDS` | `2` | how long the themed boot menu shows (0–10); `0` = Fedora's hidden menu |
 | `DNF_PARALLEL` | `10` | parallel downloads (1–20) |
 | `DWL_TAG`, `DWL_COMMIT`, `DWL_WLROOTS` | `v0.9`, pinned, `0.20` | dwl is built from exactly this commit, against wlroots 0.20; should the tag point anywhere else, setup refuses to build |
@@ -1523,8 +1523,8 @@ back — press **Ctrl+Alt+F2**, log in on the text console there, and run `fedok
 
 **How it works: the console's look.** The text console under the login screen (tty1, where setup ran) always uses the dark theme's 16
 colours (set as the kernel parameters `vt.default_red`, `vt.default_grn` and
-`vt.default_blu`, sixteen numbers each) and Terminus bold — 12×24 below 1440p, 16×32 from
-1440p up. On Fedora 44 the spare consoles (**Ctrl+Alt+F2…F6**) look the same; Fedora 45 runs
+`vt.default_blu`, sixteen numbers each) and Terminus bold — 8×16, the size of Fedora's own console font (240 × 67 characters at 1080p),
+and 16×32 from 2160p up, where 8×16 is too small to read. On Fedora 44 the spare consoles (**Ctrl+Alt+F2…F6**) look the same; Fedora 45 runs
 kmscon there — a console that runs as an ordinary program instead of inside the kernel — which
 keeps its own colours and font (`/etc/kmscon/kmscon.conf`). To see the palette the kernel was
 given (the first number is the red of the ink ground, `0f` in hex):
@@ -1604,7 +1604,8 @@ Five words come up on every page from here on.
 ## 6.5 The bar
 
 The bar runs across the top of every screen, a thin strip of paper like the top of a hanging
-scroll, with a fine hairline under it. Here it is at twice its size, in three pieces; the
+scroll, laid straight onto the wallpaper with no line under it. Point at anything on it and its
+icon and words turn vermilion — no box is drawn behind them. Here it is at twice its size, in three pieces; the
 table below walks along it from left to right. On the right, a *sashiko* stitch — a running
 stitch of faint thread down the paper — parts three groups: what the computer is doing, when
 it is, and the cat.
@@ -1615,7 +1616,7 @@ it is, and the cat.
 |---|---|---|---|
 | 1 | **torii key** | the vermilion torii at the far left | opens the launcher |
 | 2 | **workspaces** | kanji numerals: 一 二 三 (1, 2, 3) always; 四 to 九 (4–9) only while they hold a window, are the one you are on or want attention. Faint on the paper = empty; in ink with a thin ring = windows on it; a filled vermilion seal = the one you are on; an asagi (teal) seal = something there wants attention | goes to it |
-| 3 | **layout icon** | spiral (the default), columns, floating, or monocle (with the number of stacked windows) — §7.1 | the next layout · right: the one before |
+| 3 | **layout icon** | spiral (the default), columns, floating, or monocle (with the number of stacked windows) — §7.1 | spiral ⇄ columns (from floating or monocle: spiral · right: columns) |
 | 4 | **title** | the focused window | |
 | 5 | **now playing** | artist — title, with a cassette whose reels turn while sound plays, between the two halves of a spectrum meter drawn like an old hi-fi's fluorescent display: lowest notes nearest the title, a full column lights its top segment in vermilion | play/pause · right: next · middle: previous |
 | 6 | **mode seal** | a small vermilion seal while something is on that you should not forget: **静** (*quiet*) while do-not-disturb holds notices back, **共有** (*sharing*) while the screen is being shared; nothing otherwise | quick settings |
@@ -1623,17 +1624,19 @@ it is, and the cat.
 | 8 | **gamepad** | only while Steam runs: dim while it starts, lit once it is ready, filled vermilion while a game runs | Steam's window · right: its menu — Library, Downloads, Friends, Settings, start with the desktop, quit Steam (ch. 21) |
 | 9 | **US / AR** | the keyboard layout, only when you have more than one (vermilion while it is not the first) | |
 | 10 | **memory** | the chip icon and how much memory the programs hold (`5.2G`), counted as btop and Windows count it — not the files Linux keeps in spare memory; vermilion past 85 % | opens btop |
-| 11 | **volume** | the speaker, its waves showing the level (none at 0, then one to four as it rises), and the number; *off* with the speaker crossed out (as the level display says) | the audio menu · right: mute · scroll: ±2 % |
+| 11 | **volume** | the speaker, its waves showing the level (none at 0, then one to four as it rises), and the number; *off* with the speaker crossed out (as the level display says) | quick settings (its sound slider) · right: mute · scroll: ±2 % |
 | 12 | **brightness** | a sun from the desktop's Sumi Icons and the monitor's brightness in percent (`☼ 70%`). The sun grows with the level in five steps, as the speaker's waves do: a hollow disc when dim, then fuller, up to the whole sun with its rays when bright; there only while a monitor answers over DDC/CI (§8.1) | quick settings · scroll: ±10 %, as **Super+]** / **Super+[** |
-| 13 | **weather** | the sky's icon and the temperature (`☼ 31°`) of `WEATHER_CITY`; point at it for the city and the sky in words | the forecast for the next days |
-| 14 | **date, day, time** | `14 Oct` 水 `08:52:07 PM`: the date, the day of the week as a vermilion kanji seal (月 火 水 木 金 土 日, Monday to Sunday), the time to the second. The date leaves the weekday out, because the seal beside it already says the day; the lock and login screens write the date the same way | the calendar |
+| 13 | **weather** | the sky's icon and the temperature (`☼ 31°`) of `WEATHER_CITY`; point at it for the city and the sky in words | the forecast for the next days, in a window titled with your city as `WEATHER_CITY` spells it (wttr.in's own name for the place — often Arabic letters, which a terminal cannot join — is left out) |
+| 14 | **date, day, time** | `14 Oct` 水 `08:52:07 PM`: the date, the day of the week as a vermilion kanji seal (月 火 水 木 金 土 日, Monday to Sunday), the time to the second. The date leaves the weekday out, because the seal beside it already says the day; the lock and login screens write the date the same way. While a timer runs, beside the time: the hourglass and what is left (`24:59`, vermilion) — a stopwatch's time gone by in asagi | date or day: the calendar · time: the timer — 5, 10, 25, 45 or 60 minutes, or a stopwatch; when a timer ends, a notice with the bell that stays, and a short chime |
 | 15 | **the cat** | quick settings: the cat, centred between the last stitch and the screen's edge (13 px from each); it smiles, filled vermilion, while the panel or any menu dropping from the bar is on screen | quick settings |
 
 There is no tray: the few programs that would put an icon there either have a place of their
 own on the bar (Steam's gamepad) or a key. How busy the processor is shows in btop (a click on
 the memory).
 
-**Try this.** Click the clock (14): the calendar drops down; **Esc** closes it. Point at the
+**Try this.** Click the date (14): the calendar drops down; **Esc** closes it. Click the
+time and pick *5 min*: the hourglass counts down beside it (pick *cancel the timer* from the
+same menu to stop it; a restart of the bar keeps it, `kawa-timer --help` says more). Point at the
 volume (11) and turn the mouse wheel: the number moves 2 at a time. Click the cat (15): quick
 settings, and the cat smiles; **Esc** again.
 
@@ -1665,7 +1668,7 @@ unlocked; only the screens go dark:
 |---|---|
 | nothing, for an hour | the screens power off (windows stay where they were); the first key wakes them — nothing locks, nothing sleeps |
 | **Super+Escape** (or *lock* in the power menu) | the screen locks; still locked 90 seconds later, the computer sleeps. Unlock before then and it stays awake |
-| *sleep* in the power menu (**Super+Shift+E**), or the keyboard's Sleep key | locked, then asleep at once |
+| *sleep* in the power menu (**Super+Shift+E**), or the keyboard's Sleep key | locked; the lock screen stays a moment, the screens go black, then the machine sleeps. A key wakes it to the lock screen |
 
 There is no hibernation: sleep is always *suspend* — memory kept powered, back in seconds at
 a key. (Hibernation writes memory to disk and switches off; setup turns it off for good in
@@ -1681,6 +1684,26 @@ playing in
 mpv or Brave keeps the screens on by itself. Both times are yours to change through your
 working copy (ch. 42): the 90 seconds are `sleep_after=90` in `bin/kawa-lock`, the hour is the
 `timeout 3600` of the `swayidle` line in `configs/home/.config/dwl/autostart.sh`.
+
+**The lock holds until your password.** gtklock runs under a small keeper (`kawa-lock`
+starts it). Should gtklock ever stop without the password — a crash, a monitor that vanished
+while the machine slept — the desktop stays locked (dwl keeps a plain locked screen meanwhile)
+and the keeper starts gtklock again at once; you see the lock screen come back, never your
+desktop. Each step goes to the journal, where the health report reads it:
+
+```text
+$ journalctl -b -t kawa-power -t kawa-lock
+Oct 19 23:10:02 fedokawaii kawa-power[4410]: sleep requested
+Oct 19 23:10:02 fedokawaii kawa-lock[4431]: lock up
+Oct 19 23:10:03 fedokawaii kawa-power[4410]: suspend asked of the system
+Oct 19 23:31:40 fedokawaii kawa-lock[5120]: resumed — locked
+Oct 19 23:31:41 fedokawaii kawa-lock[4430]: locker exited rc=139 — the desktop stays locked: started again
+Oct 19 23:31:41 fedokawaii kawa-lock[5134]: lock up
+Oct 19 23:31:52 fedokawaii kawa-lock[4430]: unlocked
+```
+
+*(for example: here gtklock crashed as the monitor came back — `rc=139` is a crash — and was
+started again within a second)*
 
 The password goes in in the keyboard layout that was active (the bar showed it before the
 lock); if it says *wrong password* although the password is right, press Alt+Shift and type
@@ -1818,7 +1841,8 @@ Between and around the windows runs an 8-pixel gap, and each window wears a 2-pi
 (`gappx` and `borderpx` in `src/dwl/config.h`). The focus follows the mouse: point at a window
 and it receives your typing.
 
-**Monocle** (**Super+M**) shows one window at a time, filling the whole space under the bar;
+**Monocle** (**Super+M**, its own key only: a click on the layout icon and Super+Shift+T
+never pick it) shows one window at a time, filling the whole space under the bar;
 the others wait behind it, and the bar's layout icon shows how many — `[3]` here. **Super+J**
 and **Super+K** bring each to the front in turn:
 
@@ -1899,7 +1923,7 @@ a two-page selection to keep beside the keyboard.
 | Super+H / L | spiral: the first window narrower / wider |
 | **Super+Shift+Return** · F · Shift+Space | move to the first (largest) place · fullscreen · float/unfloat (also Super+middle-click) |
 | Super+drag / right-drag | move / resize |
-| Super+S / T / Y / M · Shift+T | spiral (the default) · columns · floating · monocle · the layout used before (the bar's layout icon: a click the next one in that order, a right-click the one before) |
+| Super+S / T / Y / M · Shift+T | spiral (the default) · columns · floating · monocle · the tiling layout used before, spiral or columns (the bar's layout icon: a click switches between spiral and columns, a right-click too; floating and monocle pile windows on top of each other, so only Super+Y and Super+M choose them) |
 
 **Workspaces**
 
@@ -2054,8 +2078,10 @@ day, the time, the weather, the volume's and the brightness's numbers). From the
 - **three keys**: *wallpaper* (point at it: the one shown now), *screenshot*, and the power
   icon for the power menu.
 
-Under the pointer or the keyboard's cursor, a tile, a meter or a key is filled in vermilion —
-the same rule as every menu. **Arrows** (or **h j k l**) move, **← →** on a meter change it,
+The keyboard's cursor fills its tile, meter or key in vermilion. The pointer draws no box: the
+item under it keeps its look, and only its icon (a meter's kanji) and its name turn vermilion,
+at once, with no fade. A click moves the cursor to what it clicked. **Arrows** (or **h j k l**)
+move the cursor, **← →** on a meter change it,
 **Enter** or **Space** chooses, **Tab** goes round, **Esc** closes it, and so do a click outside
 and its own key pressed again.
 
@@ -2375,31 +2401,35 @@ Each theme remembers its own wallpaper. The choices:
   **ink-ridges** on the light one (the same ridges on paper, under a vermilion sun) — quiet,
   sparing, in the themes' own ink, paper and vermilion. Before the pack is
   fetched — or with `WALLPAPER_PACK="no"` — the screen shows the theme's plain ground.
-* **the pack** (`WALLPAPER_PACK="yes"`) — 53 pictures (28 for the dark theme, 25 for the
-  light), about 205 MB, fetched once from GitHub at pinned commits and checked by SHA-256. They
+* **the pack** (`WALLPAPER_PACK="yes"`) — 100 pictures (50 for the dark theme, 50 for the
+  light), about 315 MB, fetched once from GitHub at pinned commits and checked by SHA-256. They
   are kept exactly as they came (`~/.local/share/fedokawaii/wallpapers/dark/` and `light/`,
   each `NAME.src`), nothing redrawn. Offline, the fetch stops after three pictures that could
   not reach GitHub and leaves the rest for the next run. Every one is Japanese, and the picker
   lists them grouped by kind, the theme's default first:
 
-    - *dark*: towns and streets by night (the konbini at the crossing, an Osaka canal and
-      lantern lane, a train by the sea, Yokohama, a lakeside, a starry farmhouse, Fuji over a
-      town); shrines, gardens, rain and snow (a bamboo shrine, a misty bridge, a temple and a
-      torii in snow, a pine on a snowy cliff, a waterfall village, a paper lantern in a
-      doorway); ink and woodblock (ink ridges, an ensō, a plum branch at night, a ronin by the
-      waves, koi, Kiyochika's cat and lantern, Kyōsai's crow in the snow, Shunman's moths); and
-      anime and film (My Hero Academia, Final Fantasy VII, Totoro, Your Name, Chainsaw Man).
-    - *light*: Hokusai's *Thirty-six Views of Mount Fuji* (Red Fuji, the Great Wave, snow at
-      Koishikawa, cranes at Umezawa, the Mishima pass, the sawyers of Tōtōmi); streets,
-      villages and temples by day (Osaka's lantern lane and canal by daybreak, a Tokyo street
-      under power lines, the waterfall village, a castle valley, a torii at sunset, a maple
-      temple); ink and brush (ink ridges, two ink dragons, a plum branch, Musashi, the ensō,
-      koi, a tiger); and anime (Demon Slayer, Frieren, a girl with an umbrella in the rain, a
-      girl walking a shiba by the sea).
+    - *dark*: ink and brush (the ink ridges, a ronin by the waves, a dragon in grey on black,
+      a moonlit field in pen and ink); woodblock prints by night (Hiroshige's Tōkaidō in
+      twilight, night snow and rain, a bridge in a shower; Hokusai's storm beneath Fuji;
+      Shōtei's Fuji at dusk and junks under a crescent moon, Kiyosu Bridge at dusk, Hasui's
+      rain at the Sakurada Gate, Yoshida's Fuji at first light); towns, trains and streets by
+      night (a train by the sea, rails into the afterglow, power lines over night roads and
+      violet dusk, laundry on old Tokyo houses, vending machines in the snow, a level
+      crossing, a riverside, hydrangeas in the rain, a moonlit bay); and anime film (Totoro,
+      Your Name, 5 Centimeters per Second, Tokyo in the rain and at night, Chainsaw Man).
+    - *light*: Hokusai (Red Fuji, the Great Wave, snow at Koishikawa, cranes at Umezawa, the
+      Mishima pass, the sawyers of Tōtōmi, Ejiri in the wind, Mannen Bridge, Lake Suwa, the
+      hanging bridge of Hida); Hiroshige's *Fifty-three Stations of the Tōkaidō* (Shinagawa,
+      Hodogaya, Hakone, Satta Pass, Maisaka, Goyu, Okazaki, Kameyama in snow, Kyoto's Sanjō
+      Bridge) and a Meiji iron bridge; ink and brush (ink ridges, three ink dragons, a plum
+      branch, Musashi and Kojirō, koi, a tiger, a gold flower screen, a stork on silk, a town
+      street in sepia line); streets and towns by day (a Tokyo street under power lines, a
+      riverside, rooftops, cherry-blossom stairs, a crossing by the sea, a wet street after
+      rain, a garden well); and anime film (Frieren, Your Name, The Wind Rises, a girl with an
+      umbrella, a shiba by the sea wall, a train under a mountain of cloud).
 
-    Six come in pairs — the same place by day and by night (the canal walk, the lantern lane,
-    the waterfall village, the ink ridges, the ensō, the plum branch) — and choosing one sets
-    the other theme's too. Sources and licences, one line each:
+    Three come in pairs — the same place by day and by night (the ink ridges, the riverside,
+    the shrine torii in the woods) — and choosing one sets the other theme's too. Sources and licences, one line each:
     `~/.local/share/fedokawaii/wallpapers.list`. Nothing is stored in the repository; the files
     are fetched for your own use. A picture dropped from a later list is deleted from your pack
     the next time it is fetched.
@@ -2412,7 +2442,7 @@ exactly — no bars at the sides — and what sticks out is cropped:
 | Step | What happens |
 |---|---|
 | scale | a Lanczos filter, the sharpest clean one, in linear light, so colours mix as light does and edges do not darken; the pack's pictures are all at least as large as a 1080p screen, so there they are only ever made smaller |
-| crop | from the middle — or, for the seven pictures whose subject sits high, from the top: the *crop* column of `wallpapers.list` says `north` for those |
+| crop | from the middle — or, for the five pictures whose subject sits high, from the top: the *crop* column of `wallpapers.list` says `north` for those |
 | keep | drawn once per screen size, cached in `~/.cache/kawa-wallpaper` with the picker's previews |
 
 Your own pictures are scaled and cropped the same way, from the middle. A new choice dissolves
@@ -2971,7 +3001,10 @@ Three prompts, and what each says. **In your home**, in a new terminal:
 ```
 
 The torii starts the entry; `~` is the folder you are in; the moon says it is night, then the
-time to the second. A new terminal has run nothing yet, so nothing more is said.
+time to the second. A new terminal has run nothing yet, so nothing more is said. The torii is
+drawn at the height of the words beside it (not as tall as a kanji), so the line you type on
+keeps the same air under the header as any line of text; an empty line sets each entry apart
+from the output above it.
 
 **After a command that failed**, in `~/practice`:
 
@@ -4070,7 +4103,7 @@ setting in a call that decides what the others hear.
 
 ## 14.1 The launcher: fuzzel
 
-<!-- fig:launcher | The launcher (Super+Space): Papirus icons and names, on both themes. -->
+<!-- fig:launcher | The launcher (Super+Space): each program's own icon and its name, on both themes. -->
 
 **Super+Space**, or the torii key at the left of the bar. Type part of a name, Enter starts
 it, Esc closes.
@@ -4094,6 +4127,14 @@ remember it.
 * The programs you start most often move to the top (the counts live in `~/.cache/fuzzel`).
 * Terminal programs with a launcher entry, such as Neovim and btop, open in a terminal
   window. **Files** (yazi) and **Torrents** (torrra) are entries of this desktop's own.
+* Each entry shows its program's **own icon**, as its package ships it — no icon pack. An
+  entry of this desktop's own for a terminal program (Files, Torrents, Agents) shows foot's,
+  the terminal its window is; Prowlarr shows Brave's, where its page opens.
+* Only what you start is listed: the helpers that come with packages — lpf's build windows
+  (Spotify's builder), Qt's settings (qt6ct), LibreOffice's start centre, and mpv and
+  zathura with nothing to open — are hidden by entries of the same name in
+  `~/.local/share/applications` (`NoDisplay=true`); the programs still work, and films and
+  documents still open in them. **Spotify** appears once lpf has built it (§15.4).
 * The tools installed as release binaries — satty, lazygit, bluetui — have no launcher
   entry; start them in a terminal.
 
@@ -4191,6 +4232,26 @@ A call in Brave (or any program) that shares a screen asks the desktop portal, w
 what to share with the **share what?** menu: every screen with its size, and every open
 window by its title (a window without one is listed as *untitled window* and the start of its
 id). With only one screen and no choice to make, it is taken without asking.
+
+**One share, one question.** Brave (and every program built on Chromium, such as Discord's and
+Slack's desktop apps) asks the portal more than once for a single share: once when you open
+the *Window* or *Entire screen* tab of its own picker, for the preview, and again when you
+press *Share*. The menu answers only the first time:
+
+* a **screen** — the portal gives Brave a one-time pass (a *restore token*) along with the
+  preview, and the share itself presents it instead of asking
+  (`XDPW_PERSIST_MODE=transient` in
+  `~/.config/systemd/user/xdg-desktop-portal-wlr.service.d/sharing.conf`). The pass lasts
+  only while Brave runs: after a restart, the menu asks again;
+* a **window** — the portal has no such pass for windows, so the menu remembers your choice
+  for **10 seconds**: a request in that time that offers the same window gets it, without a
+  menu (the same goes for a screen). The 10 seconds count from your choice; **Esc** forgets
+  it.
+
+Every request is written down in `~/.cache/kawa-share.log`: when, how it was answered
+(*asked*, *remembered*, *one choice*, *cancelled*), how many screens and windows were
+offered, and what was shared; `fedokawaii-report` shows it.
+
 Sharing runs at up to 60 frames a second. While anything is shared, notifications are held
 back so they never appear in the call — critical ones and the level display still show.
 
@@ -4209,8 +4270,10 @@ back so they never appear in the call — critical ones and the level display st
 
 **Share** is a pair of PipeWire devices of this desktop's own, set up in
 `~/.config/pipewire/pipewire.conf.d/60-share.conf`: an output you can send programs to, and
-*Share (as microphone)*, which a call can record from. `wpctl status` lists both under
-*Filters* (WirePlumber shows loopbacks there).
+*Share (as microphone)*, which a call can record from. `wpctl status` lists them under
+*Filters* by their node names, `share_sink` and `share_sink.out` (WirePlumber shows a
+loopback there, never by its description) — so look for `share_sink`, not "Share"; verify
+asks PipeWire itself (`pw-dump`) for the node `share_sink`.
 
 Your microphone itself travels as usual; check it in the audio menu (Super+A → input).
 
@@ -4220,8 +4283,11 @@ Your microphone itself travels as usual; check it in the audio menu (Super+A →
     * a **tab** — its sound comes along when *Also share tab audio* is ticked;
     * a **window** or the **entire screen** — tick *Also share system audio* to send what you
       hear (it includes the call itself; see §14.4 for the quieter way).
-2. For a window or a screen, the desktop's *share what?* menu appears; pick one. With only
-   one choice it is taken without asking.
+2. For a window or a screen, the desktop's *share what?* menu appears as you open that tab
+   of Brave's picker; pick one. Brave shows it, and *Share* sends it without asking again.
+   With only one choice it is taken without asking. To choose something else — Brave's
+   *Reselect*, or starting the share over — let 10 seconds pass since your first choice:
+   until then the menu answers with it, without opening.
 3. Notifications are held back while you share; critical ones still show.
 4. Your microphone travels as usual; check it in the audio menu (Super+A → input).
 
@@ -4420,8 +4486,15 @@ through XWayland. Its launcher entry, `~/.local/share/applications/spotify.deskt
 > machine, as its own user (`pkg-build`). Setup does that for you, and so does each update when
 > Spotify brings out a new version. Spotify's terms come with the recipe
 > (`/usr/share/lpf/packages/spotify-client/eula/`): `SPOTIFY="yes"` in `fedokawaii.conf` is
-> your acceptance of them (`no` leaves Spotify out). Nothing to do by hand — should a build fail (Spotify's server down), verify says
-> *Spotify not built yet* and the next `fedokawaii update` or `repair` builds it.
+> your acceptance of them (`no` leaves Spotify out), recorded as lpf records an approval (its
+> approve file) — lpf never asks. Nothing to do by hand. Should the build fail during setup
+> (Spotify's server down), setup stops at that step with lpf's own words — the end of
+> `/var/lib/lpf/log/spotify-client.log`, copied into `/var/log/fedokawaii.log` — and resumes
+> there when started again; it never carries on without Spotify. Should a later update's build
+> of a new version fail, the update says so, the Spotify you have stays, and verify warns
+> *a newer Spotify waits to be built* until the next update or `fedokawaii repair` builds it;
+> with no Spotify at all, verify fails (*Spotify not built yet*). Until it is built the launcher has no Spotify entry (one would start nothing), and lpf's
+> own entries stay hidden: `rpm -q spotify-client` says whether it is built, lpf's log why not.
 
 | In Spotify | Does |
 |---|---|
@@ -8029,8 +8102,13 @@ Symbolic links hold this desktop together in several places:
 |---|---|---|
 | `~/.config/fedokawaii/current` | `themes/dark` or `themes/light` | every program reads its colours through it; switching the theme re-points one link (§9.1) |
 | `/etc/resolv.conf` | `../run/systemd/resolve/stub-resolv.conf` | DNS goes through systemd-resolved (§33.2) |
-| `/usr/local/bin/vi` | `/usr/bin/nvim` | `vi` opens neovim |
 | `/etc/systemd/system/display-manager.service` | greetd's unit | which login manager starts (`fedokawaii repair` checks it) |
+
+One place deliberately has no link: `/usr/local/bin/vi`, which opens neovim, is a two-line
+script (`exec nvim "$@"`). dracut, which makes the boot images (§29.6), copies `vi` into each
+one and follows a link to the program behind it; given neovim it fails on neovim's Lua
+libraries, and the machine is left with boot images that have no splash — or none at all for
+a new kernel. A script brings only itself and `/bin/sh`.
 
 *Read more:* [file-hierarchy(7)](https://www.man7.org/linux/man-pages/man7/file-hierarchy.7.html) ·
 [inode(7)](https://manpages.debian.org/trixie/manpages/inode.7.en.html) ·
@@ -10367,12 +10445,23 @@ the system starts (the `rhgb` argument below asks for it), with this desktop's o
 **起動中 · starting Fedora** (*kidōchū*, "starting") under it and three small squares lighting
 in turn. Should a disk ever ask for its password at boot, it shows the lock screen's box:
 パスワード, and a vermilion ◆ for each character. The splash lives inside the boot images, so
-when Theme changes it the images are made again (dracut, about a minute). **Esc** while it
-shows swaps it for the scrolling text of the start-up, and back.
+when Theme changes it the images are made again (dracut, about a minute) — the last thing the
+theme's boot part does, so that should dracut fail, the menu and the console font are in place
+all the same, and the failure is said (✘) and checked by `verify` (*the splash in every boot
+image*); `fedokawaii repair` makes the images again. **Esc** while it shows swaps it for the
+scrolling text of the start-up, and back.
 
 ```sh
-plymouth-set-default-theme          # → sumi
+plymouth-set-default-theme                                # → sumi
+sudo lsinitrd | grep plymouth/themes                      # the themes in this kernel's boot image
 ```
+
+Between the splash and the login screen nothing else is shown — no kernel messages, no
+systemd status lines, no blinking cursor (the boot's arguments, §29.4). One moment of the text
+console itself is unavoidable: greetd switches tty1 to text and clears it before the login
+screen starts, and again after you log out. That moment is kept blank — nothing is written on
+tty1, its cursor is hidden and its black is the theme's sumi ink — so it reads as one more
+frame of the same ground.
 
 ## 29.4 Stage 4: the kernel and its arguments
 
@@ -10393,9 +10482,25 @@ vt.default_red=15,… vt.default_grn=… vt.default_blu=…`)*
 | `ro` | mount it read-only at first; systemd remounts it writable once it is checked | the installer |
 | `rootflags=subvol=root` | on Btrfs, the subvolume called `root` | the installer |
 | `rhgb quiet` | the graphical boot screen (the sumi splash, §29.3); fewer kernel messages | the installer, and setup makes sure (a text-mode install leaves them out); verify checks each |
+| `loglevel=3` `rd.udev.log_level=3` | the kernel's and the boot image's device manager's messages on the screen only when critical | setup (*a quiet boot*) |
+| `systemd.show_status=false` | no systemd status lines (`[  OK  ] Started …`, `[FAILED] …`) over the console | setup |
+| `vt.global_cursor_default=0` | no blinking cursor on the text consoles — the one the login screen shares is never seen with one; a login on a console (**Ctrl+Alt+F2**) shows it again (`/etc/profile.d/fedokawaii-console.sh`) | setup |
 | `amdgpu.ppfeaturemask=0xfff7ffff` | amdgpu's own default plus OverDrive: the clock, voltage and fan controls LACT uses (all bits set would also switch on GFX DCS, which amdgpu keeps off as unstable) | setup (AMD only) |
 | `systemd.tty.term.console=dumb` | systemd (257 and later) asks the console for its size as it starts and waits for the answer; with the boot screen holding the console the answer sometimes never comes, and the boot stops on a black screen at *Starting Switch Root* until you press a key. A "dumb" console terminal makes it skip the question; your login consoles set their own `TERM` | setup |
 | `vt.default_red=…` and its two partners | the text console's 16 colours | Theme (§6.1) |
+
+**The boot's messages, when you want them.** The quiet arguments only keep the messages off
+the screen; every one is still in the journal:
+
+| To see | Do |
+|---|---|
+| this start's messages, after the fact | `journalctl -b` (only the errors: `journalctl -b -p err`; the last start's: `journalctl -b -1`) |
+| the kernel's alone | `journalctl -b -k` |
+| the start-up as it happens, once | **Esc** while the splash shows: the scrolling text, **Esc** again for the splash |
+| one start with everything on the screen | in the boot menu (hold **Shift** as the machine starts, if it is hidden) press **e** on the entry, delete `rhgb quiet` from the line that begins `linux`, change `loglevel=3` to `loglevel=7` and `systemd.show_status=false` to `true`, then **Ctrl+X**. Only that start: nothing is saved |
+
+`verify` checks every argument on every entry; `fedokawaii repair` and the next update put back
+one an entry lacks.
 
 ## 29.5 One kernel, and the way back
 
@@ -10473,7 +10578,28 @@ graphical.target
 ## 29.8 Stages 7–9: greetd, the login, the session
 
 `greetd.service` is Fedora's unit with a drop-in of this desktop's (§28.3) that
-points it at its own file and gives it tty1 alone:
+points it at its own file, gives it tty1 alone (no text login under the login screen), and
+starts it only once the boot splash has gone (`After=plymouth-quit-wait.service`: never the
+two taking the screen from each other):
+
+```ini
+# /etc/systemd/system/greetd.service.d/fedokawaii.conf (shortened)
+[Unit]
+Conflicts=getty@tty1.service kmsconvt@tty1.service
+After=getty@tty1.service kmsconvt@tty1.service plymouth-quit-wait.service
+StartLimitIntervalSec=60
+StartLimitBurst=5
+OnFailure=fedokawaii-login-failed.service
+```
+
+Should the login screen itself keep stopping (a broken greeter), systemd starts greetd again
+two seconds apart, five times within a minute, and then gives up — never for ever, because each
+start takes tty1 back and would pull you off the console you are mending it from. Given up, it
+says so on tty1 instead of leaving a black screen: *The login screen could not start*, with the
+way back — **Ctrl+Alt+F2**, log in, `fedokawaii repair`, then `sudo systemctl restart greetd`.
+Why it stopped: `journalctl -b -u greetd -t kawa-greet`.
+
+Its settings file:
 
 ```ini
 # /etc/greetd/fedokawaii.toml
@@ -10481,14 +10607,18 @@ points it at its own file and gives it tty1 alone:
 vt = 1
 
 [default_session]
-command = "env XCURSOR_THEME=Sumi-$(cat /var/lib/fedokawaii-greeter/theme) cage -d -s -- /usr/local/bin/kawa-greet you"
+command = "env $(/usr/local/bin/start-dwl --gpu) \"XCURSOR_THEME=Sumi-$(cat /var/lib/fedokawaii-greeter/theme)\" systemd-cat -t kawa-greet cage -d -s -- /usr/local/bin/kawa-greet you"
 user = "greetd"
 ```
 
-greetd runs that *greeter* line through `/bin/sh`, as the unprivileged system user `greetd`.
-`env` sets the pointer theme — `Sumi-dark` or `Sumi-light`, whichever you last had: `kawa-theme`
-notes it in `/var/lib/fedokawaii-greeter/theme`, a file of yours — and replaces itself
-(`exec`, §26.1) with **cage**, a kiosk compositor that shows one window full screen (`-d`: no
+greetd runs that *greeter* line through `/bin/sh`, as the unprivileged system user `greetd`,
+with tty1 as its output — so nothing in it writes there: what cage and the login screen say goes
+to the journal (`systemd-cat -t kawa-greet`; read it with `journalctl -b -t kawa-greet`), and
+`start-dwl --gpu`, which names the graphics card the desktop draws on (`WLR_DRM_DEVICES`), puts
+its note there too (`journalctl -t start-dwl`). A line on tty1 would show for a moment at every
+boot and every logout. `env` sets the card and the pointer theme — `Sumi-dark` or `Sumi-light`,
+whichever you last had: `kawa-theme` notes it in `/var/lib/fedokawaii-greeter/theme`, a file of
+yours — and replaces itself (`exec`, §26.1) with **cage**, a kiosk compositor that shows one window full screen (`-d`: no
 window frame; `-s`: **Ctrl+Alt+F2…** still reach the text consoles). In it runs **kawa-greet**,
 a small GTK program of this desktop's (`system/kawa-greet` in the project): your user name is
 already on its line, written there by setup, so it asks only for the password. It passes both
@@ -11986,13 +12116,13 @@ something still needs you, 4 (drift) in sync but for the boot menu and console, 
 
 ```text
 $ fedokawaii status
-release  Fedora 44
-support  until 2 Jun 2027 · in 230 days
-next     Fedora 45 · due about Oct 2026
-updated  17 Jul 2026 · 90 days ago
-due      now · every 90 days
-verified 179 checks passed · 90 days ago
-…        (then the running kernel and the free disk space)
+release   Fedora 44
+support   until 2 Jun 2027 · in 230 days
+next      Fedora 45 · due about Oct 2026
+updated   17 Jul 2026 · 90 days ago
+due       now · every 90 days
+verified  179 checks passed · 90 days ago
+…         (then the running kernel and the free disk space)
 ```
 
 *(for example: Fedora 44 in mid-October 2026, ninety days after an update)*
@@ -12072,21 +12202,21 @@ cat /var/lib/fedokawaii/last-verify    # → 1792039927 179 0 1
 
 | Area | Checks |
 |---|---|
-| system | `fedokawaii.conf` valid · Fedora ≥ 44 · SELinux enforcing · Btrfs root · no root-owned files in your home · groups · neovim as the editor · i2c-dev |
-| packages (lib/manifest.sh) | every manifest package installed · what waits for RPM Fusion or a COPR to catch up with this Fedora (a warning) · a package Fedora no longer has (a warning) |
+| system | `fedokawaii.conf` valid · Fedora ≥ 44 · SELinux enforcing · Btrfs root · every file in your home yours (`~/.cache` and `~/Downloads` included; podman's container storage, owned by its containers' ids, aside) · groups · neovim as the editor · i2c-dev |
+| packages (lib/manifest.sh) | every manifest package installed · Spotify built here (`SPOTIFY="yes"`: none is a failure; a newer recipe waiting, a warning) · what waits for RPM Fusion or a COPR to catch up with this Fedora (a warning) · a package Fedora no longer has (a warning) |
 | zero redundancy | none of the forbidden ones · nothing user-installed beyond the pre-setup record and the manifest · no Flatpak or Snap · one editor · no package installed twice · `dnf check` clean · no service that fights the desktop's own (a second login manager, power-profiles-daemon, a second notification daemon…) · the login greetd's alone · dependencies nothing needs (a warning) · configuration files an update could not merge (a warning) · nothing left behind by a stopped run |
 | repositories & dnf | RPM Fusion, Brave, Claude Code, COPRs · all seven DNF values |
 | upkeep (fedokawaii · Super+U) | the toolkit root's alone · the `fedokawaii` command the toolkit's · the manifest marked as yours |
-| boot & kernel | the boot-menu setting · the boot-success timer · one kernel, the newest, running (two only while a new one settles in) · the start-up check that keeps it one · every kernel's boot image · no rescue image · the boot's arguments on every entry (rhgb quiet: the splash; no console-size wait) · the GPU kernel argument |
+| boot & kernel | the boot-menu setting · the boot-success timer · one kernel, the newest, running (two only while a new one settles in) · the start-up check that keeps it one · every kernel's boot image · no rescue image · the boot's arguments on every entry (rhgb quiet: the splash; a quiet boot — no kernel or systemd messages, no console cursor; no console-size wait) · a text console's cursor back at login · vi a script for nvim (never a link: dracut would follow it) · the GPU kernel argument |
 | GPU & media | hardware video decoding · Vulkan · btop's view of an AMD card (the ROCm SMI library) · ffmpeg encoders |
 | drivers and firmware | every package this hardware needs (microcode, Wi-Fi, sound DSP, missing firmware, Intel's video decoding beside an AMD card; one missing is a warning: update and repair install it) · microcode loaded at boot · every network, display, sound and USB device held by a driver · Wi-Fi managed by NetworkManager · device firmware updates, when fwupd knows of any (shown, never a fault) · udisks answers, so drives open · which driver opens NTFS |
-| compositor & login | dwl version and pinned commit, XWayland, its own wlroots and every library, the patch (keys, gaps, frames, centring, layout) · the session launcher and its keyboard layouts · the greetd SELinux module, the login screen (kawa-greet in cage, for you) and its look for both themes · the pixel font crisp for every account · the lock screen's words (*ちがう · wrong password*) · the yazi file dialog built and known to the portals |
-| services | greetd, Bluetooth, snapper timers, fstrim, PipeWire · the tuned profile · Wi-Fi power saving off · the Bluetooth dongle's power saving off · ntsync · linger · shutdown's 30 s for your services · `secrets.sh` private · Prowlarr: its key in `secrets.sh`, its container file current, running, answering, taking the key, its files yours, the usual eight indexers (a warning when one is missing) · podman's database · `~/Downloads` outside the snapshots · the SSH policy and firewall ports (6881 for torrents, 53317 for LocalSend) |
+| compositor & login | dwl version and pinned commit, XWayland, its own wlroots and every library, the patch (keys, gaps, frames, centring, layout) · the session launcher and its keyboard layouts · the greetd SELinux module, the login screen (kawa-greet in cage, for you) and its look for both themes · greetd alone on tty1, after the splash, and a login screen that cannot start said on tty1 · the pixel font crisp for every account · the lock screen's words (*ちがう · wrong password*) · the yazi file dialog built and known to the portals |
+| services | greetd, Bluetooth, snapper timers, fstrim, PipeWire · the tuned profile · Wi-Fi power saving off · the Bluetooth dongle's power saving off · ntsync · linger · shutdown's 30 s for your services · `secrets.sh` private · Prowlarr: its key in `secrets.sh`, its container file current, its start waiting on nothing online (no `podman-user-wait-network-online.service`), running, answering, taking the key, its files yours, the usual eight indexers (a warning when one is missing) · podman's database · `~/Downloads` outside the snapshots · the SSH policy and firewall ports (6881 for torrents, 53317 for LocalSend) |
 | upstream binaries (lib/upstream.sh) | present, every library resolves, `--version` runs · Fusion Pixel 12 and the Nerd Font · LocalSend · Syncplay · ble.sh · GE-Proton |
 | applications | Brave Origin actually starts · Claude Code · LazyVim · torrra loads and runs through its wrapper, with no key in its config · mpv in the bar · yt-dlp's JavaScript runtime · lazygit · qalc · restic |
 | snapshots | a snapper config for `/` · the baseline snapshot (a warning when it is gone) · a snapshot pair around every DNF run · the snapshots' bounds · the monthly Btrfs scrub, and what the last one found |
-| theme | every file in sync · dwl built from `config.h` · foot and fuzzel accept their configs · waybar config parses · GTK and the portal follow the current theme · no window buttons · default programs · Brave in the desktop's colours · Qt palette · fonts resolve (Arabic, Japanese, Chinese, Korean) · the desktop font Fusion Pixel, sharp at 24 px · mpv's colours · the lock screen's pictures for both themes · the two C helpers built · the clipboard window · the wallpaper pack · the Sumi pointers · the yazi file dialog · cava · the boot menu theme · the boot splash (*起動中 · starting Fedora*) |
-| live session | bar, notifications, terminal server, wallpaper, idle, automount, status readers, polkit agent, clipboard history and keeper, the update reminder · the graphical session known to systemd · the file-dialog and screen-sharing portals · the "Share" sound devices · the refresh rate is the best available · a monitor answers DDC/CI · night light (shown, never a fault: it is yours to switch off) |
+| theme | every file in sync · dwl built from `config.h` · foot and fuzzel accept their configs · waybar config parses · GTK and the portal follow the current theme · no window buttons · default programs · Brave in the desktop's colours · Qt palette · fonts resolve (Arabic, Japanese, Chinese, Korean) · the desktop font Fusion Pixel, sharp at 24 px · mpv's colours · the lock screen's pictures for both themes · the two C helpers built · the clipboard window · the wallpaper pack · the Sumi pointers · the yazi file dialog · cava · the boot menu theme · the boot splash (*起動中 · starting Fedora*), and in every kernel's boot image (`lsinitrd`) |
+| live session | bar, notifications, terminal server, wallpaper, idle, automount, status readers, polkit agent, clipboard history and keeper, the update reminder · the graphical session known to systemd · the file-dialog and screen-sharing portals · the "Share" sound devices (PipeWire's node `share_sink`) · the refresh rate is the best available · a monitor answers DDC/CI · night light (shown, never a fault: it is yours to switch off) |
 
 The *live session* area appears only while your desktop session runs (verify looks for dwl):
 with nobody logged in, verify checks everything else.
@@ -12656,6 +12786,12 @@ BACKUP_TARGET="KINGSTON"          # the drive's name, as the drives menu shows i
 BACKUP_REMIND_DAYS="7"            # a notice when the last backup is older than this; 0 = off
 ```
 
+Or let the first backup ask: with no `BACKUP_TARGET` yet, *backup* (in quick settings or
+**Super+U**) lists the drives plugged in — pick one with **Enter**, and it is saved as
+`BACKUP_TARGET` the way *settings* saves it (checked, with your password), then the backup
+starts. With no drive plugged in it says so — *no drive plugged in* — and does nothing more:
+plug the drive in and run it again.
+
 **2.** Choose a password — a sentence of your own — and add one line to
 `~/.config/fedokawaii/secrets.sh`, the file that already holds Prowlarr's key (yours alone,
 mode 600, §20.1): `RESTIC_PASSWORD="…"`. Write the sentence down somewhere that is not this
@@ -13116,6 +13252,71 @@ the screen grows brighter. Run verify again: the `!` line has become
 Four steps, and no log needed: verify did the looking. When verify finds nothing, step 3
 takes over — the next section says which log belongs to which symptom.
 
+### The health report: the whole machine in one file
+
+When you ask for help (step 6), one file says more than any single log: the **health
+report**, `~/fedokawaii-report.txt`. About 480 checks, each with an ID (`BOOT-01`, `CLIP-04`,
+`SHARE-07`…), grouped in 28 areas:
+
+- **the install:** setup's log (each `✘` with the six lines that led to it), verify's full
+  answer, whether every setup step ran, whether the installed commands are the toolkit's;
+- **the start:** the boot's arguments on the running kernel and on every boot entry, the
+  splash in each kernel's image, the console font, greetd's start (and why it failed, when it
+  did), the time to the login screen, the logout → login gap;
+- **the session:** its environment, dwl (the build that runs, FreeSync, the keys), the
+  theme, the session's programs (each running once), the journal, crashes (grouped by
+  program, with the package and what dnf was doing then), sleep and the lock;
+- **the hardware and the network:** the cards, the monitor and DDC/CI, input, the network,
+  the clock, the firewall, sound (the Share output, the click), Bluetooth, the disks, Btrfs,
+  snapshots and the NVMe's health;
+- **the desktop:** how fast menus, the panel and the level display answer; the bar, notices,
+  the clipboard (a copy followed into Super+V's history, and kept once its program quits),
+  screen sharing, the file dialog, fonts (Arabic shaped right to left), the launcher's entries
+  and icons, what opens which file;
+- **every program, proved:** each program the desktop ships is run once, not only looked
+  for. Examples: `foot --check-config`, neovim started with its config, a screenshot of the
+  live screen (deleted at once), each `kawa-*` helper's `--help`, and a document converted
+  by LibreOffice.
+
+```text
+$ fedokawaii report            # asks for your password: the journal and setup's log are root's
+fedokawaii-report: 486 checks and the machine's logs — this takes a few minutes
+fedokawaii-report: /home/you/fedokawaii-report.txt (4120 lines) — works, 3 warnings
+```
+
+*(for example)*
+
+| Where | What |
+|---|---|
+| line 4 | the verdict: `HEALTHY`, `WORKS, WITH WARNINGS` or `BROKEN`, with the counts |
+| `── findings by area` | each `FAIL` and `WARN`, with `→` what to do or send, and what the failing command printed, indented under it |
+| `── by area: each check` | every area's table: each check's result (`ok`, `FAIL`, `WARN`, `INFO`: kept to read, `SKIP`: needs the desktop or a full run), its time and what passing means |
+| the sections | the logs, area by area (each command's output cut at 200 lines) |
+| `══════ the checks` | what each check that did not pass printed |
+| the last part | one line per check: `STATUS`, the area, the check, a detail — compare two reports with `diff` to see what a fix changed |
+
+- **`fedokawaii report --quick`** leaves out the timed and the longer tests: the theme
+  switch, the menus and the level display timed, a trial boot image, the download speed. The
+  full report takes a few minutes (its checks run side by side; the timed ones run alone,
+  after the others).
+- **Run it from the desktop**: more than a hundred checks ask the running session (the bar,
+  the clipboard, the portals). Without a desktop they are skipped, and the report says how
+  many.
+- **The first start.** Setup has it made once by itself. `fedokawaii-report.service` waits
+  for your first login after the build, writes the file and never runs again. So the file
+  is already in your home on the first day.
+- **What to do with it.** Read the findings first: most `→` lines are a command to run. For
+  the rest, send the whole file with your question. It holds no secrets: no value from
+  `secrets.sh` is ever printed (two checks only ask whether a password and a key are set),
+  and any password, token or key is shown as `●●●`. The file is yours alone (mode 600). Run
+  from a USB stick (`sudo bash fedokawaii-report`), it leaves a copy beside itself too.
+- **It changes nothing for good.** The full report switches the theme to the other one and
+  back, turns FreeSync round once, sends test notices, and opens and closes a menu, the
+  panel, a small window and a file dialog: you see them flash. It copies a few things to the
+  clipboard and then puts back what was there, and it removes its test entries from Super+V's
+  history. The screenshot it takes and the trial boot image it builds (in `/var/tmp`, never
+  `/boot`) are deleted.
+
 ## 39.2 Symptoms, and where to look
 
 | Symptom | Look at |
@@ -13449,7 +13650,7 @@ below read.
 | GTK 4 / libadwaita | one `gtk.css` with both palettes, chosen by GTK's color-scheme media query | gsettings `color-scheme` |
 | GTK 3 | two GTK themes of its own, `Fedokawaii` and `Fedokawaii-dark` (adw-gtk3 + the palette, in `~/.local/share/themes`) | gsettings `gtk-theme` — every open window, the file dialog included |
 | Brave | GTK mode (set by Theme): its tab strip, toolbar and menus come from the GTK theme, a few rules in it reach Brave alone (the address bar keeps Brave's own colours); the new-tab page is the ground colour (`light-dark()`); web pages follow the portal's dark / light | live |
-| Qt | `qt6ct.conf` is a link into the theme | the link is replaced; qt6ct watches its folder |
+| Qt | `qt6ct.conf` is a link into the theme (the palette, GTK's fonts — Noto Sans 10.5, JetBrainsMono Nerd 11 — and GTK's Adwaita icons) | the link is replaced; qt6ct watches its folder |
 | mpv | `include` of `current/mpv.conf`: on-screen text, the controller, menus | every open player loads the new file over its socket |
 | btop | `color_theme = "fedokawaii"`: `~/.config/btop/themes/fedokawaii.theme` is a link through `current` (btop takes themes only by name) | SIGUSR2 |
 | zathura | `include ../fedokawaii/current/zathurarc` | `SourceConfig` over D-Bus |
@@ -13466,6 +13667,14 @@ program to use as it likes — foot switches its palette on them, waybar reloads
 `SIGUSR2`. `kawa-theme` sends them only to programs that already catch them, since an uncaught
 `SIGUSR1` would end the program.
 
+**Square, everywhere.** dwl draws each window's 2 px border itself, square. The GTK 3 themes and
+GTK 4's `gtk.css` (both from `tools/build-themes.py`) make every window, dialog, its decoration
+and every popover square too, with no shadow and no margin around it — so a dialog fills its
+border exactly, with no rounded corner or gap inside it — and buttons and entries square (a
+radio button stays round: that is how it differs from a check box); a dialog's default button
+is the vermilion. The menus (fuzzel), the notices, the lock and login screens and the bar are
+square already.
+
 To change a colour: edit the palette at the top of `tools/build-themes.py` in your working copy,
 run `python3 tools/build-themes.py` there, then apply (ch. 42). **Super+Shift+U →
 colours** does the middle step for you: it runs the generator when you save, then offers to
@@ -13480,10 +13689,11 @@ checks that each one is still a palette colour (it stops if not).
 |---|---|---|
 | **Fusion Pixel 12** (`Fusion Pixel 12px Mono ja`) | everything the desktop draws itself: the terminal and all in it (neovim, yazi, btop…) at 24 px, on 26 px lines (§11.9); the bar, menus and notifications at 12 px; the lock and login screens; the boot menu at 24, 36 or 48 px; the game overlay | one pixel font with Latin, kana and kanji in one face, on a 12 px grid — set at 12 px or a whole multiple, never in points, with smoothing off. Installed for every account in `/usr/local/share/fonts/fusion-pixel`, because the login screen runs as its own user |
 | **Sumi Icons** | every icon in the bar, menus and notifications — and, as *Sumi Icons Term*, in the prompt, fetch and the clipboard and wallpaper windows | the desktop's own icon font, built from `art/icons.txt` on the same grid |
-| **JetBrains Mono** (Nerd Font) | the `monospace` font of GTK and Qt programs; in the terminal, only the symbols Fusion Pixel lacks (yazi's file icons) | readable code in apps, and the Nerd Font symbols terminal programs draw |
+| **JetBrains Mono** (Nerd Font) | the `monospace` font of GTK and Qt programs; mpv's on-screen text, and Syncplay's words on the film from its first frame (`~/.config/mpv/script-opts/syncplayintf.conf`, and the same in `syncplay.ini`); in the terminal, only the symbols Fusion Pixel lacks (yazi's file icons) | readable code in apps, and the Nerd Font symbols terminal programs draw |
+| **Noto Naskh Arabic** · **Noto Kufi Arabic** | Arabic: Naskh in GTK and Qt programs, Brave and LibreOffice (fontconfig's `sans-serif` for `lang=ar`, Amiri for `serif`); Kufi in the bar, the menus and the notices, beside the pixel letters | joined and right to left wherever the program shapes text. The terminal (foot) cannot: it would draw Arabic unjoined and left to right, so nothing the desktop shows there carries it — the weather window names your city as `WEATHER_CITY` spells it |
 | **Noto Sans CJK** | Japanese, Chinese and Korean in programs, web pages and subtitles | a full, smooth face where text is read at length |
 | **Terminus** | the text console | sharp bitmap font for the console under the login screen |
-| Noto Sans, Noto Naskh Arabic, Amiri, Liberation, Noto Color Emoji | GTK and Qt programs, documents, Arabic, emoji | |
+| Noto Sans, Amiri, Liberation, Noto Color Emoji | GTK and Qt programs (Noto Sans 10.5 in both), documents, Arabic serif, emoji | |
 
 A *point* is a length (1/72 inch) that turns into a different number of pixels with each
 screen's scaling; a pixel size is exact, which is what a pixel font needs. Fontconfig, the
@@ -13693,6 +13903,7 @@ The bar costs almost nothing at rest, because nothing in it polls:
 |---|---|
 | workspaces, layout, title, keyboard layout | only when dwl reports a change; only that part is redrawn |
 | clock | once a second (waybar's own clock) |
+| timer | once a second, in bash alone (a read that times out: no program started), only drawing when the time shown changes — at once when one is set |
 | CPU | every two seconds, in pure bash reading `/proc/stat` — no program is started |
 | drive mark | only when a drive comes, opens, closes or goes: `kawa-drives` pokes it (`SIGRTMIN+13`) |
 | music meter | its analyser (cava) runs only while a player is playing: paused, it is not running at all; silent, it sleeps |
@@ -15241,6 +15452,7 @@ you change on the way (§42.6).
 > - start Claude Code in a folder, steer it and stop it
 > - ask it to explain, plan and test, rather than only to write
 > - keep control: commit first, read every change, keep secrets out
+> - run several agents side by side in herdr, each on a worktree of its own
 >
 > **You need:** ch. 43 (learning to program) · ch. 41 (git).
 
@@ -15337,6 +15549,100 @@ Rules that keep it safe:
 5. **Type the fix yourself** now and then, instead of accepting it. It is slower, and it is
    how the syntax becomes yours.
 
+## 44.3 Several agents side by side: herdr
+
+One Claude Code works on one thing at a time. When you want a second one on another task — one
+writes a test while the other reads a log — **herdr** keeps them all in one terminal window:
+each agent in a pane of its own, and a sidebar on the left that marks every one **working**,
+**blocked** (it is asking you something) or **idle** (done, waiting for the next prompt). You
+see at a glance which one needs you, instead of looking through windows. It came from its own
+release, pinned (Appendix A), and does not update itself.
+
+### Starting it
+
+*Agents* in the launcher (**Super+Space**, type `agents`), or `herdr` in any terminal. It opens in
+a window of its own, beside your editor, not as a popup. The first start shows one workspace
+with one pane: a shell, in your home folder.
+
+Closing the window does not stop the agents. herdr runs them in a server of its own in the
+background; the window is only a view of it. Start *Agents* again and they are all where you
+left them, still working or waiting. **Ctrl+B q** closes the view the same way.
+
+### Its keys
+
+Every herdr key is **Ctrl+B**, let go, then one key — as in tmux. Everything else you type goes
+to the pane, so Claude's own keys (§44.1) work as always. The mouse works too: click a pane,
+a sidebar row or a tab; drag a border; right-click for a menu; select text to copy it.
+
+| Keys | Does |
+|---|---|
+| **Ctrl+B a** | a new pane with Claude Code in it, in the folder you are in (it closes when Claude does) |
+| **Ctrl+B v** · **Ctrl+B -** | split the pane side by side · one above the other (a shell: type `claude`) |
+| **Ctrl+B h j k l** · **Ctrl+B Tab** | move to the pane left, below, above, right · to the next one |
+| **Ctrl+B z** | one pane fills the window; again, back to the split |
+| **Ctrl+B x** | close the pane (stop Claude first: **Esc**, then `/exit`) |
+| **Ctrl+B c** · **Ctrl+B n** · **Ctrl+B 1…9** | a new tab · the next tab · tab 1 to 9 |
+| **Ctrl+B Shift+N** · **Ctrl+B w** | a new workspace (a project) · pick a workspace from a list |
+| **Ctrl+B Shift+G** | a new git worktree for this project, opened as a workspace of its own |
+| **Ctrl+B o** | jump to the agent the last notice was about |
+| **Ctrl+B b** | hide or show the sidebar |
+| **Ctrl+B q** | close the window; the agents keep working |
+| **Ctrl+B ?** | every key |
+
+When an agent in another tab or workspace finishes or asks you something, a notice says so
+(mako, top right); the one you are looking at never sends one.
+
+### Creating an agent, and switching between them
+
+**Try this.** Two agents on the toolkit, one reading, one explaining.
+
+1. *Agents* in the launcher. In the shell, `cd ~/repos/fedokawaii`.
+2. **Ctrl+B a**: Claude Code starts in a pane beside the shell. Ask it *"Read
+   `bin/kawa-weather` and explain how it caches. Do not edit anything."*
+3. **Ctrl+B a** again: a second Claude, in the same folder. Ask it *"Which tests cover
+   `bin/kawa-weather`? Do not edit anything."*
+4. Watch the sidebar: both rows show *working*; when one has an answer, its row turns *idle*.
+   If one asks to run a command, its row shows *blocked* — click the row (or **Ctrl+B h**,
+   **Ctrl+B l**) and answer it there.
+
+### Worktrees: one folder per task
+
+Two agents editing the same folder get in each other's way: one's half-made change breaks
+the other's test. A **git worktree** is a second folder of the same repository, on a branch
+of its own; each agent works in its own, and the branches meet only when you merge them.
+
+1. In a workspace that is a git repository (your working copy), **Ctrl+B Shift+G**.
+2. Type a branch name, `fix-weather` say, and **Enter**. herdr makes the folder
+   `~/repos/worktrees/fedokawaii/fix-weather` (a new branch, from where you are) and opens it
+   as a workspace of its own, under the first one in the sidebar.
+3. **Ctrl+B a** there: this Claude works only in that folder.
+
+### Finishing
+
+1. Read what it did: in the worktree's shell, `git status` and `git diff` — or `lazygit`.
+2. Commit it there, on its branch (lazygit, **c**).
+3. Back in your working copy, merge the branch: `git merge fix-weather` (§41.11).
+4. Take the worktree away: right-click its row in the sidebar → *Delete worktree checkout…*.
+   herdr runs `git worktree remove`; with uncommitted changes in it, it asks again first.
+   The branch stays: `git branch -d fix-weather` when it is merged.
+5. Stop each agent (**Esc**, then `/exit`); its pane closes. `herdr server stop` ends herdr
+   altogether — every pane in it, so only when nothing is still working.
+
+**Recommended.** One task per agent, one worktree per agent that edits; plan mode (§44.1)
+for each. Two or three at once are plenty: each one's changes still need your reading.
+
+**Pitfalls.** Every agent acts as you, as one does (§44.1) — several of them are several sets
+of permission prompts to read, not to wave through. Its settings screen (**Ctrl+B s**)
+writes into `~/.config/herdr/config.toml`, which the next Theme run puts back: make a lasting
+change in your working copy (`configs/home/.config/herdr/config.toml`). After a restart of the
+computer the panes come back, but the agents in them only with herdr's Claude integration
+(`herdr integration install claude`, which adds hooks to Claude Code's own settings); without
+it, `claude -c` in a pane continues that folder's last conversation.
+
+**Read more:** [herdr's documentation](https://herdr.dev/docs/) — the
+[keyboard](https://herdr.dev/docs/keyboard/) page lists every key, and
+[configuration](https://herdr.dev/docs/configuration/) every setting.
+
 **Part VI, looking back.**
 
 | Chapter | You can now |
@@ -15345,7 +15651,7 @@ Rules that keep it safe:
 | ch. 41 | record, compare, branch and undo changes with git and lazygit |
 | ch. 42 | change any part of the desktop so that every update keeps it |
 | ch. 43 | choose what to learn next, and read the desktop's own scripts |
-| ch. 44 | learn with an assistant without losing control of your files |
+| ch. 44 | learn with an assistant — or several, side by side — without losing control of your files |
 
 The appendices that follow are for looking things up: the software and why each piece, where
 everything lives, the keys, the commands by job, the terms, and the sources.
@@ -15358,12 +15664,15 @@ everything lives, the keys, the commands by job, the terms, and the sources.
 - Ask it to explain, to find the file, to plan and to write tests — the explanation is what you
   learn from.
 - Commit first, read `fedokawaii diff`, run the self-tests, and never paste a secret.
+- herdr (*Agents*) keeps several agents in one window and marks the one that needs you;
+  **Ctrl+B a** starts one, **Ctrl+B Shift+G** gives it a worktree of its own.
 
 **Check yourself**
 
 1. Where does an API key for Claude Code belong? → *only in `~/.config/fedokawaii/secrets.sh`, as `export ANTHROPIC_API_KEY=…`*
 2. Why commit before a session? → *every change it makes is then one key away from undone*
 3. It edited `~/.config/waybar/style.css`. What does the next theme run do? → *it puts the toolkit's version back: point it at the working copy instead*
+4. You close the *Agents* window while two agents work. What happens to them? → *nothing: herdr's server keeps them running; start Agents again to see them*
 
 # Appendices
 
@@ -15399,6 +15708,7 @@ a package is §42.11.
 | drawing | Xournal++ · `kawa-sketch` ("Sketch") | one pen program for notes, PDFs and sketches; the tablet's pressure makes the line thicker |
 | files to and from a phone | LocalSend (its pinned release) | AirDrop between any devices on your own network, no account, no cloud; Fedora does not package it |
 | GitHub | gh | make, clone and push repositories, pull requests and releases from the terminal; its sign-in serves git too |
+| AI agents side by side | herdr (its pinned release) | several Claude Code sessions in one window, each marked working, blocked or idle, with a worktree per task; its own multiplexer, so no tmux beside it — Claude Squad, the other candidate, needs tmux |
 | the graphics card in btop | rocm-smi | the library btop opens to read an AMD card; without it btop shows no GPU |
 
 **The quiet pieces.** These each do one small job that the desktop's own scripts, or other
@@ -15420,7 +15730,7 @@ report.
 | xdg-terminal-exec | the standard way for a program to ask for "a terminal" | such a program gets foot (`~/.config/xdg-terminals.list`) |
 | udisks2 · lxqt-policykit | the service that mounts drives · the small window that asks your password for a system action | what udiskie asks to mount (§32.6) · the password prompt over the desktop (§24.4) |
 | dconf · glib2 · fontconfig | GTK's settings store (`gsettings`, `gio`) · the font library (`fc-match`, `fc-cache`) | dark or light for GTK 4 programs · the right font for every script (§40.3) |
-| adw-gtk3-theme · qt6ct · papirus-icon-theme | the GTK 3 theme that matches GTK 4 · Qt's settings · the launcher's icons | GTK and Qt programs in the desktop's two palettes (§40.2) · the icons in the launcher (§14.1) |
+| adw-gtk3-theme · qt6ct | the GTK 3 theme that matches GTK 4 · Qt's settings | GTK and Qt programs in the desktop's two palettes (§40.2); icons are each program's own, under GTK's Adwaita (no icon pack: §14.1) |
 | hunspell-en · hunspell-ar | spelling dictionaries, English and Arabic | LibreOffice underlines a misspelt word (§16.4) |
 | poppler-utils | `pdftotext`, `pdfinfo`, `pdftoppm`, `pdfunite` and their kin | text out of a PDF, pages to pictures (ch. 19) |
 | 7zip | `7z`: zip, 7z, ISO and RAR archives | packing and unpacking (§19.10) |
@@ -15863,7 +16173,8 @@ The keys and the bar run these; each also works typed in a terminal, and each sa
 | `kawa-power` | the power menu (Super+Shift+E) · `sleep`: locked, then asleep, with no menu (the Sleep key) | `kawa-power sleep` |
 | `kawa-lock` | the lock screen · `--sleep`: still locked 90 seconds later, the computer sleeps (Super+Escape) | `kawa-lock` |
 | `kawa-audio` | the audio menu: louder, quieter, mute, the output and the input (Super+A) | `kawa-audio` |
-| `kawa-calendar` | this month, today in [brackets] (a click on the clock) | `kawa-calendar` |
+| `kawa-calendar` | this month, today in [brackets] (a click on the date) | `kawa-calendar` |
+| `kawa-timer` | a timer or a stopwatch beside the bar's time (a click on the time); the bell and a chime when it ends | `kawa-timer start 25` · `kawa-timer cancel` |
 | `kawa-quick` | quick settings (Super+X) · how each tile stands · one tile's action | `kawa-quick --state` · `kawa-quick --do night` |
 | `kawa-config` | the change menu: a part of the desktop to edit in your working copy (Super+Shift+U, ch. 42) | `kawa-config` |
 | `kawa-clipfiles` | files on the clipboard, as yazi's Ctrl+C, Ctrl+X and Ctrl+V do | `kawa-clipfiles copy a.pdf` · `kawa-clipfiles paste ~/Documents` |
@@ -15876,7 +16187,7 @@ The rest are called by the bar, the keys and other programs, not by you; each st
 | Command | Who runs it | Does |
 |---|---|---|
 | `kawa-osd` | the volume, microphone and brightness keys | the level display at the bottom centre (§8.1) |
-| `kawa-tag` | a click on a workspace or the layout icon in the bar | presses Super+1…9, or picks the next or previous layout |
+| `kawa-tag` | a click on a workspace or the layout icon in the bar | presses Super+1…9, or switches between spiral and columns |
 | `kawa-dwlstatus` | the session, reading dwl's status | the bar's workspaces, layout, title and keyboard layout |
 | `kawa-nowplaying` · `kawa-mem` | the bar | *now playing* (and its clicks) · the memory figure |
 | `kawa-panel` | the session, hidden until asked | draws quick settings; `kawa-quick` knows the machine behind it |

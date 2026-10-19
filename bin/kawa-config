@@ -21,7 +21,7 @@ TK=/usr/local/lib/fedokawaii
 COPY=${FEDOKAWAII_COPY:-$HOME/repos/fedokawaii}
 WIDTH=51                       # icon (14 px) + 2 + the name (16) + the note (29): 296 px = 51 × 6 − 10
 
-say() { notify-send -a desktop "change" "$*" 2>/dev/null; }
+say() { notify-send -a desktop -- "$ICON_CODE  change" "$*" 2>/dev/null; }
 noterm() { say "the terminal server is not running — fedokawaii repair puts it back"; return 1; }
 
 # the working copy: made once, from the toolkit (fedokawaii copy), before the first edit

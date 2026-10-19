@@ -15,8 +15,9 @@ volume's number are the bar's, right above it, so they are not said again here):
                   kanji seal, its name and how it stands; the seal is stamped vermilion
                   while the thing is on
     three keys    wallpaper · screenshot · power (its icon alone), centred
-The one filled in vermilion is the one under the pointer or the keyboard's cursor — the
-desktop's one rule for what is active, as in every menu.
+The one filled in vermilion is the keyboard's cursor (the arrows, Tab). The pointer draws no
+box: the item under it keeps its look, only its icon (a meter's kanji) and its name turn
+vermilion — at once, no easing. A click moves the cursor there.
 
 Keys: arrows or h j k l move · on a meter ← → (h l) change it by 5 · Enter or Space does it ·
 Tab goes round · Esc closes. The mouse: a click does it; on a meter a click or a drag sets
@@ -41,7 +42,9 @@ ICONS_SH = os.path.join(HOME, ".config/fedokawaii/icons.sh")
 RUN = os.environ.get("XDG_RUNTIME_DIR") or f"/run/user/{os.getuid()}"
 PIDFILE = os.path.join(RUN, "kawa-panel.pid")
 MARK = os.path.join(RUN, "kawa-panel.open")         # lights the bar's cat (kawa-dwlstatus) — its
-                                                    # own: a dropdown's (kawa-drop.open) is kawa-menu's
+                                                    # own: a dropdown's (kawa-drop.open) is kawa-menu's;
+                                                    # it holds the panel's pid (one left by a panel
+                                                    # gone is no open panel)
 LOST_GRACE = 0.6      # a toggle this soon after a click outside closed it is that same click
 REPEAT = 0.5          # a toggle this soon after the last is its key held (dwl repeats it)
 
@@ -96,6 +99,54 @@ def parse_state(text):
 def percent(v):
     """'70%' → 70; anything else (no DDC/CI, muted, no output) → None."""
     return int(v[:-1]) if v.endswith("%") and v[:-1].isdigit() else None
+
+
+# ── a meter's squares and its level: one rule both ways ───────────────────────────────────
+# Twelve squares on a 12 px pitch (10 px square, 2 px gap). The level a pointer means and the
+# squares a level lights are each other's inverse: the pointer anywhere on square k (or the
+# gap after it) lights exactly k, and moving across it moves the level evenly through the
+# levels that light k — so the lit edge is always where the pointer is, never a square
+# behind or ahead. Left of the first square is 0 (all dark); the last square's last two
+# pixels and beyond are 100 (all lit). Any level above 0 lights at least one square.
+PITCH = SEG_W + SEG_GAP
+SPAN = SEGS * SEG_W + (SEGS - 1) * SEG_GAP
+
+
+def lit_of(pct):
+    """How many squares a level lights (0…12): to the nearest square, at least one above 0."""
+    if pct is None or pct <= 0:
+        return 0
+    return max(1, min(SEGS, (pct * SEGS * 2 + 100) // 200))
+
+
+def _range_of(k):
+    """The levels that light exactly k squares (k ≥ 1): lo, hi."""
+    lo = 1 if k == 1 else -(-(2 * k - 1) * 100 // (2 * SEGS))
+    hi = 100 if k == SEGS else -(-(2 * k + 1) * 100 // (2 * SEGS)) - 1
+    return lo, hi
+
+
+def level_at(off):
+    """The level a pointer `off` pixels right of the first square's left edge means (any
+    number: a drag past either end holds that end)."""
+    o = int(off // 1)
+    if o < 0:
+        return 0
+    k = min(SEGS, o // PITCH + 1)
+    start = (k - 1) * PITCH
+    cell = PITCH if k < SEGS else SEG_W
+    if o - start >= cell:
+        return 100
+    lo, hi = _range_of(k)
+    return lo + ((o - start) * (hi - lo) * 2 + (cell - 1)) // (2 * (cell - 1))
+
+
+def snap(now, d):
+    """A key's or the wheel's step from `now`: to the next multiple of |d| that way (62 +5 → 65,
+    62 −5 → 60), within 0…100."""
+    a = abs(d)
+    v = (now // a + 1) * a if d > 0 else ((now + a - 1) // a - 1) * a
+    return max(0, min(100, v))
 
 
 # ── what is shown ─────────────────────────────────────────────────────────────────────────
@@ -177,6 +228,28 @@ def layout(s):
     return items, head, rules, (INNER + 2 * (PAD + BORDER), y)
 
 
+def look(it, focused, hot):
+    """How an item is drawn — the colours' names: fill (None: none of its own), frame (None:
+    none), glyph (its icon, or a meter's kanji), label (its name), value (its words, a meter's
+    words with no level), on_fill (its seal and squares drawn as on vermilion).
+    The keyboard's cursor (focused) is filled in vermilion, its ink text_on_accent. The pointer
+    (hot) draws no box: an item under it keeps its resting look and only its glyph and its name
+    turn accent_text; under the pointer and the cursor both, it is drawn as the cursor (ink on
+    vermilion keeps its contrast).
+    A tile's seal says whether the thing is on, so the pointer leaves it as it is."""
+    if focused:
+        ink = "text_on_accent"
+        return {"fill": "accent", "frame": None, "glyph": ink, "label": ink,
+                "value": ink, "on_fill": True}
+    rest = {"fill": None if it.kind == "meter" else "key", "frame": None if it.kind == "meter" else "edge",
+            "glyph": "accent_text" if it.kind == "meter" else "text",
+            "label": "strong" if it.kind == "tile" and it.lit else "text",
+            "value": "muted", "on_fill": False}
+    if hot:
+        rest["glyph"] = rest["label"] = "accent_text"
+    return rest
+
+
 SWITCHES = ("theme", "night", "vrr", "bluetooth", "dnd")       # done in place: the panel stays
 OPENERS = ("network", "devices", "drives", "backup", "wallpaper", "screenshot", "power", "sound")
 
@@ -189,7 +262,8 @@ class Panel:
         self.ui = ui
         self.state = {}
         self.items, self.head, self.rules, self.size = layout(self.state)
-        self.focus = "theme"
+        self.focus = "theme"    # the keyboard's cursor: filled in vermilion
+        self.hot = None         # the item under the pointer: its glyph and name lit, no box
         self.visible = False
         self.lost_at = -1e9
         self.toggled_at = -1e9
@@ -197,6 +271,13 @@ class Panel:
         self.again = False
         self.busy = {}          # a meter's level being set, and the next one asked meanwhile
         self.wanted = {}
+        # a level set here is the truth until confirmed: a state read started before its last
+        # change (or answered while it is dragged or being set) does not move it back
+        self.seq = 0            # counts the meters' changes
+        self.changed = {}       # meter → self.seq at its last change
+        self.read_seq = 0       # self.seq when the state read under way started
+        self.read_hold = set()  # the meters being dragged or set when it started
+        self.scrolled = (None, 0.0)   # a touchpad's small scrolls, summed per meter
 
     # the state
     def refresh(self):
@@ -204,18 +285,33 @@ class Panel:
             self.again = True
             return
         self.reading = True
+        self.read_seq = self.seq
+        self.read_hold = {k for k in ("brightness", "sound") if self.setting(k)}
         self.ui.run(["kawa-quick", "--state"], self.got_state)
+
+    def setting(self, key):
+        """Dragged, or a level of it being set or waiting to be."""
+        return self.dragging == key or key in self.wanted or key in self.busy
+
+    def held(self, key):
+        """A meter whose level here outranks a state read now coming back: dragged, being set,
+        or changed after that read started, or dragged or being set when it started (it would
+        show the level from before)."""
+        return self.setting(key) or self.changed.get(key, -1) > self.read_seq or key in self.read_hold
 
     def got_state(self, rc, out):
         self.reading = False
         if rc == 0:
             new = parse_state(out)
-            for k, v in self.wanted.items():           # (a level still being set shows as asked)
-                new[k] = f"{v}%"
+            for k in ("brightness", "sound"):
+                if self.held(k) and k in self.state:
+                    new[k] = self.state[k]
             self.state = new
             self.items, self.head, self.rules, self.size = layout(self.state)
             if self.focus not in [i.key for i in self.items]:
                 self.focus = "theme"
+            if self.hot not in [i.key for i in self.items]:
+                self.hot = None
             self.ui.redraw()
         if self.again:
             self.again = False
@@ -235,6 +331,7 @@ class Panel:
     def open(self):
         self.ui.close_menu()                          # a fuzzel menu on screen goes first
         self.visible = True
+        self.hot = None                               # (a new window: the pointer says anew)
         self.ui.show()
         self.ui.light(True)
         self.refresh()
@@ -264,12 +361,20 @@ class Panel:
             pass                                       # (its meter is all there is)
 
     def set_level(self, key, pct):
-        pct = max(0, min(100, int(round(pct / 5.0) * 5)))
+        """The meter at pct at once (only it redrawn); the level sent when none is being set,
+        else the newest asked goes when that one is done. The same level again does nothing."""
+        pct = max(0, min(100, int(pct)))
+        if percent(self.state.get(key, "")) == pct:
+            return
+        self.seq += 1
+        self.changed[key] = self.seq
         self.wanted[key] = pct
         self.state[key] = f"{pct}%"
-        self.items, self.head, self.rules, self.size = layout(self.state)
-        self.ui.redraw()
-        if not self.busy.get(key):
+        it = self.item(key)
+        if it:
+            it.value = self.state[key]
+        self.ui.redraw(*([it] if it else []))
+        if key not in self.busy:
             self._send(key)
 
     def _send(self, key):
@@ -282,7 +387,7 @@ class Panel:
 
     def _sent(self, key):
         sent = self.busy.pop(key, None)
-        if self.wanted.get(key) != sent:
+        if key in self.wanted and self.wanted[key] != sent:
             self._send(key)                           # (moved again meanwhile: the latest)
         else:
             self.wanted.pop(key, None)
@@ -291,15 +396,20 @@ class Panel:
     def step(self, key, d):
         now = percent(self.state.get(key, ""))
         if now is not None:
-            self.set_level(key, now + d)
+            self.set_level(key, snap(now, d))
 
-    def meter_at(self, item, x):
-        """The level a click at x on a meter's squares means (None: not on them)."""
-        x0 = item.x + item.w - 6 - 4 * 6 - 8 - (SEGS * SEG_W + (SEGS - 1) * SEG_GAP)
-        span = SEGS * SEG_W + (SEGS - 1) * SEG_GAP
-        if x0 - 4 <= x < x0 + span + 4:
-            return max(0.0, min(1.0, (x - x0) / span)) * 100
-        return None
+    @staticmethod
+    def squares_x(item):
+        """Where a meter's first square starts (as drawn)."""
+        return item.x + item.w - 6 - 4 * 6 - 8 - SPAN
+
+    def meter_at(self, item, x, held=False):
+        """The level a pointer at x on a meter means: on its squares (or 6 px either side, the
+        left margin meaning 0); held (a drag): anywhere, past an end that end. None: not there."""
+        off = x - self.squares_x(item)
+        if not held and not (-6 <= off < SPAN + 4):
+            return None
+        return level_at(off)
 
     # keys
     def key(self, name):
@@ -327,23 +437,36 @@ class Panel:
 
     def move(self, key):
         if key != self.focus:
-            self.focus = key
-            self.ui.redraw()
+            old, self.focus = self.item(self.focus), key
+            self.ui.redraw(*[i for i in (old, self.item(key)) if i])
 
     # the mouse
     def at(self, x, y):
         return next((i for i in self.items if i.inside(x, y)), None)
 
     def hover(self, x, y, dragging=False):
-        it = self.at(x, y)
+        """The pointer moved: during a drag the meter follows it; otherwise the item under it is
+        the hot one (the keyboard's cursor stays where it is) — only the two that changed are
+        redrawn."""
         if dragging and self.dragging:
             m = self.item(self.dragging)
-            v = self.meter_at(m, x) if m else None
+            v = self.meter_at(m, x, held=True) if m else None
             if v is not None:
                 self.set_level(m.key, v)
             return
-        if it:
-            self.move(it.key)
+        it = self.at(x, y)
+        self.set_hot(it.key if it else None)
+
+    def leave(self):
+        """The pointer left the panel: nothing is under it."""
+        self.set_hot(None)
+
+    def set_hot(self, key):
+        if key != self.hot:
+            old, self.hot = self.item(self.hot) if self.hot else None, key
+            changed = [i for i in (old, self.item(key) if key else None) if i]
+            if changed:                                # (none: nothing to redraw — not all)
+                self.ui.redraw(*changed)
 
     dragging = None
 
@@ -361,12 +484,28 @@ class Panel:
         self.activate(it.key)
 
     def release(self):
-        self.dragging = None
+        key, self.dragging = self.dragging, None
+        if key and key not in self.busy and key not in self.wanted:
+            self.refresh()                             # (its level confirmed: read back)
 
     def scroll(self, x, y, up):
         it = self.at(x, y)
         if it and it.kind == "meter":
             self.step(it.key, 5 if up else -5)
+
+    def scroll_by(self, x, y, dy):
+        """A smooth scroll (dy < 0: up): a wheel's notch is 1, a touchpad sends small parts —
+        summed, a step per whole one, so a touchpad does not race through the levels."""
+        it = self.at(x, y)
+        if not it or it.kind != "meter":
+            self.scrolled = (None, 0.0)
+            return
+        key, acc = self.scrolled
+        acc = (acc if key == it.key else 0.0) - dy
+        while abs(acc) >= 1 - 1e-9:
+            self.step(it.key, 5 if acc > 0 else -5)
+            acc -= 1 if acc > 0 else -1
+        self.scrolled = (it.key, acc)
 
 
 # ── on screen ─────────────────────────────────────────────────────────────────────────────
@@ -401,6 +540,27 @@ def main(argv):
     signal.signal(signal.SIGUSR2, lambda *_: early.clear())     # (a menu opened meanwhile: closed)
     with open(PIDFILE, "w") as f:
         f.write(str(os.getpid()))
+    # a marker left by a panel that ended without closing (killed, crashed): the cat goes dark
+    if os.path.lexists(MARK):
+        try:
+            os.unlink(MARK)
+        except OSError:
+            pass
+        try:
+            Gio.Subprocess.new(["kawa-dwlstatus", "--poke", "15"],
+                               Gio.SubprocessFlags.STDOUT_SILENCE | Gio.SubprocessFlags.STDERR_SILENCE)
+        except GLib.Error:
+            pass
+    # no transitions anywhere in it (a tooltip's fade, a theme's hover easing): every change of
+    # state is drawn at once — the drawing is the panel's own, the rest must not animate. No
+    # GTK widget can show a hover background either: the window holds one drawing area, as big
+    # as it, and draw() paints every pixel of it (the surface first), so whatever a theme gives
+    # window:hover or drawingarea:hover is underneath; the one other widget, the wallpaper's
+    # tooltip, opens beside the pointer, not under it (no buttons or other widgets: tested)
+    css = Gtk.CssProvider()
+    css.load_from_data(b"* { transition: none; animation: none; }")
+    Gtk.StyleContext.add_provider_for_screen(Gdk.Screen.get_default(), css,
+                                             Gtk.STYLE_PROVIDER_PRIORITY_USER + 1)
     ic = icons()
     pal = {}
 
@@ -430,31 +590,44 @@ def main(argv):
         # the keys and the mouse are the window's own (the drawing fills it, pixel for pixel)
         win.add_events(Gdk.EventMask.POINTER_MOTION_MASK | Gdk.EventMask.BUTTON_PRESS_MASK
                        | Gdk.EventMask.BUTTON_RELEASE_MASK | Gdk.EventMask.SCROLL_MASK
-                       | Gdk.EventMask.SMOOTH_SCROLL_MASK | Gdk.EventMask.KEY_PRESS_MASK)
+                       | Gdk.EventMask.SMOOTH_SCROLL_MASK | Gdk.EventMask.KEY_PRESS_MASK
+                       | Gdk.EventMask.LEAVE_NOTIFY_MASK)
         win.set_has_tooltip(True)
         area = Gtk.DrawingArea()
         win.add(area)
         area.connect("draw", draw)
         win.connect("key-press-event", on_key)
         win.connect("motion-notify-event", on_motion)
+        win.connect("leave-notify-event", on_leave)
         win.connect("button-press-event", on_press)
         win.connect("button-release-event", on_release)
         win.connect("scroll-event", on_scroll)
         win.connect("query-tooltip", on_tip)
         # a click outside (dwl takes the keyboard back), or another menu taking it: closed
         win.connect("focus-out-event", lambda w, ev: panel.close("lost") or False)
+        # taken off the screen some other way (the compositor closed its surface): closed too,
+        # so the bar's cat never stays lit over nothing
+        win.connect("unmap-event", lambda w, ev: (w is view["win"] and panel.close("lost")) or False)
         area.set_size_request(*panel.size)
-        view["win"], view["area"] = win, area
+        view["win"], view["area"], view["size"] = win, area, panel.size
         return win
 
     class UI:
         def now(self):
             return time.monotonic()
 
-        def redraw(self):
-            if view["area"]:
-                view["area"].set_size_request(*panel.size)
-                view["area"].queue_draw()
+        def redraw(self, *items):
+            """The items given (their own squares: no flicker, little to draw), or all."""
+            a = view["area"]
+            if not a:
+                return
+            if items and view.get("size") == panel.size:
+                for it in items:
+                    a.queue_draw_area(it.x, it.y, it.w, it.h)
+                return
+            view["size"] = panel.size
+            a.set_size_request(*panel.size)
+            a.queue_draw()
 
         def show(self):
             self.hide()
@@ -469,7 +642,9 @@ def main(argv):
         def light(self, on):
             try:
                 if on:
-                    open(MARK, "w").close()
+                    with open(MARK + ".new", "w") as f:
+                        f.write(f"{os.getpid()}\n")
+                    os.replace(MARK + ".new", MARK)
                 else:
                     os.unlink(MARK)
             except OSError:
@@ -582,53 +757,45 @@ def main(argv):
         for ry in panel.rules:
             stitch(cr, hx, ry, INNER)
         for it in panel.items:
-            on = it.key == panel.focus
+            # the keyboard's cursor filled in vermilion; the pointer's item only its glyph and
+            # name lit (look(), above main) — no box behind it, no easing: drawn at once
+            lk = look(it, it.key == panel.focus, it.key == panel.hot)
+            on = lk["on_fill"]
+            if lk["fill"]:
+                box(cr, it.x, it.y, it.w, it.h, lk["fill"])
+            if lk["frame"]:
+                frame(cr, it.x, it.y, it.w, it.h, lk["frame"])
             if it.kind == "meter":
-                if on:
-                    box(cr, it.x, it.y, it.w, it.h, "accent")
                 ty = it.y + (it.h - LINE) // 2
-                glyph(cr, it.x + 6, ty, it.kanji, "text_on_accent" if on else "accent_text")
-                text(cr, it.x + 6 + LINE + 6, ty, it.name, "text_on_accent" if on else "text")
+                glyph(cr, it.x + 6, ty, it.kanji, lk["glyph"])
+                text(cr, it.x + 6 + LINE + 6, ty, it.name, lk["label"])
                 pct = percent(it.value)
                 # (no DDC/CI, muted, no output: the words alone; a level's number is the bar's,
                 # above — the squares stand where the sound's do)
                 if pct is None:
-                    text(cr, it.x + it.w - 6, ty, it.value, "text_on_accent" if on else "muted", right=True)
+                    text(cr, it.x + it.w - 6, ty, it.value, lk["value"], right=True)
                     continue
-                span = SEGS * SEG_W + (SEGS - 1) * SEG_GAP
-                sx = it.x + it.w - 6 - 4 * 6 - 8 - span
-                lit = round((pct or 0) * SEGS / 100)
+                sx = Panel.squares_x(it)
+                lit = lit_of(pct)
                 for i in range(SEGS):
                     # (on the vermilion fill the lit squares in the colour of everything on vermilion)
                     name = ("text_on_accent" if on else "asagi") if i < lit else ("accent_lo" if on else "edge2")
                     box(cr, sx + i * (SEG_W + SEG_GAP), it.y + (it.h - SEG_H) // 2, SEG_W, SEG_H, name)
             elif it.kind == "tile":
-                if on:
-                    box(cr, it.x, it.y, it.w, it.h, "accent")
-                else:
-                    box(cr, it.x, it.y, it.w, it.h, "key")
-                    frame(cr, it.x, it.y, it.w, it.h, "edge")
-                ink = "text_on_accent" if on else "text"
-                glyph(cr, it.x + 6, it.y + 6, ic[it.icon], ink, None, SEAL)
+                glyph(cr, it.x + 6, it.y + 6, ic[it.icon], lk["glyph"], None, SEAL)
                 seal(cr, it.x + it.w - 6 - SEAL, it.y + 6, it.kanji, it.lit, on)
                 tw = it.w - 12
-                text(cr, it.x + 6, it.y + 6 + SEAL + 4, it.name, "text_on_accent" if on else ("strong" if it.lit else "text"), width=tw)
-                text(cr, it.x + 6, it.y + 6 + SEAL + 4 + LINE + 1, it.value, "text_on_accent" if on else "muted", width=tw)
+                text(cr, it.x + 6, it.y + 6 + SEAL + 4, it.name, lk["label"], width=tw)
+                text(cr, it.x + 6, it.y + 6 + SEAL + 4 + LINE + 1, it.value, lk["value"], width=tw)
             else:
-                if on:
-                    box(cr, it.x, it.y, it.w, it.h, "accent")
-                else:
-                    box(cr, it.x, it.y, it.w, it.h, "key")
-                    frame(cr, it.x, it.y, it.w, it.h, "edge")
-                ink = "text_on_accent" if on else "text"
                 ty = it.y + (it.h - LINE) // 2
                 if it.name:
                     lw = text_layout(cr, it.name).get_pixel_extents()[1].width
                     x = it.x + (it.w - (LINE + 6 + lw)) // 2
-                    glyph(cr, x, ty, ic[it.icon], ink)
-                    text(cr, x + LINE + 6, ty, it.name, ink)
+                    glyph(cr, x, ty, ic[it.icon], lk["glyph"])
+                    text(cr, x + LINE + 6, ty, it.name, lk["label"])
                 else:
-                    glyph(cr, it.x, it.y, ic[it.icon], ink, it.w, it.h)
+                    glyph(cr, it.x, it.y, ic[it.icon], lk["glyph"], it.w, it.h)
         return True
 
     def on_key(w, ev):
@@ -638,6 +805,12 @@ def main(argv):
     def on_motion(w, ev):
         panel.hover(ev.x, ev.y, dragging=bool(ev.state & Gdk.ModifierType.BUTTON1_MASK))
         return True
+
+    def on_leave(w, ev):
+        # (the pointer gone into a child's window is still over the panel: only a real leave)
+        if ev.detail != Gdk.NotifyType.INFERIOR:
+            panel.leave()
+        return False
 
     def on_press(w, ev):
         if ev.button == 1 and ev.type == Gdk.EventType.BUTTON_PRESS:
@@ -652,7 +825,7 @@ def main(argv):
         if ev.direction == Gdk.ScrollDirection.SMOOTH:
             _, dx, dy = ev.get_scroll_deltas()
             if dy:
-                panel.scroll(ev.x, ev.y, dy < 0)
+                panel.scroll_by(ev.x, ev.y, dy)
         elif ev.direction in (Gdk.ScrollDirection.UP, Gdk.ScrollDirection.DOWN):
             panel.scroll(ev.x, ev.y, ev.direction == Gdk.ScrollDirection.UP)
         return True
@@ -680,7 +853,9 @@ def main(argv):
     # another menu's key (kawa-menu): closed for it — on the overlay, with the keyboard its
     # own, the panel would leave the menu no keys
     GLib.unix_signal_add(GLib.PRIORITY_DEFAULT, signal.SIGUSR2, lambda: panel.close("chosen") or True)
-    GLib.unix_signal_add(GLib.PRIORITY_DEFAULT, signal.SIGTERM, lambda: Gtk.main_quit() or False)
+    # ended (logout, a restart, Ctrl+C): closed first — the marker goes, the cat goes dark
+    for sig in (signal.SIGTERM, signal.SIGHUP, signal.SIGINT):
+        GLib.unix_signal_add(GLib.PRIORITY_DEFAULT, sig, lambda: Gtk.main_quit() or False)
     panel.refresh()
     if argv[1:] == ["--open"] or len(early) % 2:
         panel.open()

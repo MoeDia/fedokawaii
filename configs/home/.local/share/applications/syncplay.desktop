@@ -3,11 +3,13 @@
 # Qt): kawa-together in a window of its own — server, room and name first (Enter rejoins the
 # last ones), then Syncplay runs there and the film plays in mpv beside it. No file types:
 # films keep opening in mpv (mimeapps.list).
+# Its icon: Syncplay's own, from the copy lib/upstream.sh installs (by its path: that copy
+# puts nothing into the icon folders).
 Type=Application
 Name=Syncplay
 GenericName=Watch together
 Comment=Watch a film with friends, in step (Syncplay in a terminal)
-Icon=syncplay
+Icon=@HOME@/.local/share/fedokawaii/syncplay/syncplay/resources/hicolor/128x128/apps/syncplay.png
 Exec=@HOME@/.local/bin/kawa-term kawa-together %f
 Terminal=false
 Categories=AudioVideo;Video;

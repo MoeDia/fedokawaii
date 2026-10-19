@@ -345,6 +345,20 @@ case_ "a home folder with a space"
 mkdir -p "$TMP/my home/.config/fedokawaii"; cp "$HOME/.config/fedokawaii/icons.sh" "$TMP/my home/.config/fedokawaii/"
 rm -rf "$BAR"; HOME="$TMP/my home" kawa-dwlstatus < <(block DP-1 1 1 1 0 '(@)' 0 "home")
 eq "$(bar layout)" "{\"text\":\"$ICON_SPIRAL\",\"class\":\"spiral\"}"
+case_ "the cat: lit only while a marker's opener runs (a pid that died leaves it dark; an empty marker counts)"
+cat_ex=$(wbexec custom/menu)
+for m in kawa-drop.open kawa-panel.open; do
+  rm -f "$XDG_RUNTIME_DIR"/kawa-*.open
+  lacks "$(sh -c "$cat_ex")" '"open"' "no marker: dark"
+  : >"$XDG_RUNTIME_DIR/$m"; has "$(sh -c "$cat_ex")" '"class":"open"' "$m empty: lit"
+  echo $$ >"$XDG_RUNTIME_DIR/$m"; has "$(sh -c "$cat_ex")" '"class":"open"' "$m with a live pid: lit"
+  sleep 0 & dead=$!; wait "$dead"; echo "$dead" >"$XDG_RUNTIME_DIR/$m"
+  lacks "$(sh -c "$cat_ex")" '"open"' "$m with a dead pid: dark"
+  echo "-1" >"$XDG_RUNTIME_DIR/$m"; lacks "$(sh -c "$cat_ex")" '"open"' "$m not a pid (-1 would be every process): dark"
+  lacks "$(bash -c "$cat_ex" 2>&1)" "No such" "no error from a dead marker"
+done
+rm -f "$XDG_RUNTIME_DIR"/kawa-*.open
+
 case_ "no runtime folder at all: exit 1, said"
 rc 1 env -u XDG_RUNTIME_DIR kawa-dwlstatus </dev/null
 has "$(env -u XDG_RUNTIME_DIR kawa-dwlstatus </dev/null 2>&1)" "XDG_RUNTIME_DIR"

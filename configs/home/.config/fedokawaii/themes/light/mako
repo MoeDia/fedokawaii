@@ -5,7 +5,6 @@ background-color=#dcd2b8ff
 text-color=#2b2721
 border-color=#5f594d
 progress-color=over #c2b79b
-icon-path=/usr/share/icons/Papirus
 # the title in the strongest ink instead of bold: the pixel fonts have no bold face, and
 # a synthesised one smears their pixels
 format=<span foreground="#0f0e0c">%s</span>\n%b

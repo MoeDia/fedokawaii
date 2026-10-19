@@ -7,6 +7,7 @@
 # only the programs a test gives it (a PATH of stand-ins and the few system tools it needs).
 . "$(dirname "$0")/../lib/harness.sh"
 . "$(dirname "$0")/lib.sh"
+SEAL=$(printf '\363\276\200\256')   # (the session's notices: Sumi Icons' window, as autostart writes it)
 AS=$HOME/.config/dwl/autostart.sh
 DAEMONS="waybar kawa-panel mako foot udiskie wl-paste gammastep swayidle kawa-drives kawa-clipkeep"
 SETSID=$(command -v setsid) PKILL=$(command -v pkill) SIDS=()
@@ -106,7 +107,7 @@ kawa-display${SP}
 kawa-theme apply" "in this order, the display's modes and the theme before any helper"
 called "^waybar $"; called "^kawa-panel $"; called "^mako $"; called "^foot --server$"; called "^udiskie $"; called "^wl-paste --watch kawa-clip --store$"
 called "^gammastep -l 25.35:55.40 -t 6500:4200$"; called "^lxqt-policykit-agent $"; called "^kawa-drives watch$"
-called "^swayidle -w timeout 3600 wlopm --off '\*' resume wlopm --on '\*' before-sleep kawa-lock --now$"
+called "^swayidle -w timeout 3600 wlopm --off '\*' resume wlopm --on '\*' after-resume wlopm --on '\*'; kawa-lock --resumed before-sleep kawa-lock --now$"
 called "^kawa-clipkeep $"; called "^kawa-steam --warm$"; not_called "^notify-send"
 for d in waybar kawa-panel mako foot udiskie wl-paste gammastep swayidle kawa-dwlstatus kawa-clipkeep; do eq "$(running "$d")" 1 "one $d"; done
 [[ ! -e $XDG_RUNTIME_DIR/dwl-bar/OLD ]] && _ok || _no "the last session's bar state was kept"
@@ -157,7 +158,7 @@ case_ "a helper that keeps crashing: given up after five in a minute, with a not
 setup; stub waybar 'exit 1'; up; settled foot swayidle
 until_has "$CALLS" 'keeps stopping'
 eq "$(grep -c '^waybar' "$CALLS")" 5
-called "^notify-send -a desktop -u critical waybar keeps stopping it was restarted 4 times in a minute; see ~/.cache/dwl.log$"
+called "^notify-send -a desktop -u critical -- $SEAL  waybar keeps stopping it was restarted 4 times in a minute; see ~/.cache/dwl.log$"
 eq "$(running foot)" 1 "the rest runs on"; quit; down
 case_ "swayidle (what locks before a sleep) crashing: never given up — paused with sleep blocked, said once"
 setup; stub swayidle 'exit 1'; stub systemd-inhibit; up; settled foot
@@ -167,7 +168,7 @@ eq "$(grep -c '^notify-send.*swayidle keeps stopping' "$CALLS")" 1 "one notice"
 not_called "it was restarted 4 times in a minute"; quit; down
 case_ "the session's settings not handed to systemd: a notice, no other way tried"
 setup; stub systemctl 'case "$*" in *import-environment*) exit 1 ;; esac'; up; settled foot swayidle
-called "^notify-send -a desktop -u critical the session's settings did not reach systemd"
+called "^notify-send -a desktop -u critical -- $SEAL  session its settings did not reach systemd"
 not_called "dbus-update-activation-environment"; quit; down
 case_ "crashes far apart (more than a minute between): restarted every time, no notice"
 setup; printf '0\n' >"$TMP/n"
@@ -180,21 +181,21 @@ eq "$(grep -c '^waybar' "$CALLS")" 7; not_called "keeps stopping"; quit; down
 case_ "a program not installed: said once in a notice, the rest all start"
 setup; rm "$STUBS/udiskie" "$STUBS/gammastep" "$STUBS/mako"; up; settled waybar foot wl-paste swayidle kawa-dwlstatus
 until_has "$CALLS" udiskie
-called "^notify-send -a desktop -u critical udiskie is not installed"
+called "^notify-send -a desktop -u critical -- $SEAL  udiskie is not installed"
 eq "$(grep -c 'udiskie' "$CALLS")" 1 "not tried again and again"
 for d in waybar foot wl-paste swayidle kawa-dwlstatus; do eq "$(running "$d")" 1 "$d runs"; done
 quit; down
 case_ "the status reader itself missing: dwl's status is still read to its end, the session lasts"
 setup; rm "$TMP/kbin/kawa-dwlstatus"; up; settled waybar
 until_has "$CALLS" kawa-dwlstatus
-called "^notify-send -a desktop -u critical kawa-dwlstatus is not installed"
+called "^notify-send -a desktop -u critical -- $SEAL  kawa-dwlstatus is not installed"
 head -c 300000 /dev/zero | tr '\0' '\n' | timeout 60 cat >&6 2>/dev/null && _ok || _no "the status pipe was not read (dwl would lose its status)"
 kill -0 "$ASPID" 2>/dev/null && _ok || _no "the session ended with its reader"
 crash; eq "$ASRC" 0; down
 case_ "the polkit agent missing from /usr/libexec: said, like any helper the session keeps"
 setup; rm "$TMP/root/usr/libexec/lxqt-policykit-agent"; up; settled waybar foot
 until_has "$CALLS" 'lxqt-policykit-agent is not installed'
-called "^notify-send -a desktop -u critical .*/usr/libexec/lxqt-policykit-agent is not installed"; not_called "^lxqt-policykit-agent"; quit; down
+called "^notify-send -a desktop -u critical -- $SEAL  .*/usr/libexec/lxqt-policykit-agent is not installed"; not_called "^lxqt-policykit-agent"; quit; down
 
 case_ "a slow display set-up (kawa-display): the helpers wait for it; dwl's status meanwhile is kept"
 setup; stub kawa-display '"'"$TMP"'/sys/zzz" 2'; up

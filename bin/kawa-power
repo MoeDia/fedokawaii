@@ -5,25 +5,42 @@
 #   kawa-power         the menu
 #   kawa-power sleep   locked, then asleep, with no menu (a keyboard's Sleep key)
 # A choice the system refuses (another user logged in, something inhibiting it, no password
-# agent for polkit) says why in a notice, and exits 1.
+# agent for polkit) says why in a notice, and exits 1. A sleep, and what became of it, goes
+# to the journal too (journalctl -t kawa-power; the lock's own lines: -t kawa-lock).
 set -u
+# (the icons first: a sleep that is refused says so with the power icon too)
+# shellcheck source=/dev/null
+. "$HOME/.config/fedokawaii/icons.sh"
+say() { logger -t kawa-power -- "$*" 2>/dev/null; }
 # act WHAT SYSTEMCTL-VERB — logind's answer, when it says no, as a notice (its first line)
 act() {
   local err
   err=$(systemctl "$2" 2>&1 >/dev/null) && return 0
   err=${err%%$'\n'*}
-  notify-send -a desktop -u critical "power" "could not $1${err:+ — $err}"
-  exit 1
+  notify-send -a desktop -u critical -- "$ICON_POWER  power" "could not $1${err:+ — $err}"
+  say "could not $1${err:+ — $err}"
+  return 1
+}
+# sleep_now — locked first (kawa-lock returns once every screen is locked), then asleep;
+# never asleep unlocked. The hand-off is meant to be seen: the lock screen up and drawn, a
+# short beat on it, then the screens to black (wlopm), then the sleep — never a lock that
+# flashes and vanishes. (swayidle's after-resume turns them on again as the machine wakes;
+# a sleep the system refuses turns them on at once.) KAWA_SLEEP_BEAT: the beat, in seconds
+sleep_now() {
+  say "sleep requested"
+  kawa-lock || { say "not locked — no sleep"; exit 1; }
+  sleep "${KAWA_SLEEP_BEAT:-0.8}"
+  wlopm --off '*'
+  act sleep suspend || { wlopm --on '*'; exit 1; }
+  say "suspend asked of the system"
 }
 case ${1:-} in
   "") ;;
-  sleep) kawa-lock && act sleep suspend; exit ;;   # locked first (kawa-lock returns once locked), then sleep
+  sleep) sleep_now; exit ;;                       # (a keyboard's Sleep key)
   -h|--help) sed -n '2,/^set -u/{/^set -u/d;s/^# \{0,1\}//;p}' "$0"; exit 0 ;;
   *) echo "usage: kawa-power [sleep]" >&2; exit 2 ;;
 esac
 LC_ALL=C.UTF-8                 # widths count characters, not bytes
-# shellcheck source=/dev/null
-. "$HOME/.config/fedokawaii/icons.sh"
 
 WIDTH=25                       # the menu's width in characters: odd, like the 13-column block
 LABEL=9                        # the label column (longest: "shut down")
@@ -54,7 +71,7 @@ i=$(printf '%s\n' "${rows[@]}" |
     kawa-menu --index --width "$WIDTH" --lines ${#rows[@]} --select 0 --title "$title") || exit 0
 case $i in
   0) exec kawa-lock --sleep ;;                     # (still locked 90 s later: sleep)
-  1) kawa-lock && act sleep suspend ;;            # locked first (gtklock: kawa-lock returns once locked), then sleep
+  1) sleep_now ;;
   2) exec pkill -xu "$UID" dwl ;;
   3) act restart reboot ;;
   4) act "shut down" poweroff ;;

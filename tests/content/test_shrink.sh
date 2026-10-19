@@ -12,7 +12,7 @@ setup() {
   config .config/fedokawaii/icons.sh
   export CB=$TMP/clipboard XDG_RUNTIME_DIR=$TMP/run; mkdir -m 700 -p "$XDG_RUNTIME_DIR"
   stub wl-copy 'if [ "$1" = --clear ]; then rm -f "$CB.type" "$CB.data"; exit 0; fi
-t=text/plain; [ "$1" = --type ] && t=$2; printf %s "$t" >"$CB.type"; cat >"$CB.data"'
+t=text/plain; [ "$1" = --type ] && t=$2; cat >"$CB.data.w"; mv -f "$CB.data.w" "$CB.data"; printf %s "$t" >"$CB.type.w"; mv -f "$CB.type.w" "$CB.type"'
   stub wl-paste 'case "$1" in
   --list-types) [ -e "$CB.type" ] && cat "$CB.type" && echo ;;
   --no-newline) [ "$3" = "$(cat "$CB.type" 2>/dev/null)" ] && cat "$CB.data" || exit 1 ;;

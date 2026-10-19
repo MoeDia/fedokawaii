@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# kawa-audio — the volume popup (click the volume in the bar, or Super+A).
+# kawa-audio — the sound menu (Super+A).
 #   louder / quieter / mute stay open so they can be tapped repeatedly;
 #   picking an output or input makes it the default and moves playing audio to it.
 # Devices come from pw-dump (JSON), so names with any characters are safe. mixer… opens
@@ -19,7 +19,7 @@ esac
 note() {   # note TITLE BODY — mako reads the body as markup, and a device may be called "Tom & Jerry"
   local b=${2//[[:cntrl:]]/ }
   b=${b//&/"&amp;"}; b=${b//</"&lt;"}; b=${b//>/"&gt;"}   # quoted: bash 5.2 treats a bare & as "the match"
-  notify-send -a desktop -u low "$ICON_SPEAKER  $1" "$b"
+  notify-send -a desktop -u low -- "$ICON_SPEAKER  $1" "$b"
 }
 
 add() { rows+=("$1"); acts+=("$2"); full+=("${3:-}"); }   # add LABEL ACTION [DEVICE NAME]
@@ -34,7 +34,7 @@ heading_row() {   # heading_row KANJI NAME — a heading, as Super+U's (width.sh
 
 sel=1                                    # (row 0 is the first heading)
 while :; do
-  dump=$(pw-dump 2>/dev/null) || { note "Audio" "PipeWire is not running"; exit 1; }
+  dump=$(pw-dump 2>/dev/null) || { note audio "PipeWire is not running"; exit 1; }
   # id, class, default (0|1), description — one line per real device, the fields apart by
   # \x1f (not @tsv: it writes a tab, a line break or a backslash in a name as \t \n \\)
   mapfile -t devs < <(jq -r '
@@ -90,7 +90,7 @@ while :; do
     sink:*|source:*)                   # (one unplugged while the menu was open: just reopen)
               if wpctl set-default "${acts[i]#*:}" >/dev/null 2>&1; then
                 kind=input; [[ ${acts[i]} == sink:* ]] && kind=output
-                note "Audio" "${full[i]} is now the $kind"; exit 0
+                note audio "${full[i]} is now the $kind"; exit 0
               fi ;;
     mixer)    exec kawa-float --once mixer mixer 96x29 -- wiremix ;;   # (7 rows of 4 lines, the tabs)
     head)     while [[ ${acts[sel]:-} == head ]]; do sel=$((sel + 1)); done ;;   # (a heading or a gap: the menu again on its part's first entry, as every menu)

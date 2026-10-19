@@ -172,10 +172,10 @@ case_ "yazi missing: a critical notice, exit 1 (the portal: an error, the stand-
 setup; p=$(without yazi); stamp
 out=$(PATH="$p" python3 -I "$MD/portal.py" save "$P" report.pdf 2>/dev/null)
 has "$out" "error"; eq "$(left)" ""
-called 'notify-send -a desktop -u critical file picker yazi is missing — fedokawaii repair puts it back'
+called 'notify-send -a desktop -u critical -- .*  file picker yazi is missing — fedokawaii repair puts it back'
 case_ "no terminal window could open: a critical notice, cancelled"
 setup; : >"$W/no-terminal"; eq "$(portal open 0 0 "$P")" cancelled
-called 'notify-send -a desktop -u critical file picker no terminal window opened'
+called 'notify-send -a desktop -u critical -- .*  file picker no terminal window opened'
 case_ "the portal's debug flag (1): a trace on stderr"
 setup; does esc; PORTAL_DEBUG=1 portal open 0 0 "$P" >/dev/null; has "$(cat "$TMP/stderr")" "+ "
 case_ "--help: what it is, exit 0; called wrongly: the usage, exit 2"

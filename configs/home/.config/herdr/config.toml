@@ -1,0 +1,43 @@
+# ~/.config/herdr/config.toml — herdr ("Agents" in the launcher): several Claude Code
+# sessions side by side, each in a pane of its own, with a sidebar that marks every one
+# working, blocked (it asks you something) or idle. Its colours are foot's own 16, so it
+# follows dark and light with the terminal; the accent is vermilion, like the focused
+# window's frame. Everything not set here is herdr's default: Ctrl+B, then ? lists the keys.
+# (Its settings screen, Ctrl+B s, writes into this file: the next Theme run puts this one
+# back — keep a change in your working copy instead.)
+
+# no first-run tour (it would write into this file, and open the settings screen)
+onboarding = false
+
+[update]
+# pinned (lib/upstream.sh): never asks herdr.dev for a newer herdr, or for newer rules for
+# reading the agents' screens — the ones in this release are the ones used
+version_check = false
+manifest_check = false
+
+[theme]
+name = "terminal"
+
+[theme.custom]
+accent = "red"
+
+[ui]
+# no sound: an agent that finishes or needs you is a notice (mako), as everything else is;
+# none for the tab you are looking at
+sound.enabled = false
+toast.delivery = "system"
+# (the tab row only when there is more than one tab)
+hide_tab_bar_when_single_tab = true
+
+[worktrees]
+# a new worktree (Ctrl+B Shift+G) is a folder beside your projects, not one hidden in the
+# home: ~/repos/worktrees/<project>/<branch>
+directory = "~/repos/worktrees"
+
+# Ctrl+B a: a new pane with Claude Code in it, in the folder you are in; it closes when
+# Claude does
+[[keys.command]]
+key = "prefix+a"
+type = "pane"
+command = "claude"
+description = "new Claude Code pane"

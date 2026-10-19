@@ -12,8 +12,8 @@ units() { awk '/^[[:space:]]*[#;]/ || /^[[:space:]]*$/ { next } /^\[/ { s = subs
                { k = $0; sub(/=.*/, "", k); v = $0; sub(/^[^=]*=/, "", v); print s "." k "=" v }' "$1"; }
 val() { units "$Q" | sed -n "s/^$1=//p"; }
 
-case_ "prowlarr.container: three sections, no [Install] (it runs only when wanted)"
-eq "$(grep -o '^\[[A-Za-z]*\]' "$Q" | tr '\n' ' ')" "[Unit] [Container] [Service] "
+case_ "prowlarr.container: four sections, no [Install] (it runs only when wanted)"
+eq "$(grep -o '^\[[A-Za-z]*\]' "$Q" | tr '\n' ' ')" "[Unit] [Container] [Quadlet] [Service] "
 case_ "every key is one Podman 5's quadlet knows, in its section"
 known=" Image ContainerName UserNS User Group Tmpfs NoNewPrivileges Timezone PublishPort Volume Secret Environment "
 known+="HealthCmd HealthInterval HealthRetries HealthTimeout HealthOnFailure HealthStartupCmd HealthStartupInterval HealthStartupRetries Notify "
@@ -21,10 +21,14 @@ while IFS= read -r l; do
   k=${l%%=*}
   case $k in
     Container.*) [[ $known == *" ${k#Container.}"[[:space:]]* ]] && _ok || _no "not a [Container] key: $k" ;;
+    Quadlet.DefaultDependencies) _ok ;;
     Unit.Description|Service.Restart|Service.RestartSec|Service.TimeoutStartSec) _ok ;;
     *) _no "unexpected key: $k" ;;
   esac
 done < <(units "$Q")
+case_ "its start waits for nothing online (it answers on 127.0.0.1 only): quadlet's dependency on podman-user-wait-network-online.service off"
+eq "$(val Quadlet.DefaultDependencies)" false
+lacks "$(units "$Q")" "network-online" "no network-online dependency of its own either"
 case_ "the image setup pulls is the one named here (setup reads it from this file)"
 eq "$(sed -n 's/^Image=//p' "$Q")" "lscr.io/linuxserver/prowlarr:latest"
 grep -q "prowlarr_image() { sed -n 's/^Image=//p' \"\$REPO_DIR/system/prowlarr.container\"; }" "$REPO/setup.sh" && _ok || _no "setup.sh no longer reads the image from here"

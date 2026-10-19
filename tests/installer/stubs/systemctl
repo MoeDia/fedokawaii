@@ -49,6 +49,8 @@ case $verb in
   # started again shows a new one), the last line for ever after; 4242 when there is no file
   show)       prop="" u=""; set -- "${units[@]}"
               while (($#)); do case $1 in -p) prop=$2; shift 2 ;; --value) shift ;; *) u=$1; shift ;; esac; done
+              # (-p Wants -p After of prowlarr.service: the dependencies quadlet gave it, $FKH/pw-prowlarr-deps)
+              [[ $u == prowlarr.service && -f $FKH/pw-prowlarr-deps ]] && cat "$FKH/pw-prowlarr-deps"
               if [[ $prop == MainPID ]]; then
                 grep -qx "${pre}active $u" "$FKH/units" || { echo 0; exit 0; }
                 f=$FKH/pid-$u

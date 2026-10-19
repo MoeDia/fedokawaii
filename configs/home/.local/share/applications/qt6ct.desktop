@@ -1,0 +1,8 @@
+[Desktop Entry]
+# qt6ct (the Qt apps' look): its settings are the theme's, written by theme.sh and switched by kawa-theme.
+# Hidden from the launcher: this entry, by the same name as the package's, stands in for it
+# (NoDisplay); the program itself stays installed and works as before.
+Type=Application
+Name=Qt6 Settings
+Exec=qt6ct
+NoDisplay=true

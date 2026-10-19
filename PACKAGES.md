@@ -21,6 +21,7 @@ Source: **F** Fedora · **RF** RPM Fusion · **lpf** built on the machine from a
 | Editor | neovim + LazyVim + tree-sitter-cli | F + git | nano / vim-minimal are **removed** |
 | Browser | Brave Origin | V | free on Linux; Shields only; in GTK mode, so it wears the palette |
 | AI | Claude Code | V (`downloads.claude.ai`, key fingerprint checked) | |
+| AI agents side by side | herdr | GH (static, SHA-256 pinned) | several Claude Code sessions in panes of one terminal window (launcher → *Agents*), each marked working, blocked or idle in a sidebar; a git worktree per task on one key; a notice (mako) when one finishes or asks. Its own multiplexer and server, so no tmux; Claude Squad (needs tmux, AGPL, last release August 2026) was the other candidate. Its update and rule-download checks are off: it stays the pinned release |
 | Launcher + all menus | fuzzel | F | through `kawa-menu`: power, audio, calendar, drives, help, change, shrink, screen-share picker (the wallpaper and clipboard windows are fzf) |
 | Quick settings | `kawa-panel` + gtk-layer-shell | this repository (Python + GTK 3) + F | the panel under the bar's cat (Super+X): brightness, sound, the tiles; GTK 3 and Python's GObject come with the login screen |
 | Bar | waybar | F | dwl tags via `kawa-dwlstatus`; its own clock module (seconds, no script) |
@@ -32,11 +33,11 @@ Source: **F** Fedora · **RF** RPM Fusion · **lpf** built on the machine from a
 | Clipboard | wl-clipboard + cliphist + fzf | F | Super+V: the history in a small window (fzf) — text and pictures (screenshots, Brave's *Copy image*), the last 100, none over 20 MiB (`kawa-clip --store` behind `wl-paste --watch`); pictures previewed in the terminal (ImageMagick draws them as sixels) and copied back as pictures |
 | Screenshots | grim + slurp + satty | F + GH | satty needs gtk4 + libadwaita (listed) |
 | Night light | gammastep | F | |
-| Audio | PipeWire + WirePlumber (+ pulse/alsa shims) + pipewire-utils | F | wiremix (the mixer: a terminal program, in a floating window, in the theme's colours), EasyEffects, playerctl; `pw-dump` feeds the audio menu |
+| Audio | PipeWire + WirePlumber (+ pulse/alsa shims) + pipewire-utils | F | wiremix (the mixer: a terminal program, in a floating window, in the theme's colours), EasyEffects, playerctl; `pw-dump` feeds the audio menu, `pw-play` sounds the timer's chime |
 | Music meter | cava | F | the bar's spectrum meter, only while sound plays (sleeps through silence) |
 | Monitor brightness | ddcutil | F | DDC/CI, like Twinkle Tray on Windows |
 | Bar clicks | wtype | F | clicking a workspace presses its key (Super+1…9) |
-| Portals | xdg-desktop-portal-wlr + -gtk | F | screen share (with the `kawa-share` picker) / file dialogs / dark mode |
+| Portals | xdg-desktop-portal-wlr + -gtk | F | screen share (with the `kawa-share` picker; one question per share: transient restore tokens for screens, `XDPW_PERSIST_MODE`, 0.7+; a window's choice remembered 10 s by `kawa-share`) / file dialogs / dark mode |
 | File dialogs | xdg-desktop-portal-termfilechooser 1.4.3 + yazi (`kawa-pick`) | git (GitHub, pinned commit) | not packaged for Fedora: built by setup.sh like dwl (meson + inih-devel + systemd-devel, kept); Brave's and GTK programs' Open/Save dialogs are yazi in a floating terminal; the GTK dialog stays as the fallback — and is LibreOffice's: it builds GTK's dialog itself, never asking the portal |
 | Terminal for apps | xdg-terminal-exec | F | programs that ask for a terminal get foot |
 | Auth dialogs | lxqt-policykit | F | |
@@ -71,7 +72,7 @@ Source: **F** Fedora · **RF** RPM Fusion · **lpf** built on the machine from a
 | Peripherals | OpenRGB | F | RGB lighting on the motherboard's headers; fan speeds are the motherboard firmware's (§21.2) |
 | Gaming | Steam · gamescope · gamemode · MangoHud · GE-Proton · ntsync-autoload · steam-devices | RF + F + GH | GE-Proton keeps the newest two; ntsync: Proton's faster synchronisation |
 | Fonts | Fusion Pixel 12 · JetBrainsMono Nerd · Sumi Icons · Terminus (console) · Noto Sans · Noto Sans CJK · Noto Naskh Arabic · Noto Kufi Arabic · Amiri · Noto Color Emoji · Liberation | GH + F + repo | Fusion Pixel = the one pixel font: Latin, kana and kanji in one face — the terminal at 24 px (on 26 px lines), the bar, menus and notices at 12 px, the lock and login screens, the boot menu; JetBrainsMono Nerd = the apps' monospace and the Nerd Font symbols programs draw; Noto Sans CJK = Japanese, Chinese, Korean in programs and subtitles; Sumi Icons = this desktop's icons; Kufi = Arabic in the pixel UI (bar, menus, notices); Liberation = metric-compatible fonts for office files |
-| Look | adw-gtk3 · qt6ct · Papirus · dconf · pointers drawn here (Adwaita beneath for rare shapes) | F + repo | dark/light switched live by `kawa-theme`; the pixel pointers come from `art/cursors.txt` |
+| Look | adw-gtk3 · qt6ct · dconf · pointers drawn here (Adwaita beneath for rare shapes) | F + repo | dark/light switched live by `kawa-theme`; the pixel pointers come from `art/cursors.txt`; icons: each program's own (hicolor), under GTK's Adwaita — no icon pack; windows, dialogs, buttons square (the GTK themes) |
 | Build (kept) | gcc · make · pkgconf · wayland/wlroots/xcb devel | F | theme.sh rebuilds dwl when you change a keybind, and builds kawa-veil and kawa-clipkeep |
 | Script plumbing | dnf5-plugins · git · jq · gnupg2 · tar · grubby · diffutils · man-db · libva-utils · libdnf5-plugin-actions | F | used by setup.sh / verify.sh; tar unpacks the release archives and GE-Proton, grubby sets the kernel arguments (neither is in a Minimal Install's `@core`; the installer adds grubby only on a UEFI machine); diff / cmp compare the copy and the toolkit, man opens the manuals the change menu lists (both usually present: listed, never assumed); actions = a snapshot pair around every dnf run |
 | Drivers and firmware | fwupd · pciutils · usbutils, and what this machine needs (`lib/hardware.sh`): microcode_ctl or amd-ucode-firmware, NetworkManager-wifi + wireless-regdb, alsa-sof-firmware, the firmware the kernel asked for (iwlwifi-…-firmware and the like), intel-media-driver beside an AMD card | F + RF | fwupd: device firmware from the LVFS, applied only by you · lspci / lsusb: which device, which driver · the per-machine packages are found from the hardware at setup, update and repair, and recorded in `/var/lib/fedokawaii/hardware-pkgs` (part of the manifest from then on) |
@@ -123,6 +124,7 @@ before setup started plus the manifest — anything else is reported by name.
 | sc-im | one spreadsheet is enough: Calc for formulas, VisiData for looking at data |
 | presenterm (release binary) | slides are Impress's, which opens and shows PowerPoint files; update takes the binary and its theme link out |
 | spotify_player (release binary) | Spotify's own app instead (a free account works too); update takes the binary and its settings out |
+| papirus-icon-theme | every program shows its own icon, as its package ships it (the launcher, GTK, Qt, the notices): no icon pack over them; update hands it back to dnf |
 
 ## Added since the previous version, and why
 

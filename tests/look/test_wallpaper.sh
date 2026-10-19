@@ -127,11 +127,11 @@ eq "$(settled 1)" 1
 
 case_ "swaybg not installed: says so, exit 1, the old wallpaper stays and the choice is kept"
 setup
-art "$PACK/dark/enso.src"
+art "$PACK/dark/torii-dusk.src"
 kawa-wallpaper --restore; old=$(pgrep -x swaybg)
 echo "pack:ink-ridges-night" >"$STATE/wallpaper-dark"
 hide swaybg
-out=$(kawa-wallpaper --set pack:enso 2>&1); r=$?
+out=$(kawa-wallpaper --set pack:torii-dusk 2>&1); r=$?
 eq "$r" 1
 has "$out" "swaybg"
 alive "$old" && _ok || _no "the wallpaper on screen was taken down"
@@ -141,13 +141,13 @@ rc 1 kawa-wallpaper --restore
 # ── --set: a choice, remembered per theme ─────────────────────────────────────
 case_ "a pack picture with a pair: both themes get the same place"
 setup
-art "$PACK/dark/canal-walk-night.src" 1920x1080; art "$PACK/light/canal-walk.src" 1920x1080
-rc 0 kawa-wallpaper --set pack:canal-walk-night
-eq "$(cat "$STATE/wallpaper-dark")" pack:canal-walk-night
-eq "$(cat "$STATE/wallpaper-light")" pack:canal-walk "the light theme: the same canal by day"
+art "$PACK/dark/riverside-night.src" 1920x1080; art "$PACK/light/riverside-day.src" 1920x1080
+rc 0 kawa-wallpaper --set pack:riverside-night
+eq "$(cat "$STATE/wallpaper-dark")" pack:riverside-night
+eq "$(cat "$STATE/wallpaper-light")" pack:riverside-day "the light theme: the same riverside by day"
 art "$PACK/dark/seaside-train.src" 1920x1080
 rc 0 kawa-wallpaper --set pack:seaside-train
-eq "$(cat "$STATE/wallpaper-light")" pack:canal-walk "no pair: the other theme keeps its own"
+eq "$(cat "$STATE/wallpaper-light")" pack:riverside-day "no pair: the other theme keeps its own"
 
 case_ "your own picture with an odd name: drawn to the screen's size (a small one enlarged to cover), remembered exactly"
 setup
@@ -257,19 +257,19 @@ eq "$(rows)" "$WP/only one.png	$ICON_FOLDER  only one.png"
 rm "$WP/only one.png"
 
 case_ "the pack and your own: the default first, the pack in list order, then yours"
-art "$PACK/dark/ink-ridges-night.src" 64x40; art "$PACK/dark/canal-walk-night.src" 64x40; art "$PACK/dark/seaside-train.src" 64x40
-art "$PACK/dark/enso.src" 64x40; art "$PACK/light/red-fuji.src" 64x40
+art "$PACK/dark/ink-ridges-night.src" 64x40; art "$PACK/dark/riverside-night.src" 64x40; art "$PACK/dark/seaside-train.src" 64x40
+art "$PACK/dark/torii-dusk.src" 64x40; art "$PACK/light/red-fuji.src" 64x40
 photo "$WP/b.png"; photo "$WP/a.jpg"; photo "$WP/sub dir/c.webp"
 kawa-wallpaper --tui "$TMP/out"
 eq "$(sed -n 1p "$TMP/rows")" "default	$ICON_TORII  ink-ridges-night (default)"
-eq "$(cut -f1 "$TMP/rows" | tr '\n' ' ')" "default pack:canal-walk-night pack:seaside-train pack:enso $WP/a.jpg $WP/b.png $WP/sub dir/c.webp "
+eq "$(cut -f1 "$TMP/rows" | tr '\n' ' ')" "default pack:seaside-train pack:riverside-night pack:torii-dusk $WP/a.jpg $WP/b.png $WP/sub dir/c.webp "
 has "$(rows)" "$WP/sub dir/c.webp	$ICON_FOLDER  sub dir/c.webp"
 lacks "$(rows)" red-fuji "the other theme's pictures are not offered"
 
 case_ "the ◐ marks of the paired pictures stand in one column"
 cols=$(grep -F "$ICON_THEME" "$TMP/rows" | cut -f2 | while IFS= read -r l; do p=${l%%"$ICON_THEME"*}; p=$(sed 's/\x1b\[[0-9;]*m//g' <<<"$p"); echo "${#p}"; done | sort -u)
 eq "$(wc -l <<<"$cols")" 1 "one column: $cols"
-eq "$(grep -cF "$ICON_THEME" "$TMP/rows")" 2 "canal-walk-night and enso have a pair"
+eq "$(grep -cF "$ICON_THEME" "$TMP/rows")" 2 "riverside-night and torii-dusk have a pair"
 
 case_ "your own pictures with odd names: listed with their full path; tab and line break left out"
 setup; picker
@@ -342,9 +342,9 @@ for f in "$WP/cut.png" "$WP/fake.jpg" "$WP/missing.png" pack:not-there ""; do
   eq "$out" "  $ICON_PICTURE  no preview" "[$f]"
   eq "$(cat "$TMP/err")" "" "[$f]: nothing on stderr"
 done
-art "$PACK/dark/enso.src" 1920x1080
-out=$(kawa-wallpaper --preview pack:enso 2>/dev/null); [[ $out == $'\eP'* ]] && _ok || _no "no pack preview"
-out=$(FZF_PREVIEW_COLUMNS=1 FZF_PREVIEW_LINES=1 kawa-wallpaper --preview pack:enso 2>"$TMP/err")
+art "$PACK/dark/torii-dusk.src" 1920x1080
+out=$(kawa-wallpaper --preview pack:torii-dusk 2>/dev/null); [[ $out == $'\eP'* ]] && _ok || _no "no pack preview"
+out=$(FZF_PREVIEW_COLUMNS=1 FZF_PREVIEW_LINES=1 kawa-wallpaper --preview pack:torii-dusk 2>"$TMP/err")
 eq "$(cat "$TMP/err")" "" "a tiny pane: no error"
 
 case_ "--warm (while the picker is open): every preview drawn ahead; month-old ones cleared"

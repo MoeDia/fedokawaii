@@ -30,7 +30,7 @@ start() {   # Prowlarr up and answering (the start returns once it is healthy)
   if ! systemctl --user start prowlarr.service; then
     # one that does not start is stopped again: left, it would try every 10 s until the next boot
     systemctl --user stop --no-block prowlarr.service
-    notify-send -u critical -a torrra "Prowlarr did not start" "journalctl --user -u prowlarr -e says why" 2>/dev/null
+    notify-send -a torrra -u critical -- "$(. "$HOME/.config/fedokawaii/icons.sh"; printf '%s' "$ICON_DOWNLOAD")  Prowlarr did not start" "journalctl --user -u prowlarr -e says why" 2>/dev/null
     echo 'kawa-prowlarr: Prowlarr did not start — journalctl --user -u prowlarr -e says why' >&2
     return 1
   fi

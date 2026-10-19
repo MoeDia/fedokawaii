@@ -37,6 +37,7 @@ ln                  minimal   coreutils
 ls                  minimal   coreutils
 mkdir               minimal   coreutils
 mktemp              minimal   coreutils
+mkfifo              minimal   coreutils
 mv                  minimal   coreutils
 numfmt              minimal   coreutils
 paste               minimal   coreutils
@@ -81,6 +82,7 @@ true                minimal   coreutils
 false               minimal   coreutils
 test                minimal   coreutils
 expr                minimal   coreutils
+uniq                minimal   coreutils
 flock               minimal   util-linux-core   # f44: util-linux-core (util-linux, @core, requires it)
 logger              minimal   util-linux-core   # f44
 losetup             minimal   util-linux-core   # f44
@@ -90,6 +92,10 @@ lsblk               minimal   util-linux        # @core (not in -core, f44)
 findmnt             minimal   util-linux-core   # f44
 mountpoint          minimal   util-linux-core   # f44
 blkid               minimal   util-linux-core   # f44
+runuser             minimal   util-linux        # @core (fedokawaii-report: everything it asks as you)
+rfkill              minimal   util-linux        # @core (the report: Bluetooth)
+lscpu               minimal   util-linux        # @core (the report)
+swapon              minimal   util-linux-core   # (the report)
 pgrep               minimal   procps-ng         # @core
 pkill               minimal   procps-ng
 ps                  minimal   procps-ng
@@ -110,6 +116,15 @@ journalctl          minimal   systemd           # @core
 loginctl            minimal   systemd
 systemd-run         minimal   systemd
 systemd-inhibit     minimal   systemd
+systemd-cat         minimal   systemd
+systemd-analyze     minimal   systemd           # @core (the report: the start-up)
+coredumpctl         minimal   systemd           # @core (the report: crashes)
+resolvectl          minimal   systemd-resolved  # @core (the report: DNS)
+hostname            minimal   hostname          # @core (the report's first line)
+lsinitrd            minimal   dracut            # the kernel needs dracut (the report: the splash in the initramfs)
+dnf                 minimal   dnf5              # @core (/usr/bin/dnf; the report: repositories, history)
+getenforce          minimal   libselinux-utils  # @core (the report: SELinux)
+btrfs               minimal   btrfs-progs       # the installer adds it for the Btrfs root (the report: Btrfs)
 xargs               minimal   findutils         # dracut (f44)
 less                minimal   less              # @core
 ss                  minimal   iproute           # @core (ip, ss)
@@ -123,6 +138,8 @@ sudo                manifest  sudo              # (@core too)
 git                 manifest  git
 gh                  manifest  gh
 gs                  manifest  ghostscript       # PDFs made smaller (kawa-shrink)
+lspci               manifest  pciutils          # the report: devices and drivers
+lsusb               manifest  usbutils          # the report: USB devices
 jq                  manifest  jq
 cmp                 manifest  diffutils
 diff                manifest  diffutils
@@ -135,6 +152,7 @@ playerctl           manifest  playerctl
 cava                manifest  cava
 wiremix             manifest  wiremix           # f44: 0.11.0 (rust-wiremix)
 pw-dump             manifest  pipewire-utils    # f44
+pw-play             manifest  pipewire-utils    # f44 (a link to pw-cat)
 wpctl               manifest  wireplumber
 waybar              manifest  waybar
 mako                manifest  mako
@@ -183,6 +201,7 @@ shellcheck          manifest  ShellCheck
 snapper             manifest  snapper
 restic              manifest  restic
 brave-origin        manifest  brave-origin      # (Brave's own repo)
+claude              manifest  claude-code       # (Anthropic's own repo; herdr's Ctrl+B a)
 7z                  manifest  7zip              # f44: /usr/bin/7z only (no 7zz)
 ffmpeg              manifest  ffmpeg
 ffprobe             manifest  ffmpeg
@@ -192,6 +211,7 @@ rg                  manifest  ripgrep
 gio                 dep       glib2 NetworkManager   # libnm; gtk4 and waybar too
 gsettings           dep       glib2 NetworkManager
 fc-match            dep       fontconfig foot   # libfontconfig; fuzzel, waybar, mako too
+fc-list             dep       fontconfig foot   # the report: the Arabic fonts
 python3             dep       python3 tuned     # tuned is a python program (firewalld, @core, too)
 
 # ── yazi and the rest from their releases, and what setup builds ─────────────────────────
@@ -200,11 +220,12 @@ yazi                upstream  -
 ya                  upstream  -
 bluetui             upstream  -
 lazygit             upstream  -                 # (its release; the COPR dejan/lazygit is no longer kept)
+herdr               upstream  -                 # (its release: Claude Code sessions side by side)
 localsend           built     install_localsend # lib/upstream.sh: its release, a folder (~/.local/share/localsend), linked from ~/.local/bin
 kawa-veil           built     kawa-veil         # theme.sh, from src/kawa-veil (callers cope without it)
 kawa-clipkeep       built     kawa-clipkeep     # theme.sh, from src/kawa-clipkeep
 dwl                 built     DWL_TAG           # setup.sh, from codeberg + src/dwl
-vi                  built     /usr/local/bin/vi # setup.sh: a link to nvim (yazi's ${EDITOR:-vi})
+vi                  built     /usr/local/bin/vi # setup.sh: a script that runs nvim (yazi's ${EDITOR:-vi})
 syncplay            built     install_syncplay  # setup.sh (lib/upstream.sh): its pinned source, a starter in ~/.local/bin
 spotify             built     spotify_client    # setup.sh: lpf builds spotify-client from RPM Fusion's recipe (lpf-spotify-client); its entry
 ble-attach          built     install_blesh     # setup.sh (lib/upstream.sh): ble.sh's commands, built from its
@@ -221,4 +242,8 @@ resvg               optional  -                  # yazi's SVG preview: not packa
 mediainfo           optional  -                  # yazi's own "Show media info" under O: retired from the
                                                  # manifest (ffprobe does its job) — see the review13 Y report
 exiftool            optional  -                  # yazi's own "Show EXIF" under O — the same
+wayland-info        optional  -                  # wayland-utils: the report lists dwl's data-control globals
+                                                 # with it where it is installed (guarded)
+desktop-file-validate optional -                 # desktop-file-utils: the report validates the launcher's
+                                                 # entries with it where it is installed (guarded)
 steam               optional  -                  # with STEAM=yes only (PKG_GAMING, RPM Fusion nonfree): every call is guarded

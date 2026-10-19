@@ -1,0 +1,14 @@
+#!/bin/bash
+# lsinitrd of the fake Fedora: the files of a boot image (the running kernel's, or IMAGE) as far
+# as the desktop looks — Plymouth's own text themes always, and the theme that was in use when
+# dracut made it (stubs/dracut records it; an image the installer made: Fedora's bgrt)
+. /usr/local/bin/_lib.sh
+fkh_log "$*"
+img=${1:-/boot/initramfs-$(uname -r).img}
+[[ -s $img ]] || { echo "No <$img> found" >&2; exit 1; }
+t=$(awk '$1 == "plymouth-theme" { print $2 }' "$img"); t=${t:-bgrt}
+for f in usr/lib64/plymouth/details.so usr/lib64/plymouth/text.so "usr/share/plymouth/themes/$t/$t.plymouth"; do
+  printf -- '-rw-r--r--   1 root     root          512 Oct 19 04:00 %s\n' "$f"
+done
+[[ $t == bgrt ]] || printf -- '-rw-r--r--   1 root     root         2048 Oct 19 04:00 %s\n' "usr/share/plymouth/themes/$t/$t.script"
+exit 0

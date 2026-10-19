@@ -19,9 +19,9 @@ set -u
 case ${1:-} in -h|--help) sed -n '2,/^set -u/{/^set -u/d;s/^# \{0,1\}//;p}' "$0"; exit 0 ;; esac
 # shellcheck source=/dev/null
 . "$HOME/.config/fedokawaii/icons.sh"
-. "$HOME/.config/fedokawaii/files.sh"   # free_name
+. "$HOME/.config/fedokawaii/files.sh"   # free_name, clip_put
 CUT=${XDG_RUNTIME_DIR:-/run/user/$UID}/kawa-clipfiles.cut   # the list a cut put on the clipboard
-say() { notify-send -a desktop "$ICON_FOLDER  $1" "${2:-}"; }
+say() { notify-send -a desktop -- "$ICON_FOLDER  $1" "${2:-}"; }
 
 uri() {   # uri PATH → file:///… with every byte outside the safe set %-encoded
   local LC_ALL=C p=$1 out="" c i
@@ -49,7 +49,7 @@ put() {   # put copy|cut [--quiet] FILE…
     list+="$(uri "$f")"$'\r\n'; n=$((n + 1))                      # (text/uri-list: CRLF)
   done
   ((n)) || { echo "kawa-clipfiles: none of those files exist" >&2; exit 1; }
-  printf '%s' "$list" | wl-copy --type text/uri-list
+  printf '%s' "$list" | clip_put text/uri-list || { say "not copied" "the clipboard did not take the files"; exit 1; }
   if [[ $mode == cut ]]; then printf '%s' "$list" >"$CUT"; else rm -f "$CUT"; fi
   ((quiet)) || say "$( ((n == 1)) && echo "1 file" || echo "$n files") $( [[ $mode == cut ]] && echo cut || echo copied)" \
       "paste them with Ctrl+V in yazi, or in any app that takes files"

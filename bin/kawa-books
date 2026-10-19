@@ -356,13 +356,13 @@ case ${1:-} in
                 # it knew under another path (moved since), so it opens there too
     [[ -f ${2:-} ]] || exit 0
     # (the window closes as this runs: a notice is the only way to say so)
-    command -v zathura >/dev/null || { notify-send -a desktop "books" "zathura is missing — fedokawaii repair puts it back" 2>/dev/null; exit 1; }
+    command -v zathura >/dev/null || { notify-send -a desktop -u critical -- "$ICON_BOOK  books" "zathura is missing — fedokawaii repair puts it back" 2>/dev/null; exit 1; }
     if [[ ${3:-} =~ ^[1-9][0-9]*$ ]]; then setsid -f zathura --page="$3" -- "$2" >/dev/null 2>&1 </dev/null
     else setsid -f zathura -- "$2" >/dev/null 2>&1 </dev/null; fi
     exit 0 ;;
   --remove)
     [[ -f ${2:-} ]] || exit 0
-    gio trash -- "$2" 2>/dev/null || notify-send -a desktop "books" "could not move ${2##*/} to the trash"
+    gio trash -- "$2" 2>/dev/null || notify-send -a desktop -- "$ICON_BOOK  books" "could not move ${2##*/} to the trash"
     exit 0 ;;
   --add)        # books elsewhere in your home → ~/Books (moved; a name taken gets " (2)")
     title=" $(printf '\e[91m%s\e[0m' "$ICON_BOOK")  add books "$'\e[90m'"· ~/Downloads ~/Documents ~/Desktop"$'\e[0m '
@@ -378,7 +378,7 @@ case ${1:-} in
       [[ -f $p ]] || continue
       to=$BOOKS/${p##*/} n=2
       while [[ -e $to ]]; do to="$BOOKS/${p##*/}"; to="${to%.*} ($n).${to##*.}"; n=$((n + 1)); done
-      mv -n -- "$p" "$to" || notify-send -a desktop "books" "could not move ${p##*/}"
+      mv -n -- "$p" "$to" || notify-send -a desktop -- "$ICON_BOOK  books" "could not move ${p##*/}"
     done
     exec "$0" --tui ;;
   --tui) ;;

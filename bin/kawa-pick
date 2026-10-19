@@ -29,6 +29,8 @@ set -u
 PATH="$HOME/.local/bin:$PATH"                       # (the portal starts it with systemd's PATH)
 # shellcheck source=/dev/null
 . "$HOME/.config/fedokawaii/files.sh"            # free_name: never over a file
+# shellcheck source=/dev/null
+. "$HOME/.config/fedokawaii/icons.sh"
 
 # what the portal writes into the file it makes for saving (its first line) — and what
 # kawa-pick writes there instead, in the dialog's own words, since yazi shows that file's
@@ -139,7 +141,7 @@ else mode=open1 title="open file"; [[ $multiple == 1 ]] && mode=openN title="ope
 fi
 : >"$out" || exit 1                                 # empty = cancelled, until there is an answer
 if ! command -v yazi >/dev/null; then
-  notify-send -a desktop -u critical "file picker" "yazi is missing — fedokawaii repair puts it back" 2>/dev/null
+  notify-send -a desktop -u critical -- "$ICON_FOLDER  file picker" "yazi is missing — fedokawaii repair puts it back" 2>/dev/null
   exit 1
 fi
 
@@ -163,7 +165,7 @@ fi
 # 100 × 31 (an even width, an odd height: centred to the pixel). The title stays put (yazi
 # would write its folder there), so the bar says what the window is for.
 kawa-float --dialog --locked-title "$title" 100x31 -- "$0" --inside "$mode" "$path" "$work" \
-  || notify-send -a desktop -u critical "file picker" "no terminal window opened (foot)" 2>/dev/null
+  || notify-send -a desktop -u critical -- "$ICON_FOLDER  file picker" "no terminal window opened (foot)" 2>/dev/null
 
 [[ -s $work/answer ]] && cat -- "$work/answer" >"$out"
 

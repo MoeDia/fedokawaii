@@ -1,0 +1,8 @@
+[Desktop Entry]
+# lpf (with lpf-spotify-client): the tool that builds Spotify here — setup, update and repair run it, never you.
+# Hidden from the launcher: this entry, by the same name as the package's, stands in for it
+# (NoDisplay); the program itself stays installed and works as before.
+Type=Application
+Name=lpf - Local Package Factory
+Exec=/usr/bin/lpf update
+NoDisplay=true

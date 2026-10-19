@@ -24,9 +24,12 @@ if [[ -z $WEATHER_CITY ]]; then [[ $mode == bar ]] && echo '{"text":""}'; exit 1
 if [[ $mode == forecast ]]; then
   exec kawa-float --once weather "weather · $WEATHER_CITY" 64x37 -- "$0" --inside
 elif [[ $mode == inside ]]; then           # in the window: wttr.in's own forecast, narrow, quiet
+  # Q (superquiet): no place name from wttr.in at all — neither its heading nor its "Location:"
+  # line, the place as its geocoder spells it (often in Arabic letters here, which a terminal
+  # draws unjoined and left to right). The window's title names the city, as you wrote it.
   city=$(jq -rn --arg c "$WEATHER_CITY" '$c | @uri')
   printf '\n'
-  curl -fsS --proto '=https' --max-time 10 "https://wttr.in/$city?2nqFm" 2>/dev/null | sed 's/^/ /' \
+  curl -fsS --proto '=https' --max-time 10 "https://wttr.in/$city?2nQFm" 2>/dev/null | sed 's/^/ /' \
     || printf '  the forecast did not come (offline, or wttr.in is busy) — try again in a while\n'
   printf '\n  any key closes this window '; read -rsn1 _; exit 0
 fi

@@ -175,7 +175,8 @@ install_toolkit() {
     rm -rf "$TOOLKIT.new" "$TOOLKIT.old"
   fi
   install -m 0755 "$TOOLKIT/system/fedokawaii" /usr/local/bin/fedokawaii
-  restorecon -R "$TOOLKIT" /usr/local/bin/fedokawaii 2>/dev/null || true
+  install -m 0755 "$TOOLKIT/system/fedokawaii-report" /usr/local/bin/fedokawaii-report
+  restorecon -R "$TOOLKIT" /usr/local/bin/fedokawaii /usr/local/bin/fedokawaii-report 2>/dev/null || true
 }
 
 # toolkit_back — the toolkit, should a power cut have come between install_toolkit's two
@@ -523,16 +524,39 @@ s_trim() {              # one editor (neovim), no rescue kernel image
     run dnf -y remove "${rm[@]}"
   fi
   editor_policy
-  console_boot_arg
 }
-# The boot's own arguments, on every entry: rhgb quiet — the sumi splash instead of the
-# kernel's messages (the installer adds them, but not on every install: a text-mode one
-# leaves them out) — and systemd.tty.term.console=dumb: systemd 257 and later asks the
-# console for its size as PID 1 starts, and waits for the answer; with Plymouth holding the
-# screen it sometimes never comes, and about one boot in ten stops on a black screen at
-# "Starting Switch Root" until a key is pressed (systemd mends it in 261). A dumb console
-# TERM makes systemd skip the question: nothing visible changes, and the login consoles set
-# their own TERM (linux)
+
+# ── a quiet boot ──────────────────────────────────────────────────────────────
+# From the power button to the login screen nothing but the splash and then the login — and
+# from the desktop back to the login screen at a logout. Two parts:
+# · the boot's own arguments on every entry (BOOT_ARGS, lib/common.sh): rhgb — the splash
+#   (the installer adds it with quiet, but not on every install: a text-mode one leaves them
+#   out); quiet loglevel=3 rd.udev.log_level=3 — the kernel's and the initramfs' messages only
+#   when critical; systemd.show_status=false — no status lines ("[FAILED] …") over the
+#   console; vt.global_cursor_default=0 — no cursor blinking on it; and
+#   systemd.tty.term.console=dumb: systemd 257 and later asks the console for its size as
+#   PID 1 starts, and waits for the answer; with Plymouth holding the screen it sometimes
+#   never comes, and about one boot in ten stops on a black screen at "Starting Switch Root"
+#   until a key is pressed (systemd mends it in 261). A dumb console TERM makes systemd skip
+#   the question: nothing visible changes, and the login consoles set their own TERM (linux).
+# · why the console matters at all: greetd switches tty1 to text and clears it before every
+#   login screen and every session (its design: text programs may run there), so for a moment
+#   — after the splash at boot, after the desktop at logout — the screen shows tty1 itself.
+#   Blank (nothing is written there: the greeter's command keeps its output off it) and with
+#   no cursor, that moment is a plain ground like the frames either side of it (the theme's
+#   console palette makes the console's black sumi ink).
+# The cursor the boot hides comes back for a login on a text console (Ctrl+Alt+F2…, the
+# rescue shell): /etc/profile.d/fedokawaii-console.sh. The messages all stay in the journal
+# (journalctl -b), and Esc during the splash shows the start-up as text.
+s_quiet_boot() {
+  console_boot_arg
+  write_file /etc/profile.d/fedokawaii-console.sh <<'EOF'
+# /etc/profile.d/fedokawaii-console.sh — installed by setup.sh. The boot hides the text
+# consoles' cursor (vt.global_cursor_default=0: none blinks on tty1, the console the login
+# screen shares); a login on a text console (Ctrl+Alt+F2…, the rescue shell) shows it again
+[ "$TERM" = linux ] && [ -t 1 ] && printf '\033[?25h'
+EOF
+}
 console_boot_arg() {   # each on every boot entry (only one an entry lacks: grubby is not run for nothing)
   local a want
   a=$(grubby --info=ALL 2>/dev/null | grep '^args=') || a=""
@@ -562,7 +586,14 @@ editor_policy() {       # neovim is the editor (EDITOR, VISUAL, vi); no rescue k
 export EDITOR=nvim
 export VISUAL=nvim
 EOF
-  ln -sfn /usr/bin/nvim /usr/local/bin/vi
+  # vi is a two-line script that runs nvim — never a link to it: dracut puts vi into every
+  # boot image (its rescue shell's editor) and follows a link to the program itself, then
+  # fails on nvim's Lua libraries ("could not locate dependency …/lpeg.so"): no boot image
+  # for a new kernel, and none with the splash. A script brings only itself and /bin/sh
+  write_file /usr/local/bin/vi 0755 <<'EOF'
+#!/bin/sh
+exec nvim "$@"
+EOF
 }
 
 s_tuning() {   # an always-plugged desktop: the CPU at full speed, Wi-Fi and Bluetooth never napping
@@ -651,6 +682,7 @@ phase1() {
   step "1.5 base packages"                         s_base
   step "1.5b performance: tuned profile, Wi-Fi"      s_tuning
   step "1.6 remove nano, vim, rescue kernel"       s_trim
+  step "1.6b a quiet boot: kernel arguments, blank console" s_quiet_boot
   step "1.7 inbound SSH ($SSH_SERVER)"               s_ssh
   reboot_to 2
 }
@@ -1062,24 +1094,52 @@ greetd_config() {   # the login: the greeter, its look, and greetd pointed at ou
 # fedokawaii.conf). The login screen: kawa-greet in cage (one full-screen window, -d: no
 # window frame, -s: Ctrl+Alt+F2… still reach the text consoles), for $TARGET_USER — with the
 # desktop's pointer of the theme you last had, on the card the desktop draws on (start-dwl
-# --gpu: WLR_DRM_DEVICES, or nothing). greetd runs this line through /bin/sh.
+# --gpu: WLR_DRM_DEVICES, or nothing). Its own messages and the greeter's go to the journal
+# (journalctl -t kawa-greet), never over the screen. greetd runs this line through /bin/sh.
 [terminal]
 vt = 1
 
 [default_session]
-command = "env \$(/usr/local/bin/start-dwl --gpu) \\"XCURSOR_THEME=Sumi-\$(cat /var/lib/fedokawaii-greeter/theme)\\" cage -d -s -- /usr/local/bin/kawa-greet $TARGET_USER"
+command = "env \$(/usr/local/bin/start-dwl --gpu) \\"XCURSOR_THEME=Sumi-\$(cat /var/lib/fedokawaii-greeter/theme)\\" systemd-cat -t kawa-greet cage -d -s -- /usr/local/bin/kawa-greet $TARGET_USER"
 user = "greetd"
 EOF
+  # greetd's own unit with this desktop's drop-in. A login screen that cannot start (its
+  # greeter crashing) makes greetd stop: systemd starts it again — five times within a minute,
+  # two seconds apart — and then gives up. Never for ever: each start takes tty1 back, so an
+  # endless loop would pull you off the text console you are mending it from, every few
+  # seconds. Given up, it says so on tty1 (fedokawaii-login-failed) — never a black screen
+  # with nothing to go on, never another login in its place
   write_file /etc/systemd/system/greetd.service.d/fedokawaii.conf <<'EOF'
 # installed by setup.sh: greetd reads fedokawaii.toml, and owns tty1 alone (Fedora 45 runs
-# kmscon there, earlier releases agetty)
+# kmscon there, earlier releases agetty). It starts once the boot splash has gone
+# (plymouth-quit-wait): never beside it, the two taking the screen from each other. A login
+# screen that keeps stopping: five tries in a minute, then fedokawaii-login-failed says so
 [Unit]
 Conflicts=getty@tty1.service kmsconvt@tty1.service
-After=getty@tty1.service kmsconvt@tty1.service
+After=getty@tty1.service kmsconvt@tty1.service plymouth-quit-wait.service
+StartLimitIntervalSec=60
+StartLimitBurst=5
+OnFailure=fedokawaii-login-failed.service
 
 [Service]
 ExecStart=
 ExecStart=/usr/bin/greetd --config /etc/greetd/fedokawaii.toml
+Restart=always
+RestartSec=2
+EOF
+  write_file /etc/systemd/system/fedokawaii-login-failed.service <<'EOF'
+# installed by setup.sh — greetd gave up (its login screen stopped five times in a minute):
+# said on tty1, with the way back, instead of a black screen
+[Unit]
+Description=Fedokawaii: the login screen could not start (said on tty1)
+
+[Service]
+Type=oneshot
+StandardOutput=tty
+StandardError=journal
+TTYPath=/dev/tty1
+TTYReset=yes
+ExecStart=/usr/bin/printf '\033[?25h\n  The login screen could not start: it stopped five times in a row.\n\n  Ctrl+Alt+F2 opens a text console. Log in there, then:\n\n      fedokawaii repair               finds what broke and fixes it\n      sudo systemctl restart greetd   the login screen again\n\n  Why it stopped: journalctl -b -u greetd -t kawa-greet\n\n'
 EOF
   systemctl daemon-reload
   restorecon -R /usr/local/bin /usr/local/share/fedokawaii /etc/greetd /etc/fonts/conf.d /var/lib/fedokawaii-greeter
@@ -1135,47 +1195,74 @@ s_blesh() {
 # fedokawaii.conf: SPOTIFY="yes" says so (with "no", none of this runs, and Spotify, built
 # before, is handed back to dnf with its recipe). A new recipe — dnf brings one with each Spotify
 # release — is built at the next update. Returns 1, Spotify as it was, when a step fails
-# (Spotify's server down, say): update and repair try again; lpf's own log says why.
-LPF_DIR=/usr/share/lpf
-lpf_do() {   # lpf_do STEP PKG… — one of lpf's steps, as pkg-build (its home: /var/lib/lpf)
-  runuser -u pkg-build -- env -i HOME=/var/lib/lpf USER=pkg-build LOGNAME=pkg-build PATH=/usr/bin:/bin \
-    "$LPF_DIR/scripts/lpf-pkgbuild" "$@"
+# (Spotify's server down, say), with lpf's own words in the install's log: setup's step fails
+# there and then (it resumes at it), update and repair report it and try again.
+# Every lpf step runs through run, so what lpf prints — "build failed", a download refused —
+# is in /var/log/fedokawaii.log, and a failed build's own log (lpf writes it to
+# /var/lib/lpf/log, nowhere else) is copied in after it: the report's install-log section
+# says why, rather than a step marked done with no Spotify.
+LPF_DIR=/usr/share/lpf LPF_VAR=/var/lib/lpf
+# lpf_do STEP PKG… — one of lpf's steps, as pkg-build in its own home (the folder it runs in
+# too: setup's may be one pkg-build cannot enter — ~/fedokawaii)
+lpf_do() {
+  run runuser -u pkg-build -- env -i -C "$LPF_VAR" HOME="$LPF_VAR" USER=pkg-build LOGNAME=pkg-build \
+    PATH=/usr/bin:/bin LANG=C.UTF-8 "$LPF_DIR/scripts/lpf-pkgbuild" "$@"
 }
-lpf_state() { cat "/var/lib/lpf/packages/$1/state" 2>/dev/null || echo untriaged; }
+lpf_state() { cat "$LPF_VAR/packages/$1/state" 2>/dev/null || echo untriaged; }
+lpf_log_tail() {   # lpf_log_tail PKG — the end of lpf's build log, into the install's log
+  local f=$LPF_VAR/log/$1.log
+  [[ -s $f ]] || { log "lpf left no build log ($f)"; return 0; }
+  log "lpf's build log, its last 40 lines ($f):"
+  tail -n 40 -- "$f" | sed 's/^/    lpf │ /' | tee -a "$LOG_FILE"
+}
 spotify_current() { [[ $(lpf_state spotify-client) == OK ]] && rpm -q spotify-client >/dev/null 2>&1; }
-spotify_first() { dnf_install "${PKG_SPOTIFY[@]}"; spotify_client; }   # the recipe, then Spotify
 spotify_client() {
-  local p=spotify-client rpms=() deps=() before
+  local p=spotify-client rpms=() deps=() before st
   [[ -f $LPF_DIR/packages/$p/$p.spec ]] || { log "lpf-spotify-client is not installed — the manifest step puts it in"; return 1; }
-  lpf_do scan
-  case $(lpf_state "$p") in
+  lpf_do scan || { log "lpf could not look at Spotify's recipe (lpf scan)"; return 1; }
+  st=$(lpf_state "$p")
+  case $st in
     OK) log "Spotify $(rpm -q --qf '%{version}' "$p") — in place"; return 0 ;;
-    approve-wait | not-approved | failed) lpf_do set-state "$p" build-wait ;;
+    not-approved | approve-wait)
+      # your acceptance of Spotify's terms (SPOTIFY=yes) recorded as lpf records one — its
+      # approve file, which lpf's scan turns into build-wait — never its question on a terminal
+      [[ $st == approve-wait ]] || lpf_do set-state "$p" approve-wait
+      lpf_do create-approve-file "$p"
+      lpf_do scan ;;
+    failed) lpf_do set-state "$p" build-wait ;;   # (a build that failed before: again, as lpf update does)
+    build-wait | install-wait) ;;
+    *) log "lpf could not read Spotify's recipe (its state: $st after lpf scan)"; return 1 ;;
   esac
-  if [[ $(lpf_state "$p") == build-wait ]]; then
+  st=$(lpf_state "$p")
+  if [[ $st == build-wait ]]; then
     # (what the build needs comes as dnf builddep installs it — as yours; marked as needed by
     # something instead, so verify never takes it for something you added)
     before=$(dnf repoquery --userinstalled --qf '%{name}\n' 2>/dev/null | sort -u) || before=""
-    "$LPF_DIR/scripts/lpf-sudo-builddep" "$LPF_DIR/packages/$p/$p.spec" >>"$LOG_FILE" 2>&1 \
+    run "$LPF_DIR/scripts/lpf-sudo-builddep" "$LPF_DIR/packages/$p/$p.spec" \
       || { log "the packages Spotify's build needs could not be installed"; return 1; }
     mapfile -t deps < <(comm -13 <(printf '%s\n' "$before") \
       <(dnf repoquery --userinstalled --qf '%{name}\n' 2>/dev/null | sort -u) | grep . || true)
     if ((${#deps[@]})); then run dnf -y mark dependency "${deps[@]}" || true; fi
     log "Spotify: building it from Spotify's download (a minute or two)"
-    lpf_do build "$p"
-    [[ $(lpf_state "$p") == install-wait ]] \
-      || { log "Spotify did not build — lpf's log: /var/lib/lpf/log/$p.log"; return 1; }
+    lpf_do build "$p" || true                    # (lpf says how it went in its state, below)
+    st=$(lpf_state "$p")
+    [[ $st == install-wait ]] || { lpf_log_tail "$p"; log "Spotify did not build (lpf: $st)"; return 1; }
+  elif [[ $st != install-wait ]]; then
+    log "lpf did not take Spotify's approval (its state: $st)"; return 1
   fi
-  mapfile -t rpms < <(find "/var/lib/lpf/rpms/$p" -name '*.rpm' 2>/dev/null)
-  ((${#rpms[@]})) || { lpf_do set-state "$p" untriaged; log "Spotify's build left no package — the next run builds it again"; return 1; }
+  mapfile -t rpms < <(find "$LPF_VAR/rpms/$p" -name '*.rpm' 2>/dev/null)
+  ((${#rpms[@]})) || { lpf_do set-state "$p" untriaged; lpf_log_tail "$p"; log "Spotify's build left no package"; return 1; }
   run dnf -y install "${rpms[@]}" || { lpf_do set-state "$p" failed; return 1; }
+  rpm -q "$p" >/dev/null 2>&1 || { lpf_do set-state "$p" failed; log "dnf installed Spotify's package, yet rpm does not know $p"; return 1; }
   lpf_do clear-results "$p"; lpf_do set-state "$p" OK
   ok "Spotify $(rpm -q --qf '%{version}' "$p") (built here by lpf)"
 }
-s_spotify() {   # (the recipe first: its own step, as nothing else installs it)
+s_spotify() {   # (the recipe first: its own step, as nothing else installs it) — built now, or the step fails
   [[ $SPOTIFY == yes ]] || return 0
-  contained spotify_first
-  ((CONTAINED_RC == 0)) || log "Spotify is not built yet (why: above, or $LOG_FILE) — update and repair try again"
+  dnf_install "${PKG_SPOTIFY[@]}"
+  contained spotify_client
+  ((CONTAINED_RC == 0)) \
+    || die "Spotify did not build — why: the lines above (lpf's own, from /var/lib/lpf/log/spotify-client.log). Put it right (Spotify's download reachable: curl -sI https://repository.spotify.com), then run setup again: it resumes here — or set SPOTIFY=\"no\" in fedokawaii.conf"
 }
 
 # ── the file dialog: yazi, through xdg-desktop-portal-termfilechooser ────────
@@ -1608,6 +1695,34 @@ UNIT
   systemctl daemon-reload
   systemctl enable --now fedokawaii-scrub.timer
 }
+# s_report — the machine's health in one file (fedokawaii-report: ~/fedokawaii-report.txt),
+# made by itself once, at the first start of the finished desktop: it waits for your session,
+# reads everything (the install, verify, the journal, the session's parts, the network, the
+# timings) and leaves the verdict at the file's top. Again at any time: `fedokawaii report`.
+# Once only: the marker it leaves (/var/lib/fedokawaii/report-first.done) keeps it from the
+# starts after.
+s_report() {
+  write_file /etc/systemd/system/fedokawaii-report.service <<'UNIT'
+# installed by setup.sh — the health report, once, at the first start of the finished desktop
+[Unit]
+Description=Fedokawaii: the health report after the first start (~/fedokawaii-report.txt)
+After=graphical.target network-online.target
+Wants=network-online.target
+ConditionPathExists=!/var/lib/fedokawaii/report-first.done
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/fedokawaii-report --boot
+ExecStartPost=/usr/bin/touch /var/lib/fedokawaii/report-first.done
+Nice=10
+TimeoutStartSec=15min
+
+[Install]
+WantedBy=graphical.target
+UNIT
+  systemctl daemon-reload
+  systemctl enable --quiet fedokawaii-report.service
+}
 snap_hooks() {   # pre/post snapshots around every dnf transaction
   install -m 0755 "$REPO_DIR/system/kawa-snap" /usr/local/sbin/kawa-snap
   write_file /etc/dnf/libdnf5-plugins/actions.d/fedokawaii-snapper.actions <<'EOF'
@@ -1630,6 +1745,7 @@ s_finalize() {
   systemctl enable --now snapper-timeline.timer snapper-cleanup.timer
   systemctl enable --now fstrim.timer              # weekly TRIM (Fedora's preset, made explicit)
   s_scrub                                          # the monthly Btrfs scrub
+  s_report                                         # the health report, after the first start
   # the tidying before the baseline (a snapshot would keep every cached download for good) and
   # before the snapshot hooks (its autoremove is no change worth a snapshot); none of it can
   # stop a finished build
@@ -1639,11 +1755,13 @@ s_finalize() {
   run snapper -c root create -d "fedokawaii baseline"     # no cleanup algorithm: kept until you delete it
   record setup-done "$(date +%s)"                  # (the menu's title: "set up 17 Oct")
   record_snapshots                                 # (the menu's count: the baseline included)
-  # the resume unit and the phase go last: should anything above fail, the next start carries
-  # on here (holding greetd back meanwhile, its Conflicts=). (So the baseline still holds both:
-  # a rollback to it ends the build once more at its next start, a new baseline included.)
-  remove_resume_unit
+  # the phase, then the resume unit, go last: should anything above fail, the next start
+  # carries on here (holding greetd back meanwhile, its Conflicts=). "done" is written before
+  # the unit goes: taking away the unit this very run may be part of can end the run with it
+  # (seen on the real machine: TERM straight after) — the build is complete by then. (So the
+  # baseline still holds both: a rollback to it ends the build once more at its next start.)
   set_phase 'done'
+  remove_resume_unit
   # (the clone goes after the final check, at the very end of phase3: this run may still be
   # reading its scripts from it)
 }
@@ -2058,6 +2176,8 @@ do_update() {
   repos_lenient
   # the packages first: nothing else may stand in their way (a setting that no longer
   # applies on a later Fedora is reported below, and the packages that fix it are in)
+  # (vi a script, not a link to nvim, before a new kernel's boot image is made: editor_policy)
+  [[ -L /usr/local/bin/vi ]] && step_on "vi: a script for nvim (dracut follows a link into nvim)" editor_policy
   dnf_upgrade || die "dnf could not update (the lines above say why) — the snapshot taken before it is the way back (fedokawaii snapshots); try again later, or: fedokawaii repair"
   # then the system values of fedokawaii.conf, applied again — each on its own: edit it
   # (fedokawaii settings), then update (keyboard layouts take effect at the next login)
@@ -2071,6 +2191,7 @@ do_update() {
   step_on "the session launcher (keyboard)" install_start_dwl
   step_on "inbound SSH ($SSH_SERVER)" s_ssh
   step_on "the performance profile" s_tuning
+  step_on "a quiet boot (the boot's arguments, a blank console)" s_quiet_boot
   step_on "your services' stop at shutdown" user_stop
   step_on "the manifest" manifest_sync
   step_on "the machine's own drivers and firmware" s_hardware
@@ -2445,14 +2566,15 @@ r_system() {     # failed units cleared, the session's own system pieces in plac
 }
 r_ports() { s_ssh; open_ports; }   # SSH as SSH_SERVER says; torrra's and LocalSend's ports open
 r_boot() {       # the boot: its menu and success timer (s_boot), no rescue image, AMD's kernel
-                 # argument, no console wait, every kernel's image; neovim the editor
+                 # argument, a quiet boot (its arguments, the consoles' cursor at login), every
+                 # kernel's image; neovim the editor
   s_boot
   editor_policy
   # (an entry without it — verify fails it — gets it again: every entry, as setup did)
   if [[ $(cat "$STATE_DIR/gpu" 2>/dev/null) == amd ]] && ! amd_arg_everywhere; then
     run grubby --update-kernel=ALL --args="$AMDGPU_ARG"
   fi
-  console_boot_arg
+  s_quiet_boot
   old_kernels_out desktop   # (first: no boot image is made for a kernel that is about to go)
   kernel_images
 }
@@ -2575,7 +2697,7 @@ heal_all() {
   heal "nothing doubled or fighting (twice-installed, services, the login, unneeded, leftovers)" r_hygiene
   heal "system services, login, snapshots" r_system
   heal "the login (greetd and its greeter)" greetd_config
-  heal "the boot (success timer, no rescue image, the GPU's kernel argument) and the editor" r_boot
+  heal "the boot (success timer, no rescue image, the GPU's kernel argument, a quiet boot) and the editor" r_boot
   heal "services (Bluetooth, TRIM, the GPU tool, i2c-dev)" r_services
   heal "dnf's settings" s_dnf
   heal "the time zone ($TIMEZONE)" timedatectl set-timezone "$TIMEZONE"

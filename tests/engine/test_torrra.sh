@@ -164,17 +164,17 @@ case_ "--open a plain path with a backslash and a percent in its name"
 out=$(kawa-torrra --open "file://$HOME/Downloads/100%25%20a%5Cb.torrent" 2>&1); eq "$?" 0; has "$(seen "$out" argv)" '100% a\\b.torrent'
 case_ "--open what is not there, or not a torrent: said as a notice too (the window closes)"
 out=$(kawa-torrra --open "$HOME/Downloads/gone.torrent" 2>&1); eq "$?" 1; has "$out" "no such file"
-called '^notify-send -u critical -a torrra torrra no such file'
+called '^notify-send -a torrra -u critical -- .*  torrra no such file'
 : >"$HOME/Downloads/notes.txt"
 out=$(kawa-torrra --open "$HOME/Downloads/notes.txt" 2>&1); eq "$?" 1; has "$out" "not a magnet link or a .torrent file"
 case_ "--open with nothing: the search (the launcher entry)"
 fresh; out=$(kawa-torrra --open 2>&1); eq "$?" 0; called ' start prowlarr'
 case_ "trouble from the launcher shows as a notice; in a shell it does not"
 fresh; chmod 644 "$HOME/.config/fedokawaii/secrets.sh"; reset_calls
-kawa-torrra --open >/dev/null 2>&1; called '^notify-send -u critical -a torrra torrra .*chmod 600'
+kawa-torrra --open >/dev/null 2>&1; called '^notify-send -a torrra -u critical -- .*  torrra .*chmod 600'
 reset_calls; kawa-torrra >/dev/null 2>&1; not_called notify-send
 case_ "Prowlarr's trouble from the launcher: a notice as well"
-fresh; export FAKE_PROWLARR=noindexers; kawa-torrra --open >/dev/null 2>&1; called '^notify-send -u critical -a torrra torrra Prowlarr has no indexers switched on'
+fresh; export FAKE_PROWLARR=noindexers; kawa-torrra --open >/dev/null 2>&1; called '^notify-send -a torrra -u critical -- .*  torrra Prowlarr has no indexers switched on'
 
 # ── one torrra at a time ─────────────────────────────────────────────────────
 hold() { ( exec 8>"$XDG_RUNTIME_DIR/kawa-torrra.lock"; flock 8; exec sleep 30 ) >/dev/null 2>&1 & holder=$!

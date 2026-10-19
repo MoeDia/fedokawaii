@@ -47,14 +47,28 @@ done
 # windows keep, so its border lines up with a window's there to the pixel
 if ((drop)); then args+=(--anchor=top-right --x-margin=8 --y-margin=8); fi
 if [[ -n $prompt ]]; then args+=("--prompt=$prompt"); else args+=(--hide-prompt); fi
-command -v fuzzel >/dev/null || { notify-send -a desktop -u critical "menus" "fuzzel is missing — fedokawaii repair puts it back" 2>/dev/null; exit 1; }
+command -v fuzzel >/dev/null || { . "$HOME/.config/fedokawaii/icons.sh"; notify-send -a desktop -u critical -- "$ICON_CHEVRON  menus" "fuzzel is missing — fedokawaii repair puts it back" 2>/dev/null; exit 1; }
 # a dropdown lights the bar's cat (happy) while it is open (the cat's module reads this file;
-# SIGRTMIN+15 tells it)
+# SIGRTMIN+15 tells it). The file holds this menu's pid: only the menu that lit it puts it
+# out (one closed by the next dropdown must not darken that one's cat), and it goes however
+# this ends — fuzzel closed or killed, or this script stopped (SIGTERM, SIGHUP, Ctrl+C)
+LIT=0
 lit() {
   ((drop)) && [[ -n ${XDG_RUNTIME_DIR:-} ]] || return 0
-  if [[ $1 == on ]]; then : >"$XDG_RUNTIME_DIR/kawa-drop.open"; else rm -f "$XDG_RUNTIME_DIR/kawa-drop.open"; fi
+  local m=$XDG_RUNTIME_DIR/kawa-drop.open o=""
+  if [[ $1 == on ]]; then
+    printf '%s\n' "$$" >"$m.$$" && mv -f "$m.$$" "$m" && LIT=1
+  else
+    ((LIT)) || return 0
+    LIT=0
+    read -r o 2>/dev/null <"$m"
+    [[ -z $o || $o == "$$" ]] && rm -f "$m"
+  fi
   kawa-dwlstatus --poke 15 2>/dev/null || true
 }
+trap 'lit off' EXIT
+fz=""
+trap '[[ -n $fz ]] && kill "$fz" 2>/dev/null; exit 1' TERM HUP INT   # (its fuzzel with it)
 # quick settings open (kawa-panel): closed first, SIGUSR2 — on the overlay, with the keyboard
 # its own, it would leave this menu no keys (found as kawa-quick finds it: its pid file, and
 # that pid's command line)

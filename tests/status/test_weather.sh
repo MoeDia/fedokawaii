@@ -159,4 +159,12 @@ for c in 'Moderate or heavy rain in area with thunder' 'Moderate or heavy snow i
   eq "$(CACHE)" "Sharjah  24°C  $c" "$c"
 done
 
+case_ "the forecast window: wttr.in superquiet (Q) — no place name of its geocoder's (an Arabic one drawn unjoined, reversed), the city only in the window's title"
+setup; answer '  ┌─────────────┐ Mon 19 Oct'
+out=$(printf x | kawa-weather --inside)
+called 'curl -fsS --proto =https --max-time 10 https://wttr.in/Sharjah\?2nQFm'
+has "$out" " ┌─────────────┐ Mon 19 Oct" "its lines, each set in by a space"
+stub kawa-float 'printf "%s|" "$@" >"$TMP/float"'
+kawa-weather --forecast; has "$(cat "$TMP/float")" "weather · Sharjah|" "the title: the city, as fedokawaii.conf writes it"
+
 done_

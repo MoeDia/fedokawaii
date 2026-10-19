@@ -303,7 +303,8 @@ login screen | root | fail | /usr/local/bin/kawa-greet | python3 -c 'import ast,
 kawa-veil | user | fail | kawa-veil | ! ldd "$(command -v kawa-veil)" | grep 'not found' | built, its libraries all there | run: fedokawaii apply
 kawa-clipkeep | user | fail | kawa-clipkeep | ! ldd "$(command -v kawa-clipkeep)" | grep 'not found' | built, its libraries all there | run: fedokawaii apply
 tuned | root | fail | tuned-adm | tuned-adm active | grep -q fedokawaii | the fedokawaii profile is active | run: fedokawaii repair
-SPOT-01 Spotify's build (lpf) | root | info | - | rpm -q spotify-client lpf-spotify-client; for f in /var/lib/lpf/log/*spotify*; do [ -f "$f" ] && { echo "$f:"; tail -n 40 "$f"; }; done; runuser -u "$U" -- lpf state | its packages, lpf's state and log | -
+SPOT-01 Spotify's build (lpf) | root | info | - | rpm -q spotify-client lpf-spotify-client; echo "state: $(cat /var/lib/lpf/packages/spotify-client/state 2>&1)"; ls -la /var/lib/lpf /var/lib/lpf/approvals 2>&1; echo "── its log (the last 60):"; tail -n 60 /var/lib/lpf/log/spotify-client.log 2>&1; f=/usr/share/lpf/packages/spotify-client/spotify-client.spec; u=$(rpmspec -P "$f" 2>/dev/null | sed -n 's/^Source1:[[:space:]]*//p'); [ -n "$u" ] || u=$(sed -n 's/^Source1:[[:space:]]*//p' "$f" 2>/dev/null); echo "── the recipe's Source1: ${u:-none}"; [ -n "$u" ] && curl -sSI --max-time 15 "$u" 2>&1 | head -n 1; echo "── the install's log, 3.07d:"; awk '/── 3\.07d/ { on = 1; print; next } on && /── / { on = 0 } on' /var/log/fedokawaii.log | tail -n 60 | its packages, lpf's state, approvals and log, the recipe's download (a 404 there: the build cannot start), setup's step 3.07d | -
+SPOT-01b Spotify is built (SPOTIFY=yes) | root | fail | - | . "$TK/fedokawaii.conf"; echo "SPOTIFY=$SPOTIFY"; [ "$SPOTIFY" = yes ] || exit 0; rpm -q spotify-client | spotify-client installed (fedokawaii.conf asks for it) | SPOT-01 says why lpf has not built it; run: fedokawaii repair
 ROWS
 # every kawa-* helper of the toolkit: --help exits 0; lib/upstream.sh's binaries (yazi, ya, lazygit,
 # satty, bluetui, herdr…): --version
@@ -512,7 +513,7 @@ checks "12. sound and Bluetooth" <<'ROWS'
 AUD-01 the sound services run steadily | user | fail | - | r=0; for s in pipewire pipewire-pulse wireplumber; do v=$(systemctl --user show "$s" -p ActiveState -p NRestarts --value | tr '\n' ' '); echo "$s: $v"; set -- $v; [ "$1" = active ] && [ "$2" = 0 ] || r=1; done; exit $r | pipewire, pipewire-pulse and wireplumber active, never restarted | log out and in; else send the report
 AUD-02 the default sink and source | ses | fail | wpctl | s=$(wpctl inspect @DEFAULT_AUDIO_SINK@ 2>&1 | grep -E 'node\.(name|description) '); i=$(wpctl inspect @DEFAULT_AUDIO_SOURCE@ 2>&1 | grep -E 'node\.(name|description) '); echo "sink: $s"; echo "source: $i"; [ -n "$s" ] && ! grep -q share_sink <<<"$s" && [ -n "$i" ] | a real output (never the Share sink) and an input | quick settings → sound
 AUD-03 the volume | ses | warn | wpctl | v=$(wpctl get-volume @DEFAULT_AUDIO_SINK@); echo "$v"; ! grep -q MUTED <<<"$v" && awk '{ exit !($2 <= 1.0) }' <<<"$v" | not muted, at most 100 % | -
-AUD-04 the Share sink for calls | ses | fail | pw-cli | pw-cli ls Node 2>/dev/null | grep -B2 -A6 -i share_sink | grep -E 'node.name|media.class|node.description'; cmp "$TK/configs/home/.config/pipewire/pipewire.conf.d/60-share.conf" ~/.config/pipewire/pipewire.conf.d/60-share.conf && echo "config: the toolkit's"; echo "pipewire since $(systemctl --user show pipewire -p ActiveEnterTimestamp --value) · config $(stat -c %y ~/.config/pipewire/pipewire.conf.d/60-share.conf 2>/dev/null)"; journalctl --user -b -u pipewire --no-pager | grep -iE 'loopback|share|error' | tail -n 5; pw-cli ls Node 2>/dev/null | grep -q 'node.name = "share_sink"' | the share_sink node exists (calls hear the shared screen's sound) | systemctl --user restart pipewire (it reads 60-share.conf at start)
+AUD-04 the Share sink for calls | ses | fail | pw-dump | n=$(pw-dump 2>/dev/null | jq '[.[] | select(.type == "PipeWire:Interface:Node" and .info.props."node.name" == "share_sink" and .info.props."media.class" == "Audio/Sink")] | length'); echo "share_sink (Audio/Sink) nodes: ${n:-?}"; cmp "$TK/configs/home/.config/pipewire/pipewire.conf.d/60-share.conf" ~/.config/pipewire/pipewire.conf.d/60-share.conf && echo "config: the toolkit's"; echo "pipewire since $(systemctl --user show pipewire -p ActiveEnterTimestamp --value) · config $(stat -c %y ~/.config/pipewire/pipewire.conf.d/60-share.conf 2>/dev/null)"; journalctl --user -b -u pipewire --no-pager | grep -iE 'loopback|share|error' | tail -n 5; [ "${n:-0}" -ge 1 ] | a node share_sink of class Audio/Sink exists (wpctl lists it under Filters, by node name) | systemctl --user restart pipewire (it reads 60-share.conf at start)
 AUD-05 the Share sink is not the default | ses | fail | wpctl | ! wpctl inspect @DEFAULT_AUDIO_SINK@ 2>&1 | grep 'node.name' | grep share_sink | the default output is a device | quick settings → sound
 AUD-06 the click at a volume change | root | warn | - | for p in power_save power_save_controller; do printf '%s=%s\n' "$p" "$(cat /sys/module/snd_hda_intel/parameters/$p 2>/dev/null || echo -)"; done; runuser -u "$U" -- env XDG_RUNTIME_DIR="/run/user/$UIDN" wpctl inspect @DEFAULT_AUDIO_SINK@ 2>/dev/null | grep -E 'session.suspend-timeout-seconds|node.name '; p=$(cat /sys/module/snd_hda_intel/parameters/power_save 2>/dev/null || echo 0); [ "$p" = 0 ] | snd_hda_intel power_save 0 (1 or more: the codec sleeps and clicks as it wakes) | send the report: the click is the codec waking
 AUD-07 the sample rate | ses | info | pw-metadata | pw-metadata -n settings 0 2>/dev/null | grep -E 'clock\.(rate|allowed-rates|force-rate)' | the rates PipeWire may switch between (a switch clicks too) | -
@@ -749,6 +750,7 @@ TOR-02 Prowlarr's UID matches yours | root | fail | - | f="$UH/.config/container
 TOR-03 Prowlarr's indexers | user+full/30 | warn | - | systemctl --user is-active --quiet prowlarr || { echo "(Prowlarr is asleep: not woken)"; exit 0; }; curl -fsS -m 5 http://127.0.0.1:9696/ping; echo; . ~/.config/fedokawaii/secrets.sh 2>/dev/null; [ -n "$PROWLARR_API_KEY" ] || exit 1; n=$(curl -fsS -m 10 -H @- http://127.0.0.1:9696/api/v1/indexer <<<"X-Api-Key: $PROWLARR_API_KEY" | jq '[.[] | select(.enable)] | length'); echo "indexers enabled: $n"; [ "${n:-0}" -ge 1 ] | Prowlarr answers with at least one indexer enabled | open Prowlarr from the launcher and add indexers
 TOR-04 torrra loads and is wired | user | fail | - | ~/.local/share/pipx/venvs/torrra/bin/python -I -c 'import torrra, libtorrent; print("torrra and libtorrent import")' && grep -E '^default *=|url *=' ~/.config/torrra/config.toml && ! grep -q api_key ~/.config/torrra/config.toml | torrra and libtorrent import; its config points at Prowlarr, no key in it | run: fedokawaii repair
 TOR-05 Prowlarr goes back to sleep | user | warn | - | a=$(systemctl --user is-active prowlarr 2>&1); t=$(systemctl --user list-timers prowlarr-idle.timer --all --no-legend 2>/dev/null); echo "prowlarr: $a · idle timer: ${t:-none}"; [ "$a" != active ] || [ -n "$t" ] | while Prowlarr runs, its idle timer is armed | send the report
+TOR-07 Prowlarr does not wait on podman's network wait | user | fail | - | w=$(systemctl --user show -p Wants -p After prowlarr.service); echo "$w" | tr ' ' '\n' | grep -E 'Wants=|After=|network' ; echo "network-online.target: $(systemctl is-active network-online.target 2>&1)"; ! grep -q podman-user-wait-network-online <<<"$w" | prowlarr.service neither wants nor waits for podman-user-wait-network-online (it times out, and Prowlarr with it) | run: fedokawaii repair
 LS-01 LocalSend and its port | root | fail | - | l=$(readlink -f "$UH/.local/bin/localsend"); echo "$l"; ldd "$l" 2>/dev/null | grep -c 'not found'; firewall-cmd --query-port=53317/tcp && firewall-cmd --query-port=53317/udp; case $l in "$UH"/.local/share/localsend/*) ;; *) exit 1 ;; esac; ! ldd "$l" | grep -q 'not found' | the app in ~/.local/share/localsend, every library found, 53317 open | run: fedokawaii repair
 LS-02 LocalSend's tray | root | info | - | echo "$(grep -c 'libayatana-appindicator' "$UH/.cache/dwl.log") tray warnings (no tray here: the app still works)" | - | -
 XPP-01 Xournal++'s settings | user | warn | - | test -d ~/Pictures/Sketches && echo "~/Pictures/Sketches"; f=~/.config/xournalpp/settings.xml; [ -f "$f" ] || { echo "(not started yet)"; exit 0; }; python3 -I -c 'import xml.etree.ElementTree as E,sys; E.parse(sys.argv[1]); print("settings.xml parses")' "$f" | settings.xml parses; ~/Pictures/Sketches exists | run: fedokawaii apply
@@ -880,6 +882,12 @@ sec "4. verify"
 if [[ -r $TOOLKIT/verify.sh ]]; then
   pw=$(asu systemctl --user is-active prowlarr.service 2>/dev/null)
   timeout 300 bash "$TOOLKIT/verify.sh" >"$TMP/verify" 2>&1; vr=$?
+  if grep -q "Prowlarr's indexers missing" "$TMP/verify"; then   # (the names only; the key on curl's stdin)
+    pk=$(sed -n 's/^PROWLARR_API_KEY=["'"'"']\{0,1\}\([0-9a-f]*\).*/\1/p' "$UH/.config/fedokawaii/secrets.sh" 2>/dev/null)
+    sub "TOR-03b the indexers Prowlarr has (verify says some are missing)"
+    printf 'header = "X-Api-Key: %s"\n' "$pk" | asu curl -fsS --max-time 5 -K - http://127.0.0.1:9696/api/v1/indexer 2>&1 \
+      | jq -r '.[] | "\(.name) (\(.definitionName)) \(if .enable then "on" else "off" end)"' 2>&1 | cap 40 >>"$BODY"
+  fi
   # (verify starts Prowlarr to prove it starts: back to sleep, unless it was running before)
   [[ $pw == active ]] || asu systemctl --user stop --no-block prowlarr.service >/dev/null 2>&1
   say "\$ sudo bash $TOOLKIT/verify.sh"; cap 400 <"$TMP/verify" >>"$BODY"; say "[exit $vr]"
@@ -1026,17 +1034,24 @@ if [[ -s $TMP/cores ]]; then
                             END { if (id != "") printf "%s\t%s", id, line }' "$TMP/dnfh")
     say "$cnt × $sig  $exe  (uid $uid, $pkg)  $first → $last  [$when setup finished]"
     if [[ -n $tx ]]; then
-      say "  the dnf transaction last begun before it: ${tx#*$'\t'}"
+      txs="${tx%%$'\t'*}: $(sed -E 's/^ *[0-9]+ +//; s/ {2,}/ · /g; s/ +$//' <<<"${tx#*$'\t'}")"
+      say "  the dnf transaction last begun before it: $txs"
       dnf history info "${tx%%$'\t'*}" 2>&1 | cap 40 | sed 's/^/    /' >>"$BODY"
     fi
     [[ $when == before ]] && continue
+    # known and harmless: Fedora's file trigger runs qwebengine_convert_dict on each hunspell
+    # dictionary, and Chromium's converter traps on the Arabic ones (no IGNORE support)
+    if [[ ${exe##*/} == qwebengine_convert_dict ]] && dnf history info "${tx%%$'\t'*}" 2>/dev/null | grep -qE 'hunspell-|qt6-qtwebengine'; then
+      say "  known and harmless: the dictionaries' conversion as dnf installed hunspell or qtwebengine ($(rpm -ql hunspell-ar 2>/dev/null | grep -c '\.dic$') Arabic .dic files in hunspell-ar)"
+      continue
+    fi
     msg="SYS-02 $exe crashed $cnt times ($sig, $first$( [[ $last != "$first" ]] && echo " → $last"))"
     case ${exe##*/} in
       dwl|waybar|mako|foot|footclient|kawa-*|pipewire*|wireplumber|xdg-desktop-portal*|gtklock|swayidle|swaybg|Xwayland|cage|python3*|fuzzel|udiskie|gammastep)
         fail "$msg" "send the report (its package and what dnf was doing then are in it)" ;;
       *) warn "$msg" "send the report if it happens again" ;;
     esac
-    { echo "package: $pkg"; [[ -n $tx ]] && echo "the dnf transaction last begun before it: ${tx%%$'\t'*}: $(sed -E 's/^ *[0-9]+ +//; s/ {2,}/ · /g; s/ +$//' <<<"${tx#*$'\t'}")"; } | detail
+    { echo "package: $pkg"; [[ -n $tx ]] && echo "the dnf transaction last begun before it: $txs"; } | detail
   done <"$TMP/coreg"
 fi
 sub "SELinux denials this boot"
@@ -1083,7 +1098,7 @@ run "dnf's transactions" bash -c 'dnf history list | head -n 40'
 # ════ 12. sound, Bluetooth, brightness ═══════════════════════════════════════════════════
 sec "12. sound and Bluetooth"
 urun "sound (wpctl status)" wpctl status
-urun "the Share output and its microphone (pw-cli ls Node)" bash -c 'pw-cli ls Node | grep -i -B3 -A6 share'
+urun "the Share output and its microphone (pw-dump: node.name share_sink*)" bash -c 'pw-dump | jq -c ".[] | select(.type == \"PipeWire:Interface:Node\") | .info.props | select((.\"node.name\" // \"\") | startswith(\"share_sink\")) | {name: .\"node.name\", class: .\"media.class\", description: .\"node.description\"}"'
 run "Bluetooth" bash -c 'rfkill list; systemctl is-active bluetooth'
 run "monitors over DDC/CI (ddcutil detect)" ddcutil detect --terse
 if ((QUICK == 0 && SES)); then
@@ -1295,8 +1310,11 @@ run "memory and swap" bash -c 'free -h; swapon --show'
 run "processor" bash -c 'lscpu | head -n 20'
 # (root's are what verify counts; podman's rootless storage belongs to the containers' own ids
 # by design: left out)
-find "$UH" -xdev -path "$UH/.local/share/containers" -prune -o -not -user "$U" -printf '%u\t%P\n' 2>/dev/null >"$TMP/notmine"
-sub "files in your home not yours, by owner and folder (podman's storage left out)"
+# (~/Downloads is a Btrfs subvolume of its own, which -xdev stops at: searched on its own)
+{ find "$UH" -xdev \( -path "$UH/.local/share/containers/storage" -o -path "$UH/Downloads" \) -prune -o -not -user "$U" -printf '%u\t%P\n'
+  [[ -d $UH/Downloads ]] && find "$UH/Downloads" -xdev -not -user "$U" -printf '%u\tDownloads/%P\n'; } 2>/dev/null >"$TMP/notmine"
+nst=$(find "$UH/.local/share/containers/storage" -xdev -not -user "$U" 2>/dev/null | grep -c .)
+sub "files in your home not yours, by owner and folder (~/Downloads included)"
 awk -F'\t' '{ n = split($2, p, "/"); k = p[1]; if (n > 2 && (k == ".cache" || k == ".local" || k == ".config")) k = k "/" p[2] (n > 3 && p[2] == "share" ? "/" p[3] : "")
               c[$1 "\t~/" k]++ } END { for (x in c) printf "%7d  %s\n", c[x], x }' "$TMP/notmine" | sort -rn | cap 40 >"$TMP/notmine.g"
 cat "$TMP/notmine.g" >>"$BODY"; [[ -s $TMP/notmine ]] || say "(none)"
@@ -1304,6 +1322,7 @@ nro=$(awk -F'\t' '$1 == "root"' "$TMP/notmine" | grep -c .)
 nfo=$(awk -F'\t' '$1 != "root"' "$TMP/notmine" | grep -c .)
 if ((nro)); then warn "SEC-03 $nro files in your home belong to root (a program run as root with your HOME?)" "run: sudo chown -R $U: ~ — the folders are listed in the report"; grep -P '\troot\t' "$TMP/notmine.g" | head -n 8 | detail
 else good "SEC-03 no root-owned file in your home"; fi
+say "podman's storage (~/.local/share/containers/storage): $nst files of podman's containers' own (subordinate) ids — by design"
 ((nfo)) && { warn "$nfo files in your home belong to another user" "the folders are listed in the report"; grep -vP '\troot\t' "$TMP/notmine.g" | head -n 6 | detail; }
 run "secrets.sh (mode only — never read)" stat -c '%A %U %n' "$UH/.config/fedokawaii/secrets.sh"
 

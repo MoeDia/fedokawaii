@@ -20,7 +20,7 @@ rc 0 kawa-sketch; eq "$(ls "$HOME/Pictures/Sketches" | grep -c '(1)\.xopp$')" 1
 case_ "Xournal++ missing: said, exit 1"
 rm -f "$STUBS/xournalpp"
 if command -v xournalpp >/dev/null; then _ok; else
-  kawa-sketch; eq "$?" 1; called 'notify-send -a desktop -u critical sketch Xournal\+\+ is missing'; fi
+  kawa-sketch; eq "$?" 1; called 'notify-send -a desktop -u critical -- .*  sketch Xournal\+\+ is missing'; fi
 case_ "wrong use: exit 2"
 rc 2 kawa-sketch --bogus
 case_ "the launcher's Sketch"

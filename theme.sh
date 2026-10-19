@@ -121,8 +121,14 @@ hw_discrete_amd && MPV_SCALING="profile=high-quality              # ewa_lanczoss
 # the pointer of every list (the fzf options file): the icon font's chevron
 CHEVRON=$(. "$REPO_DIR/configs/home/.config/fedokawaii/icons.sh" && printf '%s' "$ICON_CHEVRON_RIGHT")
 
+# Brave's own icon, as its package names it in its launcher entry: the Prowlarr entry's too
+# (its page opens in Brave)
+BRAVE_ICON=""
+[[ -r /usr/share/applications/brave-origin.desktop ]] \
+  && BRAVE_ICON=$(sed -n '/^Icon=/{s///p;q}' /usr/share/applications/brave-origin.desktop)
+
 render() {      # render SRC → stdout, with fedokawaii.conf values (and the chevron) filled in
-  sed -e "s|@HOME@|$TARGET_HOME|g" -e "s|@MONITOR_HZ@|$MONITOR_HZ|g" \
+  sed -e "s|@HOME@|$TARGET_HOME|g" -e "s|@MONITOR_HZ@|$MONITOR_HZ|g" -e "s|@BRAVE_ICON@|$BRAVE_ICON|g" \
       -e "s|@WEATHER_CITY@|$WEATHER_CITY|g" -e "s|@NIGHT_LIGHT@|$NIGHT_LIGHT|g" \
       -e "s|@ICON_CHEVRON_RIGHT@|$CHEVRON|g" -e "s|^@MPV_SCALING@\$|$MPV_SCALING|" -e "s|@UID@|$TARGET_UID|g" "$1"
 }
@@ -162,9 +168,13 @@ place() {
 }
 
 # ── 1. home tree ─────────────────────────────────────────────────────────────
+# Spotify's launcher entry only once lpf has built Spotify here: the launcher (fuzzel) lists an
+# entry whatever its TryExec says, and one for a program not there yet starts nothing
+spotify_built() { [[ $SPOTIFY == yes ]] && rpm -q spotify-client >/dev/null 2>&1; }
 while IFS= read -r -d '' f; do
   rel=${f#"$REPO_DIR/configs/home/"}
   [[ $STEAM != yes && ( $rel == .config/MangoHud/* || $rel == .local/share/applications/steam.desktop ) ]] && continue   # the game overlay, Steam's entry: with Steam only
+  [[ $rel == .local/share/applications/spotify.desktop ]] && ! spotify_built && continue
   set_aside "$rel" "$f" && continue        # repair took it out (it broke something): until it changes
   place "$f" "$TARGET_HOME/$rel" user
 done < <(find "$REPO_DIR/configs/home" -type f -print0 | sort -z)
@@ -246,6 +256,9 @@ retire .config/spotify-player/theme.toml 'spotify_player'
 #   ~/.local/share/icons/default/index.theme — made the old pointers (Fedokawaii) the default;
 #   the folder is now a link to the Sumi pointers of the theme in use (2c)
 retire .local/share/icons/default/index.theme 'Inherits=Fedokawaii'
+#   ~/.local/share/applications/spotify.desktop — ours (Wayland), while Spotify is not built
+#   (or not wanted): an entry that would start nothing
+spotify_built || retire .local/share/applications/spotify.desktop 'ozone-platform=wayland'
 
 # ── 3. system tree (/etc, /usr/share/icons) ──────────────────────────────────
 while IFS= read -r -d '' f; do
@@ -457,7 +470,8 @@ boot_and_console() {
 
   # the boot splash (Plymouth's script plugin, system/plymouth/sumi): after the menu, the same
   # ink and torii with "起動中 · starting Fedora", and the lock screen's box should a disk ask
-  # for its password. It lives in the boot images, so a change remakes them (dracut, ~1 min)
+  # for its password. It lives in the boot images, so a change remakes them (dracut, ~1 min) —
+  # last of all, below: should dracut fail, the menu, the console and the rest are in place
   SPLASH_DIR=/usr/share/plymouth/themes/sumi SPLASH_CHANGED=0
   for f in "$REPO_DIR"/system/plymouth/sumi/*; do
     TOTAL=$((TOTAL + 1))
@@ -477,9 +491,16 @@ boot_and_console() {
     if ((CHECK)); then DRIFT+=("boot splash: not the sumi theme")
     else R plymouth-set-default-theme sumi; CHANGED+=("boot splash: the sumi theme"); SPLASH_CHANGED=1; fi
   fi
-  if ((SPLASH_CHANGED)); then
-    R dracut -f --regenerate-all >>"$LOG_FILE" 2>&1 || die "dracut could not remake the boot images with the splash (see $LOG_FILE)"
-    CHANGED+=("boot images remade with the splash (next boot)")
+  # every kernel's boot image holds it (an image made before, or by a dracut that failed —
+  # the installer's, a kernel update's — has Plymouth's text themes only: no splash)
+  TOTAL=$((TOTAL + 1)) SPLASH_IMAGES=()
+  for f in /boot/vmlinuz-*; do
+    [[ -e $f && $f != */vmlinuz-0-rescue-* ]] || continue
+    R lsinitrd "/boot/initramfs-${f#/boot/vmlinuz-}.img" 2>/dev/null | grep -q "usr/share/plymouth/themes/sumi/sumi.script" \
+      || SPLASH_IMAGES+=("/boot/initramfs-${f#/boot/vmlinuz-}.img")
+  done
+  if ((${#SPLASH_IMAGES[@]})); then
+    if ((CHECK)); then DRIFT+=("boot images without the splash: ${SPLASH_IMAGES[*]}"); else SPLASH_CHANGED=1; fi
   fi
 
   # /etc/default/grub: the graphical menu with this theme, at the native mode
@@ -518,8 +539,9 @@ boot_and_console() {
     fi
   fi
 
-  # text console: Terminus bold, 12×24 below 1440p, 16×32 from 1440p up
-  CFONT=ter-v24b; ((MH >= 1440)) && CFONT=ter-v32b
+  # text console: Terminus bold at the size of Fedora's own console font — 8×16 (240 × 67 at
+  # 1080p); from 2160p up, where 8×16 is too small to read, 16×32
+  CFONT=ter-v16b; ((MH >= 2160)) && CFONT=ter-v32b
   TOTAL=$((TOTAL + 1))
   if ! grep -qx "FONT=\"$CFONT\"" /etc/vconsole.conf 2>/dev/null; then
     if ((CHECK)); then DRIFT+=("/etc/vconsole.conf: FONT=\"$CFONT\"")
@@ -531,6 +553,12 @@ boot_and_console() {
     fi
   fi
 
+  # the boot images with the splash, last (above: why): a failure is still this part's ✘
+  if ((SPLASH_CHANGED)); then
+    log "the boot images: made again with the splash (dracut, about a minute)"
+    R dracut -f --regenerate-all >>"$LOG_FILE" 2>&1 || die "dracut could not remake the boot images with the splash (see $LOG_FILE) — the boot menu and the console are in place; repair tries again"
+    CHANGED+=("boot images remade with the splash (next boot)")
+  fi
 }
 BOOT_FAILED=0
 # a theme run that could not make the boot menu or console marks what it failed on (root's,
@@ -684,7 +712,10 @@ done
 # is filled in here: Syncplay's public server (syncplay.pl, port 8999, its default), your
 # login name, a room of your own (name-xxxx: tell it to your friends, or agree on another),
 # mpv as the player, ~/Videos and ~/Downloads to find the room's file in by its name, and no
-# update checks (dnf brings new versions). Every value already there stays as it is.
+# update checks (dnf brings new versions), and its words on the film (chat, "connected to…")
+# in mpv's own on-screen font — Syncplay's default, sans-serif, counts as unset, so they never
+# change font a second after the film opens (mpv's script-opts/syncplayintf.conf sets the same
+# for the moment before Syncplay has told mpv). Every other value already there stays as it is.
 SYNCPLAY_INI=$TARGET_HOME/.config/syncplay.ini
 TOTAL=$((TOTAL + 1))
 if [[ -L $SYNCPLAY_INI ]]; then
@@ -696,7 +727,8 @@ want = {("server_data", "host"): "syncplay.pl", ("server_data", "port"): "8999",
         ("client_settings", "name"): user, ("client_settings", "room"): f"{user}-{secrets.token_hex(2)}",
         ("client_settings", "playerpath"): "/usr/bin/mpv",
         ("client_settings", "mediasearchdirectories"): repr([home + "/Videos", home + "/Downloads"]),
-        ("general", "checkforupdatesautomatically"): "False"}
+        ("general", "checkforupdatesautomatically"): "False",
+        ("gui", "chatinputfontfamily"): "JetBrainsMono Nerd Font", ("gui", "chatoutputfontfamily"): "JetBrainsMono Nerd Font"}
 cfg = configparser.RawConfigParser(strict=False)        # (as Syncplay reads it: a doubled %% stays)
 try:
     with open(path, encoding="utf-8-sig") as f:
@@ -705,7 +737,8 @@ except FileNotFoundError:
     pass
 except (configparser.Error, UnicodeError):
     sys.exit(4)
-gaps = [k for k in want if cfg.get(*k, fallback="").strip() in ("", "None", "{}", "[]")]
+unset = ("", "None", "{}", "[]")
+gaps = [k for k in want if cfg.get(*k, fallback="").strip() in unset + (("sans-serif",) if k[0] == "gui" else ())]
 print(", ".join(k[1] for k in gaps))
 if check or not gaps:
     sys.exit(3 if gaps else 0)

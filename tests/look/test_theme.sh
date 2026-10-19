@@ -41,13 +41,13 @@ exit $r
 EOF
 }
 theme_is() {   # theme_is dark|light — the link, GTK, the icons and the pointers all say so
-  local m=$1 g=Fedokawaii i=Papirus
-  [[ $m == dark ]] && g=Fedokawaii-dark i=Papirus-Dark
+  local m=$1 g=Fedokawaii
+  [[ $m == dark ]] && g=Fedokawaii-dark
   eq "$(readlink "$LINK")" "themes/$m" "the link points to themes/$m"
   eq "$(kawa-theme get)" "$m"
   has "$(cat "$GS")" "color-scheme=prefer-$m" "GTK 4 / libadwaita: prefer-$m"
   has "$(cat "$GS")" "gtk-theme=$g" "GTK 3: $g"
-  has "$(cat "$GS")" "icon-theme=$i" "icons: $i"
+  has "$(cat "$GS")" "icon-theme=Adwaita" "icons: GTK's own (each app's own beneath), in both — no icon pack"
   has "$(cat "$GS")" "cursor-theme=Sumi-$m" "GTK's pointers: Sumi-$m"
   eq "$(readlink "$POINTERS")" "/usr/share/icons/Sumi-$m" "the default pointers (dwl, XWayland): Sumi-$m"
 }
@@ -253,12 +253,35 @@ case_ "under the veil, the theme's wallpaper is up before the reveal — and hol
 eq "$(grep -E '^(kawa-wallpaper|veil over)' "$CALLS" | tail -n 2 | tr '\n' '|')" "kawa-wallpaper --restore|veil over|"
 eq "$(sort -u "$TMP/wallpaper.fds")" "fds:" "no lock descriptor reaches the wallpaper (its swaybg lives on)"
 
+case_ "the switch's time in the theme's log (the health report reads it)"
+grep -qE '^[0-9-]+ [0-9:]+ kawa-theme: switched to dark in [0-9]+ ms \(under the veil\)$' "$HOME/.cache/kawa-theme.log" && _ok \
+  || _no "no timing line: $(cat "$HOME/.cache/kawa-theme.log" 2>&1)"
+
 case_ "the same theme again in a session: no transition (nothing to see), just re-applied"
 reset_calls
 kawa-theme dark
 not_called '^kawa-veil'
 for _ in {1..250}; do grep -q '^kawa-wallpaper' "$CALLS" && break; /bin/sleep 0.02; done   # (in the background)
 called '^kawa-wallpaper --restore'
+
+case_ "under the veil, the slow parts run side by side: the switch takes the slowest, not their sum"
+setup; veil; export WAYLAND_DISPLAY=wayland-1
+stubf kawa-wallpaper <<'EOF'
+/bin/sleep 0.8
+EOF
+stub makoctl '/bin/sleep 0.8'
+daemon mako >/dev/null
+stubf gsettings <<'EOF'
+case $1 in
+  get) /bin/sleep 0.4; printf "'%s'\n" "$(sed -n "s/^$3=//p" "$GS")" ;;
+  set) /bin/sleep 0.4; exec 5>"$GS.lock"; flock 5
+       grep -v "^$3=" "$GS" >"$GS.n"; echo "$3=$4" >>"$GS.n"; mv "$GS.n" "$GS" ;;
+esac
+EOF
+t0=$EPOCHREALTIME; kawa-theme light; ms=$(( (${EPOCHREALTIME/./} - ${t0/./}) / 1000 ))
+((ms < 1700)) && _ok || _no "the switch took $ms ms (wallpaper 800, GTK 800, mako 800: one after the other ≥ 2400)"
+theme_is light
+eq "$(grep -E '^(kawa-wallpaper|veil over)' "$CALLS" | tail -n 2 | tr '\n' '|')" "kawa-wallpaper --restore|veil over|" "the wallpaper still up before the reveal"
 
 case_ "outside a session (theme.sh, SSH): no veil and no wallpaper (there is no screen)"
 setup; veil

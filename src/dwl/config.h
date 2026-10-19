@@ -1,7 +1,7 @@
 /* ═══════════════════════════════════════════════════════════════════════════
  *  dwl config.h — for dwl v0.9 (wlroots 0.20) with src/dwl/dwl.patch applied (gappx,
  *  full window borders, the spiral and columns layouts, centred floating windows, popups
- *  that close when they lose the focus, windows shown once drawn and faded in, games that
+ *  that close when they lose the focus, windows shown once drawn, games that
  *  take the keyboard, FreeSync, keybindings that ignore the Arabic layout, the keyboard
  *  layout for the bar, menus that close on a click outside, the pointers loaded again
  *  when the theme switches, the borders in the theme's colours, a drawing tablet's pen as a pen).

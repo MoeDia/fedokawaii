@@ -80,7 +80,7 @@ case_ "…a start that fails: said (a notice too), stopped again (never left ret
 sh_world; : >"$TMP/start-fails"; pw; eq "$RC" 1
 has "$OUT" "Prowlarr did not start"; has "$OUT" "journalctl --user -u prowlarr"
 called '^systemctl --user stop --no-block prowlarr.service'; not_called xdg-open; not_called systemd-run
-called '^notify-send -u critical -a torrra Prowlarr did not start'
+called '^notify-send -a torrra -u critical -- .*  Prowlarr did not start'
 case_ "prowlarr stop: asleep now, its planned sleep called off"
 sh_world; : >"$TMP/active"; pw stop; eq "$RC" 0; called '^systemctl --user stop prowlarr.service'; [[ ! -e $TMP/active ]] && _ok || _no "still running"
 called '^systemctl --user stop prowlarr-idle.timer'

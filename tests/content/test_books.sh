@@ -317,7 +317,7 @@ reset_calls; rc 0 kawa-books --remove "$B/it's \"quoted\" \$(id) \`id\`.pdf"
 called "^gio trash -- $B/it's \"quoted\" \\\$\\(id\\) \`id\`\\.pdf\$" "the name reached gio as it is"
 stub gio 'exit 1'
 rc 0 kawa-books --remove "$B/Done Book.pdf"
-called 'notify-send -a desktop books could not move Done Book.pdf to the trash'
+called 'notify-send -a desktop -- .*  books could not move Done Book.pdf to the trash'
 
 case_ "ctrl+a: books in Downloads, Documents, Desktop listed; the marked ones moved in; a taken name gets (2)"
 setup; mk pdf "$B/Taken.pdf" 1

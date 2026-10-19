@@ -43,11 +43,10 @@ P = {
         text_on_accent="0f0e0c",   # anything drawn on vermilion — words, seals, icons, the meters' lit squares: ink (4.7 : 1)
         lit="cfc3a6", lit_text="0f0e0c", lit_hi="ece3cc", lit_lo="8a8170", urgent_text="0f0e0c",
         asagi="7fb8b0",                 # the meters, urgency and checking: the bright teal on ink
-        hairline="53452a",              # the bar's lower edge: gold ink, faded into the paper
         red="d64b4b", green="8e9a5b", yellow="d29f45", blue="5f7fa0", purple="9079a9", teal="5e9c95",
         bred="e66a5f", bgreen="a8b46f", byellow="e3b866", bblue="7f9dbd", bpurple="ab96c2", bteal="7fb8b0",
         ansi0="2b2721", ansi7="cfc3a6", ansi8="7a7262", ansi15="ece3cc",
-        icons="Papirus-Dark", gtk="Fedokawaii-dark", base="adw-gtk3-dark", scheme="prefer-dark",
+        gtk="Fedokawaii-dark", base="adw-gtk3-dark", scheme="prefer-dark",
     ),
     "light": dict(
         ground="e9e1cb", surface="dcd2b8", key="efe8d5", edge="c2b79b", edge2="b1a688",
@@ -57,12 +56,11 @@ P = {
         text_on_accent="fbf7ec",   # anything drawn on vermilion — words, seals, icons, the meters' lit squares: paper (4.7 : 1)
         lit="2b2721", lit_text="ece3cc", lit_hi="5f584c", lit_lo="0f0e0c", urgent_text="fbf7ec",
         asagi="2f6e67",                 # the deep teal on paper
-        hairline="b49c6c",              # the bar's lower edge: brown-gold ink on paper
         red="a8342a", green="5c682d", yellow="845b0f", blue="3f6185", purple="6f5a8a", teal="2f6e67",
         # on paper the "bright" colours are the deeper ones, so they read at least as well
         bred="942e25", bgreen="4d5625", byellow="6d4b0d", bblue="355270", bpurple="5c4a72", bteal="275a55",
         ansi0="d6cdb3", ansi7="4a443a", ansi8="696255", ansi15="1f1c18",
-        icons="Papirus", gtk="Fedokawaii", base="adw-gtk3", scheme="prefer-light",
+        gtk="Fedokawaii", base="adw-gtk3", scheme="prefer-light",
     ),
 }
 NAMES = {"dark": "sumi (ink)", "light": "washi (paper)"}
@@ -95,7 +93,7 @@ def waybar_css(m, p):
             ("accent", p["accent"]), ("accent-hi", p["accent_hi"]), ("accent-lo", p["accent_lo"]),
             ("strong-on-accent", p["text_on_accent"]), ("accent-text", p["accent_text"]),
             ("lit", p["lit"]), ("lit-text", p["lit_text"]), ("lit-hi", p["lit_hi"]), ("lit-lo", p["lit_lo"]),
-            ("urgent", p["asagi"]), ("urgent-text", p["urgent_text"]), ("hairline", p["hairline"])]
+            ("urgent", p["asagi"]), ("urgent-text", p["urgent_text"])]
     out = [f"/* {header('~/.config/fedokawaii/current/waybar.css', NAMES[m] + ' colours for the bar')} */"]
     out += [f"@define-color {k:<17}#{v};" for k, v in rows]
     return "\n".join(out) + "\n"
@@ -185,8 +183,6 @@ def fuzzel_ini(m, p):
     # colours 16/17) and every other "active" thing; on the fill a match keeps the same colour
     # (fuzzel cannot underline it), the letters you typed are still in the prompt
     return f"""# {header('~/.config/fedokawaii/current/fuzzel.ini', NAMES[m] + ' colours for every menu')}
-icon-theme={p['icons']}
-
 [colors]
 background={p['surface']}ff
 text={p['text']}ff
@@ -210,7 +206,6 @@ background-color=#{p['surface']}ff
 text-color=#{p['text']}
 border-color=#{p['muted']}
 progress-color=over #{p['edge']}
-icon-path=/usr/share/icons/{p['icons']}
 # the title in the strongest ink instead of bold: the pixel fonts have no bold face, and
 # a synthesised one smears their pixels
 format=<span foreground="#{p['strong']}">%s</span>\\n%b
@@ -260,6 +255,37 @@ def gtk_vars(m, p):
             ("error_bg_color", p["red"]), ("error_color", p["bred"])]
 
 
+# Square, as every other thing the desktop draws: dwl puts its own 2 px border around each
+# window, square, so a window's own rounded corners and the shadow GTK draws around it (client-
+# side decorations: a margin outside the window) would show as a gap and a rounding inside
+# that border. Every window, dialog, decoration and popover fills its border exactly; buttons,
+# entries and the rest are square too (a radio button stays a circle: that is how it differs
+# from a check box), and a dialog's default button is the accent, as in the menus.
+SQUARE_NOTE = ["/* Square, as the rest of the desktop: dwl draws each window's border, so a window's",
+               "   rounded corners and the shadow around it (client-side decorations: a margin",
+               "   outside the window) would leave a gap inside that border. Every window, dialog,",
+               "   decoration and popover fills its border exactly; buttons and entries are square",
+               "   too (a radio button stays round), and a dialog's default button is the accent.",
+               "   GTK's CSS has no !important: each rule carries :not(#kawa-…) twice, which counts",
+               "   as two ids and so outweighs the base theme's own rules, whatever their classes. */"]
+WIN = ["window", "window.csd", "window.solid-csd", "window.dialog", "window.popup", "decoration",
+       ".csd decoration", ".titlebar", "headerbar", "messagedialog", "dialog", "popover", "menu", ".menu",
+       ".context-menu", ".background.csd"]
+
+
+def square_rules(gtk):
+    w = ":not(#kawa-square):not(#kawa-sq)"                       # two ids' weight
+    accent = ("@accent_bg_color", "@accent_fg_color") if gtk == 3 else ("var(--accent-bg-color)", "var(--accent-fg-color)")
+    wins = WIN + (["window.message"] if gtk == 3 else ["window.messagedialog", "popover > contents", "popover > arrow"])
+    sel = lambda xs: ", ".join(x + w for x in xs)
+    return [f"*{w} {{ border-radius: 0; }}",
+            f"{sel(['radio'] if gtk == 3 else ['radio', 'radio check'])}:not(#kawa-round) {{ border-radius: 9999px; }}",
+            f"{sel(wins)} {{ border-radius: 0; box-shadow: none; }}",
+            f"{sel(['decoration', '.csd decoration', 'window.csd', 'window.solid-csd'])} {{ margin: 0; }}",
+            f"{sel(['button.default:not(:disabled)', 'button.suggested-action:not(:disabled)'])} "
+            f"{{ background-image: none; background-color: {accent[0]}; color: {accent[1]}; }}"]
+
+
 def gtk3_theme(m, p):
     # A GTK 3 theme of its own per mode — adw-gtk3 with the palette — rather than colours
     # in ~/.config/gtk-3.0/gtk.css: GTK 3 reads that file once per process, but reloads a
@@ -282,6 +308,7 @@ def gtk3_theme(m, p):
             "tooltip.background.chromium { background-color: @popover_bg_color; border-color: @headerbar_border_color; }",
             "tooltip.chromium * { color: @popover_fg_color; text-shadow: none; }",
             "headerbar.chromium:backdrop { background-color: @headerbar_bg_color; }"]
+    out += ["", *SQUARE_NOTE, *square_rules(3)]
     return "\n".join(out) + "\n"
 
 
@@ -307,6 +334,8 @@ def gtk4_css():
 {block("dark", "    ")}
   }}
 }}
+
+{chr(10).join(SQUARE_NOTE + square_rules(4))}
 """
 
 
@@ -488,11 +517,16 @@ def mpv_conf(m, p):
 def qt6ct_conf(m, p):
     # QSettings ini: no comments. ~/.config/qt6ct/qt6ct.conf is a link to this file;
     # kawa-theme re-points the link, which qt6ct notices (it watches that folder).
+    # The fonts are GTK's (the dconf defaults: Noto Sans 10.5, JetBrainsMono Nerd 11), as
+    # QFont writes them, so a Qt window's words match a GTK one's beside it.
     return ("[Appearance]\n"
             "color_scheme_path=@HOME@/.config/fedokawaii/current/qt6ct-colors.conf\n"
             "custom_palette=true\n"
-            f"icon_theme={p['icons']}\n"
-            "standard_dialogs=default\nstyle=Fusion\n")
+            "icon_theme=Adwaita\n"
+            "standard_dialogs=default\nstyle=Fusion\n\n"
+            "[Fonts]\n"
+            'fixed="JetBrainsMono Nerd Font,11,-1,5,400,0,0,0,0,0,0,0,0,0,0,1"\n'
+            'general="Noto Sans,10.5,-1,5,400,0,0,0,0,0,0,0,0,0,0,1"\n')
 
 
 def wiremix(m, p):

@@ -18,8 +18,10 @@ case ${1:-} in
 esac
 # shellcheck source=/dev/null
 . "$HOME/.config/fedokawaii/files.sh"            # free_name
+# shellcheck source=/dev/null
+. "$HOME/.config/fedokawaii/icons.sh"
 dir=$HOME/Pictures/Sketches
-mkdir -p "$dir" || { notify-send -a desktop "sketch" "cannot make $dir"; exit 1; }
+mkdir -p "$dir" || { notify-send -a desktop -- "$ICON_NOTE  sketch" "cannot make $dir"; exit 1; }
 printf -v name 'sketch %(%Y-%m-%d %H.%M)T' -1
 f=$(free_name "$dir/$name.xopp")                # (a second in the same minute: "… (1).xopp")
 # a page of 1280 × 720 points (16:9, as the screen), white, no lines: Xournal++'s own file
@@ -29,6 +31,6 @@ printf '%s\n' '<?xml version="1.0" standalone="no"?>' \
   '<title>Xournal++ document - see https://xournalpp.github.io/</title>' \
   '<page width="1280.00" height="720.00"><background type="solid" color="#ffffffff" style="plain"/><layer/></page>' \
   '</xournal>' | python3 -I -c 'import gzip, sys; gzip.GzipFile(sys.argv[1], "wb", mtime=0).write(sys.stdin.buffer.read())' "$f" \
-  || { rm -f "$f"; notify-send -a desktop "sketch" "could not write $f (is the disk full?)"; exit 1; }
-command -v xournalpp >/dev/null || { notify-send -a desktop -u critical "sketch" "Xournal++ is missing — fedokawaii repair puts it back"; exit 1; }
+  || { rm -f "$f"; notify-send -a desktop -- "$ICON_NOTE  sketch" "could not write $f (is the disk full?)"; exit 1; }
+command -v xournalpp >/dev/null || { notify-send -a desktop -u critical -- "$ICON_NOTE  sketch" "Xournal++ is missing — fedokawaii repair puts it back"; exit 1; }
 setsid -f xournalpp -- "$f" >/dev/null 2>&1 </dev/null

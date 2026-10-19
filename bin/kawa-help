@@ -1,13 +1,14 @@
 #!/usr/bin/env bash
 # kawa-help — Super+/ : every keybinding, type to filter (Esc closes); the first
-# binding is selected, not the heading above it. 73 columns: the longest line is 67, set in
-# by the 4 an icon takes in the other menus, and fuzzel keeps the rest for its "…" (kawa-menu
-# --help). Each part is headed as Super+U heads its own — its kanji where the other menus have
-# their icons, the part's name over the keys, a rule to the edge (width.sh: heading) — with
-# an empty line above it. keybinds.txt counts one column a character, as a terminal
-# does; the menu's pixel font draws ─ … → ← and the like two columns wide (width.sh), so the
-# key column is set for it here: one space fewer for each wide letter there. No arguments
-# (--help: this text).
+# binding is selected, not the heading above it. Each part is headed as Super+U heads its own —
+# its kanji where the other menus have their icons, the part's name over the keys, a rule to the
+# edge (width.sh: heading) — with an empty line above it. A row of keybinds.txt is a key, then
+# its description from column 24 on (a key that runs past it: after its gap of two spaces).
+# The key column is as wide as the longest key in the menu's pixel font (width.sh: ─ … → and
+# the like are two columns there, one in a terminal) and a gutter of 2 after it; the menu is
+# as wide as its longest row, set in by the 4 an icon takes in the other menus, with the 2
+# columns fuzzel keeps for its "…" (kawa-menu --help) — so no key ever runs into its
+# description, however long the rows get. No arguments (--help: this text).
 set -u
 case ${1:-} in
   "") ;;
@@ -15,7 +16,7 @@ case ${1:-} in
   *) echo "usage: kawa-help   (no arguments: the keybinding sheet)" >&2; exit 2 ;;
 esac
 f="$HOME/.config/fedokawaii/keybinds.txt"
-[[ -r $f ]] || { notify-send -a desktop "help" "keybinds.txt is missing — fedokawaii repair puts it back"; exit 1; }
+[[ -r $f ]] || { . "$HOME/.config/fedokawaii/icons.sh"; notify-send -a desktop -u critical -- "$ICON_KEYBOARD  keybindings" "keybinds.txt is missing — fedokawaii repair puts it back"; exit 1; }
 export LC_ALL=C.UTF-8                            # (a column a character)
 # shellcheck source=/dev/null
 . "$HOME/.config/fedokawaii/icons.sh"
@@ -30,20 +31,54 @@ kanji() {
     *) echo 節 ;;
   esac
 }
-sheet() {
-  local l k n t first=1
+GUTTER=2                                         # columns between the longest key and its description
+# split LINE — the key and its description, each without the spaces around it (KEY, DESC).
+# The description starts after the first gap of two spaces or more that ends at column 24 or
+# later (the sheet's column, or past it for a longer key); with none, at the first word that
+# starts there (a key of 23 that leaves a single space)
+split() {
+  local l=$1 i=0 rest=$1 e=0 gap='^([^ ]| [^ ])* {2,}'
+  while [[ $rest =~ $gap ]]; do
+    e=$((e + ${#BASH_REMATCH[0]})); rest=${rest:${#BASH_REMATCH[0]}}
+    ((e >= 24)) && { i=$e; break; }
+  done
+  if ((i == 0)); then
+    i=24; while ((i < ${#l})) && ! [[ ${l:i:1} != " " && ${l:i-1:1} == " " ]]; do i=$((i + 1)); done
+  fi
+  KEY=${l:0:i} DESC=${l:i}
+  KEY=${KEY%"${KEY##*[! ]}"} DESC=${DESC#"${DESC%%[! ]*}"}
+}
+# measure — the sheet's rows (KEYS, DESCS; a heading: its name, and -1 in KC), each key's
+# columns (KC), the key column with its gutter (KW) and the menu's width (W)
+KEYS=() DESCS=() KC=() KW=0 W=0
+measure() {
+  local l t c dw=0 hw=0
   while IFS= read -r l; do
     [[ -n ${l//[[:space:]]/} ]] || continue
-    if [[ $l == ─* ]]; then                         # "── name ────": the part's heading
+    if [[ $l == ─* ]]; then                         # (a heading: its name, and a rule of 1 at least)
       t=${l#"${l%%[!─ ]*}"}; t=${t%"${t##*[!─ ]}"}
-      ((first)) || printf '\n'; first=0
-      l=$(heading "$(kanji "$t")" "$t" 73)
-    else
-      k=${l:0:24}; n=$(($(cols "$k") - ${#k}))       # the key column, and how many of its letters are wide
-      if ((n > 0)); then t=${k: -n}; [[ -z ${t// /} ]] && k=${k:0:24-n}; fi
-      l="    $ICON_GAP$k${l:24}"                   # (in by an icon and its two spaces: the text column of every menu)
+      KEYS+=("$t"); DESCS+=(""); KC+=(-1)
+      c=$(cols "$t"); ((c > hw)) && hw=$c; continue
     fi
-    printf '%s\n' "$l"
+    split "$l"; KEYS+=("$KEY"); DESCS+=("$DESC")
+    c=$(cols "$KEY"); KC+=("$c"); ((c > KW)) && KW=$c
+    c=$(cols "$DESC"); ((c > dw)) && dw=$c
   done <"$f"
+  KW=$((KW + GUTTER)) W=$((4 + KW + dw + 2))
+  ((hw + 8 > W)) && W=$((hw + 8))
+  return 0
 }
-sheet | kawa-menu --prompt "> " --width 73 --lines 24 --select 1 >/dev/null || true
+sheet() {
+  local l first=1 i
+  for i in "${!KEYS[@]}"; do
+    l=${KEYS[i]}
+    if ((KC[i] < 0)); then                          # "── name ────": the part's heading
+      ((first)) || printf '\n'; first=0
+      printf '%s\n' "$(heading "$(kanji "$l")" "$l" "$W")"
+    else                                            # (in by an icon and its two spaces: the text column of every menu)
+      printf '    %s%s%*s%s\n' "$ICON_GAP" "$l" $((KW - KC[i])) "" "${DESCS[i]}"
+    fi
+  done
+}
+measure
+sheet | kawa-menu --prompt "> " --width "$W" --lines 24 --select 1 >/dev/null || true

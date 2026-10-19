@@ -96,7 +96,7 @@ PKG_DESKTOP=(
   gtk4 libadwaita                                         # runtime for satty (upstream binary)
 )
 PKG_LOOK=(
-  adw-gtk3-theme qt6ct papirus-icon-theme
+  adw-gtk3-theme qt6ct            # (icons: each app's own, under GTK's Adwaita — no icon pack)
   liberation-fonts-all            # metric-compatible Arial/Times/Courier for office documents
   google-noto-sans-fonts          # UI sans
   google-noto-naskh-arabic-fonts amiri-fonts   # Arabic sans / serif
@@ -159,7 +159,8 @@ RETIRED_PKGS=(unzip mediainfo    # unzip: 7zip opens zips too · mediainfo: ffpr
               pavucontrol blueman   # the mixer and the pairing window are terminal programs now: wiremix, bluetui
               lazygit               # its COPR is no longer kept: lazygit comes from its release (lib/upstream.sh)
               solaar liquidctl      # nothing here to drive: a mouse on a receiver needs no app; no liquid cooler
-              abiword gnumeric sc-im)   # office is LibreOffice now: Writer, Calc (and VisiData for CSV)
+              abiword gnumeric sc-im   # office is LibreOffice now: Writer, Calc (and VisiData for CSV)
+              papirus-icon-theme)      # every app shows its own icon now (hicolor), not an icon pack's
 
 # ── never present after setup (removed, replaced, or out of scope) ─────────
 FORBIDDEN_PKGS=(

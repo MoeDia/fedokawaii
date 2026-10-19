@@ -43,7 +43,7 @@ eq "$(fk stat -c %U:%G "$H/.config/fedokawaii/env")" fkuser:fkuser "the home's f
 called 'dconf\] update'
 
 case_ "render: no @TOKEN@ left anywhere in the home; each filled from fedokawaii.conf"
-left=$(grep -rlE '@(HOME|UID|MONITOR_HZ|WEATHER_CITY|NIGHT_LIGHT|ICON_CHEVRON_RIGHT|MPV_SCALING)@' "$W$H" 2>/dev/null | grep -v "^$W$H/fedokawaii/" || true)
+left=$(grep -rlE '@(HOME|UID|MONITOR_HZ|WEATHER_CITY|NIGHT_LIGHT|ICON_CHEVRON_RIGHT|MPV_SCALING|BRAVE_ICON)@' "$W$H" 2>/dev/null | grep -v "^$W$H/fedokawaii/" || true)
 eq "$left" "" "tokens left in: $left"
 env=$(cat "$W$H/.config/fedokawaii/env")
 has "$env" 'MONITOR_HZ=144'; has "$env" 'WEATHER_CITY="Sharjah"'; has "$env" 'NIGHT_LIGHT="25.35:55.40"'
@@ -103,6 +103,10 @@ has "$s" "host = syncplay.pl"; has "$s" "port = 8999"; has "$s" "name = fkuser"
 grep -qE '^room = fkuser-[0-9a-f]{4}$' "$ini" && _ok || _no "no room of your own: $(grep '^room' "$ini")"
 has "$s" "playerpath = /usr/bin/mpv"; has "$s" "mediasearchdirectories = ['$H/Videos', '$H/Downloads']"
 has "$s" "checkforupdatesautomatically = False"
+has "$s" "chatinputfontfamily = JetBrainsMono Nerd Font"; has "$s" "chatoutputfontfamily = JetBrainsMono Nerd Font"
+eq "$(sed -n 's/^chat\(In\|Out\)\(put\)FontFamily=//p' "$W$H/.config/mpv/script-opts/syncplayintf.conf" | sort -u)" "JetBrainsMono Nerd Font" \
+  "its words on the film in that font from mpv's first frame (Syncplay's script in mpv)"
+has "$(grep '^osd-font=' "$W$H/.config/mpv/mpv.conf")" '"JetBrainsMono Nerd Font"' "the same as mpv's own"
 eq "$(fk stat -c '%U %a' "$H/.config/syncplay.ini")" "fkuser 600"
 
 case_ "Xournal++ (Sketch): the pen's lower button the eraser, its upper one the hand"
@@ -151,9 +155,11 @@ theme --check; eq "$RC" 0 "in sync after the run"
 
 case_ "Syncplay's settings stay yours (it rewrites them itself): only what is empty is filled again"
 sed -i -e 's/^host = .*/host = films.example.org/' -e 's/^name = .*/name = Mo/' \
-  -e 's/^room = .*/room = Friday%%night/' -e 's/^playerpath = .*/playerpath = None/' "$ini"
-theme --check; eq "$RC" 3; has "$OUT" "syncplay.ini (Syncplay: playerpath not set)"
-theme; eq "$RC" 0; has "$OUT" "syncplay.ini (Syncplay: playerpath)"
+  -e 's/^room = .*/room = Friday%%night/' -e 's/^playerpath = .*/playerpath = None/' \
+  -e 's/^chatoutputfontfamily = .*/chatoutputfontfamily = sans-serif/' "$ini"
+theme --check; eq "$RC" 3; has "$OUT" "syncplay.ini (Syncplay: playerpath, chatoutputfontfamily not set)"
+theme; eq "$RC" 0; has "$OUT" "syncplay.ini (Syncplay: playerpath, chatoutputfontfamily)"
+has "$(cat "$ini")" "chatoutputfontfamily = JetBrainsMono Nerd Font" "Syncplay's own default (sans-serif) is not a choice of yours: mpv's font again"
 s=$(cat "$ini")
 has "$s" "host = films.example.org"; has "$s" "name = Mo"; has "$s" "room = Friday%%night"
 has "$s" "playerpath = /usr/bin/mpv"

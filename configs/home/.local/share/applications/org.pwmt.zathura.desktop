@@ -1,0 +1,8 @@
+[Desktop Entry]
+# zathura with no document: PDFs and comics open from Files (yazi), Books or Brave, in zathura.
+# Hidden from the launcher: this entry, by the same name as the package's, stands in for it
+# (NoDisplay); the program itself stays installed and works as before.
+Type=Application
+Name=Zathura
+Exec=zathura %U
+NoDisplay=true

@@ -93,7 +93,7 @@ case ${1:-} in
   --copy)       # back on the clipboard; wl-copy keeps serving it after this window closes
     [[ ${2:-} =~ ^[0-9]+$ ]] || exit 1
     # (the window closes as this runs: a notice is the only way to say so)
-    command -v wl-copy >/dev/null || { notify-send -a desktop "clipboard" "wl-copy is missing — fedokawaii repair puts it back" 2>/dev/null; exit 1; }
+    command -v wl-copy >/dev/null || { notify-send -a desktop -u critical -- "$ICON_CLIPBOARD  clipboard" "wl-copy is missing — fedokawaii repair puts it back" 2>/dev/null; exit 1; }
     tmp=$(mktemp "$RUN/kawa-clip.XXXXXX") || exit 1
     trap 'rm -f "$tmp"' EXIT
     entry "$2" | cliphist decode >"$tmp" 2>/dev/null && [[ -s $tmp ]] || exit 1

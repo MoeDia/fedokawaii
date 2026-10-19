@@ -63,3 +63,16 @@
     --error-color: #e66a5f;
   }
 }
+
+/* Square, as the rest of the desktop: dwl draws each window's border, so a window's
+   rounded corners and the shadow around it (client-side decorations: a margin
+   outside the window) would leave a gap inside that border. Every window, dialog,
+   decoration and popover fills its border exactly; buttons and entries are square
+   too (a radio button stays round), and a dialog's default button is the accent.
+   GTK's CSS has no !important: each rule carries :not(#kawa-…) twice, which counts
+   as two ids and so outweighs the base theme's own rules, whatever their classes. */
+*:not(#kawa-square):not(#kawa-sq) { border-radius: 0; }
+radio:not(#kawa-square):not(#kawa-sq), radio check:not(#kawa-square):not(#kawa-sq):not(#kawa-round) { border-radius: 9999px; }
+window:not(#kawa-square):not(#kawa-sq), window.csd:not(#kawa-square):not(#kawa-sq), window.solid-csd:not(#kawa-square):not(#kawa-sq), window.dialog:not(#kawa-square):not(#kawa-sq), window.popup:not(#kawa-square):not(#kawa-sq), decoration:not(#kawa-square):not(#kawa-sq), .csd decoration:not(#kawa-square):not(#kawa-sq), .titlebar:not(#kawa-square):not(#kawa-sq), headerbar:not(#kawa-square):not(#kawa-sq), messagedialog:not(#kawa-square):not(#kawa-sq), dialog:not(#kawa-square):not(#kawa-sq), popover:not(#kawa-square):not(#kawa-sq), menu:not(#kawa-square):not(#kawa-sq), .menu:not(#kawa-square):not(#kawa-sq), .context-menu:not(#kawa-square):not(#kawa-sq), .background.csd:not(#kawa-square):not(#kawa-sq), window.messagedialog:not(#kawa-square):not(#kawa-sq), popover > contents:not(#kawa-square):not(#kawa-sq), popover > arrow:not(#kawa-square):not(#kawa-sq) { border-radius: 0; box-shadow: none; }
+decoration:not(#kawa-square):not(#kawa-sq), .csd decoration:not(#kawa-square):not(#kawa-sq), window.csd:not(#kawa-square):not(#kawa-sq), window.solid-csd:not(#kawa-square):not(#kawa-sq) { margin: 0; }
+button.default:not(:disabled):not(#kawa-square):not(#kawa-sq), button.suggested-action:not(:disabled):not(#kawa-square):not(#kawa-sq) { background-image: none; background-color: var(--accent-bg-color); color: var(--accent-fg-color); }

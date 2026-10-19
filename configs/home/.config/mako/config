@@ -18,8 +18,14 @@ height=140
 default-timeout=5000
 layer=overlay
 max-icon-size=32
-group-by=app-name
-on-button-left=dismiss
+# the same notice again (a job started twice, a drive plugged in again) folds into its card,
+# ×N beside the title; different notices from one app each keep a card of their own (mako
+# shows only a group's first member: folding them all would hide what the others say)
+group-by=app-name,summary,body
+# a click takes the card away at once — the whole card, ×N and all (a plain dismiss closes
+# only its first member, and the card stays for the next): a notice with a default action
+# (the drives') runs it instead, below
+on-button-left=dismiss-group
 on-button-right=dismiss-all
 
 [urgency=low]
@@ -29,7 +35,8 @@ default-timeout=3000
 default-timeout=2500
 
 # the drives (kawa-drives): a drive that opened says so for 8 s, and a click opens its
-# files (the notice's default action); "safe to unplug" and the rest close on a click.
+# files (the notice's default action, run and the card closed in the same moment); "safe to
+# unplug" and the rest close on a click.
 # A drive pulled out while open is critical: it stays until you have read it.
 [app-name=drives]
 default-timeout=8000

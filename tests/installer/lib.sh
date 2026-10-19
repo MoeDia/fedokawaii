@@ -285,6 +285,7 @@ releases() {
   mkdir -p "$r/satty" "$r/yazi/yazi-x86_64-unknown-linux-musl" "$r/lg" "$r/jb" "$r/fp" "$r/ge/GE-Proton10-25"
   tool satty 0.22.0 "$r/satty/satty"; tool yazi 26.9.1 "$r/yazi/yazi-x86_64-unknown-linux-musl/yazi"; tool ya 26.9.1 "$r/yazi/yazi-x86_64-unknown-linux-musl/ya"
   tool bluetui 0.8.2 "$FKH/dl/bluetui-x86_64-linux-musl"     # (no archive: the release file is the binary)
+  tool herdr 0.9.5 "$FKH/dl/herdr-linux-x86_64"              # (no archive either)
   tool lazygit 0.66.1 "$r/lg/lazygit"; echo licence >"$r/lg/LICENSE"; echo readme >"$r/lg/README.md"   # (as its release: beside them)
   echo font >"$r/jb/JetBrainsMonoNerdFont-Regular.ttf"
   echo font >"$r/fp/fusion-pixel-12px-monospaced-ja.ttf"; echo font >"$r/fp/fusion-pixel-12px-monospaced-latin.ttf"; echo licence >"$r/fp/OFL.txt"
@@ -337,6 +338,7 @@ built() {
   # the toolkit: this repository, installed for good
   mkdir -p "$W/usr/local/lib/fedokawaii"; cp -a "$U/fedokawaii/." "$W/usr/local/lib/fedokawaii/"
   cp "$W/usr/local/lib/fedokawaii/system/fedokawaii" "$W/usr/local/bin/fedokawaii"
+  cp "$W/usr/local/lib/fedokawaii/system/fedokawaii-report" "$W/usr/local/bin/fedokawaii-report"
   # dwl, its own wlroots, the session's system pieces
   printf '#!/bin/sh\n# ldd: libxcb.so.1 => /usr/lib64/libxcb.so.1 (0x1)\n# ldd: libwlroots-0.20.so => /usr/local/lib/fedokawaii-wlroots-0.20/lib/libwlroots-0.20.so (0x2)\necho "dwl 0.9"\n' >"$W/usr/local/bin/dwl"
   chmod 755 "$W/usr/local/bin/dwl"
@@ -354,11 +356,13 @@ built() {
   fake_cmd "$W/usrbin/agreety"; fake_cmd "$W/usr/local/bin/kawa-torrra"
   mkdir -p "$W/etc/greetd" "$W/etc/systemd/system/greetd.service.d" "$W/etc/profile.d" "$W/etc/NetworkManager/conf.d" "$W/etc/dnf/libdnf5.conf.d" \
     "$W/etc/yum.repos.d" "$W/usr/local/sbin" "$W/etc/dnf/libdnf5-plugins/actions.d" "$W/etc/mpv/scripts"
-  printf '[default_session]\ncommand = "env $(/usr/local/bin/start-dwl --gpu) \\"XCURSOR_THEME=Sumi-$(cat /var/lib/fedokawaii-greeter/theme)\\" cage -d -s -- /usr/local/bin/kawa-greet fkuser"\n' >"$W/etc/greetd/fedokawaii.toml"
+  printf '[default_session]\ncommand = "env $(/usr/local/bin/start-dwl --gpu) \\"XCURSOR_THEME=Sumi-$(cat /var/lib/fedokawaii-greeter/theme)\\" systemd-cat -t kawa-greet cage -d -s -- /usr/local/bin/kawa-greet fkuser"\n' >"$W/etc/greetd/fedokawaii.toml"
   echo dark >"$W/var/lib/fedokawaii-greeter/theme"
-  printf '[Service]\nExecStart=\nExecStart=/usr/bin/greetd --config /etc/greetd/fedokawaii.toml\n' >"$W/etc/systemd/system/greetd.service.d/fedokawaii.conf"
+  printf '[Unit]\nConflicts=getty@tty1.service kmsconvt@tty1.service\nAfter=getty@tty1.service kmsconvt@tty1.service plymouth-quit-wait.service\nStartLimitIntervalSec=60\nStartLimitBurst=5\nOnFailure=fedokawaii-login-failed.service\n\n[Service]\nExecStart=\nExecStart=/usr/bin/greetd --config /etc/greetd/fedokawaii.toml\nRestart=always\nRestartSec=2\n' >"$W/etc/systemd/system/greetd.service.d/fedokawaii.conf"
+  printf '[Service]\nType=oneshot\nTTYPath=/dev/tty1\nExecStart=/usr/bin/printf %s\n' "'The login screen could not start'" >"$W/etc/systemd/system/fedokawaii-login-failed.service"
   printf 'export EDITOR=nvim\nexport VISUAL=nvim\n' >"$W/etc/profile.d/editor.sh"; : >"$W/etc/profile.d/kawa-torrra.sh"
-  ln -sfn ../../bin/nvim "$W/usr/local/bin/vi"; : >"$W/etc/NetworkManager/conf.d/90-fedokawaii.conf"; : >"$W/etc/mpv/scripts/mpris.so"
+  printf '%s\n' "[ \"\$TERM\" = linux ] && [ -t 1 ] && printf '\\033[?25h'" >"$W/etc/profile.d/fedokawaii-console.sh"
+  printf '#!/bin/sh\nexec nvim "$@"\n' >"$W/usr/local/bin/vi"; chmod 755 "$W/usr/local/bin/vi"; : >"$W/etc/NetworkManager/conf.d/90-fedokawaii.conf"; : >"$W/etc/mpv/scripts/mpris.so"
   mkdir -p "$W/etc/modprobe.d" "$W/etc/systemd/system/user@.service.d"
   echo 'options btusb enable_autosuspend=0' >"$W/etc/modprobe.d/fedokawaii-btusb.conf"
   printf '[Service]\nTimeoutStopSec=30s\n' >"$W/etc/systemd/system/user@.service.d/fedokawaii.conf"
@@ -385,7 +389,7 @@ built() {
   fk bash -c '. /usr/local/bin/_lib.sh; fake_lpf; echo OK >/var/lib/lpf/packages/spotify-client/state; chown -R 975:975 /var/lib/lpf'
   echo amd-ucode-firmware >"$S/hardware-pkgs"
   printf 'enabled %s\n' greetd.service bluetooth.service snapper-timeline.timer snapper-cleanup.timer fstrim.timer lactd.service \
-    fedokawaii-scrub.timer fedokawaii-kernels.timer tuned.service firewalld.service >>"$FKH/units"
+    fedokawaii-scrub.timer fedokawaii-kernels.timer fedokawaii-report.service tuned.service firewalld.service >>"$FKH/units"
   sed -i '/ sshd.service$/d; /^global-enabled grub-boot-success\.timer$/d' "$FKH/units"   # (that timer: the desktop starts it)
   rm -f "$W/usrbin/nano" "$W/usrbin/vi"                     # (setup took them out)
   printf '%s\n' copr:copr.fedorainfracloud.org:ilyaz:LACT >"$FKH/coprs"
@@ -396,9 +400,10 @@ built() {
   sed -i 's/^static dnf5-makecache.timer$/masked dnf5-makecache.timer/' "$FKH/units"
   echo fedokawaii >"$FKH/tuned-profile"; printf '%s\n' dhcpv6-client >"$FKH/fw-services"; printf '%s\n' 6881/tcp 6881/udp 53317/tcp 53317/udp >"$FKH/fw-ports"
   echo menu_auto_hide=1 >"$FKH/grubenv"
-  printf '%s\n' "ro rootflags=subvol=root rhgb quiet systemd.tty.term.console=dumb amdgpu.ppfeaturemask=0xfff7ffff" \
-    "ro rootflags=subvol=root rhgb quiet systemd.tty.term.console=dumb amdgpu.ppfeaturemask=0xfff7ffff" >"$FKH/grub-args"
-  sed -i 's/quiet$/quiet amdgpu.ppfeaturemask=0xfff7ffff/' "$W/proc/cmdline"
+  local q="rhgb quiet loglevel=3 rd.udev.log_level=3 systemd.show_status=false vt.global_cursor_default=0 systemd.tty.term.console=dumb"
+  printf '%s\n' "ro rootflags=subvol=root $q amdgpu.ppfeaturemask=0xfff7ffff" \
+    "ro rootflags=subvol=root $q amdgpu.ppfeaturemask=0xfff7ffff" >"$FKH/grub-args"
+  sed -i "s/rhgb quiet\$/$q amdgpu.ppfeaturemask=0xfff7ffff/" "$W/proc/cmdline"   # (this start: the same)
   echo fedokawaii >"$FKH/hostname"; : >"$FKH/podman-image"
   echo 'a1b2c3d4e5f60718293a4b5c6d7e8f90' >"$FKH/podman-secret"
   printf '[%s]\n' "$(for d in nyaasi SubsPlease tokyotosho thepiratebay yts Knaben limetorrents torrentdownloads; do

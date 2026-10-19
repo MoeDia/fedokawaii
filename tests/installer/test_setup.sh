@@ -47,6 +47,13 @@ has "$(cat "$W/etc/dnf/libdnf5.conf.d/90-fedokawaii.conf")" "max_parallel_downlo
 has "$(cat "$FKH/grubenv")" "menu_auto_hide=1" "one system: Fedora's hidden menu"
 has "$(head -n1 "$FKH/grub-args")" "systemd.tty.term.console=dumb" "no console-size wait at boot (every entry)"
 eq "$(grep -c systemd.tty.term.console=dumb "$FKH/grub-args")" 2
+case_ "phase 1: a quiet boot (its own step) — the splash and nothing else on the screen: each argument on every entry, the consoles' cursor back at login"
+has "$OUT" "✔ 1.6b a quiet boot: kernel arguments, blank console"
+for b in rhgb quiet loglevel=3 rd.udev.log_level=3 systemd.show_status=false vt.global_cursor_default=0; do
+  eq "$(grep -cE "(^| )$b( |\$)" "$FKH/grub-args")" 2 "$b on both entries"
+done
+eq "$(grep -v '^#' "$W/etc/profile.d/fedokawaii-console.sh" 2>/dev/null)" "[ \"\$TERM\" = linux ] && [ -t 1 ] && printf '\\033[?25h'" \
+  "a login on a text console shows the cursor the boot hides"
 lacks "$(cat "$FKH/fw-services")" "ssh" "SSH_SERVER=no closes ssh in the firewall"
 not_called 'firewall-cmd\] .*--reload' "the firewall is changed in place, never reloaded (a reload drops other programs' rules)"
 grep -qx 'enabled sshd.service' "$FKH/units" && _no "sshd still enabled" || _ok
@@ -82,15 +89,29 @@ grep -qx "global-enabled grub-boot-success.timer" "$FKH/units" && _no "Fedora's 
 [[ -s $W/var/lib/fedokawaii/input-group-out ]] && _ok || _no "not recorded: a later update would look again"
 has "$(cat "$W/etc/systemd/system/user@.service.d/fedokawaii.conf" 2>/dev/null)" $'[Service]\nTimeoutStopSec=30s' "shutdown never waits long on your services"
 has "$(cat "$W/etc/systemd/system/greetd.service.d/fedokawaii.conf")" "Conflicts=getty@tty1.service kmsconvt@tty1.service" "greetd holds tty1 against agetty and Fedora 45's kmscon"
+has "$(cat "$W/etc/systemd/system/greetd.service.d/fedokawaii.conf")" "After=getty@tty1.service kmsconvt@tty1.service plymouth-quit-wait.service" "greetd starts once the splash has gone, never beside it"
 eq "$(cat "$FKH/default-target")" graphical.target
 has "$(cat "$FKH/snaps")" "fedokawaii baseline"
+# the health report: the toolkit's, and once at the first start of the finished desktop
+cmp -s "$W$TK/system/fedokawaii-report" "$W/usr/local/bin/fedokawaii-report" && _ok || _no "/usr/local/bin/fedokawaii-report is not the toolkit's"
+ru=$(cat "$W/etc/systemd/system/fedokawaii-report.service" 2>/dev/null)
+has "$ru" "ExecStart=/usr/local/bin/fedokawaii-report --boot" "the unit runs the report in its first-start mode"
+has "$ru" "ConditionPathExists=!/var/lib/fedokawaii/report-first.done"; has "$ru" "ExecStartPost=/usr/bin/touch /var/lib/fedokawaii/report-first.done" "once only: the marker it leaves"
+has "$ru" $'Type=oneshot'; has "$ru" "After=graphical.target network-online.target"; has "$ru" "WantedBy=graphical.target"
+grep -qx 'enabled fedokawaii-report.service' "$FKH/units" && _ok || _no "fedokawaii-report.service not enabled"
 [[ -x $W/usr/local/bin/dwl && -s $W/usr/local/lib/fedokawaii-wlroots-0.20/cflags ]] && _ok || _no "dwl or its wlroots not in place"
-for t in satty yazi ya bluetui lazygit; do [[ -x $W/home/fkuser/.local/bin/$t ]] || _no "$t not installed"; done; _ok
+for t in satty yazi ya bluetui lazygit herdr; do [[ -x $W/home/fkuser/.local/bin/$t ]] || _no "$t not installed"; done; _ok
 eq "$(cat "$W/home/fkuser/.local/share/fedokawaii/upstream/ge-proton" 2>/dev/null)" GE-Proton10-25
 eq "$(cat "$W/home/fkuser/.local/share/fedokawaii/upstream/syncplay" 2>/dev/null)" "$(. "$REPO/lib/upstream.sh"; syncplay_pin)" "Syncplay (3.07c) at its pinned commit, with our patch"
 [[ -x $W/home/fkuser/.local/bin/syncplay && -f $W/home/fkuser/.local/share/fedokawaii/syncplay/syncplay/client.py ]] && _ok || _no "Syncplay not installed"
 eq "$(cat "$W/home/fkuser/.local/share/fedokawaii/upstream/blesh" 2>/dev/null)" "$(. "$REPO/lib/upstream.sh"; echo "$BLESH_COMMIT")" "ble.sh (3.07d) at its pinned commit"
 [[ -f $W/home/fkuser/.local/share/blesh/ble.sh ]] && _ok || _no "ble.sh not installed"
+# Spotify (3.07d): built during the install, your SPOTIFY=yes recorded as lpf's approval (its
+# approve file, never its question), lpf's steps in the install's log
+pkg_has spotify-client && _ok || _no "Spotify not built by setup"
+eq "$(cat "$W/var/lib/lpf/packages/spotify-client/state")" OK "lpf's own record: done"
+called '^pkg-build\[lpf-pkgbuild\] create-approve-file spotify-client'
+grep -q 'lpf-pkgbuild build spotify-client' "$W/var/log/fedokawaii.log" && _ok || _no "lpf's build not in the install's log"
 # (the clone setup was started from: gone at the end — the toolkit has all of it)
 [[ ! -e $W$CLONE ]] && _ok || _no "the clone ~/fedokawaii is still there"
 has "$OUT" "~/fedokawaii removed: the toolkit has all of it"
@@ -165,6 +186,19 @@ case_ "…the next start: the finished steps skipped, on from the one that faile
 rm -f "$FKH/dnf-fail"; resume --no-reboot; eq "$RC" 0
 has "$OUT" "skip (done): 2.1 repositories"; has "$OUT" "skip (done): 2.2 GPU drivers"; has "$OUT" "✔ 2.3 ffmpeg"
 eq "$(state phase)" 3
+
+case_ "Spotify's build fails during the install (its download refused): 3.07d fails there and then, lpf's own words in the log — no step marked done without Spotify"
+back phase3; fkh lpf-build-fail
+resume --no-reboot; eq "$RC" 1
+has "$OUT" "Spotify did not build (lpf: failed)"; has "$OUT" "lpf │ error: Bad source"
+grep -q 'lpf │ error: Bad source' "$W/var/log/fedokawaii.log" && _ok || _no "lpf's build log not copied into the install's log"
+[[ ! -e $W/var/lib/fedokawaii/done.3.07d\ Spotify\ \(built\ here\ by\ lpf\) ]] && _ok || _no "3.07d marked done without Spotify"
+pkg_has spotify-client && _no "spotify-client installed after a failed build" || _ok
+eq "$(state phase)" 3
+case_ "…the next start, Spotify's download back: built at 3.07d, the install goes on to the end"
+rm -f "$FKH/lpf-build-fail"; resume --no-reboot; eq "$RC" 0
+pkg_has spotify-client && _ok || _no "Spotify not built on the second start"
+has "$OUT" "✔ 3.07d Spotify"; eq "$(state phase)" "done"
 
 case_ "ffmpeg installed but unable to start (RPM Fusion's build behind one of Fedora's libraries): said so, not as a missing encoder"
 back phase2; fkh ffmpeg-broken

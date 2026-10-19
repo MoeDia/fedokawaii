@@ -1,9 +1,0 @@
-# NAME  HintSystem  SetupByUID (me: the user running the tests · other: anyone else) — what udisks answers
-sdb       false
-sdc       false
-mmcblk0   false
-sr0       false
-nvme0n1   true
-zram0     true
-loop0     true   me
-loop1     true   other

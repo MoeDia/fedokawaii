@@ -24,9 +24,9 @@ set -u
 case ${1:-} in -h|--help) sed -n '2,/^set -u/{/^set -u/d;s/^# \{0,1\}//;p}' "$0"; exit 0 ;; -*) echo "usage: kawa-shrink [FILE…] (kawa-shrink --help)" >&2; exit 2 ;; esac
 # shellcheck source=/dev/null
 . "$HOME/.config/fedokawaii/icons.sh"
-. "$HOME/.config/fedokawaii/files.sh"   # free_name
+. "$HOME/.config/fedokawaii/files.sh"   # free_name, clip_put
 magick() { LC_ALL=C command magick "$@"; }
-say() { notify-send -a desktop "$ICON_PICTURE  $1" "${2:-}"; }
+say() { notify-send -a desktop -- "$ICON_PICTURE  $1" "${2:-}"; }
 work=$(mktemp -d "${XDG_RUNTIME_DIR:-/tmp}/kawa-shrink.XXXXXX") || exit 1
 trap 'rm -rf "$work"' EXIT
 
@@ -149,10 +149,10 @@ done
 
 # ── onto the clipboard ──────────────────────────────────────────────────────────────────
 if ((${#out[@]} == 1)) && [[ $(kind "${out[0]}") == image/* ]]; then
-  wl-copy --type "$(kind "${out[0]}")" <"${out[0]}"
+  clip_put "$(kind "${out[0]}")" <"${out[0]}"
 else
   kawa-clipfiles copy --quiet "${out[@]}"
-fi
-body="${out[0]##*/}$( ((${#out[@]} > 1)) && echo " and $((${#out[@]} - 1)) more") · on the clipboard (Ctrl+V)"
+fi && on=" · on the clipboard (Ctrl+V)" || on=" · saved, but the clipboard did not take it"
+body="${out[0]##*/}$( ((${#out[@]} > 1)) && echo " and $((${#out[@]} - 1)) more")$on"
 ((failed)) && body+=" · $failed could not be read"
 say "$(human "$before") → $(human "$after")" "$body"

@@ -54,6 +54,32 @@ theme; eq "$RC" 0
 grep -q 'theme=/boot/grub2/themes/sumi/theme.txt\|/boot/grub2/themes/sumi/theme.txt' "$W/boot/grub2/grub.cfg" && _ok || _no "grub.cfg without the theme"
 theme --check; eq "$RC" 0
 
+case_ "dracut failing (vi a link to nvim, as an older setup left it: dracut follows it into nvim's Lua libraries): the menu, the console font, the arguments all in place — dracut last, its ✘ said"
+keep before-vi
+ln -sfn ../../bin/nvim "$W/usr/local/bin/vi"
+for f in "$W"/boot/initramfs-*.img; do echo initramfs >"$f"; done              # (the installer's: no splash)
+sed -i '/^GRUB_THEME=/d; /^GRUB_TERMINAL_OUTPUT=/d' "$W/etc/default/grub"; rm -f "$W/boot/grub2/grub.cfg"
+sed -i 's/^FONT=.*/FONT="eurlatgr"/' "$W/etc/vconsole.conf"
+theme; eq "$RC" 0 "the rest of the theme applied"
+has "$OUT" "dracut could not remake the boot images with the splash"
+has "$(cat "$W/etc/default/grub")" 'GRUB_THEME="/boot/grub2/themes/sumi/theme.txt"'; has "$(cat "$W/etc/default/grub")" 'GRUB_TERMINAL_OUTPUT="gfxterm"'
+grep -q 'grub2/themes/sumi/theme.txt' "$W/boot/grub2/grub.cfg" && _ok || _no "grub.cfg not made again before dracut"
+has "$(cat "$W/etc/vconsole.conf")" 'FONT="ter-v16b"' "the console font set before dracut ran"
+has "$(fk lsinitrd)" "themes/bgrt/bgrt.plymouth" "the boot image still without the splash"
+case_ "… --check names the images without the splash; verify fails them hard (never a warning): the boot shows text"
+theme --check; has "$OUT" "boot images without the splash"
+fkrun bash "$TK/verify.sh" --pre-finalize
+has "$OUT" "✘ the splash in every boot image (lsinitrd)"; has "$OUT" "✘ vi → nvim (a script"
+case_ "… vi a script again (setup's editor_policy): the next run makes the images, verify passes them"
+printf '#!/bin/sh\nexec nvim "$@"\n' >"$W/usr/local/bin.vi.tmp"; rm -f "$W/usr/local/bin/vi"; mv "$W/usr/local/bin.vi.tmp" "$W/usr/local/bin/vi"; chmod 755 "$W/usr/local/bin/vi"
+theme; eq "$RC" 0; called 'dracut\] -f --regenerate-all'
+has "$(fk lsinitrd)" "themes/sumi/sumi.script"
+[[ ! -e $W/var/lib/fedokawaii/boot.failed ]] && _ok || _no "the mark left behind"
+fkrun bash "$TK/verify.sh" --pre-finalize
+has "$OUT" "✔ the splash in every boot image (lsinitrd)"; has "$OUT" "✔ vi → nvim (a script"
+reset_calls; theme; not_called 'dracut\]' "images in order: dracut not run again"
+back before-vi
+
 case_ "/boot a partition of its own (the installer's Btrfs layout): grub.cfg names the theme from /boot's root — in sync, and verify sees it"
 touch "$FKH/boot-separate"; rm -f "$W/boot/grub2/grub.cfg"
 theme; eq "$RC" 0
@@ -68,7 +94,7 @@ case_ "the boot menu: the console palette on every boot entry, BOOT_MENU_SECONDS
 has "$(cat "$FKH/grub-args")" "vt.default_red="; eq "$(grep -c 'vt.default_red=' "$FKH/grub-args")" 2 "both entries"
 has "$(cat "$W/etc/default/grub")" "GRUB_TIMEOUT=2"; has "$(cat "$W/etc/default/grub")" 'GRUB_GFXMODE="2560x1440,auto"'
 lacks "$(cat "$FKH/grubenv")" "menu_auto_hide=1"
-has "$(cat "$W/etc/vconsole.conf")" 'FONT="ter-v32b"' "1440p: the larger console font"
+has "$(cat "$W/etc/vconsole.conf")" 'FONT="ter-v16b"' "1440p: Fedora's own console size (8×16)"
 case_ "files an earlier theme put in the boot menu's folder (select_n.png: a pixmap GRUB would still draw): --check names them, the run removes them"
 G=$W/boot/grub2/themes/sumi
 fk cp /boot/grub2/themes/sumi/select_c.png /boot/grub2/themes/sumi/select_n.png; fk touch /boot/grub2/themes/sumi/departure.pf2
@@ -91,12 +117,30 @@ theme; eq "$RC" 0
 lacks "$(grep '^profile=' "$W$H/.config/mpv/mpv.conf")" "high-quality"
 has "$(cat "$W$H/.config/mpv/mpv.conf")" "# scaling: mpv's own defaults"
 [[ ! -e $W$H/.config/MangoHud && ! -e $W$H/.local/share/applications/steam.desktop ]] && _ok || _no "MangoHud config or Steam's entry installed with STEAM=no"
-has "$(cat "$W/etc/vconsole.conf")" 'FONT="ter-v32b"'
+has "$(cat "$W/etc/vconsole.conf")" 'FONT="ter-v16b"'
 
+
+case_ "Spotify's launcher entry (Wayland) only once lpf has built Spotify: none before (the launcher ignores TryExec), an older copy retired; SPOTIFY=no: none"
+back plain; a=$W$H/.local/share/applications
+grep -qx spotify-client "$FKH/installed" && _ok || _no "the built world has Spotify built"
+theme; eq "$RC" 0
+has "$(cat "$a/spotify.desktop")" "Exec=spotify --ozone-platform=wayland %U"
+lacks "$(grep -v '^#' "$a/spotify.desktop")" "TryExec=" "no TryExec: the launcher reads none"
+sed -i '/^spotify-client$/d' "$FKH/installed"
+theme; eq "$RC" 0
+[[ ! -e $a/spotify.desktop ]] && _ok || _no "an entry for a Spotify not built"
+has "$OUT" "spotify.desktop (retired)"
+theme --check; lacks "$OUT" "spotify.desktop" "in sync without it"
+echo spotify-client >>"$FKH/installed"; tconf 's/^SPOTIFY=.*/SPOTIFY="no"/'
+theme; [[ ! -e $a/spotify.desktop ]] && _ok || _no "Spotify's entry with SPOTIFY=no"
+tconf 's/^SPOTIFY=.*/SPOTIFY="yes"/'
+for e in lpf lpf-gui lpf-notify lpf-spotify-client qt6ct; do
+  grep -qx 'NoDisplay=true' "$a/$e.desktop" && _ok || _no "$e.desktop not hidden in the home"
+done
 
 case_ "Brave Origin's two launcher entries: its own runs the wrapper; the second (com.brave.Origin) hidden as Brave meant it (brave/brave-browser#52193)"
 back plain
-printf '[Desktop Entry]\nName=Brave Origin\nExec=/usr/bin/brave-origin-stable %%U\n\n[Desktop Action new-window]\nName=New Window\nExec=/usr/bin/brave-origin-stable\n' \
+printf '[Desktop Entry]\nName=Brave Origin\nIcon=brave-origin\nExec=/usr/bin/brave-origin-stable %%U\n\n[Desktop Action new-window]\nName=New Window\nExec=/usr/bin/brave-origin-stable\n' \
   >"$W/usrshare/applications/brave-origin.desktop"
 printf '[Desktop Entry]\nName=Brave Origin\nExec=/usr/bin/brave-origin-stable %%U\n\n[Desktop Action new-private-window]\nName=New Private Window\nExec=/usr/bin/brave-origin-stable --incognito\nNoDisplay=true\n' \
   >"$W/usrshare/applications/com.brave.Origin.desktop"
@@ -107,6 +151,7 @@ lacks "$(cat "$u/brave-origin.desktop")" "NoDisplay" "the entry you launch stays
 eq "$(sed -n 2p "$u/com.brave.Origin.desktop")" "NoDisplay=true" "hidden in its [Desktop Entry]"
 eq "$(grep -c '^NoDisplay=' "$u/com.brave.Origin.desktop")" 1 "the misplaced line gone"
 has "$(cat "$u/com.brave.Origin.desktop")" "Exec=$H/.local/bin/brave-origin --incognito"
+eq "$(grep '^Icon=' "$u/kawa-prowlarr.desktop")" "Icon=brave-origin" "Prowlarr's page: the icon of the browser it opens in, as Brave's own entry names it"
 theme --check; lacks "$OUT" "com.brave.Origin" "in sync once made"
 rm -f "$u/com.brave.Origin.desktop"
 theme --check; has "$OUT" "com.brave.Origin.desktop" "a missing copy is drift"

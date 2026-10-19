@@ -17,8 +17,7 @@
 #
 #   kawa-drives                  the menu: open a drive in the files, or eject it
 #   kawa-drives list             one line per file system on a drive, tab-separated:
-#                                DEVICE DISK LABEL SIZE TYPE FOLDER (FOLDER: empty while closed);
-#                                udisks not answering: none, said on stderr (exit 1)
+#                                DEVICE DISK LABEL SIZE TYPE FOLDER (FOLDER: empty while closed)
 #   kawa-drives open DEVICE      opened (mounted, unlocked first if encrypted); prints its folder
 #   kawa-drives files DEVICE     the same, then yazi in a window of its own there
 #   kawa-drives eject DEVICE     the drive DEVICE is on: written out, closed, switched off
@@ -51,38 +50,25 @@ poke() { kawa-dwlstatus --poke 13 2>/dev/null || true; }   # the bar's mark
 backup_drive() { kawa-backup target 2>/dev/null; }   # → the drive's name in BACKUP_TARGET (fedokawaii.conf)
 
 # ── what is plugged in ───────────────────────────────────────────────────────
-# A drive is a disk (or an optical drive) udisks counts as not the system's own — its
-# HintSystem, what udiskie goes by too: USB, SD cards — and that holds none of the
-# system's folders. (Should udisks not answer: none — said, never guessed from the kernel's
-# removable or hot-plugged flags.) A disk image you opened (udisksctl loop-setup -f FILE.iso) counts too: udisks
-# counts every image as the system's, so an image goes by who set it up (yours: a drive like
-# a stick; udiskie's config opens it the same way). Each file system on it is a line; an
+# A drive is a disk (or an optical drive) the kernel itself says comes and goes — removable
+# media, or on USB, FireWire or an SD slot: udisks' own rule for what is not the system's
+# (its HintSystem, what udiskie goes by), read from lsblk in the same call as the rest, so
+# no daemon has to answer before the bar shows a stick or the menu opens — and that holds
+# none of the system's folders. A disk image you opened (udisksctl loop-setup -f FILE.iso)
+# counts too when its file is yours (losetup names the file; a service's image of its own
+# stays out). Each file system on it is a line; an
 # encrypted one shows the file system inside once unlocked, itself while locked. LABEL: the
 # file system's name, else the encrypted volume's, else the maker and model (an image: its
 # file's name; a card in the machine's own reader: "SD card"), else sdX. (Tab-separated as
 # they are — not jq's @tsv, which doubles a backslash in a label; a tab in one is a space.)
-external() {   # external DISK… → JSON: those udisks counts as external, or null if it did not answer
-  local d a n=0 out=()
-  for d; do
-    [[ $d =~ ^/dev/[a-z0-9]+$ ]] || continue              # (its object path is the bare name)
-    if [[ $d == /dev/loop* ]]; then                       # an image: yours if you set it up
-      a=$(busctl --system get-property org.freedesktop.UDisks2 "/org/freedesktop/UDisks2/block_devices/${d#/dev/}" \
-            org.freedesktop.UDisks2.Loop SetupByUID 2>/dev/null) || continue
-      n=$((n + 1)); [[ $a == "u $UID" ]] && out+=("\"$d\""); continue
-    fi
-    a=$(busctl --system get-property org.freedesktop.UDisks2 "/org/freedesktop/UDisks2/block_devices/${d#/dev/}" \
-          org.freedesktop.UDisks2.Block HintSystem 2>/dev/null) || continue
-    n=$((n + 1))
-    [[ $a == "b false" ]] && out+=("\"$d\"")
-  done
-  if ((n == 0)); then echo null; else local IFS=,; printf '[%s]\n' "${out[*]}"; fi
-}
-COLS=NAME,TYPE,LABEL,SIZE,FSTYPE,MOUNTPOINTS,VENDOR,MODEL
+COLS=NAME,TYPE,RM,TRAN,LABEL,SIZE,FSTYPE,MOUNTPOINTS,VENDOR,MODEL
 # shellcheck disable=SC2016  # (jq's $variables)
 JQ_LIST='
 def system: ["/", "/boot", "/boot/efi", "/efi", "/home", "/var", "/usr", "[SWAP]"];
 def opened: [.. | objects | (.mountpoints // [])[] | select(. != null)];
-def removable: .name | IN($ext[]);
+def removable:
+  if .type == "loop" then (.name | IN($mine[]))
+  else (.rm == true or .rm == "1") or (.tran | IN("usb", "ieee1394", "mmc")) or (.name | test("^/dev/(mmcblk|mspblk)")) end;
 def maker: . as $d
   | ($files[$d.name] // ([$d.vendor, $d.model] | map(select(. != null) | gsub("^\\s+|\\s+$"; "")) | map(select(. != "")) | join(" ")))
   | if . == "" and ($d.name | test("^/dev/mmcblk")) then "SD card" else . end;
@@ -99,25 +85,21 @@ def rows($disk; $name):
 | . as $d
 | ($d | maker) as $m
 | rows($d; (if $m != "" then $m else ($d.name | sub("^/dev/"; "")) end))'
-list() {   # (1: udisks did not answer — nothing listed, and said)
-  local j files="" ext
-  local -a top=()
+list() {
+  local j lo d f files="" mine=""
+  local -a loops=()
   j=$(lsblk -J -p -o "$COLS" 2>/dev/null) || return 0
-  mapfile -t top < <(jq -r '.blockdevices[] | select(.type == "disk" or .type == "rom" or .type == "loop") | .name' <<<"$j" 2>/dev/null)
-  # an image: the name of the file it shows (… (deleted) once that file is gone)
-  if [[ " ${top[*]}" == *" /dev/loop"* ]]; then
-    files=$(losetup --list --json --output NAME,BACK-FILE 2>/dev/null \
-              | jq -c '[.loopdevices[]? | select((."back-file" // "") != "")
-                        | {key: .name, value: (."back-file" | sub(".*/"; ""))}] | from_entries' 2>/dev/null)
+  mapfile -t loops < <(jq -r '.blockdevices[] | select(.type == "loop") | .name' <<<"$j" 2>/dev/null)
+  if ((${#loops[@]})); then   # an image: the name of the file it shows (… (deleted) once that file is gone)
+    lo=$(losetup --list --json --output NAME,BACK-FILE 2>/dev/null)
+    files=$(jq -c '[.loopdevices[]? | select((."back-file" // "") != "")
+                    | {key: .name, value: (."back-file" | sub(".*/"; ""))}] | from_entries' <<<"$lo" 2>/dev/null)
+    while IFS=$'\t' read -r d f; do [[ -O $f ]] && mine+=${mine:+,}\"$d\"; done \
+      < <(jq -r '.loopdevices[]? | select((."back-file" // "") != "") | [.name, ."back-file"] | join("\t")' <<<"$lo" 2>/dev/null)
   fi
-  ext=$(external "${top[@]}")
-  if [[ $ext == null ]]; then
-    ((${#top[@]})) || return 0                            # (no disk at all: nothing to ask about)
-    echo "kawa-drives: udisks is not answering — no drive is listed (systemctl status udisks2)" >&2
-    return 1
-  fi
-  jq -r --argjson ext "$ext" --argjson files "${files:-"{}"}" "$JQ_LIST" <<<"$j" 2>/dev/null
+  jq -r --argjson mine "[$mine]" --argjson files "${files:-"{}"}" "$JQ_LIST" <<<"$j" 2>/dev/null
 }
+is_drive() { list | cut -f2 | grep -qxF -- "$1"; }   # is_drive DISK — one of the drives list lists
 
 folder_of() {   # folder_of DEVICE → where it, or the file system inside it, is open
   lsblk -J -o MOUNTPOINTS -- "$1" 2>/dev/null \
@@ -278,7 +260,7 @@ event() {
   if [[ $ext != True && ! -f $STATE/${dev##*/} ]]; then
     [[ -n $dev ]] || return 0
     disk=$(disk_of "$dev")
-    [[ -n $disk && $(external "$disk") == *\"* ]] || return 0
+    [[ -n $disk ]] && is_drive "$disk" || return 0
   fi
   label=${name:-${drive:-${dev#/dev/}}}
   case $ev in
@@ -401,7 +383,7 @@ watch() {   # udisks' own events → the bar and ~/Drives, within a moment of ea
 }
 
 menu() {   # menu [ROW] — the cursor on ROW (a heading's part: its first entry), else the first drive
-  local dev disk label size fs folder r i out lrc
+  local dev disk label size fs folder r i
   local -a rows=() acts=() order=()
   local -A named=()
   row() { rows+=("$2  $3"); acts+=("$1"); }      # row ACTION ICON TEXT
@@ -409,19 +391,17 @@ menu() {   # menu [ROW] — the cursor on ROW (a heading's part: its first entry
     ((${#rows[@]})) && { rows+=(""); acts+=(-); }
     rows+=("$(heading "$1" "$2" 38)"); acts+=(-)
   }
-  out=$(list 2>/dev/null); lrc=$?
   while IFS=$'\t' read -r dev disk label size fs folder; do
     ((${#rows[@]})) || heading_row 盤 drives
     printf -v r '%s %7s  %s' "$(pad "$label" 16)" "$size" "$([[ -n $folder ]] && echo open || echo closed)"
     row "open $dev" "$ICON_DRIVE" "$r"
     [[ -n ${named[$disk]:-} ]] || { named[$disk]=$label; order+=("$disk"); }
-  done < <([[ -n $out ]] && printf '%s\n' "$out")
+  done < <(list)
   ((${#order[@]})) && heading_row 出 eject
   for disk in "${order[@]}"; do                 # (the drive by the name of its first file system)
     row "eject $disk" "$ICON_EJECT" "$(short "${named[$disk]}" 32)"   # (under its heading: the name alone — icon, 2, 32: 218 px)
   done
-  if ((lrc == 1)); then row none "$ICON_DRIVE" "udisks is not answering"   # (never a guess)
-  else ((${#rows[@]})) || row none "$ICON_DRIVE" "nothing plugged in"; fi
+  ((${#rows[@]})) || row none "$ICON_DRIVE" "nothing plugged in"
   local s=${1:-0}
   while [[ ${acts[s]:-} == - ]]; do s=$((s + 1)); done   # (never on a heading or a gap)
   ((s < ${#rows[@]})) || s=0

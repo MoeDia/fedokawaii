@@ -1,0 +1,8 @@
+[Desktop Entry]
+# VisiData: CSV and TSV files open in it from Files, Brave and xdg-open (Tables, kawa-tables).
+# Hidden from the launcher: this entry, by the same name as the package's, stands in for it
+# (NoDisplay); the program itself stays installed and works as before.
+Type=Application
+Name=VisiData
+Exec=vd %F
+NoDisplay=true

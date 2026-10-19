@@ -19,6 +19,10 @@ UPSTREAM=(
   # (Bluetooth pairing in a terminal; its release file is the binary itself, static — measured 2026-10-16)
   "bluetui|pythops/bluetui|v0.8.2|bluetui-x86_64-linux-musl|b476ee473cb4f7a48cd75d440e991bedc835ff5ac704aac1f1992f8e826222fd|bluetui"
   "lazygit|jesseduffield/lazygit|v0.66.1|lazygit_0.66.1_linux_x86_64.tar.gz|7b3f30c2c06a42cf575280f907e58d7ea08411408b6b62bc926bc91cbc6c3f46|lazygit"
+  # (Claude Code sessions side by side, each marked working, blocked or idle: "Agents" in the
+  # launcher. Its release file is the binary itself, static — measured 2026-10-19, and the
+  # same as the release's own distribution/latest.json)
+  "herdr|herdrdev/herdr|v0.9.5|herdr-linux-x86_64|14d9e8bc8b4a9e0118d77c32266f76d461f09b40342eb23752960bd89f59929d|herdr"
 )
 # the release binaries an earlier version installed and this one no longer has: presenterm
 # (slides are LibreOffice Impress's now) and spotify_player (Spotify's own app, built by lpf:

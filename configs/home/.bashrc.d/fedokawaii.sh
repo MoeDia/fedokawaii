@@ -126,7 +126,9 @@ if [[ $TERM != foot* ]]; then
 else
   # shellcheck source=/dev/null
   . ~/.config/fedokawaii/icons.sh
-  __i_torii="$ICON_TORII  " __i_branch="$ICON_BRANCH  " __i_sun="$ICON_SUN  " __i_moon="$ICON_MOON  "
+  # (the torii at the words' height: the seal-sized one, as tall as a kanji, would come
+  # down to within a few pixels of the ❯ on the line under it)
+  __i_torii="$ICON_TORII_SMALL  " __i_branch="$ICON_BRANCH  " __i_sun="$ICON_SUN  " __i_moon="$ICON_MOON  "
   __i_ok="$ICON_CHECK  " __i_fail="$ICON_CROSS  " __i_up='↑ ' __i_down='↓ ' __i_more='… '
   __i_rule='┈' __i_mark=$ICON_CHEVRON_RIGHT
 fi

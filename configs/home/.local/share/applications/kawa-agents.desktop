@@ -1,0 +1,16 @@
+[Desktop Entry]
+# herdr, in a terminal window of its own (tiled, not a popup: it is where you work, beside an
+# editor, and a popup would close at the first click elsewhere). Closing the window only
+# detaches: the agents keep working in herdr's background server, and the next start shows
+# them again where they were.
+# Its icon: foot's, the terminal that draws its window (herdr ships none of its own; the
+# launcher shows each program's own icon, never an icon pack's).
+Type=Application
+Name=Agents
+GenericName=Coding agents side by side
+Comment=herdr: Claude Code sessions in panes, each marked working, blocked or idle
+Icon=foot
+Exec=@HOME@/.local/bin/kawa-term herdr
+Terminal=false
+Categories=Development;
+Keywords=herdr;claude;agents;ai;worktree;

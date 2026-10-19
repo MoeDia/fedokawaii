@@ -9,8 +9,8 @@ Programs are read from: the scripts in bin/ and system/, the session's autostart
 shell's ~/.bashrc.d, waybar's exec / on-click, mako's on-button actions, the launcher
 entries' Exec=, yazi's keymaps and plugins (the desktop's and the file dialog's), dwl's
 config.h (its spawn arrays and SHCMD), the systemd user units, the portals' configs, foot,
-fuzzel, satty, lazygit, yt-dlp and udiskie — and yazi 26.9.1's own preset (what its openers
-and previewers run: FIXTURES/yazi-builtin.txt).
+fuzzel, satty, lazygit, herdr, yt-dlp and udiskie — and yazi 26.9.1's own preset (what its
+openers and previewers run: FIXTURES/yazi-builtin.txt).
 
 Each must be one of: bin/ or system/ (the desktop's own), lib/upstream.sh's table, built by
 setup.sh (dwl, the C helpers, torrra), or in FIXTURES/programs.txt — a package lib/manifest.sh
@@ -132,9 +132,13 @@ def snippets(repo):
             if m and m.group(2).startswith("exec "):
                 add("mako", f"{f.relative_to(repo)}:{n}", home_bin(m.group(2)[5:]), n)
 
-    # launcher entries: Exec= and TryExec= (field codes are the file or link handed over)
+    # launcher entries: Exec= and TryExec= (field codes are the file or link handed over). An
+    # entry that only hides a package's own (NoDisplay, no file types) starts nothing: skipped
     for f in sorted((repo / "configs/home/.local/share/applications").glob("*.desktop")):
-        for n, ln in enumerate(f.read_text().splitlines(), 1):
+        lines = f.read_text().splitlines()
+        if "NoDisplay=true" in lines and not any(x.startswith("MimeType=") for x in lines):
+            continue
+        for n, ln in enumerate(lines, 1):
             m = re.match(r"(Try)?Exec=(.*)", ln)
             if m:
                 add("desktop", f"{f.relative_to(repo)}:{n}", home_bin(re.sub(r"%[fFuUick]", "FILE", m.group(2))), n)
@@ -189,6 +193,7 @@ def snippets(repo):
         ".config/fuzzel/fuzzel.ini": r"terminal=(.*)",
         ".config/satty/config.toml": r'copy-command\s*=\s*"(.*)"',
         ".config/lazygit/config.yml": r"\s*editPreset:\s*(\S+)",
+        ".config/herdr/config.toml": r'\s*command\s*=\s*"(.*)"',
     }
     for rel, rx in simple.items():
         f = repo / "configs/home" / rel
