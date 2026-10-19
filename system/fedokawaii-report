@@ -1,0 +1,794 @@
+#!/usr/bin/env bash
+# /usr/local/bin/fedokawaii-report — the whole machine's health in one file:
+# ~/fedokawaii-report.txt. Everything the install and the desktop did and how they stand now —
+# the install's log, verify's full answer, the theme's drift and its switch timed, the graphics
+# cards and the monitor, the session's every part, the journal (failed units, errors,
+# crashes, SELinux denials), the network and the mirrors, sound, Bluetooth and DDC/CI, disks
+# and snapshots; the boot (quiet, the splash, the time to the login screen), sleep and the
+# lock, the bar's modules, notices, fonts (Arabic too), the launcher's entries, dwl's own log —
+# and every program the desktop ships proved to work, not only installed. On top: the verdict
+# (what is broken, what is a warning), the findings grouped by area with what to do or send.
+#
+#   sudo fedokawaii-report          the report (as root: the install's log and the journal are
+#                                   root's); the session's parts are read as you, from the
+#                                   running desktop when there is one
+#   sudo fedokawaii-report --quick  the same without the timed tests (no theme switch, no
+#                                   download speed, no brightness change)
+#   fedokawaii-report --help        this text
+#
+# Setup runs it once by itself after the first start of the finished desktop
+# (fedokawaii-report.service). Secrets are never copied: secrets.sh is not read, and any line
+# that looks like a password, a token or a key has its value replaced by ●●●. Each command's
+# output is cut at 200 lines. It changes nothing — but the timed theme test switches the theme
+# to the other one and back, and the program checks send one test notice and take one
+# screenshot (deleted at once).
+set -u
+QUICK=0 BOOT=0
+case ${1:-} in
+  "") ;;
+  --quick) QUICK=1 ;;
+  --boot) BOOT=1 ;;                           # (the first-start service: waits for the desktop)
+  -h|--help) sed -n '2,/^set -u/{/^set -u/d;s/^# \{0,1\}//;p}' "$0"; exit 0 ;;
+  *) echo "usage: fedokawaii-report [--quick]" >&2; exit 2 ;;
+esac
+if ((EUID != 0)); then exec sudo bash "$0" "$@"; fi
+START=$EPOCHREALTIME
+export LC_ALL=C.UTF-8
+TOOLKIT=/usr/local/lib/fedokawaii
+STATE=/var/lib/fedokawaii
+LOG=/var/log/fedokawaii.log
+MAXL=200                                      # lines kept of any one command's output
+
+# ── whose desktop ───────────────────────────────────────────────────────────────────────
+U=${SUDO_USER:-}
+if [[ -z $U || $U == root ]]; then
+  U=$(sed -n 's/^command = .*kawa-greet \([a-z_][a-z0-9_-]*\)".*/\1/p' /etc/greetd/fedokawaii.toml 2>/dev/null)
+fi
+[[ -n $U ]] || U=$(getent passwd 1000 | cut -d: -f1)
+UH=$(getent passwd "$U" | cut -d: -f6); UID_=$(id -u "$U" 2>/dev/null)
+[[ -n $UH && -d $UH ]] || { echo "fedokawaii-report: no home for user '$U'" >&2; exit 1; }
+OUT=$UH/fedokawaii-report.txt
+TMP=$(mktemp -d); trap 'rm -rf "$TMP"' EXIT
+chmod 0755 "$TMP"                             # (the checks run as you write their answers here)
+BODY=$TMP/body FIND=$TMP/findings
+: >"$BODY"; : >"$FIND"
+
+# ── the desktop session (when one is running): its environment, to ask its programs ───────
+DWLPID=$(pgrep -u "$U" -x dwl | head -n1)
+if ((BOOT)); then                        # the first start: give the desktop up to 5 minutes
+  for _ in $(seq 60); do DWLPID=$(pgrep -u "$U" -x dwl | head -n1); [[ -n $DWLPID ]] && break; sleep 5; done
+  sleep 20                               # (and its autostart time to settle)
+fi
+SENV=()
+if [[ -n $DWLPID ]]; then
+  while IFS= read -r -d '' kv; do
+    case $kv in WAYLAND_DISPLAY=*|XDG_RUNTIME_DIR=*|DBUS_SESSION_BUS_ADDRESS=*|DISPLAY=*|XDG_CURRENT_DESKTOP=*|WLR_DRM_DEVICES=*) SENV+=("$kv") ;; esac
+  done </proc/"$DWLPID"/environ
+fi
+[[ " ${SENV[*]} " == *" XDG_RUNTIME_DIR="* ]] || SENV+=("XDG_RUNTIME_DIR=/run/user/$UID_")
+[[ " ${SENV[*]} " == *" DBUS_SESSION_BUS_ADDRESS="* ]] || SENV+=("DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/$UID_/bus")
+asu() {   # asu CMD… — as the desktop's user, in its session's environment
+  runuser -u "$U" -- env -i HOME="$UH" USER="$U" LOGNAME="$U" SHELL=/bin/bash LANG=C.UTF-8 TERM=xterm-256color \
+    PATH="$UH/.local/bin:/usr/local/bin:/usr/bin:/bin" "${SENV[@]}" "$@"
+}
+conf() { sed -n "s/^$1=\"\{0,1\}\([^\"]*\)\"\{0,1\}.*/\1/p" "$TOOLKIT/fedokawaii.conf" 2>/dev/null | tail -n1; }
+
+# ── writing ─────────────────────────────────────────────────────────────────────────────
+AREA=""
+sec() { AREA=$1; printf '%s\n' "$1" >>"$TMP/areas"
+        printf '\n\n══════ %s %s\n' "$1" "$(printf '═%.0s' $(seq $((80 - ${#1}))))" >>"$BODY"; }
+sub() { printf '\n── %s\n' "$1" >>"$BODY"; }
+say() { printf '%s\n' "$*" >>"$BODY"; }
+cap() {   # cap [N] — the first N lines (MAXL), and how many more there were
+  awk -v m="${1:-$MAXL}" 'NR <= m { print } END { if (NR > m) printf "… %d more lines\n", NR - m }'
+}
+run() {   # run TITLE CMD… — the command's output (20 s at most, 200 lines), its exit status if not 0
+  local t=$1 r; shift
+  printf '\n── %s\n$ %s\n' "$t" "$*" >>"$BODY"
+  timeout 20 "$@" >"$TMP/run.out" 2>&1; r=$?
+  cap <"$TMP/run.out" >>"$BODY"
+  ((r == 0)) || printf '[exit %s%s]\n' "$r" "$( ((r == 124)) && echo ': timed out after 20 s')" >>"$BODY"
+  return $r
+}
+urun() { local t=$1; shift; run "$t (as $U)" asu "$@"; }
+FAILS=0 WARNS=0
+# fail|warn|good MESSAGE [WHAT TO DO OR SEND] — a finding, under the section it was made in
+finding() { printf '%s\t%s\t%s\t%s\n' "$AREA" "$1" "$2" "${3:-}" >>"$FIND"; }
+fail() { FAILS=$((FAILS + 1)); finding FAIL "$@"; }
+warn() { WARNS=$((WARNS + 1)); finding WARN "$@"; }
+good() { finding ok "$1"; }
+detail() { sed 's/\t/ /g; s/^/          | /' | cap 12 | while IFS= read -r l; do finding detail "$l"; done; }
+ms_since() { local a=${1/[.,]/} b=${EPOCHREALTIME/[.,]/}; echo $(( (b - a) / 1000 )); }
+SES=0; [[ -n $DWLPID ]] && SES=1
+
+# ════ 1. the system ══════════════════════════════════════════════════════════════════════
+sec "1. the system"
+run "release" cat /etc/os-release
+run "kernel" uname -a
+run "kernel arguments" cat /proc/cmdline
+run "up since" uptime
+run "setup's state ($STATE)" bash -c "for f in $STATE/*; do [[ -f \$f && \$(stat -c %s \"\$f\") -lt 4096 ]] && printf '%-28s %s\n' \"\${f##*/}\" \"\$(tr '\n' ' ' <\"\$f\")\"; done"
+phase=$(cat "$STATE/phase" 2>/dev/null)
+if [[ $phase == "done" ]]; then good "setup finished (phase done)"
+else fail "setup did not finish: phase is '${phase:-none}'" "run: sudo bash $TOOLKIT/setup.sh"; fi
+[[ -e /etc/systemd/system/fedokawaii-resume.service ]] && warn "the resume unit is still installed (setup expects to continue at the next start)"
+run "the toolkit" bash -c "ls -la $TOOLKIT | head -n 40"
+run "settings (fedokawaii.conf, secrets left out)" grep -vE '^[[:space:]]*(#|$)' "$TOOLKIT/fedokawaii.conf"
+
+# ════ 2. the start-up ════════════════════════════════════════════════════════════════════
+sec "2. the start-up"
+run "time to start" systemd-analyze
+run "slowest units" bash -c 'systemd-analyze blame | head -n 25'
+run "critical chain" systemd-analyze critical-chain
+run "last starts" bash -c 'journalctl --list-boots --no-pager | tail -n 6'
+t=$(systemd-analyze 2>/dev/null | sed -n 's/.*= \([0-9.]*\)s$/\1/p' | head -n1)
+[[ -n $t ]] && { if (( ${t%.*} > 60 )); then warn "start-up took ${t}s (over a minute)" "send the report: section 2 names the slow units"; else good "start-up took ${t}s"; fi; }
+
+# ── the boot, clean: quiet, the splash, the login screen in time ──
+sub "the kernel's arguments for a clean boot"
+cmd=$(cat /proc/cmdline 2>/dev/null)
+miss=()
+for a in quiet loglevel=3 vt.global_cursor_default=0 splash; do [[ " $cmd " == *" $a "* ]] || miss+=("$a"); done
+say "/proc/cmdline: $cmd"
+if ((${#miss[@]})); then fail "the boot is not quiet: /proc/cmdline lacks ${miss[*]}" "run: sudo fedokawaii apply (theme.sh sets them), then restart"
+else good "the kernel's arguments are quiet (quiet loglevel=3 vt.global_cursor_default=0 splash)"; fi
+pt=$(plymouth-set-default-theme 2>/dev/null)
+say "the boot splash (plymouth-set-default-theme): ${pt:-(none)}"
+if [[ $pt == sumi ]]; then good "the boot splash theme is sumi"
+else fail "the boot splash theme is '${pt:-none}', not sumi" "run: sudo fedokawaii apply"; fi
+lsinitrd 2>/dev/null | grep -i plymouth >"$TMP/initrd"
+sub "the splash in the initramfs (lsinitrd | grep plymouth)"; cap 60 <"$TMP/initrd" >>"$BODY"
+if grep -q "plymouth/themes/${pt:-sumi}" "$TMP/initrd"; then good "the initramfs holds the ${pt:-sumi} splash"
+else fail "the initramfs lacks the ${pt:-sumi} splash (it shows only after the disk is open)" "run: sudo dracut -f --regenerate-all"; fi
+after=$(systemctl show greetd.service -p After --value 2>/dev/null)
+say "greetd starts after: $after"
+if [[ " $after " == *" plymouth-quit-wait.service "* ]]; then good "the login screen waits for the splash to end (After=plymouth-quit-wait.service)"
+else fail "greetd is not ordered after plymouth-quit-wait.service: the splash and the login screen fight over the screen" "send the report (section 2)"; fi
+sub "the timeline of this start (seconds from the kernel's start)"
+journalctl -b -o short-monotonic --no-pager 2>/dev/null >"$TMP/jb"
+mono() { sed -n 's/^\[ *\([0-9]*\.[0-9]*\)\].*/\1/p' | head -n1; }
+t_ply=$(grep -m1 -E 'plymouth-quit-wait.service|Hold until boot process finishes up' "$TMP/jb" | mono)
+t_gd=$(grep -m1 -E 'Started (greetd.service|.*[Gg]reeter daemon)' "$TMP/jb" | mono)
+t_gr=$(grep -m1 -E ' kawa-greet(\[[0-9]+\])?: ' "$TMP/jb" | mono)
+t_fr=$(grep -m1 -iE ' kawa-greet(\[[0-9]+\])?: .*(first frame|shown|drawn)' "$TMP/jb" | mono)
+t_lg=$(grep -m1 -E "session opened for user $U" "$TMP/jb" | mono)
+t_dwl=""
+if ((SES)); then
+  up=$(cut -d' ' -f1 /proc/uptime); et=$(ps -o etimes= -p "$DWLPID" | tr -d ' ')
+  [[ -n $et ]] && t_dwl=$(awk -v u="$up" -v e="$et" 'BEGIN { printf "%.1f", u - e }')
+fi
+{
+  printf '%-44s %s\n' "the kernel starts" 0
+  printf '%-44s %s\n' "the splash ends (plymouth-quit-wait)" "${t_ply:-?}"
+  printf '%-44s %s\n' "greetd started" "${t_gd:-?}"
+  printf '%-44s %s\n' "the login screen's first line (kawa-greet)" "${t_gr:-?}"
+  printf '%-44s %s\n' "the login screen's first frame" "${t_fr:-? (kawa-greet logs no frame line)}"
+  printf '%-44s %s\n' "your session opened (the login)" "${t_lg:-?}"
+  printf '%-44s %s\n' "dwl started (this session)" "${t_dwl:-?}"
+} >>"$BODY"
+tg=${t_fr:-$t_gr}
+if [[ -n $tg ]]; then
+  if (( ${tg%.*} > 30 )); then warn "the login screen came ${tg%.*} s after the kernel started (over 30 s)" "send the report (sections 2 and 8)"
+  else good "the login screen came ${tg%.*} s after the kernel started"; fi
+elif [[ -s $TMP/jb ]]; then warn "the login screen (kawa-greet) logged nothing this boot" "send the report"; fi
+sub "logout → login screen (each logout this boot, and the boot before)"
+{ journalctl -b -1 -o short-unix --no-pager 2>/dev/null; journalctl -b -o short-unix --no-pager 2>/dev/null; } \
+  | grep -E "session closed for user $U| kawa-greet(\[[0-9]+\])?: " \
+  | awk -v u="$U" '$0 ~ "session closed for user " u { c = $1; next }
+                   c != "" { printf "logout at %s → login screen %.1f s later\n", strftime("%F %T", c), $1 - c; c = "" }' >"$TMP/gaps"
+cap <"$TMP/gaps" >>"$BODY"; [[ -s $TMP/gaps ]] || say "(no logout found)"
+gmax=$(awk '{ for (i = 1; i <= NF; i++) if ($i == "screen") print $(i + 1) }' "$TMP/gaps" | sort -n | tail -n1)
+[[ -n $gmax ]] && { if (( ${gmax%.*} > 3 )); then warn "a logout took ${gmax} s to show the login screen (over 3 s)" "send the report (section 2)"; else good "logout → login screen within ${gmax} s"; fi; }
+
+# ════ 3. the install's own log ═══════════════════════════════════════════════════════════
+sec "3. the install's log"
+if [[ -r $LOG ]]; then
+  say "$LOG: $(stat -c %s "$LOG") bytes, $(wc -l <"$LOG") lines"
+  nf=$(grep -c '✘' "$LOG"); nw=$(grep -ciE '(^|[^a-z])warn(ing)?' "$LOG"); ne=$(grep -ciE '(^|[^a-z])(error|failed|fatal)' "$LOG")
+  say "lines with ✘: $nf · with warning: $nw · with error/failed/fatal: $ne"
+  sub "every ✘, error and warning line (with the line before it; the last $MAXL)"
+  grep -n -B1 -iE '✘|(^|[^a-z])(warn(ing)?|error|failed|fatal|refus|timed out|denied)' "$LOG" | tail -n "$MAXL" >>"$BODY"
+  sub "the run's steps (✔ / ✘ lines; the last $MAXL)"
+  grep -nE '✔|✘|── [0-9]\.[0-9]' "$LOG" | tail -n "$MAXL" >>"$BODY"
+  sub "the last $MAXL lines"
+  tail -n "$MAXL" "$LOG" >>"$BODY"
+  ((nf)) && warn "the install's log has $nf ✘ lines (earlier attempts included)" "send the report (section 3)"
+else
+  fail "the install's log $LOG is missing"
+fi
+
+# ════ 4. verify — the install proved ═════════════════════════════════════════════════════
+sec "4. verify"
+if [[ -r $TOOLKIT/verify.sh ]]; then
+  timeout 300 bash "$TOOLKIT/verify.sh" >"$TMP/verify" 2>&1; vr=$?
+  say "\$ sudo bash $TOOLKIT/verify.sh"; cap 400 <"$TMP/verify" >>"$BODY"; say "[exit $vr]"
+  vf=$(grep -c '✘' "$TMP/verify"); vw=$(grep -ciE '⚠|warning' "$TMP/verify")
+  if ((vr == 0 && vf == 0)); then good "verify passed ($(grep -c '✔' "$TMP/verify") checks, $vw warnings)"
+  else fail "verify: $vf checks failed (exit $vr)" "each ✘ says what to do; else send the report"; grep '✘' "$TMP/verify" | detail; fi
+  ((vw)) && warn "verify: $vw warnings" "section 4"
+else fail "verify.sh is missing from $TOOLKIT" "run: sudo bash $TOOLKIT/setup.sh"; fi
+
+# ════ 5. the theme: in sync, current, timed ══════════════════════════════════════════════
+sec "5. the theme"
+if [[ -r $TOOLKIT/theme.sh ]]; then
+  timeout 120 bash "$TOOLKIT/theme.sh" --check --user "$U" >"$TMP/drift" 2>&1; dr=$?
+  sub "theme.sh --check (what differs from the toolkit)"; cap <"$TMP/drift" >>"$BODY"; say "[exit $dr]"
+  if ((dr == 0)); then good "the theme is in sync with the toolkit"; else warn "the theme drifted from the toolkit (exit $dr)" "run: fedokawaii apply"; fi
+fi
+run "current theme" readlink -f "$UH/.config/fedokawaii/current"
+urun "fonts the desktop uses" bash -c 'for f in "Fusion Pixel 12px Mono ja" "Sumi Icons" "Sumi Icons Term" "Noto Sans" "Noto Sans CJK JP" "Noto Kufi Arabic" "JetBrainsMono Nerd Font"; do printf "%-28s → %s\n" "$f" "$(fc-match "$f")"; done'
+fc=$(asu fc-match "Fusion Pixel 12px Mono ja" 2>/dev/null)
+[[ $fc == *Fusion* ]] && good "the pixel font resolves" || fail "the pixel font does not resolve (fc-match: $fc)" "run: fedokawaii apply"
+urun "GTK settings" bash -c 'for k in gtk-theme icon-theme cursor-theme color-scheme font-name; do printf "%-14s %s\n" $k "$(gsettings get org.gnome.desktop.interface $k)"; done'
+run "dwl's animation settings (config.h)" bash -c "grep -niE 'anim|fade|duration' '$UH/.local/src/dwl/config.h' || echo '(none)'"
+if ((QUICK == 0 && SES)) && asu bash -c 'command -v kawa-theme' >/dev/null; then
+  sub "the theme switch, timed (to the other theme and back)"
+  for i in 1 2; do
+    t0=$EPOCHREALTIME; asu timeout 60 kawa-theme >"$TMP/sw.out" 2>&1; r=$?; ms=$(ms_since "$t0")
+    cap 40 <"$TMP/sw.out" >>"$BODY"
+    say "switch $i: ${ms} ms (exit $r) → now $(asu kawa-theme get 2>/dev/null)"
+    ((r == 0)) || fail "kawa-theme switch $i failed (exit $r)" "send the report (section 5)"
+    sleep 2
+  done
+fi
+sub "the theme's own log (~/.cache/kawa-theme.log, the last 40 lines)"
+tail -n 40 "$UH/.cache/kawa-theme.log" >>"$BODY" 2>/dev/null
+# "kawa-theme: switched to light in 412 ms" — the switch as kawa-theme times it itself
+grep -E 'kawa-theme: switched to [a-z]+ in [0-9]+ ms' "$UH/.cache/kawa-theme.log" 2>/dev/null | tail -n 6 >"$TMP/tt"
+if [[ -s $TMP/tt ]]; then
+  slow=$(sed -nE 's/.*switched to ([a-z]+) in ([0-9]+) ms.*/\2 \1/p' "$TMP/tt" | awk '$1 > 400' | sort -n | tail -n1)
+  last=$(sed -nE 's/.*switched to ([a-z]+) in ([0-9]+) ms.*/\2 ms (to \1)/p' "$TMP/tt" | tail -n1)
+  if [[ -n $slow ]]; then warn "a theme switch took ${slow% *} ms (to ${slow#* }; over 400 ms) — the last: $last" "send the report (section 5)"
+  else good "the theme switches in time (the last: $last)"; fi
+else warn "kawa-theme logged no switch time (~/.cache/kawa-theme.log: no 'switched to … in N ms' line)" "switch the theme once (Super+T), then run the report again"; fi
+
+# ════ 6. graphics, monitor, input ════════════════════════════════════════════════════════
+sec "6. graphics, the monitor and input devices"
+run "PCI devices and their drivers" bash -c 'lspci -k | grep -A3 -iE "vga|3d|display|audio|network|ethernet|usb controller" | head -n 80'
+sub "graphics cards (sysfs)"
+for c in /sys/class/drm/card[0-9]; do
+  [[ -e $c/device ]] || continue
+  vram=$(cat "$c/device/mem_info_vram_total" 2>/dev/null)
+  say "${c##*/}: driver $(basename "$(readlink -f "$c/device/driver")") · vendor $(cat "$c/device/vendor") device $(cat "$c/device/device") · boot_vga $(cat "$c/device/boot_vga" 2>/dev/null) · vram $(( ${vram:-0} / 1048576 )) MiB"
+done
+for p in /sys/class/drm/card*-*; do
+  [[ -r $p/status ]] || continue
+  say "  ${p##*/}: $(cat "$p/status")$( [[ $(cat "$p/status") == connected ]] && printf ' · modes: %s' "$(head -n 3 "$p/modes" | tr '\n' ' ')")"
+done
+if ((SES)); then
+  drm=$(tr '\0' '\n' </proc/"$DWLPID"/environ | sed -n 's/^WLR_DRM_DEVICES=//p')
+  say "dwl draws on: ${drm:-(not pinned: wlroots chose)}"
+  [[ -n $drm ]] && good "dwl is pinned to $drm" || warn "dwl is not pinned to a card (WLR_DRM_DEVICES unset)" "send the report (section 6)"
+  urun "outputs (wlr-randr)" wlr-randr
+  cur=$(asu wlr-randr 2>/dev/null | grep -m1 'current' | sed -E 's/.* ([0-9.]+) Hz.*/\1/')
+  hz=$(conf MONITOR_HZ)
+  say "current refresh: ${cur:-?} Hz · MONITOR_HZ ${hz:-?}"
+  [[ -n $cur && -n $hz ]] && { if (( ${cur%.*} + 1 >= hz )); then good "the monitor runs at ${cur} Hz"; else warn "the monitor runs at ${cur} Hz, below MONITOR_HZ=$hz" "check the cable and the monitor's menu; send the report"; fi; }
+else
+  fail "no desktop session is running (dwl not found for $U)" "log in, then run: fedokawaii report"
+fi
+run "the kernel on the GPU (amdgpu, drm, firmware)" bash -c 'journalctl -k -b --no-pager | grep -iE "amdgpu|drm|firmware|radeon" | tail -n 80'
+ng=$(journalctl -k -b --no-pager 2>/dev/null | grep -ciE 'amdgpu.*(error|fail|timeout|hang|reset)')
+((ng)) && fail "the kernel logged $ng amdgpu errors this boot" "send the report (section 6)" || good "no amdgpu errors this boot"
+run "input devices" bash -c 'grep -E "^N: Name=" /proc/bus/input/devices | sed "s/^N: Name=//"'
+grep -qiE 'xp-pen|ugee|g430|tablet|stylus|pen' /proc/bus/input/devices && good "a tablet/pen is seen by the kernel" || say "(no tablet seen — plugged in?)"
+run "USB devices" lsusb
+
+# ════ 7. the session: every part ═════════════════════════════════════════════════════════
+sec "7. the desktop session"
+run "the login service" systemctl status greetd --no-pager -l
+run "the login screen's own log (journal: kawa-greet)" bash -c 'journalctl -b -t kawa-greet --no-pager | tail -n 120'
+ngr=$(journalctl -b -t kawa-greet --no-pager 2>/dev/null | grep -ciE 'traceback|error|exception')
+((ngr)) && warn "the login screen logged $ngr error lines this boot" "send the report (section 7)"
+systemctl is-active --quiet greetd 2>/dev/null && good "greetd is running" || fail "greetd is not running" "run: sudo systemctl start greetd"
+sub "the session's programs (running for $U?)"
+for p in dwl waybar mako swayidle swaybg pipewire wireplumber pipewire-pulse xdg-desktop-portal xdg-desktop-portal-wlr xdg-desktop-portal-gtk lxqt-policykit-agent udiskie foot kawa-clipkeep gammastep; do
+  n=$(pgrep -u "$U" -x "${p:0:15}" | wc -l)
+  say "$(printf '%-24s %s' "$p" "$( ((n)) && echo "running ($n)" || echo MISSING)")"
+  ((SES && n == 0)) && case $p in gammastep|swaybg) warn "$p is not running" ;; *) fail "$p is not running" "log out and in; if it stays, send the report (~/.cache/dwl.log is in section 7)" ;; esac
+done
+pgrep -u "$U" -f kawa-panel >/dev/null && say "kawa-panel               running" || { say "kawa-panel               MISSING"; ((SES)) && fail "kawa-panel (quick settings) is not running" "send the report (~/.cache/kawa-panel.log, section 7)"; }
+urun "your services that failed" systemctl --user --failed --no-pager
+nuf=$(asu systemctl --user --failed --no-legend 2>/dev/null | grep -c .)
+((nuf)) && fail "$nuf of your services failed" "send the report (section 7)"
+sub "the session's services (they must be active)"
+for u in dwl-session.target graphical-session.target fedokawaii-remind.timer pipewire.service wireplumber.service pipewire-pulse.service xdg-desktop-portal.service; do
+  st=$(asu systemctl --user is-active "$u" 2>/dev/null); say "$(printf '%-30s %s' "$u" "${st:-?}")"
+  ((SES)) && [[ $st != active ]] && fail "your $u is ${st:-unknown}, not active" "send the report (section 7)"
+done
+urun "your services' warnings this boot" bash -c 'journalctl --user -b -p warning --no-pager | tail -n 150'
+for f in "$UH"/.cache/*.log "$UH"/.cache/*.log.old; do
+  [[ -f $f ]] || continue
+  sub "${f/#$UH/\~} ($(wc -l <"$f") lines; the last 150)"
+  tail -n 150 "$f" >>"$BODY"
+  [[ $f == *.old ]] && continue
+  ne=$(grep -ciE 'error|traceback|exception|fatal|segfault|crash' "$f")
+  ((ne)) && warn "${f/#$UH/\~}: $ne error lines" "section 7 has its last lines"
+done
+urun "the clipboard and portals" bash -c 'busctl --user list --no-pager | grep -iE "portal|notifications|mpris" | head -n 20'
+
+# ════ 8. the journal: errors, warnings, crashes, denials ════════════════════════════════
+sec "8. the journal"
+run "system units that failed" systemctl --failed --no-pager
+if nsf=$(systemctl --failed --no-legend 2>/dev/null | grep -c .); [[ -d /run/systemd/system ]]; then
+  ((nsf)) && fail "$nsf system units failed" "send the report (section 8)" || good "no system unit failed"
+fi
+sub "errors this boot (most frequent first)"
+journalctl -b -p err --no-pager -o cat 2>/dev/null | sed 's/[0-9]\{2,\}/N/g' | sort | uniq -c | sort -rn | head -n 60 >>"$BODY"
+nerr=$(journalctl -b -p err --no-pager -o cat 2>/dev/null | grep -c .)
+sub "errors this boot (as they came, the last $MAXL)"
+journalctl -b -p err --no-pager 2>/dev/null | tail -n "$MAXL" >>"$BODY"
+sub "warnings this boot (most frequent first)"
+journalctl -b -p warning --no-pager -o cat 2>/dev/null | sed 's/[0-9]\{2,\}/N/g' | sort | uniq -c | sort -rn | head -n 80 >>"$BODY"
+nwarn=$(journalctl -b -p warning --no-pager -o cat 2>/dev/null | grep -c .)
+say "this boot: $nerr error lines, $nwarn warning-or-worse lines"
+((nerr > 0)) && warn "the journal has $nerr error lines this boot" "section 8 groups them"
+run "the boot before: errors" bash -c 'journalctl -b -1 -p err --no-pager | tail -n 120'
+run "crashes (coredumps)" coredumpctl list --no-pager
+ncd=$(coredumpctl list --no-legend --no-pager 2>/dev/null | grep -c .)
+((ncd)) && fail "$ncd programs crashed (coredumps)" "send the report (section 8 lists them)"
+sub "SELinux denials this boot"
+journalctl -b --no-pager 2>/dev/null | grep -E 'avc: +denied' | tail -n 80 >>"$BODY"
+nav=$(journalctl -b --no-pager 2>/dev/null | grep -cE 'avc: +denied')
+((nav)) && warn "SELinux denied $nav actions this boot" "send the report (section 8)"
+run "SELinux mode" getenforce
+
+# ════ 9. network, mirrors, speed ═════════════════════════════════════════════════════════
+sec "9. the network and the mirrors"
+run "devices" nmcli -f DEVICE,TYPE,STATE,CONNECTION device
+run "addresses" ip -br address
+run "routes" ip route
+run "DNS" bash -c 'resolvectl status --no-pager | head -n 40'
+sub "reachable? (TLS handshake time, HTTP status)"
+for u in https://mirrors.fedoraproject.org/ https://download1.rpmfusion.org/ https://codeberg.org/ https://github.com/ https://brave-browser-rpm-release.s3.brave.com/ https://downloads.claude.ai/ https://copr.fedorainfracloud.org/; do
+  r=$(curl -sS -o /dev/null --max-time 15 -w '%{http_code} %{time_connect}s connect · %{time_total}s total' "$u" 2>&1)
+  say "$(printf '%-48s %s' "$u" "$r")"
+  [[ $r =~ ^[1-5][0-9][0-9]\  ]] || fail "unreachable: $u ($r)" "check the network; send the report"   # (any HTTP answer: the server is there)
+done
+run "the mirror dnf would use for Fedora (metalink)" bash -c "curl -sS --max-time 15 'https://mirrors.fedoraproject.org/metalink?repo=fedora-\$(rpm -E %fedora)&arch=x86_64' | grep -o 'https://[^<]*repomd.xml' | head -n 5"
+if ((QUICK == 0)); then
+  m=$(curl -sS --max-time 15 "https://mirrors.fedoraproject.org/metalink?repo=fedora-$(rpm -E %fedora)&arch=x86_64" 2>/dev/null | grep -o 'https://[^<]*repomd.xml' | head -n1)
+  if [[ -n $m ]]; then
+    base=${m%repodata/repomd.xml}
+    f=$(curl -sS --max-time 15 "$m" | grep -o 'href="repodata/[^"]*primary[^"]*"' | head -n1 | cut -d'"' -f2)
+    if [[ -n $f ]]; then
+      sp=$(curl -sS -o /dev/null --max-time 25 -w '%{speed_download} %{size_download}' "$base$f" 2>&1)
+      read -r bps size <<<"$sp"
+      say "download test: ${size:-0} bytes from ${base%%/pub*} at $(( ${bps%.*} / 1024 )) KiB/s"
+      (( ${bps%.*} < 1048576 )) && warn "downloads from the nearest Fedora mirror run at $(( ${bps%.*} / 1024 )) KiB/s (under 1 MiB/s)" || good "mirror speed $(( ${bps%.*} / 1048576 )) MiB/s"
+    fi
+  fi
+fi
+run "repositories" dnf repolist --enabled
+sub "dnf: failed or slow downloads, mirrors given up (its logs)"
+grep -hiE 'curl error|failed to download|timed out|timeout|could not resolve|mirror.*(fail|error)|404|librepo.*error|cannot download|checksum' /var/log/dnf5.log* /var/log/dnf5.librepo.log* 2>/dev/null | tail -n 150 >>"$BODY"
+ndf=$(cat /var/log/dnf5.log* 2>/dev/null | grep -ciE 'curl error|failed to download|could not resolve|cannot download')
+((${ndf:-0})) && warn "dnf's logs hold ${ndf} failed downloads" "section 9"
+run "dnf's transactions" bash -c 'dnf history list | head -n 40'
+
+# ════ 10. sound, Bluetooth, brightness ═══════════════════════════════════════════════════
+sec "10. sound, Bluetooth, brightness"
+urun "sound (wpctl status)" wpctl status
+asu wpctl inspect @DEFAULT_AUDIO_SINK@ >/dev/null 2>&1 && good "a default sound output exists" || { ((SES)) && fail "no default sound output (wpctl)" "send the report (section 10)"; }
+run "Bluetooth" bash -c 'rfkill list; systemctl is-active bluetooth'
+run "monitors over DDC/CI (ddcutil detect)" ddcutil detect --terse
+if ((QUICK == 0 && SES)); then
+  b=$(ddcutil detect --terse 2>/dev/null | awk '/I2C bus:/{sub(/.*i2c-/,""); print; exit}')
+  if [[ -n $b ]]; then
+    t0=$EPOCHREALTIME; ddcutil --bus "$b" getvcp 10 --terse >>"$BODY" 2>&1; g=$(ms_since "$t0")
+    say "reading the brightness over DDC/CI: ${g} ms"
+    lvl=$(ddcutil --bus "$b" getvcp 10 --terse 2>/dev/null | awk '{print $4}')
+    if [[ $lvl =~ ^[0-9]+$ ]]; then
+      t0=$EPOCHREALTIME; ddcutil --bus "$b" setvcp 10 "$lvl" --noverify >>"$BODY" 2>&1; s=$(ms_since "$t0")
+      say "setting it (to the same level): ${s} ms"
+      ((s > 400)) && warn "a brightness change takes ${s} ms over DDC/CI"
+    fi
+  else warn "no monitor answers over DDC/CI (brightness can't change)" "turn DDC/CI on in the monitor's menu"; fi
+fi
+
+# ════ 11. sleep and the lock ═════════════════════════════════════════════════════════════
+sec "11. sleep and the lock"
+# the kernel's and systemd's sleep lines, and the lock agent's own (kawa-power: "sleep
+# requested", "lock up", "resumed", "locker exited rc=N"), the boot before and this one
+{ journalctl -b -1 -o short-unix --no-pager 2>/dev/null; journalctl -b -o short-unix --no-pager 2>/dev/null; } \
+  | grep -E 'systemd-sleep|PM: suspend (entry|exit)|Suspending system|System returned from sleep|[Ff]ailed to (suspend|put system to sleep)|suspend.*(failed|aborted)|Some devices failed to suspend| kawa-power(\[[0-9]+\])?: ' >"$TMP/sleep"
+sub "sleep, resume and the lock (the boot before and this one)"
+awk '{ $1 = strftime("%F %T", $1); print }' "$TMP/sleep" | cap >>"$BODY"; [[ -s $TMP/sleep ]] || say "(no sleep this boot or the one before)"
+nsl=$(grep -c 'PM: suspend entry' "$TMP/sleep")
+nsf=$(grep -cE '[Ff]ailed to (suspend|put system to sleep)|suspend.*(failed|aborted)|Some devices failed to suspend' "$TMP/sleep")
+((nsf)) && { fail "sleep failed $nsf times" "send the report (section 11)"; grep -E 'ailed|aborted' "$TMP/sleep" | cut -d' ' -f2- | detail; }
+if ((nsl)); then
+  if grep -q ' kawa-power' "$TMP/sleep"; then
+    # each sleep: the locker up before the kernel suspends, and not gone before the resume
+    awk '/ kawa-power.*lock up/ { lock = 1 }
+         / kawa-power.*locker exited/ { if (asleep) bad = bad "the locker exited while asleep: " $0 "\n"; lock = 0
+                                        if ($0 !~ /rc=0/) crash = crash $0 "\n" }
+         /PM: suspend entry/ { asleep = 1; if (!lock) bad = bad "suspended with no lock up: " $0 "\n" }
+         /PM: suspend exit/  { asleep = 0 }
+         END { printf "%s", bad > "/dev/stderr"; printf "%s", crash }' "$TMP/sleep" >"$TMP/crash" 2>"$TMP/unlocked"
+    if [[ -s $TMP/unlocked ]]; then fail "the session was unlocked while asleep" "send the report (section 11) at once"; detail <"$TMP/unlocked"
+    else good "$nsl sleeps, each with the screen locked"; fi
+    [[ -s $TMP/crash ]] && { fail "the locker exited with an error (the screen was left open)" "send the report (section 11)"; detail <"$TMP/crash"; }
+  else
+    warn "$nsl sleeps, but the lock agent (kawa-power) logged nothing about them" "update the toolkit (fedokawaii update); send the report"
+  fi
+else say "(no suspend entry found)"; fi
+
+# ════ 12. responsiveness: menus, quick settings, the level display ═════════════════════
+sec "12. responsiveness and animations"
+R=/run/user/$UID_
+sub "the bar's cat (lit while a dropdown is open): markers and who holds them"
+for mk in kawa-drop.open kawa-panel.open; do
+  if [[ -e $R/$mk ]]; then
+    say "$mk present ($(stat -c '%y' "$R/$mk"); holds: $(cat "$R/$mk" 2>/dev/null))"
+    case $mk in
+      kawa-drop.open)  pgrep -u "$U" -x fuzzel >/dev/null || fail "the cat is stuck lit: $mk is left while no menu (fuzzel) is open" "send the report (section 12)" ;;
+      kawa-panel.open) say "(the panel is open now, or the marker was left behind: check it on screen)" ;;
+    esac
+  else say "$mk absent"; fi
+done
+if ((SES && QUICK == 0)); then
+  sub "timings (each command's own time; what is drawn after it may take a frame more)"
+  for c in "kawa-quick --state" "kawa-brightness --level" "kawa-osd" ; do
+    [[ $c == kawa-osd ]] && continue
+    t0=$EPOCHREALTIME; read -ra cw <<<"$c"; asu timeout 15 "${cw[@]}" >/dev/null 2>&1; r=$?; ms=$(ms_since "$t0")
+    say "$(printf '%-26s %6s ms  (exit %s)' "$c" "$ms" "$r")"
+    ((ms > 500)) && warn "$c takes ${ms} ms (the panel waits on it)"
+  done
+  t0=$EPOCHREALTIME; asu timeout 10 kawa-osd "" report 50 >/dev/null 2>&1; ms=$(ms_since "$t0")
+  say "$(printf '%-26s %6s ms' "kawa-osd (level display)" "$ms")"
+  ((ms > 150)) && warn "the level display (volume, brightness) takes ${ms} ms to be sent — it should be instant" "send the report (section 12)"
+fi
+sub "animations and transitions still configured"
+grep -Hn -iE 'transition|animation' "$UH/.config/waybar/style.css" "$UH/.config/fedokawaii/current/"*.css 2>/dev/null | head -n 40 >>"$BODY"
+grep -Hn -iE 'transition|animation' "$UH/.local/bin/kawa-panel" 2>/dev/null | head -n 20 >>"$BODY"
+grep -Hn -iE 'fade|anim' "$UH/.local/src/dwl/config.h" 2>/dev/null | head -n 10 >>"$BODY"
+
+# ════ 13. the bar ════════════════════════════════════════════════════════════════════════
+sec "13. the bar"
+WB=$UH/.config/waybar/config.jsonc
+# each custom module's exec, run once as the bar runs it (sh -c), timed
+asu python3 -c '
+import json, re, sys
+t = open(sys.argv[1]).read()
+out, q, i = [], False, 0
+while i < len(t):
+    c = t[i]
+    if q:
+        out.append(c)
+        if c == "\\": out.append(t[i + 1]); i += 2; continue
+        if c == "\"": q = False
+    elif c == "\"": q = True; out.append(c)
+    elif t.startswith("//", i): i = t.find("\n", i); i = len(t) if i < 0 else i; continue
+    elif t.startswith("/*", i): i = t.find("*/", i) + 2; continue
+    else: out.append(c)
+    i += 1
+conf = json.loads(re.sub(r",(\s*[}\]])", r"\1", "".join(out)))
+for b in conf if isinstance(conf, list) else [conf]:
+    for k, v in b.items():
+        if isinstance(v, dict):
+            # (no interval: the command runs for good, a line each time it has news)
+            if "exec" in v: print(k + "\t" + ("" if "interval" in v else "~") + v["exec"].replace("\n", " "))
+            if k.startswith("clock"): print(k + "\t#format " + str(v.get("format", "")) + " · interval " + str(v.get("interval", 60)))
+' "$WB" >"$TMP/wbmods" 2>"$TMP/wberr"; wr=$?
+if ((wr)); then fail "waybar's config does not parse ($WB)" "send the report (section 13)"; detail <"$TMP/wberr"
+else
+  good "waybar's config parses ($(grep -vc $'\t#' "$TMP/wbmods") modules run a command)"
+  sub "each module's command, run once (as the bar runs it), timed"
+  while IFS=$'\t' read -r mod ex; do
+    if [[ $ex == '#'* ]]; then say "$(printf '%-20s %s' "$mod" "${ex#\#}")"; continue; fi
+    if [[ $ex == '~'* ]]; then   # (runs for good: its first lines in 3 s, untimed)
+      o=$(asu timeout 3 sh -c "${ex#\~}" 2>&1 </dev/null | head -n 2 | tr '\n' ' ')
+      say "$(printf '%-20s %-17s %s' "$mod" "(runs for good)" "${o:0:120}")"; continue
+    fi
+    t0=$EPOCHREALTIME; o=$(asu timeout 10 sh -c "$ex" 2>&1 </dev/null | head -n 3 | tr '\n' ' '); r=${PIPESTATUS[0]}; ms=$(ms_since "$t0")
+    say "$(printf '%-20s %5s ms  exit %-3s %s' "$mod" "$ms" "$r" "${o:0:120}")"
+    ((SES && ms > 1000)) && warn "the bar's $mod takes ${ms} ms" "send the report (section 13)"
+    ((SES && r == 124)) && fail "the bar's $mod hangs (no answer in 10 s)" "send the report (section 13)"
+  done <"$TMP/wbmods"
+fi
+sub "drives: what is plugged in (lsblk) and what the bar shows (kawa-drives bar)"
+lsblk -rno NAME,TYPE,RM,HOTPLUG,TRAN,SIZE,LABEL,MOUNTPOINTS >"$TMP/lsblk" 2>&1
+cap 40 <"$TMP/lsblk" >>"$BODY"
+nrm=$(awk '$2 == "disk" && ($3 == 1 || $4 == 1 || $5 == "usb")' "$TMP/lsblk" | grep -c .)
+bar=$(asu timeout 10 kawa-drives bar 2>&1)
+say "removable drives: $nrm · kawa-drives bar: $bar"
+if ((nrm)); then
+  if [[ $bar == *'"text":""'* || -z $bar ]]; then fail "a drive is plugged in ($nrm), but the bar shows none" "send the report (section 13)"
+  else good "the bar shows the plugged-in drive"; fi
+else say "(no USB drive plugged in: plug one in and run the report again to test the bar's mark)"; fi
+sub "waybar's own log (~/.cache/waybar.log: errors and warnings)"
+grep -iE 'error|warn|fail|critical' "$UH/.cache/waybar.log" 2>/dev/null | cap 60 >>"$BODY"
+nwb=$(grep -ciE '\[error\]|critical|failed' "$UH/.cache/waybar.log" 2>/dev/null)
+((${nwb:-0})) && warn "waybar logged ${nwb} errors" "section 13 lists them"
+
+# ════ 14. notices ═════════════════════════════════════════════════════════════════════════
+sec "14. notices"
+run "mako's buttons (on-button-*)" bash -c "grep -HnE '^on-button|^\\[' '$UH/.config/mako/config' '$UH/.config/fedokawaii/current/mako'"
+grep -q '^on-button-left=' "$UH/.config/mako/config" 2>/dev/null || warn "mako's config sets no on-button-left (a click does mako's default)" "run: fedokawaii apply"
+if ((SES)); then
+  nh=$(asu makoctl history 2>/dev/null | grep -cE '^Notification [0-9]+|"id"')
+  say "notices in mako's history: $nh"
+  t0=$EPOCHREALTIME; id=$(asu notify-send -p -a fedokawaii-report "health report" "a test notice (it goes by itself)" 2>/dev/null)
+  shown=""
+  if [[ $id =~ ^[0-9]+$ ]]; then
+    for _ in $(seq 30); do
+      asu makoctl list 2>/dev/null | grep -qE "^Notification ${id}:|\"data\": ?${id}[,}]" && { shown=$(ms_since "$t0"); break; }
+      sleep 0.1
+    done
+    asu makoctl dismiss -n "$id" >/dev/null 2>&1
+  fi
+  say "notify-send → shown by mako: ${shown:-never (in 3 s)} ms (id ${id:-none})"
+  if [[ -z $shown ]]; then fail "a notice sent was not shown by mako in 3 s" "send the report (section 14)"
+  elif ((shown > 500)); then warn "a notice took ${shown} ms to show" "send the report (section 14)"
+  else good "a notice shows in ${shown} ms"; fi
+fi
+
+# ════ 15. fonts: Arabic, the families the configs name, spacing ═════════════════════════
+sec "15. fonts"
+run "Arabic fonts (fc-list :lang=ar)" bash -c 'fc-list :lang=ar family | sort -u'
+[[ -n $(fc-list :lang=ar family 2>/dev/null) ]] && good "Arabic fonts are installed" || fail "no Arabic font is installed (fc-list :lang=ar is empty)" "run: sudo dnf install google-noto-kufi-arabic-fonts google-noto-naskh-arabic-fonts"
+sub "every family the configs name, and what fontconfig gives for it"
+{
+  sed -n 's/^font=//p' "$UH/.config/foot/foot.ini" "$UH/.config/fuzzel/fuzzel.ini" "$UH/.config/fedokawaii/current/foot.ini" "$UH/.config/fedokawaii/current/fuzzel.ini" 2>/dev/null | tr ',' '\n' | sed 's/:.*//'
+  sed -n 's/^font=//p' "$UH/.config/mako/config" 2>/dev/null | tr ',' '\n' | sed -E 's/ [0-9]+(px)?$//'
+  grep -ho 'font-family:[^;]*' "$UH/.config/waybar/style.css" "$UH/.config/fedokawaii/current/"*.css 2>/dev/null | sed 's/font-family://' | tr ',' '\n' | tr -d '"'"'"
+} | sed 's/^ *//; s/ *$//' | grep -vE '^(monospace|sans-serif|serif|inherit)?$' | sort -u >"$TMP/fams"
+while IFS= read -r fam; do
+  got=$(asu fc-match -f '%{family}' "$fam" 2>/dev/null)
+  say "$(printf '%-30s → %s' "$fam" "$got")"
+  [[ ,${got,,}, == *",${fam,,},"* || ${got,,} == "${fam,,}"* ]] || warn "the font '$fam' is missing: fontconfig gives '$got' instead" "run: fedokawaii apply; else send the report"
+done <"$TMP/fams"
+ar=$(asu fc-match -f '%{family}' ':lang=ar' 2>/dev/null); say "Arabic text in the UI falls to: $ar"
+sub "spacing (not checked: the values, to compare with the screen)"
+say "foot: $(grep -hE '^(font|line-height|pad|letter-spacing)=' "$UH/.config/foot/foot.ini" "$UH/.config/fedokawaii/current/foot.ini" 2>/dev/null | tr '\n' ' ')"
+say "the console font (/etc/vconsole.conf): $(grep -h '^FONT=' /etc/vconsole.conf 2>/dev/null)"
+
+# ════ 16. the launcher ════════════════════════════════════════════════════════════════════
+sec "16. the launcher"
+# the entries shown: ~/.local/share/applications first (it hides or replaces a system one by
+# the same name), then /usr/local/share and /usr/share; NoDisplay=true and Hidden=true are not shown
+declare -A seen=() want=()
+for f in "$TOOLKIT"/configs/home/.local/share/applications/*.desktop; do [[ -f $f ]] && want[${f##*/}]=1; done
+for d in $(sed -n 's/^[^#[][^=]*=//p' "$UH/.config/mimeapps.list" 2>/dev/null | tr ';' ' '); do want[$d]=1; done
+: >"$TMP/shown"
+for dir in "$UH/.local/share/applications" /usr/local/share/applications /usr/share/applications; do
+  for f in "$dir"/*.desktop; do
+    [[ -f $f ]] || continue
+    b=${f##*/}; [[ -n ${seen[$b]:-} ]] && continue; seen[$b]=1
+    awk -v f="$f" -F= '/^\[/ { s = ($0 == "[Desktop Entry]") } s && /^(NoDisplay|Hidden|Exec|TryExec|Terminal|Type)=/ { v[$1] = substr($0, length($1) + 2) }
+      END { if (v["NoDisplay"] != "true" && v["Hidden"] != "true" && (v["Type"] == "" || v["Type"] == "Application"))
+              printf "%s\t%s\t%s\t%s\n", f, v["Exec"], v["TryExec"], v["Terminal"] }' "$f" >>"$TMP/shown"
+  done
+done
+say "$(grep -c . "$TMP/shown") entries are shown in the launcher"
+junk=() noexec=() term=()
+while IFS=$'\t' read -r f ex try tm; do
+  b=${f##*/}
+  read -ra w <<<"$ex"; i=0
+  while [[ ${w[i]:-} == env || ${w[i]:-} == *=* ]]; do i=$((i + 1)); done
+  p=${w[i]:-}; p=${p//\"/}
+  if [[ -z $p ]] || ! asu bash -c 'command -v -- "$1"' _ "$p" >/dev/null 2>&1; then noexec+=("$b (Exec: ${p:-none})")
+  elif [[ -n $try ]] && ! asu bash -c 'command -v -- "$1"' _ "$try" >/dev/null 2>&1; then noexec+=("$b (TryExec: $try)"); fi
+  [[ $tm == true ]] && term+=("$b")
+  [[ -n ${want[$b]:-} ]] || junk+=("$b")
+  say "$(printf '%-48s %s%s' "$b" "$ex" "$( [[ $tm == true ]] && echo '   [Terminal=true]')")"
+done <"$TMP/shown"
+((${#noexec[@]})) && { fail "${#noexec[@]} launcher entries open nothing (their program is missing)" "send the report (section 16)"; printf '%s\n' "${noexec[@]}" | detail; }
+((${#junk[@]})) && { warn "${#junk[@]} entries in the launcher are not the desktop's own" "send the report: they can be hidden"; echo "${junk[*]}" | fold -s -w 90 | detail; }
+if ((${#term[@]})); then
+  warn "${#term[@]} entries open in a plain terminal (Terminal=true), not through kawa-term" "send the report (section 16)"; printf '%s\n' "${term[@]}" | detail
+fi
+((${#noexec[@]} + ${#junk[@]} + ${#term[@]})) || good "every entry in the launcher is the desktop's and opens"
+if command -v desktop-file-validate >/dev/null; then
+  sub "desktop-file-validate (the shown entries)"
+  cut -f1 "$TMP/shown" | xargs -r desktop-file-validate 2>&1 | cap 80 >>"$BODY"
+fi
+
+# ════ 17. dwl: layouts, VRR, its log ════════════════════════════════════════════════════
+sec "17. dwl"
+DL=$UH/.cache/dwl.log
+run "VRR and layout lines (~/.cache/dwl.log)" grep -E 'vrr:|layout' "$DL"
+grep -q 'vrr:' "$DL" 2>/dev/null || { ((SES)) && warn "dwl logged no VRR line this session (vrr: <output> on|off)" "update the toolkit; send the report"; }
+grep -E 'vrr: .* has no adaptive sync' "$DL" 2>/dev/null | while IFS= read -r l; do say "($l)"; done
+run "the layout each monitor shows now" bash -c "for f in /run/user/$UID_/dwl-bar/*/layout.json /run/user/$UID_/dwl-bar/layout.json; do [ -f \"\$f\" ] && printf '%s: %s\n' \"\$f\" \"\$(cat \"\$f\")\"; done"
+sub "dwl's log, the last $MAXL lines"
+tail -n "$MAXL" "$DL" >>"$BODY" 2>/dev/null
+
+# ════ 18. disks, snapshots, memory ═══════════════════════════════════════════════════════
+sec "18. disks, snapshots, memory"
+run "space" df -h -x tmpfs -x devtmpfs
+run "Btrfs" btrfs filesystem usage -h /
+run "snapshots (/)" snapper -c root list
+run "snapshots (/home)" snapper -c home list
+run "memory and swap" bash -c 'free -h; swapon --show'
+run "processor" bash -c 'lscpu | head -n 20'
+pct=$(df --output=pcent / | tail -n1 | tr -dc 0-9); ((pct > 85)) && warn "/ is ${pct}% full" "make room (gdu ~)"
+run "files in your home not yours" bash -c "find '$UH' -xdev -not -user '$U' -not -path '*/.cache/*' 2>/dev/null | head -n 30"
+nno=$(find "$UH" -xdev -not -user "$U" -not -path '*/.cache/*' 2>/dev/null | grep -c .)
+((nno)) && warn "$nno files in your home belong to someone else" "run: sudo chown -R $U: ~ (section 18 lists them)"
+run "secrets.sh (mode only — never read)" stat -c '%A %U %n' "$UH/.config/fedokawaii/secrets.sh"
+
+# ════ 19. every program, proved ══════════════════════════════════════════════════════════
+sec "19. every program, proved"
+# NAME | KIND | NEEDS | CHECK | WHAT SUCCESS MEANS
+#   KIND  req: the desktop ships it (missing or broken: FAIL) · opt: a choice in
+#         fedokawaii.conf (missing: WARN) · ses: needs the running desktop · root: as root
+#   NEEDS the program that must be there (~ is your home; - none); CHECK runs as you in the
+#         session's environment (bash), 25 s at most; exit 0 is success
+SWT=$(cat <<'TABLE'
+foot | req | foot | foot --version | prints its version
+foot's config | req | foot | foot --check-config | foot.ini (and the theme's) parse
+foot server | ses | footclient | footclient --version && ss -xl | grep -qF "$XDG_RUNTIME_DIR/foot-$WAYLAND_DISPLAY.sock" | the terminal server listens (new terminals open at once)
+fuzzel | req | fuzzel | fuzzel --version | prints its version
+fuzzel's config | req | fuzzel | fuzzel --check-config | fuzzel.ini (and the theme's) parse
+mako | ses | makoctl | makoctl mode | mako answers on D-Bus
+mako's config | ses | makoctl | makoctl reload | mako takes its config again (no bad key)
+waybar | ses | waybar | waybar --version && pgrep -x waybar >/dev/null | waybar runs
+sound | ses | wpctl | wpctl status | grep -q Audio | PipeWire answers, with its Audio list
+cava | req | cava | cava -v | prints its version
+playerctl | req | playerctl | playerctl --version | prints its version
+wiremix | req | wiremix | wiremix --version | prints its version
+neovim | req | nvim | o=$(timeout 40 nvim --headless -c 'lua vim.defer_fn(function() io.stdout:write(vim.fn.execute("messages")) vim.cmd("qa!") end, 1500)' 2>&1); r=$?; printf '%s\n' "$o"; [ $r = 0 ] && ! grep -qE 'E[0-9]+:|Error|error' <<<"$o" | starts with its config (LazyVim) and no error in :messages
+yazi | req | yazi | yazi --version && ya --version | yazi and ya print their versions
+yazi's config | req | python3 | for f in ~/.config/yazi/*.toml; do python3 -c 'import sys, tomllib; tomllib.load(open(sys.argv[1], "rb"))' "$f" || exit 1; echo "$f: ok"; done | every TOML file in ~/.config/yazi parses
+lazygit | req | lazygit | lazygit --version | prints its version
+lazygit's config | req | python3 | python3 -c 'import sys, yaml; yaml.safe_load(open(sys.argv[1])); print("ok")' ~/.config/lazygit/config.yml | config.yml parses
+btop | req | btop | btop --version && awk '!/^[[:space:]]*(#|$)/ && !/^[a-z_]+ = /{print "bad line " NR ": " $0; bad=1} END{exit bad}' ~/.config/btop/btop.conf | prints its version; btop.conf is all "key = value" lines
+visidata | req | vd | vd --version | prints its version
+zathura | ses | zathura | zathura --version | prints its version (and its plugins)
+mpv | req | mpv | mpv --version | prints its version
+mpv's config | req | mpv | o=$(mpv --msg-level=all=warn --vo=null --ao=null --frames=1 --keep-open=no --idle=no --input-terminal=no 'av://lavfi:testsrc=d=1' 2>&1); r=$?; printf '%s\n' "$o"; [ $r = 0 ] && ! grep -qiE 'error|unknown|invalid' <<<"$o" | plays one frame with mpv.conf loaded, and no option refused
+imv | req | imv | ! ldd "$(command -v imv)" | grep 'not found' | its libraries are all there
+brave | req | brave-origin | brave-origin --version | prints its version
+claude | req | claude | claude --version | prints its version
+syncplay | req | ~/.local/bin/syncplay | syncplay --version | prints its version
+gtklock | req | gtklock | gtklock --version | prints its version
+swayidle | ses | swayidle | pgrep -x swayidle >/dev/null | the idle watcher runs (lock, screens off)
+swaybg | ses | swaybg | pgrep -x swaybg >/dev/null | the wallpaper runs
+clipboard | ses | wl-copy | t="fedokawaii-report-$$"; wl-copy --primary -- "$t" && sleep 0.3 && [ "$(wl-paste --primary -n)" = "$t" ]; r=$?; wl-copy --primary --clear; exit $r | a text copied (the selection, never your clipboard) comes back
+clipboard history | req | cliphist | cliphist version | prints its version
+screenshot | ses | grim | f=$(mktemp /tmp/fedokawaii-report.XXXXXX); grim -s 0.25 -t png "$f" && [ -s "$f" ]; r=$?; rm -f "$f"; exit $r | grim takes a picture of the live screen
+slurp | req | slurp | ! ldd "$(command -v slurp)" | grep 'not found' | its libraries are all there
+satty | req | satty | satty --version | prints its version
+outputs | ses | wlr-randr | wlr-randr | lists the monitors
+screens off | ses | wlopm | wlopm | lists the monitors' power
+wtype | req | wtype | ! ldd "$(command -v wtype)" | grep 'not found' | its libraries are all there
+night light | req | gammastep | gammastep -V | prints its version
+notices | req | notify-send | notify-send --version | prints its version
+udiskie | req | udiskie | udiskie --version | prints its version
+bluetooth | req | bluetoothctl | bluetoothctl --version | prints its version
+bluetui | req | bluetui | bluetui --version | prints its version
+restic | req | restic | restic version | prints its version
+snapper | root | snapper | snapper -c root list | lists the system's snapshots
+ddcutil | req | ddcutil | ddcutil --version | prints its version
+herdr | req | herdr | herdr --version | prints its version
+torrra | req | ~/.local/share/pipx/bin/torrra | ~/.local/share/pipx/bin/torrra --version | prints its version
+localsend | req | localsend | ! ldd "$(readlink -f "$(command -v localsend)")" | grep 'not found' | its libraries are all there
+spotify | opt | spotify | rpm -q spotify-client | built from RPM Fusion's recipe (lpf) and installed
+steam | opt | steam | rpm -q steam | installed
+xournal++ | ses | xournalpp | xournalpp --version | prints its version
+libreoffice | req | libreoffice | libreoffice --version | prints its version
+qalculate | req | qalc | qalc -t 6*7 | grep -qx 42 | works a sum out
+OCR | req | tesseract | tesseract --list-langs 2>&1 | grep -qx ara && tesseract --list-langs 2>&1 | grep -qx eng | knows Arabic and English
+ImageMagick | req | magick | magick -version | prints its version
+PDF tools | req | qpdf | qpdf --version && gs --version && pdfinfo -v | qpdf, ghostscript and poppler answer
+media | req | ffmpeg | ffmpeg -hide_banner -version && ffprobe -hide_banner -version | ffmpeg and ffprobe print their versions
+yt-dlp | req | yt-dlp | yt-dlp --version && node --version | yt-dlp and its JavaScript runtime answer
+video decoding | ses | vainfo | vainfo --display drm | VA-API names the card's driver
+shell tools | req | fzf | fzf --version && fd --version && rg --version && bat --version && eza --version && zoxide --version && gdu --version && 7z i >/dev/null && file --version && jq --version | fzf, fd, rg, bat, eza, zoxide, gdu, 7z, file and jq answer
+git | req | git | git --version && gh --version | git and gh print their versions
+shellcheck | req | shellcheck | shellcheck --version | prints its version
+tree-sitter | req | tree-sitter | tree-sitter --version | prints its version
+podman | req | podman | podman info --format '{{.Host.OS}}' | podman works (Prowlarr runs in it)
+the prompt (ble.sh) | req | ~/.local/share/blesh/ble.sh | o=$(bash -ic 'printf "ble.sh %s\n" "${BLE_VERSION:-not loaded}"' 2>&1 </dev/null); r=$?; printf '%s\n' "$o"; [ $r = 0 ] && ! grep -qiE 'error|syntax|not found' <<<"$o" | the shell starts with ble.sh and its settings, without an error
+dwl | root | /usr/local/bin/dwl | ! ldd /usr/local/bin/dwl | grep 'not found' | its libraries (its own wlroots) are all there
+login screen | root | /usr/local/bin/kawa-greet | python3 -c 'import ast, sys; ast.parse(open(sys.argv[1]).read())' /usr/local/bin/kawa-greet && cage -v | kawa-greet is whole Python; cage answers
+kawa-veil | req | kawa-veil | ! ldd "$(command -v kawa-veil)" | grep 'not found' | built, its libraries all there
+kawa-clipkeep | req | kawa-clipkeep | ! ldd "$(command -v kawa-clipkeep)" | grep 'not found' | built, its libraries all there
+tuned | root | tuned-adm | tuned-adm active | the fedokawaii profile is active
+TABLE
+)
+# every kawa-* helper of the toolkit: --help exits 0
+for f in "$TOOLKIT"/bin/kawa-*; do
+  [[ -f $f ]] && SWT+=$'\n'"${f##*/} | req | ~/.local/bin/${f##*/} | ${f##*/} --help >/dev/null | --help exits 0"
+done
+[[ -d $TOOLKIT/bin ]] || fail "the toolkit has no bin/ ($TOOLKIT)" "run: sudo bash $TOOLKIT/setup.sh"
+# lib/upstream.sh's binaries not checked above by name
+if [[ -r $TOOLKIT/lib/upstream.sh ]]; then
+  for b in $(sed -nE 's/^\s*"[^"|]+\|[^"]*\|([^"|]*)"\s*$/\1/p' "$TOOLKIT/lib/upstream.sh"); do
+    grep -qE "^[^|]*\| [a-z]+ \| (~/.local/bin/)?$b \|" <<<"$SWT" || grep -q "$b --version" <<<"$SWT" \
+      || SWT+=$'\n'"$b | req | ~/.local/bin/$b | $b --version | prints its version"
+  done
+else fail "lib/upstream.sh is missing from the toolkit" "run: sudo bash $TOOLKIT/setup.sh"; fi
+
+SW=$TMP/sw; mkdir -m 0777 "$SW"
+# shellcheck disable=SC2016  # (the check's own shell expands it)
+CHK='n=${1/#\~/$HOME}; [ "$1" = - ] || command -v -- "$n" >/dev/null || { echo "(not installed: $1)"; exit 127; }; eval "$2"'
+n=0
+while IFS= read -r line; do
+  [[ -n $line ]] || continue
+  n=$((n + 1))
+  name=${line%% | *}; rest=${line#* | }; kind=${rest%% | *}; rest=${rest#* | }
+  need=${rest%% | *}; rest=${rest#* | }; mean=${rest##* | }; ck=${rest% | *}
+  printf '%s\t%s\t%s\t%s\t%s\n' "$name" "$kind" "$need" "$ck" "$mean" >"$SW/$n.def"
+  if [[ $kind == ses ]] && ((SES == 0)); then echo 200 >"$SW/$n.rc"; continue; fi
+  while (($(jobs -rp | wc -l) >= 8)); do wait -n; done
+  {
+    t0=$EPOCHREALTIME
+    if [[ $kind == root ]]; then HOME=/root timeout 45 bash -c "$CHK" _ "${need/#\~/$UH}" "$ck" >"$SW/$n.out" 2>&1 </dev/null
+    else asu timeout 45 bash -c "$CHK" _ "$need" "$ck" >"$SW/$n.out" 2>&1 </dev/null; fi
+    echo $? >"$SW/$n.rc"; ms_since "$t0" >"$SW/$n.ms"
+  } &
+done <<<"$SWT"
+# the packages themselves: every one the manifest installs here is there, its files whole
+if [[ -r $TOOLKIT/lib/manifest.sh ]]; then
+  ( export STEAM SPOTIFY STATE_DIR=$STATE; STEAM=$(conf STEAM) SPOTIFY=$(conf SPOTIFY)
+    # shellcheck source=/dev/null
+    . "$TOOLKIT/lib/manifest.sh" && manifest_all "$(cat "$STATE/gpu" 2>/dev/null)" ) >"$TMP/pkgs" 2>"$TMP/pkgs.err" \
+    || fail "lib/manifest.sh gives no package list" "send the report"
+  { while IFS= read -r p; do
+      [[ -n $p ]] || continue
+      if ! rpm -q --quiet "$p"; then echo "NOT INSTALLED $p"; continue; fi
+      rpm -V --nofiledigest --nomtime --nouser --nogroup --nomode --nordev --nosize "$p" | grep '^missing' | grep -vE '^missing +[cdgl] ' | sed "s|^|$p: |"
+    done <"$TMP/pkgs" >"$TMP/rpmv"; } &
+else fail "lib/manifest.sh is missing from the toolkit: the packages are not checked" "run: sudo bash $TOOLKIT/setup.sh"; fi
+wait
+sub "the packages lib/manifest.sh installs ($(grep -c . "$TMP/pkgs" 2>/dev/null) here): installed, no file missing"
+if [[ -s $TMP/pkgs ]]; then
+  cap <"$TMP/rpmv" >>"$BODY"
+  np=$(grep -c '^NOT INSTALLED' "$TMP/rpmv"); nm=$(grep -vc '^NOT INSTALLED' "$TMP/rpmv")
+  if ((np)); then fail "$np packages of the manifest are not installed" "run: fedokawaii repair"; sed -n 's/^NOT INSTALLED //p' "$TMP/rpmv" | tr '\n' ' ' | fold -s -w 90 | detail; fi
+  if ((nm)); then fail "$nm files of the manifest's packages are missing" "run: sudo dnf reinstall <the package>"; grep -v '^NOT INSTALLED' "$TMP/rpmv" | detail; fi
+  ((np + nm)) || good "all $(grep -c . "$TMP/pkgs") packages of the manifest are installed, none missing a file"
+fi
+sub "each program, run (name · result · time · what success means)"
+nok=0 nbad=0
+for ((i = 1; i <= n; i++)); do
+  IFS=$'\t' read -r name kind need ck mean <"$SW/$i.def"
+  r=$(cat "$SW/$i.rc" 2>/dev/null); ms=$(cat "$SW/$i.ms" 2>/dev/null)
+  case $r in
+    0)   st=ok; nok=$((nok + 1)) ;;
+    200) st="skipped (no desktop session)" ;;
+    127) if [[ $kind == opt ]]; then st="not installed (optional)"; warn "$name is not installed (optional)" "set it in fedokawaii.conf, then: fedokawaii apply"
+         elif grep -q '^(not installed' "$SW/$i.out"; then st="NOT INSTALLED"; nbad=$((nbad + 1)); fail "$name is not installed" "run: fedokawaii repair"
+         else st="BROKEN (exit 127)"; nbad=$((nbad + 1)); fail "$name: installed but broken (exit 127)" "send the report (section 19)"; detail <"$SW/$i.out"; fi ;;
+    124) st="BROKEN (no answer in 45 s)"; nbad=$((nbad + 1)); fail "$name: installed but hangs (no answer in 45 s)" "send the report (section 19)" ;;
+    *)   st="BROKEN (exit $r)"; nbad=$((nbad + 1)); fail "$name: installed but broken (exit $r)" "send the report (section 19)"; detail <"$SW/$i.out" ;;
+  esac
+  say "$(printf '%-22s %-26s %6s ms   %s' "$name" "$st" "${ms:--}" "$mean")"
+  if [[ $r != 0 && $r != 200 ]]; then { printf '    $ %s\n' "$ck"; sed 's/^/    /' "$SW/$i.out" | cap 30; } >>"$BODY"; fi
+done
+((nbad == 0)) && good "every program checked works ($nok run)"
+
+# ════ the report ══════════════════════════════════════════════════════════════════════════
+took=$(ms_since "$START")
+{
+  echo "fedokawaii health report — $(date '+%Y-%m-%d %H:%M:%S %Z') — $(hostname) — for $U"
+  echo "made by fedokawaii-report in $((took / 1000)) s$( ((QUICK)) && echo ' (--quick: no timed tests)')"
+  echo
+  if ((FAILS)); then echo "VERDICT: BROKEN — $FAILS failures, $WARNS warnings"
+  elif ((WARNS)); then echo "VERDICT: WORKS, WITH WARNINGS — $WARNS warnings"
+  else echo "VERDICT: HEALTHY — nothing failed, no warnings"; fi
+  echo
+  echo "── findings by area (FAIL, then WARN; → what to do or send) ─────────────────────"
+  while IFS= read -r a; do
+    awk -F'\t' -v a="$a" '$1 == a' "$FIND" >"$TMP/fa"
+    grep -qP '\t(FAIL|WARN)\t' "$TMP/fa" || continue
+    printf '\n%s\n' "$a"
+    awk -F'\t' '
+      $2 == "FAIL" || $2 == "WARN" { lvl = $2; printf "  %-4s  %s\n", $2, $3; if ($4 != "") printf "          → %s\n", $4; keep = 1; next }
+      $2 == "detail" { if (keep) print $3; next }
+      { keep = 0 }' "$TMP/fa" | awk '/^  FAIL/ { f = 1 } { print }'
+  done <"$TMP/areas"
+  echo
+  echo "── fine ─────────────────────────────────────────────────────────────────────────"
+  awk -F'\t' '$2 == "ok" { printf "  ok    %s\n", $3 }' "$FIND"
+  cat "$BODY"
+} | sed -E 's/((password|passwd|passphrase|secret|token|api[_-]?key|psk|RESTIC_PASSWORD)[A-Za-z_]*[[:space:]]*[=:][[:space:]]*)[^[:space:]]+/\1●●●/Ig; s/(Bearer[[:space:]]+)[^[:space:]]+/\1●●●/Ig' >"$TMP/report"
+install -m 0600 -o "$U" -g "$(id -gn "$U")" "$TMP/report" "$OUT"
+echo "fedokawaii-report: $OUT ($(wc -l <"$OUT") lines) — $( ((FAILS)) && echo "BROKEN: $FAILS failures, $WARNS warnings" || { ((WARNS)) && echo "works, $WARNS warnings" || echo healthy; })"
+# run from a stick: a copy beside the script too, to carry back
+here=$(cd "$(dirname "$0")" && pwd)
+if [[ $here != /usr/local/* && -w $here ]]; then cp "$OUT" "$here/fedokawaii-report.txt" && echo "fedokawaii-report: also $here/fedokawaii-report.txt"; fi
+exit 0
