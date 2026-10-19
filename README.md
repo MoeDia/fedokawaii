@@ -103,7 +103,7 @@ PACKAGES.md        what is installed, from where, and why
   shell starts no extra process.
 - **Wallpapers**: the default is one quiet place by night and by day — layers of ink-wash
   ridges under a pale moon on the dark theme, the same ridges on paper under a vermilion sun
-  on the light — from a curated pack of 100 (`WALLPAPER_PACK="yes"`), fetched from GitHub at
+  on the light — from a curated pack of 120 (`WALLPAPER_PACK="yes"`), fetched from GitHub at
   pinned commits, checked by SHA-256 and shown at full quality: all Japanese — Hokusai,
   Hiroshige and shin-hanga prints, ink and brush, streets and trains by night and by day,
   anime film (credits and

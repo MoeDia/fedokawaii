@@ -48,7 +48,7 @@ class UI:
     def launch(self, argv): self.calls.append("launch " + " ".join(argv))
     def answer(self, out="", rc=0):            # the oldest run comes back
         self.pending.pop(0)(rc, out)
-STATE = ("theme\tdark\nbrightness\t70%\nnight\ton\nvrr\tin games\nwallpaper\triverside-night\nsound\t62%\n"
+STATE = ("theme\tdark\nbrightness\t70%\nnight\ton\nvrr\tin games\nwallpaper\tmishima-mist\nsound\t62%\n"
          "nettype\twifi\nnetwork\tHome Net 5G\nbluetooth\ton\ndevices\tnone\ndrives\tKINGSTON 58G\n"
          "backup\t3 days ago\ndnd\toff\n")
 u = UI(); p = kp.Panel(u)
@@ -106,7 +106,7 @@ eq "$(t 'STATE.replace("3 days ago","never")' backup)" "archive 蔵 backup | nev
 eq "$(t '' dnd)" "bell 静 dnd | off | plain"
 eq "$(t 'STATE.replace("dnd\toff","dnd\ton")' dnd)" "bell_off 静 dnd | on | stamped"
 case_ "the wallpaper's name: the tip of its key"
-eq "$(py 'fresh(); print(p.item("wallpaper").tip)')" riverside-night
+eq "$(py 'fresh(); print(p.item("wallpaper").tip)')" mishima-mist
 case_ "the date: in kanji, then in English; 1…31 as kanji numbers"
 eq "$(py 'print(hasattr(kp, "date_line"), hasattr(kp, "kanji_number"))')" "False False" "no day or weather line: the bar shows them, right above"
 case_ "the icons by name, from icons.sh (none hard-coded)"

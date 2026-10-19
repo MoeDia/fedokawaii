@@ -1142,7 +1142,7 @@ GPU="amd"` — and so is a setting written twice or missing. After the install, 
 | `WEATHER_CITY` | `Sharjah` | the weather in the bar (wttr.in, no key) |
 | `NIGHT_LIGHT` | `25.35:55.40` | latitude:longitude for gammastep, which works out sunset and sunrise from it (north and east are positive) |
 | `THEME` | `dark` | the theme a new install starts in; afterwards it is whatever you last switched to |
-| `WALLPAPER_PACK` | `yes` | fetch the wallpaper pack once (100 pictures, about 315 MB, kept as they came); with `no`, each theme shows its plain ground until you add pictures of your own |
+| `WALLPAPER_PACK` | `yes` | fetch the wallpaper pack once (120 pictures, about 360 MB, kept as they came); with `no`, each theme shows its plain ground until you add pictures of your own |
 | `BOOT_MENU_SECONDS` | `2` | how long the themed boot menu shows (0–10); `0` = Fedora's hidden menu |
 | `DNF_PARALLEL` | `10` | parallel downloads (1–20) |
 | `DWL_TAG`, `DWL_COMMIT`, `DWL_WLROOTS` | `v0.9`, pinned, `0.20` | dwl is built from exactly this commit, against wlroots 0.20; should the tag point anywhere else, setup refuses to build |
@@ -2401,35 +2401,42 @@ Each theme remembers its own wallpaper. The choices:
   **ink-ridges** on the light one (the same ridges on paper, under a vermilion sun) — quiet,
   sparing, in the themes' own ink, paper and vermilion. Before the pack is
   fetched — or with `WALLPAPER_PACK="no"` — the screen shows the theme's plain ground.
-* **the pack** (`WALLPAPER_PACK="yes"`) — 100 pictures (50 for the dark theme, 50 for the
-  light), about 315 MB, fetched once from GitHub at pinned commits and checked by SHA-256. They
+* **the pack** (`WALLPAPER_PACK="yes"`) — 120 pictures (60 for the dark theme, 60 for the
+  light), about 360 MB, fetched once from GitHub at pinned commits and checked by SHA-256. They
   are kept exactly as they came (`~/.local/share/fedokawaii/wallpapers/dark/` and `light/`,
   each `NAME.src`), nothing redrawn. Offline, the fetch stops after three pictures that could
   not reach GitHub and leaves the rest for the next run. Every one is Japanese, and the picker
   lists them grouped by kind, the theme's default first:
 
     - *dark*: ink and brush (the ink ridges, a ronin by the waves, a dragon in grey on black,
-      a moonlit field in pen and ink); woodblock prints by night (Hiroshige's Tōkaidō in
-      twilight, night snow and rain, a bridge in a shower; Hokusai's storm beneath Fuji;
-      Shōtei's Fuji at dusk and junks under a crescent moon, Kiyosu Bridge at dusk, Hasui's
-      rain at the Sakurada Gate, Yoshida's Fuji at first light); towns, trains and streets by
-      night (a train by the sea, rails into the afterglow, power lines over night roads and
-      violet dusk, laundry on old Tokyo houses, vending machines in the snow, a level
-      crossing, a riverside, hydrangeas in the rain, a moonlit bay); and anime film (Totoro,
-      Your Name, 5 Centimeters per Second, Tokyo in the rain and at night, Chainsaw Man).
+      moonlit fields and a moonlit road in pen and ink, a torii in moonlight); woodblock
+      prints by night (Hiroshige's Tōkaidō in twilight, mist, night snow and rain, a bridge in
+      a shower, Kyoto's Shimabara at dawn, the autumn moon over Tamachi, Ushiwakamaru by
+      moonlight; Hokusai's storm beneath Fuji and a fire by a snowbound hut; Kuniyoshi's
+      Nichiren on the stormy sea; Shōtei's Fuji at dusk and junks under a crescent moon,
+      Kiyosu Bridge at dusk, Kōhō's moonlit beach, Hasui's rain at the Sakurada Gate and
+      Ryūga Island at dusk, Yoshida's Fuji at first light); towns, trains and streets by night
+      (a train by the sea, laundry on old Tokyo houses, pylons and power lines at dusk,
+      vending machines in the snow, level crossings, hydrangeas in the rain, a moonlit bay, a
+      van on a country road at sunset, lamps on the wires, windows and balconies over the
+      town at dusk, a cat at the window, an old street corner, lanterns before a shrine); and
+      anime film (Totoro, Your Name, 5 Centimeters per Second, Chainsaw Man, a Shinjuku
+      corner at dusk, rain at a crossing signal).
     - *light*: Hokusai (Red Fuji, the Great Wave, snow at Koishikawa, cranes at Umezawa, the
-      Mishima pass, the sawyers of Tōtōmi, Ejiri in the wind, Mannen Bridge, Lake Suwa, the
-      hanging bridge of Hida); Hiroshige's *Fifty-three Stations of the Tōkaidō* (Shinagawa,
-      Hodogaya, Hakone, Satta Pass, Maisaka, Goyu, Okazaki, Kameyama in snow, Kyoto's Sanjō
-      Bridge) and a Meiji iron bridge; ink and brush (ink ridges, three ink dragons, a plum
-      branch, Musashi and Kojirō, koi, a tiger, a gold flower screen, a stork on silk, a town
-      street in sepia line); streets and towns by day (a Tokyo street under power lines, a
-      riverside, rooftops, cherry-blossom stairs, a crossing by the sea, a wet street after
-      rain, a garden well); and anime film (Frieren, Your Name, The Wind Rises, a girl with an
-      umbrella, a shiba by the sea wall, a train under a mountain of cloud).
+      Mishima pass, the sawyers of Tōtōmi, Ejiri in the wind, Mannen Bridge, Lake Suwa, Lower
+      Meguro, the teahouse at Yoshida, the bridges of Hida, Yatsuhashi and Mount Gyōdō,
+      Akahito's coast); Hiroshige (the *Fifty-three Stations of the Tōkaidō* from Shinagawa to
+      Kyoto's Sanjō Bridge, Motoyama on the Kiso Kaidō, the Kiso mountains in snow, Yase
+      village) and a Meiji iron bridge; shin-hanga by day (Hasui's Mount Asahi, Kōhō's torii
+      in a river); ink and brush (ink ridges, three ink dragons, a plum branch, Musashi and
+      Kojirō, koi, a tiger, a gold flower screen, a stork on silk, a town street in sepia
+      line); streets and towns by day (a Tokyo street under power lines, a riverside, a
+      crossing by the sea, a wet street after rain, a garden well); and anime film (Frieren,
+      Your Name, The Wind Rises, a girl with an umbrella, a shiba by the sea wall, a train
+      under a mountain of cloud).
 
-    Three come in pairs — the same place by day and by night (the ink ridges, the riverside,
-    the shrine torii in the woods) — and choosing one sets the other theme's too. Sources and licences, one line each:
+    One comes in a pair — the ink ridges, the same place by night and by day — and choosing
+    it sets the other theme's too. Sources and licences, one line each:
     `~/.local/share/fedokawaii/wallpapers.list`. Nothing is stored in the repository; the files
     are fetched for your own use. A picture dropped from a later list is deleted from your pack
     the next time it is fetched.
