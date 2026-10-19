@@ -93,3 +93,6 @@ tested release; do not install from `wip`.
   100 % installed and working, no errors or warnings at shell start or in use (aliases,
   completions, ble.sh hooks, zoxide init, fzf keys, LazyVim :checkhealth clean).
 - A complete list of every issue reported across the project, each with its status.
+- A WhatsApp web entry in the launcher, made like Spotify's: brave-origin
+  --app=https://web.whatsapp.com, official icon where one exists, its notifications through
+  mako (Brave's web notifications), tests and the guide.
