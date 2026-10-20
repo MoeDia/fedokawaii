@@ -28,7 +28,7 @@ setup() {   # setup [plugged|closed|unplugged] — a fresh home; KINGSTON in tha
         esac ;;
   open) [ "$2" = /dev/sdb1 ] || exit 1; echo plugged >"$W/drive"; echo "$DRIVE" ;;
 esac'
-  stub kawa-float
+  stub kawa-term
   # the real restic — or, where there is none, a stand-in the words' cases must never reach
   if [[ -n $RESTIC ]]; then ln -s "$RESTIC" "$STUBS/restic"; else stub restic 'echo "restic ran: $*" >&2; exit 99'; fi
   printf '# mine\nRESTIC_PASSWORD="correct horse"\n' >"$HOME/.config/fedokawaii/secrets.sh"
@@ -166,7 +166,7 @@ rc 1 kawa-backup prune; rc 1 kawa-backup check; rc 1 kawa-backup list
 [[ ! -e $W/restic.log ]] && _ok || _no "restic ran under another run's lock"
 kill "$holder" 2>/dev/null; wait "$holder" 2>/dev/null
 case_ "--window: the backup in a floating window of its own (one at a time; a dialog: a click elsewhere never stops it)"
-setup; kawa-backup --window; called '^kawa-float --once backup --dialog backup 80x25 -- .*kawa-backup --wait$'
+setup; kawa-backup --window; called '^kawa-term --float --once backup --dialog backup 80x25 -- .*kawa-backup --wait$'
 case_ "a home folder with a space: the same words"
 setup unplugged; mv "$HOME" "$TMP/my home"; export HOME="$TMP/my home"; rc 1 kawa-backup; has "$(notice)" "KINGSTON is not plugged in"
 

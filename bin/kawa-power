@@ -23,17 +23,15 @@ act() {
   say "could not $1${err:+ — $err}"
   return 1
 }
-# sleep_now — locked first (kawa-lock returns once every screen is locked), then asleep;
-# never asleep unlocked. The hand-off is meant to be seen: the lock screen up and drawn, a
-# short beat on it, then the screens to black (wlopm), then the sleep — never a lock that
-# flashes and vanishes. (swayidle's after-resume turns them on again as the machine wakes;
-# a sleep the system refuses turns them on at once.) KAWA_SLEEP_BEAT: the beat, in seconds
+# sleep_now — asleep at once, never unlocked: the screens go black and the lock comes up on
+# them (kawa-lock --now: it returns once every screen is locked), then the suspend — nothing
+# of the lock shows before the sleep, and it is there when the screens come back. (swayidle's
+# after-resume lights them as the machine wakes — kawa-lock --resumed; a sleep the system
+# refuses lights them at once.)
 sleep_now() {
   say "sleep requested"
-  kawa-lock || { say "not locked — no sleep"; exit 1; }
-  sleep "${KAWA_SLEEP_BEAT:-0.8}"
-  wlopm --off '*'
-  act sleep suspend || { wlopm --on '*'; exit 1; }
+  kawa-lock --now || { kawa-lock --screens on; say "not locked — no sleep"; exit 1; }
+  act sleep suspend || { kawa-lock --screens on; exit 1; }
   say "suspend asked of the system"
 }
 case ${1:-} in

@@ -8,6 +8,7 @@ chooser_cmd=@HOME@/.local/bin/kawa-share
 # a smooth share without spending a game's frames on it
 max_fps=60
 # while a screen is shared, notifications stay off it (critical ones still show), and the
-# bar shows a vermilion 共有 seal (both run within sh)
-exec_before=makoctl mode -a sharing; @HOME@/.local/bin/kawa-dwlstatus --poke 12
-exec_after=makoctl mode -r sharing; @HOME@/.local/bin/kawa-dwlstatus --poke 12
+# bar shows a vermilion 共有 seal; at its end one notice says how many were held back (kawa-hush;
+# both run within sh)
+exec_before=@HOME@/.local/bin/kawa-hush on sharing; @HOME@/.local/bin/kawa-dwlstatus --poke 12
+exec_after=@HOME@/.local/bin/kawa-hush off sharing; @HOME@/.local/bin/kawa-dwlstatus --poke 12

@@ -2,14 +2,14 @@
 # tests/look/test_theme.sh — kawa-theme: the two themes, switched by re-pointing one link and
 # telling whatever runs to look again. The running apps are real processes of this test
 # (python ones that catch SIGUSR1/2 like foot, waybar, btop and dwl do); gsettings keeps its
-# keys in a file, the transition (kawa-veil) just runs the switch, mako and D-Bus are stand-ins.
+# keys in a file, mako and D-Bus are stand-ins. Nothing animates: no transition program.
 . "$(dirname "$0")/../lib/harness.sh"
 . "$(dirname "$0")/lib.sh"
 need python3 flock
 
 setup() {
   look
-  unset WAYLAND_DISPLAY KAWA_VEILED
+  unset WAYLAND_DISPLAY
   DIR=$HOME/.config/fedokawaii LINK=$HOME/.config/fedokawaii/current
   # the default pointer theme, as theme.sh makes it: a link to the Sumi pointers of the theme
   POINTERS=$HOME/.local/share/icons/default
@@ -29,15 +29,6 @@ EOF
   stubf kawa-wallpaper <<'EOF'
 o=""; for fd in 7 8 9; do [ -e /proc/$$/fd/$fd ] && o="$o $fd"; done
 echo "fds:$o" >>"$FAKE_TMP/wallpaper.fds"
-EOF
-}
-veil() {   # veil — the transition is installed: it runs the switch, then notes it is over
-  stubf kawa-veil <<'EOF'
-while [ $# -gt 0 ] && [ "$1" != "--" ]; do shift; done; shift
-[ -e "$FAKE_TMP/gate.veil.use" ] && { : >"$FAKE_TMP/gate.veil.in"; while [ ! -e "$FAKE_TMP/gate.veil" ]; do /bin/sleep 0.02; done; }
-"$@"; r=$?
-echo "veil over" >>"$FAKE_TMP/calls.log"
-exit $r
 EOF
 }
 theme_is() {   # theme_is dark|light — the link, GTK, the icons and the pointers all say so
@@ -100,14 +91,15 @@ has "$(cat "$GS")" "cursor-theme=Sumi-dark"
 eq "$(readlink "$POINTERS")" /usr/share/icons/Sumi-dark
 
 # ── the running apps ─────────────────────────────────────────────────────────
-case_ "foot, waybar and btop are told: foot USR2 for light, USR1 for dark; waybar and btop USR2"
+case_ "foot and btop are told: foot USR2 for light, USR1 for dark; btop USR2 — waybar never (it restyles itself on the portal's color-scheme: a SIGUSR2 would restart every module, and can crash it)"
 setup
 read -r foot footlog < <(catcher foot USR1 USR2)
 read -r _ barlog < <(catcher waybar USR2)
 read -r _ btoplog < <(catcher btop USR2)
 kawa-theme light
 eq "$(got "$footlog" 1)" SIGUSR2 "foot: the light palette"
-eq "$(got "$barlog" 1)" SIGUSR2 "waybar reloads its style"
+eq "$(got "$barlog" 1)" "" "waybar: no reload"
+has "$(cat "$GS")" "color-scheme=prefer-light" "the color-scheme it restyles on"
 eq "$(got "$btoplog" 1)" SIGUSR2 "btop reloads its theme"
 kawa-theme dark
 eq "$(got "$footlog" 2 | tail -n1)" SIGUSR1 "foot: the dark palette"
@@ -241,31 +233,23 @@ eq "$(cat "$locklog" 2>/dev/null)" "" "swaylock got no signal"
 alive "$lockpid" && _ok || _no "swaylock is gone"
 
 # ── in a session: the transition and the wallpaper ──────────────────────────
-case_ "in a session: the switch runs under the veil — rising to light, falling to dark"
-setup; veil; export WAYLAND_DISPLAY=wayland-1
-kawa-theme light
-called '^kawa-veil --rise --time 450 -- .*kawa-theme light$'
-theme_is light
-kawa-theme dark
-called '^kawa-veil --fall --time 450 -- .*kawa-theme dark$'
+case_ "in a session: the switch itself, nothing animated (no transition program anywhere)"
+setup; export WAYLAND_DISPLAY=wayland-1
+kawa-theme light; theme_is light
+kawa-theme dark; theme_is dark
+lacks "$(grep -v '^ *#' "$REPO/bin/kawa-theme")" "veil"; lacks "$(grep -v '^ *#' "$REPO/bin/kawa-wallpaper")" "veil"
+[[ ! -e $REPO/src/kawa-veil ]] && _ok || _no "src/kawa-veil is still there"
 
-case_ "under the veil, the theme's wallpaper is up before the reveal — and holds neither lock"
-eq "$(grep -E '^(kawa-wallpaper|veil over)' "$CALLS" | tail -n 2 | tr '\n' '|')" "kawa-wallpaper --restore|veil over|"
+case_ "the theme's wallpaper is up when the switch returns — and holds neither lock"
+called '^kawa-wallpaper --restore'
 eq "$(sort -u "$TMP/wallpaper.fds")" "fds:" "no lock descriptor reaches the wallpaper (its swaybg lives on)"
 
 case_ "the switch's time in the theme's log (the health report reads it)"
-grep -qE '^[0-9-]+ [0-9:]+ kawa-theme: switched to dark in [0-9]+ ms \(under the veil\)$' "$HOME/.cache/kawa-theme.log" && _ok \
+grep -qE '^[0-9-]+ [0-9:]+ kawa-theme: switched to dark in [0-9]+ ms$' "$HOME/.cache/kawa-theme.log" && _ok \
   || _no "no timing line: $(cat "$HOME/.cache/kawa-theme.log" 2>&1)"
 
-case_ "the same theme again in a session: no transition (nothing to see), just re-applied"
-reset_calls
-kawa-theme dark
-not_called '^kawa-veil'
-for _ in {1..250}; do grep -q '^kawa-wallpaper' "$CALLS" && break; /bin/sleep 0.02; done   # (in the background)
-called '^kawa-wallpaper --restore'
-
-case_ "under the veil, the slow parts run side by side: the switch takes the slowest, not their sum"
-setup; veil; export WAYLAND_DISPLAY=wayland-1
+case_ "the slow parts run side by side: the switch takes the slowest, not their sum"
+setup; export WAYLAND_DISPLAY=wayland-1
 stubf kawa-wallpaper <<'EOF'
 /bin/sleep 0.8
 EOF
@@ -281,26 +265,14 @@ EOF
 t0=$EPOCHREALTIME; kawa-theme light; ms=$(( (${EPOCHREALTIME/./} - ${t0/./}) / 1000 ))
 ((ms < 1700)) && _ok || _no "the switch took $ms ms (wallpaper 800, GTK 800, mako 800: one after the other ≥ 2400)"
 theme_is light
-eq "$(grep -E '^(kawa-wallpaper|veil over)' "$CALLS" | tail -n 2 | tr '\n' '|')" "kawa-wallpaper --restore|veil over|" "the wallpaper still up before the reveal"
 
-case_ "outside a session (theme.sh, SSH): no veil and no wallpaper (there is no screen)"
-setup; veil
+case_ "outside a session (theme.sh, SSH): no wallpaper (there is no screen)"
+setup
 rc 0 kawa-theme light
-not_called '^kawa-veil'; not_called '^kawa-wallpaper'
+not_called '^kawa-wallpaper'
 
 # ── one at a time ────────────────────────────────────────────────────────────
-case_ "15 presses while a transition runs (a held key): exactly one switch, the rest dropped"
-setup; veil; export WAYLAND_DISPLAY=wayland-1
-: >"$TMP/gate.veil.use"
-kawa-theme & first=$!
-at_gate veil || _no "the first switch never reached the veil"
-presses 14
-eq "$(codes 14)" "00000000000000" "every extra press exits 0 at once, while the first still runs"
-open_gate veil; wait "$first"; wait
-eq "$(grep -c '^kawa-veil' "$CALLS")" 1 "one transition"
-theme_is light
-
-case_ "15 presses outside the veil while one switch is busy: exactly one switch"
+case_ "15 presses (a held key) while one switch is busy: exactly one switch, the rest dropped at once"
 setup
 : >"$TMP/gate.gs.use"
 kawa-theme & first=$!
@@ -361,7 +333,7 @@ eq "$(kawa-theme get)" light
 rc 0 kawa-theme; theme_is dark
 
 case_ "current is a real folder (copied by a backup tool): refused and left as it is"
-setup; veil; export WAYLAND_DISPLAY=wayland-1
+setup; export WAYLAND_DISPLAY=wayland-1
 rm "$LINK"; cp -r "$DIR/themes/dark" "$LINK"; echo mine >"$LINK/mine"
 out=$(kawa-theme light 2>&1); r=$?
 eq "$r" 1 "exit 1: could not"
@@ -369,16 +341,14 @@ has "$out" "not a link"
 eq "$(cat "$LINK/mine" 2>/dev/null)" mine "the folder is untouched"
 eq "$(find "$DIR" -maxdepth 1 -name 'current*' | wc -l)" 1 "no half-made link left beside it"
 lacks "$(cat "$GS")" "prefer-light" "GTK was not switched to a theme the apps do not show"
-not_called '^kawa-veil'
 
-case_ "a theme folder missing: says so, exits 1, changes nothing — and no transition plays"
-setup; veil; export WAYLAND_DISPLAY=wayland-1
+case_ "a theme folder missing: says so, exits 1, changes nothing"
+setup; export WAYLAND_DISPLAY=wayland-1
 rm -r "$DIR/themes/light"
 out=$(kawa-theme light 2>&1); r=$?
 eq "$r" 1
 has "$out" "no theme 'light'"
 eq "$(readlink "$LINK")" themes/dark
-not_called '^kawa-veil'
 rc 1 kawa-theme
 
 case_ "no runtime folder (XDG_RUNTIME_DIR gone): exit 1 with a plain message"

@@ -152,7 +152,7 @@ stage() {
 for_window [app_id="^app-"] floating enable, resize set 1104 704, move position center, move down 4 px
 for_window [app_id="^mpv$"] floating enable, move position center
 for_window [app_id="^org.pwmt.zathura$"] floating enable, resize set 1104 764, move position center
-for_window [app_id="^kawa-dialog$"] floating enable, move position center   # (kawa-float --dialog: the file dialog)
+for_window [app_id="^kawa-dialog$"] floating enable, move position center   # (kawa-term --float --dialog: the file dialog)
 for_window [app_id="^xdg-desktop-portal-gtk$"] floating enable, move position center
 for_window [app_id="^brave"] floating enable, resize set 1284 804, move position center
 EOF
@@ -392,7 +392,7 @@ demo_repo() {   # (replaces shoot.sh's) ~/repos/fedokawaii with a history: the r
   ci "2026-09-09T19:31:00+04:00" "bin: the kawa-* menus and bar helpers" bin/kawa-{menu,quick,power,audio,volume,brightness,calendar,help,osd,mem,cell,tag,dwlstatus,nowplaying,display,clip,lock,term} bin/fetch
   g checkout -q -b wallpaper
   ci "2026-09-11T20:12:00+04:00" "kawa-wallpaper: packs, pixel-art redraw, the picker" bin/kawa-wallpaper
-  ci "2026-09-12T23:48:00+04:00" "kawa-veil: the seigaiha transition between themes" src/kawa-veil bin/kawa-theme
+  ci "2026-09-12T23:48:00+04:00" "kawa-theme: the switch, every app at once" bin/kawa-theme
   g checkout -q main
   ci "2026-09-13T09:20:00+04:00" "kawa-weather: wttr.in in the bar" bin/kawa-weather
   gd="2026-09-14T11:02:00+04:00" g merge -q --no-ff -m "Merge branch 'wallpaper'" wallpaper
@@ -793,7 +793,7 @@ exec bash "$SH/fedokawaii"
 EOF
   install -m 755 "$REPO/system/fedokawaii" "$SH/fedokawaii"
   chmod 755 "$sb"/*; chmod -R a+rX "$sb"
-  k kawa-float --once system system 100x27 -- "$sb/menu" >"$LT/system.log" 2>&1 &   # (as fedokawaii --window)
+  k kawa-term --float --once system system 100x27 -- "$sb/menu" >"$LT/system.log" 2>&1 &   # (as fedokawaii --window)
   pid=$!
   waitfor 10 "the system window" win_geom float || { umount /var/lib/fedokawaii; return; }
   sleep 3
@@ -896,7 +896,7 @@ shot_wiremix() {   # Super+A → mixer: wiremix (Fedora's 0.11.0) in its floatin
   k "$SH/mpv/bin/mpv" --no-video --ao=pulse --loop-file=inf --volume=80 "$KH/Videos/fuji-dawn.mkv" >"$LT/wiremix-mpv.log" 2>&1 &
   p=$!
   sleep 2
-  k kawa-float --once mixer mixer 96x29 -- wiremix >"$LT/wiremix.log" 2>&1 &
+  k kawa-term --float --once mixer mixer 96x29 -- wiremix >"$LT/wiremix.log" 2>&1 &
   pid=$!
   waitfor 10 "the mixer window" win_geom float || { kill "$p" "$pp" 2>/dev/null; return; }
   sleep 3                                         # (the meters settle on the sound)
@@ -918,7 +918,7 @@ shot_bluetui() {   # quick settings → pair a device: bluetui (v0.8.2) in its f
   k /opt/kit-tools/venv/bin/python -I "$SH/lib/fakebluez.py" "unix:path=$bus" adapter >"$LT/fakebluez.log" 2>&1 &
   fb=$!
   sleep 1.5
-  k kawa-float --once pair pair 96x29 -- env DBUS_SYSTEM_BUS_ADDRESS="unix:path=$bus" bluetui >"$LT/bluetui.log" 2>&1 &
+  k kawa-term --float --once pair pair 96x29 -- env DBUS_SYSTEM_BUS_ADDRESS="unix:path=$bus" bluetui >"$LT/bluetui.log" 2>&1 &
   pid=$!
   waitfor 10 "the pairing window" win_geom float || { kill "$fb" "$db" 2>/dev/null; return; }
   sleep 2

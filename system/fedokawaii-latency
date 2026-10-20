@@ -1,0 +1,570 @@
+#!/usr/bin/env python3
+"""fedokawaii-latency — how CONSISTENTLY fast the desktop answers: each thing it does when you
+click or press, done again and again (10 times; the heavy ones fewer), judged on the 95th
+percentile and the spread, never on one lucky sample. The health report's PERF-09 runs it in
+the running session, alone (nothing else of the report running):
+
+    python3 /usr/local/lib/fedokawaii/system/fedokawaii-latency [--quick | --full]
+
+The ordinary report times a fast subset (about 15 s): a click on the bar, a volume key, the
+hotkey toggles, the terminal, neovim, the fzf screens' lists, a notice, and what the desktop
+logs itself (theme switches, wallpaper changes). --full (fedokawaii report --perf) times every
+part it can reach: every bar module's click (its dropdown or panel up, its button lit, then
+dark), the three panels, the shell's first prompt and the prompt after a command, yazi, btop
+and lazygit's first frame, Brave from cold, a screenshot, OCR, a recording's start, a preview.
+What needs timing hooks the desktop does not export (dwl's frame callbacks: a new window's
+first frame, a retile, a workspace switch, hover and slider frames; the login → ready) and
+what would lock you out (the lock, the greeter, the screensaver) is listed as not measured.
+
+Each line: FAIL or ok, what, p50 · p95 · p99 · max in ms, the spread (p95 − p50), how many
+runs, and its limit. A thing FAILs when its p95 is over its limit, or its spread is over half
+of it (fast but uneven is a stutter you feel). Worst first (p95 against its limit). What is
+not here (a helper another version lacks, no session) is said, never guessed.
+It changes nothing for good: every toggle is done an even number of times, a volume step up
+is followed by one down, every menu and window it opens it closes.
+Exit: 0 every item within its limits · 1 one or more over · 2 it could not run (no session).
+"""
+import os
+import re
+import select
+import shutil
+import statistics
+import subprocess
+import sys
+import tempfile
+import time
+
+QUICK = "--quick" in sys.argv[1:]
+FULL = "--full" in sys.argv[1:]
+RT = os.environ.get("XDG_RUNTIME_DIR", "")
+HOME = os.path.expanduser("~")
+N = 5 if QUICK else 10
+results = []          # (what, limit, [ms…], note)
+notes = []
+
+
+def ms_since(t0):
+    return (time.monotonic() - t0) * 1000
+
+
+def have(cmd):
+    return shutil.which(cmd) is not None
+
+
+def run(cmd, timeout=10, **kw):
+    return subprocess.run(cmd, stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
+                          stderr=subprocess.DEVNULL, timeout=timeout, **kw).returncode
+
+
+def wait_for(cond, limit_s):
+    end = time.monotonic() + limit_s
+    while time.monotonic() < end:
+        if cond():
+            return True
+        time.sleep(0.004)
+    return cond()
+
+
+def timed(cmd, timeout=10):
+    t0 = time.monotonic()
+    rc = run(cmd, timeout=timeout)
+    return ms_since(t0), rc
+
+
+def add(what, limit, samples, note=""):
+    if samples:
+        results.append((what, limit, samples, note))
+    else:
+        notes.append(f"{what}: not measured — {note or 'nothing to time'}")
+
+
+# ── the bar: a click on the date → its dropdown up (the panel lights the button), and dark
+#    again once it closes ──────────────────────────────────────────────────────────────────
+def bar_click():
+    fifo, mark = f"{RT}/kawa-panel.in", f"{RT}/kawa-drop.open"
+    if not (have("kawa-calendar") and os.path.exists(fifo)):
+        add("bar click → its menu", 150, [], "no panel running, or no kawa-calendar")
+        return
+    if os.path.exists(mark):
+        add("bar click → its menu", 150, [], "a dropdown was open")
+        return
+    up, dark = [], []
+    for _ in range(N):
+        t0 = time.monotonic()
+        p = subprocess.Popen(["kawa-calendar"], stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
+                             stderr=subprocess.DEVNULL, start_new_session=True)
+        if wait_for(lambda: os.path.exists(mark), 3):
+            up.append(ms_since(t0))
+        time.sleep(0.1)
+        t1 = time.monotonic()
+        try:
+            fd = os.open(fifo, os.O_RDWR | os.O_NONBLOCK)
+            os.write(fd, b"close\n")
+            os.close(fd)
+        except OSError:
+            pass
+        if wait_for(lambda: not os.path.exists(mark), 3):
+            dark.append(ms_since(t1))
+        try:
+            p.wait(3)
+        except subprocess.TimeoutExpired:
+            p.kill()
+        time.sleep(0.1)
+    add("bar click → its menu up", 150, up)
+    add("menu closed → its button dark", 200, dark)
+
+
+# ── a volume key → the bar's figure updated (a second kawa-volume bar, read here, follows
+#    PipeWire exactly as the bar's own does) ────────────────────────────────────────────────
+def volume_key():
+    if not (have("kawa-volume") and have("wpctl")):
+        add("volume key → the bar's figure", 150, [], "no kawa-volume or wpctl")
+        return
+    p = subprocess.Popen(["kawa-volume", "bar"], stdin=subprocess.DEVNULL, stdout=subprocess.PIPE,
+                         stderr=subprocess.DEVNULL, start_new_session=True)
+    out = []
+    try:
+        if not select.select([p.stdout], [], [], 3)[0]:
+            add("volume key → the bar's figure", 150, [], "kawa-volume bar printed nothing")
+            return
+        p.stdout.readline()
+        for i in range(N):
+            step = "up" if i % 2 == 0 else "down"
+            t0 = time.monotonic()
+            run(["wpctl", "set-volume", "@DEFAULT_AUDIO_SINK@", "2%+" if step == "up" else "2%-"])
+            if select.select([p.stdout], [], [], 2)[0]:
+                p.stdout.readline()
+                out.append(ms_since(t0))
+            time.sleep(0.15)
+            while select.select([p.stdout], [], [], 0)[0]:
+                p.stdout.readline()
+    finally:
+        os.killpg(p.pid, 15)
+        p.wait()
+    add("volume key → the bar's figure", 150, out, "" if out else "no update seen")
+
+
+# ── hotkey toggles, each an even number of times (as it was before, after) ──────────────────
+def toggles():
+    pairs = [("kawa-glass", ["kawa-glass", "toggle"], 150, "transparency toggle (kawa-glass)"),
+             ("kawa-night", ["kawa-night", "toggle"], 300, "night light toggle (kawa-night)"),
+             ("makoctl", ["makoctl", "mode", "-t", "do-not-disturb"], 60, "do not disturb toggle (makoctl)"),
+             ("kawa-quick", ["kawa-quick", "--state"], 120, "quick settings' state (kawa-quick)")]
+    for need, cmd, limit, what in pairs:
+        if not have(need):
+            notes.append(f"{what}: not in this toolkit")
+            continue
+        s = []
+        for _ in range(N if N % 2 == 0 else N + 1):
+            ms, rc = timed(cmd)
+            if rc == 0:
+                s.append(ms)
+            time.sleep(0.05)
+        add(what, limit, s, "it failed each time")
+
+
+# ── apps opening ─────────────────────────────────────────────────────────────────────────
+def apps():
+    if have("footclient"):
+        add("a terminal opens and closes (footclient)", 250,
+            [m for m, rc in (timed(["footclient", "-N", "--", "true"]) for _ in range(N)) if rc == 0],
+            "footclient failed: is the terminal server running?")
+    if have("nvim"):
+        add("neovim starts with its config, and quits", 150,
+            [m for m, rc in (timed(["nvim", "--headless", "+qa"], 20) for _ in range(N)) if rc == 0])
+    if have("fuzzel"):
+        s = []
+        for _ in range(N):
+            if subprocess.run(["pgrep", "-u", str(os.getuid()), "-x", "fuzzel"], stdout=subprocess.DEVNULL).returncode == 0:
+                break
+            t0 = time.monotonic()
+            p = subprocess.Popen(["fuzzel", "--dmenu", "-l", "1", "--prompt", ""], stdin=subprocess.PIPE,
+                                 stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            p.stdin.write(b"x\n")
+            p.stdin.close()
+
+            def ready():
+                try:
+                    return re.search(r"poll", open(f"/proc/{p.pid}/wchan").read()) is not None
+                except OSError:
+                    return False
+            if wait_for(ready, 3):
+                s.append(ms_since(t0))
+            p.terminate()
+            p.wait()
+            time.sleep(0.1)
+        add("the launcher is up (fuzzel)", 150, s)
+    if have("yazi") and FULL:
+        import pty
+        import fcntl
+        import struct
+        import termios
+        s = []
+        for _ in range(max(3, N // 2)):
+            t0 = time.monotonic()
+            pid, fd = pty.fork()
+            if pid == 0:
+                os.environ["TERM"] = "xterm-256color"
+                os.execvp("yazi", ["yazi", HOME])
+            fcntl.ioctl(fd, termios.TIOCSWINSZ, struct.pack("HHHH", 40, 120, 0, 0))
+            n = 0
+            while ms_since(t0) < 5000:
+                if not select.select([fd], [], [], 0.05)[0]:
+                    continue
+                try:
+                    n += len(os.read(fd, 65536))
+                except OSError:
+                    break
+                if n > 2000:
+                    s.append(ms_since(t0))
+                    break
+            try:
+                os.write(fd, b"q")
+                time.sleep(0.2)
+                os.kill(pid, 9)
+            except OSError:
+                pass
+            os.waitpid(pid, 0)
+            os.close(fd)
+        add("yazi draws its first screen", 300, s)
+    b = "/usr/bin/brave-origin-stable"
+    if os.access(b, os.X_OK) and FULL:
+        s = []
+        for _ in range(3):
+            d = tempfile.mkdtemp()
+            ms, rc = timed([b, "--headless=new", f"--user-data-dir={d}", "--no-first-run",
+                            "--dump-dom", "about:blank"], 20)
+            shutil.rmtree(d, ignore_errors=True)
+            if rc == 0:
+                s.append(ms)
+        add("Brave from cold (a fresh profile, headless)", 3000, s)
+
+
+# ── what the desktop times itself: theme switches, wallpaper changes (their logs) ─────────
+def logged(path, pattern, what, limit):
+    try:
+        lines = open(path, errors="replace").read().splitlines()
+    except OSError:
+        notes.append(f"{what}: no log yet ({path})")
+        return
+    s = [float(m.group(1)) for m in (re.search(pattern, l) for l in lines[-200:]) if m][-20:]
+    if len(s) < 3:
+        notes.append(f"{what}: {len(s)} logged so far — needs 3 to judge")
+        return
+    add(what + f" (the last {len(s)}, as logged)", limit, s)
+
+
+def preview():
+    d = f"{HOME}/.cache/fedokawaii/wallpaper-screens"
+    pics = []
+    for root, _, files in os.walk(d):
+        pics += [os.path.join(root, f) for f in files if f.endswith(".png")]
+    if not (pics and have("magick")):
+        notes.append("a wallpaper preview drawn: no drawn wallpaper yet")
+        return
+    s = [m for m, rc in (timed(["magick", p, "-resize", "600x360", "sixel:-"], 15) for p in pics[:5]) if rc == 0]
+    add("a wallpaper preview drawn (not cached yet)", 400, s)
+
+
+MARKS = ["kawa-drop.open", "kawa-panel.open", "kawa-panel-sound.open", "kawa-panel-brightness.open"]
+
+
+def any_open():
+    return any(os.path.exists(f"{RT}/{m}") for m in MARKS)
+
+
+def close_all():
+    try:
+        fd = os.open(f"{RT}/kawa-panel.in", os.O_RDWR | os.O_NONBLOCK)
+        os.write(fd, b"close\n")
+        os.close(fd)
+    except OSError:
+        pass
+
+
+def bar_modules():
+    """every bar module's click (waybar's on-click, run as waybar runs it): up, lit, then dark"""
+    try:
+        t = open(f"{HOME}/.config/waybar/config.jsonc").read()
+    except OSError:
+        notes.append("the bar's clicks: no waybar config")
+        return
+    import json
+    t = re.sub(r"(?m)^\s*//.*$", "", t)
+    t = re.sub(r",(\s*[}\]])", r"\1", t)
+    d = json.loads(t)
+    d = d if isinstance(d, list) else [d]
+    if not os.path.exists(f"{RT}/kawa-panel.in"):
+        notes.append("the bar's clicks: no panel running")
+        return
+    for b in d:
+        for k, v in b.items():
+            c = v.get("on-click", "") if isinstance(v, dict) else ""
+            if not c or "kawa-tag" in c or "--launcher" in c or "btop" in c or "kawa-term --float" in c:
+                continue
+            if any_open():
+                close_all()
+                wait_for(lambda: not any_open(), 2)
+            up, dark = [], []
+            for _ in range(max(3, N // 2)):
+                t0 = time.monotonic()
+                p = subprocess.Popen(["sh", "-c", c], stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
+                                     stderr=subprocess.DEVNULL, start_new_session=True)
+                if not wait_for(any_open, 2):
+                    p.kill()
+                    break
+                up.append(ms_since(t0))
+                time.sleep(0.1)
+                t1 = time.monotonic()
+                close_all()
+                if wait_for(lambda: not any_open(), 2):
+                    dark.append(ms_since(t1))
+                try:
+                    p.wait(2)
+                except subprocess.TimeoutExpired:
+                    p.kill()
+                time.sleep(0.1)
+            if up:
+                add(f"bar click: {k} → up, lit", 150, up)
+                add(f"bar: {k} closed → dark", 200, dark)
+            else:
+                notes.append(f"bar click: {k} ({c}) opened nothing in 2 s — not a menu or a panel here")
+
+
+def panels():
+    fifo = f"{RT}/kawa-panel.in"
+    if not os.path.exists(fifo):
+        notes.append("the panels: no panel running")
+        return
+    for mode, mark in (("quick", "kawa-panel.open"), ("sound", "kawa-panel-sound.open"),
+                       ("brightness", "kawa-panel-brightness.open")):
+        up, dark = [], []
+        for _ in range(max(3, N // 2)):
+            fd = os.open(fifo, os.O_RDWR | os.O_NONBLOCK)
+            t0 = time.monotonic()
+            os.write(fd, f"toggle {mode}\n".encode())
+            if wait_for(lambda: os.path.exists(f"{RT}/{mark}"), 2):
+                up.append(ms_since(t0))
+            time.sleep(0.1)
+            t1 = time.monotonic()
+            os.write(fd, f"toggle {mode}\n".encode())
+            os.close(fd)
+            if wait_for(lambda: not os.path.exists(f"{RT}/{mark}"), 2):
+                dark.append(ms_since(t1))
+            time.sleep(0.1)
+        add(f"the {mode} panel opens", 120, up)
+        add(f"the {mode} panel closes", 120, dark)
+
+
+def notices():
+    if not (have("notify-send") and have("makoctl")):
+        return
+    # (laid out as every notice of the desktop: -a desktop, --, the icon and two spaces, a lower-case title)
+    f = f"{HOME}/.config/fedokawaii/icons.sh"
+    m = re.search(r"^ICON_HOURGLASS=\$'([^']*)'", open(f, errors="replace").read(), re.M) if os.path.exists(f) else None
+    icon = bytes(int(h, 16) for h in re.findall(r"\\x([0-9a-fA-F]{2})", m.group(1))).decode(errors="replace") if m else ""
+    up, gone = [], []
+    for _ in range(N):
+        t0 = time.monotonic()
+        r = subprocess.run(["notify-send", "-a", "desktop", "-p", "-t", "5000", "--", icon + "  timing", "a test of the health report"],
+                           capture_output=True, text=True)
+        i = r.stdout.strip()
+        if not i.isdigit():
+            break
+        def shown():
+            return f'"id": {i}' in subprocess.run(["makoctl", "list"], capture_output=True, text=True).stdout \
+                or f"Notification {i}:" in subprocess.run(["makoctl", "list"], capture_output=True, text=True).stdout
+        if wait_for(shown, 2):
+            up.append(ms_since(t0))
+        t1 = time.monotonic()
+        run(["makoctl", "dismiss", "-n", i])
+        if wait_for(lambda: not shown(), 2):
+            gone.append(ms_since(t1))
+    add("a notice shown (mako)", 100, up)
+    add("a notice dismissed", 100, gone)
+
+
+def lists():
+    """the fzf screens' lists, and fzf's filter over each (what a keystroke costs)"""
+    for name, cmd in (("Super+V's clipboard list", ["kawa-clip", "--list"]), ("the books' list", ["kawa-books", "--rows"]),
+                      ("Super+U's rows", ["fedokawaii", "--rows"]), ("the backup's status", ["kawa-backup", "status"])):
+        if not have(cmd[0]):
+            continue
+        s, out = [], b""
+        for _ in range(N):
+            t0 = time.monotonic()
+            r = subprocess.run(cmd, stdin=subprocess.DEVNULL, capture_output=True, timeout=10)
+            s.append(ms_since(t0))
+            out = r.stdout
+        add(f"{name} ready", 150, s)
+        if have("fzf") and out:
+            f = []
+            for q in "aeiouaeiou"[:N]:
+                t0 = time.monotonic()
+                subprocess.run(["fzf", "--filter", q], input=out, stdout=subprocess.DEVNULL, timeout=10)
+                f.append(ms_since(t0))
+            add(f"{name}: a keystroke's filter (fzf)", 30, f)
+
+
+def pty_first(argv, cwd=None, size=2000, limit_s=5):
+    import pty
+    import fcntl
+    import struct
+    import termios
+    t0 = time.monotonic()
+    pid, fd = pty.fork()
+    if pid == 0:
+        if cwd:
+            os.chdir(cwd)
+        os.environ["TERM"] = "xterm-256color"
+        os.execvp(argv[0], argv)
+    fcntl.ioctl(fd, termios.TIOCSWINSZ, struct.pack("HHHH", 40, 120, 0, 0))
+    n, got = 0, None
+    while ms_since(t0) < limit_s * 1000:
+        if not select.select([fd], [], [], 0.05)[0]:
+            continue
+        try:
+            n += len(os.read(fd, 65536))
+        except OSError:
+            break
+        if n > size:
+            got = ms_since(t0)
+            break
+    try:
+        os.kill(pid, 9)
+    except OSError:
+        pass
+    os.waitpid(pid, 0)
+    os.close(fd)
+    return got
+
+
+def terminal_apps():
+    for name, argv, cwd, limit in (("btop's first frame", ["btop"], None, 500),
+                                   ("lazygit's first frame", ["lazygit"], f"{HOME}/repos/fedokawaii", 400)):
+        if not have(argv[0]) or (cwd and not os.path.isdir(cwd)):
+            continue
+        s = [m for m in (pty_first(argv, cwd) for _ in range(3)) if m]
+        add(name, limit, s)
+
+
+def shell_prompt():
+    """bash -i on a terminal of its own (ble.sh and the prompt load): the first prompt, then
+    the prompt after a command"""
+    import pty
+    first, after = [], []
+    for _ in range(max(3, N // 2)):
+        t0 = time.monotonic()
+        pid, fd = pty.fork()
+        if pid == 0:
+            os.environ["TERM"] = "xterm-256color"
+            os.execvp("bash", ["bash", "-i"])
+        buf = b""
+        os.write(fd, b"printf 'FK%s\\n' READY\r")
+        while ms_since(t0) < 5000 and b"FKREADY" not in buf:
+            if select.select([fd], [], [], 0.05)[0]:
+                try:
+                    buf += os.read(fd, 65536)
+                except OSError:
+                    break
+        if b"FKREADY" in buf:
+            first.append(ms_since(t0))
+            t1 = time.monotonic()
+            os.write(fd, b"printf 'FK%s\\n' AGAIN\r")
+            buf = b""
+            while ms_since(t1) < 3000 and b"FKAGAIN" not in buf:
+                if select.select([fd], [], [], 0.02)[0]:
+                    try:
+                        buf += os.read(fd, 65536)
+                    except OSError:
+                        break
+            if b"FKAGAIN" in buf:
+                after.append(ms_since(t1))
+        try:
+            os.kill(pid, 9)
+        except OSError:
+            pass
+        os.waitpid(pid, 0)
+        os.close(fd)
+    add("a shell's first prompt (bash -i, ble.sh)", 250, first)
+    add("a command → its answer at the prompt", 60, after)
+
+
+def capture():
+    tmp = tempfile.mkdtemp()
+    try:
+        if have("grim"):
+            s = [m for m, rc in (timed(["grim", "-t", "png", "-l", "0", f"{tmp}/s.png"]) for _ in range(5)) if rc == 0]
+            add("a screenshot (grim)", 250, s)
+        if have("tesseract") and os.path.exists(f"{tmp}/s.png") and have("magick"):
+            run(["magick", f"{tmp}/s.png", "-crop", "600x200+0+0", f"{tmp}/c.png"])
+            s = [m for m, rc in (timed(["tesseract", f"{tmp}/c.png", "-", "-l", "eng"], 30) for _ in range(3)) if rc == 0]
+            add("OCR of a strip of the screen (tesseract)", 1500, s)
+        if have("wf-recorder"):
+            s = []
+            for i in range(3):
+                f = f"{tmp}/r{i}.mkv"
+                t0 = time.monotonic()
+                p = subprocess.Popen(["wf-recorder", "-f", f], stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
+                                     stderr=subprocess.DEVNULL)
+                if wait_for(lambda: os.path.exists(f) and os.path.getsize(f) > 0, 5):
+                    s.append(ms_since(t0))
+                p.send_signal(2)
+                try:
+                    p.wait(5)
+                except subprocess.TimeoutExpired:
+                    p.kill()
+            add("a recording starts (wf-recorder: its first bytes)", 1000, s)
+    finally:
+        shutil.rmtree(tmp, ignore_errors=True)
+
+
+def pct(s, q):
+    s = sorted(s)
+    return s[max(0, min(len(s) - 1, int(round(q / 100 * len(s) + 0.5)) - 1))]
+
+
+def main():
+    if not RT or not os.environ.get("WAYLAND_DISPLAY"):
+        print("no desktop session: nothing timed")
+        return 2
+    bar_click()
+    volume_key()
+    toggles()
+    notices()
+    lists()
+    apps()
+    if FULL:
+        bar_modules()
+        panels()
+        shell_prompt()
+        terminal_apps()
+        capture()
+    else:
+        notes.append("the full set (every bar module, the panels, the shell's prompt, btop, lazygit, "
+                     "screenshot, OCR, recording): fedokawaii report --perf")
+    notes.append("not measured — needs dwl's frame callbacks, which it does not export: a new window's "
+                 "first frame, a retile, a workspace switch, hover and slider frames (16 ms at 60 Hz, 7 ms at 144 Hz), login → ready")
+    notes.append("never timed here: the lock, the login screen and the screensaver (they would lock you out)")
+    logged(f"{HOME}/.cache/kawa-theme.log", r"switched to \w+ in (\d+) ms", "the theme switch", 1500)
+    logged(f"{HOME}/.cache/fedokawaii/wallpaper.log", r"on screen in (\d+) ms", "a wallpaper on screen", 300)
+    if FULL:
+        preview()
+    rows, bad = [], 0
+    for what, limit, s, _ in results:
+        p50, p95, p99 = statistics.median(s), pct(s, 95), pct(s, 99)
+        spread = p95 - p50
+        over = p95 > limit or spread > limit / 2
+        bad |= over
+        rows.append((p95 / limit, f"{'FAIL' if over else 'ok':4}  {what:44} p50 {p50:6.0f} · p95 {p95:6.0f} · "
+                     f"p99 {p99:6.0f} · max {max(s):6.0f} ms · spread {spread:5.0f} · n={len(s):2} · limit {limit}"))
+    print("worst first (p95 against its limit; a spread over half the limit fails too):")
+    for _, line in sorted(rows, reverse=True):
+        print("  " + line)
+    for n in notes:
+        print("  ·  " + n)
+    return 1 if bad else 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

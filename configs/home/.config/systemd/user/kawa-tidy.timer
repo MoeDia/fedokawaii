@@ -1,0 +1,10 @@
+# ~/.config/systemd/user/kawa-tidy.timer — 20 minutes into a session (started by
+# ~/.config/dwl/autostart.sh; it stops with the session): never during a start, never while
+# the login settles. kawa-tidy --weekly then tidies only when the last tidy is a week old.
+[Unit]
+Description=Fedokawaii — your home kept clean (weekly)
+PartOf=dwl-session.target
+
+[Timer]
+OnActiveSec=20min
+AccuracySec=5min

@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 # tests/content/test_tiles.sh — the terminal at every size dwl tiles it to on a 1920×1080
-# screen (gap 8, border 2; Fusion Pixel at 24 px: 12 × 26 px cells, 10 px of paper round):
-#   spiral   1900×1060 → 156×40 · 1170×1060 → 95×40 · 718×1060 → 58×40 · 718×650 → 58×24
-#            718×398 → 58×14 · 439×398 → 34×14 · 267×398 → 20×14 · 267×241 → 20×8 · 267×145 → 20×4
-#   columns  944 → 77×40 · 625 → 50×40 · 466 → 37×40
+# screen (gap 8, border 2; Fusion Pixel 10 at 20 px: 10 × 22 px cells, 10 px of paper round):
+#   spiral   1900×1060 → 188×47 · 1170×1060 → 115×47 · 718×1060 → 69×47 · 718×650 → 69×28
+#            718×398 → 69×17 · 439×398 → 41×17 · 267×398 → 24×17 · 267×241 → 24×10 · 267×145 → 24×5
+#   columns  944 → 92×47 · 625 → 60×47 · 466 → 44×47
 # The prompt's header (~/.bashrc.d/fedokawaii.sh): its layout as pure functions — which form
 # fits, the path's three lengths, the cut in the middle — then real headers in a terminal of
 # each width, the header laid out anew when the width changes under it (ble.sh runs the
@@ -16,11 +16,12 @@ BLESH_DIR=${FEDOKAWAII_BLESH:-$HOME/.local/share/blesh}
 BLESH_PIN=$(sed -n 's/^BLESH_COMMIT=//p' "$REPO/lib/upstream.sh")
 REAL_LAZYGIT=$(command -v lazygit 2>/dev/null)
 YD=$(cd "$C/../yazi" && pwd)
-WIDTHS="156 95 77 58 50 37 34 20"
+WIDTHS="188 115 92 69 60 44 41 24"
 
 home() {   # home — a fresh home with the shell's files (Fedora's ~/.bashrc reads ~/.bashrc.d)
   sandbox
-  config .bashrc.d/fedokawaii.sh .inputrc .config/blesh .config/fedokawaii/fzf.opts .config/bat .config/btop
+  config .bashrc.d/fedokawaii.sh .config/readline/inputrc .config/blesh .config/fedokawaii/fzf.opts .config/bat .config/btop
+  export INPUTRC=$HOME/.config/readline/inputrc   # (/etc/profile.d/fedokawaii-home.sh, on the machine)
   printf '%s\n' 'for rc in ~/.bashrc.d/*; do [ -f "$rc" ] && . "$rc"; done; unset rc' >"$HOME/.bashrc"
   stub zoxide 'case $1 in init) printf "%s\n" "__zoxide_z() { builtin cd \"\$@\"; }" "cd() { __zoxide_z \"\$@\"; }" ;; esac'
   stub eza; stub bat
@@ -145,8 +146,56 @@ case_ "without ble.sh every prompt is a new entry (bash never runs the prompt co
 out=$(fn 'COLUMNS=80; __kawa_t0=$(( ${EPOCHREALTIME/[.,]/} - 10 )); (exit 3); __kawa_prompt >/dev/null; (exit 0); __kawa_prompt')
 has "$out" $'\e]133;D;0\e\\'
 
+# ── foot's reflow: where the prompt starts after the width changed ────────────
+case_ "__kawa_reflow: the header that filled 95 columns takes 2 rows at 50, 5 at 20 — ble.sh goes up past all of them (no header left above the new one)"
+# (ble.sh's state as it stands when a window is resized: the prompt drawn at the old width,
+# the cursor on the line typed on; the stand-in for its cursor movement prints where it
+# believes the cursor is when it goes to the prompt's top)
+reflow() {   # reflow OLD NEW GAP HW Y X [PROY] [RPS1] → "y x" handed to ble.sh, or "theirs"
+  fn "COLUMNS=$2 _ble_app_winsize=($1 30) _ble_canvas_panel_height=(4 0) _ble_prompt_ps1_data=(0 '' '' 0 ${7:-$(($3 + 1))})
+    _ble_prompt_rps1_shown=${8-} __kawa_gap=$3 __kawa_hw=$4 _ble_canvas_y=$5 _ble_canvas_x=$6
+    ble/canvas/panel#goto.draw() { printf '%s %s\n' \"\$_ble_canvas_y\" \"\$_ble_canvas_x\"; }
+    ble/canvas/bflush.draw() { :; }
+    __kawa_reflow || echo theirs"
+}
+eq "$(reflow 95 50 1 94 2 2)" "3 2" "the blank line, the header on 2 rows, then the line typed on"
+eq "$(reflow 95 20 1 94 2 2)" "6 2" "five rows of header at 20 columns"
+eq "$(reflow 95 20 '' 94 1 2)" "5 2" "no blank line (after clear, a short tile)"
+eq "$(reflow 50 156 1 49 2 2)" "2 2" "wider: nothing wraps, the prompt starts where it did"
+eq "$(reflow 95 95 1 94 2 2)" "2 2" "the same width (a change of height): as it was"
+eq "$(reflow 95 50 1 94 2 70)" "4 20" "a command typed past 50 columns wraps too: the cursor a row further down"
+eq "$(reflow 95 50 1 94 3 10)" "5 5" "a command on two rows at 95: 105 columns of it, three rows at 50"
+eq "$(reflow 20 156 1 19 2 2)" "2 2" "a 20-column header in 156: one row"
+eq "$(reflow 95 50 1 94 2 2 1)" theirs "another prompt (another number of rows): ble.sh's own redraw"
+eq "$(reflow 95 50 1 94 2 2 '' 1)" theirs "a right-hand prompt: ble.sh's own"
+eq "$(reflow 95 50 1 94 5 2)" theirs "the cursor below the prompt's panel (a menu): ble.sh's own"
+case_ "the header's width as __kawa_reflow counts it: what __kawa_layout drew, every width"
+for c in 156 95 77 58 50 37 34 30 29 20 12; do
+  got=$(fn "cd ~/repos/fedokawaii; COLUMNS=$c; __kawa_t0=\$(( \${EPOCHREALTIME/[.,]/} - 10 )); (exit 3); __kawa_prompt >/dev/null
+    printf '%s|%s' \"\$__kawa_hw\" \"\$__kawa_line\" | sed 's/\x01\|\x02//g; s/\x1b\[[0-9;]*m//g'" | plain)
+  eq "${got%%|*}" "$(width "${got#*|}")" "$c columns: [${got#*|}]"
+done
+case_ "an entry once its command runs (ble.sh's final prompt): the header without the stitch — everything else kept, laid out again with the width"
+for c in 188 69 24; do
+  got=$(fn "cd ~/repos/fedokawaii; COLUMNS=$c; __kawa_t0=\$(( \${EPOCHREALTIME/[.,]/} - 10 )); (exit 3); __kawa_prompt >/dev/null
+    printf '%s' \"\$__kawa_final\" | sed 's/\x01\|\x02//g; s/\x1b\[[0-9;]*m//g; s/\x1b\]133;A\x1b\\\\//'" | plain)
+  lacks "$got" "╌" "$c: [$got]"; has "$got" "X  3" "$c: the mark"; has "$got" "fedokawaii" "$c: the place"
+  [[ $got == *$'\n'?' ' && $got != *$'\n'*$'\n'*$'\n'* ]] && _ok || _no "$c: the header, then the line typed on: [$got]"
+done
+got=$(fn 'cd ~/repos/fedokawaii; COLUMNS=188; __kawa_prompt >/dev/null; a=$__kawa_final; _ble_edit_lineno=1 __kawa_lineno=1 COLUMNS=30 __kawa_prompt; [[ $a != "$__kawa_final" ]] && echo relaid')
+eq "$got" relaid "a change of width lays the final form out again too"
+lacks "$(fn 'COLUMNS=80; __kawa_prompt >/dev/null; printf %s "$__kawa_final"')" $'\e]133;A' "no second prompt mark (foot's prompt jumps, and a typed session, count them)"
+case_ "ble.sh shows it: prompt_ps1_final names it (set once ble.sh is loaded)"
+grep -q "bleopt prompt_ps1_final='\${__kawa_final}'" "$HOME/.bashrc.d/fedokawaii.sh" && _ok || _no "no prompt_ps1_final"
+
 # ── the real ble.sh: a window resized under a prompt ──────────────────────────
 if [[ -n $BLESH_PIN && $(bash "$BLESH_DIR/ble.sh" --version 2>/dev/null) == *"+${BLESH_PIN:0:7}" ]]; then
+  case_ "ble.sh ${BLESH_PIN:0:7}: its redraw on a change of width asks __kawa_reflow first"
+  home; mkdir -p "$HOME/.local/share"; cp -a "$BLESH_DIR" "$HOME/.local/share/blesh"
+  out=$(cd "$HOME" && LANG=C.UTF-8 TERM=foot python3 -I "$C/pty_run.py" --cols 80 --rows 24 --timeout 60 --quiet 1 --each '\x1b]133;A' \
+    --line 'declare -f ble/function#advice/around:ble/application/onwinch/panel.process-redraw-here | grep -c "__kawa_reflow"' \
+    --line exit -- bash -i 2>&1)
+  has "$out" $'\e]133;C\e\\1\r' "the advice is in place"
   for step in "120x30 50x30" "50x30 156x30" "95x30 20x14"; do
     read -r from to <<<"$step"
     case_ "ble.sh ${BLESH_PIN:0:7}: a prompt up at ${from%x*} columns, the window made ${to%x*}: the header redrawn for ${to%x*}, its mark kept"
@@ -154,7 +203,7 @@ if [[ -n $BLESH_PIN && $(bash "$BLESH_DIR/ble.sh" --version 2>/dev/null) == *"+$
     # (exit 3) run at the first width; the window resized; then the header as it stands
     # (the line the prompt shows: what a command typed next still sees of it)
     out=$(cd "$HOME/repos/fedokawaii/configs/home/.config" && LANG=C.UTF-8 TERM=foot python3 -I "$C/pty_run.py" \
-      --cols "${from%x*}" --rows "${from#*x}" --timeout 60 --each '\x1b]133;A' --line '(exit 3)' --line-resize "$to" \
+      --cols "${from%x*}" --rows "${from#*x}" --timeout 60 --quiet 1 --each '\x1b]133;A' --line '(exit 3)' --line-resize "$to" \
       --line 'printf "LINE[%s] C=%s\\n" "$__kawa_line" "$COLUMNS"' --line exit -- bash -i 2>&1)
     h=$(grep -a -o 'LINE\[.*\] C=[0-9]*' <<<"$out" | tail -n1 | sed 's/\x01\|\x02//g; s/\x1b\[[0-9;]*m//g' | plain)
     eq "${h##* C=}" "${to%x*}" "the shell knows the new width: $h"
@@ -178,36 +227,58 @@ eq "$(fn 'LINES=40; __kawa_fresh=1; __kawa_prompt >/dev/null; [[ $PS1 == "\\n"* 
 
 # ── btop: the richest preset the window holds ─────────────────────────────────
 home
-case_ "btop's start: all four boxes from 80×24, then cpu over proc, cpu, proc, mem over net, mem — none under 36 columns"
-want="156x40:0 95x40:0 77x40:1 58x40:3 50x40:3 37x40:4 58x24:3 58x14:5 34x14: 20x14: 20x8: 20x4: 112x33:0 77x14:2"
-got=$(fn 'for s in 156x40 95x40 77x40 58x40 50x40 37x40 58x24 58x14 34x14 20x14 20x8 20x4 112x33 77x14; do
-  __kawa_btop_preset ${s%x*} ${s#*x}; printf "%s:%s " $s "$__preset"; done')
+case_ "btop's start: all five boxes from 80×35 (the graphics card's too), then the four without it, cpu over gpu over proc, cpu over proc, gpu over proc, cpu over gpu, proc, mem over net, mem — none under 36 columns (never the gpu box alone: btop 1.4.5 stops on it)"
+sizes="188x47 115x47 92x47 69x47 60x47 44x47 69x28 69x17 41x17 24x17 24x10 24x5 140x41 92x17 115x28"
+want="188x47:all 115x47:all 92x47:all 69x47:1 60x47:2 44x47:5 69x28:2 69x17:5 41x17:6 24x17: 24x10: 24x5: 140x41:all 92x17:5 115x28:0"
+got=$(fn 'for s in '"$sizes"'; do __kawa_btop_preset ${s%x*} ${s#*x} 1; printf "%s:%s " $s "$__preset"; done')
 eq "$got" "$want "
-case_ "btop.conf's presets are the layouts the shell's table names, each needing what btop says it needs (btop_tools.cpp's get_min_size)"
+case_ "… and on a machine without a graphics card btop can read: the layouts without its box (all four boxes from 80×24)"
+want="188x47:all 115x47:all 92x47:all 69x47:2 60x47:2 44x47:5 69x28:2 69x17:5 41x17:6 24x17: 24x10: 24x5: 140x41:all 92x17:5 115x28:all"
+got=$(fn 'for s in '"$sizes"'; do __kawa_btop_preset ${s%x*} ${s#*x} 0; printf "%s:%s " $s "$__preset"; done')
+eq "$got" "$want "
+case_ "with or without the card's layouts: as btop.conf shows the card (theme.sh writes its box there only for a discrete AMD card)"
+eq "$(fn '__kawa_btop_preset 69 47; echo "$__preset"')" 1 "a gpu box shown: cpu over gpu over proc"
+sed -i 's/^shown_boxes = .*/shown_boxes = "cpu mem net proc"/' "$HOME/.config/btop/btop.conf"
+eq "$(fn '__kawa_btop_preset 69 47; echo "$__preset"')" 2 "none: cpu over proc"
+config .config/btop/btop.conf
+case_ "btop.conf's presets are the layouts the shell's table names, each needing what btop says it needs (btop_tools.cpp's get_min_size), with the card and without"
 python3 -I - "$HOME/.config/btop/btop.conf" "$(fn 'printf "%s\n" "${__kawa_btop_presets[@]}"')" <<'PY' && _ok || _no "the presets and the table disagree"
 import re, sys
 conf, table = open(sys.argv[1]).read(), sys.argv[2].split("\n")
-presets = ["cpu:0:default,mem:0:default,net:0:default,proc:0:default"] + re.search(r'^presets = "(.*)"$', conf, re.M).group(1).split()
-MIN = {"cpu": (60, 8), "mem": (36, 10), "net": (36, 6), "proc": (44, 16)}
-def need(boxes):   # btop 1.4's Term::get_min_size
+shown = re.search(r'^shown_boxes = "(.*)"$', conf, re.M).group(1).split()
+# "all": the boxes btop.conf shows (btop started without -p) · 0: btop's own, fixed · then btop.conf's
+presets = {"all": ",".join(b + ":0:default" for b in shown), "0": "cpu:0:default,mem:0:default,net:0:default,proc:0:default"}
+presets.update({str(i): v for i, v in enumerate(re.search(r'^presets = "(.*)"$', conf, re.M).group(1).split(), 1)})
+MIN = {"cpu": (60, 8), "mem": (36, 10), "net": (36, 6), "proc": (44, 16), "gpu0": (41, 11)}
+def need(boxes, gpu, first):   # btop 1.4's Term::get_min_size (a gpu box counts only where btop found a card)
+    g = gpu and "gpu0" in boxes
+    if not gpu and "gpu0" in boxes and not first: return None   # (a layout made for the card: skipped without one)
     w = MIN["mem"][0] if ("mem" in boxes or "net" in boxes) else 0
     w += MIN["proc"][0] if "proc" in boxes else 0
     if "cpu" in boxes: w = max(w, MIN["cpu"][0])
+    if g: w = max(w, MIN["gpu0"][0])
     h = MIN["cpu"][1] if "cpu" in boxes else 0
     h += MIN["proc"][1] if "proc" in boxes else (MIN["mem"][1] if "mem" in boxes else 0) + (MIN["net"][1] if "net" in boxes else 0)
+    h += MIN["gpu0"][1] if g else 0
     return w, h
-ok = len(table) == len(presets)
+ok = len(table) == len(presets) and "gpu0" in shown
 for row in table:
-    p, w, h = map(int, row.split())
+    p, gw, gh, w, h = row.split()
     boxes = [b.split(":")[0] for b in presets[p].split(",")]
-    ok &= need(boxes) == (w, h)
-    ok &= all(re.fullmatch(r"(cpu|mem|net|proc):[01]:(default|braille|block|tty)", b) for b in presets[p].split(","))
+    w0, h0 = need(boxes, True, p == "all")
+    # (btop's minimum — and with the card's box, 66 columns: its words take 41 at any width,
+    # and its load graph gets 25 of its own)
+    ok &= (int(gw), int(gh)) == ((max(w0, 66) if "gpu0" in boxes and p != "all" else w0), h0)
+    ok &= need(boxes, False, p == "all") == (None if w == "-" else (int(w), int(h)))
+    ok &= all(re.fullmatch(r"(cpu|mem|net|proc|gpu0):[01]:(default|braille|block|tty)", b) for b in presets[p].split(","))
+    ok &= p == "all" or len(boxes) <= 4   # (btop takes four boxes a preset at most)
+    ok &= boxes != ["gpu0"]                # (btop 1.4.5 stops on the gpu box alone)
 sys.exit(0 if ok else 1)
 PY
 case_ "btop typed: started with that preset; a preset asked for (-p) is kept as asked"
 stub btop
 (cd "$HOME" && TERM=foot python3 -I "$C/pty_run.py" --cols 58 --rows 40 --timeout 20 --each '\x1b]133;A' --line btop --line 'btop -p 2' --line exit -- bash -i >/dev/null 2>&1)
-called '^btop -p 3$'; called '^btop -p 2$'
+called '^btop( -p [0-9])?$'; called '^btop -p 2$'
 (cd "$HOME" && TERM=foot python3 -I "$C/pty_run.py" --cols 34 --rows 14 --timeout 20 --each '\x1b]133;A' --line btop --line exit -- bash -i >/dev/null 2>&1)
 called '^btop ?$'
 
@@ -227,11 +298,12 @@ screen
 quit q
 EOF
 )
-    # the main view's frame: its row, and the column its corner stands in
+    # the main view's frame — [0], whatever its title (delta draws the diff: "Diff"; git's
+    # own: "Unstaged changes") —: its row, and the column its corner stands in
     read -r row col < <(python3 -I -c '
 import sys
 for y, l in enumerate(sys.stdin.read().split("\n")):
-    i = l.find("Unstaged changes")
+    i = l.find("[0]")
     if i >= 0:
         print(y, l.rfind("┌", 0, i)); break
 else:

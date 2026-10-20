@@ -25,14 +25,14 @@ system/            what setup installs: `fedokawaii` (the system's control and i
 src/               what is compiled or patched here: dwl/ (config.h — keys, colours — and dwl.patch: gaps,
                    full window borders, centred dialogs, Arabic-proof keys, the layout for the bar,
                    the pointers following the theme) ·
-                   kawa-veil/ (the theme and wallpaper transitions, C) · kawa-clipkeep/
+                   kawa-clipkeep/
                    (copies outlive the program they came from, C) · syncplay/ (syncplay.patch:
                    two fixes to Syncplay's mpv connection, applied as it is installed)
 bin/               the kawa-* helpers (→ ~/.local/bin): menus, bar modules, theme, wallpaper
                    picker, level display, lock, clipboard history, books, notes, the file dialog,
                    the drives (kawa-drives: notices, the bar's mark, eject),
                    screen-share picker, backups (kawa-backup), watching together (kawa-together),
-                   fetch, the popup window (kawa-float) and its pictures (kawa-sixel),
+                   fetch, the popup window (kawa-term --float) and its pictures (kawa-sixel),
                    brave-origin (Brave with screen-share sound)
 configs/           what theme installs: home/ mirrors $HOME (foot, waybar, fuzzel, mako, gtk,
                    qt, bash, nvim, both themes, the pixel art, the icon font) · system/ mirrors /etc
@@ -42,8 +42,10 @@ tools/             generators: build-icons.py (Sumi Icons, and its terminal cut)
                    (one palette → every app) · build-cursors.py (the pointers)
 tests/             the self-tests: every helper, the engine and the installer, edge case by edge
                    case, against stand-ins for the hardware (bash tests/run.sh — see §6)
-docs/              the handbook: fedokawaii-guide.md and its illustrated PDF, Fedokawaii-Guide.pdf ·
-                   build/ (how the PDF and its real screenshots were made: docs/build/README.md)
+docs/              the learning guide Super+U opens: fedokawaii-learn.md and Fedokawaii-Learn.pdf
+                   (every key and program, then Python and Rust from zero to AI) · the full
+                   handbook, kept here as the reference: fedokawaii-guide.md, Fedokawaii-Guide.pdf ·
+                   build/ (how both PDFs and their real screenshots were made: docs/build/README.md)
 PACKAGES.md        what is installed, from where, and why
 ```
 
@@ -188,14 +190,10 @@ there from then on), so the folder you installed from can go once setup is done.
 
 **Coming from Scriptorium** (this project's old name): Setup and `update` take its system
 files out by themselves (its timers, dnf hooks, dconf defaults, greeter), and Theme moves
-its `~/.bashrc.d/scriptorium.sh` to the backup. The rest it left in your home is yours to
-delete once you have logged in to the new desktop:
-
-```sh
-rm -rf ~/.config/scriptorium ~/.local/share/scriptorium ~/.local/state/scriptorium
-rm -f ~/.local/bin/scrip-* ~/.cache/scriptorium-theme.log ~/.cache/scrip-lock-*
-sudo rm -rf /var/lib/scriptorium /var/log/scriptorium*.log
-```
+its `~/.bashrc.d/scriptorium.sh` to the backup. The rest it left goes by itself too: its
+records and logs with setup, update and repair, what it left in your home with the weekly
+tidy (`kawa-tidy`) — its settings, `~/.config/scriptorium`, kept in
+`~/.local/state/fedokawaii/backup/scriptorium-config` should you want anything from them.
 
 ## 3 · Looking after it — Super+U
 
@@ -208,9 +206,10 @@ a month before yours ends.
 | Command | Does |
 |---|---|
 | `fedokawaii update` (or `update`) | the season's update: snapshot → `dnf upgrade` (detached, so nothing can cut it off) → the manifest, this machine's drivers and firmware, nothing doubled or fighting, the desktop's pinned tools, GE-Proton, torrra, Prowlarr, neovim's plugins → verify; a part that fails is reported and the rest goes on |
+| `fedokawaii pull` (Super+U → update fedokawaii) | fedokawaii itself from GitHub: the one clone, `~/repos/fedokawaii`, fast-forwarded, then the update run from it and repair if verify still finds something; the private repository's token asked once and kept in `secrets.sh` (600) |
 | `fedokawaii upgrade` | move to the next Fedora once it has settled: checks RPM Fusion, the COPRs, room and every library dwl needs first; snapshot; `dnf system-upgrade`; the rest by itself after the restart |
 | `fedokawaii verify` (or `verify`) | full check, including your running session |
-| `fedokawaii report [--quick]` | the health report: `~/fedokawaii-report.txt`, about 480 checks in 28 areas — the verdict, the findings (each with what to do), every area's table, the logs, and a line per check to `diff` two runs; every program proved to run, not only installed. Made once by itself after the first start; a few minutes (`--quick`: without the timed tests); send it with any question |
+| `fedokawaii report [--quick \| --perf]` | the health report: `~/fedokawaii-report.txt`, about 700 checks in 29 areas (29: performance, every threshold a FAIL) — the verdict, the findings (each with what to do), every area's table, the logs, and a line per check to `diff` two runs; every program proved to run, not only installed. Made once by itself after the first start; a few minutes (`--quick`: without the timed tests); send it with any question |
 | `fedokawaii repair` (or `repair`) | verify, then fix what can be fixed by itself — packages, drivers and firmware, anything doubled or fighting, services, your session, release tools, torrra, Prowlarr, drifted configs — and verify again; offline, what needs no network |
 | `fedokawaii theme` · `fedokawaii drift` | apply the configs again (dwl rebuilt only if needed) · list files that differ |
 | `fedokawaii status` · `snapshots` · `log` · `settings` · `remind` | how it stands (the last backup's day among it) · the snapshots · the last log · `fedokawaii.conf` · the season |
@@ -232,7 +231,9 @@ toolkit), never in the toolkit itself, so every update keeps the change (handboo
 | `fedokawaii apply` | ShellCheck's advice, every script parsed, the copy made the toolkit (your saved settings merged in), then the theme — or repair, when packages or system parts changed |
 
 Files the theme never writes are yours to edit in place: `~/.bashrc.d/local.sh`,
-`~/.config/dwl/autostart.local.sh`, `~/.config/nvim/lua/plugins/local.lua`. Chapters 43 and
+`~/.config/dwl/autostart.local.sh`, `~/.config/nvim/lua/plugins/local.lua`. The learning guide
+(**Super+U** → *learn*) teaches every program by exercises, then Python and Rust up to a
+transformer, fine-tuning and an agent. Chapters 43 and
 44 of the handbook are about learning: which languages to learn and why, the ideas behind them
 with an example each, where the reliable documentation is, and learning with an AI assistant.
 Part IV (chapters 22–34) explains Linux itself from the ground up, on this machine: the boot,

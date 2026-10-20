@@ -47,6 +47,13 @@ if python3 -c 'import fontTools' 2>/dev/null; then
   same
 else skipped "python3-fonttools is not installed (dnf install python3-fonttools)"; fi
 
+case_ "build-seal.py on a copy: the launcher's heading fonts, byte for byte (their letters: the installed Fusion Pixel 12)"
+if python3 -c 'import fontTools' 2>/dev/null && [[ -n $(fc-list 'Fusion Pixel 12px Mono ja' 2>/dev/null) ]]; then
+  copy
+  (cd "$G" && python3 tools/build-seal.py) >"$TMP/log" 2>&1 && _ok || _no "it failed: $(tail -n 4 "$TMP/log" | tr '\n' ' ')"
+  same
+else skipped "python3-fonttools or Fusion Pixel 12 is not installed"; fi
+
 case_ "build-cursors.py on a copy: the pointers, byte for byte"
 copy
 (cd "$G" && python3 tools/build-cursors.py) >"$TMP/log" 2>&1 && _ok || _no "it failed: $(tail -n 4 "$TMP/log" | tr '\n' ' ')"
@@ -91,10 +98,12 @@ icons = {}
 for ln in (repo / "configs/home/.config/fedokawaii/icons.sh").read_text().splitlines():
     m = re.match(r"(ICON_\w+)=\$'((?:\\x[0-9a-f]{2})+)'", ln)
     if m:
-        icons[m.group(1)] = ord(bytes.fromhex(m.group(2).replace("\\x", "")).decode())
+        s = bytes.fromhex(m.group(2).replace("\\x", "")).decode()
+        if len(s) == 1:          # (ICON_BAR_* are an icon plus its spacers: not one glyph)
+            icons[m.group(1)] = ord(s)
 by_cp = {v: k for k, v in icons.items()}
 bad = []
-def pua(cp): return 0xF0000 <= cp <= 0xFFFFD
+def pua(cp): return 0xF0000 <= cp <= 0xFFFFD and not 0xFE800 <= cp <= 0xFE8FF   # (U+FE800–FE8FF: the launcher's Sumi Seal font, tools/build-seal.py)
 for f in sorted((repo / "configs").rglob("*")):
     if not f.is_file() or f.suffix in (".ttf", ".png", ".xpm") or "/cursors/" in str(f) or f.name == "icons.sh":
         continue

@@ -18,6 +18,14 @@
 #      status   show setup progress
 #      apply    from your working copy (fedokawaii copy): it becomes the toolkit, then its
 #               configs are applied — and packages and system parts too when they changed
+#      conf     conf [FILE]: FILE (an edited copy of fedokawaii.conf) checked — every value —
+#               and only then made the settings; the ones before are kept to put back
+#
+#    sudo bash fedokawaii.sh --dry-run ACTION   what setup, all, theme, update or repair would
+#                                        change, changing nothing: the settings checked, the
+#                                        steps still to run, the packages and release files
+#                                        still to install, the configs that would be replaced
+#    bash fedokawaii.sh ACTION --help    that action's lines of this text
 #
 #  Run from a working copy on a finished install, theme and update and repair make that
 #  copy the toolkit first (your saved settings merged in): what root runs, and what your
@@ -29,11 +37,18 @@
 # ═════════════════════════════════════════════════════════════════════════════
 set -Eeuo pipefail
 IFS=$'\n\t'
+export LC_ALL=C.UTF-8      # (every check and message the same, whatever your language: Arabic or none)
 REPO_DIR="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" && pwd)"
 STATE_DIR=/var/lib/fedokawaii
 LOG_FILE=/var/log/fedokawaii.log
 # (help needs no root: it only reads this header)
 if [[ ${1:-} == @(-h|--help|help) ]]; then sed -n '3,/^# ═/p' "${BASH_SOURCE[0]}" | sed '$d; s/^# \{0,2\}//'; exit 0; fi
+# ACTION --help: that action's own lines of the header (its line, and the lines that carry it on)
+if [[ ${2:-} == @(-h|--help) ]]; then
+  h=$(awk -v a="$1" '/^# ═/ && ++n == 2 { exit } on && /^#               / { print; next } { on = 0 } $0 ~ "^#      " a " " { on = 1; print }' "${BASH_SOURCE[0]}")
+  [[ -n $h ]] || { echo "fedokawaii.sh: no action '$1' — the actions: bash fedokawaii.sh --help" >&2; exit 2; }
+  printf '%s\n' "$h" | sed 's/^# \{0,6\}/  /'; exit 0
+fi
 [[ $EUID -eq 0 ]] || { echo "run with sudo: sudo bash fedokawaii.sh" >&2; exit 2; }
 touch "$LOG_FILE"
 source "$REPO_DIR/lib/common.sh"
@@ -92,7 +107,7 @@ apply_copy() {
   ((${#changed[@]} <= 40)) || log "… and $((${#changed[@]} - 40)) more (fedokawaii diff shows them all)"
   # every shell script parses (bash -n reads a script, never runs it)
   while IFS= read -r -d '' f; do
-    if [[ $f == *.sh ]] || as_desk head -n1 -- "$f" 2>/dev/null | grep -qE '^#!.*[/ ](ba)?sh( |$)'; then
+    if [[ $f == *.sh ]] || grep -qE '^#!.*[/ ](ba)?sh( |$)' < <(as_desk head -n1 -- "$f" 2>/dev/null); then
       as_desk bash -n -- "$f" 2>/dev/null || bad+=("${f#"$REPO_DIR/"}")
     fi
   done < <(as_desk find "$REPO_DIR" \( -path "$REPO_DIR/.git" -o -path "$REPO_DIR/docs" \) -prune -o -type f -print0)
@@ -123,7 +138,77 @@ apply_copy() {
   return "$rc"                                    # (3: applied, and something still needs you)
 }
 
+indent() { local l; while IFS= read -r l; do printf '    %s\n' "$l"; done <<<"$1"; }   # (each line four spaces in)
 misuse() { echo "fedokawaii.sh: $* — the actions: sudo bash fedokawaii.sh --help" >&2; exit 2; }
+
+# --dry-run ACTION — what ACTION would change, read from the machine as it stands; nothing is
+# written, installed or started (the log aside: what is shown is kept there too)
+dry_steps() {   # dry_steps FROM-PHASE → "would run: N name" for each step not marked done
+  local ph n fn name todo=0 done_=0
+  for ph in 1 2 3; do
+    ((ph >= $1)) || continue
+    while IFS='|' read -r name fn; do
+      n=${name%% *}
+      if compgen -G "$STATE_DIR/done.$n *" >/dev/null; then done_=$((done_ + 1)); else log "would run: $name ($fn)"; todo=$((todo + 1)); fi
+    done < <(awk -v f="phase$ph() {" '$0 == f { on = 1; next } on && /^}/ { exit } on && /^ *step "/' "$REPO_DIR/setup.sh" \
+             | sed -E 's/^ *step "([^"]*)" +([a-z_0-9]+).*/\1|\2/')
+  done
+  ok "$todo step(s) would run, $done_ done already (skipped)"
+}
+dry_packages() {   # the manifest's packages not installed yet, and the release files not at their pins
+  local gpu miss=() p e name tag cur h
+  # shellcheck source=lib/manifest.sh
+  source "$REPO_DIR/lib/manifest.sh"
+  # shellcheck source=lib/hardware.sh
+  source "$REPO_DIR/lib/hardware.sh"
+  gpu=$(cat "$STATE_DIR/gpu" 2>/dev/null) || gpu=""
+  [[ -n $gpu ]] || { if [[ $GPU != auto ]]; then gpu=$GPU; else gpu=$(hw_gpu); fi; }
+  [[ $gpu == @(amd|intel) ]] || { log "GPU: '$gpu' — setup builds for amd or intel only (check says more)"; gpu=amd; }
+  while IFS= read -r p; do [[ -n $p ]] && ! rpm -q "$p" >/dev/null 2>&1 && miss+=("$p"); done < <(STEAM=$STEAM manifest_all "$gpu")
+  if ((${#miss[@]})); then log "would install ${#miss[@]} package(s) (the $gpu build): $(IFS=' '; echo "${miss[*]}")"
+  else ok "every package of the manifest is installed"; fi
+  [[ -n $user ]] || return 0
+  h=$(getent passwd "$user" | cut -d: -f6)
+  # shellcheck source=lib/upstream.sh
+  source "$REPO_DIR/lib/upstream.sh"
+  for e in "${UPSTREAM[@]}"; do
+    IFS='|' read -r name _ tag _ <<<"$e"
+    cur=$(cat "$h/.local/share/fedokawaii/upstream/$name" 2>/dev/null) || cur=""
+    [[ $cur == "$tag" ]] || log "would fetch $name $tag (checksummed)${cur:+ — $cur now}"
+  done
+}
+dry_run() {
+  local a=${1:-} p ph
+  [[ $a == @(setup|all|theme|update|repair) ]] || misuse "--dry-run takes setup, all, theme, update or repair"
+  hdr "Fedokawaii --dry-run $a — nothing is changed"
+  p=$(conf_problems "$REPO_DIR/fedokawaii.conf")
+  if [[ -n $p ]]; then log "fedokawaii.conf would stop it before anything runs:"; indent "$p"; return 1; fi
+  read_conf "$REPO_DIR/fedokawaii.conf"
+  ok "fedokawaii.conf: every value is valid"
+  case $a in
+    setup|all)
+      ph=$(cat "$STATE_DIR/phase" 2>/dev/null) || ph=1
+      if [[ $ph == "done" ]]; then ok "already built: setup would change nothing (update or repair keep it so)"; return 0; fi
+      [[ $ph == [123] ]] || { log "$STATE_DIR/phase says '$ph' — setup would stop and say so (sudo bash setup.sh --status)"; return 1; }
+      log "setup would carry on at phase $ph of 3 (restarting the computer between phases)"
+      dry_steps "$ph"; dry_packages
+      [[ $a == all ]] && log "then the theme, near the end: every config put in place (theme --dry-run lists what differs once setup is done)"
+      return 0 ;;
+    theme)
+      [[ -n $user ]] || die "unknown desktop user — run setup first"
+      log "the configs theme would replace (each kept in a backup first):"
+      bash "$REPO_DIR/theme.sh" --user "$user" --check ;;
+    update)
+      [[ $(cat "$STATE_DIR/phase" 2>/dev/null) == "done" ]] || { log "the build is not finished: update would refuse — setup carries on"; return 1; }
+      log "the package updates waiting (dnf check-upgrade):"
+      p=$(dnf -q check-upgrade 2>&1); case $? in 0) ok "no package update waiting" ;; 100) indent "$p" ;; *) log "dnf could not ask the repositories: $p" ;; esac
+      dry_packages ;;
+    repair)
+      [[ $(cat "$STATE_DIR/phase" 2>/dev/null) == "done" ]] || { log "the build is not finished: repair would refuse — setup carries on"; return 1; }
+      log "what verify finds is what repair would put right:"
+      bash "$REPO_DIR/verify.sh" ;;
+  esac
+}
 act() {
   # (a word more than an action takes is a slip, never ignored: `upgrade now` is no --now)
   case $1 in
@@ -155,10 +240,16 @@ act() {
             # read once, into root's own copy: what is checked is exactly what is saved. Read
             # as whoever ran sudo — the copy is theirs: root never follows a link in it
             r=(cat --); [[ -n ${SUDO_USER:-} && $SUDO_USER != root ]] && r=(runuser -u "$SUDO_USER" -- cat --)
-            t=$(mktemp) && "${r[@]}" "$f" >"$t" || { rm -f "${t:-}"; die "cannot read $f"; }
+            t=$(mktemp) || die "no temporary file (is /tmp full?)"
+            "${r[@]}" "$f" >"$t" || { rm -f "$t"; die "cannot read $f"; }
             p=$(conf_problems "$t")
-            [[ -z $p ]] || { rm -f "$t"; die "not saved — fedokawaii.conf would have:"$'\n'"$(sed 's/^/    /' <<<"$p")"; }
-            if [[ $f != "$REPO_DIR/fedokawaii.conf" ]]; then write_file "$REPO_DIR/fedokawaii.conf" 0644 <"$t"; fi
+            [[ -z $p ]] || { rm -f "$t"; die "not saved — fedokawaii.conf would have:"$'\n'"$(indent "$p")"; }
+            if [[ $f != "$REPO_DIR/fedokawaii.conf" ]] && ! cmp -s "$t" "$REPO_DIR/fedokawaii.conf"; then
+              # (the settings before, kept: one command puts them back)
+              mkdir -p "$STATE_DIR"; cp -- "$REPO_DIR/fedokawaii.conf" "$STATE_DIR/fedokawaii.conf.before"
+              write_file "$REPO_DIR/fedokawaii.conf" 0644 <"$t"
+              log "the settings before this change: $STATE_DIR/fedokawaii.conf.before — sudo bash $REPO_DIR/fedokawaii.sh conf $STATE_DIR/fedokawaii.conf.before puts them back"
+            fi
             rm -f "$t"
             ok "fedokawaii.conf: every value is valid — the next update applies it"
             log "BACKUP_TARGET and BACKUP_REMIND_DAYS count at once: the backup and its reminder read the file itself" ;;
@@ -166,6 +257,7 @@ act() {
   esac
 }
 
+if [[ ${1:-} == --dry-run ]]; then (($# == 2)) || misuse "--dry-run takes one action"; dry_run "$2"; exit; fi
 if (($#)); then act "$@"; exit; fi
 
 item() {   # item KEY NAME WHAT [NOTE] — gold key, aligned columns, notes dimmed
@@ -188,6 +280,7 @@ while :; do
   item 7 Drift  "configs that differ from the repo"   "read-only"
   item 8 Status "setup progress"                      "read-only"
   item 9 Repair "find what broke and fix it"
+  item p Preview "what Setup would change"               "read-only"
   item q Quit   ""
   read -rp $'\n  choose: ' c || exit 0
   case $c in
@@ -195,7 +288,8 @@ while :; do
     1) act check || true ;;   2) act setup || true ;;   3) act theme || true ;;   4) act all || true ;;
     5) act verify || true ;;  6) act update || true ;;  7) act drift || true ;;  8) act status || true ;;
     9) act repair || true ;;
+    p|P) dry_run setup || true ;;
     q|Q|'') exit 0 ;;
-    *) echo "  1–9 or q" ;;
+    *) echo "  1–9, p or q" ;;
   esac
 done

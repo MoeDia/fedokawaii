@@ -7,6 +7,9 @@
 #                          numbered menu)
 #   fedokawaii status      how it stands, as text — instant, from what is known
 #   fedokawaii update      the season's update: packages, the desktop's own tools, checks
+#   fedokawaii pull        fedokawaii itself from GitHub: your clone (~/repos/fedokawaii)
+#                          brought to GitHub's newest, then the update from it, and repair if
+#                          anything is left (asks once for the token of the private repository)
 #   fedokawaii upgrade     move to the next Fedora release, once it has settled
 #   fedokawaii upgrade --now   the same, without waiting for it to settle
 #   fedokawaii verify      prove everything is installed right (changes nothing)
@@ -20,11 +23,20 @@
 #   fedokawaii remind [every DAYS | wait DAYS | on | off | check]
 #                          the reminder of the update season (default: every 90 days) — and
 #                          of a backup older than BACKUP_REMIND_DAYS (fedokawaii.conf)
-#   fedokawaii guide       the handbook (the PDF; on a text console, its text)
-#   fedokawaii report [--quick]   the health report: ~/fedokawaii-report.txt, one file to hand on
+#   fedokawaii guide       the learning guide (the PDF; on a text console, its text)
+#   fedokawaii freesync    whether FreeSync works, now: a line a screen, from the card itself
+#   fedokawaii report [--quick | --perf]   the health report: ~/fedokawaii-report.txt, one
+#                          file to hand on (--perf: every interaction timed, again and again)
+#   fedokawaii selftest [--sandbox]   the installer checked here, changing nothing: the
+#                          settings, the scripts, setup's records, the last run's log, packages a
+#                          second run would change, configs (--sandbox: its torture suite too, in a
+#                          fake machine of its own, from your clone's tests)
+#   fedokawaii trial       the package steps for real in a throw-away Fedora container, attacked
+#                          (a kill mid-install, a 404 mirror, stale metadata, a held rpm lock,
+#                          refused downloads): ~/fedokawaii-trial.txt, one file to send (podman)
 #
 # Changing the desktop itself (handbook, chapter 42) — in your working copy, never the toolkit:
-#   fedokawaii copy        make it, once: ~/repos/fedokawaii, a git repository of the toolkit
+#   fedokawaii copy        make it, once: ~/repos/fedokawaii — the clone pull keeps current
 #   fedokawaii keep FILE…  a config you changed in place (~/.config/…), copied into the copy
 #   fedokawaii diff        what the copy would change in the toolkit (changes nothing)
 #   fedokawaii apply       the copy checked, made the toolkit, applied (sudo)
@@ -250,6 +262,12 @@ status_kv() {
       else printf 'verified\037%s checks passed · %s\n' "$p" "$(ago "$t")"; fi
     elif num "$t" && num "$f"; then printf 'verified\037%s to fix · %s (repair)\n' "$f" "$(ago "$t")"; fi
   else printf 'verified\037not yet\n'; fi
+  # the checks after a dnf transaction of yours (the guard's unit, lib/guard.sh): only when
+  # one waits or the last left something
+  if [[ -e $STATE/after-dnf ]]; then printf 'dnf\037checks after it waiting\n'
+  elif read -r t res < <(read_rec last-after-dnf) && num "$t" && [[ $res != ok ]]; then
+    printf 'dnf\037%s left something · repair\n' "$(ago "$t")"
+  fi
   run=$(uname -r); new=$(rpm -q --last kernel-core 2>/dev/null | head -n1); new=${new%% *}; new=${new#kernel-core-}
   if [[ -n $new && $new != "$run" ]]; then printf 'kernel\037%s · restart for it\n' "${new%.x86_64}"
   else printf 'kernel\037%s\n' "$run"; fi
@@ -361,12 +379,12 @@ copy_diff() {   # what apply would change in the toolkit, in a pager
 # tool draws (colours, icons, pointers) or a setting fills in is not copied: its source is
 # named instead — the change belongs there.
 keep_file() {
-  local f abs rel src home bad=0
+  local f abs rel src home unkept=0
   need_copy || return 1
   # (your home as the files resolve: it may itself be reached through a link)
   home=$(realpath -e -- "$HOME" 2>/dev/null) || home=$HOME
   for f; do
-    bad=$((bad + 1))                                 # (until it is kept, or found the same)
+    unkept=$((unkept + 1))                                 # (until it is kept, or found the same)
     abs=$(realpath -e -- "$f" 2>/dev/null) || { echo "  $f: no such file" >&2; continue; }
     [[ $abs == "$home"/* ]] || { echo "  $f: not in your home" >&2; continue; }
     rel=${abs#"$home"/}
@@ -385,10 +403,10 @@ keep_file() {
     if grep -qE '@(HOME|MONITOR_HZ|WEATHER_CITY|NIGHT_LIGHT|MPV_SCALING|ICON_CHEVRON_RIGHT|UID)@' -- "$COPY/$src"; then
       echo "  $f: filled in from fedokawaii.conf when applied (@HOME@ and the like) — make the same change in $COPY/$src by hand" >&2; continue
     fi
-    if cmp -s -- "$abs" "$COPY/$src"; then echo "  $src: already the same in the copy"; bad=$((bad - 1)); continue; fi
-    cp -- "$abs" "$COPY/$src" && echo "  kept: $src — fedokawaii apply makes it the desktop's" && bad=$((bad - 1))
+    if cmp -s -- "$abs" "$COPY/$src"; then echo "  $src: already the same in the copy"; unkept=$((unkept - 1)); continue; fi
+    cp -- "$abs" "$COPY/$src" && echo "  kept: $src — fedokawaii apply makes it the desktop's" && unkept=$((unkept - 1))
   done
-  ((bad == 0))                                       # (1: something named was not kept — said above)
+  ((unkept == 0))                                       # (1: something named was not kept — said above)
 }
 copy_apply() {   # the copy applied: ShellCheck's advice on the scripts you changed, then root's part
   local f sh=()
@@ -417,6 +435,151 @@ copy_apply() {   # the copy applied: ShellCheck's advice on the scripts you chan
   fi
   ! held || return 1
   root bash "$COPY/fedokawaii.sh" apply
+}
+
+# ── the clone: the toolkit's source, kept in one place, updated from GitHub ─────────────────
+# ~/repos/fedokawaii (COPY) is a git clone of the project's repository (ORIGIN, private:
+# a GitHub token in secrets.sh, or your SSH key for a git@ address). fedokawaii pull brings
+# it up to GitHub's newest, then runs the update from it (the clone becomes the toolkit) and,
+# when verify still finds something, repair — one run, root's part through sudo; what it did
+# is logged (PULL_LOG, and root's log) and said in a notice. The clone is also the working
+# copy every change of yours goes through (fedokawaii change · apply), so it is never removed.
+# The token is never in .git/config: git reads it from secrets.sh through a credential helper
+# given on the command line (GIT_TERMINAL_PROMPT=0: git itself never asks).
+ORIGIN=${FEDOKAWAII_ORIGIN:-https://github.com/MoeDia/fedokawaii.git}
+SECRETS=${XDG_CONFIG_HOME:-$HOME/.config}/fedokawaii/secrets.sh
+PULL_LOG=${XDG_STATE_HOME:-$HOME/.local/state}/fedokawaii/pull.log
+PULL_REC=${XDG_STATE_HOME:-$HOME/.local/state}/fedokawaii/last-pull   # "EPOCH RESULT FROM TO"
+secret() {   # secret NAME → its value in secrets.sh — only while the file is yours alone (600)
+  [[ -f $SECRETS && -O $SECRETS && $(stat -c %a "$SECRETS") == 600 ]] || return 1
+  # shellcheck disable=SC2016  # (expanded by the inner bash, after sourcing the file)
+  bash -c '. "$1" >/dev/null 2>&1; printf %s "${!2:-}"' _ "$SECRETS" "$1"
+}
+secret_set() {   # secret_set NAME VALUE — one line NAME=VALUE in secrets.sh (made, 600), replacing any
+  local d=${SECRETS%/*} t
+  install -d -m 700 "$d" && { [[ -e $SECRETS ]] || install -m 600 /dev/null "$SECRETS"; } || return 1
+  chmod 600 "$SECRETS" || return 1
+  t=$(mktemp "$d/.secrets.XXXXXX") || return 1
+  { grep -vE "^[[:space:]]*(export[[:space:]]+)?$1=" "$SECRETS"
+    printf "%s='%s'\n" "$1" "$2"; } >"$t" && chmod 600 "$t" && mv -f -- "$t" "$SECRETS"
+}
+fgit() {   # fgit ARG… — git as you, with the token from secrets.sh when there is one
+  local tok
+  tok=$(secret FEDOKAWAII_GITHUB_TOKEN) || tok=""
+  if [[ -n $tok ]]; then
+    # shellcheck disable=SC2016  # (the helper's own shell expands it, from its environment)
+    FK_TOKEN=$tok GIT_TERMINAL_PROMPT=0 git -c credential.helper= \
+      -c 'credential.helper=!f() { [ "$1" = get ] && printf "username=x-access-token\npassword=%s\n" "$FK_TOKEN"; }; f' "$@"
+  else GIT_TERMINAL_PROMPT=0 git "$@"; fi
+}
+reachable() { fgit ls-remote --quiet --exit-code "${1:-$ORIGIN}" HEAD >/dev/null 2>&1; }
+token_ask() {   # token_ask [URL] — the repository answers, or (on a terminal) its token asked once
+  local tok url=${1:-$ORIGIN}
+  reachable "$url" && return 0
+  [[ $url == https://* ]] || { echo "  $url does not answer — is your SSH key added to GitHub (ssh -T git@github.com)?" >&2; return 1; }
+  [[ -t 0 ]] || { echo "  GitHub refused $url — run fedokawaii pull in a terminal once: it asks for the token" >&2; return 1; }
+  echo "  $url is private: a GitHub token reads it (github.com → Settings → Developer settings →"
+  echo "  fine-grained token, this repository, Contents: read-only). Kept in ${SECRETS/#$HOME/\~} (600)."
+  read -rsp "  token: " tok </dev/tty; echo
+  [[ $tok =~ ^[A-Za-z0-9_]{20,255}$ ]] || { echo "  that is no GitHub token — nothing saved" >&2; return 1; }
+  secret_set FEDOKAWAII_GITHUB_TOKEN "$tok" || { echo "  could not write ${SECRETS/#$HOME/\~}" >&2; return 1; }
+  reachable "$url" && { echo "  saved — GitHub takes it"; return 0; }
+  echo "  saved, but GitHub refuses it (no access to this repository, or expired)" >&2; return 1
+}
+same_as_toolkit() {   # same_as_toolkit DIR — its files are the toolkit's (settings aside)
+  [[ -z $(diff -rq --exclude=.git --exclude=fedokawaii.conf -- "$TK" "$1" 2>&1) ]]
+}
+pack_aside() {   # pack_aside DIR WHY — the whole folder kept, packed, before it is replaced
+  local p
+  p=${XDG_STATE_HOME:-$HOME/.local/state}/fedokawaii/clone-before-$(date +%Y%m%d-%H%M%S).tar.gz
+  mkdir -p "${p%/*}" && tar -czf "$p" -C "${1%/*}" -- "${1##*/}" \
+    && echo "  ${1/#$HOME/\~}: $2 — kept, packed, in ${p/#$HOME/\~}"
+}
+clean_origin() {   # a token written into the clone's address (https://TOKEN@github.com/…): into secrets.sh
+  local d=$1 url cred
+  url=$(git -C "$d" remote get-url origin 2>/dev/null) || return 0
+  [[ $url =~ ^https://([^@/]+)@(.*)$ ]] || return 0
+  cred=${BASH_REMATCH[1]}; cred=${cred#*:}
+  secret_set FEDOKAWAII_GITHUB_TOKEN "$cred" && git -C "$d" remote set-url origin "https://${BASH_REMATCH[2]}" \
+    && echo "  the token in ${d/#$HOME/\~}'s address moved to ${SECRETS/#$HOME/\~}"
+}
+# has_origin DIR — a git clone that knows its origin: read from its .git/config itself, never by
+# asking git (which refuses a folder it does not trust, and would then pass for "no clone")
+has_origin() { [[ -f $1/.git/config && ! -L $1/.git ]] && grep -q '^\[remote "origin"\]' "$1/.git/config"; }
+# clone_ready — COPY is a clone of ORIGIN with its history: made when missing; one made by
+# fedokawaii copy (the toolkit's files, no origin) turned into one — packed first unless its
+# files are just the toolkit's and it has no commit of yours
+clone_ready() {
+  local why=""
+  command -v git >/dev/null || { echo "  git is missing — fedokawaii repair puts it back" >&2; return 1; }
+  if has_origin "$COPY"; then clean_origin "$COPY"; return 0; fi
+  token_ask || return 1
+  if [[ ! -e $COPY ]]; then
+    mkdir -p -- "${COPY%/*}" && fgit clone --quiet "$ORIGIN" "$COPY" || { echo "  could not clone $ORIGIN" >&2; return 1; }
+    echo "  cloned: ${COPY/#$HOME/\~} — fedokawaii pull keeps it current"; return 0
+  fi
+  need_copy || { echo "  ($COPY is something else: move it, or set FEDOKAWAII_COPY)" >&2; return 1; }
+  if git -C "$COPY" rev-parse -q --verify HEAD >/dev/null 2>&1; then why="commits of yours, no GitHub"
+  elif ! same_as_toolkit "$COPY"; then why="files changed, never committed"; fi
+  if [[ -n $why ]]; then pack_aside "$COPY" "$why" || return 1; fi
+  git -C "$COPY" init -q 2>/dev/null; git -C "$COPY" remote remove origin 2>/dev/null
+  git -C "$COPY" remote add origin "$ORIGIN" && fgit -C "$COPY" fetch --quiet origin \
+    && git -C "$COPY" checkout -q -f -B main --track origin/main && git -C "$COPY" clean -q -fd \
+    || { echo "  could not turn ${COPY/#$HOME/\~} into a clone of $ORIGIN" >&2; return 1; }
+  rm -f -- "$COPY/.git/fedokawaii-conf-base"
+  echo "  ${COPY/#$HOME/\~} is now a clone of GitHub's repository"
+}
+# adopt DIR — setup's, update's or repair's last step (as you): the clone they were run from
+# becomes ~/repos/fedokawaii, unless that is a clone already (0: moved; 1: left to setup)
+adopt() {
+  local d=$1
+  [[ $d != "$COPY" ]] && has_origin "$d" || return 1
+  has_origin "$COPY" && return 1
+  if [[ -e $COPY ]]; then
+    need_copy || return 1
+    if git -C "$COPY" rev-parse -q --verify HEAD >/dev/null 2>&1 || ! same_as_toolkit "$COPY"; then
+      pack_aside "$COPY" "your old working copy" || return 1
+    fi
+    rm -rf --one-file-system -- "$COPY" || return 1
+  fi
+  mkdir -p -- "${COPY%/*}" && mv -T -- "$d" "$COPY" || return 1
+  echo "  ${d/#$HOME/\~} moved to ${COPY/#$HOME/\~}: the one clone — fedokawaii pull (Super+U → update fedokawaii) updates it from GitHub"
+  clean_origin "$COPY"
+  [[ -t 0 ]] && { token_ask "$(git -C "$COPY" remote get-url origin)" || true; }
+  return 0
+}
+pull() {   # git pull, then the update from the clone, repair if verify still finds something
+  local from to rc=0 res=ok f
+  need_toolkit && ! held || return 1
+  mkdir -p -- "${PULL_LOG%/*}"
+  {
+    printf '── fedokawaii pull · %s\n' "$(date '+%F %T')"
+    clone_ready || exit 1
+    [[ -z $(git -C "$COPY" status --porcelain --untracked-files=no 2>/dev/null | grep -v ' fedokawaii.conf$') ]] \
+      || echo "  (your changes in the clone are kept: GitHub's are added beside them)"
+    from=$(git -C "$COPY" rev-parse --short HEAD)
+    token_ask "$(git -C "$COPY" remote get-url origin)" || exit 1
+    fgit -C "$COPY" fetch --quiet origin || { echo "  GitHub does not answer — is the network up?" >&2; exit 1; }
+    git -C "$COPY" merge --ff-only --quiet '@{u}' || { echo "  your commits and GitHub's went apart — lazygit in ${COPY/#$HOME/\~} (rebase), then pull again" >&2; exit 1; }
+    to=$(git -C "$COPY" rev-parse --short HEAD)
+    if [[ $from == "$to" ]]; then echo "  the clone is GitHub's newest already ($to)"
+    else echo "  $from → $to:"; git -C "$COPY" log --format='    %h %s' "$from..$to" | head -n 30; fi
+    root bash "$COPY/fedokawaii.sh" update || rc=$?
+    read -r _ _ f _ < <(read_rec last-verify)
+    if ((rc == 1)) || { num "${f:-}" && ((f > 0)); }; then
+      echo; echo "  the update left something to fix — repair follows"
+      rc=0; root bash "$TK/fedokawaii.sh" repair || rc=$?
+    fi
+    exit "$rc"
+  } 2>&1 | tee "$PULL_LOG"
+  rc=${PIPESTATUS[0]}
+  case $rc in 0) res=ok ;; 3) res=checks ;; *) res=failed ;; esac
+  printf '%s %s %s\n' "$(date +%s)" "$res" "$(git -C "$COPY" rev-parse --short HEAD 2>/dev/null)" >"$PULL_REC"
+  f=normal; ((rc == 0)) || f=critical
+  notify-send -a desktop -u "$f" -- "${ICON_TORII:-·}  fedokawaii pull" \
+    "$(case $res in ok) echo "up to date with GitHub — every check passed" ;; checks) echo "updated; something still needs you — fedokawaii verify" ;;
+       *) echo "stopped — the log: ${PULL_LOG/#$HOME/\~}" ;; esac)" 2>/dev/null || true
+  return "$rc"
 }
 
 told_move() {   # the outcome of a move to a new Fedora, told once (at the first login after it)
@@ -514,6 +677,9 @@ rows() {
   elif t=$(last_backup); then bk=$(ago "$t"); backup_late && bk="$R$(ago "$t")$O"
   else bk="${R}never$O"; fi
   busy && upd="${R}running$O"
+  # (fedokawaii itself: when the clone was last pulled from GitHub)
+  local pl="" pt pr
+  if read -r pt pr _ 2>/dev/null <"$PULL_REC" && num "$pt"; then pl=$(ago "$pt"); [[ $pr == ok ]] || pl="$R$pl$O"; fi
   # (a release that cannot be read is not guessed at: no Fedora 0, no move to Fedora 1)
   if (($(ver))); then nxt="upgrade to Fedora $n"; else nxt="upgrade to the next Fedora"; fi
   # (change and keybindings open screens of their own: only on the desktop, not on a text console)
@@ -522,6 +688,7 @@ rows() {
     -         守                        upkeep                ""  \
     status    "${ICON_CPU:-·}"          status                ""  \
     update    "${ICON_DOWNLOAD:-·}"     update                "$upd" \
+    pull      "${ICON_CLOUD:-·}"        "update fedokawaii"   "$pl" \
     upgrade   "${ICON_RESTART:-·}"      "$nxt"                "$up" \
     verify    "${ICON_CHECK:-·}"        verify                "$ver_" \
     repair    "${ICON_SLIDERS:-·}"      repair                "" \
@@ -535,13 +702,13 @@ rows() {
     remind    "${ICON_BELL:-·}"         reminders             "$([[ $REMIND == yes ]] && echo "every $EVERY days" || echo off)" \
     -         案                        help                  ""  \
     ${desk:+keys      "${ICON_KEYBOARD:-·}" keybindings       ""} \
-    guide     "${ICON_BOOK:-·}"         handbook              "" \
+    guide     "${ICON_BOOK:-·}"         learn                 "" \
     log       "${ICON_NOTE:-·}"         log                   ""
 }
 # the part each entry is in: its kanji heads the pane beside the list
 part_of() {
   case $1 in
-    status|update|upgrade|verify|repair|drift|snapshots|backup) echo 守 ;;
+    status|update|pull|upgrade|verify|repair|drift|snapshots|backup) echo 守 ;;
     change|theme|settings|remind) echo 卓 ;;
     *) echo 案 ;;
   esac
@@ -582,7 +749,7 @@ fit_items() {
 explain() {
   local a=$1 O=$INK_OFF G=$INK_MUTED kv pw=${FZF_PREVIEW_COLUMNS:-$PANE}
   # (a heading, nothing or something unknown: nothing to explain)
-  [[ $a == @(status|update|upgrade|verify|repair|snapshots|backup|theme|drift|change|settings|remind|log|keys|guide) ]] || return 0
+  [[ $a == @(status|update|pull|upgrade|verify|repair|snapshots|backup|theme|drift|change|settings|remind|log|keys|guide) ]] || return 0
   printf '  %s\n' "$(screen_heading "$(part_of "$a")" "${2:-$a}" $((pw - 3)))"
   # (the whole status only for the entries that show more than whether a run is going on:
   # the pane follows the cursor, so the others stay instant)
@@ -614,7 +781,7 @@ explain() {
     done
   }
   case $a in
-    status)    pick 'running|release|support|moved|updated|due|verified|backup|kernel|disk|retired|compare' ;;
+    status)    pick 'running|release|support|moved|updated|due|verified|dnf|backup|kernel|disk|retired|compare' ;;
     update)    pick 'running|updated|due'
                say "everything in one go: a snapshot first," \
                    "then Fedora's packages, the desktop's own" \
@@ -623,6 +790,13 @@ explain() {
                    "versions kept), and the checks. a part that" \
                    "fails is reported; the rest goes on. once a" \
                    "season is enough: nothing updates by itself." ;;
+    pull)      pick 'running'
+               say "fedokawaii itself, from GitHub: your clone" \
+                   "(~/repos/fedokawaii) brought to the newest," \
+                   "then the update runs from it, and repair if" \
+                   "anything is left. your changes in the clone" \
+                   "are kept. the first time it asks for the" \
+                   "repository's token (kept in secrets.sh)." ;;
     upgrade)   pick 'running|release|support|moved'
                say "a new Fedora comes every six months, each" \
                    "supported for about thirteen. the move is" \
@@ -647,9 +821,11 @@ explain() {
     snapshots) pick 'running'
                say "the system as it was before each change: a" \
                    "pair around every dnf run, one before each" \
-                   "update and each move, hourly ones for a" \
-                   "while, and setup's baseline. undoing one:" \
-                   "handbook §37.2." ;;
+                   "update, repair and move, hourly ones for a" \
+                   "while, and setup's baseline. the newest ten" \
+                   "\"before\" ones are in the boot menu too." \
+                   "enter: the list — and one restored, from" \
+                   "the next start, if you say so (§37.5)." ;;
     backup)    pick 'running|backup'
                say "your home — minus ~/Downloads, caches and" \
                    "what can be downloaded again — to the" \
@@ -694,7 +870,10 @@ explain() {
                say "the last run's log, at its end (root's: you" \
                    "are asked for your password)." ;;
     guide)     pick 'running'
-               say "this handbook, in zathura." ;;
+               say "the learning guide, in zathura: every" \
+                   "key and program, then Python and Rust" \
+                   "from zero to AI. (The full handbook:" \
+                   "docs/ on GitHub.)" ;;
   esac
 }
 
@@ -739,24 +918,24 @@ job_head() {
   local w n=$1
   on_console && return 0
   w=$(screen_width) || return 0
-  case $1 in remind) n=reminders ;; guide) n=handbook ;; keys) n=keybindings ;; esac
+  case $1 in remind) n=reminders ;; guide) n=learn ;; keys) n=keybindings ;; esac
   printf '\n  %s\n\n' "$(screen_heading "$(part_of "$1")" "$n" "$w")"
 }
 # the entries that run a job — dnf, a backup, an edit, or root's password asked: in Super+U's
 # popup they are handed to a window of their own (hand), which a click elsewhere, another
 # window or Super+U again never closes
-JOBS='update|upgrade|verify|repair|theme|drift|snapshots|backup|settings|log'
+JOBS='update|pull|upgrade|verify|repair|theme|drift|snapshots|backup|settings|log'
 hand() {   # hand ACTION — the job in a dialog window, on its own: the popup closes behind it
   setsid -f "$0" --job "$1" >/dev/null 2>&1 </dev/null
 }
 job_window() {   # job_window ACTION — the dialog (one at a time), or a notice of why there is none
   local rc
-  kawa-float --once system-job --dialog "system · $1" 100x27 -- "$0" --job-run "$1"; rc=$?
+  kawa-term --float --once system-job --dialog "system · $1" 100x27 -- "$0" --job-run "$1"; rc=$?
   case $rc in
     0) ;;
     3) notify-send -a desktop -- "${ICON_TORII:-·}  upkeep" "a job of the system menu is running in its window — it stays open until it ends" ;;
     1) notify-send -a desktop -u critical -- "${ICON_TORII:-·}  upkeep" "the terminal server is not running — fedokawaii repair puts it back" ;;
-    *) notify-send -a desktop -u critical -- "${ICON_TORII:-·}  upkeep" "the job's window could not open (kawa-float: $rc) — fedokawaii repair puts it back" ;;
+    *) notify-send -a desktop -u critical -- "${ICON_TORII:-·}  upkeep" "the job's window could not open (kawa-term --float: $rc) — fedokawaii repair puts it back" ;;
   esac
   return "$rc"
 }
@@ -775,6 +954,7 @@ run() {   # run ACTION — in the menu's window: the work, its outcome, a key ba
   case $a in
     status)    status_rows; rc=0 ;;
     update)    as_root update; rc=$? ;;
+    pull)      pull; rc=$? ;;
     upgrade)   as_root upgrade; rc=$? ;;
     verify)    as_root verify; rc=$? ;;
     repair)    as_root repair; rc=$? ;;
@@ -800,18 +980,70 @@ backup_now() {   # kawa-backup, as you (the backup is yours, never root's)
   # restic's progress, on the terminal itself, is left as it draws it)
   { kawa-backup 2>&1 1>&3 3>&- | sed -u 's/^/  /' >&2; return "${PIPESTATUS[0]}"; } 3>&1
 }
-snapshots() {   # the snapshots of / (snapper's list is root's) — or why there are none
-  local fs
+freesync() {   # FreeSync as the card has it this moment (kawa-display --vrr: DRM's vrr_capable
+  # and VRR_ENABLED, not dwl's word), the setting beside it, and where the monitor shows it
+  local s l name cap now say
+  s=$(cat "${XDG_CONFIG_HOME:-$HOME/.config}/fedokawaii/vrr" 2>/dev/null)
+  case $s in always) say="always on" ;; off) say="off" ;; *) say="in games (on while a window is full screen)" ;; esac
+  l=$(kawa-display --vrr) || { echo "FreeSync: the graphics card could not be asked (the line above says why)"; return 1; }
+  while IFS=$'\t' read -r name cap now; do
+    if [[ $cap != yes ]]; then
+      echo "FreeSync: $name — the screen does not offer it: switch it on in the monitor's own menu (an LG UltraGear: the joystick → Game Adjust → Adaptive-Sync, or FreeSync, On — Extended for the widest range), or use a cable and port that carry it"
+    elif [[ $now == on ]]; then
+      echo "FreeSync: $name — ON now: the refresh follows the frames · setting: $say"
+    else
+      echo "FreeSync: $name — offered, off this moment · setting: $say"
+    fi
+  done <<<"$l"
+  echo "(the card's own state, this moment. In a game, full screen: Super+X — quick settings' 滑 tile reads \"games · on\" — and a monitor whose menu shows the refresh rate shows the game's frame rate there, not 144: FreeSync at work)"
+  grep -q $'\tyes\t' <<<"$l" || [[ $s == off ]]
+}
+snapshots() {   # the snapshots of / — read from the disk by kawa-snap, as root, so the list is
+  # there in a snapshot started from the boot menu too — then one restored, if you say so
+  local fs l n ty d de b v w=0 nums=() ans c
   command -v snapper >/dev/null || { echo "  snapper is not installed — fedokawaii repair puts it back" >&2; return 1; }
   fs=$(findmnt -no FSTYPE / 2>/dev/null)
   [[ $fs == btrfs ]] || { echo "  no snapshots here: / is ${fs:-of an unknown kind}, and snapshots need Btrfs" >&2; return 1; }
-  root snapper -c root list
+  l=$(root kawa-snap list) || return 1
+  [[ -n $l ]] || { echo "  no snapshots yet"; return 0; }
+  declare -F screen_row >/dev/null && w=$(screen_width 2>/dev/null) || w=0
+  # fit TEXT N — TEXT in N letters at most, cut at a word's end (never mid-word, never an "…")
+  fit() {
+    local t=$1
+    ((${#t} <= $2)) && { printf '%s' "$t"; return; }
+    t=${t:0:$2+1}; [[ $t == *' '* ]] && t=${t% *}
+    printf '%s' "${t:0:$2}"
+  }
+  while IFS=$'\t' read -r n ty d de b; do
+    [[ $ty == post ]] && continue                       # (a dnf pair is its pre: "before" it)
+    v=$(date -d "$d UTC" '+%-d %b %H:%M' 2>/dev/null) || v=$d
+    [[ $b == booted ]] && v="running now · $v"
+    if ((w)); then screen_row "${ICON_HOURGLASS:-·}" "$(printf '%-4s %s' "$n" "$(fit "$de" $((w - 5 - 5 - ${#v} - 2)))")" "$v" "$w"
+    else printf '  %-4s  %-46s  %s\n' "$n" "$(fit "$de" 46)" "$v"; fi
+    nums+=("$n")
+  done <<<"$l"
+  printf '\n  restore one — the whole system as it was then, from the next start (your\n'
+  printf '  home stays as it is; the system now is kept, "old" brings it back):\n'
+  printf '  (or at power-on: hold Shift (Esc/F8) for the boot menu → snapshots)\n'
+  printf '  its number, or enter for none: '
+  read -r ans </dev/tty 2>/dev/null || ans=""
+  [[ -n $ans ]] || return 0
+  grep -qxF -- "$ans" < <(printf '%s\n' "${nums[@]}") || { echo "  no snapshot $ans in the list — nothing changed" >&2; return 1; }
+  printf '  type yes to restore %s (or at power-on: hold Shift (Esc/F8) for the boot menu → snapshots): ' "$ans"
+  read -r c </dev/tty 2>/dev/null || c=""
+  [[ $c == yes ]] || { echo "  nothing changed"; return 0; }
+  root kawa-snap restore "$ans" || return 1
+  printf '  restart now? y/n '
+  read -rsn1 c </dev/tty 2>/dev/null || c=n; echo
+  [[ $c == [yY] ]] && systemctl reboot
+  return 0
 }
-guide() {   # the handbook: the PDF in zathura on the desktop; on a text console, its text
-  local pdf=$TK/docs/Fedokawaii-Guide.pdf md=$TK/docs/fedokawaii-guide.md
+guide() {   # the learning guide: the PDF in zathura on the desktop; on a text console, its text
+  # (the full handbook, docs/Fedokawaii-Guide.pdf, is the repository's reference: never opened here)
+  local pdf=$TK/docs/Fedokawaii-Learn.pdf md=$TK/docs/fedokawaii-learn.md
   if [[ -z ${WAYLAND_DISPLAY:-} && -r $md ]]; then less -- "$md"; return 0; fi
-  [[ -r $pdf ]] || { echo "  the handbook is missing: $pdf — fedokawaii repair puts it back" >&2; return 1; }
-  command -v zathura >/dev/null || { echo "  zathura is not installed (fedokawaii repair puts it back) — the handbook: $pdf" >&2; return 1; }
+  [[ -r $pdf ]] || { echo "  the learning guide is missing: $pdf — fedokawaii repair puts it back" >&2; return 1; }
+  command -v zathura >/dev/null || { echo "  zathura is not installed (fedokawaii repair puts it back) — the learning guide: $pdf" >&2; return 1; }
   setsid -f zathura "$pdf" >/dev/null 2>&1 </dev/null
 }
 
@@ -824,7 +1056,7 @@ menu_fzf() {   # → fzf's exit status (2: it could not run — the plain menu t
   [[ -r $FZF_DEFAULT_OPTS_FILE ]] || unset FZF_DEFAULT_OPTS_FILE
   ( release_check >/dev/null 2>&1 & )               # (for the next look: the menu never waits on it)
   # Three parts, each under its heading, and the pane beside them: a part of its own, headed
-  # by the entry under the cursor. Fifteen entries need no search: no input line — the first
+  # by the entry under the cursor. Sixteen entries need no search: no input line — the first
   # heading stands a row under the window's top, level with the pane's. The headings stay in
   # the list but never match the fixed query (fzf's raw mode shows them in place, in their
   # own inks): up and down step from entry to entry, and the cursor starts on the first entry
@@ -866,7 +1098,7 @@ case ${1:-} in
                 menu_fzf; (($? == 2)) && menu_plain
               else menu_plain; fi
               exit 0 ;;
-  --window)   exec kawa-float --once system system 100x25 -- "$0" --popup ;;   # (fzf's margin row above, 15 entries, 3 headings and the 2 gaps above them, a row of paper more above the footer's two, fzf's margin row below: 25, odd, so the window centres to the pixel)
+  --window)   exec kawa-term --float --once system system 100x27 -- "$0" --popup ;;   # (fzf's margin row above, 16 entries, 3 headings and the 2 gaps above them, two rows of paper more above the footer's two, fzf's margin row below: 27, odd, so the window centres to the pixel)
   --rows)     fit_rows ;;
   --items)    fit_items ;;
   --explain)  explain "${2:-}" "${3:-}" ;;
@@ -874,7 +1106,7 @@ case ${1:-} in
   --job)      job_window "${2:-}" ;;                                # (hand's: the job's window)
   --job-run)  BACK="closes this window"; unset FEDOKAWAII_POPUP; run "${2:-}" ;;            # (inside it)
   # (a word more than a command takes is a slip, never ignored: `upgrade now` is no --now)
-  status|update|verify|repair|theme|drift|snapshots|backup|log|settings|guide|copy|diff|apply)
+  status|update|pull|verify|repair|theme|drift|snapshots|backup|log|settings|guide|copy|diff|apply)
               (($# == 1)) || { echo "fedokawaii $1 takes nothing more (\"$2\") — fedokawaii help" >&2; exit 2; } ;;&
   upgrade)    [[ $# == 1 || ( $# == 2 && $2 == --now ) ]] || { echo "usage: fedokawaii upgrade [--now]" >&2; exit 2; }
               as_root upgrade ${2:+"$2"} ;;
@@ -899,13 +1131,20 @@ case ${1:-} in
       *)        echo "usage: fedokawaii remind [check | every DAYS | wait DAYS | on | off]" >&2; exit 2 ;;
     esac ;;
   guide)      guide ;;
-  report)     [[ $# == 1 || ( $# == 2 && $2 == --quick ) ]] || { echo "usage: fedokawaii report [--quick]" >&2; exit 2; }
+  freesync)   (($# == 1)) || { echo "fedokawaii freesync takes nothing more — fedokawaii help" >&2; exit 2; }
+              freesync ;;
+  report)     [[ $# == 1 || ( $# == 2 && $2 == @(--quick|--perf) ) ]] || { echo "usage: fedokawaii report [--quick | --perf]" >&2; exit 2; }
               exec /usr/local/bin/fedokawaii-report ${2:+"$2"} ;;   # (it asks for root itself)
   copy)       copy_make ;;
+  pull)       pull ;;
+  --adopt)    (($# == 2)) || exit 2; adopt "$2" ;;          # (setup's last step, as you: the clone it ran from)
   diff)       copy_diff ;;
   keep)       shift; (($#)) || { echo "usage: fedokawaii keep FILE…" >&2; exit 2; }; keep_file "$@" ;;
   apply)      copy_apply ;;
   change)     exec kawa-config ;;
+  selftest)   [[ $# == 1 || ( $# == 2 && $2 == --sandbox ) ]] || { echo "usage: fedokawaii selftest [--sandbox]" >&2; exit 2; }
+              need_toolkit || exit 1; exec sudo bash "$TK/tools/selftest.sh" ${2:+"$2"} ;;
+  trial)      shift; need_toolkit || exit 1; exec bash "$TK/tools/container-trial.sh" "$@" ;;   # (as you: rootless podman)
   -h|--help|help) sed -n '2,/^[^#]/{/^#/p}' "$0" | sed 's/^# \{0,1\}//' ;;
   *)          echo "fedokawaii: unknown command \"$1\" — fedokawaii help" >&2; exit 2 ;;
 esac

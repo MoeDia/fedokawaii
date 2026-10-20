@@ -1,63 +1,82 @@
 #!/bin/bash
-# tests/menus/fake_panel — kawa-panel --menu, as the menus see it (kawa-menu's backend: the
-# panel draws the menu). Installed as "kawa-panel" on the test PATH (a direct #!/bin/bash, so
-# the process is called kawa-panel, as the real one is). Anything but --menu: exit 0 (the
-# panel asked to open, closed — as kawa-quick and kawa-menu ask it). The rows come on stdin
-# (the panel's line format); the answer is the first line of $FZ/answers, as fake_fuzzel's:
-#   esc          Esc (or another menu took its place): the panel exits 3
-#   lost         a click outside: the keyboard focus goes, it exits 1
+# tests/menus/fake_panel — the session's panel as the menus see it (kawa-menu's: it draws the
+# menu). Installed as "kawa-panel" on the test PATH (a direct #!/bin/bash, so the process is
+# called kawa-panel, as the real one is). With no argument it is the panel: its pid file and
+# its fifo ($XDG_RUNTIME_DIR/kawa-panel.pid, kawa-panel.in), a "menu PID" request at a time
+# (kawa-menu.PID.req: the caller, the number of options, the options, the rows), answered
+# into kawa-menu.PID.out as the first line of $FZ/answers says, as fake_fuzzel's:
+#   esc          Esc (or another menu took its place): 1
+#   lost         a click outside: 1
 #   enter        Enter on the --select line (else the first choice)
 #   row N        Enter on line N (0-based)
 #   pick TEXT    Enter on the first line containing TEXT
 #   typed TEXT   Enter on a filter that matches nothing: the text
-#   hang         stays open until it is killed (the menu on screen)
-# (no answer left: esc). Printed: the line's number (--index), else its name — a typed line's
-# third field (part/row/on/off/key: KIND GLYPH NAME), a plain line whole. Every call leaves
-# $FZ/args.N (one argument a line), $FZ/in.N (the rows) and "kawa-panel ARGS" in $CALLS;
-# $FZ/n is the count (shared with fake_fuzzel: the launcher's).
+#   hang         stays open until the next request (then dismissed) or kawa-menu ends
+# (no answer left: esc). The answer: the line's number (--index), else its name — a typed
+# line's third field (part/row/on/off/key: KIND GLYPH NAME), a plain line whole. Every menu
+# leaves $FZ/args.N (one option a line), $FZ/in.N (the rows), $FZ/who.N (its caller) and
+# "kawa-panel --menu ARGS" in $CALLS; $FZ/n is the count (shared with fake_fuzzel: the
+# launcher's). "toggle MODE" and "close" are logged to $CALLS as "kawa-panel toggle MODE",
+# "kawa-panel close". Any argument (--open, --sound…): logged, exit 0. Idle 60 s: it ends.
 set -u
-[[ ${1:-} == --menu ]] || exit 0
-shift
-FZ=${FZ:?}
-n=$(($(cat "$FZ/n" 2>/dev/null || echo 0) + 1)); echo "$n" >"$FZ/n"
-printf 'kawa-panel --menu %s\n' "$*" >>"${CALLS:-/dev/null}"
-printf '%s\n' "$@" >"$FZ/args.$n"
-mapfile -t rows; printf '%s\n' "${rows[@]}" >"$FZ/in.$n"
-index=0 sel="" a="" prev=""
-for x; do
-  [[ $x == --index ]] && index=1
-  [[ $prev == --select ]] && sel=$x
-  prev=$x
-done
-if [[ -s $FZ/answers ]]; then a=$(head -n1 "$FZ/answers"); sed -i 1d "$FZ/answers"; fi
-choice() {   # choice N — line N can be chosen (a row, on, key or plain line)
-  local l=${rows[$1]:-}
-  [[ -n ${l//[[:space:]]/} ]] || return 1
-  case ${l%%$'\t'*} in part|off|cell|note) [[ $l == *$'\t'* ]] && return 1 ;; esac
-  return 0
-}
-choose() {   # choose N — Enter on line N
-  local l=${rows[$1]} k f
-  choice "$1" || { echo "fake panel: line $1 is not a choice: [$l]" >&2; exit 4; }
-  if ((index)); then echo "$1"; return; fi
-  k=${l%%$'\t'*}
-  case $k in
-    row|on|key) IFS=$'\t' read -r -a f <<<"$l"; printf '%s\n' "${f[2]:-${f[1]}}" ;;
-    *) printf '%s\n' "$l" ;;
+if (($#)); then printf 'kawa-panel %s\n' "$*" >>"${CALLS:-/dev/null}"; exit 0; fi
+FZ=${FZ:?} RUN=${XDG_RUNTIME_DIR:-/run/user/$UID}
+rm -f "$RUN/kawa-panel.in.new"; mkfifo "$RUN/kawa-panel.in.new" || exit 1
+exec 3<>"$RUN/kawa-panel.in.new"; mv -f "$RUN/kawa-panel.in.new" "$RUN/kawa-panel.in"
+echo $$ >"$RUN/kawa-panel.pid"
+hung=""
+reply() { { printf '%s %s\n' "$2" "${3:-}" 1<>"$RUN/kawa-menu.$1.out"; } 2>/dev/null; }
+answer_one() {   # answer_one PID — kawa-menu PID's menu
+  local p=$1 n a="" index=0 sel="" x prev="" who k i
+  local -a opts=() rows=() f
+  [[ -n $hung ]] && { reply "$hung" 1; hung=""; }
+  mapfile -t f <"$RUN/kawa-menu.$p.req" 2>/dev/null || { reply "$p" 2; return; }
+  rm -f "$RUN/kawa-menu.$p.req"
+  who=${f[0]:-} k=${f[1]:-0}
+  opts=("${f[@]:2:k}") rows=("${f[@]:2+k}")
+  n=$(($(cat "$FZ/n" 2>/dev/null || echo 0) + 1)); echo "$n" >"$FZ/n"
+  printf 'kawa-panel --menu %s\n' "${opts[*]}" >>"${CALLS:-/dev/null}"
+  printf '%s\n' "${opts[@]}" >"$FZ/args.$n"; ((k)) || : >"$FZ/args.$n"
+  printf '%s\n' "${rows[@]}" >"$FZ/in.$n"; ((${#rows[@]})) || : >"$FZ/in.$n"
+  printf '%s\n' "$who" >"$FZ/who.$n"
+  for x in "${opts[@]}"; do
+    [[ $x == --index ]] && index=1
+    [[ $prev == --select ]] && sel=$x
+    prev=$x
+  done
+  if [[ -s $FZ/answers ]]; then a=$(head -n1 "$FZ/answers"); sed -i 1d "$FZ/answers"; fi
+  echo "${a:-esc}" >"$FZ/out.$n"
+  choice() {   # choice N — line N can be chosen (a row, on, key or plain line)
+    local l=${rows[$1]:-}
+    [[ -n ${l//[[:space:]]/} ]] || return 1
+    case ${l%%$'\t'*} in part|off|cell|note) [[ $l == *$'\t'* ]] && return 1 ;; esac
+    return 0
+  }
+  choose() {   # choose N — Enter on line N
+    local l=${rows[$1]} g
+    choice "$1" || { echo "fake panel: line $1 is not a choice: [$l]" >&2; reply "$p" 1; return; }
+    if ((index)); then reply "$p" 0 "$1"; return; fi
+    case ${l%%$'\t'*} in
+      row|on|key) IFS=$'\t' read -r -a g <<<"$l"; reply "$p" 0 "${g[2]:-${g[1]}}" ;;
+      *) reply "$p" 0 "$l" ;;
+    esac
+  }
+  case ${a:-esc} in
+    esc|lost) reply "$p" 1 ;;
+    enter)    if [[ -n $sel ]]; then choose "$sel"
+              else for i in "${!rows[@]}"; do choice "$i" && { choose "$i"; return; }; done; reply "$p" 1; fi ;;
+    row\ *)   choose "${a#row }" ;;
+    pick\ *)  for i in "${!rows[@]}"; do [[ ${rows[i]} == *"${a#pick }"* ]] && choice "$i" && { choose "$i"; return; }; done
+              echo "fake panel: no choice has [${a#pick }]" >&2; reply "$p" 1 ;;
+    typed\ *) reply "$p" 0 "${a#typed }" ;;
+    hang)     hung=$p; echo "$p" >"$FZ/hang.$n" ;;
+    *)        echo "fake panel: unknown answer [$a]" >&2; reply "$p" 1 ;;
   esac
 }
-echo "${a:-esc}" >"$FZ/out.$n"
-case ${a:-esc} in
-  esc)     exit 3 ;;
-  lost)    exit 1 ;;
-  enter)   if [[ -n $sel ]]; then choose "$sel"
-           else for i in "${!rows[@]}"; do choice "$i" && { choose "$i"; exit 0; }; done; exit 3; fi ;;
-  row\ *)  choose "${a#row }" ;;
-  pick\ *) for i in "${!rows[@]}"; do [[ ${rows[i]} == *"${a#pick }"* ]] && choice "$i" && { choose "$i"; exit 0; }; done
-           echo "fake panel: no choice has [${a#pick }]" >&2; exit 4 ;;
-  typed\ *) printf '%s\n' "${a#typed }" ;;
-  hang)    echo $$ >"$FZ/hang.$n"; rm -f "$FZ/hold.$n"; mkfifo "$FZ/hold.$n"
-           read -r -t 20 <>"$FZ/hold.$n"; exit 1 ;;    # (builtins only: killed, nothing lingers)
-  *)       echo "fake panel: unknown answer [$a]" >&2; exit 5 ;;
-esac
-exit 0
+while read -r -t 60 -u 3 cmd arg; do
+  case $cmd in
+    menu)   answer_one "$arg" ;;
+    toggle) printf 'kawa-panel toggle %s\n' "$arg" >>"${CALLS:-/dev/null}" ;;
+    close)  printf 'kawa-panel close\n' >>"${CALLS:-/dev/null}"; [[ -n $hung ]] && { reply "$hung" 1; hung=""; } ;;
+  esac
+done

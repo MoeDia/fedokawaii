@@ -4,7 +4,7 @@
 //           layout icon (click: the next layout, right-click: the one before) · window title
 //   centre: now playing between the two halves of a segment meter (hidden when nothing
 //           plays) — waybar centres it on the screen
-//   right:  mode seal · drives · Steam's gamepad (while it runs) · keyboard layout · memory ·
+//   right:  録 while recording · mode seal · drives · downloads (while one runs) · Steam's gamepad (while it runs) · keyboard layout · memory ·
 //           volume · brightness · weather ┆ date · day seal · time (and a running timer) ┆
 //           the cat (quick settings) — ┆ a sashiko stitch down the paper
 // Network, Bluetooth, night light, theme… live in the quick-settings dropdown,
@@ -21,10 +21,15 @@
 // "interval" (waybar then never waits for its clicks at all).
 // Signals (SIGRTMIN+N, kawa-dwlstatus --poke): 8 workspaces · 9 layout · 10 title · 11
 // keyboard layout · 12 mode · 13 drives · 14 brightness · 15 the cat · 17 Steam · 18 weather ·
-// 19 date and day · 20 torii; the long-running modules (time, memory, volume) are woken
+// 19 date and day · 20 torii · 21 downloads · 22 recording; the long-running modules (time, memory, volume) are woken
 // through a fifo of their own instead.
 // Tooltips: only where the glyph does not say it all — what it is · click · right-click ·
 // scroll, from the module's own JSON; every other module has "tooltip": false.
+// A click runs only its command ("exec-on-event": false): the module's own runs on its signal
+// or interval alone — not again on every click, racing the opener (the light would flicker)
+// and setting its tooltip anew, which GTK then shows again under the pointer, behind the menu
+// the click opened. While lit a module's tooltip is empty (kawa-bar), so none shows over its
+// own menu.
 //
 // Icons are drawn in the "Sumi Icons" font (art/icons.txt); kawa-bar and the modules' own
 // scripts write them (icons.sh).
@@ -48,83 +53,97 @@
   // cat, a sashiko stitch: a running stitch of faint thread down the paper (style.css draws
   // it; the text is a zero-width space, as an empty one would hide the module)
   "group/status": { "orientation": "horizontal",
-                    "modules": ["custom/mode", "custom/drives", "custom/steam", "custom/kb", "custom/mem", "custom/volume", "custom/brightness", "custom/weather"] },
+                    "modules": ["custom/record", "custom/mode", "custom/drives", "custom/downloads", "custom/steam", "custom/kb", "custom/mem", "custom/volume", "custom/brightness", "custom/weather"] },
   "group/when":   { "orientation": "horizontal", "modules": ["custom/date", "custom/day", "custom/time"] },
   "custom/sep1":  { "format": "\u200b", "tooltip": false },
   "custom/sep2":  { "format": "\u200b", "tooltip": false },
 
-  // the torii: the launcher (kawa-menu --launcher, under the torii; Super+Space the same)
+  // the torii: the launcher (kawa-menu --launcher, in the middle of the screen; Super+Space the same)
   "custom/torii": { "exec": "kawa-bar torii", "return-type": "json", "signal": 20, "tooltip": false,
-                    "on-click": "setsid -f kawa-menu --launcher" },
+                    "exec-on-event": false, "on-click": "setsid -f kawa-menu --launcher" },
 
   // workspaces: written by kawa-dwlstatus, which pokes only what changed — SIGRTMIN+8 workspaces,
   // +9 layout, +10 title, +11 keyboard layout; an empty text hides the module. Each monitor's
   // bar shows that monitor's (dwl-bar/$WAYBAR_OUTPUT_NAME/, else the focused one's).
   // Clicking one switches to it (kawa-tag presses its Super+1…9 through a virtual keyboard:
   // dwl acts on the monitor under the pointer, the one whose bar was clicked).
-  "custom/tag1": { "exec": "{ IFS= read -r l <\"$XDG_RUNTIME_DIR/dwl-bar/${WAYBAR_OUTPUT_NAME:-.}/tag1.json\" || IFS= read -r l <\"$XDG_RUNTIME_DIR/dwl-bar/tag1.json\"; } 2>/dev/null && printf '%s\\n' \"$l\"", "return-type": "json", "signal": 8, "tooltip": false, "on-click": "kawa-tag 1" },
-  "custom/tag2": { "exec": "{ IFS= read -r l <\"$XDG_RUNTIME_DIR/dwl-bar/${WAYBAR_OUTPUT_NAME:-.}/tag2.json\" || IFS= read -r l <\"$XDG_RUNTIME_DIR/dwl-bar/tag2.json\"; } 2>/dev/null && printf '%s\\n' \"$l\"", "return-type": "json", "signal": 8, "tooltip": false, "on-click": "kawa-tag 2" },
-  "custom/tag3": { "exec": "{ IFS= read -r l <\"$XDG_RUNTIME_DIR/dwl-bar/${WAYBAR_OUTPUT_NAME:-.}/tag3.json\" || IFS= read -r l <\"$XDG_RUNTIME_DIR/dwl-bar/tag3.json\"; } 2>/dev/null && printf '%s\\n' \"$l\"", "return-type": "json", "signal": 8, "tooltip": false, "on-click": "kawa-tag 3" },
-  "custom/tag4": { "exec": "{ IFS= read -r l <\"$XDG_RUNTIME_DIR/dwl-bar/${WAYBAR_OUTPUT_NAME:-.}/tag4.json\" || IFS= read -r l <\"$XDG_RUNTIME_DIR/dwl-bar/tag4.json\"; } 2>/dev/null && printf '%s\\n' \"$l\"", "return-type": "json", "signal": 8, "tooltip": false, "on-click": "kawa-tag 4" },
-  "custom/tag5": { "exec": "{ IFS= read -r l <\"$XDG_RUNTIME_DIR/dwl-bar/${WAYBAR_OUTPUT_NAME:-.}/tag5.json\" || IFS= read -r l <\"$XDG_RUNTIME_DIR/dwl-bar/tag5.json\"; } 2>/dev/null && printf '%s\\n' \"$l\"", "return-type": "json", "signal": 8, "tooltip": false, "on-click": "kawa-tag 5" },
-  "custom/tag6": { "exec": "{ IFS= read -r l <\"$XDG_RUNTIME_DIR/dwl-bar/${WAYBAR_OUTPUT_NAME:-.}/tag6.json\" || IFS= read -r l <\"$XDG_RUNTIME_DIR/dwl-bar/tag6.json\"; } 2>/dev/null && printf '%s\\n' \"$l\"", "return-type": "json", "signal": 8, "tooltip": false, "on-click": "kawa-tag 6" },
-  "custom/tag7": { "exec": "{ IFS= read -r l <\"$XDG_RUNTIME_DIR/dwl-bar/${WAYBAR_OUTPUT_NAME:-.}/tag7.json\" || IFS= read -r l <\"$XDG_RUNTIME_DIR/dwl-bar/tag7.json\"; } 2>/dev/null && printf '%s\\n' \"$l\"", "return-type": "json", "signal": 8, "tooltip": false, "on-click": "kawa-tag 7" },
-  "custom/tag8": { "exec": "{ IFS= read -r l <\"$XDG_RUNTIME_DIR/dwl-bar/${WAYBAR_OUTPUT_NAME:-.}/tag8.json\" || IFS= read -r l <\"$XDG_RUNTIME_DIR/dwl-bar/tag8.json\"; } 2>/dev/null && printf '%s\\n' \"$l\"", "return-type": "json", "signal": 8, "tooltip": false, "on-click": "kawa-tag 8" },
-  "custom/tag9": { "exec": "{ IFS= read -r l <\"$XDG_RUNTIME_DIR/dwl-bar/${WAYBAR_OUTPUT_NAME:-.}/tag9.json\" || IFS= read -r l <\"$XDG_RUNTIME_DIR/dwl-bar/tag9.json\"; } 2>/dev/null && printf '%s\\n' \"$l\"", "return-type": "json", "signal": 8, "tooltip": false, "on-click": "kawa-tag 9" },
+  "custom/tag1": { "exec": "{ IFS= read -r l <\"$XDG_RUNTIME_DIR/dwl-bar/${WAYBAR_OUTPUT_NAME:-.}/tag1.json\" || IFS= read -r l <\"$XDG_RUNTIME_DIR/dwl-bar/tag1.json\"; } 2>/dev/null && printf '%s\\n' \"$l\"", "return-type": "json", "signal": 8, "tooltip": false, "exec-on-event": false, "on-click": "kawa-tag 1" },
+  "custom/tag2": { "exec": "{ IFS= read -r l <\"$XDG_RUNTIME_DIR/dwl-bar/${WAYBAR_OUTPUT_NAME:-.}/tag2.json\" || IFS= read -r l <\"$XDG_RUNTIME_DIR/dwl-bar/tag2.json\"; } 2>/dev/null && printf '%s\\n' \"$l\"", "return-type": "json", "signal": 8, "tooltip": false, "exec-on-event": false, "on-click": "kawa-tag 2" },
+  "custom/tag3": { "exec": "{ IFS= read -r l <\"$XDG_RUNTIME_DIR/dwl-bar/${WAYBAR_OUTPUT_NAME:-.}/tag3.json\" || IFS= read -r l <\"$XDG_RUNTIME_DIR/dwl-bar/tag3.json\"; } 2>/dev/null && printf '%s\\n' \"$l\"", "return-type": "json", "signal": 8, "tooltip": false, "exec-on-event": false, "on-click": "kawa-tag 3" },
+  "custom/tag4": { "exec": "{ IFS= read -r l <\"$XDG_RUNTIME_DIR/dwl-bar/${WAYBAR_OUTPUT_NAME:-.}/tag4.json\" || IFS= read -r l <\"$XDG_RUNTIME_DIR/dwl-bar/tag4.json\"; } 2>/dev/null && printf '%s\\n' \"$l\"", "return-type": "json", "signal": 8, "tooltip": false, "exec-on-event": false, "on-click": "kawa-tag 4" },
+  "custom/tag5": { "exec": "{ IFS= read -r l <\"$XDG_RUNTIME_DIR/dwl-bar/${WAYBAR_OUTPUT_NAME:-.}/tag5.json\" || IFS= read -r l <\"$XDG_RUNTIME_DIR/dwl-bar/tag5.json\"; } 2>/dev/null && printf '%s\\n' \"$l\"", "return-type": "json", "signal": 8, "tooltip": false, "exec-on-event": false, "on-click": "kawa-tag 5" },
+  "custom/tag6": { "exec": "{ IFS= read -r l <\"$XDG_RUNTIME_DIR/dwl-bar/${WAYBAR_OUTPUT_NAME:-.}/tag6.json\" || IFS= read -r l <\"$XDG_RUNTIME_DIR/dwl-bar/tag6.json\"; } 2>/dev/null && printf '%s\\n' \"$l\"", "return-type": "json", "signal": 8, "tooltip": false, "exec-on-event": false, "on-click": "kawa-tag 6" },
+  "custom/tag7": { "exec": "{ IFS= read -r l <\"$XDG_RUNTIME_DIR/dwl-bar/${WAYBAR_OUTPUT_NAME:-.}/tag7.json\" || IFS= read -r l <\"$XDG_RUNTIME_DIR/dwl-bar/tag7.json\"; } 2>/dev/null && printf '%s\\n' \"$l\"", "return-type": "json", "signal": 8, "tooltip": false, "exec-on-event": false, "on-click": "kawa-tag 7" },
+  "custom/tag8": { "exec": "{ IFS= read -r l <\"$XDG_RUNTIME_DIR/dwl-bar/${WAYBAR_OUTPUT_NAME:-.}/tag8.json\" || IFS= read -r l <\"$XDG_RUNTIME_DIR/dwl-bar/tag8.json\"; } 2>/dev/null && printf '%s\\n' \"$l\"", "return-type": "json", "signal": 8, "tooltip": false, "exec-on-event": false, "on-click": "kawa-tag 8" },
+  "custom/tag9": { "exec": "{ IFS= read -r l <\"$XDG_RUNTIME_DIR/dwl-bar/${WAYBAR_OUTPUT_NAME:-.}/tag9.json\" || IFS= read -r l <\"$XDG_RUNTIME_DIR/dwl-bar/tag9.json\"; } 2>/dev/null && printf '%s\\n' \"$l\"", "return-type": "json", "signal": 8, "tooltip": false, "exec-on-event": false, "on-click": "kawa-tag 9" },
   "custom/layout": { "exec": "kawa-bar layout", "return-type": "json", "signal": 9, "tooltip": false,
-                     "on-click": "kawa-tag layout next", "on-click-right": "kawa-tag layout prev" },
+                     "exec-on-event": false, "on-click": "kawa-tag layout next", "on-click-right": "kawa-tag layout prev" },
   // keyboard layout (US / AR, switched with Alt+Shift); vermilion while it is not the first
   "custom/kb":     { "exec": "{ IFS= read -r l <\"$XDG_RUNTIME_DIR/dwl-bar/kb.json\"; } 2>/dev/null && printf '%s\\n' \"$l\"",     "return-type": "json", "signal": 11, "tooltip": false },
-  "custom/title":  { "exec": "{ IFS= read -r l <\"$XDG_RUNTIME_DIR/dwl-bar/${WAYBAR_OUTPUT_NAME:-.}/title.json\" || IFS= read -r l <\"$XDG_RUNTIME_DIR/dwl-bar/title.json\"; } 2>/dev/null && printf '%s\\n' \"$l\"",  "return-type": "json", "signal": 10, "tooltip": false, "max-length": 60 },
+  "custom/title":  { "exec": "{ IFS= read -r l <\"$XDG_RUNTIME_DIR/dwl-bar/${WAYBAR_OUTPUT_NAME:-.}/title.json\" || IFS= read -r l <\"$XDG_RUNTIME_DIR/dwl-bar/title.json\"; } 2>/dev/null && printf '%s\\n' \"$l\"",  "return-type": "json", "signal": 10, "tooltip": false },
 
   // one long-running script (see its header); restarted if it ever exits
   "custom/nowplaying": {
     "exec": "kawa-nowplaying", "return-type": "json", "restart-interval": 5, "tooltip": false,
-    "on-click": "kawa-nowplaying play-pause", "on-click-right": "kawa-nowplaying next", "on-click-middle": "kawa-nowplaying previous"
+    "exec-on-event": false, "on-click": "kawa-nowplaying play-pause", "on-click-right": "kawa-nowplaying next", "on-click-middle": "kawa-nowplaying previous"
   },
 
   // a seal while something is held back: 静 (quiet) while "do not disturb" is on, 共有
   // (shared) while a screen is shared; nothing otherwise. Poked with SIGRTMIN+12 by quick
   // settings and the screen-sharing portal (and with every +15: its click is quick settings')
-  "custom/mode": { "exec": "kawa-bar mode", "return-type": "json", "signal": 12, "on-click": "kawa-quick" },
+  "custom/mode": { "exec": "kawa-bar mode", "return-type": "json", "signal": 12, "exec-on-event": false, "on-click": "kawa-quick" },
+
+  // 録 (record) and the time gone by, in vermilion, while the screen is recorded (Super+Shift+R);
+  // hidden otherwise. kawa-record pokes it each second while it records — nothing runs for it
+  // the rest of the time. Click: stop
+  "custom/record": { "exec": "kawa-record bar", "return-type": "json", "signal": 22, "tooltip": false,
+                     "exec-on-event": false, "on-click": "kawa-record stop" },
 
   // the USB mark while a stick, disk or SD card is plugged in (lit while one is open, a count
   // past one): click for the drives menu, open or eject. The session's watcher (kawa-drives
   // watch) pokes it with SIGRTMIN+13 the moment udisks sees one come, open, close or go —
   // a card put into a reader included; empty hides it
   "custom/drives": { "exec": "kawa-bar drives -- kawa-drives bar", "return-type": "json", "signal": 13,
-                     "tooltip": false, "on-click": "setsid -f kawa-drives" },
+                     "tooltip": false, "exec-on-event": false, "on-click": "setsid -f kawa-drives" },
+
+  // the download mark while anything downloads — a torrent, Brave, Steam (kawa-downloads): the
+  // percent of them all, how many past one; click: what comes in and how far, a click on one
+  // opens where it lands. The session's watcher pokes it with SIGRTMIN+21 as one starts,
+  // moves on or ends; empty hides it
+  "custom/downloads": { "exec": "kawa-bar downloads -- kawa-downloads bar", "return-type": "json", "signal": 21,
+                        "tooltip": false, "exec-on-event": false, "on-click": "setsid -f kawa-downloads" },
 
   // Steam's gamepad, only while Steam runs (kawa-steam --bar): dim while it starts, lit once
   // ready, vermilion in a game. Click: Steam's window · right-click: its menu
-  "custom/steam": { "exec": "kawa-bar steam -- kawa-steam --bar", "return-type": "json", "interval": 3, "signal": 17,
-                    "on-click": "setsid -f kawa-steam", "on-click-right": "setsid -f kawa-steam --menu" },
+  "custom/steam": { "exec": "kawa-steam --bar-watch", "return-type": "json", "restart-interval": 5, "signal": 17,
+                    "exec-on-event": false, "on-click": "setsid -f kawa-steam", "on-click-right": "setsid -f kawa-steam --menu" },
 
   // memory in use (kawa-mem: what programs hold, as btop counts it); click: btop, big
-  // enough for all its panels
+  // enough for all its boxes — the graphics card's too (140 × 41 cells: 1420 × 922 px)
   "custom/mem": { "exec": "kawa-mem", "return-type": "json", "restart-interval": 5,
-                  "on-click": "setsid -f kawa-float --once btop btop 112x33 -- btop" },
+                  "exec-on-event": false, "on-click": "setsid -f kawa-term --float --once btop btop 140x41 -- btop" },
 
   // the volume (kawa-volume bar, long-running on PipeWire's own events): the speaker's waves
   // show the level — none at 0, one up to 25 %, two to 50, three to 75, four above — and the
   // number beside it, its % quiet; muted: the speaker crossed out. Click: the sound panel ·
   // right-click: mute · scroll: ±2 % (kawa-volume, as Super+scroll: up unmutes and stops at
   // 100 %, the level shown)
-  "custom/volume": { "exec": "kawa-volume bar", "return-type": "json", "restart-interval": 5, "align": 0,
-                     "on-click": "setsid -f kawa-panel --sound", "on-click-right": "kawa-volume mute",
+  "custom/volume": { "exec": "kawa-volume bar", "return-type": "json", "restart-interval": 5,
+                     "exec-on-event": false, "on-click": "kawa-quick sound", "on-click-right": "kawa-volume mute",
                      "on-scroll-up": "kawa-volume up 2", "on-scroll-down": "kawa-volume down 2" },
 
   // the monitor's brightness beside the sound's level, drawn the same way: the sun in five
   // steps (a hollow disc when dim … every ray when bright) and the level. Only while a monitor
   // answers over DDC/CI (hidden otherwise). Click: its slider · scroll: ±10 %, as Super+] /
-  // Super+[. Poked with SIGRTMIN+14 by every change (kawa-brightness) and by its slider
-  "custom/brightness": { "exec": "kawa-bar brightness -- kawa-brightness --bar", "return-type": "json", "signal": 14, "align": 0,
-                         "on-click": "setsid -f kawa-panel --brightness", "on-scroll-up": "kawa-brightness +10", "on-scroll-down": "kawa-brightness -10" },
+  // Super+[. Long-running: every change pushed to it the moment it is made (the slider
+  // dragged, a key — kawa-bar's bar_push), drawn within a frame; lit by its slider (a wake)
+  "custom/brightness": { "exec": "kawa-brightness --bar", "return-type": "json", "restart-interval": 5, "signal": 14,
+                         "exec-on-event": false, "on-click": "kawa-quick brightness", "on-scroll-up": "kawa-brightness +10", "on-scroll-down": "kawa-brightness -10" },
 
   // the weather: the sky's icon and the temperature (the city and the words in the tooltip);
   // click: the forecast for the days ahead, a dropdown
   "custom/weather": { "exec": "kawa-bar weather -- kawa-weather --bar", "return-type": "json", "interval": 600, "signal": 18,
-                      "on-click": "setsid -f kawa-weather --menu" },
+                      "exec-on-event": false, "on-click": "setsid -f kawa-weather --menu" },
 
   // the date ("Mon 19 Oct", in English whatever the system language) and the day of the
   // week as its kanji seal (月 火 水 木 金 土 日) — one click, the calendar; the time to the
@@ -132,13 +151,13 @@
   // or gone by (asagi: a stopwatch) — its click, the timer's menu. The time is one
   // long-running script that sleeps between seconds; the timer's state outlives the bar
   "custom/date": { "exec": "kawa-bar date", "return-type": "json", "interval": 60, "signal": 19, "tooltip": false,
-                   "on-click": "setsid -f kawa-calendar" },
+                   "exec-on-event": false, "on-click": "setsid -f kawa-calendar" },
   "custom/day":  { "exec": "kawa-bar day", "return-type": "json", "interval": 60, "signal": 19, "tooltip": false,
-                   "on-click": "setsid -f kawa-calendar" },
+                   "exec-on-event": false, "on-click": "setsid -f kawa-calendar" },
   "custom/time": { "exec": "kawa-timer bar", "return-type": "json", "restart-interval": 5, "tooltip": false,
-                   "on-click": "setsid -f kawa-timer" },
+                   "exec-on-event": false, "on-click": "setsid -f kawa-timer" },
 
   // the cat (quick settings, kawa-panel): it smiles while they are open
   "custom/menu": { "exec": "kawa-bar cat", "return-type": "json", "signal": 15, "tooltip": false,
-                   "on-click": "kawa-quick" }
+                   "exec-on-event": false, "on-click": "kawa-quick" }
 }

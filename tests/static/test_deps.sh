@@ -49,9 +49,10 @@ f; g; h')" "curl h wget"
 case_ "programs that run a program: the one they run counts too"
 eq "$(progs 'setsid -f kawa-term yazi "$d"; timeout -s KILL 3 nvim --server s; env -u X A=1 nice -n 5 btop')" \
    "btop env kawa-term nice nvim setsid timeout yazi"
+eq "$(progs 'kawa-term --app kawa-disk "Disk usage" gdu -- ~')" "gdu kawa-term" "kawa-term --app ID TITLE: the program after them"
 eq "$(progs 'sudo -u bob snapper list; footclient -a float -T t -- lazygit; foot -D "$d" -- htop; footclient')" \
    "foot footclient footclient htop lazygit snapper sudo"
-eq "$(progs 'kawa-float --once n "title" 60x21 -- zathura x; kawa-float bad use')" "kawa-float kawa-float zathura"
+eq "$(progs 'kawa-term --float --once n "title" 60x21 -- zathura x; kawa-term --float bad use')" "kawa-term kawa-term zathura"
 eq "$(progs 'flock -n 9 || exit 0; flock /tmp/l tar -c x; xargs -0 -r rm -f; find . -name x -exec stat {} +')" \
    "find flock flock rm stat tar xargs"
 eq "$(progs 'exec swaybg -c x; exec 9>lock; command ls; nohup wl-paste &')" "ls nohup swaybg wl-paste"
@@ -66,8 +67,8 @@ eq "$(progs '"$cmd" a; "${arr[@]}"; $X')" ""
 case_ "python inside a script: subprocess.run([\"prog\", …])"
 eq "$(progs 'python3 -c '"'"'import subprocess; subprocess.run(["pdfinfo", p])'"'"'')" "pdfinfo python3"
 case_ "guarded: checked with command -v (or type / hash), or with a fallback after ||"
-eq "$(guarded 'command -v kawa-veil >/dev/null && kawa-veil x; dbus-update-activation-environment --systemd || systemctl --user import-environment; jq .')" \
-   "kawa-veil dbus-update-activation-environment"
+eq "$(guarded 'command -v kawa-clipkeep >/dev/null && kawa-clipkeep x; dbus-update-activation-environment --systemd || systemctl --user import-environment; jq .')" \
+   "kawa-clipkeep dbus-update-activation-environment"
 eq "$(guarded 'wl-copy x && notify-send y; grim | wl-copy; resvg a b')" "" "&& and | are no fallback"
 
 # ── the closure ──────────────────────────────────────────────────────────────────────────

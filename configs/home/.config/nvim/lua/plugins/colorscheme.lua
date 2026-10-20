@@ -54,6 +54,18 @@ return {
           -- the picker's counts ("12/403"): in the comments' quiet ink, not the faint one
           -- gruvbox gives them (close to the ground itself)
           vim.api.nvim_set_hl(0, "SnacksPickerTotals", { link = "Comment" })
+          -- diagnostics in the design's inks (docs/design-system.md §1): an error vermilion
+          -- (accent_text), a warning yellow, a note asagi, a hint muted — the words alone, no
+          -- ground behind them; the code they point at underlined in the same ink
+          local d = vim.o.background == "light"
+            and { Error = "#9c3922", Warn = "#845b0f", Info = "#2f6e67", Hint = "#5f594d" }
+            or { Error = "#d15b3d", Warn = "#d29f45", Info = "#7fb8b0", Hint = "#877f6f" }
+          for k, c in pairs(d) do
+            vim.api.nvim_set_hl(0, "Diagnostic" .. k, { fg = c })
+            vim.api.nvim_set_hl(0, "DiagnosticSign" .. k, { fg = c })
+            vim.api.nvim_set_hl(0, "DiagnosticVirtualText" .. k, { fg = c })
+            vim.api.nvim_set_hl(0, "DiagnosticUnderline" .. k, { sp = c, underline = true })
+          end
         end,
       })
     end,

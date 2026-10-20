@@ -1,0 +1,14 @@
+[Desktop Entry]
+# nmtui, NetworkManager's own screens — the window quick settings' network opens (kawa-quick
+# --do network: floating, one at a time). Its icon: foot's, the terminal that draws its
+# window (nmtui ships none of its own; the launcher shows each program's own icon, never an
+# icon pack's).
+Type=Application
+Name=Network
+GenericName=Wi-Fi and network connections
+Comment=nmtui: join a Wi-Fi network, set up a wired connection or a VPN
+Icon=foot
+Exec=@HOME@/.local/bin/kawa-quick --do network
+Terminal=false
+Categories=Settings;HardwareSettings;
+Keywords=nmtui;wifi;wi-fi;wireless;ethernet;internet;vpn;hotspot;

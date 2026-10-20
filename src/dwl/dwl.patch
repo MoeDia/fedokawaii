@@ -17,16 +17,17 @@
  #include <sys/wait.h>
  #include <time.h>
  #include <unistd.h>
-@@ -58,6 +61,8 @@
+@@ -58,6 +61,9 @@
  #include <wlr/types/wlr_session_lock_v1.h>
  #include <wlr/types/wlr_single_pixel_buffer_v1.h>
  #include <wlr/types/wlr_subcompositor.h>
++#include <wlr/types/wlr_tearing_control_v1.h>
 +#include <wlr/types/wlr_tablet_tool.h>
 +#include <wlr/types/wlr_tablet_v2.h>
  #include <wlr/types/wlr_viewporter.h>
  #include <wlr/types/wlr_virtual_keyboard_v1.h>
  #include <wlr/types/wlr_virtual_pointer_v1.h>
-@@ -120,7 +125,7 @@ typedef struct {
+@@ -120,7 +126,7 @@ typedef struct {
  
  	Monitor *mon;
  	struct wlr_scene_tree *scene;
@@ -35,7 +36,7 @@
  	struct wlr_scene_tree *scene_surface;
  	struct wl_list link;
  	struct wl_list flink;
-@@ -159,6 +164,13 @@ typedef struct {
+@@ -159,6 +165,13 @@ typedef struct {
  	unsigned int bw;
  	uint32_t tags;
  	int isfloating, isurgent, isfullscreen;
@@ -49,7 +50,7 @@
  } Client;
  
  typedef struct {
-@@ -225,6 +237,8 @@ struct Monitor {
+@@ -225,6 +238,8 @@ struct Monitor {
  	int nmaster;
  	char ltsymbol[16];
  	int asleep;
@@ -58,7 +59,7 @@
  };
  
  typedef struct {
-@@ -310,7 +324,6 @@ static Client *focustop(Monitor *m);
+@@ -310,7 +325,6 @@ static Client *focustop(Monitor *m);
  static void fullscreennotify(struct wl_listener *listener, void *data);
  static void gpureset(struct wl_listener *listener, void *data);
  static void handlesig(int signo);
@@ -66,7 +67,7 @@
  static void inputdevice(struct wl_listener *listener, void *data);
  static const Key *keybinding(uint32_t mods, xkb_keysym_t sym);
  static void keypress(struct wl_listener *listener, void *data);
-@@ -320,7 +333,6 @@ static void killclient(const Arg *arg);
+@@ -320,7 +334,6 @@ static void killclient(const Arg *arg);
  static void locksession(struct wl_listener *listener, void *data);
  static void mapnotify(struct wl_listener *listener, void *data);
  static void maximizenotify(struct wl_listener *listener, void *data);
@@ -74,7 +75,7 @@
  static void motionabsolute(struct wl_listener *listener, void *data);
  static void motionnotify(uint32_t time, struct wlr_input_device *device, double sx,
  		double sy, double sx_unaccel, double sy_unaccel);
-@@ -332,6 +344,10 @@ static void outputmgrtest(struct wl_listener *listener, void *data);
+@@ -332,6 +345,10 @@ static void outputmgrtest(struct wl_listener *listener, void *data);
  static void pointerfocus(Client *c, LayerSurface* l, struct wlr_surface *surface,
  		double sx, double sy, uint32_t time);
  static void printstatus(void);
@@ -85,7 +86,12 @@
  static void powermgrsetmode(struct wl_listener *listener, void *data);
  static void quit(const Arg *arg);
  static void rendermon(struct wl_listener *listener, void *data);
-@@ -355,6 +371,16 @@ static void startdrag(struct wl_listener *listener, void *data);
+@@ -351,10 +368,21 @@ static void setpsel(struct wl_listener *listener, void *data);
+ static void setsel(struct wl_listener *listener, void *data);
+ static void setup(void);
+ static void spawn(const Arg *arg);
++static void spawnheld(const Arg *arg);
+ static void startdrag(struct wl_listener *listener, void *data);
  static void tag(const Arg *arg);
  static void tagmon(const Arg *arg);
  static void tile(Monitor *m);
@@ -102,7 +108,7 @@
  static void togglefloating(const Arg *arg);
  static void togglefullscreen(const Arg *arg);
  static void toggletag(const Arg *arg);
-@@ -368,6 +394,17 @@ static void urgent(struct wl_listener *listener, void *data);
+@@ -368,6 +396,17 @@ static void urgent(struct wl_listener *listener, void *data);
  static void view(const Arg *arg);
  static void virtualkeyboard(struct wl_listener *listener, void *data);
  static void virtualpointer(struct wl_listener *listener, void *data);
@@ -120,7 +126,7 @@
  static Monitor *xytomon(double x, double y);
  static void xytonode(double x, double y, struct wlr_surface **psurface,
  		Client **pc, LayerSurface **pl, double *nx, double *ny);
-@@ -375,11 +412,20 @@ static void zoom(const Arg *arg);
+@@ -375,11 +414,20 @@ static void zoom(const Arg *arg);
  
  /* variables */
  static pid_t child_pid = -1;
@@ -141,7 +147,7 @@
  static struct wlr_backend *backend;
  static struct wlr_scene *scene;
  static struct wlr_scene_tree *layers[NUM_LAYERS];
-@@ -412,6 +458,14 @@ static struct wlr_relative_pointer_manager_v1 *relative_pointer_mgr;
+@@ -412,15 +460,25 @@ static struct wlr_relative_pointer_manager_v1 *relative_pointer_mgr;
  static struct wlr_pointer_constraint_v1 *active_constraint;
  
  static struct wlr_cursor *cursor;
@@ -156,7 +162,10 @@
  static struct wlr_xcursor_manager *cursor_mgr;
  
  static struct wlr_scene_rect *root_bg;
-@@ -421,6 +475,7 @@ static struct wlr_session_lock_v1 *cur_lock;
+ static struct wlr_session_lock_manager_v1 *session_lock_mgr;
++static struct wlr_tearing_control_manager_v1 *tearing_mgr;
+ static struct wlr_scene_rect *locked_bg;
+ static struct wlr_session_lock_v1 *cur_lock;
  
  static struct wlr_seat *seat;
  static KeyboardGroup *kb_group;
@@ -164,7 +173,7 @@
  static unsigned int cursor_mode;
  static Client *grabc;
  static int grabcx, grabcy; /* client-relative */
-@@ -437,6 +492,10 @@ static struct wl_listener cursor_button = {.notify = buttonpress};
+@@ -437,6 +495,10 @@ static struct wl_listener cursor_button = {.notify = buttonpress};
  static struct wl_listener cursor_frame = {.notify = cursorframe};
  static struct wl_listener cursor_motion = {.notify = motionrelative};
  static struct wl_listener cursor_motion_absolute = {.notify = motionabsolute};
@@ -175,7 +184,7 @@
  static struct wl_listener gpu_reset = {.notify = gpureset};
  static struct wl_listener layout_change = {.notify = updatemons};
  static struct wl_listener new_idle_inhibitor = {.notify = createidleinhibitor};
-@@ -492,7 +551,11 @@ applybounds(Client *c, struct wlr_box *bbox)
+@@ -492,7 +554,11 @@ applybounds(Client *c, struct wlr_box *bbox)
  	c->geom.width = MAX(1 + 2 * (int)c->bw, c->geom.width);
  	c->geom.height = MAX(1 + 2 * (int)c->bw, c->geom.height);
  
@@ -188,7 +197,7 @@
  		struct wlr_box min = {0}, max = {0};
  		client_get_size_hints(c, &max, &min);
  		c->geom.width = MAX(min.width + 2 * (int)c->bw, c->geom.width);
-@@ -529,8 +592,10 @@ applyrules(Client *c)
+@@ -529,8 +595,10 @@ applyrules(Client *c)
  	title = client_get_title(c);
  
  	for (r = rules; r < END(rules); r++) {
@@ -201,7 +210,7 @@
  			c->isfloating = r->isfloating;
  			newtags |= r->tags;
  			i = 0;
-@@ -555,7 +620,7 @@ arrange(Monitor *m)
+@@ -555,7 +623,7 @@ arrange(Monitor *m)
  
  	wl_list_for_each(c, &clients, link) {
  		if (c->mon == m) {
@@ -210,7 +219,7 @@
  			client_set_suspended(c, !VISIBLEON(c, m)
  					&& (!c->image_capture_source
  					|| wl_list_empty(&c->image_capture_source->resources)));
-@@ -585,6 +650,7 @@ arrange(Monitor *m)
+@@ -585,6 +653,7 @@ arrange(Monitor *m)
  		m->lt[m->sellt]->arrange(m);
  	motionnotify(0, NULL, 0, 0, 0, 0);
  	checkidleinhibitor(NULL);
@@ -218,7 +227,7 @@
  }
  
  void
-@@ -704,6 +770,20 @@ buttonpress(struct wl_listener *listener, void *data)
+@@ -704,6 +773,20 @@ buttonpress(struct wl_listener *listener, void *data)
  		/* Change focus if the button was _pressed_ over a client
  		   or a layer surface with on-demand keyboard interactivity */
  		xytonode(cursor->x, cursor->y, NULL, &c, &l, NULL, NULL);
@@ -239,7 +248,7 @@
  		if (c && (!client_is_unmanaged(c) || client_wants_focus(c))) {
  			focusclient(c, 1);
  		} else if (l && l->layer_surface->current.keyboard_interactive) {
-@@ -739,8 +819,11 @@ buttonpress(struct wl_listener *listener, void *data)
+@@ -739,8 +822,11 @@ buttonpress(struct wl_listener *listener, void *data)
  	}
  	/* If the event wasn't handled by the compositor, notify the client with
  	 * pointer focus that a button press has occurred */
@@ -253,7 +262,7 @@
  }
  
  void
-@@ -790,6 +873,9 @@ void
+@@ -790,6 +876,9 @@ void
  cleanup(void)
  {
  	cleanuplisteners();
@@ -263,7 +272,7 @@
  #ifdef XWAYLAND
  	wlr_xwayland_destroy(xwayland);
  	xwayland = NULL;
-@@ -852,6 +938,10 @@ cleanuplisteners(void)
+@@ -852,6 +941,10 @@ cleanuplisteners(void)
  	wl_list_remove(&cursor_frame.link);
  	wl_list_remove(&cursor_motion.link);
  	wl_list_remove(&cursor_motion_absolute.link);
@@ -274,7 +283,7 @@
  	wl_list_remove(&gpu_reset.link);
  	wl_list_remove(&new_idle_inhibitor.link);
  	wl_list_remove(&layout_change.link);
-@@ -981,6 +1071,13 @@ commitnotify(struct wl_listener *listener, void *data)
+@@ -981,6 +1074,13 @@ commitnotify(struct wl_listener *listener, void *data)
  	}
  
  	resize(c, c->geom, (c->isfloating && !c->isfullscreen));
@@ -288,7 +297,7 @@
  }
  
  void
-@@ -1186,8 +1283,14 @@ createmon(struct wl_listener *listener, void *data)
+@@ -1186,8 +1286,14 @@ createmon(struct wl_listener *listener, void *data)
  	wlr_output_commit_state(wlr_output, &state);
  	wlr_output_state_finish(&state);
  
@@ -303,7 +312,7 @@
  
  	/* The xdg-protocol specifies:
  	 *
-@@ -1509,12 +1612,18 @@ focusclient(Client *c, int lift)
+@@ -1509,12 +1615,18 @@ focusclient(Client *c, int lift)
  {
  	struct wlr_surface *old = seat->keyboard_state.focused_surface;
  	int unused_lx, unused_ly, old_client_type;
@@ -323,7 +332,7 @@
  	/* Raise client in stacking order if requested */
  	if (c && lift)
  		wlr_scene_node_raise_to_top(&c->scene->node);
-@@ -1540,8 +1649,15 @@ focusclient(Client *c, int lift)
+@@ -1540,8 +1652,15 @@ focusclient(Client *c, int lift)
  
  		/* Don't change border color if there is an exclusive focus or we are
  		 * handling a drag operation */
@@ -340,7 +349,7 @@
  	}
  
  	/* If an overlay is focused, don't focus or activate the client,
-@@ -1677,15 +1793,9 @@ handlesig(int signo)
+@@ -1677,15 +1796,9 @@ handlesig(int signo)
  		while (waitpid(-1, NULL, WNOHANG) > 0);
  	else if (signo == SIGINT || signo == SIGTERM)
  		quit(NULL);
@@ -359,7 +368,7 @@
  }
  
  void
-@@ -1703,6 +1813,11 @@ inputdevice(struct wl_listener *listener, void *data)
+@@ -1703,6 +1816,11 @@ inputdevice(struct wl_listener *listener, void *data)
  	case WLR_INPUT_DEVICE_POINTER:
  		createpointer(wlr_pointer_from_input_device(device));
  		break;
@@ -371,7 +380,7 @@
  	default:
  		/* TODO handle other input device types */
  		break;
-@@ -1729,7 +1844,10 @@ keybinding(uint32_t mods, xkb_keysym_t sym)
+@@ -1729,7 +1847,10 @@ keybinding(uint32_t mods, xkb_keysym_t sym)
  	const Key *k;
  	for (k = keys; k < END(keys); k++) {
  		if (CLEANMASK(mods) == CLEANMASK(k->mod) && sym == k->keysym && k->func)
@@ -383,16 +392,18 @@
  	}
  	return NULL;
  }
-@@ -1744,7 +1862,7 @@ keypress(struct wl_listener *listener, void *data)
+@@ -1744,8 +1865,8 @@ keypress(struct wl_listener *listener, void *data)
  	/* Translate libinput keycode -> xkbcommon */
  	uint32_t keycode = event->keycode + 8;
  	struct wlr_keyboard *kb = &group->wlr_group->keyboard;
 -	xkb_layout_index_t layout = xkb_state_key_get_layout(kb->xkb_state, keycode);
+-	int handled = 0;
 +	xkb_layout_index_t layout = 0; /* keybindings always read the first layout (us) */
- 	int handled = 0;
++	int handled = 0, held = 0;
  
  	// Get the keysyms for level 0 (normal) and level 1 (shifted)
-@@ -1756,9 +1874,9 @@ keypress(struct wl_listener *listener, void *data)
+ 	// Only one keysym for each level:
+@@ -1756,21 +1877,27 @@ keypress(struct wl_listener *listener, void *data)
  
  	wlr_idle_notifier_v1_notify_activity(idle_notifier, seat);
  
@@ -405,16 +416,26 @@
  		for (int i = 0; i < 2; i++) {
  			const Key *key = keybinding(group->mods, group->keysyms[i]);
  			if (key) {
-@@ -1770,7 +1888,7 @@ keypress(struct wl_listener *listener, void *data)
+ 				consumed[event->keycode] = 1;
+ 				key->func(&key->arg);
+ 				handled = 1;
++				held = key->func == focusstack || key->func == setmfact
++						|| key->func == spawnheld;
+ 				break;
+ 			}
  		}
  	}
  
 -	if (handled && group->wlr_group->keyboard.repeat_info.delay > 0)
-+	if (handled && !locked && group->wlr_group->keyboard.repeat_info.delay > 0)
++	/* a held key repeats only what goes on by steps: the focus, the split, the volume
++	 * and the brightness (spawnheld). Anything else is one press however long it is
++	 * held — a key that opens or closes a window toggles exactly once a press, so
++	 * however fast it is pressed again, every press counts */
++	if (held && !locked && group->wlr_group->keyboard.repeat_info.delay > 0)
  		wl_event_source_timer_update(group->key_repeat_source,
  				group->wlr_group->keyboard.repeat_info.delay);
  	else
-@@ -1797,6 +1915,15 @@ keypressmod(struct wl_listener *listener, void *data)
+@@ -1797,6 +1924,15 @@ keypressmod(struct wl_listener *listener, void *data)
  	 * pressed. We simply communicate this to the client. */
  	KeyboardGroup *group = wl_container_of(listener, group, modifiers);
  
@@ -430,7 +451,7 @@
  	if (input_method_keyboard_grab_forward_modifiers(group))
  		return;
  
-@@ -1889,26 +2016,41 @@ mapnotify(struct wl_listener *listener, void *data)
+@@ -1889,26 +2025,41 @@ mapnotify(struct wl_listener *listener, void *data)
  		/* Unmanaged clients always are floating */
  		wlr_scene_node_reparent(&c->scene->node, layers[LyrUnmanaged]);
  		wlr_scene_node_set_position(&c->scene->node, c->geom.x, c->geom.y);
@@ -477,7 +498,7 @@
  
  	c->foreign_toplevel_handle = wlr_ext_foreign_toplevel_handle_v1_create(
  			foreign_toplevel_list, &foreign_toplevel_state);
-@@ -1932,7 +2074,38 @@ mapnotify(struct wl_listener *listener, void *data)
+@@ -1932,7 +2083,38 @@ mapnotify(struct wl_listener *listener, void *data)
  	} else {
  		applyrules(c);
  	}
@@ -516,7 +537,7 @@
  
  unset_fullscreen:
  	m = c->mon ? c->mon : xytomon(c->geom.x, c->geom.y);
-@@ -1960,24 +2133,6 @@ maximizenotify(struct wl_listener *listener, void *data)
+@@ -1960,24 +2142,6 @@ maximizenotify(struct wl_listener *listener, void *data)
  		wlr_xdg_surface_schedule_configure(c->surface.xdg);
  }
  
@@ -541,7 +562,71 @@
  void
  motionabsolute(struct wl_listener *listener, void *data)
  {
-@@ -2165,6 +2320,17 @@ outputmgrapplyortest(struct wlr_output_configuration_v1 *config, int test)
+@@ -1998,28 +2162,37 @@ motionabsolute(struct wl_listener *listener, void *data)
+ 	motionnotify(event->time_msec, &event->pointer->base, dx, dy, dx, dy);
+ }
+ 
++/* the surface under the cursor; while a button is held, the one it was pressed on */
++static void
++undercursor(struct wlr_surface **surface, Client **c, LayerSurface **l, double *sx, double *sy)
++{
++	Client *w = NULL;
++	LayerSurface *focusedl = NULL;
++
++	xytonode(cursor->x, cursor->y, surface, c, l, sx, sy);
++	if (cursor_mode == CurPressed && !seat->drag
++			&& *surface != seat->pointer_state.focused_surface
++			&& toplevel_from_wlr_surface(seat->pointer_state.focused_surface, &w, &focusedl) >= 0) {
++		*c = w;
++		*surface = seat->pointer_state.focused_surface;
++		*sx = cursor->x - (focusedl ? focusedl->scene->node.x : w->geom.x);
++		*sy = cursor->y - (focusedl ? focusedl->scene->node.y : w->geom.y);
++	}
++}
++
+ void
+ motionnotify(uint32_t time, struct wlr_input_device *device, double dx, double dy,
+ 		double dx_unaccel, double dy_unaccel)
+ {
+ 	int nx, ny;
+ 	double sx = 0, sy = 0, sx_confined, sy_confined;
+-	Client *c = NULL, *w = NULL;
+-	LayerSurface *l = NULL, *focusedl = NULL;
++	Client *c = NULL;
++	LayerSurface *l = NULL;
+ 	struct wlr_surface *surface = NULL;
+ 	struct wlr_pointer_constraint_v1 *constraint;
+ 
+ 	/* Find the client under the pointer and send the event along. */
+-	xytonode(cursor->x, cursor->y, &surface, &c, &l, &sx, &sy);
+-
+-	if (cursor_mode == CurPressed && !seat->drag
+-			&& surface != seat->pointer_state.focused_surface
+-			&& toplevel_from_wlr_surface(seat->pointer_state.focused_surface, &w, &focusedl) >= 0) {
+-		c = w;
+-		surface = seat->pointer_state.focused_surface;
+-		sx = cursor->x - (focusedl ? focusedl->scene->node.x : w->geom.x);
+-		sy = cursor->y - (focusedl ? focusedl->scene->node.y : w->geom.y);
+-	}
++	undercursor(&surface, &c, &l, &sx, &sy);
+ 
+ 	/* time is 0 in internal calls meant to restore pointer focus. */
+ 	if (time) {
+@@ -2054,6 +2227,13 @@ motionnotify(uint32_t time, struct wlr_input_device *device, double dx, double d
+ 			selmon = xytomon(cursor->x, cursor->y);
+ 	}
+ 
++	/* the cursor has moved: what is under it now. (The look above was at where it was:
++	 * a flick that ends on another surface in one event — off a window onto the
++	 * wallpaper or the bar — would leave the old one the pointer's focus and its cursor
++	 * image, a busy watch for one, until the next motion) */
++	if (time)
++		undercursor(&surface, &c, &l, &sx, &sy);
++
+ 	/* Update drag icon's position */
+ 	wlr_scene_node_set_position(&drag_icon->node, (int)round(cursor->x), (int)round(cursor->y));
+ 
+@@ -2165,6 +2345,17 @@ outputmgrapplyortest(struct wlr_output_configuration_v1 *config, int test)
  	if (!ok || test)
  		goto out;
  
@@ -559,7 +644,7 @@
  	for (i = 0; i < states_len; i++) {
  		struct wlr_swapchain *swapchain = wlr_output_swapchain_manager_get_swapchain(
  				&swapchain_manager, states[i].output);
-@@ -2188,9 +2354,7 @@ outputmgrapplyortest(struct wlr_output_configuration_v1 *config, int test)
+@@ -2188,9 +2379,7 @@ outputmgrapplyortest(struct wlr_output_configuration_v1 *config, int test)
  		/* Don't move monitors if position wouldn't change. This avoids
  		 * wlroots marking the output as manually configured.
  		 * wlr_output_layout_add does not like disabled outputs */
@@ -570,7 +655,7 @@
  			wlr_output_layout_add(output_layout, wlr_output,
  					config_head->state.x, config_head->state.y);
  		}
-@@ -2220,20 +2384,30 @@ outputmgrtest(struct wl_listener *listener, void *data)
+@@ -2220,20 +2409,30 @@ outputmgrtest(struct wl_listener *listener, void *data)
  	outputmgrapplyortest(config, 1);
  }
  
@@ -609,7 +694,7 @@
  
  	/* If surface is NULL, clear pointer focus */
  	if (!surface) {
-@@ -2253,6 +2427,34 @@ pointerfocus(Client *c, LayerSurface *l, struct wlr_surface *surface, double sx,
+@@ -2253,6 +2452,34 @@ pointerfocus(Client *c, LayerSurface *l, struct wlr_surface *surface, double sx,
  	wlr_seat_pointer_notify_motion(seat, time, sx, sy);
  }
  
@@ -644,7 +729,7 @@
  void
  printstatus(void)
  {
-@@ -2260,6 +2462,8 @@ printstatus(void)
+@@ -2260,6 +2487,8 @@ printstatus(void)
  	Client *c;
  	uint32_t occ, urg, sel;
  
@@ -653,7 +738,7 @@
  	wl_list_for_each(m, &mons, link) {
  		occ = urg = 0;
  		wl_list_for_each(c, &clients, link) {
-@@ -2270,8 +2474,8 @@ printstatus(void)
+@@ -2270,8 +2499,8 @@ printstatus(void)
  				urg |= c->tags;
  		}
  		if ((c = focustop(m))) {
@@ -664,7 +749,7 @@
  			printf("%s fullscreen %d\n", m->wlr_output->name, c->isfullscreen);
  			printf("%s floating %d\n", m->wlr_output->name, c->isfloating);
  			sel = c->tags;
-@@ -2287,8 +2491,135 @@ printstatus(void)
+@@ -2287,8 +2516,135 @@ printstatus(void)
  		printf("%s tags %"PRIu32" %"PRIu32" %"PRIu32" %"PRIu32"\n",
  			m->wlr_output->name, occ, m->tagset[m->seltags], sel, urg);
  		printf("%s layout %s\n", m->wlr_output->name, m->ltsymbol);
@@ -800,7 +885,7 @@
  }
  
  void
-@@ -2322,6 +2653,17 @@ rendermon(struct wl_listener *listener, void *data)
+@@ -2322,12 +2678,43 @@ rendermon(struct wl_listener *listener, void *data)
  	 * generally at the output's refresh rate (e.g. 60Hz). */
  	Monitor *m = wl_container_of(listener, m, frame);
  	struct timespec now;
@@ -818,7 +903,34 @@
  
  	if (!wlr_scene_output_needs_frame(m->scene_output)) {
  		return;
-@@ -2379,15 +2721,29 @@ resize(Client *c, struct wlr_box geo, int interact)
+ 	}
+ 
+-	wlr_scene_output_commit(m->scene_output, NULL);
++	/* a full-screen window that asks for its frames at once (a game with vsync off: the
++	 * tearing-control protocol's "async") gets them at once — the newest frame flipped in
++	 * mid-refresh, as on Windows — when the card can flip this frame that way (the game's
++	 * own buffer on the screen: direct scanout); a frame the card cannot flip at once is
++	 * shown at the refresh as any other. With FreeSync on (in games: updatevrr), a game
++	 * under the monitor's top rate never tears: it only does above it */
++	if ((c = focustop(m)) && c->isfullscreen && client_surface(c)
++			&& wlr_tearing_control_manager_v1_surface_hint_from_surface(tearing_mgr,
++				client_surface(c)) == WP_TEARING_CONTROL_V1_PRESENTATION_HINT_ASYNC) {
++		struct wlr_output_state state;
++		wlr_output_state_init(&state);
++		if (wlr_scene_output_build_state(m->scene_output, &state, NULL)) {
++			state.tearing_page_flip = true;
++			if (!wlr_output_test_state(m->wlr_output, &state))
++				state.tearing_page_flip = false;
++			wlr_output_commit_state(m->wlr_output, &state);
++		}
++		wlr_output_state_finish(&state);
++	} else {
++		wlr_scene_output_commit(m->scene_output, NULL);
++	}
+ 	clock_gettime(CLOCK_MONOTONIC, &now);
+ 	wlr_scene_output_send_frame_done(m->scene_output, &now);
+ }
+@@ -2379,15 +2766,29 @@ resize(Client *c, struct wlr_box geo, int interact)
  	/* Update scene-graph, including borders */
  	wlr_scene_node_set_position(&c->scene->node, c->geom.x, c->geom.y);
  	wlr_scene_node_set_position(&c->scene_surface->node, c->bw, c->bw);
@@ -857,7 +969,7 @@
  	client_get_clip(c, &clip);
  	wlr_scene_subsurface_tree_set_clip(&c->scene_surface->node, &clip);
  }
-@@ -2433,6 +2789,7 @@ run(char *startup_cmd)
+@@ -2433,6 +2834,7 @@ run(char *startup_cmd)
  	if (fd_set_nonblock(STDOUT_FILENO) < 0)
  		close(STDOUT_FILENO);
  
@@ -865,7 +977,7 @@
  	printstatus();
  
  	/* At this point the outputs are initialized, choose initial selmon based on
-@@ -2492,6 +2849,15 @@ setfloating(Client *c, int floating)
+@@ -2492,6 +2894,15 @@ setfloating(Client *c, int floating)
  {
  	Client *p = client_get_parent(c);
  	c->isfloating = floating;
@@ -881,7 +993,7 @@
  	/* If in floating layout do not change the client's layer */
  	if (!c->mon || !client_surface(c)->mapped || !c->mon->lt[c->mon->sellt]->arrange)
  		return;
-@@ -2516,6 +2882,10 @@ setfullscreen(Client *c, int fullscreen)
+@@ -2516,6 +2927,10 @@ setfullscreen(Client *c, int fullscreen)
  	if (fullscreen) {
  		c->prev = c->geom;
  		resize(c, c->mon->m, 0);
@@ -892,7 +1004,7 @@
  	} else {
  		/* restore previous size instead of arrange for floating windows since
  		 * client positions are set by the user and cannot be recalculated */
-@@ -2530,10 +2900,26 @@ setlayout(const Arg *arg)
+@@ -2530,10 +2945,26 @@ setlayout(const Arg *arg)
  {
  	if (!selmon)
  		return;
@@ -921,7 +1033,7 @@
  	strncpy(selmon->ltsymbol, selmon->lt[selmon->sellt]->symbol, LENGTH(selmon->ltsymbol));
  	arrange(selmon);
  	printstatus();
-@@ -2550,6 +2936,16 @@ setmfact(const Arg *arg)
+@@ -2550,6 +2981,16 @@ setmfact(const Arg *arg)
  	f = arg->f < 1.0f ? arg->f + selmon->mfact : arg->f - 1.0f;
  	if (f < 0.1 || f > 0.9)
  		return;
@@ -938,7 +1050,7 @@
  	selmon->mfact = f;
  	arrange(selmon);
  }
-@@ -2602,9 +2998,17 @@ setsel(struct wl_listener *listener, void *data)
+@@ -2602,9 +3043,17 @@ setsel(struct wl_listener *listener, void *data)
  void
  setup(void)
  {
@@ -957,7 +1069,17 @@
  
  	for (i = 0; i < (int)LENGTH(sig); i++)
  		sigaction(sig[i], &sa, NULL);
-@@ -2764,6 +3168,8 @@ setup(void)
+@@ -2728,6 +3177,9 @@ setup(void)
+ 	wl_signal_add(&idle_inhibit_mgr->events.new_inhibitor, &new_idle_inhibitor);
+ 
+ 	session_lock_mgr = wlr_session_lock_manager_v1_create(dpy);
++	/* a game's "vsync off" (the tearing-control protocol; Xwayland asks it for an X game's
++	 * async flips): see rendermon */
++	tearing_mgr = wlr_tearing_control_manager_v1_create(dpy, 1);
+ 	wl_signal_add(&session_lock_mgr->events.new_lock, &new_session_lock);
+ 	locked_bg = wlr_scene_rect_create(layers[LyrBlock], sgeom.width, sgeom.height,
+ 			(float [4]){0.1f, 0.1f, 0.1f, 1.0f});
+@@ -2764,6 +3216,8 @@ setup(void)
  	 * HiDPI support). Scaled cursors will be loaded with each output. */
  	cursor_mgr = wlr_xcursor_manager_create(NULL, 24);
  	setenv("XCURSOR_SIZE", "24", 1);
@@ -966,7 +1088,7 @@
  
  	/*
  	 * wlr_cursor *only* displays an image on screen. It does not move around
-@@ -2780,6 +3186,11 @@ setup(void)
+@@ -2780,6 +3234,11 @@ setup(void)
  	wl_signal_add(&cursor->events.button, &cursor_button);
  	wl_signal_add(&cursor->events.axis, &cursor_axis);
  	wl_signal_add(&cursor->events.frame, &cursor_frame);
@@ -978,7 +1100,21 @@
  
  	cursor_shape_mgr = wlr_cursor_shape_manager_v1_create(dpy, 1);
  	wl_signal_add(&cursor_shape_mgr->events.request_set_shape, &request_set_cursor_shape);
-@@ -2879,38 +3290,306 @@ tagmon(const Arg *arg)
+@@ -2847,6 +3306,13 @@ spawn(const Arg *arg)
+ 	}
+ }
+ 
++/* spawn, repeated while its key is held (keypress()) */
++void
++spawnheld(const Arg *arg)
++{
++	spawn(arg);
++}
++
+ void
+ startdrag(struct wl_listener *listener, void *data)
+ {
+@@ -2879,38 +3345,306 @@ tagmon(const Arg *arg)
  		setmon(sel, dirtomon(arg->i), 0);
  }
  
@@ -1181,7 +1317,7 @@
 +}
 +
 +/* ── popups ───────────────────────────────────────────────────────────────────────
-+ * A popup is a menu in a window of its own (app-id "float": kawa-float's — the system
++ * A popup is a menu in a window of its own (app-id "float": kawa-term --float's — the system
 + * menu, notes, the clipboard, btop…). It lasts while it has the focus: another window
 + * taking it, a click outside it, another workspace close it. Exempt: the dialogs that may
 + * open over one — the file dialog (app-id kawa-dialog) and the password prompt — and
@@ -1308,7 +1444,7 @@
  }
  
  void
-@@ -2991,6 +3670,10 @@ unmapnotify(struct wl_listener *listener, void *data)
+@@ -2991,6 +3725,10 @@ unmapnotify(struct wl_listener *listener, void *data)
  	}
  	if (c == focused_client)
  		focused_client = NULL;
@@ -1319,7 +1455,7 @@
  
  	if (client_is_unmanaged(c)) {
  		if (c == exclusive_focus) {
-@@ -3170,6 +3853,8 @@ view(const Arg *arg)
+@@ -3170,6 +3908,8 @@ view(const Arg *arg)
  {
  	if (!selmon || (arg->ui & TAGMASK) == selmon->tagset[selmon->seltags])
  		return;
@@ -1328,7 +1464,7 @@
  	selmon->seltags ^= 1; /* toggle sel tagset */
  	if (arg->ui & TAGMASK)
  		selmon->tagset[selmon->seltags] = arg->ui & TAGMASK;
-@@ -3178,6 +3863,206 @@ view(const Arg *arg)
+@@ -3178,6 +3918,206 @@ view(const Arg *arg)
  	printstatus();
  }
  

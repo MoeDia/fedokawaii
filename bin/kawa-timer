@@ -112,8 +112,9 @@ bar() {
   local w=$RUN/kawa-bar.wake.$$ fd k a b c s t now line last="" us frac cls tm
   # (the timer's hourglass in the theme's own colours: inside the text, so a lit or pointed-at
   # time — the whole module recoloured — keeps the timer's own)
-  # shellcheck source=/dev/null
-  . "$HOME/.config/fedokawaii/current/colors.sh"
+  # (a theme switch: its colours read again as the next second, or a wake, comes — the theme
+  # in use told by bash itself: current is the light theme's folder or not)
+  local th="" was=""
   # shellcheck source=kawa-bar
   . "${BASH_SOURCE[0]%/*}/kawa-bar"                 # bar_lit (bash alone)
   trap 'exit 0' TERM HUP INT PIPE                 # (waybar closing it: its fifo goes too)
@@ -123,15 +124,18 @@ bar() {
   mkfifo -m 600 -- "$w" && exec {fd}<>"$w" || return 1
   trap 'rm -f -- "$w"' EXIT
   while :; do
+    th=dark; [[ $HOME/.config/fedokawaii/current -ef $HOME/.config/fedokawaii/themes/light ]] && th=light
+    # shellcheck source=/dev/null
+    [[ $th == "$was" ]] || { . "$HOME/.config/fedokawaii/current/colors.sh"; was=$th; }
     printf -v now '%(%I:%M:%S %p)T' -1
     tm="" cls=""
     if read -r k a b c 2>/dev/null <"$STATE" && [[ $a =~ ^[0-9]+$ ]]; then
       if [[ $k == timer ]] && ((a > EPOCHSECONDS)); then
         clock t $((a - EPOCHSECONDS))
-        tm="  <span color='#$C_ACCENT_TEXT'>$ICON_HOURGLASS $t</span>" cls='"timer"'
+        tm="  <span color='#$C_ACCENT_TEXT'>$ICON_BAR_HOURGLASS$t</span>" cls='"timer"'
       elif [[ $k == stopwatch ]]; then
         s=$((EPOCHSECONDS - a)); ((s < 0)) && s=0; clock t "$s"
-        tm="  <span color='#$C_TEAL'>$ICON_HOURGLASS $t</span>" cls='"stopwatch"'
+        tm="  <span color='#$C_TEAL'>$ICON_BAR_HOURGLASS$t</span>" cls='"stopwatch"'
       fi
     fi
     if bar_lit time; then cls="[${cls:+$cls,}\"active\"]"; fi

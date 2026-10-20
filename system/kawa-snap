@@ -1,23 +1,67 @@
 #!/usr/bin/env bash
-# /usr/local/sbin/kawa-snap pre|post [PID] — called by libdnf5-plugin-actions around every
-# dnf transaction: a snapper "pre" snapshot before, the matching "post" after, both named by
-# the dnf command that ran (from PID, dnf's own process: "dnf install htop"). It never
-# stops dnf; a snapshot that could not be taken is written to the journal (journalctl -t
-# kawa-snap), and `fedokawaii update` takes and checks its own before it starts.
-# Inspect: sudo snapper -c root list · revert one transaction: sudo snapper -c root undochange PRE..POST
-# Exit status: 0 always for pre and post (dnf goes on whatever happens) · 2 misuse.
+# /usr/local/sbin/kawa-snap — the system's snapshots, as root.
+#
+#   kawa-snap pre|post [PID]   called by libdnf5-plugin-actions around every dnf transaction:
+#                              a snapper "pre" snapshot before, the matching "post" after, both
+#                              named by the dnf command that ran (from PID, dnf's own process:
+#                              "dnf install htop"); after the post, the boot menu's list again.
+#                              It never stops dnf: a snapshot that could not be taken is written
+#                              to the journal (journalctl -t kawa-snap)
+#   kawa-snap boot             the boot menu's "snapshots" list made again from the snapshots
+#                              there are (grub-btrfs: the newest ten "before" points)
+#   kawa-snap list             every snapshot of /, read from the disk itself (so it works in a
+#                              snapshot started from the boot menu too, where snapper sees none):
+#                              NUMBER TAB TYPE TAB DATE (UTC) TAB DESCRIPTION TAB booted|-
+#                              — and "old", the system a restore replaced, while it is kept
+#   kawa-snap restore N|old    snapshot N becomes the system at the next start: a writable copy
+#                              of it takes the place of the root subvolume, the one replaced is
+#                              kept as ROOT.old (restore old swaps them back), the snapshots and
+#                              any other subvolume inside it move across, and /boot is made to
+#                              match (the kernels that copy has; its newest is the default)
+# Or at power-on: hold Shift (Esc/F8) for the boot menu → snapshots (each starts read-only;
+#   then kawa-snap restore N from there).
+# Inspect: kawa-snap list · revert one transaction: sudo snapper -c root undochange PRE..POST
+# Exit status: pre, post 0 always (dnf goes on whatever happens) · boot, list, restore 0 done,
+# 1 could not (the reason on stderr; restore: nothing was changed) · 2 misuse.
 set -u
 export LC_ALL=C.UTF-8
 state=/run/kawa-snap.pre
+top=/run/kawa-snap/top                       # the file system's top level, mounted while working
 case ${1:-} in
-  pre|post) ;;
-  -h|--help) sed -n '2,8{s/^# \{0,1\}//;p}' "$0"; exit 0 ;;
-  *) echo "usage: kawa-snap pre|post [PID] — dnf runs it around each transaction" >&2; exit 2 ;;
+  pre|post|boot|list) ;;
+  restore) [[ ${2:-} =~ ^([1-9][0-9]*|old)$ ]] || { echo "usage: kawa-snap restore NUMBER|old" >&2; exit 2; } ;;
+  -h|--help) sed -n '2,/^set -u/{/^set -u/d;s/^# \{0,1\}//;p}' "$0"; exit 0 ;;
+  *) echo "usage: kawa-snap pre|post [PID] (dnf runs it) · kawa-snap boot|list · kawa-snap restore N|old" >&2
+     echo "(or at power-on: hold Shift (Esc/F8) for the boot menu → snapshots)" >&2; exit 2 ;;
 esac
-[[ $EUID -eq 0 ]] || { echo "kawa-snap: dnf runs it, as root, around each transaction — not by hand" >&2; exit 2; }
-# (dnf's actions plugin reads this program's stdout as requests to it: nothing may reach it)
-exec >/dev/null
+[[ $EUID -eq 0 ]] || { echo "kawa-snap: runs as root — dnf runs pre and post itself; the rest: sudo kawa-snap $1" >&2; exit 2; }
 
+note() {   # note WHAT ERR — to the journal (to stderr, should there be no journal to write to)
+  local why=${2//$'\n'/ }
+  command -v snapper >/dev/null || why="snapper is not installed"
+  why="no snapshot $1 this dnf run: ${why:-snapper failed}"
+  logger -t kawa-snap -p user.warning -- "${why:0:240}" 2>/dev/null || printf 'kawa-snap: %s\n' "$why" >&2
+}
+fail() { printf 'kawa-snap: %s\n' "$*" >&2; exit 1; }
+
+# ── the boot menu's list ─────────────────────────────────────────────────────────────────
+# grub-btrfs's script writes /boot/grub2/grub-btrfs.cfg, which grub.cfg's "snapshots" submenu
+# reads at boot; grub.cfg itself is made again only while it lacks that submenu. No daemon
+# (grub-btrfsd): this runs after each dnf run, each snapshot of an update or repair, and
+# snapper's daily clean-up — the only times the list changes.
+boot_list() {
+  local s=/etc/grub.d/41_snapshots-btrfs out
+  [[ -x $s ]] || { echo "kawa-snap: grub-btrfs is not installed — no snapshots in the boot menu (fedokawaii repair)" >&2; return 1; }
+  if grep -qs 'grub-btrfs.cfg' /boot/grub2/grub.cfg; then
+    out=$("$s" 2>&1 >/dev/null) || { printf 'kawa-snap: the boot menu list: %s\n' "${out//$'\n'/ }" >&2; return 1; }
+  else
+    out=$(grub2-mkconfig -o /boot/grub2/grub.cfg 2>&1) || { printf 'kawa-snap: grub2-mkconfig: %s\n' "${out//$'\n'/ }" >&2; return 1; }
+  fi
+  [[ -s /boot/grub2/grub-btrfs.cfg ]] || echo "kawa-snap: no snapshot to list in the boot menu yet" >&2
+  return 0
+}
+
+# ── the pair around a dnf transaction ────────────────────────────────────────────────────
 # the command, as it was typed — its options left out (snapper's own list shows the date);
 # whole letters of any script kept, anything that is no text left out, at most 72 of them
 what() {
@@ -29,23 +73,131 @@ what() {
   fi
   if [[ -n $a ]]; then printf 'dnf%s' "$a"; else printf 'dnf %s' "$(date '+%F %H:%M')"; fi
 }
-note() {   # note WHAT ERR — to the journal (to stderr, should there be no journal to write to)
-  local why=${2//$'\n'/ }
-  command -v snapper >/dev/null || why="snapper is not installed"
-  why="no snapshot $1 this dnf run: ${why:-snapper failed}"
-  logger -t kawa-snap -p user.warning -- "${why:0:240}" 2>/dev/null || printf 'kawa-snap: %s\n' "$why" >&2
+if [[ $1 == pre || $1 == post ]]; then
+  # (dnf's actions plugin reads this program's stdout as requests to it: nothing may reach it)
+  exec >/dev/null
+  d=$(what "${2:-}")
+  case $1 in
+    pre)  if ! err=$(snapper -c root create -t pre -p -c number -d "$d" 2>&1 >"$state") \
+             || ! [[ $(<"$state") =~ ^[0-9]+$ ]]; then          # (only a number pairs with a post)
+            rm -f "$state"; note before "${err:-snapper gave no snapshot number}"
+          fi ;;
+    post) [[ -s $state ]] || exit 0
+          n=$(<"$state"); rm -f "$state"
+          if [[ ! $n =~ ^[0-9]+$ ]]; then note after "no number from the pre snapshot"
+          elif ! err=$(snapper -c root create -t post --pre-number "$n" -c number -d "$d" 2>&1 >/dev/null); then
+            note after "$err"
+          fi
+          # (the new pre in the boot menu; a list that could not be made is the journal's)
+          err=$(boot_list 2>&1) || logger -t kawa-snap -p user.warning -- "${err:0:240}" 2>/dev/null || true ;;
+  esac
+  exit 0
+fi
+[[ $1 == boot ]] && { boot_list; exit; }
+
+# ── the disk itself: its top level, the root subvolume's name ────────────────────────────
+# T — the root subvolume's name, as fstab mounts / (Fedora's installer: "root"); in a snapshot
+# started from the boot menu fstab is the snapshot's own copy, so it names the same one
+T=$(findmnt --fstab -no OPTIONS / 2>/dev/null | tr ',' '\n' | sed -n 's/^subvol=\/\{0,1\}//p' | head -n1)
+[[ $(findmnt -no FSTYPE / 2>/dev/null) == btrfs ]] || fail "/ is not Btrfs — there are no snapshots of it"
+[[ -n $T && $T != */* ]] || fail "fstab mounts / without a plain subvol= (it says: $(findmnt --fstab -no OPTIONS / 2>/dev/null)) — not the layout Fedora's installer makes"
+# what is running: the root subvolume (/T) or a snapshot of it (/T/.snapshots/N/snapshot)
+here=$(findmnt -no FSROOT / 2>/dev/null)
+booted=-; [[ $here =~ ^/$T/\.snapshots/([0-9]+)/snapshot$ ]] && booted=${BASH_REMATCH[1]}
+mount_top() {
+  local dev
+  dev=$(findmnt -no SOURCE / 2>/dev/null); dev=${dev%%\[*}
+  mkdir -p "$top" || fail "cannot make $top"
+  mountpoint -q "$top" || mount -o subvolid=5 "$dev" "$top" || fail "cannot mount the top of $dev"
+  trap 'umount "$top" 2>/dev/null; rmdir "$top" 2>/dev/null' EXIT
 }
-d=$(what "${2:-}")
-case $1 in
-  pre)  if ! err=$(snapper -c root create -t pre -p -c number -d "$d" 2>&1 >"$state") \
-           || ! [[ $(<"$state") =~ ^[0-9]+$ ]]; then          # (only a number pairs with a post)
-          rm -f "$state"; note before "${err:-snapper gave no snapshot number}"
-        fi ;;
-  post) [[ -s $state ]] || exit 0
-        n=$(<"$state"); rm -f "$state"
-        if [[ ! $n =~ ^[0-9]+$ ]]; then note after "no number from the pre snapshot"
-        elif ! err=$(snapper -c root create -t post --pre-number "$n" -c number -d "$d" 2>&1 >/dev/null); then
-          note after "$err"
-        fi ;;
-esac
-exit 0
+# the field of a snapper info.xml: one of type, date, description (XML's five escapes undone)
+info() {
+  sed -n "s:.*<$1>\(.*\)</$1>.*:\1:p" "$2" 2>/dev/null | head -n1 \
+    | sed 's/&lt;/</g; s/&gt;/>/g; s/&quot;/"/g; s/&apos;/'"'"'/g; s/&amp;/\&/g'
+}
+
+if [[ $1 == list ]]; then
+  mount_top
+  for d in "$top/$T/.snapshots"/*/; do
+    n=${d%/}; n=${n##*/}
+    [[ $n =~ ^[0-9]+$ && -d $d/snapshot ]] || continue
+    printf '%s\t%s\t%s\t%s\t%s\n' "$n" "$(info type "$d/info.xml")" "$(info date "$d/info.xml")" \
+      "$(info description "$d/info.xml")" "$([[ $n == "$booted" ]] && echo booted || echo -)"
+  done | sort -n
+  if [[ -d $top/$T.old ]]; then
+    t=$(btrfs subvolume show "$top/$T.old" 2>/dev/null | sed -n 's/^[[:space:]]*Creation time:[[:space:]]*//p')
+    printf 'old\tsingle\t%s\tthe system before the last restore\t-\n' "$(date -u -d "${t:-@0}" '+%F %T' 2>/dev/null)"
+  fi
+  exit 0
+fi
+
+# ── restore ──────────────────────────────────────────────────────────────────────────────
+# Everything that can fail happens on the new copy, before anything else moves: a restore that
+# stops there leaves the system exactly as it was. Then two renames swap the copy in (the root
+# subvolume is missing only between them), and /boot is matched to the copy.
+N=$2
+mount_top
+src=$top/$T/.snapshots/$N/snapshot; [[ $N == old ]] && src=$top/$T.old
+[[ -d $src ]] || fail "there is no snapshot $N (kawa-snap list shows them)"
+[[ -d $top/$T ]] || fail "the root subvolume $T is not on this disk"
+new=$top/$T.new swap=$top/$T.swap
+binds=()
+unbind() { local i; for ((i = ${#binds[@]} - 1; i >= 0; i--)); do umount "${binds[i]}" 2>/dev/null; done; binds=(); }
+# (a run stopped half-way earlier: its leftovers go first — never the system or what it replaced)
+for x in "$new" "$swap"; do
+  [[ -d $x ]] && { btrfs subvolume delete -R "$x" >/dev/null 2>&1 || fail "a leftover $x could not be removed"; }
+done
+btrfs subvolume snapshot "$src" "$new" >/dev/null || fail "the writable copy of $N could not be made — nothing changed"
+undo() { unbind; btrfs subvolume delete -R "$new" >/dev/null 2>&1; fail "$* — nothing changed"; }
+# the kernels the copy has (each with its vmlinuz: Fedora keeps one beside its modules)
+mapfile -t K < <(for m in "$new"/usr/lib/modules/*/vmlinuz; do [[ -f $m ]] && m=${m%/vmlinuz} && echo "${m##*/}"; done | sort -V)
+((${#K[@]})) || undo "snapshot $N has no kernel in /usr/lib/modules"
+# chroot into the copy, /boot and the kernel's file systems with it: its own kernel-install
+# and dracut make what /boot lacks for it (a kernel removed since the snapshot was taken)
+inside() {
+  if ((!${#binds[@]})); then
+    local m
+    for m in /dev /proc /sys /run /boot /boot/efi; do
+      mountpoint -q "$m" || continue
+      mount --bind "$m" "$new$m" || return 1; binds+=("$new$m")
+    done
+  fi
+  chroot "$new" "$@"
+}
+for v in "${K[@]}"; do
+  [[ -f /boot/vmlinuz-$v ]] && continue
+  echo "kawa-snap: kernel $v back into /boot (its boot image is made: a minute or two)"
+  inside kernel-install add "$v" "/usr/lib/modules/$v/vmlinuz" >/dev/null 2>&1 \
+    || { inside kernel-install remove "$v" >/dev/null 2>&1; undo "kernel $v could not be put back into /boot"; }
+done
+unbind
+# the subvolumes inside the running one (the snapshots themselves, systemd's machines…): a
+# snapshot holds an empty folder where each was — moved across into it
+while IFS= read -r p; do
+  p=${p#<FS_TREE>/}; rel=${p#"$T"/}
+  [[ $p == "$T"/* && -n $rel ]] || continue
+  if [[ -d $new/$rel ]]; then
+    rmdir "$new/$rel" 2>/dev/null || { echo "kawa-snap: $rel is not empty in snapshot $N — left in $T.old" >&2; continue; }
+  else mkdir -p "$(dirname "$new/$rel")"; fi
+  mv -T "$top/$T/$rel" "$new/$rel" || echo "kawa-snap: $rel could not move across — left in $T.old" >&2
+done < <(btrfs subvolume list -o "$top/$T" 2>/dev/null | sed -n 's/.* path //p')
+# the swap: the copy is the root subvolume, the one replaced is ROOT.old (an older one goes)
+mv -T "$top/$T" "$swap" || undo "$T could not be renamed"
+mv -T "$new" "$top/$T" || { mv -T "$swap" "$top/$T"; fail "the copy could not take $T's place — put back as it was"; }
+if [[ -d $top/$T.old ]]; then btrfs subvolume delete -R "$top/$T.old" >/dev/null 2>&1 || echo "kawa-snap: the older $T.old could not be removed" >&2; fi
+[[ -d $top/$T.old ]] && mv -T "$top/$T.old" "$top/$T.old-$(date +%s)"
+mv -T "$swap" "$top/$T.old" || echo "kawa-snap: the system before is kept as $T.swap (it could not be named $T.old)" >&2
+# /boot matched: the kernels the restored system lacks go, its newest is the default
+for e in /boot/loader/entries/*.conf; do
+  [[ -f $e ]] || continue
+  v=$(sed -n 's/^version[[:space:]]\{1,\}//p' "$e" | head -n1)
+  [[ -n $v && $v != *rescue* ]] || continue
+  grep -qxF -- "$v" < <(printf '%s\n' "${K[@]}") && continue
+  kernel-install remove "$v" >/dev/null 2>&1 || rm -f -- "$e"
+done
+grubby --set-default "/boot/vmlinuz-${K[-1]}" >/dev/null 2>&1 \
+  || echo "kawa-snap: the default boot entry could not be set — at the next start, choose kernel ${K[-1]}" >&2
+restorecon -R /boot >/dev/null 2>&1 || true
+boot_list >/dev/null 2>&1 || true
+echo "kawa-snap: snapshot $N is the system from the next start — restart now. The one it replaced is kept as $T.old (kawa-snap restore old goes back to it)."

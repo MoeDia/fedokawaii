@@ -42,11 +42,11 @@ else cat "$W/modes"; fi'
 cd "$HOME/.config/fedokawaii" && if [ "$(readlink current)" = themes/dark ]; then ln -sfn themes/light current; else ln -sfn themes/dark current; fi'
   stub kawa-drives '[ "$1" = list ] && cat "$W/drives"'
   stub kawa-backup 'case $1 in status) cat "$W/backup" ;; esac'; echo never >"$W/backup"
-  stub sleep
+  stub sleep; stub gammastep                       # (started through setsid: never itself)
   # the brightness kawa-brightness last read (its --level), the sound's level (wpctl)
   stub kawa-brightness '[ "$1" = --level ] && cat "$W/bright" 2>/dev/null'; echo 70 >"$W/bright"
   stub wpctl '[ "$1" = get-volume ] && cat "$W/vol"'; echo 'Volume: 0.62' >"$W/vol"
-  for s in kawa-panel kawa-float kawa-screenshot kawa-wallpaper kawa-power; do stub "$s"; done
+  for s in kawa-panel kawa-term kawa-screenshot kawa-wallpaper kawa-power; do stub "$s"; done
   stub kawa-brightness '[ "$1" = --level ] && { cat "$W/bright" 2>/dev/null; exit; }; echo "$1" >"$W/bright"'
   stub wpctl 'case $1 in get-volume) cat "$W/vol" ;; set-volume) echo "Volume: 0.$(printf %02d "${3%%%}")" >"$W/vol" ;; esac'
 }
@@ -66,7 +66,7 @@ case_ "--state: every key, in order, one KEY<TAB>VALUE a line"
 out=$(state); rc 0 quick --state
 keys=$(cut -f1 <<<"$out" | tr '\n' ',')
 if ((NS)); then
-  eq "$keys" "theme,brightness,night,vrr,wallpaper,sound,nettype,network,bluetooth,devices,drives,backup,dnd,"
+  eq "$keys" "theme,brightness,night,vrr,wallpaper,sound,nettype,network,bluetooth,devices,drives,backup,dnd,saver,vrrnow,"
 else has "$keys" "theme,brightness,night,vrr,wallpaper,sound,nettype,network,"; fi
 eq "$(grep -vc $'^[a-z]*\t' <<<"$out")" 0 "every line a key, a tab, a value"
 eq "$(st theme)" dark; eq "$(st nettype)" ethernet; eq "$(st network)" wired
@@ -79,7 +79,7 @@ case_ "the widest states: light theme, 12 drives plugged in, everything on, a ba
 ln -sfn themes/light "$HOME/.config/fedokawaii/current"; echo gammastep >"$W/procs"; echo "1000 days ago" >"$W/backup"
 printf 'do-not-disturb\nsharing\n' >"$W/modes"
 for i in {1..12}; do printf '/dev/sd%s1\t/dev/sd%s\tSTICK %s\t8G\tvfat\t\n' "$i" "$i" "$i"; done >"$W/drives"
-eq "$(st theme)" light; eq "$(st drives)" "STICK 1 +11"; eq "$(st night)" on; eq "$(st backup)" "1000 days ago"
+eq "$(st theme)" light; eq "$(st drives)" "STICK 1 +11"; eq "$(st night)" 4000K; eq "$(st backup)" "1000 days ago"
 eq "$(st dnd)" on "on, though sharing is on too"
 case_ "a drive with two file systems counts once"
 printf '/dev/sdb1\t/dev/sdb\tA\n/dev/sdb2\t/dev/sdb\tB\n/dev/mmcblk0p1\t/dev/mmcblk0\tC\n' >"$W/drives"
@@ -130,7 +130,7 @@ stub nmcli 'printf "\n:\nwifi\\\\:x:connected\n::::\n"'; out=$(quick --state 2>&
 eq "$(st network)" offline
 case_ "network: nmtui in a floating window (once)"
 setup; rc 0 quick --do network
-called '^kawa-float --once network network 80x25 -- nmtui$'
+called '^kawa-term --float --once network network 80x25 -- nmtui$'
 case_ "nmcli asked once for everything (SSIDs never reach a menu row: nmtui lists them)"
 setup; reset_calls; state >/dev/null; eq "$(grep -c '^nmcli' "$CALLS")" 1; called '^nmcli -t -f TYPE,STATE,CONNECTION device$'
 
@@ -146,12 +146,12 @@ if ((NS)); then
   setup; : >"$W/bt"; reset_calls; SECONDS=0; eq "$(st bluetooth)" off
   ((SECONDS <= 2)) && _ok || _no "took ${SECONDS}s"; not_called '^bluetoothctl'
   case_ "switching it: off → on → off, the state following"
-  setup; echo 'b false' >"$W/bt"; rc 0 quick --do bluetooth; eq "$(st bluetooth)" on
-  rc 0 quick --do bluetooth; eq "$(st bluetooth)" off
+  setup; echo 'b false' >"$W/bt"; rc 0 quick --do bluetooth; eq "$(st bluetooth)" on; eq "$(kawa-state get bluetooth)" on "kept"
+  rc 0 quick --do bluetooth; eq "$(st bluetooth)" off; eq "$(kawa-state get bluetooth)" off "kept"
   called '^bluetoothctl power on$'; called '^bluetoothctl power off$'
   case_ "Bluetooth blocked by rfkill: switching on fails — a notice says why, exit 1"
   setup; echo 'b false' >"$W/bt"; : >"$W/rfkill"; rc 1 quick --do bluetooth
-  eq "$(st bluetooth)" off
+  eq "$(st bluetooth)" off; rc 1 kawa-state get bluetooth   # (a switch that failed is not kept)
   called 'notify-send -a desktop .*Bluetooth.*rfkill unblock bluetooth'
   case_ "devices: the ones connected now — none, one by its name, more by their count; off while Bluetooth is"
   setup; eq "$(st devices)" none
@@ -160,7 +160,7 @@ if ((NS)); then
   echo 'b false' >"$W/bt"; eq "$(st devices)" off
   case_ "devices: bluetui in a floating terminal of its own (once)"
   setup; rc 0 quick --do devices
-  called "^kawa-float --once pair pair a device 96x29 -- bluetui\$"
+  called "^kawa-term --float --once pair pair a device 96x29 -- bluetui\$"
   not_called 'setsid|blueman'
 fi
 case_ "bluetui's config: TOML, Esc quits (its own key q does too); its colours are the terminal's"
@@ -177,27 +177,53 @@ has " $(m 'echo "${FORBIDDEN_PKGS[*]}"') " " blueman "; has " $(m 'echo "${RETIR
 has "$(grep -E '^bluetui ' "$REPO/tests/static/fixtures/programs.txt")" "upstream"
 lacks "$(cat "$REPO/tests/static/fixtures/programs.txt" "$REPO/src/dwl/config.h")" blueman
 
-# ── night light ───────────────────────────────────────────────────────────────────────
-case_ "night light off → on: gammastep starts at the configured place"
+# ── night light (kawa-night): as you set it, day and night alike, kept across logins ───
+nl() { echo "$HOME/.local/state/fedokawaii/night"; }   # (each sandbox its own HOME)
+case_ "night light off → on: one gammastep at the kept warmth (4000 K at first), day and night alike — never by the sun"
 setup; rc 0 quick --do night
-called '^setsid -f gammastep -l 25.35:55.40 -t 6500:4200$'; eq "$(st night)" on
-case_ "night light on → off: signalled twice (the fade ends at once), off when it returns"
-setup; echo gammastep >"$W/procs"; rc 0 quick --do night
-eq "$(grep -c '^pkill -xu [0-9]* gammastep$' "$CALLS")" 2 "two signals"
-eq "$(st night)" off "off at once, not still fading"
+called '^setsid -f gammastep -m wayland -r -l 0:0 -t 4000:4000$'; eq "$(st night)" 4000K
+eq "$(cat "$(nl)")" "on 4000" "kept: the next login finds it on"
+case_ "night light on → off: it ends (gone when kawa-night returns), and off is kept"
+setup; echo gammastep >"$W/procs"; mkdir -p "$(dirname "$(nl)")"; echo "on 3500" >"$(nl)"; rc 0 quick --do night
+eq "$(st night)" off "off at once"
+eq "$(cat "$(nl)")" "off 3500" "off kept, the warmth too"
 case_ "night light on → off → on, fast: one gammastep in the end, the state right each time"
 setup; echo gammastep >"$W/procs"
 quick --do night; a=$(st night); quick --do night; b=$(st night); quick --do night; c=$(st night)
-eq "$a $b $c" "off on off"
+eq "$a $b $c" "off 4000K off"
 quick --do night; eq "$(grep -c . "$W/procs")" 1 "one gammastep running"
+case_ "warmer, cooler (the wheel over the tile): a step of 500 K, on, within 5500…2500 K, kept"
+setup; quick --do warmer; eq "$(st night)" 3500K; eq "$(cat "$(nl)")" "on 3500"
+for _ in 1 2 3 4; do quick --do warmer; done; eq "$(st night)" 2500K "no warmer than 2500 K"
+for _ in 1 2 3 4 5 6 7 8; do quick --do cooler; done; eq "$(st night)" 5500K "no cooler than 5500 K"
+called '^setsid -f gammastep -m wayland -r -l 0:0 -t 5500:5500$'
+case_ "at login (autostart: kawa-night restore): as last left — on at its warmth, or off"
+setup; mkdir -p "$(dirname "$(nl)")"; echo "on 3000" >"$(nl)"; rc 0 kawa-night restore
+called '^setsid -f gammastep -m wayland -r -l 0:0 -t 3000:3000$'; eq "$(st night)" 3000K
+setup; mkdir -p "$(dirname "$(nl)")"; echo "off 3000" >"$(nl)"; rc 0 kawa-night restore; not_called '^setsid'; eq "$(st night)" off
+setup; rc 0 kawa-night restore; not_called '^setsid' "never set: off"
+setup; mkdir -p "$(dirname "$(nl)")"; echo "on 9999" >"$(nl)"; kawa-night restore; called '^setsid -f gammastep .* -t 4000:4000$' "a warmth it does not know: the default"
+grep -q '^kawa-night restore' "$REPO/configs/home/.config/dwl/autostart.sh" && _ok || _no "autostart does not restore it"
+grep -q 'gammastep -l' "$REPO/configs/home/.config/dwl/autostart.sh" && _no "autostart still starts gammastep by the sun" || _ok
 case_ "gammastep started with stdin on /dev/null (not closed: the next file it opens is not fd 0)"
 setup; quick --do night; eq "$(cat "$W/gammastep.stdin")" "stdin: /dev/null"
-case_ "gammastep missing: it stays off, no loop, no error on screen"
+case_ "gammastep not starting: it stays off, no loop, no error on screen"
 setup; : >"$W/no-gammastep"; out=$(quick --do night 2>&1); eq "$out" ""; eq "$(st night)" off
+case_ "kawa-night: --help, and anything else is wrong use"
+setup; rc 0 kawa-night --help; has "$(kawa-night --help)" "never follows the sun"; rc 2 kawa-night brighter
+
+# ── the screensaver ──────────────────────────────────────────────────────────────────────
+case_ "the screensaver: on (after 15 min) unless switched off; a click switches it, kept for kawa-saver"
+setup; eq "$(st saver)" "15 min"
+SV=$HOME/.local/state/fedokawaii/saver
+quick --do saver; eq "$(st saver)" off; eq "$(cat "$SV")" off
+quick --do saver; eq "$(st saver)" "15 min"; eq "$(cat "$SV")" on
+echo 7 >"$SV"; eq "$(st saver)" "15 min" "anything but off: on (kawa-saver reads it so too)"
 
 # ── do not disturb, the theme, FreeSync, the levels, the rest ────────────────────────
 case_ "dnd: mako's mode switched, the bar's seal poked, the state following"
-setup; quick --do dnd; eq "$(st dnd)" on; quick --do dnd; eq "$(st dnd)" off
+setup; quick --do dnd; eq "$(st dnd)" on; eq "$(kawa-state get dnd)" on "kept for the next login"
+quick --do dnd; eq "$(st dnd)" off; eq "$(kawa-state get dnd)" off
 eq "$(grep -c '^makoctl mode -t do-not-disturb$' "$CALLS")" 2
 called '^kawa-dwlstatus --poke 12$'
 case_ "dnd while a screen is shared (mode sharing): still its own switch"
@@ -243,7 +269,7 @@ eq "$(st backup)" never
 mkdir -p "$HOME/.local/state/fedokawaii"; printf '%s\t1 B\tKINGSTON\n' "$(( $(date +%s) - 86400 ))" >"$HOME/.local/state/fedokawaii/last-backup"
 eq "$(st backup)" yesterday
 case_ "each of the others opens its own window or menu"
-for pair in "sound:^kawa-panel --sound$" "drives:^kawa-drives *$" "wallpaper:^kawa-wallpaper *$" \
+for pair in "sound:^kawa-panel (toggle sound|--sound)$" "drives:^kawa-drives *$" "wallpaper:^kawa-wallpaper *$" \
             "screenshot:^kawa-screenshot region$" "power:^kawa-power *$"; do
   setup; rc 0 quick --do "${pair%%:*}"; called "${pair#*:}"
 done
@@ -252,27 +278,28 @@ setup; mv "$HOME" "$TMP/my home"; export HOME="$TMP/my home"
 quick --do theme 2>"$TMP/err"; eq "$(cat "$TMP/err")" ""; eq "$(st theme)" light
 
 # ── the panel: open, closed ────────────────────────────────────────────────────────────
-case_ "kawa-quick alone: the running panel (its pid file, its own command line) is asked — SIGUSR1"
+case_ "kawa-quick alone, sound, brightness: the running panel (its pid file, its own command line) asked through its fifo — a line each, no process started"
 setup
-python3 -I -c 'import signal, sys, time
-signal.signal(signal.SIGUSR1, lambda *a: open(sys.argv[1], "a").write("toggle\n"))
-open(sys.argv[2], "w").close(); time.sleep(30)' "$TMP/got" "$TMP/up" kawa-panel & pp=$!
-for _ in {1..50}; do [[ -e $TMP/up ]] && break; sleep 0.05; done
-mkdir -p "$XDG_RUNTIME_DIR"; echo "$pp" >"$XDG_RUNTIME_DIR/kawa-panel.pid"
-rc 0 quick; rc 0 quick
-for _ in {1..50}; do [[ $(grep -c toggle "$TMP/got" 2>/dev/null) == 2 ]] && break; sleep 0.05; done
-eq "$(grep -c toggle "$TMP/got" 2>/dev/null)" 2; not_called '^setsid'
-kill "$pp" 2>/dev/null; wait "$pp" 2>/dev/null
+mkdir -p "$XDG_RUNTIME_DIR"; rm -f "$XDG_RUNTIME_DIR/kawa-panel.in"; mkfifo "$XDG_RUNTIME_DIR/kawa-panel.in"; exec 6<>"$XDG_RUNTIME_DIR/kawa-panel.in"
+python3 -I -c 'import time; time.sleep(30)' kawa-panel & pp=$!
+for _ in {1..20}; do grep -qa kawa-panel "/proc/$pp/cmdline" 2>/dev/null && break; sleep 0.05; done
+echo "$pp" >"$XDG_RUNTIME_DIR/kawa-panel.pid"
+rc 0 quick; rc 0 quick sound; rc 0 quick brightness
+got=""; for _ in 1 2 3; do read -r -t 2 -u 6 l && got+="$l|"; done
+eq "$got" "toggle quick|toggle sound|toggle brightness|"; not_called '^setsid'
+rc 2 quick sound extra
+kill "$pp" 2>/dev/null; wait "$pp" 2>/dev/null; exec 6<&-; rm -f "$XDG_RUNTIME_DIR/kawa-panel.in"
 case_ "no panel running (or the pid file names another program): one is started, open"
 rc 0 quick; called '^setsid -f kawa-panel --open$'
 reset_calls; echo $$ >"$XDG_RUNTIME_DIR/kawa-panel.pid"; rc 0 quick; called '^setsid -f kawa-panel --open$'
+reset_calls; rc 0 quick sound; called '^setsid -f kawa-panel --sound$'
 
 # ── use, locale ───────────────────────────────────────────────────────────────────────
 case_ "--help: what it is, exit 0; anything else: exit 2"
 setup; out=$(kawa-quick --help); rc 0 kawa-quick --help; has "$out" "quick settings"; has "$out" "--state"
 rc 2 kawa-quick --bogus; rc 2 kawa-quick extra; rc 2 kawa-quick --state extra
 rc 2 kawa-quick --do; rc 2 kawa-quick --do bogus; rc 2 kawa-quick --do night extra
-not_called '^(kawa-theme|makoctl mode -t|setsid|kawa-float|bluetoothctl power)'
+not_called '^(kawa-theme|makoctl mode -t|setsid|kawa-term --float|bluetoothctl power)'
 case_ "a Turkish or Arabic locale: the same keys and values"
 for loc in tr_TR.UTF-8 ar_EG.UTF-8; do
   setup; QENV=("$(locale_ "$loc")" "LC_ALL=$loc")

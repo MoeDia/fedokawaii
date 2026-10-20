@@ -49,12 +49,15 @@ fkrun bash -c 'for d in /var/log /var/lib/fedokawaii; do s=$1/save$RANDOM; cp -a
   done; exec bash /usr/local/lib/fedokawaii/setup.sh --update' _ "$W"
 eq "$RC" 1; has "$OUT" "only 0B free on / — this needs 10GB"; lacks "$OUT" "✘ line"; lacks "$OUT" "No space left"
 
-case_ "the snapshot count the menu shows: recorded by an update; 0 once every snapshot is gone (never the old count)"
+case_ "the snapshot count the menu shows: recorded by an update; once every snapshot is gone, only repair's own (never the old count)"
 back built; printf '%s\n' "1,fedokawaii baseline" "2,pre" "3,post" >"$FKH/snaps"
 tk --update; eq "$RC" 0; eq "$(cat "$W/var/lib/fedokawaii/snapshots")" "$(grep -c . "$FKH/snaps")" "the count snapper has (with the update's own)"
-: >"$FKH/snaps"; tk --repair; eq "$(cat "$W/var/lib/fedokawaii/snapshots")" 0 "none left: 0"
-touch "$FKH/snapper-fail"; printf '%s\n' "1,x" >"$FKH/snaps"; tk --repair
-eq "$(cat "$W/var/lib/fedokawaii/snapshots")" 0 "snapper not answering: the record as it was"; rm -f "$FKH/snapper-fail"
+called '^fkuser\[rustup\] update$'; called '^fkuser\[uv\] python upgrade'   # (Rust and Python kept current, as you)
+: >"$FKH/snaps"; tk --repair; eq "$(cat "$W/var/lib/fedokawaii/snapshots")" 1 "none left but the one repair takes first: 1"
+grep -q ',before repair ' "$FKH/snaps" && _ok || _no "no snapshot before the repair: $(cat "$FKH/snaps")"
+touch "$FKH/snapper-fail"; printf '%s\n' "1,x" "2,y" "3,z" >"$FKH/snaps"; tk --repair
+eq "$(cat "$W/var/lib/fedokawaii/snapshots")" 1 "snapper not answering: the record as it was"
+has "$OUT" "no snapshot before this repair"; rm -f "$FKH/snapper-fail"
 
 case_ "repair: your dunst fighting mako — static (D-Bus starts it), so masked, not only switched off"
 back built; fkh_add units "user-static dunst.service" "user-active dunst.service"
@@ -90,6 +93,17 @@ case_ "…lpf gone but its account and folder left (removed by hand): verify war
 back built; fk bash -c '. /usr/local/bin/_lib.sh; fake_lpf_era; sed -i "/^\(lpf\|lpf-spotify-client\|spotify-client\)\$/d" /var/lib/fkh/installed'
 fkrun bash "$TK/verify.sh"; has "$OUT" "lpf's leftovers: the user pkg-build /var/lib/lpf"
 tk --repair; [[ ! -e $W/var/lib/lpf ]] && ! grep -q '^pkg-build:' "$W/etc/passwd" && _ok || _no "repair left lpf's leftovers"
+case_ "a machine from EasyEffects' time (and Calf with it), presets saved: the update hands both to dnf's clean-up, and says once where the presets stay"
+back built
+fk bash -c '. /usr/local/bin/_lib.sh; for p in easyeffects calf; do add installed "$p"; add orphans "$p"; done; echo "easyeffects User" >>"$FKH/userinstalled"
+  mkdir -p /home/fkuser/.config/easyeffects/output; echo "{}" >/home/fkuser/.config/easyeffects/output/music.json; chown -R fkuser: /home/fkuser/.config/easyeffects'
+reset_calls; tk --update; eq "$RC" 0 "$(grep -E '✘|failed' <<<"$OUT" | head -n3 | tr '\n' '|')"
+called 'dnf\] -y mark dependency easyeffects'; called 'dnf\] -y autoremove'
+for p in easyeffects calf; do pkg_has "$p" && _no "$p still installed" || _ok; done
+has "$OUT" "EasyEffects is no longer part of the desktop: your 1 preset(s) stay in ~/.config/easyeffects"
+[[ -f $W/home/fkuser/.config/easyeffects/output/music.json ]] && _ok || _no "the preset was touched"
+tk --update; lacks "$OUT" "EasyEffects is no longer part" "said once"
+
 case_ "update: presenterm and spotify_player (release binaries this desktop no longer has) leave ~/.local/bin"
 back built
 for t in presenterm spotify_player; do
@@ -300,8 +314,21 @@ gitrepo() {   # gitrepo DIR — DIR a git repository with everything committed a
     && git init -q --bare "$W$H/origin.git" && "${g[@]}" remote add origin "$W$H/origin.git" && "${g[@]}" push -q origin main
   chown -R "$FK_UID:$FK_UID" "$W$1" "$W$H/origin.git"; fkh real-git
 }
-case_ "repair from a clone whose main is pushed but a branch of yours is not: packed first, then removed"
+case_ "repair from a clone of GitHub's, with no clone in ~/repos yet: moved there whole (its history, a branch of yours) — the one clone fedokawaii pull updates"
 back built; clone_at $H/fedokawaii; gitrepo $H/fedokawaii
+g=(git -c safe.directory='*' -c user.name=t -c user.email=t@t -C "$W$H/fedokawaii")
+"${g[@]}" branch mine; chown -R "$FK_UID:$FK_UID" "$W$H/fedokawaii"
+fkrun bash $H/fedokawaii/setup.sh --repair
+has "$OUT" "~/fedokawaii moved to ~/repos/fedokawaii"
+[[ ! -e $W$H/fedokawaii && -f $W$H/repos/fedokawaii/setup.sh ]] && _ok || _no "not moved into place"
+git -c safe.directory='*' -C "$W$H/repos/fedokawaii" rev-parse -q --verify mine >/dev/null && _ok || _no "the branch did not move with it"
+lacks "$OUT" "removed: the toolkit has all of it"
+case_ "repair from a second clone, ~/repos/fedokawaii a clone already: a branch of yours not pushed — packed first, then removed"
+back built; clone_at $H/fedokawaii; gitrepo $H/fedokawaii
+# (the clone already in ~/repos: a copy of this one as pushed — copied, not cloned: git out here
+# refuses to read the fake user's origin.git, an owner it does not know)
+mkdir -p "$W$H/repos"; cp -a "$W$H/fedokawaii" "$W$H/repos/fedokawaii"; chown -R "$FK_UID:$FK_UID" "$W$H/repos"
+grep -q '^\[remote "origin"\]' "$W$H/repos/fedokawaii/.git/config" && _ok || _no "the fixture's clone in ~/repos has no origin"
 g=(git -c safe.directory='*' -c user.name=t -c user.email=t@t -C "$W$H/fedokawaii")
 "${g[@]}" checkout -qb mine && echo idea >"$W$H/fedokawaii/idea.txt" && "${g[@]}" add idea.txt && "${g[@]}" commit -qm idea && "${g[@]}" checkout -q main
 rm -f "$W$H/fedokawaii/idea.txt"; chown -R "$FK_UID:$FK_UID" "$W$H/fedokawaii"

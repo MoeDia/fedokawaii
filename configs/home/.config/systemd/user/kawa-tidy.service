@@ -1,0 +1,11 @@
+# ~/.config/systemd/user/kawa-tidy.service — kawa-tidy --weekly: programs' files where they
+# belong, an older version's leftovers out, caches within their limits (kawa-tidy --help).
+# At the lowest priority, the disk only when nothing else wants it. Its timer runs it.
+[Unit]
+Description=Fedokawaii — your home kept clean
+
+[Service]
+Type=oneshot
+ExecStart=%h/.local/bin/kawa-tidy --weekly
+Nice=19
+IOSchedulingClass=idle

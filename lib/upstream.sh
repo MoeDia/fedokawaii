@@ -33,19 +33,24 @@ NERD_FONTS_TAG=v3.5.1
 NERD_FONTS=(
   "JetBrainsMono|04d5e8f903693f9dd13e16f867e994834e681eb3c72c0d337a770dcda09010cf"
 )
-# Fusion Pixel 12 (SIL OFL): a 12 px pixel font with Latin and Japanese (kana + kanji) in
-# one face — the desktop's one font: the terminal at 2× (24 px), the bar, menus and
-# notifications at 1× (12 px), the lock and login screens and the boot menu at 2× and 3×.
-# The monospaced cut, its Japanese glyph forms ("ja"). Installed for every account
+# Fusion Pixel (SIL OFL): pixel fonts with Latin and Japanese (kana + kanji) in one face —
+# the desktop's one type, in two cuts of the same design: the 12 px one for the bar, menus
+# and notifications at 1× (12 px), the lock and login screens and the boot menu at 2× and
+# 3×; the 10 px one for the terminal at 2× (20 px: a 10 × 22 px cell, the size the terminal
+# had before the pixel font, and every pixel still a sharp 2 × 2 square). The monospaced
+# cuts, their Japanese glyph forms ("ja"). Installed for every account
 # (/usr/local/share/fonts): the login screen runs as its own system user.
 FUSION_DIR=/usr/local/share/fonts/fusion-pixel
 FUSION_TAG=2026.08.11
-FUSION_URL="https://github.com/TakWolf/fusion-pixel-font/releases/download/$FUSION_TAG/fusion-pixel-font-12px-monospaced-ttf-v$FUSION_TAG.zip"
-FUSION_SHA256="efbfb4c4cbcd156c8ec2739ff9eaf275490bf5c65279314f28b7a122c2d0d295"
+# SIZE|SHA-256 of fusion-pixel-font-SIZEpx-monospaced-ttf-vTAG.zip
+FUSION_FACES=(
+  "12|efbfb4c4cbcd156c8ec2739ff9eaf275490bf5c65279314f28b7a122c2d0d295"
+  "10|71676f3c375676dbb363b24a60e8184314d9a2092b8e9a7d660c05ce34575bf3"
+)
 # (its files were GE-ProtonN-M.tar.gz; since GE-Proton 11 there is one per architecture:
 # GE-ProtonN-M-x86_64.tar.gz beside -aarch64 — either form is taken, never the aarch64 one)
 GE_PROTON_REPO="GloriousEggroll/proton-ge-custom"; GE_PROTON_ASSET='^GE-Proton[0-9]+-[0-9]+(-x86_64)?\.tar\.gz$'
-# torrra (from PyPI, with pipx) is held at this version: kawa-torrra hands it the Prowlarr
+# torrra (from PyPI, with uv tool) is held at this version: kawa-torrra hands it the Prowlarr
 # key by replacing three methods of its settings class, so a newer torrra is taken only
 # after that has been checked against it.
 TORRRA_VERSION=2.5.1
@@ -199,6 +204,33 @@ install_localsend() {   # the pinned release, whole, into ~/.local/share/localse
 }
 localsend_current() { [[ $(up_tag localsend) == "$LOCALSEND_TAG" && -x $(localsend_dir)/localsend_app ]]; }
 
+# The launcher's icons for release tools that ship none in their release file: each project's
+# own logo, from its repository at the pinned tag, its SHA-256 pinned too (measured 2026-10-20).
+# ~/.local/share/fedokawaii/icons/NAME.png; the launcher entries name them by path (Files: yazi,
+# Agents: herdr). Tools whose project has no logo show foot's, the terminal that draws them.
+#               name   repo              tag      path in the repository   sha-256
+UPSTREAM_ICONS=(
+  "yazi|sxyazi/yazi|v26.9.1|assets/logo.png|7df01d685d6727dcf165f2de5d9145dedca89d38e18f526209a9ec6346ab9915"
+  "herdr|herdrdev/herdr|v0.9.5|assets/logo.png|56fc2db845c16eb521022549890fbe239659957caee1f4fc718a634d7a66cf0a"
+)
+icon_dir() { echo "$TARGET_HOME/.local/share/fedokawaii/icons"; }
+icon_current() {   # icon_current "name|…|sha256" — that picture is in place, byte for byte
+  local name sum; IFS='|' read -r name _ _ _ sum <<<"$1"
+  [[ $(as_user sha256sum -- "$(icon_dir)/$name.png" 2>/dev/null | cut -d' ' -f1) == "$sum" ]]
+}
+install_upstream_icons() {   # each a no-op when in place; every one tried; 1 when one could not be
+  local e name repo tag path sum rc=0
+  for e in "${UPSTREAM_ICONS[@]}"; do
+    icon_current "$e" && continue
+    IFS='|' read -r name repo tag path sum <<<"$e"
+    fetch_pinned "https://raw.githubusercontent.com/$repo/$tag/$path" "$sum" "$name.png" || { rc=1; continue; }
+    as_user mkdir -p -- "$(icon_dir)" && user_put 0644 "$(icon_dir)/$name.png" <"$REL_DIR/x/$name.png" \
+      || { log "could not write ~/.local/share/fedokawaii/icons/$name.png (is the disk full?)"; rc=1; continue; }
+    rm -rf "$REL_DIR"; ok "$name's icon ($tag) → ~/.local/share/fedokawaii/icons"
+  done
+  return "$rc"
+}
+
 retire_upstream() {   # UPSTREAM_RETIRED out: each binary (only one its record says we put there) and its record
   local n
   for n in "${UPSTREAM_RETIRED[@]}"; do
@@ -230,25 +262,32 @@ install_nerd_fonts() {    # each family from its own release file, checksum-pinn
   return "$failed"
 }
 
-install_fusion() {   # pinned archive → /usr/local/share/fonts/fusion-pixel (the face, its licence)
-  local f
-  if [[ -s $FUSION_DIR/fusion-pixel-12px-monospaced-ja.ttf && $(cat "$FUSION_DIR/.version" 2>/dev/null) == "$FUSION_TAG" ]]; then
-    log "Fusion Pixel 12 $FUSION_TAG — in place"; return 0
+install_fusion() {   # pinned archives → /usr/local/share/fonts/fusion-pixel (the faces, the licence)
+  local e px f have=1 rels=() faces=() lic=""
+  for e in "${FUSION_FACES[@]}"; do [[ -s $FUSION_DIR/fusion-pixel-${e%%|*}px-monospaced-ja.ttf ]] || have=0; done
+  if ((have)) && [[ $(cat "$FUSION_DIR/.version" 2>/dev/null) == "$FUSION_TAG" ]]; then
+    log "Fusion Pixel 12 and 10 $FUSION_TAG — in place"; return 0
   fi
-  fetch_pinned "$FUSION_URL" "$FUSION_SHA256" || return 1
-  f=$(find "$REL_DIR/x" -name fusion-pixel-12px-monospaced-ja.ttf -print -quit)
-  [[ -s $f ]] || { rm -rf "$REL_DIR"; log "the Fusion Pixel archive held no Japanese 12 px face"; return 1; }
-  install -d -m 0755 "$FUSION_DIR" && install -m 0644 "$f" "$FUSION_DIR/" \
-    && install -m 0644 "$(find "$REL_DIR/x" -name OFL.txt -print -quit)" "$FUSION_DIR/" \
-    || { rm -rf "$REL_DIR"; log "could not write $FUSION_DIR (is the disk full?)"; return 1; }
-  rm -rf "$REL_DIR"
+  # every archive fetched and checked before anything is installed: one refused, none is
+  for e in "${FUSION_FACES[@]}"; do
+    px=${e%%|*}
+    fetch_pinned "https://github.com/TakWolf/fusion-pixel-font/releases/download/$FUSION_TAG/fusion-pixel-font-${px}px-monospaced-ttf-v$FUSION_TAG.zip" "${e#*|}" \
+      || { rm -rf "${rels[@]}" "$REL_DIR"; return 1; }
+    rels+=("$REL_DIR")
+    f=$(find "$REL_DIR/x" -name "fusion-pixel-${px}px-monospaced-ja.ttf" -print -quit)
+    [[ -s $f ]] || { rm -rf "${rels[@]}"; log "the Fusion Pixel $px archive held no Japanese $px px face"; return 1; }
+    faces+=("$f"); [[ -n $lic ]] || lic=$(find "$REL_DIR/x" -name OFL.txt -print -quit)
+  done
+  install -d -m 0755 "$FUSION_DIR" && install -m 0644 "${faces[@]}" "$lic" "$FUSION_DIR/" \
+    || { rm -rf "${rels[@]}"; log "could not write $FUSION_DIR (is the disk full?)"; return 1; }
+  rm -rf "${rels[@]}"
   printf '%s\n' "$FUSION_TAG" >"$FUSION_DIR/.version"
   # the pixel fonts before it, in the home: Fusion Pixel draws all they did
   as_user rm -rf "$TARGET_HOME/.local/share/fonts/PixelMplus" "$TARGET_HOME/.local/share/fonts/DepartureMonoNerd" \
     "$TARGET_HOME/.local/share/fonts/FusionPixel"
   as_user rm -f "$(up_state_dir)/nerd-DepartureMono"
   fc-cache -f "$FUSION_DIR" >/dev/null; as_user fc-cache -f >/dev/null
-  ok "Fusion Pixel 12 $FUSION_TAG (the desktop's font, Latin and Japanese)"
+  ok "Fusion Pixel 12 and 10 $FUSION_TAG (the desktop's font, Latin and Japanese)"
 }
 
 # swap_in NEW DIR NAME — the folder NEW (built, and found to work) in DIR's place, the old one
@@ -408,7 +447,7 @@ install_ge_proton() {
   fi
   # the line for this file, or the file's only hash
   want=$("${CURL[@]}" "$sumurl") || { log "GE-Proton's checksum file not reachable"; return 1; }
-  want=$({ grep -F -- "$file" <<<"$want" || printf '%s\n' "$want"; } | grep -m1 -oE '\b[0-9a-f]{128}\b') \
+  want=$({ grep -F -- "$file" <<<"$want" || printf '%s\n' "$want"; } | grep -oE '\b[0-9a-f]{128}\b' | sed -n 1p; exit "${PIPESTATUS[1]}") \
     || { log "GE-Proton's checksum file holds no SHA-512 for $file"; return 1; }
   REL_DIR=$(mktemp -d "$KAWA_TMP/rel.XXXXXX")
   retry 3 10 "${CURL[@]}" -o "$REL_DIR/ge.tar.gz" "$url" || { log "GE-Proton download failed"; return 1; }

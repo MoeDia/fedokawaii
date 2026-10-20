@@ -90,7 +90,7 @@ case_ "the bar: the mark, lit while one is open, a count past one"
 setup
 bar=$(kawa-drives bar)
 has "$bar" '"class":["open","count"]'
-has "$bar" " 4\"" "four drives: sdb, sdc, mmcblk0, loop0"
+has "$bar" "$(. "$HOME/.config/fedokawaii/icons.sh"; printf %s "$ICON_BAR_USB")4\"" "four drives: sdb, sdc, mmcblk0, loop0"
 mounted /dev/sdb1 ""; mounted /dev/mapper/luks-1234 ""; mounted /dev/loop0 ""
 has "$(kawa-drives bar)" '"closed"' "nothing open: the quiet mark"
 python3 - "$FAKE_DISKS" <<'EOF'
@@ -341,7 +341,7 @@ eq "$r" 1 "Esc must fail so udiskie leaves it locked"; eq "$out" ""
 case_ "passphrase: a very long name is cut to fit"
 stub fuzzel 'echo x'
 kawa-drives passphrase /dev/sdc1 "A really very extremely long volume name indeed" "" >/dev/null
-called 'A really very extremel…'
+called 'A really very extremely · passphrase'
 
 # ── the menu ─────────────────────────────────────────────────────────────────
 case_ "menu: the rows, then each choice does what it says"

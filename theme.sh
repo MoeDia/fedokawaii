@@ -124,6 +124,9 @@ CHEVRON=$(. "$REPO_DIR/configs/home/.config/fedokawaii/icons.sh" && printf '%s' 
 
 # Brave's own icon, as its package names it in its launcher entry: the Prowlarr entry's too
 # (its page opens in Brave)
+# btop's box for the discrete AMD card: its number in ROCm SMI's order (lib/hardware.sh,
+# hw_btop_gpu) — and no card's box at all without one
+BTOP_GPU=$(hw_btop_gpu); BTOP_BOXES="cpu ${BTOP_GPU:+$BTOP_GPU }mem net proc"
 BRAVE_ICON=""
 [[ -r /usr/share/applications/brave-origin.desktop ]] \
   && BRAVE_ICON=$(sed -n '/^Icon=/{s///p;q}' /usr/share/applications/brave-origin.desktop)
@@ -131,7 +134,8 @@ BRAVE_ICON=""
 render() {      # render SRC → stdout, with fedokawaii.conf values (and the chevron) filled in
   sed -e "s|@HOME@|$TARGET_HOME|g" -e "s|@MONITOR_HZ@|$MONITOR_HZ|g" -e "s|@BRAVE_ICON@|$BRAVE_ICON|g" \
       -e "s|@WEATHER_CITY@|$WEATHER_CITY|g" -e "s|@NIGHT_LIGHT@|$NIGHT_LIGHT|g" \
-      -e "s|@ICON_CHEVRON_RIGHT@|$CHEVRON|g" -e "s|^@MPV_SCALING@\$|$MPV_SCALING|" -e "s|@UID@|$TARGET_UID|g" "$1"
+      -e "s|@ICON_CHEVRON_RIGHT@|$CHEVRON|g" -e "s|^@MPV_SCALING@\$|$MPV_SCALING|" -e "s|@UID@|$TARGET_UID|g" \
+      -e "s|@BTOP_BOXES@|$BTOP_BOXES|g" -e "s|@BTOP_GPU@|${BTOP_GPU:-gpu0}|g" "$1"
 }
 
 BACKUP="$TARGET_HOME/.local/state/fedokawaii/backup/$(date +%Y%m%d-%H%M%S)"
@@ -242,11 +246,18 @@ retire() {   # retire FILE PATTERN
 #   ~/.config/gtk-3.0/gtk.css — GTK 3 colours now live in the Fedokawaii themes; the old
 #   file would pin one palette over both
 retire .config/gtk-3.0/gtk.css 'current/gtk3.css'
+#   ~/.local/share/applications/calf.desktop — hid Calf's JACK host, which came with EasyEffects
+#   (both retired: PipeWire's own modules do their job)
+retire .local/share/applications/calf.desktop "Calf's JACK host"
 #   ~/.bashrc.d/scriptorium.sh — this project's old name: a second prompt and its aliases
 retire .bashrc.d/scriptorium.sh 'scriptorium'
 #   ~/.local/bin/kawa-audio — the old fuzzel sound menu: the sound panel (kawa-panel --sound)
 #   took its place, and a copy left in ~/.local/bin would still answer to its name
 retire .local/bin/kawa-audio 'kawa-audio — the sound menu'
+#   ~/.local/bin/kawa-veil — the old theme and wallpaper transitions: nothing animates now
+#   (design-system §5), every change is drawn in one frame
+retire .local/bin/kawa-veil 'usage: kawa-veil'
+retire .local/state/fedokawaii/kawa-veil.sha256 ''
 #   presenterm, sc-im and spotify_player — slides, sheets and Spotify are LibreOffice's and
 #   Spotify's web player now: presenterm's link into the theme, the others' settings
 retire .config/presenterm/config.yaml 'fedokawaii/current/'
@@ -256,6 +267,10 @@ retire .config/spotify-player/theme.toml 'spotify_player'
 #   ~/.local/share/icons/default/index.theme — made the old pointers (Fedokawaii) the default;
 #   the folder is now a link to the Sumi pointers of the theme in use (2c)
 retire .local/share/icons/default/index.theme 'Inherits=Fedokawaii'
+#   ~/.inputrc and ~/.visidatarc — now ~/.config/readline/inputrc (INPUTRC) and
+#   ~/.config/visidata/config.py: nothing of the desktop's at the top of your home
+retire .inputrc 'readline for bash'
+retire .visidatarc 'VisiData (vd, the Tables window)'
 #   ~/.local/share/applications/lpf*.desktop — lpf's entries, hidden while lpf built Spotify's
 #   app here (Spotify is its web player now, and lpf is gone: setup.sh)
 for LPF_ENTRY in lpf lpf-gui lpf-notify lpf-spotify-client; do retire ".local/share/applications/$LPF_ENTRY.desktop" 'lpf-spotify-client'; done
@@ -491,12 +506,27 @@ boot_and_console() {
     if ((CHECK)); then DRIFT+=("boot splash: not the sumi theme")
     else R plymouth-set-default-theme sumi; CHANGED+=("boot splash: the sumi theme"); SPLASH_CHANGED=1; fi
   fi
+  # shown at once (ShowDelay=0, in plymouthd.conf beside the theme's line — the image carries
+  # it): never a wait over a black screen first; the first frame itself is the boot argument
+  # plymouth.use-simpledrm's (lib/common.sh, BOOT_ARGS)
+  TOTAL=$((TOTAL + 1))
+  if ! R grep -qx 'ShowDelay=0' /etc/plymouth/plymouthd.conf 2>/dev/null; then
+    if ((CHECK)); then DRIFT+=("/etc/plymouth/plymouthd.conf: ShowDelay=0")
+    else
+      if R grep -q '^ShowDelay=' /etc/plymouth/plymouthd.conf 2>/dev/null; then R sed -i 's/^ShowDelay=.*/ShowDelay=0/' /etc/plymouth/plymouthd.conf
+      elif R grep -qx '\[Daemon\]' /etc/plymouth/plymouthd.conf 2>/dev/null; then R sed -i '/^\[Daemon\]$/a ShowDelay=0' /etc/plymouth/plymouthd.conf
+      else printf '[Daemon]\nShowDelay=0\n' | R tee -a /etc/plymouth/plymouthd.conf >/dev/null; fi   # (Fedora's own file: comments only)
+      CHANGED+=("/etc/plymouth/plymouthd.conf: ShowDelay=0"); SPLASH_CHANGED=1
+    fi
+  fi
   # every kernel's boot image holds it (an image made before, or by a dracut that failed —
-  # the installer's, a kernel update's — has Plymouth's text themes only: no splash)
+  # the installer's, a kernel update's — has Plymouth's text themes only: no splash). grep
+  # reads lsinitrd's whole listing: `lsinitrd | grep -q` under pipefail failed whenever grep
+  # stopped at its match (lsinitrd's SIGPIPE) — a splash that was there read as missing
   TOTAL=$((TOTAL + 1)) SPLASH_IMAGES=()
   for f in /boot/vmlinuz-*; do
     [[ -e $f && $f != */vmlinuz-0-rescue-* ]] || continue
-    R lsinitrd "/boot/initramfs-${f#/boot/vmlinuz-}.img" 2>/dev/null | grep -q "usr/share/plymouth/themes/sumi/sumi.script" \
+    grep -q "usr/share/plymouth/themes/sumi/sumi.script" < <(R lsinitrd "/boot/initramfs-${f#/boot/vmlinuz-}.img" 2>/dev/null) \
       || SPLASH_IMAGES+=("/boot/initramfs-${f#/boot/vmlinuz-}.img")
   done
   if ((${#SPLASH_IMAGES[@]})); then
@@ -714,9 +744,11 @@ TOTAL=$((TOTAL + 1))
 if [[ -s $BRAVE_LS ]] && jq -e '.brave.widevine_opted_in == true' "$BRAVE_LS" >/dev/null 2>&1; then
   ((CHECK)) || [[ -e $BWM ]] || U touch "$BWM"
 elif [[ -e $BWM ]]; then :                                            # switched off in Brave since: yours
-elif ((CHECK)); then DRIFT+=("$BRAVE_LS (Widevine off: Spotify's web player cannot play)")
+# (Brave open: its starter, ~/.local/bin/brave-origin, switches it on before Brave's next start
+# — Brave writes Local State again as it closes, so nothing may write it now; no drift either)
 elif pgrep -u "$TARGET_UID" -f '/brave-origin/brave( |$)' >/dev/null; then
-  log "Brave is open: Widevine is switched on by the next Theme run (or brave://settings → Widevine)"
+  ((CHECK)) || log "Brave is open: Widevine goes on at its next start (its starter switches it on) — close Brave and start it again"
+elif ((CHECK)); then DRIFT+=("$BRAVE_LS (Widevine off: Spotify's web player cannot play)")
 else
   BT=$(mktemp)
   if [[ ! -s $BRAVE_LS ]]; then jq -n '.brave.widevine_opted_in = true' >"$BT"
@@ -844,15 +876,19 @@ else
   esac
 fi
 
-# ── 4b. the desktop's two C helpers (src/, built with the tools that build dwl) ──
-#   kawa-veil      the theme and wallpaper transitions
+# ── 4b. the desktop's own C helpers (src/, built with the tools that build dwl) ──
 #   kawa-clipkeep  keeps a copy on the clipboard after the app it came from is closed
+#   kawa-saver     the screensaver (and the lock behind it: away 15 minutes, kawa-idle)
+#   kawa-lockmod   the lock screen's keys and wake guard (a gtklock module, GTK 3's headers)
 # Built as you whenever their sources change; the hash of what each was built from is
 # kept beside the state, so a re-run knows without rebuilding. Parts of the desktop like
 # dwl: one that does not build stops the theme run.
-TOOLS=(kawa-veil kawa-clipkeep)
-tool_sum() { local s; s=$(cat "$REPO_DIR/src/$1/Makefile" "$REPO_DIR/src/$1"/*.c "$REPO_DIR/src/$1"/*.xml | sha256sum); printf '%s' "${s%% *}"; }
-tool_current() { [[ -x $TARGET_HOME/.local/bin/$1 && $(cat "$STATE/$1.sha256" 2>/dev/null) == "$(tool_sum "$1")" ]]; }
+TOOLS=(kawa-clipkeep kawa-saver kawa-lockmod)
+tool_dest() { case $1 in kawa-lockmod) echo "$TARGET_HOME/.local/lib/fedokawaii/kawa-lockmod.so" ;; *) echo "$TARGET_HOME/.local/bin/$1" ;; esac; }
+tool_sum() { local s x f=() d=$REPO_DIR/src/$1
+  for x in "$d/Makefile" "$d"/*.c "$d"/*.h "$d"/*.xml; do [[ -f $x ]] && f+=("$x"); done
+  s=$(cat "${f[@]}" | sha256sum); printf '%s' "${s%% *}"; }
+tool_current() { [[ -f $(tool_dest "$1") && $(cat "$STATE/$1.sha256" 2>/dev/null) == "$(tool_sum "$1")" ]]; }
 TOTAL=$((TOTAL + ${#TOOLS[@]}))
 
 if ((CHECK)); then
@@ -867,7 +903,7 @@ if ((CHECK)); then
     DRIFT=("${DRIFT[@]:0:d0}")
   fi
   for t in "${TOOLS[@]}"; do
-    tool_current "$t" || DRIFT+=("$TARGET_HOME/.local/bin/$t (not built from src/$t)")
+    tool_current "$t" || DRIFT+=("$(tool_dest "$t") (not built from src/$t)")
   done
   [[ $(U /usr/local/bin/dwl -v 2>&1) == *"${DWL_TAG#v}"* ]] || DRIFT+=("/usr/local/bin/dwl (not $DWL_TAG)")
   ((DWL_MINE == 0)) || dwl_current || DRIFT+=("/usr/local/bin/dwl (not built from src/dwl as it is now)")
@@ -911,9 +947,9 @@ for t in "${TOOLS[@]}"; do
   tar -C "$REPO_DIR/src/$t" -cf - . | U tar -C "$VB" -xf - --no-same-owner   # (unpacked by you)
   # (what root hands on goes through a pipe, never through a file in your folder)
   U make -s -C "$VB" O="$VB" >>"$LOG_FILE" 2>&1 || { U rm -rf "$VB"; die "$t failed to build from src/$t — see $LOG_FILE"; }
-  U cat -- "$VB/$t" | uinstall 0755 /dev/stdin "$TARGET_HOME/.local/bin/$t"
+  U cat -- "$VB/$t" | uinstall 0755 /dev/stdin "$(tool_dest "$t")"
   tool_sum "$t" | uinstall 0644 /dev/stdin "$STATE/$t.sha256"
-  CHANGED+=("$TARGET_HOME/.local/bin/$t (built)")
+  CHANGED+=("$(tool_dest "$t") (built)")
   U rm -rf "$VB"
 done
 
@@ -931,6 +967,12 @@ if [[ ! -f $SECRETS ]]; then uinstall 0600 /dev/null "$SECRETS"
 elif [[ $(stat -c %a "$SECRETS") != 600 ]]; then
   U chmod 600 "$SECRETS"; CHANGED+=("$SECRETS (made private again: chmod 600)")
 fi
+# the terminal's see-through ground (foot.ini's last include): made once, on — then the
+# setting is yours (Super+U → transparency, kawa-glass), never written here again
+GLASS=$STATE/foot-glass.ini
+[[ -f $GLASS ]] || uinstall 0644 <(printf '%s\n' "# ~/.local/state/fedokawaii/foot-glass.ini — the terminal's see-through ground (kawa-glass;" \
+  "# Super+U → transparency). 1 is opaque. Read by foot.ini's last include." \
+  "[colors-dark]" "alpha=0.92" "[colors-light]" "alpha=0.92") "$GLASS"
 # (~/repos: where your projects go — and where Agents, herdr, opens: its launcher entry
 # starts there, and a window cannot start in a folder that is not)
 U mkdir -p "$TARGET_HOME/Pictures/Wallpapers" "$TARGET_HOME/Pictures/Screenshots" "$TARGET_HOME/.local/share/fedokawaii" \

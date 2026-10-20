@@ -3,46 +3,64 @@
 # what it and its two siblings (the sound panel, the brightness slider) show and do. The panels
 # themselves are kawa-panel (it draws; this knows the machine).
 #
-#   kawa-quick                  the panel opens, or closes if it is open
+#   kawa-quick [sound|brightness]   the panel (quick settings, the sound panel, the brightness
+#                               slider) opens, or closes if it is open: the running panel asked
+#                               through its fifo (kawa-panel), by bash alone — the bar's clicks
+#                               and the keys, at once
 #   kawa-quick --state          how everything stands, one "KEY<TAB>VALUE" a line: theme,
-#                               brightness, night, vrr, wallpaper, sound, nettype, network,
-#                               bluetooth and devices (only with a Bluetooth adapter), drives,
-#                               backup, dnd
+#                               brightness, night ("off" or its warmth, "4000K"), vrr,
+#                               wallpaper, sound, nettype, network, bluetooth and devices (only
+#                               with a Bluetooth adapter), drives, backup, dnd, saver (the
+#                               screensaver after 15 min away: "15 min", or "off"), vrrnow (FreeSync on
+#                               the card this moment: on, off, none, unread)
 #   kawa-quick --state sound    the sound panel's: sound (the output's level, also while
-#                               muted), muted (on|off), mic (on|muted|none), then each output
-#                               and input (not "Share"): "output|input<TAB>ID<TAB>1 (the
+#                               muted), muted (on|off), mic (on|muted|none), cleanmic (on: the
+#                               clean mic is the default input · off · none: not loaded), then
+#                               each output and input (not "Share", not the clean mic — while
+#                               it is on, the microphone it listens to is the ticked input):
+#                               "output|input<TAB>ID<TAB>1 (the
 #                               default) or 0<TAB>DESCRIPTION<TAB>PORT<TAB>NICK<TAB>CARD<TAB>
 #                               PROFILE<TAB>API" (what names it; any but the first may be empty)
 #   kawa-quick --state brightness   the slider's: brightness
 #   kawa-quick --do ACTION [N]  one thing done: theme · night · vrr · bluetooth · dnd (each
-#                               switched over) · brightness N · volume N (set, in %) · mute ·
+#                               switched over) · saver (the screensaver on ⇄ off) ·
+#                               warmer · cooler (the night light, a step, on) · brightness N · volume N (set, in %) · mute ·
 #                               micmute (the output's, the microphone's, switched over) ·
-#                               output ID · input ID (the default: playing audio moves to it) ·
+#                               output ID · input ID (the default: playing audio moves to it;
+#                               an input: what records moves to it, the mute carried over) ·
+#                               cleanmic (the default input clean ⇄ raw, as input ID; kept: kawa-state) ·
+#                               mictest (5 s recorded from the default input, played back) ·
 #                               sound (the sound panel) · mixer · network · devices · drives ·
 #                               backup · wallpaper · screenshot · power (each opens its own menu
 #                               or window)
 #
 # Exit: 0 done · 1 it could not (said) · 2 wrong use.
 set -u
-usage() { echo "usage: kawa-quick [--state | --do ACTION [N]] (kawa-quick --help)" >&2; exit 2; }
+usage() { echo "usage: kawa-quick [sound | brightness | --state | --do ACTION [N]] (kawa-quick --help)" >&2; exit 2; }
 case ${1:-} in
-  "") (($# == 0)) || usage ;;
+  ""|sound|brightness) (($# <= 1)) || usage ;;
   --state) (($# == 1)) || [[ $# == 2 && ( $2 == sound || $2 == brightness ) ]] || usage ;;
   --do) (($# == 2 || $# == 3)) || usage ;;
   -h|--help) sed -n '2,/^set -u/{/^set -u/d;s/^# \{0,1\}//;p}' "$0"; exit 0 ;;
   *) usage ;;
 esac
-# the panel's key (Super+X, the cat): the panel told
-# at once, before anything else is read — no process started on the way (its pid file and
-# that pid's command line, read by bash itself)
-if [[ -z ${1:-} ]]; then
-  run=${XDG_RUNTIME_DIR:-/run/user/$UID} a=()
-  pid=""; read -r pid 2>/dev/null <"$run/kawa-panel.pid"
-  if [[ $pid =~ ^[1-9][0-9]*$ ]] && mapfile -d '' -t a 2>/dev/null <"/proc/$pid/cmdline" && [[ " ${a[*]} " == *kawa-panel* ]]; then
-    kill -USR1 "$pid" && exit 0
+# a panel's key or button (Super+X or the cat, Super+A or the volume, the brightness): the
+# panel told at once, before anything else is read — no process started on the way (its pid
+# file, that pid's command line, its fifo: bash's own); none running: started, open
+toggle() {
+  local run=${XDG_RUNTIME_DIR:-/run/user/$UID} a=() pid=""
+  read -r pid 2>/dev/null <"$run/kawa-panel.pid"
+  if [[ $pid =~ ^[1-9][0-9]*$ ]] && mapfile -d '' -t a 2>/dev/null <"/proc/$pid/cmdline" && [[ " ${a[*]} " == *kawa-panel* ]] \
+     && { printf 'toggle %s\n' "$1" 1<>"$run/kawa-panel.in"; } 2>/dev/null; then
+    return 0
   fi
-  setsid -f kawa-panel --open </dev/null >/dev/null 2>&1; exit 0
-fi
+  case $1 in quick) set -- --open ;; *) set -- "--$1" ;; esac
+  setsid -f kawa-panel "$1" </dev/null >/dev/null 2>&1
+}
+case ${1:-} in
+  "")                toggle quick; exit 0 ;;
+  sound|brightness)  toggle "$1"; exit 0 ;;
+esac
 # shellcheck source=/dev/null
 . "$HOME/.config/fedokawaii/env"
 # shellcheck source=/dev/null
@@ -74,11 +92,24 @@ state_bt()    {
     && echo on || echo off
 }
 state_theme() { [[ $(readlink "$HOME/.config/fedokawaii/current" 2>/dev/null) == */light ]] && echo light || echo dark; }
-state_night() { pgrep -xu "$UID" gammastep >/dev/null && echo on || echo off; }
+state_night() { kawa-night; }                     # ("off", or its warmth: kawa-night keeps it)
+SAVER=${XDG_STATE_HOME:-$HOME/.local/state}/fedokawaii/saver
+state_saver() {   # the screensaver (kawa-saver reads the same file): on unless "off" — after
+  [[ $(cat "$SAVER" 2>/dev/null) == off ]] && echo off || echo "15 min"   # 15 min (kawa-idle)
+}
 VRR=$HOME/.config/fedokawaii/vrr
 state_vrr()   {   # FreeSync (variable refresh, dwl reads the file): in games (a full-screen
   # window: the screen follows the game's frames, no tearing, no stutter), always, or off
   case $(cat "$VRR" 2>/dev/null) in always) echo always ;; off) echo off ;; *) echo 'in games' ;; esac
+}
+state_vrrnow() {  # …and what the card does this moment (kawa-display --vrr, DRM's VRR_ENABLED):
+  # on (a screen follows the frames now) · off · none (no screen offers it: the monitor's own
+  # menu has it off, or the cable or port cannot) · unread (DRM could not be asked)
+  local l
+  l=$(kawa-display --vrr 2>/dev/null) || { echo unread; return; }
+  if grep -q $'\ton$' <<<"$l"; then echo on
+  elif grep -q $'\tyes\t' <<<"$l"; then echo off
+  else echo none; fi
 }
 state_dnd()   { [[ $(makoctl mode 2>/dev/null) == *do-not-disturb* ]] && echo on || echo off; }
 state_drives() {   # USB sticks, disks, SD cards plugged in (kawa-drives: one line per file system):
@@ -138,6 +169,10 @@ state_audio() {   # the sound panel's: the output's level and mute, the micropho
   if [[ $v != *Volume:* ]]; then printf 'mic\tnone\n'
   elif [[ $v == *MUTED* ]]; then printf 'mic\tmuted\n'
   else printf 'mic\ton\n'; fi
+  # the clean mic (~/.config/pipewire/pipewire.conf.d/60-clean-mic.conf, node clean_mic): on
+  # while it is the default input — PipeWire's own default, read each time, never remembered
+  # here. It is not a row: its key says it; while on, the row ticked is the microphone it
+  # listens to (its capture stream's link)
   # the devices from pw-dump (JSON: a name with any characters is safe), the default ticked,
   # each with what names it (the panel makes its short name of them, kawa-panel's
   # device_names): its description, the port in use (its card's active route for it: Line
@@ -146,7 +181,7 @@ state_audio() {   # the sound panel's: the output's level and mute, the micropho
   # API (alsa, bluez5). A control character (a tab, a line break) a space: one device a line.
   # Not "Share" (share_sink, ~/.config/pipewire): what plays there goes to calls, so it is
   # picked for one program at a time in the mixer — as the default, every sound would be shared
-  d=$(pw-dump 2>/dev/null) || return 0                  # (PipeWire not running: no devices)
+  d=$(pw-dump 2>/dev/null) || { printf 'cleanmic\tnone\n'; return 0; }   # (PipeWire not running: no devices)
   jq -r '
     ([.[] | select(.type == "PipeWire:Interface:Metadata" and .props["metadata.name"] == "default")
           | .metadata[]?] ) as $md
@@ -154,13 +189,21 @@ state_audio() {   # the sound panel's: the output's level and mute, the micropho
     | ($md | map(select(.key == "default.audio.source")) | .[0].value.name // "") as $src
     | ([.[] | select(.type == "PipeWire:Interface:Device") | {key: (.id | tostring), value: .}]
        | from_entries) as $cards
-    | [.[] | select(.type == "PipeWire:Interface:Node") | .info.props as $p
+    | ([.[] | select(.type == "PipeWire:Interface:Node")]) as $nodes
+    | ($nodes | map(select(.info.props["node.name"] == "clean_mic.capture")) | .[0].id // -1) as $cap
+    | ([.[] | select(.type == "PipeWire:Interface:Link") | .info | select(.["input-node-id"] == $cap)
+        | .["output-node-id"]] | .[0] // -1) as $heard
+    | (if any($nodes[]; .info.props["node.name"] == "clean_mic") | not then "none"
+       elif $src == "clean_mic" then "on" else "off" end) as $clean
+    | "cleanmic\t\($clean)",
+    ([$nodes[] | .info.props as $p
        | select($p["media.class"] == "Audio/Sink" or $p["media.class"] == "Audio/Source")
-       | select($p["node.name"] != "share_sink")
+       | select($p["node.name"] != "share_sink" and $p["node.name"] != "clean_mic")
        | ($p["media.class"] == "Audio/Sink") as $out
        | ($cards[($p["device.id"] // "" | tostring)] // {}) as $card
        | [ (if $out then "output" else "input" end), .id,
-           (if $p["node.name"] == $sink or $p["node.name"] == $src then 1 else 0 end),
+           (if $p["node.name"] == $sink or $p["node.name"] == $src
+               or ($clean == "on" and .id == $heard) then 1 else 0 end),
            ($p["node.description"] // $p["node.nick"] // $p["node.name"]),
            ([$card.info.params.Route[]?
              | select(.direction == (if $out then "Output" else "Input" end)
@@ -168,8 +211,87 @@ state_audio() {   # the sound panel's: the output's level and mute, the micropho
            ($p["node.nick"] // ""), ($card.info.props["device.description"] // ""),
            ($p["device.profile.description"] // ""), ($p["device.api"] // "") ]]
     | (map(select(.[0] == "output")) + map(select(.[0] == "input")))[]
-    | map(tostring | gsub("[[:cntrl:]]"; " ")) | join("\t")' <<<"$d" 2>/dev/null
+    | map(tostring | gsub("[[:cntrl:]]"; " ")) | join("\t"))' <<<"$d" 2>/dev/null
   return 0
+}
+
+# source_to ID — the default input made node ID (wpctl set-default: WirePlumber keeps it
+# across restarts), and what was recording from the old default moved with it at once, a
+# call's microphone too (pw-metadata target.object — Brave picks its microphone itself when a
+# site names one, and such a stream would not follow the default alone); the old one's mute
+# carried over (muted stays muted). Never the clean mic's own capture stream. With the clean
+# mic loaded, its state kept too (kawa-state cleanmic on|off: every login puts it back). 1: no
+# such input
+source_to() {
+  local d plan m to="" s clean=false
+  d=$(pw-dump 2>/dev/null) || return 1
+  plan=$(jq -r --argjson to "$1" '
+    [.[] | select(.type == "PipeWire:Interface:Node")] as $n
+    | ($n | map(select(.id == $to and .info.props["media.class"] == "Audio/Source")) | .[0]) as $t
+    | if $t == null then empty else
+      ([.[] | select(.type == "PipeWire:Interface:Metadata" and .props["metadata.name"] == "default")
+        | .metadata[]? | select(.key == "default.audio.source") | .value.name] | .[0] // "") as $src
+      | ($n | map(select(.info.props["node.name"] == $src)) | .[0].id // -1) as $old
+      | "to\t\($t.info.props["node.name"])",
+        "clean\t\(any($n[]; .info.props["node.name"] == "clean_mic"))",
+        ([.[] | select(.type == "PipeWire:Interface:Link") | .info
+          | select(.["output-node-id"] == $old) | .["input-node-id"]] | unique[]) as $s
+        | ($n | map(select(.id == $s)) | .[0].info.props // {}) as $p
+        | select($p["media.class"] == "Stream/Input/Audio" and $p["node.name"] != "clean_mic.capture")
+        | "move\t\($s)"
+      end' <<<"$d" 2>/dev/null)
+  while IFS=$'\t' read -r s m; do
+    case $s in to) to=$m ;; clean) clean=$m ;; esac
+  done <<<"$plan"
+  [[ -n $to ]] || return 1
+  m=$(wpctl get-volume @DEFAULT_AUDIO_SOURCE@ 2>/dev/null)
+  wpctl set-default "$1" >/dev/null 2>&1 || return 1
+  [[ $m == *Volume:* ]] && wpctl set-mute "$1" "$([[ $m == *MUTED* ]] && echo 1 || echo 0)"
+  while IFS=$'\t' read -r s m; do
+    [[ $s == move ]] && pw-metadata "$m" target.object "$to" >/dev/null 2>&1
+  done <<<"$plan"
+  [[ $clean == true ]] && kawa-state set cleanmic "$([[ $to == clean_mic ]] && echo on || echo off)"
+  return 0
+}
+
+# clean_mic — the default input clean ⇄ raw. Clean → raw: the microphone the clean mic
+# listens to (else the sound card's best). Raw → clean: the clean mic first told to listen
+# to that raw one (its capture stream's target), then made the default. 1: not loaded
+clean_mic() {
+  local d st clean cap raw rawname
+  d=$(pw-dump 2>/dev/null) || return 1
+  read -r st clean cap raw rawname < <(jq -r '
+    [.[] | select(.type == "PipeWire:Interface:Node")] as $n
+    | ([.[] | select(.type == "PipeWire:Interface:Metadata" and .props["metadata.name"] == "default")
+        | .metadata[]? | select(.key == "default.audio.source") | .value.name] | .[0] // "") as $src
+    | ($n | map(select(.info.props["node.name"] == "clean_mic")) | .[0].id // empty) as $clean
+    | ($n | map(select(.info.props["node.name"] == "clean_mic.capture")) | .[0].id // -1) as $cap
+    | ([.[] | select(.type == "PipeWire:Interface:Link") | .info | select(.["input-node-id"] == $cap)
+        | .["output-node-id"]] | .[0] // -1) as $heard
+    | ($n | map(select(.info.props["media.class"] == "Audio/Source" and .info.props["node.name"] != "clean_mic"))
+        | sort_by(-(.info.props["priority.session"] // 0))) as $raws
+    | (if $src == "clean_mic" then ($raws | map(select(.id == $heard)) + $raws)
+       else ($raws | map(select(.info.props["node.name"] == $src)) + $raws) end | .[0]) as $raw
+    | select($raw != null)
+    | [(if $src == "clean_mic" then "on" else "off" end), $clean, $cap, $raw.id, $raw.info.props["node.name"]]
+    | map(tostring) | join(" ")' <<<"$d" 2>/dev/null)
+  [[ -n ${raw:-} ]] || return 1
+  if [[ $st == on ]]; then source_to "$raw"; return; fi
+  ((cap >= 0)) && pw-metadata "$cap" target.object "$rawname" >/dev/null 2>&1
+  source_to "$clean"
+}
+
+# mic_test — 5 s from the default input, played back at once: how the others hear you (the
+# clean mic's noise suppression included while it is on). One at a time; a notice for each half
+mic_test() {
+  local f="${XDG_RUNTIME_DIR:-/run/user/$UID}/kawa-mictest.wav"
+  exec 9>"$f.lock"; flock -n 9 || return 0
+  notify-send -a desktop -t 5000 -- "$ICON_MIC  test mic" "recording 5 seconds — speak as in a call" 2>/dev/null
+  timeout -s INT 5 pw-record --channels 1 "$f" >/dev/null 2>&1
+  [[ -s $f ]] || { notify-send -a desktop -- "$ICON_MIC_OFF  test mic" "nothing recorded — is there a microphone (Super+A, under 入)?" 2>/dev/null; return 1; }
+  notify-send -a desktop -t 5000 -- "$ICON_MIC  test mic" "playing it back" 2>/dev/null
+  pw-play "$f" >/dev/null 2>&1
+  rm -f -- "$f"
 }
 
 state() {   # everything, KEY<TAB>VALUE (a value's tabs and line breaks become spaces: a name
@@ -183,6 +305,7 @@ state() {   # everything, KEY<TAB>VALUE (a value's tabs and line breaks become s
     bt=$(state_bt); kv bluetooth "$bt"; kv devices "$(state_paired "$bt")"
   fi
   kv drives "$(state_drives)"; kv backup "$(state_backup)"; kv dnd "$(state_dnd)"
+  kv saver "$(state_saver)"; kv vrrnow "$(state_vrrnow)"
 }
 
 act() {   # act ACTION [N] — the panel's choices
@@ -190,24 +313,25 @@ act() {   # act ACTION [N] — the panel's choices
   case $1 in brightness|volume|output|input) (($# == 2)) || usage ;; *) (($# == 1)) || usage ;; esac
   case $1 in
     theme)      kawa-theme toggle ;;
-    night)      if [[ $(state_night) == on ]]; then
-                  # gammastep fades back for ~4 s after a first signal, still running: a second
-                  # one ends that at once, so the panel shows the night light really off
-                  pkill -xu "$UID" gammastep; sleep 0.2; pkill -xu "$UID" gammastep
-                  for _ in {1..20}; do pgrep -xu "$UID" gammastep >/dev/null || break; sleep 0.05; done
-                else setsid -f gammastep -l "$NIGHT_LIGHT" -t 6500:4200 </dev/null >/dev/null 2>&1; sleep 0.2; fi ;;
+    night)      kawa-night toggle ;;                 # (kept: the next login finds it so)
+    warmer|cooler) kawa-night "$1" ;;
+    saver)      mkdir -p "${SAVER%/*}"             # on ⇄ off (off: the lock alone at 15 min)
+                [[ $(state_saver) == off ]] && v=on || v=off
+                echo "$v" >"$SAVER.$$" && mv -f "$SAVER.$$" "$SAVER" ;;   # (whole: kawa-saver never reads half)
     vrr)        mkdir -p "${VRR%/*}"   # in games → always → off → in games (dwl takes it up at once:
                 case $(state_vrr) in 'in games') v=always ;; always) v=off ;; *) v=games ;; esac
-                echo "$v" >"$VRR"      # SIGUSR1 makes it read the file again)
+                echo "$v" >"$VRR.$$" && mv -f "$VRR.$$" "$VRR"   # (SIGUSR1 makes it read the file again)
                 dwl_reload ;;
-    bluetooth)  if [[ $(state_bt) == on ]]; then bt power off >/dev/null
+    bluetooth)  if [[ $(state_bt) == on ]]; then bt power off >/dev/null; v=off
                 elif ! v=$(bt power on 2>&1); then        # (an airplane-mode key, or a switch)
                   if [[ $v == *Blocked* ]]; then
                     notify-send -a desktop -- "$ICON_BLUETOOTH  Bluetooth" "it is blocked — rfkill unblock bluetooth (or the machine's own switch)"
                   else notify-send -a desktop -- "$ICON_BLUETOOTH  Bluetooth" "it did not switch on — is the bluetooth service running?"; fi
                   return 1
-                fi ;;
+                else v=on; fi
+                kawa-state set bluetooth "$v" ;;   # (kept: bluetoothd powers it at every boot otherwise)
     dnd)        makoctl mode -t do-not-disturb >/dev/null
+                kawa-state set dnd "$(state_dnd)"               # (kept: the next login finds it so)
                 kawa-dwlstatus --poke 12 ;;                     # the bar's 静 seal
     brightness) [[ ${2:-} =~ ^[0-9]{1,3}$ ]] && ((10#$2 <= 100)) || usage
                 kawa-brightness "$((10#$2))" ;;
@@ -217,11 +341,14 @@ act() {   # act ACTION [N] — the panel's choices
     micmute)    wpctl set-mute @DEFAULT_AUDIO_SOURCE@ toggle ;;
     output|input)                                                # (one unplugged meanwhile: 1, the panel reads again)
                 [[ ${2:-} =~ ^[0-9]{1,9}$ ]] || usage
-                wpctl set-default "$((10#$2))" >/dev/null 2>&1 || return 1 ;;
-    sound)      exec kawa-panel --sound ;;                       # (its own panel: outputs, inputs)
-    mixer)      exec kawa-float --once mixer mixer 96x29 -- wiremix ;;   # (7 rows of 4 lines, the tabs)
-    network)    exec kawa-float --once network network 80x25 -- nmtui ;;
-    devices)    exec kawa-float --once pair 'pair a device' 96x29 -- bluetui ;;   # (the paired, the found, the adapter)
+                if [[ $1 == input ]]; then source_to "$((10#$2))"
+                else wpctl set-default "$((10#$2))" >/dev/null 2>&1 || return 1; fi ;;
+    cleanmic)   clean_mic ;;
+    mictest)    mic_test ;;
+    sound)      toggle sound ;;                                 # (its own panel: outputs, inputs)
+    mixer)      exec kawa-term --float --once mixer mixer 96x29 -- wiremix ;;   # (7 rows of 4 lines, the tabs)
+    network)    exec kawa-term --float --once network network 80x25 -- nmtui ;;
+    devices)    exec kawa-term --float --once pair 'pair a device' 96x29 -- bluetui ;;   # (the paired, the found, the adapter)
     drives)     exec kawa-drives ;;
     backup)     exec kawa-backup --window ;;
     wallpaper)  exec kawa-wallpaper ;;

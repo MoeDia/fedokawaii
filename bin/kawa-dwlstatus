@@ -132,7 +132,14 @@ emit() {   # emit MONITOR — its files (and the focused one's at the top), then
     '><>')       icon=$ICON_FLOAT cls=float ;;
     *)           icon=$lt cls=other ;;
   esac
-  esc icon "$icon"; esc title "${TITLE[$mon]:-}"
+  # the title: 60 letters at most, cut at a word's end — never "…" (waybar's max-length
+  # would add one)
+  title=${TITLE[$mon]:-}
+  if ((${#title} > 60)); then
+    [[ ${title:60:1} == ' ' ]] && title=${title:0:60} || { title=${title:0:60}; [[ $title == *' '* ]] && title=${title% *}; }
+    title=${title%"${title##*[! ]}"}
+  fi
+  esc icon "$icon"; esc title "$title"
   for at in "${to[@]}"; do
     put "${at}layout" "{\"text\":\"$icon\",\"class\":\"$cls\"}" && ly=1
     put "${at}title" "{\"text\":\"$title\"}" && tt=1

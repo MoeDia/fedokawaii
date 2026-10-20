@@ -1,0 +1,143 @@
+#!/usr/bin/env bash
+# /usr/local/sbin/kawa-dnf-guard — every dnf transaction, seen by the desktop (installed by
+# setup.sh; libdnf5's actions plugin runs it: /etc/dnf/libdnf5-plugins/actions.d/
+# fedokawaii-guard.actions, in its JSON mode — it asks dnf for the transaction's packages).
+#
+#   kawa-dnf-guard pre    before the transaction runs (its packages downloaded): it is stopped,
+#                         with nothing changed and the reason on the screen, when it would
+#                           · remove a package the desktop is built from (the manifest) — one
+#                             a new package replaces (obsoletes) is no removal
+#                           · take away a library our own builds load (dwl, its own wlroots,
+#                             the C helpers, the file dialog: NEEDS, recorded by setup) that
+#                             nothing in it brings back — unless a rebuild afterwards mends it:
+#                             dwl and the helpers are relinked from source; dwl's own wlroots
+#                             only when the transaction brings wlroots VERSION rebuilt too
+#                         Said, never stopped: a new Python (its minor version), a library a
+#                         release tool loads (repair finds a package for it afterwards).
+#   kawa-dnf-guard post   after it: the names it changed noted (STATE/after-dnf) and
+#                         fedokawaii-after-dnf.service started — the rebuilds it calls for,
+#                         the checks, and a notice with the outcome
+#
+# A run of the toolkit's own (update, repair, setup: they hold STATE/lock) removes on purpose
+# (the manifest's swaps, retired packages) and does its own follow-up: the library check still
+# applies, the rest is the toolkit's. So does the move to a new Fedora at its reboot (the
+# offline transaction, /system-update): Fedora's own retirements are no fault there.
+# Needs bash, jq and rpm — nothing a transaction can take while it runs (they were loaded).
+set -u
+export LC_ALL=C.UTF-8
+STATE=${KAWA_STATE:-/var/lib/fedokawaii}
+OFFLINE=${KAWA_OFFLINE_MARK:-/system-update}
+mode=${1:-}
+[[ $mode == pre || $mode == post ]] || { echo "usage: kawa-dnf-guard pre|post (dnf's actions plugin runs it)" >&2; exit 2; }
+
+# one request to dnf (stdout, kept as fd 3: a $(…) never swallows one), its reply (stdin) —
+# the plugin's JSON protocol, a line each
+exec 3>&1 1>&2
+ask() {   # ask JSON → the reply's "return", as JSON (1: dnf answered with an error)
+  local r
+  printf '%s\n' "$1" >&3
+  IFS= read -r r || return 1
+  jq -ce 'select(.status == "OK") | .return' <<<"$r" 2>/dev/null
+}
+say() { printf 'fedokawaii: %s\n' "$*" >&2; }          # (dnf leaves stderr on your screen)
+stop() {   # stop MESSAGE — the transaction ends here, nothing changed (dnf prints MESSAGE)
+  jq -cn --arg m "$1" '{op: "stop", domain: "", args: {message: $m}}' >&3
+  exit 0
+}
+toolkit_run() { [[ -r $STATE/lock ]] && ! flock -n "$STATE/lock" true 2>/dev/null; }
+
+pk=$(ask '{"op":"get","domain":"trans_packages","args":{"output":["name","arch","version","release","action","direction","location"]}}') \
+  || { say "dnf did not tell this transaction's packages — not checked"; exit 0; }
+# NAME ACTION DIRECTION ARCH VERSION LOCATION, one package a line
+mapfile -t TX < <(jq -r '.[] | [.name, .action, .direction, .arch, .version, (.location // "")] | @tsv' <<<"$pk")
+
+if [[ $mode == post ]]; then
+  ((${#TX[@]})) || exit 0
+  toolkit_run && exit 0                              # (the toolkit's run follows up itself)
+  [[ -d $STATE ]] || exit 0                          # (setup has not run: nothing of ours yet)
+  printf '%s\n' "${TX[@]}" | cut -f1 | sort -u >>"$STATE/after-dnf"
+  # (the move to a new Fedora: its own unit finishes it; this one runs at the next start)
+  [[ -e $OFFLINE ]] && exit 0
+  systemctl start --no-block fedokawaii-after-dnf.service 2>/dev/null \
+    || say "the checks after this transaction could not start — fedokawaii repair runs them"
+  exit 0
+fi
+
+# ── pre ────────────────────────────────────────────────────────────────────────────────
+declare -A IN=() OUT=() GONE=()
+for l in "${TX[@]}"; do
+  IFS=$'\t' read -r n a d _ _ loc <<<"$l"
+  if [[ $d == IN ]]; then IN[$n]+="$loc"$'\n'; else OUT[$n]=1; [[ $a == E ]] && GONE[$n]=1; fi
+done
+# (removed while something of the same name comes in: a reinstall, a swap of arch — no removal)
+for n in "${!GONE[@]}"; do [[ -n ${IN[$n]:-} ]] && unset "GONE[$n]"; done
+
+problems=()
+# 1 · a package of the manifest removed (kernels: dnf keeps installonly_limit of them itself)
+if [[ -s $STATE/manifest ]] && ! toolkit_run && [[ ! -e $OFFLINE ]]; then
+  for n in "${!GONE[@]}"; do
+    [[ $n == kernel* ]] && continue
+    grep -qxF -- "$n" "$STATE/manifest" && problems+=("it removes $n, which the desktop is built from")
+  done
+fi
+
+# 2 · a library our own builds load, gone for good
+#     NEEDS: "wlroots VERSION", then "SONAME PACKAGE ROLE" (ROLE: wlroots · build · tool)
+# (where dnf keeps what it downloaded — asked once, here: never from inside a $(…))
+cachedir=$(ask '{"op":"get","domain":"conf","args":{"key":"cachedir"}}' \
+  | jq -r 'if type == "array" then (.[0] | if type == "object" then .value else . end) elif type == "object" then .value else . end' 2>/dev/null) || cachedir=""
+rpm_of() {   # rpm_of NAME → the downloaded package files of it in this transaction
+  local loc f
+  while IFS= read -r loc; do
+    [[ -n $loc ]] || continue
+    if [[ $loc == /* && -f $loc ]]; then printf '%s\n' "$loc"; continue; fi   # (a file named on the command line)
+    [[ -n $cachedir ]] || continue
+    for f in "$cachedir"/*/packages/"${loc##*/}"; do [[ -f $f ]] && printf '%s\n' "$f"; done
+  done <<<"${IN[$1]:-}"
+}
+provided_by() {   # provided_by CAP NAME… — one of these incoming packages provides CAP
+  local cap=$1 n f files=(); shift
+  for n; do while IFS= read -r f; do [[ -n $f ]] && files+=("$f"); done < <(rpm_of "$n"); done
+  ((${#files[@]})) || return 2                       # (not found on disk: cannot tell)
+  rpm -qp --provides -- "${files[@]}" 2>/dev/null | sed 's/ .*//' | grep -qxF -- "$cap"
+}
+if [[ -s $STATE/needs ]]; then
+  wlr=$(awk '$1 == "wlroots" && NF == 2 { print $2; exit }' "$STATE/needs")
+  wlr_rebuilt=0
+  if [[ -n $wlr ]]; then
+    for n in "${!IN[@]}"; do [[ $n == wlroots* ]] || continue
+      provided_by "libwlroots-$wlr.so()(64bit)" "$n" && { wlr_rebuilt=1; break; }
+    done
+  fi
+  while read -r so p role; do
+    [[ -n ${OUT[$p]:-} && $role =~ ^(wlroots|build|tool)$ ]] || continue
+    cap="$so()(64bit)"
+    # the package itself, coming in again — else any package coming in
+    if [[ -n ${IN[$p]:-} ]]; then provided_by "$cap" "$p"; r=$?; else r=1; fi
+    if ((r == 1)); then provided_by "$cap" "${!IN[@]}"; r=$?; fi
+    ((r == 0)) && continue
+    if ((r == 2)); then say "could not read the new $p to see whether it still has $so — the checks after it will tell"; continue; fi
+    case $role in
+      wlroots) if ((wlr_rebuilt)); then say "$so changes: dwl's own wlroots $wlr is taken again from Fedora's rebuild, and dwl rebuilt, right after"
+               else problems+=("it takes $so (from $p), which dwl's own wlroots $wlr needs, and brings no wlroots $wlr built for its successor — the desktop would not start"); fi ;;
+      build)   say "$so changes: dwl and the desktop's helpers are rebuilt for it right after" ;;
+      tool)    say "$so changes: a release tool loads it — the checks after this transaction find a package for it" ;;
+    esac
+  done < <(awk 'NF == 3' "$STATE/needs")
+fi
+
+# 3 · a new Python: said (what runs on it is checked right after)
+if [[ -n ${IN[python3]:-} ]]; then
+  old=$(rpm -q --qf '%{VERSION}' python3 2>/dev/null) || old=""
+  new=$(printf '%s\n' "${TX[@]}" | awk -F'\t' '$1 == "python3" && $3 == "IN" { print $5; exit }')
+  if [[ $old =~ ^([0-9]+\.[0-9]+) ]] && o=${BASH_REMATCH[1]} && [[ $new =~ ^([0-9]+\.[0-9]+) && ${BASH_REMATCH[1]} != "$o" ]]; then
+    say "Python $o → ${BASH_REMATCH[1]}: the desktop's Python programs are checked against it right after"
+  fi
+fi
+
+((${#problems[@]})) || exit 0
+msg="fedokawaii stopped this transaction — nothing was changed:"
+for l in "${problems[@]}"; do msg+=$'\n'"  · $l"; done
+msg+=$'\n'"Update fedokawaii first (Super+U → update fedokawaii), or leave those packages out for now"
+msg+=$'\n'"(dnf upgrade --exclude=NAME). Why: handbook, \"Updates that cannot break the desktop\"."
+stop "$msg"

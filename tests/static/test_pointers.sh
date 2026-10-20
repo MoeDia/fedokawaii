@@ -32,6 +32,8 @@ NAMES=(
   xterm ibeam watch left_ptr_watch half-busy question_arrow whats_this left_ptr_help cross tcross
   cross_reverse diamond_cross plus fleur size_all crossed_circle forbidden circle openhand
   closedhand dnd-none dnd-no-drop dnd-copy dnd-link dnd-move link zoom_in zoom_out
+  up_arrow center_ptr sb_up_arrow sb_down_arrow sb_left_arrow sb_right_arrow double_arrow sizing
+  pirate icon dotbox target draped_box pencil draft color-picker
   sb_h_double_arrow sb_v_double_arrow h_double_arrow v_double_arrow left_side right_side top_side
   bottom_side size_hor size_ver size_fdiag size_bdiag bd_double_arrow fd_double_arrow
   top_left_corner top_right_corner bottom_left_corner bottom_right_corner split_h split_v
@@ -44,7 +46,8 @@ NAMES=(
   5aca4d189052212118709018842178c0 9141b49c8149039304290b508d208c40 208530c400c041818281048008011002
   03b6e0fcb3499374a867c041f52298f0 028006030e0e7ebffc7f7070c0600140 00008160000006810000408080010102
   c7088f0f3e6c8088236ef8e1e3e70000 fcf1c3c7cd4491d801f1e1c78f100000 14fef782d02440884392942c11205230
-  2870a09082c103050810ffdffffe0204
+  2870a09082c103050810ffdffffe0204 0426c94ea35c87780ff01dc239897213 38c5dff7c7b8962045400281044508d2
+  50585d75b494802d0151028115016902 c07385c7190e701020ff7ffffd08103c 043a9f68147c53184671403ffa811cc5
 )
 
 case_ "both variants: an index.theme each, under its own name, inheriting nothing"
@@ -165,6 +168,22 @@ while IFS= read -r ln; do [[ -n $ln ]] && _no "$ln"; done <<<"$out"
 eq "$out" ""
 
 case_ "the busy pointers are animated (the ensō drawn), the rest still"
+# stepped, not smooth, and small: eight pictures each, a tenth of a second or more apiece, the
+# two busy pointers in the same rhythm
+for v in dark light; do
+  for n in wait progress; do
+    r=$(python3 -I -c '
+import struct, sys
+b = open(sys.argv[1], "rb").read()
+n = struct.unpack_from("<I", b, 12)[0]
+d = [struct.unpack_from("<9I", b, struct.unpack_from("<III", b, 16 + 12 * i)[2])[8] for i in range(n) if struct.unpack_from("<III", b, 16 + 12 * i)[1] == 24]
+print(len(d), min(d), sum(d))' "$ICONS/Sumi-$v/cursors/$n")
+    read -r k lo all <<<"$r"
+    eq "$k" 8 "Sumi-$v/$n: pictures at 24 px"
+    ((lo >= 90)) && _ok || _no "Sumi-$v/$n: a picture held only $lo ms — smooth, not stepped"
+    eq "$all" "$((7 * (760 / 8) + 520))" "Sumi-$v/$n: one loop, in ms"
+  done
+done
 for v in dark light; do
   for n in wait progress; do
     c=$(python3 -I -c 'import struct,sys; b=open(sys.argv[1],"rb").read(); print(struct.unpack_from("<I",b,12)[0])' "$ICONS/Sumi-$v/cursors/$n")

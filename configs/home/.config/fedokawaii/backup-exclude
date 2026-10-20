@@ -20,9 +20,9 @@
 @HOME@/.local/share/Steam/ubuntu12_64
 # GE-Proton: update fetches it
 @HOME@/.local/share/Steam/compatibilitytools.d
-# torrra's Python environment (update makes it), neovim's plugins and language servers (update
+# uv's Pythons and torrra's environment (setup and update make them), neovim's plugins and language servers (update
 # fetches them; ~/.config/nvim/lazy-lock.json, which is backed up, holds their versions)
-@HOME@/.local/share/pipx
+@HOME@/.local/share/uv
 @HOME@/.local/share/nvim/lazy
 @HOME@/.local/share/nvim/mason
 # Prowlarr's container image (update pulls it again); its settings, ~/.config/prowlarr, stay in

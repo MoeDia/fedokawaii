@@ -1,0 +1,630 @@
+#!/usr/bin/env bash
+# kawa-file — Super+D ("File tools" in the launcher): archives and PDFs, everything to do with
+# them, in one menu that offers only what fits what you chose. It works on what you copied
+# (Ctrl+C in yazi) — or, while the clipboard history (Super+V) is open, on the entry under its
+# cursor — or on the files you name (Alt+F in yazi runs it on the selection).
+#
+#   kawa-file                 what is on the clipboard (or Super+V's entry under the cursor)
+#   kawa-file FILE…           those files and folders
+#   kawa-file --choose        what is on the clipboard; nothing there: a file dialog first (the
+#                             launcher's entry, so it never opens empty)
+#   kawa-file --list ARCHIVE  an archive's contents as a text screen (the menu's "list" opens
+#                             it in a window of its own)
+#
+# The menu (kawa-menu, the panel's line format), each part under its kanji:
+#   解 unpack    an archive (zip, 7z, rar, tar.gz/xz/bz2/zst, gz, xz, bz2, zst, iso, cbz/cbr/cb7):
+#                extract here · into a folder named after it · list its contents · test it.
+#                A locked one asks its password (typed hidden, handed to 7z or unrar on stdin)
+#   紙 pages     merge PDFs and pictures into one PDF, in an order you choose · split into
+#                single pages · take some pages ("3-7,10") · rotate · reorder · delete pages
+#   抜 take out  its pictures (pdfimages) · its text (pdftotext) · its pages as PNG, 150 or 300 dpi
+#   変 change    make a scan searchable (tesseract, English and Arabic) · smaller (kawa-shrink's
+#                menu) · lock with a password · unlock (qpdf; the password on stdin)
+#   署 sign      write or draw on it · sign by hand (Xournal++, on a copy) · draw your signature
+#                once (kept in ~/.local/share/fedokawaii/signature.png) · stamp it on a page's
+#                corner · check its digital signatures (pdfsig)
+#   包 pack      anything chosen into .zip (to share), .7z or .tar.zst, zip and 7z with a
+#                password too (AES-256; 7z hides the names as well); then the compression: fast,
+#                balanced, smallest or a level you type — the last one per format remembered
+#                (kawa-state: pack-zip, pack-7z, pack-zst)
+# Tools: 7z (zip, 7z and the rest) · tar with zstd (tarballs) · unrar (RAR: RPM Fusion's; 7-Zip
+# in Fedora reads none) · qpdf · poppler (pdfimages, pdftoppm, pdftotext, pdfinfo, pdfsig) ·
+# ImageMagick · tesseract · Xournal++.
+# Results go beside the source, named for what was done ("report.pages-3-7.pdf",
+# "report-merged.pdf", "report-images/", "report.zip"), never over anything ("report (1).zip");
+# their paths go onto the clipboard and a notice says what came of it — a click opens it.
+# Exit: 0 done, or Esc · 1 nothing to work on, or it failed (a notice says why) · 2 wrong use.
+set -u
+usage() { echo "usage: kawa-file [FILE…] | --choose | --list ARCHIVE (kawa-file --help)" >&2; exit 2; }
+case ${1:-} in
+  -h|--help) sed -n '2,/^set -u/{/^set -u/d;s/^# \{0,1\}//;p}' "$0"; exit 0 ;;
+  --list) (($# == 2)) || usage ;;
+  --choose) (($# == 1)) || usage ;;
+  -*) usage ;;
+esac
+# shellcheck source=/dev/null
+. "$HOME/.config/fedokawaii/icons.sh"
+. "$HOME/.config/fedokawaii/files.sh"   # free_name, clip_put
+. "$HOME/.config/fedokawaii/width.sh"   # cut_cols
+magick() { LC_ALL=C command magick "$@"; }
+work=$(mktemp -d "${XDG_RUNTIME_DIR:-/tmp}/kawa-file.XXXXXX") || exit 1
+trap 'rm -rf "$work"' EXIT
+LOG=$work/log PW="" WHY=""
+export -n PW                            # (a password typed: in no program's environment either)
+SIG=${XDG_DATA_HOME:-$HOME/.local/share}/fedokawaii/signature.png
+
+say()  { notify-send -a desktop -- "$ICON_FILE  $1" "${2:-}"; }
+oops() { notify-send -a desktop -- "$ICON_CROSS  $1" "${2:-}"; exit 1; }
+missing() { notify-send -a desktop -u critical -- "$ICON_CROSS  $1 is missing" "fedokawaii repair puts it back"; exit 1; }
+why() { WHY=$(grep -v '^\s*$' "$LOG" 2>/dev/null | tail -n1); WHY=${WHY:-$1}; }
+human() {   # human BYTES → "912 KB", "4.2 MB"
+  awk -v b="$1" 'BEGIN { if (b < 1000) printf "%d B", b; else if (b < 1000000) printf "%d KB", b / 1000 + 0.5;
+                         else printf "%.1f MB", b / 1000000 }'
+}
+bytes_of() { du -scb -- "$@" 2>/dev/null | tail -n1 | cut -f1; }
+stem() {    # stem PATH — its name without the archive's or the file's ending (a folder: its name)
+  local n=${1##*/} s
+  [[ -d $1 ]] && { printf '%s' "$n"; return; }
+  case ${n,,} in
+    *.tar.gz|*.tar.xz|*.tar.bz2|*.tar.zst) s=${n%.*}; s=${s%.*} ;;
+    ?*.*) s=${n%.*} ;;
+    *) s=$n ;;
+  esac
+  printf '%s' "$s"
+}
+beside() { free_name "${1%/*}/$(stem "$1")$2"; }   # beside SRC TAIL → "DIR/STEM+TAIL", free
+
+# akind FILE → 7z · tar · rar · zst (the tool that opens it), nothing when it is no archive
+akind() {
+  local n=${1,,}
+  case $n in
+    *.tar|*.tar.gz|*.tgz|*.tar.xz|*.txz|*.tar.bz2|*.tbz2|*.tar.zst|*.tzst) echo tar ;;
+    *.rar|*.cbr) if [[ $(head -c 4 -- "$1" 2>/dev/null | tr -d '\0') == 'Rar!' ]]; then echo rar
+                 elif [[ $n == *.cbr ]]; then echo 7z; fi ;;   # (a .cbr is often a zip renamed)
+    *.zst) echo zst ;;
+    *.zip|*.7z|*.gz|*.xz|*.bz2|*.iso|*.cbz|*.cb7) echo 7z ;;
+  esac
+}
+# the archive tools, the password ($PW, when set) on their stdin — never in an argument
+z7()  { if [[ -n $PW ]]; then printf '%s\n' "$PW" | 7z "$@"; else 7z "$@" </dev/null; fi; }
+unrar_pw() {   # unrar_pw COMMAND ARG… — unrar: -p asks on stdin (no terminal: setsid), -p- asks nothing
+  if [[ -n $PW ]]; then printf '%s\n' "$PW" | setsid -w unrar "$1" -p "${@:2}"
+  else unrar "$1" -p- "${@:2}" </dev/null; fi
+}
+locked() {   # locked ARCHIVE KIND — 0 when it needs a password
+  local o
+  case $2 in
+    7z)  o=$(7z l -slt -p- -- "$1" 2>&1 </dev/null); grep -qE '^Encrypted = \+|Wrong password|encrypted archive' <<<"$o" ;;
+    rar) o=$(unrar lt -p- -- "$1" 2>&1 </dev/null) || return 0; grep -qE '^ *Flags:.*encrypted' <<<"$o" ;;
+    *)   return 1 ;;
+  esac
+}
+password() {   # password PROMPT → typed hidden (as the drives' passphrase); Esc or nothing: 1
+  local p
+  p=$(fuzzel --dmenu --prompt-only="$ICON_LOCK  $1  " --password --width 50 --cache=/dev/null </dev/null) || return 1
+  [[ -n $p ]] || return 1
+  printf '%s' "$p"
+}
+new_password() {   # new_password → PW, typed twice
+  PW=$(password "password") || exit 0
+  [[ $(password "the same again") == "$PW" ]] || oops "the passwords differ" "nothing was made: type the same one twice"
+}
+
+# entries ARCHIVE KIND → "d|f<TAB>bytes<TAB>path" a line ($PW: its password)
+entries() {
+  case $2 in
+    7z)  z7 l -ba -slt -- "$1" 2>/dev/null | awk -F' = ' '
+           function out() { if (p != "") print (d ? "d" : "f") "\t" s "\t" p; p = ""; s = ""; d = 0 }
+           /^Path = / { out(); p = substr($0, 8) } /^Size = / { s = $2 }
+           /^Folder = \+/ || /^Attributes = D/ { d = 1 } END { out() }' ;;
+    tar) tar -tvf "$1" --quoting-style=literal 2>/dev/null |
+           sed -E 's/^(.)[^ ]* +[^ ]+ +([0-9]+) +[^ ]+ +[^ ]+ (.*)$/\1\t\2\t\3/; s/^d/d/; s/^[^d]\t/f\t/; s:/$::' ;;
+    rar) unrar_pw lt -- "$1" 2>/dev/null | awk '
+           function out() { if (p != "") print (d ? "d" : "f") "\t" s "\t" p; p = ""; s = ""; d = 0 }
+           /^ *Name: / { out(); sub(/^ *Name: /, ""); p = $0 } /^ *Size: / { s = $2 }
+           /^ *Type: Directory/ { d = 1 } END { out() }' ;;
+    zst) printf 'f\t\t%s\n' "$(stem "$1")" ;;
+  esac
+}
+
+# ── the contents screen (docs/design-system.md §7), in a window of its own ──────────────
+if [[ ${1:-} == --list ]]; then
+  . "$HOME/.config/fedokawaii/screen.sh"
+  f=$(realpath -- "$2" 2>/dev/null) && k=$(akind "$f") && [[ -n $k ]] || { echo "kawa-file: $2 is no archive" >&2; exit 1; }
+  W=$(screen_width) || { echo "kawa-file: no terminal to draw in" >&2; exit 1; }
+  name=$(cut_cols "${f##*/}" $((W - 16)))
+  if locked "$f" "$k"; then
+    printf '\e[H\e[2J\n  %s\n\n    %s%s%s\n\n    %s%s%s  ' "$(screen_heading 目 "$name" "$W")" \
+      "$INK_MUTED" "its password, to see its contents (hidden as you type)" "$INK_OFF" "$INK_KANJI" "$ICON_CHEVRON_RIGHT" "$INK_OFF" >/dev/tty
+    IFS= read -rs PW </dev/tty || exit 0
+    [[ -n $PW ]] || exit 0
+  fi
+  rows=$(entries "$f" "$k" | LC_ALL=C sort -t$'\t' -k3,3 | while IFS=$'\t' read -r t s p; do
+    [[ -n $p ]] || continue
+    n=${p##*/} d=${p//[!\/]/}; ind=$(printf '%*s' $((2 * ${#d})) '')
+    n=$(cut_cols "$n" $((W - 18 - ${#ind})))
+    if [[ $t == d ]]; then printf '%s\t%s\n' "$p" "$(screen_row "$ICON_FOLDER" "$ind$n/" "" "$W")"
+    else printf '%s\t%s\n' "$p" "$(screen_row "$ICON_FILE" "$ind$n" "${s:+$(human "$s")}" "$W")"; fi
+  done)
+  [[ -n $rows ]] || rows=$'-\t'"$(screen_row "$ICON_CROSS" "nothing to show: a wrong password, or it is damaged" "" "$W")"
+  export FZF_DEFAULT_OPTS_FILE=$HOME/.config/fedokawaii/fzf.opts; unset FZF_DEFAULT_OPTS
+  fzf --ansi --no-sort --height=100% --delimiter=$'\t' --with-nth=2 --ghost="type to filter" \
+    --header="$(screen_heading 目 "$name" "$W"; printf '\n ')" \
+    --footer=$'\n'"$(screen_footer 'type to filter' 'esc close')" <<<"$rows" >/dev/null
+  exit 0
+fi
+
+# ── what to work on ─────────────────────────────────────────────────────────────────────
+items=() hint="copy files first (Ctrl+C in yazi), or select them in yazi and press Alt+F"
+uris() {    # the files and folders a text/uri-list on stdin names (file:// links), those there
+  local u
+  while IFS= read -r u || [[ -n $u ]]; do
+    u=${u%$'\r'}; [[ $u == file://* ]] || continue
+    u=${u#file://}; [[ $u == /* ]] || u=/${u#*/}
+    printf -v u '%b' "${u//%/\\x}"; [[ -e $u ]] && items+=("${u%/}")
+  done
+}
+if [[ ${1:-} != --choose ]] && (($#)); then
+  for f; do [[ -e $f ]] && items+=("$(realpath -- "$f")"); done
+elif [[ ${1:-} != --choose ]] && id=$(kawa-clip --held 2>/dev/null); then
+  hint="the entry under the cursor in the clipboard history is not files"
+  e=$work/entry
+  [[ $id =~ ^[0-9]+$ ]] && printf '%s\t\n' "$id" | cliphist decode >"$e" 2>/dev/null && [[ -s $e ]] \
+    && [[ $(file -b --mime-type -- "$e") == text/* ]] && uris <"$e"
+elif wl-paste --list-types 2>/dev/null | grep -qx text/uri-list; then
+  uris < <(wl-paste --no-newline --type text/uri-list)
+fi
+if [[ ${1:-} == --choose ]] && ((${#items[@]} == 0)); then
+  : >"$work/picked"
+  kawa-pick 1 0 0 "$HOME/" "$work/picked" || exit 0
+  while IFS= read -r f; do [[ -e $f ]] && items+=("$f"); done <"$work/picked"
+  ((${#items[@]})) || exit 0
+fi
+((${#items[@]})) || { say "nothing to work on" "$hint"; exit 1; }
+
+arcs=() akinds=() pdfs=() shut=() pics=() merge=() nf=0 nd=0
+for f in "${items[@]}"; do
+  if [[ -d $f ]]; then nd=$((nd + 1)); continue; fi
+  k=$(akind "$f")
+  if [[ -n $k ]]; then arcs+=("$f"); akinds+=("$k"); continue; fi
+  case $(file -b --mime-type -- "$f" 2>/dev/null) in
+    application/pdf)
+      if qpdf --requires-password "$f" >/dev/null 2>&1; then shut+=("$f"); else pdfs+=("$f"); merge+=("$f"); fi ;;
+    image/png|image/jpeg|image/webp|image/gif|image/bmp|image/tiff) pics+=("$f"); merge+=("$f") ;;
+    *) nf=$((nf + 1)) ;;
+  esac
+done
+for k in "${akinds[@]}"; do [[ $k == rar ]] && ! command -v unrar >/dev/null && missing unrar; done
+plural() { (($1)) && printf '%s%d %s%s' "${3:+, }" "$1" "$2" "$( (($1 != 1)) && echo s)"; }
+what=$(plural ${#arcs[@]} archive; plural $((${#pdfs[@]} + ${#shut[@]})) PDF x; plural ${#pics[@]} picture x
+       plural "$nd" folder x; plural "$nf" file x)
+what="${what#, } · $(human "$(bytes_of "${items[@]}")")"
+
+# ── the menu ────────────────────────────────────────────────────────────────────────────
+rows=() acts=() first=1
+line() { local IFS=$'\t'; rows+=("$*"); }
+row() { local a=$1; shift; line row "$@"; acts+=("$a"); }
+part() { if ((first)); then line part "$1" "$2" "$what"; first=0; else line part "$1" "$2"; fi; acts+=(-); }
+na=${#arcs[@]} np=${#pdfs[@]}
+if ((na)); then
+  pw=""; for i in "${!arcs[@]}"; do locked "${arcs[i]}" "${akinds[i]}" && pw=" · asks its password"; done
+  part 解 unpack
+  row x-here "$ICON_FOLDER" "extract here" "beside it$pw"
+  row x-dir  "$ICON_FOLDER" "extract into a folder" "$( ((na == 1)) && echo "$(stem "${arcs[0]}")/" || echo "a folder each")$pw"
+  ((na == 1)) && row list "$ICON_ARCHIVE" "list its contents" "a window, type to filter"
+  row test   "$ICON_CHECK" "test it" "is every file whole"
+fi
+if ((${#merge[@]} + np)); then
+  part 紙 pages
+  if ((${#merge[@]} > 1)); then row merge "$ICON_BOOK" "merge into one PDF" "${#merge[@]} files, in an order you choose"
+  elif ((${#pics[@]})); then row merge "$ICON_BOOK" "make it a PDF" "a page a picture"; fi
+  if ((np)); then
+    row split  "$ICON_BOOK" "split into pages" "a PDF a page, in a folder"
+    ((np == 1)) && row range "$ICON_BOOK" "take some pages" "type them: 3-7,10"
+    row rotate "$ICON_BOOK" "rotate pages" "right, left or upside down"
+    if ((np == 1)); then
+      row order  "$ICON_BOOK" "reorder pages" "type the new order"
+      row delete "$ICON_BOOK" "delete pages" "type which"
+    fi
+  fi
+fi
+if ((np)); then
+  part 抜 "take out"
+  row images "$ICON_PICTURE" "its pictures" "PNG, as they are in it"
+  row text   "$ICON_NOTE" "its text" ".txt"
+  row png150 "$ICON_PICTURE" "pages as pictures" "PNG · 150 dpi"
+  row png300 "$ICON_PICTURE" "pages as pictures" "PNG · 300 dpi, to print"
+fi
+if ((np + ${#shut[@]})); then
+  part 変 change
+  if ((np)); then
+    row ocr    "$ICON_BOOK" "make it searchable" "reads a scan: English, Arabic"
+    row shrink "$ICON_BOOK" "make it smaller" "Super+Z's sizes"
+    row lock   "$ICON_LOCK" "lock with a password" "AES-256"
+  fi
+  ((${#shut[@]})) && row unlock "$ICON_LOCK" "unlock" "its password, once"
+  part 署 sign
+  if ((np == 1)); then
+    row annotate "$ICON_NOTE" "write or draw on it" "Xournal++, on a copy"
+    row hand     "$ICON_NOTE" "sign by hand" "Xournal++, anywhere on it"
+    [[ -s $SIG ]] && row stamp "$ICON_NOTE" "stamp your signature" "a page and a corner"
+    row drawsig  "$ICON_NOTE" "draw your signature" "$([[ -s $SIG ]] && echo "again, to replace it" || echo "once, kept for stamping")"
+  fi
+  row verify "$ICON_CHECK" "check its signatures" "digital ones"
+fi
+part 包 pack
+row zip    "$ICON_ARCHIVE" zip "to share: opens anywhere"
+row zip-pw "$ICON_ARCHIVE" "zip · with a password" "AES-256"
+row 7z     "$ICON_ARCHIVE" 7z "smaller"
+row 7z-pw  "$ICON_ARCHIVE" "7z · with a password" "AES-256, the names hidden too"
+row zst    "$ICON_ARCHIVE" tar.zst "keeps Linux permissions"
+i=$(printf '%s\n' "${rows[@]}" | kawa-menu --index --select 1) || exit 0
+[[ $i =~ ^[0-9]+$ && -n ${acts[i]:-} && ${acts[i]} != - ]] || exit 0
+act=${acts[i]}
+
+# finish ICON TITLE OPEN PATH… — the notice: the first result (and how many more), every path
+# on the clipboard, a click opens OPEN (a folder, or the file)
+finish() {
+  local ICON=$1 title=$2 open=$3 body on act; shift 3
+  local IFS=$'\n'
+  body=${1/#"$HOME"/\~}; on=" · its path copied"
+  (($# > 1)) && body+=" and $(($# - 1)) more" on=" · their paths copied"
+  printf '%s' "$*" | clip_put 'text/plain;charset=utf-8' 2>/dev/null || on=""
+  act=$(notify-send -a desktop -A default=open -- "$ICON  $title" "$body$on" 2>/dev/null) || return 0
+  [[ $act == default ]] && setsid -f xdg-open "$open" >/dev/null 2>&1 </dev/null
+  return 0
+}
+# ask KANJI NAME PROMPT TITLE [ROW…] → a row picked (its name), or the words typed
+ask() {
+  local k=$1 n=$2 p=$3 t=$4 r; shift 4
+  { printf 'part\t%s\t%s\n' "$k" "$n"; for r; do printf 'row\t%s\t%s\n' "$ICON_SLIDERS" "$r"; done; } |
+    kawa-menu --prompt "$p" --title "$t"
+}
+# plist WORDS N [any] → LIST: the pages typed ("3-7,10"; spaces as commas), each 1…N, a range
+# low to high (any: high to low too); else WHY
+plist() {
+  local l a b p
+  l=$(sed -E 's/ *- */-/g; s/ *, */,/g; s/ +/,/g; s/^,+|,+$//g' <<<"$1")
+  [[ $l =~ ^[0-9]+(-[0-9]+)?(,[0-9]+(-[0-9]+)?)*$ ]] || { WHY="not a page list: \"$1\" — say it as 3-7,10"; return 1; }
+  IFS=, read -ra P <<<"$l"
+  for p in "${P[@]}"; do
+    a=$((10#${p%-*})) b=$((10#${p#*-}))
+    ((a >= 1 && b >= 1)) || { WHY="pages count from 1"; return 1; }
+    ((a <= $2 && b <= $2)) || { WHY="page $((a > b ? a : b)) is past the end: it has $2 pages"; return 1; }
+    ((a <= b)) || [[ ${3:-} == any ]] || { WHY="$p runs backwards: say $b-$a"; return 1; }
+  done
+  LIST=$l
+}
+npages() { qpdf --show-npages "$1" 2>/dev/null; }
+
+# ── archives ────────────────────────────────────────────────────────────────────────────
+unpack_one() {   # unpack_one ARCHIVE KIND INTO — its contents into the folder INTO; else WHY
+  case $2 in
+    7z)  z7 x -y -bso0 -bsp0 -o"$3" -- "$1" >"$LOG" 2>&1 ;;
+    tar) tar -xf "$1" -C "$3" --no-same-owner >"$LOG" 2>&1 ;;
+    rar) unrar_pw x -idq -o- -- "$1" "$3/" >"$LOG" 2>&1 ;;
+    zst) zstd -dq -o "$3/$(stem "$1")" -- "$1" >"$LOG" 2>&1 ;;
+  esac || { why "it could not be read"; grep -qiE 'password' "$LOG" && WHY="wrong password"; return 1; }
+}
+ask_pw() {   # ask_pw ARCHIVE KIND → PW (empty: none needed)
+  PW=""
+  locked "$1" "$2" || return 0
+  PW=$(password "$(cut_cols "${1##*/}" 24) · password") || exit 0
+}
+unpack() {   # unpack here|dir
+  local f k d tmp e top out=() n
+  for i in "${!arcs[@]}"; do
+    f=${arcs[i]} k=${akinds[i]} d=${f%/*}
+    ask_pw "$f" "$k"
+    tmp=$(mktemp -d "$d/.kawa-file.XXXXXX") || oops "cannot write in ${d/#"$HOME"/\~}"
+    if ! unpack_one "$f" "$k" "$tmp"; then rm -rf "$tmp"; oops "${f##*/} did not open" "$WHY"; fi
+    shopt -s dotglob nullglob; top=("$tmp"/*); shopt -u dotglob nullglob
+    ((${#top[@]})) || { rm -rf "$tmp"; oops "${f##*/} is empty"; }
+    if [[ $1 == here ]]; then
+      for e in "${top[@]}"; do n=$(free_name "$d/${e##*/}"); mv -- "$e" "$n" && out+=("$n"); done
+      rmdir "$tmp"
+    elif ((${#top[@]} == 1)) && [[ -d ${top[0]} ]]; then   # (a folder in it already: that one, named after it)
+      n=$(free_name "$d/$(stem "$f")"); mv -- "${top[0]}" "$n" && out+=("$n"); rmdir "$tmp"
+    else
+      n=$(free_name "$d/$(stem "$f")"); mv -- "$tmp" "$n" && out+=("$n")
+    fi
+  done
+  if [[ $1 == here ]]; then finish "$ICON_FOLDER" "extracted" "${out[0]%/*}" "${out[@]}"
+  else finish "$ICON_FOLDER" "extracted into a folder" "${out[0]}" "${out[@]}"; fi
+}
+test_arcs() {
+  local f k bad=0 ok=0 n
+  for i in "${!arcs[@]}"; do
+    f=${arcs[i]} k=${akinds[i]}
+    ask_pw "$f" "$k"
+    case $k in
+      7z)  z7 t -bso0 -bsp0 -- "$f" ;;
+      tar) tar -tf "$f" >/dev/null ;;
+      rar) unrar_pw t -idq -- "$f" ;;
+      zst) zstd -tq -- "$f" ;;
+    esac >"$LOG" 2>&1 && { ok=$((ok + 1)); continue; }
+    bad=$((bad + 1)); why "damaged"; grep -qiE 'password' "$LOG" && WHY="wrong password"
+    notify-send -a desktop -- "$ICON_CROSS  not whole" "${f##*/}: $WHY"
+  done
+  ((bad)) && exit 1
+  n=$(entries "${arcs[0]}" "${akinds[0]}" | grep -c '^f')
+  notify-send -a desktop -- "$ICON_CHECK  whole" "$( ((ok == 1)) && echo "${arcs[0]##*/} · $n files, every one as it was packed" || echo "$ok archives, every file as it was packed")"
+}
+
+# level FORMAT → L (the level) and EXTRA (7z: solid; zstd: --long), the choice remembered
+level() {
+  local fmt=$1 key=pack-$1 last lo=0 hi=9 sel=2 i c s
+  local names=(fast balanced smallest) det=("quick · larger" "in between" "slow · smallest") val
+  [[ $fmt == zst ]] && lo=1 hi=19
+  case $fmt in zst) val=("level 3" "level 10" "level 19 · long") ;; 7z) val=(mx1 mx5 "mx9 · solid") ;; *) val=(mx1 mx5 mx9) ;; esac
+  last=$(kawa-state get "$key" 2>/dev/null) || last=balanced
+  for i in 0 1 2; do [[ $last == "${names[i]}" ]] && sel=$((i + 1)); done
+  [[ $last =~ ^[0-9]+$ ]] && ((last >= lo && last <= hi)) && sel=4
+  i=$({ printf 'part\t圧\tcompression\t%s\n' ".${fmt/zst/tar.zst}"
+        for c in 0 1 2; do printf 'row\t%s\t%s\t%s\t%s\n' "$ICON_SLIDERS" "${names[c]}" "${det[c]}" "${val[c]}"; done
+        printf 'row\t%s\t%s\t%s\t%s\n' "$ICON_SLIDERS" "a level of your own" "type $lo to $hi" "$( ((sel == 4)) && echo "level $last")"; } |
+      kawa-menu --index --select "$sel") || exit 0
+  case $i in
+    1) c=fast ;; 2) c=balanced ;; 3) c=smallest ;;
+    4) s=$(ask 圧 "a level of your own" "level " "type a level, $lo (fastest) to $hi (smallest)") || exit 0
+       s=${s// /}
+       [[ $s =~ ^[0-9]{1,2}$ ]] && ((10#$s >= lo && 10#$s <= hi)) || oops "not a level: $s" ".${fmt/zst/tar.zst} takes $lo to $hi"
+       c=$((10#$s)) ;;
+    *) exit 0 ;;
+  esac
+  kawa-state set "$key" "$c" >/dev/null 2>&1
+  EXTRA=()
+  case $fmt:$c in
+    zst:fast) L=3 ;; zst:balanced) L=10 ;; zst:smallest) L=19 EXTRA=(--long) ;;
+    7z:smallest) L=9 EXTRA=(-ms=on) ;;
+    *:fast) L=1 ;; *:balanced) L=5 ;; *:smallest) L=9 ;;
+    *) L=$c ;;
+  esac
+}
+pack() {   # pack zip|7z|zst [pw]
+  local fmt=$1 ext=$1 d name out before after t a
+  level "$fmt"
+  [[ ${2:-} == pw ]] && new_password
+  d=${items[0]%/*}
+  if ((${#items[@]} == 1)); then name=$(stem "${items[0]}"); else name=${d##*/}; [[ -n $name ]] || name=files; fi
+  [[ $fmt == zst ]] && ext=tar.zst
+  out=$(free_name "$d/$name.$ext")
+  before=$(bytes_of "${items[@]}")
+  case $fmt in
+    zip|7z) a=(a "-t$fmt" "-mx$L" "${EXTRA[@]}" -bso0 -bsp0)
+            if [[ -n $PW ]]; then
+              if [[ $fmt == zip ]]; then a+=(-p -mem=AES256); else a+=(-p -mhe=on); fi
+              printf '%s\n%s\n' "$PW" "$PW" | 7z "${a[@]}" -- "$out" "${items[@]}" >"$LOG" 2>&1
+            else 7z "${a[@]}" -- "$out" "${items[@]}" </dev/null >"$LOG" 2>&1; fi ;;
+    zst)    t=(); for a in "${items[@]}"; do t+=(-C "${a%/*}" "./${a##*/}"); done
+            tar -I "zstd -T0 -$L ${EXTRA[*]}" -cf "$out" "${t[@]}" >"$LOG" 2>&1 ;;
+  esac || { why "it could not be packed"; rm -f -- "$out"; oops "not packed" "$WHY"; }
+  after=$(bytes_of "$out")
+  finish "$ICON_ARCHIVE" "$(human "$before") → $(human "$after") · $(( (after * 100 + before / 2) / (before > 0 ? before : 1) )) %" "$d" "$out"
+}
+
+# ── PDFs ────────────────────────────────────────────────────────────────────────────────
+topdf() {   # topdf PICTURE OUT — a page of it, sized as A4 is at its longer side
+  local dpi
+  dpi=$(magick "${1}[0]" -auto-orient -format '%[fx:max(w,h)/11.69]' info: 2>/dev/null) || return 1
+  magick "${1}[0]" -auto-orient -units PixelsPerInch -density "$dpi" "$2" 2>>"$LOG"
+}
+merge_pdfs() {
+  local src=("${merge[@]}") i s pages=() n out k
+  if ((${#src[@]} > 1)); then
+    k=$({ printf 'part\t序\torder\n'
+          printf 'row\t%s\tas chosen\tfirst: %s\n' "$ICON_FILE" "$(cut_cols "${src[0]##*/}" 32)"
+          printf 'row\t%s\tby name\tA to Z, 2 before 10\n' "$ICON_FILE"
+          printf 'row\t%s\tan order of your own\ttype it: 3 1 2\n' "$ICON_SLIDERS"; } | kawa-menu --index --select 1) || exit 0
+    case $k in
+      2) mapfile -t src < <(for i in "${src[@]}"; do printf '%s\t%s\n' "${i##*/}" "$i"; done | LC_ALL=C sort -V | cut -f2-) ;;
+      3) s=$({ printf 'part\t序\tan order of your own\n'
+               for i in "${!src[@]}"; do printf 'note\t%d  %s\n' $((i + 1)) "$(cut_cols "${src[i]##*/}" 40)"; done; } |
+             kawa-menu --prompt "order " --title "the numbers, in the order you want them") || exit 0
+         n=() ; local seen=" "
+         for i in ${s//[,;]/ }; do
+           [[ $i =~ ^[0-9]+$ ]] && ((10#$i >= 1 && 10#$i <= ${#src[@]})) || oops "not an order: $s" "say it as 3 1 2 — each number 1 to ${#src[@]}"
+           [[ $seen == *" $((10#$i)) "* ]] && oops "not an order: $s" "$((10#$i)) is there twice"
+           seen+="$((10#$i)) "; n+=("${src[10#$i - 1]}")
+         done
+         ((${#n[@]})) || oops "not an order: $s" "say it as 3 1 2"
+         src=("${n[@]}") ;;
+      1) ;; *) exit 0 ;;
+    esac
+  fi
+  for i in "${!src[@]}"; do
+    if [[ $(file -b --mime-type -- "${src[i]}") == application/pdf ]]; then pages+=("${src[i]}")
+    else topdf "${src[i]}" "$work/p$i.pdf" || oops "${src[i]##*/} could not be read"; pages+=("$work/p$i.pdf"); fi
+  done
+  if ((${#src[@]} == 1)); then out=$(beside "${src[0]}" .pdf); else out=$(beside "${src[0]}" -merged.pdf); fi
+  qpdf --empty --pages "${pages[@]}" -- "$out" >"$LOG" 2>&1 || { why "it could not be made"; rm -f -- "$out"; oops "not merged" "$WHY"; }
+  finish "$ICON_BOOK" "$( ((${#src[@]} == 1)) && echo "a PDF of it" || echo "${#src[@]} merged") · $(npages "$out") pages" "$out" "$out"
+}
+one() { F=${pdfs[0]}; N=$(npages "$F") || oops "${F##*/} could not be read"; }
+pages_typed() {   # pages_typed KANJI NAME TITLE [any] → LIST, typed and checked against $N
+  local s
+  s=$(ask "$1" "$2" "pages " "$3") || exit 0
+  plist "$s" "$N" "${4:-}" || oops "${F##*/}: no pages taken" "$WHY"
+}
+qpdf_to() {   # qpdf_to OUT ARG… — qpdf … OUT; a failure said
+  local out=$1; shift
+  qpdf "$@" "$out" >"$LOG" 2>&1 || [[ $? == 3 && -s $out ]] || { why "qpdf could not"; rm -f -- "$out"; oops "not done" "$WHY"; }
+}
+pdf_each() {   # pdf_each ACTION — ACTION on every PDF: the results, the notice
+  local f out=() o
+  for f in "${pdfs[@]}"; do o=$("$1" "$f") || exit 1; out+=("$o"); done
+  finish "$ICON_BOOK" "$TITLE" "${out[0]}" "${out[@]}"
+}
+do_split()  { local d; d=$(beside "$1" -pages); mkdir -p "$d"; qpdf_to "$d/$(stem "$1")-%d.pdf" --split-pages "$1"; printf '%s' "$d"; }
+do_images() {
+  local d; d=$(beside "$1" -images); mkdir -p "$d"
+  pdfimages -png "$1" "$d/$(stem "$1")" 2>"$LOG"
+  [[ -n $(ls -A "$d") ]] || { rmdir "$d"; oops "no pictures in ${1##*/}" "its pages are words and lines only"; }
+  printf '%s' "$d"
+}
+do_text() {
+  local o; o=$(beside "$1" .txt)
+  pdftotext -layout "$1" "$o" 2>"$LOG" || oops "${1##*/} could not be read"
+  [[ -n $(tr -d '[:space:]\f' <"$o") ]] || { rm -f -- "$o"; oops "no text in ${1##*/}" "a scan: make it searchable first (the same menu)"; }
+  printf '%s' "$o"
+}
+do_png() {
+  local d; d=$(beside "$1" "-${DPI}dpi"); mkdir -p "$d"
+  pdftoppm -png -r "$DPI" "$1" "$d/$(stem "$1")" 2>"$LOG" || { rm -rf "$d"; oops "${1##*/} could not be drawn"; }
+  printf '%s' "$d"
+}
+do_rotate() { local o; o=$(beside "$1" .rotated.pdf); qpdf_to "$o" "$1" "--rotate=$ANGLE:$PAGES"; printf '%s' "$o"; }
+do_lock() {
+  local o; o=$(beside "$1" .locked.pdf)
+  printf '%s\n' --encrypt "--user-password=$PW" "--owner-password=$PW" --bits=256 -- "$1" "$o" | qpdf @- >"$LOG" 2>&1 \
+    || { why "qpdf could not"; rm -f -- "$o"; oops "not locked" "$WHY"; }
+  printf '%s' "$o"
+}
+do_ocr() {
+  local o d p n
+  d=$work/ocr; rm -rf "$d"; mkdir -p "$d"
+  n=$(npages "$1"); say "reading ${1##*/}" "$n pages: a few seconds each"
+  pdftoppm -r 300 -jpeg -jpegopt quality=85 "$1" "$d/p" 2>"$LOG" || oops "${1##*/} could not be drawn"
+  for p in "$d"/p-*.jpg; do
+    tesseract "$p" "${p%.jpg}" -l eng+ara --dpi 300 pdf >/dev/null 2>>"$LOG" || oops "tesseract could not read ${p##*/}"
+  done
+  o=$(beside "$1" .searchable.pdf)
+  qpdf_to "$o" --empty --pages "$d"/p-*.pdf --
+  printf '%s' "$o"
+}
+verify() {
+  local f o n v who cert
+  for f in "${shut[@]}"; do notify-send -a desktop -- "$ICON_LOCK  locked" "${f##*/}: unlock it first, then check it"; done
+  for f in "${pdfs[@]}"; do
+    o=$(pdfsig "$f" 2>&1)
+    if grep -q 'does not contain any signatures' <<<"$o"; then
+      notify-send -a desktop -- "$ICON_FILE  no digital signature" "${f##*/}"; continue
+    fi
+    n=$(grep -c '^Signature #' <<<"$o"); v=$(grep -c 'Signature Validation: Signature is Valid' <<<"$o")
+    who=$(sed -n 's/^ *- Signer Certificate Common Name: //p' <<<"$o" | sort -u | paste -sd, - | sed 's/,/, /g')
+    cert=$(sed -n 's/^ *- Certificate Validation: //p' <<<"$o" | head -n1)
+    if ((n > 0 && n == v)); then
+      notify-send -a desktop -- "$ICON_CHECK  signed · unchanged since" "${f##*/} · $n signature$( ((n > 1)) && echo s) by ${who:-someone unnamed} · certificate: ${cert:-not checked}"
+    else
+      notify-send -a desktop -- "$ICON_CROSS  a signature does not hold" "${f##*/} · $v of $n valid: $(grep -m1 'Signature Validation' <<<"$o" | sed 's/^ *- //')"
+    fi
+  done
+}
+
+# ── Xournal++: on a copy, then the PDF made from it ─────────────────────────────────────
+need_xpp() { command -v xournalpp >/dev/null || missing Xournal++; }
+xpp_edit() {   # xpp_edit DOC.xopp WHAT — Xournal++ on it until its window closes; 1 when nothing was saved
+  cp -- "$1" "$1.0"
+  notify-send -a desktop -- "$ICON_NOTE  $2 in Xournal++" "Ctrl+S, then close its window"
+  xournalpp -- "$1" >/dev/null 2>&1 </dev/null
+  ! cmp -s -- "$1" "$1.0"
+}
+annotate() {   # annotate TAIL WHAT
+  local x=$work/edit.xopp out
+  need_xpp; one
+  xournalpp --save="$x" -- "$F" >"$LOG" 2>&1 && [[ -s $x ]] || { why "it could not be opened"; oops "Xournal++ could not open ${F##*/}" "$WHY"; }
+  xpp_edit "$x" "$2" || { say "nothing saved" "no PDF made: save (Ctrl+S) before closing"; exit 0; }
+  out=$(beside "$F" "$1")
+  xournalpp --create-pdf="$out" -- "$x" >"$LOG" 2>&1 && [[ -s $out ]] || { why "it could not be made"; rm -f -- "$out"; oops "no PDF made" "$WHY"; }
+  finish "$ICON_NOTE" "$2 · saved as a new PDF" "$out" "$out"
+}
+draw_signature() {
+  local x=$work/signature.xopp w h
+  need_xpp
+  # a page of 400 × 150 points, plain: Xournal++'s own format (gzipped XML, as kawa-sketch writes it)
+  printf '%s\n' '<?xml version="1.0" standalone="no"?>' '<xournal creator="fedokawaii kawa-file" fileversion="4">' \
+    '<title>Xournal++ document - see https://xournalpp.github.io/</title>' \
+    '<page width="400.00" height="150.00"><background type="solid" color="#ffffffff" style="plain"/><layer/></page>' \
+    '</xournal>' | python3 -I -c 'import gzip, sys; gzip.GzipFile(sys.argv[1], "wb", mtime=0).write(sys.stdin.buffer.read())' "$x" \
+    || oops "no page to sign on" "the runtime folder could not be written"
+  xpp_edit "$x" "sign on the page" || { say "nothing saved" "no signature kept: save (Ctrl+S) before closing"; exit 0; }
+  # (one page: Xournal++ names the picture as asked; without its paper, the ink alone on transparency)
+  xournalpp --create-img="$work/sig.png" --export-range=1 --export-no-background --export-no-ruling \
+    --export-png-dpi=300 -- "$x" >"$LOG" 2>&1 || oops "the signature could not be exported"
+  magick "$work/sig.png" -trim +repage "$work/sig-trim.png" 2>>"$LOG" || oops "the signature could not be read"
+  read -r w h < <(magick "$work/sig-trim.png" -format '%w %h' info:)
+  ((w >= 8 && h >= 8)) || oops "no signature on the page" "draw it, then Ctrl+S"
+  mkdir -p "${SIG%/*}" && mv -f -- "$work/sig-trim.png" "$SIG" || oops "the signature could not be kept"
+  notify-send -a desktop -- "$ICON_CHECK  signature kept" "${SIG/#"$HOME"/\~} · Super+D on a PDF → stamp your signature"
+}
+stamp() {
+  local p c g s W H Wp Hp sw sh m out corners=("" "bottom right" "bottom left" "top right" "top left")
+  one
+  s=$(ask 頁 page "page " "the page to sign: its number, or pick" "last page" "first page") || exit 0
+  case $s in "last page") p=$N ;; "first page") p=1 ;;
+    *) [[ ${s// /} =~ ^[0-9]+$ ]] && ((10#${s// /} >= 1 && 10#${s// /} <= N)) || oops "no page \"$s\"" "${F##*/} has pages 1 to $N"
+       p=$((10#${s// /})) ;;
+  esac
+  c=$({ printf 'part\t隅\tcorner\n'
+        for s in "${corners[@]:1}"; do printf 'row\t%s\t%s\n' "$ICON_NOTE" "$s"; done; } |
+      kawa-menu --index --select 1) || exit 0
+  case $c in 1) g=southeast ;; 2) g=southwest ;; 3) g=northeast ;; 4) g=northwest ;; *) exit 0 ;; esac
+  read -r W H < <(pdfinfo -f "$p" -l "$p" "$F" 2>/dev/null | awk '/^Page +[0-9]+ size:/ { print $4, $6; exit }')
+  [[ $W =~ ^[0-9.]+$ && $H =~ ^[0-9.]+$ ]] || oops "${F##*/}: page $p could not be measured"
+  # the stamp: a transparent page of the same size at 300 dpi, the signature a fifth of its
+  # width (at most a sixth of its height) half an inch from the corner; laid over that page alone
+  Wp=$(awk -v v="$W" 'BEGIN { printf "%d", v * 300 / 72 + 0.5 }') Hp=$(awk -v v="$H" 'BEGIN { printf "%d", v * 300 / 72 + 0.5 }')
+  sw=$((Wp / 5)) sh=$((Hp / 6)) m=150
+  magick -size "${Wp}x$Hp" xc:none \( "$SIG" -resize "${sw}x$sh" \) -gravity "$g" -geometry "+$m+$m" -composite \
+    -units PixelsPerInch -density 300 "$work/stamp.pdf" 2>>"$LOG" || oops "the stamp could not be made"
+  out=$(beside "$F" .signed.pdf)
+  qpdf_to "$out" "$F" --overlay "$work/stamp.pdf" "--to=$p" --from=1 --
+  finish "$ICON_NOTE" "signed · page $p, ${corners[c]}" "$out" "$out"
+}
+
+# ── the work ────────────────────────────────────────────────────────────────────────────
+case $act in
+  x-here) unpack here ;;
+  x-dir)  unpack dir ;;
+  list)   kawa-term --float --once kawa-file contents 80x37 -- "$0" --list "${arcs[0]}" ;;
+  test)   test_arcs ;;
+  zip|7z|zst) pack "$act" ;;
+  zip-pw|7z-pw) pack "${act%-pw}" pw ;;
+  merge)  merge_pdfs ;;
+  split)  TITLE="split · a PDF a page" pdf_each do_split ;;
+  range)  one; pages_typed 頁 "take some pages" "type the pages: 3-7,10 (it has $N)"
+          out=$(beside "$F" ".pages-$LIST.pdf"); qpdf_to "$out" --empty --pages "$F" "$LIST" --
+          finish "$ICON_BOOK" "pages $LIST · a PDF of their own" "$out" "$out" ;;
+  rotate) a=$({ printf 'part\t回\trotate\n'
+                printf 'row\t%s\t%s\n' "$ICON_BOOK" "a quarter right" "$ICON_BOOK" "a quarter left" "$ICON_BOOK" "upside down"; } |
+              kawa-menu --index --select 1) || exit 0
+          case $a in 1) ANGLE=+90 ;; 2) ANGLE=-90 ;; 3) ANGLE=+180 ;; *) exit 0 ;; esac
+          PAGES=1-z
+          if ((np == 1)); then
+            one; s=$(ask 頁 "which pages" "pages " "all, or type them: 2,5-6 (it has $N)" "all pages") || exit 0
+            if [[ $s != "all pages" ]]; then plist "$s" "$N" || oops "${F##*/}: not rotated" "$WHY"; PAGES=$LIST; fi
+          fi
+          TITLE="rotated" pdf_each do_rotate ;;
+  order)  one; pages_typed 序 "reorder pages" "the new order: 3,1,2,4-$N (it has $N)" any
+          out=$(beside "$F" .reordered.pdf); qpdf_to "$out" --empty --pages "$F" "$LIST" --
+          finish "$ICON_BOOK" "reordered · $(npages "$out") pages" "$out" "$out" ;;
+  delete) one; pages_typed 削 "delete pages" "the pages to delete: 2,5-6 (it has $N)"
+          declare -A gone=(); keep=()
+          IFS=, read -ra P <<<"$LIST"; for r in "${P[@]}"; do for ((q = 10#${r%-*}; q <= 10#${r#*-}; q++)); do gone[$q]=1; done; done
+          for ((q = 1; q <= N; q++)); do [[ -n ${gone[$q]:-} ]] || keep+=("$q"); done
+          ((${#keep[@]})) || oops "${F##*/}: nothing deleted" "that is every page"
+          out=$(beside "$F" ".without-$LIST.pdf"); k=${keep[*]}; qpdf_to "$out" --empty --pages "$F" "${k// /,}" --
+          finish "$ICON_BOOK" "${#gone[@]} pages deleted · ${#keep[@]} left" "$out" "$out" ;;
+  images) TITLE="its pictures" pdf_each do_images ;;
+  text)   TITLE="its text" pdf_each do_text ;;
+  png150) DPI=150 TITLE="pages as pictures · 150 dpi" pdf_each do_png ;;
+  png300) DPI=300 TITLE="pages as pictures · 300 dpi" pdf_each do_png ;;
+  ocr)    TITLE="searchable · its words can be found and copied" pdf_each do_ocr ;;
+  shrink) exec kawa-shrink "${pdfs[@]}" ;;
+  lock)   new_password; TITLE="locked · it asks its password" pdf_each do_lock ;;
+  unlock) out=()
+          for f in "${shut[@]}"; do
+            PW=$(password "$(cut_cols "${f##*/}" 24) · password") || exit 0
+            o=$(beside "$f" .unlocked.pdf)
+            printf '%s' "$PW" | qpdf --password-file=- --decrypt "$f" "$o" >"$LOG" 2>&1 || [[ $? == 3 && -s $o ]] \
+              || { rm -f -- "$o"; grep -q 'invalid password' "$LOG" && oops "wrong password" "${f##*/} stays locked"; why "qpdf could not"; oops "not unlocked" "$WHY"; }
+            out+=("$o")
+          done
+          finish "$ICON_LOCK" "unlocked · it opens without a password" "${out[0]}" "${out[@]}" ;;
+  annotate) annotate .annotated.pdf "write or draw" ;;
+  hand)   annotate .signed.pdf "sign by hand" ;;
+  drawsig) draw_signature; ((np == 1)) && stamp ;;
+  stamp)  stamp ;;
+  verify) verify ;;
+esac
+exit 0

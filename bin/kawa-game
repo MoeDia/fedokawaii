@@ -1,0 +1,109 @@
+#!/usr/bin/env bash
+# kawa-game — game mode: while a game runs, the computer is the game's, and all of it comes back
+# when the game ends. Every Steam game gets it by itself — a Windows one through Proton too, no
+# launch option: the bar's Steam watch (kawa-steam --bar-watch, a look every 3 s from /proc)
+# sees Steam's reaper of a game (SteamLaunch) and says start, and says end once it is gone. Any
+# other game: kawa-game run GAME [ARG…].
+#   kawa-game start steam|run PID   game mode on, for the game under PID (Steam's reaper, or
+#                                   run's game), once — a second start while on does nothing:
+#     · tuned's profile fedokawaii-game: the desktop's own with the graphics card at its full
+#       clocks (tuned is the one owner of the CPU and the card's level: it puts it back)
+#     · the game ahead of your other programs: PID and everything under it at nice -5 and the
+#       best-effort disk priority's first (what it starts later inherits it)
+#     · notices held back (kawa-hush on game: critical ones still show; at the end one notice
+#       says how many were held, a click lists them)
+#     · the night light off for the game's own colours (your setting kept)
+#     · the screensaver and the lock held off (an idle lock in logind, which kawa-idle waits
+#       on: a game played with a controller moves no mouse)
+#     · the background jobs held back: the timers of snapshots, the Btrfs scrub, TRIM and the
+#       kernel check stopped, the health report frozen if it runs
+#   kawa-game end      all of it as it was: the desktop's profile, the timers started again
+#                      (one that came due meanwhile runs then), the report thawed, the night
+#                      light back, the notices' summary
+#   kawa-game run GAME [ARG…]   GAME with game mode around it (Lutris, Heroic, a native game)
+#   kawa-game auto on|off       game mode for Steam's games by itself, or not (kawa-state's
+#                               gamemode; on unless set off). run still asks for it
+#   kawa-game restore  at login (autostart): a session that ended mid-game left tuned on the
+#                      game's profile — the desktop's is put back
+#   kawa-game          on (and for what) or off
+# The record: $XDG_RUNTIME_DIR/kawa-game.on ("steam|run PID", then the timers it stopped);
+# the profile switch, the timers and the report are root's: polkit lets you do just these
+# (/etc/polkit-1/rules.d/60-fedokawaii-game.rules, setup.sh: game_mode), and limits.d lets a
+# game run at -5. Each start and end goes to the journal (journalctl -t kawa-game).
+# Exit: 0 · 1 run's game failed (its own status) · 2 wrong use.
+set -u
+case ${1:-}:${2:-} in
+  :|end:|restore:|auto:on|auto:off|start:steam|start:run) ;;
+  run:?*) ;;
+  -h:|--help:) sed -n '2,/^set -u/{/^set -u/d;s/^# \{0,1\}//;p}' "$0"; exit 0 ;;
+  *) echo "usage: kawa-game [start steam|run PID | end | run GAME… | auto on|off | restore] (kawa-game --help)" >&2; exit 2 ;;
+esac
+[[ ${1:-} == start && ! ${3:-} =~ ^[0-9]+$ ]] && { echo "kawa-game: start steam|run PID" >&2; exit 2; }
+PATH="$HOME/.local/bin:$PATH"
+TIMERS=(snapper-timeline.timer snapper-cleanup.timer fedokawaii-scrub.timer fstrim.timer fedokawaii-kernels.timer)
+REPORT=fedokawaii-report.service
+DESK=fedokawaii GAME=fedokawaii-game                # tuned's profiles: the desktop's, the game's
+ON=${XDG_RUNTIME_DIR:?kawa-game: no XDG_RUNTIME_DIR}/kawa-game.on
+say() { logger -t kawa-game -- "$*" 2>/dev/null; }
+sys() { systemctl --no-ask-password "$@" 2>/dev/null; }
+profile() { tuned-adm active 2>/dev/null | sed -n 's/^Current active profile: //p'; }
+# tree PID — PID and every process under it (from /proc: the children of each thread)
+tree() {
+  local p=$1 t c k
+  echo "$p"
+  for t in /proc/"$p"/task/*/children; do
+    k=(); read -r -a k 2>/dev/null <"$t"   # (no newline at its end: read says 1, the line read all the same)
+    for c in "${k[@]}"; do tree "$c"; done
+  done
+}
+exec 8>"$XDG_RUNTIME_DIR/kawa-game.lock"; flock 8   # (two bars' watches: one start, one end)
+
+start() {   # start WHO PID
+  [[ -e $ON ]] && return 0
+  [[ $1 == steam && $(kawa-state get gamemode 2>/dev/null) == off ]] && return 0
+  printf '%s %s\n' "$1" "$2" >"$ON"
+  local held=() t r=""
+  [[ $(profile) == "$DESK" ]] && tuned-adm profile "$GAME" >/dev/null 2>&1
+  mapfile -t pids < <(tree "$2")
+  renice -n -5 -p "${pids[@]}" >/dev/null 2>&1; ionice -c 2 -n 0 -p "${pids[@]}" >/dev/null 2>&1
+  kawa-hush on game
+  kawa-night pause
+  systemd-run --user --quiet --collect --unit=kawa-game -- \
+    systemd-inhibit --what=idle --who="game mode" --why="a game runs" sleep infinity
+  for t in "${TIMERS[@]}"; do   # (only a timer that waits: one already done for this boot stays done)
+    [[ $(systemctl show -p SubState --value "$t" 2>/dev/null) == waiting ]] || continue
+    sys stop "$t" && held+=("$t")
+  done
+  ((${#held[@]})) && printf '%s\n' "${held[@]}" >>"$ON"
+  systemctl is-active --quiet "$REPORT" && sys freeze "$REPORT" && r=" · the report frozen"
+  say "on ($1 $2): profile $(profile), ${#pids[@]} processes at -5; timers stopped: ${held[*]:-none}$r"
+}
+end() {
+  [[ -e $ON ]] || return 0
+  local held=() t r=""
+  mapfile -t held < <(tail -n +2 "$ON")
+  [[ $(profile) == "$GAME" ]] && tuned-adm profile "$DESK" >/dev/null 2>&1
+  systemctl --user stop kawa-game.service 2>/dev/null
+  for t in "${held[@]}"; do [[ -n $t ]] && sys start "$t"; done
+  [[ $(systemctl show -p FreezerState --value "$REPORT" 2>/dev/null) == frozen ]] && sys thaw "$REPORT" && r=" · the report thawed"
+  kawa-night restore
+  kawa-hush off game
+  rm -f -- "$ON"
+  say "off: profile $(profile); timers started again: ${held[*]:-none}$r"
+}
+
+case ${1:-} in
+  "")      if [[ -e $ON ]]; then read -r who pid <"$ON"; echo "on ($who $pid)"; else echo off; fi ;;
+  start)   start "$2" "$3" ;;
+  end)     end ;;
+  restore) [[ $(profile) == "$GAME" ]] && tuned-adm profile "$DESK" >/dev/null 2>&1; true ;;
+  auto)    kawa-state set gamemode "$2" ;;
+  run)     shift
+           "$@" & pid=$!
+           start run "$pid"; exec 8>&-
+           wait "$pid"; r=$?
+           exec 8>"$XDG_RUNTIME_DIR/kawa-game.lock"; flock 8
+           read -r who _ 2>/dev/null <"$ON"; [[ ${who:-} == run ]] && end
+           exit "$r" ;;
+esac
+exit 0

@@ -1,8 +1,8 @@
 # tests/menus/lib.sh — what the menu tests share, on top of tests/lib/harness.sh: the panel's
 # menus (kawa-panel --menu, kawa-menu's) and fuzzel (the launcher) as stand-ins that answer as
 # told (fake_panel, fake_fuzzel), and the checks that every row fits its menu.
-#   menus_sandbox            sandbox + the fake panel and fuzzel (WAYLAND_DISPLAY set: fuzzel
-#                            takes its lock)
+#   menus_sandbox            sandbox + the fake panel (running, as the session's) and fuzzel
+#                            (WAYLAND_DISPLAY set: fuzzel takes its lock)
 #   answer A…                what the next menus answer, in order (fake_fuzzel lists them)
 #   fz_n                     how many menus opened so far
 #   fz_rows [N] · fz_args [N]   the rows / the arguments (one a line) of menu N (default: the last)
@@ -30,6 +30,10 @@ menus_sandbox() {
   mkdir -p "$FZ"; : >"$FZ/answers"
   cp "$MD/fake_fuzzel" "$STUBS/fuzzel"; chmod 755 "$STUBS/fuzzel"
   cp "$MD/fake_panel" "$STUBS/kawa-panel"; chmod 755 "$STUBS/kawa-panel"
+  # the session's panel, running (autostart keeps it): the stand-in, reading its fifo
+  mkdir -p "$XDG_RUNTIME_DIR"
+  ( exec "$STUBS/kawa-panel" </dev/null >/dev/null 2>&1 & )
+  local _; for _ in {1..100}; do [[ -p $XDG_RUNTIME_DIR/kawa-panel.in && -s $XDG_RUNTIME_DIR/kawa-panel.pid ]] && break; sleep 0.02; done
 }
 answer() { printf '%s\n' "$@" >>"$FZ/answers"; }
 fz_n() { cat "$FZ/n" 2>/dev/null || echo 0; }
@@ -66,7 +70,7 @@ locale_() {
   fi
   printf 'LOCPATH=%s' "$( [[ -d $d/$1 ]] && printf '%s' "$d")"
 }
-forget() { rm -f "$XDG_RUNTIME_DIR"/kawa-menu-*.state; }
+forget() { rm -f "$XDG_RUNTIME_DIR"/kawa-launcher.state; }
 cols() { printf '%s\n' "$1" | python3 -I "$MD/cols.py"; }
 
 fits() {

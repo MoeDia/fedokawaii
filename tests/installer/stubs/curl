@@ -48,6 +48,8 @@ case $url in
      cat "$FKH/ge.json" 2>/dev/null || { echo "curl: (22) 404" >&2; exit 22; }; exit 0 ;;
 esac
 f=${url##*/}
+# a file named the same in several places (each project's assets/logo.png): kept under its whole address
+k=${url#https://}; [[ -f $FKH/dl/${k//\//_} ]] && f=${k//\//_}
 countdown "curl-$f" && { echo "curl: (28) Operation timed out" >&2; exit 28; }
 [[ -f $FKH/dl/$f ]] || { echo "curl: (22) The requested URL returned error: 404 ($url)" >&2; exit 22; }
 if [[ -f $FKH/partial-$f ]]; then

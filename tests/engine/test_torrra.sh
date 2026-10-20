@@ -9,7 +9,7 @@ KEY=a1b2c3d4e5f60718293a4b5c6d7e8f90
 
 fresh() {
   sandbox
-  V=$HOME/.local/share/pipx/venvs/torrra
+  V=$HOME/.local/share/uv/tools/torrra
   local pyv; pyv=$(python3 -c 'import sys; print(f"python{sys.version_info[0]}.{sys.version_info[1]}")')
   mkdir -p "$V/bin" "$V/lib/$pyv/site-packages"
   ln -s "$(command -v python3)" "$V/bin/python"
@@ -210,8 +210,40 @@ fresh; out=$(FAKE_TORRRA=nosave kawa-torrra 2>&1); eq "$?" 1; has "$out" "torrra
 [[ ! -e $CFG ]] || lacks "$(cat "$CFG")" "$KEY"
 case_ "a home with a space in it"
 fresh; mkdir -p "$TMP/my home"; cp -a "$HOME/." "$TMP/my home/"
-out=$(HOME="$TMP/my home" KAWA_TORRRA_VENV="$TMP/my home/.local/share/pipx/venvs/torrra" kawa-torrra 2>&1); eq "$?" 0
+out=$(HOME="$TMP/my home" KAWA_TORRRA_VENV="$TMP/my home/.local/share/uv/tools/torrra" kawa-torrra 2>&1); eq "$?" 0
 eq "$(seen "$out" key)" "$KEY"
+
+# ── what stopped the launcher entry: torrra quitting before its window drew ──────────────
+case_ "a Textual without ansi-dark (8.0.1, the one the old pins installed): said as a notice, not a window that flashes"
+fresh; out=$(FAKE_TEXTUAL=8.0.1 kawa-torrra --open 2>&1); eq "$?" 1
+has "$out" "this Textual has no ansi-dark theme"
+called '^notify-send -a torrra -u critical -- .*  torrra cannot start .this Textual has no ansi-dark theme. — run: fedokawaii update$'
+case_ "anything torrra says on stderr and exits 0 on (a theme it turns away…): the notice, status 1"
+fresh; out=$(FAKE_SAY=$'\e[31minvalid theme \'nord2\' configured.\navailable themes: nord\e[0m' kawa-torrra --open 2>&1); eq "$?" 1
+called "^notify-send -a torrra -u critical -- .*  torrra invalid theme 'nord2' configured. available themes: nord$"
+eq "$(grep -c 'invalid theme' <<<"$out")" 1 "said once on the terminal"
+case_ "…in a shell: status 1, its own words, no notice"
+fresh; out=$(FAKE_SAY="Search failed" kawa-torrra 2>&1); eq "$?" 1; has "$out" "Search failed"; not_called notify-send
+case_ "…and nothing said: status 0 (a window you closed)"
+fresh; kawa-torrra --open >/dev/null 2>&1; eq "$?" 0; not_called notify-send
+
+# ── the downloads centre: what its window downloads, and a notice as each finishes ─────────
+case_ "every 2 s, what downloads (not a paused one) in kawa-downloads/torrra.PID; a finished one: its notice, once"
+fresh; stub kawa-downloads
+cat >"$TMP/dl.json" <<EOF
+[[{"name": "Big Buck Bunny", "save_path": "$HOME/Downloads", "done": 10, "total": 100},
+  {"name": "paused one", "save_path": "$HOME/Downloads", "done": 1, "total": 9, "paused": true}],
+ [{"name": "Big Buck Bunny", "save_path": "$HOME/Downloads", "done": 100, "total": 100, "finished": true}],
+ [{"name": "Big Buck Bunny", "save_path": "$HOME/Downloads", "done": 100, "total": 100, "finished": true}]]
+EOF
+FAKE_DL=$TMP/dl.json kawa-torrra --open >/dev/null 2>&1; eq "$?" 0
+eq "$(cat "$TMP/dl.json.seen.0")" "== torrra
+Big Buck Bunny	10	100	$HOME/Downloads/Big Buck Bunny" "the first moment: the one downloading"
+eq "$(cat "$TMP/dl.json.seen.1")" "" "finished: listed no more"
+eq "$(grep -c '^kawa-downloads notice' "$CALLS")" 1 "one notice"
+called "^kawa-downloads notice torrent Big Buck Bunny 100 $HOME/Downloads/Big Buck Bunny$"
+case_ "…its list gone with the window"
+[[ -z $(ls -A "$XDG_RUNTIME_DIR/kawa-downloads" 2>/dev/null) ]] && _ok || _no "left: $(ls "$XDG_RUNTIME_DIR/kawa-downloads")"
 
 # ── the profile hook: `torrra` in a shell is kawa-torrra ─────────────────────
 case_ "in bash, torrra runs kawa-torrra with its words; in sh, nothing is defined"

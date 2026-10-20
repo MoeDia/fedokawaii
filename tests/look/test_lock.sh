@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # tests/look/test_lock.sh — kawa-lock (Super+Escape, before sleep, the power menu), its keeper
 # (gtklock started again should it ever stop without the password, the desktop locked
-# meanwhile) and the idle chain autostart.sh sets up: the screens off after an hour, nothing
+# meanwhile) and the idle chain autostart.sh sets up: the screensaver and the lock at 15 min, the screens off at 30, nothing
 # else. gtklock is a stand-in that keeps its arguments and environment, runs its
 # --lock-command (the moment a real one has locked every screen) and runs on as the lock does:
 # until "$TMP/unlock" is there (the password) or SIGTERM (gtklock's own way out), both a clean
@@ -26,7 +26,10 @@ setup() {
   SHARE=$HOME/.local/share/fedokawaii CSS=$HOME/.config/fedokawaii/current/gtklock.css
   UI=$XDG_RUNTIME_DIR/kawa-lock.ui
   argv gtklock "$FAKE_LOCK"
+  argv wlopm
   stub logger
+  MOD=$HOME/.local/lib/fedokawaii/kawa-lockmod.so   # (theme.sh builds it: src/kawa-lockmod)
+  mkdir -p "${MOD%/*}"; : >"$MOD"
   # pkill -xu UID gtklock: this sandbox's stand-ins only (SIGTERM, as the real one sends)
   stub pkill 'while read -r n p; do [ "$n" = gtklock ] && kill "$p" 2>/dev/null; done <"$FAKE_PROCS"'
   daemon dwl >/dev/null                             # the desktop runs
@@ -45,7 +48,7 @@ setup
 case_ "Super+Escape: gtklock with the theme's stylesheet and the layout, the date in English, the desktop's words"
 rc 0 kawa-lock
 eq "$(locks)" 1
-args_eq gtklock 1 -s "$CSS" -x "$UI" --date-format '%a %d %b' --time-format '%I:%M %p' --lock-command "kawa-lock --up"
+args_eq gtklock 1 -s "$CSS" -x "$UI" -m "$MOD" --date-format '%a %d %b' --time-format '%I:%M' --lock-command "kawa-lock --up"
 eq "$(cat "$TMP/gtklock.env")" "LANGUAGE=fk LC_TIME=C" "LANGUAGE=fk (ちがう · wrong password), LC_TIME=C"
 [[ ! -e $TMP/fd9 ]] && _ok || _no "gtklock keeps kawa-lock's lock: every later call would wait"
 [[ ! -e $TMP/fd8 ]] && _ok || _no "gtklock keeps its keeper's lock: the desktop would look locked after the password"
@@ -77,7 +80,7 @@ setup
 ln -sfn themes/light "$HOME/.config/fedokawaii/current"
 kawa-lock --now
 has "$(cat "$UI")" "$SHARE/light/padlock.png"
-args_eq gtklock 1 -s "$CSS" -x "$UI" --date-format '%a %d %b' --time-format '%I:%M %p' --lock-command "kawa-lock --up"
+args_eq gtklock 1 -s "$CSS" -x "$UI" -m "$MOD" --date-format '%a %d %b' --time-format '%I:%M' --lock-command "kawa-lock --up"
 
 case_ "already locked (a second press, idle while locked): nothing more"
 setup
@@ -140,12 +143,75 @@ waitfor '! keeping' || _no "the keeper outlived the desktop"
 eq "$(locks)" 1
 called '^logger -t kawa-lock -- locker exited rc=137 — the desktop has ended$'
 
-case_ "the machine wakes (swayidle's after-resume): the journal says whether it is locked"
+case_ "the machine wakes (swayidle's after-resume): the screens lit, the journal says whether it is locked"
 setup
 rc 0 kawa-lock --resumed; called '^logger -t kawa-lock -- resumed — not locked$'
+args_eq wlopm 1 --on '*'; eq "$(cat "$XDG_RUNTIME_DIR/kawa-screens")" on "the lock screen's note: lit"
 kawa-lock --now; reset_calls
 rc 0 kawa-lock --resumed; called '^logger -t kawa-lock -- resumed — locked$'
 eq "$(locks)" 0 "it only looks: it never locks"
+
+# ── the screens: dark before a sleep's lock, and the note the lock screen's wake guard reads ──
+case_ "--now (before every sleep): the screens go dark first, then the lock comes up on them — no lock shows before the sleep"
+setup
+rc 0 kawa-lock --now
+eq "$(grep -E '^(wlopm|gtklock)' "$CALLS" | cut -d' ' -f1-2 | tr '\n' '|')" "wlopm --off|gtklock -s|" "dark, then locked"
+eq "$(cat "$XDG_RUNTIME_DIR/kawa-screens")" off "the note says dark (the lock screen only wakes at a key)"
+called '^logger -t kawa-lock -- screens off$'
+case_ "… a plain lock (Super+Escape) stays in sight: the screens untouched"
+setup; rc 0 kawa-lock; not_called '^wlopm'
+case_ "--screens off|on: wlopm, and the note written before they go dark and after they are lit"
+setup
+argv wlopm 'echo "note: $(cat "$XDG_RUNTIME_DIR/kawa-screens" 2>/dev/null)" >>"$FAKE_TMP/notes"'
+rc 0 kawa-lock --screens off; rc 0 kawa-lock --screens on
+args_eq wlopm 1 --off '*'; args_eq wlopm 2 --on '*'
+eq "$(tr '\n' '|' <"$TMP/notes")" "note: off|note: off|" "off before the dark; on only once lit"
+eq "$(cat "$XDG_RUNTIME_DIR/kawa-screens")" on
+rc 2 kawa-lock --screens; rc 2 kawa-lock --screens dim
+case_ "the module (the keys, the wake guard) missing: it still locks, and says what to repair"
+setup; rm "$MOD"
+rc 0 kawa-lock; eq "$(locks)" 1
+called "notify-send -a desktop -u critical -- .*lock screen .*kawa-lockmod.so.*fedokawaii repair"
+case_ "autostart clears the note at login (a session that ended in the dark leaves none behind)"
+grep -q '"$XDG_RUNTIME_DIR/kawa-screens"' "$REPO/configs/home/.config/dwl/autostart.sh" && _ok || _no "kawa-screens is not cleared at login"
+
+# ── kawa-lockmod: the wake guard and the keys (built here with GTK 3's headers, if present) ──
+case_ "the wake guard: dark, and 2 s after the screens are lit, keys and clicks only wake; a stale dark holds 2 s"
+if command -v cc >/dev/null && pkg-config --exists gtk+-3.0 2>/dev/null; then
+  cat >"$TMP/guard.c" <<'EOF'
+#include "kawa-lockmod.c"
+#include <stdio.h>
+#include <utime.h>
+static void note(const char *s, long ago_s) {
+	FILE *f = fopen(screens, "w"); fputs(s, f); fclose(f);
+	struct utimbuf t = { time(NULL) - ago_s, time(NULL) - ago_s }; utime(screens, &t);
+}
+int main(void) {
+	on_activation(NULL, 0);
+	printf("none %d|", guarded());
+	note("off\n", 3600); printf("dark %d %d|", guarded(), guarded());
+	note("on\n", 0); printf("just lit %d|", guarded());
+	note("on\n", 3); printf("lit 3 s ago %d|", guarded());
+	note("off\n", 7200); printf("stale dark %d, ", guarded());
+	off_first -= 3 * G_USEC_PER_SEC; printf("3 s on %d|", guarded());
+	note("off\n", 10); printf("dark anew %d|", guarded());
+	return 0;
+}
+EOF
+  # (the module's own source, with GTK's headers; only its guard runs: no display needed)
+  # shellcheck disable=SC2046  # (pkg-config's words)
+  if cc -std=gnu11 -I"$REPO/src/kawa-lockmod" $(pkg-config --cflags gtk+-3.0) -o "$TMP/guard" "$TMP/guard.c" $(pkg-config --libs gtk+-3.0) 2>"$TMP/cc.log"; then
+    eq "$(XDG_RUNTIME_DIR=$TMP "$TMP/guard")" "none 0|dark 1 1|just lit 1|lit 3 s ago 0|stale dark 1, 3 s on 0|dark anew 1|"
+  else _no "kawa-lockmod.c does not build: $(head -n 3 "$TMP/cc.log")"; fi
+else echo "  (no cc or GTK 3 headers here: the guard's run skipped)"; fi
+case_ "kawa-lockmod: an empty Enter is no try; every key, release and click passes the guard; theme.sh builds it"
+L=$REPO/src/kawa-lockmod/kawa-lockmod.c
+grep -q 'gtk_entry_get_text_length(GTK_ENTRY(win->input_field)) == 0' "$L" && _ok || _no "the empty Enter"
+for e in key-press-event key-release-event button-press-event button-release-event; do
+  grep -q "\"$e\"" "$L" && _ok || _no "$e does not pass the guard"
+done
+grep -q 'module_major_version = 4;' "$L" && _ok || _no "not a gtklock 4 module"
+grep -q 'TOOLS=(.*kawa-lockmod' "$REPO/theme.sh" && _ok || _no "theme.sh does not build it"
 
 # ── a lock you asked for: sleep 90 s later ─────────────────────────────────────
 case_ "Super+Escape (--sleep): locked, and still locked when the time is up — the computer sleeps"
@@ -179,7 +245,7 @@ grep -q 'XKB_KEY_Escape, *spawn, *SHCMD("kawa-lock --sleep")' "$REPO/src/dwl/con
 grep -q '1) exec kawa-lock --sleep ;;' "$REPO/bin/kawa-power" && _ok || _no "power menu lock"
 grep -q '2) sleep_now ;;' "$REPO/bin/kawa-power" && _ok || _no "power menu sleep"
 grep -q 'sleep) sleep_now; exit ;;' "$REPO/bin/kawa-power" && _ok || _no "the Sleep key (kawa-power sleep)"
-grep -q 'kawa-lock || ' "$REPO/bin/kawa-power" && _ok || _no "kawa-power sleeps only once kawa-lock has locked"
+grep -q 'kawa-lock --now || ' "$REPO/bin/kawa-power" && _ok || _no "kawa-power sleeps only once kawa-lock has locked (on dark screens)"
 
 # ── when it cannot lock: said, and never a sleep unlocked ───────────────────────
 case_ "gtklock missing: says so (a notice too) and fails, so the power menu does not suspend"
@@ -218,7 +284,7 @@ case_ "HOME with a space: the stylesheet and picture paths arrive whole"
 setup
 mkdir -p "$TMP/my home"; cp -a "$HOME/." "$TMP/my home/"; export HOME="$TMP/my home"
 kawa-lock --now
-args_eq gtklock 1 -s "$HOME/.config/fedokawaii/current/gtklock.css" -x "$UI" --date-format '%a %d %b' --time-format '%I:%M %p' --lock-command "kawa-lock --up"
+args_eq gtklock 1 -s "$HOME/.config/fedokawaii/current/gtklock.css" -x "$UI" -m "$HOME/.local/lib/fedokawaii/kawa-lockmod.so" --date-format '%a %d %b' --time-format '%I:%M' --lock-command "kawa-lock --up"
 has "$(cat "$UI")" "$HOME/.local/share/fedokawaii/dark/padlock.png"
 
 case_ "--help shows how it is used"
@@ -256,20 +322,23 @@ idle() {   # idle — autostart.sh's own swayidle arguments, played through
   eval "$block"
   unset -f keep swayidle
 }
-case_ "away: nothing locks or sleeps — only the screens go dark after an hour; back on at a key"
+case_ "away: 15 min the screensaver and the lock behind it, 30 min the screens dark; nothing sleeps"
 setup
-argv wlopm
+argv kawa-saver
 argv notify-send
+stub playerctl; stub systemd-inhibit                # (nothing playing, nothing holding idle)
 idle
-eq "$(tr '\n' ' ' <"$TMP/idle.times")" "3600 " "one time: an hour"
-eq "$(locks)" 1 "locked only for the sleep (below), never by itself"
+eq "$(tr '\n' ' ' <"$TMP/idle.times")" "900 1800 " "15 minutes, then 30"
+called '^kawa-saver --idle$' "15 min: the screensaver, the lock behind it (kawa-saver --idle)"
+eq "$(locks)" 1 "locked only for the sleep (below) here: the stand-in screensaver never locks"
 not_called '^systemctl'
 args_eq wlopm 1 --off '*'
 args_eq wlopm 2 --on '*'
-args_eq wlopm 3 --on '*'
-eq "$(grep -E '^(idle|resume|before|after|notify|gtklock|wlopm)' "$CALLS" | cut -d' ' -f1-2 | tr '\n' '|')" \
-  "idle 3600s|wlopm --off|resume|wlopm --on|before-sleep|gtklock -s|after-resume|wlopm --on|" \
-  "screens off, on again; before a sleep: locked at once; awake again: the screens on, said"
+args_eq wlopm 3 --off '*'
+args_eq wlopm 4 --on '*'
+eq "$(grep -E '^(idle|kawa-saver|resume|before|after|notify|gtklock|wlopm)' "$CALLS" | cut -d' ' -f1-2 | tr '\n' '|')" \
+  "idle 900s|kawa-saver --idle|idle 1800s|wlopm --off|resume|resume|wlopm --on|before-sleep|wlopm --off|gtklock -s|after-resume|wlopm --on|" \
+  "screensaver, screens off, on again at a key; before a sleep: dark, then locked; awake again: the screens on, said"
 called '^logger -t kawa-lock -- resumed — locked$' "the wake in the journal, the lock still up"
 case_ "a suspend while unlocked: locked at once before the machine sleeps"
 setup
@@ -279,6 +348,6 @@ bash -c "$idle_bs"
 eq "$(locks)" 1
 [[ -e $XDG_RUNTIME_DIR/kawa-lock.locked ]] && _ok || _no "not locked before the sleep"
 case_ "the machine awake again: swayidle's after-resume tells the journal (the health report reads it)"
-grep -qF "  after-resume \"wlopm --on '*'; kawa-lock --resumed\" \\" "$REPO/configs/home/.config/dwl/autostart.sh" && _ok || _no "no after-resume line"
+grep -qF "  after-resume 'kawa-lock --resumed' \\" "$REPO/configs/home/.config/dwl/autostart.sh" && _ok || _no "no after-resume line"
 
 done_

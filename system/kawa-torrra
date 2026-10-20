@@ -21,7 +21,7 @@
 set -uo pipefail
 # shellcheck source=/dev/null
 ICON=$(. "$HOME/.config/fedokawaii/icons.sh" && printf '%s' "$ICON_DOWNLOAD")   # (its notices' mark)
-venv=${KAWA_TORRRA_VENV:-$HOME/.local/share/pipx/venvs/torrra}
+venv=${KAWA_TORRRA_VENV:-$HOME/.local/share/uv/tools/torrra}
 py=$venv/bin/python
 secrets=$HOME/.config/fedokawaii/secrets.sh
 open=0
@@ -34,7 +34,7 @@ die() {
   exit 1
 }
 
-[[ -x $py ]] || die "not installed (no pipx venv at $venv) — run: fedokawaii update"
+[[ -x $py ]] || die "not installed (no uv tool at $venv) — run: fedokawaii update"
 
 # a magnet link, a URL or a .torrent file. xdg-open hands on a file:// URI just as it was
 # given (`xdg-open file:///…/my%20file.torrent`), and torrra takes only a path: the URI
@@ -94,13 +94,14 @@ fi
 # stores it. Every name used below is checked first, so a torrra that changed underneath
 # stops with a message rather than writing the key to disk.
 read -r -d '' BOOT <<'PY' || true
-import copy, os, subprocess, sys, tomllib
+import atexit, copy, os, re, subprocess, sys, tomllib
 key = os.environ.pop("KAWA_KEY")
 search, notify = os.environ.pop("KAWA_SEARCH") == "1", os.environ.pop("KAWA_NOTIFY") == "1"
 icon = os.environ.pop("KAWA_ICON", "")
 
-def warn(msg, urgency="normal"):
-    print("torrra: " + msg, file=sys.stderr)
+def warn(msg, urgency="normal", printed=False):
+    if not printed:
+        print("torrra: " + msg, file=sys.__stderr__)
     if notify:
         subprocess.run(["notify-send", "-a", "torrra", "-u", urgency, "--", icon + "  torrra", msg],
                        stderr=subprocess.DEVNULL, check=False)
@@ -115,8 +116,17 @@ try:
     from torrra.__main__ import cli
     from torrra.core.constants import DEFAULT_MAX_RETRIES, DEFAULT_TIMEOUT
     get, set_, load, _ = c.Config.get, c.Config.set, c.Config._load_config, c.CONFIG_FILE
+    from textual.theme import BUILTIN_THEMES
+    import torrra.screens.home as home
+    from torrra.core.download import get_download_manager
+    tick = home.HomeScreen._update_downloads_data
 except (ImportError, AttributeError) as e:
     fail(f"cannot start ({e}) — run: fedokawaii update")
+THEME = "ansi-dark"
+# (torrra turns away a theme its Textual lacks, and quits before its window draws: Textual
+# 8.0.1 had none by this name — the Torrents entry that opened nothing. Said here instead)
+if THEME not in BUILTIN_THEMES:
+    fail(f"cannot start (this Textual has no {THEME} theme) — run: fedokawaii update")
 
 if search:
     try:
@@ -154,8 +164,8 @@ def kawa_load(self):
         if k not in d:
             d[k], dirty = v, True
     g = cfg.setdefault("general", {})
-    if g.get("theme", "textual-dark") in THEMES and g.get("theme") != "ansi-dark":
-        g["theme"], dirty = "ansi-dark", True         # (an ansi-light an older setup chose too)
+    if g.get("theme", "textual-dark") in THEMES and g.get("theme") != THEME:
+        g["theme"], dirty = THEME, True               # (an ansi-light an older setup chose too)
     # Prowlarr answers a search once the slowest of its eight sites has (one slow, or blocked
     # here, takes its time); torrra's own wait — 10 s, tried three times, each try a whole
     # new search — gave up first: "Search failed", "Nothing found". A minute, once. A wait
@@ -176,8 +186,88 @@ def kawa_set(self, key_path, value):
 c.Config._load_config, c.Config.get, c.Config.set = kawa_load, kawa_get, kawa_set
 if not callable(getattr(c.Config, "_save_config", None)):
     fail("cannot start (torrra changed how it saves settings) — kawa-torrra needs an update")
+
+# the downloads centre (kawa-downloads: the bar's download mark): what this window downloads,
+# every 2 s, in $XDG_RUNTIME_DIR/kawa-downloads/torrra.PID — NAME, DONE, TOTAL (bytes) and
+# WHERE, a line each (gone with this window: its pid says whose) — and one notice as each
+# finishes. Only what downloads: a paused or finished torrent is not listed
+RUN = os.path.join(os.environ.get("XDG_RUNTIME_DIR", ""), "kawa-downloads")
+STATUS = os.path.join(RUN, f"torrra.{os.getpid()}")
+seen, told, last = set(), set(), [0.0]
+
+def kawa_status():
+    import time
+    if not os.environ.get("XDG_RUNTIME_DIR") or time.monotonic() - last[0] < 2:
+        return
+    last[0] = time.monotonic()
+    rows = []
+    for uri, h in list(get_download_manager().torrents.items()):
+        try:
+            s = h.status()
+        except RuntimeError:                          # (removed meanwhile)
+            continue
+        name = s.name or "a torrent"
+        where = os.path.join(s.save_path, s.name) if s.name else s.save_path
+        if s.is_finished or s.is_seeding:
+            if uri in seen and uri not in told:       # (finished while this window watched it)
+                told.add(uri)
+                subprocess.Popen(["kawa-downloads", "notice", "torrent", name, str(s.total_wanted), where],
+                                 stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
+                                 stderr=subprocess.DEVNULL, start_new_session=True)
+            continue
+        seen.add(uri)
+        if s.flags & libtorrent.torrent_flags.paused:
+            continue
+        rows.append("\t".join((name.replace("\t", " ").replace("\n", " "), str(s.total_wanted_done),
+                               str(s.total_wanted), where.replace("\t", " ").replace("\n", " "))) + "\n")
+    try:
+        if rows:
+            os.makedirs(RUN, mode=0o700, exist_ok=True)
+            with open(STATUS + ".new", "w", encoding="utf-8") as f:
+                f.writelines(rows)
+            os.replace(STATUS + ".new", STATUS)
+        elif os.path.exists(STATUS):
+            os.remove(STATUS)
+    except OSError:
+        pass
+
+def kawa_tick(self):
+    tick(self)
+    kawa_status()
+
+def kawa_gone():
+    try:
+        os.remove(STATUS)
+    except OSError:
+        pass
+
+atexit.register(kawa_gone)
+home.HomeScreen._update_downloads_data = kawa_tick
+
+# torrra says what stops it on stderr, in red, and exits 0 all the same — from the launcher
+# the window would close before it could be read: anything it says there (its own words
+# only: Textual draws on the terminal's own stream) becomes the notice, and status 1
+class Heard:
+    def __init__(self, f):
+        self.f, self.said = f, []
+    def write(self, t):                               # (click hands it bytes, or words)
+        self.said.append(t.decode("utf-8", "replace") if isinstance(t, bytes) else t)
+        return self.f.write(t)
+    def __getattr__(self, name):
+        return getattr(self.f, name)
+
+sys.stderr = heard = Heard(sys.stderr)
 sys.argv[0] = "torrra"
-sys.exit(cli())
+try:
+    rc = cli()
+except SystemExit as e:
+    rc = e.code
+sys.stderr = heard.f
+said = re.sub(r"\x1b\[[0-9;]*m", "", "".join(heard.said)).strip()
+if said and rc in (0, None):
+    warn(" ".join(said.split()), "critical", printed=True)   # (on the terminal it is there already)
+    sys.exit(1)
+sys.exit(rc)
 PY
 
 # Prowlarr runs on demand: woken here for a search (kawa-prowlarr --busy: the start returns

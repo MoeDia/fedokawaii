@@ -43,8 +43,8 @@ Debugging: `SHOOT_SWAY_DEBUG=1` (sway -d into the sway log), `SHOOT_FOOT_DEBUG=1
 | `menu-brightness.png` | the brightness slider (`kawa-panel --brightness`, the bar's brightness) |
 | `menu-weather.png` | the week (`kawa-weather --menu`, the bar's weather), from `stubs/curl`'s forecast |
 | `menu-weather-offline.png` | the same three hours later, offline: its age, quiet, above the days |
-| `menu-power.png` `menu-calendar.png` `menu-timer.png` `menu-drives.png` `menu-steam.png` `menu-shrink.png` `menu-share.png` `menu-help.png` `menu-change.png` | the dropdowns and centred menus: `kawa-menu`, drawn by the session's panel (`kawa-panel --menu`, started for them; closed with SIGUSR2 between shots) |
-| `menu-calendar-next.png` `menu-timer-running.png` `menu-help-filter.png` `menu-shrink-size.png` | the same after keys (paged to next month), with a timer running, filtered by typing (`volume`), and a size of one's own typed (`750 KB`) — `menu_keys`: wtype's keyboard made before the menu opens (sway sends a leave to the focused surface when a keyboard is added) |
+| `menu-power.png` `menu-calendar.png` `menu-timer.png` `menu-drives.png` `menu-steam.png` `menu-shrink.png` `menu-file.png` `menu-share.png` `menu-help.png` `menu-change.png` | the dropdowns and centred menus: `kawa-menu`, drawn by the session's panel (`kawa-panel --menu`, started for them; closed with SIGUSR2 between shots) |
+| `menu-calendar-next.png` `menu-timer-running.png` `menu-help-filter.png` `menu-shrink-size.png` `menu-file-level.png` | the same after keys (paged to next month), with a timer running, filtered by typing (`volume`), a size of one's own typed (`750 KB`), and zip's compression after Down, Enter on a folder's pack — `menu_keys`: wtype's keyboard made before the menu opens (sway sends a leave to the focused surface when a keyboard is added) |
 | `launcher.png` | `fuzzel` (Super+Space) with the user's config |
 | `notify-normal.png` | `kawa-screenshot`'s notice (`-a desktop`, the picture as icon) |
 | `notify-app.png` | an app's notice with a Papirus icon and a wrapped body |
@@ -175,8 +175,7 @@ from there; shoot.sh calls `/usr/bin/dconf update` and the real `fc-cache` itsel
 - PixelMplus 12 is the Regular face only (no Bold in the provided fonts).
 - Time is real (Asia/Dubai): the clock and the prompt's time and its sun/moon follow the
   time of the run, and the week's menu starts on that day.
-- kawa-theme runs as the veiled half of a switch (`KAWA_VEILED=1`), so the seigaiha
-  transition (kawa-veil) is not part of the shots; the end state is the same.
+- kawa-theme switches as it does in a session: every app at once, nothing animated.
 - The cursor in foot blinks; the shot is taken right after focus, when it is lit.
 - The portals are Ubuntu's (xdg-desktop-portal + -gtk + -wlr, D-Bus-activated after
   `dbus-update-activation-environment`, as autostart's `import-environment`): waybar reads
@@ -235,8 +234,8 @@ and bind-mounted over `/etc/dconf/db/local` (this sandbox's `local.d` still hold
 | `app-share` | `kawa-share` fed four xdg-desktop-portal-wlr 0.8.4 lines; `wlr-randr` answers for DP-1 and HDMI-A-1 |
 | `app-torrra`, `app-torrra-search` | `kawa-torrra --open` (the launcher's way) with `lib/fakeprowlarr.py` on 127.0.0.1:9696; "ubuntu 24.04" typed |
 | `app-brave` | Brave Origin new-tab page, second start, `--no-first-run --no-default-browser-check`, `brave.origin.free_tier_accepted` set (the one-time Origin question answered "Proceed") |
-| `app-wiremix` | `kawa-float --once mixer mixer 96x29 -- wiremix` (Super+A → *mixer*) while `mpv --no-video` plays the test video: one stream on the Playback tab |
-| `app-bluetui` | `kawa-float --once pair pair 96x29 -- bluetui` (Super+X → *pair a device*) on a private session bus where `lib/fakebluez.py` answers as BlueZ (adapter `fedokawaii`; a game controller and a headset paired, a phone found nearby), after **s** (scan) |
+| `app-wiremix` | `kawa-term --float --once mixer mixer 96x29 -- wiremix` (Super+A → *mixer*) while `mpv --no-video` plays the test video: one stream on the Playback tab |
+| `app-bluetui` | `kawa-term --float --once pair pair 96x29 -- bluetui` (Super+X → *pair a device*) on a private session bus where `lib/fakebluez.py` answers as BlueZ (adapter `fedokawaii`; a game controller and a headset paired, a phone found nearby), after **s** (scan) |
 | `app-visidata` | `vd weather.csv` in `~/practice` (a small made-up table), a column made numeric (`#`), sorted (`[`), summed (`+` → sum): the frequency line at the bottom |
 
 Fetched once into `apps-cache/` (kept): yazi (latest release, as lib/upstream.sh),

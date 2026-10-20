@@ -79,16 +79,25 @@ eq "$(shots | tr '\n' ' ')" "$SHOTS/2026-10-16_09-30-05-2.png $SHOTS/2026-10-16_
 [[ $(cat "$F" "$SHOTS"/*-2.png "$SHOTS"/*-3.png | md5sum) != "$(cat "$F" "$F" "$F" | md5sum)" ]] \
   && ! cmp -s "$F" "$SHOTS/2026-10-16_09-30-05-2.png" && _ok || _no "a shot was overwritten"
 
-case_ "Print again while picking a region (a held key): the second does nothing"
+case_ "Print again while picking a region: the picker goes at once (as Esc) — nothing saved; a third press picks again"
 setup; : >"$TMP/gate.slurp.use"
 kawa-screenshot & first=$!
 at_gate slurp || _no "the first never asked for a region"
 start=$SECONDS
-rc 0 kawa-screenshot; rc 0 kawa-screenshot full
-((SECONDS - start < 3)) && _ok || _no "the second waited"
-eq "$(ncalls slurp)" 1
-open_gate slurp; wait "$first"
-eq "$(ncalls grim)" 1
+rc 0 kawa-screenshot
+wait "$first"; eq "$?" 0 "the first: as Esc"
+((SECONDS - start < 3)) && _ok || _no "the picker stayed"
+eq "$(ncalls slurp)$(ncalls grim)" 10 "one region asked, nothing captured"
+eq "$(shots)" "" "nothing saved"
+rm -f "$TMP/gate.slurp.use"; rc 0 kawa-screenshot; eq "$(ncalls slurp)$(ncalls grim)" 21 "pressed again: a region picked, captured"
+case_ "Print twice faster than the picker comes up: no picker left on screen"
+setup; : >"$TMP/gate.slurp.use"
+kawa-screenshot & first=$!; rc 0 kawa-screenshot
+wait "$first"; eq "$(ncalls grim)" 0 "nothing captured"
+[[ -e $XDG_RUNTIME_DIR/kawa-screenshot.pick ]] && _no "a picker's pid left behind" || _ok
+case_ "Print while a shot is being saved (no picker up): nothing, the shot goes on"
+setup; exec 8>"$XDG_RUNTIME_DIR/kawa-screenshot.lock"; flock 8
+rc 0 kawa-screenshot; eq "$(ncalls slurp)" 0; exec 8>&-
 
 # ── the folder ───────────────────────────────────────────────────────────────
 case_ "the Screenshots folder missing: made"
@@ -171,10 +180,45 @@ eq "$r" 1; has "$out" "kawa-screenshot:"; lacks "$out" "line "
 case_ "--help, and a wrong mode"
 setup
 out=$(kawa-screenshot --help 2>&1); r=$?
-eq "$r" 0; has "$out" "kawa-screenshot [region|full|edit]"
+eq "$r" 0; has "$out" "kawa-screenshot [region|full|edit|text]"
 eq "$(ncalls grim)" 0 "--help takes no shot"
 out=$(kawa-screenshot window 2>&1); r=$?
 eq "$r" 2; has "$out" "usage: kawa-screenshot"
 eq "$(ncalls slurp)$(ncalls grim)" 00
+
+# ── Super+Shift+Print: the region's text (the real tesseract) ────────────────
+ocr_setup() {
+  setup
+  magick -size 900x120 xc:white -font DejaVu-Sans -pointsize 40 -fill black \
+         -annotate +20+75 "Invoice 4417 paid in full today" "$TMP/shot.png"
+  stub wl-paste '[ "$1" = --list-types ] && [ -e "$FAKE_TMP/clip" ] && echo "text/plain;charset=utf-8"'
+}
+if command -v tesseract >/dev/null && tesseract --list-langs 2>/dev/null | grep -qx ara; then
+  case_ "text: the region read (English, Arabic too), at twice the screen's size; its words copied, nothing saved"
+  ocr_setup
+  rc 0 kawa-screenshot text
+  args_eq grim 1 -s 2 -g "10,20 300x100" "$XDG_RUNTIME_DIR/kawa-screenshot-text.png"
+  args_eq wl-copy 1 --type "text/plain;charset=utf-8"
+  has "$(cat "$TMP/clip")" "Invoice 4417 paid in full today"
+  args_eq notify-send 1 -a desktop -- "$ICON_CLIPBOARD  text copied · 6 words" "Invoice 4417 paid in full today"
+  eq "$(shots)" "" "nothing saved"
+  [[ -e $XDG_RUNTIME_DIR/kawa-screenshot-text.png ]] && _no "the capture is left behind" || _ok
+
+  case_ "text: a region with no words says so, and copies nothing"
+  ocr_setup; magick -size 300x100 xc:white "$TMP/shot.png"
+  rc 0 kawa-screenshot text
+  eq "$(ncalls wl-copy)" 0
+  args_eq notify-send 1 -a desktop -- "$ICON_CLIPBOARD  no text found" "nothing to read in that region"
+
+  case_ "text: Esc while picking — nothing read"
+  ocr_setup; touch "$TMP/esc"
+  rc 0 kawa-screenshot text
+  eq "$(ncalls grim)$(ncalls notify-send)" 00
+fi
+case_ "text: tesseract missing — a critical notice that names it, no region asked"
+setup; hide tesseract
+rc 1 kawa-screenshot text
+eq "$(ncalls slurp)" 0
+has "$(args_of notify-send 1 | paste -sd' ')" "tesseract is not installed — fedokawaii repair puts it back"
 
 done_

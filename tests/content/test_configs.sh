@@ -101,14 +101,17 @@ while IFS= read -r line; do
     color_theme) [[ $v =~ ^\"[^\"/]+\"$ ]] && _ok || _no "$k = $v" ;;
     show_gpu_info) [[ $v =~ ^\"(Auto|On|Off)\"$ ]] && _ok || _no "$k = $v" ;;
     clock_format) [[ $v =~ ^\"[^\"]*\"$ ]] && _ok || _no "$k = $v" ;;   # ("": no clock in the CPU box)
-    presets) [[ $v =~ ^\"((cpu|mem|net|proc):[01]:(default|braille|block|tty)[, ]?)+\"$ ]] && _ok || _no "$k = $v" ;;
+    presets) [[ $v =~ ^\"((cpu|mem|net|proc|gpu[0-5]):[01]:(default|braille|block|tty)[, ]?)+\"$ ]] && _ok || _no "$k = $v" ;;
+    update_ms) [[ $v =~ ^[0-9]+$ ]] && ((v >= 100)) && _ok || _no "$k = $v" ;;
+    shown_boxes) [[ $v =~ ^\"((cpu|mem|net|proc|gpu[0-5]) ?)+\"$ ]] && _ok || _no "$k = $v" ;;
     *) [[ $v == True || $v == False ]] && _ok || _no "$k = $v (True or False)" ;;
   esac
 done <"$HOME/.config/btop/btop.conf"
 case_ "btop.conf: kept as written (btop rewrites a config whose first line lacks its version unless told not to)"
 has "$(cat "$HOME/.config/btop/btop.conf")" "save_config_on_exit = False"
-case_ "btop.conf: the graphics card's line in the CPU box is on (the guide's §26.5: load, memory, heat, watts)"
-has "$(cat "$HOME/.config/btop/btop.conf")" 'show_gpu_info = "On"'
+case_ "btop.conf: the graphics card in a box of its own (gpu0: its name, load graph, load, memory, heat, watts), not again in the CPU box (the guide's §26.5)"
+has "$(cat "$HOME/.config/btop/btop.conf")" 'shown_boxes = "cpu gpu0 mem net proc"'
+has "$(cat "$HOME/.config/btop/btop.conf")" 'show_gpu_info = "Off"'
 case_ "btop's theme, both: a file of that name for color_theme, every key btop's, every value a colour"
 name=$(sed -n 's/^color_theme = "\(.*\)"/\1/p' "$HOME/.config/btop/btop.conf"); eq "$name" fedokawaii
 BKEYS=" main_bg main_fg title hi_fg selected_bg selected_fg inactive_fg graph_text meter_bg proc_misc
@@ -128,9 +131,9 @@ done
 # ── visidata ─────────────────────────────────────────────────────────────────
 # (vd on this machine: the one on PATH — Fedora's visidata, or a venv's — else the live checks
 # are skipped; the file itself is checked all the same)
-config .visidatarc
-VRC=$HOME/.visidatarc
-case_ ".visidatarc: every colour one of the terminal's 16 (a number 0-15 or a curses name), or the desktop's own 16 and 17 (foot.ini: the selection's fill and words), and attributes — never the rest of the 256-colour cube; every option set once"
+config .config/visidata/config.py
+VRC=$HOME/.config/visidata/config.py
+case_ "visidata/config.py: every colour one of the terminal's 16 (a number 0-15 or a curses name), or the desktop's own 16 and 17 (foot.ini: the selection's fill and words), and attributes — never the rest of the 256-colour cube; every option set once"
 out=$(python3 -I - "$VRC" <<'EOF'
 import ast, re, sys
 src = open(sys.argv[1]).read()
@@ -154,14 +157,14 @@ print("\n".join(bad))
 EOF
 )
 eq "$out" ""
-case_ ".visidatarc: the defaults vd takes from the 256-colour cube are all overridden (the ones its 3.3 options list has)"
+case_ "visidata/config.py: the defaults vd takes from the 256-colour cube are all overridden (the ones its 3.3 options list has)"
 for k in color_default_hdr color_current_col color_key_col color_selected_row color_note_type color_note_row color_edit_cell \
          color_edit_unfocused color_status color_active_status color_keystrokes color_aggregator color_code color_error \
          color_warning color_working color_menu color_menu_active color_menu_spec color_menu_help color_cmdpalette color_sidebar \
          color_longname_guide color_guide_unwritten color_graph_hidden plot_colors; do
   grep -q "^options\.$k = " "$VRC" && _ok || _no "$k is left at vd's default"
 done
-case_ ".visidatarc: what vd draws together stays readable in both palettes (foot.ini's dark and light) — the cursor's column name, each part of the status line: 3:1 or more"
+case_ "visidata/config.py: what vd draws together stays readable in both palettes (foot.ini's dark and light) — the cursor's column name, each part of the status line: 3:1 or more"
 out=$(python3 -I - "$VRC" "$REPO/configs/home/.config/foot/foot.ini" 2>&1 <<'EOF'
 import ast, re, sys
 opts = {n.targets[0].attr: n.value.value for n in ast.parse(open(sys.argv[1]).read()).body}
@@ -206,14 +209,14 @@ print("\n".join(bad))
 EOF
 )
 eq "$out" ""
-case_ ".visidatarc: q asks before dropping unsaved changes (quitguard)"
+case_ "visidata/config.py: q asks before dropping unsaved changes (quitguard)"
 has "$(cat "$VRC")" "options.quitguard = True"
-case_ ".visidatarc: vd fetches nothing at start (its message of the day from visidata.org is off)"
+case_ "visidata/config.py: vd fetches nothing at start (its message of the day from visidata.org is off)"
 has "$(cat "$VRC")" "options.motd_url = ''"
 if [[ -n $REAL_VD ]]; then
   mkdir -p "$HOME/t"; cd "$HOME/t" || exit 1
   printf 'city,temp,day\nSharjah,41,Mon\nDubai,40,Tue\n\xd8\xa7\xd9\x84\xd8\xb9\xd9\x8a\xd9\x86,38,Wed\n\xe6\x9d\xb1\xe4\xba\xac,24,Thu\n' >"trip to Japan.csv"
-  case_ "vd reads .visidatarc without a complaint (batch mode: no screen), and loads a CSV with spaces in its name and Arabic and Japanese cells"
+  case_ "vd reads ~/.config/visidata/config.py without a complaint (batch mode: no screen), and loads a CSV with spaces in its name and Arabic and Japanese cells"
   "$REAL_VD" -b -o out.csv -- "trip to Japan.csv" >"$TMP/vd.out" 2>&1; r=$?
   eq "$r" 0 "$(tail -n 3 "$TMP/vd.out" | tr '\n' '|')"
   lacks "$(cat "$TMP/vd.out")" "unknown option"; lacks "$(cat "$TMP/vd.out")" "Traceback"; lacks "$(cat "$TMP/vd.out")" "rror"
@@ -242,7 +245,7 @@ with open("big.csv", "w") as f:
   out=$(python3 -I "$C/pty_run.py" --cols 100 --rows 30 --timeout 30 --send 4 'q' -- "$REAL_VD" -- "trip to Japan.csv" 2>/dev/null | sed 's/\x1b\[[0-9;?]*[a-zA-Z]//g')
   has "$out" "city"; has "$out" "temp"; has "$out" "Sharjah"; lacks "$out" "Traceback"
   cd / || exit 1
-else skip "vd is not installed (dnf install visidata) — .visidatarc is checked, vd itself is not run"; fi
+else skip "vd is not installed (dnf install visidata) — its config.py is checked, vd itself is not run"; fi
 
 # ── gdu ──────────────────────────────────────────────────────────────────────
 config .config/gdu/gdu.yaml

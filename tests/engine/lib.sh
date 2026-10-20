@@ -47,7 +47,7 @@ engine_world() {
   export FEDOKAWAII_OS_RELEASE=$R/os-release
   # the toolkit: what the engine reads of it (its front is a stand-in unless front_world)
   cp "$REPO/fedokawaii.conf" "$R/toolkit/"; cp "$REPO/lib/common.sh" "$R/toolkit/lib/"   # (the engine reads settings with its parser)
-  printf '%%PDF-1.4 the handbook\n' >"$R/toolkit/docs/Fedokawaii-Guide.pdf"
+  printf '%%PDF-1.4 the learning guide\n' >"$R/toolkit/docs/Fedokawaii-Learn.pdf"
   printf '#!/usr/bin/env bash\necho setup\n' >"$R/toolkit/setup.sh"
   printf '[main]\nfont=x\n' >"$R/toolkit/configs/home/.config/foot/foot.ini"
   # root's front, as a stand-in: says what it was asked, answers with $R/rc-ACTION (0)
@@ -74,7 +74,7 @@ exec "$@"'
   stub df 'printf "        1B-blocks          Avail\n%s\n" "$(cat "$FK_R/df" 2>/dev/null || echo "2000000000000 641000000000")"'
   stub snapper 'printf " # | Type   | Pre # | Date | User | Cleanup | Description\n---+--------+-------+------+------+---------+------------\n0  | single |       |      | root |         | current\n1  | single |       | Thu  | root |         | fedokawaii baseline\n"'
   stub findmnt 'cat "$FK_R/fstype" 2>/dev/null || echo btrfs'
-  stub setsid; stub zathura; stub less 'case " $* " in *" -- "*) ;; *) cat >"$FK_R/less.out" ;; esac'; stub nvim; stub kawa-float; stub kawa-config
+  stub setsid; stub zathura; stub less 'case " $* " in *" -- "*) ;; *) cat >"$FK_R/less.out" ;; esac'; stub nvim; stub kawa-term; stub kawa-config
   stub curl 'exit 6'                         # (offline, unless a test says otherwise)
   stub shellcheck
 }

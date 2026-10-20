@@ -55,7 +55,7 @@ sums() { cat -- "$@" 2>/dev/null | cksum; }
 # popup: a click elsewhere, another window or the same entry again never cuts CMD short
 hold() {   # hold NAME TITLE COLSxROWS CMD…
   local name=$1 title=$2 size=$3; shift 3
-  kawa-float --once "$name" --dialog "$title" "$size" -- bash -c '"$@"; printf "\n  any key closes this window "; read -rsn1' _ "$@"
+  kawa-term --float --once "$name" --dialog "$title" "$size" -- bash -c '"$@"; printf "\n  any key closes this window "; read -rsn1' _ "$@"
 }
 apply_now() { hold apply "apply" 100x33 fedokawaii apply; }
 
@@ -143,7 +143,7 @@ learn_menu() {
   local rows=() urls=() i sec page
   l() { rows+=("$(line row "$1" "$2" "$3")"); urls+=("$4"); }
   rows+=("$(line part 学 learn)"); urls+=(-)
-  l "$ICON_BOOK"     'this handbook' 'chapter 42: changing it'  guide
+  l "$ICON_BOOK"     'learning guide' 'programs, Python, Rust'  guide
   l "$ICON_KEYBOARD" keys            "this desktop's: Super+/"  keys
   l "$ICON_TERMINAL" bash            'The Linux Command Line'   https://linuxcommand.org/tlcl.php
   l "$ICON_TERMINAL" ShellCheck      'what each finding means'  https://www.shellcheck.net/wiki/
@@ -180,6 +180,7 @@ row barlook   "$ICON_CODE"      'bar look'     "sizes, spacing (CSS)"
 row icons     "$ICON_PICTURE"   icons          "the pixel icons (text grids)"
 row notify    "$ICON_BELL"      notifications  "look, how long they stay"
 row launcher  "$ICON_CHEVRON_RIGHT" launcher   "the launcher's look"
+row glass     "$ICON_TERMINAL"  transparency   "foot's see-through ground: $(kawa-glass)"
 heading_row 手 use
 row keys      "$ICON_KEYBOARD"  keys           "dwl's, and the help sheet"
 row terminal  "$ICON_TERMINAL"  terminal       "font, size, keys"
@@ -195,8 +196,9 @@ heading_row 史 history
 row changed   "$ICON_DIFF"      'what changed' "the copy against the toolkit"
 row history   "$ICON_BRANCH"    history        "commit, undo, push (lazygit)"
 row apply     "$ICON_DOWNLOAD"  apply          "the copy becomes the desktop"
+row pull      "$ICON_CLOUD"     'update fedokawaii' "GitHub's newest, then applied"
 heading_row 案 help
-row learn     "$ICON_BOOK"      learn          "the handbook, manuals, wikis"
+row learn     "$ICON_BOOK"      learn          "the guide, manuals, wikis"
 n=$(pending)
 title="change · ${COPY/#$HOME/\~}"
 if [[ ! -d $COPY ]]; then title+=" · made on first use"
@@ -212,6 +214,8 @@ case ${acts[i]} in
   terminal)  part terminal "the terminal server reads it at your next login" - $H/.config/foot/foot.ini ;;
   shell)     part shell "every new terminal reads it" - $H/.bashrc.d/fedokawaii.sh ;;
   launcher)  part launcher "the next menu that opens" - $H/.config/fuzzel/fuzzel.ini ;;
+  glass)     kawa-glass toggle && notify-send -a desktop -- "$ICON_TERMINAL  transparency $(kawa-glass)" \
+               "every terminal, at once" 2>/dev/null ;;
   notify)    part notifications "at once" - $H/.config/mako/config ;;
   files)     part files "the next time yazi starts" - $H/.config/yazi/init.lua $H/.config/yazi/theme.toml \
                $H/.config/yazi/keymap.toml $H/.config/fedokawaii/yazi-pick/keymap.toml ;;
@@ -225,6 +229,7 @@ case ${acts[i]} in
   changed)   ensure_copy && hold diff "what changed" 120x41 fedokawaii diff ;;
   history)   ensure_copy && { footclient -N -D "$COPY" -- lazygit 2>/dev/null || noterm; } ;;
   apply)     ensure_copy && apply_now ;;
+  pull)      hold pull "update fedokawaii" 100x33 fedokawaii pull ;;   # (the clone made or adopted, pulled, then update and repair)
   learn)     learn_menu ;;
 esac
 exit 0

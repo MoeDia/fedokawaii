@@ -1,7 +1,26 @@
 # shared by the fake Fedora's commands (tests/installer/stubs, installed as the fake machine's
 # /usr/local/bin): their state and the call log live in /var/lib/fkh
 FKH=/var/lib/fkh
-fkh_log() { printf '%s[%s] %s\n' "$(id -un 2>/dev/null)" "${0##*/}" "$*" >>"$FKH/calls.log" 2>/dev/null || true; }
+fkh_log() { printf '%s[%s] %s\n' "$(id -un 2>/dev/null)" "${0##*/}" "$*" >>"$FKH/calls.log" 2>/dev/null || true; fkh_cut; }
+# fkh_cut — $FKH/cut-at = N (and $FKH/cut-sig: KILL, the default — a power cut — or INT, a
+# Ctrl+C): at the Nth stub call the setup.sh this call runs under is stopped with its whole
+# process group, the stub with it. Only the run this stub belongs to: its own ancestor
+fkh_cut() {
+  [[ -f $FKH/cut-at ]] || return 0
+  local n p=$$ sig pg
+  n=$(( $(cat "$FKH/cut-count" 2>/dev/null || echo 0) + 1 )); echo "$n" >"$FKH/cut-count"
+  ((n == $(cat "$FKH/cut-at"))) || return 0
+  rm -f "$FKH/cut-at"; sig=$(cat "$FKH/cut-sig" 2>/dev/null || echo KILL)
+  while ((p > 1)); do
+    if tr '\0' ' ' <"/proc/$p/cmdline" 2>/dev/null | grep -q 'setup\.sh'; then
+      echo "cut at stub call $n (${0##*/}) by SIG$sig" >>"$FKH/cut.log"
+      if [[ $sig == KILL ]]; then pg=$(awk '{ print $5 }' "/proc/$p/stat"); kill -KILL -- "-$pg"
+      else kill -"$sig" "$p"; sleep 2; fi
+      return 0
+    fi
+    p=$(awk '{ print $4 }' "/proc/$p/stat" 2>/dev/null) || return 0
+  done
+}
 net_on() { [[ $(cat "$FKH/net" 2>/dev/null) != off ]]; }
 has() { [[ -f $FKH/$1 ]] && grep -qxF -- "$2" "$FKH/$1"; }
 add() { has "$1" "$2" || printf '%s\n' "$2" >>"$FKH/$1"; }

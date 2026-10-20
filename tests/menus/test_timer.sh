@@ -72,23 +72,25 @@ setup; bar_up
 kawa-timer start 10
 within 300 "$TMP/bar.0" '"class":"timer"' && _ok || _no "no timer on the bar 0.3 s after it was set: $(last)"
 . "$HOME/.config/fedokawaii/current/colors.sh"
-has "$(last)" "M  <span color='#$C_ACCENT_TEXT'>$ICON_HOURGLASS 10:00</span>\"" "beside the time, two spaces apart, in vermilion"
-within 2500 "$TMP/bar.0" "$ICON_HOURGLASS 09:59" && _ok || _no "the second after: $(last)"
+# (the colour from the theme's token, C_ACCENT_TEXT; 6 px from the hourglass's ink to the
+# figures': ICON_BAR_HOURGLASS, no space; 10:00, or 09:59 should a second turn meanwhile)
+[[ $(last) == *"M  <span color='#$C_ACCENT_TEXT'>${ICON_BAR_HOURGLASS}"@(10:00|09:59)'</span>"'* ]] && _ok || _no "beside the time, two spaces apart, in vermilion: $(last)"
+within 2500 "$TMP/bar.0" "${ICON_BAR_HOURGLASS}09:59" && _ok || _no "the second after: $(last)"
 case_ "two monitors, two bars: both draw it, both at once"
-bar_up; within 300 "$TMP/bar.1" "$ICON_HOURGLASS 09:5" && _ok || _no "the second bar: $(last 1)"
+bar_up; within 300 "$TMP/bar.1" "${ICON_BAR_HOURGLASS}09:5" && _ok || _no "the second bar: $(last 1)"
 case_ "waybar restarted: the new bar reads the timer from the runtime folder"
-bars_down; bar_up; has "$(last 2)" "\"class\":\"timer\"" ; has "$(last 2)" "$ICON_HOURGLASS 09:5"
+bars_down; bar_up; has "$(last 2)" "\"class\":\"timer\"" ; has "$(last 2)" "${ICON_BAR_HOURGLASS}09:5"
 eq "$(find "$XDG_RUNTIME_DIR" -name 'kawa-bar.wake.*' | wc -l)" 1 "the killed bars' fifos gone, the live one's there"
 case_ "a stopwatch: from 0:00, counting up, asagi's class; cancel says where it stood"
 kawa-timer stopwatch; eq "$(rings)" 0 "the timer's waiter gone with it"
-within 300 "$TMP/bar.2" "<span color='#$C_TEAL'>$ICON_HOURGLASS 00:00</span>\",\"class\":\"stopwatch\"" && _ok || _no "$(last 2)"
-within 3000 "$TMP/bar.2" "$ICON_HOURGLASS 00:01" || within 1 "$TMP/bar.2" "$ICON_HOURGLASS 00:02" && _ok || _no "a second on: $(last 2)"
+within 300 "$TMP/bar.2" "<span color='#$C_TEAL'>${ICON_BAR_HOURGLASS}00:00</span>\",\"class\":\"stopwatch\"" && _ok || _no "$(last 2)"
+within 3000 "$TMP/bar.2" "${ICON_BAR_HOURGLASS}00:01" || within 1 "$TMP/bar.2" "${ICON_BAR_HOURGLASS}00:02" && _ok || _no "a second on: $(last 2)"
 kawa-timer cancel
 settles 300 "$TMP/bar.2" '^\{"text":"[^<]*"\}$' && _ok || _no "still on the bar: $(last 2)"
 called "^notify-send -a desktop -- $ICON_HOURGLASS  stopwatch stopped at 00:0[1-9]$"
 case_ "a stopwatch past an hour: H:MM:SS"
 printf 'stopwatch %s\n' $((EPOCHSECONDS - 3723)) >"$XDG_RUNTIME_DIR/kawa-timer"
-within 1500 "$TMP/bar.2" "$ICON_HOURGLASS 1:02:0" && _ok || _no "$(last 2)"
+within 1500 "$TMP/bar.2" "${ICON_BAR_HOURGLASS}1:02:0" && _ok || _no "$(last 2)"
 answer esc; kawa-timer
 [[ $(fz_rows | sed -n 1p) =~ ^part$'\t'時$'\t'timer$'\t'stopwatch\ 1:02:0[0-9]$ ]] && _ok || _no "the stopwatch at the menu's heading: $(fz_rows | sed -n 1p)"
 has "$(fz_rows)" "row	$ICON_CROSS	cancel the stopwatch"

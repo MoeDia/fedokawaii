@@ -103,12 +103,15 @@ eq "$(key "$P" chooser_type)" dmenu
 eq "$(key "$P" chooser_cmd)" "$HOME/.local/bin/kawa-share" "a full path (the portal's PATH has no ~/.local/bin)"
 [[ -x $REPO/bin/kawa-share ]] && _ok || _no "no bin/kawa-share to install there"
 
-case_ "a share starting and ending: mako's sharing mode on, then off, the bar poked each time"
+case_ "a share starting and ending: mako's sharing mode on, then off (kawa-hush), the bar poked each time"
+cp "$REPO/bin/kawa-hush" "$HOME/.local/bin/kawa-hush"
+daemon mako >/dev/null
+mako_calls() { local i; for ((i = 1; i <= $(ncalls makoctl); i++)); do args_of makoctl "$i" | paste -sd' '; done; }
 sh -c "$(key "$P" exec_before)"
-args_eq makoctl 1 mode -a sharing
+eq "$(mako_calls | grep -c '^mode -a sharing$')" 1 "mode -a sharing once: $(mako_calls | paste -sd'|')"
 args_eq kawa-dwlstatus 1 --poke 12
 sh -c "$(key "$P" exec_after)"
-args_eq makoctl 2 mode -r sharing
+eq "$(mako_calls | grep -c '^mode -r sharing$')" 1 "mode -r sharing once: $(mako_calls | paste -sd'|')"
 args_eq kawa-dwlstatus 2 --poke 12
 
 case_ "the mode and the poke land: mako knows [mode=sharing], waybar's 共有 seal listens on 12"
@@ -165,16 +168,29 @@ for f in /opt/f44/bin/foot "$(command -v foot)"; do
   read -r ma mi <<<"$v"; [[ -n $ma ]] && ((ma > 1 || mi >= 24)) && { FOOT=$f; break; }
 done
 look; config .config/foot/foot.ini
+# the glass file, as theme.sh makes it (once: on, 0.92 — foot.ini's last include)
+mkdir -p "$HOME/.local/state/fedokawaii"
+printf '%s\n' "# ~/.local/state/fedokawaii/foot-glass.ini" "[colors-dark]" "alpha=0.92" "[colors-light]" "alpha=0.92" \
+  >"$HOME/.local/state/fedokawaii/foot-glass.ini"
+grep -q '^GLASS=\$STATE/foot-glass.ini$' "$REPO/theme.sh" && grep -q '"\[colors-dark\]" "alpha=0.92" "\[colors-light\]" "alpha=0.92"' "$REPO/theme.sh" \
+  && _ok || _no "theme.sh no longer makes the glass file so"
 if [[ -n $FOOT ]]; then
   for m in dark light; do
     ln -sfn "themes/$m" "$HOME/.config/fedokawaii/current"
     out=$(LD_LIBRARY_PATH=/opt/f44/lib "$FOOT" --check-config 2>&1); r=$?
     eq "$r" 0 "$m: $(grep -v 'not a UTF-8 locale' <<<"$out" | head -n 3)"
   done
+  case_ "foot.ini: without the glass file foot refuses its whole config — so each login makes it first (kawa-glass ensure, before foot --server)"
+  mv "$HOME/.local/state/fedokawaii/foot-glass.ini" "$TMP/glass.away"
+  LD_LIBRARY_PATH=/opt/f44/lib "$FOOT" --check-config >/dev/null 2>&1 && _no "foot took it without the file: the ensure is no longer needed" || _ok
+  mv "$TMP/glass.away" "$HOME/.local/state/fedokawaii/foot-glass.ini"
 else
   echo "  (skipped foot --check-config: no foot ≥ 1.24 here)"
 fi
-eq "$(key "$HOME/.config/foot/foot.ini" include)" "~""/.config/fedokawaii/current/foot.ini" "the theme's include (foot expands the ~)"
+awk '/^kawa-glass ensure /{g=NR} /^keep foot --server /{f=NR} END{exit !(g && f && g < f)}' "$REPO/configs/home/.config/dwl/autostart.sh" \
+  && _ok || _no "autostart.sh starts foot before kawa-glass ensure"
+eq "$(key "$HOME/.config/foot/foot.ini" include)" "~""/.config/fedokawaii/current/foot.ini
+~""/.local/state/fedokawaii/foot-glass.ini" "the theme's include, then the glass (foot expands the ~)"
 for m in dark light; do
   eq "$(key "$REPO/configs/home/.config/fedokawaii/themes/$m/foot.ini" initial-color-theme)" "$m"
 done

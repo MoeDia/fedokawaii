@@ -1,8 +1,0 @@
-[Desktop Entry]
-# Calf's JACK host (it comes with Easy Effects, whose effects it provides): nothing to start by hand.
-# Hidden from the launcher: this entry, by the same name as the package's, stands in for it
-# (NoDisplay); the program itself stays installed and works as before.
-Type=Application
-Name=Calf Plugin Pack for JACK
-Exec=calfjackhost
-NoDisplay=true

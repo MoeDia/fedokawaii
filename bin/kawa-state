@@ -1,0 +1,126 @@
+#!/usr/bin/env bash
+# kawa-state — the settings you change on the desktop, kept: one small store,
+# ~/.local/state/fedokawaii/settings ("KEY=VALUE" a line), written whole and moved into place
+# (never half a file), one writer at a time. Logging out, a restart, an update, a repair and
+# fedokawaii apply leave it as it is (the theme writes nothing under ~/.local/state but its own
+# records), and every login puts it back (autostart: kawa-state restore, before the bar draws).
+#   kawa-state get KEY           its value (exit 1: never set)
+#   kawa-state set KEY VALUE     kept (a word of a-z 0-9 -; the value one line)
+#   kawa-state unset KEY
+#   kawa-state list              every KEY=VALUE
+#   kawa-state restore           at login: each kept setting put back — dnd (do not disturb, once
+#                                mako runs), bluetooth (on or off: bluetoothd powers the adapter
+#                                at every boot otherwise), brightness (the monitors' level, as
+#                                last set here), cleanmic (the default input clean or raw, as
+#                                the sound panel's key left it, once PipeWire lists the clean
+#                                mic) — the slow ones in the background; what was done
+#                                is noted for the report in ~/.local/state/fedokawaii/restored
+#                                ("boot ID", then "KEY<TAB>ok|failed|kept<TAB>VALUE": kept — a
+#                                key a helper of its own puts back)
+# What keeps its own file in the same folder, read by the program itself: night (kawa-night),
+# saver (kawa-saver), foot-glass.ini (foot), wallpaper-dark|light (kawa-wallpaper); the theme
+# is the link ~/.config/fedokawaii/current, FreeSync ~/.config/fedokawaii/vrr (dwl), sound
+# WirePlumber's own (~/.local/state/wireplumber: each device's volume, mute, the defaults).
+# Exit: 0 · 1 not set, or could not write · 2 wrong use.
+set -u
+usage() { echo "usage: kawa-state get KEY | set KEY VALUE | unset KEY | list | restore" >&2; exit 2; }
+key() { [[ $1 =~ ^[a-z][a-z0-9-]{0,31}$ ]] || usage; }
+case ${1:-} in
+  get|unset) (($# == 2)) || usage; key "$2" ;;
+  set)       (($# == 3)) || usage; key "$2"; [[ $3 != *[$'\n\r']* && ${#3} -le 200 ]] || usage ;;
+  list|restore) (($# == 1)) || usage ;;
+  -h|--help) sed -n '2,/^set -u/{/^set -u/d;s/^# \{0,1\}//;p}' "$0"; exit 0 ;;
+  *) usage ;;
+esac
+DIR=${XDG_STATE_HOME:-$HOME/.local/state}/fedokawaii
+F=$DIR/settings REC=$DIR/restored
+SYS=${KAWA_SYSFS:-/sys} PROC=${KAWA_PROC:-/proc}   # (the tests point these at a made-up machine)
+
+get() {   # get KEY → its value (the last line of it wins: a hand edit never makes two)
+  local l v="" found=1
+  [[ -r $F ]] || return 1
+  while IFS= read -r l; do [[ $l == "$1="* ]] && v=${l#*=} found=0; done <"$F"
+  ((found == 0)) && printf '%s\n' "$v"
+}
+put() {   # put KEY [VALUE] — the store rewritten whole under its lock (no VALUE: the key taken
+  # out); a key a hand edit wrote twice is left once, its last value, in its first place
+  local l k t; local -a order=(); local -A val=()
+  mkdir -p "$DIR" && [[ -d $DIR && ! -L $DIR ]] || return 1
+  exec 8>>"$DIR/settings.lock"; flock -w 5 8 || return 1
+  if [[ -r $F ]]; then
+    while IFS= read -r l; do
+      [[ $l == \#* || $l != *=* ]] && continue
+      k=${l%%=*}; [[ -v val[$k] ]] || order+=("$k"); val[$k]=${l#*=}
+    done <"$F"
+  fi
+  if (($# == 2)); then [[ -v val[$1] ]] || order+=("$1"); val[$1]=$2; else unset "val[$1]"; fi
+  t=$F.$$
+  { echo "# ~/.local/state/fedokawaii/settings — what you set on the desktop (kawa-state; kawa-state --help)"
+    for k in "${order[@]}"; do [[ -v val[$k] ]] && printf '%s=%s\n' "$k" "${val[$k]}"; done
+    true
+  } >"$t" && mv -f "$t" "$F" || { rm -f "$t"; return 1; }
+}
+
+note() {  # note KEY STATUS VALUE — the restore's record, one line a key (jobs write side by side)
+  ( flock -w 5 7 && printf '%s\t%s\t%s\n' "$1" "$2" "$3" >>"$REC" ) 7>>"$DIR/restored.lock"
+}
+waitfor() {   # waitfor TRIES CMD… — CMD tried every half second until it succeeds
+  local i
+  for ((i = 0; i < $1; i++)); do "${@:2}" >/dev/null 2>&1 && return 0; sleep 0.5; done
+  return 1
+}
+dnd() {   # do not disturb, once mako answers (it starts beside the bar); added or taken out as a
+  # mode of its own, so the modes others set (screen sharing's) stay
+  waitfor 20 makoctl mode || { note dnd failed "$1"; return; }
+  if [[ $1 == on ]]; then makoctl mode -a do-not-disturb; else makoctl mode -r do-not-disturb; fi >/dev/null 2>&1 \
+    && note dnd ok "$1" || note dnd failed "$1"
+  kawa-dwlstatus --poke 12 2>/dev/null   # (the bar's 静 seal)
+}
+bluetooth() {   # the adapter powered as you left it, once bluetoothd answers (it starts at boot)
+  local b=false; [[ $1 == on ]] && b=true
+  compgen -G "$SYS/class/bluetooth/hci*" >/dev/null || { note bluetooth kept "$1"; return; }   # (no adapter now)
+  waitfor 20 busctl --system get-property org.bluez /org/bluez/hci0 org.bluez.Adapter1 Powered \
+    && busctl --system set-property org.bluez /org/bluez/hci0 org.bluez.Adapter1 Powered b "$b" >/dev/null 2>&1 \
+    && note bluetooth ok "$1" || note bluetooth failed "$1"
+}
+brightness() {  # the monitors' level as last set (DDC/CI is slow: in the background)
+  kawa-brightness "$1" >/dev/null 2>&1 && note brightness ok "$1" || note brightness failed "$1"
+}
+
+cleanmic_now() {   # the clean mic's state as the sound panel reads it: on, off (none: not loaded)
+  kawa-quick --state sound 2>/dev/null | sed -n 's/^cleanmic\t//p'
+}
+cleanmic_loaded() { [[ $(cleanmic_now) == @(on|off) ]]; }
+cleanmic() {   # the default input clean or raw as last switched (kawa-quick --do cleanmic: what
+  # records moves with it), once PipeWire lists the clean mic; already so: nothing done
+  waitfor 20 cleanmic_loaded || { note cleanmic failed "$1"; return; }
+  [[ $(cleanmic_now) == "$1" ]] || kawa-quick --do cleanmic >/dev/null 2>&1
+  [[ $(cleanmic_now) == "$1" ]] && note cleanmic ok "$1" || note cleanmic failed "$1"
+}
+
+restore() {
+  local l k v boot
+  mkdir -p "$DIR" || return 1
+  read -r boot 2>/dev/null <"$PROC/sys/kernel/random/boot_id"
+  printf 'boot %s\n' "${boot:-unknown}" >"$REC.$$" && mv -f "$REC.$$" "$REC"
+  [[ -r $F ]] || return 0
+  while IFS= read -r l; do
+    [[ $l == \#* || $l != *=* ]] && continue
+    k=${l%%=*} v=${l#*=}
+    case $k in
+      dnd|bluetooth|cleanmic) if [[ $v == @(on|off) ]]; then "$k" "$v" & else note "$k" failed "$v"; fi ;;
+      brightness) if [[ $v =~ ^[0-9]{1,3}$ ]] && ((10#$v <= 100)); then brightness "$((10#$v))" &
+                  else note "$k" failed "$v"; fi ;;
+      *)          note "$k" kept "$v" ;;      # (a helper of its own reads it)
+    esac
+  done <"$F"
+  return 0
+}
+
+case $1 in
+  get)     get "$2" ;;
+  set)     put "$2" "$3" ;;
+  unset)   put "$2" ;;
+  list)    [[ -r $F ]] && grep -v '^#' "$F"; exit 0 ;;
+  restore) restore ;;
+esac

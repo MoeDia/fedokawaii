@@ -50,9 +50,18 @@ esac
 LC_ALL=C.UTF-8                                   # count characters, not bytes
 # shellcheck source=/dev/null
 . "$HOME/.config/fedokawaii/icons.sh"
-# shellcheck source=/dev/null
-. "$HOME/.config/fedokawaii/current/colors.sh"   # C_* colours of the dark or light theme
-MAX=48                                           # longest "artist — title" before …
+THEME=""
+colours() {   # the C_* colours of the theme in use, read again after a switch (bash alone: is
+  # current the light theme's folder?) — the meter keeps its colours inside its own text
+  local t=dark
+  [[ $HOME/.config/fedokawaii/current -ef $HOME/.config/fedokawaii/themes/light ]] && t=light
+  [[ $t == "$THEME" ]] && return 0
+  # shellcheck source=/dev/null
+  . "$HOME/.config/fedokawaii/current/colors.sh"
+  THEME=$t PEAK="$ICON_EQ_5<span color='#$C_ACCENT'>$ICON_EQ_CAP</span>"
+}
+colours
+MAX=48                                           # longest "artist — title" (cut at a word)
 MAXA=20                                          # longest artist: a long one (several names
                                                  # in a row) would leave no room for the title
 
@@ -64,7 +73,6 @@ esc() {   # esc VAR TEXT — JSON + pango escaping into VAR
   printf -v "$1" '%s' "$s"
 }
 
-PEAK="$ICON_EQ_5<span color='#$C_ACCENT'>$ICON_EQ_CAP</span>"
 meter() {   # meter VAR DIGITS — "03551" → one eq glyph per band (0–5)
   local s=$2
   s=${s//0/$ICON_EQ_0}; s=${s//1/$ICON_EQ_1}; s=${s//2/$ICON_EQ_2}
@@ -74,15 +82,59 @@ meter() {   # meter VAR DIGITS — "03551" → one eq glyph per band (0–5)
   printf -v "$1" "<span color='#%s'>%s</span>" "$C_TEAL" "$s"
 }
 
+# Where a line may be cut: at a space; on either side of a letter of a script written without
+# spaces (Chinese, Japanese, Thai, Lao, Khmer, Myanmar: each letter stands alone there); never
+# before a mark that belongs to the letter in front of it (an accent, a vowel sign, an emoji's
+# skin tone) nor after a joiner. In code points (LC_ALL=C.UTF-8 above: also in a C session).
+# shellcheck disable=SC2089  # (printf's 'C form: the code point of C, no quote kept)
+point() { printf -v "$1" '%d' "'$2"; }   # point VAR CHAR — its code point
+nospace() {   # nospace CHAR — a letter of a script written without spaces
+  local c; point c "$1"
+  (( (c >= 0x0E00 && c <= 0x0EFF) || (c >= 0x1000 && c <= 0x109F) || (c >= 0x1780 && c <= 0x17FF) ||
+     (c >= 0x2E80 && c <= 0x2FDF) || (c >= 0x3001 && c <= 0x31FF) || (c >= 0x3400 && c <= 0x4DBF) ||
+     (c >= 0x4E00 && c <= 0x9FFF) || (c >= 0xF900 && c <= 0xFAFF) || (c >= 0xFF00 && c <= 0xFFEF) ||
+     (c >= 0x20000 && c <= 0x3FFFF) ))
+}
+mark() {   # mark CHAR — part of the letter before it (combining, vowel sign, selector, skin tone)
+  local c; point c "$1"
+  (( (c >= 0x0300 && c <= 0x036F) || (c >= 0x0483 && c <= 0x0489) || (c >= 0x0591 && c <= 0x05C7) ||
+     (c >= 0x0610 && c <= 0x061A) || (c >= 0x064B && c <= 0x065F) || c == 0x0670 ||
+     (c >= 0x06D6 && c <= 0x06ED) || (c >= 0x0900 && c <= 0x0903) || (c >= 0x093A && c <= 0x094F) ||
+     c == 0x0E31 || (c >= 0x0E34 && c <= 0x0E3A) || (c >= 0x0E47 && c <= 0x0E4E) ||
+     c == 0x0EB1 || (c >= 0x0EB4 && c <= 0x0EBC) || (c >= 0x0EC8 && c <= 0x0ECD) ||
+     (c >= 0x102B && c <= 0x103E) || (c >= 0x17B4 && c <= 0x17D3) || (c >= 0x1AB0 && c <= 0x1AFF) ||
+     (c >= 0x1DC0 && c <= 0x1DFF) || c == 0x200D || (c >= 0x20D0 && c <= 0x20FF) ||
+     (c >= 0x3099 && c <= 0x309A) || (c >= 0xFE00 && c <= 0xFE0F) || (c >= 0xFE20 && c <= 0xFE2F) ||
+     (c >= 0x1F3FB && c <= 0x1F3FF) || (c >= 0xE0100 && c <= 0xE01EF) ))
+}
+words() {   # words TEXT N — TEXT in at most N letters, cut where a line may break (above);
+            # a single long word of spaced script loses its last letters, never half a letter
+  local s=$1 k=$2 a b
+  while ((k > 0)); do
+    a=${s:k-1:1} b=${s:k:1}
+    if [[ $b == ' ' || $a == ' ' ]]; then break; fi
+    if ! mark "$b" && [[ $a != $'\u200d' ]] && { nospace "$a" || nospace "$b"; }; then break; fi
+    ((k--))
+  done
+  a=${s:0:k}
+  [[ -z ${a//[ —-]/} ]] && {   # no place to break (one long word): at a letter's edge
+    k=$2; while ((k > 1)) && { mark "${s:k:1}" || [[ ${s:k-1:1} == $'\u200d' ]]; }; do ((k--)); done
+    a=${s:0:k}
+  }
+  a=${a%"${a##*[! —-]}"}
+  printf '%s' "$a"
+}
 status="" artist="" title="" last="" bands="" reel=0 frames=0
 show() {
   local out text body ml mr tape a=$artist
+  colours
   if [[ -z $title || ( $status != Playing && $status != Paused ) ]]; then
     out='{"text":""}'
   else
-    ((${#a} > MAXA)) && a="${a:0:MAXA-1}…"
+    # too long: cut at a word's end (a single long word loses its last letters) — never "…"
+    ((${#a} > MAXA)) && a=$(words "$a" "$MAXA")
     text="${a:+$a — }$title"
-    ((${#text} > MAX)) && text="${text:0:MAX-1}…"
+    ((${#text} > MAX)) && text=$(words "$text" "$MAX")
     esc body "$text"
     if [[ $status == Paused ]]; then
       out="{\"text\":\"$ICON_PAUSE  $body\",\"class\":\"paused\"}"

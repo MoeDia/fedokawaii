@@ -145,22 +145,33 @@ setup; printf '%s\n' "1;1;1;1;1;1;1;1;1;1;1;1;1;1;1;1;" >"$NP/frames"
 step "$(P mpv Playing '' $'Part one\nPart two')" "$(P mpv Playing '' 'Part one')"
 out=$(bar); json_lines "$out"
 eq "$(last "$out")" "playing|$(EQ 1 1 1 1 1 1 1 1)  $ICON_CASSETTE_A  Part one  $(EQ 1 1 1 1 1 1 1 1)"
-case_ "a very long title: cut to 48 characters with …; a long artist to 20"
+case_ "a very long title: cut at a word's end, to 48 characters or fewer; a long artist to 20 — never an ellipsis"
 setup; step "$(P spotify Playing 'Some Extremely Long Artist Name That Goes On' 'An Even Longer Title Of A Song That Never Ends At All')"
 t=$(last "$(bar)"); t=${t#*  }
-eq "$t" "Some Extremely Long… — An Even Longer Title Of …"
-eq "${#t}" 48
+eq "$t" "Some Extremely Long — An Even Longer Title Of A"
+((${#t} <= 48)) && _ok || _no "${#t} characters"; lacks "$t" "…"
+case_ "one long word: its last letters go (never half a letter: an accent stays with its letter)"
+setup; step "$(P spotify Playing '' "Abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstue"$'\u0301'"xyz")"
+t=$(last "$(bar)"); t=${t#*  }
+eq "$t" "Abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstu" "the e and its accent go together"
 case_ "Arabic and Japanese: counted in characters (never cut mid-letter), valid JSON"
 setup; step "$(P spotify Playing 'فيروز' 'نسم علينا الهوى من مفرق الوادي يا هوى دخل الهوى خدني على بلادي')"
 out=$(bar); json_lines "$out"
-t=$(last "$out"); t=${t#*  }; eq "${#t}" 48; has "$t" "فيروز — نسم علينا الهوى"
+t=$(last "$out"); t=${t#*  }
+eq "$t" "فيروز — نسم علينا الهوى من مفرق الوادي يا هوى" "Arabic is written with spaces: cut at a word's end"
 setup; step "$(P spotify Playing '竹内まりや' 'プラスティック・ラヴ（2021リマスター・エクステンデッド・クラブ・ミックス・バージョン）')"
 out=$(bar); json_lines "$out"
-t=$(last "$out"); t=${t#*  }; eq "${#t}" 48; has "$t" "竹内まりや — プラスティック・ラヴ"
+t=$(last "$out"); t=${t#*  }
+eq "$t" "竹内まりや — プラスティック・ラヴ（2021リマスター・エクステンデッド・クラブ・ミックス・バ" "Japanese has no spaces: cut at a character, all 48"
 case_ "… also when the session's locale is C (byte counting would cut a letter in half)"
 setup; step "$(P spotify Playing '竹内まりや' 'プラスティック・ラヴ（2021リマスター・エクステンデッド・クラブ・ミックス・バージョン）')"
 out=$(LC_ALL=C bar); json_lines "$out"
-t=$(last "$out"); t=${t#*  }; eq "${#t}" 48
+t=$(last "$out"); t=${t#*  }
+eq "$t" "竹内まりや — プラスティック・ラヴ（2021リマスター・エクステンデッド・クラブ・ミックス・バ"
+setup; step "$(P spotify Playing 'คาราบาว' 'เมดอินไทยแลนด์เวอร์ชันพิเศษที่ยาวมากจนต้องตัดออกบ้าง')"
+out=$(LC_ALL=C bar); json_lines "$out"
+t=$(last "$out"); t=${t#*  }
+eq "${#t}" 48 "Thai has no spaces either: a character's edge"; has "$t" "คาราบาว — เมดอินไทยแลนด์"
 
 # ── the program around it ────────────────────────────────────────────────────
 case_ "playerctl missing: the module hidden, and the script ends (waybar retries in 5 s)"

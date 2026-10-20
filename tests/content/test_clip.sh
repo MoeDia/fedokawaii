@@ -15,7 +15,7 @@ setup() {   # setup — a fresh sandbox, an empty history, the window's parts as
   stub cliphist "exec python3 -I '$C/fake_cliphist.py' \"\$@\""
   stub wl-copy 'cat >"$COPIED"'
   stub setsid '[ "$1" = -f ] && shift; exec "$@"'
-  stub kawa-float; stub kawa-cell 'echo 9x21'
+  stub kawa-term; stub kawa-cell 'echo 9x21'
   # fzf: what it was given (one argument per line, its list, its environment)
   stub fzf 'for a; do printf "%s\n" "$a"; done >"$FZF_ARGS"; cat >"$FZF_IN"; env >"$FZF_ENV"'
 }
@@ -341,7 +341,7 @@ eq "$(kawa-clip --list | wc -l)" 1
 case_ "Super+V: the floating window, once"
 setup; reset_calls
 kawa-clip
-called "^kawa-float --once clipboard clipboard 80x27 -- $REPO/bin/kawa-clip --tui\$"
+called "^kawa-term --float --once clipboard clipboard 80x27 -- $REPO/bin/kawa-clip --tui\$"
 
 case_ "inside: fzf with the desktop's options file, the list, the cell size for the previews"
 setup; put 'one'; put 'two'
@@ -375,13 +375,12 @@ eq "$(bash -c "${pcmd//\{1\}/1}" 2>&1)" "   hello there" "and with bash as \$SHE
 ccmd=$(grep -F -- "--bind=enter:become(" "$FZF_ARGS"); ccmd=${ccmd#--bind=enter:become(}; ccmd=${ccmd%)}
 sh -c "${ccmd//\{1\}/1}"; eq "$(cat "$COPIED")" "hello there" "enter, run as fzf runs it"
 
-case_ "a held Super+V (20 presses): one window, one list"
+case_ "Super+V pressed 21 times fast (20 ms apart, every window still on its way up): one window, one list — each press toggles"
 setup; put 'one'
-stub kawa-float; rm -f "$STUBS/kawa-float"       # the real one, its terminal a slow stand-in
+stub kawa-term; rm -f "$STUBS/kawa-term"       # the real one, its terminal a slow stand-in
 stub footclient 'while [ "$1" != -- ]; do shift; done; shift; sleep 1; exec "$@"'
-for _ in {1..20}; do kawa-clip & done; wait
-eq "$(grep -c '^footclient' "$CALLS")" 1 "footclient started once"
-eq "$(grep -c '^fzf' "$CALLS")" 1
+for _ in {1..21}; do kawa-clip & sleep 0.02; done; wait
+eq "$(grep -c '^fzf' "$CALLS")" 1 "one list shown"
 
 # ── Super+Z on an entry: the cursor's entry kept while the window is open ────
 # (the window's fzf a stand-in that waits for $TMP/close; the bindings run as fzf runs them)

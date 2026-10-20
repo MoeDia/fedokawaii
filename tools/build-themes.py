@@ -183,15 +183,22 @@ def foot_block():
     return "\n".join(out)
 
 
+SEAL_FONTS = {"dark": "Sumi Seal Ink", "light": "Sumi Seal Paper"}   # tools/build-seal.py
+
+
 def fuzzel_ini(m, p):
     # The panel's inks (docs/design-system.md): the surface ground in a 2 px muted frame; the
-    # prompt's kanji in accent_text and what you type in text — a heading's seal and name;
-    # "search" before you type in faint (words not there yet); the letters that match in
+    # launcher's heading — seal, name, stitch — is drawn in this theme's own colour font
+    # (tools/build-seal.py: its glyphs keep their inks, so the font line is the theme's), and
+    # what you type in text; the letters that match in
     # accent_text, as a hovered name. The chosen row filled whole in vermilion, its words in
     # text_on_accent — as fzf's (foot colours 16/17) and every other cursor; on the fill a
     # match keeps the same colour (fuzzel cannot underline it), the letters you typed are
     # still in the prompt. (fuzzel draws its text cursor in the input's colour: text.)
     return f"""# {header('~/.config/fedokawaii/current/fuzzel.ini', NAMES[m] + ' colours for every menu')}
+[main]
+font=Fusion Pixel 12px Mono ja:pixelsize=12,{SEAL_FONTS[m]}:pixelsize=12,Sumi Icons:pixelsize=12,JetBrainsMono Nerd Font:pixelsize=11,Noto Kufi Arabic:pixelsize=13
+
 [colors]
 background={p['surface']}ff
 text={p['text']}ff
@@ -502,14 +509,14 @@ def gtklock_css(m, p):
     """The lock screen (gtklock, kawa-lock) and the login screen (kawa-greet) share it: on the
     plain ground, one panel in the middle — the panels' own parts (docs/design-system.md): the
     surface in a 2 px muted frame, 12 px of pad; a heading (the day's seal — a picture,
-    tools/build-art.py — the date, the stitch to the right edge); the pixel padlock; the time;
+    tools/build-art.py — the date, the stitch to the right edge); the face: the pixel padlock and
+    the time in the display size (48 px: design-system §2);
     a line for what went wrong; the password's field (the key fill in a 1 px edge frame, 24 px
     high, each typed character a ◆ in accent_text, the text cursor vermilion, "パスワード ·
-    password" in faint while it is empty); on the login screen a rule and two keys. One size
+    password" in faint while it is empty); a rule and three keys (sleep, restart, power off);
+    the weekday in kanji, a stamped seal, a line of the season and the hour. One size
     of type, Fusion Pixel at 12 px, as in every panel."""
     ink = lambda k: f"#{p[k]}"
-    stitch = (f"repeating-linear-gradient(to right, {ink('edge2')} 0px, {ink('edge2')} 3px, "
-              f"transparent 3px, transparent 5px)")
     return f"""/* {header('~/.config/fedokawaii/current/gtklock.css', 'the lock and login screens in ' + NAMES[m])} */
 window {{ background-color: {ink('ground')}; }}
 * {{ font-family: "Fusion Pixel 12px Mono ja"; font-size: 12px; color: {ink('text')}; box-shadow: none;
@@ -520,9 +527,24 @@ window {{ background-color: {ink('ground')}; }}
    the seal's middle to the right edge */
 #heading {{ min-height: 23px; }}
 #date-label {{ color: {ink('text')}; margin-left: 6px; }}
-#stitch {{ margin-left: 6px; min-height: 1px; background-image: {stitch}; }}
-#padlock {{ margin-top: 6px; }}
-#clock-label {{ color: {ink('strong')}; min-height: 20px; margin-top: 6px; }}
+#stitch {{ margin-left: 6px; min-height: 1px; color: {ink('edge2')}; }}   /* (drawn whole by the screen itself) */
+/* after the date the weekday in kanji (火曜日); at the heading's end a stamped seal — 錠 the
+   lock, 門 the login — 23 × 23: a 2 px accent_text frame, the kanji in accent_text */
+#weekday {{ color: {ink('accent_text')}; margin-left: 6px; }}
+#stamp {{ color: {ink('accent_text')}; border: 2px solid {ink('accent_text')}; min-width: 19px;
+  min-height: 19px; margin-left: 6px; padding: 0; }}
+/* the face: the padlock (36 × 38), 12 px, the time in the display size — Fusion Pixel at 48 px,
+   ×4 of its grid, no smoothing (/etc/fonts: 60-fedokawaii-pixel.conf) — and AM/PM at 12 px on
+   its baseline (48 px type: baseline 40 from the top; 12 px: 10, so 6 px off the foot) */
+#face {{ margin-top: 12px; }}
+#padlock {{ margin-right: 12px; }}
+#clock-label {{ color: {ink('strong')}; font-size: 48px; margin: 0; }}
+#ampm {{ color: {ink('muted')}; margin: 0 0 6px 6px; }}
+/* under the time, a line of the season and the hour (秋の夜 · the moon, a seal on paper): its
+   kanji in accent_text, its words muted */
+#verse-line {{ min-height: 12px; margin-top: 6px; }}
+#verse-kanji {{ color: {ink('accent_text')}; }}
+#verse {{ color: {ink('muted')}; }}
 /* what went wrong (ちがう · wrong password, Caps Lock · 大文字): a 12 px line in the 18 px
    between the time and the field, empty until then */
 #messages {{ min-height: 12px; margin: 3px 0; }}
@@ -536,11 +558,11 @@ window {{ background-color: {ink('ground')}; }}
 #input-field:focus {{ border-color: {ink('edge')}; }}
 #input-field selection {{ background-color: {ink('accent')}; color: {ink('text_on_accent')}; }}
 #input-label {{ color: {ink('faint')}; }}
-/* the login screen (kawa-greet): a rule — 10 px, the stitch, 10 px — then its two keys, 24 px
+/* both screens (kawa-greet; gtklock through kawa-lockmod): a rule — 10 px, the stitch, 10 px —
+   then three keys, 24 px
    high, 6 px apart: the key fill in a 1 px edge frame; under the pointer the words turn
    accent_text; the keyboard's focus (Tab) fills one vermilion, its words on it */
-#rule {{ min-height: 21px; background-image: {stitch}; background-size: 100% 1px;
-  background-position: 0 10px; background-repeat: no-repeat; }}
+#rule {{ min-height: 21px; color: {ink('edge2')}; }}   /* (its stitch drawn whole on row 10 by the screen) */
 button {{ min-height: 22px; padding: 0; border: 1px solid {ink('edge')}; border-radius: 0;
   background-color: {ink('key')}; background-image: none; }}
 button label {{ color: {ink('text')}; }}
@@ -693,6 +715,18 @@ return {{
           -- the picker's counts ("12/403"): in the comments' quiet ink, not the faint one
           -- gruvbox gives them (close to the ground itself)
           vim.api.nvim_set_hl(0, "SnacksPickerTotals", {{ link = "Comment" }})
+          -- diagnostics in the design's inks (docs/design-system.md §1): an error vermilion
+          -- (accent_text), a warning yellow, a note asagi, a hint muted — the words alone, no
+          -- ground behind them; the code they point at underlined in the same ink
+          local d = vim.o.background == "light"
+            and {{ Error = "#{P['light']['accent_text']}", Warn = "#{P['light']['yellow']}", Info = "#{P['light']['asagi']}", Hint = "#{P['light']['muted']}" }}
+            or {{ Error = "#{P['dark']['accent_text']}", Warn = "#{P['dark']['yellow']}", Info = "#{P['dark']['asagi']}", Hint = "#{P['dark']['muted']}" }}
+          for k, c in pairs(d) do
+            vim.api.nvim_set_hl(0, "Diagnostic" .. k, {{ fg = c }})
+            vim.api.nvim_set_hl(0, "DiagnosticSign" .. k, {{ fg = c }})
+            vim.api.nvim_set_hl(0, "DiagnosticVirtualText" .. k, {{ fg = c }})
+            vim.api.nvim_set_hl(0, "DiagnosticUnderline" .. k, {{ sp = c, underline = true }})
+          end
         end,
       }})
     end,
@@ -775,7 +809,7 @@ def lualine_palettes():
 
 # files that hold literal copies of palette colours (they cannot include a generated file)
 COPIES = ["bin/kawa-books", "bin/kawa-notes", "bin/kawa-osd", "bin/kawa-clip", "bin/kawa-menu", "bin/kawa-lock",
-          "bin/kawa-wallpaper", "bin/kawa-screenshot", "bin/fetch", "src/dwl/config.h",
+          "bin/kawa-wallpaper", "bin/kawa-screenshot", "bin/kawa-record", "bin/fetch", "src/dwl/config.h",
           "configs/home/.config/mpv/mpv.conf", "configs/home/.config/satty/config.toml",
           "configs/home/.config/MangoHud/MangoHud.conf", "configs/home/.config/lazygit/config.yml"]
 
@@ -810,6 +844,14 @@ def panel_conf(m, p):
             + "".join(f"{k}={p[k]}\n" for k in keys))
 
 
+def saver_conf(m, p):
+    """kawa-saver, the screensaver: it draws dot by dot (C), so it takes the colours by name —
+    the ground, the sashiko's thread, the seals' vermilion, its clock's panel."""
+    keys = ("ground", "surface", "edge2", "faint", "muted", "text", "accent", "accent_text")
+    return (f"# {header('~/.config/fedokawaii/current/saver.conf', 'the screensaver in ' + NAMES[m])}\n"
+            + "".join(f"{k}={p[k]}\n" for k in keys))
+
+
 def dwl_colors(m, p):
     """dwl's window borders — the focused window's, the others', one asking for attention —
     the same as the menus' and notices' frames in this theme. dwl reads the file at its start
@@ -823,7 +865,7 @@ FILES = {
     "mako": mako, "qt6ct-colors.conf": qt_colors, "btop.theme": btop_theme,
     "zathurarc": zathurarc, "imv": imv, "gtklock.css": gtklock_css,
     "qt6ct.conf": qt6ct_conf, "mpv.conf": mpv_conf, "wiremix.toml": wiremix,
-    "panel.conf": panel_conf, "dwl.colors": dwl_colors,
+    "panel.conf": panel_conf, "dwl.colors": dwl_colors, "saver.conf": saver_conf,
 }
 
 

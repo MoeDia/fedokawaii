@@ -263,7 +263,7 @@ def kind_of(rel):
         return "options"
     if name == "mako" or rel.endswith(".config/mako/config"):
         return "mako"
-    if name == ".visidatarc":                 # VisiData's options file is Python
+    if rel.endswith(".config/visidata/config.py"):   # VisiData's options file is Python
         return "python"
     return None
 

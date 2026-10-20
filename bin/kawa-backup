@@ -146,7 +146,7 @@ ready() {   # ready [quiet] → REPO set, the password in the environment; else 
     . "$SECRETS"
   fi
   [[ -n ${RESTIC_PASSWORD:-} ]] \
-    || { WHY="no RESTIC_PASSWORD in $SECRETS — add a line RESTIC_PASSWORD=\"…\" (and keep a copy of it elsewhere)"; return 1; }
+    || { WHY="no RESTIC_PASSWORD in $SECRETS — add a line RESTIC_PASSWORD=\"your passphrase\" (and keep a copy of it elsewhere)"; return 1; }
   export RESTIC_PASSWORD
   # (su, a cron job: no session of yours, so the lock goes in the cache instead)
   mkdir -p "${LOCK%/*}" 2>/dev/null
@@ -309,7 +309,7 @@ wait_key() { printf '\n  any key closes this window '; read -rsn1 _ </dev/tty 2>
 
 case ${1:-} in
   "")        backup ;;
-  --window)  exec kawa-float --once backup --dialog backup 80x25 -- "$0" --wait ;;   # (a dialog: nothing but its own key ends a backup)
+  --window)  exec kawa-term --float --once backup --dialog backup 80x25 -- "$0" --wait ;;   # (a dialog: nothing but its own key ends a backup)
   --wait)    backup; wait_key ;;
   --drive-rows)      # [W] — the drive picker's rows, W columns wide (the terminal's, less two columns
                      # each side): LABEL<TAB>VALUE<TAB>ROW

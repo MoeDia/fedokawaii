@@ -1,0 +1,212 @@
+# tests/look/fixtures/not-launched.txt — what the toolkit installs that has no launcher entry
+# of its own, and why: a library, a font, a driver, a service, a command-line tool you type
+# (never a program you would look for in the launcher), or a part of the desktop reached
+# where you are (the bar, quick settings, a key) whose window is a menu, not a program.
+# Every name here is checked against the manifest by test_launcher.sh: what is no longer
+# installed must go from here too. Anything a person opens belongs in launched.txt.
+#
+# NAME                          WHY
+# ── the system, the build, the session ──
+dnf5-plugins                    dnf's own commands
+git                             a command (lazygit is its window: Git)
+jq                              a command the scripts use
+gnupg2                          a command the scripts use
+python3                         a language: the helpers' Python, scripts you write
+diffutils                       commands (diff, cmp)
+man-db                          man, in a shell; the change menu opens the manuals
+tar                             a command
+grubby                          kernel arguments, set by setup
+NetworkManager                  a service (Network is nmtui)
+sudo                            a command
+bash-completion                 the shell's tab completion
+tuned                           a service: the performance profile
+fwupd                           firmware updates: `update` lists them, fwupdmgr applies them
+pciutils                        lspci, a command
+usbutils                        lsusb, a command
+rpmfusion-free-release          a repository
+rpmfusion-nonfree-release       a repository
+gcc                             the compiler theme.sh builds dwl and the helpers with
+make                            the build
+pkgconf-pkg-config              the build
+gtk3-devel                      the build
+wayland-devel                   the build
+wayland-protocols-devel         the build
+libinput-devel                  the build
+libxkbcommon-devel              the build
+pixman-devel                    the build
+libdrm-devel                    the build
+libxcb-devel                    the build
+xcb-util-wm-devel               the build
+wlroots-devel                   the build
+meson                           the build
+inih-devel                      the build
+systemd-devel                   the build
+greetd                          the login manager
+greetd-selinux                  the login manager's policy
+xorg-x11-server-Xwayland        X11 programs' display
+cage                            the login screen's kiosk compositor
+python3-gobject                 a library (the login screen, the panels)
+gtk3                            a library
+gtk4                            a library (satty)
+libadwaita                      a library (satty)
+plymouth-plugin-script          the boot splash
+# ── media, graphics, drivers ──
+ffmpeg                          a command (ffprobe too)
+mpv                             the player: films open in it (Files, Brave); with nothing to play it shows nothing — hidden
+mpv-mpris                       mpv's part: the bar's now-playing and the media keys
+yt-dlp                          a command: mpv plays links through it
+nodejs24                        yt-dlp's JavaScript runtime; neovim's language servers
+nodejs24-bin                    node, the command
+nodejs24-npm-bin                npm, the command
+libva-utils                     vainfo, a command (the health report)
+libheif-freeworld               a library: HEIC photos
+mesa-dri-drivers                a driver
+mesa-vulkan-drivers             a driver
+vulkan-loader                   a library
+linux-firmware                  firmware
+amd-gpu-firmware                firmware
+mesa-va-drivers-freeworld       a driver
+rocm-smi                        a library btop reads the card with
+intel-media-driver              a driver
+# ── the desktop's parts ──
+pipewire                        the sound server
+wireplumber                     the sound server's session manager
+pipewire-pulseaudio             the sound server's Pulse API
+pipewire-alsa                   the sound server's ALSA API
+pipewire-utils                  pw-dump: the sound panel reads it
+playerctl                       the media keys
+cava                            the bar's music meter: it draws inside the bar
+waybar                          the bar
+mako                            the notices
+fuzzel                          the launcher itself
+gtk-layer-shell                 a library (the panels)
+swaybg                          the wallpaper's drawing (Wallpaper chooses it)
+swayidle                        the idle timer
+gtklock                         the lock screen
+wlr-randr                       the outputs' modes
+wlopm                           the screens off
+wayland-utils                   wayland-info, a command (the health report)
+ddcutil                         monitor brightness: the bar's brightness
+wtype                           the bar's clicks
+wl-clipboard                    the clipboard's commands (Clipboard is its history)
+cliphist                        the clipboard's history store (Clipboard shows it)
+grim                            the screenshot's capture (Print)
+slurp                           the screenshot's region (Print)
+gammastep                       the night light: quick settings' 灯 switches it
+libnotify                       notify-send, a command
+xdg-desktop-portal-wlr          a portal: screen sharing
+xdg-desktop-portal-gtk          a portal: settings, printing
+xdg-utils                       xdg-open, a command
+xdg-user-dirs                   the home folders' names
+udiskie                         drives mounted as they are plugged in (the bar's drives)
+lxqt-policykit                  the password dialogs
+udisks2                         a service: drives
+exfatprogs                      a command: check and name exFAT drives
+dosfstools                      a command: FAT drives
+ntfs-3g                         NTFS drives
+xdg-terminal-exec               a terminal for apps that ask for one
+bluez                           the Bluetooth service (Bluetooth is bluetui)
+dconf                           GTK's settings store
+glib2                           gsettings, gio: commands
+fontconfig                      fonts' lookup
+# ── the look ──
+adw-gtk3-theme                  a theme
+qt6ct                           the Qt apps' look: written by the theme, switched with it — hidden
+liberation-fonts-all            fonts
+google-noto-sans-fonts          fonts
+google-noto-naskh-arabic-fonts  fonts
+amiri-fonts                     fonts
+google-noto-kufi-arabic-fonts   fonts
+google-noto-color-emoji-fonts   fonts
+google-noto-sans-cjk-vf-fonts   fonts
+terminus-fonts-console          the text console's font
+# ── apps' parts and command-line tools ──
+gh                              a command: GitHub from the terminal
+git-delta                       lazygit's diffs (delta)
+libreoffice-gtk3                LibreOffice's GTK drawing
+hunspell-en                     a dictionary
+hunspell-ar                     a dictionary
+zathura-pdf-mupdf               zathura's PDF part: PDFs open in it (Books, Files)
+zathura-cb                      zathura's comics part
+qpdf                            a command: PDF tools
+poppler-utils                   commands: PDF tools
+ghostscript                     a command: PDF compression
+tesseract                       a command: text from scans
+tesseract-langpack-eng          tesseract's English
+tesseract-langpack-ara          tesseract's Arabic
+imv                             the image viewer: pictures open in it (Files, Brave); its package's entry stays
+ImageMagick                     commands: conversions (magick)
+ImageMagick-heic                ImageMagick's HEIC part
+python3-twisted                 Syncplay's library
+python3-twisted+tls             Syncplay's library
+python3-pyOpenSSL               Syncplay's library
+python3-certifi                 Syncplay's library
+python3-pem                     Syncplay's library
+qrencode                        a command: QR codes
+wf-recorder                     the screen recording's encoder (kawa-record)
+bat                             a command: the pager
+ripgrep                         a command: rg
+fd-find                         a command: fd
+fzf                             the shell's and the windows' fuzzy lists
+file                            a command
+7zip                            a command: archives (Files opens them; Books' comic covers and pages)
+zstd                            a command: .tar.zst archives (File tools)
+unrar                           a command: RAR archives (File tools; Books' .cbr comics)
+eza                             a command: ls
+zoxide                          the shell's z
+tldr                            a command: examples
+tree-sitter-cli                 neovim's parser builder
+ShellCheck                      a command: checks shell scripts
+uv                              a command: Python, to learn with
+rustup                          a command: Rust, to learn with
+snapper                         snapshots: a timer, and the snapper command
+libdnf5-plugin-actions          dnf's snapshot hook
+grub-btrfs                      the snapshots in the boot menu
+podman                          Prowlarr's container
+# ── games' parts ──
+gamescope                       a command games are started with
+mangohud                        the games' overlay
+ntsync-autoload                 a kernel module
+steam-devices                   controllers' rules
+# ── release binaries' parts ──
+satty                           the screenshot's editor: it opens on a capture (Super+Print)
+# ── the desktop's own helpers ──
+kawa-bar                        the bar's buttons
+kawa-brightness                 the brightness keys and slider
+kawa-calendar                   a menu: the bar's date (Super+C)
+kawa-cell                       a part of the windows' pictures
+kawa-clipfiles                  files on the clipboard: yazi's Ctrl+C / Ctrl+V
+kawa-config                     a menu: Super+Shift+U, "change the desktop" in Super+U
+kawa-display                    the outputs' modes, at login
+kawa-downloads                  a menu: the bar's download mark
+kawa-drives                     a menu: the bar's drives, the drive's notice
+kawa-dwlstatus                  the bar's status
+kawa-game                       game mode: Steam's watch in the bar runs it
+kawa-glass                      a switch: Super+U → transparency
+kawa-help                       a menu: Super+/
+kawa-hush                       notices held back while sharing or gaming
+kawa-idle                       what happens while you are away
+kawa-lock                       the lock: Super+Escape
+kawa-mem                        the bar's memory
+kawa-menu                       the menus' and the launcher's look
+kawa-night                      the night light: quick settings' 灯
+kawa-nowplaying                 the bar's now-playing
+kawa-osd                        the level display
+kawa-panel                      the panels: quick settings (Super+X), sound (Super+A)
+kawa-pick                       the file dialog
+kawa-play                       films open in mpv through it
+kawa-power                      a menu: Super+Shift+E, quick settings' power
+kawa-quick                      quick settings (the bar's cat); its windows have entries (Network, Bluetooth, Volume mixer)
+kawa-record                     Super+Shift+R, the bar's 録 mark
+kawa-screenshot                 Print, Shift+Print, Super+Print, quick settings' screenshot
+kawa-share                      the screen share's chooser
+kawa-shrink                     a menu: Super+Z, yazi's Alt+S
+kawa-sixel                      a part of the windows' pictures
+kawa-state                      the settings' store
+kawa-tag                        the bar's workspaces
+kawa-term                       the terminal windows' opener
+kawa-theme                      dark ⇄ light: quick settings' theme
+kawa-timer                      a menu: the bar's time
+kawa-tidy                       the home kept clean: its timer runs it
+kawa-volume                     the volume keys
+kawa-weather                    a menu: the bar's weather

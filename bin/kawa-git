@@ -1,0 +1,136 @@
+#!/usr/bin/env bash
+# kawa-git — "Git" in the launcher: your repositories, the one you worked in last at the top;
+# Enter opens lazygit in it. A text screen (docs/design-system.md §7): 庫 repositories, a row
+# each — its folder, its branch right-aligned — type to filter, Esc closes.
+# A repository is a folder with a .git in it, in ~/repos (three levels down) or your home
+# (three levels, not in hidden folders), found with fd; "last" is when git last touched it
+# (the time of its .git folder). With none yet, the screen says how to get one: c clones one
+# into ~/repos from its address, n starts a new one there (git init) — either then opens.
+#
+#   kawa-git          the picker, in this terminal (the launcher's entry gives it a window of
+#                     its own: kawa-term, app-id kawa-git)
+#   kawa-git --list   the repositories, one folder a line, the last used first
+#   kawa-git --rows list|none [W] · --heading list|none [W]
+#                     the picker's rows and heading, W columns wide (the terminal's, less two
+#                     each side): fzf asks for them as it starts and at every resize, so a
+#                     tiled window that changes size is laid out again
+#
+# Exit: 0 lazygit opened, or Esc · 1 no terminal, or git/lazygit/fd missing · 2 misuse.
+set -u
+case ${1:-} in
+  -h|--help) sed -n '2,/^set -u/{/^set -u/d;s/^# \{0,1\}//;p}' "$0"; exit 0 ;;
+  ""|--list) ;;
+  --rows|--heading) [[ ${2:-} == @(list|none) ]] || { echo "usage: kawa-git $1 list|none [W]" >&2; exit 2; } ;;
+  *) echo "usage: kawa-git [--list]" >&2; exit 2 ;;
+esac
+for p in git fd; do command -v "$p" >/dev/null || { echo "kawa-git: $p is missing — fedokawaii repair puts it back" >&2; exit 1; }; done
+
+# repos — every repository's folder, the last used first
+repos() {
+  local d
+  { [[ -d $HOME/repos ]] && fd --hidden --no-ignore --type d --max-depth 4 --prune '^\.git$' "$HOME/repos"
+    fd --hidden --no-ignore --type d --max-depth 3 --prune '^\.git$' "$HOME"; } 2>/dev/null \
+    | while IFS= read -r d; do
+        d=${d%/}; d=${d%/.git}
+        [[ ${d#"$HOME"} == */.* ]] && continue      # (inside a hidden folder: a tool's, not yours)
+        printf '%s\t%s\n' "$(stat -c %Y -- "$d/.git")" "$d"
+      done | sort -t$'\t' -k1,1nr -k2,2 | cut -f2 | awk '!seen[$0]++'
+}
+if [[ ${1:-} == --list ]]; then repos; exit 0; fi
+
+# shellcheck source=/dev/null
+. "$HOME/.config/fedokawaii/icons.sh"
+# shellcheck source=/dev/null
+. "$HOME/.config/fedokawaii/screen.sh"
+SHOWN=\~/repos                                     # (as the screen writes it: a tilde, not your home's path)
+
+# branch DIR — its branch, from .git/HEAD (detached: the commit's first 7)
+branch() {
+  local h
+  IFS= read -r h <"$1/.git/HEAD" 2>/dev/null || return 0
+  if [[ $h == "ref: refs/heads/"* ]]; then printf '%s' "${h#ref: refs/heads/}"; else printf '%s' "${h:0:7}"; fi
+}
+# rows KIND W — WHAT<TAB>ROW a line: a repository each (its folder, its branch), or the two ways to get one
+rows() {
+  local d
+  if [[ $1 == none ]]; then
+    printf '%s\t%s\n' clone "$(screen_row "$ICON_DOWNLOAD" "clone one" "from its address" "$2")" \
+                       init "$(screen_row "$ICON_FOLDER" "start a new one" "in $SHOWN" "$2")"
+  else
+    while IFS= read -r d; do
+      [[ -n $d ]] && printf '%s\t%s\n' "$d" "$(screen_row "$ICON_BRANCH" "${d/#"$HOME"/\~}" "$(branch "$d")" "$2")"
+    done <<<"${KAWA_GIT_REPOS-$(repos)}"
+  fi
+}
+heading() {   # heading KIND W
+  screen_heading 庫 repositories "$2"
+  if [[ $1 == none ]]; then
+    printf '\n\n  no repositories yet: none in %s or your home.\n  get one, and lazygit opens in it.' "$SHOWN"
+  fi
+  printf '\n '
+}
+if [[ ${1:-} == --rows || ${1:-} == --heading ]]; then
+  w=${3:-}; [[ -n $w ]] || w=$(screen_width) || exit 1
+  if [[ $1 == --rows ]]; then rows "$2" "$w"; else heading "$2" "$w"; fi
+  exit 0
+fi
+
+command -v lazygit >/dev/null || { echo "kawa-git: lazygit is missing — fedokawaii repair puts it back" >&2; exit 1; }
+command -v fzf >/dev/null || { echo "kawa-git: fzf is missing — fedokawaii repair puts it back" >&2; exit 1; }
+export FZF_DEFAULT_OPTS_FILE=$HOME/.config/fedokawaii/fzf.opts; unset FZF_DEFAULT_OPTS
+W=$(screen_width) || { echo "kawa-git: no terminal to draw in" >&2; exit 1; }
+self=$(printf '%q' "$0")
+# the picker: KIND's rows and heading, laid out again at every resize (fzf asks this script)
+pick() {
+  local kind=$1; shift
+  fzf --ansi --no-sort --height=100% --delimiter=$'\t' --with-nth=2 --with-shell='bash -c' \
+    --bind="start,resize:reload-sync[$self --rows $kind]+transform-header[$self --heading $kind]" \
+    "$@" </dev/null
+}
+open() { cd -- "$1" && printf '\e[H\e[2J' && exec lazygit; }
+
+# ── with none: how to get one ────────────────────────────────────────────────────────────
+# ask WHAT HINT — a line typed under the heading, printed (Enter takes it; empty: back). The
+# screen goes to the terminal itself: what is printed is the answer alone
+ask() {
+  local v
+  { printf '\e[H\e[2J\n  %s\n\n' "$(screen_heading 庫 "$1" "$W")"
+    printf '    %s%s%s\n\n    %s%s%s  ' "$INK_MUTED" "$2" "$INK_OFF" "$INK_KANJI" "$ICON_CHEVRON_RIGHT" "$INK_OFF"; } >/dev/tty
+  IFS= read -re v </dev/tty 2>/dev/tty || return 1
+  [[ -n $v ]] || return 1
+  printf '%s' "$v"
+}
+said() { printf '\n    %s%s%s\n\n    %sany key: back%s' "$INK_KANJI" "$1" "$INK_OFF" "$INK_MUTED" "$INK_OFF"; read -rsn1 </dev/tty; }
+clone() {
+  local url name
+  url=$(ask "clone a repository" "its address, as its page shows it: https://github.com/someone/project") || return 0
+  name=${url%/}; name=${name##*[/:]}; name=${name%.git}
+  [[ -n $name && $name != .* ]] || { said "no repository name in that address"; return 0; }
+  [[ ! -e $HOME/repos/$name ]] || { said "$SHOWN/$name is there already"; return 0; }
+  mkdir -p -- "$HOME/repos" || { said "cannot make $SHOWN"; return 0; }
+  printf '\n'
+  git clone -- "$url" "$HOME/repos/$name" || { said "git could not clone it (above: why)"; return 0; }
+  open "$HOME/repos/$name"
+}
+init() {
+  local name
+  name=$(ask "a new repository" "its name: a folder of that name in $SHOWN") || return 0
+  [[ $name =~ ^[[:alnum:]][[:alnum:]._-]*$ ]] || { said "a name of letters, digits, . _ - (no spaces, no /)"; return 0; }
+  [[ ! -e $HOME/repos/$name ]] || { said "$SHOWN/$name is there already"; return 0; }
+  mkdir -p -- "$HOME/repos/$name" && git init -q -- "$HOME/repos/$name" || { said "git could not make it"; return 0; }
+  open "$HOME/repos/$name"
+}
+none() {
+  local got
+  while :; do
+    W=$(screen_width) || exit 1                     # (the ask screens: at the width it has now)
+    got=$(pick none --no-input --footer=$'\n'"$(screen_footer 'c clone' 'n new' 'enter choose' 'esc close')" \
+            --bind='c:pos(1)+accept,n:pos(2)+accept') || exit 0
+    case ${got%%$'\t'*} in clone) clone ;; init) init ;; esac
+  done
+}
+
+KAWA_GIT_REPOS=$(repos); export KAWA_GIT_REPOS        # (found once: each resize lays them out again)
+[[ -n $KAWA_GIT_REPOS ]] || none
+got=$(pick list --ghost="type to filter" --footer=$'\n'"$(screen_footer 'enter open' 'esc close')") || exit 0
+open "${got%%$'\t'*}"

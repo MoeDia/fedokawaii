@@ -39,7 +39,7 @@ for f; do case $(cat "$W/edit") in change) echo "# yours" >>"$f" ;; esac; done'
 '"$edit"'
 exit "$(cat "$W/editrc")"'
   stub foot "$edit"
-  stub kawa-float; stub setsid; stub kawa-term; stub kawa-help
+  stub setsid; stub kawa-term; stub kawa-help
   # python3: fontTools there or not ($W/no-fonttools), pip offline or not ($W/offline)
   stub python3 'case "$*" in
   "-c import fontTools") [ -e "$W/no-fonttools" ] && exit 1; exit 0 ;;
@@ -62,7 +62,7 @@ title() { fz_arg title "${1:-}"; }
 # ── the menu, and the copy's state in its title ──────────────────────────────────────
 case_ "no working copy yet: every part in five, each under its kanji, sized to its content, the title says it is made on first use"
 setup; answer esc; rc 0 config_
-eq "$(fz_rows | grep '^row' | cut -f3 | tr '\n' ',')" "colours,bar,bar look,icons,notifications,launcher,keys,terminal,shell,files,drives,autostart,settings,packages,yours alone,what changed,history,apply,learn,"
+eq "$(fz_rows | grep '^row' | cut -f3 | tr '\n' ',')" "colours,bar,bar look,icons,notifications,launcher,transparency,keys,terminal,shell,files,drives,autostart,settings,packages,yours alone,what changed,history,apply,update fedokawaii,learn,"
 eq "$(fz_rows | grep '^part' | cut -f2,3 | tr '\t\n' ' ,')" "見 look,手 use,系 system,史 history,案 help," "the headings: a kanji, the name"
 eq "$(fz_rows | grep -vc -e '^part	' -e '^row	')" 0 "nothing but parts and rows (the panel spaces its parts)"
 eq "$(fz_rows | grep '^row' | awk -F'\t' 'NF != 4' )" "" "every row: its icon, its name, its note"
@@ -107,15 +107,15 @@ setup; copy_made; echo change >"$W/edit"; answer "pick terminal" "pick apply now
 eq "$(fz_n)" 2; eq "$(title 2)" "the terminal server reads it at your next login"
 eq "$(fz_rows 2 | cut -f1-3 | tr '\t\n' ' ,')" "part 適 apply,row $ICON_DOWNLOAD apply now,row $ICON_HOURGLASS later,row $ICON_BRANCH what changed," "the apply question: 適 apply, three rows"
 FITS_WRAP=1 fits 2 "(the when-text wraps at its spaces)"
-called '^kawa-float --once apply --dialog apply 100x33 -- bash -c .* _ fedokawaii apply$'
+called '^kawa-term --float --once apply --dialog apply 100x33 -- bash -c .* _ fedokawaii apply$'
 case_ "… later: nothing runs now"
 setup; copy_made; echo change >"$W/edit"; answer "pick terminal" "pick later"; config_
-not_called '^kawa-float'
+not_called '^kawa-term --float'
 case_ "… what changed: fedokawaii diff in a window"
 setup; copy_made; echo change >"$W/edit"; answer "pick terminal" "pick what changed"; config_
-called '^kawa-float --once diff --dialog what changed 120x41 -- bash -c .* _ fedokawaii diff$'
+called '^kawa-term --float --once diff --dialog what changed 120x41 -- bash -c .* _ fedokawaii diff$'
 case_ "… Esc: nothing runs"
-setup; copy_made; echo change >"$W/edit"; answer "pick terminal" esc; config_; not_called '^kawa-float'
+setup; copy_made; echo change >"$W/edit"; answer "pick terminal" esc; config_; not_called '^kawa-term --float'
 case_ "two files in one part (keys: dwl's config.h and the help sheet), side by side"
 setup; copy_made; answer "pick keys"; config_
 called '^footclient -T change · keys -D .* -- nvim -O -- src/dwl/config.h configs/home/.config/fedokawaii/keybinds.txt$'
@@ -160,9 +160,10 @@ eq "$(fz_n)" 1
 
 # ── the rest of the menu ──────────────────────────────────────────────────────────────
 case_ "what changed (no copy yet: made first), apply, history (lazygit in the copy)"
-setup; answer "pick what changed"; config_; called '^fedokawaii copy'; called '^kawa-float --once diff --dialog what changed 120x41 '
-setup; copy_made; answer "pick apply"; config_; called '^kawa-float --once apply --dialog apply 100x33 '
+setup; answer "pick what changed"; config_; called '^fedokawaii copy'; called '^kawa-term --float --once diff --dialog what changed 120x41 '
+setup; copy_made; answer "pick apply"; config_; called '^kawa-term --float --once apply --dialog apply 100x33 '
 setup; copy_made; answer "pick 	history	"; config_; called "^footclient -N -D $COPY -- lazygit$"
+setup; copy_made; answer "pick update fedokawaii"; config_; called '^kawa-term --float --once pull --dialog update fedokawaii 100x33 -- bash -c .* _ fedokawaii pull$'
 case_ "yours alone: each file made the first time with a word of what it is for, then opened"
 for p in "shell additions:.bashrc.d/local.sh:Fedora's ~/.bashrc reads every" "autostart:.config/dwl/autostart.local.sh:run at every login" \
          "neovim plugins:.config/nvim/lua/plugins/local.lua:LazyVim reads every file"; do
@@ -179,13 +180,13 @@ answer "pick yours alone" "pick shell additions"; config_
 eq "$(cat "$HOME/.bashrc.d/local.sh")" "alias ll='ls -l'"
 case_ "your scripts: yazi in ~/.local/bin"
 setup; answer "pick yours alone" "pick your scripts"; config_; called "^footclient -N -- yazi $HOME/.local/bin$"
-case_ "learn: the handbook, the help sheet, a man page, a web page"
-setup; answer "pick learn" "pick this handbook"; config_; called '^fedokawaii guide$'; fits 2
+case_ "learn: the learning guide, the help sheet, a man page, a web page"
+setup; answer "pick learn" "pick learning guide"; config_; called '^fedokawaii guide$'; fits 2
 setup; answer "pick learn" "pick 	keys	"; config_; called '^kawa-help'
 setup; answer "pick learn" "pick man foot.ini"; config_; called '^kawa-term man 5 foot.ini$'
 setup; answer "pick learn" "pick ShellCheck"; config_; called '^setsid -f xdg-open https://www.shellcheck.net/wiki/$'
 case_ "Esc, a click outside: closes, nothing made or run"
-for a in esc lost; do setup; answer "$a"; rc 0 config_; not_called '^(fedokawaii|footclient|kawa-float)'; done
+for a in esc lost; do setup; answer "$a"; rc 0 config_; not_called '^(fedokawaii|footclient|kawa-term --float)'; done
 
 case_ "--help: what it is, exit 0; anything else: exit 2, no menu"
 setup; has "$(kawa-config --help)" "change the desktop itself"; rc 0 kawa-config --help

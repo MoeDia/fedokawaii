@@ -1,6 +1,6 @@
 #!/bin/bash
-# make of the fake Fedora: dwl's build leaves a dwl that prints its version; kawa-veil's and
-# kawa-clipkeep's (make -s -C DIR O=DIR) leave their binary; ble.sh's (make -C SRC install
+# make of the fake Fedora: dwl's build leaves a dwl that prints its version;
+# kawa-clipkeep's, kawa-saver's and kawa-lockmod's (make -s -C DIR O=DIR) leave their binary; ble.sh's (make -C SRC install
 # INSDIR=DIR) its ble.sh in DIR (fake_blesh_install) — $FKH/rc-make-NAME fails one
 . /usr/local/bin/_lib.sh
 fkh_log "$*"
@@ -11,7 +11,7 @@ if [[ -n $ins && -f $d/ble.pp ]]; then
   fake_blesh_install "$ins"; exit 0
 fi
 if [[ -n $o ]]; then
-  for t in kawa-veil kawa-clipkeep; do
+  for t in kawa-clipkeep kawa-saver kawa-lockmod; do
     grep -qs "$t" "$o/Makefile" || continue
     r=$(rcfor "make-$t" 0); ((r == 0)) || { echo "cc: error: $t.c: something" >&2; exit "$r"; }
     printf '#!/bin/sh\n[ "$1" = -- ] && shift; exec "$@"\n' >"$o/$t"; chmod 755 "$o/$t"
@@ -19,5 +19,6 @@ if [[ -n $o ]]; then
 fi
 r=$(rcfor make-dwl 0); ((r == 0)) || exit "$r"
 w=/usr/local/lib/fedokawaii-wlroots-0.20/lib/libwlroots-0.20.so
-[[ -n $d ]] && printf '#!/bin/sh\n# ldd: libxcb.so.1 => /usr/lib64/libxcb.so.1 (0x1)\n# ldd: libwlroots-0.20.so => %s (0x2)\necho "dwl 0.9"\n' "$w" >"$d/dwl" && chmod 755 "$d/dwl"
+# (-s CMD: started — CMD runs, and its SIGTERM ends it cleanly, as the real one: verify's start test)
+[[ -n $d ]] && printf '#!/bin/sh\n# ldd: libxcb.so.1 => /usr/lib64/libxcb.so.1 (0x1)\n# ldd: libwlroots-0.20.so => %s (0x2)\n[ -f /var/lib/fkh/dwl-crash ] && exit 1\nif [ "$1" = -s ]; then trap "exit 0" TERM; sh -c "$2" & wait; exit 0; fi\necho "dwl 0.9"\n' "$w" >"$d/dwl" && chmod 755 "$d/dwl"
 exit 0

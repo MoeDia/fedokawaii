@@ -6,14 +6,34 @@
 # Super+B, links (Theme points the desktop's brave-origin.desktop here) and `brave-origin`
 # in a shell all start Brave this way; everything else reaches Brave unchanged — a feature
 # list of your own is joined to this one, not replaced by it.
+# Video through the GPU (VA-API, mesa-va-drivers-freeworld): a call's camera and a shared
+# screen are encoded by the card, not the processor (AcceleratedVideoEncoder — WebRTC's
+# H.264/VP9/AV1 on the RX's encoder: a share stays smooth while a game runs), and videos are
+# decoded there and handed to the compositor without a copy (AcceleratedVideoDecodeLinuxGL,
+# …ZeroCopyGL: Chromium's VA-API path on Wayland). brave://gpu lists them under "Video
+# Acceleration Information". WebRTCPipeWireCapturer, named though Chromium has it on under
+# Wayland: a share is always taken through the portal and PipeWire — DMA-BUF frames straight
+# from dwl's GPU buffers (no copy through the processor), at the rate the call asks, up to
+# xdg-desktop-portal-wlr's max_fps (60) — never X11's slow whole-screen grab.
+# To see it at work in a call: brave://webrtc-internals → the call's outbound-rtp (video)
+# stats: encoderImplementation "ExternalEncoder" (VA-API; "libvpx"/"OpenH264" = the
+# processor), framesPerSecond near what the call asks (Meet and Discord: up to 30, or 60 when
+# chosen), qualityLimitationReason "none".
+# The microphone's level is never moved by a call: WebRtcAllowInputVolumeAdjustment off —
+# else Chromium's gain control turns the system's microphone volume up and down as you speak
+# (Meet always asks for it), pumping the clean mic's level (60-clean-mic.conf) and every
+# other program's; its own gain inside the call still works. A --disable-features of your own
+# is joined to this one.
 # The password store is pinned to Brave's basic one — the one it uses here today, with no
 # keyring running — so that a keyring a package brings later, or a Brave that chooses
 # differently, can never leave every login and cookie saved before it unreadable. (A
 # --password-store of your own comes after it: Chromium keeps a switch's last value.)
 set -u
-feat=PulseaudioLoopbackForScreenShare args=() rest=""
+feat=PulseaudioLoopbackForScreenShare,WebRTCPipeWireCapturer,AcceleratedVideoEncoder,AcceleratedVideoDecodeLinuxGL,AcceleratedVideoDecodeLinuxZeroCopyGL args=() rest=""
+off=WebRtcAllowInputVolumeAdjustment
 for a in "$@"; do                           # (after --, Chromium reads no switches: nor here)
   if [[ -z $rest && $a == --enable-features=* ]]; then feat+=",${a#--enable-features=}"
+  elif [[ -z $rest && $a == --disable-features=* ]]; then off+=",${a#--disable-features=}"
   else [[ $a == -- ]] && rest=1; args+=("$a"); fi
 done
 # (the package's launcher, which its own brave-origin.desktop runs: Chromium's installer names
@@ -21,4 +41,16 @@ done
 # its profile is ~/.config/BraveSoftware/Brave-Origin)
 b=/usr/bin/brave-origin-stable
 [[ -x $b ]] || { echo "brave-origin: Brave Origin is not installed (sudo dnf install brave-origin)" >&2; exit 127; }
-exec "$b" "--enable-features=$feat" --password-store=basic "${args[@]}"
+# Widevine (Spotify's web player plays nothing without it), switched on once — as Theme does,
+# here too, because Theme cannot while Brave is open (Brave writes its Local State again as
+# it closes): before a start, with Brave closed, it is safe. Once only: the marker says it
+# was set, and one you switched off in brave://settings since stays off
+ls="${XDG_CONFIG_HOME:-$HOME/.config}/BraveSoftware/Brave-Origin/Local State"
+wm=${XDG_STATE_HOME:-$HOME/.local/state}/fedokawaii/brave-widevine
+if [[ ! -e $wm ]] && command -v jq >/dev/null && ! pgrep -u "$UID" -f '/brave-origin/brave( |$)' >/dev/null; then
+  mkdir -p -- "${ls%/*}" "${wm%/*}"
+  if [[ -s $ls ]]; then t=$(jq '.brave.widevine_opted_in = true' "$ls" 2>/dev/null)
+  else t=$(jq -n '.brave.widevine_opted_in = true'); fi
+  [[ -n $t ]] && (umask 077; printf '%s\n' "$t" >"$ls.fk$$") && mv -f -- "$ls.fk$$" "$ls" && : >"$wm"
+fi
+exec "$b" "--enable-features=$feat" "--disable-features=$off" --password-store=basic "${args[@]}"

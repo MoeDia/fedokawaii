@@ -1,0 +1,14 @@
+[Desktop Entry]
+# The wallpaper picker (kawa-wallpaper), as Super+W opens it: the pictures for the current
+# theme, the one under the cursor shown as the screen will; Enter sets it.
+# Its icon: foot's, the terminal that draws its window (the launcher shows each program's own
+# icon, never an icon pack's).
+Type=Application
+Name=Wallpaper
+GenericName=Desktop background
+Comment=Choose the picture behind the windows
+Icon=foot
+Exec=@HOME@/.local/bin/kawa-wallpaper
+Terminal=false
+Categories=Settings;DesktopSettings;
+Keywords=background;wallpaper;picture;desktop;

@@ -41,8 +41,11 @@ loader = importlib.machinery.SourceFileLoader("kawa_panel", sys.argv[1])
 spec = importlib.util.spec_from_loader("kawa_panel", loader)
 kp = importlib.util.module_from_spec(spec); loader.exec_module(kp)
 class UI:
-    def __init__(self): self.calls, self.t, self.pending, self.drawn, self.click = [], 100.0, [], [], None
-    def clicked(self): return self.click
+    def __init__(self): self.calls, self.t, self.pending, self.drawn, self.at, self.cid = [], 100.0, [], [], None, None; self.pushed = []
+    def clicked(self): return self.at
+    def click(self): return self.cid             # the bar's last press, fresh (its id), or None
+    def push(self, name, line): self.pushed.append((name, line))
+    def trim(self, size): return 0, size[1], size[0]   # (the pads as laid out: no drawing here)
     def now(self): return self.t
     def redraw(self, *items): self.calls.append("redraw"); self.drawn.append([i.key for i in items] or "all")
     def show(self): self.calls.append("show")
@@ -51,6 +54,7 @@ class UI:
     def close_menu(self): self.calls.append("close menu")
     def run(self, argv, done): self.calls.append("run " + " ".join(argv)); self.pending.append(done)
     def launch(self, argv): self.calls.append("launch " + " ".join(argv))
+    def listen(self, on): self.listening = on    # (the clean mic's level read, or not)
     def answer(self, out="", rc=0):            # the oldest run comes back
         self.pending.pop(0)(rc, out)
 STATE = ("theme\tdark\nbrightness\t70%\nnight\ton\nvrr\tin games\nwallpaper\tmishima-mist\nsound\t62%\n"
@@ -70,7 +74,7 @@ def fresh(state=STATE):
     global u, p
     u = UI(); p = kp.Panel(u); p.refresh(); u.answer(state); u.calls.clear()
 def opened(mode, state):                       # the panel open in mode, its state read
-    fresh(); p.toggle(mode); u.answer(state); u.calls.clear(); u.drawn.clear()
+    fresh(); p.request(mode); u.answer(state); u.calls.clear(); u.drawn.clear()
 exec(sys.argv[3])
 EOF
 }
@@ -78,27 +82,29 @@ EOF
 # ── the layout ─────────────────────────────────────────────────────────────────────────
 case_ "the items, in order: two meters, the tiles (bluetooth and devices with an adapter), three keys"
 eq "$(py 'fresh(); print(" ".join(i.key for i in p.items))')" \
-  "brightness sound theme night vrr network bluetooth devices drives backup dnd wallpaper screenshot power"
+  "brightness sound theme night vrr network bluetooth devices drives backup dnd saver wallpaper screenshot power"
 eq "$(py 'fresh(STATE.replace("bluetooth\ton\n","").replace("devices\tnone\n","")); print(" ".join(i.key for i in p.items))')" \
-  "brightness sound theme night vrr network drives backup dnd wallpaper screenshot power"
-case_ "the size: 304 × 340 (2 px frame, 12 px margin, three 88 px tiles 6 px apart; no day line: the bar's)"
-eq "$(py 'fresh(); print(*p.size)')" "304 340"
+  "brightness sound theme night vrr network drives backup dnd saver wallpaper screenshot power"
+case_ "the size: 304 × 439 (2 px frame, 12 px margin, its heading, three 88 px tiles 6 px apart; no day line: the bar's)"
+eq "$(py 'fresh(); print(*p.size)')" "304 439"
+case_ "it opens under its heading, as every panel: 設 quick settings, the stitch to the right edge"
+eq "$(py 'fresh(); print(p.heads)')" "[('設', 'quick settings', 14, 14)]"
 case_ "notices are as wide: one column under the bar's right end"
 has "$(cat "$REPO/configs/home/.config/mako/config")" "width=$(py 'fresh(); print(p.size[0])')"
-case_ "the tiles: three a row, 88 × 64, 6 px apart; the content 14 px from every edge"
+case_ "the tiles: three a row (ten: 3 3 2 2 — two a row are wider), 88 × 64, 6 px apart; the content 14 px from every edge"
 eq "$(py 'fresh(); print(" ".join(f"{i.x},{i.y},{i.w},{i.h}" for i in p.items if i.kind == "tile"))')" \
-  "14,77,88,64 108,77,88,64 202,77,88,64 14,147,88,64 108,147,88,64 202,147,88,64 14,217,88,64 108,217,88,64 202,217,88,64"
-case_ "no adapter: seven tiles, three then two and two (never a lone tile), each row the full width"
+  "14,106,88,64 108,106,88,64 202,106,88,64 14,176,88,64 108,176,88,64 202,176,88,64 14,246,135,64 155,246,135,64 14,316,135,64 155,316,135,64"
+case_ "no adapter: eight tiles, three, three, then two (never a lone tile), each row the full width"
 eq "$(py 'fresh(STATE.replace("bluetooth\ton\n","").replace("devices\tnone\n","")); print(" ".join(f"{i.x}+{i.w}" for i in p.items if i.kind == "tile"))')" \
-  "14+88 108+88 202+88 14+135 155+135 14+135 155+135"
+  "14+88 108+88 202+88 14+88 108+88 202+88 14+135 155+135"
 eq "$(py 'print([kp.rows_of(n) for n in (9, 8, 7, 6, 4, 1)])')" "[[3, 3, 3], [3, 3, 2], [3, 2, 2], [3, 3], [2, 2], [1]]"
-case_ "the keys at the foot: wallpaper, screenshot, power (an icon alone) — centred, 26 px each side"
+case_ "the keys at the foot: wallpaper, screenshot, power (an icon alone) — the whole width, 6 px apart"
 eq "$(py 'fresh(); print(" ".join(f"{i.key}:{i.x}+{i.w}:{i.name or chr(45)}" for i in p.items if i.kind == "key"))')" \
-  "wallpaper:40+94:wallpaper screenshot:140+94:screenshot power:240+24:-"
-eq "$(py 'fresh(); k=[i for i in p.items if i.kind=="key"]; print(k[0].x - 14, 290 - (k[-1].x + k[-1].w))')" "26 26"
-case_ "the meters first (14 px from the top, as every edge): the full width, 20 px rows 2 px apart; the rules 10 px from what they part"
+  "wallpaper:14+120:wallpaper screenshot:140+120:screenshot power:266+24:-"
+eq "$(py 'fresh(); k=[i for i in p.items if i.kind=="key"]; print(k[0].x - 14, 290 - (k[-1].x + k[-1].w))')" "0 0"
+case_ "the meters under the heading: the full width, 20 px rows 2 px apart; the rules 10 px from what they part"
 eq "$(py 'fresh(); print(" ".join(f"{i.x},{i.y},{i.w},{i.h}" for i in p.items if i.kind == "meter"), p.rules)')" \
-  "14,14,276,20 14,36,276,20 [66, 291]"
+  "14,43,276,20 14,65,276,20 [95, 390]"
 
 # ── the tiles' words and seals ─────────────────────────────────────────────────────────
 t() { py "fresh($1); i = p.item('$2'); print(i.icon, i.kanji, i.name, '|', i.value, '|', 'stamped' if i.lit else 'plain')"; }
@@ -107,8 +113,17 @@ eq "$(t '' theme)" "moon 夜 theme | dark | stamped"
 eq "$(t 'STATE.replace("theme\tdark","theme\tlight")' theme)" "sun 昼 theme | light | stamped"
 eq "$(t '' night)" "lantern 灯 night light | on | stamped"
 eq "$(t 'STATE.replace("night\ton","night\toff")' night)" "lantern 灯 night light | off | plain"
+eq "$(t 'STATE.replace("night\ton","night\t3500K")' night)" "lantern 灯 night light | 3500K | stamped" "on: its warmth"
+eq "$(t 'STATE + "saver\t15 min\n"' saver)" "hourglass 夢 screensaver | 15 min | stamped"
+eq "$(t 'STATE + "saver\toff\n"' saver)" "hourglass 夢 screensaver | off | plain"
 eq "$(t '' vrr)" "window 滑 freesync | in games | stamped"
 eq "$(t 'STATE.replace("vrr\tin games","vrr\toff")' vrr)" "window 滑 freesync | off | plain"
+case_ "FreeSync's tile: the setting and the card's own state this moment (vrrnow), stamped only while on"
+eq "$(t 'STATE + "vrrnow\toff\n"' vrr)" "window 滑 freesync | games · off | plain"
+eq "$(t 'STATE + "vrrnow\ton\n"' vrr)" "window 滑 freesync | games · on | stamped"
+eq "$(t 'STATE.replace("vrr\tin games","vrr\talways") + "vrrnow\ton\n"' vrr)" "window 滑 freesync | always · on | stamped"
+eq "$(t 'STATE + "vrrnow\tnone\n"' vrr)" "window 滑 freesync | not offered | plain"
+eq "$(t 'STATE.replace("vrr\tin games","vrr\toff") + "vrrnow\toff\n"' vrr)" "window 滑 freesync | off | plain"
 eq "$(t '' network)" "wifi 網 network | Home Net 5G | stamped"
 eq "$(t 'STATE.replace("nettype\twifi","nettype\tethernet").replace("Home Net 5G","wired")' network)" "ethernet 網 network | wired | stamped"
 eq "$(t 'STATE.replace("nettype\twifi","nettype\toffline").replace("Home Net 5G","offline")' network)" "offline 網 network | offline | plain"
@@ -130,59 +145,106 @@ eq "$(py 'i = kp.icons(); print(len(i) > 40, sorted(k for k in ("moon","sun","la
 
 # ── opening and closing ───────────────────────────────────────────────────────────────
 case_ "its key opens it: a fuzzel menu on screen goes first, it shows, the bar's cat lights, the state is read"
-eq "$(py 'fresh(); p.toggle(); print(", ".join(u.calls))')" "close menu, show, light quick on, run kawa-quick --state"
+eq "$(py 'fresh(); p.request(); print(", ".join(u.calls))')" "close menu, show, light quick on, run kawa-quick --state"
 case_ "its key again closes it, the cat dark again"
-eq "$(py 'fresh(); p.toggle(); u.calls.clear(); u.t += 0.6; p.toggle(); print(", ".join(u.calls), p.visible)')" "hide, light quick off False"
-case_ "its key held (dwl repeats it): a toggle within half a second of the last is ignored — no flicker"
-eq "$(py 'fresh(); p.toggle(); u.calls.clear(); u.t += 0.1; p.toggle(); u.t += 0.3; p.toggle(); print(u.calls, p.visible)')" "[] True"
-eq "$(py 'fresh(); p.toggle(); u.t += 0.6; p.toggle(); u.calls.clear(); u.t += 0.2; p.toggle(); print(u.calls, p.visible)')" "[] False" "held after closing: stays closed"
-case_ "another menu's key (SIGUSR2): closed as chosen — its key then opens it at once"
-eq "$(py 'fresh(); p.toggle(); u.calls.clear(); p.close("chosen"); u.t += 0.1; p.toggle(); print(p.visible)')" True
-has "$(cat "$REPO/bin/kawa-panel")" 'signal.SIGUSR2, lambda: panel.close("chosen")'
+eq "$(py 'fresh(); p.request(); u.calls.clear(); u.t += 0.6; p.request(); print(", ".join(u.calls), p.visible)')" "hide, light quick off False"
+case_ "its key pressed fast (every 30 ms; dwl repeats no held key that opens it): every press counts — open after an odd number, closed after an even one"
+eq "$(py 'fresh(); out = []
+for i in range(7): p.request(); out.append(p.visible); u.t += 0.03
+print(out)')" "[True, False, True, False, True, False, True]"
+lacks "$(cat "$REPO/bin/kawa-panel")" "REPEAT"
+case_ "a click is never a held key: clicks 120 ms apart each open or close it"
+eq "$(py 'fresh(); out = []
+for i in range(6): u.cid = f"c{i}"; p.request(); out.append(p.visible); u.t += 0.12
+print(out)')" "[True, False, True, False, True, False]"
+case_ "another menu's key or the launcher (close): closed as chosen — its key then opens it at once"
+eq "$(py 'fresh(); p.request(); u.calls.clear(); p.close("chosen"); u.t += 0.1; p.request(); print(p.visible)')" True
+has "$(cat "$REPO/bin/kawa-panel")" 'elif f == ["close"]:'
 case_ "its signals through GLibUnix.signal_add (GLib.unix_signal_add is deprecated: a warning in kawa-panel.log at every start)"
 lacks "$(cat "$REPO/bin/kawa-panel")" "GLib.unix_signal_add"; has "$(cat "$REPO/bin/kawa-panel")" 'gi.require_version("GLibUnix", "2.0")'
-eq "$(grep -c 'GLibUnix.signal_add(GLib.PRIORITY_DEFAULT, ' "$REPO/bin/kawa-panel")" 3
-case_ "the bar's cat: lit by a marker of its own (a dropdown's, kawa-drop.open, is kawa-menu's), poked with SIGRTMIN+15"
+eq "$(grep -c 'GLibUnix.signal_add(GLib.PRIORITY_DEFAULT, ' "$REPO/bin/kawa-panel")" 1
+case_ "the bar's cat: lit by a marker of its own (a dropdown's is kawa-drop.open), poked with SIGRTMIN+15"
 eq "$(py 'import os; print(os.path.basename(kp.MARK))')" kawa-panel.open
-lacks "$(grep -v '^ *#' "$REPO/bin/kawa-panel")" 'kawa-drop.open'
-eq "$(py 'print(kp.POKE["quick"])')" 15
-has "$(cat "$REPO/bin/kawa-panel")" 'self.launch(["kawa-dwlstatus", "--poke", str(POKE[mode])])'
+eq "$(py 'print(kp.POKE["quick"], kp.poke_sigs("quick"))')" "15 [15, 12]" "the mode seal's +12 with it (its click opens them too)"
 case_ "the meters: no number beside the squares (the bar shows both levels) — words only when there is no level"
 lacks "$(cat "$REPO/bin/kawa-panel")" 'it.key != "sound"'
 has "$(python3 -I "$REPO/bin/kawa-panel" --help)" "their levels are the"
 case_ "Esc closes it"
-eq "$(py 'fresh(); p.toggle(); u.calls.clear(); p.key("Escape"); print(", ".join(u.calls))')" "hide, light quick off"
-case_ "a click outside closes it — and the click on the cat that did so does not open it again at once"
-eq "$(py 'fresh(); p.toggle(); p.close("lost"); u.t += 0.3; p.toggle(); print(p.visible)')" False
-eq "$(py 'fresh(); p.toggle(); p.close("lost"); u.t += 0.7; p.toggle(); print(p.visible)')" True "its key later opens it"
-eq "$(py 'fresh(); p.toggle(); p.close("chosen"); u.t += 0.1; p.toggle(); print(p.visible)')" True "closed otherwise: its key opens it at once"
+eq "$(py 'fresh(); p.request(); u.calls.clear(); p.key("Escape"); print(", ".join(u.calls))')" "hide, light quick off"
+case_ "a click outside closes it; when that click was on its own button, the request it makes is that close"
+eq "$(py 'fresh(); u.cid = "c1"; p.request(); u.cid = "c2"; p.close("lost"); u.t += 0.01; p.request(); print(p.visible, p.lost)')" "False None"
+eq "$(py 'fresh(); u.cid = "c1"; p.request(); u.cid = "c2"; p.close("lost"); p.request(); u.t += 0.1; u.cid = "c3"; p.request(); print(p.visible)')" True \
+  "the next click opens it, however soon (no time window)"
+eq "$(py 'fresh(); u.cid = "c1"; p.request(); p.close("lost"); u.t += 0.1; u.cid = "c4"; p.request(); print(p.visible)')" True \
+  "closed by a click elsewhere (not on the bar: no new press): its button opens it at once"
+eq "$(py 'fresh(); p.request(); p.close("lost"); u.t += 0.1; p.request(); print(p.visible)')" True "… and its key"
+eq "$(py 'fresh(); u.cid = "c1"; p.request(); u.cid = "c2"; p.close("lost"); p.request("sound"); print(p.mode, p.visible)')" "sound True" \
+  "the click outside was on another panel's button: that one opens"
+eq "$(py 'fresh(); p.request(); p.close("chosen"); u.t += 0.1; p.request(); print(p.visible)')" True "closed otherwise: its key opens it at once"
+case_ "a fast clicker: 40 clicks on a button, in every order the compositor can give them (the click outside reaching the panel before or after the click's own request, or none: not open yet) — open after an odd count, closed after an even one; lit exactly while on screen"
+for what in quick sound menu; do
+  eq "$(py 'import random
+WHAT = "'"$what"'"
+random.seed(7); bad = []
+for run in range(25):
+    fresh(); lit = set()
+    u.light = lambda w, on: lit.add(w) if on else lit.discard(w)
+    replies = []
+    for i in range(40):
+        u.cid = f"r{run}c{i}"; u.t += random.choice((0.03, 0.08, 0.12, 0.2))
+        if p.visible and random.random() < 0.6:
+            p.close("lost")                       # (dwl took the keyboard: the press on the bar)
+        if WHAT == "menu":
+            p.request("menu kawa-calendar", kp.Menu(["a", "b"], drop=True), lambda rc, t: replies.append(rc))
+        else:
+            p.request(WHAT)
+        on = {p.what} if p.visible else set()
+        if lit != on: bad.append((run, i, sorted(lit), p.visible))
+    if p.visible != (40 % 2 == 1): bad.append((run, "end", p.visible))
+print(bad or "ok")')" ok "$what"
+done
+eq "$(py 'fresh(); n = []; u.cid = "c1"; p.request("menu kawa-calendar", kp.Menu(["a"], drop=True), lambda rc, t: n.append(("1st", rc)))
+u.cid = "c2"; p.request("menu kawa-calendar", kp.Menu(["a"], drop=True), lambda rc, t: n.append(("2nd", rc))); print(n, p.visible)')" \
+  "[('2nd', 1), ('1st', 1)] False" "a menu's button again: both callers dismissed at once, the menu gone"
+eq "$(py 'fresh(); n = []; p.request("menu kawa-calendar", kp.Menu(["a"], drop=True), lambda rc, t: n.append(rc))
+p.request("menu kawa-weather", kp.Menu(["b"], drop=True), lambda rc, t: n.append(rc)); print(n, p.what, p.visible)')" \
+  "[1] menu kawa-weather True" "another script's menu takes its place"
+case_ "a meter dragged: every step pushed to the bar's module at once (volume, brightness), before its level is sent"
+eq "$(py 'opened("quick", STATE); u.pushed.clear(); p.set_level("sound", 40); p.set_level("sound", 45); p.set_level("brightness", 30); print(u.pushed)')" \
+  "[('volume', 'volume 40 0'), ('volume', 'volume 45 0'), ('brightness', '30')]"
+case_ "the push itself: a line into each live module's link (kawa-bar.NAME.PID → its fifo), none waiting"
+R4=$TMP/push; mkdir -p "$R4"; mkfifo "$R4/kawa-bar.wake.$$"; ln -s "kawa-bar.wake.$$" "$R4/kawa-bar.volume.$$"; exec 6<>"$R4/kawa-bar.wake.$$"
+ln -s "kawa-bar.wake.999999999" "$R4/kawa-bar.volume.999999999"
+XDG_RUNTIME_DIR=$R4 py 'kp.bar_push("volume", "volume 33 0"); kp.bar_push("brightness", "50")'
+read -r -t 1 -u 6 l; eq "$l" "volume 33 0"; read -r -t 0.2 -u 6 l && _no "another line: $l" || _ok
+exec 6<&-
 case_ "closing what is closed does nothing"
-eq "$(py 'fresh(); p.close("lost"); print(u.calls, p.lost_at)')" "[] -1000000000.0"
+eq "$(py 'fresh(); p.close("lost"); print(u.calls, p.lost)')" "[] None"
 
 # ── doing ─────────────────────────────────────────────────────────────────────────────
 case_ "a switch (theme, night light, freesync, bluetooth, dnd): done in place, the panel open, the state read after"
 for k in theme night vrr bluetooth dnd; do
-  eq "$(py "fresh(); p.toggle(); u.answer(STATE); u.calls.clear(); p.activate('$k'); u.answer(); print(', '.join(u.calls), p.visible)")" \
+  eq "$(py "fresh(); p.request(); u.answer(STATE); u.calls.clear(); p.activate('$k'); u.answer(); print(', '.join(u.calls), p.visible)")" \
     "run kawa-quick --do $k, run kawa-quick --state True" "$k"
 done
 case_ "the others: the panel closes, then their own menu or window"
 for k in network devices drives backup wallpaper screenshot power; do
-  eq "$(py "fresh(); p.toggle(); u.calls.clear(); p.activate('$k'); print(', '.join(u.calls))")" \
+  eq "$(py "fresh(); p.request(); u.calls.clear(); p.activate('$k'); print(', '.join(u.calls))")" \
     "hide, light quick off, launch kawa-quick --do $k" "$k"
 done
 case_ "Enter on the sound meter: the sound panel (outputs, inputs) in its place; on brightness: nothing more"
-eq "$(py 'fresh(); p.toggle(); u.calls.clear(); p.focus = "sound"; p.key("Return"); print(", ".join(u.calls)); print(p.mode, p.visible, p.focus)')" \
+eq "$(py 'fresh(); p.request(); u.calls.clear(); p.focus = "sound"; p.key("Return"); print(", ".join(u.calls)); print(p.mode, p.visible, p.focus)')" \
   "$(printf '%s\n' "close menu, hide, light quick off, show, light sound on, run kawa-quick --state sound" "sound True None")"
-eq "$(py 'fresh(); p.toggle(); u.calls.clear(); p.focus = "brightness"; p.key("Return"); print(u.calls)')" "[]"
+eq "$(py 'fresh(); p.request(); u.calls.clear(); p.focus = "brightness"; p.key("Return"); print(u.calls)')" "[]"
 
 # ── the keys ──────────────────────────────────────────────────────────────────────────
 nav() { py "fresh(); p.focus = '$1'; [p.key(k) for k in '$2'.split()]; print(p.focus)"; }
 case_ "arrows (and h j k l): along a row, and up and down to the nearest below or above"
 eq "$(nav theme 'Right Right Right')" vrr "the end of a row stays"
-eq "$(nav theme 'Down Down')" drives; eq "$(nav night 'Down')" bluetooth; eq "$(nav vrr 'j j j')" power
+eq "$(nav theme 'Down Down')" drives; eq "$(nav night 'Down')" bluetooth; eq "$(nav vrr 'j j j j')" screenshot
 eq "$(nav theme 'Up')" sound; eq "$(nav sound 'k k')" brightness; eq "$(nav brightness 'Up')" brightness
-eq "$(nav drives 'Down')" wallpaper "the foot: the key nearest below"; eq "$(nav dnd 'Down')" power
-eq "$(nav screenshot 'Up')" backup; eq "$(nav sound 'Down')" night "from a meter: the middle tile"
+eq "$(nav dnd 'Down')" wallpaper "the foot: the key nearest below"; eq "$(nav saver 'Down')" screenshot
+eq "$(nav screenshot 'Up')" saver; eq "$(nav sound 'Down')" night "from a meter: the middle tile"
 case_ "Tab and Shift+Tab: every item in turn, round"
 eq "$(nav power 'Tab')" brightness; eq "$(nav brightness 'ISO_Left_Tab')" power
 case_ "← → (h l) on a meter: its level by 5, at once and then set"
@@ -194,32 +256,32 @@ eq "$(py 'fresh(STATE.replace("70%","no DDC/CI")); p.focus = "brightness"; p.key
 
 # ── the mouse ─────────────────────────────────────────────────────────────────────────
 case_ "the pointer over an item makes it the hot one — no cursor shown for it; a click does it, and shows none"
-eq "$(py 'fresh(); p.hover(150, 116); print(p.hot, p.focus)')" "night None"
-eq "$(py 'fresh(); p.hover(150, 116); p.hover(10, 116); print(p.hot, p.focus)')" "None None" "over the frame or a gap: none"
-eq "$(py 'fresh(); p.hover(150, 116); p.press(150, 116); print(p.hot, p.focus)')" "night None"
-eq "$(py 'fresh(); p.press(150, 46); print(p.focus)')" None "a click on a meter: no cursor (none to remember)"
-eq "$(py 'fresh(); p.focus = "theme"; p.press(150, 46); print(p.focus)')" sound "… but a cursor the keys showed follows the click"
-eq "$(py 'fresh(); p.toggle(); u.calls.clear(); p.press(60, 316); print(", ".join(u.calls))')" "redraw, hide, light quick off, launch kawa-quick --do wallpaper"
-eq "$(py 'fresh(); p.focus = "theme"; p.hover(150, 116); p.key("Right"); print(p.hot, p.focus)')" "night night" "the keys move the cursor from where it is, not from the pointer's"
-eq "$(py 'fresh(); p.focus = "theme"; p.hover(150, 186); p.key("Down"); print(p.hot, p.focus)')" "bluetooth network"
+eq "$(py 'fresh(); p.hover(150, 145); print(p.hot, p.focus)')" "night None"
+eq "$(py 'fresh(); p.hover(150, 145); p.hover(10, 145); print(p.hot, p.focus)')" "None None" "over the frame or a gap: none"
+eq "$(py 'fresh(); p.hover(150, 145); p.press(150, 145); print(p.hot, p.focus)')" "night None"
+eq "$(py 'fresh(); p.press(150, 75); print(p.focus)')" None "a click on a meter: no cursor (none to remember)"
+eq "$(py 'fresh(); p.focus = "theme"; p.press(150, 75); print(p.focus)')" sound "… but a cursor the keys showed follows the click"
+eq "$(py 'fresh(); p.request(); u.calls.clear(); p.press(60, 415); print(", ".join(u.calls))')" "redraw, hide, light quick off, launch kawa-quick --do wallpaper"
+eq "$(py 'fresh(); p.focus = "theme"; p.hover(150, 145); p.key("Right"); print(p.hot, p.focus)')" "night night" "the keys move the cursor from where it is, not from the pointer's"
+eq "$(py 'fresh(); p.focus = "theme"; p.hover(150, 215); p.key("Down"); print(p.hot, p.focus)')" "bluetooth network"
 case_ "the pointer leaving the panel: nothing hot, only that item redrawn; the cursor stays"
-eq "$(py 'fresh(); p.focus = "theme"; p.hover(150, 116); u.drawn.clear(); p.leave(); print(p.hot, p.focus, u.drawn)')" "None theme [['night']]"
+eq "$(py 'fresh(); p.focus = "theme"; p.hover(150, 145); u.drawn.clear(); p.leave(); print(p.hot, p.focus, u.drawn)')" "None theme [['night']]"
 eq "$(py 'fresh(); u.drawn.clear(); p.leave(); print(u.drawn)')" "[]" "nothing was hot: nothing redrawn"
 has "$(cat "$REPO/bin/kawa-panel")" 'win.connect("leave-notify-event", on_leave)'
 has "$(cat "$REPO/bin/kawa-panel")" 'Gdk.EventMask.LEAVE_NOTIFY_MASK'
 case_ "opened again: nothing hot until the pointer says where it is (a new window); a state read keeps it while it is there"
-eq "$(py 'fresh(); p.toggle(); p.hover(150, 116); p.close("chosen"); p.toggle(); print(p.hot)')" None
-eq "$(py 'fresh(); p.hover(150, 116); p.refresh(); u.answer(STATE); print(p.hot)')" night
-eq "$(py 'fresh(); p.hover(150, 186); p.refresh(); u.answer(STATE.replace("bluetooth\ton\n","").replace("devices\tnone\n","")); print(p.hot)')" None "its tile gone: none"
+eq "$(py 'fresh(); p.request(); p.hover(150, 145); p.close("chosen"); p.request(); print(p.hot)')" None
+eq "$(py 'fresh(); p.hover(150, 145); p.refresh(); u.answer(STATE); print(p.hot)')" night
+eq "$(py 'fresh(); p.hover(250, 329); p.refresh(); u.answer(STATE.replace("bluetooth\ton\n","").replace("devices\tnone\n","")); print(p.hot)')" None "its tile gone: none"
 case_ "a drag: the meter follows, the hot one does not move off it"
-eq "$(py 'fresh(); p.hover(112, 24); p.press(112, 24); p.hover(150, 116, dragging=True); print(p.hot, p.focus)')" "brightness None"
+eq "$(py 'fresh(); p.hover(112, 53); p.press(112, 53); p.hover(150, 145, dragging=True); print(p.hot, p.focus)')" "brightness None"
 eq "$(py 'fresh(); p.press(5, 5); print(u.calls)')" "[]" "on the frame: nothing"
 case_ "a click on a meter's squares: the level there, dragged: it follows"
-eq "$(py 'fresh(); p.press(110 + 71, 24); print(p.state["brightness"])')" 54% "the gap after the 6th square: the top of the six-square levels"
-eq "$(py 'fresh(); p.press(110 + 60, 24); print(p.state["brightness"])')" 46% "the 6th square's first pixel: the bottom of them"
-eq "$(py 'fresh(); p.press(112, 46); p.hover(252, 46, dragging=True); print(p.state["sound"])')" 100%
-eq "$(py 'fresh(); p.press(112, 46); p.release(); p.hover(252, 46, dragging=True); print(p.state["sound"])')" 3% "let go: no more"
-eq "$(py 'fresh(); p.press(105, 24); print(p.state["brightness"])')" 0% "just left of the first square: 0"
+eq "$(py 'fresh(); p.press(110 + 71, 53); print(p.state["brightness"])')" 54% "the gap after the 6th square: the top of the six-square levels"
+eq "$(py 'fresh(); p.press(110 + 60, 53); print(p.state["brightness"])')" 46% "the 6th square's first pixel: the bottom of them"
+eq "$(py 'fresh(); p.press(112, 75); p.hover(252, 75, dragging=True); print(p.state["sound"])')" 100%
+eq "$(py 'fresh(); p.press(112, 75); p.release(); p.hover(252, 75, dragging=True); print(p.state["sound"])')" 3% "let go: no more"
+eq "$(py 'fresh(); p.press(105, 53); print(p.state["brightness"])')" 0% "just left of the first square: 0"
 
 case_ "the squares and the level, one rule both ways: the lit edge is where the pointer is"
 eq "$(py '
@@ -236,47 +298,47 @@ eq "$(py 'print([kp.snap(v, d) for v, d in ((62, 5), (62, -5), (60, 5), (60, -5)
 
 case_ "a drag: every motion sets the level under the pointer at once, only that meter redrawn, one set at a time, the last one sent"
 eq "$(py '
-fresh(); p.press(110 + 30, 24); u.drawn.clear()
+fresh(); p.press(110 + 30, 53); u.drawn.clear()
 shown = []
 for x in range(140, 300, 7):
-    p.hover(x, 24, dragging=True); shown.append(p.state["brightness"] == f"{kp.level_at(x - 110)}%")
+    p.hover(x, 53, dragging=True); shown.append(p.state["brightness"] == f"{kp.level_at(x - 110)}%")
 print(all(shown), all(d == ["brightness"] for d in u.drawn), sum(c.startswith("run kawa-quick --do brightness") for c in u.calls))
 u.answer(); print(u.calls[-1]); p.release(); u.answer(); print(u.calls[-1])')" \
   "$(printf '%s\n' 'True True 1' 'run kawa-quick --do brightness 100' 'run kawa-quick --state')"
-eq "$(py 'fresh(); p.press(110 + 30, 24); n = len(u.calls); p.hover(110 + 30, 24, dragging=True); p.hover(110 + 30.5, 24, dragging=True); print(len(u.calls) - n)')" 0 "the same level again: nothing redrawn, nothing sent"
-eq "$(py 'fresh(); p.press(112, 24); p.hover(-50, 24, dragging=True); a = p.state["brightness"]; p.hover(900, 24, dragging=True); print(a, p.state["brightness"])')" "0% 100%" "dragged past either end: that end"
+eq "$(py 'fresh(); p.press(110 + 30, 53); n = len(u.calls); p.hover(110 + 30, 53, dragging=True); p.hover(110 + 30.5, 53, dragging=True); print(len(u.calls) - n)')" 0 "the same level again: nothing redrawn, nothing sent"
+eq "$(py 'fresh(); p.press(112, 53); p.hover(-50, 53, dragging=True); a = p.state["brightness"]; p.hover(900, 53, dragging=True); print(a, p.state["brightness"])')" "0% 100%" "dragged past either end: that end"
 
 case_ "no snapping back: a state read that comes back mid-drag, or was started before the last change, leaves the meter as set"
 eq "$(py '
 fresh(); p.refresh()                                  # (a read already under way: the open)
-p.press(110 + 100, 24); v = p.state["brightness"]
+p.press(110 + 100, 53); v = p.state["brightness"]
 u.pending.pop(1)(0, STATE)                            # (it comes back with the old 70 %)
 print(v, p.state["brightness"])')" "74% 74%"
 eq "$(py '
-fresh(); p.press(110 + 100, 24); p.release(); p.refresh()
+fresh(); p.press(110 + 100, 53); p.release(); p.refresh()
 u.answer()                                            # (the level set: confirmed)
 u.answer(STATE)                                       # (the read started before that: 70 %)
 print(p.state["brightness"])')" 74% "a read started while it was being set: ignored"
 eq "$(py '
-fresh(); p.press(110 + 100, 24); p.release(); u.answer()
+fresh(); p.press(110 + 100, 53); p.release(); u.answer()
 u.answer(STATE.replace("70%", "74%").replace("night\ton", "night\toff"))
 print(p.state["brightness"], p.state["night"], p.held("brightness"))')" "74% off False" "a read after it: taken, and the meter free again"
 eq "$(py '
-fresh(); p.refresh(); p.press(110 + 100, 24); p.release(); p.refresh(); u.answer(STATE); u.answer(); u.answer(STATE); u.answer(STATE)
+fresh(); p.refresh(); p.press(110 + 100, 53); p.release(); p.refresh(); u.answer(STATE); u.answer(); u.answer(STATE); u.answer(STATE)
 print(p.state["brightness"], p.held("brightness"))')" "70% False" "reads that started while it was set are ignored, but only those: the meter is not held for good"
 eq "$(py '
-fresh(); p.press(110 + 100, 24); p.release(); u.answer(); u.answer(STATE)
+fresh(); p.press(110 + 100, 53); p.release(); u.answer(); u.answer(STATE)
 print(p.state["brightness"])')" 70% "… so a level the machine did not take shows as it is"
 
 case_ "the wheel and a touchpad: a step per notch; a touchpad's small scrolls summed, not a step each"
-eq "$(py 'fresh(); p.scroll_by(150, 24, -1.0); a = p.state["brightness"]; [p.scroll_by(150, 24, -0.25) for _ in range(3)]; b = p.state["brightness"]; p.scroll_by(150, 24, -0.25); print(a, b, p.state["brightness"])')" "75% 75% 80%"
-eq "$(py 'fresh(); p.scroll_by(150, 24, 0.5); p.scroll_by(150, 46, 0.5); print(p.state["brightness"], p.state["sound"])')" "70% 62%" "half a step on one meter does not add to the other"
+eq "$(py 'fresh(); p.scroll_by(150, 53, -1.0); a = p.state["brightness"]; [p.scroll_by(150, 53, -0.25) for _ in range(3)]; b = p.state["brightness"]; p.scroll_by(150, 53, -0.25); print(a, b, p.state["brightness"])')" "75% 75% 80%"
+eq "$(py 'fresh(); p.scroll_by(150, 53, 0.5); p.scroll_by(150, 75, 0.5); print(p.state["brightness"], p.state["sound"])')" "70% 62%" "half a step on one meter does not add to the other"
 
 case_ "moving between items redraws only those that changed: the one left and the one entered"
-eq "$(py 'fresh(); u.drawn.clear(); p.hover(150, 116); print(u.drawn)')" "[['night']]" "the first: only it (the cursor on theme untouched)"
-eq "$(py 'fresh(); p.hover(150, 116); u.drawn.clear(); p.hover(250, 116); print(u.drawn)')" "[['night', 'vrr']]"
-eq "$(py 'fresh(); p.hover(150, 116); u.drawn.clear(); p.hover(151, 117); p.hover(160, 130); print(u.drawn)')" "[]" "within the same item: nothing"
-eq "$(py 'fresh(); p.hover(150, 116); u.drawn.clear(); p.hover(10, 116); print(u.drawn)')" "[['night']]" "onto a gap: the one left"
+eq "$(py 'fresh(); u.drawn.clear(); p.hover(150, 145); print(u.drawn)')" "[['night']]" "the first: only it (the cursor on theme untouched)"
+eq "$(py 'fresh(); p.hover(150, 145); u.drawn.clear(); p.hover(250, 145); print(u.drawn)')" "[['night', 'vrr']]"
+eq "$(py 'fresh(); p.hover(150, 145); u.drawn.clear(); p.hover(151, 146); p.hover(160, 159); print(u.drawn)')" "[]" "within the same item: nothing"
+eq "$(py 'fresh(); p.hover(150, 145); u.drawn.clear(); p.hover(10, 145); print(u.drawn)')" "[['night']]" "onto a gap: the one left"
 eq "$(py 'fresh(); p.focus = "theme"; u.drawn.clear(); p.key("Right"); print(u.drawn)')" "[['theme', 'night']]" "the keys: the cursor's two"
 
 case_ "how each item is drawn: the cursor filled, the pointer's only its glyph and name lit, both: drawn as the cursor"
@@ -309,8 +371,9 @@ eq "$(py 'fresh(); [p.step("sound", 5) for _ in range(4)]; print(sum(c.startswit
 case_ "a level being set is shown as asked when the state comes back meanwhile"
 eq "$(py 'fresh(); p.step("sound", 5); p.refresh(); u.pending.pop(1)(0, STATE); print(p.state["sound"])')" 65%
 case_ "the wheel over a meter: ±5"
-eq "$(py 'fresh(); p.wheel(150, 24, True); p.wheel(150, 46, False); print(p.state["brightness"], p.state["sound"])')" "75% 60%" "(62 % down: 60, the next multiple of 5)"
-eq "$(py 'fresh(); p.wheel(150, 116, True); print(u.calls)')" "[]" "over a tile: nothing"
+eq "$(py 'fresh(); p.wheel(150, 53, True); p.wheel(150, 75, False); print(p.state["brightness"], p.state["sound"])')" "75% 60%" "(62 % down: 60, the next multiple of 5)"
+eq "$(py 'fresh(); p.wheel(250, 145, True); print(u.calls)')" "[]" "over a tile: nothing"
+eq "$(py 'fresh(); p.wheel(150, 145, True); p.wheel(150, 145, False); print(u.calls)')" "['run kawa-quick --do warmer', 'run kawa-quick --do cooler']" "… but the night light's: warmer, cooler"
 
 # ── the state ─────────────────────────────────────────────────────────────────────────
 case_ "one reading at a time: asked again meanwhile, read once more after"
@@ -321,34 +384,66 @@ case_ "the colours: the theme's panel.conf, every name the drawing uses"
 for m in dark light; do
   eq "$(py "c = kp.colours('$REPO/configs/home/.config/fedokawaii/themes/$m/panel.conf'); print(sorted(c) == sorted(['surface','key','edge','edge2','faint','muted','text','strong','accent','accent_text','accent_lo','text_on_accent','asagi']), all(0 <= v <= 1 for t in c.values() for v in t))")" "True True" "$m"
 done
+case_ "a theme switch while it runs: kawa-theme's rename of the link over current is seen, and the new link's colours read (light after dark)"
+# (watch_theme with a stand-in Gio: the folder's events as GIO gives them for a rename —
+# the new link moved onto "current"; on a real screen: the panel opened after kawa-theme light
+# draws surface dcd2b8, frame 5f594d — measured on a headless dwl)
+mkdir -p "$HOME/.config/fedokawaii/themes"
+for m in dark light; do ln -sfn "$REPO/configs/home/.config/fedokawaii/themes/$m" "$HOME/.config/fedokawaii/themes/$m"; done
+ln -sfn themes/dark "$HOME/.config/fedokawaii/current"
+eq "$(py '
+import os
+class F:
+    def __init__(self, p): self.p = p
+    def get_path(self): return self.p
+    def get_basename(self): return os.path.basename(self.p)
+class Mon:
+    def connect(self, sig, fn): self.fn = fn
+class Gio:
+    class FileMonitorFlags: WATCH_MOVES = 1
+    class File:
+        @staticmethod
+        def new_for_path(d):
+            class D:
+                def monitor_directory(self, flags, c): Gio.mon = Mon(); return Gio.mon
+            return D()
+seen = []
+def changed(): seen.append("%02x%02x%02x" % tuple(round(v * 255) for v in kp.colours(os.path.join(kp.CURRENT, "panel.conf"))["surface"]))
+kp.watch_theme(Gio, changed)
+d = os.path.dirname(kp.CURRENT)
+changed()
+os.symlink("themes/light", d + "/current.new"); os.rename(d + "/current.new", kp.CURRENT)
+Gio.mon.fn(Gio.mon, F(d + "/current.new"), F(kp.CURRENT), 0)     # (the rename)
+Gio.mon.fn(Gio.mon, F(d + "/state.sh"), None, 0)                    # (something else there: nothing)
+print(" ".join(seen))')" "161411 dcd2b8"
 used=$(grep -oE '"(surface|key|edge|edge2|faint|muted|text|strong|accent|accent_text|accent_lo|text_on_accent|asagi|[a-z_]+)"' "$REPO/bin/kawa-panel" | sort -u | tr -d '"' | tr '\n' ' ')
 for n in surface key edge edge2 faint muted text strong accent accent_text accent_lo text_on_accent asagi; do has " $used" " $n " "$n is drawn with"; done
 
 # ── every open afresh: nothing remembered ──────────────────────────────────────────────
 case_ "a meter dragged, closed, opened again: no cursor, nothing hot, no drag — nothing highlighted"
-eq "$(py 'fresh(); p.toggle(); p.hover(170, 24); p.press(170, 24); p.hover(200, 24, dragging=True); p.close("chosen"); p.toggle(); print(p.focus, p.hot, p.dragging, p.pointer)')" "None None None None"
-eq "$(py 'fresh(); p.toggle(); p.focus = "brightness"; p.press(170, 24); p.close("lost"); u.t += 1; p.toggle(); print(p.focus, p.hot, p.dragging)')" "None None None" "… also a cursor the keys had shown, and closed by a click outside"
-eq "$(py 'fresh(); p.toggle(); p.press(170, 24); p.close("chosen"); p.toggle(); i = p.item("brightness"); print(sorted({x for x in kp.look(i, i.key == p.focus, i.key == p.hot).values() if x}))')" \
+eq "$(py 'fresh(); p.request(); p.hover(170, 53); p.press(170, 53); p.hover(200, 53, dragging=True); p.close("chosen"); p.request(); print(p.focus, p.hot, p.dragging, p.pointer)')" "None None None None"
+eq "$(py 'fresh(); p.request(); p.focus = "brightness"; p.press(170, 53); p.close("lost"); u.t += 1; p.request(); print(p.focus, p.hot, p.dragging)')" "None None None" "… also a cursor the keys had shown, and closed by a click outside"
+eq "$(py 'fresh(); p.request(); p.press(170, 53); p.close("chosen"); p.request(); i = p.item("brightness"); print(sorted({x for x in kp.look(i, i.key == p.focus, i.key == p.hot).values() if x}))')" \
   "['accent_text', 'muted', 'text']" "the brightness meter drawn as at rest: no vermilion fill, its name not lit"
-eq "$(py 'fresh(); p.toggle(); p.press(170, 24); p.close("chosen"); p.toggle(); n = len(u.calls); p.hover(150, 116, dragging=True); print([c for c in u.calls[n:] if "--do" in c], p.hot)')" "[] night" \
+eq "$(py 'fresh(); p.request(); p.press(170, 53); p.close("chosen"); p.request(); n = len(u.calls); p.hover(150, 145, dragging=True); print([c for c in u.calls[n:] if "--do" in c], p.hot)')" "[] night" \
   "a motion with the button held after reopening: no drag carried over"
 case_ "no cursor until a key asks: the first arrow, Tab or Enter puts it on the first item (and does nothing else)"
 for k in Down Up Left Right Tab Return space j l; do
-  eq "$(py "fresh(); p.toggle(); u.calls.clear(); p.key('$k'); print(p.focus, p.state['brightness'], [c for c in u.calls if c.startswith('run')])")" "brightness 70% []" "$k"
+  eq "$(py "fresh(); p.request(); u.calls.clear(); p.key('$k'); print(p.focus, p.state['brightness'], [c for c in u.calls if c.startswith('run')])")" "brightness 70% []" "$k"
 done
-eq "$(py 'fresh(); p.toggle(); p.key("Down"); p.key("Down"); print(p.focus)')" sound "then the keys go on from there"
-eq "$(py 'fresh(); p.toggle(); p.key("Escape"); print(p.visible)')" False "Esc closes it, cursor or not"
-eq "$(py 'fresh(); p.toggle(); p.key("F5"); print(p.focus)')" None "another key: nothing"
+eq "$(py 'fresh(); p.request(); p.key("Down"); p.key("Down"); print(p.focus)')" sound "then the keys go on from there"
+eq "$(py 'fresh(); p.request(); p.key("Escape"); print(p.visible)')" False "Esc closes it, cursor or not"
+eq "$(py 'fresh(); p.request(); p.key("F5"); print(p.focus)')" None "another key: nothing"
 case_ "every open: the cursor gone, even when the keys showed it"
-eq "$(py 'fresh(); p.toggle(); p.key("Down"); p.key("Down"); p.close("chosen"); p.toggle(); print(p.focus)')" None
+eq "$(py 'fresh(); p.request(); p.key("Down"); p.key("Down"); p.close("chosen"); p.request(); print(p.focus)')" None
 
 # ── the pointer: in, out, over a panel that changes ────────────────────────────────────
 case_ "the pointer coming in (enter-notify): what is under it hot at once, before any motion"
-eq "$(py 'fresh(); p.toggle(); u.drawn.clear(); p.enter(150, 116); print(p.hot, u.drawn)')" "night [['night']]"
-eq "$(py 'fresh(); p.toggle(); p.enter(5, 5); print(p.hot)')" None "on the frame: nothing"
-eq "$(py 'fresh(); p.toggle(); p.press(112, 24); p.enter(150, 116); print(p.hot)')" brightness "during a drag the hot one stays"
+eq "$(py 'fresh(); p.request(); u.drawn.clear(); p.enter(150, 145); print(p.hot, u.drawn)')" "night [['night']]"
+eq "$(py 'fresh(); p.request(); p.enter(5, 5); print(p.hot)')" None "on the frame: nothing"
+eq "$(py 'fresh(); p.request(); p.press(112, 53); p.enter(150, 145); print(p.hot)')" brightness "during a drag the hot one stays"
 case_ "it opens under the pointer: the item there is hot as the window says the pointer is in"
-eq "$(py 'fresh(); p.toggle(); p.enter(60, 316); print(p.hot)')" wallpaper
+eq "$(py 'fresh(); p.request(); p.enter(60, 415); print(p.hot)')" wallpaper
 case_ "the pointer leaving: only a real leave clears it — not one into a child's window, not a grab's crossing"
 eq "$(py 'print([kp.real_leave(m, d) for m, d in (("normal", "nonlinear"), ("normal", "ancestor"), ("ungrab", "nonlinear"), ("normal", "inferior"), ("grab", "nonlinear"), ("gtk-grab", "ancestor"), ("state-changed", "nonlinear"))])')" \
   "[True, True, True, False, False, False, False]"
@@ -356,13 +451,13 @@ has "$(cat "$REPO/bin/kawa-panel")" 'if real_leave(ev.mode.value_nick, ev.detail
 has "$(cat "$REPO/bin/kawa-panel")" 'win.connect("enter-notify-event", on_enter)'
 has "$(cat "$REPO/bin/kawa-panel")" 'Gdk.EventMask.ENTER_NOTIFY_MASK'
 case_ "a click acts on the item under the pointer — hot at once, even with no motion or enter before it"
-eq "$(py 'fresh(); p.toggle(); u.calls.clear(); p.press(150, 116); print(p.hot, u.calls[-2:])')" "night ['redraw', 'run kawa-quick --do night']"
-eq "$(py 'fresh(); p.toggle(); p.hover(150, 116); u.calls.clear(); p.press(250, 116); print(p.hot, u.calls[-1])')" "vrr run kawa-quick --do vrr" "a stale hot one does not matter: the click's place does"
+eq "$(py 'fresh(); p.request(); u.calls.clear(); p.press(150, 145); print(p.hot, u.calls[-2:])')" "night ['redraw', 'run kawa-quick --do night']"
+eq "$(py 'fresh(); p.request(); p.hover(150, 145); u.calls.clear(); p.press(250, 145); print(p.hot, u.calls[-1])')" "vrr run kawa-quick --do vrr" "a stale hot one does not matter: the click's place does"
 case_ "let go: the hot one is what is under the pointer then (a drag may end anywhere)"
-eq "$(py 'fresh(); p.toggle(); p.press(170, 24); p.hover(150, 116, dragging=True); p.release(150, 116); print(p.hot, p.dragging)')" "night None"
-eq "$(py 'fresh(); p.toggle(); p.press(170, 24); p.release(400, 24); print(p.hot)')" None "let go outside: nothing"
+eq "$(py 'fresh(); p.request(); p.press(170, 53); p.hover(150, 145, dragging=True); p.release(150, 145); print(p.hot, p.dragging)')" "night None"
+eq "$(py 'fresh(); p.request(); p.press(170, 53); p.release(400, 53); print(p.hot)')" None "let go outside: nothing"
 case_ "the panel changing under a still pointer (a state read): the hot one is what is under it now"
-eq "$(py 'fresh(); p.toggle(); p.enter(120, 186); u.answer(STATE.replace("bluetooth\ton\n","").replace("devices\tnone\n","")); print(p.hot)')" network
+eq "$(py 'fresh(); p.request(); p.enter(120, 215); u.answer(STATE.replace("bluetooth\ton\n","").replace("devices\tnone\n","")); print(p.hot)')" drives
 eq "$(py 'opened("sound", SOUND); p.enter(150, 168); print(p.hot); p.refresh(); u.answer(SOUND.replace("input\t90", "output\t91\t0\tUSB DAC\t\t\t\t\t\ninput\t90")); print(p.hot)')" \
   "$(printf '%s\n' out:73 out:73)" "a device added below: the same row still under it"
 eq "$(py 'opened("sound", SOUND); p.enter(150, 146); print(p.hot); p.refresh(); u.answer("\n".join(l for l in SOUND.split("\n") if not l.startswith("output\t62"))); print(p.hot)')" \
@@ -378,9 +473,9 @@ has "$(cat "$REPO/bin/kawa-panel")" 'win.connect("unmap-event", lambda w, ev: (w
 # ── the sound panel (--sound) ──────────────────────────────────────────────────────────
 case_ "the sound panel: 音 sound (the volume, mute, mixer), 出 output and 入 input (a row each, the default ticked), mute microphone"
 eq "$(py 'opened("sound", SOUND); print(" ".join(i.key for i in p.items)); print(p.heads)')" \
-  "$(printf '%s\n' "sound mute mixer out:62 out:73 in:67 in:90 mic" "[('音', 'sound', 14, 14), ('出', 'output', 14, 111), ('入', 'input', 14, 200)]")"
+  "$(printf '%s\n' "sound mute mixer out:62 out:73 in:67 in:90 mic mictest" "[('音', 'sound', 14, 14), ('出', 'output', 14, 111), ('入', 'input', 14, 200)]")"
 eq "$(py 'opened("sound", SOUND); print(" ".join(f"{i.key}:{i.kind}:{i.x},{i.y},{i.w},{i.h}" for i in p.items), p.size)')" \
-  "sound:meter:14,43,276,20 mute:key:14,69,135,24 mixer:key:155,69,135,24 out:62:row:14,140,276,20 out:73:row:14,162,276,20 in:67:row:14,229,276,20 in:90:row:14,251,276,20 mic:key:14,277,276,24 (304, 315)" \
+  "sound:meter:14,43,276,20 mute:key:14,69,135,24 mixer:key:155,69,135,24 out:62:row:14,140,276,20 out:73:row:14,162,276,20 in:67:row:14,229,276,20 in:90:row:14,251,276,20 mic:key:14,277,276,24 mictest:key:14,307,276,24 (304, 345)" \
   "quick settings' width, grid and parts: 14 px margins, the seals 23 px, 6 px under each, 18 px between parts"
 eq "$(py 'opened("sound", SOUND); print(" | ".join(f"{i.icon} {i.name} {i.lit}" for i in p.items if i.kind == "row"))')" \
   "box_on line out · analog True | box_off LG ULTRAGEAR · HDMI False | box_on rear mic True | box_off front mic False"
@@ -390,6 +485,25 @@ eq "$(py 'opened("sound", SOUND.replace("muted\toff", "muted\ton").replace("mic\
   "speaker unmute True 62% | mic unmute microphone" "muted: unmute (the level kept, its squares hollow), the microphone too"
 eq "$(py 'opened("sound", "sound\tno output\nmuted\toff\nmic\tnone\n"); print(" ".join(i.key for i in p.items), p.nones, p.size)')" \
   "sound mute mixer [(14, 140), (14, 207)] (304, 241)" "no devices: each list says none; no input, no microphone to mute"
+case_ "the clean mic (kawa-quick's cleanmic): on — its level live above mute microphone, then clean mic ▣ and test mic side by side; off — □, no level; not loaded — test mic alone"
+ON=$'SOUND.replace("mic\\ton\\n", "mic\\ton\\ncleanmic\\ton\\n")'
+eq "$(py 'opened("sound", '"$ON"'); print(" ".join(f"{i.key}:{i.kind}:{i.x},{i.y},{i.w},{i.h}" for i in p.items[-4:]), p.size)')" \
+  "level:level:14,277,276,20 mic:key:14,303,276,24 cleanmic:key:14,333,135,24 mictest:key:155,333,135,24 (304, 371)"
+eq "$(py 'opened("sound", '"$ON"'); c = p.item("cleanmic"); l = p.item("level"); print(c.icon, c.name, c.lit, "|", l.icon, l.name, l.value, "|", u.listening)')" \
+  "box_on clean mic True | mic clean mic 0% | True" "▣ while on; its meter read while the panel shows it"
+eq "$(py 'opened("sound", SOUND.replace("mic\ton\n", "mic\ton\ncleanmic\toff\n")); c = p.item("cleanmic"); print(c.icon, c.lit, p.item("level"), u.listening, " ".join(i.key for i in p.items[-3:]))')" \
+  "box_off False None False mic cleanmic mictest" "□ while off: no level, nothing read"
+eq "$(py 'opened("sound", '"$ON"'); p.close("chosen"); print(u.listening)')" False "closed: the recorder ended"
+eq "$(py 'opened("sound", '"$ON"'); p.open("quick"); print(u.listening)')" False "another panel: ended too"
+case_ "clean mic: a click switches it (kawa-quick --do cleanmic), the panel stays and reads back; test mic runs on its own, the panel stays"
+eq "$(py 'opened("sound", '"$ON"'); c = p.item("cleanmic"); p.press(c.x + 5, c.y + 5); print(u.calls[-1]); u.answer(); print(u.calls[-1], p.visible)')" \
+  "$(printf '%s\n' 'run kawa-quick --do cleanmic' 'run kawa-quick --state sound True')"
+eq "$(py 'opened("sound", '"$ON"'); p.focus = "mictest"; p.key("Return"); print(u.calls[-1], p.visible)')" "launch kawa-quick --do mictest True"
+eq "$(py 'opened("sound", '"$ON"'); p.focus = "level"; p.key("Return"); p.key("Right"); l = p.item("level"); p.press(l.x + 200, l.y + 5); print([c for c in u.calls if c.startswith(("run", "launch"))], p.dragging)')" "[] None" "the level only shows: no key, click or drag sets it"
+case_ "the level: each block's peak on 60 dB (silence 0, −30 dBFS half, full scale all twelve squares); kept across a state read, redrawn alone"
+eq "$(py 'import array; b = lambda v: array.array("h", [0, v, -v]).tobytes(); print(kp.peak_pct(b""), kp.peak_pct(b(0)), kp.peak_pct(b(33)), kp.peak_pct(b(1036)), kp.peak_pct(b(32767)), kp.peak_pct(b(32767)[:-1]))')" "0 0 0 50 100 100"
+eq "$(py 'opened("sound", '"$ON"'); p.heard(75); print(p.item("level").value, u.drawn[-1]); p.refresh(); u.answer('"$ON"'); print(p.item("level").value)')" \
+  "$(printf '%s\n' "75% ['level']" "75%")"
 case_ "the sound meter's icon is the bar's: no wave at 0, one to 25 %, two to 50, three to 75, four above; crossed out muted"
 eq "$(py 'print(*[kp.vol_icon(v, False) for v in (0, 1, 25, 26, 50, 51, 75, 76, 100, 130)], kp.vol_icon(40, True), kp.vol_icon(None, False))')" \
   "vol_0 vol_1 vol_1 vol_2 vol_2 vol_3 vol_3 vol_4 vol_4 vol_4 vol_mute vol_0"
@@ -450,14 +564,14 @@ eq "$(py 'opened("sound", SOUND); p.focus = "sound"; [p.key(k) for k in ("Down",
 eq "$(py 'opened("sound", SOUND); p.focus = "mic"; p.key("Up"); p.key("Up"); print(p.focus)')" in:67
 
 # ── the brightness slider (--brightness) ───────────────────────────────────────────────
-case_ "the brightness slider: the meter alone, as quick settings' (the same row, the same squares)"
-eq "$(py 'opened("brightness", "brightness\t70%\n"); print([(i.key, i.kind, i.kanji, i.name, i.x, i.y, i.w, i.h) for i in p.items], p.size, p.squares_x(p.items[0]))')" \
-  "[('brightness', 'meter', '明', 'brightness', 14, 14, 276, 20)] (304, 48) 110"
-eq "$(py 'fresh(); print(p.squares_x(p.item("brightness")))')" 110 "the squares where quick settings has them"
+case_ "the brightness slider: the meter alone, the size of what it holds — its kanji on the content's left edge, its last square on the right"
+eq "$(py 'opened("brightness", "brightness\t70%\n"); i = p.items[0]; print([(i.key, i.kind, i.kanji, i.name, i.x, i.y, i.w, i.h)], p.size, p.squares_x(i), p.squares_x(i) + kp.SPAN == i.x + i.w)')" \
+  "[('brightness', 'meter', '明', 'brightness', 14, 14, 232, 20)] (260, 48) 104 True"
+eq "$(py 'fresh(); print(p.squares_x(p.item("brightness")))')" 110 "quick settings' squares where they were"
 case_ "its keys: ← → (h l) change it from the first press (it is all there is) — no cursor drawn for that; a click, a drag, the wheel"
 eq "$(py 'opened("brightness", "brightness\t70%\n"); p.key("Right"); p.key("h"); print(p.focus, p.state["brightness"], [c for c in u.calls if c.startswith("run")][0])')" \
   "None 70% run kawa-quick --do brightness 75"
-eq "$(py 'opened("brightness", "brightness\t70%\n"); p.press(110 + 71, 24); print(p.state["brightness"])')" 54%
+eq "$(py 'opened("brightness", "brightness\t70%\n"); p.press(104 + 71, 24); print(p.state["brightness"])')" 54%
 eq "$(py 'opened("brightness", "brightness\t70%\n"); p.wheel(150, 24, False); print(p.state["brightness"])')" 65%
 eq "$(py 'opened("brightness", "brightness\tno DDC/CI\n"); p.key("Right"); print(p.state["brightness"], u.calls)')" "no DDC/CI []" "no DDC/CI: the words, the keys do nothing"
 eq "$(py 'opened("brightness", "brightness\t70%\n"); p.key("Tab"); print(p.focus)')" brightness "Tab shows the cursor on it"
@@ -465,41 +579,41 @@ eq "$(py 'opened("brightness", "brightness\t70%\n"); p.key("Tab"); print(p.focus
 # ── one panel at a time, each its own key, marker and poke ─────────────────────────────
 case_ "each mode reads its own state (kawa-quick --state, --state sound, --state brightness)"
 for m in sound brightness; do
-  eq "$(py "fresh(); p.toggle('$m'); print(u.calls[-1])")" "run kawa-quick --state $m" "$m"
+  eq "$(py "fresh(); p.request('$m'); print(u.calls[-1])")" "run kawa-quick --state $m" "$m"
 done
 case_ "--sound, --brightness: open, and the same again closes it"
 for m in sound brightness; do
-  eq "$(py "fresh(); p.toggle('$m'); print(', '.join(u.calls), p.visible, p.mode); u.calls.clear(); u.t += 0.6; p.toggle('$m'); print(', '.join(u.calls), p.visible)")" \
+  eq "$(py "fresh(); p.request('$m'); print(', '.join(u.calls), p.visible, p.mode); u.calls.clear(); u.t += 0.6; p.request('$m'); print(', '.join(u.calls), p.visible)")" \
     "$(printf '%s\n' "close menu, show, light $m on, run kawa-quick --state $m True $m" "hide, light $m off False")" "$m"
 done
 case_ "opening one closes the one open: never two (quick settings, sound, brightness, in any order)"
-eq "$(py 'fresh(); p.toggle(); u.calls.clear(); p.toggle("sound"); print(", ".join(u.calls), p.mode, p.visible)')" \
+eq "$(py 'fresh(); p.request(); u.calls.clear(); p.request("sound"); print(", ".join(u.calls), p.mode, p.visible)')" \
   "close menu, hide, light quick off, show, light sound on, run kawa-quick --state sound sound True"
-eq "$(py 'fresh(); p.toggle("sound"); u.calls.clear(); p.toggle("brightness"); print(", ".join(u.calls))')" \
+eq "$(py 'fresh(); p.request("sound"); u.calls.clear(); p.request("brightness"); print(", ".join(u.calls))')" \
   "close menu, hide, light sound off, show, light brightness on, run kawa-quick --state brightness"
-eq "$(py 'fresh(); p.toggle("brightness"); u.calls.clear(); p.toggle(); print(", ".join(u.calls))')" \
+eq "$(py 'fresh(); p.request("brightness"); u.calls.clear(); p.request(); print(", ".join(u.calls))')" \
   "close menu, hide, light brightness off, show, light quick on, run kawa-quick --state"
 eq "$(py '
 fresh(); lit = set()
 u.light = lambda m, on: lit.add(m) if on else lit.discard(m)
 for m in ("quick", "sound", "brightness", "sound", "quick", "brightness", "brightness", "quick"):
-    u.t += 1; p.toggle(m); print(sorted(lit), end=" ")')" \
+    u.t += 1; p.request(m); print(sorted(lit), end=" ")')" \
   "['quick'] ['sound'] ['brightness'] ['sound'] ['quick'] ['brightness'] [] ['quick'] " "one lit at most, the one open"
 case_ "a click on another module while one is open: that click closed it (outside) — the other opens all the same"
-eq "$(py 'fresh(); p.toggle("sound"); p.close("lost"); u.t += 0.1; p.toggle("brightness"); print(p.mode, p.visible)')" "brightness True"
-eq "$(py 'fresh(); p.toggle("sound"); p.close("lost"); u.t += 0.1; p.toggle("sound"); print(p.visible)')" False "its own module's click: closed it stays"
-eq "$(py 'fresh(); p.toggle("sound"); u.t += 0.1; p.toggle("brightness"); u.t += 0.1; p.toggle("sound"); print(p.mode, p.visible)')" "sound True" "another's key is never a held key"
-case_ "every way out takes its marker away: its key, Esc, a click outside, another menu (SIGUSR2), a choice, another panel"
+eq "$(py 'fresh(); u.cid = "c1"; p.request("sound"); u.cid = "c2"; p.close("lost"); u.t += 0.1; p.request("brightness"); print(p.mode, p.visible)')" "brightness True"
+eq "$(py 'fresh(); u.cid = "c1"; p.request("sound"); u.cid = "c2"; p.close("lost"); u.t += 0.1; p.request("sound"); print(p.visible)')" False "its own module's click: closed it stays"
+eq "$(py 'fresh(); p.request("sound"); u.t += 0.1; p.request("brightness"); u.t += 0.1; p.request("sound"); print(p.mode, p.visible)')" "sound True" "another's key switches to it, then its own key back"
+case_ "every way out takes its marker away: its key, Esc, a click outside, another menu or the launcher (close), a choice, another panel"
 for m in quick sound brightness; do
-  for how in 'p.toggle(M)' 'p.key("Escape")' 'p.close("lost")' 'p.close("chosen")' 'p.toggle(OTHER)'; do
-    eq "$(py "M = '$m'; OTHER = 'sound' if M != 'sound' else 'quick'; fresh(); p.toggle(M); u.t += 1; u.calls.clear(); $how; print('light ' + M + ' off' in u.calls)")" True "$m: $how"
+  for how in 'p.request(M)' 'p.key("Escape")' 'p.close("lost")' 'p.close("chosen")' 'p.request(OTHER)'; do
+    eq "$(py "M = '$m'; OTHER = 'sound' if M != 'sound' else 'quick'; fresh(); p.request(M); u.t += 1; u.calls.clear(); $how; print('light ' + M + ' off' in u.calls)")" True "$m: $how"
   done
 done
-eq "$(py 'fresh(); p.toggle("sound"); u.answer(SOUND); u.calls.clear(); p.press(200, 80); print("light sound off" in u.calls)')" True "sound: mixer"
-eq "$(py 'fresh(); p.toggle(); u.calls.clear(); p.activate("power"); print("light quick off" in u.calls)')" True "quick: an opener"
+eq "$(py 'fresh(); p.request("sound"); u.answer(SOUND); u.calls.clear(); p.press(200, 80); print("light sound off" in u.calls)')" True "sound: mixer"
+eq "$(py 'fresh(); p.request(); u.calls.clear(); p.activate("power"); print("light quick off" in u.calls)')" True "quick: an opener"
 case_ "… even when taking the window away fails"
 eq "$(py '
-fresh(); p.toggle("sound"); u.calls.clear()
+fresh(); p.request("sound"); u.calls.clear()
 def bad(): raise RuntimeError("gone")
 u.hide = bad
 try: p.close("chosen")
@@ -518,16 +632,16 @@ kp.mark("sound", False); kp.mark("sound", False); print(sorted(os.listdir(kp.RUN
 : >"$R/kawa-panel.open"; echo 1 >"$R/kawa-panel-brightness.open"; ln -sf /nonexistent "$R/kawa-panel-sound.open"
 eq "$(XDG_RUNTIME_DIR=$R py 'print(kp.stale_marks()); import os; print(sorted(os.listdir(kp.RUN)))')" \
   "$(printf '%s\n' "['quick', 'sound', 'brightness']" "[]")" "a dangling link too"
-has "$(sed -n '/    finally:/,/return 0/p' "$REPO/bin/kawa-panel")" 'panel.ui.light(panel.mode, False)' "ended (SIGTERM, SIGHUP, Ctrl+C): the open one's marker goes"
+has "$(sed -n '/    finally:/,/return 0/p' "$REPO/bin/kawa-panel")" 'panel.close("ended")' "ended (SIGTERM, SIGHUP, Ctrl+C): the open one's marker goes"
 has "$(cat "$REPO/bin/kawa-panel")" 'for mode in stale_marks():' "killed or crashed: its next start clears it (and the bar's lit() checks the pid meanwhile)"
 case_ "the panel never hides alive with a marker: closing always destroys its window and takes the marker"
 has "$(sed -n '/        def hide(self):/,/destroy/p' "$REPO/bin/kawa-panel")" 'GLib.idle_add(w.destroy)'
 eq "$(grep -n 'ui.hide()' "$REPO/bin/kawa-panel" | wc -l)" 1 "only close() takes the window away"
-eq "$(py 'fresh(); p.toggle(); p.close("chosen"); print(p.visible, u.calls[-2:])')" "False ['hide', 'light quick off']"
+eq "$(py 'fresh(); p.request(); p.close("chosen"); print(p.visible, u.calls[-2:])')" "False ['hide', 'light quick off']"
 case_ "opened by its key: quick settings 8 px from the right edge, the others under their module on a 1920 px bar; 8 px under the bar"
-eq "$(py 'print(kp.MARGIN)')" "{'quick': 8, 'sound': 86, 'brightness': 29, 'menu': 8}" "(a menu dropped from the bar by a key: as quick settings)"
+eq "$(py 'print(kp.MARGIN)')" "{'quick': 8, 'sound': 86, 'brightness': 73, 'menu': 8}" "(a menu dropped from the bar by a key: as quick settings)"
 for m in quick sound brightness; do
-  eq "$(py "fresh(); p.toggle('$m'); print(p.place)")" "('right', $(py "print(kp.MARGIN['$m'])"), None)" "$m"
+  eq "$(py "fresh(); p.request('$m'); print(p.place)")" "('right', $(py "print(kp.MARGIN['$m'])"), None)" "$m"
 done
 has "$(cat "$REPO/bin/kawa-panel")" 'GtkLayerShell.set_margin(win, edge, margin)'
 case_ "opened by a click on the bar: centred under the pointer, on that output, kept 8 px inside its edges"
@@ -539,36 +653,65 @@ eq "$(py 'print(kp.hang(100, 0, 300, 304))')" 8 "an output narrower than the pan
 case_ "dwl's record (X Y OUTPUT OUTPUT_X OUTPUT_WIDTH): taken only while fresh (under 1 s old), and only whole"
 eq "$(py 'print(kp.bar_click("1563 15 DP-1 0 1920\n", 0.2), kp.bar_click("1563.7 15 DP-1 1920 2560", 0.0), kp.bar_click("1563 15 DP-1 0 1920", 1.5), kp.bar_click("1563 15 DP-1 0", 0.1), kp.bar_click("x 15 DP-1 0 1920", 0.1), kp.bar_click("", 0.1))')" \
   "(1563, 0, 1920) (1563, 1920, 2560) None None None None"
-eq "$(py 'fresh(); u.click = (1563, 0, 1920); p.toggle("sound"); print(p.place); u.click = None; u.t += 1; p.toggle("sound"); u.t += 1; p.toggle("sound"); print(p.place)')" \
+eq "$(py 'fresh(); u.at = (1563, 0, 1920); p.request("sound"); print(p.place); u.at = None; u.t += 1; p.request("sound"); u.t += 1; p.request("sound"); print(p.place)')" \
   "$(printf '%s\n' "('left', 1411, 0)" "('right', 86, None)")" "each open asks anew: a click's place does not stay for the key's"
-eq "$(py 'fresh(); u.click = (1900, 0, 1920); p.toggle(); print(p.place)')" "('left', 1608, 0)" "the cat: under it, held 8 px from the right edge"
+eq "$(py 'fresh(); u.at = (1900, 0, 1920); p.request(); print(p.place)')" "('left', 1608, 0)" "the cat: under it, held 8 px from the right edge"
 eq "$(XDG_RUNTIME_DIR=$TMP py 'import os; print(os.path.basename(kp.POINTER), kp.FRESH, kp.EDGE)')" "dwl-pointer 1.0 8"
 case_ "a state read for another panel than the open one: kept, the open one's layout untouched"
 eq "$(py 'opened("sound", SOUND); n = len(p.items); p.refresh("quick"); u.answer(STATE); print(len(p.items) == n, p.mode, p.states["quick"]["night"])')" "True sound on"
 
 # ── asking the running panel ───────────────────────────────────────────────────────────
-case_ "--sound and --brightness with a panel running: the mode written (kawa-panel.ask), then SIGUSR1; --open: SIGUSR1 alone"
-R=$TMP/ask; mkdir -p "$R"
-eq "$(XDG_RUNTIME_DIR=$R py '
-import os, signal
-got = []
-signal.signal(signal.SIGUSR1, lambda *a: got.append(kp.asked()))
-kp.ask(os.getpid(), "sound"); kp.ask(os.getpid(), "brightness"); kp.ask(os.getpid(), "quick")
-print(got, os.listdir(kp.RUN))')" "['sound', 'brightness', 'quick'] []" "each read once and taken away"
-for m in sound brightness; do
-  XDG_RUNTIME_DIR=$R python3 -I -c 'import signal, sys, time, os
-signal.signal(signal.SIGUSR1, lambda *a: open(sys.argv[1], "a").write(open(os.environ["XDG_RUNTIME_DIR"] + "/kawa-panel.ask").read()))
-open(sys.argv[2], "w").close(); time.sleep(30)' "$TMP/got-$m" "$TMP/up-$m" kawa-panel & pp=$!
-  for _ in {1..50}; do [[ -e $TMP/up-$m ]] && break; sleep 0.05; done
-  echo "$pp" >"$R/kawa-panel.pid"
-  rc 0 env XDG_RUNTIME_DIR="$R" PYTHONPATH="$P" python3 "$REPO/bin/kawa-panel" "--$m"
-  for _ in {1..50}; do [[ -s $TMP/got-$m ]] && break; sleep 0.05; done
-  eq "$(cat "$TMP/got-$m" 2>/dev/null)" "$m" "--$m"
-  kill "$pp" 2>/dev/null; wait "$pp" 2>/dev/null
-done
-rm -f "$R/kawa-panel.pid" "$R/kawa-panel.ask"
-case_ "the bar's sound and brightness modules and Super+A can ask for them: kawa-quick --do sound opens the sound panel"
-has "$(cat "$REPO/bin/kawa-quick")" 'sound)      exec kawa-panel --sound ;;'
+case_ "--open, --sound and --brightness with a panel running: a request line into its fifo each, whole, in order"
+R=$TMP/ask; mkdir -p "$R"; mkfifo "$R/kawa-panel.in"; exec 6<>"$R/kawa-panel.in"
+python3 -I -c 'import time; time.sleep(30)' kawa-panel & pp=$! # (a process whose command line says kawa-panel)
+for _ in {1..20}; do grep -qa kawa-panel "/proc/$pp/cmdline" 2>/dev/null && break; sleep 0.05; done
+echo "$pp" >"$R/kawa-panel.pid"
+for m in --open --sound --brightness; do rc 0 env XDG_RUNTIME_DIR="$R" PYTHONPATH="$P" python3 "$REPO/bin/kawa-panel" "$m"; done
+got=""; for _ in 1 2 3; do read -r -t 2 -u 6 l && got+="$l|"; done
+eq "$got" "toggle quick|toggle sound|toggle brightness|"
+kill "$pp" 2>/dev/null; wait "$pp" 2>/dev/null; exec 6<&-
+case_ "kawa-quick asks it with bash alone (the bar's cat, volume and brightness; Super+X, Super+A): 200 requests from 20 at once — every one arrives, whole"
+mkfifo "$R/in2"; mv "$R/in2" "$R/kawa-panel.in"; exec 6<>"$R/kawa-panel.in"
+python3 -I -c 'import time; time.sleep(60)' kawa-panel & pp=$!
+for _ in {1..20}; do grep -qa kawa-panel "/proc/$pp/cmdline" 2>/dev/null && break; sleep 0.05; done
+echo "$pp" >"$R/kawa-panel.pid"
+cat <&6 >"$TMP/reqs" & cp=$!
+pids=(); for _ in {1..20}; do (for j in {1..10}; do if ((j % 3)); then XDG_RUNTIME_DIR=$R kawa-quick; else XDG_RUNTIME_DIR=$R kawa-quick sound; fi; done) & pids+=($!); done
+wait "${pids[@]}"; sleep 0.3; kill "$cp" 2>/dev/null; wait "$cp" 2>/dev/null
+eq "$(sort "$TMP/reqs" | uniq -c | awk '{print $1, $2, $3}' | tr '\n' '|')" "140 toggle quick|60 toggle sound|"
+kill "$pp" 2>/dev/null; wait "$pp" 2>/dev/null; exec 6<&-
+has "$(cat "$REPO/bin/kawa-quick")" 'sound)      toggle sound ;;'
+has "$(cat "$REPO/src/dwl/config.h")" 'SHCMD("kawa-quick sound")'
+case_ "a menu's request: the caller, its options, its rows (kawa-menu's file) — a wrong one is no menu"
+eq "$(py 'w, m = kp.menu_request("kawa-calendar\n3\n--drop\n--title\npick one\npart\t暦\tOct\nrow\tx\ta\n")
+print(w, m.drop, repr(m.title), [l[1] for l in m.lines])')" "kawa-calendar True 'pick one' ['part', 'row']"
+eq "$(py 'print([kp.menu_request(t) for t in ("", "x\n", "x\nz\n", "x\n2\n--title\n", "x\n1\n--bogus\n")])')" "[None, None, None, None, None]"
+eq "$(py 'w, m = kp.menu_request("kawa-power\n0\n"); print(w, m.lines, m.drop)')" "kawa-power [] False" "no rows: an empty menu"
+case_ "a dropdown lights its button: kawa-drop.open (the panel's pid, the script that asked), its module poked — and dark again as it goes"
+eq "$(py 'print(kp.poke_sigs("menu kawa-calendar"), kp.poke_sigs("menu kawa-timer"), kp.poke_sigs("menu kawa-power"), kp.poke_sigs("sound"))')" \
+  "[19] [] None [16]"
+case_ "the bar told from the panel itself, no process started: SIGRTMIN+N to waybar (only once it catches it), every long-running module woken"
+R3=$TMP/poke; mkdir -p "$R3"; mkfifo "$R3/kawa-bar.wake.$$"; exec 6<>"$R3/kawa-bar.wake.$$"
+python3 -I -c 'import ctypes, signal, sys, time
+ctypes.CDLL(None).prctl(15, b"waybar")
+for n in (12, 15):
+    signal.signal(signal.SIGRTMIN + n, lambda s, f: open(sys.argv[1], "a").write(f"{s - signal.SIGRTMIN}\n"))
+open(sys.argv[1] + ".up", "w").close(); time.sleep(20)' "$TMP/wb.log" & wb=$!
+for _ in {1..50}; do [[ -e $TMP/wb.log.up ]] && break; sleep 0.05; done
+XDG_RUNTIME_DIR=$R3 py 'kp.poke("quick"); kp.poke("sound")'
+for _ in {1..20}; do [[ $(wc -l <"$TMP/wb.log" 2>/dev/null) -ge 2 ]] && break; sleep 0.05; done
+eq "$(sort "$TMP/wb.log" | tr '\n' ' ')" "12 15 " "quick settings: +15 and +12; the sound's +16 not caught: not sent (it would end waybar)"
+kill -0 "$wb" 2>/dev/null && _ok || _no "waybar ended by a signal it does not catch"
+n=0; while read -r -t 0.2 -u 6 _; do ((n++)); done; eq "$n" 2 "the wake fifo: a line each"
+kill "$wb" 2>/dev/null; wait "$wb" 2>/dev/null; exec 6<&-
+R2=$TMP/drop; mkdir -p "$R2"
+eq "$(XDG_RUNTIME_DIR=$R2 py 'import os
+kp.mark("menu kawa-weather", True); print(open(kp.DROP).read().split()[1], open(kp.DROP).read().split()[0] == str(os.getpid()))
+kp.mark("menu kawa-weather", False); print(os.path.exists(kp.DROP))')" "$(printf 'kawa-weather True\nFalse')"
+eq "$(py 'fresh(); p.request("menu kawa-calendar", kp.Menu(["a"], drop=True), lambda *a: 0); p.close("lost"); print([c for c in u.calls if c.startswith("light")])')" \
+  "['light menu kawa-calendar on', 'light menu kawa-calendar off']"
+eq "$(py 'fresh(); p.request("menu kawa-power", kp.Menu(["a"]), lambda *a: 0); p.close("lost"); print([c for c in u.calls if c.startswith("light")])')" "[]" \
+  "a menu not dropped from the bar: no button to light"
 
 # ── a menu's size ─────────────────────────────────────────────────────────────────────
 case_ "a menu sizes to its content: the value 12 px after the widest detail, 6 px to the edge (the weather's week)"
@@ -591,23 +734,10 @@ print(got)')" "[(0, '750 KB')]"
 
 # ── use ───────────────────────────────────────────────────────────────────────────────
 case_ "--help: what it is; anything else: exit 2"
-out=$(python3 -I "$REPO/bin/kawa-panel" --help); has "$out" "quick settings"; has "$out" "SIGUSR1"; has "$out" "SIGUSR2: close"
+out=$(python3 -I "$REPO/bin/kawa-panel" --help); has "$out" "quick settings"; has "$out" "kawa-panel.in"; has "$out" "toggle MODE"
 has "$out" "--sound"; has "$out" "--brightness"
 rc 2 python3 -I "$REPO/bin/kawa-panel" --bogus; rc 2 python3 -I "$REPO/bin/kawa-panel" --open extra
 rc 2 python3 -I "$REPO/bin/kawa-panel" --sound --brightness; rc 2 python3 -I "$REPO/bin/kawa-panel" sound
-case_ "one at a time: with one running, a second exits at once — or, with --open, asks it to open"
-export XDG_RUNTIME_DIR=$TMP/run; mkdir -p "$XDG_RUNTIME_DIR"
-python3 -I -c 'import signal, sys, time
-signal.signal(signal.SIGUSR1, lambda *a: open(sys.argv[1], "a").write("open\n"))
-open(sys.argv[2], "w").close(); time.sleep(30)' "$TMP/got" "$TMP/up" kawa-panel & pp=$!
-for _ in {1..50}; do [[ -e $TMP/up ]] && break; sleep 0.05; done
-echo "$pp" >"$XDG_RUNTIME_DIR/kawa-panel.pid"
-rc 0 env PYTHONPATH="$P" python3 "$REPO/bin/kawa-panel"
-rc 0 env PYTHONPATH="$P" python3 "$REPO/bin/kawa-panel" --open
-for _ in {1..50}; do [[ -s $TMP/got ]] && break; sleep 0.05; done
-eq "$(cat "$TMP/got" 2>/dev/null)" open
-kill "$pp" 2>/dev/null; wait "$pp" 2>/dev/null
-
 # ── where it comes from ───────────────────────────────────────────────────────────────
 case_ "the session starts it (autostart, kept running), its colours come with each theme, the bar's cat asks for it"
 has "$(cat "$REPO/configs/home/.config/dwl/autostart.sh")" 'keep kawa-panel'

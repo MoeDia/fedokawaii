@@ -42,10 +42,12 @@ case_ "forbidden by the names Fedora's packages have, not by their commands (rpm
 f=$(m 'printf "%s\n" "${FORBIDDEN_PKGS[@]}"')
 has "$f" SwayNotificationCenter; grep -qx swaync <<<"$f" && _no "swaync is a command: its package is SwayNotificationCenter" || _ok
 case_ "lazygit from its own release, pinned like yazi (its COPR is no longer kept): no package, no COPR"
-lacks "$(all amd)" lazygit; eq "$(m 'echo "${COPRS[*]}"')" "ilyaz/LACT"
+lacks "$(all amd)" lazygit; eq "$(m 'echo "${COPRS[*]}"')" "ilyaz/LACT zzahkaboom24/grub-btrfs"
 has "$(m 'printf "%s\n" "${RETIRED_PKGS[@]}"')" lazygit
 u=$( . "$REPO/lib/upstream.sh"; printf '%s\n' "${UPSTREAM[@]}" )
 grep -qE '^lazygit\|jesseduffield/lazygit\|v[0-9.]+\|lazygit_[0-9.]+_linux_x86_64\.tar\.gz\|[0-9a-f]{64}\|lazygit$' <<<"$u" && _ok || _no "lazygit not pinned in lib/upstream.sh"
+case_ "one sound-processing stack, PipeWire's own: EasyEffects and Calf retired (dnf's clean-up), nothing in the manifest brings another"
+for p in easyeffects calf; do lacks " $(all amd | tr '\n' ' ') " " $p "; has "$(m 'printf "%s\n" "${RETIRED_PKGS[@]}"')" "$p"; done
 case_ "every package setup removes is also forbidden afterwards (verify keeps it out)"
 eq "$(comm -23 <(m 'printf "%s\n" "${PKG_REMOVE[@]}"' | sort -u) <(m 'printf "%s\n" "${FORBIDDEN_PKGS[@]}"' | sort -u))" ""
 case_ "systemd-oomd's rules (systemd-oomd-defaults): removed in phase 1 and forbidden after — its kill takes a whole cgroup, the session"

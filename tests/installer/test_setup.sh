@@ -120,10 +120,14 @@ eq "$(ls "$B" | wc -l)" 10 "ten theme backups kept: $(ls "$B" | tr '\n' ' ')"
 # the sweep before the baseline (a snapshot keeps every cached download for good)
 c=$(grep -n '\[dnf\] clean packages' "$W/var/lib/fkh/calls.log" | tail -n1 | cut -d: -f1); b=$(grep -n 'fedokawaii baseline' "$W/var/lib/fkh/calls.log" | tail -n1 | cut -d: -f1)
 [[ -n $c && -n $b ]] && ((c < b)) && _ok || _no "dnf's packages cleaned at line [$c], the baseline taken at [$b]"
-case_ "torrra: installed by pipx with its pinned libraries, pipx's own command off your PATH; 6881 open"
-called "pipx\] install --force --python python3.13 --pip-args=-c .*/system/torrra-constraints.txt torrra=="
-[[ -L $W/home/fkuser/.local/share/pipx/bin/torrra && ! -e $W/home/fkuser/.local/bin/torrra && ! -L $W/home/fkuser/.local/bin/torrra ]] \
-  && _ok || _no "pipx's torrra is in ~/.local/bin"
+case_ "torrra: installed by uv tool (its own Python 3.13) with its pinned libraries, uv's own command off your PATH; 6881 open"
+called "uv\] tool install --force --python 3.13 --constraints .*/system/torrra-constraints.txt torrra=="
+case_ "Rust preinstalled for you (3.09b): rustup-init as you, stable with rust-analyzer, clippy and rustfmt, in CARGO_HOME (~/.local/share/cargo)"
+called "^fkuser\[rustup-init\] -y --no-modify-path --default-toolchain stable --profile minimal -c rust-analyzer,clippy,rustfmt$"
+[[ -x $W/home/fkuser/.local/share/cargo/bin/rust-analyzer && -d $W/home/fkuser/.local/share/rustup/toolchains ]] && _ok || _no "not in ~/.local/share/cargo and ~/.local/share/rustup"
+called "uv\] python install"
+[[ -L $W/home/fkuser/.local/share/uv/tool-bin/torrra && ! -e $W/home/fkuser/.local/bin/torrra && ! -L $W/home/fkuser/.local/bin/torrra ]] \
+  && _ok || _no "uv's torrra is in ~/.local/bin"
 eq "$(sort "$FKH/fw-ports" | tr '\n' ' ')" "53317/tcp 53317/udp 6881/tcp 6881/udp " "torrra's port and LocalSend's"
 case_ "the gate's second tries: GE-Proton, the yazi file dialog and LazyVim's plugins, each put in place there"
 has "$OUT" "GE-Proton is not installed yet"; has "$OUT" "no file dialog yet: termfilechooser did not build"
@@ -156,6 +160,14 @@ case_ "a working copy fedokawaii copy made (its .git knows the settings it was m
 back phase3; mkdir -p "$W$CLONE/.git"; : >"$W$CLONE/.git/fedokawaii-conf-base"; chown -R "$FK_UID:$FK_UID" "$W$CLONE/.git"
 resume --no-reboot; [[ -d $W$CLONE ]] && _ok || _no "your working copy was removed"
 has "$OUT" "~/fedokawaii kept: it is your working copy"
+case_ "a git clone of GitHub's (its origin known): moved to ~/repos/fedokawaii — the one clone fedokawaii pull updates"
+back phase3; rm -rf "$W$CLONE/.git"; git -C "$W$CLONE" init -q; git -C "$W$CLONE" remote add origin https://github.com/MoeDia/fedokawaii.git
+chown -R "$FK_UID:$FK_UID" "$W$CLONE/.git"
+resume --no-reboot; eq "$(state phase)" "done"
+[[ ! -e $W$CLONE && -d $W/home/fkuser/repos/fedokawaii/.git ]] && _ok || _no "the clone was not moved into place"
+has "$OUT" "~/fedokawaii moved to ~/repos/fedokawaii"
+[[ -f $W/home/fkuser/repos/fedokawaii/.git/config ]] && _ok || _no "its history did not move with it"   # (git here is the fake machine's: the address itself is test_pull's)
+rm -rf "$W/home/fkuser/repos/fedokawaii"
 case_ "phase 3 run from the clone (as setup is started again by hand): the clone goes after the final check, which runs from the toolkit"
 back phase3; reset_calls
 setup --no-reboot; eq "$RC" 0 "$(grep -E '✘' <<<"$OUT" | head -n3 | tr '\n' '|')"
@@ -176,7 +188,7 @@ case_ "a step that fails (a mirror down for good): the line and the log named, e
 back phase2; fkh dnf-fail 'install .*ffmpeg'
 resume --no-reboot; eq "$RC" 1
 has "$OUT" "✘ line"; has "$OUT" "log: /var/log/fedokawaii.log"
-has "$OUT" "in s_media(), called from line"; has "$OUT" ": dnf -y install ffmpeg --allowerasing (exit 1)" "the red line names the command that failed"
+has "$OUT" "in s_media(), called from line"; has "$OUT" ": dnf -y install --allowerasing ffmpeg (exit 1)" "the red line names the command that failed"
 has "$OUT" "Setup stopped — the reason is above"; has "$OUT" "restart the computer: setup continues by itself"
 has "$OUT" "Alt+F2"
 eq "$(state phase)" 2

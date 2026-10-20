@@ -1,0 +1,234 @@
+#!/usr/bin/env bash
+# kawa-tidy — your home kept clean. Programs' files where they belong (the XDG folders:
+# /etc/profile.d/fedokawaii-home.sh tells each program), nothing an older version of the
+# desktop left behind, every cache within its limit, old temporary files aged out.
+#
+#   kawa-tidy              the tidy, in this order: the moves below; the standard folders the
+#                          desktop does not use (Desktop, Public, Templates) taken away while
+#                          empty; the leftovers below; systemd-tmpfiles' ageing of ~/.cache
+#                          (~/.config/user-tmpfiles.d/fedokawaii.conf); each cache over its
+#                          limit trimmed, the way the table below says
+#   kawa-tidy --weekly     the same, when the last tidy is a week old (kawa-tidy.timer asks
+#                          20 minutes after every start: a tidy never runs during one)
+#   kawa-tidy --move       the moves only (setup and repair run it first: before anything
+#                          installs into the new places)
+#   kawa-tidy --check WHAT what the health report's CLEAN rows show — dotfiles: anything loose
+#                          at the top of your home; dirs: an empty folder made for nothing;
+#                          caches: each cache against its limit; leftovers: an older version's
+#                          files, and a program's folder still in its old place (~/.cargo…).
+#                          Exit 0 all is in place, 1 something is not (named)
+#
+# Never touched: anything you made. A move goes only where nothing is yet (two histories are
+# joined, yours first); a folder already in both places stays and is named by --check
+# dotfiles; a standard folder with something in it stays; only the exact leftovers listed
+# below go; a cache is only ever a cache (made again when needed).
+# Exit: 0 done · 1 something could not be done (said) · 2 wrong use.
+# shellcheck disable=SC2088  # (a ~ in a message is the reader's: never expanded)
+set -u
+case ${1:-} in -h|--help) sed -n '2,/^set -u/{/^set -u/d;/^# shellcheck/d;s/^# \{0,1\}//;p}' "$0"; exit 0 ;; esac
+TK=${KAWA_TOOLKIT:-/usr/local/lib/fedokawaii}    # (the tests point it elsewhere)
+# shellcheck source=../system/fedokawaii-home.sh
+. "$TK/system/fedokawaii-home.sh" || { echo "kawa-tidy: $TK/system/fedokawaii-home.sh cannot be read — fedokawaii repair puts it back" >&2; exit 1; }
+STATE=$XDG_STATE_HOME/fedokawaii
+
+# what an older version, or a program left to itself, put at the top of your home → where it
+# belongs now: OLD|NEW|HOW — history: joined (the old lines first); dir: moved whole while
+# nothing is there yet; cache: npm's own folders in it go (a cache), the folder once empty
+MOVES=(
+  ".bash_history|$HISTFILE|history"
+  ".lesshst|$LESSHISTFILE|history"
+  ".python_history|$PYTHON_HISTORY|history"
+  ".node_repl_history|$NODE_REPL_HISTORY|history"
+  ".sqlite_history|$SQLITE_HISTORY|history"
+  ".cargo|$CARGO_HOME|dir"
+  ".rustup|$RUSTUP_HOME|dir"
+  ".visidata|$VD_DIR|dir"
+  ".npm|$NPM_CONFIG_CACHE|cache"
+)
+NPM_OWN=(_cacache _npx _logs _update-notifier-last-checked _prebuilds)
+# what may stay at the top of your home, and why (anything else is named by --check dotfiles)
+ALLOWED=(
+  ".bashrc|bash reads only this name (Fedora's)" ".bash_profile|bash's, at a login" ".bash_logout|bash's, at a logout"
+  ".bashrc.d|the desktop's shell settings, beside Fedora's .bashrc"
+  ".config|settings" ".local|data and state" ".cache|what can be made again"
+  ".ssh|OpenSSH reads only ~/.ssh"
+  ".gnupg|gpg's keys (elsewhere, its agent's sockets would no longer start by themselves)"
+  ".pki|Brave's certificate store (Chromium writes ~/.pki/nssdb: no setting moves it)"
+  ".steam|Steam's links into its folder (Steam makes them again at every start)"
+  ".steampath|Steam's" ".steampid|Steam's"
+)
+# an older version's files in your home: PATH|what it was (a * matches as the shell does).
+# Only these; ~/.config/scriptorium (settings you may have changed) is kept in
+# ~/.local/state/fedokawaii/backup/scriptorium-config rather than deleted
+LEFTOVERS=(
+  ".local/state/scriptorium|Scriptorium's state (this project's old name)"
+  ".local/share/scriptorium|Scriptorium's data"
+  ".cache/scriptorium-theme.log|Scriptorium's theme log"
+  ".cache/scrip-lock-*|Scriptorium's lock pictures"
+  ".local/bin/scrip-*|Scriptorium's helpers"
+  ".config/scriptorium|Scriptorium's settings (kept in the backup folder)"
+)
+# the standard folders the desktop does not use: set to your home in ~/.config/user-dirs.dirs
+# (xdg-user-dirs' "none"), so nothing makes them again (setup.sh: user_dirs)
+UNUSED_DIRS=(Desktop Public Templates)
+# the caches: PATH|LIMIT (MB)|HOW|what — clear: emptied when over; oldest: the oldest files out
+# until under 80 % of it; uv: uv cache prune (what no environment uses), then emptied if still
+# over; brave: emptied when over and Brave is closed; own: the program keeps it within its
+# limit itself — only measured (over it, --check names it)
+CACHES=(
+  "$XDG_CACHE_HOME/npm|500|clear|npm's downloads"
+  "$XDG_CACHE_HOME/pip|500|clear|pip's downloads"
+  "$XDG_CACHE_HOME/uv|3000|uv|uv's packages"
+  "$XDG_CACHE_HOME/thumbnails|500|oldest|thumbnails of your files"
+  "$XDG_CACHE_HOME/yt-dlp|200|clear|yt-dlp's player scripts"
+  "$XDG_CACHE_HOME/BraveSoftware|1500|brave|Brave's cache"
+  "$XDG_CACHE_HOME/fedokawaii|1500|own|the wallpapers drawn ahead (kawa-wallpaper keeps the pictures and screens in use)"
+  "$XDG_CACHE_HOME/mesa_shader_cache|1100|own|the graphics driver's shaders (Mesa: 1 GB)"
+  "$XDG_CACHE_HOME/mesa_shader_cache_db|1100|own|the graphics driver's shaders (Mesa: 1 GB)"
+  "$CARGO_HOME/registry|3000|own|crates (cargo removes those unused for 3 months)"
+)
+SAID=0
+say() { printf '%s\n' "$*"; SAID=1; }
+mb() { du -sm --apparent-size -- "$1" 2>/dev/null | cut -f1; }   # (the files' own sizes: what Btrfs compresses is still that much to a program)
+tilde() { printf '%s' "${1/#$HOME/\~}"; }
+
+moves() {
+  local e old new how f rc=0
+  for e in "${MOVES[@]}"; do
+    IFS='|' read -r old new how <<<"$e"; old=$HOME/$old
+    [[ -e $old && ! -L $old ]] || continue
+    case $how in
+      history)
+        mkdir -p -- "${new%/*}" || { rc=1; continue; }
+        if [[ -e $new ]]; then
+          cat -- "$old" "$new" >"$new.tidy" && mv -f -- "$new.tidy" "$new" && rm -f -- "$old" || { rc=1; continue; }
+          say "$(tilde "$old") joined to $(tilde "$new")"
+        else mv -- "$old" "$new" || { rc=1; continue; }; say "$(tilde "$old") → $(tilde "$new")"; fi ;;
+      dir)
+        [[ -e $new ]] && continue                     # (in both places: --check dotfiles names it)
+        mkdir -p -- "${new%/*}" && mv -- "$old" "$new" || { rc=1; continue; }
+        say "$(tilde "$old") → $(tilde "$new")" ;;
+      cache)
+        for f in "${NPM_OWN[@]}"; do rm -rf -- "${old:?}/$f"; done
+        rmdir -- "$old" 2>/dev/null && say "$(tilde "$old") (npm's cache) gone: npm keeps it in $(tilde "$new")" ;;
+    esac
+  done
+  return "$rc"
+}
+disabled() {   # disabled NAME — the folder is set to your home in user-dirs.dirs (none)
+  local key
+  case $1 in Desktop) key=DESKTOP ;; Public) key=PUBLICSHARE ;; Templates) key=TEMPLATES ;; esac
+  grep -qxE "XDG_${key}_DIR=\"(\\\$HOME/?|${HOME//./\\.}/?)\"" "$XDG_CONFIG_HOME/user-dirs.dirs" 2>/dev/null
+}
+unused_dirs() {
+  local d
+  for d in "${UNUSED_DIRS[@]}"; do
+    [[ -d $HOME/$d && ! -L $HOME/$d ]] && disabled "$d" || continue
+    rmdir -- "$HOME/$d" 2>/dev/null && say "~/$d (empty, and nothing on this desktop uses it) gone"
+  done
+  return 0
+}
+leftovers() {
+  local e p f rc=0
+  for e in "${LEFTOVERS[@]}"; do
+    p=${e%%|*}
+    for f in "$HOME"/$p; do
+      [[ -e $f || -L $f ]] || continue
+      if [[ $p == .config/scriptorium ]]; then
+        mkdir -p -- "$STATE/backup" && mv -- "$f" "$STATE/backup/scriptorium-config" || { rc=1; continue; }
+        say "$(tilde "$f") kept in $(tilde "$STATE/backup/scriptorium-config")"
+      else rm -rf -- "$f" || { rc=1; continue; }; say "$(tilde "$f") gone (${e#*|})"; fi
+    done
+  done
+  return "$rc"
+}
+brave_open() { pgrep -u "$(id -u)" -f -i brave >/dev/null; }
+trim() {   # every cache over its limit, its own way
+  local e p lim how what s f rc=0
+  for e in "${CACHES[@]}"; do
+    IFS='|' read -r p lim how what <<<"$e"
+    [[ -d $p ]] || continue
+    s=$(mb "$p"); ((s > lim)) || continue
+    case $how in
+      clear) find "$p" -mindepth 1 -delete || rc=1 ;;
+      oldest)
+        while IFS= read -r -d '' f; do
+          ((s * 10 <= lim * 8)) && break
+          rm -f -- "${f#* }"; s=$(mb "$p")
+        done < <(find "$p" -type f -printf '%T@ %p\0' | sort -zn) ;;
+      uv) uv cache prune --quiet || rc=1; (($(mb "$p") > lim)) && { uv cache clean --quiet || rc=1; } ;;
+      brave) brave_open && continue; find "$p" -mindepth 1 -delete || rc=1 ;;
+      own) continue ;;
+    esac
+    say "$what ($(tilde "$p")): $s MB, over $lim MB — now $(mb "$p") MB"
+  done
+  return "$rc"
+}
+tidy() {
+  local rc=0
+  moves || rc=1
+  unused_dirs
+  leftovers || rc=1
+  systemd-tmpfiles --user --clean || { say "systemd-tmpfiles could not age ~/.cache out"; rc=1; }
+  trim || rc=1
+  mkdir -p -- "$STATE" && date +%s >"$STATE/tidy.last"
+  ((SAID)) || echo "kawa-tidy: all in place"
+  return "$rc"
+}
+
+check() {
+  local e n why p lim how what s f bad=0
+  case $1 in
+    dotfiles)
+      local -A ok=() hint=()
+      local OTHER="not the desktop's: a program you ran made it (moved by its own setting, or yours to delete)"
+      for e in "${ALLOWED[@]}"; do ok[${e%%|*}]=${e#*|}; done
+      for e in "${MOVES[@]}"; do IFS='|' read -r n p how <<<"$e"; hint[$n]="belongs in $(tilde "$p") — kawa-tidy moves it"; done
+      for f in "$HOME"/.[!.]* "$HOME"/..?*; do
+        [[ -e $f || -L $f ]] || continue
+        n=${f##*/}
+        [[ -n ${ok[$n]:-} ]] && continue
+        why=${hint[$n]:-$OTHER}
+        echo "~/$n: $why"; bad=1
+      done
+      ((bad)) || echo "nothing loose at the top of your home (only: ${!ok[*]})" ;;
+    dirs)
+      for n in "${UNUSED_DIRS[@]}"; do
+        disabled "$n" || { echo "~/$n: xdg-user-dirs would make it again (user-dirs.dirs) — fedokawaii repair sets it to none"; bad=1; }
+        [[ -d $HOME/$n ]] || continue
+        if [[ -z $(ls -A -- "$HOME/$n") ]]; then echo "~/$n: empty, made for nothing — kawa-tidy takes it away"; bad=1
+        else echo "~/$n: yours (something is in it), kept"; fi
+      done
+      ((bad)) || echo "no folder made for nothing (Desktop, Public, Templates: none)" ;;
+    caches)
+      for e in "${CACHES[@]}"; do
+        IFS='|' read -r p lim how what <<<"$e"
+        s=0; [[ -d $p ]] && s=$(mb "$p")
+        printf '%6s MB of %5s  %-40s %s\n' "$s" "$lim" "$(tilde "$p")" "$what"
+        ((s > lim)) && { echo "   ↑ over its limit"; bad=1; }
+      done ;;
+    leftovers)   # (and a folder still in its old place: rustup's, npm's… — a history file is dotfiles')
+      for e in "${MOVES[@]}"; do
+        IFS='|' read -r n p how <<<"$e"
+        [[ $how != history && -e $HOME/$n && ! -L $HOME/$n ]] && { echo "~/$n: belongs in $(tilde "$p") — kawa-tidy moves it"; bad=1; }
+      done
+      for e in "${LEFTOVERS[@]}"; do
+        for f in "$HOME"/${e%%|*}; do [[ -e $f || -L $f ]] && { echo "$(tilde "$f"): ${e#*|} — kawa-tidy takes it away"; bad=1; }; done
+      done
+      ((bad)) || echo "nothing left from older versions" ;;
+    *) echo "kawa-tidy --check: dotfiles, dirs, caches or leftovers" >&2; return 2 ;;
+  esac
+  return "$bad"
+}
+
+case ${1:-} in
+  "") tidy ;;
+  --weekly)
+    last=$(cat "$STATE/tidy.last" 2>/dev/null) || last=0
+    [[ $last =~ ^[0-9]+$ ]] || last=0
+    (($(date +%s) - last >= 7 * 86400)) || exit 0
+    tidy ;;
+  --move) moves ;;
+  --check) check "${2:-}" ;;
+  *) echo "usage: kawa-tidy [--weekly | --move | --check WHAT]" >&2; exit 2 ;;
+esac

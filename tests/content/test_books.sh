@@ -4,7 +4,7 @@
 # read, finished, moved since, new; PDF, EPUB (with and without a cover), comics, odd names
 # (spaces, quotes, $(…), a leading dash, Japanese, a name that is not UTF-8), corrupt files,
 # 0, 1 and 500 books, and zathura's memory of where you were (a real bookmarks.sqlite).
-# The covers are drawn for real (poppler, bsdtar, ImageMagick, kawa-sixel) and read back.
+# The covers are drawn for real (poppler, 7z, ImageMagick, kawa-sixel) and read back.
 . "$(dirname "$0")/lib.sh"
 
 setup() {   # setup — a fresh sandbox with an empty ~/Books; fzf, zathura, gio as stand-ins
@@ -19,7 +19,7 @@ setup() {   # setup — a fresh sandbox with an empty ~/Books; fzf, zathura, gio
   *) for a; do printf "%s\n" "$a"; done >"$FZF_ARGS"; cat >"$FZF_IN" ;;
 esac'
   stub setsid '[ "$1" = -f ] && shift; exec "$@"'
-  stub zathura; stub gio; stub kawa-float; stub kawa-cell 'echo 9x21'
+  stub zathura; stub gio; stub kawa-term; stub kawa-cell 'echo 9x21'
   : >"$FZF_PICK"
 }
 MAGICK=$(command -v magick) FD=$(command -v fd fdfind 2>/dev/null | head -n1)
@@ -107,9 +107,10 @@ eq "$(FZF_COLUMNS=300 kawa-books --rows | widths)" "259 "
 eq "$(FZF_COLUMNS=71 kawa-books --rows | widths)" "30 "
 eq "$(FZF_COLUMNS=40 kawa-books --rows | widths)" "61 " "too narrow to trust: the window's own width"
 eq "$(kawa-books --rows | widths)" "61 "
-case_ "a title longer than its column is cut with …"
+case_ "a title longer than its column is cut at a word's end — never with …"
 mk pdf "$B/$(printf 'word %.0s' {1..30}).pdf" 1
-has "$(FZF_COLUMNS=75 kawa-books --rows | grep 'word word' | field 2 | plain)" "word…   ──" "6 columns: the word and …, never a space before it"
+t=$(FZF_COLUMNS=75 kawa-books --rows | grep 'word word' | field 2 | plain)
+has "$t" "word    ──" "the last whole word, then the column's spaces"; lacks "$t" "…"
 
 case_ "a name that is not UTF-8 (an old zip's), in a real UTF-8 locale: listed, the rest too"
 if locale_of en_US; then L=$LOC
@@ -251,14 +252,14 @@ for l in sys.stdin.read().splitlines():
     w = sum(2 if unicodedata.east_asian_width(c) in "WF" else 1 for c in l)
     if w > int(sys.argv[1]): sys.exit(1)' "$cols" <<<"$text" && _ok || _no "$size: a line of words wider than the pane"
 done
-case_ "a long Japanese title (the list cut it, so the caption names it): two lines at most, cut with …, inside the pane"
+case_ "a long Japanese title (the list cut it, so the caption names it): two lines at most, inside the pane, no …"
 mk epub "$B/$(printf '長い題名%.0s' {1..12}).epub" meta
 long=$(printf '長い題名%.0s' {1..12})
 whole=$(kawa-books --rows | grep -F -- "$B/$long.epub"$'\t' | field 6)
 eq "$whole" "$long" "the list cuts it: its whole title goes to the caption (field 6)"
 text=$(FZF_PREVIEW_COLUMNS=36 FZF_PREVIEW_LINES=24 KAWA_CELL=9x21 kawa-books --preview "$B/$long.epub" "info one" "info two" "$whole" \
        | sixel_info | jrepr after | python3 -I -c 'import sys,ast; print(ast.literal_eval(sys.stdin.read()))' | plain)
-eq "$(grep -c '長' <<<"$text")" 2; has "$text" "…"
+eq "$(grep -c '長' <<<"$text")" 2; lacks "$text" "…"
 case_ "a title the list shows whole: the caption does not repeat it"
 text=$(cover "$B/Reading Now.pdf" | sixel_info | jrepr after | python3 -I -c 'import sys,ast; print(ast.literal_eval(sys.stdin.read()))' | plain)
 lacks "$text" "Reading Now"; eq "$(kawa-books --rows | grep -F -- "$B/Reading Now.pdf"$'\t' | field 6)" ""
@@ -320,11 +321,11 @@ stub gio 'exit 1'
 rc 0 kawa-books --remove "$B/Done Book.pdf"
 called 'notify-send -a desktop -- .*  books could not move Done Book.pdf to the trash'
 
-case_ "ctrl+a: books in Downloads, Documents, Desktop listed; the marked ones moved in; a taken name gets (2)"
+case_ "ctrl+a: books in Downloads and Documents listed (no Desktop on this desktop); the marked ones moved in; a taken name gets (2)"
 setup; mk pdf "$B/Taken.pdf" 1
-mkdir -p "$HOME/Downloads/sub" "$HOME/Documents" "$HOME/Desktop"
+mkdir -p "$HOME/Downloads/sub" "$HOME/Documents"
 mk pdf "$HOME/Downloads/Taken.pdf" 2; mk epub "$HOME/Downloads/sub/Deep.epub" meta
-mk pdf "$HOME/Documents/a.b.c.pdf" 1; printf x >"$HOME/Desktop/not a book.txt"
+mk pdf "$HOME/Documents/a.b.c.pdf" 1; printf x >"$HOME/Documents/not a book.txt"
 if [[ -z $FD ]]; then skip "no fd here: Ctrl+A not tried"; else
 stub fd "exec '$FD' \"\$@\""
 printf '%s\n' "~/Downloads/Taken.pdf" "~/Downloads/sub/Deep.epub" >"$FZF_PICK"
@@ -347,7 +348,7 @@ fi
 # ── the window ───────────────────────────────────────────────────────────────
 case_ "Super+R: the floating window, once"
 setup; reset_calls; kawa-books
-called "^kawa-float --once books books 104x29 -- $REPO/bin/kawa-books --tui\$"
+called "^kawa-term --float --once books books 104x29 -- $REPO/bin/kawa-books --tui\$"
 case_ "inside: the list, its count in the title, the keys"
 library; kawa-books --tui
 eq "$(cat "$FZF_IN")" "$(kawa-books --rows)"
@@ -362,11 +363,11 @@ pcmd=$(grep -F -- "--preview=" "$FZF_ARGS"); pcmd=${pcmd#--preview=}
 q=$(printf '%q' "$B/One.pdf")
 out=$(FZF_PREVIEW_COLUMNS=36 FZF_PREVIEW_LINES=24 KAWA_CELL=9x21 bash -c "${pcmd//\{1\}/$q} 2>&1")
 [[ $out == *$'\e'P0\;1\;* ]] && _ok || _no "no cover: ${out:0:120}"
-case_ "a held Super+R (20 presses): one window"
-setup; stub kawa-float; rm -f "$STUBS/kawa-float"
+case_ "Super+R pressed 21 times fast (20 ms apart): one window — each press toggles"
+setup; stub kawa-term; rm -f "$STUBS/kawa-term"
 stub footclient 'while [ "$1" != -- ]; do shift; done; shift; sleep 1; exec "$@"'
-for _ in {1..20}; do kawa-books & done; wait
-eq "$(grep -c '^footclient' "$CALLS")" 1; eq "$(grep -c '^fzf' "$CALLS")" 1
+for _ in {1..21}; do kawa-books & sleep 0.02; done; wait
+eq "$(grep -c '^fzf' "$CALLS")" 1
 
 case_ "Turkish and Arabic locales: the same list, the card says MOBI (not MOBİ)"
 setup; mk pdf "$B/One.pdf" 3; printf 'x' >"$B/Book.mobi"

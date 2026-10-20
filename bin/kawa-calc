@@ -1,0 +1,97 @@
+#!/usr/bin/env bash
+# kawa-calc — the calculator ("Calculator" in the launcher): type a sum, a percentage or a
+# conversion and the answer shows as you type; Enter copies it. qalc (Qalculate) works every
+# answer out — one qalc for the whole window, asked line by line — so everything it knows
+# works: "15% of 2400", "120 usd to aed", "5 ft to cm", "2^64", "sqrt(2)", "3.5 h to min",
+# "255 to hex". Currency rates are qalc's own, fetched again when a week old.
+#
+#   kawa-calc            the calculator, in this terminal (the launcher's entry gives it a
+#                        window of its own: kawa-term, app-id kawa-calc)
+#
+# Keys: Enter copies the answer (and keeps the line above) · ↑ the sum before again ·
+# Ctrl+U clears · Ctrl+Q qalc's own prompt in this window (its every command: help, set,
+# store, rpn…) · Esc closes.
+# Exit status: 0 closed · 1 no qalc · 2 misuse.
+set -u
+export LC_ALL=C.UTF-8
+case ${1:-} in
+  -h|--help) sed -n '2,/^set -u/{/^set -u/d;s/^# \{0,1\}//;p}' "$0"; exit 0 ;;
+  "") ;;
+  *) echo "usage: kawa-calc" >&2; exit 2 ;;
+esac
+command -v qalc >/dev/null || { echo "kawa-calc: qalc is missing — fedokawaii repair puts it back" >&2; exit 1; }
+# shellcheck source=/dev/null
+. "$HOME/.config/fedokawaii/screen.sh"
+# shellcheck source=/dev/null
+. "$HOME/.config/fedokawaii/files.sh"              # clip_put
+QALC=(qalc -s 'upxrates 7')                         # (currency rates refreshed once a week)
+SENT=7777777.25                                     # (the line after each sum: its answer ends one)
+
+# ── qalc, asked line by line ─────────────────────────────────────────────────────────────
+start() { coproc { "${QALC[@]}" -t -s 'color 0' -s 'unicode 0' 2>&1; }; }
+start
+# answer EXPR → qalc's answer on stdout (nothing: no answer — not a sum, or qalc says no)
+answer() {
+  local e=$1 l out="" w
+  [[ $e == *[0-9]* ]] || return 0                   # (a word alone is no sum: "steam" is not one)
+  w=${e%% *}; w=${w,,}
+  # (qalc's own commands are its prompt's, Ctrl+Q: never sent from here — "exit" would end it)
+  [[ $w == @(quit|exit|set|save|store|assume|base|mode|help|list|find|info|delete|keep|unkeep|function|variable|rpn|stack|clear|history|exrates|swap|rotate|copy|move|pop|to|convert|factor|expand|partial|simplify|approximate|exact) ]] && return 0
+  kill -0 "${COPROC_PID:-0}" 2>/dev/null || start          # (ended: a new one)
+  { printf '%s\n%s\n' "$e" "$SENT" >&"${COPROC[1]}"; } 2>/dev/null || return 0
+  while IFS= read -r -t 3 -u "${COPROC[0]}" l; do
+    [[ $l == "  $SENT" ]] && break
+    [[ -z $out && $l == "  "?* ]] && out=${l#  }
+  done
+  [[ $out == @(error|warning)* || $out == "$e" ]] && return 0
+  printf '%s' "$out"
+}
+
+# ── the screen: §7's grammar — the heading, the line typed, its answer, the lines kept ──
+expr="" ans="" note="" kept=()
+KEYS="enter copy  ·  ↑ again  ·  ctrl+q qalc's prompt  ·  esc close"
+draw() {
+  local w c i
+  c=$(stty size 2>/dev/null </dev/tty) && c=${c#* } || c=64
+  w=$((c - 4))
+  printf '\e[?25l\e[H\e[2J\n  %s\n\n' "$(screen_heading 算 calculator "$w")"
+  printf '  %s›%s  %s\e7\n' "$INK_MUTED" "$INK_OFF" "$expr"
+  if [[ -n $ans ]]; then printf '  %s=%s  %s%s%s\n' "$INK_MUTED" "$INK_OFF" "$INK_STRONG" "$ans" "$INK_OFF"
+  else printf '  %s=%s\n' "$INK_FAINT" "$INK_OFF"; fi
+  printf '\n'
+  for ((i = ${#kept[@]} - 1; i >= 0 && i >= ${#kept[@]} - 4; i--)); do
+    printf '  %s%s%s\n' "$INK_MUTED" "${kept[i]}" "$INK_OFF"
+  done
+  printf '\e[%d;1H  %s%s%s' "$(( $(stty size 2>/dev/null </dev/tty | cut -d' ' -f1 || echo 13) ))" "$INK_MUTED" \
+    "${note:-$KEYS}" "$INK_OFF"
+  printf '\e8\e[?25h'
+}
+# the terminal raw for the whole window, not only during each read: a key typed while the
+# screen is drawn must not meet the line editor (^U, Backspace) of a terminal in line mode
+tty=$(stty -g </dev/tty 2>/dev/null) && stty -icanon -echo </dev/tty 2>/dev/null
+trap 'printf "\e[?25h"; [[ -n $tty ]] && stty "$tty" </dev/tty 2>/dev/null; [[ -n ${COPROC_PID:-} ]] && kill "$COPROC_PID" 2>/dev/null' EXIT
+draw
+while IFS= read -rsn1 k </dev/tty; do
+  note=""
+  case $k in
+    $'\e') IFS= read -rsn2 -t 0.02 s </dev/tty || s=""
+            case $s in
+              "") exit 0 ;;                                   # Esc alone
+              '[A') ((${#kept[@]})) && expr=${kept[-1]%% = *} ;;
+              *) ;;
+            esac ;;
+    "")     # Enter: the answer copied, the line kept above, a clean line for the next
+            if [[ -n $ans ]]; then
+              if printf '%s' "$ans" | clip_put 'text/plain;charset=utf-8' 2>/dev/null; then note="copied: $ans"
+              else note="not copied (no clipboard)"; fi
+              kept+=("$expr = $ans"); expr=""
+            fi ;;
+    $'\x7f'|$'\b') expr=${expr%?} ;;
+    $'\x15') expr="" ;;                                       # Ctrl+U
+    $'\x11') printf '\e[H\e[2J'; [[ -n $tty ]] && stty "$tty" </dev/tty; exec "${QALC[@]}" ;;          # Ctrl+Q: qalc's own prompt
+    [[:print:]]|[^[:ascii:]]) expr+=$k ;;
+    *) ;;
+  esac
+  ans=$(answer "$expr")
+  draw
+done

@@ -26,6 +26,15 @@ CONFLICT_SERVICES=(
   "lxdm.service|greetd, the login"
   "systemd-networkd.service|NetworkManager: two network managers configure the same cards"
   "iwd.service|NetworkManager's Wi-Fi (wpa_supplicant): two programs drive the same radio"
+  # a Fedora Server's extras, resident for nothing on this desktop (memory, wake-ups): off
+  # whenever an install or a package enabled them
+  "ModemManager.service|the desktop's memory and wake-ups: no modem here, yet it probes every serial and USB port"
+  "cockpit.socket|the closed firewall: a server's browser console (its port stays shut here)"
+  "iscsid.socket|the desktop's memory: network disks (iSCSI) a desktop never mounts"
+  "multipathd.service|the desktop's memory: multipath storage, a server's (it locks its memory in RAM)"
+  "atd.service|systemd's timers: at's queue, a second scheduler"
+  "pmcd.service|the desktop's memory and wake-ups: PCP's metrics daemon, a server's (btop and the report show the same)"
+  "pmlogger.service|the desktop's memory and disk: PCP's logger, a server's"
 )
 # your own services that fight the session's: UNIT|what it fights
 CONFLICT_USER_SERVICES=(

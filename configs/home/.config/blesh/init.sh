@@ -4,15 +4,16 @@
 # file that exists underlined), a grey suggestion from your history — → (or End) takes it,
 # Ctrl+→ one word of it, Enter runs only what you typed — and a completion menu that Tab and
 # the arrows move through, narrowed as you type. Everything else stays as bash and
-# ~/.inputrc have it (Up/Down search by what is typed, Ctrl+←/→ and Ctrl+Backspace by word).
+# ~/.config/readline/inputrc have it (Up/Down search by what is typed, Ctrl+←/→ and
+# Ctrl+Backspace by word).
 # shellcheck shell=bash disable=SC2034
 
 # ── one place for each thing ────────────────────────────────────────────────
 # The prompt shows how a command ended and how long it took (✓ / ✗ and its code, the
 # time): ble.sh's own lines for them ("[ble: exit 1]", "[ble: elapsed …]") stay off.
 bleopt exec_errexit_mark= exec_elapsed_mark=
-# no bell (a Tab that finds nothing): ~/.inputrc's bell-style none is readline's, and ble.sh
-# has its own switch for it
+# no bell (a Tab that finds nothing): ~/.config/readline/inputrc's bell-style none is
+# readline's, and ble.sh has its own switch for it
 bleopt edit_bell=
 
 # ── fzf and zoxide, through ble.sh ──────────────────────────────────────────

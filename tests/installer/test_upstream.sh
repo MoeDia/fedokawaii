@@ -162,17 +162,17 @@ up "install_upstream_bin $satty || echo FAILED"; has "$OUT" "FAILED"; lacks "$OU
 up 'install_nerd_fonts || echo FAILED'; has "$OUT" "FAILED"
 [[ ! -e $W$H/.local/share/fedokawaii/upstream/nerd-JetBrainsMono ]] && _ok || _no "the tag recorded for fonts not written"
 fk chmod 755 "$H/.local/bin" "$H/.local/share/fonts"
-case_ "Fusion Pixel: for every account (/usr/local/share/fonts), only the Japanese face and the licence; the fonts before it gone from the home"
+case_ "Fusion Pixel 12 and 10: for every account (/usr/local/share/fonts), only the Japanese faces and the licence; the fonts before it gone from the home"
 back start; mkdir -p "$W$H/.local/share/fonts/PixelMplus" "$W$H/.local/share/fonts/DepartureMonoNerd" "$W$H/.local/share/fedokawaii/upstream"
 echo v3.5.1 >"$W$H/.local/share/fedokawaii/upstream/nerd-DepartureMono"; fk chown -R fkuser:fkuser "$H/.local"
 up 'install_fusion'; eq "$RC" 0
-eq "$(ls -A "$W/usr/local/share/fonts/fusion-pixel" | tr '\n' ' ')" ".version OFL.txt fusion-pixel-12px-monospaced-ja.ttf "
-eq "$(stat -c '%U %a' "$W/usr/local/share/fonts/fusion-pixel/fusion-pixel-12px-monospaced-ja.ttf")" "root 644"
+eq "$(ls -A "$W/usr/local/share/fonts/fusion-pixel" | tr '\n' ' ')" ".version OFL.txt fusion-pixel-10px-monospaced-ja.ttf fusion-pixel-12px-monospaced-ja.ttf "
+eq "$(stat -c '%U %a' "$W/usr/local/share/fonts/fusion-pixel/fusion-pixel-12px-monospaced-ja.ttf" "$W/usr/local/share/fonts/fusion-pixel/fusion-pixel-10px-monospaced-ja.ttf" | sort -u)" "root 644"
 [[ ! -e $W$H/.local/share/fonts/PixelMplus && ! -e $W$H/.local/share/fonts/DepartureMonoNerd && ! -e $W$H/.local/share/fedokawaii/upstream/nerd-DepartureMono ]] && _ok || _no "an old pixel font left in the home"
 called '^root\[fc-cache\] -f /usr/local/share/fonts/fusion-pixel'
-reset_calls; up 'install_fusion'; has "$OUT" "Fusion Pixel 12 2026.08.11 — in place"; not_called curl
+reset_calls; up 'install_fusion'; has "$OUT" "Fusion Pixel 12 and 10 2026.08.11 — in place"; not_called curl
 case_ "Fusion Pixel's download altered: refused, nothing installed"
-back start; printf 'x' >>"$dl/$(. "$REPO/lib/upstream.sh"; echo "${FUSION_URL##*/}")"
+back start; printf 'x' >>"$dl/fusion-pixel-font-10px-monospaced-ttf-v$(. "$REPO/lib/upstream.sh"; echo "$FUSION_TAG").zip"
 up 'install_fusion'; eq "$RC" 1; [[ ! -e $W/usr/local/share/fonts/fusion-pixel ]] && _ok || _no "an altered font installed"
 
 # ── Syncplay, from its pinned source ─────────────────────────────────────────

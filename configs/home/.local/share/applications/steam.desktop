@@ -6,9 +6,11 @@
 # processor's graphics left on, "the other GPU" would be that one, not the card the screen is on.
 Type=Application
 Name=Steam
+GenericName=Games
 Comment=Games: the store and your library
 Icon=steam
 Exec=@HOME@/.local/bin/kawa-steam %U
 Terminal=false
 Categories=Game;
+Keywords=games;gaming;proton;library;store;
 MimeType=x-scheme-handler/steam;x-scheme-handler/steamlink;

@@ -32,6 +32,9 @@ group-by=app-name,summary,body
 # (the drives') runs it instead, below
 on-button-left=dismiss-group
 on-button-right=dismiss-all
+# the notices that went by: kawa-hush counts and lists those held back during a screen share
+# or a game from here (the default keeps 5)
+max-history=50
 
 [urgency=low]
 default-timeout=3000
@@ -49,6 +52,18 @@ on-button-left=invoke-default-action
 
 [app-name=drives urgency=critical]
 default-timeout=0
+
+# a finished download (kawa-downloads: a torrent, Brave's, a Steam game): 8 s, and a click
+# opens it — the file under yazi's cursor, or Steam's downloads
+[app-name=downloads]
+default-timeout=8000
+on-button-left=invoke-default-action
+
+# what was held back during a share or a game (kawa-hush): "3 notices while you shared",
+# 8 s, and a click lists them
+[app-name=notices]
+default-timeout=8000
+on-button-left=invoke-default-action
 
 # a critical notice stays until you have read it, whichever app sent it ("the move to
 # Fedora … did not complete" comes from the desktop): after the apps' own times above, as
@@ -91,7 +106,7 @@ invisible=0
 [mode=do-not-disturb category=osd]
 invisible=0
 
-# while a screen is shared (set by the screen-sharing portal, see
+# while a screen is shared (kawa-hush, run by the screen-sharing portal: see
 # ~/.config/xdg-desktop-portal-wlr/config): the same rules, so nothing private shows on it
 [mode=sharing]
 invisible=1
@@ -101,4 +116,15 @@ group-by=none
 invisible=0
 
 [mode=sharing category=osd]
+invisible=0
+
+# while a game runs (game mode: kawa-game): the same rules
+[mode=game]
+invisible=1
+group-by=none
+
+[mode=game urgency=critical]
+invisible=0
+
+[mode=game category=osd]
 invisible=0

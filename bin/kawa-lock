@@ -9,18 +9,28 @@
 #
 # `kawa-lock --sleep` (Super+Escape, the power menu's "lock"): a lock you asked for — still
 # locked 90 seconds later, the computer sleeps (unlock before then and it stays awake). That
-# is the only way it sleeps by itself: nothing sleeps or locks on its own when you are just
-# away (the screens only go dark after an hour: autostart.sh). (KAWA_LOCK_SLEEP=SECONDS in
-# its environment sets another wait, 0 none: the tests use it.)
-# `kawa-lock --now` (swayidle, right before sleep) is the same lock; both return only once
-# the screens are locked.
+# is the only way it sleeps by itself: away, nothing sleeps — the screensaver and the lock
+# behind it after 15 minutes, the screens dark after 30 (kawa-idle; never while something plays).
+# (KAWA_LOCK_SLEEP=SECONDS in its environment sets another wait, 0 none: the tests use it.)
+# `kawa-lock --now` (the power menu's sleep, the Sleep key, and swayidle right before every
+# sleep): the screens go dark first, then the same lock comes up on them — so a sleep shows no
+# lock for a moment: the screens just go black, and the lock is there when they come back.
+# Both return only once the screens are locked.
+#
+# The screens, dark or lit (`--screens off|on`: wlopm, and a note of it in
+# $XDG_RUNTIME_DIR/kawa-screens — "off", or "on" from the moment they came back). The lock
+# screen reads that note (its module, kawa-lockmod: src/kawa-lockmod): while the screens are
+# dark, and for 2 s after they come back, every key and click on it only wakes — the Enter
+# that woke the computer is never taken for a password. An empty Enter is never one either.
+# `--resumed` (swayidle, as the machine wakes) lights the screens and notes the wake.
+# Under the box, a rule and three keys — sleep, restart, power off — as on the login screen.
 #
 # The lock holds until your password, whatever happens meanwhile: gtklock runs under a
 # keeper (kawa-lock --keep, started here). Should gtklock stop without the password — a
 # crash, a screen that went away as the machine slept — the desktop stays locked (dwl keeps
 # its plain locked screen) and the keeper starts gtklock again at once. What happens goes to
 # the journal (journalctl -t kawa-lock): "lock up", "unlocked", "locker exited rc=N",
-# "resumed" (swayidle runs kawa-lock --resumed as the machine wakes).
+# "screens off", "resumed — locked" (swayidle runs kawa-lock --resumed as the machine wakes).
 #
 # Exit: 0 locked (or it already was) · 1 it could not lock (gtklock missing, stopped, or it
 # did not lock within 10 s — said in a notice) — so `kawa-lock && systemctl suspend` never sleeps
@@ -55,9 +65,21 @@ keep() {
     ((${t1%.*} - ${t0%.*} >= 1)) || sleep 1
   done
 }
+# screens off|on — every output dark (wlopm), or lit again; the note the lock screen reads
+# (written before they go dark, after they are lit: its wake guard never misses an edge)
+screens() {
+  if [[ $1 == off ]]; then
+    echo off >"$run/kawa-screens"; say "screens off"; wlopm --off '*'
+  else
+    wlopm --on '*'; echo on >"$run/kawa-screens"; say "screens on"
+  fi
+}
 case ${1:-} in
   --up) : >"$locked"; say "lock up"; exit 0 ;;        # gtklock's --lock-command: every screen locked
-  --resumed) if keeping; then say "resumed — locked"; else say "resumed — not locked"; fi; exit 0 ;;
+  --screens) [[ ${2:-} == @(on|off) ]] || { echo "usage: kawa-lock --screens on|off" >&2; exit 2; }
+             screens "$2"; exit 0 ;;
+  --resumed) screens on
+             if keeping; then say "resumed — locked"; else say "resumed — not locked"; fi; exit 0 ;;
   --keep) shift; keep "$@" ;;
 esac
 
@@ -68,7 +90,7 @@ THEME=dark
 . "$HOME/.config/fedokawaii/icons.sh" 2>/dev/null
 sleep_after=0
 case ${1:-} in
-  --now) shift ;;
+  --now) shift; screens off ;;                       # (dark first: no lock shows before a sleep)
   --sleep) sleep_after=90; [[ ${KAWA_LOCK_SLEEP:-} =~ ^[0-9]+$ ]] && sleep_after=$KAWA_LOCK_SLEEP; shift ;;
 esac
 fail() {
@@ -97,12 +119,17 @@ sed -e "s|{SEAL}|$art/seal-$day.png|" -e "s|{PADLOCK}|$art/padlock.png|" \
   notify-send -a desktop -u critical -- "${ICON_LOCK:-}  lock screen" "its layout is missing (~/.config/fedokawaii/lock.ui), so it locks plain — fedokawaii repair puts it back" 2>/dev/null
 }
 
+# the module (the three keys, the wake guard: built from src/kawa-lockmod by theme.sh) — gone,
+# the screen still locks, without them, and a notice says what to repair
+mod=$HOME/.local/lib/fedokawaii/kawa-lockmod.so
+[[ -r $mod ]] || notify-send -a desktop -u critical -- "${ICON_LOCK:-}  lock screen" "its keys and wake guard are missing ($mod), so it locks without them — fedokawaii repair builds it again" 2>/dev/null
+
 rm -f "$locked"
 # gtklock, under its keeper (above); --lock-command marks the moment every screen is locked.
 # The date in English whatever the language (C), the ◆ box and the seal say the rest; its two
 # messages in the desktop's words (LANGUAGE=fk: the catalogue setup installs, art/gtklock.mo)
-setsid -f "$0" --keep env LC_TIME=C LANGUAGE=fk gtklock -s "$HOME/.config/fedokawaii/current/gtklock.css" "${layout[@]}" \
-  --date-format '%a %d %b' --time-format '%I:%M %p' \
+setsid -f "$0" --keep env LC_TIME=C LANGUAGE=fk gtklock -s "$HOME/.config/fedokawaii/current/gtklock.css" "${layout[@]}" -m "$mod" \
+  --date-format '%a %d %b' --time-format '%I:%M' \
   --lock-command "kawa-lock --up" </dev/null >/dev/null 2>&1 9>&-
 # (gone after a second without locking — it could not start: said at once, not after 10 s)
 for ((i = 0; i < 100; i++)); do

@@ -1,0 +1,56 @@
+# tests/look/fixtures/launched.txt — every program the toolkit installs that a person opens
+# (a window, or a terminal program you work in), and the launcher entry that opens it.
+# test_launcher.sh checks that every package of lib/manifest.sh, every release binary of
+# lib/upstream.sh, the other installs below and every bin/kawa-* is either here or in
+# not-launched.txt, and that each entry here exists, is listed (no NoDisplay) and runs it.
+#
+#   NAME           what is installed: a package, a release binary, a kawa-* helper
+#   ENTRY          the desktop's own entry (configs/home/.local/share/applications/ENTRY.desktop),
+#                  pkg:FILE — the package's own entry, left listed (nothing here hides it), or
+#                  * — any listed entry of the desktop's own that runs PROGRAM
+#   PROGRAM        (optional) the program the entry must run: in its Exec, or in the kawa-*
+#                  script its Exec starts
+#
+# NAME                 ENTRY                                   PROGRAM
+neovim                 kawa-edit                               nvim
+NetworkManager-tui     kawa-network                            nmtui
+foot                   footclient                              footclient
+wiremix                kawa-mixer                              wiremix
+lact                   pkg:io.github.ilya_zlobintsev.LACT.desktop
+brave-origin           pkg:brave-origin.desktop
+claude-code            kawa-agents                             herdr
+libreoffice-writer     pkg:libreoffice-writer.desktop
+libreoffice-calc       pkg:libreoffice-calc.desktop
+libreoffice-impress    pkg:libreoffice-impress.desktop
+zathura                kawa-books                              zathura
+xournalpp              pkg:com.github.xournalpp.xournalpp.desktop
+qalculate              kawa-calc                               qalc
+kawa-calc              kawa-calc                               kawa-calc
+btop                   btop                                    btop
+visidata               kawa-tables                             vd
+gdu                    kawa-disk                               gdu
+openrgb                pkg:org.openrgb.OpenRGB.desktop
+restic                 kawa-backup                             restic
+steam                  steam                                   steam
+# release binaries (lib/upstream.sh)
+yazi                   kawa-files                              yazi
+bluetui                kawa-bluetooth                          bluetui
+lazygit                kawa-git                                lazygit
+herdr                  kawa-agents                             herdr
+localsend              localsend                               localsend
+syncplay               syncplay                                kawa-together
+# installed by setup.sh another way
+torrra                 kawa-torrents                           kawa-torrra
+prowlarr               kawa-prowlarr                           prowlarr
+# the desktop's own helpers that open a window of their own
+kawa-backup            kawa-backup                             kawa-backup
+kawa-books             kawa-books                              kawa-books
+kawa-clip              kawa-clip                               kawa-clip
+kawa-git               kawa-git                                kawa-git
+kawa-notes             kawa-notes                              kawa-notes
+kawa-prowlarr          kawa-prowlarr                           kawa-prowlarr
+kawa-sketch            kawa-sketch                             kawa-sketch
+kawa-file              kawa-file                               kawa-file
+kawa-steam             steam                                   kawa-steam
+kawa-together          syncplay                                kawa-together
+kawa-wallpaper         kawa-wallpaper                          kawa-wallpaper

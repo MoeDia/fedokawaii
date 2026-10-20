@@ -1,0 +1,69 @@
+#!/usr/bin/env bash
+# kawa-glass — the terminal's see-through ground: the wallpaper shows a little through every
+# foot window (alpha 0.92: the text stays as it is, only the ground lets light through; no
+# blur — dwl has none, and none is drawn). Super+U → transparency turns it on or off.
+#
+#   kawa-glass            on or off, as it is now
+#   kawa-glass on|off     set it: saved, and every open terminal follows at once
+#   kawa-glass toggle     the other one
+#   kawa-glass apply      every open terminal as saved (kawa-theme after a switch; a new shell)
+#   kawa-glass ensure     the file made, on, should it be missing (autostart, before foot starts)
+#
+# Saved in ~/.local/state/fedokawaii/foot-glass.ini, which foot.ini includes: the terminal
+# server reads it as it starts (each login). foot refuses its whole config when an include is
+# missing (no terminal at all), so the file is always there: the theme makes it, and every login
+# makes it again (on, as the theme does) should it be gone. Open windows are told at once (OSC 11 with an
+# alpha, written to each terminal of the server), and so is every new shell (its first
+# prompt) — the windows opened before the next login follow too.
+set -u
+F=$HOME/.local/state/fedokawaii/foot-glass.ini
+ON=0.92
+
+alpha() {   # → the saved alpha (none saved: on, as ensure makes it; a file without one: opaque)
+  local l a=$ON
+  if [[ -r $F ]]; then
+    a=1
+    while IFS= read -r l; do [[ $l =~ ^alpha=([01](\.[0-9]+)?)$ ]] && a=${BASH_REMATCH[1]}; done <"$F"
+  fi
+  printf '%s\n' "$a"
+}
+save() {    # save ALPHA — written whole, then moved into place (foot never reads half a file)
+  mkdir -p "${F%/*}" || return 1
+  printf '%s\n' "# ~/.local/state/fedokawaii/foot-glass.ini — the terminal's see-through ground (kawa-glass;" \
+    "# Super+U → transparency). 1 is opaque. Read by foot.ini's last include." \
+    "[colors-dark]" "alpha=$1" "[colors-light]" "alpha=$1" >"$F.$$" && mv -f "$F.$$" "$F"
+}
+# apply — OSC 11 with the alpha to every terminal of foot's: the theme's ground (unchanged),
+# its new alpha, on each pseudo-terminal a foot process has a program on
+apply() {
+  local a g="" l p c t r gg b A f
+  a=$(alpha)
+  while IFS= read -r l; do [[ $l =~ ^C_GROUND=([0-9a-fA-F]{6})$ ]] && g=${BASH_REMATCH[1]}; done \
+    <"$HOME/.config/fedokawaii/current/colors.sh" 2>/dev/null
+  [[ -n $g ]] || return 0
+  r=${g:0:2} gg=${g:2:2} b=${g:4:2}
+  f=${a#*.}000                               # (thousandths: 0.92 → 920)
+  printf -v A '%02x' $(( (10#${f:0:3} * 255 + 500) / 1000 )); [[ $a == 1* ]] && A=ff
+  local -A seen=()
+  for p in $(pgrep -u "$UID" -x foot); do
+    for c in $(pgrep -P "$p"); do
+      t=$(readlink "/proc/$c/fd/0" 2>/dev/null) || continue
+      [[ $t == /dev/pts/* && -z ${seen[$t]:-} ]] || continue
+      seen[$t]=1
+      # shellcheck disable=SC1003  # (the string terminator: ESC and a backslash)
+      printf '\e]11;rgba:%s/%s/%s/%s\e\\' "$r" "$gg" "$b" "$A" >"$t" 2>/dev/null
+    done
+  done
+  return 0
+}
+
+case ${1:-} in
+  "")      [[ $(alpha) != 1* ]] && echo on || echo off ;;
+  on)      save "$ON" && apply ;;
+  off)     save 1 && apply ;;
+  toggle)  if [[ $(alpha) != 1* ]]; then save 1; else save "$ON"; fi && apply ;;
+  apply)   apply ;;
+  ensure)  [[ -f $F ]] || save "$ON" ;;
+  -h|--help) sed -n '2,/^set -u/{/^set -u/d;s/^# \{0,1\}//;p}' "$0" ;;
+  *)       echo "usage: kawa-glass [on|off|toggle|apply|ensure]" >&2; exit 2 ;;
+esac

@@ -1,0 +1,14 @@
+[Desktop Entry]
+# A backup now (kawa-backup --window), as quick settings' backup starts it: your home onto
+# the backup drive with restic, in a small window that stays until it is done.
+# Its icon: foot's, the terminal that draws its window (restic ships none; the launcher shows
+# each program's own icon, never an icon pack's).
+Type=Application
+Name=Backup
+GenericName=Back up your files
+Comment=restic: your home folder onto the backup drive
+Icon=foot
+Exec=@HOME@/.local/bin/kawa-backup --window
+Terminal=false
+Categories=Utility;Archiving;
+Keywords=restic;backup;restore;drive;copy;safe;

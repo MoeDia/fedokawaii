@@ -34,6 +34,7 @@ setup
 rc 0 kawa-brightness +10; eq "$(b 5)" 80; eq "$(osd | cut -d'|' -f2,3)" "明  brightness|80%"
 rc 0 kawa-brightness -10; eq "$(b 5)" 70
 rc 0 kawa-brightness 40;  eq "$(b 5)" 40; eq "$(kawa-brightness --level)" 40
+eq "$(kawa-state get brightness)" 40 "the level set is kept (kawa-state restore puts it back at login)"
 eq "$(shown)" 70% "a level set from quick settings pops nothing up over its meter (the -10 step's 70 % stays the last shown)"
 case_ "the ends: never above 100 or below 0 (a monitor's 0 is its dimmest, not dark)"
 kawa-brightness +100; eq "$(b 5)" 100; kawa-brightness +10; eq "$(b 5)" 100

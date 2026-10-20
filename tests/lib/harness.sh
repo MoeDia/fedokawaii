@@ -71,6 +71,7 @@ config() {
         *) sed -e "s|@HOME@|$HOME|g" -e "s|@MONITOR_HZ@|144|g" -e "s|@WEATHER_CITY@|Sharjah|g" \
                -e "s|@NIGHT_LIGHT@|25.35:55.40|g" -e "s|@ICON_CHEVRON_RIGHT@|>|g" \
                -e "s|^@MPV_SCALING@\$|# scaling: mpv's own defaults|" -e "s|@UID@|$UID|g" -e "s|@BRAVE_ICON@|brave-origin|g" \
+               -e "s|@BTOP_BOXES@|cpu gpu0 mem net proc|g" -e "s|@BTOP_GPU@|gpu0|g" \
                "$f" >"$HOME/${f#"$REPO/configs/home/"}"
            [[ -x $f ]] && chmod +x "$HOME/${f#"$REPO/configs/home/"}" ;;
       esac

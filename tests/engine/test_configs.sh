@@ -22,10 +22,12 @@ while IFS= read -r l; do
   case $k in
     Container.*) [[ $known == *" ${k#Container.}"[[:space:]]* ]] && _ok || _no "not a [Container] key: $k" ;;
     Quadlet.DefaultDependencies) _ok ;;
-    Unit.Description|Service.Restart|Service.RestartSec|Service.TimeoutStartSec) _ok ;;
+    Unit.Description|Service.Restart|Service.RestartSec|Service.TimeoutStartSec|Service.TimeoutStopSec) _ok ;;  # [Service] goes to systemd as is
     *) _no "unexpected key: $k" ;;
   esac
 done < <(units "$Q")
+case_ "a shut down waits for it 20 s at most: podman's 10 s stop, then the removal"
+eq "$(val Service.TimeoutStopSec)" 20
 case_ "its start waits for nothing online (it answers on 127.0.0.1 only): quadlet's dependency on podman-user-wait-network-online.service off"
 eq "$(val Quadlet.DefaultDependencies)" false
 lacks "$(units "$Q")" "network-online" "no network-online dependency of its own either"

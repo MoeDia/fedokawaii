@@ -5,7 +5,7 @@
 # /proc/meminfo, no forks (the wait is a read with a timeout on a pipe that never speaks).
 # Prints one waybar JSON line at once, then one whenever the figure changes (looked at every
 # 3 s) or btop, which a click on it opens, opens or closes (lit, class "active": kawa-bar; the
-# wait is on a fifo of its own, $XDG_RUNTIME_DIR/kawa-bar.wake.PID, which kawa-float's
+# wait is on a fifo of its own, $XDG_RUNTIME_DIR/kawa-bar.wake.PID, which kawa-term --float's
 # kawa-dwlstatus --wake writes to), until the bar is gone (exit 0: waybar starts it again).
 # Exit status: 0 the bar went away · 2 misuse.
 set -u
@@ -37,9 +37,11 @@ while :; do
     all10=$(( (total * 10 + 524288) / 1048576 ))
     pct=$((used * 100 / total))
     cls='"calm"'; ((pct > 85)) && cls='"high"'
-    bar_lit memory && cls="[$cls,\"active\"]"
-    printf -v out '{"text":"%s %d.%dG","class":%s,"tooltip":"memory in use %d.%d of %d.%d GB (%d %%) · click: btop"}' \
-      "$ICON_MEMORY" $((t10 / 10)) $((t10 % 10)) "$cls" $((t10 / 10)) $((t10 % 10)) $((all10 / 10)) $((all10 % 10)) "$pct"
+    printf -v tip 'memory in use %d.%d of %d.%d GB (%d %%) · click: btop' \
+      $((t10 / 10)) $((t10 % 10)) $((all10 / 10)) $((all10 % 10)) "$pct"
+    # (lit: btop open — no tooltip, which would show behind it)
+    bar_lit memory && cls="[$cls,\"active\"]" tip=""
+    printf -v out '{"text":"%s%d.%dG","class":%s,"tooltip":"%s"}' "$ICON_BAR_MEMORY" $((t10 / 10)) $((t10 % 10)) "$cls" "$tip"
     [[ $out != "$last" ]] && { printf '%s\n' "$out" || exit 0; last=$out; }
   fi
   read -r -t "$EVERY" -u "$quiet" _

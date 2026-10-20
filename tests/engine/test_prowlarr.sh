@@ -5,7 +5,7 @@
 # alone, the unit's Restart=on-failure would try it every 10 s until the next boot.
 # (kawa-torrra and verify already stop it: tests/engine/test_torrra.sh, tests/installer.)
 # Then setup.sh's other torrent steps, as functions: torrra_up (torrra at its pinned version
-# with its libraries at the versions it was released with, pipx's own `torrra` kept off your
+# with its libraries at the versions it was released with, uv's own `torrra` kept off your
 # PATH, the load probe that verify shares) and torrent_port (the firewall, never reloaded).
 . "$(dirname "$0")/lib.sh"
 KEY=a1b2c3d4e5f60718293a4b5c6d7e8f90
@@ -194,39 +194,40 @@ has "$(sed -n '/^INDEXERS = /,/]$/p' "$REPO/system/prowlarr-indexers.py")" '("to
 # ── setup.sh's torrra_up ─────────────────────────────────────────────────────
 # a venv of the real python3 with the stand-in torrra (fixtures/torrra: its screens fail to
 # load while $FAKE_TEXTUAL_BROKEN exists); the two system files it installs pointed into
-# the test's folder; pipx a stand-in that records where it would put its `torrra`
+# the test's folder; uv a stand-in that records where it would put its `torrra`
 D=$(cd "$(dirname "$0")" && pwd)
 TV=$(sed -n 's/^TORRRA_VERSION=//p' "$REPO/lib/upstream.sh")
 tu_world() {
   sandbox; stub sleep; stub restorecon
-  V=$HOME/.local/share/pipx/venvs/torrra SYS=$TMP/sys
+  V=$HOME/.local/share/uv/tools/torrra SYS=$TMP/sys
   local pyv; pyv=$(python3 -c 'import sys; print(f"python{sys.version_info[0]}.{sys.version_info[1]}")')
   mkdir -p "$V/bin" "$V/lib/$pyv/site-packages" "$SYS/usr/local/bin" "$SYS/etc/profile.d" "$HOME/.local/bin"
   ln -s "$(command -v python3)" "$V/bin/python"; : >"$V/bin/torrra"
   printf 'home = %s\ninclude-system-site-packages = false\n' "$(dirname "$(command -v python3)")" >"$V/pyvenv.cfg"
   cp -r "$D/fixtures/torrra/." "$V/lib/$pyv/site-packages/"
   printf 'Metadata-Version: 2.1\nName: torrra\nVersion: %s\n' "$TV" >"$V/lib/$pyv/site-packages/torrra-2.5.1.dist-info/METADATA"
-  sed -n '/^torrra_up() {/,/^}/p' "$REPO/setup.sh" >"$TMP/tu.sh"
+  python3 -I "$D/fixtures/pins.py" "$REPO/system/torrra-constraints.txt" "$V/lib/$pyv/site-packages"   # (each library at its pin)
+  sed -n '/^torrra_from_pipx() {/,/^}/p; /^torrra_up() {/,/^}/p' "$REPO/setup.sh" >"$TMP/tu.sh"
   sed -i -e "s|/usr/local/bin/kawa-torrra|$SYS/usr/local/bin/kawa-torrra|g" \
          -e "s|/etc/profile.d/kawa-torrra.sh|$SYS/etc/profile.d/kawa-torrra.sh|g" "$TMP/tu.sh"
   # (both rewrites made, and no path of this machine's own left in it)
   { grep -q "$SYS/usr/local/bin/kawa-torrra" "$TMP/tu.sh" && grep -q "$SYS/etc/profile.d/kawa-torrra.sh" "$TMP/tu.sh" \
       && ! grep -Eq '(^|[ "=])/(usr|etc)/' "$TMP/tu.sh"; } || { echo "fixture: torrra_up's system paths not pointed into the test" >&2; exit 1; }
-  stub pipx 'printf %s "${PIPX_BIN_DIR:-}" >"'"$TMP"'/pipx-bin-dir"
-case " $* " in *" install "*) rm -f "${FAKE_TEXTUAL_BROKEN:-/nonexistent}"
-  b=${PIPX_BIN_DIR:-$HOME/.local/bin}; mkdir -p "$b"; ln -sfn "'"$V"'/bin/torrra" "$b/torrra" ;; esac'
+  stub uv 'printf %s "${UV_TOOL_BIN_DIR:-}" >"'"$TMP"'/uv-bin-dir"
+case " $* " in *" tool install "*) rm -f "${FAKE_TEXTUAL_BROKEN:-/nonexistent}"; python3 -I "'"$D/fixtures/pins.py"'" "'"$REPO/system/torrra-constraints.txt"'" "'"$V/lib/$pyv/site-packages"'"
+  b=${UV_TOOL_BIN_DIR:-$HOME/.local/bin}; mkdir -p "$b"; ln -sfn "'"$V"'/bin/torrra" "$b/torrra" ;; esac'
   unset FAKE_TEXTUAL_BROKEN
 }
 tu() {   # → $OUT, $RC
   OUT=$(LOG_FILE=$TMP/fk.log STATE_DIR=$TMP/state REPO_DIR=$REPO TARGET_HOME=$HOME TARGET_USER=$(id -un) \
-        TARGET_UID=$(id -u) TARGET_GID=$(id -g) TORRRA_VENV=.local/share/pipx/venvs/torrra TORRRA_VERSION=$TV \
+        TARGET_UID=$(id -u) TARGET_GID=$(id -g) TORRRA_VENV=.local/share/uv/tools/torrra TORRRA_BIN=.local/share/uv/tool-bin TORRRA_VERSION=$TV \
         bash -c 'set -Eeuo pipefail; . "$1/lib/common.sh"; . "$2"; as_user() { "$@"; }; torrra_up' _ "$REPO" "$TMP/tu.sh" 2>&1); RC=$?
 }
 C=$REPO/system/torrra-constraints.txt
 
-case_ "torrra_up, torrra working: nothing installed — pipx's old \`torrra\` link in ~/.local/bin taken out"
+case_ "torrra_up, torrra working: nothing installed — an old \`torrra\` link in ~/.local/bin taken out"
 tu_world; ln -s "$V/bin/torrra" "$HOME/.local/bin/torrra"
-tu; eq "$RC" 0 "$OUT"; not_called '^pipx'
+tu; eq "$RC" 0 "$OUT"; not_called '^uv'
 [[ ! -e $HOME/.local/bin/torrra && ! -L $HOME/.local/bin/torrra ]] && _ok || _no "the raw torrra is still on your PATH"
 [[ -x $SYS/usr/local/bin/kawa-torrra ]] && _ok || _no "kawa-torrra not installed"
 case_ "…a torrra of your own there (a script, a link elsewhere) is left alone"
@@ -235,26 +236,35 @@ tu_world; ln -s /bin/true "$HOME/.local/bin/torrra"; tu; [[ -L $HOME/.local/bin/
 case_ "torrra_up, Textual broken under torrra: the load probe sees it — installed again, with the pinned libraries"
 tu_world; export FAKE_TEXTUAL_BROKEN=$TMP/textual-broken; : >"$FAKE_TEXTUAL_BROKEN"
 tu; eq "$RC" 0 "$OUT"
-called "^pipx install --force --python python3.13 --pip-args=-c $C torrra==$TV$"
-case_ "…and pipx's own \`torrra\` kept in pipx's folder, never on your PATH"
-eq "$(cat "$TMP/pipx-bin-dir" 2>/dev/null)" "$HOME/.local/share/pipx/bin"
-[[ ! -e $HOME/.local/bin/torrra && ! -L $HOME/.local/bin/torrra ]] && _ok || _no "pipx linked torrra into ~/.local/bin"
+called "^uv tool install --force --python 3.13 --constraints $C torrra==$TV$"
+case_ "…and uv's own \`torrra\` kept in uv's folder, never on your PATH"
+eq "$(cat "$TMP/uv-bin-dir" 2>/dev/null)" "$HOME/.local/share/uv/tool-bin"
+[[ ! -e $HOME/.local/bin/torrra && ! -L $HOME/.local/bin/torrra ]] && _ok || _no "uv linked torrra into ~/.local/bin"
+case_ "an earlier setup's pipx install: taken out, then installed by uv"
+tu_world; P=$HOME/.local/share/pipx; mkdir -p "$P/venvs/torrra/bin" "$P/bin"; ln -s "$P/venvs/torrra/bin/torrra" "$P/bin/torrra"
+mv "$V" "$TMP/uvgone"; stub uv 'mkdir -p "'"$V"'"; cp -a "'"$TMP/uvgone"'/." "'"$V"'/"'
+tu; eq "$RC" 0 "$OUT"; [[ ! -e $P ]] && _ok || _no "pipx's folder left"; called "^uv tool install --force --python 3.13 --constraints $C torrra==$TV$"
 unset FAKE_TEXTUAL_BROKEN
+case_ "torrra_up, a library not at its pin (Textual 8.0.1, before ansi-dark): installed again, at the pins"
+tu_world; s=$(ls -d "$V"/lib/python*/site-packages); rm -rf "$s"/textual-*.dist-info; mkdir -p "$s/textual-8.0.1.dist-info"
+printf 'Metadata-Version: 2.1\nName: textual\nVersion: 8.0.1\n' >"$s/textual-8.0.1.dist-info/METADATA"
+tu; eq "$RC" 0 "$OUT"; called "^uv tool install --force --python 3.13 --constraints $C torrra==$TV$"
+[[ -d $s/textual-8.2.8.dist-info && ! -d $s/textual-8.0.1.dist-info ]] && _ok || _no "Textual not at its pin after the install"
 case_ "torrra_up, broken and not mended by the install: said, not passed over"
-tu_world; stub pipx; export FAKE_TEXTUAL_BROKEN=$TMP/textual-broken; : >"$FAKE_TEXTUAL_BROKEN"
+tu_world; stub uv; export FAKE_TEXTUAL_BROKEN=$TMP/textual-broken; : >"$FAKE_TEXTUAL_BROKEN"
 tu; eq "$RC" 1; has "$OUT" "is installed but does not load"; unset FAKE_TEXTUAL_BROKEN
 
 case_ "the constraints: torrra's libraries at the versions it was released with; libtorrent and certifi free"
 [[ -f $C ]] && _ok || _no "no $C"
 bad=$(grep -Ev '^(#|$)' "$C" 2>/dev/null | grep -Ev '^[a-z0-9][a-z0-9._-]*==[0-9][0-9A-Za-z.+-]*$'); eq "$bad" "" "not NAME==VERSION: $bad"
-for p in textual==8.0.1 rich==14.2.0 httpx==0.28.1 click==8.3.1; do grep -qx "$p" "$C" 2>/dev/null && _ok || _no "$p not pinned"; done
+for p in textual==8.2.8 rich==14.2.0 httpx==0.28.1 click==8.3.1; do grep -qx "$p" "$C" 2>/dev/null && _ok || _no "$p not pinned"; done
 for p in libtorrent certifi torrra; do grep -Eq "^$p==" "$C" 2>/dev/null && _no "$p pinned" || _ok; done
-case_ "the update still moves libtorrent alone (only-if-needed, no constraints in the way)"
-grep -q 'pipx runpip torrra install --quiet --upgrade' "$REPO/setup.sh" && grep -q -- '--upgrade-strategy only-if-needed "torrra==$TORRRA_VERSION" libtorrent' "$REPO/setup.sh" && _ok || _no "the update's libtorrent step changed"
+case_ "the update moves libtorrent (uv tool upgrade: the install's own pins kept)"
+grep -q 'uv tool upgrade torrra' "$REPO/setup.sh" && _ok || _no "the update's libtorrent step changed"
 
 case_ "verify's load check sees a broken Textual too (it loads torrra's screens)"
 tu_world
-vp=$(sed -n "s|.*venvs/torrra/bin/python\" -I -c '\\([^']*\\)' \"\$TORRRA_VERSION\".*|\\1|p" "$REPO/verify.sh")
+vp=$(sed -n "s|.*uv/tools/torrra/bin/python\" -I -c '\\([^']*\\)' \"\$TORRRA_VERSION\".*|\\1|p" "$REPO/verify.sh")
 [[ -n $vp ]] && _ok || _no "verify's torrra check not found"
 if python3 -c 'import sys; sys.exit(sys.version_info[:2] != (3, 13))'; then
   "$V/bin/python" -I -c "$vp" "$TV" 2>/dev/null && _ok || _no "a working torrra fails verify's check"

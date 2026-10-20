@@ -8,7 +8,6 @@
 setup() {
   menus_sandbox
   stub systemctl; stub loginctl; stub kawa-lock; stub pkill; stub logger; stub wlopm
-  export KAWA_SLEEP_BEAT=0                          # (the beat on the lock before a sleep: timed below)
 }
 power() {   # power [SECONDS] — kawa-power, the machine up for SECONDS (default: as it is)
   if [[ -n ${1:-} ]] && ((NS)); then
@@ -31,17 +30,15 @@ fits
 act() { setup; answer "pick $1"; power; }
 case_ "lock: the lock screen"
 act lock; called '^kawa-lock --sleep$'; not_called '^systemctl'
-case_ "sleep: locked first, the screens to black, then suspended"
-act sleep; eq "$(grep -E '^(kawa-lock|wlopm|systemctl)' "$CALLS" | tr '\n' '|')" "kawa-lock |wlopm --off *|systemctl suspend|"
+case_ "sleep: at once — the screens dark and locked (kawa-lock --now), then suspended; no lock shown on the way"
+act sleep; eq "$(grep -E '^(kawa-lock|wlopm|systemctl)' "$CALLS" | tr '\n' '|')" "kawa-lock --now|systemctl suspend|"
+not_called '^sleep '; grep -q 'KAWA_SLEEP_BEAT' "$REPO/bin/kawa-power" && _no "a beat on the lock is back" || _ok
 case_ "… each step in the journal (the health report reads it): asked, then handed to the system"
 eq "$(grep -E '^(logger|kawa-lock|systemctl)' "$CALLS" | tr '\n' '|')" \
-  "logger -t kawa-power -- sleep requested|kawa-lock |systemctl suspend|logger -t kawa-power -- suspend asked of the system|"
-case_ "… a beat on the drawn lock before the screens go black (0.8 s unless KAWA_SLEEP_BEAT says): the hand-off seen, never a flash"
-grep -q 'sleep "${KAWA_SLEEP_BEAT:-0.8}"' "$REPO/bin/kawa-power" && _ok || _no "the default beat is not 0.8 s"
-setup; KAWA_SLEEP_BEAT=1 kawa-power sleep & p=$!; /bin/sleep 0.5
-not_called '^wlopm'; wait "$p"; called '^wlopm --off \*$'
-case_ "sleep, but the lock screen did not come up: no suspend (never an unlocked sleep), and the journal says so"
-setup; stub kawa-lock 'exit 1'; answer "pick sleep"; power; not_called '^systemctl suspend'
+  "logger -t kawa-power -- sleep requested|kawa-lock --now|systemctl suspend|logger -t kawa-power -- suspend asked of the system|"
+case_ "sleep, but the lock screen did not come up: no suspend (never an unlocked sleep), the screens lit again, the journal says so"
+setup; stub kawa-lock '[ "$1" = --now ] && exit 1; exit 0'; answer "pick sleep"; power; not_called '^systemctl suspend'
+called '^kawa-lock --screens on$'
 called '^logger -t kawa-power -- not locked — no sleep$'
 case_ "log out: Steam closed properly first (its saves to Steam Cloud), then dwl ended"
 setup; stub kawa-steam; answer "pick log out"; power
@@ -66,19 +63,19 @@ setup; stub systemctl 'echo "Failed to suspend system via logind: Sleep verb \"s
 answer "pick sleep"; rc 1 power
 called 'notify-send -a desktop -u critical -- .*power could not sleep .*not supported'
 called '^logger -t kawa-power -- could not sleep — Failed to suspend system via logind'
-eq "$(grep '^wlopm' "$CALLS" | tr '\n' '|')" "wlopm --off *|wlopm --on *|" "the screens on again: no sleep, no black screen"
+eq "$(grep '^kawa-lock' "$CALLS" | tr '\n' '|')" "kawa-lock --now|kawa-lock --screens on|" "the screens on again: no sleep, no black screen"
 
 case_ "kawa-power sleep (the Sleep key): no menu — locked first, then suspended"
 setup; rc 0 kawa-power sleep; eq "$(fz_n)" 0
-eq "$(grep -E '^(kawa-lock|systemctl)' "$CALLS" | tr '\n' '|')" "kawa-lock |systemctl suspend|"
+eq "$(grep -E '^(kawa-lock|systemctl)' "$CALLS" | tr '\n' '|')" "kawa-lock --now|systemctl suspend|"
 called '^logger -t kawa-power -- sleep requested$'
 case_ "kawa-power sleep (no menu) refused by the system: the notice with its icon, the screens on again"
 setup; stub systemctl 'echo "Failed to suspend system via logind: Sleep verb \"suspend\" not supported" >&2; exit 1'
 rc 1 kawa-power sleep
 called "^notify-send -a desktop -u critical -- $ICON_POWER  power could not sleep"
-eq "$(grep '^wlopm' "$CALLS" | tr '\n' '|')" "wlopm --off *|wlopm --on *|"
+eq "$(grep '^kawa-lock' "$CALLS" | tr '\n' '|')" "kawa-lock --now|kawa-lock --screens on|"
 case_ "kawa-power sleep, but the lock screen did not come up: no suspend"
-setup; stub kawa-lock 'exit 1'; kawa-power sleep; not_called '^systemctl suspend'
+setup; stub kawa-lock '[ "$1" = --now ] && exit 1; exit 0'; kawa-power sleep; not_called '^systemctl suspend'
 
 case_ "--help: what it is, exit 0; anything else: exit 2, no menu"
 setup; has "$(kawa-power --help)" "lock, sleep, log out"; rc 0 kawa-power --help

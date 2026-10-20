@@ -1,0 +1,13 @@
+[Desktop Entry]
+# wiremix, the mixer — the window quick settings' mixer opens (kawa-quick --do mixer: floating,
+# one at a time). Its icon: foot's, the terminal that draws its window (wiremix ships none of
+# its own; the launcher shows each program's own icon, never an icon pack's).
+Type=Application
+Name=Volume mixer
+GenericName=Sound mixer
+Comment=wiremix: the volume of each program, output and microphone
+Icon=foot
+Exec=@HOME@/.local/bin/kawa-quick --do mixer
+Terminal=false
+Categories=AudioVideo;Audio;Mixer;
+Keywords=wiremix;sound;audio;volume;speakers;headphones;microphone;output;

@@ -1,5 +1,5 @@
 # system/torrra-constraints.txt — the versions torrra 2.5.1 was released with, for pip
-# (`pipx install --pip-args="-c THIS"`, setup.sh's torrra_up). torrra itself is pinned in
+# (`uv tool install --constraints THIS`, setup.sh's torrra_up). torrra itself is pinned in
 # lib/upstream.sh (TORRRA_VERSION); its own requirements are open-ended (textual>=6.5.0 …),
 # so without these a fresh install would take whatever Textual, Rich or httpx is newest that
 # day — and Textual changes its interface with every major version.
@@ -7,6 +7,10 @@
 # and Python 3.13. Two are left free on purpose: libtorrent (the part that talks to the
 # network: update moves it to its newest) and certifi (the list of trusted certificate
 # authorities: data, best current). A new TORRRA_VERSION comes with a new list.
+# One lift past the lock: Textual 8.2.8 (torrra asks for >=6.5.0) — kawa-torrra draws torrra
+# in its ansi-dark theme, which Textual has only since 8.2; on 8.0.1 torrra refused that
+# name and quit before its window drew (the Torrents entry that opened nothing). torrra_up
+# reinstalls whenever what is installed is not exactly this list.
 anyio==4.11.0
 click==8.3.1
 diskcache==5.6.3
@@ -22,7 +26,7 @@ platformdirs==4.11.3
 pygments==2.19.2
 rich==14.2.0
 sniffio==1.3.1
-textual==8.0.1
+textual==8.2.8
 tomli-w==1.2.0
 typing-extensions==4.15.0
 uc-micro-py==1.0.3

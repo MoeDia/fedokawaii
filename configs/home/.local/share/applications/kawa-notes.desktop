@@ -1,0 +1,12 @@
+[Desktop Entry]
+# Your notes (kawa-notes), as Super+N opens them: ~/Notes/notes.md in neovim, in a small
+# floating window; a second start puts it away. Its icon: neovim's own, the program it is.
+Type=Application
+Name=Notes
+GenericName=Notebook
+Comment=One notes file, a heading for each day, in neovim
+Icon=nvim
+Exec=@HOME@/.local/bin/kawa-notes
+Terminal=false
+Categories=Office;
+Keywords=notes;notebook;diary;journal;memo;write;todo;

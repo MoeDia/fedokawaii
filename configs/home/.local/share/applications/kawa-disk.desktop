@@ -1,0 +1,15 @@
+[Desktop Entry]
+# gdu on your home folder in a terminal window of its own (kawa-term, app-id kawa-disk),
+# tiled: what fills the disk, folder by folder, biggest first (~/.config/gdu/gdu.yaml).
+# (`--`: the folder is never read as an option)
+# Its icon: foot's, the terminal that draws its window (gdu ships none of its own; the
+# launcher shows each program's own icon, never an icon pack's).
+Type=Application
+Name=Disk usage
+GenericName=What fills the disk
+Comment=gdu: your folders by size, biggest first
+Icon=foot
+Exec=@HOME@/.local/bin/kawa-term --app kawa-disk "Disk usage" gdu -- @HOME@
+Terminal=false
+Categories=System;Filesystem;
+Keywords=gdu;ncdu;space;storage;size;full;cleanup;folders;

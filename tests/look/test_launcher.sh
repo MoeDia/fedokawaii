@@ -15,7 +15,7 @@ A=$REPO/configs/home/.local/share/applications
 key() { awk -F= -v k="$2" '/^\[/ { s = ($0 == "[Desktop Entry]") } s && $1 == k { sub(/^[^=]*=/, ""); print; exit }' "$1"; }
 
 case_ "the package entries hidden from the launcher: exactly these, each a whole entry"
-HIDDEN="btop calf foot foot-server mpv nvim org.pwmt.zathura qt6ct visidata"
+HIDDEN="foot foot-server mpv nvim org.pwmt.zathura qt6ct visidata"
 got=$(for f in "$A"/*.desktop; do n=${f##*/}; n=${n%.desktop}
         [[ $n == kawa-* ]] && continue; [[ $(key "$f" NoDisplay) == true ]] && printf '%s ' "$n"; done)
 eq "$(tr ' ' '\n' <<<"${got% }" | LC_ALL=C sort | tr '\n' ' ')" "$(tr ' ' '\n' <<<"$HIDDEN" | LC_ALL=C sort | tr '\n' ' ')"
@@ -25,10 +25,68 @@ for n in $HIDDEN; do
     || _no "$n.desktop: not a whole entry (Type=Application, Name, Exec)"
 done
 eq "$(key "$A/kawa-edit.desktop" NoDisplay)" "" "Editor (neovim through kawa-term) is listed, in place of neovim's own"
-for n in kawa-play kawa-tables; do eq "$(key "$A/$n.desktop" NoDisplay)" true "$n: an opener only"; done
+eq "$(key "$A/kawa-play.desktop" NoDisplay)" true "kawa-play: an opener only"
+eq "$(key "$A/kawa-tables.desktop" NoDisplay)" "" "Tables (VisiData through kawa-term) is listed, in place of visidata's own"
+eq "$(key "$A/btop.desktop" NoDisplay)" "" "System monitor (btop.desktop, in place of btop's own) is listed"
+eq "$(key "$A/btop.desktop" Exec)" "@HOME@/.local/bin/kawa-term --float --once btop btop 140x41 -- btop" "System monitor: the bar's memory window"
+has "$(cat "$REPO/configs/home/.config/waybar/config.jsonc")" '"on-click": "setsid -f kawa-term --float --once btop btop 140x41 -- btop"' "… the same as the bar's"
+
+case_ "every program a person opens has a listed entry (fixtures/launched.txt); all else installed says why not (fixtures/not-launched.txt)"
+FX=$REPO/tests/look/fixtures
+names() { grep -v '^#' "$1" | awk 'NF { print $1 }'; }
+# what the toolkit installs: the manifest (both GPUs, with Steam), the release binaries,
+# LocalSend and Syncplay (lib/upstream.sh), torrra (uv tool) and Prowlarr (a container), the helpers
+installed=$(bash -c '. "$1/lib/manifest.sh"; . "$1/lib/upstream.sh"; STEAM=yes STATE_DIR=/nonexistent
+  manifest_all amd; printf "%s\n" "${PKG_GPU_intel[@]}"; for u in "${UPSTREAM[@]}"; do echo "${u%%|*}"; done' _ "$REPO"
+  grep -q '^LOCALSEND_TAG=' "$REPO/lib/upstream.sh" && echo localsend
+  grep -q '^SYNCPLAY_TAG=' "$REPO/lib/upstream.sh" && echo syncplay
+  grep -q 'uv tool install .*torrra' "$REPO/setup.sh" && echo torrra
+  [[ -f $REPO/system/prowlarr.container ]] && echo prowlarr
+  for b in "$REPO"/bin/kawa-*; do echo "${b##*/}"; done)
+installed=$(LC_ALL=C sort -u <<<"$installed")
+listed=$(names "$FX/launched.txt"; names "$FX/not-launched.txt")
+x=$(LC_ALL=C sort <<<"$listed" | uniq -d | tr '\n' ' '); [[ -z $x ]] && _ok || _no "named twice: $x"
+x=$(LC_ALL=C comm -23 <(echo "$installed") <(LC_ALL=C sort -u <<<"$listed") | tr '\n' ' ')
+[[ -z $x ]] && _ok || _no "installed, but neither launched.txt (its entry) nor not-launched.txt (why none) names it: $x"
+x=$(LC_ALL=C comm -13 <(echo "$installed") <(LC_ALL=C sort -u <<<"$listed") | tr '\n' ' ')
+[[ -z $x ]] && _ok || _no "named in the fixtures, but no longer installed: $x"
+# runs FILE PROG — FILE's Exec runs PROG: a word of it (a path's last part), or inside the
+# kawa-* script it starts
+runs() {
+  local w
+  for w in $(key "$1" Exec); do
+    w=${w##*/}; [[ $w == "$2" ]] && return 0
+    [[ $w == kawa-* && -f $REPO/bin/$w ]] && grep -qw -- "$2" "$REPO/bin/$w" && return 0
+  done
+  return 1
+}
+while read -r n e p; do
+  case $e in
+    pkg:*) [[ $(key "$A/${e#pkg:}" NoDisplay 2>/dev/null) == true ]] && _no "$n: its package's entry ${e#pkg:} is hidden here" || _ok ;;
+    \*)    hit=""
+           for f in "$A"/*.desktop; do [[ $(key "$f" NoDisplay) == true ]] && continue; runs "$f" "$p" && hit=${f##*/}; done
+           [[ -n $hit ]] && _ok || _no "$n: no listed entry runs $p" ;;
+    *)     f=$A/$e.desktop
+           if [[ ! -f $f ]]; then _no "$n: no $e.desktop"
+           elif [[ $(key "$f" NoDisplay) == true ]]; then _no "$n: $e.desktop is hidden"
+           elif [[ -n $p ]] && ! runs "$f" "$p"; then _no "$n: $e.desktop does not run $p"
+           else _ok; fi ;;
+  esac
+done < <(grep -v '^#' "$FX/launched.txt" | awk 'NF')
+
+case_ "each entry of the desktop's own that is listed: a plain name, what it is, and words to find it by"
+for f in "$A"/*.desktop; do
+  [[ $(key "$f" NoDisplay) == true ]] && continue
+  n=${f##*/}
+  [[ -n $(key "$f" Name) && -n $(key "$f" Comment) ]] && _ok || _no "$n: no Name or Comment"
+  [[ -n $(key "$f" GenericName) ]] && _ok || _no "$n: no GenericName (what it is)"
+  [[ -n $(key "$f" Keywords) ]] && _ok || _no "$n: no Keywords"
+done
+eq "$(grep '^fields=' "$REPO/configs/home/.config/fuzzel/fuzzel.ini")" "fields=name,generic,keywords" \
+  "the launcher matches what a program is and its keywords too (Network: wifi; System monitor: task manager)"
 
 case_ "every listed entry: its program's own icon (hicolor names its packages install, or its own picture by path)"
-OFFICIAL=" foot nvim mpv com.github.xournalpp.xournalpp steam @BRAVE_ICON@ "
+OFFICIAL=" foot nvim mpv btop org.pwmt.zathura com.github.xournalpp.xournalpp steam @BRAVE_ICON@ "
 for f in "$A"/*.desktop; do
   [[ $(key "$f" NoDisplay) == true ]] && continue
   i=$(key "$f" Icon)

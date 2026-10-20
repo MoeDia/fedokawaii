@@ -67,7 +67,92 @@ retry() {
 # shellcheck disable=SC2034  # used by setup.sh and lib/upstream.sh
 CURL=(curl -fsSL --proto '=https' --tlsv1.2 --connect-timeout 15 --retry 3 --retry-delay 5 --speed-limit 1024 --speed-time 60)
 
-dnf_install()   { retry 3 10 dnf -y install "$@"; }
+# dnf_install [DNF-OPTION…] PKG… — the packages in, whatever the network and the mirrors do:
+#   · what failed is read from dnf's own words (dnf_why), and only what a new try can mend is
+#     tried again: a mirror's 404, a cut connection, a damaged download, stale metadata (each
+#     later try with --refresh: fresh metadata, and so another mirror), another dnf holding the
+#     package database, a signing key fetched again — with a longer pause each time
+#   · what no try mends (a name no repository has, two packages that clash, a full disk) stops
+#     at once; with more than one package, each is then tried alone, so the one(s) at fault are
+#     named — the rest are in (a run started again carries on from there)
+#   · the end: every package that is not in, why, and the fix ($STATE_DIR/dnf-failed keeps
+#     them for the health report until a later run gets them in)
+DNF_TRIES=4 DNF_OUT=""
+dnf_try() {   # dnf_try ARG… — dnf -y install ARG…, shown and logged; its words in DNF_OUT
+  local IFS=' ' rc
+  _out "${C_DIM}$(_ts) \$ dnf -y install $*${C_RESET}"
+  { DNF_OUT=$(dnf -y install "$@" 2>&1 | tee -a "$LOG_FILE" /dev/fd/3 2>/dev/null; exit "${PIPESTATUS[0]}"); rc=$?; } 3>&1
+  return "$rc"
+}
+dnf_why() {   # dnf_why [TEXT] → lock · missing · disk · gpg · checksum · net · conflict · other
+  local t=${1-$DNF_OUT}
+  shopt -s nocasematch
+  case $t in
+    *"transaction lock"*|*"another transaction is in progress"*|*"lock is held"*|*"waiting for process with pid"*) echo lock ;;
+    *"no match for argument"*|*"no package matches"*|*"unable to find a match"*) echo missing ;;
+    *"no space left"*|*"not enough free space"*|*"more space needed"*|*"disk space"*) echo disk ;;
+    *"gpg check failed"*|*"openpgp check"*|*"signature verification failed"*|*"public key"*"not installed"*|*"import of key"*|*"bad gpg signature"*) echo gpg ;;
+    *"checksum doesn't match"*|*"checksum mismatch"*|*"checksum does not match"*|*"interrupted by header callback"*) echo checksum ;;
+    *"curl error"*|*"librepo"*|*"cannot download"*|*"failed to download"*|*"status code: 4"*|*"status code: 5"*|*"all mirrors"*|*"could not resolve host"*|*"timed out"*|*"connection reset"*|*"cannot prepare internal mirrorlist"*|*"metalink"*) echo net ;;
+    *"conflicts with file"*|*"problem:"*|*"cannot install both"*|*"nothing provides"*|*"conflicting requests"*|*"obsoleted by"*) echo conflict ;;
+    *) echo other ;;
+  esac
+  shopt -u nocasematch
+}
+dnf_fix() {   # dnf_fix WHY PKG → the fix, in a few words
+  case $1 in
+    missing)  echo "no enabled repository has '$2' — renamed or retired in this Fedora? dnf repoquery --whatprovides '$2' (bash tools/check-packages lists every manifest name)" ;;
+    disk)     echo "the disk is full — df -h /; sudo dnf clean all; then run it again (it carries on)" ;;
+    gpg)      echo "a repository's signing key does not match its packages — sudo dnf clean all; fedokawaii repair puts the repository and its key back" ;;
+    checksum) echo "a mirror kept serving a damaged file — sudo dnf clean packages; run it again (another mirror)" ;;
+    net)      echo "the network or the mirrors failed every try — nmcli general status; run it again: it carries on where it stopped" ;;
+    lock)     echo "another dnf kept the package database the whole time — wait for it to end (ps -C dnf5), then run it again" ;;
+    conflict) echo "it clashes with another package — the 'Problem' lines above name both; one tool per job: PACKAGES.md" ;;
+    *)        echo "dnf's lines above say why — sudo dnf -y install '$2' shows it again" ;;
+  esac
+}
+dnf_failed_note() {   # dnf_failed_note ok|PKG|WHY… — $STATE_DIR/dnf-failed: what is still not in
+  local f=$STATE_DIR/dnf-failed keep
+  [[ -d $STATE_DIR && -w $STATE_DIR ]] || return 0
+  if [[ $1 == ok ]]; then shift
+    [[ -f $f ]] || return 0
+    keep=$(grep -vF -f <(printf '%s|\n' "$@") "$f" || true)
+    if [[ -n $keep ]]; then printf '%s\n' "$keep" >"$f"; else rm -f "$f"; fi
+  else printf '%s\n' "$@" >>"$f"; sort -u -o "$f" "$f"; fi
+  return 0
+}
+dnf_install() {
+  local IFS=' ' i why="" refresh=() opts=() pkgs=() p bad=() pause
+  for p; do if [[ $p == -* ]]; then opts+=("$p"); else pkgs+=("$p"); fi; done
+  FAILED_CMD=""
+  for ((i = 1; i <= DNF_TRIES; i++)); do
+    # (--refresh after the names: dnf reads it anywhere)
+    if dnf_try "${opts[@]}" "${pkgs[@]}" "${refresh[@]}"; then dnf_failed_note ok "${pkgs[@]}"; return 0; fi
+    why=$(dnf_why)
+    case $why in missing|disk|conflict) break ;; esac   # (no new try mends these)
+    ((i < DNF_TRIES)) || break
+    pause=$((15 * i)); [[ $why == lock ]] && pause=30
+    log "dnf attempt $i/$DNF_TRIES failed ($why) — again in ${pause}s, with fresh metadata (another mirror)"
+    sleep "$pause"; refresh=(--refresh)
+  done
+  # each alone: which of them is at fault (not when the network itself is down — none would get through)
+  if ((${#pkgs[@]} > 1)) && [[ $why != @(net|lock|disk) ]]; then
+    log "finding which of the ${#pkgs[@]} packages dnf cannot install — each alone"
+    for p in "${pkgs[@]}"; do
+      pkg_installed "${p%.x86_64}" && continue
+      dnf_try "${opts[@]}" "$p" --refresh >/dev/null || bad+=("$p|$(dnf_why)")
+    done
+    ((${#bad[@]})) || { dnf_failed_note ok "${pkgs[@]}"; return 0; }   # (each alone went in: a clash between them only, gone)
+  else
+    for p in "${pkgs[@]}"; do pkg_installed "${p%.x86_64}" || bad+=("$p|$why"); done
+    ((${#bad[@]})) || bad=("${pkgs[*]}|$why")   # (each is in, yet dnf failed: a scriptlet's error — said as one)
+  fi
+  _out "${C_RED}✘ dnf could not install ${#bad[@]} of ${#pkgs[@]} package(s):${C_RESET}"
+  for p in "${bad[@]}"; do _out "    ${p%%|*} — ${p#*|}: $(dnf_fix "${p#*|}" "${p%%|*}")"; done
+  dnf_failed_note "${bad[@]}"
+  FAILED_CMD="dnf -y install ${opts[*]}${opts:+ }${pkgs[*]}" FAILED_AT=${FUNCNAME[1]:-main}:${BASH_LINENO[0]}
+  return 1
+}
 pkg_installed() { rpm -q "$1" >/dev/null 2>&1; }                # installed under exactly this name
 pkg_provided()  { rpm -q --whatprovides "$1" >/dev/null 2>&1; }  # …or by a package renamed since (Fedora keeps the old name as a Provides)
 
@@ -90,24 +175,53 @@ summary() {                     # summary VERB → prints the verdict; returns 1
 
 # ── idempotent steps: completion recorded in $STATE_DIR, re-runs skip them ──
 STATE_DIR=${STATE_DIR:-/var/lib/fedokawaii}
+# run_summary WHAT — the end of a run, in one block: how long, the steps done, what was tried
+# again, what warned, every ✘ — counted from the log since this run began — and where the log is
+RUN_LOG_FROM=$(stat -c %s "${LOG_FILE:-/dev/null}" 2>/dev/null || echo 0) RUN_T0=$SECONDS
+run_summary() {
+  local body steps retries warns fails
+  body=$(tail -c +"$((RUN_LOG_FROM + 1))" "$LOG_FILE" 2>/dev/null | sed 's/\x1b\[[0-9;]*m//g') || body=""
+  steps=$(grep -cE '^[0-9:]+ ✔ [0-9T][0-9.]*[a-z]? ' <<<"$body" || true)
+  retries=$(grep -cE 'attempt [0-9]+/[0-9]+ failed' <<<"$body" || true)
+  warns=$(grep -cE '^ *! ' <<<"$body" || true)
+  fails=$(grep -c '✘' <<<"$body" || true)
+  _out ""
+  _out "${C_BOLD}${C_GOLD}── $1 · $(took "$RUN_T0")${C_RESET}"
+  _out "   $steps step(s) done · $retries retried · $warns warning(s) · $fails failed · log: $LOG_FILE"
+  ((retries + warns + fails == 0)) || grep -E 'attempt [0-9]+/[0-9]+ failed|^ *! |✘' <<<"$body" | tail -n 8 | sed 's/^/     /' | tee -a "$LOG_FILE"
+  return 0
+}
+took() {   # took START-EPOCH → how long since: 8s · 3m04s · 1h02m
+  local s=$((SECONDS - $1))
+  if ((s < 60)); then echo "${s}s"; elif ((s < 3600)); then printf '%dm%02ds' $((s / 60)) $((s % 60)); else printf '%dh%02dm' $((s / 3600)) $((s % 3600 / 60)); fi
+}
 step() {
-  local name=$1 fn=$2 mark
+  local name=$1 fn=$2 mark t0=$SECONDS
   mark="$STATE_DIR/done.${name//\//-}"          # a "/" in a label must not become a folder
   if [[ -f $mark ]]; then log "skip (done): $name"; return 0; fi
   hdr "$name"
   "$fn"
   mkdir -p "$STATE_DIR"; touch "$mark"
-  ok "$name"
+  ok "$name · $(took "$t0")"
 }
 
 # ── target user (exported by the caller: TARGET_USER/HOME/UID/GID) ───────────
 as_user() {
+  [[ ${_HOME_ENV_OF:-} == "$TARGET_HOME" ]] || { mapfile -t _HOME_ENV < <(home_env "$TARGET_HOME"); _HOME_ENV_OF=$TARGET_HOME; }
   runuser -u "$TARGET_USER" -- env -i \
     HOME="$TARGET_HOME" USER="$TARGET_USER" LOGNAME="$TARGET_USER" SHELL=/bin/bash LANG="${LANG:-C.UTF-8}" \
     PATH="$TARGET_HOME/.local/bin:/usr/local/bin:/usr/bin:/bin" \
     XDG_RUNTIME_DIR="/run/user/$TARGET_UID" \
     DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/$TARGET_UID/bus" \
-    "$@"
+    "${_HOME_ENV[@]}" "$@"
+}
+# home_env HOME → NAME=VALUE, one a line: the variables of system/fedokawaii-home.sh (the XDG
+# folders, CARGO_HOME, the history files…) for that home — what every shell and the session
+# have, so a program setup runs as you (rustup, npm, uv) puts its files where yours would
+HOME_ENV_FILE=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/system/fedokawaii-home.sh
+home_env() {
+  local h=${1//|/\\|}
+  sed -n 's|^export \([A-Z_][A-Z0-9_]*\)="\$HOME/\([^"]*\)".*|\1='"${h//&/\\&}"'/\2|p' "$HOME_ENV_FILE"
 }
 
 # prune_theme_backups [AS…] — theme.sh's backup folders (one per run that replaced something,
@@ -188,10 +302,13 @@ PROJECT_TOP=(PACKAGES.md README.md art bin check.sh configs docs fedokawaii.conf
 # verify.sh checks them): the splash (rhgb), and nothing else on the screen from the power
 # button to the login — the kernel's messages only when they are critical (quiet loglevel=3;
 # the initramfs' udev likewise), no systemd status lines, no blinking cursor on the console
-# the login screen shares (tty1); and no console-size wait at boot. The journal keeps it all
+# the login screen shares (tty1); and no console-size wait at boot. The journal keeps it all.
+# plymouth.use-simpledrm: the splash from the first frame after the boot menu — Plymouth
+# draws on the firmware's screen (simpledrm) at once and moves to amdgpu when it loads;
+# without it Plymouth waits for amdgpu (seconds on an RDNA card) over a bare black screen
 # shellcheck disable=SC2034  # (setup.sh and verify.sh read it)
 BOOT_ARGS=(rhgb quiet loglevel=3 rd.udev.log_level=3 systemd.show_status=false vt.global_cursor_default=0
-           systemd.tty.term.console=dumb)
+           systemd.tty.term.console=dumb plymouth.use-simpledrm)
 # an AMD card's: LACT's clocks, voltages and fan curves need OverDrive (bit 14), which amdgpu
 # leaves off: its default mask (0xfff7bfff) plus that bit. Not 0xffffffff — that also switches
 # on GFX DCS (bit 19), which amdgpu keeps off as unstable (flicker, hangs on some cards).
@@ -261,15 +378,17 @@ make_tmp() {                        # private temp dir, removed on any exit (and
 
 # ── fedokawaii.conf: every value validated before anything runs ───────────────
 validate_conf() {                   # prints one line per problem; empty = valid
+  # (a number's digits are bounded before it is compared: bash's arithmetic wraps past 2^63, so
+  # 18446744073709551760 would compare as 144)
   [[ $GPU =~ ^(auto|amd|intel)$ ]]              || echo "GPU must be auto, amd or intel (is '$GPU')"
   [[ $STEAM =~ ^(yes|no)$ ]]                    || echo "STEAM must be yes or no (is '$STEAM')"
   [[ $SSH_SERVER =~ ^(yes|no)$ ]]               || echo "SSH_SERVER must be yes or no (is '$SSH_SERVER')"
   [[ $THEME =~ ^(dark|light)$ ]]                || echo "THEME must be dark or light (is '$THEME')"
   [[ $WALLPAPER_PACK =~ ^(yes|no)$ ]]           || echo "WALLPAPER_PACK must be yes or no (is '$WALLPAPER_PACK')"
   [[ $BOOT_MENU_SECONDS =~ ^([0-9]|10)$ ]]      || echo "BOOT_MENU_SECONDS must be 0–10 (is '$BOOT_MENU_SECONDS')"
-  [[ $MONITOR_HZ =~ ^[1-9][0-9]*$ ]] && ((MONITOR_HZ >= 30 && MONITOR_HZ <= 540)) \
+  [[ $MONITOR_HZ =~ ^[1-9][0-9]{1,2}$ ]] && ((MONITOR_HZ >= 30 && MONITOR_HZ <= 540)) \
                                                 || echo "MONITOR_HZ must be a number 30–540 (is '$MONITOR_HZ')"
-  [[ $DNF_PARALLEL =~ ^[1-9][0-9]*$ ]] && ((DNF_PARALLEL >= 1 && DNF_PARALLEL <= 20)) \
+  [[ $DNF_PARALLEL =~ ^[1-9][0-9]?$ ]] && ((DNF_PARALLEL >= 1 && DNF_PARALLEL <= 20)) \
                                                 || echo "DNF_PARALLEL must be 1–20, dnf5's maximum (is '$DNF_PARALLEL')"
   [[ $TIMEZONE =~ ^[A-Za-z0-9_+-]+(/[A-Za-z0-9_+-]+)*$ && -f /usr/share/zoneinfo/$TIMEZONE ]] \
                                                 || echo "TIMEZONE '$TIMEZONE' is not a known zone (see timedatectl list-timezones)"
@@ -278,16 +397,17 @@ validate_conf() {                   # prints one line per problem; empty = valid
   [[ $NIGHT_LIGHT =~ ^-?([0-9]{1,2})(\.[0-9]+)?:-?([0-9]{1,3})(\.[0-9]+)?$ ]] \
     && ((10#${BASH_REMATCH[1]} < 90 && 10#${BASH_REMATCH[3]} < 180)) \
                                                 || echo "NIGHT_LIGHT must be latitude:longitude like 25.35:55.40, latitude within ±90, longitude within ±180 (is '$NIGHT_LIGHT')"
-  [[ $KB_LAYOUTS =~ ^[a-z]+(,[a-z]+)*$ ]]       || echo "KB_LAYOUTS must look like us,ara (is '$KB_LAYOUTS')"
-  [[ $KB_TOGGLE =~ ^[a-z0-9_]+:[a-z0-9_]+$ ]]   || echo "KB_TOGGLE must be an XKB option like grp:alt_shift_toggle (is '$KB_TOGGLE')"
+  # (XKB holds four layouts at most; its names and options are short words)
+  [[ $KB_LAYOUTS =~ ^[a-z]{2,10}(,[a-z]{2,10}){0,3}$ ]] || echo "KB_LAYOUTS must look like us,ara — up to four layouts (is '${KB_LAYOUTS:0:60}')"
+  [[ $KB_TOGGLE =~ ^[a-z0-9_]{1,20}:[a-z0-9_]{1,40}$ ]] || echo "KB_TOGGLE must be an XKB option like grp:alt_shift_toggle (is '${KB_TOGGLE:0:60}')"
   local city_re="^[[:alnum:] .,'-]+$"           # letters of any script, digits, space . , ' -
-  [[ $WEATHER_CITY =~ $city_re ]]               || echo "WEATHER_CITY must be a plain city name: letters, digits, spaces, . , ' - (is '$WEATHER_CITY')"
+  [[ $WEATHER_CITY =~ $city_re && ${#WEATHER_CITY} -le 60 ]] || echo "WEATHER_CITY must be a plain city name, at most 60 characters: letters, digits, spaces, . , ' - (is '${WEATHER_CITY:0:60}')"
   # a drive's name, a folder's path or a restic address: letters of any script, digits and
   # . _ - : / @ + = , spaces — nothing a shell or sed would read as more (it reaches ~/.config/fedokawaii/env)
   local target_re="^[[:alnum:]/][[:alnum:] ._:/@+=,-]*$"
-  [[ -z $BACKUP_TARGET || $BACKUP_TARGET =~ $target_re ]] \
-                                                || echo "BACKUP_TARGET must be a drive's name, a folder's path or a restic address like sftp:you@nas:/backups (is '$BACKUP_TARGET')"
-  [[ $BACKUP_REMIND_DAYS =~ ^(0|[1-9][0-9]*)$ ]] && ((BACKUP_REMIND_DAYS <= 365)) \
+  [[ -z $BACKUP_TARGET || ( $BACKUP_TARGET =~ $target_re && ${#BACKUP_TARGET} -le 200 ) ]] \
+                                                || echo "BACKUP_TARGET must be a drive's name, a folder's path or a restic address like sftp:you@nas:/backups, at most 200 characters (is '${BACKUP_TARGET:0:60}')"
+  [[ $BACKUP_REMIND_DAYS =~ ^(0|[1-9][0-9]{0,2})$ ]] && ((BACKUP_REMIND_DAYS <= 365)) \
                                                 || echo "BACKUP_REMIND_DAYS must be 0–365 (0 = no reminder) (is '$BACKUP_REMIND_DAYS')"
   [[ $DWL_TAG =~ ^v[0-9]+\.[0-9]+(\.[0-9]+)?$ ]] || echo "DWL_TAG must look like v0.9 (is '$DWL_TAG')"
   [[ $DWL_COMMIT =~ ^[0-9a-f]{40}$ ]]           || echo "DWL_COMMIT must be the 40-character commit of $DWL_TAG"

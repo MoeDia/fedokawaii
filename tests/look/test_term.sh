@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# tests/look/test_term.sh — kawa-term CMD [ARG…]: CMD in a new terminal window, through the
+# tests/look/test_term.sh — kawa-term [--app ID TITLE] CMD [ARG…]: CMD in a new terminal window, through the
 # foot server (footclient) — the one way. footclient and foot are stand-ins that keep their
 # arguments exactly and the folder they were started in.
 . "$(dirname "$0")/../lib/harness.sh"
@@ -46,10 +46,23 @@ for d in "my dir" "ü日本 العربية" "it's \"q\"" "-dash" $'new\nline' '$
   eq "$(cat "$TMP/client.pwd")" "$TMP/$d" "[$d] through the server"
 done
 
+case_ "--app ID TITLE: the window's app-id and title (a launcher entry's program), the command after it intact"
+setup
+rc 0 kawa-term --app kawa-git Git lazygit "${odd[@]:1}"
+args_eq footclient 1 -N -a kawa-git -T Git -- lazygit "${odd[@]:1}"
+setup
+rc 0 kawa-term --app kawa-disk "Disk usage"
+args_eq footclient 1 -N -a kawa-disk -T "Disk usage" -- "${SHELL:-bash}"
+for bad in "" "a b" '$(x)'; do
+  setup; err=$(kawa-term --app "$bad" T yazi 2>&1); r=$?
+  eq "$r" 2 "[$bad] refused"; has "$err" "--app takes"; eq "$(ncalls footclient)" 0
+done
+setup; err=$(kawa-term --app kawa-git "" yazi 2>&1); eq "$?" 2 "an empty title refused"
+
 case_ "--help shows how it is used, and opens nothing"
 setup
 out=$(kawa-term --help 2>&1); r=$?
-eq "$r" 0; has "$out" "kawa-term CMD [ARG…]"
+eq "$r" 0; has "$out" "kawa-term [--app ID TITLE] CMD [ARG…]"
 eq "$(ncalls footclient)$(ncalls foot)" 00
 
 done_

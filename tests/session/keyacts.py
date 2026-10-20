@@ -19,7 +19,9 @@ MODS = {"MODKEY": "Super", "SHIFT": "Shift", "CTRL": "Ctrl", "WLR_MODIFIER_ALT":
 
 # row of the sheet (its keys, exactly as written) → (words its description must hold,
 # [the action of each key the row names, in the row's order])
-# an action: "spawn:COMMAND" (the words dwl runs), or "FUNCTION:ARGUMENT" (dwl's own)
+# an action: "spawn:COMMAND" (the words dwl runs; "spawnheld:COMMAND" when a held key goes on
+# repeating it — only the volume and the brightness: any key that opens a window must be one
+# press however long it is held, so it toggles once a press), or "FUNCTION:ARGUMENT" (dwl's own)
 TAGS = [f"{1 << i}" for i in range(9)]
 ROWS = {
     "Super+Return":            ("terminal (foot)", ["spawn:footclient"]),
@@ -27,13 +29,14 @@ ROWS = {
     "Super+B":                 ("browser (Brave Origin)", ["spawn:brave-origin"]),
     "Super+E":                 ("files (yazi)", ["spawn:footclient yazi"]),
     "Super+X":                 ("quick settings", ["spawn:kawa-quick"]),
-    "Super+A":                 ("sound panel", ["spawn:kawa-panel --sound"]),
+    "Super+A":                 ("sound panel", ["spawn:kawa-quick sound"]),
     "Super+C":                 ("calendar", ["spawn:kawa-calendar"]),
     "Super+/":                 ("this help", ["spawn:kawa-help"]),
     "Super+W":                 ("wallpaper picker", ["spawn:kawa-wallpaper"]),
     "Super+Shift+W":           ("dark / light theme", ["spawn:kawa-theme"]),
     "Super+V":                 ("clipboard history", ["spawn:kawa-clip"]),
     "Super+Z":                 ("shrink or convert", ["spawn:kawa-shrink"]),
+    "Super+D":                 ("archives and PDFs", ["spawn:kawa-file"]),
     "Super+R":                 ("books", ["spawn:kawa-books"]),
     "Super+N":                 ("notes", ["spawn:kawa-notes"]),
     "Super+Shift+N":           ("dismiss notifications", ["spawn:makoctl dismiss -a"]),
@@ -44,6 +47,8 @@ ROWS = {
     "Print":                   ("region", ["spawn:kawa-screenshot region"]),
     "Shift+Print":             ("full screen", ["spawn:kawa-screenshot full"]),
     "Super+Print":             ("region → annotate", ["spawn:kawa-screenshot edit"]),
+    "Super+Shift+Print":       ("region → its text", ["spawn:kawa-screenshot text"]),
+    "Super+Shift+R":           ("record the screen (again: stop)", ["spawn:kawa-record"]),
     "Super+Q":                 ("close window", ["killclient:0"]),
     "Super+J / K":             ("focus next / previous", ["focusstack:+1", "focusstack:-1"]),
     "Super+H / L":             ("spiral: the first window narrower / wider", ["setmfact:-0.05f", "setmfact:+0.05f"]),
@@ -66,12 +71,12 @@ ROWS = {
     "Super+, / .":             ("focus monitor left / right", ["focusmon:WLR_DIRECTION_LEFT", "focusmon:WLR_DIRECTION_RIGHT"]),
     "Super+Shift+, / .":       ("send window to monitor", ["tagmon:WLR_DIRECTION_LEFT", "tagmon:WLR_DIRECTION_RIGHT"]),
     "Volume · Mute · Mic":     ("media keys, with a level display",
-                                ["spawn:kawa-volume up", "spawn:kawa-volume down", "spawn:kawa-volume mute", "spawn:kawa-volume mic"]),
+                                ["spawnheld:kawa-volume up", "spawnheld:kawa-volume down", "spawn:kawa-volume mute", "spawn:kawa-volume mic"]),
     "Play · Next · Previous":  ("media keys",
                                 ["spawn:kawa-nowplaying play-pause", "spawn:kawa-nowplaying next", "spawn:kawa-nowplaying previous"]),
     "Super+scroll":            ("volume ±2 %", ["spawn:kawa-volume up 2", "spawn:kawa-volume down 2"]),
-    "Super+] / Super+[":       ("monitor brightness up / down", ["spawn:kawa-brightness +10", "spawn:kawa-brightness -10"]),
-    "Brightness keys":         ("the same", ["spawn:kawa-brightness +10", "spawn:kawa-brightness -10"]),
+    "Super+] / Super+[":       ("monitor brightness up / down", ["spawnheld:kawa-brightness +10", "spawnheld:kawa-brightness -10"]),
+    "Brightness keys":         ("the same", ["spawnheld:kawa-brightness +10", "spawnheld:kawa-brightness -10"]),
     "Sleep key":               ("locked first, then asleep", ["spawn:kawa-power sleep", "spawn:kawa-power sleep"]),
     "Super+Ctrl+Shift+Q":      ("log out, no menu (Steam closed properly first)",
                                 [r'spawn:kawa-steam --quit logout; exec pkill -xu \"$(id -u)\" dwl']),
@@ -110,13 +115,13 @@ def keys_of(spec):
 
 
 def action(func, arg, cmds):
-    """dwl's (function, argument text) → 'spawn:COMMAND' or 'FUNCTION:ARGUMENT'."""
+    """dwl's (function, argument text) → 'spawn:COMMAND' (spawnheld:) or 'FUNCTION:ARGUMENT'."""
     arg = arg.strip()
-    if func == "spawn":
+    if func in ("spawn", "spawnheld"):
         if m := re.fullmatch(r'SHCMD\("(.*)"\)', arg):
-            return "spawn:" + m.group(1)
+            return f"{func}:" + m.group(1)
         if m := re.fullmatch(r"\{\s*\.v\s*=\s*(\w+)\s*\}", arg):
-            return "spawn:" + " ".join(cmds.get(m.group(1), ["?" + m.group(1)]))
+            return f"{func}:" + " ".join(cmds.get(m.group(1), ["?" + m.group(1)]))
     m = re.fullmatch(r"\{\s*(?:\.\w+\s*=\s*)?(.*?)\s*\}", arg)
     a = m.group(1) if m else arg
     a = re.sub(r"^1 << (\d+)$", lambda x: str(1 << int(x.group(1))), a)
@@ -215,9 +220,9 @@ def check(repo):
     # every helper a key runs: there, and it takes the word it is given
     for acts in binds.values():
         a = acts[0]
-        if not a.startswith("spawn:"):
+        if not a.startswith(("spawn:", "spawnheld:")):
             continue
-        words = re.split(r"\s*(?:;|&&|\|\|)\s*", a[6:])[0].split()   # (the first command of a line)
+        words = re.split(r"\s*(?:;|&&|\|\|)\s*", a.split(":", 1)[1])[0].split()   # (the first command of a line)
         name = words[0]
         if name.startswith("kawa-") or name == "fedokawaii":
             f = repo / ("system" if name == "fedokawaii" else "bin") / name

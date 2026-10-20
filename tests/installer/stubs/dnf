@@ -30,6 +30,7 @@ hook() {   # hook install|remove NAME
     adwaita-cursor-theme) f=/usr/share/icons/Adwaita/cursors/default ;;
     nano) f=/usr/bin/nano ;; vim-minimal) f=/usr/bin/vi ;; vim-enhanced) f=/usr/bin/vim ;; emacs) f=/usr/bin/emacs ;;
     flatpak) f=/usr/bin/flatpak ;;
+    grub-btrfs) f=/etc/grub.d/41_snapshots-btrfs ;;   # (its script: grub2-mkconfig then adds the snapshots' submenu)
     lpf) [[ $1 == remove ]] && rm -rf /usr/share/lpf /etc/sudoers.d/pkg-build ;;   # (its files: the user and /var/lib/lpf stay)
   esac
   for x in $f; do
@@ -108,7 +109,18 @@ case "$a" in
   *" install "*)
       net_on || { echo "Curl error (6): Could not resolve host" >&2; exit 1; }
       countdown dnf-install && { echo "dnf stub: a mirror timed out" >&2; exit 1; }
+      # what real mirrors and repositories do, each N times ($FKH/fail-dnf-KIND = N) — in dnf5's words
+      countdown dnf-404 && { echo "Librepo error: Status code: 404 for https://mirror.example/fedora/44/x86_64/os/Packages/b/bash.rpm" >&2; exit 1; }
+      countdown dnf-metalink && { echo "Failed to download metadata (metalink: \"https://mirrors.fedoraproject.org/metalink?repo=fedora-44\") for repository \"fedora\": Cannot prepare internal mirrorlist" >&2; exit 1; }
+      countdown dnf-checksum && { echo "Interrupted by header callback: Downloading successful, but checksum doesn't match. Calculated: 1a… Expected: 2b…" >&2; exit 1; }
+      countdown dnf-lock && { echo "Failed to obtain rpm transaction lock. Another transaction is in progress." >&2; exit 1; }
+      countdown dnf-gpg && { echo "Transaction failed: Signature verification failed. OpenPGP check for package \"x\" has failed: The certificate is not available." >&2; exit 1; }
+      countdown dnf-partial && { echo "Curl error (18): Transferred a partial file" >&2; exit 1; }
+      [[ -s $FKH/disk-full ]] && { echo "Error: not enough free space: 512 MB more space needed on /" >&2; exit 1; }
       rc=0 skip=0; [[ $a == *" --skip-unavailable "* ]] && skip=1
+      # one transaction: a package that cannot go in leaves the others out too, as dnf does
+      cp "$FKH/installed" "$FKH/.installed.tx"; cp "$FKH/userinstalled" "$FKH/.userinstalled.tx" 2>/dev/null || : >"$FKH/.userinstalled.tx"
+      trap 'if ((rc)); then cat "$FKH/.installed.tx" >"$FKH/installed"; cat "$FKH/.userinstalled.tx" >"$FKH/userinstalled"; fi; rm -f "$FKH/.installed.tx" "$FKH/.userinstalled.tx"' EXIT
       for p in "$@"; do
         [[ $p == -* || $p == install ]] && continue
         if [[ $p == https://*.rpm ]]; then p=${p##*/}; p=${p%-[0-9]*.noarch.rpm}; mark_user "$p"; continue; fi
@@ -126,7 +138,12 @@ case "$a" in
         if has behind "$p"; then
           printf 'Problem: package %s-1.0-1.fc44 requires mesa-filesystem(x86-64) = 1.0, but none of the providers can be installed\n' "$p" >&2; rc=1; continue
         fi
-        if has uninstallable "$p" || ! has available "$p"; then echo "dnf stub: no match for argument: $p" >&2; rc=1; else mark_user "$p"; fi
+        # $FKH/clash "A B": A and B cannot both be installed (a file conflict) — dnf names both
+        cl=$(awk -v p="$p" '$1 == p { print $2; exit }' "$FKH/clash" 2>/dev/null)
+        if [[ -n $cl ]] && { has installed "$cl" || [[ $a == *" $cl "* ]]; }; then
+          printf ' Problem: file /usr/bin/x from install of %s-1.0-1.fc44.x86_64 conflicts with file from package %s-1.0-1.fc44.x86_64\n' "$p" "$cl" >&2; rc=1; continue
+        fi
+        if has uninstallable "$p" || ! has available "$p"; then echo "No match for argument: $p" >&2; rc=1; else mark_user "$p"; fi
         # (RPM Fusion's Vulkan driver conflicts with Fedora's: --allowerasing takes Fedora's out)
         if [[ $p == mesa-vulkan-drivers-freeworld* && $a == *" --allowerasing "* ]] && has installed "$p"; then
           unmark "mesa-vulkan-drivers${p#mesa-vulkan-drivers-freeworld}"

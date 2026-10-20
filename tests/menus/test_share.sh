@@ -82,16 +82,17 @@ setup; answer "row 3"; out=$(share "$M1" "Window:  ($ID)" "Window:    (${ID/4f/7
 r=$(nm 2); has "$r" "untitled"; lacks "$r" "$ID"
 r3=$(nm 3); has "$r3" "untitled"; [[ $r != "$r3" ]] && _ok || _no "two untitled windows look the same: [$r]"
 eq "$out" "Window:    (${ID/4f/77})" "the line comes back as it came, spaces and all"
-case_ "a long title, Latin or Japanese or Arabic: shortened at the source to 40 columns with …, every row fits"
+case_ "a long title, Latin or Japanese or Arabic: shortened at the source to 40 columns, at a word's end — never with …; every row fits"
 setup; answer esc
 share "$M1" "Window: $(printf 'a%.0s' {1..80}) ($ID)" "Window: 夜の音楽 — 坂本龍一 Ryuichi Sakamoto async 2017 (Live at Park Avenue Armory) ($ID)" \
       "Window: مرحبا بالعالم — مشغل الموسيقى ($ID)" "Window: 🎵 ♪ emoji title 🎶🎶🎶🎶🎶🎶🎶🎶🎶🎶🎶🎶🎶🎶🎶🎶🎶🎶🎶🎶 ($ID)" >/dev/null
-fits; eq "$(nm 2 | python3 -I "$MD/cols.py" --px)" 240 "40 columns (38 and …)"
-has "$(nm 3)" "…"; has "$(nm 4)" "مرحبا بالعالم"
-case_ "a title of exactly 40 columns stays whole; 41 is cut (to 38 and …, two columns)"
+fits; eq "$(nm 2 | python3 -I "$MD/cols.py" --px)" 240 "40 columns (one word, cut)"
+eq "$(nm 3)" "夜の音楽 — 坂本龍一 Ryuichi Sakamoto" "at a word's end"; has "$(nm 4)" "مرحبا بالعالم"
+lacks "$(fz_rows)" "…"
+case_ "a title of exactly 40 columns stays whole; 41 is cut to 40 (one word: no word's end to cut at)"
 setup; answer esc; share "$M1" "Window: $(printf 'b%.0s' {1..40}) ($ID)" "Window: $(printf 'c%.0s' {1..41}) ($ID)" >/dev/null
 eq "$(nm 2)" "$(printf 'b%.0s' {1..40})"
-eq "$(nm 3)" "$(printf 'c%.0s' {1..38})…"
+eq "$(nm 3)" "$(printf 'c%.0s' {1..40})"
 case_ "control characters in a title (a tab, an escape): shown as spaces; the line comes back as it came"
 setup; answer "row 2"; t=$'Window: a\tb\e[31mred ('"$ID)"; out=$(share "$M1" "$t")
 eq "$out" "$t"; eq "$(fz_rows | sed -n 3p | awk -F'\t' '{print NF}')" 3 "no tab of its own: three fields"; lacks "$(fz_rows)" $'\e'

@@ -80,15 +80,15 @@ fi
 
 # ── storage: the installer choices that matter ───────────────────────────────
 section "storage (installer choices)"
-fstype=$(findmnt -no FSTYPE /); opts=$(findmnt -no OPTIONS /)
+fstype=$(findmnt -no FSTYPE /); rootopts=$(findmnt -no OPTIONS /)
 if [[ $fstype == btrfs ]]; then pass "/ is Btrfs"
 else fail "/ is $fstype, not Btrfs" "reinstall: Installation Destination → Custom → Btrfs → create automatically"; fi
-if [[ $opts == *subvol=/root* || $opts == *subvol=root* ]]; then pass "Fedora subvolume layout (root)"
-elif [[ $fstype == btrfs ]]; then warn "unusual root subvolume" "$(grep -o 'subvol=[^,]*' <<<"$opts")"; fi
-[[ $opts == *compress=zstd* ]] && pass "transparent zstd compression on /" || info "no compression on / (Fedora's default is zstd:1)"
+if [[ $rootopts == *subvol=/root* || $rootopts == *subvol=root* ]]; then pass "Fedora subvolume layout (root)"
+elif [[ $fstype == btrfs ]]; then warn "unusual root subvolume" "$(grep -o 'subvol=[^,]*' <<<"$rootopts")"; fi
+[[ $rootopts == *compress=zstd* ]] && pass "transparent zstd compression on /" || info "no compression on / (Fedora's default is zstd:1)"
 if [[ $(findmnt -no FSTYPE /home) == btrfs ]]; then pass "/home on Btrfs (snapshots cover it)"; else info "/home is not a separate Btrfs subvolume"; fi
 [[ $(findmnt -no FSTYPE /boot) == ext4 ]] && pass "/boot is a separate ext4 partition" || info "/boot layout: $(findmnt -no FSTYPE /boot 2>/dev/null || echo 'inside /')"
-lsblk -no TYPE | grep -qx crypt && info "disk encryption (LUKS) on — you'll type the passphrase at every boot" || info "no disk encryption"
+grep -qx crypt < <(lsblk -no TYPE) && info "disk encryption (LUKS) on — you'll type the passphrase at every boot" || info "no disk encryption"
 free_gb=$(df -BG --output=avail / | tail -1 | tr -dc 0-9)
 if ((free_gb >= 40)); then pass "${free_gb} GB free on /"
 elif ((free_gb >= 20)); then warn "${free_gb} GB free on /" "enough to build; games need much more"
@@ -100,7 +100,7 @@ section "memory"
 # "4 GB" machine shows about 3.7 GiB: compared in MiB with that margin)
 mem_mb=$(( $(awk '/MemTotal/{print $2}' /proc/meminfo) / 1024 )); mem_gb=$(( (mem_mb + 512) / 1024 ))
 if ((mem_mb >= 7168)); then pass "${mem_gb} GB RAM"; elif ((mem_mb >= 3584)); then warn "${mem_gb} GB RAM" "works; 8 GB+ recommended"; else fail "${mem_gb} GB RAM" "needs 4 GB+"; fi
-swapon --show=NAME --noheadings 2>/dev/null | grep -q zram && pass "zram swap active (Fedora default)" || info "no zram swap"
+grep -q zram < <(swapon --show=NAME --noheadings 2>/dev/null) && pass "zram swap active (Fedora default)" || info "no zram swap"
 
 # ── user & security ──────────────────────────────────────────────────────────
 section "user & security"
@@ -160,7 +160,7 @@ if [[ -f $STATE_DIR/phase ]]; then info "setup already started: phase $(<"$STATE
 
 # ── network: every source the build downloads from ───────────────────────────
 section "network"
-if ip route show default 2>/dev/null | grep -q .; then pass "default route ($(ip route show default | awk '{print $5; exit}'))"
+if grep -q . < <(ip route show default 2>/dev/null); then pass "default route ($(ip route show default | awk '{print $5; exit}'))"
 else fail "no default route" "connect ethernet (nmtui)"; fi
 reachable() {   # reachable HOST — any HTTP answer at all counts (CURL_RC: curl's own status)
   local code
@@ -234,7 +234,7 @@ fwmiss=$(hw_missing_firmware | tr '\n' ' ')
 nodrv=$(hw_driverless | tr '\n' ';')
 [[ -z $nodrv ]] && pass "every network, display, sound and USB device has a driver" \
   || warn "devices no driver holds" "${nodrv} — lspci -nnk names them; such a device will not work here"
-nmcli -t -f TYPE,STATE device 2>/dev/null | grep -q '^ethernet:connected' && pass "ethernet connected" || info "not on ethernet (Wi-Fi works too)"
+grep -q '^ethernet:connected' < <(nmcli -t -f TYPE,STATE device 2>/dev/null) && pass "ethernet connected" || info "not on ethernet (Wi-Fi works too)"
 
 # ── verdict ──────────────────────────────────────────────────────────────────
 if summary "READY for setup"; then exit 0; fi

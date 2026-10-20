@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # kawa-wallpaper             choose a wallpaper for the current theme (Super+W): a small
 #                            window lists them and shows the one under the cursor, as the
-#                            screen will; Enter sets it — it dissolves in over the old one
-#                            (kawa-veil) — Esc leaves everything as it was
+#                            screen will; Enter sets it — drawn off screen, then in place of
+#                            the old one in a single frame — Esc leaves everything as it was
 # kawa-wallpaper --restore   show the current theme's choice again (login, theme switch)
 # kawa-wallpaper --set C     show choice C and remember it (what the picker runs)
 # kawa-wallpaper --pack      fetch the wallpaper pack, then draw it for the screen (theme.sh)
@@ -45,6 +45,20 @@ T0=${EPOCHREALTIME/[.,]/}
 # and -resize lose their "i" (kawa-sixel, kawa-clip and kawa-books do the same)
 magick() { LC_ALL=C command magick "$@"; }
 case ${1:-} in -h|--help) sed -n '2,/^set -u/{/^set -u/d;s/^# \{0,1\}//;p}' "$0"; exit 0 ;; esac
+WIN_COLS=80 W=76            # the picker's window (kawa-term --float 80x37) and its rows' width: below
+# Super+W: the picker window at once, before anything else is read (a second press while it
+# is open closes it, as fast: kawa-term --float --once). 80 × 37: the clipboard window's width, an
+# odd height (centred to the pixel, the tallest that fits under the bar): the list, then an
+# 18-row area for the picture — as far below its rule as above the window's foot. What was
+# picked is put up once the window has closed (menu, below)
+if [[ ${1:-menu} == menu ]]; then
+  export XDG_RUNTIME_DIR=${XDG_RUNTIME_DIR:-/run/user/$UID}
+  [[ -d $XDG_RUNTIME_DIR && -w $XDG_RUNTIME_DIR ]] \
+    || { echo "kawa-wallpaper: no runtime folder $XDG_RUNTIME_DIR (not logged in to the desktop?)" >&2; exit 1; }
+  pick=$(mktemp "$XDG_RUNTIME_DIR/kawa-wallpaper.XXXXXX") || exit 1
+  trap 'rm -f "$pick"' EXIT
+  kawa-term --float --once wallpaper wallpaper "${WIN_COLS}x37" -- "$0" --tui "$pick" || exit 0
+fi
 WALLPAPER_DIR=$HOME/Pictures/Wallpapers
 # shellcheck source=/dev/null
 . "$HOME/.config/fedokawaii/env"
@@ -53,7 +67,7 @@ WALLPAPER_DIR=$HOME/Pictures/Wallpapers
 # shellcheck source=/dev/null
 . "$HOME/.config/fedokawaii/screen.sh"
 case ${1:-menu} in
-  --restore|--set|menu)   # (the session's runtime folder: also found from a shell without it)
+  --restore|--set)   # (the session's runtime folder: also found from a shell without it)
     export XDG_RUNTIME_DIR=${XDG_RUNTIME_DIR:-/run/user/$UID}
     [[ -d $XDG_RUNTIME_DIR && -w $XDG_RUNTIME_DIR ]] \
       || { echo "kawa-wallpaper: no runtime folder $XDG_RUNTIME_DIR (not logged in to the desktop?)" >&2; exit 1; } ;;
@@ -170,7 +184,7 @@ cover() {   # cover WxH → SRC reduced to cover WxH and cropped to it (drawn on
 # ── on screen ─────────────────────────────────────────────────────────────────────────
 # The new swaybg is started with the old one still up, and the old one goes only once the
 # new one has drawn: never a bare moment between, and a change that returns is on screen
-# (kawa-theme waits for --restore under its veil, so the veil lifts on the new wallpaper).
+# (kawa-theme waits for --restore: its switch is over when the new wallpaper is up).
 # "Drawn" is read from outside, whatever swaybg loads pictures with (cairo, gdk-pixbuf, or
 # glycin's sandboxed loaders): each picture is handed over as a copy of its own in the
 # runtime folder, which nothing else reads — so when every copy that was opened is closed
@@ -496,9 +510,9 @@ cache_status() {   # the report's and verify's look: complete and current?
 # A text screen (docs/design-system.md §7, in screen.sh's words, as every other one): the
 # heading — 壁, wallpaper, the stitch — then the list, each row its glyph and name, the
 # theme's own picture marked "default" and a picture with a day/night pair ◐, right-aligned
-# in muted; the cursor the accent fill. The window is fixed (kawa-float 80x37), so the rows'
-# width is known: its columns less two each side (fzf's margin and the cursor fill's)
-WIN_COLS=80 W=76
+# in muted; the cursor the accent fill. The window is fixed (kawa-term --float 80x37), so the rows'
+# width is known: its columns less two each side (fzf's margin and the cursor fill's: W, at
+# the top)
 declare -A OWN_SUM=()
 rows() {   # every choice for this theme: "CHOICE<TAB>KEY<TAB>ROW" (KEY: the preview's cache
   # name, or empty when not known yet)
@@ -524,7 +538,7 @@ rows() {   # every choice for this theme: "CHOICE<TAB>KEY<TAB>ROW" (KEY: the pre
     ! -name $'*\t*' ! -name $'*\n*' -printf '%p\t%s %T@\n' | sort | while IFS=$'\t' read -r f st; do
       sum=${OWN_SUM["${st%.*} $f"]:-} p=""
       [[ -n $sum ]] && p="$(safe_name "$f").${sum:0:16}.center"
-      printf '%s\t%s\t%s\n' "$f" "$p" "$(screen_row "$ICON_FOLDER" "${f#"$WALLPAPER_DIR"/}" "" "$W")"
+      printf '%s\t%s\t' "$f" "$p"; screen_row "$ICON_FOLDER" "${f#"$WALLPAPER_DIR"/}" "" "$W"; printf '\n'   # (no subshell a row)
     done
 }
 
@@ -557,20 +571,12 @@ case ${1:-menu} in
     cache_one "${2:-}" "${3:-}" "${4:-}" && echo "ok ${4#* }" || echo "fail ${4#* }" ;;
   --cache-status)
     cache_status ;;
-  menu)        # Super+W: the picker window, once (a second press while it is open closes it: kawa-float --once)
-    pick=$(mktemp "$XDG_RUNTIME_DIR/kawa-wallpaper.XXXXXX") || exit 1
-    trap 'rm -f "$pick"' EXIT
-    # 80 × 37 (the clipboard window's width, an odd height: centred to the pixel, and the
-    # tallest that fits under the bar): the list, then an 18-row area for the picture — as
-    # far below its rule as above the window's foot
-    kawa-float --once wallpaper wallpaper "${WIN_COLS}x37" -- "$0" --tui "$pick" || exit 0
+  menu)        # Super+W: the picker has closed (at the top): what was picked goes up
     c=$(cat "$pick" 2>/dev/null)
     cur=$(cat "$STATE_DIR/wallpaper-$THEME" 2>/dev/null)
     [[ -n $c && $c != "$cur" ]] || exit 0
-    sleep 0.15                                # the window gone from the screen first
-    # the new one dissolves in over the old: --set returns once it is drawn, so the veil
-    # lifts at once (no hold)
-    kawa-veil --dissolve --hold 0 --time 520 -- "$0" --set "$c"; exit ;;
+    # (the new one drawn off screen, then in the old one's place in one frame: no fade)
+    exec "$0" --set "$c" ;;
   --tui)       # inside the window: the list on top, the picture under the cursor below
     out=${2:?}
     KAWA_CELL=$(kawa-cell) || exit 1                  # the cell's pixels: previews fit exactly

@@ -109,7 +109,7 @@ fresh; eq "$(strict hy_leftovers)" ""; eq "$?" 0
 
 case_ "the conflict lists: each entry UNIT|reason, units that exist in Fedora's naming"
 for e in "${CONFLICT_SERVICES[@]}" "${CONFLICT_USER_SERVICES[@]}"; do
-  [[ $e =~ ^[a-z0-9-]+\.(service|socket)\|[^|]+$ ]] && _ok || _no "malformed: $e"
+  [[ $e =~ ^[A-Za-z0-9-]+\.(service|socket)\|[^|]+$ ]] && _ok || _no "malformed: $e"
 done
 
 done_

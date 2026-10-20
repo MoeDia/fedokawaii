@@ -18,6 +18,7 @@
 # Read-only here (check.sh and verify.sh use these); setup.sh's s_hardware installs.
 
 HW_FW=${HW_FW:-/usr/lib/firmware}   # where the firmware packages put their files
+HW_DRM=${HW_DRM:-/sys/class/drm}     # the kernel's graphics cards (a test points it elsewhere)
 
 hw_cpu_vendor()  { awk -F': *' '/^vendor_id/ { print $2; exit }' /proc/cpuinfo 2>/dev/null; }
 hw_has_wifi()    { compgen -G '/sys/class/ieee80211/*' >/dev/null; }
@@ -41,14 +42,31 @@ hw_gpu() {
 }
 # hw_discrete_amd — an AMD card with memory of its own (2 GiB or more): not an APU's shared
 # memory. mpv's high-quality scaling is written for such a card (theme.sh).
-hw_discrete_amd() {
-  local d v
-  for d in /sys/class/drm/card[0-9]*/device; do
+# hw_discrete_amd_pci — its PCI address (0000:03:00.0: it stays when card numbers move —
+# game mode's tuned profile sets its clocks through it, setup.sh: game_mode)
+hw_discrete_amd() { hw_discrete_amd_pci >/dev/null; }
+hw_discrete_amd_pci() {
+  local d v a
+  for d in "$HW_DRM"/card[0-9]*/device; do
     [[ -r $d/vendor && $(<"$d/vendor") == 0x1002 && -r $d/mem_info_vram_total ]] || continue
-    v=$(<"$d/mem_info_vram_total")
-    [[ $v =~ ^[0-9]+$ ]] && ((v >= 2147483648)) && return 0
+    v=$(<"$d/mem_info_vram_total"); a=$(sed -n 's/^PCI_SLOT_NAME=//p' "$d/uevent" 2>/dev/null)
+    [[ $v =~ ^[0-9]+$ && $a =~ ^[0-9a-f]{4}:[0-9a-f]{2}:[0-9a-f]{2}\.[0-7]$ ]] && ((v >= 2147483648)) && { echo "$a"; return 0; }
   done
   return 1
+}
+# hw_btop_gpu — btop's name for the discrete AMD card (gpu0, gpu1…), nothing without one.
+# btop numbers AMD cards as ROCm SMI hands them over: every AMD card the kernel drives,
+# sorted by PCI address (rocm_smi_main.cc) — so the processor's own graphics comes first
+# where its address is the lower one
+hw_btop_gpu() {
+  local dgpu d a i=0 all=()
+  dgpu=$(hw_discrete_amd_pci) || return 0
+  for d in "$HW_DRM"/card[0-9]*/device; do
+    [[ -r $d/vendor && $(<"$d/vendor") == 0x1002 ]] || continue
+    a=$(sed -n 's/^PCI_SLOT_NAME=//p' "$d/uevent" 2>/dev/null); [[ -n $a ]] && all+=("$a")
+  done
+  while IFS= read -r a; do [[ $a == "$dgpu" ]] && { echo "gpu$i"; return 0; }; i=$((i + 1)); done \
+    < <(printf '%s\n' "${all[@]}" | sort -u)
 }
 # hw_is_laptop — a portable: the firmware says so (DMI chassis: portable, laptop, notebook,
 # hand-held, sub-notebook, tablet, convertible, detachable) or a battery powers the machine —

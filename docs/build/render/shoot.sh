@@ -5,6 +5,7 @@
 #   sudo ./shoot.sh light           one theme
 #   SHOOT_ONLY="bar menus" ./shoot.sh dark     only some groups:
 #                                   bar menus notify term lock (default: all)
+#   SHOOT_NAMES="menu-file*"        of the menus, only those whose shot's name matches (a glob)
 #
 # The apps are the real ones at Fedora 44's versions (built into /opt/f44 by build.sh),
 # run as the test user with the configs theme.sh installed, in a headless sway (standing
@@ -234,11 +235,10 @@ session() {
   k dbus-update-activation-environment WAYLAND_DISPLAY XDG_CURRENT_DESKTOP XDG_SESSION_TYPE XDG_SESSION_DESKTOP \
     >/dev/null 2>&1 || warn "$T: dbus-update-activation-environment failed"
 
-  # what dwl's autostart does, in its order (kawa-theme here is the switch to $T: run
-  # as the veiled half of a switch, so it applies in one go without the transition)
+  # what dwl's autostart does, in its order (kawa-theme here is the switch to $T)
   say "$T: kawa-display, kawa-theme $T (wallpaper)"
   k kawa-display >"$LT/kawa-display.log" 2>&1
-  k env KAWA_VEILED=1 kawa-theme "$T" >"$LT/kawa-theme.log" 2>&1 || warn "$T: kawa-theme exited $?"
+  k kawa-theme "$T" >"$LT/kawa-theme.log" 2>&1 || warn "$T: kawa-theme exited $?"
   [[ $(k kawa-theme get) == "$T" ]] || warn "$T: kawa-theme get says $(k kawa-theme get)"
   waitfor 15 "swaybg" pgrep -x swaybg
   sleep 1.5
@@ -320,6 +320,8 @@ menu() {   # menu NAME CMD… — open a menu, capture it once drawn and still, 
 # (dwl adds keyboards to its group, with no such leave)
 menu_keys() {
   local name=$1 keys=$2 pid r kp=""; shift 2
+  # shellcheck disable=SC2053  # (SHOOT_NAMES: a glob)
+  [[ -z ${SHOOT_NAMES:-} || $name == $SHOOT_NAMES ]] || return 0
   : >"$LT/$name.log"
   img grab "$W/base.ppm"
   if [[ -n $keys ]]; then
@@ -348,12 +350,12 @@ menu_keys() {
   sleep 0.7
 }
 # close_menus — whatever menu is on screen goes, as another menu's key takes it away: the
-# launcher (fuzzel) ended, the session panel told to close (SIGUSR2: a menu dismissed, its
+# launcher (fuzzel) ended, the session panel told to close (a "close" line in its fifo: a menu dismissed, its
 # caller answered "dismissed")
 close_menus() {
   local p
   pkill -x fuzzel 2>/dev/null
-  p=$(cat "$X/kawa-panel.pid" 2>/dev/null) && [[ $p =~ ^[0-9]+$ ]] && kill -USR2 "$p" 2>/dev/null
+  [[ -p $X/kawa-panel.in ]] && { printf 'close\n' 1<>"$X/kawa-panel.in"; } 2>/dev/null
   return 0
 }
 
@@ -374,10 +376,10 @@ shot_menus() {
   menu menu-sound      k sh -c "${qs/--open/--sound}"
   menu menu-sound-muted k sh -c "wpctl set-mute @DEFAULT_AUDIO_SINK@ 1; ${qs/--open/--sound}; wpctl set-mute @DEFAULT_AUDIO_SINK@ 0"
   menu menu-brightness k sh -c "${qs/--open/--brightness}"
-  # the dropdowns and the centred menus: kawa-menu asks the session's panel (kawa-panel --menu,
-  # its socket), as autostart keeps one running on the real machine
+  # the dropdowns and the centred menus: kawa-menu asks the session's panel (its fifo,
+  # kawa-panel.in), as autostart keeps one running on the real machine
   k sh -c "exec $py" >"$LT/panel.log" 2>&1 &
-  waitfor 15 "the session panel's socket" test -S "$X/kawa-panel.sock"
+  waitfor 15 "the session panel's fifo" test -p "$X/kawa-panel.in"
   menu menu-power      k kawa-power
   menu menu-calendar   k kawa-calendar
   # … paged to the next month by its keys: the cursor stays on next
@@ -398,6 +400,11 @@ shot_menus() {
   chown "$K" "$SH/state/scan.pdf"
   menu menu-shrink     k kawa-shrink "$SH/state/holiday.png" "$SH/state/scan.pdf"
   menu_keys menu-shrink-size "-k Down -k Down -k Down -k Return | 750 -k space KB" k kawa-shrink "$SH/state/holiday.png"
+  # file tools (Super+D) on a PDF and a zip: every part; then a folder's pack → zip → 圧 compression
+  k mkdir -p "$SH/state/photos"; install -m 644 -o "$K" "$OT/wallpaper.png" "$SH/state/photos/beach.png"
+  k sh -c 'cd "$1" && 7z a -bso0 -bsp0 photos.zip photos >/dev/null' _ "$SH/state"
+  menu menu-file       k kawa-file "$SH/state/scan.pdf" "$SH/state/photos.zip"
+  menu_keys menu-file-level "-k Down -k Return" k kawa-file "$SH/state/photos"
   # share (the screen-share portal's chooser): a screen, two windows
   menu menu-share      k sh -c 'printf "%s\n" "Monitor: HEADLESS-1 Headless output" "Window: notes.md — nvim (a1b2c3d4)" "Window: Weekly sync — Brave (e5f6a7b8)" | kawa-share'
   menu menu-weather    k kawa-weather --menu   # the week (the bar's weather): stubs/curl's Open-Meteo forecast
@@ -568,9 +575,9 @@ shot_lock() {
 time_switch() {   # how long a theme switch takes before anything moves (round 18 #141)
   local other=light i; [[ $T == light ]] && other=dark
   # 1. the apply alone, every command timed (bash xtrace with timestamps)
-  k env KAWA_VEILED=1 PS4='+ $EPOCHREALTIME ' bash -x "$(k sh -c 'command -v kawa-theme')" "$other" >"$LT/switch-trace.log" 2>&1
-  k env KAWA_VEILED=1 PS4='+ $EPOCHREALTIME ' bash -x "$(k sh -c 'command -v kawa-theme')" "$T" >>"$LT/switch-trace.log" 2>&1
-  # 2. the full switch, veil and all: frames grabbed while it runs, first change timed
+  k env PS4='+ $EPOCHREALTIME ' bash -x "$(k sh -c 'command -v kawa-theme')" "$other" >"$LT/switch-trace.log" 2>&1
+  k env PS4='+ $EPOCHREALTIME ' bash -x "$(k sh -c 'command -v kawa-theme')" "$T" >>"$LT/switch-trace.log" 2>&1
+  # 2. the full switch: frames grabbed while it runs, first change timed
   img grab "$W/sw0.ppm"
   local t0; t0=$EPOCHREALTIME
   k kawa-theme "$other" >"$LT/switch-full.log" 2>&1 &
@@ -578,7 +585,7 @@ time_switch() {   # how long a theme switch takes before anything moves (round 1
   for ((i = 1; i <= 60; i++)); do img grab "$W/sw$i.ppm"; echo "$i $EPOCHREALTIME" >>"$LT/switch-frames.log"; kill -0 $pid 2>/dev/null || break; done
   wait $pid; echo "total $(bc <<<"$EPOCHREALTIME - $t0") t0 $t0" >>"$LT/switch-frames.log"
   for ((j = 1; j <= i; j++)); do echo "$j $(img bbox "$W/sw0.ppm" "$W/sw$j.ppm")" ; done >>"$LT/switch-frames.log"
-  k env KAWA_VEILED=1 kawa-theme "$T" >/dev/null 2>&1
+  k kawa-theme "$T" >/dev/null 2>&1
 }
 
 inner() {

@@ -16,18 +16,23 @@ HEAD="## $today"
 case ${1:-} in
   "") ;;
   --inside)                               # in the window: neovim
-    # as a page, a text screen's heading and footer (~/.config/fedokawaii/notes.lua), at the end of
+    # as a page, a text screen's heading and footer, with notes.lua as its whole configuration
+    # (not LazyVim: the window has its text as it appears; notes.lua says), at the end of
     # the file, on a fresh line, typing. No swap file (-n): every change is in the file
     # itself at once, and a window closed under neovim (Super+Q) would leave one behind —
     # and with it a "Found a swap file" question in the next window
     KAWA_NOTES_WHERE=${NOTES/#"$HOME"/\~} \
-      exec nvim -n -c 'luafile ~/.config/fedokawaii/notes.lua' -c 'normal! Go' -c 'startinsert!' -- "$NOTES" ;;
+      exec nvim -n -u ~/.config/fedokawaii/notes.lua -c 'normal! Go' -c 'startinsert!' -- "$NOTES" ;;
   -h|--help) sed -n '2,/^set -u/{/^set -u/d;s/^# \{0,1\}//;p}' "$0"; exit 0 ;;
   *) echo "usage: kawa-notes   (Super+N: your notes, ~/Notes/notes.md)" >&2; exit 2 ;;
 esac
 
+# open already: this press puts it away — straight to its window's toggle, nothing else
+# done first (kawa-term --float --once: the window's mark is there while it is open)
+[[ -e $XDG_RUNTIME_DIR/kawa-term-notes.open ]] && exec kawa-term --float --once notes notes 80x25 -- "$0" --inside
 exec 9>"$LOCK"
-flock -n 9 || exit 0                       # (opening right now: a second press does nothing)
+flock 9 || exit 1                          # (presses one after the other, each to the window's toggle:
+                                           #  pressed fast, an even number leaves it closed)
 mkdir -p "${NOTES%/*}" || exit 1
 # notes written on Windows end their lines in CR LF: what is added here does the same (the
 # window keeps them so too) — a file of both kinds shows a ^M at the end of every old line
@@ -41,9 +46,9 @@ if ! grep -qxF -e "$HEAD" -e "$HEAD"$'\r' "$NOTES" 2>/dev/null; then
   else printf '%s' "$nl$HEAD$nl$nl" >>"$NOTES"; fi
 fi
 # 80 × 25: an even width, an odd height — dwl centres it to the pixel. Open already: its key
-# closes it (kawa-float --once) — and nothing below runs twice
+# closes it (kawa-term --float --once) — and nothing below runs twice
 flock -u 9; exec 9>&-
-kawa-float --once notes notes 80x25 -- "$0" --inside || exit 0
+kawa-term --float --once notes notes 80x25 -- "$0" --inside || exit 0
 sync -- "$NOTES" 2>/dev/null               # (the window writes without waiting for the disk)
 # tidy the end: no empty lines left by a fresh line you did not use — and a heading with
 # nothing under it goes too, with the blank line before it

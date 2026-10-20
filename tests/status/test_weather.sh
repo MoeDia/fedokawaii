@@ -94,7 +94,7 @@ kawa-weather >/dev/null; fetched
 # ── the bar ──────────────────────────────────────────────────────────────────
 case_ "the bar: the sky's icon and the temperature now; the city and the sky in words as its tooltip"
 cached; j=$(bar); json_lines "$j"
-eq "$j" "$(jq -cn --arg t "$ICON_SUN 33°" '{text: $t, tooltip: "Sharjah · clear", class: "sky"}')"
+eq "$j" "$(jq -cn --arg t "${ICON_BAR_SUN}33°" '{text: $t, tooltip: "Sharjah · clear", class: "sky"}')"
 case_ "the bar over an hour old (offline): its age in the tooltip, and a class to show it by"
 touch -d '-3 hours' "$CACHE"; answer '' 6
 j=$(bar); eq "$(tip "$j")" "Sharjah · clear · 3 h old"; eq "$(jq -c .class <<<"$j")" '["sky","stale"]'
@@ -103,7 +103,7 @@ fetched
 case_ "whole degrees, rounded half up: 29.5 → 30, -0.4 → 0 (never -0), -5.5 → -5, -5.6 → -6"
 for t in 29.5:30 29.4:29 -0.4:0 -0.5:0 -5.5:-5 -5.6:-6 0:0; do
   setup; forecast ".current.temperature_2m = ${t%:*}"; kawa-weather >/dev/null; fetched
-  eq "$(text_of "$(bar)")" "$ICON_SUN ${t#*:}°" "${t%:*}"
+  eq "$(text_of "$(bar)")" "$ICON_BAR_SUN${t#*:}°" "${t%:*}"
 done
 case_ "the sky: every WMO code Open-Meteo sends, its icon and words; the moon for a clear night"
 setup; kawa-weather >/dev/null; fetched

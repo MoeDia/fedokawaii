@@ -46,6 +46,7 @@ PKG_MEDIA=(
                         # npm-bin: the plain `npm`, which neovim's Mason installs language servers with
   libva-utils           # vainfo — used by verify.sh
   libheif-freeworld     # HEVC for HEIF: iPhone photos (.heic) open in imv, yazi and ImageMagick
+  unrar                 # RAR archives and .cbr comics (nonfree): Fedora's 7-Zip reads no RAR (kawa-file, kawa-books)
 )
 # Vulkan: Fedora's own driver (RADV on AMD, ANV on Intel), 64- and 32-bit. RPM Fusion's
 # freeworld build of it adds only Vulkan's own H.264/HEVC video, which nothing here uses (mpv
@@ -58,9 +59,11 @@ PKG_GPU_amd=(amd-gpu-firmware mesa-va-drivers-freeworld lact
 PKG_GPU_intel=(intel-media-driver)
 
 # ── phase 3 ─────────────────────────────────────────────────────────────────
-PKG_BUILD=(             # kept installed: theme.sh rebuilds dwl (config.h, patch) and builds kawa-veil and
-                        # kawa-clipkeep; update rebuilds the yazi file dialog (termfilechooser)
+PKG_BUILD=(             # kept installed: theme.sh rebuilds dwl (config.h, patch) and builds
+                        # kawa-clipkeep, kawa-saver and kawa-lockmod; update rebuilds the yazi file
+                        # dialog (termfilechooser)
   gcc make pkgconf-pkg-config
+  gtk3-devel            # GTK 3's headers: kawa-lockmod, the lock screen's gtklock module
   wayland-devel wayland-protocols-devel libinput-devel libxkbcommon-devel
   pixman-devel libdrm-devel libxcb-devel xcb-util-wm-devel wlroots-devel
   meson inih-devel systemd-devel   # setup.sh builds xdg-desktop-portal-termfilechooser (the yazi
@@ -76,7 +79,8 @@ PKG_DESKTOP=(
   pipewire wireplumber pipewire-pulseaudio pipewire-alsa  # audio (Pulse API for Brave and Steam; ALSA for
                                                           #   programs that open it directly: games)
   pipewire-utils                                          # pw-dump: the audio popup lists outputs/inputs from it
-  wiremix easyeffects playerctl cava                      # per-app mixer (a terminal window), EQ, media keys, the bar's music meter
+  wiremix playerctl cava                                  # per-app mixer (a terminal window), media keys, the bar's music meter
+                                                          #   (the clean mic and an equaliser: PipeWire's own modules — no package)
   waybar mako fuzzel foot                                 # bar, notifications, launcher+menus, terminal
   gtk-layer-shell                                         # quick settings: kawa-panel (GTK 3 and Python's
                                                           #   GObject with cairo come with the login screen)
@@ -117,9 +121,8 @@ PKG_APPS=(
                                                     #   GTK theme, dark and light (its other toolkits: not here)
   hunspell-en hunspell-ar                           # spelling dictionaries, English and Arabic (LibreOffice;
                                                     #   Arabic is its language for right-to-left text: theme.sh)
-  zathura zathura-pdf-mupdf zathura-cb              # PDF / EPUB / comic book reader
-  bsdtar                                            #   comics' covers and pages for the books window
-                                                    #   (libarchive, as zathura-cb: CBZ, CBR, CB7)
+  zathura zathura-pdf-mupdf zathura-cb              # PDF / EPUB / comic book reader (the books window's
+                                                    #   covers and page counts: 7z, below)
   qpdf poppler-utils xournalpp                      # PDF tools, annotation and signing
   ghostscript                                       #   PDF compression (`gs`)
   tesseract tesseract-langpack-eng tesseract-langpack-ara   # text from scans and pictures (OCR)
@@ -131,12 +134,14 @@ PKG_APPS=(
                                                     #   list), pem. Not the syncplay package: PySide6 and 27 Qt modules with it
   qrencode wf-recorder                              # QR codes · screen recordings
   btop bat ripgrep fd-find                          # monitor, pager; rg/fd also power LazyVim pickers
+  git-delta                                         # lazygit's diffs: syntax-coloured, line-numbered (delta)
   visidata                                          # tables in the terminal: vd opens CSV, TSV, JSON and
                                                     #   SQLite (sort, sum, filter, group — Excel files are
                                                     #   LibreOffice Calc's)
   gdu                                               # what fills the disk (gdu ~), folder by folder
   fzf file 7zip                                    # the clipboard and wallpaper windows' lists, the shell's
                                                     #   Ctrl+R / Ctrl+T / Alt+C, yazi's z; file types; archives
+  zstd                                              # .tar.zst archives (kawa-file, through tar -I)
   eza zoxide tldr                                   # the shell: ls with git status and trees · a cd that
                                                     #   learns your folders (yazi's Z too) · tldr examples
   tree-sitter-cli                                   # parser builder required by LazyVim's nvim-treesitter
@@ -145,10 +150,15 @@ PKG_APPS=(
                                                     #   reads the ones you changed (and neovim's bash server, §17.15)
   openrgb                                           # RGB lighting (fan speeds: the motherboard's firmware)
   snapper libdnf5-plugin-actions                    # snapshots; actions = pre/post snapshot around every dnf run
+  grub-btrfs                                        # the snapshots in the boot menu (its COPR: no Fedora package)
   restic                                            # backups to another disk (kawa-backup)
-  podman python3.13 pipx                            # Prowlarr container; torrra (needs libtorrent wheels ≤ py3.13)
+  uv rustup                                         # Python and Rust to learn with: uv installs a current
+                                                    #   CPython and its packages, rustup-init the stable Rust
+                                                    #   (+ rust-analyzer, clippy, rustfmt) — both in your home (setup.sh: s_dev)
+  podman                                            # Prowlarr container (torrra: uv tool, on uv's own Python 3.13 —
+                                                    #   libtorrent has wheels only up to 3.13: setup.sh torrra_up)
 )
-PKG_GAMING=(steam gamescope gamemode mangohud
+PKG_GAMING=(steam gamescope mangohud
             ntsync-autoload    # /dev/ntsync at boot: Proton's faster Windows synchronisation
             steam-devices)     # the rules that let Steam (and Proton's games) open a controller:
                                #   Steam brings it today — listed, never assumed
@@ -162,6 +172,11 @@ RETIRED_PKGS=(unzip mediainfo    # unzip: 7zip opens zips too · mediainfo: ffpr
               solaar liquidctl      # nothing here to drive: a mouse on a receiver needs no app; no liquid cooler
               abiword gnumeric sc-im   # office is LibreOffice now: Writer, Calc (and VisiData for CSV)
               papirus-icon-theme       # every app shows its own icon now (hicolor), not an icon pack's
+              bsdtar                   # the books window's comics: 7z lists and opens them (one archive tool)
+              gamemode                 # game mode is kawa-game's (tuned owns the CPU and the card's level)
+              easyeffects calf      # one sound-processing stack, PipeWire's own: the clean mic (echo-cancel),
+                                    #   an equaliser if you want one (filter-chain's param_eq) — handbook §15.6
+              pipx python3.13       # uv installs torrra now, on a Python 3.13 of its own (one Python tool: uv)
               lpf-spotify-client lpf spotify-client)   # Spotify is its web player in a Brave app window
                                                        #   now; lpf's account and folder: setup.sh, lpf_leftovers_out
 
@@ -198,8 +213,9 @@ BRAVE_REPO_URL="https://brave-browser-rpm-release.s3.brave.com/brave-browser.rep
 CLAUDE_REPO_BASEURL="https://downloads.claude.ai/claude-code/rpm/stable"
 CLAUDE_KEY_URL="https://downloads.claude.ai/keys/claude-code.asc"
 CLAUDE_KEY_FPR="31DDDE24DDFAB679F42D7BD2BAA929FF1A7ECACE"
-COPRS=(ilyaz/LACT)
-copr_pkgs() { case $1 in ilyaz/LACT) echo lact ;; esac; }   # what each COPR brings
+# (grub-btrfs: zzahkaboom24's COPR builds 4.14 for Fedora 43 and 44 — kylegospo's stopped at 38)
+COPRS=(ilyaz/LACT zzahkaboom24/grub-btrfs)
+copr_pkgs() { case $1 in ilyaz/LACT) echo lact ;; zzahkaboom24/grub-btrfs) echo grub-btrfs ;; esac; }   # what each COPR brings
 
 # waiting PART → what waits for a repository to catch up with this Fedora, one name per line
 # (setup.sh records it; update and repair try again and clear it): "rpmfusion" — RPM Fusion's

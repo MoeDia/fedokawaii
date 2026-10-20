@@ -9,11 +9,15 @@
 #    sudo bash setup.sh --upgrade [--now]   move to the next Fedora release, once it has settled
 #    sudo bash setup.sh --repair   verify, fix what can be fixed (packages, services, session,
 #                                  release tools, torrra, Prowlarr, theme), verify again
+#    sudo bash setup.sh --after-dnf   after a dnf transaction (the guard's unit runs it): dwl
+#                                  starts, rebuilt where a library changed, checked, told
 #    sudo bash setup.sh --toolkit  from a working copy: it becomes the toolkit, your saved
 #                                  settings merged in (fedokawaii.sh apply runs this, then theme)
 #  (after setup, all of these run from the `fedokawaii` command / menu, Super+U)
 #    sudo bash setup.sh --status   progress          --reset   forget progress
 #    sudo bash setup.sh --no-reboot  run the current phase without rebooting
+#    bash setup.sh --trial         the package steps only, inside the container trial's
+#                                  container (tools/container-trial.sh) — refused elsewhere
 #
 #  Installs software only. Configs, colours and keybindings are theme.sh's job;
 #  it runs near the end only when you chose "Both" (state file: with-theme).
@@ -38,6 +42,8 @@ for a in "$@"; do
     --update) MODE=update ;;  --repair) MODE=repair ;;  --status) MODE=status ;;  --reset) MODE=reset ;;
     --toolkit) MODE=toolkit ;;  --kernels) MODE=kernels ;;
     --upgrade) MODE=upgrade ;;  --now) UPGRADE_FLAG=--now ;;  --after-upgrade) MODE="after-upgrade" ;;
+    --after-dnf) MODE="after-dnf" ;;
+    --trial) MODE=trial ;;     # (tools/container-trial.sh's, inside its container only)
     --no-reboot) NO_REBOOT=1 ;;
     -h|--help) sed -n '3,/^# ═/p' "$0" | sed '$d'; exit 0 ;;
     *) echo "unknown option: $a (sudo bash setup.sh --help lists them)" >&2; exit 2 ;;
@@ -54,6 +60,8 @@ source "$REPO_DIR/lib/manifest.sh"
 source "$REPO_DIR/lib/upstream.sh"
 source "$REPO_DIR/lib/hygiene.sh"
 source "$REPO_DIR/lib/hardware.sh"
+source "$REPO_DIR/lib/guard.sh"
+source "$REPO_DIR/lib/pace.sh"
 load_conf "$REPO_DIR"
 
 # The error report, on stderr. Inside a $(…), a <(…) or a pipeline (errtrace hands the trap
@@ -73,6 +81,8 @@ if [[ $MODE == status ]]; then        # read-only, so it works while another run
 fi
 if [[ $MODE == kernels ]]; then     # (the boot's own run: never waits — another run is on, so next start)
   exec 9>"$STATE_DIR/lock"; flock -n 9 || exit 0
+elif [[ $MODE == after-dnf ]]; then   # (after a dnf run: waits for an update or repair to end first)
+  exec 9>"$STATE_DIR/lock"; flock 9
 else take_lock "$STATE_DIR/lock"; fi
 make_tmp
 # A run resumed after a reboot (fedokawaii-resume.service) that stops: nobody typed a command
@@ -300,6 +310,7 @@ remove_resume_unit() {
 }
 reboot_to() {
   set_phase "$1"; install_resume_unit
+  run_summary "phase $(( $1 - 1 )) of 3 done"
   (( NO_REBOOT )) && { log "reboot when ready — phase $1 starts by itself"; exit 0; }
   hdr "rebooting in 10 s → phase $1 continues on this screen"; sleep 10; systemctl reboot; exit 0
 }
@@ -458,7 +469,7 @@ old_kernels_out() {   # old_kernels_out [desktop]
   if [[ ${vers[-1]} != "$now" ]]; then
     log "kernel ${vers[-1]} is installed and waits for a restart — $now stays until it runs"; return 0
   fi
-  if [[ ${1:-} == desktop ]] && ! grub2-editenv - list 2>/dev/null | grep -qx boot_success=1; then
+  if [[ ${1:-} == desktop ]] && ! grep -qx boot_success=1 < <(grub2-editenv - list 2>/dev/null); then
     log "this start has not reached the desktop for two minutes — the kernel before $now stays as the way back"; return 0
   fi
   for v in "${vers[@]:0:${#vers[@]}-1}"; do
@@ -613,6 +624,25 @@ s_tuning() {   # an always-plugged desktop: the CPU at full speed, Wi-Fi and Blu
 wifi.powersave = 2
 EOF
   nmcli general reload conf >/dev/null 2>&1 || true
+  # names on the home network: mDNS (avahi, NAME.local) only — LLMNR, Windows' older way,
+  # answers anyone on the network who asks for a name on every address (port 5355) and is
+  # the classic spoofing target; nothing here uses it
+  local rc='# Fedokawaii — no LLMNR (port 5355 on every address; a spoofing target): names on the home
+# network go by mDNS (avahi: NAME.local)
+[Resolve]
+LLMNR=no'
+  if [[ $(cat /etc/systemd/resolved.conf.d/90-fedokawaii.conf 2>/dev/null) != "$rc" ]]; then
+    printf '%s\n' "$rc" | write_file /etc/systemd/resolved.conf.d/90-fedokawaii.conf
+    systemctl try-reload-or-restart systemd-resolved.service 2>/dev/null || true
+  fi
+  # zram, the swap in compressed memory: half the RAM (16 GB at most) and zstd — about 3:1,
+  # where Fedora's default (8 GB, lzo-rle) keeps less in the same room. From the next start
+  write_file /etc/systemd/zram-generator.conf <<'EOF'
+# Fedokawaii — swap in compressed memory: half the RAM (16 GB at most), zstd (from the next start)
+[zram0]
+zram-size = min(ram / 2, 16384)
+compression-algorithm = zstd
+EOF
   write_file /etc/modprobe.d/fedokawaii-btusb.conf <<'EOF'
 # Fedokawaii — Bluetooth power saving off: a controller on a USB Bluetooth dongle lags or
 # drops when the dongle sleeps between packets, and a desktop has no battery to save.
@@ -678,13 +708,18 @@ retire_old_name() {
     [[ -e $f ]] || continue
     found=1; rm -f "$f"
   done
+  # its records and logs (kawa-tidy takes what it left in your home)
+  for f in /var/lib/scriptorium /var/log/scriptorium*.log; do
+    [[ -e $f ]] || continue
+    found=1; rm -rf -- "$f"
+  done
   if [[ -e /usr/local/bin/scrip-greeter ]] && ! grep -qs scrip-greeter /etc/greetd/config.toml; then
     found=1; rm -f /usr/local/bin/scrip-greeter
   fi
   ((found)) || return 0
   systemctl daemon-reload
   command -v dconf >/dev/null && dconf update
-  log "Scriptorium (this project's old name): its system files are out — what it left in your home is listed in README"
+  log "Scriptorium (this project's old name): its system files are out — kawa-tidy takes what it left in your home"
 }
 
 phase1() {
@@ -726,8 +761,8 @@ rf_base() {   # rf_base PKG → the Fedora package RPM Fusion's PKG is made for,
 rf_behind() {
   local base want have
   base=$(rf_base "$1"); [[ -n $base ]] || return 1
-  want=$(dnf -q repoquery --latest-limit=1 --qf '%{version}\n' "${1%.i686}" 2>/dev/null | head -n1) || return 1
-  have=$(dnf -q repoquery --latest-limit=1 --qf '%{version}\n' "$base" 2>/dev/null | head -n1) || return 1
+  want=$(dnf -q repoquery --latest-limit=1 --qf '%{version}\n' "${1%.i686}" 2>/dev/null | sed -n 1p) || return 1
+  have=$(dnf -q repoquery --latest-limit=1 --qf '%{version}\n' "$base" 2>/dev/null | sed -n 1p) || return 1
   [[ -n $want && -n $have && $want != "$have" ]]
 }
 RF_SAID=""
@@ -736,8 +771,8 @@ rf_said() {   # rf_said PKG — why it waits, in plain words with both versions,
   [[ " $RF_SAID " == *" ${1%.i686} "* ]] && return 0
   RF_SAID+=" ${1%.i686}"
   base=$(rf_base "$1")
-  want=$(dnf -q repoquery --latest-limit=1 --qf '%{version}\n' "${1%.i686}" 2>/dev/null | head -n1)
-  have=$(dnf -q repoquery --latest-limit=1 --qf '%{version}\n' "$base" 2>/dev/null | head -n1)
+  want=$(dnf -q repoquery --latest-limit=1 --qf '%{version}\n' "${1%.i686}" 2>/dev/null | sed -n 1p)
+  have=$(dnf -q repoquery --latest-limit=1 --qf '%{version}\n' "$base" 2>/dev/null | sed -n 1p)
   log "${1%.i686} ${want:-?} from RPM Fusion is made for $base ${want:-?}; Fedora has $base ${have:-?} — it installs itself with the update or repair after Fedora's $base reaches ${want:-it} (Fedora's own $base works meanwhile)"
 }
 # rf_pair PKG — RPM Fusion's PKG made for a NEWER Fedora package than Fedora's stable updates
@@ -748,11 +783,11 @@ rf_said() {   # rf_said PKG — why it waits, in plain words with both versions,
 rf_pair() {
   local p=${1%.i686} base want have test a mine pkgs=()
   base=$(rf_base "$p"); [[ -n $base ]] || return 1
-  want=$(dnf -q repoquery --latest-limit=1 --qf '%{version}\n' "$p" 2>/dev/null | head -n1)
-  have=$(dnf -q repoquery --latest-limit=1 --qf '%{version}\n' "$base" 2>/dev/null | head -n1)
+  want=$(dnf -q repoquery --latest-limit=1 --qf '%{version}\n' "$p" 2>/dev/null | sed -n 1p)
+  have=$(dnf -q repoquery --latest-limit=1 --qf '%{version}\n' "$base" 2>/dev/null | sed -n 1p)
   [[ -n $want && -n $have && $want != "$have" ]] || return 1
   [[ $(printf '%s\n%s\n' "$have" "$want" | sort -V | tail -n1) == "$want" ]] || return 1   # (RPM Fusion behind: wait)
-  test=$(dnf -q repoquery --enablerepo=updates-testing --latest-limit=1 --qf '%{version}\n' "$base-$want" 2>/dev/null | head -n1)
+  test=$(dnf -q repoquery --enablerepo=updates-testing --latest-limit=1 --qf '%{version}\n' "$base-$want" 2>/dev/null | sed -n 1p)
   [[ $test == "$want" ]] || return 1
   for a in x86_64 i686; do rpm -q "$base.$a" >/dev/null 2>&1 && pkgs+=("$base-$want.$a"); done
   ((${#pkgs[@]})) || pkgs=("$base-$want.x86_64")
@@ -823,7 +858,7 @@ waiting_retry() {
 s_repos() {
   wait_for_network
   local base=https://mirrors.rpmfusion.org r repos c
-  pkg_installed rpmfusion-free-release || retry 3 10 dnf -y install \
+  pkg_installed rpmfusion-free-release || dnf_install \
     "$base/free/fedora/rpmfusion-free-release-$FEDORA_VER.noarch.rpm" \
     "$base/nonfree/fedora/rpmfusion-nonfree-release-$FEDORA_VER.noarch.rpm"
 
@@ -902,7 +937,7 @@ s_gpu() {
     if pkg_installed lact; then systemctl enable lactd.service; fi
     run grubby --update-kernel=ALL --args="$AMDGPU_ARG"
   else
-    run dnf -y install "${PKG_GPU_intel[@]}" --allowerasing
+    dnf_install --allowerasing "${PKG_GPU_intel[@]}"
   fi
 }
 
@@ -956,7 +991,7 @@ s_hardware_setup() { s_hardware || log "some of this machine's drivers or firmwa
 s_media() {
   # full ffmpeg first, so mpv & co. link against it instead of pulling ffmpeg-free
   if pkg_installed ffmpeg-free; then run dnf -y swap ffmpeg-free ffmpeg --allowerasing
-  else run dnf -y install ffmpeg --allowerasing; fi
+  else dnf_install --allowerasing ffmpeg; fi
   local media; mapfile -t media < <(printf '%s\n' "${PKG_MEDIA[@]}" | grep -vx libheif-freeworld)
   dnf_install "${media[@]}"
   # HEVC for HEIF photos: RPM Fusion's, made for one exact libheif — it waits like the drivers
@@ -1068,6 +1103,7 @@ s_dwl() {
 }
 
 install_start_dwl() {   # the session launcher, with the keyboard from fedokawaii.conf
+  install_home_env      # (it reads /etc/profile.d/fedokawaii-home.sh)
   local t; t=$(mktemp)
   sed "s|@KB_LAYOUTS@|$KB_LAYOUTS|; s|@KB_TOGGLE@|$KB_TOGGLE|" "$REPO_DIR/system/start-dwl" >"$t"
   install -m 0755 "$t" /usr/local/bin/start-dwl; rm -f "$t"
@@ -1164,7 +1200,6 @@ s_desktop() {
   dnf_install "${PKG_DESKTOP[@]}"
   systemctl enable bluetooth.service
   i2c_dev
-  as_user xdg-user-dirs-update
 }
 i2c_dev() {   # i2c-dev at every boot (monitor brightness over DDC/CI), and now: ddcutil ships
   # a modules-load file for it; ours stays should a later ddcutil drop it
@@ -1174,10 +1209,11 @@ i2c_dev() {   # i2c-dev at every boot (monitor brightness over DDC/CI), and now:
 }
 s_look()    { dnf_install "${PKG_LOOK[@]}"; }
 # (tree-sitter-cli recommends "nodejs", Node 22: never taken — exclude_from_weak, s_dnf)
-s_apps()    { dnf_install "${PKG_APPS[@]}"; }
+s_apps()    { local p; mapfile -t p < <(not_waiting "${PKG_APPS[@]}"); dnf_install "${p[@]}"; }   # (a COPR's waits: grub-btrfs)
 
 s_upstream() {
   local e; for e in "${UPSTREAM[@]}"; do install_upstream_bin "$e"; done
+  install_upstream_icons || log "a launcher icon is not installed yet (why: above) — update and repair try again"
   install_nerd_fonts
   install_fusion
   s_localsend
@@ -1207,6 +1243,24 @@ s_blesh() {
 # never takes goes here once lpf is gone: its build account (the user and group pkg-build,
 # which lpf made) and /var/lib/lpf (that account's home: the recipe's state, its build
 # folders, Spotify's download, the logs). Update and repair; nothing while lpf is installed.
+# EasyEffects left the desktop (PipeWire's own modules do its jobs: the clean mic, an
+# equaliser): presets you saved in it are yours, never touched — said once, in the update's
+# log, with where they are and what takes them now
+easyeffects_note() {
+  local d n=0 where=()
+  [[ -e $STATE_DIR/easyeffects-noted ]] && return 0
+  pkg_installed easyeffects && return 0
+  for d in "$TARGET_HOME/.config/easyeffects" "$TARGET_HOME/.local/share/easyeffects"; do
+    [[ -d $d ]] || continue
+    n=$((n + $(find "$d" -type f -name '*.json' -path '*/output/*' -o -type f -name '*.json' -path '*/input/*' 2>/dev/null | wc -l)))
+    where+=("${d/#$TARGET_HOME/\~}")
+  done
+  if ((n)); then
+    log "EasyEffects is no longer part of the desktop: your $n preset(s) stay in ${where[*]} — an equaliser is PipeWire's own now (the handbook, §15.6: its bands in Equalizer APO's format); the microphone is the clean mic's"
+  fi
+  : >"$STATE_DIR/easyeffects-noted"
+}
+
 lpf_leftovers_out() {
   pkg_installed lpf && return 0
   local gone=()
@@ -1286,7 +1340,8 @@ s_filechooser() {
 # 600): Prowlarr gets it as a podman secret (podman keeps that copy in its own store, yours
 # alone), torrra from kawa-torrra in memory — never in a program's settings, never on a
 # command line.
-TORRRA_VENV=.local/share/pipx/venvs/torrra
+TORRRA_VENV=.local/share/uv/tools/torrra   # (uv tool's: UV_TOOL_DIR's default)
+TORRRA_BIN=.local/share/uv/tool-bin        # (where uv puts torrra's own command: off your PATH)
 
 prowlarr_image() { sed -n 's/^Image=//p' "$REPO_DIR/system/prowlarr.container"; }   # (the one place it is named)
 prowlarr_key() {   # → the key, made in secrets.sh the first time (or if it is not valid)
@@ -1371,24 +1426,38 @@ prowlarr_up() {
   ((was)) || as_user systemctl --user stop --no-block prowlarr.service || true
 }
 
-# torrra itself: Python 3.13 (libtorrent has wheels only up to 3.13), its command wrapped
-# by kawa-torrra, and its settings: Prowlarr as the indexer, best-seeded results first,
+# torrra itself: uv's own Python 3.13 (libtorrent has wheels only up to 3.13; uv fetches it —
+# Fedora's python3 stays the desktop's), its command wrapped by kawa-torrra, and its settings: Prowlarr as the indexer, best-seeded results first,
 # downloads in ~/Downloads, the terminal's own colours — and no key in them
+# torrra_from_pipx — an earlier setup's torrra (pipx's venv, pipx's command) taken out: uv
+# installs it now (pipx and Fedora's python3.13 have left the manifest)
+torrra_from_pipx() {
+  local pd=$TARGET_HOME/.local/share/pipx
+  [[ -d $pd/venvs/torrra || -L $pd/bin/torrra ]] || return 0
+  log "torrra: pipx's install taken out — uv installs it now"
+  as_user rm -rf -- "$pd/venvs/torrra" "$pd/bin/torrra"
+  as_user rmdir -- "$pd/venvs" "$pd/bin" "$pd/shared" "$pd" 2>/dev/null || true
+}
 torrra_up() {
   local py=$TARGET_HOME/$TORRRA_VENV/bin/python old=$TARGET_HOME/.local/bin/torrra
-  # (torrra.app: the whole program loads — Textual, Rich and httpx with it, not only libtorrent)
-  local probe='import sys, importlib.metadata as m, torrra, libtorrent, torrra.__main__, torrra.app; sys.exit(m.version("torrra") != sys.argv[1])'
-  if ! as_user "$py" -I -c "$probe" "$TORRRA_VERSION" 2>/dev/null; then
+  # (torrra.app: the whole program loads — Textual, Rich and httpx with it, not only libtorrent;
+  # and every library at its pin: a list that moved — Textual for its theme — installs again)
+  local pins=$REPO_DIR/system/torrra-constraints.txt
+  local probe='import sys, importlib.metadata as m, torrra, libtorrent, torrra.__main__, torrra.app
+pins = [l.strip().split("==") for l in open(sys.argv[2]) if l.strip() and not l.startswith("#")]
+sys.exit(m.version("torrra") != sys.argv[1] or any(m.version(n) != v for n, v in pins))'
+  torrra_from_pipx
+  if ! as_user "$py" -I -c "$probe" "$TORRRA_VERSION" "$pins" 2>/dev/null; then
     # its libraries at the versions torrra was released with (system/torrra-constraints.txt),
-    # and pipx's own `torrra` command kept in pipx's folder: on your PATH it would run torrra
+    # and uv's own `torrra` command kept in uv's folder: on your PATH it would run torrra
     # without the key — `torrra` is kawa-torrra's
-    retry 3 20 run as_user env PIPX_HOME="$TARGET_HOME/.local/share/pipx" PIPX_BIN_DIR="$TARGET_HOME/.local/share/pipx/bin" \
-      pipx install --force --python python3.13 --pip-args="-c $REPO_DIR/system/torrra-constraints.txt" "torrra==$TORRRA_VERSION" \
+    retry 3 20 run as_user env UV_TOOL_BIN_DIR="$TARGET_HOME/$TORRRA_BIN" \
+      uv tool install --force --python 3.13 --constraints "$pins" "torrra==$TORRRA_VERSION" \
       || die "torrra did not install"
   fi
-  as_user "$py" -I -c "$probe" "$TORRRA_VERSION" || die "torrra $TORRRA_VERSION is installed but does not load (libtorrent, or a library under it)"
-  # pipx's `torrra` an older setup left in ~/.local/bin (a link into its venv): gone
-  if [[ -L $old && $(readlink -- "$old") == */pipx/venvs/torrra/* ]]; then as_user rm -f -- "$old"; fi
+  as_user "$py" -I -c "$probe" "$TORRRA_VERSION" "$pins" || die "torrra $TORRRA_VERSION is installed but does not load (libtorrent, or a library under it)"
+  # a `torrra` an older setup left in ~/.local/bin (a link into pipx's or uv's folder): gone
+  if [[ -L $old && $(readlink -- "$old") == */@(pipx/venvs|uv/tools)/torrra/* ]]; then as_user rm -f -- "$old"; fi
   install -m 0755 "$REPO_DIR/system/kawa-torrra" /usr/local/bin/kawa-torrra
   install -m 0644 "$REPO_DIR/system/kawa-torrra.profile.sh" /etc/profile.d/kawa-torrra.sh
   restorecon /usr/local/bin/kawa-torrra /etc/profile.d/kawa-torrra.sh
@@ -1467,6 +1536,105 @@ TimeoutStopSec=30s
 EOF
   systemctl daemon-reload
 }
+# ── the pace of a start and of a shut down ───────────────────────────────────
+# From the power button to the login screen nothing waits that need not, and a shut down
+# never stands waiting for a service that hangs (fedokawaii-report: BOOT-40…45, SHUT-01…04,
+# each over the last ten starts):
+# · no wait for the network: NetworkManager-wait-online holds network-online.target until a
+#   connection is up (up to a minute) for whatever orders itself after it — here nothing
+#   must (no network disk; Prowlarr does without, its quadlet). Disabled, not masked: a unit
+#   that wants the target still has it at once (BOOT-43 names what wants it)
+# · the makecache timer is masked already (s_dnf); abrt is never installed (Fedora Server
+#   brings none, and the manifest adds none); udev settle runs only for what asks for it
+#   (multipath, LVM: none here — BOOT-43 says if it ran); dracut's images stay Fedora's
+#   host-only ones (this machine's drivers only: amdgpu stays in, the splash draws with it)
+# · a service has 15 s to stop (systemd's default is 90 s: a hung one held every shut down a
+#   minute and a half), one of yours 10 s — Prowlarr's container 20 s (podman's own 10 s,
+#   then its removal), Steam 25 s (kawa-steam's scope: its cloud saves); your whole user
+#   manager 30 s (user_stop). Steam's guard (a delay lock, logind's 25 s) runs before any of it
+# · Btrfs mounted noatime: a read writes nothing (relatime still writes a file's first read
+#   of a day — on Btrfs a metadata copy, which also makes every snapshot grow apart)
+s_pace() {
+  local u=NetworkManager-wait-online.service
+  if systemctl cat "$u" >/dev/null 2>&1 && [[ $(systemctl is-enabled "$u" 2>/dev/null) == enabled ]]; then
+    run systemctl disable "$u"
+  fi
+  write_file /etc/systemd/system.conf.d/90-fedokawaii.conf <<'EOF'
+# Fedokawaii — a system service has 15 s to stop at a shut down (systemd's default: 90 s), then
+# it is ended; one that needs more says so itself (TimeoutStopSec=). From the next start
+[Manager]
+DefaultTimeoutStopSec=15s
+EOF
+  write_file /etc/systemd/user.conf.d/90-fedokawaii.conf <<'EOF'
+# Fedokawaii — a service of yours has 10 s to stop (Prowlarr 20 s, Steam 25 s: their own); the
+# whole user manager 30 s (user@.service.d/fedokawaii.conf). From the next start
+[Manager]
+DefaultTimeoutStopSec=10s
+EOF
+  fstab_noatime
+  systemctl daemon-reload
+}
+# fstab_noatime — every Btrfs line of /etc/fstab with noatime (lib/pace.sh: pace_fstab), checked
+# by findmnt before it goes in; each such mount switched now as well (a remount: nothing stops)
+fstab_noatime() {
+  local new mp
+  new=$(pace_fstab </etc/fstab) || return 1
+  [[ $new == "$(cat /etc/fstab)" ]] && return 0
+  findmnt --verify --tab-file <(printf '%s\n' "$new") >/dev/null 2>&1 \
+    || { log "fstab with noatime does not verify (findmnt --verify) — /etc/fstab left as it is"; return 1; }
+  printf '%s\n' "$new" | write_file /etc/fstab 0644
+  log "fstab: the Btrfs mounts noatime (a read writes nothing)"
+  for mp in $(awk '!/^[[:space:]]*#/ && $3 == "btrfs" { print $2 }' /etc/fstab); do
+    [[ $(findmnt -n -o OPTIONS --target "$mp" 2>/dev/null) == *noatime* ]] && continue
+    mount -o remount,noatime "$mp" 2>/dev/null || log "$mp takes noatime at the next start (it could not be switched now)"
+  done
+}
+
+# ── a clean system and home ──────────────────────────────────────────────────
+# What the desktop leaves around is kept small and in its place (fedokawaii-report: CLEAN-…):
+# · where programs keep their files: /etc/profile.d/fedokawaii-home.sh (the XDG folders, and
+#   CARGO_HOME, the history files… — install_start_dwl puts it in too, with the session that
+#   reads it); what an older version left in the old places is moved now (kawa-tidy --move:
+#   before rustup, npm or uv next install anything)
+# · the journal at most 500 MB (some fifty starts: the report compares the last ten), the crash
+#   dumps at most 1 GB, none larger than 1 GB kept (a game's would take minutes to compress as
+#   it closes) — named 40-: a file of your own (the handbook's 50-size.conf) comes after, and wins
+# · the standard folders: only those the desktop uses (user_dirs)
+# Your home's caches and leftovers: kawa-tidy, weekly (its timer: theme.sh and the session)
+s_clean() {
+  install_home_env
+  write_file /etc/systemd/journald.conf.d/40-fedokawaii.conf <<'EOF'
+# Fedokawaii — the journal at most 500 MB on disk (about fifty starts). From the next start;
+# a file of your own here with a later name (50-size.conf) wins
+[Journal]
+SystemMaxUse=500M
+EOF
+  write_file /etc/systemd/coredump.conf.d/40-fedokawaii.conf <<'EOF'
+# Fedokawaii — crash dumps at most 1 GB in all; one over 1 GB is noted in the journal, not kept
+# (compressing a game's many-GB dump would hold the CPU for minutes as it closes)
+[Coredump]
+MaxUse=1G
+ExternalSizeMax=1G
+ProcessSizeMax=1G
+EOF
+  run journalctl --vacuum-size=500M
+  user_dirs
+  run as_user bash "$REPO_DIR/bin/kawa-tidy" --move
+}
+install_home_env() { install -D -m 0644 "$REPO_DIR/system/fedokawaii-home.sh" /etc/profile.d/fedokawaii-home.sh; }
+# user_dirs — the standard folders the desktop uses (Documents, Downloads, Music, Pictures,
+# Videos: xdg-user-dirs). Desktop, Public and Templates are set to your home itself, the
+# spec's "none", so no program makes them again; kawa-tidy takes one away while it is empty
+# (one with something in it is yours: it stays, and keeps its name)
+user_dirs() {
+  local e d
+  for e in DESKTOP:Desktop PUBLICSHARE:Public TEMPLATES:Templates; do
+    d=$TARGET_HOME/${e#*:}
+    [[ -d $d && -n $(ls -A -- "$d" 2>/dev/null) ]] && continue
+    run as_user xdg-user-dirs-update --set "${e%%:*}" "$TARGET_HOME"
+  done
+  run as_user xdg-user-dirs-update
+}
 OPEN_PORTS=(6881/tcp 6881/udp "$LOCALSEND_PORT/tcp" "$LOCALSEND_PORT/udp")
 open_ports() {   # torrra's port and LocalSend's, open in the firewall (when firewalld runs: otherwise said)
   local p
@@ -1491,6 +1659,38 @@ s_lazyvim() {
   run as_user timeout 900 nvim --headless '+Lazy! sync' +qa
 }
 
+# s_dev — Python and Rust to learn with (handbook §43), yours, in your home: uv's newest
+# CPython (python3.14 in ~/.local/bin, beside Fedora's python3, which the desktop's own
+# scripts keep; packages with uv pip, projects with uv init / uv run), and rustup's stable
+# Rust with rust-analyzer, clippy and rustfmt (~/.local/share/cargo/bin — CARGO_HOME: on the
+# session's PATH and the shell's). Then neovim's servers and debuggers for both (Mason: basedpyright, ruff, debugpy,
+# codelldb — rust-analyzer is rustup's). Update moves each of them on; repair adds what is missing.
+s_dev() {
+  local rc=0
+  run as_user uv python install --quiet || rc=1
+  if [[ -x $TARGET_HOME/.local/share/cargo/bin/rustup ]]; then run as_user "$TARGET_HOME/.local/share/cargo/bin/rustup" update || rc=1
+  else run as_user rustup-init -y --no-modify-path --default-toolchain stable --profile minimal \
+         -c rust-analyzer,clippy,rustfmt || rc=1; fi   # (as you: CARGO_HOME and RUSTUP_HOME are as_user's, ~/.local/share)
+  dev_mason || rc=1
+  return "$rc"
+}
+dev_mason() {   # neovim's Python and Rust tools (Mason loaded first — LazyVim loads it on demand —
+                # then :MasonInstall, which waits when headless), and the two languages' parsers
+  [[ -f $TARGET_HOME/.config/nvim/init.lua ]] || return 0
+  run as_user env PATH="$TARGET_HOME/.local/share/cargo/bin:$TARGET_HOME/.local/bin:$PATH" timeout 900 \
+    nvim --headless '+Lazy! load mason.nvim' '+MasonInstall basedpyright ruff debugpy codelldb' \
+      '+Lazy! load nvim-treesitter' '+lua require("nvim-treesitter").install({"python","rust","ron","toml","markdown","markdown_inline","ninja","rst"}):wait(600000)' +qa
+}
+dev_update() {   # update: the CPython uv installed to its newest release, Rust's stable, Mason's tools
+  local rc=0
+  run as_user uv python upgrade --quiet || rc=1
+  if [[ -x $TARGET_HOME/.local/share/cargo/bin/rustup ]]; then run as_user "$TARGET_HOME/.local/share/cargo/bin/rustup" update || rc=1
+  else s_dev || rc=1; fi
+  [[ -f $TARGET_HOME/.config/nvim/init.lua ]] && { run as_user env PATH="$TARGET_HOME/.local/share/cargo/bin:$TARGET_HOME/.local/bin:$PATH" \
+    timeout 900 nvim --headless '+Lazy! load mason.nvim' '+MasonUpdate' '+MasonInstall basedpyright ruff debugpy codelldb' +qa || rc=1; }
+  return "$rc"
+}
+
 s_gaming() {
   [[ $STEAM == yes ]] || return 0
   # Steam needs 32-bit Mesa: Fedora's Vulkan driver, named, so that no other build of it is
@@ -1499,16 +1699,65 @@ s_gaming() {
   local x=mesa-va-drivers-freeworld.i686
   dnf_install mesa-vulkan-drivers.i686
   if [[ $(cat "$STATE_DIR/gpu" 2>/dev/null) == amd ]]; then
-    if waiting rpmfusion | grep -qx "${x%.i686}"; then wait_add rpmfusion "$x"   # (its 64-bit one waits: so does it)
+    if grep -qx "${x%.i686}" < <(waiting rpmfusion); then wait_add rpmfusion "$x"   # (its 64-bit one waits: so does it)
     else rf_need "$x"; fi
   fi
   dnf_install "${PKG_GAMING[@]}"
   modprobe ntsync 2>/dev/null || true             # now too, not only from the next boot on
-  usermod -aG gamemode "$TARGET_USER"             # gamemode's CPU/GPU boosts are for this group
+  game_mode                                       # game mode's profile, rights and priority
   # GE-Proton comes from GitHub: down, or changed in a way this cannot follow, it must not
   # stop the build — Steam has its own Proton meanwhile, and update tries again
   contained install_ge_proton
   ((CONTAINED_RC == 0)) || log "GE-Proton is not installed yet (why: above, or $LOG_FILE) — Steam's own Proton works meanwhile; update tries again"
+}
+
+# game_mode — game mode (kawa-game: a Steam game seen by the bar's watch, or `kawa-game run`):
+#   · the tuned profile fedokawaii-game — the desktop's own, with the AMD card at its full
+#     clocks (by its PCI address: card numbers can move; written again by repair). tuned is
+#     the one owner of the CPU and the card's level: kawa-game only switches profiles, and
+#     tuned puts the card's level back when it leaves the profile
+#   · the polkit rule letting you (and only you) switch between the two profiles, stop and
+#     start the background jobs' timers and freeze the report (kawa-game's TIMERS, REPORT)
+#   · a game may run at a higher priority than your other programs: nice down to -5
+game_mode() {
+  local pci gpu=""
+  if pci=$(hw_discrete_amd_pci); then
+    gpu="
+[sysfs]
+# the AMD card at its full clocks while a game runs (put back by tuned when the profile changes)
+/sys/bus/pci/devices/$pci/power_dpm_force_performance_level=high"
+  fi
+  write_file /etc/tuned/profiles/fedokawaii-game/tuned.conf <<CONF
+# /etc/tuned/profiles/fedokawaii-game/tuned.conf — installed by setup.sh (game_mode): the
+# profile while a game runs (kawa-game switches to it and back). The CPU as the desktop's own
+# profile has it: full performance always.
+[main]
+summary=fedokawaii while a game runs: the desktop's profile, the graphics card at its full clocks
+include=fedokawaii
+$gpu
+CONF
+  write_file /etc/polkit-1/rules.d/60-fedokawaii-game.rules <<RULES
+// installed by setup.sh (game_mode) — game mode's rights (kawa-game), $TARGET_USER's alone
+polkit.addRule(function (action, subject) {
+  if (subject.user != "$TARGET_USER") return polkit.Result.NOT_HANDLED;
+  // tuned's profile: kawa-game switches between the desktop's and the game's (tuned: the CPU's
+  // and the card's one owner)
+  if (action.id == "com.redhat.tuned.switch_profile") return polkit.Result.YES;
+  // the background jobs held back while a game runs (freeze asks "stop", thaw "start")
+  var held = ["snapper-timeline.timer", "snapper-cleanup.timer", "fedokawaii-scrub.timer",
+              "fstrim.timer", "fedokawaii-kernels.timer", "fedokawaii-report.service"];
+  if (action.id == "org.freedesktop.systemd1.manage-units" &&
+      held.indexOf(action.lookup("unit")) >= 0 &&
+      (action.lookup("verb") == "start" || action.lookup("verb") == "stop"))
+    return polkit.Result.YES;
+  return polkit.Result.NOT_HANDLED;
+});
+RULES
+  write_file /etc/security/limits.d/60-fedokawaii-game.conf <<LIMITS
+# installed by setup.sh (game_mode): a game may run ahead of your other programs (kawa-game
+# renices it to -5; from the next login)
+$TARGET_USER - nice -5
+LIMITS
 }
 
 s_groups() { usermod -aG video,render "$TARGET_USER"; input_group_out; }   # (subuids: s_torrents)
@@ -1685,6 +1934,40 @@ pre_transaction::::/usr/local/sbin/kawa-snap pre ${pid}
 post_transaction::::/usr/local/sbin/kawa-snap post ${pid}
 EOF
   restorecon -R /usr/local/sbin /etc/dnf
+  snap_boot
+}
+# snap_boot — the snapshots in the boot menu (grub-btrfs, handbook §37.5): the newest ten
+# "before" points (dnf's pre, update's, repair's, the baseline — no post, no hourly), each
+# started read-only; the list made again by kawa-snap after each dnf run and snapshot, and
+# after snapper's daily clean-up — no grub-btrfsd daemon watching
+snap_boot() {
+  local t
+  [[ -x /etc/grub.d/41_snapshots-btrfs ]] || { log "grub-btrfs is not installed — no snapshots in the boot menu until it is (update or repair)"; return 0; }
+  t=$(findmnt --fstab -no OPTIONS / 2>/dev/null | tr ',' '\n' | sed -n 's/^subvol=\/\{0,1\}//p' | sed -n 1p)
+  t=${t:-root}
+  write_file /etc/default/grub-btrfs/config <<EOF
+# installed by setup.sh — the boot menu's snapshots (grub-btrfs; handbook §37.5)
+GRUB_BTRFS_SUBMENUNAME="snapshots: the system as it was"
+GRUB_BTRFS_TITLE_FORMAT=("date" "description")
+GRUB_BTRFS_LIMIT="10"
+GRUB_BTRFS_SHOW_SNAPSHOTS_FOUND="false"
+GRUB_BTRFS_SHOW_TOTAL_SNAPSHOTS_FOUND="false"
+GRUB_BTRFS_IGNORE_SPECIFIC_PATH=("$t" "$t.old" "$t.new" "$t.swap")
+GRUB_BTRFS_IGNORE_PREFIX_PATH=("var/lib/containers" "$t/var/lib/containers")
+GRUB_BTRFS_IGNORE_SNAPSHOT_TYPE=("post")
+GRUB_BTRFS_IGNORE_SNAPSHOT_DESCRIPTION=("timeline")
+GRUB_BTRFS_GRUB_DIRNAME="/boot/grub2"
+GRUB_BTRFS_MKCONFIG=/usr/sbin/grub2-mkconfig
+GRUB_BTRFS_SCRIPT_CHECK=grub2-script-check
+EOF
+  write_file /etc/systemd/system/snapper-cleanup.service.d/fedokawaii.conf <<'EOF'
+# installed by setup.sh — the boot menu's snapshots listed again after the clean-up
+[Service]
+ExecStartPost=-/usr/local/sbin/kawa-snap boot
+EOF
+  systemctl daemon-reload
+  systemctl disable --now grub-btrfsd.service >/dev/null 2>&1 || true   # (kawa-snap does its job)
+  run /usr/local/sbin/kawa-snap boot || log "the boot menu's snapshots could not be listed (the line above says why)"
 }
 
 s_finalize() {
@@ -1705,7 +1988,9 @@ s_finalize() {
   dnf_unneeded_out || true
   clean_caches || true
   snap_hooks
+  guard_hooks                                      # (lib/guard.sh: every dnf transaction checked, and followed up)
   run snapper -c root create -d "fedokawaii baseline"     # no cleanup algorithm: kept until you delete it
+  /usr/local/sbin/kawa-snap boot >/dev/null 2>&1 || true  # (the baseline in the boot menu's snapshots)
   record setup-done "$(date +%s)"                  # (the menu's title: "set up 17 Oct")
   record_snapshots                                 # (the menu's count: the baseline included)
   # the phase, then the resume unit, go last: should anything above fail, the next start
@@ -1750,7 +2035,7 @@ clone_done() {
   [[ -n $d && -d $d && ! -L $d && $d == "$TARGET_HOME"/?* && $d != "$TOOLKIT" ]] || return 0
   [[ -f $d/setup.sh && -f $d/fedokawaii.sh && -f $d/lib/manifest.sh ]] || return 0
   case ${d#"$TARGET_HOME"/} in
-    Desktop|Documents|Downloads|Music|Pictures|Public|Templates|Videos|repos|Drives)
+    Documents|Downloads|Music|Pictures|Videos|Books|Notes|repos|Drives)
       log "${d/#$TARGET_HOME/\~} kept: it is one of your standard folders — the project's files in it are yours to tidy"; return 0 ;;
   esac
   if mountpoint -q -- "$d" || [[ -n $(find "$d" -mindepth 1 -xdev -type d -exec mountpoint -q {} \; -print -quit 2>/dev/null) ]]; then
@@ -1759,8 +2044,18 @@ clone_done() {
   if [[ $d == "$TARGET_HOME/repos/fedokawaii" || -f $d/.git/fedokawaii-conf-base ]]; then
     log "${d/#$TARGET_HOME/\~} kept: it is your working copy (fedokawaii copy)"; return 0
   fi
+  # (moved, another worktree of it would lose its way: kept where it is)
   if [[ -e $d/.git ]] && (($(as_user git -C "$d" worktree list 2>/dev/null | wc -l) > 1)); then
     log "${d/#$TARGET_HOME/\~} kept: git has other worktrees of it"; return 0
+  fi
+  # a clone of GitHub's repository (git knows its origin) becomes ~/repos/fedokawaii — the one
+  # clone fedokawaii pull keeps current, never cloned again by hand (fedokawaii --adopt, as you:
+  # an older working copy there packed first; a token in its address moved to secrets.sh; on a
+  # terminal, the token asked once). ~/repos/fedokawaii a clone already: this one goes, below
+  if [[ -d $d/.git && ! -L $d/.git ]] && as_user git -C "$d" remote get-url origin >/dev/null 2>&1 \
+     && as_user /usr/local/bin/fedokawaii --adopt "$d"; then
+    [[ $REPO_DIR != "$d" ]] || REPO_DIR=$TOOLKIT
+    return 0
   fi
   # what stands in it: the project's own entries (PROJECT_TOP, lib/common.sh), and anything else
   local -A top=()
@@ -1815,8 +2110,9 @@ clone_done() {
     as_user rm -f -- "$a" && log "${a/#$TARGET_HOME/\~} removed: the download it came from"
   done
   # the folder it stood in, now empty: gone too — never your home, a hidden one, or one of
-  # the standard folders (Downloads, Documents…, ~/repos, ~/Drives)
-  case ${parent##*/} in Desktop|Documents|Downloads|Music|Pictures|Public|Templates|Videos|repos|Drives|.*) return 0 ;; esac
+  # the desktop's standard folders (Downloads, Documents…, ~/repos, ~/Drives — never Desktop,
+  # Public or Templates: none on this desktop, user_dirs)
+  case ${parent##*/} in Documents|Downloads|Music|Pictures|Videos|Books|Notes|repos|Drives|.*) return 0 ;; esac
   if [[ $parent != "$TARGET_HOME" && -d $parent && ! -L $parent && -z $(ls -A -- "$parent") ]]; then
     as_user rmdir -- "$parent" && log "${parent/#$TARGET_HOME/\~} removed: empty once it was gone"
   fi
@@ -1852,6 +2148,8 @@ phase3() {
   step "3.02 dwl $DWL_TAG (pinned commit)"             s_dwl
   step "3.03 login: greetd + kawa-greet + SELinux"        s_session
   step "3.04 desktop stack"                            s_desktop
+  step "3.04b the pace of a start and a shut down"      s_pace
+  step "3.04c a clean system and home"                 s_clean
   step "3.05 fonts, icons, toolkit themes"             s_look
   step "3.06 applications"                             s_apps
   step "3.07 upstream binaries (checksummed)"          s_upstream
@@ -1860,6 +2158,7 @@ phase3() {
   step "3.07e ble.sh ${BLESH_COMMIT:0:7} (pinned commit: the shell's typing)" s_blesh
   step "3.08 Prowlarr + torrra (wired together)"       s_torrents
   step "3.09 LazyVim + plugins"                        s_lazyvim
+  step "3.09b Python (uv) and Rust (rustup) to learn with" s_dev
   step "3.10 Steam + GE-Proton"                        s_gaming
   step "3.11 groups"                                   s_groups
   step "3.12 theme (only if chosen)"                   s_theme
@@ -1868,6 +2167,7 @@ phase3() {
   step "3.14 enable login, snapshots, baseline"        s_finalize
   bash "$REPO_DIR/verify.sh" || die "final verification failed — see above"
   clone_done || true
+  run_summary "phase 3 of 3 done — Fedokawaii is built"
   hdr "Fedokawaii is built — rebooting into the login screen in 15 s"
   (( NO_REBOOT )) && exit 0
   sleep 15; systemctl reboot
@@ -1914,7 +2214,7 @@ dnf_detached() {   # dnf_detached ARG… — dnf ARG…, detached from this sess
   else _out "${C_DIM}$(_ts) \$ dnf $*  (as $unit)${C_RESET}"; fi
   journalctl -f -n 0 -o cat -u "$unit.service" 2>/dev/null 9>&- &
   FOLLOWER=$!
-  systemd-run --quiet --unit="$unit" --service-type=exec --wait --collect \
+  systemd-run --quiet --unit="$unit" --service-type=exec --wait --collect -p TimeoutStopSec=10min \
     -p StandardOutput=journal -p StandardError=journal -p SyslogIdentifier=fedokawaii-dnf \
     -E LC_ALL=C.UTF-8 /usr/bin/dnf "$@" 9>&- && rc=0 || rc=$?
   sleep 1; kill "$FOLLOWER" 2>/dev/null || true; wait "$FOLLOWER" 2>/dev/null || true; FOLLOWER=""
@@ -1968,6 +2268,7 @@ snapshot_before() {   # snapshot_before WHAT [important] — a numbered snapshot
     die "the snapshot before $1 could not be taken — nothing changed (sudo snapper -c root list; fedokawaii repair)"
   fi
   ok "snapshot $n: before $1"
+  /usr/local/sbin/kawa-snap boot >/dev/null 2>&1 || true   # (in the boot menu at once)
 }
 
 # the manifest kept whole, one way for update and repair: what is missing installed (a
@@ -1990,7 +2291,7 @@ manifest_sync() {
     for p in "${miss[@]}"; do
       if ! avail=$(dnf -q repoquery --available --whatprovides "$p" 2>/dev/null); then failed+=("$p")   # could not ask (offline?)
       elif [[ -z $avail ]]; then gone+=("$p")                                                            # not in this Fedora at all
-      elif ! retry 3 10 dnf -y install "$p"; then failed+=("$p"); fi                                     # there, but would not install
+      elif ! dnf_install "$p"; then failed+=("$p"); fi                                     # there, but would not install
     done
     if ((${#failed[@]})); then
       log "could not be installed now: $(IFS=' '; echo "${failed[*]}") — the next update or repair tries again"; rc=1
@@ -2139,26 +2440,29 @@ do_update() {
   step_on "the performance profile" s_tuning
   step_on "a quiet boot (the boot's arguments, a blank console)" s_quiet_boot
   step_on "your services' stop at shutdown" user_stop
+  step_on "files of root's in your home, handed back" home_back
   step_on "the manifest" manifest_sync
   step_on "the machine's own drivers and firmware" s_hardware
   step_on "nothing doubled or fighting" r_hygiene
   step_on "dwl's own wlroots" wlr_step
   # the desktop's own tools: pinned, so normally nothing to do
   for e in "${UPSTREAM[@]}"; do step_on "${e%%|*}" install_upstream_bin "$e"; done
+  step_on "the launcher's icons" install_upstream_icons
   step_on "Nerd Fonts" install_nerd_fonts
-  step_on "Fusion Pixel 12" install_fusion
+  step_on "Fusion Pixel 12 and 10" install_fusion
   step_on "Syncplay" install_syncplay
   step_on "LocalSend" install_localsend
   step_on "ble.sh" install_blesh
   step_on "the tools this desktop no longer has" retire_upstream
   if [[ $STEAM == yes ]]; then step_on "GE-Proton" install_ge_proton; fi
   if ! tfc_current; then step_on "the yazi file dialog" build_filechooser; fi
-  # torrra: libtorrent (the part that talks to the network) to its newest; torrra itself
-  # held at TORRRA_VERSION and the rest as installed (only-if-needed, on purpose: an eager
-  # upgrade would move the interface libraries torrra 2.5.1 was written for) — then checked,
-  # and installed again if a newer Python left it unable to start
-  step_on "torrra's libtorrent" run as_user env PIPX_HOME="$TARGET_HOME/.local/share/pipx" pipx runpip torrra install --quiet --upgrade \
-    --upgrade-strategy only-if-needed "torrra==$TORRRA_VERSION" libtorrent
+  # torrra: libtorrent (the part that talks to the network) and certifi to their newest —
+  # uv tool upgrade keeps the install's own pins (torrra==TORRRA_VERSION, the constraints: the
+  # interface libraries torrra was written for stay put); then checked by torrra_up, which
+  # installs it again if it no longer loads — and moves an earlier setup's pipx install to uv
+  if [[ -d $TARGET_HOME/$TORRRA_VENV ]]; then
+    step_on "torrra's libtorrent" run as_user env UV_TOOL_BIN_DIR="$TARGET_HOME/$TORRRA_BIN" uv tool upgrade torrra
+  fi
   step_on "torrra" torrra_up
   # Prowlarr's newest image, fetched now (it runs on demand: its next start uses it); the
   # images it replaced go
@@ -2167,6 +2471,7 @@ do_update() {
   as_user podman image prune -f >/dev/null 2>&1 || true
   clean_caches || true                              # (what this update downloaded and no longer needs)
   step_on "neovim's plugins" nvim_plugins
+  step_on "Python (uv), Rust (rustup) and neovim's tools for them" dev_update
   step_on "one kernel" old_kernels_out desktop                 # (last season's, once this start has proven the newest; this update's new one waits for a restart)
   step_on "the kernels' boot images (dracut)" kernel_images   # (a new kernel whose scriptlet failed)
   # the desktop's configs as this toolkit has them (yours kept in the theme's backup), then
@@ -2175,6 +2480,7 @@ do_update() {
   # or the settings): fetched and checked out whole, so the theme builds the new one
   step_on "dwl at its pinned commit" r_dwl
   step_on "the theme (configs, dwl, helpers)" r_theme
+  step_on "dnf's guard and what it knows (lib/guard.sh)" guard_hooks
   step_on "sound (PipeWire keeps running)" r_sound
   bash "$REPO_DIR/verify.sh" || result=checks
   ((${#UPDATE_STEPS_FAILED[@]} == 0)) || result=partial
@@ -2255,7 +2561,8 @@ libs_ready() {   # libs_ready N [--disablerepo=…] — the libraries our own bu
   local -A users=() core=()
   kept=$(wlr_home)/lib
   for f in /usr/local/bin/dwl "$kept"/*.so* /usr/local/libexec/xdg-desktop-portal-termfilechooser \
-           "$TARGET_HOME"/.local/bin/{kawa-veil,kawa-clipkeep,satty,yazi,ya,lazygit}; do
+           "$TARGET_HOME"/.local/bin/{kawa-clipkeep,kawa-saver,satty,yazi,ya,lazygit} \
+           "$TARGET_HOME"/.local/lib/fedokawaii/kawa-lockmod.so; do
     [[ -f $f ]] || continue
     while read -r so; do
       [[ -e $kept/$so ]] && continue                              # (dwl's own copies)
@@ -2406,6 +2713,7 @@ r_hygiene() {
     run dnf -y autoremove || rc=1
   fi
   lpf_leftovers_out || rc=1                        # (what lpf's removal leaves: its account and folder)
+  easyeffects_note                                 # (EasyEffects retired: your presets said where they stay)
   while IFS= read -r u; do
     [[ -n $u ]] || continue
     rm -rf -- "$u" && log "removed what a stopped run left: $u"
@@ -2457,6 +2765,7 @@ do_after_upgrade() {
       step_on "torrra for the new Python" torrra_up
     fi
     step_on "the theme (dwl rebuilt if needed)" r_theme
+    step_on "dnf's guard and what it knows (the new release's libraries)" guard_hooks
     step_on "Prowlarr (Podman may have moved its store)" prowlarr_up
     step_on "a new baseline snapshot" new_baseline "$to"
     ((${#UPDATE_STEPS_FAILED[@]} == 0)) || result=partial
@@ -2507,6 +2816,7 @@ r_system() {     # failed units cleared, the session's own system pieces in plac
   snapper_configs
   snapper_limits
   snap_hooks
+  guard_hooks
   s_scrub
   s_report                         # (the first-start report's unit: an install that lost it runs it next start)
   s_tuning
@@ -2538,7 +2848,7 @@ r_user() {       # the user's session plumbing: linger and its stop, the bus, gr
   loginctl enable-linger "$TARGET_USER"
   user_stop
   s_groups
-  if [[ $STEAM == yes ]]; then usermod -aG gamemode "$TARGET_USER"; fi
+  if [[ $STEAM == yes ]]; then game_mode; fi
   retry 15 2 test -S "/run/user/$TARGET_UID/bus"
   if [[ -e $sec && ! -L $sec ]]; then
     [[ $(stat -c %u "$sec") == "$TARGET_UID" ]] || chown -h "$TARGET_UID:$TARGET_GID" "$sec"
@@ -2552,17 +2862,21 @@ r_user() {       # the user's session plumbing: linger and its stop, the bus, gr
 # your HOME: an older health report wrote ~/Downloads/fedokawaii-report.txt so). podman's
 # storage keeps its containers' own ids; nothing outside your home, no link followed: find
 # walks it itself, and -execdir changes each file from its own folder
+# (~/Downloads and ~/.cache may be Btrfs subvolumes of their own, where -xdev stops: each is
+# walked too — verify's own starts; the report it once missed was ~/Downloads')
 home_back() {
-  local n
-  n=$(find "$TARGET_HOME" -xdev -path "$TARGET_HOME/.local/share/containers/storage" -prune -o -user 0 -print 2>/dev/null | grep -c .) || true
+  local n d starts=("$TARGET_HOME")
+  for d in .cache Downloads; do [[ -d $TARGET_HOME/$d && ! -L $TARGET_HOME/$d ]] && starts+=("$TARGET_HOME/$d"); done
+  n=$(find "${starts[@]}" -xdev -path "$TARGET_HOME/.local/share/containers/storage" -prune -o -user 0 -print 2>/dev/null | sort -u | grep -c .) || true
   ((n)) || return 0
-  find "$TARGET_HOME" -xdev -path "$TARGET_HOME/.local/share/containers/storage" -prune -o -user 0 \
+  find "${starts[@]}" -xdev -path "$TARGET_HOME/.local/share/containers/storage" -prune -o -user 0 \
     -execdir chown -h "$TARGET_UID:$TARGET_GID" -- {} + 2>/dev/null || true
   log "your home: $n file(s) of root's handed back to you"
 }
 r_upstream() {   # release binaries and fonts present (each is a no-op when current) — each
   local e rc=0   # tried even when one before it failed
   for e in "${UPSTREAM[@]}"; do install_upstream_bin "$e" || rc=1; done
+  install_upstream_icons || rc=1
   retire_upstream || rc=1
   install_nerd_fonts || rc=1
   install_fusion || rc=1
@@ -2576,13 +2890,15 @@ r_upstream() {   # release binaries and fonts present (each is a no-op when curr
 # pinned commit when it is gone or no longer starts (the rescue screen sends you here)
 r_dwl() {
   local f
-  wlr_keep || log "no copy of wlroots $DWL_WLROOTS, and this Fedora no longer ships it — dwl cannot be rebuilt here"
+  # (lib/guard.sh: kept once; taken again from Fedora's rebuild when a library under it changed)
+  wlr_sound || log "no sound copy of wlroots $DWL_WLROOTS, and this Fedora no longer ships it — dwl cannot be rebuilt here"
   for f in "$(wlr_home)"/lib/*.so*; do      # (dwl's own: a rebuild below links what is there now)
     if [[ -f $f && ! -L $f ]]; then libs_for "$f" || true; fi
   done
+  # (it links, and it starts: an ABI change behind an unchanged library name shows only there)
   if [[ ! -x /usr/local/bin/dwl || ! -d $TARGET_HOME/.local/src/dwl/.git ]] \
      || [[ $(as_user git -C "$TARGET_HOME/.local/src/dwl" rev-parse HEAD 2>/dev/null) != "$DWL_COMMIT" ]] \
-     || [[ $(as_user ldd /usr/local/bin/dwl 2>/dev/null) == *'not found'* ]]; then
+     || [[ $(as_user ldd /usr/local/bin/dwl 2>/dev/null) == *'not found'* ]] || ! dwl_starts; then
     rm -f "$STATE_DIR/dwl.sha256"; s_dwl          # (theme.sh then builds it with src/dwl/config.h)
   fi
   return 0
@@ -2632,6 +2948,10 @@ r_nvim() {   # LazyVim's plugins: the missing ones installed, at the lockfile's 
   [[ -f $TARGET_HOME/.config/nvim/init.lua ]] || return 0
   run as_user timeout 900 nvim --headless '+Lazy! install' +qa
 }
+r_dev() {   # what s_dev puts in place, added when missing (nothing moved on: update's job)
+  local py; py=$(as_user uv python find --managed-python 2>/dev/null) || py=""
+  if [[ -z $py || ! -x $TARGET_HOME/.local/share/cargo/bin/rust-analyzer ]] || ! as_user test -x "$TARGET_HOME/.local/share/nvim/mason/bin/basedpyright"; then s_dev; fi
+}
 r_filechooser() { tfc_current || build_filechooser; }   # the yazi file dialog, built if missing or not TFC_TAG
 r_theme() {      # every config back as the repo has it, dwl and the C helpers rebuilt if needed —
   # only where the theme was chosen: a "Setup only" machine keeps its own configs
@@ -2656,6 +2976,8 @@ heal_all() {
   ((net)) && heal "this machine's drivers and firmware" s_hardware
   heal "nothing doubled or fighting (twice-installed, services, the login, unneeded, leftovers)" r_hygiene
   heal "system services, login, snapshots" r_system
+  heal "the pace of a start and a shut down (no network wait, stop limits, noatime)" s_pace
+  heal "a clean system and home (where programs keep their files, journal and dump caps, the standard folders)" s_clean
   heal "the login (greetd and its greeter)" greetd_config
   heal "the boot (success timer, no rescue image, the GPU's kernel argument, a quiet boot) and the editor" r_boot
   heal "services (Bluetooth, TRIM, the GPU tool, i2c-dev)" r_services
@@ -2668,6 +2990,7 @@ heal_all() {
   ((net)) && heal "the yazi file dialog (termfilechooser ${TFC_TAG:-})" r_filechooser
   ((net)) && heal "torrra" torrra_up
   ((net)) && heal "neovim's plugins (any missing)" r_nvim
+  ((net)) && heal "Python and Rust (uv's CPython, rustup's stable, Mason's tools)" r_dev
   heal "Prowlarr (it starts, and takes the key from secrets.sh)" prowlarr_up
   heal "the theme (configs, dwl, helpers, wallpapers)" r_theme
   heal "sound (PipeWire keeps running)" r_sound
@@ -2683,6 +3006,8 @@ do_repair() {
   # offline, it still puts right what needs no network: services, the session, the configs
   retry 6 5 online || { net=0; log "offline: only what needs no network is repaired now — run repair again once online"; }
   toolkit_first          # (run from a copy: everything below is then the toolkit's)
+  # (a snapshot first, as an update takes one — but one that cannot be taken never stops a repair)
+  if snapper_has root; then ( snapshot_before "repair $(date +%F)" ) || log "no snapshot before this repair (the line above says why)"; fi
   before=$(problems)
   log "verify found $before problem(s) — fixing what can be fixed"
   heal_all "$net"
@@ -2704,12 +3029,63 @@ do_repair() {
 }
 
 # ─────────────────────────────────────────────────────────────────────────────
+# trial — the container trial (tools/container-trial.sh, `fedokawaii trial`): every step that
+# installs packages or release files, for real, against Fedora's own repositories, in a
+# throw-away container; what needs a booted machine (the boot menu, kernel arguments, the GPU's
+# kernel argument, the login, services, a restart, the theme, the gate) is named and skipped.
+# A command that would change a booted machine's running system (systemctl enable, timedatectl,
+# hostnamectl, grubby, dracut, modprobe, usermod) is said and passed over. Refused anywhere but
+# in a container: on a real machine it would be half a setup.
+TRIAL_SKIPPED=("1.3 boot menu" "1.5b performance: tuned profile, Wi-Fi" "1.6b a quiet boot" "1.7 inbound SSH"
+  "2.2 GPU kernel argument (its packages are installed below)" "2.2b this machine's firmware" "3.02 dwl build"
+  "3.03 login: greetd (its packages are installed below)" "3.07b-3.09b source builds, Prowlarr, LazyVim, uv/rustup"
+  "3.11 groups" "3.12 theme" "3.12b one kernel" "3.13 verify gate" "3.14 login, snapshots, baseline")
+trial_pass() {   # trial_pass CMD ARG… — a booted machine's command: run, and a failure said, never fatal
+  command "$@" >/dev/null 2>&1 || log "trial: '$*' needs a booted machine — passed over"
+  return 0
+}
+trial_run() {
+  [[ -f /run/.containerenv || -f /.dockerenv || -n ${container:-} ]] \
+    || die "--trial runs only inside the container trial's container (tools/container-trial.sh) — on this machine: sudo bash fedokawaii.sh"
+  systemctl() { case ${1:-} in enable|disable|mask|unmask|start|stop|restart|reload|daemon-reload|reboot|set-default|try-restart|reload-or-restart) trial_pass systemctl "$@" ;; *) command systemctl "$@" ;; esac; }
+  timedatectl() { trial_pass timedatectl "$@"; }
+  hostnamectl() { case ${1:-} in set-*) trial_pass hostnamectl "$@" ;; *) command hostnamectl "$@" 2>/dev/null || true ;; esac; }
+  grubby() { trial_pass grubby "$@"; }
+  dracut() { trial_pass dracut "$@"; }
+  modprobe() { trial_pass modprobe "$@"; }
+  usermod() { trial_pass usermod "$@"; }
+  echo amd | write_file "$STATE_DIR/gpu" 0644
+  wait_for_network; tidy_after_cut                 # (as each phase starts: a run cut off before is tidied)
+  hdr "Fedokawaii container trial · Fedora $FEDORA_VER · $TARGET_USER"
+  step "T1 dnf5 tuning"                   s_dnf
+  step "T2 full system update"            s_update
+  step "T3 base packages"                 s_base
+  step "T4 remove nano, vim, rescue kernel" s_trim
+  step "T5 repositories (RPM Fusion, Brave, Claude Code, COPR)" s_repos
+  step "T6 GPU packages (AMD and common)" trial_gpu
+  step "T7 ffmpeg (RPM Fusion) + media"   s_media
+  step "T8 build dependencies"            s_build
+  step "T9 login packages"                trial_session
+  step "T10 desktop stack"                trial_desktop
+  step "T11 fonts, toolkit themes"        s_look
+  step "T12 applications"                 s_apps
+  step "T13 Steam and its 32-bit Mesa"    s_gaming
+  step "T14 release downloads (checksummed)" s_upstream
+  local s; for s in "${TRIAL_SKIPPED[@]}"; do log "skipped (a booted machine's): $s"; done
+  run_summary "container trial: every package step done"
+}
+trial_gpu() { local p; mapfile -t p < <(not_waiting "${PKG_GPU_amd[@]}"); dnf_install "${PKG_GPU_COMMON[@]}" "${p[@]}"; }
+trial_session() { dnf_install "${PKG_SESSION[@]}"; }
+trial_desktop() { dnf_install "${PKG_DESKTOP[@]}"; }
+
 case $MODE in
+  trial)  trial_run; exit 0 ;;
   reset)  rm -f "$STATE_DIR"/done.* "$STATE_DIR"/phase "$STATE_DIR"/with-theme "$STATE_DIR"/gate-reached; remove_resume_unit
           echo "progress forgotten (the user and baseline records are kept)"; exit 0 ;;
   update) do_update; exit 0 ;;
   upgrade) do_upgrade "${UPGRADE_FLAG:-}"; exit 0 ;;
   after-upgrade) do_after_upgrade; exit 0 ;;
+  after-dnf) do_after_dnf && exit 0; exit 3 ;;
   repair) do_repair; exit 0 ;;
   kernels) [[ $(phase) == 'done' ]] || exit 0; old_kernels_out desktop; exit 0 ;;
   toolkit) [[ $(phase) == 'done' ]] || die "the build is not finished — setup makes the toolkit itself"

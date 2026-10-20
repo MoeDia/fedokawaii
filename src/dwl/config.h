@@ -48,7 +48,7 @@ static const Rule rules[] = {
 	/* app_id                 title       tags mask     isfloating   monitor
 	 * (dwl.patch: "=text" matches that exact app-id or title, plain text any that holds it) */
 	/* popups open floating and centred (dwl.patch), and close when they lose the focus:
-	 * "float" is the app-id kawa-float gives the desktop's own windows (the system menu,
+	 * "float" is the app-id kawa-term --float gives the desktop's own windows (the system menu,
 	 * notes, the clipboard, books, btop …; the small menus are fuzzel's, not windows) */
 	{ "=float",               NULL,       0,            1,           -1 },
 	/* dialogs that float but stay while you answer them: the file dialog (kawa-pick) every
@@ -135,13 +135,14 @@ static const Key keys[] = {
 	{ MODKEY,          XKB_KEY_b,                 spawn,            {.v = browsercmd} },
 	{ MODKEY,          XKB_KEY_e,                 spawn,            {.v = filescmd} },
 	{ MODKEY,          XKB_KEY_x,                 spawn,            SHCMD("kawa-quick") },
-	{ MODKEY,          XKB_KEY_a,                 spawn,            SHCMD("kawa-panel --sound") },
+	{ MODKEY,          XKB_KEY_a,                 spawn,            SHCMD("kawa-quick sound") },
 	{ MODKEY,          XKB_KEY_c,                 spawn,            SHCMD("kawa-calendar") },
 	{ MODKEY,          XKB_KEY_slash,             spawn,            SHCMD("kawa-help") },
 	{ MODKEY,          XKB_KEY_w,                 spawn,            SHCMD("kawa-wallpaper") },
 	{ MODKEY|SHIFT,    XKB_KEY_w,                 spawn,            SHCMD("kawa-theme") },
 	{ MODKEY,          XKB_KEY_v,                 spawn,            SHCMD("kawa-clip") },
 	{ MODKEY,          XKB_KEY_z,                 spawn,            SHCMD("kawa-shrink") },
+	{ MODKEY,          XKB_KEY_d,                 spawn,            SHCMD("kawa-file") },
 	{ MODKEY,          XKB_KEY_r,                 spawn,            SHCMD("kawa-books") },
 	{ MODKEY,          XKB_KEY_n,                 spawn,            SHCMD("kawa-notes") },
 	{ MODKEY,          XKB_KEY_u,                 spawn,            SHCMD("fedokawaii --window") },
@@ -156,18 +157,23 @@ static const Key keys[] = {
 	{ 0,               XKB_KEY_Print,             spawn,            SHCMD("kawa-screenshot region") },
 	{ SHIFT,           XKB_KEY_Print,             spawn,            SHCMD("kawa-screenshot full") },
 	{ MODKEY,          XKB_KEY_Print,             spawn,            SHCMD("kawa-screenshot edit") },
-	/* ── media keys, and monitor brightness over DDC/CI ── */
-	{ 0,               XKB_KEY_XF86AudioRaiseVolume, spawn,         SHCMD("kawa-volume up") },
-	{ 0,               XKB_KEY_XF86AudioLowerVolume, spawn,         SHCMD("kawa-volume down") },
+	{ MODKEY|SHIFT,    XKB_KEY_Print,             spawn,            SHCMD("kawa-screenshot text") },
+	{ MODKEY|SHIFT,    XKB_KEY_r,                 spawn,            SHCMD("kawa-record") },   /* again: stop */
+	/* ── media keys, and monitor brightness over DDC/CI ──
+	 * spawnheld: a held key goes on repeating it (the volume, the brightness, step by step).
+	 * Every other key is one press however long it is held (dwl.patch: keypress()) — so a
+	 * key that opens a window closes it with the next press, however fast */
+	{ 0,               XKB_KEY_XF86AudioRaiseVolume, spawnheld,     SHCMD("kawa-volume up") },
+	{ 0,               XKB_KEY_XF86AudioLowerVolume, spawnheld,     SHCMD("kawa-volume down") },
 	{ 0,               XKB_KEY_XF86AudioMute,     spawn,            SHCMD("kawa-volume mute") },
 	{ 0,               XKB_KEY_XF86AudioMicMute,  spawn,            SHCMD("kawa-volume mic") },
 	{ 0,               XKB_KEY_XF86AudioPlay,     spawn,            SHCMD("kawa-nowplaying play-pause") },
 	{ 0,               XKB_KEY_XF86AudioNext,     spawn,            SHCMD("kawa-nowplaying next") },
 	{ 0,               XKB_KEY_XF86AudioPrev,     spawn,            SHCMD("kawa-nowplaying previous") },
-	{ 0,               XKB_KEY_XF86MonBrightnessUp,   spawn,        SHCMD("kawa-brightness +10") },
-	{ 0,               XKB_KEY_XF86MonBrightnessDown, spawn,        SHCMD("kawa-brightness -10") },
-	{ MODKEY,          XKB_KEY_bracketright,      spawn,            SHCMD("kawa-brightness +10") },
-	{ MODKEY,          XKB_KEY_bracketleft,       spawn,            SHCMD("kawa-brightness -10") },
+	{ 0,               XKB_KEY_XF86MonBrightnessUp,   spawnheld,    SHCMD("kawa-brightness +10") },
+	{ 0,               XKB_KEY_XF86MonBrightnessDown, spawnheld,    SHCMD("kawa-brightness -10") },
+	{ MODKEY,          XKB_KEY_bracketright,      spawnheld,        SHCMD("kawa-brightness +10") },
+	{ MODKEY,          XKB_KEY_bracketleft,       spawnheld,        SHCMD("kawa-brightness -10") },
 	/* ── windows ── */
 	{ MODKEY,          XKB_KEY_q,                 killclient,       {0} },
 	{ MODKEY,          XKB_KEY_j,                 focusstack,       {.i = +1} },

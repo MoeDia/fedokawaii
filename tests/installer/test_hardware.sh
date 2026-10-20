@@ -33,6 +33,23 @@ hw_nogpu;     hw hw_discrete_amd; eq "$RC" 1 "no card"
 hw_nogpu; gpu card0 0x1002 0x6798 amdgpu 2147483648; hw hw_discrete_amd; eq "$RC" 0 "exactly 2 GiB"
 hw_nogpu; gpu card0 0x1002 0x6798 radeon; hw hw_discrete_amd; eq "$RC" 1 "an old card on radeon (no memory figure)"
 hw_nogpu; gpu card0 0x1002 0x6798 amdgpu "n/a"; hw hw_discrete_amd; eq "$RC" 1 "a figure that is not a number"
+case_ "hw_discrete_amd_pci: its PCI address (game mode's clocks) — the AMD card's, not the APU's or Intel's"
+hw_amd;      hw hw_discrete_amd_pci; eq "$RC:$OUT" "0:0000:03:00.0" "the only card"
+hw_igpu_amd; hw hw_discrete_amd_pci; eq "$RC:$OUT" "0:0000:04:00.0" "Intel's card0, the AMD card1"
+hw_nogpu; gpu card0 0x1002 0x164e amdgpu 536870912; gpu card1 0x1002 0x7590 amdgpu 17163091968
+hw hw_discrete_amd_pci; eq "$RC:$OUT" "0:0000:04:00.0" "the CPU's Radeon 610M card0, the RX 9060 XT card1"
+hw_apu;      hw hw_discrete_amd_pci; eq "$RC:$OUT" "1:" "an APU alone: none"
+case_ "hw_btop_gpu: the discrete card's number in btop's order (ROCm SMI: the AMD cards by PCI address, not by card number)"
+hw_nogpu; gpu card0 0x1002 0x7590 amdgpu 17163091968; gpu card1 0x1002 0x164e amdgpu 536870912
+echo PCI_SLOT_NAME=0000:7a:00.0 >"$W/sys/class/drm/card1/device/uevent"
+hw hw_btop_gpu; eq "$OUT" gpu0 "the card at 03:00.0, the CPU's graphics at 7a:00.0: the card first"
+hw_nogpu; gpu card0 0x1002 0x7590 amdgpu 17163091968; gpu card1 0x1002 0x164e amdgpu 536870912
+echo PCI_SLOT_NAME=0000:0e:00.0 >"$W/sys/class/drm/card0/device/uevent"
+echo PCI_SLOT_NAME=0000:03:00.0 >"$W/sys/class/drm/card1/device/uevent"
+hw hw_btop_gpu; eq "$OUT" gpu1 "the CPU's graphics at 03:00.0, the card at 0e:00.0 (card0 all the same): the card second"
+hw_igpu_amd; hw hw_btop_gpu; eq "$OUT" gpu0 "Intel's graphics beside it: not an AMD card, not counted"
+hw_apu;      hw hw_btop_gpu; eq "$RC:$OUT" "0:" "an APU alone: no card's box"
+hw_nogpu;    hw hw_btop_gpu; eq "$RC:$OUT" "0:" "no card"
 
 # ── laptop or desktop ────────────────────────────────────────────────────────
 case_ "hw_is_laptop: a desktop is not; a battery, or the firmware's chassis type, makes one"

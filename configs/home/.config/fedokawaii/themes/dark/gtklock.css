@@ -8,9 +8,24 @@ window { background-color: #0f0e0c; }
    the seal's middle to the right edge */
 #heading { min-height: 23px; }
 #date-label { color: #cfc3a6; margin-left: 6px; }
-#stitch { margin-left: 6px; min-height: 1px; background-image: repeating-linear-gradient(to right, #3d372f 0px, #3d372f 3px, transparent 3px, transparent 5px); }
-#padlock { margin-top: 6px; }
-#clock-label { color: #ece3cc; min-height: 20px; margin-top: 6px; }
+#stitch { margin-left: 6px; min-height: 1px; color: #3d372f; }   /* (drawn whole by the screen itself) */
+/* after the date the weekday in kanji (火曜日); at the heading's end a stamped seal — 錠 the
+   lock, 門 the login — 23 × 23: a 2 px accent_text frame, the kanji in accent_text */
+#weekday { color: #d15b3d; margin-left: 6px; }
+#stamp { color: #d15b3d; border: 2px solid #d15b3d; min-width: 19px;
+  min-height: 19px; margin-left: 6px; padding: 0; }
+/* the face: the padlock (36 × 38), 12 px, the time in the display size — Fusion Pixel at 48 px,
+   ×4 of its grid, no smoothing (/etc/fonts: 60-fedokawaii-pixel.conf) — and AM/PM at 12 px on
+   its baseline (48 px type: baseline 40 from the top; 12 px: 10, so 6 px off the foot) */
+#face { margin-top: 12px; }
+#padlock { margin-right: 12px; }
+#clock-label { color: #ece3cc; font-size: 48px; margin: 0; }
+#ampm { color: #877f6f; margin: 0 0 6px 6px; }
+/* under the time, a line of the season and the hour (秋の夜 · the moon, a seal on paper): its
+   kanji in accent_text, its words muted */
+#verse-line { min-height: 12px; margin-top: 6px; }
+#verse-kanji { color: #d15b3d; }
+#verse { color: #877f6f; }
 /* what went wrong (ちがう · wrong password, Caps Lock · 大文字): a 12 px line in the 18 px
    between the time and the field, empty until then */
 #messages { min-height: 12px; margin: 3px 0; }
@@ -24,11 +39,11 @@ window { background-color: #0f0e0c; }
 #input-field:focus { border-color: #2b2721; }
 #input-field selection { background-color: #d0583a; color: #0f0e0c; }
 #input-label { color: #5f584c; }
-/* the login screen (kawa-greet): a rule — 10 px, the stitch, 10 px — then its two keys, 24 px
+/* both screens (kawa-greet; gtklock through kawa-lockmod): a rule — 10 px, the stitch, 10 px —
+   then three keys, 24 px
    high, 6 px apart: the key fill in a 1 px edge frame; under the pointer the words turn
    accent_text; the keyboard's focus (Tab) fills one vermilion, its words on it */
-#rule { min-height: 21px; background-image: repeating-linear-gradient(to right, #3d372f 0px, #3d372f 3px, transparent 3px, transparent 5px); background-size: 100% 1px;
-  background-position: 0 10px; background-repeat: no-repeat; }
+#rule { min-height: 21px; color: #3d372f; }   /* (its stitch drawn whole on row 10 by the screen) */
 button { min-height: 22px; padding: 0; border: 1px solid #2b2721; border-radius: 0;
   background-color: #1f1c18; background-image: none; }
 button label { color: #cfc3a6; }

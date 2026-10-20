@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # tests/installer/test_theme_parts.sh — theme.sh's parts beyond the files: the C helpers
-# kawa-veil and kawa-clipkeep (built like dwl: one that does not build stops the run), and the
+# kawa-clipkeep and kawa-saver (built like dwl: one that does not build stops the run), and the
 # boot menu and console, the one part that runs contained — when it cannot be made the run goes
 # on and says so, and --check counts it as optional (exit 4) until what it failed on changes
 # (exit 3); once made, the mark goes. Then mpv's scaling on an APU and Steam's overlay with STEAM=no.
@@ -14,27 +14,28 @@ world built
 tconf 's/^WALLPAPER_PACK=.*/WALLPAPER_PACK="no"/'
 keep plain
 
-case_ "kawa-veil does not build: the theme run stops and says so (a part of the desktop, as dwl)"
-fkh rc-make-kawa-veil 2
-theme; [[ $RC != 0 ]] && _ok || _no "exit 0 with kawa-veil not built"
-has "$OUT" "kawa-veil failed to build from src/kawa-veil"
-[[ ! -e $W$H/.local/state/fedokawaii/kawa-veil.failed ]] && _ok || _no "a mark that would pass it as optional"
+case_ "kawa-clipkeep does not build: the theme run stops and says so (a part of the desktop, as dwl)"
+fkh rc-make-kawa-clipkeep 2
+theme; [[ $RC != 0 ]] && _ok || _no "exit 0 with kawa-clipkeep not built"
+has "$OUT" "kawa-clipkeep failed to build from src/kawa-clipkeep"
+[[ ! -e $W$H/.local/state/fedokawaii/kawa-clipkeep.failed ]] && _ok || _no "a mark that would pass it as optional"
 case_ "--check after it: drift, exit 3 — never in sync"
-theme --check; eq "$RC" 3; has "$OUT" "kawa-veil (not built from src/kawa-veil)"
-rm -f "$FKH/rc-make-kawa-veil"
+theme --check; eq "$RC" 3; has "$OUT" "kawa-clipkeep (not built from src/kawa-clipkeep)"
+rm -f "$FKH/rc-make-kawa-clipkeep"
 
 case_ "the boot menu not made (grub2-mkconfig fails): the rest is themed, exit 0, said"
 fkh rc-grub2-mkconfig 1
 theme; eq "$RC" 0
 has "$OUT" "the boot menu and console were not themed"
 [[ -s $W/var/lib/fedokawaii/boot.failed ]] && _ok || _no "no boot.failed mark"
-[[ -f $W$H/.config/foot/foot.ini && -x $W$H/.local/bin/kawa-veil && -x $W$H/.local/bin/kawa-clipkeep ]] && _ok || _no "the rest of the theme was not applied"
+[[ -f $W$H/.config/foot/foot.ini && -x $W$H/.local/bin/kawa-clipkeep ]] && _ok || _no "the rest of the theme was not applied"
+[[ -x $W$H/.local/bin/kawa-saver && -f $W$H/.local/lib/fedokawaii/kawa-lockmod.so ]] && _ok || _no "the screensaver and the lock screen's module were not built"
 eq "$(fk stat -c %U /var/lib/fedokawaii/boot.failed)" root "the boot mark is root's (nothing of yours decides it)"
 
 case_ "--check while nothing it depends on changed: exit 4 — in sync, it listed as not made here"
 theme --check; eq "$RC" 4
 has "$OUT" "✔ theme in sync"; has "$OUT" "! not made here"; has "$OUT" "grub.cfg"
-lacks "$OUT" "kawa-veil" "the helpers are never optional"
+lacks "$OUT" "kawa-clipkeep" "the helpers are never optional"
 case_ "verify takes exit 4 as passed, with a warning (it must not stop setup's gate for ever)"
 fkrun bash "$TK/verify.sh" --pre-finalize
 has "$OUT" "✔ every file in sync with the repo"; has "$OUT" "! "
@@ -163,5 +164,12 @@ eq "$(grep '^Icon=' "$u/kawa-prowlarr.desktop")" "Icon=brave-origin" "Prowlarr's
 theme --check; lacks "$OUT" "com.brave.Origin" "in sync once made"
 rm -f "$u/com.brave.Origin.desktop"
 theme --check; has "$OUT" "com.brave.Origin.desktop" "a missing copy is drift"
+
+case_ "the key that shows the hidden boot menu (and its snapshots): verify fails when 12_menu_auto_hide is gone or GRUB_TIMEOUT_STYLE is set"
+fkrun bash "$TK/verify.sh"; has "$OUT" "✔ Shift (Esc/F8) at power-on shows the boot menu"; has "$OUT" "✔ nothing takes that key away"
+cp "$W/etc/default/grub" "$TMP/grub.keep"; echo 'GRUB_TIMEOUT_STYLE=hidden' >>"$W/etc/default/grub"
+fkrun bash "$TK/verify.sh"; has "$OUT" "✘ nothing takes that key away"; cp "$TMP/grub.keep" "$W/etc/default/grub"
+chmod -x "$W/etc/grub.d/12_menu_auto_hide"
+fkrun bash "$TK/verify.sh"; has "$OUT" "✘ Shift (Esc/F8) at power-on shows the boot menu"; chmod +x "$W/etc/grub.d/12_menu_auto_hide"
 
 done_

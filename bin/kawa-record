@@ -1,0 +1,133 @@
+#!/usr/bin/env bash
+# kawa-record — screen recording (Super+Shift+R): the whole screen or a region, with the
+# desktop's sound or without, encoded on the graphics card (wf-recorder: H.264 through VA-API,
+# the sound AAC) into ~/Videos/Recordings/YYYY-MM-DD_HH-MM-SS.mp4.
+#
+#   kawa-record          not recording: a menu under the bar — whole screen or a region, sound
+#                        or none — then it starts. Recording: it stops (the same key)
+#   kawa-record stop     the recording stopped (a click on the bar's 録 mark)
+#   kawa-record bar      the bar's module (waybar JSON): 録 and the time gone by, vermilion,
+#                        while one runs; nothing (hidden) otherwise
+#   kawa-record run whole|region sound|silent [GEOMETRY|MONITOR]
+#                        the recording itself, in a session of its own (what the menu starts)
+#
+# While it runs the bar is poked once a second (signal 22) to tick the time: no process runs
+# for it otherwise. When it stops, a notice says where the file is (a click opens it) and its
+# path is on the clipboard. The recording's state: $XDG_RUNTIME_DIR/kawa-record ("PID START
+# FILE"); wf-recorder's own words in $XDG_RUNTIME_DIR/kawa-record.log.
+# Exit status: 0 done (or the menu dismissed) · 1 could not (a notice says why) · 2 misuse.
+set -u
+export LC_ALL=C.UTF-8
+case ${1:-} in -h|--help) sed -n '2,/^set -u/{/^set -u/d;s/^# \{0,1\}//;p}' "$0"; exit 0 ;; esac
+RUN=${XDG_RUNTIME_DIR:-}
+[[ -n $RUN && -d $RUN && -w $RUN ]] || { echo "kawa-record: no runtime folder (not logged in to the desktop?)" >&2; exit 1; }
+STATE=$RUN/kawa-record LOG=$RUN/kawa-record.log
+DIR=$HOME/Videos/Recordings
+SIG=22                                             # (the bar's custom/record module)
+
+# the recording that runs: "PID START FILE" of a wf-recorder still alive → PID START FILE
+running() {
+  local p s f a=()
+  read -r p s f 2>/dev/null <"$STATE" || return 1
+  [[ $p =~ ^[1-9][0-9]*$ && $s =~ ^[0-9]+$ ]] || return 1
+  # (its command line: a pid the system has given to another program since is not it)
+  mapfile -d '' -t a 2>/dev/null </proc/"$p"/cmdline
+  [[ ${a[0]##*/} == wf-recorder || ${a[1]:-} == */wf-recorder ]] || return 1
+  printf '%s %s %s\n' "$p" "$s" "$f"
+}
+poke() { kawa-dwlstatus --poke "$SIG" 2>/dev/null || true; }
+clock() {   # clock SECONDS → 00:12 · 59:59 · 1:02:03 (as the timer beside the time counts)
+  if (($1 >= 3600)); then printf '%d:%02d:%02d' $(($1 / 3600)) $(($1 % 3600 / 60)) $(($1 % 60))
+  else printf '%02d:%02d' $(($1 / 60)) $(($1 % 60)); fi
+}
+
+case ${1:-} in
+  bar)
+    if read -r _ s _ < <(running); then
+      printf '{"text":"録 %s","class":"rec"}\n' "$(clock $((EPOCHSECONDS - s)))"
+    else echo '{"text":""}'; fi
+    exit 0 ;;
+  stop)
+    # at once: the recorder signalled, the bar's mark gone; the file is finished in the
+    # background (the run below says where it is when it is); nothing recording: said
+    if read -r p _ < <(running); then
+      kill -INT "$p" 2>/dev/null                   # (wf-recorder ends its file properly on INT)
+      rm -f "$STATE"; poke
+    else
+      # shellcheck source=/dev/null
+      . "$HOME/.config/fedokawaii/icons.sh"
+      notify-send -a desktop -- "$ICON_CAMERA  recording" "nothing is being recorded" 2>/dev/null
+    fi
+    exit 0 ;;
+  run) ;;
+  "") ;;
+  *) echo "usage: kawa-record [stop|bar] (kawa-record --help)" >&2; exit 2 ;;
+esac
+
+# shellcheck source=/dev/null
+. "$HOME/.config/fedokawaii/icons.sh"
+fail() {   # fail WHY — a key press that recorded nothing says why (it has no terminal)
+  notify-send -a desktop -u critical -- "$ICON_CAMERA  recording" "$1" 2>/dev/null
+  echo "kawa-record: $1" >&2; exit 1
+}
+
+if [[ -z ${1:-} ]]; then
+  # the key while one runs: it stops; else the choice, then the recording in a session of its own
+  if running >/dev/null; then exec "$0" stop; fi
+  exec 9>"$RUN/kawa-record.lock"; flock -n 9 || exit 0   # (a held key: one menu)
+  i=$(printf '%s\n' "part	録	record" \
+        "row	$ICON_PICTURE	whole screen		no sound" \
+        "row	$ICON_SPEAKER	whole screen		with sound" \
+        "row	$ICON_TILE	a region		no sound" \
+        "row	$ICON_SPEAKER	a region		with sound" | kawa-menu --drop --index) || exit 0
+  case $i in
+    1) a=(whole silent) ;; 2) a=(whole sound) ;; 3) a=(region silent) ;; 4) a=(region sound) ;; *) exit 0 ;;
+  esac
+  # (asked here, while the key's lock is held, outlined in vermilion as the screenshot's: the
+  # region — or, for the whole screen with more than one monitor on, which one: a click on it)
+  # shellcheck source=/dev/null
+  . "$HOME/.config/fedokawaii/current/colors.sh"
+  pick() { slurp -b '#0f0e0c66' -c "#${C_ACCENT}ff" -s "#${C_ACCENT}22" -w 2 "$@"; }
+  if [[ ${a[0]} == region ]]; then g=$(pick) || exit 0; a+=("$g")
+  elif (($(wlr-randr --json 2>/dev/null | jq '[.[] | select(.enabled)] | length' 2>/dev/null || echo 1) > 1)); then
+    o=$(pick -o -f %o) || exit 0; a+=("$o")
+  fi
+  setsid -f "$0" run "${a[@]}" </dev/null >/dev/null 2>&1 9>&-
+  exit 0
+fi
+
+# ── run: the recording ───────────────────────────────────────────────────────────────────
+[[ ${2:-} == @(whole|region) && ${3:-} == @(sound|silent) ]] || { echo "usage: kawa-record run whole|region sound|silent [GEOMETRY|MONITOR]" >&2; exit 2; }
+[[ $2 == whole && ${4:-} =~ ^[[:alnum:]_.-]*$ || ${4:-} =~ ^-?[0-9]+,-?[0-9]+\ [0-9]+x[0-9]+$ ]] \
+  || { echo "kawa-record: a region is \"X,Y WxH\" (slurp's), a monitor its name" >&2; exit 2; }
+running >/dev/null && exit 0                       # (one at a time)
+command -v wf-recorder >/dev/null || fail "wf-recorder is missing — fedokawaii repair puts it back"
+mkdir -p "$DIR" 2>/dev/null && [[ -w $DIR ]] || fail "${DIR/#"$HOME"/\~} cannot be written to"
+args=(-c h264_vaapi -y)
+[[ $2 == region ]] && args+=(-g "$4")
+[[ $2 == whole && -n ${4:-} ]] && args+=(-o "$4")          # (one monitor of several)
+# the desktop's sound: what plays on the default output (its monitor), not the microphone
+[[ $3 == sound ]] && args+=(--audio=@DEFAULT_MONITOR@)
+file="$DIR/$(date +%Y-%m-%d_%H-%M-%S).mp4"
+args+=(-f "$file")
+start=$EPOCHSECONDS
+wf-recorder "${args[@]}" </dev/null >"$LOG" 2>&1 & pid=$!
+printf '%s %s %s\n' "$pid" "$start" "$file" >"$STATE.$$" && mv -f "$STATE.$$" "$STATE"
+trap 'kill -INT "$pid" 2>/dev/null' TERM HUP INT
+# a second's nap with no process: a read that times out on a fifo of its own
+w=$RUN/kawa-record.nap.$$; mkfifo -m 600 "$w" && exec {nap}<>"$w"; rm -f "$w"
+while kill -0 "$pid" 2>/dev/null; do poke; read -r -t 1 -u "$nap" _; done
+wait "$pid"; rc=$?
+rm -f "$STATE"; poke
+if [[ ! -s $file ]] || ((rc != 0 && rc != 130 && EPOCHSECONDS - start < 3)); then
+  rm -f -- "$file"
+  why=$(grep -v '^\s*$' "$LOG" 2>/dev/null | tail -n1)
+  fail "the recording did not start${why:+: $why}"
+fi
+# shellcheck source=/dev/null
+. "$HOME/.config/fedokawaii/files.sh"              # clip_put
+title="recording saved · its path copied"
+printf '%s' "$file" | clip_put 'text/plain;charset=utf-8' 2>/dev/null || title="recording saved"
+act=$(notify-send -a desktop -A default=open -- "$ICON_CAMERA  $title" "${file/#"$HOME"/\~} · $(clock $((EPOCHSECONDS - start)))" 2>/dev/null) || exit 0
+[[ $act == default ]] && setsid -f xdg-open "$file" >/dev/null 2>&1 </dev/null
+exit 0

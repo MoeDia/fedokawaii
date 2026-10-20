@@ -103,8 +103,8 @@ else pass "$((${#WANT[@]} - ${#ret[@]} - ${#wt[@]})) of ${#WANT[@]} manifest pac
 while IFS= read -r p; do
   [[ -n $p ]] || continue
   case ${p%.i686} in libheif-freeworld) b=libheif ;; mesa-*-freeworld) b=mesa-filesystem ;; *) b="" ;; esac
-  rv=$(dnf -q repoquery --latest-limit=1 --qf '%{version}\n' "${p%.i686}" 2>/dev/null | head -n1)
-  fv=${b:+$(rpm -q --qf '%{version}\n' "$b" 2>/dev/null | head -n1)}
+  rv=$(dnf -q repoquery --latest-limit=1 --qf '%{version}\n' "${p%.i686}" 2>/dev/null | sed -n 1p)
+  fv=${b:+$(rpm -q --qf '%{version}\n' "$b" 2>/dev/null | sed -n 1p)}
   if [[ -z $rv ]]; then warn "$p: RPM Fusion has none for Fedora $VERSION_ID yet" "update or repair adds it when it is out"
   else warn "$p $rv waits for Fedora's $b $rv (this machine has ${fv:-?})" "it installs itself at the update after Fedora's $b reaches $rv"; fi
 done < <(waiting rpmfusion)
@@ -125,7 +125,7 @@ forbid=("${FORBIDDEN_PKGS[@]}") standin=()
 # (on AMD Fedora's own Mesa drivers: never — but while RPM Fusion's waits, Fedora's stands in)
 if [[ $GPU_KIND == amd ]]; then
   for p in "${FORBIDDEN_amd[@]}"; do
-    if waiting rpmfusion | grep -qx "$p-freeworld"; then standin+=("$p"); else forbid+=("$p"); fi
+    if grep -qx "$p-freeworld" < <(waiting rpmfusion); then standin+=("$p"); else forbid+=("$p"); fi
   done
 fi
 q=$(rpm -q "${forbid[@]}" 2>/dev/null || true)          # (one line per name, whichever the answer)
@@ -182,7 +182,7 @@ for r in fedora updates rpmfusion-free rpmfusion-free-updates rpmfusion-nonfree 
   check "repo $r enabled" grep -qx "$r" <<<"$enabled"
 done
 for c in "${COPRS[@]}"; do
-  waiting copr | grep -qxF "$c" && continue        # (no build for this Fedora yet: warned above)
+  grep -qxF "$c" < <(waiting copr) && continue        # (no build for this Fedora yet: warned above)
   check "COPR $c enabled" grep -q "copr.*${c#*/}" <<<"$enabled"
 done
 for pr in brave-origin:brave-browser claude-code:claude-code; do
@@ -207,6 +207,21 @@ TK=/usr/local/lib/fedokawaii
 check "the toolkit: root's own copy, writable by root alone" \
   bash -c 'test -f "$1/setup.sh" && test -z "$(find "$1" \( ! -user root -o \( ! -type l -perm /022 \) \) -print -quit)"' _ "$TK"
 check "the control: fedokawaii is the toolkit's"         cmp -s "$TK/system/fedokawaii" /usr/local/bin/fedokawaii
+# every dnf transaction checked before it runs and followed up after it (lib/guard.sh) —
+# finalize puts the guard in place (after setup's last dnf runs): not looked for before it
+if ((PRE == 0)); then
+check "dnf's guard: before and after every transaction (kawa-dnf-guard, the actions plugin)" \
+  bash -c 'cmp -s "$1/system/kawa-dnf-guard" /usr/local/sbin/kawa-dnf-guard && a=/etc/dnf/libdnf5-plugins/actions.d/fedokawaii-guard.actions \
+           && grep -qx "pre_transaction::::mode=json:/usr/local/sbin/kawa-dnf-guard pre" "$a" && grep -qx "post_transaction::::mode=json:/usr/local/sbin/kawa-dnf-guard post" "$a" \
+           && rpm -q libdnf5-plugin-actions' _ "$REPO_DIR"
+check "dnf's guard knows what our builds load and the manifest (needs, manifest)" \
+  bash -c 'grep -qx "wlroots $1" "$2/needs" && test -s "$2/manifest"' _ "$DWL_WLROOTS" "$STATE_DIR"
+check "the checks after a dnf transaction (fedokawaii-after-dnf.service enabled)" systemctl is-enabled --quiet fedokawaii-after-dnf.service
+fi
+if [[ -f $STATE_DIR/after-dnf ]]; then warn "a dnf transaction not yet followed up" "it runs by itself (fedokawaii-after-dnf.service), or now: fedokawaii repair"
+elif read -r t r _ 2>/dev/null <"$STATE_DIR/last-after-dnf" && [[ ${r:-ok} != ok ]]; then
+  warn "the last dnf transaction left something ($r, $(date -d "@$t" '+%-d %b' 2>/dev/null))" "fedokawaii repair — its log: /var/log/fedokawaii.log"
+fi
 check "the manifest's packages marked as yours (dnf's clean-up never takes them)" \
   bash -c 'u=$(dnf repoquery --userinstalled --qf "%{name}\n" 2>/dev/null) || exit 1
            for p; do n=$p; rpm -q "$p" >/dev/null 2>&1 || n=$(rpm -q --qf "%{NAME}\n" --whatprovides "$p" 2>/dev/null | awk "NR == 1")
@@ -228,6 +243,11 @@ elif [[ -s $STATE_DIR/other-os ]]; then   # (dual boot: setup and Theme leave it
 else
   check "GRUB menu hidden (shows after a failed boot)" bash -c 'l=$(grub2-editenv - list) && grep -qx menu_auto_hide=1 <<<"$l"'
 fi
+# the key that shows a hidden menu (Shift, Esc or F8 as the machine starts: Fedora's
+# 12_menu_auto_hide) — the way to the snapshots in it; GRUB_TIMEOUT_STYLE would take it away
+check "Shift (Esc/F8) at power-on shows the boot menu (12_menu_auto_hide)" test -x /etc/grub.d/12_menu_auto_hide
+check "nothing takes that key away (no GRUB_TIMEOUT_STYLE in /etc/default/grub)" \
+  bash -c '! grep -Eq "^[[:space:]]*(export[[:space:]]+)?GRUB_TIMEOUT_STYLE=" /etc/default/grub'
 check "boot success marked by the desktop, not at boot"  bash -c '[[ $(systemctl --global is-enabled grub-boot-success.timer 2>/dev/null) != enabled ]]'
 mapfile -t kv < <(rpm -q --qf '%{VERSION}-%{RELEASE}.%{ARCH}\n' kernel-core 2>/dev/null | grep -v 'not installed' | sort -V)
 running=$(uname -r)
@@ -250,7 +270,7 @@ for b in "${BOOT_ARGS[@]}"; do   # (setup.sh's s_quiet_boot: the splash, nothing
     bash -c 'a=$(grubby --info=ALL | grep "^args=") && [ -n "$a" ] && ! printf "%s\n" "$a" | grep -vqE "[\" ]$1([\" ]|\$)"' _ "$b"
 done
 # (the ones this start was given: an entry that just gained them shows them from the next)
-quiet_now=1; for b in "${BOOT_ARGS[@]}"; do tr ' ' '\n' </proc/cmdline 2>/dev/null | grep -qxF -- "$b" || quiet_now=0; done
+quiet_now=1; for b in "${BOOT_ARGS[@]}"; do grep -qxF -- "$b" < <(tr ' ' '\n' </proc/cmdline 2>/dev/null) || quiet_now=0; done
 if ((quiet_now)); then pass "a quiet boot, this start too (the boot's arguments active)"
 else info "the boot's arguments are on every entry; this start had not all of them — they show from the next"; fi
 check "a text console shows its cursor at login (/etc/profile.d/fedokawaii-console.sh)" grep -qF '25h' /etc/profile.d/fedokawaii-console.sh
@@ -270,12 +290,12 @@ rnd=""
 for n in /dev/dri/renderD*; do
   [[ $(cat "/sys/class/drm/${n##*/}/device/vendor" 2>/dev/null) == "$want_vendor" ]] && { rnd=$n; break; }
 done
-[[ -n $rnd ]] || rnd=$(compgen -G '/dev/dri/renderD*' | head -n1)
+[[ -n $rnd ]] || rnd=$(compgen -G '/dev/dri/renderD*' | sed -n 1p)
 va=$(vainfo --display drm --device "$rnd" 2>/dev/null)
 # (Fedora's own VA driver leaves H.264 and HEVC out: while RPM Fusion's waits, a warning)
 for p in VAProfileH264High VAProfileHEVCMain; do
   if grep -q "$p" <<<"$va"; then pass "hardware decode: ${p#VAProfile}"
-  elif [[ $GPU_KIND == amd ]] && waiting rpmfusion | grep -qx mesa-va-drivers-freeworld; then
+  elif [[ $GPU_KIND == amd ]] && grep -qx mesa-va-drivers-freeworld < <(waiting rpmfusion); then
     warn "no hardware decode: ${p#VAProfile} yet" "RPM Fusion's VA driver waits for this Fedora's Mesa — such video plays on the CPU meanwhile"
   else fail "hardware decode: ${p#VAProfile}"; fi
 done
@@ -288,7 +308,7 @@ if [[ $GPU_KIND == amd ]]; then
   # btop opens the ROCm SMI library by name — librocm_smi64.so.1.0 is, of the names it tries
   # (btop_collect.cpp), the one Fedora's rocm-smi ships; a new soname would quietly lose it
   # the card (the manifest check above already says whether the package is there)
-  if rpm -ql rocm-smi 2>/dev/null | grep -qx /usr/lib64/librocm_smi64.so.1.0; then pass "ROCm SMI library for btop (librocm_smi64.so.1.0)"
+  if grep -qx /usr/lib64/librocm_smi64.so.1.0 < <(rpm -ql rocm-smi 2>/dev/null); then pass "ROCm SMI library for btop (librocm_smi64.so.1.0)"
   else warn "btop's view of the card" "rocm-smi has no librocm_smi64.so.1.0 — btop finds no GPU until it learns the new name (LACT still shows the card)"; fi
 fi
 enc=$(ffmpeg -hide_banner -encoders 2>/dev/null)
@@ -334,6 +354,18 @@ dwl_patched() { U git -C "$TARGET_HOME/.local/src/dwl" apply --reverse --check -
 check "dwl.patch applied (keys, gaps, frames, centring, layout, the pen, the theme's borders)" dwl_patched
 check "dwl's own wlroots $DWL_WLROOTS kept"             wlr_kept
 check "dwl finds every library (its wlroots: its own)"  U bash -c 'l=$(ldd /usr/local/bin/dwl) && ! grep -q "not found" <<<"$l" && grep -qF "$1/lib/libwlroots" <<<"$l"' _ "$(wlr_home)"
+check "dwl's own wlroots finds every library"           U bash -c 'for f in "$1"/lib/*.so*; do [[ -L $f ]] && continue; l=$(ldd "$f") && ! grep -q "not found" <<<"$l" || exit 1; done' _ "$(wlr_home)"
+# (it starts: headless, in a runtime folder of its own — an ABI change behind an unchanged
+# library name shows only there; lib/guard.sh's dwl_starts, which repair runs, is the same)
+# Once for each dwl, wlroots copy and package set: a pass is recorded (dwl-started: their
+# fingerprint), so setup's two verifies, or a verify right after repair, start it only once
+dwl_key=$( { sha256sum /usr/local/bin/dwl "$(wlr_home)"/lib/*.so* 2>/dev/null; stat -c %Y /usr/lib/sysimage/rpm/rpmdb.sqlite /var/lib/rpm 2>/dev/null; } | sha256sum | cut -c1-64)
+if [[ $(cat "$STATE_DIR/dwl-started" 2>/dev/null) == "$dwl_key" ]]; then pass "dwl starts (headless, once)"
+elif U bash -c 'd=$(mktemp -d) || exit 1; env -i HOME="$HOME" PATH=/usr/bin:/bin XDG_RUNTIME_DIR="$d" WLR_BACKENDS=headless WLR_RENDERER=pixman \
+    WLR_LIBINPUT_NO_DEVICES=1 timeout 20 /usr/local/bin/dwl -s "touch $d/started; sleep 1; kill -TERM \$PPID" >/dev/null 2>&1; r=$?
+    test -e "$d/started"; s=$?; rm -rf "$d"; [ "$r" = 0 ] && [ "$s" = 0 ]' >/dev/null 2>&1; then
+  pass "dwl starts (headless, once)"; printf '%s\n' "$dwl_key" >"$STATE_DIR/dwl-started" 2>/dev/null || true
+else rm -f "$STATE_DIR/dwl-started"; fail "dwl starts (headless, once)" "fedokawaii repair rebuilds it"; fi
 check "session launcher (start-dwl)"                   test -x /usr/local/bin/start-dwl
 check "keyboard layouts $KB_LAYOUTS"                   grep -q "XKB_DEFAULT_LAYOUT=\"$KB_LAYOUTS\"" /usr/local/bin/start-dwl
 check "greetd SELinux module loaded"                   bash -c 'semodule -l | grep -qw greetd'
@@ -372,6 +404,8 @@ for s in "${svcs[@]}"; do
 done
 for s in "${SVC_USER_GLOBAL[@]}"; do check "user unit $s enabled" bash -c "systemctl --global is-enabled $s | grep -qx enabled"; done
 check "tuned profile fedokawaii (always-plugged desktop)" bash -c 'tuned-adm active 2>/dev/null | grep -q fedokawaii'
+check "no LLMNR (names on the network: mDNS only)"   grep -qx 'LLMNR=no' /etc/systemd/resolved.conf.d/90-fedokawaii.conf
+check "zram: half the RAM, zstd (from the next start)" grep -qx 'compression-algorithm = zstd' /etc/systemd/zram-generator.conf
 check "Wi-Fi power saving off"                         test -f /etc/NetworkManager/conf.d/90-fedokawaii.conf
 check "Bluetooth dongle power saving off (btusb)"      grep -qx 'options btusb enable_autosuspend=0' /etc/modprobe.d/fedokawaii-btusb.conf
 # the sound card's codec awake (no click as it wakes): set for every start, and in force now
@@ -387,6 +421,18 @@ check "sleep is suspend only (no hibernation)"           grep -qx 'AllowHibernat
 check "every sleep locked first (the Sleep key is dwl's)"    grep -qx 'HandleSuspendKey=ignore' /etc/systemd/logind.conf.d/90-fedokawaii.conf
 check "shutdown waits 30 s at most for your services"  grep -qx 'TimeoutStopSec=30s' '/etc/systemd/system/user@.service.d/fedokawaii.conf'
 check "a restart waits for Steam to close properly (25 s at most)" grep -qx 'InhibitDelayMaxSec=25' /etc/systemd/logind.conf.d/90-fedokawaii.conf
+# the pace of a start and a shut down, a clean system and home (setup.sh: s_pace, s_clean)
+check "a system service has 15 s to stop, one of yours 10 s" \
+  bash -c "grep -qx 'DefaultTimeoutStopSec=15s' /etc/systemd/system.conf.d/90-fedokawaii.conf && grep -qx 'DefaultTimeoutStopSec=10s' /etc/systemd/user.conf.d/90-fedokawaii.conf"
+check "no wait for the network at a start (NetworkManager-wait-online off)" \
+  bash -c '! systemctl cat NetworkManager-wait-online.service >/dev/null 2>&1 || [[ $(systemctl is-enabled NetworkManager-wait-online.service 2>/dev/null) != enabled ]]'
+check "Btrfs mounted noatime (fstab)"                    bash -c '! awk '\''!/^[[:space:]]*#/ && $3 == "btrfs" && $4 !~ /(^|,)noatime(,|$)/ { bad = 1 } END { exit !bad }'\'' /etc/fstab'
+check "the journal at most 500 MB, crash dumps at most 1 GB" \
+  bash -c "grep -qx 'SystemMaxUse=500M' /etc/systemd/journald.conf.d/40-fedokawaii.conf && grep -qx 'MaxUse=1G' /etc/systemd/coredump.conf.d/40-fedokawaii.conf"
+check "programs keep their files in place (/etc/profile.d/fedokawaii-home.sh)" cmp -s "$REPO_DIR/system/fedokawaii-home.sh" /etc/profile.d/fedokawaii-home.sh
+check "no Desktop, Public or Templates made for nothing (xdg-user-dirs)" \
+  bash -c 'for k in DESKTOP PUBLICSHARE TEMPLATES; do grep -qxE "XDG_${k}_DIR=\"(\\\$HOME/?|${1//./\\.}/?)\"" "$1/.config/user-dirs.dirs" || exit 1; done' _ "$TARGET_HOME"
+check "nothing of an older version in your home, no program's folder in its old place" U bash "$REPO_DIR/bin/kawa-tidy" --check leftovers
 check "secrets.sh private (yours, chmod 600)"          bash -c '[[ ! -e $1 ]] || [[ $(stat -c "%a %U" "$1") == "600 $2" ]]' _ "$TARGET_HOME/.config/fedokawaii/secrets.sh" "$TARGET_USER"
 # torrents: one key, in secrets.sh only; Prowlarr takes it, torrra gets it from kawa-torrra
 # shellcheck disable=SC2016  # expanded by the user's bash, after sourcing the file
@@ -472,7 +518,10 @@ for e in "${UPSTREAM[@]}"; do
     check "$b $tag runs" U timeout 10 "$f" --version
   done
 done
-check "Fusion Pixel 12 $FUSION_TAG (the desktop's font, for every account)" test -s "$FUSION_DIR/fusion-pixel-12px-monospaced-ja.ttf" -a "$(cat "$FUSION_DIR/.version" 2>/dev/null)" = "$FUSION_TAG"
+for e in "${UPSTREAM_ICONS[@]}"; do
+  check "${e%%|*}'s launcher icon (its project's own logo, pinned)" icon_current "$e"
+done
+check "Fusion Pixel 12 and 10 $FUSION_TAG (the desktop's font, for every account)" test -s "$FUSION_DIR/fusion-pixel-12px-monospaced-ja.ttf" -a -s "$FUSION_DIR/fusion-pixel-10px-monospaced-ja.ttf" -a "$(cat "$FUSION_DIR/.version" 2>/dev/null)" = "$FUSION_TAG"
 # Syncplay, from its pinned source (setup carries on without it: update and repair fetch it)
 case $(up_tag syncplay) in
   "") warn "Syncplay not installed yet" "update and repair fetch it (watching together waits till then)" ;;
@@ -518,7 +567,7 @@ check "Brave Origin starts (headless: its DevTools port answers)" \
   U bash -c 'd=$(mktemp -d); setsid brave-origin --headless --disable-gpu --user-data-dir="$d" --remote-debugging-port=0 about:blank >/dev/null 2>&1 & p=$! r=1
     for _ in $(seq 60); do
       if [[ -s $d/DevToolsActivePort ]]; then
-        curl -s --max-time 5 "http://127.0.0.1:$(head -n1 "$d/DevToolsActivePort")/json/version" | grep -q "\"Browser\"" && r=0; break
+        curl -s --max-time 5 "http://127.0.0.1:$(head -n1 "$d/DevToolsActivePort")/json/version" | grep -c "\"Browser\"" >/dev/null && r=0; break
       fi
       kill -0 "$p" 2>/dev/null || break; sleep 1
     done
@@ -553,15 +602,20 @@ os.kill(pid, signal.SIGTERM); os.waitpid(pid, 0)" >/dev/null 2>&1 </dev/null; tr
 # (its config and its launcher entry come with the theme)
 ((THEMED)) && check "herdr starts (Agents: your config clean, its server up in ~/repos, a window attached)" herdr_starts
 check "LazyVim plugins installed"                      test -d "$TARGET_HOME/.local/share/nvim/lazy/LazyVim"
-check "torrra $TORRRA_VERSION loads (Python 3.13, libtorrent, Textual)" U "$TARGET_HOME/.local/share/pipx/venvs/torrra/bin/python" -I -c 'import sys, importlib.metadata as m, torrra, libtorrent, torrra.app; assert sys.version_info[:2] == (3, 13) and m.version("torrra") == sys.argv[1]' "$TORRRA_VERSION"
-check "torrra runs through kawa-torrra" U bash -c 'test -f /etc/profile.d/kawa-torrra.sh && kawa-torrra --version'
+check "torrra $TORRRA_VERSION loads (Python 3.13, libtorrent, Textual)" U "$TARGET_HOME/.local/share/uv/tools/torrra/bin/python" -I -c 'import sys, importlib.metadata as m, torrra, libtorrent, torrra.app; assert sys.version_info[:2] == (3, 13) and m.version("torrra") == sys.argv[1]' "$TORRRA_VERSION"
+check "torrra runs through kawa-torrra" U bash -c 'test -f /etc/profile.d/kawa-torrra.sh && kawa-torrra --version </dev/null'
 check "torrra uses Prowlarr, and no key in its config" bash -c 'grep -qx "default = \"prowlarr\"" "$1" && ! grep -q api_key "$1"' _ "$TARGET_HOME/.config/torrra/config.toml"
 check "mpv in the bar and on the media keys (mpv-mpris)" test -f /etc/mpv/scripts/mpris.so
 check "yt-dlp can answer YouTube's challenges (Node.js ≥ 20)" bash -c 'v=$(node --version 2>/dev/null) || exit 1; v=${v#v}; ((${v%%.*} >= 20))'
 check "lazygit runs"                                   U lazygit --version
+check "delta runs (lazygit's diffs)"                  U delta --version
 check "qalc runs"                                      U qalc -t 1+1
+# Python and Rust to learn with (setup.sh s_dev): uv's CPython, rustup's stable, neovim's servers
+check "Python: uv's CPython"                           U uv python find --managed-python
+check "Rust: cargo, rust-analyzer, clippy, rustfmt (rustup)" U bash -c 'for b in cargo rust-analyzer cargo-clippy rustfmt; do test -x ~/.local/share/cargo/bin/$b || exit 1; done'
+check "neovim's Python and Rust servers (basedpyright, ruff, codelldb)" U bash -c 'for b in basedpyright ruff codelldb; do test -x ~/.local/share/nvim/mason/bin/$b || exit 1; done'
 check "restic runs (backups to another disk: kawa-backup)" U restic version
-[[ $STEAM == yes ]] && check "user in gamemode group"  bash -c "id -nG $TARGET_USER | grep -qw gamemode"
+[[ $STEAM == yes ]] && check "game mode's tuned profile"  test -s /etc/tuned/profiles/fedokawaii-game/tuned.conf
 
 # ── snapshots ────────────────────────────────────────────────────────────────
 if ((PRE == 0)); then
@@ -571,6 +625,10 @@ if ((PRE == 0)); then
   if [[ $(snapper -c root list 2>/dev/null) == *"fedokawaii baseline"* ]]; then pass "baseline snapshot exists"
   else warn "no baseline snapshot" "deleted? the next move to a new Fedora takes one; or now: sudo snapper -c root create -d \"fedokawaii baseline\""; fi
   check "pre/post snapshot around every dnf run"       test -x /usr/local/sbin/kawa-snap -a -f /etc/dnf/libdnf5-plugins/actions.d/fedokawaii-snapper.actions
+  # (grub-btrfs comes from a COPR: while that has no build for this Fedora, warned above)
+  grep -qx zzahkaboom24/grub-btrfs < <(waiting copr) \
+    || check "snapshots in the boot menu (grub-btrfs, listed again after the clean-up)" \
+         bash -c 'test -x /etc/grub.d/41_snapshots-btrfs && grep -q "kawa-snap boot" /etc/systemd/system/snapper-cleanup.service.d/fedokawaii.conf && grep -q grub-btrfs.cfg /boot/grub2/grub.cfg'
   check "snapshots kept within bounds (a fifth of the disk stays free)" \
     bash -c 'snapper --csvout -c root get-config | grep -qE "^FREE_LIMIT,0\.2"'
   # the monthly scrub: on, and what the last one found (a disk going bad shows up here first)
@@ -606,8 +664,9 @@ else
   check "foot config valid"                            U foot --check-config
   check "fuzzel config valid"                          U fuzzel --check-config
   # every fuzzel option the menus use must exist in the installed fuzzel (≥ 1.14 for --mesg)
+  # (fuzzel's own args only — pargs, the panel's menu options such as --drop, are kawa-panel's)
   fzhelp=$(U fuzzel --help 2>&1) fzbad=""
-  for f in $(grep -oE 'args\+?=\([^)]*\)' "$REPO_DIR/bin/kawa-menu" | grep -o -- '--[a-z][a-z-]*' | sort -u); do
+  for f in $(grep -oE '(^|[^[:alnum:]_])args\+?=\([^)]*\)' "$REPO_DIR/bin/kawa-menu" | grep -o -- '--[a-z][a-z-]*' | sort -u); do
     grep -q -- "$f" <<<"$fzhelp" || fzbad+=" $f"
   done
   if [[ -n $fzhelp && -z $fzbad ]]; then pass "every fuzzel option the menus use exists"; else fail "fuzzel options" "${fzbad:-fuzzel missing}"; fi
@@ -654,12 +713,12 @@ else
     bash -c 'for v in dark light; do [[ -s $1/Sumi-$v/cursors/default && -L $1/Sumi-$v/cursors/left_ptr && -s $1/Sumi-$v/cursors/left_ptr ]] || exit 1; done
              m=$(readlink "$2"); m=${m%/}; [[ ${m##*/} == light ]] && m=light || m=dark
              [[ $(readlink "$3") == "$1/Sumi-$m" ]]' _ /usr/share/icons "$TARGET_HOME/.config/fedokawaii/current" "$TARGET_HOME/.local/share/icons/default"
-  check "desktop font → Fusion Pixel 12, crisp at 24 px (no smoothing)" grep -q '^Fusion Pixel 12px Mono ja False$' <<<"$(U fc-match -f '%{family} %{antialias}' 'Fusion Pixel 12px Mono ja:pixelsize=24' 2>&1)"
+  check "desktop font → Fusion Pixel 12, crisp at 12 px (no smoothing)" grep -q '^Fusion Pixel 12px Mono ja False$' <<<"$(U fc-match -f '%{family} %{antialias}' 'Fusion Pixel 12px Mono ja:pixelsize=12' 2>&1)"
+  check "terminal font → Fusion Pixel 10, crisp at 20 px (no smoothing)" grep -q '^Fusion Pixel 10px Mono ja False$' <<<"$(U fc-match -f '%{family} %{antialias}' 'Fusion Pixel 10px Mono ja:pixelsize=20' 2>&1)"
   check "pixel icons → Sumi Icons"                     grep -q 'Sumi Icons' <<<"$(U fc-match 'Sumi Icons' 2>&1)"
   check "pixel icons in the terminal → Sumi Icons Term"  grep -q 'Sumi Icons Term' <<<"$(U fc-match 'Sumi Icons Term' 2>&1)"
-  # without a Wayland display it simply runs the command: proves it links (that it was built
-  # from src/ the theme check above says)
-  check "transitions (kawa-veil) runnable"             U env -u WAYLAND_DISPLAY "$TARGET_HOME/.local/bin/kawa-veil" -- true
+  check "screensaver (kawa-saver) runnable"             U "$TARGET_HOME/.local/bin/kawa-saver" --help
+  check "lock screen keys and wake guard (kawa-lockmod)" test -s "$TARGET_HOME/.local/lib/fedokawaii/kawa-lockmod.so"
   check "clipboard and wallpaper windows (fzf ≥ 0.68)" bash -c 'v=$(fzf --version 2>/dev/null) || exit 1; IFS=. read -r a b _ <<<"${v%% *}"; ((a > 0 || b >= 68))'
   check "wallpaper previews (ImageMagick draws sixels)" bash -c 'magick -size 2x2 xc:black sixel:- | grep -q "^.P"'
   art=$TARGET_HOME/.local/share/fedokawaii
@@ -681,7 +740,8 @@ else
   # did: a dracut that failed leaves images with Plymouth's text themes only. Repair: the
   # theme run makes them again)
   noimg=(); for v in "${kv[@]}"; do
-    lsinitrd "/boot/initramfs-$v.img" 2>/dev/null | grep -q usr/share/plymouth/themes/sumi/sumi.script || noimg+=("$v")
+    # (grep -q < <(…), never lsinitrd | grep -q: under pipefail grep's early exit is lsinitrd's SIGPIPE)
+    grep -q usr/share/plymouth/themes/sumi/sumi.script < <(lsinitrd "/boot/initramfs-$v.img" 2>/dev/null) || noimg+=("$v")
   done
   if ((${#kv[@]} && ${#noimg[@]} == 0)); then pass "the splash in every boot image (lsinitrd)"
   else fail "the splash in every boot image (lsinitrd)" "not in $(IFS=' '; echo "${noimg[*]:-any}") — the boot shows text, not the splash; fedokawaii repair makes them again (dracut)"; fi
@@ -732,7 +792,7 @@ if pgrep -u "$TARGET_UID" -x dwl >/dev/null; then
     check "mako config loads"                          U env WAYLAND_DISPLAY="$WD" makoctl reload
   fi
   # brightness over DDC/CI depends on the monitor having DDC/CI switched on in its own menu
-  if [[ -n $(U ddcutil detect --terse 2>/dev/null | grep -m1 '^Display [0-9]') ]]; then
+  if [[ -n $(U ddcutil detect --terse 2>/dev/null | grep '^Display [0-9]') ]]; then
     pass "a monitor answers DDC/CI (brightness control works)"
   elif compgen -G '/sys/class/backlight/*' >/dev/null && grep -qsx connected /sys/class/drm/card*-eDP-*/status; then
     pass "the laptop's own screen: brightness through its backlight"

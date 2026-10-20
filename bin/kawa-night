@@ -1,0 +1,62 @@
+#!/usr/bin/env bash
+# kawa-night — the night light: the screens' colour warmed, by gammastep, exactly as you set it
+# — on or off, and how warm — all day and all night: it never follows the sun by itself. What
+# you set is kept (~/.local/state/fedokawaii/night: "on 4000" or "off 4000"), so the next
+# login finds it as you left it (autostart: kawa-night restore). Quick settings' 灯 tile: a
+# click turns it on or off, the wheel over it makes it warmer or cooler (and on).
+#   kawa-night            how it stands: "off", or its warmth ("4000K")
+#   kawa-night toggle     on ⇄ off (the warmth kept)
+#   kawa-night on | off
+#   kawa-night warmer     one step warmer (on), 500 K a step: 5500 … 2500 K
+#   kawa-night cooler     one step cooler (on)
+#   kawa-night restore    as last set (autostart, at login; game mode at a game's end)
+#   kawa-night pause      off for now, what you set kept (game mode: a game's own colours)
+# Exit: 0 · 1 gammastep missing or would not start (said in a notice) · 2 wrong use.
+set -u
+case ${1:-} in
+  ""|toggle|on|off|warmer|cooler|restore|pause) ;;
+  -h|--help) sed -n '2,/^set -u/{/^set -u/d;s/^# \{0,1\}//;p}' "$0"; exit 0 ;;
+  *) echo "usage: kawa-night [toggle|on|off|warmer|cooler|restore|pause]" >&2; exit 2 ;;
+esac
+STATE=${XDG_STATE_HOME:-$HOME/.local/state}/fedokawaii/night
+STEPS=(5500 5000 4500 4000 3500 3000 2500)
+running() { pgrep -xu "$UID" gammastep >/dev/null; }
+# what is kept: on|off and the warmth (one of STEPS; anything else is read as the default)
+power=off warmth=4000
+read -r p w 2>/dev/null <"$STATE"
+[[ ${p:-} == @(on|off) ]] && power=$p
+[[ " ${STEPS[*]} " == *" ${w:-} "* ]] && warmth=$w
+keep() { mkdir -p "${STATE%/*}" && printf '%s %s\n' "$power" "$warmth" >"$STATE"; }
+
+stop() {   # every gammastep of yours ended, and gone before this returns (-r: no fade on the way out)
+  pkill -xu "$UID" gammastep || return 0
+  for _ in {1..40}; do running || return 0; sleep 0.05; done
+  pkill -KILL -xu "$UID" gammastep
+}
+start() {  # one gammastep at the warmth, day and night alike (-t W:W): the place does not
+  # matter, so none is given (0:0); -r: it changes at once, no fade; -m wayland: dwl's gamma
+  stop
+  command -v gammastep >/dev/null || {
+    . "$HOME/.config/fedokawaii/icons.sh" 2>/dev/null
+    notify-send -a desktop -u critical -- "${ICON_LANTERN:-}  night light" "gammastep is not installed — fedokawaii repair puts it back" 2>/dev/null
+    return 1
+  }
+  setsid -f gammastep -m wayland -r -l 0:0 -t "$warmth:$warmth" </dev/null >/dev/null 2>&1
+}
+step() {   # step ±1 — warmer (+1) or cooler (-1), within the steps
+  local i
+  for i in "${!STEPS[@]}"; do [[ ${STEPS[i]} == "$warmth" ]] && break; done
+  i=$((i + $1)); ((i < 0)) && i=0; ((i >= ${#STEPS[@]})) && i=$((${#STEPS[@]} - 1))
+  warmth=${STEPS[i]}
+}
+
+case ${1:-} in
+  "")      if running; then echo "${warmth}K"; else echo off; fi ;;
+  toggle)  if running; then power=off; keep; stop; else power=on; keep; start; fi ;;
+  on)      power=on; keep; start ;;
+  off)     power=off; keep; stop ;;
+  warmer)  step 1; power=on; keep; start ;;
+  cooler)  step -1; power=on; keep; start ;;
+  restore) if [[ $power == on ]]; then start; else stop; fi ;;
+  pause)   stop ;;
+esac

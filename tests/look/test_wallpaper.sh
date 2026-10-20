@@ -169,7 +169,7 @@ kawa-wallpaper --restore
 rc 0 kawa-wallpaper --set pack:moon-road-ink
 eq "$(grep -E '^(up|term)' "$TMP/swap.log" | tr '\n' ',')" "up 1,up 2,term 1," "up 2 before term 1"
 eq "$(settled 1)" 1
-case_ "--set returns with the new one on screen (kawa-theme's veil and kawa-veil lift on it)"
+case_ "--set returns with the new one on screen (kawa-theme's switch is over then)"
 rc 0 kawa-wallpaper --set pack:ink-ridges-night
 eq "$(tail -n 2 "$TMP/swap.log" | tr '\n' ',')" "up 3,term 2," "returned before it was up"
 has "$(cat "$CACHE/wallpaper.log")" "kawa-wallpaper: set pack:ink-ridges-night on screen in" "the change's time logged"
@@ -428,12 +428,12 @@ lacks "$(cat "$CACHE/wallpaper-sums")" "mine.png" "a deleted picture is forgotte
 
 # ── the picker ───────────────────────────────────────────────────────────────
 # fzf: keeps the rows and its options, then answers as FZF_PICK says (a row's first field,
-# or "esc"); the picker's window (kawa-float) runs its command in place
+# or "esc"); the picker's window (kawa-term --float) runs its command in place
 picker() {
   argv fzf 'cat >"$FAKE_TMP/rows"
 case ${FZF_PICK:-esc} in esc) exit 130 ;; esac
 grep -m1 -F "$FZF_PICK	" "$FAKE_TMP/rows" || exit 1'
-  stub kawa-float 'while [ "$1" != "--" ]; do shift; done; shift; "$@"'
+  stub kawa-term 'while [ "$1" != "--" ]; do shift; done; shift; "$@"'
   stub kawa-cell 'echo 12x24'
 }
 rows() { cat "$TMP/rows"; }
@@ -510,15 +510,12 @@ echo "$WP/p0500.png" >"$STATE/wallpaper-dark"
 kawa-wallpaper --tui "$TMP/out"
 has "$(args_of fzf "$(ncalls fzf)")" "start:pos(500)"
 
-case_ "Super+W, Enter on an odd name: set exactly, through the dissolve (no hold: --set returns once it is drawn)"
+case_ "Super+W, Enter on an odd name: set exactly, in one frame (no fade, nothing in between)"
 setup; picker
-stubf kawa-veil <<'EOF'
-while [ "$1" != "--" ]; do shift; done; shift; exec "$@"
-EOF
 odd="$WP/\$(touch pwned) it's.png"; photo "$odd"
 FZF_PICK="$odd" kawa-wallpaper; r=$?
 eq "$r" 0
-called '^kawa-veil --dissolve --hold 0 --time 520 -- '
+lacks "$(grep -v '^ *#' "$REPO/bin/kawa-wallpaper")" "kawa-veil"
 eq "$(size_of "$(shown)")" 1920x1080
 eq "$(cat "$STATE/wallpaper-dark")" "$odd"
 [[ ! -e $TMP/pwned ]] && _ok || _no "the name ran as a command"
@@ -526,12 +523,12 @@ eq "$(cat "$STATE/wallpaper-dark")" "$odd"
 case_ "Esc, or the current one again: nothing changes"
 reset_calls
 FZF_PICK=esc kawa-wallpaper; r=$?
-eq "$r" 0; eq "$(last)" 1; not_called '^kawa-veil'
+eq "$r" 0; eq "$(last)" 1
 FZF_PICK="$odd" kawa-wallpaper
 eq "$(last)" 1 "the same one: not drawn again"
 
-case_ "Super+W again while the picker is open (kawa-float --once says 3): nothing"
-stub kawa-float 'exit 3'; reset_calls
+case_ "Super+W again while the picker is open (kawa-term --float --once says 3): nothing"
+stub kawa-term 'exit 3'; reset_calls
 rc 0 kawa-wallpaper
 not_called '^fzf'
 

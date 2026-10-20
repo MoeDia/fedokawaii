@@ -94,7 +94,7 @@ rm -rf "$BAR"; blk "$F/one-monitor.status" "kblayout 1" 1 | kawa-dwlstatus
 eq "$(bar kb)" '{"text":"US","class":"first"}'
 case_ "recorded: a 2048-character title (foot's limit) and a title emptied by its program"
 rm -rf "$BAR"; blk "$F/one-monitor.status" "title xxxxxxxxxx" | kawa-dwlstatus
-eq "$(jtext title | wc -c)" 2049
+eq "$(jtext title | wc -c)" 61 "60 letters at most (one word: cut there), never an …"
 rm -rf "$BAR"; blk "$F/one-monitor.status" "title xxxxxxxxxx" 1 | kawa-dwlstatus
 eq "$(bar title)" '{"text":""}'
 
@@ -173,7 +173,8 @@ EOF
 # (the probe names a file in this test's own folder: should a title ever run, nothing outside it is touched)
 probe='$(touch '"$TMP"'/pwned) `touch '"$TMP"'/pwned` ${HOME} %s %n'
 rm -rf "$BAR"; block DP-1 1 1 1 0 '(@)' 0 "$probe" | kawa-dwlstatus
-eq "$(title_is "$probe")" "" "title [\$(…) \`…\` \${HOME} %s]"
+cut=${probe:0:60}; [[ ${probe:60:1} == ' ' ]] || cut=${cut% *}
+eq "$(title_is "$cut")" "" "title [\$(…) \`…\` \${HOME} %s] (cut at a word's end: 60 letters at most)"
 [[ ! -e $TMP/pwned ]] && _ok || _no "a title ran as a command"
 case_ "control characters (should dwl ever pass one): a space, never a broken file"
 rm -rf "$BAR"; block DP-1 1 1 1 0 '(@)' 0 $'a\tb\x1b[31mc\rd\x7fe\x01f' | kawa-dwlstatus
@@ -181,10 +182,10 @@ eq "$(jtext title)" "a b [31mc d e f"; eq "$(json_ok)" ""
 case_ "an empty title, and one of spaces: an empty title"
 rm -rf "$BAR"; block DP-1 1 1 1 0 '(@)' 0 "" | kawa-dwlstatus; eq "$(bar title)" '{"text":""}'
 rm -rf "$BAR"; block DP-1 1 1 1 0 '(@)' 0 "     " | kawa-dwlstatus; eq "$(bar title)" '{"text":""}'
-case_ "an 8 KB title of nothing but < & > (the most an X11 program gets through XWayland): written whole, valid"
+case_ "an 8 KB title of nothing but < & > (the most an X11 program gets through XWayland): its first 60 letters, valid"
 long=$(printf '%.0s<&>' {1..2731})
 rm -rf "$BAR"; block DP-1 1 1 1 0 '(@)' 0 "$long" | kawa-dwlstatus
-eq "$(jtext title | wc -c)" 35504 "every < & > escaped (13 bytes for the three, + newline)"
+eq "$(jtext title | wc -c)" 261 "60 letters, every < & > escaped (13 bytes for the three, + newline)"
 eq "$(json_ok)" ""
 
 # ── the keyboard layout ──────────────────────────────────────────────────────
@@ -196,7 +197,7 @@ rm -rf "$BAR"; block DP-1 1 1 1 0 '(@)' 2 x | XKB_DEFAULT_LAYOUT=de,us,ara kawa-
 rm -rf "$BAR"; block DP-1 1 1 1 0 '(@)' 0 x | XKB_DEFAULT_LAYOUT=us kawa-dwlstatus; eq "$(bar kb)" '{"text":""}'
 rm -rf "$BAR"; block DP-1 1 1 1 0 '(@)' 0 x | env -u XKB_DEFAULT_LAYOUT kawa-dwlstatus; eq "$(bar kb)" '{"text":""}'
 case_ "no letter ranges in the helpers' =~ patterns: in a Turkish locale [a-z] leaves out the i (classes instead)"
-for f in kawa-dwlstatus kawa-float kawa-tag; do
+for f in kawa-dwlstatus kawa-term kawa-tag; do
   eq "$(grep -nE '=~[^#]*\[[^]]*(a-z|A-Z)' "$REPO/bin/$f")" "" "$f"
 done
 case_ "a Turkish or Arabic locale: the layout names in plain capitals (no dotted İ), titles intact"

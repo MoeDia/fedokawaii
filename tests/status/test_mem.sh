@@ -14,14 +14,14 @@ field() { python3 -I -c 'import json,sys; print(json.loads(sys.argv[1])[sys.argv
 case_ "at once: the chip and what programs hold (MemTotal − MemAvailable), in GiB to a tenth"
 setup; info 33554432 27262976; start      # 32 GiB, 26 GiB available → 6.0G
 waitfor 5 eval '(( $(lines) >= 1 ))' || _no "no first line"
-eq "$(field text)" "$ICON_MEMORY 6.0G"; eq "$(field class)" calm
+eq "$(field text)" "${ICON_BAR_MEMORY}6.0G"; eq "$(field class)" calm
 has "$(field tooltip)" "6.0 of 32.0 GB"
 json_lines "$(cat "$TMP/out")"
 case_ "a line only when the figure changes: the same memory twice, still one line"
 sleep 0.3; eq "$(lines)" 1
 case_ "more in use: a new line (13.1G); past 85 %: class high"
 info 33554432 19818086; waitfor 5 eval '(( $(lines) >= 2 ))' || _no "no second line"
-eq "$(field text)" "$ICON_MEMORY 13.1G"; eq "$(field class)" calm
+eq "$(field text)" "${ICON_BAR_MEMORY}13.1G"; eq "$(field class)" calm
 info 33554432 4194304; waitfor 5 eval '(( $(lines) >= 3 ))' || _no "no third line"
 eq "$(field class)" high
 case_ "every line is JSON"

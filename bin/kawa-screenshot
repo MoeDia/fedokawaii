@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
-# kawa-screenshot [region|full|edit] — grim + slurp, copied to clipboard and
+# kawa-screenshot [region|full|edit|text] — grim + slurp, copied to clipboard and
 # saved to ~/Pictures/Screenshots. "edit" opens the capture in satty for annotation.
+# "text" reads the region's words instead (tesseract, English and Arabic): the text goes on
+# the clipboard, its first words in the notice; nothing is saved.
 #
 # Exit: 0 done (or Esc while picking the region) · 1 could not (a notice says why) · 2 wrong use.
 set -u
@@ -9,7 +11,7 @@ set -u
 magick() { LC_ALL=C command magick "$@"; }
 case ${1:-} in -h|--help) sed -n '2,/^set -u/{/^set -u/d;s/^# \{0,1\}//;p}' "$0"; exit 0 ;; esac
 mode=${1:-region}
-case $mode in region|full|edit) ;; *) echo "usage: kawa-screenshot [region|full|edit] (kawa-screenshot --help)" >&2; exit 2 ;; esac
+case $mode in region|full|edit|text) ;; *) echo "usage: kawa-screenshot [region|full|edit|text] (kawa-screenshot --help)" >&2; exit 2 ;; esac
 # shellcheck source=/dev/null
 . "$HOME/.config/fedokawaii/env"
 # shellcheck source=/dev/null
@@ -20,7 +22,22 @@ case $mode in region|full|edit) ;; *) echo "usage: kawa-screenshot [region|full|
 . "$HOME/.config/fedokawaii/files.sh"   # clip_put
 # the region picker: everything outside the selection dimmed with ink (on either theme a
 # selection reads as the lit part), the selection edged and faintly washed in vermilion
-pick() { slurp -b '#0f0e0c66' -c "#${C_ACCENT}ff" -s "#${C_ACCENT}22" -w 2; }
+# (this run's pid in kawa-screenshot.picking while it is up, slurp's in kawa-screenshot.pick:
+# the key again takes it away, below). Then the shot is taken one at a time (the run lock)
+pick() {
+  local p r o=""
+  slurp -b '#0f0e0c66' -c "#${C_ACCENT}ff" -s "#${C_ACCENT}22" -w 2 7>&- 9>&- & p=$!
+  echo "$p" >"$RT/kawa-screenshot.pick"
+  read -r o 2>/dev/null <"$RT/kawa-screenshot.picking"
+  [[ $o == "$$" ]] || kill "$p" 2>/dev/null       # (the key again came before slurp was named)
+  wait "$p"; r=$?
+  flock 7; o=""; read -r o 2>/dev/null <"$RT/kawa-screenshot.picking"
+  if [[ $o == "$$" ]]; then rm -f "$RT/kawa-screenshot.picking"; else r=1; fi
+  o=""; read -r o 2>/dev/null <"$RT/kawa-screenshot.pick"; [[ $o == "$p" ]] && rm -f "$RT/kawa-screenshot.pick"
+  flock -u 7
+  ((r == 0)) && flock -w 10 9 && return 0
+  return 1
+}
 fail() {   # fail TITLE BODY — a key press that gave no picture says why (it has no terminal)
   notify-send -a desktop -u critical -- "$ICON_CAMERA  $1" "$2"
   echo "kawa-screenshot: $1 — $2" >&2; exit 1
@@ -28,8 +45,42 @@ fail() {   # fail TITLE BODY — a key press that gave no picture says why (it h
 export XDG_RUNTIME_DIR=${XDG_RUNTIME_DIR:-/run/user/$UID}
 [[ -d $XDG_RUNTIME_DIR && -w $XDG_RUNTIME_DIR ]] \
   || { echo "kawa-screenshot: no runtime folder $XDG_RUNTIME_DIR (not logged in to the desktop?)" >&2; exit 1; }
-# one at a time: dwl repeats a held key, which would stack region pickers
-exec 9>"$XDG_RUNTIME_DIR/kawa-screenshot.lock"; flock -n 9 || exit 0
+# The key again while a region is being picked takes the picker away (as Esc does): every press
+# counts, however fast — two presses, no picker; three, one. While a shot is being taken and
+# saved (the run lock), a press does nothing. Decided under a lock held a moment each time
+RT=$XDG_RUNTIME_DIR
+exec 7>"$RT/kawa-screenshot.state" 9>"$RT/kawa-screenshot.lock"
+flock 7 || exit 1
+o=""; read -r o 2>/dev/null <"$RT/kawa-screenshot.picking"
+if [[ $o =~ ^[1-9][0-9]*$ ]] && kill -0 "$o" 2>/dev/null; then
+  rm -f "$RT/kawa-screenshot.picking"
+  p=""; read -r p 2>/dev/null <"$RT/kawa-screenshot.pick" && [[ $p =~ ^[1-9][0-9]*$ ]] && kill "$p" 2>/dev/null
+  exit 0
+fi
+flock -n 9 || exit 0                              # (a shot being saved)
+if [[ $mode == full ]]; then flock -u 7            # (no region: the shot at once, the run lock kept)
+else echo "$$" >"$RT/kawa-screenshot.picking"; flock -u 9; flock -u 7; fi
+# text: the region taken at twice the screen's size (grim -s 2: small screen text reads far
+# better so), read by tesseract — English first, Arabic too — and only its words kept
+if [[ $mode == text ]]; then
+  command -v tesseract >/dev/null || fail "text not read" "tesseract is not installed — fedokawaii repair puts it back"
+  geom=$(pick) || exit 0
+  shot=$XDG_RUNTIME_DIR/kawa-screenshot-text.png
+  grim -s 2 -g "$geom" "$shot" 2>/dev/null || { rm -f "$shot"; fail "text not read" "grim could not capture the screen"; }
+  txt=$(tesseract "$shot" - -l eng+ara --dpi 192 2>/dev/null); r=$?
+  rm -f "$shot"
+  ((r == 0)) || fail "text not read" "tesseract could not read the region"
+  txt=${txt//$'\f'/}                                  # (its page break)
+  read -ra w <<<"$(tr -s '[:space:]' ' ' <<<"$txt")"
+  ((${#w[@]})) || { notify-send -a desktop -- "$ICON_CLIPBOARD  no text found" "nothing to read in that region"; exit 0; }
+  printf '%s\n' "$txt" | clip_put 'text/plain;charset=utf-8' 9>&- 2>/dev/null \
+    || fail "text not copied" "the clipboard did not take it"
+  first=""                                             # the first words, 48 columns at most
+  for x in "${w[@]}"; do ((${#first} + ${#x} + 1 <= 48)) || break; first+=${first:+ }$x; done
+  ((${#w[@]} == 1)) && n="1 word" || n="${#w[@]} words"
+  notify-send -a desktop -- "$ICON_CLIPBOARD  text copied · $n" "${first:-${w[0]:0:48}}"
+  exit 0
+fi
 # the folder first: no region is asked for a shot that could not be kept
 mkdir -p "$SCREENSHOT_DIR" 2>/dev/null && [[ -w $SCREENSHOT_DIR ]] \
   || fail "screenshot not saved" "${SCREENSHOT_DIR/#"$HOME"/\~} cannot be written to"

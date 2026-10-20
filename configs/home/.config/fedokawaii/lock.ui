@@ -2,9 +2,9 @@
 <!-- ~/.config/fedokawaii/lock.ui — the lock screen's layout (gtklock, through kawa-lock). One
      panel in the middle of each screen, built from the design system's parts
      (docs/design-system.md; the colours and sizes are current/gtklock.css):
-       [月] Mon 19 Oct ╌╌╌╌╌╌╌╌╌╌╌╌╌╌    the heading: the day's seal, the date, the stitch
-              (padlock)                 the pixel padlock
-              08:31 AM                  the time
+       [月] Mon 19 Oct 月曜日 ╌╌╌╌╌ [錠]   the heading: the day's seal, the date, the stitch
+          (padlock) 08:31 AM            the face: the padlock, the time at 48 px (§2's display size)
+       秋の朝 · frost on the bamboo fence  the season and the hour (kawa-lockmod adds those)
        ちがう · wrong password             what went wrong, when something did
        [          ◆◆◆◆◆           ]    the password's field ("パスワード · password" while empty)
      kawa-lock fills in {SEAL} (today's seal) and {PADLOCK} (the theme's padlock) and hands
@@ -50,21 +50,29 @@
 					</object>
 				</child>
 				<child>
-					<object class="GtkImage" id="padlock">
-						<property name="name">padlock</property>
+					<!-- the face: the padlock, then the time in the display size (48 px) — kawa-lockmod
+					     adds AM/PM on its baseline, and the season's line under it -->
+					<object class="GtkBox" id="face">
+						<property name="name">face</property>
 						<property name="halign">center</property>
-						<property name="file">{PADLOCK}</property>
-					</object>
-				</child>
-				<child>
-					<object class="GtkBox" id="time-box">
-						<property name="name">time-box</property>
-						<property name="halign">center</property>
-						<property name="orientation">vertical</property>
+						<property name="orientation">horizontal</property>
 						<child>
-							<object class="GtkLabel" id="clock-label">
-								<property name="name">clock-label</property>
-								<property name="halign">center</property>
+							<object class="GtkImage" id="padlock">
+								<property name="name">padlock</property>
+								<property name="valign">center</property>
+								<property name="file">{PADLOCK}</property>
+							</object>
+						</child>
+						<child>
+							<object class="GtkBox" id="time-box">
+								<property name="name">time-box</property>
+								<property name="valign">center</property>
+								<property name="orientation">vertical</property>
+								<child>
+									<object class="GtkLabel" id="clock-label">
+										<property name="name">clock-label</property>
+									</object>
+								</child>
 							</object>
 						</child>
 					</object>

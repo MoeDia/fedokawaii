@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # tests/static/test_syntax.sh — every file of the desktop reads as what it is: the shell
 # scripts (bash -n, shellcheck), the shell inside configs (waybar's clicks, dwl's keys…),
-# every JSON / TOML / YAML / INI / desktop / XML / Lua file (and .visidatarc, which is Python),
+# every JSON / TOML / YAML / INI / desktop / XML / Lua file (and visidata/config.py, which is Python),
 # and the configs the programs themselves can check (mako, foot, fuzzel) — read by those
 # programs when they are here.
 # The configs are read as theme.sh installs them: rendered into the throw-away home.
@@ -108,9 +108,13 @@ if m=$(real mako); then
   has "$out" "Failed to parse" "mako did not notice a bad key: $out"
 else skipped "mako is not installed"; fi
 
-case_ "foot reads its config with both themes (foot --check-config)"
+case_ "foot reads its config with both themes (foot --check-config), the see-through ground on and off"
 if f=$(real foot); then
-  for t in dark light; do
+  # (its last include: the file theme.sh makes once and kawa-glass rewrites)
+  mkdir -p "$HOME/.local/state/fedokawaii"
+  for t in dark light dark; do
+    a=0.92; [[ $t == light ]] || a=1
+    printf '[colors-dark]\nalpha=%s\n[colors-light]\nalpha=%s\n' "$a" "$a" >"$HOME/.local/state/fedokawaii/foot-glass.ini"
     ln -sfn "themes/$t" "$HOME/.config/fedokawaii/current"
     out=$(quiet "$f" --check-config -c "$HOME/.config/foot/foot.ini" 2>&1) \
       && _ok || _no "$t: $out"

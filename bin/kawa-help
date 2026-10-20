@@ -15,13 +15,14 @@ esac
 f="$HOME/.config/fedokawaii/keybinds.txt"
 [[ -r $f ]] || { . "$HOME/.config/fedokawaii/icons.sh"; notify-send -a desktop -u critical -- "$ICON_KEYBOARD  keybindings" "keybinds.txt is missing — fedokawaii repair puts it back"; exit 1; }
 export LC_ALL=C.UTF-8                            # (a column a character)
-# each part's kanji, by the first word of its name (a part of your own: 節, "a section")
+# kanji NAME → K, the part's kanji, by the first word of its name (a part of your own: 節,
+# "a section"; no subshell: the sheet is built at every press, the one that closes it too)
 kanji() {
   case ${1%%[^a-z]*} in
-    launch) echo 起 ;; screenshots) echo 写 ;; windows) echo 窓 ;; workspaces) echo 場 ;;
-    sound) echo 音 ;; terminal) echo 端 ;; files) echo 書 ;; drives) echo 盤 ;; session) echo 席 ;;
-    drawing) echo 筆 ;;
-    *) echo 節 ;;
+    launch) K=起 ;; screenshots) K=写 ;; windows) K=窓 ;; workspaces) K=場 ;;
+    sound) K=音 ;; terminal) K=端 ;; files) K=書 ;; drives) K=盤 ;; session) K=席 ;;
+    drawing) K=筆 ;;
+    *) K=節 ;;
   esac
 }
 # split LINE — the key and its description, each without the spaces around it (KEY, DESC).
@@ -43,7 +44,7 @@ split() {
 # sheet — the menu's lines: "── name: more ───" or "── name (more) ───" a part (its name; the
 # more at its end), any other line a row (no glyph: the key, then what it does); blank lines left out
 sheet() {
-  local l t v
+  local l t v K
   while IFS= read -r l; do
     [[ -n ${l//[[:space:]]/} ]] || continue
     if [[ $l == ─* ]]; then
@@ -51,7 +52,7 @@ sheet() {
       v=""
       if [[ $t == *": "* ]]; then v=${t#*: } t=${t%%: *}
       elif [[ $t =~ ^(.*[^ ])\ +\((.*)\)$ ]]; then t=${BASH_REMATCH[1]} v=${BASH_REMATCH[2]}; fi
-      printf 'part\t%s\t%s\t%s\n' "$(kanji "$t")" "$t" "$v"
+      kanji "$t"; printf 'part\t%s\t%s\t%s\n' "$K" "$t" "$v"
     else
       split "$l"; printf 'row\t\t%s\t%s\n' "$KEY" "$DESC"
     fi

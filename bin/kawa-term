@@ -1,13 +1,152 @@
 #!/usr/bin/env bash
-# kawa-term CMD [ARG…] — CMD in a new terminal window: footclient, through the foot server
-# the session keeps running (instant). footclient -N hands the window over and returns at
-# once, so its status says only whether the server took it — never how CMD ended.
+# kawa-term [--app ID TITLE] CMD [ARG…] — CMD in a new terminal window: footclient, through
+# the foot server the session keeps running (instant). footclient -N hands the window over
+# and returns at once, so its status says only whether the server took it — never how CMD ended.
 # The "open with" entries for yazi and neovim use it (Files, Editor), so anything that
-# opens a folder or a text file — Brave's "Show in folder", xdg-open, yazi — gets a window.
+# opens a folder or a text file — Brave's "Show in folder", xdg-open, yazi — gets a window;
+# so do the launcher's entries for terminal programs (Git, Disk usage, Tables…).
 #
-# Exit: 0 the window opened · otherwise footclient's own status (the server down: autostart
-# keeps it running; it says so when it cannot).
+#   --app ID TITLE   the window's app-id and its first title (the bar shows it until CMD
+#                    sets its own): a launcher entry's program, told apart from a plain terminal
+#
+# Exit: 0 the window opened · 2 wrong use · otherwise footclient's own status (the server
+# down: autostart keeps it running; it says so when it cannot).
+#
+# kawa-term --float [--once NAME] [--dialog] [--locked-title] TITLE COLSxROWS -- CMD [ARG…] —
+# CMD in a small floating terminal window, titled TITLE (the bar shows it), and wait until it
+# closes. The desktop's popups open this way: the system menu, notes, the clipboard, books,
+# the wallpaper, network, Bluetooth, btop, the mixer, the backup, and the change
+# menu's diff and apply windows.
+#
+# A popup (app-id "float") floats centred and lasts while it has the focus: dwl closes it
+# when you click outside it, another window opens or you switch workspace (dwl.patch).
+#
+#   --once NAME      one such window at a time, and its key toggles it: every call while it
+#                    is open (or on its way up) closes it (exit 3), at once — pressed as
+#                    fast as you like, an odd number of presses leaves it open, an even one
+#                    closed (dwl repeats no held key that opens a window: one press). The
+#                    one exception: the click on its bar button that has just closed it
+#                    (dwl closes a popup on any press outside it, before the button's
+#                    command starts) does not open it again (exit 3). While it is open,
+#                    $XDG_RUNTIME_DIR/kawa-term-NAME.open holds this script's pid: the bar's
+#                    button that opened it is lit (kawa-bar; btop: the memory), told as it
+#                    opens and as it closes (kawa-dwlstatus --wake)
+#   --dialog         a dialog, not a popup (app-id "kawa-dialog": the file dialog, and a job
+#                    that must run to its end: an update, a backup): it floats centred too,
+#                    but stays open while you answer it, wherever you click. With --once, a
+#                    call while it is open leaves it open (exit 3): never a job cut short
+#   --locked-title   the title stays TITLE whatever CMD writes there
+#
+# COLSxROWS: an even number of columns and an odd number of rows, and dwl centres the
+# window to the pixel. The terminal server's window (footclient: instant). Exit 0: it opened
+# (and is closed now); 1: no terminal window could open; 2: wrong use; 3: toggled closed,
+# or just closed (--once).
 set -u
-case ${1:-} in -h|--help) sed -n '2,/^set -u/{/^set -u/d;s/^# \{0,1\}//;p}' "$0"; exit 0 ;; esac
-(($#)) || set -- "${SHELL:-bash}"
-exec footclient -N -- "$@"
+case ${1:-} in
+  -h|--help) sed -n '2,/^set -u/{/^set -u/d;s/^# \{0,1\}//;p}' "$0"; exit 0 ;;
+  --float) shift ;;
+  *)  # a plain window: handed over at once (nothing below is even read)
+      win=()
+      if [[ ${1:-} == --app ]]; then
+        [[ ${2:-} =~ ^[[:alnum:]._-]+$ && -n ${3:-} ]] || { echo "kawa-term: --app takes an app-id (letters, digits, . _ -) and a title" >&2; exit 2; }
+        win=(-a "$2" -T "$3"); shift 3
+      fi
+      (($#)) || set -- "${SHELL:-bash}"
+      exec footclient -N "${win[@]}" -- "$@" ;;
+esac
+once="" extra=() app=float
+while [[ ${1:-} == --* ]]; do
+  case $1 in
+    --once)         # (checked here: a missing NAME would leave --once in place, and loop for ever;
+                    # classes, not a-z: in a Turkish locale that range leaves out the i)
+                    [[ ${2:-} =~ ^[[:lower:][:digit:]-]+$ ]] || { echo "kawa-term: --once takes a plain name" >&2; exit 2; }
+                    once=$2; shift 2 ;;
+    --dialog)       app=kawa-dialog; shift ;;
+    --locked-title) extra=(-o locked-title=yes); shift ;;
+    --)             break ;;
+    *)              echo "kawa-term: unknown option $1" >&2; exit 2 ;;
+  esac
+done
+title=${1:-} size=${2:-}
+[[ -n $title && $size =~ ^[0-9]+x[0-9]+$ && ${3:-} == -- && -n ${4:-} ]] \
+  || { echo "usage: kawa-term --float [--once NAME] [--dialog] [--locked-title] TITLE COLSxROWS -- CMD [ARG…]" >&2; exit 2; }
+shift 3
+run=${XDG_RUNTIME_DIR:?}
+lit="" closed="" stop=0 fc=""
+mark=$(mktemp -u "$run/kawa-term.XXXXXX")
+# closed by another call (--once; from the moment this one is named open): the terminal
+# window ended (footclient) — or never asked for, if that came first
+trap 'stop=1; [[ -n $fc ]] && kill -TERM "$fc" 2>/dev/null' TERM HUP INT
+trap 'rm -f "$mark"' EXIT
+# the state of a --once window — which call's window is open (.open), the bar click that
+# closed it from outside (.closed) — is read and changed under its lock, held a moment
+# each time (never while the window is open): calls as fast as the key is pressed are
+# answered one after the other, in order, none lost
+if [[ -n $once ]]; then
+  lit=$run/kawa-term-$once.open closed=$run/kawa-term-$once.closed
+  exec 9>"$run/kawa-term-$once.lock"
+  flock 9 || exit 1
+  o=""; read -r o 2>/dev/null <"$lit"
+  if [[ $o =~ ^[1-9][0-9]*$ ]] && kill -0 "$o" 2>/dev/null; then
+    # open (or on its way up): this call closes it — never a dialog: what runs in it (dnf, a
+    # backup) ends by itself, or by its own key. Its mark goes now (the next call opens a new
+    # one, the bar's button is dark at once); the window's call, told, ends its terminal
+    # window (footclient): the window goes, what runs in it gets the hang-up a closed window
+    # gives (it saves first: notes write as you type)
+    [[ $app == kawa-dialog ]] && exit 3
+    rm -f "$lit"; kill -TERM "$o" 2>/dev/null
+    flock -u 9; kawa-dwlstatus --wake 2>/dev/null
+    exit 3
+  fi
+  # closed from outside by the very click on its bar button that runs this (dwl closes a
+  # popup on any press outside it, before the button's command starts): not opened again.
+  # That click is dwl-pointer as it was then (dwl writes a new one at every press on the bar:
+  # the same file, no press since) and under a second old; a key comes with no new press
+  if [[ -e $closed ]]; then
+    if [[ $closed -ef $run/dwl-pointer ]] && t=$(stat -c %.3Y "$closed" 2>/dev/null) \
+       && (( ${EPOCHREALTIME//[!0-9]/} / 1000 - 10#${t//[!0-9]/} < 1000 )); then
+      rm -f "$closed"; exit 3
+    fi
+    rm -f "$closed"
+  fi
+  printf '%s\n' "$$" >"$lit.$$" && mv -f "$lit.$$" "$lit"
+  flock -u 9
+fi
+# inside the window: mark that it opened, run CMD, and mark that it ended by itself — a
+# window closed from outside hangs up the whole group, this sh too, before that (the lock is
+# not passed on: it is this script's)
+# shellcheck disable=SC2016  # expanded by the inner sh
+open=(sh -c ': >"$1"; m=$1; shift; "$@"; r=$?; echo ended >"$m"; exit $r' kawa-term "$mark" "$@")
+# The terminal server (foot --server: the session starts it, and starts it again should it
+# stop) may not be listening at the moment of asking — just after login, while the session
+# is still starting it (the file dialog of an app restored at login), or in the second the
+# session takes to start it again. footclient then fails at once with foot's own status
+# (220: foot itself, never what runs in the window) and no window: it is asked again, every
+# 0.2 s, for up to 10 s, in a desktop session (a display named: the server's socket is
+# named after it). A window that opened is never asked for twice (the mark). footclient
+# runs in the background, waited for: a call that closes it is heard at once.
+until=$((SECONDS + 10)) woke=0
+while ((!stop)); do
+  footclient -a "$app" -T "$title" -W "$size" "${extra[@]}" -- "${open[@]}" 9>&- 2>/dev/null </dev/null & fc=$!
+  ((stop)) && kill -TERM "$fc" 2>/dev/null  # (told while it was being started)
+  # the bar's button lit (--once), told once the window is on its way
+  ((woke)) || { [[ -n $once ]] && kawa-dwlstatus --wake 2>/dev/null; woke=1; }
+  wait "$fc"; r=$?
+  ((stop)) && { wait "$fc"; break; }        # (closed by another call: footclient told to end)
+  [[ ! -e $mark && $r == 220 && -n ${WAYLAND_DISPLAY:-} ]] && ((SECONDS < until)) || break
+  sleep 0.2
+done
+if [[ -n $once ]]; then
+  flock 9
+  o=""; read -r o 2>/dev/null <"$lit"
+  if [[ $o == "$$" ]]; then                 # (not closed by another call: that took the mark)
+    rm -f "$lit"
+    # closed from outside, by a click on the bar since it opened: that click remembered
+    [[ -e $mark && ! -s $mark && $run/dwl-pointer -nt $mark ]] && ln -f "$run/dwl-pointer" "$closed" 2>/dev/null
+    kawa-dwlstatus --wake 2>/dev/null
+  fi
+  flock -u 9
+fi
+[[ -e $mark ]] && exit 0
+((stop)) && exit 3
+exit 1

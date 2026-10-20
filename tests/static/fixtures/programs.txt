@@ -85,8 +85,17 @@ expr                minimal   coreutils
 uniq                minimal   coreutils
 flock               minimal   util-linux-core   # f44: util-linux-core (util-linux, @core, requires it)
 logger              minimal   util-linux-core   # f44
+mount               minimal   util-linux-core   # f44 (kawa-snap: the file system's top level)
+umount              minimal   util-linux-core   # f44
+chroot              minimal   coreutils         # (kawa-snap: kernel-install inside a restored copy)
+restorecon          minimal   policycoreutils   # @core (SELinux)
+kernel-install      minimal   systemd-udev      # f44: kernel-core requires it
+grub2-mkconfig      minimal   grub2-tools       # the installer's bootloader (grub2-efi-x64 requires it)
+grubby              manifest  grubby
+wf-recorder         manifest  wf-recorder
 losetup             minimal   util-linux-core   # f44
 renice              minimal   util-linux-core   # f44
+tuned-adm           manifest  tuned              # kawa-game: the game's profile and back
 ionice              minimal   util-linux        # @core (kawa-wallpaper: its background drawing at idle priority)
 setsid              minimal   util-linux-core   # f44
 lsblk               minimal   util-linux        # @core (not in -core, f44)
@@ -117,6 +126,8 @@ journalctl          minimal   systemd           # @core
 loginctl            minimal   systemd
 systemd-run         minimal   systemd
 systemd-inhibit     minimal   systemd
+systemd-tmpfiles    minimal   systemd
+uv                  manifest  uv
 systemd-cat         minimal   systemd
 systemd-analyze     minimal   systemd           # @core (the report: the start-up)
 coredumpctl         minimal   systemd           # @core (the report: crashes)
@@ -144,6 +155,7 @@ lsusb               manifest  usbutils          # the report: USB devices
 jq                  manifest  jq
 cmp                 manifest  diffutils
 diff                manifest  diffutils
+tar                 manifest  tar               # f44: the release archives; fedokawaii pull packs a working copy aside
 man                 manifest  man-db
 nvim                manifest  neovim
 nmtui               manifest  NetworkManager-tui
@@ -155,6 +167,7 @@ wiremix             manifest  wiremix           # f44: 0.11.0 (rust-wiremix)
 pw-dump             manifest  pipewire-utils    # f44
 pw-metadata         manifest  pipewire-utils    # f44: kawa-nowplaying follows the default output
 pw-play             manifest  pipewire-utils    # f44 (a link to pw-cat)
+pw-record           manifest  pipewire-utils    # f44 (a link to pw-cat): the sound panel's test mic and the clean mic's level
 pw-mon              manifest  pipewire-utils    # f44 (the bar's volume follows PipeWire's events)
 pw-metadata         manifest  pipewire-utils    # f44 (now playing's meter follows the default output)
 wpctl               manifest  wireplumber
@@ -188,12 +201,16 @@ lxqt-policykit-agent manifest lxqt-policykit   # f44: /usr/libexec/lxqt-policyki
 udisksctl           dep       udisks2 udiskie   # f44: udisks2 (/usr/bin/udisksctl), required by udiskie
 bluetoothctl        manifest  bluez
 zathura             manifest  zathura
-bsdtar              manifest  bsdtar            # f44
 pdfinfo             manifest  poppler-utils
 pdftoppm            manifest  poppler-utils
+pdfimages           manifest  poppler-utils     # a PDF's pictures (kawa-file)
+pdftotext           manifest  poppler-utils     # a PDF's text (kawa-file)
+pdfsig              manifest  poppler-utils     # a PDF's digital signatures checked (kawa-file)
+qpdf                manifest  qpdf              # f44: merge, split, rotate, lock PDFs (kawa-file)
 xournalpp           manifest  xournalpp         # f44
 magick              manifest  ImageMagick       # f44: ImageMagick 7 (magick)
 btop                manifest  btop
+gdu                 manifest  gdu               # f44: /usr/bin/gdu; the Disk usage entry
 vd                  manifest  visidata          # f44: /usr/bin/vd (and visidata); the Tables entry, yazi's Enter on a .csv
 fd                  manifest  fd-find           # f44: /usr/bin/fd
 fzf                 manifest  fzf
@@ -207,6 +224,8 @@ restic              manifest  restic
 brave-origin        manifest  brave-origin      # (Brave's own repo)
 claude              manifest  claude-code       # (Anthropic's own repo; herdr's Ctrl+B a)
 7z                  manifest  7zip              # f44: /usr/bin/7z only (no 7zz)
+zstd                manifest  zstd              # f44: /usr/bin/zstd (.tar.zst: kawa-file)
+unrar               manifest  unrar             # RPM Fusion nonfree f44: /usr/bin/unrar (RAR: kawa-file, kawa-books)
 ffmpeg              manifest  ffmpeg
 ffprobe             manifest  ffmpeg
 rg                  manifest  ripgrep
@@ -227,8 +246,8 @@ bluetui             upstream  -
 lazygit             upstream  -                 # (its release; the COPR dejan/lazygit is no longer kept)
 herdr               upstream  -                 # (its release: Claude Code sessions side by side)
 localsend           built     install_localsend # lib/upstream.sh: its release, a folder (~/.local/share/localsend), linked from ~/.local/bin
-kawa-veil           built     kawa-veil         # theme.sh, from src/kawa-veil (callers cope without it)
 kawa-clipkeep       built     kawa-clipkeep     # theme.sh, from src/kawa-clipkeep
+kawa-saver          built     kawa-saver        # theme.sh, from src/kawa-saver (swayidle starts it)
 dwl                 built     DWL_TAG           # setup.sh, from codeberg + src/dwl
 vi                  built     /usr/local/bin/vi # setup.sh: a script that runs nvim (yazi's ${EDITOR:-vi})
 syncplay            built     install_syncplay  # setup.sh (lib/upstream.sh): its pinned source, a starter in ~/.local/bin
@@ -236,6 +255,9 @@ ble-attach          built     install_blesh     # setup.sh (lib/upstream.sh): bl
 ble-face            built     install_blesh     #   pinned commit into ~/.local/share/blesh; the shell loads it
 ble-import          built     install_blesh     #   (~/.bashrc.d/fedokawaii.sh) and its settings
 bleopt              built     install_blesh     #   (~/.config/blesh/init.sh)
+ble/function#advice built    install_blesh     #   — and the three of its own functions the prompt's
+ble/canvas/panel#goto.draw built install_blesh #   redraw after a change of width calls
+ble/canvas/bflush.draw built  install_blesh     #   (__kawa_reflow)
 
 # ── installed by nothing, on purpose ─────────────────────────────────────────────────────
 dbus-update-activation-environment  optional  -  # dbus-tools: only dbus-daemon needs it, and Fedora
@@ -251,3 +273,4 @@ wayland-info        manifest  wayland-utils      # wayland-utils: the report lis
 desktop-file-validate optional -                 # desktop-file-utils: the report validates the launcher's
                                                  # entries with it where it is installed (guarded)
 steam               optional  -                  # with STEAM=yes only (PKG_GAMING, RPM Fusion nonfree): every call is guarded
+tesseract           manifest  tesseract          # Super+Shift+Print: a region's text (kawa-screenshot text)

@@ -29,7 +29,18 @@ Colours come only from these tokens; no literal colour anywhere, in either theme
 
 - UI (panels, menus, bar, notices): **Fusion Pixel 12px Mono ja** at 12 px, icons from
   **Sumi Icons** at the same size. One size; hierarchy by colour and position, never by size.
-- Terminals: the same face at 24 px (foot), icons from Sumi Icons Term.
+- Terminals: the same design in its 10 px cut, **Fusion Pixel 10px Mono ja** at 20 px (foot:
+  2× its grid, a 10 × 22 px cell on 22 px lines — 188 × 47 cells on a 1080p screen), icons
+  from Sumi Icons Term, built on that grid (a 10 × 10 icon: two cells, one line). Only whole
+  multiples of a cut's grid are crisp (12 px: 12, 24, 36, 48 · 10 px: 10, 20, 30, 40); foot's
+  zoom steps by 10 px, and a screen at scale 2 (2160p) draws it at 40.
+- **Display size** — the one exception to "one size": the 12 px face at a whole multiple of
+  its grid, ×4 (48 px) or ×5 (60 px), never smoothed (no antialiasing, no hinting:
+  `system/60-fedokawaii-pixel.conf` — or a picture drawn nearest-neighbour at that multiple),
+  so every pixel of the font is a sharp square. Only for the clock of the lock and login
+  screens (48 px; AM/PM beside it at 12 px, on its baseline) and the boot splash. Nowhere else.
+- No scaling anywhere at 1080p: dwl's monitors are at scale 1, and nothing sets GDK_SCALE,
+  GDK_DPI_SCALE, QT_SCALE_FACTOR or Xft.dpi — sizes are the pixels written here.
 - Words are lower case (proper names keep theirs: Steam, Bluetooth, LG ULTRAGEAR).
 - Numbers are tabular and right-aligned in a column.
 
@@ -38,7 +49,7 @@ Colours come only from these tokens; no literal colour anywhere, in either theme
 | name | value | use |
 |---|---|---|
 | frame | 2 | the panel's outer frame, `muted` |
-| pad | 12 | inside the frame, all round |
+| pad | 12 | inside the frame, all round — measured to the ink: 12 px of paper between the frame and the first and last pixel drawn, above and below too (a row's text sits 4 px inside its 20 px row: the panel's height is cut to its ink) |
 | gap | 6 | between tiles, keys and a glyph and its word |
 | line | 12 | a line of text |
 | row | 20 | a list row, a meter's row |
@@ -47,30 +58,51 @@ Colours come only from these tokens; no literal colour anywhere, in either theme
 | section | 18 | from a part's last row to the next seal |
 | key | 24 high | a key button |
 | tile | 88 × 64 | a quick-settings tile; three a row = 276, the content width |
+| wide tile | 135 × 64 | two a row (6 gap = 276): a short last row of tiles, never a lone one |
 | content | 276 | the inner width of a panel (304 with pad and frame) |
 
 ## 4. Parts
 
-- **Panel**: `surface` ground, 2 px `muted` frame, 12 px pad, square corners. Never rounded,
-  never a shadow.
+- **Panel**: `surface` ground, 2 px `muted` frame, 12 px pad to the ink all round, square
+  corners. Never rounded, never a shadow. Sized to its content (a slider: its glyph's ink and
+  its last square on the content's edges).
 - **Heading**: a seal (1 px `edge2` frame, the kanji in `accent_text`), 6 px, the name in
-  `text`, 6 px, then the **stitch** — 3 px on, 2 px off, 1 px high, `edge2` — to the right edge,
-  through the seal's middle. Every part of a panel or menu opens with one. Each part has its
-  own kanji (音 sound · 出 output · 入 input · 明 brightness · 盤 drives · 暦 calendar · 時 time ·
+  `text`, 6 px, then the **stitch** — 3 px on, 2 px off, 1 px high, `edge2`, through the
+  seal's middle. The stitch starts at name+6 with a whole dash and ends on the last whole
+  dash; it may stop up to 4 px short of the edge (the content's edge, or 6 px before a value,
+  whose ink ends on that edge). Every heading starts alike; the same rule wherever a stitch
+  is drawn (the rule between parts starts at the content's left edge). Every part of a panel
+  or menu opens with one. Each part has its
+  own kanji (音 sound · 出 output · 入 input · 明 brightness · 盤 drives · 受 downloads · 暦 calendar · 時 time ·
   天 weather · 電 power · 系 system · 鍵 keys …), one character, meaning the part.
-- **Row**: 20 px high; at x+6 a glyph (an icon, or a check: ▣ chosen, □ not), 6 px, the
+- **Row**: 20 px high; at x+6 a glyph (placed by its ink: every row's glyph starts on the same
+  pixel, whatever its side bearing) (an icon, or a check: ▣ chosen, □ not), 6 px, the
   name in `text`; a detail in a column of its own (12 px after the longest
   name); a value in `muted`, right-aligned in a column 12 px after the widest words — a menu is
   as wide as its content, never stretched to put a gap before the value. A long name is shortened at its source
   (a human name), never cut with "…".
-- **Key button**: 24 px, `key` fill, 1 px `edge` frame, icon + name centred. Two or three
-  share a row with 6 px between.
+- **Key button**: 24 px, `key` fill, 1 px `edge` frame, icon + name centred by their ink. Two or
+  three share a row with 6 px between, the row the whole content width. An icon-only key (the
+  glyph alone, no name) is a square, 24 × 24, its glyph centred by its ink; the named keys of
+  its row share the rest (quick settings' bottom row: 120 · 120 · 24).
 - **Tile**: 88 × 64, `key` fill, `edge` frame; its seal top right — stamped (2 px `accent_text`
   frame, kanji `accent_text`) when on, faint outline when off; its icon top left, its name
   and state below.
 - **Meter**: its glyph, its name, then 12 squares of 10 × 8 with 2 px between, lit `asagi`,
   unlit `edge2`; muted: the lit ones hollow.
 - **Rule between parts**: the stitch alone, full content width.
+- **The launcher's heading** (fuzzel, which draws its prompt as one run of text in one
+  colour): the same heading, as two glyphs of a colour font that keep their own inks in any
+  run — the seal (frame `edge2`, kanji `accent_text`) as the prompt, the name (`text`) and
+  the stitch (`edge2`) as the placeholder; one font per theme (Sumi Seal Ink and Paper,
+  `tools/build-seal.py`, its letters Fusion Pixel's). Seal at the content's corner, the first
+  row 6 px under it, 12 px of pad all round. Where fuzzel cannot follow: the stitch ends at
+  its text margin, 6 px short of the content's edge; while you type, the name and stitch give
+  way to the typed words (Fusion's own, a pixel higher than the drawn name).
+- **Launcher icons**: each entry's program's own icon at 18 × 18 in a column at x 20 (row's
+  x + 6). The column is fixed; the ink inside it is the artwork's own — a project's margin is
+  kept, never trimmed. A terminal program whose project has no icon or logo shows foot's,
+  the terminal that draws it.
 
 ## 5. States
 
@@ -95,7 +127,7 @@ Nothing animates: no fade, no slide, no easing. Everything draws at once.
 
 ## 7. Text screens (terminal: fzf, foot)
 
-The same grammar in characters, 24 px:
+The same grammar in characters, 20 px (Fusion Pixel 10, §2):
 - **Heading**: the kanji in `accent_text`, two spaces, the name in `text`, one space, then the
   stitch as `╌` in `edge2` to the right edge — the same rhythm as the panel's.
 - **Row**: two spaces indent, glyph, two spaces, name; the value right-aligned, `muted`.
@@ -103,6 +135,10 @@ The same grammar in characters, 24 px:
 - **Gutter**: fzf's pointer and marker are spaces (the fill alone marks the cursor).
 - One blank line between parts; one before the footer; the footer in `muted`.
 - Window padding: foot's 10 px; the content keeps two cells from the frame.
+- Ground: `ground` at alpha 0.92 (kawa-glass; Super+U → transparency turns it off): the
+  wallpaper shows faintly through, the text never does. No blur.
+- Width changes: the prompt's header is laid out again for the new width and drawn over
+  itself (nothing left above it); a finished entry keeps its header without the stitch.
 
 ## 8. The handbook
 

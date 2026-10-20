@@ -49,11 +49,47 @@ case_ "setup's error report names the command that failed: run's — not run's o
 trapped 's_media() { run sh -c "echo from dnf; exit 3"; echo after; }; s_media'
 eq "$RC" 3; has "$OUT" "from dnf"; has "$OUT" "in s_media()"; has "$OUT" ": sh -c echo from dnf; exit 3 (exit 3)"
 lacks "$OUT" "tee -a"; lacks "$OUT" ": return"; lacks "$OUT" "after"
-case_ "…retry's (dnf_install is a retry): the command tried, not retry's return"
+case_ "…dnf_install's: the whole install named, not its return; each package alone first, the one at fault said"
 stub dnf 'exit 1'
 trapped 's_base() { dnf_install foo bar; echo after; }; s_base'
-eq "$RC" 1; has "$OUT" "attempt 3/3 failed: dnf -y install foo bar"; has "$OUT" ": dnf -y install foo bar (exit 1)"
+eq "$RC" 1; has "$OUT" "dnf attempt 3/4 failed (other)"; has "$OUT" ": dnf -y install foo bar (exit 1)"
+has "$OUT" "✘ dnf could not install 2 of 2 package(s):"; has "$OUT" "    foo — other: "
 lacks "$OUT" ": return"; lacks "$OUT" "after"
+case_ "dnf_install: what a new try mends is tried again (fresh metadata, longer pauses); what none mends stops at once"
+# dnf FAILS-LEFT MESSAGE — dnf failing that many times with dnf's own words, then installing
+dnf_failing() { echo "$1" >"$TMP/dnf-left"; stub dnf "n=\$(cat \$TMP/dnf-left); if [ \"\$n\" -gt 0 ]; then echo \$((n - 1)) >\$TMP/dnf-left; echo '$2' >&2; exit 1; fi; exit 0"; }
+stub rpm 'exit 1'
+for m in "Librepo error: Status code: 404 for https://mirror/x.rpm|net" "Cannot prepare internal mirrorlist: metalink|net" \
+         "Downloading successful, but checksum does not match|checksum" "Curl error (18): Transferred a partial file|net" \
+         "Failed to obtain rpm transaction lock. Another transaction is in progress.|lock" "Signature verification failed. OpenPGP check|gpg"; do
+  reset_calls; dnf_failing 2 "${m%|*}"
+  lib 'dnf_install foo bar; echo "rc=$?"'; has "$OUT" "rc=0" "${m#*|}: in on the third try"
+  has "$OUT" "dnf attempt 1/4 failed (${m#*|})"; has "$OUT" "dnf attempt 2/4 failed (${m#*|})"
+  eq "$(grep -c -- "--refresh" "$CALLS")" 2 "${m#*|}: every try after a failure refreshes the metadata (another mirror)"
+done
+lib 'dnf_install foo; echo "rc=$?"'; has "$OUT" "rc=0"
+reset_calls; dnf_failing 9 "Error: No match for argument: foo"
+lib 'mkdir -p $STATE_DIR; dnf_install foo; echo "rc=$?"'; has "$OUT" "rc=1"
+lacks "$OUT" "dnf attempt" "a name no repository has: never tried again"
+has "$OUT" "foo — missing: no enabled repository has 'foo' — renamed or retired in this Fedora?"
+eq "$(grep -c '^dnf' "$CALLS")" 1; eq "$(cat "$TMP/state/dnf-failed")" "foo|missing" "kept for the health report"
+case_ "dnf_install: a batch with one bad name — each alone, the good ones in, only the bad one named"
+stub dnf 'for a; do [ "$a" = renamedpkg ] && { echo "No match for argument: renamedpkg" >&2; exit 1; }; done; exit 0'
+lib 'mkdir -p $STATE_DIR; dnf_install --allowerasing a renamedpkg b; echo "rc=$?"'; has "$OUT" "rc=1"
+has "$OUT" "✘ dnf could not install 1 of 3 package(s):"; has "$OUT" "renamedpkg — missing"; lacks "$OUT" "    a — "
+called '^dnf -y install --allowerasing a --refresh$'; called '^dnf -y install --allowerasing b --refresh$'
+lib 'dnf_install renamedpkg2; echo "rc=$?"'; has "$OUT" "rc=0"
+lib 'printf "%s\n" "x|net" "renamedpkg2|missing" >$STATE_DIR/dnf-failed; dnf_install renamedpkg2; cat $STATE_DIR/dnf-failed'
+has "$OUT" "x|net"; lacks "$OUT" "renamedpkg2|" "a package in at last leaves the list"
+case_ "dnf_install: the network down — no each-alone round (none would get through), the fix said"
+reset_calls; dnf_failing 9 "Curl error (6): Could not resolve host: mirrors.fedoraproject.org"
+lib 'dnf_install a b; echo "rc=$?"'; has "$OUT" "rc=1"; eq "$(grep -c '^dnf' "$CALLS")" 4 "four tries, no more"
+has "$OUT" "a — net: the network or the mirrors failed every try"
+eq "$(grep '^sleep' "$CALLS" | tr '\n' ' ')" "sleep 15 sleep 30 sleep 45 " "pauses that grow, none after the last"
+case_ "dnf_install: a full disk is said at once, with the fix"
+reset_calls; dnf_failing 9 "Error: not enough free space: 512 MB more space needed on /"
+lib 'dnf_install a; echo "rc=$?"'; has "$OUT" "rc=1"; has "$OUT" "a — disk: the disk is full — df -h /"; eq "$(grep -c '^dnf' "$CALLS")" 1
+stub rpm 'exit 0'
 trapped 's_dwl() { retry 2 10 false --fetch codeberg; }; s_dwl'; has "$OUT" "in s_dwl(), called from line"; has "$OUT" ": false --fetch codeberg (exit 1)"
 case_ "…a plain command as it is; one run saw fail earlier, and dealt with, is never named for another"
 trapped 'f() { echo x | grep -q y; echo after; }; f'; has "$OUT" ": grep -q y (exit 1)"; lacks "$OUT" after

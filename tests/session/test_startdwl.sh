@@ -11,7 +11,7 @@ setup() {   # setup — start-dwl rendered as setup.sh installs it, its /usr/loc
   sandbox
   BIN=$TMP/root/usr/local/bin; mkdir -p "$BIN" "$TMP/shbin"
   sed -e 's|@KB_LAYOUTS@|us,ara|' -e 's|@KB_TOGGLE@|grp:alt_shift_toggle|' -e "s|/usr/local/bin/dwl|$BIN/dwl|g" \
-    "$REPO/system/start-dwl" >"$TMP/start-dwl"
+    -e "s|/etc/profile.d/fedokawaii-home.sh|$REPO/system/fedokawaii-home.sh|" "$REPO/system/start-dwl" >"$TMP/start-dwl"
   cp "$BASH" "$TMP/shbin/sh"             # bash started as sh: its POSIX mode, Fedora's /bin/sh (a copy, not a link)
   # the autostart: only says that it ran (dwl runs it through sh -c, as the real dwl does)
   mkdir -p "$HOME/.config/dwl"
@@ -54,7 +54,12 @@ dwl dwl; echo "the last session" >"$LOG"
 start
 eq "$RC" 0; called "^dwl -s $HOME/.config/dwl/autostart.sh$"; not_called "^bash"
 has "$(cat "$TMP/autostart.ran")" "autostart ran in $HOME"
-eq "$(envof dwl PATH)" "$HOME/.local/bin:$PATH" "the home's .local/bin first: the kawa-* helpers"
+eq "$(envof dwl PATH)" "$HOME/.local/bin:$PATH:$HOME/.local/share/cargo/bin" "the home's .local/bin first: the kawa-* helpers; rustup's Rust last"
+for v in "XDG_DATA_HOME=$HOME/.local/share" "XDG_STATE_HOME=$HOME/.local/state" "CARGO_HOME=$HOME/.local/share/cargo" \
+         "RUSTUP_HOME=$HOME/.local/share/rustup" "HISTFILE=$HOME/.local/state/bash/history" "NPM_CONFIG_CACHE=$HOME/.cache/npm"; do
+  eq "$(envof dwl "${v%%=*}")" "${v#*=}" "the session keeps programs' files in place: ${v%%=*}"
+done
+[[ -d $HOME/.local/state/bash ]] && _ok || _no "the history's folder made"
 for v in XDG_SESSION_TYPE=wayland XDG_SESSION_DESKTOP=dwl XDG_CURRENT_DESKTOP=wlroots XKB_DEFAULT_LAYOUT=us,ara \
          XKB_DEFAULT_OPTIONS=grp:alt_shift_toggle "QT_QPA_PLATFORM=wayland;xcb" QT_QPA_PLATFORMTHEME=qt6ct \
          GDK_BACKEND=wayland,x11 GTK_USE_PORTAL=1 _JAVA_AWT_WM_NONREPARENTING=1 EDITOR=nvim VISUAL=nvim \
@@ -145,7 +150,7 @@ eq "$RC" 1; has "$OUT" "already running"; not_called "^kmscon-launch-gui"
 case_ "leftovers of a session that crashed (Wayland socket and lock, the bar's folder, a float lock): a normal start$n"
 setup; dwl dwl
 mkdir -p "$XDG_RUNTIME_DIR/dwl-bar/DP-1"; : >"$XDG_RUNTIME_DIR/wayland-0"; : >"$XDG_RUNTIME_DIR/wayland-0.lock"
-: >"$XDG_RUNTIME_DIR/kawa-float-books.lock"; start
+: >"$XDG_RUNTIME_DIR/kawa-term-books.lock"; start
 eq "$RC" 0; called "^dwl -s"; not_called "^bash"
 
 case_ "a home folder with a space, or a space and a quote: the autostart still runs$n"

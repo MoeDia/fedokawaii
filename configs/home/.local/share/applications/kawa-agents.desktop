@@ -6,13 +6,13 @@
 # Its own app-id (kawa-agents) and title ("Agents", then "Agents · <workspace>" as herdr sets
 # it); it starts in ~/repos, where your projects are (theme.sh makes the folder) — herdr's
 # first workspace is the folder it was started in.
-# Its icon: foot's, the terminal that draws its window (herdr ships none of its own; the
-# launcher shows each program's own icon, never an icon pack's).
+# Its icon: herdr's own logo, from its repository at the pinned tag (lib/upstream.sh,
+# UPSTREAM_ICONS: its release file has none), by its path.
 Type=Application
 Name=Agents
 GenericName=Coding agents side by side
 Comment=herdr: Claude Code sessions in panes, each marked working, blocked or idle
-Icon=foot
+Icon=@HOME@/.local/share/fedokawaii/icons/herdr.png
 Exec=footclient -N -a kawa-agents -T Agents -D @HOME@/repos -- herdr
 Terminal=false
 Categories=Development;

@@ -36,6 +36,9 @@ def stitch(col, on, per, h, k=4):
     return "url(data:image/png;base64," + base64.b64encode(b.getvalue()).decode() + ")"
 CHROME = os.environ.get("FEDOKAWAII_CHROME", "/opt/pw-browsers/chromium-1194/chrome-linux/chrome")
 OUT = os.environ.get("FEDOKAWAII_OUT", f"{S}/guide")   # (test copy: configurable)
+# the book's file name: the handbook's by default; learn.py (beside this script) prints the
+# learning guide through the same machinery under its own
+PDF = os.environ.get("FEDOKAWAII_PDF", "Fedokawaii-Guide.pdf")
 IMG = f"{OUT}/img2"
 R = f"{S}/real/shots"
 NM = f"{S}/mock/node_modules/@fontsource"
@@ -106,7 +109,7 @@ def add(name, path):   # a figure at its natural size (1 px = 1 CSS px); sized i
 MM = 96 / 25.4                       # CSS px per mm
 TEXT_W = 180 * MM                    # the text column (A4 less 2 × 15 mm)
 FULL = {"bar", "fetch", "pointers", "icons"}          # strips that fill the column
-MAXH = {"desktop-dark": 236, "desktop-light": 236, "transition": 236, "packsheet": 236, "lock": 84,
+MAXH = {"desktop-dark": 236, "desktop-light": 236, "packsheet": 236, "lock": 84,
         "menus": 180, "osd": 150, "drives": 110}
 def printable(src, scale, out):
     i = Image.open(src).convert("RGB")
@@ -196,27 +199,6 @@ for name in ("nvim-whichkey", "nvim-picker", "nvim-grep", "nvim-split", "nvim-ls
     t = ("dark", "light")[len([k for k in FIG if k.startswith(("nvim-", "lazygit-", "yazi-"))]) % 2]
     src = f"{R}/{t}/app-{name}.png"
     if os.path.exists(src): add(name, src)            # (sized, never resampled twice: layout())
-
-# the transition, from two real screens (the formula of src/kawa-veil/kawa-veil.c plan())
-BAYER = np.array([[0,32,8,40,2,34,10,42],[48,16,56,24,50,18,58,26],[12,44,4,36,14,46,6,38],[60,28,52,20,62,30,54,22],
-                  [3,35,11,43,1,33,9,41],[51,19,59,27,49,17,57,25],[15,47,7,39,13,45,5,37],[63,31,55,23,61,29,53,21]])
-def values(W, H, style):
-    bs = max(-(-W // 640), -(-H // 360), 2); bw, bh = -(-W // bs), -(-H // bs)
-    by, bx = np.mgrid[0:bh, 0:bw]; b = (BAYER[by % 8, bx % 8] + 0.5) / 64
-    chord = 96.0 * max(H / 1080, 1) / bs; r = chord / 2; band = r * 1.2
-    f = np.mod(bx + 0.5, chord) - r; depth = r - np.sqrt(np.maximum(r * r - f * f, 0))
-    d = (bh - 1 - by) if style == "rise" else by
-    v = (d + depth + band * b) / (bh + r + band)
-    return np.kron(v, np.ones((bs, bs)))[:H, :W]
-if os.path.exists(f"{R}/dark/terminal-full.png"):
-    A = np.array(im(f"{R}/dark/terminal-full.png")); N = np.array(im(f"{R}/light/terminal-full.png"))
-    v = values(A.shape[1], A.shape[0], "rise"); ease = lambda t: t * t * (3 - 2 * t)
-    frames = [Image.fromarray(np.where((v < ease(t))[..., None], N, A).astype(np.uint8)) for t in (0.3, 0.5, 0.7)]
-    row = Image.new("RGB", (3 * 960 + 2 * 16, 540), GAP)
-    for i, f in enumerate(frames): row.paste(f.resize((960, 540), Image.LANCZOS), (i * 976, 0))
-    detail = frames[1].crop((560, 380, 1360, 680)).resize((1600, 600), Image.NEAREST)
-    fig = Image.new("RGB", (row.width, 540 + 16 + 600), GAP); fig.paste(row, (0, 0)); fig.paste(detail, ((row.width - 1600) // 2, 556))
-    fig.save(f"{IMG}/transition.png"); add("transition", f"{IMG}/transition.png")
 
 # the pack: two pictures, then the whole sheet
 W = "/home/kawau/.local/share/fedokawaii/wallpapers"
@@ -358,6 +340,8 @@ KANJI = {
     "44": "問",  # asking an assistant
     "A": "具", "B": "所", "C": "鍵", "D": "令", "E": "辞", "F": "今", "G": "源",
 }
+# a book's own chapters: its front matter's kanji: "1=始 2=端 …" (the learning guide's)
+KANJI.update(k.split("=", 1) for k in meta.get("kanji", "").split())
 PART_KANJI = {"I": "一", "II": "二", "III": "三", "IV": "四", "V": "五", "VI": "六", "VII": "七", "Appendices": "付"}
 def kanji_of(title):
     t = H.unescape(re.sub(r"<[^>]+>", "", title)).strip()
@@ -570,7 +554,7 @@ _c = Image.open(COVER).convert("RGB")
 _h = _c.height; _w = round(_h * 210 / 297); _x = round(_c.width * 0.473)
 cover_bg = f"{IMG}/cover.jpg"; _c.crop((_x, 0, _x + _w, _h)).save(cover_bg, quality=92)
 torii = chr(0xFE000)
-doc = (f"<!doctype html><html><head><meta charset='utf-8'><title>Fedokawaii — the handbook</title><style>{CSS}</style></head><body>"
+doc = (f"<!doctype html><html><head><meta charset='utf-8'><title>{H.escape(meta['title'])}</title><style>{CSS}</style></head><body>"
        f"<section class='cover'><img class='bg' src='file://{cover_bg}'><div class='shade'></div><div class='t'>"
        f"<span class='torii'>{torii}</span><h1>{'\u00a0'.join(meta['title'].rsplit(' ', 1))}</h1><div class='cst'></div>"
        f"<p class='sub'>{meta['subtitle']}</p><p class='date'>{meta['date']}</p></div></section>"
@@ -607,24 +591,37 @@ with sync_playwright() as p:
         document.querySelectorAll('main p, main li').forEach(e => {
             if (e.offsetHeight < parseFloat(getComputedStyle(e).lineHeight) * 3.5) e.style.breakInside = 'avoid'; });
     }""")
+    pg.evaluate("""() => {   // every stitch ends on a whole stitch (design-system §4): a rule whose width would end
+        // its last one cut is made that much shorter (its stitches start at its left edge; on 3 of 5, on 6 of 10)
+        const cut = (w, on, per) => { const r = Math.round(w) % per; return r > 0 && r < on ? r : 0; };
+        document.querySelectorAll('.st').forEach(e => {
+            const two = !!e.closest('h1'), w = e.getBoundingClientRect().width, r = cut(w, two ? 6 : 3, two ? 10 : 5);
+            if (r) { e.style.flex = 'none'; e.style.width = (Math.round(w) - r) + 'px'; } });
+        document.querySelectorAll('.toc .ld').forEach(e => {
+            const r = cut(e.getBoundingClientRect().width, 3, 5);
+            if (r) e.style.right = `calc(2.6em + ${r}px)`; });
+        new Set([...document.querySelectorAll('main tr')].map(t => t.closest('table'))).forEach(t => {
+            const w = t.getBoundingClientRect().width, r = cut(w, 3, 5);
+            if (r) t.style.width = (Math.round(w) - r) + 'px'; });
+    }""")
     def pages():   # the page each contents heading landed on: its link's named destination
         import pikepdf
-        with pikepdf.open(f"{OUT}/Fedokawaii-Guide.pdf") as pdf:
+        with pikepdf.open(f"{OUT}/{PDF}") as pdf:
             at = {page.objgen: i + 1 for i, page in enumerate(pdf.pages)}
             dests = {str(k).lstrip("/"): v for k, v in pdf.Root.Dests.items()}
             return [str(at[dests[f"t{i}"][0].objgen]) for i in range(1, len(heads) + 1)]
     for _ in range(3):   # print, write the numbers in (same width: nothing moves), print again
-        pg.pdf(path=f"{OUT}/Fedokawaii-Guide.pdf", format="A4", print_background=True, prefer_css_page_size=True)
+        pg.pdf(path=f"{OUT}/{PDF}", format="A4", print_background=True, prefer_css_page_size=True)
         nums = pages()
         if nums == pg.evaluate("() => [...document.querySelectorAll('.toc .pn')].map(e => e.textContent)"): break
         pg.evaluate("ns => document.querySelectorAll('.toc .pn').forEach((e, i) => e.textContent = ns[i])", nums)
     else: print("contents: page numbers still moving")
     b.close()
-print("pdf", os.path.getsize(f"{OUT}/Fedokawaii-Guide.pdf") // 1024, "KiB")
+print("pdf", os.path.getsize(f"{OUT}/{PDF}") // 1024, "KiB")
 # the pictures re-compressed losslessly (pdfpack.py, beside this script): every pixel the same, a tenth smaller
 sys.dont_write_bytecode = True                 # (no __pycache__ left in the repository)
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import pdfpack
-pdfpack.main(f"{OUT}/Fedokawaii-Guide.pdf", f"{OUT}/Fedokawaii-Guide.packed.pdf")
-os.replace(f"{OUT}/Fedokawaii-Guide.packed.pdf", f"{OUT}/Fedokawaii-Guide.pdf")
-print("packed", os.path.getsize(f"{OUT}/Fedokawaii-Guide.pdf") // 1024, "KiB")
+pdfpack.main(f"{OUT}/{PDF}", f"{OUT}/{PDF}.packed")
+os.replace(f"{OUT}/{PDF}.packed", f"{OUT}/{PDF}")
+print("packed", os.path.getsize(f"{OUT}/{PDF}") // 1024, "KiB")

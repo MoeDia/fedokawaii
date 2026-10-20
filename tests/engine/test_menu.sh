@@ -75,10 +75,10 @@ case_ "the lock let go (its run crashed, the file left behind): runs again"
 reset_calls; rc 0 fedokawaii update; called '^sudo bash .*fedokawaii.sh update'
 
 # ── the menu's rows ──────────────────────────────────────────────────────────
-case_ "rows: on the desktop fifteen entries in three parts, in order, each fitting the 38-column list"
+case_ "rows: on the desktop sixteen entries in three parts, in order, each fitting the 38-column list"
 fresh; rec last-update-done "$(ago_s 10)"; rec snapshots 14; rec last-verify "$(ago_s 1) 180 2 0"
 out=$(WAYLAND_DISPLAY=wayland-1 fedokawaii --rows)
-eq "$(cut -f1 <<<"$out" | tr '\n' ' ')" "- status update upgrade verify repair drift snapshots backup - change theme settings remind - keys guide log "
+eq "$(cut -f1 <<<"$out" | tr '\n' ' ')" "- status update pull upgrade verify repair drift snapshots backup - change theme settings remind - keys guide log "
 eq "$(grep '^-' <<<"$(plain "$out")" | cut -f2 | sed 's/ ╌*$//' | tr '\n' '|')" "守  upkeep|卓  desktop|案  help|" "the headings: a kanji, two spaces, the part's name"
 eq "$(grep '^-' <<<"$(plain "$out")" | cut -f2 | python3 -I -c 'import sys, unicodedata
 print(" ".join(str(sum(2 if unicodedata.east_asian_width(c) in "WF" else 1 for c in l)) for l in sys.stdin.read().splitlines()))')" "38 38 38" \
@@ -94,9 +94,9 @@ for a in update snapshots remind; do
 done
 has "$(row update)" "in 80 days"; has "$(row snapshots)" "14"; has "$(row verify)" "2 to fix"; has "$(row remind)" "every 90 days"
 lacks "$(row status)" "Fedora" "status: no value (the pane beside it is the status: the release is its first line)"; has "$(row upgrade)" "upgrade to Fedora 45"
-case_ "rows: away from the desktop (a text console, ssh) thirteen — change and keybindings are menus by the bar"
+case_ "rows: away from the desktop (a text console, ssh) fourteen — change and keybindings are menus by the bar"
 out=$(env -u WAYLAND_DISPLAY fedokawaii --rows)
-eq "$(cut -f1 <<<"$out" | tr '\n' ' ')" "- status update upgrade verify repair drift snapshots backup - theme settings remind - guide log "
+eq "$(cut -f1 <<<"$out" | tr '\n' ' ')" "- status update pull upgrade verify repair drift snapshots backup - theme settings remind - guide log "
 case_ "fzf's items: NUL-ended, every heading after the first with an empty line above it, never one at the end"
 items=$(plain "$(WAYLAND_DISPLAY=wayland-1 fedokawaii --items | tr '\0' '\n')")
 items=$(sed 's/ ╌*\t$//' <<<"$items")
@@ -114,7 +114,7 @@ has "$(cat "$(command -v fedokawaii)")" "enter:transform:case {1} in -) ;; chang
 case_ "Super+U's popup (--popup): the menu closes for a job too (fzf becomes the run, which hands it on); a plain menu, not"
 if has_script; then
   fresh; stub fzf 'cat >/dev/null; exit 130'
-  on_tty "" fedokawaii --popup >/dev/null; called 'enter:transform:case \{1\} in -\) ;; change\|keys\|update\|upgrade\|verify\|repair\|theme\|drift\|snapshots\|backup\|settings\|log\) echo .become\('
+  on_tty "" fedokawaii --popup >/dev/null; called 'enter:transform:case \{1\} in -\) ;; change\|keys\|update\|pull\|upgrade\|verify\|repair\|theme\|drift\|snapshots\|backup\|settings\|log\) echo .become\('
   reset_calls; on_tty "" fedokawaii >/dev/null; called 'enter:transform:case \{1\} in -\) ;; change\|keys\) echo .become\('
 else _ok; fi
 case_ "rows: the mark at the right edge, wider with a wider window (FZF_COLUMNS)"
@@ -175,7 +175,7 @@ rec last-verify "$(ago_s 365) 1800 0 12"; echo 6.17.10-1300.fc44.x86_64 >"$R/new
 echo "2000000000000 12000000000" >"$R/df"; printf '%s\n' a-very-long-package-name another-long-one >"$R/state/unavailable"
 printf '/etc/x.rpmnew\n' >"$R/state/rpmnew"
 setting BACKUP_TARGET "a drive with a long name"; backed_up 1000
-for a in status update upgrade verify repair snapshots backup theme drift change settings remind log keys guide; do
+for a in status update pull upgrade verify repair snapshots backup theme drift change settings remind log keys guide; do
   out=$(fedokawaii --explain "$a")
   (( $(wc -l <<<"$out") <= 16 )) && _ok || _no "$a: $(wc -l <<<"$out") lines"
   heading_ok "$(sed -n 1p <<<"$out" | cut -c3-)" 47 "$a: the pane's heading (level with the list's first)"
@@ -236,8 +236,27 @@ echo 1 >"$R/rc-backup"; has "$(outcome backup)" "it ended with an error (1)"
 reset_calls; rc 1 fedokawaii backup; called '^kawa-backup $'; not_called '^sudo'
 case_ "backup without kawa-backup installed: said plainly"
 out=$(without kawa-backup -- fedokawaii backup 2>&1); eq "$?" 1; has "$out" "kawa-backup is missing"
-case_ "snapshots: snapper's list, as root"
-fresh; out=$(outcome snapshots); has "$out" "finished"; called '^sudo snapper -c root list'
+snaplist() { stub kawa-snap 'case $1 in list) printf "1\tsingle\t2026-10-01 10:00:00\tfedokawaii baseline\t-\n41\tpre\t2026-10-15 09:00:00\tdnf install htop\t-\n42\tpost\t2026-10-15 09:01:00\tdnf install htop\t-\nold\tsingle\t2026-10-16 08:00:00\tthe system before the last restore\t-\n" ;; esac'; stub systemctl; }
+case_ "snapshots: kawa-snap's list from the disk, as root (a dnf pair shown once, by its pre); enter restores none"
+fresh; snaplist; out=$(outcome snapshots); has "$out" "finished"; called '^sudo kawa-snap list$'; not_called 'kawa-snap restore'
+out=$(tty_free fedokawaii --run snapshots </dev/null 2>&1)
+has "$out" "fedokawaii baseline"; has "$out" "dnf install htop"; eq "$(grep -c 'dnf install htop' <<<"$out")" 1
+has "$out" "the system before the last restore"
+case_ "snapshots: a long description cut at a word's end, never mid-word, never an …; the boot menu's way said"
+fresh; stub kawa-snap 'case $1 in list) printf "9\tpre\t2026-10-15 09:00:00\tdnf install libreoffice-writer libreoffice-calc libreoffice-impress hunspell\t-\n" ;; esac'
+out=$(plain "$(tty_free fedokawaii --run snapshots </dev/null 2>&1)")
+has "$out" "9     dnf install libreoffice-writer "; lacks "$out" "libreoffice-c"; lacks "$out" "…"
+has "$out" "or at power-on: hold Shift (Esc/F8) for the boot menu → snapshots"
+if has_script; then
+  case_ "snapshots: a number, then yes — that one restored as root, the restart asked (n: none)"
+  fresh; snaplist; out=$(on_tty $'41\nyes\nn' fedokawaii --run snapshots)
+  called '^sudo kawa-snap restore 41$'; not_called '^systemctl reboot'
+  fresh; snaplist; on_tty $'old\nyes\ny' fedokawaii --run snapshots >/dev/null
+  called '^sudo kawa-snap restore old$'; called '^systemctl reboot'
+  case_ "snapshots: anything but yes, or a number not listed — nothing restored"
+  fresh; snaplist; on_tty $'41\nno\n' fedokawaii --run snapshots >/dev/null; not_called 'kawa-snap restore'
+  out=$(on_tty $'42\nyes\n' fedokawaii --run snapshots); has "$out" "no snapshot 42 in the list"; not_called 'kawa-snap restore'
+fi
 case_ "snapshots without snapper, or on a root that is not Btrfs: said plainly"
 reset_calls
 out=$(without snapper -- "$SETSID" -w fedokawaii --run snapshots </dev/null 2>&1); has "$out" "snapper is not installed"; not_called '^sudo'
@@ -260,18 +279,21 @@ eq "$(cat "$R/less.out")" $'first line\nlast line' "less shows the log"
 reset_calls; rm -f "$R/less.out"; fedokawaii log >/dev/null 2>&1; called "^sudo cat -- $R/fedokawaii.log$"; called '^less \+G$'
 case_ "log with sudo refusing: said, and no pager"
 fresh; : >"$R/sudo-refused"; out=$(fedokawaii log 2>&1); has "$out" "needs root"; not_called '^less'
-case_ "the handbook: zathura, on its own (the menu never waits for it)"
+case_ "the learning guide: zathura, on its own (the menu never waits for it)"
 fresh; export WAYLAND_DISPLAY=wayland-1
-tty_free fedokawaii --run guide </dev/null >/dev/null 2>&1; called "^setsid -f zathura $R/toolkit/docs/Fedokawaii-Guide.pdf"
+tty_free fedokawaii --run guide </dev/null >/dev/null 2>&1; called "^setsid -f zathura $R/toolkit/docs/Fedokawaii-Learn.pdf"
 reset_calls; fedokawaii guide; called "^setsid -f zathura"
-case_ "the handbook missing, or zathura: said, not a silent nothing"
-rm -f "$R/toolkit/docs/Fedokawaii-Guide.pdf"
-out=$(fedokawaii guide 2>&1); eq "$?" 1; has "$out" "the handbook is missing"
+case_ "the learning guide missing, or zathura: said, not a silent nothing"
+rm -f "$R/toolkit/docs/Fedokawaii-Learn.pdf"
+out=$(fedokawaii guide 2>&1); eq "$?" 1; has "$out" "the learning guide is missing"
 fresh; export WAYLAND_DISPLAY=wayland-1
 out=$(without zathura -- fedokawaii guide 2>&1); eq "$?" 1; has "$out" "zathura is not installed"
-case_ "the handbook on a text console (no desktop: the rescue screen): its text, in less"
-fresh; unset WAYLAND_DISPLAY; printf '# Fedokawaii\n' >"$R/toolkit/docs/fedokawaii-guide.md"
-fedokawaii guide; called "^less .*$R/toolkit/docs/fedokawaii-guide.md"; not_called zathura
+case_ "the learning guide on a text console (no desktop: the rescue screen): its text, in less"
+fresh; unset WAYLAND_DISPLAY; printf '# Fedokawaii\n' >"$R/toolkit/docs/fedokawaii-learn.md"
+fedokawaii guide; called "^less .*$R/toolkit/docs/fedokawaii-learn.md"; not_called zathura
+case_ "the full handbook stays in the repository: the menu never opens it"
+fresh; export WAYLAND_DISPLAY=wayland-1; printf '%%PDF-1.4 the handbook\n' >"$R/toolkit/docs/Fedokawaii-Guide.pdf"
+fedokawaii guide; not_called "Fedokawaii-Guide.pdf"; called "^setsid -f zathura $R/toolkit/docs/Fedokawaii-Learn.pdf"; unset WAYLAND_DISPLAY
 
 # ── settings: a copy edited, checked by root, only then saved ─────────────────
 editor() { printf '#!/bin/sh\n%s\n' "$1" >"$TMP/ed"; chmod +x "$TMP/ed"; export VISUAL=$TMP/ed; }
@@ -311,18 +333,18 @@ tty_free fedokawaii --run settings </dev/null >/dev/null 2>&1; has "$(cat "$R/to
 unset VISUAL
 
 # ── the plain menu (no fzf, a text console) ──────────────────────────────────
-case_ "plain menu: the status, thirteen numbered entries; q, Q, Enter and end of input all leave"
+case_ "plain menu: the status, fourteen numbered entries; q, Q, Enter and end of input all leave"
 fresh
 for k in q Q "" ; do out=$(printf '%s\n' "$k" | tty_free fedokawaii 2>&1); eq "$?" 0 "[$k]"; done
 out=$(tty_free fedokawaii </dev/null 2>&1); eq "$?" 0 "end of input"
-has "$out" "FEDOKAWAII"; has "$out" "release   Fedora 44"; has "$out" " 1  status"; has "$out" "12  handbook"; has "$out" "13  log"
-has "$out" " 8  backup"; lacks "$out" "upkeep"; has "$out" "backup    not set up"
+has "$out" "FEDOKAWAII"; has "$out" "release   Fedora 44"; has "$out" " 1  status"; has "$out" "13  learn"; has "$out" "14  log"; has "$out" " 3  update fedokawaii"
+has "$out" " 9  backup"; lacks "$out" "upkeep"; has "$out" "backup    not set up"
 case_ "plain menu: a number runs its entry, then the menu again"
 out=$(printf '2\nq\n' | tty_free fedokawaii 2>&1)
 eq "$(front_calls)" "front update"; eq "$(grep -c FEDOKAWAII <<<"$out")" 2
 case_ "plain menu: a wrong answer says what is wanted, and runs nothing"
-fresh; out=$(printf '0\n14\nx\n1x\n-1\n\n' | tty_free fedokawaii 2>&1)
-eq "$(grep -c '1–13, or q' <<<"$out")" 5 "each of the five wrong answers"; eq "$(front_calls)" ""
+fresh; out=$(printf '0\n15\nx\n1x\n-1\n\n' | tty_free fedokawaii 2>&1)
+eq "$(grep -c '1–14, or q' <<<"$out")" 5 "each of the five wrong answers"; eq "$(front_calls)" ""
 case_ "plain menu on the text console: no characters the console font may lack"
 fresh; out=$(printf 'q\n' | TERM=linux tty_free fedokawaii 2>&1)
 lacks "$out" "·"; lacks "$out" "—"; lacks "$out" "…"; lacks "$out" "→"; has "$out" "status"
@@ -332,17 +354,17 @@ out=$(TERM=kmscon fedokawaii status); lacks "$out" "·"
 out=$(TERM=xterm-256color TERM_SESSION_TYPE=fb fedokawaii status); lacks "$out" "·" "kmscon under another TERM"
 if has_script; then
   fresh; stub fzf 'cat >/dev/null; exit 130'
-  out=$(TERM=kmscon TERM_SESSION_TYPE=kms on_tty "q"$'\n' fedokawaii); has "$out" "12  handbook"; lacks "$out" "·"; not_called '^fzf'
+  out=$(TERM=kmscon TERM_SESSION_TYPE=kms on_tty "q"$'\n' fedokawaii); has "$out" "13  learn"; lacks "$out" "·"; not_called '^fzf'
 else _ok; fi
 case_ "plain menu when fzf cannot run (old fzf: exit 2) on a terminal"
 if has_script; then
   fresh; stub fzf 'exit 2'
-  out=$(on_tty "q"$'\n' fedokawaii); has "$out" "FEDOKAWAII"; has "$out" "12  handbook"
+  out=$(on_tty "q"$'\n' fedokawaii); has "$out" "FEDOKAWAII"; has "$out" "13  learn"
   case_ "fzf menu: Esc closes it (exit 0)"
   stub fzf 'cat >/dev/null; exit 130'; on_tty "" fedokawaii >/dev/null; eq "$?" 0; called '^fzf --read0 --ansi'
 else _ok; fi
 case_ "Super+U: the menu in a window of its own (a popup)"
-fresh; fedokawaii --window; called "^kawa-float --once system system 100x25 -- .*fedokawaii --popup$"
+fresh; fedokawaii --window; called "^kawa-term --float --once system system 100x27 -- .*fedokawaii --popup$"
 case_ "Super+U's popup: a job is handed to a window of its own (a click outside, or Super+U again, never kills it) and the menu ends"
 for a in update upgrade verify repair theme drift snapshots backup settings log; do
   reset_calls; FEDOKAWAII_POPUP=yes tty_free fedokawaii --run "$a" </dev/null >/dev/null 2>&1; eq "$?" 0 "$a"
@@ -353,13 +375,13 @@ reset_calls; out=$(FEDOKAWAII_POPUP=yes tty_free fedokawaii --run status </dev/n
 has "$out" "finished"; has "$out" "any key goes back to the menu"; not_called 'fedokawaii --job'
 case_ "the job's window: a dialog, one at a time; inside, the job, then a key that closes it"
 fresh; rc 0 fedokawaii --job update
-called "^kawa-float --once system-job --dialog system · update 100x27 -- .*fedokawaii --job-run update$"; not_called '^notify-send'
+called "^kawa-term --float --once system-job --dialog system · update 100x27 -- .*fedokawaii --job-run update$"; not_called '^notify-send'
 out=$(FEDOKAWAII_POPUP=yes tty_free fedokawaii --job-run update </dev/null 2>&1)
 eq "$(front_calls)" "front update" "run inside, never handed on again"; has "$out" "finished"; has "$out" "any key closes this window"
 case_ "the job's window that cannot open, or one already running: a notice says so"
-stub kawa-float 'exit 1'; reset_calls; rc 1 fedokawaii --job update
+stub kawa-term 'exit 1'; reset_calls; rc 1 fedokawaii --job update
 called '^notify-send -a desktop -u critical -- .*  upkeep the terminal server is not running — fedokawaii repair puts it back$'
-stub kawa-float 'exit 3'; reset_calls; rc 3 fedokawaii --job backup
+stub kawa-term 'exit 3'; reset_calls; rc 3 fedokawaii --job backup
 called '^notify-send -a desktop -- .*  upkeep a job of the system menu is running in its window'
 case_ "change: the part-by-part menu"
 fedokawaii change; called '^kawa-config'

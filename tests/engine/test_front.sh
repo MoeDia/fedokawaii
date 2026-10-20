@@ -90,7 +90,7 @@ printf '1\n2\n3\n4\n5\n6\n7\n8\n9\nq\n' | front >/dev/null 2>&1
 eq "$(front_calls | awk '{ print $1 ($2 ~ /^--/ ? " " $2 : "") }' | tr '\n' '|')" "check|setup|theme --user|setup|verify|setup --update|theme --user|setup --status|setup --repair|"
 case_ "the menu: a failing action keeps the menu; a wrong key says what is wanted; q, Q, Enter, end of input leave"
 fresh; echo 1 >"$R/rc-verify"
-out=$(printf '5\nx\n10\nq\n' | front 2>&1); eq "$?" 0; has "$out" "1–9 or q"; eq "$(grep -c 'F E D O' <<<"$out")" 4
+out=$(printf '5\nx\n10\nq\n' | front 2>&1); eq "$?" 0; has "$out" "1–9, p or q"; eq "$(grep -c 'F E D O' <<<"$out")" 4
 for k in q Q ""; do printf '%s\n' "$k" | front >/dev/null 2>&1; eq "$?" 0 "[$k]"; done
 front </dev/null >/dev/null 2>&1; eq "$?" 0 "end of input"
 

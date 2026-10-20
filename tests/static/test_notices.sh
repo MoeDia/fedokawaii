@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # tests/static/test_notices.sh — every notice of the desktop is laid out alike: the app
-# (-a desktop · drives · backup · torrra, the names mako's sections go by), the icon (a Sumi
+# (-a desktop · drives · backup · torrra · notices, the names mako's sections go by), the icon (a Sumi
 # Icons glyph, two spaces, then the title — or the picture itself with -i), a title in lower
 # case (a name stays as it is spelled: Steam, Bluetooth, Prowlarr), "--" before it, so a
 # title can never be read as an option; something missing that repair puts back is critical.
@@ -12,7 +12,7 @@ import re, sys, pathlib
 root = pathlib.Path(sys.argv[1])
 files = [p for d in ("bin", "system", "configs") for p in (root / d).rglob("*") if p.is_file()]
 files = [p for p in files if p.name != "fedokawaii-report" and p.suffix not in (".png", ".ttf", ".otf", ".pdf")]
-APPS = {"desktop", "drives", "backup", "torrra"}
+APPS = {"desktop", "drives", "backup", "torrra", "downloads", "notices"}
 NAMES = {"Steam", "Bluetooth", "Prowlarr"}
 ICON = re.compile(r'^"(\$ICON_[A-Z_]+|\$\{ICON_[A-Z_]+:-[^}]*\}|\$SEAL|\$ICON|\$\(\. [^)]*ICON_[A-Z_]+"?\))  ')
 bad = []
@@ -56,13 +56,17 @@ case_ "every notify-send: -a a known app, --, an icon and two spaces, a title in
 while IFS= read -r l; do [[ -n $l ]] && _no "$l"; done <<<"$out"
 eq "$out" ""
 
-case_ "the python notices (torrra's) laid out the same: -a, --, the icon and two spaces"
+case_ "the python notices (torrra's, the downloads') laid out the same: -a, --, the icon and two spaces"
 has "$(cat "$REPO/system/kawa-torrra")" '"notify-send", "-a", "torrra", "-u", urgency, "--", icon + "  torrra", msg'
+has "$(cat "$REPO/bin/kawa-downloads")" '"notify-send", "-a", "downloads", "-A", "default=open", "--",
+                        f"{ic['"'"'download'"'"']}  {name}", body]'
 
 case_ "mako: a click takes the whole card at once; only a repeat folds; the drives' click runs its action"
 m=$(cat "$REPO/configs/home/.config/mako/config")
 has "$m" $'\non-button-left=dismiss-group\n'
 has "$m" $'\ngroup-by=app-name,summary,body\n'
 has "$(sed -n '/^\[app-name=drives\]$/,/^$/p' <<<"$m")" "on-button-left=invoke-default-action"
-eq "$(grep -c '^on-button-left=' <<<"$m")" 2 "two: everyone's and the drives'"
+has "$(sed -n '/^\[app-name=downloads\]$/,/^$/p' <<<"$m")" "on-button-left=invoke-default-action"
+has "$(sed -n '/^\[app-name=notices\]$/,/^$/p' <<<"$m")" "on-button-left=invoke-default-action"
+eq "$(grep -c '^on-button-left=' <<<"$m")" 4 "four: everyone's, the drives', the downloads' and the held notices' (kawa-hush)"
 done_

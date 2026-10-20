@@ -26,6 +26,58 @@ gui:
     defaultFgColor: [default]
 git:
   overrideGpg: true
+  # a commit's message wrapped at 72 columns as you type (git's own convention: its log and
+  # e-mails read it so); the subject line above it, 50 or fewer, says what the change does
+  commit:
+    autoWrapCommitMessage: true
+    autoWrapWidth: 72
+  # diffs drawn by delta (git-delta), in the terminal's sixteen colours only, so they follow
+  # dark and light (and look the same inside neovim): a removed line red, an added one green,
+  # the words that changed on the ground's own shade (colour 0), the rest in the code's colours;
+  # line numbers in the quiet bright-black, side by side once the diff view is wider than 160
+  # columns. | cycles to git's own plain diff. A line number is a link: a click opens the file
+  # there, in your editor
+  diffRenderers:
+    - name: delta
+      command: >-
+        delta --{{colorScheme}} --paging=never --syntax-theme=ansi --line-numbers
+        --line-numbers-left-style=8 --line-numbers-right-style=8 --line-numbers-zero-style=8
+        --line-numbers-minus-style=red --line-numbers-plus-style=green
+        --minus-style=red --minus-emph-style="bold red 0" --plus-style=green --plus-emph-style="bold green 0"
+        --file-style=omit --hunk-header-decoration-style=none
+        {{if gt .width 160}}--side-by-side{{end}}
+        --hyperlinks --hyperlinks-file-link-format="lazygit-edit://{path}:{line}"
+    - type: rawGit
+      name: git
+# Ctrl+K in the files panel: a commit in the Conventional Commits form (conventionalcommits.org)
+# — its type from a menu, an optional scope, the subject — "feat(parser): read nested lists".
+# c stays the plain commit
+customCommands:
+  - key: <ctrl+k>
+    context: files
+    description: "commit: type(scope): subject (conventional)"
+    prompts:
+      - type: menu
+        key: Type
+        title: "type of change"
+        options:
+          - { name: "feat", description: "a new feature", value: "feat" }
+          - { name: "fix", description: "a bug fixed", value: "fix" }
+          - { name: "docs", description: "documentation only", value: "docs" }
+          - { name: "refactor", description: "code changed, behaviour the same", value: "refactor" }
+          - { name: "test", description: "tests added or corrected", value: "test" }
+          - { name: "perf", description: "faster or lighter", value: "perf" }
+          - { name: "style", description: "formatting, no code change", value: "style" }
+          - { name: "build", description: "build, dependencies (Cargo.toml, pyproject.toml)", value: "build" }
+          - { name: "chore", description: "anything else", value: "chore" }
+      - type: input
+        key: Scope
+        title: "scope (optional: enter skips)"
+      - type: input
+        key: Subject
+        title: "subject: what it does, lower case, no full stop"
+    command: "git commit --message {{if .Form.Scope}}{{printf \"%s(%s): %s\" .Form.Type .Form.Scope .Form.Subject | quote}}{{else}}{{printf \"%s: %s\" .Form.Type .Form.Subject | quote}}{{end}}"
+    loadingText: "committing"
 os:
   editPreset: nvim
 # (a quiet first start too: no "Thanks for using lazygit!" welcome, nor a what's-new after an

@@ -58,59 +58,67 @@ button, button:hover, button:active, button:checked {
 /* the torii key at the far left (opens the launcher): the gate in vermilion ink — the only
    filled seal on this side is the workspace you are on. Its button stands 8 px from the
    screen's edge, on the line the windows' borders keep (dwl's gap), as the cat's does at the
-   other end */
+   other end; its gate's ink 14 px from it (the 23 px button holds its 15 px glyph 4 px in, and
+   the drawing 2 more), as the cat's is from the other */
 #custom-torii { margin-left: 8px; color: @accent-text; }
 
 /* ── workspaces: 一 二 三 … as seals ───────────────────────────────────────────────
    empty: the numeral faint on the paper · holding windows: the numeral in ink, ringed ·
    the one you are on: a vermilion seal · asking for you: an asagi seal. Fixed width, so
    nothing moves when the selection does. */
+/* one rhythm, as on the right: 18 px of paper between modules (from the torii's ink to the
+   first seal, from the last seal to the layout's ink, from it to the title's), 6 between the
+   seals of the group (the torii's button holds its ink 6 px in, the layout's 5) */
+#custom-tag1 { margin-left: 12px; }
+#custom-tag2, #custom-tag3, #custom-tag4, #custom-tag5, #custom-tag6, #custom-tag7, #custom-tag8,
+#custom-tag9 { margin-left: 6px; }
 .tag          { color: @faint; }
 .tag.occupied { color: @text; box-shadow: inset 0 0 0 1px @edge2; }
 .tag.selected { color: @strong-on-accent; background-color: @accent; box-shadow: none; }
 .tag.urgent   { color: @urgent-text; background-color: @urgent; box-shadow: none; }
 
-/* the layout: a button like the others, a little apart from the workspaces */
-#custom-layout { color: @muted; margin-left: 9px; }
-#custom-title  { color: @text; padding: 0 12px; }
+/* the layout: a button like the others, a module of its own (18 px from the seals) */
+#custom-layout { color: @muted; margin-left: 13px; }
+#custom-title  { color: @text; padding: 0 12px 0 13px; }   /* (its words 18 px after the layout's ink) */
 
 /* ── the middle: now playing (its meter colours come inside the text) ────────────── */
 #custom-nowplaying        { color: @text; padding: 0 12px; }
 #custom-nowplaying.paused { color: @quiet; }
 
 /* ── the right: groups parted by a stitch ────────────────────────────────────────────
-   #status (mode, drives, Steam, keyboard, memory, volume, brightness, weather) and #when
-   (date, the day's kanji, the time and a running timer). In a group each module pads 7 px a side, so 14 px of paper lie between
-   two of them; a stitch has 18 px of paper between it and the ink on either side (measured
-   on the bar: 7 of padding + 1 of the letters' own side bearing + 10 to its left, 11 + 7
-   to its right; before the cat, 13 + the 5 px inside the cat's button) */
+   #status (mode, drives, downloads, Steam, keyboard, memory, volume, brightness, weather) and #when
+   (date, the day's kanji, the time and a running timer). One rule: every module's ink stands
+   9 px inside its box on either side, so 18 px of paper lie between the ink of any two
+   neighbours — a stitch's too (9 + its 9 of margin). A box's padding is 9 less the air its
+   font leaves at that edge: letters and digits (Fusion Pixel) none on the left, 1 px on the
+   right; an icon (Sumi Icons) 2 px each side, a brightness level 5 on the left (icons.sh's
+   ICON_BAR_* starts all five at the dimmest's 5); a button's glyph 5 or 6 inside its 23 px.
+   Between an icon and its value: 6 px of paper, made in the text (ICON_BAR_*) */
 #status, #when { margin: 4px 0 4px 0; }
 /* the stitch: 1 px of thread, 3 on and 2 off (current/stitch.png, repeated down), as tall as
    a button — 23 px = 4 × 5 + 3, so it begins and ends with a stitch */
 #custom-sep1, #custom-sep2 {
   min-width: 1px;
   padding: 0;
-  margin: 4px 11px 4px 10px;
+  margin: 4px 9px 4px 9px;
   background-image: url("../fedokawaii/current/stitch.png");
   background-repeat: repeat-y;
   background-position: 0 0;
   color: transparent;
 }
-/* the last stitch is the cat's left wall: 8 px of paper + the button's 5 put it 13 px from the
-   cat's ink, as far as the cat's ink is from the screen's edge (its button's 8 + 5) — the cat
-   centred between the stitch and the edge */
-#custom-sep2 { margin-right: 8px; }
-#custom-mode, #custom-drives, #custom-kb, #custom-mem, #custom-volume, #custom-brightness, #custom-weather,
-#custom-date, #custom-time {
-  padding: 5px 7px 6px 7px;        /* the same line as the buttons: 23 tall */
-  margin: 0;
-}
-#custom-mode, #custom-day { margin: 0; }
-/* the gamepad is a button (23 px, its 13 px of ink 5 from either side): 4 px of paper each
-   side keep it as far from its neighbours' letters as they are from one another (17 px) */
+/* words and numbers (録 and its time, the keyboard, the date, the time): 9 | 8 */
+#custom-record, #custom-kb, #custom-date, #custom-time { padding: 5px 8px 6px 9px; margin: 0; }
+/* an icon, then a value: 7 | 8 — alone (one drive, a download of unknown size): 7 | 7 */
+#custom-drives, #custom-downloads, #custom-mem, #custom-volume, #custom-weather { padding: 5px 8px 6px 7px; margin: 0; }
+#custom-drives:not(.count), #custom-downloads.bare { padding-right: 7px; }
+#custom-brightness { padding: 5px 8px 6px 4px; margin: 0; }
+/* a kanji's button (the mode, the day; 6 and 5 of padding, the ink 6 in from each side): 3 px
+   of margin. The gamepad's (its ink 5 in, the button 23 wide): 4 px */
+#custom-mode, #custom-day { margin: 0 3px; }
 #custom-steam { margin: 0 4px; }
 #custom-drives       { color: @quiet; }
 #custom-drives.open  { color: @text; }
+#custom-downloads    { color: @text; }
 #custom-steam        { color: @text; }
 #custom-steam.starting { color: @faint; }
 #custom-steam.game   { color: @accent-text; }
@@ -118,10 +126,6 @@ button, button:hover, button:active, button:checked {
 #custom-kb.other     { color: @accent-text; }
 #custom-mem          { color: @quiet; }
 #custom-mem.high     { color: @accent-text; }
-/* the volume and the brightness hold the width of their widest ("󾁊 100%": 42 px), their
-   icon where it stands (the config aligns them left): a level going from 9 to 10 % never
-   moves the bar */
-#custom-volume, #custom-brightness { min-width: 42px; }
 #custom-volume       { color: @text; }
 #custom-volume.muted { color: @accent-text; }
 #custom-brightness   { color: @text; }
@@ -130,9 +134,10 @@ button, button:hover, button:active, button:checked {
 
 /* the mode — 静 quiet, 共有 shared — a kanji in the day's place of honour: quiet in faint
    ink, a shared screen in vermilion */
-#custom-mode       { padding: 5px 5px 6px 6px; }
 #custom-mode.dnd   { color: @quiet; }
 #custom-mode.share { color: @accent-text; }
+/* 録 and the time gone by while the screen is recorded: lit, vermilion (a click stops it) */
+#custom-record     { color: @accent-text; }
 
 /* ── the clock: the date quiet · the day's kanji in vermilion ink · the time bright ── */
 #custom-date { color: @quiet; }
@@ -143,8 +148,10 @@ button, button:hover, button:active, button:checked {
 
 /* the cat that opens quick settings: it smiles while they are open. Its button ends 8 px
    from the screen's edge — the line the windows' borders keep, and the panels and notices
-   that drop from it: the panel's right edge is the button's */
-#custom-menu { color: @text; margin: 4px 8px 4px 0; }
+   that drop from it: the panel's right edge is the button's. One more pixel of padding on
+   its right (24 wide) puts its ink 14 px from the edge, as the torii's is from the other
+   (8 + 6), and 18 px after the stitch (the stitch's 9 + 4 + the button's 5) */
+#custom-menu { color: @text; margin: 4px 8px 4px 4px; padding-right: 1px; }
 
 /* ── under the pointer, and open ────────────────────────────────────────────────────
    the glyph and its text take the vermilion ink, at once — nothing behind them changes; so
@@ -153,12 +160,12 @@ button, button:hover, button:active, button:checked {
    game, a shared screen, a workspace's seal) turns to the strongest ink instead */
 .tag:hover, #custom-layout:hover, #custom-menu:hover, #custom-nowplaying:hover,
 #custom-steam:hover, #custom-mem:hover, #custom-volume:hover, #custom-brightness:hover, #custom-weather:hover,
-#custom-drives:hover, #custom-date:hover, #custom-time:hover, #custom-mode:hover,
+#custom-drives:hover, #custom-downloads:hover, #custom-date:hover, #custom-time:hover, #custom-mode:hover,
 #custom-layout.active, #custom-menu.active, #custom-steam.active, #custom-mem.active, #custom-volume.active,
-#custom-brightness.active, #custom-weather.active, #custom-drives.active, #custom-date.active,
+#custom-brightness.active, #custom-weather.active, #custom-drives.active, #custom-downloads.active, #custom-date.active,
 #custom-time.active, #custom-mode.active { color: @accent-text; }
 #custom-torii:hover, #custom-day:hover, #custom-mem.high:hover, #custom-volume.muted:hover,
-.tag.selected:hover, .tag.urgent:hover, #custom-steam.game:hover, #custom-mode.share:hover,
+.tag.selected:hover, .tag.urgent:hover, #custom-steam.game:hover, #custom-mode.share:hover, #custom-record:hover,
 #custom-torii.active, #custom-day.active, #custom-mem.high.active, #custom-volume.muted.active,
 #custom-steam.game.active, #custom-mode.share.active { color: @strong; }
 

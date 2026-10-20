@@ -1,0 +1,205 @@
+#!/usr/bin/env bash
+# tools/check-packages — every package lib/manifest.sh names, checked before a machine needs it.
+#
+#   bash tools/check-packages            the manifest itself (anywhere, no network): a name in two
+#                                        lists, a name both wanted and forbidden or retired, a name
+#                                        with no evidence row (tools/packages.evidence), a row for a
+#                                        name the manifest no longer has, evidence older than 60 days
+#   bash tools/check-packages --live     and, on Fedora with its repositories: every name asked of
+#                                        dnf itself — there (and from which repository, at which
+#                                        version), renamed (another package provides the old name),
+#                                        obsoleted, in two vendors' repositories at once, all of them
+#                                        installable together (one transaction, --assumeno: nothing
+#                                        changes), two packages bringing the same command (one tool
+#                                        per job), and each repository's setup (enabled, signed)
+#   --write-evidence                     (with --live) every package row rewritten from dnf's answer
+#   --steam no                           without the gaming list (as fedokawaii.conf's STEAM=no)
+#
+# Exit: 0 clean · 1 something to fix (each ✘ line says what and how) · 2 misuse.
+# Nothing is installed or changed: --live only asks dnf (as root it resolves the transaction too).
+set -uo pipefail
+export LC_ALL=C.UTF-8
+REPO=$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/.." && pwd)
+EVIDENCE=$REPO/tools/packages.evidence
+LIVE=0 WRITE=0 STEAM=yes MAX_AGE_DAYS=60
+while (($#)); do
+  case $1 in
+    --live) LIVE=1 ;;
+    --write-evidence) WRITE=1 ;;
+    --steam) [[ ${2:-} == @(yes|no) ]] || { echo "check-packages: --steam yes|no" >&2; exit 2; }; STEAM=$2; shift ;;
+    -h|--help) sed -n '2,/^[^#]/{/^#/p}' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
+    *) echo "check-packages: unknown option $1 — bash tools/check-packages --help" >&2; exit 2 ;;
+  esac; shift
+done
+((WRITE == 0 || LIVE == 1)) || { echo "check-packages: --write-evidence needs --live (dnf's own answer)" >&2; exit 2; }
+
+if [[ -t 1 ]]; then G=$'\e[32m' R=$'\e[31m' Y=$'\e[33m' D=$'\e[2m' B=$'\e[1m' Z=$'\e[0m'; else G="" R="" Y="" D="" B="" Z=""; fi
+FAILS=0 WARNS=0 PASSES=0
+pass() { PASSES=$((PASSES + 1)); printf '  %s✔%s %s\n' "$G" "$Z" "$1"; }
+fail() { FAILS=$((FAILS + 1)); printf '  %s✘ %s%s\n' "$R" "$1" "$Z"; }
+warn() { WARNS=$((WARNS + 1)); printf '  %s! %s%s\n' "$Y" "$1" "$Z"; }
+info() { printf '  %s· %s%s\n' "$D" "$1" "$Z"; }
+section() { printf '\n%s%s%s\n' "$B" "$1" "$Z"; }
+
+# shellcheck source-path=SCRIPTDIR/..
+# shellcheck source=lib/manifest.sh
+STATE_DIR=/nonexistent . "$REPO/lib/manifest.sh"
+LISTS=(PKG_BASE PKG_RELEASE PKG_MEDIA PKG_GPU_COMMON PKG_GPU_amd PKG_GPU_intel PKG_BUILD PKG_SESSION PKG_DESKTOP PKG_LOOK PKG_APPS)
+[[ $STEAM == yes ]] && LISTS+=(PKG_GAMING)
+declare -A WHERE=()   # name → the list(s) it is in
+NAMES=()
+for l in "${LISTS[@]}"; do
+  ref="${l}[@]"
+  for n in "${!ref}"; do
+    [[ -n ${WHERE[$n]:-} ]] || NAMES+=("$n")
+    WHERE[$n]="${WHERE[$n]:+${WHERE[$n]} }$l"
+  done
+done
+# the repository each name is meant to come from (the rest: Fedora's own)
+repo_of() {
+  case $1 in
+    rpmfusion-free-release|ffmpeg|mesa-va-drivers-freeworld|libheif-freeworld) echo rpmfusion-free ;;
+    rpmfusion-nonfree-release|steam|unrar) echo rpmfusion-nonfree ;;
+    brave-origin) echo brave-browser ;;
+    claude-code) echo claude-code ;;
+    *) local c; for c in "${COPRS[@]}"; do [[ $(copr_pkgs "$c") == "$1" ]] && { echo "copr:$c"; return; }; done; echo fedora ;;
+  esac
+}
+vendor() { case $1 in fedora|updates|updates-testing|fedora-*|updates-*) echo fedora ;; rpmfusion-free*) echo rpmfusion-free ;; rpmfusion-nonfree*) echo rpmfusion-nonfree ;; copr:*) echo "${1%%:*}:${1#*:}" ;; *) echo "$1" ;; esac; }
+
+section "the manifest (${#NAMES[@]} packages, STEAM=$STEAM)"
+bad=0
+for n in "${NAMES[@]}"; do
+  read -ra in <<<"${WHERE[$n]}"
+  # (a GPU's own list beside the common one is fine: only one GPU list is ever installed)
+  ((${#in[@]} > 1)) && [[ ! ${WHERE[$n]} =~ ^PKG_GPU_amd\ PKG_GPU_intel$ ]] && { fail "$n is in two lists (${WHERE[$n]}) — keep it in one"; bad=1; }
+  [[ $n =~ ^[A-Za-z0-9][A-Za-z0-9._+-]*$ ]] || { fail "'$n' is not a package name"; bad=1; }
+done
+((bad)) || pass "every name once, every name a package name"
+bad=0
+for n in "${NAMES[@]}"; do
+  for f in "${FORBIDDEN_PKGS[@]}" "${FORBIDDEN_amd[@]:-}"; do [[ $n == "$f" ]] && { fail "$n is wanted and forbidden at once — one tool per job (PACKAGES.md)"; bad=1; }; done
+  for f in "${RETIRED_PKGS[@]}"; do [[ $n == "$f" ]] && { fail "$n is wanted and retired at once — take it out of RETIRED_PKGS or out of its list"; bad=1; }; done
+  for f in "${PKG_REMOVE[@]}"; do [[ $n == "$f" ]] && { fail "$n is wanted and removed at once (PKG_REMOVE)"; bad=1; }; done
+done
+((bad)) || pass "nothing wanted is also forbidden, retired or removed"
+
+section "the evidence (tools/packages.evidence)"
+declare -A EV_DATE=() EV_REPO=()
+if [[ -r $EVIDENCE ]]; then
+  while IFS='|' read -r n r _ d _; do
+    [[ -z $n || $n == \#* ]] && continue
+    EV_DATE[$n]=$d EV_REPO[$n]=$r
+  done <"$EVIDENCE"
+else fail "no tools/packages.evidence — bash tools/check-packages --live --write-evidence makes it (on Fedora)"; fi
+now=$(date +%s) missing=() old=() wrongrepo=()
+for n in "${NAMES[@]}"; do
+  [[ -n ${EV_DATE[$n]:-} ]] || { missing+=("$n"); continue; }
+  t=$(date -d "${EV_DATE[$n]}" +%s 2>/dev/null) || { fail "$n: its evidence date '${EV_DATE[$n]}' is no date"; continue; }
+  (( (now - t) / 86400 > MAX_AGE_DAYS )) && old+=("$n (${EV_DATE[$n]})")
+  [[ $(vendor "${EV_REPO[$n]}") == "$(vendor "$(repo_of "$n")")" ]] || wrongrepo+=("$n: evidence ${EV_REPO[$n]}, setup $(repo_of "$n")")
+done
+((${#missing[@]})) && fail "no evidence for ${#missing[@]} package(s): ${missing[*]} — find each on packages.fedoraproject.org (or its vendor's page) and add a row"
+((${#old[@]})) && warn "evidence older than $MAX_AGE_DAYS days: ${old[*]} — run the container trial (tools/container-trial.sh) to see them again"
+((${#wrongrepo[@]})) && fail "evidence and setup disagree on the repository: ${wrongrepo[*]}"
+stale=()
+for n in "${!EV_DATE[@]}"; do [[ $n == upstream:* || -n ${WHERE[$n]:-} ]] || stale+=("$n"); done
+((${#stale[@]})) && warn "evidence rows for names the manifest no longer has: ${stale[*]} — remove them"
+((${#missing[@]} + ${#old[@]} + ${#wrongrepo[@]} + ${#stale[@]})) || pass "every package has evidence, none older than $MAX_AGE_DAYS days"
+# the downloads: every pinned release file has its row
+up=$( . "$REPO/lib/upstream.sh" 2>/dev/null; printf '%s\n' "${UPSTREAM[@]}" | cut -d'|' -f1 )
+miss_up=()
+while IFS= read -r n; do [[ -z $n || -n ${EV_DATE[upstream:$n]:-} ]] || miss_up+=("$n"); done <<<"$up"
+if ((${#miss_up[@]})); then fail "no evidence for the release download(s): ${miss_up[*]}"; else pass "every pinned release download has evidence"; fi
+
+if ((LIVE)); then
+  command -v dnf >/dev/null || { fail "--live needs dnf (Fedora): run it there, or through tools/container-trial.sh"; LIVE=0; }
+fi
+if ((LIVE)); then
+  section "dnf's own answer ($(. /etc/os-release 2>/dev/null; echo "${PRETTY_NAME:-this system}"))"
+  REPOS=$(dnf -q repo list --enabled 2>/dev/null | awk 'NR > 1 { print $1 }')
+  info "enabled repositories: $(tr '\n' ' ' <<<"$REPOS")"
+  # what each name resolves to: name|evr|repo, the newest of each
+  q=$(dnf -q repoquery --available --latest-limit=1 --qf '%{name}|%{evr}|%{repo_id}|%{source_name}\n' "${NAMES[@]}" 2>&1)
+  rc=$?
+  ((rc == 0)) || fail "dnf repoquery failed (exit $rc): $(head -n3 <<<"$q" | tr '\n' ' ') — the network, or a repository's metadata (sudo dnf makecache --refresh)"
+  declare -A FOUND=() SRC=()
+  while IFS='|' read -r n v r s; do [[ -n $n && -n $v ]] || continue; FOUND[$n]+="${FOUND[$n]:+ }$v@$r"; SRC[$n]=$s; done <<<"$q"
+  absent=() renamed=()
+  for n in "${NAMES[@]}"; do
+    [[ -n ${FOUND[$n]:-} ]] && continue
+    # a release package (rpmfusion-*-release) comes from a URL: there once it is installed
+    rpm -q "$n" >/dev/null 2>&1 && { FOUND[$n]="$(rpm -q --qf '%{evr}' "$n")@@System"; continue; }
+    p=$(dnf -q repoquery --available --latest-limit=1 --qf '%{name}\n' --whatprovides "$n" 2>/dev/null | sort -u | tr '\n' ' ')
+    if [[ -n ${p// } ]]; then renamed+=("$n → ${p% }"); else absent+=("$n ($(repo_of "$n"))"); fi
+  done
+  ((${#absent[@]})) && fail "not in any enabled repository: ${absent[*]} — renamed, retired, or its repository not set up (fedokawaii setup's phase 2 adds RPM Fusion, Brave, Claude Code and the COPRs)"
+  ((${#renamed[@]})) && warn "found only as another package's Provides (renamed?): ${renamed[*]} — use the new name in lib/manifest.sh"
+  ((${#absent[@]} + ${#renamed[@]})) || pass "all ${#NAMES[@]} names are in the enabled repositories"
+  # from the repository it is meant to come from — and not from two vendors at once
+  odd=() twice=()
+  for n in "${!FOUND[@]}"; do
+    vs=$(tr ' ' '\n' <<<"${FOUND[$n]}" | sed 's/.*@//' | while IFS= read -r r; do vendor "$r"; done | sort -u)
+    [[ $vs == *@System* || $vs == System ]] && continue
+    (($(wc -l <<<"$vs") > 1)) && twice+=("$n: $(tr '\n' ' ' <<<"$vs")")
+    grep -qxF "$(vendor "$(repo_of "$n")")" <<<"$vs" || odd+=("$n from $(tr '\n' ' ' <<<"$vs")(setup expects $(repo_of "$n"))")
+  done
+  ((${#twice[@]})) && warn "offered by two vendors at once (the newest wins — dnf may switch between them): ${twice[*]}"
+  ((${#odd[@]})) && fail "from another repository than setup expects: ${odd[*]}"
+  ((${#twice[@]} + ${#odd[@]})) || pass "each from the repository setup expects, one vendor each"
+  # obsoleted: a newer package that replaces a manifest name
+  ob=$(dnf -q repoquery --available --latest-limit=1 --qf '%{name}\n' --whatobsoletes "$(IFS=,; echo "${NAMES[*]}")" 2>/dev/null | sort -u)
+  obs=()
+  while IFS= read -r p; do [[ -z $p || -n ${WHERE[$p]:-} ]] || obs+=("$p"); done <<<"$ob"
+  if ((${#obs[@]})); then warn "packages that obsolete a manifest name: ${obs[*]} — dnf would replace it; rpm -q --obsoletes those names says which"; else pass "nothing obsoletes a manifest name"; fi
+  # one transaction for all of them: conflicts, missing dependencies, file clashes
+  if ((EUID == 0)); then
+    out=$(dnf install --assumeno --setopt=install_weak_deps=False "${NAMES[@]}" 2>&1); r=$?
+    if grep -qiE '^ *Problem|conflicts with|nothing provides|cannot install|No match for argument' <<<"$out"; then
+      fail "they cannot all be installed together:"; grep -iE '^ *Problem|conflicts with|nothing provides|cannot install|No match for argument|^  - ' <<<"$out" | head -n 20 | sed 's/^/      /'
+    elif ((r == 0)) || grep -qiE 'operation aborted|nothing to do' <<<"$out"; then pass "all of them resolve together in one transaction (nothing installed: --assumeno)"
+    else fail "dnf could not resolve the transaction (exit $r): $(tail -n2 <<<"$out" | tr '\n' ' ')"; fi
+  else info "one-transaction check skipped: it needs root (sudo bash tools/check-packages --live)"; fi
+  # one tool per job: a command two manifest packages bring
+  declare -A BIN=()
+  dup=()
+  for n in "${NAMES[@]}"; do
+    [[ -n ${FOUND[$n]:-} && ${FOUND[$n]} != *@System* ]] || continue
+    while IFS= read -r f; do
+      [[ $f == /usr/bin/* || $f == /usr/sbin/* ]] || continue
+      if [[ -n ${BIN[$f]:-} && ${BIN[$f]} != "$n" ]]; then dup+=("$f: ${BIN[$f]} and $n"); else BIN[$f]=$n; fi
+    done < <(dnf -q repoquery --available --latest-limit=1 --files "$n" 2>/dev/null)
+  done
+  if ((${#dup[@]})); then fail "one tool per job — the same command from two packages: ${dup[*]}"; else pass "no command comes from two manifest packages (${#BIN[@]} commands)"; fi
+  # each repository setup adds: enabled, its packages signed
+  for r in rpmfusion-free rpmfusion-nonfree brave-browser claude-code; do
+    grep -qx "$r" <<<"$REPOS" || { info "$r: not enabled here (setup's phase 2 adds it)"; continue; }
+    g=$(dnf -q repo info "$r" 2>/dev/null | sed -n 's/^ *\(GPG check\|PGP check\|Gpgcheck\) *: *//Ip' | sed -n 1p)
+    if [[ ${g,,} == @(yes|1|true|*enabled*) ]]; then pass "$r: enabled, packages signature-checked"
+    else fail "$r: enabled without a signature check (gpgcheck) — its .repo file in /etc/yum.repos.d needs gpgcheck=1"; fi
+  done
+  for c in "${COPRS[@]}"; do
+    if grep -q "copr.fedorainfracloud.org:${c/\//:}" <<<"$REPOS"; then pass "COPR $c: enabled"; else info "COPR $c: not enabled here (setup's phase 2: dnf copr enable $c)"; fi
+  done
+  if ((WRITE)); then
+    t=$(mktemp) d=$(date +%F)
+    { grep '^#' "$EVIDENCE"
+      for n in "${NAMES[@]}"; do
+        if [[ -n ${FOUND[$n]:-} ]]; then
+          v=${FOUND[$n]%% *} r=${v#*@} v=${v%@*} s=${SRC[$n]:-$n}
+          case $(vendor "$r") in
+            fedora) u="https://packages.fedoraproject.org/pkgs/$s/$n/" ;;
+            copr:*) u="https://copr.fedorainfracloud.org/coprs/${r#copr:copr.fedorainfracloud.org:}/"; u=${u/://} ;;
+            *) u=$(grep "^$n|" "$EVIDENCE" | cut -d'|' -f3) ;;
+          esac
+          echo "$n|$(vendor "$r")|$u|$d|$n-$v from $r (dnf repoquery)"
+        else grep "^$n|" "$EVIDENCE" || true; fi
+      done
+      grep '^upstream:' "$EVIDENCE"; } >"$t"
+    cat "$t" >"$EVIDENCE"; rm -f "$t"; info "tools/packages.evidence rewritten from dnf's answer ($d)"
+  fi
+fi
+
+section "result"
+if ((FAILS)); then printf '%s✘ %d to fix%s, %d passed, %d warning(s)\n' "$R" "$FAILS" "$Z" "$PASSES" "$WARNS"; exit 1; fi
+printf '%s✔ clean%s — %d passed, %d warning(s)\n' "$G" "$Z" "$PASSES" "$WARNS"

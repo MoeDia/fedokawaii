@@ -9,14 +9,16 @@
 #                                 also pulling a level above L down; never below 0
 #   wpctl set-mute ID 0|1|toggle  wpctl set-default ID     (no such node: status 3)
 #   PipeWire not running: "Could not connect to PipeWire", status 2 (pw-dump: 255)
-#   pw-dump                       the nodes with their props, and the "default" metadata
+#   pw-dump                       the nodes with their props, the links, the "default" metadata
+#   pw-metadata ID target.object NAME   the stream ID moved: its links come from NAME now
 # The default sink/source is the configured one while it exists, else the one with the
 # highest priority.session (WirePlumber's choice; with no sound card that is "Share" — but
 # with no microphone there is no default input at all).
 # The state:
 #   {"running": true, "configured": {"sink": NAME, "source": NAME}, "devices": [{…a card…}],
 #    "nodes": [{"id": 62, "class": "Audio/Sink", "name": …, "desc": …, "prio": 1009,
-#               "vol": 0.4, "mute": false, "props": {…extra…}}, …]}
+#               "vol": 0.4, "mute": false, "props": {…extra…}}, …],
+#    "links": [[OUTPUT_NODE_ID, INPUT_NODE_ID], …]}
 # Each call is logged to $FAKE_PW.log ("wpctl ARGS").
 import fcntl
 import json
@@ -25,7 +27,7 @@ import sys
 
 path = os.environ["FAKE_PW"]
 prog = os.path.basename(sys.argv[0])
-if prog not in ("wpctl", "pw-dump"):
+if prog not in ("wpctl", "pw-dump", "pw-metadata"):
     prog, sys.argv = sys.argv[1], sys.argv[1:]
 args = sys.argv[1:]
 lock = open(path + ".lock", "w")
@@ -85,10 +87,21 @@ if prog == "pw-dump":
         if st.get("configured", {}).get(kind):
             md.append({"subject": 0, "key": "default.configured." + key, "type": "Spa:String:JSON",
                        "value": {"name": st["configured"][kind]}})
+    for i, (o, n) in enumerate(st.get("links", [])):
+        out.append({"id": 900 + i, "type": "PipeWire:Interface:Link",
+                    "info": {"output-node-id": o, "output-port-id": 1, "input-node-id": n, "input-port-id": 2, "state": "active"}})
     out.append({"id": 46, "type": "PipeWire:Interface:Metadata", "props": {"metadata.name": "settings"}, "metadata": []})
     out.append({"id": 47, "type": "PipeWire:Interface:Metadata", "props": {"metadata.name": "default"}, "metadata": md})
     json.dump(out, sys.stdout, indent=2, ensure_ascii=False)
     print()
+    sys.exit(0)
+
+if prog == "pw-metadata":
+    sid, key, val = args[0], args[1], args[2]
+    to = next((x for x in nodes if x["name"] == val), None)
+    if key == "target.object" and to is not None:
+        st["links"] = [[to["id"], n] if n == int(sid) else [o, n] for o, n in st.get("links", [])]
+        save()
     sys.exit(0)
 
 # ── wpctl ─────────────────────────────────────────────────────────────────────

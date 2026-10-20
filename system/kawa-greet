@@ -4,10 +4,17 @@ compositor: one full-screen window) on tty1, as its own user (greetd).
 
 It is the lock screen's twin: on the theme's plain ground, one panel of the design system
 (docs/design-system.md) — a heading (the day's seal, the date, the stitch), the pixel
-padlock, the time, and one field for your password, each character a ◆ in accent_text. A
+padlock beside the time at 48 px, and one field for your password, each character a ◆ in accent_text. A
 wrong password empties the field and says so above it; the right one starts the desktop
-(/usr/local/bin/start-dwl). Under a rule, two keys: restart and power off — their words
-accent_text under the pointer, the key filled vermilion under the keyboard's focus (Tab).
+(/usr/local/bin/start-dwl). Under a rule, three keys: sleep, restart and power off — their
+words accent_text under the pointer, the key filled vermilion under the keyboard's focus (Tab).
+The lock screen has the same three (kawa-lockmod), and the same flavour: after the date the
+weekday in kanji (火曜日), at the heading's end a stamped seal (門, the gate; the lock's is 錠),
+under the time a line of the season and the hour (VERSES — the same sixteen as kawa-lockmod's).
+
+The key that wakes the computer only wakes it: from logind's word that the machine is going to
+sleep (PrepareForSleep) until 2 s after it is awake again, every key and click is swallowed —
+an Enter that woke it is never a wrong password. An Enter in an empty field is never a try.
 
 There is one person on this computer, so there is no user name to type: setup writes yours
 into greetd's settings (/etc/greetd/fedokawaii.toml), which hand it to this program.
@@ -32,11 +39,35 @@ import time
 import gi
 
 gi.require_version("Gtk", "3.0")
-from gi.repository import GLib, Gtk  # noqa: E402
+gi.require_version("Gdk", "3.0")
+from gi.repository import Gdk, Gio, GLib, Gtk  # noqa: E402
 
 SESSION = ["/usr/local/bin/start-dwl"]
 SHARE = "/usr/local/share/fedokawaii/greeter"
 THEME_FILE = "/var/lib/fedokawaii-greeter/theme"
+GUARD = 2.0                                # seconds after a wake that keys and clicks only wake
+ENTER = (Gdk.KEY_Return, Gdk.KEY_KP_Enter, Gdk.KEY_ISO_Enter)
+WEEKDAYS = ("月曜日", "火曜日", "水曜日", "木曜日", "金曜日", "土曜日", "日曜日")
+# VERSES: a season (spring Mar–May … winter Dec–Feb), an hour (morning 5–10, day 11–16,
+# evening 17–19, night) — the same in kawa-lockmod
+VERSES = (
+    (("春の朝", "spring morning, the first thread"), ("春の昼", "plum blossom on the sleeve"),
+     ("春の夕", "the needle rests in silk"), ("春の夜", "a lantern, a quiet stitch")),
+    (("夏の朝", "cool tatami, early light"), ("夏の昼", "cicadas behind the screen"),
+     ("夏の夕", "a fan, the river breeze"), ("夏の夜", "fireflies between the reeds")),
+    (("秋の朝", "frost on the bamboo fence"), ("秋の昼", "red leaves on still water"),
+     ("秋の夕", "crows home, the sky in ink"), ("秋の夜", "the moon, a seal on paper")),
+    (("冬の朝", "snow on the temple roof"), ("冬の昼", "a kettle sings, a quiet room"),
+     ("冬の夕", "the lamp lit early"), ("冬の夜", "the stove's last ember")),
+)
+
+
+def verse(t):
+    """The season's and the hour's line for a time.struct_time: (kanji, words)."""
+    m, h = t.tm_mon, t.tm_hour
+    season = 0 if 3 <= m <= 5 else 1 if 6 <= m <= 8 else 2 if 9 <= m <= 11 else 3
+    hour = 0 if 5 <= h <= 10 else 1 if 11 <= h <= 16 else 2 if 17 <= h <= 19 else 3
+    return VERSES[season][hour]
 
 
 class Greetd:
@@ -69,6 +100,18 @@ def theme():
     return name if name in ("dark", "light") else "dark"
 
 
+def draw_stitch(w, cr):
+    """The stitch drawn whole (design-system §4): 3 px on, 2 off, from the widget's left edge,
+    ending on the last whole one that fits (up to 4 px short of its right edge); 1 px high
+    through its middle, in its CSS colour (gtklock.css's #stitch, #rule: edge2)."""
+    Gdk.cairo_set_source_rgba(cr, w.get_style_context().get_color(w.get_state_flags()))
+    width, y = w.get_allocated_width(), w.get_allocated_height() // 2
+    for x in range(0, width - 2, 5):
+        cr.rectangle(x, y, 3, 1)
+    cr.fill()
+    return False
+
+
 class Greeter(Gtk.Window):
     def __init__(self, user, greetd):
         super().__init__(title="login")
@@ -88,11 +131,27 @@ class Greeter(Gtk.Window):
         heading.add(Gtk.Image(file=f"{art}/seal-{time.strftime('%u')}.png", name="seal", valign=Gtk.Align.CENTER))
         self.date = Gtk.Label(name="date-label", valign=Gtk.Align.CENTER)
         heading.add(self.date)
-        heading.add(Gtk.Box(name="stitch", hexpand=True, valign=Gtk.Align.CENTER))
+        self.weekday = Gtk.Label(name="weekday", valign=Gtk.Align.CENTER)
+        heading.add(self.weekday)
+        stitch = Gtk.Box(name="stitch", hexpand=True, valign=Gtk.Align.CENTER)
+        stitch.connect("draw", draw_stitch)
+        heading.add(stitch)
+        heading.add(Gtk.Label(label="門", name="stamp", valign=Gtk.Align.CENTER))
         info.add(heading)
-        info.add(Gtk.Image(file=f"{art}/padlock.png", name="padlock", halign=Gtk.Align.CENTER))
-        self.clock = Gtk.Label(name="clock-label", halign=Gtk.Align.CENTER)
-        info.add(self.clock)
+        # the face: the padlock, the time in the display size (48 px: design-system §2), AM/PM
+        face = Gtk.Box(name="face", halign=Gtk.Align.CENTER)
+        face.add(Gtk.Image(file=f"{art}/padlock.png", name="padlock", valign=Gtk.Align.CENTER))
+        self.clock = Gtk.Label(name="clock-label", valign=Gtk.Align.CENTER)
+        face.add(self.clock)
+        self.ampm = Gtk.Label(name="ampm", valign=Gtk.Align.END)
+        face.add(self.ampm)
+        info.add(face)
+        line = Gtk.Box(name="verse-line", spacing=6, halign=Gtk.Align.CENTER)
+        self.verse_kanji = Gtk.Label(name="verse-kanji")
+        self.verse = Gtk.Label(name="verse")
+        line.add(self.verse_kanji)
+        line.add(self.verse)
+        info.add(line)
         box.add(info)
 
         messages = Gtk.Box(name="messages")
@@ -107,13 +166,23 @@ class Greeter(Gtk.Window):
         self.entry.connect("activate", self.login)
         box.add(self.entry)
 
-        box.add(Gtk.Box(name="rule"))
+        rule = Gtk.Box(name="rule")
+        rule.connect("draw", draw_stitch)
+        box.add(rule)
         power = Gtk.Box(spacing=6, homogeneous=True)
-        for label, verb in (("再起動 · restart", "reboot"), ("電源 · power off", "poweroff")):
-            b = Gtk.Button(label=label, can_focus=True, hexpand=True)
-            b.connect("clicked", lambda _b, v=verb: subprocess.Popen(["systemctl", v]))
+        for label, verb in (("眠 sleep", "suspend"), ("再 restart", "reboot"), ("電 power off", "poweroff")):
+            b = Gtk.Button(label=label, can_focus=True, hexpand=True, focus_on_click=False)
+            b.connect("clicked", self.power, verb)
             power.add(b)
         box.add(power)
+
+        # the wake guard: asleep (or about to be), and GUARD s after waking, input only wakes
+        self.asleep, self.woke = False, 0.0
+        Gio.bus_get_sync(Gio.BusType.SYSTEM, None).signal_subscribe(
+            "org.freedesktop.login1", "org.freedesktop.login1.Manager", "PrepareForSleep",
+            "/org/freedesktop/login1", None, Gio.DBusSignalFlags.NONE, self.sleeping)
+        for ev in ("key-press-event", "key-release-event", "button-press-event", "button-release-event"):
+            self.connect(ev, self.input)
 
         self.add(box)
         self.tick()
@@ -122,9 +191,34 @@ class Greeter(Gtk.Window):
         self.show_all()
         self.entry.grab_focus()
 
+    def sleeping(self, _bus, _sender, _path, _iface, _signal, params):
+        self.asleep = params.unpack()[0]
+        if not self.asleep:
+            self.woke = time.monotonic()
+
+    def guarded(self):
+        return self.asleep or time.monotonic() - self.woke < GUARD
+
+    def input(self, _win, ev):
+        if self.guarded():
+            return True
+        # an Enter in an empty field: nothing to try
+        return (ev.type == Gdk.EventType.KEY_PRESS and ev.keyval in ENTER
+                and self.entry.has_focus() and not self.entry.get_text())
+
+    def power(self, _button, verb):
+        if not self.guarded():
+            subprocess.Popen(["systemctl", verb])
+
     def tick(self):
-        self.clock.set_text(time.strftime("%I:%M %p"))
+        self.clock.set_text(time.strftime("%I:%M"))
+        self.ampm.set_text(time.strftime("%p"))
         self.date.set_text(time.strftime("%a %d %b"))   # ("Mon 19 Oct": the weekday in words, and its seal above)
+        now = time.localtime()
+        self.weekday.set_text(WEEKDAYS[now.tm_wday])
+        kanji, words = verse(now)
+        self.verse_kanji.set_text(kanji)
+        self.verse.set_text(words)
         return True
 
     def say(self, text):

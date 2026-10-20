@@ -3,13 +3,31 @@
 (the bar's volume, or Super+A) and the brightness slider (the bar's brightness).
 
     kawa-panel               run, hidden, for the whole session (autostart starts it): it opens
-                             at once when asked (kawa-quick sends SIGUSR1: open, or close; a
-                             menu about to open sends SIGUSR2: close)
-    kawa-panel --open        quick settings, open (kawa-quick, should it not be running)
+                             at once when asked, through its fifo (below)
+    kawa-panel --open        quick settings: open, or closed if open
     kawa-panel --sound       the sound panel: open, or closed if it is open
     kawa-panel --brightness  the brightness slider: open, or closed if it is open
-(--sound and --brightness ask the running panel — the mode in kawa-panel.ask, then SIGUSR1 —
-or, with none running, become it, open.) One panel at a time: opening one closes the other.
+(each asks the running panel through its fifo, or, with none running, becomes it, open; the
+bar and the keys ask through kawa-quick, which needs no Python to start.) One panel or menu at
+a time: opening one closes the other.
+
+Asked through a fifo, $XDG_RUNTIME_DIR/kawa-panel.in, one line a request (each written whole,
+in one write: none is lost or merged, however fast they come), answered in the order they came:
+    toggle MODE       quick, sound or brightness: open, or closed if it is the one open
+    menu PID          kawa-menu's (PID: its pid): the menu in $XDG_RUNTIME_DIR/kawa-menu.PID.req
+                      (its caller, the number of options, the options, the rows — a line each),
+                      answered into the fifo kawa-menu.PID.out: "RC TEXT" (0 and the chosen
+                      line, or 1 dismissed, 2 wrong use); kawa-menu ending first takes it away
+    close             whatever is open closes (the launcher is opening)
+A request is a toggle: the panel or menu (a menu by the script that asked for it) open closes
+instead. Whether it came from a click on the bar or from a key is known exactly: dwl rewrites
+$XDG_RUNTIME_DIR/dwl-pointer at every press on the bar, before the bar hears of it, so a
+request that finds it fresh and not yet answered is that click's. A click outside a menu closes
+it (dwl takes the keyboard back); when that click was on the bar, the click is remembered, and
+the request it then makes for that same menu is that close (it stays closed) — a later click
+is another click, however fast it comes. Every key's request counts, however fast they come: dwl
+repeats no held key that opens something (one press), so presses as fast as you like end open
+after an odd number, closed after an even one.
 
 Quick settings, top to bottom, on one 12 px grid (the day, the time, the weather and the
 volume's number are the bar's, right above it, so they are not said again here):
@@ -17,14 +35,18 @@ volume's number are the bar's, right above it, so they are not said again here):
                   bar's), or the words when there is no level; Enter (or a click on its
                   name) on 音 sound opens the sound panel
     the tiles     theme · night light · freesync · network · bluetooth · devices (those two
-                  only with a Bluetooth adapter) · drives · backup · dnd — each its icon, a
-                  kanji seal, its name and how it stands; the seal is stamped vermilion
-                  while the thing is on
+                  only with a Bluetooth adapter) · drives · backup · dnd · screensaver — each
+                  its icon, a kanji seal, its name and how it stands; the seal is stamped
+                  vermilion while the thing is on (the night light: its warmth, the wheel over
+                  it warmer or cooler; the screensaver: on or off)
     three keys    wallpaper · screenshot · power (its icon alone), centred
 The sound panel, three parts under kanji seals: 音 sound — the volume's squares (hollow
 while muted; its icon the bar's) and two keys, mute and mixer (wiremix) · 出 output and
 入 input — every device (not "Share"), the one in use ticked: a click makes another the
-default, playing audio moves to it · the input's foot: mute microphone.
+default, playing audio moves to it · the input's foot: while the clean mic is on, its level
+live (a meter that only shows: pw-record reads it while the panel is open, nothing after),
+mute microphone, then clean mic ▣/□ (the default input clean ⇄ raw, at once; what records
+moves with it) and test mic (5 s recorded, played back: kawa-quick --do mictest).
 The brightness slider: the brightness meter alone, as in quick settings.
 Opened by a click on the bar, each hangs right under the pointer (dwl's dwl-pointer, written
 as it clicks), kept 8 px inside its output; opened by its key, under its own module: quick
@@ -41,7 +63,7 @@ Keys: arrows or h j k l move · on a meter ← → (h l) change it by 5 (the sli
 first press: it is all there is) · Enter or Space does it · Tab goes round · Esc closes.
 The mouse: a click does it; on a meter a click or a drag sets the level there, the wheel moves
 it by 5. A click outside closes it, as with every menu. Switches (theme, night light,
-freesync, bluetooth, dnd; mute, an output, an input) stay open and show the new state; the
+freesync, bluetooth, dnd, screensaver; mute, an output, an input) stay open and show the new state; the
 rest close it and open their own menu or window. Everything is done by kawa-quick (--state,
 --do), which knows the machine; this only draws it and listens.
 
@@ -64,10 +86,10 @@ CURRENT = os.path.join(HOME, ".config/fedokawaii/current")
 ICONS_SH = os.path.join(HOME, ".config/fedokawaii/icons.sh")
 RUN = os.environ.get("XDG_RUNTIME_DIR") or f"/run/user/{os.getuid()}"
 PIDFILE = os.path.join(RUN, "kawa-panel.pid")
-ASK = os.path.join(RUN, "kawa-panel.ask")           # the mode a --sound or --brightness asks for
+FIFO = os.path.join(RUN, "kawa-panel.in")           # the requests (above)
 MODES = ("quick", "sound", "brightness")
 # the markers: each holds the panel's pid while that mode is open (one left by a panel gone is
-# no open panel). kawa-panel.open lights the bar's cat (kawa-dwlstatus) — its own: a
+# no open panel). kawa-panel.open lights the bar's cat (kawa-bar) — its own: a
 # dropdown's (kawa-drop.open) is kawa-menu's
 MARKS = {"quick": os.path.join(RUN, "kawa-panel.open"),
          "sound": os.path.join(RUN, "kawa-panel-sound.open"),
@@ -84,11 +106,14 @@ POKE = {"quick": 15, "sound": 16, "brightness": 14}  # the bar's module told (SI
 POINTER = os.path.join(RUN, "dwl-pointer")
 FRESH = 1.0
 EDGE = 8
-MARGIN = {"quick": 8, "sound": 86, "brightness": 29, "menu": 8}
+MARGIN = {"quick": 8, "sound": 86, "brightness": 73, "menu": 8}
 TITLE = {"quick": "quick settings", "sound": "sound", "brightness": "brightness", "menu": "menu"}
-SOCK = os.path.join(RUN, "kawa-panel.sock")         # menus are asked for here (kawa-panel --menu)
-LOST_GRACE = 0.6      # a toggle this soon after a click outside closed it is that same click
-REPEAT = 0.5          # a toggle this soon after the last is its key held (dwl repeats it)
+# a dropdown's button (kawa-bar): kawa-drop.open holds this panel's pid and the script that
+# asked for the menu while it is open; its module is poked (SIGRTMIN+N), the timer's woken
+DROP = os.path.join(RUN, "kawa-drop.open")
+LAUNCHER = os.path.join(RUN, "kawa-launcher.state")  # kawa-menu's record of the launcher (fuzzel)
+DROP_POKE = {"kawa-calendar": "19", "kawa-drives": "13", "kawa-steam": "17", "kawa-weather": "18",
+             "kawa-tag": "9", "kawa-timer": None, "kawa-downloads": "21"}
 
 # ── the grid (pixels) ─────────────────────────────────────────────────────────────────────
 BORDER, PAD = 2, 12                  # the frame and the margin inside it: as fuzzel's menus
@@ -128,6 +153,18 @@ def colours(path):
             k, v = line.split("=", 1)
             out[k] = tuple(int(v[i:i + 2], 16) / 255 for i in (0, 2, 4))
     return out
+
+
+def watch_theme(Gio, changed):
+    """changed() each time ~/.config/fedokawaii/current is re-pointed (kawa-theme renames a new
+    link over it): its folder watched, moves seen as one event. Returns the monitor (kept)."""
+    mon = Gio.File.new_for_path(os.path.dirname(CURRENT)).monitor_directory(Gio.FileMonitorFlags.WATCH_MOVES, None)
+
+    def on_dir(m, f, other, ev):
+        if os.path.basename((other or f).get_path()) == "current" or f.get_basename() == "current":
+            changed()
+    mon.connect("changed", on_dir)
+    return mon
 
 
 def parse_state(text):
@@ -241,6 +278,18 @@ def parse_sound(text):
 def percent(v):
     """'70%' → 70; anything else (no DDC/CI, muted, no output) → None."""
     return int(v[:-1]) if v.endswith("%") and v[:-1].isdigit() else None
+
+
+def peak_pct(data):
+    """A block of 16-bit samples (the clean mic's, pw-record's) → the meter's level: its peak
+    on a 60 dB scale (−60 dBFS and below 0, full scale 100: the last square is clipping)."""
+    import array
+    import math
+    a = array.array("h", data[:len(data) // 2 * 2])
+    pk = max((abs(v) for v in a), default=0)
+    if pk == 0:
+        return 0
+    return max(0, min(100, round((20 * math.log10(pk / 32768) + 60) * 100 / 60)))
 
 
 def vol_icon(pct, muted):
@@ -361,13 +410,27 @@ class Item:
         return self.x + self.w / 2
 
 
+def vrr_shown(s):
+    """FreeSync's tile: the setting and what the card does this moment (vrrnow, DRM's
+    VRR_ENABLED) — "games · off" at the desktop, "games · on" in a full-screen game, "always ·
+    on"; stamped while it is on. "not offered": no screen offers it (the monitor's own menu)."""
+    want, now = s.get("vrr", "in games"), s.get("vrrnow")
+    if want == "off":
+        return "off", False
+    if now == "none":
+        return "not offered", False
+    if now in ("on", "off"):
+        return ("games" if want == "in games" else want) + " · " + now, now == "on"
+    return want, True                      # (unread: the setting alone, as it was asked)
+
+
 def tiles_of(s):
     """(key, icon, kanji, name, value, stamped) for each tile, in order."""
     dark = s.get("theme", "dark") != "light"
     net = s.get("nettype", "offline")
     t = [("theme", "moon" if dark else "sun", "夜" if dark else "昼", "theme", "dark" if dark else "light", True),
-         ("night", "lantern", "灯", "night light", s.get("night", "off"), s.get("night") == "on"),
-         ("vrr", "window", "滑", "freesync", s.get("vrr", "in games"), s.get("vrr") != "off"),
+         ("night", "lantern", "灯", "night light", s.get("night", "off"), s.get("night", "off") != "off"),
+         ("vrr", "window", "滑", "freesync") + vrr_shown(s),
          ("network", {"ethernet": "ethernet", "wifi": "wifi"}.get(net, "offline"), "網", "network",
           s.get("network", "offline"), net in ("ethernet", "wifi") or s.get("network", "offline") != "offline")]
     if "bluetooth" in s:
@@ -377,8 +440,10 @@ def tiles_of(s):
     b = s.get("backup", "not set up")
     t += [("drives", "drive", "盤", "drives", s.get("drives", "none"), s.get("drives", "none") != "none"),
           ("backup", "archive", "蔵", "backup", b, b not in ("never", "not set up")),
-          ("dnd", "bell_off" if s.get("dnd") == "on" else "bell", "静", "dnd", s.get("dnd", "off"), s.get("dnd") == "on")]
-    return t
+          ("dnd", "bell_off" if s.get("dnd") == "on" else "bell", "静", "dnd", s.get("dnd", "off"), s.get("dnd") == "on"),
+          ("saver", "hourglass", "夢", "screensaver", s.get("saver", "off"), s.get("saver", "off") != "off")]
+    # (each value as much as its tile shows: 12 px of margin, 76 px of words)
+    return [(k, i, j, n, fit(v, TILE_W - 12), on) for k, i, j, n, v, on in t]
 
 
 def rows_of(n):
@@ -515,6 +580,20 @@ def px_of(t):
     return sum(12 if unicodedata.east_asian_width(c) in "WF" or wide.match(c) else 6 for c in t)
 
 
+def fit(t, w, tail=False):
+    """t cut to w px — at a word's end where one is (a single word too long loses its last
+    letters); tail: its first letters go, the end of what is typed shows. Never an "…": a
+    tile's name (a Wi-Fi's, a drive's, a device's) shows what fits of it."""
+    if px_of(t) <= w:
+        return t
+    cut = t
+    while cut and px_of(cut) > w:
+        cut = cut[1:] if tail else cut[:-1]
+    if not tail and " " in cut.strip() and t[len(cut):len(cut) + 1] != " ":
+        cut = cut.rsplit(" ", 1)[0]
+    return cut.strip()
+
+
 def fld(f, i):
     return f[i] if len(f) > i else ""
 
@@ -643,9 +722,13 @@ def layout_menu(m):
 
 
 def layout_quick(s):
+    """設 quick settings under its seal, as every panel opens; the two meters; the tiles (three
+    a row, a short last row two wide ones: 135 × 64); the keys at the foot, the whole width."""
     x0 = y = BORDER + PAD
     items, rules, r = [], [], 0
     head = (x0, y)
+    heads = [("設", "quick settings", x0, y)]
+    y += SEAL + GAP
     for key, kanji, name in (("brightness", "明", "brightness"), ("sound", "音", "sound")):
         items.append(Item(key, "meter", x0, y, INNER, METER_H, r, kanji=kanji, name=name, value=s.get(key, "")))
         y += METER_H + METER_GAP
@@ -665,15 +748,17 @@ def layout_quick(s):
         r += 1
     y += RULE - GAP
     rules.append(y - RULE + 10)
-    keys = [("wallpaper", "picture", "wallpaper", KEY_W), ("screenshot", "camera", "screenshot", KEY_W),
+    # (the keys the whole width, 6 px apart: power its icon alone, the two others sharing the rest)
+    half = (INNER - KEY_H - 2 * GAP) // 2
+    keys = [("wallpaper", "picture", "wallpaper", half), ("screenshot", "camera", "screenshot", INNER - KEY_H - 2 * GAP - half),
             ("power", "power", "", KEY_H)]
-    x = x0 + (INNER - sum(k[3] for k in keys) - GAP * (len(keys) - 1)) // 2
+    x = x0
     for key, ic, name, w in keys:
         items.append(Item(key, "key", x, y, w, KEY_H, r, icon=ic, name=name,
                           tip=s.get("wallpaper", "") if key == "wallpaper" else ""))
-        x += w + KEY_GAP
+        x += w + GAP
     y += KEY_H + PAD + BORDER
-    return Layout(items, head, rules, (INNER + 2 * (PAD + BORDER), y))
+    return Layout(items, head, rules, (INNER + 2 * (PAD + BORDER), y), heads)
 
 
 def layout_sound(s):
@@ -711,20 +796,36 @@ def layout_sound(s):
         y -= METER_GAP
     if s.get("mic", "none") != "none":                # (no input: no microphone to mute)
         mic_muted = s.get("mic") == "muted"
+        clean = s.get("cleanmic", "none")
         y += GAP
+        if clean == "on":                             # (the clean mic's level, live: it only shows)
+            items.append(Item("level", "level", x0, y, INNER, METER_H, r, icon="mic", name="clean mic",
+                              value=s.get("level", "0%")))
+            y += METER_H + GAP
+            r += 1
         items.append(Item("mic", "key", x0, y, INNER, KEY_H, r, icon="mic" if mic_muted else "mic_off",
                           name="unmute microphone" if mic_muted else "mute microphone"))
+        y += KEY_H + GAP
+        r += 1
+        if clean != "none":                           # (not loaded: the test alone, the row's width)
+            items.append(Item("cleanmic", "key", x0, y, half, KEY_H, r, icon="box_on" if clean == "on" else "box_off",
+                              name="clean mic", lit=clean == "on"))
+        tx = x0 if clean == "none" else x0 + half + GAP
+        items.append(Item("mictest", "key", tx, y, x0 + INNER - tx, KEY_H, r, icon="mic", name="test mic"))
         y += KEY_H
     y += PAD + BORDER
     return Layout(items, (x0, x0), [], (INNER + 2 * (PAD + BORDER), y), heads, nones)
 
 
 def layout_brightness(s):
-    """The brightness meter alone, as in quick settings (the same row, the same squares)."""
+    """The brightness meter alone, the size of what it holds: its kanji and name, 12 px, the
+    twelve squares — the kanji's ink and the squares' last on the content's edges (the
+    squares as quick settings draws them)."""
     x0 = BORDER + PAD
-    it = Item("brightness", "meter", x0, x0, INNER, METER_H, 0, kanji="明", name="brightness",
-              value=s.get("brightness", ""))
-    return Layout([it], (x0, x0), [], (INNER + 2 * (PAD + BORDER), x0 + METER_H + PAD + BORDER))
+    w = LINE + 6 + px_of("brightness") + 12 + SPAN
+    it = Item("brightness", "meter", x0, x0, w, METER_H, 0, kanji="明", name="brightness",
+              value=s.get("brightness", ""), inset=0, trail=0)
+    return Layout([it], (x0, x0), [], (w + 2 * (PAD + BORDER), x0 + METER_H + PAD + BORDER))
 
 
 def layout(s, mode="quick"):
@@ -747,8 +848,8 @@ def look(it, focused, hot):
         ink = "text_on_accent"
         return {"fill": "accent", "frame": None, "glyph": ink, "label": ink,
                 "value": ink, "on_fill": True, "detail": ink}
-    bare = it.kind in ("meter", "row")
-    glyph = {"meter": "accent_text", "row": "strong" if it.lit else "muted"}.get(it.kind, "text")
+    bare = it.kind in ("meter", "level", "row")
+    glyph = {"meter": "accent_text", "level": "accent_text", "row": "strong" if it.lit else "muted"}.get(it.kind, "text")
     rest = {"fill": None if bare else "key", "frame": None if bare else "edge", "glyph": glyph,
             "label": "strong" if it.kind in ("tile", "row") and it.lit else "text",
             "value": "muted", "on_fill": False, "detail": "text"}
@@ -757,7 +858,8 @@ def look(it, focused, hot):
     return rest
 
 
-SWITCHES = ("theme", "night", "vrr", "bluetooth", "dnd")       # done in place: the panel stays
+SWITCHES = ("theme", "night", "vrr", "bluetooth", "dnd", "saver")   # done in place: the panel stays
+WHEELED = {"night": ("warmer", "cooler")}   # a tile the wheel changes: the night light's warmth
 OPENERS = ("network", "devices", "drives", "backup", "wallpaper", "screenshot", "power")
 METERS = ("brightness", "sound")
 MOVES = ("Left", "h", "Right", "l", "Up", "k", "Down", "j", "Tab", "ISO_Left_Tab")
@@ -781,9 +883,11 @@ class Panel:
         self.pointer = None      # where the pointer is over the panel (None: not over it)
         self.dragging = None     # the meter being dragged
         self.visible = False
+        self.dy, self.win = 0, self.size
         self.place = where(self.mode, None, self.size[0])
-        self.lost_at, self.lost_mode = -1e9, None
-        self.toggled_at, self.toggled_mode = -1e9, None
+        self.what = None         # what is open (or was last): a panel's mode, or "menu CALLER"
+        self.used = None         # the last bar click a request came from (its id: ui.click())
+        self.lost = None         # (what, click): closed by a press on the bar, not yet asked for
         self.reading = set()     # the modes whose state is being read
         self.again = set()       # … and asked again meanwhile
         self.busy = {}           # a meter's level being set, and the next one asked meanwhile
@@ -808,6 +912,11 @@ class Panel:
             self.scroll = max(0, min(self.scroll, self.view[2] - self.view[1]))
         else:
             self.scroll = 0
+        # the pads above and below measured to the ink (design-system §3): what is drawn is
+        # looked at, and the window starts dy px lower and is h high, 12 px of paper between
+        # the frame and the first and the last ink
+        self.dy, h, w = self.ui.trim(self.size)
+        self.win = (w, h)
 
     # the state
     def refresh(self, mode=None):
@@ -842,7 +951,10 @@ class Panel:
                     new[k] = old[k]
                     if k == "sound" and "muted" in old:
                         new["muted"] = old["muted"]
+            if "level" in old:                        # (the clean mic's level: the listener's, live)
+                new["level"] = old["level"]
             self.states[mode] = new
+            self.listen()
             if mode == self.mode:
                 self.relayout()
                 keys = [i.key for i in self.items]
@@ -855,25 +967,37 @@ class Panel:
             self.refresh(mode)
 
     # open, closed
-    def toggle(self, mode="quick"):
-        """Its key (or its module's click): open, or closed if it is the one open; another
-        one open is closed for it."""
-        now = self.ui.now()
-        if mode == self.toggled_mode and now - self.toggled_at < REPEAT:   # (its key held: no flicker)
-            return
-        self.toggled_at, self.toggled_mode = now, mode
-        if self.visible and self.mode == mode:
+    def request(self, what="quick", menu=None, reply=None):
+        """A request (its key, or its button on the bar): what — a panel's mode, or "menu
+        CALLER" (menu: the Menu, reply(rc, text) its caller's answer) — opens, or closes if it
+        is the one open. A click on the bar that closed it (a click outside it) is that close:
+        it stays closed. Every request answered at once: a menu's caller hears 1 unless it opens."""
+        click = self.ui.click()
+        if click is not None and click == self.used:
+            click = None                              # (that click was answered: this is a key)
+        if click is not None:
+            self.used = click
+        if self.visible and self.what == what:
+            self._refuse(reply)
             self.close("toggled")
-        elif mode == self.lost_mode and now - self.lost_at < LOST_GRACE:
-            pass                                      # (the click outside that closed it: it stays closed)
+        elif click is not None and self.lost == (what, click):
+            self.lost = None                          # (the click outside it was on its own button)
+            self._refuse(reply)
+        elif menu is not None:
+            self.open_menu(menu, reply, what)
         else:
-            self.open(mode)
+            self.open(what)
+
+    def _refuse(self, reply):
+        if reply:
+            reply(1, "")
 
     def open(self, mode="quick"):
         self.ui.close_menu()                          # a fuzzel menu on screen goes first
         if self.visible:
             self.close("switched")                    # (one panel or menu at a time)
-        self.mode = mode
+        self.mode = self.what = mode
+        self.lost = None
         self.visible = True
         # a new window, nothing remembered: no cursor, nothing hot until the pointer says
         # (it says at once if it is over the panel: enter-notify), no drag
@@ -885,13 +1009,14 @@ class Panel:
         self.ui.light(mode, True)
         self.refresh()
 
-    def open_menu(self, menu, reply):
-        """A menu asked for (kawa-panel --menu): shown at once in place of whatever panel or
-        menu is on screen (that one dismissed); reply(rc, text) answers its caller once."""
+    def open_menu(self, menu, reply, what="menu"):
+        """A menu asked for (kawa-menu): shown at once in place of whatever panel or menu is on
+        screen (that one dismissed); reply(rc, text) answers its caller once."""
         self.ui.close_menu()
         if self.visible:
             self.close("switched")
-        self.mode = "menu"
+        self.mode, self.what = "menu", what
+        self.lost = None
         self.states["menu"] = menu
         self.reply = reply
         self.visible = True
@@ -901,6 +1026,8 @@ class Panel:
         self.relayout()
         self.place = menu_place(menu.drop, self.ui.clicked() if menu.drop else None, self.size[0])
         self.ui.show()
+        if menu.drop:
+            self.ui.light(what, True)                 # (its button on the bar lit)
 
     def answer(self, rc, text=""):
         """The menu's caller told, once."""
@@ -912,18 +1039,35 @@ class Panel:
         if not self.visible:
             return
         self.visible = False
-        if how != "toggled":
-            self.toggled_at = -1e9                    # (closed otherwise: its key opens it at once)
         if how == "lost":
-            self.lost_at, self.lost_mode = self.ui.now(), self.mode
+            # a click outside it: on the bar, a click not yet asked for — the request it makes
+            # (if it is this one's button) is this close
+            click = self.ui.click()
+            if click is not None and click != self.used:
+                self.lost = (self.what, click)
         self.focus = self.hot = self.pointer = self.dragging = None
+        self.listen()                                 # (the clean mic's meter: no one reading it now)
         try:
             self.ui.hide()
         finally:                                      # (whatever else fails:)
             if self.mode == "menu":
                 self.answer(1)                        # a menu dismissed, unless it was answered
+                if self.states["menu"].drop:
+                    self.ui.light(self.what, False)
             else:
                 self.ui.light(self.mode, False)       # a panel's marker gone
+
+    # the clean mic's level: read (ui.listen) only while the sound panel is open and shows it
+    def listen(self):
+        self.ui.listen(self.visible and self.mode == "sound" and self.states["sound"].get("cleanmic") == "on")
+
+    def heard(self, pct):
+        """The listener's newest level: kept, and its meter alone redrawn."""
+        self.states["sound"]["level"] = f"{pct}%"
+        it = self.item("level") if self.mode == "sound" else None
+        if it:
+            it.value = self.states["sound"]["level"]
+            self.ui.redraw(it)
 
     # doing
     def item(self, key):
@@ -949,6 +1093,10 @@ class Panel:
             if key in ("mute", "mic"):
                 self.ui.run(["kawa-quick", "--do", "mute" if key == "mute" else "micmute"],
                             lambda rc, out: self.refresh())
+            elif key == "cleanmic":                   # (stays open: the key and the ticks show the new state)
+                self.ui.run(["kawa-quick", "--do", "cleanmic"], lambda rc, out: self.refresh())
+            elif key == "mictest":                    # (stays open: the level shows while it records)
+                self.ui.launch(["kawa-quick", "--do", "mictest"])
             elif key == "mixer":
                 self.close("chosen")
                 self.ui.launch(["kawa-quick", "--do", "mixer"])
@@ -978,6 +1126,9 @@ class Panel:
         if it:
             it.value, it.muted = self.state[key], False
         self.ui.redraw(*([it] if it else []))
+        # the bar's module the same moment, before the level is sent (that takes a process):
+        # the bar, the meter and the level display agree at every step
+        self.ui.push("volume" if key == "sound" else key, f"volume {pct} 0" if key == "sound" else str(pct))
         if key not in self.busy:
             self._send(key)
 
@@ -1005,7 +1156,7 @@ class Panel:
     @staticmethod
     def squares_x(item):
         """Where a meter's first square starts (as drawn)."""
-        return item.x + item.w - 6 - 4 * 6 - 8 - SPAN
+        return item.x + item.w - getattr(item, "trail", 6 + 4 * 6 + 8) - SPAN
 
     def meter_at(self, item, x, held=False):
         """The level a pointer at x on a meter means: on its squares (or 6 px either side, the
@@ -1176,8 +1327,15 @@ class Panel:
             self.scroll_list((-3 if up else 3) * (METER_H + METER_GAP))
             return
         it = self.at(x, y)
-        if it and it.kind == "meter":
-            self.step(it.key, 5 if up else -5)
+        if it and (it.kind == "meter" or it.key in WHEELED):
+            self.nudge(it.key, up)
+
+    def nudge(self, key, up):
+        """The wheel's notch on a meter (5 either way) or on a tile it changes (kawa-quick)."""
+        if key in WHEELED:
+            self.ui.run(["kawa-quick", "--do", WHEELED[key][0 if up else 1]], lambda rc, out: self.refresh())
+        else:
+            self.step(key, 5 if up else -5)
 
     def scroll_list(self, dy):
         """A menu's list moved by dy px (the wheel: three rows a notch), within its ends."""
@@ -1196,28 +1354,128 @@ class Panel:
             self.scroll_list(dy * 3 * (METER_H + METER_GAP))
             return
         it = self.at(x, y)
-        if not it or it.kind != "meter":
+        if not it or (it.kind != "meter" and it.key not in WHEELED):
             self.scrolled = (None, 0.0)
             return
         key, acc = self.scrolled
         acc = (acc if key == it.key else 0.0) - dy
         while abs(acc) >= 1 - 1e-9:
-            self.step(it.key, 5 if acc > 0 else -5)
+            self.nudge(it.key, acc > 0)
             acc -= 1 if acc > 0 else -1
         self.scrolled = (it.key, acc)
 
 
-def mark(mode, on):
-    """Its module told the panel is open (the marker holds this pid) or closed (no marker)."""
+def mark(what, on):
+    """Its button on the bar told the panel (what: a mode) or the dropdown (what: "menu
+    CALLER") is open — its marker holds this pid (and a dropdown's, its caller) — or closed
+    (no marker)."""
+    path, text = (MARKS[what], f"{os.getpid()}\n") if what in MARKS else \
+        (DROP, f"{os.getpid()} {what.partition(' ')[2]}\n")
     try:
         if on:
-            with open(MARKS[mode] + ".new", "w") as f:
-                f.write(f"{os.getpid()}\n")
-            os.replace(MARKS[mode] + ".new", MARKS[mode])
+            with open(path + ".new", "w") as f:
+                f.write(text)
+            os.replace(path + ".new", path)
         else:
-            os.unlink(MARKS[mode])
+            os.unlink(path)
     except OSError:
         pass
+
+
+def bar_push(name, line):
+    """A value pushed to the bar's long-running module name (volume, brightness), as kawa-bar's
+    bar_push does: line into each $XDG_RUNTIME_DIR/kawa-bar.NAME.PID, opened read-write and
+    without waiting — drawn by the module at once."""
+    try:
+        names = [f for f in os.listdir(RUN) if f.startswith(f"kawa-bar.{name}.")]
+    except OSError:
+        return
+    for f in names:
+        try:
+            os.kill(int(f.rsplit(".", 1)[1]), 0)
+            fd = os.open(os.path.join(RUN, f), os.O_RDWR | os.O_NONBLOCK)
+            try:
+                os.write(fd, (line + "\n").encode())
+            finally:
+                os.close(fd)
+        except (OSError, ValueError):
+            pass
+
+
+def poke_sigs(what):
+    """The bar's signals (SIGRTMIN+N) that tell what's button (a mode, or "menu CALLER") to look
+    again — quick settings' with the mode seal's (its click opens them too) —, [] for the
+    timer's (a long-running module: woken), None for no button."""
+    if what in POKE:
+        return [POKE[what]] + ([12] if what == "quick" else [])
+    caller = what.partition(" ")[2]
+    if caller not in DROP_POKE:
+        return None
+    return [int(DROP_POKE[caller])] if DROP_POKE[caller] else []
+
+
+_bar = [0]
+
+
+def waybar():
+    """The bar's process (our waybar, the newest), remembered while it lives; 0: none."""
+    p = _bar[0]
+    try:
+        if p and open(f"/proc/{p}/comm").read().strip() == "waybar":
+            return p
+    except OSError:
+        pass
+    found = []
+    for d in os.listdir("/proc"):
+        if d.isdigit():
+            try:
+                if open(f"/proc/{d}/comm").read().strip() == "waybar" and os.stat(f"/proc/{d}").st_uid == os.getuid():
+                    found.append((os.stat(f"/proc/{d}").st_mtime, int(d)))
+            except OSError:
+                pass
+    _bar[0] = max(found)[1] if found else 0
+    return _bar[0]
+
+
+def poke(what):
+    """what's button told at once, as kawa-dwlstatus --poke tells it, but from here (no process
+    started on the way): SIGRTMIN+N to waybar once it catches it (until it does, the signal
+    would end it), and the bar's long-running modules (time, memory, volume) woken through
+    their fifos ($XDG_RUNTIME_DIR/kawa-bar.wake.PID, opened read-write: never waits)."""
+    sigs = poke_sigs(what)
+    if sigs is None:
+        return
+    pid = waybar() if sigs else 0
+    if pid:
+        try:
+            caught = next(int(l.split()[1], 16) for l in open(f"/proc/{pid}/status") if l.startswith("SigCgt:"))
+            for n in sigs:
+                if caught >> (signal.SIGRTMIN + n - 1) & 1:
+                    os.kill(pid, signal.SIGRTMIN + n)
+        except (OSError, StopIteration, ValueError):
+            pass
+    try:
+        wakes = [f for f in os.listdir(RUN) if f.startswith("kawa-bar.wake.")]
+    except OSError:
+        return
+    for f in wakes:
+        path = os.path.join(RUN, f)
+        try:
+            os.kill(int(f.rsplit(".", 1)[1]), 0)
+        except (OSError, ValueError):
+            try:
+                os.unlink(path)                       # (its module gone)
+            except OSError:
+                pass
+            continue
+        try:
+            fd = os.open(path, os.O_RDWR | os.O_NONBLOCK)
+            try:
+                os.write(fd, b"\n")
+            finally:
+                os.close(fd)
+        except OSError:
+            pass
 
 
 def stale_marks():
@@ -1245,30 +1503,19 @@ def running():
     return None
 
 
-def ask(pid, mode):
-    """The running panel asked to open (or close) mode: the mode in ASK, then SIGUSR1 (alone,
-    as kawa-quick sends it: quick settings)."""
-    if mode != "quick":
-        with open(ASK + ".new", "w") as f:
-            f.write(mode + "\n")
-        os.replace(ASK + ".new", ASK)
-    os.kill(pid, signal.SIGUSR1)
-
-
-def asked():
-    """The mode a SIGUSR1 asks for (ASK, taken: read once), quick settings with none."""
+def ask(line):
+    """The running panel asked (a request line into its fifo: opened read-write, so it never
+    waits; one write, so it arrives whole)."""
+    fd = os.open(FIFO, os.O_RDWR | os.O_NONBLOCK)
     try:
-        with open(ASK) as f:
-            mode = f.read().strip()
-        os.unlink(ASK)
-    except OSError:
-        return "quick"
-    return mode
+        os.write(fd, (line + "\n").encode())
+    finally:
+        os.close(fd)
 
 
 def menu_args(args):
-    """kawa-panel --menu's options → the request's, or None (wrong use): --drop, --index,
-    --title TEXT, --width N, --lines N, --select N, --prompt TEXT."""
+    """A menu's options (kawa-menu's, as it passes them) → the request's, or None (wrong use):
+    --drop, --index, --title TEXT, --width N, --lines N, --select N, --prompt TEXT."""
     req = {"drop": False, "index": False, "title": "", "width": 0, "lines": 0, "select": None, "prompt": None}
     i = 0
     while i < len(args):
@@ -1289,47 +1536,21 @@ def menu_args(args):
     return req
 
 
-def menu_client(args, rows_in=sys.stdin, out=sys.stdout):
-    """kawa-panel --menu: the rows read, the running panel asked to show them (its socket;
-    one started, should none run), its answer printed. Exit as the panel says: 0 chosen, 1
-    dismissed; 2 wrong use."""
-    import json
-    import socket
-    import subprocess
-    req = menu_args(args)
+def menu_request(text):
+    """kawa-menu's request file → (its caller, Menu), or None (not one): the caller, the number
+    of options, the options, then the rows — a line each."""
+    lines = text.split("\n")
+    if lines and lines[-1] == "":
+        lines.pop()                               # (the last line's own end)
+    if len(lines) < 2 or not lines[1].isdigit() or len(lines) < 2 + int(lines[1]):
+        return None
+    n = int(lines[1])
+    req = menu_args(lines[2:2 + n])
     if req is None:
-        print("usage: … | kawa-panel --menu [--drop] [--index] [--title TEXT] [--width N] [--lines N] "
-              "[--select N] [--prompt TEXT]", file=sys.stderr)
-        return 2
-    req["rows"] = rows_in.read().split("\n")
-    if req["rows"] and req["rows"][-1] == "":
-        req["rows"].pop()                         # (the last line's own end)
-    sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-    started = False
-    for _ in range(60):                           # (a panel just started: 3 s to listen)
-        try:
-            sock.connect(SOCK)
-            break
-        except OSError:
-            if not started and not running():
-                subprocess.Popen(["kawa-panel"], start_new_session=True, stdin=subprocess.DEVNULL,
-                                 stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-                started = True
-            time.sleep(0.05)
-    else:
-        print("kawa-panel: no panel to show the menu (is the session's kawa-panel running?)", file=sys.stderr)
-        return 1
-    sock.sendall((json.dumps(req) + "\n").encode())
-    data = b""
-    while not data.endswith(b"\n"):
-        chunk = sock.recv(65536)
-        if not chunk:
-            return 1                              # (the panel gone without a word: dismissed)
-        data += chunk
-    ans = json.loads(data)
-    if ans.get("rc") == 0:
-        out.write(ans.get("out", "") + "\n")
-    return ans.get("rc", 1)
+        return None
+    return lines[0], Menu(lines[2 + n:], drop=req["drop"], title=req["title"], width=req["width"],
+                          lines_shown=req["lines"], select=req["select"], prompt=req["prompt"],
+                          index=req["index"])
 
 
 # ── on screen ─────────────────────────────────────────────────────────────────────────────
@@ -1337,19 +1558,27 @@ def main(argv):
     if len(argv) > 1 and argv[1] in ("-h", "--help"):
         print(__doc__.strip())
         return 0
-    if len(argv) > 1 and argv[1] == "--menu":
-        return menu_client(argv[2:])
     flags = {(): None, ("--open",): "quick", ("--sound",): "sound", ("--brightness",): "brightness"}
     if tuple(argv[1:]) not in flags:
-        print("usage: kawa-panel [--open | --sound | --brightness | --menu …] (kawa-panel --help)", file=sys.stderr)
+        print("usage: kawa-panel [--open | --sound | --brightness] (kawa-panel --help)", file=sys.stderr)
         return 2
     want = flags[tuple(argv[1:])]
-    # one at a time: another one running is asked to open instead
-    pid = running()
-    if pid:
+    # one at a time: another one running is asked instead
+    if running():
         if want:
-            ask(pid, want)
+            ask("toggle " + want)
         return 0
+    # the fifo first, before anything slow (GTK): a request that comes while the panel is still
+    # being built (right after login, or after a restart) waits in it, kept
+    try:
+        os.unlink(FIFO + ".new")
+    except OSError:
+        pass
+    os.mkfifo(FIFO + ".new", 0o600)
+    fifo = os.open(FIFO + ".new", os.O_RDWR | os.O_NONBLOCK)
+    os.replace(FIFO + ".new", FIFO)
+    with open(PIDFILE, "w") as f:
+        f.write(str(os.getpid()))
     import gi
     gi.require_version("Gtk", "3.0")
     gi.require_version("Gdk", "3.0")
@@ -1359,24 +1588,9 @@ def main(argv):
     from gi.repository import Gdk, Gio, GLib, GLibUnix, Gtk, GtkLayerShell, Pango, PangoCairo
     import cairo
 
-    # a press that comes while the panel is still being built (right after login, or after a
-    # restart) is kept, not fatal: SIGUSR1's default would end it before GLib takes the signal
-    early = []
-    signal.signal(signal.SIGUSR1, lambda *_: early.append(1))
-    signal.signal(signal.SIGUSR2, lambda *_: early.clear())     # (a menu opened meanwhile: closed)
-    try:
-        os.unlink(ASK)                                # (one left by a panel gone: not asked now)
-    except OSError:
-        pass
-    with open(PIDFILE, "w") as f:
-        f.write(str(os.getpid()))
     # a marker left by a panel that ended without closing (killed, crashed): its module dark
     for mode in stale_marks():
-        try:
-            Gio.Subprocess.new(["kawa-dwlstatus", "--poke", str(POKE[mode])],
-                               Gio.SubprocessFlags.STDOUT_SILENCE | Gio.SubprocessFlags.STDERR_SILENCE)
-        except GLib.Error:
-            pass
+        poke(mode)
     # no transitions anywhere in it (a tooltip's fade, a theme's hover easing): every change of
     # state is drawn at once — the drawing is the panel's own, the rest must not animate. No
     # GTK widget can show a hover background either: the window holds one drawing area, as big
@@ -1399,30 +1613,16 @@ def main(argv):
     # a window of its own each time it opens (as each menu is a fuzzel of its own): one
     # hidden and shown again can come back without the keyboard and the mouse, after a
     # click outside took them from it
-    view = {"win": None, "area": None}
+    # — made ahead, though: the next one waits built and realized (spare), so an open only
+    # places it and maps it; the first after login costs no more than any other
+    view = {"win": None, "area": None, "spare": None}
 
-    def make_window():
+    def build_window():
+        """A panel window, all but its place, title and size: its surface, its keys, its events."""
         win = Gtk.Window()
-        win.set_title(TITLE[panel.mode])
         GtkLayerShell.init_for_window(win)
         GtkLayerShell.set_namespace(win, "kawa-panel")
         GtkLayerShell.set_layer(win, GtkLayerShell.Layer.OVERLAY)
-        # under the bar, 8 px from it: under the click on its output (the output whose x it is),
-        # or, opened by its key, quick settings 8 px from the screen's edge (as kawa-menu --drop:
-        # its border in line with a window's there), the others under their module
-        # (a menu not dropped from the bar — power, help, change —: no anchor, the middle)
-        side, margin, out_x = panel.place
-        if side != "centre":
-            edge = GtkLayerShell.Edge.LEFT if side == "left" else GtkLayerShell.Edge.RIGHT
-            GtkLayerShell.set_anchor(win, GtkLayerShell.Edge.TOP, True)
-            GtkLayerShell.set_anchor(win, edge, True)
-            GtkLayerShell.set_margin(win, GtkLayerShell.Edge.TOP, 8)
-            GtkLayerShell.set_margin(win, edge, margin)
-        if side == "left":
-            disp = Gdk.Display.get_default()
-            for i in range(disp.get_n_monitors()):
-                if disp.get_monitor(i).get_geometry().x == out_x:
-                    GtkLayerShell.set_monitor(win, disp.get_monitor(i))
         # the keyboard its own while open (exclusive, as fuzzel): every key reaches it at once,
         # never a window behind — and dwl treats it as a menu: a click outside or a workspace
         # switch takes the keyboard back, which closes it (focus-out). On-demand would leave
@@ -1454,25 +1654,75 @@ def main(argv):
         # taken off the screen some other way (the compositor closed its surface): closed too,
         # so the bar's cat never stays lit over nothing
         win.connect("unmap-event", lambda w, ev: (w is view["win"] and panel.close("lost")) or False)
-        area.set_size_request(*panel.size)
-        view["win"], view["area"], view["size"] = win, area, panel.size
+        area.show()
+        win.realize()
+        return win, area
+
+    def spare():
+        if view["spare"] is None:
+            view["spare"] = build_window()
+        return False
+
+    def make_window():
+        win, area = view["spare"] or build_window()
+        view["spare"] = None
+        GLib.timeout_add(200, spare)            # (the next one, once this one is drawn)
+        win.set_title(TITLE[panel.mode])
+        # under the bar, 8 px from it: under the click on its output (the output whose x it is),
+        # or, opened by its key, quick settings 8 px from the screen's edge (as kawa-menu --drop:
+        # its border in line with a window's there), the others under their module
+        # (a menu not dropped from the bar — power, help, change —: no anchor, the middle)
+        side, margin, out_x = panel.place
+        if side != "centre":
+            edge = GtkLayerShell.Edge.LEFT if side == "left" else GtkLayerShell.Edge.RIGHT
+            GtkLayerShell.set_anchor(win, GtkLayerShell.Edge.TOP, True)
+            GtkLayerShell.set_anchor(win, edge, True)
+            GtkLayerShell.set_margin(win, GtkLayerShell.Edge.TOP, 8)
+            GtkLayerShell.set_margin(win, edge, margin)
+        if side == "left":
+            disp = Gdk.Display.get_default()
+            for i in range(disp.get_n_monitors()):
+                if disp.get_monitor(i).get_geometry().x == out_x:
+                    GtkLayerShell.set_monitor(win, disp.get_monitor(i))
+        area.set_size_request(*panel.win)
+        view["win"], view["area"], view["size"] = win, area, panel.win
         return win
 
+    drawing = []            # (the drawing ready: the pads can be measured)
+
     class UI:
-        def now(self):
-            return time.monotonic()
+        def trim(self, size):
+            """(dy, h, w): the content's ink, first and last row (drawn off screen, at rest), 12
+            px of paper from the frame above and below it — the window's top dy px down the
+            layout, h high; and its last column 12 px from the frame on the right — w wide (a
+            stitch stops on its last whole stitch, up to 4 px short of the layout's edge: the
+            panel ends 12 px after it, not 12 after the layout's edge)."""
+            W, H = size
+            if not drawing:
+                return 0, H, W                    # (not drawable yet: the layout's own)
+            surf = cairo.ImageSurface(cairo.FORMAT_ARGB32, W, H)
+            content(cairo.Context(surf), at_rest=True)
+            surf.flush()
+            data, stride = surf.get_data(), surf.get_stride()
+            blank = bytes(stride)
+            rows = [y for y in range(BORDER, H - BORDER) if data[y * stride:(y + 1) * stride] != blank]
+            if not rows:
+                return 0, H, W
+            dy = rows[0] - (BORDER + PAD)
+            right = max(len(bytes(data[y * stride:(y + 1) * stride]).rstrip(b"\0")) for y in rows)   # (bytes: 4 a pixel)
+            return dy, rows[-1] + 1 - dy + PAD + BORDER, min(W, (right + 3) // 4 + PAD + BORDER)
 
         def redraw(self, *items):
             """The items given (their own squares: no flicker, little to draw), or all."""
             a = view["area"]
             if not a:
                 return
-            if items and view.get("size") == panel.size and not panel.view:
+            if items and view.get("size") == panel.win and not panel.view:
                 for it in items:
-                    a.queue_draw_area(it.x, it.y, it.w, it.h)
+                    a.queue_draw_area(it.x, it.y - panel.dy, it.w, it.h)
                 return
-            view["size"] = panel.size
-            a.set_size_request(*panel.size)
+            view["size"] = panel.win
+            a.set_size_request(*panel.win)
             a.queue_draw()
 
         def show(self):
@@ -1485,9 +1735,21 @@ def main(argv):
                 w.hide()
                 GLib.idle_add(w.destroy)            # (not inside its own focus-out handler)
 
-        def light(self, mode, on):
-            mark(mode, on)
-            self.launch(["kawa-dwlstatus", "--poke", str(POKE[mode])])
+        def light(self, what, on):
+            mark(what, on)
+            poke(what)
+
+        def push(self, name, line):
+            bar_push(name, line)
+
+        def click(self):
+            """The last press on the bar, while fresh: its id (dwl writes the file anew each
+            time — a new inode), or None."""
+            try:
+                st = os.stat(POINTER)
+            except OSError:
+                return None
+            return f"{st.st_ino}.{st.st_mtime_ns}" if -FRESH < time.time() - st.st_mtime < FRESH else None
 
         def clicked(self):
             """The bar's click that opened it (dwl's record, fresh), or None (its key)."""
@@ -1500,10 +1762,9 @@ def main(argv):
             return bar_click(text, age)
 
         def close_menu(self):
-            # kawa-menu's record: "PID WHEN HOW WHO"; a fuzzel open on screen is closed
-            rec = os.path.join(RUN, f"kawa-menu-{os.environ.get('WAYLAND_DISPLAY', '')}.state")
+            # the launcher's record (kawa-menu): "PID HOW …"; a fuzzel open on screen is closed
             try:
-                pid, _, how = open(rec).read().split()[:3]
+                pid, how = open(LAUNCHER).read().split()[:2]
                 if how == "open" and open(f"/proc/{int(pid)}/comm").read().strip() == "fuzzel":
                     os.kill(int(pid), signal.SIGTERM)
             except (OSError, ValueError):
@@ -1522,6 +1783,36 @@ def main(argv):
 
         def launch(self, argv):
             Gio.Subprocess.new(argv, Gio.SubprocessFlags.STDOUT_SILENCE | Gio.SubprocessFlags.STDERR_SILENCE)
+
+        def listen(self, on):
+            """The clean mic's level: on — pw-record from it (16 kHz mono, raw samples on its
+            stdout, 50 ms a block), each block's peak to panel.heard; off — that recorder
+            ended. (The chain runs only while something records from it: this, while shown.)"""
+            p = rec["p"]
+            if on and p is None:
+                p = rec["p"] = Gio.Subprocess.new(
+                    ["pw-record", "--raw", "--target", "clean_mic", "--rate", "16000", "--channels", "1",
+                     "--format", "s16", "--latency", "50ms", "-"],
+                    Gio.SubprocessFlags.STDOUT_PIPE | Gio.SubprocessFlags.STDERR_SILENCE)
+
+                def got(stream, res):
+                    try:
+                        b = stream.read_bytes_finish(res).get_data()
+                    except GLib.Error:
+                        b = b""
+                    if rec["p"] is not p:             # (ended meanwhile)
+                        return
+                    if not b:
+                        rec["p"] = None               # (pw-record ended by itself: the next read starts one)
+                        return
+                    panel.heard(peak_pct(b))
+                    stream.read_bytes_async(1600, GLib.PRIORITY_DEFAULT, None, got)
+                p.get_stdout_pipe().read_bytes_async(1600, GLib.PRIORITY_DEFAULT, None, got)
+            elif not on and p is not None:
+                rec["p"] = None
+                p.force_exit()
+
+    rec = {"p": None}                                 # (the clean mic's level: its recorder)
 
     panel = Panel(UI())
 
@@ -1554,25 +1845,28 @@ def main(argv):
         lay.set_text(s, -1)
         return lay
 
-    def text(cr, x, y, s, name, right=False, width=None):
-        """s on the line whose 12 px box starts at y; cut to width with … if it would not fit."""
+    def text(cr, x, y, s, name, right=False, width=None, tail=False):
+        """s on the line whose 12 px box starts at y, within width if given (the layouts make
+        every text fit; anything wider is cut at its end, the typed text at its start — never
+        with "…")."""
+        if width is not None and px_of(s) > width:
+            s = fit(s, width, tail=tail)
         lay = text_layout(cr, s)
-        if width is not None and lay.get_pixel_extents()[1].width > width:
-            while s and text_layout(cr, s + "…").get_pixel_extents()[1].width > width:
-                s = s[:-1]
-            lay = text_layout(cr, s.rstrip() + "…")
         ink, log = lay.get_pixel_extents()
         col(cr, name)
-        cr.move_to(x - log.width if right else x, y - log.y - (log.height - LINE))
+        # (right-aligned: its ink ends at x — a value's last pixel on the content's edge)
+        cr.move_to(x - (ink.x + ink.width) if right else x, y - log.y - (log.height - LINE))
         PangoCairo.show_layout(cr, lay)
-        return log.width
+        return (ink.x + ink.width) if right else log.width
 
     def glyph(cr, x, y, ch, name, box_w=None, box_h=None):
         """An icon or a kanji, its ink centred in a box_w × box_h box at x, y (a line if not given)."""
         lay = text_layout(cr, ch)
         ink, log = lay.get_pixel_extents()
         col(cr, name)
-        gx = x + ((box_w - ink.width) // 2 - ink.x if box_w else 0)
+        # (in a box: its ink centred; on a line: its ink starts at x — every row's glyph in
+        # one column, whatever its side bearing)
+        gx = x + ((box_w - ink.width) // 2 - ink.x if box_w else -ink.x)
         gy = y + ((box_h - ink.height) // 2 - ink.y if box_h else -log.y - (log.height - LINE))
         cr.move_to(gx, gy)
         PangoCairo.show_layout(cr, lay)
@@ -1592,9 +1886,12 @@ def main(argv):
             glyph(cr, x, y, ch, "accent_lo" if on_fill else "faint", SEAL, SEAL)
 
     def stitch(cr, x, y, w):
+        """A running stitch, 3 px on and 2 off, from x (a whole stitch first: every heading
+        starts alike, 6 px after its name) to the last whole stitch that fits in w — it may stop
+        up to 4 px short of x + w (the content's edge, or 6 px before a value)."""
         col(cr, "edge2")
-        for sx in range(x, x + w, 5):
-            cr.rectangle(sx, y, min(3, x + w - sx), 1)
+        for sx in range(x, x + w - 2, 5):
+            cr.rectangle(sx, y, 3, 1)
         cr.fill()
 
     def heading(cr, kanji, name, x, y, value=""):
@@ -1641,7 +1938,7 @@ def main(argv):
             frame(cr, x, y, w, h, "edge")
             ty = y + (h - LINE) // 2
             pw = text(cr, x + 6, ty, prompt, "muted") if prompt else 0
-            qw = text(cr, x + 6 + pw, ty, query, "text", width=w - 12 - pw - 2)
+            qw = text(cr, x + 6 + pw, ty, query, "text", width=w - 12 - pw - 2, tail=True)
             box(cr, x + 6 + pw + qw + 1, ty, 1, LINE, "accent_text")   # (the caret: still, no blink)
         elif k == "none":
             _, x, y = m
@@ -1651,9 +1948,27 @@ def main(argv):
     value_r = [0]           # (a menu's values' right edge; 0: each row's own right edge)
 
     def draw(widget, cr):
-        W, H = panel.size
+        W, H = panel.win
         box(cr, 0, 0, W, H, "surface")
+        cr.save()
+        cr.translate(0, -panel.dy)
+        content(cr)
+        cr.restore()
         frame(cr, 0, 0, W, H, "muted", BORDER)
+        return True
+
+    def content(cr, at_rest=False):
+        """Everything inside the frame, in the layout's own place (at rest: no cursor, nothing
+        under the pointer — as the pads are measured)."""
+        if at_rest:
+            keep = panel.focus, panel.hot
+            panel.focus = panel.hot = None
+            try:
+                content(cr)
+            finally:
+                panel.focus, panel.hot = keep
+            return
+        W, H = panel.size
         hx, hy = panel.head
         for ry in panel.rules:
             stitch(cr, hx, ry, INNER)
@@ -1698,12 +2013,13 @@ def main(argv):
             box(cr, it.x, it.y, it.w, it.h, lk["fill"])
         if lk["frame"]:
             frame(cr, it.x, it.y, it.w, it.h, lk["frame"])
-        if it.kind == "meter":
+        if it.kind in ("meter", "level"):
             ty = it.y + (it.h - LINE) // 2
             pct = percent(it.value)
-            mark = it.kanji or ic[vol_icon(pct, it.muted)]
-            glyph(cr, it.x + 6, ty, mark, lk["glyph"])
-            text(cr, it.x + 6 + LINE + 6, ty, it.name, lk["label"])
+            mark = it.kanji or ic[it.icon or vol_icon(pct, it.muted)]
+            inset = getattr(it, "inset", 6)
+            glyph(cr, it.x + inset, ty, mark, lk["glyph"])
+            text(cr, it.x + inset + LINE + 6, ty, it.name, lk["label"])
             # (no DDC/CI, muted, no output: the words alone; a level's number is the bar's,
             # above — the squares stand where the sound's do)
             if pct is None:
@@ -1739,14 +2055,19 @@ def main(argv):
             ty = it.y + (it.h - LINE) // 2
             g = it.glyph if it.glyph is not None else ic[it.icon]
             if it.name:
-                lw = text_layout(cr, it.name).get_pixel_extents()[1].width
-                x = it.x + (it.w - ((LINE + 6) if g else 0) - lw) // 2
+                # (centred by ink: the glyph's and the name's own pixels, 6 px apart)
+                nink = text_layout(cr, it.name).get_pixel_extents()[0]
+                gw = text_layout(cr, g).get_pixel_extents()[0].width if g else 0
+                x = it.x + (it.w - (gw + 6 if g else 0) - nink.width) // 2
                 if g:
                     glyph(cr, x, ty, g, lk["glyph"])
-                    x += LINE + 6
-                text(cr, x, ty, it.name, lk["label"])
+                    x += gw + 6
+                text(cr, x - nink.x, ty, it.name, lk["label"])
             else:
                 glyph(cr, it.x, it.y, g, lk["glyph"], it.w, it.h)
+
+    drawing.append(True)                          # (from here on, every layout measured)
+    panel.relayout()
 
     def on_key(w, ev):
         c = Gdk.keyval_to_unicode(ev.keyval)
@@ -1755,11 +2076,11 @@ def main(argv):
         return True
 
     def on_motion(w, ev):
-        panel.hover(ev.x, ev.y, dragging=bool(ev.state & Gdk.ModifierType.BUTTON1_MASK))
+        panel.hover(ev.x, ev.y + panel.dy, dragging=bool(ev.state & Gdk.ModifierType.BUTTON1_MASK))
         return True
 
     def on_enter(w, ev):
-        panel.enter(ev.x, ev.y)
+        panel.enter(ev.x, ev.y + panel.dy)
         return False
 
     def on_leave(w, ev):
@@ -1771,116 +2092,143 @@ def main(argv):
 
     def on_press(w, ev):
         if ev.button == 1 and ev.type == Gdk.EventType.BUTTON_PRESS:
-            panel.press(ev.x, ev.y)
+            panel.press(ev.x, ev.y + panel.dy)
         return True
 
     def on_release(w, ev):
-        panel.release(ev.x, ev.y)
+        panel.release(ev.x, ev.y + panel.dy)
         return True
 
     def on_scroll(w, ev):
         if ev.direction == Gdk.ScrollDirection.SMOOTH:
             _, dx, dy = ev.get_scroll_deltas()
             if dy:
-                panel.scroll_by(ev.x, ev.y, dy)
+                panel.scroll_by(ev.x, ev.y + panel.dy, dy)
         elif ev.direction in (Gdk.ScrollDirection.UP, Gdk.ScrollDirection.DOWN):
-            panel.wheel(ev.x, ev.y, ev.direction == Gdk.ScrollDirection.UP)
+            panel.wheel(ev.x, ev.y + panel.dy, ev.direction == Gdk.ScrollDirection.UP)
         return True
 
     def on_tip(w, x, y, kb, tip):
-        it = panel.at(x, y)
+        it = panel.at(x, y + panel.dy)
         if it and it.tip:
             tip.set_text(it.tip)
             return True
         return False
 
     # a theme switch re-points ~/.config/fedokawaii/current: the new colours at once
-    mon = Gio.File.new_for_path(os.path.dirname(CURRENT)).monitor_directory(Gio.FileMonitorFlags.WATCH_MOVES, None)
+    def on_theme():
+        try:
+            restyle()
+        except OSError:
+            return
+        panel.ui.redraw()
+    mon = watch_theme(Gio, on_theme)
 
-    def on_dir(m, f, other, ev):
-        if os.path.basename((other or f).get_path()) == "current" or f.get_basename() == "current":
-            try:
-                restyle()
-            except OSError:
+    # the requests (the fifo, see the top): in the order they came, each answered at once
+    def menu_from(pid):
+        """kawa-menu PID's menu: its request read (and taken away), its answer fifo, and its
+        end watched (pidfd: it ending first — killed — takes its menu away)."""
+        req = os.path.join(RUN, f"kawa-menu.{pid}.req")
+        out = os.path.join(RUN, f"kawa-menu.{pid}.out")
+        try:
+            with open(req) as f:
+                got = menu_request(f.read())
+            os.unlink(req)
+        except (OSError, UnicodeDecodeError):
+            got = None
+        done = []
+
+        def reply(rc, text):
+            if done:
                 return
-            panel.ui.redraw()
-    mon.connect("changed", on_dir)
-
-    def on_usr1():
-        mode = asked()
-        if mode in MODES:
-            panel.toggle(mode)
-        return True
-
-    # menus asked for (kawa-panel --menu, kawa-menu's): one request a connection — a line of
-    # JSON —, answered on it once; the asker gone (killed: another menu, its own key again)
-    # takes its menu away
-    import json
-    try:
-        os.unlink(SOCK)                               # (one left by a panel gone)
-    except OSError:
-        pass
-    service = Gio.SocketService()
-    service.add_address(Gio.UnixSocketAddress.new(SOCK), Gio.SocketType.STREAM,
-                        Gio.SocketProtocol.DEFAULT, None)
-
-    def on_incoming(svc, conn, src):
-        ins = Gio.DataInputStream.new(conn.get_input_stream())
-
-        def answer(rc, out):
+            done.append(rc)
             try:
-                conn.get_output_stream().write_all((json.dumps({"rc": rc, "out": out}) + "\n").encode(), None)
-                conn.close(None)
-            except GLib.Error:
-                pass
+                fd = os.open(out, os.O_WRONLY | os.O_NONBLOCK)
+                try:
+                    os.write(fd, f"{rc} {text}\n".encode())
+                finally:
+                    os.close(fd)
+            except OSError:
+                pass                                  # (kawa-menu gone: no one to tell)
+        if got is None:
+            reply(2, "")
+            return
+        try:
+            pfd = os.pidfd_open(pid)
+        except OSError:
+            return                                    # (gone already: nothing to show)
 
-        def gone(stream, res):
-            try:
-                stream.read_bytes_finish(res)
-            except GLib.Error:
-                pass
-            if panel.reply is answer:                 # (its menu still on screen: away with it)
+        def ended(*_):
+            os.close(pfd)
+            done.append(-1)
+            if panel.reply is reply:                  # (its menu still on screen: away with it)
                 panel.reply = None
                 panel.close("gone")
+            return False
+        GLib.io_add_watch(GLib.IOChannel.unix_new(pfd), GLib.PRIORITY_DEFAULT, GLib.IOCondition.IN, ended)
+        caller, menu = got
+        panel.request("menu " + caller, menu, reply)
 
-        def got(stream, res):
-            try:
-                line, _ = stream.read_line_finish_utf8(res)
-                req = json.loads(line or "")
-                menu = Menu(req["rows"], drop=req["drop"], title=req["title"], width=req["width"],
-                            lines_shown=req["lines"], select=req["select"], prompt=req["prompt"],
-                            index=req["index"])
-            except (GLib.Error, ValueError, KeyError, TypeError):
-                answer(2, "")
-                return
-            panel.open_menu(menu, answer)
-            ins.read_bytes_async(1, GLib.PRIORITY_DEFAULT, None, gone)
-        ins.read_line_async(GLib.PRIORITY_DEFAULT, None, got)
+    pending = [b""]
+
+    def on_fifo(*_):
+        try:
+            data = os.read(fifo, 65536)
+        except BlockingIOError:
+            return True
+        lines = (pending[0] + data).split(b"\n")
+        pending[0] = lines.pop()
+        for line in lines:
+            f = line.decode(errors="replace").split()
+            if len(f) == 2 and f[0] == "toggle" and f[1] in MODES:
+                panel.request(f[1])
+            elif len(f) == 2 and f[0] == "menu" and f[1].isdigit():
+                menu_from(int(f[1]))
+            elif f == ["close"]:
+                panel.close("chosen")
         return True
-    service.connect("incoming", on_incoming)
-    service.start()
+    GLib.io_add_watch(GLib.IOChannel.unix_new(fifo), GLib.PRIORITY_DEFAULT, GLib.IOCondition.IN, on_fifo)
 
-    GLibUnix.signal_add(GLib.PRIORITY_DEFAULT, signal.SIGUSR1, on_usr1)
-    # another menu's key (kawa-menu): closed for it — on the overlay, with the keyboard its
-    # own, the panel would leave the menu no keys
-    GLibUnix.signal_add(GLib.PRIORITY_DEFAULT, signal.SIGUSR2, lambda: panel.close("chosen") or True)
     # ended (logout, a restart, Ctrl+C): closed first — the marker goes, the module goes dark
     for sig in (signal.SIGTERM, signal.SIGHUP, signal.SIGINT):
         GLibUnix.signal_add(GLib.PRIORITY_DEFAULT, sig, lambda: Gtk.main_quit() or False)
     # every panel's state read now, so each opens on it at once (read again as it opens)
     for mode in MODES:
         panel.refresh(mode)
-    first = want or (asked() if len(early) % 2 else None)
-    if first in MODES:
-        panel.open(first)
+    # nothing cold at the first click: every panel and a menu drawn once, off screen, as soon
+    # as it is idle (the fonts loaded, Pango's and cairo's caches filled — the first open was
+    # the slowest by far), then everything made so far set aside from Python's collector
+    # (gc.freeze: no long pause sweeping the startup's objects in the middle of a drag)
+    def warm():
+        import gc
+        if panel.visible:
+            return False
+        keep = panel.mode
+        surf = cairo.ImageSurface(cairo.FORMAT_RGB24, 320, 480)
+        for mode in MODES + ("menu",):
+            if mode == "menu":
+                panel.states["menu"] = Menu(["part\t暦\tOctober", "row\t\u25a3\tname\tdetail\t42°", "key\t<\tback"])
+            panel.mode = mode
+            panel.relayout()
+            draw(None, cairo.Context(surf))
+        panel.mode = keep
+        panel.relayout()
+        spare()
+        gc.collect()
+        gc.freeze()
+        return False
+    GLib.idle_add(warm)
+    if want:
+        panel.open(want)
     try:
         Gtk.main()
     finally:
-        if panel.visible and panel.mode in MARKS:       # (a panel's marker; a menu's are kawa-menu's)
-            panel.ui.light(panel.mode, False)
+        if panel.visible:                              # (its marker gone, its button dark)
+            panel.close("ended")
         try:
             if int(open(PIDFILE).read()) == os.getpid():
                 os.unlink(PIDFILE)
+                os.unlink(FIFO)                       # (no one reads it now)
         except (OSError, ValueError):
             pass
     return 0

@@ -19,7 +19,8 @@ install_at() {   # install_at PATH [STATUS] — a stand-in Brave: its name, then
 }
 got() { cat "$ARGS" 2>/dev/null; }
 B() { "$TMP/brave-origin" "$@"; }
-FEAT=--enable-features=PulseaudioLoopbackForScreenShare PS=--password-store=basic
+FEAT=--enable-features=PulseaudioLoopbackForScreenShare,WebRTCPipeWireCapturer,AcceleratedVideoEncoder,AcceleratedVideoDecodeLinuxGL,AcceleratedVideoDecodeLinuxZeroCopyGL PS=--password-store=basic
+OFF=--disable-features=WebRtcAllowInputVolumeAdjustment
 
 case_ "the copy looks only under the made-up root"
 setup
@@ -36,14 +37,16 @@ setup; install_at "$R/usr/bin/brave-origin-stable"
 rc 0 B https://example.com
 eq "$(got)" "$R/usr/bin/brave-origin-stable
 $FEAT
+$OFF
 $PS
 https://example.com"
 case_ "no arguments (Super+B): just the feature and the store"
 B; eq "$(got)" "$R/usr/bin/brave-origin-stable
 $FEAT
+$OFF
 $PS"
 case_ "a password store of your own comes after the pinned one (Chromium keeps a switch's last value)"
-B --password-store=gnome-libsecret; eq "$(got | tail -n +3)" "$PS
+B --password-store=gnome-libsecret; eq "$(got | tail -n +4)" "$PS
 --password-store=gnome-libsecret"
 
 case_ "only its one launcher: a brave-origin beside it is not Brave Origin's"
@@ -53,18 +56,30 @@ case_ "your own feature list is joined to it, once, whatever its place"
 setup; install_at "$R/usr/bin/brave-origin-stable"
 B --incognito --enable-features=VaapiVideoDecoder,WebRTCPipeWireCapturer https://a.example
 eq "$(got | tail -n +2)" "$FEAT,VaapiVideoDecoder,WebRTCPipeWireCapturer
+$OFF
 $PS
 --incognito
 https://a.example"
 B --enable-features=A --enable-features=B
 eq "$(got | tail -n +2)" "$FEAT,A,B
+$OFF
 $PS" "two lists: both joined, one switch"
 eq "$(got | grep -c -- --enable-features)" 1
+
+case_ "a call never moves the microphone's level (Chromium's input volume adjustment off); your own --disable-features joined to it"
+setup; install_at "$R/usr/bin/brave-origin-stable"
+B --disable-features=A,B https://a.example
+eq "$(got | tail -n +2)" "$FEAT
+$OFF,A,B
+$PS
+https://a.example"
+eq "$(got | grep -c -- --disable-features)" 1
 
 case_ "everything else reaches Brave exactly as given (order, spaces, quotes, \$(…), unicode, a leading dash)"
 setup; install_at "$R/usr/bin/brave-origin-stable"
 B --new-window "https://example.com/a b?q=\"x\"&y='z'" '$(touch nope)' '`id`' 'مرحبا 日本' -- --enable-features=X
 eq "$(got | tail -n +2)" "$FEAT
+$OFF
 $PS
 --new-window
 https://example.com/a b?q=\"x\"&y='z'
@@ -73,11 +88,11 @@ https://example.com/a b?q=\"x\"&y='z'
 مرحبا 日本
 --
 --enable-features=X" "(after --, Chromium takes nothing as a switch: not joined either)"
-B ''; eq "$(got | wc -l)" 4 "an empty argument kept"
+B ''; eq "$(got | wc -l)" 5 "an empty argument kept"
 [[ ! -e nope && ! -e $TMP/nope ]] && _ok || _no "an argument ran"
 case_ "--help and --version are Brave's (not the launcher's)"
-B --help; eq "$(got | tail -n +4)" "--help"
-B --version; eq "$(got | tail -n +4)" "--version"
+B --help; eq "$(got | tail -n +5)" "--help"
+B --version; eq "$(got | tail -n +5)" "--version"
 
 case_ "Brave's own exit status comes back"
 setup; install_at "$R/usr/bin/brave-origin-stable" 3
@@ -88,5 +103,17 @@ setup; install_at "$R/usr/bin/brave-origin-stable"
 odd_home; cp "$TMP/brave-origin" "$HOME/.local/bin/brave-origin"
 "$HOME/.local/bin/brave-origin" "file://$HOME/page.html"
 eq "$(got | tail -n1)" "file://$HOME/page.html"
+
+case_ "Widevine switched on before the start, once, with Brave closed (Theme cannot while it is open)"
+setup; install_at "$R/usr/bin/brave-origin-stable"
+LS="$HOME/.config/BraveSoftware/Brave-Origin/Local State" WM=$HOME/.local/state/fedokawaii/brave-widevine
+rm -f "$LS" "$WM"; B
+eq "$(jq -c .brave.widevine_opted_in "$LS")" true "a first start: Local State made with it"
+eq "$(stat -c %a "$LS")" 600 "private, as Brave keeps it"
+[[ -e $WM ]] && _ok || _no "the marker"
+printf '{"brave":{"widevine_opted_in":false},"keep":1}\n' >"$LS"; B
+eq "$(jq -c '[.brave.widevine_opted_in,.keep]' "$LS")" "[false,1]" "switched off in Brave since: yours, left off"
+rm -f "$WM"; B
+eq "$(jq -c '[.brave.widevine_opted_in,.keep]' "$LS")" "[true,1]" "no marker: on, the rest of Local State kept"
 
 done_

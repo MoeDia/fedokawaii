@@ -11,6 +11,7 @@ Super+W                 wallpaper picker, for the current theme
 Super+Shift+W           dark / light theme (also in quick settings)
 Super+V                 clipboard history: text and pictures
 Super+Z                 shrink or convert what you copied
+Super+D                 archives and PDFs: unpack, pack, merge, sign
 Super+R                 books: read, add, remove
 Super+N                 notes (again: put them away)
 Super+Shift+N           dismiss notifications
@@ -23,6 +24,8 @@ Sleep key               locked first, then asleep
 Print                   region
 Shift+Print             full screen
 Super+Print             region → annotate (Enter copies)
+Super+Shift+Print       region → its text (OCR: English, Arabic)
+Super+Shift+R           record the screen (again: stop) → ~/Videos/Recordings
 ── windows ────────────────────────────────────────────────────────
 Super+Q                 close window
 Super+J / K             focus next / previous
@@ -74,6 +77,7 @@ Alt+Enter on a film     it plays in a new mpv window
 Ctrl+C / X / V          copy / cut / paste files (other apps too)
 W on a film             watch it together (Syncplay)
 Alt+S on a picture, PDF shrink or convert it (Super+Z: copied)
+Alt+F on files          archives and PDFs (Super+D: copied)
 ── drives: USB sticks, disks, SD cards ────────────────────────────
 plug one in             it opens; click its notice for its files
 the bar's drive mark    open or eject a drive (quick settings too)

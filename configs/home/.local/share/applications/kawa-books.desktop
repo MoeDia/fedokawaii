@@ -1,0 +1,13 @@
+[Desktop Entry]
+# Your books (kawa-books), as Super+R opens them: every PDF, EPUB and comic in ~/Books, the
+# ones you are reading first, opened in zathura where you left off.
+# Its icon: zathura's own (the package's, in hicolor), the reader they open in.
+Type=Application
+Name=Books
+GenericName=Book reader
+Comment=PDFs, EPUBs and comics in ~/Books, the ones you are reading first
+Icon=org.pwmt.zathura
+Exec=@HOME@/.local/bin/kawa-books
+Terminal=false
+Categories=Office;Viewer;
+Keywords=books;pdf;epub;comics;reader;ebook;zathura;library;

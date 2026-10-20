@@ -13,7 +13,7 @@
 # what the helpers keep for one session only: $XDG_RUNTIME_DIR outlives a login (linger),
 # so the last session's bar state, notice id, monitor list and open drives go now
 rm -rf "$XDG_RUNTIME_DIR/dwl-bar" "$XDG_RUNTIME_DIR/kawa-ddc-buses" "$XDG_RUNTIME_DIR/kawa-osd-id" \
-  "$XDG_RUNTIME_DIR/kawa-drives"
+  "$XDG_RUNTIME_DIR/kawa-drives" "$XDG_RUNTIME_DIR/kawa-screens" "$XDG_RUNTIME_DIR/kawa-downloads"
 
 # Hand this session to systemd --user, so the services D-Bus starts on demand — the portals
 # behind every file dialog and screen share, the notification daemon — open their windows
@@ -39,6 +39,8 @@ systemctl --user start dwl-session.target
 # the update season's reminder (fedokawaii remind): a look two minutes in, then every six
 # hours; it stops with the session
 systemctl --user start fedokawaii-remind.timer 2>/dev/null
+# the weekly tidy of your home (kawa-tidy): looked at 20 minutes in, never while the login settles
+systemctl --user start kawa-tidy.timer 2>/dev/null
 # GRUB's hidden menu: this boot counts as successful once the desktop has run two minutes
 # (the timer stops with the session: one that ends sooner leaves the boot unmarked)
 systemctl --user start grub-boot-success.timer 2>/dev/null
@@ -79,9 +81,15 @@ keep() {
 
 kawa-display </dev/null                            # resolution + refresh rate
 kawa-theme apply </dev/null                        # dark or light: GTK/Qt settings, wallpaper
+kawa-state restore </dev/null                      # what you set, as you left it, before the bar draws
+                                                   #   (do not disturb, Bluetooth, brightness; kawa-state)
+kawa-night restore </dev/null                      # night light: as you last left it (on or off, its warmth)
+kawa-game restore </dev/null &                     # a session ended mid-game: the desktop's tuned profile back
+kawa-glass ensure </dev/null                       # the terminal's glass file, there before foot starts (foot.ini
+                                                   #   includes it: foot refuses its config without it)
 keep waybar </dev/null >"$HOME/.cache/waybar.log" 2>&1 &
 # quick settings (the bar's cat, Super+X): drawn once, then hidden until asked, so it opens
-# at once — kawa-quick asks it (SIGUSR1)
+# at once — kawa-quick and kawa-menu ask it through its fifo (kawa-panel.in)
 keep kawa-panel </dev/null >"$HOME/.cache/kawa-panel.log" 2>&1 &
 mako </dev/null &                                  # notifications (if it ever stops, D-Bus starts it
                                                    # again with the next one — so no keep here)
@@ -93,22 +101,26 @@ keep /usr/libexec/lxqt-policykit-agent </dev/null &   # auth dialogs (an app ask
                                                    # Fedora keeps it out of PATH, in libexec)
 keep udiskie </dev/null &                          # drives: open when plugged in (~/.config/udiskie, kawa-drives)
 keep kawa-drives watch </dev/null &               # the bar's USB mark and ~/Drives, on every change
+keep kawa-downloads watch </dev/null &            # the bar's download mark, and a notice as one finishes
 keep kawa-clipkeep </dev/null &                   # a copy outlives the app it came from
 keep wl-paste --watch kawa-clip --store </dev/null &   # clipboard history (Super+V): text and pictures
-gammastep -l "$NIGHT_LIGHT" -t 6500:4200 </dev/null &   # night light (quick settings turns it off and on)
 kawa-steam --warm </dev/null &                    # Steam, quietly, a minute in (its menu turns it off; STEAM=no: nothing)
 kawa-steam --guard </dev/null &                   # Steam closed properly before a restart or shut down,
                                                    #   whoever asks (its saves to Steam Cloud; STEAM=no: nothing)
 
-# away: nothing locks and nothing sleeps — the screens only go dark after an hour (wlopm: the
-# outputs stay, so windows stay where they are; a key wakes them). Sleep is yours to ask for:
-# the power menu, or a lock (Super+Escape) left locked for 90 s (kawa-lock --sleep). Every
-# sleep is locked first (so swayidle, which does it, is never given up on: see keep); as the
-# machine wakes, the screens come on (the power menu's sleep turned them off after the lock)
-# and the journal notes the wake and whether the lock held (journalctl -t kawa-lock)
+# away 15 minutes: the screensaver, the lock behind it (the first key or move ends the one
+# and brings up the other; the screensaver switched off in quick settings: the lock at once);
+# away 30 minutes: the screens dark (the outputs stay, so windows stay where they are; a key
+# wakes them). Never while something plays (kawa-idle): a video holds the idle timer itself
+# (Brave and mpv ask the compositor: idle-inhibit), music and anything holding logind's idle
+# lock make kawa-idle wait until they end. Sleep is yours to ask for: the power menu, or a lock
+# (Super+Escape) left locked for 90 s (kawa-lock --sleep). Every sleep is dark and locked
+# first (so swayidle, which does it, is never given up on: see keep); as the machine wakes the
+# screens light again and the journal notes the wake and whether the lock held
 keep swayidle -w \
-  timeout 3600 "wlopm --off '*'" resume "wlopm --on '*'" \
-  after-resume "wlopm --on '*'; kawa-lock --resumed" \
+  timeout 900 'kawa-idle away' resume 'kawa-idle back' \
+  timeout 1800 'kawa-idle dark' resume 'kawa-idle back; kawa-lock --screens on' \
+  after-resume 'kawa-lock --resumed' \
   before-sleep 'kawa-lock --now' </dev/null &
 
 # yours: ~/.config/dwl/autostart.local.sh, if you made one — the theme never writes it. It

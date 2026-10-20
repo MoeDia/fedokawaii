@@ -57,6 +57,9 @@ export EDITOR=nvim VISUAL=nvim TERMINAL=foot BROWSER=brave-origin
 # the pointers: "default" is ~/.local/share/icons/default, a link to the Sumi pointers of the
 # theme in use (kawa-theme re-points it), so programs reading this follow the theme too
 export XCURSOR_THEME=default XCURSOR_SIZE=24
+# where programs keep their files (the XDG folders, CARGO_HOME…, and $CARGO_HOME/bin on PATH:
+# rustup's Rust): the same in the session as in every shell (setup.sh installs it with this file)
+. /etc/profile.d/fedokawaii-home.sh
 export PATH="$HOME/.local/bin:$PATH"
 
 mkdir -p "$HOME/.cache"

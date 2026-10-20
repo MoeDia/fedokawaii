@@ -1,0 +1,90 @@
+#!/usr/bin/env bash
+# kawa-hush — notices held back while others may see the screen or a game has it, and told
+# afterwards. Each reason is a mako mode of its own (~/.config/mako/config: everything hidden
+# but critical notices and the level display):
+#   kawa-hush on sharing    a screen share began (the screen-sharing portal's exec_before:
+#                           ~/.config/xdg-desktop-portal-wlr/config)
+#   kawa-hush off sharing   it ended (exec_after)
+#   kawa-hush on game · off game   game mode (kawa-game)
+# At "off", once no reason holds any more, one notice tells what was held back: "3 notices
+# while you shared" (or "… while you played"); a click on it lists them (app and title) in the
+# usual menu. Critical notices and the level display showed anyway: they are not counted. Its
+# mark: the highest notice number at "on" ($XDG_RUNTIME_DIR/kawa-hush.REASON) — what came
+# after it, still waiting or in mako's history (max-history), was held back. A share during a
+# game (or the reverse) is one quiet time: the first mark is kept until the last reason ends.
+# Exit: 0 · 1 mako did not answer · 2 wrong use.
+set -u
+case ${1:-}:${2:-} in
+  on:sharing|on:game|off:sharing|off:game) ;;
+  tell:sharing|tell:game) [[ ${3:-} =~ ^[0-9]+$ ]] || exit 2 ;;   # (off's own: the notice, apart)
+  -h:|--help:) sed -n '2,/^set -u/{/^set -u/d;s/^# \{0,1\}//;p}' "$0"; exit 0 ;;
+  *) echo "usage: kawa-hush on|off sharing|game (kawa-hush --help)" >&2; exit 2 ;;
+esac
+PATH="$HOME/.local/bin:$PATH"                  # (the portal runs it with systemd's PATH)
+how=$1 why=$2
+RUN=${XDG_RUNTIME_DIR:?kawa-hush: no XDG_RUNTIME_DIR}
+mark=$RUN/kawa-hush.$why
+pgrep -xu "$UID" mako >/dev/null || exit 1     # (makoctl would start one by D-Bus activation)
+
+# notices — every notice mako holds, waiting or in its history, one line each:
+# ID<tab>URGENCY<tab>CATEGORY<tab>APP<tab>SUMMARY (makoctl's own text form)
+notices() {
+  { makoctl list; makoctl history; } 2>/dev/null | awk '
+    function out() { if (id != "") printf "%s\t%s\t%s\t%s\t%s\n", id, urg, cat, app, sum }
+    /^Notification [0-9]+:/ { out(); id = $2; sub(/:$/, "", id); sum = $0; sub(/^Notification [0-9]+: ?/, "", sum)
+                              urg = "normal"; cat = ""; app = ""; next }
+    /^  App name: /  { app = substr($0, 13); next }
+    /^  Category: /  { cat = substr($0, 13); next }
+    /^  Urgency: /   { urg = substr($0, 12); next }
+    END { out() }' | sort -t$'\t' -k1,1n -u
+}
+top() { notices | tail -n 1 | cut -f1; }
+
+# tell REASON MARK — the notice of what came after MARK, held back; a click lists them
+if [[ $how == tell ]]; then
+  # (each as APP\x1fTITLE: tabs are blanks to read, and an empty field would vanish)
+  mapfile -t held < <(notices | awk -F'\t' -v b="$3" '$1 > b && $2 != "critical" && $3 != "osd" { print $4 "\037" $5 }')
+  n=${#held[@]}; ((n)) || exit 0
+  ((n == 1)) && what="1 notice" || what="$n notices"
+  [[ $why == game ]] && when="while you played" || when="while you shared"
+  # shellcheck source=/dev/null
+  . "$HOME/.config/fedokawaii/icons.sh"
+  # shellcheck source=/dev/null
+  . "$HOME/.config/fedokawaii/width.sh"
+  act=$(notify-send -a notices -A default=list -- "$ICON_BELL  $what $when" "click: what they were") || exit 0
+  [[ $act == default ]] || exit 0
+  rows=("$(printf 'part\t報\t%s' "$when")")
+  for h in "${held[@]}"; do
+    app=${h%%$'\037'*} sum=${h#*$'\037'}
+    rows+=("$(printf 'row\t%s\t%s\t\t%s' "$ICON_BELL" "$(cut_cols "${sum:-untitled}" 40)" "$app")")
+  done
+  printf '%s\n' "${rows[@]}" | kawa-menu --lines $((n < 12 ? n : 12)) >/dev/null
+  exit 0
+fi
+
+if [[ $how == on ]]; then
+  # (a second share while one runs keeps the first's mark; read before the mode is set: a
+  # notice in between shows, and is counted)
+  if ! { [[ -s $mark ]] && makoctl mode 2>/dev/null | grep -qxF "$why"; }; then
+    t=$(top); printf '%s\n' "${t:-0}" >"$mark"
+  fi
+  makoctl mode -a "$why" >/dev/null
+  exit 0
+fi
+
+makoctl mode -r "$why" >/dev/null
+# no mark: nothing was held for this reason (an "off" without its "on") — nothing to tell
+base=""; read -r base 2>/dev/null <"$mark"; rm -f -- "$mark"
+[[ $base =~ ^[0-9]+$ ]] || exit 0
+# another reason still holds: its mark becomes the earlier of the two, and it tells at its end
+modes=$(makoctl mode 2>/dev/null)
+for other in sharing game; do
+  [[ $other == "$why" ]] && continue
+  grep -qxF "$other" <<<"$modes" || continue
+  o=$base; read -r o 2>/dev/null <"$RUN/kawa-hush.$other"
+  [[ $o =~ ^[0-9]+$ ]] && ((o < base)) && base=$o
+  printf '%s\n' "$base" >"$RUN/kawa-hush.$other"
+  exit 0
+done
+setsid -f "$0" tell "$why" "$base" </dev/null >/dev/null 2>&1   # (the portal and kawa-game go on at once)
+exit 0

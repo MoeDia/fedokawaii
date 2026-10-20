@@ -151,7 +151,11 @@ if [[ $mode != menu ]]; then
     if [[ -z $icon ]]; then echo '{"text":""}'; exit 0; fi           # (nothing known yet: no module)
     tip="$WEATHER_CITY · $words" class='"sky"'
     if ((age > OLD)); then old "$age"; tip+=" · ${failed:+$failed · }$old"; class='["sky","stale"]'; fi
-    jq -cn --arg t "$icon ${now[0]}°" --arg tip "$tip" --argjson c "$class" '{text: $t, tooltip: $tip, class: $c}'
+    # (its ICON_BAR_*, no space: exactly 6 px from the icon's ink to the value's)
+    for n in SUN MOON CLOUD FOG RAIN SNOW STORM; do
+      v=ICON_$n; [[ $icon == "${!v}" ]] && { v=ICON_BAR_$n; icon=${!v}; break; }
+    done
+    jq -cn --arg t "$icon${now[0]}°" --arg tip "$tip" --argjson c "$class" '{text: $t, tooltip: $tip, class: $c}'
   elif [[ -n $icon ]]; then
     printf '%s  %s  %s°  %s\n' "$icon" "$WEATHER_CITY" "${now[0]}" "$words"
   else

@@ -1,8 +1,14 @@
 [Desktop Entry]
-# btop (the system monitor): the bar's CPU and memory open it, in a window of its own.
-# Hidden from the launcher: this entry, by the same name as the package's, stands in for it
-# (NoDisplay); the program itself stays installed and works as before.
+# btop, the system monitor — in place of btop's own entry (the same name), which would ask the
+# launcher for a terminal (Terminal=true). The same window the bar's memory opens: floating,
+# 140×41, one at a time (the bar's memory lit while it is open; a second start closes it).
+# Its icon: btop's own (the package's, in hicolor).
 Type=Application
-Name=btop++
-Exec=btop
-NoDisplay=true
+Name=System monitor
+GenericName=Task manager
+Comment=btop: processor, memory, disks, network, graphics card and every program running
+Icon=btop
+Exec=@HOME@/.local/bin/kawa-term --float --once btop btop 140x41 -- btop
+Terminal=false
+Categories=System;Monitor;
+Keywords=btop;task manager;processes;cpu;memory;ram;gpu;temperature;kill;

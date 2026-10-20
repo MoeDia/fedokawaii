@@ -19,9 +19,28 @@ if not (vim.uv or vim.loop).fs_stat(lazypath) then
 end
 vim.opt.rtp:prepend(lazypath)
 
+-- Python's language server: basedpyright (pyright, with a project's .venv found by itself — the
+-- one `uv venv` / `uv sync` makes), ruff beside it for lint, imports and formatting
+vim.g.lazyvim_python_lsp = "basedpyright"
+vim.g.lazyvim_python_ruff = "ruff"
+-- no remote-plugin providers: nothing here is written in Python, Ruby, Perl or Node for neovim's
+-- old plugin host — and the Python one alone cost a python3 start at the first .py file opened
+-- (:checkhealth says each is disabled, not missing)
+vim.g.loaded_python3_provider = 0
+vim.g.loaded_ruby_provider = 0
+vim.g.loaded_perl_provider = 0
+vim.g.loaded_node_provider = 0
+
 require("lazy").setup({
   spec = {
     { "LazyVim/LazyVim", import = "lazyvim.plugins" },
+    -- Python and Rust (handbook §43): their servers, formatting on save, tests, the debugger,
+    -- Cargo.toml's crates — each loads with its first file of that kind (lua/plugins/dev.lua)
+    { import = "lazyvim.plugins.extras.lang.python" },
+    { import = "lazyvim.plugins.extras.lang.rust" },
+    { import = "lazyvim.plugins.extras.lang.toml" },
+    { import = "lazyvim.plugins.extras.dap.core" },
+    { import = "lazyvim.plugins.extras.test.core" },
     { import = "plugins" },
   },
   defaults = {

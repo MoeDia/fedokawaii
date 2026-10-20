@@ -1180,3 +1180,9 @@
 #........#
 #........#
 ##########
+
+# a 1 px space: with the 2 px one, the bar puts exactly 6 px between an icon's ink and its
+# value (icons.sh's ICON_SP_<NAME>, worked out from each drawing's own right edge)
+@gap1 adv=1 x=0
+.
+.

@@ -12,7 +12,13 @@
 # gtklock by -s, btop/qt6ct by path, mpv by include, imv/qt6ct/wiremix through links).
 # Switching re-points that link, then tells whatever is running to look again:
 #   foot (every window)  SIGUSR1/SIGUSR2 to the server — neovim inside follows by itself
-#   waybar               SIGUSR2 (reload)        mako      makoctl reload
+#   waybar               its style again, by itself: the portal's color-scheme changes (the
+#                        GTK settings below) and waybar loads style.css anew — the colours
+#                        only: no module restarted (a SIGUSR2 reload restarts every one, and
+#                        waybar can crash doing it); the bar's long-running modules that draw
+#                        a colour of their own (the time's timer, the meter of what plays)
+#                        take the new one as they are woken (kawa-dwlstatus --wake)
+#   mako                 makoctl reload
 #   btop                 SIGUSR2 (reload)        zathura   SourceConfig over D-Bus
 #   GTK, libadwaita,     gsettings: color-scheme, gtk-theme (live; icon-theme Adwaita) —
 #   Brave                Brave in GTK mode (theme.sh) takes its frame, toolbar and menus
@@ -30,10 +36,9 @@
 #   the login screen     /var/lib/fedokawaii-greeter/theme (yours; kawa-greet reads it)
 # GTK 3 apps follow at once too (their theme is a named one).
 #
-# A switch you make is drawn as a transition (kawa-veil): the screen holds still while
-# everything changes underneath, then the new theme arrives as a row of seigaiha wave
-# crests — rising from the bottom like dawn for the light theme, falling from the top
-# like nightfall for the dark one.
+# Nothing animates (design-system §5): every program takes the new theme in one frame of
+# its own, all of them told at the same moment — the wallpaper drawn off screen and swapped
+# in whole (kawa-wallpaper), the bar restyled in place, the windows recoloured.
 #
 # Exit: 0 done (also a press dropped while a switch runs) · 1 could not · 2 wrong use.
 set -u
@@ -82,7 +87,7 @@ scan() {   # RUNNING[NAME]="PID…" — the programs a switch tells, found with 
   local pid name   # each held a switch up: a dozen processes, one after the other)
   RUNNING=()
   while read -r pid name; do RUNNING[$name]+="$pid "; done \
-    < <(pgrep -lxu "$UID" 'foot|dwl|waybar|btop|mako|zathura')
+    < <(pgrep -lxu "$UID" 'foot|dwl|btop|mako|zathura')
 }
 
 signal() {   # signal USR1|USR2 NAME — only to processes that already catch it: until a
@@ -104,17 +109,18 @@ apply() {
   relink "themes/$m" "$LINK" || { echo "kawa-theme: could not switch $LINK (is ~/.config writable?)" >&2; exit 1; }
   [[ $m == light ]] && sig=USR2
   # What takes a process of its own (the wallpaper, GTK's settings, each player, zathura) is
-  # started first and all at once — one after the other they held the switch up (and the
-  # veil with it) for their sum; the signals and links meanwhile take no time. The switch is
-  # over when the slowest of them is
-  # the theme's own wallpaper, without the switch locks (fds 7 and 9): the swaybg it starts
-  # lives on. Under the veil it must be up before the reveal; otherwise it can come a moment later.
+  # started first and all at once — one after the other they held the switch up for their
+  # sum; the signals and links meanwhile take no time. The switch is over when the slowest
+  # of them is — the theme's own wallpaper among them, without the switch locks (fds 7 and
+  # 9): the swaybg it starts lives on
   if [[ -n ${WAYLAND_DISPLAY:-} ]]; then
-    kawa-wallpaper --restore >/dev/null 2>&1 7>&- 9>&- &
-    [[ -n ${KAWA_VEILED:-} ]] && jobs+=($!)
+    kawa-wallpaper --restore >/dev/null 2>&1 7>&- 9>&- & jobs+=($!)
   fi
   scan
   signal "$sig" foot                                 # foot server: all windows + new ones
+  # (the switch takes the ground's alpha back to what the server read at login: the
+  # see-through setting as it is now, once foot has switched)
+  { sleep 0.3; kawa-glass apply; } >/dev/null 2>&1 7>&- 9>&- &
   settings "$m" >/dev/null 2>&1 & jobs+=($!)
   # mpv: every open player loads the new colours (its controller restyles itself at once);
   # scripts/kawa-ipc.lua gives each one a socket — one that refuses is a crashed mpv's.
@@ -144,7 +150,7 @@ c.sendall((json.dumps({"command": ["load-config-file", sys.argv[2]]}) + "\n").en
   signal USR1 dwl
   # the login screen (kawa-greet) wears the theme you last had (setup made the folder yours)
   [[ -w /var/lib/fedokawaii-greeter ]] && printf '%s\n' "$m" >/var/lib/fedokawaii-greeter/theme
-  signal USR2 waybar
+  kawa-dwlstatus --wake 2>/dev/null                  # (the bar restyles itself: see above)
   signal USR2 btop
   [[ -L $HOME/.config/qt6ct/qt6ct.conf ]] && relink ../fedokawaii/current/qt6ct.conf "$HOME/.config/qt6ct/qt6ct.conf"
   ((${#jobs[@]})) && wait "${jobs[@]}"
@@ -157,8 +163,8 @@ took() {   # took MODE — the switch's time, from the press, in the theme's log
   [[ $t0 =~ ^[0-9]+[.,][0-9]{6}$ ]] || return 0
   ms=$(( (${EPOCHREALTIME//[.,]/} - ${t0//[.,]/}) / 1000 ))
   [[ -d ${log%/*} ]] || mkdir -p "${log%/*}" 2>/dev/null
-  printf '%(%F %T)T kawa-theme: switched to %s in %d ms%s\n' -1 "$1" "$ms" "${KAWA_VEILED:+ (under the veil)}" >>"$log" 2>/dev/null
-  # (kept short, the last 200 switches — on its own: the veil lifts when this run ends)
+  printf '%(%F %T)T kawa-theme: switched to %s in %d ms\n' -1 "$1" "$ms" >>"$log" 2>/dev/null
+  # (kept short, the last 200 switches — on its own: the switch is over when this run ends)
   { (($(wc -l <"$log") >= 400)) && tail -n 200 "$log" >"$log.$$" && mv -f "$log.$$" "$log"; } \
     </dev/null >/dev/null 2>&1 7>&- 9>&- &
   return 0
@@ -174,23 +180,13 @@ case ${1:-toggle} in
     [[ -d $XDG_RUNTIME_DIR && -w $XDG_RUNTIME_DIR ]] \
       || { echo "kawa-theme: no runtime folder $XDG_RUNTIME_DIR (not logged in to the desktop?)" >&2; exit 1; }
     # one switch at a time: a held key repeats ~35 times a second, and every extra press
-    # while a switch (and its transition) runs is dropped. The veiled run below inherits
-    # this lock, so it lasts until the transition is over.
-    if [[ -z ${KAWA_VEILED:-} ]]; then
-      exec 7>"$XDG_RUNTIME_DIR/kawa-theme.busy"
-      flock -n 7 || exit 0
-    fi
-    export KAWA_THEME_T0=${KAWA_THEME_T0:-$EPOCHREALTIME}   # (the press: the veiled run keeps it)
+    # while a switch runs is dropped
+    exec 7>"$XDG_RUNTIME_DIR/kawa-theme.busy"
+    flock -n 7 || exit 0
+    export KAWA_THEME_T0=${KAWA_THEME_T0:-$EPOCHREALTIME}   # (the press)
     want=${1:-toggle} now=$(get)
     [[ $want == toggle ]] && { [[ $now == dark ]] && want=light || want=dark; }
-    usable "$want" || exit 1                       # (said at once, not after a transition)
-    # a visible change in a session: run the switch under the veil (dawn or nightfall) — the
-    # crests sweep the screen in 450 ms (kawa-veil's own default, 650, is the wallpaper's
-    # slower dissolve): with the switch itself and the apps' redraw, about a second in all
-    if [[ $want != "$now" && -z ${KAWA_VEILED:-} && -n ${WAYLAND_DISPLAY:-} ]]; then
-      style=--rise; [[ $want == dark ]] && style=--fall
-      KAWA_VEILED=1 exec kawa-veil "$style" --time 450 -- "$0" "$want"
-    fi
+    usable "$want" || exit 1
     exec 9>"$XDG_RUNTIME_DIR/kawa-theme.lock"
     flock -w 10 9 || { echo "kawa-theme: another switch is still running" >&2; exit 1; }
     apply "$want"

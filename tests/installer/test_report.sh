@@ -72,8 +72,8 @@ printf '%s\n' '1792404573.000000 fedokawaii greetd[1049]: pam_unix(greetd-greete
   '1792404731.200000 fedokawaii greetd[4776]: pam_unix(greetd-greeter:session): session opened for user greetd(uid=989) by (uid=0)' >"$FKH/journal-unix"
 # (the report's own two switches as kawa-theme timed them: the first to light cold — its
 # wallpaper decoded for the first time — the last warm)
-printf '%s\n' '2026-10-19 14:13:44 kawa-theme: switched to light in 568 ms (under the veil)' \
-  '2026-10-19 14:13:51 kawa-theme: switched to dark in 49 ms (under the veil)' >"$W/home/fkuser/.cache/kawa-theme.log"
+printf '%s\n' '2026-10-19 14:13:44 kawa-theme: switched to light in 568 ms' \
+  '2026-10-19 14:13:51 kawa-theme: switched to dark in 49 ms' >"$W/home/fkuser/.cache/kawa-theme.log"
 fk chown fkuser: /home/fkuser/.cache/kawa-theme.log
 keep ready
 
@@ -201,7 +201,7 @@ has "$REP" "FAIL  the toolkit has no bin/"
 grep -q '^VERDICT: BROKEN' <<<"$REP" && _ok || _no "not BROKEN"
 
 case_ "misuse: exit 2; --help: the header"
-report --nonsense; eq "$RC" 2; has "$OUT" "usage: fedokawaii-report [--quick]"
+report --nonsense; eq "$RC" 2; has "$OUT" "usage: fedokawaii-report [--quick | --perf]"
 report --help; eq "$RC" 0; has "$OUT" "sudo fedokawaii-report --quick"
 
 case_ "shellcheck: clean"

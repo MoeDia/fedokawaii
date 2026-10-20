@@ -11,8 +11,8 @@ setup() {   # setup — a fresh sandbox; the window writes $TYPED into $NOTES_FI
             # saves it: a fresh line opened under the end (Go), what was typed on it
   sandbox; unset LOCPATH KAWA_NOTES
   export N=$HOME/Notes/notes.md NOTES_FILE=$HOME/Notes/notes.md TYPED='\n'   # (nothing typed)
-  # (one window at a time, as kawa-float --once keeps it: a call while one is open exits 3)
-  stub kawa-float 'exec 8>"$HOME/.float.lock"; flock -n 8 || exit 3; echo x >>"$HOME/windows"
+  # (one window at a time, as kawa-term --float --once keeps it: a call while one is open exits 3)
+  stub kawa-term 'exec 8>"$HOME/.float.lock"; flock -n 8 || exit 3; echo x >>"$HOME/windows"
 [ -f "$NOTES_FILE" ] && printf "$TYPED" >>"$NOTES_FILE"; sleep "${WINDOW_SECS:-0}"'
   stub date 'echo "2026-10-16 · Fri"'
 }
@@ -24,7 +24,7 @@ H='## 2026-10-16 · Fri'
 case_ "first time: ~/Notes made, today's heading, the window (80×25) on the notes"
 setup
 rc 0 kawa-notes
-called "^kawa-float --once notes notes 80x25 -- $REPO/bin/kawa-notes --inside\$"
+called "^kawa-term --float --once notes notes 80x25 -- $REPO/bin/kawa-notes --inside\$"
 case_ "...closed without writing: no heading left behind, an empty file"
 eq "$(bytes "$N")" ""; [[ -f $N ]] && _ok || _no "the notes file went"
 
@@ -69,19 +69,19 @@ stub date 'n=$(cat "$DATE_N" 2>/dev/null || echo 0); echo $((n + 1)) >"$DATE_N"
 kawa-notes; eq "$(bytes "$N")" ""
 
 case_ "everything deleted in the window: an empty file, not a heading"
-setup; stub kawa-float ': >"$NOTES_FILE"'; kawa-notes
+setup; stub kawa-term ': >"$NOTES_FILE"'; kawa-notes
 eq "$(bytes "$N")" ""
 case_ "only blank lines written: no heading left"
 setup; TYPED='\n\n   \n\t\n'; kawa-notes; eq "$(bytes "$N")" ""
 
 # ── one window ───────────────────────────────────────────────────────────────
-case_ "Super+N while it is open: the window closes (kawa-float --once: neovim, saving as you type, goes with it); this press tidies nothing"
+case_ "Super+N while it is open: the window closes (kawa-term --float --once: neovim, saving as you type, goes with it); this press tidies nothing"
 setup; mkdir -p "${N%/*}"; printf '%s\n\nkept\n\n\n' "$H" >"$N"
-stub kawa-float 'exit 3'                           # (open: its key closed it)
+stub kawa-term 'exit 3'                           # (open: its key closed it)
 rc 0 kawa-notes
 eq "$(cat "$N"; printf x)" "$H"$'\n\nkept\n\n\nx' "the window that is closing tidies, not this press"
 
-case_ "a second press while it is still opening: does nothing"
+case_ "a second press while it is still opening: on to the window's toggle (kawa-term --float --once; here a stand-in that says 3, open), never a second window"
 setup; export WINDOW_SECS=1
 kawa-notes & first=$!; sleep 0.3
 rc 0 kawa-notes
@@ -92,12 +92,12 @@ setup; export WINDOW_SECS=1 TYPED='once\n'
 for _ in {1..20}; do kawa-notes & done; wait; unset WINDOW_SECS
 eq "$(wc -l <"$HOME/windows")" 1 "one window"; eq "$(cat "$N")" "$H"$'\n\nonce'
 case_ "killed while open, then pressed again: the window opens (the lock is not stuck)"
-setup; stub kawa-float 'echo $$ >"$HOME/float.pid"; exec sleep 30'
+setup; stub kawa-term 'echo $$ >"$HOME/float.pid"; exec sleep 30'
 kawa-notes & first=$!
 for _ in {1..40}; do [[ -s $HOME/float.pid ]] && break; sleep 0.05; done
 kill -KILL "$first"; wait "$first" 2>/dev/null
 setup_float=$(cat "$HOME/float.pid" 2>/dev/null)
-stub kawa-float; reset_calls; kawa-notes; called '^kawa-float'
+stub kawa-term; reset_calls; kawa-notes; called '^kawa-term --float'
 [[ -n $setup_float ]] && kill "$setup_float" 2>/dev/null
 
 # ── where the notes are ──────────────────────────────────────────────────────
@@ -116,7 +116,7 @@ kawa-notes; eq "$(stat -c %a "$N")" 600
 
 case_ "the folder cannot be made (a file in its place): fails, nothing opened"
 setup; : >"$HOME/Notes"
-rc 1 kawa-notes; not_called kawa-float
+rc 1 kawa-notes; not_called 'kawa-term --float'
 case_ "a full disk while tidying: the notes stay as they were saved, no stray file"
 setup; mkdir -p "${N%/*}"; printf 'precious\n' >"$N"; TYPED='\n\n\n'; stub sync 'exit 1'
 kawa-notes
@@ -156,7 +156,7 @@ eq "$(cat "$TMP/err")" "" "no warning printed"
 
 case_ "Turkish and Arabic locales: the heading in English and Western digits"
 for l in tr_TR ar_EG; do
-  setup; rm -f "$STUBS/date"; stub kawa-float 'cp "$NOTES_FILE" "$HOME/while-open"'
+  setup; rm -f "$STUBS/date"; stub kawa-term 'cp "$NOTES_FILE" "$HOME/while-open"'
   if locale_of $l; then
     LC_ALL=$LOC kawa-notes
     [[ $(head -n1 "$HOME/while-open") =~ ^##\ [0-9]{4}-[0-9]{2}-[0-9]{2}\ ·\ (Mon|Tue|Wed|Thu|Fri|Sat|Sun)$ ]] && _ok \
@@ -165,13 +165,13 @@ for l in tr_TR ar_EG; do
 done
 
 # ── inside the window ────────────────────────────────────────────────────────
-case_ "inside: neovim on the notes, the page set up, at the end, typing"
+case_ "inside: neovim on the notes, notes.lua its whole configuration (not LazyVim: instant), at the end, typing"
 setup; stub nvim 'printf "%s\n" "$@" >"$HOME/nvim.args"; env >"$HOME/nvim.env"'
 export KAWA_NOTES="$HOME/Notes/50% off.md"
 kawa-notes --inside
 eq "$(cat "$HOME/nvim.args")" "-n
--c
-luafile ~/.config/fedokawaii/notes.lua
+-u
+$HOME/.config/fedokawaii/notes.lua
 -c
 normal! Go
 -c
@@ -183,7 +183,7 @@ lacks "$(cat "$HOME/nvim.env")" "KAWA_NOTES_ICON=" "(the heading is the kanji's:
 
 case_ "misuse and help"
 setup
-rc 2 kawa-notes --bogus; rc 2 kawa-notes notes.md; not_called kawa-float
+rc 2 kawa-notes --bogus; rc 2 kawa-notes notes.md; not_called 'kawa-term --float'
 rc 0 kawa-notes --help; has "$(kawa-notes --help)" "Super+N"
 
 # ── notes.lua, in a real neovim ──────────────────────────────────────────────

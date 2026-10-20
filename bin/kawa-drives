@@ -334,7 +334,7 @@ bar() {   # the drive mark while one is plugged in: lit while one is open; a cou
   if ((${#disks[@]} == 0)); then printf '{"text":""}\n'; return; fi
   text=$ICON_USB
   if ((${#disks[@]} > 1)); then
-    printf '{"text":"%s %d","class":["%s","count"]}\n' "$text" "${#disks[@]}" "$cls"
+    printf '{"text":"%s%d","class":["%s","count"]}\n' "$ICON_BAR_USB" "${#disks[@]}" "$cls"
   else
     printf '{"text":"%s","class":"%s"}\n' "$text" "$cls"
   fi

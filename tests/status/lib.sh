@@ -13,6 +13,7 @@ pw_world() {
   export FAKE_PW=$TMP/pw.json
   stub wpctl 'exec python3 -I '"$SD"'/fake_pw.py wpctl "$@"'
   stub pw-dump 'exec python3 -I '"$SD"'/fake_pw.py pw-dump "$@"'
+  stub pw-metadata 'exec python3 -I '"$SD"'/fake_pw.py pw-metadata "$@"'
 }
 # pw_edit PYTHON — change the machine: `st` is the state, `node(name)` finds a node
 pw_edit() {

@@ -14,20 +14,25 @@
 # What lights each item: a marker in $XDG_RUNTIME_DIR holding its opener's pid (and, for a
 # dropdown, the script that asked kawa-menu for it). An item is lit only while that pid lives:
 # a marker left behind by an opener that was killed (even kill -9) or crashed lights nothing.
+# The panels and the dropdowns are the session's panel's (kawa-panel): it writes their marker
+# with its own pid as it shows one and takes it away as it hides it — the light is what is on
+# screen, not a guess.
 #   torii       the launcher               kawa-launcher.open                 kawa-menu --launcher
 #   date, day   the calendar               kawa-drop.open  "PID kawa-calendar" (kawa-menu --drop)
 #   time        the timer's menu           kawa-drop.open  "PID kawa-timer"
 #   drives      the drives menu            kawa-drop.open  "PID kawa-drives"
+#   downloads   the downloads menu         kawa-drop.open  "PID kawa-downloads"
 #   steam       Steam's menu               kawa-drop.open  "PID kawa-steam"
 #   weather     the forecast               kawa-drop.open  "PID kawa-weather"
 #   layout      the layout menu            kawa-drop.open  "PID kawa-tag"
-#   memory      btop                       kawa-float-btop.open               kawa-float --once btop
+#   memory      btop                       kawa-term-btop.open               kawa-term --float --once btop
 #   volume      the sound panel            kawa-panel-sound.open              kawa-panel --sound
 #   brightness  the brightness slider      kawa-panel-brightness.open         kawa-panel --brightness
 #   mode, cat   quick settings             kawa-panel.open                    kawa-panel
 # Each opener writes its marker and pokes the bar as it opens, and takes it away and pokes
 # again however it ends (kawa-dwlstatus --poke: the module's signal, and a wake for the
-# long-running ones).
+# long-running ones). While lit an item has no tooltip (an empty one: none): it would show
+# behind the menu its click opened.
 # Exit status: 0 printed (--lit: lit) · 1 not lit (--lit) · 2 misuse.
 
 # bar_lit ITEM — ITEM's menu or window is on screen now (bash alone: read, kill -0)
@@ -39,10 +44,11 @@ bar_lit() {
     date|day)    marks=("kawa-drop.open kawa-calendar") ;;
     time)        marks=("kawa-drop.open kawa-timer") ;;
     drives)      marks=("kawa-drop.open kawa-drives") ;;
+    downloads)   marks=("kawa-drop.open kawa-downloads") ;;
     steam)       marks=("kawa-drop.open kawa-steam") ;;
     weather)     marks=("kawa-drop.open kawa-weather") ;;
     layout)      marks=("kawa-drop.open kawa-tag") ;;
-    memory)      marks=("kawa-float-btop.open") ;;
+    memory)      marks=("kawa-term-btop.open") ;;
     volume)      marks=("kawa-panel-sound.open") ;;
     brightness)  marks=("kawa-panel-brightness.open") ;;
     mode|cat)    marks=("kawa-panel.open") ;;
@@ -57,6 +63,17 @@ bar_lit() {
   done
   return 1
 }
+# bar_push NAME LINE — a value pushed to the bar's long-running module NAME (volume,
+# brightness) the moment it changes, by whoever changed it (the panel's meter dragged, a key):
+# LINE into each $XDG_RUNTIME_DIR/kawa-bar.NAME.PID (a link to that module's fifo), opened
+# read-write so it never waits — bash alone, no process started; the module draws it at once
+bar_push() {
+  local f
+  for f in "${XDG_RUNTIME_DIR:-/nonexistent}/kawa-bar.$1".*; do
+    [[ -p $f ]] && kill -0 "${f##*.}" 2>/dev/null && { printf '%s\n' "$2" 1<>"$f"; } 2>/dev/null
+  done
+  return 0
+}
 [[ ${BASH_SOURCE[0]} != "$0" ]] && return 0
 
 set -u
@@ -70,9 +87,12 @@ esac
 item=$1; shift
 lit=0; bar_lit "$item" && lit=1
 
-lit_json() {   # lit_json LINE — LINE (a module's JSON) with "active" added to its class, while lit
-  local out=$1
+lit_json() {   # lit_json LINE — LINE (a module's JSON) with "active" added to its class, and its
+  local out=$1   # tooltip emptied (none), while lit
   if ((lit)) && [[ -n $out ]]; then
+    while [[ $out =~ ^(.*\"tooltip\":\")(([^\"\\]|\\.)+)(\".*)$ ]]; do
+      out="${BASH_REMATCH[1]}${BASH_REMATCH[4]}"
+    done
     if [[ $out =~ ^(.*\"class\":)\"([^\"]*)\"(.*)$ ]]; then
       out="${BASH_REMATCH[1]}[\"${BASH_REMATCH[2]}\",\"active\"]${BASH_REMATCH[3]}"
     elif [[ $out =~ ^(.*\"class\":\[)(.*)$ ]]; then

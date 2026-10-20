@@ -14,6 +14,7 @@
 # ── environment ─────────────────────────────────────────────────────────────
 # (EDITOR and VISUAL are the system's: /etc/profile.d/editor.sh, setup.sh)
 case ":$PATH:" in *":$HOME/.local/bin:"*) ;; *) PATH="$HOME/.local/bin:$PATH" ;; esac
+# (rustup's cargo, rustc…: $CARGO_HOME/bin, on PATH from /etc/profile.d/fedokawaii-home.sh)
 export MANPAGER='nvim +Man!' LESS='-R --mouse -i'
 # secrets live in the environment, never in configs — and only while the file is yours
 # alone (chmod 600): one others could read is not used, and you are told
@@ -56,6 +57,25 @@ __kawa_osc7() {                      # a URI escapes bytes: walk the path byte b
   printf '\e]7;file://%s%s\e\\' "$HOSTNAME" "$out"
 }
 
+# the see-through ground as saved now (kawa-glass, Super+U → transparency): the terminal
+# server read it as it started, so a window opened after a change shows it too — told once,
+# as the shell starts (two small files read, no process)
+__kawa_glass() {
+  local l a="" g="" f
+  [[ -r ~/.local/state/fedokawaii/foot-glass.ini ]] || return 0
+  while IFS= read -r l; do [[ $l =~ ^alpha=([01](\.[0-9]+)?)$ ]] && a=${BASH_REMATCH[1]}; done \
+    <~/.local/state/fedokawaii/foot-glass.ini
+  while IFS= read -r l; do [[ $l =~ ^C_GROUND=([0-9a-fA-F]{6})$ ]] && g=${BASH_REMATCH[1]}; done \
+    <~/.config/fedokawaii/current/colors.sh 2>/dev/null
+  [[ -n $a && -n $g ]] || return 0
+  f=${a#*.}000                               # (thousandths: 0.92 → 920)
+  printf -v f '%02x' $(( (10#${f:0:3} * 255 + 500) / 1000 )); [[ $a == 1* ]] && f=ff
+  # shellcheck disable=SC1003  # (the string terminator: ESC and a backslash)
+  printf '\e]11;rgba:%s/%s/%s/%s\e\\' "${g:0:2}" "${g:2:2}" "${g:4:2}" "$f"
+}
+[[ $TERM == foot* ]] && __kawa_glass
+unset -f __kawa_glass
+
 # ── prompt ──────────────────────────────────────────────────────────────────
 # Two lines: a header ruled like an entry in a ledger, then the line you type on.
 #
@@ -91,6 +111,11 @@ __kawa_osc7() {                      # a URI escapes bytes: walk the path byte b
 # Under 30 columns (a small tile) there is no stitch: the torii, the folder (without the
 # "… /" before it when that is too much, cut in its middle with … only when even its name
 # alone is too long) and the mark at the right edge.
+# The header being typed under is drawn again in place, nothing left above it, however
+# often and however far the window changes width (foot rewraps what is on screen:
+# __kawa_reflow below). Once its command runs, an entry keeps its header without the
+# stitch — torii, place, git, mark, time — so the history above never wraps a rule that
+# filled some earlier width.
 # Nothing on the header has a background, so the cursor below never touches it.
 # Colours are the terminal's 16, so the prompt follows the dark and light themes.
 # Cost: pure bash outside git repositories (one git call inside); the timer is stamped
@@ -176,7 +201,12 @@ __kawa_t0=0
 # __kawa_w TEXT → __w: the columns TEXT takes in foot — Japanese, Chinese and Korean
 # letters and emoji take two, so a folder or a branch named in them counts twice
 __kawa_w() {
-  local LC_ALL=C.UTF-8 wide=${1//[!ᄀ-ᅟ⺀-〾ぁ-㏿㐀-䶿一-鿿ꀀ-꓏가-힣豈-﫿︰-﹏！-｠￠-￦🌀-🙏🚀-🛿🤀-🧿𠀀-𿿽]/}
+  # (the wide letters' long bracket costs a tenth of a millisecond a letter: only the few
+  # letters past ASCII go through it — none at all in nearly every path and branch)
+  [[ $1 != *[!\ -~]* ]] && { __w=${#1}; return 0; }
+  [[ ${LC_ALL-} == C.UTF-8 ]] || local LC_ALL=C.UTF-8    # (the prompt sets it once: each switch costs)
+  local rest=${1//[\ -~]/}
+  local wide=${rest//[!ᄀ-ᅟ⺀-〾ぁ-㏿㐀-䶿一-鿿ꀀ-꓏가-힣豈-﫿︰-﹏！-｠￠-￦🌀-🙏🚀-🛿🤀-🧿𠀀-𿿽]/}
   __w=$(( ${#1} + ${#wide} ))
 }
 
@@ -187,7 +217,8 @@ __kawa_w() {
 #   2  the folders above as … alone                   … /.config
 # (never longer than the form before it: ~/repos stays ~/repos)
 __kawa_paths() {
-  local LC_ALL=C.UTF-8 p=$1 head part out=''
+  [[ ${LC_ALL-} == C.UTF-8 ]] || local LC_ALL=C.UTF-8
+  local p=$1 head part out=''
   if [[ $p == */* && $p != / ]]; then head=${p%/*}/ __kp_h=${p##*/}; else head='' __kp_h=$p; fi
   if [[ $head == / ]]; then out=/
   elif [[ -n $head ]]; then
@@ -233,7 +264,8 @@ __kawa_fit() {
 
 # __kawa_cut TEXT MAX → __cut: TEXT in MAX columns or fewer, cut in the middle with …
 __kawa_cut() {
-  local LC_ALL=C.UTF-8 t=$1 n=${#1} k e
+  [[ ${LC_ALL-} == C.UTF-8 ]] || local LC_ALL=C.UTF-8
+  local t=$1 n=${#1} k e
   __cut=$t; __kawa_w "$t"; ((__w <= $2)) && return 0
   __kawa_w "$__i_more"; e=$__w
   for ((k = n - 1; k > 0; k--)); do
@@ -259,9 +291,12 @@ __kawa_layout() {
     elif ((__kp_stw && need <= room)); then __cut=$__kp_h
     else __kawa_cut "$__kp_h" "$room"; fi
     __kawa_w "$__cut"
-    __kawa_line="$__kp_lead$__c_dir$d$__c_here$__cut$__c_off"
+    __kawa_line="$__kp_lead$__c_dir$d$__c_here$__cut$__c_off" __kawa_hw=$((__kp_leadw + dw + __w))
+    __kawa_fline=$__kawa_line
     pad=$((room - __w - __kp_stw))
     if ((__kp_stw && pad >= 2)); then
+      __kawa_fline+="  $__kp_st"
+      __kawa_hw=$((__kawa_hw + pad + __kp_stw))
       printf -v pad '%*s' "$pad" ''
       __kawa_line+="$pad$__kp_st"
     fi
@@ -276,7 +311,20 @@ __kawa_layout() {
   printf -v rule '%*s' "$rule" ''; rule=${rule// /$__i_rule}
   __kawa_line="$__kp_lead$__c_dir${__kp_d[i]}$__c_here$__kp_h$__c_off$g$__kp_x $__c_rule$rule$__c_off"
   [[ -n $right ]] && __kawa_line+=" ${right# }"
+  __kawa_fline="$__kp_lead$__c_dir${__kp_d[i]}$__c_here$__kp_h$__c_off$g$__kp_x"
+  [[ -n $right ]] && __kawa_fline+="  ${right# }"
+  __kawa_hw=$((c - 1))
   return 0
+}
+
+# __kawa_finalize → __kawa_final: the entry as it stays once its command runs (ble.sh's final
+# prompt): the same header without the stitch, which only fills the width of the moment —
+# so a window made narrower later wraps nothing of it but what really is there, and a
+# wider one shows no rule stopping short
+__kawa_finalize() {
+  # (no prompt mark here: the entry's mark is already where it starts — a second would be
+  # a second prompt to foot's prompt jumps)
+  __kawa_final="${__kawa_gap:+$'\n'}$__kawa_fline"$'\n\001\e[37m\002'"$__i_mark"$'\001\e[0m\002 '
 }
 
 __kawa_prompt() {
@@ -287,7 +335,7 @@ __kawa_prompt() {
   # each prompt): then the header is only laid out anew — its mark, time and clock stay
   # those of the command that ended
   if [[ -n ${_ble_edit_lineno-} && $_ble_edit_lineno == "$__kawa_lineno" ]]; then
-    __kawa_layout
+    __kawa_layout; __kawa_finalize
     return 0
   fi
   __kawa_lineno=${_ble_edit_lineno-}
@@ -352,10 +400,10 @@ __kawa_prompt() {
     __kawa_t0=0
   fi
   n=''; ((__kp_duw)) && n='  '; ((__kp_stw && !__kp_duw)) && { n=' '; ((rc)) && n='  '; }
-  printf -v hour '%(%H)T' -1
+  printf -v v '%(%H %I:%M:%S %p)T' -1          # (the clock read once: the hour, then the time)
+  hour=${v%% *} v=${v#* }
   if ((10#$hour >= 6 && 10#$hour < 18)); then __kp_ck="$n$__c_sun$__i_sun$__c_off" t="$n$__i_sun"
   else __kp_ck="$n$__c_moon$__i_moon$__c_off" t="$n$__i_moon"; fi
-  printf -v v '%(%I:%M:%S %p)T' -1
   __kp_ck+="$__c_time$v$__c_off" t+=$v
   __kawa_w "$t"; __kp_ckw=$__w
 
@@ -363,6 +411,8 @@ __kawa_prompt() {
   # a blank line before each entry — not after clear, and not in a tile of under 10 rows,
   # where it would push the line you type off the window (ble.sh: "(line 3) …")
   local gap='\n'; ((__kawa_fresh || ${LINES:-24} < 10)) && gap='' __kawa_fresh=0
+  __kawa_gap=${gap:+1}
+  __kawa_finalize
   PS1="$gap"'\[\e]133;A\e\\\]${__kawa_line}\n\[\e[37m\]'"$__i_mark"'\[\e[0m\] '
 }
 clear() { command clear "$@"; __kawa_fresh=1; }    # no blank line at the top after clear
@@ -373,6 +423,36 @@ PROMPT_COMMAND=(__kawa_prompt)
 # start time into __kawa_t0 inside an arithmetic expansion, which prints nothing.
 # (the stamp comes first: after "\e\\" a "$" would be read as escaped)
 PS0='${__kawa_one:$((__kawa_t0 = ${EPOCHREALTIME/[.,]/}, 0)):0}\e]133;C\e\\'
+
+# ── the prompt through a change of width ────────────────────────────────────
+# foot reflows its lines when a window gets narrower: the header, which fills the old
+# width, wraps onto two rows or more. ble.sh, redrawing the prompt for the new width, went
+# back up only by the rows it had drawn — so the header's first part stayed above the new
+# prompt, and every retile added another (stacked headers, the clock alone on a row). It is
+# told where the prompt starts now: each row of the prompt above the line you type on
+# (the blank line, the header: __kawa_gap, __kawa_hw) takes ceil(width / columns) rows after
+# the reflow, and the line you type on wraps as foot wraps it. Then ble.sh goes up exactly
+# there, and the prompt is drawn over itself with nothing left behind. Only for this
+# prompt, laid out as __kawa_layout last laid it: anything else (another PS1, a right-hand
+# prompt, the cursor in a panel below) is ble.sh's own, as before.
+__kawa_gap='' __kawa_hw=0 __kawa_fline='' __kawa_final=''
+__kawa_reflow() {
+  local c=${COLUMNS:-0} ow=${_ble_app_winsize[0]:-0} proy=${_ble_prompt_ps1_data[4]:-0}
+  local y=${_ble_canvas_y:-0} x=${_ble_canvas_x:-0} w rows=0 off
+  local -a above=("$__kawa_hw"); [[ -n $__kawa_gap ]] && above=(0 "$__kawa_hw")
+  ((c > 0 && ow > 0 && __kawa_hw > 0 && proy == ${#above[@]} && y >= proy && y < ${_ble_canvas_panel_height[0]:-0})) || return 1
+  [[ -z ${_ble_prompt_rps1_shown-} ]] || return 1
+  for w in "${above[@]}"; do rows=$((rows + (w > c ? (w + c - 1) / c : 1))); done
+  off=$(((y - proy) * ow + x))
+  _ble_canvas_y=$((rows + off / c)) _ble_canvas_x=$((off % c))
+  # shellcheck disable=SC2034  # (ble.sh's draw buffer: its functions below fill and flush it)
+  local -a DRAW_BUFF=()
+  ble/canvas/panel#goto.draw 0 0 0
+  ble/canvas/bflush.draw
+}
+[[ -n ${BLE_VERSION-} ]] && bleopt prompt_ps1_final='${__kawa_final}'
+[[ -n ${BLE_VERSION-} ]] &&
+  ble/function#advice around ble/application/onwinch/panel.process-redraw-here 'if __kawa_reflow; then ADVICE_EXIT=0; else ble/function#advice/do; fi'
 
 # ── aliases (few, each earns its place) ─────────────────────────────────────
 # ls is eza: folders first, sizes readable; ll adds every detail, hidden files and each
@@ -395,22 +475,39 @@ alias prowlarr='kawa-prowlarr'
 alias dwl-log='less +G ~/.cache/dwl.log'
 
 # btop, typed in a terminal, starts in the richest of its layouts the window holds — the
-# presets in ~/.config/btop/btop.conf, which p then cycles through. (btop picks a layout
-# only as it starts, and draws nothing in less than 36×6; the bar's memory button opens it
-# floating at 112×33, room for all four boxes.) Asked for with -p, a preset is yours.
-#   preset  boxes                    needs (columns × rows, btop's own minimums)
-#   0       cpu  mem  net  proc      80 × 24
-#   1       cpu over proc            60 × 24
-#   2       cpu                      60 × 8
-#   3       proc                     44 × 16
-#   4       mem over net             36 × 16
-#   5       mem                      36 × 10
-__kawa_btop_presets=('0 80 24' '1 60 24' '2 60 8' '3 44 16' '4 36 16' '5 36 10')
-__kawa_btop_preset() {   # COLUMNS LINES → __preset: the first that fits, or '' (none does)
-  local e p w h
+# boxes btop.conf shows, or one of its presets (~/.config/btop/btop.conf), which p then
+# cycles through. (btop picks a layout only as it starts, and draws nothing in less than
+# 36×6; the bar's memory button opens it floating at 140×41, room for all five boxes.)
+# Asked for with -p, a preset is yours.
+#   layout  boxes                       needs (columns × rows, btop's own minimums)
+#                                       with the card's box · on a machine without one
+#   all     cpu  gpu  mem  net  proc    80 × 35             80 × 24
+#   0       cpu  mem  net  proc         80 × 24             80 × 24
+#   1       cpu over gpu over proc      66 × 35             —
+#   2       cpu over proc               60 × 24             60 × 24
+#   3       gpu over proc               66 × 27             —
+#   4       cpu over gpu                66 × 19             —
+#   5       proc                        44 × 16             44 × 16
+#   6       mem over net                36 × 16             36 × 16
+#   7       mem                         36 × 10             36 × 10
+# (never the card's box alone: btop 1.4.5 stops on that layout. btop draws the card's box
+# from 41 columns, but its words take 41 of them, whatever the width: the card's layouts
+# wait for 66, where its load graph has 25 columns of its own)
+# (the card: the box btop.conf shows for it — theme.sh writes it there for a discrete AMD
+# card, as gpu0 or gpu1 in btop's own order, and leaves it out without one)
+__kawa_btop_presets=('all 80 35 80 24' '0 80 24 80 24' '1 66 35 - -' '2 60 24 60 24' '3 66 27 - -'
+  '4 66 19 - -' '5 44 16 44 16' '6 36 16 36 16' '7 36 10 36 10')
+__kawa_btop_preset() {   # COLUMNS LINES [GPU 1|0] → __preset: the first that fits, or '' (none does)
+  local e p w h gw gh g=${3-}
+  if [[ -z $g ]]; then
+    g=0
+    while IFS= read -r e; do [[ $e == 'shown_boxes = '*gpu[0-5]* ]] && g=1; done <~/.config/btop/btop.conf 2>/dev/null
+  fi
   __preset=''
   for e in "${__kawa_btop_presets[@]}"; do
-    p=${e%% *} w=${e#* } h=${w#* } w=${w%% *}
+    read -r p gw gh w h <<<"$e"
+    ((g)) && w=$gw h=$gh
+    [[ $w == - ]] && continue
     if (($1 >= w && $2 >= h)); then __preset=$p; return 0; fi
   done
 }
@@ -418,6 +515,7 @@ btop() {
   local a
   for a; do [[ $a == -p* || $a == --preset* ]] && { command btop "$@"; return; }; done
   __kawa_btop_preset "${COLUMNS:-80}" "${LINES:-24}"
+  [[ $__preset == all ]] && __preset=''
   command btop ${__preset:+-p "$__preset"} "$@"
 }
 

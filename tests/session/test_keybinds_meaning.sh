@@ -49,5 +49,14 @@ copy; sed -i 's/^Super+F                 fullscreen/Super+F                 floa
 case_ "… a new row the check does not know yet"
 copy; sed -i 's/^Super+Tab               previous workspace/&\nSuper+G                 something new/' "$KB"
 says "'Super+G' — a row this check does not know"
+case_ "… a key that opens a window repeated while held (spawnheld): pressed fast it would flicker, presses lost"
+copy; sed -i 's/XKB_KEY_n,                 spawn,  /XKB_KEY_n,                 spawnheld,/' "$CH"
+says "config.h does spawnheld:kawa-notes"
+
+case_ "dwl repeats a held key only for spawnheld, the focus and the split: every other key is one press, however long held (keypress)"
+P=$(cat "$REPO/src/dwl/dwl.patch")
+has "$P" "+				held = key->func == focusstack || key->func == setmfact
++						|| key->func == spawnheld;"
+has "$P" "+	if (held && !locked && group->wlr_group->keyboard.repeat_info.delay > 0)"
 
 done_

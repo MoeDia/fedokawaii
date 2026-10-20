@@ -18,4 +18,6 @@ prepend_keymap = [
 	# pictures and PDFs made small enough to send, or turned into JPEG, WebP or PNG (as
 	# Super+Z does with what you copied): the result beside each, and on the clipboard
 	{ on = "<A-s>",      run = "shell --orphan -- kawa-shrink %s", desc = "Shrink or convert the picture(s) or PDF(s)" },
+	# archives and PDFs (as Super+D does with what you copied): unpack, pack, merge, split, sign
+	{ on = "<A-f>",      run = "shell --orphan -- kawa-file %s",   desc = "Archives and PDFs: unpack, pack, merge, sign" },
 ]

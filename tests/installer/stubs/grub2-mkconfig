@@ -8,4 +8,5 @@ o=/boot/grub2/grub.cfg; [[ $1 == -o ]] && o=$2
 # GRUB then names the theme from that partition's root: ($root)/grub2/…, as 00_header does)
 t=$(sed -n 's/^GRUB_THEME=//p' /etc/default/grub | tr -d '"')
 [[ -n $t && -e $FKH/boot-separate ]] && t="(\$root)${t#/boot}"
-mkdir -p "${o%/*}"; { echo "# made by grub2-mkconfig"; [[ -z $t ]] || echo "set theme=$t"; } >"$o"
+mkdir -p "${o%/*}"; { echo "# made by grub2-mkconfig"; [[ -z $t ]] || echo "set theme=$t"
+  [[ -x /etc/grub.d/41_snapshots-btrfs ]] && echo 'configfile "${prefix}/grub-btrfs.cfg"'; } >"$o"   # (grub-btrfs's script, as it adds its submenu)

@@ -1,0 +1,39 @@
+#!/usr/bin/env bash
+# kawa-idle — what happens while you are away (swayidle runs it: autostart.sh), never while
+# something plays. Away 15 minutes: the screensaver, and the lock behind it (kawa-saver
+# --idle: the first key or move ends the screensaver and brings up the lock, the key itself
+# going nowhere; the screensaver switched off in quick settings, the lock at once). Away 30
+# minutes: the screens dark. Nothing of it while a video or a sound plays:
+#   · a video in Brave or mpv (and any program that asks the compositor not to idle, the
+#     Wayland idle-inhibit protocol) holds the idle timer itself: swayidle never fires;
+#   · a sleep or idle lock in logind (systemd-inhibit --what=idle) and anything playing over
+#     MPRIS (playerctl: music in Brave, mpv, a player) are checked here — while either holds,
+#     it waits, a look every 30 s (a sleep in between: no CPU), and goes on when they end.
+#   kawa-idle away   15 min: the screensaver, then the lock
+#   kawa-idle dark   30 min: the screens dark (kawa-lock --screens off)
+#   kawa-idle back   (swayidle's resume: you are back) — a wait still running ends there
+# Exit: 0 · 2 wrong use.
+set -u
+case ${1:-} in
+  away|dark|back) ;;
+  -h|--help) sed -n '2,/^set -u/{/^set -u/d;s/^# \{0,1\}//;p}' "$0"; exit 0 ;;
+  *) echo "usage: kawa-idle away|dark|back" >&2; exit 2 ;;
+esac
+run=${XDG_RUNTIME_DIR:-/run/user/$UID}
+if [[ $1 == back ]]; then
+  pkill -u "$UID" -f "kawa-idle (away|dark)$" 2>/dev/null
+  exit 0
+fi
+# one of each at a time (a second "away" while the first still waits: nothing more)
+exec 9>"$run/kawa-idle.$1"
+flock -n 9 || exit 0
+playing() {   # something plays, or holds the idle in logind
+  [[ $(playerctl -a status 2>/dev/null) == *Playing* ]] && return 0
+  systemd-inhibit --list --no-pager --no-legend 2>/dev/null | awk '$0 ~ /idle/ && / block/ { f = 1 } END { exit !f }'
+}
+while playing; do sleep 30; done
+exec 9>&-
+case $1 in
+  away) exec kawa-saver --idle ;;
+  dark) exec kawa-lock --screens off ;;
+esac

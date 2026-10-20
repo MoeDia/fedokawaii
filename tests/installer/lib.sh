@@ -56,6 +56,7 @@ DWL_COMMIT=$(conf_val DWL_COMMIT) TFC_COMMIT=$(conf_val TFC_COMMIT)
 # the commands inside the namespace: the fake machine mounted over this one's paths
 # shellcheck disable=SC2016  # expanded by the inner bash
 FK_INNER='set -e; W=$1; shift
+  python3 -I -c "import fcntl, socket, struct; s = socket.socket(); f = struct.unpack(\"16sH14x\", fcntl.ioctl(s, 0x8913, struct.pack(\"16sH14x\", b\"lo\", 0)))[1]; fcntl.ioctl(s, 0x8914, struct.pack(\"16sH14x\", b\"lo\", f | 1))"   # (loopback up: SIOCSIFFLAGS)
   # /usr/bin and /usr/share: the fake machine'"'"'s own folders of links to this machine'"'"'s (kept
   # reachable under $W/.usr), so what a package adds or takes away there can differ
   # (read-only: nothing run in the fake machine can write through a link to this machine'"'"'s)
@@ -83,9 +84,12 @@ FK_INNER='set -e; W=$1; shift
   set +e; cd /
   exec env -i PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin HOME=/root USER=root \
     LOGNAME=root TERM=dumb LANG=C.UTF-8 SUDO_USER=fkuser FK_W="$W" timeout 240 "$@"'
+# (a network namespace of its own, only loopback in it: nothing run in the fake machine can
+# reach the network — whatever program a script calls, by any path — and every download
+# comes from the stubs)
 fk() {
-  local ns=(unshare -m --propagation private)
-  ((EUID == 0)) || ns=(unshare --map-root-user --map-users=auto --map-groups=auto -m --propagation private)
+  local ns=(unshare -m -n --propagation private)
+  ((EUID == 0)) || ns=(unshare --map-root-user --map-users=auto --map-groups=auto -m -n --propagation private)
   "${ns[@]}" bash -c "$FK_INNER" _ "$W" "$@"
 }
 # shellcheck disable=SC2034
@@ -138,6 +142,13 @@ fake_pylibs() {
     mkdir -p "$FK_PYLIBS/${m%/*}"; : >"$FK_PYLIBS/$m.py"
   done
   printf 'def optionsForClientTLS(*a, **k):\n    pass\n' >"$FK_PYLIBS/twisted/internet/ssl.py"
+  # PyGObject and the typelibs the login screen and the panel ask for (lib/guard.sh: gi_sound);
+  # $FKH/gi-broken: a namespace that no longer loads
+  mkdir -p "$FK_PYLIBS/gi/repository"; : >"$FK_PYLIBS/gi/repository/__init__.py"
+  printf 'def require_version(ns, v):\n    import os\n    if ns in open("/var/lib/fkh/gi-broken").read().split() if os.path.exists("/var/lib/fkh/gi-broken") else False:\n        raise ValueError("Namespace %%s not available" %% ns)\n' >"$FK_PYLIBS/gi/__init__.py"
+  for m in $(grep -ohE 'require_version\("\w+"' "$REPO/system/kawa-greet" "$REPO/bin/kawa-panel" | cut -d'"' -f2 | sort -u); do
+    : >"$FK_PYLIBS/gi/repository/$m.py"
+  done
 }
 
 pkg_has() { grep -qxF -- "$1" "$FKH/installed"; }
@@ -150,6 +161,16 @@ world() {   # world fresh|built [--themed]
   local kind=$1 themed=0
   [[ -z ${FK_PURE:-} && $EUID -eq 0 ]] || { echo "harness: a fake machine needs root (a file with FK_PURE=1 makes none)" >&2; exit 1; }
   [[ ${2:-} == --themed ]] && themed=1
+  # one fake machine at a time across test files (two at once remove each other's kept trees);
+  # taken once, held until this test file ends
+  if [[ -z ${FK_WORLD_LOCKED:-} ]]; then
+    exec 8>/tmp/kawa-installer-tests.lock
+    if ! flock -n 8; then
+      echo "harness: waiting for the installer-test lock (another installer test holds it) — not a hang" >&2
+      flock 8
+    fi
+    FK_WORLD_LOCKED=1
+  fi
   fk_clean; sandbox
   chmod 755 "$TMP"; chmod 666 "$CALLS"
   trap 'r=$?; fk_clean; [[ -n $TMP ]] && rm -rf "$TMP"; host_guard || exit 1; exit $r' EXIT
@@ -178,6 +199,7 @@ world() {   # world fresh|built [--themed]
     'GRUB_CMDLINE_LINUX="rootflags=subvol=root rhgb quiet"' 'GRUB_DISABLE_RECOVERY="true"' \
     'GRUB_ENABLE_BLSCFG=true' >"$W/etc/default/grub"
   printf 'KEYMAP="us"\n' >"$W/etc/vconsole.conf"
+  mkdir -p "$W/etc/plymouth"; printf '# Administrator customizations go in this file\n#[Daemon]\n#Theme=fade-in\n' >"$W/etc/plymouth/plymouthd.conf"   # (Fedora's)
   rm -rf "$W/etc/systemd/system/display-manager.service" "$W/etc/yum.repos.d" "$W/etc/dnf" "$W/etc/greetd"
   # (and whatever of this project the machine running the tests has in its own /etc)
   grep -rlisZ -e fedokawaii -e scriptorium "$W/etc" 2>/dev/null | xargs -0r rm -f
@@ -214,6 +236,8 @@ world() {   # world fresh|built [--themed]
     "enabled fstrim.timer" "static dnf5-makecache.timer" >"$FKH/units"
   echo dnf5-makecache.timer >"$FKH/unitfiles"      # (Fedora 44's: static — on by its package's own link)
   fake_cmd "$W/usrbin/nano"; fake_cmd "$W/usrbin/vi"     # (nano, vim-minimal: in a Minimal Install)
+  mkdir -p "$W/etc/grub.d"   # (grub2-tools, in a Minimal Install: Shift/Esc/F8 shows the hidden menu)
+  printf '#!/bin/sh\n' >"$W/etc/grub.d/12_menu_auto_hide"; chmod 755 "$W/etc/grub.d/12_menu_auto_hide"
   printf '%s\n' "ethernet:connected" >"$FKH/nm-devices"
   printf '%s\n' "fedokawaii-setup-host" >/dev/null
   : >"$FKH/calls.log"; CALLS=$FKH/calls.log
@@ -256,6 +280,7 @@ gpu() {   # gpu CARD VENDOR DEVICE DRIVER [VRAM] — a display card with its ren
   ln -sfn "../$c" "$W/sys/class/drm/$c-DP-1/device"          # (a connector: its device is the card)
   echo connected >"$W/sys/class/drm/$c-DP-1/status"; printf '2560x1440\n1920x1080\n' >"$W/sys/class/drm/$c-DP-1/modes"
   [[ -n $vram ]] && echo "$vram" >"$W/sys/class/drm/$c/device/mem_info_vram_total"
+  echo "PCI_SLOT_NAME=$pci" >"$W/sys/class/drm/$c/device/uevent"
   mkdir -p "$W/sys/bus/pci/devices/$pci" "$W/sys/bus/pci/drivers/$drv"
   printf '0x030000\n' >"$W/sys/bus/pci/devices/$pci/class"; echo "$v" >"$W/sys/bus/pci/devices/$pci/vendor"; echo "$d" >"$W/sys/bus/pci/devices/$pci/device"
   [[ $drv == none ]] || ln -sfn "../../drivers/$drv" "$W/sys/bus/pci/devices/$pci/driver"
@@ -303,6 +328,12 @@ EOF
 
 # ── the GitHub releases, faked: archives made here, and the fake machine's copies of the
 #    project pinned to them (lib/upstream.sh's SHA-256s are the real releases') ─────────────
+# fake_icon NAME — a launcher icon's stand-in: a 1 × 1 PNG of its own (the same bytes every time)
+fake_icon() {
+  python3 -I -c 'import sys, zlib, struct
+def c(t, d): return struct.pack(">I", len(d)) + t + d + struct.pack(">I", zlib.crc32(t + d))
+sys.stdout.buffer.write(b"\x89PNG\r\n\x1a\n" + c(b"IHDR", struct.pack(">IIBBBBB", 1, 1, 8, 2, 0, 0, 0)) + c(b"IDAT", zlib.compress(b"\0" + sys.argv[1].encode()[:3].ljust(3, b"x"))) + c(b"IEND", b""))' "$1"
+}
 releases() {
   local r=$TMP/rel d f sum name file old fusion
   rm -rf "$r"; mkdir -p "$r"
@@ -313,7 +344,7 @@ releases() {
   fake_herdr "$FKH/dl/herdr-linux-x86_64"                    # (no archive either)
   tool lazygit 0.66.1 "$r/lg/lazygit"; echo licence >"$r/lg/LICENSE"; echo readme >"$r/lg/README.md"   # (as its release: beside them)
   echo font >"$r/jb/JetBrainsMonoNerdFont-Regular.ttf"
-  echo font >"$r/fp/fusion-pixel-12px-monospaced-ja.ttf"; echo font >"$r/fp/fusion-pixel-12px-monospaced-latin.ttf"; echo licence >"$r/fp/OFL.txt"
+  for px in 12 10; do mkdir -p "$r/fp$px"; echo font >"$r/fp$px/fusion-pixel-${px}px-monospaced-ja.ttf"; echo font >"$r/fp$px/fusion-pixel-${px}px-monospaced-latin.ttf"; echo licence >"$r/fp$px/OFL.txt"; done
   echo '"compatibilitytools" { }' >"$r/ge/GE-Proton10-25/compatibilitytool.vdf"
   # LocalSend: its release folder (the app, its libraries, its data)
   mkdir -p "$r/ls/lib" "$r/ls/data/flutter_assets/assets/img"; tool localsend_app 1.18.0 "$r/ls/localsend_app"
@@ -323,14 +354,21 @@ releases() {
   (cd "$r/yazi" && python3 -m zipfile -c "$FKH/dl/yazi-x86_64-unknown-linux-musl.zip" yazi-x86_64-unknown-linux-musl)
   tar -czf "$FKH/dl/lazygit_0.66.1_linux_x86_64.tar.gz" -C "$r/lg" LICENSE README.md lazygit
   tar -cJf "$FKH/dl/JetBrainsMono.tar.xz" -C "$r/jb" .
-  fusion=$(. "$REPO/lib/upstream.sh"; echo "${FUSION_URL##*/}")
-  (cd "$r/fp" && python3 -m zipfile -c "$FKH/dl/$fusion" OFL.txt fusion-pixel-12px-monospaced-ja.ttf fusion-pixel-12px-monospaced-latin.ttf)
+  fusion=$(. "$REPO/lib/upstream.sh"; echo "$FUSION_TAG")
+  for px in 12 10; do
+    (cd "$r/fp$px" && python3 -m zipfile -c "$FKH/dl/fusion-pixel-font-${px}px-monospaced-ttf-v$fusion.zip" OFL.txt "fusion-pixel-${px}px-monospaced-ja.ttf" "fusion-pixel-${px}px-monospaced-latin.ttf")
+  done
   tar -czf "$FKH/dl/GE-Proton10-25.tar.gz" -C "$r/ge" GE-Proton10-25
   (cd "$FKH/dl" && sha512sum GE-Proton10-25.tar.gz >GE-Proton10-25.sha512sum)
   printf '%s\n' '{"tag_name":"GE-Proton10-25","assets":[' \
     '{"name":"GE-Proton10-25.sha512sum","browser_download_url":"https://github.com/x/GE-Proton10-25.sha512sum"},' \
     '{"name":"GE-Proton10-25.tar.gz","browser_download_url":"https://github.com/x/GE-Proton10-25.tar.gz"}]}' >"$FKH/ge.json"
   echo "-----BEGIN PGP PUBLIC KEY BLOCK-----" >"$FKH/dl/claude-code.asc"
+  # the launcher's icons (each project's assets/logo.png, kept under its whole address): a PNG each
+  local repo tag
+  while IFS='|' read -r name repo tag file _; do
+    fake_icon "$name" >"$FKH/dl/raw.githubusercontent.com_${repo//\//_}_${tag}_${file//\//_}"
+  done < <(. "$REPO/lib/upstream.sh"; printf '%s\n' "${UPSTREAM_ICONS[@]}")
   # the fake machine's copies of the project, pinned to these files
   for d in "$W/home/fkuser/fedokawaii" "$W/usr/local/lib/fedokawaii"; do
     f=$d/lib/upstream.sh; [[ -f $f ]] || continue
@@ -341,8 +379,12 @@ releases() {
       old=$(. "$REPO/lib/upstream.sh"; printf '%s\n' "${NERD_FONTS[@]}" | sed -n "s/^$name|//p")
       sum=$(sha256sum "$FKH/dl/$name.tar.xz" | cut -d' ' -f1); sed -i "s/$old/$sum/" "$f"
     done
-    old=$(. "$REPO/lib/upstream.sh"; echo "$FUSION_SHA256"); sum=$(sha256sum "$FKH/dl/$fusion" | cut -d' ' -f1)
-    sed -i "s/$old/$sum/" "$f"
+    while IFS='|' read -r name old; do
+      sum=$(sha256sum "$FKH/dl/fusion-pixel-font-${name}px-monospaced-ttf-v$fusion.zip" | cut -d' ' -f1); sed -i "s/$old/$sum/" "$f"
+    done < <(. "$REPO/lib/upstream.sh"; printf '%s\n' "${FUSION_FACES[@]}")
+    while IFS='|' read -r name repo tag file old; do
+      sum=$(sha256sum "$FKH/dl/raw.githubusercontent.com_${repo//\//_}_${tag}_${file//\//_}" | cut -d' ' -f1); sed -i "s/$old/$sum/" "$f"
+    done < <(. "$REPO/lib/upstream.sh"; printf '%s\n' "${UPSTREAM_ICONS[@]}")
     old=$(. "$REPO/lib/upstream.sh"; echo "$LOCALSEND_SHA256"); sum=$(sha256sum "$FKH/dl/$(. "$REPO/lib/upstream.sh"; echo "$LOCALSEND_ASSET")" | cut -d' ' -f1)
     sed -i "s/$old/$sum/" "$f"
   done
@@ -365,7 +407,8 @@ built() {
   cp "$W/usr/local/lib/fedokawaii/system/fedokawaii" "$W/usr/local/bin/fedokawaii"
   cp "$W/usr/local/lib/fedokawaii/system/fedokawaii-report" "$W/usr/local/bin/fedokawaii-report"
   # dwl, its own wlroots, the session's system pieces
-  printf '#!/bin/sh\n# ldd: libxcb.so.1 => /usr/lib64/libxcb.so.1 (0x1)\n# ldd: libwlroots-0.20.so => /usr/local/lib/fedokawaii-wlroots-0.20/lib/libwlroots-0.20.so (0x2)\necho "dwl 0.9"\n' >"$W/usr/local/bin/dwl"
+  # (-s CMD: started — CMD runs, and its SIGTERM ends it cleanly, as the real one: the guard's start test)
+  printf '#!/bin/sh\n# ldd: libxcb.so.1 => /usr/lib64/libxcb.so.1 (0x1)\n# ldd: libwlroots-0.20.so => /usr/local/lib/fedokawaii-wlroots-0.20/lib/libwlroots-0.20.so (0x2)\n[ -f /var/lib/fkh/dwl-crash ] && exit 1\nif [ "$1" = -s ]; then trap "exit 0" TERM; sh -c "$2" & wait; exit 0; fi\necho "dwl 0.9"\n' >"$W/usr/local/bin/dwl"
   chmod 755 "$W/usr/local/bin/dwl"
   p=$W/usr/local/lib/fedokawaii-wlroots-0.20; mkdir -p "$p/lib" "$p/include/wlroots-0.20"
   cp "$W/usr/local/fkh-sys/lib64/libwlroots-0.20.so" "$p/lib/"; echo "-I/usr/local/lib/fedokawaii-wlroots-0.20/include/wlroots-0.20" >"$p/cflags"
@@ -390,13 +433,39 @@ built() {
   printf '#!/bin/sh\nexec nvim "$@"\n' >"$W/usr/local/bin/vi"; chmod 755 "$W/usr/local/bin/vi"; : >"$W/etc/NetworkManager/conf.d/90-fedokawaii.conf"; : >"$W/etc/mpv/scripts/mpris.so"
   mkdir -p "$W/etc/modprobe.d" "$W/etc/systemd/system/user@.service.d"
   echo 'options btusb enable_autosuspend=0' >"$W/etc/modprobe.d/fedokawaii-btusb.conf"
+  # game mode (setup.sh: game_mode): tuned's game profile, its polkit rule, a game's priority
+  mkdir -p "$W/etc/tuned/profiles/fedokawaii-game" "$W/etc/polkit-1/rules.d" "$W/etc/security/limits.d"
+  printf '[main]\ninclude=fedokawaii\n\n[sysfs]\n/sys/bus/pci/devices/0000:03:00.0/power_dpm_force_performance_level=high\n' >"$W/etc/tuned/profiles/fedokawaii-game/tuned.conf"
+  printf 'polkit.addRule(function (action, subject) { return polkit.Result.NOT_HANDLED; });\n' >"$W/etc/polkit-1/rules.d/60-fedokawaii-game.rules"
+  echo 'fkuser - nice -5' >"$W/etc/security/limits.d/60-fedokawaii-game.conf"
   echo 'options snd_hda_intel power_save=0' >"$W/etc/modprobe.d/fedokawaii-audio.conf"
   printf '[Service]\nTimeoutStopSec=30s\n' >"$W/etc/systemd/system/user@.service.d/fedokawaii.conf"
   mkdir -p "$W/etc/systemd/sleep.conf.d"; printf '[Sleep]\nAllowHibernation=no\nAllowHybridSleep=no\nAllowSuspendThenHibernate=no\n' >"$W/etc/systemd/sleep.conf.d/90-fedokawaii.conf"
+  mkdir -p "$W/etc/systemd/resolved.conf.d"; printf '[Resolve]\nLLMNR=no\n' >"$W/etc/systemd/resolved.conf.d/90-fedokawaii.conf"
+  printf '[zram0]\nzram-size = min(ram / 2, 16384)\ncompression-algorithm = zstd\n' >"$W/etc/systemd/zram-generator.conf"
+  # the pace of a start and a shut down, a clean system and home (s_pace, s_clean)
+  mkdir -p "$W/etc/systemd/system.conf.d" "$W/etc/systemd/user.conf.d" "$W/etc/systemd/journald.conf.d" "$W/etc/systemd/coredump.conf.d"
+  printf '[Manager]\nDefaultTimeoutStopSec=15s\n' >"$W/etc/systemd/system.conf.d/90-fedokawaii.conf"
+  printf '[Manager]\nDefaultTimeoutStopSec=10s\n' >"$W/etc/systemd/user.conf.d/90-fedokawaii.conf"
+  printf '[Journal]\nSystemMaxUse=500M\n' >"$W/etc/systemd/journald.conf.d/40-fedokawaii.conf"
+  printf '[Coredump]\nMaxUse=1G\nExternalSizeMax=1G\nProcessSizeMax=1G\n' >"$W/etc/systemd/coredump.conf.d/40-fedokawaii.conf"
+  cp "$REPO/system/fedokawaii-home.sh" "$W/etc/profile.d/fedokawaii-home.sh"
+  mkdir -p "$W/home/fkuser/.config"; printf 'XDG_DESKTOP_DIR="$HOME/"\nXDG_PUBLICSHARE_DIR="$HOME/"\nXDG_TEMPLATES_DIR="$HOME/"\n' >"$W/home/fkuser/.config/user-dirs.dirs"
   mkdir -p "$W/etc/systemd/logind.conf.d"; printf '[Login]\nHandleSuspendKey=ignore\nHandleSuspendKeyLongPress=ignore\nHandleHibernateKey=ignore\nHandleHibernateKeyLongPress=ignore\nInhibitDelayMaxSec=25\n' >"$W/etc/systemd/logind.conf.d/90-fedokawaii.conf"
   printf '[main]\nmax_parallel_downloads=10\nfastestmirror=True\nminrate=5k\ntimeout=20\ninstallonly_limit=2\ndefaultyes=True\nexclude_from_weak=nodejs,nodejs22*,PackageKit,java-*-openjdk-headless,libreoffice-help-*\n' >"$W/etc/dnf/libdnf5.conf.d/90-fedokawaii.conf"
   printf '[x]\ngpgcheck=1\n' >"$W/etc/yum.repos.d/brave-browser.repo"; cp "$W/etc/yum.repos.d/brave-browser.repo" "$W/etc/yum.repos.d/claude-code.repo"
   printf '#!/bin/sh\nexit 0\n' >"$W/usr/local/sbin/kawa-snap"; chmod 755 "$W/usr/local/sbin/kawa-snap"; : >"$W/etc/dnf/libdnf5-plugins/actions.d/fedokawaii-snapper.actions"
+  # the boot menu's snapshots (snap_boot): grub-btrfs's script, the clean-up's drop-in, grub.cfg's submenu
+  mkdir -p "$W/etc/grub.d" "$W/etc/systemd/system/snapper-cleanup.service.d" "$W/boot/grub2"
+  printf '#!/bin/sh\nexit 0\n' >"$W/etc/grub.d/41_snapshots-btrfs"; chmod 755 "$W/etc/grub.d/41_snapshots-btrfs"
+  printf '[Service]\nExecStartPost=-/usr/local/sbin/kawa-snap boot\n' >"$W/etc/systemd/system/snapper-cleanup.service.d/fedokawaii.conf"
+  grep -qs grub-btrfs.cfg "$W/boot/grub2/grub.cfg" || echo 'configfile "${prefix}/grub-btrfs.cfg"' >>"$W/boot/grub2/grub.cfg"
+  # dnf's guard (lib/guard.sh: guard_hooks), its records and its unit
+  install -m 0755 "$REPO/system/kawa-dnf-guard" "$W/usr/local/sbin/kawa-dnf-guard"
+  printf '%s\n' "pre_transaction::::mode=json:/usr/local/sbin/kawa-dnf-guard pre" "post_transaction::::mode=json:/usr/local/sbin/kawa-dnf-guard post" \
+    >"$W/etc/dnf/libdnf5-plugins/actions.d/fedokawaii-guard.actions"
+  printf '%s\n' "wlroots 0.20" "libxcb.so.1 libxcb build" >"$S/needs"
+  : >"$W/etc/systemd/system/fedokawaii-after-dnf.service"
   mkdir -p "$W/etc/systemd/system"; ln -sfn ../../../usr/lib/systemd/system/greetd.service "$W/etc/systemd/system/display-manager.service"
   mkdir -p "$W/usr/local/libexec" "$W/usr/local/lib/systemd/user" "$W/usr/local/share/dbus-1/services" "$W/usr/local/share/xdg-desktop-portal/portals"
   printf '#!/bin/sh\necho "xdg-desktop-portal-termfilechooser 1.4.3"\n' >"$W/usr/local/libexec/xdg-desktop-portal-termfilechooser"
@@ -407,16 +476,17 @@ built() {
   : >"$W/var/lib/systemd/linger/fkuser"; : >"$W/dev/ntsync"
   # every manifest package installed and marked as yours; the services setup enabled
   ( STATE_DIR=/nonexistent STEAM=yes; . "$REPO/lib/manifest.sh"; manifest_all amd ) | sort -u >"$TMP/manifest"
+  cp "$TMP/manifest" "$S/manifest"
   grep -vxF -e nano -e nano-default-editor -e vim-minimal -e dracut-config-rescue "$FKH/installed" \
     | cat - "$TMP/manifest" <(echo mesa-vulkan-drivers.i686) <(echo amd-ucode-firmware) | sort -u >"$FKH/installed.n"
   mv "$FKH/installed.n" "$FKH/installed"
   { printf '%s\n' bash sudo NetworkManager; cat "$TMP/manifest"; echo amd-ucode-firmware; } | sort -u | sed 's/$/ User/' >"$FKH/userinstalled"
   echo amd-ucode-firmware >"$S/hardware-pkgs"
   printf 'enabled %s\n' greetd.service bluetooth.service snapper-timeline.timer snapper-cleanup.timer fstrim.timer lactd.service \
-    fedokawaii-scrub.timer fedokawaii-kernels.timer fedokawaii-report.service tuned.service firewalld.service >>"$FKH/units"
+    fedokawaii-scrub.timer fedokawaii-kernels.timer fedokawaii-report.service tuned.service firewalld.service fedokawaii-after-dnf.service >>"$FKH/units"
   sed -i '/ sshd.service$/d; /^global-enabled grub-boot-success\.timer$/d' "$FKH/units"   # (that timer: the desktop starts it)
   rm -f "$W/usrbin/nano" "$W/usrbin/vi"                     # (setup took them out)
-  printf '%s\n' copr:copr.fedorainfracloud.org:ilyaz:LACT >"$FKH/coprs"
+  printf '%s\n' copr:copr.fedorainfracloud.org:ilyaz:LACT copr:copr.fedorainfracloud.org:zzahkaboom24:grub-btrfs >"$FKH/coprs"
   mkdir -p "$W/usrshare/vulkan/icd.d" "$W/usrshare/icons/Papirus" "$W/usrshare/icons/Papirus-Dark" "$W/usrshare/icons/Adwaita/cursors"
   : >"$W/usrshare/vulkan/icd.d/radeon_icd.x86_64.json"; fake_cmd "$W/usrbin/greetd"
   printf '%s\n' root home >"$FKH/snapper-configs"; echo "1,fedokawaii baseline" >"$FKH/snaps"
@@ -424,7 +494,7 @@ built() {
   sed -i 's/^static dnf5-makecache.timer$/masked dnf5-makecache.timer/' "$FKH/units"
   echo fedokawaii >"$FKH/tuned-profile"; printf '%s\n' dhcpv6-client >"$FKH/fw-services"; printf '%s\n' 6881/tcp 6881/udp 53317/tcp 53317/udp >"$FKH/fw-ports"
   echo menu_auto_hide=1 >"$FKH/grubenv"
-  local q="rhgb quiet loglevel=3 rd.udev.log_level=3 systemd.show_status=false vt.global_cursor_default=0 systemd.tty.term.console=dumb"
+  local q="rhgb quiet loglevel=3 rd.udev.log_level=3 systemd.show_status=false vt.global_cursor_default=0 systemd.tty.term.console=dumb plymouth.use-simpledrm"
   printf '%s\n' "ro rootflags=subvol=root $q amdgpu.ppfeaturemask=0xfff7ffff" \
     "ro rootflags=subvol=root $q amdgpu.ppfeaturemask=0xfff7ffff" >"$FKH/grub-args"
   sed -i "s/rhgb quiet\$/$q amdgpu.ppfeaturemask=0xfff7ffff/" "$W/proc/cmdline"   # (this start: the same)
@@ -436,7 +506,7 @@ built() {
   # the user's home: tools at their pinned tags, fonts, GE-Proton, torrra, secrets, Prowlarr, nvim
   mkdir -p "$U/.local/bin" "$U/.local/share/fedokawaii/upstream" "$U/.local/share/fonts/JetBrainsMonoNerd" \
     "$W/usr/local/share/fonts/fusion-pixel" "$U/.local/share/Steam/compatibilitytools.d/GE-Proton10-25" \
-    "$U/.local/src/dwl/.git" "$U/.local/share/pipx/venvs/torrra/bin" "$U/.config/fedokawaii" "$U/.config/containers/systemd" \
+    "$U/.local/src/dwl/.git" "$U/.local/share/uv/tools/torrra/bin" "$U/.config/fedokawaii" "$U/.config/containers/systemd" \
     "$U/.config/prowlarr" "$U/.config/nvim" "$U/.config/torrra" "$U/.local/state/fedokawaii" "$U/Downloads" "$U/.local/share/nvim/lazy/LazyVim"
   local name tag bins b
   while IFS='|' read -r name _ tag _ _ bins; do
@@ -444,6 +514,17 @@ built() {
     [[ $name == herdr ]] && fake_herdr "$U/.local/bin/herdr"
     echo "$tag" >"$U/.local/share/fedokawaii/upstream/$name"
   done < <(. "$REPO/lib/upstream.sh"; printf '%s\n' "${UPSTREAM[@]}")
+  # the launcher's icons (UPSTREAM_ICONS), as install_upstream_icons leaves them: stand-ins,
+  # and the toolkit's copies pinned to them (as releases() pins the downloads)
+  mkdir -p "$U/.local/share/fedokawaii/icons"
+  local old sum f
+  while IFS='|' read -r name _ _ _ old; do
+    fake_icon "$name" >"$U/.local/share/fedokawaii/icons/$name.png"
+    sum=$(sha256sum "$U/.local/share/fedokawaii/icons/$name.png" | cut -d' ' -f1)
+    for f in "$U/fedokawaii/lib/upstream.sh" "$W/usr/local/lib/fedokawaii/lib/upstream.sh"; do
+      [[ -f $f ]] && sed -i "s/$old/$sum/" "$f"
+    done
+  done < <(. "$REPO/lib/upstream.sh"; printf '%s\n' "${UPSTREAM_ICONS[@]}")
   echo v3.5.1 >"$U/.local/share/fedokawaii/upstream/nerd-JetBrainsMono"
   echo GE-Proton10-25 >"$U/.local/share/fedokawaii/upstream/ge-proton"
   # Syncplay from its pinned source: the folder, the two starters, the commit recorded
@@ -460,9 +541,14 @@ built() {
   # ble.sh built from its pinned commit, the commit recorded
   ( . "$TI/stubs/_lib.sh"; fake_blesh_install "$U/.local/share/blesh" )
   ( . "$REPO/lib/upstream.sh"; echo "$BLESH_COMMIT" ) >"$U/.local/share/fedokawaii/upstream/blesh"
-  : >"$U/.local/share/fonts/JetBrainsMonoNerd/a.ttf"; echo font >"$W/usr/local/share/fonts/fusion-pixel/fusion-pixel-12px-monospaced-ja.ttf"
+  # Python and Rust to learn with (s_dev): uv's CPython, rustup's toolchain, Mason's tools for them
+  mkdir -p "$U/.local/share/uv/python/cpython-3.14.0-linux-x86_64-gnu/bin" "$U/.local/share/cargo/bin" "$U/.local/share/nvim/mason/bin"
+  for b in cargo rustc rust-analyzer cargo-clippy rustfmt; do printf '#!/bin/sh\nexit 0\n' >"$U/.local/share/cargo/bin/$b"; chmod 755 "$U/.local/share/cargo/bin/$b"; done
+  printf '#!/bin/bash\n. /usr/local/bin/_lib.sh\nfkh_log "$*"\nexit 0\n' >"$U/.local/share/cargo/bin/rustup"; chmod 755 "$U/.local/share/cargo/bin/rustup"   # (says what update asks of it)
+  for b in basedpyright ruff codelldb; do printf '#!/bin/sh\nexit 0\n' >"$U/.local/share/nvim/mason/bin/$b"; chmod 755 "$U/.local/share/nvim/mason/bin/$b"; done
+  : >"$U/.local/share/fonts/JetBrainsMonoNerd/a.ttf"; echo font >"$W/usr/local/share/fonts/fusion-pixel/fusion-pixel-12px-monospaced-ja.ttf"; echo font >"$W/usr/local/share/fonts/fusion-pixel/fusion-pixel-10px-monospaced-ja.ttf"
   ( . "$REPO/lib/upstream.sh"; echo "$FUSION_TAG" ) >"$W/usr/local/share/fonts/fusion-pixel/.version"
-  printf '#!/bin/bash\n[[ " $* " == *" - "* ]] && cat >/dev/null\nexit 0\n' >"$U/.local/share/pipx/venvs/torrra/bin/python"; chmod 755 "$U/.local/share/pipx/venvs/torrra/bin/python"
+  printf '#!/bin/bash\nfor a; do [[ $a == - ]] && { cat >/dev/null; break; }; done\nexit 0\n' >"$U/.local/share/uv/tools/torrra/bin/python"; chmod 755 "$U/.local/share/uv/tools/torrra/bin/python"
   printf 'PROWLARR_API_KEY=a1b2c3d4e5f60718293a4b5c6d7e8f90\n' >"$U/.config/fedokawaii/secrets.sh"; chmod 600 "$U/.config/fedokawaii/secrets.sh"
   cp "$REPO/system/prowlarr.container" "$U/.config/containers/systemd/prowlarr.container"
   printf '[general]\ndefault = "prowlarr"\n' >"$U/.config/torrra/config.toml"; sed -i 's/^\[general\]/[indexers]/' "$U/.config/torrra/config.toml"

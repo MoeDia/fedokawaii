@@ -7,7 +7,7 @@
 A small lexer and parser, not a shell: enough of bash's grammar to tell a program from its
 arguments — quotes, $( ) and ` ` (read again inside), <( ), here-documents, case patterns,
 [[ … =~ regex ]], (( )), function definitions, assignments — and the programs that run
-another program (setsid -f X, timeout 3 X, env A=1 X, sudo X, kawa-term X, foot -- X,
+another program (setsid -f X, timeout 3 X, env A=1 X, sudo X, kawa-term X, kawa-term --float … -- X, foot -- X,
 sh -c 'X', swayidle timeout 600 'X', trap 'X', find -exec X, xargs X …).
 
 A name it cannot know (a variable, "$@") is left out. Names checked with command -v,
@@ -397,8 +397,15 @@ def skip_opts(args, with_value=(), flags_end_at_first_plain=True):
 
 def after_wrapper(name, args):
     """the index in ARGS where the program NAME runs begins, or None."""
-    if name in ("nohup", "kawa-term", "keep", "doas", "pkexec", "chrt"):
+    if name in ("nohup", "keep", "doas", "pkexec", "chrt"):
         return 0
+    if name == "kawa-term":                       # kawa-term [--app ID TITLE] CMD…
+        if args and args[0].lit == "--float":     # kawa-term --float [OPTION…] TITLE SIZE -- CMD…
+            for i, a in enumerate(args):
+                if a.lit == "--":
+                    return i + 1
+            return None
+        return 3 if args and args[0].lit == "--app" else 0
     if name == "exec":
         return skip_opts(args, ("-a",))
     if name == "setsid":
@@ -442,11 +449,6 @@ def after_wrapper(name, args):
                                 "--app-id", "--working-directory", "--window-size-pixels",
                                 "--window-size-chars", "--print-pid", "--log-level",
                                 "--server-socket", "--toplevel-tag"))
-    if name == "kawa-float":
-        for i, a in enumerate(args):
-            if a.lit == "--":
-                return i + 1
-        return None
     return None
 
 

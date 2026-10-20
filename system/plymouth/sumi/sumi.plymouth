@@ -2,7 +2,7 @@
 # pictures drawn by tools/build-art.py). Plymouth's script plugin runs sumi.script.
 [Plymouth Theme]
 Name=Sumi
-Description=fedokawaii: the torii on sumi ink, 起動中 · starting Fedora
+Description=fedokawaii: the torii on sumi ink, 起動中 · starting Fedora (終了中 · 再起動中 going down)
 ModuleName=script
 
 [script]

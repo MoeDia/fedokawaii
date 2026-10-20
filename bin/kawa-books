@@ -6,7 +6,7 @@
 # so for those it is the page alone). The cover of the one under the cursor shows beside.
 #
 #   Enter     read it in zathura (it opens where you stopped)
-#   Ctrl+A    add books: the ones in ~/Downloads, ~/Documents and ~/Desktop — Tab marks
+#   Ctrl+A    add books: the ones in ~/Downloads and ~/Documents — Tab marks
 #             several, Enter moves them into ~/Books, Esc goes back
 #   Ctrl+D    remove it: to the trash (yazi: g t), not gone for good
 #   Esc       close
@@ -57,10 +57,12 @@ def cols(s):                       # display width, as foot and fzf count it: CJ
         zwj = False; n += w; w = 2 if unicodedata.east_asian_width(c) in "WF" else 1
     return n + w
 
-def fit(s, w):                     # cut to w columns with "…" (never after a space), then pad to exactly w
+def fit(s, w):                     # cut to w columns at a word's end (never "…"), then pad to exactly w
     if cols(s) > w:
-        while cols(s) > w - 1: s = s[:-1]
-        s = s.rstrip() + "…"
+        t = s
+        while cols(t) > w: t = t[:-1]
+        if s[len(t):len(t) + 1] != " " and " " in t.strip(): t = t.rstrip().rsplit(" ", 1)[0]
+        s = t.rstrip()
     return s + " " * (w - cols(s))
 
 def pages_of(path, kind):          # None where the file has no fixed pages (EPUB, MOBI, FB2)
@@ -69,9 +71,14 @@ def pages_of(path, kind):          # None where the file has no fixed pages (EPU
             out = subprocess.run(["pdfinfo", path], capture_output=True, text=True, timeout=10).stdout
             for line in out.splitlines():
                 if line.startswith("Pages:"): return int(line.split()[1])
-        elif kind in ("cbz", "cbr", "cb7"):   # (bsdtar: libarchive, as zathura reads them — RAR too)
-            out = subprocess.run(["bsdtar", "-tf", path], capture_output=True, text=True, timeout=20).stdout
-            return sum(1 for l in out.splitlines() if l.lower().endswith(IMG)) or None
+        elif kind in ("cbz", "cbr", "cb7"):
+            # a RAR comic: unrar (RPM Fusion's; Fedora's 7-Zip reads no RAR) · zip and 7z ones (a .cbr is
+            # often a zip renamed): 7z, the archive tool of the manifest
+            if open(path, "rb").read(4) == b"Rar!":
+                out = subprocess.run(["unrar", "lb", "-p-", "--", path], capture_output=True, text=True, timeout=20).stdout
+                return sum(1 for l in out.splitlines() if l.lower().endswith(IMG)) or None
+            out = subprocess.run(["7z", "l", "-ba", "-slt", "--", path], capture_output=True, text=True, timeout=20).stdout
+            return sum(1 for l in out.splitlines() if l.startswith("Path = ") and l.lower().endswith(IMG)) or None
     except Exception:
         return None
     return None
@@ -221,13 +228,18 @@ with zipfile.ZipFile(src) as z:
     open(out, "wb").write(z.read(pick))
 PY
       ;;
-    cbz|cbr|cb7)    # the first picture in page order (bsdtar: libarchive, which zathura reads them with)
-      local first pat="" c i
-      first=$(bsdtar -tf "$f" 2>/dev/null | grep -iE '\.(jpe?g|png|webp|gif)$' | LC_ALL=C sort -V | head -n1)
+    cbz|cbr|cb7)    # the first picture in page order (7z: the manifest's archive tool; a RAR comic: unrar)
+      local first
+      if [[ $(head -c 4 -- "$f" 2>/dev/null | tr -d '\0') == 'Rar!' ]]; then
+        first=$(unrar lb -p- -- "$f" 2>/dev/null | grep -iE '\.(jpe?g|png|webp|gif)$' | LC_ALL=C sort -V | head -n1)
+        [[ -n $first ]] || return 1
+        unrar p -inul -p- -- "$f" "$first" >"$out" 2>/dev/null
+        [[ -s $out ]]; return
+      fi
+      first=$(7z l -ba -slt -- "$f" 2>/dev/null | sed -n 's/^Path = //p' | grep -iE '\.(jpe?g|png|webp|gif)$' | LC_ALL=C sort -V | head -n1)
       [[ -n $first ]] || return 1
-      # (bsdtar takes the name as a pattern: its wildcard characters are escaped)
-      for ((i = 0; i < ${#first}; i++)); do c=${first:i:1}; [[ $c == [][*?\\] ]] && pat+=\\; pat+=$c; done
-      bsdtar -xOf "$f" "$pat" >"$out" 2>/dev/null ;;
+      # (-spd: the name as it is, never a wildcard — p[1].png or q*2.png is that one file)
+      7z e -so -spd -- "$f" "$first" >"$out" 2>/dev/null ;;
     *) return 1 ;;
   esac
   [[ -s $out ]]
@@ -295,7 +307,7 @@ for word in t.split():
     cur = word
 if cur: lines.append(cur)
 lines = lines or [cut(t, w)]
-if len(lines) > 2: lines = [lines[0], cut(lines[1], w - 1).rstrip() + "…"]
+if len(lines) > 2: lines = lines[:2]            # (two lines at most: the rest goes, no "…")
 print("\n".join(lines))' "$title" "$W" 2>/dev/null)
     [[ -z $title ]] && tl=()
     [[ -n $title && ${#tl[@]} == 0 ]] && tl=("${title:0:W}")
@@ -372,10 +384,10 @@ case ${1:-} in
     # (the window's 104 columns: rows and heading 100 wide; the picked rows filled, as fzf.opts has it)
     args=(); for e in "${EXT[@]}"; do args+=(-e "$e"); done
     mapfile -t pick < <(fd -t f -i "${args[@]}" . \
-        "$HOME/Downloads" "$HOME/Documents" "$HOME/Desktop" 2>/dev/null \
+        "$HOME/Downloads" "$HOME/Documents" 2>/dev/null \
       | while IFS= read -r p; do [[ $p == "$BOOKS"/* ]] || printf '%s\t  %s%s%s  %s\n' "$p" "$INK_MUTED" "$ICON_BOOK" "$INK_OFF" "${p/#"$HOME"/\~}"; done \
       | fzf --ansi --multi --height=100% --delimiter=$'\t' --with-nth=2 \
-          --header="$(screen_heading 本 "add books" 100)"$'\n ' --ghost='from ~/Downloads ~/Documents ~/Desktop' \
+          --header="$(screen_heading 本 "add books" 100)"$'\n ' --ghost='from ~/Downloads ~/Documents' \
           --footer=$'\n'"$(screen_footer 'tab mark' 'enter add' 'esc back')" \
       | cut -f1)
     for p in "${pick[@]}"; do
@@ -388,7 +400,7 @@ case ${1:-} in
   --tui) ;;
   -h|--help) sed -n '2,/^set -u/{/^set -u/d;s/^# \{0,1\}//;p}' "$0"; exit 0 ;;
   "")           # Super+R: the window, once (a second press while it is open does nothing)
-    exec kawa-float --once books books 104x29 -- "$0" --tui ;;
+    exec kawa-term --float --once books books 104x29 -- "$0" --tui ;;
   *) echo "usage: kawa-books   (Super+R: your books)" >&2; exit 2 ;;
 esac
 
@@ -399,7 +411,7 @@ find "$CACHE" -maxdepth 1 \( -name '*.six' -o -name '*.lay' \) -mtime +90 -delet
 find "$CACHE" -maxdepth 1 \( -name 'cover.*' -o -name '*.six.*' -o -name '*.lay.*' -o -name 'pages.json.*' \) \
   -mmin +1 -delete 2>/dev/null
 KAWA_CELL=$(kawa-cell) || exit 1
-read -r _ c < <(stty size 2>/dev/null); [[ ${c:-} =~ ^[0-9]+$ ]] && ((c > 70)) || c=104   # (the window kawa-float opens: 104 columns)
+read -r _ c < <(stty size 2>/dev/null); [[ ${c:-} =~ ^[0-9]+$ ]] && ((c > 70)) || c=104   # (the window kawa-term --float opens: 104 columns)
 KAWA_BOOKS_W=$((c - 43))   # (fzf's width is the window's less its margins: as FZF_COLUMNS - 41)
 export KAWA_CELL KAWA_BOOKS_W
 mapfile -t list < <(rows)

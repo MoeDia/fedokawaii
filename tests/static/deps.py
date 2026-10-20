@@ -239,7 +239,9 @@ def calls(repo):
 def load_fixture(path):
     table = {}
     for n, ln in enumerate(path.read_text().splitlines(), 1):
-        ln = ln.split("#", 1)[0].strip()
+        # (a comment: from a "#" at the start or after a space — ble.sh's function names
+        # carry one inside: ble/function#advice)
+        ln = re.split(r"(?:^|\s)#", ln, maxsplit=1)[0].strip()
         if ln:
             prog, kind, *what = ln.split()
             table[prog] = (kind, " ".join(what), n)

@@ -35,7 +35,7 @@ case_ "the bar has its clicks (the list is read, not empty)"
 (( $(wc -l <"$TMP/clicks") >= 30 )) && _ok || _no "only $(wc -l <"$TMP/clicks") clicks found in config.jsonc"
 case_ "each click and scroll: something happens within 900 ms, with every slow service a second behind"
 while IFS=$'\t' read -r mod ev cmd; do
-  : >"$TMP/acts"; rm -f "$XDG_RUNTIME_DIR"/kawa-menu-* "$XDG_RUNTIME_DIR"/kawa-float-* 2>/dev/null
+  : >"$TMP/acts"; rm -f "$XDG_RUNTIME_DIR"/kawa-menu-* "$XDG_RUNTIME_DIR"/kawa-term-* 2>/dev/null
   t0=$(date +%s%N)
   timeout 8 sh -c "$cmd" >/dev/null 2>&1 </dev/null
   # (what it started apart from the bar — setsid -f, as every opener — stamps when it comes:

@@ -115,5 +115,62 @@ case_ "help"
 out=$(kawa-snap --help); eq "$?" 0; has "$out" "libdnf5-plugin-actions"
 case_ "run by hand as a user: it says dnf runs it, as root"
 out=$(FK_EUID=1000 kawa-snap pre 1 2>&1); eq "$?" 2; has "$out" "as root"; not_called snapper
+case_ "restore: a number or old, nothing else"
+for a in "" 0 x -1 '41;id'; do rc 2 kawa-snap restore "$a"; done
+
+# ── list and restore: the disk's top level a folder here ────────────────────────────────
+disk() {   # a Fedora layout: root (kernel 6.18.0, marked "now"), its snapshots 1 and 41 (kernel 6.17.1, "then")
+  fresh
+  T=$TMP/top B=$TMP/boot; mkdir -p "$T" "$B/loader/entries"
+  pointed "$REPO/system/kawa-snap" "$STUBS/kawa-snap" \
+    "s|/proc/|$P/|g" "s|^state=/run/kawa-snap.pre\$|state=$TMP/runroot/kawa-snap.pre|" \
+    's|\[\[ \$EUID -eq 0 \]\]|[[ ${FK_EUID:-$EUID} -eq 0 ]]|' \
+    "s|^top=/run/kawa-snap/top |top=$T |" "s|/boot/|$B/|g"
+  mk() {   # mk DIR KERNEL MARK
+    mkdir -p "$1/usr/lib/modules/$2" "$1/etc" "$1/.snapshots"; : >"$1/usr/lib/modules/$2/vmlinuz"; echo "$3" >"$1/etc/mark"
+  }
+  mk "$T/root" 6.18.0 now
+  for n in 1 41; do
+    mk "$T/root/.snapshots/$n/snapshot" 6.17.1 "then$n"
+    printf '<?xml version="1.0"?>\n<snapshot>\n  <type>%s</type>\n  <num>%s</num>\n  <date>2026-10-1%s 09:00:00</date>\n  <description>%s</description>\n</snapshot>\n' \
+      "$([[ $n == 1 ]] && echo single || echo pre)" "$n" "${n:0:1}" "$([[ $n == 1 ]] && echo 'fedokawaii baseline' || echo 'dnf install a &amp; b')" >"$T/root/.snapshots/$n/info.xml"
+  done
+  : >"$B/vmlinuz-6.18.0"; printf 'title Fedora\nversion 6.18.0\n' >"$B/loader/entries/abc-6.18.0.conf"
+  stub findmnt 'case "$*" in *--fstab*) echo rw,subvol=root,compress=zstd:1 ;; *FSTYPE*) echo btrfs ;;
+  *FSROOT*) echo "${FK_FSROOT:-/root}" ;; *SOURCE*) echo "/dev/vda3[/root]" ;; esac'
+  stub mountpoint "[ \"\$2\" = \"$T\" ]"
+  stub mount; stub umount; stub restorecon; stub grubby; stub chroot 'shift; [ "$1 $2" != "kernel-install add" ] || exit "${FK_ADD:-0}"'
+  stub kernel-install
+  stub btrfs 'case "$1 $2" in
+  "subvolume snapshot") cp -a "$3" "$4" ;;
+  "subvolume delete") shift 2; [ "$1" = -R ] && shift; rm -rf "$1" ;;
+  "subvolume list") [ -d "$4/.snapshots/1" ] && echo "ID 260 gen 9 top level 256 path <FS_TREE>/root/.snapshots" ;;
+  "subvolume show") printf "\tCreation time:\t\t2026-10-16 08:00:00 +0000\n" ;;
+esac'
+}
+case_ "list: every snapshot from its info.xml (XML escapes undone), numbered order, the booted one marked"
+disk; out=$(kawa-snap list); eq "$?" 0
+eq "$(sed -n 1p <<<"$out")" $'1\tsingle\t2026-10-11 09:00:00\tfedokawaii baseline\t-'
+eq "$(sed -n 2p <<<"$out")" $'41\tpre\t2026-10-14 09:00:00\tdnf install a & b\t-'
+FK_FSROOT=/root/.snapshots/41/snapshot kawa-snap list | grep -q $'^41\t.*\tbooted$' && _ok || _no "booted not marked"
+case_ "list on a root that is not Btrfs, or not mounted by subvol=: said, exit 1"
+disk; stub findmnt 'case "$*" in *FSTYPE*) echo ext4 ;; esac'; out=$(kawa-snap list 2>&1); eq "$?" 1; has "$out" "not Btrfs"
+case_ "restore 41: the copy is the system, the old one kept as root.old, the snapshots moved across, /boot matched"
+disk; out=$(kawa-snap restore 41 2>&1); eq "$?" 0 "$out"
+eq "$(cat "$T/root/etc/mark")" then41; eq "$(cat "$T/root.old/etc/mark")" now
+[[ -f $T/root/.snapshots/41/info.xml && ! -e $T/root.old/.snapshots/41 ]] && _ok || _no "the snapshots did not move across"
+called '^chroot .*/top/root.new kernel-install add 6.17.1 /usr/lib/modules/6.17.1/vmlinuz$'
+called '^kernel-install remove 6.18.0$'; called "^grubby --set-default $B/vmlinuz-6.17.1\$"
+has "$out" "restart now"
+case_ "restore old: swapped back — the system before the restore again"
+kawa-snap restore old >/dev/null 2>&1; eq "$?" 0
+eq "$(cat "$T/root/etc/mark")" now; eq "$(cat "$T/root.old/etc/mark")" then41
+[[ -f $T/root/.snapshots/41/info.xml ]] && _ok || _no "the snapshots stayed behind"
+case_ "restore whose kernel cannot be put back into /boot: nothing changed"
+disk; FK_ADD=1 kawa-snap restore 41 >/dev/null 2>&1; eq "$?" 1
+eq "$(cat "$T/root/etc/mark")" now; [[ ! -e $T/root.old && ! -e $T/root.new ]] && _ok || _no "left changed"
+not_called '^grubby'
+case_ "restore of a number that is not there: nothing changed"
+disk; out=$(kawa-snap restore 7 2>&1); eq "$?" 1; has "$out" "no snapshot 7"; not_called '^btrfs subvolume snapshot'
 
 done_

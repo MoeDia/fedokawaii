@@ -184,7 +184,7 @@ case ${1:-} in
   --tui) ;;
   -h|--help) sed -n '2,/^set -u/{/^set -u/d;s/^# \{0,1\}//;p}' "$0"; exit 0 ;;
   "")           # Super+V: the window, once (a second press while it is open does nothing)
-    exec kawa-float --once clipboard clipboard 80x27 -- "$0" --tui ;;
+    exec kawa-term --float --once clipboard clipboard 80x27 -- "$0" --tui ;;
   *) echo "usage: kawa-clip   (Super+V: the clipboard history)" >&2; exit 2 ;;
 esac
 

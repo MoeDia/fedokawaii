@@ -38,10 +38,10 @@ screen_heading() {
 # screen_row GLYPH NAME VALUE W — a row, W columns wide: VALUE right-aligned at the last
 # column, in muted unless it carries an ink of its own (a value that needs you: INK_KANJI)
 screen_row() {
-  local v=$3 pad
+  local v=$3 pad=0
   [[ -n $v && $v != $'\e'* ]] && v=$INK_MUTED$v$INK_OFF
-  pad=$(( $4 - 5 - $(screen_cols "$2") - $(screen_cols "$v") )); ((pad < 2)) && pad=2
-  [[ -z $v ]] && pad=0
+  # (no value: nothing to align — and no columns to count, for a long list's sake)
+  [[ -n $v ]] && { pad=$(( $4 - 5 - $(screen_cols "$2") - $(screen_cols "$v") )); ((pad < 2)) && pad=2; }
   printf '  %s%s%s  %s%*s%s' "$INK_MUTED" "$1" "$INK_OFF" "$2" "$pad" '' "$v"
 }
 # screen_footer KEY… — the footer's words: "enter run" "esc close" → enter run  ·  esc close

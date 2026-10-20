@@ -17,7 +17,7 @@ setup() {
   echo "keep me" >"$P/old.pdf"
   : >"$W/yazi"; install -m 755 "$MD/fake_yazi" "$STUBS/yazi"
   # the floating window: the dialog runs in it at once, keys typed from $W/keys
-  stub kawa-float '[ -e "$W/no-terminal" ] && exit 1
+  stub kawa-term '[ -e "$W/no-terminal" ] && exit 1
 while [ "$1" != "--" ]; do shift; done; shift
 "$@" <"$W/keys" >>"$W/screen" 2>&1; exit 0'
   : >"$W/keys"
@@ -38,7 +38,7 @@ stamp() { touch "$TMP/stamp"; sleep 0.01; }
 case_ "open one file: Enter on it — its URI, nothing else"
 setup; does "choose alpha.txt"; out=$(portal open 0 0 "$P")
 eq "$out" "$(uri "$P/alpha.txt")"
-called "^yazi open1 $P$"; called "^kawa-float --dialog --locked-title open file 100x31 -- $PORTAL_CMD --inside open1 $P "
+called "^yazi open1 $P$"; called "^kawa-term --float --dialog --locked-title open file 100x31 -- $PORTAL_CMD --inside open1 $P "
 case_ "open one, Enter on a folder: into it (yazi again, there), then the file"
 setup; does "choose gamma dir" "choose gamma dir/inner.txt"; out=$(portal open 0 0 "$P")
 eq "$out" "$(uri "$P/gamma dir/inner.txt")"; called "^yazi open1 $P/gamma dir$"
@@ -46,7 +46,7 @@ case_ "open one, two marked: only the first (an app asking for one file hangs on
 setup; does "choose alpha.txt|beta.txt"; eq "$(portal open 0 0 "$P")" "$(uri "$P/alpha.txt")"
 case_ "open several: every marked file, in order; marked folders left out"
 setup; does "choose beta.txt|gamma dir|alpha.txt"; out=$(portal open 1 0 "$P")
-eq "$out" "$(uri "$P/beta.txt")"$'\n'"$(uri "$P/alpha.txt")"; called "^kawa-float --dialog --locked-title open files "
+eq "$out" "$(uri "$P/beta.txt")"$'\n'"$(uri "$P/alpha.txt")"; called "^kawa-term --float --dialog --locked-title open files "
 case_ "open several, only folders marked: into the first (nothing to hand back yet)"
 setup; does "choose gamma dir|ünï 日本" "choose ünï 日本/ファイル.txt"; out=$(portal open 1 0 "$P")
 eq "$out" "$(uri "$P/ünï 日本/ファイル.txt")" "Japanese and accents, percent-encoded by the portal"
@@ -67,7 +67,7 @@ has "$(cat "$W/screen")" "a name with a line break cannot be passed on"
 # ── folders ───────────────────────────────────────────────────────────────────────────
 case_ "folder: Enter on a folder takes it"
 setup; does "choose gamma dir"; eq "$(portal open 0 1 "$P")" "$(uri "$P/gamma dir")"; called "^yazi folder1 $P$"
-called "^kawa-float --dialog --locked-title open folder "
+called "^kawa-term --float --dialog --locked-title open folder "
 case_ "folder: q takes the folder you are in"
 setup; does "q gamma dir"; eq "$(portal open 0 1 "$P")" "$(uri "$P/gamma dir")"
 case_ "folder: Enter on a file takes the folder it is in"
@@ -83,7 +83,7 @@ case_ "save: the stand-in under the suggested name, in the dialog's words; Enter
 setup; stamp; does "choose report.pdf"; out=$(portal save "$P" report.pdf)
 eq "$out" "made $P/report.pdf"$'\n'"$(uri "$P/report.pdf")"
 has "$(head -n1 "$P/report.pdf")" "the file being saved" "kawa-pick's note replaces the portal's instructions"
-called "^yazi save $P/report.pdf$"; called "^kawa-float --dialog --locked-title save file "
+called "^yazi save $P/report.pdf$"; called "^kawa-term --float --dialog --locked-title save file "
 eq "$(left)" "$P/report.pdf" "nothing else made"
 case_ "save under a name that is taken: report (1).pdf beside it (the portal's report.pdf_ renamed)"
 setup; echo "mine" >"$P/report.pdf"; stamp; does "choose report (1).pdf"; out=$(portal save "$P" report.pdf)

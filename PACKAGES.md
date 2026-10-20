@@ -4,15 +4,22 @@ One tool per job. The authoritative list is `lib/manifest.sh` (packages) and `li
 (release binaries); `verify.sh` proves the machine matches them exactly. Every name was checked
 for **Fedora 44 and 45** on 15 Oct 2026 (LibreOffice's parts and the dictionaries on 17 Oct). No Flatpak, no Snap, no fallbacks.
 
-Source: **F** Fedora · **RF** RPM Fusion · **V** vendor repo (signed) · **C** COPR · **GH** GitHub release (pinned: an exact version and its SHA-256, measured here) · **pipx** · **podman**
+Where each name was seen, and when, is `tools/packages.evidence` (a source URL and a date per package and per
+release download). `bash tools/check-packages` audits the list anywhere (a name twice, wanted and forbidden,
+no evidence, evidence older than 60 days); `--live` on Fedora asks dnf itself (missing, renamed, obsoleted,
+two vendors, one transaction for all, one command from two packages, every repository signed), and
+`tools/container-trial.sh` (`fedokawaii trial`) runs it, and the real package steps, in a clean Fedora 44 container.
+
+Source: **F** Fedora · **RF** RPM Fusion · **V** vendor repo (signed) · **C** COPR · **GH** GitHub release (pinned: an exact version and its SHA-256, measured here) · **uv** (uv tool) · **podman**
 
 ## By job
 
 | Job | Tool | Source | Notes |
 |---|---|---|---|
 | Compositor | dwl 0.9 | git (Codeberg) | built with XWayland on; a small patch (`src/dwl/dwl.patch`): gaps, retro window frames on one window at a time, centred floating windows, keybindings that work in the Arabic layout, menus that close on a click outside, monitors plugged in later set up again (`kawa-display --hotplug`), the keyboard layout reported to the bar (and said again if the bar fell behind) |
-| Transitions | `kawa-veil` | this repository (`src/kawa-veil`, C) | the theme and wallpaper changes; built by theme.sh with dwl's build tools — nothing extra installed |
 | Clipboard keeper | `kawa-clipkeep` | this repository (`src/kawa-clipkeep`, C) | a copy stays after its program closes; the usual tool for this (wl-clip-persist) is not packaged for Fedora |
+| Screensaver | `kawa-saver` | this repository (`src/kawa-saver`, C) | sashiko stitched across the screens, seals stamped on it, the time; away 15 minutes (kawa-idle), the lock behind it; a few MB, no toolkit |
+| Lock screen keys | `kawa-lockmod` | this repository (`src/kawa-lockmod`, C, a gtklock module) | sleep · restart · power off on the lock screen, and the wake guard (the key that wakes the computer is never a password); gtklock's own powerbar module is not packaged for Fedora |
 | Login | greetd + greetd-selinux · `kawa-greet` in cage | F + this repository (`system/kawa-greet`, Python + GTK 3) | the lock screen's twin: the day's seal, the padlock, the time, one box for your password (your user name is set by setup); cage, a kiosk compositor, shows it; SELinux policy is a separate package on Fedora |
 | Boot splash | Plymouth (script plugin) | F + this repository (`system/plymouth/sumi`) | the sumi splash while the disk unlocks and the system starts |
 | Terminal | foot (server + footclient) | F | |
@@ -26,14 +33,14 @@ Source: **F** Fedora · **RF** RPM Fusion · **V** vendor repo (signed) · **C**
 | Quick settings | `kawa-panel` + gtk-layer-shell | this repository (Python + GTK 3) + F | the panel under the bar's cat (Super+X): brightness, sound, the tiles; GTK 3 and Python's GObject come with the login screen |
 | Bar | waybar | F | dwl tags via `kawa-dwlstatus`; its own clock module (seconds, no script) |
 | Notifications | mako + libnotify | F | |
-| Lock / idle | gtklock · swayidle | F | the power menu is a fuzzel menu (`kawa-power`); away, nothing locks or sleeps (the screens go dark after an hour); a lock you ask for (Super+Escape) sleeps 90 s later; sleep is suspend only — hibernation off (`/etc/systemd/sleep.conf.d/90-fedokawaii.conf`) |
+| Lock / idle | gtklock · swayidle | F | the power menu is a fuzzel menu (`kawa-power`); away 15 min the screensaver and the lock behind it, 30 min the screens dark, never while something plays (`kawa-idle`: idle-inhibit, MPRIS, logind idle locks); nothing sleeps by itself; a lock you ask for (Super+Escape) sleeps 90 s later; sleep is suspend only — hibernation off (`/etc/systemd/sleep.conf.d/90-fedokawaii.conf`) |
 | Level display | mako (category `osd`) | F | `kawa-osd`: volume, microphone, brightness — no separate OSD program |
 | Wallpaper | swaybg | F | |
 | Outputs | wlr-randr · wlopm · wayland-utils | F | `kawa-display` picks the best refresh rate ≤ `MONITOR_HZ` · `wlopm` powers screens off when idle without moving windows · `wayland-info` lists what the compositor offers (the health report) |
 | Clipboard | wl-clipboard + cliphist + fzf | F | Super+V: the history in a small window (fzf) — text and pictures (screenshots, Brave's *Copy image*), the last 100, none over 20 MiB (`kawa-clip --store` behind `wl-paste --watch`); pictures previewed in the terminal (ImageMagick draws them as sixels) and copied back as pictures |
 | Screenshots | grim + slurp + satty | F + GH | satty needs gtk4 + libadwaita (listed) |
-| Night light | gammastep | F | |
-| Audio | PipeWire + WirePlumber (+ pulse/alsa shims) + pipewire-utils | F | wiremix (the mixer: a terminal program, in a floating window, in the theme's colours), EasyEffects, playerctl; `pw-dump` feeds the audio menu, `pw-play` sounds the timer's chime |
+| Night light | gammastep | F | `kawa-night`: the warmth you set, day and night alike (it never follows the sun), kept across logins; quick settings turns it on and off, its wheel warmer or cooler |
+| Audio | PipeWire + WirePlumber (+ pulse/alsa shims) + pipewire-utils | F | wiremix (the mixer: a terminal program, in a floating window, in the theme's colours), playerctl; all sound processing is PipeWire's own: the clean mic its echo-cancel module with the WebRTC library (pipewire-libs: no package of its own — RNNoise's LADSPA plugin is not in Fedora), an equaliser, when wanted, its filter-chain's param_eq (EasyEffects and Calf retired); `pw-dump` feeds the audio menu, `pw-play` sounds the timer's chime |
 | Music meter | cava | F | the bar's spectrum meter, only while sound plays (sleeps through silence) |
 | Monitor brightness | ddcutil | F | DDC/CI, like Twinkle Tray on Windows |
 | Bar clicks | wtype | F | clicking a workspace presses its key (Super+1…9) |
@@ -45,19 +52,20 @@ Source: **F** Fedora · **RF** RPM Fusion · **V** vendor repo (signed) · **C**
 | Bluetooth | bluez + bluetui | F + GH (musl, SHA-256 pinned) | controller dongle; pairing in a floating terminal window (quick settings → *pair a device*) |
 | Files | yazi + 7zip + file | GH (musl) + F | 7-Zip: archive previews and extraction; `file`: types |
 | Office | LibreOffice Writer · Calc · Impress + libreoffice-gtk3 · hunspell-en · hunspell-ar | F | open and edit Word, Excel and PowerPoint files (and OpenDocument), the defaults for them (a `.csv` stays VisiData's); drawn by GTK 3, so it follows the theme; English and Arabic spelling — Arabic is its right-to-left language here (`/etc/dconf`, Theme). Only these three: no Base, Draw or Math; Java and the offline help are never taken as weak dependencies |
-| Reading | zathura (+ mupdf, cb) · bsdtar | F | PDF, EPUB, CBZ; bsdtar opens comics for the books window's covers and page counts |
+| Reading | zathura (+ mupdf, cb) | F | PDF, EPUB, CBZ; the books window's comic covers and page counts come from 7z (Files' 7zip; a RAR comic's from unrar) |
 | PDF tools | qpdf · poppler-utils · ghostscript · xournalpp | F | merge, split, rotate, password · images and text out · compress · annotate and sign |
 | Text from pictures (OCR) | tesseract (+ English, Arabic) | F | scans and screenshots to text, and searchable PDFs |
 | Images | imv + ImageMagick (+ -heic) + libheif-freeworld | F + RF | convert, resize, compress — phone (HEIC) photos too; ImageMagick also draws the pixel art, the wallpapers and the boot menu background |
 | QR codes | qrencode | F | a link or Wi-Fi details as a QR code, in the terminal or as a PNG |
-| Screen recording | wf-recorder | F | the whole screen or a region (slurp) to MP4, with or without sound |
-| Calculator | qalc (`qalculate`) | F | |
+| Screen recording | wf-recorder | F | Super+Shift+R (`kawa-record`): the whole screen or a region (slurp) to `~/Videos/Recordings/*.mp4`, the desktop's sound or none; H.264 encoded on the card (VA-API, `h264_vaapi`: RPM Fusion's ffmpeg and mesa-va-drivers-freeworld), the bar's 録 and its time while it runs. gpu-screen-recorder is only in COPRs for Fedora 44, so not used |
+| Calculator | qalc (`qalculate`) | F | "Calculator" in the launcher: `kawa-calc`, the answer as you type from one qalc it asks line by line, Enter copies; Ctrl+Q is qalc's own prompt. Not inside fuzzel: its authors declined an inline calculator (fuzzel #443) |
 | Video | mpv + mpv-mpris + yt-dlp + nodejs24 (+ -bin, -npm-bin) | F | mpv-mpris: mpv in the bar and on the media keys; Node.js: yt-dlp's JavaScript runtime for YouTube, and npm for Mason's language servers |
 | Watching together | Syncplay 1.7.6 (no window) | git (GitHub, pinned commit) + F | its source at the v1.7.6 tag's commit with two fixes of ours (src/syncplay/syncplay.patch: mpv waited for at the start, the window closed with mpv), run by Fedora's python3 with python3-twisted (+tls) · python3-pyOpenSSL · python3-certifi · python3-pem (lib/upstream.sh); Fedora's syncplay package is left out: it brings PySide6 and 27 Qt modules for a window never used. `kawa-together`: a small form (server, room, name, password, film; your last choice ready, Enter rejoins it), then Syncplay beside mpv; pause, seek, ready and chat reach friends through a public server (syncplay.pl) |
 | Codecs | ffmpeg (full) | RF | replaces ffmpeg-free |
 | Music | Spotify's web player | — (Brave Origin) | open.spotify.com in a Brave app window (`spotify.desktop`), free or Premium; Widevine switched on once in Brave (Theme); Brave's MPRIS: the bar's now-playing and meter, the media keys |
-| Torrents | torrra (on Python 3.13) + Prowlarr | pipx + podman | libtorrent has no Python 3.14 wheel yet; its libraries pinned to torrra 2.5.1's own lock (`system/torrra-constraints.txt`; libtorrent and certifi left free); `kawa-torrra` hands torrra the key from `secrets.sh` |
-| Git | git + lazygit | F + GH | lazygit from its own release, pinned like yazi (its COPR is no longer kept) |
+| Torrents | torrra (on Python 3.13) + Prowlarr | uv + podman | `uv tool install --python 3.13` (uv fetches that Python itself: libtorrent has no Python 3.14 wheel yet — Fedora's python3 stays the desktop's); its libraries pinned to torrra 2.5.1's own lock (`system/torrra-constraints.txt`; libtorrent and certifi left free); `kawa-torrra` hands torrra the key from `secrets.sh` |
+| Git | git + lazygit + delta (`git-delta`) | F + GH + F | lazygit from its own release, pinned like yazi (its COPR is no longer kept); delta draws its diffs (syntax colours in the terminal's own palette, line numbers, side by side in a wide window); lazygit also opens inside neovim (Space g g) |
+| Python and Rust (learning) | uv · rustup | F | uv 0.12 (Fedora 44): a current CPython in your home (`python3.14`, beside Fedora's `python3`, which the desktop's scripts keep), `uv pip`, `uv venv`, `uv run`; rustup 1.29 (Fedora 44): setup runs `rustup-init` for you — stable Rust with rust-analyzer, clippy and rustfmt in `~/.local/share/cargo/bin` (CARGO_HOME). neovim's side (basedpyright, ruff, debugpy, codelldb) from Mason. Update moves all of it on |
 | Script checking | ShellCheck | F | `fedokawaii apply` reads the scripts you changed with it; every finding has a page (SC number) that explains it |
 | System monitor | btop (+ rocm-smi on AMD) | F | rocm-smi is the ROCm SMI library btop opens to read the card: load, memory, heat and watts in the CPU box, and a GPU box on **5** |
 | Tables in the terminal | visidata (`vd`) | F | `vd file.csv`: CSV, TSV, JSON and SQLite — sort, sum, filter, group, save; the default for CSV and TSV files (a `.xlsx` needs python3-openpyxl, which is not installed: Excel files are LibreOffice Calc's) |
@@ -65,15 +73,15 @@ Source: **F** Fedora · **RF** RPM Fusion · **V** vendor repo (signed) · **C**
 | Search / view | ripgrep · fd-find · bat | F | rg and fd also power LazyVim's pickers |
 | Performance | tuned | F | the `fedokawaii` profile: throughput-performance for an always-plugged desktop |
 | Fetch | `fetch` (own, pure bash) | repo | ten pixel pictures; replaces fastfetch |
-| Snapshots | snapper | F | Timeshift can't use Fedora's subvolume names |
+| Snapshots | snapper · grub-btrfs | F + C | Timeshift can't use Fedora's subvolume names; grub-btrfs (COPR `zzahkaboom24/grub-btrfs`, 4.14 for Fedora 43 and 44 — Fedora has no package; kylegospo's COPR stopped at 38) lists the newest ten "before" snapshots in the boot menu, made again by `kawa-snap boot` (no grub-btrfsd daemon); `kawa-snap restore` swaps one in as the system |
 | Backups | restic | F | your home to a USB drive, an external disk or a restic address, deduplicated and encrypted; `kawa-backup` runs it (quick settings → backup) — nothing on a timer, the drive may not be plugged in |
 | Containers | podman | F | for Prowlarr |
 | GPU | Mesa freeworld VA-API · LACT · rocm-smi | RF + C + F | amdgpu feature mask for LACT; rocm-smi: the library btop reads the card through (AMD only); while RPM Fusion is behind this Fedora's Mesa, or the COPR has no build for it, they wait (recorded, Fedora's drivers standing in) and update or repair adds them |
 | Peripherals | OpenRGB | F | RGB lighting on the motherboard's headers; fan speeds are the motherboard firmware's (§21.2) |
-| Gaming | Steam · gamescope · gamemode · MangoHud · GE-Proton · ntsync-autoload · steam-devices | RF + F + GH | GE-Proton keeps the newest two; ntsync: Proton's faster synchronisation |
-| Fonts | Fusion Pixel 12 · JetBrainsMono Nerd · Sumi Icons · Terminus (console) · Noto Sans · Noto Sans CJK · Noto Naskh Arabic · Noto Kufi Arabic · Amiri · Noto Color Emoji · Liberation | GH + F + repo | Fusion Pixel = the one pixel font: Latin, kana and kanji in one face — the terminal at 24 px (on 26 px lines), the bar, menus and notices at 12 px, the lock and login screens, the boot menu; JetBrainsMono Nerd = the apps' monospace and the Nerd Font symbols programs draw; Noto Sans CJK = Japanese, Chinese, Korean in programs and subtitles; Sumi Icons = this desktop's icons; Kufi = Arabic in the pixel UI (bar, menus, notices); Liberation = metric-compatible fonts for office files |
+| Gaming | Steam · gamescope · MangoHud · GE-Proton · ntsync-autoload · steam-devices | RF + F + GH | GE-Proton keeps the newest two (its own installer: no ProtonPlus / protonup — one tool); ntsync: Proton's faster synchronisation; game mode by itself for every Steam game: `kawa-game` (tuned's game profile for the card's clocks — tuned the one owner of CPU and card; the game reniced; notices, night light, idle, background timers held) — Feral's gamemode retired (it would set the CPU too); MangoHud in every Steam game, hidden until Shift_R+F12 |
+| Fonts | Fusion Pixel 12 and 10 · JetBrainsMono Nerd · Sumi Icons · Terminus (console) · Noto Sans · Noto Sans CJK · Noto Naskh Arabic · Noto Kufi Arabic · Amiri · Noto Color Emoji · Liberation | GH + F + repo | Fusion Pixel = the one pixel font: Latin, kana and kanji in one face, in two cuts — the 10 px one in the terminal at 20 px (on 22 px lines), the 12 px one in the bar, menus and notices at 12 px, the lock and login screens, the boot menu; JetBrainsMono Nerd = the apps' monospace and the Nerd Font symbols programs draw; Noto Sans CJK = Japanese, Chinese, Korean in programs and subtitles; Sumi Icons = this desktop's icons; Kufi = Arabic in the pixel UI (bar, menus, notices); Liberation = metric-compatible fonts for office files |
 | Look | adw-gtk3 · qt6ct · dconf · pointers drawn here (Adwaita beneath for rare shapes) | F + repo | dark/light switched live by `kawa-theme`; the pixel pointers come from `art/cursors.txt`; icons: each program's own (hicolor), under GTK's Adwaita — no icon pack; windows, dialogs, buttons square (the GTK themes) |
-| Build (kept) | gcc · make · pkgconf · wayland/wlroots/xcb devel | F | theme.sh rebuilds dwl when you change a keybind, and builds kawa-veil and kawa-clipkeep |
+| Build (kept) | gcc · make · pkgconf · wayland/wlroots/xcb devel · gtk3-devel | F | theme.sh rebuilds dwl when you change a keybind, and builds kawa-clipkeep, kawa-saver and kawa-lockmod (GTK 3's headers) |
 | Script plumbing | dnf5-plugins · git · jq · gnupg2 · tar · grubby · diffutils · man-db · libva-utils · libdnf5-plugin-actions | F | used by setup.sh / verify.sh; tar unpacks the release archives and GE-Proton, grubby sets the kernel arguments (neither is in a Minimal Install's `@core`; the installer adds grubby only on a UEFI machine); diff / cmp compare the copy and the toolkit, man opens the manuals the change menu lists (both usually present: listed, never assumed); actions = a snapshot pair around every dnf run |
 | Drivers and firmware | fwupd · pciutils · usbutils, and what this machine needs (`lib/hardware.sh`): microcode_ctl or amd-ucode-firmware, NetworkManager-wifi + wireless-regdb, alsa-sof-firmware, the firmware the kernel asked for (iwlwifi-…-firmware and the like), intel-media-driver beside an AMD card | F + RF | fwupd: device firmware from the LVFS, applied only by you · lspci / lsusb: which device, which driver · the per-machine packages are found from the hardware at setup, update and repair, and recorded in `/var/lib/fedokawaii/hardware-pkgs` (part of the manifest from then on) |
 | Base | NetworkManager · sudo | F | already in @core — listed so they are marked as yours and dnf's clean-up never takes them |
@@ -114,8 +122,10 @@ before setup started plus the manifest — anything else is reported by name.
 | bluez-tools, polkit/xdg-desktop-portal listed explicitly | unused, or already dependencies (udisks2 is listed again: nothing but a weak dependency brings it) |
 | `settings.ini` for GTK | GTK reads GSettings (dconf) on Wayland — single source |
 | unzip | 7zip opens zip files too (`7z x`) |
+| bsdtar | 7z lists and opens the books window's comics: one archive tool |
 | mediainfo | ffprobe (part of ffmpeg) tells the same about a video or song |
 | pavucontrol, blueman | terminal programs first: wiremix (Fedora's package) is the mixer, bluetui (GitHub release, pinned) pairs devices — both open in a floating foot window and wear the theme; no GTK window, nothing to start at login |
+| EasyEffects, Calf | one sound-processing stack, PipeWire's own: the clean mic is its echo-cancel module (WebRTC noise suppression and echo cancellation), an equaliser its filter-chain's param_eq when wanted (handbook §15.6) — nothing running beside PipeWire, no Qt program kept for one job |
 | Brave flags file | Chromium ≥ 140 picks Wayland automatically |
 | `keepcache`, `skip_if_unavailable`, `clean_requirements_on_remove` in dnf config | already Fedora's defaults |
 | lazygit's COPR (dejan/lazygit) | its description says it is no longer maintained; lazygit now comes from its GitHub release, pinned (SHA-256) |
@@ -138,7 +148,6 @@ before setup started plus the manifest — anything else is reported by name.
 | greetd-selinux | without it SELinux can block the login on Fedora |
 | tree-sitter-cli | required by LazyVim's nvim-treesitter (`main` branch) |
 | ShellCheck | changing the desktop's scripts yourself (chapter 42 of the handbook): it catches the mistakes bash lets through |
-| python3.13 | torrra's libtorrent has wheels only up to 3.13 |
 | libnotify | `notify-send`, used by the helpers |
 | gtk4, libadwaita | runtime libraries of the satty binary |
 | dconf, adwaita-cursor-theme, gnupg2 | dark-mode settings · cursor · key fingerprint check |
@@ -159,6 +168,7 @@ before setup started plus the manifest — anything else is reported by name.
 | qrencode | QR codes without a website |
 | wf-recorder | screen recordings (the screenshot tools do stills only) |
 | 7zip, file | yazi's archive previews and extraction; file types for the clipboard window |
+| zstd · unrar | File tools (Super+D, `kawa-file`): `.tar.zst` archives (tar runs zstd) · RAR archives and `.cbr` comics, extract only (RPM Fusion nonfree; Fedora's 7-Zip is built without RAR) |
 | google-noto-sans-cjk-vf-fonts | Japanese, Chinese and Korean in programs, web pages and subtitles |
 | ntsync-autoload | Proton's faster synchronisation (with Steam) |
 | steam-devices | the rules that let Steam open a game controller (Bluetooth or USB); Steam brings it today — listed so dnf's clean-up can never take it |

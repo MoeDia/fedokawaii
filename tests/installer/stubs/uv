@@ -1,0 +1,18 @@
+#!/bin/bash
+# uv python install|upgrade|find: a CPython in your home · uv tool install … torrra: its
+# environment, whose python answers the load probe, and its own command where
+# UV_TOOL_BIN_DIR says (unless $FKH/rc-uv says otherwise)
+. /usr/local/bin/_lib.sh
+fkh_log "$*"
+r=$(rcfor uv 0); ((r == 0)) || exit "$r"
+case "$1 $2" in
+  "python install") mkdir -p "$HOME/.local/share/uv/python/cpython-3.14.0-linux-x86_64-gnu/bin" ;;
+  "python find") d=$(ls -d "$HOME"/.local/share/uv/python/cpython-*/bin 2>/dev/null | head -n1); [[ -n $d ]] || exit 2; echo "$d/python3.14" ;;
+  "tool install")
+    v=$HOME/.local/share/uv/tools/torrra/bin; mkdir -p "$v"
+    # (its settings script, read on stdin: what it writes, written — Prowlarr the indexer, no key)
+    printf '#!/bin/bash\nif [[ " $* " == *" - "* ]]; then cat >/dev/null; [[ -n ${3:-} ]] && printf "[indexers]\\ndefault = \\"prowlarr\\"\\n" >"$3"; fi\nexit 0\n' >"$v/python"
+    chmod 755 "$v/python"
+    : >"$v/torrra"; chmod 755 "$v/torrra"; b=${UV_TOOL_BIN_DIR:-$HOME/.local/bin}; mkdir -p "$b"; ln -sfnr "$v/torrra" "$b/torrra" ;;
+esac
+exit 0

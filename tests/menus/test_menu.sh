@@ -1,9 +1,10 @@
 #!/usr/bin/env bash
 # tests/menus/test_menu.sh — kawa-menu, what every menu goes through: what it hands the panel
-# (kawa-panel --menu, its backend; fuzzel the launcher's), what it prints back, wrong use, and
-# one menu at a time (its key again closes it, another menu takes its place, a held key is one
-# press, a click on its own bar button closes it). The panel is fake_panel, fuzzel fake_fuzzel,
-# answering as each case says.
+# (its fifo: the request, the caller; the panel decides one menu at a time — test_panel), what
+# it prints back, wrong use; and the launcher (fuzzel): centred, its key or the torii again
+# closes it, every press counts however fast, the click on the torii that closed it does not reopen it,
+# and a fast clicker's clicks each open or close it. The panel is fake_panel (a stand-in that
+# reads the fifo and answers as each case says), fuzzel fake_fuzzel.
 . "$(dirname "$0")/../lib/harness.sh"
 . "$(dirname "$0")/lib.sh"
 
@@ -18,6 +19,7 @@ eq "$out" beta "the chosen row's text"
 eq "$(fz_rows)" "$rows" "the rows reach the panel unchanged"
 eq "$(fz_args)" "" "no options: centred, no title, no prompt (the panel's defaults)"
 called '^kawa-panel --menu $'; not_called '^fuzzel'
+eq "$(cat "$FZ/who.$(fz_n)")" test_menu.sh "the script that asked: the panel's toggle and the lit button go by it"
 
 case_ "every option reaches the panel"
 answer enter; out=$(pick --drop --title "pick one" --width 30 --lines 3 --select 2 --prompt "> " --index)
@@ -83,41 +85,38 @@ PATH=$p rc 1 kawa-menu --launcher
 called 'notify-send -a desktop -u critical -- .*  menus fuzzel is missing'
 install -m 755 "$MD/fake_fuzzel" "$STUBS/fuzzel"
 
-case_ "no runtime folder (XDG_RUNTIME_DIR unset): the menu still works"
-answer "row 2"; eq "$(env -u XDG_RUNTIME_DIR bash -c 'printf "a\nb\nc\n" | kawa-menu --index')" 2
-
-case_ "a runtime folder that is not there, or a record that cannot be written: the menu still works"
-answer "row 1"; eq "$(XDG_RUNTIME_DIR=$TMP/gone pick)" beta
-forget; mkdir "$XDG_RUNTIME_DIR/kawa-menu-$WAYLAND_DISPLAY.state"
-answer "row 2"; eq "$(pick --index)" 2
-rmdir "$XDG_RUNTIME_DIR/kawa-menu-$WAYLAND_DISPLAY.state"
-
-case_ "nothing left behind in the runtime folder: its record and fuzzel's lock only"
-eq "$(find "$XDG_RUNTIME_DIR" -mindepth 1 ! -name fuzzel-wayland-test.lock ! -name kawa-menu-wayland-test.state)" ""
-
-case_ "quick settings open: a menu asks nothing of it (the panel shows the menu in its place); the launcher closes it first (SIGUSR2)"
-catch2() {   # catch2 LOG WORD… — a process catching SIGUSR2 (its command line: WORD…), its pid printed
-  python3 -I -c 'import signal, sys, time
-signal.signal(signal.SIGUSR2, lambda *a: open(sys.argv[1], "a").write("usr2\n"))
-open(sys.argv[1] + ".up", "w").close(); time.sleep(30)' "$@" >/dev/null 2>&1 & echo $!
-  for _ in {1..100}; do [[ -e $1.up ]] && break; sleep 0.05; done
-}
-: >"$TMP/panel.log"
-pp=$(catch2 "$TMP/panel.log" kawa-panel); echo "$pp" >"$XDG_RUNTIME_DIR/kawa-panel.pid"
-answer "row 1"; eq "$(pick)" beta; sleep 0.3
-eq "$(cat "$TMP/panel.log")" "" "a menu: no signal (it would close the menu itself)"
-answer esc; kawa-menu --launcher
-for _ in {1..50}; do [[ -s $TMP/panel.log ]] && break; sleep 0.05; done
-eq "$(cat "$TMP/panel.log" 2>/dev/null)" usr2 "the launcher: the panel asked to close"
-answer esc; env -u WAYLAND_DISPLAY kawa-menu --launcher
-for _ in {1..50}; do [[ $(wc -l <"$TMP/panel.log") == 2 ]] && break; sleep 0.05; done
-eq "$(wc -l <"$TMP/panel.log")" 2 "also with no display name"
-kill "$pp" 2>/dev/null; wait "$pp" 2>/dev/null
-op=$(catch2 "$TMP/other.log" something-else); echo "$op" >"$XDG_RUNTIME_DIR/kawa-panel.pid"
-answer esc; kawa-menu --launcher; sleep 0.3
-[[ ! -s $TMP/other.log ]] && _ok || _no "a stale pid file's process (not the panel) was signalled"
-kill "$op" 2>/dev/null; wait "$op" 2>/dev/null
-rm -f "$XDG_RUNTIME_DIR/kawa-panel.pid" "$TMP/panel.log.up" "$TMP/other.log.up"
+case_ "no runtime folder: a menu cannot reach the panel — exit 1 at once, saying why; the launcher opens all the same"
+o=$(printf 'a\n' | XDG_RUNTIME_DIR=$TMP/gone timeout 5 kawa-menu 2>&1); r=$?
+[[ $r == 1 && $o == *"no runtime folder"* ]] && _ok || _no "rc $r: $o"
+reset_calls; answer esc; rc 1 env XDG_RUNTIME_DIR=$TMP/gone timeout 5 kawa-menu --launcher
+called '^fuzzel'; eq "$(fz_n)" "$(fz_n)"
+case_ "nothing left behind in the runtime folder: the panel's pid file and fifo, the launcher's record and fuzzel's lock"
+answer "row 0"; pick >/dev/null; answer esc; kawa-menu --launcher
+eq "$(cd "$XDG_RUNTIME_DIR" && find . -mindepth 1 ! -name fuzzel-wayland-test.lock ! -name kawa-launcher.state ! -name kawa-panel.pid ! -name kawa-panel.in | sort)" ""
+case_ "every request reaches the panel whole: 30 menus asked at once, each answered as its own"
+pids=(); for i in {1..30}; do answer "row 1"; done
+for i in {1..30}; do (printf 'x%s\ny%s\n' "$i" "$i" | kawa-menu >"$TMP/got.$i") & pids+=($!); done; wait "${pids[@]}"
+ok=0; for i in {1..30}; do [[ $(cat "$TMP/got.$i") == "y$i" ]] && ((ok++)); done; eq "$ok" 30
+case_ "kawa-menu ended (killed) while its menu is open: its request and answer fifo go with it"
+n0=$(fz_n); answer hang; (printf 'a\nb\n' | kawa-menu) & m=$!
+for _ in {1..40}; do [[ -e $FZ/hang.$((n0 + 1)) ]] && break; sleep 0.05; done
+mp=$(cat "$FZ/hang.$(fz_n)"); kill "$mp"; wait "$m" 2>/dev/null
+left=("$XDG_RUNTIME_DIR"/kawa-menu."$mp".*); [[ -e ${left[0]} ]] && _no "left: ${left[*]}" || _ok
+case_ "the panel gone while a menu is open (killed): kawa-menu ends within a second, dismissed"
+n0=$(fz_n); answer hang; (printf 'a\nb\n' | kawa-menu; echo "rc $?" >"$TMP/gone-rc") & m=$!
+for _ in {1..40}; do [[ -e $FZ/hang.$((n0 + 1)) ]] && break; sleep 0.05; done
+kill "$(cat "$XDG_RUNTIME_DIR/kawa-panel.pid")"; t0=$EPOCHREALTIME; wait "$m"
+eq "$(cat "$TMP/gone-rc")" "rc 1"; t=$(( (${EPOCHREALTIME/./} - ${t0/./}) / 1000 )); ((t < 1500)) && _ok || _no "only after $t ms"
+case_ "no panel running: one is started, the menu shown"
+answer "row 1"; eq "$(pick)" beta
+case_ "the launcher closes what the panel shows first (a \"close\" line); a menu asks nothing else of it"
+reset_calls; answer esc; kawa-menu --launcher; sleep 0.2
+called '^kawa-panel close$'
+reset_calls; answer "row 0"; pick >/dev/null; sleep 0.2; not_called '^kawa-panel close$'
+pp=$(cat "$XDG_RUNTIME_DIR/kawa-panel.pid"); sleep 30 & op=$!; echo "$op" >"$XDG_RUNTIME_DIR/kawa-panel.pid"
+reset_calls; answer esc; kawa-menu --launcher; sleep 0.2; not_called 'kawa-panel close'
+[[ -e /proc/$op ]] && _ok || _no "a stale pid file's process (not the panel) was touched"
+kill "$op"; echo "$pp" >"$XDG_RUNTIME_DIR/kawa-panel.pid"
 
 case_ "fuzzel.ini (the launcher's look) passes the real fuzzel's own check, in both themes"
 real=$(PATH=/usr/local/bin:/usr/bin:/bin command -v fuzzel || ls /opt/f44/bin/fuzzel 2>/dev/null)
@@ -131,106 +130,69 @@ if [[ -n $real ]]; then
   ln -sfn themes/dark "$HOME/.config/fedokawaii/current"
 else echo "  (no real fuzzel here: fuzzel.ini not checked)"; fi
 
-# ── one menu at a time ────────────────────────────────────────────────────────────────
-# two menus as scripts of their own (the menu knows which script asked); each says how its
-# menu ended in $TMP/ended
-fresh() {
-  local m
-  menus_sandbox; mkdir -p "$TMP/bin"; : >"$TMP/ended"
-  for m in quick calendar; do
-    printf '#!/usr/bin/env bash\nprintf "one\\ntwo\\n" | kawa-menu --index >/dev/null; echo "%s $?" >>"%s"\n' "$m" "$TMP/ended" >"$TMP/bin/$m"
-    chmod 755 "$TMP/bin/$m"
-  done
-}
-waitfor() { local _; for _ in {1..100}; do [[ -e $1 ]] && return 0; sleep 0.05; done; return 1; }
-alive() { [[ -e /proc/$1 && $(cat "/proc/$1/comm" 2>/dev/null) == kawa-panel ]]; }
-at() { local ms=$1; shift; KAWA_MENU_TIME=$((1000000000000 + ms * 1000)) "$@"; }   # at MS CMD — CMD MS ms in
-open_one() {   # open_one MS MENU — MENU on screen from MS ms (the panel's menu open, $hp, until closed); $bg its script
-  local n=$(($(fz_n) + 1))
-  answer hang; at "$1" "$TMP/bin/$2" & bg=$!
-  waitfor "$FZ/hang.$n" || _no "the menu did not open"; hp=$(cat "$FZ/hang.$n" 2>/dev/null)
-}
-
-case_ "its own key again (a second later, by the clock): the menu closes, no second one opens"
-fresh; open_one 0 quick
-sleep 0.6; "$TMP/bin/quick"; wait "$bg"
-eq "$(fz_n)" 1 "no second menu"
-alive "$hp" && _no "the first menu is still open" || _ok
-eq "$(sort "$TMP/ended" | tr '\n' ' ')" "quick 1 quick 1 " "both end as dismissed"
-case_ "… the same, its time stood in for (1.2 s later)"
-fresh; open_one 0 quick; at 1200 "$TMP/bin/quick"; wait "$bg"
-alive "$hp" && _no "still open" || _ok; eq "$(fz_n)" 1
-
-case_ "another menu's key: the open one closes at once, the other takes its place"
-fresh; open_one 0 quick
-answer "row 1"; at 100 "$TMP/bin/calendar"; wait "$bg"
-alive "$hp" && _no "quick settings still open" || _ok
-eq "$(fz_n)" 2; has "$(cat "$TMP/ended")" "calendar 0"; has "$(cat "$TMP/ended")" "quick 1"
-
-case_ "a key held down (dwl repeats it: 300 ms, then every 29 ms, for 2 s): one press, the menu stays open"
-fresh; open_one 0 quick
-for ((t = 300; t < 2300; t += 29)); do at "$t" "$TMP/bin/quick"; done
-alive "$hp" && _ok || _no "the held key closed the menu"
-eq "$(fz_n)" 1 "no other menu"
-eq "$(grep -c 'quick 1' "$TMP/ended")" 69 "every repeat ends at once"
-case_ "… let go, then pressed again: it closes; held on that press too: it stays closed"
-at 3000 "$TMP/bin/quick"
-for ((t = 3300; t < 4000; t += 29)); do at "$t" "$TMP/bin/quick"; done
-wait "$bg"; alive "$hp" && _no "still open" || _ok
-eq "$(fz_n)" 1 "the repeats after closing it did not open it again"
-case_ "… let go again, pressed once more: it opens"
-answer "row 0"; at 5000 "$TMP/bin/quick"; eq "$(fz_n)" 2; eq "$(tail -n1 "$TMP/ended")" "quick 0"
-case_ "a burst of 20 at the same moment (real time, a busy machine): the menu stays open, each ends"
-fresh; open_one 0 quick
-pids=(); for _ in {1..20}; do at 200 "$TMP/bin/quick" 2>/dev/null & pids+=($!); done; wait "${pids[@]}"
-alive "$hp" && _ok || _no "the burst closed the menu"
-eq "$(grep -c 'quick 1' "$TMP/ended")" 20 "every one of the burst ends at once"
-kill "$hp" 2>/dev/null; wait "$bg"
-
-case_ "a click outside that lands on its own bar button: closed, and the click's own call does not reopen it"
-fresh; answer lost; at 0 "$TMP/bin/quick"
-at 250 "$TMP/bin/quick"
-eq "$(fz_n)" 1 "the same click's second menu does not open"
-eq "$(tr '\n' ' ' <"$TMP/ended")" "quick 1 quick 1 "
-case_ "… a moment later, its button opens it as usual"
-answer "row 0"; at 1500 "$TMP/bin/quick"
-eq "$(fz_n)" 2; eq "$(tail -n1 "$TMP/ended")" "quick 0"
-case_ "a click outside on another menu's button: that one opens"
-fresh; answer lost "row 1"; at 0 "$TMP/bin/quick"; at 150 "$TMP/bin/calendar"
-eq "$(fz_n)" 2; eq "$(tail -n1 "$TMP/ended")" "calendar 0"
-case_ "Esc, then its key at once: it opens again (Esc is not a click on its button)"
-fresh; answer esc "row 0"; at 0 "$TMP/bin/quick"; at 100 "$TMP/bin/quick"
-eq "$(fz_n)" 2; eq "$(tail -n1 "$TMP/ended")" "quick 0"
-case_ "a choice, and the menu reopens at once (quick settings after a toggle, the audio taps)"
-fresh; answer "row 1" "row 0" "row 1"; at 0 "$TMP/bin/quick"; at 50 "$TMP/bin/quick"; at 100 "$TMP/bin/quick"
-eq "$(fz_n)" 3; eq "$(tr '\n' ' ' <"$TMP/ended")" "quick 0 quick 0 quick 0 "
-
-case_ "the launcher (a plain fuzzel, not a menu's) is open: left alone, the menu does not open"
-fresh; exec 7>>"$XDG_RUNTIME_DIR/fuzzel-$WAYLAND_DISPLAY.lock"; flock 7
-at 0 "$TMP/bin/quick" 2>/dev/null; eq "$(tail -n1 "$TMP/ended")" "quick 1"
-case_ "… Esc closes the launcher, the menu's key at once: it opens (that was no click on its button)"
-exec 7>&-
-answer "row 1"; at 300 "$TMP/bin/quick"; eq "$(tail -n1 "$TMP/ended")" "quick 0"
-
-case_ "fuzzel's lock file there but not ours to open (made by root): the menu still opens"
-fresh; if ((EUID)); then : >"$XDG_RUNTIME_DIR/fuzzel-$WAYLAND_DISPLAY.lock"; chmod 000 "$XDG_RUNTIME_DIR/fuzzel-$WAYLAND_DISPLAY.lock"
-else mkdir "$XDG_RUNTIME_DIR/fuzzel-$WAYLAND_DISPLAY.lock"; fi      # (root opens anything; a folder it cannot lock as a file)
-answer "row 0"; at 0 "$TMP/bin/quick" 2>/dev/null; eq "$(tail -n1 "$TMP/ended")" "quick 0"
-rm -rf "$XDG_RUNTIME_DIR/fuzzel-$WAYLAND_DISPLAY.lock"
-
-case_ "a record left by a menu killed mid-way, its pid now someone else's: ignored, nothing killed"
-fresh; sleep 30 & other=$!
-printf '%s %s open %s\n' "$other" "${EPOCHREALTIME//[!0-9]/}" "$TMP/bin/quick" >"$XDG_RUNTIME_DIR/kawa-menu-$WAYLAND_DISPLAY.state"
-answer "row 1"; "$TMP/bin/quick"
-eq "$(tail -n1 "$TMP/ended")" "quick 0" "the menu opened"
-[[ -e /proc/$other ]] && _ok || _no "an unrelated process was killed"
-kill "$other"
-case_ "a corrupt record (garbage, a pid of -1): ignored, nothing killed"
-: >"$TMP/ended"
-for junk in "-1 0 open $TMP/bin/quick" "garbage" "" $'\x01\x02 x y'; do
-  printf '%s\n' "$junk" >"$XDG_RUNTIME_DIR/kawa-menu-$WAYLAND_DISPLAY.state"
-  answer "row 0"; "$TMP/bin/quick"
+# ── the launcher: one at a time ───────────────────────────────────────────────────────
+R=$XDG_RUNTIME_DIR
+waitfor() { local _; for _ in {1..100}; do [[ -e $1 ]] && return 0; sleep 0.02; done; return 1; }
+open_fz() { [[ -e $FZ/hang.$(fz_n) && -e /proc/$(cat "$FZ/hang.$(fz_n)") ]]; }   # the launcher on screen
+press() { echo "24 5 HEADLESS-1 0 1920" >"$R/dwl-pointer.new"; mv -f "$R/dwl-pointer.new" "$R/dwl-pointer"; }   # dwl: a press on the bar
+at() { local ms=$1; shift; KAWA_MENU_TIME=$((1000000000000 + ms * 1000)) "$@"; }   # at MS CMD — CMD MS ms in (the clock stood in for)
+fresh() { menus_sandbox; R=$XDG_RUNTIME_DIR; rm -f "$R"/kawa-launcher.*; }
+case_ "the launcher: in the middle of the screen (fuzzel's own place) — from the torii too"
+fresh; press; answer esc; kawa-menu --launcher
+eq "$(fz_args)" "" "no output, anchor or margin: centred"
+lacks "$(cat "$REPO/bin/kawa-menu")" "x-margin"
+case_ "its key again: closed, no second one; pressed fast (dwl repeats no held key that opens it): every press counts — open after an odd number, closed after an even one"
+fresh; answer hang; kawa-menu --launcher & bg=$!; waitfor "$FZ/hang.1"
+kawa-menu --launcher; wait "$bg"
+open_fz && _no "still open" || _ok; eq "$(fz_n)" 1 "no second launcher"
+for _ in {1..10}; do answer hang; done; bad=""
+for i in {1..7}; do
+  setsid -f kawa-menu --launcher </dev/null >/dev/null 2>&1
+  for _ in {1..100}; do want=$((i % 2)); got=0; open_fz && got=1; ((got == want)) && break; sleep 0.01; done
+  ((got == want)) || bad+=" press $i: open $got;"
 done
-eq "$(grep -c 'quick 0' "$TMP/ended")" 4 "the menu opened every time"
+eq "${bad:-ok}" ok
+open_fz && kill "$(cat "$FZ/hang.$(fz_n)")"
+case_ "lit while open: kawa-launcher.open (kawa-menu's pid), gone however it ends"
+fresh; answer hang; kawa-menu --launcher & bg=$!; waitfor "$FZ/hang.1"; sleep 0.1
+[[ $(cat "$R/kawa-launcher.open" 2>/dev/null) == "$bg" ]] && _ok || _no "no marker with its pid"
+kill "$(cat "$FZ/hang.1")"; wait "$bg"; [[ -e $R/kawa-launcher.open ]] && _no "the marker stayed" || _ok
+case_ "the torii clicked while it is open: that click closed it (outside) — the click's own call does not reopen it; the next click opens it, however soon"
+fresh; answer hang hang; press; kawa-menu --launcher & bg=$!; waitfor "$FZ/hang.1"
+press; kill "$(cat "$FZ/hang.1")"                  # (dwl: the press written, then the menu loses the keyboard)
+kawa-menu --launcher; wait "$bg"
+open_fz && _no "reopened by the click that closed it" || _ok; eq "$(fz_n)" 1
+press; kawa-menu --launcher & bg=$!; waitfor "$FZ/hang.2" && _ok || _no "the next click did not open it"
+kill "$(cat "$FZ/hang.2" 2>/dev/null)" 2>/dev/null; wait "$bg"
+case_ "a fast clicker: 16 clicks on the torii, 80–150 ms apart, the click outside arriving before or after the click's own call — open after each odd click, closed after each even one, lit exactly while open"
+fresh; for _ in {1..20}; do answer hang; done; bad=""; RANDOM=7
+for i in {1..16}; do
+  press
+  if open_fz && ((RANDOM % 2)); then kill "$(cat "$FZ/hang.$(fz_n)")"; fi   # (the press took its keyboard first)
+  setsid -f kawa-menu --launcher </dev/null >/dev/null 2>&1
+  sleep "0.$((80 + RANDOM % 70))"
+  # (the state looked at until it is the one wanted — 1.5 s, for a busy machine)
+  want=$((i % 2))
+  for _ in {1..75}; do
+    got=0; open_fz && got=1; lit=0; [[ -e $R/kawa-launcher.open ]] && lit=1
+    [[ $got == "$want" && $lit == "$want" ]] && break; sleep 0.02
+  done
+  [[ $got == "$want" && $lit == "$want" ]] || bad+=" click $i: open $got lit $lit;"
+done
+eq "${bad:-ok}" ok
+open_fz && kill "$(cat "$FZ/hang.$(fz_n)")"
+case_ "a plain fuzzel (a passphrase) holds fuzzel's lock: the launcher does not open; once it is gone, it does"
+fresh; exec 7>>"$R/fuzzel-$WAYLAND_DISPLAY.lock"; flock 7
+rc 1 kawa-menu --launcher; eq "$(fz_n)" 0
+exec 7>&-; answer esc; kawa-menu --launcher; eq "$(fz_n)" 1
+case_ "a record left by a launcher killed mid-way, its pid now someone else's, or garbage: ignored, nothing killed"
+fresh; sleep 30 & other=$!
+printf '%s open - -\n' "$other" >"$R/kawa-launcher.state"
+answer esc; kawa-menu --launcher; eq "$(fz_n)" 1 "it opened"
+[[ -e /proc/$other ]] && _ok || _no "an unrelated process was killed"; kill "$other"
+t=0; for junk in "-1 open x y z" "garbage" "" $'\x01\x02 x y'; do
+  printf '%s\n' "$junk" >"$R/kawa-launcher.state"; answer esc; at $((t += 1000)) kawa-menu --launcher
+done
+eq "$(fz_n)" 5 "it opened every time"
 
 done_

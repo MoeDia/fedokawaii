@@ -17,7 +17,8 @@ COLS=110
 
 home() {   # home — a fresh home: Fedora's ~/.bashrc, the shell's files, stand-ins for its tools
   sandbox
-  config .bashrc.d/fedokawaii.sh .inputrc .config/blesh .config/fedokawaii/fzf.opts .config/bat
+  config .bashrc.d/fedokawaii.sh .config/readline/inputrc .config/blesh .config/fedokawaii/fzf.opts .config/bat
+  export INPUTRC=$HOME/.config/readline/inputrc   # (/etc/profile.d/fedokawaii-home.sh, on the machine)
   cat >"$HOME/.bashrc" <<'EOF'
 # .bashrc — Fedora's /etc/skel/.bashrc, as far as ~/.bashrc.d goes
 if [ -d ~/.bashrc.d ]; then

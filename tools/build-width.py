@@ -38,14 +38,16 @@ cols() {{
   n=${{t//$FUSION_WIDE/}}
   printf '%s\\n' $(( $(LC_ALL=C.UTF-8 wc -L <<<"$t") + ${{#t}} - ${{#n}} ))
 }}
-# cut_cols TEXT N — TEXT in at most N columns; cut, it ends in "…" (two columns in the font),
-# never mid-letter and with no space before the "…" (counted in letters, whatever the locale)
+# cut_cols TEXT N — TEXT in at most N columns: what does not fit goes, at a word's end where
+# one is (a single word too long loses its last letters) — never an "…", never a space at its
+# end (counted in letters, whatever the locale)
 cut_cols() {{
-  local LC_ALL=C.UTF-8 t=$1 n=$2
+  local LC_ALL=C.UTF-8 t=$1 n=$2 w
   (( $(cols "$t") <= n )) && {{ printf '%s' "$t"; return; }}
-  t=${{t:0:n-2}}
-  while (( $(cols "$t") > n - 2 )); do t=${{t%?}}; done
-  printf '%s…' "${{t%"${{t##*[! ]}}"}}"
+  t=${{t:0:n}}
+  while (( $(cols "$t") > n )); do t=${{t%?}}; done
+  [[ ${{1:${{#t}}:1}} != ' ' && $t == *' '* ]] && {{ w=${{t% *}}; [[ -n ${{w//[ ]/}} ]] && t=$w; }}
+  printf '%s' "${{t%"${{t##*[! ]}}"}}"
 }}
 # heading KANJI NAME W — a part's heading in a menu W columns wide, as Super+U heads its
 # parts: the kanji (12 px) over the icons, then ICON_GAP (icons.sh: 2 px) and two spaces, so

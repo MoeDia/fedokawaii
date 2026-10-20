@@ -4,6 +4,11 @@
 fkh_log "$*"
 r=$(rcfor nvim 0); ((r == 0)) || exit "$r"
 # ($FKH/fail-nvim-plugins = N: the first N runs end well, but GitHub let the clones fail)
-if [[ " $* " == *Lazy!* ]] && ! countdown nvim-plugins; then mkdir -p "$HOME/.local/share/nvim/lazy/LazyVim"; fi
+if [[ " $* " == *"Lazy! sync"* || " $* " == *"Lazy! install"* ]] && ! countdown nvim-plugins; then mkdir -p "$HOME/.local/share/nvim/lazy/LazyVim"; fi
 [[ " $* " == *colors_name* ]] && printf gruvbox
+# (+MasonInstall NAME…: each tool's command in Mason's bin, as Mason links them)
+if [[ " $* " == *MasonInstall* ]]; then
+  m=$HOME/.local/share/nvim/mason/bin; mkdir -p "$m"
+  for t in $(sed -n 's/.*+MasonInstall \([^+]*\).*/\1/p' <<<"$*"); do printf '#!/bin/sh\nexit 0\n' >"$m/$t"; chmod 755 "$m/$t"; done
+fi
 exit 0

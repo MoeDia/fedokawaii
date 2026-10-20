@@ -21,8 +21,9 @@ blesh_ok() { [[ -r $BLESH_DIR/ble.sh ]] && [[ $(bash "$BLESH_DIR/ble.sh" --versi
 
 home() {   # home — Fedora's ~/.bashrc, the desktop's shell and tool settings, the real tools
   sandbox
-  config .bashrc.d/fedokawaii.sh .inputrc .config/blesh .config/fedokawaii/fzf.opts .config/bat \
+  config .bashrc.d/fedokawaii.sh .config/readline/inputrc .config/blesh .config/fedokawaii/fzf.opts .config/bat \
          .config/lazygit .config/yazi
+  export INPUTRC=$HOME/.config/readline/inputrc   # (/etc/profile.d/fedokawaii-home.sh, on the machine)
   printf '%s\n' '# .bashrc — Fedora'"'"'s /etc/skel/.bashrc, as far as ~/.bashrc.d goes' \
     'if [ -d ~/.bashrc.d ]; then' '    for rc in ~/.bashrc.d/*; do' '        if [ -f "$rc" ]; then' \
     '            . "$rc"' '        fi' '    done' 'fi' 'unset rc' >"$HOME/.bashrc"

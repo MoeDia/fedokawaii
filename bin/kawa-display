@@ -9,15 +9,68 @@
 #                            mode, often 60 Hz, and the wallpaper is not drawn for its size —
 #                            so the modes as above, then the wallpaper again, and the
 #                            brightness keys reach it too
+#   kawa-display --vrr       FreeSync as the graphics card has it now, from DRM itself (not
+#                            dwl's word, not wlr-randr's): a line a connected screen —
+#                            NAME<tab>CAPABLE<tab>NOW — CAPABLE yes when the connector's
+#                            vrr_capable is 1 (the monitor offers it: on in its own menu, over
+#                            a cable and port that carry it), NOW on when its CRTC's
+#                            VRR_ENABLED is 1 (the refresh follows the frames this moment).
+#                            Read through the card node's ioctls (python: no root, no master);
+#                            exit 1 when no screen could be read
 #
 # Parses wlr-randr's text output:   NAME "desc" / "  Enabled: yes" / "    2560x1440 px, 119.998001 Hz (preferred)"
 # Exit status: 0 done · 1 could not (no compositor to ask, or a mode refused) · 2 misuse.
 set -u
 case ${1:-} in
-  ""|--hotplug) ;;
+  ""|--hotplug|--vrr) ;;
   -h|--help) sed -n '2,/^set -u/{/^set -u/d;s/^# \{0,1\}//;p}' "$0"; exit 0 ;;
-  *) echo "usage: kawa-display [--hotplug] (kawa-display --help)" >&2; exit 2 ;;
+  *) echo "usage: kawa-display [--hotplug | --vrr] (kawa-display --help)" >&2; exit 2 ;;
 esac
+if [[ ${1:-} == --vrr ]]; then
+  exec python3 -I - "${KAWA_DRM_SYS:-/sys/class/drm}" <<'PY'
+import array, fcntl, os, struct, sys
+# (drm.h / drm_mode.h: the ioctl numbers and structs, x86-64 layout)
+SET_CLIENT_CAP, OBJ_GETPROPERTIES, GETPROPERTY = 0x4010640D, 0xC02064B9, 0xC04064AA
+OBJ_CONNECTOR, OBJ_CRTC, CAP_ATOMIC = 0xC0C0C0C0, 0xCCCCCCCC, 3
+def props(fd, obj, kind):
+    b = bytearray(struct.pack("=QQIII4x", 0, 0, 0, obj, kind))
+    fcntl.ioctl(fd, OBJ_GETPROPERTIES, b, True)
+    n = struct.unpack_from("=QQI", b)[2]
+    ids, vals = array.array("I", [0] * n), array.array("Q", [0] * n)
+    b = bytearray(struct.pack("=QQIII4x", ids.buffer_info()[0], vals.buffer_info()[0], n, obj, kind))
+    fcntl.ioctl(fd, OBJ_GETPROPERTIES, b, True)
+    out = {}
+    for pid, v in zip(ids, vals):
+        p = bytearray(struct.pack("=QQII32sII", 0, 0, pid, 0, b"", 0, 0))
+        fcntl.ioctl(fd, GETPROPERTY, p, True)
+        out[struct.unpack_from("=32s", p, 24)[0].split(b"\0")[0].decode()] = v
+    return out
+sysd, seen, fds = sys.argv[1], 0, {}
+try:
+    entries = sorted(os.listdir(sysd))
+except OSError as err:
+    sys.exit(f"kawa-display: no DRM here ({err})")
+for e in entries:
+    card, _, name = e.partition("-")
+    if not name or not card.startswith("card"):
+        continue
+    try:
+        if open(f"{sysd}/{e}/status").read().strip() != "connected":
+            continue
+        cid = int(open(f"{sysd}/{e}/connector_id").read())
+        if card not in fds:
+            fds[card] = os.open(f"/dev/dri/{card}", os.O_RDWR | os.O_CLOEXEC)
+            fcntl.ioctl(fds[card], SET_CLIENT_CAP, struct.pack("=QQ", CAP_ATOMIC, 1))   # (CRTC_ID shows only to an atomic client)
+        c = props(fds[card], cid, OBJ_CONNECTOR)
+        now = props(fds[card], c["CRTC_ID"], OBJ_CRTC).get("VRR_ENABLED", 0) if c.get("CRTC_ID") else 0
+    except (OSError, KeyError, ValueError) as err:
+        print(f"kawa-display: {e}: {err}", file=sys.stderr)
+        continue
+    print(f"{name}\t{'yes' if c.get('vrr_capable') else 'no'}\t{'on' if now else 'off'}")
+    seen += 1
+sys.exit(0 if seen else 1)
+PY
+fi
 MONITOR_HZ=144
 # shellcheck source=/dev/null
 . "$HOME/.config/fedokawaii/env"
