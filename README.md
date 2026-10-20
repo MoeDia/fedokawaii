@@ -144,10 +144,10 @@ Boot the Fedora 44 Server USB → **Install Fedora 44**:
 
 ## 2 · Run
 
-The project is yours alone and private, on GitHub as `MoeDia/fedokawaii`. A Minimal Install
+The project is on GitHub as `MoeDia/fedokawaii` (public: no sign-in or token needed). A Minimal Install
 has neither `tar` nor `git`, so the first command installs one (the network is up already).
 
-**On a USB stick** — on another computer, signed in to GitHub, download
+**On a USB stick** — on another computer, download
 `https://github.com/MoeDia/fedokawaii/archive/refs/heads/main.tar.gz` onto the stick
 (it saves as `fedokawaii-main.tar.gz`), then on the new machine:
 
@@ -161,8 +161,7 @@ cd ~/fedokawaii
 sudo bash fedokawaii.sh
 ```
 
-**Or straight from GitHub** (git asks for your GitHub user name, and a *personal access token*
-as the password — long to type on a console, so the stick is usually quicker):
+**Or straight from GitHub** (the quickest):
 
 ```sh
 sudo dnf install -y git-core
