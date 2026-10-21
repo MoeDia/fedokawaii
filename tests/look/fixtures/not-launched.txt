@@ -46,7 +46,6 @@ greetd-selinux                  the login manager's policy
 xorg-x11-server-Xwayland        X11 programs' display
 cage                            the login screen's kiosk compositor
 python3-gobject                 a library (the login screen, the panels)
-python3-fonttools               a library (builds the terminal's face, Sumi Term)
 gtk3                            a library
 gtk4                            a library (satty)
 libadwaita                      a library (satty)
@@ -79,7 +78,6 @@ playerctl                       the media keys
 cava                            the bar's music meter: it draws inside the bar
 waybar                          the bar
 mako                            the notices
-fuzzel                          the launcher itself
 gtk-layer-shell                 a library (the panels)
 swaybg                          the wallpaper's drawing (Wallpaper chooses it)
 swayidle                        the idle timer

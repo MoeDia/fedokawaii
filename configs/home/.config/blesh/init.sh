@@ -30,7 +30,7 @@ ble-import -d integration/zoxide
 # ── (foot's palette, changed live) recolours the line as it does everything else ─
 # 8 faint · 9 vermilion · 10 matcha · 11 yamabuki · 12 indigo · 13 wisteria · 14 asagi.
 # The "bright" ones throughout: on paper the theme makes them the deeper inks, so they
-# read as well on both grounds. No bold: Fusion Pixel has none; the colours carry it.
+# read as well on both grounds. No bold: Sumi Term has none; the colours carry it.
 # (NAME_@ is every face whose name starts so; the lines after it make the exceptions)
 #   what you type: commands in asagi, the shell's own words (if, for, do…), variables and
 #   expansions in wisteria, quoted text in yamabuki, | ; && > and options in indigo,

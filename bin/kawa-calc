@@ -8,10 +8,7 @@
 #   kawa-calc            the calculator, in this terminal (the launcher's entry gives it a
 #                        window of its own: kawa-term, app-id kawa-calc)
 #   kawa-calc --answer EXPR   qalc's answer to EXPR on stdout (exit 1: no answer)
-#   kawa-calc --launch WORD…  the launcher's launch prefix (fuzzel --launch-prefix): an entry
-#                        picked (fuzzel sets DESKTOP_ENTRY_ID) runs as it is; text typed that
-#                        matches no entry is worked out — "15% of 2400" Enter: the answer is
-#                        copied and said in a notice — or, its first word a program, run
+# (The launcher works sums out as you type too: kawa-panel, with a qalc of its own.)
 #
 # "X% of Y" is qalc's "X% * Y" (qalc reads "% of" as a remainder: "rem(15, 1 B)").
 #
@@ -23,11 +20,9 @@ set -u
 export LC_ALL=C.UTF-8
 case ${1:-} in
   -h|--help) sed -n '2,/^set -u/{/^set -u/d;s/^# \{0,1\}//;p}' "$0"; exit 0 ;;
-  ""|--answer|--launch) ;;
-  *) echo "usage: kawa-calc [--answer EXPR | --launch WORD…]" >&2; exit 2 ;;
+  ""|--answer) ;;
+  *) echo "usage: kawa-calc [--answer EXPR]" >&2; exit 2 ;;
 esac
-# (an entry the launcher picked: run as it is, before anything else is loaded)
-[[ ${1:-} == --launch && -n ${DESKTOP_ENTRY_ID:-} ]] && { shift; exec "$@"; }
 command -v qalc >/dev/null || { echo "kawa-calc: qalc is missing — fedokawaii repair puts it back" >&2; exit 1; }
 # shellcheck source=/dev/null
 . "$HOME/.config/fedokawaii/screen.sh"
@@ -50,6 +45,15 @@ answer() {
   while [[ $e =~ ^(.*[0-9.])[[:space:]]*%[[:space:]]*[Oo][Ff][[:space:]]+(.*)$ ]]; do
     e="${BASH_REMATCH[1]}% * ${BASH_REMATCH[2]}"
   done
+  # (a conversion: "100 eur in usd" is "… to usd" — qalc reads a lone "in" as inches — and
+  # into the unit asked alone: "5 km to miles" 3.106855961 mi, not "3 mi + 188 yd + …"
+  # (qalc's "-" before the unit); its own forms — hex, roman, fraction… — as they are)
+  local t
+  if [[ $e =~ ^(.*[^[:space:]])[[:space:]]+([Tt][Oo]|[Ii][Nn])[[:space:]]+([[:alpha:]\$€£¥°][^[:space:]]*)$ ]]; then
+    t=${BASH_REMATCH[3]}
+    [[ ${t,,} == @(hex|hexadecimal|bin|binary|oct|octal|dec|decimal|duo|duodecimal|roman|base*|bases|fraction|frac|sci|scientific|eng|engineering|utc|time|sexa*|factors|partial*|cis|polar|rect*|exact|approximate|optimal|prefix|bijective|unicode|calendars|fp*|float|double|ieee*|si|cgs|imperial|us) ]] || t="-$t"
+    e="${BASH_REMATCH[1]} to $t"
+  fi
   kill -0 "${COPROC_PID:-0}" 2>/dev/null || start          # (ended: a new one)
   { printf '%s\n%s\n' "$e" "$SENT" >&"${COPROC[1]}"; } 2>/dev/null || return 0
   while IFS= read -r -t 3 -u "${COPROC[0]}" l; do
@@ -57,23 +61,16 @@ answer() {
     [[ -z $out && $l == "  "?* ]] && out=${l#  }
   done
   [[ $out == @(error|warning)* || $out == "$e" ]] && return 0
+  # (an amount of money: to the cent — "EUR 8.92", not "EUR 8.916629514"; under one, as qalc
+  # has it: a fraction of a bitcoin)
+  if [[ $out =~ ^([A-Z]{3}\ |[\$€£¥])(-?[0-9]+\.[0-9]+)$ ]] && [[ ${BASH_REMATCH[2]#-} != 0.* ]]; then
+    printf -v out '%s%.2f' "${BASH_REMATCH[1]}" "${BASH_REMATCH[2]}"
+  fi
   printf '%s' "$out"
 }
 
 case ${1:-} in
   --answer) shift; a=$(answer "$*"); [[ -n $a ]] || exit 1; printf '%s\n' "$a"; exit 0 ;;
-  --launch)   # text typed in the launcher that matches no entry
-    shift; t="$*"
-    [[ -n $t ]] || exit 2
-    if command -v -- "$1" >/dev/null 2>&1 && [[ $1 != *[0-9]* ]]; then exec "$@"; fi
-    # shellcheck source=/dev/null
-    . "$HOME/.config/fedokawaii/icons.sh"
-    a=$(answer "$t")
-    if [[ -z $a ]]; then notify-send -a desktop -- "$ICON_CLIPBOARD  calculator" "$t: no answer"; exit 1; fi
-    if printf '%s' "$a" | clip_put 'text/plain;charset=utf-8' 2>/dev/null; then
-      notify-send -a desktop -- "$ICON_CLIPBOARD  calculator" "$t = $a · copied"
-    else notify-send -a desktop -- "$ICON_CLIPBOARD  calculator" "$t = $a · not copied (no clipboard)"; fi
-    exit 0 ;;
 esac
 
 # ── the screen: §7's grammar — the heading, the line typed, its answer, the lines kept ──

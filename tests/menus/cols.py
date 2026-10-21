@@ -1,48 +1,37 @@
 #!/usr/bin/env python3
 """tests/menus/cols.py [--px] — how wide each line on stdin is in a menu, one number a line:
-in 6 px columns (a part column counting whole), or with --px in pixels, as fuzzel lays it out
-in the desktop's fonts. Fusion Pixel's letters are 6 px, and 12 px where art/fusion-wide.txt says
-(─ … → and the like) or, from U+3000 on, where East Asian width says so; the Sumi Icons
-(plane 15) are as wide as art/icons.txt makes them (14 px for most); combining marks and
-joiners take nothing. (Arabic, in Noto Kufi, is narrower than a column a letter: counted as
-one, it errs on the safe side.)"""
+in 8 px columns (a part column counting whole), or with --px in pixels, as the desktop's faces
+draw it. Sumi UI's letters are 8 px, and 16 px where East Asian width says W or F (a kanji, a
+kana, a full-width sign) — nothing else: every other sign is drawn into one column
+(tools/build-fonts.py); the Sumi Icons (plane 15) are as wide as art/icons.txt makes them (16 px
+for most: their width in whole 8 px columns); combining marks and joiners take nothing. (Arabic,
+in Noto Kufi, is narrower than a column a letter: counted as one, it errs on the safe side.)"""
 import pathlib
 import re
 import sys
 import unicodedata
 
 HERE = pathlib.Path(__file__).resolve().parent
-COL = 6
-
-
-def wide_table():
-    spans = []
-    for line in (HERE.parent.parent / "art/fusion-wide.txt").read_text(encoding="utf-8").splitlines():
-        if line.startswith("#"):
-            continue
-        for item in line.split():
-            a, _, b = item.partition("-")
-            spans.append((int(a, 16), int(b or a, 16)))
-    return spans
+COL = 8
 
 
 def icon_advances():
-    """U+FE000 onwards, in art/icons.txt's order: each icon's advance (adv=, else width + 4)."""
+    """U+FE000 onwards, in art/icons.txt's order: each icon's advance (adv=, else its width in
+    whole 8 px columns — tools/build-icons.py's own rule)."""
     adv, cur = [], None
     for line in (HERE.parent.parent / "art/icons.txt").read_text(encoding="utf-8").splitlines():
         if line.startswith("@"):
             if cur:
-                adv.append(cur["adv"] if cur["adv"] is not None else cur["w"] + 4)
+                adv.append(cur["adv"] if cur["adv"] is not None else -(-cur["w"] // COL) * COL)
             m = re.search(r"\badv=(-?\d+)", line)
             cur = {"adv": int(m.group(1)) if m else None, "w": 0}
         elif cur and line and set(line) <= {"#", "."}:
             cur["w"] = max(cur["w"], len(line))
     if cur:
-        adv.append(cur["adv"] if cur["adv"] is not None else cur["w"] + 4)
+        adv.append(cur["adv"] if cur["adv"] is not None else -(-cur["w"] // COL) * COL)
     return adv
 
 
-WIDE = wide_table()
 ICONS = icon_advances()
 
 
@@ -54,8 +43,6 @@ def px(c):
         return 2 * COL
     if unicodedata.combining(c) or unicodedata.category(c) in ("Mn", "Me", "Cf"):
         return 0
-    if o < 0x3000:
-        return 2 * COL if any(a <= o <= b for a, b in WIDE) else COL
     return 2 * COL if unicodedata.east_asian_width(c) in ("W", "F") else COL
 
 

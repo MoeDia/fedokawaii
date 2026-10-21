@@ -320,8 +320,7 @@ notice_open() {   # notice_open DEVICE SUMMARY BODY [backup] — click: the file
 passphrase() {   # passphrase DEVICE LABEL DRIVE → the passphrase on stdout (Esc: nothing, status 1)
   [[ -n ${1:-} ]] || return 2
   local label=${2:-${3:-$(label_of "$1")}}         # (a partition has no drive name: its maker's)
-  fuzzel --dmenu --prompt-only="$ICON_LOCK  $(short "$label" 24) · passphrase  " --password \
-    --width 50 --cache=/dev/null </dev/null
+  kawa-menu --title "$(short "$label" 24) · passphrase" --prompt "$ICON_LOCK  " --password --width 40 </dev/null
 }
 
 # ── the bar · the menu ──────────────────────────────────────────────────────

@@ -1,12 +1,14 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- ~/.config/fedokawaii/lock.ui — the lock screen's layout (gtklock, through kawa-lock). One
-     panel in the middle of each screen, built from the design system's parts
-     (docs/design-system.md; the colours and sizes are current/gtklock.css):
-       [月] Mon 19 Oct 月曜日 ╌╌╌╌╌ [錠]   the heading: the day's seal, the date, the stitch
-          (padlock) 08:31 AM            the face: the padlock, the time at 48 px (§2's display size)
+<!-- ~/.config/fedokawaii/lock.ui — the lock screen's layout (gtklock, through kawa-lock). No
+     panel, no box: on the wallpaper, shaded into the ground (kawa-wallpaper draws it, kawa-lock
+     hands it over), one column in the middle of each screen (the colours and sizes are
+     current/gtklock.css):
+          (padlock) 08:31 AM            the face: the padlock, the time at 64 px (§2's display size)
+         [月] Mon 19 Oct 月曜日          the day: its seal, the date, the weekday in kanji
        秋の朝 · frost on the bamboo fence  the season and the hour (kawa-lockmod adds those)
        ちがう · wrong password             what went wrong, when something did
-       [          ◆◆◆◆◆           ]    the password's field ("パスワード · password" while empty)
+              ◆◆◆◆◆                    the password's line ("パスワード · password" while empty)
+        眠 sleep   再 restart   電 power off   the keys (kawa-lockmod adds them)
      kawa-lock fills in {SEAL} (today's seal) and {PADLOCK} (the theme's padlock) and hands
      gtklock a copy. The objects gtklock looks for by id must all be here (it reads them
      whether shown or not): window-box, info-box, time-box, clock-label, date-label,
@@ -24,34 +26,8 @@
 				<property name="name">info-box</property>
 				<property name="orientation">vertical</property>
 				<child>
-					<object class="GtkBox" id="heading">
-						<property name="name">heading</property>
-						<property name="orientation">horizontal</property>
-						<child>
-							<object class="GtkImage" id="seal">
-								<property name="name">seal</property>
-								<property name="valign">center</property>
-								<property name="file">{SEAL}</property>
-							</object>
-						</child>
-						<child>
-							<object class="GtkLabel" id="date-label">
-								<property name="name">date-label</property>
-								<property name="valign">center</property>
-							</object>
-						</child>
-						<child>
-							<object class="GtkBox" id="stitch">
-								<property name="name">stitch</property>
-								<property name="hexpand">1</property>
-								<property name="valign">center</property>
-							</object>
-						</child>
-					</object>
-				</child>
-				<child>
-					<!-- the face: the padlock, then the time in the display size (48 px) — kawa-lockmod
-					     adds AM/PM on its baseline, and the season's line under it -->
+					<!-- the face: the padlock, then the time in the display size (64 px) — kawa-lockmod
+					     adds AM/PM on its baseline -->
 					<object class="GtkBox" id="face">
 						<property name="name">face</property>
 						<property name="halign">center</property>
@@ -73,6 +49,26 @@
 										<property name="name">clock-label</property>
 									</object>
 								</child>
+							</object>
+						</child>
+					</object>
+				</child>
+				<child>
+					<object class="GtkBox" id="heading">
+						<property name="name">heading</property>
+						<property name="halign">center</property>
+						<property name="orientation">horizontal</property>
+						<child>
+							<object class="GtkImage" id="seal">
+								<property name="name">seal</property>
+								<property name="valign">center</property>
+								<property name="file">{SEAL}</property>
+							</object>
+						</child>
+						<child>
+							<object class="GtkLabel" id="date-label">
+								<property name="name">date-label</property>
+								<property name="valign">center</property>
 							</object>
 						</child>
 					</object>

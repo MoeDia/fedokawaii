@@ -316,11 +316,13 @@ reboot_to() {
 }
 # wait_for_network — the network, given time to come up: minutes for a run the resume unit
 # started at boot (Wi-Fi and DHCP may still be on their way), half a minute for one you typed
-# (it is either there or not)
+# (it is either there or not). A wait, said once — no "attempt" lines: nothing failed
 online() { curl -sS -o /dev/null --proto '=https' --max-time 8 https://mirrors.fedoraproject.org/ 2>/dev/null; }
 wait_for_network() {
-  local n=6 rc=0 was; ((RESUMED)) && n=30
-  retry "$n" 5 online && return 0
+  local secs=30 rc=0 was t0=$SECONDS; ((RESUMED)) && secs=150
+  online && return 0
+  log "waiting for the network (at most $secs s)"
+  if wait_until "$secs" online; then log "the network is up (after $(took "$t0"))"; return 0; fi
   online || rc=$?
   if ((rc == 60)); then
     # the network answers, but every certificate is refused (curl's 60): a clock years off —
@@ -396,10 +398,11 @@ EOF
   local k want v dump; dump=$(dnf --dump-main-config 2>/dev/null) || dump=""
   # checked, and reported — never a reason to stop: a later dnf may print a value its own way
   # (minrate is shown in bytes: 5k = 5120 — low enough for a slow phone tether, a stalled
-  # mirror still dropped after timeout=20 s)
+  # mirror still dropped after timeout=20 s; a list may be shown with a space after each
+  # comma: spaces are no difference)
   for k in "max_parallel_downloads:$DNF_PARALLEL" fastestmirror:1 minrate:5120 timeout:20 installonly_limit:2 defaultyes:1 \
            'exclude_from_weak:nodejs,nodejs22*,PackageKit,java-*-openjdk-headless,libreoffice-help-*'; do
-    want=${k#*:}; v=$(sed -n "s/^${k%%:*} *= *//p" <<<"$dump")
+    want=${k#*:}; v=$(sed -n "s/^${k%%:*} *= *//p" <<<"$dump"); v=${v// /}
     [[ $v == "$want" || ( $want == 1 && $v == [Tt]rue ) || ( $want == 5120 && $v == 5[kK] ) ]] \
       || log "dnf shows ${k%%:*}='$v' where the drop-in sets $want — /etc/dnf/dnf.conf may override it"
   done
@@ -512,7 +515,7 @@ UNIT
   systemctl is-enabled --quiet fedokawaii-kernels.timer || systemctl enable fedokawaii-kernels.timer
 }
 
-s_update() { wait_for_network; tidy_after_cut; run dnf -y upgrade --refresh; }
+s_update() { wait_for_network; tidy_after_cut; dnf_do upgrade --refresh; }   # (a mirror's bad minute: tried again)
 
 s_base() {
   dnf_install "${PKG_BASE[@]}"
@@ -577,6 +580,12 @@ console_boot_arg() {   # each on every boot entry (only one an entry lacks: grub
   for want in "${BOOT_ARGS[@]}"; do
     [[ -n $a ]] && ! grep -vqE -- "[\" ]$want([\" ]|\$)" <<<"$a" && continue
     run grubby --update-kernel=ALL --args="$want"
+  done
+  # (and an argument gone since — lib/common.sh, BOOT_ARGS_GONE — off every entry: only when
+  # one still has it)
+  for want in "${BOOT_ARGS_GONE[@]}"; do
+    grep -qE -- "[\" ]$want([\" ]|\$)" <<<"$a" || continue
+    run grubby --update-kernel=ALL --remove-args="$want"
   done
 }
 # kernel_images — every kernel at rest has its boot image (/boot/initramfs-VERSION.img). dracut
@@ -693,6 +702,19 @@ InhibitDelayMaxSec=25
 EOF
 }
 
+# trial_leftovers_out — what an older `fedokawaii trial` left in your home besides its results
+# (~/fedokawaii-trial.txt, the file you hand on, stays): its lock and its folder of logs — the
+# trial keeps both out of the home now, and removes them as it ends. Removed as you
+trial_leftovers_out() {
+  local f gone=()
+  for f in "$TARGET_HOME/fedokawaii-trial.lock" "$TARGET_HOME/fedokawaii-trial.d"; do
+    [[ -e $f || -L $f ]] || continue
+    as_user rm -rf --one-file-system -- "$f" && gone+=("${f/#$TARGET_HOME/\~}")
+  done
+  ((${#gone[@]} == 0)) || log "the container trial's old leftovers removed: $(IFS=' '; echo "${gone[*]}") (its results, ~/fedokawaii-trial.txt, stay)"
+  return 0
+}
+
 # The project's earlier name was Scriptorium. What an install under that name put on the
 # system is taken out, so none of it runs beside this one: its kernel-prune timer and resume
 # service, its dnf hooks (a second snapshot per transaction), its dconf defaults (another
@@ -700,6 +722,7 @@ EOF
 # at kawa-greet. Only those exact paths; nothing in your home (README lists those).
 retire_old_name() {
   local u f found=0
+  trial_leftovers_out
   for u in scrip-kernel-prune.timer scrip-kernel-prune.service scriptorium-resume.service; do
     [[ -e /etc/systemd/system/$u ]] || continue
     found=1; systemctl disable --now "$u" >/dev/null 2>&1 || true; rm -f "/etc/systemd/system/$u"
@@ -819,23 +842,31 @@ rf_need() {   # rf_need PKG [DNF ARG…] — rf_get, where any failure but waiti
   ((rc != 1)) || die "could not install $1 (the lines above say why)"
 }
 # copr_on OWNER/PROJECT — the COPR enabled: 0 · 2 no build for this Fedora yet (dnf: "Chroot not
-# found"), recorded to wait — its packages are left out, said once · 1 any other failure
+# found"), recorded to wait — its packages are left out, said once · 1 any other failure. COPR's
+# server has its slow minutes: a failure a new try can mend (the network, a timeout) is tried
+# again, three times in all
 copr_on() {
-  local out rc=0
-  out=$(run dnf -y copr enable "$1") || rc=$?
-  printf '%s\n' "$out"
-  if ((rc == 0)); then wait_del copr "$1"; return 0; fi
-  grep -q 'Chroot not found in the given Copr project' <<<"$out" || return 1
-  wait_add copr "$1"
-  log "the COPR $1 has no build for Fedora $FEDORA_VER yet — $(copr_pkgs "$1" | tr '\n' ' ')left out until it has; update or repair adds it then"
-  return 2
+  local out rc i why
+  for ((i = 1; ; i++)); do
+    rc=0; out=$(run dnf -y copr enable "$1") || rc=$?
+    printf '%s\n' "$out"
+    if ((rc == 0)); then wait_del copr "$1"; return 0; fi
+    if grep -qi 'Chroot not found in the given Copr project' <<<"$out"; then
+      wait_add copr "$1"
+      log "the COPR $1 has no build for Fedora $FEDORA_VER yet — $(copr_pkgs "$1" | tr '\n' ' ')left out until it has; update or repair adds it then"
+      return 2
+    fi
+    why=$(dnf_why "$out")
+    { ((i < 3)) && [[ $why == @(net|other) ]]; } || return 1
+    log "dnf attempt $i/3 failed ($why) — again in $((15 * i))s"; sleep $((15 * i))
+  done
 }
 # copr_all — every COPR of the manifest enabled, or recorded as waiting for a build: 0, else 1.
 # Update and repair ask it too: a COPR whose enable was lost (or one added to the manifest after
 # setup ran) is enabled again, never its packages called "not in this Fedora" (grub-btrfs was)
 copr_all() {
   local c r rc=0 on
-  on=$(dnf -q repolist --enabled 2>/dev/null | awk '{ print $1 }') || return 1
+  on=$(repos_enabled) || return 1
   for c in "${COPRS[@]}"; do
     grep -qxF "copr:copr.fedorainfracloud.org:${c/\//:}" <<<"$on" && continue
     grep -qxF -- "$c" < <(waiting copr) && continue
@@ -871,17 +902,74 @@ waiting_retry() {
   return "$rc"
 }
 
+# rpmfusion_release — RPM Fusion's two release packages for this Fedora (they set up its
+# repositories and their signing keys), each fetched and checked first, then both installed
+# from the files. From RPM Fusion's own server; should it not answer, through RPM Fusion's
+# mirror list — mirrors.rpmfusion.org sends a download to a mirror picked by place, and one dead
+# mirror (ftp.cc.uoc.gr: dnf's every try timed out on it) once stopped setup there, so it is the
+# second source, never the only one. Each must be an RPM signed with RPM Fusion's key
+# (rpmfusion_signed): a Wi-Fi sign-in page, or a mirror's file that is not RPM Fusion's own, is
+# refused. dnf checks the signature again as it installs (localpkg_gpgcheck): nothing is
+# installed unchecked, and dnf has no "skipped OpenPGP checks" to say. The repositories they set
+# up go through the mirror list (with dnf's own failover) from then on
+RPMFUSION_SOURCES=(https://download1.rpmfusion.org https://mirrors.rpmfusion.org)
+is_rpm() { [[ $(head -c4 -- "$1" 2>/dev/null | od -An -tx1 | tr -d ' \n') == edabeedb ]]; }   # (an RPM's lead)
+rpmfusion_release() {
+  local r s f files=()
+  for r in free nonfree; do
+    pkg_installed "rpmfusion-$r-release" && continue
+    f=$KAWA_TMP/rpmfusion-$r-release-$FEDORA_VER.noarch.rpm
+    for s in "${RPMFUSION_SOURCES[@]}"; do
+      if "${CURL[@]}" -o "$f" "$s/$r/fedora/rpmfusion-$r-release-$FEDORA_VER.noarch.rpm" && is_rpm "$f" \
+         && rpmfusion_signed "$f" "$r" "$s"; then break; fi
+      rm -f -- "$f"
+      log "RPM Fusion's $r release package did not come from ${s#https://}$([[ $s != "${RPMFUSION_SOURCES[-1]}" ]] && echo ' — the next source')"
+    done
+    [[ -s $f ]] || return 1
+    files+=("$f")
+  done
+  ((${#files[@]} == 0)) || dnf_install --setopt=localpkg_gpgcheck=1 "${files[@]}"
+}
+# rpmfusion_signed FILE free|nonfree SOURCE — FILE is signed with RPM Fusion's key: the one key
+# file the package carries for it (a single key, its fingerprint the one lib/manifest.sh pins)
+# imported into rpm's keyring — where dnf would put it at RPM Fusion's first install anyway —
+# and the package's own signature checked by rpm against it. A key other than the pinned one is
+# taken only from RPM Fusion's own server, and said (RPM Fusion making a new key one day:
+# the documented way of setting it up trusts that server so); never from a mirror
+rpmfusion_signed() {
+  local f=$1 r=$2 src=$3 d k n fpr want out
+  want=RPMFUSION_${r^^}_FPR; want=${!want}
+  d=$(mktemp -d "$KAWA_TMP/rpmfusion-key.XXXXXX") || return 1
+  rpm2archive - <"$f" 2>/dev/null | tar -xzf - -C "$d" --no-same-owner 2>/dev/null || true
+  for k in "$d"/etc/pki/rpm-gpg/RPM-GPG-KEY-rpmfusion-"$r"-*; do
+    [[ -f $k && ! -L $k ]] || continue
+    n=$(gpg --show-keys --with-colons "$k" 2>/dev/null | grep -c '^pub:') || n=0
+    fpr=$(gpg --show-keys --with-colons "$k" 2>/dev/null | awk -F: '/^pub:/ { w = 1; next } w && /^fpr:/ { print $10; exit }') || fpr=""
+    ((n == 1)) && [[ -n $fpr ]] || continue
+    if [[ $fpr != "$want" ]]; then
+      [[ $src == "${RPMFUSION_SOURCES[0]}" ]] || continue
+      log "RPM Fusion's $r packages are signed with a key this toolkit does not pin yet ($fpr, not $want) — taken from RPM Fusion's own server"
+    fi
+    rpm --import "$k" || break
+    out=$(rpmkeys -K "$f" 2>&1) || true
+    rm -rf -- "$d"
+    if [[ $out == *"signatures OK"* ]]; then return 0; fi
+    log "RPM Fusion's $r release package from ${src#https://} does not carry RPM Fusion's signature: ${out:-rpm could not check it}"
+    return 1
+  done
+  rm -rf -- "$d"
+  log "RPM Fusion's $r release package from ${src#https://} carries no key of RPM Fusion's that could check it"
+  return 1
+}
+
 s_repos() {
   wait_for_network
-  # the two release packages from RPM Fusion's own server: mirrors.rpmfusion.org sends each
-  # download to a mirror picked by place, and one dead mirror (ftp.cc.uoc.gr, every try timed
-  # out) stopped setup there; the repositories they set up keep the mirror list for the rest
-  local base=https://download1.rpmfusion.org r repos c
-  pkg_installed rpmfusion-free-release || dnf_install \
-    "$base/free/fedora/rpmfusion-free-release-$FEDORA_VER.noarch.rpm" \
-    "$base/nonfree/fedora/rpmfusion-nonfree-release-$FEDORA_VER.noarch.rpm"
+  local r repos c
+  rpmfusion_release || die "RPM Fusion's release packages for Fedora $FEDORA_VER could not be fetched (the lines above say why) — run setup again once download1.rpmfusion.org answers (it carries on here)"
 
-  [[ -f /etc/yum.repos.d/brave-browser.repo ]] || run dnf -y config-manager addrepo --from-repofile="$BRAVE_REPO_URL"
+  if [[ ! -f /etc/yum.repos.d/brave-browser.repo ]]; then
+    dnf_do config-manager addrepo --from-repofile="$BRAVE_REPO_URL" || die "Brave's repository could not be added (the lines above say why)"
+  fi
 
   # Claude Code: official signed repo. The key file must hold exactly one key, the one the
   # docs name (a second key appended to it would otherwise be trusted too); it is kept
@@ -908,10 +996,11 @@ includepkgs=claude-code
 EOF
   fi
   copr_all || die "a COPR could not be enabled (the lines above say why)"
-  run dnf -y upgrade --refresh                     # RPM Fusion builds now match the base libraries
-  repos=$(dnf repolist --enabled)
+  # (RPM Fusion's builds now match the base libraries)
+  dnf_do upgrade --refresh || die "the update with the new repositories did not go through (the lines above say why) — run setup again (it carries on here)"
+  repos=$(repos_enabled) || die "dnf could not list its repositories"
   for r in rpmfusion-free rpmfusion-nonfree brave-browser claude-code; do
-    grep -q "^$r " <<<"$repos" || die "repository $r is not enabled"
+    grep -qx "$r" <<<"$repos" || die "repository $r is not enabled"
   done
 }
 
@@ -922,7 +1011,7 @@ vulkan_fedora() {
   for p in mesa-vulkan-drivers-freeworld mesa-vulkan-drivers-freeworld.i686; do
     wait_del rpmfusion "$p"
     pkg_installed "$p" || continue
-    run dnf -y swap --allowerasing "$p" "mesa-vulkan-drivers${p#mesa-vulkan-drivers-freeworld}" || return 1
+    dnf_do swap --allowerasing "$p" "mesa-vulkan-drivers${p#mesa-vulkan-drivers-freeworld}" || return 1
   done
 }
 
@@ -944,7 +1033,7 @@ s_gpu() {
     # VA: since Fedora 44 Fedora's VA drivers live inside mesa-dri-drivers (which obsoletes
     # mesa-va-drivers), and RPM Fusion's build installs beside it. Never --allowerasing for
     # it: a conflict must stop the run, not take mesa-dri-drivers — and the desktop — with it
-    if pkg_installed mesa-va-drivers; then run dnf -y swap mesa-va-drivers mesa-va-drivers-freeworld
+    if pkg_installed mesa-va-drivers; then dnf_do swap mesa-va-drivers mesa-va-drivers-freeworld
     else rf_need mesa-va-drivers-freeworld; fi
     # (Vulkan: Fedora's own, in PKG_GPU_COMMON above — lib/manifest.sh says why)
     # (and LACT, from its COPR — left out while that has no build for this Fedora: s_repos)
@@ -967,7 +1056,9 @@ s_hardware() {
   for p in "${want[@]}"; do pkg_installed "$p" || need+=("$p"); done
   if ((${#need[@]})); then
     log "this machine needs: $(IFS=' '; echo "${need[*]}")"
-    run dnf -y install --skip-unavailable "${need[@]}" || rc=1
+    # (each one a repository has — hw_wanted asks them — so a failure is the network's or a
+    # mirror's: tried again as every install is)
+    dnf_install "${need[@]}" || rc=1
   fi
   { cat "$STATE_DIR/hardware-pkgs" 2>/dev/null; for p in "${want[@]}"; do pkg_installed "$p" && echo "$p"; done; } \
     | grep . | sort -u | write_file "$STATE_DIR/hardware-pkgs" 0644 || true
@@ -992,8 +1083,12 @@ s_hardware() {
   # a device driver missing altogether is a kernel matter: said, so it is known
   while IFS= read -r p; do [[ -n $p ]] && log "no driver holds this device: $p (lspci -nnk names it)"; done < <(hw_driverless)
   if command -v fwupdmgr >/dev/null; then
+    # (never a question waiting on a screen nobody sees — its output goes to the log — and never
+    # more than two minutes: the LVFS slow or down is no reason for an update to stand still)
+    fwupdmgr() { timeout 120 command fwupdmgr --assume-yes "$@" </dev/null; }
     fwupdmgr refresh >>"$LOG_FILE" 2>&1 || true     # (2: already fresh — fine)
     fw=$(hw_fw_updates)
+    unset -f fwupdmgr
     printf '%s\n' "$fw" | grep . | write_file "$STATE_DIR/fw-updates" 0644 || : >"$STATE_DIR/fw-updates"
     [[ -z $fw ]] || log "firmware updates for this machine's devices: $(tr '\n' ';' <<<"$fw") — fwupdmgr update applies them, when you choose"
   fi
@@ -1006,7 +1101,7 @@ s_hardware_setup() { s_hardware || log "some of this machine's drivers or firmwa
 
 s_media() {
   # full ffmpeg first, so mpv & co. link against it instead of pulling ffmpeg-free
-  if pkg_installed ffmpeg-free; then run dnf -y swap ffmpeg-free ffmpeg --allowerasing
+  if pkg_installed ffmpeg-free; then dnf_do swap ffmpeg-free ffmpeg --allowerasing
   else dnf_install --allowerasing ffmpeg; fi
   local media; mapfile -t media < <(printf '%s\n' "${PKG_MEDIA[@]}" | grep -vx libheif-freeworld)
   dnf_install "${media[@]}"
@@ -1240,7 +1335,7 @@ s_apps()    { local p; mapfile -t p < <(not_waiting "${PKG_APPS[@]}"); dnf_insta
 s_upstream() {
   local e; for e in "${UPSTREAM[@]}"; do install_upstream_bin "$e"; done
   install_nerd_fonts
-  install_fusion
+  install_faces
   s_localsend
 }
 # LocalSend (lib/upstream.sh): never a reason to stop — the gate, update and repair try again
@@ -1327,8 +1422,8 @@ build_filechooser() {
   stage=$src/build/stage
   as_user mkdir -p "$TARGET_HOME/.local/src"
   checkout_sound "$src"
-  [[ -d $src/.git ]] || retry 3 10 as_user git clone --quiet "$TFC_REPO" "$src" || die "could not clone $TFC_REPO"
-  retry 3 10 as_user git -C "$src" fetch --quiet --tags --force || die "could not fetch $TFC_REPO"
+  [[ -d $src/.git ]] || retry 3 10 as_user git "${GIT_NET[@]}" clone --quiet "$TFC_REPO" "$src" || die "could not clone $TFC_REPO"
+  retry 3 10 as_user git -C "$src" "${GIT_NET[@]}" fetch --quiet --tags --force || die "could not fetch $TFC_REPO"
   [[ $(as_user git -C "$src" rev-parse "$TFC_TAG^{commit}") == "$TFC_COMMIT" ]] \
     || die "termfilechooser tag $TFC_TAG does not point at the pinned commit $TFC_COMMIT — refusing to build"
   as_user git -C "$src" checkout --quiet --force "$TFC_COMMIT"
@@ -1426,7 +1521,8 @@ prowlarr_up() {
     restart=1
   fi
   if ! as_user podman image exists "$image"; then
-    retry 3 20 as_user podman pull --quiet "$image" >/dev/null || die "could not fetch the Prowlarr image ($image)"
+    # (20 minutes at most a try: a registry that stalls mid-layer never holds the run for ever)
+    retry 3 20 as_user timeout 1200 podman pull --quiet "$image" >/dev/null || die "could not fetch the Prowlarr image ($image)"
   fi
   as_user systemctl --user daemon-reload
   if ((restart)) || ! as_user systemctl --user is-active --quiet prowlarr.service; then
@@ -1436,8 +1532,9 @@ prowlarr_up() {
     run as_user systemctl --user restart prowlarr.service \
       || { as_user systemctl --user stop --no-block prowlarr.service || true; die "Prowlarr did not start — journalctl --user -u prowlarr"; }
   fi
-  # (retry logs the command it repeats: the key travels in the environment, not in its words)
-  PROWLARR_KEY=$key retry 10 3 prowlarr_accepts \
+  # (a quiet wait — it may still be finishing its start — of 30 s at most; the key travels in
+  # the environment, never in a command's words)
+  PROWLARR_KEY=$key wait_until 30 prowlarr_accepts \
     || { ((was)) || as_user systemctl --user stop --no-block prowlarr.service || true
          die "Prowlarr does not take the key from secrets.sh — journalctl --user -u prowlarr"; }
   # the sites torrra searches through: the usual public ones, each added once (those you
@@ -1478,9 +1575,10 @@ sys.exit(m.version("torrra") != sys.argv[1] or any(m.version(n) != v for n, v in
     # without the key — `torrra` is kawa-torrra's
     # (Fedora's uv has Python downloads set to manual: the 3.13 CPython is fetched by
     # `uv python install` itself — uv's managed Python, not Fedora's python3)
-    retry 3 20 run as_user uv python install 3.13 || die "uv could not fetch Python 3.13 for torrra"
+    # (each try a quarter of an hour at most: a download that stalls never holds the run)
+    retry 3 20 run as_user timeout 900 uv python install 3.13 || die "uv could not fetch Python 3.13 for torrra"
     retry 3 20 run as_user env UV_TOOL_BIN_DIR="$TARGET_HOME/$TORRRA_BIN" \
-      uv tool install --force --python 3.13 --constraints "$pins" "torrra==$TORRRA_VERSION" \
+      timeout 900 uv tool install --force --python 3.13 --constraints "$pins" "torrra==$TORRRA_VERSION" \
       || die "torrra did not install"
   fi
   as_user "$py" -I -c "$probe" "$TORRRA_VERSION" "$pins" || die "torrra $TORRRA_VERSION is installed but does not load (libtorrent, or a library under it)"
@@ -1504,8 +1602,8 @@ except tomllib.TOMLDecodeError as e:     # yours, with a slip in it: left exactl
 g = cfg.setdefault("general", {})
 g.setdefault("download_path", downloads)
 g.setdefault("default_sort", "seeders")
-if g.get("theme") in (None, "gruvbox", "textual-dark", "ansi-light"):   # what older setups chose
-    g["theme"] = "ansi-dark"                             # foot's 16 colours, right on both themes
+if g.get("theme") in (None, "gruvbox", "textual-dark", "ansi-light", "ansi-dark"):   # older setups' choices
+    g["theme"] = "fedokawaii"                            # the desktop's (kawa-torrra registers it)
 idx = cfg.setdefault("indexers", {})
 idx["default"] = "prowlarr"
 p = idx.setdefault("prowlarr", {})
@@ -1547,7 +1645,8 @@ s_torrents() {
   # root, from a text console as well) can reach your services — Prowlarr, the portals
   loginctl enable-linger "$TARGET_USER"
   user_stop
-  retry 15 2 test -S "/run/user/$TARGET_UID/bus" || die "user systemd instance did not start"
+  # (linger starts your own systemd a moment later: waited for, quietly — that is no failure)
+  wait_until 30 test -S "/run/user/$TARGET_UID/bus" || die "your own systemd did not start within 30 s of linger (systemctl status user@$TARGET_UID.service says why)"
   as_user podman system migrate >/dev/null 2>&1 || true      # picks up new sub-IDs
   downloads_subvolume
   torrra_up
@@ -1683,12 +1782,12 @@ open_ports() {   # torrra's port and LocalSend's, open in the firewall (when fir
 s_lazyvim() {
   if [[ ! -f $TARGET_HOME/.config/nvim/init.lua ]]; then
     local t; t=$(as_user mktemp -d)
-    retry 3 10 as_user git clone --quiet --depth 1 https://github.com/LazyVim/starter "$t"
+    retry 3 10 as_user git "${GIT_NET[@]}" clone --quiet --depth 1 https://github.com/LazyVim/starter "$t"
     as_user rm -rf "$t/.git"
     as_user mkdir -p "$TARGET_HOME/.config/nvim"
     as_user cp -rn "$t/." "$TARGET_HOME/.config/nvim/"; as_user rm -rf "$t"
   fi
-  run as_user timeout 900 nvim --headless '+Lazy! sync' +qa
+  run as_user env "${GIT_ENV[@]}" timeout 900 nvim --headless '+Lazy! sync' +qa
 }
 
 # s_dev — Python and Rust to learn with (handbook §43), yours, in your home: uv's newest
@@ -1697,11 +1796,13 @@ s_lazyvim() {
 # Rust with rust-analyzer, clippy and rustfmt (~/.local/share/cargo/bin — CARGO_HOME: on the
 # session's PATH and the shell's). Then neovim's servers and debuggers for both (Mason: basedpyright, ruff, debugpy,
 # codelldb — rust-analyzer is rustup's). Update moves each of them on; repair adds what is missing.
+# (each download bounded: a quarter of an hour for uv's Python, half an hour for Rust's
+# toolchain — a server that stalls never holds the run for ever)
 s_dev() {
   local rc=0
-  run as_user uv python install --quiet || rc=1
-  if [[ -x $TARGET_HOME/.local/share/cargo/bin/rustup ]]; then run as_user "$TARGET_HOME/.local/share/cargo/bin/rustup" update || rc=1
-  else run as_user rustup-init -y --no-modify-path --default-toolchain stable --profile minimal \
+  run as_user timeout 900 uv python install --quiet || rc=1
+  if [[ -x $TARGET_HOME/.local/share/cargo/bin/rustup ]]; then run as_user timeout 1800 "$TARGET_HOME/.local/share/cargo/bin/rustup" update || rc=1
+  else run as_user timeout 1800 rustup-init -y --no-modify-path --default-toolchain stable --profile minimal \
          -c rust-analyzer,clippy,rustfmt || rc=1; fi   # (as you: CARGO_HOME and RUSTUP_HOME are as_user's, ~/.local/share)
   dev_mason || rc=1
   return "$rc"
@@ -1709,16 +1810,16 @@ s_dev() {
 dev_mason() {   # neovim's Python and Rust tools (Mason loaded first — LazyVim loads it on demand —
                 # then :MasonInstall, which waits when headless), and the two languages' parsers
   [[ -f $TARGET_HOME/.config/nvim/init.lua ]] || return 0
-  run as_user env PATH="$TARGET_HOME/.local/share/cargo/bin:$TARGET_HOME/.local/bin:$PATH" timeout 900 \
+  run as_user env PATH="$TARGET_HOME/.local/share/cargo/bin:$TARGET_HOME/.local/bin:$PATH" "${GIT_ENV[@]}" timeout 900 \
     nvim --headless '+Lazy! load mason.nvim' '+MasonInstall basedpyright ruff debugpy codelldb' \
       '+Lazy! load nvim-treesitter' '+lua require("nvim-treesitter").install({"python","rust","ron","toml","markdown","markdown_inline","ninja","rst"}):wait(600000)' +qa
 }
 dev_update() {   # update: the CPython uv installed to its newest release, Rust's stable, Mason's tools
   local rc=0
-  run as_user uv python upgrade --quiet || rc=1
-  if [[ -x $TARGET_HOME/.local/share/cargo/bin/rustup ]]; then run as_user "$TARGET_HOME/.local/share/cargo/bin/rustup" update || rc=1
+  run as_user timeout 900 uv python upgrade --quiet || rc=1
+  if [[ -x $TARGET_HOME/.local/share/cargo/bin/rustup ]]; then run as_user timeout 1800 "$TARGET_HOME/.local/share/cargo/bin/rustup" update || rc=1
   else s_dev || rc=1; fi
-  [[ -f $TARGET_HOME/.config/nvim/init.lua ]] && { run as_user env PATH="$TARGET_HOME/.local/share/cargo/bin:$TARGET_HOME/.local/bin:$PATH" \
+  [[ -f $TARGET_HOME/.config/nvim/init.lua ]] && { run as_user env PATH="$TARGET_HOME/.local/share/cargo/bin:$TARGET_HOME/.local/bin:$PATH" "${GIT_ENV[@]}" \
     timeout 900 nvim --headless '+Lazy! load mason.nvim' '+MasonUpdate' '+MasonInstall basedpyright ruff debugpy codelldb' +qa || rc=1; }
   return "$rc"
 }
@@ -1806,29 +1907,46 @@ input_group_out() {
   record input-group-out "$(date +%s)"
 }
 
-s_ssh() {                       # a desktop doesn't need inbound SSH (SSH_SERVER=no)
-  local z s
-  if [[ $SSH_SERVER == no ]]; then systemctl disable --now sshd.service 2>/dev/null || true
-  else systemctl enable --now sshd.service; fi
+SSHD_DROPIN=/etc/ssh/sshd_config.d/40-fedokawaii.conf
+# s_ssh — inbound SSH as SSH_SERVER says: yes — sshd on at every boot, keys only (never a
+# password, never root), the firewall's ssh open; no — sshd off, ssh closed. Cockpit (a
+# server's browser console, Fedora Server's) is closed either way: nothing here uses it
+s_ssh() {
+  local z
+  if [[ $SSH_SERVER == no ]]; then
+    systemctl disable --now sshd.service 2>/dev/null || true
+    rm -f "$SSHD_DROPIN"
+  else
+    # with it on: keys only, never a password, never root — a machine on a shared network
+    # answers nobody who guesses; sshd checks its whole configuration first (-t), and is
+    # enabled for every boot and running now, the firewall's ssh open saved and running alike
+    printf '%s\n' "# $SSHD_DROPIN — fedokawaii (SSH_SERVER=yes): keys only" \
+      "PasswordAuthentication no" "KbdInteractiveAuthentication no" "PermitRootLogin no" \
+      | write_file "$SSHD_DROPIN" 0600
+    sshd -t || { rm -f "$SSHD_DROPIN"; die "sshd refuses its configuration (sshd -t, above) — $SSHD_DROPIN taken out"; }
+    systemctl enable sshd.service && { systemctl reload-or-restart sshd.service; }
+  fi
   # the firewall's ports to match — firewalld is Fedora Server's, and running; if it is not,
   # sshd's state above is what counts, and that is said rather than stopping the run
   z=$(firewall-cmd --get-default-zone 2>/dev/null) \
-    || { log "firewalld is not running — its ssh/cockpit ports are left as they are"; return 0; }
+    || { log "firewalld is not running — its ssh and cockpit services are left as they are"; return 0; }
   # asked first, then changed where needed — saved and running alike — so nothing is reloaded:
   # a reload drops what other programs added while firewalld runs (Docker's rules, should you
   # install it), and a repair that finds the ports right changes nothing
-  if [[ $SSH_SERVER == no ]]; then
-    for s in ssh cockpit; do
-      if firewall-cmd -q --permanent --zone="$z" --query-service="$s"; then
-        firewall-cmd -q --permanent --zone="$z" --remove-service="$s"
-      fi
-      if firewall-cmd -q --zone="$z" --query-service="$s"; then
-        firewall-cmd -q --zone="$z" --remove-service="$s"
-      fi
-    done
+  fw_service "$z" cockpit off
+  if [[ $SSH_SERVER == no ]]; then fw_service "$z" ssh off; else fw_service "$z" ssh on; fi
+}
+
+# fw_service ZONE SERVICE on|off — a firewalld service open or closed, saved and running alike;
+# asked first, changed only where it differs
+fw_service() {
+  local q=--add-service=$2; [[ $3 == on ]] || q=--remove-service=$2
+  if [[ $3 == on ]]; then
+    firewall-cmd -q --permanent --zone="$1" --query-service="$2" || firewall-cmd -q --permanent --zone="$1" "$q"
+    firewall-cmd -q --zone="$1" --query-service="$2" || firewall-cmd -q --zone="$1" "$q"
   else
-    firewall-cmd -q --permanent --zone="$z" --query-service=ssh || firewall-cmd -q --permanent --zone="$z" --add-service=ssh
-    firewall-cmd -q --zone="$z" --query-service=ssh || firewall-cmd -q --zone="$z" --add-service=ssh
+    if firewall-cmd -q --permanent --zone="$1" --query-service="$2"; then firewall-cmd -q --permanent --zone="$1" "$q"; fi
+    if firewall-cmd -q --zone="$1" --query-service="$2"; then firewall-cmd -q --zone="$1" "$q"; fi
   fi
 }
 
@@ -1858,6 +1976,9 @@ s_gate() {
     contained r_nvim
     ((CONTAINED_RC == 0)) || log "LazyVim's plugins could not be fetched yet (why: above, or $LOG_FILE)"
   fi
+  # what the build's own steps left that nothing needs (a swap's, a build's dependencies) goes
+  # before the check, not after it: the check would warn about them, and finalize takes them anyway
+  dnf_unneeded_out || log "dnf could not take out what nothing needs any more — verify names it"
   # the last check: what it finds is repaired here and now — the same fixes as fedokawaii
   # repair — and checked again; only what is still wrong after that stops setup
   if ! run bash "$REPO_DIR/verify.sh" --pre-finalize; then
@@ -1970,8 +2091,11 @@ EOF
 }
 # snap_boot — the snapshots in the boot menu (grub-btrfs, handbook §37.5): the newest ten
 # "before" points (dnf's pre, update's, repair's, the baseline — no post, no hourly), each
-# started read-only; the list made again by kawa-snap after each dnf run and snapshot, and
-# after snapper's daily clean-up — no grub-btrfsd daemon watching
+# started on a layer in memory over the read-only snapshot (systemd.volatile=overlay: the
+# initrd's systemd-volatile-root): the system boots and works exactly as it was — the
+# desktop, the login, every program — and nothing done there is kept (the session says so:
+# autostart.sh); the list made again by kawa-snap after each dnf run and snapshot, and after
+# snapper's daily clean-up — no grub-btrfsd daemon watching
 snap_boot() {
   local t
   [[ -x /etc/grub.d/41_snapshots-btrfs ]] || { log "grub-btrfs is not installed — no snapshots in the boot menu until it is (update or repair)"; return 0; }
@@ -1988,9 +2112,18 @@ GRUB_BTRFS_IGNORE_SPECIFIC_PATH=("$t" "$t.old" "$t.new" "$t.swap")
 GRUB_BTRFS_IGNORE_PREFIX_PATH=("var/lib/containers" "$t/var/lib/containers")
 GRUB_BTRFS_IGNORE_SNAPSHOT_TYPE=("post")
 GRUB_BTRFS_IGNORE_SNAPSHOT_DESCRIPTION=("timeline")
+GRUB_BTRFS_SNAPSHOT_KERNEL_PARAMETERS="systemd.volatile=overlay"
 GRUB_BTRFS_GRUB_DIRNAME="/boot/grub2"
 GRUB_BTRFS_MKCONFIG=/usr/sbin/grub2-mkconfig
 GRUB_BTRFS_SCRIPT_CHECK=grub2-script-check
+EOF
+  # a snapshot started from the menu has a layer in memory for its root: nothing for
+  # systemd-remount-fs to remount by fstab's line (it would fail, and the boot be "degraded")
+  write_file /etc/systemd/system/systemd-remount-fs.service.d/fedokawaii.conf <<'EOF'
+# installed by setup.sh — a snapshot started from the boot menu (systemd.volatile=overlay)
+# has nothing to remount: its root is a layer in memory over the snapshot
+[Unit]
+ConditionKernelCommandLine=!systemd.volatile=overlay
 EOF
   write_file /etc/systemd/system/snapper-cleanup.service.d/fedokawaii.conf <<'EOF'
 # installed by setup.sh — the boot menu's snapshots listed again after the clean-up
@@ -2243,14 +2376,19 @@ need_space() {   # need_space PATH MiB — stop, saying what to do, when there i
 # stuck. A transaction a run before left going (its window closed, Ctrl+C) is followed to its
 # end first: a new dnf would wait on its lock, saying nothing.
 dnf_detached() {   # dnf_detached ARG… — dnf ARG…, detached from this session; its exit status
-  local unit rc prev f IFS=' '
+  local unit rc prev f n IFS=' '
   prev=$(systemctl list-units --plain --no-legend --state=active 'fedokawaii-dnf-*.service' 2>/dev/null | awk 'NR == 1 { print $1 }')
   if [[ -n $prev ]]; then
     _out "${C_DIM}$(_ts) ▸ the package transaction a run before started ($prev) is still going — followed to its end${C_RESET}"
     journalctl -f -n 20 -o cat -u "$prev" 2>/dev/null 9>&- &
     f=$!
-    while systemctl is-active --quiet "$prev"; do sleep 2; done
+    # (three hours at most — a whole release's download on a slow line fits in them: one that
+    # has not ended by then is stuck, and is named, never waited on for ever)
+    for ((n = 0; n < 5400; n++)); do systemctl is-active --quiet "$prev" || break; sleep 2; done
     kill "$f" 2>/dev/null || true; wait "$f" 2>/dev/null || true
+    if systemctl is-active --quiet "$prev"; then
+      die "the package transaction $prev has run for more than three hours — stuck? journalctl -u $prev shows where; sudo systemctl stop $prev ends it, then run this again"
+    fi
   fi
   unit=fedokawaii-dnf-$(date +%s)-$$
   if [[ ${RUN_SHOWN:-} == 1 ]]; then _out "${C_DIM}    (as $unit)${C_RESET}"   # (run said the command already)
@@ -2260,6 +2398,10 @@ dnf_detached() {   # dnf_detached ARG… — dnf ARG…, detached from this sess
   systemd-run --quiet --unit="$unit" --service-type=exec --wait --collect -p TimeoutStopSec=10min \
     -p StandardOutput=journal -p StandardError=journal -p SyslogIdentifier=fedokawaii-dnf \
     -E LC_ALL=C.UTF-8 /usr/bin/stdbuf -oL -eL /usr/bin/dnf "$@" 9>&- && rc=0 || rc=$?
+  # dnf's last lines (its error, which decides whether a new try can mend it) written into the
+  # journal before the follower is stopped: --sync returns once journald has every line its
+  # writers sent; a second more lets the follower print them
+  journalctl --sync >/dev/null 2>&1 || true
   sleep 1; kill "$FOLLOWER" 2>/dev/null || true; wait "$FOLLOWER" 2>/dev/null || true; FOLLOWER=""
   journalctl -o cat --no-pager "_SYSTEMD_UNIT=$unit.service" >>"$LOG_FILE" 2>/dev/null || true
   return "$rc"
@@ -2333,7 +2475,9 @@ manifest_sync() {
   if ((${#miss[@]})); then
     log "missing from the manifest: $(IFS=' '; echo "${miss[*]}")"
     for p in "${miss[@]}"; do
-      if ! avail=$(dnf -q repoquery --available --whatprovides "$p" 2>/dev/null); then failed+=("$p")   # could not ask (offline?)
+      # (asked of every repository, none skipped: a COPR whose server had a bad minute would
+      # otherwise make its package look gone from this Fedora — grub-btrfs was recorded so once)
+      if ! avail=$(dnf_q repoquery --available --whatprovides "$p" 2>/dev/null); then failed+=("$p")   # could not ask (offline?)
       elif [[ -z $avail ]]; then gone+=("$p")                                                            # not in this Fedora at all
       elif ! dnf_install "$p"; then failed+=("$p"); fi                                     # there, but would not install
     done
@@ -2436,6 +2580,15 @@ dnf_upgrade() {
 # registry unreachable — is reported, and the rest goes on. Its outcome is recorded for the
 # menu (/var/lib/fedokawaii/last-update); a run cut short is recorded as "interrupted".
 UPDATE_STEPS_FAILED=()
+# after_dnf_done — what the guard's follow-up after a dnf transaction does (lib/guard.sh:
+# do_after_dnf — dwl, the helpers, the libraries, GTK, the guard's records, the checks) this run
+# has done itself, for every transaction before it: none is left waiting for its own run, and
+# the record of the last follow-up is this run's — never a warning about a transaction an
+# update or repair has since put right
+after_dnf_done() {
+  rm -f "$STATE_DIR/after-dnf"
+  record last-after-dnf "$(date +%s) $( ((${#UPDATE_STEPS_FAILED[@]} + ${#STILL[@]})) && echo partial || echo ok)" || true
+}
 # neovim's plugins: the versions you have now are kept first (the last six), so an update that
 # breaks something can be undone (handbook: "Recipe: undo a bad update"); then brought up to date
 nvim_plugins() {
@@ -2445,7 +2598,7 @@ nvim_plugins() {
     as_user cp -- "$lock" "$keep/lazy-lock.$(date +%Y%m%d-%H%M).json"
     as_user bash -c 'ls -1t "$1"/lazy-lock.*.json | tail -n +7 | xargs -r rm -f --' _ "$keep"
   fi
-  run as_user timeout 900 nvim --headless '+Lazy! sync' +qa
+  run as_user env "${GIT_ENV[@]}" timeout 900 nvim --headless '+Lazy! sync' +qa
 }
 step_on() {   # step_on WHAT FN… — one contained step; a failure is remembered, not fatal
   log "update: $1"; local what=$1; shift
@@ -2492,7 +2645,7 @@ do_update() {
   # the desktop's own tools: pinned, so normally nothing to do
   for e in "${UPSTREAM[@]}"; do step_on "${e%%|*}" install_upstream_bin "$e"; done
   step_on "Nerd Fonts" install_nerd_fonts
-  step_on "Fusion Pixel 12 and 10" install_fusion
+  step_on "the desktop's faces (Sumi UI, Sumi Term)" install_faces
   step_on "Syncplay" install_syncplay
   step_on "LocalSend" install_localsend
   step_on "ble.sh" install_blesh
@@ -2504,12 +2657,12 @@ do_update() {
   # interface libraries torrra was written for stay put); then checked by torrra_up, which
   # installs it again if it no longer loads — and moves an earlier setup's pipx install to uv
   if [[ -d $TARGET_HOME/$TORRRA_VENV ]]; then
-    step_on "torrra's libtorrent" run as_user env UV_TOOL_BIN_DIR="$TARGET_HOME/$TORRRA_BIN" uv tool upgrade torrra
+    step_on "torrra's libtorrent" run as_user env UV_TOOL_BIN_DIR="$TARGET_HOME/$TORRRA_BIN" timeout 900 uv tool upgrade torrra
   fi
   step_on "torrra" torrra_up
   # Prowlarr's newest image, fetched now (it runs on demand: its next start uses it); the
   # images it replaced go
-  step_on "Prowlarr's image" run as_user podman pull --quiet "$(prowlarr_image)"
+  step_on "Prowlarr's image" run as_user timeout 1200 podman pull --quiet "$(prowlarr_image)"
   step_on "Prowlarr" prowlarr_up
   as_user podman image prune -f >/dev/null 2>&1 || true
   clean_caches || true                              # (what this update downloaded and no longer needs)
@@ -2525,6 +2678,8 @@ do_update() {
   step_on "the theme (configs, dwl, helpers)" r_theme
   step_on "dnf's guard and what it knows (lib/guard.sh)" guard_hooks
   step_on "sound (PipeWire keeps running)" r_sound
+  step_on "the login screen and panel load GTK" gi_sound
+  after_dnf_done
   bash "$REPO_DIR/verify.sh" || result=checks
   ((${#UPDATE_STEPS_FAILED[@]} == 0)) || result=partial
   record last-update "$(date +%s) $result"
@@ -2793,7 +2948,7 @@ do_after_upgrade() {
   else
     UPDATE_STEPS_FAILED=()
     local net=1
-    retry 30 10 online || { net=0; UPDATE_STEPS_FAILED+=("no network: what needs it is left for the next update"); log "no network yet — the steps that need it are left for the next update"; }
+    wait_until 300 online || { net=0; UPDATE_STEPS_FAILED+=("no network: what needs it is left for the next update"); log "no network yet — the steps that need it are left for the next update"; }
     if ((net)); then step_on "third-party repositories" repos_lenient; fi
     step_on "duplicates" tidy_duplicates
     # your own systemd, which lingering starts beside this unit at boot, is asked from here on
@@ -2892,7 +3047,7 @@ r_user() {       # the user's session plumbing: linger and its stop, the bus, gr
   user_stop
   s_groups
   if [[ $STEAM == yes ]]; then game_mode; fi
-  retry 15 2 test -S "/run/user/$TARGET_UID/bus"
+  wait_until 30 test -S "/run/user/$TARGET_UID/bus"   # (linger's systemd, a moment after it is on)
   if [[ -e $sec && ! -L $sec ]]; then
     [[ $(stat -c %u "$sec") == "$TARGET_UID" ]] || chown -h "$TARGET_UID:$TARGET_GID" "$sec"
     as_user chmod 600 "$sec"
@@ -2921,7 +3076,7 @@ r_upstream() {   # release binaries and fonts present (each is a no-op when curr
   for e in "${UPSTREAM[@]}"; do install_upstream_bin "$e" || rc=1; done
   retire_upstream || rc=1
   install_nerd_fonts || rc=1
-  install_fusion || rc=1
+  install_faces || rc=1
   install_syncplay || rc=1
   install_blesh || rc=1
   install_localsend || rc=1
@@ -2988,7 +3143,7 @@ r_sound() {
 }
 r_nvim() {   # LazyVim's plugins: the missing ones installed, at the lockfile's versions
   [[ -f $TARGET_HOME/.config/nvim/init.lua ]] || return 0
-  run as_user timeout 900 nvim --headless '+Lazy! install' +qa
+  run as_user env "${GIT_ENV[@]}" timeout 900 nvim --headless '+Lazy! install' +qa
 }
 r_dev() {   # what s_dev puts in place, added when missing (nothing moved on: update's job)
   local py; py=$(as_user uv python find --managed-python 2>/dev/null) || py=""
@@ -3036,6 +3191,7 @@ heal_all() {
   heal "Prowlarr (it starts, and takes the key from secrets.sh)" prowlarr_up
   heal "the theme (configs, dwl, helpers, wallpapers)" r_theme
   heal "sound (PipeWire keeps running)" r_sound
+  heal "the login screen and panel load GTK" gi_sound
 }
 do_repair() {
   # (once setup reached its last check everything is installed: repair may put right what that
@@ -3046,7 +3202,7 @@ do_repair() {
   local before after net=1
   hdr "Fedokawaii repair · $TARGET_USER"
   # offline, it still puts right what needs no network: services, the session, the configs
-  retry 6 5 online || { net=0; log "offline: only what needs no network is repaired now — run repair again once online"; }
+  wait_until 30 online || { net=0; log "offline: only what needs no network is repaired now — run repair again once online"; }
   toolkit_first          # (run from a copy: everything below is then the toolkit's)
   # (a snapshot first, as an update takes one — but one that cannot be taken never stops a repair)
   if snapper_has root; then ( snapshot_before "repair $(date +%F)" ) || log "no snapshot before this repair (the line above says why)"; fi
@@ -3055,6 +3211,7 @@ do_repair() {
   heal_all "$net"
   clean_caches || true
   record_snapshots
+  after_dnf_done
   after=$(problems)
   clone_done || true                                # (the very last: the folder this repair was run from)
   hdr "repair done — verify: $before problem(s) before, $after now"

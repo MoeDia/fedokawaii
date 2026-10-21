@@ -97,6 +97,12 @@ keep kawa-panel </dev/null >"$HOME/.cache/kawa-panel.log" 2>&1 &
 # alike, so never twice (a mako of its own beside D-Bus's started two, and the loser
 # failed the unit: "degraded"); if it ever stops, D-Bus starts it again with the next one
 systemctl --user --no-block start mako.service
+# started from a snapshot in the boot menu (its root a layer in memory over it: setup.sh
+# snap_boot): said once, and kept on screen until dismissed — nothing done here is kept
+if grep -q '/\.snapshots/' /proc/cmdline; then
+  notify-send -a desktop -u critical -- "史  a snapshot" \
+    "the system as it was — nothing done here is kept. Super+U → snapshots to restore it" 2>/dev/null &
+fi
 # nmtui (quick settings → network) and other newt dialogs in the terminal's own 16 colours,
 # so they follow the theme like everything in foot; every terminal inherits it from here
 export NEWT_COLORS='root=lightgray,default;border=gray,default;window=lightgray,default;shadow=default,default;title=white,default;button=lightgray,black;actbutton=black,red;compactbutton=lightgray,default;checkbox=lightgray,default;actcheckbox=black,brightcyan;entry=white,black;disentry=gray,black;label=lightgray,default;listbox=lightgray,default;actlistbox=white,black;sellistbox=lightgray,black;actsellistbox=black,red;textbox=lightgray,default;acttextbox=white,black;helpline=gray,default;roottext=gray,default;emptyscale=,black;fullscale=,red'

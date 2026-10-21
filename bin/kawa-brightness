@@ -51,7 +51,7 @@ if [[ $arg == --bar ]]; then
   mkfifo -m 600 -- "$w" && exec {fd}<>"$w" && ln -sfn -- "${w##*/}" "$p" || exit 1
   trap 'rm -f -- "$w" "$p"' EXIT
   trap 'exit 0' TERM HUP INT PIPE                   # (waybar closing it: its fifo goes too)
-  # (ICON_BAR_*, no space: exactly 6 px from the icon's ink to the value's)
+  # (ICON_BAR_*, no space: exactly 8 px from the icon's ink to the value's)
   icons=("$ICON_BAR_BRI_0" "$ICON_BAR_BRI_1" "$ICON_BAR_BRI_2" "$ICON_BAR_BRI_3" "$ICON_BAR_BRI_4")
   read -r l 2>/dev/null <"$LEVEL"
   while :; do

@@ -7,15 +7,15 @@
 Outputs (all committed, so a normal install needs neither Python nor fontTools):
     configs/home/.local/share/fonts/SumiIcons.ttf       "Sumi Icons": bar, menus, notices
     configs/home/.local/share/fonts/SumiIconsTerm.ttf   "Sumi Icons Term": the same drawings
-        on the terminal's font, Fusion Pixel 10 (a 10 px em: at its 20 px every drawing
-        pixel is 2 × 2, a 10 × 10 icon exactly two of its 5-px cells wide and its line
-        high), without their 2 px of air on the left (foot draws each from the left edge of
+        on the terminal's face, Sumi Term (a 20 px em: at its 20 px every drawing pixel is
+        one screen pixel, a 14 × 14 icon within two of its 10-px cells and as tall as its
+        capitals), without their air on the left (foot draws each from the left edge of
         its cell, so the air would only push the icon into the space after it: prompt,
         fetch, the pop-ups' titles)
     configs/home/.config/fedokawaii/icons.sh
 
-The font copies Fusion Pixel 12's grid: 1200 units per em, 100 units per pixel, so at
-12 px (or 24, 36…) every pixel of the drawing lands on exactly one screen pixel.
+The font copies Sumi UI's grid: 1600 units per em, 100 units per pixel, so at 16 px (or 32,
+48…) every pixel of the drawing lands on exactly one screen pixel.
 Each run of '#' is merged into rectangles, so the outlines are few and gap-free.
 Needs: python3-fonttools (dnf install python3-fonttools).
 """
@@ -33,16 +33,17 @@ ROOT = pathlib.Path(__file__).resolve().parent.parent
 SRC = ROOT / "art" / "icons.txt"
 TTF = ROOT / "configs/home/.local/share/fonts/SumiIcons.ttf"
 TERM_TTF = ROOT / "configs/home/.local/share/fonts/SumiIconsTerm.ttf"
-TERM_RAISE = 0                    # pixels: the terminal's font is Fusion Pixel too, same middle
-TERM_SHIFT = 2                    # pixels to the left: an icon's ink starts at its cell's edge
-TERM_UPM, TERM_ASC, TERM_DESC = 1000, 900, -100   # Fusion Pixel 10's em and line: 9 up, 1 down
-                                  # (a 10-row icon fills it; the capitals' middle stays 4 up)
+TERM_RAISE = 1                    # pixels: Sumi Term's capitals stand 14 px on the baseline
+TERM_SHIFT = 16                   # pixels to the left (all its air): its ink starts at its cell's edge
+TERM_UPM, TERM_ASC, TERM_DESC = 2000, 1700, -300  # Sumi Term's em and line: 17 up, 3 down
 SH = ROOT / "configs/home/.config/fedokawaii/icons.sh"
 
-UPM, PX = 1200, 100               # Fusion Pixel 12: 12 px em, 100 units per pixel
-ASC, DESC = 1000, -200            # same line metrics, so mixing the fonts keeps the line
+UPM, PX = 1600, 100               # Sumi UI's grid: a 16 px em, 100 units per pixel
+ASC, DESC = 1400, -200            # its line: 14 up, 2 down — mixing the fonts keeps the line
 FIRST = 0xFE000                   # Supplementary Private Use Area A
-MIDDLE = 4                        # text middle in pixels above the baseline
+BAR_GAP = 8                       # the bar: from an icon's ink to its value's (a column of Sumi UI)
+MIDDLE = 6                        # an icon's middle in pixels above the baseline (Sumi UI's
+                                  # capitals stand 13 px on it: an even icon rests on it)
 
 
 def parse(text):
@@ -81,15 +82,15 @@ def parse(text):
         if len(widths) != 1:
             sys.exit(f"icons.txt:{ic['line']}: {name} rows differ in width {sorted(widths)}")
         w, h = widths.pop(), len(rows)
-        # two kinds: even × even, centred on the Latin capitals (beside words); and seal-sized,
-        # 11 rows, odd × odd, centred exactly like Fusion Pixel's kanji (ink rows 1–11 of
-        # the line, columns 0–10) — the bar's buttons, which hold kanji and icons alike
-        if h % 2 and h != 11:
-            sys.exit(f"icons.txt:{ic['line']}: {name} is {h} rows; heights are even, or 11 (seal-sized)")
+        # two kinds: even × even, resting on the baseline (an icon of 14 rows as tall as Sumi
+        # UI's capitals, beside words); and seal-sized, 15 rows, odd × odd, as tall as Sumi
+        # UI's kanji less a row — the bar's buttons, which hold kanji and icons alike
+        if h % 2 and h != 15:
+            sys.exit(f"icons.txt:{ic['line']}: {name} is {h} rows; heights are even, or 15 (seal-sized)")
         if "x" not in ic and (w % 2) != (h % 2):
-            sys.exit(f"icons.txt:{ic['line']}: {name} is {w} × {h}; even × even, or odd × 11")
+            sys.exit(f"icons.txt:{ic['line']}: {name} is {w} × {h}; even × even, or odd × 15")
         ic["w"], ic["h"] = w, h
-        ic.setdefault("adv", w + 4)
+        ic.setdefault("adv", -(-w // 8) * 8)    # whole 8 px columns of Sumi UI: a 14 or 15 px icon two
         ic.setdefault("x", (ic["adv"] - w) // 2)
     return icons
 
@@ -137,12 +138,12 @@ def build(icons, path=TTF, family="Sumi Icons", raise_px=0, shift=0, upm=UPM, as
     fb.setupGlyphOrder(names)
     fb.setupCharacterMap({0x20: "space", **{FIRST + i: names[i + 2] for i in range(len(icons))}})
     notdef = TTGlyphPen(None)                # a hollow box: outer clockwise, inner hole anticlockwise
-    notdef.moveTo((100, 0)); notdef.lineTo((100, 800)); notdef.lineTo((600, 800)); notdef.lineTo((600, 0))
+    notdef.moveTo((100, 0)); notdef.lineTo((100, 1300)); notdef.lineTo((700, 1300)); notdef.lineTo((700, 0))
     notdef.closePath()
-    notdef.moveTo((200, 100)); notdef.lineTo((500, 100)); notdef.lineTo((500, 700)); notdef.lineTo((200, 700))
+    notdef.moveTo((200, 100)); notdef.lineTo((600, 100)); notdef.lineTo((600, 1200)); notdef.lineTo((200, 1200))
     notdef.closePath()
     glyphs = {".notdef": notdef.glyph(), "space": TTGlyphPen(None).glyph()}
-    metrics = {".notdef": (700, 100), "space": (600, 0)}
+    metrics = {".notdef": (800, 100), "space": (800, 0)}
     for ic, name in zip(icons, names[2:]):
         glyphs[name] = glyph(ic, raise_px, shift)
         metrics[name] = (ic["adv"] * PX, ic["x"] * PX)
@@ -156,16 +157,18 @@ def build(icons, path=TTF, family="Sumi Icons", raise_px=0, shift=0, upm=UPM, as
     fb.setupHorizontalHeader(ascent=asc, descent=desc, lineGap=0)
     ps = family.replace(" ", "")
     fb.setupNameTable({
-        "familyName": family, "styleName": "Regular",
-        "uniqueFontIdentifier": family + " Regular", "fullName": family,
-        "psName": ps + "-Regular", "version": "Version 1.0",
+        "familyName": family, "styleName": "Bold",
+        "uniqueFontIdentifier": family + " Bold", "fullName": family + " Bold",
+        "psName": ps + "-Bold", "version": "Version 1.0",
         "copyright": "Drawn for this desktop; free to use and change.",
     })
     fb.setupOS2(sTypoAscender=asc, sTypoDescender=desc, sTypoLineGap=0,
                 usWinAscent=asc, usWinDescent=-desc, sxHeight=(asc - 400) // PX * PX, sCapHeight=(asc - 200) // PX * PX,
-                achVendID="SUMI", fsType=0)
+                achVendID="SUMI", fsType=0, usWeightClass=700, fsSelection=0x20)
+    # bold, as Sumi UI and Sumi Term are (tools/build-fonts.py): an icon in a bold run is
+    # never smeared by synthetic bold
     fb.setupPost(isFixedPitch=0)
-    fb.setupHead(unitsPerEm=upm, fontRevision=1.0)
+    fb.setupHead(unitsPerEm=upm, fontRevision=1.0, macStyle=1)
     for g in glyphs.values():                # bounding boxes for head/hhea/glyf
         g.recalcBounds(fb.font["glyf"])
     # A font without instructions is auto-hinted by FreeType (GTK asks for "slight"
@@ -193,26 +196,19 @@ def write_sh(icons):
         esc = "".join(f"\\x{c:02x}" for c in b)
         var = "ICON_" + ic["name"].upper().replace("-", "_")
         out.append(f"{var}=$'{esc}'")
-    # ICON_BAR_<NAME>: the icon as the bar draws it before a value, no space between:
-    # exactly 6 px from its ink to the value's (its own air on the right made up with 2 px
-    # and 1 px spaces, or — more air than 6 — its tight twin, the same drawing without it);
-    # and a family's (vol-0 … vol-4, bri-0 … bri-4) ink starting at one place, the
-    # leftmost of them (1 px and 2 px spaces in front), so a module's edge never moves
+    # ICON_BAR_<NAME>: the icon as the bar draws it before a value, no space between: its
+    # bar twin — the drawing with no air either side, its ink from the pen — then BAR_GAP px
+    # of 2 px and 1 px spaces: the module's padding is the paper before the icon's ink,
+    # whatever the icon, and BAR_GAP the paper between its ink and the value's
     code = {ic["name"]: chr(FIRST + i).encode() for i, ic in enumerate(icons)}
     def esc(b): return "".join(f"\\x{c:02x}" for c in b)
     def spaces(n): return code["gap"] * (n // 2) + code["gap1"] * (n % 2)
-    lead = {}
-    for ic in icons:
-        if not ic.get("twin") and not ic["name"].startswith("gap"):
-            lead.setdefault(family(ic["name"]), []).append(left_air(ic))
-    out.append("# on the bar: \"$ICON_BAR_X$value\" (6 px from the icon's ink to the value's)")
+    out.append(f"# on the bar: \"$ICON_BAR_X$value\" ({BAR_GAP} px from the icon's ink to the value's)")
     for ic in icons:
         if ic.get("twin") or ic["name"].startswith("gap"):
             continue
-        name, air = ic["name"], right_air(ic)
-        sp = code[name + "-tight"] + spaces(6) if air > 6 else code[name] + spaces(6 - air)
-        sp = spaces(max(lead[family(name)]) - left_air(ic)) + sp
-        out.append(f"ICON_BAR_{name.upper().replace('-', '_')}=$'{esc(sp)}'")
+        name = ic["name"]
+        out.append(f"ICON_BAR_{name.upper().replace('-', '_')}=$'{esc(code[name + '-bar'] + spaces(BAR_GAP))}'")
     SH.parent.mkdir(parents=True, exist_ok=True)
     SH.write_text("\n".join(out) + "\n")
 
@@ -228,7 +224,7 @@ def preview(icons, path, scale=8):
             label = ImageFont.truetype(f, 18)
             break
     label = label or ImageFont.load_default()
-    cols, tile, gap, text = 8, 18 * scale, 6, 36       # tile: 18 drawing pixels square
+    cols, tile, gap, text = 8, 22 * scale, 6, 36       # tile: 22 drawing pixels square
     rows = (len(icons) + cols - 1) // cols
     W = cols * tile + (cols + 1) * gap
     H = rows * (tile + text) + (rows + 1) * gap
@@ -262,16 +258,15 @@ def right_air(ic):
     return ic["adv"] - ic["x"] - max(r.rindex("#") for r in ic["rows"] if "#" in r) - 1
 
 
-def family(name):
-    """vol-3 and vol-mute → vol: the icons of one module that stand for one another"""
-    return re.sub(r"-(\d+|mute)$", "", name)
-
-
 def twins(icons):
-    """the tight twins (ICON_BAR_*): an icon with more than 6 px of air on its right, again
-    without it — after every other, so no icon's code ever changes"""
-    return icons + [{**ic, "name": ic["name"] + "-tight", "adv": ic["adv"] - right_air(ic), "twin": True}
-                    for ic in icons if not ic["name"].startswith("gap") and right_air(ic) > 6]
+    """the bar twins (ICON_BAR_*): every icon again with no air either side — its ink from the
+    pen, its advance its ink's width — after every other, so no icon's code ever changes"""
+    def ink(ic):
+        cols = [i for r in ic["rows"] for i, v in enumerate(r) if v == "#"]
+        return min(cols), max(cols)
+    return icons + [{**ic, "name": ic["name"] + "-bar", "x": -ink(ic)[0],
+                     "adv": ink(ic)[1] - ink(ic)[0] + 1, "twin": True}
+                    for ic in icons if not ic["name"].startswith("gap")]
 
 
 def main():

@@ -2,15 +2,15 @@
 """/usr/local/bin/kawa-greet USER — the login screen. greetd runs it in cage (a kiosk
 compositor: one full-screen window) on tty1, as its own user (greetd).
 
-It is the lock screen's twin: on the theme's plain ground, one panel of the design system
-(docs/design-system.md) — a heading (the day's seal, the date, the stitch), the pixel
-padlock beside the time at 48 px, and one field for your password, each character a ◆ in accent_text. A
-wrong password empties the field and says so above it; the right one starts the desktop
-(/usr/local/bin/start-dwl). Under a rule, three keys: sleep, restart and power off — their
-words accent_text under the pointer, the key filled vermilion under the keyboard's focus (Tab).
-The lock screen has the same three (kawa-lockmod), and the same flavour: after the date the
-weekday in kanji (火曜日), at the heading's end a stamped seal (門, the gate; the lock's is 錠),
-under the time a line of the season and the hour (VERSES — the same sixteen as kawa-lockmod's).
+It is the lock screen's twin: on your wallpaper shaded into the ground (as the lock shows it:
+kawa-wallpaper leaves a copy in /var/lib/fedokawaii-greeter), no panel, no box — one column in
+the middle: the pixel padlock beside the time at 64 px, the day (its seal, the date, the
+weekday in kanji: 火曜日), a line of the season and the hour (VERSES — the same sixteen as
+kawa-lockmod's), and one line for your password, each character a ◆ in accent_text. A wrong
+password empties it and says so above it; the right one starts the desktop
+(/usr/local/bin/start-dwl). Under it three keys: sleep, restart and power off — words alone,
+accent_text under the pointer and under the keyboard's focus (Tab). The lock screen has the
+same (kawa-lockmod).
 
 The key that wakes the computer only wakes it: from logind's word that the machine is going to
 sleep (PrepareForSleep) until 2 s after it is awake again, every key and click is swallowed —
@@ -100,18 +100,6 @@ def theme():
     return name if name in ("dark", "light") else "dark"
 
 
-def draw_stitch(w, cr):
-    """The stitch drawn whole (design-system §4): 3 px on, 2 off, from the widget's left edge,
-    ending on the last whole one that fits (up to 4 px short of its right edge); 1 px high
-    through its middle, in its CSS colour (gtklock.css's #stitch, #rule: edge2)."""
-    Gdk.cairo_set_source_rgba(cr, w.get_style_context().get_color(w.get_state_flags()))
-    width, y = w.get_allocated_width(), w.get_allocated_height() // 2
-    for x in range(0, width - 2, 5):
-        cr.rectangle(x, y, 3, 1)
-    cr.fill()
-    return False
-
-
 class Greeter(Gtk.Window):
     def __init__(self, user, greetd):
         super().__init__(title="login")
@@ -120,25 +108,21 @@ class Greeter(Gtk.Window):
         css = Gtk.CssProvider()
         css.load_from_path(f"{art}/gtklock.css")
         Gtk.StyleContext.add_provider_for_screen(self.get_screen(), css, Gtk.STYLE_PROVIDER_PRIORITY_USER)
+        # the wallpaper shaded into the ground, as the lock shows it (none yet: the plain ground)
+        bg = f"{os.path.dirname(THEME_FILE)}/lock-{theme()}.png"
+        if os.path.isfile(bg):
+            wall = Gtk.CssProvider()
+            wall.load_from_data(f'window {{ background-image: url("file://{bg}"); background-size: cover; '
+                                f'background-position: center; }}'.encode())
+            Gtk.StyleContext.add_provider_for_screen(self.get_screen(), wall, Gtk.STYLE_PROVIDER_PRIORITY_USER + 1)
 
-        # the lock screen's panel (~/.config/fedokawaii/lock.ui), part for part: the heading (the
-        # day's seal, the date, the stitch), the padlock, the time, the line for what went
-        # wrong, the field — then a rule and the two keys
+        # the lock screen's column (~/.config/fedokawaii/lock.ui), part for part: the padlock and
+        # the time, the day (its seal, the date, the weekday), the season, the line for what
+        # went wrong, the password's line — then the three keys
         box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, name="window-box",
                       halign=Gtk.Align.CENTER, valign=Gtk.Align.CENTER)
         info = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, name="info-box")
-        heading = Gtk.Box(name="heading")
-        heading.add(Gtk.Image(file=f"{art}/seal-{time.strftime('%u')}.png", name="seal", valign=Gtk.Align.CENTER))
-        self.date = Gtk.Label(name="date-label", valign=Gtk.Align.CENTER)
-        heading.add(self.date)
-        self.weekday = Gtk.Label(name="weekday", valign=Gtk.Align.CENTER)
-        heading.add(self.weekday)
-        stitch = Gtk.Box(name="stitch", hexpand=True, valign=Gtk.Align.CENTER)
-        stitch.connect("draw", draw_stitch)
-        heading.add(stitch)
-        heading.add(Gtk.Label(label="門", name="stamp", valign=Gtk.Align.CENTER))
-        info.add(heading)
-        # the face: the padlock, the time in the display size (48 px: design-system §2), AM/PM
+        # the face: the padlock, the time in the display size (64 px: design-system §2), AM/PM
         face = Gtk.Box(name="face", halign=Gtk.Align.CENTER)
         face.add(Gtk.Image(file=f"{art}/padlock.png", name="padlock", valign=Gtk.Align.CENTER))
         self.clock = Gtk.Label(name="clock-label", valign=Gtk.Align.CENTER)
@@ -146,6 +130,13 @@ class Greeter(Gtk.Window):
         self.ampm = Gtk.Label(name="ampm", valign=Gtk.Align.END)
         face.add(self.ampm)
         info.add(face)
+        heading = Gtk.Box(name="heading", halign=Gtk.Align.CENTER)
+        heading.add(Gtk.Image(file=f"{art}/seal-{time.strftime('%u')}.png", name="seal", valign=Gtk.Align.CENTER))
+        self.date = Gtk.Label(name="date-label", valign=Gtk.Align.CENTER)
+        heading.add(self.date)
+        self.weekday = Gtk.Label(name="weekday", valign=Gtk.Align.CENTER)
+        heading.add(self.weekday)
+        info.add(heading)
         line = Gtk.Box(name="verse-line", spacing=6, halign=Gtk.Align.CENTER)
         self.verse_kanji = Gtk.Label(name="verse-kanji")
         self.verse = Gtk.Label(name="verse")
@@ -166,10 +157,7 @@ class Greeter(Gtk.Window):
         self.entry.connect("activate", self.login)
         box.add(self.entry)
 
-        rule = Gtk.Box(name="rule")
-        rule.connect("draw", draw_stitch)
-        box.add(rule)
-        power = Gtk.Box(spacing=6, homogeneous=True)
+        power = Gtk.Box(name="keys", homogeneous=True)
         for label, verb in (("眠 sleep", "suspend"), ("再 restart", "reboot"), ("電 power off", "poweroff")):
             b = Gtk.Button(label=label, can_focus=True, hexpand=True, focus_on_click=False)
             b.connect("clicked", self.power, verb)

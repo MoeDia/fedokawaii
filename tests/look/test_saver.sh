@@ -64,7 +64,14 @@ if [[ -n $SAVER ]]; then
   case_ "its colours: the theme's saver.conf, all eight — missing, it says what to repair"
   for t in dark light; do
     eq "$(grep -c '^[a-z0-9_]*=[0-9a-f]\{6\}$' "$REPO/configs/home/.config/fedokawaii/themes/$t/saver.conf")" 8 "$t"
+    eq "$(sed -n 's/=.*//p' "$REPO/configs/home/.config/fedokawaii/themes/$t/saver.conf" | grep -v '^#' | tr '\n' ' ')" \
+      "ground surface edge2 thread shade text accent accent_text " "$t: the names kawa-saver reads, in its order"
   done
+  has "$(cat "$SRC/kawa-saver.c")" '"ground", "surface", "edge2", "thread", "shade", "text", "accent", "accent_text",'
+  has "$(cat "$SRC/kawa-saver.c")" 'enum { GROUND, SURFACE, EDGE2, THREAD, SHADE, TEXT, ACCENT, ACCENT_TEXT, NCOL };'
+  pc() { sed -n "s/^$2=//p" "$REPO/configs/home/.config/fedokawaii/themes/$1/panel.conf"; }
+  sc() { sed -n "s/^$2=//p" "$REPO/configs/home/.config/fedokawaii/themes/$1/saver.conf"; }
+  eq "$(sc dark thread)" "$(pc dark muted)" "the ink's thread: muted, as the bar's"; eq "$(sc light shade)" "$(pc light edge)" "the paper's shade: edge"
   rm "$HOME/.config/fedokawaii/current"
   out=$(saver 2>&1); eq "$?" 1; has "$out" "saver.conf"; has "$out" "fedokawaii repair"
 fi
@@ -72,12 +79,24 @@ fi
 case_ "input: the keyboard held while it shows, every key and button waited out, any of them ends it"
 has "$(cat "$SRC/kawa-saver.c")" "zwlr_layer_surface_v1_set_keyboard_interactivity(o->layer, 1)"
 has "$(cat "$SRC/kawa-saver.c")" "ZWLR_LAYER_SHELL_V1_LAYER_OVERLAY"
-has "$(cat "$SRC/kawa-saver.c")" "if (leaving && (held == 0 || t - leave_at > 3000))"
+has "$(cat "$SRC/kawa-saver.c")" "#define PART_MS 180"
+has "$(cat "$SRC/kawa-saver.c")" "if (washed && (idle_mode ? lock_up() : held == 0))" "gone once the wash is done and every key up (with --idle: once the lock is)"
+has "$(cat "$SRC/kawa-saver.c")" "if (t - leave_at > (idle_mode ? 15000 : 3000))" "never held for good: 3 s, 15 s waiting for the lock"
+grep -A12 '^static void part_step' "$SRC/kawa-saver.c" | grep -q GROUND && _ok || _no "the wash is not to the ground"
+lacks "$(cat "$SRC/kawa-saver.c")" "if (leaving && (held == 0"
 for f in kb_key pt_button pt_axis pt_motion; do grep -A12 "^static void $f" "$SRC/kawa-saver.c" | grep -q leave_now && _ok || _no "$f does not end it"; done
 
 case_ "--idle: dismissed, the lock is brought up before the screensaver goes (no key slips through)"
-has "$(cat "$SRC/kawa-saver.c")" "if (idle_mode && leaving)"
-grep -B2 -A3 'if (idle_mode && leaving)' "$SRC/kawa-saver.c" | grep -q 'lock_now();' && _ok || _no "no lock before it goes"
+grep -A8 '^static void leave_now' "$SRC/kawa-saver.c" | grep -q 'if (idle_mode)' && _ok || _no "leave_now: no --idle branch"
+grep -A8 '^static void leave_now' "$SRC/kawa-saver.c" | grep -q 'lock_start();' && _ok || _no "the first input does not start the lock"
+b=$(sed -n '/^static void lock_start(void)$/,/^}/p' "$SRC/kawa-saver.c")
+has "$b" 'execlp("kawa-lock", "kawa-lock", (char *)NULL);'; lacks "$b" "waitpid" "started, not waited for (the wash goes on meanwhile)"
+has "$(sed -n '/^static bool lock_up(void)$/,/^}/p' "$SRC/kawa-saver.c")" "waitpid(lock_pid, NULL, WNOHANG)"
+lacks "$(cat "$SRC/kawa-saver.c")" "lock_now"
+case_ "the clock framed in running stitch, its shadow a dot down and right, as the bar's patches"
+has "$(sed -n '/^static void draw_clock/,/^}/p' "$SRC/kawa-saver.c")" "stitch_frame(o, r.x, r.y, r.w, r.h);"
+has "$(sed -n '/^static void stitch_frame/,/^}/p' "$SRC/kawa-saver.c")" "put(o, x + i + 1, y + j + 1, SHADE);"
+lacks "$(cat "$SRC/kawa-saver.c")" "MUTED)"
 
 # ── kawa-idle: away 15 min the screensaver (and the lock), 30 min dark — never while playing ──
 look

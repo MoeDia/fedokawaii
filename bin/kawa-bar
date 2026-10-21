@@ -129,8 +129,12 @@ case $item in
          printf -v d '%(%a %d %b)T' -1
          printf '{"text":"%s"%s}\n' "$d" "$cls" ;;
   day)   # the day of the week as its kanji: 月 火 水 木 金 土 日, Monday first
+         # (Monday's 月 has 13 px of ink in its 16: its own class, so style.css centres it)
          k=(月 火 水 木 金 土 日); printf -v u '%(%u)T' -1
-         printf '{"text":"%s"%s}\n' "${k[u - 1]}" "$cls" ;;
+         if ((u == 1)); then
+           if [[ -n $cls ]]; then printf '{"text":"%s","class":["mon","active"]}\n' "${k[0]}"
+           else printf '{"text":"%s","class":"mon"}\n' "${k[0]}"; fi
+         else printf '{"text":"%s"%s}\n' "${k[u - 1]}" "$cls"; fi ;;
   mode)  # a seal while something is held back: 静 (quiet) while "do not disturb" is on,
          # 共有 (shared) while a screen is shared; nothing otherwise (hidden)
          case $(makoctl mode 2>/dev/null) in

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # tests/menus/test_help.sh — kawa-help (Super+/): the keybinding sheet from
 # ~/.config/fedokawaii/keybinds.txt as a searchable menu in the panel's line format (parts under
-# their kanji, a row a binding); a missing sheet is said, not shown empty.
+# their kanji, an info row a binding: only read, nothing chosen); a missing sheet is said, not shown empty.
 . "$(dirname "$0")/../lib/harness.sh"
 . "$(dirname "$0")/lib.sh"
 
@@ -17,19 +17,19 @@ for l in open(sys.argv[1], encoding="utf-8").read().splitlines():
     gaps = [m.end() for m in re.finditer(r"  +", l) if m.end() >= 24]
     i = gaps[0] if gaps else 24
     while not gaps and i < len(l) and not (l[i] != " " and l[i - 1] == " "): i += 1
-    print("row\t\t" + l[:i].strip() + "\t" + l[i:].strip())'
+    print("info\t\t" + l[:i].strip() + "\t" + l[i:].strip())'
 
-case_ "the sheet: every line but the blank ones, a filter prompt, sized to its content, 24 lines, the first binding selected"
+case_ "the sheet: every line but the blank ones, a filter prompt, sized to its content, 24 lines, no cursor (info rows are only read)"
 setup; answer esc; rc 0 kawa-help
 eq "$(fz_rows | grep -c .)" "$(grep -cv '^[[:space:]]*$' "$K")"
-eq "$(fz_arg prompt)" "> "; eq "$(fz_arg width)" ""; eq "$(fz_arg lines)" 24; eq "$(fz_arg select)" 1
-eq "$(fz_rows | sed -n 2p)" "row		Super+Return	terminal (foot)" "line 1 is a binding, not a heading"
+eq "$(fz_arg prompt)" "> "; eq "$(fz_arg width)" ""; eq "$(fz_arg lines)" 24; eq "$(fz_arg select)" ""
+eq "$(fz_rows | sed -n 2p)" "info		Super+Return	terminal (foot)" "line 1 is a binding, not a heading"
 eq "$(fz_arg drop)" "" "centred"; fits
-case_ "every binding: no glyph, the key as its name, what it does as its detail (the panel's column), as the sheet says"
-eq "$(fz_rows | grep '^row')" "$(python3 -I -c "$LINES" "$K")"
-has "$(fz_rows)" "row		Super+1…9	"
+case_ "every binding an info row: no glyph, the key as its name, what it does as its detail (the panel's column), as the sheet says"
+eq "$(fz_rows | grep '^info')" "$(python3 -I -c "$LINES" "$K")"
+has "$(fz_rows)" "info		Super+1…9	"
 case_ "every part under its kanji and name: what follows a colon or is in brackets at the heading's end"
-eq "$(fz_rows | grep -vc -e '^part	' -e '^row	')" 0 "nothing but parts and rows (the panel spaces its parts)"
+eq "$(fz_rows | grep -vc -e '^part	' -e '^info	')" 0 "nothing but parts and info rows (the panel spaces its parts)"
 eq "$(fz_rows | head -n1)" "part	起	launch	" "the sheet starts with its first heading"
 has "$(fz_rows)" "part	写	screenshots	clipboard + ~/Pictures/Screenshots"
 has "$(fz_rows)" "part	盤	drives	USB sticks, disks, SD cards"
@@ -44,9 +44,9 @@ setup
 printf '%s\n' '── windows ──' 'Super+Q                 close' 'Super+drag / right-drag move / resize' \
   'Super+Shift+Ctrl+drag / right-drag  swap and resize' 'Super+→ or End          wide arrow' >"$K"
 answer esc; rc 0 kawa-help
-has "$(fz_rows)" "row		Super+drag / right-drag	move / resize"
-has "$(fz_rows)" "row		Super+Shift+Ctrl+drag / right-drag	swap and resize"
-has "$(fz_rows)" "row		Super+→ or End	wide arrow"; fits
+has "$(fz_rows)" "info		Super+drag / right-drag	move / resize"
+has "$(fz_rows)" "info		Super+Shift+Ctrl+drag / right-drag	swap and resize"
+has "$(fz_rows)" "info		Super+→ or End	wide arrow"; fits
 
 case_ "the sheet itself (a terminal's columns): the rules end in column 67, each description at 24"
 setup
@@ -68,7 +68,7 @@ called 'notify-send -a desktop -u critical -- .*  keybindings keybinds.txt is mi
 eq "$(fz_n)" 0
 case_ "a sheet with blank lines (edited in the copy): they are left out, not shown as empty rows"
 setup; printf 'Super+A                 one\n\n   \nSuper+B                 two\n\t\n' >"$K"; answer esc; kawa-help
-eq "$(fz_rows)" $'row\t\tSuper+A\tone\nrow\t\tSuper+B\ttwo'
+eq "$(fz_rows)" $'info\t\tSuper+A\tone\ninfo\t\tSuper+B\ttwo'
 case_ "an empty sheet: an empty menu, no error"
 setup; : >"$K"; answer esc; rc 0 kawa-help
 

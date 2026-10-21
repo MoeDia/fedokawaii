@@ -329,29 +329,28 @@ EOF
 # ── the GitHub releases, faked: archives made here, and the fake machine's copies of the
 #    project pinned to them (lib/upstream.sh's SHA-256s are the real releases') ─────────────
 releases() {
-  local r=$TMP/rel d f sum name file old fusion
+  local r=$TMP/rel d f sum name file old
   rm -rf "$r"; mkdir -p "$r"
   tool() { printf '#!/bin/sh\necho "%s %s"\n' "$1" "$2" >"$3"; chmod 755 "$3"; }
-  mkdir -p "$r/satty" "$r/yazi/yazi-x86_64-unknown-linux-musl" "$r/lg" "$r/jb" "$r/fp" "$r/ge/GE-Proton10-25"
+  mkdir -p "$r/satty" "$r/yazi/yazi-x86_64-unknown-linux-musl" "$r/lg" "$r/jb" "$r/ge/GE-Proton10-25"
   tool satty 0.22.0 "$r/satty/satty"; tool yazi 26.9.1 "$r/yazi/yazi-x86_64-unknown-linux-musl/yazi"; tool ya 26.9.1 "$r/yazi/yazi-x86_64-unknown-linux-musl/ya"
   tool bluetui 0.8.2 "$FKH/dl/bluetui-x86_64-linux-musl"     # (no archive: the release file is the binary)
   fake_herdr "$FKH/dl/herdr-linux-x86_64"                    # (no archive either)
-  tool lazygit 0.66.1 "$r/lg/lazygit"; echo licence >"$r/lg/LICENSE"; echo readme >"$r/lg/README.md"   # (as its release: beside them)
+  # (lazygit's and LocalSend's versions and file names as lib/upstream.sh pins them)
+  local lgfile lsv
+  lgfile=$(. "$REPO/lib/upstream.sh"; printf '%s\n' "${UPSTREAM[@]}" | awk -F'|' '$1 == "lazygit" { print $4 }')
+  lsv=$(. "$REPO/lib/upstream.sh"; echo "${LOCALSEND_TAG#v}")
+  tool lazygit "$(sed -E 's/^lazygit_([0-9.]+)_.*/\1/' <<<"$lgfile")" "$r/lg/lazygit"; echo licence >"$r/lg/LICENSE"; echo readme >"$r/lg/README.md"   # (as its release: beside them)
   echo font >"$r/jb/JetBrainsMonoNerdFont-Regular.ttf"
-  for px in 12 10; do mkdir -p "$r/fp$px"; echo font >"$r/fp$px/fusion-pixel-${px}px-monospaced-ja.ttf"; echo font >"$r/fp$px/fusion-pixel-${px}px-monospaced-latin.ttf"; echo licence >"$r/fp$px/OFL.txt"; done
   echo '"compatibilitytools" { }' >"$r/ge/GE-Proton10-25/compatibilitytool.vdf"
   # LocalSend: its release folder (the app, its libraries, its data)
-  mkdir -p "$r/ls/lib" "$r/ls/data/flutter_assets/assets/img"; tool localsend_app 1.18.0 "$r/ls/localsend_app"
+  mkdir -p "$r/ls/lib" "$r/ls/data/flutter_assets/assets/img"; tool localsend_app "$lsv" "$r/ls/localsend_app"
   echo lib >"$r/ls/lib/libapp.so"; echo png >"$r/ls/data/flutter_assets/assets/img/logo-512.png"
   name=$(. "$REPO/lib/upstream.sh"; echo "$LOCALSEND_ASSET"); tar -czf "$FKH/dl/$name" -C "$r/ls" .
   tar -czf "$FKH/dl/satty-x86_64-unknown-linux-gnu.tar.gz" -C "$r/satty" .
   (cd "$r/yazi" && python3 -m zipfile -c "$FKH/dl/yazi-x86_64-unknown-linux-musl.zip" yazi-x86_64-unknown-linux-musl)
-  tar -czf "$FKH/dl/lazygit_0.66.1_linux_x86_64.tar.gz" -C "$r/lg" LICENSE README.md lazygit
+  tar -czf "$FKH/dl/$lgfile" -C "$r/lg" LICENSE README.md lazygit
   tar -cJf "$FKH/dl/JetBrainsMono.tar.xz" -C "$r/jb" .
-  fusion=$(. "$REPO/lib/upstream.sh"; echo "$FUSION_TAG")
-  for px in 12 10; do
-    (cd "$r/fp$px" && python3 -m zipfile -c "$FKH/dl/fusion-pixel-font-${px}px-monospaced-ttf-v$fusion.zip" OFL.txt "fusion-pixel-${px}px-monospaced-ja.ttf" "fusion-pixel-${px}px-monospaced-latin.ttf")
-  done
   tar -czf "$FKH/dl/GE-Proton10-25.tar.gz" -C "$r/ge" GE-Proton10-25
   (cd "$FKH/dl" && sha512sum GE-Proton10-25.tar.gz >GE-Proton10-25.sha512sum)
   printf '%s\n' '{"tag_name":"GE-Proton10-25","assets":[' \
@@ -368,9 +367,6 @@ releases() {
       old=$(. "$REPO/lib/upstream.sh"; printf '%s\n' "${NERD_FONTS[@]}" | sed -n "s/^$name|//p")
       sum=$(sha256sum "$FKH/dl/$name.tar.xz" | cut -d' ' -f1); sed -i "s/$old/$sum/" "$f"
     done
-    while IFS='|' read -r name old; do
-      sum=$(sha256sum "$FKH/dl/fusion-pixel-font-${name}px-monospaced-ttf-v$fusion.zip" | cut -d' ' -f1); sed -i "s/$old/$sum/" "$f"
-    done < <(. "$REPO/lib/upstream.sh"; printf '%s\n' "${FUSION_FACES[@]}")
     old=$(. "$REPO/lib/upstream.sh"; echo "$LOCALSEND_SHA256"); sum=$(sha256sum "$FKH/dl/$(. "$REPO/lib/upstream.sh"; echo "$LOCALSEND_ASSET")" | cut -d' ' -f1)
     sed -i "s/$old/$sum/" "$f"
   done
@@ -480,9 +476,11 @@ built() {
   printf '%s\n' root home >"$FKH/snapper-configs"; echo "1,fedokawaii baseline" >"$FKH/snaps"
   mkdir -p "$W/etc/snapper/configs"; for c in root home; do echo 'SUBVOLUME="/"' >"$W/etc/snapper/configs/$c"; done
   sed -i 's/^static dnf5-makecache.timer$/masked dnf5-makecache.timer/' "$FKH/units"
-  echo fedokawaii >"$FKH/tuned-profile"; printf '%s\n' dhcpv6-client >"$FKH/fw-services"; printf '%s\n' 6881/tcp 6881/udp 53317/tcp 53317/udp >"$FKH/fw-ports"
+  echo fedokawaii >"$FKH/tuned-profile"; printf '%s\n' dhcpv6-client ssh >"$FKH/fw-services"; printf '%s\n' 'enabled sshd.service' 'active sshd.service' >>"$FKH/units"
+  mkdir -p "$W/etc/ssh/sshd_config.d"; printf '%s\n' PasswordAuthentication\ no >"$W/etc/ssh/sshd_config.d/40-fedokawaii.conf"   # (SSH_SERVER=yes, as shipped)
+  printf '%s\n' 6881/tcp 6881/udp 53317/tcp 53317/udp >"$FKH/fw-ports"
   echo menu_auto_hide=2 >"$FKH/grubenv"
-  local q="rhgb quiet loglevel=3 rd.udev.log_level=3 systemd.show_status=false vt.global_cursor_default=0 systemd.tty.term.console=dumb plymouth.use-simpledrm"
+  local q="rhgb quiet loglevel=3 rd.udev.log_level=3 systemd.show_status=false vt.global_cursor_default=0 systemd.tty.term.console=dumb"
   printf '%s\n' "ro rootflags=subvol=root $q amdgpu.ppfeaturemask=0xfff7ffff" \
     "ro rootflags=subvol=root $q amdgpu.ppfeaturemask=0xfff7ffff" >"$FKH/grub-args"
   sed -i "s/rhgb quiet\$/$q amdgpu.ppfeaturemask=0xfff7ffff/" "$W/proc/cmdline"   # (this start: the same)
@@ -493,7 +491,7 @@ built() {
   echo $'Scrub started:    Sat Oct  3 02:00:00 2026\nStatus:           finished\nError summary:    no errors found' >"$FKH/scrub-status"
   # the user's home: tools at their pinned tags, fonts, GE-Proton, torrra, secrets, Prowlarr, nvim
   mkdir -p "$U/.local/bin" "$U/.local/share/fedokawaii/upstream" "$U/.local/share/fonts/JetBrainsMonoNerd" \
-    "$W/usr/local/share/fonts/fusion-pixel" "$U/.local/share/Steam/compatibilitytools.d/GE-Proton10-25" \
+    "$W/usr/local/share/fonts/fedokawaii" "$U/.local/share/Steam/compatibilitytools.d/GE-Proton10-25" \
     "$U/.local/src/dwl/.git" "$U/.local/share/uv/tools/torrra/bin" "$U/.config/fedokawaii" "$U/.config/containers/systemd" \
     "$U/.config/prowlarr" "$U/.config/nvim" "$U/.config/torrra" "$U/.local/state/fedokawaii" "$U/Downloads" "$U/.local/share/nvim/lazy/LazyVim"
   local name tag bins b
@@ -523,8 +521,7 @@ built() {
   for b in cargo rustc rust-analyzer cargo-clippy rustfmt; do printf '#!/bin/sh\nexit 0\n' >"$U/.local/share/cargo/bin/$b"; chmod 755 "$U/.local/share/cargo/bin/$b"; done
   printf '#!/bin/bash\n. /usr/local/bin/_lib.sh\nfkh_log "$*"\nexit 0\n' >"$U/.local/share/cargo/bin/rustup"; chmod 755 "$U/.local/share/cargo/bin/rustup"   # (says what update asks of it)
   for b in basedpyright ruff codelldb; do printf '#!/bin/sh\nexit 0\n' >"$U/.local/share/nvim/mason/bin/$b"; chmod 755 "$U/.local/share/nvim/mason/bin/$b"; done
-  : >"$U/.local/share/fonts/JetBrainsMonoNerd/a.ttf"; echo font >"$W/usr/local/share/fonts/fusion-pixel/fusion-pixel-12px-monospaced-ja.ttf"; echo font >"$W/usr/local/share/fonts/fusion-pixel/fusion-pixel-10px-monospaced-ja.ttf"
-  ( . "$REPO/lib/upstream.sh"; echo "$FUSION_TAG" ) >"$W/usr/local/share/fonts/fusion-pixel/.version"
+  : >"$U/.local/share/fonts/JetBrainsMonoNerd/a.ttf"; cp "$REPO"/system/fonts/{SumiUI.ttf,SumiTerm.ttf,LICENSE} "$W/usr/local/share/fonts/fedokawaii/"   # (install_faces')
   printf '#!/bin/bash\nfor a; do [[ $a == - ]] && { cat >/dev/null; break; }; done\nexit 0\n' >"$U/.local/share/uv/tools/torrra/bin/python"; chmod 755 "$U/.local/share/uv/tools/torrra/bin/python"
   printf 'PROWLARR_API_KEY=a1b2c3d4e5f60718293a4b5c6d7e8f90\n' >"$U/.config/fedokawaii/secrets.sh"; chmod 600 "$U/.config/fedokawaii/secrets.sh"
   cp "$REPO/system/prowlarr.container" "$U/.config/containers/systemd/prowlarr.container"

@@ -8,10 +8,11 @@
 #                                takes the place of the one before)
 #   kawa-timer stopwatch         a stopwatch, from zero
 #   kawa-timer cancel            the timer or stopwatch stopped (a stopwatch says where it stood)
-#   kawa-timer bar               the bar's module (waybar JSON, a line each second): the
-#                                time ("08:52:07 PM"), and beside it the hourglass and the
-#                                time left (vermilion) or gone by (asagi) while one runs; lit
-#                                (class "active") while its menu is open (kawa-bar)
+#   kawa-timer bar               the bar's clock (waybar JSON, a line each second): the time
+#                                ("08:52:07 PM"), lit (class "active") while its menu is open
+#   kawa-timer bar timer         the bar's timer cell: the hourglass and the time left (class
+#                                "timer") or gone by ("stopwatch") while one runs, else empty
+#                                — a cell of its own, so the clock's patch keeps its width
 #   kawa-timer ring END          what start leaves behind: at END (epoch seconds) a critical
 #                                notice with the bell, and a chime (pw-play)
 #
@@ -109,12 +110,7 @@ ring() {
 
 # ── the bar ─────────────────────────────────────────────────────────────────────
 bar() {
-  local w=$RUN/kawa-bar.wake.$$ fd k a b c s t now line last="" us frac cls tm
-  # (the timer's hourglass in the theme's own colours: inside the text, so a lit or pointed-at
-  # time — the whole module recoloured — keeps the timer's own)
-  # (a theme switch: its colours read again as the next second, or a wake, comes — the theme
-  # in use told by bash itself: current is the light theme's folder or not)
-  local th="" was=""
+  local cell=${1:-time} w=$RUN/kawa-bar.wake.$$ fd k a b c s t now line last="" us frac cls tm
   # shellcheck source=kawa-bar
   . "${BASH_SOURCE[0]%/*}/kawa-bar"                 # bar_lit (bash alone)
   trap 'exit 0' TERM HUP INT PIPE                 # (waybar closing it: its fifo goes too)
@@ -124,22 +120,23 @@ bar() {
   mkfifo -m 600 -- "$w" && exec {fd}<>"$w" || return 1
   trap 'rm -f -- "$w"' EXIT
   while :; do
-    th=dark; [[ $HOME/.config/fedokawaii/current -ef $HOME/.config/fedokawaii/themes/light ]] && th=light
-    # shellcheck source=/dev/null
-    [[ $th == "$was" ]] || { . "$HOME/.config/fedokawaii/current/colors.sh"; was=$th; }
     printf -v now '%(%I:%M:%S %p)T' -1
     tm="" cls=""
-    if read -r k a b c 2>/dev/null <"$STATE" && [[ $a =~ ^[0-9]+$ ]]; then
+    # (the colours are style.css's: vermilion left, asagi gone by — the classes say which)
+    if [[ $cell == timer ]] && read -r k a b c 2>/dev/null <"$STATE" && [[ $a =~ ^[0-9]+$ ]]; then
       if [[ $k == timer ]] && ((a > EPOCHSECONDS)); then
-        clock t $((a - EPOCHSECONDS))
-        tm="  <span color='#$C_ACCENT_TEXT'>$ICON_BAR_HOURGLASS$t</span>" cls='"timer"'
+        clock t $((a - EPOCHSECONDS)); tm=$ICON_BAR_HOURGLASS$t cls='"timer"'
       elif [[ $k == stopwatch ]]; then
-        s=$((EPOCHSECONDS - a)); ((s < 0)) && s=0; clock t "$s"
-        tm="  <span color='#$C_TEAL'>$ICON_BAR_HOURGLASS$t</span>" cls='"stopwatch"'
+        s=$((EPOCHSECONDS - a)); ((s < 0)) && s=0; clock t "$s"; tm=$ICON_BAR_HOURGLASS$t cls='"stopwatch"'
       fi
     fi
-    if bar_lit time; then cls="[${cls:+$cls,}\"active\"]"; fi
-    line="{\"text\":\"$now$tm\"${cls:+,\"class\":$cls}}"
+    if [[ $cell == timer ]]; then
+      if [[ -n $tm ]] && bar_lit time; then cls="[$cls,\"active\"]"; fi
+      line="{\"text\":\"$tm\"${cls:+,\"class\":$cls}}"
+    else
+      if bar_lit time; then cls='"active"'; fi
+      line="{\"text\":\"$now\"${cls:+,\"class\":$cls}}"
+    fi
     [[ $line == "$last" ]] || { printf '%s\n' "$line" || exit 0; last=$line; }
     # to the next whole second, with no process started: a read that times out (or a wake)
     us=${EPOCHREALTIME#*.}; us=$((1000000 - 10#$us)); printf -v frac '%06d' $((us % 1000000))
@@ -177,7 +174,7 @@ case ${1:-} in
   start)     (($# == 2)) || { echo "usage: kawa-timer start MINUTES" >&2; exit 2; }; start "$2" ;;
   stopwatch) (($# == 1)) || exit 2; stopwatch ;;
   cancel)    (($# == 1)) || exit 2; cancel ;;
-  bar)       (($# == 1)) || exit 2; bar ;;
+  bar)       (($# == 1)) || [[ $# == 2 && $2 == timer ]] || exit 2; bar "${2:-time}" ;;
   ring)      (($# == 2)) || exit 2; ring "$2" ;;
   *)         echo "kawa-timer: unknown command $1 (kawa-timer --help)" >&2; exit 2 ;;
 esac

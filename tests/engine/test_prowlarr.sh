@@ -257,6 +257,15 @@ case_ "torrra_up, broken and not mended by the install: said, not passed over"
 tu_world; stub uv; export FAKE_TEXTUAL_BROKEN=$TMP/textual-broken; : >"$FAKE_TEXTUAL_BROKEN"
 tu; eq "$RC" 1; has "$OUT" "is installed but does not load"; unset FAKE_TEXTUAL_BROKEN
 
+case_ "torrra_up's settings: the downloads folder, Prowlarr the default at its address, no key; the desktop's theme (fedokawaii) in place of torrra's own and the ones earlier setups chose — a theme you chose kept"
+for t in none gruvbox textual-dark ansi-dark ansi-light nord; do
+  tu_world; CFGT=$HOME/.config/torrra/config.toml; mkdir -p "${CFGT%/*}"
+  if [[ $t == none ]]; then : >"$CFGT"; else printf '[general]\ntheme = "%s"\n\n[indexers.prowlarr]\napi_key = "a1b2c3d4e5f60718293a4b5c6d7e8f90"\n' "$t" >"$CFGT"; fi
+  tu; eq "$RC" 0 "$t: $OUT"
+  w=fedokawaii; [[ $t == nord ]] && w=nord
+  got=$(python3 -I -c 'import sys, tomllib, json; c = tomllib.load(open(sys.argv[1], "rb")); print(c["general"]["theme"], c["general"]["download_path"] == sys.argv[2], c["indexers"]["default"], c["indexers"]["prowlarr"].get("url"), "api_key" in c["indexers"]["prowlarr"])' "$CFGT" "$HOME/Downloads")
+  eq "$got" "$w True prowlarr http://127.0.0.1:9696 False" "$t"
+done
 case_ "the constraints: torrra's libraries at the versions it was released with; libtorrent and certifi free"
 [[ -f $C ]] && _ok || _no "no $C"
 bad=$(grep -Ev '^(#|$)' "$C" 2>/dev/null | grep -Ev '^[a-z0-9][a-z0-9._-]*==[0-9][0-9A-Za-z.+-]*$'); eq "$bad" "" "not NAME==VERSION: $bad"

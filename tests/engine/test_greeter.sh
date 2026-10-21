@@ -129,19 +129,23 @@ grep -qF '(("眠 sleep", "suspend"), ("再 restart", "reboot"), ("電 power off"
 grep -qF '{ "眠 sleep", "suspend" }, { "再 restart", "reboot" }, { "電 power off", "poweroff" }' "$REPO/src/kawa-lockmod/kawa-lockmod.c" && _ok || _no "the lock screen's keys differ from the greeter's"
 grep -qF '"PrepareForSleep"' "$REPO/system/kawa-greet" && _ok || _no "the greeter does not hear of a sleep"
 
-case_ "its flavour, the lock screen's too: the weekday in kanji, a stamped seal, the season's and the hour's line — the same sixteen lines in both"
+case_ "its flavour, the lock screen's too: the day's seal (a picture, the weekday's), the weekday in kanji, the season's and the hour's line — the same sixteen lines in both"
 lines() { grep -oE '"[春夏秋冬]の[朝昼夕夜]", "[^"]*"' "$1"; }
 eq "$(lines "$REPO/system/kawa-greet" | wc -l)" 16
 eq "$(lines "$REPO/system/kawa-greet")" "$(lines "$REPO/src/kawa-lockmod/kawa-lockmod.c")" "kawa-greet's and kawa-lockmod's"
-eq "$(python3 -I -c 'import sys, importlib.machinery as m, importlib.util as u, time
+eq "$(python3 -I -B -c 'import sys, importlib.machinery as m, importlib.util as u, time
 sys.path.insert(0, sys.argv[2]); sys.dont_write_bytecode = True
 l = m.SourceFileLoader("kg", sys.argv[1]); g = u.module_from_spec(u.spec_from_loader("kg", l)); l.exec_module(g)
 t = lambda mon, h: time.struct_time((2026, mon, 1, h, 0, 0, 0, 1, 0))
 print(g.verse(t(10, 23))[0], g.verse(t(3, 5))[0], g.verse(t(7, 12))[0], g.verse(t(1, 18))[0], g.verse(t(12, 4))[0], g.WEEKDAYS[1])' "$REPO/system/kawa-greet" "$G")" \
   "秋の夜 春の朝 夏の昼 冬の夕 冬の夜 火曜日"
-grep -q 'label="門", name="stamp"' "$REPO/system/kawa-greet" && _ok || _no "the login's stamped seal"
-grep -q '"錠"' "$REPO/src/kawa-lockmod/kawa-lockmod.c" && _ok || _no "the lock's stamped seal"
-for id in weekday stamp verse-kanji verse; do
+grep -q 'heading.add(Gtk.Image(file=f"{art}/seal-{time.strftime(.%u.)}.png", name="seal"' "$REPO/system/kawa-greet" && _ok || _no "the login's seal, before the date"
+U=$REPO/configs/home/.config/fedokawaii/lock.ui
+has "$(grep -A8 '<object class="GtkImage" id="seal">' "$U")" '<property name="name">seal</property>' "the lock's seal (lock.ui)"
+has "$(grep -A8 '<object class="GtkImage" id="seal">' "$U")" '{SEAL}'
+has "$(cat "$REPO/bin/kawa-lock")" 's|{SEAL}|$art/seal-$day.png|' "kawa-lock: today's"
+lacks "$(cat "$REPO/system/kawa-greet" "$REPO/src/kawa-lockmod/kawa-lockmod.c")" 'name="stamp"' "no stamped label any more"
+for id in heading weekday padlock verse-kanji verse; do
   for t in dark light; do grep -q "#$id " "$REPO/configs/home/.config/fedokawaii/themes/$t/gtklock.css" && _ok || _no "$t gtklock.css has no #$id"; done
 done
 
@@ -153,7 +157,7 @@ grep -qF 'command = "env \$(/usr/local/bin/start-dwl --gpu) \\"XCURSOR_THEME=Sum
 grep -qF 'command = \"env \$(/usr/local/bin/start-dwl --gpu) \\\"XCURSOR_THEME=Sumi-\$(cat /var/lib/fedokawaii-greeter/theme)\\\" systemd-cat -t kawa-greet cage -d -s -- /usr/local/bin/kawa-greet $TARGET_USER\"' "$REPO/verify.sh" && _ok || _no "verify.sh's check does not match setup's line"
 
 case_ "its look: every file it loads is one setup installs (both themes)"
-for f in gtklock.css padlock.png seal-1.png seal-7.png; do
+for f in gtklock.css padlock.png seal-{1..7}.png; do
   for t in dark light; do
     case $f in *.css) src=$REPO/configs/home/.config/fedokawaii/themes/$t/$f ;; *) src=$REPO/configs/home/.local/share/fedokawaii/$t/$f ;; esac
     [[ -s $src ]] && _ok || _no "no $src"

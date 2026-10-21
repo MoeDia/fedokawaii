@@ -193,7 +193,7 @@ back built; fkh_del installed bat; fkh_add installed systemd-oomd-defaults; rese
 tk --repair; pkg_has bat && _ok || _no "bat not put back"
 called 'systemd-run\] .*--wait .* /usr/bin/dnf -y install bat$'
 called 'systemd-run\] .*--wait .* /usr/bin/dnf -y remove .*systemd-oomd-defaults'
-not_called 'systemd-run\] .* /usr/bin/dnf .*repoquery'; called '^root\[dnf\] -q repoquery --available --whatprovides bat$'
+not_called 'systemd-run\] .* /usr/bin/dnf .*repoquery'; called '^root\[dnf\] -q (--setopt=[^ ]*\.skip_if_unavailable=0 )+repoquery --available --whatprovides bat$'
 has "$OUT" "(as fedokawaii-dnf-"
 case_ "update: the manifest's install after the upgrade is detached too"
 back built; fkh_del installed bat; reset_calls

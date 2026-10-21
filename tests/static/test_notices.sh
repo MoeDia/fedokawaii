@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # tests/static/test_notices.sh — every notice of the desktop is laid out alike: the app
 # (-a desktop · drives · backup · torrra · notices, the names mako's sections go by), the icon (a Sumi
-# Icons glyph, two spaces, then the title — or the picture itself with -i), a title in lower
+# Icons glyph — or a kanji seal, as the snapshot's 史 —, two spaces, then the title — or the picture itself with -i), a title in lower
 # case (a name stays as it is spelled: Steam, Bluetooth, Prowlarr), "--" before it, so a
 # title can never be read as an option; something missing that repair puts back is critical.
 # And mako: a click takes a card away at once, the whole card.
@@ -14,7 +14,7 @@ files = [p for d in ("bin", "system", "configs") for p in (root / d).rglob("*") 
 files = [p for p in files if p.name != "fedokawaii-report" and p.suffix not in (".png", ".ttf", ".otf", ".pdf")]
 APPS = {"desktop", "drives", "backup", "torrra", "downloads", "notices"}
 NAMES = {"Steam", "Bluetooth", "Prowlarr"}
-ICON = re.compile(r'^"(\$ICON_[A-Z_]+|\$\{ICON_[A-Z_]+:-[^}]*\}|\$SEAL|\$ICON|\$\(\. [^)]*ICON_[A-Z_]+"?\))  ')
+ICON = re.compile(r'^"(\$ICON_[A-Z_]+|\$\{ICON_[A-Z_]+:-[^}]*\}|\$SEAL|\$ICON|\$\(\. [^)]*ICON_[A-Z_]+"?\)|[一-鿿])  ')
 bad = []
 for p in files:
     try: lines = p.read_text(encoding="utf-8").splitlines()
@@ -52,9 +52,10 @@ for p in files:
 print("\n".join(bad))
 EOF
 )
-case_ "every notify-send: -a a known app, --, an icon and two spaces, a title in lower case, critical when repair is needed"
+case_ "every notify-send: -a a known app, --, an icon (or a kanji seal) and two spaces, a title in lower case, critical when repair is needed"
 while IFS= read -r l; do [[ -n $l ]] && _no "$l"; done <<<"$out"
 eq "$out" ""
+has "$(cat "$REPO/configs/home/.config/dwl/autostart.sh")" 'notify-send -a desktop -u critical -- "史  a snapshot"' "the snapshot's notice: 史 (history), kept until dismissed"
 
 case_ "the python notices (torrra's, the downloads') laid out the same: -a, --, the icon and two spaces"
 has "$(cat "$REPO/system/kawa-torrra")" '"notify-send", "-a", "torrra", "-u", urgency, "--", icon + "  torrra", msg'

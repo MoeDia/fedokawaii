@@ -1,10 +1,11 @@
 #!/usr/bin/env bash
 # tests/menus/test_menu.sh — kawa-menu, what every menu goes through: what it hands the panel
 # (its fifo: the request, the caller; the panel decides one menu at a time — test_panel), what
-# it prints back, wrong use; and the launcher (fuzzel): centred, its key or the torii again
-# closes it, every press counts however fast, the click on the torii that closed it does not reopen it,
-# and a fast clicker's clicks each open or close it. The panel is fake_panel (a stand-in that
-# reads the fifo and answers as each case says), fuzzel fake_fuzzel.
+# it prints back, wrong use; and the launcher (the panel's: kawa-menu --launcher writes one
+# "toggle launcher" a press — every press reaches the panel, however fast, nothing waited for;
+# the panel decides the rest: centred, its key or the torii again closes it, the click that
+# closed it does not reopen it, lit while open — test_panel). The panel is fake_panel (a
+# stand-in that reads the fifo and answers as each case says).
 . "$(dirname "$0")/../lib/harness.sh"
 . "$(dirname "$0")/lib.sh"
 
@@ -18,7 +19,7 @@ answer "row 1"; out=$(pick)
 eq "$out" beta "the chosen row's text"
 eq "$(fz_rows)" "$rows" "the rows reach the panel unchanged"
 eq "$(fz_args)" "" "no options: centred, no title, no prompt (the panel's defaults)"
-called '^kawa-panel --menu $'; not_called '^fuzzel'
+called '^kawa-panel --menu $'
 eq "$(cat "$FZ/who.$(fz_n)")" test_menu.sh "the script that asked: the panel's toggle and the lit button go by it"
 
 case_ "every option reaches the panel"
@@ -45,7 +46,7 @@ answer "row 0"; pick --title "" >/dev/null
 eq "$(fz_args | tr '\n' '|')" "--title||"
 
 case_ "Esc, a click outside: nothing printed, exit 1"
-answer esc; rc 1 pick; answer lost; rc 1 pick; forget
+answer esc; rc 1 pick; answer lost; rc 1 pick
 answer esc; eq "$(pick --index)" ""
 
 case_ "--index: typed text that matches nothing is no line number — dismissed"
@@ -69,7 +70,9 @@ eq "$(fz_arg width)" 12; eq "$(fz_arg lines)" 2
 
 case_ "--help: the usage and the line format, exit 0"
 out=$(kawa-menu --help); rc 0 kawa-menu --help
-has "$out" "kawa-menu [--drop]"; has "$out" "--index"; has "$out" "part"; has "$out" "row|on|off GLYPH NAME [DETAIL [VALUE]]"
+has "$out" "kawa-menu [--drop]"; has "$out" "--index"; has "$out" "part"; has "$out" "row|on|off|info GLYPH NAME [DETAIL [VALUE]]"
+has "$out" "--width N   at least N columns of 8 px" "(the panel's column: kawa-panel's COL)"
+eq "$(python3 -I -c 'import re,sys; print(re.search(r"^COL = (\d+)", open(sys.argv[1]).read(), re.M).group(1))' "$REPO/bin/kawa-panel")" 8
 case_ "wrong use: exit 2 and no menu opens"
 n=$(fz_n)
 rc 2 kawa-menu --bogus; rc 2 kawa-menu --title; rc 2 kawa-menu --width
@@ -78,21 +81,19 @@ rc 2 kawa-menu --launcher --index; rc 2 kawa-menu --launcher --title x
 eq "$(fz_n)" "$n"
 has "$(kawa-menu --nope 2>&1)" "unknown option --nope"
 
-case_ "fuzzel missing: the menus open all the same (the panel's); the launcher says it is missing"
-p=$(without fuzzel); reset_calls
-answer "row 1"; eq "$(PATH=$p pick)" beta
-PATH=$p rc 1 kawa-menu --launcher
-called 'notify-send -a desktop -u critical -- .*  menus fuzzel is missing'
-install -m 755 "$MD/fake_fuzzel" "$STUBS/fuzzel"
+case_ "the launcher: the panel's — one \"toggle launcher\" line to its fifo, exit 0 at once; no menu of its own, no other program"
+n=$(fz_n); reset_calls; rc 0 kawa-menu --launcher; sleep 0.2
+eq "$(grep -c . "$CALLS")" 1 "one line"; called '^kawa-panel toggle launcher$'; eq "$(fz_n)" "$n" "no menu asked for"
+for w in fuzzel kawa-calc notify-send kawa-launcher.state; do lacks "$(grep -v '^ *#' "$REPO/bin/kawa-menu")" "$w"; done
 
-case_ "no runtime folder: a menu cannot reach the panel — exit 1 at once, saying why; the launcher opens all the same"
+case_ "no runtime folder: a menu cannot reach the panel — exit 1 at once, saying why; nor can the launcher"
 o=$(printf 'a\n' | XDG_RUNTIME_DIR=$TMP/gone timeout 5 kawa-menu 2>&1); r=$?
 [[ $r == 1 && $o == *"no runtime folder"* ]] && _ok || _no "rc $r: $o"
-reset_calls; answer esc; rc 1 env XDG_RUNTIME_DIR=$TMP/gone timeout 5 kawa-menu --launcher
-called '^fuzzel'; eq "$(fz_n)" "$(fz_n)"
-case_ "nothing left behind in the runtime folder: the panel's pid file and fifo, the launcher's record and fuzzel's lock"
-answer "row 0"; pick >/dev/null; answer esc; kawa-menu --launcher
-eq "$(cd "$XDG_RUNTIME_DIR" && find . -mindepth 1 ! -name fuzzel-wayland-test.lock ! -name kawa-launcher.state ! -name kawa-panel.pid ! -name kawa-panel.in | sort)" ""
+o=$(XDG_RUNTIME_DIR=$TMP/gone timeout 5 kawa-menu --launcher 2>&1); r=$?
+[[ $r == 1 && $o == *"no panel to show the launcher"* ]] && _ok || _no "rc $r: $o"
+case_ "nothing left behind in the runtime folder: the panel's pid file and fifo"
+answer "row 0"; pick >/dev/null; kawa-menu --launcher; sleep 0.2
+eq "$(cd "$XDG_RUNTIME_DIR" && find . -mindepth 1 ! -name kawa-panel.pid ! -name kawa-panel.in | sort)" ""
 case_ "every request reaches the panel whole: 30 menus asked at once, each answered as its own"
 pids=(); for i in {1..30}; do answer "row 1"; done
 for i in {1..30}; do (printf 'x%s\ny%s\n' "$i" "$i" | kawa-menu >"$TMP/got.$i") & pids+=($!); done; wait "${pids[@]}"
@@ -109,90 +110,29 @@ kill "$(cat "$XDG_RUNTIME_DIR/kawa-panel.pid")"; t0=$EPOCHREALTIME; wait "$m"
 eq "$(cat "$TMP/gone-rc")" "rc 1"; t=$(( (${EPOCHREALTIME/./} - ${t0/./}) / 1000 )); ((t < 1500)) && _ok || _no "only after $t ms"
 case_ "no panel running: one is started, the menu shown"
 answer "row 1"; eq "$(pick)" beta
-case_ "the launcher closes what the panel shows first (a \"close\" line); a menu asks nothing else of it"
-reset_calls; answer esc; kawa-menu --launcher; sleep 0.2
-called '^kawa-panel close$'
-reset_calls; answer "row 0"; pick >/dev/null; sleep 0.2; not_called '^kawa-panel close$'
+case_ "the launcher asks only for itself (the panel closes what it shows: no \"close\" line); a menu asks nothing else of it either"
+reset_calls; kawa-menu --launcher; sleep 0.2
+not_called '^kawa-panel close$'; called '^kawa-panel toggle launcher$'
+reset_calls; answer "row 0"; pick >/dev/null; sleep 0.2; not_called '^kawa-panel close$'; not_called 'toggle'
+case_ "a stale pid file (its pid someone else's): not the panel — that process untouched, a panel started, the launcher shown by it"
 pp=$(cat "$XDG_RUNTIME_DIR/kawa-panel.pid"); sleep 30 & op=$!; echo "$op" >"$XDG_RUNTIME_DIR/kawa-panel.pid"
-reset_calls; answer esc; kawa-menu --launcher; sleep 0.2; not_called 'kawa-panel close'
+reset_calls; rc 0 kawa-menu --launcher; sleep 0.3; called '^kawa-panel toggle launcher$'
 [[ -e /proc/$op ]] && _ok || _no "a stale pid file's process (not the panel) was touched"
-kill "$op"; echo "$pp" >"$XDG_RUNTIME_DIR/kawa-panel.pid"
+np=$(cat "$XDG_RUNTIME_DIR/kawa-panel.pid"); [[ $np != "$op" && $np != "$pp" && -e /proc/$np ]] && _ok || _no "no new panel (pid file: $np)"
+kill "$op" "$pp" 2>/dev/null
 
-case_ "fuzzel.ini (the launcher's look) passes the real fuzzel's own check, in both themes"
-real=$(PATH=/usr/local/bin:/usr/bin:/bin command -v fuzzel || ls /opt/f44/bin/fuzzel 2>/dev/null)
-if [[ -n $real ]]; then
-  config .config/fuzzel/fuzzel.ini
-  for th in dark light; do
-    ln -sfn "themes/$th" "$HOME/.config/fedokawaii/current"
-    LD_LIBRARY_PATH=${real%/bin/fuzzel}/lib "$real" --check-config --config="$HOME/.config/fuzzel/fuzzel.ini" >/dev/null 2>&1 \
-      && _ok || _no "fuzzel --check-config fails with the $th theme"
-  done
-  ln -sfn themes/dark "$HOME/.config/fedokawaii/current"
-else echo "  (no real fuzzel here: fuzzel.ini not checked)"; fi
-
-# ── the launcher: one at a time ───────────────────────────────────────────────────────
-R=$XDG_RUNTIME_DIR
-waitfor() { local _; for _ in {1..100}; do [[ -e $1 ]] && return 0; sleep 0.02; done; return 1; }
-open_fz() { [[ -e $FZ/hang.$(fz_n) && -e /proc/$(cat "$FZ/hang.$(fz_n)") ]]; }   # the launcher on screen
-press() { echo "24 5 HEADLESS-1 0 1920" >"$R/dwl-pointer.new"; mv -f "$R/dwl-pointer.new" "$R/dwl-pointer"; }   # dwl: a press on the bar
-at() { local ms=$1; shift; KAWA_MENU_TIME=$((1000000000000 + ms * 1000)) "$@"; }   # at MS CMD — CMD MS ms in (the clock stood in for)
-fresh() { menus_sandbox; R=$XDG_RUNTIME_DIR; rm -f "$R"/kawa-launcher.*; }
-case_ "the launcher: in the middle of the screen (fuzzel's own place) — from the torii too"
-fresh; press; answer esc; kawa-menu --launcher
-eq "$(fz_args)" "--launch-prefix=kawa-calc --launch" "no output, anchor or margin: centred (only the launch prefix)"
-lacks "$(cat "$REPO/bin/kawa-menu")" "x-margin"
-case_ "its key again: closed, no second one; pressed fast (dwl repeats no held key that opens it): every press counts — open after an odd number, closed after an even one"
-fresh; answer hang; kawa-menu --launcher & bg=$!; waitfor "$FZ/hang.1"
-kawa-menu --launcher; wait "$bg"
-open_fz && _no "still open" || _ok; eq "$(fz_n)" 1 "no second launcher"
-for _ in {1..10}; do answer hang; done; bad=""
-for i in {1..7}; do
-  setsid -f kawa-menu --launcher </dev/null >/dev/null 2>&1
-  for _ in {1..100}; do want=$((i % 2)); got=0; open_fz && got=1; ((got == want)) && break; sleep 0.01; done
-  ((got == want)) || bad+=" press $i: open $got;"
-done
-eq "${bad:-ok}" ok
-open_fz && kill "$(cat "$FZ/hang.$(fz_n)")"
-case_ "lit while open: kawa-launcher.open (kawa-menu's pid), gone however it ends"
-fresh; answer hang; kawa-menu --launcher & bg=$!; waitfor "$FZ/hang.1"; sleep 0.1
-[[ $(cat "$R/kawa-launcher.open" 2>/dev/null) == "$bg" ]] && _ok || _no "no marker with its pid"
-kill "$(cat "$FZ/hang.1")"; wait "$bg"; [[ -e $R/kawa-launcher.open ]] && _no "the marker stayed" || _ok
-case_ "the torii clicked while it is open: that click closed it (outside) — the click's own call does not reopen it; the next click opens it, however soon"
-fresh; answer hang hang; press; kawa-menu --launcher & bg=$!; waitfor "$FZ/hang.1"
-press; kill "$(cat "$FZ/hang.1")"                  # (dwl: the press written, then the menu loses the keyboard)
-kawa-menu --launcher; wait "$bg"
-open_fz && _no "reopened by the click that closed it" || _ok; eq "$(fz_n)" 1
-press; kawa-menu --launcher & bg=$!; waitfor "$FZ/hang.2" && _ok || _no "the next click did not open it"
-kill "$(cat "$FZ/hang.2" 2>/dev/null)" 2>/dev/null; wait "$bg"
-case_ "a fast clicker: 16 clicks on the torii, 80–150 ms apart, the click outside arriving before or after the click's own call — open after each odd click, closed after each even one, lit exactly while open"
-fresh; for _ in {1..20}; do answer hang; done; bad=""; RANDOM=7
-for i in {1..16}; do
-  press
-  if open_fz && ((RANDOM % 2)); then kill "$(cat "$FZ/hang.$(fz_n)")"; fi   # (the press took its keyboard first)
-  setsid -f kawa-menu --launcher </dev/null >/dev/null 2>&1
-  sleep "0.$((80 + RANDOM % 70))"
-  # (the state looked at until it is the one wanted — 1.5 s, for a busy machine)
-  want=$((i % 2))
-  for _ in {1..75}; do
-    got=0; open_fz && got=1; lit=0; [[ -e $R/kawa-launcher.open ]] && lit=1
-    [[ $got == "$want" && $lit == "$want" ]] && break; sleep 0.02
-  done
-  [[ $got == "$want" && $lit == "$want" ]] || bad+=" click $i: open $got lit $lit;"
-done
-eq "${bad:-ok}" ok
-open_fz && kill "$(cat "$FZ/hang.$(fz_n)")"
-case_ "a plain fuzzel (a passphrase) holds fuzzel's lock: the launcher does not open; once it is gone, it does"
-fresh; exec 7>>"$R/fuzzel-$WAYLAND_DISPLAY.lock"; flock 7
-rc 1 kawa-menu --launcher; eq "$(fz_n)" 0
-exec 7>&-; answer esc; kawa-menu --launcher; eq "$(fz_n)" 1
-case_ "a record left by a launcher killed mid-way, its pid now someone else's, or garbage: ignored, nothing killed"
-fresh; sleep 30 & other=$!
-printf '%s open - -\n' "$other" >"$R/kawa-launcher.state"
-answer esc; kawa-menu --launcher; eq "$(fz_n)" 1 "it opened"
-[[ -e /proc/$other ]] && _ok || _no "an unrelated process was killed"; kill "$other"
-t=0; for junk in "-1 open x y z" "garbage" "" $'\x01\x02 x y'; do
-  printf '%s\n' "$junk" >"$R/kawa-launcher.state"; answer esc; at $((t += 1000)) kawa-menu --launcher
-done
-eq "$(fz_n)" 5 "it opened every time"
+# ── the launcher: every press reaches the panel ─────────────────────────────────────────
+case_ "its key pressed fast (dwl repeats no held key that opens it): every press reaches the panel as its own \"toggle launcher\", none waited on, none lost — the panel counts them (test_panel: open after an odd number)"
+reset_calls; t0=$EPOCHREALTIME
+for _ in {1..7}; do setsid -f kawa-menu --launcher </dev/null >/dev/null 2>&1; done
+for _ in {1..100}; do (($(grep -c '^kawa-panel toggle launcher$' "$CALLS") >= 7)) && break; sleep 0.02; done
+eq "$(grep -c '^kawa-panel toggle launcher$' "$CALLS")" 7
+t=$(( (${EPOCHREALTIME/./} - ${t0/./}) / 1000 )); ((t < 1500)) && _ok || _no "only after $t ms"
+reset_calls; for _ in {1..7}; do kawa-menu --launcher; done; sleep 0.2
+eq "$(grep -c '^kawa-panel toggle launcher$' "$CALLS")" 7 "one after another: the same"
+case_ "no panel running: the launcher starts one and asks it (as a menu does)"
+kill "$(cat "$XDG_RUNTIME_DIR/kawa-panel.pid")"; sleep 0.1; reset_calls
+rc 0 kawa-menu --launcher; sleep 0.3; called '^kawa-panel toggle launcher$'
+answer "row 2"; eq "$(pick)" gamma "the same panel takes the next menu"
 
 done_

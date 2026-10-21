@@ -8,10 +8,12 @@
 #            container for a look: podman exec -it fedokawaii-trial bash) · --help
 #
 # Needs: podman (rootless), the network, ~10 GB free where podman keeps its containers, 20–40
-# minutes. Touches nothing of this machine but podman's own storage and ~/fedokawaii-trial*:
+# minutes. Touches nothing of this machine but podman's own storage and one file in the home:
 #   ~/fedokawaii-trial.txt    the results: PASS/FAIL per scenario, every ✘ and warning with
-#                             the lines around it, then every log in full
-#   ~/fedokawaii-trial.d/     the logs one by one, and packages.evidence as dnf answered it
+#                             the lines around it, then every log in full (packages.evidence
+#                             as dnf answered it too) — the one file to hand on
+# Its lock and its working folder (the logs one by one) are under $XDG_RUNTIME_DIR (else
+# ~/.cache/fedokawaii), and go when it ends: nothing of it is left to show in a file dialog.
 # The stages (a progress line each, with its time):
 #   1 podman and space · 2 the image · 3 the container: a Server-like base (the tools a Minimal
 #   Install has), the repository copied in, a desktop user · 4 tools/check-packages (static) ·
@@ -40,11 +42,14 @@ while (($#)); do
   esac; shift
 done
 ((EUID != 0)) || { echo "container-trial: run it as yourself, not root — rootless podman keeps it all in your own storage" >&2; exit 2; }
-OUT=$HOME/fedokawaii-trial.txt D=$HOME/fedokawaii-trial.d NAME=fedokawaii-trial
-mkdir -p "$D" || exit 1
-exec 8>"$HOME/fedokawaii-trial.lock"
-flock -n 8 || { echo "container-trial: another trial is running (~/fedokawaii-trial.lock)" >&2; exit 1; }
-rm -f "$D"/*.log
+OUT=$HOME/fedokawaii-trial.txt NAME=fedokawaii-trial
+WORK=${XDG_RUNTIME_DIR:-}; [[ -n $WORK && -d $WORK && -w $WORK ]] || WORK=$HOME/.cache/fedokawaii
+mkdir -p "$WORK" || exit 1
+exec 8>"$WORK/fedokawaii-trial.lock"
+flock -n 8 || { echo "container-trial: another trial is running ($WORK/fedokawaii-trial.lock)" >&2; exit 1; }
+D=$(mktemp -d "$WORK/fedokawaii-trial.XXXXXX") || exit 1
+# (what an older version left in the home: its working folder and lock)
+rm -rf -- "$HOME/fedokawaii-trial.d" "$HOME/fedokawaii-trial.lock"
 if [[ -t 1 ]]; then G=$'\e[32m' R=$'\e[31m' Y=$'\e[33m' DIM=$'\e[2m' Z=$'\e[0m'; else G="" R="" Y="" DIM="" Z=""; fi
 START=$(date +%s) STAGES=12 N=0
 RESULTS=()   # "PASS|name|time|note"
@@ -71,11 +76,12 @@ trial_run() { local log=$1; shift; inside "$log" env SUDO_USER=kawa "$@" bash /r
 marks_out() { q "rm -f /var/lib/fedokawaii/done.T*"; }   # every trial step runs again
 issues() { grep -aE '✘|^ *! |dnf attempt [0-9]|attempt [0-9]+/[0-9]+ failed|warning|Error:' "$D/$1.log" | grep -v '^──' || true; }
 cleanup() {
+  rm -rf -- "$D"; rm -f -- "$WORK/fedokawaii-trial.lock"   # (the results are in ~/fedokawaii-trial.txt)
   ((KEEP)) && { echo "the container is kept: podman exec -it $NAME bash · podman rm -f $NAME when done"; return; }
   podman rm -f "$NAME" >/dev/null 2>&1 || true
 }
 trap 'cleanup' EXIT
-trap 'echo; echo "stopped — the container is removed; the results so far: $OUT"; exit 130' INT TERM
+trap 'echo; write_out; echo "stopped — the container is removed; the results so far: $OUT"; exit 130' INT TERM
 
 s_podman() {
   command -v podman >/dev/null || { NOTE="podman is not installed — sudo dnf install podman"; return 1; }
@@ -95,9 +101,10 @@ s_image() {
 }
 s_container() {
   pm run -d --name "$NAME" --hostname fedokawaii-trial -e container=podman "$IMAGE" sleep infinity || { NOTE="podman run failed"; return 1; }
-  # what Fedora Server's Minimal Install has and the container image leaves out
+  # what Fedora Server's Minimal Install has and the container image leaves out (and jq:
+  # check-packages --live reads dnf's JSON with it, even when setup stopped before its base step)
   inside base dnf -y install --setopt=install_weak_deps=False shadow-utils util-linux sudo procps-ng findutils tar gzip \
-    which curl gnupg2 systemd passwd hostname diffutils file || { NOTE="the Server-like base did not install (base.log)"; return 1; }
+    which curl gnupg2 systemd passwd hostname diffutils file jq || { NOTE="the Server-like base did not install (base.log)"; return 1; }
   pm cp "$REPO/." "$NAME:/root/fedokawaii" || { NOTE="could not copy the repository in"; return 1; }
   inside base bash -c 'rm -rf /root/fedokawaii/.git; chown -R root:root /root/fedokawaii; useradd -m -G wheel kawa' || { NOTE="no desktop user"; return 1; }
   NOTE="Fedora $(q '. /etc/os-release; echo $VERSION_ID'), $(q 'rpm -qa | wc -l') packages, user kawa"
@@ -198,27 +205,8 @@ s_downloads() {
   return 0
 }
 
-echo "Fedokawaii container trial — $(date '+%F %H:%M') · $IMAGE · the results: $OUT"
-: >"$D/trial.log"
-ok=1
-stage "podman and space"            s_podman  || ok=0
-((ok)) && { stage "the Fedora 44 image" s_image || ok=0; }
-((ok)) && { stage "the container (Server-like base, the repository, a user)" s_container || ok=0; }
-if ((ok)); then
-  stage "check-packages: the manifest (static)" s_static
-  if stage "setup --trial: every package step, for real" s_setup; then
-    stage "check-packages --live: dnf's own answer" s_live
-    stage "run again: idempotent (no changes, no warnings)" s_again
-    stage "killed mid-transaction (power cut), resumed"   s_killed
-    stage "a repository answering 404, then gone"          s_badmirror
-    stage "stale metadata (a month-old cache)"             s_stale
-    stage "the package database held by another dnf"       s_locked
-    stage "release downloads: checksum mismatch, GitHub unreachable" s_downloads
-  else
-    stage "check-packages --live: dnf's own answer" s_live
-  fi
-fi
-# ── the one file ──────────────────────────────────────────────────────────────
+# write_out — the one file, from what has run so far (at the end, or when the trial is stopped)
+write_out() {
 pass=0 fail=0
 {
   echo "FEDOKAWAII CONTAINER TRIAL — $(date '+%F %H:%M') — $(secs $(($(date +%s) - START))) — $IMAGE"
@@ -245,6 +233,30 @@ pass=0 fail=0
   for f in "$D"/*.log; do [[ -f $f ]] || continue; echo; echo "════ ${f##*/}"; cat "$f"; done
   [[ -f $D/packages.evidence ]] && { echo; echo "════ packages.evidence (dnf's answer)"; cat "$D/packages.evidence"; }
 } >"$OUT" 2>&1
+}
+
+echo "Fedokawaii container trial — $(date '+%F %H:%M') · $IMAGE · the results: $OUT"
+: >"$D/trial.log"
+ok=1
+stage "podman and space"            s_podman  || ok=0
+((ok)) && { stage "the Fedora 44 image" s_image || ok=0; }
+((ok)) && { stage "the container (Server-like base, the repository, a user)" s_container || ok=0; }
+if ((ok)); then
+  stage "check-packages: the manifest (static)" s_static
+  if stage "setup --trial: every package step, for real" s_setup; then
+    stage "check-packages --live: dnf's own answer" s_live
+    stage "run again: idempotent (no changes, no warnings)" s_again
+    stage "killed mid-transaction (power cut), resumed"   s_killed
+    stage "a repository answering 404, then gone"          s_badmirror
+    stage "stale metadata (a month-old cache)"             s_stale
+    stage "the package database held by another dnf"       s_locked
+    stage "release downloads: checksum mismatch, GitHub unreachable" s_downloads
+  else
+    stage "check-packages --live: dnf's own answer" s_live
+  fi
+fi
+# ── the one file ──────────────────────────────────────────────────────────────
+write_out
 echo
 if ((fail == 0 && pass > 0)); then printf '%s✔ every scenario passed%s — %s (send it as it is)\n' "$G" "$Z" "$OUT"; exit 0; fi
 printf '%s✘ %d scenario(s) failed%s — everything is in %s (send it as it is)\n' "$R" "$fail" "$Z" "$OUT"; exit 1

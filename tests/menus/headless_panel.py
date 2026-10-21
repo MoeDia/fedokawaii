@@ -1,6 +1,6 @@
 """tests/menus/headless_panel.py — the real kawa-panel's decisions without a screen, as the
 session runs it: its fifo ($XDG_RUNTIME_DIR/kawa-panel.in) read line by line exactly as the
-panel's main loop does (toggle MODE · menu PID · close), every request handed to the real
+panel's main loop does (toggle MODE · toggle launcher · menu PID · close), every request handed to the real
 Panel (bin/kawa-panel, loaded as a module with a stand-in for gi), and kawa-menu's callers
 answered through their own fifos. After every line, $XDG_RUNTIME_DIR/panel.state holds
 "1 WHAT" while a panel or menu is on screen, "0 -" when none is.
@@ -85,6 +85,8 @@ while True:
         f = line.decode(errors="replace").split()
         if len(f) == 2 and f[0] == "toggle" and f[1] in kp.MODES:
             panel.request(f[1])
+        elif f == ["toggle", "launcher"]:             # (no applications here: an empty list)
+            panel.request("launcher", kp.Launcher([], {}), None)
         elif len(f) == 2 and f[0] == "menu" and f[1].isdigit():
             menu_from(int(f[1]))
         elif f == ["close"]:

@@ -263,7 +263,7 @@ pick_target() {   # → 0 saved (and read again) · 4 nothing to pick, or none p
     printf '%s\n' "$l"
   done <"$TK/fedokawaii.conf" >"$t"
   printf '  %s keeps your backup from now on — saving it as BACKUP_TARGET (root'"'"'s password)\n' "$label"
-  if sudo -v; then sudo bash "$TK/fedokawaii.sh" conf "$t"; rc=$?
+  if sudo -v -p "  your password (sudo, as %u): "; then sudo bash "$TK/fedokawaii.sh" conf "$t"; rc=$?
   else echo "  this needs root: sudo refused (a wrong password, or not an administrator)" >&2; rc=1; fi
   rm -f -- "$t"
   ((rc == 0)) || { err "not saved — BACKUP_TARGET is as it was"; return 1; }

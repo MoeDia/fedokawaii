@@ -1,5 +1,6 @@
-"""httpx, as kawa-torrra uses it: one GET to Prowlarr. FAKE_PROWLARR says how Prowlarr answers
-(ok · down · slow · 401 · 500 · noindexers); FAKE_LOG records the request."""
+"""httpx, as kawa-torrra uses it: one GET to Prowlarr (its AsyncClient's, at the first search).
+FAKE_PROWLARR says how Prowlarr answers (ok · down · slow · 401 · 500 · noindexers); FAKE_LOG
+records the request."""
 import json
 import os
 
@@ -35,3 +36,17 @@ def get(url, headers=None, timeout=None):
     if mode == "noindexers":
         return _Response(200, json.dumps([{"enable": False}]))
     return _Response(200, json.dumps([{"enable": False}, {"enable": True}]))
+
+
+class AsyncClient:
+    def __init__(self, timeout=None):
+        self.timeout = timeout
+
+    async def __aenter__(self):
+        return self
+
+    async def __aexit__(self, *a):
+        return False
+
+    async def get(self, url, headers=None):
+        return get(url, headers=headers, timeout=self.timeout)

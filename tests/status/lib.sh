@@ -86,11 +86,11 @@ try:
 except Exception:
     print(f"{nid}|{summary}|bad markup|"); sys.exit()
 def text(n): return "".join(c.data if c.nodeType == c.TEXT_NODE else text(c) for c in n.childNodes)
-# kawa-osd's row: one span (the 20 px row) holding the glyph, the name, the squares (the span
+# kawa-osd's row: one span (the 24 px row) holding the glyph, the name, the squares (the span
 # in the icon font: its lit ones, then the rest) and the value (the last)
 row = [c for c in d.childNodes if c.nodeType == c.ELEMENT_NODE][0]
 spans = [c for c in row.childNodes if c.nodeType == c.ELEMENT_NODE]
-squares = [s for s in spans if s.getAttribute("font") == "Sumi Icons 12px"][0]
+squares = [s for s in spans if s.getAttribute("font") == "Sumi Icons 16px"][0]
 on, rest = [c for c in squares.childNodes if c.nodeType == c.ELEMENT_NODE]
 lit = len(text(on)); total = lit + len(text(rest))
 value = text(spans[-1]).strip()

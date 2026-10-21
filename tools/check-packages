@@ -66,6 +66,24 @@ repo_of() {
   esac
 }
 vendor() { case $1 in fedora|updates|updates-testing|fedora-*|updates-*) echo fedora ;; rpmfusion-free*) echo rpmfusion-free ;; rpmfusion-nonfree*) echo rpmfusion-nonfree ;; copr:*) echo "${1%%:*}:${1#*:}" ;; *) echo "$1" ;; esac; }
+# the names two vendors both offer, as meant, and why the one setup wants is the one dnf takes
+# (its version is the newer: dnf takes the newest from any vendor)
+declare -A TWO_VENDORS=(
+  [unrar]="Fedora's unrar is unrar-free's wrapper (0.3), RPM Fusion's RARLAB's own (7.x): the newer, RPM Fusion's, is installed"
+)
+# covers EVR [OP EVR2] — an Obsoletes "NAME OP EVR2" (none: every version) covers the version
+# EVR: rpm's own comparison (its Lua, rpm.vercmp: epoch, version and release). A comparison
+# rpm cannot make counts as covered — said, never passed over
+covers() {
+  local c re='^[0-9A-Za-z._:~^+-]+$'
+  [[ -n $2 ]] || return 0
+  [[ $1 =~ $re && $3 =~ $re ]] || return 0
+  c=$(rpm --eval "%{lua: print(rpm.vercmp('$1', '$3'))}" 2>/dev/null) || return 0
+  [[ $c =~ ^-?[01]$ ]] || return 0
+  case $2 in
+    '<') ((c < 0)) ;; '<=') ((c <= 0)) ;; '=') ((c == 0)) ;; '>=') ((c >= 0)) ;; '>') ((c > 0)) ;; *) return 0 ;;
+  esac
+}
 
 section "the manifest (${#NAMES[@]} packages, STEAM=$STEAM)"
 bad=0
@@ -117,7 +135,8 @@ if ((LIVE)); then
 fi
 if ((LIVE)); then
   section "dnf's own answer ($(. /etc/os-release 2>/dev/null; echo "${PRETTY_NAME:-this system}"))"
-  REPOS=$(dnf -q repo list --enabled 2>/dev/null | awk 'NR > 1 { print $1 }')
+  # (dnf's JSON: its table may cut a long id short — a COPR's are — or lose a line to a header)
+  REPOS=$(dnf -q repo list --enabled --json 2>/dev/null | jq -r '.[].id' 2>/dev/null)
   info "enabled repositories: $(tr '\n' ' ' <<<"$REPOS")"
   # what each name resolves to: name|evr|repo, the newest of each
   q=$(dnf -q repoquery --available --latest-limit=1 --qf '%{name}|%{evr}|%{repoid}|%{source_name}\n' "${NAMES[@]}" 2>&1)
@@ -142,25 +161,50 @@ if ((LIVE)); then
   ((${#absent[@]})) && fail "not in any enabled repository: ${absent[*]} — renamed or retired"
   ((${#renamed[@]})) && warn "found only as another package's Provides (renamed?): ${renamed[*]} — use the new name in lib/manifest.sh"
   ((${#absent[@]} + ${#renamed[@]})) || pass "all ${#NOW[@]} names whose repository is set up are in it"
-  # from the repository it is meant to come from — and not from two vendors at once
-  odd=() twice=()
+  # from the repository it is meant to come from — and not from two vendors at once (but where
+  # both are known and meant: TWO_VENDORS, each with why the newest — the one setup wants — wins)
+  odd=() twice=() known=()
   for n in "${!FOUND[@]}"; do
     vs=$(tr ' ' '\n' <<<"${FOUND[$n]}" | sed 's/.*@//' | while IFS= read -r r; do vendor "$r"; done | sort -u)
     [[ $vs == *@System* || $vs == System ]] && continue
-    (($(wc -l <<<"$vs") > 1)) && twice+=("$n: $(tr '\n' ' ' <<<"$vs")")
+    if (($(wc -l <<<"$vs") > 1)); then
+      if [[ -n ${TWO_VENDORS[$n]:-} ]]; then known+=("$n (${TWO_VENDORS[$n]})"); else twice+=("$n: $(tr '\n' ' ' <<<"$vs")"); fi
+    fi
     grep -qxF "$(vendor "$(repo_of "$n")")" <<<"$vs" || odd+=("$n from $(tr '\n' ' ' <<<"$vs")(setup expects $(repo_of "$n"))")
   done
+  ((${#known[@]})) && info "in two vendors' repositories, as meant: ${known[*]}"
   ((${#twice[@]})) && warn "offered by two vendors at once (the newest wins — dnf may switch between them): ${twice[*]}"
   ((${#odd[@]})) && fail "from another repository than setup expects: ${odd[*]}"
   ((${#twice[@]} + ${#odd[@]})) || pass "each from the repository setup expects, one vendor each"
-  # obsoleted: a newer package that replaces a manifest name
-  ob=$(dnf -q repoquery --available --latest-limit=1 --qf '%{name}\n' --whatobsoletes "$(IFS=,; echo "${NAMES[*]}")" 2>/dev/null | sort -u)
-  obs=()
-  while IFS= read -r p; do [[ -z $p || -n ${WHERE[$p]:-} ]] || obs+=("$p"); done <<<"$ob"
-  if ((${#obs[@]})); then info "packages that obsolete a manifest name: ${obs[*]} — dnf would replace it; rpm -q --obsoletes those names says which"; else pass "nothing obsoletes a manifest name"; fi
+  # obsoleted: a package whose Obsoletes covers a manifest name AT the version the repositories
+  # have — the one case where dnf would replace it. (An Obsoletes of an old version only —
+  # NetworkManager-wifi's "NetworkManager < 1:0.9.9.95-1", from a split ten years ago — names
+  # the package, and touches nothing: never said.) Versions compared by rpm itself (its Lua)
+  ob=$(dnf -q repoquery --available --latest-limit=1 --qf '@%{name}\n%{obsoletes}\n' --whatobsoletes "$(IFS=,; echo "${NAMES[*]}")" 2>/dev/null)
+  obs=() who=""
+  while IFS= read -r l; do
+    [[ -n $l ]] || continue
+    if [[ $l == @* ]]; then who=${l#@}; continue; fi
+    [[ -n $who && -z ${WHERE[$who]:-} ]] || continue       # (one manifest package replacing another: its own business)
+    read -r on op ov <<<"$l"
+    [[ -n ${WHERE[$on]:-} && -n ${FOUND[$on]:-} && ${FOUND[$on]} != *@System* ]] || continue
+    if covers "${FOUND[$on]%%@*}" "${op:-}" "${ov:-}"; then obs+=("$who → $on"); fi
+  done <<<"$ob"
+  if ((${#obs[@]})); then warn "dnf would replace a manifest package: ${obs[*]} — the new name belongs in lib/manifest.sh (rpm -q --obsoletes says which)"
+  else pass "nothing replaces a manifest package at the version the repositories have"; fi
   # one transaction for all of them: conflicts, missing dependencies, file clashes
   if ((EUID == 0)); then
     out=$(dnf install --assumeno --setopt=install_weak_deps=False "${NOW[@]}" 2>&1); r=$?
+    # RPM Fusion's freeworld builds a step behind or ahead of Fedora's Mesa or libheif (their
+    # specs ask for that exact version): the days setup waits for, and update then adds (setup.sh,
+    # rf_get) — said as that, and the rest asked again without them
+    why=$(grep -iE '^ *- |nothing provides|conflicts with|No match for argument' <<<"$out" | grep -viE 'conflicting requests|best (update )?candidate' || true)
+    if [[ -n $why ]] && ! grep -qiv 'freeworld' <<<"$why"; then
+      fw=$(grep -oE '[a-z0-9-]+-freeworld' <<<"$why" | sort -u | tr '\n' ' ')
+      info "RPM Fusion's ${fw}out of step with Fedora's packages today — setup waits for them, update adds them once they match"
+      rest=(); for n in "${NOW[@]}"; do [[ $n == *-freeworld* ]] || rest+=("$n"); done
+      out=$(dnf install --assumeno --setopt=install_weak_deps=False "${rest[@]}" 2>&1); r=$?
+    fi
     if grep -qiE '^ *Problem|conflicts with|nothing provides|cannot install|No match for argument' <<<"$out"; then
       fail "they cannot all be installed together:"; grep -iE '^ *Problem|conflicts with|nothing provides|cannot install|No match for argument|^  - ' <<<"$out" | head -n 20 | sed 's/^/      /'
     elif ((r == 0)) || grep -qiE 'operation aborted|nothing to do' <<<"$out"; then pass "all of them resolve together in one transaction (nothing installed: --assumeno)"

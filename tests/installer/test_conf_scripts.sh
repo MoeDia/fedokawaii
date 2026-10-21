@@ -28,11 +28,11 @@ eq "$RC" 0 "--help as the user, before sudo"; has "$OUT" "sudo bash setup.sh --u
 
 case_ "check: a bad file is a ✘ line (not ready), the rest of the check still runs"
 fkrun bash /home/fkuser/fedokawaii/check.sh
-eq "$RC" 1; has "$OUT" "✘ GPU must be auto, amd or intel (is 'nvidia')"; has "$OUT" "memory"
+eq "$RC" 1; has "$OUT" "✘  GPU must be auto, amd or intel (is 'nvidia')"; has "$OUT" "memory"
 
 case_ "check: the file missing is one ✘ line"
 rm -f "$cf"; fkrun bash /home/fkuser/fedokawaii/check.sh
-eq "$RC" 1; has "$OUT" "✘ cannot read /home/fkuser/fedokawaii/fedokawaii.conf"
+eq "$RC" 1; has "$OUT" "✘  cannot read /home/fkuser/fedokawaii/fedokawaii.conf"
 lacks "$OUT" "STEAM must be"
 
 world built
@@ -45,6 +45,6 @@ eq "$RC" 1; has "$OUT" "THEME must be dark or light (is 'pink')"
 
 case_ "verify: a bad file in the toolkit is a failed check of its own, named"
 fkrun bash /usr/local/lib/fedokawaii/verify.sh
-eq "$RC" 3; has "$OUT" "✘ fedokawaii.conf"; has "$OUT" "THEME must be dark or light"
+eq "$RC" 3; has "$OUT" "✘  fedokawaii.conf"; has "$OUT" "THEME must be dark or light"
 
 done_

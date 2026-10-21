@@ -177,13 +177,14 @@ else warn "left behind by a stopped run" "$(tr '\n' ' ' <<<"$d")— repair clear
 
 # ── repositories & dnf ───────────────────────────────────────────────────────
 section "repositories & dnf"
-enabled=$(dnf repolist --enabled 2>/dev/null | awk 'NR>1{print $1}')
+# (dnf's JSON: its table may cut a long repository id short — a COPR's are)
+enabled=$(repos_enabled) || enabled=""
 for r in fedora updates rpmfusion-free rpmfusion-free-updates rpmfusion-nonfree rpmfusion-nonfree-updates brave-browser claude-code; do
   check "repo $r enabled" grep -qx "$r" <<<"$enabled"
 done
 for c in "${COPRS[@]}"; do
   grep -qxF "$c" < <(waiting copr) && continue        # (no build for this Fedora yet: warned above)
-  check "COPR $c enabled" grep -q "copr.*${c#*/}" <<<"$enabled"
+  check "COPR $c enabled" grep -qxF "copr:copr.fedorainfracloud.org:${c/\//:}" <<<"$enabled"
 done
 for pr in brave-origin:brave-browser claude-code:claude-code; do
   check "${pr%%:*} from ${pr#*:} (gpgcheck=1)" \
@@ -252,11 +253,19 @@ check "boot success marked by the desktop, not at boot"  bash -c '[[ $(systemctl
 mapfile -t kv < <(rpm -q --qf '%{VERSION}-%{RELEASE}.%{ARCH}\n' kernel-core 2>/dev/null | grep -v 'not installed' | sort -V)
 running=$(uname -r)
 # one kernel at rest, the newest (setup.sh: old_kernels_out) — two only while the newest waits for
-# a restart, or for its first start to reach the desktop
+# a restart, or for its first start to reach the desktop. Those two are the rule working, not a
+# fault (nearly every update brings a kernel): said, as the way it stands — never a warning
 if ((${#kv[@]} == 1)) && [[ ${kv[0]} == "$running" ]]; then pass "one kernel, the newest, running ($running)"
 elif ((${#kv[@]} == 2)) && [[ ${kv[-1]} == "$running" ]]; then
-  warn "the kernel before $running is still installed" "it goes a quarter of an hour into a start that reaches the desktop — or now: fedokawaii repair"
-elif ((${#kv[@]} >= 1 && ${#kv[@]} <= 2)); then warn "new kernel ${kv[-1]} installed" "restart to use it (running: $running); the one before goes after that"
+  pass "the newest kernel running ($running)"
+  info "the kernel before it stays as the way back until this start has reached the desktop — it goes a quarter of an hour in (or now: fedokawaii repair)"
+elif ((${#kv[@]} == 2)) && [[ ${kv[0]} == "$running" ]]; then
+  pass "the kernel running ($running) and a new one (${kv[-1]})"
+  info "kernel ${kv[-1]} is installed and waits for a restart; the one before goes once the new one has reached the desktop"
+elif ((${#kv[@]} >= 1 && ${#kv[@]} <= 2)); then
+  # (the kernel running is not installed any more: its modules are gone — what it has not
+  # loaded yet, a USB stick's file system say, cannot load until a restart)
+  warn "the kernel running ($running) is no longer installed" "restart into ${kv[-1]}"
 else fail "one kernel (two at most while a new one settles in)" "installed: $(IFS=" "; echo "${kv[*]:-none}") · running: $running — fedokawaii repair keeps the newest"; fi
 check "one kernel kept at every start (fedokawaii-kernels.timer)" systemctl is-enabled --quiet fedokawaii-kernels.timer
 # (dracut makes a kernel's boot image from the package's scriptlet, which can fail without
@@ -268,6 +277,13 @@ check "no rescue kernel or boot entry"                 bash -c '! ls /boot/vmlin
 for b in "${BOOT_ARGS[@]}"; do   # (setup.sh's s_quiet_boot: the splash, nothing else on the screen, no console-size wait)
   check "$b on every boot entry" \
     bash -c 'a=$(grubby --info=ALL | grep "^args=") && [ -n "$a" ] && ! printf "%s\n" "$a" | grep -vqE "[\" ]$1([\" ]|\$)"' _ "$b"
+done
+# an argument an earlier version put there and gone since (lib/common.sh, BOOT_ARGS_GONE —
+# plymouth.use-simpledrm: one more mode change, a black flick before the login)
+ga=$(grubby --info=ALL 2>/dev/null | grep '^args=') || ga=""
+for b in "${BOOT_ARGS_GONE[@]}"; do
+  if grep -qE -- "[\" ]$b([\" =]|\$)" <<<"$ga"; then warn "$b is still on a boot entry" "fedokawaii repair (or the next update) takes it off"
+  else pass "no $b on any boot entry (gone since)"; fi
 done
 # (the ones this start was given: an entry that just gained them shows them from the next)
 quiet_now=1; for b in "${BOOT_ARGS[@]}"; do grep -qxF -- "$b" < <(tr ' ' '\n' </proc/cmdline 2>/dev/null) || quiet_now=0; done
@@ -503,7 +519,9 @@ if [[ $SSH_SERVER == no ]]; then
   check "sshd off (SSH_SERVER=no)"                     bash -c '! systemctl is-enabled --quiet sshd.service'
   ((fw)) && check "firewall: no ssh / cockpit"         bash -c "[[ '$fwsvc' != *'not answering'* ]] && ! grep -qwE 'ssh|cockpit' <<<'$fwsvc'"
 else
-  check "sshd on (SSH_SERVER=yes)"                     systemctl is-enabled --quiet sshd.service
+  check "sshd on (SSH_SERVER=yes), at every boot"      bash -c 'systemctl is-enabled --quiet sshd.service && systemctl is-active --quiet sshd.service'
+  check "sshd: keys only, no root (SSH_SERVER=yes)"    bash -c 'c=$(sshd -T 2>/dev/null) && grep -qx "passwordauthentication no" <<<"$c" && grep -qx "kbdinteractiveauthentication no" <<<"$c" && grep -qx "permitrootlogin no" <<<"$c"'
+  ((fw)) && check "firewall: ssh open, no cockpit"     bash -c "[[ '$fwsvc' != *'not answering'* ]] && grep -qw ssh <<<'$fwsvc' && ! grep -qw cockpit <<<'$fwsvc'"
 fi
 
 # ── upstream binaries ────────────────────────────────────────────────────────
@@ -518,7 +536,8 @@ for e in "${UPSTREAM[@]}"; do
     check "$b $tag runs" U timeout 10 "$f" --version
   done
 done
-check "Fusion Pixel 12 and 10 $FUSION_TAG (the desktop's font, for every account)" test -s "$FUSION_DIR/fusion-pixel-12px-monospaced-ja.ttf" -a -s "$FUSION_DIR/fusion-pixel-10px-monospaced-ja.ttf" -a "$(cat "$FUSION_DIR/.version" 2>/dev/null)" = "$FUSION_TAG"
+check "Sumi UI and Sumi Term (the desktop's faces, for every account: the toolkit's own)" \
+  bash -c 'cmp -s "$1/system/fonts/SumiUI.ttf" "$2/SumiUI.ttf" && cmp -s "$1/system/fonts/SumiTerm.ttf" "$2/SumiTerm.ttf" && [[ ! -e $3 ]]' _ "$REPO_DIR" "$FACES_DIR" "$FACES_OLD"
 # Syncplay, from its pinned source (setup carries on without it: update and repair fetch it)
 case $(up_tag syncplay) in
   "") warn "Syncplay not installed yet" "update and repair fetch it (watching together waits till then)" ;;
@@ -575,9 +594,12 @@ check "Claude Code runs"                               U timeout 20 claude --ver
 # but in a home of its own for the two seconds, so it neither attaches to the agents you
 # have running nor leaves a server behind: your config clean to herdr itself (no unknown
 # key, no wrong type), ~/repos there, its server up in the folder it was started from, and
-# the window's side attached to it
+# the window's side attached to it. (Your login names your folders outright — XDG_CONFIG_HOME
+# and the rest, /etc/profile.d/fedokawaii-home.sh — and herdr goes by them before HOME: kept,
+# this check would talk to your own server instead, your agents' — they go for its run)
 herdr_starts() {
-  U bash -c 'd=$(mktemp -d /tmp/fk-herdr.XXXXXX) r=1
+  U bash -c 'unset XDG_CONFIG_HOME XDG_DATA_HOME XDG_STATE_HOME XDG_CACHE_HOME
+    d=$(mktemp -d /tmp/fk-herdr.XXXXXX) r=1
     mkdir -p "$d/.config/herdr" "$d/repos" && cp ~/.config/herdr/config.toml "$d/.config/herdr/" \
       && test -d ~/repos && HOME=$d herdr config check >/dev/null 2>&1 \
       && (cd "$d/repos" && HOME=$d TERM=xterm-256color timeout -k 2 15 python3 -I -c "
@@ -669,14 +691,6 @@ else
   else info "console palette recorded for the kernel; it shows after the next boot"; fi
   check "dwl built from src/dwl/config.h"            cmp -s "$REPO_DIR/src/dwl/config.h" "$TARGET_HOME/.local/src/dwl/config.h"
   check "foot config valid"                            U foot --check-config
-  check "fuzzel config valid"                          U fuzzel --check-config
-  # every fuzzel option the menus use must exist in the installed fuzzel (≥ 1.14 for --mesg)
-  # (fuzzel's own args only — pargs, the panel's menu options such as --drop, are kawa-panel's)
-  fzhelp=$(U fuzzel --help 2>&1) fzbad=""
-  for f in $(grep -oE '(^|[^[:alnum:]_])args\+?=\([^)]*\)' "$REPO_DIR/bin/kawa-menu" | grep -o -- '--[a-z][a-z-]*' | sort -u); do
-    grep -q -- "$f" <<<"$fzhelp" || fzbad+=" $f"
-  done
-  if [[ -n $fzhelp && -z $fzbad ]]; then pass "every fuzzel option the menus use exists"; else fail "fuzzel options" "${fzbad:-fuzzel missing}"; fi
   check "waybar config valid JSON"                     bash -c "grep -v '^[[:space:]]*//' $TARGET_HOME/.config/waybar/config.jsonc | jq -e ."
   # (a typo there stops udiskie, and with it every drive opening by itself)
   check "udiskie config valid YAML"                    U /usr/bin/python3 -c 'import sys, yaml; yaml.safe_load(open(sys.argv[1]))' "$TARGET_HOME/.config/udiskie/config.yml"
@@ -720,8 +734,8 @@ else
     bash -c 'for v in dark light; do [[ -s $1/Sumi-$v/cursors/default && -L $1/Sumi-$v/cursors/left_ptr && -s $1/Sumi-$v/cursors/left_ptr ]] || exit 1; done
              m=$(readlink "$2"); m=${m%/}; [[ ${m##*/} == light ]] && m=light || m=dark
              [[ $(readlink "$3") == "$1/Sumi-$m" ]]' _ /usr/share/icons "$TARGET_HOME/.config/fedokawaii/current" "$TARGET_HOME/.local/share/icons/default"
-  check "desktop font → Fusion Pixel 12, crisp at 12 px (no smoothing)" grep -q '^Fusion Pixel 12px Mono ja False$' <<<"$(U fc-match -f '%{family} %{antialias}' 'Fusion Pixel 12px Mono ja:pixelsize=12' 2>&1)"
-  check "terminal font → Sumi Term (Fusion Pixel 10, a half pixel heavier), crisp at 20 px (no smoothing)" grep -q '^Sumi Term False$' <<<"$(U fc-match -f '%{family} %{antialias}' 'Sumi Term:pixelsize=20' 2>&1)"
+  check "desktop font → Sumi UI (Shinonome 16 Bold), crisp at 16 px (no smoothing)" grep -q '^Sumi UI False$' <<<"$(U fc-match -f '%{family} %{antialias}' 'Sumi UI:pixelsize=16' 2>&1)"
+  check "terminal font → Sumi Term (Kappa 20 Bold), crisp at 20 px (no smoothing)" grep -q '^Sumi Term False$' <<<"$(U fc-match -f '%{family} %{antialias}' 'Sumi Term:pixelsize=20' 2>&1)"
   check "pixel icons → Sumi Icons"                     grep -q 'Sumi Icons' <<<"$(U fc-match 'Sumi Icons' 2>&1)"
   check "pixel icons in the terminal → Sumi Icons Term"  grep -q 'Sumi Icons Term' <<<"$(U fc-match 'Sumi Icons Term' 2>&1)"
   check "screensaver (kawa-saver) runnable"             U "$TARGET_HOME/.local/bin/kawa-saver" --help
@@ -808,11 +822,11 @@ if pgrep -u "$TARGET_UID" -x dwl >/dev/null; then
   fi
 fi
 
-if ((${#FAILS[@]})); then
-  if ((PRE)); then _out "  ${C_DIM}most of these fix themselves: fedokawaii repair — then run setup again${C_RESET}"
-  else _out "  ${C_DIM}most of these fix themselves: fedokawaii repair${C_RESET}"; fi
-fi
 summary "verified"; rc=$?
+if ((${#FAILS[@]})); then     # (under the list: what to do about it)
+  if ((PRE)); then _out "       ${C_MUTED}most of these fix themselves: fedokawaii repair — then run setup again${C_RESET}"
+  else _out "       ${C_MUTED}most of these fix themselves: fedokawaii repair${C_RESET}"; fi
+fi
 ((rc == 0)) || rc=3          # (3: it ran, and things need you — 1 is verify itself failing)
 # the outcome, for the menu (Super+U) and repair: WHEN PASSED FAILED WARNINGS
 ((PRE)) || printf '%s %s %s %s\n' "$(date +%s)" "$PASS" "${#FAILS[@]}" "${#WARNS[@]}" \

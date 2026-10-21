@@ -19,7 +19,7 @@ back built; printf '%s\n' kernel-core foot >"$W/var/lib/fedokawaii/after-dnf"
 reset_calls; tk --after-dnf
 # (every step of its own went through — verify's verdict on the rest of the machine is its own)
 lacks "$OUT" "not right yet"; [[ $RC == 0 || ( $RC == 3 && $OUT == *"verify finds something"* ) ]] && _ok || _no "exit $RC: $(grep -E '✘' <<<"$OUT" | head -n3 | tr '\n' '|')"
-has "$OUT" "after dnf · 2 package(s) changed"; has "$OUT" "the kernels' boot images"; has "$OUT" "foot's and fuzzel's configs"
+has "$OUT" "after dnf · 2 package(s) changed"; has "$OUT" "the kernels' boot images"; has "$OUT" "foot's config"
 lacks "$OUT" "dwl does not start"; lacks "$OUT" "torrra"
 [[ -e $W/var/lib/fedokawaii/after-dnf ]] && _no "still noted" || _ok
 grep -qE '^[0-9]+ (ok|checks)$' "$W/var/lib/fedokawaii/last-after-dnf" && _ok || _no "recorded: $(cat "$W/var/lib/fedokawaii/last-after-dnf")"
@@ -50,7 +50,7 @@ has "$OUT" "dwl does not start"
 [[ $OUT == *"dwl still does not start — the rescue screen says so at login"* || $OUT == *"installed dwl is not v0.9"* ]] && _ok || _no "the failed rebuild not said"
 called 'git\] .*fetch'
 eq "$(cut -d' ' -f2 "$W/var/lib/fedokawaii/last-after-dnf")" partial
-fkrun bash "$TK/verify.sh"; has "$OUT" "✘ dwl starts (headless, once)"
+fkrun bash "$TK/verify.sh"; has "$OUT" "✘  dwl starts (headless, once)"
 
 case_ "a GTK the login screen asks for no longer loads (a typelib's version gone): said by name, never ok"
 back built; echo gtk3 >"$W/var/lib/fedokawaii/after-dnf"; fkh gi-broken Gtk
@@ -60,7 +60,7 @@ eq "$(cut -d' ' -f2 "$W/var/lib/fedokawaii/last-after-dnf")" partial
 case_ "repair puts the guard in place: the hook, its actions (JSON mode), its unit enabled, its records"
 back built; rm -f "$W/usr/local/sbin/kawa-dnf-guard" "$W/etc/dnf/libdnf5-plugins/actions.d/fedokawaii-guard.actions" "$W/var/lib/fedokawaii/needs"
 fkh_del units "enabled fedokawaii-after-dnf.service"
-fkrun bash "$TK/verify.sh"; has "$OUT" "✘ dnf's guard: before and after every transaction"
+fkrun bash "$TK/verify.sh"; has "$OUT" "✘  dnf's guard: before and after every transaction"
 tk --repair
 cmp -s "$REPO/system/kawa-dnf-guard" "$W/usr/local/sbin/kawa-dnf-guard" && _ok || _no "the guard not installed"
 grep -qx "pre_transaction::::mode=json:/usr/local/sbin/kawa-dnf-guard pre" "$W/etc/dnf/libdnf5-plugins/actions.d/fedokawaii-guard.actions" && _ok || _no "no pre action"

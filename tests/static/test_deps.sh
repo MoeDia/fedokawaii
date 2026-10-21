@@ -83,7 +83,7 @@ for src in script waybar desktop yazi dwl systemd config; do
   has "$(cut -f1 <<<"$calls" | sort -u | tr '\n' ' ')" "$src" "nothing read from: $src"
 done
 (($(wc -l <<<"$calls") > 500)) && _ok || _no "only $(wc -l <<<"$calls") calls found"
-for p in kawa-drives xournalpp makoctl wpctl yazi fuzzel footclient btop kawa-pick node; do
+for p in kawa-drives xournalpp makoctl wpctl yazi kawa-menu footclient btop kawa-pick node; do
   has "$(cut -f3 <<<"$calls" | sort -u | tr '\n' ' ')" " $p " "the call of $p was not found"
 done
 

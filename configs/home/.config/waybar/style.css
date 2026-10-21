@@ -1,33 +1,36 @@
-/* ~/.config/waybar/style.css — the bar as a hanging scroll (kakejiku): a strip of washi
-   paper across the top, its lower edge straight onto the wallpaper (no rule under it), and
-   one kind of button for everything on it. Colours come from the current theme (ink or paper): kawa-theme switches
+/* ~/.config/waybar/style.css — 紙 kami: no bar, but washi tiles floating along the top of the
+   screen, each part of the desktop on a tile of its own. On the ink theme the paper is dyed
+   in ink (墨染め sumizome) and the words pale; on the paper theme it is the paper as it comes
+   (生成り kinari) and the words sumi. Every tile alike (tools/build-themes.py draws them, per
+   theme): the paper, a printer's rule 2 px inside its edge, a hairline round it and a soft
+   shadow under it, so a tile stands on any wallpaper —
+     the torii and the cat   vermilion, a gold rule, at the corners
+     the workspaces          a tile each: its numeral faint while empty, the text's ink while
+                             it holds windows, asagi while it asks for you; the one you are
+                             on stamped with a vermilion seal, its numeral the paper's
+     the layout and title    one tile
+     the clock               mounted as a hanging scroll between lacquered, gold-capped rods:
+                             the date · the day's kanji in vermilion · the time — the kanji on
+                             the screen's centre line — and while music plays its spectrum
+                             inside the scroll, either side
+     the rest                a tile each
+   The rows (31): the hairline on 2, the paper 3–27 with its rule on 5 and 25, the hairline on
+   28, the shadow 29–30; the 16 px text line on 8–23, the capitals on 9–21 — centred on row
+   15, the tile's middle; an icon alone a row higher, its 15 px centred there too. Each tile
+   is a border-image (kami-*.png, sliced 6 5 6 4: the edges kept to the pixel, the middle
+   stretched) round the paper's colour and its fibres.
+   Spacing, paper to paper: 4 px between the tiles of a group, 10 between groups, 6 from the
+   screen's edges; inside a tile 8 px from the paper's edge to the ink, both sides (each
+   glyph's own air counted).
+   Colours and pictures come from the current theme (ink or paper): kawa-theme switches
    ~/.config/fedokawaii/current and reloads the bar.
-
-   One rule for everything on it (the torii, the layout, the date and its day, the time, the
-   volume, the cat …): at rest the glyph and its words alone on the paper, in ink; under the
-   pointer, and while what it opened is on screen (its menu, its panel, its window: the
-   class "active"), they turn vermilion — no fill, no box, no fade: pixels change, nothing
-   else. What is a vermilion seal at rest (the torii, the day's kanji, a game, a shared
-   screen) is stamped instead: the seal inverted — its button filled vermilion, its ink the
-   paper's — as the workspace you are on is. The workspaces are seals: the one you are on
-   filled vermilion, one asking for you filled asagi, one holding windows hemmed with a
-   running stitch under its numeral. No rings, no edge marks.
-   The right side's groups are parted by a sashiko stitch — a running stitch of faint
-   thread down the paper.
-
-   Fusion Pixel and Sumi Icons are pixel fonts on a 12 px grid: keep font-size at 12px so
-   every pixel lands on a whole screen pixel. Every button is 23 × 23 — odd, because the
-   kanji's ink is 11 × 11 (columns 0–10, rows 1–11 of the 12 px line), and so are the
-   buttons' icons ("seal-sized", art/icons.txt): 6 px of fill on every side of each, to the
-   pixel. Kanji buttons pad 6 left · 5 right (+ the 12 px advance = 23), 5 above · 6 below
-   (+ the 12 px line = 23); icon buttons are 23 wide and centre their odd advance. The bar
-   is 31 px: 4 of paper, a 23 px button, 4 of paper. Reload:
-   pkill -USR2 waybar */
+   Sumi UI and Sumi Icons are on a 16 px grid: keep font-size at 16px so every pixel lands on
+   a whole screen pixel. Reload: pkill -USR2 waybar */
 @import url("../fedokawaii/current/waybar.css");
 
 * {
-  font-family: "Sumi UI", "Fusion Pixel 12px Mono ja", "Sumi Icons", "Noto Kufi Arabic";
-  font-size: 12px;
+  font-family: "Sumi UI", "Sumi Icons", "Noto Kufi Arabic";
+  font-size: 16px;
   min-height: 0;
   border: none;
   border-radius: 0;
@@ -35,92 +38,95 @@
   text-shadow: none;
 }
 
-window#waybar {
-  background-color: @bar;
-  background-image: url("../fedokawaii/current/washi.png");
-  color: @text;
-}
+window#waybar { background: transparent; color: @text; }
 /* GTK's own button look, should a module ever draw one: never a fill, a ring or a bevel */
-button, button:hover, button:active, button:checked {
-  background: none;
-  box-shadow: none;
-  border: none;
-}
+button, button:hover, button:active, button:checked { background: none; box-shadow: none; border: none; }
 
-/* ── buttons: one size, one behaviour ─────────────────────────────────────────── */
-#custom-torii, .tag, #custom-layout, #custom-menu, #custom-day, #custom-steam, #custom-mode {
-  min-width: 23px;
-  padding: 5px 0 6px 0;            /* 5 + 12 px line + 6 = 23 tall */
-  margin: 4px 0 4px 3px;           /* 4 + 23 + 4 = 31: 4 of paper above, 4 below */
-}
-/* a kanji in a button: its 12 px advance holds 11 px of ink from the left edge, so one more
-   pixel of padding on the left than on the right centres it exactly */
-.tag, #custom-day, #custom-mode { min-width: 0; padding: 5px 5px 6px 6px; }
-
-/* the torii key at the far left (opens the launcher): the gate in vermilion ink — the only
-   filled seal on this side is the workspace you are on. Its button stands 8 px from the
-   screen's edge, on the line the windows' borders keep (dwl's gap), as the cat's does at the
-   other end; its gate's ink 14 px from it (the 23 px button holds its 15 px glyph 4 px in, and
-   the drawing 2 more), as the cat's is from the other */
-#custom-torii { margin-left: 8px; color: @accent-text; }
-
-/* ── workspaces: 一 二 三 … as seals ───────────────────────────────────────────────
-   empty: the numeral faint on the paper · holding windows: the numeral in ink, hemmed — a
-   running stitch under it (current/hem.png: three stitches, 3 on 2 off, 13 px from the
-   button's 5th column, 2 px of paper under the ink) ·
-   the one you are on: a vermilion seal · asking for you: an asagi seal. Fixed width, so
-   nothing moves when the selection does. */
-/* one rhythm, as on the right: 18 px of paper between modules (from the torii's ink to the
-   first seal, from the last seal to the layout's ink, from it to the title's), 6 between the
-   seals of the group (the torii's button holds its ink 6 px in, the layout's 5) */
-#custom-tag1 { margin-left: 12px; }
-#custom-tag2, #custom-tag3, #custom-tag4, #custom-tag5, #custom-tag6, #custom-tag7, #custom-tag8,
-#custom-tag9 { margin-left: 6px; }
-.tag          { color: @faint; }
-.tag.occupied { color: @text; background-image: url("../fedokawaii/current/hem.png");
-                background-repeat: no-repeat; background-position: 5px 19px; }
-.tag.selected { color: @strong-on-accent; background-color: @accent; background-image: none; }
-.tag.urgent   { color: @urgent-text; background-color: @urgent; background-image: none; }
-
-/* the layout: a button like the others, a module of its own (18 px from the seals) */
-#custom-layout { color: @muted; margin-left: 13px; }
-#custom-title  { color: @text; padding: 0 12px 0 13px; }   /* (its words 18 px after the layout's ink) */
-
-/* ── the middle: now playing (its meter colours come inside the text) ────────────── */
-#custom-nowplaying        { color: @text; padding: 0 12px; }
-#custom-nowplaying.paused { color: @quiet; }
-
-/* ── the right: groups parted by a stitch ────────────────────────────────────────────
-   #status (mode, drives, downloads, Steam, keyboard, memory, volume, brightness, weather) and #when
-   (date, the day's kanji, the time and a running timer). One rule: every module's ink stands
-   9 px inside its box on either side, so 18 px of paper lie between the ink of any two
-   neighbours — a stitch's too (9 + its 9 of margin). A box's padding is 9 less the air its
-   font leaves at that edge: letters and digits (Fusion Pixel) none on the left, 1 px on the
-   right; an icon (Sumi Icons) 2 px each side, a brightness level 5 on the left (icons.sh's
-   ICON_BAR_* starts all five at the dimmest's 5); a button's glyph 5 or 6 inside its 23 px.
-   Between an icon and its value: 6 px of paper, made in the text (ICON_BAR_*) */
-#status, #when { margin: 4px 0 4px 0; }
-/* the stitch: 1 px of thread, 3 on and 2 off (current/stitch.png, repeated down), as tall as
-   a button — 23 px = 4 × 5 + 3, so it begins and ends with a stitch */
-#custom-sep1, #custom-sep2 {
-  min-width: 1px;
-  padding: 0;
-  margin: 4px 9px 4px 9px;
-  background-image: url("../fedokawaii/current/stitch.png");
-  background-repeat: repeat-y;
+/* ── a tile ─────────────────────────────────────────────────────────────────────────── */
+#custom-torii, .tag, #custom-layout, #custom-title, #custom-nowplaying, #custom-timer,
+#custom-record, #custom-mode, #custom-drives, #custom-downloads, #custom-steam, #custom-kb,
+#custom-mem, #custom-volume, #custom-brightness, #custom-weather, #custom-menu {
+  border-style: solid;
+  border-color: transparent;
+  border-width: 6px 5px 6px 4px;
+  border-image: url("../fedokawaii/current/kami-tile.png") 6 5 6 4 stretch;
+  background-color: @tile;
+  background-image: url("../fedokawaii/current/kami-fibre.png");
+  background-repeat: repeat;
   background-position: 0 0;
-  color: transparent;
+  background-clip: padding-box;
+  background-origin: padding-box;
+  /* the line on rows 8–23 (2 px under the rule), the paper's 8 px to the ink: 4 of them in
+     the border's picture, the rest here (each glyph's air counted where it has some) */
+  padding: 2px 5px 1px 5px;
+  margin: 0 0 0 1px;
 }
-/* words and numbers (録 and its time, the keyboard, the date, the time): 9 | 8 */
-#custom-record, #custom-kb, #custom-date, #custom-time { padding: 5px 8px 6px 9px; margin: 0; }
-/* an icon, then a value: 7 | 8 — alone (one drive, a download of unknown size): 7 | 7 */
-#custom-drives, #custom-downloads, #custom-mem, #custom-volume, #custom-weather { padding: 5px 8px 6px 7px; margin: 0; }
-#custom-drives:not(.count), #custom-downloads.bare { padding-right: 7px; }
-#custom-brightness { padding: 5px 8px 6px 4px; margin: 0; }
-/* a kanji's button (the mode, the day; 6 and 5 of padding, the ink 6 in from each side): 3 px
-   of margin. The gamepad's (its ink 5 in, the button 23 wide): 4 px */
-#custom-mode, #custom-day { margin: 0 3px; }
-#custom-steam { margin: 0 4px; }
+/* the corners' vermilion tiles: the torii and the cat, in the ground's ink */
+#custom-torii, #custom-menu {
+  border-image: url("../fedokawaii/current/kami-red.png") 6 5 6 4 stretch;
+  background-color: @kami-red;
+  background-image: none;
+  color: @strong-on-accent;
+  padding: 1px 4px 2px 5px;          /* (an icon alone: a row higher; its 15 px of ink in 16) */
+}
+#custom-torii { margin-left: 5px; }
+#custom-menu  { margin-left: 7px; margin-right: 4px; }
+
+/* ── the workspaces ─────────────────────────────────────────────────────────────────── */
+.tag { color: @faint; padding-left: 5px; padding-right: 5px; }
+#custom-tag4, #custom-tag7, #custom-tag9 { padding-right: 4px; }   /* (四 七 九: 15 px of ink in 16) */
+#custom-tag1 { margin-left: 7px; }
+.tag.occupied { color: @text; }
+.tag.urgent   { color: @asagi; }
+/* where you are: the seal, the numeral on it in the paper's ink */
+.tag.selected {
+  color: @seal-ink;
+  background-image: url("../fedokawaii/current/kami-seal.png"), url("../fedokawaii/current/kami-fibre.png");
+  background-position: center center, 0 0;
+  background-repeat: no-repeat, repeat;
+}
+/* the layout's icon and the title: one tile (the layout its left end, the title its right) */
+#custom-layout { color: @muted; margin-left: 7px; padding: 1px 0 2px 5px;
+                 border-right-width: 0; border-image-width: 6px 0 6px 4px; }
+#custom-title  { color: @text; margin-left: 0; padding-left: 8px; padding-right: 2px;
+                 border-left-width: 0; border-image-width: 6px 5px 6px 0; }
+
+/* ── the middle: the clock, a hanging scroll ───────────────────────────────────────── */
+#when {
+  border-style: solid;
+  border-color: transparent;
+  border-width: 6px 8px 6px 8px;
+  border-image: url("../fedokawaii/current/kami-scroll.png") 6 8 6 8 stretch;
+  background-color: @tile;
+  background-image: url("../fedokawaii/current/kami-fibre.png");
+  background-repeat: repeat;
+  background-clip: padding-box;
+  background-origin: padding-box;
+  padding: 0 4px;
+}
+#custom-wing-left, #custom-date, #custom-day, #custom-time, #custom-wing-right {
+  padding: 2px 0 1px 0; margin: 0; background: none; border: none;
+}
+/* the kanji on the screen's centre line: the date's side made as wide as the time's
+   (Sumi UI's figures and letters 8 px each: "Wed 21 Oct" 80, "09:14:08 PM" 88) — the
+   difference before the date */
+#custom-wing-left  { padding-right: 13px; }
+#custom-date       { padding-left: 8px; padding-right: 13px; }
+#custom-day        { padding-right: 13px; }
+#custom-day.mon    { padding-left: 1px; padding-right: 12px; }   /* (月: 13 px of ink in its 16) */
+#custom-time       { padding-right: 0; }
+#custom-wing-right { padding-left: 13px; }
+
+/* ── the right: what the computer is doing, a tile each · the cat ──────────────────── */
+#custom-nowplaying, #custom-timer, #custom-record, #custom-mode, #custom-drives,
+#custom-downloads, #custom-steam, #custom-kb, #custom-mem, #custom-volume,
+#custom-brightness, #custom-weather { padding-left: 5px; padding-right: 5px; }
+#custom-nowplaying { padding-right: 2px; }      /* (its last letter's air) */
+#custom-weather    { padding-right: 2px; }      /* (° has 3 px of air) */
+#custom-steam { padding-top: 1px; padding-bottom: 2px; }          /* (an icon alone: a row higher) */
+
+#custom-nowplaying        { color: @text; }
+#custom-nowplaying.paused { color: @quiet; }
 #custom-drives       { color: @quiet; }
 #custom-drives.open  { color: @text; }
 #custom-downloads    { color: @text; }
@@ -136,48 +142,36 @@ button, button:hover, button:active, button:checked {
 #custom-brightness   { color: @text; }
 #custom-weather      { color: @text; }
 #custom-weather.stale { color: @muted; }   /* a forecast over an hour old: said quietly */
-
 /* the mode — 静 quiet, 共有 shared — a kanji in the day's place of honour: quiet in faint
    ink, a shared screen in vermilion */
 #custom-mode.dnd   { color: @quiet; }
 #custom-mode.share { color: @accent-text; }
-/* 録 and the time gone by while the screen is recorded: lit, vermilion (a click stops it) */
-#custom-record     { color: @accent-text; }
+/* 録 and the time gone by while the screen is recorded: vermilion (a click stops it) */
+#custom-record        { color: @accent-text; }
 #custom-record.paused { color: @muted; }
-
-/* ── the clock: the date quiet · the day's kanji in vermilion ink · the time bright ── */
-#custom-date { color: @quiet; }
+/* the timer beside the clock: the time left in vermilion, a stopwatch's in asagi */
+#custom-timer           { color: @accent-text; }
+#custom-timer.stopwatch { color: @asagi; }
+/* the clock: the date in the text's ink · the day's kanji in vermilion · the time bright */
+#custom-date { color: @text; }
 #custom-day  { color: @accent-text; }
 #custom-time { color: @strong; }
-/* (a timer beside the time draws its own colours — the time left vermilion, a stopwatch's
-   asagi — inside the text: kawa-timer) */
 
-/* the cat that opens quick settings: it smiles while they are open. Its button ends 8 px
-   from the screen's edge — the line the windows' borders keep, and the panels and notices
-   that drop from it: the panel's right edge is the button's. One more pixel of padding on
-   its right (24 wide) puts its ink 14 px from the edge, as the torii's is from the other
-   (8 + 6), and 18 px after the stitch (the stitch's 9 + 4 + the button's 5) */
-#custom-menu { color: @text; margin: 4px 8px 4px 4px; padding-right: 1px; }
+/* ── lit: under the pointer, and open — asagi, at once, whatever its ink at rest ───── */
+#custom-torii:hover, .tag:hover, #custom-layout:hover, #custom-menu:hover, #custom-nowplaying:hover,
+#custom-timer:hover, #custom-record:hover, #custom-mode:hover, #custom-drives:hover,
+#custom-downloads:hover, #custom-steam:hover, #custom-mem:hover, #custom-volume:hover,
+#custom-brightness:hover, #custom-weather:hover, #custom-date:hover, #custom-day:hover,
+#custom-time:hover,
+#custom-torii.active, #custom-layout.active, #custom-menu.active, #custom-mode.active,
+#custom-drives.active, #custom-downloads.active, #custom-steam.active, #custom-mem.active,
+#custom-volume.active, #custom-brightness.active, #custom-weather.active, #custom-date.active,
+#custom-day.active, #custom-time.active { color: @asagi; }
 
-/* ── under the pointer, and open ────────────────────────────────────────────────────
-   the glyph and its text take the vermilion ink, at once — nothing behind them changes; so
-   does a button whose menu, panel or window is open (class "active"), until it closes. What
-   is vermilion already (the torii, the day's kanji, memory running high, the sound muted, a
-   game, a shared screen, a workspace's seal) turns to the strongest ink instead — and a
-   vermilion seal-sized button (the torii, the day's kanji, a game's gamepad, a shared
-   screen's 共有) is stamped: filled vermilion, its ink the paper's, the workspace's own look */
-.tag:hover, #custom-layout:hover, #custom-menu:hover, #custom-nowplaying:hover,
-#custom-steam:hover, #custom-mem:hover, #custom-volume:hover, #custom-brightness:hover, #custom-weather:hover,
-#custom-drives:hover, #custom-downloads:hover, #custom-date:hover, #custom-time:hover, #custom-mode:hover,
-#custom-layout.active, #custom-menu.active, #custom-steam.active, #custom-mem.active, #custom-volume.active,
-#custom-brightness.active, #custom-weather.active, #custom-drives.active, #custom-downloads.active, #custom-date.active,
-#custom-time.active, #custom-mode.active { color: @accent-text; }
-#custom-mem.high:hover, #custom-volume.muted:hover,
-.tag.selected:hover, .tag.urgent:hover, #custom-record:hover,
-#custom-mem.high.active, #custom-volume.muted.active { color: @strong; }
-#custom-torii:hover, #custom-day:hover, #custom-steam.game:hover, #custom-mode.share:hover,
-#custom-torii.active, #custom-day.active, #custom-steam.game.active,
-#custom-mode.share.active { color: @strong-on-accent; background-color: @accent; }
+/* on vermilion, and on the seal: the other ink there is (after the rule above: never asagi
+   on red) */
+#custom-torii:hover, #custom-torii.active, #custom-menu:hover, #custom-menu.active { color: @strong; }
+.tag.selected:hover { color: @strong; }
 
-tooltip { background: @bar; border: 2px solid @muted; border-radius: 0; }   /* framed like every menu */
-tooltip label { color: @text; padding: 3px 6px; }
+tooltip { background: @tile; border: 2px solid @muted; border-radius: 0; }   /* framed like every menu */
+tooltip label { color: @text; padding: 4px 8px; }

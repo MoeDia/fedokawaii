@@ -75,13 +75,14 @@ eq "$(cut_cols "short" 10)" "short"
 eq "$(cut_cols "夜の音楽 — 坂本龍一" 12)" "夜の音楽 —" "wide letters count two"
 src=$(sed -n '/^words() {/,/^}/p' "$REPO/bin/kawa-nowplaying"); eval "$src"
 eq "$(LC_ALL=C.UTF-8; words "Ryuichi Sakamoto — async (Live at Park Avenue Armory)" 30)" "Ryuichi Sakamoto — async (Live"
-eq "$(python3 -I -c 'import importlib.machinery as m, importlib.util as u, sys
+eq "$(python3 -I -B -c 'import importlib.machinery as m, importlib.util as u, sys
 sys.dont_write_bytecode = True; sys.modules["gi"] = None
 l = m.SourceFileLoader("kp", sys.argv[1]); k = u.module_from_spec(u.spec_from_loader("kp", l))
-l.exec_module(k); k.fusion_wide(sys.argv[2])
-print(repr(k.fit("Home Network 5G Extended", 76)), repr(k.fit("typed text here", 30, tail=True)))' \
-  "$REPO/bin/kawa-panel" "$REPO/configs/home/.config/fedokawaii/width.sh")" "'Home Network' 'here'" \
-  "the panel: a tile's value cut to its 76 px, the typed text keeps its end"
+l.exec_module(k)
+print(repr(k.fit("Home Network 5G Extended", k.TILE_W - 2 * k.GAP)), repr(k.fit("Home Networking 5G", k.TILE_W - 2 * k.GAP)),
+      repr(k.fit("typed text here", 40, tail=True)))' \
+  "$REPO/bin/kawa-panel")" "'Home Network' 'Home' 'here'" \
+  "the panel: a tile's value cut to its 104 px (a cut on a space keeps the word before it; one inside a word drops it), the typed text keeps its end"
 lacks "$(sed -n '/    def text(cr, x, y, s, name/,/return log.width/p' "$REPO/bin/kawa-panel" | grep -v '"""' | grep -v '^\s*#')" '"…"' "the panel's text() adds no …"
 
 done_

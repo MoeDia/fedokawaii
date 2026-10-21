@@ -118,7 +118,7 @@ has "$REP" "secrets.sh (mode only — never read)"
 
 case_ "as you: the commands meant for your session run as you, in your home (never root's)"
 lacks "$REP" "failed to run command ‘runuser’"; lacks "$REP" "failed to run command ‘asu’"
-has "$(grep -A3 '^── the fonts the desktop uses (as fkuser)' <<<"$REP")" "Fusion Pixel 12px Mono ja"
+has "$(grep -A3 '^── the fonts the desktop uses (as fkuser)' <<<"$REP")" "Sumi UI"
 grep -qP '^INFO\t18\. screen sharing and the file dialog\tSHARE-05 the share log\t\(no screen shared yet: /home/fkuser/\.cache/kawa-share\.log\)$' <<<"$REP" && _ok || _no "a row as you did not see your home: $(grep -P '\tSHARE-05 the share log\t' <<<"$REP")"
 l=$(grep -P '^(ok|FAIL)\t27\. applications\tFETCH-01 the prompt \(ble\.sh\)\t' <<<"$REP"); [[ -n $l && $l != *"not installed"* ]] && _ok || _no "ble.sh (a file in your home, not a program) not found: $l"
 lacks "$(sed -n '/^── 9\. the session.s programs · RES-04/,/^── /p' <<<"$REP" | grep -E '^T')" "bash" "the shell probe left a stopped bash behind"   # (zombies: the test machine's own, its PID 1 reaps none)
@@ -131,7 +131,7 @@ has "$a" "WARN  SPOT-05 lpf's leftovers are gone (exit 1)" "lpf's folder left be
 lacks "$a" "SPOT-04"; lacks "$a" "SPOT-06"; lacks "$a" "FAIL  steam"
 t=$(sed -n '/^── by area: each check/,/^── fine/p' <<<"$REP")
 grep -qE '^  ok    SPOT-06 Spotify opens its web player ' <<<"$t" && _ok || _no "the web player's entry not ok: $(grep ' SPOT-06 ' <<<"$t")"
-grep -qE '^  ok    fuzzel ' <<<"$t" && _ok || _no "fuzzel (a working stand-in) not ok: $(grep ' fuzzel ' <<<"$t")"
+grep -qE '^  ok    cava ' <<<"$t" && _ok || _no "cava (a working stand-in) not ok: $(grep ' cava ' <<<"$t")"
 grep -qE '^  FAIL  foot +[0-9]+ ms  prints its version' <<<"$t" && _ok || _no "foot not FAIL in the table"
 grep -qE '^  (ok  |FAIL)  kawa-drives ' <<<"$t" && _ok || _no "the kawa-* helpers are not in the table"
 grep -qE '^  (ok  |FAIL)  yazi ' <<<"$t" && grep -qE '^  (ok  |FAIL)  herdr ' <<<"$t" && _ok || _no "the upstream tools are not in the table"

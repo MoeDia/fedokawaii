@@ -38,10 +38,10 @@ has "$OUT" "✔ theme in sync"; has "$OUT" "! not made here"; has "$OUT" "grub.c
 lacks "$OUT" "kawa-clipkeep" "the helpers are never optional"
 case_ "verify takes exit 4 as passed, with a warning (it must not stop setup's gate for ever)"
 fkrun bash "$TK/verify.sh" --pre-finalize
-has "$OUT" "✔ every file in sync with the repo"; has "$OUT" "! "
-lacks "$OUT" "✘ every file in sync"; lacks "$OUT" "boot menu theme installed" "the boot checks skipped"
+has "$OUT" "✔  every file in sync with the repo"; has "$OUT" "! "
+lacks "$OUT" "✘  every file in sync"; lacks "$OUT" "boot menu theme installed" "the boot checks skipped"
 has "$OUT" "boot menu: not themed here"; lacks "$OUT" "GRUB menu shown for"
-has "$OUT" "✔ file dialogs → yazi (FileChooser: termfilechooser, the only one)" "verify reads portals.conf as the theme writes it"
+has "$OUT" "✔  file dialogs → yazi (FileChooser: termfilechooser, the only one)" "verify reads portals.conf as the theme writes it"
 
 case_ "once what it failed on changes (BOOT_MENU_SECONDS): drift, exit 3"
 tconf 's/^BOOT_MENU_SECONDS=.*/BOOT_MENU_SECONDS="5"/'
@@ -70,14 +70,14 @@ has "$(fk lsinitrd)" "themes/bgrt/bgrt.plymouth" "the boot image still without t
 case_ "… --check names the images without the splash; verify fails them hard (never a warning): the boot shows text"
 theme --check; has "$OUT" "boot images without the splash"
 fkrun bash "$TK/verify.sh" --pre-finalize
-has "$OUT" "✘ the splash in every boot image (lsinitrd)"; has "$OUT" "✘ vi → nvim (a script"
+has "$OUT" "✘  the splash in every boot image (lsinitrd)"; has "$OUT" "✘  vi → nvim (a script"
 case_ "… vi a script again (setup's editor_policy): the next run makes the images, verify passes them"
 printf '#!/bin/sh\nexec nvim "$@"\n' >"$W/usr/local/bin.vi.tmp"; rm -f "$W/usr/local/bin/vi"; mv "$W/usr/local/bin.vi.tmp" "$W/usr/local/bin/vi"; chmod 755 "$W/usr/local/bin/vi"
 theme; eq "$RC" 0; called 'dracut\] -f --regenerate-all'
 has "$(fk lsinitrd)" "themes/sumi/sumi.script"
 [[ ! -e $W/var/lib/fedokawaii/boot.failed ]] && _ok || _no "the mark left behind"
 fkrun bash "$TK/verify.sh" --pre-finalize
-has "$OUT" "✔ the splash in every boot image (lsinitrd)"; has "$OUT" "✔ vi → nvim (a script"
+has "$OUT" "✔  the splash in every boot image (lsinitrd)"; has "$OUT" "✔  vi → nvim (a script"
 reset_calls; theme; not_called 'dracut\]' "images in order: dracut not run again"
 back before-vi
 
@@ -88,7 +88,7 @@ grep -qxF 'set theme=($root)/grub2/themes/sumi/theme.txt' "$W/boot/grub2/grub.cf
 theme --check; eq "$RC" 0 "$(grep -i grub <<<"$OUT" | head -n2 | tr '\n' '|')"
 reset_calls; theme; not_called grub2-mkconfig
 fkrun bash "$TK/verify.sh" --pre-finalize
-has "$OUT" "✔ boot menu theme installed"; lacks "$OUT" "✘ every file in sync"
+has "$OUT" "✔  boot menu theme installed"; lacks "$OUT" "✘ every file in sync"
 rm -f "$FKH/boot-separate"; rm -f "$W/boot/grub2/grub.cfg"; theme; eq "$RC" 0
 
 case_ "the boot menu: the console palette on every boot entry, BOOT_MENU_SECONDS shown, Fedora's auto-hide off"
@@ -128,10 +128,12 @@ for e in lpf lpf-gui lpf-notify lpf-spotify-client; do printf '[Desktop Entry]\n
 printf '[Desktop Entry]\n# mine\nName=lpf\n' >"$a/lpf-mine.desktop"
 fk_perms; theme; eq "$RC" 0
 eq "$(sed -n 's/^Exec=//p' "$a/spotify.desktop")" "$H/.local/bin/brave-origin --app=https://open.spotify.com"
-eq "$(sed -n 's/^Icon=//p' "$a/spotify.desktop")" "$H/.config/fedokawaii/current/apps/spotify.png" "our seal (曲), the theme's own"
+eq "$(sed -n 's/^X-Fedokawaii-Kanji=//p' "$a/spotify.desktop")" "曲" "our seal (曲), the launcher draws it"
+lacks "$(cat "$a/spotify.desktop")" "Icon=" "no picture of its own"
 lacks "$(cat "$a/spotify.desktop")" "MimeType" "no spotify: links (nothing here opens them)"
 eq "$(sed -n 's/^Exec=//p' "$a/whatsapp.desktop")" "$H/.local/bin/brave-origin --app=https://web.whatsapp.com" "WhatsApp: WhatsApp Web in a Brave app window"
-eq "$(sed -n 's/^Icon=//p' "$a/whatsapp.desktop")" "$H/.config/fedokawaii/current/apps/whatsapp.png" "WhatsApp: our seal (話), the theme's own"
+eq "$(sed -n 's/^X-Fedokawaii-Kanji=//p' "$a/whatsapp.desktop")" "話" "WhatsApp: our seal (話), the launcher draws it"
+lacks "$(cat "$a/whatsapp.desktop")" "Icon=" "WhatsApp: no picture of its own"
 for e in lpf lpf-gui lpf-notify lpf-spotify-client; do [[ ! -e $a/$e.desktop ]] && _ok || _no "$e.desktop left"; done
 has "$OUT" "lpf-spotify-client.desktop (retired)"; [[ -e $a/lpf-mine.desktop ]] && _ok || _no "an entry of yours taken"
 theme --check; lacks "$OUT" "lpf" "in sync without lpf's entries"
@@ -160,16 +162,16 @@ lacks "$(cat "$u/brave-origin.desktop")" "NoDisplay" "the entry you launch stays
 eq "$(sed -n 2p "$u/com.brave.Origin.desktop")" "NoDisplay=true" "hidden in its [Desktop Entry]"
 eq "$(grep -c '^NoDisplay=' "$u/com.brave.Origin.desktop")" 1 "the misplaced line gone"
 has "$(cat "$u/com.brave.Origin.desktop")" "Exec=$H/.local/bin/brave-origin --incognito"
-eq "$(grep '^Icon=' "$u/kawa-prowlarr.desktop")" "Icon=$H/.config/fedokawaii/current/apps/prowlarr.png" "Prowlarr's page: its seal, the theme's own"
+eq "$(grep '^X-Fedokawaii-Kanji=' "$u/kawa-prowlarr.desktop")" "X-Fedokawaii-Kanji=索" "Prowlarr's page: its seal (索), the launcher draws it"
 theme --check; lacks "$OUT" "com.brave.Origin" "in sync once made"
 rm -f "$u/com.brave.Origin.desktop"
 theme --check; has "$OUT" "com.brave.Origin.desktop" "a missing copy is drift"
 
 case_ "the key that shows the hidden boot menu (and its snapshots): verify fails when 12_menu_auto_hide is gone or GRUB_TIMEOUT_STYLE is set"
-fkrun bash "$TK/verify.sh"; has "$OUT" "✔ Shift (Esc/F8) at power-on shows the boot menu"; has "$OUT" "✔ nothing takes that key away"
+fkrun bash "$TK/verify.sh"; has "$OUT" "✔  Shift (Esc/F8) at power-on shows the boot menu"; has "$OUT" "✔  nothing takes that key away"
 cp "$W/etc/default/grub" "$TMP/grub.keep"; echo 'GRUB_TIMEOUT_STYLE=hidden' >>"$W/etc/default/grub"
-fkrun bash "$TK/verify.sh"; has "$OUT" "✘ nothing takes that key away"; cp "$TMP/grub.keep" "$W/etc/default/grub"
+fkrun bash "$TK/verify.sh"; has "$OUT" "✘  nothing takes that key away"; cp "$TMP/grub.keep" "$W/etc/default/grub"
 chmod -x "$W/etc/grub.d/12_menu_auto_hide"
-fkrun bash "$TK/verify.sh"; has "$OUT" "✘ Shift (Esc/F8) at power-on shows the boot menu"; chmod +x "$W/etc/grub.d/12_menu_auto_hide"
+fkrun bash "$TK/verify.sh"; has "$OUT" "✘  Shift (Esc/F8) at power-on shows the boot menu"; chmod +x "$W/etc/grub.d/12_menu_auto_hide"
 
 done_

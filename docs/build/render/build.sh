@@ -4,7 +4,7 @@
 # Sources are expected under /opt/f44/src (README.md says where each came from).
 #
 #   build.sh [step...]   default: every step, in order; finished steps are skipped
-#                        unless FORCE=1 (e.g. FORCE=1 build.sh fcft foot fuzzel)
+#                        unless FORCE=1 (e.g. FORCE=1 build.sh fcft foot)
 set -euo pipefail
 P=/opt/f44
 S=$P/src
@@ -32,7 +32,7 @@ mb() {  # mb <name> <srcdir> [meson options...]
 
 steps=("$@")
 [[ ${#steps[@]} -eq 0 ]] && steps=(pixman protocols glib fribidi freetype0 harfbuzz freetype fontconfig cairo pango gtk3
-                                   tllist fcft foot fuzzel mako swaylock gls wireplumber waybar)
+                                   tllist fcft foot mako swaylock gls wireplumber waybar)
 for s in "${steps[@]}"; do case $s in
   # ── the drawing stack ──────────────────────────────────────────────────────────────
   pixman)    mb pixman $S/pixman-0.46.4 -Dtests=disabled -Ddemos=disabled -Dgtk=disabled ;;
@@ -69,7 +69,6 @@ for s in "${steps[@]}"; do case $s in
   tllist)    mb tllist $S/tllist-1.1.0 ;;
   fcft)      mb fcft $S/fcft-3.3.3 -Dgrapheme-shaping=enabled -Drun-shaping=enabled -Dtest-text-shaping=false -Ddocs=disabled ;;
   foot)      mb foot $S/foot-1.27.0 -Dgrapheme-clustering=enabled -Dterminfo=enabled -Ddocs=disabled -Dtests=false ;;
-  fuzzel)    mb fuzzel $S/fuzzel -Denable-cairo=enabled -Dpng-backend=libpng -Dsvg-backend=nanosvg ;;
   mako)      mb mako $S/mako -Dicons=enabled -Dman-pages=disabled -Dsd-bus-provider=libsystemd ;;
   swaylock)  mb swaylock $S/swaylock -Dgdk-pixbuf=enabled -Dpam=enabled -Dman-pages=disabled ;;
   gls)       mb gtk-layer-shell $S/gtk-layer-shell -Dintrospection=false -Dvapi=false -Dtests=false -Ddocs=false -Dexamples=false ;;

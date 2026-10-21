@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 # tests/static/test_generated.sh — what is made from something else still matches it:
-#   · tools/build-themes.py, build-icons.py, build-appicons.py and build-cursors.py, run on a copy of the
-#     repository, write the committed files byte for byte (nobody edited an output by hand,
-#     nobody forgot to run them), and build-themes' colour check reads colours, not numbers
+#   · tools/build-themes.py, build-icons.py, build-cursors.py and build-fonts.py (given its
+#     sources: FEDOKAWAII_FONT_SOURCES), run on a copy of the repository, write the committed
+#     files byte for byte (nobody edited an output by hand, nobody forgot to run them), and
+#     build-themes' colour check reads colours, not numbers
 #   · every $ICON_… name used anywhere is one icons.sh defines; every icon written into a
 #     config as its raw character (yazi's Lua, the bar) is the one its comment names
 #   · every @TOKEN@ in configs/home is one theme.sh's render() fills
@@ -12,7 +13,7 @@ S=$(cd "$(dirname "$0")" && pwd)
 skipped() { printf '  – skipped: %s\n' "$1"; }
 sandbox
 G=$TMP/gen
-copy() { rm -rf "$G"; mkdir -p "$G"; cp -r "$REPO"/{tools,art,configs,bin,src} "$G/"; }
+copy() { rm -rf "$G"; mkdir -p "$G"; cp -r "$REPO"/{tools,art,configs,bin,src,system} "$G/"; }
 same() {   # same — every file under configs/ of the copy is the repository's, byte for byte
   local d
   d=$(diff -rq "$REPO/configs" "$G/configs" 2>&1)
@@ -47,19 +48,14 @@ if python3 -c 'import fontTools' 2>/dev/null; then
   same
 else skipped "python3-fonttools is not installed (dnf install python3-fonttools)"; fi
 
-case_ "build-seal.py on a copy: the launcher's heading fonts, byte for byte (their letters: the installed Fusion Pixel 12)"
-if python3 -c 'import fontTools' 2>/dev/null && [[ -n $(fc-list 'Fusion Pixel 12px Mono ja' 2>/dev/null) ]]; then
+case_ "build-fonts.py on a copy: Sumi UI and Sumi Term, byte for byte (from FEDOKAWAII_FONT_SOURCES: JF Dot Shinonome 16 Bold, Kappa 20 Bold, Unifont JP)"
+FS=${FEDOKAWAII_FONT_SOURCES:-}
+if python3 -c 'import fontTools, PIL' 2>/dev/null && [[ -n $FS && -f $FS/JF-Dot-Shinonome16B.ttf && -f $FS/JF-Dot-Kappa20B.ttf && -f $FS/unifont_jp-17.0.05.otf ]]; then
   copy
-  (cd "$G" && python3 tools/build-seal.py) >"$TMP/log" 2>&1 && _ok || _no "it failed: $(tail -n 4 "$TMP/log" | tr '\n' ' ')"
-  same
-else skipped "python3-fonttools or Fusion Pixel 12 is not installed"; fi
-
-case_ "build-appicons.py on a copy: the launcher's app seals, byte for byte (their kanji: the installed Fusion Pixel 12)"
-if [[ -n $(fc-list 'Fusion Pixel 12px Mono ja' 2>/dev/null) ]]; then
-  copy
-  (cd "$G" && python3 tools/build-appicons.py) >"$TMP/log" 2>&1 && _ok || _no "it failed: $(tail -n 4 "$TMP/log" | tr '\n' ' ')"
-  same
-else skipped "Fusion Pixel 12 is not installed"; fi
+  (cd "$G" && python3 tools/build-fonts.py "$FS/JF-Dot-Shinonome16B.ttf" "$FS/JF-Dot-Kappa20B.ttf" "$FS/unifont_jp-17.0.05.otf") >"$TMP/log" 2>&1 \
+    && _ok || _no "it failed: $(tail -n 4 "$TMP/log" | tr '\n' ' ')"
+  for f in SumiUI.ttf SumiTerm.ttf; do cmp -s "$REPO/system/fonts/$f" "$G/system/fonts/$f" && _ok || _no "system/fonts/$f differs from what build-fonts.py makes"; done
+else skipped "FEDOKAWAII_FONT_SOURCES does not hold the three sources (or python3-fonttools / pillow missing)"; fi
 
 case_ "build-cursors.py on a copy: the pointers, byte for byte"
 copy
@@ -71,9 +67,7 @@ ICONS=$REPO/configs/home/.config/fedokawaii/icons.sh
 case_ "PROJECT_TOP (lib/common.sh) names every entry at the repository's top level (setup's end tells the project's files from yours by it)"
 missing=$(cd "$REPO" && . lib/common.sh >/dev/null 2>&1; for e in * .[!.]*; do [[ -e $e && $e != .git ]] || continue; [[ " ${PROJECT_TOP[*]} " == *" $e "* ]] || printf '%s ' "$e"; done)
 eq "$missing" "" "top-level entries PROJECT_TOP lacks"
-case_ "build-width.py: width.sh is what art/fusion-wide.txt makes"
-python3 "$REPO/tools/build-width.py" --check && _ok || _no "width.sh is out of date: run tools/build-width.py"
-case_ "width.sh's cols counts as the font draws (tests/menus/cols.py, from the same list and the font's rules)"
+case_ "width.sh's cols counts as the faces draw (tests/menus/cols.py: East Asian W and F two columns, the rest one, marks none)"
 bad=""
 while IFS= read -r t; do
   a=$(LC_ALL=C bash -c '. "$1"; cols "$2"' _ "$REPO/configs/home/.config/fedokawaii/width.sh" "$t")
@@ -110,7 +104,7 @@ for ln in (repo / "configs/home/.config/fedokawaii/icons.sh").read_text().splitl
             icons[m.group(1)] = ord(s)
 by_cp = {v: k for k, v in icons.items()}
 bad = []
-def pua(cp): return 0xF0000 <= cp <= 0xFFFFD and not 0xFE800 <= cp <= 0xFE8FF   # (U+FE800–FE8FF: the launcher's Sumi Seal font, tools/build-seal.py)
+def pua(cp): return 0xF0000 <= cp <= 0xFFFFD
 for f in sorted((repo / "configs").rglob("*")):
     if not f.is_file() or f.suffix in (".ttf", ".png", ".xpm") or "/cursors/" in str(f) or f.name == "icons.sh":
         continue

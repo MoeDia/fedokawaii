@@ -151,7 +151,7 @@ if [[ $mode != menu ]]; then
     if [[ -z $icon ]]; then echo '{"text":""}'; exit 0; fi           # (nothing known yet: no module)
     tip="$WEATHER_CITY · $words" class='"sky"'
     if ((age > OLD)); then old "$age"; tip+=" · ${failed:+$failed · }$old"; class='["sky","stale"]'; fi
-    # (its ICON_BAR_*, no space: exactly 6 px from the icon's ink to the value's)
+    # (its ICON_BAR_*, no space: exactly 8 px from the icon's ink to the value's)
     for n in SUN MOON CLOUD FOG RAIN SNOW STORM; do
       v=ICON_$n; [[ $icon == "${!v}" ]] && { v=ICON_BAR_$n; icon=${!v}; break; }
     done
@@ -169,7 +169,8 @@ fi
 # bar's click again), in the design system's parts (docs/design-system.md), one line each in
 # kawa-menu's tab-separated format, laid out by it:
 #   part  天  Sharjah                     the heading: 天 (ten, the sky — 天気, the weather), the city
-#   row   ☼  Mon 19  scorching  31°      a day: the sky's glyph, the weekday and date, how the
+#   info  ☼  Mon 19  scorching  31°      a day, only to read (the cursor and the pointer pass
+#                                         it): the sky's glyph, the weekday and date, how the
 #                                         day feels (a column of its own), its mean temperature
 #                                         (the value, right-aligned)
 #   off   ⊘  offline                      no days at all: why, faint, nothing to choose
@@ -182,19 +183,17 @@ for d in "${days[@]}"; do
   read -r wd dd code mean feels <<<"$d"
   sky "$code" 1 || continue
   feel "$feels"
-  line row "$icon" "$wd $dd" "$word" "$mean°"
+  line info "$icon" "$wd $dd" "$word" "$mean°"
 done
-title="" select=()
+title=""
 if ((${#rows[@]} == 1)); then
   case $failed in
     "") line off "$ICON_HOURGLASS" "the forecast is coming" ;;   # (the first fetch, still going)
     *)  line off "$ICON_OFFLINE" "$failed" ;;
   esac
-else
-  select=(--select 1)                    # (today: where the first key puts the cursor)
-  if ((age > OLD)); then old "$age"; title="${failed:+$failed · }$old"; fi
+elif ((age > OLD)); then
+  old "$age"; title="${failed:+$failed · }$old"
 fi
-i=$(printf '%s\n' "${rows[@]}" | kawa-menu --drop --index "${select[@]}" --title "$title") || exit 0
-# (the heading: the menu again, as every menu; a day: nothing to do but close)
-((i == 0)) && exec "$0" --menu
+# (nothing in it to choose: it is read, and closed — Esc, a click outside, the weather again)
+printf '%s\n' "${rows[@]}" | kawa-menu --drop --index --title "$title" >/dev/null
 exit 0

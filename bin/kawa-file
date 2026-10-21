@@ -124,7 +124,7 @@ locked() {   # locked ARCHIVE KIND — 0 when it needs a password
 }
 password() {   # password PROMPT → typed hidden (as the drives' passphrase); Esc or nothing: 1
   local p
-  p=$(fuzzel --dmenu --prompt-only="$ICON_LOCK  $1  " --password --width 50 --cache=/dev/null </dev/null) || return 1
+  p=$(kawa-menu --title "$1" --prompt "$ICON_LOCK  " --password --width 40 </dev/null) || return 1
   [[ -n $p ]] || return 1
   printf '%s' "$p"
 }

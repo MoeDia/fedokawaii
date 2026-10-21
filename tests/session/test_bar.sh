@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 # tests/session/test_bar.sh — the bar's buttons are lit (class "active") exactly while what
 # they opened is on screen: kawa-bar's markers and their pids (the panel's own for its panels
-# and dropdowns — the panel's toggling: tests/menus/test_panel.sh), the launcher (kawa-menu:
-# centred, toggled), kawa-term --float's windows, the long-running modules woken by a poke, an opener
+# and dropdowns and the launcher — the panel's toggling: tests/menus/test_panel.sh; kawa-menu
+# --launcher asks it), kawa-term --float's windows, the long-running modules woken by a poke, an opener
 # killed with kill -9 (its button dark at the next poke); no tooltip while lit; and waybar's
 # config and style: every opener apart from the bar, a click running only its command, no box
-# but the workspaces', a tooltip or none (never the word "false").
+# (the patches are pictures), a tooltip or none (never the word "false").
 . "$(dirname "$0")/../lib/harness.sh"
 . "$(dirname "$0")/lib.sh"
 . "$(dirname "$0")/../menus/lib.sh"
@@ -14,9 +14,7 @@ setup() {
   session_sandbox; waybar_up
   export FZ=$TMP/fz WAYLAND_DISPLAY=wayland-test
   mkdir -p "$FZ" "$TMP/bin"; : >"$FZ/answers"
-  cp "$REPO/tests/menus/fake_fuzzel" "$STUBS/fuzzel"; chmod 755 "$STUBS/fuzzel"
   cp "$REPO/tests/menus/fake_panel" "$STUBS/kawa-panel"; chmod 755 "$STUBS/kawa-panel"   # (the menus' backend)
-  config .config/fuzzel
   . "$HOME/.config/fedokawaii/icons.sh"
   # a bar button's script, as kawa-calendar is: its rows into a dropdown (kawa-menu knows it
   # by its name)
@@ -37,7 +35,16 @@ setup; setrun
 eq "$(kawa-bar torii)" "{\"text\":\"$ICON_TORII\"}"
 eq "$(kawa-bar cat)" "{\"text\":\"$ICON_CAT\"}"
 [[ $(LC_ALL=tr_TR.UTF-8 kawa-bar date) =~ ^\{\"text\":\"(Mon|Tue|Wed|Thu|Fri|Sat|Sun)\ [0-3][0-9]\ [A-Z][a-z]{2}\"\}$ ]] && _ok || _no "date: $(kawa-bar date)"
-k=(月 火 水 木 金 土 日); eq "$(kawa-bar day)" "{\"text\":\"${k[$(date +%u) - 1]}\"}"
+k=(月 火 水 木 金 土 日); d=$(kawa-bar day); u=$(date +%u)
+if ((u == 1)); then eq "$d" '{"text":"月","class":"mon"}'; else eq "$d" "{\"text\":\"${k[u - 1]}\"}"; fi
+# (each weekday in turn: the clock's day stood in for — printf's %(%u)T, kawa-bar's only clock)
+onday() { DAY=$1 bash -c 'printf() { if [[ $1 == -v && $3 == "%(%u)T" ]]; then builtin printf -v "$2" %s "$DAY"; else builtin printf "$@"; fi; }
+  export -f printf; kawa-bar day'; }
+eq "$(onday 1)" '{"text":"月","class":"mon"}' "Monday: 月 (13 px of ink in its 16) a class of its own, so style.css centres it"
+eq "$(onday 2) $(onday 7)" '{"text":"火"} {"text":"日"}'
+alive; echo "$P kawa-calendar" >"$R/kawa-drop.open"
+eq "$(onday 1) $(onday 3)" '{"text":"月","class":["mon","active"]} {"text":"水","class":"active"}' "lit while the calendar is open"
+rm -f "$R/kawa-drop.open"
 
 case_ "each item and its marker: lit only while the pid in it lives (and, for a dropdown, only its own script's)"
 alive; p=$P; d=$(dead)
@@ -116,18 +123,30 @@ kill -9 "$p"; wait "$p" 2>/dev/null
 eq "$(kawa-bar date)" "{\"text\":\"$(LC_ALL=C date '+%a %d %b')\"}" "dark at the next run"
 rm -f "$R/kawa-drop.open"
 
-# ── the launcher: centred, toggled, lit meanwhile ────────────────────────────────────
-case_ "the launcher (the torii, Super+Space): fuzzel's own list, in the middle of the screen, toggled, its marker"
+# ── the launcher: the panel's, lit while it shows it ──────────────────────────────────
+case_ "the launcher (the torii, Super+Space): the panel's — kawa-menu --launcher asks it (\"toggle launcher\"), nothing else; the torii's click runs only that"
 setup; setrun; menus_sandbox; setrun
-echo "20 12 DP-1 0 1920" >"$R/dwl-pointer"                # (a click on the torii, just now)
-answer hang; kawa-menu --launcher & l1=$!; BG_PIDS+=("$l1")
-until_ '[[ -s $R/kawa-launcher.open ]]'; rc 0 kawa-bar --lit torii
-lacks "$(fz_args)" "--dmenu" "the launcher, not a list"; eq "$(fz_args)" "--launch-prefix=kawa-calc --launch" "no anchor, no margin: centred, also from the torii"
-kawa-menu --launcher; eq "$?" 1 "its key or the torii again: closed"; wait "$l1"
-until_ '[[ ! -e $R/kawa-launcher.open ]]' && _ok || _no "the launcher's marker stayed"; eq "$(fz_n)" 1
-case_ "the launcher open, a dropdown asked for: the panel shows it (the launcher is fuzzel's: the panel closes it)"
-has "$(cat "$REPO/bin/kawa-panel")" 'self.ui.close_menu()                          # a fuzzel menu on screen goes first'
+reset_calls; rc 0 kawa-menu --launcher
+until_ 'grep -q "^kawa-panel toggle launcher$" "$CALLS"' && _ok || _no "the panel was not asked: $(tr '\n' '|' <"$CALLS")"
+eq "$(grep -c . "$CALLS")" 1 "one line, no menu of its own"
+eq "$(wbexec custom/torii on-click)" "setsid -f kawa-menu --launcher"
 rc 2 kawa-menu --launcher --drop
+case_ "the torii lit exactly while the panel shows the launcher: its marker written by the panel's own mark() (its pid), read by kawa-bar; dark once it is taken away, or its pid dead"
+out=$(python3 -I -B - "$REPO/bin/kawa-panel" <<'EOF' 2>&1
+import importlib.machinery as m, importlib.util as u, os, subprocess, sys
+sys.modules["gi"] = None
+l = m.SourceFileLoader("kp", sys.argv[1]); k = u.module_from_spec(u.spec_from_loader("kp", l)); l.exec_module(k)
+lit = lambda: subprocess.call(["kawa-bar", "--lit", "torii"])
+drawn = lambda: subprocess.check_output(["kawa-bar", "torii"], text=True).strip()
+k.mark("launcher", True)
+print(lit(), open(k.MARKS["launcher"]).read().strip() == str(os.getpid()), drawn())
+k.mark("launcher", False)
+print(lit(), os.path.exists(k.MARKS["launcher"]), drawn())
+EOF
+)
+eq "$out" "0 True {\"text\":\"$ICON_TORII\",\"class\":\"active\"}
+1 False {\"text\":\"$ICON_TORII\"}"
+dead >"$R/kawa-launcher.open"; rc 1 kawa-bar --lit torii; rm -f "$R/kawa-launcher.open"
 
 # ── the pokes and the wakes ──────────────────────────────────────────────────────────
 case_ "kawa-dwlstatus --poke 15 tells the mode seal too; every poke wakes the long-running modules' fifos"
@@ -151,20 +170,23 @@ until_ 'grep -q active "$TMP/mem"' && _ok || _no "not lit after a wake: $(tail -
 has "$(tail -n1 "$TMP/mem")" '"class":["calm","active"]'
 kill -9 "$p"; wait "$p" 2>/dev/null; kawa-dwlstatus --wake
 until_ '[[ $(tail -n1 "$TMP/mem") != *active* ]]' && _ok || _no "still lit: $(tail -n1 "$TMP/mem")"
-case_ "the time: the clock and its menu's light (kawa-timer bar); a timer beside it in its own colour"
+case_ "the time: the clock and its menu's light (kawa-timer bar); the timer a cell of its own (kawa-timer bar timer), lit with it, empty while none runs"
 kawa-timer bar >"$TMP/time" & BG_PIDS+=($!)
+kawa-timer bar timer >"$TMP/tcell" & BG_PIDS+=($!)
+until_ '[[ -s $TMP/tcell ]]'; eq "$(tail -n1 "$TMP/tcell")" '{"text":""}' "no timer: an empty cell (waybar hides it)"
 until_ '[[ -s $TMP/time ]]'
 [[ $(tail -n1 "$TMP/time") =~ ^\{\"text\":\"[01][0-9]:[0-5][0-9]:[0-5][0-9]\ [AP]M\"\}$ ]] && _ok || _no "$(tail -n1 "$TMP/time")"
 alive; p=$P; echo "$p kawa-timer" >"$R/kawa-drop.open"; kawa-dwlstatus --wake
 until_ '[[ $(tail -n1 "$TMP/time") == *active* ]]' && _ok || _no "not lit: $(tail -n1 "$TMP/time")"
 kawa-timer start 10
-until_ '[[ $(tail -n1 "$TMP/time") == *timer* ]]'
-. "$HOME/.config/fedokawaii/current/colors.sh"
-[[ $(tail -n1 "$TMP/time") =~ "  <span color='#$C_ACCENT_TEXT'>$ICON_BAR_HOURGLASS"(10:00|09:5[0-9])"</span>" ]] && _ok || _no "the timer: $(tail -n1 "$TMP/time")"
-has "$(tail -n1 "$TMP/time")" '"class":["timer","active"]'
+until_ '[[ $(tail -n1 "$TMP/tcell") == *timer* ]]'
+[[ $(tail -n1 "$TMP/tcell") =~ ^\{\"text\":\"$ICON_BAR_HOURGLASS(10:00|09:5[0-9])\",\"class\":\[\"timer\",\"active\"\]\}$ ]] && _ok || _no "the timer: $(tail -n1 "$TMP/tcell")"
+[[ $(tail -n1 "$TMP/time") =~ ^\{\"text\":\"[01][0-9]:[0-5][0-9]:[0-5][0-9]\ [AP]M\",\"class\":\"active\"\}$ ]] && _ok || _no "the clock keeps to the time: $(tail -n1 "$TMP/time")"
 kill -9 "$p"; wait "$p" 2>/dev/null; kawa-dwlstatus --wake
-until_ '[[ $(tail -n1 "$TMP/time") != *active* ]]' && _ok || _no "still lit: $(tail -n1 "$TMP/time")"
+until_ '[[ $(tail -n1 "$TMP/time") != *active* && $(tail -n1 "$TMP/tcell") != *active* ]]' && _ok || _no "still lit: $(tail -n1 "$TMP/time") $(tail -n1 "$TMP/tcell")"
+has "$(tail -n1 "$TMP/tcell")" '"class":"timer"'
 kawa-timer cancel
+until_ '[[ $(tail -n1 "$TMP/tcell") == "{\"text\":\"\"}" ]]' && _ok || _no "cancelled, still shown: $(tail -n1 "$TMP/tcell")"
 case_ "the volume: PipeWire's level, mute and default output as they change (pw-mon's Node and Metadata blocks), lit by the sound panel"
 echo "Volume: 0.62" >"$TMP/vol"
 stub wpctl 'cat "$TMP/vol"'
@@ -234,7 +256,7 @@ eq "$(wbexec custom/torii on-click)" "setsid -f kawa-menu --launcher"
 eq "$(wbexec custom/weather on-click)" "setsid -f kawa-weather --menu"
 eq "$(wbexec custom/date on-click) $(wbexec custom/day on-click)" "setsid -f kawa-calendar setsid -f kawa-calendar"
 eq "$(wbexec custom/time on-click)" "setsid -f kawa-timer"
-case_ "each lit item's module answers the signal its opener pokes (the panel's, kawa-menu's for the launcher)"
+case_ "each lit item's module answers the signal its opener pokes (the panel's: its panels, dropdowns and the launcher)"
 for m in custom/torii:20 custom/date:19 custom/day:19 custom/drives:13 custom/steam:17 custom/weather:18 custom/brightness:14 custom/menu:15 custom/mode:12 custom/layout:9; do
   eq "$(wbexec "${m%:*}" signal)" "${m#*:}" "${m%:*}"
 done
@@ -243,7 +265,10 @@ sys.modules["gi"] = None
 l = m.SourceFileLoader("kp", sys.argv[1]); k = u.module_from_spec(u.spec_from_loader("kp", l)); l.exec_module(k)
 print(*[f"{c}:{k.poke_sigs("menu " + c)}" for c in ("kawa-calendar", "kawa-drives", "kawa-steam", "kawa-weather", "kawa-tag", "kawa-timer")])' "$REPO/bin/kawa-panel")" \
   "kawa-calendar:[19] kawa-drives:[13] kawa-steam:[17] kawa-weather:[18] kawa-tag:[9] kawa-timer:[]" "the panel pokes each dropdown's button with its module's signal (the timer's: woken)"
-has "$(cat "$REPO/bin/kawa-menu")" 'kawa-dwlstatus --poke 20' "the launcher: the torii's +20"
+eq "$(python3 -I -B -c 'import importlib.machinery as m, importlib.util as u, sys
+sys.modules["gi"] = None
+l = m.SourceFileLoader("kp", sys.argv[1]); k = u.module_from_spec(u.spec_from_loader("kp", l)); l.exec_module(k)
+print(k.POKE["launcher"], k.poke_sigs("launcher"))' "$REPO/bin/kawa-panel")" "20 [20]" "the launcher: the panel pokes the torii's +20"
 case_ "tooltips: a module either says what it is and does (a string from its JSON), or none at all (\"tooltip\": false) — never a JSON false (waybar shows the word)"
 python3 -B - "$REPO/tests/static" "$C" <<'EOF' && _ok || _no "see above"
 import json, sys
@@ -258,12 +283,16 @@ for k, v in c.items():
 sys.exit(bad)
 EOF
 lacks "$(grep -h -- '"tooltip":false\|tooltip: false\|"tooltip": false' "$REPO"/bin/kawa-* 2>/dev/null)" tooltip "a script's JSON with a tooltip of false"
-case_ "the style: no box on the bar but the seals' (the workspaces; a vermilion seal stamped when lit: filled, its ink the paper's) — no ring anywhere; every other lit item recoloured, nothing else"
+case_ "the style: no box of colour on the bar (the cloth, the hem and the patches are pictures; a tooltip framed) — no ring anywhere; the workspaces dyed by state; every lit item recoloured, nothing else"
 S_=$REPO/configs/home/.config/waybar/style.css
-bad=$(grep -nE 'background(-color)?: *@|box-shadow: *inset' "$S_" | grep -vE '^[0-9]+:(  background-color: @bar;|\.tag\.(selected|urgent) |tooltip \{|#custom-mode\.share\.active \{ color: @strong-on-accent; background-color: @accent; \})')
-eq "$bad" "" "a box outside the seals"
+bad=$(grep -nE 'background(-color)?: *@|box-shadow: *inset' "$S_" | grep -vE '^[0-9]+:(  background-color: @bar;|tooltip \{)')
+eq "$bad" "" "a box of colour on the bar"
 grep -q 'box-shadow: *inset' "$S_" && _no "a ring is back" || _ok
-grep -q '^.tag.occupied { color: @text; background-image: url("../fedokawaii/current/hem.png");' "$S_" && _ok || _no "a workspace with windows is not hemmed"
+pic() { grep -A1 -E "^\.tag\.$1 *\{" "$S_" | tr -d '\n'; }
+has "$(pic occupied)" 'url("../fedokawaii/current/cell-windows-36.png")' "a workspace with windows: dyed aizome"
+has "$(pic selected)" 'url("../fedokawaii/current/cell-here-36.png")' "the one you are on: the cloth turned over"
+has "$(pic urgent)" 'url("../fedokawaii/current/cell-urgent-36.png")' "one asking for you: asagi"
+has "$(grep -A2 -E '^\.tag \{' "$S_" | tr -d '\n')" 'url("../fedokawaii/current/cell-bare-36.png")' "an empty one: the frame alone"
 for m in custom-torii custom-layout custom-menu custom-steam custom-mem custom-volume custom-brightness custom-weather custom-drives custom-date custom-day custom-time custom-mode; do
   grep -q "#$m\.active" "$S_" && _ok || _no "#$m has no lit look"
 done
@@ -273,8 +302,7 @@ css = re.sub(r"/\*.*?\*/", "", open(sys.argv[1]).read(), flags=re.S); bad = 0
 for sel, body in re.findall(r"([^{}]+)\{([^}]*)\}", css):
     if ".active" in sel:
         props = {p.split(":")[0].strip() for p in body.split(";") if ":" in p}
-        stamped = all(re.search(r"#custom-(torii|day|steam\.game|mode\.share)[.:]", x.strip() + ".") for x in sel.split(","))
-        if props != ({"color", "background-color"} if stamped else {"color"}): print(sel.strip(), "changes", props); bad = 1
+        if props != {"color"}: print(sel.strip(), "changes", props); bad = 1
 sys.exit(bad)
 EOF
 

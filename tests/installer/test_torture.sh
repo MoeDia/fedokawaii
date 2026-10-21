@@ -7,7 +7,7 @@
 #     failure kinds told apart · tools/check-packages (static, and --live against a stand-in
 #     dnf: a missing name, a rename, two packages bringing one command) · the container trial
 #     against a stand-in podman: its stages, its one results file, the container removed,
-#     nothing of the home touched but ~/fedokawaii-trial*
+#     nothing of the home touched but ~/fedokawaii-trial.txt (its lock and logs elsewhere, gone at the end)
 #   the fake machine:
 #     · a fresh phase 1 and 2: rc 0, the summary says 0 ✘ 0 warnings; phase 1 run again from
 #       its start: no package changed, no warning
@@ -97,6 +97,8 @@ cat >"$STUBS/dnf" <<'EOF'
 #!/bin/bash
 a=" $* "
 case $a in
+  *" repo list "*"--json"*) { printf '%s\n' fedora updates; [[ -e $HOME/.fk-base-only ]] || printf '%s\n' rpmfusion-free rpmfusion-nonfree brave-browser claude-code \
+                                copr:copr.fedorainfracloud.org:ilyaz:LACT copr:copr.fedorainfracloud.org:zzahkaboom24:grub-btrfs; } | jq -R . | jq -sc 'map({id: ., is_enabled: true})' ;;
   *" repo list "*) printf 'repo id repo name\nfedora Fedora\nupdates Updates\n'; [[ -e $HOME/.fk-base-only ]] || printf 'rpmfusion-free x\nrpmfusion-nonfree x\nbrave-browser x\nclaude-code x\ncopr:copr.fedorainfracloud.org:ilyaz:LACT x\ncopr:copr.fedorainfracloud.org:zzahkaboom24:grub-btrfs x\n' ;;
   *" repo info "*) [[ $a == *brave-browser* ]] && echo "PGP check : no" || echo "PGP check : yes" ;;
   *" --whatprovides "*) [[ ${*: -1} == wiremix ]] && echo wiremix-ng ;;
@@ -184,7 +186,8 @@ R=$CT/home/fedokawaii-trial.txt
 has "$(head -n 20 "$R")" "SUMMARY"; has "$(cat "$R")" "PASS  podman and space"; has "$(cat "$R")" "EVERY ✘ AND WARNING"; has "$(cat "$R")" "FULL LOGS"
 has "$(cat "$R")" "qrencode — net" "the 404 run's ✘, with its context, in the file"
 grep -q 'podman rm -f fedokawaii-trial' "$CT/podman.log" && _ok || _no "the container was not removed"
-eq "$(ls -A "$CT/home" | tr '\n' ' ')" "fedokawaii-trial.d fedokawaii-trial.lock fedokawaii-trial.txt " "only ~/fedokawaii-trial* in the home"
+eq "$(ls -A "$CT/home" | tr '\n' ' ')" ".cache fedokawaii-trial.txt " "only the results file in the home (its lock and logs: ~/.cache/fedokawaii, with no runtime folder)"
+eq "$(ls -A "$CT/home/.cache/fedokawaii" 2>/dev/null | tr '\n' ' ')" "" "its lock and working folder gone at the end"
 o=$(asme bash "$CT/repo/tools/container-trial.sh" --bogus 2>&1); eq "$?" 2; has "$o" "unknown option --bogus"
 rm -f "$STUBS/podman" "$STUBS/sleep" "$STUBS/flock" "$STUBS/df"
 
@@ -228,7 +231,7 @@ done
 rm -f "$FKH"/cut-*
 
 case_ "no network: said plainly before anything is installed; the network back: it goes on"
-back fresh; fkh net off; setup; eq "$RC" 1; has "$OUT" "this machine is not ready"; has "$(sed -n '/^network/,/^$/p' <<<"$OUT")" "✘" "the readiness check names the network"
+back fresh; fkh net off; setup; eq "$RC" 1; has "$OUT" "this machine is not ready"; has "$(sed -n '/^── network/,/^$/p' <<<"$OUT")" "✘" "the readiness check names the network"
 eq "$(installed_now)" "$FRESH" "packages changed without a network"
 back fresh; fkh net off; setup >/dev/null; fkh net on; setup; clean_run "after the network came back"
 case_ "mirrors failing in a row (a 404, a damaged download, the rpm lock held; metalink and a partial file: test_common): retried with fresh metadata, converged, counted"

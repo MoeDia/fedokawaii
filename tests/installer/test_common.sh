@@ -145,11 +145,23 @@ lib 'make_tmp; echo "$KAWA_TMP"; die x'; d=$(head -n1 <<<"$OUT")
 
 case_ "the report: pass, warn, fail, info; summary 0 with warnings, 1 with a failure and the list"
 lib 'pass "a"; warn "b" "why"; summary "verified"; echo "rc=$?"'
-has "$OUT" "✔ a"; has "$OUT" "! b — why"; has "$OUT" "✔ verified — 1 checks passed, 1 warning(s)"; has "$OUT" "rc=0"
+eq "$OUT" "    ✔  a
+    !  b — why
+
+  ✔  verified — 1 checks passed, 1 warning(s)
+rc=0" "a row: 4 spaces, the mark, 2 spaces; the verdict: 2, the mark, 2 (not on a terminal: no colour, no wrapping)"
 lib 'pass "a"; fail "b" "why"; check "c" false; summary "verified"; echo "rc=$?"'
-has "$OUT" "✘ 2 of 3 checks failed:"; has "$OUT" "    b — why"; has "$OUT" "    c"; has "$OUT" "rc=1"
+eq "$OUT" "    ✔  a
+    ✘  b — why
+    ✘  c
+
+  ✘  2 of 3 checks failed:
+       b — why
+       c
+rc=1" "each failure listed again under the verdict, 7 spaces in"
+lib 'info "note"'; eq "$OUT" "    ·  note"
 case_ "check: a probe that fails, or one that is not there, is a failure — never a pass"
-lib 'check "x" no-such-command-kawa; summary v; echo "rc=$?"'; has "$OUT" "✘ x"; has "$OUT" "rc=1"
+lib 'check "x" no-such-command-kawa; summary v; echo "rc=$?"'; has "$OUT" "    ✘  x"; has "$OUT" "rc=1"
 
 case_ "wlr_kept / dwl_make_args: the kept copy's flags and an rpath to it"
 mkdir -p "$TMP/wl/lib" "$TMP/wl/include/wlroots-0.20"; : >"$TMP/wl/lib/libwlroots-0.20.so"; echo "-I/x" >"$TMP/wl/cflags"

@@ -314,7 +314,7 @@ need_toolkit() {
 root() {   # root CMD… — CMD as root, through sudo; a refusal is said as what it is
   # (asked first, on its own: a wrong password or a user who is no administrator is then
   # told apart from the command's own failure)
-  sudo -v || { echo "  this needs root: sudo refused (a wrong password, or not an administrator)" >&2; return 1; }
+  sudo -v -p "  your password (sudo, as %u): " || { echo "  this needs root: sudo refused (a wrong password, or not an administrator)" >&2; return 1; }
   sudo "$@"
 }
 held() {   # a run that takes root's lock (update, upgrade, repair, apply) while one goes on:
@@ -325,7 +325,17 @@ held() {   # a run that takes root's lock (update, upgrade, repair, apply) while
 as_root() {
   need_toolkit || return 1
   case $1 in update|upgrade|repair) ! held || return 1 ;; esac
+  unapplied "$1"
   root bash "$TK/fedokawaii.sh" "$@"
+}
+# unapplied ACTION — an update or a repair runs the toolkit as it is: changes waiting in your
+# working copy are not part of it (they go in through apply), and a run that put back what
+# they change would look like their undoing. Said before it starts, never acted on
+unapplied() {
+  [[ $1 == @(update|repair) && -f $COPY/setup.sh && -f $COPY/fedokawaii.sh ]] || return 0
+  same_as_toolkit "$COPY" && return 0
+  echo "  (your working copy, ${COPY/#$HOME/\~}, differs from the toolkit: this $1 runs the toolkit as it is —"
+  echo "   fedokawaii diff shows the difference, fedokawaii apply makes the copy the toolkit)"
 }
 
 # ── your working copy: where the desktop is changed (handbook, chapter 42) ──────────────────────
@@ -614,13 +624,6 @@ on_console() {
 if ! on_console && [[ -r $HOME/.config/fedokawaii/icons.sh ]]; then
   # shellcheck source=/dev/null
   . "$HOME/.config/fedokawaii/icons.sh"
-fi
-# the letters the desktop's font draws two columns wide where a terminal gives them one
-# (— … → and the like: FUSION_WIDE): in the pane each is given the space after it as well,
-# so it never runs into the next word
-if ! on_console && [[ -r $HOME/.config/fedokawaii/width.sh ]]; then
-  # shellcheck source=/dev/null
-  . "$HOME/.config/fedokawaii/width.sh"
 fi
 # the text screens' grammar (docs/design-system.md §7): headings, rows, footers and their inks
 if ! on_console && [[ -r $HOME/.config/fedokawaii/screen.sh ]]; then

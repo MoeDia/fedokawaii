@@ -68,10 +68,10 @@ EOF"
 run "BRV-02 Brave draws with the GPU"; eq "$RC" 0 "$OUT"
 
 case_ "NET-07: the ports as firewalld lists them (the first one too); NET-09: mDNS and Steam's Remote Play are no strangers, LLMNR is (it is off)"
-stub firewall-cmd 'case "$*" in --state) echo running ;; --get-default-zone) echo public ;; *--list-ports*) echo "6881/tcp 6881/udp 53317/tcp 53317/udp" ;; *--list-services*) echo "dhcpv6-client mdns" ;; esac'
+stub firewall-cmd 'case "$*" in --state) echo running ;; --get-default-zone) echo public ;; *--list-ports*) echo "6881/tcp 6881/udp 53317/tcp 53317/udp" ;; *--list-services*) echo "dhcpv6-client mdns ssh" ;; esac'
 run "NET-07 the firewall"; eq "$RC" 0 "$OUT"
-stub firewall-cmd 'case "$*" in --state) echo running ;; --get-default-zone) echo public ;; *--list-ports*) echo "6881/udp 53317/tcp 53317/udp" ;; *--list-services*) echo "ssh mdns" ;; esac'
-run "NET-07 the firewall"; eq "$RC" 1; has "$OUT" "closed: 6881/tcp"; has "$OUT" "ssh or cockpit open"
+stub firewall-cmd 'case "$*" in --state) echo running ;; --get-default-zone) echo public ;; *--list-ports*) echo "6881/udp 53317/tcp 53317/udp" ;; *--list-services*) echo "ssh mdns cockpit" ;; esac'
+run "NET-07 the firewall"; eq "$RC" 1; has "$OUT" "closed: 6881/tcp"; has "$OUT" "cockpit open"
 stub ss "cat <<'EOF'
 tcp LISTEN 0 4096 0.0.0.0:5355 0.0.0.0:* users:((\"systemd-resolve\",pid=666,fd=13))
 tcp LISTEN 0 4096 127.0.0.53%lo:53 0.0.0.0:* users:((\"systemd-resolve\",pid=666,fd=19))
@@ -267,14 +267,18 @@ run "DWL-05 status lines stay out of dwl.log"; eq "$RC" 0 "$OUT"
 for i in 1 2; do printf 'HDMI-A-1 %s\n' "title " "appid " "fullscreen " "floating " "selmon $((i - 1))" "tags 0 1 0 0" "layout (@)" "kblayout 0"; done >>"$HOME/.cache/dwl.log"
 run "DWL-05 status lines stay out of dwl.log"; eq "$RC" 1; has "$OUT" "16 status lines"
 
-case_ "FONT-04b: fuzzel shapes through fcft (HarfBuzz and utf8proc) — its version line never names it"
-stub fuzzel 'echo "fuzzel version: 1.14.0 +cairo +png +svg(nanosvg) -assertions"'
-stub ldd 'case $1 in *fcft*) printf "\tlibharfbuzz.so.0 => /lib64/libharfbuzz.so.0 (0x1)\n\tlibutf8proc.so.3 => /lib64/libutf8proc.so.3 (0x2)\n" ;;
-  *) printf "\tlibfcft.so.4 => /lib64/libfcft.so.4 (0x3)\n" ;; esac'
-run "FONT-04b Arabic shapes in the menus (fuzzel)"; eq "$RC" 0 "$OUT"
-stub ldd 'case $1 in *fcft*) printf "\tlibpixman-1.so.0 => /lib64/libpixman-1.so.0 (0x1)\n" ;; *) printf "\tlibfcft.so.4 => /lib64/libfcft.so.4 (0x3)\n" ;; esac'
-run "FONT-04b Arabic shapes in the menus (fuzzel)"; eq "$RC" 1
-rm -f "$STUBS/ldd"
+case_ "CALC-01 and UI-16: the launcher is the panel's — the torii and the menu helper ask it, a sum is worked out by qalc; either not asking it fails"
+mkdir -p "$TMP/lb" "$HOME/.local/share/applications" "$HOME/.config/waybar"
+printf '#!/bin/sh\n# kawa-menu (a stand-in): the launcher the panel'"'"'s own: printf "toggle launcher"\n' >"$TMP/lb/kawa-menu"
+printf '#!/bin/sh\n' >"$TMP/lb/kawa-calc"; printf '#!/bin/sh\n' >"$TMP/lb/qalc"; chmod 755 "$TMP/lb"/*
+printf '[Desktop Entry]\nName=Calculator\nExec=kawa-calc\n' >"$HOME/.local/share/applications/kawa-calc.desktop"
+printf '{\n  "custom/torii": { "exec": "kawa-bar torii", "on-click": "setsid -f kawa-menu --launcher" }\n}\n' >"$HOME/.config/waybar/config.jsonc"
+PATH=$TMP/lb:$PATH run "CALC-01 the calculator in the launcher"; eq "$RC" 0 "$OUT"
+PATH=$TMP/lb:$PATH run "UI-16 the launcher is the panel's"; eq "$RC" 0 "$OUT"
+printf '#!/bin/sh\n' >"$TMP/lb/kawa-menu"; PATH=$TMP/lb:$PATH run "CALC-01 the calculator in the launcher"; eq "$RC" 1 "a kawa-menu that does not ask the panel"
+sed -i 's/kawa-menu --launcher/fuzzel/' "$HOME/.config/waybar/config.jsonc"
+printf '#!/bin/sh\n# printf "toggle launcher"\n' >"$TMP/lb/kawa-menu"; PATH=$TMP/lb:$PATH run "UI-16 the launcher is the panel's"; eq "$RC" 1 "the torii opens something else"
+rm -rf "$TMP/lb" "$HOME/.config/waybar" "$HOME/.local/share/applications/kawa-calc.desktop"
 
 case_ "UNIT-09: the first-start report not run yet, but enabled for the next start, is no warning; neither run nor enabled is"
 stub systemctl '[ "$1" = is-enabled ] && exit 0; echo Result=success'

@@ -1,8 +1,0 @@
-#!/bin/bash
-# fuzzel 1.14 of the fake Fedora: --check-config passes; --help names its options (Fedora 44's)
-. /usr/local/bin/_lib.sh
-fkh_log "$*"
-case $1 in
-  --help) printf '%s\n' --accept-nth --anchor --auto-select --background-color --border-color --border-radius --border-width --cache --check-config --config --counter --counter-color --delayed-filter-limit --delayed-filter-ms --dmenu --dmenu0 --dpi-aware --fields --filter-desktop --font --fuzzy-max-distance --fuzzy-max-length-discrepancy --fuzzy-min-length --hide-before-typing --hide-prompt --horizontal-pad --icon-theme --index --inner-pad --input-color --keyboard-focus --launch-prefix --layer --letter-spacing --line-height --lines --list-executables-in-path --log-colorize --log-level --log-no-syslog --match-color --match-mode --match-nth --match-workers --mesg --mesg-mode --message-color --minimal-lines --namespace --no-exit-on-keyboard-focus-loss --no-icons --no-mouse --no-run-if-empty --no-sort --nth-delimiter --only-match --output --password --placeholder --placeholder-color --print-timing-info --prompt --prompt-color --prompt-only --render-workers --scaling-filter --search --select --select-index --selection-color --selection-match-color --selection-radius --selection-text-color --show-actions --tabs --terminal --text-color --use-bold --version --vertical-pad --width --with-nth --x-margin --y-margin  ;;
-  --check-config) exit "$(rcfor fuzzel 0)" ;;
-esac; exit 0

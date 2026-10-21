@@ -2,6 +2,7 @@
 . /usr/local/bin/_lib.sh
 fkh_log "$*"
 case $1 in
-  show) cat "$FKH/ntp" 2>/dev/null || echo yes ;;
+  # ($FKH/ntp: whether the clock is synchronised — and NTP on; $FKH/ntp-on: NTP on, apart)
+  show) if [[ " $* " == *" -p NTP "* && -f $FKH/ntp-on ]]; then cat "$FKH/ntp-on"; else cat "$FKH/ntp" 2>/dev/null || echo yes; fi ;;
   set-timezone) [[ -f /usr/share/zoneinfo/$2 ]] || { echo "Failed to set time zone: Invalid or not installed time zone '$2'" >&2; exit 1; }; echo "$2" >"$FKH/timezone" ;;
 esac; exit 0

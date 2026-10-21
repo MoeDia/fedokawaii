@@ -5,12 +5,12 @@
 # Brave, so the bar's now-playing and its meter show it (Brave's media session over MPRIS,
 # cava on the output) and the media keys work it. Spotify's player needs Widevine, which
 # theme.sh switches on in Brave once (brave://settings → Widevine turns it off again). Its
-# icon: our seal of 曲 (tools/build-appicons.py, the theme's own: current/apps).
+# icon: our seal of 曲 (the launcher draws it: X-Fedokawaii-Kanji).
 Type=Application
 Name=Spotify
 GenericName=Music Player
 Comment=Spotify's web player, in a window of its own
-Icon=@HOME@/.config/fedokawaii/current/apps/spotify.png
+X-Fedokawaii-Kanji=曲
 Exec=@HOME@/.local/bin/brave-origin --app=https://open.spotify.com
 Terminal=false
 Categories=Audio;AudioVideo;Player;

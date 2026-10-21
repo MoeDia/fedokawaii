@@ -1,12 +1,11 @@
 [Desktop Entry]
 # wiremix, the mixer — the window quick settings' mixer opens (kawa-quick --do mixer:
-# floating, one at a time). Its icon: our seal of 混 (tools/build-appicons.py, the theme's
-# own: current/apps).
+# floating, one at a time). Its icon: our seal of 混 (the launcher draws it: X-Fedokawaii-Kanji).
 Type=Application
 Name=Volume mixer
 GenericName=Sound mixer
 Comment=wiremix: the volume of each program, output and microphone
-Icon=@HOME@/.config/fedokawaii/current/apps/mixer.png
+X-Fedokawaii-Kanji=混
 Exec=@HOME@/.local/bin/kawa-quick --do mixer
 Terminal=false
 Categories=AudioVideo;Audio;Mixer;

@@ -285,15 +285,32 @@ ground() {   # only the theme's plain ground (before the pack is here): a pictur
   show -i "$g" -m fill
 }
 apply() {   # apply CHOICE — default | pack:NAME | /path/to/file; 1: no such picture now
-  local args=() name size img
+  local args=() name size img first=""
   source_of "$(resolve "$1")" || return 1
   # every screen there now, drawn at its exact size
   while read -r name size; do
     img=$(cover "$size") || return 1
     args+=(-o "$name" -i "$img" -m fill)       # (already its exact size: shown 1:1)
+    first=${first:-$img}
   done < <(outputs)
   ((${#args[@]})) || { ground; return; }      # (no monitor to ask about: the plain ground)
   show "${args[@]}"
+  # (the lock's ground from it, behind: never in the way of the picture on screen)
+  lock_ground "$first" </dev/null >/dev/null 2>&1 7>&- 8>&- 9>&- &
+}
+# lock_ground PICTURE — the lock's and the login screen's ground: the picture on the first
+# screen with three quarters of the theme's ground over it (kawa-lock hands it to gtklock;
+# kawa-greet reads its copy in /var/lib/fedokawaii-greeter, a folder of yours): the wallpaper
+# still there, quiet, the words on it clear. Made once a picture and ground
+lock_ground() {
+  local src=$1 out=$CACHE/lock-$THEME.png
+  [[ -s $out && $(cat "$out.src" 2>/dev/null) == "$src $C_GROUND" ]] && return 0
+  if nice -n 10 magick "$src" -fill "#$C_GROUND" -colorize 75% -strip "PNG24:$out.tmp" 2>/dev/null; then
+    mv -f "$out.tmp" "$out" && printf '%s %s\n' "$src" "$C_GROUND" >"$out.src"
+  else rm -f "$out.tmp"; return 1; fi
+  [[ -d /var/lib/fedokawaii-greeter && -w /var/lib/fedokawaii-greeter ]] \
+    && install -m 0644 "$out" "/var/lib/fedokawaii-greeter/lock-$THEME.png"
+  return 0
 }
 took() {   # took WHAT — how long a change took, from the start, in ~/.cache/fedokawaii/wallpaper.log
   local log=$CACHE/wallpaper.log
@@ -519,17 +536,26 @@ cache_status() {   # the report's and verify's look: complete and current?
 # width is known: its columns less two each side (fzf's margin and the cursor fill's: W, at
 # the top)
 declare -A OWN_SUM=()
+current() {   # the choice shown now, as the list names it: the default's own picture is "default"
+  local c
+  c=$(cat "$STATE_DIR/wallpaper-$THEME" 2>/dev/null)
+  [[ -z $c || $c == "$(resolve default)" ]] && c=default
+  printf '%s\n' "$c"
+}
+
 rows() {   # every choice for this theme: "CHOICE<TAB>KEY<TAB>ROW" (KEY: the preview's cache
-  # name, or empty when not known yet)
-  local name dflt p st sum t f
-  dflt=$(resolve default)
+  # name, or empty when not known yet); the one shown now says "current"
+  local name dflt p st sum t f cur
+  dflt=$(resolve default) cur=$(current)
   if source_of "$dflt"; then
-    printf 'default\t%s\t%s\n' "$KEY" "$(screen_row "$ICON_TORII" "${dflt#pack:}" default "$W")"
+    p=default; [[ $cur == default ]] && p="current · default"
+    printf 'default\t%s\t%s\n' "$KEY" "$(screen_row "$ICON_TORII" "${dflt#pack:}" "$p" "$W")"
   fi
   for name in "${L_NAMES[@]}"; do
     [[ pack:$name == "$dflt" ]] && continue                 # (listed first, as the default)
     source_of "pack:$name" || continue
     p=""; [[ ${L_PAIR[$name]} != - ]] && p=$ICON_THEME
+    [[ pack:$name == "$cur" ]] && p="current${p:+  $p}"
     printf 'pack:%s\t%s\t%s\n' "$name" "$KEY" "$(screen_row "$ICON_PICTURE" "$name" "$p" "$W")"
   done
   # your own (a name with a tab or a line break in it cannot be listed): their keys from what
@@ -543,7 +569,8 @@ rows() {   # every choice for this theme: "CHOICE<TAB>KEY<TAB>ROW" (KEY: the pre
     ! -name $'*\t*' ! -name $'*\n*' -printf '%p\t%s %T@\n' | sort | while IFS=$'\t' read -r f st; do
       sum=${OWN_SUM["${st%.*} $f"]:-} p=""
       [[ -n $sum ]] && p="$(safe_name "$f").${sum:0:16}.center"
-      printf '%s\t%s\t' "$f" "$p"; screen_row "$ICON_FOLDER" "${f#"$WALLPAPER_DIR"/}" "" "$W"; printf '\n'   # (no subshell a row)
+      t=""; [[ $f == "$cur" ]] && t=current
+      printf '%s\t%s\t' "$f" "$p"; screen_row "$ICON_FOLDER" "${f#"$WALLPAPER_DIR"/}" "$t" "$W"; printf '\n'   # (no subshell a row)
     done
 }
 
@@ -611,7 +638,7 @@ case ${1:-menu} in
     cache_status ;;
   menu)        # Super+W: the picker has closed (at the top): what was picked goes up
     c=$(cat "$pick" 2>/dev/null)
-    cur=$(cat "$STATE_DIR/wallpaper-$THEME" 2>/dev/null)
+    cur=$(current)
     [[ -n $c && $c != "$cur" ]] || exit 0
     # (the new one drawn off screen, then in the old one's place under the wash: --set)
     exec "$0" --set "$c" ;;
@@ -622,7 +649,7 @@ case ${1:-menu} in
     read -r _ screen < <(outputs)
     [[ $screen =~ ^[0-9]+x[0-9]+$ ]] || exit 1
     mapfile -t list < <(rotate_row; rows)
-    cur=$(cat "$STATE_DIR/wallpaper-$THEME" 2>/dev/null) pos=2   # (1: the switch row)
+    cur=$(current) pos=2                              # (1: the switch row)
     for i in "${!list[@]}"; do [[ ${list[i]%%$'\t'*} == "$cur" ]] && pos=$((i + 1)); done
     # a preview is a cat of its sixel, drawn ahead (the folder: this screen, this cell, this
     # ground; the file: the picture's key and the pane's size, as fzf gives it); one not drawn
@@ -645,11 +672,17 @@ case ${1:-menu} in
       --preview-window='down,18,border-top,noinfo' \
       --footer=$'\n'"$(screen_footer "$THEME theme" 'enter set' "$ICON_THEME  sets both themes" 'esc close')" \
       --bind="enter:transform:[ {1} = rotate ] && echo 'execute-silent($self --rotate toggle)+reload($self --rows)' || echo accept" \
-      --bind="start:pos($pos)") || exit 0
+      --bind="load:pos($pos)+unbind(load)") || exit 0
+    # (load, not start: start comes before the list has arrived, and pos past what has arrived
+    # yet lands short; once only — a reload after the switch keeps the cursor on the switch)
     printf '%s\n' "${sel%%$'\t'*}" >"$out" ;;
   --preview)   # fzf's preview, when its sixel is not drawn yet: drawn now, and the pane's size noted
     c=${2:-} cell=${KAWA_CELL:-} area=${FZF_PREVIEW_COLUMNS:-}x${FZF_PREVIEW_LINES:-}
-    [[ $c == rotate ]] && { printf '\n  %s\n' "every 4 hours, the pack's next picture for this theme (both themes for a pair)"; exit 0; }
+    if [[ $c == rotate ]]; then   # (its words to the pane's width, at words' ends: none cut off)
+      printf '\n'
+      fold -s -w $(( ${FZF_PREVIEW_COLUMNS:-60} - 4 )) <<<"every 4 hours the pack's next picture for this theme — for a picture with a pair, both themes" | sed 's/ *$//; s/^/  /'
+      exit 0
+    fi
     read -r _ screen < <(outputs)
     # (quiet: fzf shows a preview's stderr in the pane — a picture it cannot read, cut short
     # or not a picture at all, gets the plain "no preview" line instead of ImageMagick's words)

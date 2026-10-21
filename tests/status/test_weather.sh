@@ -123,7 +123,7 @@ jq -c '.current.weather_code = 42' "$CACHE" >"$CACHE.x" && mv "$CACHE.x" "$CACHE
 eq "$(bar)" '{"text":""}'; eq "$(kawa-weather)" "Sharjah"
 
 # ── the menu ─────────────────────────────────────────────────────────────────
-# kawa-menu's lines: TAB-separated parts, laid out by it — "part KANJI NAME", "row GLYPH NAME
+# kawa-menu's lines: TAB-separated parts, laid out by it — "part KANJI NAME", "info GLYPH NAME
 # DETAIL VALUE", "off GLYPH NAME" (faint, not a choice)
 T=$'\t'
 wd() { LC_ALL=C date -u -d "$TODAY +$1 day" '+%a %-d'; }
@@ -131,25 +131,26 @@ case_ "the menu: a dropdown under the bar — the heading (天, the city), then 
 cached; answers esc
 rc 0 kawa-weather --menu
 eq "$(opened)" 1
-eq "$(args)" "--drop --index --select 1 --title  " "under the bar, today first for the keys, no title while fresh"
+eq "$(args)" "--drop --index --title  " "under the bar, no cursor (nothing to choose: every day only read), no title while fresh"
 eq "$(row 0)" "part${T}天${T}Sharjah" "the heading: the seal, the city"
 eq "$(grep -c . <<<"$(rows)")" 8
-eq "$(row 1)" "row${T}$ICON_SUN${T}$(wd 0)${T}scorching${T}31°" "today: clear, feels 38.4 → scorching, a mean of 31.2"
-eq "$(row 2)" "row${T}$ICON_SUN${T}$(wd 1)${T}hot${T}31°" "mostly clear, 36.2 → hot, 30.8"
-eq "$(row 3)" "row${T}$ICON_CLOUD${T}$(wd 2)${T}hot${T}30°" "partly cloudy, 33.0 → hot"
-eq "$(row 4)" "row${T}$ICON_CLOUD${T}$(wd 3)${T}warm${T}29°" "overcast, 30.9 → warm"
-eq "$(row 5)" "row${T}$ICON_FOG${T}$(wd 4)${T}warm${T}29°" "fog, 28.7 → warm, 28.6 → 29"
-eq "$(row 6)" "row${T}$ICON_RAIN${T}$(wd 5)${T}mild${T}26°" "light rain, 25.1 → mild"
-eq "$(row 7)" "row${T}$ICON_STORM${T}$(wd 6)${T}warm${T}28°" "thunderstorm, 27.9 → warm"
-case_ "no padding of its own: every field plain, the layout kawa-menu's"
+eq "$(row 1)" "info${T}$ICON_SUN${T}$(wd 0)${T}scorching${T}31°" "today: clear, feels 38.4 → scorching, a mean of 31.2"
+eq "$(row 2)" "info${T}$ICON_SUN${T}$(wd 1)${T}hot${T}31°" "mostly clear, 36.2 → hot, 30.8"
+eq "$(row 3)" "info${T}$ICON_CLOUD${T}$(wd 2)${T}hot${T}30°" "partly cloudy, 33.0 → hot"
+eq "$(row 4)" "info${T}$ICON_CLOUD${T}$(wd 3)${T}warm${T}29°" "overcast, 30.9 → warm"
+eq "$(row 5)" "info${T}$ICON_FOG${T}$(wd 4)${T}warm${T}29°" "fog, 28.7 → warm, 28.6 → 29"
+eq "$(row 6)" "info${T}$ICON_RAIN${T}$(wd 5)${T}mild${T}26°" "light rain, 25.1 → mild"
+eq "$(row 7)" "info${T}$ICON_STORM${T}$(wd 6)${T}warm${T}28°" "thunderstorm, 27.9 → warm"
+case_ "no padding of its own: every field plain, the layout kawa-menu's; every day an info row (read, never chosen)"
+eq "$(rows | cut -f1 | sort | uniq -c | tr -s ' ' | tr '\n' '|')" " 7 info| 1 part|"
 lacks "$(rows)" "  "; lacks "$(rows)" "–"
-case_ "a day chosen (Enter, a click): the menu closes, nothing else happens"
+case_ "Enter (whatever the menu hands back): the menu closes, nothing else happens"
 cached; reset_calls; answers 3
 rc 0 kawa-weather --menu; eq "$(opened)" 1
 eq "$(grep -v '^kawa-menu ' "$CALLS")" "" "nothing but the menu was run"
-case_ "the heading chosen: the menu again (as every menu)"
+case_ "the heading handed back: the menu is not opened again (nothing in it does anything)"
 cached; answers 0 esc
-rc 0 kawa-weather --menu; eq "$(opened)" 2; has "$(args 2)" "--select 1 "
+rc 0 kawa-weather --menu; eq "$(opened)" 1
 case_ "Esc, a click outside, the bar's click again: closed"
 cached; answers esc; rc 0 kawa-weather --menu; eq "$(opened)" 1
 
@@ -169,7 +170,7 @@ case_ "a cache from yesterday (offline since): today first, the day gone left ou
 setup; forecast '.daily.time |= map(strptime("%Y-%m-%d") | mktime - 86400 | strftime("%Y-%m-%d"))'
 kawa-weather >/dev/null; fetched; touch -d '-26 hours' "$CACHE"; echo offline >"$HOME/.cache/kawa-weather.failed"
 answer '' 6; answers esc; kawa-weather --menu
-has "$(args)" "--select 1 --title offline · 1 day old " "said plainly, in the quiet line above the heading"
+eq "$(args)" "--drop --index --title offline · 1 day old " "said plainly, in the quiet line above the heading"
 eq "$(row 0)" "part${T}天${T}Sharjah"; eq "$(grep -c . <<<"$(rows)")" 7 "the heading and six days"
 eq "$(cut -f3-4 <<<"$(row 1)")" "$(wd 0)${T}hot" "today first: yesterday's second day"
 fetched

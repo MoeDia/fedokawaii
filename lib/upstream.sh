@@ -18,7 +18,8 @@ UPSTREAM=(
   "yazi|sxyazi/yazi|v26.9.1|yazi-x86_64-unknown-linux-musl.zip|9b9c39decccf8cb0ff53a7d637d38f8a79d93bbd0099f4ea9c619ef6bb392f5d|yazi ya"
   # (Bluetooth pairing in a terminal; its release file is the binary itself, static — measured 2026-10-16)
   "bluetui|pythops/bluetui|v0.8.2|bluetui-x86_64-linux-musl|b476ee473cb4f7a48cd75d440e991bedc835ff5ac704aac1f1992f8e826222fd|bluetui"
-  "lazygit|jesseduffield/lazygit|v0.66.1|lazygit_0.66.1_linux_x86_64.tar.gz|7b3f30c2c06a42cf575280f907e58d7ea08411408b6b62bc926bc91cbc6c3f46|lazygit"
+  # (0.66.2, 2026-10-16: fixes only — measured 2026-10-21, the same as the release's checksums.txt)
+  "lazygit|jesseduffield/lazygit|v0.66.2|lazygit_0.66.2_linux_x86_64.tar.gz|158efc9ddfa1241fab5fb3526bb442c8dc6c4b1904d73213b9e4e93e03c52034|lazygit"
   # (Claude Code sessions side by side, each marked working, blocked or idle: "Agents" in the
   # launcher. Its release file is the binary itself, static — measured 2026-10-19, and the
   # same as the release's own distribution/latest.json)
@@ -33,21 +34,12 @@ NERD_FONTS_TAG=v3.5.1
 NERD_FONTS=(
   "JetBrainsMono|04d5e8f903693f9dd13e16f867e994834e681eb3c72c0d337a770dcda09010cf"
 )
-# Fusion Pixel (SIL OFL): pixel fonts with Latin and Japanese (kana + kanji) in one face —
-# the desktop's one type, in two cuts of the same design: the 12 px one for the bar, menus
-# and notifications at 1× (12 px), the lock and login screens and the boot menu at 2× and
-# 3×; the 10 px one for the terminal at 2× (20 px: a 10 × 24 px cell, the size the terminal
-# had before the pixel font, and every pixel still a sharp 2 × 2 square). The monospaced
-# cuts, their Japanese glyph forms ("ja"); the terminal draws the 10 px one as Sumi Term, made
-# from it here (sumi_term). Installed for every account
-# (/usr/local/share/fonts): the login screen runs as its own system user.
-FUSION_DIR=/usr/local/share/fonts/fusion-pixel
-FUSION_TAG=2026.08.11
-# SIZE|SHA-256 of fusion-pixel-font-SIZEpx-monospaced-ttf-vTAG.zip
-FUSION_FACES=(
-  "12|efbfb4c4cbcd156c8ec2739ff9eaf275490bf5c65279314f28b7a122c2d0d295"
-  "10|71676f3c375676dbb363b24a60e8184314d9a2092b8e9a7d660c05ce34575bf3"
-)
+# the desktop's two faces, Sumi UI and Sumi Term (tools/build-fonts.py: the classic Japanese
+# dot fonts Shinonome 16 and Kappa 20, bold), are the repo's own files (system/fonts):
+# installed for every account (/usr/local/share/fonts/fedokawaii) — the login screen runs as
+# its own system user. FACES_OLD: where the pixel font before them lay (Fusion Pixel)
+FACES_DIR=/usr/local/share/fonts/fedokawaii
+FACES_OLD=/usr/local/share/fonts/fusion-pixel
 # (its files were GE-ProtonN-M.tar.gz; since GE-Proton 11 there is one per architecture:
 # GE-ProtonN-M-x86_64.tar.gz beside -aarch64 — either form is taken, never the aarch64 one)
 GE_PROTON_REPO="GloriousEggroll/proton-ge-custom"; GE_PROTON_ASSET='^GE-Proton[0-9]+-[0-9]+(-x86_64)?\.tar\.gz$'
@@ -80,10 +72,12 @@ SYNCPLAY_PATCH=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/src/syncplay/syn
 # network (Wi-Fi or cable): no account, no cloud. Its Linux release is a folder (the app, its
 # libraries, its data), kept whole in ~/.local/share/localsend; ~/.local/bin/localsend points
 # into it. Its ports (tcp: the files · udp: devices finding each other) are open in the
-# firewall (setup.sh, open_ports)
-LOCALSEND_TAG=v1.18.0
-LOCALSEND_ASSET=LocalSend-1.18.0-linux-x86-64.tar.gz
-LOCALSEND_SHA256=5054f970dda73787a95fcd706dac62cdfb810ff4bde8c5a20f1332ee5d908afb
+# firewall (setup.sh, open_ports). 1.18.2 (fixes: 1.17 and older devices found again, a peer's
+# redirect never followed, its server restarted when it stops) — measured 2026-10-21, the same
+# files and libraries as 1.18.0's
+LOCALSEND_TAG=v1.18.2
+LOCALSEND_ASSET=LocalSend-1.18.2-linux-x86-64.tar.gz
+LOCALSEND_SHA256=287690a9a8eb6da9c83cc97b3e3030ac67daf32a7331fcf307d0939300658d16
 LOCALSEND_PORT=53317
 BLESH_REPO=https://github.com/akinomyoga/ble.sh.git
 BLESH_COMMIT=d81fd54feb0d996fdff20dca27eaf0201f7015cc
@@ -236,53 +230,26 @@ install_nerd_fonts() {    # each family from its own release file, checksum-pinn
   return "$failed"
 }
 
-install_fusion() {   # pinned archives → /usr/local/share/fonts/fusion-pixel (the faces, the licence,
-  # and the terminal's face made from the 10 px one: Sumi Term, tools/build-term-font.py)
-  local e px f have=1 rels=() faces=() lic=""
-  for e in "${FUSION_FACES[@]}"; do [[ -s $FUSION_DIR/fusion-pixel-${e%%|*}px-monospaced-ja.ttf ]] || have=0; done
-  if ((have)) && [[ $(cat "$FUSION_DIR/.version" 2>/dev/null) == "$FUSION_TAG" ]]; then
-    log "Fusion Pixel 12 and 10 $FUSION_TAG — in place"; sumi_term; sumi_ui; return
-  fi
-  # every archive fetched and checked before anything is installed: one refused, none is
-  for e in "${FUSION_FACES[@]}"; do
-    px=${e%%|*}
-    fetch_pinned "https://github.com/TakWolf/fusion-pixel-font/releases/download/$FUSION_TAG/fusion-pixel-font-${px}px-monospaced-ttf-v$FUSION_TAG.zip" "${e#*|}" \
-      || { rm -rf "${rels[@]}" "$REL_DIR"; return 1; }
-    rels+=("$REL_DIR")
-    f=$(find "$REL_DIR/x" -name "fusion-pixel-${px}px-monospaced-ja.ttf" -print -quit)
-    [[ -s $f ]] || { rm -rf "${rels[@]}"; log "the Fusion Pixel $px archive held no Japanese $px px face"; return 1; }
-    faces+=("$f"); [[ -n $lic ]] || lic=$(find "$REL_DIR/x" -name OFL.txt -print -quit)
+install_faces() {   # system/fonts → FACES_DIR (only what changed), the faces before them gone
+  local f ch=0
+  install -d -m 0755 "$FACES_DIR" || { log "could not make $FACES_DIR"; return 1; }
+  for f in SumiUI.ttf SumiTerm.ttf LICENSE; do
+    cmp -s "$REPO_DIR/system/fonts/$f" "$FACES_DIR/$f" && continue
+    install -m 0644 "$REPO_DIR/system/fonts/$f" "$FACES_DIR/" \
+      || { log "could not write $FACES_DIR/$f (is the disk full?)"; return 1; }
+    ch=1
   done
-  install -d -m 0755 "$FUSION_DIR" && install -m 0644 "${faces[@]}" "$lic" "$FUSION_DIR/" \
-    || { rm -rf "${rels[@]}"; log "could not write $FUSION_DIR (is the disk full?)"; return 1; }
-  rm -rf "${rels[@]}"
-  printf '%s\n' "$FUSION_TAG" >"$FUSION_DIR/.version"
-  # the pixel fonts before it, in the home: Fusion Pixel draws all they did
-  as_user rm -rf "$TARGET_HOME/.local/share/fonts/PixelMplus" "$TARGET_HOME/.local/share/fonts/DepartureMonoNerd" \
-    "$TARGET_HOME/.local/share/fonts/FusionPixel"
+  if [[ -d $FACES_OLD ]]; then rm -rf "$FACES_OLD"; ch=1; fi
+  # the pixel fonts before them in the home (Fusion Pixel's era and the one before it): never
+  # a second dot font beside the faces — Pango's fallback would take one for a letter
+  for f in PixelMplus DepartureMonoNerd FusionPixel; do
+    [[ -e $TARGET_HOME/.local/share/fonts/$f ]] && { as_user rm -rf "$TARGET_HOME/.local/share/fonts/$f"; ch=1; }
+  done
   as_user rm -f "$(up_state_dir)/nerd-DepartureMono"
-  fc-cache -f "$FUSION_DIR" >/dev/null; as_user fc-cache -f >/dev/null
-  ok "Fusion Pixel 12 and 10 $FUSION_TAG (the desktop's font, Latin and Japanese)"
-  sumi_term; sumi_ui
-}
-# sumi_term — the terminal's face, Sumi Term, made from the 10 px one (tools/build-term-font.py)
-# whenever it is missing or older than the face or the tool that makes it
-sumi_term() {
-  local f=$FUSION_DIR/sumi-term.ttf src=$FUSION_DIR/fusion-pixel-10px-monospaced-ja.ttf
-  [[ -s $f && ! $f -ot $src && ! $f -ot $REPO_DIR/tools/build-term-font.py ]] && return 0
-  python3 -I "$REPO_DIR/tools/build-term-font.py" "$src" "$f.new" && chmod 0644 "$f.new" && mv -f "$f.new" "$f" \
-    || { rm -f "$f.new"; log "could not make the terminal's face, Sumi Term (python3-fonttools)"; return 1; }
-  fc-cache -f "$FUSION_DIR" >/dev/null; as_user fc-cache -f >/dev/null
-  ok "Sumi Term (the terminal's face: Fusion Pixel 10, its upright strokes a screen pixel heavier)"
-}
-# sumi_ui — the UI's face, Sumi UI, made from the 12 px one (tools/build-ui-font.py), the same way
-sumi_ui() {
-  local f=$FUSION_DIR/sumi-ui.ttf src=$FUSION_DIR/fusion-pixel-12px-monospaced-ja.ttf
-  [[ -s $f && ! $f -ot $src && ! $f -ot $REPO_DIR/tools/build-ui-font.py ]] && return 0
-  python3 -I "$REPO_DIR/tools/build-ui-font.py" "$src" "$f.new" && chmod 0644 "$f.new" && mv -f "$f.new" "$f" \
-    || { rm -f "$f.new"; log "could not make the UI's face, Sumi UI (python3-fonttools)"; return 1; }
-  fc-cache -f "$FUSION_DIR" >/dev/null; as_user fc-cache -f >/dev/null
-  ok "Sumi UI (the UI's face: Fusion Pixel 12, its upright strokes doubled)"
+  # the folder touched first: a face rewritten in place leaves its mtime as it was, and
+  # fontconfig would go on serving the cache it made of the old one
+  if ((ch)); then touch "$FACES_DIR"; fc-cache -f >/dev/null; as_user fc-cache -f >/dev/null; fi
+  ok "Sumi UI and Sumi Term (the desktop's faces: Shinonome 16 and Kappa 20, bold)"
 }
 
 # swap_in NEW DIR NAME — the folder NEW (built, and found to work) in DIR's place, the old one
@@ -358,7 +325,7 @@ install_syncplay() {
     log "Syncplay $SYNCPLAY_TAG — in place"; return 0
   fi
   src=$(as_user mktemp -d) || return 1
-  if ! retry 3 10 as_user git -c advice.detachedHead=false clone --quiet --depth 1 --branch "$SYNCPLAY_TAG" "$SYNCPLAY_REPO" "$src/s"; then
+  if ! retry 3 10 as_user git "${GIT_NET[@]}" -c advice.detachedHead=false clone --quiet --depth 1 --branch "$SYNCPLAY_TAG" "$SYNCPLAY_REPO" "$src/s"; then
     log "could not fetch Syncplay $SYNCPLAY_TAG ($SYNCPLAY_REPO)"; as_user rm -rf "$src"; return 1
   fi
   if [[ $(as_user git -C "$src/s" rev-parse "$SYNCPLAY_TAG^{commit}") != "$SYNCPLAY_COMMIT" ]]; then
@@ -399,9 +366,9 @@ install_blesh() {
   src=$(as_user mktemp -d) || return 1
   as_user git init -q "$src/s" && as_user git -C "$src/s" remote add origin "$BLESH_REPO" \
     || { as_user rm -rf "$src"; return 1; }
-  if ! retry 3 10 as_user git -C "$src/s" fetch -q --depth 1 origin "$BLESH_COMMIT" \
+  if ! retry 3 10 as_user git -C "$src/s" "${GIT_NET[@]}" fetch -q --depth 1 origin "$BLESH_COMMIT" \
      || ! as_user git -C "$src/s" -c advice.detachedHead=false checkout -q FETCH_HEAD \
-     || ! retry 3 10 as_user git -C "$src/s" submodule update -q --init --depth 1; then
+     || ! retry 3 10 as_user git -C "$src/s" "${GIT_NET[@]}" submodule update -q --init --depth 1; then
     log "could not fetch ble.sh ${BLESH_COMMIT:0:7} ($BLESH_REPO)"; as_user rm -rf "$src"; return 1
   fi
   if ! as_user make -C "$src/s" install INSDIR="$src/new" >>"$LOG_FILE" 2>&1; then

@@ -151,7 +151,6 @@ learn_menu() {
   l "$ICON_WINDOW"   dwl             'its wiki: config.h'       https://codeberg.org/dwl/dwl/wiki
   l "$ICON_WINDOW"   waybar          'its wiki: modules, CSS'   https://github.com/Alexays/Waybar/wiki
   l "$ICON_FILE"     foot            'man foot.ini'             'man:5 foot.ini'
-  l "$ICON_FILE"     fuzzel          'man fuzzel.ini'           'man:5 fuzzel.ini'
   l "$ICON_FILE"     mako            'man mako'                 'man:5 mako'
   l "$ICON_FOLDER"   yazi            'its documentation'        https://yazi-rs.github.io/docs/
   l "$ICON_CODE"     LazyVim         'plugins, keys, extras'    https://www.lazyvim.org
@@ -179,7 +178,7 @@ row bar       "$ICON_WINDOW"    bar            "what it shows"
 row barlook   "$ICON_CODE"      'bar look'     "sizes, spacing (CSS)"
 row icons     "$ICON_PICTURE"   icons          "the pixel icons (text grids)"
 row notify    "$ICON_BELL"      notifications  "look, how long they stay"
-row launcher  "$ICON_CHEVRON_RIGHT" launcher   "the launcher's look"
+row launcher  "$ICON_CHEVRON_RIGHT" 'menus, launcher' "their grid and doing (kawa-panel)"
 row glass     "$ICON_TERMINAL"  transparency   "foot's see-through ground: $(kawa-glass)"
 heading_row 手 use
 row keys      "$ICON_KEYBOARD"  keys           "dwl's, and the help sheet"
@@ -213,7 +212,7 @@ case ${acts[i]} in
   colours)   part colours "every program follows at once; the terminal at your next login" colours tools/build-themes.py ;;
   terminal)  part terminal "the terminal server reads it at your next login" - $H/.config/foot/foot.ini ;;
   shell)     part shell "every new terminal reads it" - $H/.bashrc.d/fedokawaii.sh ;;
-  launcher)  part launcher "the next menu that opens" - $H/.config/fuzzel/fuzzel.ini ;;
+  launcher)  part "menus, launcher" "at your next login (the panel starts again)" - bin/kawa-panel ;;
   glass)     kawa-glass toggle && notify-send -a desktop -- "$ICON_TERMINAL  transparency $(kawa-glass)" \
                "every terminal, at once" 2>/dev/null ;;
   notify)    part notifications "at once" - $H/.config/mako/config ;;

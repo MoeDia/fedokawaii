@@ -13,7 +13,7 @@
 # the files every part opens, in a toolkit of a few lines each
 PARTS=(src/dwl/config.h configs/home/.config/fedokawaii/keybinds.txt configs/home/.config/waybar/config.jsonc
   configs/home/.config/waybar/style.css tools/build-themes.py configs/home/.config/foot/foot.ini
-  configs/home/.bashrc.d/fedokawaii.sh configs/home/.config/fuzzel/fuzzel.ini configs/home/.config/mako/config
+  configs/home/.bashrc.d/fedokawaii.sh bin/kawa-panel configs/home/.config/mako/config
   configs/home/.config/yazi/init.lua configs/home/.config/yazi/theme.toml configs/home/.config/yazi/keymap.toml
   configs/home/.config/fedokawaii/yazi-pick/keymap.toml configs/home/.config/udiskie/config.yml bin/kawa-drives
   configs/home/.config/yazi/plugins/drives.yazi/main.lua configs/home/.config/dwl/autostart.sh art/icons.txt
@@ -62,11 +62,11 @@ title() { fz_arg title "${1:-}"; }
 # ── the menu, and the copy's state in its title ──────────────────────────────────────
 case_ "no working copy yet: every part in five, each under its kanji, sized to its content, the title says it is made on first use"
 setup; answer esc; rc 0 config_
-eq "$(fz_rows | grep '^row' | cut -f3 | tr '\n' ',')" "colours,bar,bar look,icons,notifications,launcher,transparency,keys,terminal,shell,files,drives,autostart,settings,packages,yours alone,what changed,history,apply,update fedokawaii,learn,"
+eq "$(fz_rows | grep '^row' | cut -f3 | tr '\n' ',')" "colours,bar,bar look,icons,notifications,menus, launcher,transparency,keys,terminal,shell,files,drives,autostart,settings,packages,yours alone,what changed,history,apply,update fedokawaii,learn,"
 eq "$(fz_rows | grep '^part' | cut -f2,3 | tr '\t\n' ' ,')" "見 look,手 use,系 system,史 history,案 help," "the headings: a kanji, the name"
 eq "$(fz_rows | grep -vc -e '^part	' -e '^row	')" 0 "nothing but parts and rows (the panel spaces its parts)"
 eq "$(fz_rows | grep '^row' | awk -F'\t' 'NF != 4' )" "" "every row: its icon, its name, its note"
-eq "$(fz_rows | grep -F "	launcher	" | cut -f4)" "the launcher's look"
+eq "$(fz_rows | grep -F "	menus, launcher	" | cut -f4)" "their grid and doing (kawa-panel)"
 eq "$(fz_arg select)" 1 "the cursor's first key on the first entry, not its heading"
 eq "$(title)" "change · ~/repos/fedokawaii · made on first use"
 eq "$(fz_arg width)" ""; eq "$(fz_arg lines)" ""; fits
@@ -92,7 +92,7 @@ case_ "a part, no copy yet: the copy is made first (a notice says where), then t
 setup; answer "pick launcher"; config_
 called '^fedokawaii copy'
 called 'notify-send -a desktop -- .*  change your working copy: ~/repos/fedokawaii — made from the toolkit'
-called "^footclient -T change · launcher -D $COPY -- nvim -O -- configs/home/.config/fuzzel/fuzzel.ini$"
+called "^footclient -T change · menus, launcher -D $COPY -- nvim -O -- bin/kawa-panel$"
 eq "$(fz_n)" 1 "closed unchanged: nothing to apply, no second menu"
 case_ "the copy cannot be made (git missing, so the engine fails): a notice, no editor"
 setup; : >"$W/no-git"; answer "pick bar"; config_

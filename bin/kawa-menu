@@ -6,22 +6,23 @@
 #   kawa-menu --launcher
 #
 #   the lines   one a thing, its fields apart by tabs (kawa-panel's "a menu"): part KANJI NAME
-#               [VALUE] · row|on|off GLYPH NAME [DETAIL [VALUE]] · key GLYPH NAME · cell TEXT
+#               [VALUE] · row|on|off|info GLYPH NAME [DETAIL [VALUE]] · key GLYPH NAME · cell TEXT
 #               [today|dim|head] · note TEXT · an empty line · any other line: a choice of
 #               that text
 #   --drop      open as a dropdown from the bar: under the button just clicked, or from a key
 #               under the bar's right end (where quick settings' panel opens too); its button
 #               lit while it is open; otherwise in the middle of the screen
-#   --launcher  the launcher itself (fuzzel's own list of programs: the torii and Super+Space),
-#               in the middle of the screen, fuzzel's own place
+#   --launcher  the launcher itself (the panel's: the torii and Super+Space), in the middle
+#               of the screen — open, or closed when it is open
 #   --title     a quiet line above the list
-#   --width N   at least N columns of 6 px (without it the menu is as wide as its content)
+#   --width N   at least N columns of 8 px (without it the menu is as wide as its content)
 #   --lines N   at most N rows show; a longer list scrolls (the wheel, the cursor)
 #   --select N  the line the cursor opens on (else the first choice: Enter takes it at once;
 #               the pointer moves it — one cursor, the pointer's or the keys')
 #   --prompt P  a line to type in at the top, P before it: typing filters the choices (Enter
 #               on none of them gives what was typed)
 #   --index     print the chosen line's number (0-based) instead of its name
+#   --password  with --prompt: what is typed shows as ◆ each (a passphrase), and Enter gives it
 #   --stay      a key line chosen is printed and the menu stays on screen: the caller's next
 #               kawa-menu (its next page — the calendar's months) takes its place in the same
 #               window, at once; keys pressed meanwhile are done on it, none lost. Nothing
@@ -35,15 +36,11 @@
 # a new open, every key press counts (dwl repeats no held key that opens a menu: presses as
 # fast as you like end open after an odd number), the bar's button lit exactly while it is
 # on screen.
-# The launcher (fuzzel) the same way, kept here: its record $XDG_RUNTIME_DIR/kawa-launcher.state
-# ("PID HOW LOST USED": fuzzel's pid; open, toggled, lost or done; the bar click that
-# closed it; the last bar click answered), its button lit by
-# kawa-launcher.open (this script's pid) and a poke (SIGRTMIN+20). A plain fuzzel — a
-# passphrase — is left alone: the launcher then does not open.
+# The launcher the same way: the panel's own ("toggle launcher" through its fifo).
 # Prints the chosen line; exits 1 when the menu is dismissed (Esc, a click outside, its key
 # again) or cannot open, 2 on wrong use.
 set -u
-usage() { echo "usage: … | kawa-menu [--drop] [--title TEXT] [--width N] [--lines N] [--select N] [--prompt P] [--index] [--stay] · kawa-menu --launcher" >&2; exit 2; }
+usage() { echo "usage: … | kawa-menu [--drop] [--title TEXT] [--width N] [--lines N] [--select N] [--prompt P [--password]] [--index] [--stay] · kawa-menu --launcher" >&2; exit 2; }
 pargs=()                                      # (a menu's options, as the panel takes them)
 launcher=0 idx=0
 while (($#)); do
@@ -52,6 +49,7 @@ while (($#)); do
     --launcher) launcher=1; shift; continue ;;
     --index)  idx=1; pargs+=(--index); shift; continue ;;
     --stay)   pargs+=(--stay); shift; continue ;;
+    --password) pargs+=(--password); shift; continue ;;
     -h|--help) sed -n '2,/^set -u/{/^set -u/d;s/^# \{0,1\}//;p}' "$0"; exit 0 ;;
     --title|--width|--lines|--select|--prompt) (($# >= 2)) || usage ;;
     *) echo "kawa-menu: unknown option $1" >&2; usage ;;
@@ -65,7 +63,6 @@ while (($#)); do
 done
 ((launcher && ${#pargs[@]})) && { echo "kawa-menu: --launcher takes no other option" >&2; usage; }
 run=${XDG_RUNTIME_DIR:-/run/user/$UID}
-now() { local t=${KAWA_MENU_TIME:-$EPOCHREALTIME}; printf '%s' "${t//[!0-9]/}"; }   # µs (tests stand in)
 
 # the running panel (its pid file, that pid's command line: bash's own reads) → $panel
 panel=""
@@ -116,78 +113,11 @@ if ((!launcher)); then
   exit 0
 fi
 
-# ── the launcher: fuzzel ─────────────────────────────────────────────────────────────────
-command -v fuzzel >/dev/null || { . "$HOME/.config/fedokawaii/icons.sh"; notify-send -a desktop -u critical -- "$ICON_CHEVRON  menus" "fuzzel is missing — fedokawaii repair puts it back" 2>/dev/null; exit 1; }
-# the bar click this is (dwl rewrites dwl-pointer at every press on the bar, a new file each
-# time: its inode and time are that press), while fresh — else none: a key
-click() {
-  local s ino mt t
-  s=$(LC_ALL=C stat -c '%i %.6Y' "$run/dwl-pointer" 2>/dev/null) || return 0
-  read -r ino mt <<<"$s"; mt=${mt//[!0-9]/}; t=$(now)
-  [[ $mt =~ ^[0-9]+$ ]] && (( t - 10#$mt < 1000000 && 10#$mt - t < 1000000 )) && printf '%s.%s' "$ino" "$mt"
-  return 0
-}
-rec=$run/kawa-launcher.state
-{ exec 9>>"$rec"; } 2>/dev/null && flock -w 2 9 2>/dev/null || rec=""
-put() { [[ -n $rec ]] && printf '%s %s %s %s\n' "${1:--}" "${2:--}" "${3:--}" "${4:--}" >"$rec"; }
-pid=- how=- lost=- used=-
-this=$(click)
-if [[ -n $rec ]]; then
-  # (a launcher that has just ended — the click outside it on its own button that runs this —
-  # but whose script has not yet written so: the lock let go a moment for it to; one that
-  # never does, killed, counts as none after 0.2 s)
-  for _ in {1..8}; do
-    pid=- how=- lost=- used=- c=""
-    read -r pid how lost used _ 2>/dev/null <"$rec"
-    [[ $pid =~ ^[1-9][0-9]*$ ]] && read -r c 2>/dev/null </proc/"$pid"/comm
-    [[ $how == open && $c != fuzzel && $c != kawa-menu && $pid =~ ^[1-9][0-9]*$ ]] || break
-    flock -u 9; sleep 0.025; flock -w 2 9 || exit 1
-  done
-  if [[ -n $this && $this == "$used" ]]; then this=""; fi   # (that click was answered: a key)
-  [[ -n $this ]] && used=$this
-  # open — or on its way up (not yet fuzzel: still this script's child): its key or button
-  # closes it
-  if [[ $how == open && ( $c == fuzzel || $c == kawa-menu ) ]]; then
-    kill "$pid" 2>/dev/null; put "$pid" toggled - "$used"
-    # gone before the next press is heard (it waits for this lock): fuzzel's own lock let go,
-    # so a press right after opens it again — never taken for a passphrase's fuzzel
-    for _ in {1..40}; do [[ -e /proc/$pid ]] || break; sleep 0.025; done
-    exit 1
-  fi
-  if [[ -n $this && $how == lost && $lost == "$this" ]]; then
-    put - "done" - "$used"; exit 1               # (the click outside that closed it was on its button)
-  fi
+# ── the launcher: the panel's ────────────────────────────────────────────────────────────
+if ! alive; then
+  setsid -f kawa-panel </dev/null >/dev/null 2>&1
+  for _ in {1..60}; do alive && break; sleep 0.05; done
+  [[ -n $panel ]] || { echo "kawa-menu: no panel to show the launcher (is the session's kawa-panel running?)" >&2; exit 1; }
 fi
-# a plain fuzzel (a passphrase) holds fuzzel's own lock: left alone (75: the lock is held; a
-# lock file that cannot be opened is fuzzel's to warn about)
-if [[ -n ${WAYLAND_DISPLAY:-} ]]; then
-  flock -n -E 75 "$run/fuzzel-$WAYLAND_DISPLAY.lock" true 2>/dev/null
-  (($? == 75)) && { put - "done" - "$used"; exit 1; }
-fi
-alive && ask close                             # (the panel's menu or panel on screen: closed)
-# the torii lit while it is open: kawa-launcher.open holds this script's pid, and it goes
-# however this ends (fuzzel closed or killed, or this script stopped)
-lit() {
-  if [[ $1 == on ]]; then { printf '%s\n' "$$" >"$run/kawa-launcher.open"; } 2>/dev/null
-  else rm -f "$run/kawa-launcher.open"; fi
-  kawa-dwlstatus --poke 20 2>/dev/null || true
-}
-fz=""
-trap '[[ -n $fz ]] && lit off' EXIT
-trap '[[ -n $fz ]] && kill "$fz" 2>/dev/null; exit 1' TERM HUP INT
-# (text typed that matches no entry, Enter: fuzzel runs it after its launch prefix — kawa-calc
-# works a sum out: "15% of 2400", "120 usd to aed"; an entry runs as it is)
-env -u DESKTOP_ENTRY_ID fuzzel --launch-prefix='kawa-calc --launch' </dev/null 9>&- & fz=$!
-put "$fz" open - "$used"
-[[ -n $rec ]] && flock -u 9
-lit on
-wait "$fz"; rc=$?
-if [[ -n $rec ]] && flock -w 2 9; then
-  p="" h=""; read -r p h _ 2>/dev/null <"$rec"
-  if [[ $p == "$fz" && $h == open ]]; then        # (unless its key closed it, and wrote so)
-    l=-; ((rc == 0)) || { l=$(click); [[ -n $l && $l != "$used" ]] || l=-; }
-    if [[ $l != - ]]; then put "$fz" lost "$l" "$used"; else put "$fz" "done" - "$used"; fi
-  fi
-  flock -u 9
-fi
-exit $((rc == 0 ? 0 : 1))
+ask "toggle launcher" || exit 1
+exit 0

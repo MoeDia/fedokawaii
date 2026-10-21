@@ -82,7 +82,7 @@ PKG_DESKTOP=(
   pipewire-utils                                          # pw-dump: the audio popup lists outputs/inputs from it
   wiremix playerctl cava                                  # per-app mixer (a terminal window), media keys, the bar's music meter
                                                           #   (the clean mic and an equaliser: PipeWire's own modules — no package)
-  waybar mako fuzzel foot                                 # bar, notifications, launcher+menus, terminal
+  waybar mako foot                                        # bar, notifications, terminal (the launcher and menus: kawa-panel)
   gtk-layer-shell                                         # quick settings: kawa-panel (GTK 3 and Python's
                                                           #   GObject with cairo come with the login screen)
   swaybg swayidle gtklock wlr-randr wlopm                 # wallpaper, idle, lock, output modes, screens off
@@ -140,8 +140,6 @@ PKG_APPS=(
                                                     #   SQLite (sort, sum, filter, group — Excel files are
                                                     #   LibreOffice Calc's)
   gdu                                               # what fills the disk (gdu ~), folder by folder
-  python3-fonttools                                 # builds the terminal's face, Sumi Term, from Fusion Pixel 10
-                                                    #   (tools/build-term-font.py, at install and update)
   fzf file 7zip                                    # the clipboard and wallpaper windows' lists, the shell's
                                                     #   Ctrl+R / Ctrl+T / Alt+C, yazi's z; file types; archives
   zstd                                              # .tar.zst archives (kawa-file, through tar -I)
@@ -179,6 +177,8 @@ RETIRED_PKGS=(unzip mediainfo    # unzip: 7zip opens zips too · mediainfo: ffpr
               gamemode                 # game mode is kawa-game's (tuned owns the CPU and the card's level)
               easyeffects calf      # one sound-processing stack, PipeWire's own: the clean mic (echo-cancel),
                                     #   an equaliser if you want one (filter-chain's param_eq) — handbook §15.6
+              python3-fonttools     # the faces are the repo's own files now (system/fonts): nothing to build
+              fuzzel                # the launcher and every menu are kawa-panel's (its sums worked out as you type)
               pipx python3.13       # uv installs torrra now, on a Python 3.13 of its own (one Python tool: uv)
               lpf-spotify-client lpf spotify-client)   # Spotify is its web player in a Brave app window
                                                        #   now; lpf's account and folder: setup.sh, lpf_leftovers_out
@@ -188,8 +188,8 @@ FORBIDDEN_PKGS=(
   nano nano-default-editor vim-minimal vim-enhanced vim-default-editor emacs   # editors: neovim only
   firefox chromium brave-browser                                               # browsers: Brave Origin only
   alacritty kitty xterm konsole gnome-terminal                                 # terminals: foot only
-  rofi wofi wmenu bemenu                                                       # launchers: fuzzel only
-  tuigreet gtkgreet wlogout fastfetch neofetch                                 # replaced: kawa-greet, fuzzel menus, own fetch
+  rofi wofi wmenu bemenu                                                       # launchers: kawa-panel's only
+  tuigreet gtkgreet wlogout fastfetch neofetch                                 # replaced: kawa-greet, kawa-panel menus, own fetch
   swaylock                                                                     # the lock: gtklock only
   pavucontrol blueman                                                          # replaced: wiremix, bluetui (terminal windows)
   abiword gnumeric sc-im                                                       # replaced: LibreOffice Writer and Calc
@@ -216,6 +216,11 @@ BRAVE_REPO_URL="https://brave-browser-rpm-release.s3.brave.com/brave-browser.rep
 CLAUDE_REPO_BASEURL="https://downloads.claude.ai/claude-code/rpm/stable"
 CLAUDE_KEY_URL="https://downloads.claude.ai/keys/claude-code.asc"
 CLAUDE_KEY_FPR="31DDDE24DDFAB679F42D7BD2BAA929FF1A7ECACE"
+# RPM Fusion's signing keys, free and nonfree: one each since 2020, for every Fedora from 33 on
+# (the release packages of 44 and 45 name the same for 44 to 47 and Rawhide — measured
+# 2026-10-21). setup.sh checks the release packages it fetches against them before installing
+RPMFUSION_FREE_FPR="E9A491A3DE247814E7E067EAE06F8ECDD651FF2E"
+RPMFUSION_NONFREE_FPR="79BDB88F9BBF73910FD4095B6A2AF96194843C65"
 # (grub-btrfs: zzahkaboom24's COPR builds 4.14 for Fedora 43 and 44 — kylegospo's stopped at 38)
 COPRS=(ilyaz/LACT zzahkaboom24/grub-btrfs)
 copr_pkgs() { case $1 in ilyaz/LACT) echo lact ;; zzahkaboom24/grub-btrfs) echo grub-btrfs ;; esac; }   # what each COPR brings

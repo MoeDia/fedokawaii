@@ -9,7 +9,7 @@ Programs are read from: the scripts in bin/ and system/, the session's autostart
 shell's ~/.bashrc.d, waybar's exec / on-click, mako's on-button actions, the launcher
 entries' Exec=, yazi's keymaps and plugins (the desktop's and the file dialog's), dwl's
 config.h (its spawn arrays and SHCMD), the systemd user units, the portals' configs, foot,
-fuzzel, satty, lazygit, herdr, yt-dlp and udiskie — and yazi 26.9.1's own preset (what its
+satty, lazygit, herdr, yt-dlp and udiskie — and yazi 26.9.1's own preset (what its
 openers and previewers run: FIXTURES/yazi-builtin.txt).
 
 Each must be one of: bin/ or system/ (the desktop's own), lib/upstream.sh's table, built by
@@ -112,7 +112,7 @@ def home_bin(text):
 def snippets(repo):
     """(source, where, text, line): every piece of shell the configs hand to sh (or run as a
     command line): waybar's exec / on-click, mako's exec, Exec=, yazi's shell and Command(…),
-    dwl's spawn arrays and SHCMD, systemd's Exec*=, the portals', foot's and fuzzel's commands."""
+    dwl's spawn arrays and SHCMD, systemd's Exec*=, the portals' and foot's commands."""
     out = []
 
     def add(source, where, text, line=1):
@@ -192,7 +192,6 @@ def snippets(repo):
         ".config/xdg-desktop-portal-termfilechooser/config": r"cmd=(.*)",
         ".config/xdg-desktop-portal-wlr/config": r"(?:chooser_cmd|exec_before|exec_after)=(.*)",
         ".config/foot/foot.ini": r"launch=(.*)",
-        ".config/fuzzel/fuzzel.ini": r"terminal=(.*)",
         ".config/satty/config.toml": r'copy-command\s*=\s*"(.*)"',
         ".config/lazygit/config.yml": r"\s*editPreset:\s*(\S+)",
         ".config/herdr/config.toml": r'\s*command\s*=\s*"(.*)"',

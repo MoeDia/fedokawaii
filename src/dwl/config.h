@@ -4,7 +4,8 @@
  *  that close when they lose the focus, windows shown once drawn, games that
  *  take the keyboard, FreeSync, keybindings that ignore the Arabic layout, the keyboard
  *  layout for the bar, menus that close on a click outside, the pointers loaded again
- *  when the theme switches, the borders in the theme's colours, a drawing tablet's pen as a pen).
+ *  when the theme switches, the borders in the theme's colours, a drawing tablet's pen as a pen,
+ *  windows that unroll, roll up and slide).
  *  Installed by theme.sh into ~/.local/src/dwl/config.h, then rebuilt.
  *  Keybinding reference: Super+/
  * ═══════════════════════════════════════════════════════════════════════════ */
@@ -38,6 +39,17 @@ static float focuscolor[3][4]              = { COLOR(SHU), COLOR(SHU), COLOR(SHU
 static float urgentcolor[3][4]             = { COLOR(ASAGI), COLOR(ASAGI), COLOR(ASAGI) };
 static const float fullscreen_bg[]         = {0.059f, 0.055f, 0.047f, 1.0f};
 
+/* animations (dwl.patch): a new window fades in, rising its last anim_rise px to its
+ * place; a closed one fades away, sinking as much; a workspace switch fades the windows
+ * out as they drift a little (anim_drift of the screen's width) to one side, and the next
+ * ones in from the other — every frame the screen shows, eased out, over anim_ms; never a
+ * full-screen window. No edge sweeps across the screen: a moving cut reads as a tear.
+ * 0: everything at once */
+static const int animations                = 1;
+static const unsigned int anim_ms          = 220;  /* the whole movement */
+static const int anim_rise                 = 24;   /* px */
+static const double anim_drift             = 0.06; /* 115 px on a 1920 px screen */
+
 /* tagging - TAGCOUNT must be no greater than 31 */
 #define TAGCOUNT (9)
 
@@ -49,7 +61,7 @@ static const Rule rules[] = {
 	 * (dwl.patch: "=text" matches that exact app-id or title, plain text any that holds it) */
 	/* popups open floating and centred (dwl.patch), and close when they lose the focus:
 	 * "float" is the app-id kawa-term --float gives the desktop's own windows (the system menu,
-	 * notes, the clipboard, books, btop …; the small menus are fuzzel's, not windows) */
+	 * notes, the clipboard, books, btop …; the small menus are kawa-panel's, not windows) */
 	{ "=float",               NULL,       0,            1,           -1 },
 	/* dialogs that float but stay while you answer them: the file dialog (kawa-pick) every
 	 * app's "Open"/"Save as" opens, and the password prompt for admin rights */

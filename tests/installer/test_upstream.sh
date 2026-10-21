@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # tests/installer/test_upstream.sh — lib/upstream.sh: the desktop's pinned tools from GitHub
-# releases (satty, yazi, bluetui, lazygit, herdr), the Nerd Font, Fusion Pixel and GE-Proton,
+# releases (satty, yazi, bluetui, lazygit, herdr), the Nerd Font, the desktop's faces and GE-Proton,
 # in the fake machine with fake releases. Each is fetched, checked against its pinned SHA-256
 # and put in the user's home by the user; a second run finds it in place; a download that
 # differs by a byte, is cut off half-way or cannot happen at all changes nothing; a library
@@ -45,9 +45,9 @@ eq "$(cat "$W$H/.local/share/fedokawaii/upstream/bluetui")" v0.8.2
 
 case_ "lazygit (its binary at the archive's top, beside LICENSE and README): installed alone, its tag recorded"
 up 'install_upstream_bin "$(printf "%s\n" "${UPSTREAM[@]}" | grep "^lazygit|")"'; eq "$RC" 0
-has "$OUT" "✔ lazygit v0.66.1 → ~/.local/bin (lazygit)"
+has "$OUT" "✔ lazygit v0.66.2 → ~/.local/bin (lazygit)"
 [[ -x $W$H/.local/bin/lazygit && ! -e $W$H/.local/bin/LICENSE && ! -e $W$H/.local/bin/README.md ]] && _ok || _no "lazygit missing, or its LICENSE / README put in ~/.local/bin"
-eq "$(cat "$W$H/.local/share/fedokawaii/upstream/lazygit")" v0.66.1
+eq "$(cat "$W$H/.local/share/fedokawaii/upstream/lazygit")" v0.66.2
 case_ "herdr (its release file is the binary itself, like bluetui's): installed under the tool's name"
 up 'install_upstream_bin "$(printf "%s\n" "${UPSTREAM[@]}" | grep "^herdr|")"'; eq "$RC" 0
 has "$OUT" "verified: herdr-linux-x86_64"; has "$OUT" "✔ herdr v0.9.5 → ~/.local/bin (herdr)"
@@ -162,19 +162,27 @@ up "install_upstream_bin $satty || echo FAILED"; has "$OUT" "FAILED"; lacks "$OU
 up 'install_nerd_fonts || echo FAILED'; has "$OUT" "FAILED"
 [[ ! -e $W$H/.local/share/fedokawaii/upstream/nerd-JetBrainsMono ]] && _ok || _no "the tag recorded for fonts not written"
 fk chmod 755 "$H/.local/bin" "$H/.local/share/fonts"
-case_ "Fusion Pixel 12 and 10: for every account (/usr/local/share/fonts), only the Japanese faces and the licence, and the terminal's Sumi Term made from the 10 and the UI's Sumi UI from the 12; the fonts before it gone from the home"
-# (tools/build-term-font.py and build-ui-font.py: their own work is fontTools'; here their calls, and where they put the faces)
-back start; stub python3 'case "$1 ${2##*/}" in "-I build-term-font.py"|"-I build-ui-font.py") printf face >"$4";; *) exec /usr/bin/python3 "$@";; esac'; mkdir -p "$W$H/.local/share/fonts/PixelMplus" "$W$H/.local/share/fonts/DepartureMonoNerd" "$W$H/.local/share/fedokawaii/upstream"
+case_ "the faces, Sumi UI and Sumi Term: for every account (/usr/local/share/fonts/fedokawaii) from system/fonts with their licence, root's, read by all; the faces before them gone (Fusion Pixel's folder, the old pixel fonts of the home)"
+back start; mkdir -p "$W/usr/local/share/fonts/fusion-pixel" "$W$H/.local/share/fonts/PixelMplus" "$W$H/.local/share/fonts/DepartureMonoNerd" "$W$H/.local/share/fonts/FusionPixel" "$W$H/.local/share/fedokawaii/upstream"
+printf face >"$W/usr/local/share/fonts/fusion-pixel/sumi-ui.ttf"
 echo v3.5.1 >"$W$H/.local/share/fedokawaii/upstream/nerd-DepartureMono"; fk chown -R fkuser:fkuser "$H/.local"
-up 'install_fusion'; eq "$RC" 0
-eq "$(ls -A "$W/usr/local/share/fonts/fusion-pixel" | tr '\n' ' ')" ".version OFL.txt fusion-pixel-10px-monospaced-ja.ttf fusion-pixel-12px-monospaced-ja.ttf sumi-term.ttf sumi-ui.ttf "
-eq "$(stat -c '%U %a' "$W/usr/local/share/fonts/fusion-pixel/fusion-pixel-12px-monospaced-ja.ttf" "$W/usr/local/share/fonts/fusion-pixel/fusion-pixel-10px-monospaced-ja.ttf" "$W/usr/local/share/fonts/fusion-pixel/sumi-term.ttf" "$W/usr/local/share/fonts/fusion-pixel/sumi-ui.ttf" | sort -u)" "root 644"
-[[ ! -e $W$H/.local/share/fonts/PixelMplus && ! -e $W$H/.local/share/fonts/DepartureMonoNerd && ! -e $W$H/.local/share/fedokawaii/upstream/nerd-DepartureMono ]] && _ok || _no "an old pixel font left in the home"
-called '^root\[fc-cache\] -f /usr/local/share/fonts/fusion-pixel'
-reset_calls; up 'install_fusion'; has "$OUT" "Fusion Pixel 12 and 10 2026.08.11 — in place"; not_called curl
-case_ "Fusion Pixel's download altered: refused, nothing installed"
-back start; printf 'x' >>"$dl/fusion-pixel-font-10px-monospaced-ttf-v$(. "$REPO/lib/upstream.sh"; echo "$FUSION_TAG").zip"
-up 'install_fusion'; eq "$RC" 1; [[ ! -e $W/usr/local/share/fonts/fusion-pixel ]] && _ok || _no "an altered font installed"
+reset_calls; up 'install_faces'; eq "$RC" 0
+has "$OUT" "Sumi UI and Sumi Term"
+eq "$(ls -A "$W/usr/local/share/fonts/fedokawaii" | tr '\n' ' ')" "LICENSE SumiTerm.ttf SumiUI.ttf "
+for f in SumiUI.ttf SumiTerm.ttf LICENSE; do
+  cmp -s "$REPO/system/fonts/$f" "$W/usr/local/share/fonts/fedokawaii/$f" && _ok || _no "$f is not system/fonts' own"
+done
+eq "$(stat -c '%U %a' "$W"/usr/local/share/fonts/fedokawaii/* | sort -u)" "root 644"
+[[ ! -e $W/usr/local/share/fonts/fusion-pixel ]] && _ok || _no "Fusion Pixel's folder left"
+[[ ! -e $W$H/.local/share/fonts/PixelMplus && ! -e $W$H/.local/share/fonts/DepartureMonoNerd && ! -e $W$H/.local/share/fonts/FusionPixel && ! -e $W$H/.local/share/fedokawaii/upstream/nerd-DepartureMono ]] \
+  && _ok || _no "an old pixel font left in the home"
+called '^root\[fc-cache\] -f$'; called '^fkuser\[fc-cache\] -f$'
+case_ "…a second run: in place — nothing written, no cache made again"
+reset_calls; up 'install_faces'; eq "$RC" 0; not_called 'fc-cache'
+case_ "…one face changed in the repository (an update): that one written, the caches made again"
+printf changed >"$W/usr/local/share/fonts/fedokawaii/SumiTerm.ttf"
+reset_calls; up 'install_faces'; eq "$RC" 0; called '^root\[fc-cache\] -f$'
+cmp -s "$REPO/system/fonts/SumiTerm.ttf" "$W/usr/local/share/fonts/fedokawaii/SumiTerm.ttf" && _ok || _no "the changed face not put back"
 
 # ── Syncplay, from its pinned source ─────────────────────────────────────────
 sp=$W$H/.local/share/fedokawaii/syncplay spt=$W$H/.local/share/fedokawaii/upstream/syncplay
@@ -184,7 +192,7 @@ case_ "install_syncplay: the tag fetched by you, checked against the pinned comm
 back start; reset_calls
 up 'install_syncplay'; eq "$RC" 0
 has "$OUT" "✔ Syncplay v1.7.6 (no window) → ~/.local/bin (syncplay, syncplay-server)"
-called '^fkuser\[git\] -c advice.detachedHead=false clone --quiet --depth 1 --branch v1.7.6 https://github.com/Syncplay/syncplay.git '
+called '^fkuser\[git\] -c http.lowSpeedLimit=1000 -c http.lowSpeedTime=60 -c advice.detachedHead=false clone --quiet --depth 1 --branch v1.7.6 https://github.com/Syncplay/syncplay.git '
 eq "$(fk stat -c '%U %a' "$H/.local/bin/syncplay")" "fkuser 755"; eq "$(fk stat -c '%U %a' "$H/.local/bin/syncplay-server")" "fkuser 755"
 eq "$(fk stat -c %U "$H/.local/share/fedokawaii/syncplay/syncplay/__init__.py")" fkuser
 called '^fkuser\[git\] -C /tmp/.*/s apply -$'
@@ -246,9 +254,9 @@ up 'install_blesh'; eq "$RC" 0
 has "$OUT" "✔ ble.sh ${BLESH:0:7} (the shell's colours, suggestions and menus) → ~/.local/share/blesh"
 called "^fkuser\[git\] init -q /tmp/[^ ]*/s$"
 called "^fkuser\[git\] -C /tmp/[^ ]*/s remote add origin https://github.com/akinomyoga/ble.sh.git$"
-called "^fkuser\[git\] -C /tmp/[^ ]*/s fetch -q --depth 1 origin $BLESH$"
+called "^fkuser\[git\] -C /tmp/[^ ]*/s -c http.lowSpeedLimit=1000 -c http.lowSpeedTime=60 fetch -q --depth 1 origin $BLESH$"
 called "^fkuser\[git\] -C /tmp/[^ ]*/s -c advice.detachedHead=false checkout -q FETCH_HEAD$"
-called "^fkuser\[git\] -C /tmp/[^ ]*/s submodule update -q --init --depth 1$"
+called "^fkuser\[git\] -C /tmp/[^ ]*/s -c http.lowSpeedLimit=1000 -c http.lowSpeedTime=60 submodule update -q --init --depth 1$"
 called "^fkuser\[make\] -C /tmp/[^ ]*/s install INSDIR=/tmp/[^ ]*/new$"
 eq "$(fk stat -c %U "$H/.local/share/blesh/ble.sh")" fkuser
 eq "$(cat "$bt")" "$BLESH"
@@ -336,22 +344,22 @@ up 'install_ge_proton'; eq "$RC" 1; has "$OUT" "did not hold one GE-Proton folde
 # ── LocalSend: a release that is a whole folder ─────────────────────────────────────────
 case_ "install_localsend: the folder whole in ~/.local/share/localsend, yours; localsend points into it; its tag recorded"
 back start; up "install_localsend"; eq "$RC" 0 "$OUT"
-has "$OUT" "verified: LocalSend-1.18.0-linux-x86-64.tar.gz"; has "$OUT" "✔ LocalSend v1.18.0 → ~/.local/share/localsend (localsend)"
+has "$OUT" "verified: LocalSend-1.18.2-linux-x86-64.tar.gz"; has "$OUT" "✔ LocalSend v1.18.2 → ~/.local/share/localsend (localsend)"
 [[ -x $W$H/.local/share/localsend/localsend_app && -f $W$H/.local/share/localsend/lib/libapp.so && -f $W$H/.local/share/localsend/data/flutter_assets/assets/img/logo-512.png ]] \
   && _ok || _no "the folder is not whole: $(cd "$W$H/.local/share/localsend" 2>/dev/null && find . | tr '\n' ' ')"
 eq "$(readlink "$W$H/.local/bin/localsend")" ../share/localsend/localsend_app
-eq "$(fk "$H/.local/bin/localsend" 2>&1)" "localsend_app 1.18.0" "runs through the link"
+eq "$(fk "$H/.local/bin/localsend" 2>&1)" "localsend_app 1.18.2" "runs through the link"
 eq "$(fk stat -c %U "$H/.local/share/localsend/localsend_app")" fkuser
-eq "$(cat "$W$H/.local/share/fedokawaii/upstream/localsend")" v1.18.0
+eq "$(cat "$W$H/.local/share/fedokawaii/upstream/localsend")" v1.18.2
 case_ "…a second run: in place, nothing downloaded"
-reset_calls; up "install_localsend"; eq "$RC" 0; has "$OUT" "LocalSend v1.18.0 — in place"; not_called 'curl'
+reset_calls; up "install_localsend"; eq "$RC" 0; has "$OUT" "LocalSend v1.18.2 — in place"; not_called 'curl'
 case_ "…an older release there: replaced whole (no file of the old one left), the new tag recorded"
 echo v1.17.0 >"$W$H/.local/share/fedokawaii/upstream/localsend"; echo old >"$W$H/.local/share/localsend/lib/libold.so"
 up "install_localsend"; eq "$RC" 0
 [[ ! -e $W$H/.local/share/localsend/lib/libold.so && ! -e $W$H/.local/share/localsend.new ]] && _ok || _no "the old release's file stayed"
-eq "$(cat "$W$H/.local/share/fedokawaii/upstream/localsend")" v1.18.0
+eq "$(cat "$W$H/.local/share/fedokawaii/upstream/localsend")" v1.18.2
 case_ "…a download that differs by one byte: refused, the copy there untouched (exit 1)"
-printf 'x' >>"$dl/LocalSend-1.18.0-linux-x86-64.tar.gz"; echo v1.17.0 >"$W$H/.local/share/fedokawaii/upstream/localsend"
+printf 'x' >>"$dl/LocalSend-1.18.2-linux-x86-64.tar.gz"; echo v1.17.0 >"$W$H/.local/share/fedokawaii/upstream/localsend"
 up "install_localsend"; eq "$RC" 1; has "$OUT" "its SHA-256 is not the pinned one — refused"
 [[ -x $W$H/.local/share/localsend/localsend_app ]] && _ok || _no "the working copy was touched"
 eq "$(cat "$W$H/.local/share/fedokawaii/upstream/localsend")" v1.17.0

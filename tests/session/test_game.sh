@@ -52,13 +52,15 @@ fake_mako; kawa-hush on sharing; kawa-hush off sharing
 fake_mako; kawa-hush on game; note hist 1 normal steam "friend online"; kawa-hush off game
 has "$(cat "$TMP/notices")" "1 notice while you played"
 
-case_ "a click on it lists them: a heading, a row each (title, app)"
+case_ "a click on it lists them: a heading, an info row each (title, app) — only read, nothing to choose"
 fake_mako; touch "$TMP/click"
 kawa-hush on sharing; note hist 3 normal brave "lunch?"; note list 4 normal discord "call me"; kawa-hush off sharing
 m=$(cat "$TMP/menu")
 has "$m" $'part\t報\twhile you shared'
 has "$m" $'\tlunch?\t\tbrave'
 has "$m" $'\tcall me\t\tdiscord'
+eq "$(grep -c '^info	' <<<"$m")" 2 "each notice an info row (the cursor and the pointer pass it)"
+eq "$(grep -vc -e '^part	' -e '^info	' <<<"$m")" 0 "no choice in it"
 
 case_ "a share during a game: one quiet time — told once, at the end of the last, counting from the first"
 fake_mako

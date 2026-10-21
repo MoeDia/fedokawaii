@@ -6,12 +6,13 @@
 # rotated, reordered, pages deleted, their pictures and text taken out, drawn as PNG, locked and
 # unlocked, made searchable; Xournal++'s runs (a stand-in: what it is asked, what it would write),
 # the signature drawn once and stamped on the corner chosen. The menu is a stand-in that answers
-# from $TMP/answers (a line a menu: words of the row to take, or what is typed; "esc": Esc),
-# fuzzel one that types $TPW. zstd and unrar, when absent here, are stand-ins too.
+# from $TMP/answers (a line a menu: words of the row to take, or what is typed; "esc": Esc);
+# its hidden typing (--password) types $TPW. zstd and unrar, when absent here, are stand-ins too.
 . "$(dirname "$0")/../lib/harness.sh"
 for p in 7z qpdf pdftotext pdfimages pdftoppm pdfsig magick gs; do
   command -v "$p" >/dev/null || { printf '  – skipped: needs %s\n' "$p"; done_; exit; }
 done
+. "$REPO/configs/home/.config/fedokawaii/icons.sh"
 QPDF=$(command -v qpdf)   # (the real one, for the checks: the stand-in logs its arguments)
 
 setup() {
@@ -24,15 +25,17 @@ setup() {
 esac'
   # the menu: the next line of $TMP/answers — with --index the number of the first line holding
   # it, else the words themselves (typed on its line); "esc" or none: Esc
-  stub kawa-menu 'rows=$(cat); n=$(cat "$TMP/menus" 2>/dev/null || echo 0); n=$((n + 1)); echo "$n" >"$TMP/menus"
+  # hidden typing (--password, a prompt of its own: no answers line): $TPW (the second time
+  # $TPW2, when set)
+  stub kawa-menu 'case " $* " in *" --password "*)
+  n=$(cat "$TMP/typed" 2>/dev/null || echo 0); echo $((n + 1)) >"$TMP/typed"
+  if [ "$n" = 1 ] && [ -n "$TPW2" ]; then printf "%s\n" "$TPW2"; else printf "%s\n" "$TPW"; fi; exit 0 ;; esac
+rows=$(cat); n=$(cat "$TMP/menus" 2>/dev/null || echo 0); n=$((n + 1)); echo "$n" >"$TMP/menus"
 printf "%s\n" "$rows" >"$TMP/menu.$n"; echo "$*" >"$TMP/menu.$n.args"
 a=$(sed -n "${n}p" "$TMP/answers" 2>/dev/null)
 case $a in ""|esc) exit 1 ;; esac
 case " $* " in *" --index "*) printf "%s\n" "$rows" | grep -nF -- "$a" | head -n1 | cut -d: -f1 | awk "{ print \$1 - 1 }" ;;
 *) printf "%s\n" "$a" ;; esac'
-  # hidden typing: $TPW (the second time $TPW2, when set)
-  stub fuzzel 'n=$(cat "$TMP/typed" 2>/dev/null || echo 0); echo $((n + 1)) >"$TMP/typed"
-if [ "$n" = 1 ] && [ -n "$TPW2" ]; then printf "%s\n" "$TPW2"; else printf "%s\n" "$TPW"; fi'
   # 7z and qpdf: the real ones, their arguments logged (a password must never be among them)
   stub 7z "exec $(command -v 7z) \"\$@\""
   stub qpdf "exec $(command -v qpdf) \"\$@\""
@@ -121,8 +124,9 @@ case_ "7z · smallest with a password: -mx9, solid, AES with the names hidden �
 setup; answers "7z · with a password" smallest; rc 0 kawa-file "$A/folder"
 s=$A/folder.7z; [[ -s $s ]] && _ok || _no "no $s"
 called '^7z a -t7z -mx9 -ms=on .*-p -mhe=on '
-eq "$(grep -c fuzzel "$CALLS")" 2 "typed twice"
-called 'fuzzel --dmenu --prompt-only=.*password .*--password'
+eq "$(grep -c -- '--password' "$CALLS")" 2 "typed twice"
+called "^kawa-menu --title password --prompt $ICON_LOCK   --password --width 40\$"
+called "^kawa-menu --title the same again --prompt $ICON_LOCK   --password --width 40\$"
 not_called "$TPW"
 grep -rqs "$TPW" "$HOME" "$XDG_RUNTIME_DIR" && _no "the password is in a file" || _ok
 7z l -ba -p- "$s" >/dev/null 2>&1 && _no "its names show without the password" || _ok
@@ -176,7 +180,7 @@ setup; (cd "$A" && printf '%s\n%s\n' "$TPW" "$TPW" | 7z a -bso0 -tzip -p -mem=AE
 answers esc; kf "$A/locked.zip"; has "$(menu 1)" "asks its password"
 answers "extract into a folder"; rc 0 kawa-file "$A/locked.zip"
 eq "$(cat "$A/locked/one.txt")" "first file"; not_called "$TPW"
-called 'fuzzel --dmenu --prompt-only=.*locked\.zip · password'
+called "^kawa-menu --title locked\.zip · password --prompt $ICON_LOCK   --password --width 40\$"
 TPW=wrong; answers "extract here"; rc 1 kawa-file "$A/locked.zip"; called 'notify-send .*did not open.*wrong password'
 case_ "… a 7z with its names hidden: the same"
 setup; (cd "$A" && printf '%s\n%s\n' "$TPW" "$TPW" | 7z a -bso0 -p -mhe=on hidden.7z folder >/dev/null)

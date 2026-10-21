@@ -12,12 +12,14 @@
 #
 # Before a search it asks Prowlarr and says plainly what is missing, instead of an empty
 # result list (torrra itself exits 0 on every failure). One torrra at a time: downloads
-# run only while its window is open, and a second one would share them. Its colours follow
-# the theme: Textual's ansi-dark draws it in foot's own 16 colours, which change with dark
-# and light — and it reads right on both, because the desktop's palettes keep "black" a
-# shade of the ground and "white" the text either way (ansi-light assumes white is light,
-# so on paper its cursor row would be ink on blue). Any other theme you pick with Ctrl+T
-# is kept.
+# run only while its window is open, and a second one would share them.
+# It opens at once: Prowlarr is woken as the window opens and starts while you type; the
+# first search waits for it (torrra's own "Searching for …" turning meanwhile).
+# Its look is the desktop's (the theme "fedokawaii", registered here): foot's own 16 colours,
+# which change with dark and light — the ground the terminal's see-through one, vermilion for
+# the cursor's row and a focused frame, the frames at rest in the quiet edge colour — and
+# its first screen a text screen of ours: 種 torrents over the search line, no banner, no
+# emoji. Any other theme you pick with Ctrl+T is kept.
 set -uo pipefail
 # shellcheck source=/dev/null
 ICON=$(. "$HOME/.config/fedokawaii/icons.sh" && printf '%s' "$ICON_DOWNLOAD")   # (its notices' mark)
@@ -116,33 +118,113 @@ try:
     from torrra.__main__ import cli
     from torrra.core.constants import DEFAULT_MAX_RETRIES, DEFAULT_TIMEOUT
     get, set_, load, _ = c.Config.get, c.Config.set, c.Config._load_config, c.CONFIG_FILE
-    from textual.theme import BUILTIN_THEMES
+    from textual.theme import BUILTIN_THEMES, Theme
+    import torrra.app as tapp
     import torrra.screens.home as home
+    import torrra.screens.welcome as welcome
+    import torrra.indexers.prowlarr as prowlarr
+    from torrra.core.exceptions import IndexerError
+    from textual.containers import Container, Grid
+    from textual.widgets import Static
     from torrra.core.download import get_download_manager
     tick = home.HomeScreen._update_downloads_data
 except (ImportError, AttributeError) as e:
     fail(f"cannot start ({e}) — run: fedokawaii update")
-THEME = "ansi-dark"
-# (torrra turns away a theme its Textual lacks, and quits before its window draws: Textual
-# 8.0.1 had none by this name — the Torrents entry that opened nothing. Said here instead)
-if THEME not in BUILTIN_THEMES:
-    fail(f"cannot start (this Textual has no {THEME} theme) — run: fedokawaii update")
+# the desktop's theme, built on Textual's ansi-dark (foot's 16 colours: right on the ink and
+# the paper alike, the terminal's see-through ground kept) — vermilion (red) both the primary
+# and the secondary (torrra frames what has the focus, and its dialogs, in the secondary): the
+# cursor's row filled in it, its words the ground's ink (black); a list without the focus keeps
+# its row in vermilion ink, unfilled; frames at rest in the quiet edge colour (bright black,
+# torrra's "secondary-muted"), and words torrra sets apart (its "text-secondary") in the text's
+BASE = BUILTIN_THEMES.get("ansi-dark")
+if BASE is None:
+    fail("cannot start (this Textual has no ansi-dark theme to build on) — run: fedokawaii update")
+THEME = "fedokawaii"
+BUILTIN_THEMES[THEME] = Theme(
+    name=THEME, ansi=True, dark=True,
+    primary="ansi_red", secondary="ansi_red", accent="ansi_bright_cyan",
+    warning="ansi_yellow", error="ansi_bright_red", success="ansi_green",
+    foreground="ansi_default", background="ansi_default", surface="ansi_default",
+    panel="ansi_default", boost="ansi_default",
+    variables={**BASE.variables,
+               "block-cursor-background": "ansi_red", "block-cursor-foreground": "ansi_black",
+               "block-cursor-text-style": "none",
+               "block-cursor-blurred-background": "transparent",
+               "block-cursor-blurred-foreground": "ansi_red",
+               "secondary-muted": "ansi_bright_black", "text-secondary": "ansi_white",
+               "input-cursor-background": "ansi_red", "input-cursor-foreground": "ansi_black",
+               "input-selection-background": "ansi_red 40%",
+               "footer-key-foreground": "ansi_red", "button-color-foreground": "ansi_black"})
+# the first screen's layout (below), as text screens are set: left-aligned, 64 wide (each
+# !important: torrra's own app.tcss, read after this, would win every tie)
+tapp.TorrraApp.CSS = """
+#welcome_container { max-width: 64 !important; }
+#welcome_container #banner { text-align: left !important; color: ansi_white !important; }
+#welcome_container #subtitle { text-align: left !important; color: ansi_bright_black !important; }
+#welcome_container #version { text-align: left !important; color: ansi_bright_black !important; }
+#welcome_container #commands_container { align-horizontal: left !important; }
+#welcome_container #commands_container Grid { width: 100% !important; grid-columns: 14 1fr !important; }
+#welcome_container #commands_container Grid Static { color: ansi_bright_black !important; }
+#welcome_container #commands_container Grid Static.key { text-align: left !important; color: ansi_white !important; }
+"""
 
-if search:
+# the first screen: a text screen of ours (docs/design-system.md §7) — the heading (種 in
+# vermilion, the name, the stitch), a line saying what it is, the search line, then the keys
+# as rows: no banner, no emoji. The same ids as torrra's own, so its layout holds
+def kawa_welcome(self):
+    with Container(id="welcome_container"):
+        yield Static("[ansi_red]種[/]  torrents [ansi_bright_black]" + "╌" * 51 + "[/]", id="banner")
+        yield Static("search the usual sites through Prowlarr —\ndownloads go on while this window is open",
+                     id="subtitle")
+        yield welcome.SearchInput(placeholder="what to find", id="search")
+        yield Static(f"torrra {welcome.__version__} · {self.indexer.name if self.indexer else 'no search'}",
+                     id="version")
+        with Container(id="commands_container"), Grid():
+            for words, key in (("quit", "ctrl+q"), ("colours", "ctrl+t"), ("downloads", "ctrl+d"), ("every key", "?")):
+                yield Static(words, markup=False)
+                yield Static(key, classes="key")
+welcome.WelcomeScreen.compose = kawa_welcome
+
+# Prowlarr, woken by kawa-torrra as the window opened, is waited for at the first search
+# only — torrra's own check before its window (which would find it still starting) skipped (it is healthy in a few seconds; the search's spinner turns meanwhile) — then asked
+# what would otherwise end in torrra's "Search failed": every reason said plainly, as a notice
+first_search = prowlarr.ProwlarrIndexer.search
+ready = []
+
+async def kawa_ready():
+    import asyncio
+    proc = await asyncio.create_subprocess_exec("kawa-prowlarr", "--busy", stdin=asyncio.subprocess.DEVNULL,
+                                                stdout=asyncio.subprocess.DEVNULL, stderr=asyncio.subprocess.DEVNULL)
+    if await proc.wait() != 0:
+        return "Prowlarr did not start — journalctl --user -u prowlarr -e"
     try:
-        r = httpx.get("http://127.0.0.1:9696/api/v1/indexer", headers={"X-Api-Key": key}, timeout=5)
+        async with httpx.AsyncClient(timeout=5) as client:
+            r = await client.get("http://127.0.0.1:9696/api/v1/indexer", headers={"X-Api-Key": key})
     except httpx.HTTPError:
-        fail("Prowlarr is not answering on 127.0.0.1:9696 — systemctl --user status prowlarr")
+        return "Prowlarr is not answering on 127.0.0.1:9696 — systemctl --user status prowlarr"
     if r.status_code == 401:
-        fail("Prowlarr refused the key in secrets.sh — run: fedokawaii update (it hands Prowlarr the key again)")
+        return "Prowlarr refused the key in secrets.sh — run: fedokawaii update (it hands Prowlarr the key again)"
     if r.status_code != 200:
-        fail(f"Prowlarr answered HTTP {r.status_code} — journalctl --user -u prowlarr -e")
+        return f"Prowlarr answered HTTP {r.status_code} — journalctl --user -u prowlarr -e"
     if not any(i.get("enable") for i in r.json()):
-        fail("Prowlarr has no indexers switched on — fedokawaii repair adds the usual ones (or: prowlarr → Indexers)")
+        return "Prowlarr has no indexers switched on — fedokawaii repair adds the usual ones (or: prowlarr → Indexers)"
+    return None
+
+async def kawa_search(self, query, use_cache=True):
+    if not ready:
+        msg = await kawa_ready()
+        if msg:
+            warn(msg, "critical")
+            raise IndexerError(msg)
+        ready.append(True)
+    return await first_search(self, query, use_cache)
+async def kawa_healthcheck(self):
+    return True                                       # (torrra's own, before the window: asked at the first search instead)
+prowlarr.ProwlarrIndexer.search, prowlarr.ProwlarrIndexer.healthcheck = kawa_search, kawa_healthcheck
 
 SECRET = "indexers.prowlarr.api_key"
 SEARCH_WAIT = 60                                      # seconds: a search's answer from Prowlarr
-THEMES = ("ansi-dark", "ansi-light", "textual-dark")
+THEMES = ("ansi-dark", "ansi-light", "textual-dark")     # what earlier setups chose: ours now
 
 def kawa_load(self):
     load(self)
@@ -270,11 +352,12 @@ if said and rc in (0, None):
 sys.exit(rc)
 PY
 
-# Prowlarr runs on demand: woken here for a search (kawa-prowlarr --busy: the start returns
-# once it is healthy, a few seconds; systemd gives up
-# after 10 minutes, the unit's TimeoutStartSec), and left to sleep 30 minutes after this
-# window closes (kawa-prowlarr --idle) — however torrra ends, the window closed during a
-# search included (trap) — so a second search soon after finds it awake
+# Prowlarr runs on demand: woken here as the window opens (kawa-prowlarr --busy, in the
+# background: the window does not wait — the first search does, inside torrra; the start
+# returns once it is healthy, a few seconds; systemd gives up after 10 minutes, the unit's
+# TimeoutStartSec), and left to sleep 30 minutes after this window closes (kawa-prowlarr
+# --idle) — however torrra ends, the window closed during a search included (trap) — so a
+# second search soon after finds it awake
 if ((search)); then
   # what would only fail inside systemd, said plainly first: no unit at all (podman, or the
   # container file, missing: the quadlet generator made none), or Prowlarr's port taken
@@ -287,7 +370,7 @@ if ((search)); then
   # plans its sleep too — the start goes on in systemd after systemctl itself is gone)
   trap 'kawa-prowlarr --idle 2>/dev/null' EXIT
   trap 'exit 129' HUP; trap 'exit 130' INT; trap 'exit 143' TERM
-  kawa-prowlarr --busy || die "Prowlarr did not start — journalctl --user -u prowlarr -e"
+  kawa-prowlarr --busy >/dev/null 2>&1 8>&- &
 fi
 KAWA_KEY=${PROWLARR_API_KEY:-} KAWA_SEARCH=$search KAWA_NOTIFY=$open KAWA_ICON=$ICON \
   "$py" -I -c "$BOOT" "$@" 8>&-

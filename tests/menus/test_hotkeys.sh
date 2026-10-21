@@ -5,8 +5,8 @@
 # command is read from config.h and run as dwl runs it (sh -c, a session of its own), on the
 # real scripts: the popups' terminal windows (kawa-term --float; footclient a stand-in whose
 # window is a process), quick settings, the sound panel and every panel menu (the real
-# kawa-panel's decisions, headless_panel.py, behind its real fifo), the launcher (fuzzel a
-# stand-in) and the region picker (slurp a stand-in). The warm windows' keys (notes, the
+# kawa-panel's decisions, headless_panel.py, behind its real fifo), the launcher (the panel's
+# too: kawa-menu --launcher, "toggle launcher") and the region picker (slurp a stand-in). The warm windows' keys (notes, the
 # clipboard, the system menu) are dwl's own toggle, no command run: each names a window
 # kawa-warm knows (their parity: tests/session/test_warm.sh). And every key config.h binds is
 # one of these, or named here as not opening anything to toggle (a new key must say which).
@@ -66,7 +66,7 @@ while IFS=$'\t' read -r f k c; do
 done < <(bindings)
 ((n > 30)) && _ok || _no "only $n bindings read from config.h"
 case_ "the warm keys (Super+N, Super+V, Super+U): dwl's warm toggle, each on a window kawa-warm knows"
-w=""
+sandbox; w=""
 while IFS=$'\t' read -r f k c; do
   [[ $f == warm ]] || { [[ ${TOGGLE[$k]:-} == warm ]] && _no "$k is $f ($c), not warm"; continue; }
   w+="$k:$c "
@@ -85,10 +85,6 @@ setup() {
   stub footclient 'echo $$ >"'"$W"'/$$"; exec /bin/sleep 300'
   stub kawa-dwlstatus
   stub notify-send
-  # the launcher: a fuzzel that stays on screen (its own name, as kawa-menu checks), and takes
-  # fuzzel's lock as the real one does
-  printf '#!/bin/bash\nexec 8>>"$XDG_RUNTIME_DIR/fuzzel-$WAYLAND_DISPLAY.lock"; flock -n 8 || exit 1\necho $$ >"%s/fz.$$"\ntrap "exit 1" TERM\nwhile :; do /bin/sleep 0.2 8>&- & wait $!; done\n' "$W" >"$STUBS/fuzzel"
-  chmod 755 "$STUBS/fuzzel"
   # the region picker: on screen until it is ended
   printf '#!/bin/bash\necho $$ >"%s/slurp.$$"\nexec /bin/sleep 300\n' "$W" >"$STUBS/slurp"; chmod 755 "$STUBS/slurp"
   export WAYLAND_DISPLAY=wayland-test
@@ -115,7 +111,7 @@ state() {   # state KIND — 1 open, 0 closed (2+: more than one window)
   case $1 in
     float)    live "[0-9]" ;;
     panel)    local s=0; read -r s _ <"$XDG_RUNTIME_DIR/panel.state"; echo "$s" ;;
-    launcher) live fz. ;;
+    launcher) local s=0 w=-; read -r s w <"$XDG_RUNTIME_DIR/panel.state"; [[ $w == launcher ]] && echo "$s" || echo 0 ;;
     picker)   live slurp. ;;
   esac
 }
@@ -146,7 +142,7 @@ for k in ${HOTKEYS:-Super+x Super+a Super+c Super+slash Super+Shift+e Super+Shif
     if ((s > 0)); then press "$cmd"; settle "$kind" 0 >/dev/null; fi   # (closed again, by its key)
   done
   eq "$got" "1:1 2:0 3:1 4:0 "   # (presses:windows open)
-  for f in "$W"/[0-9]* "$W"/fz.* "$W"/slurp.*; do [[ -e $f ]] && read -r p <"$f" && kill "$p" 2>/dev/null; done
+  for f in "$W"/[0-9]* "$W"/slurp.*; do [[ -e $f ]] && read -r p <"$f" && kill "$p" 2>/dev/null; done
   kill "$PANEL" 2>/dev/null; wait "$PANEL" 2>/dev/null
 done
 

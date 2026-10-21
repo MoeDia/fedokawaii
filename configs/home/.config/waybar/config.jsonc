@@ -1,12 +1,16 @@
-// ~/.config/waybar/config.jsonc — waybar 0.15. The bar as a hanging scroll (kakejiku): a thin
-// strip of paper across the top, straight onto the wallpaper, every button the same size.
-//   left:   torii key (opens the launcher) · workspaces 一 二 三 (+ any others in use) ·
-//           layout icon (click: the next layout, right-click: the one before) · window title
-//   centre: now playing between the two halves of a segment meter (hidden when nothing
-//           plays) — waybar centres it on the screen
-//   right:  録 while recording · mode seal · drives · downloads (while one runs) · Steam's gamepad (while it runs) · keyboard layout · memory ·
-//           volume · brightness · weather ┆ date · day seal · time (and a running timer) ┆
-//           the cat (quick settings) — ┆ a sashiko stitch down the paper
+// ~/.config/waybar/config.jsonc — waybar 0.15. No bar: washi tiles floating along the top of
+// the screen (紙 kami — style.css), each part of the desktop on a tile of its own.
+//   left:   the torii key (opens the launcher) on a vermilion tile · the workspaces 一 二 三
+//           (+ any others in use), a tile each, the one you are on stamped with a vermilion seal
+//           · the layout icon (click: the next layout, right-click: the one before) and the
+//           window title, on one tile
+//   centre: the clock mounted as a hanging scroll: date · the day's kanji · time — and while
+//           music plays, its spectrum inside it either side, the left channel left, the right
+//           one right
+//   right:  now playing · a timer (while one runs) · 録 while recording · the mode kanji ·
+//           drives · downloads (while one runs) · Steam's gamepad (while it runs) · the keyboard
+//           layout · memory · volume · brightness · weather, a tile each · the cat (quick
+//           settings) on the other corner's vermilion tile
 // Network, Bluetooth, night light, theme… live in the quick-settings dropdown,
 // so the bar stays quiet. No tray: the desktop's own modules stand for what apps would put
 // there (Steam's gamepad). Reload without logging out: pkill -USR2 waybar
@@ -36,8 +40,8 @@
 {
   "layer": "top",
   "position": "top",
-  // 31 px: the 12 px text line and the 23 px buttons land on whole pixels, 4 px of paper
-  // above every button and 4 below (no rule under it: the paper meets the wallpaper)
+  // 31 px: a tile's hairline, paper and rule above the 16 px text line and below it, and the
+  // tile's shadow (style.css: the rows)
   "height": 31,
   "spacing": 0,
 
@@ -47,16 +51,11 @@
     "custom/tag6", "custom/tag7", "custom/tag8", "custom/tag9",
     "custom/layout", "custom/title"
   ],
-  "modules-center": ["custom/nowplaying"],
-  "modules-right": ["group/status", "custom/sep1", "group/when", "custom/sep2", "custom/menu"],
-  // the groups: what the computer is doing, and when it is — between them, and before the
-  // cat, a sashiko stitch: a running stitch of faint thread down the paper (style.css draws
-  // it; the text is a zero-width space, as an empty one would hide the module)
+  "modules-center": ["group/when"],
+  "modules-right": ["group/status", "custom/menu"],
   "group/status": { "orientation": "horizontal",
-                    "modules": ["custom/record", "custom/mode", "custom/drives", "custom/downloads", "custom/steam", "custom/kb", "custom/mem", "custom/volume", "custom/brightness", "custom/weather"] },
-  "group/when":   { "orientation": "horizontal", "modules": ["custom/date", "custom/day", "custom/time"] },
-  "custom/sep1":  { "format": "\u200b", "tooltip": false },
-  "custom/sep2":  { "format": "\u200b", "tooltip": false },
+                    "modules": ["custom/nowplaying", "custom/timer", "custom/record", "custom/mode", "custom/drives", "custom/downloads", "custom/steam", "custom/kb", "custom/mem", "custom/volume", "custom/brightness", "custom/weather"] },
+  "group/when":   { "orientation": "horizontal", "modules": ["custom/wing-left", "custom/date", "custom/day", "custom/time", "custom/wing-right"] },
 
   // the torii: the launcher (kawa-menu --launcher, in the middle of the screen; Super+Space the same)
   "custom/torii": { "exec": "kawa-bar torii", "return-type": "json", "signal": 20, "tooltip": false,
@@ -82,7 +81,13 @@
   "custom/kb":     { "exec": "{ IFS= read -r l <\"$XDG_RUNTIME_DIR/dwl-bar/kb.json\"; } 2>/dev/null && printf '%s\\n' \"$l\"",     "return-type": "json", "signal": 11, "tooltip": false },
   "custom/title":  { "exec": "{ IFS= read -r l <\"$XDG_RUNTIME_DIR/dwl-bar/${WAYBAR_OUTPUT_NAME:-.}/title.json\" || IFS= read -r l <\"$XDG_RUNTIME_DIR/dwl-bar/title.json\"; } 2>/dev/null && printf '%s\\n' \"$l\"",  "return-type": "json", "signal": 10, "tooltip": false },
 
-  // one long-running script (see its header); restarted if it ever exits
+  // one long-running script (see its header); restarted if it ever exits. It meters the music
+  // too, into the two wings beside the clock: each reads its own fifo, which kawa-nowplaying
+  // writes while something plays (empty: hidden)
+  "custom/wing-left":  { "exec": "kawa-nowplaying --wing left",  "return-type": "json", "restart-interval": 1, "tooltip": false,
+                         "exec-on-event": false, "on-click": "kawa-nowplaying play-pause" },
+  "custom/wing-right": { "exec": "kawa-nowplaying --wing right", "return-type": "json", "restart-interval": 1, "tooltip": false,
+                         "exec-on-event": false, "on-click": "kawa-nowplaying play-pause" },
   "custom/nowplaying": {
     "exec": "kawa-nowplaying", "return-type": "json", "restart-interval": 5, "tooltip": false,
     "exec-on-event": false, "on-click": "kawa-nowplaying play-pause", "on-click-right": "kawa-nowplaying next", "on-click-middle": "kawa-nowplaying previous"
@@ -156,6 +161,10 @@
                    "exec-on-event": false, "on-click": "setsid -f kawa-calendar" },
   "custom/time": { "exec": "kawa-timer bar", "return-type": "json", "restart-interval": 5, "tooltip": false,
                    "exec-on-event": false, "on-click": "setsid -f kawa-timer" },
+  // the timer or stopwatch running, a cell of its own on the right (kawa-timer bar timer):
+  // the hourglass and the time left (vermilion) or gone by (asagi); hidden otherwise
+  "custom/timer": { "exec": "kawa-timer bar timer", "return-type": "json", "restart-interval": 5, "tooltip": false,
+                    "exec-on-event": false, "on-click": "setsid -f kawa-timer" },
 
   // the cat (quick settings, kawa-panel): it smiles while they are open
   "custom/menu": { "exec": "kawa-bar cat", "return-type": "json", "signal": 15, "tooltip": false,

@@ -1,21 +1,21 @@
 /*
  * kawa-lockmod — the lock screen's own part of gtklock (a gtklock 4 module; kawa-lock loads it
- * with -m ~/.local/lib/fedokawaii/kawa-lockmod.so). Two things, on every screen's panel:
+ * with -m ~/.local/lib/fedokawaii/kawa-lockmod.so). Two things, on every screen:
  *
- *  The keys. Under the password's box, a rule and three keys — 眠 sleep · 再 restart ·
- *  電 power off — exactly as on the login screen (kawa-greet): the key fill in a 1 px edge
- *  frame, the words accent_text under the pointer, filled vermilion under the keyboard's
- *  focus (Tab); the look is current/gtklock.css (#rule, button). Sleep is `systemctl
+ *  The keys. Under the password's line, three keys — 眠 sleep · 再 restart · 電 power off —
+ *  exactly as on the login screen (kawa-greet): words alone, no box, accent_text under the
+ *  pointer and under the keyboard's focus (Tab); the look is current/gtklock.css (#keys,
+ *  button). Sleep is `systemctl
  *  suspend` (swayidle's before-sleep darkens the screens; the lock is already up), restart
  *  and power off `systemctl reboot` and `systemctl poweroff` (Steam is closed properly by
  *  kawa-steam --guard, which logind tells first).
  *
  *  The flavour, as on the login screen (kawa-greet): AM/PM after the big time (gtklock draws
- *  "%I:%M" at 48 px: design-system §2's display size); after the date the weekday in kanji
- *  (火曜日, accent_text), at the heading's end a stamped seal 錠 (the lock; the login's is 門);
- *  under the time a line of the season and the hour — 秋の夜 · the moon, a seal on paper — its
+ *  "%I:%M" at 64 px: design-system §2's display size); after the date the weekday in kanji
+ *  (火曜日, accent_text); under the day a line of the season and the hour — 秋の夜 · the
+ *  moon, a seal on paper — its
  *  kanji in accent_text, its words muted (VERSES: the same sixteen in kawa-greet). Read again
- *  every half minute; the look is current/gtklock.css (#weekday, #stamp, #verse-kanji, #verse).
+ *  every half minute; the look is current/gtklock.css (#weekday, #verse-kanji, #verse).
  *
  *  The wake guard. The key that wakes the computer, or lights the dark screens, only wakes:
  *  kawa-lock notes the screens in $XDG_RUNTIME_DIR/kawa-screens — "off" before they go dark,
@@ -161,23 +161,6 @@ static gboolean flavour_tick(gpointer data)
 		flavour_set(l->data);
 	return G_SOURCE_CONTINUE;
 }
-/* the stitch drawn whole (design-system §4): 3 px on, 2 off, from its left edge, ending on the
- * last whole one that fits (up to 4 px short of its right edge — never a cut one there); 1 px
- * high through the widget's middle, in its CSS colour (edge2: gtklock.css's #stitch, #rule) */
-static gboolean draw_stitch(GtkWidget *w, cairo_t *cr, gpointer data)
-{
-	GdkRGBA c;
-	int width = gtk_widget_get_allocated_width(w), y = gtk_widget_get_allocated_height(w) / 2;
-
-	(void)data;
-	gtk_style_context_get_color(gtk_widget_get_style_context(w), gtk_widget_get_state_flags(w), &c);
-	gdk_cairo_set_source_rgba(cr, &c);
-	for (int x = 0; x + 3 <= width; x += 5)
-		cairo_rectangle(cr, x, y, 3, 1);
-	cairo_fill(cr);
-	return FALSE;
-}
-
 static GtkWidget *named_label(const char *name)
 {
 	GtkWidget *l = gtk_label_new(NULL);
@@ -208,7 +191,7 @@ void on_window_create(struct GtkLock *gtklock, struct Window *win)
 	g_signal_connect(win->window, "button-release-event", G_CALLBACK(on_button), win);
 	if (!win->window_box || !GTK_IS_BOX(win->window_box))
 		return;
-	/* the heading: … the date, 火曜日, the stitch, the stamped seal 錠 */
+	/* the day: its seal, the date, 火曜日 */
 	GtkWidget *heading = win->date_label ? gtk_widget_get_parent(win->date_label) : NULL;
 	struct flavour *f = g_new0(struct flavour, 1);
 	f->weekday = named_label("weekday");
@@ -219,15 +202,6 @@ void on_window_create(struct GtkLock *gtklock, struct Window *win)
 	if (heading && GTK_IS_BOX(heading)) {
 		gtk_box_pack_start(GTK_BOX(heading), f->weekday, FALSE, FALSE, 0);
 		gtk_box_reorder_child(GTK_BOX(heading), f->weekday, 2);   /* (seal, date, here) */
-		GtkWidget *stamp = named_label("stamp");
-		gtk_label_set_text(GTK_LABEL(stamp), "錠");
-		gtk_box_pack_end(GTK_BOX(heading), stamp, FALSE, FALSE, 0);
-		gtk_widget_show(stamp);
-		GList *kids = gtk_container_get_children(GTK_CONTAINER(heading));
-		for (GList *k = kids; k; k = k->next)
-			if (!g_strcmp0(gtk_widget_get_name(k->data), "stitch"))
-				g_signal_connect(k->data, "draw", G_CALLBACK(draw_stitch), NULL);
-		g_list_free(kids);
 	}
 	/* AM/PM after the big time, on its baseline (the face: padlock, time-box, here) */
 	GtkWidget *face = win->time_box ? gtk_widget_get_parent(win->time_box) : NULL;
@@ -235,7 +209,7 @@ void on_window_create(struct GtkLock *gtklock, struct Window *win)
 		gtk_box_pack_start(GTK_BOX(face), f->ampm, FALSE, FALSE, 0);
 		gtk_widget_show(f->ampm);
 	}
-	/* under the face: the season and the hour */
+	/* under the day: the season and the hour */
 	if (win->info_box && GTK_IS_BOX(win->info_box)) {
 		GtkWidget *line = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 6);
 		gtk_widget_set_name(line, "verse-line");
@@ -249,11 +223,7 @@ void on_window_create(struct GtkLock *gtklock, struct Window *win)
 	flavour_set(f);
 	win->module_data[self_id] = f;
 	flavours = g_list_prepend(flavours, f);
-	GtkWidget *rule = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
-	gtk_widget_set_name(rule, "rule");
-	g_signal_connect(rule, "draw", G_CALLBACK(draw_stitch), NULL);
-	gtk_box_pack_start(GTK_BOX(win->window_box), rule, FALSE, FALSE, 0);
-	GtkWidget *row = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 6);
+	GtkWidget *row = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
 	gtk_box_set_homogeneous(GTK_BOX(row), TRUE);
 	gtk_widget_set_name(row, "keys");
 	for (size_t i = 0; i < G_N_ELEMENTS(keys); i++) {
@@ -264,7 +234,6 @@ void on_window_create(struct GtkLock *gtklock, struct Window *win)
 		gtk_box_pack_start(GTK_BOX(row), b, TRUE, TRUE, 0);
 	}
 	gtk_box_pack_start(GTK_BOX(win->window_box), row, FALSE, FALSE, 0);
-	gtk_widget_show_all(rule);
 	gtk_widget_show_all(row);
 }
 

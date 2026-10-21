@@ -5,25 +5,29 @@
  *   kawa-saver --wash  the one transition (a theme switch, a new wallpaper): see wash()
  *   kawa-saver --idle  away 15 minutes (kawa-idle, from swayidle: never while something
  *                      plays): the screensaver, and the lock behind it — the first key or move
- *                      ends it and brings up the lock (kawa-lock) before it goes, so neither
- *                      that key nor any typed after it reaches a window. Switched off in quick
+ *                      starts the lock (kawa-lock) at once and washes the cloth away while it
+ *                      comes up; it goes only once the lock is there, so neither that key nor
+ *                      any typed after it reaches a window. Switched off in quick
  *                      settings (~/.local/state/fedokawaii/saver: on, or off): the lock at once.
  *                      Should it not be able to show, it locks all the same.
  *
  * On the theme's ground (dark or light: current/saver.conf), needles run along the lines of a
  * hitomezashi grid — one stitch over, one under, each line starting on its own side — and the
- * thread they leave (faint) slowly makes the pattern, a vermilion dot at each needle's tip.
+ * thread they leave slowly makes the pattern — the bar's own cloth thread, each dot of it with
+ * its shadow a dot down and to the right — a vermilion dot at each needle's tip.
  * Seals are stamped on the cloth now and then (a kanji of sewing, sleep or night — 縫 糸 針 夢
- * 眠 静 月 星 夜 …, accent_text in a 2-dot frame) and lifted again; a small panel tells the
- * time (時 and "09:41 PM", the lock screen's words) and moves every minute. When the cloth is
+ * 眠 静 月 星 夜 …, accent_text in a 2-dot frame) and lifted again; a small patch, framed in
+ * running stitch as the bar's clock is, tells the time (時 and "09:41 PM", the lock screen's
+ * words) and moves every minute. When the cloth is
  * full it rests, then is washed (an ordered dither, block by block) and sewn anew. Everything
  * is drawn on a grid of dots as big as a pixel of the wallpapers' pixel art (3 px at 1080p,
- * 4 at 1440p, 6 at 4K), in the design system's own letters (Fusion Pixel at 12 px: glyphs.h).
+ * 4 at 1440p, 6 at 4K), in the design system's own letters (Sumi UI at 16 px: glyphs.h).
  * Nothing on the screen stays put: no burn-in.
  *
  * Any key, click, scroll or move of the pointer ends it — and goes nowhere else: it holds the
  * keyboard while it shows (a layer on top of everything, the bar too), and it waits for the
  * key or button to be let go before it leaves, so neither press nor release reaches a window.
+ * It answers at once: the cloth washes away into the ground (180 ms) as it leaves.
  * It ends too when the desktop locks otherwise (kawa-lock), and stays one at a time.
  *
  * 8 to 17 MB a 1080p screen (one or two pictures of it), almost no CPU (12 steps a second, only the
@@ -52,15 +56,16 @@
 #include "glyphs.h"
 
 /* ── the palette (current/saver.conf) ───────────────────────────────────────────────── */
-enum { GROUND, SURFACE, EDGE2, FAINT, MUTED, TEXT, ACCENT, ACCENT_TEXT, NCOL };
+enum { GROUND, SURFACE, EDGE2, THREAD, SHADE, TEXT, ACCENT, ACCENT_TEXT, NCOL };
 static const char *colour_names[NCOL] = {
-	"ground", "surface", "edge2", "faint", "muted", "text", "accent", "accent_text",
+	"ground", "surface", "edge2", "thread", "shade", "text", "accent", "accent_text",
 };
 static uint32_t pal[NCOL];
 
 #define CELL 8          /* the sashiko grid, in dots */
 #define TILE 16         /* what is redrawn at once, in dots */
-#define SEAL 23         /* a seal, as the panels draw it */
+#define SEAL 26         /* a seal, as the panels draw it: the kanji (16) with 4 of paper and 1 of frame round it */
+#define GAP GLYPH_COL   /* a gap, as the panels keep: a column of the letters */
 #define MAXSEALS 6
 #define NEEDLES 8
 #define SPEED 2         /* dots a needle moves a step */
@@ -119,7 +124,10 @@ static struct wl_list outputs;
 static long tick;                         /* steps since the start */
 static int pace = 80;                     /* ms a step */
 static unsigned seed;
-static bool leaving;                      /* input came: gone once every key and button is up */
+static bool leaving;                      /* input came: washed away, gone once every key and button is up */
+static bool idle_mode;                    /* --idle: the lock behind it */
+static pid_t lock_pid;                    /* kawa-lock, started at the first input (--idle) */
+#define PART_MS 180                       /* the wash as it leaves */
 static int held;                          /* keys and buttons down */
 static double leave_at;
 static bool moved_base;
@@ -232,7 +240,7 @@ static const struct glyph *glyph_of(const char *ch, size_t n)
 
 static void draw_glyph(struct output *o, const struct glyph *g, int x, int y, uint8_t c)
 {
-	for (int r = 0; r < 12; r++)
+	for (int r = 0; r < GLYPH_H; r++)
 		for (int b = 0; b < g->w; b++)
 			if (g->rows[r] >> (g->w - 1 - b) & 1)
 				put(o, x + b, y + r, c);
@@ -241,8 +249,8 @@ static void draw_glyph(struct output *o, const struct glyph *g, int x, int y, ui
 /* the ink's box inside the glyph's cell (a seal centres its ink, as build-art.py does) */
 static void ink(const struct glyph *g, int *x0, int *y0, int *x1, int *y1)
 {
-	*x0 = g->w, *y0 = 12, *x1 = -1, *y1 = -1;
-	for (int r = 0; r < 12; r++)
+	*x0 = g->w, *y0 = GLYPH_H, *x1 = -1, *y1 = -1;
+	for (int r = 0; r < GLYPH_H; r++)
 		for (int b = 0; b < g->w; b++)
 			if (g->rows[r] >> (g->w - 1 - b) & 1) {
 				if (b < *x0) *x0 = b;
@@ -313,7 +321,14 @@ static void sew_step(struct output *o)
 		int x, y, len = line_len(o, nd->line);
 		for (int s = 0; s < SPEED && nd->live; s++) {
 			line_dot(o, nd->line, nd->pos, &x, &y);
-			sew(o, x, y, stitch(o, nd->line, nd->pos) ? FAINT : o->thread[(size_t)y * (size_t)o->cw + (size_t)x]);
+			if (stitch(o, nd->line, nd->pos)) {
+				sew(o, x, y, THREAD);         /* the stitch, its shadow a dot down and right */
+				if (x + 1 < o->cw && y + 1 < o->ch &&
+				    o->thread[(size_t)(y + 1) * (size_t)o->cw + (size_t)(x + 1)] == GROUND)
+					sew(o, x + 1, y + 1, SHADE);
+			} else {
+				sew(o, x, y, o->thread[(size_t)y * (size_t)o->cw + (size_t)x]);
+			}
 			nd->pos += nd->dir;
 			if (nd->pos < 0 || nd->pos >= len)
 				nd->live = false;
@@ -341,6 +356,16 @@ static void wash_step(struct output *o, int level)   /* level 0…64: dots at or
 			if (o->thread[i] != GROUND && bayer[(y / 2) & 7][(x / 2) & 7] < level)
 				sew(o, x, y, GROUND);
 		}
+}
+
+/* leaving: everything shown — the cloth, the seals, the clock — washed into the ground, in the
+ * same ordered dither (level 0…65) */
+static void part_step(struct output *o, int level)
+{
+	for (int y = 0; y < o->ch; y++)
+		for (int x = 0; x < o->cw; x++)
+			if (bayer[(y / 2) & 7][(x / 2) & 7] < level)
+				put(o, x, y, GROUND);
 }
 
 /* ── the seals and the clock ────────────────────────────────────────────────────────── */
@@ -404,23 +429,43 @@ static void seals_step(struct output *o)
 	}
 }
 
-/* the clock: a panel (surface, 2 dots of muted) over the grid's lines, its edges on them —
- * its heading seal 時 and the time in text, centred in it */
+/* a running stitch round w × h at x, y as the bar's patches have it: 3 dots on, 2 off, laid
+ * from both corners so it is symmetric and every corner is sewn; each dot's shadow a dot down
+ * and right (inside the box: the frame takes w-1 × h-1, the shadow the last column and row) */
+static bool run_on(int i, int n) { int d = i < n - 1 - i ? i : n - 1 - i; return d % 5 < 3; }
+static void stitch_frame(struct output *o, int x, int y, int w, int h)
+{
+	int fw = w - 1, fh = h - 1;
+	for (int pass = 0; pass < 2; pass++)  /* the shadows, then the thread over them */
+		for (int i = 0; i < fw; i++)
+			for (int j = 0; j < fh; j++) {
+				bool edge = i == 0 || j == 0 || i == fw - 1 || j == fh - 1;
+				if (!edge || !((j == 0 || j == fh - 1) ? run_on(i, fw) : run_on(j, fh)))
+					continue;
+				if (pass == 0)
+					put(o, x + i + 1, y + j + 1, SHADE);
+				else
+					put(o, x + i, y + j, THREAD);
+			}
+}
+
+/* the clock: a patch over the grid's lines, its edges on them (the surface, framed in running
+ * stitch as the bar's clock is) — its heading seal 時 and the time in text, centred in it */
 static void draw_clock(struct output *o, const char *t)
 {
 	struct rect r = o->clock;
 	fill(o, r.x, r.y, r.w, r.h, SURFACE);
-	frame(o, r.x, r.y, r.w, r.h, 2, MUTED);
+	stitch_frame(o, r.x, r.y, r.w, r.h);
 	const struct glyph *g = glyph_of("時", strlen("時"));
-	int cw = SEAL + 6 + 6 * (int)strlen(t), x = r.x + (r.w - cw) / 2, y = r.y + (r.h - SEAL) / 2;
+	int cw = SEAL + GAP + GLYPH_COL * (int)strlen(t), x = r.x + (r.w - cw) / 2, y = r.y + (r.h - SEAL) / 2;
 	if (g)
 		draw_seal(o, x, y, g, false, SURFACE);
-	x += SEAL + 6, y += (SEAL - 12) / 2 + 1;
+	x += SEAL + GAP, y += (SEAL - GLYPH_H) / 2 + 1;
 	for (const char *p = t; *p; p++) {
 		const struct glyph *c = glyph_of(p, 1);
 		if (c)
 			draw_glyph(o, c, x, y, TEXT);
-		x += 6;
+		x += GLYPH_COL;
 	}
 }
 
@@ -434,7 +479,7 @@ static void clock_step(struct output *o)
 	char t[16];
 	strftime(t, sizeof t, "%I:%M %p", &tm);
 	struct rect old = o->clock, r;
-	int w = 8 + SEAL + 6 + 6 * (int)strlen(t) + 8, h = 8 + SEAL + 8;
+	int w = 8 + SEAL + GAP + GLYPH_COL * (int)strlen(t) + 8, h = 8 + SEAL + 8;
 	w = (w + CELL - 2) / CELL * CELL + 1, h = (h + CELL - 2) / CELL * CELL + 1;   /* line to line */
 	if (!place(o, w, h, true, &r, &o->clock))
 		return;
@@ -602,11 +647,14 @@ static const struct zwlr_layer_surface_v1_listener layer_listener = {
 };
 
 /* ── input: any of it ends the screensaver, and none of it goes further ─────────────── */
+static void lock_start(void);
 static void leave_now(void)
 {
 	if (!leaving) {
 		leaving = true;
 		leave_at = now_ms();
+		if (idle_mode)
+			lock_start();             /* the lock coming up while the cloth washes away */
 	}
 }
 static void kb_keymap(void *d, struct wl_keyboard *k, uint32_t f, int32_t fd, uint32_t s)
@@ -803,18 +851,25 @@ static bool wanted(void)
 	return strncmp(v, "off", 3) != 0;
 }
 
-/* --idle: the lock, now — kawa-lock returns once every screen is locked */
-static bool idle_mode;
-static void lock_now(void)
+/* --idle: the lock, started at the first input — kawa-lock returns once every screen is
+ * locked (lock_up: it has) */
+static void lock_start(void)
 {
 	pid_t pid = fork();
 	if (pid == 0) {
 		execlp("kawa-lock", "kawa-lock", (char *)NULL);
 		_exit(127);
 	}
-	if (pid > 0)
-		while (waitpid(pid, NULL, 0) < 0 && errno == EINTR)
-			;
+	lock_pid = pid > 0 ? pid : -1;
+}
+static bool lock_up(void)
+{
+	if (lock_pid <= 0)
+		return true;
+	if (waitpid(lock_pid, NULL, WNOHANG) == 0)
+		return false;
+	lock_pid = -1;
+	return true;
 }
 /* it cannot show: said; with --idle the lock comes all the same */
 static int fail(const char *what)
@@ -1127,8 +1182,21 @@ int main(int argc, char **argv)
 	double next = now_ms();
 	while (!stop) {
 		double t = now_ms();
-		if (leaving && (held == 0 || t - leave_at > 3000))
-			break;                        /* every key and button up again: gone */
+		if (leaving) {
+			/* at once: the cloth washes away into the ground (PART_MS) — and with --idle the
+			 * lock comes up behind it meanwhile. Gone once it is washed, the lock is up (it has
+			 * the keyboard from then: with it no key or button is waited for), and, without
+			 * a lock, every key and button is up again (none reaches a window) */
+			int level = (int)(65 * (t - leave_at) / PART_MS);
+			wl_list_for_each(o, &outputs, link)
+				if (o->ready && !o->closed)
+					part_step(o, level > 65 ? 65 : level);
+			bool washed = t - leave_at >= PART_MS;
+			if (washed && (idle_mode ? lock_up() : held == 0))
+				break;
+			if (t - leave_at > (idle_mode ? 15000 : 3000))
+				break;                    /* (a key that never comes up, a lock that hangs) */
+		}
 		if (!leaving && t >= next) {
 			next += pace;
 			if (next < t) next = t + pace;
@@ -1151,7 +1219,7 @@ int main(int argc, char **argv)
 			wl_display_cancel_read(display);
 			break;
 		}
-		int wait = leaving ? 20 : (int)(next - now_ms());
+		int wait = leaving ? 8 : (int)(next - now_ms());
 		if (poll(&pfd, 1, wait < 0 ? 0 : wait) > 0) {
 			if (wl_display_read_events(display) < 0)
 				break;
@@ -1162,8 +1230,9 @@ int main(int argc, char **argv)
 			break;
 	}
 out:
-	if (idle_mode && leaving)
-		lock_now();                       /* up behind it before it goes: no key gets through */
+	if (lock_pid > 0)                     /* (stopped while the lock came up: it is waited for) */
+		while (waitpid(lock_pid, NULL, 0) < 0 && errno == EINTR)
+			;
 	wl_list_for_each(o, &outputs, link) {
 		if (o->layer)
 			zwlr_layer_surface_v1_destroy(o->layer);

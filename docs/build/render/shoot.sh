@@ -44,13 +44,13 @@ outer() {
     [[ $t == dark || $t == light ]] || die "unknown theme '$t' (dark|light)"
     [[ -d $KH/.config/fedokawaii/themes/$t ]] || die "$KH/.config/fedokawaii/themes/$t missing — run theme.sh --user $K"
   done
-  for b in $F44/bin/{waybar,fuzzel,mako,makoctl,foot,footclient,swaylock,wireplumber,wpctl} \
+  for b in $F44/bin/{waybar,mako,makoctl,foot,footclient,swaylock,wireplumber,wpctl} \
            sway swaymsg grim swaybg wtype pipewire pw-cli pw-dump dbus-daemon notify-send jq setpriv unshare; do
     command -v "$b" >/dev/null || miss+=("$b")
   done
   ((${#miss[@]} == 0)) || die "missing: ${miss[*]} (see README.md)"
   python3 -c 'import PIL' 2>/dev/null || die "python3-PIL missing"
-  for b in waybar mako fuzzel foot swaylock wireplumber sway pipewire; do   # a session not ours
+  for b in waybar mako foot swaylock wireplumber sway pipewire; do   # a session not ours
     pgrep -u "$K" -x "$b" >/dev/null && { [[ -n ${SHOOT_ALLOW_OTHER:-} ]] && continue; die "$K already runs $b outside shoot.sh — stop it first (or SHOOT_ALLOW_OTHER=1)"; }
   done
 
@@ -307,6 +307,15 @@ bar.crop((w * 3 // 10, 0, w * 7 // 10, h)).save(f"{out}/bar-center.png")
 bar.crop((w * 3 // 5, 0, w, h)).save(f"{out}/bar-right.png")
 EOF
   say "$T: bar ${BARH} px high → bar.png, bar-left/center/right.png, desktop.png"
+  # lit: the launcher and the calendar open (their markers), the bar poked — the stamped seals
+  k bash -c 'echo $$ >"$XDG_RUNTIME_DIR/kawa-launcher.open"; echo "$$ kawa-calendar" >"$XDG_RUNTIME_DIR/kawa-drop.open"; exec sleep 60' &
+  local lp=$!; sleep 0.3
+  k kawa-dwlstatus --poke 20; k kawa-dwlstatus --poke 19; sleep 1.5; { k kawa-bar torii; k kawa-bar day; ls -l "$X"/kawa-launcher.open; pgrep -a waybar; } >"$LT/lit.log" 2>&1
+  img grab "$W/lit.ppm"
+  python3 -I -c 'import sys; from PIL import Image; im = Image.open(sys.argv[1]).convert("RGB"); h = int(sys.argv[3]); w = im.width
+im.crop((0, 0, w, h)).save(sys.argv[2] + "/bar-lit.png"); im.crop((0, 0, w * 2 // 5, h)).save(sys.argv[2] + "/bar-left-lit.png"); im.crop((w * 3 // 10, 0, w * 7 // 10, h)).save(sys.argv[2] + "/bar-center-lit.png")' "$W/lit.ppm" "$OT" "$BARH"
+  pkill -f '^sleep 60$' 2>/dev/null; rm -f "$X/kawa-launcher.open" "$X/kawa-drop.open"
+  k kawa-dwlstatus --poke 20; k kawa-dwlstatus --poke 19; sleep 0.5
 }
 
 menu() {   # menu NAME CMD… — open a menu, capture it once drawn and still, close it
@@ -349,12 +358,11 @@ menu_keys() {
   # within 0.6 s is that click landing on its own button — kawa-menu's toggle: none opens)
   sleep 0.7
 }
-# close_menus — whatever menu is on screen goes, as another menu's key takes it away: the
-# launcher (fuzzel) ended, the session panel told to close (a "close" line in its fifo: a menu dismissed, its
+# close_menus — whatever menu is on screen goes, as another menu's key takes it away:
+# the session panel told to close (a "close" line in its fifo: a menu dismissed, its
 # caller answered "dismissed")
 close_menus() {
   local p
-  pkill -x fuzzel 2>/dev/null
   [[ -p $X/kawa-panel.in ]] && { printf 'close\n' 1<>"$X/kawa-panel.in"; } 2>/dev/null
   return 0
 }
@@ -365,7 +373,7 @@ shot_menus() {
   # adapter (the dongle): only this panel's processes see a /sys/class/bluetooth/hci0.
   # (This machine's python3 has no working GTK bindings: the panel runs on its python3.12,
   # with a gtk-layer-shell built for them, in $GLS)
-  local py="env GI_TYPELIB_PATH=$GLS/girepository-1.0 LD_LIBRARY_PATH=$GLS python3.12 \"\$(command -v kawa-panel)\""
+  local py="env PYTHONPATH=/opt/kitpy GI_TYPELIB_PATH=$GLS/girepository-1.0 LD_LIBRARY_PATH=$GLS python3.12 \"\$(command -v kawa-panel)\""
   local qs="$py --open & p=\$!; sleep 6; kill \$p"
   menu menu-quick unshare --mount --propagation private -- sh -c \
     'mount -t tmpfs -o size=64k,mode=755 tmpfs /sys/class && mkdir -p /sys/class/bluetooth/hci0 && exec "$@"' \
@@ -378,7 +386,7 @@ shot_menus() {
   menu menu-brightness k sh -c "${qs/--open/--brightness}"
   # the dropdowns and the centred menus: kawa-menu asks the session's panel (its fifo,
   # kawa-panel.in), as autostart keeps one running on the real machine
-  k sh -c "exec $py" >"$LT/panel.log" 2>&1 &
+  k env XDG_DATA_DIRS="$SH/xdg/share" sh -c "exec $py" >"$LT/panel.log" 2>&1 &
   waitfor 15 "the session panel's fifo" test -p "$X/kawa-panel.in"
   menu menu-power      k kawa-power
   menu menu-calendar   k kawa-calendar
@@ -394,6 +402,15 @@ shot_menus() {
   menu menu-change     k kawa-config
   menu menu-drives     k kawa-drives       # the drives (the bar's drive mark): stubs/lsblk's stick and disk
   menu menu-steam      k kawa-steam --menu # (stubs/steam: installed)
+  # the downloads (the bar's download mark): a torrent in Torrents' list (the session panel's
+  # pid stands for its window), a Brave download in ~/Downloads, a Steam game
+  k sh -c 'p=$(cat "$XDG_RUNTIME_DIR/kawa-panel.pid"); mkdir -p "$XDG_RUNTIME_DIR/kawa-downloads" ~/Downloads ~/.local/share/Steam/steamapps/downloading/1145360
+    printf "%s\t%s\t%s\t%s\n" "Big.Buck.Bunny.2008.1080p.BluRay.x264" 2684354560 4294967296 "$HOME/Downloads/Big.Buck.Bunny.2008.1080p.BluRay.x264" "ubuntu-24.04.1-desktop-amd64.iso" 912680550 6203355136 "$HOME/Downloads/ubuntu-24.04.1-desktop-amd64.iso" >"$XDG_RUNTIME_DIR/kawa-downloads/torrra.$p"
+    head -c 31457280 /dev/zero >~/Downloads/handbook-scans.zip.crdownload
+    printf "\"libraryfolders\"\n{\n\t\"0\"\n\t{\n\t\t\"path\"\t\t\"%s\"\n\t}\n}\n" "$HOME/.local/share/Steam" >~/.local/share/Steam/steamapps/libraryfolders.vdf
+    printf "\"AppState\"\n{\n\t\"name\"\t\t\"Hades\"\n\t\"BytesToDownload\"\t\t\"15032385536\"\n\t\"BytesDownloaded\"\t\t\"11274289152\"\n}\n" >~/.local/share/Steam/steamapps/appmanifest_1145360.acf'
+  menu menu-downloads  k kawa-downloads
+  k sh -c 'rm -rf "$XDG_RUNTIME_DIR/kawa-downloads" ~/Downloads/handbook-scans.zip.crdownload ~/.local/share/Steam/steamapps/downloading/1145360 ~/.local/share/Steam/steamapps/appmanifest_1145360.acf'
   # shrink (Super+Z) on a picture and a PDF: every part; then a size of one's own, typed
   install -m 644 -o "$K" "$OT/wallpaper.png" "$SH/state/holiday.png"
   python3 -I -c 'import sys; from PIL import Image; Image.new("RGB", (595, 842), "white").save(sys.argv[1])' "$SH/state/scan.pdf"
@@ -411,12 +428,12 @@ shot_menus() {
   # … and as it is after three hours offline: the same days, their age said above them
   k sh -c 'touch -d "-3 hours" "$HOME/.cache/kawa-weather.json" && echo offline >"$HOME/.cache/kawa-weather.failed"'
   menu menu-weather-offline k kawa-weather --menu
+  # the launcher (Super+Space): the session panel's; the applications are the Fedora .desktop
+  # files of what setup.sh installs (xdg/) and the user's; then a name typed, then a sum
+  menu launcher        k kawa-menu --launcher
+  menu_keys launcher-find "ste" k kawa-menu --launcher
+  menu_keys launcher-calc "15% of 2400" k kawa-menu --launcher
   kill "$(cat "$X/kawa-panel.pid")" 2>/dev/null   # (the session panel: the menus done)
-  # the launcher (Super+Space): fuzzel with the user's config; the applications are the
-  # Fedora .desktop files of what setup.sh installs (xdg/), the icons Papirus
-  menu launcher        k env XDG_DATA_DIRS="$SH/xdg/share" fuzzel
-  # its configuration, checked by the app itself
-  k fuzzel --check-config >"$LT/fuzzel-check-config.log" 2>&1; echo "exit $?" >>"$LT/fuzzel-check-config.log"
 }
 
 notice() {   # notice NAME CMD… — send a notification (or a level display), capture it, dismiss
@@ -526,7 +543,7 @@ exec sleep 86399'
   pkill -u "$K" -fx 'sleep 86399' 2>/dev/null           # its window closes, footclient exits
   waitpid 5 "$pid" || true
   # the clipboard history (Super+V): kawa-clip opens its own floating window (fzf)
-  k kawa-clip >"$LT/kawa-clip.log" 2>&1 &
+  k footclient -a float -T clipboard -W 80x27 kawa-clip --tui >"$LT/kawa-clip.log" 2>&1 &   # (the warm window, as kawa-warm opens it: no dwl here)
   pid=$!
   if waitfor 10 "the clipboard window" foot_window float; then
     sleep 2

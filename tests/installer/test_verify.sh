@@ -19,13 +19,13 @@ keep built
 # ── a sound system ───────────────────────────────────────────────────────────
 case_ "a finished install: everything passes (exit 0), the outcome recorded for the menu"
 V; eq "$RC" 0 "$(grep '✘' <<<"$OUT" | head -n4 | tr '\n' '|')"
-has "$OUT" "✔ verified"; lacks "$OUT" "✘"
+has "$OUT" "✔  verified"; lacks "$OUT" "✘"
 read -r t p f w <"$W/var/lib/fedokawaii/last-verify"
 [[ $t =~ ^[0-9]+$ ]] && ((p > 100)) && _ok || _no "last-verify: $t $p $f $w"; eq "$f" 0
 has "$OUT" "✔ all " ; has "$OUT" "manifest packages installed"
 has "$OUT" "✔ no lpf, nothing it left (Spotify is its web player)"
 has "$OUT" "✔ user unit wireplumber.service enabled"; has "$OUT" "✔ hardware decode: H264High"
-has "$OUT" "✔ torrent port 6881 open"; has "$OUT" "✔ firewall: no ssh / cockpit"
+has "$OUT" "✔ torrent port 6881 open"; has "$OUT" "✔ firewall: ssh open, no cockpit"; has "$OUT" "✔ sshd: keys only, no root (SSH_SERVER=yes)"
 has "$OUT" "✔ ROCm SMI library for btop (librocm_smi64.so.1.0)"
 has "$OUT" "✔ restic runs (backups to another disk: kawa-backup)"   # (the exclude list is the theme's: test_theme.sh)
 has "$OUT" "✔ Syncplay v1.7.6 loads (Fedora's python3, Twisted with TLS, certifi, pem)"; has "$OUT" "✔ syncplay runs without a window"
@@ -45,7 +45,7 @@ back built; V
 
 case_ "Prowlarr not running: verify says it starts it, and why that may take a while, before it waits"
 i=$(grep -n "· starting Prowlarr to check it (a few seconds)" <<<"$OUT" | cut -d: -f1)
-s=$(grep -n "✔ Prowlarr starts" <<<"$OUT" | cut -d: -f1)
+s=$(grep -n "✔  Prowlarr starts" <<<"$OUT" | cut -d: -f1)
 [[ -n $i && -n $s ]] && ((i < s)) && _ok || _no "the line before the start: [$i] [$s]"
 case_ "…already running: nothing to wait for, so nothing said"
 fkh_add units "user-active prowlarr.service"; reset_calls
@@ -70,10 +70,10 @@ rm -f "$W/home/fkuser/.local/share/fedokawaii/upstream/syncplay" "$W/home/fkuser
 fkh kmsg '[ 3.1] iwlwifi 0000:00:14.3: Direct firmware load for iwlwifi-so-a0-gf-a0-89.ucode failed with error -2'
 fkh fwfiles "iwlwifi-mvm-firmware /usr/lib/firmware/iwlwifi-so-a0-gf-a0-89.ucode.xz"
 V; eq "$RC" 0 "$(grep '✘' <<<"$OUT" | head -n3 | tr '\n' '|')"
-has "$OUT" "! no firewall running (firewalld)"; lacks "$OUT" "torrent port 6881"; lacks "$OUT" "firewall: no ssh"
-has "$OUT" "! no AV1 hardware decode"; has "$OUT" "! GE-Proton not installed yet"
-has "$OUT" "! driver packages this machine needs — iwlwifi-mvm-firmware"
-has "$OUT" "! Syncplay not installed yet"; has "$OUT" "! ble.sh not installed yet"
+has "$OUT" "!  no firewall running (firewalld)"; lacks "$OUT" "torrent port 6881"; lacks "$OUT" "firewall: no ssh"
+has "$OUT" "!  no AV1 hardware decode"; has "$OUT" "!  GE-Proton not installed yet"
+has "$OUT" "!  driver packages this machine needs — iwlwifi-mvm-firmware"
+has "$OUT" "!  Syncplay not installed yet"; has "$OUT" "!  ble.sh not installed yet"
 has "$OUT" "warning(s)"; read -r _ _ _ w <"$W/var/lib/fedokawaii/last-verify"; ((w >= 5)) && _ok || _no "$w warnings recorded"
 case_ "the yazi file dialog not built: a failure — apps could not open or save a file"
 back built
@@ -91,7 +91,7 @@ back built
 fkh_del installed grubby man-db                                           # the base tools, gone
 fkh_add installed nano; fkh_add userinstalled "htop User"; fkh_add installed htop   # forbidden; extra
 fkh_del units "global-enabled wireplumber.service"                         # Fedora's preset undone
-fkh fw-services dhcpv6-client ssh                                          # SSH_SERVER=no, ssh open
+fkh fw-services dhcpv6-client ssh cockpit                                  # cockpit open (closed whatever SSH_SERVER says)
 fkh kernels "6.18.1-200.fc44.x86_64" "6.18.2-200.fc44.x86_64" "6.18.44-fc-v114"
 rm -f "$FKH/vainfo-renderD128"                                             # no VA-API driver
 fkh scrub-status $'Scrub started: x\nError summary:    csum=3\n  Corrected:      0\n  Uncorrectable:  3'
@@ -109,7 +109,7 @@ has "$OUT" "✘ Bluetooth dongle power saving off (btusb)"; has "$OUT" "✘ shut
 has "$OUT" "✘ the sound card never naps (no click at a volume change) — /etc/modprobe.d/fedokawaii-audio.conf missing"
 has "$OUT" "✘ installed outside the manifest — htop"
 has "$OUT" "✘ user unit wireplumber.service enabled"
-has "$OUT" "✘ firewall: no ssh / cockpit"
+has "$OUT" "✘ firewall: ssh open, no cockpit"
 has "$OUT" "✘ one kernel (two at most while a new one settles in)"
 has "$OUT" "✘ hardware decode — vainfo found no VA-API driver on /dev/dri/renderD128"
 has "$OUT" "✘ the last scrub found errors"
@@ -124,7 +124,7 @@ back built; fk usermod -aG input fkuser
 V; eq "$RC" 0 "$(grep '✘' <<<"$OUT" | head -n3 | tr '\n' '|')"; has "$OUT" "✔ user in video, render"
 case_ "a package Fedora retired (named by the last update) is a warning, not a failure"
 back built; fkh_del installed man-db; echo man-db >"$W/var/lib/fedokawaii/unavailable"
-V; eq "$RC" 0; has "$OUT" "! no longer in Fedora (renamed or retired) — man-db"
+V; eq "$RC" 0; has "$OUT" "!  no longer in Fedora (renamed or retired) — man-db"
 case_ "rpm's database broken: said, never a pass"
 back built; fkh rpm-broken
 V; eq "$RC" 3; has "$OUT" "✘ manifest packages: rpm gave no answer"; has "$OUT" "✘ forbidden packages: rpm gave no answer"
@@ -195,7 +195,7 @@ lacks "$OUT" "ROCm SMI" "an Intel machine is not asked for AMD's library"
 case_ "rocm-smi ships the library under another name: a warning (btop finds no GPU), never a failure"
 back built; fkh files "rocm-smi /usr/lib64/librocm_smi64.so.2.0"
 V; eq "$RC" 0 "$(grep '✘' <<<"$OUT" | head -n3 | tr '\n' '|')"
-has "$OUT" "! btop's view of the card — rocm-smi has no librocm_smi64.so.1.0"; lacks "$OUT" "✔ ROCm SMI library"
+has "$OUT" "!  btop's view of the card — rocm-smi has no librocm_smi64.so.1.0"; lacks "$OUT" "✔  ROCm SMI library"
 
 # ── the boot menu ────────────────────────────────────────────────────────────
 case_ "one system, not themed: Fedora's hidden menu is checked"
@@ -211,9 +211,9 @@ back built; hw_laptop; fkh procs "/usr/local/bin/dwl"
 V; has "$OUT" "live session"; has "$OUT" "✔ the laptop's own screen: brightness through its backlight"
 case_ "a desktop whose monitor does not answer DDC/CI: a warning saying what to switch on — also when its firmware lists a backlight (acpi_video0) with no panel"
 back built; fkh procs "/usr/local/bin/dwl"
-V; has "$OUT" "! no monitor answered DDC/CI — switch DDC/CI on in the monitor's on-screen menu"
+V; has "$OUT" "!  no monitor answered DDC/CI — switch DDC/CI on in the monitor's on-screen menu"
 mkdir -p "$W/sys/class/backlight/acpi_video0"
-V; has "$OUT" "! no monitor answered DDC/CI"; lacks "$OUT" "the laptop's own screen" "an external monitor is not the laptop's screen"
+V; has "$OUT" "!  no monitor answered DDC/CI"; lacks "$OUT" "the laptop's own screen" "an external monitor is not the laptop's screen"
 case_ "a monitor that answers DDC/CI: passes"
 rm -f "$W/usr/local/bin/ddcutil"; cat >"$W/usr/local/bin/ddcutil" <<'EOF'
 #!/bin/bash

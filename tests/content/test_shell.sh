@@ -1,14 +1,15 @@
 #!/usr/bin/env bash
 # tests/content/test_shell.sh — the shell (~/.bashrc.d/fedokawaii.sh and ble.sh's settings,
 # ~/.config/blesh/init.sh), read by a real bash in a terminal of its own (pty_run.py), as
-# Fedora's ~/.bashrc reads it. The prompt after each kind of command: ✓ in green after a
-# success, ✗ and the exit code in vermilion after a failure, the time a slow one took — and
-# nothing after an empty Enter or in a new window; every pixel icon with the space its second
-# half needs, and the header exactly one column short of the window, in foot and on the text
-# consoles, in a git repository and in a folder named in Japanese. Then the aliases, what
-# loads in which order (ble.sh first, attached last), zoxide learning folders, and ble.sh's
-# colours: the terminal's 16 only. (ble.sh itself is not here: a stand-in records what the
-# shell asks of it, and its settings are read with stand-ins for its three commands.)
+# Fedora's ~/.bashrc reads it. The prompt after each kind of command — a heading on the left
+# alone (the torii, where you are, git, then only what needs a look: ✗ and the exit code in
+# vermilion after a failure, the time a slow one took, muted), never padded out to the right
+# edge, no ✓ and no clock — and nothing after a success, an empty Enter or in a new window;
+# every pixel icon with the space its second half needs, in foot and on the text consoles, in
+# a git repository and in a folder named in Japanese. Then the aliases, what loads in which
+# order (ble.sh first, attached last), zoxide learning folders, and ble.sh's colours: the
+# terminal's 16 only. (ble.sh itself is not here: a stand-in records what the shell asks of
+# it, and its settings are read with stand-ins for its three commands.)
 . "$(dirname "$0")/lib.sh"
 ICONS=$REPO/configs/home/.config/fedokawaii/icons.sh
 # shellcheck source=/dev/null
@@ -64,57 +65,65 @@ nth() { sed -n "$1p" <<<"$H"; }
 home
 session foot true '(exit 3)' '' '__kawa_t0=$((__kawa_t0 - 4200000))' '__kawa_t0=$((__kawa_t0 - 125000000))' 'sleep 0'
 H=$(headers)
-case_ "foot: a new window's prompt carries no mark"
+case_ "foot: a new window's prompt: the torii and where you are, nothing after"
 eq "$(wc -l <<<"$H")" 7 "seven prompts: $(plain "$H")"
-lacks "$(nth 1)" "$ICON_CHECK"; lacks "$(nth 1)" "$ICON_CROSS"
-case_ "foot: ✓ in the theme's green after a success, alone"
-has "$(nth 2)" $'\e[92m'"$ICON_CHECK "$'\e[0m'; lacks "$(nth 2)" "$ICON_CROSS"; lacks "$(plain "$(nth 2)")" "s  "
-case_ "foot: ✗ and the exit code in vermilion after a failure; foot told the status (OSC 133;D)"
-has "$(nth 3)" $'\e[91m'"$ICON_CROSS  3"$'\e[0m'; lacks "$(nth 3)" "$ICON_CHECK"
+eq "$(plain "$(nth 1)")" "$ICON_TORII   ~" "the torii (the seal, as tall as a kanji), its second half and two spaces (as after a heading's kanji), the path"
+has "$(nth 1)" $'\e[91m'"$ICON_TORII   "$'\e[0m' "the torii in vermilion"
+case_ "foot: a success says nothing — no ✓ (only what needs a look)"
+eq "$(plain "$(nth 2)")" "$ICON_TORII   ~"; lacks "$(cat "$TMP/out")" "$ICON_CHECK"
+case_ "foot: ✗ and the exit code in vermilion after a failure, two spaces after the path; foot told the status (OSC 133;D)"
+has "$(nth 3)" $'\e[91m'"$ICON_CROSS  3"$'\e[0m'; eq "$(plain "$(nth 3)")" "$ICON_TORII   ~  $ICON_CROSS  3"
 has "$(cat "$TMP/out")" $'\e]133;D;3\e\\'
-case_ "foot: Enter on an empty line ran nothing: no mark"
-lacks "$(nth 4)" "$ICON_CHECK"; lacks "$(nth 4)" "$ICON_CROSS"
-case_ "foot: a command of 3 s or more: the time it took after its mark, muted (21); 10 s or more: a notice too"
-has "$(nth 5)" "$ICON_CHECK "$'\e[0m \e[38;5;21m4.2s\e[0m  '
+case_ "foot: Enter on an empty line ran nothing: nothing after the path"
+eq "$(plain "$(nth 4)")" "$ICON_TORII   ~"
+case_ "foot: a command of 3 s or more: the time it took, muted (21); 10 s or more: a notice too"
+has "$(nth 5)" $'\e[38;5;21m4.2s\e[0m'; eq "$(plain "$(nth 5)")" "$ICON_TORII   ~  4.2s"
 has "$(nth 6)" $'\e[38;5;21m2m05s\e[0m'
 has "$(cat "$TMP/out")" $'\e]777;notify;done in 2m05s;'
 lacks "$(cat "$TMP/out")" "done in 4.2s"
-case_ "foot: a quick command: its mark, no time"
-has "$(nth 7)" "$ICON_CHECK"; [[ $(plain "$(nth 7)") =~ [0-9]\.[0-9]s ]] && _no "a time shown: $(plain "$(nth 7)")" || _ok
+case_ "foot: a quick command: no time"
+eq "$(plain "$(nth 7)")" "$ICON_TORII   ~"
 case_ "foot: every pixel icon is followed by two spaces — its own second half, then the gap"
 for i in 1 2 3 4 5 6 7; do
   h=$(plain "$(nth "$i")")
   python3 -I - "$h" <<'PY' && _ok || _no "header $i: an icon without its two spaces: $h"
 import sys
 t = sys.argv[1]
-sys.exit(any(0xFE000 <= ord(c) <= 0xFEFFF and t[i + 1:i + 3] != "  " for i, c in enumerate(t)))
+sys.exit(any(0xFE000 <= ord(c) <= 0xFEFFF and t[i + 1:i + 3] != "  " and i + 1 < len(t) for i, c in enumerate(t)))
 PY
 done
-[[ $(plain "$(nth 1)") == "$ICON_TORII   ~ "* ]] && _ok || _no "the torii (the seal, as tall as a kanji), its second half and two spaces (as after a heading's kanji), the path: $(plain "$(nth 1)")"
-case_ "foot: each header ends one column short of the window's edge (nothing wraps), whatever it shows"
-for i in 1 2 3 4 5 6 7; do eq "$(width "$(nth "$i")")" $((COLS - 1)) "header $i: $(plain "$(nth "$i")")"; done
-case_ "foot: the line you type on starts with the desktop's chevron in accent_text (20), its second half, then a space before the cursor"
-has "$(cat "$TMP/out")" $'\n\e[38;5;20m'"$ICON_CHEVRON_RIGHT"$' \e[0m '
+case_ "foot: the heading on the left alone — not padded to the right edge, no clock, no rule, no sun or moon"
+for i in 1 2 3 4 5 6 7; do
+  h=$(plain "$(nth "$i")")
+  [[ $h == *' ' ]] && _no "header $i ends in spaces: [$h]" || _ok
+  [[ $h =~ [0-9]{2}:[0-9]{2} ]] && _no "header $i: a clock: $h" || _ok
+  lacks "$h" "$ICON_SUN" "header $i"; lacks "$h" "$ICON_MOON" "header $i"; lacks "$h" "─"; lacks "$h" "╌"
+  (($(width "$(nth "$i")") < COLS - 1)) && _ok || _no "header $i as wide as the window: $h"
+done
+lacks "$(grep -v '^ *#' "$REPO/configs/home/.bashrc.d/fedokawaii.sh")" "\$(date" "no date started at each prompt"
+case_ "foot: the line you type on starts with the desktop's chevron in accent_text (20) — drawn inside its one cell, no second half — then a space before the cursor"
+has "$(cat "$TMP/out")" $'\n\e[38;5;20m'"$ICON_CHEVRON_RIGHT"$'\e[0m '
+lacks "$(cat "$TMP/out")" "$ICON_CHEVRON_RIGHT"$' \e[0m' "no second half"
 lacks "$(cat "$TMP/out")" "❯"
 
-case_ "foot, in a git repository and a folder named in Japanese: branch icon, counts, still one column short"
+case_ "foot, in a git repository and a folder named in Japanese: branch icon and counts after the path, the heading only as wide as it is"
 home; mkdir -p "$HOME/repo" "$HOME/日本語のフォルダ"
 git -C "$HOME/repo" init -q -b main; echo a >"$HOME/repo/a"; git -C "$HOME/repo" add a; echo b >"$HOME/repo/b"
 session foot 'cd ~/repo' 'cd ~/日本語のフォルダ'
 H=$(headers)
-has "$(plain "$(nth 2)")" "$ICON_BRANCH  main +1 ?1 "
-for i in 2 3; do eq "$(width "$(nth "$i")")" $((COLS - 1)) "header $i: $(plain "$(nth "$i")")"; done
+eq "$(plain "$(nth 2)")" "$ICON_TORII   ~/repo  $ICON_BRANCH  main +1 ?1"
+eq "$(plain "$(nth 3)")" "$ICON_TORII   ~/日本語のフォルダ"
+eq "$(width "$(nth 3)")" $((1 + 3 + 2 + 16)) "a Japanese letter two columns, nothing after"
 
 # ── the prompt on the text consoles ──────────────────────────────────────────
-case_ "a text console (TERM=linux): plain marks — # · ok · x and the code · > — the same colours, one column short"
+case_ "a text console (TERM=linux): plain marks — # · x and the code · > — the same colours, nothing padded"
 home
 session linux true '(exit 2)'
 H=$(headers)
 lacks "$(cat "$TMP/out")" $'\xf3\xbe'
-[[ $(plain "$(nth 1)") == "#  ~ "* ]] && _ok || _no "the plain torii: $(plain "$(nth 1)")"
-has "$(nth 2)" $'\e[92mok\e[0m'; has "$(nth 3)" $'\e[91mx 2\e[0m'
+eq "$(plain "$(nth 1)")" "#  ~"; eq "$(plain "$(nth 2)")" "#  ~" "a success: nothing (no ok)"
+has "$(nth 3)" $'\e[91mx 2\e[0m'; eq "$(plain "$(nth 3)")" "#  ~  x 2"
 has "$(cat "$TMP/out")" $'\n\e[37m>\e[0m '
-for i in 1 2 3; do eq "$(width "$(nth "$i")")" $((COLS - 1)) "header $i: $(plain "$(nth "$i")")"; done
 
 # ── one prompt, one timer ────────────────────────────────────────────────────
 case_ "the prompt is the shell's one PROMPT_COMMAND (Fedora's OSC 3008 hook, set before, is gone); PS0 is its timer"

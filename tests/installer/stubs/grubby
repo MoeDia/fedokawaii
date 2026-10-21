@@ -11,6 +11,8 @@ case " $* " in
      for x in "$@"; do
        case $x in --args=*) for w in ${x#--args=}; do
                                k=${w%%=*}; sed -i -E "s/(^| )${k//./\\.}=[^ ]*//g; s/\$/ $w/" "$FKH/grub-args"; done ;;
+                    --remove-args=*) for w in ${x#--remove-args=}; do
+                               sed -i -E "s/(^| )${w//./\\.}(=[^ ]*)?( |\$)/\\1\\3/g; s/  +/ /g; s/ \$//" "$FKH/grub-args"; done ;;
        esac
      done; exit "$(rcfor grubby 0)" ;;
 esac

@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 # tests/status/test_configs.sh — the two configs behind the bar's sound: cava.conf must give
-# kawa-nowplaying exactly the frames it parses (16 bands of 0–5, ';' apart, one frame a line),
+# kawa-nowplaying exactly the frames it parses (16 bands of 0–6, ';' apart, one frame a line),
 # and 60-share.conf's devices must be the ones the sound panel (kawa-quick --state sound) and the handbook treat as "Share";
-# then PipeWire's 50-quality.conf (rates, period, resampler) and 60-clean-mic.conf (the clean mic).
+# then PipeWire's 50-quality.conf (rates, period, resampler), 60-clean-mic.conf (the clean mic) and
+# WirePlumber's 50-bluetooth-quality.conf (the headphones' codecs).
 # (That PipeWire 1.0 loads 60-share.conf and lists both under Filters was checked live.)
 . "$(dirname "$0")/lib.sh"
 box
@@ -20,13 +21,13 @@ EOF
 case_ "cava.conf parses, every section once"
 python3 -I -c 'import configparser,sys; c=configparser.ConfigParser(comment_prefixes=(";","#"),strict=True); c.read(sys.argv[1]); print(" ".join(c.sections()))' "$CAVA" >"$TMP/sections" 2>&1
 eq "$(cat "$TMP/sections")" "general input output smoothing"
-case_ "cava.conf: the frames kawa-nowplaying reads — 16 bands, 0–5 each, ';' apart, a newline after each"
+case_ "cava.conf: the frames kawa-nowplaying reads — 16 bands, 0–6 each, ';' apart, a newline after each"
 eq "$(ini general bars)" 16
 eq "$(ini output method)" raw; eq "$(ini output raw_target)" /dev/stdout; eq "$(ini output data_format)" ascii
-eq "$(ini output ascii_max_range)" 5
+eq "$(ini output ascii_max_range)" 6 "seven heights: eq-0 … eq-6"
 eq "$(ini output bar_delimiter)" 59 "';' is 59"; eq "$(ini output frame_delimiter)" 10 "a newline"
 eq "$(ini output channels)" stereo "8 bands a side, mirrored"
-has "$(grep -n 'bands:0:8\|bands:8:8\|#frame} == 16\|\[!0-5\]' "$REPO/bin/kawa-nowplaying")" "16" "kawa-nowplaying still expects 16 bands"
+has "$(grep -n 'bands:0:8\|bands:8:8\|#frame} == 16\|\[!0-6\]' "$REPO/bin/kawa-nowplaying")" "16" "kawa-nowplaying still expects 16 bands"
 case_ "cava.conf: quiet when nothing plays (sleep_timer), PulseAudio input (PipeWire answers it)"
 [[ $(ini general sleep_timer) =~ ^[1-9][0-9]*$ ]] && _ok || _no "sleep_timer [$(ini general sleep_timer)]"
 eq "$(ini input method)" pulse
@@ -55,15 +56,26 @@ case_ "every PipeWire file: braces and brackets balanced (setup sets aside one P
 for f in "$PW"/*.conf.d/*.conf; do
   eq "$(nc "$f" | tr -cd '{' | wc -c) $(nc "$f" | tr -cd '[' | wc -c)" "$(nc "$f" | tr -cd '}' | wc -c) $(nc "$f" | tr -cd ']' | wc -c)" "${f#"$PW"/}"
 done
-case_ "50-quality.conf: 48 kHz, the music's own rate when it plays alone (44.1 / 88.2 / 96 kHz), never below 256 samples a period"
+case_ "50-quality.conf: 48 kHz, the music's own rate when it plays alone (44.1 / 88.2 / 96 / 176.4 / 192 kHz), 1024 samples a period, never below 256 nor above 2048"
 Q=$(nc "$PW/pipewire.conf.d/50-quality.conf")
 has "$Q" 'default.clock.rate          = 48000'
-has "$Q" 'default.clock.allowed-rates = [ 44100 48000 88200 96000 ]'
+has "$Q" 'default.clock.allowed-rates = [ 44100 48000 88200 96000 176400 192000 ]'
+has "$Q" 'default.clock.quantum       = 1024'
 has "$Q" 'default.clock.min-quantum   = 256'
-case_ "the resampler at quality 10 wherever streams are made: PipeWire's own, Pulse programs (Brave, Steam), PipeWire programs (mpv)"
+has "$Q" 'default.clock.max-quantum   = 2048'
+case_ "the resampler at quality 14 (the best there is) wherever streams are made: PipeWire's own, Pulse programs (Brave, Steam), PipeWire programs (mpv) — in stream.properties, nothing else set there"
 for f in pipewire.conf.d pipewire-pulse.conf.d client.conf.d; do
-  eq "$(nc "$PW/$f/50-quality.conf" | grep -c 'resample.quality = 10')" 1 "$f"
+  eq "$(nc "$PW/$f/50-quality.conf" | grep -c 'resample.quality = 14')" 1 "$f"
+  eq "$(nc "$PW/$f/50-quality.conf" | grep -c 'resample.quality')" 1 "$f: one quality"
+  has "$(nc "$PW/$f/50-quality.conf" | tr -s ' \n' ' ')" "stream.properties = { resample.quality = 14 }" "$f"
 done
+case_ "50-bluetooth-quality.conf (WirePlumber 0.5): the codecs best first down to plain SBC, SBC-XQ and mSBC on, hardware volume, LDAC at its highest rate on every Bluetooth card"
+B=$(nc "$REPO/configs/home/.config/wireplumber/wireplumber.conf.d/50-bluetooth-quality.conf")
+has "$B" 'bluez5.codecs = [ ldac aptx_hd aptx aac sbc_xq sbc ]'
+has "$B" 'bluez5.enable-sbc-xq = true'; has "$B" 'bluez5.enable-msbc = true'; has "$B" 'bluez5.enable-hw-volume = true'
+has "$(grep -A8 'monitor.bluez.rules' <<<"$B")" 'device.name = "~bluez_card.*"'
+has "$(grep -A8 'monitor.bluez.rules' <<<"$B")" 'bluez5.a2dp.ldac.quality = "hq"'
+eq "$(tr -cd '{' <<<"$B" | wc -c) $(tr -cd '[' <<<"$B" | wc -c)" "$(tr -cd '}' <<<"$B" | wc -c) $(tr -cd ']' <<<"$B" | wc -c)" "its brackets balanced"
 case_ "60-clean-mic.conf: one echo-cancel module, WebRTC's (pipewire-libs' own: no extra package), in monitor mode (what you hear untouched)"
 C=$(nc "$CLEAN")
 eq "$(grep -c 'libpipewire-module-echo-cancel' <<<"$C")" 1

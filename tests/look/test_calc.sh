@@ -34,13 +34,59 @@ has "$(plain "$raw")" "up again"; lacks "$raw" "↑"
 case_ "a percentage in words: \"15% of 2400\" is qalc's 15% * 2400 (qalc alone: rem(15, 1 B))"
 eq "$(kawa-calc --answer '15% of 2400')" 360; eq "$(kawa-calc --answer '120 * 15% of 10')" 180
 rc 1 kawa-calc --answer steam
-case_ "the launcher: a sum typed that matches no entry is worked out, copied, said in a notice"
+# the launcher (kawa-panel's): its Panel driven with a stand-in ui that notes what it is asked
+lp() {
+  local G=$TMP/gi; mkdir -p "$G/gi/repository"
+  echo 'def require_version(*a): pass' >"$G/gi/__init__.py"
+  printf '%s\n' 'class _Any:' '    def __init__(self, *a, **k): pass' '    def __call__(self, *a, **k): return _Any()' \
+    '    def __getattr__(self, n): return _Any()' 'Gtk = Gdk = Gio = GioUnix = GLib = GLibUnix = GtkLayerShell = Pango = PangoCairo = _Any()' >"$G/gi/repository/__init__.py"
+  python3 -I -B - "$REPO/bin/kawa-panel" "$G" "$1" <<'PY'
+import importlib.machinery, importlib.util, sys
+sys.dont_write_bytecode = True; sys.path.insert(0, sys.argv[2])
+l = importlib.machinery.SourceFileLoader("kp", sys.argv[1]); kp = importlib.util.module_from_spec(importlib.util.spec_from_loader("kp", l)); l.exec_module(kp)
+class UI:
+    def __init__(self): self.calls, self.t, self.at, self.cid = [], 100.0, None, None
+    def clicked(self): return None
+    def click(self): return None
+    def push(self, *a): pass
+    def trim(self, size): return 0, size[1], size[0]
+    def now(self): return self.t
+    def redraw(self, *items): pass
+    def show(self): self.calls.append("show")
+    def hide(self): self.calls.append("hide")
+    def light(self, mode, on): pass
+    def run(self, argv, done): pass
+    def launch(self, argv): self.calls.append("launch " + " ".join(argv))
+    def later(self, ms, fn): pass
+    def listen(self, on): pass
+    def calc(self, m): self.calls.append(f"calc {m.query}")
+    def copy_answer(self, text): self.calls.append(f"copy {text}")
+    def start(self, app): self.calls.append(f"start {app.id}")
+    def command(self, text): self.calls.append(f"command {text}")
+apps = [kp.App("brave-origin.desktop", "Brave Origin", "Web browser", ["internet"], None, None),
+        kp.App("kawa-calc.desktop", "Calculator", "Sums and conversions", ["math"], "算", None)]
+u = UI(); p = kp.Panel(u)
+def typed(text):
+    for c in text: p.typed("space" if c == " " else c, c)
+p.request("launcher", kp.Launcher(apps, {}), None)
+exec(sys.argv[3])
+PY
+}
+case_ "the launcher: a sum typed is worked out as it is typed (ui.calc, each letter); its answer, once come, the first row — Enter copies it (the notice says so, with it)"
+eq "$(lp 'typed("15% of 2400"); print([c for c in u.calls if c.startswith("calc")][-1]); m = p.state; m.calc = (m.query, "360"); p.answered(m)
+print(p.items[0].key, p.items[0].name, p.items[0].value, p.focus); p.key("Return"); print(u.calls[-1], p.visible)')" \
+  "$(printf '%s\n' 'calc 15% of 2400' 'calc 360 copy calc' 'copy 360 False')"
+eq "$(lp 'typed("2+2"); m = p.state; m.calc = ("2+", "3"); p.answered(m); print([i.key for i in p.items])')" "[]" "an answer to what was typed before: not shown"
 setup; argv notify-send; rm -f "$TMP/clip"
-kawa-calc --launch 15% of 2400; eq "$(cat "$TMP/clip" 2>/dev/null)" 360; called notify-send "15% of 2400 = 360 · copied"
-case_ "the launcher: an entry picked (DESKTOP_ENTRY_ID) runs as it is; a program typed runs"
-out=$(DESKTOP_ENTRY_ID=x.desktop kawa-calc --launch echo picked); eq "$out" picked
-out=$(kawa-calc --launch echo typed); eq "$out" typed
-has "$(cat "$REPO/bin/kawa-menu")" "fuzzel --launch-prefix='kawa-calc --launch'"
+src=$(sed -n '/        def copy_answer(self, text):/,/^$/p' "$REPO/bin/kawa-panel" | python3 -c 'import sys, re; t = sys.stdin.read(); print(re.search(r"\"bash\", \"-c\", (.*?), \"_\", text\]", t, re.S).group(1))')
+script=$(python3 -c 'import ast, sys; print("".join(ast.literal_eval("(" + sys.argv[1] + ")")))' "$src")
+bash -c "$script" _ 360; eq "$(cat "$TMP/clip" 2>/dev/null)" 360 "the answer on the clipboard"; called notify-send "copied 360"
+case_ "the launcher: an entry picked (a click or Enter) starts it; text that finds nothing runs as a command"
+eq "$(lp 'typed("brav"); print([i.name for i in p.items]); p.key("Return"); print(u.calls[-1], p.visible)')" "$(printf '%s\n' "['Brave Origin']" 'start brave-origin.desktop False')"
+eq "$(lp 'typed("math"); print([i.name for i in p.items])')" "['Calculator']" "found by its keywords"
+eq "$(lp 'typed("htop -d 5"); print([i.key for i in p.items]); p.key("Return"); print(u.calls[-1], p.visible)')" "$(printf '%s\n' '[]' 'command htop -d 5 False')"
+lacks "$(cat "$REPO/bin/kawa-menu")" "fuzzel" "kawa-menu --launcher asks the panel, nothing else"
+has "$(cat "$REPO/bin/kawa-menu")" "toggle launcher"
 case_ "Esc closes (exit 0); misuse is 2"
 rc 0 typed ''; rc 2 kawa-calc --frob
 case_ "without qalc: said, exit 1"

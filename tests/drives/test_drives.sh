@@ -58,7 +58,8 @@ reset_calls
 out=$(kawa-drives list); eq "$?" 0
 has "$out" $'/dev/sdb1\t/dev/sdb\tKINGSTON' "the stick listed"
 bar=$(kawa-drives bar); [[ $bar != '{"text":""}' ]] && _ok || _no "a plugged drive gave an empty bar: $bar"
-has "$bar" "$(. "$HOME/.config/fedokawaii/icons.sh"; printf '%s' "$ICON_USB")"
+eq "$bar" "{\"text\":\"$(. "$HOME/.config/fedokawaii/icons.sh"; printf '%s' "$ICON_BAR_USB")4\",\"class\":[\"open\",\"count\"]}" \
+  "four drives: the mark's bar twin (its 8 px to the value: ICON_BAR_*), then the count"
 not_called '^busctl'; not_called '^udisksctl'
 case_ "only the stick plugged in (the rest of the machine its own): the bar's mark, alone"
 python3 - "$FAKE_DISKS" <<'PY'
@@ -332,14 +333,14 @@ called "setsid -f kawa-term yazi $MNT/KINGSTON"
 # ── the passphrase box ───────────────────────────────────────────────────────
 case_ "passphrase: hidden typing, the label in the prompt, Esc = status 1 and nothing printed"
 setup
-stub fuzzel 'echo "s3cret pass"'
+stub kawa-menu 'echo "s3cret pass"'
 eq "$(kawa-drives passphrase /dev/sdc1 vault "")" "s3cret pass"
-called 'fuzzel --dmenu --prompt-only=.*vault · passphrase .*--password'
-stub fuzzel 'exit 1'
+called "^kawa-menu --title vault · passphrase --prompt $(. "$HOME/.config/fedokawaii/icons.sh"; printf '%s' "$ICON_LOCK")   --password --width 40\$"
+stub kawa-menu 'exit 1'
 out=$(kawa-drives passphrase /dev/sdc1 vault ""); r=$?
 eq "$r" 1 "Esc must fail so udiskie leaves it locked"; eq "$out" ""
 case_ "passphrase: a very long name is cut to fit"
-stub fuzzel 'echo x'
+stub kawa-menu 'echo x'
 kawa-drives passphrase /dev/sdc1 "A really very extremely long volume name indeed" "" >/dev/null
 called 'A really very extremely · passphrase'
 

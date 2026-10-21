@@ -1,13 +1,14 @@
 #!/usr/bin/env bash
-# tests/look/test_launcher.sh — what the launcher (fuzzel) lists, and how it is drawn:
+# tests/look/test_launcher.sh — what the launcher (kawa-panel's) lists, and how it is drawn:
 #   · the package entries hidden by an entry of the same name (NoDisplay): exactly this set,
 #     each still a whole entry (Type, Name, Exec) so the program keeps working
 #   · every entry of the desktop's own shows a window program's official icon (a name a
-#     package installs into hicolor, or the app's own picture by its path) or our app seal
-#     (current/apps/NAME.png, tools/build-appicons.py: both themes, 18 × 18, key ground, edge2 frame, accent_text kanji)
-#     — never an icon pack's name, never foot's or neovim's for what is not them
+#     package installs into hicolor, or the app's own picture by its path) or our seal — its
+#     kanji (X-Fedokawaii-Kanji), drawn by the panel in a 22 × 22 seal: key ground, edge2
+#     frame, accent_text kanji, a kanji Sumi UI draws — never an icon pack's name, never
+#     foot's or neovim's for what is not them
 #   · no icon pack anywhere: no Papirus in a config, a script or the manifest (but as retired)
-#   · no big copy of the chosen entry's icon under a short list (image-size-ratio=1)
+#   · the icons drawn at the row's size (22 px, forced: never a bigger copy)
 #   · GTK 3 and 4: windows, dialogs, decorations and popovers square, no shadow, no margin
 #     around them; buttons square, a radio button round
 . "$(dirname "$0")/../lib/harness.sh"
@@ -84,69 +85,70 @@ for f in "$A"/*.desktop; do
   [[ -n $(key "$f" GenericName) ]] && _ok || _no "$n: no GenericName (what it is)"
   [[ -n $(key "$f" Keywords) ]] && _ok || _no "$n: no Keywords"
 done
-eq "$(grep '^fields=' "$REPO/configs/home/.config/fuzzel/fuzzel.ini")" "fields=name,generic,keywords" \
-  "the launcher matches what a program is and its keywords too (Network: wifi; System monitor: task manager)"
-
-case_ "every listed entry: a window program's own icon, or our app seal (current/apps)"
-OFFICIAL=" com.github.xournalpp.xournalpp steam "
-SEALS="footclient:terminal kawa-edit:editor kawa-files:files kawa-agents:agents kawa-git:git kawa-notes:notes
-  kawa-clip:clipboard kawa-books:books kawa-wallpaper:wallpaper kawa-backup:backup kawa-calc:calc kawa-disk:disk
-  kawa-tables:tables btop:monitor kawa-mixer:mixer kawa-network:network kawa-bluetooth:bluetooth kawa-file:file
-  kawa-torrents:torrents kawa-prowlarr:prowlarr spotify:spotify whatsapp:whatsapp"
-for f in "$A"/*.desktop; do
-  [[ $(key "$f" NoDisplay) == true ]] && continue
-  i=$(key "$f" Icon)
-  if [[ $i == @HOME@/.config/fedokawaii/current/apps/* ]]; then n=${f##*/}; [[ $SEALS == *"${n%.desktop}:"* ]] && _ok || _no "$n: a seal no list here names"
-  elif [[ $i == @HOME@/* ]]; then [[ $i == *.png ]] && _ok || _no "${f##*/}: a picture by path that is no PNG: $i"
-  else [[ $OFFICIAL == *" $i "* ]] && _ok || _no "${f##*/}: Icon=$i is no window program's own icon"; fi
-done
-for s in $SEALS; do
-  eq "$(key "$A/${s%%:*}.desktop" Icon)" "@HOME@/.config/fedokawaii/current/apps/${s#*:}.png" "${s%%:*}: its seal"
-done
-eq "$(key "$A/kawa-sketch.desktop" Icon)" com.github.xournalpp.xournalpp "Sketch: Xournal++'s own (it is Xournal++)"
-case_ "the app seals: every one an entry names, in both themes, 18 × 18 (shown 1:1), nothing else in apps/, only the palette's inks"
-names=$(for s in $SEALS; do printf '%s\n' "${s#*:}"; done | LC_ALL=C sort)
-for t in dark light; do
-  eq "$(cd "$REPO/configs/home/.config/fedokawaii/themes/$t/apps" && ls | sed 's/\.png$//' | LC_ALL=C sort)" "$names" "$t: the seals the entries name, and no more"
-done
-out=$(python3 -I - "$REPO" <<'PY'
-import sys, glob, importlib.util
-from PIL import Image
-root = sys.argv[1]
-sys.dont_write_bytecode = True
-spec = importlib.util.spec_from_file_location("themes", root + "/tools/build-themes.py")
-themes = importlib.util.module_from_spec(spec); spec.loader.exec_module(themes)
-for t in ("dark", "light"):
-    pal = themes.P[t]
-    want = {tuple(int(pal[k][i:i + 2], 16) for i in (0, 2, 4)) for k in ("key", "edge2", "accent_text")}
-    for f in sorted(glob.glob(f"{root}/configs/home/.config/fedokawaii/themes/{t}/apps/*.png")):
-        im = Image.open(f).convert("RGBA")
-        n = f.split("/")[-1]
-        if im.size != (18, 18): print(t, n, "is", im.size); continue
-        inks = {px[:3] for px in im.getdata()}
-        if any(px[3] != 255 for px in im.getdata()) or inks != want: print(t, n, "inks", inks ^ want)
-        a = im.load()
-        e2 = tuple(int(pal["edge2"][i:i + 2], 16) for i in (0, 2, 4)) + (255,)
-        if any(a[x, y] != e2 for x in range(18) for y in (0, 17)) or any(a[y, x] != e2 for x in range(18) for y in (0, 17)): print(t, n, "no 1 px frame")
+out=$(python3 -I -B - "$REPO/bin/kawa-panel" <<'PY'
+import importlib.machinery as m, importlib.util as u, sys
+sys.dont_write_bytecode = True; sys.modules["gi"] = None
+l = m.SourceFileLoader("kp", sys.argv[1]); k = u.module_from_spec(u.spec_from_loader("kp", l)); l.exec_module(k)
+net = k.App("kawa-network.desktop", "Network", "Wi-Fi and wired", ["wifi", "internet"], "網", None)
+mon = k.App("btop.desktop", "System monitor", "Processes", ["task manager", "cpu"], "視", None)
+print(k.rank(net, ["wifi"]), k.rank(mon, ["task"]), k.rank(net, ["net"]), k.rank(net, ["zzz"]))
 PY
 )
-eq "$out" "" "the seals as drawn"
+eq "$out" "3 3 0 None" "the launcher matches what a program is and its keywords too (Network: wifi; System monitor: task manager), its name first"
+
+case_ "every listed entry: a window program's own icon, or our seal (its kanji, X-Fedokawaii-Kanji)"
+OFFICIAL=" com.github.xournalpp.xournalpp steam "
+SEALS="footclient:端 kawa-edit:編 kawa-files:箱 kawa-agents:代 kawa-git:枝 kawa-notes:記
+  kawa-clip:写 kawa-books:本 kawa-wallpaper:壁 kawa-backup:蔵 kawa-calc:算 kawa-disk:量
+  kawa-tables:表 btop:視 kawa-mixer:混 kawa-network:網 kawa-bluetooth:青 kawa-file:具
+  kawa-torrents:種 kawa-prowlarr:索 spotify:曲 whatsapp:話"
+for f in "$A"/*.desktop; do
+  [[ $(key "$f" NoDisplay) == true ]] && continue
+  i=$(key "$f" Icon) k=$(key "$f" X-Fedokawaii-Kanji) n=${f##*/}
+  if [[ -n $k ]]; then
+    [[ -z $i ]] && _ok || _no "$n: a seal and an Icon= both (the icon would win)"
+    [[ $SEALS == *"${n%.desktop}:$k"* ]] && _ok || _no "$n: a seal ($k) no list here names"
+  elif [[ $i == @HOME@/* ]]; then [[ $i == *.png ]] && _ok || _no "$n: a picture by path that is no PNG: $i"
+  else [[ $OFFICIAL == *" $i "* ]] && _ok || _no "$n: Icon=$i is no window program's own icon"; fi
+done
+for s in $SEALS; do
+  eq "$(key "$A/${s%%:*}.desktop" X-Fedokawaii-Kanji)" "${s#*:}" "${s%%:*}: its seal"
+done
+eq "$(key "$A/kawa-sketch.desktop" Icon)" com.github.xournalpp.xournalpp "Sketch: Xournal++'s own (it is Xournal++)"
+case_ "the seals: each one kanji, wide, drawn by Sumi UI, no two alike; the panel draws one as a seal 22 px square at the row's size — key ground, edge2 frame, accent_text kanji"
+out=$(python3 -I - "$REPO" $SEALS <<'PY'
+import sys, unicodedata
+from fontTools.ttLib import TTFont
+cmap = TTFont(sys.argv[1] + "/system/fonts/SumiUI.ttf").getBestCmap()
+ks = [a.split(":")[1] for a in sys.argv[2:]]
+for k in ks:
+    if len(k) != 1 or unicodedata.east_asian_width(k) != "W": print(f"{k}: not one wide kanji")
+    elif ord(k) not in cmap: print(f"{k}: Sumi UI does not draw it")
+if len(set(ks)) != len(ks): print("two entries share a seal")
+PY
+)
+eq "$out" "" "the seals' kanji"
+P=$REPO/bin/kawa-panel
+grep -qx 'APP_ICON = 22 .*' "$P" && _ok || _no "an entry's icon is not 22 px"
+grep -qF 'theme.lookup_by_gicon(g, APP_ICON, Gtk.IconLookupFlags.FORCE_SIZE)' "$P" && _ok || _no "the icons not loaded at the row's size, forced"
+seal=$(sed -n '/elif it.kind == "app":/,/elif it.kind == "row":/p' "$P")
+has "$seal" 'box(cr, ix, iy, APP_ICON, APP_ICON, "key")' "the seal's ground: key"
+has "$seal" 'frame(cr, ix, iy, APP_ICON, APP_ICON, "edge2")' "the seal's frame: edge2"
+has "$seal" 'glyph(cr, ix, iy, pic, "accent_text", APP_ICON, APP_ICON)' "the seal's kanji: accent_text, centred in it"
+has "$(sed -n '/    def list(self):/,/return self.cache/p' "$P")" 'a.pic = a.kanji or self.icon(theme, info) or "窓"' "the seal first, then the icon, then a window's seal"
 has "$(key "$A/syncplay.desktop" Icon)" "/.local/share/fedokawaii/syncplay/syncplay/resources/hicolor/" "Syncplay's own, from its copy"
 has "$(key "$A/localsend.desktop" Icon)" "/.local/share/localsend/data/flutter_assets/assets/img/logo-" "LocalSend's own, from its release"
 eq "$(key "$A/spotify.desktop" Exec)" "@HOME@/.local/bin/brave-origin --app=https://open.spotify.com" "Spotify: a Brave app window"
 eq "$(key "$A/whatsapp.desktop" Exec)" "@HOME@/.local/bin/brave-origin --app=https://web.whatsapp.com" "WhatsApp: a Brave app window"
 
-case_ "no icon pack: nothing names Papirus (the manifest only to retire it, the report to see it gone), fuzzel keeps its default (hicolor)"
+case_ "no icon pack: nothing names Papirus (the manifest only to retire it, the report to see it gone), the launcher's icons from GTK's own theme (Adwaita, then hicolor)"
 bad=$(grep -rli papirus "$REPO"/{configs,bin,lib,tools,system,theme.sh,setup.sh,verify.sh} 2>/dev/null | grep -v '__pycache__' \
       | grep -v -e '/lib/manifest.sh$' -e '/system/fedokawaii-report$')
 eq "$bad" "" "Papirus named in: $bad"
 eq "$(bash -c '. "$1/lib/manifest.sh"; printf "%s\n" "${RETIRED_PKGS[@]}"' _ "$REPO" | grep -cx papirus-icon-theme)" 1 "papirus-icon-theme retired (update hands it back to dnf)"
-eq "$(grep -rh '^icon-theme' "$REPO/configs/home/.config/fuzzel" "$REPO/configs/home/.config/fedokawaii/themes"/*/fuzzel.ini)" "" "no icon-theme for fuzzel"
+grep -qF 'theme, got = Gtk.IconTheme.get_default(), []' "$REPO/bin/kawa-panel" && _ok || _no "the launcher's icons not from GTK's own theme"
 eq "$(grep -h '^icon_theme=' "$REPO/configs/home/.config/fedokawaii/themes"/*/qt6ct.conf | sort -u)" "icon_theme=Adwaita" "Qt: GTK's own Adwaita"
 has "$(cat "$REPO/configs/system/etc/dconf/db/local.d/00-fedokawaii")" "icon-theme='Adwaita'" "GTK: Adwaita"
-
-case_ "fuzzel: no big copy of the chosen entry's icon under a short list"
-eq "$(grep '^image-size-ratio=' "$REPO/configs/home/.config/fuzzel/fuzzel.ini")" "image-size-ratio=1"
 
 case_ "GTK 3 (both themes) and GTK 4: square windows, dialogs, decorations and popovers, no shadow or margin; square buttons, check boxes and radios the panels' square check, the default button the accent"
 for c in "$REPO/configs/home/.local/share/themes/Fedokawaii/gtk-3.0/gtk.css" \

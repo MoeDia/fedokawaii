@@ -1,8 +1,10 @@
 #!/usr/bin/env bash
 # tests/engine/test_torrra.sh — kawa-torrra (torrra with the Prowlarr key from secrets.sh,
-# in memory only), its /etc/profile.d hook, and how it starts Prowlarr on demand. torrra runs
-# for real through kawa-torrra's own boot code, in a venv of the real python3 whose torrra,
-# httpx and libtorrent are stand-ins (fixtures/torrra): they say what torrra would have seen.
+# in memory only), its /etc/profile.d hook, and how it starts Prowlarr on demand: woken as the
+# window opens, waited for and asked at the first search. torrra runs for real through
+# kawa-torrra's own boot code, in a venv of the real python3 whose torrra, Textual, httpx and
+# libtorrent are stand-ins (fixtures/torrra): they say what torrra would have seen — its first
+# screen, its theme, each search typed (FAKE_QUERY) and what came of it.
 . "$(dirname "$0")/lib.sh"
 D=$(cd "$(dirname "$0")" && pwd)
 KEY=a1b2c3d4e5f60718293a4b5c6d7e8f90
@@ -17,7 +19,7 @@ fresh() {
   cp -r "$D/fixtures/torrra/." "$V/lib/$pyv/site-packages/"
   mkdir -p "$HOME/.config/fedokawaii"
   printf 'PROWLARR_API_KEY=%s\n' "$KEY" >"$HOME/.config/fedokawaii/secrets.sh"; chmod 600 "$HOME/.config/fedokawaii/secrets.sh"
-  export FAKE_LOG=$TMP/prowlarr.log FAKE_PROWLARR=ok
+  export FAKE_LOG=$TMP/prowlarr.log FAKE_PROWLARR=ok FAKE_QUERY="big buck bunny"   # (a search typed in the window)
   unset PROWLARR_API_KEY FAKE_LT FAKE_TORRRA FAKE_RC
   # systemd --user: Prowlarr off until started; $TMP/active when it runs
   stub systemctl 'case "$*" in
@@ -32,21 +34,39 @@ esac'
   CFG=$HOME/.config/torrra/config.toml
 }
 seen() { tail -n1 <<<"$1" | python3 -c 'import json,sys; d=json.load(sys.stdin); print(d[sys.argv[1]])' "$2" 2>/dev/null; }
+seenj() { tail -n1 <<<"$1" | python3 -c 'import json,sys; d=json.load(sys.stdin); print(json.dumps(d[sys.argv[1]], ensure_ascii=False))' "$2" 2>/dev/null; }
 
 # ── a search: the key from secrets.sh, in memory only ────────────────────────
 fresh
-case_ "a search: Prowlarr started for it, asked with the key, torrra given the key — never on disk"
+case_ "a search: Prowlarr started for it, asked with the key at the first search, torrra given the key — never on disk"
 out=$(kawa-torrra 2>&1); r=$?
 eq "$r" 0
-has "$out" "starting Prowlarr"
 called '^systemctl --user start prowlarr.service'
-has "$(cat "$FAKE_LOG")" "httpx.get http://127.0.0.1:9696/api/v1/indexer key=$KEY timeout=5"
+eq "$(cat "$FAKE_LOG")" "httpx.get http://127.0.0.1:9696/api/v1/indexer key=$KEY timeout=5
+torrra's search: big buck bunny" "Prowlarr asked once, then torrra's own search"
+eq "$(seenj "$out" searches)" '[["a result for big buck bunny"]]'
+eq "$(seen "$out" healthy)" True "torrra's own check before its window skipped (Prowlarr still starting then): healthy"
+lacks "$(cat "$FAKE_LOG")" "torrra's own health check"
+lacks "$out" "starting Prowlarr" "Prowlarr's start not said in the window: it starts behind it, the search's spinner turning meanwhile"
 eq "$(seen "$out" key)" "$KEY" "torrra asked for the key and got it"
 lacks "$(cat "$CFG")" "$KEY" "config.toml never holds the key"
 lacks "$(cat "$CFG")" "api_key"
 eq "$(seen "$out" env_key)" "None" "the key is not left in torrra's environment"
 case_ "…its settings put right for this desktop: Prowlarr's address, the default, the colours"
-eq "$(seen "$out" url)" "http://127.0.0.1:9696"; eq "$(seen "$out" default)" prowlarr; eq "$(seen "$out" theme)" ansi-dark
+eq "$(seen "$out" url)" "http://127.0.0.1:9696"; eq "$(seen "$out" default)" prowlarr; eq "$(seen "$out" theme)" fedokawaii
+case_ "…the desktop's theme, fedokawaii: built on Textual's ansi-dark (foot's 16 colours), vermilion where torrra puts its primary and secondary, the cursor's row filled in it"
+eq "$(seenj "$out" drawn_with)" '{"name": "fedokawaii", "ansi": true, "dark": true, "primary": "ansi_red", "secondary": "ansi_red", "accent": "ansi_bright_cyan", "warning": "ansi_yellow", "error": "ansi_bright_red", "success": "ansi_green", "foreground": "ansi_default", "background": "ansi_default", "surface": "ansi_default", "panel": "ansi_default", "boost": "ansi_default"}'
+v=$(seenj "$out" drawn_vars)
+has "$v" '"from-ansi-dark": "kept"' "ansi-dark's own variables kept under ours"
+has "$v" '"block-cursor-background": "ansi_red", "block-cursor-foreground": "ansi_black"'
+has "$v" '"block-cursor-blurred-background": "transparent", "block-cursor-blurred-foreground": "ansi_red"'
+has "$v" '"secondary-muted": "ansi_bright_black", "text-secondary": "ansi_white"'
+case_ "…its first screen a text screen of ours: 種 torrents over the stitch, what it is, the search line, the version and the indexer, the keys as rows — no banner, no emoji"
+eq "$(seenj "$out" welcome)" '["banner: [ansi_red]種[/]  torrents [ansi_bright_black]╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌[/]", "subtitle: search the usual sites through Prowlarr —\ndownloads go on while this window is open", "input: what to find", "version: torrra 2.5.1 · prowlarr", ": quit", "key: ctrl+q", ": colours", "key: ctrl+t", ": downloads", "key: ctrl+d", ": every key", "key: ?"]'
+lacks "$(seen "$out" welcome)" "🏴"
+c=$(seen "$out" css)
+has "$c" "#welcome_container { max-width: 64 !important; }"; has "$c" "grid-columns: 14 1fr !important;"
+eq "$(grep -c '#welcome_container' <<<"$c")" "$(grep -c '!important' <<<"$c")" "every rule of it !important (torrra's app.tcss, read after, would win every tie)"
 case_ "…and a search waits a minute, once, for Prowlarr's answer (its eight sites at once): torrra's 10 s, three times over, gave up first"
 eq "$(seen "$out" timeout)" 60; eq "$(seen "$out" max_retries)" 1
 case_ "…a wait and tries of your own kept"
@@ -61,9 +81,10 @@ not_called 'stop --no-block prowlarr.service'
 case_ "Prowlarr already running (the web page open): used, left running"
 fresh; : >"$TMP/active"
 kawa-torrra >/dev/null 2>&1; not_called ' start prowlarr'; not_called '^systemctl --user stop prowlarr.service'; called 'systemd-run .*--on-active=30min'
-case_ "a search while its sleep is planned: the sleep called off, then planned anew when the window closes"
+case_ "a search while its sleep is planned: the sleep called off (as the window opens, and at the search), then planned anew when the window closes — last"
 fresh; : >"$TMP/active"; kawa-torrra >/dev/null 2>&1
-eq "$(grep -n 'stop prowlarr-idle.timer\|systemd-run' "$CALLS" | cut -d: -f2- | cut -c1-40 | tr '\n' '|')" "systemctl --user stop prowlarr-idle.time|systemctl --user stop prowlarr-idle.time|systemd-run --user --quiet --unit=prowla|"
+eq "$(grep 'stop prowlarr-idle.timer\|systemd-run' "$CALLS" | cut -c1-40 | uniq | tr '\n' '|')" "systemctl --user stop prowlarr-idle.time|systemd-run --user --quiet --unit=prowla|"
+eq "$(grep -c 'stop prowlarr-idle.timer' "$CALLS")" 3
 case_ "the key from the environment wins; secrets.sh then not even read"
 fresh; chmod 644 "$HOME/.config/fedokawaii/secrets.sh"
 out=$(PROWLARR_API_KEY=ffffffffffffffffffffffffffffffff kawa-torrra 2>&1); eq "$?" 0
@@ -72,9 +93,12 @@ case_ "a key an older setup left in config.toml: taken out, never put back; your
 fresh; mkdir -p "${CFG%/*}"
 printf '[general]\ntheme = "textual-dark"\ndownload_path = "/home/me/Downloads/films"\n\n[indexers.prowlarr]\napi_key = "%s"\nurl = "http://127.0.0.1:9696"\n' "$KEY" >"$CFG"
 kawa-torrra >/dev/null 2>&1
-lacks "$(cat "$CFG")" "$KEY"; has "$(cat "$CFG")" 'download_path = "/home/me/Downloads/films"'; has "$(cat "$CFG")" 'theme = "ansi-dark"'
-case_ "a theme you chose (Ctrl+T) is kept"
-sed -i 's/theme = "ansi-dark"/theme = "nord"/' "$CFG"; kawa-torrra >/dev/null 2>&1; has "$(cat "$CFG")" 'theme = "nord"'
+lacks "$(cat "$CFG")" "$KEY"; has "$(cat "$CFG")" 'download_path = "/home/me/Downloads/films"'; has "$(cat "$CFG")" 'theme = "fedokawaii"' "textual-dark, torrra's default: ours now"
+case_ "the themes earlier setups chose (ansi-dark, ansi-light) become ours; one you chose (Ctrl+T) is kept"
+for t in ansi-dark ansi-light; do
+  sed -i "s/theme = \".*\"/theme = \"$t\"/" "$CFG"; kawa-torrra >/dev/null 2>&1; has "$(cat "$CFG")" 'theme = "fedokawaii"' "$t"
+done
+sed -i 's/theme = "fedokawaii"/theme = "nord"/' "$CFG"; kawa-torrra >/dev/null 2>&1; has "$(cat "$CFG")" 'theme = "nord"'
 case_ "config.toml with a slip in it: torrra on defaults, the file left exactly as it was"
 fresh; mkdir -p "${CFG%/*}"; printf '[general\ntheme = \n' >"$CFG"; before=$(cat "$CFG")
 out=$(kawa-torrra 2>&1); eq "$?" 0; has "$out" "config.toml does not read"; eq "$(cat "$CFG")" "$before"
@@ -107,22 +131,33 @@ case_ "a line in secrets.sh naming a variable that is not set: the search still 
 fresh; printf 'export GH_TOKEN="$NOT_SET_ANYWHERE"\nPROWLARR_API_KEY=%s\n' "$KEY" >"$HOME/.config/fedokawaii/secrets.sh"
 out=$(kawa-torrra 2>&1); eq "$?" 0; lacks "$out" "unbound variable"; eq "$(seen "$out" key)" "$KEY"
 
-# ── Prowlarr ─────────────────────────────────────────────────────────────────
-case_ "Prowlarr not answering: said, with where to look"
+# ── Prowlarr: asked at the first search; its trouble said there (the search fails as torrra's
+# own failure would: an IndexerError the window shows), the window left open ─────────────
+case_ "Prowlarr not answering: said, with where to look; the search an IndexerError, the window open"
 fresh; export FAKE_PROWLARR=down
-out=$(kawa-torrra 2>&1); eq "$?" 1; has "$out" "Prowlarr is not answering on 127.0.0.1:9696"
+out=$(kawa-torrra 2>&1); eq "$?" 0; has "$out" "torrra: Prowlarr is not answering on 127.0.0.1:9696 — systemctl --user status prowlarr"
+eq "$(seenj "$out" searches)" '["IndexerError: Prowlarr is not answering on 127.0.0.1:9696 — systemctl --user status prowlarr"]'
+lacks "$(cat "$FAKE_LOG")" "torrra's search" "torrra's own search not run"
 called 'systemd-run .*--on-active=30min' "left to sleep 30 minutes later"
+case_ "…asked again at the next search (it may answer by then); once it has, not again"
+FAKE_QUERY='a|b' out=$(kawa-torrra 2>&1); eq "$(grep -c '^torrra: Prowlarr is not answering' <<<"$out")" 2
+fresh; FAKE_QUERY='a|b|c' out=$(kawa-torrra 2>&1); eq "$(grep -c 'httpx.get' "$FAKE_LOG")" 1 "one answer is enough"
+eq "$(seenj "$out" searches)" '[["a result for a"], ["a result for b"], ["a result for c"]]'
+case_ "no search typed: Prowlarr not asked at all (only woken)"
+fresh; FAKE_QUERY= out=$(kawa-torrra 2>&1); eq "$?" 0; [[ ! -s $FAKE_LOG ]] && _ok || _no "asked: $(cat "$FAKE_LOG")"
+called '^systemctl --user start prowlarr.service'
 case_ "Prowlarr too slow to answer (the 5 s timeout): said the same way"
-FAKE_PROWLARR=slow; out=$(kawa-torrra 2>&1); eq "$?" 1; has "$out" "not answering"
+fresh; FAKE_PROWLARR=slow; out=$(kawa-torrra 2>&1); eq "$?" 0; has "$out" "not answering"; has "$(seen "$out" searches)" "IndexerError"
 case_ "Prowlarr refusing the key (401): which command hands it the key again"
-FAKE_PROWLARR=401; out=$(kawa-torrra 2>&1); eq "$?" 1; has "$out" "refused the key"; has "$out" "fedokawaii update"
+FAKE_PROWLARR=401; out=$(kawa-torrra 2>&1); has "$out" "refused the key in secrets.sh — run: fedokawaii update"; has "$(seen "$out" searches)" "IndexerError"
 case_ "Prowlarr failing (HTTP 500): its log named"
-FAKE_PROWLARR=500; out=$(kawa-torrra 2>&1); eq "$?" 1; has "$out" "Prowlarr answered HTTP 500"
+FAKE_PROWLARR=500; out=$(kawa-torrra 2>&1); has "$out" "Prowlarr answered HTTP 500 — journalctl --user -u prowlarr -e"
 case_ "Prowlarr with no indexers switched on: repair adds the usual ones, or its page"
-FAKE_PROWLARR=noindexers; out=$(kawa-torrra 2>&1); eq "$?" 1; has "$out" "no indexers switched on"; has "$out" "fedokawaii repair"
-case_ "Prowlarr's container failing to start: said, and nothing left starting"
+FAKE_PROWLARR=noindexers; out=$(kawa-torrra 2>&1); has "$out" "no indexers switched on"; has "$out" "fedokawaii repair"
+case_ "Prowlarr's container failing to start: said at the search, and nothing left starting"
 fresh; : >"$TMP/start-fails"
-out=$(kawa-torrra 2>&1); eq "$?" 1; has "$out" "Prowlarr did not start"; has "$out" "journalctl --user -u prowlarr"
+out=$(kawa-torrra 2>&1); eq "$?" 0; has "$out" "torrra: Prowlarr did not start — journalctl --user -u prowlarr -e"
+has "$(seen "$out" searches)" "IndexerError: Prowlarr did not start"; lacks "$(cat "$FAKE_LOG")" "httpx.get" "not asked: it is not there"
 called ' stop --no-block'
 case_ "no Prowlarr unit at all (podman missing, the container file gone): said, repair named"
 fresh; : >"$TMP/no-unit"
@@ -137,8 +172,12 @@ for sig in HUP INT; do
   [[ $r == 129 || $r == 130 ]] && _ok || _no "$sig: exit $r"
   called 'systemd-run .*--on-active=30min'
 done
-case_ "Prowlarr's start is said in the window before it is waited for"
-fresh; has "$(kawa-torrra 2>&1)" "starting Prowlarr… (a few seconds)"
+case_ "the window does not wait for Prowlarr: it opens while Prowlarr starts (kawa-prowlarr --busy behind it)"
+fresh; stub systemctl 'case "$*" in *is-active*) exit 3 ;; *LoadState*) echo loaded ;; *" start "*) sleep 2; : >"'"$TMP"'/active" ;; esac'
+t0=$EPOCHREALTIME; out=$(FAKE_QUERY= kawa-torrra 2>&1); t=$(( (${EPOCHREALTIME/./} - ${t0/./}) / 1000 ))
+eq "$(seen "$out" healthy)" True; ((t < 1500)) && _ok || _no "the window waited $t ms"
+has "$(cat "$REPO/system/kawa-torrra")" 'kawa-prowlarr --busy >/dev/null 2>&1 8>&- &' "(its lock not held by the start)"
+sleep 2.2
 
 # ── what needs no key, and no lock ───────────────────────────────────────────
 case_ "--version, --help, config: no key, no Prowlarr, no lock (verify runs --version)"
@@ -217,7 +256,7 @@ eq "$(seen "$out" key)" "$KEY"
 case_ "a Textual without ansi-dark (8.0.1, the one the old pins installed): said as a notice, not a window that flashes"
 fresh; out=$(FAKE_TEXTUAL=8.0.1 kawa-torrra --open 2>&1); eq "$?" 1
 has "$out" "this Textual has no ansi-dark theme"
-called '^notify-send -a torrra -u critical -- .*  torrra cannot start .this Textual has no ansi-dark theme. — run: fedokawaii update$'
+called '^notify-send -a torrra -u critical -- .*  torrra cannot start .this Textual has no ansi-dark theme to build on. — run: fedokawaii update$'
 case_ "anything torrra says on stderr and exits 0 on (a theme it turns away…): the notice, status 1"
 fresh; out=$(FAKE_SAY=$'\e[31minvalid theme \'nord2\' configured.\navailable themes: nord\e[0m' kawa-torrra --open 2>&1); eq "$?" 1
 called "^notify-send -a torrra -u critical -- .*  torrra invalid theme 'nord2' configured. available themes: nord$"

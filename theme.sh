@@ -273,6 +273,24 @@ retire .visidatarc 'VisiData (vd, the Tables window)'
 #   ~/.local/share/applications/lpf*.desktop — lpf's entries, hidden while lpf built Spotify's
 #   app here (Spotify is its web player now, and lpf is gone: setup.sh)
 for LPF_ENTRY in lpf lpf-gui lpf-notify lpf-spotify-client; do retire ".local/share/applications/$LPF_ENTRY.desktop" 'lpf-spotify-client'; done
+#   fuzzel — the launcher and every menu are kawa-panel's now (its sums worked out as you type):
+#   fuzzel's settings, its colours and the launcher's pictures of each theme (the app seals,
+#   which the panel draws itself; the heading's colour fonts); and the bar's pictures of
+#   earlier designs (stitch.png, hem.png, seam-end.png, the patch*.png, clock.png and washi.png:
+#   the bar is kami's washi tiles now, kami-*.png)
+retire .config/fuzzel/fuzzel.ini 'fedokawaii/current/fuzzel.ini'
+retire .local/share/fonts/SumiSealInk.ttf ''
+retire .local/share/fonts/SumiSealPaper.ttf ''
+for OLD_THEME in dark light; do
+  retire ".config/fedokawaii/themes/$OLD_THEME/fuzzel.ini" ''
+  for OLD_PIC in stitch hem seam-end patch patch-beni patch-asagi clock washi; do
+    retire ".config/fedokawaii/themes/$OLD_THEME/$OLD_PIC.png" ''
+  done
+  for OLD_APP in agents backup bluetooth books calc clipboard disk editor file files git mixer monitor network notes \
+                 prowlarr spotify tables terminal torrents wallpaper whatsapp; do
+    retire ".config/fedokawaii/themes/$OLD_THEME/apps/$OLD_APP.png" ''
+  done
+done
 
 # ── 3. system tree (/etc, /usr/share/icons) ──────────────────────────────────
 while IFS= read -r -d '' f; do
@@ -376,8 +394,8 @@ boot_and_console() {
   # GRUB gets a pixel theme in the desktop's own language, at the monitor's native
   # resolution: plain sumi ink with a hem of seigaiha waves along the bottom edge, fading
   # upwards in an ordered dither (the grain of the desktop's transitions); the torii above
-  # a quiet box of boot entries in Fusion Pixel (2×, 3× or 4× its pixel grid: 24, 36 or
-  # 48 px), the chosen entry filled whole in vermilion — the desktop's one sign of what is
+  # a quiet box of boot entries in Sumi UI (2×, 3× or 4× its pixel grid: 32, 48 or
+  # 64 px), the chosen entry filled whole in vermilion — the desktop's one sign of what is
   # active — and a thin vermilion line counting down. Once an entry is chosen, nothing: the
   # box GRUB keeps for its own messages while it loads the system is drawn invisible (Fedora
   # prints none), so the screen stays plain until the boot splash takes over.
@@ -397,7 +415,7 @@ boot_and_console() {
   }
   MODE=$(native_mode); MH=${MODE#*x}
   GS=$((MH / 720)); ((GS < 2)) && GS=2; ((GS > 4)) && GS=4   # pixel scale: 1080p/1440p ×2, 4K ×3, 5K ×4
-  FS=$((12 * GS))                            # Fusion Pixel on a whole multiple of its 12 px grid
+  FS=$((16 * GS))                            # Sumi UI on a whole multiple of its 16 px grid
   GT=$(mktemp -d)
   # same pixels → same bytes on every run; PNG24/PNG32 below because GRUB reads only 8-bit
   # channels (ImageMagick would otherwise write tiny 1- or 2-bit palette files it rejects)
@@ -431,30 +449,30 @@ boot_and_console() {
   for px in term_c term_n term_s term_e term_w term_nw term_ne term_sw term_se; do   # the invisible box
     magick -size 1x1 xc:none "${PNG[@]}" "PNG32:$GT/$px.png"
   done
-  # Fusion Pixel in GRUB's own bitmap format, made once with the same GRUB version as
-  # Fedora's (grub-mkfont 2.12 --no-hinting -s N -n Fusion -r 0x20-0x7E,0xA0-0xFF,
-  # 0x2010-0x2026, from fusion-pixel-12px-monospaced-ja.ttf); GRUB names it "Fusion Regular N"
-  cp "$REPO_DIR/art/grub/fusion-$FS.pf2" "$GT/fusion.pf2"
-  BW=$((440 * GS)) BH=$((84 * GS))           # the menu box: room for Fedora's entry names (70 letters;
-                                             # setup keeps no rescue entry), five tall
+  # Sumi UI in GRUB's own bitmap format, made once with the same GRUB version as Fedora's
+  # (grub-mkfont 2.12 --no-hinting -s N -n Sumi -r 0x20-0x7E,0xA0-0xFF,0x2010-0x2026, from
+  # system/fonts/SumiUI.ttf); GRUB names it "Sumi Regular N"
+  cp "$REPO_DIR/art/grub/sumi-$FS.pf2" "$GT/sumi.pf2"
+  BW=$((560 * GS)) BH=$((124 * GS))          # the menu box: room for Fedora's entry names (68 letters;
+                                             # setup keeps no rescue entry), five rows of 24 tall
   {
     printf '# /boot/grub2/themes/sumi/theme.txt — written by theme.sh for a %s screen;\n' "$MODE"
     printf '# re-run theme.sh after changing monitors.\n'
     printf 'desktop-image: "background.png"\ndesktop-color: "#%s"\ntitle-text: ""\n' "$INK_GROUND"
-    printf 'terminal-font: "Fusion Regular %d"\nterminal-box: "term_*.png"\n\n' "$FS"
+    printf 'terminal-font: "Sumi Regular %d"\nterminal-box: "term_*.png"\n\n' "$FS"
     printf '+ image {\n    left = 50%%-%d top = 50%%-%d\n    file = "torii.png"\n}\n' \
       $((22 * GS)) $((BH / 2 + 60 * GS))   # (44·GS square: 11 pixels × 4·GS; 16·GS above the box)
     printf '+ boot_menu {\n    left = 50%%-%d top = 50%%-%d width = %d height = %d\n' $((BW / 2)) $((BH / 2)) "$BW" "$BH"
     printf '    menu_pixmap_style = "menu_*.png"\n    selected_item_pixmap_style = "select_*.png"\n'
-    printf '    item_font = "Fusion Regular %d"\n    selected_item_font = "Fusion Regular %d"\n' "$FS" "$FS"
+    printf '    item_font = "Sumi Regular %d"\n    selected_item_font = "Sumi Regular %d"\n' "$FS" "$FS"
     printf '    item_color = "#%s"\n    selected_item_color = "#%s"\n' "$INK_TEXT" "$INK_STRONG"   # (paper on the vermilion)
-    printf '    item_height = %d item_padding = %d item_spacing = 0\n' $((16 * GS)) $((8 * GS))
+    printf '    item_height = %d item_padding = %d item_spacing = 0\n' $((24 * GS)) $((8 * GS))
     printf '    item_icon_space = 0 icon_width = 0 icon_height = 0\n    scrollbar = false\n}\n'
     printf '+ progress_bar {\n    id = "__timeout__"\n    left = 50%%-%d top = 50%%+%d width = %d height = %d\n' \
       $((BW / 2)) $((BH / 2 + 4 * GS - 1)) "$BW" "$PH"
     printf '    bar_style = "bar_*.png" highlight_style = "hl_*.png"\n}\n'
     printf '+ label {\n    left = 0 top = 50%%+%d width = 100%% align = "center"\n' $((BH / 2 + 18 * GS))   # (below the bar's box)
-    printf '    font = "Fusion Regular %d" color = "#%s"\n' "$FS" "$INK_FAINT"
+    printf '    font = "Sumi Regular %d" color = "#%s"\n' "$FS" "$INK_FAINT"
     printf '    text = "enter  boot     e  edit     c  console"\n}\n'
   } >"$GT/theme.txt"
   BOOT_CHANGED=0
@@ -506,8 +524,8 @@ boot_and_console() {
     else R plymouth-set-default-theme sumi; CHANGED+=("boot splash: the sumi theme"); SPLASH_CHANGED=1; fi
   fi
   # shown at once (ShowDelay=0, in plymouthd.conf beside the theme's line — the image carries
-  # it): never a wait over a black screen first; the first frame itself is the boot argument
-  # plymouth.use-simpledrm's (lib/common.sh, BOOT_ARGS)
+  # it): never a wait over a black screen first. Its first frame comes once amdgpu loads —
+  # early: the driver is in the boot image — and on amdgpu alone: one mode change, no flick
   TOTAL=$((TOTAL + 1))
   if ! R grep -qx 'ShowDelay=0' /etc/plymouth/plymouthd.conf 2>/dev/null; then
     if ((CHECK)); then DRIFT+=("/etc/plymouth/plymouthd.conf: ShowDelay=0")
@@ -958,7 +976,10 @@ done
 
 # ── 5. derived state ─────────────────────────────────────────────────────────
 if changed /etc/dconf/; then R dconf update; ok "dconf defaults compiled"; fi
-if changed /fontconfig/ || changed /.local/share/fonts/; then U fc-cache -f; fi   # new rules or the icon font
+# new rules or the icon font: its folder touched first — a font rewritten in place leaves the
+# folder's mtime as it was, and fontconfig would go on serving the cache of the old one
+if changed /.local/share/fonts/; then U touch "$TARGET_HOME/.local/share/fonts"; fi
+if changed /fontconfig/ || changed /.local/share/fonts/; then U fc-cache -f; fi
 # the colourscheme plugin is fetched the first time its spec appears — install only: the
 # plugins you have stay at their versions (they move with update, which keeps the old ones)
 if changed /nvim/lua/plugins/ && [[ -f $TARGET_HOME/.config/nvim/init.lua ]]; then

@@ -3,11 +3,24 @@
 # user context, hardened downloads, config validation, locking, temp cleanup.
 umask 022
 
+# What a run says is drawn as every text screen is (docs/design-system.md §7): a part's heading
+# its name and the stitch to the right edge, its rows two columns in — the glyph (muted), two
+# spaces, the words — a failure in vermilion (accent_text), a warning's mark yellow, the times
+# and the commands run in faint ink. In foot the inks are the desktop's own (its palette past
+# the sixteen: ~/.config/fedokawaii/screen.sh); on a text console the nearest of its sixteen.
+# Not on a terminal (a log, a pipe) the words alone. The log keeps its own plain lines
+# ("── NAME" for a heading: what the report and status read back), whatever the screen shows
 if [[ -t 1 ]]; then
-  C_RESET=$'\e[0m' C_GOLD=$'\e[33m' C_RED=$'\e[31m' C_OK=$'\e[32m' C_DIM=$'\e[2m' C_BOLD=$'\e[1m'
+  if [[ ${TERM:-} == foot* ]]; then
+    C_MUTED=$'\e[38;5;21m' C_FAINT=$'\e[38;5;22m' C_STITCH=$'\e[38;5;19m' C_RED=$'\e[38;5;20m'
+  else
+    C_MUTED=$'\e[2m' C_FAINT=$'\e[2m' C_STITCH=$'\e[2m' C_RED=$'\e[31m'
+  fi
+  C_RESET=$'\e[0m' C_GOLD=$'\e[33m'
 else
-  C_RESET='' C_GOLD='' C_RED='' C_OK='' C_DIM='' C_BOLD=''
+  C_RESET='' C_GOLD='' C_RED='' C_MUTED='' C_FAINT='' C_STITCH=''
 fi
+C_OK=$C_MUTED C_DIM=$C_FAINT C_BOLD=''     # (the older names: a pass is quiet; there is no bold face)
 LOG_FILE=${LOG_FILE:-/var/log/fedokawaii.log}
 # the logs record every command with its output: root's alone
 if [[ $EUID -eq 0 && $LOG_FILE == /var/log/* ]]; then
@@ -20,10 +33,41 @@ _ts()  { date '+%H:%M:%S'; }
 # (a log that cannot be written — a full disk — never stops a run: the line still shows, so
 # the run gets as far as saying why, such as need_space's "only … free")
 _out() { printf '%s\n' "$1" | tee -a "$LOG_FILE" 2>/dev/null || true; }
-log()  { local IFS=' '; _out "${C_DIM}$(_ts)${C_RESET} ${C_GOLD}▸${C_RESET} $*"; }
-ok()   { local IFS=' '; _out "${C_DIM}$(_ts)${C_RESET} ${C_OK}✔${C_RESET} $*"; }
-die()  { local IFS=' '; _out "${C_DIM}$(_ts)${C_RESET} ${C_RED}✘ $*${C_RESET}" >&2; exit 1; }   # (stderr: never swallowed by a $( ))
-hdr()  { local IFS=' '; _out ""; _out "${C_BOLD}${C_GOLD}── $* ${C_RESET}"; }
+# _cols — _COLS: the terminal's columns (0: no terminal), asked once a run
+_cols() {
+  if [[ -z ${_COLS:-} ]]; then
+    _COLS=0
+    if [[ -t 1 ]]; then   # (asked here: inside a $( ), the output would be a pipe)
+      _COLS=$(stty size </dev/tty 2>/dev/null) && _COLS=${_COLS#* } && [[ $_COLS =~ ^[0-9]+$ ]] || _COLS=0
+    fi
+  fi
+}
+# _row MARK TEXT [INK] — a row: four columns in, the mark, two spaces, the words in INK; on a
+# terminal too narrow for them they wrap at a space, under the words (never under the mark)
+_row() {
+  local c t=${3:-}$2${3:+$C_RESET}
+  _cols; c=$_COLS
+  if ((c > 20)) && (( ${#2} > c - 9 )); then
+    t=$(fold -s -w $((c - 9)) <<<"$2" | sed '2,$s/^/       /')
+    [[ -n ${3:-} ]] && t=$3$t$C_RESET
+  fi
+  _out "    $1  $t"
+}
+# _heading NAME — a part's heading: on a terminal "  NAME ╌╌╌…" to its right edge, two columns
+# of paper either side; in the log "── NAME"
+_heading() {
+  local c n s
+  printf '%s\n' "" "── $1" >>"$LOG_FILE" 2>/dev/null
+  _cols; c=$_COLS
+  if ((c == 0)); then printf '\n── %s\n' "$1"; return 0; fi
+  n=$(( c - 5 - $(LC_ALL=C.UTF-8 wc -L <<<"$1") )); ((n < 2)) && n=2
+  printf -v s '%*s' "$n" ''
+  printf '\n  %s %s%s%s\n' "$1" "$C_STITCH" "${s// /╌}" "$C_RESET"
+}
+log()  { local IFS=' '; _out "${C_FAINT}$(_ts)${C_RESET} ${C_MUTED}▸${C_RESET} $*"; }
+ok()   { local IFS=' '; _out "${C_FAINT}$(_ts)${C_RESET} ${C_MUTED}✔${C_RESET} $*"; }
+die()  { local IFS=' '; _out "${C_FAINT}$(_ts)${C_RESET} ${C_RED}✘ $*${C_RESET}" >&2; exit 1; }   # (stderr: never swallowed by a $( ))
+hdr()  { local IFS=' '; _heading "$*"; }
 
 # A command that run or retry saw fail is remembered (FAILED_CMD, with where it was called
 # from: FAILED_AT), so the scripts' error report names it: the line the report would see is
@@ -62,10 +106,30 @@ retry() {
   return 1
 }
 
-# HTTPS only, TLS ≥ 1.2, bounded connect time, retries on transient errors, and a transfer
-# that stalls (under 1 KB/s for a minute) given up rather than waited on for ever
+# wait_until SECONDS CMD… — CMD tried every 2 s until it succeeds, for SECONDS at most: the wait
+# for something that comes by itself (the network as the machine starts, your own systemd once
+# linger is on, a service answering). Quiet: waiting is no failure, so it writes no "attempt"
+# line (the run's summary counts those as retries). 1 when it never came — the caller says why
+wait_until() {
+  local end=$((SECONDS + $1)) n=$(($1 / 2 + 1)); shift
+  # (the time is the bound; the count of tries one too, should a pause ever be cut short)
+  until "$@"; do ((SECONDS < end && --n > 0)) || return 1; sleep 2; done
+}
+
+# HTTPS only (a redirect too: a mirror list may send a download to any mirror), TLS ≥ 1.2,
+# bounded connect time, retries on transient errors (a refused connection among them), and a
+# transfer that stalls (under 1 KB/s for a minute) given up rather than waited on for ever
 # shellcheck disable=SC2034  # used by setup.sh and lib/upstream.sh
-CURL=(curl -fsSL --proto '=https' --tlsv1.2 --connect-timeout 15 --retry 3 --retry-delay 5 --speed-limit 1024 --speed-time 60)
+CURL=(curl -fsSL --proto '=https' --proto-redir '=https' --tlsv1.2 --connect-timeout 15 --retry 3 --retry-delay 5
+      --retry-connrefused --speed-limit 1024 --speed-time 60)
+# git over the network, the same way: a transfer under 1 KB/s for a minute is given up (git's
+# own default waits on a stalled connection for ever — an update that looked stuck)
+# shellcheck disable=SC2034  # used by setup.sh and lib/upstream.sh
+GIT_NET=(-c http.lowSpeedLimit=1000 -c http.lowSpeedTime=60)
+# …and for the git a program runs by itself (neovim's plugin manager, Lazy): the same limit, as
+# git reads it from its environment
+# shellcheck disable=SC2034  # used by setup.sh
+GIT_ENV=(GIT_HTTP_LOW_SPEED_LIMIT=1000 GIT_HTTP_LOW_SPEED_TIME=60)
 
 # dnf_install [DNF-OPTION…] PKG… — the packages in, whatever the network and the mirrors do:
 #   · what failed is read from dnf's own words (dnf_why), and only what a new try can mend is
@@ -78,18 +142,57 @@ CURL=(curl -fsSL --proto '=https' --tlsv1.2 --connect-timeout 15 --retry 3 --ret
 #   · the end: every package that is not in, why, and the fix ($STATE_DIR/dnf-failed keeps
 #     them for the health report until a later run gets them in)
 DNF_TRIES=4 DNF_OUT=""
-dnf_try() {   # dnf_try ARG… — dnf -y install ARG…, shown and logged; its words in DNF_OUT
+dnf_try() { dnf_try_sub install "$@"; }   # dnf_try ARG… — dnf -y install ARG…, shown and logged; its words in DNF_OUT
+dnf_try_sub() {   # dnf_try_sub SUBCOMMAND ARG… — dnf -y SUBCOMMAND ARG…, the same way
   local IFS=' ' rc
-  _out "${C_DIM}$(_ts) \$ dnf -y install $*${C_RESET}"
-  { DNF_OUT=$(dnf -y install "$@" 2>&1 | tee -a "$LOG_FILE" /dev/fd/3 2>/dev/null; exit "${PIPESTATUS[0]}"); rc=$?; } 3>&1
+  _out "${C_DIM}$(_ts) \$ dnf -y $*${C_RESET}"
+  { DNF_OUT=$(dnf -y "$@" 2>&1 | tee -a "$LOG_FILE" /dev/fd/3 2>/dev/null; exit "${PIPESTATUS[0]}"); rc=$?; } 3>&1
   return "$rc"
+}
+# dnf_do SUBCOMMAND ARG… — any other dnf step that reaches the network (upgrade, swap, copr
+# enable, config-manager addrepo): tried again the way dnf_install's installs are, when what
+# failed is something a new try can mend (a mirror, the network, another dnf's lock), each later
+# try of a transaction with fresh metadata; what no try mends (a clash, a full disk, a name no
+# repository has) stops at once. Its status is dnf's last; the words in DNF_OUT
+dnf_do() {
+  local IFS=' ' i why pause refresh=()
+  FAILED_CMD=""
+  for ((i = 1; i <= DNF_TRIES; i++)); do
+    dnf_try_sub "$@" "${refresh[@]}" && return 0
+    why=$(dnf_why)
+    case $why in missing|disk|conflict) break ;; esac
+    ((i < DNF_TRIES)) || break
+    pause=$((15 * i)); [[ $why == lock ]] && pause=30
+    log "dnf attempt $i/$DNF_TRIES failed ($why) — again in ${pause}s"
+    sleep "$pause"
+    case $1 in install|upgrade|swap|distro-sync|reinstall|downgrade) refresh=(--refresh) ;; esac
+  done
+  _out "${C_RED}✘ dnf -y $* — $why: $(dnf_fix "$why" "${*: -1}")${C_RESET}"
+  FAILED_CMD="dnf -y $*" FAILED_AT=${FUNCNAME[1]:-main}:${BASH_LINENO[0]}
+  return 1
+}
+# repos_enabled → the ids of the enabled repositories, one a line: from dnf's JSON, never its
+# table (a table may cut a long id short — a COPR's are 50 characters and more). 1 when dnf
+# could not answer
+repos_enabled() {
+  local j; j=$(dnf -q repo list --enabled --json 2>/dev/null) || return 1
+  jq -r '.[].id' <<<"$j" 2>/dev/null
+}
+# dnf_q ARG… — dnf -q ARG…, a question no repository may sit out: a COPR's and the vendors'
+# repositories are skipped by dnf when they cannot be read (skip_if_unavailable, their .repo
+# files' own setting), and a package of one would then look as if it were gone from this
+# Fedora. Here a repository that cannot be read fails the question instead
+dnf_q() {
+  local r o=()
+  while IFS= read -r r; do [[ -n $r ]] && o+=("--setopt=$r.skip_if_unavailable=0"); done < <(repos_enabled)
+  dnf -q "${o[@]}" "$@"
 }
 dnf_why() {   # dnf_why [TEXT] → lock · missing · disk · gpg · checksum · net · conflict · other
   local t=${1-$DNF_OUT}
   shopt -s nocasematch
   case $t in
     *"transaction lock"*|*"another transaction is in progress"*|*"lock is held"*|*"waiting for process with pid"*) echo lock ;;
-    *"no match for argument"*|*"no package matches"*|*"unable to find a match"*) echo missing ;;
+    *"no match for argument"*|*"no package matches"*|*"unable to find a match"*|*"chroot not found"*) echo missing ;;
     *"no space left"*|*"not enough free space"*|*"more space needed"*|*"disk space"*) echo disk ;;
     *"gpg check failed"*|*"openpgp check"*|*"signature verification failed"*|*"public key"*"not installed"*|*"import of key"*|*"bad gpg signature"*) echo gpg ;;
     *"checksum doesn't match"*|*"checksum mismatch"*|*"checksum does not match"*|*"interrupted by header callback"*) echo checksum ;;
@@ -158,19 +261,21 @@ pkg_provided()  { rpm -q --whatprovides "$1" >/dev/null 2>&1; }  # …or by a pa
 
 # ── report helpers (check.sh, verify.sh) ────────────────────────────────────
 PASS=0 FAILS=() WARNS=()
-section() { _out ""; _out "${C_BOLD}${C_GOLD}$1${C_RESET}"; }
-pass()    { PASS=$((PASS + 1)); _out "  ${C_OK}✔${C_RESET} $1"; }
-fail()    { FAILS+=("$1${2:+ — $2}"); _out "  ${C_RED}✘ $1${2:+ — $2}${C_RESET}"; }
-warn()    { WARNS+=("$1${2:+ — $2}"); _out "  ${C_GOLD}! $1${2:+ — $2}${C_RESET}"; }
-info()    { _out "  ${C_DIM}·${C_RESET} $1"; }
+section() { _heading "$1"; }
+pass()    { PASS=$((PASS + 1)); _row "${C_MUTED}✔${C_RESET}" "$1"; }
+fail()    { FAILS+=("$1${2:+ — $2}"); _row "${C_RED}✘${C_RESET}" "$1${2:+ — $2}" "$C_RED"; }
+warn()    { WARNS+=("$1${2:+ — $2}"); _row "${C_GOLD}!${C_RESET}" "$1${2:+ — $2}"; }
+info()    { _row "${C_MUTED}·${C_RESET}" "$1"; }
 check()   { local label=$1; shift; if "$@" >/dev/null 2>&1; then pass "$label"; else fail "$label"; fi; }
 summary() {                     # summary VERB → prints the verdict; returns 1 on any failure
   _out ""
   if ((${#FAILS[@]} == 0)); then
-    _out "${C_BOLD}${C_OK}✔ $1 — $PASS checks passed${WARNS:+, ${#WARNS[@]} warning(s)}${C_RESET}"; return 0
+    _out "  ${C_MUTED}✔${C_RESET}  $1 — $PASS checks passed${WARNS:+, ${#WARNS[@]} warning(s)}"; return 0
   fi
-  _out "${C_BOLD}${C_RED}✘ ${#FAILS[@]} of $((PASS + ${#FAILS[@]})) checks failed:${C_RESET}"
-  printf '    %s\n' "${FAILS[@]}" | tee -a "$LOG_FILE"; return 1
+  _out "  ${C_RED}✘  ${#FAILS[@]} of $((PASS + ${#FAILS[@]})) checks failed:${C_RESET}"
+  local f
+  for f in "${FAILS[@]}"; do _row " " "$f"; done
+  return 1
 }
 
 # ── idempotent steps: completion recorded in $STATE_DIR, re-runs skip them ──
@@ -185,10 +290,9 @@ run_summary() {
   retries=$(grep -cE 'attempt [0-9]+/[0-9]+ failed' <<<"$body" || true)
   warns=$(grep -cE '^ *! ' <<<"$body" || true)
   fails=$(grep -c '✘' <<<"$body" || true)
-  _out ""
-  _out "${C_BOLD}${C_GOLD}── $1 · $(took "$RUN_T0")${C_RESET}"
-  _out "   $steps step(s) done · $retries retried · $warns warning(s) · $fails failed · log: $LOG_FILE"
-  ((retries + warns + fails == 0)) || grep -E 'attempt [0-9]+/[0-9]+ failed|^ *! |✘' <<<"$body" | tail -n 8 | sed 's/^/     /' | tee -a "$LOG_FILE"
+  _heading "$1 · $(took "$RUN_T0")"
+  _out "    ${C_MUTED}$steps step(s) done · $retries retried · $warns warning(s) · $fails failed · log: $LOG_FILE${C_RESET}"
+  ((retries + warns + fails == 0)) || grep -E 'attempt [0-9]+/[0-9]+ failed|^ *! |✘' <<<"$body" | tail -n 8 | sed 's/^ */       /' | tee -a "$LOG_FILE"
   return 0
 }
 took() {   # took START-EPOCH → how long since: 8s · 3m04s · 1h02m
@@ -303,12 +407,16 @@ PROJECT_TOP=(PACKAGES.md README.md art bin check.sh configs docs fedokawaii.conf
 # button to the login — the kernel's messages only when they are critical (quiet loglevel=3;
 # the initramfs' udev likewise), no systemd status lines, no blinking cursor on the console
 # the login screen shares (tty1); and no console-size wait at boot. The journal keeps it all.
-# plymouth.use-simpledrm: the splash from the first frame after the boot menu — Plymouth
-# draws on the firmware's screen (simpledrm) at once and moves to amdgpu when it loads;
-# without it Plymouth waits for amdgpu (seconds on an RDNA card) over a bare black screen
 # shellcheck disable=SC2034  # (setup.sh and verify.sh read it)
 BOOT_ARGS=(rhgb quiet loglevel=3 rd.udev.log_level=3 systemd.show_status=false vt.global_cursor_default=0
-           systemd.tty.term.console=dumb plymouth.use-simpledrm)
+           systemd.tty.term.console=dumb)
+# arguments an earlier version put on the entries, gone since: taken off every entry that still
+# has one (setup.sh's s_quiet_boot), and verify warns while one is there.
+# plymouth.use-simpledrm started the splash on the firmware's screen and then moved it to
+# amdgpu: one more mode change, a black flick before the login. The splash starts on amdgpu
+# itself now — in the boot image, it loads early
+# shellcheck disable=SC2034  # (setup.sh and verify.sh read it)
+BOOT_ARGS_GONE=(plymouth.use-simpledrm)
 # an AMD card's: LACT's clocks, voltages and fan curves need OverDrive (bit 14), which amdgpu
 # leaves off: its default mask (0xfff7bfff) plus that bit. Not 0xffffffff — that also switches
 # on GFX DCS (bit 19), which amdgpu keeps off as unstable (flicker, hangs on some cards).

@@ -2,7 +2,7 @@
 # tests/static/test_syntax.sh — every file of the desktop reads as what it is: the shell
 # scripts (bash -n, shellcheck), the shell inside configs (waybar's clicks, dwl's keys…),
 # every JSON / TOML / YAML / INI / desktop / XML / Lua file (and visidata/config.py, which is Python),
-# and the configs the programs themselves can check (mako, foot, fuzzel) — read by those
+# and the configs the programs themselves can check (mako, foot) — read by those
 # programs when they are here.
 # The configs are read as theme.sh installs them: rendered into the throw-away home.
 . "$(dirname "$0")/../lib/harness.sh"
@@ -122,16 +122,6 @@ if f=$(real foot); then
   done
   ln -sfn themes/dark "$HOME/.config/fedokawaii/current"
 else skipped "foot is not installed"; fi
-
-case_ "fuzzel reads its config with both themes (fuzzel --check-config)"
-if f=$(real fuzzel); then
-  for t in dark light; do
-    ln -sfn "themes/$t" "$HOME/.config/fedokawaii/current"
-    out=$(quiet "$f" --check-config --config "$HOME/.config/fuzzel/fuzzel.ini" 2>&1) \
-      && _ok || _no "$t: $out"
-  done
-  ln -sfn themes/dark "$HOME/.config/fedokawaii/current"
-else skipped "fuzzel is not installed"; fi
 
 case_ "the launcher entries pass desktop-file-validate"
 if v=$(real desktop-file-validate); then

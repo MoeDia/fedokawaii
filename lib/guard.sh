@@ -24,8 +24,8 @@
 #                  the newest has reached the desktop): a bad new kernel is skipped in the boot
 #                  menu; after a kernel transaction every boot image made (dracut), the boot's
 #                  arguments on every entry
-#   configs        foot's and fuzzel's own checks run when either changed (an option a new
-#                  version dropped): said, for the next toolkit update to carry the fix
+#   configs        foot's own check runs when it changed (an option a new version dropped):
+#                  said, for the next toolkit update to carry the fix
 # The manifest's packages: never removed by a transaction of yours (kawa-dnf-guard).
 # No dnf versionlock: holding a library back would hold every package that needs its newer
 # version back with it (security fixes too) — the guard stops only what would really break.
@@ -167,12 +167,11 @@ PY
   done
   ((${#bad[@]} == 0)) || { log "$(IFS=' '; echo "${bad[*]}") cannot load its GTK libraries — fedokawaii repair puts the packages back; the snapshot before the transaction is the way back"; return 1; }
 }
-# configs_sound — the desktop's configs still read with the new foot and fuzzel
+# configs_sound — the terminal's config still read with the new foot
 configs_sound() {
   local rc=0
   [[ -f $TARGET_HOME/.local/state/fedokawaii/theme-applied ]] || return 0
   if command -v foot >/dev/null && ! as_user foot --check-config >>"$LOG_FILE" 2>&1; then log "foot no longer reads ~/.config/foot/foot.ini as it is (its log says which line)"; rc=1; fi
-  if command -v fuzzel >/dev/null && ! as_user fuzzel --check-config >>"$LOG_FILE" 2>&1; then log "fuzzel no longer reads ~/.config/fuzzel/fuzzel.ini as it is"; rc=1; fi
   return "$rc"
 }
 
@@ -199,7 +198,7 @@ do_after_dnf() {
     step_on "the kernels' boot images (dracut)" kernel_images
     step_on "a quiet boot (the boot's arguments)" s_quiet_boot
   fi
-  grep -qE '^(foot|fuzzel)$' "$ch" && step_on "foot's and fuzzel's configs" configs_sound
+  grep -qx foot "$ch" && step_on "foot's config" configs_sound
   step_on "the guard's records" needs_record
   bash "$REPO_DIR/verify.sh" >>"$LOG_FILE" 2>&1 || result=checks
   ((${#UPDATE_STEPS_FAILED[@]} == 0)) || result=partial

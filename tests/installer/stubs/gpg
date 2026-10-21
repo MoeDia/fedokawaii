@@ -5,5 +5,15 @@ fkh_log "$*"
 [[ " $* " == *" --show-keys "* ]] || exit 0
 # (a file that holds no key at all — a Wi-Fi sign-in page — as gpg answers it)
 f=${*: -1}; if [[ -f $f ]] && ! grep -q 'BEGIN PGP' "$f"; then echo "gpg: no valid OpenPGP data found." >&2; exit 2; fi
+# RPM Fusion's keys (rpm2archive's stand-in writes them): their real fingerprints, or another
+# one ($FKH/rpmfusion-key-other: a key RPM Fusion does not use)
+if [[ -f $f ]] && grep -qx 'rpmfusion-\(free\|nonfree\)' "$f"; then
+  case $(grep -x 'rpmfusion-[a-z]*' "$f") in
+    rpmfusion-free) fp=E9A491A3DE247814E7E067EAE06F8ECDD651FF2E ;;
+    *)              fp=79BDB88F9BBF73910FD4095B6A2AF96194843C65 ;;
+  esac
+  [[ -f $FKH/rpmfusion-key-other ]] && fp=0123456789ABCDEF0123456789ABCDEF01234567
+  printf 'pub:-:4096:1:%s:1600000000:::-:::scESC::::::23::0:\nfpr:::::::::%s:\n' "${fp: -16}" "$fp"; exit 0
+fi
 while read -r f; do [[ -n $f ]] && printf 'pub:-:4096:1:%s:1700000000:::-:::scESC::::::23::0:\nfpr:::::::::%s:\n' "${f: -16}" "$f"; done \
   < <(cat "$FKH/gpg-keys" 2>/dev/null || echo 31DDDE24DDFAB679F42D7BD2BAA929FF1A7ECACE)

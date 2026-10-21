@@ -55,23 +55,42 @@ case_ "the panel's inks: the glyph accent_text, the name text, lit asagi, unlit 
 setup
 kawa-osd 明 brightness 50
 b=$(body)
-has "$b" "<span line_height='20480'><span color='#$C_ACCENT_TEXT'>明</span>"
+has "$b" "<span line_height='24576'><span color='#$C_ACCENT_TEXT'>明</span>"
 has "$b" "<span color='#$C_TEXT'>brightness  </span>"
-has "$b" "<span font='Sumi Icons 12px'><span color='#$C_TEAL'>$ICON_SEG$ICON_SEG$ICON_SEG$ICON_SEG$ICON_SEG$ICON_SEG</span><span color='#$C_EDGE2'>"
+has "$b" "<span font='Sumi Icons 16px'><span color='#$C_TEAL'>$ICON_SEG$ICON_SEG$ICON_SEG$ICON_SEG$ICON_SEG$ICON_SEG</span><span color='#$C_EDGE2'>"
 has "$b" "<span color='#$C_MUTED'> 50%</span></span>"
 
-case_ "one row on the panel's grid: the name 18 px after the glyph's pen (a kanji 12 + 6, a speaker 18 + 0, a Sumi icon 14 + 4), 12 columns of name, 12 squares, 6 px, 4 columns of number"
+case_ "one row on the panel's grid: the name 24 px after the glyph's pen (any glyph two columns, 16 px, then a space, 8), 12 columns of name, 12 squares, 8 px, 4 columns of number"
 setup
 kawa-osd 明 brightness 70
 has "$(body)" "明</span> <span color='#$C_TEXT'>brightness  </span>"
 kawa-osd "$ICON_VOL_3" volume 70
-has "$(body)" "$ICON_VOL_3</span><span color='#$C_TEXT'>volume      </span>"
+has "$(body)" "$ICON_VOL_3</span> <span color='#$C_TEXT'>volume      </span>"
 kawa-osd "$ICON_MIC" microphone 70
-has "$(body)" "$ICON_MIC</span><span font='Fusion Pixel 12px Mono ja 8px'> </span><span color='#$C_TEXT'>microphone  </span>"
+has "$(body)" "$ICON_MIC</span> <span color='#$C_TEXT'>microphone  </span>"
+lacks "$(body)" "font='Fusion" "no face but Sumi's"
 v=$(for p in 5 70 100; do kawa-osd 明 brightness "$p"; body | sed -e "s/.*<span color='#$C_MUTED'>//" -e 's/<.*//'; done
     kawa-osd 明 brightness 5 off; body | sed -e "s/.*<span color='#$C_FAINT'>//" -e 's/<.*//')
 eq "$(printf '%s\n' "$v" | awk '{ print length($0) }' | sort -u)" 4 "every value 4 columns: [$(tr '\n' '|' <<<"$v")]"
-has "$(body)" "</span></span> <span color='#$C_FAINT'>" "6 px (a space) between the squares and the number"
+has "$(body)" "</span></span> <span color='#$C_FAINT'>" "8 px (a space) between the squares and the number"
+case_ "where mako puts it: the glyph's pen where the panel's meter row has its glyph, the squares where the panel's start; 412 × 60"
+eq "$(python3 -I -B - "$REPO" <<'EOF' 2>&1
+import importlib.machinery as m, importlib.util as u, re, sys
+sys.modules["gi"] = None
+l = m.SourceFileLoader("kp", sys.argv[1] + "/bin/kawa-panel"); k = u.module_from_spec(u.spec_from_loader("kp", l)); l.exec_module(k)
+conf = open(sys.argv[1] + "/configs/home/.config/mako/config").read()
+top, osd = conf.split("[category=osd]")[0], conf.split("[category=osd]")[1].split("\n[")[0]
+get = lambda part, key: (re.findall(rf"^{key}=(.*)$", part, re.M) or [None])[-1]
+pad = [int(x) for x in (get(osd, "padding") or get(top, "padding")).split(",")]
+pad = pad * 2 if len(pad) == 1 else pad
+border = int(get(top, "border-size")); width = int(get(osd, "width") or get(top, "width"))
+pen = border + pad[1]
+squares = pen + 2 * k.COL + k.COL + 12 * k.COL           # (the glyph, a space, the name's 12 columns)
+x0 = k.BORDER + k.PAD                                      # (the panel's meter: a row of the panel's inner width)
+print(pen == x0 + k.GAP, squares == x0 + k.INNER - k.TRAIL - k.SPAN, width, 2 * border + 2 * pad[0] + 24,
+      squares + k.SPAN + 2 + k.COL + 4 * k.COL <= width - border - pad[1])
+EOF
+)" "True True 412 60 True"
 eq "$(kawa-osd 明 "a very long label here" 50; osd | cut -d'|' -f2)" "明  a very long label here" "the title is whole…"
 has "$(body)" "<span color='#$C_TEXT'>a very long </span>" "… the row's name cut to its 12 columns: the squares never move"
 

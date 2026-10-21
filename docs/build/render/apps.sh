@@ -8,7 +8,7 @@
 #   sudo ./apps.sh light               one theme
 #   sudo APPS_ONLY="yazi nvim" ./apps.sh dark     only some groups:
 #        yazi nvim lazygit btop mpv zathura filechooser share torrra brave (default: all)
-#        books notes system wiremix bluetui visidata
+#        books notes system wiremix bluetui visidata herdr
 #        nvim-whichkey nvim-picker nvim-grep nvim-split nvim-lsp lazygit-log
 #        lazygit-commit lazygit-stage yazi-preview yazi-drives
 #
@@ -38,7 +38,7 @@ C=$R/apps-cache
 REPO=${FEDOKAWAII_REPO:-/opt/kit-repo}   # (the copy theme.sh was run from: kit.sh keeps it the merge copy)
 ALL_GROUPS="yazi nvim lazygit btop mpv zathura filechooser share torrra brave books notes system
   nvim-whichkey nvim-picker nvim-grep nvim-split nvim-lsp lazygit-log lazygit-commit lazygit-stage yazi-preview
-  yazi-drives wiremix bluetui visidata"
+  yazi-drives wiremix bluetui visidata herdr"
 ALL_GROUPS=$(echo $ALL_GROUPS)
 ONLY=${APPS_ONLY:-$ALL_GROUPS}
 KEY=0123456789abcdef0123456789abcdef       # the stand-in Prowlarr's API key
@@ -84,6 +84,23 @@ fetch_tools() {   # → $C/opt/bin: yazi ya lazygit nvim tree-sitter, and $C/opt
     || { warn "unpacking failed"; return 1; }
   rm -rf "$o/x"; chmod -R a+rX "$o"
   printf 'yazi %s\nlazygit %s\nneovim %s\ntree-sitter %s\n' "$ty" "$tl" "$tn" "$tt" >"$o/versions"
+}
+
+fetch_herdr() {   # → $C/opt/bin/herdr: the release lib/upstream.sh pins, its SHA-256 checked
+  local line repo tag asset sum f
+  line=$(bash -c 'source "$1/lib/upstream.sh"; printf "%s\n" "${UPSTREAM[@]}"' _ "$REPO" | grep '^herdr|') \
+    || { warn "no herdr in $REPO/lib/upstream.sh"; return 1; }
+  IFS='|' read -r _ repo tag asset sum _ <<<"$line"
+  f=$C/dl/herdr-$tag
+  mkdir -p "$C/dl" "$C/opt/bin"
+  if [[ $(sha256sum "$f" 2>/dev/null | cut -d' ' -f1) != "$sum" ]]; then
+    say "fetching herdr $tag (pinned)"
+    curl -fsSL -o "$f.part" "https://github.com/$repo/releases/download/$tag/$asset" || { warn "herdr download failed"; return 1; }
+    [[ $(sha256sum "$f.part" | cut -d' ' -f1) == "$sum" ]] || { warn "herdr $tag: SHA-256 differs"; rm -f "$f.part"; return 1; }
+    mv "$f.part" "$f"
+  fi
+  install -m 755 "$f" "$C/opt/bin/herdr"
+  grep -q '^herdr ' "$C/opt/versions" 2>/dev/null || echo "herdr $tag" >>"$C/opt/versions"
 }
 
 make_media() {   # the test video, the demo PDF/picture/notes (→ $C/media, copied to $SH/media)
@@ -150,6 +167,7 @@ stage() {
 # file chooser it floats and centres, as here)
 # (the app windows centred under the bar: 176 px above and below them)
 for_window [app_id="^app-"] floating enable, resize set 1104 704, move position center, move down 4 px
+for_window [app_id="^kawa-agents$"] floating enable, resize set 1104 704, move position center, move down 4 px   # (Agents: herdr)
 for_window [app_id="^mpv$"] floating enable, move position center
 for_window [app_id="^org.pwmt.zathura$"] floating enable, resize set 1104 764, move position center
 for_window [app_id="^kawa-dialog$"] floating enable, move position center   # (kawa-term --float --dialog: the file dialog)
@@ -220,7 +238,7 @@ outer_apps() {
     [[ $t == dark || $t == light ]] || die "unknown theme '$t' (dark|light)"
     [[ -d $KH/.config/fedokawaii/themes/$t ]] || die "$KH/.config/fedokawaii/themes/$t missing — run theme.sh --user $K"
   done
-  for b in $F44/bin/{waybar,fuzzel,mako,makoctl,foot,footclient,wireplumber,wpctl} sway swaymsg grim swaybg \
+  for b in $F44/bin/{waybar,mako,makoctl,foot,footclient,wireplumber,wpctl} sway swaymsg grim swaybg \
            wtype pipewire pw-cli pw-dump dbus-daemon notify-send jq setpriv unshare git curl unzip gcc pkg-config \
            ffmpeg btop zathura python3.13; do
     command -v "$b" >/dev/null || miss+=("$b")
@@ -233,7 +251,7 @@ outer_apps() {
   # another session of the user's (outside apps.sh) is no obstacle: everything here runs in
   # its own PID + mount namespace, with its own runtime dir, bus and compositor, and the home
   # it sees is an overlay — the two cannot see or signal each other
-  for b in waybar mako fuzzel foot swaylock wireplumber sway pipewire; do
+  for b in waybar mako foot swaylock wireplumber sway pipewire; do
     pgrep -u "$K" -x "$b" >/dev/null && { warn "$K also runs $b outside apps.sh (left alone)"; break; }
   done
   if want torrra && [[ -n $(awk 'NR > 1 && $4 == "0A" && $2 ~ /:25D0$/' /proc/net/tcp) ]]; then
@@ -244,6 +262,7 @@ outer_apps() {
   stage
   make_media
   want filechooser && build_filechooser
+  if want herdr; then fetch_herdr || die "herdr could not be fetched"; fi
   if want nvim; then
     say "LazyVim: plugins, parsers, tools (as $K, in a scratch home)"
     timeout -k 10 1500 unshare --pid --fork --kill-child --mount --mount-proc --propagation private \
@@ -348,6 +367,7 @@ home_setup() {   # what the user's home holds for the shots (all inside the over
   # lazygit, nvim and tree-sitter (Fedora's are in /usr/bin) linked next to them
   local b
   for b in yazi ya lazygit nvim tree-sitter fd; do
+    [[ -e $SH/opt/bin/$b ]] || continue
     "${u[@]}" ln -sfn "$SH/opt/bin/$b" "$KH/.local/bin/$b"
   done
   # the yazi demo folder, the video, the PDF
@@ -945,6 +965,79 @@ shot_visidata() {   # VisiData (3.3) on the handbook's weather.csv (§16.7): the
   term_close -k q -k q
 }
 
+shot_herdr() {   # Agents (herdr 0.9.5), started exactly as its launcher entry starts it: the entry,
+                 # its config from the repo, as theme.sh installs them; the window
+                 # as it opens (the shell in ~/repos), then Ctrl+B pressed (the PREFIX badge)
+  local d=$KH/.local/share/applications cmd before id app i f
+  local u=(setpriv --reuid="$KUID" --regid="$KGID" --init-groups -- env -i HOME="$KH" PATH=/usr/bin:/bin)
+  [[ -x $SH/opt/bin/herdr ]] || { warn "$T: no herdr staged"; return; }
+  "${u[@]}" ln -sfn "$SH/opt/bin/herdr" "$KH/.local/bin/herdr"
+  # (copied as root: $K cannot read the repo copy)
+  install -o "$K" -g "$K" -d "$KH/.config/herdr" "$KH/repos"
+  install -o "$K" -g "$K" -m 644 "$REPO/configs/home/.config/herdr/config.toml" "$KH/.config/herdr/config.toml"
+  sed "s|@HOME@|$KH|g" "$REPO/configs/home/.local/share/applications/kawa-agents.desktop" >"$d/kawa-agents.desktop"
+  chown "$K:$K" "$d/kawa-agents.desktop"
+  cmd=$(sed -n 's/^Exec=//p' "$d/kawa-agents.desktop" | sed 's/ %[fFuUick]//g')
+  say "$T: herdr: $cmd"
+  before=$(swaymsg -t get_tree | jq -r '[recurse(.nodes[]?, .floating_nodes[]?) | select(.pid?) | .id] | join(" ")')
+  ( cd "$KH" && k env "${NETENV[@]}" sh -c "$cmd" >>"$LT/herdr.log" 2>&1 )
+  id=""
+  for ((i = 0; i < 100; i++)); do
+    id=$(swaymsg -t get_tree | jq -r --arg b " $before " '[recurse(.nodes[]?, .floating_nodes[]?) | select(.pid?) | select(.id as $x | $b | contains(" \($x) ") | not)] | last | .id // empty')
+    [[ -n $id ]] && break; sleep 0.1
+  done
+  [[ -n $id ]] || { warn "$T: the Agents entry opened no window"; cat "$KH"/.config/herdr/*.log >>"$LT/herdr.log" 2>&1; return; }
+  sleep 3
+  swaymsg -t get_tree | jq -r --argjson i "$id" '[recurse(.nodes[]?, .floating_nodes[]?) | select(.id == $i)] | last
+    | "window: app_id=\(.app_id) title=\(.name) \(.rect.width)x\(.rect.height) at \(.rect.x),\(.rect.y)"' >>"$LT/herdr.log"
+  app=$(swaymsg -t get_tree | jq -r --argjson i "$id" '[recurse(.nodes[]?, .floating_nodes[]?) | select(.id == $i)] | last | .app_id // empty')
+  if [[ -z $app ]]; then warn "$T: the Agents window closed again at once"
+  else
+    NOKBD=1 capture herdr "$app" 1.0 15
+    k wtype -M ctrl -k b -m ctrl >/dev/null 2>&1; sleep 1.5        # Ctrl+B: herdr's PREFIX badge
+    NOKBD=1 capture herdr-prefix "$app" 0.8 15
+    k wtype -k Escape >/dev/null 2>&1
+  fi
+  { echo "== herdr status"; k herdr status; echo "== ps"; ps -u "$K" -o pid,sid,args | grep '[h]erdr'
+    for f in "$KH"/.config/herdr/*.log; do echo "== $f"; cat "$f"; done; } >>"$LT/herdr.log" 2>&1
+  k herdr server stop >>"$LT/herdr.log" 2>&1
+  sleep 1
+}
+
+# (round 22, text screens: opt-in groups, not in ALL_GROUPS — APPS_ONLY="together backup-pick ctrlt")
+shot_together() {   # Syncplay's form (kawa-together) in a terminal of its own
+  local u=(setpriv --reuid="$KUID" --regid="$KGID" --init-groups -- env -i HOME="$KH" PATH=/usr/bin:/bin)
+  # (Syncplay's folder as lib/upstream.sh installs it: only what the form reads)
+  "${u[@]}" mkdir -p "$KH/.local/share/fedokawaii/syncplay/syncplay" "$KH/.local/state/fedokawaii/together"
+  "${u[@]}" sh -c ': >"$1/__init__.py"; printf "%s\n" "DEFAULT_PORT = 8999" "FALLBACK_PUBLIC_SYNCPLAY_SERVERS = [[\"syncplay.pl:8995 (France)\", \"syncplay.pl:8995\"], [\"syncplay.pl:8999 (France)\", \"syncplay.pl:8999\"]]" >"$1/constants.py"; printf "%s\n" kawau-3f9a "movie club" >"$2/rooms"' sh \
+    "$KH/.local/share/fedokawaii/syncplay/syncplay" "$KH/.local/state/fedokawaii/together"
+  term together "$KH" kawa-together "$KH/Videos/the film.mkv" || return
+  sleep 2.5
+  capture together "$TAPP" 1.0
+  k wtype -s 300 -k Down -k Down -k Return >/dev/null 2>&1; sleep 1.5      # the room's list
+  capture together-room "$TAPP" 1.0
+  k wtype -s 300 -k Escape >/dev/null 2>&1; sleep 0.8
+  term_close -k Escape
+}
+shot_backup_pick() {   # the backup's drive picker (no BACKUP_TARGET yet), two drives plugged in
+  local b=$SH/bp-bin
+  rm -rf "$b"; mkdir -p "$b"
+  printf '#!/bin/sh\n[ "$1" = list ] || exit 0\nprintf "%%s\\t-\\t%%s\\t%%s\\t%%s\\t%%s\\n" /dev/sdb1 KINGSTON 28.9G vfat /run/media/k/KINGSTON /dev/sdc1 "Photos 2TB" 1.8T exfat ""\n' >"$b/kawa-drives"
+  chmod -R a+rx "$b"
+  # (in a terminal of its own: the same picker the backup window shows)
+  term backup-pick "$KH" bash -c 'PATH="$1:$PATH" KAWA_TOOLKIT=/opt/kit-repo kawa-backup; echo "ended: $?"; sleep 20' sh "$b" || return
+  sleep 3
+  capture backup-pick "$TAPP" 1.0
+  term_close -k Escape
+}
+shot_ctrlt() {   # the shell's Ctrl+T: a path from the list, its preview beside
+  # (fzf's own key bindings are Fedora's package's, not here: the list Ctrl+T opens, with its options)
+  term ctrlt "$KH/Documents" bash -ic 'find . -mindepth 1 -maxdepth 2 -printf "%P\n" | FZF_DEFAULT_OPTS="$FZF_DEFAULT_OPTS $FZF_CTRL_T_OPTS" fzf; sleep 1' || return
+  sleep 3
+  capture ctrlt "$TAPP" 1.0
+  term_close -k Escape
+}
+
 inner_apps() {
   local i
   T=$1 OT=$OUT/$1 LT=$LOG/$1/apps W=$SH/work-apps-$1
@@ -996,11 +1089,15 @@ inner_apps() {
   want filechooser && shot_filechooser
   want books       && shot_books
   want notes       && shot_notes
+  want together    && shot_together
+  want backup-pick && shot_backup_pick
+  want ctrlt       && shot_ctrlt
   want system      && shot_system
   want torrra      && shot_torrra
   want wiremix     && shot_wiremix
   want bluetui     && shot_bluetui
   want visidata    && shot_visidata
+  want herdr       && shot_herdr
   want brave       && shot_brave
   want btop        && shot_btop
   exec 7>&-

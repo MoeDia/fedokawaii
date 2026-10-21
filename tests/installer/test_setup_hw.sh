@@ -19,7 +19,7 @@ fkh route-dev enp0s20f0u1; fkh nm-devices "ethernet:connected" "wifi:unavailable
 fkh hostname mydesk
 case_ "Wi-Fi only, phase 1: ready over the phone's tethering; the radio and its missing firmware said"
 setup --no-reboot; eq "$RC" 0
-has "$OUT" "✔ default route (enp0s20f0u1)"; has "$OUT" "iwlwifi-so-a0-gf-a0-89.ucode"
+has "$OUT" "✔  default route (enp0s20f0u1)"; has "$OUT" "iwlwifi-so-a0-gf-a0-89.ucode"
 eq "$(cat "$FKH/hostname")" mydesk "a machine already named keeps its name"
 lacks "$OUT" "the machine's name: fedokawaii"
 reboot_world; keep wifi-p2
@@ -44,10 +44,10 @@ resume --no-reboot; eq "$RC" 1
 has "$OUT" "no network — connect to one (nmtui), then run it again"; has "$OUT" "restart the computer: setup continues by itself"
 n=$(grep -c 'curl\] .*mirrors.fedoraproject.org' "$CALLS"); ((n >= 25)) && _ok || _no "only $n tries after a restart"
 eq "$(state phase)" 2
-case_ "…typed by you instead: half a minute of tries"
+case_ "…typed by you instead: half a minute of tries (one every 2 s: about 16, against the 75 after a restart)"
 back wifi-p2; fkh net off
 setup --no-reboot; eq "$RC" 1
-n=$(grep -c 'curl\] .*mirrors.fedoraproject.org' "$CALLS"); ((n <= 7)) && _ok || _no "$n tries for a run you typed"
+n=$(grep -c 'curl\] .*mirrors.fedoraproject.org' "$CALLS"); ((n <= 20)) && _ok || _no "$n tries for a run you typed"
 
 case_ "a Wi-Fi sign-in page served instead of Claude Code's signing key: said plainly (never a raw error), nothing trusted"
 back wifi-p2; echo '<html>sign in to this network</html>' >"$FKH/dl/claude-code.asc"
@@ -117,11 +117,11 @@ has "$(cat "$FKH/grub-args")" "amdgpu.ppfeaturemask=0xfff7ffff"
 case_ "Secure Boot on, NVIDIA alone: the check refuses before anything is installed (exit 1)"
 world fresh; releases; hw_nvidia; hw_secureboot
 setup --no-reboot; eq "$RC" 1
-has "$OUT" "✘ NVIDIA only"; has "$OUT" "Secure Boot on"; has "$OUT" "this machine is not ready"
+has "$OUT" "✘  NVIDIA only"; has "$OUT" "Secure Boot on"; has "$OUT" "this machine is not ready"
 not_called 'dnf\] -y'; eq "$(state user)" "" "nothing recorded"
 case_ "a laptop's Intel + NVIDIA, Secure Boot on: built for Intel (no amdgpu argument), Intel's microcode; the laptop said"
 world fresh; releases; hw_hybrid; hw_secureboot; mkdir -p "$W/sys/class/power_supply/BAT0"; echo Battery >"$W/sys/class/power_supply/BAT0/type"
-setup --no-reboot; eq "$RC" 0; has "$OUT" "! a laptop"
+setup --no-reboot; eq "$RC" 0; has "$OUT" "!  a laptop"
 reboot_world; resume --no-reboot; eq "$RC" 0
 eq "$(state gpu)" intel; pkg_has intel-media-driver && pkg_has microcode_ctl && _ok || _no "Intel's packages missing"
 lacks "$(cat "$FKH/grub-args")" "amdgpu"; pkg_has lact && _no "LACT (AMD's) installed" || _ok

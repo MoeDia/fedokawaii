@@ -8,10 +8,12 @@
 #   kawa-hush on game · off game   game mode (kawa-game)
 # At "off", once no reason holds any more, one notice tells what was held back: "3 notices
 # while you shared" (or "… while you played"); a click on it lists them (app and title) in the
-# usual menu. Critical notices and the level display showed anyway: they are not counted. Its
-# mark: the highest notice number at "on" ($XDG_RUNTIME_DIR/kawa-hush.REASON) — what came
-# after it, still waiting or in mako's history (max-history), was held back. A share during a
-# game (or the reverse) is one quiet time: the first mark is kept until the last reason ends.
+# usual menu, only to read: each an info row (the cursor and the pointer pass it; Esc or a
+# click outside closes the list). Critical notices and the level display showed anyway: they
+# are not counted. Its mark: the highest notice number at "on"
+# ($XDG_RUNTIME_DIR/kawa-hush.REASON) — what came after it, still waiting or in mako's history
+# (max-history), was held back. A share during a game (or the reverse) is one quiet time: the
+# first mark is kept until the last reason ends.
 # Exit: 0 · 1 mako did not answer · 2 wrong use.
 set -u
 case ${1:-}:${2:-} in
@@ -53,10 +55,12 @@ if [[ $how == tell ]]; then
   . "$HOME/.config/fedokawaii/width.sh"
   act=$(notify-send -a notices -A default=list -- "$ICON_BELL  $what $when" "click: what they were") || exit 0
   [[ $act == default ]] || exit 0
+  # (報 and when, then an info row a notice — its title, its app right-aligned: nothing in it
+  # to choose, a notice gone by is only read)
   rows=("$(printf 'part\t報\t%s' "$when")")
   for h in "${held[@]}"; do
     app=${h%%$'\037'*} sum=${h#*$'\037'}
-    rows+=("$(printf 'row\t%s\t%s\t\t%s' "$ICON_BELL" "$(cut_cols "${sum:-untitled}" 40)" "$app")")
+    rows+=("$(printf 'info\t%s\t%s\t\t%s' "$ICON_BELL" "$(cut_cols "${sum:-untitled}" 40)" "$app")")
   done
   printf '%s\n' "${rows[@]}" | kawa-menu --lines $((n < 12 ? n : 12)) >/dev/null
   exit 0

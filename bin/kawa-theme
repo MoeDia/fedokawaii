@@ -8,7 +8,7 @@
 #   kawa-theme settings      only the GTK/portal settings (theme.sh, outside a session)
 #
 # Every app reads its colours through one link, ~/.config/fedokawaii/current →
-# themes/dark or themes/light (fuzzel and foot by include, waybar and GTK by @import,
+# themes/dark or themes/light (foot by include, waybar and GTK by @import,
 # gtklock by -s, btop/qt6ct by path, mpv by include, imv/qt6ct/wiremix through links).
 # Switching re-points that link, then tells whatever is running to look again:
 #   foot (every window)  SIGUSR1/SIGUSR2 to the server — neovim inside follows by itself

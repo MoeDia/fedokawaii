@@ -1,0 +1,12 @@
+#!/bin/bash
+# sshd of the fake Fedora: -t checks the configuration ($FKH/rc-sshd-t: its status); -T prints
+# what is in force — keys only once fedokawaii's drop-in is there, Fedora's defaults without it
+. /usr/local/bin/_lib.sh
+fkh_log "$*"
+case " $* " in
+  *" -t "*) r=$(rcfor sshd-t 0); ((r == 0)) || echo "sshd: bad configuration option" >&2; exit "$r" ;;
+  *" -T "*) if [[ -f /etc/ssh/sshd_config.d/40-fedokawaii.conf ]]; then
+              printf '%s\n' "passwordauthentication no" "kbdinteractiveauthentication no" "permitrootlogin no"
+            else printf '%s\n' "passwordauthentication yes" "kbdinteractiveauthentication no" "permitrootlogin prohibit-password"; fi ;;
+esac
+exit 0

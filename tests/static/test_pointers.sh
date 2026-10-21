@@ -71,7 +71,7 @@ done
 eq "$(find "$ICONS" -type l | wc -l)" 0 "links in the toolkit (theme.sh makes them)"
 
 case_ "the files, the pixels, the hotspots: read as a compositor reads them"
-out=$(python3 -I - "$ICONS" "$REPO/tools/build-themes.py" <<'EOF'
+out=$(python3 -I -B - "$ICONS" "$REPO/tools/build-themes.py" <<'EOF'
 import importlib.util, pathlib, struct, sys
 icons, themes = pathlib.Path(sys.argv[1]), sys.argv[2]
 spec = importlib.util.spec_from_file_location("themes", themes)

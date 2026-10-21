@@ -199,7 +199,7 @@ def bar_json(items, ic):
     if not items:
         return '{"text":""}'
     p = percent(items)
-    # (icons.sh's bar_download, no space, before a value: exactly 6 px from its ink to the value's)
+    # (icons.sh's bar_download, no space, before a value: exactly 8 px from its ink to the value's)
     text = ic["download"] if p is None else f'{ic["bar_download"]}{p}<span fgalpha=\'55%\'>%</span>'
     cls = ["downloading", "bare"] if p is None else "downloading"
     return json.dumps({"text": text, "class": cls}, ensure_ascii=False)

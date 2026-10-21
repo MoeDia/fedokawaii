@@ -1,0 +1,8 @@
+#!/bin/bash
+# rpmkeys of the fake Fedora: -K FILE — a package's digests and signature, as rpm says them
+# ($FKH/rpm-badsig: a package not signed with the key imported — a mirror's own file)
+. /usr/local/bin/_lib.sh
+fkh_log "$*"
+f=${*: -1}
+if [[ -f $FKH/rpm-badsig ]]; then echo "$f: digests SIGNATURES NOT OK"; exit 1; fi
+echo "$f: digests signatures OK"

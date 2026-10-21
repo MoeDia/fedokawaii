@@ -19,7 +19,7 @@ keep fresh
 case_ "phase 1: the check, then each step; then the resume unit, the toolkit, and a restart"
 fkh_add installed systemd-oomd-defaults        # (not in a Minimal Install: as if a desktop group had brought it)
 setup; eq "$RC" 0 "exit"
-has "$OUT" "READY for setup"; has "$OUT" "✔ 1.7 inbound SSH (no)"
+has "$OUT" "READY for setup"; has "$OUT" "✔ 1.7 inbound SSH (yes)"
 eq "$(state phase)" 2; eq "$(state user)" fkuser
 [[ -f $unit ]] && _ok || _no "no resume unit"
 has "$(cat "$unit")" "ExecStart=/usr/bin/bash $TK/setup.sh --resume"
@@ -55,9 +55,10 @@ for b in rhgb quiet loglevel=3 rd.udev.log_level=3 systemd.show_status=false vt.
 done
 eq "$(grep -v '^#' "$W/etc/profile.d/fedokawaii-console.sh" 2>/dev/null)" "[ \"\$TERM\" = linux ] && [ -t 1 ] && printf '\\033[?25h'" \
   "a login on a text console shows the cursor the boot hides"
-lacks "$(cat "$FKH/fw-services")" "ssh" "SSH_SERVER=no closes ssh in the firewall"
+has "$(cat "$FKH/fw-services")" "ssh" "SSH_SERVER=yes (as shipped) opens ssh in the firewall"; lacks "$(cat "$FKH/fw-services")" "cockpit" "cockpit closed, whatever SSH_SERVER says"
 not_called 'firewall-cmd\] .*--reload' "the firewall is changed in place, never reloaded (a reload drops other programs' rules)"
-grep -qx 'enabled sshd.service' "$FKH/units" && _no "sshd still enabled" || _ok
+grep -qx 'enabled sshd.service' "$FKH/units" && _ok || _no "sshd not enabled (SSH_SERVER=yes)"
+has "$(cat "$W/etc/ssh/sshd_config.d/40-fedokawaii.conf" 2>/dev/null)" "PasswordAuthentication no" "keys only"
 reboot_world; keep phase2
 
 case_ "phase 2 (resumed by the unit after the restart): repositories, the GPU's drivers, media"
@@ -82,7 +83,7 @@ for i in $(seq -w 1 12); do mkdir -p "$B/202601${i}-120000"; done; mkdir -p "$W/
 chown "$FK_UID:$FK_UID" "$W/home/fkuser/.local"; chown -R "$FK_UID:$FK_UID" "$W/home/fkuser/.local/state" "$W/home/fkuser/Downloads"
 resume --no-reboot; eq "$RC" 0
 eq "$(state phase)" "done"
-has "$OUT" "✔ 3.13 verify gate"; has "$OUT" "✔ verified"
+has "$OUT" "✔ 3.13 verify gate"; has "$OUT" "✔  verified"
 [[ ! -e $unit ]] && _ok || _no "the resume unit is still installed"
 grep -qx 'enabled greetd.service' "$FKH/units" && _ok || _no "greetd not enabled"
 g=" $(fk id -nG fkuser) "; has "$g" " video "; has "$g" " render "; lacks "$g" " input " "never in the input group (every key readable)"
@@ -95,6 +96,12 @@ has "$(cat "$W/etc/systemd/system/greetd.service.d/fedokawaii.conf")" "plymouth-
 lacks "$(cat "$W/etc/systemd/system/greetd.service.d/fedokawaii.conf")" "plymouth-quit.service" "no Conflicts= on plymouth-quit (it stalled the boot on the splash)"
 eq "$(cat "$FKH/default-target")" graphical.target
 has "$(cat "$FKH/snaps")" "fedokawaii baseline"
+# the boot menu's snapshots (snap_boot): each started with its root a layer in memory over it
+# (nothing it does is kept), and systemd-remount-fs not trying to remount that layer by fstab
+has "$(cat "$W/etc/default/grub-btrfs/config" 2>/dev/null)" 'GRUB_BTRFS_SNAPSHOT_KERNEL_PARAMETERS="systemd.volatile=overlay"'
+eq "$(grep -v '^#' "$W/etc/systemd/system/systemd-remount-fs.service.d/fedokawaii.conf" 2>/dev/null)" $'[Unit]\nConditionKernelCommandLine=!systemd.volatile=overlay' \
+  "a snapshot's boot not \"degraded\" by a remount that cannot be"
+has "$(cat "$W/etc/systemd/system/snapper-cleanup.service.d/fedokawaii.conf" 2>/dev/null)" "ExecStartPost=-/usr/local/sbin/kawa-snap boot"
 # the health report: the toolkit's, and once at the first start of the finished desktop
 cmp -s "$W$TK/system/fedokawaii-report" "$W/usr/local/bin/fedokawaii-report" && _ok || _no "/usr/local/bin/fedokawaii-report is not the toolkit's"
 ru=$(cat "$W/etc/systemd/system/fedokawaii-report.service" 2>/dev/null)
@@ -137,7 +144,7 @@ has "$OUT" "✔ GE-Proton10-25 → Steam compatibilitytools.d"; has "$OUT" "file
 called "nvim\] --headless \+Lazy! install"
 [[ -d $W/home/fkuser/.local/share/nvim/lazy/LazyVim && -x $W/usr/local/libexec/xdg-desktop-portal-termfilechooser ]] && _ok || _no "LazyVim or the file dialog missing"
 case_ "after the build: verify passes (exit 0), and setup run again only says so"
-fkrun bash "$TK/verify.sh"; eq "$RC" 0 "verify: $(grep '✘' <<<"$OUT" | head -n3 | tr '\n' '|')"; has "$OUT" "✔ verified"
+fkrun bash "$TK/verify.sh"; eq "$RC" 0 "verify: $(grep '✘' <<<"$OUT" | head -n3 | tr '\n' '|')"; has "$OUT" "✔  verified"
 reset_calls; fkrun bash "$TK/setup.sh"; eq "$RC" 0; has "$OUT" "already built"      # (the clone is gone: the toolkit's)
 not_called 'dnf\] -y install'
 case_ "the clone holds a file of yours (or a changed fedokawaii.conf): packed into ~/.local/state first; the project's files go, yours stays"
@@ -176,7 +183,7 @@ setup --no-reboot; eq "$RC" 0 "$(grep -E '✘' <<<"$OUT" | head -n3 | tr '\n' '|
 eq "$(state phase)" "done"; has "$OUT" "~/fedokawaii removed: the toolkit has all of it"
 lacks "$OUT" "No such file"; lacks "$OUT" "final verification failed"
 [[ ! -e $W$CLONE ]] && _ok || _no "the clone is still there"
-[[ $(grep -n 'removed: the toolkit' <<<"$OUT" | cut -d: -f1) -gt $(grep -n '✔ verified' <<<"$OUT" | tail -n1 | cut -d: -f1) ]] && _ok || _no "removed before the final check"
+[[ $(grep -n 'removed: the toolkit' <<<"$OUT" | cut -d: -f1) -gt $(grep -n '✔  verified' <<<"$OUT" | tail -n1 | cut -d: -f1) ]] && _ok || _no "removed before the final check"
 
 case_ "Fedora 45: phase 2 takes RPM Fusion's release packages for 45, and goes on as on 44"
 back phase2; fedora_release 45

@@ -44,14 +44,16 @@ R = f"{S}/real/shots"
 NM = f"{S}/mock/node_modules/@fontsource"
 GAP = rgb(LT["muted"])                     # between the two themes' pictures: the panels' frame grey
 os.makedirs(IMG, exist_ok=True)
-# the desktop's own faces: Fusion Pixel (as setup installs it) for headings and labels, the
+# the desktop's own faces: Sumi UI (the toolkit's, system/fonts) for headings and labels —
+# in print at 12 px, three quarters of its grid: its letters 6 px a column, the panels' units
+# below unchanged; its pixels are squares of the outline, sharp at any zoom — and the
 # toolkit's Sumi Icons; the cover is the dark theme's default wallpaper, ink-ridges-night
-PIXEL = os.environ.get("FEDOKAWAII_PIXEL_FONT", "/usr/local/share/fonts/fusion-pixel/fusion-pixel-12px-monospaced-ja.ttf")
+PIXEL = os.environ.get("FEDOKAWAII_PIXEL_FONT", f"{REPO}/system/fonts/SumiUI.ttf")
 SUMI = f"{REPO}/configs/home/.local/share/fonts/SumiIcons.ttf"
 COVER = os.environ.get("FEDOKAWAII_COVER", "/home/kawau/.local/share/fedokawaii/wallpapers/dark/ink-ridges-night.src")
 for need in (PIXEL, SUMI, COVER):
     if not os.path.exists(need): sys.exit(f"handbook.py: {need} is missing")
-DM = ImageFont.truetype(PIXEL, 24)                      # (24 px: the pixel font's grid × 2)
+DM = ImageFont.truetype(PIXEL, 32)                      # (32 px: the face's grid × 2)
 
 def im(p): return Image.open(p).convert("RGB")
 
@@ -413,7 +415,7 @@ CSS = "\n".join([
   --d-stitch2: {stitch(DK['edge2'], 6, 10, 2)}; }}
 """ + """
 /* ── the system in print ──────────────────────────────────────────────────────────────────
-   The panel's units at 1 px = 1 CSS px (a 12 px line of Fusion Pixel is 9 pt on paper): gap 6,
+   The panel's units at 1 px = 1 CSS px (a 12 px line of Sumi UI is 9 pt on paper): gap 6,
    pad and line 12, section 18; a chapter's opening at the terminal's 2× (24 px). Colours only
    from the palette's tokens (:root, from tools/build-themes.py); square corners everywhere. */
 :root { --u6: 6px; --u12: 12px; --u18: 18px; }   /* (--stitch, --stitch2: the tiles above, edge2's) */

@@ -120,8 +120,14 @@ sel=$(getenforce 2>/dev/null)
 if [[ $sel == Enforcing ]]; then pass "SELinux enforcing"
 elif [[ $sel == Permissive ]]; then fail "SELinux is permissive" "set SELINUX=enforcing in /etc/selinux/config, then reboot"
 else fail "SELinux is ${sel:-unavailable}" "turn it back on: sudo grubby --update-kernel ALL --remove-args selinux; sudo fixfiles -F onboot; reboot"; fi
-[[ $(timedatectl show -p NTPSynchronized --value 2>/dev/null) == yes ]] && pass "clock synchronised (NTP)" \
-  || warn "clock not synchronised" "TLS downloads can fail with a wrong clock: timedatectl set-ntp true"
+# (just after a start the clock may not be synchronised yet: chrony's first answer takes a few
+# seconds, so it is given 20. Still not, with NTP on, it is on its way — and a clock wrong enough
+# to matter shows below anyway: every site's certificate refused, named as the clock's fault)
+ntp_synced() { [[ $(timedatectl show -p NTPSynchronized --value 2>/dev/null) == yes ]]; }
+if ntp_synced || wait_until 20 ntp_synced; then pass "clock synchronised (NTP)"
+elif [[ $(timedatectl show -p NTP --value 2>/dev/null) == yes ]]; then
+  info "the clock is still synchronising (NTP is on) — a wrong clock would show below: every site's certificate refused"
+else warn "clock not synchronised — NTP is off" "TLS downloads can fail with a wrong clock: timedatectl set-ntp true"; fi
 # (sudo drops SSH_CONNECTION and WAYLAND_DISPLAY from the environment: the terminal tells —
 # a pseudo-terminal is SSH or a terminal window, the machine's own console is a /dev/ttyN.
 # sudo may run the command in a pseudo-terminal of its own (its default since 1.9.14):
@@ -147,6 +153,9 @@ fi
 # ── updates & reboots ────────────────────────────────────────────────────────
 section "updates"
 upd=$(dnf -q check-upgrade --refresh 2>/dev/null); rc=$?
+# (a mirror's bad minute is no reason to stop: asked once more, ten seconds later — fresh
+# metadata, and so another mirror)
+if ((rc != 0 && rc != 100)); then sleep 10; upd=$(dnf -q check-upgrade --refresh 2>/dev/null); rc=$?; fi
 case $rc in
   0)   pass "system is fully up to date" ;;
   100) n=$(grep -c '\S' <<<"$upd"); info "$n package updates pending — setup installs them first (phase 1)" ;;
@@ -163,9 +172,16 @@ section "network"
 if grep -q . < <(ip route show default 2>/dev/null); then pass "default route ($(ip route show default | awk '{print $5; exit}'))"
 else fail "no default route" "connect ethernet (nmtui)"; fi
 reachable() {   # reachable HOST — any HTTP answer at all counts (CURL_RC: curl's own status)
-  local code
-  code=$(curl -sS -o /dev/null -w '%{http_code}' --proto '=https' --connect-timeout 10 --max-time 20 "https://$1/" 2>/dev/null); CURL_RC=$?
-  [[ $code =~ ^[1-5][0-9][0-9]$ ]]
+  local code i
+  # (twice, five seconds apart, before a site counts as unreachable: one slow handshake, or a
+  # DNS answer still on its way just after a start, is no fault of the machine)
+  for i in 1 2; do
+    code=$(curl -sS -o /dev/null -w '%{http_code}' --proto '=https' --connect-timeout 10 --max-time 20 "https://$1/" 2>/dev/null); CURL_RC=$?
+    [[ $code =~ ^[1-5][0-9][0-9]$ ]] && return 0
+    ((CURL_RC == 60)) && return 1                  # (a refused certificate stays refused: the clock)
+    ((i == 2)) || sleep 5
+  done
+  return 1
 }
 CURL_RC=0
 for h in mirrors.fedoraproject.org download1.rpmfusion.org copr.fedorainfracloud.org \
@@ -192,8 +208,13 @@ else warn "could not ask the repositories for wlroots $DWL_WLROOTS" "offline? se
 ch=fedora-$VERSION_ID-x86_64; [[ ${REDHAT_BUGZILLA_PRODUCT_VERSION:-} == rawhide ]] && ch=fedora-rawhide-x86_64
 re="\"$ch\"[[:space:]]*:"
 for c in "${COPRS[@]}"; do
-  j=$(curl -fsS --proto '=https' --connect-timeout 10 --max-time 20 \
-        "https://copr.fedorainfracloud.org/api_3/project?ownername=${c%%/*}&projectname=${c#*/}" 2>/dev/null) || j=""
+  # (asked twice before "could not ask": COPR's server has its slow minutes)
+  for i in 1 2; do
+    j=$(curl -fsS --proto '=https' --connect-timeout 10 --max-time 20 \
+          "https://copr.fedorainfracloud.org/api_3/project?ownername=${c%%/*}&projectname=${c#*/}" 2>/dev/null) || j=""
+    [[ $j == *'"chroot_repos"'* ]] && break
+    ((i == 2)) || sleep 5
+  done
   if [[ $j != *'"chroot_repos"'* ]]; then warn "could not ask COPR whether $c builds for Fedora $VERSION_ID" "setup finds out in phase 2"
   elif [[ $j =~ $re ]]; then pass "COPR $c builds for Fedora $VERSION_ID"
   else warn "COPR $c has nothing for Fedora $VERSION_ID yet" "setup leaves $(copr_pkgs "$c" | tr '\n' ' ')out; update or repair add it once it is built"; fi

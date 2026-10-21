@@ -1,6 +1,6 @@
 # Real renders of the fedokawaii desktop (headless, Fedora 44 versions)
 
-`shoot.sh` starts the real apps — waybar, fuzzel, mako, foot/footclient, gtklock, quick settings' panel — with
+`shoot.sh` starts the real apps — waybar, mako, foot/footclient, gtklock, quick settings' panel (the menus and the launcher) — with
 the test user's configs (what `theme.sh --user kawau` installed), in a headless sway on a
 1920×1080 output at scale 1, and captures them with grim for the dark and the light theme.
 The apps, and the libraries that draw their text, are built at the versions Fedora 44
@@ -45,7 +45,7 @@ Debugging: `SHOOT_SWAY_DEBUG=1` (sway -d into the sway log), `SHOOT_FOOT_DEBUG=1
 | `menu-weather-offline.png` | the same three hours later, offline: its age, quiet, above the days |
 | `menu-power.png` `menu-calendar.png` `menu-timer.png` `menu-drives.png` `menu-steam.png` `menu-shrink.png` `menu-file.png` `menu-share.png` `menu-help.png` `menu-change.png` | the dropdowns and centred menus: `kawa-menu`, drawn by the session's panel (`kawa-panel --menu`, started for them; closed with SIGUSR2 between shots) |
 | `menu-calendar-next.png` `menu-timer-running.png` `menu-help-filter.png` `menu-shrink-size.png` `menu-file-level.png` | the same after keys (paged to next month), with a timer running, filtered by typing (`volume`), a size of one's own typed (`750 KB`), and zip's compression after Down, Enter on a folder's pack — `menu_keys`: wtype's keyboard made before the menu opens (sway sends a leave to the focused surface when a keyboard is added) |
-| `launcher.png` | `fuzzel` (Super+Space) with the user's config |
+| `launcher.png` `launcher-find.png` `launcher-calc.png` | the launcher (`kawa-menu --launcher`, Super+Space), drawn by the session's panel: as it opens, after typing `ste`, and with a sum typed (`15% of 2400`: its answer live in the first row) |
 | `notify-normal.png` | `kawa-screenshot`'s notice (`-a desktop`, the picture as icon) |
 | `notify-app.png` | an app's notice with a Papirus icon and a wrapped body |
 | `notify-critical.png` | a critical notice (autostart's "keeps stopping") |
@@ -55,7 +55,7 @@ Debugging: `SHOOT_SWAY_DEBUG=1` (sway -d into the sway log), `SHOOT_FOOT_DEBUG=1
 | `lock.png`, `lock-center.png`, `lock-typing-center.png` | `kawa-lock` (gtklock with the theme's lock style and module), and its centre while typing (the ◆ dots) |
 
 `logs/<theme>/` — every app's stdout/stderr (`waybar.log`, `mako.log`, `menu-*.log`,
-`foot-server.log`, `gtklock.log`, …), `fuzzel --check-config` and `foot --check-config`
+`foot-server.log`, `gtklock.log`, and the rest), `foot --check-config`
 results, `libs.txt` (the drawing libraries each running app actually mapped) and
 `audio.log` (`wpctl status` and every PipeWire node).
 `logs/warnings.txt` — the lines of those logs that look like warnings or errors.
@@ -102,7 +102,6 @@ Fedora's own hosts are not reachable from this sandbox).
 | package | F44 | built | source |
 |---|---|---|---|
 | waybar | 0.15.0 | 0.15.0 | github.com/Alexays/Waybar tag (spdlog 1.15.2 / fmt 12.0.0 wraps from GitHub) |
-| fuzzel | 1.14.0 | 1.14.0 | tag 1.14.0 from the GitHub fork yangyingchao/fuzzel-x — Daniel Eklöf's PGP-signed tag object, verified with the key Debian ships (B19964FB…C116573F) |
 | mako | 1.11.0 | 1.11.0 | github.com/emersion/mako tag v1.11.0 |
 | gtklock | 4.0.0 | 4.0.0 | github.com/jovanlanik/gtklock tag v4.0.0, built against the GTK above into `/opt/r18` (`stubs/gtklock` runs it) |
 | foot | 1.27.0 | 1.27.0 | foot_1.27.0.orig.tar.xz (Ubuntu pool; sha256 matches the .dsc) |

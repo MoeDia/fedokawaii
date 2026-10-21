@@ -18,8 +18,9 @@
 #                              kept as ROOT.old (restore old swaps them back), the snapshots and
 #                              any other subvolume inside it move across, and /boot is made to
 #                              match (the kernels that copy has; its newest is the default)
-# Or at power-on: hold Shift (Esc/F8) for the boot menu → snapshots (each starts read-only;
-#   then kawa-snap restore N from there).
+# Or at power-on: hold Shift (Esc/F8) for the boot menu → snapshots (each starts as it was,
+#   on a layer in memory: everything works, nothing done there is kept; then kawa-snap
+#   restore N from there).
 # Inspect: kawa-snap list · revert one transaction: sudo snapper -c root undochange PRE..POST
 # Exit status: pre, post 0 always (dnf goes on whatever happens) · boot, list, restore 0 done,
 # 1 could not (the reason on stderr; restore: nothing was changed) · 2 misuse.

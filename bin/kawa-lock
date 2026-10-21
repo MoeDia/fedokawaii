@@ -1,9 +1,10 @@
 #!/usr/bin/env bash
-# kawa-lock — locks the screen (Super+Escape, before sleep, the power menu) with gtklock: the
-# theme's plain ground, and in the middle of each screen the day's seal (土 on a Saturday),
-# the pixel padlock, the time, the date, and one box for the password — each character you
-# type shows as a vermilion ◆; a wrong one empties the box and says so under it (ちがう ·
-# wrong password). The login screen (kawa-greet) is its twin. The layout is
+# kawa-lock — locks the screen (Super+Escape, before sleep, the power menu) with gtklock: your
+# wallpaper shaded into the theme's ground (kawa-wallpaper draws it as it shows a picture;
+# none yet: the plain ground), and in the middle of each screen, no box, the pixel padlock and
+# the time, the day's seal (土 on a Saturday) and the date, and one line for the password —
+# each character you type shows as a vermilion ◆; a wrong one empties it and says so above it
+# (ちがう · wrong password). The login screen (kawa-greet) is its twin. The layout is
 # ~/.config/fedokawaii/lock.ui, the colours current/gtklock.css (dark or light), the
 # pictures ~/.local/share/fedokawaii/<theme>/ (tools/build-art.py).
 #
@@ -23,7 +24,7 @@
 # dark, and for 2 s after they come back, every key and click on it only wakes — the Enter
 # that woke the computer is never taken for a password. An empty Enter is never one either.
 # `--resumed` (swayidle, as the machine wakes) lights the screens and notes the wake.
-# Under the box, a rule and three keys — sleep, restart, power off — as on the login screen.
+# Under the line, three keys — sleep, restart, power off — as on the login screen.
 #
 # The lock holds until your password, whatever happens meanwhile: gtklock runs under a
 # keeper (kawa-lock --keep, started here). Should gtklock stop without the password — a
@@ -125,10 +126,13 @@ mod=$HOME/.local/lib/fedokawaii/kawa-lockmod.so
 [[ -r $mod ]] || notify-send -a desktop -u critical -- "${ICON_LOCK:-}  lock screen" "its keys and wake guard are missing ($mod), so it locks without them — fedokawaii repair builds it again" 2>/dev/null
 
 rm -f "$locked"
+# the ground: the wallpaper shaded (kawa-wallpaper's lock_ground), or the theme's plain one
+bg=$HOME/.cache/fedokawaii/lock-$THEME.png ground=()
+[[ -s $bg ]] && ground=(-b "$bg")
 # gtklock, under its keeper (above); --lock-command marks the moment every screen is locked.
 # The date in English whatever the language (C), the ◆ box and the seal say the rest; its two
 # messages in the desktop's words (LANGUAGE=fk: the catalogue setup installs, art/gtklock.mo)
-setsid -f "$0" --keep env LC_TIME=C LANGUAGE=fk gtklock -s "$HOME/.config/fedokawaii/current/gtklock.css" "${layout[@]}" -m "$mod" \
+setsid -f "$0" --keep env LC_TIME=C LANGUAGE=fk gtklock -s "$HOME/.config/fedokawaii/current/gtklock.css" "${layout[@]}" "${ground[@]}" -m "$mod" \
   --date-format '%a %d %b' --time-format '%I:%M' \
   --lock-command "kawa-lock --up" </dev/null >/dev/null 2>&1 9>&-
 # (gone after a second without locking — it could not start: said at once, not after 10 s)

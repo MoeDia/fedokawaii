@@ -20,7 +20,7 @@ set gfxmode=1920x1080,auto
 insmod all_video
 insmod gfxterm
 insmod png
-loadfont ($root)/boot/grub/themes/sumi/fusion.pf2
+loadfont ($root)/boot/grub/themes/sumi/sumi.pf2
 terminal_output gfxterm
 set theme=($root)/boot/grub/themes/sumi/theme.txt
 export theme

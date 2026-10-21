@@ -4,7 +4,7 @@
 # called kawa-panel, as the real one is). With no argument it is the panel: its pid file and
 # its fifo ($XDG_RUNTIME_DIR/kawa-panel.pid, kawa-panel.in), a "menu PID" request at a time
 # (kawa-menu.PID.req: the caller, the number of options, the options, the rows), answered
-# into kawa-menu.PID.out as the first line of $FZ/answers says, as fake_fuzzel's:
+# into kawa-menu.PID.out as the first line of $FZ/answers says:
 #   esc          Esc (or another menu took its place): 1
 #   lost         a click outside: 1
 #   enter        Enter on the --select line (else the first choice)
@@ -15,8 +15,7 @@
 # (no answer left: esc). The answer: the line's number (--index), else its name — a typed
 # line's third field (part/row/on/off/key: KIND GLYPH NAME), a plain line whole. Every menu
 # leaves $FZ/args.N (one option a line), $FZ/in.N (the rows), $FZ/who.N (its caller) and
-# "kawa-panel --menu ARGS" in $CALLS; $FZ/n is the count (shared with fake_fuzzel: the
-# launcher's). "toggle MODE" and "close" are logged to $CALLS as "kawa-panel toggle MODE",
+# "kawa-panel --menu ARGS" in $CALLS; $FZ/n is the count. "toggle MODE" and "close" are logged to $CALLS as "kawa-panel toggle MODE",
 # "kawa-panel close". Any argument (--open, --sound…): logged, exit 0. Idle 60 s: it ends.
 set -u
 if (($#)); then printf 'kawa-panel %s\n' "$*" >>"${CALLS:-/dev/null}"; exit 0; fi
@@ -46,10 +45,10 @@ answer_one() {   # answer_one PID — kawa-menu PID's menu
   done
   if [[ -s $FZ/answers ]]; then a=$(head -n1 "$FZ/answers"); sed -i 1d "$FZ/answers"; fi
   echo "${a:-esc}" >"$FZ/out.$n"
-  choice() {   # choice N — line N can be chosen (a row, on, key or plain line)
+  choice() {   # choice N — line N can be chosen (a row, on, key or plain line; never an off or info row)
     local l=${rows[$1]:-}
     [[ -n ${l//[[:space:]]/} ]] || return 1
-    case ${l%%$'\t'*} in part|off|cell|note) [[ $l == *$'\t'* ]] && return 1 ;; esac
+    case ${l%%$'\t'*} in part|off|info|cell|note) [[ $l == *$'\t'* ]] && return 1 ;; esac
     return 0
   }
   choose() {   # choose N — Enter on line N

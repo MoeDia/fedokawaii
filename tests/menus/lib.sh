@@ -1,12 +1,11 @@
 # tests/menus/lib.sh — what the menu tests share, on top of tests/lib/harness.sh: the panel's
-# menus (kawa-panel --menu, kawa-menu's) and fuzzel (the launcher) as stand-ins that answer as
-# told (fake_panel, fake_fuzzel), and the checks that every row fits its menu.
-#   menus_sandbox            sandbox + the fake panel (running, as the session's) and fuzzel
-#                            (WAYLAND_DISPLAY set: fuzzel takes its lock)
-#   answer A…                what the next menus answer, in order (fake_fuzzel lists them)
+# menus (kawa-panel --menu, kawa-menu's; the launcher too) as a stand-in that answers as told
+# (fake_panel), and the checks that every row fits its menu.
+#   menus_sandbox            sandbox + the fake panel (running, as the session's)
+#   answer A…                what the next menus answer, in order (fake_panel lists them)
 #   fz_n                     how many menus opened so far
 #   fz_rows [N] · fz_args [N]   the rows / the arguments (one a line) of menu N (default: the last)
-#   fz_arg KEY [N]           the value of --KEY=… (fuzzel's) or --KEY … (the panel's) of menu N
+#   fz_arg KEY [N]           the value of --KEY … of menu N
 #                            ("" when absent; "set" for a bare flag)
 #   fits [N] [WHY]           every line of panel menu N fits its width whole (no "…": a row's
 #                            glyph, name, detail and value; a heading with its value; a key),
@@ -14,7 +13,6 @@
 #   cols TEXT                the columns TEXT takes (cols.py)
 #   without CMD…             prints a PATH on which CMD… are not found (the stubs, the repo's
 #                            bin, and links to every other program of the system)
-#   forget                   the menus' record of the last menu goes (as after a while)
 #   ns SETUP CMD…            CMD in a mount namespace of its own (unshare -rm: no root needed),
 #                            after the shell lines SETUP (mounting a tmpfs over /sys/class, a
 #                            file over /proc/uptime…); NS=1 when the system allows that
@@ -28,7 +26,6 @@ menus_sandbox() {
   sandbox
   export FZ=$TMP/fz WAYLAND_DISPLAY=wayland-test CALLS
   mkdir -p "$FZ"; : >"$FZ/answers"
-  cp "$MD/fake_fuzzel" "$STUBS/fuzzel"; chmod 755 "$STUBS/fuzzel"
   cp "$MD/fake_panel" "$STUBS/kawa-panel"; chmod 755 "$STUBS/kawa-panel"
   # the session's panel, running (autostart keeps it): the stand-in, reading its fifo
   mkdir -p "$XDG_RUNTIME_DIR"
@@ -44,8 +41,7 @@ fz_arg() {
   while IFS= read -r a; do
     ((next)) && { printf '%s' "$a"; return; }
     case $a in
-      --"$1"=*) printf '%s' "${a#*=}"; return ;;
-      --"$1") case $1 in drop|index|launcher|dmenu|hide-prompt) printf set; return ;; esac; next=1 ;;
+      --"$1") case $1 in drop|index|stay|password) printf set; return ;; esac; next=1 ;;
     esac
   done < <(fz_args "${2:-}")
   ((next)) && printf set
@@ -70,7 +66,6 @@ locale_() {
   fi
   printf 'LOCPATH=%s' "$( [[ -d $d/$1 ]] && printf '%s' "$d")"
 }
-forget() { rm -f "$XDG_RUNTIME_DIR"/kawa-launcher.state; }
 cols() { printf '%s\n' "$1" | python3 -I "$MD/cols.py"; }
 
 fits() {

@@ -41,11 +41,10 @@ help_border = { fg = "#5f594d" }
 help_item = { fg = "#2b2721" }
 help_more = { fg = "#9b927e" }
 
-# marks one cell wide in the terminal's font: wiremix leaves one cell for each, and its own
-# (◇, •••) are geometric shapes Fusion Pixel draws two cells wide — the default device's
-# diamond ran into the space after it and touched the name ("◇HD-Audio Generic"). A half
-# block (foot draws those itself, exactly one cell) leaves the space whole: the mark, then
-# a cell of paper, then the name
+# the marks: wiremix leaves one cell for each and puts the name right after it — its own
+# diamond (◇) filled the cell and touched the name ("◇HD-Audio Generic"). A half block
+# (foot draws those itself, exactly one cell, its right half paper) leaves air before the
+# name: the mark, then paper, then the name
 [char_sets.fedokawaii]
 default_device = "▌"
 default_stream = "▌"

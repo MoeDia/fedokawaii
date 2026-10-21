@@ -49,7 +49,7 @@ bar() {
     local icon cls="" tip line
     if [[ -n $pct ]]; then
       if ((muted)); then
-        # (ICON_BAR_*, no space: exactly 6 px from the icon's ink to the value's)
+        # (ICON_BAR_*, no space: exactly 8 px from the icon's ink to the value's)
         line="$ICON_BAR_VOL_MUTE<span fgalpha='55%'>off</span>" cls='"muted"' tip="muted"
       else
         if ((pct == 0)); then icon=$ICON_BAR_VOL_0; elif ((pct <= 25)); then icon=$ICON_BAR_VOL_1

@@ -175,7 +175,6 @@ wpctl               manifest  wireplumber
 waybar              manifest  waybar
 mako                manifest  mako
 makoctl             manifest  mako
-fuzzel              manifest  fuzzel
 foot                manifest  foot              # f44: foot, footclient (+ foot.desktop, footclient.desktop)
 footclient          manifest  foot
 swaybg              manifest  swaybg
@@ -235,7 +234,7 @@ rg                  manifest  ripgrep
 gio                 dep       glib2 NetworkManager   # libnm; gtk4 and waybar too
 gsettings           dep       glib2 NetworkManager
 gdbus               dep       glib2 NetworkManager   # kawa-steam --guard: logind's warning before a shutdown
-fc-match            dep       fontconfig foot   # libfontconfig; fuzzel, waybar, mako too
+fc-match            dep       fontconfig foot   # libfontconfig; waybar, mako too
 fc-list             dep       fontconfig foot   # the report: the Arabic fonts
 python3             dep       python3 tuned     # tuned is a python program (firewalld, @core, too)
 

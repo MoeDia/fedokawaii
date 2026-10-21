@@ -34,16 +34,19 @@ bin/               the kawa-* helpers (→ ~/.local/bin): menus, bar modules, th
                    screen-share picker, backups (kawa-backup), watching together (kawa-together),
                    fetch, the popup window (kawa-term --float) and its pictures (kawa-sixel),
                    brave-origin (Brave with screen-share sound)
-configs/           what theme installs: home/ mirrors $HOME (foot, waybar, fuzzel, mako, gtk,
-                   qt, bash, nvim, both themes, the pixel art, the icon font) · system/ mirrors /etc
-art/               source art: icons.txt (every icon, drawn as text) · cursors.txt (the pointers,
-                   drawn as text) · grub/ (torii, Fusion Pixel)
-tools/             generators: build-icons.py (Sumi Icons, and its terminal cut) · build-themes.py
-                   (one palette → every app) · build-cursors.py (the pointers)
+configs/           what theme installs: home/ mirrors $HOME (foot, waybar, mako, gtk, qt, bash,
+                   nvim, both themes, the pixel art, the icon font) · system/ mirrors /etc
+art/               source art: icons.txt (every icon, drawn as text) · signs.txt (the faces'
+                   hand-drawn signs) · cursors.txt (the pointers, drawn as text) · grub/ (torii,
+                   Sumi at the boot menu's sizes)
+tools/             generators: build-fonts.py (Sumi UI and Sumi Term → system/fonts/) ·
+                   build-icons.py (Sumi Icons, and its terminal cut) · build-themes.py (one
+                   palette → every app, and the bar's ornaments) · build-cursors.py (the pointers)
 tests/             the self-tests: every helper, the engine and the installer, edge case by edge
                    case, against stand-ins for the hardware (bash tests/run.sh — see §6)
 docs/              the learning guide Super+U opens: fedokawaii-learn.md and Fedokawaii-Learn.pdf
-                   (every key and program, then Python and Rust from zero to AI) · the full
+                   (every key and program, Python and Rust from zero to AI, then working with AI
+                   and Claude Code as a professional) · the full
                    handbook, kept here as the reference: fedokawaii-guide.md, Fedokawaii-Guide.pdf ·
                    build/ (how both PDFs and their real screenshots were made: docs/build/README.md)
 PACKAGES.md        what is installed, from where, and why
@@ -59,20 +62,29 @@ PACKAGES.md        what is installed, from where, and why
   notifications, GTK, Qt, Brave (in its GTK mode), mpv, btop, zathura, the lock screen and the
   wallpaper all follow, live. Every colour used for reading reaches 4.5 : 1; only decoration
   meant to recede sits lower.
-- **One pixel font and pixel icons**: Fusion Pixel 12 (Latin, kana and kanji in one face) —
-  the terminal at 24 px on 26 px lines, the bar, menus and notices at 12 px — and *Sumi
-  Icons*, icons drawn for this desktop (`art/icons.txt`), no icon packs in the bar or menus.
+- **Two pixel faces and pixel icons**: *Sumi UI* — 東雲 Shinonome Gothic 16 Bold, Latin, kana
+  and kanji in one face — for the bar, menus, panels and notices at 16 px, and *Sumi Term* —
+  Kappa 20 Bold — for the terminal at 20 px on 24 px lines, each with its signs redrawn by hand
+  and Unifont JP for what it lacks; and *Sumi Icons*, icons drawn for this desktop on the same
+  grid (`art/icons.txt`), no icon packs in the bar or menus.
 - **Full borders**: every window has a plain 2-pixel border — vermilion for the focused one,
-  warm grey for the others; menus and notices are solid cards with the same warm-grey border.
-- **The bar**: a vermilion torii key (launcher), workspaces as kanji numerals (一 二 三
-  always, more as you use them), the layout as an icon, the window title; in the middle, what
-  is playing between the two halves of a fluorescent-display spectrum meter, with a cassette
-  whose reels turn; on the right a seal while do-not-disturb (静) or screen sharing (共有)
-  is on, a drive mark while a USB drive is plugged in, Steam's gamepad while it runs, the
-  keyboard layout (US / AR), memory, volume, the monitor's brightness (when it answers over
-  DDC/CI), the weather, the date (`18 Oct`), the weekday as a kanji seal, the time to the
-  second, and the cat — quick settings — centred between the last stitch and the screen's
-  edge. No tray.
+  warm grey for the others; menus and panels are see-through as the terminals are (text
+  screens of the same glass), notices solid cards — all with the same warm-grey border.
+- **The bar**: a strip of cloth sewn in sashiko and patched as boro is — kachi-iro, indigo
+  dyed almost black (undyed kinari on the light theme), hemmed along its foot, every line
+  on it a quiet running stitch with its shadow. A torii on a red patch at the left corner (the
+  launcher); the workspaces as a row of stitched patches numbered in kanji (一 二 三 always,
+  more as you use them): an empty frame when empty, indigo while it holds windows, the cloth
+  turned over where you are. Then the layout as an icon and the window title. In the middle,
+  on the cloth itself and parted by two seams, the date (`Wed 21 Oct`), the weekday's kanji
+  in vermilion and the time to the second — and while music plays, its spectrum spreads
+  either side of it like wings, thin columns in one warm grey, the left channel left and
+  the right right. On the right a row of cells, a seam between
+  each: what is playing (a cassette whose reels turn, the title, the artist quieter), a timer, a kanji while do-not-disturb
+  (静) or screen sharing (共有) is on, a drive mark, downloads, Steam's gamepad while it runs,
+  the keyboard layout (US / AR), memory, volume, the monitor's brightness (when it answers
+  over DDC/CI), the weather — and the cat on the other corner's red patch: quick settings.
+  No tray.
 - **Level display**: the volume, microphone and brightness keys show a hi-fi level wedge of
   pixel columns at the bottom centre, updating in place while a key is held.
 - **Clipboard**: Super+V opens a small window with the clipboard history — text and pictures
@@ -112,9 +124,9 @@ PACKAGES.md        what is installed, from where, and why
   licences in `configs/home/.local/share/fedokawaii/wallpapers.list`). Without the pack, the
   theme's plain ground. Each theme keeps its own; day/night pairs switch together; a new one
   dissolves in.
-- **Prompt**: a ledger line — torii, path, git, a dotted rule, then after each command a green
-  ✓ or a vermilion ✗ with its exit code and the time a slow one took, sun or moon, the time to
-  the second. Typing is ble.sh's: the line coloured as you type, a grey suggestion from your
+- **Prompt**: a header on open paper — torii, path, git, and at the right edge after each
+  command a green ✓ or a vermilion ✗ with its exit code, the time a slow one took and the time
+  to the minute — then `›` and what you type. Typing is ble.sh's: the line coloured as you type, a grey suggestion from your
   history (→ takes it), a completion menu — all in the theme's colours.
 - **fetch**: one of ten pixel pictures (beckoning cat, daruma, torii at sunset, a beige
   computer showing Fuji, Fuji at dawn, onigiri, a paper lantern, a cassette, a fox mask,
@@ -122,8 +134,10 @@ PACKAGES.md        what is installed, from where, and why
 - **Pointers**: "Sumi", an ink brush in crisp pixels — the arrow a brush stroke with a dry
   streak, busy an ensō drawn as you wait, "not here" the one vermilion seal — pale ink for the
   dark theme, sumi ink for the light one, switching with it; crisp at 24, 32 and 48 px.
-- **Lock, boot, console**: the lock screen is the plain ground with a pixel padlock whose
-  keyhole lights as you type, the day as a vermilion kanji seal above it and the date below;
+- **Lock, boot, console**: the lock and login screens are your wallpaper shaded into the
+  ground, no box: a pixel padlock and the time at 64 px, the day's seal and date, a line of
+  the season, the password's underline with a vermilion ◆ for each character, and sleep,
+  restart and power off as words;
   the GRUB menu is sumi ink with a hem of seigaiha waves fading upwards in a dither, at your
   monitor's native resolution; Terminus and the dark theme's 16 colours on the login console.
 
@@ -232,7 +246,10 @@ toolkit), never in the toolkit itself, so every update keeps the change (handboo
 Files the theme never writes are yours to edit in place: `~/.bashrc.d/local.sh`,
 `~/.config/dwl/autostart.local.sh`, `~/.config/nvim/lua/plugins/local.lua`. The learning guide
 (**Super+U** → *learn*) teaches every program by exercises, then Python and Rust up to a
-transformer, fine-tuning and an agent. Chapters 43 and
+transformer, fine-tuning and an agent, then working with AI as a professional: how a language
+model works, asking well, agents and their risks, and Claude Code from the daily loop to your
+own hooks, skills and subagents (Part VI, chapters 67–72, every exercise answered in
+appendix D). Chapters 43 and
 44 of the handbook are about learning: which languages to learn and why, the ideas behind them
 with an example each, where the reliable documentation is, and learning with an AI assistant.
 Part IV (chapters 22–34) explains Linux itself from the ground up, on this machine: the boot,

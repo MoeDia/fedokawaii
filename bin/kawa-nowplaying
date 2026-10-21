@@ -1,15 +1,22 @@
 #!/usr/bin/env bash
-# kawa-nowplaying — the middle of the bar: what is playing (Spotify's web player, mpv, a video
-# in Brave…),
-# drawn like the front of an old Japanese tape deck:
+# kawa-nowplaying — what is playing (Spotify's web player, mpv, a video in Brave…), on the bar:
 #
-#   ▁▃▅▇▅▃▂▁  ⌸  artist — title  ▁▂▃▅▇▅▃▁
+#   ▁▃▅▇▅▃▂▁  Wed 21 Oct ┆ 水 ┆ 09:14:08 PM  ▁▂▃▅▇▅▃▁      ┆ ⌸ title  artist ┆ …
 #
-#   the meter   a spectrum split in two around the title, lowest notes nearest it, in
-#               segments like a fluorescent hi-fi display; a full column lights its top
-#               segment in vermilion (the peak lamp). Drawn with the eq-* pixel icons.
-#   the tape    a cassette whose reels turn while there is sound
-#   paused      a pause icon, the title in grey and no meter; no player → hidden
+#   the wings   the sound's spectrum either side of the clock in the middle — the left
+#               channel on the left, the right on the right, 8 bands each, the lowest notes
+#               nearest the clock: thin columns (2 px, 2 apart) rising in one piece, their ink
+#               by height — the floor all but the cloth, low ones faint, the middle muted, the
+#               tall ones the text's: one warm grey, no colour. Drawn with the eq-* pixel
+#               icons, in two modules of their own (kawa-nowplaying --wing left|right)
+#   the label   a cell on the right: a cassette whose reels turn while there is sound, the
+#               title, and after it, quieter, the artist
+#   paused      a pause icon, the title in grey and no wings; no player → hidden
+#
+# The wings are written by this one script (one cava for both): each wing module reads a
+# fifo of its own ($XDG_RUNTIME_DIR/kawa-nowplaying/wing-left|right, made by the wing), and
+# this script writes a frame into each while its wing is running (its pid file says so —
+# asked once a second, no process started), never into one nobody reads.
 #
 # Several players at once (music in Spotify, a paused video in a Brave tab): the one
 # playing is shown — the last to start, if more than one is — else the last one paused.
@@ -21,6 +28,7 @@
 # plugged in, a Bluetooth headset), as PipeWire's own default (pw-metadata) says. Without cava
 # the cassette and title still show, with no meter. Pure bash per frame: no forks.
 #
+# kawa-nowplaying --wing left|right — a wing's module: its fifo's frames, as they come.
 # kawa-nowplaying play-pause|next|previous — the media keys and the bar's clicks: they go to
 # the player the bar shows. (playerctl on its own picks the player that started first: with
 # music playing, Play/Pause would start the paused video on top of it.)
@@ -43,6 +51,19 @@ case ${1:-} in
     p=${play:-$p}
     [[ -n $p ]] && timeout 2 playerctl --player="$p" "$1" 2>/dev/null && exit 0
     exec playerctl "$1" ;;                       # (the bar not running, or its player gone)
+  --wing)
+    [[ ${2:-} == @(left|right) ]] || { echo "usage: kawa-nowplaying --wing left|right" >&2; exit 2; }
+    dir=${XDG_RUNTIME_DIR:-/run/user/$UID}/kawa-nowplaying
+    mkdir -p -m 700 -- "$dir" || exit 1
+    fifo=$dir/wing-$2
+    [[ -p $fifo ]] || { rm -f -- "$fifo"; mkfifo -m 600 -- "$fifo" || exit 1; }
+    exec {fd}<>"$fifo"                           # (read and write: never an end of file)
+    printf '%s\n' "$$" >"$fifo.pid"
+    trap 'rm -f -- "$fifo.pid"' EXIT
+    trap 'exit 0' TERM HUP INT
+    printf '{"text":""}\n'
+    while IFS= read -r -u "$fd" l; do printf '%s\n' "$l" 2>/dev/null || exit 0; done
+    exit 0 ;;
   "") ;;
   -h|--help) sed -n '2,/^set -u/{/^set -u/d;s/^# \{0,1\}//;p}' "$0"; exit 0 ;;
   *) echo "usage: kawa-nowplaying [play-pause|next|previous] (kawa-nowplaying --help)" >&2; exit 2 ;;
@@ -58,11 +79,15 @@ colours() {   # the C_* colours of the theme in use, read again after a switch (
   [[ $t == "$THEME" ]] && return 0
   # shellcheck source=/dev/null
   . "$HOME/.config/fedokawaii/current/colors.sh"
-  THEME=$t PEAK="$ICON_EQ_5<span color='#$C_ACCENT'>$ICON_EQ_CAP</span>"
+  THEME=$t
+  # the meter's inks by height, quiet to bright: the floor (0) all but the cloth, the low
+  # columns faint, the middle muted, the tall ones the text's — one warm grey, no colour
+  TIER=("$C_EDGE2" "$C_FAINT" "$C_FAINT" "$C_MUTED" "$C_MUTED" "$C_TEXT" "$C_TEXT")
+  EQ=("$ICON_EQ_0" "$ICON_EQ_1" "$ICON_EQ_2" "$ICON_EQ_3" "$ICON_EQ_4" "$ICON_EQ_5" "$ICON_EQ_6")
 }
 colours
-MAX=48                                           # longest "artist — title" (cut at a word)
-MAXA=20                                          # longest artist: a long one (several names
+MAX=40                                           # longest "title  artist" (each cut at a word)
+MAXA=16                                          # longest artist: a long one (several names
                                                  # in a row) would leave no room for the title
 
 esc() {   # esc VAR TEXT — JSON + pango escaping into VAR
@@ -73,13 +98,14 @@ esc() {   # esc VAR TEXT — JSON + pango escaping into VAR
   printf -v "$1" '%s' "$s"
 }
 
-meter() {   # meter VAR DIGITS — "03551" → one eq glyph per band (0–5)
-  local s=$2
-  s=${s//0/$ICON_EQ_0}; s=${s//1/$ICON_EQ_1}; s=${s//2/$ICON_EQ_2}
-  s=${s//3/$ICON_EQ_3}; s=${s//4/$ICON_EQ_4}
-  s=${s//5/$PEAK}                                # last: the markup holds digits of its own
-  # shellcheck disable=SC2089  # pango markup going into JSON: single quotes on purpose
-  printf -v "$1" "<span color='#%s'>%s</span>" "$C_TEAL" "$s"
+meter() {   # meter VAR DIGITS — "036410" → one eq glyph per band (0–6), each in its tier's ink
+  local s=$2 o="" i d
+  for ((i = 0; i < ${#s}; i++)); do
+    d=${s:i:1}; [[ $d == [0-6] ]] || d=0
+    # shellcheck disable=SC2089  # pango markup going into JSON: single quotes on purpose
+    o+="<span color='#${TIER[d]}'>${EQ[d]}</span>"
+  done
+  printf -v "$1" '%s' "$o"
 }
 
 # Where a line may be cut: at a space; on either side of a letter of a script written without
@@ -125,29 +151,58 @@ words() {   # words TEXT N — TEXT in at most N letters, cut where a line may b
   printf '%s' "$a"
 }
 status="" artist="" title="" last="" bands="" reel=0 frames=0
+# the wings: their fifos, open while their module runs (WFD: side → fd; WPID: side → its pid)
+WDIR=${XDG_RUNTIME_DIR:-/run/user/$UID}/kawa-nowplaying
+declare -A WFD=() WPID=() WLAST=()
+wsec=0
+wings_check() {   # wings_check — each wing: open its fifo if its module runs, close it if not
+  local side p fd
+  for side in left right; do
+    p=""; { read -r p <"$WDIR/wing-$side.pid"; } 2>/dev/null
+    if [[ $p =~ ^[0-9]+$ ]] && kill -0 "$p" 2>/dev/null && [[ -p $WDIR/wing-$side ]]; then
+      [[ -n ${WFD[$side]:-} && ${WPID[$side]:-} == "$p" ]] && continue
+      [[ -n ${WFD[$side]:-} ]] && { fd=${WFD[$side]}; exec {fd}>&-; }
+      exec {fd}<>"$WDIR/wing-$side" && WFD[$side]=$fd WPID[$side]=$p WLAST[$side]=""
+    elif [[ -n ${WFD[$side]:-} ]]; then
+      fd=${WFD[$side]}; exec {fd}>&-; unset "WFD[$side]" "WPID[$side]" "WLAST[$side]"
+    fi
+  done
+}
+wing() {   # wing SIDE JSON — a frame to a wing, if it runs and it is new
+  [[ -n ${WFD[$1]:-} && $2 != "${WLAST[$1]:-}" ]] || return 0
+  printf '%s\n' "$2" >&"${WFD[$1]}" 2>/dev/null && WLAST[$1]=$2
+}
 show() {
-  local out text body ml mr tape a=$artist
+  local out t n body ml mr tape a=$artist wl='{"text":""}' wr='{"text":""}'
+
   colours
   if [[ -z $title || ( $status != Playing && $status != Paused ) ]]; then
     out='{"text":""}'
   else
     # too long: cut at a word's end (a single long word loses its last letters) — never "…"
     ((${#a} > MAXA)) && a=$(words "$a" "$MAXA")
-    text="${a:+$a — }$title"
-    ((${#text} > MAX)) && text=$(words "$text" "$MAX")
-    esc body "$text"
+    t=$title n=$((MAX - ${#a} - (${#a} ? 2 : 0)))
+    ((${#t} > n)) && t=$(words "$t" "$n")
+    esc body "$t"
+    if [[ -n $a ]]; then
+      esc a "$a"
+      # (two spaces, then the artist in the quiet ink: the title is what you look for)
+      # shellcheck disable=SC2089  # pango markup going into JSON: single quotes on purpose
+      body+="  <span color='#$C_FAINT'>$a</span>"
+    fi
+    # (ICON_BAR_*: the icon's ink, then exactly 8 px to the words)
     if [[ $status == Paused ]]; then
-      out="{\"text\":\"$ICON_PAUSE  $body\",\"class\":\"paused\"}"
+      out="{\"text\":\"$ICON_BAR_PAUSE$body\",\"class\":\"paused\"}"
     else
-      tape=$ICON_CASSETTE_A; ((reel)) && tape=$ICON_CASSETTE_B
+      tape=$ICON_BAR_CASSETTE_A; ((reel)) && tape=$ICON_BAR_CASSETTE_B
+      out="{\"text\":\"$tape$body\",\"class\":\"playing\"}"
       if [[ -n $bands ]]; then
         meter ml "${bands:0:8}"; meter mr "${bands:8:8}"
-        out="{\"text\":\"$ml  $tape  $body  $mr\",\"class\":\"playing\"}"
-      else
-        out="{\"text\":\"$tape  $body\",\"class\":\"playing\"}"
+        wl="{\"text\":\"$ml\",\"class\":\"playing\"}" wr="{\"text\":\"$mr\",\"class\":\"playing\"}"
       fi
     fi
   fi
+  wing left "$wl"; wing right "$wr"
   [[ $out == "$last" ]] && return
   # the bar is gone (waybar ignores SIGPIPE, and so does its child: a write just fails) —
   # end here, cava and playerctl with it, rather than meter music for nobody
@@ -158,7 +213,7 @@ show() {
 last='{"text":""}'; printf '%s\n' "$last"         # at once: hidden until a player shows
 # One pipe for both streams, told apart by shape: a player line holds \x1f separators (not
 # tabs: read would collapse repeats and lose an empty artist), an empty line means no
-# player, a cava frame is 16 bands of 0–5 ("0;3;5;…;"). When the player watcher stops,
+# player, a cava frame is 16 bands of 0–6 ("0;3;6;…;"). When the player watcher stops,
 # END makes this script exit, and waybar starts it again.
 # cava runs only while a player plays: no audio capture stream (and no wake-ups) otherwise,
 # so the sound card can rest while nothing plays.
@@ -239,9 +294,11 @@ while IFS= read -r -u "$in" line; do
                 [[ $p == "$player" ]] || { player=$p; printf '%s\n' "$p" >"$SHOWN"; }
                 [[ $status == Playing ]] || bands="" ;;
     *)          frame=${line//;/}
-                [[ $status == Playing && ${#frame} == 16 && $frame != *[!0-5]* ]] || continue
+                [[ $status == Playing && ${#frame} == 16 && $frame != *[!0-6]* ]] || continue
                 [[ $frame == *[1-5]* ]] && { ((++frames % 12)) || reel=$((1 - reel)); }  # sound: turn the reels (5 a second)
+                ((EPOCHSECONDS == wsec)) || { wsec=$EPOCHSECONDS; wings_check; }   # (the wings: once a second)
                 bands=$frame ;;
   esac
+  [[ $line == *"$US"* || -z $line ]] && wings_check
   show
 done

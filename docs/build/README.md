@@ -1,7 +1,7 @@
 # docs/build — how the handbook PDF is made
 
 `Fedokawaii-Guide.pdf` is `fedokawaii-guide.md` typeset with **real screenshots**: the desktop's
-own programs (waybar, fuzzel, mako, foot, gtklock, yazi, neovim, mpv, Brave …) started with
+own programs (waybar, mako, foot, gtklock, the panel, yazi, neovim, mpv, Brave …) started with
 this repository's configs, as `theme.sh` installs them, and captured to the pixel. Nothing in
 the book is a mock-up. This folder keeps everything that made it, as it was run.
 
@@ -13,7 +13,7 @@ the book is a mock-up. This folder keeps everything that made it, as it was run.
 | `render/shoot.sh` | the desktop: bar, menus and quick settings, notices, level display, terminal, lock — both themes (`SHOOT_ONLY="menus …"` for some; `switch` times a theme switch) |
 | `render/apps.sh` | the applications and windows: yazi, neovim, lazygit, btop, mpv, zathura, the file dialog, books, notes, Super+U, torrra, Brave, the mixer (wiremix), pairing (bluetui), VisiData |
 | `render/grub.sh` | the boot menu, drawn by GRUB 2.12 itself: the installed theme on a rescue CD booted in QEMU with UEFI firmware, with Fedora's entries → `shots/grub.png` |
-| `render/build.sh` | builds the drawing stack (Pango, fcft, foot, fuzzel, mako, gtklock, waybar …) at Fedora 44's versions into `/opt/f44` |
+| `render/build.sh` | builds the drawing stack (Pango, fcft, foot, mako, gtklock, waybar …) at Fedora 44's versions into `/opt/f44` |
 | `render/sway.conf` | the headless compositor that stands in for dwl, drawing dwl's 2 px frame |
 | `render/README.md` | the render kit in detail: what is real, what stands in, every output file |
 | `render/lib/`, `render/stubs/` | small helpers and stand-ins for hardware the sandbox lacks (Bluetooth, DDC/CI, a player, a monitor list; `lib/fakebluez.py` answers as BlueZ for bluetui) |
@@ -37,8 +37,8 @@ FEDOKAWAII_REPO=/path/to/fedokawaii FEDOKAWAII_SCRATCH=/path/to/work \
 ```
 
 `FEDOKAWAII_GUIDE` and `FEDOKAWAII_OUT` point it at another Markdown file and output folder (a
-preview). The book is set in the desktop's own faces: Fusion Pixel as setup installs it
-(`FEDOKAWAII_PIXEL_FONT`) for headings and labels, the toolkit's Sumi Icons, JetBrains Mono for
+preview). The book is set in the desktop's own faces: Sumi UI (system/fonts, or
+`FEDOKAWAII_PIXEL_FONT`) for headings and labels, the toolkit's Sumi Icons, JetBrains Mono for
 code, Noto Serif and Sans from `@fontsource` for the text; from the system it takes Noto
 Serif/Sans CJK JP for kanji and kana, and DejaVu Sans for arrows and symbols. The cover is the
 dark theme's default wallpaper, ink-ridges-night, as the theme fetched it (`FEDOKAWAII_COVER`); a

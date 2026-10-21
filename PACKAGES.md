@@ -2,7 +2,10 @@
 
 One tool per job. The authoritative list is `lib/manifest.sh` (packages) and `lib/upstream.sh`
 (release binaries); `verify.sh` proves the machine matches them exactly. Every name was checked
-for **Fedora 44 and 45** on 15 Oct 2026 (LibreOffice's parts and the dictionaries on 17 Oct). No Flatpak, no Snap, no fallbacks.
+for **Fedora 44 and 45** on 15 Oct 2026 (LibreOffice's parts and the dictionaries on 17 Oct), and
+every Fedora one again on 21 Oct 2026 in Fedora 44 and in Rawhide (46) — each is in both; the
+release downloads re-measured that day, each the newest release but ble.sh (a commit: §27.7 of
+the guide says why). No Flatpak, no Snap, no fallbacks.
 
 Where each name was seen, and when, is `tools/packages.evidence` (a source URL and a date per package and per
 release download). `bash tools/check-packages` audits the list anywhere (a name twice, wanted and forbidden,
@@ -20,7 +23,7 @@ Source: **F** Fedora · **RF** RPM Fusion · **V** vendor repo (signed) · **C**
 | Clipboard keeper | `kawa-clipkeep` | this repository (`src/kawa-clipkeep`, C) | a copy stays after its program closes; the usual tool for this (wl-clip-persist) is not packaged for Fedora |
 | Screensaver | `kawa-saver` | this repository (`src/kawa-saver`, C) | sashiko stitched across the screens, seals stamped on it, the time; away 15 minutes (kawa-idle), the lock behind it; a few MB, no toolkit |
 | Lock screen keys | `kawa-lockmod` | this repository (`src/kawa-lockmod`, C, a gtklock module) | sleep · restart · power off on the lock screen, and the wake guard (the key that wakes the computer is never a password); gtklock's own powerbar module is not packaged for Fedora |
-| Login | greetd + greetd-selinux · `kawa-greet` in cage | F + this repository (`system/kawa-greet`, Python + GTK 3) | the lock screen's twin: the day's seal, the padlock, the time, one box for your password (your user name is set by setup); cage, a kiosk compositor, shows it; SELinux policy is a separate package on Fedora |
+| Login | greetd + greetd-selinux · `kawa-greet` in cage | F + this repository (`system/kawa-greet`, Python + GTK 3) | the lock screen's twin: on the shaded wallpaper, no box — the padlock and the time, the day's seal and date, one line for your password (your user name is set by setup); cage, a kiosk compositor, shows it; SELinux policy is a separate package on Fedora |
 | Boot splash | Plymouth (script plugin) | F + this repository (`system/plymouth/sumi`) | the sumi splash while the disk unlocks and the system starts |
 | Terminal | foot (server + footclient) | F | |
 | Shell | bash + bash-completion · ble.sh | F + git (pinned commit) | native prompt, OSC 7 / 133 for foot; ble.sh (the Bash Line Editor) types for it: the line coloured as you type, a grey suggestion from your history, a completion menu — in the terminal's 16 colours, so it follows the theme |
@@ -29,11 +32,11 @@ Source: **F** Fedora · **RF** RPM Fusion · **V** vendor repo (signed) · **C**
 | Browser | Brave Origin | V | free on Linux; Shields only; in GTK mode, so it wears the palette |
 | AI | Claude Code | V (`downloads.claude.ai`, key fingerprint checked) | |
 | AI agents side by side | herdr | GH (static, SHA-256 pinned) | several Claude Code sessions in panes of one terminal window (launcher → *Agents*), each marked working, blocked or idle in a sidebar; a git worktree per task on one key; a notice (mako) when one finishes or asks. Its own multiplexer and server, so no tmux; Claude Squad (needs tmux, AGPL, last release August 2026) was the other candidate. Its update and rule-download checks are off: it stays the pinned release |
-| Launcher + all menus | fuzzel | F | through `kawa-menu`: power, audio, calendar, drives, help, change, shrink, screen-share picker (the wallpaper and clipboard windows are fzf) |
+| Launcher + all menus | `kawa-panel` (through `kawa-menu`) | this repository (Python + GTK 3) | the launcher (Super+Space, the torii): the desktop entries, each with its own icon or a kanji seal, a sum or a conversion answered as you type and copied by Enter; and every small menu: power, audio, calendar, drives, help, change, shrink, screen-share picker (the wallpaper and clipboard windows are fzf). One process with quick settings, so nothing starts when you open one |
 | Quick settings | `kawa-panel` + gtk-layer-shell | this repository (Python + GTK 3) + F | the panel under the bar's cat (Super+X): brightness, sound, the tiles; GTK 3 and Python's GObject come with the login screen |
 | Bar | waybar | F | dwl tags via `kawa-dwlstatus`; its own clock module (seconds, no script) |
 | Notifications | mako + libnotify | F | |
-| Lock / idle | gtklock · swayidle | F | the power menu is a fuzzel menu (`kawa-power`); away 15 min the screensaver and the lock behind it, 30 min the screens dark, never while something plays (`kawa-idle`: idle-inhibit, MPRIS, logind idle locks); nothing sleeps by itself; a lock you ask for (Super+Escape) sleeps 90 s later; sleep is suspend only — hibernation off (`/etc/systemd/sleep.conf.d/90-fedokawaii.conf`) |
+| Lock / idle | gtklock · swayidle | F | the power menu is a kawa-menu menu (`kawa-power`); away 15 min the screensaver and the lock behind it, 30 min the screens dark, never while something plays (`kawa-idle`: idle-inhibit, MPRIS, logind idle locks); nothing sleeps by itself; a lock you ask for (Super+Escape) sleeps 90 s later; sleep is suspend only — hibernation off (`/etc/systemd/sleep.conf.d/90-fedokawaii.conf`) |
 | Level display | mako (category `osd`) | F | `kawa-osd`: volume, microphone, brightness — no separate OSD program |
 | Wallpaper | swaybg | F | |
 | Outputs | wlr-randr · wlopm · wayland-utils | F | `kawa-display` picks the best refresh rate ≤ `MONITOR_HZ` · `wlopm` powers screens off when idle without moving windows · `wayland-info` lists what the compositor offers (the health report) |
@@ -58,7 +61,7 @@ Source: **F** Fedora · **RF** RPM Fusion · **V** vendor repo (signed) · **C**
 | Images | imv + ImageMagick (+ -heic) + libheif-freeworld | F + RF | convert, resize, compress — phone (HEIC) photos too; ImageMagick also draws the pixel art, the wallpapers and the boot menu background |
 | QR codes | qrencode | F | a link or Wi-Fi details as a QR code, in the terminal or as a PNG |
 | Screen recording | wf-recorder | F | Super+Shift+R (`kawa-record`): the whole screen or a region (slurp) to `~/Videos/Recordings/*.mp4`, the desktop's sound or none; H.264 encoded on the card (VA-API, `h264_vaapi`: RPM Fusion's ffmpeg and mesa-va-drivers-freeworld), the bar's 録 and its time while it runs. gpu-screen-recorder is only in COPRs for Fedora 44, so not used |
-| Calculator | qalc (`qalculate`) | F | "Calculator" in the launcher: `kawa-calc`, the answer as you type from one qalc it asks line by line, Enter copies; Ctrl+Q is qalc's own prompt. Not inside fuzzel: its authors declined an inline calculator (fuzzel #443) |
+| Calculator | qalc (`qalculate`) | F | "Calculator" in the launcher: `kawa-calc`, the answer as you type from one qalc it asks line by line, Enter copies; Ctrl+Q is qalc's own prompt. The launcher answers sums and conversions too, as you type, from a qalc of its own (started on the first one, ended after two idle minutes) |
 | Video | mpv + mpv-mpris + yt-dlp + nodejs24 (+ -bin, -npm-bin) | F | mpv-mpris: mpv in the bar and on the media keys; Node.js: yt-dlp's JavaScript runtime for YouTube, and npm for Mason's language servers |
 | Watching together | Syncplay 1.7.6 (no window) | git (GitHub, pinned commit) + F | its source at the v1.7.6 tag's commit with two fixes of ours (src/syncplay/syncplay.patch: mpv waited for at the start, the window closed with mpv), run by Fedora's python3 with python3-twisted (+tls) · python3-pyOpenSSL · python3-certifi · python3-pem (lib/upstream.sh); Fedora's syncplay package is left out: it brings PySide6 and 27 Qt modules for a window never used. `kawa-together`: a small form (server, room, name, password, film; your last choice ready, Enter rejoins it), then Syncplay beside mpv; pause, seek, ready and chat reach friends through a public server (syncplay.pl) |
 | Codecs | ffmpeg (full) | RF | replaces ffmpeg-free |
@@ -73,13 +76,13 @@ Source: **F** Fedora · **RF** RPM Fusion · **V** vendor repo (signed) · **C**
 | Search / view | ripgrep · fd-find · bat | F | rg and fd also power LazyVim's pickers |
 | Performance | tuned | F | the `fedokawaii` profile: throughput-performance for an always-plugged desktop |
 | Fetch | `fetch` (own, pure bash) | repo | ten pixel pictures; replaces fastfetch |
-| Snapshots | snapper · grub-btrfs | F + C | Timeshift can't use Fedora's subvolume names; grub-btrfs (COPR `zzahkaboom24/grub-btrfs`, 4.14 for Fedora 43 and 44 — Fedora has no package; kylegospo's COPR stopped at 38) lists the newest ten "before" snapshots in the boot menu, made again by `kawa-snap boot` (no grub-btrfsd daemon); `kawa-snap restore` swaps one in as the system |
+| Snapshots | snapper · grub-btrfs | F + C | Timeshift can't use Fedora's subvolume names; grub-btrfs (COPR `zzahkaboom24/grub-btrfs`, 4.14 for Fedora 43, 44 and 45 — Fedora has no package; kylegospo's COPR stopped at 38) lists the newest ten "before" snapshots in the boot menu, made again by `kawa-snap boot` (no grub-btrfsd daemon); `kawa-snap restore` swaps one in as the system |
 | Backups | restic | F | your home to a USB drive, an external disk or a restic address, deduplicated and encrypted; `kawa-backup` runs it (quick settings → backup) — nothing on a timer, the drive may not be plugged in |
 | Containers | podman | F | for Prowlarr |
 | GPU | Mesa freeworld VA-API · LACT · rocm-smi | RF + C + F | amdgpu feature mask for LACT; rocm-smi: the library btop reads the card through (AMD only); while RPM Fusion is behind this Fedora's Mesa, or the COPR has no build for it, they wait (recorded, Fedora's drivers standing in) and update or repair adds them |
 | Peripherals | OpenRGB | F | RGB lighting on the motherboard's headers; fan speeds are the motherboard firmware's (§21.2) |
 | Gaming | Steam · gamescope · MangoHud · GE-Proton · ntsync-autoload · steam-devices | RF + F + GH | GE-Proton keeps the newest two (its own installer: no ProtonPlus / protonup — one tool); ntsync: Proton's faster synchronisation; game mode by itself for every Steam game: `kawa-game` (tuned's game profile for the card's clocks — tuned the one owner of CPU and card; the game reniced; notices, night light, idle, background timers held) — Feral's gamemode retired (it would set the CPU too); MangoHud in every Steam game, hidden until Shift_R+F12 |
-| Fonts | Fusion Pixel 12 and 10 (the terminal's Sumi Term made from the 10) · JetBrainsMono Nerd · Sumi Icons · Terminus (console) · Noto Sans · Noto Sans CJK · Noto Naskh Arabic · Noto Kufi Arabic · Amiri · Noto Color Emoji · Liberation | GH + F + repo | Fusion Pixel = the one pixel font: Latin, kana and kanji in one face, in two cuts — the 10 px one in the terminal at 20 px (on 22 px lines), the 12 px one in the bar, menus and notices at 12 px, the lock and login screens, the boot menu; JetBrainsMono Nerd = the apps' monospace and the Nerd Font symbols programs draw; Noto Sans CJK = Japanese, Chinese, Korean in programs and subtitles; Sumi Icons = this desktop's icons; Kufi = Arabic in the pixel UI (bar, menus, notices); Liberation = metric-compatible fonts for office files |
+| Fonts | Sumi UI and Sumi Term · JetBrainsMono Nerd · Sumi Icons · Terminus (console) · Noto Sans · Noto Sans CJK · Noto Naskh Arabic · Noto Kufi Arabic · Amiri · Noto Color Emoji · Liberation | repo + GH + F | Sumi UI and Sumi Term = the desktop's two pixel faces, Latin, kana and kanji in one face each, kept in this repository (`system/fonts`, built by `tools/build-fonts.py`, SIL Open Font License 1.1): Sumi UI is 東雲 Shinonome Gothic 16 Bold (JF Dot, public domain), in the bar, menus, panels and notices at 16 px, the lock and login screens, the boot menu and splash; Sumi Term is Kappa 20 Bold, in the terminal at 20 px on 24 px lines; their signs redrawn by hand, and what they lack from GNU Unifont JP 17; JetBrainsMono Nerd = the apps' monospace and the Nerd Font symbols programs draw; Noto Sans CJK = Japanese, Chinese, Korean in programs and subtitles; Sumi Icons = this desktop's icons; Kufi = Arabic in the pixel UI (bar, menus, notices); Liberation = metric-compatible fonts for office files |
 | Look | adw-gtk3 · qt6ct · dconf · pointers drawn here (Adwaita beneath for rare shapes) | F + repo | dark/light switched live by `kawa-theme`; the pixel pointers come from `art/cursors.txt`; icons: each program's own (hicolor), under GTK's Adwaita — no icon pack; windows, dialogs, buttons square (the GTK themes) |
 | Build (kept) | gcc · make · pkgconf · wayland/wlroots/xcb devel · gtk3-devel | F | theme.sh rebuilds dwl when you change a keybind, and builds kawa-clipkeep, kawa-saver and kawa-lockmod (GTK 3's headers) |
 | Script plumbing | dnf5-plugins · git · jq · gnupg2 · tar · grubby · diffutils · man-db · libva-utils · libdnf5-plugin-actions | F | used by setup.sh / verify.sh; tar unpacks the release archives and GE-Proton, grubby sets the kernel arguments (neither is in a Minimal Install's `@core`; the installer adds grubby only on a UEFI machine); diff / cmp compare the copy and the toolkit, man opens the manuals the change menu lists (both usually present: listed, never assumed); actions = a snapshot pair around every dnf run |
@@ -87,7 +90,7 @@ Source: **F** Fedora · **RF** RPM Fusion · **V** vendor repo (signed) · **C**
 | Base | NetworkManager · sudo | F | already in @core — listed so they are marked as yours and dnf's clean-up never takes them |
 | Base | NetworkManager-tui · xorg-x11-server-Xwayland · xdg-utils · xdg-user-dirs | F | nmtui (quick settings → network) · X11 programs · `xdg-open` · `~/Pictures`… |
 | GPU base | mesa-dri-drivers · mesa-vulkan-drivers · vulkan-loader · linux-firmware · amd-gpu-firmware (AMD) · intel-media-driver (Intel) | F + RF | Vulkan: Fedora's own on both (RPM Fusion's freeworld Vulkan build adds only Vulkan's H.264/HEVC video, unused here, and its 64- and 32-bit packages have clashed); VA-API: the freeworld build on AMD, Intel's driver from RPM Fusion |
-| Repositories | rpmfusion-free-release · rpmfusion-nonfree-release | RF | |
+| Repositories | rpmfusion-free-release · rpmfusion-nonfree-release | RF | fetched from RPM Fusion's own server (its mirror list only when that does not answer), each checked against RPM Fusion's signing key (its fingerprint pinned in `lib/manifest.sh`) before dnf installs it — and dnf checks it again |
 
 ## Never present (verify.sh fails if any appear)
 
@@ -96,7 +99,7 @@ Origin (firefox, chromium, brave-browser) · other terminals and launchers (alac
 konsole, gnome-terminal, rofi, wofi, wmenu, bemenu) · second polkit agents and tray NM
 (polkit-gnome, hyprpolkitagent, network-manager-applet) · flatpak, snapd, PackageKit,
 gnome-software · ffmpeg-free · tuigreet, gtkgreet, wlogout, fastfetch, neofetch (replaced by
-kawa-greet, fuzzel menus and the own `fetch`) · swaylock (the lock: gtklock only) · pavucontrol, blueman (replaced by wiremix and bluetui, in
+kawa-greet, kawa-menu's menus and the own `fetch`) · swaylock (the lock: gtklock only) · pavucontrol, blueman (replaced by wiremix and bluetui, in
 terminal windows) · second notification daemons (dunst, SwayNotificationCenter: swaync) ·
 power-profiles-daemon (tuned only) · other login managers (gdm, sddm, lightdm, lxdm) ·
 AbiWord, Gnumeric, sc-im (replaced by LibreOffice) · systemd-oomd-defaults (systemd-oomd's rules: its out-of-memory killer acts on whole cgroups, so
@@ -112,7 +115,7 @@ before setup started plus the manifest — anything else is reported by name.
 | Removed | Why |
 |---|---|
 | a separate clock script | waybar's own clock module shows seconds and wakes on the second by itself |
-| tuigreet, wlogout, fastfetch | kawa-greet (the login screen), a fuzzel power menu, the own `fetch` |
+| tuigreet, wlogout, fastfetch | kawa-greet (the login screen), a power menu of its own (`kawa-power`), the own `fetch` |
 | npm for Claude Code | Claude Code now ships an official signed dnf repo (Node.js and npm are back, for yt-dlp and Mason — see below) |
 | Rust + cargo (+ openssl/alsa/dbus devel, cmake) | yazi and bluetui come as release binaries — 15 min faster setup |
 | GStreamer plugins + `@multimedia` group | nothing installed uses GStreamer (mpv = ffmpeg; Brave and Steam bundle their own) |
@@ -136,6 +139,8 @@ before setup started plus the manifest — anything else is reported by name.
 | spotify_player (release binary) | Spotify's web player instead (a free account works too); update takes the binary and its settings out |
 | lpf, lpf-spotify-client, spotify-client | Spotify's own app, built here by lpf from RPM Fusion's recipe — until the recipe pointed at a download Spotify had taken down (Oct 2026); its web player in a Brave app window does the same. Update hands the three back to dnf, and repair removes lpf's account (pkg-build) and /var/lib/lpf |
 | papirus-icon-theme | every program shows its own icon, as its package ships it (the launcher, GTK, Qt, the notices): no icon pack over them; update hands it back to dnf |
+| fuzzel | the launcher is kawa-panel's own, as every menu already was: one process, one look, the sums answered as you type (fuzzel has no calculator); update hands it back to dnf |
+| Fusion Pixel (release download) · python3-fonttools | the desktop's faces are this repository's own files now, Sumi UI and Sumi Term (`system/fonts`): nothing is downloaded or built on the machine; update removes the old font folder (`/usr/local/share/fonts/fusion-pixel`) and hands fonttools back to dnf |
 
 ## Added since the previous version, and why
 
@@ -168,7 +173,7 @@ before setup started plus the manifest — anything else is reported by name.
 | qrencode | QR codes without a website |
 | wf-recorder | screen recordings (the screenshot tools do stills only) |
 | 7zip, file | yazi's archive previews and extraction; file types for the clipboard window |
-| zstd · unrar | File tools (Super+D, `kawa-file`): `.tar.zst` archives (tar runs zstd) · RAR archives and `.cbr` comics, extract only (RPM Fusion nonfree; Fedora's 7-Zip is built without RAR) |
+| zstd · unrar | File tools (Super+D, `kawa-file`): `.tar.zst` archives (tar runs zstd) · RAR archives and `.cbr` comics, extract only (RPM Fusion nonfree, RARLAB's own; Fedora's 7-Zip is built without RAR, and Fedora's own `unrar` is a wrapper for unrar-free, version 0.3 — RPM Fusion's, the newer, is the one dnf installs) |
 | google-noto-sans-cjk-vf-fonts | Japanese, Chinese and Korean in programs, web pages and subtitles |
 | ntsync-autoload | Proton's faster synchronisation (with Steam) |
 | steam-devices | the rules that let Steam open a game controller (Bluetooth or USB); Steam brings it today — listed so dnf's clean-up can never take it |

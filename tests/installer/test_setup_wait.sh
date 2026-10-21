@@ -46,19 +46,19 @@ eq "$(state phase)" "done"
 lacks "$(state pending-rpmfusion)" vulkan; has "$(state pending-rpmfusion)" mesa-va-drivers-freeworld.i686
 pkg_has mesa-vulkan-drivers.i686 && _ok || _no "Steam's 32-bit Vulkan driver (Fedora's) not installed"
 pkg_has steam && _ok || _no "Steam not installed"
-has "$OUT" "! libheif-freeworld 1.23.5 waits for Fedora's libheif 1.23.5"; has "$OUT" "! mesa-va-drivers-freeworld 26.2.4 waits for Fedora's mesa-filesystem 26.2.4"
-has "$OUT" "! the COPR ilyaz/LACT has no build for Fedora 44 yet — lact left out"
-lacks "$OUT" "✘ forbidden packages present"; lacks "$OUT" "✘ installed outside the manifest"; lacks "$OUT" "✘ missing packages"
+has "$OUT" "!  libheif-freeworld 1.23.5 waits for Fedora's libheif 1.23.5"; has "$OUT" "!  mesa-va-drivers-freeworld 26.2.4 waits for Fedora's mesa-filesystem 26.2.4"
+has "$OUT" "!  the COPR ilyaz/LACT has no build for Fedora 44 yet — lact left out"
+lacks "$OUT" "✘  forbidden packages present"; lacks "$OUT" "✘ installed outside the manifest"; lacks "$OUT" "✘ missing packages"
 keep waiting
 
 case_ "verify while they wait: Fedora's VA driver (no H.264, no HEVC) is a warning, not a failure"
 printf '      VAProfileAV1Profile0   : VAEntrypointVLD\n' >"$FKH/vainfo-renderD128"
 fkrun bash "$TK/verify.sh"; eq "$RC" 0 "$(grep '✘' <<<"$OUT" | head -n3 | tr '\n' '|')"
-has "$OUT" "! no hardware decode: H264High yet — RPM Fusion's VA driver waits for this Fedora's Mesa"
+has "$OUT" "!  no hardware decode: H264High yet — RPM Fusion's VA driver waits for this Fedora's Mesa"
 case_ "…and once nothing waits any more, the same is a failure again (Fedora's Vulkan driver is no fault: it is the desktop's)"
 rm -f "$W/var/lib/fedokawaii/pending-rpmfusion"
 fkrun bash "$TK/verify.sh"; eq "$RC" 3
-has "$OUT" "✘ hardware decode: H264High"; lacks "$OUT" "✘ forbidden packages present"
+has "$OUT" "✘  hardware decode: H264High"; lacks "$OUT" "✘  forbidden packages present"
 
 # ── update and repair, once the repositories have caught up ───────────────────
 case_ "update: RPM Fusion caught up — its builds put in (Fedora's Vulkan driver stays), the record cleared; the COPR still waits"
@@ -70,7 +70,7 @@ for p in mesa-va-drivers-freeworld libheif-freeworld mesa-va-drivers-freeworld.i
 done; _ok
 pkg_has mesa-vulkan-drivers-freeworld && _no "RPM Fusion's Vulkan driver installed" || _ok
 not_called 'allowerasing.*vulkan|vulkan.*allowerasing'
-eq "$(state pending-copr)" ilyaz/LACT; has "$OUT" "! the COPR ilyaz/LACT has no build for Fedora 44 yet"
+eq "$(state pending-copr)" ilyaz/LACT; has "$OUT" "!  the COPR ilyaz/LACT has no build for Fedora 44 yet"
 case_ "repair: the COPR has a build now — enabled, LACT installed and its service on, the record cleared"
 fkh copr-nochroot
 tk --repair; eq "$RC" 0 "$(grep -E '✘|still needs' <<<"$OUT" | head -n3 | tr '\n' '|')"
@@ -91,7 +91,7 @@ fkh_del installed mesa-vulkan-drivers.i686; fkh_add installed mesa-vulkan-driver
 fkh_add installed PackageKit; fkh_add userinstalled "PackageKit Weak Dependency"
 echo mesa-vulkan-drivers-freeworld >>"$W/var/lib/fedokawaii/pending-rpmfusion"
 fkrun bash "$TK/verify.sh"; eq "$RC" 3
-has "$OUT" "✘ forbidden packages present"; has "$OUT" "mesa-vulkan-drivers-freeworld"
+has "$OUT" "✘  forbidden packages present"; has "$OUT" "mesa-vulkan-drivers-freeworld"
 reset_calls
 tk --repair; eq "$RC" 0 "$(grep -E '✘|still needs' <<<"$OUT" | head -n3 | tr '\n' '|')"
 called 'dnf\] -y swap --allowerasing mesa-vulkan-drivers-freeworld mesa-vulkan-drivers$'
@@ -99,7 +99,7 @@ called 'dnf\] -y swap --allowerasing mesa-vulkan-drivers-freeworld.i686 mesa-vul
 for p in mesa-vulkan-drivers mesa-vulkan-drivers.i686; do pkg_has "$p" || _no "$p not installed"; done; _ok
 for p in mesa-vulkan-drivers-freeworld mesa-vulkan-drivers-freeworld.i686 PackageKit; do pkg_has "$p" && _no "$p still installed"; done; _ok
 lacks "$(state pending-rpmfusion)" vulkan
-fkrun bash "$TK/verify.sh"; lacks "$OUT" "✘ forbidden packages present"; has "$OUT" "✔ dnf never takes Node 22, PackageKit, Java or LibreOffice's offline help as a weak dependency"
+fkrun bash "$TK/verify.sh"; lacks "$OUT" "✘  forbidden packages present"; has "$OUT" "✔  dnf never takes Node 22, PackageKit, Java or LibreOffice's offline help as a weak dependency"
 
 # ── RPM Fusion ahead of Fedora's stable (its build made for a libheif still in testing) ──
 case_ "libheif-freeworld made for the libheif in updates-testing: that libheif taken from testing, then libheif-freeworld — nothing waits"

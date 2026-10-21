@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 # kawa-help — Super+/ : every keybinding, type to filter (Esc closes). A menu of the panel's
 # (kawa-menu; docs/design-system.md): each part of keybinds.txt under its kanji and name (what
-# its heading says after a colon or in brackets at the heading's end), a row a binding — the key as the row's
-# name, what it does in a column of its own (the panel puts it 12 px after the longest key).
-# A row of keybinds.txt is a key, then its description from column 24 on (a key that runs past
-# it: after its gap of two spaces). The first binding is where the first key puts the cursor.
+# its heading says after a colon or in brackets at the heading's end), an info row a binding —
+# only read, nothing to choose: the key as the row's name, what it does in a column of its own
+# (the panel puts it two gaps after the longest key). A row of keybinds.txt is a key, then its
+# description from column 24 on (a key that runs past it: after its gap of two spaces).
 # No arguments (--help: this text).
 set -u
 case ${1:-} in
@@ -42,7 +42,7 @@ split() {
   KEY=${KEY%"${KEY##*[! ]}"} DESC=${DESC#"${DESC%%[! ]*}"}
 }
 # sheet — the menu's lines: "── name: more ───" or "── name (more) ───" a part (its name; the
-# more at its end), any other line a row (no glyph: the key, then what it does); blank lines left out
+# more at its end), any other line an info row (no glyph: the key, then what it does); blank lines left out
 sheet() {
   local l t v K
   while IFS= read -r l; do
@@ -54,8 +54,8 @@ sheet() {
       elif [[ $t =~ ^(.*[^ ])\ +\((.*)\)$ ]]; then t=${BASH_REMATCH[1]} v=${BASH_REMATCH[2]}; fi
       kanji "$t"; printf 'part\t%s\t%s\t%s\n' "$K" "$t" "$v"
     else
-      split "$l"; printf 'row\t\t%s\t%s\n' "$KEY" "$DESC"
+      split "$l"; printf 'info\t\t%s\t%s\n' "$KEY" "$DESC"
     fi
   done <"$f"
 }
-sheet | kawa-menu --prompt "> " --lines 24 --select 1 >/dev/null || true
+sheet | kawa-menu --prompt "> " --lines 24 >/dev/null || true
