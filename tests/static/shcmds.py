@@ -629,6 +629,10 @@ class Parser:
                     continue
                 elif w in ("fi", "done", "}", "in", "]]"):
                     expect = False
+                elif w == "coproc" and i + 2 < n and t[i + 1].lit and t[i + 2].lit in ("{", "(", "while", "until", "if", "for", "case"):
+                    i += 2                       # coproc NAME { … }: NAME names the coprocess, it runs nothing
+                    expect = True
+                    continue
                 else:                            # then do else elif if while until ! { time coproc
                     expect = True
                 i += 1

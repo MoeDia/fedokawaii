@@ -45,7 +45,7 @@ not_called 'systemctl\] disable --now dnf5-makecache'
 eq "$(cat "$FKH/hostname" 2>/dev/null)" fedokawaii "a machine with no name gets one"
 eq "$(cat "$FKH/timezone" 2>/dev/null)" "Asia/Dubai"
 has "$(cat "$W/etc/dnf/libdnf5.conf.d/90-fedokawaii.conf")" "max_parallel_downloads=10"
-has "$(cat "$FKH/grubenv")" "menu_auto_hide=1" "one system: Fedora's hidden menu"
+has "$(cat "$FKH/grubenv")" "menu_auto_hide=2" "one system: Fedora's hidden menu"
 has "$(head -n1 "$FKH/grub-args")" "systemd.tty.term.console=dumb" "no console-size wait at boot (every entry)"
 eq "$(grep -c systemd.tty.term.console=dumb "$FKH/grub-args")" 2
 case_ "phase 1: a quiet boot (its own step) — the splash and nothing else on the screen: each argument on every entry, the consoles' cursor back at login"
@@ -90,7 +90,7 @@ grep -qx "global-enabled grub-boot-success.timer" "$FKH/units" && _no "Fedora's 
 [[ -s $W/var/lib/fedokawaii/input-group-out ]] && _ok || _no "not recorded: a later update would look again"
 has "$(cat "$W/etc/systemd/system/user@.service.d/fedokawaii.conf" 2>/dev/null)" $'[Service]\nTimeoutStopSec=30s' "shutdown never waits long on your services"
 has "$(cat "$W/etc/systemd/system/greetd.service.d/fedokawaii.conf")" "Conflicts=getty@tty1.service kmsconvt@tty1.service" "greetd holds tty1 against agetty and Fedora 45's kmscon"
-has "$(cat "$W/etc/systemd/system/greetd.service.d/fedokawaii.conf")" "After=getty@tty1.service kmsconvt@tty1.service plymouth-quit-wait.service" "greetd starts once the splash has gone, never beside it"
+has "$(cat "$W/etc/systemd/system/greetd.service.d/fedokawaii.conf")" "ExecStartPost=-/usr/bin/plymouth quit --retain-splash" "the splash hands the screen to greetd, no black between"
 eq "$(cat "$FKH/default-target")" graphical.target
 has "$(cat "$FKH/snaps")" "fedokawaii baseline"
 # the health report: the toolkit's, and once at the first start of the finished desktop
@@ -161,7 +161,7 @@ back phase3; mkdir -p "$W$CLONE/.git"; : >"$W$CLONE/.git/fedokawaii-conf-base"; 
 resume --no-reboot; [[ -d $W$CLONE ]] && _ok || _no "your working copy was removed"
 has "$OUT" "~/fedokawaii kept: it is your working copy"
 case_ "a git clone of GitHub's (its origin known): moved to ~/repos/fedokawaii — the one clone fedokawaii pull updates"
-back phase3; rm -rf "$W$CLONE/.git"; git -C "$W$CLONE" init -q; git -C "$W$CLONE" remote add origin https://github.com/MoeDia/fedokawaii.git
+back phase3; rm -rf "$W$CLONE/.git"; git -C "$W$CLONE" init -q; git -C "$W$CLONE" remote add origin https://github.com/MoeDia/fedokawaii.git; printf '[remote "origin"]\n\turl = https://github.com/MoeDia/fedokawaii.git\n' >>"$W$CLONE/.git/config"   # (the fake git writes no config: has_origin reads it)
 chown -R "$FK_UID:$FK_UID" "$W$CLONE/.git"
 resume --no-reboot; eq "$(state phase)" "done"
 [[ ! -e $W$CLONE && -d $W/home/fkuser/repos/fedokawaii/.git ]] && _ok || _no "the clone was not moved into place"
@@ -179,8 +179,8 @@ lacks "$OUT" "No such file"; lacks "$OUT" "final verification failed"
 case_ "Fedora 45: phase 2 takes RPM Fusion's release packages for 45, and goes on as on 44"
 back phase2; fedora_release 45
 resume --no-reboot; eq "$RC" 0; eq "$(state phase)" 3; has "$OUT" "Fedora 45 · phase 2"
-called 'mirrors\.rpmfusion\.org/free/fedora/rpmfusion-free-release-45\.noarch\.rpm'
-called 'mirrors\.rpmfusion\.org/nonfree/fedora/rpmfusion-nonfree-release-45\.noarch\.rpm'
+called 'download1\.rpmfusion\.org/free/fedora/rpmfusion-free-release-45\.noarch\.rpm'
+called 'download1\.rpmfusion\.org/nonfree/fedora/rpmfusion-nonfree-release-45\.noarch\.rpm'
 not_called 'release-44\.noarch'
 
 # ── stopped half-way, started again ──────────────────────────────────────────

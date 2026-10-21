@@ -36,9 +36,10 @@ NERD_FONTS=(
 # Fusion Pixel (SIL OFL): pixel fonts with Latin and Japanese (kana + kanji) in one face —
 # the desktop's one type, in two cuts of the same design: the 12 px one for the bar, menus
 # and notifications at 1× (12 px), the lock and login screens and the boot menu at 2× and
-# 3×; the 10 px one for the terminal at 2× (20 px: a 10 × 22 px cell, the size the terminal
+# 3×; the 10 px one for the terminal at 2× (20 px: a 10 × 24 px cell, the size the terminal
 # had before the pixel font, and every pixel still a sharp 2 × 2 square). The monospaced
-# cuts, their Japanese glyph forms ("ja"). Installed for every account
+# cuts, their Japanese glyph forms ("ja"); the terminal draws the 10 px one as Sumi Term, made
+# from it here (sumi_term). Installed for every account
 # (/usr/local/share/fonts): the login screen runs as its own system user.
 FUSION_DIR=/usr/local/share/fonts/fusion-pixel
 FUSION_TAG=2026.08.11
@@ -204,33 +205,6 @@ install_localsend() {   # the pinned release, whole, into ~/.local/share/localse
 }
 localsend_current() { [[ $(up_tag localsend) == "$LOCALSEND_TAG" && -x $(localsend_dir)/localsend_app ]]; }
 
-# The launcher's icons for release tools that ship none in their release file: each project's
-# own logo, from its repository at the pinned tag, its SHA-256 pinned too (measured 2026-10-20).
-# ~/.local/share/fedokawaii/icons/NAME.png; the launcher entries name them by path (Files: yazi,
-# Agents: herdr). Tools whose project has no logo show foot's, the terminal that draws them.
-#               name   repo              tag      path in the repository   sha-256
-UPSTREAM_ICONS=(
-  "yazi|sxyazi/yazi|v26.9.1|assets/logo.png|7df01d685d6727dcf165f2de5d9145dedca89d38e18f526209a9ec6346ab9915"
-  "herdr|herdrdev/herdr|v0.9.5|assets/logo.png|56fc2db845c16eb521022549890fbe239659957caee1f4fc718a634d7a66cf0a"
-)
-icon_dir() { echo "$TARGET_HOME/.local/share/fedokawaii/icons"; }
-icon_current() {   # icon_current "name|…|sha256" — that picture is in place, byte for byte
-  local name sum; IFS='|' read -r name _ _ _ sum <<<"$1"
-  [[ $(as_user sha256sum -- "$(icon_dir)/$name.png" 2>/dev/null | cut -d' ' -f1) == "$sum" ]]
-}
-install_upstream_icons() {   # each a no-op when in place; every one tried; 1 when one could not be
-  local e name repo tag path sum rc=0
-  for e in "${UPSTREAM_ICONS[@]}"; do
-    icon_current "$e" && continue
-    IFS='|' read -r name repo tag path sum <<<"$e"
-    fetch_pinned "https://raw.githubusercontent.com/$repo/$tag/$path" "$sum" "$name.png" || { rc=1; continue; }
-    as_user mkdir -p -- "$(icon_dir)" && user_put 0644 "$(icon_dir)/$name.png" <"$REL_DIR/x/$name.png" \
-      || { log "could not write ~/.local/share/fedokawaii/icons/$name.png (is the disk full?)"; rc=1; continue; }
-    rm -rf "$REL_DIR"; ok "$name's icon ($tag) → ~/.local/share/fedokawaii/icons"
-  done
-  return "$rc"
-}
-
 retire_upstream() {   # UPSTREAM_RETIRED out: each binary (only one its record says we put there) and its record
   local n
   for n in "${UPSTREAM_RETIRED[@]}"; do
@@ -262,11 +236,12 @@ install_nerd_fonts() {    # each family from its own release file, checksum-pinn
   return "$failed"
 }
 
-install_fusion() {   # pinned archives → /usr/local/share/fonts/fusion-pixel (the faces, the licence)
+install_fusion() {   # pinned archives → /usr/local/share/fonts/fusion-pixel (the faces, the licence,
+  # and the terminal's face made from the 10 px one: Sumi Term, tools/build-term-font.py)
   local e px f have=1 rels=() faces=() lic=""
   for e in "${FUSION_FACES[@]}"; do [[ -s $FUSION_DIR/fusion-pixel-${e%%|*}px-monospaced-ja.ttf ]] || have=0; done
   if ((have)) && [[ $(cat "$FUSION_DIR/.version" 2>/dev/null) == "$FUSION_TAG" ]]; then
-    log "Fusion Pixel 12 and 10 $FUSION_TAG — in place"; return 0
+    log "Fusion Pixel 12 and 10 $FUSION_TAG — in place"; sumi_term; sumi_ui; return
   fi
   # every archive fetched and checked before anything is installed: one refused, none is
   for e in "${FUSION_FACES[@]}"; do
@@ -288,6 +263,26 @@ install_fusion() {   # pinned archives → /usr/local/share/fonts/fusion-pixel (
   as_user rm -f "$(up_state_dir)/nerd-DepartureMono"
   fc-cache -f "$FUSION_DIR" >/dev/null; as_user fc-cache -f >/dev/null
   ok "Fusion Pixel 12 and 10 $FUSION_TAG (the desktop's font, Latin and Japanese)"
+  sumi_term; sumi_ui
+}
+# sumi_term — the terminal's face, Sumi Term, made from the 10 px one (tools/build-term-font.py)
+# whenever it is missing or older than the face or the tool that makes it
+sumi_term() {
+  local f=$FUSION_DIR/sumi-term.ttf src=$FUSION_DIR/fusion-pixel-10px-monospaced-ja.ttf
+  [[ -s $f && ! $f -ot $src && ! $f -ot $REPO_DIR/tools/build-term-font.py ]] && return 0
+  python3 -I "$REPO_DIR/tools/build-term-font.py" "$src" "$f.new" && chmod 0644 "$f.new" && mv -f "$f.new" "$f" \
+    || { rm -f "$f.new"; log "could not make the terminal's face, Sumi Term (python3-fonttools)"; return 1; }
+  fc-cache -f "$FUSION_DIR" >/dev/null; as_user fc-cache -f >/dev/null
+  ok "Sumi Term (the terminal's face: Fusion Pixel 10, its upright strokes a screen pixel heavier)"
+}
+# sumi_ui — the UI's face, Sumi UI, made from the 12 px one (tools/build-ui-font.py), the same way
+sumi_ui() {
+  local f=$FUSION_DIR/sumi-ui.ttf src=$FUSION_DIR/fusion-pixel-12px-monospaced-ja.ttf
+  [[ -s $f && ! $f -ot $src && ! $f -ot $REPO_DIR/tools/build-ui-font.py ]] && return 0
+  python3 -I "$REPO_DIR/tools/build-ui-font.py" "$src" "$f.new" && chmod 0644 "$f.new" && mv -f "$f.new" "$f" \
+    || { rm -f "$f.new"; log "could not make the UI's face, Sumi UI (python3-fonttools)"; return 1; }
+  fc-cache -f "$FUSION_DIR" >/dev/null; as_user fc-cache -f >/dev/null
+  ok "Sumi UI (the UI's face: Fusion Pixel 12, its upright strokes doubled)"
 }
 
 # swap_in NEW DIR NAME — the folder NEW (built, and found to work) in DIR's place, the old one

@@ -16,7 +16,7 @@ LIB=/home/fkuser/fedokawaii/lib
 up() {
   fkrun bash -c 'set -u; LOG_FILE=/var/log/fk-upstream.log; . "$1/common.sh"; . "$1/upstream.sh"
     export TARGET_USER=fkuser TARGET_HOME=/home/fkuser TARGET_UID=31000 TARGET_GID=31000 STATE_DIR=/var/lib/fedokawaii
-    make_tmp; eval "$2"' _ "$LIB" "$1"
+    REPO_DIR=$1/..; make_tmp; eval "$2"' _ "$LIB" "$1"
 }
 satty='"${UPSTREAM[0]}"'
 
@@ -162,12 +162,13 @@ up "install_upstream_bin $satty || echo FAILED"; has "$OUT" "FAILED"; lacks "$OU
 up 'install_nerd_fonts || echo FAILED'; has "$OUT" "FAILED"
 [[ ! -e $W$H/.local/share/fedokawaii/upstream/nerd-JetBrainsMono ]] && _ok || _no "the tag recorded for fonts not written"
 fk chmod 755 "$H/.local/bin" "$H/.local/share/fonts"
-case_ "Fusion Pixel 12 and 10: for every account (/usr/local/share/fonts), only the Japanese faces and the licence; the fonts before it gone from the home"
-back start; mkdir -p "$W$H/.local/share/fonts/PixelMplus" "$W$H/.local/share/fonts/DepartureMonoNerd" "$W$H/.local/share/fedokawaii/upstream"
+case_ "Fusion Pixel 12 and 10: for every account (/usr/local/share/fonts), only the Japanese faces and the licence, and the terminal's Sumi Term made from the 10 and the UI's Sumi UI from the 12; the fonts before it gone from the home"
+# (tools/build-term-font.py and build-ui-font.py: their own work is fontTools'; here their calls, and where they put the faces)
+back start; stub python3 'case "$1 ${2##*/}" in "-I build-term-font.py"|"-I build-ui-font.py") printf face >"$4";; *) exec /usr/bin/python3 "$@";; esac'; mkdir -p "$W$H/.local/share/fonts/PixelMplus" "$W$H/.local/share/fonts/DepartureMonoNerd" "$W$H/.local/share/fedokawaii/upstream"
 echo v3.5.1 >"$W$H/.local/share/fedokawaii/upstream/nerd-DepartureMono"; fk chown -R fkuser:fkuser "$H/.local"
 up 'install_fusion'; eq "$RC" 0
-eq "$(ls -A "$W/usr/local/share/fonts/fusion-pixel" | tr '\n' ' ')" ".version OFL.txt fusion-pixel-10px-monospaced-ja.ttf fusion-pixel-12px-monospaced-ja.ttf "
-eq "$(stat -c '%U %a' "$W/usr/local/share/fonts/fusion-pixel/fusion-pixel-12px-monospaced-ja.ttf" "$W/usr/local/share/fonts/fusion-pixel/fusion-pixel-10px-monospaced-ja.ttf" | sort -u)" "root 644"
+eq "$(ls -A "$W/usr/local/share/fonts/fusion-pixel" | tr '\n' ' ')" ".version OFL.txt fusion-pixel-10px-monospaced-ja.ttf fusion-pixel-12px-monospaced-ja.ttf sumi-term.ttf sumi-ui.ttf "
+eq "$(stat -c '%U %a' "$W/usr/local/share/fonts/fusion-pixel/fusion-pixel-12px-monospaced-ja.ttf" "$W/usr/local/share/fonts/fusion-pixel/fusion-pixel-10px-monospaced-ja.ttf" "$W/usr/local/share/fonts/fusion-pixel/sumi-term.ttf" "$W/usr/local/share/fonts/fusion-pixel/sumi-ui.ttf" | sort -u)" "root 644"
 [[ ! -e $W$H/.local/share/fonts/PixelMplus && ! -e $W$H/.local/share/fonts/DepartureMonoNerd && ! -e $W$H/.local/share/fedokawaii/upstream/nerd-DepartureMono ]] && _ok || _no "an old pixel font left in the home"
 called '^root\[fc-cache\] -f /usr/local/share/fonts/fusion-pixel'
 reset_calls; up 'install_fusion'; has "$OUT" "Fusion Pixel 12 and 10 2026.08.11 — in place"; not_called curl

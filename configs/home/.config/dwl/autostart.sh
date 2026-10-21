@@ -41,6 +41,8 @@ systemctl --user start dwl-session.target
 systemctl --user start fedokawaii-remind.timer 2>/dev/null
 # the weekly tidy of your home (kawa-tidy): looked at 20 minutes in, never while the login settles
 systemctl --user start kawa-tidy.timer 2>/dev/null
+# the wallpaper every 4 hours (Super+W: "a new one every 4 hours", off unless switched on)
+systemctl --user start kawa-wallpaper-next.timer 2>/dev/null
 # GRUB's hidden menu: this boot counts as successful once the desktop has run two minutes
 # (the timer stops with the session: one that ends sooner leaves the boot unmarked)
 systemctl --user start grub-boot-success.timer 2>/dev/null
@@ -91,12 +93,15 @@ keep waybar </dev/null >"$HOME/.cache/waybar.log" 2>&1 &
 # quick settings (the bar's cat, Super+X): drawn once, then hidden until asked, so it opens
 # at once — kawa-quick and kawa-menu ask it through its fifo (kawa-panel.in)
 keep kawa-panel </dev/null >"$HOME/.cache/kawa-panel.log" 2>&1 &
-mako </dev/null &                                  # notifications (if it ever stops, D-Bus starts it
-                                                   # again with the next one — so no keep here)
+# notifications: mako's own unit, once — started here and by D-Bus with the first notice
+# alike, so never twice (a mako of its own beside D-Bus's started two, and the loser
+# failed the unit: "degraded"); if it ever stops, D-Bus starts it again with the next one
+systemctl --user --no-block start mako.service
 # nmtui (quick settings → network) and other newt dialogs in the terminal's own 16 colours,
 # so they follow the theme like everything in foot; every terminal inherits it from here
 export NEWT_COLORS='root=lightgray,default;border=gray,default;window=lightgray,default;shadow=default,default;title=white,default;button=lightgray,black;actbutton=black,red;compactbutton=lightgray,default;checkbox=lightgray,default;actcheckbox=black,brightcyan;entry=white,black;disentry=gray,black;label=lightgray,default;listbox=lightgray,default;actlistbox=white,black;sellistbox=lightgray,black;actsellistbox=black,red;textbox=lightgray,default;acttextbox=white,black;helpline=gray,default;roottext=gray,default;emptyscale=,black;fullscale=,red'
 keep foot --server </dev/null &                    # Super+Return → footclient (instant)
+kawa-warm --start </dev/null >/dev/null 2>&1 &      # notes, the clipboard, the system menu: running, put away (their keys show them in the frame)
 keep /usr/libexec/lxqt-policykit-agent </dev/null &   # auth dialogs (an app asking for your password;
                                                    # Fedora keeps it out of PATH, in libexec)
 keep udiskie </dev/null &                          # drives: open when plugged in (~/.config/udiskie, kawa-drives)

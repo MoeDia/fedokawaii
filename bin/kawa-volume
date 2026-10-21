@@ -50,14 +50,13 @@ bar() {
     if [[ -n $pct ]]; then
       if ((muted)); then
         # (ICON_BAR_*, no space: exactly 6 px from the icon's ink to the value's)
-        line="$ICON_BAR_VOL_MUTE<span fgalpha='55%'>off</span>" cls='"muted"' tip="volume off ($pct %)"
+        line="$ICON_BAR_VOL_MUTE<span fgalpha='55%'>off</span>" cls='"muted"' tip="muted"
       else
         if ((pct == 0)); then icon=$ICON_BAR_VOL_0; elif ((pct <= 25)); then icon=$ICON_BAR_VOL_1
         elif ((pct <= 50)); then icon=$ICON_BAR_VOL_2; elif ((pct <= 75)); then icon=$ICON_BAR_VOL_3
         else icon=$ICON_BAR_VOL_4; fi
-        line="$icon$pct<span fgalpha='55%'>%</span>" tip="volume $pct %"
+        line="$icon$pct<span fgalpha='55%'>%</span>" tip="volume $pct%"
       fi
-      tip="$tip · click: the sound panel · right-click: mute · scroll: ±2 %"
       # (lit: its panel open under it — no tooltip, which would show behind the panel)
       bar_lit volume && cls="[${cls:+$cls,}\"active\"]" tip=""
       line="{\"text\":\"$line\",\"tooltip\":\"$tip\"${cls:+,\"class\":$cls}}"

@@ -128,6 +128,10 @@ case_ "WALL-03: each theme's last picture still there"
 mkdir -p "$HOME/.local/state/fedokawaii"; echo "pack:p1" >"$HOME/.local/state/fedokawaii/wallpaper-dark"
 run "WALL-03 the wallpaper of each theme exists"; eq "$RC" 0 "$OUT"
 echo "pack:gone" >"$HOME/.local/state/fedokawaii/wallpaper-light"; run "WALL-03 the wallpaper of each theme exists"; eq "$RC" 1
+case_ "WALL-04: the list's pictures counted, not its comments (the whole pack fetched passes)"
+{ echo "# the pack"; echo "# ── dark"; for i in $(seq 30); do echo "dark  p$i  -  center  0  https://x/p$i.jpg  T (CC0)"; done; } >"$HOME/.local/share/fedokawaii/wallpapers.list"
+grep -q '^WALLPAPER_PACK=' "$TMP/tk/fedokawaii.conf" 2>/dev/null || echo 'WALLPAPER_PACK=yes' >>"$TMP/tk/fedokawaii.conf"
+run "WALL-04 the pack against its list"; eq "$RC" 0 "$OUT"; has "$OUT" "30 of 30 listed"
 
 case_ "UPK-03: the records with a word after the date (last-update: \"EPOCH ok\") read as dates"
 printf '1792454291 checks\n' >"$TMP/state/last-update"; printf '1792454291\n' >"$TMP/state/last-update-done"

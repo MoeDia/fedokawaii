@@ -92,6 +92,30 @@ case_ "misuse: an unknown word, a bad region"
 setup; rc 2 kawa-record frob; rc 2 kawa-record run whole loud; rc 2 kawa-record run region silent "x"; rc 2 kawa-record run whole silent "a b"
 case_ "stop with nothing running: a notice says so at once; the bar stays empty"
 setup; rc 0 kawa-record stop; has "$(args_of notify-send 1)" "nothing is being recorded"; eq "$(kawa-record bar)" '{"text":""}'
+# ── pause: parts, 3-2-1 on the bar, one file ─────────────────────────────────────────────
+case_ "pause: wf-recorder ends its part, the bar says 録 停 and the time, muted; nothing records"
+setup; argv ffmpeg 'for a; do o=$a; done; echo joined >"$o"'
+recording whole silent; w1=$(pgrep -f -n "$STUBS/wf-recorder")
+rc 0 kawa-record pause
+until_ '[[ $(kawa-record bar) == *paused* ]]' && _ok || _no "not paused: $(kawa-record bar)"
+has "$(kawa-record bar)" '"text":"録 停 00:0'
+until_ '! kill -0 '"$w1"' 2>/dev/null' && _ok || _no "wf-recorder still records while paused"
+case_ "pause again: 3, 2, 1 on the bar (a second each), then a new part records"
+rc 0 kawa-record pause
+until_ '[[ $(kawa-record bar) == *\"録\ 3\"* ]]' && _ok || _no "no 3: $(kawa-record bar)"
+until_ '[[ $(kawa-record bar) == *\"録\ 1\"* ]]' && _ok || _no "no 1"
+until_ '[[ $(kawa-record bar) == *\"class\":\"rec\"* ]]' && _ok || _no "not on again"
+until_ '[[ $(wf_args) == *"$VID/."* ]]'; has "$(wf_args)" "$VID/."
+case_ "stopped after a pause: the parts joined by ffmpeg as they are (concat, no re-encode), only the file left"
+stopped; until_ '[[ $(ncalls notify-send) -ge 1 ]]'
+has "$(args_of ffmpeg 1)" "concat"; has "$(args_of ffmpeg 1)" "copy"
+eq "$(find "$VID" -name '.*' | wc -l)" 0 "parts left: $(ls -a "$VID")"
+eq "$(find "$VID" -name '*.mp4' | wc -l)" 1
+case_ "the encoder told the monitor's refresh rate (-B)"
+setup; stub wlr-randr 'echo "[{\"name\":\"DP-1\",\"enabled\":true,\"modes\":[{\"refresh\":143.912,\"current\":true}]}]"'
+recording whole silent; has "$(wf_args)" $'-B\n143'; stopped
+case_ "pause with nothing recording: said"
+setup; rc 0 kawa-record pause; has "$(args_of notify-send 1)" "nothing is being recorded"
 case_ "stop while recording: the bar's mark goes at once, the file is finished after"
 setup; recording whole silent; kawa-record stop; eq "$(kawa-record bar)" '{"text":""}'
 until_ '! kill -0 $RPID 2>/dev/null'; wait "$RPID" 2>/dev/null

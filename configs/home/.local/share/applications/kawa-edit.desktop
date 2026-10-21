@@ -2,13 +2,14 @@
 # Text files open in neovim, in a terminal window of its own (the default for text types in
 # ~/.config/mimeapps.list) — and "Editor" in the launcher, through kawa-term as every other
 # terminal program here; neovim's own entry (hidden) would ask the launcher for a terminal
-# (Terminal=true) instead.
-# (`--`: a file named like -R or +cmd is opened as a file, never read as an option)
+# (Terminal=true) instead. (`--`: a file named like -R or +cmd is opened as a file, never
+# read as an option). Its icon: our seal of 編 (tools/build-appicons.py, the theme's own:
+# current/apps).
 Type=Application
 Name=Editor
 GenericName=Text editor
 Comment=neovim in a terminal window
-Icon=nvim
+Icon=@HOME@/.config/fedokawaii/current/apps/editor.png
 Exec=@HOME@/.local/bin/kawa-term nvim -- %F
 Terminal=false
 MimeType=text/plain;text/markdown;text/x-markdown;text/x-shellscript;application/x-shellscript;text/x-python;text/x-csrc;text/x-chdr;text/x-c++src;text/x-rust;text/x-go;text/javascript;application/javascript;application/json;application/toml;application/x-yaml;text/x-log;text/css;text/csv;application/xml;text/x-lua;text/x-diff;text/x-patch;

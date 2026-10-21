@@ -1,18 +1,18 @@
 [Desktop Entry]
-# CSV and TSV files open in VisiData (vd), in a terminal window of its own (kawa-term, app-id
-# kawa-tables; the default for text/csv and text/tab-separated-values in ~/.config/mimeapps.list):
-# a download from Brave, xdg-open, yazi's O. "Tables" in the launcher too, in place of
-# visidata's own entry (hidden: it would ask the launcher for a terminal): with no file, vd
-# lists the home folder — Enter on a CSV, TSV, JSON or SQLite file opens it. Excel files
-# (.xlsx, .ods) open in LibreOffice Calc — vd would need python3-openpyxl for them.
-# (`--`: a file named like -b or -o is opened as a file, never read as an option)
-# Its icon: foot's, the terminal that draws its window (VisiData ships none of its own; the
-# launcher shows each program's own icon, never an icon pack's).
+# CSV and TSV files open in VisiData (vd), in a terminal window of its own (kawa-term,
+# app-id kawa-tables; the default for text/csv and text/tab-separated-values in
+# ~/.config/mimeapps.list): a download from Brave, xdg-open, yazi's O. "Tables" in the
+# launcher too, in place of visidata's own entry (hidden: it would ask the launcher for a
+# terminal): with no file, vd lists the home folder — Enter on a CSV, TSV, JSON or SQLite
+# file opens it. Excel files (.xlsx, .ods) open in LibreOffice Calc — vd would need
+# python3-openpyxl for them. (`--`: a file named like -b or -o is opened as a file, never
+# read as an option) Its icon: our seal of 表 (tools/build-appicons.py, the theme's own:
+# current/apps).
 Type=Application
 Name=Tables
 GenericName=Table viewer
 Comment=VisiData: CSV, TSV, JSON and SQLite tables — sort, filter, sum, group
-Icon=foot
+Icon=@HOME@/.config/fedokawaii/current/apps/tables.png
 Exec=@HOME@/.local/bin/kawa-term --app kawa-tables Tables vd -- %F
 Terminal=false
 MimeType=text/csv;text/tab-separated-values;

@@ -1,14 +1,13 @@
 [Desktop Entry]
 # Your repositories (kawa-git) in a terminal window of its own (kawa-term, app-id kawa-git),
 # tiled: the one you worked in last first, Enter opens lazygit in it. With none yet, it says
-# how to get one — clone one into ~/repos, or start a new one — and opens lazygit there.
-# Its icon: foot's, the terminal that draws its window (lazygit ships none of its own, and
-# its project has no logo; the launcher shows each program's own icon, never an icon pack's).
+# how to get one — clone one into ~/repos, or start a new one — and opens lazygit there. Its
+# icon: our seal of 枝 (tools/build-appicons.py, the theme's own: current/apps).
 Type=Application
 Name=Git
 GenericName=Version control
 Comment=lazygit on one of your repositories: stage, commit, branch, pull and push
-Icon=foot
+Icon=@HOME@/.config/fedokawaii/current/apps/git.png
 Exec=@HOME@/.local/bin/kawa-term --app kawa-git Git @HOME@/.local/bin/kawa-git
 Terminal=false
 Categories=Development;RevisionControl;

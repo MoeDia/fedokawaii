@@ -145,7 +145,7 @@ case_ "a quiet boot on a sound system: each argument on every entry, this start 
 back built; V; eq "$RC" 0
 for b in loglevel=3 rd.udev.log_level=3 systemd.show_status=false vt.global_cursor_default=0; do has "$OUT" "✔ $b on every boot entry"; done
 has "$OUT" "✔ a quiet boot, this start too"; has "$OUT" "✔ a text console shows its cursor at login"
-has "$OUT" "✔ greetd owns tty1 and follows the boot splash (its drop-in)"
+has "$OUT" "✔ greetd owns tty1 and takes the screen from the splash with no black between (its drop-in)"
 case_ "an entry that shows the console's cursor again, and one with the kernel's messages back: each named, exit 3; this start's: only said"
 back built; sed -i '2 s/ vt.global_cursor_default=0//; 1 s/loglevel=3/loglevel=7/' "$FKH/grub-args"
 sed -i 's/ systemd.show_status=false//' "$W/proc/cmdline"
@@ -156,8 +156,8 @@ case_ "the consoles' cursor never back at login (its profile.d file gone): named
 back built; rm "$W/etc/profile.d/fedokawaii-console.sh"
 V; eq "$RC" 3; has "$OUT" "✘ a text console shows its cursor at login"
 case_ "greetd's drop-in without the splash's order (an older one): named, exit 3 — repair writes it again"
-back built; sed -i 's/ plymouth-quit-wait.service//' "$W/etc/systemd/system/greetd.service.d/fedokawaii.conf"
-V; eq "$RC" 3; has "$OUT" "✘ greetd owns tty1 and follows the boot splash (its drop-in)"
+back built; sed -i '/retain-splash/d' "$W/etc/systemd/system/greetd.service.d/fedokawaii.conf"
+V; eq "$RC" 3; has "$OUT" "✘ greetd owns tty1 and takes the screen from the splash with no black between (its drop-in)"
 case_ "a kernel whose boot image dracut could not make (dnf does not fail on that): named, exit 3"
 back built; fkh kernels "6.18.1-200.fc44.x86_64" "$(uname -r)"              # the older one at rest, no image for it
 V; eq "$RC" 3; has "$OUT" "✘ kernels without a boot image (initramfs) — 6.18.1-200.fc44.x86_64 — would not start; repair makes them (dracut)"
@@ -199,11 +199,11 @@ has "$OUT" "! btop's view of the card — rocm-smi has no librocm_smi64.so.1.0";
 
 # ── the boot menu ────────────────────────────────────────────────────────────
 case_ "one system, not themed: Fedora's hidden menu is checked"
-back built; V; has "$OUT" "✔ GRUB menu hidden (shows after a failed boot)"
+back built; V; has "$OUT" "✔ GRUB menu hidden at every start (menu_auto_hide=2)"
 case_ "a Windows beside it (setup left the menu shown): the shown menu is checked, and passes"
 echo "Windows Boot Manager" >"$W/var/lib/fedokawaii/other-os"; fkh grubenv ""
 V; eq "$RC" 0; has "$OUT" "✔ GRUB menu shown (this machine also starts Windows Boot Manager)"
-fkh grubenv "menu_auto_hide=1"; V; eq "$RC" 3; has "$OUT" "✘ GRUB menu shown (this machine also starts"
+fkh grubenv "menu_auto_hide=2"; V; eq "$RC" 3; has "$OUT" "✘ GRUB menu shown (this machine also starts"
 
 # ── the live session (you are logged in) ─────────────────────────────────────
 case_ "a laptop: its own screen's backlight counts as brightness control (no DDC/CI monitor needed)"

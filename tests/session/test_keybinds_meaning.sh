@@ -50,8 +50,8 @@ case_ "… a new row the check does not know yet"
 copy; sed -i 's/^Super+Tab               previous workspace/&\nSuper+G                 something new/' "$KB"
 says "'Super+G' — a row this check does not know"
 case_ "… a key that opens a window repeated while held (spawnheld): pressed fast it would flicker, presses lost"
-copy; sed -i 's/XKB_KEY_n,                 spawn,  /XKB_KEY_n,                 spawnheld,/' "$CH"
-says "config.h does spawnheld:kawa-notes"
+copy; sed -i 's/XKB_KEY_r,                 spawn,  /XKB_KEY_r,                 spawnheld,/' "$CH"
+says "config.h does spawnheld:kawa-books"
 
 case_ "dwl repeats a held key only for spawnheld, the focus and the split: every other key is one press, however long held (keypress)"
 P=$(cat "$REPO/src/dwl/dwl.patch")

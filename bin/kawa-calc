@@ -7,6 +7,13 @@
 #
 #   kawa-calc            the calculator, in this terminal (the launcher's entry gives it a
 #                        window of its own: kawa-term, app-id kawa-calc)
+#   kawa-calc --answer EXPR   qalc's answer to EXPR on stdout (exit 1: no answer)
+#   kawa-calc --launch WORD…  the launcher's launch prefix (fuzzel --launch-prefix): an entry
+#                        picked (fuzzel sets DESKTOP_ENTRY_ID) runs as it is; text typed that
+#                        matches no entry is worked out — "15% of 2400" Enter: the answer is
+#                        copied and said in a notice — or, its first word a program, run
+#
+# "X% of Y" is qalc's "X% * Y" (qalc reads "% of" as a remainder: "rem(15, 1 B)").
 #
 # Keys: Enter copies the answer (and keeps the line above) · ↑ the sum before again ·
 # Ctrl+U clears · Ctrl+Q qalc's own prompt in this window (its every command: help, set,
@@ -16,9 +23,11 @@ set -u
 export LC_ALL=C.UTF-8
 case ${1:-} in
   -h|--help) sed -n '2,/^set -u/{/^set -u/d;s/^# \{0,1\}//;p}' "$0"; exit 0 ;;
-  "") ;;
-  *) echo "usage: kawa-calc" >&2; exit 2 ;;
+  ""|--answer|--launch) ;;
+  *) echo "usage: kawa-calc [--answer EXPR | --launch WORD…]" >&2; exit 2 ;;
 esac
+# (an entry the launcher picked: run as it is, before anything else is loaded)
+[[ ${1:-} == --launch && -n ${DESKTOP_ENTRY_ID:-} ]] && { shift; exec "$@"; }
 command -v qalc >/dev/null || { echo "kawa-calc: qalc is missing — fedokawaii repair puts it back" >&2; exit 1; }
 # shellcheck source=/dev/null
 . "$HOME/.config/fedokawaii/screen.sh"
@@ -37,6 +46,10 @@ answer() {
   w=${e%% *}; w=${w,,}
   # (qalc's own commands are its prompt's, Ctrl+Q: never sent from here — "exit" would end it)
   [[ $w == @(quit|exit|set|save|store|assume|base|mode|help|list|find|info|delete|keep|unkeep|function|variable|rpn|stack|clear|history|exrates|swap|rotate|copy|move|pop|to|convert|factor|expand|partial|simplify|approximate|exact) ]] && return 0
+  # (qalc's percentage: "15% of 2400" is "15% * 2400")
+  while [[ $e =~ ^(.*[0-9.])[[:space:]]*%[[:space:]]*[Oo][Ff][[:space:]]+(.*)$ ]]; do
+    e="${BASH_REMATCH[1]}% * ${BASH_REMATCH[2]}"
+  done
   kill -0 "${COPROC_PID:-0}" 2>/dev/null || start          # (ended: a new one)
   { printf '%s\n%s\n' "$e" "$SENT" >&"${COPROC[1]}"; } 2>/dev/null || return 0
   while IFS= read -r -t 3 -u "${COPROC[0]}" l; do
@@ -47,24 +60,46 @@ answer() {
   printf '%s' "$out"
 }
 
+case ${1:-} in
+  --answer) shift; a=$(answer "$*"); [[ -n $a ]] || exit 1; printf '%s\n' "$a"; exit 0 ;;
+  --launch)   # text typed in the launcher that matches no entry
+    shift; t="$*"
+    [[ -n $t ]] || exit 2
+    if command -v -- "$1" >/dev/null 2>&1 && [[ $1 != *[0-9]* ]]; then exec "$@"; fi
+    # shellcheck source=/dev/null
+    . "$HOME/.config/fedokawaii/icons.sh"
+    a=$(answer "$t")
+    if [[ -z $a ]]; then notify-send -a desktop -- "$ICON_CLIPBOARD  calculator" "$t: no answer"; exit 1; fi
+    if printf '%s' "$a" | clip_put 'text/plain;charset=utf-8' 2>/dev/null; then
+      notify-send -a desktop -- "$ICON_CLIPBOARD  calculator" "$t = $a · copied"
+    else notify-send -a desktop -- "$ICON_CLIPBOARD  calculator" "$t = $a · not copied (no clipboard)"; fi
+    exit 0 ;;
+esac
+
 # ── the screen: §7's grammar — the heading, the line typed, its answer, the lines kept ──
 expr="" ans="" note="" kept=()
-KEYS="enter copy  ·  ↑ again  ·  ctrl+q qalc's prompt  ·  esc close"
+KEYS="enter copy  ·  up again  ·  ctrl+q qalc's prompt  ·  esc close"
+# The screen is drawn as one frame, never cleared first: each line is written over the one
+# before and the rest of it erased (\e[K), the lines below the last ones too (\e[J), all
+# between a synchronised update's marks (\e[?2026h and \e[?2026l: foot shows the frame only
+# once it is whole). Cleared and drawn key by key, foot showed what it had at each of its
+# frames while you typed: an empty footer, half a line, the cursor in the heading. The keys
+# are words, as in every footer ("up", where an ↑ drawn two columns wide in its one-column
+# cell ran over the next letter — Sumi Term now draws arrows inside their cell)
 draw() {
-  local w c i
-  c=$(stty size 2>/dev/null </dev/tty) && c=${c#* } || c=64
+  local w r c i f
+  read -r r c < <(stty size 2>/dev/null </dev/tty) && [[ $r$c =~ ^[0-9]+$ ]] || { r=13; c=64; }
   w=$((c - 4))
-  printf '\e[?25l\e[H\e[2J\n  %s\n\n' "$(screen_heading 算 calculator "$w")"
-  printf '  %s›%s  %s\e7\n' "$INK_MUTED" "$INK_OFF" "$expr"
-  if [[ -n $ans ]]; then printf '  %s=%s  %s%s%s\n' "$INK_MUTED" "$INK_OFF" "$INK_STRONG" "$ans" "$INK_OFF"
-  else printf '  %s=%s\n' "$INK_FAINT" "$INK_OFF"; fi
-  printf '\n'
+  f=$'\e[?2026h\e[?25l\e[H\e[K\n  '"$(screen_heading 算 calculator "$w")"$'\e[K\n\e[K\n'
+  f+="  $INK_MUTED›$INK_OFF  $expr"$'\e7\e[K\n'
+  if [[ -n $ans ]]; then f+="  $INK_MUTED=$INK_OFF  $INK_STRONG$ans$INK_OFF"$'\e[K\n'
+  else f+="  $INK_FAINT=$INK_OFF"$'\e[K\n'; fi
+  f+=$'\e[K\n'
   for ((i = ${#kept[@]} - 1; i >= 0 && i >= ${#kept[@]} - 4; i--)); do
-    printf '  %s%s%s\n' "$INK_MUTED" "${kept[i]}" "$INK_OFF"
+    f+="  $INK_MUTED${kept[i]}$INK_OFF"$'\e[K\n'
   done
-  printf '\e[%d;1H  %s%s%s' "$(( $(stty size 2>/dev/null </dev/tty | cut -d' ' -f1 || echo 13) ))" "$INK_MUTED" \
-    "${note:-$KEYS}" "$INK_OFF"
-  printf '\e8\e[?25h'
+  f+=$'\e[J\e['"$r"$';1H  '"$INK_MUTED${note:-$KEYS}$INK_OFF"$'\e[K\e8\e[?25h\e[?2026l'
+  printf '%s' "$f"
 }
 # the terminal raw for the whole window, not only during each read: a key typed while the
 # screen is drawn must not meet the line editor (^U, Backspace) of a terminal in line mode

@@ -62,11 +62,17 @@ eq "$(kawa-downloads list)" $'Steam\tBlasphemous\t400\t1600\t774361'
 steam_game 774361 Blasphemous 1600 1600; eq "$(kawa-downloads list)" ""
 
 # ── the mark ─────────────────────────────────────────────────────────────────────────────
-case_ "the mark: the percent of all; the count past one; the percent of those whose size is known"
+case_ "the mark: the percent of all, bytes over bytes (no count, no sizes); the mark alone while no total is known; a job of any name counts"
 world; steam_game 1 Hades 400 1600
-eq "$(mark)" '{"text": "'"$(. "$HOME/.config/fedokawaii/icons.sh"; printf %s "$ICON_BAR_DOWNLOAD")"'25%", "class": "downloading"}'
+I=$(. "$HOME/.config/fedokawaii/icons.sh"; printf %s "$ICON_BAR_DOWNLOAD")
+eq "$(mark)" '{"text": "'"$I"'25<span fgalpha='"'"'55%'"'"'>%</span>", "class": "downloading"}'
 : >"$D/a.crdownload"; brave_db "$D/a.crdownload" "$D/a" 0
-out=$(mark); has "$out" "$(. "$HOME/.config/fedokawaii/icons.sh"; printf %s "$ICON_BAR_DOWNLOAD")2 25%\""; has "$out" '"class": ["downloading", "count"]'
+out=$(mark); has "$out" "\"$I""25<span"; lacks "$out" count
+sleep 600 & job=$!; on_exit "kill $job 2>/dev/null"; mkdir -p "$XDG_RUNTIME_DIR/kawa-downloads"
+printf 'a.zip\t1600\t1600\t/tmp/a.zip\n' >"$XDG_RUNTIME_DIR/kawa-downloads/pack.$job"
+has "$(mark)" "\"$I""62<span"
+rm -f "$XDG_RUNTIME_DIR/kawa-downloads/pack.$job"; world; : >"$D/b.crdownload"
+has "$(mark)" '"bare"'
 case_ "…through kawa-bar: lit while its menu is open (its button's marker)"
 sleep 600 & p=$!; on_exit "kill $p 2>/dev/null"; printf '%s kawa-downloads\n' "$p" >"$XDG_RUNTIME_DIR/kawa-drop.open"
 has "$(kawa-bar downloads -- kawa-downloads bar)" '"active"'

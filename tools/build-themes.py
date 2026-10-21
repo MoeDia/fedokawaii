@@ -148,6 +148,15 @@ def stitch_png(m, p):
     return png_rgba(1, 5, [[ink + (255,)]] * 3 + [[(0, 0, 0, 0)]] * 2)
 
 
+def hem_png(m, p):
+    """A workspace that holds windows: its numeral hemmed with a running stitch under it — 3 px
+    of thread, 2 of paper, three stitches (13 px: the 11 px of the kanji's ink and one past
+    each side), in the quiet ink: the separators' sashiko, laid across."""
+    ink = tuple(int(p["muted"][i:i + 2], 16) for i in (0, 2, 4)) + (255,)
+    gap = (0, 0, 0, 0)
+    return png_rgba(13, 1, [[ink] * 3 + [gap] * 2 + [ink] * 3 + [gap] * 2 + [ink] * 3])
+
+
 def foot_mode(m, p):
     return (f"# {header('~/.config/fedokawaii/current/foot.ini', 'which palette a new foot starts in')}\n"
             f"[main]\ninitial-color-theme={m}\n")
@@ -197,7 +206,7 @@ def fuzzel_ini(m, p):
     # still in the prompt. (fuzzel draws its text cursor in the input's colour: text.)
     return f"""# {header('~/.config/fedokawaii/current/fuzzel.ini', NAMES[m] + ' colours for every menu')}
 [main]
-font=Fusion Pixel 12px Mono ja:pixelsize=12,{SEAL_FONTS[m]}:pixelsize=12,Sumi Icons:pixelsize=12,JetBrainsMono Nerd Font:pixelsize=11,Noto Kufi Arabic:pixelsize=13
+font=Sumi UI:pixelsize=12,Fusion Pixel 12px Mono ja:pixelsize=12,{SEAL_FONTS[m]}:pixelsize=12,Sumi Icons:pixelsize=12,JetBrainsMono Nerd Font:pixelsize=11,Noto Kufi Arabic:pixelsize=13
 
 [colors]
 background={p['surface']}ff
@@ -519,10 +528,11 @@ def gtklock_css(m, p):
     ink = lambda k: f"#{p[k]}"
     return f"""/* {header('~/.config/fedokawaii/current/gtklock.css', 'the lock and login screens in ' + NAMES[m])} */
 window {{ background-color: {ink('ground')}; }}
-* {{ font-family: "Fusion Pixel 12px Mono ja"; font-size: 12px; color: {ink('text')}; box-shadow: none;
+* {{ font-family: "Sumi UI", "Fusion Pixel 12px Mono ja"; font-size: 12px; color: {ink('text')}; box-shadow: none;
   text-shadow: none; outline: none; -gtk-icon-shadow: none; }}
-/* the panel: 276 px inside, 304 with pad and frame */
-#window-box {{ background-color: {ink('surface')}; border: 2px solid {ink('muted')}; padding: 12px; min-width: 276px; }}
+/* the lock's panel: the one large panel (design-system §3: lock) — 464 px inside (five tiles
+   wide), 24 px of pad, 516 with the frame */
+#window-box {{ background-color: {ink('surface')}; border: 2px solid {ink('muted')}; padding: 24px; min-width: 464px; }}
 /* the heading: the seal (23 × 23), 6 px, the date, 6 px, the stitch — 3 px on, 2 off — through
    the seal's middle to the right edge */
 #heading {{ min-height: 23px; }}
@@ -538,7 +548,7 @@ window {{ background-color: {ink('ground')}; }}
    its baseline (48 px type: baseline 40 from the top; 12 px: 10, so 6 px off the foot) */
 #face {{ margin-top: 12px; }}
 #padlock {{ margin-right: 12px; }}
-#clock-label {{ color: {ink('strong')}; font-size: 48px; margin: 0; }}
+#clock-label {{ color: {ink('strong')}; font-size: 60px; margin: 0; }}
 #ampm {{ color: {ink('muted')}; margin: 0 0 6px 6px; }}
 /* under the time, a line of the season and the hour (秋の夜 · the moon, a seal on paper): its
    kanji in accent_text, its words muted */
@@ -550,7 +560,7 @@ window {{ background-color: {ink('ground')}; }}
 #messages {{ min-height: 12px; margin: 3px 0; }}
 #error-label, #warning-label {{ color: {ink('accent_text')}; margin: 0 6px; }}
 #input-field {{
-  min-width: 262px; min-height: 22px; padding: 0 6px; margin: 0;
+  min-width: 450px; min-height: 22px; padding: 0 6px; margin: 0;
   color: {ink('accent_text')}; caret-color: {ink('accent')};
   background-color: {ink('key')}; background-image: none;
   border: 1px solid {ink('edge')}; border-radius: 0;
@@ -637,6 +647,7 @@ def wiremix(m, p):
 # It reads its colours when it starts, so a mixer left open keeps the old theme until it is
 # opened again. Whatever is not set here is wiremix's own default (its keys, names, filters).
 theme = "fedokawaii"
+char_set = "fedokawaii"
 # the sliders end at 150 %, and the keys stop there too (wiremix alone lets them run past it)
 enforce_max_volume = true
 keybindings = [
@@ -647,6 +658,18 @@ keybindings = [
 
 [themes.fedokawaii]
 {body}
+
+# marks one cell wide in the terminal's font: wiremix leaves one cell for each, and its own
+# (◇, •••) are geometric shapes Fusion Pixel draws two cells wide — the default device's
+# diamond ran into the space after it and touched the name ("◇HD-Audio Generic"). A half
+# block (foot draws those itself, exactly one cell) leaves the space whole: the mark, then
+# a cell of paper, then the name
+[char_sets.fedokawaii]
+default_device = "▌"
+default_stream = "▌"
+list_more = "···"
+dropdown_more = "···"
+help_more = "···"
 """
 
 
@@ -879,7 +902,8 @@ def main():
             written += 1
         (d / "washi.png").write_bytes(washi_png(m, p))
         (d / "stitch.png").write_bytes(stitch_png(m, p))
-        written += 1
+        (d / "hem.png").write_bytes(hem_png(m, p))
+        written += 2
     foot = HOME / ".config/foot/foot.ini"
     text = foot.read_text()
     new, n = re.subn(r"# >>> colours.*?# <<< colours", lambda _: foot_block(), text, flags=re.S)

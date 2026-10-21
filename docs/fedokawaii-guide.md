@@ -1025,40 +1025,20 @@ gives it its usual name. `&&` runs the `mv` only if `tar` succeeded.
 **Check:** `ls` in `~/fedokawaii` lists `fedokawaii.sh`, `setup.sh`, `fedokawaii.conf` and the
 other files.
 
-**Route 2: straight from GitHub.** git asks for your GitHub user name, and for a *personal
-access token* as the password.
-
-> **Word — personal access token.** A long password GitHub makes for one purpose, which you
-> can limit to one repository and to reading, and cancel any day. git takes it where it asks
-> for a password.
-
-Make the token on Windows (or any computer), signed in to github.com: your picture (top
-right) → *Settings* → *Developer settings* → *Personal access tokens* → *Fine-grained tokens*
-→ *Generate new token*. Give it a name and a short *Expiration* (7 days is plenty). Under
-*Repository access*, choose *Only select repositories* and pick `MoeDia/fedokawaii`. Under
-*Permissions*, give *Contents* read-only access. Click *Generate token*, and copy it into a
-password manager.
-
-> **Careful.** A token is a password. Never put it in a file, a note, a chat or this book's
-> margins. Type it only at git's password prompt, and delete it on GitHub once the clone has
-> worked.
-
-Then, on the console:
+**Route 2: straight from GitHub.** The repository is public: git clones it with no sign-in
+and no token. On the console:
 
 ```text
 $ sudo dnf install -y git-core
 …
 $ git clone https://github.com/MoeDia/fedokawaii ~/fedokawaii
-Username for 'https://github.com': your GitHub user name
-Password for 'https://…@github.com': the token (invisible as you type)
 …
 $ cd ~/fedokawaii
 ```
 
 *(shortened)*
 
-A fine-grained token is long — about ninety characters, beginning `github_pat_` — and the
-console cannot paste. That is why the stick is usually quicker.
+No stick needed: the console types one line.
 
 ## 5.2 Your settings: fedokawaii.conf
 
@@ -1144,7 +1124,7 @@ GPU="amd"` — and so is a setting written twice or missing. After the install, 
 | `WEATHER_CITY` | `Sharjah` | the name the weather goes by: the heading of the week's menu, the bar's tooltip |
 | `NIGHT_LIGHT` | `25.35:55.40` | where you are, latitude:longitude (north and east are positive; within ±90 and ±180): the weather is Open-Meteo's forecast for it (free, no key) |
 | `THEME` | `dark` | the theme a new install starts in; afterwards it is whatever you last switched to |
-| `WALLPAPER_PACK` | `yes` | fetch the wallpaper pack once (120 pictures, about 375 MB, kept as they came); with `no`, each theme shows its plain ground until you add pictures of your own |
+| `WALLPAPER_PACK` | `yes` | fetch the wallpaper pack once (220 pictures, about 590 MB, kept as they came); with `no`, each theme shows its plain ground until you add pictures of your own |
 | `BOOT_MENU_SECONDS` | `0` | how long the themed boot menu shows (0–10); `0` (the default, about 2 s faster) = hidden: hold Shift or press F8 as the machine starts to see it (it also shows by itself after a failed boot) |
 | `DNF_PARALLEL` | `10` | parallel downloads (1–20) |
 | `DWL_TAG`, `DWL_COMMIT`, `DWL_WLROOTS` | `v0.9`, pinned, `0.20` | dwl is built from exactly this commit, against wlroots 0.20; should the tag point anywhere else, setup refuses to build |
@@ -2012,6 +1992,8 @@ a two-page selection to keep beside the keyboard.
 | Super+Shift+N | dismiss notifications |
 | **Print** · Shift+Print · Super+Print | screenshot a region · the whole screen · a region, then annotate it (Enter copies) |
 | Super+Shift+Print | a region's text, copied (OCR) |
+| Super+Shift+S · F · A · X | the same without a Print key: a region · the whole screen · annotate · its text |
+| Super+Shift+P | pause the recording (again: 3, 2, 1 on the bar, then on) |
 | media keys | volume, mute, microphone mute — the level display shows for a moment, also in fullscreen · play/pause, next, previous |
 | Super+scroll | volume ±2 %, with the level shown like the volume keys (up also unmutes) |
 | Super+] / [ · brightness keys | monitor brightness (the same level display) |
@@ -2473,8 +2455,10 @@ the one you choose. This short chapter is the switch, and the pictures behind yo
 
 Press **Super+Shift+W** (or quick settings → *theme*). The terminals and everything in them,
 the bar, menus, notifications, GTK and Qt apps, Brave, mpv, btop, zathura and the wallpaper
-all change at once — each in a single frame, nothing fades or sweeps (the design system's
-rule: nothing animates). The lock screen and the next menus follow from then on.
+all change at once, under the one transition the design system allows: the screen as it
+was, washed away in 8 dithered steps (~1/4 s, stepped, never a fade — the screensaver's own
+wash). It never holds a click: press again during it and it jumps to its end, then switches
+back. The lock screen and the next menus follow from then on.
 
 The theme you leave on is the one the next login starts in. From a terminal, `kawa-theme light`
 or `kawa-theme dark` chooses one, `kawa-theme` alone switches, and `kawa-theme get` names the
@@ -2496,6 +2480,12 @@ the stitch), then a row per picture — its glyph and name, the theme's own mark
 the right; a ◐ there means the place also comes in the other theme's light (see the pairs
 below), and choosing it sets both.
 
+The list's first row is a switch, **a new one every 4 hours** (□ off, ▣ on): **Enter** on it
+turns it over in place, the picker staying open. On, every 4 hours of a session the pack's
+next picture for the theme in use goes up (both themes for a place with a pair), under the
+same wash as a choice of yours; it stays as you left it across logins and restarts
+(`kawa-state get wallpaper-rotate`), and the timer is `kawa-wallpaper-next.timer`.
+
 Holding ↓ runs through the pictures without a pause: each preview is drawn ahead, already the
 size of the pane, so showing one is only reading a small file (a few hundred KB, a few
 milliseconds) — and **Enter** shows the new wallpaper at once, from a copy already the size of
@@ -2514,8 +2504,8 @@ Each theme remembers its own wallpaper. The choices:
   **ink-ridges** on the light one (the same ridges on paper, under a vermilion sun) — quiet,
   sparing, in the themes' own ink, paper and vermilion. Before the pack is
   fetched — or with `WALLPAPER_PACK="no"` — the screen shows the theme's plain ground.
-* **the pack** (`WALLPAPER_PACK="yes"`) — 120 pictures (60 for the dark theme, 60 for the
-  light), about 375 MB, fetched once from GitHub at pinned commits and checked by SHA-256. They
+* **the pack** (`WALLPAPER_PACK="yes"`) — 220 pictures (110 for the dark theme, 110 for the
+  light), about 590 MB, fetched once from GitHub at pinned commits and checked by SHA-256. They
   are kept exactly as they came (`~/.local/share/fedokawaii/wallpapers/dark/` and `light/`,
   each `NAME.src`), nothing redrawn. Offline, the fetch stops after three pictures that could
   not reach GitHub and leaves the rest for the next run. Every one is Japanese, and the picker
@@ -3680,13 +3670,15 @@ and its marks are described in §11.3.
 | double · triple · four clicks | select a word · the text inside the quotes around it (the whole line where there are none) · the whole line |
 | Ctrl+drag | select a rectangle, such as one column of `ll`'s output |
 
-**The letters.** The text is Fusion Pixel 10 at 20 px — the 10 px cut of the desktop's font,
-at twice its pixel grid, so every pixel of the font is a sharp 2 × 2 square; a Latin letter
-takes one cell, a kanji two. That is the size the terminal had before the pixel font: on a
-24-inch 1080p screen, 188 × 47 cells full-screen. The font's own lines are exactly 20 px
-tall, so the tallest letters of one line would touch the next: `line-height=22px` in
-`foot.ini` puts 2 px of air — one pixel of the font — between lines. Each character cell is
-therefore 10 × 22 pixels, and `kawa-cell` typed in a terminal prints it (`10x22`). The
+**The letters.** The text is Sumi Term at 20 px — Fusion Pixel 10, the 10 px cut of the
+desktop's font, with each upright stroke half a font pixel heavier (made from it when the
+font is installed: three screen pixels instead of two, easier to read), at twice its pixel
+grid, so every pixel of the font is a sharp 2 × 2 square; a Latin letter takes one cell, a
+kanji two. That is the size the terminal had before the pixel font: on a 24-inch 1080p
+screen, 188 × 43 cells full-screen. The font's own lines are exactly 20 px tall, so the
+tallest letters of one line would touch the next: `line-height=24px` in `foot.ini` puts 4 px
+of air — two pixels of the font — between lines. Each character cell is therefore 10 × 24
+pixels, and `kawa-cell` typed in a terminal prints it (`10x24`). The
 desktop's icons in the terminal (Sumi Icons Term) are built on the same grid: a 10 × 10 icon
 is exactly two cells wide and a line high. Ctrl++ and Ctrl+- change the size a whole grid
 at a time (10, 20, 30, 40 px — crisp at every step); Ctrl+0 comes back.
@@ -3711,11 +3703,11 @@ screen and nothing jumps when windows come and go. What changes with the window 
 
 | Window (on a 1920 × 1080 screen) | Columns × rows | The prompt | yazi | lazygit | btop |
 |---|---|---|---|---|---|
-| one, alone | 188 × 47 | everything | parent, list, preview 1 : 3 : 4 | panels beside the diff | all five boxes, the graphics card's too |
-| half (spiral's big one: 115) | 92–115 × 47 | the path shortens | 1 : 4 : 3 | panels beside the diff | all five boxes |
-| a third, a quarter (tall) | 44–69 × 47 | path and counts shorten | the list above the preview | panels above the diff | CPU, card and processes (69) · CPU over processes (60) · processes (44) |
-| spiral's middle | 69 × 28 | no clock | list and preview side by side | panels beside the diff | CPU over processes |
-| spiral's small ones | 24–41 × 5–17 | torii, folder, mark | the list alone | too small: `+` | memory and network (41) · too small under 36 × 6 |
+| one, alone | 188 × 43 | everything | parent, list, preview 1 : 3 : 4 | panels beside the diff | all five boxes, the graphics card's too |
+| half (spiral's big one: 115) | 92–115 × 43 | the path shortens | 1 : 4 : 3 | panels beside the diff | all five boxes |
+| a third, a quarter (tall) | 44–69 × 43 | path and counts shorten | the list above the preview | panels above the diff | CPU, card and processes (69) · CPU over processes (60) · processes (44) |
+| spiral's middle | 69 × 26 | no clock | list and preview side by side | panels beside the diff | CPU over processes |
+| spiral's small ones | 24–41 × 4–15 | torii, folder, mark | the list alone | too small: `+` | memory (41 × 15) · too small under 36 × 6 |
 
 * **The prompt** — §11.3, *At every width*.
 * **yazi** chooses its panes again whenever its window changes size: the preview gets the most
@@ -3941,7 +3933,7 @@ themselves too: there the text is what is kept.
 | Enter | put that entry back on the clipboard and close; then paste as usual |
 | Super+Z | shrink or convert that entry — a picture, a PDF, or files copied in yazi (§12.6); the result lands on the clipboard and at the top of the list, under the cursor, so Super+Z again converts the result |
 | Ctrl+D | forget that entry |
-| Ctrl+X | forget them all (it asks first; the clipboard itself stays) |
+| Ctrl+X | forget them all, and empty the clipboard (it asks first) |
 | Esc | close, the clipboard exactly as it was |
 
 The history is cliphist's (`~/.cache/cliphist`), fed from the moment you log in by
@@ -3963,6 +3955,10 @@ Three keys, one for each kind of picture — and a fourth for the words in it:
 | **Shift+Print** | the whole screen — every monitor, in one picture | saved and copied |
 | **Super+Print** | a region, opened in satty to mark it up | **Enter** copies, **Ctrl+S** saves (§12.3) |
 | **Super+Shift+Print** | a region's text, read by tesseract (English and Arabic) | the text copied, nothing saved; the notice shows its first words |
+
+A keyboard without a Print key (a 61-key one) has the same four on letters: **Super+Shift+S**
+a region, **Super+Shift+F** the whole screen, **Super+Shift+A** a region to annotate,
+**Super+Shift+X** a region's text.
 
 The text key reads what is on screen — a picture of a document, a video's subtitle, an error
 in a window that will not let you select it. Small text reads best: it is taken at twice the
@@ -4001,13 +3997,19 @@ Then open a chat or a mail in Brave and press **Ctrl+V**: the picture is pasted.
 | 2 | choose (a region: drag its box; with two monitors on, *whole screen* asks for a click on one) | recording starts; the bar shows **録 00:12** in vermilion, the time counting |
 | 3 | **Super+Shift+R** again, or click 録 in the bar | it stops; a notice, *recording saved · its path copied* — click it to watch |
 
+**Super+Shift+P** pauses it: the bar shows **録 停 00:12**, muted, and nothing is recorded. The
+same key again counts **録 3**, **録 2**, **録 1** on the bar, a second each, and records on. The
+parts become one file when it stops (ffmpeg joins them as they are, nothing encoded again).
+
 The file is `~/Videos/Recordings/2026-10-16_09-12-03.mp4` (the moment it started), and its
 path is on the clipboard, ready to paste into a chat's file box or a terminal. *With sound*
 records what the computer plays (the default output), never the microphone.
 
 The picture is encoded by the graphics card, not the processor (wf-recorder with VA-API,
 H.264 — what every phone and website plays), so a game keeps its frames while you record it.
-Nothing is drawn while the screen does not change, so a still screen costs almost nothing.
+Nothing is drawn while the screen does not change, so a still screen costs almost nothing. A
+game in full screen is recorded from the card's own buffers (wf-recorder's dmabuf: no copy
+through the processor), and the encoder is told the monitor's refresh rate (`-B`).
 
 > **On Windows.** The Xbox Game Bar's **Win+Alt+R**, and the Snipping Tool's video mode, in
 > one key.
@@ -4428,7 +4430,7 @@ setting in a call that decides what the others hear.
 
 ## 14.1 The launcher: fuzzel
 
-<!-- fig:launcher | The launcher (Super+Space): each program's own icon and its name, on both themes. -->
+<!-- fig:launcher | The launcher (Super+Space): each entry's icon — a window program's own, or the desktop's seal — and its name, on both themes. -->
 
 **Super+Space**, or the torii key at the left of the bar. Type part of a name, Enter starts
 it, Esc closes.
@@ -4476,19 +4478,33 @@ remember it.
   command you type (`gh`, `rg`, `magick`…), a part of the desktop reached from the bar or a
   key (the calendar, the timer, the weather, the power menu), or a library;
   `tests/look/fixtures/not-launched.txt` in the toolkit says why for each.
-* Each entry shows its program's **own icon**, as its package ships it — no icon pack. Files
-  and Agents show yazi's and herdr's own logos (their releases carry none, so the toolkit
-  fetches each from its project at the pinned version); System monitor shows btop's, Notes
-  neovim's, Books zathura's, and Prowlarr Brave's, where its page opens. A terminal program
-  whose project has no icon at all (Git, Network, Torrents…) shows foot's, the terminal its
-  window is.
+* A window program shows its **own icon**, as its package ships it — no icon pack: Brave,
+  LibreOffice, Xournal++ (and Sketch, which opens in it), Steam, LocalSend, Syncplay, OpenRGB,
+  LACT. Every other entry — the terminal programs, and the pages in Brave —
+  shows a **seal of its own**, drawn in the desktop's pixels like a panel's heading: a 1 px
+  frame, one kanji meaning the entry, in the theme's colours (switching the theme switches
+  them):
+
+  | seal | entry | seal | entry | seal | entry |
+  |---|---|---|---|---|---|
+  | 端 | Terminal | 本 | Books | 網 | Network |
+  | 編 | Editor | 壁 | Wallpaper | 青 | Bluetooth |
+  | 箱 | Files | 蔵 | Backup | 具 | File tools |
+  | 代 | Agents | 算 | Calculator | 種 | Torrents |
+  | 枝 | Git | 量 | Disk usage | 索 | Prowlarr |
+  | 記 | Notes | 表 | Tables | 曲 | Spotify |
+  | 写 | Clipboard | 視 | System monitor | 話 | WhatsApp |
+  |  |  | 混 | Volume mixer |  |  |
+
+  They are `~/.config/fedokawaii/current/apps/*.png`, made by `tools/build-appicons.py` in the
+  toolkit.
 * Only what you start is listed: the helpers that come with packages — Qt's settings
   (qt6ct), LibreOffice's start centre, and mpv and zathura with nothing to open — are hidden
   by entries of the same name in `~/.local/share/applications` (`NoDisplay=true`); the
   programs still work, and films and documents still open in them. **Spotify** is its web
   player in a Brave app window (§15.4).
 * **WhatsApp** is WhatsApp Web, `web.whatsapp.com`, in a Brave app window the same way, with
-  Brave's icon (WhatsApp makes no Linux app, so no WhatsApp icon is installed): type
+  its seal 話 (WhatsApp makes no Linux app, so no WhatsApp icon is installed): type
   `whatsapp` in the launcher, scan its code once with your phone (WhatsApp → *Linked
   devices*), and Brave keeps it linked. Its messages arrive as the desktop's notices.
 * **Git** lists your repositories — every folder with a `.git` in `~/repos` or your home,
@@ -4851,7 +4867,7 @@ Naskh. If `i` shows dropped frames on a weak GPU, try `mpv --interpolation=no fi
 
 **Spotify** is Spotify's web player, `open.spotify.com`, in a window of its own: type
 `spotify` in the launcher (**Super+Space**), or click it there. It is Brave's *app window* —
-no tabs, no address bar, tiled and moved like every other window, with Brave's icon in the
+no tabs, no address bar, tiled and moved like every other window, with its seal 曲 in the
 launcher (no Spotify icon is installed). Sign in once — a free account works (with adverts),
 Premium without them — and Brave keeps you signed in. Its colours are Spotify's own dark ones,
 whatever the theme.
@@ -5399,6 +5415,12 @@ anything — a phone number, a command, a thought — and press Super+N; it is s
 so closing the window any other way (Super+Q included) loses nothing. A day you opened but
 wrote nothing under leaves no empty heading behind.
 
+The window is *warm*: it is started once, at login, and Super+N only shows it and puts it
+away again — so it is there the instant you press the key, with nothing to load. The same
+goes for the clipboard history (Super+V) and the system menu (Super+U). Each costs a little
+memory while put away (the notes about 30 MB, the two lists about 15 MB each); Super+Q closes
+one for good, and its key starts it again.
+
 **Try this.** Write a first note, then read it from a terminal.
 
 1. **Super+N**. The window opens with today's date as a heading and the cursor under it; the
@@ -5601,8 +5623,13 @@ whole window, so they come at once. Currency rates are qalc's own, fetched again
 old. **Ctrl+Q** turns the window into qalc's own prompt, for its commands (`help`, `set`,
 `rpn`…).
 
-The launcher itself (fuzzel) shows only programs: an answer inside it is something fuzzel's
-authors decided against (fuzzel issue #443), so the calculator is its own window.
+The launcher works sums out too: type `15% of 2400` or `120 usd to aed` in it and press
+**Enter** — nothing matches a program, so fuzzel hands the line to `kawa-calc --launch` (its
+launch prefix), and a notice says *15% of 2400 = 360 · copied*. The answer is not drawn inside
+the launcher's list as you type: fuzzel shows only programs (its authors decided against
+answers in it, fuzzel issue #443). A program's name typed and Enter runs that program, as
+before. qalc reads `15% of 2400` as a remainder (`rem(15, 1 B)`): the calculator hands it on as
+`15% * 2400`, qalc's own way to say it.
 
 **Try this.** Ask two questions, one in each form.
 
@@ -11015,8 +11042,9 @@ sudo grubby --info=ALL | grep -E '^(kernel|args)='     # every entry's kernel an
 sudo grubby --update-kernel=ALL --args=quiet           # how an argument is added (for example)
 ```
 
-The menu itself is hidden while the last boot succeeded (`menu_auto_hide` in GRUB's
-environment, `grub2-editenv - list`); a user timer, `grub-boot-success.timer`, marks a boot
+The menu itself is hidden at every start (`menu_auto_hide=2` in GRUB's environment,
+`grub2-editenv - list`; Fedora's `=1` would show it after any start that did not reach two
+minutes of desktop, a quick restart included); a user timer, `grub-boot-success.timer`, marks a boot
 as successful two minutes after the desktop starts. Your own systemd runs from boot here (it
 keeps your services reachable), so Fedora's way — the timer in every session — would count any
 boot that got that far; the desktop's autostart starts it instead, and it stops with the
@@ -11035,7 +11063,7 @@ in paper, a thin vermilion line counting down, and under it one faint line of ke
 boot · e edit · c console*. Its text is Fusion Pixel at two to four times its grid (24 px up
 to 1440p, 36 on a 4K screen, 48 on 5K), in GRUB's own bitmap format (`art/grub/fusion-*.pf2`).
 The console GRUB opens with **c** has no frame drawn round it. It shows for `BOOT_MENU_SECONDS`; with `0` Fedora's
-hidden menu returns (it then appears only after a failed boot, or when you hold **Shift**,
+hidden menu returns (it then appears only when you hold **Shift**,
 or press **Esc** or **F8**, as the machine starts). After changing monitors,
 apply the theme again (**Super+U** → *theme, applied again*) so it matches the new resolution.
 
@@ -11186,17 +11214,23 @@ graphical.target
 
 `greetd.service` is Fedora's unit with a drop-in of this desktop's (§28.3) that
 points it at its own file, gives it tty1 alone (no text login under the login screen), and
-starts it only once the boot splash has gone (`After=plymouth-quit-wait.service`: never the
-two taking the screen from each other):
+takes the screen from the boot splash with no black between, as GDM does: `plymouth-quit`
+(which clears the screen) never runs beside it; plymouth stops drawing and lets the card go,
+cage takes it on tty1 (the splash's own VT: no switch), and plymouth leaves with its last frame
+still shown until the greeter's first frame replaces it:
 
 ```ini
 # /etc/systemd/system/greetd.service.d/fedokawaii.conf (shortened)
 [Unit]
-Conflicts=getty@tty1.service kmsconvt@tty1.service
-After=getty@tty1.service kmsconvt@tty1.service plymouth-quit-wait.service
+Conflicts=getty@tty1.service kmsconvt@tty1.service plymouth-quit.service
+After=getty@tty1.service kmsconvt@tty1.service plymouth-start.service plymouth-quit.service systemd-user-sessions.service
 StartLimitIntervalSec=60
 StartLimitBurst=5
 OnFailure=fedokawaii-login-failed.service
+
+[Service]
+ExecStartPre=-/usr/bin/plymouth deactivate
+ExecStartPost=-/usr/bin/plymouth quit --retain-splash
 ```
 
 Should the login screen itself keep stopping (a broken greeter), systemd starts greetd again
@@ -12986,16 +13020,14 @@ Super+U → update fedokawaii        (or: fedokawaii pull)
 | repair | only when verify still finds something after the update |
 | the record | the run's output in `~/.local/state/fedokawaii/pull.log`, root's part in `/var/log/fedokawaii.log` too; a notice says how it ended, and the menu's row shows when it last ran |
 
-**The token.** The repository is private, so git needs a GitHub token. The first pull asks for
-it once, in its window — a *fine-grained* token for this repository with *Contents:
-read-only* (github.com → Settings → Developer settings → Personal access tokens) — and keeps
-it in `~/.config/fedokawaii/secrets.sh` as `FEDOKAWAII_GITHUB_TOKEN` (mode 600). It is handed to
-git for each run only; it is never written into `.git/config`. A clone whose address is
-`git@github.com:…` uses your SSH key instead and needs no token.
+**No token.** The repository is public (`https://github.com/MoeDia/fedokawaii.git`): pull
+reads it with no sign-in, and git never asks for a password. A clone whose address is
+anything else — a token written into it, the private address of before — is set back to that
+one, and an old `FEDOKAWAII_GITHUB_TOKEN` line in `secrets.sh` is dropped.
 
 **The first time.** Clone once more the way you always have, and run the update from that
 clone (`sudo bash fedokawaii.sh update`). At its end, instead of being deleted, the clone is
-**moved** to `~/repos/fedokawaii` (a token in its address moves to `secrets.sh`; an older
+**moved** to `~/repos/fedokawaii` (its address set to the public one; an older
 working copy there is packed into `~/.local/state/fedokawaii/` first if it held anything of
 yours). From then on: **Super+U → update fedokawaii**. A working copy made by `fedokawaii copy`
 is turned into the clone by the first pull the same way.
@@ -14470,7 +14502,7 @@ checks that each one is still a palette colour (it stops if not).
 
 | Font | Where | Why |
 |---|---|---|
-| **Fusion Pixel 10** (`Fusion Pixel 10px Mono ja`) | the terminal and all in it (neovim, yazi, btop…) at 20 px, on 22 px lines (§11.9) | the same design one size down, for reading: twice its 10 px grid, a 10 × 22 px cell. Installed beside the 12 px cut |
+| **Sumi Term** (made from `Fusion Pixel 10px Mono ja`) | the terminal and all in it (neovim, yazi, btop…) at 20 px, on 24 px lines (§11.9) | the same design one size down, for reading: twice its 10 px grid, a 10 × 24 px cell, each upright stroke half a font pixel heavier (`tools/build-term-font.py`, run when Fusion Pixel is installed). Installed beside the 12 px cut |
 | **Fusion Pixel 12** (`Fusion Pixel 12px Mono ja`) | everything else the desktop draws itself: the bar, menus and notifications at 12 px; the lock and login screens; the boot menu at 24, 36 or 48 px; the game overlay | one pixel font with Latin, kana and kanji in one face, on a 12 px grid — set at 12 px or a whole multiple, never in points, with smoothing off. Installed for every account in `/usr/local/share/fonts/fusion-pixel`, because the login screen runs as its own user |
 | **Sumi Icons** | every icon in the bar, menus and notifications — and, as *Sumi Icons Term*, in the prompt, fetch and the clipboard and wallpaper windows | the desktop's own icon font, built from `art/icons.txt` on the same grid |
 | **JetBrains Mono** (Nerd Font) | the `monospace` font of GTK and Qt programs; mpv's on-screen text, and Syncplay's words on the film from its first frame (`~/.config/mpv/script-opts/syncplayintf.conf`, and the same in `syncplay.ini`); in the terminal, only the symbols Fusion Pixel lacks (yazi's file icons) | readable code in apps, and the Nerd Font symbols terminal programs draw |
@@ -14624,11 +14656,14 @@ there (standard Python only; `--preview sheet.png` draws the sheet above, with P
 `--marks` to see each hotspot), then
 apply (chapter 42); the change shows at the next theme switch, or the next login.
 
-## 40.6 No transitions
+## 40.6 One transition: the wash
 
-A theme switch and a new wallpaper are drawn without any animation: each program takes the
-change in a single frame of its own, all told at the same moment, and the wallpaper is drawn off
-screen first and put in the old one's place whole (the design system: nothing animates).
+A theme switch and a new wallpaper share one transition, and nothing else on the desktop
+moves: each program takes the change in a single frame of its own, all told at the same
+moment, the wallpaper drawn off screen first — and over it all, the screen as it was is
+washed away as the screensaver washes its cloth: an ordered dither on its grid of 3 px dots,
+8 steps 32 ms apart (`kawa-saver --wash`). Clicks go through it; a press during a theme
+switch's wash jumps to its end.
 
 ## 40.7 The terminal's invisible marks
 
@@ -15583,10 +15618,10 @@ A whole change, start to finish — a wider gap between windows:
 5. *history*: lazygit shows `src/dwl/config.h` changed. Press **Space** to stage it, **c** to
    commit (`dwl: gaps 12 px, wider for the 1440p screen`), **P** to push.
 
-**The copy and GitHub.** The project lives on GitHub as the private repository
+**The copy and GitHub.** The project lives on GitHub as the public repository
 `MoeDia/fedokawaii`, and the working copy is a clone of it: `fedokawaii pull` (Super+U →
-*update fedokawaii*, §36.3) makes it the first time, keeps it current, and asks once for the
-token it needs (kept in `secrets.sh`, never in `.git/config`). The clone's `fedokawaii.conf` is GitHub's version. Apply merges your saved settings
+*update fedokawaii*, §36.3) makes it the first time and keeps it current, with no sign-in and
+no token. The clone's `fedokawaii.conf` is GitHub's version. Apply merges your saved settings
 into it (§35.1): a setting you changed through *settings* stays, unless GitHub's file changes
 that same setting itself since you last applied — then GitHub's value is taken, and apply
 names it.
@@ -16681,6 +16716,7 @@ the full lists are in §7.2 (and on screen with **Super+/**) for the desktop, §
 | **Super+Shift+W** | dark ⇄ light theme |
 | **Print** · Shift+Print · Super+Print | screenshot a region · the whole screen · a region, then annotate it |
 | Super+Shift+Print | a region's text, copied (OCR) |
+| Super+Shift+S · F · A · X | the same without a Print key: a region · the whole screen · annotate · its text |
 | Super+U · Super+Shift+U | the system's control · change the desktop |
 
 **The terminal** (foot and bash).

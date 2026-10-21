@@ -363,8 +363,8 @@ if has_script; then
   case_ "fzf menu: Esc closes it (exit 0)"
   stub fzf 'cat >/dev/null; exit 130'; on_tty "" fedokawaii >/dev/null; eq "$?" 0; called '^fzf --read0 --ansi'
 else _ok; fi
-case_ "Super+U: the menu in a window of its own (a popup)"
-fresh; fedokawaii --window; called "^kawa-term --float --once system system 100x27 -- .*fedokawaii --popup$"
+case_ "Super+U: the menu in a warm window of its own (a popup: kawa-warm's toggle)"
+fresh; stub kawa-warm; fedokawaii --window; called "^kawa-warm system$"
 case_ "Super+U's popup: a job is handed to a window of its own (a click outside, or Super+U again, never kills it) and the menu ends"
 for a in update upgrade verify repair theme drift snapshots backup settings log; do
   reset_calls; FEDOKAWAII_POPUP=yes tty_free fedokawaii --run "$a" </dev/null >/dev/null 2>&1; eq "$?" 0 "$a"

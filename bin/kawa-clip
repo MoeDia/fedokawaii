@@ -10,7 +10,7 @@
 #   Esc       close, the clipboard exactly as it was
 #
 # The other forms are its own parts: --tui (inside the window), --list, --preview ID,
-# --copy ID, --delete ID, --wipe, --focus PID [ID], --held, and --store, which keeps each
+# --copy ID, --delete ID, --wipe, --focus PID [ID], --held, --poke, and --store, which keeps each
 # new copy: the session's wl-paste --watch runs it (autostart.sh). Text and pictures are
 # kept — the last 100 copies, none bigger than 20 MiB. Copies outlive the app they came
 # from (kawa-clipkeep).
@@ -171,20 +171,24 @@ case ${1:-} in
     printf '%s %s\n' "$2" "${3:-}" >"$CUR.$2" && mv -f -- "$CUR.$2" "$CUR"
     exit 0 ;;
   --held)       # the entry under the open window's cursor (an empty line: none); exit 1: no window
-    window || exit 1
+    # shown — a warm window put away is open still, but not for Super+Z (kawa-warm's mark)
+    [[ -e $RUN/kawa-warm-clip.shown ]] && window || exit 1
     printf '%s\n' "$held"
     exit 0 ;;
   --wipe)       # asks in the window itself
     n=$(cliphist list 2>/dev/null | wc -l)
     ((n)) || exit 0
-    printf '\n  forget all %d entries? the clipboard itself stays.  [y/N] ' "$n"
+    printf '\n  forget all %d entries, and empty the clipboard?  [y/N] ' "$n"
     read -rsn1 a </dev/tty
-    [[ $a == [yY] ]] && cliphist wipe
+    # (the clipboard emptied too: what was copied last is gone for every app, and for Super+Z)
+    [[ $a == [yY] ]] && { cliphist wipe; wl-copy --clear; }
     exit 0 ;;
+  --poke)       # the open window's list read again (kawa-warm, as it shows)
+    poke; exit 0 ;;
   --tui) ;;
   -h|--help) sed -n '2,/^set -u/{/^set -u/d;s/^# \{0,1\}//;p}' "$0"; exit 0 ;;
-  "")           # Super+V: the window, once (a second press while it is open does nothing)
-    exec kawa-term --float --once clipboard clipboard 80x27 -- "$0" --tui ;;
+  "")           # Super+V: the window — warm (kawa-warm): shown, or put away
+    exec kawa-warm clip ;;
   *) echo "usage: kawa-clip   (Super+V: the clipboard history)" >&2; exit 2 ;;
 esac
 

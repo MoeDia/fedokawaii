@@ -29,6 +29,7 @@ import re
 import select
 import shutil
 import statistics
+import signal
 import subprocess
 import sys
 import tempfile
@@ -52,8 +53,20 @@ def have(cmd):
 
 
 def run(cmd, timeout=10, **kw):
-    return subprocess.run(cmd, stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
-                          stderr=subprocess.DEVNULL, timeout=timeout, **kw).returncode
+    """CMD's exit status; one past TIMEOUT is ended with all it started (its own process
+    group: Brave's helpers too) and answers 124 — a sample that took the whole limit, never
+    a traceback that ends the run."""
+    p = subprocess.Popen(cmd, stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
+                         stderr=subprocess.DEVNULL, start_new_session=True, **kw)
+    try:
+        return p.wait(timeout=timeout)
+    except subprocess.TimeoutExpired:
+        try:
+            os.killpg(p.pid, signal.SIGKILL)
+        except OSError:
+            pass
+        p.wait()
+        return 124
 
 
 def wait_for(cond, limit_s):
@@ -235,7 +248,7 @@ def apps():
             ms, rc = timed([b, "--headless=new", f"--user-data-dir={d}", "--no-first-run",
                             "--dump-dom", "about:blank"], 20)
             shutil.rmtree(d, ignore_errors=True)
-            if rc == 0:
+            if rc in (0, 124):                   # (124: it hung — the whole 20 s counted, slow)
                 s.append(ms)
         add("Brave from cold (a fresh profile, headless)", 3000, s)
 
@@ -393,15 +406,20 @@ def lists():
         s, out = [], b""
         for _ in range(N):
             t0 = time.monotonic()
-            r = subprocess.run(cmd, stdin=subprocess.DEVNULL, capture_output=True, timeout=10)
+            try:
+                out = subprocess.run(cmd, stdin=subprocess.DEVNULL, capture_output=True, timeout=10).stdout
+            except subprocess.TimeoutExpired:
+                out = b""
             s.append(ms_since(t0))
-            out = r.stdout
         add(f"{name} ready", 150, s)
         if have("fzf") and out:
             f = []
             for q in "aeiouaeiou"[:N]:
                 t0 = time.monotonic()
-                subprocess.run(["fzf", "--filter", q], input=out, stdout=subprocess.DEVNULL, timeout=10)
+                try:
+                    subprocess.run(["fzf", "--filter", q], input=out, stdout=subprocess.DEVNULL, timeout=10)
+                except subprocess.TimeoutExpired:
+                    pass
                 f.append(ms_since(t0))
             add(f"{name}: a keystroke's filter (fzf)", 30, f)
 

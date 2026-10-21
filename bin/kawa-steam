@@ -270,8 +270,12 @@ case ${1:-} in
       st=off pid="" c=""
       read -r pid 2>/dev/null <"$HOME/.steampid"
       if [[ $pid =~ ^[0-9]+$ ]] && read -r c 2>/dev/null <"/proc/$pid/comm" && [[ $c == steam ]]; then
-        st=starting; KIDS=""; kids "$pid"
-        for k in $KIDS; do
+        # (the whole tree, not only Steam's own children: its web helper runs inside the
+        # Steam Runtime's container — steamwebhelper.sh, srt-bwrap… between them — so a
+        # look at the first level alone said "starting" for as long as Steam ran)
+        st=starting; KIDS=""; kids "$pid"; tree=$KIDS d=0
+        while [[ -n $KIDS ]] && ((++d < 6)); do n=""; for k in $KIDS; do kids "$k"; n+=$KIDS; done; KIDS=$n; tree+=$n; done
+        for k in $tree; do
           read -r c 2>/dev/null <"/proc/$k/comm" || continue
           [[ $c == steamwebhelper && $st == starting ]] && st=ready
           if [[ $c == reaper ]]; then
@@ -291,9 +295,9 @@ case ${1:-} in
       fi
       case $st in
         off)      out='{"text":""}' ;;
-        game)     out="{\"text\":\"$ICON_GAMEPAD\",\"class\":\"game\",\"tooltip\":\"Steam · in a game\"}" ;;
-        ready)    out="{\"text\":\"$ICON_GAMEPAD\",\"class\":\"ready\",\"tooltip\":\"Steam · click: its window · right-click: its menu\"}" ;;
-        starting) out="{\"text\":\"$ICON_GAMEPAD\",\"class\":\"starting\",\"tooltip\":\"Steam is starting\"}" ;;
+        game)     out="{\"text\":\"$ICON_GAMEPAD\",\"class\":\"game\",\"tooltip\":\"Steam · in game\"}" ;;
+        ready)    out="{\"text\":\"$ICON_GAMEPAD\",\"class\":\"ready\",\"tooltip\":\"Steam\"}" ;;
+        starting) out="{\"text\":\"$ICON_GAMEPAD\",\"class\":\"starting\",\"tooltip\":\"Steam starting\"}" ;;
       esac
       if [[ $st != off ]] && bar_lit steam; then out=${out%%,\"tooltip\"*}; out="${out/\"class\":\"$st\"/\"class\":[\"$st\",\"active\"]}}"; fi
       [[ $out != "$last" ]] && { printf '%s\n' "$out" || exit 0; last=$out; }
@@ -302,9 +306,9 @@ case ${1:-} in
     done ;;
   --bar)
     if ! running; then echo '{"text":""}'
-    elif ingame; then printf '{"text":"%s","class":"game","tooltip":"Steam · in a game"}\n' "$ICON_GAMEPAD"
-    elif ready; then printf '{"text":"%s","class":"ready","tooltip":"Steam · click: its window · right-click: its menu"}\n' "$ICON_GAMEPAD"
-    else printf '{"text":"%s","class":"starting","tooltip":"Steam is starting"}\n' "$ICON_GAMEPAD"; fi
+    elif ingame; then printf '{"text":"%s","class":"game","tooltip":"Steam · in game"}\n' "$ICON_GAMEPAD"
+    elif ready; then printf '{"text":"%s","class":"ready","tooltip":"Steam"}\n' "$ICON_GAMEPAD"
+    else printf '{"text":"%s","class":"starting","tooltip":"Steam starting"}\n' "$ICON_GAMEPAD"; fi
     exit 0 ;;
   --warm)
     command -v steam >/dev/null && warm_on || exit 0

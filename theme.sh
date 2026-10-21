@@ -122,17 +122,12 @@ hw_discrete_amd && MPV_SCALING="profile=high-quality              # ewa_lanczoss
 # the pointer of every list (the fzf options file): the icon font's chevron
 CHEVRON=$(. "$REPO_DIR/configs/home/.config/fedokawaii/icons.sh" && printf '%s' "$ICON_CHEVRON_RIGHT")
 
-# Brave's own icon, as its package names it in its launcher entry: the Prowlarr entry's too
-# (its page opens in Brave)
 # btop's box for the discrete AMD card: its number in ROCm SMI's order (lib/hardware.sh,
 # hw_btop_gpu) — and no card's box at all without one
 BTOP_GPU=$(hw_btop_gpu); BTOP_BOXES="cpu ${BTOP_GPU:+$BTOP_GPU }mem net proc"
-BRAVE_ICON=""
-[[ -r /usr/share/applications/brave-origin.desktop ]] \
-  && BRAVE_ICON=$(sed -n '/^Icon=/{s///p;q}' /usr/share/applications/brave-origin.desktop)
 
 render() {      # render SRC → stdout, with fedokawaii.conf values (and the chevron) filled in
-  sed -e "s|@HOME@|$TARGET_HOME|g" -e "s|@MONITOR_HZ@|$MONITOR_HZ|g" -e "s|@BRAVE_ICON@|$BRAVE_ICON|g" \
+  sed -e "s|@HOME@|$TARGET_HOME|g" -e "s|@MONITOR_HZ@|$MONITOR_HZ|g" \
       -e "s|@WEATHER_CITY@|$WEATHER_CITY|g" -e "s|@NIGHT_LIGHT@|$NIGHT_LIGHT|g" \
       -e "s|@ICON_CHEVRON_RIGHT@|$CHEVRON|g" -e "s|^@MPV_SCALING@\$|$MPV_SCALING|" -e "s|@UID@|$TARGET_UID|g" \
       -e "s|@BTOP_BOXES@|$BTOP_BOXES|g" -e "s|@BTOP_GPU@|${BTOP_GPU:-gpu0}|g" "$1"
@@ -254,8 +249,8 @@ retire .bashrc.d/scriptorium.sh 'scriptorium'
 #   ~/.local/bin/kawa-audio — the old fuzzel sound menu: the sound panel (kawa-panel --sound)
 #   took its place, and a copy left in ~/.local/bin would still answer to its name
 retire .local/bin/kawa-audio 'kawa-audio — the sound menu'
-#   ~/.local/bin/kawa-veil — the old theme and wallpaper transitions: nothing animates now
-#   (design-system §5), every change is drawn in one frame
+#   ~/.local/bin/kawa-veil — the old theme and wallpaper transitions: kawa-saver --wash is the
+#   one transition now (design-system §5)
 retire .local/bin/kawa-veil 'usage: kawa-veil'
 retire .local/state/fedokawaii/kawa-veil.sha256 ''
 #   presenterm, sc-im and spotify_player — slides, sheets and Spotify are LibreOffice's and
@@ -264,6 +259,10 @@ retire .config/presenterm/config.yaml 'fedokawaii/current/'
 retire .config/sc-im/scimrc 'sc-im'
 retire .config/spotify-player/app.toml 'spotify_player'
 retire .config/spotify-player/theme.toml 'spotify_player'
+#   ~/.local/share/fedokawaii/icons/ — yazi's and herdr's logos, the launcher's Files and
+#   Agents once: the desktop's own seals (current/apps) took their place
+retire .local/share/fedokawaii/icons/yazi.png ''
+retire .local/share/fedokawaii/icons/herdr.png ''
 #   ~/.local/share/icons/default/index.theme — made the old pointers (Fedokawaii) the default;
 #   the folder is now a link to the Sumi pointers of the theme in use (2c)
 retire .local/share/icons/default/index.theme 'Inherits=Fedokawaii'
@@ -382,8 +381,8 @@ boot_and_console() {
   # active — and a thin vermilion line counting down. Once an entry is chosen, nothing: the
   # box GRUB keeps for its own messages while it loads the system is drawn invisible (Fedora
   # prints none), so the screen stays plain until the boot splash takes over.
-  # BOOT_MENU_SECONDS=0 keeps Fedora's hidden menu (shown after a failed boot, or by holding
-  # Shift or pressing F8 as the machine starts).
+  # BOOT_MENU_SECONDS=0 hides the menu at every start (menu_auto_hide=2: even after a short or failed one), shown by holding
+  # Shift or pressing Esc or F8 as the machine starts.
   # The text console (login, Ctrl+Alt+F2…F6) gets Terminus bold, larger from 1440p up.
   # Both take effect at the next boot.
   GRUB_THEME_DIR=/boot/grub2/themes/sumi
@@ -545,18 +544,22 @@ boot_and_console() {
     CHANGED+=("/etc/default/grub: $1=$2"); BOOT_CHANGED=1
   }
   grub_set GRUB_THEME "\"$GRUB_THEME_DIR/theme.txt\""
+  # gfxterm's own background, the theme's picture: once an entry is chosen GRUB leaves the menu
+  # for its terminal, which it fills with black by default (the black box over the picture
+  # while the system loads); with the same picture behind it, the screen does not change
+  grub_set GRUB_BACKGROUND "\"$GRUB_THEME_DIR/background.png\""
   grub_set GRUB_TERMINAL_OUTPUT '"gfxterm"'
   grub_set GRUB_GFXMODE "\"$MODE,auto\""
   grub_set GRUB_TIMEOUT "$((BOOT_MENU_SECONDS > 0 ? BOOT_MENU_SECONDS : 5))"
   # Fedora hides the menu unless the last boot failed (menu_auto_hide in grubenv)
   TOTAL=$((TOTAL + 1))
-  autohide=$(R grub2-editenv - list | grep -c '^menu_auto_hide=1' || true)
+  autohide=$(R grub2-editenv - list | grep -c '^menu_auto_hide=2' || true)
   if ((BOOT_MENU_SECONDS > 0 && autohide > 0)); then
     if ((CHECK)); then DRIFT+=("grubenv: menu_auto_hide is set (the menu stays hidden)")
     else R grub2-editenv - unset menu_auto_hide; CHANGED+=("boot menu: shown for $BOOT_MENU_SECONDS s"); fi
   elif ((BOOT_MENU_SECONDS == 0 && autohide == 0)) && ! R test -s /var/lib/fedokawaii/other-os; then   # (beside another system: shown)
     if ((CHECK)); then DRIFT+=("grubenv: menu_auto_hide is not set")
-    else R grub2-editenv - set menu_auto_hide=1; CHANGED+=("boot menu: hidden (Fedora's default)"); fi
+    else R grub2-editenv - set menu_auto_hide=2; CHANGED+=("boot menu: hidden (Fedora's default)"); fi
   fi
   TOTAL=$((TOTAL + 1))
   # (grub.cfg names the theme as GRUB reaches it: ($root)/grub2/themes/… when /boot is a

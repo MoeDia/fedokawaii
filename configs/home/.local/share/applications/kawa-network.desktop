@@ -1,13 +1,12 @@
 [Desktop Entry]
 # nmtui, NetworkManager's own screens — the window quick settings' network opens (kawa-quick
-# --do network: floating, one at a time). Its icon: foot's, the terminal that draws its
-# window (nmtui ships none of its own; the launcher shows each program's own icon, never an
-# icon pack's).
+# --do network: floating, one at a time). Its icon: our seal of 網 (tools/build-appicons.py,
+# the theme's own: current/apps).
 Type=Application
 Name=Network
 GenericName=Wi-Fi and network connections
 Comment=nmtui: join a Wi-Fi network, set up a wired connection or a VPN
-Icon=foot
+Icon=@HOME@/.config/fedokawaii/current/apps/network.png
 Exec=@HOME@/.local/bin/kawa-quick --do network
 Terminal=false
 Categories=Settings;HardwareSettings;

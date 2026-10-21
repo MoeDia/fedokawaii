@@ -2,6 +2,7 @@
  * kawa-saver — the screensaver: sashiko, stitched across every screen.
  *
  *   kawa-saver         now (a look at it: any input ends it, nothing locks)
+ *   kawa-saver --wash  the one transition (a theme switch, a new wallpaper): see wash()
  *   kawa-saver --idle  away 15 minutes (kawa-idle, from swayidle: never while something
  *                      plays): the screensaver, and the lock behind it — the first key or move
  *                      ends it and brings up the lock (kawa-lock) before it goes, so neither
@@ -80,6 +81,8 @@ struct output {
 	struct wl_list link;
 	struct wl_output *wl;
 	uint32_t global;
+	char name[64];      /* (--wash: grim's -o) */
+	uint32_t *old;      /* (--wash: the screen as it was, W × H) */
 	int scale;
 	struct wl_surface *surface;
 	struct zwlr_layer_surface_v1 *layer;
@@ -474,6 +477,7 @@ static void buffer_release(void *data, struct wl_buffer *b)
 	((struct buffer *)data)->busy = false;
 }
 static const struct wl_buffer_listener buffer_listener = { .release = buffer_release };
+static uint32_t buffer_format = WL_SHM_FORMAT_XRGB8888;   /* (--wash: ARGB, its washed dots clear) */
 
 static bool make_buffer(struct output *o, struct buffer *b)
 {
@@ -491,7 +495,7 @@ static bool make_buffer(struct output *o, struct buffer *b)
 		return false;
 	}
 	struct wl_shm_pool *pool = wl_shm_create_pool(shm, fd, (int32_t)b->size);
-	b->wl = wl_shm_pool_create_buffer(pool, 0, o->W, o->H, stride, WL_SHM_FORMAT_XRGB8888);
+	b->wl = wl_shm_pool_create_buffer(pool, 0, o->W, o->H, stride, buffer_format);
 	wl_shm_pool_destroy(pool);
 	close(fd);
 	wl_buffer_add_listener(b->wl, &buffer_listener, b);
@@ -722,7 +726,11 @@ static void out_scale(void *d, struct wl_output *w, int32_t s)
 	(void)w;
 	((struct output *)d)->scale = s > 0 ? s : 1;
 }
-static void out_name(void *d, struct wl_output *w, const char *n) { (void)d, (void)w, (void)n; }
+static void out_name(void *d, struct wl_output *w, const char *n)
+{
+	(void)w;
+	snprintf(((struct output *)d)->name, sizeof ((struct output *)d)->name, "%s", n);
+}
 static void out_desc(void *d, struct wl_output *w, const char *n) { (void)d, (void)w, (void)n; }
 static const struct wl_output_listener output_listener = {
 	.geometry = out_geometry, .mode = out_mode, .done = out_done, .scale = out_scale,
@@ -855,9 +863,205 @@ static void usage(void)
 	exit(2);
 }
 
+/* ── --wash: the one transition (a theme switch, a new wallpaper) ────────────────────────
+ * The screen as it was (grim, each monitor) laid over everything, then washed away as the
+ * screensaver washes its cloth: an ordered dither on the same grid of dots, 8 steps of 32 ms
+ * (~1/4 s), the new look showing through more of the dots at each step — stepped, never eased
+ * (design-system §5). It never takes input (no keyboard, an empty input region: every click
+ * goes through to what is under it). The caller reads "covered" on our stdout once the old
+ * picture is up, makes its change underneath, then closes our stdin: the wash starts. SIGTERM
+ * (another switch while this one washes: kawa-theme) takes it away at once — the final state.
+ * Anything that fails (no grim, no screen) prints "covered" all the same and leaves: the change
+ * is never held up. Our pid in $XDG_RUNTIME_DIR/kawa-wash.pid while it shows. */
+#define WASH_STEPS 8
+#define WASH_MS 32
+static bool load_ppm(struct output *o, const char *path)
+{
+	FILE *f = fopen(path, "rb");
+	int w, h, mx;
+	if (!f)
+		return false;
+	if (fscanf(f, "P6 %d %d %d", &w, &h, &mx) != 3 || mx != 255 || fgetc(f) == EOF || w != o->W || h != o->H) {
+		fclose(f);
+		return false;
+	}
+	o->old = malloc((size_t)w * (size_t)h * 4);
+	uint8_t *row = malloc((size_t)w * 3);
+	bool ok = o->old && row;
+	for (int y = 0; ok && y < h; y++) {
+		ok = fread(row, 3, (size_t)w, f) == (size_t)w;
+		for (int x = 0; ok && x < w; x++)
+			o->old[(size_t)y * (size_t)w + (size_t)x] = 0xff000000u | (uint32_t)row[3 * x] << 16
+				| (uint32_t)row[3 * x + 1] << 8 | row[3 * x + 2];
+	}
+	free(row);
+	fclose(f);
+	return ok;
+}
+
+/* step k (0: whole, WASH_STEPS: gone) of the wash into b, and shown */
+static void wash_draw(struct output *o, struct buffer *b, int k)
+{
+	int level = 64 * k / WASH_STEPS;
+	for (int y = 0; y < o->H; y++) {
+		uint32_t *dst = b->px + (size_t)y * (size_t)o->W, *src = o->old + (size_t)y * (size_t)o->W;
+		const uint8_t *br = bayer[(y / o->bs) & 7];
+		for (int x = 0; x < o->W; x++)
+			dst[x] = br[(x / o->bs) & 7] < level ? 0 : src[x];
+	}
+	wl_surface_attach(o->surface, b->wl, 0, 0);
+	wl_surface_damage_buffer(o->surface, 0, 0, o->W, o->H);
+	b->busy = true;
+	struct wl_callback *cb = wl_surface_frame(o->surface);
+	wl_callback_add_listener(cb, &frame_listener, o);
+	o->waiting_frame = true;
+	wl_surface_commit(o->surface);
+}
+
+static int wash(void)
+{
+	char pidp[PATH_MAX], tmp[PATH_MAX];
+	struct output *o;
+	bool covered = false;
+	signal(SIGTERM, on_signal);
+	signal(SIGINT, on_signal);
+	signal(SIGPIPE, SIG_IGN);
+	buffer_format = WL_SHM_FORMAT_ARGB8888;
+	snprintf(pidp, sizeof pidp, "%s/kawa-wash.pid", runtime());
+	display = wl_display_connect(NULL);
+	if (!display)
+		goto done;
+	wl_list_init(&outputs);
+	struct wl_registry *registry = wl_display_get_registry(display);
+	wl_registry_add_listener(registry, &registry_listener, NULL);
+	wl_display_roundtrip(display);
+	wl_display_roundtrip(display);
+	if (!compositor || !shm || !layer_shell)
+		goto done;
+	wl_list_for_each(o, &outputs, link) {
+		o->surface = wl_compositor_create_surface(compositor);
+		struct wl_region *none = wl_compositor_create_region(compositor);
+		wl_surface_set_input_region(o->surface, none);   /* every click goes through */
+		wl_region_destroy(none);
+		o->layer = zwlr_layer_shell_v1_get_layer_surface(layer_shell, o->surface, o->wl,
+				ZWLR_LAYER_SHELL_V1_LAYER_OVERLAY, "kawa-wash");
+		zwlr_layer_surface_v1_add_listener(o->layer, &layer_listener, o);
+		zwlr_layer_surface_v1_set_anchor(o->layer, ZWLR_LAYER_SURFACE_V1_ANCHOR_TOP |
+				ZWLR_LAYER_SURFACE_V1_ANCHOR_BOTTOM | ZWLR_LAYER_SURFACE_V1_ANCHOR_LEFT |
+				ZWLR_LAYER_SURFACE_V1_ANCHOR_RIGHT);
+		zwlr_layer_surface_v1_set_exclusive_zone(o->layer, -1);
+		zwlr_layer_surface_v1_set_keyboard_interactivity(o->layer, 0);
+		wl_surface_commit(o->surface);
+	}
+	wl_display_roundtrip(display);
+	/* the screens as they are, before anything of ours is on them */
+	int shown = 0;
+	wl_list_for_each(o, &outputs, link) {
+		if (!o->configured || o->closed || o->lw <= 0 || !o->name[0])
+			continue;
+		o->W = o->lw * o->scale, o->H = o->lh * o->scale;
+		int L = o->W > o->H ? o->W : o->H, S = o->W > o->H ? o->H : o->W;
+		int a = (L + 639) / 640, c = (S + 359) / 360;
+		o->bs = a > c ? a : c;
+		o->tw = o->th = 1;
+		snprintf(tmp, sizeof tmp, "%s/kawa-wash-%d.ppm", runtime(), (int)o->global);
+		pid_t g = fork();
+		if (g == 0) {
+			int nul = open("/dev/null", O_WRONLY);
+			if (nul >= 0) { dup2(nul, 1); dup2(nul, 2); }
+			execlp("grim", "grim", "-t", "ppm", "-o", o->name, tmp, (char *)NULL);
+			_exit(127);
+		}
+		int st = 1;
+		if (g > 0)
+			while (waitpid(g, &st, 0) < 0 && errno == EINTR)
+				;
+		bool got = g > 0 && WIFEXITED(st) && WEXITSTATUS(st) == 0 && load_ppm(o, tmp);
+		unlink(tmp);
+		if (!got || !make_buffer(o, &o->buf[0]) || !make_buffer(o, &o->buf[1]))
+			continue;
+		wl_surface_set_buffer_scale(o->surface, o->scale);
+		o->ready = true;
+		wash_draw(o, &o->buf[0], 0);
+		shown++;
+	}
+	if (!shown || stop)
+		goto done;
+	FILE *pf = fopen(pidp, "w");
+	if (pf) { fprintf(pf, "%d\n", (int)getpid()); fclose(pf); }
+	/* covered once every screen has shown the old picture (its frame done), 300 ms at most */
+	double t0 = now_ms();
+	for (;;) {
+		bool all = true;
+		wl_list_for_each(o, &outputs, link)
+			if (o->ready && o->waiting_frame && !o->closed) all = false;
+		if (all || stop || now_ms() - t0 > 300)
+			break;
+		struct pollfd p = { .fd = wl_display_get_fd(display), .events = POLLIN };
+		wl_display_flush(display);
+		if (poll(&p, 1, 20) > 0 && wl_display_dispatch(display) < 0)
+			goto done;
+	}
+	puts("covered");
+	fflush(stdout);
+	covered = true;
+	/* the change underneath: until our stdin closes (3 s at most), the screens kept */
+	struct pollfd pp[2] = { { .fd = 0, .events = POLLIN }, { .fd = wl_display_get_fd(display), .events = POLLIN } };
+	t0 = now_ms();
+	while (!stop && now_ms() - t0 < 3000) {
+		wl_display_flush(display);
+		if (poll(pp, 2, 50) <= 0)
+			continue;
+		if (pp[1].revents & POLLIN && wl_display_dispatch(display) < 0)
+			goto done;
+		if (pp[0].revents & (POLLIN | POLLHUP)) {
+			char c[64];
+			if (read(0, c, sizeof c) <= 0)
+				break;
+		}
+	}
+	/* washed away: one step every 32 ms (the first one a step on, as the new look draws) */
+	for (int k = 1; k <= WASH_STEPS && !stop; k++) {
+		double next = now_ms() + WASH_MS;
+		while (!stop && now_ms() < next) {
+			struct pollfd p = { .fd = wl_display_get_fd(display), .events = POLLIN };
+			wl_display_flush(display);
+			int w = (int)(next - now_ms());
+			if (poll(&p, 1, w < 0 ? 0 : w) > 0 && wl_display_dispatch(display) < 0)
+				goto done;
+		}
+		wl_list_for_each(o, &outputs, link) {
+			if (!o->ready || o->closed)
+				continue;
+			struct buffer *b = !o->buf[0].busy ? &o->buf[0] : !o->buf[1].busy ? &o->buf[1] : NULL;
+			if (b)
+				wash_draw(o, b, k);   /* (both still on screen: this step skipped there) */
+		}
+	}
+done:
+	if (!covered) {
+		puts("covered");
+		fflush(stdout);
+	}
+	unlink(pidp);
+	if (display) {
+		wl_list_for_each(o, &outputs, link) {
+			if (o->layer)
+				zwlr_layer_surface_v1_destroy(o->layer);
+			if (o->surface)
+				wl_surface_destroy(o->surface);
+		}
+		wl_display_roundtrip(display);
+		wl_display_disconnect(display);
+	}
+	return 0;
+}
+
 int main(int argc, char **argv)
 {
 	seed = (unsigned)time(NULL) ^ (unsigned)getpid();
+	if (argc == 2 && !strcmp(argv[1], "--wash"))
+		return wash();
 	for (int i = 1; i < argc; i++) {
 		if (!strcmp(argv[i], "--idle")) idle_mode = true;
 		else if (!strcmp(argv[i], "--seed") && i + 1 < argc) seed = (unsigned)strtoul(argv[++i], NULL, 10);
@@ -866,7 +1070,9 @@ int main(int argc, char **argv)
 			puts("kawa-saver — the screensaver (sashiko stitched across every screen); any input ends it.\n"
 			     "  kawa-saver         now (nothing locks)\n"
 			     "  kawa-saver --idle  away 15 minutes (kawa-idle): the screensaver, the lock behind it as it\n"
-			     "                     ends (switched off in quick settings: the lock at once)");
+			     "                     ends (switched off in quick settings: the lock at once)\n"
+			     "  kawa-saver --wash  the transition of a theme switch or a new wallpaper: the screen as it\n"
+			     "                     was, washed away in 8 dithered steps once stdin closes (kawa-theme)");
 			return 0;
 		} else usage();
 	}

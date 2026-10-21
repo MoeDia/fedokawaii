@@ -427,8 +427,10 @@ other_os() {
   os-prober 2>/dev/null | cut -d: -f2 | grep . | sort -u || true
 }
 s_boot() {
-  # Hidden menu (Fedora's own mechanism): stays hidden while the last boot succeeded,
-  # appears by itself after a failed one. The timer marks a boot successful — two minutes
+  # Hidden menu at every start (menu_auto_hide=2, Fedora's 12_menu_auto_hide): =1 would show it
+  # after any start that did not reach two minutes of desktop — a quick restart, a shutdown from
+  # the login screen — which is the menu-with-countdown seen on a fresh boot. Shift, Esc or F8
+  # shows it. The timer marks a boot successful — two minutes
   # after the desktop starts it (autostart.sh), never at boot: with linger your own systemd
   # starts at boot, desktop or not, so Fedora's every-session timer would count any boot
   # that got that far, one whose desktop never came up as well. Once the
@@ -445,7 +447,7 @@ s_boot() {
     log "boot menu: left to the theme (shown for $BOOT_MENU_SECONDS s)"
   else
     rm -f "$STATE_DIR/other-os"
-    run grub2-editenv - set menu_auto_hide=1
+    run grub2-editenv - set menu_auto_hide=2
   fi
   run systemctl --global disable grub-boot-success.timer
   s_kernels
@@ -828,6 +830,20 @@ copr_on() {
   log "the COPR $1 has no build for Fedora $FEDORA_VER yet — $(copr_pkgs "$1" | tr '\n' ' ')left out until it has; update or repair adds it then"
   return 2
 }
+# copr_all — every COPR of the manifest enabled, or recorded as waiting for a build: 0, else 1.
+# Update and repair ask it too: a COPR whose enable was lost (or one added to the manifest after
+# setup ran) is enabled again, never its packages called "not in this Fedora" (grub-btrfs was)
+copr_all() {
+  local c r rc=0 on
+  on=$(dnf -q repolist --enabled 2>/dev/null | awk '{ print $1 }') || return 1
+  for c in "${COPRS[@]}"; do
+    grep -qxF "copr:copr.fedorainfracloud.org:${c/\//:}" <<<"$on" && continue
+    grep -qxF -- "$c" < <(waiting copr) && continue
+    r=0; copr_on "$c" || r=$?
+    ((r != 1)) || { log "could not enable the COPR $c (the lines above say why)"; rc=1; }
+  done
+  return "$rc"
+}
 not_waiting() {   # not_waiting PKG… → those not waiting for a repository, one per line
   local w; w=$(waiting_pkgs | grep . || true)
   if [[ -z $w ]]; then printf '%s\n' "$@"; else printf '%s\n' "$@" | grep -vxF -f <(printf '%s\n' "$w") || true; fi
@@ -857,7 +873,10 @@ waiting_retry() {
 
 s_repos() {
   wait_for_network
-  local base=https://mirrors.rpmfusion.org r repos c
+  # the two release packages from RPM Fusion's own server: mirrors.rpmfusion.org sends each
+  # download to a mirror picked by place, and one dead mirror (ftp.cc.uoc.gr, every try timed
+  # out) stopped setup there; the repositories they set up keep the mirror list for the rest
+  local base=https://download1.rpmfusion.org r repos c
   pkg_installed rpmfusion-free-release || dnf_install \
     "$base/free/fedora/rpmfusion-free-release-$FEDORA_VER.noarch.rpm" \
     "$base/nonfree/fedora/rpmfusion-nonfree-release-$FEDORA_VER.noarch.rpm"
@@ -888,10 +907,7 @@ gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-claude-code
 includepkgs=claude-code
 EOF
   fi
-  for r in "${COPRS[@]}"; do
-    c=0; copr_on "$r" || c=$?
-    ((c != 1)) || die "could not enable the COPR $r (the lines above say why)"
-  done
+  copr_all || die "a COPR could not be enabled (the lines above say why)"
   run dnf -y upgrade --refresh                     # RPM Fusion builds now match the base libraries
   repos=$(dnf repolist --enabled)
   for r in rpmfusion-free rpmfusion-nonfree brave-browser claude-code; do
@@ -1162,19 +1178,25 @@ EOF
   # with nothing to go on, never another login in its place
   write_file /etc/systemd/system/greetd.service.d/fedokawaii.conf <<'EOF'
 # installed by setup.sh: greetd reads fedokawaii.toml, and owns tty1 alone (Fedora 45 runs
-# kmscon there, earlier releases agetty). It starts once the boot splash has gone
-# (plymouth-quit-wait): never beside it, the two taking the screen from each other. A login
-# screen that keeps stopping: five tries in a minute, then fedokawaii-login-failed says so
+# kmscon there, earlier releases agetty). The splash hands the screen to it with no black
+# between (GDM's way): plymouth-quit (which clears the screen) never runs beside it; plymouth
+# stops drawing and lets the card go (deactivate), cage takes the card on tty1 — the splash's
+# own VT, so no switch — and plymouth leaves with its last frame still shown (quit
+# --retain-splash) until the greeter's first frame replaces it. ("-": at a restart of greetd
+# plymouth is long gone.) A login screen that keeps stopping: five tries in a minute, then
+# fedokawaii-login-failed says so
 [Unit]
-Conflicts=getty@tty1.service kmsconvt@tty1.service
-After=getty@tty1.service kmsconvt@tty1.service plymouth-quit-wait.service
+Conflicts=getty@tty1.service kmsconvt@tty1.service plymouth-quit.service
+After=getty@tty1.service kmsconvt@tty1.service plymouth-start.service plymouth-quit.service systemd-user-sessions.service
 StartLimitIntervalSec=60
 StartLimitBurst=5
 OnFailure=fedokawaii-login-failed.service
 
 [Service]
 ExecStart=
+ExecStartPre=-/usr/bin/plymouth deactivate
 ExecStart=/usr/bin/greetd --config /etc/greetd/fedokawaii.toml
+ExecStartPost=-/usr/bin/plymouth quit --retain-splash
 Restart=always
 RestartSec=2
 EOF
@@ -1190,6 +1212,7 @@ StandardOutput=tty
 StandardError=journal
 TTYPath=/dev/tty1
 TTYReset=yes
+ExecStartPre=-/usr/bin/plymouth quit
 ExecStart=/usr/bin/printf '\033[?25h\n  The login screen could not start: it stopped five times in a row.\n\n  Ctrl+Alt+F2 opens a text console. Log in there, then:\n\n      fedokawaii repair               finds what broke and fixes it\n      sudo systemctl restart greetd   the login screen again\n\n  Why it stopped: journalctl -b -u greetd -t kawa-greet\n\n'
 EOF
   systemctl daemon-reload
@@ -1213,7 +1236,6 @@ s_apps()    { local p; mapfile -t p < <(not_waiting "${PKG_APPS[@]}"); dnf_insta
 
 s_upstream() {
   local e; for e in "${UPSTREAM[@]}"; do install_upstream_bin "$e"; done
-  install_upstream_icons || log "a launcher icon is not installed yet (why: above) — update and repair try again"
   install_nerd_fonts
   install_fusion
   s_localsend
@@ -1451,6 +1473,9 @@ sys.exit(m.version("torrra") != sys.argv[1] or any(m.version(n) != v for n, v in
     # its libraries at the versions torrra was released with (system/torrra-constraints.txt),
     # and uv's own `torrra` command kept in uv's folder: on your PATH it would run torrra
     # without the key — `torrra` is kawa-torrra's
+    # (Fedora's uv has Python downloads set to manual: the 3.13 CPython is fetched by
+    # `uv python install` itself — uv's managed Python, not Fedora's python3)
+    retry 3 20 run as_user uv python install 3.13 || die "uv could not fetch Python 3.13 for torrra"
     retry 3 20 run as_user env UV_TOOL_BIN_DIR="$TARGET_HOME/$TORRRA_BIN" \
       uv tool install --force --python 3.13 --constraints "$pins" "torrra==$TORRRA_VERSION" \
       || die "torrra did not install"
@@ -1577,11 +1602,15 @@ EOF
 # fstab_noatime — every Btrfs line of /etc/fstab with noatime (lib/pace.sh: pace_fstab), checked
 # by findmnt before it goes in; each such mount switched now as well (a remount: nothing stops)
 fstab_noatime() {
-  local new mp
+  local new mp t ok=0
   new=$(pace_fstab </etc/fstab) || return 1
   [[ $new == "$(cat /etc/fstab)" ]] && return 0
-  findmnt --verify --tab-file <(printf '%s\n' "$new") >/dev/null 2>&1 \
-    || { log "fstab with noatime does not verify (findmnt --verify) — /etc/fstab left as it is"; return 1; }
+  # (a real file: findmnt cannot read a pipe — <(…) made every check fail, so the fstab never
+  # got noatime)
+  t=$(mktemp /etc/.fstab-fedokawaii.XXXXXX) || return 1
+  printf '%s\n' "$new" >"$t" && findmnt --verify --tab-file "$t" >/dev/null 2>&1 && ok=1
+  rm -f -- "$t"
+  ((ok)) || { log "fstab with noatime does not verify (findmnt --verify) — /etc/fstab left as it is"; return 1; }
   printf '%s\n' "$new" | write_file /etc/fstab 0644
   log "fstab: the Btrfs mounts noatime (a read writes nothing)"
   for mp in $(awk '!/^[[:space:]]*#/ && $3 == "btrfs" { print $2 }' /etc/fstab); do
@@ -2050,8 +2079,8 @@ clone_done() {
   fi
   # a clone of GitHub's repository (git knows its origin) becomes ~/repos/fedokawaii — the one
   # clone fedokawaii pull keeps current, never cloned again by hand (fedokawaii --adopt, as you:
-  # an older working copy there packed first; a token in its address moved to secrets.sh; on a
-  # terminal, the token asked once). ~/repos/fedokawaii a clone already: this one goes, below
+  # an older working copy there packed first; its address set to the public repository's, no
+  # token). ~/repos/fedokawaii a clone already: this one goes, below
   if [[ -d $d/.git && ! -L $d/.git ]] && as_user git -C "$d" remote get-url origin >/dev/null 2>&1 \
      && as_user /usr/local/bin/fedokawaii --adopt "$d"; then
     [[ $REPO_DIR != "$d" ]] || REPO_DIR=$TOOLKIT
@@ -2206,9 +2235,20 @@ need_space() {   # need_space PATH MiB — stop, saying what to do, when there i
 # stops, or systemd restarting itself during the update can never cut it off halfway. Its
 # output goes to the journal (no file for the service to be allowed to write: SELinux has
 # no say), is followed here as it comes, and is copied into the log at the end. Never
-# given a time limit.
+# given a time limit. Its output line by line (stdbuf -oL): without a terminal dnf's output is
+# block-buffered, so the window showed nothing for the whole download — an update that looked
+# stuck. A transaction a run before left going (its window closed, Ctrl+C) is followed to its
+# end first: a new dnf would wait on its lock, saying nothing.
 dnf_detached() {   # dnf_detached ARG… — dnf ARG…, detached from this session; its exit status
-  local unit rc IFS=' '
+  local unit rc prev f IFS=' '
+  prev=$(systemctl list-units --plain --no-legend --state=active 'fedokawaii-dnf-*.service' 2>/dev/null | awk 'NR == 1 { print $1 }')
+  if [[ -n $prev ]]; then
+    _out "${C_DIM}$(_ts) ▸ the package transaction a run before started ($prev) is still going — followed to its end${C_RESET}"
+    journalctl -f -n 20 -o cat -u "$prev" 2>/dev/null 9>&- &
+    f=$!
+    while systemctl is-active --quiet "$prev"; do sleep 2; done
+    kill "$f" 2>/dev/null || true; wait "$f" 2>/dev/null || true
+  fi
   unit=fedokawaii-dnf-$(date +%s)-$$
   if [[ ${RUN_SHOWN:-} == 1 ]]; then _out "${C_DIM}    (as $unit)${C_RESET}"   # (run said the command already)
   else _out "${C_DIM}$(_ts) \$ dnf $*  (as $unit)${C_RESET}"; fi
@@ -2216,7 +2256,7 @@ dnf_detached() {   # dnf_detached ARG… — dnf ARG…, detached from this sess
   FOLLOWER=$!
   systemd-run --quiet --unit="$unit" --service-type=exec --wait --collect -p TimeoutStopSec=10min \
     -p StandardOutput=journal -p StandardError=journal -p SyslogIdentifier=fedokawaii-dnf \
-    -E LC_ALL=C.UTF-8 /usr/bin/dnf "$@" 9>&- && rc=0 || rc=$?
+    -E LC_ALL=C.UTF-8 /usr/bin/stdbuf -oL -eL /usr/bin/dnf "$@" 9>&- && rc=0 || rc=$?
   sleep 1; kill "$FOLLOWER" 2>/dev/null || true; wait "$FOLLOWER" 2>/dev/null || true; FOLLOWER=""
   journalctl -o cat --no-pager "_SYSTEMD_UNIT=$unit.service" >>"$LOG_FILE" 2>/dev/null || true
   return "$rc"
@@ -2281,6 +2321,7 @@ manifest_sync() {
   mapfile -t want < <(manifest_all "$gpu")
   # what waited for RPM Fusion or a COPR to catch up with this Fedora: tried again first
   waiting_retry || rc=1
+  copr_all || rc=1
   # RPM Fusion's Vulkan driver (an earlier setup's) swapped for Fedora's own, both arches
   vulkan_fedora || { log "could not put Fedora's Vulkan driver in place of RPM Fusion's — repair tries again"; rc=1; }
   # (what waits is not missing: verify warns about it, and the next update tries again)
@@ -2447,7 +2488,6 @@ do_update() {
   step_on "dwl's own wlroots" wlr_step
   # the desktop's own tools: pinned, so normally nothing to do
   for e in "${UPSTREAM[@]}"; do step_on "${e%%|*}" install_upstream_bin "$e"; done
-  step_on "the launcher's icons" install_upstream_icons
   step_on "Nerd Fonts" install_nerd_fonts
   step_on "Fusion Pixel 12 and 10" install_fusion
   step_on "Syncplay" install_syncplay
@@ -2876,7 +2916,6 @@ home_back() {
 r_upstream() {   # release binaries and fonts present (each is a no-op when current) — each
   local e rc=0   # tried even when one before it failed
   for e in "${UPSTREAM[@]}"; do install_upstream_bin "$e" || rc=1; done
-  install_upstream_icons || rc=1
   retire_upstream || rc=1
   install_nerd_fonts || rc=1
   install_fusion || rc=1

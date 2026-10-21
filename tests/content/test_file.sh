@@ -110,6 +110,13 @@ eq "$(cat "$TMP/state")" "pack-zip=fast"
 answers zip fast; rc 0 kawa-file "$A/folder"; has "$(cat "$TMP/menu.2.args")" "--select 1"
 [[ -s "$A/folder (1).zip" ]] && _ok || _no "no second zip"
 
+case_ "packing: its progress a row in the downloads' folder (the bar's percent), gone at the end; a notice"
+setup; answers zip fast
+stub 7z 'printf "  0M Scan\\b\\b\\b\\b  50%% 1 + x\\r"; /bin/sleep 0.6; cp "$XDG_RUNTIME_DIR"/kawa-downloads/file.* "'"$TMP"'/jobsnap" 2>/dev/null; exec '"$(type -P -a 7z | grep -v "$STUBS" | head -n1)"' "$@"'
+rc 0 kawa-file "$A/folder"; tot=$(du -scb -- "$A/folder" | tail -n1 | cut -f1)
+eq "$(cat "$TMP/jobsnap" 2>/dev/null)" "folder.zip	$((tot / 2))	$tot	$A/folder.zip"
+eq "$(ls "$XDG_RUNTIME_DIR/kawa-downloads" 2>/dev/null)" "" "the row left after the job"
+called '^notify-send -a desktop -A default=open -- .*folder\.zip'
 case_ "7z · smallest with a password: -mx9, solid, AES with the names hidden — the password only on stdin"
 setup; answers "7z · with a password" smallest; rc 0 kawa-file "$A/folder"
 s=$A/folder.7z; [[ -s $s ]] && _ok || _no "no $s"

@@ -2,7 +2,7 @@
 # kawa-menu — one look for every small menu: the panel's, drawn as the sound panel is — parts
 # under kanji seals, rows, keys —, list order kept; and the launcher.
 #
-#   … | kawa-menu [--drop] [--title TEXT] [--width N] [--lines N] [--select N] [--prompt P] [--index]
+#   … | kawa-menu [--drop] [--title TEXT] [--width N] [--lines N] [--select N] [--prompt P] [--index] [--stay]
 #   kawa-menu --launcher
 #
 #   the lines   one a thing, its fields apart by tabs (kawa-panel's "a menu"): part KANJI NAME
@@ -17,10 +17,15 @@
 #   --title     a quiet line above the list
 #   --width N   at least N columns of 6 px (without it the menu is as wide as its content)
 #   --lines N   at most N rows show; a longer list scrolls (the wheel, the cursor)
-#   --select N  the line the first arrow, Tab or Enter puts the cursor on (it opens with none)
+#   --select N  the line the cursor opens on (else the first choice: Enter takes it at once;
+#               the pointer moves it — one cursor, the pointer's or the keys')
 #   --prompt P  a line to type in at the top, P before it: typing filters the choices (Enter
 #               on none of them gives what was typed)
 #   --index     print the chosen line's number (0-based) instead of its name
+#   --stay      a key line chosen is printed and the menu stays on screen: the caller's next
+#               kawa-menu (its next page — the calendar's months) takes its place in the same
+#               window, at once; keys pressed meanwhile are done on it, none lost. Nothing
+#               asked within a second: it closes
 #
 # A menu is shown by the session's panel (kawa-panel), asked through its fifo with bash alone
 # (no process started on the way): the request in $XDG_RUNTIME_DIR/kawa-menu.PID.req, the
@@ -38,7 +43,7 @@
 # Prints the chosen line; exits 1 when the menu is dismissed (Esc, a click outside, its key
 # again) or cannot open, 2 on wrong use.
 set -u
-usage() { echo "usage: … | kawa-menu [--drop] [--title TEXT] [--width N] [--lines N] [--select N] [--prompt P] [--index] · kawa-menu --launcher" >&2; exit 2; }
+usage() { echo "usage: … | kawa-menu [--drop] [--title TEXT] [--width N] [--lines N] [--select N] [--prompt P] [--index] [--stay] · kawa-menu --launcher" >&2; exit 2; }
 pargs=()                                      # (a menu's options, as the panel takes them)
 launcher=0 idx=0
 while (($#)); do
@@ -46,6 +51,7 @@ while (($#)); do
     --drop)   pargs+=(--drop); shift; continue ;;
     --launcher) launcher=1; shift; continue ;;
     --index)  idx=1; pargs+=(--index); shift; continue ;;
+    --stay)   pargs+=(--stay); shift; continue ;;
     -h|--help) sed -n '2,/^set -u/{/^set -u/d;s/^# \{0,1\}//;p}' "$0"; exit 0 ;;
     --title|--width|--lines|--select|--prompt) (($# >= 2)) || usage ;;
     *) echo "kawa-menu: unknown option $1" >&2; usage ;;
@@ -169,7 +175,9 @@ lit() {
 fz=""
 trap '[[ -n $fz ]] && lit off' EXIT
 trap '[[ -n $fz ]] && kill "$fz" 2>/dev/null; exit 1' TERM HUP INT
-fuzzel </dev/null 9>&- & fz=$!
+# (text typed that matches no entry, Enter: fuzzel runs it after its launch prefix — kawa-calc
+# works a sum out: "15% of 2400", "120 usd to aed"; an entry runs as it is)
+env -u DESKTOP_ENTRY_ID fuzzel --launch-prefix='kawa-calc --launch' </dev/null 9>&- & fz=$!
 put "$fz" open - "$used"
 [[ -n $rec ]] && flock -u 9
 lit on

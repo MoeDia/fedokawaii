@@ -6,15 +6,22 @@
 #   kawa-record          not recording: a menu under the bar — whole screen or a region, sound
 #                        or none — then it starts. Recording: it stops (the same key)
 #   kawa-record stop     the recording stopped (a click on the bar's 録 mark)
+#   kawa-record pause    paused (Super+Shift+P), or — paused — on again after a 3-2-1 count
+#                        on the bar; the parts are one file when it stops (ffmpeg, no re-encode)
 #   kawa-record bar      the bar's module (waybar JSON): 録 and the time gone by, vermilion,
-#                        while one runs; nothing (hidden) otherwise
+#                        while one runs; 録 停 and the time, muted, while paused; 録 3, 2, 1
+#                        before it records again; nothing (hidden) otherwise
 #   kawa-record run whole|region sound|silent [GEOMETRY|MONITOR]
 #                        the recording itself, in a session of its own (what the menu starts)
 #
 # While it runs the bar is poked once a second (signal 22) to tick the time: no process runs
 # for it otherwise. When it stops, a notice says where the file is (a click opens it) and its
 # path is on the clipboard. The recording's state: $XDG_RUNTIME_DIR/kawa-record ("PID START
-# FILE"); wf-recorder's own words in $XDG_RUNTIME_DIR/kawa-record.log.
+# FILE MODE": the run's pid; MODE rec — START the time it began, its pauses left out — or
+# paused, or 3 2 1 — START then the seconds recorded); wf-recorder's own words in
+# $XDG_RUNTIME_DIR/kawa-record.log. A game in full screen is recorded as the card shows it:
+# wf-recorder hands the card's own buffers to the encoder (dmabuf, no copy through the CPU),
+# told the monitor's refresh rate (-B) so the encoder expects as many frames.
 # Exit status: 0 done (or the menu dismissed) · 1 could not (a notice says why) · 2 misuse.
 set -u
 export LC_ALL=C.UTF-8
@@ -25,15 +32,15 @@ STATE=$RUN/kawa-record LOG=$RUN/kawa-record.log
 DIR=$HOME/Videos/Recordings
 SIG=22                                             # (the bar's custom/record module)
 
-# the recording that runs: "PID START FILE" of a wf-recorder still alive → PID START FILE
+# the recording that runs: "PID START FILE MODE" of a run still alive → PID START FILE MODE
 running() {
-  local p s f a=()
-  read -r p s f 2>/dev/null <"$STATE" || return 1
-  [[ $p =~ ^[1-9][0-9]*$ && $s =~ ^[0-9]+$ ]] || return 1
+  local p s f m a=()
+  read -r p s f m 2>/dev/null <"$STATE" || return 1
+  [[ $p =~ ^[1-9][0-9]*$ && $s =~ ^[0-9]+$ && $m == @(rec|paused|[123]) ]] || return 1
   # (its command line: a pid the system has given to another program since is not it)
   mapfile -d '' -t a 2>/dev/null </proc/"$p"/cmdline
-  [[ ${a[0]##*/} == wf-recorder || ${a[1]:-} == */wf-recorder ]] || return 1
-  printf '%s %s %s\n' "$p" "$s" "$f"
+  [[ ${a[1]:-} == */kawa-record && ${a[2]:-} == run ]] || return 1
+  printf '%s %s %s %s\n' "$p" "$s" "$f" "$m"
 }
 poke() { kawa-dwlstatus --poke "$SIG" 2>/dev/null || true; }
 clock() {   # clock SECONDS → 00:12 · 59:59 · 1:02:03 (as the timer beside the time counts)
@@ -43,15 +50,27 @@ clock() {   # clock SECONDS → 00:12 · 59:59 · 1:02:03 (as the timer beside t
 
 case ${1:-} in
   bar)
-    if read -r _ s _ < <(running); then
-      printf '{"text":"録 %s","class":"rec"}\n' "$(clock $((EPOCHSECONDS - s)))"
+    if read -r _ s f m < <(running); then
+      case $m in
+        rec)    printf '{"text":"録 %s","class":"rec"}\n' "$(clock $((EPOCHSECONDS - s)))" ;;
+        paused) printf '{"text":"録 停 %s","class":"paused"}\n' "$(clock "$s")" ;;
+        *)      printf '{"text":"録 %s","class":"count"}\n' "$m" ;;
+      esac
     else echo '{"text":""}'; fi
+    exit 0 ;;
+  pause)
+    if read -r p _ < <(running); then kill -USR1 "$p" 2>/dev/null
+    else
+      # shellcheck source=/dev/null
+      . "$HOME/.config/fedokawaii/icons.sh"
+      notify-send -a desktop -- "$ICON_CAMERA  recording" "nothing is being recorded" 2>/dev/null
+    fi
     exit 0 ;;
   stop)
     # at once: the recorder signalled, the bar's mark gone; the file is finished in the
     # background (the run below says where it is when it is); nothing recording: said
     if read -r p _ < <(running); then
-      kill -INT "$p" 2>/dev/null                   # (wf-recorder ends its file properly on INT)
+      kill -TERM "$p" 2>/dev/null                  # (the run ends wf-recorder's file properly)
       rm -f "$STATE"; poke
     else
       # shellcheck source=/dev/null
@@ -61,7 +80,7 @@ case ${1:-} in
     exit 0 ;;
   run) ;;
   "") ;;
-  *) echo "usage: kawa-record [stop|bar] (kawa-record --help)" >&2; exit 2 ;;
+  *) echo "usage: kawa-record [stop|pause|bar] (kawa-record --help)" >&2; exit 2 ;;
 esac
 
 # shellcheck source=/dev/null
@@ -106,28 +125,70 @@ mkdir -p "$DIR" 2>/dev/null && [[ -w $DIR ]] || fail "${DIR/#"$HOME"/\~} cannot 
 args=(-c h264_vaapi -y)
 [[ $2 == region ]] && args+=(-g "$4")
 [[ $2 == whole && -n ${4:-} ]] && args+=(-o "$4")          # (one monitor of several)
+# the encoder told the monitor's refresh rate (the one recorded, else the fastest on)
+hz=$(wlr-randr --json 2>/dev/null | jq -r --arg o "${4:-}" '[.[] | select(.enabled and ($o == "" or .name == $o or ($o | test(",")))) | .modes[] | select(.current) | .refresh] | max // empty | floor' 2>/dev/null)
+[[ $hz =~ ^[1-9][0-9]*$ ]] && args+=(-B "$hz")
 # the desktop's sound: what plays on the default output (its monitor), not the microphone
 [[ $3 == sound ]] && args+=(--audio=@DEFAULT_MONITOR@)
 file="$DIR/$(date +%Y-%m-%d_%H-%M-%S).mp4"
-args+=(-f "$file")
+put() { printf '%s %s %s %s\n' "$$" "$1" "$file" "$2" >"$STATE.$$" && mv -f "$STATE.$$" "$STATE"; }
+want="" pid="" parts=("$file") done_s=0 rc=0
+trap 'want=stop' TERM HUP INT
+# reap — wf-recorder's end waited for, its status in rc (a signal to this run meanwhile: on waiting)
+reap() { local r; while :; do wait "$pid"; r=$?; kill -0 "$pid" 2>/dev/null || break; done; rc=$r; }
+trap 'want=pause' USR1
+# a part: wf-recorder into FILE, the state "rec" from the seconds already recorded
+part() {
+  wf-recorder "${args[@]}" -f "$1" </dev/null >"$LOG" 2>&1 & pid=$!
+  seg=$EPOCHSECONDS; put $((seg - done_s)) rec; poke
+}
 start=$EPOCHSECONDS
-wf-recorder "${args[@]}" </dev/null >"$LOG" 2>&1 & pid=$!
-printf '%s %s %s\n' "$pid" "$start" "$file" >"$STATE.$$" && mv -f "$STATE.$$" "$STATE"
-trap 'kill -INT "$pid" 2>/dev/null' TERM HUP INT
-# a second's nap with no process: a read that times out on a fifo of its own
+part "$file"
+# a second's nap with no process: a read that times out on a fifo of its own (a signal ends it)
 w=$RUN/kawa-record.nap.$$; mkfifo -m 600 "$w" && exec {nap}<>"$w"; rm -f "$w"
-while kill -0 "$pid" 2>/dev/null; do poke; read -r -t 1 -u "$nap" _; done
-wait "$pid"; rc=$?
+mode=rec
+while :; do
+  if [[ $mode == rec ]]; then
+    if [[ -n $want ]]; then
+      kill -INT "$pid" 2>/dev/null                 # (wf-recorder ends its file properly on INT)
+      reap; done_s=$((done_s + EPOCHSECONDS - seg))
+      [[ $want == stop ]] && break
+      want="" mode=paused; put "$done_s" paused; poke
+    elif ! kill -0 "$pid" 2>/dev/null; then
+      reap; done_s=$((done_s + EPOCHSECONDS - seg)); break
+    else poke; fi
+  else
+    [[ $want == stop ]] && break
+    if [[ $want == pause ]]; then                   # on again: 3, 2, 1 on the bar, then a new part
+      want=""
+      for n in 3 2 1; do put "$done_s" "$n"; poke; read -r -t 1 -u "$nap" _; [[ $want == stop ]] && break 2; done
+      want="" mode=rec; parts+=("$DIR/.${file##*/}.${#parts[@]}.mp4"); part "${parts[-1]}"; continue
+    fi
+  fi
+  read -r -t 1 -u "$nap" _
+done
 rm -f "$STATE"; poke
-if [[ ! -s $file ]] || ((rc != 0 && rc != 130 && EPOCHSECONDS - start < 3)); then
-  rm -f -- "$file"
+# shellcheck source=/dev/null
+. "$HOME/.config/fedokawaii/files.sh"              # clip_put
+if [[ ! -s $file ]] || ((rc != 0 && rc != 130 && ${#parts[@]} == 1 && EPOCHSECONDS - start < 3)); then
+  rm -f -- "$file" "${parts[@]:1}"
   why=$(grep -v '^\s*$' "$LOG" 2>/dev/null | tail -n1)
   fail "the recording did not start${why:+: $why}"
 fi
-# shellcheck source=/dev/null
-. "$HOME/.config/fedokawaii/files.sh"              # clip_put
+# paused and on again: the parts joined into the one file, as they are (no re-encode)
+if ((${#parts[@]} > 1)); then
+  first="$DIR/.${file##*/}.0.mp4" list="$DIR/.${file##*/}.txt"
+  mv -f -- "$file" "$first"; parts[0]=$first
+  for f in "${parts[@]}"; do [[ -s $f ]] && printf "file '%s'\n" "${f//\'/\'\\\'\'}"; done >"$list"
+  if ffmpeg -hide_banner -loglevel error -f concat -safe 0 -i "$list" -c copy -movflags +faststart -y "$file" 2>>"$LOG"; then
+    rm -f -- "${parts[@]}" "$list"
+  else
+    rm -f -- "$file" "$list"
+    fail "the parts were not joined ($(tail -n1 "$LOG")) — they are in ${DIR/#"$HOME"/\~}, named .${file##*/}.N.mp4"
+  fi
+fi
 title="recording saved · its path copied"
 printf '%s' "$file" | clip_put 'text/plain;charset=utf-8' 2>/dev/null || title="recording saved"
-act=$(notify-send -a desktop -A default=open -- "$ICON_CAMERA  $title" "${file/#"$HOME"/\~} · $(clock $((EPOCHSECONDS - start)))" 2>/dev/null) || exit 0
+act=$(notify-send -a desktop -A default=open -- "$ICON_CAMERA  $title" "${file/#"$HOME"/\~} · $(clock "$done_s")" 2>/dev/null) || exit 0
 [[ $act == default ]] && setsid -f xdg-open "$file" >/dev/null 2>&1 </dev/null
 exit 0

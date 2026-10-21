@@ -441,7 +441,12 @@ def tiles_of(s):
     t += [("drives", "drive", "盤", "drives", s.get("drives", "none"), s.get("drives", "none") != "none"),
           ("backup", "archive", "蔵", "backup", b, b not in ("never", "not set up")),
           ("dnd", "bell_off" if s.get("dnd") == "on" else "bell", "静", "dnd", s.get("dnd", "off"), s.get("dnd") == "on"),
-          ("saver", "hourglass", "夢", "screensaver", s.get("saver", "off"), s.get("saver", "off") != "off")]
+          ("saver", "hourglass", "夢", "screensaver", s.get("saver", "off"), s.get("saver", "off") != "off"),
+          # the screen's two captures beside the foot's screenshot: a recording (its menu —
+          # whole or a region, sound or none —, or stopped while one runs: stamped then) and
+          # a region's words read onto the clipboard (kawa-screenshot text)
+          ("record", "cassette_a", "録", "record", "recording" if s.get("record") == "on" else "off", s.get("record") == "on"),
+          ("ocr", "note", "読", "read text", "a region", False)]
     # (each value as much as its tile shows: 12 px of margin, 76 px of words)
     return [(k, i, j, n, fit(v, TILE_W - 12), on) for k, i, j, n, v, on in t]
 
@@ -513,8 +518,9 @@ class Menu:
     what has been typed."""
 
     def __init__(self, lines, drop=False, title="", width=0, lines_shown=0, select=None,
-                 prompt=None, index=False):
+                 prompt=None, index=False, stay=False):
         self.lines = [parse_line(i, l) for i, l in enumerate(lines)]
+        self.stay = stay          # (its keys answer and keep it on screen: the next page in place)
         self.drop, self.title, self.width, self.shown = drop, title, width, lines_shown
         self.select, self.prompt, self.index = select, prompt, index
         self.query = ""
@@ -626,7 +632,9 @@ def layout_menu(m):
         y += METER_H + GAP
     if m.prompt is not None:
         marks.append(("input", x0, y, w, KEY_H, m.prompt, m.query))
-        y += KEY_H + GAP
+        # (the line typed on, then the room of a part's break before the first row — as in
+        # every text screen, one blank line between where you type and what it finds)
+        y += KEY_H + SECTION
     top = y
     lines = m.lines
     if m.query:                                   # (typing: the choices it finds, under their parts)
@@ -860,7 +868,7 @@ def look(it, focused, hot):
 
 SWITCHES = ("theme", "night", "vrr", "bluetooth", "dnd", "saver")   # done in place: the panel stays
 WHEELED = {"night": ("warmer", "cooler")}   # a tile the wheel changes: the night light's warmth
-OPENERS = ("network", "devices", "drives", "backup", "wallpaper", "screenshot", "power")
+OPENERS = ("network", "devices", "drives", "backup", "wallpaper", "screenshot", "record", "ocr", "power")
 METERS = ("brightness", "sound")
 MOVES = ("Left", "h", "Right", "l", "Up", "k", "Down", "j", "Tab", "ISO_Left_Tab")
 ENTER = ("Return", "KP_Enter", "space")
@@ -876,6 +884,8 @@ class Panel:
         self.states = {m: {} for m in MODES}
         self.states["menu"] = Menu([])
         self.reply = None        # a menu's answer to its caller (rc, text), until it is given
+        self.holding = False     # a --stay menu's key answered: on screen, waiting for its next page
+        self.queued = []         # keys pressed meanwhile: each one done on the page as it comes
         self.scroll = 0          # how far a menu's list is scrolled (px)
         self.relayout()
         self.focus = None        # the keyboard's cursor (filled in vermilion): none until a key
@@ -977,7 +987,9 @@ class Panel:
             click = None                              # (that click was answered: this is a key)
         if click is not None:
             self.used = click
-        if self.visible and self.what == what:
+        if self.visible and self.what == what and menu is not None and self.holding:
+            self.page(menu, reply)                    # (its next page: in place, at once)
+        elif self.visible and self.what == what:
             self._refuse(reply)
             self.close("toggled")
         elif click is not None and self.lost == (what, click):
@@ -987,6 +999,24 @@ class Panel:
             self.open_menu(menu, reply, what)
         else:
             self.open(what)
+
+    def page(self, menu, reply):
+        """A --stay menu's next page (its caller asked again after one of its keys): the lines
+        replaced in the same window — no close, no new window, the cursor on the key that paged
+        (its --select) and the pointer's item lit as it was; a key pressed while it was on its
+        way is done now, on this page (none is lost, however fast the clicks)."""
+        self.holding = False
+        self.states["menu"] = menu
+        self.reply = reply
+        self.scroll = 0
+        self.relayout()
+        keys = [i.key for i in self.items]
+        sel = str(menu.select) if menu.select is not None else None
+        self.focus = sel if sel in keys else (self.focus if self.focus in keys else (keys[0] if keys else None))
+        self.rehot()
+        self.ui.redraw()
+        if self.queued:
+            self.activate(self.queued.pop(0))
 
     def _refuse(self, reply):
         if reply:
@@ -1023,7 +1053,11 @@ class Panel:
         self.focus = self.hot = self.pointer = self.dragging = None
         self.scrolled = (None, 0.0)
         self.scroll = 0
+        self.holding, self.queued = False, []
         self.relayout()
+        # keyboard-first: the cursor on its first choice (or --select's line) from the start —
+        # Enter takes it at once; the pointer moves it (hover(): one cursor, never two lights)
+        self.focus = self.first_key() if self.items else None
         self.place = menu_place(menu.drop, self.ui.clicked() if menu.drop else None, self.size[0])
         self.ui.show()
         if menu.drop:
@@ -1039,6 +1073,7 @@ class Panel:
         if not self.visible:
             return
         self.visible = False
+        self.holding, self.queued = False, []
         if how == "lost":
             # a click outside it: on the bar, a click not yet asked for — the request it makes
             # (if it is this one's button) is this close
@@ -1076,9 +1111,20 @@ class Panel:
     def activate(self, key):
         if self.mode == "menu":
             m = self.state
-            if self.item(key) is not None:
+            it = self.item(key)
+            if it is None:
+                return
+            if m.stay and it.kind == "key":
+                if self.holding:                      # (the next page not here yet: done on it)
+                    self.queued.append(key)
+                    return
+                self.holding = True
                 self.answer(0, key if m.index else m.name_of(int(key)))
-                self.close("chosen")
+                # (its caller gone or silent: closed after a second, never left hanging)
+                self.ui.later(1000, lambda: self.holding and self.close("chosen"))
+                return
+            self.answer(0, key if m.index else m.name_of(int(key)))
+            self.close("chosen")
             return
         if self.mode == "quick":
             if key in SWITCHES:
@@ -1226,7 +1272,7 @@ class Panel:
             return False
         self.scroll = 0
         self.relayout()
-        self.focus = self.items[0].key if m.query and self.items else None
+        self.focus = self.items[0].key if self.items else None
         self.rehot()
         self.ui.redraw()
         return True
@@ -1284,8 +1330,12 @@ class Panel:
         self.set_hot(None)
 
     def rehot(self):
-        """The hot item: the one under the pointer now (the layout may have moved under it)."""
+        """The hot item: the one under the pointer now (the layout may have moved under it).
+        In a menu the cursor goes with it: one cursor, the pointer's or the keys' — whichever
+        moved last (it stays where the pointer left it)."""
         it = self.at(*self.pointer) if self.pointer else None
+        if it and self.mode == "menu" and self.visible and not self.dragging:
+            self.move(it.key)
         self.set_hot(it.key if it else None)
 
     def set_hot(self, key):
@@ -1515,12 +1565,12 @@ def ask(line):
 
 def menu_args(args):
     """A menu's options (kawa-menu's, as it passes them) → the request's, or None (wrong use):
-    --drop, --index, --title TEXT, --width N, --lines N, --select N, --prompt TEXT."""
-    req = {"drop": False, "index": False, "title": "", "width": 0, "lines": 0, "select": None, "prompt": None}
+    --drop, --index, --stay, --title TEXT, --width N, --lines N, --select N, --prompt TEXT."""
+    req = {"drop": False, "index": False, "stay": False, "title": "", "width": 0, "lines": 0, "select": None, "prompt": None}
     i = 0
     while i < len(args):
         a = args[i]
-        if a in ("--drop", "--index"):
+        if a in ("--drop", "--index", "--stay"):
             req[a[2:]] = True
             i += 1
             continue
@@ -1550,7 +1600,7 @@ def menu_request(text):
         return None
     return lines[0], Menu(lines[2 + n:], drop=req["drop"], title=req["title"], width=req["width"],
                           lines_shown=req["lines"], select=req["select"], prompt=req["prompt"],
-                          index=req["index"])
+                          index=req["index"], stay=req["stay"])
 
 
 # ── on screen ─────────────────────────────────────────────────────────────────────────────
@@ -1721,13 +1771,19 @@ def main(argv):
                 for it in items:
                     a.queue_draw_area(it.x, it.y - panel.dy, it.w, it.h)
                 return
-            view["size"] = panel.win
-            a.set_size_request(*panel.win)
+            if view.get("size") != panel.win:
+                view["size"] = panel.win
+                a.set_size_request(*panel.win)
+                if view["win"]:
+                    view["win"].resize(*panel.win)    # (a page in place may be narrower: shrinks too)
             a.queue_draw()
 
         def show(self):
             self.hide()
             make_window().show_all()
+
+        def later(self, ms, fn):
+            GLib.timeout_add(ms, lambda: fn() and False)
 
         def hide(self):
             if view["win"]:
@@ -1821,7 +1877,7 @@ def main(argv):
     fo.set_antialias(cairo.ANTIALIAS_NONE)
     fo.set_hint_style(cairo.HINT_STYLE_FULL)
     fo.set_hint_metrics(cairo.HINT_METRICS_ON)
-    font = Pango.FontDescription.from_string("Fusion Pixel 12px Mono ja, Sumi Icons")
+    font = Pango.FontDescription.from_string("Sumi UI, Fusion Pixel 12px Mono ja, Sumi Icons")
     font.set_absolute_size(12 * Pango.SCALE)
 
     def col(cr, name):

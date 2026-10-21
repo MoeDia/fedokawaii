@@ -15,7 +15,7 @@ case_ "at once: the chip and what programs hold (MemTotal − MemAvailable), in 
 setup; info 33554432 27262976; start      # 32 GiB, 26 GiB available → 6.0G
 waitfor 5 eval '(( $(lines) >= 1 ))' || _no "no first line"
 eq "$(field text)" "${ICON_BAR_MEMORY}6.0G"; eq "$(field class)" calm
-has "$(field tooltip)" "6.0 of 32.0 GB"
+eq "$(field tooltip)" "RAM 18% of 32 GB"
 json_lines "$(cat "$TMP/out")"
 case_ "a line only when the figure changes: the same memory twice, still one line"
 sleep 0.3; eq "$(lines)" 1

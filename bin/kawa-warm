@@ -1,0 +1,91 @@
+#!/usr/bin/env bash
+# kawa-warm — the warm windows: notes (Super+N), the clipboard (Super+V) and the system menu
+# (Super+U). Each is started once, at login, and from then on dwl only shows it and puts it
+# away (dwl.patch: warm) — a press is one frame: no program started, nothing read first.
+# Put away, a list starts afresh behind the scenes (its search empty, its cursor on top) and
+# reads its data again as it shows; the notes page is saved and tidied as it goes, and
+# opens at today's note. Closed outright (Super+Q), its key starts it again.
+#
+#   kawa-warm NAME       show it, or put it away (what its key does)
+#   kawa-warm --start    the three, started put away (autostart.sh, at login)
+#
+# The other forms are dwl's and the window's own: --open NAME (its key, none running),
+# --shown NAME and --hidden NAME (each change), --inside NAME [show] (what runs in it).
+set -u
+RUN=${XDG_RUNTIME_DIR:?}
+FIFO=$RUN/dwl-warm                       # dwl reads "toggle NAME" and "hide NAME" here
+NAMES=(notes clip system)
+
+spec() {   # spec NAME — its window's title and size, and what runs in it ($cmd)
+  case $1 in
+    notes)  title=notes     size=80x25  cmd=(kawa-notes --inside) ;;
+    clip)   title=clipboard size=80x27  cmd=(kawa-clip --tui) ;;
+    system) title=system    size=100x27 cmd=(fedokawaii --popup) ;;
+    *) echo "kawa-warm: no warm window \"$1\" (${NAMES[*]})" >&2; return 2 ;;
+  esac
+}
+# window NAME [show] — its window: a foot window whose app-id, warm-NAME, dwl knows it by
+window() { footclient -a "warm-$1" -T "$title" -W "$size" -- "$0" --inside "$@" 9>&- </dev/null >/dev/null 2>&1; }
+# the running loop's process (--inside), or fails
+loop() {
+  local p="" a=()
+  read -r p 2>/dev/null <"$RUN/kawa-warm-$1.pid" && [[ $p =~ ^[1-9][0-9]*$ ]] || return 1
+  mapfile -d '' -t a 2>/dev/null <"/proc/$p/cmdline"
+  [[ ${a[2]:-} == --inside && ${a[3]:-} == "$1" ]] || return 1
+  pid=$p
+}
+
+case ${1:-} in
+  -h|--help) sed -n '2,/^set -u/{/^set -u/d;s/^# \{0,1\}//;p}' "$0"; exit 0 ;;
+  --start)
+    # (foot's server starts beside this, at login: its socket waited for, 10 s at most)
+    for _ in $(seq 50); do [[ -S $RUN/foot-${WAYLAND_DISPLAY:-}.sock ]] && break; sleep 0.2; done
+    for n in "${NAMES[@]}"; do spec "$n" && { window "$n" & }; done
+    wait; exit 0 ;;
+  --open)   spec "${2:-}" || exit 2; window "$2" show; exit 0 ;;
+  --shown)
+    case ${2:-} in
+      notes)  nvim --server "$RUN/kawa-notes.nvim" --remote-expr 'v:lua.kawa_notes_shown()' >/dev/null 2>&1 ;;
+      clip)   : >"$RUN/kawa-warm-clip.shown"; kawa-clip --poke ;;
+      system) curl -s --max-time 2 --unix-socket "$RUN/fedokawaii-menu.sock" \
+                --data-binary 'reload-sync(fedokawaii --items)' http://localhost/ >/dev/null 2>&1 ;;
+      *) spec "${2:-}"; exit 2 ;;
+    esac
+    exit 0 ;;
+  --hidden)
+    case ${2:-} in
+      notes) nvim --server "$RUN/kawa-notes.nvim" --remote-expr 'v:lua.kawa_notes_hidden()' >/dev/null 2>&1 ;;
+      clip|system)
+        rm -f "$RUN/kawa-warm-$2.shown"
+        # what runs in it ended whole — its process group, the terminal's foreground — and
+        # started again (the loop, told by .reset, keeps it away)
+        loop "$2" || exit 0
+        st=$(<"/proc/$pid/stat"); read -r -a f <<<"${st##*) }"   # (state ppid pgrp session tty tpgid…)
+        [[ ${f[5]:-} =~ ^[1-9][0-9]*$ && ${f[5]} != "${f[2]}" ]] || exit 0
+        : >"$RUN/kawa-warm-$2.reset"
+        kill -TERM -- "-${f[5]}" 2>/dev/null ;;
+      *) spec "${2:-}"; exit 2 ;;
+    esac
+    exit 0 ;;
+  --inside)
+    name=${2:-}; spec "$name" || exit 2
+    once=(); [[ $name == notes && ${3:-} == show ]] && once=(--shown)   # (the page: shown as it starts)
+    printf '%s\n' "$$" >"$RUN/kawa-warm-$name.pid"
+    rm -f "$RUN/kawa-warm-$name.reset"
+    set -m                               # (each run a process group of its own: --hidden ends it whole)
+    fast=0
+    while :; do
+      t0=$EPOCHSECONDS
+      "${cmd[@]}" "${once[@]}"; once=()
+      # ended by --hidden: away already; ended by itself (a choice made, Esc, :q): put away
+      if [[ -e $RUN/kawa-warm-$name.reset ]]; then rm -f "$RUN/kawa-warm-$name.reset"
+      elif [[ -p $FIFO ]]; then echo "hide $name" >"$FIFO"; fi
+      # (one that cannot start: the window closes after five tries in a row)
+      if ((EPOCHSECONDS - t0 < 1)); then ((++fast < 5)) || exit 1; sleep 0.2; else fast=0; fi
+    done ;;
+  "") echo "usage: kawa-warm NAME   (${NAMES[*]}: show it or put it away)" >&2; exit 2 ;;
+  *)
+    spec "$1" >/dev/null || exit 2
+    [[ -p $FIFO ]] || { echo "kawa-warm: dwl is not running here (no $FIFO)" >&2; exit 1; }
+    echo "toggle $1" >"$FIFO" ;;
+esac

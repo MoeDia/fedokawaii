@@ -139,7 +139,7 @@ at() { local ms=$1; shift; KAWA_MENU_TIME=$((1000000000000 + ms * 1000)) "$@"; }
 fresh() { menus_sandbox; R=$XDG_RUNTIME_DIR; rm -f "$R"/kawa-launcher.*; }
 case_ "the launcher: in the middle of the screen (fuzzel's own place) — from the torii too"
 fresh; press; answer esc; kawa-menu --launcher
-eq "$(fz_args)" "" "no output, anchor or margin: centred"
+eq "$(fz_args)" "--launch-prefix=kawa-calc --launch" "no output, anchor or margin: centred (only the launch prefix)"
 lacks "$(cat "$REPO/bin/kawa-menu")" "x-margin"
 case_ "its key again: closed, no second one; pressed fast (dwl repeats no held key that opens it): every press counts — open after an odd number, closed after an even one"
 fresh; answer hang; kawa-menu --launcher & bg=$!; waitfor "$FZ/hang.1"

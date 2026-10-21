@@ -73,7 +73,7 @@ title=${1:-} size=${2:-}
 shift 3
 run=${XDG_RUNTIME_DIR:?}
 lit="" closed="" stop=0 fc=""
-mark=$(mktemp -u "$run/kawa-term.XXXXXX")
+mark=$run/kawa-term.$$                    # (this call's own name: no process to make one)
 # closed by another call (--once; from the moment this one is named open): the terminal
 # window ended (footclient) — or never asked for, if that came first
 trap 'stop=1; [[ -n $fc ]] && kill -TERM "$fc" 2>/dev/null' TERM HUP INT

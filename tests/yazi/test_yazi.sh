@@ -615,7 +615,7 @@ sleep 1
 EOF
 )
 has "$out" "space mark  ·  enter open" "(open after the first Esc)"; eq "$(answer)" "" "cancelled: no answer"
-case_ "a long folder in the dialog's title: cut at its start with …, the '· ' before it kept, the rule to the edge"
+case_ "a long folder in the dialog's title (§7's heading: icon, name, the folder muted, the stitch): its start cut, no ellipsis, the stitch to the edge"
 L="$W/とても長い日本語のフォルダの名前がここにありますとても長い日本語のフォルダの名前/مجلد"
 mkdir -p "$L"; echo x >"$L/x.txt"
 out=$(pick open1 "$L" <<'EOF'
@@ -627,7 +627,7 @@ sleep 1
 EOF
 )
 head1=$(sed -n 1p <<<"$out")
-has "$head1" "open file · …"; has "$head1" "/مجلد ─"
+has "$head1" "   open file  "; lacks "$head1" "…"; has "$head1" "/مجلد ╌"
 eq "$(python3 -I -B -c 'import sys; sys.path.insert(0, sys.argv[1]); import drive
 print(sum(drive.width(c) for c in sys.stdin.read().rstrip("\n")))' "$D" <<<"$head1")" 99 "(the title rule: the window less its free column)"
 
@@ -643,7 +643,7 @@ out = " ".join(rails)
 if st: out += (" " if out else "") + "stitch %d-%d" % (len(st[0]) - len(st[0].lstrip()), len(st[0].rstrip()) - 1)
 print(out or "none")'; }
 setup
-for e in "156x40:20 77" "95x40:15 58" "77x40:15 47" "58x40:stitch 1-56" "37x40:stitch 1-35" "58x24:28" "58x14:28" "34x14:none" "20x8:none"; do
+for e in "156x40:20 77" "95x40:17 58" "77x40:17 47" "58x40:stitch 1-56" "37x40:stitch 1-35" "58x24:28" "58x14:28" "34x14:none" "20x8:none"; do
   s=${e%%:*} want=${e#*:}
   case_ "yazi at ${s}: $(case $want in *stitch*) echo "the list above the preview, the stitch between them (one free column each end)" ;; none) echo "the list alone" ;;
     *\ *) echo "parent, list and preview" ;; *) echo "the list and the preview side by side" ;; esac)"

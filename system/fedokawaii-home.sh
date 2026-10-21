@@ -19,12 +19,14 @@ export NPM_CONFIG_CACHE="$HOME/.cache/npm"                        # ~/.npm (npm'
 export CARGO_HOME="$HOME/.local/share/cargo"                      # ~/.cargo (rustup's cargo, rustc…)
 export RUSTUP_HOME="$HOME/.local/share/rustup"                    # ~/.rustup (the toolchains)
 export VD_DIR="$HOME/.local/share/visidata"                       # ~/.visidata (visidata's saved sheets)
+export GIT_CONFIG_GLOBAL="$HOME/.config/git/config"              # ~/.gitconfig (git config --global writes here)
 # readline (bash's typing): the desktop's file when the theme put one there (a variable naming
 # a file that is not there would leave out /etc/inputrc as well)
 [ -r "$HOME/.config/readline/inputrc" ] && export INPUTRC="$HOME/.config/readline/inputrc"
-# the folders the history files go in: none of those programs makes its own
+# the folders the history files and git's settings go in: none of those programs makes its own
 if [ -w "$HOME" ]; then
   for _d in bash less python node sqlite; do [ -d "$HOME/.local/state/$_d" ] || mkdir -p "$HOME/.local/state/$_d"; done
+  [ -d "$HOME/.config/git" ] || mkdir -p "$HOME/.config/git"   # (git writes no file into a folder not there)
   unset _d
 fi
 case ":$PATH:" in *":$CARGO_HOME/bin:"*) ;; *) PATH="$PATH:$CARGO_HOME/bin" ;; esac

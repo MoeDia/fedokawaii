@@ -29,3 +29,26 @@ clip_put() {
   printf '%(%F %T)T %s: %s %s\n' -1 "${0##*/}" "$t" "$( ((ok)) && echo "on the clipboard" || echo "NOT on the clipboard")" >>"$log"
   ((ok))
 }
+
+# yazi_focused — the yazi in the focused window, for Super+Z and Super+D (dwl's keys, which
+# yazi never sees): its id (YAZI_ID: `ya emit-to ID shell "kawa-shrink %s"` runs on its
+# selection, or the file under its cursor) on stdout. Each yazi keeps
+# $XDG_RUNTIME_DIR/kawa-yazi.ID — "PID TIME FOLDER", rewritten as it is used (init.lua) —
+# and the focused window's title (dwl-bar/title.json: "Yazi: FOLDER") says which: a live one
+# whose folder it names, the one used last of those. Fails: the focused window is no yazi
+yazi_focused() {
+  local run=${XDG_RUNTIME_DIR:-/nonexistent} t f id p tm d best="" bt=0 c
+  t=$(jq -r '.text // empty' "$run/dwl-bar/title.json" 2>/dev/null) || return 1
+  t=${t//&lt;/<}; t=${t//&gt;/>}; t=${t//&apos;/\'}; t=${t//&quot;/\"}; t=${t//&amp;/&}
+  [[ $t == "Yazi: "* ]] || return 1
+  t=${t#Yazi: }
+  for f in "$run"/kawa-yazi.*; do
+    [[ -f $f ]] || continue
+    id=${f##*/kawa-yazi.}
+    IFS=$'\t' read -r p tm d <"$f" || continue
+    read -r c 2>/dev/null </proc/"$p"/comm && [[ $c == yazi ]] || { rm -f -- "$f"; continue; }   # (closed)
+    [[ $t == "${d##*/}" || $t == "$d" || $t == "${d/#"$HOME"/\~}" ]] || continue
+    [[ ${tm%.*} =~ ^[0-9]+$ ]] && ((${tm//./} > bt)) && { best=$id bt=${tm//./}; }
+  done
+  [[ -n $best ]] && printf '%s\n' "$best"
+}

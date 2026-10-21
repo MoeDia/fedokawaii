@@ -21,7 +21,7 @@ tidy() { OUT=$(bash "$T" "$@" 2>&1); RC=$?; }
 home
 case_ "moves: histories joined (the old lines first), folders moved whole, npm's cache gone — nothing else at the top"
 printf 'old1\nold2\n' >"$HOME/.bash_history"; mkdir -p "$HOME/.local/state/bash"; printf 'new1\n' >"$HOME/.local/state/bash/history"
-printf 'py\n' >"$HOME/.python_history"; printf '.less-history-file:\n' >"$HOME/.lesshst"
+printf 'py\n' >"$HOME/.python_history"; printf '.less-history-file:\n' >"$HOME/.lesshst"; printf '[user]\n\tname = K\n' >"$HOME/.gitconfig"
 mkdir -p "$HOME/.cargo/bin" "$HOME/.rustup/toolchains/stable" "$HOME/.npm/_cacache" "$HOME/.npm/_logs" "$HOME/.visidata"
 echo rustup >"$HOME/.cargo/bin/rustup"; echo t >"$HOME/.rustup/settings.toml"
 tidy --move; eq "$RC" 0 "$OUT"
@@ -29,7 +29,7 @@ eq "$(cat "$HOME/.local/state/bash/history")" $'old1\nold2\nnew1'
 eq "$(cat "$HOME/.local/state/python/history")" py
 eq "$(cat "$HOME/.local/share/cargo/bin/rustup")" rustup; eq "$(cat "$HOME/.local/share/rustup/settings.toml")" t
 [[ -d $HOME/.local/state/less && -f $HOME/.local/state/less/history && -d $HOME/.local/share/visidata ]] && _ok || _no "less's history, visidata's folder"
-for f in .bash_history .python_history .lesshst .cargo .rustup .npm .visidata; do [[ ! -e $HOME/$f ]] && _ok || _no "~/$f still there"; done
+for f in .gitconfig .bash_history .python_history .lesshst .cargo .rustup .npm .visidata; do [[ ! -e $HOME/$f ]] && _ok || _no "~/$f still there"; done
 has "$OUT" "~/.cargo → ~/.local/share/cargo"
 tidy --move; eq "$OUT" "" "a second run: nothing to say"
 case_ "a folder in both places stays (yours to look at) and is named; npm's folder with something of yours in it stays"

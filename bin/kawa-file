@@ -2,7 +2,8 @@
 # kawa-file — Super+D ("File tools" in the launcher): archives and PDFs, everything to do with
 # them, in one menu that offers only what fits what you chose. It works on what you copied
 # (Ctrl+C in yazi) — or, while the clipboard history (Super+V) is open, on the entry under its
-# cursor — or on the files you name (Alt+F in yazi runs it on the selection).
+# cursor — or, in yazi, on the files selected there (the one under its cursor, none selected),
+# as its Alt+F — or on the files you name.
 #
 #   kawa-file                 what is on the clipboard (or Super+V's entry under the cursor)
 #   kawa-file FILE…           those files and folders
@@ -48,7 +49,29 @@ esac
 . "$HOME/.config/fedokawaii/width.sh"   # cut_cols
 magick() { LC_ALL=C command magick "$@"; }
 work=$(mktemp -d "${XDG_RUNTIME_DIR:-/tmp}/kawa-file.XXXXXX") || exit 1
-trap 'rm -rf "$work"' EXIT
+# job NAME DONE TOTAL WHERE — this job's row in the downloads' folder while it runs
+# ($XDG_RUNTIME_DIR/kawa-downloads/file.PID, kawa-downloads' "jobs": the bar's percent and its
+# menu show it; bytes of bytes); gone when this ends. Its notice at the end is finish()'s
+JOB=${XDG_RUNTIME_DIR:+$XDG_RUNTIME_DIR/kawa-downloads/file.$$}
+job() {
+  [[ -n $JOB ]] || return 0
+  mkdir -p "${JOB%/*}" 2>/dev/null
+  { printf '%s\t%d\t%d\t%s\n' "${1//$'\t'/ }" "$2" "$3" "$4" >"$JOB.tmp" && mv -f "$JOB.tmp" "$JOB"; } 2>/dev/null
+}
+# meter NAME TOTAL WHERE — a packer's progress on stdin into job rows: 7z's percent ("  45% …",
+# -bsp1, between backspaces) or tar's checkpoints ("tar: 700": records of 10 KiB so far);
+# any other line is the packer's own words, into $LOG
+meter() {
+  local l n last=-1
+  while IFS= read -r l; do
+    if [[ $l =~ ^\ *([0-9]+)%  ]]; then n=$(($2 / 100 * BASH_REMATCH[1] + $2 % 100 * BASH_REMATCH[1] / 100))
+    elif [[ $l =~ ^tar:\ ([0-9]+)$ ]]; then n=$((BASH_REMATCH[1] * 10240)); ((n > $2)) && n=$2
+    elif [[ $l =~ ^\ *[0-9] ]]; then continue          # (7z's other counters: "0M Scan")
+    else [[ -n ${l// } ]] && printf '%s\n' "$l" >>"$LOG"; continue; fi
+    ((n != last)) && { job "$1" "$n" "$2" "$3"; last=$n; }
+  done < <(stdbuf -o0 tr '\b\r' '\n\n')    # (unbuffered: each mark as it comes)
+}
+trap 'rm -rf "$work"; [[ -n $JOB ]] && rm -f "$JOB" "$JOB.tmp"' EXIT
 LOG=$work/log PW="" WHY=""
 export -n PW                            # (a password typed: in no program's environment either)
 SIG=${XDG_DATA_HOME:-$HOME/.local/share}/fedokawaii/signature.png
@@ -171,6 +194,9 @@ elif [[ ${1:-} != --choose ]] && id=$(kawa-clip --held 2>/dev/null); then
   e=$work/entry
   [[ $id =~ ^[0-9]+$ ]] && printf '%s\t\n' "$id" | cliphist decode >"$e" 2>/dev/null && [[ -s $e ]] \
     && [[ $(file -b --mime-type -- "$e") == text/* ]] && uris <"$e"
+elif [[ ${1:-} != --choose ]] && y=$(yazi_focused); then
+  # yazi in the focused window: its selection, or the file under its cursor (as its Alt+F)
+  exec ya emit-to "$y" shell "kawa-file %s" --orphan
 elif wl-paste --list-types 2>/dev/null | grep -qx text/uri-list; then
   uris < <(wl-paste --no-newline --type text/uri-list)
 fi
@@ -390,14 +416,19 @@ pack() {   # pack zip|7z|zst [pw]
   [[ $fmt == zst ]] && ext=tar.zst
   out=$(free_name "$d/$name.$ext")
   before=$(bytes_of "${items[@]}")
+  : >"$LOG"; job "${out##*/}" 0 "$before" "$out"
+  # (its progress on the bar and in the downloads' menu as it goes: meter)
   case $fmt in
-    zip|7z) a=(a "-t$fmt" "-mx$L" "${EXTRA[@]}" -bso0 -bsp0)
+    zip|7z) a=(a "-t$fmt" "-mx$L" "${EXTRA[@]}" -bso0 -bsp1)
             if [[ -n $PW ]]; then
               if [[ $fmt == zip ]]; then a+=(-p -mem=AES256); else a+=(-p -mhe=on); fi
-              printf '%s\n%s\n' "$PW" "$PW" | 7z "${a[@]}" -- "$out" "${items[@]}" >"$LOG" 2>&1
-            else 7z "${a[@]}" -- "$out" "${items[@]}" </dev/null >"$LOG" 2>&1; fi ;;
+              printf '%s\n%s\n' "$PW" "$PW" | 7z "${a[@]}" -- "$out" "${items[@]}" 2>&1 | meter "${out##*/}" "$before" "$out"
+            else 7z "${a[@]}" -- "$out" "${items[@]}" </dev/null 2>&1 | meter "${out##*/}" "$before" "$out"; fi
+            ((PIPESTATUS[0] == 0)) ;;
     zst)    t=(); for a in "${items[@]}"; do t+=(-C "${a%/*}" "./${a##*/}"); done
-            tar -I "zstd -T0 -$L ${EXTRA[*]}" -cf "$out" "${t[@]}" >"$LOG" 2>&1 ;;
+            tar -I "zstd -T0 -$L ${EXTRA[*]}" --checkpoint=100 --checkpoint-action='echo=%u' -cf "$out" "${t[@]}" 2>&1 \
+              | meter "${out##*/}" "$before" "$out"
+            ((PIPESTATUS[0] == 0)) ;;
   esac || { why "it could not be packed"; rm -f -- "$out"; oops "not packed" "$WHY"; }
   after=$(bytes_of "$out")
   finish "$ICON_ARCHIVE" "$(human "$before") → $(human "$after") · $(( (after * 100 + before / 2) / (before > 0 ? before : 1) )) %" "$d" "$out"
@@ -450,9 +481,13 @@ qpdf_to() {   # qpdf_to OUT ARG… — qpdf … OUT; a failure said
   local out=$1; shift
   qpdf "$@" "$out" >"$LOG" 2>&1 || [[ $? == 3 && -s $out ]] || { why "qpdf could not"; rm -f -- "$out"; oops "not done" "$WHY"; }
 }
-pdf_each() {   # pdf_each ACTION — ACTION on every PDF: the results, the notice
-  local f out=() o
-  for f in "${pdfs[@]}"; do o=$("$1" "$f") || exit 1; out+=("$o"); done
+pdf_each() {   # pdf_each ACTION — ACTION on every PDF: the results, the notice; its progress a
+  local f out=() o done_=0 all   # row in the downloads' folder (job), file by file
+  all=$(bytes_of "${pdfs[@]}")
+  for f in "${pdfs[@]}"; do
+    job "$TITLE · ${f##*/}" "$done_" "$all" "$f"
+    o=$("$1" "$f") || exit 1; out+=("$o"); done_=$((done_ + $(stat -c %s -- "$f")))
+  done
   finish "$ICON_BOOK" "$TITLE" "${out[0]}" "${out[@]}"
 }
 do_split()  { local d; d=$(beside "$1" -pages); mkdir -p "$d"; qpdf_to "$d/$(stem "$1")-%d.pdf" --split-pages "$1"; printf '%s' "$d"; }
@@ -485,7 +520,9 @@ do_ocr() {
   d=$work/ocr; rm -rf "$d"; mkdir -p "$d"
   n=$(npages "$1"); say "reading ${1##*/}" "$n pages: a few seconds each"
   pdftoppm -r 300 -jpeg -jpegopt quality=85 "$1" "$d/p" 2>"$LOG" || oops "${1##*/} could not be drawn"
+  local i=0 sz; sz=$(stat -c %s -- "$1")
   for p in "$d"/p-*.jpg; do
+    job "searchable · ${1##*/} · page $((++i)) of $n" $((sz * (i - 1) / n)) "$sz" "$1"
     tesseract "$p" "${p%.jpg}" -l eng+ara --dpi 300 pdf >/dev/null 2>>"$LOG" || oops "tesseract could not read ${p##*/}"
   done
   o=$(beside "$1" .searchable.pdf)

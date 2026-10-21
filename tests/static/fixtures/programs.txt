@@ -50,6 +50,7 @@ sha256sum           minimal   coreutils
 sleep               minimal   coreutils
 sort                minimal   coreutils
 stat                minimal   coreutils
+stdbuf              minimal   coreutils
 stty                minimal   coreutils
 sync                minimal   coreutils
 tail                minimal   coreutils
@@ -258,6 +259,10 @@ bleopt              built     install_blesh     #   (~/.config/blesh/init.sh)
 ble/function#advice built    install_blesh     #   — and the three of its own functions the prompt's
 ble/canvas/panel#goto.draw built install_blesh #   redraw after a change of width calls
 ble/canvas/bflush.draw built  install_blesh     #   (__kawa_reflow)
+ble/canvas/panel/goto-top-dock.draw built install_blesh #   — and, for a window nothing has run in yet,
+ble/textarea#invalidate built install_blesh     #   these four of ble.sh's own (the prompt drawn
+ble/util/buffer     built     install_blesh     #   again from the top, as its clear-screen does;
+ble/util/msleep     built     install_blesh     #   msleep: the wait for the burst of widths to end)
 
 # ── installed by nothing, on purpose ─────────────────────────────────────────────────────
 dbus-update-activation-environment  optional  -  # dbus-tools: only dbus-daemon needs it, and Fedora

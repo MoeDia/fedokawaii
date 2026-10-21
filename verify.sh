@@ -237,11 +237,11 @@ BOOT_SKIPPED=0; ((THEMED)) && [[ -s $STATE_DIR/boot.failed ]] && BOOT_SKIPPED=1
 if ((BOOT_SKIPPED)); then
   info "boot menu: not themed here (the theme check below says why) — left as Fedora set it"
 elif ((THEMED && BOOT_MENU_SECONDS > 0)); then
-  check "GRUB menu shown for $BOOT_MENU_SECONDS s (themed)" bash -c 'l=$(grub2-editenv - list) && ! grep -qx menu_auto_hide=1 <<<"$l"'
+  check "GRUB menu shown for $BOOT_MENU_SECONDS s (themed)" bash -c 'l=$(grub2-editenv - list) && ! grep -qx menu_auto_hide=2 <<<"$l"'
 elif [[ -s $STATE_DIR/other-os ]]; then   # (dual boot: setup and Theme leave it shown, even at 0 s)
-  check "GRUB menu shown (this machine also starts $(paste -sd, - <"$STATE_DIR/other-os"))" bash -c 'l=$(grub2-editenv - list) && ! grep -qx menu_auto_hide=1 <<<"$l"'
+  check "GRUB menu shown (this machine also starts $(paste -sd, - <"$STATE_DIR/other-os"))" bash -c 'l=$(grub2-editenv - list) && ! grep -qx menu_auto_hide=2 <<<"$l"'
 else
-  check "GRUB menu hidden (shows after a failed boot)" bash -c 'l=$(grub2-editenv - list) && grep -qx menu_auto_hide=1 <<<"$l"'
+  check "GRUB menu hidden at every start (menu_auto_hide=2)" bash -c 'l=$(grub2-editenv - list) && grep -qx menu_auto_hide=2 <<<"$l"'
 fi
 # the key that shows a hidden menu (Shift, Esc or F8 as the machine starts: Fedora's
 # 12_menu_auto_hide) — the way to the snapshots in it; GRUB_TIMEOUT_STYLE would take it away
@@ -373,7 +373,7 @@ check "greetd runs the login screen (kawa-greet in cage) for $TARGET_USER" grep 
 check "greetd reads fedokawaii.toml"                   bash -c 'systemctl cat greetd.service | grep -qx "ExecStart=/usr/bin/greetd --config /etc/greetd/fedokawaii.toml"'
 # (its drop-in: tty1 its own — no text login under the login screen — and started once the
 # splash has gone, never taking the screen from it: setup.sh's greetd_config)
-check "greetd owns tty1 and follows the boot splash (its drop-in)" bash -c 'u=$(systemctl cat greetd.service) && grep -qE "^Conflicts=.*getty@tty1\.service" <<<"$u" && grep -qE "^After=.*plymouth-quit-wait\.service" <<<"$u"'
+check "greetd owns tty1 and takes the screen from the splash with no black between (its drop-in)" bash -c 'u=$(systemctl cat greetd.service) && grep -qE "^Conflicts=.*getty@tty1\.service" <<<"$u" && grep -qE "^Conflicts=.*plymouth-quit\.service" <<<"$u" && grep -qx "ExecStartPost=-/usr/bin/plymouth quit --retain-splash" <<<"$u"'
 check "a login screen that cannot start is said on tty1, not a black screen (greetd's OnFailure)" bash -c 'systemctl cat greetd.service | grep -qx "OnFailure=fedokawaii-login-failed.service" && grep -q "The login screen could not start" /etc/systemd/system/fedokawaii-login-failed.service'
 check "the health report (fedokawaii-report) is the toolkit's" cmp -s "$TK/system/fedokawaii-report" /usr/local/bin/fedokawaii-report
 ((PRE)) || check "the health report runs once, on the first start"  systemctl is-enabled --quiet fedokawaii-report.service   # (finalize enables it)
@@ -518,9 +518,6 @@ for e in "${UPSTREAM[@]}"; do
     check "$b $tag runs" U timeout 10 "$f" --version
   done
 done
-for e in "${UPSTREAM_ICONS[@]}"; do
-  check "${e%%|*}'s launcher icon (its project's own logo, pinned)" icon_current "$e"
-done
 check "Fusion Pixel 12 and 10 $FUSION_TAG (the desktop's font, for every account)" test -s "$FUSION_DIR/fusion-pixel-12px-monospaced-ja.ttf" -a -s "$FUSION_DIR/fusion-pixel-10px-monospaced-ja.ttf" -a "$(cat "$FUSION_DIR/.version" 2>/dev/null)" = "$FUSION_TAG"
 # Syncplay, from its pinned source (setup carries on without it: update and repair fetch it)
 case $(up_tag syncplay) in
@@ -589,11 +586,21 @@ pid, fd = pty.fork()
 if pid == 0:
     fcntl.ioctl(0, termios.TIOCSWINSZ, struct.pack(\"HHHH\", 36, 120, 0, 0))
     os.execvp(\"herdr\", [\"herdr\"])
-end = time.monotonic() + 2
+def logged(name, text):
+    try:
+        with open(os.path.join(os.environ[\"HOME\"], \".config/herdr\", name), errors=\"replace\") as f:
+            return text in f.read()
+    except OSError:
+        return False
+# (until the window is attached and the server has its workspace — a cold start, the disk
+# busy just after setup, took more than the 2 s once waited — at most 12 s)
+end = time.monotonic() + 12
 while time.monotonic() < end:
     if select.select([fd], [], [], 0.1)[0]:
         try: os.read(fd, 65536)
         except OSError: break
+    if logged(\"herdr-client.log\", \"endpoint handshake succeeded\") and logged(\"herdr-server.log\", \"created startup workspace\"):
+        break
 os.kill(pid, signal.SIGTERM); os.waitpid(pid, 0)" >/dev/null 2>&1 </dev/null; true) \
       && grep -q "endpoint handshake succeeded" "$d/.config/herdr/herdr-client.log" \
       && grep -qx ".*created startup workspace cwd=$d/repos" "$d/.config/herdr/herdr-server.log" && r=0
@@ -714,7 +721,7 @@ else
              m=$(readlink "$2"); m=${m%/}; [[ ${m##*/} == light ]] && m=light || m=dark
              [[ $(readlink "$3") == "$1/Sumi-$m" ]]' _ /usr/share/icons "$TARGET_HOME/.config/fedokawaii/current" "$TARGET_HOME/.local/share/icons/default"
   check "desktop font → Fusion Pixel 12, crisp at 12 px (no smoothing)" grep -q '^Fusion Pixel 12px Mono ja False$' <<<"$(U fc-match -f '%{family} %{antialias}' 'Fusion Pixel 12px Mono ja:pixelsize=12' 2>&1)"
-  check "terminal font → Fusion Pixel 10, crisp at 20 px (no smoothing)" grep -q '^Fusion Pixel 10px Mono ja False$' <<<"$(U fc-match -f '%{family} %{antialias}' 'Fusion Pixel 10px Mono ja:pixelsize=20' 2>&1)"
+  check "terminal font → Sumi Term (Fusion Pixel 10, a half pixel heavier), crisp at 20 px (no smoothing)" grep -q '^Sumi Term False$' <<<"$(U fc-match -f '%{family} %{antialias}' 'Sumi Term:pixelsize=20' 2>&1)"
   check "pixel icons → Sumi Icons"                     grep -q 'Sumi Icons' <<<"$(U fc-match 'Sumi Icons' 2>&1)"
   check "pixel icons in the terminal → Sumi Icons Term"  grep -q 'Sumi Icons Term' <<<"$(U fc-match 'Sumi Icons Term' 2>&1)"
   check "screensaver (kawa-saver) runnable"             U "$TARGET_HOME/.local/bin/kawa-saver" --help

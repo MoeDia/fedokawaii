@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # tests/static/test_generated.sh — what is made from something else still matches it:
-#   · tools/build-themes.py, build-icons.py and build-cursors.py, run on a copy of the
+#   · tools/build-themes.py, build-icons.py, build-appicons.py and build-cursors.py, run on a copy of the
 #     repository, write the committed files byte for byte (nobody edited an output by hand,
 #     nobody forgot to run them), and build-themes' colour check reads colours, not numbers
 #   · every $ICON_… name used anywhere is one icons.sh defines; every icon written into a
@@ -53,6 +53,13 @@ if python3 -c 'import fontTools' 2>/dev/null && [[ -n $(fc-list 'Fusion Pixel 12
   (cd "$G" && python3 tools/build-seal.py) >"$TMP/log" 2>&1 && _ok || _no "it failed: $(tail -n 4 "$TMP/log" | tr '\n' ' ')"
   same
 else skipped "python3-fonttools or Fusion Pixel 12 is not installed"; fi
+
+case_ "build-appicons.py on a copy: the launcher's app seals, byte for byte (their kanji: the installed Fusion Pixel 12)"
+if [[ -n $(fc-list 'Fusion Pixel 12px Mono ja' 2>/dev/null) ]]; then
+  copy
+  (cd "$G" && python3 tools/build-appicons.py) >"$TMP/log" 2>&1 && _ok || _no "it failed: $(tail -n 4 "$TMP/log" | tr '\n' ' ')"
+  same
+else skipped "Fusion Pixel 12 is not installed"; fi
 
 case_ "build-cursors.py on a copy: the pointers, byte for byte"
 copy

@@ -133,7 +133,7 @@ world fresh; releases
 fkh os-prober "/dev/nvme0n1p1@/efi/Microsoft/Boot/bootmgfw.efi:Windows Boot Manager:Windows:efi"
 setup --no-reboot; eq "$RC" 0
 has "$OUT" "this machine also starts Windows Boot Manager — the boot menu stays shown"
-lacks "$(cat "$FKH/grubenv" 2>/dev/null)" "menu_auto_hide=1"; eq "$(state other-os)" "Windows Boot Manager"
+lacks "$(cat "$FKH/grubenv" 2>/dev/null)" "menu_auto_hide=2"; eq "$(state other-os)" "Windows Boot Manager"
 called 'grub2-editenv\] - unset menu_auto_hide'
 
 done_

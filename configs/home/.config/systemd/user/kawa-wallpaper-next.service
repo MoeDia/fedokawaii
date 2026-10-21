@@ -1,0 +1,9 @@
+# ~/.config/systemd/user/kawa-wallpaper-next.service — kawa-wallpaper --next: the pack's next
+# picture for the theme in use (both themes, when it has a pair), under the one transition.
+# Its timer runs it.
+[Unit]
+Description=Fedokawaii — the next wallpaper
+
+[Service]
+Type=oneshot
+ExecStart=%h/.local/bin/kawa-wallpaper --next

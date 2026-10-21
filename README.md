@@ -105,7 +105,7 @@ PACKAGES.md        what is installed, from where, and why
   shell starts no extra process.
 - **Wallpapers**: the default is one quiet place by night and by day — layers of ink-wash
   ridges under a pale moon on the dark theme, the same ridges on paper under a vermilion sun
-  on the light — from a curated pack of 120 (`WALLPAPER_PACK="yes"`), fetched from GitHub at
+  on the light — from a curated pack of 220 (`WALLPAPER_PACK="yes"`), fetched from GitHub at
   pinned commits, checked by SHA-256 and shown at full quality: all Japanese — Hokusai,
   Hiroshige and shin-hanga prints, ink and brush, streets and trains by night and by day,
   anime film (credits and
@@ -205,7 +205,7 @@ a month before yours ends.
 | Command | Does |
 |---|---|
 | `fedokawaii update` (or `update`) | the season's update: snapshot → `dnf upgrade` (detached, so nothing can cut it off) → the manifest, this machine's drivers and firmware, nothing doubled or fighting, the desktop's pinned tools, GE-Proton, torrra, Prowlarr, neovim's plugins → verify; a part that fails is reported and the rest goes on |
-| `fedokawaii pull` (Super+U → update fedokawaii) | fedokawaii itself from GitHub: the one clone, `~/repos/fedokawaii`, fast-forwarded, then the update run from it and repair if verify still finds something; the private repository's token asked once and kept in `secrets.sh` (600) |
+| `fedokawaii pull` (Super+U → update fedokawaii) | fedokawaii itself from GitHub: the one clone, `~/repos/fedokawaii`, fast-forwarded, then the update run from it and repair if verify still finds something; the repository is public: no sign-in, no token |
 | `fedokawaii upgrade` | move to the next Fedora once it has settled: checks RPM Fusion, the COPRs, room and every library dwl needs first; snapshot; `dnf system-upgrade`; the rest by itself after the restart |
 | `fedokawaii verify` (or `verify`) | full check, including your running session |
 | `fedokawaii report [--quick \| --perf]` | the health report: `~/fedokawaii-report.txt`, about 700 checks in 29 areas (29: performance, every threshold a FAIL) — the verdict, the findings (each with what to do), every area's table, the logs, and a line per check to `diff` two runs; every program proved to run, not only installed. Made once by itself after the first start; a few minutes (`--quick`: without the timed tests); send it with any question |

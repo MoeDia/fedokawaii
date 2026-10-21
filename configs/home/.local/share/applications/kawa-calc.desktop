@@ -2,12 +2,12 @@
 # The calculator: kawa-calc in a terminal window of its own (kawa-term, app-id kawa-calc) —
 # the answer as you type ("15% of 2400", "120 usd to aed", "5 ft to cm"), Enter copies it;
 # qalc works every answer out, and Ctrl+Q there is qalc's own prompt (its every command).
-# Its icon: foot's, the terminal that draws its window (qalc ships none of its own).
+# Its icon: our seal of 算 (tools/build-appicons.py, the theme's own: current/apps).
 Type=Application
 Name=Calculator
 GenericName=Calculator and unit converter
 Comment=qalc: sums, percentages, units and currencies — the answer as you type
-Icon=foot
+Icon=@HOME@/.config/fedokawaii/current/apps/calc.png
 Exec=@HOME@/.local/bin/kawa-term --app kawa-calc Calculator @HOME@/.local/bin/kawa-calc
 Terminal=false
 Categories=Utility;Calculator;

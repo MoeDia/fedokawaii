@@ -1,12 +1,12 @@
 [Desktop Entry]
 # The clipboard history (kawa-clip), as Super+V opens it: what you copied, newest first,
-# pictures too; Enter puts one back. Its icon: foot's, the terminal that draws its window
-# (cliphist ships none; the launcher shows each program's own icon, never an icon pack's).
+# pictures too; Enter puts one back. Its icon: our seal of 写 (tools/build-appicons.py, the
+# theme's own: current/apps).
 Type=Application
 Name=Clipboard
 GenericName=Clipboard history
 Comment=What you copied before, text and pictures: Enter puts it back
-Icon=foot
+Icon=@HOME@/.config/fedokawaii/current/apps/clipboard.png
 Exec=@HOME@/.local/bin/kawa-clip
 Terminal=false
 Categories=Utility;

@@ -28,6 +28,19 @@ case_ "a word alone, or one of qalc's commands: no answer (never sent: exit woul
 setup; out=$(plain "$(typed 'steam' '\x15exit 5' '\x152+2')"); lacks "$out" "=  0"; has "$out" "=  4"
 case_ "Backspace takes a letter back; the answer follows"
 out=$(plain "$(typed '2*30' '\x7f')"); has "$out" "=  6"
+case_ "each key one frame (a synchronised update), never cleared first; the footer only one-column letters"
+raw=$(typed '1+1' '\x7f'); has "$raw" $'\e[?2026h'; has "$raw" $'\e[?2026l'; lacks "$raw" $'\e[2J'
+has "$(plain "$raw")" "up again"; lacks "$raw" "↑"
+case_ "a percentage in words: \"15% of 2400\" is qalc's 15% * 2400 (qalc alone: rem(15, 1 B))"
+eq "$(kawa-calc --answer '15% of 2400')" 360; eq "$(kawa-calc --answer '120 * 15% of 10')" 180
+rc 1 kawa-calc --answer steam
+case_ "the launcher: a sum typed that matches no entry is worked out, copied, said in a notice"
+setup; argv notify-send; rm -f "$TMP/clip"
+kawa-calc --launch 15% of 2400; eq "$(cat "$TMP/clip" 2>/dev/null)" 360; called notify-send "15% of 2400 = 360 · copied"
+case_ "the launcher: an entry picked (DESKTOP_ENTRY_ID) runs as it is; a program typed runs"
+out=$(DESKTOP_ENTRY_ID=x.desktop kawa-calc --launch echo picked); eq "$out" picked
+out=$(kawa-calc --launch echo typed); eq "$out" typed
+has "$(cat "$REPO/bin/kawa-menu")" "fuzzel --launch-prefix='kawa-calc --launch'"
 case_ "Esc closes (exit 0); misuse is 2"
 rc 0 typed ''; rc 2 kawa-calc --frob
 case_ "without qalc: said, exit 1"

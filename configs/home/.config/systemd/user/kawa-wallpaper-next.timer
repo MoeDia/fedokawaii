@@ -1,0 +1,12 @@
+# ~/.config/systemd/user/kawa-wallpaper-next.timer — every 4 hours while the session runs
+# (started by ~/.config/dwl/autostart.sh; it stops with the session). The change itself only
+# when you switched it on in the Super+W picker ("a new one every 4 hours": kawa-state
+# wallpaper-rotate); otherwise each run looks at that and leaves at once.
+[Unit]
+Description=Fedokawaii — a new wallpaper every 4 hours
+PartOf=dwl-session.target
+
+[Timer]
+OnActiveSec=4h
+OnUnitActiveSec=4h
+AccuracySec=1min

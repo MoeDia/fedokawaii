@@ -35,6 +35,12 @@ if [[ -n $SAVER ]]; then
   rc 0 saver --help; has "$(saver --help)" "any input ends it"
   rc 2 saver --bogus; rc 2 saver --pace 0; rc 2 saver --idle 10
 
+  case_ "--wash (the one transition) that cannot show: says covered at once and leaves — a switch is never held up"
+  out=$(saver --wash </dev/null 2>&1); eq "$?$out" "0covered"
+  case_ "--wash: never takes input (no keyboard, an empty input region), 8 steps of 32 ms on the dots' grid"
+  src=$(cat "$SRC/kawa-saver.c")
+  has "$src" "wl_surface_set_input_region(o->surface, none)"; has "$src" "set_keyboard_interactivity(o->layer, 0)"
+  has "$src" "#define WASH_STEPS 8"; has "$src" "#define WASH_MS 32"
   case_ "--idle (away 15 min): switched off in quick settings, the lock alone at once"
   mkdir -p "${W%/*}"; echo off >"$W"
   rc 0 saver --idle; called '^kawa-lock $'

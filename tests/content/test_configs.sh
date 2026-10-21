@@ -291,6 +291,12 @@ else
   case_ "fzf.opts: every option and colour parsed by fzf ($("$REAL_FZF" --version | cut -d' ' -f1))"
   out=$(FZF_DEFAULT_OPTS_FILE=$HOME/.config/fedokawaii/fzf.opts "$REAL_FZF" --filter x </dev/null 2>&1); r=$?
   eq "$r" 1 "1 = nothing matched; 2 = an option it does not know: $out"
+  case_ "fzf.opts: one blank line between the search line and the first row; the count on the search line; never an ellipsis"
+  out=$(FZF_DEFAULT_OPTS_FILE=$HOME/.config/fedokawaii/fzf.opts SHELL=/bin/bash python3 -I "$REPO/tests/content/pty_run.py" \
+    --cols 40 --rows 8 --hangup 1.5 -- bash -c "printf 'alpha\nbeta gamma delta epsilon zeta eta theta iota\n' | '$REAL_FZF'" \
+    | python3 -I -c 'import sys,pyte; s=pyte.Screen(40,8); pyte.ByteStream(s).feed(sys.stdin.buffer.read()); print("\n".join(l.rstrip() for l in s.display))')
+  mapfile -t L <<<"$out"
+  has "${L[1]}" "2/2"; eq "${L[2]}" "" "the line under the search line"; has "${L[3]}" "alpha"; lacks "$out" "…"; lacks "$out" ".."
   # the windows' own command lines: fzf's stand-in runs the real one, filtering, with them
   stub fzf "exec '$REAL_FZF' \"\$@\" --filter '' >/dev/null 2>\"\$HOME/fzf.err\" </dev/null"
   stub kawa-cell 'echo 9x21'; stub cliphist

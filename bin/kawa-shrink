@@ -2,8 +2,8 @@
 # kawa-shrink — Super+Z: make a picture or a PDF small enough to send, or turn a picture into
 # another kind (JPEG, WebP, PNG), in two keys. It works on what you copied: files copied in
 # yazi (Ctrl+C), a screenshot, a picture copied in Brave — or on an earlier copy, the one
-# under the cursor in the clipboard history (Super+V) — or on the files you name (Alt+S in
-# yazi runs it on the selection).
+# under the cursor in the clipboard history (Super+V) — or, in yazi, on the files selected
+# there (the one under its cursor, none selected), as its Alt+S — or on the files you name.
 #
 #   kawa-shrink               what is on the clipboard — or, while the clipboard history
 #                             (Super+V) is open, the entry its cursor is on
@@ -76,6 +76,9 @@ elif id=$(kawa-clip --held 2>/dev/null); then
     if [[ $t =~ $pictype ]]; then nofile "$t" <"$e"
     elif [[ $t == text/* ]]; then uris <"$e"; fi
   fi
+elif y=$(yazi_focused); then
+  # yazi in the focused window: its selection, or the file under its cursor (as its Alt+S)
+  exec ya emit-to "$y" shell "kawa-shrink %s" --orphan
 else
   types=$(wl-paste --list-types 2>/dev/null)
   if grep -qx text/uri-list <<<"$types"; then

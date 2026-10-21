@@ -6,8 +6,10 @@
 # real scripts: the popups' terminal windows (kawa-term --float; footclient a stand-in whose
 # window is a process), quick settings, the sound panel and every panel menu (the real
 # kawa-panel's decisions, headless_panel.py, behind its real fifo), the launcher (fuzzel a
-# stand-in) and the region picker (slurp a stand-in). And every key config.h binds is one of
-# these, or named here as not opening anything to toggle (a new key must say which it is).
+# stand-in) and the region picker (slurp a stand-in). The warm windows' keys (notes, the
+# clipboard, the system menu) are dwl's own toggle, no command run: each names a window
+# kawa-warm knows (their parity: tests/session/test_warm.sh). And every key config.h binds is
+# one of these, or named here as not opening anything to toggle (a new key must say which).
 . "$(dirname "$0")/../lib/harness.sh"
 command -v python3 >/dev/null || { echo "test_hotkeys: skipped — needs python3"; exit 0; }
 D=$(cd "$(dirname "$0")" && pwd)
@@ -15,17 +17,18 @@ nap() { sleep "$1"; }
 CH=$REPO/src/dwl/config.h
 
 # KEY → what it opens: float (a popup terminal window), panel (quick settings, the sound panel,
-# a panel menu), launcher, picker
+# a panel menu), launcher, picker, warm (a warm window: dwl's warm toggle)
 declare -A TOGGLE=(
   [Super+x]=panel [Super+a]=panel [Super+c]=panel [Super+slash]=panel [Super+Shift+e]=panel
   [Super+Shift+u]=panel [Super+d]=panel [Super+space]=launcher
-  [Super+v]=float [Super+r]=float [Super+n]=float [Super+w]=float [Super+u]=float
+  [Super+r]=float [Super+w]=float [Super+v]=warm [Super+n]=warm [Super+u]=warm
   [Print]=picker [Super+Print]=picker [Super+Shift+Print]=picker
+  [Super+Shift+s]=picker [Super+Shift+a]=picker [Super+Shift+x]=picker
 )
 # keys that open nothing to toggle: each press its own new window, or an action
 NOT_TOGGLES=" Super+Return Super+b Super+e Super+Shift+w Super+Shift+n Super+Escape XF86Sleep
   XF86Suspend Shift+Print XF86AudioMute XF86AudioMicMute XF86AudioPlay XF86AudioNext
-  XF86AudioPrev Super+Ctrl+Shift+q Super+z Super+Shift+r "
+  XF86AudioPrev Super+Ctrl+Shift+q Super+z Super+Shift+r Super+Shift+f Super+Shift+p "
 # Super+d: File tools' menu, on a PDF copied (a stand-in clipboard below; the rest: test_file).
 # Super+z: a menu only when a picture was copied (test_shrink); Super+Shift+r: a recording's own
 # start and stop (test_record). The held keys that repeat:
@@ -34,7 +37,8 @@ HELD=" XF86AudioRaiseVolume XF86AudioLowerVolume XF86MonBrightnessUp XF86MonBrig
 
 HELD=" ${HELD//$'\n'/ } " NOT_TOGGLES=" ${NOT_TOGGLES//$'\n'/ } "   # (one line each: a key between spaces)
 
-# every spawn binding of config.h: "FUNC<TAB>KEY<TAB>COMMAND" (KEY as Super+Shift+x)
+# every spawn binding of config.h: "FUNC<TAB>KEY<TAB>COMMAND" (KEY as Super+Shift+x); a warm
+# one: "warm<TAB>KEY<TAB>NAME"
 bindings() {
   python3 -I - "$CH" <<'EOF'
 import re, sys
@@ -43,10 +47,11 @@ cmds = {m.group(1): " ".join(re.findall(r'"([^"]*)"', m.group(2)))
         for m in re.finditer(r"static const char \*(\w+)\[\]\s*=\s*\{(.*?)\};", t)}
 keys = t[t.index("static const Key keys[]"):]
 keys = keys[:keys.index("};")]
-for m in re.finditer(r'\{\s*([\w|]+),\s*XKB_KEY_(\w+),\s*(spawn\w*),\s*(SHCMD\("(.*)"\)|\{\s*\.v\s*=\s*(\w+)\s*\})\s*\}', keys):
+for m in re.finditer(r'\{\s*([\w|]+),\s*XKB_KEY_(\w+),\s*(spawn\w*|warm),\s*(SHCMD\("(.*)"\)|\{\s*\.v\s*=\s*(\w+)\s*\}|\{\s*\.v\s*=\s*"([\w-]+)"\s*\})\s*\}', keys):
     mods = [] if m.group(1) == "0" else m.group(1).split("|")
     name = "+".join({"MODKEY": "Super", "SHIFT": "Shift", "CTRL": "Ctrl"}[x] for x in mods)
-    cmd = m.group(5).replace('\\"', '"') if m.group(5) is not None else cmds[m.group(6)]
+    cmd = (m.group(5).replace('\\"', '"') if m.group(5) is not None
+           else m.group(7) if m.group(7) is not None else cmds[m.group(6)])
     print(f"{m.group(3)}\t{name + '+' if name else ''}{m.group(2)}\t{cmd}")
 EOF
 }
@@ -60,6 +65,15 @@ while IFS=$'\t' read -r f k c; do
   [[ $HELD == *" $k "* ]] && _no "$k should repeat while held, but is $f"
 done < <(bindings)
 ((n > 30)) && _ok || _no "only $n bindings read from config.h"
+case_ "the warm keys (Super+N, Super+V, Super+U): dwl's warm toggle, each on a window kawa-warm knows"
+w=""
+while IFS=$'\t' read -r f k c; do
+  [[ $f == warm ]] || { [[ ${TOGGLE[$k]:-} == warm ]] && _no "$k is $f ($c), not warm"; continue; }
+  w+="$k:$c "
+  [[ ${TOGGLE[$k]:-} == warm ]] || _no "$k is warm here but not in TOGGLE"
+  XDG_RUNTIME_DIR=$TMP kawa-warm "$c" 2>/dev/null; [[ $? == 1 ]] && _ok || _no "kawa-warm does not know \"$c\" ($k)"
+done < <(bindings)
+eq "$w" "Super+v:clip Super+n:notes Super+u:system "
 
 # ── the stand-ins ─────────────────────────────────────────────────────────────────────────
 setup() {
@@ -116,7 +130,7 @@ settle() {   # settle KIND WANT — the state once it stops changing (WANT reach
 declare -A CMD=()
 while IFS=$'\t' read -r _ k c; do CMD[$k]=$c; done < <(bindings)
 for k in ${HOTKEYS:-Super+x Super+a Super+c Super+slash Super+Shift+e Super+Shift+u Super+d Super+space \
-         Super+v Super+r Super+n Super+w Super+u Print Super+Print Super+Shift+Print}; do
+         Super+r Super+w Print Super+Print Super+Shift+Print Super+Shift+s Super+Shift+a Super+Shift+x}; do
   kind=${TOGGLE[$k]} cmd=${CMD[$k]:-}
   case_ "$k ($cmd, $kind): pressed fast, every press counts — open after an odd number of presses, closed after an even one"
   [[ -n $cmd ]] || { _no "not in config.h"; continue; }

@@ -324,11 +324,12 @@ eq "$(kawa-clip --list | wc -l)" 2
 case_ "ctrl+x: asks first — y forgets them all, anything else keeps them"
 setup; put 'one'; put 'two'
 out=$(python3 -I "$C/pty_run.py" --answer '[y/N] ' 'n' -- kawa-clip --wipe)
-has "$out" "forget all 2 entries?"; eq "$(kawa-clip --list | wc -l)" 2
+has "$out" "forget all 2 entries, and empty the clipboard?"; eq "$(kawa-clip --list | wc -l)" 2
 python3 -I "$C/pty_run.py" --answer '[y/N] ' '\r' -- kawa-clip --wipe >/dev/null
 eq "$(kawa-clip --list | wc -l)" 2 "Enter (any other key) keeps them"
 python3 -I "$C/pty_run.py" --answer '[y/N] ' 'Y' -- kawa-clip --wipe >/dev/null
 eq "$(kawa-clip --list | wc -l)" 0
+called "^wl-copy --clear$"
 case_ "ctrl+x with nothing to forget: no question"
 out=$(python3 -I "$C/pty_run.py" -- kawa-clip --wipe); r=$?
 eq "$r" 0; lacks "$out" "forget"
@@ -338,10 +339,11 @@ put 'one'
 eq "$(kawa-clip --list | wc -l)" 1
 
 # ── the window ───────────────────────────────────────────────────────────────
-case_ "Super+V: the floating window, once"
-setup; reset_calls
+case_ "Super+V's own command (kawa-clip): the warm window shown or put away — kawa-warm's toggle (the window itself: kawa-warm runs --tui in it)"
+setup; reset_calls; stub kawa-warm
 kawa-clip
-called "^kawa-term --float --once clipboard clipboard 80x27 -- $REPO/bin/kawa-clip --tui\$"
+called "^kawa-warm clip\$"; not_called '^fzf'
+grep -q 'clip) *title=clipboard size=80x27 *cmd=(kawa-clip --tui)' "$REPO/bin/kawa-warm" && _ok || _no "kawa-warm's clipboard window is not 80×27 on --tui"
 
 case_ "inside: fzf with the desktop's options file, the list, the cell size for the previews"
 setup; put 'one'; put 'two'
@@ -375,19 +377,13 @@ eq "$(bash -c "${pcmd//\{1\}/1}" 2>&1)" "   hello there" "and with bash as \$SHE
 ccmd=$(grep -F -- "--bind=enter:become(" "$FZF_ARGS"); ccmd=${ccmd#--bind=enter:become(}; ccmd=${ccmd%)}
 sh -c "${ccmd//\{1\}/1}"; eq "$(cat "$COPIED")" "hello there" "enter, run as fzf runs it"
 
-case_ "Super+V pressed 21 times fast (20 ms apart, every window still on its way up): one window, one list — each press toggles"
-setup; put 'one'
-stub kawa-term; rm -f "$STUBS/kawa-term"       # the real one, its terminal a slow stand-in
-stub footclient 'while [ "$1" != -- ]; do shift; done; shift; sleep 1; exec "$@"'
-for _ in {1..21}; do kawa-clip & sleep 0.02; done; wait
-eq "$(grep -c '^fzf' "$CALLS")" 1 "one list shown"
-
 # ── Super+Z on an entry: the cursor's entry kept while the window is open ────
 # (the window's fzf a stand-in that waits for $TMP/close; the bindings run as fzf runs them)
 cur() { cat "$XDG_RUNTIME_DIR/kawa-clip.current" 2>/dev/null; }
 open_window() {   # open_window [setsid] — kawa-clip --tui in the background, WIN its pid
   rm -f "$TMP/close" "$FZF_ARGS"
   stub fzf 'for a; do printf "%s\n" "$a"; done >"$FZF_ARGS"; cat >/dev/null; while [ ! -e "$TMP/close" ]; do sleep 0.05; done'
+  : >"$XDG_RUNTIME_DIR/kawa-warm-clip.shown"    # (shown: kawa-warm --shown's mark)
   "$@" kawa-clip --tui 2>/dev/null & WIN=$!     # (bash says "Hangup" of a hung-up fzf)
   on_exit "touch '$TMP/close' 2>/dev/null; kill $WIN 2>/dev/null"
   for _ in {1..100}; do [[ -s $FZF_ARGS && -n $(cur) ]] && break; sleep 0.05; done
@@ -402,6 +398,8 @@ setup; put 'one'; put 'two'; put 'three'
 open_window
 eq "$(cur)" "$WIN "
 rc 0 kawa-clip --held; eq "$(kawa-clip --held)" ""
+case_ "… the warm window put away (kawa-warm --hidden took its mark): no window for Super+Z"
+rm "$XDG_RUNTIME_DIR/kawa-warm-clip.shown"; rc 1 kawa-clip --held; : >"$XDG_RUNTIME_DIR/kawa-warm-clip.shown"
 case_ "… the cursor moved (fzf's focus event): that entry, for Super+Z (kawa-clip --held)"
 bind focus 2 >/dev/null 2>&1
 eq "$(cur)" "$WIN 2"; eq "$(kawa-clip --held)" 2
@@ -449,7 +447,7 @@ if [[ -z $REAL_FZF ]] || ! command -v curl >/dev/null; then
 else
   case_ "for real (fzf $("$REAL_FZF" --version | cut -d' ' -f1)): the cursor followed, a new copy shown on top and under it, the file gone when it closes"
   setup; put 'one'; put 'two'; put 'three'
-  config .config/fedokawaii/fzf.opts; stub fzf "exec '$REAL_FZF' \"\$@\""
+  config .config/fedokawaii/fzf.opts; stub fzf "exec '$REAL_FZF' \"\$@\""; : >"$XDG_RUNTIME_DIR/kawa-warm-clip.shown"
   # ↓ twice (the list is newest first): entry 1; then a copy comes; the window is hung up at 6 s
   python3 -I "$C/pty_run.py" --cols 80 --rows 27 --send 1.5 '\x1b[B' --send 2 '\x1b[B' --hangup 6 -- kawa-clip --tui >/dev/null 2>&1 &
   pty=$!; on_exit "kill $pty 2>/dev/null"

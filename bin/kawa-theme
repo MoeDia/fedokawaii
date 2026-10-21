@@ -36,9 +36,11 @@
 #   the login screen     /var/lib/fedokawaii-greeter/theme (yours; kawa-greet reads it)
 # GTK 3 apps follow at once too (their theme is a named one).
 #
-# Nothing animates (design-system §5): every program takes the new theme in one frame of
-# its own, all of them told at the same moment — the wallpaper drawn off screen and swapped
-# in whole (kawa-wallpaper), the bar restyled in place, the windows recoloured.
+# Every program takes the new theme in one frame of its own, all of them told at the same
+# moment — the wallpaper drawn off screen and swapped in whole (kawa-wallpaper), the bar
+# restyled in place, the windows recoloured — under the one designed transition
+# (design-system §5): the screen as it was, washed away in 8 dithered steps (kawa-saver
+# --wash, ~1/4 s), never holding a click; a press during it jumps to the end and switches back.
 #
 # Exit: 0 done (also a press dropped while a switch runs) · 1 could not · 2 wrong use.
 set -u
@@ -157,6 +159,20 @@ c.sendall((json.dumps({"command": ["load-config-file", sys.argv[2]]}) + "\n").en
   return 0
 }
 
+# The transition (design-system §5: the one designed one, the same as a new wallpaper's):
+# kawa-saver --wash lays the screen as it was over everything, the switch is made under it,
+# then it is washed away in 8 dithered steps (~1/4 s). It takes no input: every click goes
+# through. A press during it ends it at once (the final state) and switches again
+wash_begin() {
+  [[ -n ${WAYLAND_DISPLAY:-} ]] && ((!NOWASH)) || return 0
+  coproc WASH { exec kawa-saver --wash 6>&- 7>&- 9>&-; }
+  read -r -t 1 -u "${WASH[0]}" _                    # "covered": the old picture is up
+}
+wash_end() {   # the switch is made: washed away (our end of its stdin closed)
+  [[ -n ${WASH[1]:-} ]] && eval "exec ${WASH[1]}>&-"
+  return 0
+}
+
 took() {   # took MODE — the switch's time, from the press, in the theme's log (fedokawaii-report
   # reads it): "kawa-theme: switched to light in 412 ms"
   local log=$HOME/.cache/kawa-theme.log t0=${KAWA_THEME_T0:-} ms
@@ -181,15 +197,27 @@ case ${1:-toggle} in
       || { echo "kawa-theme: no runtime folder $XDG_RUNTIME_DIR (not logged in to the desktop?)" >&2; exit 1; }
     # one switch at a time: a held key repeats ~35 times a second, and every extra press
     # while a switch runs is dropped
+    # one switch at a time: a press while one runs (a quick second click) ends its wash at
+    # once — its final state — and switches again as soon as it is over, with no wash of its
+    # own; one such press waits, more (a held key repeats ~35 times a second) are dropped
+    NOWASH=0
     exec 7>"$XDG_RUNTIME_DIR/kawa-theme.busy"
-    flock -n 7 || exit 0
+    if ! flock -n 7; then
+      exec 6>"$XDG_RUNTIME_DIR/kawa-theme.next"
+      flock -n 6 || exit 0
+      kill -TERM "$(cat "$XDG_RUNTIME_DIR/kawa-wash.pid" 2>/dev/null)" 2>/dev/null
+      flock -w 10 7 || exit 0
+      NOWASH=1
+    fi
     export KAWA_THEME_T0=${KAWA_THEME_T0:-$EPOCHREALTIME}   # (the press)
     want=${1:-toggle} now=$(get)
     [[ $want == toggle ]] && { [[ $now == dark ]] && want=light || want=dark; }
     usable "$want" || exit 1
     exec 9>"$XDG_RUNTIME_DIR/kawa-theme.lock"
     flock -w 10 9 || { echo "kawa-theme: another switch is still running" >&2; exit 1; }
+    wash_begin
     apply "$want"
+    wash_end
     took "$want"
     ;;
   -h|--help) sed -n '2,/^set -u/{/^set -u/d;s/^# \{0,1\}//;p}' "$0" ;;

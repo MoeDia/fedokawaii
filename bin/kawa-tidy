@@ -40,6 +40,7 @@ MOVES=(
   ".python_history|$PYTHON_HISTORY|history"
   ".node_repl_history|$NODE_REPL_HISTORY|history"
   ".sqlite_history|$SQLITE_HISTORY|history"
+  ".gitconfig|$GIT_CONFIG_GLOBAL|history"
   ".cargo|$CARGO_HOME|dir"
   ".rustup|$RUSTUP_HOME|dir"
   ".visidata|$VD_DIR|dir"

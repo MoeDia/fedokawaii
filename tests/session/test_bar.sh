@@ -85,7 +85,7 @@ case_ "the mode seal: 静 or 共有 with a tooltip that says what it is and does
 stub makoctl 'echo do-not-disturb'
 eq "$(kawa-bar mode)" '{"text":"静","class":["dnd","active"],"tooltip":""}'
 rm -f "$R/kawa-panel.open"
-eq "$(kawa-bar mode)" '{"text":"静","class":"dnd","tooltip":"do not disturb · click: quick settings"}'
+eq "$(kawa-bar mode)" '{"text":"静","class":"dnd","tooltip":"do not disturb"}'
 stub makoctl 'printf "sharing\ndefault\n"'; has "$(kawa-bar mode)" '"text":"共有"'
 stub makoctl 'echo default'; eq "$(kawa-bar mode)" '{"text":""}'
 case_ "the layout: kawa-dwlstatus's own line for this bar's monitor, lit by a layout menu"
@@ -122,7 +122,7 @@ setup; setrun; menus_sandbox; setrun
 echo "20 12 DP-1 0 1920" >"$R/dwl-pointer"                # (a click on the torii, just now)
 answer hang; kawa-menu --launcher & l1=$!; BG_PIDS+=("$l1")
 until_ '[[ -s $R/kawa-launcher.open ]]'; rc 0 kawa-bar --lit torii
-lacks "$(fz_args)" "--dmenu" "the launcher, not a list"; eq "$(fz_args)" "" "no anchor, no margin: centred, also from the torii"
+lacks "$(fz_args)" "--dmenu" "the launcher, not a list"; eq "$(fz_args)" "--launch-prefix=kawa-calc --launch" "no anchor, no margin: centred, also from the torii"
 kawa-menu --launcher; eq "$?" 1 "its key or the torii again: closed"; wait "$l1"
 until_ '[[ ! -e $R/kawa-launcher.open ]]' && _ok || _no "the launcher's marker stayed"; eq "$(fz_n)" 1
 case_ "the launcher open, a dropdown asked for: the panel shows it (the launcher is fuzzel's: the panel closes it)"
@@ -145,7 +145,7 @@ case_ "memory: lit while btop's window (kawa-term --float --once btop) is open, 
 printf 'MemTotal: 33554432 kB\nMemAvailable: 27262976 kB\n' >"$TMP/mi"
 KAWA_PROC_MEMINFO=$TMP/mi KAWA_MEM_EVERY=30 kawa-mem >"$TMP/mem" & BG_PIDS+=($!)
 until_ '[[ -s $TMP/mem ]]'; lacks "$(tail -n1 "$TMP/mem")" active
-has "$(tail -n1 "$TMP/mem")" '"tooltip":"memory in use 6.0 of 32.0 GB (18 %) · click: btop"'
+has "$(tail -n1 "$TMP/mem")" '"tooltip":"RAM 18% of 32 GB"'
 alive; p=$P; echo "$p" >"$R/kawa-term-btop.open"; kawa-dwlstatus --wake
 until_ 'grep -q active "$TMP/mem"' && _ok || _no "not lit after a wake: $(tail -n1 "$TMP/mem")"
 has "$(tail -n1 "$TMP/mem")" '"class":["calm","active"]'
@@ -172,13 +172,13 @@ mkfifo "$TMP/pw"; exec 7<>"$TMP/pw"
 stub pw-mon 'exec cat "$TMP/pw"'
 kawa-volume bar >"$TMP/v" 7>&- & vp=$!; BG_PIDS+=("$vp")
 until_ '[[ -s $TMP/v ]]'
-eq "$(tail -n1 "$TMP/v")" "{\"text\":\"$ICON_BAR_VOL_3""62<span fgalpha='55%'>%</span>\",\"tooltip\":\"volume 62 % · click: the sound panel · right-click: mute · scroll: ±2 %\"}"
+eq "$(tail -n1 "$TMP/v")" "{\"text\":\"$ICON_BAR_VOL_3""62<span fgalpha='55%'>%</span>\",\"tooltip\":\"volume 62%\"}"
 echo "Volume: 0.25 [MUTED]" >"$TMP/vol"; n=$(wc -l <"$TMP/v")
 printf 'added:\n\tid: 50\n\ttype: PipeWire:Interface:Client (version 3)\n' >&7; nap 0.3
 eq "$(wc -l <"$TMP/v")" "$n" "a Client (every wpctl is one) changes nothing: no loop"
 printf 'changed:\n\tid: 43\n\ttype: PipeWire:Interface:Node (version 3)\n' >&7
 until_ '[[ $(tail -n1 "$TMP/v") == *off* ]]' && _ok || _no "the mute not drawn: $(tail -n1 "$TMP/v")"
-eq "$(tail -n1 "$TMP/v")" "{\"text\":\"$ICON_BAR_VOL_MUTE<span fgalpha='55%'>off</span>\",\"tooltip\":\"volume off (25 %) · click: the sound panel · right-click: mute · scroll: ±2 %\",\"class\":\"muted\"}"
+eq "$(tail -n1 "$TMP/v")" "{\"text\":\"$ICON_BAR_VOL_MUTE<span fgalpha='55%'>off</span>\",\"tooltip\":\"muted\",\"class\":\"muted\"}"
 for l in 0.00:$ICON_BAR_VOL_0 0.01:$ICON_BAR_VOL_1 0.25:$ICON_BAR_VOL_1 0.26:$ICON_BAR_VOL_2 0.50:$ICON_BAR_VOL_2 0.51:$ICON_BAR_VOL_3 0.76:$ICON_BAR_VOL_4 1.20:$ICON_BAR_VOL_4; do
   echo "Volume: ${l%%:*}" >"$TMP/vol"; printf 'changed:\n\ttype: PipeWire:Interface:Metadata (version 3)\n' >&7
   until_ '[[ $(tail -n1 "$TMP/v") == *"\"text\":\"${l#*:}"[0-9]* && $(tail -n1 "$TMP/v") != *off* ]]' && _ok || _no "at ${l%%:*}: $(tail -n1 "$TMP/v")"
@@ -258,10 +258,12 @@ for k, v in c.items():
 sys.exit(bad)
 EOF
 lacks "$(grep -h -- '"tooltip":false\|tooltip: false\|"tooltip": false' "$REPO"/bin/kawa-* 2>/dev/null)" tooltip "a script's JSON with a tooltip of false"
-case_ "the style: no box on the bar but the workspaces' (no fill, no ring); every lit item recoloured, nothing else"
+case_ "the style: no box on the bar but the seals' (the workspaces; a vermilion seal stamped when lit: filled, its ink the paper's) — no ring anywhere; every other lit item recoloured, nothing else"
 S_=$REPO/configs/home/.config/waybar/style.css
-bad=$(grep -nE 'background(-color)?: *@|box-shadow: *inset' "$S_" | grep -vE '^[0-9]+:(  background-color: @bar;|\.tag\.(occupied|selected|urgent) |tooltip \{)')
-eq "$bad" "" "a box outside the workspaces"
+bad=$(grep -nE 'background(-color)?: *@|box-shadow: *inset' "$S_" | grep -vE '^[0-9]+:(  background-color: @bar;|\.tag\.(selected|urgent) |tooltip \{|#custom-mode\.share\.active \{ color: @strong-on-accent; background-color: @accent; \})')
+eq "$bad" "" "a box outside the seals"
+grep -q 'box-shadow: *inset' "$S_" && _no "a ring is back" || _ok
+grep -q '^.tag.occupied { color: @text; background-image: url("../fedokawaii/current/hem.png");' "$S_" && _ok || _no "a workspace with windows is not hemmed"
 for m in custom-torii custom-layout custom-menu custom-steam custom-mem custom-volume custom-brightness custom-weather custom-drives custom-date custom-day custom-time custom-mode; do
   grep -q "#$m\.active" "$S_" && _ok || _no "#$m has no lit look"
 done
@@ -271,7 +273,8 @@ css = re.sub(r"/\*.*?\*/", "", open(sys.argv[1]).read(), flags=re.S); bad = 0
 for sel, body in re.findall(r"([^{}]+)\{([^}]*)\}", css):
     if ".active" in sel:
         props = {p.split(":")[0].strip() for p in body.split(";") if ":" in p}
-        if props != {"color"}: print(sel.strip(), "changes", props); bad = 1
+        stamped = all(re.search(r"#custom-(torii|day|steam\.game|mode\.share)[.:]", x.strip() + ".") for x in sel.split(","))
+        if props != ({"color", "background-color"} if stamped else {"color"}): print(sel.strip(), "changes", props); bad = 1
 sys.exit(bad)
 EOF
 

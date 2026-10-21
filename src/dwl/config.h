@@ -140,12 +140,13 @@ static const Key keys[] = {
 	{ MODKEY,          XKB_KEY_slash,             spawn,            SHCMD("kawa-help") },
 	{ MODKEY,          XKB_KEY_w,                 spawn,            SHCMD("kawa-wallpaper") },
 	{ MODKEY|SHIFT,    XKB_KEY_w,                 spawn,            SHCMD("kawa-theme") },
-	{ MODKEY,          XKB_KEY_v,                 spawn,            SHCMD("kawa-clip") },
+	/* warm (dwl.patch): kept running, put away — a press shows or hides it in the frame */
+	{ MODKEY,          XKB_KEY_v,                 warm,             {.v = "clip"} },
 	{ MODKEY,          XKB_KEY_z,                 spawn,            SHCMD("kawa-shrink") },
 	{ MODKEY,          XKB_KEY_d,                 spawn,            SHCMD("kawa-file") },
 	{ MODKEY,          XKB_KEY_r,                 spawn,            SHCMD("kawa-books") },
-	{ MODKEY,          XKB_KEY_n,                 spawn,            SHCMD("kawa-notes") },
-	{ MODKEY,          XKB_KEY_u,                 spawn,            SHCMD("fedokawaii --window") },
+	{ MODKEY,          XKB_KEY_n,                 warm,             {.v = "notes"} },
+	{ MODKEY,          XKB_KEY_u,                 warm,             {.v = "system"} },
 	{ MODKEY|SHIFT,    XKB_KEY_u,                 spawn,            SHCMD("kawa-config") },
 	{ MODKEY|SHIFT,    XKB_KEY_n,                 spawn,            SHCMD("makoctl dismiss -a") },
 	{ MODKEY,          XKB_KEY_Escape,            spawn,            SHCMD("kawa-lock --sleep") },
@@ -158,7 +159,13 @@ static const Key keys[] = {
 	{ SHIFT,           XKB_KEY_Print,             spawn,            SHCMD("kawa-screenshot full") },
 	{ MODKEY,          XKB_KEY_Print,             spawn,            SHCMD("kawa-screenshot edit") },
 	{ MODKEY|SHIFT,    XKB_KEY_Print,             spawn,            SHCMD("kawa-screenshot text") },
+	/* the same on a keyboard without Print (a 61-key one): Super+Shift and a letter */
+	{ MODKEY|SHIFT,    XKB_KEY_s,                 spawn,            SHCMD("kawa-screenshot region") },
+	{ MODKEY|SHIFT,    XKB_KEY_f,                 spawn,            SHCMD("kawa-screenshot full") },
+	{ MODKEY|SHIFT,    XKB_KEY_a,                 spawn,            SHCMD("kawa-screenshot edit") },
+	{ MODKEY|SHIFT,    XKB_KEY_x,                 spawn,            SHCMD("kawa-screenshot text") },
 	{ MODKEY|SHIFT,    XKB_KEY_r,                 spawn,            SHCMD("kawa-record") },   /* again: stop */
+	{ MODKEY|SHIFT,    XKB_KEY_p,                 spawn,            SHCMD("kawa-record pause") },   /* again: 3-2-1, on */
 	/* ── media keys, and monitor brightness over DDC/CI ──
 	 * spawnheld: a held key goes on repeating it (the volume, the brightness, step by step).
 	 * Every other key is one press however long it is held (dwl.patch: keypress()) — so a

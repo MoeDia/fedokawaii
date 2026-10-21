@@ -1,11 +1,12 @@
 [Desktop Entry]
-# Archives and PDFs (kawa-file): the menu Super+D opens, on what you copied — or, with nothing
-# copied, on the files you choose in the file dialog first.
+# Archives and PDFs (kawa-file): the menu Super+D opens, on what you copied — or, with
+# nothing copied, on the files you choose in the file dialog first.. Its icon: our seal of 具
+# (tools/build-appicons.py, the theme's own: current/apps).
 Type=Application
 Name=File tools
 GenericName=Archives and PDFs
 Comment=Unpack or pack archives; merge, split, sign and lock PDFs
-Icon=@HOME@/.local/share/fedokawaii/icons/yazi.png
+Icon=@HOME@/.config/fedokawaii/current/apps/file.png
 Exec=@HOME@/.local/bin/kawa-file --choose
 Terminal=false
 Categories=Utility;Archiving;Compression;Office;

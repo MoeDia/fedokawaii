@@ -8,8 +8,9 @@ mark (hidden while nothing comes in), its menu, and one notice as each download 
                              foot: torrents (the search), while that window is not open
     kawa-downloads list      one line a download, tab-separated: SOURCE NAME DONE TOTAL WHERE
                              (bytes; TOTAL 0: not known yet)
-    kawa-downloads bar       the bar's mark (waybar JSON): the percent of them all, and how
-                             many past one; empty (hidden) while nothing downloads
+    kawa-downloads bar       the bar's mark (waybar JSON): the percent of them all (bytes
+                             come in over bytes to come, every source together), the mark
+                             alone while no total is known yet; empty (hidden) while idle
     kawa-downloads watch     the session's watcher (autostart): woken by the kernel (inotify)
                              as a download starts or ends, it pokes the mark (SIGRTMIN+21) and
                              says each finished one; while any runs it looks every 2 s, idle
@@ -24,6 +25,8 @@ The sources, each read where it already keeps its state (nothing asked of a runn
   torrent  Torrents (torrra), while its window is open: kawa-torrra writes what it downloads
            to $XDG_RUNTIME_DIR/kawa-downloads/torrra.PID every 2 s, and gives each finished
            one its notice itself (a torrent's file staying put says nothing)
+  jobs     any other long job (an archive packed, a PDF tool) the same way: NAME.PID in that
+           folder, one line a file — NAME DONE TOTAL WHERE — while it runs
   Brave    a .crdownload file in Brave's download folder: its size is what has come; how
            much will come, from Brave's own list (History, read without its lock)
   Steam    a game in steamapps/downloading of each of Steam's libraries: how far, from its
@@ -49,7 +52,7 @@ STEAM = os.path.join(HOME, ".local/share/Steam")
 SIGNAL = 21                                                  # the bar's mark: SIGRTMIN+21
 BUSY = 2.0                                                   # seconds between looks while one runs
 WIDTH = 30                                                   # a name's columns in the menu
-GLYPH = {"torrent": "download", "Brave": "link", "Steam": "gamepad"}
+GLYPH = {"torrent": "download", "Brave": "link", "Steam": "gamepad", "file": "archive"}
 
 
 def icons():
@@ -75,18 +78,21 @@ def size(n):
 
 # ── the sources ─────────────────────────────────────────────────────────────────────────────
 def torrents():
-    """kawa-torrra's lists; one whose window is gone (its pid) is taken away."""
+    """Every job's list in STATE, SOURCE.PID (kawa-torrra's torrra.PID: its torrents; any other
+    long job — an archive packed, a PDF tool — the same four columns under its own name);
+    one whose process is gone is taken away."""
     out = []
     try:
         names = os.listdir(STATE)
     except OSError:
         return out
     for n in names:
-        m = re.fullmatch(r"torrra\.(\d+)", n)
+        m = re.fullmatch(r"([a-z][a-z0-9-]*)\.(\d+)", n)
         if not m:
             continue
         p = os.path.join(STATE, n)
-        if not os.path.exists(f"/proc/{m.group(1)}"):
+        src = "torrent" if m.group(1) == "torrra" else m.group(1)
+        if not os.path.exists(f"/proc/{m.group(2)}"):
             try:
                 os.remove(p)
             except OSError:
@@ -97,7 +103,7 @@ def torrents():
                 for line in f:
                     t = line.rstrip("\n").split("\t")
                     if len(t) == 4 and t[1].isdigit() and t[2].isdigit():
-                        out.append(("torrent", t[0], int(t[1]), int(t[2]), t[3]))
+                        out.append((src, t[0], int(t[1]), int(t[2]), t[3]))
         except OSError:
             pass
     return out
@@ -194,9 +200,8 @@ def bar_json(items, ic):
         return '{"text":""}'
     p = percent(items)
     # (icons.sh's bar_download, no space, before a value: exactly 6 px from its ink to the value's)
-    vals = ([str(len(items))] if len(items) > 1 else []) + ([] if p is None else [f"{p}%"])
-    text = ic["bar_download"] + " ".join(vals) if vals else ic["download"]
-    cls = ["downloading", "count"] if len(items) > 1 else "downloading" if vals else ["downloading", "bare"]
+    text = ic["download"] if p is None else f'{ic["bar_download"]}{p}<span fgalpha=\'55%\'>%</span>'
+    cls = ["downloading", "bare"] if p is None else "downloading"
     return json.dumps({"text": text, "class": cls}, ensure_ascii=False)
 
 
@@ -243,7 +248,7 @@ def menu():
     for src, name, done, total, where in items:
         detail = f"{size(done)} of {size(total)}" if total else size(done)
         value = f"{int(100 * done / total)}%" if total else ""
-        rows.append("\t".join(("row", ic[GLYPH[src]], short(name), detail, value)))
+        rows.append("\t".join(("row", ic[GLYPH.get(src, "download")], short(name), detail, value)))
         acts.append(("open", src, where))
     if not items:
         rows.append(f"off\t{ic['download']}\tnothing downloading")

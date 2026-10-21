@@ -127,14 +127,14 @@ tk --repair; called 'grubby\] --update-kernel=ALL --args=rhgb'; called 'grubby\]
 eq "$(grep -c ' rhgb' "$FKH/grub-args")" 2 "both entries"
 case_ "repair: a quiet boot again — the arguments an entry lost, the consoles' cursor file, greetd's drop-in after the splash"
 back built; sed -i '1 s/ vt.global_cursor_default=0//; 2 s/ systemd.show_status=false//' "$FKH/grub-args"
-rm -f "$W/etc/profile.d/fedokawaii-console.sh"; sed -i 's/ plymouth-quit-wait.service//; /^OnFailure=/d' "$W/etc/systemd/system/greetd.service.d/fedokawaii.conf"
+rm -f "$W/etc/profile.d/fedokawaii-console.sh"; sed -i '/retain-splash/d; /^OnFailure=/d' "$W/etc/systemd/system/greetd.service.d/fedokawaii.conf"
 fkrun bash "$TK/verify.sh"; eq "$RC" 3
 tk --repair
 called 'grubby\] --update-kernel=ALL --args=vt.global_cursor_default=0'; called 'grubby\] --update-kernel=ALL --args=systemd.show_status=false'
 not_called 'grubby\] --update-kernel=ALL --args=loglevel=3' "an argument every entry has: grubby not run for it"
 eq "$(grep -c 'vt.global_cursor_default=0' "$FKH/grub-args")" 2; eq "$(grep -c 'systemd.show_status=false' "$FKH/grub-args")" 2
 [[ -s $W/etc/profile.d/fedokawaii-console.sh ]] && _ok || _no "the cursor file not written again"
-has "$(cat "$W/etc/systemd/system/greetd.service.d/fedokawaii.conf")" "plymouth-quit-wait.service"
+has "$(cat "$W/etc/systemd/system/greetd.service.d/fedokawaii.conf")" "plymouth quit --retain-splash"
 has "$(cat "$W/etc/systemd/system/greetd.service.d/fedokawaii.conf")" "OnFailure=fedokawaii-login-failed.service"
 fkrun bash "$TK/verify.sh"; eq "$RC" 0 "$(grep '✘' <<<"$OUT" | head -n3 | tr '\n' '|')"
 case_ "update: a quiet boot too (an install from before it gets the arguments with its next update)"
@@ -196,7 +196,7 @@ not_called 'systemd-run\] .* /usr/bin/dnf .*repoquery'; called '^root\[dnf\] -q 
 has "$OUT" "(as fedokawaii-dnf-"
 case_ "update: the manifest's install after the upgrade is detached too"
 back built; fkh_del installed bat; reset_calls
-tk --update; called 'systemd-run\] .*--wait .* /usr/bin/dnf -y upgrade --refresh'; called 'systemd-run\] .*--wait .* /usr/bin/dnf -y install bat$'
+tk --update; called 'systemd-run\] .*--wait .* /usr/bin/stdbuf -oL -eL /usr/bin/dnf -y upgrade --refresh'; called 'systemd-run\] .*--wait .* /usr/bin/dnf -y install bat$'
 # ── a machine set up before these: the user in input, no record of it; no Bluetooth or
 #    shutdown setting; systemd-oomd-defaults brought by something ───────────────────────
 earlier() { fk usermod -aG input fkuser; rm -f "$W/var/lib/fedokawaii/input-group-out" \
@@ -261,8 +261,15 @@ has "$OUT" "problem(s) before, 0 now"
 case_ "repair: a boot menu left shown (no theme, no other system) — hidden again, as setup left it"
 back built; sed -i '/^menu_auto_hide=/d' "$FKH/grubenv"
 fkrun bash "$TK/verify.sh"; has "$OUT" "✘ GRUB menu hidden"
-tk --repair; grep -qx menu_auto_hide=1 "$FKH/grubenv" && _ok || _no "the menu still shown"
+tk --repair; grep -qx menu_auto_hide=2 "$FKH/grubenv" && _ok || _no "the menu still shown"
 has "$OUT" "problem(s) before, 0 now"
+case_ "repair: a COPR whose enable was lost (grub-btrfs on his machine) — enabled again, its package never listed as gone"
+back built; sed -i '/grub-btrfs/d' "$FKH/coprs"
+tk --repair; called 'dnf\] -y copr enable zzahkaboom24/grub-btrfs'; grep -q zzahkaboom24:grub-btrfs "$FKH/coprs" && _ok || _no "the COPR not enabled again"
+lacks "$OUT" "not in this Fedora's repositories"; [[ ! -e $W/var/lib/fedokawaii/unavailable ]] && _ok || _no "grub-btrfs recorded as gone"
+case_ "repair: an fstab whose Btrfs lines lack noatime — written with it (findmnt checks a real file, never a pipe it cannot read)"
+back built; printf 'UUID=7ea4 / btrfs subvol=root,compress=zstd:1,relatime 0 0\nUUID=AB12 /boot ext4 defaults 1 2\n' >"$W/etc/fstab"
+tk --repair; has "$(cat "$W/etc/fstab")" $'subvol=root,compress=zstd:1,noatime'; lacks "$OUT" "does not verify"
 case_ "repair or update with a new kernel not yet running: both kept, said — nothing removed"
 back built; fkh kernels "$(uname -r)" "6.99.1-200.fc44.x86_64"; echo vmlinuz >"$W/boot/vmlinuz-6.99.1-200.fc44.x86_64"; : >"$W/boot/initramfs-6.99.1-200.fc44.x86_64.img"
 reset_calls; tk --repair; not_called 'remove kernel'

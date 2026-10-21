@@ -59,7 +59,7 @@ done
 repo_of() {
   case $1 in
     rpmfusion-free-release|ffmpeg|mesa-va-drivers-freeworld|libheif-freeworld) echo rpmfusion-free ;;
-    rpmfusion-nonfree-release|steam|unrar) echo rpmfusion-nonfree ;;
+    rpmfusion-nonfree-release|steam|unrar|intel-media-driver) echo rpmfusion-nonfree ;;
     brave-origin) echo brave-browser ;;
     claude-code) echo claude-code ;;
     *) local c; for c in "${COPRS[@]}"; do [[ $(copr_pkgs "$c") == "$1" ]] && { echo "copr:$c"; return; }; done; echo fedora ;;
@@ -120,22 +120,28 @@ if ((LIVE)); then
   REPOS=$(dnf -q repo list --enabled 2>/dev/null | awk 'NR > 1 { print $1 }')
   info "enabled repositories: $(tr '\n' ' ' <<<"$REPOS")"
   # what each name resolves to: name|evr|repo, the newest of each
-  q=$(dnf -q repoquery --available --latest-limit=1 --qf '%{name}|%{evr}|%{repo_id}|%{source_name}\n' "${NAMES[@]}" 2>&1)
+  q=$(dnf -q repoquery --available --latest-limit=1 --qf '%{name}|%{evr}|%{repoid}|%{source_name}\n' "${NAMES[@]}" 2>&1)
   rc=$?
   ((rc == 0)) || fail "dnf repoquery failed (exit $rc): $(head -n3 <<<"$q" | tr '\n' ' ') — the network, or a repository's metadata (sudo dnf makecache --refresh)"
   declare -A FOUND=() SRC=()
   while IFS='|' read -r n v r s; do [[ -n $n && -n $v ]] || continue; FOUND[$n]+="${FOUND[$n]:+ }$v@$r"; SRC[$n]=$s; done <<<"$q"
-  absent=() renamed=()
+  # a repository setup adds and this system has not yet (the trial checks before setup runs, or
+  # a COPR with no build for this Fedora): its names wait for it — said, never "missing"
+  ready() { local r; r=$(repo_of "$1"); [[ $r == fedora ]] && return 0; [[ $r == copr:* ]] && r="copr:copr.fedorainfracloud.org:${r#copr:}" r=${r/\//:}; grep -qx "$r" <<<"$REPOS"; }
+  absent=() renamed=() later=() NOW=()
   for n in "${NAMES[@]}"; do
-    [[ -n ${FOUND[$n]:-} ]] && continue
+    [[ -n ${FOUND[$n]:-} ]] && { NOW+=("$n"); continue; }
+    rpm -q "$n" >/dev/null 2>&1 || ready "$n" || { later+=("$n ($(repo_of "$n"))"); continue; }
+    NOW+=("$n")
     # a release package (rpmfusion-*-release) comes from a URL: there once it is installed
     rpm -q "$n" >/dev/null 2>&1 && { FOUND[$n]="$(rpm -q --qf '%{evr}' "$n")@@System"; continue; }
     p=$(dnf -q repoquery --available --latest-limit=1 --qf '%{name}\n' --whatprovides "$n" 2>/dev/null | sort -u | tr '\n' ' ')
     if [[ -n ${p// } ]]; then renamed+=("$n → ${p% }"); else absent+=("$n ($(repo_of "$n"))"); fi
   done
-  ((${#absent[@]})) && fail "not in any enabled repository: ${absent[*]} — renamed, retired, or its repository not set up (fedokawaii setup's phase 2 adds RPM Fusion, Brave, Claude Code and the COPRs)"
+  ((${#later[@]})) && info "wait for a repository not set up here yet (setup's phase 2 adds it): ${later[*]}"
+  ((${#absent[@]})) && fail "not in any enabled repository: ${absent[*]} — renamed or retired"
   ((${#renamed[@]})) && warn "found only as another package's Provides (renamed?): ${renamed[*]} — use the new name in lib/manifest.sh"
-  ((${#absent[@]} + ${#renamed[@]})) || pass "all ${#NAMES[@]} names are in the enabled repositories"
+  ((${#absent[@]} + ${#renamed[@]})) || pass "all ${#NOW[@]} names whose repository is set up are in it"
   # from the repository it is meant to come from — and not from two vendors at once
   odd=() twice=()
   for n in "${!FOUND[@]}"; do
@@ -151,10 +157,10 @@ if ((LIVE)); then
   ob=$(dnf -q repoquery --available --latest-limit=1 --qf '%{name}\n' --whatobsoletes "$(IFS=,; echo "${NAMES[*]}")" 2>/dev/null | sort -u)
   obs=()
   while IFS= read -r p; do [[ -z $p || -n ${WHERE[$p]:-} ]] || obs+=("$p"); done <<<"$ob"
-  if ((${#obs[@]})); then warn "packages that obsolete a manifest name: ${obs[*]} — dnf would replace it; rpm -q --obsoletes those names says which"; else pass "nothing obsoletes a manifest name"; fi
+  if ((${#obs[@]})); then info "packages that obsolete a manifest name: ${obs[*]} — dnf would replace it; rpm -q --obsoletes those names says which"; else pass "nothing obsoletes a manifest name"; fi
   # one transaction for all of them: conflicts, missing dependencies, file clashes
   if ((EUID == 0)); then
-    out=$(dnf install --assumeno --setopt=install_weak_deps=False "${NAMES[@]}" 2>&1); r=$?
+    out=$(dnf install --assumeno --setopt=install_weak_deps=False "${NOW[@]}" 2>&1); r=$?
     if grep -qiE '^ *Problem|conflicts with|nothing provides|cannot install|No match for argument' <<<"$out"; then
       fail "they cannot all be installed together:"; grep -iE '^ *Problem|conflicts with|nothing provides|cannot install|No match for argument|^  - ' <<<"$out" | head -n 20 | sed 's/^/      /'
     elif ((r == 0)) || grep -qiE 'operation aborted|nothing to do' <<<"$out"; then pass "all of them resolve together in one transaction (nothing installed: --assumeno)"

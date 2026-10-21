@@ -1,18 +1,17 @@
 [Desktop Entry]
-# herdr, in a terminal window of its own (tiled, not a popup: it is where you work, beside an
-# editor, and a popup would close at the first click elsewhere; dwl gives it its tile's size).
-# Closing the window only detaches: the agents keep working in herdr's background server, and
-# the next start shows them again where they were.
-# Its own app-id (kawa-agents) and title ("Agents", then "Agents · <workspace>" as herdr sets
-# it); it starts in ~/repos, where your projects are (theme.sh makes the folder) — herdr's
-# first workspace is the folder it was started in.
-# Its icon: herdr's own logo, from its repository at the pinned tag (lib/upstream.sh,
-# UPSTREAM_ICONS: its release file has none), by its path.
+# herdr, in a terminal window of its own (tiled, not a popup: it is where you work, beside
+# an editor, and a popup would close at the first click elsewhere; dwl gives it its tile's
+# size). Closing the window only detaches: the agents keep working in herdr's background
+# server, and the next start shows them again where they were. Its own app-id (kawa-agents)
+# and title ("Agents", then "Agents · <workspace>" as herdr sets it); it starts in ~/repos,
+# where your projects are (theme.sh makes the folder) — herdr's first workspace is the
+# folder it was started in. Its icon: our seal of 代 (tools/build-appicons.py, the theme's
+# own: current/apps).
 Type=Application
 Name=Agents
 GenericName=Coding agents side by side
 Comment=herdr: Claude Code sessions in panes, each marked working, blocked or idle
-Icon=@HOME@/.local/share/fedokawaii/icons/herdr.png
+Icon=@HOME@/.config/fedokawaii/current/apps/agents.png
 Exec=footclient -N -a kawa-agents -T Agents -D @HOME@/repos -- herdr
 Terminal=false
 Categories=Development;

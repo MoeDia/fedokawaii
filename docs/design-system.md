@@ -17,7 +17,7 @@ this file names. Anything new is built from these parts and nothing else.
 | `muted` | secondary values; the panel's outer 2 px frame |
 | `text` | names and rows |
 | `strong` | a lit tile's name; emphasis |
-| `accent` | the cursor's fill (keyboard), the workspace seal — the only filled vermilion |
+| `accent` | the cursor's fill (keyboard), the workspace seal, a bar seal stamped (lit) — the only filled vermilion |
 | `accent_text` | kanji in seals, a hovered glyph and name, the active state of a bar icon |
 | `accent_lo` | the dim vermilion of an unlit seal on a filled row |
 | `text_on_accent` | ink on the accent fill |
@@ -27,18 +27,29 @@ Colours come only from these tokens; no literal colour anywhere, in either theme
 
 ## 2. Type
 
-- UI (panels, menus, bar, notices): **Fusion Pixel 12px Mono ja** at 12 px, icons from
+- UI (panels, menus, bar, launcher, notices, lock and login): **Sumi UI** at 12 px — Fusion
+  Pixel 12px Mono ja with each straight upright stroke of a letter or digit doubled to two
+  pixels (tools/build-ui-font.py), wherever a whole pixel of paper stays beside it: a
+  one-pixel counter is never closed, so M, W, m keep their thin strokes; diagonals,
+  horizontals, signs and kanji/kana are as drawn. Every glyph keeps its advance and its ink's
+  left and right edges, so every width, pad, seal and gap below is the same as in Fusion Pixel
+  (named after it in each font list, the fallback while Sumi UI is not built). Icons from
   **Sumi Icons** at the same size. One size; hierarchy by colour and position, never by size.
-- Terminals: the same design in its 10 px cut, **Fusion Pixel 10px Mono ja** at 20 px (foot:
-  2× its grid, a 10 × 22 px cell on 22 px lines — 188 × 47 cells on a 1080p screen), icons
+  (Chosen over a larger size — Fusion Pixel has no cut above 12 px that fits the 20 px row —
+  and over stronger inks: `text` is already ~10:1 on `surface`; the strokes were the thin part.)
+- Terminals: the same design in its 10 px cut, as **Sumi Term** — Fusion Pixel 10px Mono ja
+  with each upright stroke half a font pixel heavier (tools/build-term-font.py: three screen
+  pixels at 20 px instead of two, for reading) — at 20 px (foot:
+  2× its grid, a 10 × 24 px cell on 24 px lines — two pixels of the font of air between
+  lines, the heavier strokes kept apart — 188 × 43 cells on a 1080p screen), icons
   from Sumi Icons Term, built on that grid (a 10 × 10 icon: two cells, one line). Only whole
   multiples of a cut's grid are crisp (12 px: 12, 24, 36, 48 · 10 px: 10, 20, 30, 40); foot's
   zoom steps by 10 px, and a screen at scale 2 (2160p) draws it at 40.
-- **Display size** — the one exception to "one size": the 12 px face at a whole multiple of
+- **Display size** — the one exception to "one size": the UI face at a whole multiple of
   its grid, ×4 (48 px) or ×5 (60 px), never smoothed (no antialiasing, no hinting:
   `system/60-fedokawaii-pixel.conf` — or a picture drawn nearest-neighbour at that multiple),
   so every pixel of the font is a sharp square. Only for the clock of the lock and login
-  screens (48 px; AM/PM beside it at 12 px, on its baseline) and the boot splash. Nowhere else.
+  screens (60 on the lock, 48 on the login screen; AM/PM beside it at 12 px, on its baseline) and the boot splash. Nowhere else.
 - No scaling anywhere at 1080p: dwl's monitors are at scale 1, and nothing sets GDK_SCALE,
   GDK_DPI_SCALE, QT_SCALE_FACTOR or Xft.dpi — sizes are the pixels written here.
 - Words are lower case (proper names keep theirs: Steam, Bluetooth, LG ULTRAGEAR).
@@ -60,6 +71,7 @@ Colours come only from these tokens; no literal colour anywhere, in either theme
 | tile | 88 × 64 | a quick-settings tile; three a row = 276, the content width |
 | wide tile | 135 × 64 | two a row (6 gap = 276): a short last row of tiles, never a lone one |
 | content | 276 | the inner width of a panel (304 with pad and frame) |
+| lock | 464 | the lock screen's panel, the one large panel: five tiles wide (5 × 88 + 4 × 6), 24 px of pad (two pads), 516 with the frame; its clock at 60 px |
 
 ## 4. Parts
 
@@ -99,23 +111,38 @@ Colours come only from these tokens; no literal colour anywhere, in either theme
   row 6 px under it, 12 px of pad all round. Where fuzzel cannot follow: the stitch ends at
   its text margin, 6 px short of the content's edge; while you type, the name and stitch give
   way to the typed words (Fusion's own, a pixel higher than the drawn name).
-- **Launcher icons**: each entry's program's own icon at 18 × 18 in a column at x 20 (row's
-  x + 6). The column is fixed; the ink inside it is the artwork's own — a project's margin is
-  kept, never trimmed. A terminal program whose project has no icon or logo shows foot's,
-  the terminal that draws it.
+- **Launcher icons**: 18 × 18 in a column at x 20 (row's x + 6). A window program with an
+  icon of its own (Brave, LibreOffice, Xournal++, Steam, LocalSend, Syncplay, OpenRGB, LACT)
+  shows that icon, its ink the artwork's own — a project's margin is kept, never
+  trimmed. Every other entry — a program in a terminal, a page in Brave, a helper of ours —
+  shows an **app seal**: the 18 × 18 square, a 1 px `edge2` frame, one kanji meaning the
+  entry in `accent_text` (Fusion Pixel 12, its ink centred: 2 px of air left and above, 3
+  right and below), the ground `key` as a tile's (on the chosen row's `accent` fill a clear
+ground would hide the kanji, and fuzzel cannot swap an icon). One set, one grid, per
+  theme (`tools/build-appicons.py` → `themes/<theme>/apps/`, named through `current`), each
+  exactly 18 × 18, shown 1:1 (fuzzel filters what it resizes: a 2× picture halved blurs).
+  Never a project's logo for a
+  terminal program, never foot's or neovim's icon for something that is not them.
 
 ## 5. States
 
 | state | look |
 |---|---|
 | rest | as above |
-| hover (pointer) | only the item's glyph and name turn `accent_text` — no box, no fill |
-| cursor (keyboard) | the row or tile filled `accent`, its ink `text_on_accent`; appears only after a key |
+| hover (pointer) | quick settings and the sound panel: only the item's glyph and name turn `accent_text` — no box, no fill. A menu: the cursor goes to the item under the pointer (one cursor, never two lights) |
+| cursor (keyboard) | the row or tile filled `accent`, its ink `text_on_accent`; a menu opens with it on its first choice (or its `--select` line) — Enter takes it at once; a panel shows it only after a key |
 | chosen | ▣ / a stamped seal |
 | disabled / absent | `faint`, and the word says why ("none", "off") |
 | active (a bar icon whose menu is open) | its glyph and text `accent_text` |
+| stamped (a vermilion bar seal — the torii, the day's kanji, a game's gamepad, 共有 — hovered or active) | the seal inverted: its 23 × 23 button filled `accent`, its ink `text_on_accent`, 6 px of fill round the 11 px ink on every side — the selected workspace's own look (measured: dark and light, torii and 水 each 23 × 23, pads 6 · 6 · 6 · 6) |
+| workspace holding windows | its numeral `text`, hemmed: a running stitch under it (3 on, 2 off, three stitches = 13 px, from the button's 5th column — one past the ink each side — 2 px of paper under the ink; `muted`; current/hem.png). Empty: the numeral `faint`, nothing under it. No rings anywhere on the bar |
 
-Nothing animates: no fade, no slide, no easing. Everything draws at once.
+Nothing animates: no fade, no slide, no easing. Everything draws at once — with one designed
+exception, **the wash**: a theme switch and a new wallpaper (by hand or every 4 hours) show the
+screen as it was washed away as the screensaver washes its cloth — an ordered dither (8 × 8
+Bayer) on the screensaver's grid of dots (3 px at 1080p), 8 steps 32 ms apart (~1/4 s), each
+step clearing an eighth of the dots: stepped, never eased, never a fade (`kawa-saver --wash`).
+It never holds input (every click goes through), and a press during it jumps to its end.
 
 ## 6. Behaviour
 
@@ -123,7 +150,13 @@ Nothing animates: no fade, no slide, no easing. Everything draws at once.
   screen's edge; from a key, at its fixed place under the bar's right side.
 - The same click or key again closes it; Esc and a click outside close it.
 - One menu or panel at a time; opening another closes the first.
-- Opening starts clean: no remembered cursor, no remembered highlight.
+- Opening starts clean: no remembered cursor, no remembered highlight (a menu's cursor on its
+  first choice, as above).
+- A menu that pages (the calendar: kawa-menu `--stay`) pages in place: the same window
+  redrawn at once, the cursor kept on the key that paged; clicks made while the next page is
+  on its way are done on it, none lost.
+- Bar tooltips say the essential in a word or two: "volume 40%", "muted", "brightness 70%",
+  "RAM 37% of 32 GB", "Steam", "Steam starting", "do not disturb" — never what a click does.
 
 ## 7. Text screens (terminal: fzf, foot)
 

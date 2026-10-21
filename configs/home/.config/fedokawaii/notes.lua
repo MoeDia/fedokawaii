@@ -18,6 +18,14 @@ vim.o.undofile = true
 vim.o.ignorecase = true
 vim.o.smartcase = true
 vim.o.shortmess = vim.o.shortmess .. "I"   -- (no intro screen)
+-- nothing ever written over the footer: with no command line (cmdheight 0, below) neovim
+-- prints its messages on the bottom line itself — "-- INSERT --", the keys of a command
+-- being typed, "written" after each save, the file's name and size — so while you typed,
+-- the footer flickered between them and its own words. None of them is said here
+vim.o.showmode = false
+vim.o.showcmd = false
+vim.o.ruler = false
+vim.o.shortmess = vim.o.shortmess .. "WFcsS"
 -- the editor's colours: gruvbox with the desktop's palette, as the editor's plugin spec
 -- sets it up (its init, then its options) — from the plugin LazyVim keeps; plain colours
 -- where it is not installed yet
@@ -178,3 +186,29 @@ vim.api.nvim_create_autocmd({ "TextChanged", "TextChangedI", "InsertLeave", "Foc
     end
   end,
 })
+
+-- A warm window (kawa-warm): put away and shown again, never closed — kawa-warm calls these
+-- through the page's socket (kawa-notes --inside listens). Going: saved, then the end of the
+-- file tidied (kawa-notes --tidy: no blank lines, no heading left with nothing under it) and
+-- taken in. Showing: today's heading (kawa-notes --today) taken in, and the notes (whatever
+-- file was open) with the cursor on a fresh line at the end, typing — as the window always opens
+local function run(arg)
+  vim.fn.system({ "kawa-notes", arg })
+  fresh()
+end
+function _G.kawa_notes_hidden()
+  save()
+  run("--tidy")
+  return ""
+end
+function _G.kawa_notes_shown()
+  save()
+  run("--today")
+  vim.cmd("silent! wall")                     -- (another file open here: saved, and the notes back)
+  vim.api.nvim_win_set_buf(0, buf)
+  local n = vim.api.nvim_buf_line_count(buf)
+  vim.api.nvim_buf_set_lines(buf, n, n, false, { "" })
+  vim.api.nvim_win_set_cursor(0, { n + 1, 0 })
+  vim.cmd("startinsert!")
+  return ""
+end

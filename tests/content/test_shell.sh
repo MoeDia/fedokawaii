@@ -74,9 +74,9 @@ has "$(nth 3)" $'\e[91m'"$ICON_CROSS  3"$'\e[0m'; lacks "$(nth 3)" "$ICON_CHECK"
 has "$(cat "$TMP/out")" $'\e]133;D;3\e\\'
 case_ "foot: Enter on an empty line ran nothing: no mark"
 lacks "$(nth 4)" "$ICON_CHECK"; lacks "$(nth 4)" "$ICON_CROSS"
-case_ "foot: a command of 3 s or more: the time it took after its mark, faint; 10 s or more: a notice too"
-has "$(nth 5)" "$ICON_CHECK "$'\e[0m \e[90m4.2s\e[0m  '
-has "$(nth 6)" $'\e[90m2m05s\e[0m'
+case_ "foot: a command of 3 s or more: the time it took after its mark, muted (21); 10 s or more: a notice too"
+has "$(nth 5)" "$ICON_CHECK "$'\e[0m \e[38;5;21m4.2s\e[0m  '
+has "$(nth 6)" $'\e[38;5;21m2m05s\e[0m'
 has "$(cat "$TMP/out")" $'\e]777;notify;done in 2m05s;'
 lacks "$(cat "$TMP/out")" "done in 4.2s"
 case_ "foot: a quick command: its mark, no time"
@@ -90,11 +90,11 @@ t = sys.argv[1]
 sys.exit(any(0xFE000 <= ord(c) <= 0xFEFFF and t[i + 1:i + 3] != "  " for i, c in enumerate(t)))
 PY
 done
-[[ $(plain "$(nth 1)") == "$ICON_TORII_SMALL   ~ "* ]] && _ok || _no "the torii (the words' height, not the seal's), its second half and two spaces (as after a heading's kanji), the path: $(plain "$(nth 1)")"
+[[ $(plain "$(nth 1)") == "$ICON_TORII   ~ "* ]] && _ok || _no "the torii (the seal, as tall as a kanji), its second half and two spaces (as after a heading's kanji), the path: $(plain "$(nth 1)")"
 case_ "foot: each header ends one column short of the window's edge (nothing wraps), whatever it shows"
 for i in 1 2 3 4 5 6 7; do eq "$(width "$(nth "$i")")" $((COLS - 1)) "header $i: $(plain "$(nth "$i")")"; done
-case_ "foot: the line you type on starts with the desktop's chevron, in paper colour"
-has "$(cat "$TMP/out")" $'\n\e[37m'"$ICON_CHEVRON_RIGHT"$'\e[0m '
+case_ "foot: the line you type on starts with the desktop's chevron in accent_text (20), its second half, then a space before the cursor"
+has "$(cat "$TMP/out")" $'\n\e[38;5;20m'"$ICON_CHEVRON_RIGHT"$' \e[0m '
 lacks "$(cat "$TMP/out")" "❯"
 
 case_ "foot, in a git repository and a folder named in Japanese: branch icon, counts, still one column short"
@@ -122,7 +122,7 @@ home
 sed -i '1i PROMPT_COMMAND=("" __systemd_osc_context_precmdline); PS0='"'"'$(__systemd_osc_context_ps0)'"'"'' "$HOME/.bashrc"
 out=$(bash -ic 'declare -p PROMPT_COMMAND; printf "%s\n" "$PS0"' 2>/dev/null)
 has "$out" 'declare -a PROMPT_COMMAND=([0]="__kawa_prompt")'
-has "$out" '${__kawa_one:$((__kawa_t0 = ${EPOCHREALTIME/[.,]/}, 0)):0}\e]133;C\e\\'
+has "$out" '${__kawa_one:$((__kawa_t0 = ${EPOCHREALTIME/[.,]/}, __kawa_ran = 1, 0)):0}\e]133;C\e\\'
 lacks "$out" systemd
 
 # ── the aliases ──────────────────────────────────────────────────────────────

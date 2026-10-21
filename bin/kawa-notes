@@ -1,54 +1,59 @@
 #!/usr/bin/env bash
-# kawa-notes — Super+N: your notes, in a small floating window; Super+N again puts it away.
+# kawa-notes — Super+N: your notes, in a small floating window; Super+N again puts it away
+# (a warm window: kawa-warm keeps it running, so it shows in the frame).
 # One plain file, ~/Notes/notes.md, read top to bottom like a diary: each day you write
 # something starts with its date as a heading, and the window opens at the end, ready to
 # type. It is neovim (the desktop's editor, its keys and colours), saving as you type —
 # whichever way the window goes, nothing is lost. A day you opened but wrote nothing under
 # leaves no heading behind.
 #
-# (--inside is its own part: what runs in the window.)
+# (Its own parts: --inside [--shown], what runs in the window; --today, today's heading;
+# --tidy, the end of the file tidied — the page runs these two as it shows and goes.)
 set -u
 NOTES=${KAWA_NOTES:-$HOME/Notes/notes.md}
-LOCK=${XDG_RUNTIME_DIR:?}/kawa-notes.lock
+SOCK=${XDG_RUNTIME_DIR:?}/kawa-notes.nvim     # the page's neovim listens here (kawa-warm: --shown/--hidden)
 today=$(LC_ALL=C date '+%Y-%m-%d · %a')     # (English day names: any locale)
 HEAD="## $today"
 
 case ${1:-} in
-  "") ;;
+  "") exec kawa-warm notes ;;
+  --today|--tidy) ;;
   --inside)                               # in the window: neovim
     # as a page, a text screen's heading and footer, with notes.lua as its whole configuration
     # (not LazyVim: the window has its text as it appears; notes.lua says), at the end of
     # the file, on a fresh line, typing. No swap file (-n): every change is in the file
     # itself at once, and a window closed under neovim (Super+Q) would leave one behind —
-    # and with it a "Found a swap file" question in the next window
+    # and with it a "Found a swap file" question in the next window. No ShaDa (-i NONE): the
+    # page needs no registers, marks or search history from other sessions, and does not wait
+    # to read and write them as it opens and closes. It listens on $SOCK: put away and shown
+    # again (kawa-warm), it is saved and tidied, then opens at today's note (notes.lua); shown
+    # as it starts (--shown), that at once. Ended (:q, or its window closed), the file tidied
+    mkdir -p "${NOTES%/*}" || exit 1
+    rm -f "$SOCK"
+    first=(); [[ ${2:-} == --shown ]] && first=(-c 'lua kawa_notes_shown()')
     KAWA_NOTES_WHERE=${NOTES/#"$HOME"/\~} \
-      exec nvim -n -u ~/.config/fedokawaii/notes.lua -c 'normal! Go' -c 'startinsert!' -- "$NOTES" ;;
+      nvim -n -i NONE --listen "$SOCK" -u ~/.config/fedokawaii/notes.lua "${first[@]}" -- "$NOTES"
+    "$0" --tidy; exit 0 ;;
   -h|--help) sed -n '2,/^set -u/{/^set -u/d;s/^# \{0,1\}//;p}' "$0"; exit 0 ;;
   *) echo "usage: kawa-notes   (Super+N: your notes, ~/Notes/notes.md)" >&2; exit 2 ;;
 esac
 
-# open already: this press puts it away — straight to its window's toggle, nothing else
-# done first (kawa-term --float --once: the window's mark is there while it is open)
-[[ -e $XDG_RUNTIME_DIR/kawa-term-notes.open ]] && exec kawa-term --float --once notes notes 80x25 -- "$0" --inside
-exec 9>"$LOCK"
-flock 9 || exit 1                          # (presses one after the other, each to the window's toggle:
-                                           #  pressed fast, an even number leaves it closed)
-mkdir -p "${NOTES%/*}" || exit 1
 # notes written on Windows end their lines in CR LF: what is added here does the same (the
 # window keeps them so too) — a file of both kinds shows a ^M at the end of every old line
 nl=$'\n'
 { IFS= read -r first <"$NOTES" && [[ $first == *$'\r' ]] && nl=$'\r\n'; } 2>/dev/null
-# today's heading, once a day: a blank line, the heading, a blank line (the window then
-# opens a new line under it)
-if ! grep -qxF -e "$HEAD" -e "$HEAD"$'\r' "$NOTES" 2>/dev/null; then
-  if [[ ! -s $NOTES ]]; then printf '%s\n\n' "$HEAD" >"$NOTES"
-  elif [[ -n $(tail -c1 "$NOTES") ]]; then printf '%s' "$nl$nl$HEAD$nl$nl" >>"$NOTES"   # (it ended mid-line)
-  else printf '%s' "$nl$HEAD$nl$nl" >>"$NOTES"; fi
+# --today: today's heading, once a day — a blank line, the heading, a blank line (the page
+# then opens a new line under it)
+if [[ $1 == --today ]]; then
+  mkdir -p "${NOTES%/*}" || exit 1
+  if ! grep -qxF -e "$HEAD" -e "$HEAD"$'\r' "$NOTES" 2>/dev/null; then
+    if [[ ! -s $NOTES ]]; then printf '%s\n\n' "$HEAD" >"$NOTES"
+    elif [[ -n $(tail -c1 "$NOTES") ]]; then printf '%s' "$nl$nl$HEAD$nl$nl" >>"$NOTES"   # (it ended mid-line)
+    else printf '%s' "$nl$HEAD$nl$nl" >>"$NOTES"; fi
+  fi
+  exit 0
 fi
-# 80 × 25: an even width, an odd height — dwl centres it to the pixel. Open already: its key
-# closes it (kawa-term --float --once) — and nothing below runs twice
-flock -u 9; exec 9>&-
-kawa-term --float --once notes notes 80x25 -- "$0" --inside || exit 0
+# --tidy:
 sync -- "$NOTES" 2>/dev/null               # (the window writes without waiting for the disk)
 # tidy the end: no empty lines left by a fresh line you did not use — and a heading with
 # nothing under it goes too, with the blank line before it
@@ -62,8 +67,9 @@ if [[ -s $NOTES ]]; then
   { end=$(tail -c 65536 -- "$real"; printf x); } 2>/dev/null; end=${end%x}
   ((${#end} == (size < 65536 ? size : 65536))) || exit 0   # (a NUL byte: left as it is)
   t=${end%"${end##*[![:space:]]}"}         # the end without its trailing blanks
-  if [[ $t == "$HEAD" || $t == *$'\n'"$HEAD" ]]; then
-    t=${t%"$HEAD"}; t=${t%"${t##*[![:space:]]}"}
+  # (a day's heading, today's or the day the page showed — put away after midnight)
+  if [[ ${t##*$'\n'} =~ ^##\ [0-9]{4}-[0-9]{2}-[0-9]{2}\ ·\ [[:alpha:]]{3}$ ]]; then
+    t=${t%"${t##*$'\n'}"}; t=${t%"${t##*[![:space:]]}"}
   fi
   if [[ -n $t ]]; then [[ $end == "$t$nl" ]] && exit 0                    # (already tidy)
   elif ((size > ${#end})); then exit 0; fi  # (blank for longer than that: left as it is)

@@ -71,7 +71,8 @@ PKG_BUILD=(             # kept installed: theme.sh rebuilds dwl (config.h, patch
                                    #   parser (inih), sd-bus (libsystemd); no man page, so no scdoc
 )
 # dwl's config.mk ships XWayland commented out; Steam and other X11 apps need it on
-DWL_MAKE=(XWAYLAND=-DXWAYLAND "XLIBS=xcb xcb-icccm")
+# (and pixman: dwl.patch damages a window capture's output itself — capturesession)
+DWL_MAKE=(XWAYLAND=-DXWAYLAND "XLIBS=xcb xcb-icccm pixman-1")
 PKG_SESSION=(greetd greetd-selinux xorg-x11-server-Xwayland    # the login manager, X11 apps
   cage python3-gobject gtk3                                     # the login screen: kawa-greet (GTK) in cage, a kiosk compositor
   plymouth-plugin-script)                                       # the boot splash (the "sumi" Plymouth theme is a script)
@@ -139,6 +140,8 @@ PKG_APPS=(
                                                     #   SQLite (sort, sum, filter, group — Excel files are
                                                     #   LibreOffice Calc's)
   gdu                                               # what fills the disk (gdu ~), folder by folder
+  python3-fonttools                                 # builds the terminal's face, Sumi Term, from Fusion Pixel 10
+                                                    #   (tools/build-term-font.py, at install and update)
   fzf file 7zip                                    # the clipboard and wallpaper windows' lists, the shell's
                                                     #   Ctrl+R / Ctrl+T / Alt+C, yazi's z; file types; archives
   zstd                                              # .tar.zst archives (kawa-file, through tar -I)

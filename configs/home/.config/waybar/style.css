@@ -7,9 +7,11 @@
    volume, the cat …): at rest the glyph and its words alone on the paper, in ink; under the
    pointer, and while what it opened is on screen (its menu, its panel, its window: the
    class "active"), they turn vermilion — no fill, no box, no fade: pixels change, nothing
-   else. What is vermilion at rest (the torii, the day's kanji, a game, a shared screen …)
-   turns to the strongest ink instead. Only the workspaces are seals: the one you are on
-   filled vermilion, one asking for you filled asagi. Nothing underlined, no edge marks.
+   else. What is a vermilion seal at rest (the torii, the day's kanji, a game, a shared
+   screen) is stamped instead: the seal inverted — its button filled vermilion, its ink the
+   paper's — as the workspace you are on is. The workspaces are seals: the one you are on
+   filled vermilion, one asking for you filled asagi, one holding windows hemmed with a
+   running stitch under its numeral. No rings, no edge marks.
    The right side's groups are parted by a sashiko stitch — a running stitch of faint
    thread down the paper.
 
@@ -24,7 +26,7 @@
 @import url("../fedokawaii/current/waybar.css");
 
 * {
-  font-family: "Fusion Pixel 12px Mono ja", "Sumi Icons", "Noto Kufi Arabic";
+  font-family: "Sumi UI", "Fusion Pixel 12px Mono ja", "Sumi Icons", "Noto Kufi Arabic";
   font-size: 12px;
   min-height: 0;
   border: none;
@@ -63,7 +65,9 @@ button, button:hover, button:active, button:checked {
 #custom-torii { margin-left: 8px; color: @accent-text; }
 
 /* ── workspaces: 一 二 三 … as seals ───────────────────────────────────────────────
-   empty: the numeral faint on the paper · holding windows: the numeral in ink, ringed ·
+   empty: the numeral faint on the paper · holding windows: the numeral in ink, hemmed — a
+   running stitch under it (current/hem.png: three stitches, 3 on 2 off, 13 px from the
+   button's 5th column, 2 px of paper under the ink) ·
    the one you are on: a vermilion seal · asking for you: an asagi seal. Fixed width, so
    nothing moves when the selection does. */
 /* one rhythm, as on the right: 18 px of paper between modules (from the torii's ink to the
@@ -73,9 +77,10 @@ button, button:hover, button:active, button:checked {
 #custom-tag2, #custom-tag3, #custom-tag4, #custom-tag5, #custom-tag6, #custom-tag7, #custom-tag8,
 #custom-tag9 { margin-left: 6px; }
 .tag          { color: @faint; }
-.tag.occupied { color: @text; box-shadow: inset 0 0 0 1px @edge2; }
-.tag.selected { color: @strong-on-accent; background-color: @accent; box-shadow: none; }
-.tag.urgent   { color: @urgent-text; background-color: @urgent; box-shadow: none; }
+.tag.occupied { color: @text; background-image: url("../fedokawaii/current/hem.png");
+                background-repeat: no-repeat; background-position: 5px 19px; }
+.tag.selected { color: @strong-on-accent; background-color: @accent; background-image: none; }
+.tag.urgent   { color: @urgent-text; background-color: @urgent; background-image: none; }
 
 /* the layout: a button like the others, a module of its own (18 px from the seals) */
 #custom-layout { color: @muted; margin-left: 13px; }
@@ -138,6 +143,7 @@ button, button:hover, button:active, button:checked {
 #custom-mode.share { color: @accent-text; }
 /* 録 and the time gone by while the screen is recorded: lit, vermilion (a click stops it) */
 #custom-record     { color: @accent-text; }
+#custom-record.paused { color: @muted; }
 
 /* ── the clock: the date quiet · the day's kanji in vermilion ink · the time bright ── */
 #custom-date { color: @quiet; }
@@ -157,17 +163,21 @@ button, button:hover, button:active, button:checked {
    the glyph and its text take the vermilion ink, at once — nothing behind them changes; so
    does a button whose menu, panel or window is open (class "active"), until it closes. What
    is vermilion already (the torii, the day's kanji, memory running high, the sound muted, a
-   game, a shared screen, a workspace's seal) turns to the strongest ink instead */
+   game, a shared screen, a workspace's seal) turns to the strongest ink instead — and a
+   vermilion seal-sized button (the torii, the day's kanji, a game's gamepad, a shared
+   screen's 共有) is stamped: filled vermilion, its ink the paper's, the workspace's own look */
 .tag:hover, #custom-layout:hover, #custom-menu:hover, #custom-nowplaying:hover,
 #custom-steam:hover, #custom-mem:hover, #custom-volume:hover, #custom-brightness:hover, #custom-weather:hover,
 #custom-drives:hover, #custom-downloads:hover, #custom-date:hover, #custom-time:hover, #custom-mode:hover,
 #custom-layout.active, #custom-menu.active, #custom-steam.active, #custom-mem.active, #custom-volume.active,
 #custom-brightness.active, #custom-weather.active, #custom-drives.active, #custom-downloads.active, #custom-date.active,
 #custom-time.active, #custom-mode.active { color: @accent-text; }
-#custom-torii:hover, #custom-day:hover, #custom-mem.high:hover, #custom-volume.muted:hover,
-.tag.selected:hover, .tag.urgent:hover, #custom-steam.game:hover, #custom-mode.share:hover, #custom-record:hover,
-#custom-torii.active, #custom-day.active, #custom-mem.high.active, #custom-volume.muted.active,
-#custom-steam.game.active, #custom-mode.share.active { color: @strong; }
+#custom-mem.high:hover, #custom-volume.muted:hover,
+.tag.selected:hover, .tag.urgent:hover, #custom-record:hover,
+#custom-mem.high.active, #custom-volume.muted.active { color: @strong; }
+#custom-torii:hover, #custom-day:hover, #custom-steam.game:hover, #custom-mode.share:hover,
+#custom-torii.active, #custom-day.active, #custom-steam.game.active,
+#custom-mode.share.active { color: @strong-on-accent; background-color: @accent; }
 
 tooltip { background: @bar; border: 2px solid @muted; border-radius: 0; }   /* framed like every menu */
 tooltip label { color: @text; padding: 3px 6px; }

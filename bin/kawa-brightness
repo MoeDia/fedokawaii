@@ -59,7 +59,7 @@ if [[ $arg == --bar ]]; then
       i=$((l / 20)); ((i > 4)) && i=4
       # (a JSON false is shown as the word "false" — the tooltip says what the module is and
       # does; lit — its slider open under it — none, which would show behind the slider)
-      tip="brightness $l % · click: its slider · scroll: ±10 %" cls=""
+      tip="brightness $l%" cls=""
       bar_lit brightness && tip="" cls=',"class":"active"'
       printf -v line '{"text":"%s%s<span fgalpha=\x2755%%\x27>%%</span>","tooltip":"%s"%s}' "${icons[i]}" "$l" "$tip" "$cls"
     else

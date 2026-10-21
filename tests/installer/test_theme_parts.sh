@@ -63,7 +63,7 @@ sed -i '/^GRUB_THEME=/d; /^GRUB_TERMINAL_OUTPUT=/d' "$W/etc/default/grub"; rm -f
 sed -i 's/^FONT=.*/FONT="eurlatgr"/' "$W/etc/vconsole.conf"
 theme; eq "$RC" 0 "the rest of the theme applied"
 has "$OUT" "dracut could not remake the boot images with the splash"
-has "$(cat "$W/etc/default/grub")" 'GRUB_THEME="/boot/grub2/themes/sumi/theme.txt"'; has "$(cat "$W/etc/default/grub")" 'GRUB_TERMINAL_OUTPUT="gfxterm"'
+has "$(cat "$W/etc/default/grub")" 'GRUB_THEME="/boot/grub2/themes/sumi/theme.txt"'; has "$(cat "$W/etc/default/grub")" 'GRUB_TERMINAL_OUTPUT="gfxterm"'; has "$(cat "$W/etc/default/grub")" 'GRUB_BACKGROUND="/boot/grub2/themes/sumi/background.png"' "no black box once an entry is chosen"
 grep -q 'grub2/themes/sumi/theme.txt' "$W/boot/grub2/grub.cfg" && _ok || _no "grub.cfg not made again before dracut"
 has "$(cat "$W/etc/vconsole.conf")" 'FONT="ter-v16b"' "the console font set before dracut ran"
 has "$(fk lsinitrd)" "themes/bgrt/bgrt.plymouth" "the boot image still without the splash"
@@ -94,7 +94,7 @@ rm -f "$FKH/boot-separate"; rm -f "$W/boot/grub2/grub.cfg"; theme; eq "$RC" 0
 case_ "the boot menu: the console palette on every boot entry, BOOT_MENU_SECONDS shown, Fedora's auto-hide off"
 has "$(cat "$FKH/grub-args")" "vt.default_red="; eq "$(grep -c 'vt.default_red=' "$FKH/grub-args")" 2 "both entries"
 has "$(cat "$W/etc/default/grub")" "GRUB_TIMEOUT=2"; has "$(cat "$W/etc/default/grub")" 'GRUB_GFXMODE="2560x1440,auto"'
-lacks "$(cat "$FKH/grubenv")" "menu_auto_hide=1"
+lacks "$(cat "$FKH/grubenv")" "menu_auto_hide=2"
 has "$(cat "$W/etc/vconsole.conf")" 'FONT="ter-v16b"' "1440p: Fedora's own console size (8×16)"
 case_ "files an earlier theme put in the boot menu's folder (select_n.png: a pixmap GRUB would still draw): --check names them, the run removes them"
 G=$W/boot/grub2/themes/sumi
@@ -106,11 +106,11 @@ theme --check; eq "$RC" 0
 case_ "BOOT_MENU_SECONDS=0 beside Windows: the menu stays shown (the other system must stay reachable)"
 echo "Windows Boot Manager" >"$W/var/lib/fedokawaii/other-os"
 tconf 's/^BOOT_MENU_SECONDS=.*/BOOT_MENU_SECONDS="0"/'; theme
-lacks "$(cat "$FKH/grubenv")" "menu_auto_hide=1"
+lacks "$(cat "$FKH/grubenv")" "menu_auto_hide=2"
 rm -f "$W/var/lib/fedokawaii/other-os"
 case_ "BOOT_MENU_SECONDS=0: Fedora's hidden menu back"
 theme
-has "$(cat "$FKH/grubenv")" "menu_auto_hide=1"
+has "$(cat "$FKH/grubenv")" "menu_auto_hide=2"
 
 case_ "an APU (512 MB of shared memory) and STEAM=no: mpv's own scaling, no game overlay config"
 back plain; hw_apu; tconf 's/^STEAM=.*/STEAM="no"/'
@@ -121,17 +121,17 @@ has "$(cat "$W$H/.config/mpv/mpv.conf")" "# scaling: mpv's own defaults"
 has "$(cat "$W/etc/vconsole.conf")" 'FONT="ter-v16b"'
 
 
-case_ "Spotify and WhatsApp: their web apps in Brave app windows (Brave's icon); the older entry for Spotify's app and lpf's hidden ones replaced or retired"
+case_ "Spotify and WhatsApp: their web apps in Brave app windows (their seals); the older entry for Spotify's app and lpf's hidden ones replaced or retired"
 back plain; a=$W$H/.local/share/applications; mkdir -p "$a"
 printf '[Desktop Entry]\n# Spotify (lpf)\nName=Spotify\nExec=spotify --ozone-platform=wayland %%U\n' >"$a/spotify.desktop"
 for e in lpf lpf-gui lpf-notify lpf-spotify-client; do printf '[Desktop Entry]\n# with lpf-spotify-client\nName=%s\nNoDisplay=true\n' "$e" >"$a/$e.desktop"; done
 printf '[Desktop Entry]\n# mine\nName=lpf\n' >"$a/lpf-mine.desktop"
 fk_perms; theme; eq "$RC" 0
 eq "$(sed -n 's/^Exec=//p' "$a/spotify.desktop")" "$H/.local/bin/brave-origin --app=https://open.spotify.com"
-eq "$(sed -n 's/^Icon=//p' "$a/spotify.desktop")" "$(sed -n 's/^Icon=//p' "$W/usrshare/applications/brave-origin.desktop" 2>/dev/null)" "Brave's own icon"
+eq "$(sed -n 's/^Icon=//p' "$a/spotify.desktop")" "$H/.config/fedokawaii/current/apps/spotify.png" "our seal (曲), the theme's own"
 lacks "$(cat "$a/spotify.desktop")" "MimeType" "no spotify: links (nothing here opens them)"
 eq "$(sed -n 's/^Exec=//p' "$a/whatsapp.desktop")" "$H/.local/bin/brave-origin --app=https://web.whatsapp.com" "WhatsApp: WhatsApp Web in a Brave app window"
-eq "$(sed -n 's/^Icon=//p' "$a/whatsapp.desktop")" "$(sed -n 's/^Icon=//p' "$W/usrshare/applications/brave-origin.desktop" 2>/dev/null)" "WhatsApp: Brave's own icon"
+eq "$(sed -n 's/^Icon=//p' "$a/whatsapp.desktop")" "$H/.config/fedokawaii/current/apps/whatsapp.png" "WhatsApp: our seal (話), the theme's own"
 for e in lpf lpf-gui lpf-notify lpf-spotify-client; do [[ ! -e $a/$e.desktop ]] && _ok || _no "$e.desktop left"; done
 has "$OUT" "lpf-spotify-client.desktop (retired)"; [[ -e $a/lpf-mine.desktop ]] && _ok || _no "an entry of yours taken"
 theme --check; lacks "$OUT" "lpf" "in sync without lpf's entries"
@@ -160,7 +160,7 @@ lacks "$(cat "$u/brave-origin.desktop")" "NoDisplay" "the entry you launch stays
 eq "$(sed -n 2p "$u/com.brave.Origin.desktop")" "NoDisplay=true" "hidden in its [Desktop Entry]"
 eq "$(grep -c '^NoDisplay=' "$u/com.brave.Origin.desktop")" 1 "the misplaced line gone"
 has "$(cat "$u/com.brave.Origin.desktop")" "Exec=$H/.local/bin/brave-origin --incognito"
-eq "$(grep '^Icon=' "$u/kawa-prowlarr.desktop")" "Icon=brave-origin" "Prowlarr's page: the icon of the browser it opens in, as Brave's own entry names it"
+eq "$(grep '^Icon=' "$u/kawa-prowlarr.desktop")" "Icon=$H/.config/fedokawaii/current/apps/prowlarr.png" "Prowlarr's page: its seal, the theme's own"
 theme --check; lacks "$OUT" "com.brave.Origin" "in sync once made"
 rm -f "$u/com.brave.Origin.desktop"
 theme --check; has "$OUT" "com.brave.Origin.desktop" "a missing copy is drift"

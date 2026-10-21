@@ -1,6 +1,12 @@
 #!/bin/bash
 # findmnt of the fake Fedora: Btrfs with Fedora's subvolumes, /boot on ext4 ($FKH/fstype-PATH overrides)
 p=${*: -1}; p=${p//\//_}
+# --verify --tab-file F: as util-linux's, F must be a file it can open by name (a pipe it cannot)
+if [[ " $* " == *" --verify "* ]]; then
+  f=""; a=("$@"); for ((i = 0; i < ${#a[@]}; i++)); do [[ ${a[i]} == --tab-file ]] && f=${a[i+1]}; done
+  [[ -z $f || -f $f ]] || { echo "findmnt: can't read $f: No such file or directory" >&2; exit 1; }
+  exit 0
+fi
 case " $* " in
   *" OPTIONS "*) cat /var/lib/fkh/mountopts 2>/dev/null || echo "rw,relatime,seclabel,compress=zstd:1,ssd,space_cache=v2,subvolid=257,subvol=/root" ;;
   *) cat "/var/lib/fkh/fstype-$p" 2>/dev/null || { [[ $p == _boot ]] && echo ext4 || echo btrfs; } ;;

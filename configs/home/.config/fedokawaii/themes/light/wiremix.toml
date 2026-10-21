@@ -3,6 +3,7 @@
 # It reads its colours when it starts, so a mixer left open keeps the old theme until it is
 # opened again. Whatever is not set here is wiremix's own default (its keys, names, filters).
 theme = "fedokawaii"
+char_set = "fedokawaii"
 # the sliders end at 150 %, and the keys stop there too (wiremix alone lets them run past it)
 enforce_max_volume = true
 keybindings = [
@@ -39,3 +40,15 @@ dropdown_more = { fg = "#9b927e" }
 help_border = { fg = "#5f594d" }
 help_item = { fg = "#2b2721" }
 help_more = { fg = "#9b927e" }
+
+# marks one cell wide in the terminal's font: wiremix leaves one cell for each, and its own
+# (◇, •••) are geometric shapes Fusion Pixel draws two cells wide — the default device's
+# diamond ran into the space after it and touched the name ("◇HD-Audio Generic"). A half
+# block (foot draws those itself, exactly one cell) leaves the space whole: the mark, then
+# a cell of paper, then the name
+[char_sets.fedokawaii]
+default_device = "▌"
+default_stream = "▌"
+list_more = "···"
+dropdown_more = "···"
+help_more = "···"

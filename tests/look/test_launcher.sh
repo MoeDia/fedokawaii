@@ -2,8 +2,10 @@
 # tests/look/test_launcher.sh — what the launcher (fuzzel) lists, and how it is drawn:
 #   · the package entries hidden by an entry of the same name (NoDisplay): exactly this set,
 #     each still a whole entry (Type, Name, Exec) so the program keeps working
-#   · every entry of the desktop's own shows its program's official icon: a name a package
-#     installs into hicolor, or the app's own picture by its path — never an icon pack's name
+#   · every entry of the desktop's own shows a window program's official icon (a name a
+#     package installs into hicolor, or the app's own picture by its path) or our app seal
+#     (current/apps/NAME.png, tools/build-appicons.py: both themes, 18 × 18, key ground, edge2 frame, accent_text kanji)
+#     — never an icon pack's name, never foot's or neovim's for what is not them
 #   · no icon pack anywhere: no Papirus in a config, a script or the manifest (but as retired)
 #   · no big copy of the chosen entry's icon under a short list (image-size-ratio=1)
 #   · GTK 3 and 4: windows, dialogs, decorations and popovers square, no shadow, no margin
@@ -85,20 +87,53 @@ done
 eq "$(grep '^fields=' "$REPO/configs/home/.config/fuzzel/fuzzel.ini")" "fields=name,generic,keywords" \
   "the launcher matches what a program is and its keywords too (Network: wifi; System monitor: task manager)"
 
-case_ "every listed entry: its program's own icon (hicolor names its packages install, or its own picture by path)"
-OFFICIAL=" foot nvim mpv btop org.pwmt.zathura com.github.xournalpp.xournalpp steam @BRAVE_ICON@ "
+case_ "every listed entry: a window program's own icon, or our app seal (current/apps)"
+OFFICIAL=" com.github.xournalpp.xournalpp steam "
+SEALS="footclient:terminal kawa-edit:editor kawa-files:files kawa-agents:agents kawa-git:git kawa-notes:notes
+  kawa-clip:clipboard kawa-books:books kawa-wallpaper:wallpaper kawa-backup:backup kawa-calc:calc kawa-disk:disk
+  kawa-tables:tables btop:monitor kawa-mixer:mixer kawa-network:network kawa-bluetooth:bluetooth kawa-file:file
+  kawa-torrents:torrents kawa-prowlarr:prowlarr spotify:spotify whatsapp:whatsapp"
 for f in "$A"/*.desktop; do
   [[ $(key "$f" NoDisplay) == true ]] && continue
   i=$(key "$f" Icon)
-  if [[ $i == @HOME@/* ]]; then [[ $i == *.png ]] && _ok || _no "${f##*/}: a picture by path that is no PNG: $i"
-  else [[ $OFFICIAL == *" $i "* ]] && _ok || _no "${f##*/}: Icon=$i is no program's own icon"; fi
+  if [[ $i == @HOME@/.config/fedokawaii/current/apps/* ]]; then n=${f##*/}; [[ $SEALS == *"${n%.desktop}:"* ]] && _ok || _no "$n: a seal no list here names"
+  elif [[ $i == @HOME@/* ]]; then [[ $i == *.png ]] && _ok || _no "${f##*/}: a picture by path that is no PNG: $i"
+  else [[ $OFFICIAL == *" $i "* ]] && _ok || _no "${f##*/}: Icon=$i is no window program's own icon"; fi
 done
+for s in $SEALS; do
+  eq "$(key "$A/${s%%:*}.desktop" Icon)" "@HOME@/.config/fedokawaii/current/apps/${s#*:}.png" "${s%%:*}: its seal"
+done
+eq "$(key "$A/kawa-sketch.desktop" Icon)" com.github.xournalpp.xournalpp "Sketch: Xournal++'s own (it is Xournal++)"
+case_ "the app seals: every one an entry names, in both themes, 18 × 18 (shown 1:1), nothing else in apps/, only the palette's inks"
+names=$(for s in $SEALS; do printf '%s\n' "${s#*:}"; done | LC_ALL=C sort)
+for t in dark light; do
+  eq "$(cd "$REPO/configs/home/.config/fedokawaii/themes/$t/apps" && ls | sed 's/\.png$//' | LC_ALL=C sort)" "$names" "$t: the seals the entries name, and no more"
+done
+out=$(python3 -I - "$REPO" <<'PY'
+import sys, glob, importlib.util
+from PIL import Image
+root = sys.argv[1]
+sys.dont_write_bytecode = True
+spec = importlib.util.spec_from_file_location("themes", root + "/tools/build-themes.py")
+themes = importlib.util.module_from_spec(spec); spec.loader.exec_module(themes)
+for t in ("dark", "light"):
+    pal = themes.P[t]
+    want = {tuple(int(pal[k][i:i + 2], 16) for i in (0, 2, 4)) for k in ("key", "edge2", "accent_text")}
+    for f in sorted(glob.glob(f"{root}/configs/home/.config/fedokawaii/themes/{t}/apps/*.png")):
+        im = Image.open(f).convert("RGBA")
+        n = f.split("/")[-1]
+        if im.size != (18, 18): print(t, n, "is", im.size); continue
+        inks = {px[:3] for px in im.getdata()}
+        if any(px[3] != 255 for px in im.getdata()) or inks != want: print(t, n, "inks", inks ^ want)
+        a = im.load()
+        e2 = tuple(int(pal["edge2"][i:i + 2], 16) for i in (0, 2, 4)) + (255,)
+        if any(a[x, y] != e2 for x in range(18) for y in (0, 17)) or any(a[y, x] != e2 for x in range(18) for y in (0, 17)): print(t, n, "no 1 px frame")
+PY
+)
+eq "$out" "" "the seals as drawn"
 has "$(key "$A/syncplay.desktop" Icon)" "/.local/share/fedokawaii/syncplay/syncplay/resources/hicolor/" "Syncplay's own, from its copy"
 has "$(key "$A/localsend.desktop" Icon)" "/.local/share/localsend/data/flutter_assets/assets/img/logo-" "LocalSend's own, from its release"
-eq "$(key "$A/kawa-prowlarr.desktop" Icon)" "@BRAVE_ICON@" "Prowlarr's page: Brave's own (theme.sh reads it from Brave's entry)"
-eq "$(key "$A/spotify.desktop" Icon)" "@BRAVE_ICON@" "Spotify (its web player in Brave): Brave's own"
 eq "$(key "$A/spotify.desktop" Exec)" "@HOME@/.local/bin/brave-origin --app=https://open.spotify.com" "Spotify: a Brave app window"
-eq "$(key "$A/whatsapp.desktop" Icon)" "@BRAVE_ICON@" "WhatsApp (WhatsApp Web in Brave): Brave's own (no package brings a WhatsApp icon)"
 eq "$(key "$A/whatsapp.desktop" Exec)" "@HOME@/.local/bin/brave-origin --app=https://web.whatsapp.com" "WhatsApp: a Brave app window"
 
 case_ "no icon pack: nothing names Papirus (the manifest only to retire it, the report to see it gone), fuzzel keeps its default (hicolor)"

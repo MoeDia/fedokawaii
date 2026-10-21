@@ -1,15 +1,14 @@
 [Desktop Entry]
 # Folders open in yazi, in a terminal window of its own (the default for inode/directory in
 # ~/.config/mimeapps.list). yazi's own entry asks for a terminal (Terminal=true), which
-# xdg-open does not provide on this desktop; this one starts the terminal itself.
-# (`--`: a folder named like -V is opened, never read as an option)
-# Its icon: yazi's own logo, from its repository at the pinned tag (lib/upstream.sh,
-# UPSTREAM_ICONS: its release file has none), by its path.
+# xdg-open does not provide on this desktop; this one starts the terminal itself. (`--`: a
+# folder named like -V is opened, never read as an option) Its icon: our seal of 箱
+# (tools/build-appicons.py, the theme's own: current/apps).
 Type=Application
 Name=Files
 GenericName=File manager
 Comment=yazi, the terminal file manager
-Icon=@HOME@/.local/share/fedokawaii/icons/yazi.png
+Icon=@HOME@/.config/fedokawaii/current/apps/files.png
 Exec=@HOME@/.local/bin/kawa-term yazi -- %f
 Terminal=false
 MimeType=inode/directory;

@@ -68,20 +68,16 @@ case_ "the copy's place holding something else: refused, how to go on said"
 fresh; mkdir -p "$C"; echo x >"$C/notes"
 out=$(fedokawaii pull 2>&1); eq "$?" 1; has "$out" "something else"; eq "$(front_calls)" ""
 
-case_ "setup's clone adopted (--adopt): moved to ~/repos/fedokawaii, its token moved to secrets.sh (600)"
+case_ "setup's clone adopted (--adopt): moved to ~/repos/fedokawaii, its origin the public address — a token in it and an old one in secrets.sh dropped"
 fresh; D=$HOME/fedokawaii; git clone -q "$O" "$D"
 git -C "$D" remote set-url origin "https://x-access-token:ghp_abcdefghijklmnopqrstuvwxyz0123@github.com/MoeDia/fedokawaii.git"
+S=$HOME/.config/fedokawaii/secrets.sh; mkdir -p "${S%/*}"
+printf "PROWLARR_API_KEY=abc\nFEDOKAWAII_GITHUB_TOKEN='ghp_old'\n" >"$S"; chmod 600 "$S"
 out=$(fedokawaii --adopt "$D" </dev/null 2>&1); eq "$?" 0 "$out"
 [[ -d $C/.git && ! -e $D ]] && _ok || _no "not moved"
-eq "$(git -C "$C" remote get-url origin)" "https://github.com/MoeDia/fedokawaii.git"
-S=$HOME/.config/fedokawaii/secrets.sh; eq "$(stat -c %a "$S")" 600
-has "$(cat "$S")" "FEDOKAWAII_GITHUB_TOKEN='ghp_abcdefghijklmnopqrstuvwxyz0123'"
-lacks "$(cat "$C/.git/config")" "ghp_" "the token never in .git/config"
-case_ "…a secrets.sh with other keys: kept, the token replaced rather than doubled"
-printf 'PROWLARR_API_KEY=abc\n' >"$S.x"; cat "$S" >>"$S.x"; mv "$S.x" "$S"; chmod 600 "$S"
-D2=$HOME/other; git clone -q "$O" "$D2"; git -C "$D2" remote set-url origin "https://ghp_zzzzzzzzzzzzzzzzzzzzzzzz@github.com/x/y.git"
-rm -rf "$C"; fedokawaii --adopt "$D2" </dev/null >/dev/null 2>&1
-eq "$(grep -c FEDOKAWAII_GITHUB_TOKEN "$S")" 1; has "$(cat "$S")" "PROWLARR_API_KEY=abc"; has "$(cat "$S")" ghp_zzzz
+eq "$(git -C "$C" remote get-url origin)" "file://$O"
+lacks "$(cat "$C/.git/config")" "ghp_" "no token in .git/config"
+lacks "$(cat "$S")" "FEDOKAWAII_GITHUB_TOKEN"; has "$(cat "$S")" "PROWLARR_API_KEY=abc"; eq "$(stat -c %a "$S")" 600
 case_ "adopt declines when ~/repos/fedokawaii is a clone already (setup then tidies its folder as before)"
 D3=$HOME/third; git clone -q "$O" "$D3"
 fedokawaii --adopt "$D3" </dev/null >/dev/null 2>&1; eq "$?" 1; [[ -d $D3 ]] && _ok || _no "moved anyway"
@@ -91,15 +87,12 @@ D=$HOME/fk; git clone -q "$O" "$D"; out=$(fedokawaii --adopt "$D" </dev/null 2>&
 fresh; fedokawaii copy >/dev/null 2>&1; echo "# mine" >>"$C/setup.sh"
 D=$HOME/fk; git clone -q "$O" "$D"; out=$(fedokawaii --adopt "$D" </dev/null 2>&1); eq "$?" 0; has "$out" packed
 
-case_ "the token is used only from a private secrets.sh (600, yours); git never prompts"
-fresh; S=$HOME/.config/fedokawaii/secrets.sh; mkdir -p "${S%/*}"
-printf "FEDOKAWAII_GITHUB_TOKEN='ghp_secretsecretsecretsecret'\n" >"$S"; chmod 644 "$S"
-stub git 'case "$*" in *credential.helper=*) echo "with-token" >>"$TMP/git-auth" ;; esac; exec /usr/bin/git "$@"'
-fedokawaii pull >/dev/null 2>&1; [[ ! -e $TMP/git-auth ]] && _ok || _no "a token read from a 644 secrets.sh"
-chmod 600 "$S"; rm -rf "$C"; fedokawaii pull >/dev/null 2>&1; [[ -s $TMP/git-auth ]] && _ok || _no "the token not used"
-case_ "a private repository, no token, no terminal: said to run it in a terminal once — nothing runs as root"
+case_ "pull reads the public repository: no credential helper, git never prompts"
+fresh; stub git 'case "$*" in *"credential.helper= "*) echo "plain" >>"$TMP/git-auth" ;; esac; [ "$GIT_TERMINAL_PROMPT" = 0 ] || echo prompt >>"$TMP/git-prompt"; exec /usr/bin/git "$@"'
+fedokawaii pull >/dev/null 2>&1; [[ -s $TMP/git-auth ]] && _ok || _no "a credential helper left in"; [[ ! -e $TMP/git-prompt ]] && _ok || _no "git could prompt"
+case_ "GitHub not answering: said, nothing runs as root"
 fresh; export FEDOKAWAII_ORIGIN=https://example.invalid/fedokawaii.git
-out=$(timeout 60 fedokawaii pull 2>&1 </dev/null); eq "$?" 1; has "$out" "in a terminal once"; eq "$(front_calls)" ""
+out=$(timeout 60 fedokawaii pull 2>&1 </dev/null); eq "$?" 1; has "$out" "GitHub does not answer"; eq "$(front_calls)" ""
 
 case_ "pull is a job: in Super+U's popup it goes to a window of its own"
 fresh; stub setsid; FEDOKAWAII_POPUP=yes fedokawaii --run pull </dev/null; called "^setsid -f .*--job pull"

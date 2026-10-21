@@ -9,7 +9,7 @@
 #   fedokawaii update      the season's update: packages, the desktop's own tools, checks
 #   fedokawaii pull        fedokawaii itself from GitHub: your clone (~/repos/fedokawaii)
 #                          brought to GitHub's newest, then the update from it, and repair if
-#                          anything is left (asks once for the token of the private repository)
+#                          anything is left (the repository is public: no sign-in, no token)
 #   fedokawaii upgrade     move to the next Fedora release, once it has settled
 #   fedokawaii upgrade --now   the same, without waiting for it to settle
 #   fedokawaii verify      prove everything is installed right (changes nothing)
@@ -438,53 +438,38 @@ copy_apply() {   # the copy applied: ShellCheck's advice on the scripts you chan
 }
 
 # ── the clone: the toolkit's source, kept in one place, updated from GitHub ─────────────────
-# ~/repos/fedokawaii (COPY) is a git clone of the project's repository (ORIGIN, private:
-# a GitHub token in secrets.sh, or your SSH key for a git@ address). fedokawaii pull brings
+# ~/repos/fedokawaii (COPY) is a git clone of the project's public repository (ORIGIN,
+# github.com/MoeDia/fedokawaii: no sign-in, no token). fedokawaii pull brings
 # it up to GitHub's newest, then runs the update from it (the clone becomes the toolkit) and,
 # when verify still finds something, repair — one run, root's part through sudo; what it did
 # is logged (PULL_LOG, and root's log) and said in a notice. The clone is also the working
 # copy every change of yours goes through (fedokawaii change · apply), so it is never removed.
-# The token is never in .git/config: git reads it from secrets.sh through a credential helper
-# given on the command line (GIT_TERMINAL_PROMPT=0: git itself never asks).
+# git never asks for a password (GIT_TERMINAL_PROMPT=0) and uses no stored one (no credential
+# helper): a public repository needs none.
 ORIGIN=${FEDOKAWAII_ORIGIN:-https://github.com/MoeDia/fedokawaii.git}
 SECRETS=${XDG_CONFIG_HOME:-$HOME/.config}/fedokawaii/secrets.sh
 PULL_LOG=${XDG_STATE_HOME:-$HOME/.local/state}/fedokawaii/pull.log
 PULL_REC=${XDG_STATE_HOME:-$HOME/.local/state}/fedokawaii/last-pull   # "EPOCH RESULT FROM TO"
-secret() {   # secret NAME → its value in secrets.sh — only while the file is yours alone (600)
-  [[ -f $SECRETS && -O $SECRETS && $(stat -c %a "$SECRETS") == 600 ]] || return 1
-  # shellcheck disable=SC2016  # (expanded by the inner bash, after sourcing the file)
-  bash -c '. "$1" >/dev/null 2>&1; printf %s "${!2:-}"' _ "$SECRETS" "$1"
+fgit() { GIT_TERMINAL_PROMPT=0 git -c credential.helper= "$@"; }   # fgit ARG… — git as you, never asking
+answers() {   # answers — GitHub answers for ORIGIN, else why said
+  fgit ls-remote --quiet --exit-code "$ORIGIN" HEAD >/dev/null 2>&1 && return 0
+  echo "  GitHub does not answer for $ORIGIN — is the network up?" >&2; return 1
 }
-secret_set() {   # secret_set NAME VALUE — one line NAME=VALUE in secrets.sh (made, 600), replacing any
-  local d=${SECRETS%/*} t
-  install -d -m 700 "$d" && { [[ -e $SECRETS ]] || install -m 600 /dev/null "$SECRETS"; } || return 1
-  chmod 600 "$SECRETS" || return 1
-  t=$(mktemp "$d/.secrets.XXXXXX") || return 1
-  { grep -vE "^[[:space:]]*(export[[:space:]]+)?$1=" "$SECRETS"
-    printf "%s='%s'\n" "$1" "$2"; } >"$t" && chmod 600 "$t" && mv -f -- "$t" "$SECRETS"
-}
-fgit() {   # fgit ARG… — git as you, with the token from secrets.sh when there is one
-  local tok
-  tok=$(secret FEDOKAWAII_GITHUB_TOKEN) || tok=""
-  if [[ -n $tok ]]; then
-    # shellcheck disable=SC2016  # (the helper's own shell expands it, from its environment)
-    FK_TOKEN=$tok GIT_TERMINAL_PROMPT=0 git -c credential.helper= \
-      -c 'credential.helper=!f() { [ "$1" = get ] && printf "username=x-access-token\npassword=%s\n" "$FK_TOKEN"; }; f' "$@"
-  else GIT_TERMINAL_PROMPT=0 git "$@"; fi
-}
-reachable() { fgit ls-remote --quiet --exit-code "${1:-$ORIGIN}" HEAD >/dev/null 2>&1; }
-token_ask() {   # token_ask [URL] — the repository answers, or (on a terminal) its token asked once
-  local tok url=${1:-$ORIGIN}
-  reachable "$url" && return 0
-  [[ $url == https://* ]] || { echo "  $url does not answer — is your SSH key added to GitHub (ssh -T git@github.com)?" >&2; return 1; }
-  [[ -t 0 ]] || { echo "  GitHub refused $url — run fedokawaii pull in a terminal once: it asks for the token" >&2; return 1; }
-  echo "  $url is private: a GitHub token reads it (github.com → Settings → Developer settings →"
-  echo "  fine-grained token, this repository, Contents: read-only). Kept in ${SECRETS/#$HOME/\~} (600)."
-  read -rsp "  token: " tok </dev/tty; echo
-  [[ $tok =~ ^[A-Za-z0-9_]{20,255}$ ]] || { echo "  that is no GitHub token — nothing saved" >&2; return 1; }
-  secret_set FEDOKAWAII_GITHUB_TOKEN "$tok" || { echo "  could not write ${SECRETS/#$HOME/\~}" >&2; return 1; }
-  reachable "$url" && { echo "  saved — GitHub takes it"; return 0; }
-  echo "  saved, but GitHub refuses it (no access to this repository, or expired)" >&2; return 1
+# origin_public DIR — the clone's origin is ORIGIN, the public address: an address with a token
+# in it, or the private one of before, set to it; the token the private repository needed
+# dropped from secrets.sh (nothing reads it any more)
+origin_public() {
+  local d=$1 url t
+  url=$(git -C "$d" remote get-url origin 2>/dev/null) || return 0
+  if [[ $url != "$ORIGIN" ]]; then
+    git -C "$d" remote set-url origin "$ORIGIN" && echo "  ${d/#$HOME/\~}'s origin: $ORIGIN (public: no token)"
+  fi
+  if [[ -f $SECRETS ]] && grep -qE '^[[:space:]]*(export[[:space:]]+)?FEDOKAWAII_GITHUB_TOKEN=' "$SECRETS"; then
+    t=$(mktemp "${SECRETS%/*}/.secrets.XXXXXX") || return 1
+    grep -vE '^[[:space:]]*(export[[:space:]]+)?FEDOKAWAII_GITHUB_TOKEN=' "$SECRETS" >"$t"
+    chmod 600 "$t" && mv -f -- "$t" "$SECRETS" && echo "  the old GitHub token left ${SECRETS/#$HOME/\~} (the repository is public)"
+  fi
+  return 0
 }
 same_as_toolkit() {   # same_as_toolkit DIR — its files are the toolkit's (settings aside)
   [[ -z $(diff -rq --exclude=.git --exclude=fedokawaii.conf -- "$TK" "$1" 2>&1) ]]
@@ -495,14 +480,6 @@ pack_aside() {   # pack_aside DIR WHY — the whole folder kept, packed, before 
   mkdir -p "${p%/*}" && tar -czf "$p" -C "${1%/*}" -- "${1##*/}" \
     && echo "  ${1/#$HOME/\~}: $2 — kept, packed, in ${p/#$HOME/\~}"
 }
-clean_origin() {   # a token written into the clone's address (https://TOKEN@github.com/…): into secrets.sh
-  local d=$1 url cred
-  url=$(git -C "$d" remote get-url origin 2>/dev/null) || return 0
-  [[ $url =~ ^https://([^@/]+)@(.*)$ ]] || return 0
-  cred=${BASH_REMATCH[1]}; cred=${cred#*:}
-  secret_set FEDOKAWAII_GITHUB_TOKEN "$cred" && git -C "$d" remote set-url origin "https://${BASH_REMATCH[2]}" \
-    && echo "  the token in ${d/#$HOME/\~}'s address moved to ${SECRETS/#$HOME/\~}"
-}
 # has_origin DIR — a git clone that knows its origin: read from its .git/config itself, never by
 # asking git (which refuses a folder it does not trust, and would then pass for "no clone")
 has_origin() { [[ -f $1/.git/config && ! -L $1/.git ]] && grep -q '^\[remote "origin"\]' "$1/.git/config"; }
@@ -512,8 +489,8 @@ has_origin() { [[ -f $1/.git/config && ! -L $1/.git ]] && grep -q '^\[remote "or
 clone_ready() {
   local why=""
   command -v git >/dev/null || { echo "  git is missing — fedokawaii repair puts it back" >&2; return 1; }
-  if has_origin "$COPY"; then clean_origin "$COPY"; return 0; fi
-  token_ask || return 1
+  if has_origin "$COPY"; then origin_public "$COPY"; return 0; fi
+  answers || return 1
   if [[ ! -e $COPY ]]; then
     mkdir -p -- "${COPY%/*}" && fgit clone --quiet "$ORIGIN" "$COPY" || { echo "  could not clone $ORIGIN" >&2; return 1; }
     echo "  cloned: ${COPY/#$HOME/\~} — fedokawaii pull keeps it current"; return 0
@@ -544,8 +521,7 @@ adopt() {
   fi
   mkdir -p -- "${COPY%/*}" && mv -T -- "$d" "$COPY" || return 1
   echo "  ${d/#$HOME/\~} moved to ${COPY/#$HOME/\~}: the one clone — fedokawaii pull (Super+U → update fedokawaii) updates it from GitHub"
-  clean_origin "$COPY"
-  [[ -t 0 ]] && { token_ask "$(git -C "$COPY" remote get-url origin)" || true; }
+  origin_public "$COPY"
   return 0
 }
 pull() {   # git pull, then the update from the clone, repair if verify still finds something
@@ -558,7 +534,6 @@ pull() {   # git pull, then the update from the clone, repair if verify still fi
     [[ -z $(git -C "$COPY" status --porcelain --untracked-files=no 2>/dev/null | grep -v ' fedokawaii.conf$') ]] \
       || echo "  (your changes in the clone are kept: GitHub's are added beside them)"
     from=$(git -C "$COPY" rev-parse --short HEAD)
-    token_ask "$(git -C "$COPY" remote get-url origin)" || exit 1
     fgit -C "$COPY" fetch --quiet origin || { echo "  GitHub does not answer — is the network up?" >&2; exit 1; }
     git -C "$COPY" merge --ff-only --quiet '@{u}' || { echo "  your commits and GitHub's went apart — lazygit in ${COPY/#$HOME/\~} (rebase), then pull again" >&2; exit 1; }
     to=$(git -C "$COPY" rev-parse --short HEAD)
@@ -795,8 +770,8 @@ explain() {
                    "(~/repos/fedokawaii) brought to the newest," \
                    "then the update runs from it, and repair if" \
                    "anything is left. your changes in the clone" \
-                   "are kept. the first time it asks for the" \
-                   "repository's token (kept in secrets.sh)." ;;
+                   "are kept. the repository is public: no" \
+                   "sign-in, no token." ;;
     upgrade)   pick 'running|release|support|moved'
                say "a new Fedora comes every six months, each" \
                    "supported for about thirteen. the move is" \
@@ -1048,10 +1023,14 @@ guide() {   # the learning guide: the PDF in zathura on the desktop; on a text c
 }
 
 menu_fzf() {   # → fzf's exit status (2: it could not run — the plain menu takes over)
-  local self pop=""
+  local self pop="" listen=()
   self=$(printf '%q' "$0")
-  # (in Super+U's popup a job, too, ends the menu: it is handed to a window of its own)
-  [[ ${FEDOKAWAII_POPUP:-} == yes ]] && pop="|$JOBS"
+  # (in Super+U's popup a job, too, ends the menu: it is handed to a window of its own; the
+  # popup is warm — kawa-warm reads its list again through fzf's socket as it shows)
+  if [[ ${FEDOKAWAII_POPUP:-} == yes ]]; then
+    pop="|$JOBS" listen=(--listen="${XDG_RUNTIME_DIR:-/tmp}/fedokawaii-menu.sock")
+    rm -f -- "${listen[0]#--listen=}"              # (one killed outright left it: fzf would not start)
+  fi
   export FZF_DEFAULT_OPTS_FILE=$HOME/.config/fedokawaii/fzf.opts; unset FZF_DEFAULT_OPTS
   [[ -r $FZF_DEFAULT_OPTS_FILE ]] || unset FZF_DEFAULT_OPTS_FILE
   ( release_check >/dev/null 2>&1 & )               # (for the next look: the menu never waits on it)
@@ -1063,7 +1042,7 @@ menu_fzf() {   # → fzf's exit status (2: it could not run — the plain menu t
   # and comes back to one after every reload. (change and keybindings open screens of their
   # own: this one closes for them)
   fit_items | fzf --read0 --ansi --no-sort --no-input --raw --query='!守 !卓 !案' --gutter-raw=' ' \
-    --height=100% --delimiter=$'\t' --with-nth=2 --color=nomatch:-1:regular --tiebreak=index \
+    --height=100% --delimiter=$'\t' --with-nth=2 --color=nomatch:-1:regular --tiebreak=index "${listen[@]}" \
     --preview="$self --explain {1} {3}" --preview-window="right,$PANE,border-none,noinfo,nowrap" \
     --footer=$'\n'"$(screen_footer 'enter run' 'esc close')" \
     --bind="start:reload-sync($self --items)" --bind="resize:reload-sync($self --items)" \
@@ -1098,7 +1077,7 @@ case ${1:-} in
                 menu_fzf; (($? == 2)) && menu_plain
               else menu_plain; fi
               exit 0 ;;
-  --window)   exec kawa-term --float --once system system 100x27 -- "$0" --popup ;;   # (fzf's margin row above, 16 entries, 3 headings and the 2 gaps above them, two rows of paper more above the footer's two, fzf's margin row below: 27, odd, so the window centres to the pixel)
+  --window)   exec kawa-warm system ;;   # (Super+U's popup, warm: kawa-warm runs --popup in it, 100×27)   # (fzf's margin row above, 16 entries, 3 headings and the 2 gaps above them, two rows of paper more above the footer's two, fzf's margin row below: 27, odd, so the window centres to the pixel)
   --rows)     fit_rows ;;
   --items)    fit_items ;;
   --explain)  explain "${2:-}" "${3:-}" ;;

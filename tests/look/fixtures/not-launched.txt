@@ -46,6 +46,7 @@ greetd-selinux                  the login manager's policy
 xorg-x11-server-Xwayland        X11 programs' display
 cage                            the login screen's kiosk compositor
 python3-gobject                 a library (the login screen, the panels)
+python3-fonttools               a library (builds the terminal's face, Sumi Term)
 gtk3                            a library
 gtk4                            a library (satty)
 libadwaita                      a library (satty)
@@ -208,5 +209,6 @@ kawa-term                       the terminal windows' opener
 kawa-theme                      dark ⇄ light: quick settings' theme
 kawa-timer                      a menu: the bar's time
 kawa-tidy                       the home kept clean: its timer runs it
+kawa-warm                       the warm windows (notes, clipboard, system): their keys, in dwl
 kawa-volume                     the volume keys
 kawa-weather                    a menu: the bar's weather

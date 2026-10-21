@@ -31,12 +31,14 @@ sep_inner = { open = "", close = "" }
 sep_outer = { open = " ", close = "" }   # one free column before the first tab, as on every row
 
 [mode]
-normal_main = { fg = "black", bg = "red", bold = true }
-normal_alt  = { fg = "red", bg = "black" }
-select_main = { fg = "black", bg = "lightcyan", bold = true }
-select_alt  = { fg = "lightcyan", bg = "black" }
-unset_main  = { fg = "black", bg = "yellow", bold = true }
-unset_alt   = { fg = "yellow", bg = "black" }
+# the status line is a text screen's footer (§7): words in muted, no blocks of colour; the
+# mode's name alone in accent_text (vermilion), as a list's search line has its chevron
+normal_main = { fg = "red" }
+normal_alt  = { fg = "darkgray" }
+select_main = { fg = "lightcyan" }
+select_alt  = { fg = "darkgray" }
+unset_main  = { fg = "yellow" }
+unset_alt   = { fg = "darkgray" }
 
 # the row under the cursor: the selection ink behind it; the file keeps its own colour.
 # padding: the bar's first and last cells, drawn in the bar's colour — a full block keeps the
@@ -52,10 +54,10 @@ overall         = {}
 sep_left        = { open = "", close = "" }
 sep_right       = { open = "", close = "" }
 perm_sep        = { fg = "darkgray" }
-perm_type       = { fg = "blue" }
-perm_read       = { fg = "yellow" }
-perm_write      = { fg = "red" }
-perm_exec       = { fg = "green" }
+perm_type       = { fg = "darkgray" }
+perm_read       = { fg = "darkgray" }
+perm_write      = { fg = "darkgray" }
+perm_exec       = { fg = "darkgray" }
 progress_label  = { bold = true }
 progress_normal = { fg = "red", bg = "black" }
 progress_error  = { fg = "yellow", bg = "red" }

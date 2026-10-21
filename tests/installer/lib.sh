@@ -328,12 +328,6 @@ EOF
 
 # ── the GitHub releases, faked: archives made here, and the fake machine's copies of the
 #    project pinned to them (lib/upstream.sh's SHA-256s are the real releases') ─────────────
-# fake_icon NAME — a launcher icon's stand-in: a 1 × 1 PNG of its own (the same bytes every time)
-fake_icon() {
-  python3 -I -c 'import sys, zlib, struct
-def c(t, d): return struct.pack(">I", len(d)) + t + d + struct.pack(">I", zlib.crc32(t + d))
-sys.stdout.buffer.write(b"\x89PNG\r\n\x1a\n" + c(b"IHDR", struct.pack(">IIBBBBB", 1, 1, 8, 2, 0, 0, 0)) + c(b"IDAT", zlib.compress(b"\0" + sys.argv[1].encode()[:3].ljust(3, b"x"))) + c(b"IEND", b""))' "$1"
-}
 releases() {
   local r=$TMP/rel d f sum name file old fusion
   rm -rf "$r"; mkdir -p "$r"
@@ -364,11 +358,6 @@ releases() {
     '{"name":"GE-Proton10-25.sha512sum","browser_download_url":"https://github.com/x/GE-Proton10-25.sha512sum"},' \
     '{"name":"GE-Proton10-25.tar.gz","browser_download_url":"https://github.com/x/GE-Proton10-25.tar.gz"}]}' >"$FKH/ge.json"
   echo "-----BEGIN PGP PUBLIC KEY BLOCK-----" >"$FKH/dl/claude-code.asc"
-  # the launcher's icons (each project's assets/logo.png, kept under its whole address): a PNG each
-  local repo tag
-  while IFS='|' read -r name repo tag file _; do
-    fake_icon "$name" >"$FKH/dl/raw.githubusercontent.com_${repo//\//_}_${tag}_${file//\//_}"
-  done < <(. "$REPO/lib/upstream.sh"; printf '%s\n' "${UPSTREAM_ICONS[@]}")
   # the fake machine's copies of the project, pinned to these files
   for d in "$W/home/fkuser/fedokawaii" "$W/usr/local/lib/fedokawaii"; do
     f=$d/lib/upstream.sh; [[ -f $f ]] || continue
@@ -382,9 +371,6 @@ releases() {
     while IFS='|' read -r name old; do
       sum=$(sha256sum "$FKH/dl/fusion-pixel-font-${name}px-monospaced-ttf-v$fusion.zip" | cut -d' ' -f1); sed -i "s/$old/$sum/" "$f"
     done < <(. "$REPO/lib/upstream.sh"; printf '%s\n' "${FUSION_FACES[@]}")
-    while IFS='|' read -r name repo tag file old; do
-      sum=$(sha256sum "$FKH/dl/raw.githubusercontent.com_${repo//\//_}_${tag}_${file//\//_}" | cut -d' ' -f1); sed -i "s/$old/$sum/" "$f"
-    done < <(. "$REPO/lib/upstream.sh"; printf '%s\n' "${UPSTREAM_ICONS[@]}")
     old=$(. "$REPO/lib/upstream.sh"; echo "$LOCALSEND_SHA256"); sum=$(sha256sum "$FKH/dl/$(. "$REPO/lib/upstream.sh"; echo "$LOCALSEND_ASSET")" | cut -d' ' -f1)
     sed -i "s/$old/$sum/" "$f"
   done
@@ -426,7 +412,7 @@ built() {
     "$W/etc/yum.repos.d" "$W/usr/local/sbin" "$W/etc/dnf/libdnf5-plugins/actions.d" "$W/etc/mpv/scripts"
   printf '[default_session]\ncommand = "env $(/usr/local/bin/start-dwl --gpu) \\"XCURSOR_THEME=Sumi-$(cat /var/lib/fedokawaii-greeter/theme)\\" systemd-cat -t kawa-greet cage -d -s -- /usr/local/bin/kawa-greet fkuser"\n' >"$W/etc/greetd/fedokawaii.toml"
   echo dark >"$W/var/lib/fedokawaii-greeter/theme"
-  printf '[Unit]\nConflicts=getty@tty1.service kmsconvt@tty1.service\nAfter=getty@tty1.service kmsconvt@tty1.service plymouth-quit-wait.service\nStartLimitIntervalSec=60\nStartLimitBurst=5\nOnFailure=fedokawaii-login-failed.service\n\n[Service]\nExecStart=\nExecStart=/usr/bin/greetd --config /etc/greetd/fedokawaii.toml\nRestart=always\nRestartSec=2\n' >"$W/etc/systemd/system/greetd.service.d/fedokawaii.conf"
+  printf '[Unit]\nConflicts=getty@tty1.service kmsconvt@tty1.service plymouth-quit.service\nAfter=getty@tty1.service kmsconvt@tty1.service plymouth-start.service plymouth-quit.service systemd-user-sessions.service\nStartLimitIntervalSec=60\nStartLimitBurst=5\nOnFailure=fedokawaii-login-failed.service\n\n[Service]\nExecStart=\nExecStartPre=-/usr/bin/plymouth deactivate\nExecStart=/usr/bin/greetd --config /etc/greetd/fedokawaii.toml\nExecStartPost=-/usr/bin/plymouth quit --retain-splash\nRestart=always\nRestartSec=2\n' >"$W/etc/systemd/system/greetd.service.d/fedokawaii.conf"
   printf '[Service]\nType=oneshot\nTTYPath=/dev/tty1\nExecStart=/usr/bin/printf %s\n' "'The login screen could not start'" >"$W/etc/systemd/system/fedokawaii-login-failed.service"
   printf 'export EDITOR=nvim\nexport VISUAL=nvim\n' >"$W/etc/profile.d/editor.sh"; : >"$W/etc/profile.d/kawa-torrra.sh"
   printf '%s\n' "[ \"\$TERM\" = linux ] && [ -t 1 ] && printf '\\033[?25h'" >"$W/etc/profile.d/fedokawaii-console.sh"
@@ -493,7 +479,7 @@ built() {
   mkdir -p "$W/etc/snapper/configs"; for c in root home; do echo 'SUBVOLUME="/"' >"$W/etc/snapper/configs/$c"; done
   sed -i 's/^static dnf5-makecache.timer$/masked dnf5-makecache.timer/' "$FKH/units"
   echo fedokawaii >"$FKH/tuned-profile"; printf '%s\n' dhcpv6-client >"$FKH/fw-services"; printf '%s\n' 6881/tcp 6881/udp 53317/tcp 53317/udp >"$FKH/fw-ports"
-  echo menu_auto_hide=1 >"$FKH/grubenv"
+  echo menu_auto_hide=2 >"$FKH/grubenv"
   local q="rhgb quiet loglevel=3 rd.udev.log_level=3 systemd.show_status=false vt.global_cursor_default=0 systemd.tty.term.console=dumb plymouth.use-simpledrm"
   printf '%s\n' "ro rootflags=subvol=root $q amdgpu.ppfeaturemask=0xfff7ffff" \
     "ro rootflags=subvol=root $q amdgpu.ppfeaturemask=0xfff7ffff" >"$FKH/grub-args"
@@ -514,17 +500,6 @@ built() {
     [[ $name == herdr ]] && fake_herdr "$U/.local/bin/herdr"
     echo "$tag" >"$U/.local/share/fedokawaii/upstream/$name"
   done < <(. "$REPO/lib/upstream.sh"; printf '%s\n' "${UPSTREAM[@]}")
-  # the launcher's icons (UPSTREAM_ICONS), as install_upstream_icons leaves them: stand-ins,
-  # and the toolkit's copies pinned to them (as releases() pins the downloads)
-  mkdir -p "$U/.local/share/fedokawaii/icons"
-  local old sum f
-  while IFS='|' read -r name _ _ _ old; do
-    fake_icon "$name" >"$U/.local/share/fedokawaii/icons/$name.png"
-    sum=$(sha256sum "$U/.local/share/fedokawaii/icons/$name.png" | cut -d' ' -f1)
-    for f in "$U/fedokawaii/lib/upstream.sh" "$W/usr/local/lib/fedokawaii/lib/upstream.sh"; do
-      [[ -f $f ]] && sed -i "s/$old/$sum/" "$f"
-    done
-  done < <(. "$REPO/lib/upstream.sh"; printf '%s\n' "${UPSTREAM_ICONS[@]}")
   echo v3.5.1 >"$U/.local/share/fedokawaii/upstream/nerd-JetBrainsMono"
   echo GE-Proton10-25 >"$U/.local/share/fedokawaii/upstream/ge-proton"
   # Syncplay from its pinned source: the folder, the two starters, the commit recorded

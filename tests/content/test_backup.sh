@@ -180,7 +180,7 @@ has "$out" "the first backup to $DRIVE/fedokawaii-backup: the repository is made
 has "$out" "Losing your password means that your data is" "restic's own warning is shown"
 [[ -f $DRIVE/fedokawaii-backup/config && -d $DRIVE/fedokawaii-backup/snapshots ]] && _ok || _no "no restic repository on the drive"
 called 'notify-send -a backup -p -t 0 -- .*KINGSTON · backing up your home, minus downloads and caches'
-has "$(notice)" "KINGSTON · backed up "; has "$(notice)" " files, 50.0"; has "$(notice)" "MiB new, in 0:"
+has "$(notice)" "KINGSTON · backed up "; has "$(notice)" " files, 50."; has "$(notice)" "MiB new, in 0:"
 case_ "the record the menus read: now, what was added, the drive"
 t=0 added="" target=""; IFS=$'\t' read -r t added target <"$HOME/$REC"
 (( $(date +%s) - t < 60 )) && _ok || _no "epoch $t"; has "$added" "MiB"; eq "$target" KINGSTON

@@ -168,7 +168,7 @@ reachable() {   # reachable HOST — any HTTP answer at all counts (CURL_RC: cur
   [[ $code =~ ^[1-5][0-9][0-9]$ ]]
 }
 CURL_RC=0
-for h in mirrors.fedoraproject.org mirrors.rpmfusion.org copr.fedorainfracloud.org \
+for h in mirrors.fedoraproject.org download1.rpmfusion.org copr.fedorainfracloud.org \
          brave-browser-rpm-release.s3.brave.com downloads.claude.ai codeberg.org \
          api.github.com github.com release-assets.githubusercontent.com raw.githubusercontent.com \
          lscr.io ghcr.io pypi.org files.pythonhosted.org; do

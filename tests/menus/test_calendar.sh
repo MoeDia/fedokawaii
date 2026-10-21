@@ -11,7 +11,7 @@ setup() {
   menus_sandbox
   NOW=${1:-2026-10-16}; export NOW
   # shellcheck disable=SC2016  # (expanded by the stand-in)
-  stub date 'for a; do case $a in -d*|--date*) exec /bin/date "$@" ;; esac; done
+  stub date 'for a; do case $a in -d*|--date*|-f*|--file*) exec /bin/date "$@" ;; esac; done
 exec /bin/date -d "$NOW 13:00" "$@"'
 }
 cal() { kawa-calendar; }
@@ -83,7 +83,7 @@ case_ "opened on the stroke of midnight at a month's end: the day it read, stamp
 # (the clock reads 31 October for the first look at "now", 1 November from then on)
 setup 2026-10-31; export NOWS=$TMP/nows
 # shellcheck disable=SC2016  # (expanded by the stand-in)
-stub date 'for a; do case $a in -d*|--date*) exec /bin/date "$@" ;; esac; done
+stub date 'for a; do case $a in -d*|--date*|-f*|--file*) exec /bin/date "$@" ;; esac; done
 n=$(cat "$NOWS" 2>/dev/null || echo 0); echo $((n + 1)) >"$NOWS"
 [ "$n" = 0 ] && exec /bin/date -d "2026-10-31 23:59:59" "$@"; exec /bin/date -d "2026-11-01 00:00:00" "$@"'
 answer esc; cal

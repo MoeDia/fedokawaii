@@ -3,13 +3,12 @@
 # tabs, no address bar, tiled like every other window, through ~/.local/bin/brave-origin as
 # all of Brave is. Linked to your phone once (scan the code in WhatsApp → Linked devices);
 # Brave keeps the link. Its notices come through Brave, as the desktop's other notices do.
-# Its icon: Brave's own (theme.sh reads it from Brave's entry) — no WhatsApp icon is installed
-# (WhatsApp ships no Linux app, so no package brings one).
+# Its icon: our seal of 話 (tools/build-appicons.py, the theme's own: current/apps).
 Type=Application
 Name=WhatsApp
 GenericName=Messenger
 Comment=WhatsApp Web, in a window of its own
-Icon=@BRAVE_ICON@
+Icon=@HOME@/.config/fedokawaii/current/apps/whatsapp.png
 Exec=@HOME@/.local/bin/brave-origin --app=https://web.whatsapp.com
 Terminal=false
 Categories=Network;InstantMessaging;Chat;

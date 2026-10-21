@@ -1,6 +1,34 @@
 -- ~/.config/yazi/init.lua — yazi's frame in the desktop's measure (theme.sh installs it).
 -- For yazi 26.x. Each change wraps yazi's own component and steps aside if that changes.
 
+-- Never an ellipsis (the desktop's rule): a name, a folder, a title too long for its room is
+-- cut there, nothing put in its place — yazi's own "…" (and "….ext") are taken out.
+-- cut(TEXT, MAX, FROM_END) → TEXT in MAX columns or fewer, its end (or, FROM_END, its start) cut
+local function wide(s) return ui.Line { s }:width() end
+local function cut(s, max, from_end)
+	if wide(s) <= max then return s end
+	local cps = {}
+	for _, c in utf8.codes(s) do cps[#cps + 1] = utf8.char(c) end
+	local keep, w = {}, 0
+	for k = 1, #cps do
+		local c = cps[from_end and #cps + 1 - k or k]
+		w = w + wide(c)
+		if w > max then break end
+		keep[#keep + 1] = c
+	end
+	if from_end then
+		for i = 1, #keep // 2 do keep[i], keep[#keep + 1 - i] = keep[#keep + 1 - i], keep[i] end
+	end
+	return table.concat(keep)
+end
+function Entity:ellipsis() return "" end
+function Header:cwd()
+	local max = self._area.w - self._right_width
+	if max <= 0 then return "" end
+	local s = ya.readable_path(tostring(self._current.cwd)) .. self:flags()
+	return ui.Span(cut(s, max, true)):style(th.mgr.cwd)
+end
+
 -- Every row keeps one free column at each side, as the panes already do (yazi leaves one
 -- left of the parent column and one right of the preview) and as the pop-ups do (fzf
 -- --margin=0,1): the header and the status line get theirs here. (The tab bar gets its
@@ -28,10 +56,10 @@ local function panes(w, h) -- → "cols"/"rows", the ratio
 	return "cols", { 0, 1, 0 }
 end
 
--- The parent column never narrower than the home folder's names need ("Downloads": 15
--- columns with its margins and the free column before the rail), e.g. in the file dialog
+-- The parent column never narrower than the home folder's names need ("Downloads": 17
+-- columns with its margins, its icon, the icon's second half and the free column before the rail), e.g. in the file dialog
 -- or a window of 60–80 columns; the list gives up the difference while it keeps 24.
-local PARENT_MIN, CURRENT_MIN = 15, 24
+local PARENT_MIN, CURRENT_MIN = 17, 24
 local tab_layout = Tab.layout
 function Tab:layout(...)
 	local r, a = rt.mgr.ratio, self._area
@@ -102,7 +130,7 @@ end
 
 -- A narrow window keeps its status line on one line: what it cannot hold goes, the least
 -- needed first — the permissions, the size, the percentage — and the file's name is cut
--- to the room left (…in its middle).
+-- to the room left (its end goes).
 local DROP = { 4, 2, 5 } -- yazi's ids: perm, length, percent
 function Status:children_redraw(side)
 	local lines = {}
@@ -117,7 +145,7 @@ local status_name, status_redraw = Status.name, Status.redraw
 function Status:name()
 	local s = status_name(self)
 	if self._room and type(s) == "string" then
-		return ui.truncate(s, { max = math.max(0, self._room) })
+		return cut(s, math.max(0, self._room))
 	end
 	return s
 end
@@ -136,8 +164,10 @@ function Status:redraw()
 end
 
 -- ── the file dialog: kawa-pick starts yazi with KAWA_PICK=<mode> ─────────────────────
--- Dressed like the other pop-ups: the title in a rule along the top (vermilion icon, name,
--- the folder in the quiet colour), the keys along the bottom, the count at the right.
+-- Dressed like the other text screens (docs/design-system.md §7): along the top a heading —
+-- the folder icon in vermilion where a heading's kanji stands (its second half, then two
+-- spaces), the dialog's name, then the folder it is in, muted, and the stitch (╌) to the
+-- edge; the keys along the bottom, the count at the right.
 local PICK = {
 	open1   = { "open file",    "enter open  ·  / find  ·  . hidden  ·  esc cancel" },
 	openN   = { "open files",   "space mark  ·  enter open  ·  esc cancel" },
@@ -152,15 +182,13 @@ if pick then
 	Header:children_add(function(self)
 		local room = self._area.w - 1 - (self._right_width or 0)
 		local head = ui.Line {
-			ui.Span("─ "):fg("darkgray"),
 			ui.Span(ICON):fg("lightred"),
-			ui.Span(" " .. pick[1] .. " "):fg("gray"),
+			ui.Span("   " .. pick[1] .. "  "),
 		}
-		local where = ya.readable_path(tostring(self._current.cwd)) .. self:flags()
-		-- (a long folder loses its start, "…" in its place — the "· " before it stays)
-		where = ui.truncate(where, { max = math.max(0, room - head:width() - 4), rtl = true })
-		local line = ui.Line { head, ui.Span("· " .. where .. " "):fg("darkgray") }
-		return ui.Line { line, ui.Span(string.rep("─", math.max(0, room - line:width()))):fg("darkgray") }
+		-- (a long folder loses its start, nothing in its place; at least two stitches stay)
+		local where = cut(ya.readable_path(tostring(self._current.cwd)) .. self:flags(), math.max(0, room - head:width() - 3), true)
+		local line = ui.Line { head, ui.Span(where .. " "):fg("darkgray") }
+		return ui.Line { line, ui.Span(string.rep("╌", math.max(0, room - line:width()))):style(th.mgr.border_style) }
 	end, 1000, Header.LEFT)
 	for id = 1, 6 do -- mode, size, name · permissions, percent, position
 		Status:children_remove(id, id <= 3 and Status.LEFT or Status.RIGHT)
@@ -170,4 +198,23 @@ if pick then
 		local n = #self._current.files
 		return ui.Span(string.format("%d/%d", math.min(self._current.cursor + 1, n), n)):fg("darkgray")
 	end, 1000, Status.RIGHT)
+end
+
+-- Super+Z and Super+D are dwl's keys, which yazi never sees: kawa-shrink and kawa-file find the
+-- yazi in the focused window by $XDG_RUNTIME_DIR/kawa-yazi.ID — "PID<tab>TIME<tab>FOLDER",
+-- rewritten as it is used (a move, a folder) — then run on its selection, or the file under
+-- its cursor (files.sh: yazi_focused)
+do
+	local run, id = os.getenv("XDG_RUNTIME_DIR"), os.getenv("YAZI_ID")
+	local stat = io.open("/proc/self/stat")
+	local pid = stat and stat:read("*n")
+	if stat then stat:close() end
+	local function mark()
+		local f = run and id and pid and io.open(run .. "/kawa-yazi." .. id, "w")
+		if not f then return end
+		f:write(string.format("%d\t%.3f\t%s\n", pid, ya.time(), tostring(cx.active.current.cwd)))
+		f:close()
+	end
+	ps.sub("hover", mark)
+	ps.sub("cd", mark)
 end

@@ -134,8 +134,8 @@ case $item in
   mode)  # a seal while something is held back: 静 (quiet) while "do not disturb" is on,
          # 共有 (shared) while a screen is shared; nothing otherwise (hidden)
          case $(makoctl mode 2>/dev/null) in
-           *sharing*)        lit_json '{"text":"共有","class":"share","tooltip":"a screen is shared · click: quick settings"}' ;;
-           *do-not-disturb*) lit_json '{"text":"静","class":"dnd","tooltip":"do not disturb · click: quick settings"}' ;;
+           *sharing*)        lit_json '{"text":"共有","class":"share","tooltip":"sharing screen"}' ;;
+           *do-not-disturb*) lit_json '{"text":"静","class":"dnd","tooltip":"do not disturb"}' ;;
            *)                echo '{"text":""}' ;;
          esac ;;
   *)     usage ;;

@@ -43,7 +43,7 @@ eq "$(fk stat -c %U:%G "$H/.config/fedokawaii/env")" fkuser:fkuser "the home's f
 called 'dconf\] update'
 
 case_ "render: no @TOKEN@ left anywhere in the home; each filled from fedokawaii.conf"
-left=$(grep -rlE '@(HOME|UID|MONITOR_HZ|WEATHER_CITY|NIGHT_LIGHT|ICON_CHEVRON_RIGHT|MPV_SCALING|BRAVE_ICON)@' "$W$H" 2>/dev/null | grep -v "^$W$H/fedokawaii/" || true)
+left=$(grep -rlE '@(HOME|UID|MONITOR_HZ|WEATHER_CITY|NIGHT_LIGHT|ICON_CHEVRON_RIGHT|MPV_SCALING)@' "$W$H" 2>/dev/null | grep -v "^$W$H/fedokawaii/" || true)
 eq "$left" "" "tokens left in: $left"
 env=$(cat "$W$H/.config/fedokawaii/env")
 has "$env" 'MONITOR_HZ=144'; has "$env" 'WEATHER_CITY="Sharjah"'; has "$env" 'NIGHT_LIGHT="25.35:55.40"'

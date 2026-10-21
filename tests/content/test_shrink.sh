@@ -144,7 +144,7 @@ hist_setup() {
 put() { python3 -I "$REPO/tests/content/fake_cliphist.py" store; }     # stdin → a new entry
 newest() { ls "$CLIP_DB" | sort -n | tail -n1; }
 open_window() {
-  rm -f "$TMP/close"; kawa-clip --tui & WIN=$!
+  rm -f "$TMP/close"; : >"$XDG_RUNTIME_DIR/kawa-warm-clip.shown"; kawa-clip --tui & WIN=$!
   on_exit "touch '$TMP/close' 2>/dev/null; kill $WIN 2>/dev/null"
   for _ in {1..100}; do [[ -s $XDG_RUNTIME_DIR/kawa-clip.current ]] && break; sleep 0.05; done
 }
@@ -232,6 +232,19 @@ rc 1 kawa-clip --held; rc 0 shrink "	PNG"
 kill "$other" 2>/dev/null
 
 case_ "its keys: Super+Z (dwl), Alt+S in yazi"
+case_ "Super+Z with yazi focused: its selection (or the file under its cursor), through yazi itself — not the clipboard"
+setup; mkdir -p "$XDG_RUNTIME_DIR/dwl-bar"; stub ya
+cp /bin/sleep "$TMP/yazi"; "$TMP/yazi" 30 & yp=$!
+printf '{"text":"Yazi: Pictures"}\n' >"$XDG_RUNTIME_DIR/dwl-bar/title.json"
+printf '%s\t%s\t%s\n' "$yp" 1700000000.100 "$HOME/Pictures" >"$XDG_RUNTIME_DIR/kawa-yazi.111"
+printf '%s\t%s\t%s\n' "$yp" 1700000000.050 "$HOME/Other" >"$XDG_RUNTIME_DIR/kawa-yazi.222"
+printf '%s\t%s\t%s\n' 999999 1700000009.000 "$HOME/Pictures" >"$XDG_RUNTIME_DIR/kawa-yazi.333"
+rc 0 kawa-shrink; called '^ya emit-to 111 shell kawa-shrink %s --orphan$'; not_called '^wl-paste'
+[[ ! -e $XDG_RUNTIME_DIR/kawa-yazi.333 ]] && _ok || _no "a closed yazi's record left"
+case_ "…another window focused: the clipboard, as before"
+reset_calls; printf '{"text":"notes"}\n' >"$XDG_RUNTIME_DIR/dwl-bar/title.json"; kawa-shrink >/dev/null 2>&1; not_called '^ya '
+kill "$yp" 2>/dev/null; wait "$yp" 2>/dev/null
+case_ "the keys"
 has "$(cat "$REPO/src/dwl/config.h")" 'XKB_KEY_z,                 spawn,            SHCMD("kawa-shrink")'
 has "$(cat "$REPO/configs/home/.config/yazi/keymap.toml")" 'on = "<A-s>",      run = "shell --orphan -- kawa-shrink %s"'
 done_

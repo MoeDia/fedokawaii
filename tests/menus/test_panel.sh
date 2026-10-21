@@ -41,7 +41,7 @@ loader = importlib.machinery.SourceFileLoader("kawa_panel", sys.argv[1])
 spec = importlib.util.spec_from_loader("kawa_panel", loader)
 kp = importlib.util.module_from_spec(spec); loader.exec_module(kp)
 class UI:
-    def __init__(self): self.calls, self.t, self.pending, self.drawn, self.at, self.cid = [], 100.0, [], [], None, None; self.pushed = []
+    def __init__(self): self.calls, self.t, self.pending, self.drawn, self.at, self.cid = [], 100.0, [], [], None, None; self.pushed = []; self.timers = []
     def clicked(self): return self.at
     def click(self): return self.cid             # the bar's last press, fresh (its id), or None
     def push(self, name, line): self.pushed.append((name, line))
@@ -54,6 +54,7 @@ class UI:
     def close_menu(self): self.calls.append("close menu")
     def run(self, argv, done): self.calls.append("run " + " ".join(argv)); self.pending.append(done)
     def launch(self, argv): self.calls.append("launch " + " ".join(argv))
+    def later(self, ms, fn): self.calls.append(f"later {ms}"); self.timers.append(fn)
     def listen(self, on): self.listening = on    # (the clean mic's level read, or not)
     def answer(self, out="", rc=0):            # the oldest run comes back
         self.pending.pop(0)(rc, out)
@@ -82,21 +83,25 @@ EOF
 # ── the layout ─────────────────────────────────────────────────────────────────────────
 case_ "the items, in order: two meters, the tiles (bluetooth and devices with an adapter), three keys"
 eq "$(py 'fresh(); print(" ".join(i.key for i in p.items))')" \
-  "brightness sound theme night vrr network bluetooth devices drives backup dnd saver wallpaper screenshot power"
+  "brightness sound theme night vrr network bluetooth devices drives backup dnd saver record ocr wallpaper screenshot power"
 eq "$(py 'fresh(STATE.replace("bluetooth\ton\n","").replace("devices\tnone\n","")); print(" ".join(i.key for i in p.items))')" \
-  "brightness sound theme night vrr network drives backup dnd saver wallpaper screenshot power"
+  "brightness sound theme night vrr network drives backup dnd saver record ocr wallpaper screenshot power"
+case_ "the captures: 録 record (stamped while one runs: a click stops it) and 読 read text, each closing the panel for its own picker"
+eq "$(py 'fresh(); t = p.item("record"); print(t.kanji, t.value, t.lit, p.item("ocr").kanji, p.item("ocr").name)')" "録 off False 読 read text"
+eq "$(py 'fresh(STATE + "record\ton\n"); t = p.item("record"); print(t.value, t.lit)')" "recording True"
+eq "$(py 'fresh(); p.request(); p.activate("record"); p.activate("ocr"); print([c for c in u.calls if c.startswith("launch")], p.visible)')" "['launch kawa-quick --do record', 'launch kawa-quick --do ocr'] False"
 case_ "the size: 304 × 439 (2 px frame, 12 px margin, its heading, three 88 px tiles 6 px apart; no day line: the bar's)"
 eq "$(py 'fresh(); print(*p.size)')" "304 439"
 case_ "it opens under its heading, as every panel: 設 quick settings, the stitch to the right edge"
 eq "$(py 'fresh(); print(p.heads)')" "[('設', 'quick settings', 14, 14)]"
 case_ "notices are as wide: one column under the bar's right end"
 has "$(cat "$REPO/configs/home/.config/mako/config")" "width=$(py 'fresh(); print(p.size[0])')"
-case_ "the tiles: three a row (ten: 3 3 2 2 — two a row are wider), 88 × 64, 6 px apart; the content 14 px from every edge"
+case_ "the tiles: three a row (twelve: 3 3 3 3), 88 × 64, 6 px apart; the content 14 px from every edge"
 eq "$(py 'fresh(); print(" ".join(f"{i.x},{i.y},{i.w},{i.h}" for i in p.items if i.kind == "tile"))')" \
-  "14,106,88,64 108,106,88,64 202,106,88,64 14,176,88,64 108,176,88,64 202,176,88,64 14,246,135,64 155,246,135,64 14,316,135,64 155,316,135,64"
-case_ "no adapter: eight tiles, three, three, then two (never a lone tile), each row the full width"
+  "14,106,88,64 108,106,88,64 202,106,88,64 14,176,88,64 108,176,88,64 202,176,88,64 14,246,88,64 108,246,88,64 202,246,88,64 14,316,88,64 108,316,88,64 202,316,88,64"
+case_ "no adapter: ten tiles, three, three, then two and two — two a row are wider (never a lone tile), each row the full width"
 eq "$(py 'fresh(STATE.replace("bluetooth\ton\n","").replace("devices\tnone\n","")); print(" ".join(f"{i.x}+{i.w}" for i in p.items if i.kind == "tile"))')" \
-  "14+88 108+88 202+88 14+88 108+88 202+88 14+135 155+135"
+  "14+88 108+88 202+88 14+88 108+88 202+88 14+135 155+135 14+135 155+135"
 eq "$(py 'print([kp.rows_of(n) for n in (9, 8, 7, 6, 4, 1)])')" "[[3, 3, 3], [3, 3, 2], [3, 2, 2], [3, 3], [2, 2], [1]]"
 case_ "the keys at the foot: wallpaper, screenshot, power (an icon alone) — the whole width, 6 px apart"
 eq "$(py 'fresh(); print(" ".join(f"{i.key}:{i.x}+{i.w}:{i.name or chr(45)}" for i in p.items if i.kind == "key"))')" \
@@ -203,6 +208,18 @@ for run in range(25):
     if p.visible != (40 % 2 == 1): bad.append((run, "end", p.visible))
 print(bad or "ok")')" ok "$what"
 done
+case_ "a menu opens keyboard-first: the cursor on its first choice (or --select's); the pointer moves that one cursor, it stays where the pointer left it"
+eq "$(py 'fresh(); p.request("menu x", kp.Menu(["a", "b", "c"]), lambda rc, t: 0); print(p.focus)')" 0
+eq "$(py 'fresh(); p.request("menu x", kp.Menu(["a", "b", "c"], select=2), lambda rc, t: 0); print(p.focus)')" 2
+eq "$(py 'fresh(); p.request("menu x", kp.Menu(["a", "b", "c"]), lambda rc, t: 0); it = p.item("2"); p.enter(it.x + 2, it.y + 2); a = p.focus; p.leave(); print(a, p.focus, p.hot)')" "2 2 None"
+eq "$(py 'fresh(); r = []; p.request("menu x", kp.Menu(["a", "b"]), lambda rc, t: r.append(t)); p.key("Return"); print(r)')" "['a']" "Enter at once takes the first"
+case_ "--stay (the calendar's months): a key answers and the menu stays; the next page in place (no close, no new window); a click meanwhile is done on it; nothing asked: closed after a second"
+eq "$(py 'fresh(); r = []; M = lambda: kp.Menu(["cell\t1", "key\t<\tprevious", "key\t>\tnext"], drop=True, index=True, stay=True, select=2)
+p.request("menu kawa-calendar", M(), lambda rc, t: r.append(t)); u.calls.clear()
+p.activate("2"); p.activate("2"); print(r, p.visible, p.queued)
+p.request("menu kawa-calendar", M(), lambda rc, t: r.append(t)); print(r, p.visible, p.focus, "show" in u.calls, "hide" in u.calls)
+p.request("menu kawa-calendar", M(), lambda rc, t: r.append(t)); p.activate("1"); u.timers[-1](); print(p.visible)')" "$(printf '%s\n' "['2'] True ['2']" "['2', '2'] True 2 False False" False)"
+eq "$(py 'fresh(); r = []; p.request("menu kawa-calendar", kp.Menu(["a", "key\t<\tprevious"], index=True, stay=True), lambda rc, t: r.append(t)); p.activate("0"); print(r, p.visible)')" "['0'] False" "a choice (not a key): chosen and closed"
 eq "$(py 'fresh(); n = []; u.cid = "c1"; p.request("menu kawa-calendar", kp.Menu(["a"], drop=True), lambda rc, t: n.append(("1st", rc)))
 u.cid = "c2"; p.request("menu kawa-calendar", kp.Menu(["a"], drop=True), lambda rc, t: n.append(("2nd", rc))); print(n, p.visible)')" \
   "[('2nd', 1), ('1st', 1)] False" "a menu's button again: both callers dismissed at once, the menu gone"
@@ -241,10 +258,10 @@ eq "$(py 'fresh(); p.request(); u.calls.clear(); p.focus = "brightness"; p.key("
 nav() { py "fresh(); p.focus = '$1'; [p.key(k) for k in '$2'.split()]; print(p.focus)"; }
 case_ "arrows (and h j k l): along a row, and up and down to the nearest below or above"
 eq "$(nav theme 'Right Right Right')" vrr "the end of a row stays"
-eq "$(nav theme 'Down Down')" drives; eq "$(nav night 'Down')" bluetooth; eq "$(nav vrr 'j j j j')" screenshot
+eq "$(nav theme 'Down Down')" drives; eq "$(nav night 'Down')" bluetooth; eq "$(nav vrr 'j j j j')" power
 eq "$(nav theme 'Up')" sound; eq "$(nav sound 'k k')" brightness; eq "$(nav brightness 'Up')" brightness
-eq "$(nav dnd 'Down')" wallpaper "the foot: the key nearest below"; eq "$(nav saver 'Down')" screenshot
-eq "$(nav screenshot 'Up')" saver; eq "$(nav sound 'Down')" night "from a meter: the middle tile"
+eq "$(nav dnd 'Down')" ocr; eq "$(nav saver 'Down')" wallpaper "the foot: the key nearest below"; eq "$(nav record 'Down')" screenshot
+eq "$(nav screenshot 'Up')" ocr; eq "$(nav sound 'Down')" night "from a meter: the middle tile"
 case_ "Tab and Shift+Tab: every item in turn, round"
 eq "$(nav power 'Tab')" brightness; eq "$(nav brightness 'ISO_Left_Tab')" power
 case_ "← → (h l) on a meter: its level by 5, at once and then set"
@@ -272,7 +289,7 @@ has "$(cat "$REPO/bin/kawa-panel")" 'Gdk.EventMask.LEAVE_NOTIFY_MASK'
 case_ "opened again: nothing hot until the pointer says where it is (a new window); a state read keeps it while it is there"
 eq "$(py 'fresh(); p.request(); p.hover(150, 145); p.close("chosen"); p.request(); print(p.hot)')" None
 eq "$(py 'fresh(); p.hover(150, 145); p.refresh(); u.answer(STATE); print(p.hot)')" night
-eq "$(py 'fresh(); p.hover(250, 329); p.refresh(); u.answer(STATE.replace("bluetooth\ton\n","").replace("devices\tnone\n","")); print(p.hot)')" None "its tile gone: none"
+eq "$(py 'fresh(); p.hover(152, 329); p.refresh(); u.answer(STATE.replace("bluetooth\ton\n","").replace("devices\tnone\n","")); print(p.hot)')" None "its tile gone: none"
 case_ "a drag: the meter follows, the hot one does not move off it"
 eq "$(py 'fresh(); p.hover(112, 53); p.press(112, 53); p.hover(150, 145, dragging=True); print(p.hot, p.focus)')" "brightness None"
 eq "$(py 'fresh(); p.press(5, 5); print(u.calls)')" "[]" "on the frame: nothing"

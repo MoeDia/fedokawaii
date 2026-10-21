@@ -90,7 +90,9 @@ setup; rc 0 kawa-quick --do mixer; called '^kawa-term --float --once mixer mixer
 not_called 'pavucontrol'
 stub kawa-term 'exit 3'; rc 3 kawa-quick --do mixer
 case_ "sound: the sound panel (kawa-panel --sound)"
-setup; stub kawa-panel; rc 0 kawa-quick --do sound; called '^kawa-panel --sound$'
+setup; stub kawa-panel; rc 0 kawa-quick --do sound
+for _ in {1..100}; do grep -q '^kawa-panel' "$CALLS" && break; sleep 0.02; done   # (setsid -f: detached)
+called '^kawa-panel --sound$'
 
 # ── odd names ────────────────────────────────────────────────────────────────
 odd='Tom & Jerry "Mic" <USB> $(touch /tmp/kawa-pwned) `id` \\ ü'

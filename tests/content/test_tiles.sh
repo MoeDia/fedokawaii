@@ -1,9 +1,11 @@
 #!/usr/bin/env bash
 # tests/content/test_tiles.sh — the terminal at every size dwl tiles it to on a 1920×1080
-# screen (gap 8, border 2; Fusion Pixel 10 at 20 px: 10 × 22 px cells, 10 px of paper round):
-#   spiral   1900×1060 → 188×47 · 1170×1060 → 115×47 · 718×1060 → 69×47 · 718×650 → 69×28
-#            718×398 → 69×17 · 439×398 → 41×17 · 267×398 → 24×17 · 267×241 → 24×10 · 267×145 → 24×5
-#   columns  944 → 92×47 · 625 → 60×47 · 466 → 44×47
+# screen (gap 8, border 2; Sumi Term at 20 px: 10 × 24 px cells, 10 px of paper round):
+#   spiral   1900×1060 → 188×43 · 1170×1060 → 115×43 · 718×1060 → 69×43 · 718×650 → 69×26
+#            718×398 → 69×15 · 439×398 → 41×15 · 267×398 → 24×15 · 267×241 → 24×9 · 267×145 → 24×5
+#   columns  944 → 92×43 · 625 → 60×43 · 466 → 44×43
+# (the sizes below were measured at the cells' earlier 22 px height: each still a size a
+# window can have, each the layout it shows)
 # The prompt's header (~/.bashrc.d/fedokawaii.sh): its layout as pure functions — which form
 # fits, the path's three lengths, the cut in the middle — then real headers in a terminal of
 # each width, the header laid out anew when the width changes under it (ble.sh runs the
@@ -30,7 +32,9 @@ home() {   # home — a fresh home with the shell's files (Fedora's ~/.bashrc re
   git -C "$HOME/repos/fedokawaii" init -q -b main
   echo a >"$HOME/repos/fedokawaii/a"; git -C "$HOME/repos/fedokawaii" add a; echo b >"$HOME/repos/fedokawaii/b"
 }
-fn() { TERM=${T_TERM:-foot} bash -ic "$1" 2>/dev/null; }   # fn CODE — CODE in an interactive shell of the home
+# fn CODE — CODE in an interactive shell of the home, one a command has run in (__kawa_ran:
+# a fresh window, whose width is asked of its terminal, has its own case below)
+fn() { TERM=${T_TERM:-foot} bash -ic "__kawa_ran=1; $1" 2>/dev/null; }
 # shellcheck source=/dev/null
 . "$REPO/configs/home/.config/fedokawaii/icons.sh"
 # plain TEXT — TEXT as the tests read it: ✓ as V, ✗ as X, every other pixel icon as I
@@ -71,9 +75,9 @@ eq "$(fn '__kawa_fit 29 3 1 1 1 0 0 0 0 0 0; echo $__fit')" n
 eq "$(fn '__kawa_fit 30 3 1 1 1 0 0 0 0 0 0; echo $__fit')" 0
 case_ "__kawa_paths: as it is · the folders above to their first letter (a dot folder keeps its dot) · the folder alone"
 out=$(fn '__kawa_paths "~/repos/fedokawaii/configs/home/.config"; printf "%s|" "${__kp_d[@]}" "$__kp_h" "${__kp_dw[@]}" "$__kp_hw"')
-eq "$out" "~/repos/fedokawaii/configs/home/|~/r/f/c/h/|… /|.config|32|10|3|7|"
+eq "$out" "~/repos/fedokawaii/configs/home/|~/r/f/c/h/||.config|32|10|0|7|"
 out=$(fn '__kawa_paths "/usr/share/.icons/Papirus"; printf "%s|" "${__kp_d[@]}" "$__kp_h"')
-eq "$out" "/usr/share/.icons/|/u/s/.i/|… /|Papirus|"
+eq "$out" "/usr/share/.icons/|/u/s/.i/||Papirus|"
 case_ "__kawa_paths: never longer than the form before it — ~, /, ~/repos and /usr stay as they are"
 for p in '~' / '~/repos' /usr; do
   out=$(fn "__kawa_paths '$p'; printf '%s' \"\${__kp_d[2]}\$__kp_h\"")
@@ -82,12 +86,12 @@ done
 case_ "__kawa_paths: a folder named in Japanese counts two columns a letter; its first letter is kept whole"
 out=$(fn '__kawa_paths "~/日本語のフォルダ/中"; printf "%s|" "${__kp_d[1]}" "${__kp_dw[0]}" "${__kp_dw[1]}" "$__kp_hw"')
 eq "$out" "~/日/|19|5|2|"
-case_ "__kawa_cut: in the middle with …, never wider than asked (foot's … is two columns: its second half)"
+case_ "__kawa_cut: its end cut, nothing in its place (never an ellipsis), never wider than asked"
 for m in 30 12 7 3; do
   out=$(fn "__kawa_cut 'a-folder-whose-name-is-far-longer' $m; printf '%s' \"\$__cut\"")
   [[ $(width "$out") -le $m ]] && _ok || _no "$m: [$out] is $(width "$out") wide"
 done
-eq "$(fn "__kawa_cut 'a-folder-whose-name-is-far-longer' 12; printf '%s' \"\$__cut\"")" "a-fol… onger"
+eq "$(fn "__kawa_cut 'a-folder-whose-name-is-far-longer' 12; printf '%s' \"\$__cut\"")" "a-folder-who"
 eq "$(fn "__kawa_cut short 12; printf '%s' \"\$__cut\"")" short
 
 # ── real headers at every tile's width ────────────────────────────────────────
@@ -114,11 +118,11 @@ done
 case_ "the deep path at each width: whole, then the folders above to letters, then the folder alone"
 eq "$(headers 156 'cd ~/repos/fedokawaii/configs/home/.config' | sed -n 2p | cut -c1-59)" "I   ~/repos/fedokawaii/configs/home/.config  I  main +1 ?1 "
 has "$(headers 77 'cd ~/repos/fedokawaii/configs/home/.config' | sed -n 2p)" "I   ~/r/f/c/h/.config  I  main +1 ?1 ╌"
-has "$(headers 37 'cd ~/repos/fedokawaii/configs/home/.config' | sed -n 2p)" "I   … /.config  I  main ╌"
-eq "$(headers 20 'cd ~/repos/fedokawaii/configs/home/.config' | sed -n 2p)" "I   … /.config   V "
-case_ "a folder name longer than a small tile: no ~/ before it, cut in its middle, the mark still at the edge"
+has "$(headers 37 'cd ~/repos/fedokawaii/configs/home/.config' | sed -n 2p)" "I   .config  I  main +1 ?1 ╌"
+eq "$(headers 20 'cd ~/repos/fedokawaii/configs/home/.config' | sed -n 2p)" "I   .config      V "
+case_ "a folder name longer than a small tile: no ~/ before it, its end cut, the mark still at the edge"
 h=$(headers 20 'cd ~/a-folder-whose-name-is-far-longer-than-any-small-tile-is-wide' | sed -n 2p)
-eq "$h" "I   a-fol… wide  V "
+eq "$h" "I   a-folder-wh  V "
 
 case_ "the stitch: ╌ in foot's colour 19 (edge2, the panels' stitched rules), both palettes have it; on the consoles - , faint"
 out=$(fn 'COLUMNS=60; __kawa_prompt >/dev/null; printf "%s" "$__kawa_line"'); has "$out" $'\e[38;5;19m\002╌╌╌╌'
@@ -169,6 +173,12 @@ eq "$(reflow 20 156 1 19 2 2)" "2 2" "a 20-column header in 156: one row"
 eq "$(reflow 95 50 1 94 2 2 1)" theirs "another prompt (another number of rows): ble.sh's own redraw"
 eq "$(reflow 95 50 1 94 2 2 '' 1)" theirs "a right-hand prompt: ble.sh's own"
 eq "$(reflow 95 50 1 94 5 2)" theirs "the cursor below the prompt's panel (a menu): ble.sh's own"
+case_ "a window nothing has run in yet (opened in a burst, retiled again and again): drawn again from the top, its width let settle first"
+out=$(TERM=foot bash -ic "COLUMNS=50 _ble_app_winsize=(95 30) _ble_canvas_y=3 _ble_canvas_x=2
+  ble/util/msleep() { echo sleep >>\"\$HOME/sleeps\"; }; ble/textarea#invalidate() { :; }; ble/canvas/panel/goto-top-dock.draw() { :; }
+  ble/canvas/bflush.draw() { :; }; ble/util/buffer() { printf '%q' \"\$1\"; }; _ble_term_clear=CLEAR
+  __kawa_reflow && printf ' %s %s' \"\$_ble_canvas_y\" \"\$_ble_canvas_x\"" 2>/dev/null)
+eq "$out" "CLEAR 0 0"; rm -f "$HOME/sleeps"
 case_ "the header's width as __kawa_reflow counts it: what __kawa_layout drew, every width"
 for c in 156 95 77 58 50 37 34 30 29 20 12; do
   got=$(fn "cd ~/repos/fedokawaii; COLUMNS=$c; __kawa_t0=\$(( \${EPOCHREALTIME/[.,]/} - 10 )); (exit 3); __kawa_prompt >/dev/null
@@ -180,7 +190,7 @@ for c in 188 69 24; do
   got=$(fn "cd ~/repos/fedokawaii; COLUMNS=$c; __kawa_t0=\$(( \${EPOCHREALTIME/[.,]/} - 10 )); (exit 3); __kawa_prompt >/dev/null
     printf '%s' \"\$__kawa_final\" | sed 's/\x01\|\x02//g; s/\x1b\[[0-9;]*m//g; s/\x1b\]133;A\x1b\\\\//'" | plain)
   lacks "$got" "╌" "$c: [$got]"; has "$got" "X  3" "$c: the mark"; has "$got" "fedokawaii" "$c: the place"
-  [[ $got == *$'\n'?' ' && $got != *$'\n'*$'\n'*$'\n'* ]] && _ok || _no "$c: the header, then the line typed on: [$got]"
+  [[ $got == *$'\n'?'  ' && $got != *$'\n'*$'\n'*$'\n'* ]] && _ok || _no "$c: the header, then the line typed on: [$got]"
 done
 got=$(fn 'cd ~/repos/fedokawaii; COLUMNS=188; __kawa_prompt >/dev/null; a=$__kawa_final; _ble_edit_lineno=1 __kawa_lineno=1 COLUMNS=30 __kawa_prompt; [[ $a != "$__kawa_final" ]] && echo relaid')
 eq "$got" relaid "a change of width lays the final form out again too"

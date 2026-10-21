@@ -9,7 +9,7 @@
 . "$(dirname "$0")/lib.sh"
 SEAL=$(printf '\363\276\200\256')   # (the session's notices: Sumi Icons' window, as autostart writes it)
 AS=$HOME/.config/dwl/autostart.sh
-DAEMONS="waybar kawa-panel mako foot udiskie wl-paste swayidle kawa-drives kawa-downloads kawa-clipkeep"
+DAEMONS="waybar kawa-panel foot udiskie wl-paste swayidle kawa-drives kawa-downloads kawa-clipkeep"
 SETSID=$(command -v setsid) PKILL=$(command -v pkill) SIDS=()
 # tell — dwl prints its status (stdin) into the pipe; should its reader be gone, an error, not
 # the end of the test (SIGPIPE stays ignored in this subshell only: autostart keeps the default)
@@ -99,24 +99,26 @@ for SHL in sh=bash dash; do
   n=" [$SHL]"
 case_ "login: the session handed to systemd first, then the display, the theme, the helpers$n"
 setup "$SHL"; mkdir -p "$XDG_RUNTIME_DIR/dwl-bar/OLD"; up
-settled waybar kawa-panel mako foot udiskie wl-paste swayidle kawa-dwlstatus lxqt-policykit-agent kawa-clipkeep && _ok || _no "not all started: $(cat "$CALLS" | tr '\n' '|')"
+settled waybar kawa-panel foot udiskie wl-paste swayidle kawa-dwlstatus lxqt-policykit-agent kawa-clipkeep && _ok || _no "not all started: $(cat "$CALLS" | tr '\n' '|')"
 eq "$(grep -vE '^(waybar|kawa-panel|mako|foot|udiskie|kawa-drives|kawa-downloads|kawa-clipkeep|kawa-steam|kawa-game|wl-paste|swayidle|lxqt-policykit-agent|pgrep|sleep|notify-send)( |$)' "$CALLS")" \
 "systemctl --user import-environment WAYLAND_DISPLAY DISPLAY XDG_CURRENT_DESKTOP XDG_SESSION_DESKTOP XDG_SESSION_TYPE GTK_USE_PORTAL GDK_DEBUG
 systemctl --user stop dwl-session.target
 systemctl --user start dwl-session.target
 systemctl --user start fedokawaii-remind.timer
 systemctl --user start kawa-tidy.timer
+systemctl --user start kawa-wallpaper-next.timer
 systemctl --user start grub-boot-success.timer
 kawa-display${SP}
 kawa-theme apply
 kawa-state restore
 kawa-night restore
-kawa-glass ensure" "in this order, the display's modes, the theme and your settings before any helper"
-called "^waybar $"; called "^kawa-panel $"; called "^mako $"; called "^foot --server$"; called "^udiskie $"; called "^wl-paste --watch kawa-clip --store$"
+kawa-glass ensure
+systemctl --user --no-block start mako.service" "in this order, the display's modes, the theme and your settings before any helper"
+called "^waybar $"; called "^kawa-panel $"; called "^systemctl --user --no-block start mako.service$"; called "^foot --server$"; called "^udiskie $"; called "^wl-paste --watch kawa-clip --store$"
 called "^kawa-night restore$"; not_called "^gammastep"; called "^lxqt-policykit-agent $"; called "^kawa-drives watch$"; called "^kawa-downloads watch$"
 called "^swayidle -w timeout 900 kawa-idle away resume kawa-idle back timeout 1800 kawa-idle dark resume kawa-idle back; kawa-lock --screens on after-resume kawa-lock --resumed before-sleep kawa-lock --now$"
 called "^kawa-clipkeep $"; called "^kawa-steam --warm$"; called "^kawa-steam --guard$"; called "^kawa-game restore$"; not_called "^notify-send"
-for d in waybar kawa-panel mako foot udiskie wl-paste swayidle kawa-dwlstatus kawa-clipkeep; do eq "$(running "$d")" 1 "one $d"; done
+for d in waybar kawa-panel foot udiskie wl-paste swayidle kawa-dwlstatus kawa-clipkeep; do eq "$(running "$d")" 1 "one $d"; done
 [[ ! -e $XDG_RUNTIME_DIR/dwl-bar/OLD ]] && _ok || _no "the last session's bar state was kept"
 case_ "dwl's status reaches the bar (one monitor)$n"
 block DP-1 1 3 2 0 '[]=' 0 "hello" | tell
@@ -131,9 +133,9 @@ crash; gone && _ok || _no "processes outlived the crash: ${MEM[*]}"
 eq "$ASRC" 0; down
 
 case_ "logged out, in again: one of each helper, none left from before$n"
-setup "$SHL"; up; settled waybar mako foot udiskie swayidle kawa-dwlstatus; quit; gone; first=$SID
-up; settled waybar mako foot udiskie swayidle kawa-dwlstatus
-for d in waybar mako foot udiskie swayidle kawa-dwlstatus; do eq "$(running "$d")" 1 "one $d"; done
+setup "$SHL"; up; settled waybar foot udiskie swayidle kawa-dwlstatus; quit; gone; first=$SID
+up; settled waybar foot udiskie swayidle kawa-dwlstatus
+for d in waybar foot udiskie swayidle kawa-dwlstatus; do eq "$(running "$d")" 1 "one $d"; done
 SID=$first; eq "$(left)" 0 "nothing from the first login"
 crash; down
 done
@@ -155,11 +157,10 @@ eq "$(cat "$CALLS")" "" "nothing started"; [[ -d $BAR/DP-1 ]] && _ok || _no "the
 case_ "a helper that crashes comes back; a clean exit is left alone"
 setup; printf '0\n' >"$TMP/n"
 stub udiskie 'n=$(cat "'"$TMP"'/n"); echo $((n + 1)) >"'"$TMP"'/n"; [ "$n" -lt 2 ] && exit 1; trap "exit 0" TERM; "'"$TMP"'/sys/zzz" 600 & wait $!'
-stub mako 'exit 0'
 up; settled waybar; ncalls udiskie 3; settled udiskie; nap 0.5
 eq "$(grep -c '^udiskie' "$CALLS")" 3 "two crashes, then it stays"
 eq "$(grep -c '^sleep 1$' "$CALLS")" 2 "a second's pause before each restart"
-eq "$(grep -c '^mako' "$CALLS")" 1 "mako ended cleanly: not restarted (D-Bus starts it again)"
+eq "$(grep -c 'start mako.service' "$CALLS")" 1 "mako: its unit started once, never kept here (D-Bus starts it again)"
 not_called "keeps stopping"; quit; down
 case_ "a helper that keeps crashing: given up after five in a minute, with a notice that says so"
 setup; stub waybar 'exit 1'; up; settled foot swayidle
@@ -186,7 +187,7 @@ ncalls waybar 7; nap 0.5
 eq "$(grep -c '^waybar' "$CALLS")" 7; not_called "keeps stopping"; quit; down
 
 case_ "a program not installed: said once in a notice, the rest all start"
-setup; rm "$STUBS/udiskie" "$STUBS/mako"; up; settled waybar foot wl-paste swayidle kawa-dwlstatus
+setup; rm "$STUBS/udiskie"; up; settled waybar foot wl-paste swayidle kawa-dwlstatus
 until_has "$CALLS" udiskie
 called "^notify-send -a desktop -u critical -- $SEAL  udiskie is not installed"
 eq "$(grep -c 'udiskie' "$CALLS")" 1 "not tried again and again"

@@ -9,13 +9,13 @@ Super+C                 calendar (also click the date)
 Super+/                 this help
 Super+W                 wallpaper picker, for the current theme
 Super+Shift+W           dark / light theme (also in quick settings)
-Super+V                 clipboard history: text and pictures
+Super+V                 clipboard history: text and pictures (again: away)
 Super+Z                 shrink or convert what you copied
 Super+D                 archives and PDFs: unpack, pack, merge, sign
 Super+R                 books: read, add, remove
 Super+N                 notes (again: put them away)
 Super+Shift+N           dismiss notifications
-Super+U                 the system: update, new Fedora, repair
+Super+U                 the system: update, new Fedora, repair (again: away)
 Super+Shift+U           change the desktop, part by part
 Super+Escape            lock screen (then sleep after 90 s)
 Super+Shift+E           power menu
@@ -25,7 +25,12 @@ Print                   region
 Shift+Print             full screen
 Super+Print             region → annotate (Enter copies)
 Super+Shift+Print       region → its text (OCR: English, Arabic)
+Super+Shift+S           region (no Print key)
+Super+Shift+F           full screen (no Print key)
+Super+Shift+A           region → annotate (no Print key)
+Super+Shift+X           region → its text (no Print key)
 Super+Shift+R           record the screen (again: stop) → ~/Videos/Recordings
+Super+Shift+P           pause the recording (again: 3, 2, 1 on the bar, on)
 ── windows ────────────────────────────────────────────────────────
 Super+Q                 close window
 Super+J / K             focus next / previous

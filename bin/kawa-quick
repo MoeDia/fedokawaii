@@ -31,7 +31,7 @@
 #                               cleanmic (the default input clean ⇄ raw, as input ID; kept: kawa-state) ·
 #                               mictest (5 s recorded from the default input, played back) ·
 #                               sound (the sound panel) · mixer · network · devices · drives ·
-#                               backup · wallpaper · screenshot · power (each opens its own menu
+#                               backup · wallpaper · screenshot · record · ocr · power (each opens its own menu
 #                               or window)
 #
 # Exit: 0 done · 1 it could not (said) · 2 wrong use.
@@ -94,6 +94,12 @@ state_bt()    {
 state_theme() { [[ $(readlink "$HOME/.config/fedokawaii/current" 2>/dev/null) == */light ]] && echo light || echo dark; }
 state_night() { kawa-night; }                     # ("off", or its warmth: kawa-night keeps it)
 SAVER=${XDG_STATE_HOME:-$HOME/.local/state}/fedokawaii/saver
+state_record() {   # a screen recording running (kawa-record's "PID START FILE", its wf-recorder alive): on · off
+  local p a=()
+  read -r p _ 2>/dev/null <"${XDG_RUNTIME_DIR:-/run/user/$UID}/kawa-record" && [[ $p =~ ^[1-9][0-9]*$ ]] \
+    && mapfile -d '' -t a 2>/dev/null </proc/"$p"/cmdline && [[ ${a[0]##*/} == wf-recorder || ${a[1]:-} == */wf-recorder ]] \
+    && echo on || echo off
+}
 state_saver() {   # the screensaver (kawa-saver reads the same file): on unless "off" — after
   [[ $(cat "$SAVER" 2>/dev/null) == off ]] && echo off || echo "15 min"   # 15 min (kawa-idle)
 }
@@ -282,11 +288,14 @@ clean_mic() {
 }
 
 # mic_test — 5 s from the default input, played back at once: how the others hear you (the
-# clean mic's noise suppression included while it is on). One at a time; a notice for each half
+# clean mic's noise suppression included while it is on). One at a time; a notice for each
+# half, the first naming the input recorded ("Clean mic" while it is the default: the proof
+# that calls get it)
 mic_test() {
-  local f="${XDG_RUNTIME_DIR:-/run/user/$UID}/kawa-mictest.wav"
+  local f="${XDG_RUNTIME_DIR:-/run/user/$UID}/kawa-mictest.wav" from
   exec 9>"$f.lock"; flock -n 9 || return 0
-  notify-send -a desktop -t 5000 -- "$ICON_MIC  test mic" "recording 5 seconds — speak as in a call" 2>/dev/null
+  from=$(wpctl inspect @DEFAULT_AUDIO_SOURCE@ 2>/dev/null | sed -n 's/^[ *]*node\.description = "\(.*\)"$/\1/p' | head -n 1)
+  notify-send -a desktop -t 5000 -- "$ICON_MIC  test mic" "recording 5 seconds from ${from:-the default input} — speak as in a call" 2>/dev/null
   timeout -s INT 5 pw-record --channels 1 "$f" >/dev/null 2>&1
   [[ -s $f ]] || { notify-send -a desktop -- "$ICON_MIC_OFF  test mic" "nothing recorded — is there a microphone (Super+A, under 入)?" 2>/dev/null; return 1; }
   notify-send -a desktop -t 5000 -- "$ICON_MIC  test mic" "playing it back" 2>/dev/null
@@ -305,7 +314,7 @@ state() {   # everything, KEY<TAB>VALUE (a value's tabs and line breaks become s
     bt=$(state_bt); kv bluetooth "$bt"; kv devices "$(state_paired "$bt")"
   fi
   kv drives "$(state_drives)"; kv backup "$(state_backup)"; kv dnd "$(state_dnd)"
-  kv saver "$(state_saver)"; kv vrrnow "$(state_vrrnow)"
+  kv saver "$(state_saver)"; kv record "$(state_record)"; kv vrrnow "$(state_vrrnow)"
 }
 
 act() {   # act ACTION [N] — the panel's choices
@@ -353,13 +362,15 @@ act() {   # act ACTION [N] — the panel's choices
     backup)     exec kawa-backup --window ;;
     wallpaper)  exec kawa-wallpaper ;;
     screenshot) exec kawa-screenshot region ;;
+    record)     exec kawa-record ;;                             # (not recording: its menu · recording: stopped)
+    ocr)        exec kawa-screenshot text ;;                    # (a region's words onto the clipboard)
     power)      exec kawa-power ;;
     *)          usage ;;
   esac
 }
 
 # (the panel itself: kawa-panel runs all session long (autostart), hidden until asked —
-# SIGUSR1 opens or closes it; should it not be running (it crashed and autostart has not
+# a line into its fifo (kawa-panel.in) opens or closes it; should it not be running (it crashed and autostart has not
 # started it again yet), it is started, open — done above, first thing)
 
 case ${1:-} in

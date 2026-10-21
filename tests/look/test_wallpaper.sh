@@ -430,7 +430,7 @@ lacks "$(cat "$CACHE/wallpaper-sums")" "mine.png" "a deleted picture is forgotte
 # fzf: keeps the rows and its options, then answers as FZF_PICK says (a row's first field,
 # or "esc"); the picker's window (kawa-term --float) runs its command in place
 picker() {
-  argv fzf 'cat >"$FAKE_TMP/rows"
+  argv fzf 'tee "$FAKE_TMP/all" | grep -v "^rotate	" >"$FAKE_TMP/rows"   # (the switch row apart: $TMP/all)
 case ${FZF_PICK:-esc} in esc) exit 130 ;; esac
 grep -m1 -F "$FZF_PICK	" "$FAKE_TMP/rows" || exit 1'
   stub kawa-term 'while [ "$1" != "--" ]; do shift; done; shift; "$@"'
@@ -508,7 +508,29 @@ case_ "the cursor starts on the current choice"
 FZF_PICK=esc kawa-wallpaper --tui "$TMP/out"
 echo "$WP/p0500.png" >"$STATE/wallpaper-dark"
 kawa-wallpaper --tui "$TMP/out"
-has "$(args_of fzf "$(ncalls fzf)")" "start:pos(500)"
+has "$(args_of fzf "$(ncalls fzf)")" "start:pos(501)" "(the switch row first)"
+
+case_ "every 4 hours: the picker's first row is its switch (off until switched on), Enter turns it in place"
+head -n1 "$TMP/all" | cut -f1 | grep -qx rotate && _ok || _no "the first row is not the switch"
+has "$(head -n1 "$TMP/all" | cut -f3 | sed "s/\x1b\[[0-9;]*m//g")" "$ICON_BOX_OFF  a new one every 4 hours"
+has "$(args_of fzf "$(ncalls fzf)")" "execute-silent("
+rc 0 kawa-wallpaper --rotate toggle; eq "$(kawa-state get wallpaper-rotate)" on
+has "$(kawa-wallpaper --rows | head -n1 | cut -f3 | sed "s/\x1b\[[0-9;]*m//g")" "$ICON_BOX_ON  a new one every 4 hours"
+rc 0 kawa-wallpaper --rotate toggle; eq "$(kawa-state get wallpaper-rotate)" off
+rc 2 kawa-wallpaper --rotate maybe
+
+case_ "--next (its timer, every 4 hours): nothing while off; on, the pack's next picture after the one shown, round again at the end"
+setup
+art "$PACK/dark/ink-ridges-night.src" 1920x1080; art "$PACK/dark/moon-road-ink.src" 1920x1080; art "$PACK/light/ink-ridges.src" 1920x1080
+kawa-state set wallpaper-rotate off; rm -f "$STATE/wallpaper-dark"
+rc 0 kawa-wallpaper --next; [[ ! -e $STATE/wallpaper-dark ]] && _ok || _no "changed while off"
+kawa-state set wallpaper-rotate on
+rc 0 kawa-wallpaper --next; eq "$(cat "$STATE/wallpaper-dark")" pack:moon-road-ink "after the default: the next one fetched"
+rc 0 kawa-wallpaper --next; eq "$(cat "$STATE/wallpaper-dark")" pack:ink-ridges-night "after the last: the first again"
+eq "$(cat "$STATE/wallpaper-light")" pack:ink-ridges "a pair: both themes"
+grep -q 'OnUnitActiveSec=4h' "$REPO/configs/home/.config/systemd/user/kawa-wallpaper-next.timer" && _ok || _no "the timer: not every 4 hours"
+grep -q 'kawa-wallpaper-next.timer' "$REPO/configs/home/.config/dwl/autostart.sh" && _ok || _no "the timer is not started with the session"
+kawa-state set wallpaper-rotate off
 
 case_ "Super+W, Enter on an odd name: set exactly, in one frame (no fade, nothing in between)"
 setup; picker

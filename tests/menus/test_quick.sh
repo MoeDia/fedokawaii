@@ -46,7 +46,7 @@ cd "$HOME/.config/fedokawaii" && if [ "$(readlink current)" = themes/dark ]; the
   # the brightness kawa-brightness last read (its --level), the sound's level (wpctl)
   stub kawa-brightness '[ "$1" = --level ] && cat "$W/bright" 2>/dev/null'; echo 70 >"$W/bright"
   stub wpctl '[ "$1" = get-volume ] && cat "$W/vol"'; echo 'Volume: 0.62' >"$W/vol"
-  for s in kawa-panel kawa-term kawa-screenshot kawa-wallpaper kawa-power; do stub "$s"; done
+  for s in kawa-panel kawa-term kawa-screenshot kawa-wallpaper kawa-power kawa-record; do stub "$s"; done
   stub kawa-brightness '[ "$1" = --level ] && { cat "$W/bright" 2>/dev/null; exit; }; echo "$1" >"$W/bright"'
   stub wpctl 'case $1 in get-volume) cat "$W/vol" ;; set-volume) echo "Volume: 0.$(printf %02d "${3%%%}")" >"$W/vol" ;; esac'
 }
@@ -66,7 +66,7 @@ case_ "--state: every key, in order, one KEY<TAB>VALUE a line"
 out=$(state); rc 0 quick --state
 keys=$(cut -f1 <<<"$out" | tr '\n' ',')
 if ((NS)); then
-  eq "$keys" "theme,brightness,night,vrr,wallpaper,sound,nettype,network,bluetooth,devices,drives,backup,dnd,saver,vrrnow,"
+  eq "$keys" "theme,brightness,night,vrr,wallpaper,sound,nettype,network,bluetooth,devices,drives,backup,dnd,saver,record,vrrnow,"
 else has "$keys" "theme,brightness,night,vrr,wallpaper,sound,nettype,network,"; fi
 eq "$(grep -vc $'^[a-z]*\t' <<<"$out")" 0 "every line a key, a tab, a value"
 eq "$(st theme)" dark; eq "$(st nettype)" ethernet; eq "$(st network)" wired
@@ -268,9 +268,14 @@ setup; rm -f "$STUBS/kawa-backup"; toolkit BACKUP_TARGET=KINGSTON   # (the theme
 eq "$(st backup)" never
 mkdir -p "$HOME/.local/state/fedokawaii"; printf '%s\t1 B\tKINGSTON\n' "$(( $(date +%s) - 86400 ))" >"$HOME/.local/state/fedokawaii/last-backup"
 eq "$(st backup)" yesterday
+case_ "record: on while kawa-record's own wf-recorder runs; off with none, or a pid now another program's"
+setup; eq "$(st record)" off
+cp /bin/sleep "$TMP/wf-recorder"; "$TMP/wf-recorder" 30 & wf=$!; on_exit "kill $wf 2>/dev/null"
+echo "$wf 1 /tmp/x.mp4" >"$XDG_RUNTIME_DIR/kawa-record"; eq "$(st record)" on
+sleep 30 & other=$!; on_exit "kill $other 2>/dev/null"; echo "$other 1 /tmp/x.mp4" >"$XDG_RUNTIME_DIR/kawa-record"; eq "$(st record)" off
 case_ "each of the others opens its own window or menu"
 for pair in "sound:^kawa-panel (toggle sound|--sound)$" "drives:^kawa-drives *$" "wallpaper:^kawa-wallpaper *$" \
-            "screenshot:^kawa-screenshot region$" "power:^kawa-power *$"; do
+            "screenshot:^kawa-screenshot region$" "power:^kawa-power *$" "record:^kawa-record *$" "ocr:^kawa-screenshot text$"; do
   setup; rc 0 quick --do "${pair%%:*}"; called "${pair#*:}"
 done
 case_ "a home folder with a space in its name: the same"
