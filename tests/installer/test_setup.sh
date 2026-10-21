@@ -90,7 +90,9 @@ grep -qx "global-enabled grub-boot-success.timer" "$FKH/units" && _no "Fedora's 
 [[ -s $W/var/lib/fedokawaii/input-group-out ]] && _ok || _no "not recorded: a later update would look again"
 has "$(cat "$W/etc/systemd/system/user@.service.d/fedokawaii.conf" 2>/dev/null)" $'[Service]\nTimeoutStopSec=30s' "shutdown never waits long on your services"
 has "$(cat "$W/etc/systemd/system/greetd.service.d/fedokawaii.conf")" "Conflicts=getty@tty1.service kmsconvt@tty1.service" "greetd holds tty1 against agetty and Fedora 45's kmscon"
-has "$(cat "$W/etc/systemd/system/greetd.service.d/fedokawaii.conf")" "ExecStartPost=-/usr/bin/plymouth quit --retain-splash" "the splash hands the screen to greetd, no black between"
+has "$(cat "$W/etc/systemd/system/plymouth-quit.service.d/fedokawaii.conf")" "ExecStart=-/usr/bin/plymouth quit --retain-splash" "the splash leaves its last frame for greetd, no black between"
+has "$(cat "$W/etc/systemd/system/greetd.service.d/fedokawaii.conf")" "plymouth-quit-wait.service" "greetd starts once the splash has left"
+lacks "$(cat "$W/etc/systemd/system/greetd.service.d/fedokawaii.conf")" "plymouth-quit.service" "no Conflicts= on plymouth-quit (it stalled the boot on the splash)"
 eq "$(cat "$FKH/default-target")" graphical.target
 has "$(cat "$FKH/snaps")" "fedokawaii baseline"
 # the health report: the toolkit's, and once at the first start of the finished desktop

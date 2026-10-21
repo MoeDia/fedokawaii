@@ -127,14 +127,15 @@ tk --repair; called 'grubby\] --update-kernel=ALL --args=rhgb'; called 'grubby\]
 eq "$(grep -c ' rhgb' "$FKH/grub-args")" 2 "both entries"
 case_ "repair: a quiet boot again — the arguments an entry lost, the consoles' cursor file, greetd's drop-in after the splash"
 back built; sed -i '1 s/ vt.global_cursor_default=0//; 2 s/ systemd.show_status=false//' "$FKH/grub-args"
-rm -f "$W/etc/profile.d/fedokawaii-console.sh"; sed -i '/retain-splash/d; /^OnFailure=/d' "$W/etc/systemd/system/greetd.service.d/fedokawaii.conf"
+rm -f "$W/etc/profile.d/fedokawaii-console.sh"; sed -i '/retain-splash/d' "$W/etc/systemd/system/plymouth-quit.service.d/fedokawaii.conf"; sed -i '/^OnFailure=/d; s/^Conflicts=.*/& plymouth-quit.service/' "$W/etc/systemd/system/greetd.service.d/fedokawaii.conf"
 fkrun bash "$TK/verify.sh"; eq "$RC" 3
 tk --repair
 called 'grubby\] --update-kernel=ALL --args=vt.global_cursor_default=0'; called 'grubby\] --update-kernel=ALL --args=systemd.show_status=false'
 not_called 'grubby\] --update-kernel=ALL --args=loglevel=3' "an argument every entry has: grubby not run for it"
 eq "$(grep -c 'vt.global_cursor_default=0' "$FKH/grub-args")" 2; eq "$(grep -c 'systemd.show_status=false' "$FKH/grub-args")" 2
 [[ -s $W/etc/profile.d/fedokawaii-console.sh ]] && _ok || _no "the cursor file not written again"
-has "$(cat "$W/etc/systemd/system/greetd.service.d/fedokawaii.conf")" "plymouth quit --retain-splash"
+has "$(cat "$W/etc/systemd/system/plymouth-quit.service.d/fedokawaii.conf")" "plymouth quit --retain-splash"
+lacks "$(cat "$W/etc/systemd/system/greetd.service.d/fedokawaii.conf")" "plymouth-quit.service" "the old Conflicts= on plymouth-quit gone"
 has "$(cat "$W/etc/systemd/system/greetd.service.d/fedokawaii.conf")" "OnFailure=fedokawaii-login-failed.service"
 fkrun bash "$TK/verify.sh"; eq "$RC" 0 "$(grep '✘' <<<"$OUT" | head -n3 | tr '\n' '|')"
 case_ "update: a quiet boot too (an install from before it gets the arguments with its next update)"

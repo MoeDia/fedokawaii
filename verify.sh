@@ -373,7 +373,7 @@ check "greetd runs the login screen (kawa-greet in cage) for $TARGET_USER" grep 
 check "greetd reads fedokawaii.toml"                   bash -c 'systemctl cat greetd.service | grep -qx "ExecStart=/usr/bin/greetd --config /etc/greetd/fedokawaii.toml"'
 # (its drop-in: tty1 its own — no text login under the login screen — and started once the
 # splash has gone, never taking the screen from it: setup.sh's greetd_config)
-check "greetd owns tty1 and takes the screen from the splash with no black between (its drop-in)" bash -c 'u=$(systemctl cat greetd.service) && grep -qE "^Conflicts=.*getty@tty1\.service" <<<"$u" && grep -qE "^Conflicts=.*plymouth-quit\.service" <<<"$u" && grep -qx "ExecStartPost=-/usr/bin/plymouth quit --retain-splash" <<<"$u"'
+check "greetd owns tty1 and takes the screen from the splash with no black between (its drop-in)" bash -c 'u=$(systemctl cat greetd.service) && grep -qE "^Conflicts=.*getty@tty1\.service" <<<"$u" && ! grep -qE "^Conflicts=.*plymouth-quit" <<<"$u" && grep -qE "^After=.*plymouth-quit-wait\.service" <<<"$u" && systemctl cat plymouth-quit.service | grep -qx "ExecStart=-/usr/bin/plymouth quit --retain-splash"'
 check "a login screen that cannot start is said on tty1, not a black screen (greetd's OnFailure)" bash -c 'systemctl cat greetd.service | grep -qx "OnFailure=fedokawaii-login-failed.service" && grep -q "The login screen could not start" /etc/systemd/system/fedokawaii-login-failed.service'
 check "the health report (fedokawaii-report) is the toolkit's" cmp -s "$TK/system/fedokawaii-report" /usr/local/bin/fedokawaii-report
 ((PRE)) || check "the health report runs once, on the first start"  systemctl is-enabled --quiet fedokawaii-report.service   # (finalize enables it)

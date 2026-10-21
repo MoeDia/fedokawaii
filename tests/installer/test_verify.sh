@@ -156,7 +156,7 @@ case_ "the consoles' cursor never back at login (its profile.d file gone): named
 back built; rm "$W/etc/profile.d/fedokawaii-console.sh"
 V; eq "$RC" 3; has "$OUT" "✘ a text console shows its cursor at login"
 case_ "greetd's drop-in without the splash's order (an older one): named, exit 3 — repair writes it again"
-back built; sed -i '/retain-splash/d' "$W/etc/systemd/system/greetd.service.d/fedokawaii.conf"
+back built; sed -i '/retain-splash/d' "$W/etc/systemd/system/plymouth-quit.service.d/fedokawaii.conf"
 V; eq "$RC" 3; has "$OUT" "✘ greetd owns tty1 and takes the screen from the splash with no black between (its drop-in)"
 case_ "a kernel whose boot image dracut could not make (dnf does not fail on that): named, exit 3"
 back built; fkh kernels "6.18.1-200.fc44.x86_64" "$(uname -r)"              # the older one at rest, no image for it

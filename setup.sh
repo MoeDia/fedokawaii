@@ -1178,27 +1178,30 @@ EOF
   # with nothing to go on, never another login in its place
   write_file /etc/systemd/system/greetd.service.d/fedokawaii.conf <<'EOF'
 # installed by setup.sh: greetd reads fedokawaii.toml, and owns tty1 alone (Fedora 45 runs
-# kmscon there, earlier releases agetty). The splash hands the screen to it with no black
-# between (GDM's way): plymouth-quit (which clears the screen) never runs beside it; plymouth
-# stops drawing and lets the card go (deactivate), cage takes the card on tty1 — the splash's
-# own VT, so no switch — and plymouth leaves with its last frame still shown (quit
-# --retain-splash) until the greeter's first frame replaces it. ("-": at a restart of greetd
-# plymouth is long gone.) A login screen that keeps stopping: five tries in a minute, then
-# fedokawaii-login-failed says so
+# kmscon there, earlier releases agetty). It starts once the splash has left (plymouth-quit,
+# which leaves its last frame on screen: see its drop-in), so the card is free and nothing
+# clears the screen in between. (A Conflicts= on plymouth-quit stalled the boot on the splash:
+# both are wanted by the same target, and systemd cancelled greetd's start.) A login screen
+# that keeps stopping: five tries in a minute, then fedokawaii-login-failed says so
 [Unit]
-Conflicts=getty@tty1.service kmsconvt@tty1.service plymouth-quit.service
-After=getty@tty1.service kmsconvt@tty1.service plymouth-start.service plymouth-quit.service systemd-user-sessions.service
+Conflicts=getty@tty1.service kmsconvt@tty1.service
+After=getty@tty1.service kmsconvt@tty1.service plymouth-quit-wait.service systemd-user-sessions.service
 StartLimitIntervalSec=60
 StartLimitBurst=5
 OnFailure=fedokawaii-login-failed.service
 
 [Service]
 ExecStart=
-ExecStartPre=-/usr/bin/plymouth deactivate
 ExecStart=/usr/bin/greetd --config /etc/greetd/fedokawaii.toml
-ExecStartPost=-/usr/bin/plymouth quit --retain-splash
 Restart=always
 RestartSec=2
+EOF
+  # the splash leaves with its last frame still on screen (no black before the login screen)
+  write_file /etc/systemd/system/plymouth-quit.service.d/fedokawaii.conf <<'EOF'
+# installed by setup.sh: the splash's last frame stays until the login screen draws over it
+[Service]
+ExecStart=
+ExecStart=-/usr/bin/plymouth quit --retain-splash
 EOF
   write_file /etc/systemd/system/fedokawaii-login-failed.service <<'EOF'
 # installed by setup.sh — greetd gave up (its login screen stopped five times in a minute):

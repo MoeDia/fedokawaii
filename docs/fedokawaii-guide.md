@@ -11214,23 +11214,26 @@ graphical.target
 
 `greetd.service` is Fedora's unit with a drop-in of this desktop's (§28.3) that
 points it at its own file, gives it tty1 alone (no text login under the login screen), and
-takes the screen from the boot splash with no black between, as GDM does: `plymouth-quit`
-(which clears the screen) never runs beside it; plymouth stops drawing and lets the card go,
-cage takes it on tty1 (the splash's own VT: no switch), and plymouth leaves with its last frame
-still shown until the greeter's first frame replaces it:
+takes the screen from the boot splash with no black between: `plymouth-quit` runs as usual,
+but a second drop-in makes it leave with `--retain-splash` (its last frame stays on screen),
+and greetd starts after it (`After=plymouth-quit-wait.service`), so cage takes tty1 (the
+splash's own VT: no switch) and the greeter's first frame replaces the splash's last. greetd
+has no `Conflicts=` on `plymouth-quit`: both are wanted by the boot target, and such a conflict
+made systemd cancel greetd's start — a boot stuck on the splash:
 
 ```ini
 # /etc/systemd/system/greetd.service.d/fedokawaii.conf (shortened)
 [Unit]
-Conflicts=getty@tty1.service kmsconvt@tty1.service plymouth-quit.service
-After=getty@tty1.service kmsconvt@tty1.service plymouth-start.service plymouth-quit.service systemd-user-sessions.service
+Conflicts=getty@tty1.service kmsconvt@tty1.service
+After=getty@tty1.service kmsconvt@tty1.service plymouth-quit-wait.service systemd-user-sessions.service
 StartLimitIntervalSec=60
 StartLimitBurst=5
 OnFailure=fedokawaii-login-failed.service
 
+# /etc/systemd/system/plymouth-quit.service.d/fedokawaii.conf
 [Service]
-ExecStartPre=-/usr/bin/plymouth deactivate
-ExecStartPost=-/usr/bin/plymouth quit --retain-splash
+ExecStart=
+ExecStart=-/usr/bin/plymouth quit --retain-splash
 ```
 
 Should the login screen itself keep stopping (a broken greeter), systemd starts greetd again
