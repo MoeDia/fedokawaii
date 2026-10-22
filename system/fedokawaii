@@ -460,7 +460,7 @@ ORIGIN=${FEDOKAWAII_ORIGIN:-https://github.com/MoeDia/fedokawaii.git}
 SECRETS=${XDG_CONFIG_HOME:-$HOME/.config}/fedokawaii/secrets.sh
 PULL_LOG=${XDG_STATE_HOME:-$HOME/.local/state}/fedokawaii/pull.log
 PULL_REC=${XDG_STATE_HOME:-$HOME/.local/state}/fedokawaii/last-pull   # "EPOCH RESULT FROM TO"
-fgit() { GIT_TERMINAL_PROMPT=0 git -c credential.helper= "$@"; }   # fgit ARG… — git as you, never asking
+fgit() { GIT_TERMINAL_PROMPT=0 git -c credential.helper= -c http.lowSpeedLimit=1000 -c http.lowSpeedTime=60 "$@"; }   # fgit ARG… — git as you, never asking, never stalled (under 1 kB/s for a minute: gives up)
 answers() {   # answers — GitHub answers for ORIGIN, else why said
   fgit ls-remote --quiet --exit-code "$ORIGIN" HEAD >/dev/null 2>&1 && return 0
   echo "  GitHub does not answer for $ORIGIN — is the network up?" >&2; return 1

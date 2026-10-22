@@ -197,6 +197,41 @@ def build(kind, face_path, unifont_path):
             if not in_line(pix, adv):
                 sys.exit(f"build-fonts: {c['family']}: U+{cp:04X} leaves its cell")
             glyphs[cp] = (adv, pix)
+    # 1b. A column of air after every letter and figure (both faces): the face's bold, one pixel
+    # wider to the right, reaches the cell's last column for many of them (a b d h k p q s …),
+    # and the next one's first column touches it — two letters read as one shape ("pdf",
+    # "ads"). So the last column is always air: a letter with its first column free moves
+    # into it; one that fills all 8 loses a column inside it — one that repeats its neighbour
+    # (inside a bowl; the second column of a stem never), the middlemost; a letter with no
+    # column to spare has two neighbouring columns made one.
+    if True:                            # (both faces: Kappa's serifs met the same way, "mmm")
+        for cp in range(0x21, 0x7F):
+            ch = chr(cp)
+            if not ch.isalnum() or cp not in glyphs:
+                continue
+            adv, pix = glyphs[cp]
+            if not pix or max(x for x, _ in pix) < adv - 1:
+                continue                # (its last column free already)
+            if min(x for x, _ in pix) > 0:
+                glyphs[cp] = (adv, {(x - 1, y) for x, y in pix})   # a column free on the left: moved into it
+                continue
+            ys = sorted({y for _, y in pix})
+            colof = lambda x: frozenset(y for x2, y in pix if x2 == x)
+            spare = [x for x in range(2, adv - 2)
+                     if colof(x) == colof(x - 1) and colof(x) == colof(x + 1)]
+            if not spare:
+                spare = [x for x in range(2, adv - 2) if colof(x) == colof(x + 1)
+                         and not (colof(x) and colof(x - 1) == frozenset() and colof(x + 2) == frozenset())]
+            mid = (adv - 1) / 2
+            if spare:
+                x0 = min(spare, key=lambda x: (abs(x - mid), x))
+                glyphs[cp] = (adv, {(x if x < x0 else x - 1, y) for x, y in pix if x != x0})
+                continue
+            # no column repeats its neighbour (a slant: v x y z A N S …; m w M W): two next to
+            # each other made one — the pair that differ least, nearest the middle (their
+            # pixels together: a slant stays joined)
+            x0 = min(range(1, adv - 2), key=lambda x: (len(colof(x) ^ colof(x + 1)), abs(x + 0.5 - mid), x))
+            glyphs[cp] = (adv, {(x if x <= x0 else x - 1, y) for x, y in pix})
     # 2. the five signs, by hand
     minus = sorted({y for x, y in glyphs[ord("-")][1]})
     mid = minus[len(minus) // 2]

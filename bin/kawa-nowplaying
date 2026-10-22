@@ -54,7 +54,7 @@ case ${1:-} in
   --wing)
     [[ ${2:-} == @(left|right) ]] || { echo "usage: kawa-nowplaying --wing left|right" >&2; exit 2; }
     dir=${XDG_RUNTIME_DIR:-/run/user/$UID}/kawa-nowplaying
-    mkdir -p -m 700 -- "$dir" || exit 1
+    mkdir -p -- "$dir" && chmod 700 -- "$dir" || exit 1
     fifo=$dir/wing-$2
     [[ -p $fifo ]] || { rm -f -- "$fifo"; mkfifo -m 600 -- "$fifo" || exit 1; }
     exec {fd}<>"$fifo"                           # (read and write: never an end of file)
@@ -71,6 +71,8 @@ esac
 LC_ALL=C.UTF-8                                   # count characters, not bytes
 # shellcheck source=/dev/null
 . "$HOME/.config/fedokawaii/icons.sh"
+. "$HOME/.config/fedokawaii/width.sh"   # air: the last letter's own air, for the tile's pad
+__air=''                                  # (air's answer)
 THEME=""
 colours() {   # the C_* colours of the theme in use, read again after a switch (bash alone: is
   # current the light theme's folder?) — the meter keeps its colours inside its own text
@@ -170,7 +172,7 @@ wings_check() {   # wings_check — each wing: open its fifo if its module runs,
 }
 wing() {   # wing SIDE JSON — a frame to a wing, if it runs and it is new
   [[ -n ${WFD[$1]:-} && $2 != "${WLAST[$1]:-}" ]] || return 0
-  printf '%s\n' "$2" >&"${WFD[$1]}" 2>/dev/null && WLAST[$1]=$2
+  { printf '%s\n' "$2" >&"${WFD[$1]}"; } 2>/dev/null && WLAST[$1]=$2
 }
 show() {
   local out t n body ml mr tape a=$artist wl='{"text":""}' wr='{"text":""}'
@@ -183,6 +185,7 @@ show() {
     ((${#a} > MAXA)) && a=$(words "$a" "$MAXA")
     t=$title n=$((MAX - ${#a} - (${#a} ? 2 : 0)))
     ((${#t} > n)) && t=$(words "$t" "$n")
+    air "x${a:-$t}"; __air=${__air#* }    # (the tile's end: the artist's last letter, or the title's)
     esc body "$t"
     if [[ -n $a ]]; then
       esc a "$a"
@@ -192,10 +195,10 @@ show() {
     fi
     # (ICON_BAR_*: the icon's ink, then exactly 8 px to the words)
     if [[ $status == Paused ]]; then
-      out="{\"text\":\"$ICON_BAR_PAUSE$body\",\"class\":\"paused\"}"
+      out="{\"text\":\"$ICON_BAR_PAUSE$body\",\"class\":[\"paused\",\"$__air\"]}"
     else
       tape=$ICON_BAR_CASSETTE_A; ((reel)) && tape=$ICON_BAR_CASSETTE_B
-      out="{\"text\":\"$tape$body\",\"class\":\"playing\"}"
+      out="{\"text\":\"$tape$body\",\"class\":[\"playing\",\"$__air\"]}"
       if [[ -n $bands ]]; then
         meter ml "${bands:0:8}"; meter mr "${bands:8:8}"
         wl="{\"text\":\"$ml\",\"class\":\"playing\"}" wr="{\"text\":\"$mr\",\"class\":\"playing\"}"

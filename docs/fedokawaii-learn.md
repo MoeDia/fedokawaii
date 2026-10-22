@@ -480,9 +480,9 @@ Keep the help sheet (**Super+/**) a key away; write down the three keys you look
 | workspaces 一 二 三 … | the desks; 四–九 only while they hold a window | go there |
 | the layout icon | spiral, columns or floating | switch spiral ⇄ columns |
 | the title | the focused window | |
-| date ┆ day ┆ time | in the middle: `Wed 21 Oct`, the day as a kanji in vermilion (月 Monday … 日 Sunday), the time to the second | the calendar; the time: a timer |
-| the wings | while music plays, its sound either side of the clock: thin columns, the left channel left, the right right | play/pause |
-| now playing | the first cell on the right: a turning cassette, the title, the artist quieter | play/pause; right: next |
+| date · day · time | in the middle, on a hanging scroll: `Wed 21 Oct`, the day as a kanji in vermilion (月 Monday … 日 Sunday), the time to the second | the calendar; the time: a timer |
+| the wings | while music plays, its sound inside the scroll either side of the clock: thin columns, the left channel left, the right right | play/pause |
+| now playing | the first tile on the right: a turning cassette, the title, the artist quieter | play/pause; right: next |
 | a timer | while one runs: the time left (a stopwatch: the time gone by) | the timer menu |
 | a seal 静 or 共有 | do-not-disturb on · your screen is being shared | |
 | the drive mark | a USB stick, disk or SD card is plugged in | open or eject it |

@@ -72,7 +72,7 @@ case_ "a whole recorded session (one monitor, real dwl): the bar ends where dwl 
 rc 0 status "$F/one-monitor.status"
 eq "$(tagrow)" "1:emp 2:sel 3:emp 4:- 5:- 6:- 7:- 8:- 9:-" "after quitting: no windows, workspace 2 shown"
 eq "$(bar layout)" "{\"text\":\"$ICON_SPIRAL\",\"class\":\"spiral\"}"
-eq "$(bar title)" '{"text":""}'
+eq "$(bar title)" '{"text":"","class":["l0","r0"]}'
 eq "$(bar kb)" '{"text":"US","class":"first"}'
 eq "$(json_ok)" ""
 eq "$(find "$BAR" -name '*.tmp' | wc -l)" 0 "no half-written file left"
@@ -96,7 +96,7 @@ case_ "recorded: a 2048-character title (foot's limit) and a title emptied by it
 rm -rf "$BAR"; blk "$F/one-monitor.status" "title xxxxxxxxxx" | kawa-dwlstatus
 eq "$(jtext title | wc -c)" 61 "60 letters at most (one word: cut there), never an …"
 rm -rf "$BAR"; blk "$F/one-monitor.status" "title xxxxxxxxxx" 1 | kawa-dwlstatus
-eq "$(bar title)" '{"text":""}'
+eq "$(bar title)" '{"text":"","class":["l0","r0"]}'
 
 case_ "recorded hot-plug: two monitors, each bar its own, the top files the focused one's"
 rm -rf "$BAR"; upto "$F/hotplug.status" "HEADLESS-3" | head -n -8 | kawa-dwlstatus
@@ -180,8 +180,8 @@ case_ "control characters (should dwl ever pass one): a space, never a broken fi
 rm -rf "$BAR"; block DP-1 1 1 1 0 '(@)' 0 $'a\tb\x1b[31mc\rd\x7fe\x01f' | kawa-dwlstatus
 eq "$(jtext title)" "a b [31mc d e f"; eq "$(json_ok)" ""
 case_ "an empty title, and one of spaces: an empty title"
-rm -rf "$BAR"; block DP-1 1 1 1 0 '(@)' 0 "" | kawa-dwlstatus; eq "$(bar title)" '{"text":""}'
-rm -rf "$BAR"; block DP-1 1 1 1 0 '(@)' 0 "     " | kawa-dwlstatus; eq "$(bar title)" '{"text":""}'
+rm -rf "$BAR"; block DP-1 1 1 1 0 '(@)' 0 "" | kawa-dwlstatus; eq "$(bar title)" '{"text":"","class":["l0","r0"]}'
+rm -rf "$BAR"; block DP-1 1 1 1 0 '(@)' 0 "     " | kawa-dwlstatus; eq "$(bar title)" '{"text":"","class":["l0","r0"]}'
 case_ "an 8 KB title of nothing but < & > (the most an X11 program gets through XWayland): its first 60 letters, valid"
 long=$(printf '%.0s<&>' {1..2731})
 rm -rf "$BAR"; block DP-1 1 1 1 0 '(@)' 0 "$long" | kawa-dwlstatus
@@ -225,7 +225,7 @@ for m in tag1 tag5 layout title; do
   eq "$(env -u WAYBAR_OUTPUT_NAME sh -c "$ex")" "$(bar "HDMI-A-1/$m")" "$m with no name: the focused monitor's"
   eq "$(WAYBAR_OUTPUT_NAME=DP-3 sh -c "$ex")" "$(bar "HDMI-A-1/$m")" "$m on a monitor not reported yet"
 done
-eq "$(WAYBAR_OUTPUT_NAME=DP-1 sh -c "$(wbexec custom/title)")" '{"text":"on the left"}'
+eq "$(WAYBAR_OUTPUT_NAME=DP-1 sh -c "$(wbexec custom/title)")" '{"text":"on the left","class":["l0","r1"]}'
 eq "$(WAYBAR_OUTPUT_NAME=DP-1 sh -c "$(wbexec custom/kb)")" '{"text":"US","class":"first"}' "the keyboard: one for all"
 case_ "the focus moves to the other monitor: the top files follow it, in either order dwl lists them"
 rm -rf "$BAR"
@@ -335,14 +335,33 @@ block DP-1 1 1 1 0 '(@)' 0 "same" >&7; exec 7>&-; wait "$sp"
 eq "$(jtext title)" "same"; eq "$(tagrow)" "1:sel 2:emp 3:emp 4:- 5:- 6:- 7:- 8:- 9:-"
 case_ "a runtime folder with a space in its path"
 mkdir -p "$TMP/run time"; XDG_RUNTIME_DIR="$TMP/run time" kawa-dwlstatus < <(block DP-1 1 1 1 0 '(@)' 0 "spaced")
-eq "$(cat "$TMP/run time/dwl-bar/title.json")" '{"text":"spaced"}'
+eq "$(cat "$TMP/run time/dwl-bar/title.json")" '{"text":"spaced","class":["l0","r1"]}'
 case_ "icons.sh missing (a theme run that never finished): no made-up symbols — it stops, said (autostart drains dwl's pipe meanwhile)"
 mv "$HOME/.config/fedokawaii/icons.sh" "$TMP/icons.sh"; rm -rf "$BAR"
 err=$({ block DP-1 1 1 1 0 '(@)' 0 "second"; } | kawa-dwlstatus 2>&1 >/dev/null); r=$?
 [[ $r != 0 ]] && _ok || _no "it went on without its icons"; has "$err" "icons.sh"
 mv "$TMP/icons.sh" "$HOME/.config/fedokawaii/icons.sh"
+case_ "the title's class names its first and last letters' own air (Sumi UI, 0–3 px): width.sh's tables are the font's, every printable ASCII letter"
+got=$(python3 -I -B - "$REPO" <<'EOF' 2>&1
+import re, sys
+from PIL import Image, ImageDraw, ImageFont
+root = sys.argv[1]
+w = open(root + "/configs/home/.config/fedokawaii/width.sh").read()
+L = re.search(r"^__AIR_L=(\d+)", w, re.M).group(1); R = re.search(r"^__AIR_R=(\d+)", w, re.M).group(1)
+f = ImageFont.truetype(root + "/system/fonts/SumiUI.ttf", 16); bad = []
+for i in range(33, 127):
+    im = Image.new("L", (48, 24)); ImageDraw.Draw(im).text((8, 0), chr(i), font=f, fill=255)
+    xs = [x for x in range(48) for y in range(24) if im.getpixel((x, y)) > 128]
+    l, r = min(min(xs) - 8, 3), min(int(f.getlength(chr(i))) - (max(xs) - 8) - 1, 3)
+    if (int(L[i - 33]), int(R[i - 33])) != (l, r): bad.append(f"{chr(i)}: l{L[i - 33]} r{R[i - 33]}, the font l{l} r{r}")
+print(len(L), len(R), *bad)
+EOF
+)
+eq "$got" "94 94"
+rm -rf "$BAR"; kawa-dwlstatus < <(block DP-1 1 1 1 0 '(@)' 0 "lo-fi beats")
+eq "$(bar title)" '{"text":"lo-fi beats","class":["l2","r1"]}' "l: 2 px of air before it, s: its column of air after (every letter has one)"
 case_ "a home folder with a space"
-mkdir -p "$TMP/my home/.config/fedokawaii"; cp "$HOME/.config/fedokawaii/icons.sh" "$TMP/my home/.config/fedokawaii/"
+mkdir -p "$TMP/my home/.config/fedokawaii"; cp "$HOME/.config/fedokawaii/icons.sh" "$HOME/.config/fedokawaii/width.sh" "$TMP/my home/.config/fedokawaii/"
 rm -rf "$BAR"; HOME="$TMP/my home" kawa-dwlstatus < <(block DP-1 1 1 1 0 '(@)' 0 "home")
 eq "$(bar layout)" "{\"text\":\"$ICON_SPIRAL\",\"class\":\"spiral\"}"
 case_ "the cat: lit only while quick settings' marker holds a live pid (a pid that died, an empty or broken marker, a dropdown's: dark)"

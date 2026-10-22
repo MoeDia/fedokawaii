@@ -6,11 +6,11 @@
 #   columns  944 → 92×43 · 625 → 60×43 · 466 → 44×43
 # (the sizes below were measured at the cells' earlier 22 px height: each still a size a
 # window can have, each the layout it shows)
-# The prompt's heading (~/.bashrc.d/fedokawaii.sh), on the left alone and never padded to the
-# edge: its layout as pure functions — which form fits, the path's three lengths, the cut —
-# then real headings in a terminal of each width, the header laid out anew when the width changes under it (ble.sh runs the
-# prompt command again then), and with the real ble.sh, when one is at hand, a window
-# resized under a prompt. btop's start (the richest preset its window holds) and lazygit's
+# The prompt (~/.bashrc.d/fedokawaii.sh): one short line — what it gives up as the window
+# narrows (the time, the jobs, the branch, the folder above, then the folder's end), real
+# prompts in a terminal of each width, the line laid out anew when the width changes under it
+# (ble.sh runs the prompt command again then), foot's reflow, and with the real ble.sh, when
+# one is at hand, a window resized under a prompt. btop's start (the richest preset its window holds) and lazygit's
 # portrait mode for tall narrow tiles. (yazi's panes: tests/yazi/test_yazi.sh.)
 . "$(dirname "$0")/lib.sh"
 # the real ble.sh, built at lib/upstream.sh's commit (FEDOKAWAII_BLESH, or the one in your home)
@@ -58,147 +58,93 @@ for seg in raw.split("\x1b]133;A\x1b\\")[1:]:
 }
 width() { python3 -I -c 'import sys, unicodedata; print(sum(2 if unicodedata.east_asian_width(c) in "WF" else 1 for c in sys.argv[1]))' "$1"; }
 
-# ── the pure functions ────────────────────────────────────────────────────────
+# ── the line at every width: what goes first ─────────────────────────────────────
 home
-case_ "__kawa_fit: the richest form that still ends a column short of the edge (lead 3; the path 42/20/13; git 22, the branch 9; ✗ 2)"
-# (COLS → the form: 0 all · 1 the folders above to letters · 2 the folder alone · 3 no git
-#  counts · 4 no time taken · 5 no branch · n none fits, or under 30 columns)
-want="156:0 70:0 69:1 48:1 47:2 41:2 40:3 30:3 29:n 20:n"
-got=$(fn 'for c in 156 70 69 48 47 41 40 30 29 20; do
-  __kawa_fit $c 3 42 20 13 22 9 0 2 0; printf "%s:%s " $c $__fit; done')
-eq "$got" "$want "
-case_ "__kawa_fit: the time a slow command took goes after the git counts, before the branch"
-got=$(fn 'for c in 46 45 33 32 30; do __kawa_fit $c 3 13 13 13 22 9 0 2 5; printf "%s:%s " $c $__fit; done')
-eq "$got" "46:0 45:3 33:3 32:4 30:4 "
-got=$(fn '__kawa_fit 31 3 13 13 13 22 20 0 2 5; echo $__fit'); eq "$got" 5 "then the branch"
-case_ "__kawa_fit: under 30 columns always the plainest form (n), however little there is to show"
-eq "$(fn '__kawa_fit 29 3 1 1 1 0 0 0 0 0; echo $__fit')" n
-eq "$(fn '__kawa_fit 30 3 1 1 1 0 0 0 0 0; echo $__fit')" 0
-case_ "__kawa_paths: as it is · the folders above to their first letter (a dot folder keeps its dot) · the folder alone"
-out=$(fn '__kawa_paths "~/repos/fedokawaii/configs/home/.config"; printf "%s|" "${__kp_d[@]}" "$__kp_h" "${__kp_dw[@]}" "$__kp_hw"')
-eq "$out" "~/repos/fedokawaii/configs/home/|~/r/f/c/h/||.config|32|10|0|7|"
-out=$(fn '__kawa_paths "/usr/share/.icons/Papirus"; printf "%s|" "${__kp_d[@]}" "$__kp_h"')
-eq "$out" "/usr/share/.icons/|/u/s/.i/||Papirus|"
-case_ "__kawa_paths: never longer than the form before it — ~, /, ~/repos and /usr stay as they are"
-for p in '~' / '~/repos' /usr; do
-  out=$(fn "__kawa_paths '$p'; printf '%s' \"\${__kp_d[2]}\$__kp_h\"")
-  eq "$out" "$p"
-done
-case_ "__kawa_paths: a folder named in Japanese counts two columns a letter; its first letter is kept whole"
-out=$(fn '__kawa_paths "~/日本語のフォルダ/中"; printf "%s|" "${__kp_d[1]}" "${__kp_dw[0]}" "${__kp_dw[1]}" "$__kp_hw"')
-eq "$out" "~/日/|19|5|2|"
-case_ "__kawa_cut: its end cut, nothing in its place (never an ellipsis), never wider than asked"
-for m in 30 12 7 3; do
-  out=$(fn "__kawa_cut 'a-folder-whose-name-is-far-longer' $m; printf '%s' \"\$__cut\"")
-  [[ $(width "$out") -le $m ]] && _ok || _no "$m: [$out] is $(width "$out") wide"
-done
-eq "$(fn "__kawa_cut 'a-folder-whose-name-is-far-longer' 12; printf '%s' \"\$__cut\"")" "a-folder-who"
-eq "$(fn "__kawa_cut short 12; printf '%s' \"\$__cut\"")" short
+# lay COLS — __kawa_layout of a line with everything on it (repos/fedokawaii, main with
+# changes, exit 2, 4.2s, a job) at COLS, as it reads (I a pixel icon)
+lay() { fn "COLUMNS=$1; __kawa_place=fedokawaii __kawa_above=repos/ __g_branch=main __g_dirty='*' __kawa_ok=0 __kawa_rc=2 __kawa_took=4.2s __kawa_jobs='jobs 1'
+  __kawa_layout; printf '%s' \"\$__kawa_line\"" | sed 's/\x01\|\x02//g; s/\x1b\[[0-9;]*m//g' | plain; }
+case_ "__kawa_layout: all of it while it fits a column short of the edge; then the time goes, the jobs, the branch, the folder above, then the folder's end — never an ellipsis"
+eq "$(lay 52)" "I  repos/fedokawaii  I  main*  2  4.2s  jobs 1  I  " "52 columns: everything"
+eq "$(lay 51)" "I  repos/fedokawaii  I  main*  2  jobs 1  I  " "the time first"
+eq "$(lay 46)" "I  repos/fedokawaii  I  main*  2  jobs 1  I  "
+eq "$(lay 45)" "I  repos/fedokawaii  I  main*  2  I  " "then the jobs"
+eq "$(lay 36)" "I  repos/fedokawaii  2  I  " "then the branch"
+eq "$(lay 26)" "I  fedokawaii  2  I  " "then the folder above"
+eq "$(lay 20)" "I  fedokawa  2  I  " "then the folder's end"
+for c in 80 52 45 36 26 20 16; do w=$(width "$(lay "$c")"); ((w <= c - 1)) && _ok || _no "$c columns: $w wide"; done
+lacks "$(lay 12)" "…"; [[ $(lay 12) == "I  "?*"  2  I  " ]] && _ok || _no "a letter of the folder kept at least: [$(lay 12)]"
 
-# ── real headings at every tile's width ───────────────────────────────────────
+# ── real prompts at every tile's width ────────────────────────────────────────
 for c in $WIDTHS; do
   H=$(headers "$c" 'cd ~/repos/fedokawaii/configs/home/.config' '(exit 3)' 'cd ~/a-folder-whose-name-is-far-longer-than-any-small-tile-is-wide' \
       'cd ~/日本語のフォルダ' '__kawa_t0=$((__kawa_t0 - 4200000))')
-  case_ "$c columns: every heading on one line, at most one column short of the edge — never padded out to it"
+  case_ "$c columns: every prompt one short line, never as wide as the window; the code after a failure kept while the folder can make room"
   eq "$(wc -l <<<"$H")" 6 "six prompts: $H"
   while IFS= read -r h; do
-    w=$(width "$h")
-    ((w <= c - 1)) && _ok || _no "$w wide: [$h]"
-    [[ $h == *' ' ]] && _no "padded: [$h]" || _ok
+    h=${h%"  I  "*}; w=$(width "$h")            # (the line up to its ›: what is typed after it is not the prompt)
+    ((w + 5 <= c - 1)) && _ok || _no "$((w + 5)) wide: [$h]"
   done <<<"$H"
-  case_ "$c columns: a success says nothing; a failure its ✗ and code at the heading's end, never dropped; from 30 columns the time a slow one took"
-  [[ $(sed -n 2p <<<"$H") == *[VX]* ]] && _no "a mark after a success: $(sed -n 2p <<<"$H")" || _ok
-  [[ $(sed -n 3p <<<"$H") =~ X\ \ 3$ ]] && _ok || _no "header 3: [$(sed -n 3p <<<"$H")]"
-  ((c >= 30)) && { [[ $(sed -n 6p <<<"$H") =~ \ \ 4\.[2-9]s$ ]] && _ok || _no "the time taken: $(sed -n 6p <<<"$H")"; }
-  lacks "$H" ╌; lacks "$H" "     " "no stretch of paper"
+  [[ $(sed -n 3p <<<"$H") == *'  3  '* ]] && _ok || _no "header 3: [$(sed -n 3p <<<"$H")]"
+  [[ $(sed -n 2p <<<"$H") == *'.config'* || $c -lt 30 ]] && _ok || _no "the folder: [$(sed -n 2p <<<"$H")]"
 done
-case_ "the deep path at each width: whole, then the folders above to letters, then the folder alone — the heading as long as what it shows"
-eq "$(headers 156 'cd ~/repos/fedokawaii/configs/home/.config' | sed -n 2p)" "I   ~/repos/fedokawaii/configs/home/.config  I  main +1 ?1"
-eq "$(headers 59 'cd ~/repos/fedokawaii/configs/home/.config' | sed -n 2p)" "I   ~/repos/fedokawaii/configs/home/.config  I  main +1 ?1" "58 columns: whole at 59"
-eq "$(headers 58 'cd ~/repos/fedokawaii/configs/home/.config' | sed -n 2p)" "I   ~/r/f/c/h/.config  I  main +1 ?1"
-eq "$(headers 35 'cd ~/repos/fedokawaii/configs/home/.config' | sed -n 2p)" "I   .config  I  main +1 ?1"
-eq "$(headers 20 'cd ~/repos/fedokawaii/configs/home/.config' | sed -n 2p)" "I   .config"
-case_ "a folder name longer than a small tile: no ~/ before it, its end cut, the ✗ kept"
-h=$(headers 20 'cd ~/a-folder-whose-name-is-far-longer-than-any-small-tile-is-wide' '(exit 3)' | sed -n 3p)
-eq "$h" "I   a-folder-  X  3"
-h=$(headers 20 'cd ~/a-folder-whose-name-is-far-longer-than-any-small-tile-is-wide' | sed -n 2p)
-eq "$h" "I   a-folder-whose-"
-case_ "the same heading at every width it fits: nothing depends on the width but what is given up"
-eq "$(headers 188 'cd ~/repos/fedokawaii' '(exit 3)' | sed -n 3p)" "$(headers 69 'cd ~/repos/fedokawaii' '(exit 3)' | sed -n 3p)"
+case_ "deep in a repository: the folder and the one above it, the branch while there is room"
+eq "$(headers 80 'cd ~/repos/fedokawaii/configs/home/.config' | sed -n 2p)" "I  home/.config  I  main*  I  exit"
+eq "$(headers 20 'cd ~/repos/fedokawaii/configs/home/.config' | sed -n 2p)" "I  .config  I  exit"
 
 # ── laid out anew when the width changes (ble.sh runs the prompt command again) ──
-case_ "a second run under the same prompt (ble.sh's line number unchanged) only lays the header out for the new width"
+case_ "a second run under the same prompt (ble.sh's line number unchanged) only lays the line out for the new width — its result and time kept, nothing printed"
 out=$(fn '_ble_edit_lineno=7; COLUMNS=156; cd ~/repos/fedokawaii/configs/home/.config
   __kawa_t0=$(( ${EPOCHREALTIME/[.,]/} - 4200000 )); (exit 3); __kawa_prompt >"$TMP/o1"; a=$__kawa_line
-  COLUMNS=50; (exit 0); __kawa_prompt >"$TMP/o2"; b=$__kawa_line
+  COLUMNS=24; (exit 0); __kawa_prompt >"$TMP/o2"; b=$__kawa_line
   COLUMNS=156; __kawa_prompt >"$TMP/o3"; c=$__kawa_line
   printf "%s\n" "$a" "$b" "$c" | sed "s/\x01\|\x02//g; s/\x1b\[[0-9;]*m//g"
   wc -c <"$TMP/o2"; wc -c <"$TMP/o3"')
 a=$(sed -n 1p <<<"$out") b=$(sed -n 2p <<<"$out") c=$(sed -n 3p <<<"$out")
-eq "$(width "$a")" 70 "[$a]"; eq "$(width "$b")" 48 "[$b]: the folders above to letters"; eq "$c" "$a" "back to the first width: the same heading"
-has "$b" "  3"; [[ $b =~ \ 4\.[2-9]s ]] && _ok || _no "the time taken (4.2 s, and what a loaded machine adds): [$b]"
+[[ $a =~ \ \ 3\ \ 4\.[2-9]s\ \  ]] && _ok || _no "the first width: [$a]"
+((${#b} < ${#a})) && _ok || _no "narrower: [$b]"; has "$b" "  3  " "its code kept (the run of exit 0 between is a redraw, not a command)"
+eq "$c" "$a" "back to the first width: the same line"
 eq "$(sed -n 4p <<<"$out")" 0 "nothing printed on a redraw (no OSC 133;D again, no title, no notice)"
 eq "$(sed -n 5p <<<"$out")" 0
-case_ "… and a new prompt (a new line number) is a new entry: its own mark, foot told the status"
+case_ "… and a new prompt (a new line number) is a new entry: its own result, foot told the status"
 out=$(fn '_ble_edit_lineno=7; COLUMNS=80; __kawa_t0=$(( ${EPOCHREALTIME/[.,]/} - 10 )); (exit 3); __kawa_prompt >/dev/null
-  _ble_edit_lineno=8; (exit 0); __kawa_prompt; printf "\n%s\n" "$__kawa_line" | sed "s/\x01\|\x02//g; s/\x1b\[[0-9;]*m//g"')
-has "$out" $'\e]133;D;0\e\\'; lacks "$(tail -n1 <<<"$out")" "  3"
+  _ble_edit_lineno=8; __kawa_t0=$(( ${EPOCHREALTIME/[.,]/} - 10 )); (exit 0); __kawa_prompt; printf "\n%s\n" "$__kawa_line" | sed "s/\x01\|\x02//g; s/\x1b\[[0-9;]*m//g"')
+has "$out" $'\e]133;D;0\e\\'; lacks "$(tail -n1 <<<"$out")" "  3  "
 case_ "without ble.sh every prompt is a new entry (bash never runs the prompt command twice)"
 out=$(fn 'COLUMNS=80; __kawa_t0=$(( ${EPOCHREALTIME/[.,]/} - 10 )); (exit 3); __kawa_prompt >/dev/null; (exit 0); __kawa_prompt')
 has "$out" $'\e]133;D;0\e\\'
 
 # ── foot's reflow: where the prompt starts after the width changed ────────────
-case_ "__kawa_reflow: the header that filled 95 columns takes 2 rows at 50, 5 at 20 — ble.sh goes up past all of them (no header left above the new one)"
+case_ "__kawa_reflow: nothing above the line typed on but the blank line — ble.sh goes up past it, the line typed on rewrapped"
 # (ble.sh's state as it stands when a window is resized: the prompt drawn at the old width,
 # the cursor on the line typed on; the stand-in for its cursor movement prints where it
 # believes the cursor is when it goes to the prompt's top)
-reflow() {   # reflow OLD NEW GAP HW Y X [PROY] [RPS1] → "y x" handed to ble.sh, or "theirs"
-  fn "COLUMNS=$2 _ble_app_winsize=($1 30) _ble_canvas_panel_height=(4 0) _ble_prompt_ps1_data=(0 '' '' 0 ${7:-$(($3 + 1))})
-    _ble_prompt_rps1_shown=${8-} __kawa_gap=$3 __kawa_hw=$4 _ble_canvas_y=$5 _ble_canvas_x=$6
+reflow() {   # reflow OLD NEW GAP Y X [PROY] [RPS1] → "y x" handed to ble.sh, or "theirs"
+  fn "COLUMNS=$2 _ble_app_winsize=($1 30) _ble_canvas_panel_height=(4 0) _ble_prompt_ps1_data=(0 '' '' 0 ${6:-$((${3:-0} ? 1 : 0))})
+    _ble_prompt_rps1_shown=${7-} __kawa_gap=$3 _ble_canvas_y=$4 _ble_canvas_x=$5
     ble/canvas/panel#goto.draw() { printf '%s %s\n' \"\$_ble_canvas_y\" \"\$_ble_canvas_x\"; }
     ble/canvas/bflush.draw() { :; }
     __kawa_reflow || echo theirs"
 }
-eq "$(reflow 95 50 1 94 2 2)" "3 2" "the blank line, the header on 2 rows, then the line typed on"
-eq "$(reflow 95 20 1 94 2 2)" "6 2" "five rows of header at 20 columns"
-eq "$(reflow 95 20 '' 94 1 2)" "5 2" "no blank line (after clear, a short tile)"
-eq "$(reflow 50 156 1 49 2 2)" "2 2" "wider: nothing wraps, the prompt starts where it did"
-eq "$(reflow 95 95 1 94 2 2)" "2 2" "the same width (a change of height): as it was"
-eq "$(reflow 95 50 1 94 2 70)" "4 20" "a command typed past 50 columns wraps too: the cursor a row further down"
-eq "$(reflow 95 50 1 94 3 10)" "5 5" "a command on two rows at 95: 105 columns of it, three rows at 50"
-eq "$(reflow 20 156 1 19 2 2)" "2 2" "a 20-column header in 156: one row"
-eq "$(reflow 95 50 1 94 2 2 1)" theirs "another prompt (another number of rows): ble.sh's own redraw"
-eq "$(reflow 95 50 1 94 2 2 '' 1)" theirs "a right-hand prompt: ble.sh's own"
-eq "$(reflow 95 50 1 94 5 2)" theirs "the cursor below the prompt's panel (a menu): ble.sh's own"
+eq "$(reflow 95 50 1 1 30)" "1 30" "the blank line, then the line typed on: short enough, nothing wraps"
+eq "$(reflow 95 50 1 1 70)" "2 20" "a line typed past 50 columns wraps: the cursor a row further down"
+eq "$(reflow 95 50 '' 0 70)" "1 20" "no blank line (after clear, a short tile)"
+eq "$(reflow 95 50 1 2 10)" "3 5" "a line on two rows at 95: 105 columns of it, three rows at 50"
+eq "$(reflow 50 156 1 1 30)" "1 30" "wider: as it was"
+eq "$(reflow 95 50 1 1 2 2)" theirs "another prompt (another number of rows): ble.sh's own redraw"
+eq "$(reflow 95 50 1 1 2 '' 1)" theirs "a right-hand prompt: ble.sh's own"
+eq "$(reflow 95 50 1 5 2)" theirs "the cursor below the prompt's panel (a menu): ble.sh's own"
 case_ "a window nothing has run in yet (opened in a burst, retiled again and again): drawn again from the top, its width let settle first"
 out=$(TERM=foot bash -ic "COLUMNS=50 _ble_app_winsize=(95 30) _ble_canvas_y=3 _ble_canvas_x=2
   ble/util/msleep() { echo sleep >>\"\$HOME/sleeps\"; }; ble/textarea#invalidate() { :; }; ble/canvas/panel/goto-top-dock.draw() { :; }
   ble/canvas/bflush.draw() { :; }; ble/util/buffer() { printf '%q' \"\$1\"; }; _ble_term_clear=CLEAR
   __kawa_reflow && printf ' %s %s' \"\$_ble_canvas_y\" \"\$_ble_canvas_x\"" 2>/dev/null)
 eq "$out" "\$'CLEAR\\E[3J' 0 0" "the screen cleared, then its scrollback (3J after the clear: foot brings no row of the old heading back down)"; rm -f "$HOME/sleeps"
-case_ "the header's width as __kawa_reflow counts it: what __kawa_layout drew, every width"
-for c in 156 95 77 58 50 37 34 30 29 20 12; do
-  got=$(fn "cd ~/repos/fedokawaii; COLUMNS=$c; __kawa_t0=\$(( \${EPOCHREALTIME/[.,]/} - 10 )); (exit 3); __kawa_prompt >/dev/null
-    printf '%s|%s' \"\$__kawa_hw\" \"\$__kawa_line\" | sed 's/\x01\|\x02//g; s/\x1b\[[0-9;]*m//g'" | plain)
-  eq "${got%%|*}" "$(width "${got#*|}")" "$c columns: [${got#*|}]"
-done
-case_ "an entry once its command runs (ble.sh's final prompt): the header without the paper between (two spaces before the right part) — everything else kept, laid out again with the width"
-for c in 188 69 24; do
-  got=$(fn "cd ~/repos/fedokawaii; COLUMNS=$c; __kawa_t0=\$(( \${EPOCHREALTIME/[.,]/} - 10 )); (exit 3); __kawa_prompt >/dev/null
-    printf '%s' \"\$__kawa_final\" | sed 's/\x01\|\x02//g; s/\x1b\[[0-9;]*m//g; s/\x1b\]133;A\x1b\\\\//'" | plain)
-  lacks "$got" "      " "$c: [$got]"; has "$got" "X  3" "$c: the mark"; has "$got" "fedokawaii" "$c: the place"
-  [[ $got == *$'\n'?' ' && $got != *$'\n'*$'\n'*$'\n'* ]] && _ok || _no "$c: the header, then the line typed on: [$got]"
-done
-got=$(fn 'cd ~/repos/fedokawaii; COLUMNS=188; __kawa_prompt >/dev/null; a=$__kawa_final; _ble_edit_lineno=1 __kawa_lineno=1 COLUMNS=30 __kawa_prompt; [[ $a != "$__kawa_final" ]] && echo relaid')
+case_ "an entry once its command runs (ble.sh's final prompt): the same line, its torii's colour and all — the history a column of them"
+got=$(fn 'cd ~/repos/fedokawaii; COLUMNS=120; __kawa_prompt >/dev/null; __kawa_t0=$(( ${EPOCHREALTIME/[.,]/} - 10 )); (exit 3); __kawa_prompt >/dev/null; [[ $__kawa_final == $'"'"'\n'"'"'"$__kawa_line" ]] && echo same')
+eq "$got" same "the blank line, then the line itself"
+got=$(fn 'cd ~/repos/fedokawaii; COLUMNS=188; __kawa_prompt >/dev/null; a=$__kawa_final; _ble_edit_lineno=1 __kawa_lineno=1 COLUMNS=20 __kawa_prompt; [[ $a != "$__kawa_final" ]] && echo relaid')
 eq "$got" relaid "a change of width lays the final form out again too"
-case_ "the final form in the quiet ink (muted, 21): the whole heading and its ›; a failure's ✗ and code still vermilion"
-got=$(fn 'cd ~/repos/fedokawaii; COLUMNS=120; __kawa_t0=$(( ${EPOCHREALTIME/[.,]/} - 10 )); (exit 3); __kawa_prompt >/dev/null; printf "%s" "$__kawa_final"' | sed 's/\x01\|\x02//g')
-has "$got" $'\e[38;5;21m'"$ICON_TORII   ~/repos/fedokawaii  $ICON_BRANCH  main" "one quiet span, from the torii on"
-has "$got" $'\e[91m'"$ICON_CROSS  3"$'\e[0m'
-has "$got" $'\n\e[38;5;21m'"$ICON_CHEVRON_RIGHT"$'\e[0m ' "its › muted (__s_done)"
-lacks "$got" $'\e[38;5;20m' "nothing in the accent"; lacks "$got" $'\e[94m' "no git colour"
-got=$(T_TERM=linux fn 'COLUMNS=80; __kawa_prompt >/dev/null; printf "%s" "$__kawa_final"' | sed 's/\x01\|\x02//g')
-has "$got" $'\e[90m#  ' "the consoles: grey"
 lacks "$(fn 'COLUMNS=80; __kawa_prompt >/dev/null; printf %s "$__kawa_final"')" $'\e]133;A' "no second prompt mark (foot's prompt jumps, and a typed session, count them)"
 case_ "ble.sh shows it: prompt_ps1_final names it (set once ble.sh is loaded)"
 grep -q "bleopt prompt_ps1_final='\${__kawa_final}'" "$HOME/.bashrc.d/fedokawaii.sh" && _ok || _no "no prompt_ps1_final"
@@ -213,7 +159,7 @@ if [[ -n $BLESH_PIN && $(bash "$BLESH_DIR/ble.sh" --version 2>/dev/null) == *"+$
   has "$out" $'\e]133;C\e\\1\r' "the advice is in place"
   for step in "120x30 50x30" "50x30 156x30" "95x30 20x14"; do
     read -r from to <<<"$step"
-    case_ "ble.sh ${BLESH_PIN:0:7}: a prompt up at ${from%x*} columns, the window made ${to%x*}: the header redrawn for ${to%x*}, its mark kept"
+    case_ "ble.sh ${BLESH_PIN:0:7}: a prompt up at ${from%x*} columns, the window made ${to%x*}: the line redrawn for ${to%x*}, its code kept"
     home; mkdir -p "$HOME/.local/share"; cp -a "$BLESH_DIR" "$HOME/.local/share/blesh"
     # (exit 3) run at the first width; the window resized; then the header as it stands
     # (the line the prompt shows: what a command typed next still sees of it)
@@ -224,8 +170,8 @@ if [[ -n $BLESH_PIN && $(bash "$BLESH_DIR/ble.sh" --version 2>/dev/null) == *"+$
     eq "${h##* C=}" "${to%x*}" "the shell knows the new width: $h"
     h=${h#LINE[} h=${h%] C=*}
     w=$(width "$h")
-    if ((${to%x*} >= 30)); then eq "$w" $((${to%x*} - 1)) "[$h]"; else ((w <= ${to%x*} - 1)) && _ok || _no "$w wide: [$h]"; fi
-    [[ $h =~ X\ \ 3($|\ \ ) ]] && _ok || _no "the mark: [$h]"
+    ((w <= ${to%x*} - 1)) && _ok || _no "$w wide: [$h]"
+    [[ $h == *'  3  '* ]] && _ok || _no "the code: [$h]"
   done 2>/dev/null
 else
   case_ "ble.sh resize"; skip "no ble.sh ${BLESH_PIN:0:7} at $BLESH_DIR (FEDOKAWAII_BLESH names one)"

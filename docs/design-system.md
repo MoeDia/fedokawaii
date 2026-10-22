@@ -12,7 +12,6 @@ these parts and nothing else.
 |---|---|
 | `ground` | the screens' ground: terminals, panels and menus (all at the terminal's see-through: kawa-glass), the lock |
 | `surface` | a notice's and the level display's ground (solid); a shade of the ground under a cursor line |
-| `cloth` | the bar's cloth: kachi-iro on ink, kinari on paper |
 | `key` | the fill of a tile or a key button at rest |
 | `edge` | a tile's 1 px frame at rest |
 | `edge2` | a seal's 1 px frame, the panels' stitched rules, an unlit square |
@@ -20,15 +19,13 @@ these parts and nothing else.
 | `muted` | secondary values; the panel's outer 2 px frame |
 | `text` | names and rows |
 | `strong` | a lit tile's name; the bar's time; emphasis |
-| `accent` | the keyboard's cursor fill; the bar's red patches (beni), under the torii and the cat — the only filled vermilion |
+| `accent` | the keyboard's cursor fill — with the bar's vermilion tiles (§8), the only filled vermilion |
 | `accent_text` | kanji in seals, the torii, a hovered glyph and name in a panel |
 | `accent_lo` | the dim vermilion of an unlit seal on a filled row |
-| `text_on_accent` | ink on vermilion: the torii and the cat cut out of their patches |
-| `asagi` | lit: on the bar, under the pointer or open; lit meter squares; the patch of a workspace asking for you |
-| `moegi` | the numeral of a workspace holding windows (the palette's bright green) |
-| `aizome` | the indigo-dyed patch of a workspace holding windows |
-| `kinari` · `kachi` | the workspace you are on: the cloth turned over — kinari (undyed) on the ink theme, kachi (indigo-black) on the paper one |
-| `lo` · `blue` | the bar's sashiko: on the cloth, `muted` thread with an `lo` shadow (ink) or `blue` (indigo) thread with an `edge` shadow (paper); on a patch, the thread pale on a dark dye and indigo on a pale one |
+| `text_on_accent` | ink on vermilion: the torii and the cat on their tiles |
+| `asagi` | lit: on the bar, under the pointer or open; lit meter squares; a workspace asking for you |
+| `lo` · `blue` | the screensaver's sashiko: `muted` thread with an `lo` shadow (ink) or `blue` (indigo) thread with an `edge` shadow (paper) |
+| `tile` | the bar's washi (§8) and the lock and login screens' scroll (§9): ink-dyed paper on the ink theme, cream paper on the paper one |
 
 Colours come only from these tokens; no literal colour anywhere, in either theme.
 
@@ -79,7 +76,7 @@ Colours come only from these tokens; no literal colour anywhere, in either theme
 | content | 376 | the inner width of a panel (412 with pad and frame) |
 | meter | 12 × (14 × 10) | its squares 2 px apart (a 16 px pitch, 190 px), lit `asagi`, unlit `edge2` |
 | app icon | 22 × 22 | the launcher's: the 24 px row less a pixel above and below |
-| bar | 31 high | 7 px of cloth, the 16 px line, the workspaces' threads, the hem (§8) |
+| bar | 31 high | washi tiles: hairline, paper, rule, the 16 px line, rule, paper, hairline, shadow (§8) |
 
 ## 4. Parts
 
@@ -123,13 +120,17 @@ Colours come only from these tokens; no literal colour anywhere, in either theme
 | disabled / absent | `faint`, and the word says why ("none", "off") |
 
 What moves is short and never holds input — a click or a key acts on where things are
-going, at once: **the wash** of a theme switch and a new wallpaper (an ordered 8 × 8 dither
-on the screensaver's grid of dots, 8 steps 32 ms apart, `kawa-saver --wash`), the
-screensaver washing itself away as it leaves (180 ms, the same dither), and dwl's windows —
-a window fades in as it rises its last 24 px to its place, and fades away sinking as much;
-a workspace switch fades the windows out as they drift a little (6 % of the screen) to one
-side, and the next ones in from the other. Each over 220 ms, drawn at every refresh of the
-screen (144 a second here), eased out (fast, then settling), positions in whole pixels.
+going, at once: **the wash** of a theme switch and a new wallpaper (the screen as it was,
+faded away over 320 ms on a smootherstep, `kawa-saver --wash`: the picture sent once, only
+its opacity changed — the compositor blends it), the screensaver fading as it leaves
+(180 ms, the same curve), and dwl's windows — a window fades in as it rises its last 24 px to
+its place (240 ms), and fades away sinking as much (180 ms: quicker, out of the way); a
+workspace switch fades the windows out as they drift a little (6 % of the screen) to one
+side, and the next ones in from the other (240 ms). Every one is drawn at every refresh of
+the screen (144 a second here) for the moment that frame reaches the glass (the last frame's
+presentation time and the refresh: each step exactly a refresh apart), the movement eased
+out (fast, then settling) in whole pixels, the opacity on a smootherstep (no pop at either
+end).
 Nothing ever sweeps a hard edge across the screen: a moving cut reads as a tear.
 
 ## 6. Behaviour
@@ -153,62 +154,69 @@ The same grammar in characters, Sumi Term at 20 px:
 - **Row**: two spaces indent, glyph, two spaces, name; the value right-aligned, `muted`.
 - **Cursor**: the row's background `accent`, its text `text_on_accent`.
 - One blank line between parts; one before the footer; the footer in `muted`.
+- Windows tile 8 px apart and 5 px from the screen's edges, so a window's outer edge falls
+  on the bar's tiles' hairline (x 5 and 1914): the windows are exactly as wide as the bar.
 - Window padding: foot's 10 px; the content keeps two cells from the frame.
 - Ground: `ground` at alpha 0.92 (kawa-glass): the wallpaper shows faintly through, the text
   never does. No blur.
-- **The prompt**: the torii, the place, git; at the right edge the last command's ✓ or ✗ and
-  code, how long it took, and the time to the minute — open paper between, no rule; then `›`
-  and one space. An entry already run keeps its header without the paper between.
+- **The prompt**: one short line — the torii (`bgreen` when the last command worked,
+  `accent_text` when it failed), one space, the folder above in the faint ink and the one you
+  are in in `strong`, two spaces, the branch mark faint and the branch muted (`*` in yellow
+  when not committed), the code in `accent_text` when it failed, the time muted when 3 s or
+  more, two spaces, `›` in `accent_text`, one space. An entry already run keeps its line.
 
 ## 8. The bar
 
-A strip of cloth across the top, sewn in sashiko and patched as boro is (`style.css`; every
-picture drawn by `tools/build-themes.py`, per theme, exactly to its box). Every line on it is
-a running stitch of one thread, 3 px on and 2 off, each pixel of thread with its shadow a
-pixel down and to the right; the thread is the cloth's: pale on a dark dye, indigo on a pale
-one. On the cloth itself the thread is quiet — two fifths of the way into the cloth: it
-parts, it does not draw the eye. The cloth is kachi-iro, indigo dyed until it is all but black
-(`cloth`; on paper kinari, undyed cotton), with a faint grain.
+紙 kami: no bar — tiles of washi floating along the top of the wallpaper (`style.css`; every
+picture drawn by `tools/build-themes.py`, per theme, exactly to its box). Each theme has its
+own paper: on the ink, paper dyed in ink (墨染め sumizome, `tile`) with pale words; on the
+paper, the paper as it comes (生成り kinari) with words in sumi. Every tile carries a printer's
+rule a pixel inside its edge, a hairline round it (pale on the ink, dark on the paper), a
+two-row shadow under it and a faint fibre in the paper — so it stands on any wallpaper.
 
-31 px: the hem's stitch on row 29, the bar's foot (the width of the screen, laid from its
-middle); patches on rows 4–26 (23 = 4 × 5 + 3: a stitch at both ends); seams, the
-separators, on the capitals' rows 9–21 (three stitches); the 16 px line on rows 8–23 —
-row 15 is the middle of everything. An icon alone in a cell sits a row higher, its 15 px
-centred there too.
+31 rows, every tile alike: the hairline on 2, the paper 3–27 with its rules on 5 and 25, the
+hairline on 28, the shadow 29–30; the 16 px line on 8–23, the capitals on 9–21 — row 15 is the
+middle of everything. An icon alone on a tile sits a row higher, its 15 px centred there too.
+Spacing is symmetric: 8 px from the paper's edge to the ink on both sides — words that change (the title, what plays) carry their first and last letters' own air as classes (`width.sh`'s `air`, measured from Sumi UI) so the 8 px holds whatever the words — 4 px between the
+tiles of a group, 10 px between groups, 6 px from the screen's edges.
 
 | part | look |
 |---|---|
-| a **patch** | a picture of exactly its box: dyed rows 4–26, framed by a running stitch on its very edge pixels — corners stitched, each edge laid symmetrically from both corners (a length off the 5 px rhythm takes the difference in its middle gap or stitch) — and sewn all over in hitomezashi, faintly, tone on tone (a tenth toward the thread; kaki-no-hana, centred); the cloth between two patches |
-| the torii (the launcher) | on a beni patch (`accent`) at the left corner, cut out of it in `text_on_accent` |
-| a workspace | a cell 8 px of cloth either side of its numeral to the frame (36 px; 35 for 四 七 九): empty, the frame alone, the numeral `faint`; holding windows, aizome (`aizome`), the numeral `moegi`; the one you are on, the cloth turned over — kinari on the ink, kachi on the paper — the numeral in the other theme's `accent_text`; one asking for you, asagi, the numeral `urgent_text` |
-| the clock | in the screen's middle, on the cloth itself — no patch: the date `text` · a seam · the day's kanji `accent_text` · a seam · the time `strong`, 8 px from each seam's thread to the ink beside it, centred on the screen |
-| the music's wings | while something plays, its spectrum either side of the clock — the left channel left, the right right, 8 thin columns each (2 px, 2 apart, 1–13 px tall in 2 px steps), the lowest notes nearest the clock — 16 px out from the clock's ink; one warm grey by height: the floor `edge2`, low `faint`, middle `muted`, tall `text` |
-| what plays | the first cell on the right: a cassette whose reels turn while there is sound, the title in `text`, two spaces, the artist in `faint` (paused: a pause sign, the title `muted`) |
-| a cell on the right | a timer, recording, the mode, drives, downloads, Steam, the keyboard, memory, volume, brightness, the weather: each a cell of the cloth with a seam at its left (the capitals' rows), 8 px from the thread to its ink and from its ink to the next thread (its last glyph's air counted) |
-| the cat (quick settings) | on the right corner's beni patch, as the torii on the left |
-| lit | under the pointer, or while what it opened is on screen: `asagi`, at once (on beni or asagi: `strong`; on the turned-over cloth: the other theme's `asagi`/`blue`) |
+| a **tile** | `kami-tile.png` as a border-image (sliced 6 5 6 4: the edges stay, the middle stretches under the words), the paper and its fibres inside the rule |
+| the torii (the launcher) | on a vermilion tile with a gold rule (`kami-red.png`) at the left corner, in `text_on_accent` |
+| a workspace | a tile each, its numeral `faint` when empty, `text` holding windows; the one you are on stamped with a round vermilion seal drawn to the tile's inside and centred on the numeral to the pixel (`kami-seal.png`, `kami-seal-narrow.png` for 四 七 九), its numeral `seal-ink`; one asking for you `asagi` |
+| the layout and the title | one tile between them, the layout's mark `muted`, the title `text` |
+| the clock | a hanging scroll (`kami-scroll.png`: the paper between two lacquered rods with gold caps), centred on the screen: the date `text`, the day's kanji `accent_text` exactly on the screen's centre line, the time `strong`; 14 px between them, the date side 8 px more so the kanji stays centred |
+| the music's wings | while something plays, inside the scroll either side of the clock: its spectrum, the left channel left and the right right, 8 columns a side (2 px wide, 4 apart, 1–13 px tall in 7 steps of 2), the lowest notes nearest the clock; one warm grey by height, `edge2` to `text` |
+| what plays | the first tile on the right: a cassette whose reels turn while there is sound, the title `text`, two spaces, the artist `faint` (paused: a pause sign, the title `muted`) |
+| a tile on the right | a timer, recording, the mode, drives, downloads, Steam, the keyboard, memory, volume, brightness, the weather: each its own tile, 8 px from the paper to its ink both sides (its last glyph's air counted) |
+| the cat (quick settings) | on the right corner's vermilion tile, as the torii on the left |
+| lit | under the pointer, or while what it opened is on screen: `asagi`, at once (on vermilion: `strong`) |
 
 ## 9. Notices, the lock and login screens
 
 - **Notice** (mako): 412 px wide as a panel, 16 px of padding, a 2 px frame; its icon (up to
   48 px) on the left; its title, then its body on 24 px lines; a critical one framed in
   vermilion.
-- **Lock and login**: no panel, no box — one column on the wallpaper shaded three quarters
-  into the ground (`kawa-wallpaper` draws it): the padlock and the time at 64 px with AM/PM on
-  its baseline; the day (its seal, the date, the weekday in kanji); the season's line; the
-  password's line — an underline, a `accent_text` ◆ for each character; three keys (sleep,
-  restart, power off) as words alone, `accent_text` under the pointer and the keyboard.
+- **Lock and login**: on the wallpaper shaded three quarters into the ground (`kawa-wallpaper`
+  draws it), the bar's clock grown into a hanging scroll — the same washi, rule and lacquered,
+  gold-capped rods at twice the bar's pixels — and on it one column: the padlock and the time
+  at 64 px with AM/PM on its baseline; the day (its seal, the date, the weekday in kanji); the
+  season's line; the password's line — a line of the rule's colour under it, a `accent_text`
+  ◆ for each character; three keys (sleep, restart, power off) as words alone, `accent_text`
+  under the pointer and the keyboard.
 
-- **Screensaver** (`kawa-saver`): the cloth of the bar, the screen's size — hitomezashi sewn
-  line by line in the bar's own thread (`muted` on the ink, `blue` on the paper, each dot's
+- **Screensaver** (`kawa-saver`): a cloth the screen's size on the theme's ground — hitomezashi
+  sewn line by line in a quiet thread (`muted` on the ink, `blue` on the paper, each dot's
   shadow a dot down and right), on a grid of dots as big as a pixel of the wallpapers; seals
   (a 2-dot `accent_text` frame) stamped and lifted; the time on a `surface` patch framed in
-  running stitch as the bar's clock is. Any input washes it away at once (180 ms), the lock
+  running stitch. Any input washes it away at once (180 ms), the lock
   coming up behind it.
-- **Two families of frame**: what is sewn into the cloth — the bar, its patches and seams, the
-  screensaver — is framed in running stitch with its shadow; what lies on top of it — windows,
-  panels, menus, notices, tooltips — in a plain 2 px line (a window's focused one vermilion),
-  the stitch inside them only as a heading's rule.
+- **Two families of frame**: paper laid on the wallpaper — the bar's tiles, the lock's scroll — is
+  framed by its printer's rule, a hairline and a shadow; what is drawn on the screen itself —
+  windows, panels, menus, notices, tooltips — in a plain 2 px line (a window's focused one
+  vermilion), the stitch inside them only as a heading's rule; the screensaver is sewn, in
+  running stitch with its shadow.
 
 ## 10. The books
 

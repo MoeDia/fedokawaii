@@ -77,277 +77,120 @@ __kawa_glass() {
 unset -f __kawa_glass
 
 # ── prompt ──────────────────────────────────────────────────────────────────
-# Two lines, in the bar's own language (紙 kami): the heading you type under is a row of
-# washi tiles, as the bar's — and under it the line you type on. Everything on the left,
-# nothing laid out against the right edge: the heading is the same however wide the window
-# is, so a window that changes width (a burst of new ones retiling each other, a layout
-# switched) only ever rewraps it — nothing is left half-drawn above the line you type on.
+# One short line, a few words, and only colour carries the result:
 #
-#   ▐⛩▌ ▐~/repos/site▌ ▐⎇ main +2 ~1▌ ▐✗ 2▌ 4.2s
-#   › ls
+#   ⛩ repos/fedokawaii  ⑂ main*  ›  ls          the last command went well: the torii green
+#   ⛩ repos/fedokawaii  ⑂ main*  2  4.2s  ›     it failed (exit 2, after 4.2 s): vermilion
 #
-#   ⛩            the torii on a vermilion tile, in the ground's ink: the heading's seal
-#   the path     on washi: the folders above muted, the one you are in in the strongest ink
-#   git          on washi: the branch, then only what is non-zero: +staged ~modified
-#                ?untracked !conflicted ↑ahead ↓behind — one `git status` call, parsed in bash
-#   the outcome  only what needs a look: ✗ and the exit code on vermilion when the command
-#                failed; the time it took, muted, untiled, when that was 3 s or more. A command
-#                that went well and quickly says nothing (the time is the bar's)
-#   ›            the pixel chevron every list of the desktop types after, in accent_text:
-#                it fills its own cell, so one space, then what you type
-# A tile is cells on the terminal's colour 24 (the bar's washi: ink-dyed paper on the dark
-# theme, the paper as it comes on the light), opened by ▐ and closed by ▌ in that colour —
-# half a cell each, which foot draws to the pixel: 6 px from a tile's edge to its ink, 10 px
-# between two tiles, the torii's 10 either side of its ink.
-# Once its command runs, an entry's heading turns plain and quiet — no tiles, the quiet ink,
-# a failure's ✗ still vermilion: the history above is a calm column, and the heading you
-# type under is the one thing on paper.
-# Also shown when they apply, each on its own tile: user@host over SSH, the Python venv,
-# background jobs. On a text console (no foot) the same parts, plain, two spaces apart.
-#
-# A heading wider than its window (a deep folder in a small tile) gives up, in this order
-# and only as far as it must:
-#   1  the folders above, to their first letters        ~/r/f/configs → ~/r/f/c/h/.config
-#   2  the folders above altogether                     .config
-#   3  git's counts (the branch stays)
-#   4  the time the command took
-#   5  the branch
-# and under 30 columns: the torii, the folder (its end cut only when even it is too long)
-# and the outcome when it fits.
-# The heading being typed under is drawn again in place, nothing left above it, however
-# often the window changes width (foot rewraps what is on screen: __kawa_reflow below).
-# The tiles stop at their last cell: the cursor on the line below never touches them.
-# Colours are the terminal's 16, so the prompt follows the dark and light themes.
-# Cost: pure bash outside git repositories (one git call inside); the timer is stamped
-# by PS0 without a fork. A blank line separates each command's output from the next.
+#   ⛩        the torii: green when the command before went well, vermilion when it failed
+#   folder   the one you are in, in the strongest ink, after the one above it in the faint
+#            ink (~ at home, / at the root) — the whole path is the window's title, in the bar
+#   branch   in git: the branch mark faint, the branch muted; * when anything is not committed
+#   the code only when it failed, vermilion
+#   the time only when it took 3 s or more, muted
+#   jobs     "jobs 1", muted, while a program waits in the background
+#   ›        the desktop's pixel chevron, in the vermilion ink every list's search line has
+# Two spaces between the parts, one after the torii (whose ink stops short of its second
+# column: 14 px of air to the folder); the icons carry a space for their second half.
+# A narrow window gives up the time, then the branch, then the folder's end. The line is
+# the same once its command has run, so the history above reads as a column of them.
+# On a text console (no foot) the same words, plain: '#' for the torii, '>' for the ›.
+# Cost: pure bash outside git repositories (one git call inside); the timer is stamped by
+# PS0 without a fork. A blank line separates each command's output from the next.
 __kawa_in_git() {                              # pure bash: no fork outside repositories
   local d=$PWD
   while :; do [[ -e $d/.git ]] && return 0; [[ -z $d ]] && return 1; d=${d%/*}; done
 }
 
-# git: one porcelain-v2 call → branch and counts (sets __g_text and __g_plain, and the
-# branch alone: __g_btext, __g_bplain). Every read in the prompt is bash's own (builtin read):
-# ble.sh's read handles the signals that came in while it waits — a window retiled while
-# git answered then redrew the prompt from the middle of making it, at a width the
-# terminal no longer had, and left that header above the real one
+# git: one porcelain-v2 call → the branch (__g_branch) and whether anything is not
+# committed (__g_dirty). bash's own read: ble.sh's handles signals while it waits — a
+# window retiled while git answered then redrew the prompt from the middle of making it
 __kawa_git() {
-  local line head="" ab="" st=0 md=0 un=0 cf=0 x y ahead behind
-  __g_text="" __g_plain="" __g_btext="" __g_bplain=""
+  local line
+  __g_branch='' __g_dirty=''
   while IFS= builtin read -r line; do
     case $line in
-      '# branch.head '*) head=${line#\# branch.head } ;;
-      '# branch.ab '*)   ab=${line#\# branch.ab } ;;
-      '1 '*|'2 '*)       x=${line:2:1} y=${line:3:1}
-                         [[ $x != . ]] && st=$((st + 1)); [[ $y != . ]] && md=$((md + 1)) ;;
-      'u '*)             cf=$((cf + 1)) ;;
-      '? '*)             un=$((un + 1)) ;;
+      '# branch.head '*) __g_branch=${line#\# branch.head } ;;
+      '1 '*|'2 '*|'u '*|'? '*) __g_dirty='*' ;;
     esac
   done < <(git --no-optional-locks status --porcelain=v2 --branch 2>/dev/null)
-  [[ -n $head ]] || return 0
-  [[ $head == '(detached)' ]] && head="detached"
-  head=${head//[[:cntrl:]]/?}
-  __g_text="$__c_gicon$__i_branch$__c_git$head" __g_plain="$__i_branch$head"
-  __g_btext=$__g_text __g_bplain=$__g_plain
-  ((st)) && __g_add "$__c_add" "+$st"
-  ((md)) && __g_add "$__c_mod" "~$md"
-  ((un)) && __g_add "$__c_dim" "?$un"
-  ((cf)) && __g_add "$__c_bad" "!$cf"
-  if [[ -n $ab ]]; then
-    builtin read -r ahead behind <<<"$ab"; ahead=${ahead#+} behind=${behind#-}
-    ((ahead)) && __g_add "$__c_git" "$__i_up$ahead"
-    ((behind)) && __g_add "$__c_git" "$__i_down$behind"
-  fi
+  [[ $__g_branch == '(detached)' ]] && __g_branch=detached
+  __g_branch=${__g_branch//[[:cntrl:]]/?}
   return 0
 }
-__g_add() { __g_text+=" $1$2$__c_off"; __g_plain+=" $2"; }
 
-# Marks: the desktop's pixel icons in foot, the one terminal that has the icon font;
-# plain characters anywhere else (the text consoles — Fedora 45 runs kmscon on tty2–6 —
-# or a login from another machine).
-# In foot every character is one column, but a pixel icon is two columns of ink: foot draws
-# it on into the column after it. So each such mark carries a space for its own second half
-# — then the usual space comes after it, and nothing ever touches it. The widths below count
-# it so. (The arrows are one column: Sumi Term draws them into their cell.)
-if [[ $TERM != foot* ]]; then
-  __i_torii='#  ' __i_branch='git: ' __i_fail='x '
-  __i_up='↑' __i_down='↓' __i_mark='>'
-else
+# the marks and inks: the desktop's pixel icons and the theme's colours in foot (a pixel
+# icon is two columns of ink: each carries a space for its second half); plain text and
+# the console's 16 colours elsewhere. Colours are raw escapes in \001…\002 (readline: zero
+# width); the line is kept in $__kawa_line and PS1 only *refers* to it, so a folder or a
+# branch named like $(command) is printed, never run.
+if [[ $TERM == foot* ]]; then
   # shellcheck source=/dev/null
   . ~/.config/fedokawaii/icons.sh
-  # (the torii as a seal, as tall as a kanji: the header is a heading (§7), the torii its
-  # kanji; after it its second half and two spaces, as after a heading's kanji. The ›
-  # of the line you type on is drawn inside its one cell: no second half — PS1's space
-  # alone stands between it and what you type)
-  # (on a tile an icon's own air is the space after it: 6 px to the words, as the bar's 8 less
-  # the letters' own pixel)
-  __i_torii="$ICON_TORII   " __i_branch="$ICON_BRANCH "
-  __i_fail="$ICON_CROSS " __i_up='↑' __i_down='↓'
-  __i_mark=$ICON_CHEVRON_RIGHT
+  __i_torii="$ICON_TORII " __i_mark="$ICON_CHEVRON_RIGHT " __i_branch="$ICON_BRANCH  " __i_w=2 __i_bw=3
+  __c_ok=$'\001\e[92m\002' __c_bad=$'\001\e[38;5;20m\002' __c_here=$'\001\e[38;5;23m\002'
+  __c_dim=$'\001\e[38;5;21m\002' __c_dirty=$'\001\e[93m\002' __c_mark=$'\001\e[38;5;20m\002'
+  __c_faint=$'\001\e[38;5;22m\002'
+else
+  __i_torii='#' __i_mark='>' __i_branch='' __i_w=1 __i_bw=0
+  __c_ok=$'\001\e[32m\002' __c_bad=$'\001\e[31m\002' __c_here=$'\001\e[1;37m\002'
+  __c_dim=$'\001\e[37m\002' __c_dirty=$'\001\e[33m\002' __c_mark=$'\001\e[90m\002'
+  __c_faint=$'\001\e[90m\002'
 fi
-
-# Colours are raw escapes wrapped in \001…\002 (readline: zero width). The finished
-# line is kept in $__kawa_line and PS1 only *refers* to it, so a folder or branch
-# named like $(command) is printed, never run. The torii, ✗ and every failure are the
-# theme's vermilion.
-__c_torii=$'\001\e[91m\002'    __c_dir=$'\001\e[0;37m\002'   __c_here=$'\001\e[1;97m\002'
-__c_git=$'\001\e[94m\002'      __c_add=$'\001\e[92m\002'     __c_mod=$'\001\e[93m\002'
-__c_dim=$'\001\e[90m\002'      __c_bad=$'\001\e[91m\002'     __c_host=$'\001\e[33m\002'
 __c_off=$'\001\e[0m\002'
-# in foot the metadata is the screens' muted (colour 21: the folders above, the time taken,
-# venv and jobs), the › the prompt's accent_text (20) as in every list's search
-# line; plain white and grey on the consoles
-__s_mark=$'\e[37m' __s_done=$'\e[90m'
-# The tiles (foot): each part of the heading you type under on a tile of washi — the
-# terminal's colour 24, the bar's paper — opened by ▐ and closed by ▌ in the tile's colour
-# (half a cell each: foot draws those to the pixel), so a tile's ink is 6 px from its edges
-# and two tiles stand 10 px apart; the torii and a failure on vermilion (16) in its ink (17).
-# Inside a tile only the ink changes (__c_off resets the ink, never the paper). Elsewhere
-# (the text consoles) no tiles: the parts two spaces apart, as plain text.
-__p_o='' __p_c='' __t_o='  ' __t_c='' __r_o='  ' __r_c='' __t_w=2 __p_w=0 __d_sep='  '
-__c_fail=$__c_bad __c_gicon=$__c_git
-if [[ $TERM == foot* ]]; then
-  __c_dir=$'\001\e[22;38;5;21m\002' __c_dim=$'\001\e[38;5;21m\002' __c_here=$'\001\e[38;5;23m\002'
-  __c_off=$'\001\e[22;39m\002'
-  __s_mark=$'\e[38;5;20m' __s_done=$'\e[38;5;21m'
-  __t_o=$'\001\e[38;5;24m\002▐\001\e[48;5;24;39m\002' __t_c=$'\001\e[49;38;5;24m\002▌\001\e[0m\002'
-  __r_o=$'\001\e[38;5;16m\002▐\001\e[48;5;16;38;5;17m\002' __r_c=$'\001\e[49;38;5;16m\002▌\001\e[0m\002'
-  __p_o=$__t_o __p_c=$__t_c __t_w=2 __p_w=2 __d_sep=' ' __c_fail=$'\001\e[38;5;17m\002'
-  __c_gicon=$'\001\e[38;5;21m\002' __c_git=$'\001\e[39m\002'
-fi
 __kawa_one=x __kawa_fresh=1 __kawa_j='\j' __kawa_line='' __kawa_pwd=$PWD __kawa_z=0 __kawa_lineno=''
-__g_text='' __g_plain='' __g_btext='' __g_bplain=''
+__kawa_ok=1 __kawa_rc=0 __kawa_took='' __kawa_jobs='' __kawa_place='' __kawa_above='' __g_branch='' __g_dirty=''
 # __kawa_t0: when the command being run started (PS0 stamps it; 0: no command since the
 # last prompt — a new window, or Enter on an empty line)
 __kawa_t0=0
 
-# ── the header's layout: pure functions of the pieces and the width ──────────
 # __kawa_w TEXT → __w: the columns TEXT takes in foot — Japanese, Chinese and Korean
 # letters and emoji take two, so a folder or a branch named in them counts twice
 __kawa_w() {
-  # (the wide letters' long bracket costs a tenth of a millisecond a letter: only the few
-  # letters past ASCII go through it — none at all in nearly every path and branch)
   [[ $1 != *[!\ -~]* ]] && { __w=${#1}; return 0; }
-  [[ ${LC_ALL-} == C.UTF-8 ]] || local LC_ALL=C.UTF-8    # (the prompt sets it once: each switch costs)
+  [[ ${LC_ALL-} == C.UTF-8 ]] || local LC_ALL=C.UTF-8
   local rest=${1//[\ -~]/}
   local wide=${rest//[!ᄀ-ᅟ⺀-〾ぁ-㏿㐀-䶿一-鿿ꀀ-꓏가-힣豈-﫿︰-﹏！-｠￠-￦🌀-🙏🚀-🛿🤀-🧿𠀀-𿿽]/}
   __w=$(( ${#1} + ${#wide} ))
 }
 
-# __kawa_paths P → the place in three lengths, each the quiet folders above (__kp_d[i])
-# and the bright one you are in (__kp_h), with their widths (__kp_dw[i], __kp_hw):
-#   0  as it is                                       ~/repos/fedokawaii/configs/home/.config
-#   1  the folders above to their first letter        ~/r/f/c/h/.config   (a dot folder: .c)
-#   2  the folder alone                               .config
-# (never longer than the form before it: ~/repos stays ~/repos)
-__kawa_paths() {
-  [[ ${LC_ALL-} == C.UTF-8 ]] || local LC_ALL=C.UTF-8
-  local p=$1 head part out=''
-  if [[ $p == */* && $p != / ]]; then head=${p%/*}/ __kp_h=${p##*/}; else head='' __kp_h=$p; fi
-  if [[ $head == / ]]; then out=/
-  elif [[ -n $head ]]; then
-    local -a parts; IFS=/ builtin read -ra parts <<<"${head%/}"
-    for part in "${parts[@]}"; do
-      case $part in '~'|'') out+="$part/" ;; .*) out+="${part:0:2}/" ;; *) out+="${part:0:1}/" ;; esac
-    done
-  fi
-  __kp_d=("$head" "$out" "")
-  [[ $head == \~/ || $head == / ]] && __kp_d[2]=$head     # (~/repos and /usr stay whole)
-  local i; __kp_dw=()
-  for i in 0 1 2; do __kawa_w "${__kp_d[i]}"; __kp_dw[i]=$__w; done
-  for i in 1 2; do
-    ((__kp_dw[i] < __kp_dw[i - 1])) || { __kp_d[i]=${__kp_d[i - 1]} __kp_dw[i]=${__kp_dw[i - 1]}; }
-  done
-  __kawa_w "$__kp_h"; __kp_hw=$__w
-}
-
-# __kawa_fit COLS LEAD P0 P1 P2 G1 G2 X ST DU → __fit: which form of the heading fits COLS (every
-# other argument a width in columns: the torii and host, the path's three forms, git with its
-# counts and the branch alone, venv and jobs, the outcome and the time taken, each with the
-# spaces before it). 0–5: the richest form that ends a column short of the edge (the list
-# above the prompt); n: none does, or the window is under 30 columns
-__kawa_fit() {
-  local c=$1 lead=$2 x=$8 st=$9 s pw gw du
-  __fit=n
-  ((c >= 30)) || return 0
-  for s in 0 1 2 3 4 5; do
-    case $s in
-      0) pw=$3 gw=$6 du=${10} ;;
-      1) pw=$4 ;;
-      2) pw=$5 ;;
-      3) gw=$7 ;;
-      4) du=0 ;;
-      5) gw=0 ;;
-    esac
-    if ((lead + pw + gw + x + st + du <= c - 1)); then __fit=$s; return 0; fi
-  done
-}
-
-# __kawa_cut TEXT MAX → __cut: TEXT in MAX columns or fewer: its end goes, nothing in its place
-__kawa_cut() {
-  [[ ${LC_ALL-} == C.UTF-8 ]] || local LC_ALL=C.UTF-8
-  local k
-  __cut=$1; __kawa_w "$1"; ((__w <= $2)) && return 0
-  for ((k = $2; k > 0; k--)); do __cut=${1:0:k}; __kawa_w "$__cut"; ((__w <= $2)) && return 0; done
-  __cut=''
-}
-
-# __kawa_layout → __kawa_line, from the pieces __kawa_prompt gathered and $COLUMNS now
+# __kawa_layout → __kawa_line, from the pieces and $COLUMNS now: what does not fit goes
+# (the time, then the branch, then the folder's end), a column kept free at the right
 __kawa_layout() {
-  # (the width the terminal has. In a window nothing has run in yet it is asked of the
-  # terminal each time: a new window's shell starts before the window has a size — bash
-  # says 80 then — and ble.sh's first drawing, under way while a burst retiles the window,
-  # still holds that 80 after a redraw in the middle of it has learnt the real width)
   if ((!__kawa_ran)) || [[ ${COLUMNS-} != +([0-9]) ]]; then __kawa_winsize || return 0; fi
-  local c=$COLUMNS i g gw gp du duw room
-  __kawa_fit "$c" "$((__kp_leadw + __p_w))" "$((__kp_dw[0] + __kp_hw))" "$((__kp_dw[1] + __kp_hw))" \
-    "$((__kp_dw[2] + __kp_hw))" "$__kp_gw" "$__kp_bw" "$__kp_xw" "$__kp_stw" "$__kp_duw"
-  if [[ $__fit == n ]]; then
-    # the torii, the folder (its end cut only when even it alone is too long) and the
-    # outcome when that fits too
-    local d=${__kp_d[2]} dw=${__kp_dw[2]} need=$((__kp_hw + __kp_stw))
-    room=$((c - 1 - __kp_leadw - __p_w - dw))
-    ((need > room && dw)) && d='' dw=0 room=$((c - 1 - __kp_leadw - __p_w))
-    if ((__kp_stw && need > room && room - __kp_stw >= 6)); then __kawa_cut "$__kp_h" $((room - __kp_stw))
-    elif ((__kp_stw && need <= room)); then __cut=$__kp_h
-    else __kawa_cut "$__kp_h" "$room"; fi
-    __kawa_w "$__cut"
-    __kawa_line="$__kp_lead$__p_o$__c_dir$d$__c_here$__cut$__c_off$__p_c" __kawa_hw=$((__kp_leadw + __p_w + dw + __w))
-    __kawa_fline="$__c_dim$__kp_leadp$d$__cut$__c_off"
-    if ((__kp_stw && __kawa_hw + __kp_stw <= c - 1)); then
-      __kawa_line+=$__kp_st __kawa_fline+=$__kp_stp __kawa_hw=$((__kawa_hw + __kp_stw))
-    fi
-    return 0
-  fi
-  i=0; ((__fit == 1)) && i=1; ((__fit >= 2)) && i=2
-  g=$__kp_g gw=$__kp_gw gp=$__kp_gp; ((__fit >= 3)) && g=$__kp_b gw=$__kp_bw gp=$__kp_bp
-  ((__fit == 5)) && g='' gw=0 gp=''
-  du=$__kp_du duw=$__kp_duw; ((__fit >= 4)) && du='' duw=0
-  __kawa_line="$__kp_lead$__p_o$__c_dir${__kp_d[i]}$__c_here$__kp_h$__c_off$__p_c$g$__kp_x$__kp_st$du"
-  __kawa_fline="$__c_dim$__kp_leadp${__kp_d[i]}$__kp_h$gp$__kp_xp$__c_off$__kp_stp${du:+$__kp_dup}"
-  __kawa_hw=$((__kp_leadw + __p_w + __kp_dw[i] + __kp_hw + gw + __kp_xw + __kp_stw + duw))
+  [[ ${LC_ALL-} == C.UTF-8 ]] || local LC_ALL=C.UTF-8
+  local c=$((COLUMNS - 1)) place=$__kawa_place above=$__kawa_above git='' code='' took=$__kawa_took jobs=$__kawa_jobs pw aw gw cw tw jw
+  [[ -n $__g_branch ]] && git=$__g_branch$__g_dirty
+  ((__kawa_ok)) || code=$__kawa_rc
+  __kawa_w "$place"; pw=$__w; __kawa_w "$above"; aw=$__w; __kawa_w "$git"; gw=$__w
+  ((gw)) && gw=$((gw + __i_bw))
+  cw=${#code} tw=${#took} jw=${#jobs}
+  # (the torii and its space, the two spaces and the › and its space: the fixed part)
+  local fixed=$((2 * __i_w + 4)) extra=$(( (gw ? gw + 2 : 0) + (cw ? cw + 2 : 0) + (tw ? tw + 2 : 0) + (jw ? jw + 2 : 0) ))
+  if ((fixed + aw + pw + extra > c && tw)); then extra=$((extra - tw - 2)) took=''; fi
+  if ((fixed + aw + pw + extra > c && jw)); then extra=$((extra - jw - 2)) jobs=''; fi
+  if ((fixed + aw + pw + extra > c && gw)); then extra=$((extra - gw - 2)) git=''; fi
+  ((fixed + aw + pw + extra > c)) && above='' aw=0
+  while ((fixed + pw + extra > c && ${#place} > 1)); do place=${place:0:-1}; __kawa_w "$place"; pw=$__w; done
+  local t=$__c_ok; ((__kawa_ok)) || t=$__c_bad
+  __kawa_line="$t$__i_torii$__c_off $__c_faint$above$__c_here$place$__c_off"
+  [[ -n $git ]] && __kawa_line+="  $__c_faint$__i_branch$__c_dim${git%\*}$__c_off${__g_dirty:+$__c_dirty*$__c_off}"
+  [[ -n $code ]] && __kawa_line+="  $__c_bad$code$__c_off"
+  [[ -n $took ]] && __kawa_line+="  $__c_dim$took$__c_off"
+  [[ -n $jobs ]] && __kawa_line+="  $__c_dim$jobs$__c_off"
+  __kawa_line+="  $__c_mark$__i_mark$__c_off "
   return 0
 }
 
-# __kawa_finalize → __kawa_final: the entry as it stays once its command runs (ble.sh's final
-# prompt): the same heading in the quiet ink, its › too — the history above reads as one
-# quiet column, and only the heading you type under stands out in its colours (a failure's
-# ✗ and code stay vermilion: what went wrong is never lost in the grey)
-__kawa_finalize() {
-  # (no prompt mark here: the entry's mark is already where it starts — a second would be
-  # a second prompt to foot's prompt jumps)
-  __kawa_final="${__kawa_gap:+$'\n'}$__kawa_fline"$'\n\001'"$__s_done"$'\002'"$__i_mark"$'\001\e[0m\002 '
-}
+# the line once its command has run (ble.sh's final prompt): the same line — the history
+# above reads as a column of them, each with its torii green or vermilion
+__kawa_finalize() { __kawa_final="${__kawa_gap:+$'\n'}$__kawa_line"; }
 
 __kawa_prompt() {
-  local rc=$? now dt t p v n
-  local LC_ALL=C.UTF-8                          # count characters, not bytes; AM/PM in English
+  local rc=$? now dt t p
+  local LC_ALL=C.UTF-8                          # count characters, not bytes
   # ble.sh runs PROMPT_COMMAND again when the window's width changes under a prompt that is
-  # already up (its prompt is keyed on the width and on its line number, which is new for
-  # each prompt): then the header is only laid out anew — its mark, time and clock stay
-  # those of the command that ended
-  # (PS1 is set again then too: ble.sh, attaching from the first prompt, puts back the PS1
-  # it found when it loaded — and a window opened in a burst, retiled while it starts, ran
-  # this a second time before that first prompt: it showed bash's plain prompt)
+  # already up (its line number is the same): then the line is only laid out anew
   if [[ -n ${_ble_edit_lineno-} && $_ble_edit_lineno == "$__kawa_lineno" ]]; then
     __kawa_layout; __kawa_finalize; __kawa_ps1
     return 0
@@ -357,92 +200,51 @@ __kawa_prompt() {
   printf '\e]133;D;%s\e\\' "$rc"                # previous command finished
   # where you are — a folder's name could carry escape sequences of its own (one from a
   # cloned repo or an archive could set the clipboard), so control characters become ?
-  # (~ only for your home and what is inside it: not for a /home/you2 beside it)
   case $PWD in "$HOME"|"$HOME"/*) p=\~${PWD#"$HOME"} ;; *) p=$PWD ;; esac
   p=${p//[[:cntrl:]]/?}
   printf '\e]2;%s\e\\' "$p"                     # window title → shown in the bar
   __kawa_osc7
-  # zoxide learns a folder when you arrive in it (by cd or a bare folder name): one call
-  # then, none on any other prompt
-  if [[ $PWD != "$__kawa_pwd" ]]; then
+  if [[ $PWD != "$__kawa_pwd" ]]; then           # zoxide learns a folder when you arrive in it
     __kawa_pwd=$PWD
     ((__kawa_z)) && zoxide add -- "$PWD" 2>/dev/null
   fi
+  # the folder, and the one above it (none at ~ or /, nor for a folder right in them: ~/x, /x)
+  __kawa_above=''
+  case $p in
+    '~'|/) __kawa_place=$p ;;
+    *) __kawa_place=${p##*/}; local up=${p%/*}; up=${up##*/}
+       [[ -n $up && $up != '~' ]] && __kawa_above=$up/ ;;
+  esac
+  __g_branch='' __g_dirty=''
+  __kawa_in_git && __kawa_git
+  t=${__kawa_j@P}; __kawa_jobs=''; ((t)) && __kawa_jobs="jobs $t"
 
-  # the pieces, each with its width (the layout picks from them for the width there is)
-  __kawa_paths "$p"
-  t=$__i_torii
-  if [[ $TERM == foot* ]]; then
-    # (the torii's tile: a whole cell of vermilion before it, its second half and half a
-    # cell after — 10 px of vermilion either side of its 14 px of ink, as near as cells go)
-    __kp_lead=$'\001\e[38;5;16m\002█\001\e[48;5;16;38;5;17m\002'"$ICON_TORII "$'\001\e[49;38;5;16m\002▌\001\e[0m\002'
-    __kp_leadw=4
-  else
-    __kp_lead="$__c_torii$__i_torii$__c_off"; __kawa_w "$t"; __kp_leadw=$__w
-  fi
-  if [[ -n ${SSH_CONNECTION:-} ]]; then
-    __kawa_w "$USER@${HOSTNAME%%.*}"
-    __kp_lead+="$__t_o$__c_host$USER@${HOSTNAME%%.*}$__c_off$__t_c" t+="$USER@${HOSTNAME%%.*}  "
-    __kp_leadw=$((__kp_leadw + __w + __t_w))
-    [[ $TERM == foot* ]] || { __kp_lead+=' '; __kp_leadw=$((__kp_leadw + 1)); }
-  fi
-  __kp_leadp=$t
-  __kp_g='' __kp_gw=0 __kp_b='' __kp_bw=0 __kp_gp='' __kp_bp=
-  if __kawa_in_git; then
-    __kawa_git
-    if [[ -n $__g_text ]]; then
-      __kp_g="$__t_o$__g_text$__c_off$__t_c" __kp_b="$__t_o$__g_btext$__c_off$__t_c"
-      __kp_gp="  $__g_plain" __kp_bp="  $__g_bplain"
-      __kawa_w "$__g_plain"; __kp_gw=$((__w + __t_w)); __kawa_w "$__g_bplain"; __kp_bw=$((__w + __t_w))
-    fi
-  fi
-  __kp_x='' t='' __kp_xw=0
-  v=${VIRTUAL_ENV:-}; v=${v##*/}; v=${v//[[:cntrl:]]/?}
-  if [[ -n $v ]]; then
-    __kp_x+="$__t_o$__c_dim($v)$__c_off$__t_c" t+="  ($v)"; __kawa_w "($v)"; __kp_xw=$((__kp_xw + __w + __t_w))
-  fi
-  n=${__kawa_j@P}
-  if ((n)); then
-    __kp_x+="$__t_o${__c_dim}jobs $n$__c_off$__t_c" t+="  jobs $n"; __kawa_w "jobs $n"; __kp_xw=$((__kp_xw + __w + __t_w))
-  fi
-  __kp_xp=$t
-
-  # the outcome: only what needs a look — ✗ and the exit code when it failed, the time it
-  # took when that was 3 s or more — each with the two spaces before it
-  __kp_st='' __kp_stp='' __kp_stw=0 __kp_du='' __kp_dup='' __kp_duw=0
+  # the result: the torii green, or vermilion and the code; the time when it was 3 s or more
+  __kawa_took=''
   if ((__kawa_t0)); then
-    if ((rc)); then
-      __kp_st="$__r_o$__c_fail$__i_fail$rc$__c_off$__r_c" __kp_stp="  $__c_bad$__i_fail$rc$__c_off"
-      __kawa_w "$__i_fail$rc"; __kp_stw=$((__w + __t_w))
-    fi
+    __kawa_ok=$((rc == 0)) __kawa_rc=$rc
     now=${EPOCHREALTIME/[.,]/}; dt=$(( (now - __kawa_t0) / 100000 ))    # tenths of a second
-    t=""
-    if ((dt >= 600)); then printf -v t '%dm%02ds' $((dt / 600)) $((dt / 10 % 60))
-    elif ((dt >= 30)); then t="$((dt / 10)).$((dt % 10))s"; fi
-    if [[ -n $t ]]; then
-      __kp_du="$__d_sep$__c_dim$t$__c_off" __kp_dup="  $__c_dim$t$__c_off"; __kawa_w "$__d_sep$t"; __kp_duw=$__w
-    fi
+    if ((dt >= 600)); then printf -v __kawa_took '%dm%02ds' $((dt / 600)) $((dt / 10 % 60))
+    elif ((dt >= 30)); then __kawa_took="$((dt / 10)).$((dt % 10))s"; fi
     # 10 s or more: a notice, which foot shows only while its window is not the one you
     # are in — start an upgrade, go elsewhere, and hear when it is done (and where)
     if ((dt >= 100)) && [[ $TERM == foot* ]]; then
-      if ((rc)); then n="failed ($rc) after $t"; else n="done in $t"; fi
-      printf '\e]777;notify;%s;%s\e\\' "$n" "${p//;/,}"
+      if ((rc)); then t="failed ($rc) after $__kawa_took"; else t="done in $__kawa_took"; fi
+      printf '\e]777;notify;%s;%s\e\\' "$t" "${p//;/,}"
     fi
     __kawa_t0=0
   fi
 
   __kawa_layout
-  # a blank line before each entry — not after clear, and not in a tile of under 10 rows,
-  # where it would push the line you type off the window (ble.sh: "(line 3) …")
+  # a blank line before each entry — not after clear, and not in a tile of under 10 rows
   local gap='\n'; ((__kawa_fresh || ${LINES:-24} < 10)) && gap='' __kawa_fresh=0
   __kawa_gap=${gap:+1}
   __kawa_finalize; __kawa_ps1
 }
-# __kawa_ps1: the prompt — the blank line, foot's mark, the header (only *referred* to),
-# then the line you type on
+# __kawa_ps1: the prompt — the blank line, foot's mark, the line (only *referred* to)
 __kawa_ps1() {
   local gap=''; [[ -n $__kawa_gap ]] && gap='\n'
-  PS1="$gap"'\[\e]133;A\e\\\]${__kawa_line}\n\['"$__s_mark"'\]'"$__i_mark"'\[\e[0m\] '
+  PS1="$gap"'\[\e]133;A\e\\\]${__kawa_line}'
 }
 clear() { command clear "$@"; __kawa_fresh=1 __kawa_ran=0; }    # no blank line at the top after clear
 # The prompt is this function alone: Fedora's systemd hook (OSC 3008, marks no program
@@ -460,12 +262,12 @@ PS0='${__kawa_one:$((__kawa_t0 = ${EPOCHREALTIME/[.,]/}, __kawa_ran = 1, 0)):0}\
 # back up only by the rows it had drawn — so the header's first part stayed above the new
 # prompt, and every retile added another (stacked headers, the clock alone on a row). It is
 # told where the prompt starts now: each row of the prompt above the line you type on
-# (the blank line, the header: __kawa_gap, __kawa_hw) takes ceil(width / columns) rows after
+# (the blank line: __kawa_gap) takes ceil(width / columns) rows after
 # the reflow, and the line you type on wraps as foot wraps it. Then ble.sh goes up exactly
 # there, and the prompt is drawn over itself with nothing left behind. Only for this
 # prompt, laid out as __kawa_layout last laid it: anything else (another PS1, a right-hand
 # prompt, the cursor in a panel below) is ble.sh's own, as before.
-__kawa_gap='' __kawa_hw=0 __kawa_fline='' __kawa_final='' __kawa_ran=0
+__kawa_gap='' __kawa_final='' __kawa_ran=0
 # __kawa_winsize: LINES and COLUMNS as the terminal has them this moment (stty asks it: ble.sh's
 # own way, under bash 5.2, asks tput with its output in a pipe — and was answered terminfo's
 # 80 columns)
@@ -508,8 +310,8 @@ __kawa_reflow() {
   [[ ${COLUMNS-} == +([0-9]) ]] || __kawa_winsize || return 1
   local c=$COLUMNS ow=${_ble_app_winsize[0]:-0} proy=${_ble_prompt_ps1_data[4]:-0}
   local y=${_ble_canvas_y:-0} x=${_ble_canvas_x:-0} w rows=0 off
-  local -a above=("$__kawa_hw"); [[ -n $__kawa_gap ]] && above=(0 "$__kawa_hw")
-  ((c > 0 && ow > 0 && __kawa_hw > 0 && proy == ${#above[@]} && y >= proy && y < ${_ble_canvas_panel_height[0]:-0})) || return 1
+  local -a above=(); [[ -n $__kawa_gap ]] && above=(0)
+  ((c > 0 && ow > 0 && proy == ${#above[@]} && y >= proy && y < ${_ble_canvas_panel_height[0]:-0})) || return 1
   [[ -z ${_ble_prompt_rps1_shown-} ]] || return 1
   for w in "${above[@]}"; do rows=$((rows + (w > c ? (w + c - 1) / c : 1))); done
   off=$(((y - proy) * ow + x))

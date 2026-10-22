@@ -45,9 +45,6 @@ P = {
         text_on_accent="0f0e0c",   # anything drawn on vermilion — words, seals, icons, the meters' lit squares: ink (4.7 : 1)
         lit="cfc3a6", lit_text="0f0e0c", lit_hi="ece3cc", lit_lo="8a8170", urgent_text="0f0e0c",
         asagi="7fb8b0",                 # the meters, urgency and checking: the bright teal on ink
-        cloth="141824",                 # the bar's cloth: kachi-iro, indigo dyed until it is all but black
-        aizome="223150",                # its patches: hanada, indigo of a middle dip
-        kinari="d6ccb2",                # the workspace you are on: undyed cotton, the cloth turned over
         red="d64b4b", green="8e9a5b", yellow="d29f45", blue="5f7fa0", purple="9079a9", teal="5e9c95",
         bred="e66a5f", bgreen="a8b46f", byellow="e3b866", bblue="7f9dbd", bpurple="ab96c2", bteal="7fb8b0",
         ansi0="2b2721", ansi7="cfc3a6", ansi8="7a7262", ansi15="ece3cc",
@@ -61,9 +58,6 @@ P = {
         text_on_accent="fbf7ec",   # anything drawn on vermilion — words, seals, icons, the meters' lit squares: paper (4.7 : 1)
         lit="2b2721", lit_text="ece3cc", lit_hi="5f584c", lit_lo="0f0e0c", urgent_text="fbf7ec",
         asagi="2f6e67",                 # the deep teal on paper
-        cloth="dcd2b8",                 # the bar's cloth: kinari, undyed cotton (the paper's own)
-        aizome="c5ccd3",                # its patches: cotton dipped once in indigo (kamenozoki)
-        kachi="1c2130",                 # the workspace you are on: kachi-iro, the cloth turned over
         red="a8342a", green="5c682d", yellow="845b0f", blue="3f6185", purple="6f5a8a", teal="2f6e67",
         # on paper the "bright" colours are the deeper ones, so they read at least as well
         bred="942e25", bgreen="4d5625", byellow="6d4b0d", bblue="355270", bpurple="5c4a72", bteal="275a55",
@@ -96,24 +90,13 @@ def colors_sh(m, p):
 
 
 def waybar_css(m, p):
-    rows = [("bar", p["cloth"]), ("key", p["key"]), ("edge", p["edge"]), ("edge2", p["edge2"]), ("faint", p["faint"]), ("muted", p["muted"]), ("hi", p["hi"]), ("lo", p["lo"]),
-            ("quiet", p["muted"]), ("text", p["text"]), ("strong", p["strong"]),
-            ("accent", p["accent"]), ("accent-hi", p["accent_hi"]), ("accent-lo", p["accent_lo"]),
-            ("strong-on-accent", p["text_on_accent"]), ("accent-text", p["accent_text"]),
-            ("lit", p["lit"]), ("lit-text", p["lit_text"]), ("lit-hi", p["lit_hi"]), ("lit-lo", p["lit_lo"]),
-            ("urgent", p["asagi"]), ("urgent-text", p["urgent_text"]),
-            # the bar's two states in colour alone (no box, no fill): lit — under the pointer,
-            # open, the workspace you are on — asagi; a workspace holding windows moegi
-            ("asagi", p["asagi"]), ("moegi", p["bgreen"]),
-            # the patches' dyes (the pictures carry them; named here for the record)
-            ("aizome", p["aizome"]),
-            # the tiles (紙 kami): their paper, the vermilion of the torii's, the cat's and the
-            # seal's, the words on the seal
-            ("tile", TILE[m]), ("kami-red", KAMI[m]["red"]), ("seal-ink", "f3ead2" if m == "dark" else "faf4e4"),
-            # the numeral on the workspace you are on — the cloth turned over (kinari on the
-            # ink, kachi on the paper): the other theme's vermilion, and its lit ink
-            ("here-ink", P["light" if m == "dark" else "dark"]["accent_text"]),
-            ("here-lit", P["light"]["blue"] if m == "dark" else P["dark"]["asagi"])]
+    # what style.css takes: the words' inks, lit (asagi: under the pointer, or open), and the
+    # tiles (紙 kami) — their paper, the vermilion of the torii's, the cat's and the seal's,
+    # the words on the seal
+    rows = [("faint", p["faint"]), ("muted", p["muted"]), ("text", p["text"]),
+            ("strong", p["strong"]), ("accent-text", p["accent_text"]), ("strong-on-accent", p["text_on_accent"]),
+            ("asagi", p["asagi"]),
+            ("tile", TILE[m]), ("kami-red", KAMI[m]["red"]), ("seal-ink", "f3ead2" if m == "dark" else "faf4e4")]
     out = [f"/* {header('~/.config/fedokawaii/current/waybar.css', NAMES[m] + ' colours for the bar')} */"]
     out += [f"@define-color {k:<17}#{v};" for k, v in rows]
     return "\n".join(out) + "\n"
@@ -145,13 +128,13 @@ def png(w, h, rows):
 #    6 – 24   the paper, the words    29 – 30   the shadow (two rows, fading)
 # (the capitals on 9–21, centred on row 15 — the tile's middle). Columns: hairline, paper,
 # paper, rule at the left; rule, paper, paper, hairline, shadow at the right. style.css
-# lays them on as border-images (sliced 6 4 6 5: the edges stay, the middle stretches
+# lays them on as border-images (sliced 6 5 6 4, top right bottom left: the edges stay, the middle stretches
 # under the words) with the paper's colour and its fibres as the background inside the rule.
 KAMI = {
-    "dark": dict(hair=(222, 210, 180, 72), shadow=((0, 0, 0, 120), (0, 0, 0, 50)), rule="3a342b",
-                 red="cf5636", gold="c9a45c", rod="0b0908", rod_hi="5a4a34", fibre_t=0.06, fibre_to="ffffff"),
-    "light": dict(hair=(28, 22, 16, 170), shadow=((40, 30, 20, 70), (40, 30, 20, 28)), rule="d2c39d",
-                  red="bf432b", gold="a8843f", rod="2a1d12", rod_hi="6b5038", fibre_t=0.6, fibre_to="ffffff"),
+    "dark": dict(hair=(222, 210, 180, 128), shadow=((0, 0, 0, 170), (0, 0, 0, 80)), rule="3a342b",
+                 red="cf5636", gold="c9a45c", rod="4a3423", rod_hi="8a6a45", rod_dk="1c140d", fibre_t=0.06, fibre_to="ffffff"),
+    "light": dict(hair=(28, 22, 16, 215), shadow=((40, 30, 20, 110), (40, 30, 20, 48)), rule="d2c39d",
+                  red="bf432b", gold="a8843f", rod="5a3e28", rod_hi="9a7a52", rod_dk="2a1d12", fibre_t=0.6, fibre_to="ffffff"),
 }
 BAR_H = 31
 K_HAIR_T, K_TOP, K_RULE_T, K_RULE_B, K_BOT, K_HAIR_B = 2, 3, 5, 25, 27, 28
@@ -194,40 +177,48 @@ def kami_tile(m, fill, rule, w=12):
     return png(w, BAR_H, c)
 
 
-def kami_fibre(m, fill):
+def kami_fibre(m, fill, s=1):
     """The paper's fibres, a 12 × 7 tile repeated inside the rule: short strands a shade off."""
     k = KAMI[m]
     f = _mixc(fill, k["fibre_to"], k["fibre_t"])
     c = [[_rgb(fill)] * 12 for _ in range(7)]
     for x, y in ((2, 1), (3, 1), (4, 1), (8, 4), (9, 4), (5, 6), (6, 6), (10, 2)):
         c[y][x] = _rgb(f)
-    return png(12, 7, c)
+    return png(12 * s, 7 * s, _scaled(c, s))
 
 
-def kami_seal(m):
-    """The seal of the workspace you are on: vermilion, 19 px round (exactly the paper's
-    height inside the rule), its rim worn here and there as a stamp's is."""
+def kami_seal(m, w=26, sw=18):
+    """The seal of the workspace you are on: vermilion, round, clean-edged, drawn to exactly
+    the tile's inside (w × 19: the padding box style.css lays it on, so nothing is rounded
+    by GTK's centring) — sw px across and 17 high, a pixel clear of the rule above and below,
+    centred on the numeral: on the 16 px numerals' tiles (26 wide) 18 across about the
+    middle of its 26; on 四 七 九's (15 px of ink, 25 wide) 17 across about its 13th column."""
     k = KAMI[m]
     none = (0, 0, 0, 0)
-    c = [[none] * 19 for _ in range(19)]
-    for y in range(19):
-        for x in range(19):
-            d2 = (x - 9) ** 2 + (y - 9) ** 2
-            if d2 <= 9.5 * 9.5:
-                worn = (x * 31 + y * 17) % 23 == 0 and d2 > 40
-                c[y][x] = none if worn else _rgb(k["red"])
-    return png(19, 19, c)
+    h, sh = 19, 17
+    cx, cy = w / 2, h / 2
+    c = [[none] * w for _ in range(h)]
+    for y in range(h):
+        for x in range(w):
+            if ((x + 0.5 - cx) / (sw / 2)) ** 2 + ((y + 0.5 - cy) / (sh / 2)) ** 2 <= 1.0:
+                c[y][x] = _rgb(k["red"])
+    return png(w, h, c)
 
 
-def kami_scroll(m, fill, rule):
+def _scaled(c, s):
+    """Rows of pixels enlarged s times, each pixel an s × s square (pixel art: whole numbers only)."""
+    return [[px for px in row for _ in range(s)] for row in c for _ in range(s)]
+
+
+def kami_scroll(m, fill, rule, s=1):
     """The clock's tile mounted as a hanging scroll: a lacquered rod at either end, gold-capped,
     standing a row proud of the hairline above and below — 8 columns at each end (the rod, the
-    hairline, the paper, the rule), 3 in the middle that style.css stretches; sliced 6 8 6 8."""
+    paper mounted straight onto it, the rule), 3 in the middle that style.css stretches; sliced 6 8 6 8."""
     k = KAMI[m]
     none = (0, 0, 0, 0)
     w = 19
     c = [[none] * w for _ in range(BAR_H)]
-    x0, x1 = 5, w - 6                   # the paper's columns
+    x0, x1 = 4, w - 5                   # the paper's columns: from the rod itself, no gap
     for y in range(K_TOP, K_BOT + 1):
         for x in range(x0, x1 + 1):
             c[y][x] = _rgb(fill)
@@ -242,13 +233,15 @@ def kami_scroll(m, fill, rule):
             c[K_HAIR_B + 1 + i][x] = a
     for rx in (0, w - 4):               # the rods
         for y in range(K_HAIR_T - 1, K_HAIR_B + 2):
-            for x in range(rx, rx + 4):
-                c[y][x] = _rgb(k["rod"])
-            c[y][rx + 1] = _rgb(k["rod_hi"])
+            for x in range(rx, rx + 4):         # a round rod: dark at its outer edge, lit a
+                c[y][x] = _rgb(k["rod"])        # pixel in, the paper mounted on its body
+            out, lit = (rx, rx + 1) if rx == 0 else (rx + 3, rx + 2)
+            c[y][out] = _rgb(k["rod_dk"])
+            c[y][lit] = _rgb(k["rod_hi"])
         for y in (K_HAIR_T - 1, K_HAIR_T, K_HAIR_B, K_HAIR_B + 1):
             for x in range(rx, rx + 4):
                 c[y][x] = _rgb(k["gold"])
-    return png(w, BAR_H, c)
+    return png(w * s, BAR_H * s, _scaled(c, s))
 
 
 def ornaments(m, p):
@@ -260,7 +253,11 @@ def ornaments(m, p):
         "kami-red.png": kami_tile(m, k["red"], k["gold"]),
         "kami-fibre.png": kami_fibre(m, fill),
         "kami-seal.png": kami_seal(m),
+        "kami-seal-narrow.png": kami_seal(m, 25, 17),
         "kami-scroll.png": kami_scroll(m, fill, k["rule"]),
+        # the lock and login screens' scroll, the same picture twice its size (sliced 12 16 12 16)
+        "lock-scroll.png": kami_scroll(m, fill, k["rule"], 2),
+        "lock-fibre.png": kami_fibre(m, fill, 2),
     }
 
 
@@ -297,11 +294,9 @@ def foot_block():
         # a heading's ╌, as in the panels), and the text screens' own inks (docs/design-system.md
         # §7, ~/.config/fedokawaii/screen.sh): 20 accent_text (a heading's kanji), 21 muted (a
         # value, a footer), 22 faint (what is not there yet), 23 strong — the words are the
-        # foreground (text) — and 24 the prompt's tiles, the bar's washi (TILE) — switched
-        # with the theme like the rest
+        # foreground (text) — switched with the theme like the rest
         out += [f"16={p['accent']}", f"17={p['text_on_accent']}", f"18={p['edge']}", f"19={p['edge2']}",
-                f"20={p['accent_text']}", f"21={p['muted']}", f"22={p['faint']}", f"23={p['strong']}",
-                f"24={TILE[m]}"]
+                f"20={p['accent_text']}", f"21={p['muted']}", f"22={p['faint']}", f"23={p['strong']}"]
     out.append("# <<< colours")
     return "\n".join(out)
 
@@ -600,22 +595,34 @@ overlay_background_alpha = e6
 
 
 def gtklock_css(m, p):
-    """The lock screen (gtklock, kawa-lock) and the login screen (kawa-greet) share it: no panel,
-    no box — on the wallpaper shaded into the ground (kawa-wallpaper draws it: three quarters
-    the ground's colour over the picture), one column in the middle: the pixel padlock and the
-    time in the display size (64 px, ×4 of Sumi UI's grid: design-system §2) with AM/PM on its
-    baseline; the day (its seal — a picture, tools/build-art.py —, the date, the weekday in
-    kanji); a line of the season and the hour; a line for what went wrong; the password's line
-    (an underline, each typed character a ◆ in accent_text, "パスワード · password" in faint
-    while it is empty); three keys — sleep, restart, power off — words alone, accent_text
-    under the pointer and the keyboard's focus. Sumi UI at 16 px, as in every panel."""
+    """The lock screen (gtklock, kawa-lock) and the login screen (kawa-greet) share it: on the
+    wallpaper shaded into the ground (kawa-wallpaper draws it), the bar's clock grown into a
+    hanging scroll (紙 kami, design-system §9) — the same washi, rule and lacquered, gold-capped
+    rods, at twice the bar's pixels (lock-scroll.png, sliced 12 16 12 16; its fibres
+    lock-fibre.png) — and on it one column: the pixel padlock and the time in the display size
+    (64 px, ×4 of Sumi UI's grid: design-system §2) with AM/PM on its baseline; the day (its
+    seal — a picture, tools/build-art.py —, the date, the weekday in kanji); a line of the
+    season and the hour; a line for what went wrong; the password's line (the rule's colour
+    under it, each typed character a ◆ in accent_text, "パスワード · password" in faint while it
+    is empty); a rule; three keys — sleep, restart, power off — words, accent_text under the
+    pointer and the keyboard's focus. Sumi UI at 16 px, as in every panel. The pictures sit
+    beside this file (current/ for the lock, the greeter's own folder for the login)."""
     ink = lambda k: f"#{p[k]}"
+    k = KAMI[m]
     return f"""/* {header('~/.config/fedokawaii/current/gtklock.css', 'the lock and login screens in ' + NAMES[m])} */
 window {{ background-color: {ink('ground')}; }}
 * {{ font-family: "Sumi UI"; font-size: 16px; color: {ink('text')}; box-shadow: none;
   text-shadow: none; outline: none; -gtk-icon-shadow: none; }}
-/* the column: no ground, no frame — the wallpaper shows round it */
-#window-box {{ background: none; border: none; padding: 0; min-width: 400px; }}
+/* the scroll: the bar's clock, twice its size — 24 px of its picture at the top and the foot
+   (hairline, paper, rule), 32 at the sides (the rods, the paper, the rule); 40 px of paper
+   inside the rule to the column, 32 above and below it */
+#window-box {{
+  border-style: solid; border-color: transparent; border-width: 12px 16px;
+  border-image: url("lock-scroll.png") 12 16 12 16 stretch;
+  background-color: #{TILE[m]}; background-image: url("lock-fibre.png"); background-repeat: repeat;
+  background-clip: padding-box; background-origin: padding-box;
+  padding: 32px 40px 28px; min-width: 400px;
+}}
 /* the face: the padlock (54 × 57), 16 px, the time — Sumi UI at 64 px, no smoothing
    (/etc/fonts: 60-fedokawaii-pixel.conf) — and AM/PM at 16 px on its baseline (64 px type:
    baseline 56 from the top; 16 px: 14, so 6 px off the foot) */
@@ -635,17 +642,18 @@ window {{ background-color: {ink('ground')}; }}
 /* what went wrong (ちがう · wrong password, Caps Lock · 大文字), empty until then */
 #messages {{ min-height: 16px; margin: 24px 0 8px; }}
 #error-label, #warning-label {{ color: {ink('accent_text')}; margin: 0 8px; }}
-/* the password's line: no box — an underline, the ◆ in vermilion ink, the caret vermilion */
+/* the password's line: no box — the paper, a line of the rule's colour under it (the muted
+   ink while it has the keyboard), the ◆ in vermilion ink, the caret vermilion */
 #input-field {{
   min-width: 320px; min-height: 28px; padding: 0 8px; margin: 0;
   color: {ink('accent_text')}; caret-color: {ink('accent')};
-  background: none; border: none; border-bottom: 2px solid {ink('edge2')}; border-radius: 0;
+  background: none; border: none; border-bottom: 2px solid #{k['rule']}; border-radius: 0;
 }}
 #input-field:focus {{ border-bottom-color: {ink('muted')}; }}
 #input-field selection {{ background-color: {ink('accent')}; color: {ink('text_on_accent')}; }}
 #input-label {{ color: {ink('faint')}; }}
-/* the three keys (kawa-lockmod; kawa-greet): words alone, 24 px under the line, muted; under
-   the pointer and the keyboard's focus (Tab) accent_text */
+/* the three keys (kawa-lockmod; kawa-greet): 24 px under the line, words, muted; under the
+   pointer and the keyboard's focus (Tab) accent_text */
 #keys {{ margin-top: 24px; }}
 button {{ min-height: 24px; padding: 0 8px; border: none; border-radius: 0; background: none; }}
 button label {{ color: {ink('muted')}; }}
@@ -961,8 +969,8 @@ def panel_conf(m, p):
 
 def saver_conf(m, p):
     """kawa-saver, the screensaver: it draws dot by dot (C), so it takes the colours by name —
-    the ground, the sashiko's thread and its shadow (the bar's cloth thread: muted and lo on
-    the ink, blue and edge on the paper), the seals' vermilion, its clock's panel."""
+    the ground, the sashiko's thread and its shadow (muted and lo on the ink, blue and edge on
+    the paper), the seals' vermilion, its clock's panel."""
     dark = m == "dark"
     c = dict(p, thread=p["muted"] if dark else p["blue"], shade=p["lo"] if dark else p["edge"])
     keys = ("ground", "surface", "edge2", "thread", "shade", "text", "accent", "accent_text")

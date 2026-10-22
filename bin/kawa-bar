@@ -126,8 +126,13 @@ case $item in
          if ((lit)); then printf '{"text":"%s"%s}\n' "$ICON_CAT_HAPPY" "$cls"
          else printf '{"text":"%s"}\n' "$ICON_CAT"; fi ;;
   date)  # "Mon 19 Oct", in English whatever the system's language (three letters each: one width)
+         # — and its month's last letter's own air (Jul's l: 3 px, Oct's t: 1, Nov's v: none)
+         # as a class, so the 14 px to the day's kanji holds every month (width.sh: air)
          printf -v d '%(%a %d %b)T' -1
-         printf '{"text":"%s"%s}\n' "$d" "$cls" ;;
+         # shellcheck source=/dev/null
+         __air=''; . "$HOME/.config/fedokawaii/width.sh"; air "$d"
+         if ((lit)); then printf '{"text":"%s","class":["active","%s"]}\n' "$d" "${__air#* }"
+         else printf '{"text":"%s","class":"%s"}\n' "$d" "${__air#* }"; fi ;;
   day)   # the day of the week as its kanji: 月 火 水 木 金 土 日, Monday first
          # (Monday's 月 has 13 px of ink in its 16: its own class, so style.css centres it)
          k=(月 火 水 木 金 土 日); printf -v u '%(%u)T' -1

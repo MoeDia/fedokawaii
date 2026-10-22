@@ -30,7 +30,8 @@ for l in sys.argv[1].splitlines():
     j = json.loads(l)
     try: t = text(X.parseString("<m>" + j["text"] + "</m>").documentElement)
     except Exception as e: t = "BAD MARKUP: " + j["text"]
-    print(j.get("class", "") + "|" + t)' "$1"
+    c = j.get("class", "")
+    print((c[0] if isinstance(c, list) else c) + "|" + t)' "$1"
 }
 markup_ok() { [[ $(shown "$1") != *"BAD MARKUP"* ]] && _ok || _no "not Pango markup: $(shown "$1" | grep 'BAD MARKUP' | head -n 2)"; }
 last() { shown "$1" | tail -n 1; }
@@ -66,6 +67,10 @@ out=$(bar)
 json_lines "$out"
 eq "$(last "$out")" "playing|${ICON_BAR_CASSETTE_A}Plastic Love  Mariya Takeuchi"
 eq "$(cat "$XDG_RUNTIME_DIR/kawa-nowplaying.player")" spotify "the player shown, kept for the keys"
+eq "$(tail -n 1 <<<"$out" | python3 -c 'import json,sys; print(json.load(sys.stdin)["class"])')" "['playing', 'r3']" "its class: playing, and the last letter's own air (the i of Takeuchi: 3 px)"
+setup; step "$(P mpv Playing '' 'holiday.mkv')"; eq "$(bar | tail -n 1 | python3 -c 'import json,sys; print(json.load(sys.stdin)["class"])')" "['playing', 'r0']" "no artist: the title's last letter"
+setup; step "$(P spotify Paused 'Cool' 'Song')"; eq "$(bar | tail -n 1 | python3 -c 'import json,sys; print(json.load(sys.stdin)["class"])')" "['paused', 'r3']" "paused; l (of Cool): 3 px of air"
+setup; step "$(P spotify Playing 'Mariya Takeuchi' 'Plastic Love')"; out=$(bar)
 has "$(tail -n 1 <<<"$out")" "\"${ICON_BAR_CASSETTE_A}Plastic Love  <span color='#$(. "$HOME/.config/fedokawaii/current/colors.sh"; echo "$C_FAINT")'>Mariya Takeuchi</span>\"" "the artist quieter than the title"
 
 case_ "… with sound: the meter in the wings either side of the clock (8 thin columns each, 0–6, lowest notes nearest the clock), each column in its height's ink — edge2, faint, muted, text; the label the cassette and the words alone"
@@ -119,7 +124,7 @@ wings_up; out=$(bar); wings_down
 eq "$(tail -n 1 "$TMP/wing-left") $(tail -n 1 "$TMP/wing-right")" '{"text":""} {"text":""}' 
 json_lines "$out"
 eq "$(last "$out")" "paused|${ICON_BAR_PAUSE}Song  A"
-alive "$NP/cava.pids" && _no "cava still runs while paused" || _ok
+waitfor 2 eval '! alive "$NP/cava.pids"' && _ok || _no "cava still runs while paused (2 s on)"
 case_ "stopped, or no title yet: hidden"
 setup; step "$(P spotify Stopped A Song)" "$(P spotify Stopped A Song)"
 eq "$(last "$(bar)")" "|"

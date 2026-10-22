@@ -13,11 +13,11 @@
  *
  * On the theme's ground (dark or light: current/saver.conf), needles run along the lines of a
  * hitomezashi grid — one stitch over, one under, each line starting on its own side — and the
- * thread they leave slowly makes the pattern — the bar's own cloth thread, each dot of it with
+ * thread they leave slowly makes the pattern — a quiet sashiko thread, each dot of it with
  * its shadow a dot down and to the right — a vermilion dot at each needle's tip.
  * Seals are stamped on the cloth now and then (a kanji of sewing, sleep or night — 縫 糸 針 夢
  * 眠 静 月 星 夜 …, accent_text in a 2-dot frame) and lifted again; a small patch, framed in
- * running stitch as the bar's clock is, tells the time (時 and "09:41 PM", the lock screen's
+ * running stitch, tells the time (時 and "09:41 PM", the lock screen's
  * words) and moves every minute. When the cloth is
  * full it rests, then is washed (an ordered dither, block by block) and sewn anew. Everything
  * is drawn on a grid of dots as big as a pixel of the wallpapers' pixel art (3 px at 1080p,
@@ -27,7 +27,7 @@
  * Any key, click, scroll or move of the pointer ends it — and goes nowhere else: it holds the
  * keyboard while it shows (a layer on top of everything, the bar too), and it waits for the
  * key or button to be let go before it leaves, so neither press nor release reaches a window.
- * It answers at once: the cloth washes away into the ground (180 ms) as it leaves.
+ * It answers at once: the cloth fades away (180 ms, eased, frame by frame) as it leaves.
  * It ends too when the desktop locks otherwise (kawa-lock), and stays one at a time.
  *
  * 8 to 17 MB a 1080p screen (one or two pictures of it), almost no CPU (12 steps a second, only the
@@ -53,6 +53,7 @@
 #include <unistd.h>
 #include <wayland-client.h>
 #include "wlr-layer-shell-unstable-v1-client-protocol.h"
+#include "alpha-modifier-v1-client-protocol.h"
 #include "glyphs.h"
 
 /* ── the palette (current/saver.conf) ───────────────────────────────────────────────── */
@@ -91,6 +92,7 @@ struct output {
 	int scale;
 	struct wl_surface *surface;
 	struct zwlr_layer_surface_v1 *layer;
+	struct wp_alpha_modifier_surface_v1 *alpha;   /* (--wash) */
 	int lw, lh;
 	bool configured, closed, waiting_frame, ready;
 	/* the picture, and the grid of dots it shows */
@@ -117,6 +119,7 @@ static struct wl_display *display;
 static struct wl_compositor *compositor;
 static struct wl_shm *shm;
 static struct zwlr_layer_shell_v1 *layer_shell;
+static struct wp_alpha_modifier_v1 *alpha_mgr;   /* (--wash: the cross-fade, on the GPU) */
 static struct wl_seat *seat;
 static struct wl_keyboard *keyboard;
 static struct wl_pointer *pointer;
@@ -358,16 +361,6 @@ static void wash_step(struct output *o, int level)   /* level 0…64: dots at or
 		}
 }
 
-/* leaving: everything shown — the cloth, the seals, the clock — washed into the ground, in the
- * same ordered dither (level 0…65) */
-static void part_step(struct output *o, int level)
-{
-	for (int y = 0; y < o->ch; y++)
-		for (int x = 0; x < o->cw; x++)
-			if (bayer[(y / 2) & 7][(x / 2) & 7] < level)
-				put(o, x, y, GROUND);
-}
-
 /* ── the seals and the clock ────────────────────────────────────────────────────────── */
 /* a free place on the grid for a w × h thing: inside the cells, a dot from the lines (a seal,
  * framed by the stitches round it), or over the lines, its edges on them (lines: the clock) */
@@ -522,7 +515,7 @@ static void buffer_release(void *data, struct wl_buffer *b)
 	((struct buffer *)data)->busy = false;
 }
 static const struct wl_buffer_listener buffer_listener = { .release = buffer_release };
-static uint32_t buffer_format = WL_SHM_FORMAT_XRGB8888;   /* (--wash: ARGB, its washed dots clear) */
+static uint32_t buffer_format = WL_SHM_FORMAT_XRGB8888;
 
 static bool make_buffer(struct output *o, struct buffer *b)
 {
@@ -794,6 +787,8 @@ static void global_add(void *data, struct wl_registry *r, uint32_t name, const c
 		shm = wl_registry_bind(r, name, &wl_shm_interface, 1);
 	} else if (!strcmp(iface, zwlr_layer_shell_v1_interface.name)) {
 		layer_shell = wl_registry_bind(r, name, &zwlr_layer_shell_v1_interface, 1);
+	} else if (!strcmp(iface, wp_alpha_modifier_v1_interface.name)) {
+		alpha_mgr = wl_registry_bind(r, name, &wp_alpha_modifier_v1_interface, 1);
 	} else if (!strcmp(iface, wl_seat_interface.name) && !seat) {
 		seat = wl_registry_bind(r, name, &wl_seat_interface, version < 5 ? version : 5);
 		wl_seat_add_listener(seat, &seat_listener, NULL);
@@ -919,17 +914,18 @@ static void usage(void)
 }
 
 /* ── --wash: the one transition (a theme switch, a new wallpaper) ────────────────────────
- * The screen as it was (grim, each monitor) laid over everything, then washed away as the
- * screensaver washes its cloth: an ordered dither on the same grid of dots, 8 steps of 32 ms
- * (~1/4 s), the new look showing through more of the dots at each step — stepped, never eased
- * (design-system §5). It never takes input (no keyboard, an empty input region: every click
- * goes through to what is under it). The caller reads "covered" on our stdout once the old
- * picture is up, makes its change underneath, then closes our stdin: the wash starts. SIGTERM
- * (another switch while this one washes: kawa-theme) takes it away at once — the final state.
- * Anything that fails (no grim, no screen) prints "covered" all the same and leaves: the change
- * is never held up. Our pid in $XDG_RUNTIME_DIR/kawa-wash.pid while it shows. */
-#define WASH_STEPS 8
-#define WASH_MS 32
+ * The screen as it was (grim, each monitor) laid over everything, then faded away: the new
+ * look comes up through it, smoothly, in WASH_MS — eased in and out, a new opacity for every
+ * frame the screen shows (the frame callbacks: 144 a second on a 144 Hz screen), the time
+ * read as each frame comes. The picture is sent once; only its opacity changes (the alpha-
+ * modifier protocol: the compositor blends it on the graphics card — no pixel redrawn here).
+ * It never takes input (no keyboard, an empty input region: every click goes through to what
+ * is under it). The caller reads "covered" on our stdout once the old picture is up, makes its
+ * change underneath, then closes our stdin: the fade starts. SIGTERM (another switch while
+ * this one fades: kawa-theme) takes it away at once — the final state. Anything that fails (no
+ * grim, no screen, no alpha-modifier) prints "covered" all the same and leaves: the change is
+ * never held up. Our pid in $XDG_RUNTIME_DIR/kawa-wash.pid while it shows. */
+#define WASH_MS 320
 static bool load_ppm(struct output *o, const char *path)
 {
 	FILE *f = fopen(path, "rb");
@@ -954,16 +950,10 @@ static bool load_ppm(struct output *o, const char *path)
 	return ok;
 }
 
-/* step k (0: whole, WASH_STEPS: gone) of the wash into b, and shown */
-static void wash_draw(struct output *o, struct buffer *b, int k)
+/* the old picture into b, whole, and shown */
+static void wash_draw(struct output *o, struct buffer *b)
 {
-	int level = 64 * k / WASH_STEPS;
-	for (int y = 0; y < o->H; y++) {
-		uint32_t *dst = b->px + (size_t)y * (size_t)o->W, *src = o->old + (size_t)y * (size_t)o->W;
-		const uint8_t *br = bayer[(y / o->bs) & 7];
-		for (int x = 0; x < o->W; x++)
-			dst[x] = br[(x / o->bs) & 7] < level ? 0 : src[x];
-	}
+	memcpy(b->px, o->old, (size_t)o->W * (size_t)o->H * 4);
 	wl_surface_attach(o->surface, b->wl, 0, 0);
 	wl_surface_damage_buffer(o->surface, 0, 0, o->W, o->H);
 	b->busy = true;
@@ -971,6 +961,13 @@ static void wash_draw(struct output *o, struct buffer *b, int k)
 	wl_callback_add_listener(cb, &frame_listener, o);
 	o->waiting_frame = true;
 	wl_surface_commit(o->surface);
+}
+
+/* the fade's curve: smootherstep — no jolt as it starts, none as it lands */
+static double wash_ease(double t)
+{
+	t = t < 0 ? 0 : t > 1 ? 1 : t;
+	return t * t * t * (t * (t * 6 - 15) + 10);
 }
 
 static int wash(void)
@@ -981,7 +978,6 @@ static int wash(void)
 	signal(SIGTERM, on_signal);
 	signal(SIGINT, on_signal);
 	signal(SIGPIPE, SIG_IGN);
-	buffer_format = WL_SHM_FORMAT_ARGB8888;
 	snprintf(pidp, sizeof pidp, "%s/kawa-wash.pid", runtime());
 	display = wl_display_connect(NULL);
 	if (!display)
@@ -991,10 +987,11 @@ static int wash(void)
 	wl_registry_add_listener(registry, &registry_listener, NULL);
 	wl_display_roundtrip(display);
 	wl_display_roundtrip(display);
-	if (!compositor || !shm || !layer_shell)
+	if (!compositor || !shm || !layer_shell || !alpha_mgr)
 		goto done;
 	wl_list_for_each(o, &outputs, link) {
 		o->surface = wl_compositor_create_surface(compositor);
+		o->alpha = wp_alpha_modifier_v1_get_surface(alpha_mgr, o->surface);
 		struct wl_region *none = wl_compositor_create_region(compositor);
 		wl_surface_set_input_region(o->surface, none);   /* every click goes through */
 		wl_region_destroy(none);
@@ -1015,10 +1012,6 @@ static int wash(void)
 		if (!o->configured || o->closed || o->lw <= 0 || !o->name[0])
 			continue;
 		o->W = o->lw * o->scale, o->H = o->lh * o->scale;
-		int L = o->W > o->H ? o->W : o->H, S = o->W > o->H ? o->H : o->W;
-		int a = (L + 639) / 640, c = (S + 359) / 360;
-		o->bs = a > c ? a : c;
-		o->tw = o->th = 1;
 		snprintf(tmp, sizeof tmp, "%s/kawa-wash-%d.ppm", runtime(), (int)o->global);
 		pid_t g = fork();
 		if (g == 0) {
@@ -1033,11 +1026,11 @@ static int wash(void)
 				;
 		bool got = g > 0 && WIFEXITED(st) && WEXITSTATUS(st) == 0 && load_ppm(o, tmp);
 		unlink(tmp);
-		if (!got || !make_buffer(o, &o->buf[0]) || !make_buffer(o, &o->buf[1]))
+		if (!got || !make_buffer(o, &o->buf[0]))
 			continue;
 		wl_surface_set_buffer_scale(o->surface, o->scale);
 		o->ready = true;
-		wash_draw(o, &o->buf[0], 0);
+		wash_draw(o, &o->buf[0]);
 		shown++;
 	}
 	if (!shown || stop)
@@ -1075,24 +1068,30 @@ static int wash(void)
 				break;
 		}
 	}
-	/* washed away: one step every 32 ms (the first one a step on, as the new look draws) */
-	for (int k = 1; k <= WASH_STEPS && !stop; k++) {
-		double next = now_ms() + WASH_MS;
-		while (!stop && now_ms() < next) {
-			struct pollfd p = { .fd = wl_display_get_fd(display), .events = POLLIN };
-			wl_display_flush(display);
-			int w = (int)(next - now_ms());
-			if (poll(&p, 1, w < 0 ? 0 : w) > 0 && wl_display_dispatch(display) < 0)
-				goto done;
-		}
+	/* faded away: a new opacity each frame the screens show, for WASH_MS */
+	t0 = now_ms();
+	for (;;) {
+		double a = 1.0 - wash_ease((now_ms() - t0) / WASH_MS);
+		bool any = false;
 		wl_list_for_each(o, &outputs, link) {
-			if (!o->ready || o->closed)
+			if (!o->ready || o->closed || o->waiting_frame)
 				continue;
-			struct buffer *b = !o->buf[0].busy ? &o->buf[0] : !o->buf[1].busy ? &o->buf[1] : NULL;
-			if (b)
-				wash_draw(o, b, k);   /* (both still on screen: this step skipped there) */
+			wp_alpha_modifier_surface_v1_set_multiplier(o->alpha, (uint32_t)(a * UINT32_MAX));
+			struct wl_callback *cb = wl_surface_frame(o->surface);
+			wl_callback_add_listener(cb, &frame_listener, o);
+			o->waiting_frame = true;
+			wl_surface_commit(o->surface);
+			any = true;
 		}
+		(void)any;
+		if (a <= 0.0 || stop)
+			break;
+		struct pollfd p = { .fd = wl_display_get_fd(display), .events = POLLIN };
+		wl_display_flush(display);
+		if (poll(&p, 1, 50) > 0 && wl_display_dispatch(display) < 0)
+			goto done;
 	}
+	wl_display_roundtrip(display);   /* (the last, clear frame reached the compositor) */
 done:
 	if (!covered) {
 		puts("covered");
@@ -1101,6 +1100,8 @@ done:
 	unlink(pidp);
 	if (display) {
 		wl_list_for_each(o, &outputs, link) {
+			if (o->alpha)
+				wp_alpha_modifier_surface_v1_destroy(o->alpha);
 			if (o->layer)
 				zwlr_layer_surface_v1_destroy(o->layer);
 			if (o->surface)
@@ -1127,7 +1128,7 @@ int main(int argc, char **argv)
 			     "  kawa-saver --idle  away 15 minutes (kawa-idle): the screensaver, the lock behind it as it\n"
 			     "                     ends (switched off in quick settings: the lock at once)\n"
 			     "  kawa-saver --wash  the transition of a theme switch or a new wallpaper: the screen as it\n"
-			     "                     was, washed away in 8 dithered steps once stdin closes (kawa-theme)");
+			     "                     was, faded away (320 ms, eased) once stdin closes (kawa-theme)");
 			return 0;
 		} else usage();
 	}
@@ -1156,11 +1157,12 @@ int main(int argc, char **argv)
 	wl_registry_add_listener(registry, &registry_listener, NULL);
 	wl_display_roundtrip(display);
 	wl_display_roundtrip(display);
-	if (!compositor || !shm || !layer_shell)
-		return fail("the compositor lacks layer-shell or shared memory");
+	if (!compositor || !shm || !layer_shell || !alpha_mgr)
+		return fail("the compositor lacks layer-shell, shared memory or alpha-modifier");
 	struct output *o;
 	wl_list_for_each(o, &outputs, link) {
 		o->surface = wl_compositor_create_surface(compositor);
+		o->alpha = wp_alpha_modifier_v1_get_surface(alpha_mgr, o->surface);
 		o->layer = zwlr_layer_shell_v1_get_layer_surface(layer_shell, o->surface, o->wl,
 				ZWLR_LAYER_SHELL_V1_LAYER_OVERLAY, "kawa-saver");
 		zwlr_layer_surface_v1_add_listener(o->layer, &layer_listener, o);
@@ -1183,14 +1185,20 @@ int main(int argc, char **argv)
 	while (!stop) {
 		double t = now_ms();
 		if (leaving) {
-			/* at once: the cloth washes away into the ground (PART_MS) — and with --idle the
-			 * lock comes up behind it meanwhile. Gone once it is washed, the lock is up (it has
-			 * the keyboard from then: with it no key or button is waited for), and, without
-			 * a lock, every key and button is up again (none reaches a window) */
-			int level = (int)(65 * (t - leave_at) / PART_MS);
+			/* at once: the cloth fades away (PART_MS, eased: a new opacity each frame the
+			 * screen shows, blended by the compositor) — and with --idle the lock comes up
+			 * behind it meanwhile. Gone once it is clear, the lock is up (it has the keyboard
+			 * from then: with it no key or button is waited for), and, without a lock, every
+			 * key and button is up again (none reaches a window) */
+			double a = 1.0 - wash_ease((t - leave_at) / PART_MS);
 			wl_list_for_each(o, &outputs, link)
-				if (o->ready && !o->closed)
-					part_step(o, level > 65 ? 65 : level);
+				if (o->ready && !o->closed && !o->waiting_frame) {
+					wp_alpha_modifier_surface_v1_set_multiplier(o->alpha, (uint32_t)(a * UINT32_MAX));
+					struct wl_callback *cb = wl_surface_frame(o->surface);
+					wl_callback_add_listener(cb, &frame_listener, o);
+					o->waiting_frame = true;
+					wl_surface_commit(o->surface);
+				}
 			bool washed = t - leave_at >= PART_MS;
 			if (washed && (idle_mode ? lock_up() : held == 0))
 				break;

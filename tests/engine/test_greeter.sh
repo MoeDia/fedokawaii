@@ -157,12 +157,18 @@ grep -qF 'command = "env \$(/usr/local/bin/start-dwl --gpu) \\"XCURSOR_THEME=Sum
 grep -qF 'command = \"env \$(/usr/local/bin/start-dwl --gpu) \\\"XCURSOR_THEME=Sumi-\$(cat /var/lib/fedokawaii-greeter/theme)\\\" systemd-cat -t kawa-greet cage -d -s -- /usr/local/bin/kawa-greet $TARGET_USER\"' "$REPO/verify.sh" && _ok || _no "verify.sh's check does not match setup's line"
 
 case_ "its look: every file it loads is one setup installs (both themes)"
-for f in gtklock.css padlock.png seal-{1..7}.png; do
+for f in gtklock.css lock-scroll.png lock-fibre.png padlock.png seal-{1..7}.png; do
   for t in dark light; do
-    case $f in *.css) src=$REPO/configs/home/.config/fedokawaii/themes/$t/$f ;; *) src=$REPO/configs/home/.local/share/fedokawaii/$t/$f ;; esac
+    case $f in gtklock.css|lock-*) src=$REPO/configs/home/.config/fedokawaii/themes/$t/$f ;; *) src=$REPO/configs/home/.local/share/fedokawaii/$t/$f ;; esac
     [[ -s $src ]] && _ok || _no "no $src"
   done
 done
 grep -q 'f"{art}/seal-{time.strftime(.%u.)}.png"' "$REPO/system/kawa-greet" && _ok || _no "the seal's file name changed"
+for t in dark light; do
+  for u in $(grep -o 'url("[^"]*")' "$REPO/configs/home/.config/fedokawaii/themes/$t/gtklock.css" | sed 's/url("//; s/")//'); do
+    grep -q "lock-{scroll,fibre}.png" <<<"$(sed -n '/greeter\/\$t$/,/done/p' "$REPO/setup.sh")" && [[ $u == lock-scroll.png || $u == lock-fibre.png ]] && _ok || _no "$t gtklock.css names $u: not installed beside it by setup.sh"
+  done
+done
+grep -q 'lock-scroll.png lock-fibre.png' "$REPO/verify.sh" && _ok || _no "verify does not check the pictures the login's look names"
 
 done_

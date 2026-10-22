@@ -34,7 +34,11 @@ case_ "the items at rest: the torii, the cat, the date in English (Mon 19 Oct), 
 setup; setrun
 eq "$(kawa-bar torii)" "{\"text\":\"$ICON_TORII\"}"
 eq "$(kawa-bar cat)" "{\"text\":\"$ICON_CAT\"}"
-[[ $(LC_ALL=tr_TR.UTF-8 kawa-bar date) =~ ^\{\"text\":\"(Mon|Tue|Wed|Thu|Fri|Sat|Sun)\ [0-3][0-9]\ [A-Z][a-z]{2}\"\}$ ]] && _ok || _no "date: $(kawa-bar date)"
+[[ $(LC_ALL=tr_TR.UTF-8 kawa-bar date) =~ ^\{\"text\":\"(Mon|Tue|Wed|Thu|Fri|Sat|Sun)\ [0-3][0-9]\ [A-Z][a-z]{2}\",\"class\":\"r[0-3]\"\}$ ]] && _ok || _no "date: $(kawa-bar date)"
+# (its month's last letter's air, as a class: Jul's l 3 px, Oct's t 1, Nov's v none — width.sh)
+mon() { M=$1 bash -c 'printf() { if [[ $1 == -v && $3 == "%(%a %d %b)T" ]]; then builtin printf -v "$2" %s "Thu 22 $M"; else builtin printf "$@"; fi; }
+  export -f printf; kawa-bar date'; }
+eq "$(mon Jul) $(mon Oct) $(mon Nov)" '{"text":"Thu 22 Jul","class":"r3"} {"text":"Thu 22 Oct","class":"r1"} {"text":"Thu 22 Nov","class":"r0"}' "the month's last letter's air"
 k=(月 火 水 木 金 土 日); d=$(kawa-bar day); u=$(date +%u)
 if ((u == 1)); then eq "$d" '{"text":"月","class":"mon"}'; else eq "$d" "{\"text\":\"${k[u - 1]}\"}"; fi
 # (each weekday in turn: the clock's day stood in for — printf's %(%u)T, kawa-bar's only clock)
@@ -118,9 +122,10 @@ kawa-dwlstatus --poke 15; pokes >/dev/null  # the next poke, whoever sends it: t
 eq "$(sh -c "$cat_ex")" "{\"text\":\"$ICON_CAT\"}" "dark: its marker is left, its pid dead"
 case_ "the panel killed with kill -9 under a dropdown: its button dark at the next run (the marker's pid dead)"
 alive; p=$P; echo "$p kawa-calendar" >"$R/kawa-drop.open"
-eq "$(kawa-bar date)" "{\"text\":\"$(LC_ALL=C date '+%a %d %b')\",\"class\":\"active\"}"
+d=$(LC_ALL=C date '+%a %d %b'); a=$(. "$HOME/.config/fedokawaii/width.sh"; air "$d"; echo "${__air#* }")
+eq "$(kawa-bar date)" "{\"text\":\"$d\",\"class\":[\"active\",\"$a\"]}"
 kill -9 "$p"; wait "$p" 2>/dev/null
-eq "$(kawa-bar date)" "{\"text\":\"$(LC_ALL=C date '+%a %d %b')\"}" "dark at the next run"
+eq "$(kawa-bar date)" "{\"text\":\"$d\",\"class\":\"$a\"}" "dark at the next run"
 rm -f "$R/kawa-drop.open"
 
 # ── the launcher: the panel's, lit while it shows it ──────────────────────────────────
@@ -283,16 +288,24 @@ for k, v in c.items():
 sys.exit(bad)
 EOF
 lacks "$(grep -h -- '"tooltip":false\|tooltip: false\|"tooltip": false' "$REPO"/bin/kawa-* 2>/dev/null)" tooltip "a script's JSON with a tooltip of false"
-case_ "the style: no box of colour on the bar (the cloth, the hem and the patches are pictures; a tooltip framed) — no ring anywhere; the workspaces dyed by state; every lit item recoloured, nothing else"
+case_ "the style (紙 kami): no bar of its own — tiles of washi; every colour one of waybar.css's tokens; no ring anywhere; the workspaces by their numeral's ink, where you are a seal; every lit item recoloured, nothing else"
 S_=$REPO/configs/home/.config/waybar/style.css
-bad=$(grep -nE 'background(-color)?: *@|box-shadow: *inset' "$S_" | grep -vE '^[0-9]+:(  background-color: @bar;|tooltip \{)')
-eq "$bad" "" "a box of colour on the bar"
+grep -q '^window#waybar { background: transparent;' "$S_" && _ok || _no "the bar has a ground of its own"
+toks=" $(sed -n 's/^@define-color \([a-z-]*\) .*/\1/p' "$REPO/configs/home/.config/fedokawaii/themes/dark/waybar.css" | tr '\n' ' ')"
+eq "$toks" " faint muted text strong accent-text strong-on-accent asagi tile kami-red seal-ink " "waybar.css: these and no more"
+for t in light; do eq " $(sed -n 's/^@define-color \([a-z-]*\) .*/\1/p' "$REPO/configs/home/.config/fedokawaii/themes/$t/waybar.css" | tr '\n' ' ')" "$toks" "$t: the same names"; done
+bad=""; for u in $(grep -o '@[a-z-]*' "$S_" | grep -v '^@import' | sort -u); do [[ $toks == *" ${u#@} "* ]] || bad+=" $u"; done
+eq "${bad:-none}" none "style.css names a colour waybar.css does not define"
+bad=$(grep -nE 'background(-color)?: *@' "$S_" | grep -vE '@(tile|kami-red);')
+eq "$bad" "" "a ground other than the paper's or the corners' vermilion"
 grep -q 'box-shadow: *inset' "$S_" && _no "a ring is back" || _ok
-pic() { grep -A1 -E "^\.tag\.$1 *\{" "$S_" | tr -d '\n'; }
-has "$(pic occupied)" 'url("../fedokawaii/current/cell-windows-36.png")' "a workspace with windows: dyed aizome"
-has "$(pic selected)" 'url("../fedokawaii/current/cell-here-36.png")' "the one you are on: the cloth turned over"
-has "$(pic urgent)" 'url("../fedokawaii/current/cell-urgent-36.png")' "one asking for you: asagi"
-has "$(grep -A2 -E '^\.tag \{' "$S_" | tr -d '\n')" 'url("../fedokawaii/current/cell-bare-36.png")' "an empty one: the frame alone"
+lacks "$(cat "$REPO/configs/home/.config/foot/foot.ini")" $'\n24=' "foot's palette has no tile colour of the bar's (24) any more"
+st() { grep -E "^\.tag\.$1 *\{" -A4 "$S_" | tr -d '\n'; }
+has "$(st occupied)" "color: @text;" "a workspace with windows: its numeral in the text's ink"
+has "$(st urgent)" "color: @asagi;" "one asking for you: asagi"
+has "$(st selected)" "color: @seal-ink;" "where you are: on the seal, the paper's ink"
+has "$(st selected)" 'url("../fedokawaii/current/kami-seal.png")'
+has "$(grep -E '^\.tag \{' "$S_")" "color: @faint;" "an empty one: faint"
 for m in custom-torii custom-layout custom-menu custom-steam custom-mem custom-volume custom-brightness custom-weather custom-drives custom-date custom-day custom-time custom-mode; do
   grep -q "#$m\.active" "$S_" && _ok || _no "#$m has no lit look"
 done

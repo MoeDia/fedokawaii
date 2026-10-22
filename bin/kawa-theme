@@ -39,8 +39,8 @@
 # Every program takes the new theme in one frame of its own, all of them told at the same
 # moment — the wallpaper drawn off screen and swapped in whole (kawa-wallpaper), the bar
 # restyled in place, the windows recoloured — under the one designed transition
-# (design-system §5): the screen as it was, washed away in 8 dithered steps (kawa-saver
-# --wash, ~1/4 s), never holding a click; a press during it jumps to the end and switches back.
+# (design-system §5): the screen as it was, faded away smoothly over a third of a second (kawa-saver
+# --wash), never holding a click; a press during it jumps to the end and switches back.
 #
 # Exit: 0 done (also a press dropped while a switch runs) · 1 could not · 2 wrong use.
 set -u
@@ -161,7 +161,7 @@ c.sendall((json.dumps({"command": ["load-config-file", sys.argv[2]]}) + "\n").en
 
 # The transition (design-system §5: the one designed one, the same as a new wallpaper's):
 # kawa-saver --wash lays the screen as it was over everything, the switch is made under it,
-# then it is washed away in 8 dithered steps (~1/4 s). It takes no input: every click goes
+# then it fades away (320 ms, eased, frame by frame). It takes no input: every click goes
 # through. A press during it ends it at once (the final state) and switches again
 wash_begin() {
   [[ -n ${WAYLAND_DISPLAY:-} ]] && ((!NOWASH)) || return 0

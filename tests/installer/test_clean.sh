@@ -7,7 +7,7 @@
 . "$(dirname "$0")/lib.sh"
 CLONE=/home/fkuser/fedokawaii
 TK=/usr/local/lib/fedokawaii
-setup() { fkrun bash "$CLONE/setup.sh" "$@"; }
+setup() { fkrun bash "$CLONE/setup.sh"; }
 resume() { fkrun bash "$TK/setup.sh" --resume "$@"; }
 
 # ── the helpers, alone ───────────────────────────────────────────────────────

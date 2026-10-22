@@ -74,7 +74,7 @@ end
 -- in (the editor's own statusline — lualine — is for code; here it is put away, also after
 -- it loads, and after a theme switch sets it up again)
 local function footer_of(name)
-  return "%#KawaGround#  %#KawaMuted#" .. name .. "  ·  saved as you type  ·  super+n puts it away%=%#KawaGround# "
+  return "%#KawaGround#  %#KawaMuted#" .. name .. "  ·  saved as you go  ·  super+n puts it away%=%#KawaGround# "
 end
 local footer = footer_of(where)
 local function page_footer()
@@ -127,12 +127,12 @@ end
 page()
 vim.api.nvim_create_autocmd("BufWinEnter", { group = group, callback = function() page() end })
 
--- every change written at once (`update`: only when there is one): however the window
--- goes, nothing is lost. Super+Q closes the terminal under neovim, which then exits on the
--- spot — no autocommand runs on a hang-up — so a change still waiting for a pause in the
--- typing would be gone. A write per change is cheap here: fsync is off in this window (no
--- wait for the disk on every key; the kernel writes it out within seconds, and kawa-notes
--- has it written out as soon as the window is gone).
+-- every change written (`update`: only when there is one) once you pause — a second
+-- without a change — and at once as the window is put away (Super+N, Super+Q: dwl puts a warm
+-- window away rather than closing it), as you leave the line you type on, or neovim. Only a
+-- window ended outright (the session itself ending) within that second loses that second.
+-- fsync is off in this window (no wait for the disk on each write; the kernel writes it out
+-- within seconds, and kawa-notes has it written out as soon as the window is gone).
 vim.o.fsync = false
 local buf = notes
 
@@ -176,11 +176,32 @@ local function save()
   if stamp() ~= seen then return vim.schedule(function() fresh(); save() end) end
   vim.api.nvim_buf_call(buf, function() vim.cmd("silent! update") end)
 end
-vim.api.nvim_create_autocmd({ "TextChanged", "TextChangedI", "InsertLeave", "FocusLost", "BufLeave", "VimLeavePre" }, {
+-- Written when you pause (a second without a change), and at once when you leave the line
+-- you type on, the window or neovim — never a write per key, which redrew the page (its
+-- footer flickered with every letter)
+local pause = vim.uv.new_timer()
+local function save_all()   -- the notes, and any other page open here with a change
+  save()
+  for _, b in ipairs(vim.api.nvim_list_bufs()) do
+    if b ~= buf and vim.api.nvim_buf_is_loaded(b) and vim.bo[b].buftype == "" and vim.bo[b].modified
+        and vim.api.nvim_buf_get_name(b) ~= "" then
+      vim.api.nvim_buf_call(b, function() vim.cmd("silent! update") end)
+    end
+  end
+end
+vim.api.nvim_create_autocmd({ "TextChanged", "TextChangedI" }, {
   group = group,
   callback = function(ev)
-    if ev.buf == buf then return save() end
-    -- (another file opened here: saved as you type too, as the line along the bottom says)
+    if vim.bo[ev.buf].buftype ~= "" then return end
+    pause:stop()
+    pause:start(1000, 0, vim.schedule_wrap(save_all))
+  end,
+})
+vim.api.nvim_create_autocmd({ "InsertLeave", "FocusLost", "BufLeave", "VimLeavePre" }, {
+  group = group,
+  callback = function(ev)
+    if ev.buf == buf then pause:stop(); return save() end
+    -- (another file opened here: saved as you go too, as the line along the bottom says)
     if vim.bo[ev.buf].buftype == "" and vim.api.nvim_buf_get_name(ev.buf) ~= "" then
       vim.api.nvim_buf_call(ev.buf, function() vim.cmd("silent! update") end)
     end

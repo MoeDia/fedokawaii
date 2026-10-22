@@ -294,7 +294,7 @@ apply() {   # apply CHOICE — default | pack:NAME | /path/to/file; 1: no such p
     first=${first:-$img}
   done < <(outputs)
   ((${#args[@]})) || { ground; return; }      # (no monitor to ask about: the plain ground)
-  show "${args[@]}"
+  show "${args[@]}" || return                 # (a picture not shown is not the choice saved)
   # (the lock's ground from it, behind: never in the way of the picture on screen)
   lock_ground "$first" </dev/null >/dev/null 2>&1 7>&- 8>&- 9>&- &
 }

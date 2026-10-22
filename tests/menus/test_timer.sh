@@ -121,7 +121,7 @@ wb() { python3 -B -c 'import json,sys; sys.path.insert(0,sys.argv[1]); import pa
 c=json.loads(p.strip_jsonc(open(sys.argv[2]).read())); print(eval(sys.argv[3]))' "$REPO/tests/static" "$REPO/configs/home/.config/waybar/config.jsonc" "$1"; }
 eq "$(wb 'c["custom/time"]["on-click"]')" "setsid -f kawa-timer"
 eq "$(wb 'c["custom/date"]["on-click"]')" "setsid -f kawa-calendar"; eq "$(wb 'c["custom/day"]["on-click"]')" "setsid -f kawa-calendar"
-eq "$(wb '" ".join(c["group/when"]["modules"])')" "custom/date custom/day custom/time"
+eq "$(wb '" ".join(c["group/when"]["modules"])')" "custom/wing-left custom/date custom/day custom/time custom/wing-right" "the clock and the music's wings, one scroll"
 eq "$(wb 'c["custom/time"]["exec"]')" "kawa-timer bar"; eq "$(wb 'c["custom/timer"]["exec"]')" "kawa-timer bar timer"
 eq "$(wb 'c["custom/timer"]["on-click"]')" "setsid -f kawa-timer"; eq "$(wb 'c["custom/timer"]["exec-on-event"]')" False
 eq "$(wb '" ".join(c["group/status"]["modules"][:2])')" "custom/nowplaying custom/timer"

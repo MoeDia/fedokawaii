@@ -190,7 +190,7 @@ else
   case_ "notes.lua: the heading (記, notes, the stitch: §7); the footer names the file ('%' kept as a '%') and the keys"
   has "$(ask vim.wo.winbar)" "%#KawaGround#  %#KawaKanji#記%#KawaGround#  %#KawaName#notes %#KawaStitch#%="
   has "$(ask "vim.opt_local.fillchars:get().wbr")" "╌"
-  has "$(ask vim.wo.statusline)" "%#KawaMuted#~/Notes/50%% off.md  ·  saved as you type  ·  super+n puts it away"
+  has "$(ask vim.wo.statusline)" "%#KawaMuted#~/Notes/50%% off.md  ·  saved as you go  ·  super+n puts it away"
   eq "$(ask '{vim.o.laststatus, vim.o.cmdheight}')" "{ 2, 0 }"
   case_ "notes.lua: nothing written over the footer while typing (no mode, no keys, no 'written')"
   eq "$(ask '{vim.o.showmode, vim.o.showcmd, vim.o.ruler}')" "{ false, false, false }"
@@ -218,15 +218,15 @@ else
   # the real window: kawa-notes --inside in a terminal of its own; once the page is drawn
   # (its line of keys shows), "hello world" is typed and 0.05 s later the terminal goes
   ours() { local p; for p in $(pgrep -f "$TMP" 2>/dev/null); do kill -KILL "$p" 2>/dev/null; done; }
-  case_ "the window closed (Super+Q) just after typing: nothing lost"
+  case_ "the window ended (the session ending) a pause after typing: nothing lost — written once a second passes without a change (Super+Q puts a warm window away: dwl)"
   setup; rm -f "$STUBS/nvim"; config .config/fedokawaii/notes.lua
   stub nvim "exec '$REAL_NVIM' --clean \"\$@\""
   mkdir -p "${N%/*}"; printf '%s\n\n' "$H" >"$N"
-  python3 -I "$C/pty_run.py" --timeout 20 --answer 'saved as you type' 'hello world' --hangup +0.05 -- kawa-notes --inside --shown >/dev/null
+  python3 -I "$C/pty_run.py" --timeout 20 --answer 'saved as you go' 'hello world' --hangup +1.6 -- kawa-notes --inside --shown >/dev/null
   eq "$(cat "$N")" "$H"$'\n\nhello world'
   case_ "...and the next Super+N asks nothing about a swap file"
-  out=$(python3 -I "$C/pty_run.py" --timeout 20 --answer 'saved as you type' '' --hangup +0.3 -- kawa-notes --inside --shown | tr -d '\0')
-  has "$out" "saved as you type" "(the page came up)"
+  out=$(python3 -I "$C/pty_run.py" --timeout 20 --answer 'saved as you go' '' --hangup +0.3 -- kawa-notes --inside --shown | tr -d '\0')
+  has "$out" "saved as you go" "(the page came up)"
   lacks "$out" "E325"; lacks "$out" "ATTENTION"
   eq "$(find "$XDG_STATE_HOME" -name '*.sw?' 2>/dev/null)" "" "no swap file kept"
   case_ "...and no neovim is left running"
@@ -245,7 +245,7 @@ else
     case_ "notes changed elsewhere while open ($how): taken in, no write-anyway question, typing goes on"
     printf '%s\n\nfirst\n' "$H" >"$N"
     elsewhere "$how" & bg=$!
-    out=$(python3 -I "$C/pty_run.py" --timeout 20 --answer 'saved as you type' 'hello' --hangup +3 -- kawa-notes --inside --shown | tr -d '\0')
+    out=$(python3 -I "$C/pty_run.py" --timeout 20 --answer 'saved as you go' 'hello' --hangup +3 -- kawa-notes --inside --shown | tr -d '\0')
     wait "$bg"
     eq "$(cat "$N")" "$H"$'\n\nfirst\nhello world\nfrom the phone'
     lacks "$out" "really want to write"; lacks "$out" "changed since"
@@ -253,21 +253,21 @@ else
   case_ "notes deleted elsewhere while open: the page stays, the next key writes it back"
   printf '%s\n\nfirst\n' "$H" >"$N"
   elsewhere 'rm "$N"' & bg=$!
-  out=$(python3 -I "$C/pty_run.py" --timeout 20 --answer 'saved as you type' 'hello' --hangup +3 -- kawa-notes --inside --shown | tr -d '\0')
+  out=$(python3 -I "$C/pty_run.py" --timeout 20 --answer 'saved as you go' 'hello' --hangup +3 -- kawa-notes --inside --shown | tr -d '\0')
   wait "$bg"
   eq "$(cat "$N" 2>/dev/null)" "$H"$'\n\nfirst\nhello world'; lacks "$out" "really want to write"
-  case_ "another file opened in the window (:e ~/Notes/trip.md): a page too — its name in the footer, saved as you type"
+  case_ "another file opened in the window (:e ~/Notes/trip.md): a page too — its name in the footer, saved as you go"
   printf '%s\n\nfirst\n' "$H" >"$N"
   ( for _ in {1..200}; do [[ -S $XDG_RUNTIME_DIR/kawa-notes.nvim ]] && break; sleep 0.05; done; sleep 0.5
     "$REAL_NVIM" --server "$XDG_RUNTIME_DIR/kawa-notes.nvim" --remote-send '<Esc>:e ~/Notes/trip.md<CR>ibuy a SIM card' ) & bg=$!
-  out=$(python3 -I "$C/pty_run.py" --timeout 20 --answer 'saved as you type' '' --hangup +2.5 -- kawa-notes --inside --shown | tr -d '\0')
+  out=$(python3 -I "$C/pty_run.py" --timeout 20 --answer 'saved as you go' '' --hangup +2.5 -- kawa-notes --inside --shown | tr -d '\0')
   wait "$bg"
   eq "$(cat "$HOME/Notes/trip.md" 2>&1)" "buy a SIM card" "(closed by Super+Q: nothing lost)"
   eq "$(cat "$N")" "$H"$'\n\nfirst' "(the notes as they were)"
   out=$(nvim --headless -c 'luafile ~/.config/fedokawaii/notes.lua' -c 'e ~/Notes/trip.md' \
     -c "lua io.stdout:write(vim.inspect({vim.api.nvim_eval_statusline(vim.wo.winbar, {winid = 0, use_winbar = true}).str, vim.api.nvim_eval_statusline(vim.wo.statusline, {winid = 0}).str, vim.wo.number, vim.wo.foldcolumn, vim.wo.wrap}))" \
     -c 'qa!' -- "$N" 2>/dev/null)
-  has "$out" "  記  notes ╌╌╌"; has "$out" "  ~/Notes/trip.md  ·  saved as you type"; has "$out" 'false, "4", true }'
+  has "$out" "  記  notes ╌╌╌"; has "$out" "  ~/Notes/trip.md  ·  saved as you go"; has "$out" 'false, "4", true }'
   # the warm page: put away (kawa-warm --hidden) and shown again the next day (--shown),
   # through its socket as kawa-warm does — saved and tidied as it goes, today's note as it shows
   case_ "warm: put away — saved and tidied; shown the next day — its heading, the cursor under it, typing"
@@ -278,7 +278,7 @@ else
     printf '#!/bin/sh\necho "2026-10-17 · Sat"\n' >"$STUBS/date"
     "$REAL_NVIM" --server "$XDG_RUNTIME_DIR/kawa-notes.nvim" --remote-expr 'v:lua.kawa_notes_shown()' >>"$TMP/hid" 2>&1
     sleep 0.3; "$REAL_NVIM" --server "$XDG_RUNTIME_DIR/kawa-notes.nvim" --remote-send 'tea' 2>/dev/null ) & bg=$!
-  out=$(python3 -I "$C/pty_run.py" --timeout 20 --answer 'saved as you type' 'hello' --hangup +3 -- kawa-notes --inside --shown | tr -d '\0')
+  out=$(python3 -I "$C/pty_run.py" --timeout 20 --answer 'saved as you go' 'hello' --hangup +3 -- kawa-notes --inside --shown | tr -d '\0')
   wait "$bg"
   eq "$(cat "$TMP/away")" "$H"$'\n\nfirst\nhello' "(away: saved, the fresh line tidied)"
   eq "$(cat "$N")" "$H"$'\n\nfirst\nhello\n\n## 2026-10-17 · Sat\n\ntea'

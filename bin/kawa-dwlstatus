@@ -77,6 +77,8 @@ esac
 
 # shellcheck source=/dev/null
 . "$HOME/.config/fedokawaii/icons.sh"
+. "$HOME/.config/fedokawaii/width.sh"   # air: the title's first and last letters' own air
+__air=''                                  # (air's answer)
 # the workspaces by their kanji numerals, as the bar shows them
 KANJI=(一 二 三 四 五 六 七 八 九)
 DIR="${XDG_RUNTIME_DIR:?}/dwl-bar"
@@ -139,10 +141,11 @@ emit() {   # emit MONITOR — its files (and the focused one's at the top), then
     [[ ${title:60:1} == ' ' ]] && title=${title:0:60} || { title=${title:0:60}; [[ $title == *' '* ]] && title=${title% *}; }
     title=${title%"${title##*[! ]}"}
   fi
+  air "$title"; local ta=${__air/ /\",\"}
   esc icon "$icon"; esc title "$title"
   for at in "${to[@]}"; do
     put "${at}layout" "{\"text\":\"$icon\",\"class\":\"$cls\"}" && ly=1
-    put "${at}title" "{\"text\":\"$title\"}" && tt=1
+    put "${at}title" "{\"text\":\"$title\",\"class\":[\"$ta\"]}" && tt=1
   done
   # the keyboard layout, shown only when there is more than one to switch between
   local k=${KB[$mon]:-0} name="" which=first

@@ -398,7 +398,7 @@ built() {
   install -m 0755 "$REPO/system/kawa-greet" "$W/usr/local/bin/kawa-greet"
   for t in dark light; do   # the login screen's look, as greetd_config installs it
     mkdir -p "$W/usr/local/share/fedokawaii/greeter/$t"
-    cp "$REPO/configs/home/.config/fedokawaii/themes/$t/gtklock.css" "$REPO/configs/home/.local/share/fedokawaii/$t/"{padlock,seal-?}.png \
+    cp "$REPO/configs/home/.config/fedokawaii/themes/$t/"{gtklock.css,lock-scroll.png,lock-fibre.png} "$REPO/configs/home/.local/share/fedokawaii/$t/"{padlock,seal-?}.png \
       "$W/usr/local/share/fedokawaii/greeter/$t/"
   done
   mkdir -p "$W/var/lib/fedokawaii-greeter" "$W/etc/fonts/conf.d" "$W/usrshare/locale/fk/LC_MESSAGES"

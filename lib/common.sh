@@ -20,6 +20,7 @@ if [[ -t 1 ]]; then
 else
   C_RESET='' C_GOLD='' C_RED='' C_MUTED='' C_FAINT='' C_STITCH=''
 fi
+# shellcheck disable=SC2034  # (for the scripts that source this file)
 C_OK=$C_MUTED C_DIM=$C_FAINT C_BOLD=''     # (the older names: a pass is quiet; there is no bold face)
 LOG_FILE=${LOG_FILE:-/var/log/fedokawaii.log}
 # the logs record every command with its output: root's alone
@@ -57,7 +58,7 @@ _row() {
 # of paper either side; in the log "── NAME"
 _heading() {
   local c n s
-  printf '%s\n' "" "── $1" >>"$LOG_FILE" 2>/dev/null
+  { printf '%s\n' "" "── $1" >>"$LOG_FILE"; } 2>/dev/null || true   # (a full disk: the screen still has it)
   _cols; c=$_COLS
   if ((c == 0)); then printf '\n── %s\n' "$1"; return 0; fi
   n=$(( c - 5 - $(LC_ALL=C.UTF-8 wc -L <<<"$1") )); ((n < 2)) && n=2
@@ -106,14 +107,16 @@ retry() {
   return 1
 }
 
-# wait_until SECONDS CMD… — CMD tried every 2 s until it succeeds, for SECONDS at most: the wait
-# for something that comes by itself (the network as the machine starts, your own systemd once
-# linger is on, a service answering). Quiet: waiting is no failure, so it writes no "attempt"
-# line (the run's summary counts those as retries). 1 when it never came — the caller says why
+# wait_until SECONDS CMD… — CMD tried every 2 s (WAIT_STEP=5 for the network) until it
+# succeeds, for SECONDS at most: the wait for something that comes by itself (the network as
+# the machine starts, your own systemd once linger is on, a service answering). Quiet: waiting
+# is no failure, so it writes no "attempt" line (the run's summary counts those as retries).
+# 1 when it never came — the caller says why
 wait_until() {
-  local end=$((SECONDS + $1)) n=$(($1 / 2 + 1)); shift
+  local step=${WAIT_STEP:-2}
+  local end=$((SECONDS + $1)) n=$(($1 / step)); shift
   # (the time is the bound; the count of tries one too, should a pause ever be cut short)
-  until "$@"; do ((SECONDS < end && --n > 0)) || return 1; sleep 2; done
+  until "$@"; do ((SECONDS < end && --n > 0)) || return 1; sleep "$step"; done
 }
 
 # HTTPS only (a redirect too: a mirror list may send a download to any mirror), TLS ≥ 1.2,

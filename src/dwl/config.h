@@ -30,7 +30,10 @@
 static const int sloppyfocus               = 1;  /* focus follows mouse */
 static const int bypass_surface_visibility = 0;
 static const unsigned int borderpx         = 2;  /* the border (dwl.patch draws it as outline + band) */
-static const unsigned int gappx            = 8;  /* gap between windows and around the edge (dwl.patch) */
+static const unsigned int gappx            = 8;  /* gap between windows (dwl.patch) */
+static const unsigned int outergappx       = 5;  /* …and from the screen's edges: the windows' outer edge
+                                                    on the bar's tiles' hairline (x 5, 1914), so the
+                                                    windows are exactly as wide as the bar (dwl.patch) */
 static const unsigned int snap             = 16; /* snap pixel */
 static const float rootcolor[]             = COLOR(SUMI);
 /* { outline, band top/left, band bottom/right }: one colour each, a plain full border */
@@ -42,11 +45,14 @@ static const float fullscreen_bg[]         = {0.059f, 0.055f, 0.047f, 1.0f};
 /* animations (dwl.patch): a new window fades in, rising its last anim_rise px to its
  * place; a closed one fades away, sinking as much; a workspace switch fades the windows
  * out as they drift a little (anim_drift of the screen's width) to one side, and the next
- * ones in from the other — every frame the screen shows, eased out, over anim_ms; never a
+ * ones in from the other — every frame the screen shows, drawn for the moment that frame
+ * reaches the screen, the movement eased out and the fade on a smootherstep; never a
  * full-screen window. No edge sweeps across the screen: a moving cut reads as a tear.
  * 0: everything at once */
 static const int animations                = 1;
-static const unsigned int anim_ms          = 220;  /* the whole movement */
+static const unsigned int anim_open_ms     = 240;  /* a window opening */
+static const unsigned int anim_close_ms    = 180;  /* …closing: quicker, out of the way */
+static const unsigned int anim_tag_ms      = 240;  /* a workspace switch */
 static const int anim_rise                 = 24;   /* px */
 static const double anim_drift             = 0.06; /* 115 px on a 1920 px screen */
 

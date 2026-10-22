@@ -88,7 +88,7 @@ for p in lpf lpf-spotify-client spotify-client; do pkg_has "$p" && _no "$p still
 grep -q '^pkg-build:' "$W/etc/passwd" "$W/etc/group" && _no "lpf's account pkg-build left" || _ok
 [[ ! -e $W/var/lib/lpf && ! -e $W/etc/sudoers.d/pkg-build ]] && _ok || _no "lpf's folder or sudoers rule left"
 has "$OUT" "lpf's leftovers (it built Spotify's app here once) removed: /var/lib/lpf · the user pkg-build"
-has "$OUT" "✔ no lpf, nothing it left (Spotify is its web player)"; lacks "$OUT" "installed outside the manifest"
+has "$OUT" "✔  no lpf, nothing it left (Spotify is its web player)"; lacks "$OUT" "installed outside the manifest"
 case_ "…lpf gone but its account and folder left (removed by hand): verify warns, repair takes them out"
 back built; fk bash -c '. /usr/local/bin/_lib.sh; fake_lpf_era; sed -i "/^\(lpf\|lpf-spotify-client\|spotify-client\)\$/d" /var/lib/fkh/installed'
 fkrun bash "$TK/verify.sh"; has "$OUT" "lpf's leftovers: the user pkg-build /var/lib/lpf"
@@ -113,7 +113,7 @@ fk_perms; tk --update; eq "$RC" 0
 [[ ! -e $W/home/fkuser/.local/bin/presenterm && ! -e $W/home/fkuser/.local/bin/spotify_player ]] && _ok || _no "a retired tool stayed"
 case_ "repair: the sound card napping now (snd_hda_intel power_save 1: a click at each volume change): verify says so, repair sets 0 at once"
 back built; mkdir -p "$W/sys/module/snd_hda_intel/parameters"; echo 1 >"$W/sys/module/snd_hda_intel/parameters/power_save"
-fkrun bash "$TK/verify.sh"; has "$OUT" "✘ the sound card never naps (no click at a volume change) — snd_hda_intel power_save is 1 now"
+fkrun bash "$TK/verify.sh"; has "$OUT" "✘  the sound card never naps (no click at a volume change) — snd_hda_intel power_save is 1 now"
 tk --repair; eq "$(cat "$W/sys/module/snd_hda_intel/parameters/power_save")" 0
 rm -rf "$W/sys/module/snd_hda_intel"
 case_ "repair: a boot entry that lost the console argument (no black-screen wait at boot) gets it back"
@@ -146,7 +146,7 @@ case_ "the machine an older setup left: vi a link to nvim — dracut follows it 
 back built; ln -sfn ../../bin/nvim "$W/usr/local/bin/vi"; rm -f "$W/boot/initramfs-$(uname -r).img"
 fkrun dracut -f --kver "$(uname -r)"; eq "$RC" 1; has "$OUT" "could not locate dependency /usr/lib64/lua/5.1/lpeg.so"
 [[ ! -e $W/boot/initramfs-$(uname -r).img ]] && _ok || _no "an image made through the link"
-fkrun bash "$TK/verify.sh"; eq "$RC" 3; has "$OUT" "✘ vi → nvim (a script"; has "$OUT" "✘ kernels without a boot image"
+fkrun bash "$TK/verify.sh"; eq "$RC" 3; has "$OUT" "✘  vi → nvim (a script"; has "$OUT" "✘  kernels without a boot image"
 case_ "… repair: vi a script first (nvim still opens through it), then the missing image is made; verify passes"
 tk --repair
 [[ ! -L $W/usr/local/bin/vi ]] && _ok || _no "vi still a link"
@@ -157,7 +157,7 @@ case_ "repair, on the owner's machine as found (19 Oct): root's file in the home
 back built
 fk bash -c 'mkdir -p /home/fkuser/Downloads; echo old >/home/fkuser/Downloads/fedokawaii-report.txt; chown 0:0 /home/fkuser/Downloads/fedokawaii-report.txt'
 rm -f "$W/etc/systemd/system/fedokawaii-report.service"; sed -i '/^enabled fedokawaii-report\.service$/d' "$FKH/units"
-fkrun bash "$TK/verify.sh"; eq "$RC" 3; has "$OUT" "✘ files in your home that are not yours: root ~/Downloads/fedokawaii-report.txt"; has "$OUT" "✘ the health report runs once, on the first start"
+fkrun bash "$TK/verify.sh"; eq "$RC" 3; has "$OUT" "✘  files in your home that are not yours: root ~/Downloads/fedokawaii-report.txt"; has "$OUT" "✘  the health report runs once, on the first start"
 tk --repair
 eq "$(fk stat -c %U /home/fkuser/Downloads/fedokawaii-report.txt)" fkuser "the file handed back"
 has "$OUT" "your home: 1 file(s) of root's handed back to you"
@@ -261,7 +261,7 @@ grep -qx "enabled fedokawaii-kernels.timer" "$FKH/units" && _ok || _no "timer no
 has "$OUT" "problem(s) before, 0 now"
 case_ "repair: a boot menu left shown (no theme, no other system) — hidden again, as setup left it"
 back built; sed -i '/^menu_auto_hide=/d' "$FKH/grubenv"
-fkrun bash "$TK/verify.sh"; has "$OUT" "✘ GRUB menu hidden"
+fkrun bash "$TK/verify.sh"; has "$OUT" "✘  GRUB menu hidden"
 tk --repair; grep -qx menu_auto_hide=2 "$FKH/grubenv" && _ok || _no "the menu still shown"
 has "$OUT" "problem(s) before, 0 now"
 case_ "repair: a COPR whose enable was lost (grub-btrfs on his machine) — enabled again, its package never listed as gone"

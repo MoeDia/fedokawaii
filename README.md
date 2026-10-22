@@ -70,20 +70,21 @@ PACKAGES.md        what is installed, from where, and why
 - **Full borders**: every window has a plain 2-pixel border — vermilion for the focused one,
   warm grey for the others; menus and panels are see-through as the terminals are (text
   screens of the same glass), notices solid cards — all with the same warm-grey border.
-- **The bar**: a strip of cloth sewn in sashiko and patched as boro is — kachi-iro, indigo
-  dyed almost black (undyed kinari on the light theme), hemmed along its foot, every line
-  on it a quiet running stitch with its shadow. A torii on a red patch at the left corner (the
-  launcher); the workspaces as a row of stitched patches numbered in kanji (一 二 三 always,
-  more as you use them): an empty frame when empty, indigo while it holds windows, the cloth
-  turned over where you are. Then the layout as an icon and the window title. In the middle,
-  on the cloth itself and parted by two seams, the date (`Wed 21 Oct`), the weekday's kanji
-  in vermilion and the time to the second — and while music plays, its spectrum spreads
-  either side of it like wings, thin columns in one warm grey, the left channel left and
-  the right right. On the right a row of cells, a seam between
-  each: what is playing (a cassette whose reels turn, the title, the artist quieter), a timer, a kanji while do-not-disturb
-  (静) or screen sharing (共有) is on, a drive mark, downloads, Steam's gamepad while it runs,
-  the keyboard layout (US / AR), memory, volume, the monitor's brightness (when it answers
-  over DDC/CI), the weather — and the cat on the other corner's red patch: quick settings.
+- **The bar**: 紙 kami — no bar at all, but tiles of washi floating along the top of the
+  wallpaper, each with a printer's rule, a hairline and a soft shadow, so they stand on any
+  picture: paper dyed in ink with pale words on the dark theme, cream paper with words in sumi
+  on the light one. A torii on a vermilion tile at the left corner (the launcher); the
+  workspaces as tiles numbered in kanji (一 二 三 always, more as you use them): faint when
+  empty, in ink while it holds windows, stamped with a round vermilion seal where you are. Then
+  the layout's icon and the window title on one tile. In the middle, a hanging scroll between
+  two lacquered rods: the date (`Thu 22 Oct`), the weekday's kanji in vermilion on the
+  screen's centre line and the time to the second — and while music plays, its spectrum
+  spreads either side of it inside the scroll like wings. On the right a tile each: what is
+  playing (a cassette whose reels turn, the title, the artist quieter), a timer, a kanji while
+  do-not-disturb (静) or screen sharing (共有) is on, a drive mark, downloads, Steam's gamepad
+  while it runs, the keyboard layout (US / AR), memory, volume, the monitor's brightness (when
+  it answers over DDC/CI), the weather — and the cat on the other corner's vermilion tile:
+  quick settings.
   No tray.
 - **Level display**: the volume, microphone and brightness keys show a hi-fi level wedge of
   pixel columns at the bottom centre, updating in place while a key is held.
@@ -124,9 +125,9 @@ PACKAGES.md        what is installed, from where, and why
   licences in `configs/home/.local/share/fedokawaii/wallpapers.list`). Without the pack, the
   theme's plain ground. Each theme keeps its own; day/night pairs switch together; a new one
   dissolves in.
-- **Prompt**: a header on open paper — torii, path, git, and at the right edge after each
-  command a green ✓ or a vermilion ✗ with its exit code, the time a slow one took and the time
-  to the minute — then `›` and what you type. Typing is ble.sh's: the line coloured as you type, a grey suggestion from your
+- **Prompt**: one short line — the torii, green when the last command worked and vermilion
+  (with its code) when it failed; the folder; the branch, `*` when anything is not committed;
+  the time a slow command took — then `›` and what you type. Typing is ble.sh's: the line coloured as you type, a grey suggestion from your
   history (→ takes it), a completion menu — all in the theme's colours.
 - **fetch**: one of ten pixel pictures (beckoning cat, daruma, torii at sunset, a beige
   computer showing Fuji, Fuji at dawn, onigiri, a paper lantern, a cassette, a fox mask,

@@ -2,8 +2,10 @@
 # tests/session/test_dwl_anim.sh — dwl's animations (src/dwl/dwl.patch, config.h): a new window
 # fades in rising its last anim_rise px, a closed one fades out sinking as far, a workspace
 # switch cross-fades as the windows drift anim_drift of the screen aside — every frame the
-# screen shows, eased out over anim_ms, nothing ever cut by a moving edge, never a full-screen
-# window, never one not yet drawn at its size; tearing flips only with FreeSync on. What a headless dwl showed (frames grabbed through each, and rounds of
+# screen shows, drawn for the moment that frame reaches the screen, the movement eased out and
+# the fade on a smootherstep (anim_open_ms, anim_close_ms, anim_tag_ms), nothing ever cut by a
+# moving edge, never a full-screen window, never one not yet drawn at its size; tearing flips
+# only with FreeSync on. What a headless dwl showed (frames grabbed through each, and rounds of
 # windows opened and closed at once with switches mid-slide under ASan, nothing left on the
 # screen), kept here as the code that does it.
 . "$(dirname "$0")/../lib/harness.sh"
@@ -11,15 +13,17 @@
 P=$REPO/src/dwl/dwl.patch CH=$REPO/src/dwl/config.h
 added() { sed -n "/^+$1(/,/^+}/p" "$P"; }
 
-case_ "config.h and config.def.h: on, 220 ms, a 24 px rise, a drift of 0.06 of the screen"
+case_ "config.h and config.def.h: on, opening 240 ms, closing 180, a switch 240, a 24 px rise, a drift of 0.06 of the screen"
 for c in "$(cat "$CH")" "$(sed -n '/^+++ b\/config.def.h/,/^--- /p' "$P" | sed 's/^+//')"; do
-  grep -q '^static const int animations *= 1;' <<<"$c" && grep -q '^static const unsigned int anim_ms *= 220;' <<<"$c" \
+  grep -q '^static const int animations *= 1;' <<<"$c" && grep -q '^static const unsigned int anim_open_ms *= 240;' <<<"$c" \
+    && grep -q '^static const unsigned int anim_close_ms *= 180;' <<<"$c" && grep -q '^static const unsigned int anim_tag_ms *= 240;' <<<"$c" \
     && grep -q '^static const int anim_rise *= 24;' <<<"$c" && grep -q '^static const double anim_drift *= 0.06;' <<<"$c" \
-    && ! grep -q 'anim_steps' <<<"$c" && _ok || _no "animations, anim_ms, anim_rise, anim_drift"
+    && ! grep -q 'anim_steps\|anim_ms ' <<<"$c" && _ok || _no "animations, anim_*_ms, anim_rise, anim_drift"
 done
 
-case_ "driven by the screen's frames: each frame drawn for its own time, the next asked only while one runs (no timer)"
-grep -q '^+		animframe(m, now.tv_sec \* 1000.0 + now.tv_nsec / 1e6, held);' "$P" \
+case_ "driven by the screen's frames: each frame drawn for the moment it reaches the screen (the last one shown + the refresh: presentmon), the next asked only while one runs (no timer)"
+grep -q '^+			animframe(m, at, held);' "$P" && grep -q 'm->shown_ms + m->refresh_ms \* ceil(' "$P" \
+  && grep -q '^+	LISTEN(&wlr_output->events.present, &m->present, presentmon);' "$P" && grep -q 'm->refresh_ms = ev->refresh / 1e6;' "$P" \
   && grep -q '^+	if (left)$' <(added animframe) && ! grep -q 'animtick\|animtimer' "$P" \
   && grep -q 'return 1.0 - (1.0 - p) \* (1.0 - p) \* (1.0 - p);' <(added animease) \
   && _ok || _no "animations not frame-driven"
@@ -30,7 +34,8 @@ grep -q '^+		showclient(c, 1);' "$P" && grep -q '^+	showclient(data, 0);' "$P" \
 
 case_ "opening: no cut — the whole window fades in (its picture's opacity, its frame's colours) as it rises anim_rise px to its place, at its current place (a relayout mid-animation is followed)"
 f=$(added applyframe)
-grep -q 'dy = (int)lround(anim_rise \* (1.0 - e));' <<<"$f" && grep -q 'alpha = (float)e;' <<<"$f" \
+grep -q 'dy = (int)lround(anim_rise \* (1.0 - e));' <<<"$f" && grep -q 'alpha = (float)f;' <<<"$f" \
+  && grep -q 'return p \* p \* p \* (p \* (p \* 6 - 15) + 10);' <(added fadeease) \
   && ! grep -q 'h \* e' <<<"$f" && grep -q 'clientfade(c, alpha);' <<<"$f" \
   && grep -q '^+	applyframe(c);$' <(sed -n '/^ resize(Client \*c/,/^ }/p;/^+resize(/,/^+}/p' "$P"; grep -A2 'the scene: the window at its place' "$P") \
   && _ok || _no "applyframe: not a fade and a rise"
@@ -42,7 +47,7 @@ case_ "a workspace switch: the old windows fade out drifting one way, the new fa
 f=$(added applyframe)
 grep -q 'dx = c->animdir \* (int)lround(c->mon->w.width \* anim_drift \* (1.0 - e));' <<<"$f" \
   && grep -q 'dx = -c->animdir \* (int)lround(c->mon->w.width \* anim_drift \* e);' <<<"$f" \
-  && grep -q 'alpha = (float)(1.0 - e);' <<<"$f" && _ok || _no "the cross-fade and drift"
+  && grep -q 'alpha = (float)(1.0 - f);' <<<"$f" && _ok || _no "the cross-fade and drift"
 
 case_ "tearing (async) flips only while FreeSync is on for the screen (vrr 1)"
 grep -q '^+	if (m->vrr == 1 && (c = focustop(m)) && c->isfullscreen && client_surface(c)$' "$P" && _ok || _no "async flips without FreeSync"
@@ -51,7 +56,8 @@ grep -q 'wlr_scene_node_set_enabled(&c->scene_surface->node, 0);' <(added applyf
 
 case_ "a closed window's ghost fades out and sinks anim_rise px: each part its own colour or opacity, the tree where the window stood"
 f=$(added ghostapply)
-grep -q 'wlr_scene_node_set_position(&g->tree->node, g->x, g->y + (int)lround(anim_rise \* e));' <<<"$f" \
+grep -q 'wlr_scene_node_set_position(&g->tree->node, g->x, g->y + (int)lround(anim_rise \* animease(t)));' <<<"$f" \
+  && grep -q 'float a = (float)(1.0 - fadeease(t)), col\[4\];' <<<"$f" \
   && grep -q 'col\[k\] = p->color\[k\] \* a;' <<<"$f" && grep -q 'wlr_scene_buffer_set_opacity(wlr_scene_buffer_from_node(p->node), p->color\[0\] \* a);' <<<"$f" \
   && grep -q '^+	float color\[4\];' "$P" && grep -q '^+	int x, y; ' "$P" && _ok || _no "ghostapply / GhostPart / Ghost"
 case_ "a closed window leaves a ghost of its own buffers that never takes the pointer, freed with its monitor and at exit"
@@ -82,5 +88,21 @@ d=$(grep -A9 '^ 	wlr_scene_node_destroy(&lock->scene->node);$' "$P")
 grep -q '^-	motionnotify(0, NULL, 0, 0, 0, 0);$' <(grep -B12 '^ 	wlr_scene_node_destroy(&lock->scene->node);$' "$P") \
   && grep -q '^+	if (unlock)$' <<<"$d" && grep -q '^+		motionnotify(0, NULL, 0, 0, 0, 0);$' <<<"$d" \
   && _ok || _no "destroylock asks for the pointer before the lock is gone"
+
+# ── beside the animations, in the same patch: full screen and X11 windows ──
+case_ "focustop: a visible full-screen window first (a window it hides never takes the keys on a return to its workspace), else the latest focused one shown"
+f=$(sed -n '/^ focustop(Monitor \*m)$/,/^ }$/p' "$P")
+grep -q '^+		if (c->isfullscreen)$' <<<"$f" && grep -q '^+		if (!top)$' <<<"$f" && grep -q '^+			continue;$' <<<"$f" \
+  && _ok || _no "focustop does not prefer the full-screen window"
+case_ "arrange: an X11 window shown again is told it is not minimised (a Wine game black on returning to its workspace)"
+grep -q '^+			if (VISIBLEON(c, m) && client_is_x11(c) && !client_is_unmanaged(c)$' "$P" \
+  && grep -q '^+				wlr_xwayland_surface_set_minimized(c->surface.xwayland, 0);$' "$P" && _ok || _no "arrange leaves it minimised"
+
+case_ "Super+Q on a warm window (notes, the clipboard, the system menu) puts it away, its page saved — never ends it mid-line"
+k=$(sed -n '/^[ +]killclient(const Arg \*arg)$/,/^[ +]}$/p' "$P")
+grep -q 'if (sel && iswarm(sel))' <<<"$k" && grep -q 'warmhide(sel, 1);' <<<"$k" && _ok || _no "killclient closes a warm window"
+case_ "windows 5 px from the screen's edges (outergappx: on the bar's tiles' hairline), 8 apart (gappx)"
+grep -q '^static const unsigned int outergappx *= 5;' "$CH" && grep -q '^static const unsigned int gappx *= 8;' "$CH" \
+  && grep -q 'int n = 0, gap = (int)outergappx;' "$P" && _ok || _no "the edge gap"
 
 done_

@@ -5,16 +5,13 @@
 #     before it), exactly 8 px from its ink to the value's, whatever the icon's own air
 #   · every module with an icon and a value draws it with ICON_BAR_*, never "icon value"
 #   · no module holds a fixed width (which would put cloth after the value)
-#   · the rhythm, thread to ink: 8 px inside every cell — the torii's and the cat's beni
-#     patches, each workspace's cell (36 px, 35 for 四 七 九), each module's on the right
-#     (from its seam's thread to its ink, and on to the next cell's thread) —; 16 px from the
-#     last workspace's thread to the layout's ink, and on to the title; the clock on the cloth,
-#     8 px from either of its seams to the ink beside it, 16 from it to the music's wings
-#   · every box exactly its picture's width; the pictures' threads where the boxes expect
-#     them (a cell's frame on its edge pixels, a seam's thread in its 2nd column), the patches
-#     on rows 4–26, the seams the capitals' height (rows 9–21: three stitches), all centred on
-#     row 15; the hem on row 29 alone
-#   · the rows: the 16 px line on 8 px of cloth and 7 under it (an icon alone a row higher)
+#   · the tiles (紙 kami): each a border-image of its theme's picture (kami-tile, kami-red at
+#     the corners, kami-scroll round the clock) sliced as drawn — the hairline on rows 2 and
+#     28, the paper 3–27 with its rule on 5 and 25, the shadow 29–30 — the text line on rows
+#     8–23 (an icon alone a row higher)
+#   · 8 px from the paper's edge to the ink both sides inside a tile (each glyph's air
+#     counted); 4 px paper to paper within a group, 10 between groups, 6 to the screen's edges
+#   · the layout and the title a tile each; the clock's parts in one scroll, 14 px of air apart
 . "$(dirname "$0")/../lib/harness.sh"
 
 case_ "ICON_BAR_*: each icon's ink from the pen, 8 px from it to the value's"
@@ -68,10 +65,10 @@ case_ "no module of the bar holds a fixed width"
 bad=$(grep -nE 'min-width: *[0-9]+px' "$CSS" | grep -vE 'min-width: *(0|1)px')
 [[ -z $bad ]] && _ok || _no "$bad"
 
-case_ "the rhythm, from the style and the drawings: 8 px from thread to ink inside every cell and either side of the clock's seams, 16 to the layout and the title, 16 from the clock to the wings; every box its picture; the rows"
-out=$(python3 -I - "$REPO" 2>&1 <<'EOF'
+case_ "the tiles, from the style and the drawings: the pictures' rows, 8 px paper to ink, 4 / 10 / 6 px paper to paper, the layout and the title a tile each, the clock's parts 14 px apart in the scroll"
+out=$(python3 -I -B - "$REPO" 2>&1 <<'EOF'
 import re, sys
-from PIL import Image
+from PIL import Image, ImageFont, ImageDraw
 root = sys.argv[1]
 css = re.sub(r"/\*.*?\*/", "", open(root + "/configs/home/.config/waybar/style.css").read(), flags=re.S)
 rules = []
@@ -83,142 +80,107 @@ def four(v):
     n = [px(x) for x in v.split()]
     return n * 4 if len(n) == 1 else n * 2 if len(n) == 2 else n + [n[1]] if len(n) == 3 else n
 def matches(sel, x):
-    """does the rule's selector x apply to the element sel ("#custom-tag4.selected",
-    ".tag.urgent" for any workspace)? — by its id and classes"""
     want = set(re.findall(r"[#.][\w-]+", sel))
     if any(w.startswith("#custom-tag") for w in want): want.add(".tag")
     have = re.findall(r"[#.][\w-]+", x)
     return bool(have) and ":" not in x and set(have) <= want
 def box(sel):
-    pad, mar, other = [0] * 4, [0] * 4, {}
+    """padding, margin, border-width (top right bottom left) and the rest of one element"""
+    b = {"padding": [0] * 4, "margin": [0] * 4, "border-width": [0] * 4}
+    other = {}
     for sels, p in rules:
         if not any(matches(sel, x) for x in sels): continue
         for k, v in p.items():
-            if k == "padding": pad = four(v)
-            elif k == "margin": mar = four(v)
-            elif k.startswith(("padding-", "margin-")):
-                side = ("top", "right", "bottom", "left").index(k.split("-")[1])
-                (pad if k.startswith("padding") else mar)[side] = px(v)
+            if k in b: b[k] = four(v)
+            elif re.match(r"(padding|margin)-(top|right|bottom|left)$|border-(top|right|bottom|left)-width$", k):
+                kind = "border-width" if k.startswith("border") else k.split("-")[0]
+                side = next(s_ for s_ in ("top", "right", "bottom", "left") if s_ in k)
+                b[kind][("top", "right", "bottom", "left").index(side)] = px(v)
             else: other[k] = v
-    return pad, mar, other
-def pic(sel):
-    m = re.findall(r'url\("[^"]*/([^"/]+)"\)', box(sel)[2].get("background-image", ""))
-    return m[0] if m else None
+    return b["padding"], b["margin"], b["border-width"], other
 bad = []
+def want(what, got, n):
+    if got != n: bad.append(f"{what}: {got}, not {n}")
 src = open(root + "/tools/build-icons.py").read().split("if __name__")[0]
 g = {"__name__": "bi", "__file__": root + "/tools/build-icons.py"}
 exec(compile(src, "build-icons", "exec"), g)
 ic = {i["name"]: i for i in g["parse"](open(root + "/art/icons.txt").read())}
-L = lambda n: g["left_air"](ic[n]); R = lambda n: g["right_air"](ic[n])
-T = root + "/configs/home/.config/fedokawaii/themes/"
-def want(what, got, n):
-    if got != n: bad.append(f"{what}: {got} px, not {n}")
-def threads(theme, name, top=4, n=5):
-    """a picture's vertical threads: (width, height, [columns], first row, last row) — a
-    thread a running stitch of n stitches down from row top in the colour of its first
-    stitch (1, top): 3 px on, 2 off"""
-    im = Image.open(T + theme + "/" + name).convert("RGBA"); w, h = im.size
-    t = im.getpixel((1, top))
-    on = lambda x, y: im.getpixel((x, y)) == t
-    run = [y for k in range(n) for y in range(top + 5 * k, top + 3 + 5 * k)]
-    gaps = [y for k in range(n - 1) for y in (top + 3 + 5 * k, top + 4 + 5 * k)]
-    cols = [x for x in range(w) if all(on(x, y) for y in run) and not any(on(x, y) for y in gaps)]
-    rows = [y for y in range(h) if cols and on(cols[0], y)]
-    return w, h, cols, min(rows or [0]), max(rows or [0])
-from PIL import ImageFont, ImageDraw
+IL = lambda n: g["left_air"](ic[n]); IR = lambda n: g["right_air"](ic[n])
 SUMI = ImageFont.truetype(root + "/system/fonts/SumiUI.ttf", 16)
 def air(ch):
-    """Sumi UI's own air either side of a letter's ink (px)"""
     im = Image.new("L", (48, 24)); ImageDraw.Draw(im).text((8, 0), ch, font=SUMI, fill=255)
     xs = [x for x in range(48) for y in range(24) if im.getpixel((x, y)) > 128]
     return min(xs) - 8, int(SUMI.getlength(ch)) - (max(xs) - 8) - 1
+T = root + "/configs/home/.config/fedokawaii/themes/"
 cfg = re.sub(r"^\s*//.*$", "", open(root + "/configs/home/.config/waybar/config.jsonc").read(), flags=re.M)
-height = int(re.search(r'"height":\s*(\d+)', cfg).group(1))
-want("the bar's height", height, 31)
-# every picture: a cell its frame on its edge pixels (rows 4–26), a seam its thread in its 2nd
-# column (rows 9–21, three stitches, no cross), all centred on row 15, both themes alike
+height = int(re.search(r'"height":\s*(\d+)', cfg).group(1)); want("the bar's height", height, 31)
+# the pictures: the hairline on rows 2 and 28, the paper's rule on 5 and 25, the shadow 29–30,
+# nothing on rows 0–1; a tile's slices: the hairline its outer column, then two of paper, the rule
 for th in ("dark", "light"):
-    for n in ["seam.png"] + [f"cell-{k}-{w}.png" for k in ("bare", "windows", "here", "urgent") for w in (35, 36)] + ["cell-beni-35.png"]:
-        sm = n == "seam.png"
-        w, h, cols, top, foot = threads(th, n, *((9, 3) if sm else (4, 5)))
-        want(f"{th}/{n}: its height", h, height)
-        if cols != ([1] if sm else [1, w - 2]): bad.append(f"{th}/{n}: threads in columns {cols}")
-        if (top, foot) != ((9, 21) if sm else (4, 26)): bad.append(f"{th}/{n}: thread on rows {top}–{foot}")
-        if not sm and w != int(n.split("-")[-1][:2]): bad.append(f"{th}/{n}: {w} px wide")
-        im = Image.open(T + th + "/" + n).convert("RGBA")
-        if sm and any(im.getpixel((x, y))[3] for x in range(w) for y in list(range(9)) + list(range(23, h))):
-            bad.append(f"{th}/seam.png: ink outside rows 9–22 (the thread and its shadow)")
-        if any(im.getpixel((0, y))[3] for y in range(h)) and not sm:
-            bad.append(f"{th}/{n}: ink left of its frame (a cross's arm: gone in v11)")
-        if sm and any(im.getpixel((0, y))[3] for y in range(h)):
-            bad.append(f"{th}/seam.png: a cross on it")
-    hm = Image.open(T + th + "/hems.png").convert("RGBA")
-    hr = [y for y in range(hm.size[1]) if hm.getpixel((1, y))[3]]
-    if hm.size[1] != height or hr != [29]: bad.append(f"{th}/hems.png: {hm.size}, stitches on rows {hr} (not 29 alone)")
-    if __import__("os").path.exists(T + th + "/clock.png"): bad.append(f"{th}/clock.png: the clock has no patch now")
-o = box("window#waybar")[2]
-if 'hems.png' not in o.get("background-image", "") or not o.get("background-position", "").startswith("center 0"):
-    bad.append("the hems: not laid from the bar's middle (center 0)")
-# the rows: the line on 8 px of cloth, 7 under it; an icon alone a row higher
-for sel in ("#custom-date", ".tag", "#custom-volume", "#custom-title", "#custom-wing-left"):
-    p_ = box(sel)[0]; want(f"{sel}: above the line", p_[0], 8); want(f"{sel}: under it", p_[2], 7)
-for sel in ("#custom-torii", "#custom-menu", "#custom-layout", "#custom-steam"):
-    p_ = box(sel)[0]; want(f"{sel}: above the icon", p_[0], 7); want(f"{sel}: under it", p_[2], 8)
-pad = lambda s, i: box(s)[0][i]
-W = lambda s, ink: pad(s, 3) + ink + pad(s, 1)          # (a box: its padding and its line's advance)
-# the patches at the corners: 8 px of beni from the frame to the 15 px of ink, each side
-for sel, n in (("#custom-torii", "torii"), ("#custom-menu", "cat")):
-    if pic(sel) != "cell-beni-35.png": bad.append(f"{sel}: its picture {pic(sel)}")
-    want(f"{sel}: its box, its picture's width", W(sel, 16), 35)
-    want(f"{sel}: the frame → its ink", pad(sel, 3) - 2 + L(n), 8)
-    want(f"{sel}: its ink → the frame", R(n) + pad(sel, 1) - 2, 8)
-# the workspaces: each cell its picture, by state; 8 px from either frame to the numeral (四 七
-# 九: 15 px of ink in their 16, the cell a pixel narrower)
+    for n, w in (("kami-tile.png", 12), ("kami-red.png", 12), ("kami-scroll.png", 19)):
+        im = Image.open(T + th + "/" + n).convert("RGBA"); a = lambda x, y: im.getpixel((x, y))
+        want(f"{th}/{n}: its size", im.size, (w, height))
+        if n != "kami-scroll.png" and any(a(x, y)[3] for x in range(w) for y in (0, 1)): bad.append(f"{th}/{n}: ink above the hairline")
+        if not (a(3, 2) == a(3, 28) and a(3, 2)[3] and not a(3, 1)[3] if n != "kami-scroll.png" else a(9, 28)[3]): bad.append(f"{th}/{n}: no hairline on rows 2 and 28")
+        if not all(a(5, y)[3] for y in (29, 30)): bad.append(f"{th}/{n}: no shadow on rows 29–30")
+        if n != "kami-scroll.png":
+            r = a(5, 5)
+            if not (a(5, 25) == r and a(3, 15) == r and a(7, 15) == r and a(5, 4) != r and a(0, 15) == a(3, 2)):
+                bad.append(f"{th}/{n}: the rule not on rows 5 and 25, columns 3 and 7 (the hairline in column 0)")
+    try: Image.open(T + th + "/kami-fibre.png")
+    except OSError: bad.append(f"{th}/kami-fibre.png: missing")
+    # the seal drawn to the workspace tile's padding box exactly: its numeral's 16 px and
+    # the padding (26 × 19; 25 for 四 七 九, whose tile is a pixel narrower)
+    for n, k in (("kami-seal.png", "#custom-tag1"), ("kami-seal-narrow.png", "#custom-tag4")):
+        p_ = box(k)[0]
+        want(f"{th}/{n}: its size, the tile's padding box", Image.open(T + th + "/" + n).size, (p_[3] + 16 + p_[1], p_[0] + 16 + p_[2]))
+    for old in ("washi.png", "hems.png", "seam.png", "cell-bare-36.png", "clock.png", "stitch.png", "hem.png"):
+        if __import__("os").path.exists(T + th + "/" + old): bad.append(f"{th}/{old}: still there")
 for k in range(1, 10):
-    narrow = k in (4, 7, 9)
-    for state, kind in (("", "bare"), (".occupied", "windows"), (".selected", "here"), (".urgent", "urgent")):
-        sel = f"#custom-tag{k}{state}"
-        want(f"{sel}: its picture", 0 if pic(sel) == f"cell-{kind}-{35 if narrow else 36}.png" else 1, 0)
-    sel = f"#custom-tag{k}"
-    want(f"{sel}: its box, its picture's width", W(sel, 16), 35 if narrow else 36)
-    want(f"{sel}: the frame → the numeral", pad(sel, 3) - 2, 8)
-    want(f"{sel}: the numeral → the frame", pad(sel, 1) + (1 if narrow else 0) - 2, 8)
-want("the last cell's thread → the layout", 1 + pad("#custom-layout", 3) + L("tile"), 16)
-want("layout → title", R("tile") + pad("#custom-layout", 1) + pad("#custom-title", 3), 16)
-# the clock on the cloth: the day's kanji between two seams (its box's left and right
-# edges), 8 px from each thread to the ink either side — the date's last letter ("Oct", as
-# measured), the kanji, the time's first figure (0 or 1: hours 01–12); 16 from the clock's ink
-# to the wings' (each eq column 2 px of ink in 4: 1 px of air each side)
-L_ = lambda s: air(s[0])[0]; R_ = lambda s: air(s[-1])[1]
-ly = [q.strip() for q in box("#custom-day")[2].get("background-position", "").split(",")]
-if pic("#custom-day") != "seam.png" or ly != ["left top", "right top"]: bad.append(f"#custom-day: its seams {ly}")
-want("the date (…Oct) → the left thread", pad("#custom-date", 1) + 1 + R_("Oct"), 8)
-want("the left thread → the kanji (火)", pad("#custom-day", 3) - 2 + L_("火"), 8)
-want("the kanji (火) → the right thread", R_("火") + pad("#custom-day", 1) - 3, 8)
-for d in ("0", "1"):
-    want(f"the right thread → the time ({d}…)", 2 + pad("#custom-time", 3) + L_(d), 8)
-want("Monday's box (月: 13 px of ink in its 16) as wide as any day's", W("#custom-day.mon", 16), W("#custom-day", 16))
-eqL, eqR = g["left_air"](ic["eq-3"]), g["right_air"](ic["eq-3"])
-for d in "MTWFS":
-    want(f"the left wing → the date ({d}…)", eqR + pad("#custom-wing-left", 1) + pad("#custom-date", 3) + L_(d), 16)
-want("the time (…M) → the right wing", R_("M") + pad("#custom-time", 1) + pad("#custom-wing-right", 3) + eqL, 16)
-p_l, p_r = box("#custom-wing-left")[0], box("#custom-wing-right")[0]
-want("the wings mirrored (the clock in the middle)", [p_l[0], p_l[1], p_l[2], p_l[3]], [p_r[0], p_r[3], p_r[2], p_r[1]])
-# the right: a seam down each cell's left edge, 8 px from its thread to the ink and on to the
-# next thread (the last glyph's air counted)
-right = ("#custom-nowplaying", "#custom-timer", "#custom-record", "#custom-mode", "#custom-drives",
-         "#custom-downloads", "#custom-kb", "#custom-mem", "#custom-volume", "#custom-brightness", "#custom-weather")
-for sel in right + ("#custom-steam",):
-    if pic(sel) != "seam.png": bad.append(f"{sel}: its picture {pic(sel)}")
-for sel in right:
-    air = {"#custom-weather": 3}.get(sel, 0)                 # (° stands at the left of its cell)
-    want(f"{sel}: its thread → its ink", pad(sel, 3) - 2, 8)
-    want(f"{sel}: its ink → the next thread", pad(sel, 1) + air + 1, 8)
-want("#custom-downloads.bare (1 px of air each side)", pad("#custom-downloads.bare", 3) - 2 + 1, 8)
-want("#custom-downloads.bare → the next thread", pad("#custom-downloads.bare", 1) + 1 + 1, 8)
-want("#custom-volume.muted (off: 1 px)", pad("#custom-volume.muted", 1) + 1 + 1, 8)
-want("#custom-steam: its thread → the gamepad", pad("#custom-steam", 3) - 2 + L("gamepad"), 8)
-want("#custom-steam: the gamepad → the next thread", R("gamepad") + pad("#custom-steam", 1) + 1, 8)
+    w_ = "kami-seal-narrow.png" if k in (4, 7, 9) else "kami-seal.png"
+    if f'/{w_}"' not in box(f"#custom-tag{k}.selected")[3].get("background-image", ""): bad.append(f"#custom-tag{k}.selected: not on {w_}")
+tiles = ["#custom-torii", "#custom-menu", "#custom-layout", "#custom-title"] + [f"#custom-tag{k}" for k in range(1, 10)] + \
+        ["#custom-nowplaying", "#custom-timer", "#custom-record", "#custom-mode", "#custom-drives", "#custom-downloads",
+         "#custom-steam", "#custom-kb", "#custom-mem", "#custom-volume", "#custom-brightness", "#custom-weather"]
+for sel in tiles:
+    p_, m_, b_, o = box(sel)
+    kind = "kami-red.png" if sel in ("#custom-torii", "#custom-menu") else "kami-tile.png"
+    if kind not in o.get("border-image", "") or not o.get("border-image", "").split(")")[1].strip().startswith("6 5 6 4"):
+        bad.append(f"{sel}: border-image {o.get('border-image')}")
+    want(f"{sel}: its border", b_, [6, 5, 6, 4])
+    alone = sel in ("#custom-torii", "#custom-menu", "#custom-layout", "#custom-steam")
+    want(f"{sel}: the line on rows {'7–22' if alone else '8–23'}", (b_[0] + p_[0], b_[0] + p_[0] + 16 + p_[2] + b_[2]), ((7, height) if alone else (8, height)))
+L = lambda s, ink: 3 + box(s)[0][3] + ink                 # (the paper's edge → the ink: the border's 3 of paper)
+R = lambda s, ink: ink + box(s)[0][1] + 3
+for sel, l, r in (("#custom-torii", IL("torii"), IR("torii")), ("#custom-menu", IL("cat"), IR("cat")),
+                  ("#custom-tag1", 0, 0), ("#custom-tag4", 0, 1), ("#custom-volume", 0, 0), ("#custom-weather", 0, 3),
+                  ("#custom-steam", IL("gamepad"), IR("gamepad")), ("#custom-layout", IL("tile"), IR("tile")), ("#custom-title", 0, None)):
+    if l is not None: want(f"{sel}: the paper → its ink", L(sel, l), 8)
+    if r is not None: want(f"{sel}: its ink → the paper", R(sel, r), 8)
+# paper to paper: a tile's right edge 2 columns of hairline and shadow, the next's left 1
+gap = lambda s: 2 + box(s)[1][3] + 1
+for sel in [f"#custom-tag{k}" for k in range(2, 10)] + ["#custom-timer", "#custom-volume", "#custom-weather"]:
+    want(f"→ {sel} (within a group)", gap(sel), 4)
+for sel in ("#custom-tag1", "#custom-layout", "#custom-menu"):
+    want(f"→ {sel} (between groups)", gap(sel), 10)
+want("the screen's left edge → the torii", box("#custom-torii")[1][3] + 1, 6)
+want("the cat → the screen's right edge", 2 + box("#custom-menu")[1][1], 6)
+# the clock: the scroll sliced 6 8 6 8; the wings 8 eq columns
+# (4 px each), the date "Wed 21 Oct" 80 px, the time "09:14:08 PM" 88
+pw = lambda s: box(s)[0][3] + box(s)[0][1]
+o = box("#when")[3]
+if "kami-scroll.png" not in o.get("border-image", "") or "6 8 6 8" not in o.get("border-image", ""): bad.append(f"#when: {o.get('border-image')}")
+want("#when's border", box("#when")[2], [6, 8, 6, 8])
+# (14 px of air between the clock's parts, each letter's own air counted: the wing's last
+# column has 1, the date's month its letter's (a class each — width.sh's air), the time's
+# first figure none, AM/PM's M a column)
+want("#custom-wing-left: the padding after it", box("#custom-wing-left")[0][1], 13)
+want("#custom-day: the padding after it", box("#custom-day")[0][1], 14)
+want("#custom-date: the padding after it (a month ending in no air)", box("#custom-date")[0][1], 14)
+for n in (1, 2, 3):
+    want(f"#custom-date.r{n}: the padding after it", box(f"#custom-date.r{n}")[0][1], 14 - n)
+want("#custom-wing-right: the padding before it", box("#custom-wing-right")[0][3], 12)
+want("Monday's (月) box as wide as any day's", pw("#custom-day.mon"), pw("#custom-day"))
 print("\n".join(bad))
 EOF
 )

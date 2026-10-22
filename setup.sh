@@ -318,12 +318,13 @@ reboot_to() {
 # started at boot (Wi-Fi and DHCP may still be on their way), half a minute for one you typed
 # (it is either there or not). A wait, said once — no "attempt" lines: nothing failed
 online() { curl -sS -o /dev/null --proto '=https' --max-time 8 https://mirrors.fedoraproject.org/ 2>/dev/null; }
+online_rc() { online; NET_RC=$?; return "$NET_RC"; }   # (…its last answer kept: NET_RC)
 wait_for_network() {
   local secs=30 rc=0 was t0=$SECONDS; ((RESUMED)) && secs=150
   online && return 0
   log "waiting for the network (at most $secs s)"
-  if wait_until "$secs" online; then log "the network is up (after $(took "$t0"))"; return 0; fi
-  online || rc=$?
+  if WAIT_STEP=5 wait_until "$secs" online_rc; then log "the network is up (after $(took "$t0"))"; return 0; fi
+  rc=$NET_RC
   if ((rc == 60)); then
     # the network answers, but every certificate is refused (curl's 60): a clock years off —
     # the RTC left on local time by Windows, or its battery flat — fails every https download
@@ -1238,6 +1239,7 @@ greetd_config() {   # the login: the greeter, its look, and greetd pointed at ou
     d=/usr/local/share/fedokawaii/greeter/$t
     install -d -m 0755 "$d"
     install -m 0644 "$REPO_DIR/configs/home/.config/fedokawaii/themes/$t/gtklock.css" \
+      "$REPO_DIR/configs/home/.config/fedokawaii/themes/$t/"lock-{scroll,fibre}.png \
       "$REPO_DIR/configs/home/.local/share/fedokawaii/$t/"{padlock,seal-1,seal-2,seal-3,seal-4,seal-5,seal-6,seal-7}.png "$d/"
   done
   # which theme it wears: a folder of yours, where kawa-theme notes the one you switch to
@@ -2948,7 +2950,7 @@ do_after_upgrade() {
   else
     UPDATE_STEPS_FAILED=()
     local net=1
-    wait_until 300 online || { net=0; UPDATE_STEPS_FAILED+=("no network: what needs it is left for the next update"); log "no network yet — the steps that need it are left for the next update"; }
+    WAIT_STEP=5 wait_until 300 online || { net=0; UPDATE_STEPS_FAILED+=("no network: what needs it is left for the next update"); log "no network yet — the steps that need it are left for the next update"; }
     if ((net)); then step_on "third-party repositories" repos_lenient; fi
     step_on "duplicates" tidy_duplicates
     # your own systemd, which lingering starts beside this unit at boot, is asked from here on
@@ -3202,7 +3204,7 @@ do_repair() {
   local before after net=1
   hdr "Fedokawaii repair · $TARGET_USER"
   # offline, it still puts right what needs no network: services, the session, the configs
-  wait_until 30 online || { net=0; log "offline: only what needs no network is repaired now — run repair again once online"; }
+  WAIT_STEP=5 wait_until 30 online || { net=0; log "offline: only what needs no network is repaired now — run repair again once online"; }
   toolkit_first          # (run from a copy: everything below is then the toolkit's)
   # (a snapshot first, as an update takes one — but one that cannot be taken never stops a repair)
   if snapper_has root; then ( snapshot_before "repair $(date +%F)" ) || log "no snapshot before this repair (the line above says why)"; fi

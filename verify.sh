@@ -394,7 +394,7 @@ check "a login screen that cannot start is said on tty1, not a black screen (gre
 check "the health report (fedokawaii-report) is the toolkit's" cmp -s "$TK/system/fedokawaii-report" /usr/local/bin/fedokawaii-report
 ((PRE)) || check "the health report runs once, on the first start"  systemctl is-enabled --quiet fedokawaii-report.service   # (finalize enables it)
 check "the login screen (kawa-greet) installed"          test -x /usr/local/bin/kawa-greet
-check "the login screen's look, both themes (/usr/local/share/fedokawaii/greeter)" bash -c 'for t in dark light; do d=/usr/local/share/fedokawaii/greeter/$t; for f in gtklock.css padlock.png seal-{1..7}.png; do [[ -s $d/$f ]] || exit 1; done; done'
+check "the login screen's look, both themes (/usr/local/share/fedokawaii/greeter)" bash -c 'for t in dark light; do d=/usr/local/share/fedokawaii/greeter/$t; for f in gtklock.css lock-scroll.png lock-fibre.png padlock.png seal-{1..7}.png; do [[ -s $d/$f ]] || exit 1; done; done'
 check "the login screen follows your theme (/var/lib/fedokawaii-greeter is yours)" test "$(stat -c %U /var/lib/fedokawaii-greeter 2>/dev/null)" = "$TARGET_USER"
 check "the pixel font crisp for every account (/etc/fonts/conf.d)" test -s /etc/fonts/conf.d/60-fedokawaii-pixel.conf
 check "the lock screen's words (\"ちがう · wrong password\")" cmp -s "$REPO_DIR/art/gtklock.mo" /usr/share/locale/fk/LC_MESSAGES/gtklock.mo

@@ -8,11 +8,12 @@
      the workspaces          a tile each: its numeral faint while empty, the text's ink while
                              it holds windows, asagi while it asks for you; the one you are
                              on stamped with a vermilion seal, its numeral the paper's
-     the layout and title    one tile
+     the layout, the title   a tile each
      the clock               mounted as a hanging scroll between lacquered, gold-capped rods:
-                             the date · the day's kanji in vermilion · the time — the kanji on
-                             the screen's centre line — and while music plays its spectrum
-                             inside the scroll, either side
+                             the date · the day's kanji in vermilion · the time, 8 px from
+                             the paper to the ink at both ends, the scroll centred on the
+                             screen — and while music plays its spectrum inside the scroll,
+                             either side
      the rest                a tile each
    The rows (31): the hairline on 2, the paper 3–27 with its rule on 5 and 25, the hairline on
    28, the shadow 29–30; the 16 px text line on 8–23, the capitals on 9–21 — centred on row
@@ -79,17 +80,26 @@ button, button:hover, button:active, button:checked { background: none; box-shad
 .tag.occupied { color: @text; }
 .tag.urgent   { color: @asagi; }
 /* where you are: the seal, the numeral on it in the paper's ink */
+/* (the seal is drawn to the tile's inside exactly — 26 × 19, 25 × 19 for 四 七 九 — and laid
+   at its corner: centred on the numeral to the pixel, nothing left to GTK's rounding) */
 .tag.selected {
   color: @seal-ink;
   background-image: url("../fedokawaii/current/kami-seal.png"), url("../fedokawaii/current/kami-fibre.png");
-  background-position: center center, 0 0;
+  background-position: 0 0, 0 0;
   background-repeat: no-repeat, repeat;
 }
-/* the layout's icon and the title: one tile (the layout its left end, the title its right) */
-#custom-layout { color: @muted; margin-left: 7px; padding: 1px 0 2px 5px;
-                 border-right-width: 0; border-image-width: 6px 0 6px 4px; }
-#custom-title  { color: @text; margin-left: 0; padding-left: 8px; padding-right: 2px;
-                 border-left-width: 0; border-image-width: 6px 5px 6px 0; }
+#custom-tag4.selected, #custom-tag7.selected, #custom-tag9.selected {
+  background-image: url("../fedokawaii/current/kami-seal-narrow.png"), url("../fedokawaii/current/kami-fibre.png");
+}
+/* the layout's icon and the window's title: a tile each (the title's gone with no window) */
+#custom-layout { color: @muted; margin-left: 7px; padding: 1px 4px 2px 5px; }   /* (an icon alone) */
+#custom-title  { color: @text; }
+/* words that change (the title, what plays): their first and last letters' own air — 0 to 3
+   columns of Sumi UI (kawa-dwlstatus, kawa-nowplaying: width.sh's air) — taken from the
+   pad, so the paper to the ink is 8 px at both ends whatever the words */
+#custom-title.l1 { padding-left: 4px; }   #custom-title.r1, #custom-nowplaying.r1 { padding-right: 4px; }
+#custom-title.l2 { padding-left: 3px; }   #custom-title.r2, #custom-nowplaying.r2 { padding-right: 3px; }
+#custom-title.l3 { padding-left: 2px; }   #custom-title.r3, #custom-nowplaying.r3 { padding-right: 2px; }
 
 /* ── the middle: the clock, a hanging scroll ───────────────────────────────────────── */
 #when {
@@ -102,40 +112,40 @@ button, button:hover, button:active, button:checked { background: none; box-shad
   background-repeat: repeat;
   background-clip: padding-box;
   background-origin: padding-box;
-  padding: 0 4px;
+  padding: 0 4px;                   /* 4 px of paper in the rod's picture, 4 here: 8 to the ink */
 }
 #custom-wing-left, #custom-date, #custom-day, #custom-time, #custom-wing-right {
   padding: 2px 0 1px 0; margin: 0; background: none; border: none;
 }
-/* the kanji on the screen's centre line: the date's side made as wide as the time's
-   (Sumi UI's figures and letters 8 px each: "Wed 21 Oct" 80, "09:14:08 PM" 88) — the
-   difference before the date */
-#custom-wing-left  { padding-right: 13px; }
-#custom-date       { padding-left: 8px; padding-right: 13px; }
-#custom-day        { padding-right: 13px; }
-#custom-day.mon    { padding-left: 1px; padding-right: 12px; }   /* (月: 13 px of ink in its 16) */
+/* 14 px of air between the parts (the wings' last column has 2 px of air of its own) */
+#custom-wing-left  { padding-right: 13px; margin-left: -1px; }   /* (a column's 1 px of air before it) */
+#custom-date       { padding-left: 0; padding-right: 14px; }   /* (less its month's last letter's air) */
+#custom-date.r1 { padding-right: 13px; }  #custom-date.r2 { padding-right: 12px; }  #custom-date.r3 { padding-right: 11px; }
+#custom-day        { padding-right: 14px; }   /* (the time's first figure: no air before it) */
+#custom-day.mon    { padding-left: 1px; padding-right: 13px; }   /* (月: 13 px of ink in its 16) */
 #custom-time       { padding-right: 0; }
-#custom-wing-right { padding-left: 13px; }
+#custom-wing-right { padding-left: 12px; margin-right: -5px; }  /* (AM/PM's M: its column of air) */  /* (the last column's air after it) */
 
 /* ── the right: what the computer is doing, a tile each · the cat ──────────────────── */
 #custom-nowplaying, #custom-timer, #custom-record, #custom-mode, #custom-drives,
 #custom-downloads, #custom-steam, #custom-kb, #custom-mem, #custom-volume,
 #custom-brightness, #custom-weather { padding-left: 5px; padding-right: 5px; }
-#custom-nowplaying { padding-right: 2px; }      /* (its last letter's air) */
 #custom-weather    { padding-right: 2px; }      /* (° has 3 px of air) */
-#custom-steam { padding-top: 1px; padding-bottom: 2px; }          /* (an icon alone: a row higher) */
+/* ending in a letter or a figure: its own column of air (every one of Sumi UI's has one) */
+#custom-timer, #custom-record, #custom-drives, #custom-kb, #custom-mem { padding-right: 4px; }
+#custom-steam { padding: 1px 4px 2px 5px; }   /* (an icon alone: a row higher; its 15 px of ink in 16) */
 
 #custom-nowplaying        { color: @text; }
-#custom-nowplaying.paused { color: @quiet; }
-#custom-drives       { color: @quiet; }
+#custom-nowplaying.paused { color: @muted; }
+#custom-drives       { color: @muted; }
 #custom-drives.open  { color: @text; }
 #custom-downloads    { color: @text; }
 #custom-steam        { color: @text; }
 #custom-steam.starting { color: @faint; }
 #custom-steam.game   { color: @accent-text; }
-#custom-kb           { color: @quiet; }
+#custom-kb           { color: @muted; }
 #custom-kb.other     { color: @accent-text; }
-#custom-mem          { color: @quiet; }
+#custom-mem          { color: @muted; }
 #custom-mem.high     { color: @accent-text; }
 #custom-volume       { color: @text; }
 #custom-volume.muted { color: @accent-text; }
@@ -144,7 +154,7 @@ button, button:hover, button:active, button:checked { background: none; box-shad
 #custom-weather.stale { color: @muted; }   /* a forecast over an hour old: said quietly */
 /* the mode — 静 quiet, 共有 shared — a kanji in the day's place of honour: quiet in faint
    ink, a shared screen in vermilion */
-#custom-mode.dnd   { color: @quiet; }
+#custom-mode.dnd   { color: @muted; }
 #custom-mode.share { color: @accent-text; }
 /* 録 and the time gone by while the screen is recorded: vermilion (a click stops it) */
 #custom-record        { color: @accent-text; }

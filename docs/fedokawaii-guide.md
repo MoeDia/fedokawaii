@@ -1622,33 +1622,30 @@ Five words come up on every page from here on.
 
 ## 6.5 The bar
 
-The bar runs across the top of every screen: 31 pixels of cloth, sewn in *sashiko* (刺し子,
-"little stabs": a running stitch, the old way of quilting indigo cotton) and patched as *boro*
-(襤褸, cloth mended patch over patch until the mending is the cloth). The cloth is *kachi-iro*,
-indigo dyed until it is all but black — undyed *kinari* cotton on the light theme. Every line
-on it is one thread: 3 pixels of stitch and 2 of gap, each pixel with a shadow a pixel down
-and to the right, so the thread sits on the cloth rather than printed on it; pale thread on a
-dark dye, indigo on a pale one; on the bare cloth a quiet thread, sunk two fifths into it. A
-hem runs along its foot, the width of the screen. Each patch is framed by a running stitch on
-its very edge, the corners stitched, and sewn all over, faintly, in *hitomezashi* tone on
-tone — the little crosses and squares of the persimmon flower. The clock in the middle sits
-on the cloth itself, its parts and every cell on the right parted by a seam: three stitches,
-the height of the capitals. Point at
+The bar runs across the top of every screen, and it is not a bar: it is *kami* (紙, paper) —
+tiles of *washi*, Japanese paper, laid along the top of the wallpaper, 31 pixels high. Each
+theme has its own paper: on the dark theme paper dyed in ink (*sumizome*, 墨染め) with pale
+words, on the light theme the paper as it comes (*kinari*, 生成り) with words in sumi. Every
+tile has a printer's rule a pixel inside its edge, a hairline round it and a soft shadow
+under it, so it stands out on any wallpaper, bright or dark. The spacing is the same
+everywhere: 8 pixels from the paper's edge to the words on both sides, 4 between the tiles
+of a group, 10 between groups. The clock hangs in the middle as a scroll between two
+lacquered rods with gold caps, its kanji exactly on the screen's centre line. Point at
 anything on the bar and its icon and words turn asagi (a pale teal) — no box is drawn behind
-them; on a red patch they turn the other ink instead. Whatever a click opened keeps its button
-lit while it is on screen. Here it is at twice its size, in three pieces; the table below
+them; on a vermilion tile they turn the other ink instead. Whatever a click opened keeps its
+button lit while it is on screen. Here it is at twice its size, in three pieces; the table below
 walks along it from left to right.
 
-<!-- fig:bar | The bar, dark and light, at twice its size: the left end, the middle, the right end — the hem, the workspaces as stitched patches, the one you are on the cloth turned over, the clock between its seams with the music's wings, the cells on the right. -->
+<!-- fig:bar | The bar, dark and light, at twice its size: the left end, the middle, the right end — the tiles of washi, the workspace you are on under its vermilion seal, the clock's hanging scroll with the music's wings, the tiles on the right. -->
 
 | # | Part | What it shows | Click |
 |---|---|---|---|
-| 1 | **torii key** | the torii, cut out of a red patch at the far left | opens the launcher |
-| 2 | **workspaces** | kanji numerals: 一 二 三 (1, 2, 3) always; 四 to 九 (4–9) only while they hold a window, are the one you are on or want attention. Each is a stitched patch: the frame alone, its numeral faint = empty; indigo, its numeral green = windows on it; the cloth turned over (pale on the dark theme, dark on the light one), its numeral vermilion = the one you are on; asagi = something there wants attention | goes to it |
+| 1 | **torii key** | the torii, on a vermilion tile at the far left | opens the launcher |
+| 2 | **workspaces** | kanji numerals: 一 二 三 (1, 2, 3) always; 四 to 九 (4–9) only while they hold a window, are the one you are on or want attention. Each is a tile of its own: its numeral faint = empty; in ink = windows on it; stamped with a vermilion seal, its numeral pale = the one you are on; asagi = something there wants attention | goes to it |
 | 3 | **layout icon** | spiral (the default), columns or floating — §7.1 | spiral ⇄ columns (from floating: spiral · right: columns) |
 | 4 | **title** | the focused window | |
-| 5 | **date, day, time** | `Wed 21 Oct` ┆ 水 ┆ `08:52:07 PM` in the middle, on the cloth, parted by two seams: the date, the day of the week as a kanji in vermilion (月 火 水 木 金 土 日, Monday to Sunday; asagi while you point at it or the calendar is open), the time to the second. While a timer runs, a cell of its own on the right: the hourglass and what is left (`24:59`, vermilion) — a stopwatch's time gone by in asagi | date or day: the calendar · time: the timer — 5, 10, 25, 45 or 60 minutes, or a stopwatch; when a timer ends, a notice with the bell that stays, and a short chime |
-| 6 | **now playing** | the first cell on the right: a cassette whose reels turn while sound plays, then the title and, quieter, the artist; and the music's *wings*: its spectrum either side of the clock, eight thin columns a side rising and falling in one warm grey — the taller, the brighter — the left channel on the left, the right on the right, the lowest notes nearest the clock | play/pause (the wings too) · right: next · middle: previous |
+| 5 | **date, day, time** | `Wed 21 Oct`  水  `08:52:07 PM` in the middle, on the hanging scroll: the date, the day of the week as a kanji in vermilion (月 火 水 木 金 土 日, Monday to Sunday; asagi while you point at it or the calendar is open), the time to the second. While a timer runs, a tile of its own on the right: the hourglass and what is left (`24:59`, vermilion) — a stopwatch's time gone by in asagi | date or day: the calendar · time: the timer — 5, 10, 25, 45 or 60 minutes, or a stopwatch; when a timer ends, a notice with the bell that stays, and a short chime |
+| 6 | **now playing** | the first tile on the right: a cassette whose reels turn while sound plays, then the title and, quieter, the artist; and the music's *wings*: its spectrum inside the scroll either side of the clock, eight thin columns a side rising and falling in one warm grey — the taller, the brighter — the left channel on the left, the right on the right, the lowest notes nearest the clock | play/pause (the wings too) · right: next · middle: previous |
 | 7 | **mode** | a kanji while something is on that you should not forget: **静** (*quiet*), in quiet ink, while do-not-disturb holds notices back, **共有** (*sharing*), in vermilion, while the screen is being shared; nothing otherwise | quick settings |
 | 8 | **drive mark** | the drive icon while a USB stick, disk or SD card is plugged in: quiet, then lit once one of them is open; a number beside it for two or more | the drives menu: open or eject (ch. 13) |
 | 9 | **gamepad** | only while Steam runs: faint while it starts, in ink once it is ready, vermilion while a game runs | Steam's window · right: its menu — Library, Downloads, Friends, Settings, start with the desktop, quit Steam (ch. 21) |
@@ -1657,7 +1654,7 @@ walks along it from left to right.
 | 12 | **volume** | the speaker, its waves showing the level (none at 0, then one to four as it rises), and the number; *off* with the speaker crossed out (as the level display says) | the sound panel, right under it (§8.1): the volume, mute, the outputs and inputs · right: mute · scroll: ±2 % |
 | 13 | **brightness** | a sun from the desktop's Sumi Icons and the monitor's brightness in percent (`☼ 70%`). The sun grows with the level in five steps, as the speaker's waves do: a hollow disc when dim, then fuller, up to the whole sun with its rays when bright; there only while a monitor answers over DDC/CI (§8.1) | the brightness slider, right under it (§8.1) · scroll: ±10 %, as **Super+]** / **Super+[** |
 | 14 | **weather** | the sky's icon and the temperature now (`☼ 31°`) where you are (`NIGHT_LIGHT`'s place, from Open-Meteo); point at it for the city and the sky in words — and, once the reading is over an hour old, how old and why (`offline · 3 h old`) | the week, dropping down under it: 天 and your city, then today and the six days after it — the sky, the weekday, how the day feels and its mean temperature (below) |
-| 15 | **the cat** | quick settings: the cat on the right corner's red patch, its ink 14 px from the screen's edge as the torii's is from the other; it smiles, in the other ink, while the panel or any menu dropping from the bar is on screen | quick settings |
+| 15 | **the cat** | quick settings: the cat on the right corner's vermilion tile, 6 px from the screen's edge as the torii's is from the other; it smiles, in the other ink, while the panel or any menu dropping from the bar is on screen | quick settings |
 
 There is no tray: the few programs that would put an icon there either have a place of their
 own on the bar (Steam's gamepad) or a key. How busy the processor is shows in btop (a click on
@@ -1735,7 +1732,7 @@ or music plays:
 
 | What you do | What happens |
 |---|---|
-| nothing, for 15 minutes | the screensaver: sashiko stitched across the screens in the bar's own thread, seals stamped on it, the time on a stitched patch. The first key or move of the mouse washes it away at once and brings up the lock behind it — that key goes nowhere else. With the 夢 *screensaver* tile in quick settings off, the lock alone |
+| nothing, for 15 minutes | the screensaver: sashiko stitched across the screens in a quiet thread, seals stamped on it, the time on a stitched patch. The first key or move of the mouse washes it away at once and brings up the lock behind it — that key goes nowhere else. With the 夢 *screensaver* tile in quick settings off, the lock alone |
 | nothing, for 30 minutes | the screens power off (windows stay where they were); the first key wakes them — to the lock, which takes that key for nothing |
 | a video or music playing (Brave, mpv, any player), or a program holding off idleness | none of the two: they wait until it stops |
 | **Super+Escape** (or *lock* in the power menu) | the screen locks; still locked 90 seconds later, the computer sleeps. Unlock before then and it stays awake |
@@ -2058,8 +2055,8 @@ there.** A few more keys round it off:
 
 The bar names them in kanji numerals — 一 二 三 四 五 六 七 八 九, one to nine. It shows 一, 二
 and 三 always, and the others only while they hold a window, are the one you are on, or want
-attention: a ringed numeral holds windows, the vermilion seal is yours, a teal seal wants
-attention (§6.5).
+attention: a numeral in ink holds windows, the one under the vermilion seal is yours, a teal
+one wants attention (§6.5).
 
 **A layout to copy.** Give each kind of work its own number, the same every day, and your hands
 learn where things are: **1** the browser · **2** terminals · **3** files · **4** reading ·
@@ -2074,10 +2071,10 @@ before you start it.
 
 | Press | You see |
 |---|---|
-| **Super+2**, then **Super+Return** | a terminal on workspace 2; in the bar, 二 is a vermilion seal |
+| **Super+2**, then **Super+Return** | a terminal on workspace 2; in the bar, 二 is stamped with the vermilion seal |
 | **Super+3**, then **Super+E** | yazi on workspace 3 |
 | **Super+Tab**, **Super+Tab** | 2, then 3 again: back and forth between the last two |
-| **Super+1**, then **Super+B** | Brave on 1; in the bar, 二 and 三 are ringed — they hold windows |
+| **Super+1**, then **Super+B** | Brave on 1; in the bar, 二 and 三 turn from faint to ink — they hold windows |
 | **Super+0** | all three windows together, in the spiral; **Super+1** returns |
 | on 1: **Super+Shift+3** | Brave moves to 3, beside yazi; workspace 1 is empty |
 
@@ -3152,7 +3149,7 @@ Two more words come up as soon as you type anything:
 | Term | In one line | Here |
 |---|---|---|
 | variable · environment variable | a named value, read as `$NAME` · one marked with `export`, so every program started from this shell gets a copy | `$HOME` · `EDITOR=nvim` |
-| exit status | the number a command ends with: 0 is success, anything else a failure | `$?`; the prompt's `✓` or `✗` |
+| exit status | the number a command ends with: 0 is success, anything else a failure | `$?`; the prompt's torii, green or vermilion |
 
 **Try this.**
 
@@ -3182,101 +3179,64 @@ The rest of the shell's words you will meet bit by bit; each is explained in ch.
 ## 11.3 The prompt
 
 You met the **prompt** at the console (§4.3): the text the shell prints when it is
-ready for your next command. In a terminal on the desktop it is two lines: a header on open
-paper that says where you are and how the last command went, then `›`, after which you type.
+ready for your next command. In a terminal on the desktop it is one short line — a few words,
+and colour that says how the last command went — and you type right after it.
 
 Three prompts, and what each says. **In your home**, in a new terminal:
 
 ```text
-⛩   ~                                                                            08:52 PM
-› 
+⛩ ~  › 
 ```
 
-The torii starts the entry; `~` is the folder you are in; at the right edge, the time. A new
-terminal has run nothing yet, so nothing more is said. An empty line sets each entry apart
-from the output above it — except in a window under 10 rows high (the spiral's smallest
-tiles), where every row is needed for what you type.
+The torii starts the line, green; `~` is the folder you are in; `›` is where you type. An
+empty line sets each entry apart from the output above it — except in a window under 10 rows
+high (the spiral's smallest tiles), where every row is needed for what you type.
 
 **After a command that failed**, in `~/practice`:
 
 ```text
-⛩   ~/practice                                                            ✗  1  08:53 PM
-› 
+⛩ practice  1  › 
 ```
 
-`✗  1`, in vermilion, says the last command ended with exit status 1 — it failed. After one
-that succeeded the same place shows a green `✓`. Pressing Enter on an empty line runs nothing,
-so the next prompt shows neither.
+The torii turns vermilion and the exit status, `1`, stands in vermilion beside it: the last
+command failed. After one that succeeded the torii is green again and the number is gone.
+Pressing Enter on an empty line runs nothing, so it changes neither.
 
 **In a git repository with changes**, after a command that took 4.2 seconds and succeeded:
 
 ```text
-⛩   ~/repos/site   main +2 ~1                                       ✓  4.2s  08:52 PM
-› 
+⛩ repos/site  ⑂ main*  4.2s  › 
 ```
 
-You are in `~/repos/site`, on the branch `main`, with two changes staged and one modified (git
-is ch. 41); the command succeeded and took 4.2 s.
+You are in `site`, inside `repos`; on the branch `main`, and the `*` says something in it is
+not committed yet (git is ch. 41); the command succeeded (a green torii) and took 4.2 s.
 
-<!-- fig:terminal | A real terminal: the prompt's header per command — a ✓ and a ✗ with its code, a command that took over three seconds — fetch, and ls in a git repository with changes. -->
+<!-- fig:terminal | A real terminal: the prompt per command — a green torii after commands that worked, a vermilion one with the code after one that failed, a command that took over three seconds — fetch, and ls in a git repository with changes. -->
 
 | Part | Shows |
 |---|---|
-| torii | where every entry starts, standing where a menu's kanji stands |
-| path | the folders above in the text colour, the one you are in bright — the whole path while it fits (below: how it shortens); `user@host` first over SSH |
-| git | branch, then only what is non-zero: `+` staged, `~` modified, `?` untracked, `!` conflicted, `↑` ahead, `↓` behind — one `git status` call, parsed in bash |
-| the paper | nothing between the place and the right end: no rule, so the header reads as calmly as the bar |
-| right end | after a command: `✓` in green when it succeeded, `✗` and its exit code in vermilion when it failed, then the time it took when that was 3 s or more (`4.2s`, `1m05s`) · the time to the minute (the bar has the seconds) |
-| when they apply | `you@host` before the path over SSH · a Python virtual environment's name, `(venv)` · `jobs 1` while a program waits in the background (§26.3) |
-| `›` | the chevron you type after — the same one the desktop's list windows (the clipboard, the wallpapers, the system's control) show — then one space |
+| torii | green when the last command worked, vermilion when it failed |
+| folder | the one you are in, in the strongest ink, after the one above it in a faint ink (`repos/site`; at home `~`, at the root `/`) — the whole path is the window's title, on the bar |
+| git | the branch mark, the branch, and `*` when anything is not committed — one `git status` call, parsed in bash |
+| the outcome | the exit code in vermilion when it failed; the time it took, muted, when that was 3 s or more (`4.2s`, `1m05s`) |
+| jobs | `jobs 1`, muted, while a program waits in the background (§26.3) |
+| `›` | the chevron you type after, in vermilion — the same one the desktop's list windows (the clipboard, the wallpapers, the system's control) show |
 
-(The terminal's "vermilion" and "green" are its ANSI red and green, so they follow the theme
-like everything else in it.) The torii, the branch, `✓` and `✗` are the desktop's own pixel
-icons, two cells wide, so each carries a space of its own after it and nothing touches it; `›`
-fits its one cell. Nothing on the header line has a background, so the cursor below never
-touches it either. Outside a git repository the prompt runs entirely inside bash — it starts
-no process to draw itself.
+(The terminal's "vermilion" and "green" follow the theme like everything else in it.) The
+torii, the branch mark and `›` are the desktop's own pixel icons, two cells wide, so each
+carries a space of its own after it and nothing touches it. Outside a git repository the
+prompt runs entirely inside bash — it starts no process to draw itself.
 
 ### At every width
 
 A terminal is as wide as the place the tiling gives it, and that changes whenever a window
-opens or closes beside it (§7.1). The header always stays on one line and ends one column short
-of the edge, at the width the window has *now*: when the width changes under a prompt that is
-already up, ble.sh draws it again and the header is laid out anew — its mark, the time taken
-and the clock stay those of the command that ended. When the paper between the place and the
-right end would be narrower than six columns, the header gives up, in this order and only as
-far as it must:
-
-| Order | Gives up | `~/repos/fedokawaii/configs/home/.config` becomes |
-|---|---|---|
-| 1 | the folders above, to their first letter | `~/r/f/c/h/.config` |
-| 2 | the clock (the bar shows the time) | |
-| 3 | the folders above altogether | `.config` |
-| 4 | git's counts (the branch stays) | |
-| 5 | the time the command took | |
-| 6 | the branch | |
-
-The same entry — a deep folder in a repository, a command that succeeded — at the widths of a
-1920 × 1080 screen's tiles:
-
-```text
-156 columns (one window)    ⛩   ~/repos/fedokawaii/configs/home/.config   main +1 ~2 ?1 ↑1       ✓  03:02 PM
- 77 (half the screen)       ⛩   ~/r/f/c/h/.config   main +1 ~2 ?1 ↑1                 ✓  03:02 PM
- 58 (a third)               ⛩   ~/r/f/c/h/.config   main +1 ~2 ?1 ↑1             ✓
- 37 (a quarter)             ⛩   .config   main                 ✓
- 20 (spiral's smallest)     ⛩   .config   ✓
-```
-
-Under 30 columns the header is the torii, the folder, and the mark at the right edge; a folder
-whose name alone is longer than that loses its end, nothing put in its place. The mark of how
-the last command ended is never given up.
-
-Once its command runs, an entry keeps its header without the paper between — torii, place,
-git, mark, time, two spaces apart — so the history above never wraps spaces that filled some
-earlier width. Lines already printed are the terminal's: when a window narrows, foot re-wraps
-what is above the prompt — an earlier header, a listing's columns — to the new width, and joins
-it again when the window widens. Only the prompt you are at, and full-screen programs, are
-drawn anew.
+opens or closes beside it (§7.1). The line stays one line and ends a column short of the edge;
+when it would not, it gives up, in this order and only as far as it must: the time the
+command took, the branch, the folder above, and at last the folder's own end. The torii and
+the code — how the last command went — are never given up. Once its command runs, an entry
+keeps its line as it was, so the history above reads as a column of them. Lines already
+printed are the terminal's: when a window narrows, foot re-wraps what is above the prompt to
+the new width, and joins it again when the window widens.
 
 A command that ran **10 seconds or more** also sends a notice — *done in 1m05s* or *failed (1)
 after 12.0s*, with the folder — which foot shows only while you are in another window: start a
@@ -3737,10 +3697,10 @@ screen and nothing jumps when windows come and go. What changes with the window 
 | Window (on a 1920 × 1080 screen) | Columns × rows | The prompt | yazi | lazygit | btop |
 |---|---|---|---|---|---|
 | one, alone | 188 × 43 | everything | parent, list, preview 1 : 3 : 4 | panels beside the diff | all five boxes, the graphics card's too |
-| half (spiral's big one: 115) | 92–115 × 43 | the path shortens | 1 : 4 : 3 | panels beside the diff | all five boxes |
-| a third, a quarter (tall) | 44–69 × 43 | path and counts shorten | the list above the preview | panels above the diff | CPU, card and processes (69) · CPU over processes (60) · processes (44) |
-| spiral's middle | 69 × 26 | no clock | list and preview side by side | panels beside the diff | CPU over processes |
-| spiral's small ones | 24–41 × 4–15 | torii, folder, mark | the list alone | too small: `+` | memory (41 × 15) · too small under 36 × 6 |
+| half (spiral's big one: 115) | 92–115 × 43 | everything | 1 : 4 : 3 | panels beside the diff | all five boxes |
+| a third, a quarter (tall) | 44–69 × 43 | everything | the list above the preview | panels above the diff | CPU, card and processes (69) · CPU over processes (60) · processes (44) |
+| spiral's middle | 69 × 26 | everything | list and preview side by side | panels beside the diff | CPU over processes |
+| spiral's small ones | 24–41 × 4–15 | torii, folder | the list alone | too small: `+` | memory (41 × 15) · too small under 36 × 6 |
 
 * **The prompt** — §11.3, *At every width*.
 * **yazi** chooses its panes again whenever its window changes size: the preview gets the most
@@ -15689,7 +15649,9 @@ A whole change, start to finish — a wider gap between windows:
 2. Find `gappx` near the top (`/gappx` in neovim): its line ends in `= 8;`, before a comment.
    Change `8` to `12`, save with `:w` and close neovim with `:qa`.
 3. The menu asks what next. Choose *apply now*, type your password, and apply rebuilds dwl.
-4. Log out and in (**Super+Shift+E → log out**): the gaps are 12 pixels.
+4. Log out and in (**Super+Shift+E → log out**): the gaps between windows are 12 pixels (the
+   gap from the screen's edges is `outergappx`, the line under it: 5, so the windows' outer
+   edges line up with the bar's tiles).
 5. *history*: lazygit shows `src/dwl/config.h` changed. Press **Space** to stage it, **c** to
    commit (`dwl: gaps 12 px, wider for the 1440p screen`), **P** to push.
 
