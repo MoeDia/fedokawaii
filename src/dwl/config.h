@@ -47,12 +47,16 @@ static const float fullscreen_bg[]         = {0.059f, 0.055f, 0.047f, 1.0f};
  * out as they drift a little (anim_drift of the screen's width) to one side, and the next
  * ones in from the other — every frame the screen shows, drawn for the moment that frame
  * reaches the screen, the movement eased out and the fade on a smootherstep; never a
- * full-screen window. No edge sweeps across the screen: a moving cut reads as a tear.
+ * full-screen window; unlocked, the lock screen fades off the desktop (locking: at once).
+ * No edge sweeps across the screen: a moving cut reads as a tear.
  * 0: everything at once */
 static const int animations                = 1;
 static const unsigned int anim_open_ms     = 240;  /* a window opening */
 static const unsigned int anim_close_ms    = 180;  /* …closing: quicker, out of the way */
 static const unsigned int anim_tag_ms      = 240;  /* a workspace switch */
+static const unsigned int anim_unlock_ms   = 320;  /* the lock screen fading off the desktop
+                                                    * once the password is right (locking:
+                                                    * at once) */
 static const int anim_rise                 = 24;   /* px */
 static const double anim_drift             = 0.06; /* 115 px on a 1920 px screen */
 

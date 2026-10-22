@@ -152,10 +152,19 @@ class Greeter(Gtk.Window):
         box.add(messages)
         self.entry = Gtk.Entry(name="input-field", hexpand=True, xalign=0.5,
                                visibility=False, invisible_char=ord("◆"), caps_lock_warning=False,   # (a code point: GTK takes a number)
-                               input_purpose=Gtk.InputPurpose.PASSWORD,
-                               placeholder_text=f"{user} · パスワード · password")
+                               input_purpose=Gtk.InputPurpose.PASSWORD)
         self.entry.connect("activate", self.login)
-        box.add(self.entry)
+        # each ◆ at 32 px (gtklock.css), the hint at 16 over the empty line: a label of its own,
+        # as kawa-lockmod does it (the entry's placeholder would grow with the ◆)
+        hint = Gtk.Label(name="input-hint", label=f"{user} · パスワード · password",
+                         halign=Gtk.Align.CENTER, valign=Gtk.Align.CENTER, no_show_all=True)
+        line = Gtk.Overlay(hexpand=True)
+        line.add(self.entry)
+        line.add_overlay(hint)
+        line.set_overlay_pass_through(hint, True)
+        self.entry.connect("changed", lambda e: hint.set_visible(not e.get_text()))
+        hint.set_visible(True)
+        box.add(line)
 
         power = Gtk.Box(name="keys", homogeneous=True)
         for label, verb in (("眠 sleep", "suspend"), ("再 restart", "reboot"), ("電 power off", "poweroff")):

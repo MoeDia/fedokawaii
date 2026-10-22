@@ -1,63 +1,71 @@
 #!/usr/bin/env bash
 # tests/status/test_osd.sh — kawa-osd, the level display of the volume, microphone and
 # brightness keys: one panel that updates in place (mako's synchronous tag), drawn as quick
-# settings' meter row (docs/design-system.md) — the glyph, the name in 12 columns, twelve
-# squares lit by the panel's own rule, a 4-column number. The notice daemon is lib.sh's fake.
+# settings' meter row (docs/design-system.md) — the glyph, the name in 12 columns, the
+# slider drawn by the panel's own rule (its knob where kawa-panel puts it), a 4-column number. The notice daemon is lib.sh's fake.
 . "$(dirname "$0")/lib.sh"
 setup() { box; notices; . "$HOME/.config/fedokawaii/icons.sh"; . "$HOME/.config/fedokawaii/current/colors.sh"; }
 body() { sed -n "\$s/^NOTICE [0-9]* osd | [^|]* | //p" "$NOTIFY_STATE/log"; }   # the last panel's markup
-# panel_lit PCT — how many squares kawa-panel's own meter lights for PCT (its lit_of, run alone)
-panel_lit() {
+# panel_knob PCT — where kawa-panel's own slider puts its knob for PCT (its knob_of, run alone)
+panel_knob() {
   python3 -I - "$REPO/bin/kawa-panel" "$1" <<'EOF'
 import ast, sys
 src = open(sys.argv[1]).read()
 tree = ast.parse(src)
-keep = [n for n in tree.body if isinstance(n, ast.FunctionDef) and n.name == "lit_of"
-        or isinstance(n, ast.Assign) and any(getattr(t, "id", "") == "SEGS" for t in getattr(n.targets[0], "elts", n.targets))]
+keep = [n for n in tree.body if isinstance(n, ast.FunctionDef) and n.name in ("fill_of", "knob_of")
+        or isinstance(n, ast.Assign) and any(getattr(t, "id", "") == "SPAN" for t in getattr(n.targets[0], "elts", n.targets))]
 ns = {}
 exec(compile(ast.Module(body=keep, type_ignores=[]), "kawa-panel", "exec"), ns)
-print(ns["lit_of"](int(sys.argv[2])))
+print(ns["knob_of"](int(sys.argv[2])))
 EOF
 }
 
 # ── what it shows ────────────────────────────────────────────────────────────
-case_ "70 %: the glyph and name, 8 of 12 squares lit, the number; app and category 'osd' (mako's rule), one panel in place"
+case_ "70 %: the glyph and name, the slider's knob at 131 of its 192 px, the number; app and category 'osd' (mako's rule), one panel in place"
 setup
 rc 0 kawa-osd 明 brightness 70
-eq "$(osd | cut -d'|' -f2-)" "明  brightness|70%|8/12"
+eq "$(osd | cut -d'|' -f2-)" "明  brightness|70%|131/192"
 called '^notify-send -a osd -c osd -u low -h int:transient:1 -h string:x-canonical-private-synchronous:osd '
 
-case_ "the squares: lit as the panel's meter lights them, at every level"
-for p in 0 1 4 5 12 13 30 42 50 62 70 87 95 96 100; do
+case_ "the slider: its knob where the panel's meter puts it, its width 192 px, at every level"
+for p in $(seq 0 100); do
   kawa-osd "$ICON_VOL_2" volume "$p"
-  eq "$(osd | cut -d'|' -f3-)" "$p%|$(panel_lit "$p")/12" "at $p %"
+  eq "$(osd | cut -d'|' -f3-)" "$p%|$(panel_knob "$p")/192" "at $p %"
+done
+for p in 0 1 2 3 50 98 99 100; do
+  kawa-osd "$ICON_VOL_2" volume "$p" off
+  eq "$(osd | cut -d'|' -f3-)" "off|$(panel_knob "$p")/192" "muted, at $p %"
 done
 
-case_ "above 100 % (only the mixer goes there): every square lit, the real number; three digits at most"
+case_ "above 100 % (only the mixer goes there): the slider full, the real number; three digits at most"
 kawa-osd "$ICON_VOL_4" volume 150
-eq "$(osd | cut -d'|' -f3-)" "150%|12/12"
+eq "$(osd | cut -d'|' -f3-)" "150%|186/192"
 kawa-osd "$ICON_VOL_4" volume 1000
-eq "$(osd | cut -d'|' -f3-)" "999%|12/12" "the panel never widens"
+eq "$(osd | cut -d'|' -f3-)" "999%|186/192" "the panel never widens"
 
-case_ "muted: the level kept, its squares hollow; the number says 'off', faint"
+case_ "muted: the level kept, its fill hollow (a tick at each end), the knob muted; the number says 'off', faint"
 kawa-osd "$ICON_VOL_MUTE" volume 40 off
-eq "$(osd | cut -d'|' -f2-)" "$ICON_VOL_MUTE  volume|off|5/12"
-has "$(body)" "<span color='#$C_TEAL'>$ICON_SEG_HOLLOW$ICON_SEG_HOLLOW$ICON_SEG_HOLLOW$ICON_SEG_HOLLOW$ICON_SEG_HOLLOW</span><span color='#$C_EDGE2'>$ICON_SEG$ICON_SEG$ICON_SEG$ICON_SEG$ICON_SEG$ICON_SEG$ICON_SEG</span>"
+eq "$(osd | cut -d'|' -f2-)" "$ICON_VOL_MUTE  volume|off|74/192"
+# 40 %: fill 76 px, the knob at 74: hollow 0–72 (a tick, 64 + 4 + 2 + 1, a tick), its air, the knob
+has "$(body)" "<span color='#$C_TEAL'>$ICON_LV_TICK$ICON_LV_HOLLOW_64$ICON_LV_HOLLOW_4$ICON_LV_HOLLOW_2$ICON_LV_HOLLOW_1$ICON_LV_TICK$ICON_GAP1</span><span color='#$C_MUTED'>$ICON_LV_KNOB</span>"
 has "$(body)" "<span color='#$C_FAINT'> off</span>"
 
 case_ "a level that is not a number: 0, still a well-formed panel"
 for p in "" abc -5 4.5 '$(id)' '<b>'; do
   kawa-osd 明 brightness "$p"
-  eq "$(osd | cut -d'|' -f3-)" "0%|0/12" "level [$p]"
+  eq "$(osd | cut -d'|' -f3-)" "0%|0/192" "level [$p]"
 done
 
-case_ "the panel's inks: the glyph accent_text, the name text, lit asagi, unlit edge2, the number muted"
+case_ "the panel's inks: the glyph accent_text, the name text, the fill asagi, the knob strong, the track faint, the number muted"
 setup
 kawa-osd 明 brightness 50
 b=$(body)
 has "$b" "<span line_height='24576'><span color='#$C_ACCENT_TEXT'>明</span>"
 has "$b" "<span color='#$C_TEXT'>brightness  </span>"
-has "$b" "<span font='Sumi Icons 16px'><span color='#$C_TEAL'>$ICON_SEG$ICON_SEG$ICON_SEG$ICON_SEG$ICON_SEG$ICON_SEG</span><span color='#$C_EDGE2'>"
+# 50 %: fill 95 px, the knob at 93 — fill 92 (64 + 16 + 8 + 4), air, the knob, air, the track
+# from 98 to the third quarter's tick (at 143: 45 = 32 + 8 + 4 + 1), the tick, the rest (46: 32 + 8 + 4 + 2)
+has "$b" "<span font='Sumi Icons 16px'><span color='#$C_TEAL'>$ICON_LV_FILL_64$ICON_LV_FILL_16$ICON_LV_FILL_8$ICON_LV_FILL_4$ICON_GAP1</span><span color='#$C_STRONG'>$ICON_LV_KNOB</span>"
+has "$b" "<span color='#$C_FAINT'>$ICON_GAP1$ICON_LV_TRACK_32$ICON_LV_TRACK_8$ICON_LV_TRACK_4$ICON_LV_TRACK_1$ICON_LV_TICK$ICON_LV_TRACK_32$ICON_LV_TRACK_8$ICON_LV_TRACK_4$ICON_LV_TRACK_2</span>$ICON_GAP</span>"
 has "$b" "<span color='#$C_MUTED'> 50%</span></span>"
 
 case_ "one row on the panel's grid: the name 24 px after the glyph's pen (any glyph two columns, 16 px, then a space, 8), 12 columns of name, 12 squares, 8 px, 4 columns of number"
@@ -72,8 +80,8 @@ lacks "$(body)" "font='Fusion" "no face but Sumi's"
 v=$(for p in 5 70 100; do kawa-osd 明 brightness "$p"; body | sed -e "s/.*<span color='#$C_MUTED'>//" -e 's/<.*//'; done
     kawa-osd 明 brightness 5 off; body | sed -e "s/.*<span color='#$C_FAINT'>//" -e 's/<.*//')
 eq "$(printf '%s\n' "$v" | awk '{ print length($0) }' | sort -u)" 4 "every value 4 columns: [$(tr '\n' '|' <<<"$v")]"
-has "$(body)" "</span></span> <span color='#$C_FAINT'>" "8 px (a space) between the squares and the number"
-case_ "where mako puts it: the glyph's pen where the panel's meter row has its glyph, the squares where the panel's start; 412 × 60"
+has "$(body)" "$ICON_GAP</span> <span color='#$C_FAINT'>" "8 px (a space) after the slider's 2 px of air, then the number"
+case_ "where mako puts it: the glyph's pen where the panel's meter row has its glyph, the slider where the panel's starts; 412 × 60"
 eq "$(python3 -I -B - "$REPO" <<'EOF' 2>&1
 import importlib.machinery as m, importlib.util as u, re, sys
 sys.modules["gi"] = None
@@ -92,7 +100,7 @@ print(pen == x0 + k.GAP, squares == x0 + k.INNER - k.TRAIL - k.SPAN, width, 2 * 
 EOF
 )" "True True 412 60 True"
 eq "$(kawa-osd 明 "a very long label here" 50; osd | cut -d'|' -f2)" "明  a very long label here" "the title is whole…"
-has "$(body)" "<span color='#$C_TEXT'>a very long </span>" "… the row's name cut to its 12 columns: the squares never move"
+has "$(body)" "<span color='#$C_TEXT'>a very long </span>" "… the row's name cut to its 12 columns: the slider never moves"
 
 case_ "the theme's colours (light); no theme set up: no panel in made-up colours, a failure"
 setup; ln -sfn themes/light "$HOME/.config/fedokawaii/current"
@@ -139,7 +147,7 @@ setup
 for loc in tr_TR.UTF-8 ar_EG.UTF-8; do
   locale_ok "$loc" || { skip "no $loc here"; continue; }
   LC_ALL=$loc kawa-osd 明 brightness 45 2>/dev/null
-  eq "$(osd | cut -d'|' -f3-)" "45%|5/12" "$loc"
+  eq "$(osd | cut -d'|' -f3-)" "45%|84/192" "$loc"
   has "$(body)" "<span color='#$C_TEXT'>brightness  </span>" "$loc: the name in its 12 columns"
 done
 

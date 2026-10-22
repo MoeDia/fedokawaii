@@ -1,6 +1,20 @@
 #!/bin/bash
-# plymouth-set-default-theme of the fake Fedora: logged; no argument prints the theme in use
-# ($FKH/plymouth-theme, else Fedora's bgrt), one sets it
+# plymouth-set-default-theme of the fake Fedora: logged; Plymouth's own reading and writing of
+# /etc/plymouth/plymouthd.conf. No argument prints the theme in use — read as Plymouth 24 reads
+# it: the first key of [Daemon] when that key is Theme (a key above it hides it), and only a
+# theme whose .plymouth exists; else Fedora's bgrt. One sets it: every Theme= line goes and
+# Theme=NAME is put right after [Daemon] (added when missing)
 . /usr/local/bin/_lib.sh
 fkh_log "$*"
-if (($# == 0)); then cat "$FKH/plymouth-theme" 2>/dev/null || echo bgrt; else echo "$1" >"$FKH/plymouth-theme"; fi
+conf=/etc/plymouth/plymouthd.conf
+if (($# == 0)); then
+  t=$(grep -v '^#' "$conf" 2>/dev/null | awk 'BEGIN { RS = "[[][[:blank:]]*[^[:space:]]+[:blank:]*[]\n]"; FS = "[=[:space:]]+"; OFS = ""; ORS = "" }
+                                              $1 ~ /Theme/ { print $2 }')
+  [[ -n $t && -r /usr/share/plymouth/themes/$t/$t.plymouth ]] || t=bgrt
+  echo "$t"
+else
+  mkdir -p "${conf%/*}"
+  grep -q '^[[]Daemon[]]' "$conf" 2>/dev/null || echo '[Daemon]' >>"$conf"
+  sed -i -e '/^Theme[[:blank:]]*=.*/d' "$conf"
+  sed -i -e "s/^\([[]Daemon[]]\)\n*/\1\nTheme=$1/" "$conf"
+fi

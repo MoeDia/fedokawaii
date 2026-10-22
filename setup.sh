@@ -414,12 +414,14 @@ EOF
   # so in the background by dnf's makecache timer: no downloads and no work between updates
   # Masked, not disabled: Fedora 44's dnf5-makecache.timer is a static unit (switched on by a
   # link its package ships, not by an [Install] section), which `disable` cannot turn off — it
-  # only prints why. A mask holds through dnf updates; `systemctl unmask` undoes it
+  # only prints why. A mask holds through dnf updates; `systemctl unmask` undoes it. Both are
+  # masked whether installed yet or not: on a minimal install the timer arrives with a later
+  # package (the first verify found it running), and a mask made ahead holds it from the start
   local u
   for u in dnf5-makecache.timer dnf-makecache.timer; do
-    systemctl cat "$u" >/dev/null 2>&1 || continue
     [[ $(systemctl is-enabled "$u" 2>/dev/null) == masked ]] && continue
-    run systemctl mask --now "$u"
+    run systemctl mask "$u"
+    if systemctl is-active --quiet "$u"; then run systemctl stop "$u"; fi
   done
   return 0
 }

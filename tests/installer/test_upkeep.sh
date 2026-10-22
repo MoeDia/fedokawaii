@@ -232,9 +232,14 @@ tk --update; has "$OUT" "the next one in 90 days" "out of bounds: the default"
 case_ "repair: dnf's metadata timer on again (static, as Fedora 44 ships it) — masked again, never a bare disable"
 back built; sed -i 's/^masked dnf5-makecache.timer$/static dnf5-makecache.timer/' "$FKH/units"
 reset_calls; tk --repair
-called 'systemctl\] mask --now dnf5-makecache.timer'; not_called 'disable --now dnf5-makecache'
+called 'systemctl\] mask dnf5-makecache.timer'; not_called 'disable --now dnf5-makecache'
 grep -qx "masked dnf5-makecache.timer" "$FKH/units" && _ok || _no "not masked"
 has "$OUT" "problem(s) before, 0 now"
+case_ "… the timers not installed yet (a minimal install: a later package brings dnf5's): masked ahead all the same, verify passes them"
+back built; sed -i '/makecache.timer$/d' "$FKH/units"
+reset_calls; tk --repair
+called 'systemctl\] mask dnf5-makecache.timer'; called 'systemctl\] mask dnf-makecache.timer'
+grep -qx "masked dnf-makecache.timer" "$FKH/units" && _ok || _no "dnf4's timer not masked ahead"
 case_ "repair before setup's own end made the snapshot configs: the missing one made (/home too), an existing one never again"
 back built; rm -f "$W/etc/snapper/configs/home"; sed -i '/^home$/d' "$FKH/snapper-configs"
 reset_calls; tk --repair

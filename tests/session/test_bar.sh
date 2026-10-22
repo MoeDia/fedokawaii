@@ -35,10 +35,11 @@ setup; setrun
 eq "$(kawa-bar torii)" "{\"text\":\"$ICON_TORII\"}"
 eq "$(kawa-bar cat)" "{\"text\":\"$ICON_CAT\"}"
 [[ $(LC_ALL=tr_TR.UTF-8 kawa-bar date) =~ ^\{\"text\":\"(Mon|Tue|Wed|Thu|Fri|Sat|Sun)\ [0-3][0-9]\ [A-Z][a-z]{2}\",\"class\":\"r[0-3]\"\}$ ]] && _ok || _no "date: $(kawa-bar date)"
-# (its month's last letter's air, as a class: Jul's l 3 px, Oct's t 1, Nov's v none — width.sh)
+# (its month's last letter's air, as a class: Jul's l 3 px, Oct's t 1, Nov's v 1 — width.sh; every
+# letter keeps at least its one column of air, so r0 is a figure-less case no month meets)
 mon() { M=$1 bash -c 'printf() { if [[ $1 == -v && $3 == "%(%a %d %b)T" ]]; then builtin printf -v "$2" %s "Thu 22 $M"; else builtin printf "$@"; fi; }
   export -f printf; kawa-bar date'; }
-eq "$(mon Jul) $(mon Oct) $(mon Nov)" '{"text":"Thu 22 Jul","class":"r3"} {"text":"Thu 22 Oct","class":"r1"} {"text":"Thu 22 Nov","class":"r0"}' "the month's last letter's air"
+eq "$(mon Jul) $(mon Oct) $(mon Nov)" '{"text":"Thu 22 Jul","class":"r3"} {"text":"Thu 22 Oct","class":"r1"} {"text":"Thu 22 Nov","class":"r1"}' "the month's last letter's air"
 k=(月 火 水 木 金 土 日); d=$(kawa-bar day); u=$(date +%u)
 if ((u == 1)); then eq "$d" '{"text":"月","class":"mon"}'; else eq "$d" "{\"text\":\"${k[u - 1]}\"}"; fi
 # (each weekday in turn: the clock's day stood in for — printf's %(%u)T, kawa-bar's only clock)

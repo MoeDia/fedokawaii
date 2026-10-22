@@ -81,6 +81,34 @@ has "$OUT" "✔  the splash in every boot image (lsinitrd)"; has "$OUT" "✔  vi
 reset_calls; theme; not_called 'dracut\]' "images in order: dracut not run again"
 back before-vi
 
+case_ "Fedora's plymouthd.conf (comments only): the whole file written — Plymouth itself reads sumi (Theme the first key of [Daemon], ShowDelay=0 after it), the images with it"
+printf '# Administrator customizations go in this file\n#[Daemon]\n#Theme=fade-in\n' >"$W/etc/plymouth/plymouthd.conf"
+theme; eq "$RC" 0
+eq "$(fk plymouth-set-default-theme)" sumi
+eq "$(grep -v '^#' "$W/etc/plymouth/plymouthd.conf")" $'[Daemon]\nTheme=sumi\nShowDelay=0'
+has "$(fk lsinitrd)" "themes/sumi/sumi.script"
+case_ "… a ShowDelay above the theme (as a line-by-line edit left it: Plymouth then reads text): --check drift, the run rewrites it and remakes the images"
+printf '[Daemon]\nShowDelay=0\nTheme=sumi\n' >"$W/etc/plymouth/plymouthd.conf"
+eq "$(fk plymouth-set-default-theme)" bgrt "Plymouth's reading: hidden"
+theme --check; eq "$RC" 3; has "$OUT" "plymouthd.conf: the sumi theme, shown at once"
+theme; eq "$RC" 0; called 'dracut\] -f --regenerate-all'
+eq "$(fk plymouth-set-default-theme)" sumi; theme --check; eq "$RC" 0
+
+case_ "an install made over a serial console (GRUB_TERMINAL=\"serial console\" wins over the output): it goes, grub.cfg names the theme, --check in sync"
+printf 'GRUB_TERMINAL="serial console"\nGRUB_SERIAL_COMMAND="serial"\n' >>"$W/etc/default/grub"
+theme --check; eq "$RC" 3; has "$OUT" "GRUB_TERMINAL (it keeps the menu in text)"
+theme; eq "$RC" 0
+lacks "$(cat "$W/etc/default/grub")" "GRUB_TERMINAL=" "removed"
+grep -q 'grub2/themes/sumi/theme.txt' "$W/boot/grub2/grub.cfg" && _ok || _no "grub.cfg without the theme"
+theme --check; eq "$RC" 0
+fkh grub-no-theme 1
+sed -i '/^GRUB_THEME=/d' "$W/etc/default/grub"
+theme; eq "$RC" 0 "the rest of the theme applied"
+has "$OUT" "grub2-mkconfig made /boot/grub2/grub.cfg without the theme"
+[[ -s $W/var/lib/fedokawaii/boot.failed ]] && _ok || _no "no boot.failed mark"
+rm -f "$FKH/grub-no-theme"; theme; eq "$RC" 0
+[[ ! -e $W/var/lib/fedokawaii/boot.failed ]] && _ok || _no "the mark left behind"
+
 case_ "/boot a partition of its own (the installer's Btrfs layout): grub.cfg names the theme from /boot's root — in sync, and verify sees it"
 touch "$FKH/boot-separate"; rm -f "$W/boot/grub2/grub.cfg"
 theme; eq "$RC" 0

@@ -475,7 +475,7 @@ built() {
   : >"$W/usrshare/vulkan/icd.d/radeon_icd.x86_64.json"; fake_cmd "$W/usrbin/greetd"
   printf '%s\n' root home >"$FKH/snapper-configs"; echo "1,fedokawaii baseline" >"$FKH/snaps"
   mkdir -p "$W/etc/snapper/configs"; for c in root home; do echo 'SUBVOLUME="/"' >"$W/etc/snapper/configs/$c"; done
-  sed -i 's/^static dnf5-makecache.timer$/masked dnf5-makecache.timer/' "$FKH/units"
+  sed -i 's/^static dnf5-makecache.timer$/masked dnf5-makecache.timer/' "$FKH/units"; echo 'masked dnf-makecache.timer' >>"$FKH/units"   # (both masked, dnf4's ahead of any package)
   echo fedokawaii >"$FKH/tuned-profile"; printf '%s\n' dhcpv6-client ssh >"$FKH/fw-services"; printf '%s\n' 'enabled sshd.service' 'active sshd.service' >>"$FKH/units"
   mkdir -p "$W/etc/ssh/sshd_config.d"; printf '%s\n' PasswordAuthentication\ no >"$W/etc/ssh/sshd_config.d/40-fedokawaii.conf"   # (SSH_SERVER=yes, as shipped)
   printf '%s\n' 6881/tcp 6881/udp 53317/tcp 53317/udp >"$FKH/fw-ports"

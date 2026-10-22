@@ -86,15 +86,25 @@ try:
 except Exception:
     print(f"{nid}|{summary}|bad markup|"); sys.exit()
 def text(n): return "".join(c.data if c.nodeType == c.TEXT_NODE else text(c) for c in n.childNodes)
-# kawa-osd's row: one span (the 24 px row) holding the glyph, the name, the squares (the span
-# in the icon font: its lit ones, then the rest) and the value (the last)
+# kawa-osd's row: one span (the 24 px row) holding the glyph, the name, the slider (the span
+# in the icon font: the fill, the knob, the track, its 2 px of air) and the value (the last).
+# The slider read back into pixels from icons.sh's lv-* parts: where its knob starts, and its
+# whole width ("131/192")
+import os, re
+sh = open(os.path.expanduser("~/.config/fedokawaii/icons.sh")).read()
+px = {}
+for name, esc in re.findall(r"^ICON_(LV_[A-Z]+(?:_\d+)?|GAP1|GAP)='?\$'([^']*)'", sh, re.M):
+    ch = bytes(int(h, 16) for h in re.findall(r"\\x([0-9a-f]{2})", esc)).decode()
+    n = name.rsplit("_", 1)
+    px[ch] = 1 if name in ("GAP1", "LV_TICK") else 2 if name == "GAP" else 4 if name == "LV_KNOB" else int(n[1])
 row = [c for c in d.childNodes if c.nodeType == c.ELEMENT_NODE][0]
 spans = [c for c in row.childNodes if c.nodeType == c.ELEMENT_NODE]
-squares = [s for s in spans if s.getAttribute("font") == "Sumi Icons 16px"][0]
-on, rest = [c for c in squares.childNodes if c.nodeType == c.ELEMENT_NODE]
-lit = len(text(on)); total = lit + len(text(rest))
+slider = [s for s in spans if s.getAttribute("font") == "Sumi Icons 16px"][0]
+parts = [c for c in slider.childNodes if c.nodeType == c.ELEMENT_NODE]
+w = lambda t: sum(px.get(ch, 1000) for ch in t)
+knob = w(text(parts[0])); total = w(text(slider))
 value = text(spans[-1]).strip()
-print(f"{nid}|{summary}|{value}|{lit}/{total}")
+print(f"{nid}|{summary}|{value}|{knob}/{total}")
 EOF2
 }
 

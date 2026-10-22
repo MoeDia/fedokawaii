@@ -68,23 +68,23 @@ json_lines "$out"
 eq "$(last "$out")" "playing|${ICON_BAR_CASSETTE_A}Plastic Love  Mariya Takeuchi"
 eq "$(cat "$XDG_RUNTIME_DIR/kawa-nowplaying.player")" spotify "the player shown, kept for the keys"
 eq "$(tail -n 1 <<<"$out" | python3 -c 'import json,sys; print(json.load(sys.stdin)["class"])')" "['playing', 'r3']" "its class: playing, and the last letter's own air (the i of Takeuchi: 3 px)"
-setup; step "$(P mpv Playing '' 'holiday.mkv')"; eq "$(bar | tail -n 1 | python3 -c 'import json,sys; print(json.load(sys.stdin)["class"])')" "['playing', 'r0']" "no artist: the title's last letter"
+setup; step "$(P mpv Playing '' 'holiday.mkv')"; eq "$(bar | tail -n 1 | python3 -c 'import json,sys; print(json.load(sys.stdin)["class"])')" "['playing', 'r1']" "no artist: the title's last letter (v: its column of air, as every letter's)"
 setup; step "$(P spotify Paused 'Cool' 'Song')"; eq "$(bar | tail -n 1 | python3 -c 'import json,sys; print(json.load(sys.stdin)["class"])')" "['paused', 'r3']" "paused; l (of Cool): 3 px of air"
 setup; step "$(P spotify Playing 'Mariya Takeuchi' 'Plastic Love')"; out=$(bar)
 has "$(tail -n 1 <<<"$out")" "\"${ICON_BAR_CASSETTE_A}Plastic Love  <span color='#$(. "$HOME/.config/fedokawaii/current/colors.sh"; echo "$C_FAINT")'>Mariya Takeuchi</span>\"" "the artist quieter than the title"
 
-case_ "… with sound: the meter in the wings either side of the clock (8 thin columns each, 0–6, lowest notes nearest the clock), each column in its height's ink — edge2, faint, muted, text; the label the cassette and the words alone"
-setup; printf '%s\n' "0;1;2;3;4;5;6;4;3;2;1;0;0;1;2;6;" >"$NP/frames"
+case_ "… with sound: the meter in the wings either side of the clock (8 thin columns each, 0–12 — a pixel a level —, lowest notes nearest the clock), each column in its height's ink — edge2, faint, muted, text; the label the cassette and the words alone"
+setup; printf '%s\n' "0;1;2;3;4;5;6;4;3;2;1;0;0;1;2;6;" "0;2;4;7;8;10;12;9;11;3;1;0;0;5;12;6;" >"$NP/frames"
 step "$(P spotify Playing 'Mariya Takeuchi' 'Plastic Love')"
 wings_up; out=$(bar); wings_down
 json_lines "$out"; eq "$(last "$out")" "playing|${ICON_BAR_CASSETTE_A}Plastic Love  Mariya Takeuchi"
 L=$(cat "$TMP/wing-left") Rw=$(cat "$TMP/wing-right")
 json_lines "$L"; json_lines "$Rw"; markup_ok "$L"; markup_ok "$Rw"
 eq "$(head -n 1 <<<"$L")" '{"text":""}' "a wing starts empty"
-eq "$(last "$L")" "playing|$(EQ 0 1 2 3 4 5 6 4)" "the left wing: the left channel"
-eq "$(last "$Rw")" "playing|$(EQ 3 2 1 0 0 1 2 6)" "the right wing: the right"
-tiers=$(. "$HOME/.config/fedokawaii/current/colors.sh"; s=""; t=("$C_EDGE2" "$C_FAINT" "$C_FAINT" "$C_MUTED" "$C_MUTED" "$C_TEXT" "$C_TEXT")
-  for d in 0 1 2 3 4 5 6 4; do v=ICON_EQ_$d; s+="<span color='#${t[d]}'>${!v}</span>"; done; printf '%s' "$s")
+eq "$(last "$L")" "playing|$(EQ 0 2 4 7 8 10 12 9)" "the left wing: the left channel"
+eq "$(last "$Rw")" "playing|$(EQ 11 3 1 0 0 5 12 6)" "the right wing: the right"
+tiers=$(. "$HOME/.config/fedokawaii/current/colors.sh"; s=""; t=("$C_EDGE2" "$C_FAINT" "$C_FAINT" "$C_FAINT" "$C_MUTED" "$C_MUTED" "$C_MUTED" "$C_MUTED" "$C_TEXT" "$C_TEXT" "$C_TEXT" "$C_TEXT" "$C_TEXT")
+  for d in 0 2 4 7 8 10 12 9; do v=ICON_EQ_$d; s+="<span color='#${t[d]}'>${!v}</span>"; done; printf '%s' "$s")
 eq "$(tail -n 1 <<<"$L")" "{\"text\":\"$tiers\",\"class\":\"playing\"}" "every column its own span: its height's ink"
 lacks "$L$Rw" "$(. "$HOME/.config/fedokawaii/current/colors.sh"; echo "$C_ACCENT")" "no vermilion peak lamp any more"; lacks "$L$Rw" "$(. "$HOME/.config/fedokawaii/current/colors.sh"; echo "$C_TEAL")" "no asagi"
 case_ "the wings: a module of their own each (--wing left|right), reading a fifo of its own; another side: misuse"
@@ -105,8 +105,8 @@ has "$out" "$ICON_BAR_CASSETTE_B"; has "$out" "$ICON_BAR_CASSETTE_A"
 setup; for i in {1..24}; do echo "0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;"; done >"$NP/frames"
 step "$(P mpv Playing '' 'film.mkv')"
 out=$(bar); lacks "$out" "$ICON_BAR_CASSETTE_B" "silence: the reels stand still"
-case_ "a frame that is not 16 bands of 0–6: ignored"
-setup; printf '%s\n' "1;2;3;" "7;7;7;7;7;7;7;7;7;7;7;7;7;7;7;7;" "9;9;9;9;9;9;9;9;9;9;9;9;9;9;9;9;" "a;b;c;d;e;f;g;h;i;j;k;l;m;n;o;p;" >"$NP/frames"
+case_ "a frame that is not 16 bands of 0–12: ignored"
+setup; printf '%s\n' "1;2;3;" "13;13;13;13;13;13;13;13;13;13;13;13;13;13;13;13;" "1;1;1;1;1;1;1;1;1;1;1;1;1;1;1;1;1;" "a;b;c;d;e;f;g;h;i;j;k;l;m;n;o;p;" "-1;1;1;1;1;1;1;1;1;1;1;1;1;1;1;1;" >"$NP/frames"
 step "$(P spotify Playing Artist Song)"
 wings_up; out=$(bar); wings_down; json_lines "$out"
 eq "$(cat "$TMP/wing-left" "$TMP/wing-right" | grep -c "$ICON_EQ_1")" 0 "no meter in the wings"
@@ -125,6 +125,58 @@ eq "$(tail -n 1 "$TMP/wing-left") $(tail -n 1 "$TMP/wing-right")" '{"text":""} {
 json_lines "$out"
 eq "$(last "$out")" "paused|${ICON_BAR_PAUSE}Song  A"
 waitfor 2 eval '! alive "$NP/cava.pids"' && _ok || _no "cava still runs while paused (2 s on)"
+case_ "cava ready before play is pressed: started for a paused player, kept through a pause, ended once nothing has played for GRACE seconds"
+setup; : >"$NP/hold"
+step "$(P spotify Paused A Song)" "$(P spotify Paused A Song)"
+KAWA_NOWPLAYING_GRACE=2 kawa-nowplaying >"$TMP/out" 2>/dev/null & np=$!
+waitfor 3 test -s "$NP/cava.pids" && _ok || _no "no cava for a paused player"
+sleep 1; alive "$NP/cava.pids" && _ok || _no "cava gone before its grace"
+waitfor 4 eval '! alive "$NP/cava.pids"' && _ok || _no "cava still runs after 2 s of nothing playing"
+kill -TERM "$np"; wait "$np" 2>/dev/null; clean
+setup; : >"$NP/hold"; printf '%s\n' "4;4;4;4;4;4;4;4;4;4;4;4;4;4;4;4;" >"$NP/frames"
+step "$(P spotify Playing A Song)" "$(P spotify Playing A Song)"
+step "$(P spotify Paused A Song)" "$(P spotify Paused A Song)"
+step "$(P spotify Playing A Song)" "$(P spotify Playing A Song)"
+kawa-nowplaying >"$TMP/out" 2>/dev/null & np=$!
+sleep 1.5; eq "$(wc -l <"$NP/cava.pids")" 1 "playing, paused, playing again: one cava all along (no half-second start)"
+kill -TERM "$np"; wait "$np" 2>/dev/null
+waitfor 3 eval '! alive "$NP/pids" "$NP/cava.pids"' && _ok || { _no "cava outlived the script"; clean; }
+case_ "cava ending by itself (PipeWire restarted): back on its own, the meter goes on"
+setup; : >"$NP/hold"; printf '%s\n' "2;2;2;2;2;2;2;2;2;2;2;2;2;2;2;2;" >"$NP/frames"
+step "$(P spotify Playing A Song)" "$(P spotify Playing A Song)"
+kawa-nowplaying >"$TMP/out" 2>/dev/null & np=$!
+waitfor 3 test -s "$NP/cava.pids"; kill "$(head -n 1 "$NP/cava.pids")"
+waitfor 3 eval '(($(wc -l <"$NP/cava.pids") == 2))' && _ok || _no "cava not back"
+kill -TERM "$np"; wait "$np" 2>/dev/null
+waitfor 3 eval '! alive "$NP/pids" "$NP/cava.pids"' && _ok || { _no "cava outlived the script"; clean; }
+case_ "a click on play: the wings rise with the first sound, before the player says it plays; never confirmed, back to paused"
+setup; : >"$NP/hold"; printf '%s\n' "0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;" "6;6;6;6;6;6;6;6;6;6;6;6;6;6;6;6;" >"$NP/frames"
+printf '%s\n' "$(P spotify Paused A Song)" >"$NP/players"
+step "$(P spotify Paused A Song)" "$(P spotify Paused A Song)"
+mkdir -p "$XDG_RUNTIME_DIR/kawa-nowplaying"; printf '%s\n' "${EPOCHREALTIME/./}" >"$XDG_RUNTIME_DIR/kawa-nowplaying/click"
+wings_up; kawa-nowplaying >"$TMP/out" 2>/dev/null & np=$!
+waitfor 3 test -s "$NP/cava.pids"; sleep 0.5
+eq "$(last "$(cat "$TMP/out")")" "paused|${ICON_BAR_PAUSE}Song  A" "a click from before the player paused: not a play (its sound is the fading song)"
+printf '%s\n' "${EPOCHREALTIME/./}" >"$XDG_RUNTIME_DIR/kawa-nowplaying/click"
+kill "$(head -n 1 "$NP/cava.pids")"                 # (cava again: its frames, the sound, come after the click)
+waitfor 3 eval 'grep -q "\"playing\"" "$TMP/out"' && _ok || _no "the label did not follow the click's sound"
+has "$(cat "$TMP/wing-left")" "$ICON_EQ_6" "the wing lit at once"
+waitfor 4 eval '[[ $(last "$(cat "$TMP/out")") == paused* ]]' && _ok || _no "still playing, the player never said so: $(last "$(cat "$TMP/out")")"
+kill -TERM "$np"; wait "$np" 2>/dev/null; wings_down; clean
+case_ "… the click itself: noted for the bar only when it plays (the player shown paused), then sent to the player shown"
+setup; printf '%s\n' "$(P spotify Paused A Song)" >"$NP/players"; echo spotify >"$XDG_RUNTIME_DIR/kawa-nowplaying.player"
+rm -f "$XDG_RUNTIME_DIR/kawa-nowplaying/click"; kawa-nowplaying next
+[[ ! -e $XDG_RUNTIME_DIR/kawa-nowplaying/click ]] && _ok || _no "next noted as a click on play"
+kawa-nowplaying play-pause; [[ $(cat "$XDG_RUNTIME_DIR/kawa-nowplaying/click") =~ ^[0-9]{16}$ ]] && _ok || _no "no click noted"
+eq "$(tail -n 1 "$NP/acted")" "play-pause spotify"
+rm -f "$XDG_RUNTIME_DIR/kawa-nowplaying/click"; printf '%s\n' "$(P spotify Playing A Song)" >"$NP/players"
+kawa-nowplaying play-pause; [[ ! -e $XDG_RUNTIME_DIR/kawa-nowplaying/click ]] && _ok || _no "a press that pauses noted as a play"
+case_ "a meter frame repeated (a pause sends zeros at 60 a second): drawn once"
+setup; for i in {1..30}; do echo "0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;"; done >"$NP/frames"
+step "$(P spotify Playing A Song)" "$(P spotify Playing A Song)"
+wings_up; out=$(bar); wings_down
+eq "$(grep -c "\"playing\"" "$TMP/wing-left")" 1 "thirty frames alike: one drawn"
+
 case_ "stopped, or no title yet: hidden"
 setup; step "$(P spotify Stopped A Song)" "$(P spotify Stopped A Song)"
 eq "$(last "$(bar)")" "|"
@@ -212,7 +264,7 @@ t=$(last "$out"); t=$(strip "$t")
 eq "${#t}" 40 "Thai has no spaces either: a character's edge"; eq "$t" "เมดอินไทยแลนด์เวอร์ชันพิเศษที่ย  คาราบาว"
 
 # ── the program around it ────────────────────────────────────────────────────
-case_ "playerctl missing: the module hidden, and the script ends (waybar retries in 5 s)"
+case_ "playerctl missing: the module hidden, and the script ends (waybar starts it again a second later)"
 setup; rm "$STUBS/playerctl"
 out=$(PATH=$(minipath bash cat timeout pkill pgrep) timeout 10 kawa-nowplaying 2>/dev/null); r=$?
 eq "$out" '{"text":""}'; eq "$r" 0

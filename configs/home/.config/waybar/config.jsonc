@@ -89,7 +89,7 @@
   "custom/wing-right": { "exec": "kawa-nowplaying --wing right", "return-type": "json", "restart-interval": 1, "tooltip": false,
                          "exec-on-event": false, "on-click": "kawa-nowplaying play-pause" },
   "custom/nowplaying": {
-    "exec": "kawa-nowplaying", "return-type": "json", "restart-interval": 5, "tooltip": false,
+    "exec": "kawa-nowplaying", "return-type": "json", "restart-interval": 1, "tooltip": false,
     "exec-on-event": false, "on-click": "kawa-nowplaying play-pause", "on-click-right": "kawa-nowplaying next", "on-click-middle": "kawa-nowplaying previous"
   },
 

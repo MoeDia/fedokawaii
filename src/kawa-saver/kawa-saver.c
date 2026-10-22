@@ -4,11 +4,14 @@
  *   kawa-saver         now (a look at it: any input ends it, nothing locks)
  *   kawa-saver --wash  the one transition (a theme switch, a new wallpaper): see wash()
  *   kawa-saver --idle  away 15 minutes (kawa-idle, from swayidle: never while something
- *                      plays): the screensaver, and the lock behind it — the first key or move
- *                      starts the lock (kawa-lock) at once and washes the cloth away while it
- *                      comes up; it goes only once the lock is there, so neither that key nor
- *                      any typed after it reaches a window. Switched off in quick
- *                      settings (~/.local/state/fedokawaii/saver: on, or off): the lock at once.
+ *                      plays): the screensaver, with the lock under it — kawa-lock starts as
+ *                      the saver shows, and dwl keeps the saver over the lock screen (its own
+ *                      layer, for this program alone), so the first key or move only washes
+ *                      the cloth away from over a lock already there: no wait, no frame held.
+ *                      A key pressed before the lock is up waits for it, so neither that key
+ *                      nor any after it reaches a window. Already locked (a lock you asked
+ *                      for, then away): the saver over it. Switched off in quick settings
+ *                      (~/.local/state/fedokawaii/saver: on, or off): the lock at once.
  *                      Should it not be able to show, it locks all the same.
  *
  * On the theme's ground (dark or light: current/saver.conf), needles run along the lines of a
@@ -28,7 +31,7 @@
  * keyboard while it shows (a layer on top of everything, the bar too), and it waits for the
  * key or button to be let go before it leaves, so neither press nor release reaches a window.
  * It answers at once: the cloth fades away (180 ms, eased, frame by frame) as it leaves.
- * It ends too when the desktop locks otherwise (kawa-lock), and stays one at a time.
+ * Without --idle it ends too when the desktop locks (kawa-lock); it stays one at a time.
  *
  * 8 to 17 MB a 1080p screen (one or two pictures of it), almost no CPU (12 steps a second, only the
  * dots that changed are drawn). Built by theme.sh (src/kawa-saver/Makefile). Exit: 0 · 1 it
@@ -129,7 +132,8 @@ static int pace = 80;                     /* ms a step */
 static unsigned seed;
 static bool leaving;                      /* input came: washed away, gone once every key and button is up */
 static bool idle_mode;                    /* --idle: the lock behind it */
-static pid_t lock_pid;                    /* kawa-lock, started at the first input (--idle) */
+static pid_t lock_pid;                    /* kawa-lock, started as it shows (--idle) */
+static bool lock_started;
 #define PART_MS 180                       /* the wash as it leaves */
 static int held;                          /* keys and buttons down */
 static double leave_at;
@@ -646,8 +650,8 @@ static void leave_now(void)
 	if (!leaving) {
 		leaving = true;
 		leave_at = now_ms();
-		if (idle_mode)
-			lock_start();             /* the lock coming up while the cloth washes away */
+		if (idle_mode && !lock_started)
+			lock_start();             /* (not up yet: it comes while the cloth washes away) */
 	}
 }
 static void kb_keymap(void *d, struct wl_keyboard *k, uint32_t f, int32_t fd, uint32_t s)
@@ -846,10 +850,12 @@ static bool wanted(void)
 	return strncmp(v, "off", 3) != 0;
 }
 
-/* --idle: the lock, started at the first input — kawa-lock returns once every screen is
- * locked (lock_up: it has) */
+/* --idle: the lock, started as the saver shows — under it, so the first input only washes
+ * the cloth away from over a lock already up (dwl keeps the saver over the lock: its own
+ * scene layer, LyrSaver). kawa-lock returns once every screen is locked (lock_up: it has) */
 static void lock_start(void)
 {
+	lock_started = true;
 	pid_t pid = fork();
 	if (pid == 0) {
 		execlp("kawa-lock", "kawa-lock", (char *)NULL);
@@ -1134,8 +1140,9 @@ int main(int argc, char **argv)
 	}
 	if (pace < 1 || pace > 1000)
 		usage();
-	if (locked())
-		return 0;                         /* the lock is over everything: nothing to show */
+	if (locked() && !idle_mode)
+		return 0;                         /* a look while locked: the lock is over everything */
+	/* (--idle while locked already — a lock you asked for, then away: the saver over it) */
 	char lp[PATH_MAX];
 	snprintf(lp, sizeof lp, "%s/kawa-saver.lock", runtime());
 	int lk = open(lp, O_RDWR | O_CREAT | O_CLOEXEC, 0600);
@@ -1180,6 +1187,10 @@ int main(int argc, char **argv)
 			shown++;
 	if (!shown)
 		return fail("no screen took it");
+	if (idle_mode) {
+		wl_display_roundtrip(display);    /* (its first frame shown before the lock comes) */
+		lock_start();
+	}
 	struct pollfd pfd = { .fd = wl_display_get_fd(display), .events = POLLIN };
 	double next = now_ms();
 	while (!stop) {
@@ -1209,7 +1220,7 @@ int main(int argc, char **argv)
 			next += pace;
 			if (next < t) next = t + pace;
 			tick++;
-			if (tick % (1000 / pace + 1) == 0 && locked())
+			if (!idle_mode && tick % (1000 / pace + 1) == 0 && locked())
 				break;                    /* locked meanwhile: the lock is over it all */
 			wl_list_for_each(o, &outputs, link)
 				if (o->ready && !o->closed) {

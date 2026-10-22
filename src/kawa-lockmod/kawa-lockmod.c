@@ -17,6 +17,11 @@
  *  kanji in accent_text, its words muted (VERSES: the same sixteen in kawa-greet). Read again
  *  every half minute; the look is current/gtklock.css (#weekday, #verse-kanji, #verse).
  *
+ *  The password's line. Each character a vermilion ◆ at 32 px — Sumi UI at twice its pixels,
+ *  as the time is at four: big enough to count at a glance — while the hint (パスワード ·
+ *  password) stays at 16 px: the entry's own placeholder would grow with it, so the hint is a
+ *  label of its own over the empty line (#input-hint), gone with the first character.
+ *
  *  The wake guard. The key that wakes the computer, or lights the dark screens, only wakes:
  *  kawa-lock notes the screens in $XDG_RUNTIME_DIR/kawa-screens — "off" before they go dark,
  *  "on" once they are lit (its time: the moment) — and while they are dark, and for 2 s after
@@ -161,6 +166,41 @@ static gboolean flavour_tick(gpointer data)
 		flavour_set(l->data);
 	return G_SOURCE_CONTINUE;
 }
+/* ── the password's line: the hint over it while it is empty ────────────────────────── */
+static void hint_update(GtkEditable *e, gpointer hint)
+{
+	gtk_widget_set_visible(hint, gtk_entry_get_text_length(GTK_ENTRY(e)) == 0);
+}
+static void hint_add(GtkWidget *entry)
+{
+	GtkWidget *grid = entry ? gtk_widget_get_parent(entry) : NULL;
+	const char *ph;
+	gint left, top, width, height;
+	if (!grid || !GTK_IS_GRID(grid) || !(ph = gtk_entry_get_placeholder_text(GTK_ENTRY(entry))) || !*ph)
+		return;                           /* (another layout: the entry's own placeholder) */
+	GtkWidget *hint = gtk_label_new(ph);
+	gtk_widget_set_name(hint, "input-hint");
+	gtk_widget_set_halign(hint, GTK_ALIGN_CENTER);
+	gtk_widget_set_valign(hint, GTK_ALIGN_CENTER);
+	gtk_widget_set_no_show_all(hint, TRUE);
+	gtk_container_child_get(GTK_CONTAINER(grid), entry, "left-attach", &left, "top-attach", &top,
+			"width", &width, "height", &height, NULL);
+	g_object_ref(entry);                  /* (moved into the overlay: gtklock's own pointer to it holds) */
+	gtk_container_remove(GTK_CONTAINER(grid), entry);
+	GtkWidget *ov = gtk_overlay_new();
+	gtk_widget_set_hexpand(ov, TRUE);
+	gtk_container_add(GTK_CONTAINER(ov), entry);
+	g_object_unref(entry);
+	gtk_overlay_add_overlay(GTK_OVERLAY(ov), hint);
+	gtk_overlay_set_overlay_pass_through(GTK_OVERLAY(ov), hint, TRUE);   /* (clicks reach the line) */
+	gtk_grid_attach(GTK_GRID(grid), ov, left, top, width, height);
+	gtk_entry_set_placeholder_text(GTK_ENTRY(entry), NULL);
+	g_signal_connect(entry, "changed", G_CALLBACK(hint_update), hint);
+	gtk_widget_show(ov);
+	gtk_widget_show(entry);
+	hint_update(GTK_EDITABLE(entry), hint);
+}
+
 static GtkWidget *named_label(const char *name)
 {
 	GtkWidget *l = gtk_label_new(NULL);
@@ -189,6 +229,7 @@ void on_window_create(struct GtkLock *gtklock, struct Window *win)
 	g_signal_connect(win->window, "key-release-event", G_CALLBACK(on_key), win);
 	g_signal_connect(win->window, "button-press-event", G_CALLBACK(on_button), win);
 	g_signal_connect(win->window, "button-release-event", G_CALLBACK(on_button), win);
+	hint_add(win->input_field);
 	if (!win->window_box || !GTK_IS_BOX(win->window_box))
 		return;
 	/* the day: its seal, the date, 火曜日 */

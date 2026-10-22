@@ -946,7 +946,11 @@ run() {   # run ACTION — in the menu's window: the work, its outcome, a key ba
     log)       log_view; return 0 ;;   # (as `fedokawaii log`)
     change)    setsid -f kawa-config >/dev/null 2>&1 </dev/null; return 0 ;;   # (its own menu, by the bar)
     keys)      setsid -f kawa-help >/dev/null 2>&1 </dev/null; return 0 ;;     # (the sheet, by the bar)
-    guide)     guide && return 0; rc=1 ;;   # (a handbook that cannot open says why, and waits)
+    guide)     if [[ ${FEDOKAWAII_POPUP:-} == yes ]]; then   # (the popup gone: why it did not open, in a notice)
+                 local why; why=$(guide 2>&1) || notify-send -a desktop -u critical -- "${ICON_TORII:-·}  learn" "${why#  }"
+                 return 0
+               fi
+               guide && return 0; rc=1 ;;   # (a handbook that cannot open says why, and waits)
     *)         return 0 ;;
   esac
   pause "$rc" "$a"
@@ -1026,12 +1030,16 @@ guide() {   # the learning guide: the PDF in zathura on the desktop; on a text c
 }
 
 menu_fzf() {   # → fzf's exit status (2: it could not run — the plain menu takes over)
-  local self pop="" listen=()
+  local self pop="" listen=() launch=""
   self=$(printf '%q' "$0")
   # (in Super+U's popup a job, too, ends the menu: it is handed to a window of its own; the
   # popup is warm — kawa-warm reads its list again through fzf's socket as it shows)
   if [[ ${FEDOKAWAII_POPUP:-} == yes ]]; then
     pop="|$JOBS" listen=(--listen="${XDG_RUNTIME_DIR:-/tmp}/fedokawaii-menu.sock")
+    # (what opens a window of its own — the guide, the key sheet, the settings — starts it
+    # without fzf giving up the screen, then puts the popup away: dwl fades it off as it is,
+    # never a blank terminal first; the list starts afresh behind the scenes)
+    launch="guide|keys|change) echo 'execute-silent($self --run {1})+execute-silent(kawa-warm system)' ;; "
     rm -f -- "${listen[0]#--listen=}"              # (one killed outright left it: fzf would not start)
   fi
   export FZF_DEFAULT_OPTS_FILE=$HOME/.config/fedokawaii/fzf.opts; unset FZF_DEFAULT_OPTS
@@ -1051,7 +1059,7 @@ menu_fzf() {   # → fzf's exit status (2: it could not run — the plain menu t
     --bind="start:reload-sync($self --items)" --bind="resize:reload-sync($self --items)" \
     --bind="result:transform:[[ \$FZF_RAW == 0 ]] && echo down-match" \
     --bind="down:down-match,up:up-match,j:down-match,k:up-match,q:abort" \
-    --bind="enter:transform:case {1} in -) ;; change|keys${pop}) echo 'become($self --run {1})' ;; *) echo 'execute($self --run {1})+reload-sync($self --items)' ;; esac" >/dev/null
+    --bind="enter:transform:case {1} in -) ;; ${launch}remind) echo 'execute-silent($self --run {1})+reload-sync($self --items)' ;; change|keys${pop}) echo 'become($self --run {1})' ;; *) echo 'execute($self --run {1})+reload-sync($self --items)' ;; esac" >/dev/null
 }
 
 ascii() {   # for a text console whose font may lack them: plain stand-ins

@@ -110,12 +110,14 @@ fresh; stub kawa-config; stub kawa-help
 WAYLAND_DISPLAY=wayland-1 fedokawaii --run change </dev/null; WAYLAND_DISPLAY=wayland-1 fedokawaii --run keys </dev/null
 for _ in 1 2 3 4 5 6 7 8 9 10; do grep -q kawa-help "$CALLS" && grep -q kawa-config "$CALLS" && break; sleep 0.1; done
 called '^setsid -f kawa-config$'; called '^setsid -f kawa-help$'
-has "$(cat "$(command -v fedokawaii)")" "enter:transform:case {1} in -) ;; change|keys\${pop}) echo 'become("
-case_ "Super+U's popup (--popup): the menu closes for a job too (fzf becomes the run, which hands it on); a plain menu, not"
+has "$(cat "$(command -v fedokawaii)")" "enter:transform:case {1} in -) ;; \${launch}remind) echo 'execute-silent(\$self --run {1})+reload-sync(\$self --items)' ;; change|keys\${pop}) echo 'become("
+case_ "Super+U's popup (--popup): the menu closes for a job too (fzf becomes the run, which hands it on); the guide, the key sheet and the settings start without fzf giving up the screen, then the popup is put away (dwl fades it off: never a blank terminal); a plain menu, neither"
 if has_script; then
   fresh; stub fzf 'cat >/dev/null; exit 130'
-  on_tty "" fedokawaii --popup >/dev/null; called 'enter:transform:case \{1\} in -\) ;; change\|keys\|update\|pull\|upgrade\|verify\|repair\|theme\|drift\|snapshots\|backup\|settings\|log\) echo .become\('
-  reset_calls; on_tty "" fedokawaii >/dev/null; called 'enter:transform:case \{1\} in -\) ;; change\|keys\) echo .become\('
+  on_tty "" fedokawaii --popup >/dev/null
+  called "enter:transform:case \\{1\\} in -\\) ;; guide\\|keys\\|change\\) echo 'execute-silent\\([^)]* --run \\{1\\}\\)\\+execute-silent\\(kawa-warm system\\)' ;; remind\\) "
+  called 'remind\) echo .execute-silent\([^)]* --run \{1\}\)\+reload-sync\([^)]* --items\). ;; change\|keys\|update\|pull\|upgrade\|verify\|repair\|theme\|drift\|snapshots\|backup\|settings\|log\) echo .become\('
+  reset_calls; on_tty "" fedokawaii >/dev/null; called 'enter:transform:case \{1\} in -\) ;; remind\) echo .execute-silent\([^)]*\)\+reload-sync\([^)]*\). ;; change\|keys\) echo .become\('
 else _ok; fi
 case_ "rows: the mark at the right edge, wider with a wider window (FZF_COLUMNS)"
 w=$(widest "$(entries "$(FZF_COLUMNS=120 fedokawaii --rows)")"); eq "$w" 68

@@ -11,7 +11,7 @@ if [[ -L /usr/local/bin/vi && $(readlink -f /usr/local/bin/vi) == /usr/bin/nvim 
   echo "dracut[F]: Resolving executable dependencies failed" >&2
   exit 1
 fi
-theme=$(cat "$FKH/plymouth-theme" 2>/dev/null || echo bgrt)
+theme=$(plymouth-set-default-theme)   # (as dracut asks it: the theme Plymouth reads)
 make_image() { printf 'initramfs\nplymouth-theme %s\n' "$theme" >"/boot/initramfs-$1.img"; }
 # --kver V makes /boot/initramfs-V.img; --regenerate-all every installed kernel's (when it succeeds)
 a=$*

@@ -80,6 +80,7 @@ HAND = {
 BLOCKS = [(0x00A0, 0x024F), (0x0370, 0x03FF), (0x0400, 0x045F), (0x1E00, 0x1EFF),
           (0x2000, 0x2BFF)]
 NO_BOLD = [(0x2500, 0x259F), (0x2800, 0x28FF)]   # box lines, blocks, braille: as drawn
+RUN_ON = "_\u2014\u2015\u2017\u203E\u2E3A\u2E3B\u23AF"   # the low line and the long dashes: run on into the next cell
 
 
 def signs(kind, cell):
@@ -197,41 +198,6 @@ def build(kind, face_path, unifont_path):
             if not in_line(pix, adv):
                 sys.exit(f"build-fonts: {c['family']}: U+{cp:04X} leaves its cell")
             glyphs[cp] = (adv, pix)
-    # 1b. A column of air after every letter and figure (both faces): the face's bold, one pixel
-    # wider to the right, reaches the cell's last column for many of them (a b d h k p q s …),
-    # and the next one's first column touches it — two letters read as one shape ("pdf",
-    # "ads"). So the last column is always air: a letter with its first column free moves
-    # into it; one that fills all 8 loses a column inside it — one that repeats its neighbour
-    # (inside a bowl; the second column of a stem never), the middlemost; a letter with no
-    # column to spare has two neighbouring columns made one.
-    if True:                            # (both faces: Kappa's serifs met the same way, "mmm")
-        for cp in range(0x21, 0x7F):
-            ch = chr(cp)
-            if not ch.isalnum() or cp not in glyphs:
-                continue
-            adv, pix = glyphs[cp]
-            if not pix or max(x for x, _ in pix) < adv - 1:
-                continue                # (its last column free already)
-            if min(x for x, _ in pix) > 0:
-                glyphs[cp] = (adv, {(x - 1, y) for x, y in pix})   # a column free on the left: moved into it
-                continue
-            ys = sorted({y for _, y in pix})
-            colof = lambda x: frozenset(y for x2, y in pix if x2 == x)
-            spare = [x for x in range(2, adv - 2)
-                     if colof(x) == colof(x - 1) and colof(x) == colof(x + 1)]
-            if not spare:
-                spare = [x for x in range(2, adv - 2) if colof(x) == colof(x + 1)
-                         and not (colof(x) and colof(x - 1) == frozenset() and colof(x + 2) == frozenset())]
-            mid = (adv - 1) / 2
-            if spare:
-                x0 = min(spare, key=lambda x: (abs(x - mid), x))
-                glyphs[cp] = (adv, {(x if x < x0 else x - 1, y) for x, y in pix if x != x0})
-                continue
-            # no column repeats its neighbour (a slant: v x y z A N S …; m w M W): two next to
-            # each other made one — the pair that differ least, nearest the middle (their
-            # pixels together: a slant stays joined)
-            x0 = min(range(1, adv - 2), key=lambda x: (len(colof(x) ^ colof(x + 1)), abs(x + 0.5 - mid), x))
-            glyphs[cp] = (adv, {(x if x <= x0 else x - 1, y) for x, y in pix})
     # 2. the five signs, by hand
     minus = sorted({y for x, y in glyphs[ord("-")][1]})
     mid = minus[len(minus) // 2]
@@ -264,6 +230,44 @@ def build(kind, face_path, unifont_path):
             if not in_line(pix, cell):
                 continue                # taller than the line (a few stacked accents): left out
             glyphs[cp] = (cell, pix)
+    # 3b. A column of air after every one-cell character (both faces): the face's bold, one
+    # pixel wider to the right, and Unifont made bolder the same way, reach the cell's last
+    # column for many of them (a b d h k p q s, é ñ ж, # $ % & @ ~, ｱ…), and the next one's first
+    # column touches it — two characters read as one shape ("pdf", "ads", "1%", "é&"). So the
+    # last column is always air: a character with its first column free moves into it; one
+    # that fills the cell loses a column inside it — one that repeats its neighbour (inside a
+    # bowl; the second column of a stem never), the middlemost; one with no column to spare
+    # has two neighbouring columns made one. Left as drawn: what is meant to run on into the
+    # next cell — the box lines, the blocks and braille (foot's own, NO_BOLD), the low line
+    # and the long dashes; and the signs of art/signs.txt (step 4), drawn with their air.
+    for cp in sorted(glyphs):
+        ch = chr(cp)
+        adv, pix = glyphs[cp]
+        if ch in RUN_ON or any(a2 <= cp <= b2 for a2, b2 in NO_BOLD):
+            continue
+        if not pix or max(x for x, _ in pix) < adv - 1:
+            continue                    # (its last column free already)
+        if min(x for x, _ in pix) > 0:
+            glyphs[cp] = (adv, {(x - 1, y) for x, y in pix})   # a column free on the left: moved into it
+            continue
+        colof = lambda x: frozenset(y for x2, y in pix if x2 == x)
+        spare = [x for x in range(2, adv - 2)
+                 if colof(x) == colof(x - 1) and colof(x) == colof(x + 1)]
+        if not spare:
+            spare = [x for x in range(2, adv - 2) if colof(x) == colof(x + 1)
+                     and not (colof(x) and colof(x - 1) == frozenset() and colof(x + 2) == frozenset())]
+        mid = (adv - 1) / 2
+        if spare:
+            x0 = min(spare, key=lambda x: (abs(x - mid), x))
+            glyphs[cp] = (adv, {(x if x < x0 else x - 1, y) for x, y in pix if x != x0})
+            continue
+        if adv != cell:
+            continue                    # (a kanji with no column to spare: left as drawn)
+        # no column repeats its neighbour (a slant: v x y z A N S …; m w M W): two next to
+        # each other made one — the pair that differ least, nearest the middle (their
+        # pixels together: a slant stays joined)
+        x0 = min(range(1, adv - 2), key=lambda x: (len(colof(x) ^ colof(x + 1)), abs(x + 0.5 - mid), x))
+        glyphs[cp] = (adv, {(x if x <= x0 else x - 1, y) for x, y in pix})
     # 4. the signs the desktop shows, drawn for this face (art/signs.txt): over the rest
     for ch, rows in signs(kind, cell).items():
         glyphs[ord(ch)] = (cell, rows)

@@ -516,9 +516,9 @@ shown underneath, as the screen will show it. Hold ↓ to run through them; **En
 (□ off, ▣ on): **Enter** turns it over, and from then on the pack's next picture goes up every
 four hours of a session, by itself. It stays as you left it across logins.
 
-**The one transition.** A theme switch (**Super+Shift+W**) and a new wallpaper share the
-desktop's only animation: the old screen is *washed away* in 8 dithered steps — about a quarter
-of a second, stepped, never a fade. It never holds a click: press **Super+Shift+W** again during
+**The one transition.** A theme switch (**Super+Shift+W**) and a new wallpaper share one
+transition: the old screen fades away over a third of a second, drawn at every refresh of the
+screen. It never holds a click: press **Super+Shift+W** again during
 it and it jumps to its end, then switches back.
 
 ## 5.3 Notices

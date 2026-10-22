@@ -1,0 +1,8 @@
+# ~/.config/yazi/yazi.toml — yazi's settings beyond its own (theme.sh installs it). For yazi 26.x:
+# everything not named here is yazi's default.
+
+[plugin]
+# a PDF's preview through kawa-pdf (yazi's own, but a locked PDF says so in the desktop's
+# words instead of pdftoppm's error): before yazi's rules, for the page and its cache alike
+prepend_previewers = [ { mime = "application/pdf", run = "kawa-pdf" } ]
+prepend_preloaders = [ { mime = "application/pdf", run = "kawa-pdf" } ]

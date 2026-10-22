@@ -192,4 +192,10 @@ case_ "--help: what it is, exit 0; anything else: exit 2, no menu"
 setup; has "$(kawa-config --help)" "change the desktop itself"; rc 0 kawa-config --help
 rc 2 kawa-config bar; eq "$(fz_n)" 0
 
+case_ "yazi: a PDF previewed through kawa-pdf (yazi's own, but a locked one says 鍵 locked and that Enter opens it — never pdftoppm's error), before yazi's rules for the page and its cache"
+y=$(cat "$REPO/configs/home/.config/yazi/yazi.toml")
+has "$y" 'prepend_previewers = [ { mime = "application/pdf", run = "kawa-pdf" } ]'
+has "$y" 'prepend_preloaders = [ { mime = "application/pdf", run = "kawa-pdf" } ]'
+p=$(cat "$REPO/configs/home/.config/yazi/plugins/kawa-pdf.yazi/main.lua")
+has "$p" 'stderr:find("Incorrect password", 1, true)'; has "$p" '"this PDF asks for its password"'; lacks "$p" 'Err("Failed to convert'
 done_

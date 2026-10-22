@@ -54,9 +54,10 @@ grep -q '^+	if (m->vrr == 1 && (c = focustop(m)) && c->isfullscreen && client_su
 case_ "an empty cut hides the picture (wlroots takes an empty clip for none)"
 grep -q 'wlr_scene_node_set_enabled(&c->scene_surface->node, 0);' <(added applyframe) && _ok || _no "empty clip not handled"
 
-case_ "a closed window's ghost fades out and sinks anim_rise px: each part its own colour or opacity, the tree where the window stood"
+case_ "a closed window's ghost fades out and sinks anim_rise px (its own rise and time: anim_close_ms): each part its own colour or opacity, the tree where the window stood"
 f=$(added ghostapply)
-grep -q 'wlr_scene_node_set_position(&g->tree->node, g->x, g->y + (int)lround(anim_rise \* animease(t)));' <<<"$f" \
+grep -q 'wlr_scene_node_set_position(&g->tree->node, g->x, g->y + (int)lround(g->rise \* animease(t)));' <<<"$f" \
+  && grep -q '^+	g->ms = anim_close_ms, g->rise = anim_rise;' "$P" && grep -q '^+		if ((now - g->t0) >= g->ms) {' "$P" \
   && grep -q 'float a = (float)(1.0 - fadeease(t)), col\[4\];' <<<"$f" \
   && grep -q 'col\[k\] = p->color\[k\] \* a;' <<<"$f" && grep -q 'wlr_scene_buffer_set_opacity(wlr_scene_buffer_from_node(p->node), p->color\[0\] \* a);' <<<"$f" \
   && grep -q '^+	float color\[4\];' "$P" && grep -q '^+	int x, y; ' "$P" && _ok || _no "ghostapply / GhostPart / Ghost"
@@ -105,4 +106,19 @@ case_ "windows 5 px from the screen's edges (outergappx: on the bar's tiles' hai
 grep -q '^static const unsigned int outergappx *= 5;' "$CH" && grep -q '^static const unsigned int gappx *= 8;' "$CH" \
   && grep -q 'int n = 0, gap = (int)outergappx;' "$P" && _ok || _no "the edge gap"
 
+case_ "unlocked: the lock screen fades off the desktop (anim_unlock_ms, a ghost of each screen's lock over it all, no sinking); locking: at once"
+grep -q '^static const unsigned int anim_unlock_ms   = 320;' "$REPO/src/dwl/config.h" && _ok || _no "anim_unlock_ms"
+f=$(added ghostlock)
+grep -q 'g->tree = wlr_scene_tree_create(layers\[LyrBlock\]);' <<<"$f" && grep -q 'g->ms = anim_unlock_ms, g->rise = 0;' <<<"$f" \
+  && grep -q '^+				ghostlock(m, m->lock_surface->surface->data);' "$P" && _ok || _no "ghostlock"
+case_ "the screensaver over the lock: its own scene layer above the lock's, for the user's own kawa-saver alone (/proc/PID/exe); the lock holds no frame under it; a saver that does not go is taken off within SAVER_GUARD_MS"
+grep -q '^+	LyrIMPopup, LyrBlock, LyrSaver, NUM_LAYERS }; /\* scene layers \*/' "$P" && _ok || _no "LyrSaver above LyrBlock"
+f=$(added issaver)
+grep -q 'strcmp(ls->namespace, "kawa-saver")' <<<"$f" && grep -q 'snprintf(link, sizeof(link), "/proc/%d/exe", (int)pid);' <<<"$f" \
+  && grep -q 'return b && !strcmp(b + 1, "kawa-saver");' <<<"$f" && grep -q 'if (uid != getuid())' <<<"$f" && _ok || _no "issaver"
+grep -q '^+		if (saverup(m))$' "$P" && grep -q '^+#define SAVER_GUARD_MS 1500$' "$P" && (($(grep -c '^+[[:space:]]*saverinput();' "$P") == 4)) && _ok || _no "lockhold, guard, input"
+case_ "a warm window put away (Super+U's popup after a choice, Super+N, Super+V) fades off as a closed window does; shown again at once"
+f=$(added warmhide)
+grep -q 'ghostclient(c);' <<<"$f" && grep -q 'if (animations && !locked && c->scene->node.enabled && VISIBLEON(c, c->mon)' <<<"$f" && _ok || _no "warmhide: no fade"
+lacks "$(added warmshow)" "ghostclient" "shown: at once"
 done_

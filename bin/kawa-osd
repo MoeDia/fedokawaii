@@ -5,13 +5,14 @@
 # disturb" is on.
 #
 #   ┌──────────────────────────────────────────┐   quick settings' meter row, to the pixel
-#   │ 明 brightness  ■■■■■■■■□□□□   70%        │   (docs/design-system.md): the glyph in
-#   └──────────────────────────────────────────┘   accent_text, the name in text, twelve
-#                                                  squares of 14 × 10 on a 16 px pitch — lit
-#   asagi, the rest edge2; muted, the lit ones hollow — and the number, right-aligned in
-#   muted ("off" in faint while muted). A level lights the squares the panel's meter lights
-#   for it: to the nearest twelfth, at least one above 0; above 100 % (only the mixer goes
-#   there) all twelve, the real number.
+#   │ 明 brightness  ━━━━━━━━━┃─┬────   70%    │   (docs/design-system.md): the glyph in
+#   └──────────────────────────────────────────┘   accent_text, the name in text, the slider
+#                                                  — a 190 px rule: the fill (asagi, 6 px)
+#   to the level, the knob (an ink rod, 4 × 14, strong) on its end, the track (faint, 2 px)
+#   with a tick at each quarter still showing; muted, the fill hollow and the knob muted —
+#   and the number, right-aligned in muted ("off" in faint while muted). The slider is
+#   kawa-panel's own (fill_of, knob_of): the same pixels, spelled with the icon font's
+#   slider parts (lv-*: each one colour, widths 1, 2, 4 … 128 px adding up to any length).
 # Exit status: 0 shown · 1 not shown (no notice daemon) · 2 misuse.
 set -u
 case ${1:-} in
@@ -26,26 +27,54 @@ esac
 icon=${1:-} label=${2:-} pct=${3:-0} off=${4:-}
 [[ $pct =~ ^[0-9]{1,4}$ ]] || pct=0
 pct=$((10#$pct)); ((pct > 999)) && pct=999     # (three digits wide)
-lit=0                                          # as kawa-panel's lit_of: the nearest twelfth
-((pct > 0)) && lit=$(( (pct * 24 + 100) / 200 ))
-((pct > 0 && lit < 1)) && lit=1
-((lit > 12)) && lit=12
+SPAN=190 KNOB=4                               # (kawa-panel: SPAN, KNOB)
+fill=0                                         # its fill_of: the nearest pixel, all above 100 %
+((pct > 0)) && fill=$(( (pct * SPAN * 2 + 100) / 200 ))
+((fill > SPAN)) && fill=$SPAN
+knob=$((fill - KNOB / 2)); ((knob < 0)) && knob=0; ((knob > SPAN - KNOB)) && knob=$((SPAN - KNOB))
 
+# run VAR KIND N — N pixels of a part (FILL, HOLLOW, TRACK) added to VAR as its glyphs: one
+# per bit of N (no subshell: a held key draws dozens of these a second)
+run() {
+  local -n out_=$1
+  local kind=$2 n=$3 b=128 v
+  while ((b > 0)); do
+    if ((n >= b)); then v=ICON_LV_${kind}_$b; out_+=${!v}; n=$((n - b)); fi
+    b=$((b / 2))
+  done
+}
 # Across, as the panel's row (mako's padding puts the first pen at x 26, the row's x + 8):
 # the glyph — a kanji or an icon, two columns of Sumi UI (16 px) —, a space (8 px), the
-# name in 12 columns (96 px), the twelve squares (16 px each, the last 2 px of air
-# included), a space, the number in 4 columns: 352 px, within mako's 360 px line (the
-# panel 412 px wide, quick settings' own width)
+# name in 12 columns (96 px), the slider (190 px) and 2 px of air, a space, the number in 4
+# columns: 352 px, within mako's 360 px line (the panel 412 px wide, quick settings' own)
 printf -v name '%-12.12s' "$label"
-square=$ICON_SEG; [[ -n $off ]] && square=$ICON_SEG_HOLLOW
-on="" rest=""
-for ((i = 0; i < 12; i++)); do if ((i < lit)); then on+=$square; else rest+=$ICON_SEG; fi; done
+end=$((knob - 1))                              # the fill, up to the knob's pixel of air
+lead=""
+if ((end > 0)); then
+  if [[ -n $off ]]; then                       # (hollow: closed by a tick at either end)
+    lead=$ICON_LV_TICK
+    if ((end >= 2)); then run lead HOLLOW $((end - 2)); lead+=$ICON_LV_TICK; fi
+  else run lead FILL "$end"; fi
+fi
+((knob > 0)) && lead+=$ICON_GAP1               # (the knob's air on its left)
+t0=$((knob + KNOB + 1)) track="" x=0
+if ((t0 <= SPAN)); then
+  track=$ICON_GAP1                             # (its air on the right), then the track, a tick at each quarter
+  x=$t0
+  for tx in $(( (SPAN * 2 + 4) / 8 )) $(( (SPAN * 4 + 4) / 8 )) $(( (SPAN * 6 + 4) / 8 )); do
+    ((tx < x)) && continue
+    run track TRACK $((tx - x)); track+=$ICON_LV_TICK; x=$((tx + 1))
+  done
+  run track TRACK $((SPAN - x))
+fi
+knob_ink=$C_STRONG; [[ -n $off ]] && knob_ink=$C_MUTED
 if [[ -n $off ]]; then value="<span color='#$C_FAINT'> off</span>"
 else printf -v value "<span color='#%s'>%3d%%</span>" "$C_MUTED" "$pct"; fi
 # one row of 24 px (line_height in Pango units: px × 1024), its words on the 16 px line in
 # the middle
 body="<span line_height='24576'><span color='#$C_ACCENT_TEXT'>$icon</span> <span color='#$C_TEXT'>$name</span>"
-body+="<span font='Sumi Icons 16px'><span color='#$C_TEAL'>$on</span><span color='#$C_EDGE2'>$rest</span></span> $value</span>"
+body+="<span font='Sumi Icons 16px'><span color='#$C_TEAL'>$lead</span><span color='#$knob_ink'>$ICON_LV_KNOB</span>"
+body+="<span color='#$C_FAINT'>$track</span>$ICON_GAP</span> $value</span>"
 
 # its own app name, so mako never groups it with other notices; and one panel, whatever comes:
 # mako's synchronous tag (x-canonical-private-synchronous) makes each one take the place of

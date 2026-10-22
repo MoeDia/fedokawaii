@@ -518,22 +518,23 @@ boot_and_console() {
     if ((CHECK)); then DRIFT+=("$SPLASH_DIR/$f: left over"); continue; fi
     R rm -f "$SPLASH_DIR/$f"; CHANGED+=("$SPLASH_DIR/$f removed"); SPLASH_CHANGED=1
   done 3< <(R find "$SPLASH_DIR" -maxdepth 1 -type f -printf '%f\n' 2>/dev/null)
+  # plymouthd.conf — the theme, shown at once (ShowDelay=0: never a wait over a black screen
+  # first; its first frame comes once amdgpu loads — early: the driver is in the boot image —
+  # and on amdgpu alone: one mode change, no flick). The whole file is written, never edited
+  # line by line: plymouth-set-default-theme (and dracut, which asks it) finds the theme only
+  # as the first key of [Daemon] — a ShowDelay put above it (a sed after [Daemon] did) made it
+  # read "text", and dracut left the splash out of every boot image. Afterwards Plymouth's own tool
+  # must name the theme, or this part fails (whatever a Plymouth update changes in its parser)
+  PLY_CONF=/etc/plymouth/plymouthd.conf
+  ply_want=$'# Administrator customizations go in this file\n# (fedokawaii: the sumi splash, shown at once — theme.sh writes this file)\n[Daemon]\nTheme=sumi\nShowDelay=0'
   TOTAL=$((TOTAL + 1))
-  if [[ $(R plymouth-set-default-theme 2>/dev/null) != sumi ]]; then
-    if ((CHECK)); then DRIFT+=("boot splash: not the sumi theme")
-    else R plymouth-set-default-theme sumi; CHANGED+=("boot splash: the sumi theme"); SPLASH_CHANGED=1; fi
-  fi
-  # shown at once (ShowDelay=0, in plymouthd.conf beside the theme's line — the image carries
-  # it): never a wait over a black screen first. Its first frame comes once amdgpu loads —
-  # early: the driver is in the boot image — and on amdgpu alone: one mode change, no flick
-  TOTAL=$((TOTAL + 1))
-  if ! R grep -qx 'ShowDelay=0' /etc/plymouth/plymouthd.conf 2>/dev/null; then
-    if ((CHECK)); then DRIFT+=("/etc/plymouth/plymouthd.conf: ShowDelay=0")
+  if [[ $(R cat "$PLY_CONF" 2>/dev/null) != "$ply_want" || $(R plymouth-set-default-theme 2>/dev/null) != sumi ]]; then
+    if ((CHECK)); then DRIFT+=("$PLY_CONF: the sumi theme, shown at once")
     else
-      if R grep -q '^ShowDelay=' /etc/plymouth/plymouthd.conf 2>/dev/null; then R sed -i 's/^ShowDelay=.*/ShowDelay=0/' /etc/plymouth/plymouthd.conf
-      elif R grep -qx '\[Daemon\]' /etc/plymouth/plymouthd.conf 2>/dev/null; then R sed -i '/^\[Daemon\]$/a ShowDelay=0' /etc/plymouth/plymouthd.conf
-      else printf '[Daemon]\nShowDelay=0\n' | R tee -a /etc/plymouth/plymouthd.conf >/dev/null; fi   # (Fedora's own file: comments only)
-      CHANGED+=("/etc/plymouth/plymouthd.conf: ShowDelay=0"); SPLASH_CHANGED=1
+      printf '%s\n' "$ply_want" | R install -D -m 0644 -o root -g root /dev/stdin "$PLY_CONF"
+      [[ $(R plymouth-set-default-theme 2>/dev/null) == sumi ]] \
+        || die "Plymouth does not read the sumi theme from $PLY_CONF (plymouth-set-default-theme names \"$(R plymouth-set-default-theme 2>&1)\")"
+      CHANGED+=("$PLY_CONF: the sumi theme, shown at once"); SPLASH_CHANGED=1
     fi
   fi
   # every kernel's boot image holds it (an image made before, or by a dracut that failed —
@@ -567,6 +568,15 @@ boot_and_console() {
   # while the system loads); with the same picture behind it, the screen does not change
   grub_set GRUB_BACKGROUND "\"$GRUB_THEME_DIR/background.png\""
   grub_set GRUB_TERMINAL_OUTPUT '"gfxterm"'
+  # GRUB_TERMINAL sets the input and the output at once and wins over GRUB_TERMINAL_OUTPUT: an
+  # install made over a serial console (Anaconda writes GRUB_TERMINAL="serial console") keeps
+  # the menu in text, and grub2-mkconfig then leaves the theme out of grub.cfg every time.
+  # It goes; the keyboard stays GRUB's default input (console)
+  TOTAL=$((TOTAL + 1))
+  if R grep -q '^GRUB_TERMINAL=' /etc/default/grub; then
+    if ((CHECK)); then DRIFT+=("/etc/default/grub: GRUB_TERMINAL (it keeps the menu in text)")
+    else R sed -i '/^GRUB_TERMINAL=/d' /etc/default/grub; CHANGED+=("/etc/default/grub: GRUB_TERMINAL removed (the graphical menu)"); BOOT_CHANGED=1; fi
+  fi
   grub_set GRUB_GFXMODE "\"$MODE,auto\""
   grub_set GRUB_TIMEOUT "$((BOOT_MENU_SECONDS > 0 ? BOOT_MENU_SECONDS : 5))"
   # Fedora hides the menu unless the last boot failed (menu_auto_hide in grubenv)
@@ -586,6 +596,10 @@ boot_and_console() {
     if ((CHECK)); then DRIFT+=("/boot/grub2/grub.cfg (not regenerated with the theme)")
     else
       R grub2-mkconfig -o /boot/grub2/grub.cfg >>"$LOG_FILE" 2>&1 || die "grub2-mkconfig failed — see $LOG_FILE"
+      # (made, it must name the theme: a setting in /etc/default/grub or a script in
+      # /etc/grub.d that keeps it out is said now, never left as drift every run)
+      R grep -q "${GRUB_THEME_DIR#/boot/}/theme.txt" /boot/grub2/grub.cfg \
+        || die "grub2-mkconfig made /boot/grub2/grub.cfg without the theme — /etc/default/grub (GRUB_TERMINAL_OUTPUT, GRUB_THEME) or /etc/grub.d keeps it out"
       CHANGED+=("/boot/grub2/grub.cfg (boot menu theme; next boot)")
     fi
   fi

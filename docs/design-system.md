@@ -14,16 +14,16 @@ these parts and nothing else.
 | `surface` | a notice's and the level display's ground (solid); a shade of the ground under a cursor line |
 | `key` | the fill of a tile or a key button at rest |
 | `edge` | a tile's 1 px frame at rest |
-| `edge2` | a seal's 1 px frame, the panels' stitched rules, an unlit square |
-| `faint` | words that are not there yet ("none"); an empty workspace |
+| `edge2` | a seal's 1 px frame, the panels' stitched rules |
+| `faint` | words that are not there yet ("none", the password's hint); an empty workspace; a slider's track |
 | `muted` | secondary values; the panel's outer 2 px frame |
 | `text` | names and rows |
-| `strong` | a lit tile's name; the bar's time; emphasis |
+| `strong` | a lit tile's name; the bar's time; a slider's knob; emphasis |
 | `accent` | the keyboard's cursor fill — with the bar's vermilion tiles (§8), the only filled vermilion |
 | `accent_text` | kanji in seals, the torii, a hovered glyph and name in a panel |
 | `accent_lo` | the dim vermilion of an unlit seal on a filled row |
 | `text_on_accent` | ink on vermilion: the torii and the cat on their tiles |
-| `asagi` | lit: on the bar, under the pointer or open; lit meter squares; a workspace asking for you |
+| `asagi` | lit: on the bar, under the pointer or open; a slider's fill; a workspace asking for you |
 | `lo` · `blue` | the screensaver's sashiko: `muted` thread with an `lo` shadow (ink) or `blue` (indigo) thread with an `edge` shadow (paper) |
 | `tile` | the bar's washi (§8) and the lock and login screens' scroll (§9): ink-dyed paper on the ink theme, cream paper on the paper one |
 
@@ -74,7 +74,7 @@ Colours come only from these tokens; no literal colour anywhere, in either theme
 | key | 32 high | a key button (quick settings' foot: 164 · 164 · 32) |
 | tile | 120 × 80 | a quick-settings tile; three a row = 376, the content width |
 | content | 376 | the inner width of a panel (412 with pad and frame) |
-| meter | 12 × (14 × 10) | its squares 2 px apart (a 16 px pitch, 190 px), lit `asagi`, unlit `edge2` |
+| meter | 190 × 14 | a slider: the track 2 px `faint`, the fill 6 px `asagi` to the level (190 px for 100 %: every level its own pixels), the knob — an ink rod, 4 × 14, `strong` — on the fill's end with a pixel of air either side, a 1 × 6 tick at each quarter of the track |
 | app icon | 22 × 22 | the launcher's: the 24 px row less a pixel above and below |
 | bar | 31 high | washi tiles: hairline, paper, rule, the 16 px line, rule, paper, hairline, shadow (§8) |
 
@@ -101,7 +101,10 @@ Colours come only from these tokens; no literal colour anywhere, in either theme
 - **Tile**: 120 × 80, `key` fill, `edge` frame; its seal top right — stamped (2 px
   `accent_text` frame) when on, a faint outline when off; its icon top left, its name and
   state below.
-- **Meter**: its glyph, its name, then the 12 squares; muted: the lit ones hollow.
+- **Meter**: its glyph, its name, then the slider; muted: the fill hollow (1 px), the knob `muted`;
+  on the keyboard's vermilion fill, everything in `text_on_accent` and the track in `accent_lo`;
+  a meter that only shows (the clean mic's level) has no knob. The level display (kawa-osd) is the
+  same slider, spelled in the icon font's slider parts (lv-*) to the pixel.
 - **Rule between parts**: the stitch alone, the full content width.
 - **The launcher** (`kawa-menu --launcher`, Super+Space or the torii: kawa-panel's own): a
   panel 412 px wide and always ten rows tall (it never jumps while you type): the heading
@@ -126,7 +129,12 @@ its opacity changed — the compositor blends it), the screensaver fading as it 
 (180 ms, the same curve), and dwl's windows — a window fades in as it rises its last 24 px to
 its place (240 ms), and fades away sinking as much (180 ms: quicker, out of the way); a
 workspace switch fades the windows out as they drift a little (6 % of the screen) to one
-side, and the next ones in from the other (240 ms). Every one is drawn at every refresh of
+side, and the next ones in from the other (240 ms); a warm window put away (Super+U, Super+N,
+Super+V) goes as a closed one does, and shows again at once (a press is one frame). The lock
+comes at once — and goes softly: the right password fades the lock screen off the desktop
+(320 ms). The screensaver lies over a lock already up (kawa-saver --idle locks as it starts;
+dwl keeps that one program's cloth above the lock), so a key fades the cloth off the lock
+screen at once: no wait for a lock to start, no frame held. Every one is drawn at every refresh of
 the screen (144 a second here) for the moment that frame reaches the glass (the last frame's
 presentation time and the refresh: each step exactly a refresh apart), the movement eased
 out (fast, then settling) in whole pixels, the opacity on a smootherstep (no pop at either
@@ -187,7 +195,7 @@ tiles of a group, 10 px between groups, 6 px from the screen's edges.
 | a workspace | a tile each, its numeral `faint` when empty, `text` holding windows; the one you are on stamped with a round vermilion seal drawn to the tile's inside and centred on the numeral to the pixel (`kami-seal.png`, `kami-seal-narrow.png` for 四 七 九), its numeral `seal-ink`; one asking for you `asagi` |
 | the layout and the title | one tile between them, the layout's mark `muted`, the title `text` |
 | the clock | a hanging scroll (`kami-scroll.png`: the paper between two lacquered rods with gold caps), centred on the screen: the date `text`, the day's kanji `accent_text` exactly on the screen's centre line, the time `strong`; 14 px between them, the date side 8 px more so the kanji stays centred |
-| the music's wings | while something plays, inside the scroll either side of the clock: its spectrum, the left channel left and the right right, 8 columns a side (2 px wide, 4 apart, 1–13 px tall in 7 steps of 2), the lowest notes nearest the clock; one warm grey by height, `edge2` to `text` |
+| the music's wings | while something plays, inside the scroll either side of the clock: its spectrum, the left channel left and the right right, 8 columns a side (2 px wide, 4 apart, 1–13 px tall a pixel at a time: 13 heights), the lowest notes nearest the clock; one warm grey by height, `edge2` to `text`. Ready before you press play (cava kept warm for a paused player): it rises with the music's first sound |
 | what plays | the first tile on the right: a cassette whose reels turn while there is sound, the title `text`, two spaces, the artist `faint` (paused: a pause sign, the title `muted`) |
 | a tile on the right | a timer, recording, the mode, drives, downloads, Steam, the keyboard, memory, volume, brightness, the weather: each its own tile, 8 px from the paper to its ink both sides (its last glyph's air counted) |
 | the cat (quick settings) | on the right corner's vermilion tile, as the torii on the left |
@@ -203,15 +211,16 @@ tiles of a group, 10 px between groups, 6 px from the screen's edges.
   gold-capped rods at twice the bar's pixels — and on it one column: the padlock and the time
   at 64 px with AM/PM on its baseline; the day (its seal, the date, the weekday in kanji); the
   season's line; the password's line — a line of the rule's colour under it, a `accent_text`
-  ◆ for each character; three keys (sleep, restart, power off) as words alone, `accent_text`
+  ◆ for each character at 32 px (Sumi UI at twice its pixels, 8 px apart), no caret, the hint
+  (パスワード · password) `faint` at 16 px over the empty line; three keys (sleep, restart, power off) as words alone, `accent_text`
   under the pointer and the keyboard.
 
 - **Screensaver** (`kawa-saver`): a cloth the screen's size on the theme's ground — hitomezashi
   sewn line by line in a quiet thread (`muted` on the ink, `blue` on the paper, each dot's
   shadow a dot down and right), on a grid of dots as big as a pixel of the wallpapers; seals
   (a 2-dot `accent_text` frame) stamped and lifted; the time on a `surface` patch framed in
-  running stitch. Any input washes it away at once (180 ms), the lock
-  coming up behind it.
+  running stitch. Away (`--idle`) it lies over the lock, which comes up under it as it
+  starts: any input washes it off the lock screen at once (180 ms).
 - **Two families of frame**: paper laid on the wallpaper — the bar's tiles, the lock's scroll — is
   framed by its printer's rule, a hairline and a shadow; what is drawn on the screen itself —
   windows, panels, menus, notices, tooltips — in a plain 2 px line (a window's focused one

@@ -643,15 +643,19 @@ window {{ background-color: {ink('ground')}; }}
 #messages {{ min-height: 16px; margin: 24px 0 8px; }}
 #error-label, #warning-label {{ color: {ink('accent_text')}; margin: 0 8px; }}
 /* the password's line: no box — the paper, a line of the rule's colour under it (the muted
-   ink while it has the keyboard), the ◆ in vermilion ink, the caret vermilion */
+   ink while it has the keyboard), each ◆ in vermilion ink at 32 px (Sumi UI at twice its
+   pixels, as the time is at four: counted at a glance), 8 px apart; no caret (each ◆ that
+   comes and goes is the answer to a key, and a caret through the hint or against the last ◆
+   only crowds them); the hint over the empty line at 16 px, faint (#input-hint:
+   kawa-lockmod's, kawa-greet's) */
 #input-field {{
-  min-width: 320px; min-height: 28px; padding: 0 8px; margin: 0;
-  color: {ink('accent_text')}; caret-color: {ink('accent')};
+  min-width: 320px; min-height: 40px; padding: 0 8px; margin: 0; font-size: 32px; letter-spacing: 8px;
+  color: {ink('accent_text')}; caret-color: transparent;
   background: none; border: none; border-bottom: 2px solid #{k['rule']}; border-radius: 0;
 }}
 #input-field:focus {{ border-bottom-color: {ink('muted')}; }}
 #input-field selection {{ background-color: {ink('accent')}; color: {ink('text_on_accent')}; }}
-#input-label {{ color: {ink('faint')}; }}
+#input-label, #input-hint {{ color: {ink('faint')}; }}
 /* the three keys (kawa-lockmod; kawa-greet): 24 px under the line, words, muted; under the
    pointer and the keyboard's focus (Tab) accent_text */
 #keys {{ margin-top: 24px; }}

@@ -432,7 +432,7 @@ anything. These are its limits, so you can check them now, on Windows:
 | two USB sticks | 4 GB or more for the installer; any size for the project | — |
 | a network cable to the router, or a phone that can share its connection over USB | Wi-Fi works only after setup has added it (§4.2) | — |
 | a Windows PC for the preparation | to download and write the sticks — it can be this PC, before it is wiped | — |
-| your GitHub sign-in | the project is private (§3.5) | sign in at github.com |
+| nothing else | the project is public on GitHub (§3.5): no sign-in | — |
 
 A Bluetooth adapter on a USB plug should be plugged in before setup, so setup sees it.
 
@@ -570,9 +570,10 @@ own, and needs no choices.
 
 ## 3.5 Put the project on a second stick
 
-The project lives on GitHub as the **private** repository `MoeDia/fedokawaii` — a repository
-is a project's folder of files, kept with their history. Only you, signed in, can download it. A minimal Fedora has no browser, so you carry the project across on a
-second stick.
+The project lives on GitHub as the public repository `MoeDia/fedokawaii` — a repository
+is a project's folder of files, kept with their history; anyone can download it, no sign-in.
+With the network up, the PC clones it itself (§5.1, route 2); without one, carry it across on
+a second stick, as here.
 
 > **Word — file system.** The way a disk's space is organised into files and folders. Windows
 > uses NTFS on its own disk and FAT32 or exFAT on sticks. **exFAT** is read by Windows and by
@@ -586,7 +587,7 @@ warning that all data will be erased.
 > `.tar.gz` is the usual kind on Linux: *tar* packs the folder into one file, *gz* (gzip)
 > makes it smaller.
 
-**2.** In your browser, sign in to GitHub. Then open this address — the whole project as one
+**2.** In your browser, open this address — the whole project as one
 archive, as it is now:
 
 ```text
@@ -966,7 +967,7 @@ desktop is installed and checked by it, through two restarts, while you watch or
 
 ## 5.1 Getting the project onto the machine
 
-The project is yours alone and private, on GitHub as `MoeDia/fedokawaii`. A Minimal Install
+The project is on GitHub as `MoeDia/fedokawaii`, public. A Minimal Install
 has neither `tar` nor `git`, so the first command installs one (the network is up already).
 There are two routes: the stick you made in §3.5, or straight from GitHub.
 
@@ -1124,7 +1125,7 @@ GPU="amd"` — and so is a setting written twice or missing. After the install, 
 | `WEATHER_CITY` | `Sharjah` | the name the weather goes by: the heading of the week's menu, the bar's tooltip |
 | `NIGHT_LIGHT` | `25.35:55.40` | where you are, latitude:longitude (north and east are positive; within ±90 and ±180): the weather is Open-Meteo's forecast for it (free, no key) |
 | `THEME` | `dark` | the theme a new install starts in; afterwards it is whatever you last switched to |
-| `WALLPAPER_PACK` | `yes` | fetch the wallpaper pack once (220 pictures, about 590 MB, kept as they came); with `no`, each theme shows its plain ground until you add pictures of your own |
+| `WALLPAPER_PACK` | `yes` | fetch the wallpaper pack once (216 pictures, about 590 MB, kept as they came); with `no`, each theme shows its plain ground until you add pictures of your own |
 | `BOOT_MENU_SECONDS` | `0` | how long the themed boot menu shows (0–10); `0` (the default, about 2 s faster) = hidden: hold Shift or press F8 as the machine starts to see it (it also shows by itself after a failed boot) |
 | `DNF_PARALLEL` | `10` | parallel downloads (1–20) |
 | `DWL_TAG`, `DWL_COMMIT`, `DWL_WLROOTS` | `v0.9`, pinned, `0.20` | dwl is built from exactly this commit, against wlroots 0.20; should the tag point anywhere else, setup refuses to build |
@@ -1713,7 +1714,9 @@ season and the hour (*秋の夜* — an autumn night — and a few words); and t
 underline with `パスワード · password` on it while it is empty. The pictures are drawn once, when
 the desktop is built, so the lock is up at once — before sleep too, so the lid can close.
 
-Each character you type shows as a vermilion ◆. A wrong password empties the line and says so
+Each character you type shows as a vermilion ◆, big enough to count at a glance (no caret:
+each ◆ that comes and goes is the answer to a key). The right password fades the lock off the
+desktop; a wrong password empties the line and says so
 under it: **ちがう · wrong password** (*chigau*, "that's not it"). With Caps Lock on, a line
 says **Caps Lock · 大文字** (*ōmoji*, capital letters) — a password typed in capitals is wrong,
 so press Caps Lock again first. Under the line, three keys as words alone: **眠 sleep**,
@@ -1732,7 +1735,7 @@ or music plays:
 
 | What you do | What happens |
 |---|---|
-| nothing, for 15 minutes | the screensaver: sashiko stitched across the screens in a quiet thread, seals stamped on it, the time on a stitched patch. The first key or move of the mouse washes it away at once and brings up the lock behind it — that key goes nowhere else. With the 夢 *screensaver* tile in quick settings off, the lock alone |
+| nothing, for 15 minutes | the screensaver: sashiko stitched across the screens in a quiet thread, seals stamped on it, the time on a stitched patch. The lock comes up under it as it starts, so the first key or move of the mouse only washes the cloth off a lock already there — that key goes nowhere else. With the 夢 *screensaver* tile in quick settings off, the lock alone |
 | nothing, for 30 minutes | the screens power off (windows stay where they were); the first key wakes them — to the lock, which takes that key for nothing |
 | a video or music playing (Brave, mpv, any player), or a program holding off idleness | none of the two: they wait until it stops |
 | **Super+Escape** (or *lock* in the power menu) | the screen locks; still locked 90 seconds later, the computer sleeps. Unlock before then and it stays awake |
@@ -2143,9 +2146,11 @@ dropping down from the bar's right end. It never repeats what the bar right abov
 day, the time, the weather, the volume's and the brightness's numbers). From the top:
 
 - **two meters**: 明 *brightness* (the monitor's real backlight, over DDC/CI) and 音 *sound*,
-  twelve squares each, with no number beside them: both numbers are on the bar (§6.5). Click or drag on the squares to set the
-  level there, or turn the wheel over them (5 % a step). *no DDC/CI* or *muted* stands in
-  place of the squares when there is no level to show. **Enter** on *sound* (or a click on its
+  a slider each — a thin track, the level filled in asagi, an ink knob at its end, a tick at
+  each quarter — with no number beside it: both numbers are on the bar (§6.5). Click or drag
+  on the slider to set the level there (the knob follows the pointer to the pixel), or turn
+  the wheel over it (5 % a step). *no DDC/CI* or *muted* stands in place of the slider when
+  there is no level to show. **Enter** on *sound* (or a click on its
   name) opens the sound panel in its place (below: outputs, inputs, the microphone);
 - **the tiles**: *theme* · *night light* · *freesync* · *network* · *bluetooth* · *devices* (those
   two only when the PC has a Bluetooth adapter) · *drives* · *backup* (the last one's age,
@@ -2175,13 +2180,13 @@ own key pressed again.
 **The sound panel** (**Super+A**, or a click on the bar's volume) drops from the bar under the
 volume, drawn as quick settings is, in three parts under kanji seals:
 
-- 音 *sound*: the volume's twelve squares — click, drag, the wheel or **← →**, as in quick
-  settings; while muted they turn hollow (the level kept, not heard), and setting a level
+- 音 *sound*: the volume's slider — click, drag, the wheel or **← →**, as in quick
+  settings; while muted its fill turns hollow (the level kept, not heard), and setting a level
   unmutes — then *mute* (*unmute* while muted) and *mixer* (wiremix, every program's own level);
 - 出 *output* and 入 *input*: every device, the one in use ticked; click another and it becomes
   the default at once, the panel staying open to show it, and what plays moves to it (*Share*
   is not listed: it is picked per program, §14.4). At the foot of 入: while the clean mic is on,
-  its level live (twelve squares that only show); *mute microphone*; then *clean mic* ▣ / □ —
+  its level live (a slider with no knob, that only shows); *mute microphone*; then *clean mic* ▣ / □ —
   your microphone with the room taken out, or raw, switched at once, a call in progress moving
   with it — and *test mic* (5 seconds recorded, played back). §15.6 says more.
 
@@ -2207,7 +2212,7 @@ one menu is open at a time: another menu's key closes the one on screen and open
 |---|---|---|
 | quick settings | the bar's cat, **Super+X** | the panel above: brightness and sound · theme, night light, FreeSync, network, Bluetooth and its devices, drives, backup, dnd · wallpaper, screenshot, power |
 | power | **Super+Shift+E** | 電 power: lock · sleep · log out · restart · shut down — centred, with your uptime at the heading's end; when the system says no (another user logged in, something holding it off), a notice says why |
-| sound panel | the bar's volume, **Super+A** | a panel, as quick settings: 音 sound — the volume's squares, mute, the full mixer; 出 output and 入 input — every device (not *Share*, which is picked per program, §14.4), picking one moves playing sound to it, and microphone mute. No number of its own: the bar's, right above it |
+| sound panel | the bar's volume, **Super+A** | a panel, as quick settings: 音 sound — the volume's slider, mute, the full mixer; 出 output and 入 input — every device (not *Share*, which is picked per program, §14.4), picking one moves playing sound to it, and microphone mute. No number of its own: the bar's, right above it |
 | brightness slider | the bar's brightness | the 明 meter alone |
 | calendar | the clock, **Super+C** | 暦 and the month: a grid of six weeks, Monday first, today stamped in a vermilion frame, the days of the months either side dim; three keys under it — previous · next · today |
 | timer | a click on the time | 時 timer: 5 · 10 · 25 · 45 · 60 min, the stopwatch; while one runs, its time at the heading's end and *cancel* |
@@ -2228,7 +2233,7 @@ one menu is open at a time: another menu's key closes the one on screen and open
 | calendar, **Super+C** | choose *next*, then *today* | next month, then this one, today stamped |
 | power, **Super+Shift+E** | read the end of the heading, then **Esc** | how long the machine has been up: *up 00h 25m* |
 | help, **Super+/** | type `print` | the list narrows to the lines that match: the screenshot keys among them |
-| quick settings, **Super+X** | click the middle of the 明 *brightness* squares | the monitor itself goes to 50 % (if it answers DDC/CI, below) — the monitor's real backlight, like Twinkle Tray on Windows; **Super+]** / **Super+[** step by 10 % |
+| quick settings, **Super+X** | click the middle of the 明 *brightness* slider | the monitor itself goes to 50 % (if it answers DDC/CI, below) — the monitor's real backlight, like Twinkle Tray on Windows; **Super+]** / **Super+[** step by 10 % |
 
 > **On Windows.** Quick settings is **Win+A**'s panel, with more in it: the theme, the wallpaper,
 > the drives and the power menu sit beside Wi-Fi, Bluetooth and do not disturb. There is no
@@ -2251,12 +2256,12 @@ menu (*apply*, *what changed*) runs in a window that stays open when you click e
 switch workspace, so you can do something else while it works.
 
 The volume, microphone and brightness keys show a **level display** for a moment at the bottom
-centre — also over fullscreen windows and while *do not disturb* is on. It is drawn like the
-volume scale of an old hi-fi: a wedge of twenty pixel columns rising left to right, lit in teal
-with the topmost lit one vermilion (the peak lamp), the number beside it at twice the pixel
-size; it reads *off* when muted, and holding a key updates it in place. Above 100 % — only
-the mixer goes there — the wedge stays full and the number shows the level; the volume key
-never pulls it back down.
+centre — also over fullscreen windows and while *do not disturb* is on. It is quick settings'
+own row: the glyph, the name, the slider — a thin track, the level filled in asagi, an ink knob
+on its end, a tick at each quarter, every percent its own pixels — and the number; while muted
+the fill turns hollow and the number reads *off*, and holding a key updates it in place. Above
+100 % — only the mixer goes there — the slider stays full and the number shows the level; the
+volume key never pulls it back down.
 
 <!-- fig:osd | The level display, a notice from an app and a critical notice, dark and light. -->
 
@@ -2486,8 +2491,8 @@ the one you choose. This short chapter is the switch, and the pictures behind yo
 Press **Super+Shift+W** (or quick settings → *theme*). The terminals and everything in them,
 the bar, menus, notifications, GTK and Qt apps, Brave, mpv, btop, zathura and the wallpaper
 all change at once, under the one transition the design system allows: the screen as it
-was, washed away in 8 dithered steps (~1/4 s, stepped, never a fade — the screensaver's own
-wash). It never holds a click: press again during it and it jumps to its end, then switches
+was, faded away over a third of a second (eased in and out, drawn by the compositor at every
+refresh). It never holds a click: press again during it and it jumps to its end, then switches
 back. The lock screen and the next menus follow from then on.
 
 The theme you leave on is the one the next login starts in. From a terminal, `kawa-theme light`
@@ -2535,7 +2540,7 @@ Each theme remembers its own wallpaper. The choices:
   **ink-ridges** on the light one (the same ridges on paper, under a vermilion sun) — quiet,
   sparing, in the themes' own ink, paper and vermilion. Before the pack is
   fetched — or with `WALLPAPER_PACK="no"` — the screen shows the theme's plain ground.
-* **the pack** (`WALLPAPER_PACK="yes"`) — 220 pictures (110 for the dark theme, 110 for the
+* **the pack** (`WALLPAPER_PACK="yes"`) — 216 pictures (106 for the dark theme, 110 for the
   light), about 590 MB, fetched once from GitHub at pinned commits and checked by SHA-256. They
   are kept exactly as they came (`~/.local/share/fedokawaii/wallpapers/dark/` and `light/`,
   each `NAME.src`), nothing redrawn. Offline, the fetch stops after three pictures that could
@@ -4900,8 +4905,12 @@ meter listens to the speakers), and the media keys play, pause and skip it (§15
 | the speaker icon at its foot, right | Spotify Connect: play on a phone or speaker signed in to the same account — or play here, chosen from the phone |
 
 **cava** draws the bar's music meter (§6.5) with its own config in `~/.config/fedokawaii`:
-60 frames a second, so the columns rise and fall smoothly — about 2–3 % of one core for the
-bar to draw them. It listens to the default output, whatever plays there (Spotify, a video, a
+60 frames a second and 13 heights a pixel apart, so the columns rise and fall smoothly and
+follow the music closely — about 2–3 % of one core for the bar to draw them. It is ready
+before you press play: started as soon as a player shows (cava needs half a second to start)
+and kept through a pause, so the wings rise with the music's first sound — measured here, a
+click on play to a lit wing in about 70 ms (it was 0.7 s); after five minutes with nothing
+playing it is ended, and nothing listens. It listens to the default output, whatever plays there (Spotify, a video, a
 game); plug in headphones or switch to a Bluetooth headset and the meter moves to it within
 a moment (`kawa-nowplaying` starts cava again on the new default, as PipeWire announces it).
 Sound you send to *Share* (§14.4) still plays on your speakers, so the meter shows it too.
@@ -4988,11 +4997,11 @@ waking it clicks in the speakers — at each volume change, each notice. Setup k
 driver loads, and set at once too; `verify` checks both (*the sound card never naps*), and
 `repair` puts it back.
 
-**Above 100 %.** The volume keys, Super+scroll and the sound panel's squares all stop at
+**Above 100 %.** The volume keys, Super+scroll and the sound panel's slider all stop at
 100 %. Only the mixer goes further: its sliders reach 150 %. A level set there is left alone by
 the volume key and Super+scroll up — they do nothing above 100 % — while the key and
-Super+scroll down still lower it; the panel shows all twelve squares lit, and a click on them
-sets the level you click.
+Super+scroll down still lower it; the panel shows the slider full, and a click on it sets the
+level you click.
 
 **What you hear, untouched.** `~/.config/pipewire/pipewire.conf.d/50-quality.conf` (and its
 two twins in `pipewire-pulse.conf.d` and `client.conf.d`):
@@ -5006,7 +5015,7 @@ two twins in `pipewire-pulse.conf.d` and `client.conf.d`):
 
 The default output is WirePlumber's choice by priority — the analog jack before the monitor's
 HDMI — until you pick one in the sound panel; then that one, remembered. The volume's
-squares follow a cubic curve (as `wpctl` does): the steps sound even.
+slider follows a cubic curve (as `wpctl` does): the steps sound even.
 
 **The clean mic.** Your microphone, as it comes from the sound card, carries the room: the
 PC's fans, the keyboard, a street, and on speakers the call itself coming back. The clean
@@ -5031,7 +5040,7 @@ In the sound panel (**Super+A**), at the foot of 入 *input*:
 
 | Key | Does |
 |---|---|
-| the level (only while the clean mic is on) | twelve squares, live: what the clean mic hears — speak at your normal voice and the squares should reach two-thirds; all twelve lit is clipping |
+| the level (only while the clean mic is on) | a slider with no knob, live: what the clean mic hears — speak at your normal voice and it should fill two-thirds; full is clipping |
 | *clean mic* ▣ / □ | ▣ on: the clean mic is the default input; a click makes the raw microphone the default (□), another brings the clean one back. A call in progress moves with it at once — Discord or Meet keeps going; muted stays muted. The choice is PipeWire's own (WirePlumber remembers it across restarts), and the key reads it each time it opens: changed elsewhere — in wiremix — it says so |
 | *test mic* | records 5 seconds from the default input and plays them back: how the others hear you, noise suppression included. A notice says when to speak |
 
@@ -13032,7 +13041,7 @@ the list in the log); `dnf repoquery --unneeded` shows any that are left (§38.1
 
 ### Fedokawaii itself: update fedokawaii (pull)
 
-New versions of fedokawaii come from its GitHub repository, `MoeDia/fedokawaii` (private).
+New versions of fedokawaii come from its GitHub repository, `MoeDia/fedokawaii` (public).
 There is one clone of it on the machine, `~/repos/fedokawaii` — the same folder chapter 42
 calls the working copy — and you never delete it or clone again:
 
@@ -14176,7 +14185,7 @@ fedokawaii-report: /home/you/fedokawaii-report.txt (4120 lines) — works, 3 war
 | an upload button does nothing | `verify` (the portal checks); then restart Brave — it looks for the file-dialog portal when it starts |
 | a USB drive does not open | `lsblk -f` (is a file system there?); `pgrep -a udiskie`; open it by hand: `udisksctl mount -b /dev/sdb1` says why not; an NTFS disk from Windows: §13.7 |
 | "is in use" when ejecting | the notice names the program: close it (a terminal standing in the drive: `cd` out), then eject again |
-| no music meter | `cava -v`; the meter appears only while an MPRIS player plays |
+| no music meter | `cava -v`; the meter appears only while an MPRIS player plays (`playerctl -l` lists them); should cava end, it is back half a second later |
 | brightness does nothing | switch **DDC/CI on** in the monitor's own menu, then try Super+]; on a laptop, `ls /sys/class/backlight` should list its screen |
 | Brave not in the desktop's colours | it was open while the theme was applied: close Brave, then **Super+U** → *theme, applied again* (or Settings → Appearance → Theme → GTK) |
 | torrra says Prowlarr has no indexers switched on | `fedokawaii repair` adds the usual eight (online); or *Prowlarr* in the launcher → Indexers (§20.1) |
@@ -14529,7 +14538,7 @@ checks that each one is still a palette colour (it stops if not).
 
 | Font | Where | Why |
 |---|---|---|
-| **Sumi UI** (東雲 Shinonome Gothic 16 Bold) | everything the desktop draws itself: the bar, the launcher, menus, panels and notifications at 16 px; the lock and login screens (their clock at 64); the boot menu at 32, 48 or 64 px; the boot splash; the game overlay | a dot face with Latin, kana and kanji in one face, on a 16 px grid (a letter 8 px wide, a kanji 16) — set at 16 px or a whole multiple, never in points, with smoothing off. Its five old-fashioned signs (the tilde, the backslash, both quotes, the grave accent) are redrawn and the small signs the desktop uses (arrows, ◆ ● ✓ ✗ ·) drawn by hand on its grid (`art/signs.txt`); what it lacks — accented Latin, Greek, Cyrillic, more signs — comes from GNU Unifont JP 17, made bold to match |
+| **Sumi UI** (東雲 Shinonome Gothic 16 Bold) | everything the desktop draws itself: the bar, the launcher, menus, panels and notifications at 16 px; the lock and login screens (their clock at 64); the boot menu at 32, 48 or 64 px; the boot splash; the game overlay | a dot face with Latin, kana and kanji in one face, on a 16 px grid (a letter 8 px wide, a kanji 16) — set at 16 px or a whole multiple, never in points, with smoothing off. Every one-cell character keeps its last column empty (the face's bold reached it, and two letters, figures or signs touched: "pdf", "100%"); its five old-fashioned signs (the tilde, the backslash, both quotes, the grave accent) are redrawn and the small signs the desktop uses (arrows, ◆ ● ✓ ✗ ·) drawn by hand on its grid (`art/signs.txt`); what it lacks — accented Latin, Greek, Cyrillic, more signs — comes from GNU Unifont JP 17, made bold to match |
 | **Sumi Term** (Kappa 20 Bold) | the terminal and all in it (neovim, yazi, btop…) at 20 px, on 24 px lines (§11.9) | the bitmap face of the old kterm terminals, on a 20 px grid, a 10 × 24 px cell, its signs and its gaps made as Sumi UI's. Both faces are files of this repository (`system/fonts`, made by `tools/build-fonts.py` from the public-domain JF Dot fonts and Unifont JP; SIL Open Font License 1.1), installed for every account in `/usr/local/share/fonts/fedokawaii`, because the login screen runs as its own user, and declared bold — the weight they are drawn in — so no program ever smears them wider with a bold of its own making |
 | **Sumi Icons** | every icon in the bar, menus and notifications — and, as *Sumi Icons Term*, in the prompt, fetch and the clipboard and wallpaper windows | the desktop's own icon font, built from `art/icons.txt` on the same grid |
 | **JetBrains Mono** (Nerd Font) | the `monospace` font of GTK and Qt programs; mpv's on-screen text, and Syncplay's words on the film from its first frame (`~/.config/mpv/script-opts/syncplayintf.conf`, and the same in `syncplay.ini`); in the terminal, only the symbols Sumi Term lacks (yazi's file icons) | readable code in apps, and the Nerd Font symbols terminal programs draw |
@@ -14695,9 +14704,9 @@ apply (chapter 42); the change shows at the next theme switch, or the next login
 
 A theme switch and a new wallpaper share one transition, and nothing else on the desktop
 moves: each program takes the change in a single frame of its own, all told at the same
-moment, the wallpaper drawn off screen first — and over it all, the screen as it was is
-washed away as the screensaver washes its cloth: an ordered dither on its grid of 3 px dots,
-8 steps 32 ms apart (`kawa-saver --wash`). Clicks go through it; a press during a theme
+moment, the wallpaper drawn off screen first — and over it all, the screen as it was, sent to
+the compositor once, fades away over 320 ms on a smootherstep (`kawa-saver --wash`: only its
+opacity changes, at every refresh of the screen). Clicks go through it; a press during a theme
 switch's wash jumps to its end.
 
 ## 40.7 The terminal's invisible marks

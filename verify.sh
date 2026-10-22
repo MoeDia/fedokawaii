@@ -198,7 +198,7 @@ check "dnf minrate=5k (stalled mirrors dropped)"       grep -qxE '5120|5[kK]' <<
 check "dnf defaultyes on"                              grep -qxiE '1|true' <<<"$(dnfopt defaultyes)"
 # (a list: other files may add to it — both names in it is what counts)
 check "no package downloads in the background (dnf's makecache timer masked)" \
-  bash -c 'for u in dnf5-makecache.timer dnf-makecache.timer; do systemctl cat "$u" >/dev/null 2>&1 || continue; [[ $(systemctl is-enabled "$u" 2>/dev/null) == masked ]] || exit 1; done'
+  bash -c 'for u in dnf5-makecache.timer dnf-makecache.timer; do [[ $(systemctl is-enabled "$u" 2>/dev/null) == masked ]] || exit 1; done'
 check "dnf never takes Node 22, PackageKit, Java or LibreOffice's offline help as a weak dependency" \
   bash -c 'l=$(tr ", " "\n\n" <<<"$1"); for w in nodejs "nodejs22*" PackageKit "java-*-openjdk-headless" "libreoffice-help-*"; do grep -qxF "$w" <<<"$l" || exit 1; done' _ "$(dnfopt exclude_from_weak)"
 

@@ -5,7 +5,8 @@
 #
 #   the wings   the sound's spectrum either side of the clock in the middle — the left
 #               channel on the left, the right on the right, 8 bands each, the lowest notes
-#               nearest the clock: thin columns (2 px, 2 apart) rising in one piece, their ink
+#               nearest the clock: thin columns (2 px, 2 apart) rising a pixel at a time
+#               (13 heights), their ink
 #               by height — the floor all but the cloth, low ones faint, the middle muted, the
 #               tall ones the text's: one warm grey, no colour. Drawn with the eq-* pixel
 #               icons, in two modules of their own (kawa-nowplaying --wing left|right)
@@ -22,8 +23,14 @@
 # playing is shown — the last to start, if more than one is — else the last one paused.
 #
 # Two event streams merged into one pipe, nothing polled: playerctl --follow (track and
-# play state) and cava (60 meter frames a second, started only while a player plays: about 2–3 %
-# of a core for waybar to draw them). cava listens to the default output — what you hear,
+# play state) and cava (60 meter frames a second, about 2–3 % of a core for waybar to draw
+# them while music plays). cava is ready before you press play: started as soon as a player
+# shows (cava needs half a second to start — its FFT plans are measured), kept through a
+# pause, ended once nothing has played for GRACE seconds (no audio capture, no wake-ups after
+# that). So the meter rises with the music's first frame: measured on the desktop, a click
+# to a lit wing in the time the music takes to sound. An unchanged frame is never drawn
+# again (a pause sends zeros at 60 a second: nothing reaches waybar). cava runs in a loop of
+# its own: should it end (PipeWire restarted), it is back half a second later. cava listens to the default output — what you hear,
 # whatever plays it — and is started again on the output that becomes the default (headphones
 # plugged in, a Bluetooth headset), as PipeWire's own default (pw-metadata) says. Without cava
 # the cassette and title still show, with no meter. Pure bash per frame: no forks.
@@ -36,6 +43,7 @@
 # not (no player, playerctl missing) · 2 misuse.
 set -u
 US=$'\x1f'                                       # between the fields of a player's line
+WDIR=${XDG_RUNTIME_DIR:-/run/user/$UID}/kawa-nowplaying   # the wings' fifos, the last click
 SHOWN="${XDG_RUNTIME_DIR:-/run/user/$UID}/kawa-nowplaying.player"   # the player shown, for the keys
 case ${1:-} in
   play-pause|next|previous)
@@ -49,11 +57,16 @@ case ${1:-} in
       [[ -n $play ]] || play=$i
     done < <(timeout 2 playerctl --all-players metadata --format "{{playerInstance}}$US{{status}}" 2>/dev/null)
     p=${play:-$p}
+    # (play-pause on a paused player — a press meant to play: the bar told, so its meter can
+    # rise with the music's first sound instead of waiting for the player to say it plays,
+    # tens of milliseconds later. A press that pauses is not told: the fading sound after it
+    # must not read as playing)
+    [[ $1 == play-pause && -z $play ]] && { mkdir -p -- "$WDIR" && printf '%s\n' "${EPOCHREALTIME/./}" >"$WDIR/click"; } 2>/dev/null
     [[ -n $p ]] && timeout 2 playerctl --player="$p" "$1" 2>/dev/null && exit 0
     exec playerctl "$1" ;;                       # (the bar not running, or its player gone)
   --wing)
     [[ ${2:-} == @(left|right) ]] || { echo "usage: kawa-nowplaying --wing left|right" >&2; exit 2; }
-    dir=${XDG_RUNTIME_DIR:-/run/user/$UID}/kawa-nowplaying
+    dir=$WDIR
     mkdir -p -- "$dir" && chmod 700 -- "$dir" || exit 1
     fifo=$dir/wing-$2
     [[ -p $fifo ]] || { rm -f -- "$fifo"; mkfifo -m 600 -- "$fifo" || exit 1; }
@@ -84,8 +97,11 @@ colours() {   # the C_* colours of the theme in use, read again after a switch (
   THEME=$t
   # the meter's inks by height, quiet to bright: the floor (0) all but the cloth, the low
   # columns faint, the middle muted, the tall ones the text's — one warm grey, no colour
-  TIER=("$C_EDGE2" "$C_FAINT" "$C_FAINT" "$C_MUTED" "$C_MUTED" "$C_TEXT" "$C_TEXT")
-  EQ=("$ICON_EQ_0" "$ICON_EQ_1" "$ICON_EQ_2" "$ICON_EQ_3" "$ICON_EQ_4" "$ICON_EQ_5" "$ICON_EQ_6")
+  # (13 heights, 1–13 px: the floor, 3 low, 4 middle, 5 tall)
+  TIER=("$C_EDGE2" "$C_FAINT" "$C_FAINT" "$C_FAINT" "$C_MUTED" "$C_MUTED" "$C_MUTED" "$C_MUTED"
+        "$C_TEXT" "$C_TEXT" "$C_TEXT" "$C_TEXT" "$C_TEXT")
+  EQ=("$ICON_EQ_0" "$ICON_EQ_1" "$ICON_EQ_2" "$ICON_EQ_3" "$ICON_EQ_4" "$ICON_EQ_5" "$ICON_EQ_6"
+      "$ICON_EQ_7" "$ICON_EQ_8" "$ICON_EQ_9" "$ICON_EQ_10" "$ICON_EQ_11" "$ICON_EQ_12")
 }
 colours
 MAX=40                                           # longest "title  artist" (each cut at a word)
@@ -100,14 +116,13 @@ esc() {   # esc VAR TEXT — JSON + pango escaping into VAR
   printf -v "$1" '%s' "$s"
 }
 
-meter() {   # meter VAR DIGITS — "036410" → one eq glyph per band (0–6), each in its tier's ink
-  local s=$2 o="" i d
-  for ((i = 0; i < ${#s}; i++)); do
-    d=${s:i:1}; [[ $d == [0-6] ]] || d=0
+meter() {   # meter VAR LEVEL… — one eq glyph per band's level (0–12), each in its tier's ink
+  local v=$1 o="" d; shift
+  for d; do
     # shellcheck disable=SC2089  # pango markup going into JSON: single quotes on purpose
     o+="<span color='#${TIER[d]}'>${EQ[d]}</span>"
   done
-  printf -v "$1" '%s' "$o"
+  printf -v "$v" '%s' "$o"
 }
 
 # Where a line may be cut: at a space; on either side of a letter of a script written without
@@ -152,9 +167,9 @@ words() {   # words TEXT N — TEXT in at most N letters, cut where a line may b
   a=${a%"${a##*[! —-]}"}
   printf '%s' "$a"
 }
-status="" artist="" title="" last="" bands="" reel=0 frames=0
+status="" artist="" title="" last="" bands=() reel=0 frames=0 lastframe=""
+GRACE=${KAWA_NOWPLAYING_GRACE:-300}             # seconds cava is kept with nothing playing
 # the wings: their fifos, open while their module runs (WFD: side → fd; WPID: side → its pid)
-WDIR=${XDG_RUNTIME_DIR:-/run/user/$UID}/kawa-nowplaying
 declare -A WFD=() WPID=() WLAST=()
 wsec=0
 wings_check() {   # wings_check — each wing: open its fifo if its module runs, close it if not
@@ -199,8 +214,8 @@ show() {
     else
       tape=$ICON_BAR_CASSETTE_A; ((reel)) && tape=$ICON_BAR_CASSETTE_B
       out="{\"text\":\"$tape$body\",\"class\":[\"playing\",\"$__air\"]}"
-      if [[ -n $bands ]]; then
-        meter ml "${bands:0:8}"; meter mr "${bands:8:8}"
+      if ((${#bands[@]} == 16)); then
+        meter ml "${bands[@]:0:8}"; meter mr "${bands[@]:8:8}"
         wl="{\"text\":\"$ml\",\"class\":\"playing\"}" wr="{\"text\":\"$mr\",\"class\":\"playing\"}"
       fi
     fi
@@ -216,10 +231,10 @@ show() {
 last='{"text":""}'; printf '%s\n' "$last"         # at once: hidden until a player shows
 # One pipe for both streams, told apart by shape: a player line holds \x1f separators (not
 # tabs: read would collapse repeats and lose an empty artist), an empty line means no
-# player, a cava frame is 16 bands of 0–6 ("0;3;6;…;"). When the player watcher stops,
+# player, a cava frame is 16 bands of 0–12 ("0;3;12;…;"). When the player watcher stops,
 # END makes this script exit, and waybar starts it again.
-# cava runs only while a player plays: no audio capture stream (and no wake-ups) otherwise,
-# so the sound card can rest while nothing plays.
+# cava runs while a player is there and has played (or shown) within GRACE seconds: no audio
+# capture stream (and no wake-ups) otherwise, so the sound card can rest.
 FMT="{{playerInstance}}$US{{status}}$US{{artist}}$US{{title}}"
 exec {in}< <(
   exec 2>/dev/null
@@ -232,16 +247,17 @@ exec {in}< <(
   # is a change. Should that watch end (PipeWire restarted), cava runs on and it begins again.
   meter() {
     local c="" w="" l now="" fd
-    trap '[[ -n $c ]] && kill "$c"; [[ -n $w ]] && kill "$w"; exit 0' TERM
-    cava -p "$HOME/.config/fedokawaii/cava.conf" & c=$!
+    trap '[[ -n $c ]] && { pkill -P "$c"; kill "$c"; }; [[ -n $w ]] && kill "$w"; exit 0' TERM
+    # (cava in a loop: one that ends — PipeWire restarted, an output gone — starts again)
+    ( trap 'pkill -P $BASHPID; exit 0' TERM
+      while :; do cava -p "$HOME/.config/fedokawaii/cava.conf" & wait "$!"; sleep 0.5; done ) & c=$!
     while :; do
       exec {fd}< <(exec pw-metadata -n default -m 2>/dev/null); w=$!
       while IFS= read -r -u "$fd" l; do
         [[ $l == *"key:'default.audio.sink'"* ]] || continue
         if [[ -z $now ]]; then now=$l
         elif [[ $l != "$now" ]]; then
-          now=$l; kill "$c" 2>/dev/null; wait "$c" 2>/dev/null
-          cava -p "$HOME/.config/fedokawaii/cava.conf" & c=$!
+          now=$l; pkill -P "$c"                      # (cava: its loop starts it on the new output)
         fi
       done
       exec {fd}<&-; w=""
@@ -263,15 +279,25 @@ exec {in}< <(
     done < <(timeout 2 playerctl --all-players metadata --format "$FMT")
     printf '%s\n' "${paused:-$1}"
   }
-  while IFS= read -r m; do
+  # (kept after the last play or pause until this time: GRACE seconds; none while playing)
+  keep=0 s=""
+  while :; do
+    if [[ -n $cv && $s != Playing ]]; then
+      t=$((keep - SECONDS)); ((t > 0)) || { stop; continue; }
+      IFS= read -r -t "$t" m; r=$?
+      ((r > 128)) && continue                    # (the time ran out: stopped above)
+      ((r)) && break
+    else IFS= read -r m || break; fi
     [[ -z $m || $m == *"$US"*"$US"*"$US"* ]] || continue   # (the rest of a title holding a line break)
     m=$(pick "$m")
     printf '%s\n' "$m"
     IFS=$US read -r _ s _ <<<"$m"
-    if [[ $s == Playing ]]; then
-      # (started again should it have ended by itself: PipeWire restarted, say)
+    if [[ $s == Playing || $s == Paused ]]; then
+      # ready before play is pressed, and kept through a pause; started again should it have
+      # ended by itself
       { [[ -z $cv ]] || ! kill -0 "$cv" 2>/dev/null; } && command -v cava >/dev/null \
         && { meter & cv=$!; }
+      keep=$((SECONDS + GRACE))
     else stop; fi
   done < <(playerctl --follow metadata --format "$FMT")
   stop                                           # (cava would never notice on its own
@@ -288,19 +314,46 @@ trap 'kill -STOP "$feeder" 2>/dev/null
       kill -TERM "$feeder" 2>/dev/null; kill -CONT "$feeder" 2>/dev/null' EXIT
 trap 'exit 0' TERM HUP INT                     # (bash skips the EXIT trap on a bare signal)
 
-player=""
-while IFS= read -r -u "$in" line; do
+player="" ahead=0                                # ahead: playing on a click's word, not yet the player's
+CLICK_US=1500000                                 # (a click that long ago no longer counts)
+paused_at=0                                      # when the player last said it paused (µs)
+clicked() {   # clicked — the bar's play pressed within CLICK_US, and since the player paused
+  local t=""; { read -r t <"$WDIR/click"; } 2>/dev/null
+  [[ $t =~ ^[0-9]+$ ]] && (( t > paused_at && ${EPOCHREALTIME/./} - t < CLICK_US ))
+}
+while :; do
+  if ((ahead)); then                             # (looked at again a few times a second, sound or not)
+    IFS= read -r -t 0.25 -u "$in" line; r=$?
+    ((r > 128)) && line=$'\x1e'                  # (no line: nothing to read, only the look below)
+    ((r && r <= 128)) && break
+  else IFS= read -r -u "$in" line || break; fi
+  # (a click's play the player never confirmed: back to what it said)
+  if ((ahead)) && ! clicked; then ahead=0 status=Paused bands=() lastframe=""; line=$'\x1e'; fi
   case $line in
+    $'\x1e')    ;;
     END)        exit 0 ;;
-    '')         status="" artist="" title="" bands="" ;;
-    *"$US"*)    IFS=$US read -r p status artist title <<<"$line"
+    '')         status="" artist="" title="" bands=() lastframe="" ;;
+    *"$US"*)    IFS=$US read -r p status artist title <<<"$line"; ahead=0
+                [[ $status == Playing ]] || paused_at=${EPOCHREALTIME/./}
                 [[ $p == "$player" ]] || { player=$p; printf '%s\n' "$p" >"$SHOWN"; }
-                [[ $status == Playing ]] || bands="" ;;
-    *)          frame=${line//;/}
-                [[ $status == Playing && ${#frame} == 16 && $frame != *[!0-6]* ]] || continue
-                [[ $frame == *[1-5]* ]] && { ((++frames % 12)) || reel=$((1 - reel)); }  # sound: turn the reels (5 a second)
+                [[ $status == Playing ]] || { bands=(); lastframe=""; } ;;
+    *)          if [[ $line == "$lastframe" ]]; then
+                  # the meter unchanged: nothing to draw — but for the reels, while it sounds
+                  [[ $status == Playing && $line == *[1-9]* ]] || continue
+                  ((++frames % 12)) && continue
+                  reel=$((1 - reel))
+                else
+                  # sound right after a click on play, the player paused still: playing — the
+                  # player says so a moment later (or, within CLICK_US, it goes back)
+                  [[ $status == Paused && $line == *[1-9]* ]] && clicked && { status=Playing ahead=1; }
+                  [[ $status == Playing ]] || continue
+                  [[ $line =~ ^([0-9]|1[0-2])(\;([0-9]|1[0-2])){15}\;?$ ]] || continue
+                  lastframe=$line
+                  IFS=';' read -r -a bands <<<"$line"
+                  [[ $line == *[1-9]* ]] && { ((++frames % 12)) || reel=$((1 - reel)); }  # sound: turn the reels (5 a second)
+                fi
                 ((EPOCHSECONDS == wsec)) || { wsec=$EPOCHSECONDS; wings_check; }   # (the wings: once a second)
-                bands=$frame ;;
+                ;;
   esac
   [[ $line == *"$US"* || -z $line ]] && wings_check
   show
