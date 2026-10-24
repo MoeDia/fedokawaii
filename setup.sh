@@ -72,7 +72,8 @@ load_conf "$REPO_DIR"
 trap 'rc=$?; ((BASH_SUBSHELL == 0)) || exit $rc; failed_what "${FUNCNAME[0]:-main}:$LINENO"
       _out "${C_RED}✘ line $LINENO${FUNCNAME[0]:+ in ${FUNCNAME[0]}(), called from line ${BASH_LINENO[-2]}}: ${FAILED_SHOW:0:160} (exit $rc)${C_RESET}" >&2
       _out "  log: $LOG_FILE — fix the cause, then run the same command again (finished steps are skipped)" >&2; exit $rc' ERR
-trap '_out ""; _out "${C_RED}✘ interrupted — run the same command again to continue${C_RESET}"; exit 130' INT TERM
+trap 'if [[ $(head -n1 "${STATE_DIR:-/var/lib/fedokawaii}/phase" 2>/dev/null) == done ]]; then _out ""; _out "${C_OK:-}✔ Fedokawaii is built — reboot into the login screen: sudo systemctl reboot${C_RESET}"; exit 0; fi
+      _out ""; _out "${C_RED}✘ interrupted — run the same command again to continue${C_RESET}"; exit 130' INT TERM
 if [[ $MODE == status ]]; then        # read-only, so it works while another run holds the lock
   # shellcheck disable=SC1091
   source /etc/os-release
@@ -306,8 +307,14 @@ EOF
 }
 remove_resume_unit() {
   systemctl disable "$RESUME_UNIT" >/dev/null 2>&1 || true
-  rm -f "/etc/systemd/system/$RESUME_UNIT"; systemctl daemon-reload
+  # (the run the unit started is this one, at a build's end: the unit is only switched off
+  # here — taking its file away and reloading systemd stops the unit, this very run with it,
+  # before its last check and the reboot into the login screen. The file goes at the end:
+  # unit_file_out, right before that reboot)
+  ((RESUMED)) && [[ -n ${INVOCATION_ID:-} ]] && return 0
+  unit_file_out
 }
+unit_file_out() { rm -f "/etc/systemd/system/$RESUME_UNIT"; systemctl daemon-reload; }
 reboot_to() {
   set_phase "$1"; install_resume_unit
   run_summary "phase $(( $1 - 1 )) of 3 done"
@@ -2338,8 +2345,10 @@ phase3() {
   clone_done || true
   run_summary "phase 3 of 3 done — Fedokawaii is built"
   hdr "Fedokawaii is built — rebooting into the login screen in 15 s"
-  (( NO_REBOOT )) && exit 0
-  sleep 15; systemctl reboot
+  (( NO_REBOOT )) && { unit_file_out; exit 0; }
+  sleep 15
+  rm -f "/etc/systemd/system/$RESUME_UNIT"   # (switched off already; no reload: the reboot reads it)
+  systemctl reboot
 }
 
 # ═════════════════════════════════════════════════════════════════════════════

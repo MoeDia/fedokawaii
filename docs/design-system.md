@@ -124,8 +124,10 @@ Colours come only from these tokens; no literal colour anywhere, in either theme
 
 What moves is short and never holds input — a click or a key acts on where things are
 going, at once: **the wash** of a theme switch and a new wallpaper (the screen as it was,
-faded away over 320 ms on a smootherstep, `kawa-saver --wash`: the picture sent once, only
-its opacity changed — the compositor blends it), the screensaver fading as it leaves
+washed off in ink over 720 ms, `kawa-saver --wash`: five drops of the theme's darkest ink
+land on the old picture and bleed out along a paper-grain noise in the wallpapers' 3 px
+pixels, a wet rim at the edge, the new screen showing where they have passed — only the
+dots that changed sent each frame), the screensaver fading as it leaves
 (180 ms, the same curve), and dwl's windows — a window fades in as it rises its last 24 px to
 its place (240 ms), and fades away sinking as much (180 ms: quicker, out of the way); a
 workspace switch fades the windows out as they drift a little (6 % of the screen) to one

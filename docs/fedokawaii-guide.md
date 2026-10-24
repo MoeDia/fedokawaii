@@ -2947,13 +2947,13 @@ in Brave opens yazi too, as the file dialog (§10.4, §14.3).
 
 * Input boxes (rename, create, filter) work like a tiny vi: Esc first leaves typing, a second
   Esc — or Ctrl+C — cancels.
-* Three files are the desktop's: `theme.toml` (colours, the file-kind icons — the desktop's
+* Four files are the desktop's: `yazi.toml` (only its PDF preview: a locked PDF says so),
+  `theme.toml` (colours, the file-kind icons — the desktop's
   own pixel icons), `init.lua` (the frame: one free column at each edge, as every popup has,
   and the file dialog's title rule and key line) and `keymap.toml` (Enter, **M** and **g d**
   for the drives, Ctrl+C / X / V for files on the clipboard, **W**, **Alt+Enter**, **Alt+S**),
-  with their plugins in `plugins/`. Your own openers go in `yazi.toml`,
-  which you create; your own keys go in `keymap.toml` in your working copy (chapter 42), so the next
-  Theme keeps them (an example follows this list). yazi itself is held at the version these
+  with their plugins in `plugins/`. Your own openers go in `yazi.toml` and your own keys in
+  `keymap.toml`, both in your working copy (chapter 42), so the next Theme keeps them (an example follows this list). yazi itself is held at the version these
   files are written for (§27.7).
 * Search results (s, S) are a temporary list; Esc leaves it, Ctrl+S stops a search still running.
 
@@ -3712,7 +3712,7 @@ screen and nothing jumps when windows come and go. What changes with the window 
   room in a wide window; under 60 columns the parent column goes, and the list and the preview
   share the window — one above the other, with the stitch between them, when the window is
   tall. Its status line drops the permissions, then the size, rather than run words together.
-  A ratio of your own (`[mgr] ratio` in `~/.config/yazi/yazi.toml`) is kept at every width.
+  A ratio of your own (`[mgr] ratio` in `yazi.toml`, in your working copy: chapter 42) is kept at every width.
 * **lazygit** puts its panels above the diff in a tall window of 84 columns or fewer, and
   beside it otherwise — chosen again as the window changes. In a small tile, `+` gives the
   panel you are in half the window, then all of it (`_` goes back).
@@ -14705,8 +14705,9 @@ apply (chapter 42); the change shows at the next theme switch, or the next login
 A theme switch and a new wallpaper share one transition, and nothing else on the desktop
 moves: each program takes the change in a single frame of its own, all told at the same
 moment, the wallpaper drawn off screen first — and over it all, the screen as it was, sent to
-the compositor once, fades away over 320 ms on a smootherstep (`kawa-saver --wash`: only its
-opacity changes, at every refresh of the screen). Clicks go through it; a press during a theme
+the compositor once, is washed off in ink over 720 ms (`kawa-saver --wash`: five drops of the
+darkest ink bleed out over it along the grain of the paper, a wet rim at their edge, and the
+new screen shows where they have passed — only the dots that changed sent at each refresh). Clicks go through it; a press during a theme
 switch's wash jumps to its end.
 
 ## 40.7 The terminal's invisible marks
@@ -15507,7 +15508,7 @@ will undo it.
 | `~/.config/dwl/autostart.local.sh` | programs to start at every login. End each one that keeps running with `&` | at the next login (its output goes to `~/.cache/dwl.log`) |
 | `~/.config/nvim/lua/plugins/*.lua`, all but `colorscheme.lua` | LazyVim plugins, and changes to the ones it has | at neovim's next start |
 | `~/.local/bin/` — names the desktop does not use there (`kawa-…`, `fetch`, `brave-origin`, the release tools such as `yazi`, `torrra`) | your own scripts, on your `PATH` | at once |
-| the right-hand column of the table in §42.2 | each program's own settings: `yazi.toml`, `mpv/input.conf`… | by that program |
+| the right-hand column of the table in §42.2 | each program's own settings: `mpv/input.conf`, `cava/config`… | by that program |
 
 **Super+Shift+U → yours alone** opens the first three in neovim — the first time, it starts
 each file with a few lines saying what it is for — and `~/.local/bin` in yazi. Two small
@@ -15547,7 +15548,7 @@ fedokawaii drift      # the managed configs that differ from the toolkit (change
 
 | Managed by Theme (edit in the working copy) | Yours (edit in place) |
 |---|---|
-| `foot/foot.ini`, `mako/config`, `waybar/`, `btop/btop.conf`, `lazygit/config.yml`, `bat/config`, `mpv/mpv.conf` and `mpv/scripts/kawa-*.lua`, `yt-dlp/config`, `zathura/zathurarc`, `satty/config.toml`, `yazi/theme.toml`, `yazi/init.lua`, `yazi/keymap.toml` and `yazi/plugins/` (drives, smart-enter), `udiskie/config.yml`, `nvim/lua/config/lazy.lua`, `nvim/lua/plugins/colorscheme.lua`, `dev.lua` and `look.lua` beside it, `nvim/after/ftplugin/sh.lua`, `MangoHud/MangoHud.conf`, `visidata/config.py`, `readline/inputrc`, `gdu/gdu.yaml`, `mimeapps.list`, `xdg-terminals.list`, the portal files (`xdg-desktop-portal/`, `xdg-desktop-portal-wlr/`, `xdg-desktop-portal-termfilechooser/`), the pointers in `~/.local/share/icons/`, `pipewire/pipewire.conf.d/60-share.conf`, `~/.bashrc.d/fedokawaii.sh`, `blesh/init.sh`, `dwl/autostart.sh`, the launcher entries in `~/.local/share/applications` | every other file in `~/.config/nvim`, `yazi/yazi.toml`, `mpv/input.conf`, `cava/config`, `~/.config/fedokawaii/secrets.sh`, `~/.config/torrra/config.toml`, `~/.config/syncplay.ini`, the browser and Steam profiles (except the two Brave settings Theme makes — its colours and its launcher entry, §5.3) |
+| `foot/foot.ini`, `mako/config`, `waybar/`, `btop/btop.conf`, `lazygit/config.yml`, `bat/config`, `mpv/mpv.conf` and `mpv/scripts/kawa-*.lua`, `yt-dlp/config`, `zathura/zathurarc`, `satty/config.toml`, `yazi/yazi.toml`, `yazi/theme.toml`, `yazi/init.lua`, `yazi/keymap.toml` and `yazi/plugins/` (drives, smart-enter, kawa-pdf), `udiskie/config.yml`, `nvim/lua/config/lazy.lua`, `nvim/lua/plugins/colorscheme.lua`, `dev.lua` and `look.lua` beside it, `nvim/after/ftplugin/sh.lua`, `MangoHud/MangoHud.conf`, `visidata/config.py`, `readline/inputrc`, `gdu/gdu.yaml`, `mimeapps.list`, `xdg-terminals.list`, the portal files (`xdg-desktop-portal/`, `xdg-desktop-portal-wlr/`, `xdg-desktop-portal-termfilechooser/`), the pointers in `~/.local/share/icons/`, `pipewire/pipewire.conf.d/60-share.conf`, `~/.bashrc.d/fedokawaii.sh`, `blesh/init.sh`, `dwl/autostart.sh`, the launcher entries in `~/.local/share/applications` | every other file in `~/.config/nvim`, `mpv/input.conf`, `cava/config`, `~/.config/fedokawaii/secrets.sh`, `~/.config/torrra/config.toml`, `~/.config/syncplay.ini`, the browser and Steam profiles (except the two Brave settings Theme makes — its colours and its launcher entry, §5.3) |
 
 ## 42.3 Where each thing lives
 

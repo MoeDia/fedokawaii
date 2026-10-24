@@ -122,7 +122,7 @@ for d in waybar kawa-panel foot udiskie wl-paste swayidle kawa-dwlstatus kawa-cl
 [[ ! -e $XDG_RUNTIME_DIR/dwl-bar/OLD ]] && _ok || _no "the last session's bar state was kept"
 case_ "dwl's status reaches the bar (one monitor)$n"
 block DP-1 1 3 2 0 '[]=' 0 "hello" | tell
-waitfor "$BAR/kb.json"; eq "$(bar title)" '{"text":"hello","class":["l1","r0"]}'
+waitfor "$BAR/kb.json"; eq "$(bar title)" '{"text":"hello","class":["l0","r1"]}'
 case_ "logged out (dwl signals the session): everything it started is gone, its own exit clean$n"
 quit; gone && _ok || _no "$(left) processes outlived the session"; eq "$ASRC" 0
 down
@@ -209,7 +209,7 @@ case_ "a slow display set-up (kawa-display): the helpers wait for it; dwl's stat
 setup; stub kawa-display '"'"$TMP"'/sys/zzz" 2'; up
 block DP-1 1 1 1 0 '[]=' 0 "while it was slow" | tell
 nap 0.5; not_called "^waybar"; settled waybar kawa-dwlstatus
-waitfor "$BAR/kb.json"; eq "$(bar title)" '{"text":"while it was slow","class":["l0","r0"]}'; quit; down
+waitfor "$BAR/kb.json"; eq "$(bar title)" '{"text":"while it was slow","class":["l0","r1"]}'; quit; down
 case_ "a slow helper (udiskie taking its time) holds back nothing"
 setup; stub udiskie '"'"$TMP"'/sys/zzz" 3; trap "exit 0" TERM; "'"$TMP"'/sys/zzz" 600 & wait $!'; up
 settled waybar foot swayidle kawa-dwlstatus && _ok; quit; down

@@ -294,4 +294,10 @@ eq "$(state phase)" ""; eq "$(state user)" fkuser; [[ -s $W/var/lib/fedokawaii/b
 compgen -G "$W/var/lib/fedokawaii/done.*" >/dev/null && _no "done marks left" || _ok
 [[ ! -e $unit ]] && _ok || _no "resume unit left"
 
+case_ "the build's end in the resume unit (phase 3 after its reboot): the unit only switched off — its file taken away right before the reboot into the login screen, never while this run is the unit (systemd stopped it: the last check and the reboot never came; seen in a clean install); a stop once built is no interruption"
+f=$(sed -n '/^remove_resume_unit() {$/,/^}/p' "$REPO/setup.sh")
+has "$f" '((RESUMED)) && [[ -n ${INVOCATION_ID:-} ]] && return 0'
+has "$(cat "$REPO/setup.sh")" '(( NO_REBOOT )) && { unit_file_out; exit 0; }'
+grep -B2 '^  systemctl reboot$' "$REPO/setup.sh" | grep -q 'rm -f "/etc/systemd/system/$RESUME_UNIT"' && _ok || _no "the unit file not taken away before the last reboot"
+has "$(sed -n '75,76p' "$REPO/setup.sh")" '== done ]]; then'
 done_

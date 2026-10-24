@@ -71,7 +71,7 @@ eq "$(tail -n 1 <<<"$out" | python3 -c 'import json,sys; print(json.load(sys.std
 setup; step "$(P mpv Playing '' 'holiday.mkv')"; eq "$(bar | tail -n 1 | python3 -c 'import json,sys; print(json.load(sys.stdin)["class"])')" "['playing', 'r1']" "no artist: the title's last letter (v: its column of air, as every letter's)"
 setup; step "$(P spotify Paused 'Cool' 'Song')"; eq "$(bar | tail -n 1 | python3 -c 'import json,sys; print(json.load(sys.stdin)["class"])')" "['paused', 'r3']" "paused; l (of Cool): 3 px of air"
 setup; step "$(P spotify Playing 'Mariya Takeuchi' 'Plastic Love')"; out=$(bar)
-has "$(tail -n 1 <<<"$out")" "\"${ICON_BAR_CASSETTE_A}Plastic Love  <span color='#$(. "$HOME/.config/fedokawaii/current/colors.sh"; echo "$C_FAINT")'>Mariya Takeuchi</span>\"" "the artist quieter than the title"
+has "$(tail -n 1 <<<"$out")" "\"${ICON_BAR_CASSETTE_A}<span line_height='15360'>Plastic Love  <span color='#$(. "$HOME/.config/fedokawaii/current/colors.sh"; echo "$C_FAINT")'>Mariya Takeuchi</span></span>\"" "the artist quieter than the title"
 
 case_ "… with sound: the meter in the wings either side of the clock (8 thin columns each, 0–12 — a pixel a level —, lowest notes nearest the clock), each column in its height's ink — edge2, faint, muted, text; the label the cassette and the words alone"
 setup; printf '%s\n' "0;1;2;3;4;5;6;4;3;2;1;0;0;1;2;6;" "0;2;4;7;8;10;12;9;11;3;1;0;0;5;12;6;" >"$NP/frames"

@@ -410,9 +410,15 @@ PROJECT_TOP=(PACKAGES.md README.md art bin check.sh configs docs fedokawaii.conf
 # button to the login — the kernel's messages only when they are critical (quiet loglevel=3;
 # the initramfs' udev likewise), no systemd status lines, no blinking cursor on the console
 # the login screen shares (tty1); and no console-size wait at boot. The journal keeps it all.
+# No simpledrm: the kernel's driver for the firmware's screen started the splash at 1.8 s, and
+# amdgpu took the screen from it at 4.5 s — a mode change, the splash drawn a second time and
+# again after the switch to the real root: "Starting Fedora" seen three times. Without it
+# plymouth waits for the card's own driver (in the boot image, there by 4.5 s) and draws once.
+# split_lock_detect=off: a split lock (Steam's HTTP threads take one every few seconds) is
+# trapped and the thread put to sleep 10 ms each time — a stutter for a warning nobody reads.
 # shellcheck disable=SC2034  # (setup.sh and verify.sh read it)
 BOOT_ARGS=(rhgb quiet loglevel=3 rd.udev.log_level=3 systemd.show_status=false vt.global_cursor_default=0
-           systemd.tty.term.console=dumb)
+           systemd.tty.term.console=dumb initcall_blacklist=simpledrm_platform_driver_init split_lock_detect=off)
 # arguments an earlier version put on the entries, gone since: taken off every entry that still
 # has one (setup.sh's s_quiet_boot), and verify warns while one is there.
 # plymouth.use-simpledrm started the splash on the firmware's screen and then moved it to

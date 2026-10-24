@@ -161,7 +161,8 @@ c.sendall((json.dumps({"command": ["load-config-file", sys.argv[2]]}) + "\n").en
 
 # The transition (design-system §5: the one designed one, the same as a new wallpaper's):
 # kawa-saver --wash lays the screen as it was over everything, the switch is made under it,
-# then it fades away (320 ms, eased, frame by frame). It takes no input: every click goes
+# then it is washed off in ink (720 ms: drops of the darkest ink bleed out over it and take it
+# with them, frame by frame). It takes no input: every click goes
 # through. A press during it ends it at once (the final state) and switches again
 wash_begin() {
   [[ -n ${WAYLAND_DISPLAY:-} ]] && ((!NOWASH)) || return 0

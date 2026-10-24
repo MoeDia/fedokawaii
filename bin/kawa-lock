@@ -141,7 +141,8 @@ for ((i = 0; i < 100; i++)); do
   ((i >= 10)) && ! keeping && fail "gtklock stopped before it locked"
   sleep 0.1
 done
-[[ -e $locked ]] || { pkill -xu "$UID" gtklock; fail "gtklock did not lock within 10 s"; }
+# (only this lock's own gtklock, its keeper's child: never another session's lock screen)
+[[ -e $locked ]] || { k=$(<"$held") 2>/dev/null; [[ $k =~ ^[0-9]+$ ]] && pkill -x -P "$k" gtklock; fail "gtklock did not lock within 10 s"; }
 exec 9>&-
 ((sleep_after > 0)) || exit 0
 # the sleep after a lock you asked for: tied to this very lock (its keeper) — unlocked

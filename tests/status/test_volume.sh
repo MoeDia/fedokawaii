@@ -16,7 +16,7 @@ case_ "Volume: 0.40 → up: 0.45, the panel says 45 % (the speaker with two wave
 setup
 rc 0 kawa-volume up
 eq "$(pw_vol sink)" 0.45
-eq "$(osd | cut -d'|' -f2-)" "$ICON_VOL_2  volume|45%|5/12"
+eq "$(osd | cut -d'|' -f2-)" "$ICON_VOL_2  volume|45%|84/192"
 case_ "… down: 0.40 again"
 rc 0 kawa-volume down
 eq "$(pw_vol sink)" 0.40; eq "$(osd | cut -d'|' -f3)" "40%"
@@ -24,9 +24,9 @@ eq "$(pw_vol sink)" 0.40; eq "$(osd | cut -d'|' -f3)" "40%"
 case_ "Volume: 0.40 [MUTED] → mute: unmuted, the level shows; again: muted, 'off'"
 setup; pw_edit "node('$sink')['mute'] = True"
 rc 0 kawa-volume mute
-eq "$(pw_vol sink)" 0.40; eq "$(osd | cut -d'|' -f2-)" "$ICON_VOL_2  volume|40%|5/12"
+eq "$(pw_vol sink)" 0.40; eq "$(osd | cut -d'|' -f2-)" "$ICON_VOL_2  volume|40%|74/192"
 rc 0 kawa-volume mute
-eq "$(pw_vol sink)" "0.40 [MUTED]"; eq "$(osd | cut -d'|' -f2-)" "$ICON_VOL_MUTE  volume|off|5/12"
+eq "$(pw_vol sink)" "0.40 [MUTED]"; eq "$(osd | cut -d'|' -f2-)" "$ICON_VOL_MUTE  volume|off|74/192"
 
 case_ "muted, then up: unmuted and one step louder"
 rc 0 kawa-volume up
@@ -39,7 +39,7 @@ eq "$(pw_vol sink)" "0.40 [MUTED]"; eq "$(osd | cut -d'|' -f3)" off
 case_ "Volume: 1.50 (the mixer goes to 153 %) → up leaves it there, never pulled down to 100"
 setup; level "$sink" 1.5
 rc 0 kawa-volume up
-eq "$(pw_vol sink)" 1.50; eq "$(osd | cut -d'|' -f3-)" "150%|12/12"
+eq "$(pw_vol sink)" 1.50; eq "$(osd | cut -d'|' -f3-)" "150%|186/192"
 not_called 'wpctl set-volume -l'
 case_ "… muted at 150 %: up unmutes it, still 150"
 pw_edit "node('$sink')['mute'] = True"
@@ -52,12 +52,12 @@ eq "$(pw_vol sink)" 1.45
 case_ "Volume: 0.97 → up stops at 1.00; at 1.00, up does nothing"
 setup; level "$sink" 0.97
 kawa-volume up; eq "$(pw_vol sink)" 1.00
-kawa-volume up; eq "$(pw_vol sink)" 1.00; eq "$(osd | cut -d'|' -f3-)" "100%|12/12"
+kawa-volume up; eq "$(pw_vol sink)" 1.00; eq "$(osd | cut -d'|' -f3-)" "100%|186/192"
 
 case_ "Volume: 0.00 → down stays 0, the panel dark; up: 5 %"
 setup; level "$sink" 0
-kawa-volume down; eq "$(pw_vol sink)" 0.00; eq "$(osd | cut -d'|' -f3-)" "0%|0/12"
-kawa-volume up; eq "$(pw_vol sink)" 0.05; eq "$(osd | cut -d'|' -f3-)" "5%|1/12"
+kawa-volume down; eq "$(pw_vol sink)" 0.00; eq "$(osd | cut -d'|' -f3-)" "0%|0/192"
+kawa-volume up; eq "$(pw_vol sink)" 0.05; eq "$(osd | cut -d'|' -f3-)" "5%|8/192"
 
 # ── a held key ───────────────────────────────────────────────────────────────
 case_ "a held key, 20 presses in a row from 40 %: 100 % exactly, never above, one panel"
@@ -136,9 +136,9 @@ case_ "mic: muted, the panel says microphone 'off'; again: back on at its level"
 setup
 rc 0 kawa-volume mic
 eq "$(pw_vol source)" "0.80 [MUTED]"
-eq "$(osd | cut -d'|' -f2-)" "$ICON_MIC_OFF  microphone|off|10/12"
+eq "$(osd | cut -d'|' -f2-)" "$ICON_MIC_OFF  microphone|off|150/192"
 rc 0 kawa-volume mic
-eq "$(osd | cut -d'|' -f2-)" "$ICON_MIC  microphone|80%|10/12"
+eq "$(osd | cut -d'|' -f2-)" "$ICON_MIC  microphone|80%|150/192"
 eq "$(pw_vol sink)" 0.40 "the output untouched"
 
 case_ "mic with no microphone (Share's monitor is never the default): could not (1), no panel"

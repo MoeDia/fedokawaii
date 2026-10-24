@@ -33,7 +33,7 @@ H=$W/home/fkuser; mkdir -p "$H/fedokawaii-trial.d"; : >"$H/fedokawaii-trial.d/ba
 chown -R 31000:31000 "$H/fedokawaii-trial.d" "$H/fedokawaii-trial.lock" "$H/fedokawaii-trial.txt"
 setup; eq "$RC" 0 "$(grep -E '✘' <<<"$OUT" | head -n3 | tr '\n' '|')"
 called 'grubby\] --update-kernel=ALL --remove-args=plymouth.use-simpledrm'
-lacks "$(cat "$FKH/grub-args")" "simpledrm"; has "$(head -n1 "$FKH/grub-args")" "systemd.tty.term.console=dumb"
+lacks "$(cat "$FKH/grub-args")" "plymouth.use-simpledrm"; has "$(head -n1 "$FKH/grub-args")" "systemd.tty.term.console=dumb"
 [[ ! -e $H/fedokawaii-trial.d && ! -e $H/fedokawaii-trial.lock && -f $H/fedokawaii-trial.txt ]] && _ok || _no "the trial's old lock or logs still in the home (or its results gone)"
 has "$OUT" "the container trial's old leftovers removed"
 reboot_world; keep phase2

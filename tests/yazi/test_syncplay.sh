@@ -378,7 +378,7 @@ has "$e" "Exec=$HOME/.local/bin/kawa-term kawa-together %f"
 lacks "$e" "MimeType=" "it would compete with mpv for films"
 case_ "yazi: W watches the hovered film together (the real yazi: test_yazi.sh)"
 has "$(cat "$HOME/.config/yazi/keymap.toml")" 'on = "W",          run = "shell --orphan -- kawa-term kawa-together %h"'
-[[ ! -e $HOME/.config/yazi/yazi.toml ]] && _ok || _no "yazi.toml is yours (§10.3): the desktop ships none"
+lacks "$(cat "$REPO/configs/home/.config/yazi/yazi.toml")" "[opener]" "the desktop's yazi.toml holds no opener: W is keymap.toml's alone"
 case_ "W on a folder: Syncplay starts with no film (the room's is found by name)"
 mkdir -p "$TMP/a folder"
 printf '[client_settings]\nroom = film-night\n' >"$INI"

@@ -1,5 +1,6 @@
 # ~/.config/yazi/yazi.toml — yazi's settings beyond its own (theme.sh installs it). For yazi 26.x:
-# everything not named here is yazi's default.
+# everything not named here is yazi's default. Settings of your own go here in your working copy
+# (handbook chapter 42), so the next Theme keeps them.
 
 [plugin]
 # a PDF's preview through kawa-pdf (yazi's own, but a locked PDF says so in the desktop's

@@ -37,10 +37,10 @@ if [[ -n $SAVER ]]; then
 
   case_ "--wash (the one transition) that cannot show: says covered at once and leaves — a switch is never held up"
   out=$(saver --wash </dev/null 2>&1); eq "$?$out" "0covered"
-  case_ "--wash: never takes input (no keyboard, an empty input region), a cross-fade of WASH_MS (320 ms) on the compositor (alpha-modifier), eased in and out"
+  case_ "--wash: never takes input (no keyboard, an empty input region), an ink bleed of WASH_MS (720 ms): drops of the theme's darkest ink spread over the old picture and take it with them, only what changed drawn each frame"
   src=$(cat "$SRC/kawa-saver.c")
   has "$src" "wl_surface_set_input_region(o->surface, none)"; has "$src" "set_keyboard_interactivity(o->layer, 0)"
-  has "$src" "#define WASH_MS 320"; has "$src" "wp_alpha_modifier_surface_v1_set_multiplier"
+  has "$src" "#define WASH_MS 720"; has "$src" "static void wash_frame("; has "$src" "static uint32_t wash_ink(void)"
   has "$(sed -n '/^static double wash_ease/,/^}/p' "$SRC/kawa-saver.c")" "t * t * t * (t * (t * 6 - 15) + 10)" "smootherstep"
   case_ "--idle (away 15 min): switched off in quick settings, the lock alone at once"
   mkdir -p "${W%/*}"; echo off >"$W"

@@ -143,6 +143,10 @@ emit() {   # emit MONITOR — its files (and the focused one's at the top), then
   fi
   air "$title"; local ta=${__air/ /\",\"}
   esc icon "$icon"; esc title "$title"
+  # (the line held at 15 px: a letter Sumi UI lacks — Arabic, Thai, Hangul, an emoji, an accent
+  # stacked high — comes from a font with a taller line, and the label, and the whole bar with
+  # it, grew by up to 15 px for as long as that window had the focus)
+  [[ -n $title ]] && title="<span line_height='15360'>$title</span>"
   for at in "${to[@]}"; do
     put "${at}layout" "{\"text\":\"$icon\",\"class\":\"$cls\"}" && ly=1
     put "${at}title" "{\"text\":\"$title\",\"class\":[\"$ta\"]}" && tt=1

@@ -480,7 +480,7 @@ built() {
   mkdir -p "$W/etc/ssh/sshd_config.d"; printf '%s\n' PasswordAuthentication\ no >"$W/etc/ssh/sshd_config.d/40-fedokawaii.conf"   # (SSH_SERVER=yes, as shipped)
   printf '%s\n' 6881/tcp 6881/udp 53317/tcp 53317/udp >"$FKH/fw-ports"
   echo menu_auto_hide=2 >"$FKH/grubenv"
-  local q="rhgb quiet loglevel=3 rd.udev.log_level=3 systemd.show_status=false vt.global_cursor_default=0 systemd.tty.term.console=dumb"
+  local q="rhgb quiet loglevel=3 rd.udev.log_level=3 systemd.show_status=false vt.global_cursor_default=0 systemd.tty.term.console=dumb initcall_blacklist=simpledrm_platform_driver_init split_lock_detect=off"
   printf '%s\n' "ro rootflags=subvol=root $q amdgpu.ppfeaturemask=0xfff7ffff" \
     "ro rootflags=subvol=root $q amdgpu.ppfeaturemask=0xfff7ffff" >"$FKH/grub-args"
   sed -i "s/rhgb quiet\$/$q amdgpu.ppfeaturemask=0xfff7ffff/" "$W/proc/cmdline"   # (this start: the same)

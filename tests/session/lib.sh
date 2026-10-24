@@ -79,7 +79,10 @@ bar() { local b; rd b "$1"; printf '%s' "$b"; }
 # kawa-dwlstatus escapes only \ and "; json_ok checks the files with a real JSON parser)
 jtext() {
   local j; rd j "$1"; j=${j#'{"text":"'}; j=${j%'"}'}; j=${j%'","class":'*}
-  j=${j//\\\\/$'\x01'}; j=${j//\\\"/\"}; printf '%s\n' "${j//$'\x01'/\\}"
+  j=${j//\\\\/$'\x01'}; j=${j//\\\"/\"}; j=${j//$'\x01'/\\}
+  # (the title's line held at 15 px — kawa-dwlstatus: the wrapper only, the text as it is)
+  [[ $j == "<span line_height='15360'>"*"</span>" ]] && { j=${j#"<span line_height='15360'>"}; j=${j%"</span>"}; }
+  printf '%s\n' "$j"
 }
 # tagrow [MON/] — the nine workspaces as the bar shows them: "1:sel 2:occ 3:emp 4:- …" (- hidden;
 # each is its kanji numeral on the bar)
