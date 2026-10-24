@@ -117,6 +117,9 @@ f=$(added issaver)
 grep -q 'strcmp(ls->namespace, "kawa-saver")' <<<"$f" && grep -q 'snprintf(link, sizeof(link), "/proc/%d/exe", (int)pid);' <<<"$f" \
   && grep -q 'return b && !strcmp(b + 1, "kawa-saver");' <<<"$f" && grep -q 'if (uid != getuid())' <<<"$f" && _ok || _no "issaver"
 grep -q '^+		if (saverup(m))$' "$P" && grep -q '^+#define SAVER_GUARD_MS 1500$' "$P" && (($(grep -c '^+[[:space:]]*saverinput();' "$P") == 4)) && _ok || _no "lockhold, guard, input"
+case_ "after a long time away (the screens dark): the first input lights them at once, gives the keyboard back to the saver before the key is sent (lighting them sent it to the lock), and the guard waits for the screen to come back"
+grep -q '^+	woke = saverwake();$' "$P" && grep -Pzq '\+	if \(woke\)\n\+		saverkeys\(\);' "$P" && grep -q '^+#define SAVER_WAKE_MS 4000$' "$P" \
+  && grep -q 'SAVER_GUARD_MS + (woke ? SAVER_WAKE_MS : 0)' "$P" && _ok || _no "wake, keys back, longer guard"
 case_ "a warm window put away (Super+U's popup after a choice, Super+N, Super+V) fades off as a closed window does; shown again at once"
 f=$(added warmhide)
 grep -q 'ghostclient(c);' <<<"$f" && grep -q 'if (animations && !locked && c->scene->node.enabled && VISIBLEON(c, c->mon)' <<<"$f" && _ok || _no "warmhide: no fade"
