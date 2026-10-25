@@ -152,7 +152,8 @@ Read the raw notes in full; this is the digest plus his answers (asked 2026-10-2
   TypingClub's progression, keybr's adaptive letters, deliberate-practice research (Ericsson),
   accuracy-first touch typing, standard WPM (5 characters a word) and accuracy as Monkeytype
   measures them. Minimal, alive, on theme.
-- **Visuals of the two apps** (added 19:45): typing shows an on-screen keyboard with the right
+- **Visuals of the two apps** (added 19:45): typing (all in the terminal, the keyboard and hands drawn in the TUI itself with our pixel
+  fonts and icons — no GUI, no window of its own) shows an on-screen keyboard with the right
   finger for every next key at all times (EdClub style: hands/finger colours, the key lit,
   errors shown), alive; chess has a custom-made pixel board and custom-drawn pieces — all TUI,
   beautiful and magical, with move animation, last move, threats and hints drawn on the board.
