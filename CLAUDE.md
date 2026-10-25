@@ -300,6 +300,21 @@ report honestly what it can and cannot fix; if it cannot beat "hold and wait", l
   step, what the AI fixer can and cannot do, snapshots vs backups, how to roll back from the
   menu and from the boot menu, what to do if a notice asks for him.
 
+**One design, one unit (20:08 — top priority with the design work):** **Super+U is fully
+redesigned** — its structure, sections (system/update/snapshots/backups/learning …), states,
+spacing and art — rock solid. Then **every menu and popup is redesigned to match**: quick
+settings, Super+W/V/N/R/C, bar dropdowns, Super+/, launcher, notices, OSD, lock, greeter,
+saver, the TUI apps. The goal is a single, strong, perfect design system that reads as one
+work, not many screens. Write it into `docs/design-system.md` first (grid, type sizes 14/16,
+frames, colour roles from the Wada palette, icon grammar, motion), then rebuild every surface
+from it, then audit them side by side in both themes until they are indistinguishable in grammar.
+
+Release upgrades (Fedora 44 → 45 → 46 …) go through the same single **update** item: VM
+pre-flight first, then the real machine, rollback on failure, AI fixer for what breaks. Be
+honest in the Learning piece: a release that changes something big (wlroots for dwl, say) may
+be beyond the local model; then the PC safely stays on the working release and tells him well
+before its end of support, so he can have it ported.
+
 **Also**: RAM caching of apps (preload aggressively; most RAM is idle); Super+/ much more
 comprehensive, fuzzy search, context-aware (shows the active TUI app's keys first — detect the
 app in the focused foot); performance and visual bug hunt everywhere.
