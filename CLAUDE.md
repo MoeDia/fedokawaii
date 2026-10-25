@@ -43,7 +43,8 @@ consistent with the design system and costs no performance; propose and build sm
 he did not ask for (in the same spirit), list them in the ledger as r27-extra so he can veto.
 
 
-- Never type, store or repeat any password; never unlock his lock screen or log in for him.
+- Never type, store or repeat any password; never unlock his lock screen. (Restarting his session
+  for a new dwl is allowed — see START below — but never by typing a password.)
 - API keys only in `~/.config/fedokawaii/secrets.sh` (mode 600).
 - Never redraw the Steam logo. Keep `~/blasphemous-save-backup-20261022`.
 - Commits: author "Mohamed Eldoush" <49558059+MoeDia@users.noreply.github.com>; end messages with
@@ -190,8 +191,9 @@ app in the focused foot); performance and visual bug hunt everywhere.
 
 ## How round 27 is run (owner's choice, 2026-10-25)
 Best possible result, fewest tokens; time does not matter (30 hours is fine).
-1. **First prompt (planner, max effort):** read this file, the notes and the code that matters;
-   write `.claude/plan.md` — every item above as a numbered task with: files touched, approach,
+1. **Planning (Fable, max effort):** a planner subagent (model `fable`, effort `max` — the
+   owner asked for exactly this) reads this file, the notes and the code that matters, and
+   writes `.claude/plan.md` — every item above as a numbered task with: files touched, approach,
    acceptance test (how it is measured/verified on the PC), dependencies, and which model does
    it. Order: foundations that move everything first (font sizes 14/16 px, bar 27 px, palette),
    then the design-coherence pass and the bar, then lock/animations/art, then apps (notes,
@@ -207,8 +209,42 @@ Best possible result, fewest tokens; time does not matter (30 hours is fine).
 4. **Token discipline:** long output to files, never into the context; reusable test scripts
    kept in `tools/` (headless dwl runs, frame logs, analysers) instead of retyping them; the
    ledger updated after each task so a /compact or a new session resumes from the files.
-5. **The owner is needed for:** `sudo` (his password — never yours), logging in again after a
-   dwl rebuild, and judging looks. Batch those moments; tell him exactly what to do.
+5. **The owner is not needed.** He types START and goes about his day (see START below).
+
+## START — the owner types `START` and leaves; you run to the end without stopping
+He launched you as `claude --dangerously-skip-permissions --model opus --effort max` inside
+this repo, after the one-time setup below. When he types START:
+1. If `.claude/plan.md` does not exist: spawn the planner (Agent, model `fable`, effort `max`)
+   to write it as described above; read it; critique it once yourself; fix it.
+   If it exists: resume at the first task not marked done (the ledger says where you were).
+2. Work the plan task by task until **every** task is done and verified, then the performance
+   test, then the final report in the ledger. **Never end your turn early, never ask a
+   question, never wait for him.** Every decision is yours (his taste section guides it).
+   If something is blocked, choose the best alternative, write why in the ledger, move on.
+3. **Keep the machine usable for testing:** hold an idle inhibitor for the whole run
+   (`systemd-inhibit --what=idle --who=claude --why=round27 sleep infinity &`, kill it at the
+   end) so the saver/lock never comes up while you work — you can never unlock it.
+   If the lock is up anyway (he locked it), do headless work until he is back.
+4. **A new dwl in the live session:** `sudo` is passwordless for this run (setup below). Save
+   his work first (nothing of his open is to be lost: check foot/nvim/Brave windows; if an
+   unsaved editor is open, wait and do other tasks), then restart the session the greetd way:
+   back up `/etc/greetd/fedokawaii.toml`, append
+   `[initial_session]` / `command = "/usr/local/bin/start-dwl"` / `user = "dia"`,
+   `rm -f /run/greetd.run; systemctl restart greetd`, wait 9 s, restore the file.
+5. **Commit and push** after each finished task (small commits, clear messages). Update the
+   ledger after each task, so a crash, a usage-limit pause or a /compact loses nothing: if the
+   session ends, he types START again and you continue from the files.
+6. **At the very end:** run the full test suite and `fedokawaii verify`; release the idle
+   inhibitor; remove `/etc/sudoers.d/90-claude-temp`; write a short summary for him at the
+   top of the ledger (what changed, what to look at, numbers before/after); stop.
+   The Learn/Guide books are rebuilt only when he says so — leave that task open.
+
+**One-time setup he does before typing START** (also in his chat):
+```
+cd ~/repos/fedokawaii && git fetch && git reset --hard origin/main
+echo "dia ALL=(ALL) NOPASSWD: ALL" | sudo tee /etc/sudoers.d/90-claude-temp && sudo chmod 440 /etc/sudoers.d/90-claude-temp
+claude --dangerously-skip-permissions --model opus --effort max
+```
 
 ## Notes folder
 `.claude/notes/02-LEDGER.md` (all past requests and status — continue it as r27-N lines),
