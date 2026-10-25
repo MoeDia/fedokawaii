@@ -142,6 +142,10 @@ Read the raw notes in full; this is the digest plus his answers (asked 2026-10-2
   TypingClub's progression, keybr's adaptive letters, deliberate-practice research (Ericsson),
   accuracy-first touch typing, standard WPM (5 characters a word) and accuracy as Monkeytype
   measures them. Minimal, alive, on theme.
+- **Visuals of the two apps** (added 19:45): typing shows an on-screen keyboard with the right
+  finger for every next key at all times (EdClub style: hands/finger colours, the key lit,
+  errors shown), alive; chess has a custom-made pixel board and custom-drawn pieces — all TUI,
+  beautiful and magical, with move animation, last move, threats and hints drawn on the board.
 - **The Learning section of Super+U**: the Learn book **cut into ordered pieces** — short
   lessons he does one by one, in the sequence that teaches best (dependencies first), each
   with its place shown (lesson n of N, done ✓), beautifully organised and following the
@@ -201,6 +205,15 @@ And a **rigorous performance test** of the whole desktop at the end of the round
 measured inside dwl (not via screen recording) during heavy real use across many apps, every
 animation's frames checked at 144 Hz, input-to-screen latency for keys, menus and the bar,
 app start times, RAM/CPU/GPU tracked, crashes hunted; numbers before and after in the ledger.
+
+**Everything trickles into the installer** (added 19:45): every change must be made by
+setup/theme/apply from a clean Fedora 44 (VM-proven at the end, as before), never by hand on the
+PC. Use what kernel 7.2 and Fedora 44 offer for performance and stability (scheduler, memory,
+I/O and GPU features, sensible sysctls and boot arguments — each measured, none on faith).
+Neovim: faster start-up and editing (measure `nvim --startuptime`, lazy-load, cut plugins that
+cost more than they give). Finally **harden and optimise the repo once more**: dead code out,
+duplication folded into `lib/`, ShellCheck clean, every script's errors handled, tests for
+every path, `fedokawaii selftest --sandbox` clean.
 
 **Also**: RAM caching of apps (preload aggressively; most RAM is idle); Super+/ much more
 comprehensive, fuzzy search, context-aware (shows the active TUI app's keys first — detect the
