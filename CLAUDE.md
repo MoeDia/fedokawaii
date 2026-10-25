@@ -144,6 +144,11 @@ joystick moving while Steam runs, downloads icon while downloading; weather "sun
 different from brightness; window borders get the bar's 3D shadow look. Sliders (volume,
 brightness): not a plain rectangle, alive — turning red when high. Re-measure all spacing.
 
+**Added 18:48**: a **to-do list beside the notes (Super+N), reachable from Super+U too** — dead simple: items with a checkbox,
+done items struck through; no reminders, no dates, nothing else. And a **design coherence pass
+over everything**, above all the menus (quick settings, Super+W, Super+U, Super+V, every
+popup): one colour use, one frame, one spacing and alignment grammar, one philosophy.
+
 **Also**: RAM caching of apps (preload aggressively; most RAM is idle); Super+/ much more
 comprehensive, fuzzy search, context-aware (shows the active TUI app's keys first — detect the
 app in the focused foot); performance and visual bug hunt everywhere.
