@@ -91,16 +91,22 @@ Read the raw notes in full; this is the digest plus his answers (asked 2026-10-2
   ~10 demon wallpapers (dark) and ~10 angel wallpapers (light), and the quick-settings icon
   (demon dark / angel light) on the bar's far right, the fetch art.
 - Yazi: **keep the engine, rebuild the whole UI** (layout, contrast in dark, alignment at many sizes).
-- Prompt: **rebuild ours** in a pastel-powerline style, palette from Sanzo Wada's *A Dictionary of
+- Prompt: **rebuild ours** in a pastel-powerline style (with his terminal icon in it), palette from Sanzo Wada's *A Dictionary of
   Color Combinations* (data: github.com/mattdesl/dictionary-of-colour-combinations); let the
   Wada palette inform the whole design system.
+- Theme switch: the **mouse cursor** changes instantly today — animate it with the rest of the
+  dark↔light transition.
 - Wallpaper auto-change (4 h): a toggle key **inside Super+W**, shown at the bottom.
-- Chess TUI (Learning section in Super+U — create the section): 730 games (2/day, 1 year),
-  vs **built-in Stockfish** at lesson-matched levels, **~10 min daily puzzles** allowed, target
-  **1800 chess.com rapid**. Research how beginners are best taught (chess.com lessons, Steps
-  method, Heisman …), every game a deliberate lesson; minimal, classy, retro.
-- Typing TUI (same section): EdClub/TypingClub-like course, **English, 100+ WPM** target,
-  proper WPM/accuracy measurement; test rigorously.
+- **A full chess app** (a complete TUI program of our own — board, play, review, lessons,
+  puzzles, progress — not just a course), classy retro-Japanese, in a new **Learning section of
+  Super+U**. It takes him from zero to **1800 chess.com rapid** in one year: **730 games**
+  (2 a day) vs **built-in Stockfish** at lesson-matched levels, each game a deliberate, critical
+  lesson, plus **~10 min of puzzles a day**. Reverse-engineer and study chess.com (lessons,
+  analysis, ratings) and research how complete beginners are best taught (Steps method,
+  Heisman …); argue with yourself, criticise, keep it super minimal and super effective.
+- **A full typing app** (TUI, same Learning section) modelled on EdClub/TypingClub — reverse-
+  engineer how it teaches quickly; **English, 100+ WPM** target; proper speed (WPM) and accuracy
+  measurement; test it rigorously.
 - Drawing: **FireAlpaca has an official Linux build** (2.16.3, firealpaca.com/download — Fedora
   36+); theme it, launcher entry, XP-Pen with pressure; prove its upsides over Xournal++ first;
   guide in the Learn book.
@@ -142,7 +148,8 @@ our red; DND bar icon → small DND-only menu; Steam: tooltip "Steam show/hide",
 to the current workspace / hides it; animated icons: a retro antenna TV while video plays,
 joystick moving while Steam runs, downloads icon while downloading; weather "sunny" icon
 different from brightness; window borders get the bar's 3D shadow look. Sliders (volume,
-brightness): not a plain rectangle, alive — turning red when high. Re-measure all spacing.
+brightness): not a plain rectangle, alive — turning red when high. Re-measure all spacing, alignment and fit — every icon and section, and the bar's distance from
+the window borders.
 
 **Added 18:48**: a **to-do list beside the notes (Super+N), reachable from Super+U too** — dead simple: items with a checkbox,
 done items struck through; no reminders, no dates, nothing else. And a **design coherence pass
