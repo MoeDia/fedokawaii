@@ -247,6 +247,22 @@ guard rebuilding dwl, private wlroots, verify) and close every gap:
   starts and verify stays green; keep that as a repeatable test (`tools/`), and document in the
   Learn pieces what to do in the rare case an update needs him.
 
+**Self-maintaining updates, no AI, no tokens** (added 19:56 — core): updates run and repair
+themselves with plain deterministic tooling, he never has to step in:
+- A weekly systemd timer, at an idle hour, on AC/online only: snapshot → `dnf upgrade` → verify
+  → session start check (headless dwl smoke test) → keep, or roll back.
+- **Hold the culprit:** on a failure, roll back, then find the package(s) that broke it by
+  bisection (update halves of the set, verify each), `dnf versionlock` just those, apply the
+  rest; re-try the held ones every week and release the lock once they pass. Security updates
+  of held packages: notify him plainly.
+- **Release upgrades, pre-flighted:** when a new Fedora has settled (as now), the timer builds
+  it in a VM first (the proven VM harness: install, setup, theme, verify, desktop start); only a
+  green VM lets the real machine upgrade (snapshot first, rollback on failure). A red VM: stay,
+  re-try monthly, notify once with the failing checks; warn well before the old release's EOL.
+- A short report after each run (notice + log), nothing else asked of him. All of it in the
+  installer, tested in the VM (inject a deliberately broken package to prove bisect + lock +
+  rollback), and a Learn piece explaining it in one page.
+
 **Also**: RAM caching of apps (preload aggressively; most RAM is idle); Super+/ much more
 comprehensive, fuzzy search, context-aware (shows the active TUI app's keys first — detect the
 app in the focused foot); performance and visual bug hunt everywhere.
