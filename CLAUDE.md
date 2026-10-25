@@ -300,6 +300,26 @@ report honestly what it can and cannot fix; if it cannot beat "hold and wait", l
   step, what the AI fixer can and cannot do, snapshots vs backups, how to roll back from the
   menu and from the boot menu, what to do if a notice asks for him.
 
+**The update system must be bulletproof (20:11):** its whole point is that nothing breaks
+easily, everything stays current, and it actually works when it matters. Before writing it:
+- **Deep research, 300+ sources**, logged with links in `.claude/notes/update-research.md`:
+  official docs (dnf5 + its actions plugin, `dnf system-upgrade`, rpm, snapper, grub-btrfs,
+  btrfs, systemd, Fedora release notes and upgrade guides, Fedora's known-issues), how others
+  solve it (openSUSE transactional-update + snapper rollback, Fedora Atomic/bootc/rpm-ostree,
+  Universal Blue/Bazzite, NixOS generations, Arch snap-pac/timeshift-autosnap, ABRoot …), their
+  repos and bug trackers, and real failure stories (Fedora Discussion, Reddit, forums, GitHub
+  issues): what goes wrong in practice and why automated updaters end up useless.
+- **A written design first** (`.claude/notes/update-design.md`): every failure mode and its
+  answer — power loss or crash mid-transaction, network drop, disk full, rpmdb damage, a kernel
+  or initramfs that will not boot, **/boot outside the Btrfs root** (a root rollback must not
+  leave kernels and modules mismatched — handle it), SELinux relabels, firmware, third-party
+  repos (RPM Fusion, Steam, Brave, Claude Code) lagging a release, the AI fixer making things
+  worse, a rollback of a rollback, /home vs / snapshots, space for snapshots. Argue against it
+  as a skeptic; fix the design until no case is left open.
+- **Prove every failure mode in the VM** by injecting it (cut power mid-update, fill the disk,
+  break a package, break the boot, kill the network), and keep those tests as `tools/` scripts.
+  It is done only when every injected failure ends in a working system and a clear message.
+
 **One design, one unit (20:08 — top priority with the design work):** **Super+U is fully
 redesigned** — its structure, sections (system/update/snapshots/backups/learning …), states,
 spacing and art — rock solid. Then **every menu and popup is redesigned to match**: quick
