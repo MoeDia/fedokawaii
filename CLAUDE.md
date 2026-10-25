@@ -334,6 +334,11 @@ network with a clear message; nothing ever asks twice. Prove it end to end in th
 runs, wiped disks, slow network, a reboot pulled mid-install), measure install time, keep the
 build reproducible (`tools/build-iso.sh`), and put the ISO and its checksum in a GitHub release.
 Never run it on his real disk.
+The ISO is **fully themed** too, as one piece with the desktop: boot menu, splash, the
+question screens, progress and every message — minimal, retro-Japanese pixel style, both the
+craft and the calm of Omarchy's installer or better. All of this is part of the same
+unattended run started by `tools/start.sh`: zero help from him, take hours or days, be precise
+and slow, spend tokens carefully — and deliver the best possible result.
 
 **One design, one unit (20:08 — top priority with the design work):** **Super+U is fully
 redesigned** — its structure, sections (system/update/snapshots/backups/learning …), states,
