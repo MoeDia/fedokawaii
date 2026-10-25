@@ -18,9 +18,22 @@ case ${1:-start} in
   start)  ;;
   *) echo "usage: bash tools/start.sh [stop|status]" >&2; exit 2 ;;
 esac
-command -v claude >/dev/null || { echo "start: claude is not installed" >&2; exit 1; }
-sudo -n true 2>/dev/null || { echo "start: passwordless sudo is not set up yet — run the sudoers line first (see CLAUDE.md, START)" >&2; exit 1; }
+command -v claude >/dev/null || { echo "start: claude is not installed (fedokawaii repair puts it back)" >&2; exit 1; }
+# 1. sudo for the run, asked once (your password, typed by you, here): the run removes it at its end
+if ! sudo -n true 2>/dev/null; then
+  echo "▸ your password, once — the run needs sudo while it works and removes this rule at the end"
+  echo "$USER ALL=(ALL) NOPASSWD: ALL" | sudo tee /etc/sudoers.d/90-claude-temp >/dev/null
+  sudo chmod 440 /etc/sudoers.d/90-claude-temp
+fi
+sudo -n true || { echo "start: sudo is still not passwordless — nothing started" >&2; exit 1; }
 loginctl show-user "$USER" -p Linger | grep -q yes || sudo loginctl enable-linger "$USER"
+# 2. Claude Code signed in? (a one-line test; if not: sign in now, then /exit)
+if ! timeout 120 claude -p "Reply with the single word OK." 2>/dev/null | grep -q OK; then
+  echo "▸ Claude Code needs you to sign in once: it opens now — sign in, then type /exit"
+  claude
+  timeout 120 claude -p "Reply with the single word OK." 2>/dev/null | grep -q OK \
+    || { echo "start: Claude Code still does not answer — nothing started" >&2; exit 1; }
+fi
 mkdir -p "$HOME/.config/systemd/user" "${log%/*}"
 cat >"$HOME/.config/systemd/user/$unit" <<UNIT
 [Unit]
@@ -40,4 +53,13 @@ WantedBy=default.target
 UNIT
 systemctl --user daemon-reload
 systemctl --user enable --now "$unit"
-echo "started — watch it with: tail -f $log"
+# 3. it really runs: a pass has begun and Claude is working
+for _ in $(seq 1 30); do
+  systemctl --user is-active -q "$unit" && grep -q '=== pass' "$log" 2>/dev/null && pgrep -u "$USER" -f 'claude -p START' >/dev/null && break
+  sleep 2
+done
+if systemctl --user is-active -q "$unit" && pgrep -u "$USER" -f 'claude -p START' >/dev/null; then
+  echo "✔ round 27 is running on its own — through restarts and reboots — until it is done. You can go."
+else
+  echo "✘ it did not start — the last lines of $log:" >&2; tail -n 15 "$log" >&2; exit 1
+fi

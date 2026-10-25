@@ -251,13 +251,12 @@ On "START" (each pass):
    him at the top of the ledger (what changed, what to look at, numbers before/after); then
    `touch .claude/DONE` (the loop ends). The books wait for his word — leave that task open.
 
-**What the owner does, A to Z** (also given to him in chat):
-1. Log in to the desktop as usual; open a terminal (Super+Enter).
-2. `cd ~/repos/fedokawaii && git fetch && git reset --hard origin/main`
-3. `claude` — sign in if asked, accept "trust this folder", then `/exit`.
-4. `echo "dia ALL=(ALL) NOPASSWD: ALL" | sudo tee /etc/sudoers.d/90-claude-temp && sudo chmod 440 /etc/sudoers.d/90-claude-temp` (his password, once)
-5. `bash tools/start.sh` — then leave. Watch: `tail -f ~/.cache/claude-r27.log`;
-   stop: `bash tools/start.sh stop`; check: `bash tools/start.sh status`.
+**What the owner does — once, then never again** (he will not watch logs or check on you):
+log in, open a terminal (Super+Enter), run
+`cd ~/repos/fedokawaii && git fetch -q && git reset -q --hard origin/main && bash tools/start.sh`,
+type his password once when asked (and sign in to Claude Code only if it asks), wait for
+"✔ round 27 is running", leave. Everything after that — restarts, reboots, limits, recovery —
+is yours. (`bash tools/start.sh status|stop` exist, but do not count on him using them.)
 
 ## Design: an artwork
 He cares about the design more than anything: accuracy, beauty, alignment, spacing, motion.
