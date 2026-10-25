@@ -148,6 +148,10 @@ brightness): not a plain rectangle, alive — turning red when high. Re-measure 
 done items struck through; no reminders, no dates, nothing else. And a **design coherence pass
 over everything**, above all the menus (quick settings, Super+W, Super+U, Super+V, every
 popup): one colour use, one frame, one spacing and alignment grammar, one philosophy.
+And a **rigorous performance test** of the whole desktop at the end of the round: frame times
+measured inside dwl (not via screen recording) during heavy real use across many apps, every
+animation's frames checked at 144 Hz, input-to-screen latency for keys, menus and the bar,
+app start times, RAM/CPU/GPU tracked, crashes hunted; numbers before and after in the ledger.
 
 **Also**: RAM caching of apps (preload aggressively; most RAM is idle); Super+/ much more
 comprehensive, fuzzy search, context-aware (shows the active TUI app's keys first — detect the
