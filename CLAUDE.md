@@ -211,40 +211,63 @@ Best possible result, fewest tokens; time does not matter (30 hours is fine).
    ledger updated after each task so a /compact or a new session resumes from the files.
 5. **The owner is not needed.** He types START and goes about his day (see START below).
 
-## START — the owner types `START` and leaves; you run to the end without stopping
-He launched you as `claude --dangerously-skip-permissions --model opus --effort max` inside
-this repo, after the one-time setup below. When he types START:
+## START — one command, then you run to the end on your own
+The owner runs `bash tools/start.sh` and leaves. That installs a user service (survives
+session restarts **and reboots**: linger starts it at boot) which runs
+`claude -p START --dangerously-skip-permissions --model opus --effort max` in a loop
+(`tools/claude-loop.sh`) until `.claude/DONE` exists. Each pass is a fresh session: **all
+state lives in the repo** — `.claude/plan.md`, the ledger, git. Log: `~/.cache/claude-r27.log`.
+On "START" (each pass):
 1. If `.claude/plan.md` does not exist: spawn the planner (Agent, model `fable`, effort `max`)
-   to write it as described above; read it; critique it once yourself; fix it.
-   If it exists: resume at the first task not marked done (the ledger says where you were).
-2. Work the plan task by task until **every** task is done and verified, then the performance
-   test, then the final report in the ledger. **Never end your turn early, never ask a
-   question, never wait for him.** Every decision is yours (his taste section guides it).
-   If something is blocked, choose the best alternative, write why in the ledger, move on.
-3. **Keep the machine usable for testing:** hold an idle inhibitor for the whole run
-   (`systemd-inhibit --what=idle --who=claude --why=round27 sleep infinity &`, kill it at the
-   end) so the saver/lock never comes up while you work — you can never unlock it.
-   If the lock is up anyway (he locked it), do headless work until he is back.
-4. **A new dwl in the live session:** `sudo` is passwordless for this run (setup below). Save
-   his work first (nothing of his open is to be lost: check foot/nvim/Brave windows; if an
-   unsaved editor is open, wait and do other tasks), then restart the session the greetd way:
-   back up `/etc/greetd/fedokawaii.toml`, append
-   `[initial_session]` / `command = "/usr/local/bin/start-dwl"` / `user = "dia"`,
-   `rm -f /run/greetd.run; systemctl restart greetd`, wait 9 s, restore the file.
-5. **Commit and push** after each finished task (small commits, clear messages). Update the
-   ledger after each task, so a crash, a usage-limit pause or a /compact loses nothing: if the
-   session ends, he types START again and you continue from the files.
-6. **At the very end:** run the full test suite and `fedokawaii verify`; release the idle
-   inhibitor; remove `/etc/sudoers.d/90-claude-temp`; write a short summary for him at the
-   top of the ledger (what changed, what to look at, numbers before/after); stop.
-   The Learn/Guide books are rebuilt only when he says so — leave that task open.
+   to write it as described above; read it; critique it hard; fix it; commit.
+   Otherwise resume at the first task not marked done.
+2. Work the plan task by task; never ask, never wait; every decision is yours (his taste
+   section). Blocked → best alternative, why in the ledger, move on. End a pass only at a clean
+   point (task committed, ledger updated) — the loop starts the next pass at once. A pass that
+   changes nothing three times in a row stops the loop, so never end a pass without progress.
+3. **Idle inhibitor** for the whole run, so the saver/lock never comes up (you can never unlock
+   it): `systemd-run --user --unit=r27-inhibit systemd-inhibit --what=idle --who=claude --why=round27 sleep infinity`
+   (start it if `systemctl --user is-active r27-inhibit` says no). If the lock is up anyway,
+   work headless until the session is back.
+4. **The live session** (WAYLAND env from `/proc/$(pgrep -x waybar)/environ`). To load a new dwl
+   or after a reboot: never with a password — check nothing of his is unsaved (if an editor
+   with changes is open, do other tasks first), then: back up `/etc/greetd/fedokawaii.toml`,
+   append `[initial_session]` / `command = "/usr/local/bin/start-dwl"` / `user = "dia"`,
+   `sudo rm -f /run/greetd.run; sudo systemctl restart greetd`, wait 9 s, restore the file.
+   Before a **reboot**, leave that `[initial_session]` in place and restore the file after the
+   session is up again (the service resumes you at boot).
+5. Commit and **push** after each finished task; ledger updated after each task.
+6. **Design is the heart of this round** (see "Design: an artwork" below).
+7. **After the plan is done:** (a) a **research round** — go to the official docs and upstream
+   sources of everything touched (dwl/wlroots, foot, waybar, gtklock, greetd, plymouth, yazi,
+   mako, pipewire, Steam, FireAlpaca, OpenRGB, Stockfish, Fedora 44 notes …), find what you
+   missed or did against the grain, fix it; (b) **maniac testing**: every app, menu, key,
+   combination and edge case, both themes, aggressive load, try to crash everything; reboots
+   (`sudo systemctl reboot`, as in 4) and a cold boot — power-off test last of all, with
+   `sudo rtcwake -m off -s 180` so the PC powers itself back on (only after everything is
+   pushed: if it does not come back, nothing is lost); (c) the performance test; fix all found;
+   (d) full test suite + `fedokawaii verify`; push.
+8. **Finish:** stop the inhibitor; `sudo rm /etc/sudoers.d/90-claude-temp`; a short summary for
+   him at the top of the ledger (what changed, what to look at, numbers before/after); then
+   `touch .claude/DONE` (the loop ends). The books wait for his word — leave that task open.
 
-**One-time setup he does before typing START** (also in his chat):
-```
-cd ~/repos/fedokawaii && git fetch && git reset --hard origin/main
-echo "dia ALL=(ALL) NOPASSWD: ALL" | sudo tee /etc/sudoers.d/90-claude-temp && sudo chmod 440 /etc/sudoers.d/90-claude-temp
-claude --dangerously-skip-permissions --model opus --effort max
-```
+**What the owner does, A to Z** (also given to him in chat):
+1. Log in to the desktop as usual; open a terminal (Super+Enter).
+2. `cd ~/repos/fedokawaii && git fetch && git reset --hard origin/main`
+3. `claude` — sign in if asked, accept "trust this folder", then `/exit`.
+4. `echo "dia ALL=(ALL) NOPASSWD: ALL" | sudo tee /etc/sudoers.d/90-claude-temp && sudo chmod 440 /etc/sudoers.d/90-claude-temp` (his password, once)
+5. `bash tools/start.sh` — then leave. Watch: `tail -f ~/.cache/claude-r27.log`;
+   stop: `bash tools/start.sh stop`; check: `bash tools/start.sh status`.
+
+## Design: an artwork
+He cares about the design more than anything: accuracy, beauty, alignment, spacing, motion.
+The goal is work that would impress millions — an artwork. Spend the time. For every visual
+change: sketch alternatives, render them (both themes, real fonts, at 1× and zoomed), measure
+every gap and edge in pixels, compare against the design system and the rest of the desktop,
+then **grill it**: list everything an exacting art director would criticise, fix it, render
+again; repeat until nothing is left to criticise. Animations: inspect frame by frame at 144 Hz
+(timing curve, overshoot, every intermediate frame clean, no tearing or stray pixels).
+Keep `docs/design-system.md` the single truth and update it as the design grows.
 
 ## Notes folder
 `.claude/notes/02-LEDGER.md` (all past requests and status — continue it as r27-N lines),
