@@ -340,6 +340,40 @@ craft and the calm of Omarchy's installer or better. All of this is part of the 
 unattended run started by `tools/start.sh`: zero help from him, take hours or days, be precise
 and slow, spend tokens carefully — and deliver the best possible result.
 
+**Fonts — a new selection, decided by you (2026-10-26 00:46; replaces the Sumi faces):** he
+looked closely and finds the current font ugly. Choose the whole set yourself, coherent as one
+family of choices:
+- **UI** (bar, menus, notices, lock, greeter, saver, ISO): Japanese-retro, cool, but genuinely
+  readable, with **no letter-spacing problems at all** (every pair, digits and symbols, Latin
+  and Japanese). Research current options from their official sources (pixel and bitmap
+  families with Japanese coverage, e.g. DotGothic16, PixelMplus, Zpix, Fusion Pixel, Misaki,
+  k8x12 — verify each: licence, glyph coverage, sizes it is drawn for, hinting) and render the
+  candidates in our real surfaces before choosing.
+- **Terminal, Neovim, TUIs**: a professional-grade coding font with Nerd Font glyphs and
+  Japanese coverage that reads well for long work (he named "Fira Code"; also weigh e.g.
+  PlemolJP, HackGen, Moralerspace, Maple Mono, JetBrains Mono, Iosevka — verify each), tuned
+  for 1080p (size, hinting, ligatures on/off, line height), fitting the UI font.
+- The earlier "UI 14 / terminal 16 px" decision becomes: **a little smaller than today, more on
+  screen**, at whatever sizes the chosen faces are drawn/hinted best. Rework every width table,
+  icon size and layout that depended on the old cells; our icon font keeps working with the new
+  faces. Refine until it looks right everywhere it appears.
+
+**RGB, all in our red, and the keyboard too (00:46):** every light — case fans, CPU cooler and
+its display, the GPU logo, and his **Redragon K617 Fizz** keyboard — set to our red palette
+with one tasteful, slow, matching motion (e.g. a dim ember breathe, synced across devices),
+and following dark/light if that looks good. K617: use OpenRGB if it supports it (check its
+current device list); if not, write the driver: identify its USB IDs, capture the vendor
+software's HID protocol (e.g. Redragon's Windows tool in a VM with USB passthrough, usbmon /
+Wireshark on the host), implement it (OpenRGB plugin/device or our own small tool), restore
+on boot and resume. No excuses — a full solution.
+
+**Monitor — LG 24G411A-B (00:46):** in the performance review, prove **FreeSync/VRR really
+works** (EDID range, `vrr_capable`, dwl's adaptive sync on, the refresh actually varying in a
+game/video), and use an **optimised colour profile**: research this exact model's panel and
+measured settings (reviews, LG's own specs), set the best OSD recommendations in the Learn
+piece, and apply a correct profile/LUT through dwl's gamma path if it improves accuracy —
+measured, not guessed.
+
 **One design, one unit (20:08 — top priority with the design work):** **Super+U is fully
 redesigned** — its structure, sections (system/update/snapshots/backups/learning …), states,
 spacing and art — rock solid. Then **every menu and popup is redesigned to match**: quick
