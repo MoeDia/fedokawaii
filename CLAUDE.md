@@ -188,6 +188,28 @@ app start times, RAM/CPU/GPU tracked, crashes hunted; numbers before and after i
 comprehensive, fuzzy search, context-aware (shows the active TUI app's keys first — detect the
 app in the focused foot); performance and visual bug hunt everywhere.
 
+## How round 27 is run (owner's choice, 2026-10-25)
+Best possible result, fewest tokens; time does not matter (30 hours is fine).
+1. **First prompt (planner, max effort):** read this file, the notes and the code that matters;
+   write `.claude/plan.md` — every item above as a numbered task with: files touched, approach,
+   acceptance test (how it is measured/verified on the PC), dependencies, and which model does
+   it. Order: foundations that move everything first (font sizes 14/16 px, bar 27 px, palette),
+   then the design-coherence pass and the bar, then lock/animations/art, then apps (notes,
+   to-do, yazi, Super+/, chess, typing, FireAlpaca, RGB), then bugs left, the performance test,
+   and the books last (on his word).
+2. **Then the main agent works the plan** one task at a time, and keeps all design-critical and
+   cross-cutting work (bar, animations, lock, dwl, design pass) for itself.
+3. **Subagents only for well-fenced grunt work** (writing/updating tests, research digests,
+   chess curriculum content, icon drafts, package/driver investigation): one at a time (no
+   parallel agents on the same files), a tight brief naming exact files and the acceptance
+   test, told to read only what it needs and return a short result; cheaper models for
+   mechanical work. The main agent verifies every result itself before marking it done.
+4. **Token discipline:** long output to files, never into the context; reusable test scripts
+   kept in `tools/` (headless dwl runs, frame logs, analysers) instead of retyping them; the
+   ledger updated after each task so a /compact or a new session resumes from the files.
+5. **The owner is needed for:** `sudo` (his password — never yours), logging in again after a
+   dwl rebuild, and judging looks. Batch those moments; tell him exactly what to do.
+
 ## Notes folder
 `.claude/notes/02-LEDGER.md` (all past requests and status — continue it as r27-N lines),
 `round27-owner-notes.md` (his words), `00-README.md`/`03-LOG.md` (history of how things were
