@@ -393,12 +393,6 @@ or the VM and add the checks to verify.
 for 5 seconds, the monitors turn off; any key or move lights them again straight onto the lock
 (no extra wake press lost, no flicker).
 
-**Windows games, legally (01:48):** a small TUI for his own Windows games from legitimate
-stores (GOG offline installers, itch.io, Epic via legendary/Heroic …): check the game on
-ProtonDB before buying/installing, run its installer under Proton (umu-launcher), add the
-result to Steam as a non-Steam game with the right Proton version. (He asked for a FitGirl
-repack downloader; that is a piracy source and is not to be built.)
-
 **One design, one unit (20:08 — top priority with the design work):** **Super+U is fully
 redesigned** — its structure, sections (system/update/snapshots/backups/learning …), states,
 spacing and art — rock solid. Then **every menu and popup is redesigned to match**: quick
