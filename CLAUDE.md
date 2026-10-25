@@ -249,7 +249,7 @@ guard rebuilding dwl, private wlroots, verify) and close every gap:
 
 **Self-maintaining updates, no AI, no tokens** (added 19:56 — core): updates run and repair
 themselves with plain deterministic tooling, he never has to step in:
-- A weekly systemd timer, at an idle hour, on AC/online only: snapshot → `dnf upgrade` → verify
+- (superseded by the FINAL decision below: one click, no timer) snapshot → `dnf upgrade` → verify
   → session start check (headless dwl smoke test) → keep, or roll back.
 - **Hold the culprit:** on a failure, roll back, then find the package(s) that broke it by
   bisection (update halves of the set, verify each), `dnf versionlock` just those, apply the
@@ -272,6 +272,33 @@ verify green → kept and reported, red → rolled back. No cloud, no keys, no c
 Research current models and runtimes from official sources at the time; pick by measured
 results, not by name. Prove it in the VM with injected breakages of growing difficulty and
 report honestly what it can and cannot fix; if it cannot beat "hold and wait", leave it out.
+
+**FINAL decision on updates (20:05 — overrides the two sections above where they differ):**
+- He will **never run dnf himself** — no updates, no installs outside this system. Everything
+  goes through **one item in Super+U: "update"**. He clicks it; it does everything A to Z and
+  he never has to step in: snapshot → refresh → update (packages, Flatpaks/tools we ship, nvim
+  plugins pinned via lock, firmware listed) → verify → desktop smoke test → keep, or roll back →
+  hold the culprit by bisection → **local AI fixer** (below) → retry → a short, clear report.
+  Release upgrades are part of the same button once the VM pre-flight is green.
+  No background auto-updates (his choice); a quiet notice when updates have waited 2+ weeks
+  or a release is near EOL.
+- **The local AI fixer is required, not optional** — he will depend on it. His card is the
+  **16 GB** RX 9060 XT: choose runtime + model by official sources and measurement on this
+  card (ROCm vs Vulkan, quantisation, context size, speed), install it via the installer,
+  runs fully offline, loads only during an update run (no RAM/VRAM held otherwise). Prove it
+  in the VM with a graded set of injected breakages, fix its weaknesses (better prompts,
+  structured context: failing check + logs + package diff + config schema docs), and test
+  until it is dependable; whatever it still cannot fix ends safely in "held + told".
+- **Snapshots, backups, rollback, Btrfs — simplified and hardened**: one clear model he can
+  understand (snapshot = undo on this disk, backup = copy on another drive), automatic
+  snapshots before every update and on a sane schedule with cleanup, rollback of the whole
+  system from Super+U and from the boot menu (grub-btrfs) even when the desktop will not start,
+  restore of single files, the backup drive flow, all in Super+U with few, obvious choices.
+  Harden: scrub, space checks, read-only snapshot boots, nothing that can leave him unbootable.
+  Test every path in the VM (including a deliberately broken boot).
+- **Learning section**: a thorough, clear piece explaining all of it — what update does step by
+  step, what the AI fixer can and cannot do, snapshots vs backups, how to roll back from the
+  menu and from the boot menu, what to do if a notice asks for him.
 
 **Also**: RAM caching of apps (preload aggressively; most RAM is idle); Super+/ much more
 comprehensive, fuzzy search, context-aware (shows the active TUI app's keys first — detect the
