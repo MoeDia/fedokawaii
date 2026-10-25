@@ -320,6 +320,21 @@ easily, everything stays current, and it actually works when it matters. Before 
   break a package, break the boot, kill the network), and keep those tests as `tools/` scripts.
   It is done only when every injected failure ends in a working system and a clear message.
 
+**The last phase: a real installer ISO (20:17)** — only after everything above is tested
+ruthlessly and solid. One bootable `.iso`, like Omarchy's: boot it, answer the bare minimum
+(user, password, disk, maybe hostname/timezone/keyboard), and it installs the **newest stable
+Fedora at install time** and the whole fedokawaii system to a finished, working desktop — no
+other step. First study how Omarchy's ISO works from its own repo and docs (and how Fedora
+builds custom media: Kickstart, `mkksiso`, lorax/livemedia-creator, Anaconda text mode,
+Secure Boot with the signed shim), then design ours: our own minimal, on-theme first screen
+for the questions; Kickstart doing the base install (UEFI, GPT, Btrfs layout we rely on);
+setup + theme running unattended to the end, through their reboots, with clear progress on
+screen and a final "ready" with the login screen. Checks: it refuses a too-small disk or no
+network with a clear message; nothing ever asks twice. Prove it end to end in the VM (several
+runs, wiped disks, slow network, a reboot pulled mid-install), measure install time, keep the
+build reproducible (`tools/build-iso.sh`), and put the ISO and its checksum in a GitHub release.
+Never run it on his real disk.
+
 **One design, one unit (20:08 — top priority with the design work):** **Super+U is fully
 redesigned** — its structure, sections (system/update/snapshots/backups/learning …), states,
 spacing and art — rock solid. Then **every menu and popup is redesigned to match**: quick
