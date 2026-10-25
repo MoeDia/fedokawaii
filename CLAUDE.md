@@ -42,7 +42,17 @@ So: when a choice is open, pick the bolder, more crafted, more alive option that
 consistent with the design system and costs no performance; propose and build small delights
 he did not ask for (in the same spirit), list them in the ledger as r27-extra so he can veto.
 
+## Facts: verified, current, from the source — never from memory
+Your training data is old and has been wrong here (a past session claimed FireAlpaca had no
+Linux build; it has an official one — firealpaca.com/download). So: **before any claim or
+decision about software, hardware, versions, features, support or limits, check the official
+source now** — the project's own site, docs, release notes, repository, man page, or the
+installed program itself (`--help`, `--version`, `rpm -qi`, `dnf info`). Prefer primary sources
+(vendor, upstream, Fedora) over blogs and forums; for teaching material, published books and
+recognised authorities. Never write "X doesn't exist / isn't supported" without having looked.
+Note the source (URL or command) in the ledger next to each such decision.
 
+## Security (hard rules)
 - Never type, store or repeat any password; never unlock his lock screen. (Restarting his session
   for a new dwl is allowed — see START below — but never by typing a password.)
 - API keys only in `~/.config/fedokawaii/secrets.sh` (mode 600).
@@ -154,8 +164,12 @@ Read the raw notes in full; this is the digest plus his answers (asked 2026-10-2
   it (keep `fedokawaii-guide.md` in the repo only as the technical reference). The learning
   material is just: the Learn pieces, chess, typing.
 - Drawing: **FireAlpaca has an official Linux build** (2.16.3, firealpaca.com/download — Fedora
-  36+); theme it, launcher entry, XP-Pen with pressure; prove its upsides over Xournal++ first;
-  guide in the Learn book.
+  36+); launcher entry, XP-Pen with pressure; prove its upsides over Xournal++ first; guide in
+  the Learn book. **Its looks matter enormously** (added 19:47): customise it to the limit —
+  colours, palettes, UI skin/theme files, fonts where it allows, panels laid out minimal and
+  smart (only what he needs visible, the rest one key away), brushes and canvas defaults, both
+  themes (follow the dark/light switch) — so it looks like it was born in this desktop. Find
+  out from FireAlpaca's own files/docs what it can be themed with; patch or wrap what it cannot.
 - RGB: write it all yourself — OpenRGB where supported, reverse-engineer/drivers otherwise:
   darkFlash case fans (+ hub, connection unknown — find out: `lsusb`, `dmidecode -t baseboard`,
   i2c), Jungle Leopard CPU cooler (incl. its display), Gigabyte 9060 XT logo RGB.
