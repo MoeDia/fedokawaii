@@ -230,6 +230,23 @@ cost more than they give). Finally **harden and optimise the repo once more**: d
 duplication folded into `lib/`, ShellCheck clean, every script's errors handled, tests for
 every path, `fedokawaii selftest --sandbox` clean.
 
+**Update-proof, for good** (added 19:51 — core): he must be able to run the normal update
+(`fedokawaii update`, dnf, Fedora releases later) for years without his configs, theme or
+desktop breaking. Build on what exists (snapshot before every dnf transaction, the after-dnf
+guard rebuilding dwl, private wlroots, verify) and close every gap:
+- **Snapshot → update → verify → automatic rollback** if verify (or the session starting) fails,
+  with a clear notice; never leave him on a broken desktop.
+- **Pin or vendor what breaks between versions** (dwl + wlroots already; check yazi, waybar,
+  foot, mako, gtklock + its module ABI, greetd, cava, nvim plugins via lazy-lock.json, Steam
+  bits …): either pinned to a tested version, or its config validated against the new version
+  (each program's own config check, e.g. `--check`/dry run) before the switch.
+- **Configs owned by theme.sh, his own settings kept apart** (fedokawaii.conf, secrets.sh,
+  *.local overrides), so an update re-applies the theme without touching his choices.
+- **Prove it:** in the VM, install, then apply every pending Fedora update and the next
+  release's packages where possible (Fedora 45 / rawhide repos), and show the desktop still
+  starts and verify stays green; keep that as a repeatable test (`tools/`), and document in the
+  Learn pieces what to do in the rare case an update needs him.
+
 **Also**: RAM caching of apps (preload aggressively; most RAM is idle); Super+/ much more
 comprehensive, fuzzy search, context-aware (shows the active TUI app's keys first — detect the
 app in the focused foot); performance and visual bug hunt everywhere.
