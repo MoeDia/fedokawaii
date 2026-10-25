@@ -370,8 +370,10 @@ on boot and resume. No excuses — a full solution.
 **Monitor — LG 24G411A-B (00:46):** in the performance review, prove **FreeSync/VRR really
 works** (EDID range, `vrr_capable`, dwl's adaptive sync on, the refresh actually varying in a
 game/video), and use an **optimised colour profile**: research this exact model's panel and
-measured settings (reviews, LG's own specs), set the best OSD recommendations in the Learn
-piece, and apply a correct profile/LUT through dwl's gamma path if it improves accuracy —
+measured settings (reviews, LG's own specs), **set the monitor's own menu settings yourself over DDC/CI** (ddcutil, already
+used for brightness: read its capabilities, its VCP codes incl. LG's own, set picture mode,
+colour temperature/gains, contrast, sharpness, FreeSync/response options where exposed; re-apply
+at boot/wake; he does nothing — the Learn piece only explains what was set and why), and apply a correct profile/LUT through dwl's gamma path if it improves accuracy —
 measured, not guessed.
 
 **One design, one unit (20:08 — top priority with the design work):** **Super+U is fully
