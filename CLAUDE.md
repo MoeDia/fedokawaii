@@ -263,6 +263,16 @@ themselves with plain deterministic tooling, he never has to step in:
   installer, tested in the VM (inject a deliberately broken package to prove bisect + lock +
   rollback), and a Learn piece explaining it in one page.
 
+**A free AI fixer on top, $0** (added 20:00): when the deterministic layer above can only hold
+a package back (a renamed config option, a changed default, an EOL deadline), a **local
+open-weight model on his own GPU** (RX 9060 XT — check its VRAM; llama.cpp/Ollama with ROCm or
+Vulkan, whichever the official docs and a measurement say is best on this card) gets the failing
+check, the log and the diff, proposes a fix, and the fix is tried **only inside the snapshot**:
+verify green → kept and reported, red → rolled back. No cloud, no keys, no cost but power.
+Research current models and runtimes from official sources at the time; pick by measured
+results, not by name. Prove it in the VM with injected breakages of growing difficulty and
+report honestly what it can and cannot fix; if it cannot beat "hold and wait", leave it out.
+
 **Also**: RAM caching of apps (preload aggressively; most RAM is idle); Super+/ much more
 comprehensive, fuzzy search, context-aware (shows the active TUI app's keys first — detect the
 app in the focused foot); performance and visual bug hunt everywhere.
