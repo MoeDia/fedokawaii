@@ -376,6 +376,29 @@ colour temperature/gains, contrast, sharpness, FreeSync/response options where e
 at boot/wake; he does nothing — the Learn piece only explains what was set and why), and apply a correct profile/LUT through dwl's gamma path if it improves accuracy —
 measured, not guessed.
 
+**Never again (01:48):** not one issue he ever reported may come back. Turn every ledger item
+(r24 → r27, including the bar growing, flickers, the saver, menus needing a click, spacing,
+the boot splash …) into an automated **regression check** — a test in `tests/` or a headless
+visual check in `tools/` — run them all before every push and at the end, and keep them in
+the installer's selftest so they guard every future update too.
+
+**Network security, rock solid (01:48):** nothing reachable from outside that he does not use.
+Audit and harden from official docs: firewalld default-deny inbound (only what a feature truly
+needs, LAN-only), sshd keys-only or off, every local service (Prowlarr, torrent client, portals,
+Syncplay …) bound to localhost or the LAN only, kernel network sysctls, IPv6 parity, no
+UPnP surprises, DNS privacy if it costs nothing; verify with a port scan from another machine
+or the VM and add the checks to verify.
+
+**Lock → screens off after 5 s (01:48):** when the lock screen is showing and nothing happens
+for 5 seconds, the monitors turn off; any key or move lights them again straight onto the lock
+(no extra wake press lost, no flicker).
+
+**Windows games, legally (01:48):** a small TUI for his own Windows games from legitimate
+stores (GOG offline installers, itch.io, Epic via legendary/Heroic …): check the game on
+ProtonDB before buying/installing, run its installer under Proton (umu-launcher), add the
+result to Steam as a non-Steam game with the right Proton version. (He asked for a FitGirl
+repack downloader; that is a piracy source and is not to be built.)
+
 **One design, one unit (20:08 — top priority with the design work):** **Super+U is fully
 redesigned** — its structure, sections (system/update/snapshots/backups/learning …), states,
 spacing and art — rock solid. Then **every menu and popup is redesigned to match**: quick
