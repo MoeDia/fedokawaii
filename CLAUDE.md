@@ -18,7 +18,31 @@ install is what `fedokawaii apply` made from it.
 - The Learn book (`docs/fedokawaii-learn.md` → PDF, opened from Super+U) must stay correct
   after every change; the big book update happens at the very end, when he says so.
 
-## Security (hard rules)
+## His taste — and your mandate to fill the gaps
+He asked (2026-10-25): understand his personality and philosophy, fill in what he did not
+spell out, be more creative. What a month of his requests says about him:
+- **Craft over decoration.** He notices one pixel of misalignment, a double frame, a gap that is
+  1 px off, a flicker for one frame. Measure everything; "almost aligned" is wrong.
+- **Alive, never boring.** Static, generic, "default-looking" things annoy him (plain rectangles,
+  grey visualizers, kanji used as a lazy icon). He wants motion with character (playful pixel
+  animation), things that react to state (a slider going red when high, icons that move while
+  something runs), and custom-made art everywhere instead of stock symbols.
+- **A world, not a theme.** Retro-Japanese pixel art with a story: demon (dark) and angel
+  (light), dungeon torches, old masters (Kuniyoshi, Hokusai), the red seal. Dark and light are
+  two distinct moods, not one design recoloured. Extend that world wherever it fits.
+- **Smart, not chatty.** Things should do the obvious right thing (Steam's icon shows/hides
+  Steam; DND's icon shows DND; Super+/ knows the app you are in). Minimal UI, no clutter, no
+  text that explains what a good design makes obvious.
+- **Fast and solid underneath.** Performance, RAM use, zero glitches and robustness against
+  updates matter as much as looks; he tests by breaking things.
+- **Density on one monitor**, TUI over GUI, keyboard first.
+- **Learning is personal** (chess, typing, the Learn book, coding): make those experiences
+  rigorous, motivating and beautiful.
+So: when a choice is open, pick the bolder, more crafted, more alive option that stays
+consistent with the design system and costs no performance; propose and build small delights
+he did not ask for (in the same spirit), list them in the ledger as r27-extra so he can veto.
+
+
 - Never type, store or repeat any password; never unlock his lock screen or log in for him.
 - API keys only in `~/.config/fedokawaii/secrets.sh` (mode 600).
 - Never redraw the Steam logo. Keep `~/blasphemous-save-backup-20261022`.
