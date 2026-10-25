@@ -132,6 +132,23 @@ Read the raw notes in full; this is the digest plus his answers (asked 2026-10-2
 - **A full typing app** (TUI, same Learning section) modelled on EdClub/TypingClub — reverse-
   engineer how it teaches quickly; **English, 100+ WPM** target; proper speed (WPM) and accuracy
   measurement; test it rigorously.
+- **Learning, done properly** (added 19:41): chess and typing apps tested to destruction —
+  every screen, key, window size, both themes, odd input, interrupted lessons, resume after a
+  reboot — beautiful and fully working everywhere. Ground both in deep research from reputable
+  sources, cited in the apps' docs: chess — the Steps Method (Brunia & van Wijgerden), Yusupov's
+  *Build Up Your Chess*, Heisman's *Everyone's 2nd Chess Book*, Chernev's *Logical Chess: Move
+  by Move*, Seirawan's *Winning Chess* series, Silman's *Complete Endgame Course*, Polgár's
+  *Chess: 5334 Problems*, the Woodpecker Method, chess.com's own lessons; typing — EdClub /
+  TypingClub's progression, keybr's adaptive letters, deliberate-practice research (Ericsson),
+  accuracy-first touch typing, standard WPM (5 characters a word) and accuracy as Monkeytype
+  measures them. Minimal, alive, on theme.
+- **The Learning section of Super+U**: the Learn book **cut into ordered pieces** — short
+  lessons he does one by one, in the sequence that teaches best (dependencies first), each
+  with its place shown (lesson n of N, done ✓), beautifully organised and following the
+  alignment/spacing/theme rules — next to the chess and typing apps. **The old Guide PDF goes:**
+  delete `docs/Fedokawaii-Guide.pdf` and its build and every menu entry or test that points to
+  it (keep `fedokawaii-guide.md` in the repo only as the technical reference). The learning
+  material is just: the Learn pieces, chess, typing.
 - Drawing: **FireAlpaca has an official Linux build** (2.16.3, firealpaca.com/download — Fedora
   36+); theme it, launcher entry, XP-Pen with pressure; prove its upsides over Xournal++ first;
   guide in the Learn book.
