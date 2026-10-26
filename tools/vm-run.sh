@@ -18,6 +18,8 @@ SSH=(ssh -q -o BatchMode=yes -o StrictHostKeyChecking=no -o UserKnownHostsFile=/
 case $1 in
   --repo)
     src=${2:-$(cd "$(dirname "$0")/.." && pwd)}
+    # (a Minimal Install has no tar: the README's first command puts it there, as here)
+    "${SSH[@]}" 'command -v tar >/dev/null || sudo dnf install -y -q tar >/dev/null' || exit 1
     # (tracked files, from the working tree: what apply would take, uncommitted edits included)
     git -C "$src" ls-files -z | tar -C "$src" --null -T - -cf - \
       | "${SSH[@]}" 'rm -rf ~/fedokawaii && mkdir -p ~/fedokawaii && tar -C ~/fedokawaii -xf -' ;;
