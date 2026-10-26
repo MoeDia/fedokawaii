@@ -174,6 +174,13 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   mappings, the top frame was enough); a kernel panic would leave nothing → efi_pstore (built in,
   off: CONFIG_EFI_VARS_PSTORE_DEFAULT_DISABLE=y) on with `efi_pstore.pstore_disable=0` in the
   boot-args batch (one reboot), systemd-pstore.service (enabled) archives it.
+- r27-1 (cont., T01b) crash evidence: dwl is already built with debug info, not stripped (`file`:
+  "with debug_info"); the report already lists crashes by program (desktop ones since setup =
+  FAIL). New: kawa-crashnote at login — the session before ended in a crash of HIS dwl →
+  one critical notice "the desktop restarted · dwl crashed at HH:MM, in FUNCTION" (a root test
+  dwl's crash, another program's or none → nothing); tests/session/test_crashnote.sh (11). The
+  core stays capped at 1G (systemd's default; dwl's GPU mappings truncate it, the top frame is
+  kept). efi_pstore.pstore_disable=0 rides T41's boot-args batch (one reboot).
 - r27-2 (26 Oct 14:07) monitor on → always workspace 1 — CAUSE: dwl destroys the output on the
   HDMI drop and createmon starts at tag 1. FIX dwl: monkeep/MonKept — each output's tags,
   layouts, mfact, nmaster, mode and focus kept by name and restored; one turned off (wlopm) before

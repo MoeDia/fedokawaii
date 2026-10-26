@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+# kawa-crashnote — at login (autostart.sh): when the session before this one ended because dwl
+# itself crashed, say so once, in plain words, with when and where — a crash never passes for
+# "a random restart" again (26 Oct 12:22: dwl crashed in configurex11; it looked like one).
+# Only his own dwl's crashes count (a test dwl run as root is not his session). The time of
+# each login is kept in ~/.local/state/fedokawaii/session-start; the first login only writes it.
+# Exit 0 (always: a login never waits on this).
+set -u
+state=${XDG_STATE_HOME:-$HOME/.local/state}/fedokawaii
+mkdir -p "$state" 2>/dev/null
+prev=$(cat "$state/session-start" 2>/dev/null)
+date +%s >"$state/session-start" 2>/dev/null
+[[ $prev =~ ^[0-9]+$ ]] || exit 0
+# (a line: DAY DATE TIME TZ PID UID GID SIG COREFILE EXE SIZE — the last of his own)
+line=$(coredumpctl --no-pager --no-legend --since "@$prev" list /usr/local/bin/dwl 2>/dev/null \
+  | awk -v u="$(id -u)" '$6 == u' | tail -n 1)
+[[ -n $line ]] || exit 0
+read -r _ _ at _ pid _ <<<"$line"
+where=$(coredumpctl --no-pager info "$pid" 2>/dev/null | sed -n 's/^ *#0 *0x[0-9a-f]* \([A-Za-z_][A-Za-z0-9_]*\) .*/\1/p' | head -n 1)
+ICON_WINDOW=""
+# shellcheck source=/dev/null
+. "${XDG_CONFIG_HOME:-$HOME/.config}/fedokawaii/icons.sh" 2>/dev/null
+notify-send -a desktop -u critical -- "$ICON_WINDOW  the desktop restarted" \
+  "dwl crashed at ${at%:*}${where:+, in $where}: every window closed with it. It is kept in the crash list (coredumpctl) for the fix." 2>/dev/null &
+exit 0
