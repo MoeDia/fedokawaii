@@ -166,7 +166,14 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   (rc=0); tools/hotplug-test.sh (root: a test dwl on the iGPU, its HDMI forced on/off via sysfs
   status + amdgpu trigger_hotplug, the LG's EDID): OLD dwl → "Segmentation fault" at check 1 (the
   26 Oct crash reproduced; its core is in coredumpctl as root's dwl, 02:23), NEW → all 12 checks
-  pass. To VERIFY: live session on the new dwl + a real HDMI-A-1 hotplug.
+  pass. VERIFIED live 02:49 (new session on the new dwl, nothing of his unsaved: notes nvim 0
+  modified buffers, START terminal idle, no input for 30 s): tag 3 + an X11 window (xconf), real
+  HDMI-A-1 unplug (amdgpu trigger_hotplug 0: wlr-randr empty), 40 resize requests with no monitor
+  → dwl alive (same pid), replug → 1920x1080@144 back, bar shows workspace 3 (screenshot).
+  Crash evidence for next time: journal persistent ✓, coredumps ✓ (dwl's truncated by its GPU
+  mappings, the top frame was enough); a kernel panic would leave nothing → efi_pstore (built in,
+  off: CONFIG_EFI_VARS_PSTORE_DEFAULT_DISABLE=y) on with `efi_pstore.pstore_disable=0` in the
+  boot-args batch (one reboot), systemd-pstore.service (enabled) archives it.
 - r27-2 (26 Oct 14:07) monitor on → always workspace 1 — CAUSE: dwl destroys the output on the
   HDMI drop and createmon starts at tag 1. FIX dwl: monkeep/MonKept — each output's tags,
   layouts, mfact, nmaster, mode and focus kept by name and restored; one turned off (wlopm) before
@@ -175,7 +182,9 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   the key that turned it off) at its mode, kawa-display --hotplug then. hotplug-test: tag 3,
   layout |||, 120 Hz (preferred 144) all restored; kept-off stays dark, release leaves it dark,
   press lights it. Tests: tests/session/test_hotplug.sh (new, 6), test_dwl_anim updated.
-  DONE(code) — VERIFY live as r27-1.
+  VERIFIED live (as r27-1: workspace 3 kept across the real unplug/replug, 144 Hz) and DPMS:
+  wlopm --off HDMI-A-1 for 90 s (the LG stayed connected: sysfs never left "connected"), a key
+  press (wtype) lit it.
 - r27-0 push blocked: this PC has no GitHub credentials (no credential helper, no gh login, no
   SSH key — `git push` → "could not read Username"). Decided: commit locally, branch `r27` moved
   to every commit (safe from the owner's `git reset --hard origin/main` one-liner; a memory note
