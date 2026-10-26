@@ -156,3 +156,26 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
 
 ## r27 — 2026-10-25 owner notes → see CLAUDE.md "Round 27" (decisions + bug list) and round27-owner-notes.md
 (add r27-N lines here as work proceeds)
+- r27-1 (reported 26 Oct 14:07) "random restart" — CAUSE found: no reboot that morning (journalctl
+  --list-boots: boot -1 ran 25 Oct 14:06 → 26 Oct 23:43, orderly shutdowns only); **dwl crashed** at
+  26 Oct 12:22:19 (coredumpctl: SIGSEGV in configurex11; objdump at 0x40b86f = `c->mon->sellt` with
+  c->mon NULL) → session closed → greetd login = "restart". c->mon is NULL only with no monitor: the
+  LG drops off HDMI when switched off (same root as r27-2); an X11 window (a Wine app in a podman
+  container was running) asked for a new size meanwhile. Upstream dwl main has the same bug.
+  FIX dwl: configurex11/dirtomon/focusmon/move-snap/animstart NULL-safe. DONE(code), applied
+  (rc=0); tools/hotplug-test.sh (root: a test dwl on the iGPU, its HDMI forced on/off via sysfs
+  status + amdgpu trigger_hotplug, the LG's EDID): OLD dwl → "Segmentation fault" at check 1 (the
+  26 Oct crash reproduced; its core is in coredumpctl as root's dwl, 02:23), NEW → all 12 checks
+  pass. To VERIFY: live session on the new dwl + a real HDMI-A-1 hotplug.
+- r27-2 (26 Oct 14:07) monitor on → always workspace 1 — CAUSE: dwl destroys the output on the
+  HDMI drop and createmon starts at tag 1. FIX dwl: monkeep/MonKept — each output's tags,
+  layouts, mfact, nmaster, mode and focus kept by name and restored; one turned off (wlopm) before
+  it dropped comes back still off (upstream 4953b7e's idea; it reconnects with no wl_output, so
+  wlopm can't reach it) and any key PRESS / button / move / pen lights it (never a key release:
+  the key that turned it off) at its mode, kawa-display --hotplug then. hotplug-test: tag 3,
+  layout |||, 120 Hz (preferred 144) all restored; kept-off stays dark, release leaves it dark,
+  press lights it. Tests: tests/session/test_hotplug.sh (new, 6), test_dwl_anim updated.
+  DONE(code) — VERIFY live as r27-1.
+- found: tests failing on clean HEAD already (not from this change): session/test_autostart (5:
+  the bar's <span line_height> wrapper), test_game (4: snapper/scrub timers — gaming leaves the
+  host anyway), test_glass (2: OSC 11).
