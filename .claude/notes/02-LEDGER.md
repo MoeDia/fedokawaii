@@ -184,7 +184,14 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   press lights it. Tests: tests/session/test_hotplug.sh (new, 6), test_dwl_anim updated.
   VERIFIED live (as r27-1: workspace 3 kept across the real unplug/replug, 144 Hz) and DPMS:
   wlopm --off HDMI-A-1 for 90 s (the LG stayed connected: sysfs never left "connected"), a key
-  press (wtype) lit it.
+  press (wtype) lit it. (03:20) hotplug-test extended to 5 real cycles × {tags, layout, mode,
+  focused window, floating window x/y} + the spiral's mfact: it caught a real bug — after the
+  monitor came back the focus was on another window (setmon focused each re-attached window,
+  reordering the focus stack) → `monbatch` in closemon/updatemons; now all pass. VERIFIED.
+- r27-3 (WIP, T03) toolbox: dwl frame log + framestat.py (--anim: per-window animation steps;
+  --strict), perf.sh, hotplug-test.sh + xconf.c. Finding for T19 (live, 144 Hz, 03:25): every
+  animation has its length (open 240 ms/37 steps, switch 236 ms/36, close 180 ms/26–28) and rises
+  to 1, but ~half skip 1–4 steps (gaps of 2 refreshes) — a held frame mid-animation.
 - r27-0 push blocked: this PC has no GitHub credentials (no credential helper, no gh login, no
   SSH key — `git push` → "could not read Username"). Decided: commit locally, branch `r27` moved
   to every commit (safe from the owner's `git reset --hard origin/main` one-liner; a memory note

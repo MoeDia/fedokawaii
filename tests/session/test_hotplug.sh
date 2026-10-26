@@ -43,8 +43,13 @@ grep -q 'if (on && !m->wlr_output->current_mode)' <<<"$f" && grep -q 'wlr_output
   && grep -q '^+	saverinput(event->state == WL_KEYBOARD_KEY_STATE_PRESSED);' "$P" \
   && grep -q '^+	saverinput(event->state == WL_POINTER_BUTTON_STATE_PRESSED);' "$P" && _ok || _no "wake on press"
 
+case_ "windows moved between monitors in a batch keep the focus order (monbatch): the focused one is focused again"
+grep -Pzq '\+	if \(!monbatch\)\n\+		focusclient\(focustop\(selmon\), 1\);' "$P" \
+  && (($(grep -c '^+[[:space:]]*monbatch = 1;' "$P") == 2)) && (($(grep -c '^+[[:space:]]*monbatch = 0;' "$P") == 2)) \
+  && _ok || _no "monbatch"
+
 case_ "the runtime check exists and fails the old way: tools/hotplug-test.sh (root, a free card)"
 t=$REPO/tools/hotplug-test.sh
-[[ -f $t && -f $REPO/tools/xconf.c ]] && grep -q 'kill -USR1' "$t" && grep -q 'echo 1 >"$dbg/trigger_hotplug"' "$t" \
+[[ -f $t && -f $REPO/tools/xconf.c ]] && grep -q 'kill -USR1' "$t" && grep -q 'echo 1 >"$dbg/trigger_hotplug"' "$t" && grep -q 'focus $want_title · C at $want_c' "$t" \
   && bash -n "$t" && _ok || _no "tools/hotplug-test.sh"
 done_

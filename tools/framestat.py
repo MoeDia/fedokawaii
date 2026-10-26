@@ -2,7 +2,7 @@
 """tools/framestat.py — what dwl's frame log says (DWL_FRAMELOG=FILE, see dwl.patch: F/H/P/K/B/M
 lines): the frames as they reached the glass, measured inside dwl, never by a recorder.
 
-  python3 tools/framestat.py LOG [--json] [--from T --to T] [--hz N]
+  python3 tools/framestat.py LOG [--json] [--from T --to T] [--hz N] [--anim] [--strict]
   (T: µs on CLOCK_MONOTONIC; --hz: the refresh when the log has none — a headless output's
   presents carry no refresh, and come as soon as a frame is committed: not the glass)
 
@@ -18,7 +18,11 @@ Per output:
                (meaningful when nothing else moves: the first frame after the input is its own)
   windows      each new window (W): the key or button pressed last before it (within 5 s) →
                its first frame on the glass, ms — an app's start as he sees it
-Exit 0 · 1 the log has no frames · 2 misuse.
+  --anim       every animation (A lines: a window's c<kind>, a closing ghost's g): its steps,
+               duration, the gap between steps in refreshes (1.0 each when none is skipped),
+               progress rising to 1
+  --strict     exit 3 when a frame was dropped in a streak or an animation skipped a step
+Exit 0 · 1 the log has no frames · 2 misuse · 3 --strict found a drop.
 """
 import json
 import sys
@@ -52,6 +56,7 @@ def main(argv):
 
     outs = {}
     inputs = []          # (t_dwl µs, t_event µs, kind)
+    anims = {}           # (output, kind) → [(t µs, progress)]
     shown = []           # (t µs, app id)
 
     def out(name):
@@ -78,6 +83,9 @@ def main(argv):
                     o["P"].append(int(w[2]))
                     if int(w[4]) > 0:
                         o["refresh"] = int(w[4]) / 1000.0     # ns → µs
+                elif w[0] == "A" and len(w) >= 5 and inside(int(w[1])):
+                    # (one window's or ghost's own steps: its id, the 6th field, when written)
+                    anims.setdefault((w[2], w[3], w[5] if len(w) > 5 else ""), []).append((int(w[1]), float(w[4])))
                 elif w[0] == "W" and len(w) >= 3 and inside(int(w[1])):
                     shown.append((int(w[1]), w[2]))
                 elif w[0] in ("K", "B") and len(w) >= 5 and w[4] == "1" and inside(int(w[1])):
@@ -159,12 +167,39 @@ def main(argv):
         r["windows"] = wins
         report[name] = r
 
+    # animations: a sequence ends when progress falls back or 50 ms pass without a step
+    seqs = []
+    for (o, kind, _), steps in anims.items():
+        ref = outs.get(o, {}).get("refresh") or (1e6 / hz if hz else None)
+        cur = []
+        for t, pr in sorted(steps):
+            if cur and (pr < cur[-1][1] or t - cur[-1][0] > 50000):
+                seqs.append((o, kind, cur, ref))
+                cur = []
+            cur.append((t, pr))
+        if cur:
+            seqs.append((o, kind, cur, ref))
+    anim_rep = []
+    skipped = 0
+    for o, kind, cur, ref in seqs:
+        gaps = [(b[0] - a[0]) / ref for a, b in zip(cur, cur[1:])] if ref else []
+        skip = sum(int(round(g)) - 1 for g in gaps if g >= 1.5)
+        skipped += skip
+        anim_rep.append({"output": o, "kind": kind, "steps": len(cur),
+                         "ms": round((cur[-1][0] - cur[0][0]) / 1000.0, 1),
+                         "max_gap": round(max(gaps), 3) if gaps else None, "skipped": skip,
+                         "monotonic": all(b[1] >= a[1] for a, b in zip(cur, cur[1:])),
+                         "ends_at_1": cur[-1][1] >= 0.999})
     if not any(r["commits"] or r["presents"] for r in report.values()):
         print("framestat: no frames in " + path, file=sys.stderr)
         return 1
+    drops = sum(r["streaks"]["dropped"] for r in report.values())
+    bad = "--strict" in args and (drops or skipped)
     if as_json:
+        if "--anim" in args:
+            report["_animations"] = anim_rep
         print(json.dumps(report, indent=1))
-        return 0
+        return 3 if bad else 0
     for name, r in report.items():
         b, iv, s, la = r["build_us"], r["interval_refreshes"], r["streaks"], r["input_to_glass_ms"]
         print(f"{name}  {r['refresh_hz']} Hz")
@@ -177,7 +212,13 @@ def main(argv):
               f"  · from dwl p50 {fd['p50']} · p95 {fd['p95']} · max {fd['max']}")
         for wn in r["windows"]:
             print(f"  window     {wn['app']}: {wn['ms']} ms from the press to its first frame")
-    return 0
+    if "--anim" in args:
+        print(f"animations ({len(anim_rep)}; {skipped} steps skipped)")
+        for a in anim_rep:
+            print(f"  {a['output']} {a['kind']:3} {a['steps']:3} steps {a['ms']:7} ms · max gap {a['max_gap']} · "
+                  f"skipped {a['skipped']} · {'rising' if a['monotonic'] else 'NOT RISING'} · "
+                  f"{'ends at 1' if a['ends_at_1'] else 'ENDS EARLY'}")
+    return 3 if bad else 0
 
 
 if __name__ == "__main__":

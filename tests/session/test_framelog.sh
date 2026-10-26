@@ -22,7 +22,8 @@ case_ "framestat: a key to the glass (from the event 11 ms, from dwl 9), a windo
 
 case_ "dwl writes those lines: F, H, P, K, B, M, W — on DWL_FRAMELOG or SIGUSR2, nothing otherwise"
 for l in 'FLOG("F %lld %s %lld %d\n"' 'FLOG("H %lld %s\n"' 'FLOG("P %s %lld %u %d %u\n"' 'FLOG("K %lld %u %u %d\n"' \
-         'FLOG("B %lld %u %u %d\n"' 'FLOG("M %lld %u\n"' 'FLOG("W %lld %s\n"'; do
+         'FLOG("B %lld %u %u %d\n"' 'FLOG("M %lld %u\n"' 'FLOG("W %lld %s\n"' 'FLOG("A %lld %s c%d %.4f %p\n"' \
+         'FLOG("A %lld %s g %.4f %p\n"'; do
   grep -qF "$l" "$P" && _ok || _no "missing: $l"
 done
 grep -q '^+#define FLOG(...) do { if (framelog) flogf(__VA_ARGS__); } while (0)$' "$P" \
