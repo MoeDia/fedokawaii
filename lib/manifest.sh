@@ -63,6 +63,8 @@ PKG_BUILD=(             # kept installed: theme.sh rebuilds dwl (config.h, patch
                         # kawa-clipkeep, kawa-saver and kawa-lockmod; update rebuilds the yazi file
                         # dialog (termfilechooser)
   gcc make pkgconf-pkg-config
+  libasan               # AddressSanitizer's runtime: dwl built once more with it for the checks
+                        #   (tools/hl-dwl.sh --asan: the selftest's crash and leak runs)
   gtk3-devel            # GTK 3's headers: kawa-lockmod, the lock screen's gtklock module
   wayland-devel wayland-protocols-devel libinput-devel libxkbcommon-devel
   pixman-devel libdrm-devel libxcb-devel xcb-util-wm-devel wlroots-devel

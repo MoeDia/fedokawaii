@@ -188,8 +188,13 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   focused window, floating window x/y} + the spiral's mfact: it caught a real bug — after the
   monitor came back the focus was on another window (setmon focused each re-attached window,
   reordering the focus stack) → `monbatch` in closemon/updatemons; now all pass. VERIFIED.
-- r27-3 (WIP, T03) toolbox: dwl frame log + framestat.py (--anim: per-window animation steps;
-  --strict), perf.sh, hotplug-test.sh + xconf.c. Finding for T19 (live, 144 Hz, 03:25): every
+- r27-3 (T03) toolbox — DONE: dwl frame log + framestat.py (--anim: per-window animation steps;
+  --strict), perf.sh, hotplug-test.sh + xconf.c, hl-dwl.sh (headless on renderD128, --asan:
+  libasan added to PKG_BUILD and installed by apply/repair), shot.sh (--both themes), px.py,
+  README-tools.md, tests/static/test_tools.sh 15/15. Verified: hl-dwl leaves no /tmp/hl-dwl.*,
+  passes the script's exit status; ASan run: 124 KB "leaked" at exit = one-time EGL/mesa setup +
+  2 event sources in setup() — nothing per window (a growth check goes to T52); live bar gaps
+  need a flat-ground render (translucent hairline/shadow over the wallpaper) → T14. Finding for T19 (live, 144 Hz, 03:25): every
   animation has its length (open 240 ms/37 steps, switch 236 ms/36, close 180 ms/26–28) and rises
   to 1, but ~half skip 1–4 steps (gaps of 2 refreshes) — a held frame mid-animation.
 - r27-0 push blocked: this PC has no GitHub credentials (no credential helper, no gh login, no
