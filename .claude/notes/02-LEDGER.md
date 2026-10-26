@@ -232,6 +232,16 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   until he clicks them done: a critical notice at every login — mako [app-name=foryou] click =
   done — and Super+U status's first row "for you"); test_foryou.sh (15). Shown live (shot), and
   `fedokawaii status` leads with it.
+- r27-33 (T29, findings 04:00 — not fixed yet) Prowlarr: on demand by design (kawa-prowlarr: up while
+  torrra searches, asleep 30 min after) — "inactive" is normal. /api/v1/health: 0 now. Its own log
+  (~/.config/prowlarr/logs) over 8 days: Warn AllowedHostsCheck "Allowed Hosts is not configured"
+  ×156 (every start; also T39); Error Cardigann "Cloudflare protection detected for [Tokyo
+  Toshokan], Flaresolverr may be required" ×30 (→ the UI's "indexer unavailable" warning, likely
+  what he saw); Warn "Unable to connect to indexer [subsplease.org / torrentdownloads.pro] …
+  DNS/SSL issues … ensure IPv6 is working or disabled" (→ bug 12's "failed to resolve": the
+  container's IPv6/DNS path); UpdateCheck HTTP errors to prowlarr.servarr.com, SystemTimeCheck
+  "Unable to verify system time", ServerSideNotificationService failures (same network path);
+  StaticResourceMapper initialize.js not found ×6.
 - found: tests failing on clean HEAD already (not from this change): session/test_autostart (5:
   the bar's <span line_height> wrapper), test_game (4: snapper/scrub timers — gaming leaves the
   host anyway), test_glass (2: OSC 11); static/test_generated (2: lock-scroll.png differs from
