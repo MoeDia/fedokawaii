@@ -2,7 +2,7 @@
 # tests/session/test_framelog.sh — dwl's frame log (DWL_FRAMELOG, or SIGUSR2 in a running
 # session: $XDG_RUNTIME_DIR/dwl-frames.log) and tools/framestat.py, which reads it: the frame
 # times as measured inside dwl (a recorder perturbs them). A log with known answers
-# (fixtures/frames.log: 144 Hz, ten frames with one refresh missed, a key 2 ms old when dwl got
+# (fixtures/frames.log: 144 Hz, eleven frames with one refresh missed, a key 2 ms old when dwl got
 # it, its frame on the glass 9 ms after, a window shown) — and the patch writes what it reads.
 . "$(dirname "$0")/../lib/harness.sh"
 
@@ -12,9 +12,9 @@ q() { python3 -c "import json,sys; d=json.load(sys.stdin)['HDMI-A-1']; print($1)
 
 case_ "framestat: the refresh, the frames, one dropped in the streak, the builds"
 [[ $(q "d['refresh_hz']") == 144.009 ]] && _ok || _no "refresh $(q "d['refresh_hz']")"
-[[ $(q "d['commits'], d['presents'], d['held']") == "10 10 1" ]] && _ok || _no "counts $(q "d['commits'], d['presents'], d['held']")"
-[[ $(q "d['streaks']['dropped'], d['streaks']['frames']") == "1 10" ]] && _ok || _no "drops $(q "d['streaks']")"
-[[ $(q "d['build_us']['max']") == 190 ]] && _ok || _no "build max $(q "d['build_us']['max']")"
+[[ $(q "d['commits'], d['presents'], d['held']") == "11 11 1" ]] && _ok || _no "counts $(q "d['commits'], d['presents'], d['held']")"
+[[ $(q "d['streaks']['dropped'], d['streaks']['frames']") == "1 11" ]] && _ok || _no "drops $(q "d['streaks']")"
+[[ $(q "d['build_us']['max']") == 200 ]] && _ok || _no "build max $(q "d['build_us']['max']")"
 case_ "framestat: a key to the glass (from the event 11 ms, from dwl 9), a window from the press"
 [[ $(q "d['input_to_glass_ms']['from_event']['p50'], d['input_to_glass_ms']['from_dwl']['p50']") == "11.0 9.0" ]] \
   && _ok || _no "latency $(q "d['input_to_glass_ms']")"

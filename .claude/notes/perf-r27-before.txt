@@ -1,0 +1,92 @@
+fedokawaii perf — 2026-10-27 03:05:40 — 7.2.11-200.fc44.x86_64 — dwl 2026-10-27 02:57:20
+
+── idle (30 s untouched)
+  CPU busy 0.18 % · load 0.12 0.18 0.12
+  GPU busy 0 % · 3.1 W · VRAM 273 MiB
+  RAM 3042 MiB used, 11002 MiB cache, 27937 MiB available of 30979
+  the desktop's processes (PSS MiB):
+    steamwebhelper          1017 MiB  (9)
+    claude                   364 MiB  (1)
+    steam                    219 MiB  (1)
+    kawa-panel                47 MiB  (1)
+    Xwayland                  43 MiB  (1)
+    dwl                       38 MiB  (1)
+    waybar                    29 MiB  (1)
+    nvim                      26 MiB  (2)
+    lxqt-policykit-           24 MiB  (1)
+    udiskie                   21 MiB  (1)
+    pipewire                  19 MiB  (1)
+    wireplumber               18 MiB  (1)
+    xdg-desktop-por           17 MiB  (3)
+    bash                      15 MiB  (31)
+    fzf                       12 MiB  (2)
+    foot                      10 MiB  (1)
+    pipewire-pulse             9 MiB  (1)
+    kawa-downloads             8 MiB  (1)
+  total PSS of dia: 1978 MiB
+
+── boot
+  Startup finished in 10.709s (firmware) + 1.888s (loader) + 1.658s (kernel) + 3.541s (initrd) + 2.635s (userspace) = 20.433s 
+    3.773s dev-tpm0.device
+    3.773s sys-devices-platform-MSFT0101:00-tpm-tpm0.device
+    3.756s sys-module-fuse.device
+    3.694s dev-ttyS1.device
+    3.694s sys-devices-platform-serial8250-serial8250:0-serial8250:0.1-tty-ttyS1.device
+    3.691s dev-ttyS3.device
+    graphical.target @2.632s
+    └─multi-user.target @2.632s
+      └─tuned.service @2.503s +128ms
+        └─network.target @2.495s
+          └─NetworkManager.service @2.257s +237ms
+            └─network-pre.target @2.257s
+
+── terminal
+  HDMI-A-1  143.981 Hz
+    frames     675 committed · 10 held · 0 failed · 675 on the glass
+    build µs   p50 55 · p95 120 · p99 264 · max 668
+    streaks    20 · 634 frames · 0 dropped
+    intervals  (refreshes) p50 1.0 · p95 1.0 · p99 1.001 · max 1.001
+    input→glass ms (20)  from the event p50 None · p95 None · max None  · from dwl p50 9.76 · p95 14.32 · max 14.73
+    window     footclient: 14.3 ms from the press to its first frame
+    window     footclient: 8.3 ms from the press to its first frame
+    window     footclient: 9.3 ms from the press to its first frame
+    window     footclient: 10.3 ms from the press to its first frame
+    window     footclient: 11.1 ms from the press to its first frame
+    window     footclient: 12.2 ms from the press to its first frame
+    window     footclient: 12.9 ms from the press to its first frame
+    window     footclient: 12.6 ms from the press to its first frame
+    window     footclient: 14.0 ms from the press to its first frame
+    window     footclient: 14.7 ms from the press to its first frame
+
+── switch
+  HDMI-A-1  143.981 Hz
+    frames     897 committed · 3 held · 0 failed · 897 on the glass
+    build µs   p50 68 · p95 146 · p99 422 · max 466
+    streaks    24 · 861 frames · 0 dropped
+    intervals  (refreshes) p50 1.0 · p95 1.0 · p99 1.001 · max 1.001
+    input→glass ms (24)  from the event p50 None · p95 None · max None  · from dwl p50 8.49 · p95 11.82 · max 12.43
+    window     footclient: 9.9 ms from the press to its first frame
+    window     footclient: 11.9 ms from the press to its first frame
+    window     footclient: 9.5 ms from the press to its first frame
+
+── typing
+  HDMI-A-1  143.981 Hz
+    frames     159 committed · 0 held · 0 failed · 159 on the glass
+    build µs   p50 74 · p95 114 · p99 144 · max 190
+    streaks    0 · 0 frames · 0 dropped
+    intervals  (refreshes) p50 None · p95 None · p99 None · max None
+    input→glass ms (63)  from the event p50 None · p95 None · max None  · from dwl p50 18.63 · p95 24.26 · max 164.87
+
+── menus
+  HDMI-A-1  143.981 Hz
+    frames     610 committed · 3 held · 0 failed · 610 on the glass
+    build µs   p50 62 · p95 210 · p99 354 · max 505
+    streaks    21 · 475 frames · 0 dropped
+    intervals  (refreshes) p50 1.0 · p95 1.0 · p99 1.001 · max 1.001
+    input→glass ms (42)  from the event p50 None · p95 None · max None  · from dwl p50 8.36 · p95 25.19 · max 33.15
+    window     footclient: 10.5 ms from the press to its first frame
+    window     footclient: 10.2 ms from the press to its first frame
+    window     footclient: 8.3 ms from the press to its first frame
+
+── nvim --startuptime (5 runs, ms)
+  10.848 9.814 10.269 10.445 10.457 

@@ -9,8 +9,9 @@ lines): the frames as they reached the glass, measured inside dwl, never by a re
 Per output:
   frames       commits (F), held frames (H), commits that failed, presents (P)
   build        µs dwl took to build and commit a frame: p50 p95 p99 max
-  streaks      runs of presents less than 3 refreshes apart (something moving): frames in
-               them, and the dropped ones — an interval of k refreshes (k ≥ 2) is k-1 drops
+  streaks      runs of presents a refresh apart (something moving: 4 or more in a row), the
+               frames in them, and the dropped ones — a gap of k refreshes (2 ≤ k < 3.5) with a
+               run on both sides is k-1 drops (a key's echo, alone, is no streak and no drop)
   intervals    within streaks, in refreshes: p50 p95 p99 max
   latency      a key or button pressed → the first frame committed after it reaching the
                glass: from the event's own time (kernel) and from dwl getting it, ms p50 p95 max
@@ -95,20 +96,33 @@ def main(argv):
         pres = sorted(o["P"])
         ivals, frames, drops, streaks = [], 0, 0, 0
         if ref:
-            run = False
-            for a, b in zip(pres, pres[1:]):
-                k = (b - a) / ref
-                if k < 3.0:
-                    if not run:
-                        streaks += 1
-                        run = True
-                        frames += 1
-                    frames += 1
-                    ivals.append(k)
-                    if k >= 1.5:
-                        drops += int(round(k)) - 1
+            ks = [(b - a) / ref for a, b in zip(pres, pres[1:])]
+            smooth = [k < 1.5 for k in ks]
+            # runs: 4+ consecutive one-refresh intervals; a gap (< 3.5) between two runs
+            # joins them (its missing frames dropped)
+            i, n = 0, len(ks)
+            runs = []
+            while i < n:
+                if smooth[i]:
+                    j = i
+                    while j < n and smooth[j]:
+                        j += 1
+                    if j - i >= 4:
+                        runs.append((i, j))
+                    i = j
                 else:
-                    run = False
+                    i += 1
+            merged = []
+            for r_ in runs:
+                if merged and r_[0] - merged[-1][1] == 1 and ks[merged[-1][1]] < 3.5:
+                    drops += int(round(ks[merged[-1][1]])) - 1
+                    merged[-1] = (merged[-1][0], r_[1])
+                else:
+                    merged.append(r_)
+            for a_, b_ in merged:
+                streaks += 1
+                frames += b_ - a_ + 1
+                ivals.extend(ks[a_:b_])
         r["streaks"] = {"count": streaks, "frames": frames, "dropped": drops}
         r["interval_refreshes"] = {k: (round(pct(ivals, p), 3) if ivals else None)
                                    for k, p in (("p50", 50), ("p95", 95), ("p99", 99), ("max", 100))}
@@ -131,7 +145,7 @@ def main(argv):
                 lat_ev.append((pres[pi] - t_ev) / 1000.0)
             lat_dwl.append((pres[pi] - t_dwl) / 1000.0)
         r["input_to_glass_ms"] = {
-            "n": len(lat_ev),
+            "n": len(lat_dwl),
             "from_event": {k: (round(pct(lat_ev, p), 2) if lat_ev else None) for k, p in (("p50", 50), ("p95", 95), ("max", 100))},
             "from_dwl": {k: (round(pct(lat_dwl, p), 2) if lat_dwl else None) for k, p in (("p50", 50), ("p95", 95), ("max", 100))},
         }

@@ -190,6 +190,16 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   to every commit (safe from the owner's `git reset --hard origin/main` one-liner; a memory note
   outside the repo says how to restore main from it); CLAUDE.md START step 0. The owner pushes
   once at the end (`git push origin main` with his credentials) — told in the final summary.
+- r27-perf-before (03:15, BASELINE before the round's changes; dwl = crash fix + frame log only):
+  tools/perf.sh → .claude/notes/perf-r27-before.txt (raw: ~/.cache/fedokawaii-perf/r27-before).
+  Idle 30 s: CPU 0.3 %, GPU 0 % 3.0 W, VRAM 273 MiB, RAM 3.0 GiB used (PSS: steamwebhelper 1068
+  MiB, steam 219, Xwayland 42, dwl 37, waybar 29). Boot 20.4 s (firmware 10.7, loader 1.9, kernel
+  1.7, initrd 3.5, userspace 2.6). Frames at 144 Hz: 0 dropped in 65 animation streaks (2,000+
+  frames); dwl's build p50 55–74 µs, max 0.67 ms. Key→glass (dwl's part, wtype): windows/switch/
+  menus p50 8–10 ms p95 12–25; typing in foot p50 18.6 ms p95 24, one 165 ms outlier (to find in
+  the perf task). New terminal press→first frame 7–15 ms. nvim --startuptime 9.8–10.8 ms.
+  Tools: dwl frame log (DWL_FRAMELOG, SIGUSR2 → $XDG_RUNTIME_DIR/dwl-frames.log), framestat.py
+  (drops = gaps inside 4+-frame runs), perf.sh (--again re-reads a run).
 - found: tests failing on clean HEAD already (not from this change): session/test_autostart (5:
   the bar's <span line_height> wrapper), test_game (4: snapper/scrub timers — gaming leaves the
   host anyway), test_glass (2: OSC 11).
