@@ -393,6 +393,73 @@ or the VM and add the checks to verify.
 for 5 seconds, the monitors turn off; any key or move lights them again straight onto the lock
 (no extra wake press lost, no flicker).
 
+**Reported 2026-10-26 14:07 — fix first, before the plan's other work:**
+- **A random restart** while he was using the PC (26 Oct, before 14:07). Find the cause from
+  the evidence, never guess: `journalctl -b -1 -e` and earlier boots (`--list-boots`), kernel
+  oops/panic, amdgpu resets or hangs, MCE/hardware errors (`rasdaemon`/`ras-mc-ctl` if useful),
+  watchdog, thermals, power (PSU/brown-out leaves no log — note that), pstore
+  (`/sys/fs/pstore`), our own changes (split_lock_detect, simpledrm blacklist, dwl). Fix the
+  cause; if the evidence is missing, enable what would catch it next time (pstore/ramoops,
+  kdump if sensible, persistent journal) and add a stress test that reproduces it.
+- **Turning the monitor on always lands on workspace 1**, whatever was shown before. Likely
+  the HDMI hotplug: dwl destroys the monitor on power-off and creates it again with default
+  tags. Keep each output's state (selected tags, layout, mfact, focus) by output name across
+  disconnect/reconnect and restore it exactly; test with a real monitor power cycle and with
+  DPMS off/on (`wlopm`), and add a regression check.
+- **A perfectly clean, structured system** (when the run happens): not a single file out of
+  place, no leftovers anywhere — in `$HOME`, `/etc`, `/usr/local`, `/opt`, `/var`, caches, old
+  configs from earlier versions, test files, stale units, unused packages. Define one clear
+  layout for everything fedokawaii installs (what lives where, and why), make the installer
+  and update keep it that way (and remove anything an older version left), add a verify check
+  that finds strays, and document the whole structure in the Learning section in full.
+
+**More from 2026-10-26/27:**
+- **Torrents app — full visual overhaul and hardening:** break its design down and rebuild it
+  in the new design DNA; much more robust; smart about performance (huge lists, many
+  torrents, slow indexers) and about window sizes (layouts that adapt from a narrow tile to
+  fullscreen, nothing cut or misaligned at any size). Fix the earlier reports (slow "failed to
+  resolve" on starting a download, a notice on every open for finished ones).
+- **Quick settings:** every item feels unique (its own icon/art and character) yet all are
+  centred and aligned with OCD precision — measure every row, icon, label and gap.
+- **Yazi:** hidden files always shown (dotfiles included), everywhere yazi is used (file
+  manager, file picker).
+- **Prowlarr:** clear the warning shown inside it (find what it is from Prowlarr's own UI/logs
+  and docs, fix the cause).
+
+**Gaming moves out of the host entirely — into a Windows VM (2026-10-27, big change):**
+- **This supersedes every earlier Steam item** (the bar's Steam show/hide, the moving joystick
+  icon, the Steam Deck check, Steam in the ledger): drop them.
+- **Remove from the host:** Steam, the bar's Steam icon/menu, `kawa-steam`, GE-Proton,
+  gamescope, MangoHud, game mode and every other gaming piece, their configs, caches, units,
+  repos and docs — the host becomes a clean, non-gaming system. Keep
+  `~/blasphemous-save-backup-20261022` (move it into the VM's shared/import folder later).
+- **A Windows gaming VM with GPU passthrough**, everything gaming confined to it: Steam (and
+  CS2 must run well), qBittorrent for the gaming side, his controller (USB passthrough), all
+  games and their files. **One self-contained place** on disk (one folder: disk image(s),
+  firmware vars, config) — deleting it removes everything, no traces elsewhere.
+- **Windows itself made minimal, fast and light**: research reputable, current ways to strip
+  it down safely (official tools and policies first; unofficial images only if trustworthy and
+  licence-clean — he must use a valid Windows licence), tuned for gaming latency; all set up
+  unattended (autounattend.xml, drivers incl. AMD's and virtio, Steam, qBittorrent).
+- **Deep research before building** (official docs: libvirt/QEMU/KVM, VFIO, Fedora's
+  virtualization guide, AMD/Arch wiki VFIO pages, Looking Glass, Valve's statements on VMs and
+  VAC/CS2): the **RX 9060 XT (RDNA4) reset behaviour** under passthrough, IOMMU groups on his
+  board, CPU pinning/isolation, hugepages, the virtio drivers, audio, and **whether CS2/VAC
+  tolerates a VM** — report honestly what is and is not possible.
+- **Display with one monitor and one dGPU:** the host must run on the CPU's iGPU while the VM
+  owns the 9060 XT. Pick the best design from the research (likely: monitor connected to both
+  the motherboard output and the 9060 XT, and our app switches the monitor's input over
+  DDC/CI when the VM starts/stops — native latency; Looking Glass as the alternative), make
+  the host session move cleanly to the iGPU, and the dGPU bind to vfio-pci only while the VM
+  runs (and back afterwards) if the reset behaviour allows it.
+- **An app for it** (TUI, our design): start/stop the VM, switch the display, pass the
+  controller, show state; plus a launcher entry. Make it as compatible and stable as possible,
+  test it hard (start/stop loops, host suspend, VM crash, controller hotplug), and optimise
+  the VM carefully (measure frame times inside the VM against bare-metal expectations).
+- **What he may need to do physically** (tell him early, in one clear notice, then continue):
+  enable IOMMU/SVM in the BIOS if it is off (check from Linux first), and connect a second
+  cable from the motherboard's video output to the monitor if the chosen design needs it.
+
 **One design, one unit (20:08 — top priority with the design work):** **Super+U is fully
 redesigned** — its structure, sections (system/update/snapshots/backups/learning …), states,
 spacing and art — rock solid. Then **every menu and popup is redesigned to match**: quick
