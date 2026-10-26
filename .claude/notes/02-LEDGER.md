@@ -202,8 +202,8 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   to every commit (safe from the owner's `git reset --hard origin/main` one-liner; a memory note
   outside the repo says how to restore main from it); CLAUDE.md START step 0. The owner pushes
   once at the end (`git push origin main` with his credentials) — told in the final summary.
-- r27-4 (WIP, T04 — 03:15, BASELINE before the round's changes; dwl = crash fix + frame log only):
-  tools/perf.sh → .claude/notes/perf-r27-before.txt (raw: ~/.cache/fedokawaii-perf/r27-before).
+- r27-4 (T04 DONE 03:45 — the BASELINE, all rows in .claude/notes/perf-before.md; dwl = crash fix +
+  frame log only): tools/perf.sh → .claude/notes/perf/before-perf.txt (raw: ~/.cache/fedokawaii-perf/r27-before).
   Idle 30 s: CPU 0.3 %, GPU 0 % 3.0 W, VRAM 273 MiB, RAM 3.0 GiB used (PSS: steamwebhelper 1068
   MiB, steam 219, Xwayland 42, dwl 37, waybar 29). Boot 20.4 s (firmware 10.7, loader 1.9, kernel
   1.7, initrd 3.5, userspace 2.6). Frames at 144 Hz: 0 dropped in 65 animation streaks (2,000+
@@ -211,7 +211,10 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   menus p50 8–10 ms p95 12–25; typing in foot p50 18.6 ms p95 24, one 165 ms outlier (to find in
   the perf task). New terminal press→first frame 7–15 ms. nvim --startuptime 9.8–10.8 ms.
   Tools: dwl frame log (DWL_FRAMELOG, SIGUSR2 → $XDG_RUNTIME_DIR/dwl-frames.log), framestat.py
-  (drops = gaps inside 4+-frame runs), perf.sh (--again re-reads a run).
+  (drops = gaps inside 4+-frame runs), perf.sh (--again re-reads a run). Added (03:30–03:45):
+  the heavy scene (tools/perf-load.sh: 0 dropped of 10,305 frames, CPU 1.3 %, GPU 10 %), the latency
+  suite --full (58 ok; FAIL Brave cold 20 s timeout, lazygit 1010 ms, recording start 1209 ms),
+  boot pace (10 boots), nvim in a real pty to VeryLazy 148 ms (tools/ptytime.py; headless said 10).
 - r27-6 (T06) the one early notice — DONE+VERIFIED 03:24: facts from the official pages: the
   LG 24G411A-B has one DisplayPort 1.4 and HDMI 2.0, 120 Hz native / 144 Hz overclocked
   (lg.com/cl/monitores/gaming/24g411a-b); the MSI PRO B650M-B shows only HDMI (4K@60, HDMI 2.1)

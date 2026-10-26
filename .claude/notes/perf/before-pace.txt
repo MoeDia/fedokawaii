@@ -1,0 +1,13 @@
+start    firmware  loader  kernel  initrd userspace  greeter  session  shutdown  stop time-outs
+f97a06dd    10.72  238.93    1.73    3.57      2.61        -        -      0.36  -
+000545cc    13.48    5.98    2.56    3.41      2.62     8.51        -      0.32  -
+1fc5af07    10.74    5.99    1.63    3.52      2.61     7.68        -      0.34  -
+eb5aa443    10.69    5.99    1.67    3.49      2.59     7.67     0.20      3.67  -
+1ba25c7e    10.72    1.89    1.65    5.70      2.62     9.89     0.19      0.40  -
+6bb6ab90    10.73    5.97    1.67    3.47      2.60     7.66     0.22      0.49  -
+cec6e247    11.10    2.10    1.67    3.50      2.61     7.71     0.20      0.48  -
+3434712c    10.71    1.89    1.66    3.53      2.58     7.70     0.19     18.61  session-55.scope,session-27.scope,session-16.scope,session-33.scope,s
+d5ec9b02    10.90    1.89    1.67    5.71      2.64     9.94     0.19      4.20  -
+83091c99    10.71    1.89    1.66    3.54      2.63     7.74     0.20         -  -
+limits: kernel 3 s · initrd 6 s · userspace 10 s · login screen 12 s from the kernel (spread 3 s) · session 4 s · shut down 15 s (spread 8 s) · no sto
+(the shut down of the start running now is not over: '-'; firmware and loader are the board's and the menu's: no limit)

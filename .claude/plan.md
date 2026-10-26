@@ -53,7 +53,7 @@ approach:
 DONE: hl-dwl.sh (+ --asan, libasan now in PKG_BUILD), shot.sh, px.py (runs/boxes/gaps/centre/hist/diff/zoom), README-tools.md, tests/static/test_tools.sh (15); the live-bar gap measurement moved to T14 — the bar's hairline and shadow are translucent over the wallpaper, so exact gaps need a flat-ground headless render (T14 builds it).
 accept: hl-dwl.sh runs a 10 s scripted session on renderD128 and leaves nothing behind (`ls /tmp/hsrt*` empty, no dwl process); framestat.py on a 144 Hz log of the current animations reports intervals of 1.0 refresh (and the fixture's dropped frame); px.py measures the bar's known 8/4/10/6 px gaps from a live shot to the pixel (matches the r26 measure); test_tools.sh covers fixtures; README-tools.md written.
 
-### T04 — the performance BASELINE of today's desktop (the "before" numbers)  [wip]
+### T04 — the performance BASELINE of today's desktop (the "before" numbers)  [done 2026-10-27 see .claude/notes/perf-before.md]
 deps: T03  · model: main  · ledger: r27-4
 files: tools/perf.sh (exists: its phases idle/boot/terminal/switch/typing/menus/nvim — extend with the rows below), tools/perf-load.sh (the standard heavy-use scene), .claude/notes/perf-before.md (numbers), lib/pace.sh + system/fedokawaii-latency reused
 approach:

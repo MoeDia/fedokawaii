@@ -1,0 +1,70 @@
+worst first (p95 against its limit; a spread over half the limit fails too):
+  FAIL  Brave from cold (a fresh profile, headless)  p50  20001 · p95  20001 · p99  20001 · max  20001 ms · spread     1 · n= 3 · limit 3000
+  FAIL  lazygit's first frame                        p50   1010 · p95   1010 · p99   1010 · max   1010 ms · spread     0 · n= 3 · limit 400
+  FAIL  a recording starts (wf-recorder: its first bytes) p50   1209 · p95   1234 · p99   1234 · max   1234 ms · spread    25 · n= 3 · limit 1000
+  ok    a command → its answer at the prompt         p50     55 · p95     57 · p99     57 · max     57 ms · spread     1 · n= 5 · limit 60
+  ok    a shell's first prompt (bash -i, ble.sh)     p50    232 · p95    235 · p99    235 · max    235 ms · spread     3 · n= 5 · limit 250
+  ok    quick settings' state (kawa-quick)           p50     64 · p95     64 · p99     64 · max     64 ms · spread     0 · n=10 · limit 120
+  ok    a wallpaper preview drawn (not cached yet)   p50    114 · p95    114 · p99    114 · max    114 ms · spread     0 · n= 5 · limit 400
+  ok    a wallpaper on screen (the last 20, as logged) p50     68 · p95     74 · p99     74 · max     74 ms · spread     6 · n=20 · limit 300
+  ok    the books' list ready                        p50     29 · p95     33 · p99     33 · max     33 ms · spread     4 · n=10 · limit 150
+  ok    neovim starts with its config, and quits     p50     15 · p95     31 · p99     31 · max     31 ms · spread    16 · n=10 · limit 150
+  ok    Super+U's rows ready                         p50     26 · p95     27 · p99     27 · max     27 ms · spread     1 · n=10 · limit 150
+  ok    bar click: custom/downloads → up, lit        p50     21 · p95     21 · p99     21 · max     21 ms · spread     0 · n= 5 · limit 150
+  ok    a screenshot (grim)                          p50     15 · p95     32 · p99     32 · max     32 ms · spread    16 · n= 5 · limit 250
+  ok    the books' list: a keystroke's filter (fzf)  p50      1 · p95      3 · p99      3 · max      3 ms · spread     2 · n=10 · limit 30
+  ok    night light toggle (kawa-night)              p50     23 · p95     32 · p99     32 · max     32 ms · spread     8 · n=10 · limit 300
+  ok    transparency toggle (kawa-glass)             p50     15 · p95     15 · p99     15 · max     15 ms · spread     0 · n=10 · limit 150
+  ok    the theme switch (the last 20, as logged)    p50    110 · p95    134 · p99    134 · max    134 ms · spread    24 · n=20 · limit 1500
+  ok    bar click: custom/date → up, lit             p50      8 · p95     13 · p99     13 · max     13 ms · spread     4 · n= 5 · limit 150
+  ok    bar click: custom/drives → up, lit           p50     12 · p95     12 · p99     12 · max     12 ms · spread     0 · n= 5 · limit 150
+  ok    bar click: custom/weather → up, lit          p50     12 · p95     12 · p99     12 · max     12 ms · spread     0 · n= 5 · limit 150
+  ok    bar click → its menu up                      p50      8 · p95     12 · p99     12 · max     12 ms · spread     4 · n=10 · limit 150
+  ok    OCR of a strip of the screen (tesseract)     p50    114 · p95    116 · p99    116 · max    116 ms · spread     3 · n= 3 · limit 1500
+  ok    the launcher opens                           p50      4 · p95      8 · p99      8 · max      8 ms · spread     4 · n= 5 · limit 120
+  ok    yazi draws its first screen                  p50     20 · p95     20 · p99     20 · max     20 ms · spread     0 · n= 5 · limit 300
+  ok    volume key → the bar's figure                p50      8 · p95      9 · p99      9 · max      9 ms · spread     1 · n=10 · limit 150
+  ok    bar click: custom/day → up, lit              p50      8 · p95      8 · p99      8 · max      8 ms · spread     0 · n= 5 · limit 150
+  ok    bar click: custom/time → up, lit             p50      8 · p95      8 · p99      8 · max      8 ms · spread     0 · n= 5 · limit 150
+  ok    bar click: custom/timer → up, lit            p50      8 · p95      8 · p99      8 · max      8 ms · spread     0 · n= 5 · limit 150
+  ok    the backup's status ready                    p50      6 · p95      7 · p99      7 · max      7 ms · spread     0 · n=10 · limit 150
+  ok    a notice shown (mako)                        p50      3 · p95      4 · p99      4 · max      4 ms · spread     1 · n=10 · limit 100
+  ok    Super+U's rows: a keystroke's filter (fzf)   p50      1 · p95      1 · p99      1 · max      1 ms · spread     0 · n=10 · limit 30
+  ok    Super+V's clipboard list: a keystroke's filter (fzf) p50      1 · p95      1 · p99      1 · max      1 ms · spread     0 · n=10 · limit 30
+  ok    the backup's status: a keystroke's filter (fzf) p50      1 · p95      1 · p99      1 · max      1 ms · spread     0 · n=10 · limit 30
+  ok    btop's first frame                           p50      8 · p95     18 · p99     18 · max     18 ms · spread    10 · n= 3 · limit 500
+  ok    the launcher closes                          p50      4 · p95      4 · p99      4 · max      4 ms · spread     0 · n= 5 · limit 120
+  ok    the sound panel closes                       p50      4 · p95      4 · p99      4 · max      4 ms · spread     0 · n= 5 · limit 120
+  ok    the brightness panel closes                  p50      4 · p95      4 · p99      4 · max      4 ms · spread     0 · n= 5 · limit 120
+  ok    the quick panel closes                       p50      4 · p95      4 · p99      4 · max      4 ms · spread     0 · n= 5 · limit 120
+  ok    the quick panel opens                        p50      4 · p95      4 · p99      4 · max      4 ms · spread     0 · n= 5 · limit 120
+  ok    the brightness panel opens                   p50      4 · p95      4 · p99      4 · max      4 ms · spread     0 · n= 5 · limit 120
+  ok    the sound panel opens                        p50      4 · p95      4 · p99      4 · max      4 ms · spread     0 · n= 5 · limit 120
+  ok    bar click: custom/volume → up, lit           p50      4 · p95      4 · p99      4 · max      4 ms · spread     0 · n= 5 · limit 150
+  ok    bar click: custom/brightness → up, lit       p50      4 · p95      4 · p99      4 · max      4 ms · spread     0 · n= 5 · limit 150
+  ok    bar click: custom/menu → up, lit             p50      4 · p95      4 · p99      4 · max      4 ms · spread     0 · n= 5 · limit 150
+  ok    bar click: custom/mode → up, lit             p50      4 · p95      4 · p99      4 · max      4 ms · spread     0 · n= 5 · limit 150
+  ok    Super+V's clipboard list ready               p50      4 · p95      4 · p99      4 · max      4 ms · spread     0 · n=10 · limit 150
+  ok    a notice dismissed                           p50      2 · p95      2 · p99      2 · max      2 ms · spread     0 · n=10 · limit 100
+  ok    bar: custom/date closed → dark               p50      4 · p95      4 · p99      4 · max      4 ms · spread     0 · n= 5 · limit 200
+  ok    bar: custom/volume closed → dark             p50      4 · p95      4 · p99      4 · max      4 ms · spread     0 · n= 5 · limit 200
+  ok    bar: custom/brightness closed → dark         p50      4 · p95      4 · p99      4 · max      4 ms · spread     0 · n= 5 · limit 200
+  ok    bar: custom/menu closed → dark               p50      4 · p95      4 · p99      4 · max      4 ms · spread     0 · n= 5 · limit 200
+  ok    bar: custom/weather closed → dark            p50      4 · p95      4 · p99      4 · max      4 ms · spread     0 · n= 5 · limit 200
+  ok    bar: custom/time closed → dark               p50      4 · p95      4 · p99      4 · max      4 ms · spread     0 · n= 5 · limit 200
+  ok    bar: custom/day closed → dark                p50      4 · p95      4 · p99      4 · max      4 ms · spread     0 · n= 5 · limit 200
+  ok    bar: custom/mode closed → dark               p50      4 · p95      4 · p99      4 · max      4 ms · spread     0 · n= 5 · limit 200
+  ok    bar: custom/timer closed → dark              p50      4 · p95      4 · p99      4 · max      4 ms · spread     0 · n= 5 · limit 200
+  ok    bar: custom/downloads closed → dark          p50      4 · p95      4 · p99      4 · max      4 ms · spread     0 · n= 5 · limit 200
+  ok    bar: custom/drives closed → dark             p50      4 · p95      4 · p99      4 · max      4 ms · spread     0 · n= 5 · limit 200
+  ok    menu closed → its button dark                p50      4 · p95      4 · p99      4 · max      4 ms · spread     0 · n=10 · limit 200
+  ok    do not disturb toggle (makoctl)              p50      1 · p95      1 · p99      1 · max      1 ms · spread     0 · n=10 · limit 60
+  ok    a terminal opens and closes (footclient)     p50      1 · p95      3 · p99      3 · max      3 ms · spread     2 · n=10 · limit 250
+  ·  bar click: custom/wing-left (kawa-nowplaying play-pause) opened nothing in 2 s — not a menu or a panel here
+  ·  bar click: custom/wing-right (kawa-nowplaying play-pause) opened nothing in 2 s — not a menu or a panel here
+  ·  bar click: custom/nowplaying (kawa-nowplaying play-pause) opened nothing in 2 s — not a menu or a panel here
+  ·  bar click: custom/record (kawa-record stop) opened nothing in 2 s — not a menu or a panel here
+  ·  bar click: custom/steam (setsid -f kawa-steam) opened nothing in 2 s — not a menu or a panel here
+  ·  not measured — needs dwl's frame callbacks, which it does not export: a new window's first frame, a retile, a workspace switch, hover and slider frames (16 ms at 60 Hz, 7 ms at 144 Hz), login → ready
+  ·  never timed here: the lock, the login screen and the screensaver (they would lock you out)
+exit=1
