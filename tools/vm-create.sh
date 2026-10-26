@@ -71,7 +71,7 @@ btrfs none --label=fedora btrfs.01
 btrfs / --subvol --name=root fedora
 services --enabled=sshd
 %packages
-@^minimal-environment
+@^custom-environment
 openssh-server
 %end
 %post
@@ -87,7 +87,7 @@ virt-install --connect qemu:///session --name "fk-$name" --osinfo detect=on,requ
   --location "$tree" --initrd-inject "$D/ks.cfg" \
   --extra-args "inst.ks=file:/ks.cfg inst.text console=ttyS0,115200" \
   --network "passt,portForward=127.0.0.1:$port:22" --video virtio --graphics none \
-  --serial "file,path=$D/serial.log" --noautoconsole --wait -1 >"$D/virt-install.log" 2>&1
+  --serial "file,path=$D/serial.log" --noautoconsole --noreboot --wait -1 >"$D/virt-install.log" 2>&1
 rc=$?
 state=$(virsh -c qemu:///session domstate "fk-$name" 2>/dev/null)
 if ((rc != 0)) || [[ $state != "shut off" ]]; then
