@@ -176,6 +176,11 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   layout |||, 120 Hz (preferred 144) all restored; kept-off stays dark, release leaves it dark,
   press lights it. Tests: tests/session/test_hotplug.sh (new, 6), test_dwl_anim updated.
   DONE(code) — VERIFY live as r27-1.
+- r27-0 push blocked: this PC has no GitHub credentials (no credential helper, no gh login, no
+  SSH key — `git push` → "could not read Username"). Decided: commit locally, branch `r27` moved
+  to every commit (safe from the owner's `git reset --hard origin/main` one-liner; a memory note
+  outside the repo says how to restore main from it); CLAUDE.md START step 0. The owner pushes
+  once at the end (`git push origin main` with his credentials) — told in the final summary.
 - found: tests failing on clean HEAD already (not from this change): session/test_autostart (5:
   the bar's <span line_height> wrapper), test_game (4: snapper/scrub timers — gaming leaves the
   host anyway), test_glass (2: OSC 11).

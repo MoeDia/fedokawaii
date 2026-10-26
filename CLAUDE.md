@@ -508,6 +508,12 @@ session restarts **and reboots**: linger starts it at boot) which runs
 (`tools/claude-loop.sh`) until `.claude/DONE` exists. Each pass is a fresh session: **all
 state lives in the repo** — `.claude/plan.md`, the ledger, git. Log: `~/.cache/claude-r27.log`.
 On "START" (each pass):
+0. **Local commits first:** this PC has no GitHub credentials (2026-10-27: no helper, no gh
+   login, no key), so round-27 commits stay local; the branch `r27` always points at the
+   newest. If `git merge-base --is-ancestor r27 main` fails (main was reset to origin/main),
+   run `git merge --ff-only r27` (or `git reset --hard r27` when main has nothing of its own)
+   before anything else. After each commit: `git branch -f r27 HEAD`; try `git push` (it
+   fails harmlessly until credentials exist).
 1. If `.claude/plan.md` does not exist: spawn the planner (Agent, model `fable`, effort `max`)
    to write it as described above; read it; critique it hard; fix it; commit.
    Otherwise resume at the first task not marked done.
