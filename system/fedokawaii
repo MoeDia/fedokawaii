@@ -228,6 +228,8 @@ due_at() {   # the next update: EVERY days after the last one, or after setup
 }
 status_kv() {
   local t res from to d e l p f w run new free size n
+  # what only you can do (kawa-foryou), first
+  while IFS= read -r t; do printf 'for you\037%s\n' "$t"; done < <(kawa-foryou list 2>/dev/null)
   busy && printf 'running\037%s\n' 'an update or a repair, now'
   if (($(ver))); then
     printf 'release\037Fedora %s\n' "$(ver)"

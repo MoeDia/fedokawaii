@@ -12,7 +12,7 @@ import re, sys, pathlib
 root = pathlib.Path(sys.argv[1])
 files = [p for d in ("bin", "system", "configs") for p in (root / d).rglob("*") if p.is_file()]
 files = [p for p in files if p.name != "fedokawaii-report" and p.suffix not in (".png", ".ttf", ".otf", ".pdf")]
-APPS = {"desktop", "drives", "backup", "torrra", "downloads", "notices"}
+APPS = {"desktop", "drives", "backup", "torrra", "downloads", "notices", "foryou"}
 NAMES = {"Steam", "Bluetooth", "Prowlarr"}
 ICON = re.compile(r'^"(\$ICON_[A-Z_]+|\$\{ICON_[A-Z_]+:-[^}]*\}|\$SEAL|\$ICON|\$\(\. [^)]*ICON_[A-Z_]+"?\)|[一-鿿])  ')
 bad = []
@@ -69,5 +69,6 @@ has "$m" $'\ngroup-by=app-name,summary,body\n'
 has "$(sed -n '/^\[app-name=drives\]$/,/^$/p' <<<"$m")" "on-button-left=invoke-default-action"
 has "$(sed -n '/^\[app-name=downloads\]$/,/^$/p' <<<"$m")" "on-button-left=invoke-default-action"
 has "$(sed -n '/^\[app-name=notices\]$/,/^$/p' <<<"$m")" "on-button-left=invoke-default-action"
-eq "$(grep -c '^on-button-left=' <<<"$m")" 4 "four: everyone's, the drives', the downloads' and the held notices' (kawa-hush)"
+has "$(sed -n '/^\[app-name=foryou\]$/,/^$/p' <<<"$m")" "on-button-left=invoke-default-action"
+eq "$(grep -c '^on-button-left=' <<<"$m")" 5 "five: everyone's, the drives', the downloads', the held notices' (kawa-hush) and yours to do (kawa-foryou)"
 done_

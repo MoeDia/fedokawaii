@@ -99,6 +99,8 @@ keep kawa-panel </dev/null >"$HOME/.cache/kawa-panel.log" 2>&1 &
 systemctl --user --no-block start mako.service
 # started from a snapshot in the boot menu (its root a layer in memory over it: setup.sh
 # snap_boot): said once, and kept on screen until dismissed — nothing done here is kept
+# what only you can do (a cable to plug …): kept until done, shown at every login
+kawa-foryou show 2>/dev/null
 if grep -q '/\.snapshots/' /proc/cmdline; then
   notify-send -a desktop -u critical -- "史  a snapshot" \
     "the system as it was — nothing done here is kept. Super+U → snapshots to restore it" 2>/dev/null &

@@ -207,6 +207,18 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   the perf task). New terminal press→first frame 7–15 ms. nvim --startuptime 9.8–10.8 ms.
   Tools: dwl frame log (DWL_FRAMELOG, SIGUSR2 → $XDG_RUNTIME_DIR/dwl-frames.log), framestat.py
   (drops = gaps inside 4+-frame runs), perf.sh (--again re-reads a run).
+- r27-6 (T06) the one early notice — DONE+VERIFIED 03:24: facts from the official pages: the
+  LG 24G411A-B has one DisplayPort 1.4 and HDMI 2.0, 120 Hz native / 144 Hz overclocked
+  (lg.com/cl/monitores/gaming/24g411a-b); the MSI PRO B650M-B shows only HDMI (4K@60, HDMI 2.1)
+  and VGA (storage-asset.msi.com/datasheet/mb/us/PRO-B650M-B.pdf: "1. HDMI 2. VGA", no DP).
+  Both VM display designs (DDC input switch or Looking Glass) need the same wiring, no adapter:
+  the card's DisplayPort → the LG's DisplayPort; his HDMI cable → the board's HDMI. BIOS: nothing
+  (IOMMU 39 groups, AMD-V, iGPU enabled). New: kawa-foryou (things only he can do, kept as files
+  until he clicks them done: a critical notice at every login — mako [app-name=foryou] click =
+  done — and Super+U status's first row "for you"); test_foryou.sh (15). Shown live (shot), and
+  `fedokawaii status` leads with it.
 - found: tests failing on clean HEAD already (not from this change): session/test_autostart (5:
   the bar's <span line_height> wrapper), test_game (4: snapper/scrub timers — gaming leaves the
-  host anyway), test_glass (2: OSC 11).
+  host anyway), test_glass (2: OSC 11); static/test_generated (2: lock-scroll.png differs from
+  build-themes.py's output; PROJECT_TOP lacks a top-level entry), static/test_syntax (1: setup.sh
+  :75 SC1010 — shellcheck's newer parse). → T53.

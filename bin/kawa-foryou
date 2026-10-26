@@ -1,0 +1,38 @@
+#!/usr/bin/env bash
+# kawa-foryou — the few things only you can do (a cable to plug, a choice that is yours), kept
+# until done: each is a file in ~/.local/state/fedokawaii/for-you/ (its first line the title,
+# the rest the words), shown as a notice at every login that stays until clicked away, and as
+# the first rows of Super+U's status. Clicking the notice marks it done; closing it another way
+# (right click) only puts it away until the next login.
+#   kawa-foryou add NAME TITLE WORDS   kept (NAME: letters, digits, dashes); again: replaced
+#   kawa-foryou show                   the notices (autostart.sh, at login)
+#   kawa-foryou list                   the titles, one a line (Super+U)
+#   kawa-foryou done NAME              gone
+# Exit 0 · 1 no such NAME · 2 misuse.
+set -u
+dir=${XDG_STATE_HOME:-$HOME/.local/state}/fedokawaii/for-you
+case ${1:-} in
+  add)
+    [[ $# -eq 4 && $2 =~ ^[a-z0-9-]+$ ]] || { echo "usage: kawa-foryou add NAME TITLE WORDS" >&2; exit 2; }
+    mkdir -p "$dir" && printf '%s\n%s\n' "$3" "$4" >"$dir/$2" ;;
+  show)
+    ICON_USER=""
+    # shellcheck source=/dev/null
+    . "${XDG_CONFIG_HOME:-$HOME/.config}/fedokawaii/icons.sh" 2>/dev/null
+    for f in "$dir"/*; do
+      [[ -f $f ]] || continue
+      {
+        t=$(head -n 1 "$f") w=$(tail -n +2 "$f")
+        a=$(notify-send -a foryou -u critical -A default=done --wait -- "$ICON_USER  $t" "$w" 2>/dev/null)
+        [[ $a == default ]] && rm -f -- "$f"
+      } </dev/null >/dev/null 2>&1 &
+    done ;;
+  list)
+    for f in "$dir"/*; do [[ -f $f ]] && head -n 1 "$f"; done; exit 0 ;;
+  done)
+    [[ $# -eq 2 && $2 =~ ^[a-z0-9-]+$ ]] || { echo "usage: kawa-foryou done NAME" >&2; exit 2; }
+    [[ -f $dir/$2 ]] || exit 1
+    rm -f -- "$dir/$2" ;;
+  -h|--help) sed -n '2,/^set -u/{/^set -u/d;s/^# \{0,1\}//;p}' "$0" ;;
+  *) echo "usage: kawa-foryou add|show|list|done (kawa-foryou --help)" >&2; exit 2 ;;
+esac

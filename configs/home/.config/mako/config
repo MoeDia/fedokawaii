@@ -58,6 +58,12 @@ default-timeout=0
 default-timeout=8000
 on-button-left=invoke-default-action
 
+# what only you can do (kawa-foryou: a cable to plug, a choice that is yours): critical, so
+# it stays; a click marks it done (its default action), a right click puts it away until the
+# next login
+[app-name=foryou]
+on-button-left=invoke-default-action
+
 # what was held back during a share or a game (kawa-hush): "3 notices while you shared",
 # 8 s, and a click lists them
 [app-name=notices]
