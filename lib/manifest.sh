@@ -161,6 +161,13 @@ PKG_APPS=(
   podman                                            # Prowlarr container (torrra: uv tool, on uv's own Python 3.13 —
                                                     #   libtorrent has wheels only up to 3.13: setup.sh torrra_up)
 )
+PKG_VIRT=(              # virtual machines: the games VM (Windows with the graphics card passed
+                        #   through: libvirt + QEMU/KVM, OVMF's UEFI and Secure Boot, swtpm's TPM 2.0
+                        #   for Windows 11) and the test VMs every installer change is proven in
+                        #   (tools/vm-*.sh: session VMs, passt networking); socket-activated —
+                        #   nothing runs until a VM is started
+  libvirt-daemon-kvm virt-install edk2-ovmf passt swtpm swtpm-tools qemu-img
+)
 PKG_GAMING=(steam gamescope mangohud
             ntsync-autoload    # /dev/ntsync at boot: Proton's faster Windows synchronisation
             steam-devices)     # the rules that let Steam (and Proton's games) open a controller:
@@ -244,7 +251,7 @@ manifest_all() {
   local gpu_pkgs="PKG_GPU_$1[@]"
   printf '%s\n' "${PKG_BASE[@]}" "${PKG_RELEASE[@]}" "${PKG_MEDIA[@]}" \
     "${PKG_GPU_COMMON[@]}" "${!gpu_pkgs}" "${PKG_BUILD[@]}" "${PKG_SESSION[@]}" \
-    "${PKG_DESKTOP[@]}" "${PKG_LOOK[@]}" "${PKG_APPS[@]}"
+    "${PKG_DESKTOP[@]}" "${PKG_LOOK[@]}" "${PKG_APPS[@]}" "${PKG_VIRT[@]}"
   [[ $STEAM == yes ]] && printf '%s\n' "${PKG_GAMING[@]}"
   # libraries a release binary needed that Fedora stopped pulling in by itself (say
   # openssl3-libs, once Fedora 45 moved to OpenSSL 4): installed and recorded by lib/upstream.sh

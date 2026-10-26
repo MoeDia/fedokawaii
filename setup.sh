@@ -72,7 +72,7 @@ load_conf "$REPO_DIR"
 trap 'rc=$?; ((BASH_SUBSHELL == 0)) || exit $rc; failed_what "${FUNCNAME[0]:-main}:$LINENO"
       _out "${C_RED}✘ line $LINENO${FUNCNAME[0]:+ in ${FUNCNAME[0]}(), called from line ${BASH_LINENO[-2]}}: ${FAILED_SHOW:0:160} (exit $rc)${C_RESET}" >&2
       _out "  log: $LOG_FILE — fix the cause, then run the same command again (finished steps are skipped)" >&2; exit $rc' ERR
-trap 'if [[ $(head -n1 "${STATE_DIR:-/var/lib/fedokawaii}/phase" 2>/dev/null) == done ]]; then _out ""; _out "${C_OK:-}✔ Fedokawaii is built — reboot into the login screen: sudo systemctl reboot${C_RESET}"; exit 0; fi
+trap 'if [[ $(head -n1 "${STATE_DIR:-/var/lib/fedokawaii}/phase" 2>/dev/null) == "done" ]]; then _out ""; _out "${C_OK:-}✔ Fedokawaii is built — reboot into the login screen: sudo systemctl reboot${C_RESET}"; exit 0; fi
       _out ""; _out "${C_RED}✘ interrupted — run the same command again to continue${C_RESET}"; exit 130' INT TERM
 if [[ $MODE == status ]]; then        # read-only, so it works while another run holds the lock
   # shellcheck disable=SC1091
@@ -1342,6 +1342,7 @@ i2c_dev() {   # i2c-dev at every boot (monitor brightness over DDC/CI), and now:
 s_look()    { dnf_install "${PKG_LOOK[@]}"; }
 # (tree-sitter-cli recommends "nodejs", Node 22: never taken — exclude_from_weak, s_dnf)
 s_apps()    { local p; mapfile -t p < <(not_waiting "${PKG_APPS[@]}"); dnf_install "${p[@]}"; }   # (a COPR's waits: grub-btrfs)
+s_virt()    { dnf_install "${PKG_VIRT[@]}"; }       # (libvirt's daemons start on demand: nothing to enable)
 
 s_upstream() {
   local e; for e in "${UPSTREAM[@]}"; do install_upstream_bin "$e"; done
@@ -2328,6 +2329,7 @@ phase3() {
   step "3.04c a clean system and home"                 s_clean
   step "3.05 fonts, icons, toolkit themes"             s_look
   step "3.06 applications"                             s_apps
+  step "3.06b virtual machines (libvirt, KVM, UEFI, TPM)" s_virt
   step "3.07 upstream binaries (checksummed)"          s_upstream
   step "3.07b file dialog: yazi (termfilechooser ${TFC_TAG:-})" s_filechooser
   step "3.07c Syncplay $SYNCPLAY_TAG (pinned commit, no window)" s_syncplay
@@ -3281,6 +3283,7 @@ trial_run() {
   step "T10 desktop stack"                trial_desktop
   step "T11 fonts, toolkit themes"        s_look
   step "T12 applications"                 s_apps
+  step "T12b virtual machines"            s_virt
   step "T13 Steam and its 32-bit Mesa"    s_gaming
   step "T14 release downloads (checksummed)" s_upstream
   local s; for s in "${TRIAL_SKIPPED[@]}"; do log "skipped (a booted machine's): $s"; done
