@@ -1,0 +1,654 @@
+# Round 27 plan — written 2026-10-27 by the planner (Fable, max). The main agent works it top to bottom.
+
+## Conventions
+- Status in the heading brackets: `[todo]` · `[wip]` · `[done YYYY-MM-DD <commit>]` · `[blocked <why> → <alternative taken>]`. Grep `^### T` for the list, `\[todo\]` for what is next; work the first non-done task whose deps are done.
+- Model: `main` = the main agent (Opus) — everything design-critical or cross-cutting (bar, animations, lock, dwl, the design pass, all visual work, the update system's design and core). `sub:sonnet` = one well-fenced subagent at a time (tests, research digests, curriculum content, package/driver investigation), never on files another agent holds; `sub:haiku` = mechanical edits only. The main agent verifies every subagent result itself before `[done]`.
+- Ledger: one `r27-<n>` line per task in `.claude/notes/02-LEDGER.md` (n as the task line says: sequential, so T25a = r27-25, T26a = r27-28, T32 = r27-36 … T63 = r27-67), updated when the task changes state; the ledger line names how it was verified (frames, measurement, screenshot, test file) and the official source behind every software/hardware claim (URL or command).
+- Verification toolbox (built in T03, reused everywhere, never retyped): `tools/hl-dwl.sh` (headless dwl on the real GPU: own runtime dir, 1920x1080@144, wtype input, a script run inside), the dwl frame log that already exists in dwl.patch (`DWL_FRAMELOG=FILE`, or SIGUSR2 → `$XDG_RUNTIME_DIR/dwl-frames.log`; F/H/P/K/B/M/W lines) read by `tools/framestat.py` (exists: intervals, streaks, drops, key→glass latency, window→glass), `tools/perf.sh` (exists: the before/after protocol), `tools/shot.sh` (grim of the live session or a headless run, both themes, named PNGs under /dev/shm/r27/), `tools/px.py` (pixel measurement on a PNG: ink bounds, gaps, centre lines, colour counts, two-image diff), `tools/vm-*.sh` (T05), `tools/regress/` (T52). Big recordings go to /dev/shm and are deleted.
+- Session restarts (CLAUDE.md START §4, never a password): dwl changes are batched — batch A = T01+T02+T03 (one restart), batch B = T15 borders + T19 + T20 (one restart, a second after fixes), batch C = T32–T34 (host on the iGPU). Every dwl change is proven headless (`tools/hl-dwl.sh`, ASan build) before the restart. Reboots only where a task says so; the rtcwake power-off test is the very last thing (T59).
+- Idle inhibitor `r27-inhibit` running for the whole run (START §3). Commit after every finished task; pushing is blocked on this PC (ledger r27-0: no credentials) — the local branch `r27` is moved to every commit and the owner pushes once at the end (the final summary says so); `gh release` (T57) is blocked the same way. Long output to files under `/dev/shm/r27/` or `.claude/notes/`, never into the context.
+- Visuals: every `accept` means both themes, measured with `tools/px.py` against `docs/design-system.md`; motion means every frame inspected at 144 Hz with `tools/framestat.py` (timing) and a passthrough recording (`ffmpeg -fps_mode passthrough`) for looks.
+- Installer rule: nothing is done by hand on the PC — every change lands in setup/theme/apply (+ manifest, verify, tests) and is re-proven in the VM (T05, T54). Learn book: the pieces touched by a task are corrected in the same task (standing rule); the big rebuild waits for his word (T63).
+- Superseded items (planned only in their newer form): "UI 14 / terminal 16 px with the Sumi faces" → the new font selection (T07–T11); the two timer-based update sections → the FINAL one-button decision (T45); every Steam item (bar show/hide, moving joystick, Steam Deck check, bug 14) → the Windows gaming VM (T32–T35).
+
+## Phase 0 — fix first, measure first, build the tools and the VM (nothing else before this)
+
+### T01 — the "random restart" of 26 Oct: dwl crashed in configurex11  [done 2026-10-27 aef55a8, 4836010]
+deps: —  · model: main  · ledger: r27-1
+files: ~/.local/src/dwl/dwl.c → src/dwl/dwl.patch (tools/dwl-patch.sh), system/start-dwl, configs/home/.config/dwl/autostart.sh, system/fedokawaii-report, /etc/systemd/coredump.conf.d (via setup.sh), tests/session/test_dwl_crash.sh, tools/stress-x11.sh
+approach:
+- Evidence already in hand (planner, 2026-10-27): no reboot happened — boot -1 ran 25 Oct 14:06 → 26 Oct 23:43; `coredumpctl list` shows `/usr/local/bin/dwl` PID 1325 SIGSEGV at 12:22:19 (`#0 configurex11`, kernel: "segfault at 104 … error 4" = a read through a NULL struct pointer, core "truncated"), greetd closed session 3 and showed the greeter at 12:22:20, he logged in at 12:22:26; two GE-Proton `wine64-preloader` cores at 12:23:35 (a Wine game right after). Nothing from MCE/thermal/watchdog/pstore (empty); the 11:11 suspend/resume with "amdgpu MODE1 reset" is the normal resume path.
+- Confirm, never assume: `coredumpctl debug 1325` (gdb bt full; dwl is built with symbols — the frame resolved); read `configurex11` in dwl v0.9: `c->mon->lt[c->mon->sellt]` on a mapped managed X11 client whose `mon` is NULL (the last output gone: cleanupmon/updatemons leave clients unattached; monitor off over HDMI drops the connector — see T02). If the core is unusable: rebuild dwl `-O0 -g`, reproduce with tools/stress-x11.sh (headless dwl + Xwayland + xeyes/xterm-like X11 clients from python3-xlib configuring themselves while the test hotplug hook of T02 destroys/re-creates the output; ASan).
+- Fix: guard every `c->mon` dereference reachable from Xwayland/wlroots events (configurex11, activatex11, sethints, fullscreennotify, commitnotify, resize) — a client with no monitor is configured as asked and parked; T02 keeps clients attached across hotplug so the window is never NULL in practice.
+- Catch it next time: `coredump.conf.d/fedokawaii.conf` ProcessSizeMax/ExternalSizeMax large enough for dwl (the 1.4 MB core was truncated), dwl kept unstripped; autostart.sh notes a session that ended in a core since the last login and shows one critical notice ("the desktop restarted at 12:22: dwl crashed in configurex11 — reported"); the health report lists cores of the last 7 days (REPORT row). Persistent journal is already on (boots listed).
+- Note (no fix, said in the ledger): a PSU brown-out leaves no log; the evidence here is a crash, not power.
+accept: gdb backtrace quoted in the ledger; tools/stress-x11.sh: 500 X11 map/configure/unmap cycles across 20 output destroy/re-create cycles under ASan, 0 crashes (was: crash reproduced before the fix — show the before run); test_dwl_crash.sh greps the guards; after the batch-A session restart: `coredumpctl list` gains no dwl entry through T59; the notice shows once when a fake core is injected.
+DONE as (main, 2026-10-27; ledger r27-1): objdump of the crash site (0x40b86f = `c->mon->sellt`, c->mon NULL) instead of gdb (not installed; the core truncated); configurex11, dirtomon/focusmon, the move snap and animstart NULL-safe; reproduced for REAL, not with a test hook: tools/hotplug-test.sh runs a test dwl on the iGPU (free card) and makes the kernel unplug/replug its HDMI (sysfs status + amdgpu trigger_hotplug, the LG's EDID) while tools/xconf.c resizes an X11 window — the OLD dwl segfaults at check 1, the new one passes; verified live on HDMI-A-1 (real unplug, 40 X11 resizes, dwl alive). tests/session/test_hotplug.sh. The "catch it next time" part moved to T01b.
+
+### T01b — crash evidence for next time + the login notice after a crash  [todo]
+deps: T01  · model: main  · ledger: r27-1 (cont.)
+files: setup.sh (coredump.conf.d already 1G: dwl's core is truncated by its GPU mappings — keep, and build dwl with -g unstripped so the top frames resolve to file:line), configs/home/.config/dwl/autostart.sh (a session that ended in a dwl/Xwayland core since the last login → one critical notice in plain words), system/fedokawaii-report (cores of the last 7 days), lib/common.sh BOOT_ARGS via T41's batch (`efi_pstore.pstore_disable=0`: built in but off, CONFIG_EFI_VARS_PSTORE_DEFAULT_DISABLE=y; systemd-pstore.service is enabled), tests/installer/test_report.sh
+accept: a fake core injected → the notice once at the next login, the report row lists it; dwl binary has debug info (`file` says "with debug_info"); after T41's reboot `cat /sys/module/pstore/parameters/backend` = efi.
+
+### T02 — monitor on → always workspace 1: per-output state kept by name across hotplug/DPMS  [wip]
+deps: T01  · model: main  · ledger: r27-2
+files: ~/.local/src/dwl/dwl.c (createmon, cleanupmon, updatemons, outputmgrapplyortest, printstatus) → src/dwl/dwl.patch, bin/kawa-lock (--screens), bin/kawa-display, tests/session/test_hotplug.sh, tools/hotplug-test.sh
+approach:
+- Reproduce both ways on the PC and log what the kernel does: `wlopm --off HDMI-A-1; wlopm --on` (DPMS: the output stays) and the real power button of the LG (watch `udevadm monitor -k -s drm` and dwl's log: a connector "disconnected" destroys the wlr_output → cleanupmon → createmon with monrules' defaults → tags 1). Also `WLR_DRM_DEVICES` is fixed by start-dwl, so no card swap is involved.
+- Keep a `MonState` list in dwl keyed by output name (selected tags per monitor, sellt/lt pair, mfact, nmaster, the focused client's id, each floating client's geometry, fullscreen state): written on every change, restored in createmon for a name seen before; clients whose monitor was destroyed keep their tags and `mon` pointer re-targeted at once to the new monitor of the same name (no NULL window — T01), floating ones back at their pixel, the focus restored, `printstatus` after restore so the bar shows the right workspace.
+- An env-guarded test hook (`DWL_TEST_HOTPLUG=1`: SIGUSR2 destroys the first headless output and adds a new one of the same name) so tools/hotplug-test.sh proves it headless; the regression test runs it (skips when no GPU).
+- kawa-lock --screens off/on unchanged in meaning; the bar's tag files survive (kawa-dwlstatus).
+accept: on the PC: windows on workspaces 3 and 5, spiral with mfact 0.5, one floating window moved; monitor powered off 30 s and on; DPMS off/on via wlopm: workspace, layout, mfact, the floating window's x/y (grim + tools/px.py) and focus identical — 5/5 cycles each; headless: 50 hook cycles, state identical every time (tools/hotplug-test.sh output in the ledger); test_hotplug.sh added; both T01+T02 in one batch-A restart.
+STATE (2026-10-27, ledger r27-2): implemented as MonKept (tags, layouts, mfact, nmaster, mode, focus by output name; kept-off outputs stay off, lit by a key PRESS — never a release — since a reconnected-while-off output has no wl_output for wlopm); NO test hook: the real-hotplug test on the iGPU (tools/hotplug-test.sh, 12 checks) + live on HDMI-A-1 (workspace 3 kept, 144 Hz) + DPMS 90 s (the LG stayed connected). LEFT: hotplug-test.sh to also check mfact, a floating window's x/y and the focused window, and to run N cycles (5); the power button itself cannot be pressed from here — the kernel unplug is the same event (said in the ledger); try `ddcutil setvcp D6 4/5` (DDC power) in T38 as a second real path.
+
+### T03 — the verification toolbox (headless runs on the real GPU, frame log, shots, pixel measurement)  [wip]
+deps: —  · model: main (tools), sub:sonnet (tests for the tools)  · ledger: r27-3
+files: tools/hl-dwl.sh, tools/shot.sh, tools/px.py, tools/README-tools.md (one screen: how each is called); already there and kept: the frame log in src/dwl/dwl.patch (DWL_FRAMELOG / SIGUSR2), tools/framestat.py, tools/perf.sh, tests/session/test_framelog.sh — extend framestat.py only where a task needs a new measure (the animation step table: t, progress, position per frame); tests/static/test_tools.sh
+approach:
+- hl-dwl.sh: the CLAUDE.md incantation (XDG_RUNTIME_DIR=/tmp/hsrtX, WLR_BACKENDS=headless, WLR_RENDERER=gles2, WLR_RENDER_DRM_DEVICE=/dev/dri/renderD128, WLR_HEADLESS_OUTPUTS=1, `wlr-randr --custom-mode 1920x1080@144Hz` inside, `wtype -s 1000 -k …`), takes a script, a dwl binary (default ~/.local/src/dwl/dwl, `--asan` for the ASan build), a time limit; collects the frame log and the dwl log; cleans its runtime dir.
+- framestat.py (exists): add `--strict` (exit 1 on a drop or a late frame) and the per-animation step table (an A line per animated frame from dwl: t, kind, progress, position) for T19's checks.
+- shot.sh: grim with the session env from `/proc/$(pgrep -x waybar)/environ` (or the headless socket), `--both` runs the scene twice with `kawa-theme dark|light` and restores the theme; names from an argument.
+- px.py: ink bounding boxes per colour, gaps between boxes, vertical/horizontal centring checks against a grid spec (frame 2, pad 16, gap 8 …), colour histogram, image diff with a tolerance; JSON out for tests.
+- The only dwl change here is the animation A line (batch A); the frame log itself is already in the patch.
+accept: hl-dwl.sh runs a 10 s scripted session on renderD128 and leaves nothing behind (`ls /tmp/hsrt*` empty, no dwl process); framestat.py on a 144 Hz log of the current animations reports intervals of 1.0 refresh (and the fixture's dropped frame); px.py measures the bar's known 8/4/10/6 px gaps from a live shot to the pixel (matches the r26 measure); test_tools.sh covers fixtures; README-tools.md written.
+
+### T04 — the performance BASELINE of today's desktop (the "before" numbers)  [wip]
+deps: T03  · model: main  · ledger: r27-4
+files: tools/perf.sh (exists: its phases idle/boot/terminal/switch/typing/menus/nvim — extend with the rows below), tools/perf-load.sh (the standard heavy-use scene), .claude/notes/perf-before.md (numbers), lib/pace.sh + system/fedokawaii-latency reused
+approach:
+- Measured on the live session before batch A is loaded (the frame log is already in the running dwl if the live binary carries it — `kill -USR2 $(pgrep -x dwl)` and look for dwl-frames.log; if the live binary predates it, the frame rows are taken right after batch A, in the same hour, and said so): boot stages (`pace_boots 5`), login → desktop, `fedokawaii-latency --full` (p50/p95), app cold/warm starts ×10 (foot, yazi, nvim, btop, lazygit, brave, zathura, torrra, Super+U, Super+N, Super+V, launcher), `nvim --startuptime` ×10, RAM/CPU/GPU idle (free -m, 60 s top, amdgpu gpu_busy_percent) and under tools/perf-load.sh (mpv 1080p60 + Brave with 10 tabs + 8 terminals with btop + a workspace switch every 2 s for 2 min), input-to-screen latency for a key in foot, a menu open and a bar click (the latency tool's methods + a 240 fps phone is not available: use dwl's frame log timestamps vs wtype timestamps), wallpaper/theme switch durations, animation frame timing (framestat.py on every current animation).
+- Every number with its method and the exact command, so T60 repeats it identically (the same tools/perf.sh, the same OUTDIR layout).
+accept: perf-before.md complete (every row filled or marked "not measurable today, why"); `bash tools/perf.sh` reproduces it in one run (report.txt kept under .claude/notes/perf/); committed.
+STATE (2026-10-27 03:15, ledger r27-4): first run captured (.claude/notes/perf-r27-before.txt: idle, boot, terminal/switch/typing/menus frames and key→glass, nvim). LEFT: the rows above not yet in perf.sh (cold/warm app starts ×10, the heavy-use scene, fedokawaii-latency, pace_boots, wallpaper/theme durations, a bar click) — and nvim measured for REAL: the 10 ms of `nvim --headless --startuptime +qa` never attaches a UI nor fires LazyVim's VeryLazy, so time it in a pty/foot to VeryLazy (+ the first redraw); take them before Phase 1 changes anything they measure.
+
+### T05 — the VM harness (nothing is "VM-proven" without it)  [todo]
+deps: T03  · model: main (design, VM creation), sub:sonnet (tests/installer/test_vm_tools.sh, the serial-log parser)  · ledger: r27-5
+files: lib/manifest.sh (new PKG_VIRT: libvirt-daemon-kvm, qemu-kvm, virt-install, edk2-ovmf, swtpm, guestfs-tools/libguestfs-tools-c, virt-viewer not needed; verify: user in libvirt group), setup.sh (s_virt: libvirtd socket activation, no autostart of VMs), tools/vm-create.sh, tools/vm-snap.sh, tools/vm-run.sh, tools/vm-smoke.sh, tools/vm-ks/*.ks, docs: a Learn piece stub (T50 finishes), tests/installer/test_vm_tools.sh
+approach:
+- Official sources first: Fedora Server 44 netinst/boot ISO URL + checksum from getfedora/fedoraproject (dnf `fedora-release` for the current version), Kickstart reference (pykickstart docs), virt-install man page, libvirt snapshot docs. Packages via the manifest and `sudo fedokawaii repair` (never dnf by hand), VM storage under `~/VM/harness/` (one folder: disk, nvram, logs).
+- vm-create.sh NAME: unattended Fedora 44 Server minimal (kickstart over the netinst: UEFI, GPT, the real PC's layout — /boot/efi vfat, /boot XFS outside Btrfs, Btrfs root with subvols root/home like setup.sh expects, 60 G, 8 G RAM, 6 vCPU, virtio-gpu, serial console logged to `~/VM/harness/NAME.serial`), a `dia`-like user with the ssh key of the harness; `--release 45|rawhide` variant for pre-flights (T46).
+- vm-snap.sh NAME save|revert|list (virsh snapshot, internal or external with qcow2), vm-run.sh NAME CMD… (ssh, exit status back, output to a file), vm-smoke.sh NAME: the repo rsynced in, `fedokawaii.sh setup` to the end through its reboots (watch the serial + phase file), theme, verify (parse PASS/FAIL), then the desktop start: greetd with `[initial_session]`, wait for `dwl-session.target`, grim via vm-run, a non-black screenshot with the bar's known pixels (tools/px.py), waybar/kawa-panel/mako processes present; the result as one line + the log path.
+- Time budget: the first full smoke is the real measurement; keep a base snapshot "fresh-f44" to revert to.
+accept: `tools/vm-create.sh f44` → a VM that boots to a login in < 15 min unattended; `vm-smoke.sh f44` runs setup/theme/verify from the current repo with verify ≥ the PC's count minus hardware-only checks (each skip named) and the desktop screenshot passing; `vm-snap.sh revert` returns to fresh-f44 in < 1 min; test_vm_tools.sh covers argument/handling paths with stubs; ledger notes the Fedora ISO URL+checksum used.
+
+### T06 — the one early notice to the owner: the physical step for the gaming VM  [todo]
+deps: —  · model: main  · ledger: r27-6
+files: .claude/notes/02-LEDGER.md, ~/.local/state/fedokawaii/for-you/*.txt (one file per thing he must do: shown as a critical notice at every login and at the top of Super+U until he dismisses it — a session restart must not lose it), configs/home/.config/dwl/autostart.sh + system/fedokawaii (show/dismiss), tests (never his ~/Notes: his notebook is his)
+approach:
+- Already known: IOMMU on, dGPU alone in group 14 (audio 15), AMD-V on — the BIOS needs nothing. Open question answered from official pages only: LG 24G411A-B inputs (lg.com spec page) and MSI PRO B650M-B rear video outputs (msi.com spec page); the iGPU exposes HDMI-A-2 and DP-3/4/5.
+- The notice (one, plain): "for the games VM: connect a second cable from the motherboard's video output (DP or HDMI — named from the spec) to the monitor's second input; nothing else is needed from you" + the same line in the ledger and his notes. If the spec shows the monitor has only one input of the matching kind, say which adapter cable; if a Looking Glass design is chosen later (T35) the notice is revised with one more line, never twice the same ask.
+accept: notice shown (screenshot) and shown again after a session restart until dismissed; Super+U's top line; ledger line with both spec URLs.
+
+## Phase 1 — foundations that move everything: fonts, palette, the design system as the single truth
+
+### T07 — the new fonts, chosen by rendering in our real surfaces  [todo]
+deps: T03  · model: main (renders, decision), sub:sonnet (the facts table: licence, coverage, drawn sizes, hinting, download URL + checksum per candidate, from each project's official page)  · ledger: r27-7
+files: .claude/notes/fonts-r27.md (the comparison with shots), tools/font-try.sh (renders a candidate into waybar/panel/foot/mako/gtklock headless, both themes), scratch fonts outside the repo (~/.cache/r27-fonts/)
+approach:
+- UI candidates (official sources, verify each now): DotGothic16 (Google Fonts, OFL), PixelMplus (10/12, M+ licence), Zpix (12 px, custom licence — check commercial/redistribution terms), Fusion Pixel (8/10/12, OFL), Misaki (8 px), k8x12 / k12x8, JF Dot family (Shinonome/Kappa/Ayu: public domain), Unifont JP; also bitmap→TTF faces drawn for 12–14 px with full Latin/kana/kanji; the hard rule: no spacing fault on any pair — render the full pangram sets (Latin upper/lower, digits, every ASCII symbol, kana, 200 common kanji, Arabic through the Kufi fallback) and measure advances/bearings with tools/px.py.
+- Terminal candidates: Fira Code (he named it), PlemolJP (IBM Plex Mono + IBM Plex Sans JP, Nerd variant "PlemolJP NF"), HackGen (Hack + Genjyuu Gothic, "HackGen NF"), Moralerspace (Monaspace + IBM Plex Sans JP, NF variant), Maple Mono (NF-CN variant covers kana/kanji?), JetBrains Mono, Iosevka — each checked for: Nerd glyphs, Japanese coverage, hinting at 13–16 px on 1080p, ligatures (on/off chosen by reading tests), the line height that gives whole-pixel cells; measure the cell (width × height) each gives at the chosen pixel size — the TUIs' width tables depend on it.
+- Render every candidate at 2–3 sizes in: the bar, a menu, quick settings, a notice, the lock, the greeter, foot with yazi/nvim/btop/a prompt, both themes; zoom crops side by side; grill like an art director (x-height, stroke consistency, kanji weight vs Latin, digit alignment, symbol pairs, readability at a desk distance).
+- Decide the set (UI face + size, terminal face + size + line height, the icon grid that follows), write why in fonts-r27.md with the shots; the sizes "a little smaller than today, more on screen" (today: UI 16 px / 8 px cell, term 20 px / 10×20 cell, line 24).
+accept: fonts-r27.md with the table (sources + licences), the rendered comparison sheets (both themes), the decision and the exact cell metrics; no candidate shortlisted that fails the pair test; the chosen licences allow bundling in the repo (quoted).
+
+### T08 — the Wada palette: colour roles for the whole design system  [todo]
+deps: T07  · model: main  · ledger: r27-8
+files: tools/build-themes.py (P dict, GRUVBOX/GRUVBOX_LIGHT, EDITOR), configs/home/.config/fedokawaii/themes/*/ (generated), src/dwl/config.h colours (loaded from dwl.colors anyway), lib/common.sh colour notes, .claude/notes/wada-r27.md
+approach:
+- Data from github.com/mattdesl/dictionary-of-colour-combinations (colors.json: the 348 Wada colours with hex + the combination indices); pick for each theme one coherent combination family: dark = sumi/ink grounds with a vermilion (our red stays the signature), a pastel set for the prompt's powerline (T26) and the meters; light = kinari paper with sumi; keep token NAMES (ground, surface, key, edge, edge2, faint, muted, text, strong, accent, accent_text, accent_lo, text_on_accent, asagi, lo, blue, tile) and add the pastel roles (p1–p6: the prompt segments, the chess/typing accents, the slider's "high" red ramp) so every script keeps working.
+- Contrast measured (WCAG ratios for text/muted/faint on ground and tile, both themes — the dark-theme yazi contrast complaint is a palette fault too); the 16 terminal colours derived from the same families; the console palette (BOOT_ARGS vt.default_*) regenerated.
+- Render the gallery (T03 shot.sh of the current surfaces) before/after; grill; iterate.
+accept: build-themes.py regenerates both themes from the Wada data with no literal colour outside it; contrast table in wada-r27.md (every text role ≥ 4.5:1 on its ground, muted ≥ 3:1); gallery shots both themes; tests/look/test_theme.sh updated for the token set.
+
+### T09 — docs/design-system.md rewritten FIRST as the single truth  [todo]
+deps: T07, T08  · model: main  · ledger: r27-9
+files: docs/design-system.md (full rewrite), docs/design-system-assets/ (grid diagrams rendered by tools/px.py as PNG), tests/static/test_design_doc.sh
+approach:
+- Sections: 1 palette (Wada roles, both moods: demon/dark, angel/light — two moods, not a recolour), 2 type (the chosen faces, pixel sizes, cells, line heights, display sizes), 3 grid (frame, pad, gap, row, seal → now "stamp", rule, section, key, tile, meter, bar 27), 4 parts (panel, heading = pixel icon + name + stitch rule, row, key, tile, meter, stamps), 5 icon grammar (14/15 px icons on the UI grid, term twin, kanji only on: workspace stamps (numeral black, inside the circle), the lock quote, the bar's day seal; everywhere else custom pixel icons; the demon/angel art rules), 6 motion (playful pixel: dissolves, stamps, scrolls unrolling; 400–450 ms open/close/workspace; menus/warm windows; lock→desktop; greeter→session; wash 1.2 s; cursor in the wash; all frame-driven at the refresh, eased, whole pixels, never a hard edge sweeping), 7 states (rest/hover/cursor/chosen/disabled; sliders alive — the fill reddening above 80 %), 8 behaviour (one popup at a time, opens centred under its button, over fullscreen, pointer live at open), 9 text screens (TUI grammar: no dashed rules — the stitch becomes a pixel rule glyph or whitespace; spacing table), 10 the bar (27 rows: the exact row map), 11 notices/OSD/lock/greeter/saver, 12 windows (border = the bar's 3D look: outline + light band + shadow band), 13 the books.
+- Every number in a table; every surface listed with its owner script; a "grill list" appendix (what an exacting art director checks) used by T18.
+accept: the doc has no "TBD"; test_design_doc.sh checks every size in the doc appears in the generated configs (bar height, pads, font px) — parses the tables; ledger lists the decisions.
+
+### T10 — build the UI face, re-grid icons/signs, rebuild width tables  [todo]
+deps: T09  · model: main  · ledger: r27-10
+files: tools/build-fonts.py (new sources, new cell), art/signs.txt (redrawn for the new cells), art/icons.txt (every icon re-drawn/re-gridded to the new UI cell; the icon's "air-less twin" rule kept), tools/build-icons.py, system/fonts/*.ttf, configs/home/.local/share/fonts/SumiIcons*.ttf, configs/home/.config/fedokawaii/width.sh + icons.sh (generated), system/60-fedokawaii-pixel.conf, configs/home/.config/fontconfig/fonts.conf, configs/home/.config/waybar/style.css + config.jsonc (sizes only here; the redesign is T15), themes/*/gtklock.css, mako config, kawa-panel (PX constants), kawa-greet, kawa-osd, kawa-saver (glyphs.h), plymouth/GRUB display sizes, lib/upstream.sh (sources pinned by checksum, not in the repo), tests/static/test_generated.sh, tests/menus/*, tests/status/width.py
+approach:
+- The face name stays "Sumi UI" (every config already names it) built from the chosen source(s) at the chosen size; the five old-Japanese signs still redrawn; signs and icons at the new cell; display size = a whole multiple.
+- width.sh: the per-letter air table regenerated (build-fonts.py rewrites it); every pixel constant in kawa-panel/kawa-osd/kawa-greet/kawa-saver derived from one place (`~/.config/fedokawaii/screen.sh`/`width.sh` values) rather than literals — fold while touching.
+- Re-render the gallery; measure every surface's gaps against T09 with tools/px.py; iterate until zero deviations.
+accept: tools/px.py reports every gap/pad/centre of bar, menu, quick settings, notice, OSD, lock, greeter, saver within 0 px of the design table, both themes; no pair-spacing fault in the pangram sheet; tests updated and green; `fedokawaii apply` installs the faces (verify checks the font files' checksums).
+
+### T11 — build the terminal face; foot, TUIs, nvim re-aligned  [todo]
+deps: T10  · model: main  · ledger: r27-11
+files: tools/build-fonts.py (term), art/icons.txt (term twins), configs/home/.config/foot/foot.ini (font, line-height, pad, font-size-adjustment), configs/home/.config/fedokawaii/screen.sh, lib/common.sh (_heading/_row widths), bin/kawa-term (window sizes in cells: the system menu's 100×27 etc. recomputed so every popup still centres to the pixel), every TUI's column maths (kawa-books, kawa-notes/notes.lua, kawa-clip, kawa-wallpaper --tui, kawa-file, kawa-help, system/fedokawaii), configs/home/.config/{yazi,btop,nvim,lazygit,bluetui,visidata,gdu} font-dependent bits, tests/content/*, tests/look/test_term.sh
+approach:
+- The chosen coding face + Nerd glyphs + Japanese coverage at its best hinted pixel size; ligatures decided from the reading test; line height chosen so the cell is whole pixels and a 1080p tile holds whole rows (document the grid: W×H cells at the spiral's first window and a full window).
+- "Sumi Term" stays the family name in configs (an alias face built from the chosen font: no config churn); the term icon twins re-gridded; the prompt (T26) comes later on this grid.
+- Every TUI's fixed widths recomputed from screen.sh; kawa-term's COLSxROWS tables regenerated; nothing truncated (test_noellipsis).
+accept: foot shows the face at the chosen px with 0 fractional pixels (grim crop at 4×: crisp stems); a full-screen foot holds the documented cells; every popup window centred to the pixel (px.py); tests green; the Learn book's "terminal" pieces corrected.
+
+## Phase 2 — one design, one unit: Super+U first, then every surface to match
+
+### T12 — Super+U fully redesigned (structure, sections, states, spacing, art)  [todo]
+deps: T09, T11  · model: main  · ledger: r27-12
+files: system/fedokawaii (the TUI: rows(), part_of(), the pane, job_head, --window), bin/kawa-term (its window), configs/home/.config/fedokawaii/keybinds.txt, art/icons.txt (one pixel icon per entry and section), tests/engine/test_menu.sh, tests/engine/test_status.sh, docs (Learn piece "Super+U")
+approach:
+- Sections and entries (decided here, built now; T45/T48/T27 fill the behaviours behind the entries that do not exist yet — entries are present from day one and say "not yet" in the pane, in `faint`): **system** status · verify · repair · settings · drift · change the desktop · log; **update** update (the one button, T45; its pane: last run, pending for N days, held packages) · held (what is held and why, T45); **snapshots** undo (list + restore, T48) · boot-menu note · restore a file (T48); **backups** backup now · restore · the drive (T48); **learning** lessons (T27) · chess (T25b) · typing (T26b) · to-do (T21) · keys (Super+/).
+- Grammar from T09: section heading = pixel icon + name + rule; 1 blank row under every heading (bug 15: today the first row sits on the heading); row = icon, name, value column right-aligned; the pane beside with the entry's state; the footer; no dashed lines (bug 17); the window's cells recomputed so it centres to the pixel at the new cell size; cursor row filled `accent`.
+- States drawn, not explained: a running job's row shows a moving pixel icon (the hourglass turning), a due update its stamp, a failed verify its count in vermilion.
+accept: shots both themes measured (heading → first row = the design's section gap; icon column, name column, value column aligned to the pixel across sections); every entry opens its screen or says "not yet" (none dead); keyboard and pointer both work from the first frame; tests updated; Learn piece rewritten.
+
+### T13 — menus, quick settings, bar dropdowns: the same grammar, every bug of theirs fixed  [todo]
+deps: T12  · model: main  · ledger: r27-13
+files: bin/kawa-panel (Layout/Menu/Panel, menu_place, layout_quick, layout_menu, look(), hover/focus-on-map), bin/kawa-menu, bin/kawa-quick, bin/kawa-calendar, bin/kawa-timer, bin/kawa-drives, bin/kawa-downloads, bin/kawa-weather, bin/kawa-hush (DND menu), bin/kawa-help (look only), art/icons.txt (one unique icon per quick tile and per menu heading; no kanji), tests/menus/*, tests/session/test_clicks.sh
+approach:
+- Bug 3 for good: the GTK layer-shell menu must receive pointer motion from its first frame — on map: `gtk_widget_grab_focus` + the panel's own "hot row from the pointer's current position" computed from `wlr` pointer position at open (kawa-panel asks dwl's status/`wlr-randr`? no: read the pointer via the panel's own GDK device position right after map) and keyboard focus requested through layer-shell `keyboard_interactivity=exclusive` for dropdowns; regression test drives the headless panel (tests/menus/headless_panel.py) and a live wtype/ydotool-free check: open → move → the hot row follows with no click (shot).
+- Bug 7: Super+C opens centred under the date tile (menu_place from the bar's date module geometry: kawa-bar writes each tile's x/width to $XDG_RUNTIME_DIR/kawa-bar.geo on every draw; the key path reads it); bug 8: one popup at a time across the panel's menus, Super+U/N/V warm windows and bar dropdowns — the panel closes its menu when a warm window shows (dwl tells it through the fifo: `warm shown NAME`), and a warm window hides when a panel menu opens (kawa-panel asks dwl `warmhide` via its fifo) — every pair tested; the launcher included.
+- Quick settings: each tile its own icon/art (theme = moon/sun, night = lantern, freesync = a wave, network, bluetooth, devices, drives, backup, dnd, saver, record, read text) drawn as a family; every row/icon/label/gap measured (tile 120×80 → re-derived from the new grid), OCD alignment; the DND bar icon opens a small DND-only menu (off · for 1 h · until tomorrow); the sliders (volume, brightness, meters) alive: fill ramps from asagi to red above 80 %, the knob a pixel ember, the track with its ticks.
+- Kanji headings → pixel icons everywhere in menus; calendar/timer/drives/downloads/weather dropdowns re-laid on the grid; weather rows stay info rows.
+accept: tests/menus green + new cases (hover-without-click, calendar placement = date tile centre ±0 px, 12 popup-pair combinations each leaving exactly one open); shots both themes measured; the DND menu shot; slider at 50/85/100 % shots (colour ramp verified by px.py histogram).
+
+### T14 — the bar redesign (27 px, no inner frame, every owner item) — Steam items dropped  [todo]
+deps: T10, T13  · model: main  · ledger: r27-14
+files: configs/home/.config/waybar/config.jsonc + style.css, tools/build-themes.py (kami pictures: BAR_H 27, K_SLICE, seals, scroll, red tiles without the inner cream rule), bin/kawa-bar, bin/kawa-dwlstatus, bin/kawa-nowplaying (video title · red separator · channel/episode), bin/kawa-downloads (animated icon while downloading), bin/kawa-weather (new "sunny" icon ≠ brightness), bin/kawa-brightness, bin/kawa-volume, bin/kawa-mem, bin/kawa-timer, art/icons.txt (antenna TV frames, downloads frames, the red slash, the demon/angel head on the right tile — from T20's art; placeholders until then), configs/home/.config/fedokawaii/width.sh, tests/session/test_bar.sh, tests/static/test_bargaps.sh, tests/status/*
+approach:
+- 27 rows: row map written in T09 (hairline, paper, rule, the text line, rule, paper, hairline, shadow) and drawn by build-themes.py to the pixel; no inner cream second frame on any tile including the two red end tiles; workspace stamps: the numeral black, small, fully inside the red circle for 1–9 (measure every numeral's ink inside the circle's ink); active title lighter (the UI face's regular weight if the chosen family has one, else a thinner synthetic rule — decided with the face).
+- Date `DD/MM/YYYY` with a custom red pixel slash glyph; day kanji seal stays (allowed); US red / AR blue (our blue token) and clickable (kawa-tag kb next); video title ▸ red separator ▸ channel/episode; visualizer wings in our red; the TV antenna icon animating while a video plays, the downloads icon animating while a download runs (frame sequences via the icon font: 4–6 frames at 6–8 fps, driven by the module's own loop, no extra processes); weather "sunny" redrawn (a sun with rays and a horizon) distinct from brightness' ring; Steam module, kawa-steam references removed from the bar now (T38 removes the rest).
+- Re-measure all spacing: 8 px ink→edge, 4/10 px groups, 6 px screen edge, the bar's distance to the windows' borders (outergappx + the tiles' shadow): every icon and section measured with px.py, both themes; the bar never grows (the r26 fix kept).
+accept: px.py table of every tile (ink gaps 8/8, groups 4/10, edge 6, height 27, stamps' numerals inside the circle by ≥ 1 px all round) both themes; animated icons: a passthrough recording shows the frame sequence at the intended rate with no stray pixels; tests green; the Learn "bar" piece corrected.
+
+### T15 — window borders with the bar's 3D look (dwl) + notices, OSD, tooltips, Super+/ to the grammar  [todo]
+deps: T14  · model: main  · ledger: r27-15
+files: ~/.local/src/dwl/dwl.c (applyframe: outline + light band + shadow band + a 1 px shadow row under the window, colours from dwl.colors: 3 per state) → src/dwl/dwl.patch (batch B), tools/build-themes.py (dwl.colors), configs/home/.config/mako/config + themes/*/mako, bin/kawa-osd, bin/kawa-help (look), waybar tooltips (style.css), tests/session/test_dwl_anim.sh (borders), tests/look/test_units.sh
+approach:
+- Border: the same three-tone rule the tiles carry (hairline, paper/band, shadow) at 2 px total + shadow row; focused = vermilion band, others = warm grey, urgent = asagi; measured on a shot at 4× zoom; no change to gaps (8/5 px) — the shadow lives inside the border's pixels.
+- Notices: 412 → the new grid width, icon column, title/body rows, the critical vermilion frame, square corners; OSD = the panel's meter to the pixel with the alive fill (T13) and its "high" red; tooltips = one row on a tile.
+- Super+/ visual only here (content + context in T23).
+accept: 4× crops of a focused/unfocused/urgent border matched against the tile's rows (px.py colour rows identical in order); notice/OSD/tooltip shots both themes measured; headless proof before the batch-B restart.
+
+### T16 — TUI grammar pass: books (Super+R), wallpaper (Super+W + rotate key), clipboard, launcher calc, no dashed lines, kanji → icons  [todo]
+deps: T11, T12  · model: main  · ledger: r27-16
+files: lib/common.sh (_heading: the stitch glyph replaced by the pixel rule or air), configs/home/.config/fedokawaii/screen.sh + fzf.opts, bin/kawa-books (--tui, --rows, --preview: columns, the cover's place, progress bar in pixel glyphs), bin/kawa-wallpaper (--tui: the rotate toggle shown at the bottom as a key line "R  a new one every 4 hours · on/off" with a key, not a row; the current one highlighted), bin/kawa-clip (exit: no "terminated" flash — the window's last frame kept: kawa-term hides the window before the process is killed / `trap` prints nothing; foot's `hold`), bin/kawa-calc + the launcher's live answer (bug 6 flicker: redraw only the answer row, never clear), bin/kawa-file, bin/kawa-help, bin/kawa-shrink, bin/kawa-config, bin/kawa-drives, art/icons.txt (TUI app icons replacing every kanji seal in TUIs and launcher seals), tests/content/*, tests/look/*
+approach:
+- One rule set in screen.sh (heading, row, footer, blank rows, column widths, right-aligned values) that every TUI sources; dashed `╌` lines gone everywhere (grep-tested); spacing re-measured in a shot of each screen at the spiral's first window size and at full screen.
+- Books "torn down and redone": the list on the left (progress as a 10-cell pixel bar glyph set), the cover right, alignment by column rule; the flicker causes measured with a passthrough recording before/after (fzf redraw vs our preview redraw).
+- Launcher entries for terminal programs get their pixel icon (22 px) instead of a kanji seal.
+accept: `grep -rn '╌' bin lib system` empty except where the design table allows (none); shots of every TUI both themes at two sizes measured; recordings show zero full-screen clears on notes save / calc typing / clipboard exit; tests green.
+
+### T17 — the side-by-side audit: every surface, both themes, one grammar (the coherence pass)  [todo]
+deps: T12–T16  · model: main  · ledger: r27-17
+files: tools/gallery.sh (shots of every surface in both themes into /dev/shm/r27/gallery/, contact sheets), .claude/notes/grill-r27.md (the art-director list and what was fixed), tools/regress/gallery-expect.json (the measured numbers kept as the regression reference for T52)
+approach:
+- Shoot: bar, every bar dropdown, launcher, quick settings + sound + brightness, every Super+ key popup, notices (normal/critical), OSD, lock, greeter (headless cage), saver, every TUI, nvim, yazi, btop, Brave frame, the books; contact sheets dark|light side by side.
+- Grill each against T09's appendix; fix; re-shoot; repeat until the list is empty; record every measurement as the expected values of the regression gallery.
+accept: grill-r27.md ends with "nothing left"; gallery-expect.json committed and tools/regress/gallery.sh (T52) passes against it.
+
+## Phase 3 — lock, animations, art: the world (demon dark, angel light)
+
+### T18 — the old-master pixel-art pipeline: wallpapers, lock art, the quick-settings head, fetch art, stamps  [todo]
+deps: T08, T09  · model: main (art direction, pixelisation tool, final picks), sub:sonnet (source hunt: public-domain scans with licence lines)  · ledger: r27-18
+files: tools/build-art.py (extended: quantise to the theme palette, ordered dither at the wallpapers' 3 px grid, pixel clean-up passes, a crop/compose spec per picture), art/masters/ (spec files only; sources fetched by checksum into ~/.cache/r27-art, the finished PNGs into the wallpaper pack repo/release as today's pack is), art/icons.txt (demon head for dark / angel head for light: bar right tile 15 px, quick-settings icon, fetch art at the terminal grid as a multi-cell icon block, workspace stamp numerals), bin/fetch, bin/kawa-wallpaper (wallpapers.list entries: ~10 demon "dark" + ~10 angel "light"), tests/look/test_wallpaper.sh, tests/content/test_fetch.sh
+approach:
+- Sources only from museums' open-access/public-domain collections (The Met Open Access, Art Institute of Chicago, Rijksmuseum, Tokyo National Museum/ColBase, Library of Congress, Wikimedia Commons PD scans): Kuniyoshi (demons, warriors, oni), Hokusai (Hyakumonogatari ghosts, demons), Kyōsai; Buddhist angels/apsaras (tennin, Hōryū-ji/Byōdō-in reproductions in PD) — each entry's licence URL kept in art/masters/SOURCES.md.
+- Pixel versions: our palette (Wada), dark pictures sumi-dyed with vermilion accents, light ones on kinari paper; composition cropped for 1920×1080 with the subject off the clock/bar areas; grilled at 1× and 4×; the lock art: a demon whose open mouth frames the password line (dark), a tennin whose hands/robe frame it (light), two torches drawn as 6–8 frame pixel animations (T20 draws them).
+- Stamp numerals 1–9 redrawn small and black inside the circle (T14 measures).
+accept: 20 wallpapers in the pack list (10+10) with sources and licences; px.py confirms each uses only palette colours and the 3 px grid; lock/greeter art both themes; the heads on the bar and quick settings measured on the tile; fetch art renders in foot without misalignment (test_fetch).
+
+### T19 — dwl animations, playful pixel; 400–450 ms; menus, lock→desktop, greeter→session; wash 1.2 s; cursor in the wash; popups over fullscreen; wallpaper black box  [todo]
+deps: T09, T15  · model: main  · ledger: r27-19
+files: ~/.local/src/dwl/dwl.c (animframe/animstart/ghost*, a pixel-dissolve shader path: a per-client dissolve mask texture (ordered-dither threshold ramp) blended in the scene via wlr_scene buffer opacity per 3 px cell → implemented as an overlay of the theme's ground drawn with a dither-mask node sequence, or wlroots 0.20's scene `wlr_scene_buffer_set_opacity` + a custom render pass; choose by measuring frame cost at 144 Hz), src/dwl/config.h (anim_open/close/tag 400–450, anim_menu, anim_unlock, the dissolve cell size), src/kawa-saver (--wash 1.2 s: 1200 ms curve, the ink front reports its x/y progress to dwl's fifo for the cursor), bin/kawa-theme, bin/kawa-wallpaper (bug 5: the new picture drawn off-screen and the wash started only after swaybg has committed it — wait for the layer surface's first frame via the wlr frame callback in kawa-saver, never show the bare ground), bin/kawa-warm (warm windows animate: a stamp-in/stamp-out), system/kawa-greet + system/start-dwl (greeter→session: the greeter writes its last frame to /run/user/…/handover.png (grim inside cage), dwl shows it as its first frame and dissolves it into the desktop — a `DWL_HANDOVER` path), bin/kawa-lock (lock→desktop 400 ms dissolve), tests/session/test_dwl_anim.sh, tools/anim-check.sh (every animation run headless, framestat.py --strict)
+approach:
+- One motion family (T09 §6): open = a pixel dissolve + a 1-cell rise; close = dissolve out + sink; workspace = the old windows scroll off like a paper strip and the new stamp in, 420 ms eased; menus/warm windows = a stamp (scale 0.96→1 in whole-pixel steps + dissolve) 240 ms; lock→desktop and greeter→session = the scroll unrolling (the lock art rolls up); wash 1.2 s; never a hard edge sweeping full-height (the dissolve has no edge).
+- Cursor: dwl reloads the theme's cursors the moment the saver's ink front passes the pointer (kawa-saver → dwl fifo `wash front X Y`; dwl calls reloadcursors when the front crosses the pointer; the cursor image swaps under the ink).
+- Bug 9: popups (warm windows, kawa-panel menus) above fullscreen: warm/float popups moved to a layer above LyrFS while shown (LyrFloat → a new LyrPopup above fullscreen; layer-shell menus of the panel are already top/overlay — verify) and focus rules kept (a fullscreen game regains focus when the popup goes).
+- First login after boot: the greeter handover above; measured with the frame log from dwl's first commit.
+- Build + ASan + framestat.py on every animation headless before batch-B's restart; after it, the same on the PC at 144 Hz; passthrough recordings inspected frame by frame.
+accept: tools/anim-check.sh: every animation (open/close/workspace/menu/warm/lock→desktop/greeter→session/wash/theme) has every frame at a refresh interval, 0 late frames, duration within ±1 frame of its config (open/close/workspace 400–450, wash 1200), no frame with stray pixels (px.py on extracted frames); bug 5 recording shows no black box (every frame's histogram has no full-ground region before the wash); Super+V over a fullscreen mpv visible (shot); test_dwl_anim.sh updated; the Learn "motion" piece corrected.
+
+### T20 — the lock screen rebuilt; greeter twin; cursor, wrong-password speed, screens off after 5 s, saver→lock freeze re-verified  [todo]
+deps: T18, T19  · model: main  · ledger: r27-20
+files: configs/home/.config/fedokawaii/lock.ui, themes/*/gtklock.css, src/kawa-lockmod/kawa-lockmod.c (the torches' animation at 8 fps via a cairo overlay, the demon/angel art, the quote, the caret blink owned by the module (bug 4: gtklock's entry blink depends on GTK settings `gtk-cursor-blink`; the module draws its own ◆ caret at 1 Hz from a timer), the wrong-password path (bug 4: measure where the time goes — PAM's `pam_faildelay`/gtklock's auth round-trip; set the lock's PAM service to a 300 ms delay via /etc/pam.d/gtklock installed by setup.sh — never below 300 ms, said in the Learn piece), the 5 s screens-off (the module asks kawa-lock --screens off after 5 s idle on the lock; any key/motion lights them and the same event reaches the lock's entry — no lost key: the module's existing 2 s guard replaced by "the first event after dark only wakes if the screens were dark for > 2 s, else it also counts"), bin/kawa-lock, bin/kawa-idle, system/kawa-greet (twin: same art, user chooser only), src/dwl/dwl.c (saverinput/saverwake: bug 1 reproduced for real: `kawa-lock --screens off` while the saver runs, 35 min wait with the inhibitor off for that test, a key, frames recorded via the log), tests/look/test_lock.sh, tests/look/test_saver.sh
+approach:
+- Design: no date/time/power keys; the password typed inside the demon's mouth (dark) / the angel's frame (light); two torches (pixel flames, 6–8 frames, 8 fps — cheap); the dungeon ground (sumi + a faint stone texture at the 3 px grid; light: paper + gold); one Japanese quote in display lettering, no translation — choose: 「鍵は心にあり」 vs 「言葉ひとつで門は開く」 vs a classical line; pick the one that fits the art (the ledger records the choice and its reading); the wrong-password state says ちがう in place.
+- Bug 1 for real on the PC after batch B: the test above, frames from the log; if the freeze persists, trace which surface holds the last frame (saver vs lock) with the frame log's per-surface commit lines and fix in saverinput/saverwake.
+accept: shots both themes (art, caret visible at 0.0 s and 0.5 s, torches' frames); wrong password reported in ≤ 400 ms (timestamps from the module's log, 10 tries); 5 s idle on the lock → screens off (kawa-screens note) and a key → lit and the key consumed only as a wake when dark > 2 s (10 cycles logged); saver→lock after a 35 min dark wait: the recording shows a fade, no frozen frame and no cut (framestat.py); greeter shot (headless cage); tests updated; Learn "lock" piece corrected.
+
+## Phase 4 — the apps
+
+### T21 — notes (Super+N) as a vertical lined notebook; black areas, save flicker, header spacing; the to-do list beside it  [todo]
+deps: T11, T16, T19  · model: main  · ledger: r27-21
+files: bin/kawa-notes, configs/home/.config/fedokawaii/notes.lua, bin/kawa-warm (window geometry: a tall rectangle, e.g. 60×40 cells, centred), bin/kawa-todo (new: the same page engine on ~/Notes/todo.md, `[ ]`/`[x]` rows, Space toggles, done rows struck through with the strikethrough attribute, nothing else), system/fedokawaii (learning → to-do), configs/home/.config/fedokawaii/keybinds.txt (inside notes: Tab = to-do page), tests/content/test_notes.sh, tests/content/test_todo.sh
+approach:
+- Bug 2 black areas: nvim highlight groups with an opaque bg (Normal/NormalNC/EndOfBuffer/LineNr/SignColumn/WinBar/StatusLine/MsgArea) set `bg=NONE` so foot's glass shows; verify with px.py (no pixel of pure ground outside the text ink).
+- Flicker on save: autosave via `vim.fn.writefile` from a debounced timer (no `:write`, no message, no redraw); `lazyredraw` off; measured with a passthrough recording (zero frames differing outside the typed cell).
+- Notebook: a fixed left margin column (a pixel rule glyph drawn by `statuscolumn`), ruled lines as the `CursorLine`-less `hl-NonText` guide on every row (a faint dotted baseline via the icon font's rule glyph in a virtual-text column or `fillchars`), the heading "notes" + pixel icon with the design's section gap below, the top/bottom margins fixed by `scrolloff` + a winbar/footer that never moves; measured at 3 scroll positions.
+- To-do: dead simple — checkbox rows, Enter adds, Space toggles, `dd` deletes, done rows struck through; reachable with Tab from notes and from Super+U → learning → to-do; state is the file.
+accept: shots both themes at top/middle/end of a long note: margins identical to the pixel; recording of 30 s typing + 5 saves: no frame with a black region, no full redraw; to-do: 10 toggles/adds/deletes round-trip through the file (test_todo.sh); Learn "notes" piece corrected.
+
+### T22 — yazi: the whole UI rebuilt on the engine; hidden files always; .rar; locked PDFs asked properly  [todo]
+deps: T11, T16  · model: main  · ledger: r27-22
+files: configs/home/.config/yazi/{init.lua,yazi.toml,theme.toml,keymap.toml,plugins/*}, configs/home/.config/fedokawaii/yazi-pick/* (the portal picker shares it), bin/kawa-pick, bin/kawa-file (rar via `unrar`; locked archive/PDF prompt loop), configs/home/.config/zathura + a kawa-pdf opener (password asked with `kawa-menu --prompt --password`, checked with `qpdf --password=… --check`; wrong → the same menu again with "wrong password" in place; right → zathura opens a decrypted copy in /dev/shm removed on exit), tests/yazi/*, tests/content/test_file.sh
+approach:
+- Layout from the design: header = pixel icon + path, three panes with ratios tuned for 1080p density, the status line as a footer row, file kinds by our icon font, dark-theme contrast fixed from the Wada tokens (every text role ≥ 4.5:1), selection/cursor rows as the design states; nothing truncated with "…" (yazi's own truncation replaced in init.lua's linemode); checked at a narrow tile (the spiral's third window), half, full screen.
+- `show_hidden = true` in yazi.toml and the picker's; `.rar`/`.cbr` opener and previewer through `unrar` (bug 11); the picker (xdg-desktop-portal-termfilechooser) gets the same look.
+accept: shots both themes at 3 sizes measured; px.py contrast of dark theme rows; `.rar` opens/extracts/previews (test with a generated archive); a locked PDF: wrong password twice shows "wrong password" in the same prompt, right one opens, no second window (recording); hidden files visible in yazi and in the portal picker (test); Learn "yazi" piece corrected.
+
+### T23 — Super+/ comprehensive, fuzzy, context-aware  [todo]
+deps: T13, T16  · model: main (the context detection, the look), sub:sonnet (the key sheets for every TUI from their official docs)  · ledger: r27-23
+files: bin/kawa-help, configs/home/.config/fedokawaii/keybinds.txt → configs/home/.config/fedokawaii/keys/*.txt (one sheet per app: dwl, bar, yazi, nvim/LazyVim, lazygit, btop, torrra, wiremix, bluetui, visidata, gdu, zathura, mpv, Brave essentials, notes, books, clip, chess, typing, learn, vm), bin/kawa-panel (fuzzy rank: subsequence + word-boundary scoring; the menu's filter), bin/kawa-term (writes the focused window's program: `$XDG_RUNTIME_DIR/kawa-term/<pid>` = app name), tests/menus/test_help.sh, tests/static/keybinds.py
+approach:
+- Context: the focused client's app-id/title from dwl's status (kawa-dwlstatus writes the focused title/app-id); for foot the program inside: kawa-term records the command it runs per window; for a plain terminal the foreground process of the pty (`ps -o comm --tty`) — mapped to a sheet; that sheet's part first, then the desktop's, then every other, all filterable.
+- Every key in a sheet verified against the program's current docs/`--help` (sub:sonnet digest with sources), the static test checks dwl's config.h keys are all listed.
+accept: Super+/ inside yazi/nvim/lazygit/btop/torrra shows that app's keys first (shots); fuzzy "wpa" finds "wallpaper picker"; every config.h key present (test); 0 kanji headings; both themes measured.
+
+### T24 — the prompt: our own, pastel-powerline, the terminal icon, Wada pastels  [todo]
+deps: T08, T11  · model: main  · ledger: r27-24
+files: configs/home/.bashrc.d/fedokawaii.sh (PROMPT_COMMAND/PS1), configs/home/.config/blesh/*, configs/home/.config/fedokawaii/screen.sh (pastel roles), art/icons.txt (powerline caps drawn on the term grid: a stamp-edge cap instead of the round powerline arrow), tests/content/test_shell.sh (dup-heading regression kept), docs design-system §9
+approach:
+- Segments: terminal icon · folder (parent faint, current strong) · git branch/state · (exit code, took) · `›`; each on a pastel from the Wada set with ink text; the pixel-art caps from our icon font (no Nerd powerline glyphs); one line, ≤ 40 cells before the cursor; the r26 rule kept (\e[3J after clear).
+- Rendered in foot at the new grid, 8-window bursts for dup headings (r26/dups.py reused as tools/prompt-dups.py).
+accept: shot both themes measured (segment caps align to the cell); 0/20 duplicate headings in burst tests; test_shell.sh updated; the Learn "shell" piece corrected.
+
+### T25a — chess: research digest and the 365-day curriculum (730 games, puzzles)  [todo]
+deps: T09  · model: sub:sonnet (digest + curriculum draft), main (critique, final)  · ledger: r27-25
+files: .claude/notes/chess-research.md (sources: Steps Method (Brunia & van Wijgerden), Yusupov Build Up Your Chess, Heisman Everyone's 2nd Chess Book, Chernev Logical Chess, Seirawan Winning Chess series, Silman Complete Endgame Course, Polgár 5334, Woodpecker Method, chess.com lessons structure (public pages), Lichess puzzle DB (CC0) and its themes; cited, nothing copied), docs/learn/chess/curriculum.md (52 weeks × 14 games: each game's lesson goal, the Stockfish level/skill + a handicap plan matched to the lesson, the puzzle set/theme of the day, review checklist), docs/learn/chess/SOURCES.md
+approach:
+- Argue with yourself in the digest: what a complete beginner needs first (board vision, checkmates, safety, tactics) vs what chess.com sells; the path to 1800 rapid in a year at 2 games/day + 10 min puzzles: measurable milestones every 4 weeks (puzzle rating bands, engine level beaten with a margin), the deliberate-practice loop per game (plan → play → review with the engine's 3 critical moments → one takeaway written).
+- Stockfish: Fedora package `stockfish` (dnf info — version and NNUE presence verified) goes into the manifest in T25b; the levels mapped to UCI_Elo/Skill Level per week with the source for the mapping.
+accept: curriculum.md complete for 365 days with no gap, every lesson tied to a cited source; main's critique applied (ledger quotes the 5 changes it forced).
+
+### T25b — chess: the TUI app (board, play vs Stockfish, review, lessons, puzzles, progress)  [todo]
+deps: T11, T18, T25a  · model: main  · ledger: r27-26
+files: bin/kawa-chess (Python 3, single program: a pixel canvas renderer + UCI + PGN + puzzle player), src/kawa-chess/ (python package: canvas.py, engine.py, board.py, lessons.py, puzzles.py, progress.py; installed to ~/.local/lib/fedokawaii/kawa-chess by theme.sh), art/chess/pieces.txt (custom pixel pieces, both themes, drawn like icons.txt), docs/learn/chess/lessons/*.md, ~/.local/share/fedokawaii/chess/puzzles.csv (Lichess CC0 subset ≤ 25 MB fetched by checksum in lib/upstream.sh), lib/manifest.sh (stockfish), system/fedokawaii (learning → chess), configs/home/.local/share/applications/kawa-chess.desktop, tests/content/test_chess.sh (+ tests/content/chess_pty.py)
+approach:
+- Renderer decision by measurement: (a) sixel frames (foot) for the board at a true pixel scale vs (b) a sextant/quadrant glyph canvas in our term font; pick the one with flicker-free move animation (passthrough recording), ≤ 5 % CPU during animation, and correct redraw on resize; the text (menus, clocks, analysis) in the term face on the design's grammar.
+- Board: last move, threats (engine-tagged hanging pieces), hints (one key), move animation (a piece sliding in whole-pixel steps over ~200 ms), legal-move marks; play: 730-game schedule from T25a, clocks, resign/draw, PGN saved per game; review: the three critical moments (eval swings) replayed with the better line; lessons: the day's text + an interactive drill; puzzles: 10 min/day timer, rating band per week, mistakes repeated (Woodpecker); progress: streak, puzzle rating, games/levels, a weekly report screen; resume after a reboot (state in ~/.local/state/fedokawaii/chess/).
+- Engine in a subprocess with a hard time budget; nothing blocks the UI; RAM measured.
+accept: every screen shot both themes at 3 window sizes (nothing cut/misaligned); animation recording clean; 20 games vs Stockfish levels 1–5 scripted through the pty (no crash, PGNs valid per `python-chess` is not used — our own validator against Stockfish's `go perft`? no: validate by replaying each PGN into Stockfish `position … moves` without error); puzzles: 200 solved/failed by script, ratings move; resume after a kill mid-game restores the position; RSS ≤ 80 MB + Stockfish's; Learn piece "chess" written.
+
+### T25c — chess: tested to destruction  [todo]
+deps: T25b  · model: sub:sonnet (test author), main (verifies)  · ledger: r27-27
+files: tests/content/test_chess_destroy.sh, tests/content/chess_fuzz.py
+approach: every key on every screen, random key floods, window sizes from 60×20 to full, both themes, odd input (illegal moves, promotion, en passant, threefold, 50-move, engine killed mid-think, puzzle file corrupt, state file truncated), interrupted lessons, resume after a simulated reboot; findings fixed in T25b's files by main.
+accept: the fuzz runs 30 min with 0 tracebacks; every finding fixed and re-run; listed in the ledger.
+
+### T26a — typing: research digest and the lesson progression  [todo]
+deps: T09  · model: sub:sonnet (digest), main (critique)  · ledger: r27-28
+files: .claude/notes/typing-research.md (EdClub/TypingClub progression as observed on their public lessons; keybr's adaptive letter model; Ericsson on deliberate practice; accuracy-first touch typing; WPM = 5 characters, raw/net WPM and accuracy as Monkeytype defines them — all cited), docs/learn/typing/curriculum.md (stages: home row → rows → shifts → numbers/symbols → words → sentences → code; adaptive drills; speed tests; the 100+ WPM path with milestones), docs/learn/typing/SOURCES.md
+approach: reverse-engineer how EdClub teaches quickly (lesson length, repetition, the drip of new keys, the pass bar) from its public lessons; argue the accuracy-first path against speed-first with the cited research; define the measurements exactly (raw/net WPM, accuracy, consistency) before any code.
+accept: curriculum complete with lesson counts, pass criteria (accuracy ≥ 97 % before speed), cited; main's critique applied.
+
+### T26b — typing: the TUI app with the on-screen keyboard and hands  [todo]
+deps: T11, T26a, T25b (shares the canvas)  · model: main  · ledger: r27-29
+files: bin/kawa-typing, src/kawa-typing/ (lesson engine, adaptive letters, metrics, renderer reusing src/kawa-chess/canvas.py → moved to src/kawa-tui/canvas.py shared), art/typing/keyboard.txt + hands.txt (pixel art: the keyboard, two hands, finger colours; both themes), docs/learn/typing/lessons/*, system/fedokawaii (learning → typing), kawa-typing.desktop, tests/content/test_typing.sh (+ pty driver)
+approach:
+- Keyboard drawn from the active layout (us; ar shown for Arabic lessons later — English first), the next key lit, the right finger highlighted on the hand, errors shown in place (red cell), the text line above with the caret; live WPM/accuracy; results screen with history and a sparkline in pixel glyphs; adaptive drills from keybr's idea (weakest letters weighted); timed tests (15/30/60 s); progress state resumable.
+- Timing: keystroke timestamps from the pty read loop with monotonic time; WPM/accuracy computed exactly as the digest defines; tested with a scripted typist at known speeds (the test types at 60.0 WPM and expects 60 ±1).
+accept: scripted typist at 40/60/100 WPM measured within ±1 WPM and accuracy exactly as injected; shots both themes at 3 sizes; animation/redraw recording clean (no flicker while typing at 120 WPM); resume after kill; RSS ≤ 60 MB; Learn piece "typing" written.
+
+### T26c — typing: tested to destruction  [todo]
+deps: T26b  · model: sub:sonnet (tests), main (verifies)  · ledger: r27-30
+files: tests/content/test_typing_destroy.sh, tests/content/typing_fuzz.py
+approach: as T25c, with the typing app's own odd input: pastes, dead keys, the Arabic layout mid-lesson, a 200-WPM scripted typist, resizes between 60×20 and full screen, corrupt state files.
+accept: 30 min fuzz (every key, pastes, Ctrl sequences, resizes mid-lesson, layout switch mid-lesson, corrupt state) → 0 tracebacks; findings fixed.
+
+### T27 — the Learning section: the Learn book cut into ordered pieces; the Guide PDF removed  [todo]
+deps: T12, T16  · model: main (reader TUI, ordering), sub:sonnet (the cut script + the dependency order draft)  · ledger: r27-31
+files: tools/learn-pieces.py (fedokawaii-learn.md → docs/learn/pieces/NNN-slug.md with front matter: title, needs: [ids], minutes), bin/kawa-learn (the reader: list with "lesson n of N · done ✓", progress in ~/.local/state/fedokawaii/learn.json, a piece shown as a text screen: headings by our grammar, code via `bat --style=plain` colours, pictures via kawa-sixel, Space pages, Enter marks done), system/fedokawaii (learning → lessons), removal: docs/Fedokawaii-Guide.pdf, docs/build/handbook.py's guide target (learn.py keeps the Learn PDF build), the `guide` menu entry → `learn`, README.md, system/fedokawaii-report rows, tests/engine/test_menu.sh, docs/build/render/* references; docs/fedokawaii-guide.md stays as the technical reference (README says so), tests/content/test_learn.sh
+approach:
+- Order = dependencies first (the terminal → keys → bar/menus → files → shell → editor → git → … → Python → Rust), the "## x.y" sections as pieces where chapters are long (≈ 120–160 pieces), each ≤ 10 min; a piece's "needs" validated by the script (no cycles).
+- The reader follows the design: pixel icon per part, the progress column right-aligned, done rows muted with ✓, the current one stamped.
+accept: `ls docs/learn/pieces | wc -l` ≥ 120, no cycle (test), every piece opens and renders (script walks all); the Guide PDF and every reference gone (`grep -rn Guide.pdf` empty outside git history); shots both themes measured; `fedokawaii learn` from a text console prints the piece as text.
+
+### T28 — FireAlpaca: proven upsides, installed by the installer, XP-Pen pressure, themed to the limit  [todo]
+deps: T08, T18  · model: main (theming, decision), sub:sonnet (what its files allow: skins/palettes/fonts from its own docs and the installed tree)  · ledger: r27-32
+files: lib/upstream.sh (the official Linux build from firealpaca.com/download, version 2.16.3 or current, checksum-pinned; "Fedora 36+"), lib/manifest.sh (its runtime libs), bin/kawa-sketch (replaces the Xournal++ launcher path; Xournal++ stays for PDF signing only — kawa-file), kawa-sketch.desktop, configs/home/.config/FireAlpaca/* (settings, palettes, brushes, layout, both themes via kawa-theme hooks), src/firealpaca/ (a patch/wrapper if its skin cannot be set from files), tests/content/test_sketch.sh, Learn piece "drawing"
+approach:
+- Upsides proven first (ledger): pressure curves, brushes, layers, canvas tools vs Xournal++ (facts from both projects' docs + a pressure test with the tablet via `libinput debug-events` → dwl's tablet-v2 → FireAlpaca (Qt: Wayland tablet events, or XWayland xinput — measure which gives pressure)); if pressure fails on Wayland, run it under XWayland with the X11 tablet path (one decision, measured).
+- Theme: find every file it reads (strace the start: config dir, QSS/skin, palette files, fonts) and set colours/palettes/fonts/panels to ours; panels minimal (only what he needs visible), brushes/canvas defaults; dark/light following kawa-theme (it re-reads on restart: document; a live switch only if its files allow — else the next start).
+accept: pressure varies the stroke width (a recorded stroke at 3 pressures measured); shots both themes of the main window; the launcher entry opens it floating/tiled as decided; the upsides table in the ledger with sources; test added.
+
+### T29 — torrents (torrra) overhauled and hardened; Prowlarr's warning cleared; the finished-download notice; "failed to resolve"  [todo]
+deps: T11, T16  · model: main  · ledger: r27-33
+files: lib/upstream.sh (TORRRA_VERSION pinned; a vendored patch src/torrra/torrra.patch applied at install as Syncplay's is), system/kawa-torrra + kawa-torrra.profile.sh, system/prowlarr.container + system/prowlarr-indexers.py, bin/kawa-downloads (the notice rule: a finished torrent notifies once, remembered in state; never on open), bin/kawa-prowlarr, tests/engine/test_torrra.sh, tests/engine/test_prowlarr.sh, tools/torrent-stress.sh (adds 50 public-domain torrents (Internet Archive, Linux ISOs), measures add→first-peer, list redraw times at 500 rows, memory)
+approach:
+- Bug 12 measured: time from "add" to the first tracker response; "failed to resolve" captured with the exact message (libtorrent's tracker DNS? Prowlarr's container name? IPv6?) → fixed at its cause (resolv/host network of the quadlet, or a tracker URL the indexer gives); the stress tool keeps numbers before/after.
+- Design: the whole UI rebuilt in our DNA (header, rows, progress as pixel bars, states by colour, details pane), adaptive layouts from a narrow tile to fullscreen (a column set per width band), nothing cut.
+- Prowlarr's warning: read it from its UI/API (`/api/v1/health`), fix the cause (e.g. an indexer failing, "update available" on a pinned image, a proxy/DNS setting) and keep the fix in the installer.
+accept: stress numbers (p95 add→peer, redraw at 500 rows < 50 ms, RSS) in the ledger; shots at 3 sizes both themes measured; a finished torrent notifies exactly once across 5 reopens (test); Prowlarr health list empty (API output quoted); tests green.
+
+### T30 — Neovim faster (startup measured, lazy-load, plugins cut), lock pinned  [todo]
+deps: T11  · model: main  · ledger: r27-34
+files: configs/home/.config/nvim/lua/{config/lazy.lua,plugins/*.lua}, configs/home/.config/nvim/lazy-lock.json (pinned, shipped), setup.sh (nvim_plugins: restore from the lock, never float), tests/installer/test_setup.sh (lock path)
+approach: measured in a real TUI (pty/foot) to LazyVim's VeryLazy and the first full redraw — the headless `--startuptime +qa` (10 ms) never loads the UI plugins — ×10 before (T04) → per-plugin cost table; cut plugins that cost more than they give (listed with reasons), lazy-load the rest on keys/filetypes; treesitter parsers limited to the languages he uses; keep LazyVim's keys he learned (Learn piece checked); measure editing latency (keystroke→redraw via the pty with timestamps).
+accept: startup to VeryLazy improved by every plugin cut or lazy-loaded that the table shows is worth it (each kept plugin's cost justified in the ledger; no fixed % target), editing latency unchanged or better; `lazy-lock.json` committed and installed by setup; the Learn "neovim" piece corrected.
+
+### T31 — downloads from Brave: progress %, the odd link icon  [todo]
+deps: T14  · model: main  · ledger: r27-35
+files: bin/kawa-downloads (Brave's .crdownload sizes vs the expected size from Brave's history/`~/.config/BraveSoftware/.../History` is locked — use the partial file's growth and the Content-Length Brave records in the .crdownload's companion? measure what exists; else show bytes/s and the elapsed without a %), the notice's icon (our download icon, not the app's generic link icon: `notify-send -i` with the pixel icon path), tests/status/test_downloads.sh
+approach:
+- Measure what Brave leaves on disk during a download (the .crdownload growth, any sidecar) and what its history DB exposes while locked (a copy read with sqlite3 is fine); pick the richest source for a % and bytes/s.
+- The notice is ours: title, our pixel icon, the % while running, the final size and folder when done; the bar's downloads tile animates (T14) from the same job file.
+- One rule for every source (Brave, yt-dlp, torrra, kawa-file): the job file format in ~/.cache/kawa-downloads/jobs/ documented in kawa-downloads' header.
+accept: a 500 MB download from a fast mirror shows a growing % (or bytes) on the bar every 2 s and a notice with our icon at the end (shot); test added.
+
+## Phase 5 — system: gaming into a Windows VM, RGB, monitor, network, RAM, kernel, clean structure
+
+### T32 — gaming VM: deep research and the written design (decision points, honest limits)  [todo]
+deps: T05, T06  · model: main (design), sub:sonnet (source digests per topic, one at a time)  · ledger: r27-36
+files: .claude/notes/vm-research.md (sources with links), .claude/notes/vm-design.md
+approach:
+- Official docs only: libvirt (domain XML, hooks, hostdev, VFIO), QEMU (q35, OVMF/Secure Boot, swtpm/TPM 2.0 for Windows 11, virtio-sound/usb-host, CPU pinning/topology, hugepages, evdev passthrough), Fedora virtualization guide, kernel VFIO docs, AMD RDNA4 reset behaviour (amdgpu driver docs, kernel bugzilla/Gitlab issues for Navi 44 "7590": is a bus/FLR reset enough to rebind after the VM stops? the 26 Oct resume log shows a successful MODE1 reset — a hint, not proof), Looking Glass docs (IVSHMEM, the host client under Wayland), Valve's public statements on VMs and VAC (the Steam support pages; CS2 in a VM may be blocked/flagged — report honestly what is documented; no cheating-adjacent evasion of any kind: if CS2 refuses a VM, the design says so and CS2 stays off the list), Windows licensing (the owner's own valid licence; nothing else), Microsoft's documented unattended install (autounattend.xml reference, OOBE bypass keys as documented by Microsoft), debloat only by documented policies/removable packages (no unofficial images unless licence-clean and reputable — list and decide).
+- The display design decided here: A) second cable + DDC/CI input switch (VCP 0x60 values read from the monitor's capabilities, T38) vs B) Looking Glass; host on the iGPU (start-dwl --gpu must prefer the iGPU when the dGPU is reserved; VRAM-based pick replaced by a config), the dGPU bound to vfio-pci only while the VM runs (libvirt hook: unbind amdgpu → vfio-pci → VM → rebind; the reset test decides whether "and back afterwards" is possible; if not: the dGPU stays bound to vfio at boot while a "games" mode is on and the host runs on the iGPU — a boot-time toggle in kawa-vm with a reboot, said plainly).
+- The host's own needs on the iGPU: 144 Hz on HDMI-A-2/DP, the desktop's frame timing (T04 numbers re-measured on the iGPU), video decode (VA-API on the 610M), the AI fixer (T47) needs the dGPU → the update button refuses while the VM runs.
+accept: vm-design.md answers every question above with its source; the decision tree (reset works / does not; CS2 allowed / not; display A / B) with the test that decides each; the owner's physical step confirmed or revised (T06 notice updated once if needed).
+
+### T33 — the Windows gaming VM, built unattended, one self-contained folder  [todo]
+deps: T32  · model: main  · ledger: r27-37
+files: ~/VM/games/ (disk image(s) qcow2/raw, OVMF_VARS, swtpm state, the libvirt XML, autounattend.xml, drivers ISO, logs — all inside; `virsh define` from the folder; deleting the folder = gone), lib/manifest.sh (PKG_VIRT + virtio-win), setup.sh (s_vm: libvirt, hooks dir, the user's groups, the vfio modprobe/dracut pieces as the design says; IOMMU kernel args if any), system/kawa-vm-hook (libvirt qemu hook: bind/unbind, CPU isolation via cgroup/`systemd` AllowedCPUs, hugepages on demand), tools/vm-games-build.sh (the Windows ISO path given by the owner's download — or fetched through Microsoft's documented page by the script where it is possible without a browser; the licence key never stored: Windows asks him once, in the VM, or he activates later — said in the notice), tests/installer/test_vm_games.sh (stubs), docs Learn piece "games"
+approach:
+- Unattended: autounattend.xml (locale/user/partitions/OOBE bypass/first-logon script), virtio drivers (Fedora's `virtio-win` package: official), AMD Adrenalin installer fetched from AMD's page by the first-logon script (or placed in the folder), Steam + qBittorrent via winget in the first-logon script, the documented debloat/latency settings (power plan, game mode, no telemetry extras — policy-based), a shared folder (virtiofs) for imports incl. ~/blasphemous-save-backup-20261022 moved in; controller passthrough by USB vendor:product (hotplug via `virsh attach-device` from kawa-vm).
+- Audio: virtio-sound → PipeWire (measured latency) or USB DAC passthrough if he uses one (none seen: skip); input: evdev passthrough of keyboard/mouse with the toggle key documented, or the USB keyboard passthrough (the K617's protocol capture needs it — T36).
+- Windows Secure Boot + TPM through OVMF secboot vars + swtpm; snapshots of the VM disk before Windows updates (qcow2 internal) from kawa-vm.
+accept: the VM boots to a Windows desktop unattended from `tools/vm-games-build.sh` (timed; the serial/QEMU log kept); Steam runs and a game launches with the dGPU (Adrenalin reports the 9060 XT; a frame-time capture with PresentMon (official) at the game's native settings inside the VM vs a review's bare-metal number for the same card — the gap stated honestly); the folder is the only trace (`find / -newer … -path '*games*'` audit + rpm/libvirt listing); `rm -rf ~/VM/games && virsh undefine` leaves nothing.
+
+### T34 — kawa-vm: the TUI app (start/stop, display switch, controller, state) + hard tests  [todo]
+deps: T33, T38 (DDC input switch)  · model: main  · ledger: r27-38
+files: bin/kawa-vm (states: off/starting/running/stopping/failed; actions: start, stop (ACPI then force after 60 s), switch display (DDC/CI VCP 0x60 to the dGPU's input and back; Looking Glass start if that design won), pass/unpass the controller (USB ids from a small list the app learns from lsusb), snapshot before Windows updates), kawa-vm.desktop (launcher), bar: a small "VM running" tile (the games icon moving) — the only gaming thing left on the host, configs/home/.config/fedokawaii/keybinds.txt, tools/vm-games-stress.sh, tests/content/test_vm.sh
+approach: the app never blocks (libvirt events over `virsh event`), every failure a plain line; the display switches back when the VM stops or dies; host suspend with the VM running is refused with a notice (or the VM is paused first — the design decides); the controller's hotplug while running attaches it live.
+accept: 20 start/stop loops with the display switching every time (DDC read-back of 0x60 after each), a VM crash (killed qemu) → host display back in < 3 s, host suspend path behaves as designed, controller hotplug ×10 attached (Windows sees it: a log line from the guest agent or the USB tree); shots both themes measured; test added.
+
+### T35 — gaming removed from the host entirely (after the VM is proven)  [todo]
+deps: T33, T34  · model: main  · ledger: r27-39
+files: lib/manifest.sh (PKG_GAMING gone; steam gamescope mangohud ntsync-autoload steam-devices into FORBIDDEN_PKGS; the STEAM setting removed from fedokawaii.conf + validate_conf), setup.sh (s_gaming, game_mode, GE-Proton, the tuned game profile, polkit/limits files, `kawa-game` out; r_hygiene removes their leftovers: /etc/tuned/profiles/fedokawaii-game, 60-fedokawaii-game.rules, limits.d, ~/.steam, ~/.local/share/Steam, compatibilitytools.d, ~/.config/MangoHud, the steam.desktop, caches), lib/upstream.sh (install_ge_proton gone), bin/kawa-steam + bin/kawa-game removed, bin/kawa-power/kawa-tidy/kawa-downloads/kawa-calc/kawa-bar/kawa-dwlstatus/kawa-panel/kawa-hush cleaned of Steam, configs (waybar steam module, mako steam rules, pipewire quality notes, autostart.sh lines, backup-exclude, keybinds), src/dwl/config.h (steam rules) + dwl.patch (minimizex11 kept only if another X11 app needs it — measure: keep, it is generic), verify.sh/report rows, tests (test_game.sh and every steam reference), docs: Learn chapter 18 "Steam" → the "games VM" piece; ~/blasphemous-save-backup-20261022 moved into ~/VM/games/import/ (kept)
+approach:
+- One commit per layer: packages/manifest → setup/repair heals → scripts → configs → dwl config.h → verify/report → tests → docs; `fedokawaii apply` + `repair` on the PC between layers, verify after each.
+- The backup folder moved first (checksummed before/after), Steam closed properly once more before removal (its cloud sync), then every path above removed by r_hygiene's rules (so a reinstall from an older toolkit can never bring it back).
+- The Learn chapter 18 replaced by the games-VM piece written in T33/T34.
+accept: `grep -rni steam\|proton\|gamescope\|mangohud` over the repo returns only the ledger/notes and the VM piece; `rpm -q steam gamescope mangohud` not installed after `fedokawaii repair`; verify green; the backup folder present in the VM import folder with the same checksum; tests green; the bar has no Steam tile.
+
+### T36 — RGB, all in our red: GPU logo, motherboard headers (darkFlash fans + hub, Jungle Leopard cooler), the K617 — one synced ember breathe  [todo]
+deps: T08, T33 (the VM for protocol capture if needed)  · model: main (design, the service), sub:sonnet (K617 protocol investigation under a tight brief)  · ledger: r27-40
+files: bin/kawa-rgb (the one tool: sets every device from the theme's red, a slow synced breathe — hardware "breathing" modes where a device has them (MSI Mystic Light: Breathing; Gigabyte RGB Fusion 2 on the card: Pulse) with one colour and the same period, else our own low-rate loop (≤ 10 Hz, direct mode) for devices without one; dark/light = the same red at two brightness levels if it looks good, else red only), configs/home/.config/systemd/user/kawa-rgb.service (+ a sleep hook: restore on resume), configs/system udev rule for the keyboard's hidraw (uaccess), lib/manifest.sh (openrgb kept; python3-hidapi or hidraw via Python's os for our own driver), src/kawa-rgb-k617/ (the driver if OpenRGB lacks it: a small Python/hidraw module + a contribution-ready OpenRGB controller description), tests/status/test_rgb.sh (stubs), Learn piece "lights"
+approach:
+- Facts (planner, 2026-10-27, `openrgb --list-devices`): OpenRGB 1.0rc2 sees `Gigabyte Radeon RX 9060 XT GAMING OC` (RGB Fusion 2, i2c-6 0x75; zones Right fan/Left fan/Center fan/Side; modes incl. Pulse, Breathing-like) and `MSI PRO B650M-B (MS-7E28)` (Mystic Light 185-byte, /dev/hidraw5; zones JRGB1 JRGB2 JRAINBOW1 JRAINBOW2 JCORSAIR PIPE1 PIPE2 ONBOARD; modes incl. Breathing). No separate USB device for the darkFlash hub or the Jungle Leopard cooler exists in lsusb → they are almost certainly on JRAINBOW1/2 (ARGB) through the hub: set those zones' LED counts (OpenRGB zone resize) by observation (light N LEDs, count what lights) and drive them from the motherboard controller.
+- The K617 Fizz: two keyboards are attached — `258a:0049 BY Tech (SINO WEALTH) Gaming Keyboard` (hidraw0/1; interface 1 is a 16-byte vendor HID endpoint — the usual RGB channel of SinoWealth boards) and `1a2c:4184 SEMICO USB Gaming Keyboard` (hidraw6/8). Identify which is the K617 (udev names, the owner's note that his board is 61-key; a key-press on each via `evtest` shows which is in use); check OpenRGB's supported-device list and `/usr/lib/udev/rules.d/60-openrgb.rules` for the id (a supported board missing here = a udev/uaccess problem, fix in the installer); else capture Redragon's Windows tool in the games VM with the keyboard passed through (usbmon/Wireshark on the host), implement (feature reports: per-key/zone colour, brightness, the breathing mode), restore on boot/resume.
+accept: every device red (photo not possible — read back: OpenRGB `--list-devices` shows the set colours/modes; the K617 by reading its state or by a documented write + the owner's eyes later), the breathe periods equal (logged), CPU of the service ≤ 0.5 % (top over 10 min), restored after a reboot and a suspend cycle (journal lines); tests; the Learn piece says what was set and why.
+
+### T37 — the Jungle Leopard cooler's display  [todo]
+deps: T36  · model: sub:sonnet (investigation), main (decision)  · ledger: r27-41
+files: .claude/notes/02-LEDGER.md (the finding + source), bin/kawa-rgb (only if a driver results), src/kawa-rgb-cooler/ (only then)
+approach: the exact model from the owner's notes/photos is unknown — identify from the product line (Jungle Leopard coolers with a display: which connect by USB (a HID or a CH340 serial) vs autonomous (a thermistor-driven display)); lsusb today shows no such device → either not USB-connected or unplugged. If USB: capture the vendor tool's protocol in the games VM, implement (temperatures/our red theme), add to kawa-rgb. If autonomous: document "nothing to drive, why" with the product page.
+accept: ledger line with the product page and the finding; a driver only if the device speaks over a bus we can reach.
+
+### T38 — the LG 24G411A-B: FreeSync proven, the monitor's own menu set over DDC/CI, a colour profile only if measured data exists  [todo]
+deps: T03  · model: main  · ledger: r27-42
+files: bin/kawa-display (DDC settings applied at login and on wake: picture mode, colour temperature/gains, contrast, sharpness, black stabiliser, response time, FreeSync/"Adaptive-Sync" where exposed — each VCP code and value from the capabilities string + LG's manual), configs/home/.config/fedokawaii/monitor.conf (the chosen values, documented), bin/kawa-quick (vrr tile text), src/dwl (adaptive sync on by default for the desktop? no: "games" mode stays unless measurement shows no cost; the decision by the frame log), src/kawa-gamma/ (only if a measured profile exists: a tiny wlr-gamma-control client that composes the LUT with the night light — then gammastep goes (one tool); else nothing), tools/vrr-proof.sh, tests/status/test_display.sh, Learn piece "monitor"
+approach:
+- Facts (planner): EDID "LG ULTRAGEAR"; `/sys/kernel/debug/dri/0/HDMI-A-1/vrr_range` = Min 48 Max 144 (root); the session reports Adaptive Sync disabled because `~/.config/fedokawaii/vrr` = off (his setting); `ddcutil detect` finds the display on i2c-5 but `ddcutil capabilities` failed ("Maximum DDC retries exceeded") — try `--sleep-multiplier 2..4`, `--maxtries`, `--ddc-retries`, after a fresh wake; brightness reads/writes work today.
+- VRR proof: tools/vrr-proof.sh runs a fullscreen test client at 72 and 100 fps (a vsync'd mpv or our own) with the session's adaptive sync on; dwl's present log shows intervals following the client (13.9 / 10 ms) instead of 6.94 ms multiples; off: quantised. Numbers in the ledger; the quick-settings tile reflects it.
+- Colour: research this exact model's panel and published measurements (LG spec page; reviews with measurements — RTINGS/Monitors Unboxed if they covered it); if a measured ICC/LUT for this model exists and is licensed, ship it through kawa-gamma and prove the change with a grey-ramp capture… a screen capture cannot measure the panel: say so; without a colorimeter the only honest improvement is the monitor's own documented mode (sRGB/Gamer with the reviewed settings) over DDC — do that, and record it.
+accept: capabilities string saved in the ledger; every setting written and read back equal (`getvcp`) at login and after a wake (journal); vrr-proof numbers; the tile says what the card does; test added; Learn piece written.
+
+### T39 — network security, rock solid  [todo]
+deps: T05  · model: main (policy), sub:sonnet (the audit digest from official docs)  · ledger: r27-43
+files: setup.sh (s_firewall: default-deny inbound, zones; services only where a feature needs them, LAN-only: LocalSend 53317, torrra's port, sshd off unless SSH_SERVER=yes then keys-only (already), Syncplay server only when hosting), system/prowlarr.container (bind 127.0.0.1), kawa-torrra profile (listen interfaces), configs sysctl (/etc/sysctl.d/60-fedokawaii-net.conf: rp_filter, redirects/source-route off, syncookies, IPv6 parity for all), DNS privacy (systemd-resolved DoT if it costs nothing: measured resolve times; else say why not), no UPnP (torrra/qBittorrent-side off), verify.sh checks (a "network" section: firewall state, listening sockets vs an allow-list `ss -tulpn`, sysctls), tools/portscan.sh (nmap from the VM against the PC), tests/installer/test_net.sh
+approach:
+- Audit from the official docs (firewalld zones/services, sshd_config, sysctl network keys, systemd-resolved DoT, qBittorrent/libtorrent listen settings, podman network modes): list every listening socket today (`ss -tulpn`), decide each (LAN-only, localhost, off) with the feature that needs it.
+- Implement in setup.sh as idempotent steps; the allow-list is one file (system/net-allow.list) that verify, the port-scan tool and the Learn piece all read.
+- Scan from the VM (nmap -sS -sU -p- both IP families) after every change until the scan equals the allow-list; keep the scan as tools/portscan.sh for T52.
+accept: `ss -tulpn` on the PC shows only the allow-list; nmap from the VM (all TCP/UDP ports, IPv4+IPv6) shows only what the allow-list permits on the LAN; verify's network section green; the sysctls applied after a reboot; Learn piece "network" written.
+
+### T40 — RAM preload: apps and their files cached at login (measured)  [todo]
+deps: T04  · model: main  · ledger: r27-44
+files: bin/kawa-warm --cache (reads a list: binaries + their libraries (ldd), fonts, the wallpaper pack's drawn pictures, yazi/nvim/brave's core files; `vmtouch -t` if packaged (dnf info vmtouch) else `cat >/dev/null` in a low-priority ionice/nice loop a minute after login), configs/home/.config/fedokawaii/preload.list, lib/manifest.sh (vmtouch if used), tests/content/test_warm.sh
+approach:
+- Build the list from what he opens (the launcher's entries, the warm windows, yazi/nvim/btop/lazygit/brave/zathura/mpv, their shared libraries via ldd, the fonts, the drawn wallpapers); measure residency with `fincore`, cost with `free`/`vmstat` at login.
+- Load it a minute after login at idle priority (`nice -n 19 ionice -c3`), never during the first frames; re-touch daily (kawa-tidy's timer) so eviction does not creep.
+- Decide vmtouch vs a plain read loop by the measured CPU/time; the list is a config the owner can trim.
+accept: `fincore` shows the list resident after login; app cold starts (T04's list) re-measured: p50 improved (numbers), no memory pressure (free -m: available stays > 20 GiB), no CPU spike at login > 5 s; opt-out setting documented.
+
+### T41 — kernel 7.2 and Fedora 44 tuning, each measured  [todo]
+deps: T04  · model: main  · ledger: r27-45
+files: lib/common.sh (BOOT_ARGS), setup.sh (s_tuning: sysctls, tuned profile, I/O scheduler udev rule for NVMe, zram size/algorithm, amdgpu params only with evidence, scheduler knobs (sched_autogroup? EEVDF options) each with a before/after number), system/tuned.conf, tests/installer/test_setup_hw.sh, .claude/notes/tuning-r27.md
+approach: the boot-args batch includes `efi_pstore.pstore_disable=0` (T01b: a kernel panic leaves its log in EFI vars, systemd-pstore archives it); candidates from kernel docs/Fedora 44 release notes only; one change at a time with T04's tools (latency p95, frame intervals under load, app starts, boot time); keep only what measurably helps or costs nothing and adds stability; split_lock_detect=off and the simpledrm blacklist re-justified (or dropped) with the same evidence.
+accept: tuning-r27.md: a table (change, source, before, after, kept/dropped); the kept set in the installer and applied through apply (verify checks); boot time not worse.
+
+### T42 — a perfectly clean, structured system: the layout defined, strays removed, a verify check that finds them  [todo]
+deps: T35, T36  · model: main (layout + rules), sub:sonnet (the stray scanner's tests)  · ledger: r27-46
+files: docs/structure.md (every path fedokawaii owns and why: /usr/local/bin+lib/fedokawaii, /usr/local/lib/fedokawaii-wlroots-*, /usr/local/share/fonts/fedokawaii, /etc/* we write (greetd, tuned, dnf plugins, pam, sysctl, udev, polkit, firewalld), /var/lib/fedokawaii, /var/log/fedokawaii.log, ~/.config/*, ~/.local/{bin,lib,share,state}/fedokawaii, ~/.cache/* names, ~/VM/*, ~/Notes, ~/Books, ~/Drives, ~/Pictures/Wallpapers), lib/hygiene.sh (hy_strays: expected-path manifest from the docs table → anything else under the owned roots is a stray; a dated move to ~/.local/state/fedokawaii/strays-YYYYMMDD/ by update/repair (reversible; kawa-tidy deletes after 30 days), never a delete of /home files outside the owned roots), verify.sh (STRUCT section), setup.sh (r_hygiene uses it), kawa-tidy, Learn piece "where everything lives"
+approach: (critique 2026-10-27: tools he installed himself — ~/.gemini, ~/.opencode, ~/.ollama and their models, ~/.claude — are HIS, never strays; a stray is only what fedokawaii or a test/agent session provably left, decided by evidence: our logs, creation times vs our sessions, names our scripts write; unclear → listed in the ledger, untouched) known strays today (planner): ~/game-tui, ~/proton-tui, ~/search-ui.html, ~/fedokawaii-report.txt, ~/fedokawaii-trial.txt, ~/Games (empty), ~/.ruff_cache, ~/.debug; the hand-installed ollama (/usr/local/bin/ollama, /usr/local/lib/ollama, /etc/systemd/system/ollama.service enabled — removed here; T47 installs the chosen runtime the installer's way); ~/.local/bin: agy, getit, game-shelf, httpx, markdown-it, pygmentize, pip3*, python3.13/3.14 shims, uncork, ya — each classified (uv tool shims that belong, or strays); old faces (FACES_OLD), ~/.local/state/fedokawaii/clone-before-*.tar.gz (a backup: kept in strays-…), test files in /tmp, claude-awake remnants, the report's own leftovers; the report writes to ~/.cache not $HOME.
+accept: verify STRUCT green on the PC after `fedokawaii repair` (its list of what it moved in the ledger); the VM's fresh install passes STRUCT; docs/structure.md complete; tests for the scanner (allowed/stray fixtures).
+
+## Phase 6 — the update system: bulletproof, one button, self-maintaining, with the local AI fixer
+
+### T43 — update research, 300+ sources, logged  [todo]
+deps: —  · model: sub:sonnet (in 6 batches of ~50 sources, one subagent at a time, each returning a digest file), main (merge + the "what goes wrong in practice" synthesis)  · ledger: r27-47
+files: .claude/notes/update-research.md (sections: dnf5 + actions/versionlock/offline plugins, rpm, snapper, grub-btrfs, btrfs, systemd (boot counting, bless, sysupdate), Fedora release notes/upgrade guides/known issues/EOL schedule, openSUSE transactional-update + snapper rollback, Fedora Atomic/bootc/rpm-ostree, Universal Blue/Bazzite, NixOS generations, Arch snap-pac/timeshift-autosnap, ABRoot, Deepin/… ; their repos and bug trackers; real failure stories (Fedora Discussion, Reddit, GitHub issues): why automated updaters end up useless; AI-fixer prior art (sysadmin agents, their failure modes))
+approach:
+- Six subagent batches, each: ~50 sources from a named area (official docs · other distros' designs · bug trackers · failure stories), one line each (link, what it taught), appended to the file under its heading; the main agent reads each digest before the next brief.
+- The synthesis at the top: the failure modes seen in practice, ranked by frequency × damage, each with its best-known countermeasure and who does it that way.
+- Every claim later used in T44 points at a line here.
+accept: ≥ 300 distinct links, each with one line of what it taught; the synthesis lists ≥ 25 concrete failure modes with a real-world citation each.
+
+### T44 — the written design, argued against as a skeptic  [todo]
+deps: T43, T05  · model: main  · ledger: r27-48
+files: .claude/notes/update-design.md
+approach:
+- Every failure mode and its answer: power loss/crash mid-transaction (rpm journal + snapshot + a boot-time "finish or roll back" unit), network drop (dnf --cacheonly after download; the download phase first), disk full (space checks before: snapshots' reserve, /boot's 2 G XFS: kernels limited to 2 + a check before a kernel install), rpmdb damage (`rpm --rebuilddb`, snapshot), a kernel/initramfs that will not boot (grub boot-counting + the previous kernel kept + systemd's boot-complete marking from the session), **/boot outside the Btrfs root** (a root rollback must keep kernels and modules matched: the policy — never remove a kernel still referenced by any kept snapshot; a snapshot restore (kawa-snap) rewrites /boot's entries to the kernels that snapshot has modules for (both kept kernels have modules in every snapshot since installonly_limit=2 and the modules live in /usr/lib/modules inside the snapshot) — proven by T49's injected tests; grub-btrfs read-only snapshot boots use the kernel+initramfs from /boot that match the snapshot's modules — the list filtered), SELinux relabels after a rollback (`.autorelabel` when policy versions differ), firmware (fwupd listed, never auto-applied), third-party repos lagging a release (RPM Fusion/Brave/Claude Code/COPRs: the existing wait list + the pre-flight), the AI fixer making things worse (only inside the snapshot; verify decides; a budget of tries; never touches /home), a rollback of a rollback (ROOT.old swap semantics + a "the state before the update" snapshot that is pinned until the next successful update), /home vs / (home is never rolled back; configs owned by theme are re-applied), space for snapshots (quotas, cleanup rules, a hard floor).
+- The flow of the one button (snapshot → refresh → download → transaction → post → verify → desktop smoke (headless dwl session start with the autostart helpers, 20 s) → keep | roll back (dnf history undo first if the transaction is undoable without a reboot; else kawa-snap restore + a reboot into the restored root, said in a notice, never leaving a half state) → bisect halves of the package set with verify (bounded: log2 N rounds, each a snapshot revert) → versionlock the culprits (dnf5 versionlock) → the AI fixer (T47) → retry → report (a notice + the log; the ledger-style summary he can read)); the weekly retry of held packages; the 2-week waiting notice and the EOL notice (fedokawaii remind reworked); release upgrades inside the same button (T46).
+- Skeptic pass: a section "attacks" with ≥ 30 attacks and the design's answer; open cases must be zero.
+accept: update-design.md with the flow diagram (text), the failure table (each → answer → the T49 test that proves it), the attacks section closed; reviewed once more after T49.
+
+### T45 — the one Super+U "update" item, A to Z (core)  [todo]
+deps: T44, T12  · model: main  · ledger: r27-49
+files: setup.sh (do_update rewritten to the flow; snapshot_before pinned; the download phase; the post-transaction guard already in lib/guard.sh extended with the smoke test), system/kawa-update (the orchestrator run from Super+U's update entry, root via the existing polkit/sudo path the menu uses; writes ~/.local/state/fedokawaii/update/last.json for the pane), system/kawa-snap (restore ↔ /boot matching, the pinned "before-update" snapshot), lib/guard.sh (dwl_starts → session smoke), system/fedokawaii (the update entry + held entry + the report screen; `fedokawaii remind` → the 2-week and EOL notices only), bin/kawa-bisect (halves, verify, versionlock), lib/manifest.sh (dnf5-plugins has versionlock; nothing new), tests/installer/test_update_flow.sh (stubs for every branch), the Learn piece (T50)
+approach: before the switch, every program whose config we own is checked against the NEW version with its own documented check, else a headless start: foot --check-config, mako (start against a test socket), waybar (headless start, its log), yazi (load the config, `ya`), gtklock + kawa-lockmod (module ABI: load in a headless cage), greetd (config parse), nvim (plugins restored from lazy-lock.json, `:checkhealth` subset), cava, the wlroots-linked builds (dwl, kawa-saver) rebuilt and smoke-started; pinned what breaks (versionlock with the reason) and the rest validated — the list lives in one file the report shows; he never runs dnf: the Learn piece and the menu say so; no background auto-updates; the button also updates the upstream tools we ship (lib/upstream.sh pins), nvim plugins from the lock, firmware listed; the report is short: what changed, what was held and why, what the fixer did.
+accept: on the PC: a real update run end to end from the button with the report; test_update_flow.sh covers every branch (keep, rollback-in-place, rollback-with-reboot, bisect→lock, fixer→kept, fixer→held); the VM: T49's injected failures each end in a working system + a clear message.
+
+### T46 — release upgrades through the same button: VM pre-flight first  [todo]
+deps: T45, T05  · model: main  · ledger: r27-50
+files: setup.sh (do_upgrade: dnf5 offline/system-upgrade path as Fedora documents it for 44→45; the third-party readiness checks kept), tools/vm-preflight.sh (create a VM at the target release from the current repo: setup/theme/verify/desktop smoke; green → a marker the button reads; red → the failing checks in a notice once, re-tried monthly, EOL warning well before), system/fedokawaii (the update pane shows "Fedora 45: pre-flight green/red/not yet")
+approach:
+- Follow Fedora's documented path for 44→45 (dnf5 system-upgrade/offline plugin as the release notes describe it at the time); the existing do_upgrade's readiness checks (third-party repos, our builds' libraries) kept and shown in the pane.
+- The pre-flight is the harness VM at the target release: create (T05 --release), setup/theme/verify/smoke; green writes a dated marker the button reads; red stores the failing checks and re-tries monthly; the EOL date from os-release SUPPORT_END drives the warning (90/30/7 days).
+- The real upgrade: snapshot pinned, offline transaction, reboot, verify + smoke on the new release, rollback (kawa-snap restore + /boot matched) on red — the same end states as T45.
+accept: the pre-flight run against Fedora 45 (or rawhide if 45 is not out) recorded with its result; the button refuses the upgrade on red with the reasons; test coverage of the gate.
+
+### T47 — the local AI fixer on the 16 GB RX 9060 XT (required; proven, honest)  [todo]
+deps: T45, T05, T32 (GPU ownership rule)  · model: main (runtime/model measurement, the fixer loop), sub:sonnet (the breakage set + the prompt/context packer tests)  · ledger: r27-51
+files: lib/upstream.sh or manifest (llama.cpp — Fedora's `llama-cpp` package vs upstream release with Vulkan/ROCm builds; or Ollama's official install — decided by measurement: tokens/s, VRAM fit, context 32k, offline), system/kawa-fixer (loads the model only during an update run; context: the failing verify check + its command output, the dnf transaction diff, journal excerpts, the relevant config file + its program's schema/docs (man/--help captured at install), the design's allowed actions (edit a config under theme's ownership, add a versionlock, write an override), structured output (a unified diff + a one-line reason); applies inside the snapshot, runs verify, keeps or reverts; N tries; a "held + told" ending), ~/.local/share/fedokawaii/models/ (the model file, checksum-pinned), tools/fixer-bench.sh (the graded injected breakages: a renamed foot option, a changed waybar key, a mako config change, a yazi.toml rename, a greetd option, a kernel arg, a package conflict), tests/installer/test_fixer.sh (stubs), the Learn piece
+approach: models/runtimes from official sources at run time (llama.cpp docs for Vulkan vs ROCm on RDNA4 gfx1200; Ollama's docs; model cards for current open-weight coder models that fit 16 GB at a quant with ≥ 32k context — measure 3 candidates); the GPU rule: the fixer refuses while the games VM holds the dGPU (the update button says "stop the VM first"); nothing held in RAM/VRAM outside a run.
+accept: fixer-bench.sh table: breakage → fixed/held, tries, time; ≥ the easy half fixed reliably over 3 runs each, every failure ends in "held + told"; VRAM/RAM back to idle after the run (measured); the choice (runtime, model, quant, tokens/s) in the ledger with sources; if it cannot beat "hold and wait" on any class, that class is documented as held-only.
+
+### T48 — snapshots, backups, rollback, Btrfs: one clear model, hardened, from Super+U and the boot menu  [todo]
+deps: T44, T12  · model: main  · ledger: r27-52
+files: system/kawa-snap (list/undo/restore/restore-file, the boot-menu list, read-only boots, space floor), setup.sh (snapper configs: timeline hourly → a sane schedule (e.g. daily + before-update + before-upgrade, cleanup numbers), scrub timer, quota/space checks, grub-btrfs entries limited and matched to kernels), bin/kawa-backup (the drive flow: pick the drive, first backup, restore a file/folder, restore everything — few obvious choices), system/fedokawaii (snapshots and backups sections), verify.sh (snapshot/backup checks), tests/engine/test_snap.sh, tests/content/test_backup.sh, the Learn piece
+approach:
+- One model in words and in the menu: snapshot = undo on this disk (automatic before every update/upgrade, a daily one, cleanup by count and a space floor), backup = a copy on another drive (restic, the drive chosen once); nothing else is offered.
+- Harden: scrub monthly (timer + a notice only on errors), space checks before snapshots and updates, read-only snapshot boots via grub-btrfs with kernels matched (T44's policy), the restore path proven for root and for single files; every step says what it will do before it does it (one line) and what it did after.
+- Every path tested in the VM (T49 injects the broken boot); the PC gets only the non-destructive paths run for real (undo + back, single-file restore, backup to the drive if present).
+accept: on the PC: an undo to the pre-update snapshot and back (ROOT.old) with /boot matched (kernel list verified), a single-file restore, a backup+restore of a folder to a test drive image (loop device in the VM; on the PC the real drive if present else the VM), a read-only snapshot boot in the VM; space floor enforced (inject a full disk in the VM); tests green.
+
+### T49 — every failure injected in the VM, kept as tools/ scripts  [todo]
+deps: T45, T46, T47, T48  · model: main (the harness runs), sub:sonnet (the inject scripts' edge handling + tests)  · ledger: r27-53
+files: tools/vm-inject/{power-cut.sh (kill the VM mid-transaction), disk-full.sh, broken-pkg.sh (a local repo with a package whose %post fails / a lib that breaks dwl's link), broken-boot.sh (a wrong kernel arg / a missing initramfs), network-kill.sh, rpmdb-damage.sh, selinux-relabel.sh, thirdparty-lag.sh, fixer-worse.sh (a fixer stub that writes a bad diff), rollback-of-rollback.sh}, tools/vm-inject/run-all.sh (each from the fresh snapshot → the button → the end state + message captured)
+approach:
+- Each script: revert to the fresh snapshot, inject one failure, press the button (vm-run), capture the end state (smoke, verify, the notice text, the log), restore nothing by hand.
+- The broken-boot case covers both a bad kernel argument and a kernel whose modules are missing from the restored snapshot (the /boot-outside-Btrfs case); the power-cut case kills the VM at three points (download, transaction, post).
+- run-all.sh writes a table and exits non-zero on any case that did not end at a working desktop with a clear message.
+accept: run-all.sh: every injection ends with the VM at a working desktop (smoke green) and the exact notice text saved; the table in update-design.md filled with the run ids; repeatable (two runs identical outcomes).
+
+### T50 — the Learn pieces for updates, the fixer, snapshots vs backups, rollback from the menu and the boot menu, "when a notice asks for you"  [todo]
+deps: T45–T49  · model: main  · ledger: r27-54
+files: docs/learn/pieces/* (update, lights/monitor/network pieces land in their tasks; here: the update system piece set), docs/fedokawaii-learn.md (the source chapter rewritten so the book stays correct), tests/content/test_learn.sh
+approach:
+- Written from the implemented behaviour, not the design: each piece opens with what he will see and what to do; a one-page "when a notice asks for you" piece with the three cases (a held package with a security update, a red VM pre-flight near EOL, a rollback that needed a reboot).
+- Screenshots of the real Super+U update/snapshots/backups screens (T17's gallery) embedded through kawa-sixel in the pieces and in the book source.
+accept: pieces render in kawa-learn; every statement checked against the implemented behaviour (a checklist in the ledger); the honest limits of the fixer stated.
+
+## Phase 7 — bugs left, never-again regression checks, repo hardening, the installer proof
+
+### T51 — the 17 bugs: each re-verified on the PC, one ledger line each  [todo]
+deps: T13–T16, T19–T22, T29, T31  · model: main  · ledger: r27-55
+files: .claude/notes/02-LEDGER.md (r27-55.1 … r27-55.17), /dev/shm/r27/bugs/ (evidence, named in the lines)
+approach: where each is fixed — 1 saver→lock freeze (T20) · 2 notes black/flicker/spacing (T21) · 3 dropdown rows inactive (T13) · 4 lock caret + slow wrong password (T20) · 5 wallpaper black box (T19) · 6 flicker notes save / launcher calc / clipboard "terminated" (T21, T16) · 7 Super+C centred (T13) · 8 one popup at a time (T13) · 9 popups over fullscreen (T19) · 10 locked PDFs (T22) · 11 .rar (T22) · 12 torrents slow/resolve/notice (T29) · 13 Brave download % + icon (T31) · 14 Steam Deck — superseded, dropped (T35 removes Steam) · 15 Super+U headings (T12) · 16 Super+R books (T16) · 17 dashed lines (T16). This task re-tests every one on the live PC after all of those are done, with the evidence named (recording/shot/test), and reopens any that fails.
+accept: 17 ledger lines "r27-55.N VERIFIED (how)"; none open.
+
+### T52 — never again: every ledger item r24→r27 as an automated regression check, wired into selftest and the pre-push run  [todo]
+deps: T17, T51  · model: sub:sonnet (writes the checks from a list main prepares: item → surface → measurable check), main (the list, the headless/visual ones, verification)  · ledger: r27-56
+files: tools/regress/README.md (the list: item id → check file), tools/regress/*.sh (headless visual checks: gallery measurements vs gallery-expect.json (T17), bar height never grows with Arabic/emoji/Thai titles, no "…" anywhere, the dropdown hover-without-click, one-popup rule, calendar placement, saver/lock timing, the boot splash args, workspace restore after hotplug, dwl crash guards, animation frame timing, notes margins, prompt dup headings, torrent notice once, …), tests/regress/test_*.sh (the stand-in ones), tools/selftest.sh (runs tests/regress + the headless set when a GPU is present), tools/prepush.sh (tests/run.sh + tools/regress + verify; installed as .git/hooks/pre-push by `fedokawaii copy`), tests/run.sh (the new area)
+approach:
+- The list first (main): every ledger line r24-1 … r27-67 mapped to a surface and a measurable statement (e.g. "the bar is 27 px with an Arabic title" → a headless shot measured; "a wrong password reports in ≤ 400 ms" → the lockmod log); unmeasurable ones get a manual step written down.
+- The subagent writes one check per line from that list in the two forms (headless/visual under tools/regress/, stand-in tests under tests/regress/), each check printing the item id and the measured value.
+- Wiring: tests/run.sh's new area, selftest's section (GPU-dependent checks skipped with a line when no GPU), tools/prepush.sh installed by `fedokawaii copy`; the loop's commit step runs prepush.
+accept: every r24–r27 ledger item has a check or a written reason it cannot be automated (≤ 5 such, each with the manual step); tools/prepush.sh green; selftest runs them; the loop's passes use prepush before every push.
+
+### T53 — repo hardened once more: dead code out, duplication into lib/, ShellCheck clean, errors handled, tests for every path, selftest --sandbox clean  [todo]
+deps: T52  · model: sub:sonnet (mechanical ShellCheck/dead-code sweeps per directory, one at a time), main (lib/ folding decisions, review)  · ledger: r27-57
+files: bin/*, lib/*, setup.sh, theme.sh, verify.sh, fedokawaii.sh, system/*, tools/*, tests/*
+approach: first the three test files already failing on clean HEAD (ledger r27-0: session/test_autostart (the bar's <span line_height> wrapper), test_game (snapper/scrub timers — gone with T35), test_glass (OSC 11)) fixed or retired with a reason; then `shellcheck -S style` over everything (bash and sh, with the repo's directives), unused functions/variables found by a script (tools/deadcode.sh), duplicated helpers folded into lib/common.sh or a new lib/ui.sh (screen grammar), every `run`/`retry` failure path tested, `set -u/pipefail` audit (tests/static/test_pipefail.sh), `fedokawaii selftest --sandbox`.
+accept: shellcheck 0 warnings; tools/deadcode.sh 0 findings; `bash tests/run.sh` all green; `fedokawaii selftest --sandbox` clean (exit 0) on the PC; line count of bin+lib not larger than before the task (ledger numbers).
+
+### T54 — everything trickles into the installer: clean VM install, update, structure, both proven again  [todo]
+deps: T05, T42, T45, T48, T53  · model: main  · ledger: r27-58
+files: tools/vm-smoke.sh (reused), .claude/notes/vm-runs.md
+approach:
+- Fresh VM from the base snapshot, the current repo in; the full chain run by vm-smoke.sh; every skipped verify check must be hardware-only (named); STRUCT and the update button's idempotent run added to vm-smoke.sh as stages.
+- On the PC: `sudo FEDOKAWAII_COPY=$PWD fedokawaii apply` then verify; drift must be empty (every config owned by theme.sh, his settings apart in fedokawaii.conf/secrets.sh/*.local).
+accept: fresh VM: setup → theme → verify 100 % (every skip hardware-named) → desktop smoke green → STRUCT green → the update button runs with no changes (idempotent) → T49's run-all green; the PC: `fedokawaii verify` green after `apply`; numbers and run ids in the ledger.
+
+## Phase 8 — the installer ISO (only after everything above is solid)
+
+### T55 — ISO research: Omarchy's ISO, Fedora's media tooling, Secure Boot  [todo]
+deps: T54  · model: sub:sonnet (digest with links), main (design decisions)  · ledger: r27-59
+files: .claude/notes/iso-research.md, .claude/notes/iso-design.md
+approach: Omarchy's repo/docs (how its ISO asks the minimum and runs unattended), Fedora: Kickstart (pykickstart), `mkksiso` (lorax), livemedia-creator, Anaconda text mode and its kickstart-driven install, the signed shim/grub for Secure Boot on Fedora media, how to pin "the newest stable Fedora at install time" (the release's netinst + `--releasever` from the mirror's metadata), the themed GRUB menu on the ISO (our GRUB theme already exists in art/grub), Plymouth on the installer, the question screens (our own TUI on tty1 before Anaconda: a dialog in our grammar writing the kickstart's %pre answers), progress on screen, refusal cases (small disk, no network), the post-install unattended run of setup/theme through reboots (the existing resume unit), the final "ready" with the login screen.
+accept: iso-design.md with the boot flow, the question list (user, password, disk, hostname, timezone, keyboard — nothing asked twice), the kickstart skeleton, the build inputs pinned, Secure Boot answer, the test matrix.
+
+### T56 — tools/build-iso.sh: reproducible, fully themed, unattended to a finished desktop  [todo]
+deps: T55  · model: main  · ledger: r27-60
+files: tools/build-iso.sh, iso/ (kickstart, the question TUI (bash, our grammar, pixel font on the console via the Terminus/our console font), GRUB theme for the ISO, Plymouth, progress screens, the embedded repo tarball or a pinned git ref), lib/manifest.sh (lorax/mkksiso/pykickstart in a build-only list installed on demand by the tool), tests/installer/test_iso_tools.sh (stubs), docs Learn piece "installing from the ISO"
+approach:
+- Inputs pinned: the Fedora release and its netinst/boot image (checksum), the repo at a git ref, the fonts/art the question screen needs; the build runs in a clean container or VM (lorax/mkksiso as the research chose), so the host stays untouched.
+- The question screen: our grammar on the console (the console font and palette theme.sh already sets), six questions at most, validated before the install starts (disk size ≥ the documented minimum, network reachable: a refusal screen with the reason, no retry loop that asks again).
+- Kickstart: UEFI/GPT/Btrfs layout identical to the harness's and the PC's; %post drops the repo and the resume unit; setup/theme run unattended through their reboots with progress on tty1; the last screen is the login.
+accept: `tools/build-iso.sh` → `fedokawaii-<date>.iso` + `.sha256`, twice from the same inputs = identical checksums (or the documented non-determinism removed); the ISO boots in the VM (UEFI, Secure Boot on) to our themed menu and question screen (screenshots via the VM's display).
+
+### T57 — the ISO proven end to end, timed, released  [todo]
+deps: T56  · model: main  · ledger: r27-61
+files: tools/vm-iso-test.sh (boot the ISO in a fresh VM with a wiped disk; several runs; a slow-network run (tc netem on the bridge); a run with the VM reset mid-install; a too-small disk and a no-network run must refuse clearly), .claude/notes/iso-runs.md, the GitHub release (gh release create with the ISO + checksum — if `gh auth` is absent on the PC, the files stay in ~/VM/iso/ and the ledger says so)
+approach:
+- The matrix from T55's design, each run from a wiped virtual disk; the display recorded as PNGs at the key screens (menu, questions, progress, ready) for the ledger.
+- Timing per run (ISO boot → login screen), the slow-network run with `tc qdisc netem` on the bridge, the reset pulled during setup's phase 2, the refusals (a 20 G disk; the network cable "unplugged" via virsh domif-setlink).
+- Release: `gh release create` with the ISO and the checksum when `gh auth status` is green; else the files and the ledger line.
+accept: ≥ 3 clean runs to a login screen with verify green inside, install time recorded; the slow-network and mid-install-reset runs converge; the two refusal cases show the message and stop; the release published (or the blocker named); never run on the real disk (the script refuses any non-VM target).
+
+## Phase 9 — the end of the round (CLAUDE.md START step 7 and 8)
+
+### T58 — the research round: official docs of everything touched, done against the grain fixed  [todo]
+deps: T57  · model: sub:sonnet (one digest per project: dwl/wlroots 0.20, foot, waybar 0.15, gtklock 4, greetd, plymouth, yazi 26, mako 1.11, pipewire/wireplumber, libvirt/QEMU, FireAlpaca, OpenRGB, Stockfish, dnf5, snapper, grub-btrfs, Fedora 44 notes), main (the fixes)  · ledger: r27-62
+files: .claude/notes/research-round.md, the touched configs/scripts/tests per finding
+approach:
+- One subagent per project with a fixed brief (the project's official docs URL, our config/script paths, "list where we go against the documented way or miss a feature"), returning a short digest; the main agent decides and fixes.
+- Fedora 44's release notes and the kernel 7.2 notes read for anything that changes our assumptions (dnf5 behaviour, systemd, Mesa, amdgpu).
+accept: .claude/notes/research-round.md: per project "what we do · what the docs say · changed/kept why"; fixes committed with tests.
+
+### T59 — maniac testing: every app, menu, key, combination, edge case, both themes, load, crashes; reboots; the cold power-off test last  [todo]
+deps: T58  · model: main  · ledger: r27-63
+files: tools/maniac.sh (the scripted part: every key of config.h ×3 fast, every bar click, every popup pair, 200 window opens/closes, theme switches ×20, wallpaper changes ×20, lock/unlock cycles via the greetd trick (no password: lock → session restart), USB plug/unplug of a test drive image, notices flood, OSD floods, the saver/lock/dark cycle with the inhibitor paused), .claude/notes/maniac-r27.md (findings → fixes)
+approach: after the scripted part, the hand-like pass through every app and screen with shots; crashes hunted (`coredumpctl` must stay empty — the slurp SIGSEGV of 26 Oct 15:35 and Brave's two cores of 25 Oct are investigated here); reboots with `sudo systemctl reboot` (START §4's [initial_session] left in place, restored after), then a cold boot: everything pushed first, then `sudo rtcwake -m off -s 180` (the loop resumes at boot).
+accept: maniac-r27.md lists every finding with its fix commit; coredumpctl empty for the round's last 48 h; the reboot and the power-off came back to a working desktop with the service resumed (journal lines in the ledger).
+
+### T60 — the rigorous performance test: after-numbers vs the baseline  [todo]
+deps: T59  · model: main  · ledger: r27-64
+files: tools/perf.sh (reused unchanged), .claude/notes/perf-after.md, the ledger's summary table
+approach: the identical T04 protocol plus: dwl frame times during the heavy scene (framestat.py: p99 interval, late frames per minute), every animation's frames at 144 Hz, input-to-screen latency for keys/menus/bar, app starts, RAM/CPU/GPU, nvim startup, boot; regressions fixed before the numbers are final.
+accept: perf-after.md complete; no row worse than the baseline without a reason accepted in the ledger; frame p99 ≤ 7.5 ms under load; late frames 0 in every animation run.
+
+### T61 — full test suite, verify, regression set, push  [todo]
+deps: T60  · model: main  · ledger: r27-65
+files: .claude/notes/02-LEDGER.md (counts), tests/, tools/prepush.sh
+approach:
+- The order: tests/run.sh → tools/prepush.sh (regression + verify) → vm-smoke.sh → push; a red step is fixed before the next; the counts go into the ledger's summary table.
+accept: `bash tests/run.sh` all green; `tools/prepush.sh` green; `fedokawaii verify` green on the PC (count in the ledger); the VM smoke green once more; pushed to origin/main.
+
+### T62 — finish: inhibitor off, the temporary sudo rule removed, the owner's summary, DONE  [todo]
+deps: T61  · model: main  · ledger: r27-66
+files: .claude/notes/02-LEDGER.md (the summary at the top), .claude/DONE
+approach: `systemctl --user stop r27-inhibit`; `sudo rm /etc/sudoers.d/90-claude-temp`; leftovers list of the ledger ("Leftovers to remove at the very end") executed except what T42 already moved; the summary at the top of the ledger: what changed, what to look at first, the before/after numbers, the physical step (T06), what waits for his word (T63) and any `[blocked]` with its alternative; `touch .claude/DONE`.
+accept: DONE exists; the loop ends; the summary is ≤ 60 lines.
+
+### T63 — the big Learn-book update (on his word — leave open)  [todo]
+deps: T62  · model: main  · ledger: r27-67
+files: docs/fedokawaii-learn.md, docs/build/learn.py, docs/Fedokawaii-Learn.pdf, docs/learn/pieces/*, tools/learn-pieces.py
+approach: every change of the round already corrected its pieces (standing rule, each task); what waits for his word: the full pass over `docs/fedokawaii-learn.md` (code snippets with the new terminal face, every screenshot retaken with the final design, the new chapters: lights, monitor, network, games VM, update system, structure, chess, typing, drawing), `docs/build/learn.py` rebuilt → `Fedokawaii-Learn.pdf`, and the pieces regenerated (tools/learn-pieces.py).
+accept: (when asked) the PDF rebuilt with real shots, the pieces regenerated, kawa-learn progress preserved across the regeneration (ids stable).
+
+## Coverage — brief item → task
+| brief item | task |
+|---|---|
+| random restart (evidence, fix, catch next time, stress test) | T01 |
+| monitor on → workspace 1 (per-output state, hotplug/DPMS, regression) | T02 |
+| verification toolbox, frame log inside dwl, headless on the real GPU | T03 |
+| performance baseline ("numbers before") | T04 |
+| VM harness (unattended F44, snapshot/revert, setup/theme/verify, desktop smoke, serial logs) | T05 |
+| the early physical-step notice (second cable; BIOS needs nothing) | T06 |
+| fonts reselected (UI + terminal, official sources, rendered in our surfaces) | T07 |
+| Wada palette informing the whole design system | T08 |
+| design-system.md first as the single truth (grid, type, frames, colour roles, icons, motion) | T09 |
+| sizes a little smaller, width tables, icon sizes, layouts reworked | T10, T11 |
+| Super+U fully redesigned (system/update/snapshots/backups/learning) + bug 15 | T12 |
+| every menu/popup to match; quick settings unique icons + OCD alignment; DND-only menu; bugs 3, 7, 8 | T13 |
+| bar redesign (27 px, no inner frame, title weight, date slash, US/AR, separator, red visualizer, animated TV/downloads icons, sunny ≠ brightness, spacing) | T14 |
+| sliders alive, red when high (OSD + panel meters) | T13, T15 |
+| window borders with the bar's 3D shadow look; notices/OSD/tooltips/Super+/ look | T15 |
+| TUI grammar: no dashed lines (17), Super+R books (16), Super+W rotate key at the bottom, clipboard "terminated" + launcher calc flicker (6), kanji → pixel icons | T16 |
+| design coherence pass (side-by-side audit, one grammar) | T17 |
+| old-master pixel art: ~10 demon + ~10 angel wallpapers, lock art, quick-settings demon/angel icon, fetch art, stamp numerals black inside the circle | T18 |
+| animations playful pixel 400–450 ms; menus/Super+N; lock→desktop; first login after boot; wash 1.2 s; cursor animated in the theme switch; popups over fullscreen (9); wallpaper black box (5) | T19 |
+| lock screen (new art, no date/time/power, demon mouth/angel, torches, quote); caret + wrong password fast (4); lock → screens off after 5 s; saver→lock freeze (1); greeter twin | T20 |
+| notes (2, 6): lined notebook, margins constant; the to-do list beside notes and in Super+U | T21 |
+| yazi UI rebuilt, hidden files always, .rar (11), locked PDFs prompt (10) | T22 |
+| Super+/ comprehensive, fuzzy, context-aware | T23 |
+| prompt rebuilt (pastel powerline, terminal icon, Wada) | T24 |
+| chess app: research + 730-game curriculum; the TUI; destruction tests | T25a, T25b, T25c |
+| typing app: research + progression; the TUI with keyboard and hands; destruction tests | T26a, T26b, T26c |
+| Learning section: Learn book cut into ordered pieces; the Guide PDF removed | T27 |
+| FireAlpaca: upsides proven, installed, XP-Pen pressure, themed to the limit | T28 |
+| torrents overhaul + hardening; "failed to resolve" (12); notice on every open (12); Prowlarr warning | T29 |
+| neovim faster, lazy-lock pinned | T30 |
+| Brave download %, odd link icon (13) | T31 |
+| gaming VM research + design (RDNA4 reset, IOMMU, CS2/VAC honesty, display design, iGPU host) | T32 |
+| Windows VM unattended, minimal, one folder; controller passthrough; licence | T33 |
+| the VM app (start/stop, display switch, controller, state), launcher entry, hard tests, frame times | T34 |
+| gaming removed from the host (Steam, bar icon/menu, kawa-steam, GE-Proton, gamescope, MangoHud, game mode, configs, caches, units, repos, docs); Blasphemous backup kept; Steam items superseded (incl. bug 14) | T35 |
+| RGB in our red: case fans + hub, cooler, GPU logo, K617 (OpenRGB or own driver), synced slow motion, boot/resume | T36 |
+| the cooler's display | T37 |
+| monitor: FreeSync proven, DDC/CI menu set by us, colour profile only if measured, re-apply at boot/wake | T38 |
+| network security audit + port scan from the VM + verify checks | T39 |
+| RAM caching of apps | T40 |
+| kernel 7.2 / Fedora 44 tuning, each measured | T41 |
+| perfectly clean structure: layout defined, strays moved, verify STRUCT, documented | T42 |
+| update research 300+ sources | T43 |
+| update design argued as a skeptic (every failure mode incl. /boot outside Btrfs) | T44 |
+| the one Super+U "update" item A→Z; he never runs dnf; bisect + versionlock; held + told; 2-week/EOL notices; no background updates | T45 |
+| release upgrades via the same button with VM pre-flight | T46 |
+| the local AI fixer (required; runtime/model measured on the 16 GB card; offline; loads only during a run; VM-proven; honest) | T47 |
+| snapshots/backups/rollback/Btrfs simplified and hardened; boot-menu rollback; single-file restore; backup drive flow | T48 |
+| every failure injected in the VM as tools/ scripts | T49 |
+| Learn pieces for the update system, fixer, snapshots vs backups, rollback, "when a notice asks" | T50 |
+| the 17 bugs re-verified | T51 |
+| never-again regression checks for r24→r27, in selftest and before every push | T52 |
+| repo hardened (dead code, lib/, ShellCheck, errors, tests per path, selftest --sandbox) | T53 |
+| everything through the installer, VM-proven at the end | T54 |
+| installer ISO: research (Omarchy, Kickstart, mkksiso, lorax, Anaconda text, shim) | T55 |
+| ISO build, fully themed, unattended, refusals, reproducible | T56 |
+| ISO proven in the VM (several runs, wiped disks, slow network, mid-install reset), timed, released | T57 |
+| START 7a research round | T58 |
+| START 7b maniac testing, reboots, rtcwake power-off last; performance and visual bug hunt everywhere | T59 |
+| START 7c the rigorous performance test (after numbers) | T60 |
+| START 7d full suite + verify + push | T61 |
+| START 8 finish (inhibitor, sudoers rule, summary, DONE) | T62 |
+| the big Learn-book update on his word (pieces kept correct meanwhile) | T63 |
+| Learn book correct after every change (standing rule) | every task's accept |
+| decisions logged with sources; ledger per task; commit+push per task | conventions |
