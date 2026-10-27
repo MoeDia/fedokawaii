@@ -104,7 +104,7 @@ grep -q 'dx = c->animdir \* (int)lround(anim_drift \* (1.0 - e));' <<<"$f" \
   && grep -q 'dx = -c->animdir \* (int)lround(anim_drift \* e);' <<<"$f" \
   && grep -q 'double p = kind == AnimIn ? (t - (anim_tag_ms - anim_tag_each_ms)) / anim_tag_each_ms' "$P" \
   && grep -q 'return kind == AnimOpen ? anim_open_ms : kind == AnimIn ? anim_tag_ms' "$P" \
-  && grep -q ': kind == AnimUnroll ? anim_unroll_ms : anim_tag_each_ms;' "$P" \
+  && grep -q ': kind == AnimUnroll ? anim_unroll_ms : kind == AnimSlide ? anim_slide_ms' "$P" \
   && _ok || _no "the switch's drift and timing"
 
 case_ "layer surfaces by namespace (config.h layeranims): the panels' menus in 200 ms dropping 4 px and out 160, a notice 240 · 200, the level display at once and out 300, the saver out 180; any other at once"
