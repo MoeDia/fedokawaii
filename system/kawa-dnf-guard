@@ -120,7 +120,7 @@ if [[ -s $STATE/needs ]]; then
     case $role in
       wlroots) if ((wlr_rebuilt)); then say "$so changes: dwl's own wlroots $wlr is taken again from Fedora's rebuild, and dwl rebuilt, right after"
                else problems+=("it takes $so (from $p), which dwl's own wlroots $wlr needs, and brings no wlroots $wlr built for its successor — the desktop would not start"); fi ;;
-      build)   say "$so changes: dwl and the desktop's helpers are rebuilt for it right after" ;;
+      build)   say "$so changes: dwl, the desktop's helpers and its mako are rebuilt for it right after" ;;
       tool)    say "$so changes: a release tool loads it — the checks after this transaction find a package for it" ;;
     esac
   done < <(awk 'NF == 3' "$STATE/needs")

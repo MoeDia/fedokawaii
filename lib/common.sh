@@ -548,6 +548,8 @@ validate_conf() {                   # prints one line per problem; empty = valid
   [[ $DWL_WLROOTS =~ ^0\.[0-9]+$ ]]             || echo "DWL_WLROOTS must look like 0.20 (is '$DWL_WLROOTS')"
   [[ $TFC_TAG =~ ^v[0-9]+\.[0-9]+(\.[0-9]+)?$ ]] || echo "TFC_TAG must look like v1.4.3 (is '$TFC_TAG')"
   [[ $TFC_COMMIT =~ ^[0-9a-f]{40}$ ]]           || echo "TFC_COMMIT must be the 40-character commit of $TFC_TAG"
+  [[ $MAKO_TAG =~ ^v[0-9]+\.[0-9]+(\.[0-9]+)?$ ]] || echo "MAKO_TAG must look like v1.11.0 (is '$MAKO_TAG')"
+  [[ $MAKO_COMMIT =~ ^[0-9a-f]{40}$ ]]          || echo "MAKO_COMMIT must be the 40-character commit of $MAKO_TAG"
   if [[ -z $USERNAME ]]; then :
   elif [[ ! $USERNAME =~ ^[A-Za-z0-9_][A-Za-z0-9_.-]*$ || $USERNAME =~ ^[0-9]+$ ]]; then echo "USERNAME '$USERNAME' is not a user name"
   elif [[ $USERNAME == root ]]; then echo "USERNAME cannot be root — name the desktop's own user, or leave it empty"
@@ -559,7 +561,7 @@ validate_conf() {                   # prints one line per problem; empty = valid
 # else in it is reported as a problem, and the values are checked before anything runs.
 CONF_KEYS=(USERNAME GPU STEAM SSH_SERVER MONITOR_HZ KB_LAYOUTS KB_TOGGLE TIMEZONE WEATHER_CITY
            NIGHT_LIGHT THEME WALLPAPER_PACK BOOT_MENU_SECONDS DNF_PARALLEL BACKUP_TARGET
-           BACKUP_REMIND_DAYS DWL_TAG DWL_COMMIT DWL_WLROOTS TFC_TAG TFC_COMMIT)
+           BACKUP_REMIND_DAYS DWL_TAG DWL_COMMIT DWL_WLROOTS TFC_TAG TFC_COMMIT MAKO_TAG MAKO_COMMIT)
 # settings an earlier version had, gone since: read past in a file not yet merged (update's
 # conf_merge takes their lines out) — SPOTIFY (Spotify's app, built here; its web player now)
 CONF_RETIRED=(SPOTIFY)

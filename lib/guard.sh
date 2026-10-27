@@ -33,12 +33,13 @@
 GUARD_ACTIONS=/etc/dnf/libdnf5-plugins/actions.d/fedokawaii-guard.actions
 
 # built_files ROLE → our own builds of that role, one per line (those that exist)
-#   wlroots: dwl's own copy · build: dwl, the C helpers, the file dialog · tool: release binaries
+#   wlroots: dwl's own copy · build: dwl, the C helpers, the file dialog, the notices' mako · tool:
+#   release binaries
 built_files() {
   local f kept; kept=$(wlr_home)/lib
   case $1 in
     wlroots) for f in "$kept"/*.so*; do [[ -f $f && ! -L $f ]] && echo "$f"; done ;;
-    build)   for f in /usr/local/bin/dwl /usr/local/libexec/xdg-desktop-portal-termfilechooser \
+    build)   for f in /usr/local/bin/dwl /usr/local/libexec/xdg-desktop-portal-termfilechooser /usr/local/bin/mako \
                       "$TARGET_HOME"/.local/bin/{kawa-clipkeep,kawa-saver} \
                       "$TARGET_HOME"/.local/lib/fedokawaii/kawa-lockmod.so; do [[ -f $f ]] && echo "$f"; done ;;
     tool)    for f in "$TARGET_HOME"/.local/bin/{satty,yazi,ya,lazygit,herdr}; do [[ -f $f ]] && echo "$f"; done ;;

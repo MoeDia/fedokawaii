@@ -308,42 +308,48 @@ def foot_block():
 
 
 def mako(m, p):
+    k = KAMI[m]
+    hx = lambda c: "".join(f"{v:02x}" for v in c)
     return f"""# {header('~/.config/fedokawaii/current/mako', NAMES[m] + ' colours for notifications')}
 # Included at the top of ~/.config/mako/config (mako allows include only outside a
 # [section]); this file starts at the top level again, so it can have sections of its own.
-# A card is a panel (docs/design-system.md) on a solid ground, surface: the 2 px muted frame (the
-# main config: border-size, square corners, 16 px of pad). Its title — the glyph, two spaces,
-# the name — stands on a 24 px row as a heading does (line_height, in Pango units: px × 1024),
-# in the strongest ink: mako hands the title over as plain text, so its glyph cannot take a
-# colour of its own (no accent_text glyph as in a seal); the pixel fonts have no bold face,
-# and a synthesised one smears their pixels. The body under it in text, each line on a 24 px
-# row too — the card's rows as a panel's, so an app's picture (two rows: 48 px) stands beside
-# the title's and the first line's rows exactly.
+# A notice is a panel (docs/design-system.md §4, §9) on a solid ground, surface, in the frame of
+# everything that floats — the hairline in the bar's tiles' ink, its corners left out, and the
+# shadow under it (the desktop's mako: src/mako/mako.patch's shadow-color). Its first row the
+# title — the app's pixel icon in accent_text (summary-icon-color), its words 8 px on, strong —,
+# then the body in text, every line on a 20 px row (line_height in Pango units: px × 1024) and
+# under the title's words (the main config's hanging-indent). mako hands the title over as plain
+# text: only its leading icon takes an ink of its own; the pixel fonts have no bold face, and a
+# synthesised one smears their pixels.
 background-color=#{p['surface']}ff
 text-color=#{p['text']}
-border-color=#{p['muted']}
+border-color=#{hx(k['hair'])}
+shadow-color=#{hx(k['shadow'][0])} #{hx(k['shadow'][1])}
+summary-icon-color=#{p['accent_text']}
 # an app's own progress (the hint "value"): mako fills the card from the left, under the
 # words — asagi, the meters' colour, thinned so the words keep their contrast
 progress-color=over #{p['asagi']}40
-format=<span foreground="#{p['strong']}" line_height="24576">%s</span>\\n<span line_height="24576">%b</span>
+format=<span foreground="#{p['strong']}" line_height="20480">%s</span>\\n<span line_height="20480">%b</span>
 
-# critical: the frame in vermilion (the main config keeps these on screen until dismissed)
+# critical: the hairline in vermilion (the main config keeps these on screen until dismissed)
 [urgency=critical]
 border-color=#{p['accent']}
 
 # several notices from one app, folded into one card: the count beside the title, muted
 [grouped]
-format=<span foreground="#{p['strong']}" line_height="24576">%s <span foreground="#{p['muted']}">×%g</span></span>\\n<span line_height="24576">%b</span>
+format=<span foreground="#{p['strong']}" line_height="20480">%s <span foreground="#{p['muted']}">×%g</span></span>\\n<span line_height="20480">%b</span>
 
 # udiskie's notice of a drive that would not open ("Job failed" — failed to mount, or to
 # unlock: a wrong passphrase): titled like the drives' own notices (kawa-drives)
 [app-name=udiskie]
-format=<span foreground="#{p['strong']}" line_height="24576">\U000FE044  not opened</span>\\n<span line_height="24576">%b</span>
+format=<span foreground="#{p['strong']}" line_height="20480">\U000FE044 not opened</span>\\n<span line_height="20480">%b</span>
 
-# the level display (kawa-osd): one meter row, as quick settings' — its glyph, its name, the
-# twelve squares, the number — which brings its own colours and its 24 px row
+# the level display (kawa-osd): one meter row, which brings its own colours and its row — its
+# frame as it was until it becomes a surface of the panel's (plan T15): no shadow (its window
+# has no margin to hold one)
 [category=osd]
 format=%b
+shadow-color=#00000000 #00000000
 """
 
 

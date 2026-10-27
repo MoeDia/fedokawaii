@@ -228,7 +228,7 @@ conf_merge() {
       if [[ -v tv[$k] && ${tv[$k]} != "$v" ]]; then
         if ((had)) && [[ -v lv[$k] ]]; then
           if [[ ${lv[$k]} == "$v" ]]; then win=toolkit; else win=copy; fi
-        elif [[ $k == DWL_* || $k == TFC_* ]]; then win=copy
+        elif [[ $k == DWL_* || $k == TFC_* || $k == MAKO_* ]]; then win=copy
         else win=toolkit; fi
         if [[ $win == toolkit ]]; then line=${tl[$k]}; else taken+=("$k=\"$v\" (was \"${tv[$k]}\")"); fi
       fi
@@ -1467,6 +1467,76 @@ s_filechooser() {
   ((CONTAINED_RC == 0)) || log "no file dialog yet: termfilechooser did not build (why: above, or $LOG_FILE), and the portals name only it — update or repair build it"
 }
 
+# ── the notices: mako, built here (the pinned tag, src/mako/mako.patch) ──────────────
+# Fedora's mako draws a notice's frame as a stroked path: no corner pixels left out, no
+# shadow; it puts "…" where text does not fit; and a title's icon cannot take an ink of its
+# own. The patch adds three options of the desktop's (docs/design-system.md §4, §9): shadow-color
+# (the frame of everything that floats: the corners left out, the shadow's two rows and its
+# column, drawn into the margin), summary-icon-color (a title's leading pixel icon in its own
+# ink, its words 8 px on) and hanging-indent (the lines after the title under its words; never
+# "…": whole lines, the rest cut). ~/.config/mako/config uses them, so only this mako can read
+# it: built as you in ~/.local/src (the tag must resolve to the pinned commit), its binary
+# copied to /usr/local/bin by root, and Fedora's own unit (mako.service, which D-Bus starts
+# for the first notice too) runs it — a drop-in in /usr/local/lib/systemd/user. Fedora's mako
+# package stays: its unit, D-Bus name and makoctl. If any of it fails, nothing is installed,
+# verify says so as a failure, and update and repair build it again.
+MAKO_REPO=https://github.com/emersion/mako.git
+MAKO_BIN=/usr/local/bin/mako
+MAKO_DROPIN=/usr/local/lib/systemd/user/mako.service.d/fedokawaii.conf
+mako_current() {   # built at MAKO_TAG with the patch, runs, and the unit starts this one
+  [[ -x $MAKO_BIN && -f $MAKO_DROPIN ]] || return 1
+  grep -q "^ExecStart=$MAKO_BIN\$" "$MAKO_DROPIN" || return 1
+  [[ $(cat "$MAKO_BIN.built" 2>/dev/null) == "$(mako_sum)" ]] || return 1
+  as_user "$MAKO_BIN" --help >/dev/null 2>&1
+}
+mako_sum() {   # what the build was made from: the pins and the patch
+  { printf '%s\n' "${MAKO_TAG:-}" "${MAKO_COMMIT:-}"; cat "$REPO_DIR/src/mako/mako.patch"; } | sha256sum | cut -d' ' -f1
+}
+build_mako() {
+  local src=$TARGET_HOME/.local/src/mako stage
+  [[ ${MAKO_TAG:-} =~ ^v[0-9]+\.[0-9]+(\.[0-9]+)?$ && ${MAKO_COMMIT:-} =~ ^[0-9a-f]{40}$ ]] \
+    || die "fedokawaii.conf: MAKO_TAG must look like v1.11.0, MAKO_COMMIT be its 40-character commit"
+  { command -v meson >/dev/null && pkg-config --exists cairo pangocairo wayland-client wayland-protocols libsystemd gdk-pixbuf-2.0; } \
+    || die "meson or a library mako builds with is missing (lib/manifest.sh, PKG_BUILD) — update installs them"
+  stage=$src/build/stage
+  as_user mkdir -p "$TARGET_HOME/.local/src"
+  checkout_sound "$src"
+  [[ -d $src/.git ]] || retry 3 10 as_user git "${GIT_NET[@]}" clone --quiet "$MAKO_REPO" "$src" || die "could not clone $MAKO_REPO"
+  retry 3 10 as_user git -C "$src" "${GIT_NET[@]}" fetch --quiet --tags --force || die "could not fetch $MAKO_REPO"
+  [[ $(as_user git -C "$src" rev-parse "$MAKO_TAG^{commit}") == "$MAKO_COMMIT" ]] \
+    || die "mako's tag $MAKO_TAG does not point at the pinned commit $MAKO_COMMIT — refusing to build"
+  as_user git -C "$src" checkout --quiet --force "$MAKO_COMMIT"
+  as_user git -C "$src" clean -fdxq
+  as_user git -C "$src" apply - <"$REPO_DIR/src/mako/mako.patch" || die "src/mako/mako.patch does not apply to mako $MAKO_TAG"
+  # -Dwerror=false: a newer compiler's new warning must not fail a pinned release · no man page
+  # (no scdoc) · sd-bus from systemd
+  as_user meson setup "$src/build" "$src" --prefix=/usr/local --buildtype=release -Dwerror=false \
+    -Dman-pages=disabled -Dsd-bus-provider=libsystemd >>"$LOG_FILE" 2>&1
+  as_user meson compile -C "$src/build" >>"$LOG_FILE" 2>&1
+  [[ -f $src/build/mako && ! -L $src/build/mako ]] || die "the mako build did not make its binary"
+  as_user "$src/build/mako" --help >/dev/null 2>&1 || die "the mako just built does not run"
+  grep -q 'shadow-color' "$src/build/mako" || die "the mako just built lacks the desktop's options (src/mako/mako.patch)"
+  take_built "$src/build/mako" "$MAKO_BIN" 0755 || die "could not install $MAKO_BIN"
+  restorecon "$MAKO_BIN"
+  mkdir -p "${MAKO_DROPIN%/*}"
+  printf '%s\n' "# installed by fedokawaii (setup.sh: build_mako) — Fedora's mako.service runs the desktop's mako" \
+    "[Service]" "ExecStart=" "ExecStart=$MAKO_BIN" >"$MAKO_DROPIN"
+  restorecon -R /usr/local/lib/systemd
+  mako_sum >"$MAKO_BIN.built"
+  # a user manager already running (linger keeps one) runs the new mako at once: its unit
+  # read again, the running one replaced (a notice on screen goes with it)
+  if [[ -S /run/user/$TARGET_UID/bus ]]; then
+    as_user systemctl --user daemon-reload || true
+    as_user systemctl --user try-restart mako.service || true
+  fi
+  mako_current || die "mako $MAKO_TAG is not in place after installing it"
+  ok "notices: mako $MAKO_TAG with the desktop's frame (src/mako/mako.patch)"
+}
+s_mako() {
+  contained build_mako
+  ((CONTAINED_RC == 0)) || log "notices still Fedora's mako: the desktop's did not build (why: above, or $LOG_FILE) — its config needs it; update or repair build it"
+}
+
 # ── torrents: Prowlarr (a rootless container) finds them, torrra downloads them ──
 # One API key between the two. Its master copy is ~/.config/fedokawaii/secrets.sh (yours,
 # 600): Prowlarr gets it as a podman secret (podman keeps that copy in its own store, yours
@@ -2332,6 +2402,7 @@ phase3() {
   step "3.06b virtual machines (libvirt, KVM, UEFI, TPM)" s_virt
   step "3.07 upstream binaries (checksummed)"          s_upstream
   step "3.07b file dialog: yazi (termfilechooser ${TFC_TAG:-})" s_filechooser
+  step "3.07b2 notices: mako ${MAKO_TAG:-} (pinned, the desktop's frame)" s_mako
   step "3.07c Syncplay $SYNCPLAY_TAG (pinned commit, no window)" s_syncplay
   step "3.07e ble.sh ${BLESH_COMMIT:0:7} (pinned commit: the shell's typing)" s_blesh
   step "3.08 Prowlarr + torrra (wired together)"       s_torrents
@@ -2773,7 +2844,7 @@ libs_ready() {   # libs_ready N [--disablerepo=…] — the libraries our own bu
   local f so kept provided missing=() hard=0 caps list
   local -A users=() core=()
   kept=$(wlr_home)/lib
-  for f in /usr/local/bin/dwl "$kept"/*.so* /usr/local/libexec/xdg-desktop-portal-termfilechooser \
+  for f in /usr/local/bin/dwl "$kept"/*.so* /usr/local/libexec/xdg-desktop-portal-termfilechooser /usr/local/bin/mako \
            "$TARGET_HOME"/.local/bin/{kawa-clipkeep,kawa-saver,satty,yazi,ya,lazygit} \
            "$TARGET_HOME"/.local/lib/fedokawaii/kawa-lockmod.so; do
     [[ -f $f ]] || continue
@@ -3165,6 +3236,7 @@ r_dev() {   # what s_dev puts in place, added when missing (nothing moved on: up
   if [[ -z $py || ! -x $TARGET_HOME/.local/share/cargo/bin/rust-analyzer ]] || ! as_user test -x "$TARGET_HOME/.local/share/nvim/mason/bin/basedpyright"; then s_dev; fi
 }
 r_filechooser() { tfc_current || build_filechooser; }   # the yazi file dialog, built if missing or not TFC_TAG
+r_mako() { mako_current || build_mako; }                # the notices' mako, built if missing, not MAKO_TAG or its patch changed
 r_theme() {      # every config back as the repo has it, dwl and the C helpers rebuilt if needed —
   # only where the theme was chosen: a "Setup only" machine keeps its own configs
   if [[ ! -f $TARGET_HOME/.local/state/fedokawaii/theme-applied ]]; then
@@ -3200,6 +3272,7 @@ heal_all() {
   ((net)) && heal "dwl (its wlroots, libraries, binary)" r_dwl
   ((net)) && heal "release binaries, fonts, Syncplay, ble.sh and GE-Proton" r_upstream
   ((net)) && heal "the yazi file dialog (termfilechooser ${TFC_TAG:-})" r_filechooser
+  ((net)) && heal "the notices' mako (${MAKO_TAG:-}, the desktop's frame)" r_mako
   ((net)) && heal "torrra" torrra_up
   ((net)) && heal "neovim's plugins (any missing)" r_nvim
   ((net)) && heal "Python and Rust (uv's CPython, rustup's stable, Mason's tools)" r_dev

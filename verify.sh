@@ -400,6 +400,15 @@ check "the login screen's look, both themes (/usr/local/share/fedokawaii/greeter
 check "the login screen follows your theme (/var/lib/fedokawaii-greeter is yours)" test "$(stat -c %U /var/lib/fedokawaii-greeter 2>/dev/null)" = "$TARGET_USER"
 check "the pixel font crisp for every account (/etc/fonts/conf.d)" test -s /etc/fonts/conf.d/60-fedokawaii-pixel.conf
 check "the lock screen's words (\"ちがう · wrong password\")" cmp -s "$REPO_DIR/art/gtklock.mo" /usr/share/locale/fk/LC_MESSAGES/gtklock.mo
+# the notices: the desktop's mako (setup.sh: build_mako — src/mako/mako.patch, the pinned tag),
+# which ~/.config/mako/config needs (its options are not Fedora's mako's); Fedora's unit runs it
+mk=/usr/local/bin/mako
+if [[ ! -x $mk ]]; then
+  fail "the desktop's mako not built: no notices can show (its config needs it)" "update or repair builds it"
+else
+  check "notices: the desktop's mako ${MAKO_TAG:-?} (src/mako/mako.patch) runs" U bash -c '"$1" --help >/dev/null 2>&1 && grep -q shadow-color "$1"' _ "$mk"
+  check "mako.service starts the desktop's mako (its drop-in)" grep -qx "ExecStart=$mk" /usr/local/lib/systemd/user/mako.service.d/fedokawaii.conf
+fi
 # the file dialog: yazi through xdg-desktop-portal-termfilechooser, which setup.sh builds — the
 # only one (portals.conf names no other), so not built means apps have no file dialog at all
 tfc=/usr/local/libexec/xdg-desktop-portal-termfilechooser

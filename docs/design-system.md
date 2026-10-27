@@ -433,7 +433,7 @@ numbers here against its files.
 | the system menu | Super+U | `system/fedokawaii` in `bin/kawa-warm` | T12 |
 | quick settings, sound, the bar's dropdowns | the right end, Super+X, Super+A | `bin/kawa-panel` (state: `bin/kawa-quick`) | T13 |
 | the bar | — | `configs/home/.config/waybar/`, `bin/kawa-bar` | T14 |
-| windows' frames; notices; the level display; tooltips | — | `src/dwl/`; mako's `config`; `bin/kawa-osd` | T15 |
+| windows' frames; notices; the level display; tooltips | — | `src/dwl/`; `src/mako/mako.patch` (the desktop's mako: the frame, the title's icon ink, the hanging indent, no "…") + mako's `config`; `bin/kawa-osd` | T15 |
 | books, wallpapers, clipboard, the launcher | Super+R, W, V, Space | `bin/kawa-books`, `bin/kawa-wallpaper`, `bin/kawa-clip`, `bin/kawa-menu` | T16 |
 | art: wallpapers, the lock's scenes, quick settings' face | — | `tools/build-art.py` | T18 |
 | motion | — | `src/dwl/`, the private wlroots, `src/kawa-saver` | T19 |

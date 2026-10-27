@@ -658,6 +658,35 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   window-frame.sh (new) holds on the new dwl and fails on the installed one (2 px solid border).
   Lost once and redone: an apply at 11:57 put the repo's patch back over the uncommitted tree
   (CLAUDE.md says so) — the tree's diff is now saved to /dev/shm before any apply.
+- r27-15b (T15, the notices — committed with this line; applied 12:14, live at once) Fedora's mako
+  1.11 strokes a notice's frame as a path (no corner pixels left out, no shadow), puts "…" where
+  text does not fit (pango ELLIPSIZE_END — the owner's never-"…" rule) and escapes the whole
+  title (no ink of its own for its icon): read in its source at the pinned tag (render.c,
+  config.c, notification.c). So the desktop builds its own: src/mako/mako.patch (132 lines, three
+  options, each off until set) — shadow-color (§4's frame: the corners left out, the shadow's
+  two rows and column drawn into the margin, the surface two rows taller for the last one),
+  summary-icon-color (a title's leading pixel icon, U+FE000–FEFFF, in its own ink, its words 8 px
+  on: of the two spaces after it, one), hanging-indent (the summary and body one paragraph — line
+  breaks become U+2028 —, a negative Pango indent: every line under the title's words; no "…":
+  whole lines, the rest clipped; height 174 = 2 + 32 + 7 × 20). Built like the file dialog:
+  fedokawaii.conf MAKO_TAG v1.11.0 / MAKO_COMMIT 91c6b799… (git ls-remote: the annotated tag
+  274aa303… → that commit; the release tarball's sha256 e97eb5bd… equals Fedora's mako-1.11.0-1
+  source rpm's), setup.sh build_mako (as the user in ~/.local/src/mako, the tag checked against
+  the pin, the patch applied, meson -Dwerror=false -Dman-pages=disabled, the binary seen to run
+  and to carry the options, then root installs /usr/local/bin/mako + a drop-in for Fedora's
+  mako.service — which D-Bus starts too — and records what it was built from), step 3.07b2, the
+  repair heal r_mako, the guard's built_files and the release pre-flight's libs_ready, verify's
+  two checks, cairo/pango/gdk-pixbuf2-devel in PKG_BUILD (evidence rows). Fedora's package stays
+  (its unit, D-Bus name, makoctl); no fallback to it — its config needs ours (the owner's rule).
+  Notices: a 1 px hairline in the tiles' ink (critical: vermilion), 20 px rows, the icon in
+  accent_text, the body under the title's words. Measured headless (kit play, both themes) and
+  live: right hairline x 1911, top y 33, left 1502 (410 wide); the corner maps (top-left cut,
+  bottom-right hairline/cut/column/row1/row2) as kawa-panel's frame; a long body: the 7 rows
+  kept, no "…". The level display keeps its old 2 px look in its own section until it becomes a
+  surface of the panel's (T15c). Tests: test_syntax (the desktop's mako reads its config in both
+  themes; skipped where it is not built), test_osd, test_report_rows (PKG-19: evidence),
+  test_notices, test_conf, test_theme, test_generated, test_deps green; the installer tests'
+  fake machine has a built mako.
 - r27-33 (T29, findings 04:00 — not fixed yet) Prowlarr: on demand by design (kawa-prowlarr: up while
   torrra searches, asleep 30 min after) — "inactive" is normal. /api/v1/health: 0 now. Its own log
   (~/.config/prowlarr/logs) over 8 days: Warn AllowedHostsCheck "Allowed Hosts is not configured"

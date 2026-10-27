@@ -1,27 +1,33 @@
-# ~/.config/mako/config — mako 1.11. Apply: makoctl reload (fails loudly on a bad key)
-# Every card is a panel of the design system (docs/design-system.md): the surface in a 2 px
-# muted frame, square, never a shadow; the pixel font at its one size, 16 px. Critical ones
-# get a vermilion frame and stay.
+# ~/.config/mako/config — the desktop's mako 1.11 (src/mako/mako.patch: setup.sh builds it; its
+# options shadow-color, summary-icon-color and hanging-indent are not Fedora's mako's, which
+# would refuse this file). Apply: makoctl reload (fails loudly on a bad key)
+# Every notice is a panel of the design system (docs/design-system.md §4, §9): the surface in
+# the frame of everything that floats — a 1 px hairline, its corners left out, the shadow under
+# it —; the pixel font at its one size, 14 px, on 20 px rows. Critical ones get a vermilion
+# hairline and stay.
 # "do not disturb" in quick settings switches to the mode at the end of this file.
 # colours, the title's row and the level display's look come from the current theme (the
 # vermilion frame of critical ones too); mako takes include only outside a [section]
 include=~/.config/fedokawaii/current/mako
 font=Sumi UI,Sumi Icons,UDEV Gothic NF,Noto Kufi Arabic 14px
-border-size=2
+border-size=1
 border-radius=0
 # the panel's 16 px of pad all round: the words start 16 px inside the frame — an app's
-# picture stands there instead (two of the card's 24 px rows high: max-icon-size), and the
+# picture stands there instead (two of the card's 20 px rows high: max-icon-size), and the
 # words 16 px after it, its top on the title's row and its foot on the first line's
 padding=16
+# the body under the title's words, not under its icon (the icon's 14 px and 7 of air: 21)
+hanging-indent=21
 # 8 px from the screen's edge and below the bar: the windows' gap (dwl's gappx), so a notice
 # lines up with the windows and the dropdown menus to the pixel; as wide as quick settings'
 # panel (kawa-panel), so the two make one column under the bar's right end
 margin=8
 width=410
-height=180
+# seven lines at most (2 of hairline, 32 of pad, 7 × 20): a longer notice keeps whole lines
+height=174
 default-timeout=5000
 layer=overlay
-max-icon-size=48
+max-icon-size=40
 # the same notice again (a job started twice, a drive plugged in again) folds into its card,
 # ×N beside the title; different notices from one app each keep a card of their own (mako
 # shows only a group's first member: folding them all would hide what the others say)
@@ -100,6 +106,10 @@ outer-margin=0,0,72,0
 width=412
 padding=16,24
 default-timeout=1400
+# (its own frame as it was — 2 px, its rows drawn for it — until it becomes a surface of the
+# panel's: plan T15; no hanging indent, it is one row)
+border-size=2
+hanging-indent=0
 
 # (hidden notices are not folded into a shown one: a critical card would count them, ×N)
 [mode=do-not-disturb]

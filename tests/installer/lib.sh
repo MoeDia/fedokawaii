@@ -460,6 +460,13 @@ built() {
   : >"$W/usr/local/lib/systemd/user/xdg-desktop-portal-termfilechooser.service"
   : >"$W/usr/local/share/dbus-1/services/org.freedesktop.impl.portal.desktop.termfilechooser.service"
   : >"$W/usr/local/share/xdg-desktop-portal/portals/termfilechooser.portal"
+  # the notices' mako, as build_mako leaves it: the binary (its options' names in it), the
+  # unit's drop-in, the record of what it was built from (the pins and the patch)
+  mkdir -p "$W/usr/local/bin" "$W/usr/local/lib/systemd/user/mako.service.d"
+  printf '#!/bin/sh\n# shadow-color summary-icon-color hanging-indent\necho "Usage: mako [options...]"\n' >"$W/usr/local/bin/mako"
+  chmod 755 "$W/usr/local/bin/mako"
+  printf '%s\n' "[Service]" "ExecStart=" "ExecStart=/usr/local/bin/mako" >"$W/usr/local/lib/systemd/user/mako.service.d/fedokawaii.conf"
+  { printf '%s\n' "$(conf_val MAKO_TAG)" "$(conf_val MAKO_COMMIT)"; cat "$REPO/src/mako/mako.patch"; } | sha256sum | cut -d' ' -f1 >"$W/usr/local/bin/mako.built"
   : >"$W/var/lib/systemd/linger/fkuser"; : >"$W/dev/ntsync"
   # every manifest package installed and marked as yours; the services setup enabled
   ( STATE_DIR=/nonexistent STEAM=yes; . "$REPO/lib/manifest.sh"; manifest_all amd ) | sort -u >"$TMP/manifest"

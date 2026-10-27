@@ -93,8 +93,9 @@ quiet() {   # quiet PROGRAM ARG… — with no display and no session bus (and /
   "${e[@]}" timeout 20 "$@"
 }
 
-case_ "mako reads its config with both themes (makoctl reload would take it)"
-if m=$(real mako); then
+case_ "the desktop's mako (src/mako/mako.patch: setup.sh builds it) reads its config with both themes (makoctl reload would take it) — Fedora's would refuse its options"
+m=""; [[ -x /usr/local/bin/mako ]] && grep -q shadow-color /usr/local/bin/mako && m=/usr/local/bin/mako
+if [[ -n $m ]]; then
   for t in dark light; do
     ln -sfn "themes/$t" "$HOME/.config/fedokawaii/current"
     out=$(quiet "$m" -c "$HOME/.config/mako/config" 2>&1)
@@ -106,7 +107,7 @@ if m=$(real mako); then
   cp "$HOME/.config/mako/config" "$TMP/mako.bad"; echo 'bogus-key=1' >>"$TMP/mako.bad"
   out=$(quiet "$m" -c "$TMP/mako.bad" 2>&1)
   has "$out" "Failed to parse" "mako did not notice a bad key: $out"
-else skipped "mako is not installed"; fi
+else skipped "the desktop's mako is not built here (setup.sh: build_mako)"; fi
 
 case_ "foot reads its config with both themes (foot --check-config), the see-through ground on and off"
 if f=$(real foot); then

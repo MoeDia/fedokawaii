@@ -88,7 +88,7 @@ top, osd = conf.split("[category=osd]")[0], conf.split("[category=osd]")[1].spli
 get = lambda part, key: (re.findall(rf"^{key}=(.*)$", part, re.M) or [None])[-1]
 pad = [int(x) for x in (get(osd, "padding") or get(top, "padding")).split(",")]
 pad = pad * 2 if len(pad) == 1 else pad
-border = int(get(top, "border-size")); width = int(get(osd, "width") or get(top, "width"))
+border = int(get(osd, "border-size") or get(top, "border-size")); width = int(get(osd, "width") or get(top, "width"))
 pen = border + pad[1]
 squares = pen + 2 * COL + COL + 12 * COL + 3             # (the glyph, a space, the name's 12 columns, 3 px of air)
 print(pen == 26, squares == 134, width, 2 * border + 2 * pad[0] + 24,

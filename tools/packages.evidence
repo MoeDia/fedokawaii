@@ -196,3 +196,6 @@ zathura-cb|fedora|https://packages.fedoraproject.org/search?query=zathura-cb|202
 zathura-pdf-mupdf|fedora|https://packages.fedoraproject.org/search?query=zathura-pdf-mupdf|2026-10-14|manifest 2026-10-14
 zoxide|fedora|https://packages.fedoraproject.org/search?query=zoxide|2026-10-14|manifest 2026-10-14
 zstd|fedora|https://packages.fedoraproject.org/pkgs/zstd/zstd/|2026-10-20|F44 1.5.7-5.fc44 (the zstd command; libzstd alone does not have it)
+cairo-devel|fedora|https://packages.fedoraproject.org/search?query=cairo-devel|2026-10-27|manifest 2026-10-27 (mako's build)
+pango-devel|fedora|https://packages.fedoraproject.org/search?query=pango-devel|2026-10-27|manifest 2026-10-27 (mako's build)
+gdk-pixbuf2-devel|fedora|https://packages.fedoraproject.org/search?query=gdk-pixbuf2-devel|2026-10-27|manifest 2026-10-27 (mako's build)

@@ -74,6 +74,9 @@ PKG_BUILD=(             # kept installed: theme.sh rebuilds dwl (config.h, patch
   meson inih-devel systemd-devel   # setup.sh builds xdg-desktop-portal-termfilechooser (the yazi
                                    #   file dialog; not packaged): meson (+ ninja-build), its INI
                                    #   parser (inih), sd-bus (libsystemd); no man page, so no scdoc
+  cairo-devel pango-devel gdk-pixbuf2-devel   # …and mako (the notices, with src/mako/mako.patch):
+                                              #   drawn with cairo and Pango, its icons through
+                                              #   gdk-pixbuf; Wayland and sd-bus as above
 )
 # dwl's config.mk ships XWayland commented out; Steam and other X11 apps need it on
 # (and pixman: dwl.patch damages a window capture's output itself — capturesession)
