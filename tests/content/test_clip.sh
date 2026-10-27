@@ -323,15 +323,15 @@ eq "$(kawa-clip --list | wc -l)" 2
 
 case_ "ctrl+x: asks first — y forgets them all, anything else keeps them"
 setup; put 'one'; put 'two'
-out=$(python3 -I "$C/pty_run.py" --answer '[y/N] ' 'n' -- kawa-clip --wipe)
+out=$(python3 -I "$REPO/tests/lib/pty_run.py" --answer '[y/N] ' 'n' -- kawa-clip --wipe)
 has "$out" "forget all 2 entries, and empty the clipboard?"; eq "$(kawa-clip --list | wc -l)" 2
-python3 -I "$C/pty_run.py" --answer '[y/N] ' '\r' -- kawa-clip --wipe >/dev/null
+python3 -I "$REPO/tests/lib/pty_run.py" --answer '[y/N] ' '\r' -- kawa-clip --wipe >/dev/null
 eq "$(kawa-clip --list | wc -l)" 2 "Enter (any other key) keeps them"
-python3 -I "$C/pty_run.py" --answer '[y/N] ' 'Y' -- kawa-clip --wipe >/dev/null
+python3 -I "$REPO/tests/lib/pty_run.py" --answer '[y/N] ' 'Y' -- kawa-clip --wipe >/dev/null
 eq "$(kawa-clip --list | wc -l)" 0
 called "^wl-copy --clear$"
 case_ "ctrl+x with nothing to forget: no question"
-out=$(python3 -I "$C/pty_run.py" -- kawa-clip --wipe); r=$?
+out=$(python3 -I "$REPO/tests/lib/pty_run.py" -- kawa-clip --wipe); r=$?
 eq "$r" 0; lacks "$out" "forget"
 case_ "ctrl+x without a terminal to ask in: nothing forgotten"
 put 'one'
@@ -449,7 +449,7 @@ else
   setup; put 'one'; put 'two'; put 'three'
   config .config/fedokawaii/fzf.opts; stub fzf "exec '$REAL_FZF' \"\$@\""; : >"$XDG_RUNTIME_DIR/kawa-warm-clip.shown"
   # ↓ twice (the list is newest first): entry 1; then a copy comes; the window is hung up at 6 s
-  python3 -I "$C/pty_run.py" --cols 80 --rows 27 --send 1.5 '\x1b[B' --send 2 '\x1b[B' --hangup 6 -- kawa-clip --tui >/dev/null 2>&1 &
+  python3 -I "$REPO/tests/lib/pty_run.py" --cols 80 --rows 27 --send 1.5 '\x1b[B' --send 2 '\x1b[B' --hangup 6 -- kawa-clip --tui >/dev/null 2>&1 &
   pty=$!; on_exit "kill $pty 2>/dev/null"
   for _ in {1..60}; do [[ $(kawa-clip --held 2>/dev/null) == 1 ]] && break; sleep 0.05; done
   eq "$(kawa-clip --held)" 1 "the cursor two down, on the oldest"

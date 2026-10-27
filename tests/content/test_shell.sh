@@ -39,7 +39,7 @@ EOF
 session() {
   local term=$1 a=(); shift
   for l in "$@" exit; do a+=(--line "$l"); done
-  (cd "$HOME" && TERM=$term python3 -I "$C/pty_run.py" --cols "$COLS" --rows 30 --timeout 30 --each '\x1b]133;A' \
+  (cd "$HOME" && TERM=$term python3 -I "$REPO/tests/lib/pty_run.py" --cols "$COLS" --rows 30 --timeout 30 --each '\x1b]133;A' \
     "${a[@]}" -- bash -i >"$TMP/out" 2>&1)
 }
 # headers — each prompt's header line (from its OSC 133;A mark to the line's end), one per line
@@ -162,7 +162,7 @@ lacks "$f" "--rcfile"; lacks "$f" "--norc"; lacks "$f" "fzf --bash"
   && _ok || _no "ble-attach is not the file's last line"
 case_ "with no ble.sh at all, a new shell says nothing (plain bash)"
 home
-out=$(TERM=foot python3 -I "$C/pty_run.py" --cols 80 --timeout 20 --each '\x1b]133;A' --line exit -- bash -i 2>&1)
+out=$(TERM=foot python3 -I "$REPO/tests/lib/pty_run.py" --cols 80 --timeout 20 --each '\x1b]133;A' --line exit -- bash -i 2>&1)
 lacks "$out" "No such file"; lacks "$out" "not found"; lacks "$out" "ble.sh"
 
 # ── zoxide ───────────────────────────────────────────────────────────────────

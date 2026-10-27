@@ -24,7 +24,7 @@ grep -m1 "^$(cat "$TMP/fzf.pick")	" "$TMP/fzf.in.1"'
   printf '[init]\n\tdefaultBranch = main\n' >"$GIT_CONFIG_GLOBAL"
 }
 repo() { mkdir -p "$1" && "$GIT" init -q "$1" && touch -d "$2" "$1/.git"; }   # repo DIR WHEN
-run() { rm -f "$TMP/fzf.n"; python3 -I "$C/pty_run.py" --cols 80 --rows 30 "$@" -- kawa-git; }   # run [pty_run options]
+run() { rm -f "$TMP/fzf.n"; python3 -I "$REPO/tests/lib/pty_run.py" --cols 80 --rows 30 "$@" -- kawa-git; }   # run [pty_run options]
 hdr() { kawa-git --heading "$1" 76 | head -n1; }                            # hdr KIND — the heading's line
 plain() { sed 's/\x1b\[[0-9;]*m//g'; }
 

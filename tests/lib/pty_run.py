@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""pty_run.py [--cols N] [--rows N] [--answer QUERY REPLY] [--delay S] [--send AT TEXT] [--resize AT COLSxROWS] [--hangup AT] [--timeout S] [--each MARK --line TEXT…] -- CMD…
+"""pty_run.py [--cols N] [--rows N] [--stdin] [--flush] [--answer QUERY REPLY] [--delay S] [--send AT TEXT] [--resize AT COLSxROWS] [--hangup AT] [--timeout S] [--each MARK --line TEXT…] -- CMD…
 
 CMD in a terminal of its own (a pseudo-terminal that is its controlling tty, so /dev/tty,
 stty and bash's checkwinsize all work), the size given. What CMD writes is copied to stdout
@@ -12,6 +12,9 @@ terminal goes away AT seconds after the start (as when its window is closed): th
 master is closed, CMD gets SIGHUP; what it wrote until then is copied out. --hangup +S: S
 seconds after the first --answer was typed.
 
+--stdin: what comes on stdin is typed into the terminal as it comes (keys piped in; at its
+end nothing more is typed, CMD runs on). --flush: what CMD writes is copied out as it comes,
+not at the end (a reader watching a terminal that stays open).
 --answer: plays the terminal's part in a query — whenever QUERY (backslash escapes, e.g.
 '\\x1b[16t') first appears in what CMD writes, REPLY is typed back after --delay seconds.
 Several --answer pairs may be given; each is answered once.
@@ -34,10 +37,13 @@ def unescape(s):
 def main(argv):
     cols, rows, delay, timeout, answers, sends, hangup = 80, 24, 0.0, 20.0, [], [], None
     each, lines, marks, quiet = None, [], 0, 0.0
+    stdin, flush = False, False
     i = 0
     while i < len(argv) and argv[i] != "--":
         a = argv[i]
         if a == "--cols": cols = int(argv[i + 1]); i += 2
+        elif a == "--stdin": stdin = True; i += 1
+        elif a == "--flush": flush = True; i += 1
         elif a == "--rows": rows = int(argv[i + 1]); i += 2
         elif a == "--delay": delay = float(argv[i + 1]); i += 2
         elif a == "--timeout": timeout = float(argv[i + 1]); i += 2
@@ -106,8 +112,12 @@ def main(argv):
                 fcntl.ioctl(fd, termios.TIOCSWINSZ, struct.pack("HHHH", nxt[1], nxt[0], 0, 0)); resized = now
             else:
                 os.write(fd, nxt)
-        r, _, _ = select.select([fd], [], [], 0.02)
-        if r:
+        r, _, _ = select.select([fd, 0] if stdin else [fd], [], [], 0.02)
+        if stdin and 0 in r:
+            typed = os.read(0, 65536)
+            if typed: os.write(fd, typed)
+            else: stdin = False                      # (the keys ran out: CMD runs on)
+        if fd in r:
             try:
                 chunk = os.read(fd, 65536)
             except OSError:
@@ -115,6 +125,7 @@ def main(argv):
             if not chunk:
                 break
             out += chunk; last_out = time.monotonic()
+            if flush: sys.stdout.buffer.write(chunk); sys.stdout.buffer.flush()
             if each is not None and lines and resized is None and quiet and out.count(each) > marks:
                 due = True
             elif each is not None and lines and resized is None and out.count(each) > marks:
@@ -134,7 +145,7 @@ def main(argv):
         _, st = os.waitpid(pid, 0)
         status = os.waitstatus_to_exitcode(st)
         status = status if status >= 0 else 128 - status
-    sys.stdout.buffer.write(bytes(out))
+    if not flush: sys.stdout.buffer.write(bytes(out))
     sys.exit(status)
 
 

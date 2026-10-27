@@ -49,7 +49,7 @@ for line in sys.stdin.read().split("\n"):
 headers() {
   local c=$1 a=(); shift
   for l in "$@" exit; do a+=(--line "$l"); done
-  (cd "$HOME" && TERM=foot python3 -I "$C/pty_run.py" --cols "$c" --rows 30 --timeout 30 --each '\x1b]133;A' \
+  (cd "$HOME" && TERM=foot python3 -I "$REPO/tests/lib/pty_run.py" --cols "$c" --rows 30 --timeout 30 --each '\x1b]133;A' \
     "${a[@]}" -- bash -i 2>&1) | python3 -I -c '
 import re, sys
 raw = sys.stdin.buffer.read().decode("utf-8", "replace")
@@ -153,7 +153,7 @@ grep -q "bleopt prompt_ps1_final='\${__kawa_final}'" "$HOME/.bashrc.d/fedokawaii
 if [[ -n $BLESH_PIN && $(bash "$BLESH_DIR/ble.sh" --version 2>/dev/null) == *"+${BLESH_PIN:0:7}" ]]; then
   case_ "ble.sh ${BLESH_PIN:0:7}: its redraw on a change of width asks __kawa_reflow first"
   home; mkdir -p "$HOME/.local/share"; cp -a "$BLESH_DIR" "$HOME/.local/share/blesh"
-  out=$(cd "$HOME" && LANG=C.UTF-8 TERM=foot python3 -I "$C/pty_run.py" --cols 80 --rows 24 --timeout 60 --quiet 1 --each '\x1b]133;A' \
+  out=$(cd "$HOME" && LANG=C.UTF-8 TERM=foot python3 -I "$REPO/tests/lib/pty_run.py" --cols 80 --rows 24 --timeout 60 --quiet 1 --each '\x1b]133;A' \
     --line 'declare -f ble/function#advice/around:ble/application/onwinch/panel.process-redraw-here | grep -c "__kawa_reflow"' \
     --line exit -- bash -i 2>&1)
   has "$out" $'\e]133;C\e\\1\r' "the advice is in place"
@@ -163,7 +163,7 @@ if [[ -n $BLESH_PIN && $(bash "$BLESH_DIR/ble.sh" --version 2>/dev/null) == *"+$
     home; mkdir -p "$HOME/.local/share"; cp -a "$BLESH_DIR" "$HOME/.local/share/blesh"
     # (exit 3) run at the first width; the window resized; then the header as it stands
     # (the line the prompt shows: what a command typed next still sees of it)
-    out=$(cd "$HOME/repos/fedokawaii/configs/home/.config" && LANG=C.UTF-8 TERM=foot python3 -I "$C/pty_run.py" \
+    out=$(cd "$HOME/repos/fedokawaii/configs/home/.config" && LANG=C.UTF-8 TERM=foot python3 -I "$REPO/tests/lib/pty_run.py" \
       --cols "${from%x*}" --rows "${from#*x}" --timeout 60 --quiet 1 --each '\x1b]133;A' --line '(exit 3)' --line-resize "$to" \
       --line 'printf "LINE[%s] C=%s\\n" "$__kawa_line" "$COLUMNS"' --line exit -- bash -i 2>&1)
     h=$(grep -a -o 'LINE\[.*\] C=[0-9]*' <<<"$out" | tail -n1 | sed 's/\x01\|\x02//g; s/\x1b\[[0-9;]*m//g' | plain)
@@ -238,9 +238,9 @@ sys.exit(0 if ok else 1)
 PY
 case_ "btop typed: started with that preset; a preset asked for (-p) is kept as asked"
 stub btop
-(cd "$HOME" && TERM=foot python3 -I "$C/pty_run.py" --cols 58 --rows 40 --timeout 20 --each '\x1b]133;A' --line btop --line 'btop -p 2' --line exit -- bash -i >/dev/null 2>&1)
+(cd "$HOME" && TERM=foot python3 -I "$REPO/tests/lib/pty_run.py" --cols 58 --rows 40 --timeout 20 --each '\x1b]133;A' --line btop --line 'btop -p 2' --line exit -- bash -i >/dev/null 2>&1)
 called '^btop( -p [0-9])?$'; called '^btop -p 2$'
-(cd "$HOME" && TERM=foot python3 -I "$C/pty_run.py" --cols 34 --rows 14 --timeout 20 --each '\x1b]133;A' --line btop --line exit -- bash -i >/dev/null 2>&1)
+(cd "$HOME" && TERM=foot python3 -I "$REPO/tests/lib/pty_run.py" --cols 34 --rows 14 --timeout 20 --each '\x1b]133;A' --line btop --line exit -- bash -i >/dev/null 2>&1)
 called '^btop ?$'
 
 # ── lazygit: tall and narrow, the panels above the diff ───────────────────────

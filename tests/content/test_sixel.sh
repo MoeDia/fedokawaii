@@ -6,7 +6,7 @@
 . "$(dirname "$0")/lib.sh"
 sandbox
 pic() { magick "$@" png:- 2>/dev/null; }                    # pic ARG… — a PNG on stdout
-cell() { python3 -I "$C/pty_run.py" --timeout 5 "$@"; }     # cell [--answer Q R] [--delay S] -- CMD
+cell() { python3 -I "$REPO/tests/lib/pty_run.py" --timeout 5 "$@"; }     # cell [--answer Q R] [--delay S] -- CMD
 
 # ── kawa-sixel ───────────────────────────────────────────────────────────────
 case_ "a picture: one sixel, exactly its own size, unset pixels left unset, nothing around it"

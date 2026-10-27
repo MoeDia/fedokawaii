@@ -4,7 +4,7 @@
 # qalc command is never sent, Esc closes. Typed on a terminal of its own (script).
 . "$(dirname "$0")/../lib/harness.sh"
 . "$(dirname "$0")/lib.sh"
-need qalc script python3
+need qalc python3
 
 setup() {
   look
@@ -13,9 +13,9 @@ setup() {
 }
 # typed KEYS… — each argument typed after the one before has been answered (0.8 s), then Esc
 typed() {
-  local k q; printf -v q '%q ' kawa-calc
+  local k
   { for k; do printf '%b' "$k"; /bin/sleep 0.8; done; printf '\e'; /bin/sleep 0.3; } \
-    | timeout 30 script -qec "stty cols 64 rows 13; $q" /dev/null 2>&1 | tr -d '\r'
+    | python3 -I "$REPO/tests/lib/pty_run.py" --stdin --cols 64 --rows 13 --timeout 30 -- kawa-calc 2>&1 | tr -d '\r'
 }
 plain() { sed 's/\x1b\[[0-9;?]*[A-Za-z]//g; s/\x1b[78]//g' <<<"$1"; }
 

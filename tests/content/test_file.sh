@@ -39,9 +39,12 @@ case " $* " in *" --index "*) printf "%s\n" "$rows" | grep -nF -- "$a" | head -n
   # 7z and qpdf: the real ones, their arguments logged (a password must never be among them)
   stub 7z "exec $(command -v 7z) \"\$@\""
   stub qpdf "exec $(command -v qpdf) \"\$@\""
-  command -v zstd >/dev/null || stub zstd 'd=0 o=""
+  # zstd: the real one when it is here (its calls logged), else a stand-in on gzip
+  if command -v zstd >/dev/null; then stub zstd "exec $(command -v zstd) \"\$@\""
+  else stub zstd 'd=0 o=""
 while [ $# -gt 0 ]; do case $1 in -d|-dq) d=1 ;; -tq) exit 0 ;; -o) o=$2; shift ;; --) shift; break ;; esac; shift; done
 if [ $d = 1 ]; then if [ -n "$o" ]; then gzip -dc "$1" >"$o"; else gzip -dc; fi; else gzip -c; fi'
+  fi
   stub kawa-state 'f=$TMP/state; case $1 in get) v=$(sed -n "s/^$2=//p" "$f" 2>/dev/null); [ -n "$v" ] && echo "$v" || exit 1 ;;
 set) grep -v "^$2=" "$f" >"$f.n" 2>/dev/null; echo "$2=$3" >>"$f.n"; mv "$f.n" "$f" ;; esac'
   stub xdg-open; stub kawa-term; stub kawa-shrink
@@ -199,7 +202,7 @@ answers "list its contents"; rc 0 kawa-file "$A/old.tar.gz"
 called "^kawa-term --float --once kawa-file contents 80x37 -- .*kawa-file --list $A/old.tar.gz"
 stub fzf 'cat >"$TMP/fzf.in"; printf "%s\n" "$@" >"$TMP/fzf.args"'
 stub stty 'echo "40 80"'
-script -qec "kawa-file --list '$A/old.tar.gz'" /dev/null >/dev/null 2>&1
+python3 -I "$REPO/tests/lib/pty_run.py" --cols 80 --rows 40 --timeout 20 -- kawa-file --list "$A/old.tar.gz" >/dev/null 2>&1
 has "$(cat "$TMP/fzf.in")" "  folder/"; has "$(cat "$TMP/fzf.in")" "    two.txt"
 has "$(cat "$TMP/fzf.in")" "KB" "a file's size"
 has "$(cat "$TMP/fzf.args")" "目"; has "$(cat "$TMP/fzf.args")" "esc close"
@@ -331,7 +334,7 @@ called '^xournalpp --create-img=.*/sig\.png --export-range=1 --export-no-backgro
 S=$HOME/.local/share/fedokawaii/signature.png
 read -r w h c < <(magick "$S" -format '%w %h %[channels]' info:)
 ((w > 1000 && w < 1030 && h > 345 && h < 375)) && _ok || _no "trimmed to the ink: ${w}×$h"
-[[ $c == *a ]] && _ok || _no "no transparency: $c"
+[[ ${c%% *} == *a ]] && _ok || _no "no transparency: $c"   # (ImageMagick 7.1.2: "graya 2.0" — the channels, then their count)
 has "$(menu 2)" "last page"; has "$(cat "$TMP/menu.2.args")" "--prompt page "
 eq "$(grep '^row' "$TMP/menu.3" | cut -f3 | tr '\n' '|')" "bottom right|bottom left|top right|top left|"
 # where the ink went: page 3 drawn before and after, the difference's box (612 × 792 pt at 72 dpi)

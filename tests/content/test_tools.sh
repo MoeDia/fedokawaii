@@ -40,7 +40,7 @@ home() {   # home — Fedora's ~/.bashrc, the desktop's shell and tool settings,
 shell() {
   local a=() l
   for l in "$@" exit; do a+=(--line "$l"); done
-  (cd "$HOME" && TERM=foot LANG=C.UTF-8 python3 -I "$C/pty_run.py" --cols 100 --rows 30 --timeout 90 \
+  (cd "$HOME" && TERM=foot LANG=C.UTF-8 python3 -I "$REPO/tests/lib/pty_run.py" --cols 100 --rows 30 --timeout 90 \
      --each '\x1b]133;A' --quiet 1 "${a[@]}" -- bash -i >"$TMP/raw" 2>&1)
   text <"$TMP/raw" >"$TMP/text"
 }
@@ -98,7 +98,7 @@ fi
 
 # ── the tools' first start ────────────────────────────────────────────────────
 # first ARGS… — the program's first window, 100×30, in ~/repos/demo; q typed after 4 s
-first() { (cd "$HOME/repos/demo" && TERM=foot python3 -I "$C/pty_run.py" --cols 100 --rows 30 --timeout 20 \
+first() { (cd "$HOME/repos/demo" && TERM=foot python3 -I "$REPO/tests/lib/pty_run.py" --cols 100 --rows 30 --timeout 20 \
             --send 4 q -- "$@" >"$TMP/raw" 2>&1); RC=$?; text <"$TMP/raw" >"$TMP/text"; }
 case_ "lazygit's first start: the repository at once (no welcome popup to close), nothing warns"
 if [[ -n ${REAL[lazygit]} ]]; then

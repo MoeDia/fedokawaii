@@ -18,7 +18,7 @@ count() { local n=0 f; for f in "$@"; do [[ -e $f ]] && n=$((n + 1)); done; echo
 skip() { printf '  - skipped: %s\n' "$*"; }          # a check this machine cannot make
 
 # a terminal of its own, COLS wide: tty COLS CMD… (stdout: what CMD wrote; status: CMD's)
-tty_run() { local cols=$1; shift; python3 -I "$C/pty_run.py" --cols "$cols" --rows 30 -- "$@"; }
+tty_run() { local cols=$1; shift; python3 -I "$REPO/tests/lib/pty_run.py" --cols "$cols" --rows 30 -- "$@"; }
 
 sixel_info() { python3 -I "$C/sixel.py"; }                  # JSON about a sixel on stdin
 jget() { python3 -I -c 'import json,sys; d=json.load(sys.stdin)

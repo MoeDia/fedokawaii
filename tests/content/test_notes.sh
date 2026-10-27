@@ -225,10 +225,10 @@ else
   setup; rm -f "$STUBS/nvim"; config .config/fedokawaii/notes.lua
   stub nvim "exec '$REAL_NVIM' --clean \"\$@\""
   mkdir -p "${N%/*}"; printf '%s\n\n' "$H" >"$N"
-  python3 -I "$C/pty_run.py" --timeout 20 --answer 'saved as you go' 'hello world' --hangup +1.6 -- kawa-notes --inside --shown >/dev/null
+  python3 -I "$REPO/tests/lib/pty_run.py" --timeout 20 --answer 'saved as you go' 'hello world' --hangup +1.6 -- kawa-notes --inside --shown >/dev/null
   eq "$(cat "$N")" "$H"$'\n\nhello world'
   case_ "...and the next Super+N asks nothing about a swap file"
-  out=$(python3 -I "$C/pty_run.py" --timeout 20 --answer 'saved as you go' '' --hangup +0.3 -- kawa-notes --inside --shown | tr -d '\0')
+  out=$(python3 -I "$REPO/tests/lib/pty_run.py" --timeout 20 --answer 'saved as you go' '' --hangup +0.3 -- kawa-notes --inside --shown | tr -d '\0')
   has "$out" "saved as you go" "(the page came up)"
   lacks "$out" "E325"; lacks "$out" "ATTENTION"
   eq "$(find "$XDG_STATE_HOME" -name '*.sw?' 2>/dev/null)" "" "no swap file kept"
@@ -248,7 +248,7 @@ else
     case_ "notes changed elsewhere while open ($how): taken in, no write-anyway question, typing goes on"
     printf '%s\n\nfirst\n' "$H" >"$N"
     elsewhere "$how" & bg=$!
-    out=$(python3 -I "$C/pty_run.py" --timeout 20 --answer 'saved as you go' 'hello' --hangup +3 -- kawa-notes --inside --shown | tr -d '\0')
+    out=$(python3 -I "$REPO/tests/lib/pty_run.py" --timeout 20 --answer 'saved as you go' 'hello' --hangup +3 -- kawa-notes --inside --shown | tr -d '\0')
     wait "$bg"
     eq "$(cat "$N")" "$H"$'\n\nfirst\nhello world\nfrom the phone'
     lacks "$out" "really want to write"; lacks "$out" "changed since"
@@ -256,14 +256,14 @@ else
   case_ "notes deleted elsewhere while open: the page stays, the next key writes it back"
   printf '%s\n\nfirst\n' "$H" >"$N"
   elsewhere 'rm "$N"' & bg=$!
-  out=$(python3 -I "$C/pty_run.py" --timeout 20 --answer 'saved as you go' 'hello' --hangup +3 -- kawa-notes --inside --shown | tr -d '\0')
+  out=$(python3 -I "$REPO/tests/lib/pty_run.py" --timeout 20 --answer 'saved as you go' 'hello' --hangup +3 -- kawa-notes --inside --shown | tr -d '\0')
   wait "$bg"
   eq "$(cat "$N" 2>/dev/null)" "$H"$'\n\nfirst\nhello world'; lacks "$out" "really want to write"
   case_ "another file opened in the window (:e ~/Notes/trip.md): a page too — its name in the footer, saved as you go"
   printf '%s\n\nfirst\n' "$H" >"$N"
   ( for _ in {1..200}; do [[ -S $XDG_RUNTIME_DIR/kawa-notes.nvim ]] && break; sleep 0.05; done; sleep 0.5
     "$REAL_NVIM" --server "$XDG_RUNTIME_DIR/kawa-notes.nvim" --remote-send '<Esc>:e ~/Notes/trip.md<CR>ibuy a SIM card' ) & bg=$!
-  out=$(python3 -I "$C/pty_run.py" --timeout 20 --answer 'saved as you go' '' --hangup +2.5 -- kawa-notes --inside --shown | tr -d '\0')
+  out=$(python3 -I "$REPO/tests/lib/pty_run.py" --timeout 20 --answer 'saved as you go' '' --hangup +2.5 -- kawa-notes --inside --shown | tr -d '\0')
   wait "$bg"
   eq "$(cat "$HOME/Notes/trip.md" 2>&1)" "buy a SIM card" "(closed by Super+Q: nothing lost)"
   eq "$(cat "$N")" "$H"$'\n\nfirst' "(the notes as they were)"
@@ -281,7 +281,7 @@ else
     printf '#!/bin/sh\necho "2026-10-17 · Sat"\n' >"$STUBS/date"
     "$REAL_NVIM" --server "$XDG_RUNTIME_DIR/kawa-notes.nvim" --remote-expr 'v:lua.kawa_notes_shown()' >>"$TMP/hid" 2>&1
     sleep 0.3; "$REAL_NVIM" --server "$XDG_RUNTIME_DIR/kawa-notes.nvim" --remote-send 'tea' 2>/dev/null ) & bg=$!
-  out=$(python3 -I "$C/pty_run.py" --timeout 20 --answer 'saved as you go' 'hello' --hangup +3 -- kawa-notes --inside --shown | tr -d '\0')
+  out=$(python3 -I "$REPO/tests/lib/pty_run.py" --timeout 20 --answer 'saved as you go' 'hello' --hangup +3 -- kawa-notes --inside --shown | tr -d '\0')
   wait "$bg"
   eq "$(cat "$TMP/away")" "$H"$'\n\nfirst\nhello' "(away: saved, the fresh line tidied)"
   eq "$(cat "$N")" "$H"$'\n\nfirst\nhello\n\n## 2026-10-17 · Sat\n\ntea'

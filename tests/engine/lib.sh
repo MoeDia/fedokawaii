@@ -128,8 +128,7 @@ widest() {
 }
 front_calls() { cat "$R/front.log" 2>/dev/null; }
 on_tty() {   # on_tty KEYS CMD… — the keys a person would type, the screen they would see
-  local keys=$1 q; shift; printf -v q '%q ' "$@"
-  # (bounded: a screen still waiting for a key after its keys ran out must not hang the test)
-  printf '%s' "$keys" | timeout 20 script -qec "$q" /dev/null 2>&1 | tr -d '\r'
+  local keys=$1; shift   # (a terminal of its own: tests/lib/pty_run.py; bounded — a screen still
+  # waiting for a key after its keys ran out must not hang the test)
+  printf '%s' "$keys" | python3 -I "$REPO/tests/lib/pty_run.py" --stdin --timeout 20 -- "$@" 2>&1 | tr -d '\r'
 }
-has_script() { command -v script >/dev/null; }

@@ -112,13 +112,11 @@ for _ in 1 2 3 4 5 6 7 8 9 10; do grep -q kawa-help "$CALLS" && grep -q kawa-con
 called '^setsid -f kawa-config$'; called '^setsid -f kawa-help$'
 has "$(cat "$(command -v fedokawaii)")" "enter:transform:case {1} in -) ;; \${launch}remind) echo 'execute-silent(\$self --run {1})+reload-sync(\$self --items)' ;; change|keys\${pop}) echo 'become("
 case_ "Super+U's popup (--popup): the menu closes for a job too (fzf becomes the run, which hands it on); the guide, the key sheet and the settings start without fzf giving up the screen, then the popup is put away (dwl fades it off: never a blank terminal); a plain menu, neither"
-if has_script; then
-  fresh; stub fzf 'cat >/dev/null; exit 130'
-  on_tty "" fedokawaii --popup >/dev/null
-  called "enter:transform:case \\{1\\} in -\\) ;; guide\\|keys\\|change\\) echo 'execute-silent\\([^)]* --run \\{1\\}\\)\\+execute-silent\\(kawa-warm system\\)' ;; remind\\) "
-  called 'remind\) echo .execute-silent\([^)]* --run \{1\}\)\+reload-sync\([^)]* --items\). ;; change\|keys\|update\|pull\|upgrade\|verify\|repair\|theme\|drift\|snapshots\|backup\|settings\|log\) echo .become\('
-  reset_calls; on_tty "" fedokawaii >/dev/null; called 'enter:transform:case \{1\} in -\) ;; remind\) echo .execute-silent\([^)]*\)\+reload-sync\([^)]*\). ;; change\|keys\) echo .become\('
-else _ok; fi
+fresh; stub fzf 'cat >/dev/null; exit 130'
+on_tty "" fedokawaii --popup >/dev/null
+called "enter:transform:case \\{1\\} in -\\) ;; guide\\|keys\\|change\\) echo 'execute-silent\\([^)]* --run \\{1\\}\\)\\+execute-silent\\(kawa-warm system\\)' ;; remind\\) "
+called 'remind\) echo .execute-silent\([^)]* --run \{1\}\)\+reload-sync\([^)]* --items\). ;; change\|keys\|update\|pull\|upgrade\|verify\|repair\|theme\|drift\|snapshots\|backup\|settings\|log\) echo .become\('
+reset_calls; on_tty "" fedokawaii >/dev/null; called 'enter:transform:case \{1\} in -\) ;; remind\) echo .execute-silent\([^)]*\)\+reload-sync\([^)]*\). ;; change\|keys\) echo .become\('
 case_ "rows: the mark at the right edge, wider with a wider window (FZF_COLUMNS)"
 w=$(widest "$(entries "$(FZF_COLUMNS=120 fedokawaii --rows)")"); eq "$w" 68
 w=$(widest "$(entries "$(FZF_COLUMNS=98 fedokawaii --rows)")"); eq "$w" 46 "the 100-column window (98 inside fzf's margins): 46"
@@ -226,10 +224,8 @@ case_ "an unknown entry: nothing runs"
 fresh; out=$(tty_free fedokawaii --run bogus </dev/null 2>&1); eq "$?" 0; eq "$(front_calls)" ""
 out=$(tty_free fedokawaii --run "" </dev/null 2>&1); eq "$?" 0
 case_ "the outcome waits for a key, on the terminal (not on whatever stdin is)"
-if has_script; then
-  out=$(on_tty "x" fedokawaii --run status); has "$out" "finished"; has "$out" "any key goes back"
-  eq "$?" 0
-else _ok; fi
+out=$(on_tty "x" fedokawaii --run status); has "$out" "finished"; has "$out" "any key goes back"
+eq "$?" 0
 
 case_ "backup: kawa-backup, as you (never through sudo); its status comes back"
 fresh; stub kawa-backup 'exit "$(cat "$FK_R/rc-backup" 2>/dev/null || echo 0)"'
@@ -249,16 +245,14 @@ fresh; stub kawa-snap 'case $1 in list) printf "9\tpre\t2026-10-15 09:00:00\tdnf
 out=$(plain "$(tty_free fedokawaii --run snapshots </dev/null 2>&1)")
 has "$out" "9     dnf install libreoffice-writer "; lacks "$out" "libreoffice-c"; lacks "$out" "…"
 has "$out" "or at power-on: hold Shift (Esc/F8) for the boot menu → snapshots"
-if has_script; then
-  case_ "snapshots: a number, then yes — that one restored as root, the restart asked (n: none)"
-  fresh; snaplist; out=$(on_tty $'41\nyes\nn' fedokawaii --run snapshots)
-  called '^sudo kawa-snap restore 41$'; not_called '^systemctl reboot'
-  fresh; snaplist; on_tty $'old\nyes\ny' fedokawaii --run snapshots >/dev/null
-  called '^sudo kawa-snap restore old$'; called '^systemctl reboot'
-  case_ "snapshots: anything but yes, or a number not listed — nothing restored"
-  fresh; snaplist; on_tty $'41\nno\n' fedokawaii --run snapshots >/dev/null; not_called 'kawa-snap restore'
-  out=$(on_tty $'42\nyes\n' fedokawaii --run snapshots); has "$out" "no snapshot 42 in the list"; not_called 'kawa-snap restore'
-fi
+case_ "snapshots: a number, then yes — that one restored as root, the restart asked (n: none)"
+fresh; snaplist; out=$(on_tty $'41\nyes\nn' fedokawaii --run snapshots)
+called '^sudo kawa-snap restore 41$'; not_called '^systemctl reboot'
+fresh; snaplist; on_tty $'old\nyes\ny' fedokawaii --run snapshots >/dev/null
+called '^sudo kawa-snap restore old$'; called '^systemctl reboot'
+case_ "snapshots: anything but yes, or a number not listed — nothing restored"
+fresh; snaplist; on_tty $'41\nno\n' fedokawaii --run snapshots >/dev/null; not_called 'kawa-snap restore'
+out=$(on_tty $'42\nyes\n' fedokawaii --run snapshots); has "$out" "no snapshot 42 in the list"; not_called 'kawa-snap restore'
 case_ "snapshots without snapper, or on a root that is not Btrfs: said plainly"
 reset_calls
 out=$(without snapper -- "$SETSID" -w fedokawaii --run snapshots </dev/null 2>&1); has "$out" "snapper is not installed"; not_called '^sudo'
@@ -313,18 +307,16 @@ out=$(tty_free fedokawaii --run settings </dev/null 2>&1)
 has "$out" "not saved"; has "$out" "error (1)"; lacks "$(cat "$R/toolkit/fedokawaii.conf")" "BAD"
 eq "$(find "$XDG_RUNTIME_DIR" -name 'fedokawaii.conf.*' | wc -l)" 0 "the edited copy is removed"
 case_ "settings with a slip: edit it again (y) keeps your edit; fixed, it is saved"
-if has_script; then
-  fresh
-  # (first: a slip; the second time the editor sees it, it takes the slip out again)
-  editor 'if grep -q BAD "$1"; then sed -i "/BAD/d; s/^STEAM=\"yes\"/STEAM=\"no\"/" "$1"; else echo "BAD=1" >>"$1"; fi'
-  out=$(on_tty "yx" fedokawaii --run settings)
-  has "$out" "edit it again"; has "$(cat "$R/toolkit/fedokawaii.conf")" 'STEAM="no"'
-  has "$out" "finished"
-  case_ "settings with a slip: n gives up — nothing saved"
-  fresh; editor 'echo "BAD=1" >>"$1"'
-  out=$(on_tty "nx" fedokawaii --run settings)
-  has "$out" "not saved"; lacks "$(cat "$R/toolkit/fedokawaii.conf")" "BAD"
-else _ok; fi
+fresh
+# (first: a slip; the second time the editor sees it, it takes the slip out again)
+editor 'if grep -q BAD "$1"; then sed -i "/BAD/d; s/^STEAM=\"yes\"/STEAM=\"no\"/" "$1"; else echo "BAD=1" >>"$1"; fi'
+out=$(on_tty "yx" fedokawaii --run settings)
+has "$out" "edit it again"; has "$(cat "$R/toolkit/fedokawaii.conf")" 'STEAM="no"'
+has "$out" "finished"
+case_ "settings with a slip: n gives up — nothing saved"
+fresh; editor 'echo "BAD=1" >>"$1"'
+out=$(on_tty "nx" fedokawaii --run settings)
+has "$out" "not saved"; lacks "$(cat "$R/toolkit/fedokawaii.conf")" "BAD"
 case_ "settings: an editor that does not exist is said, nothing asked of root"
 fresh; export VISUAL=/nonexistent/editor
 out=$(tty_free fedokawaii --run settings </dev/null 2>&1); has "$out" "/nonexistent/editor"; lacks "$out" "unchanged"; eq "$(front_calls)" ""
@@ -354,17 +346,13 @@ out=$(TERM=linux fedokawaii status); lacks "$out" "·"
 case_ "Fedora 45's text consoles are kmscon's (TERM=kmscon, TERM_SESSION_TYPE=kms or fb): the plain menu, plain characters — not fzf"
 out=$(TERM=kmscon fedokawaii status); lacks "$out" "·"
 out=$(TERM=xterm-256color TERM_SESSION_TYPE=fb fedokawaii status); lacks "$out" "·" "kmscon under another TERM"
-if has_script; then
-  fresh; stub fzf 'cat >/dev/null; exit 130'
-  out=$(TERM=kmscon TERM_SESSION_TYPE=kms on_tty "q"$'\n' fedokawaii); has "$out" "13  learn"; lacks "$out" "·"; not_called '^fzf'
-else _ok; fi
+fresh; stub fzf 'cat >/dev/null; exit 130'
+out=$(TERM=kmscon TERM_SESSION_TYPE=kms on_tty "q"$'\n' fedokawaii); has "$out" "13  learn"; lacks "$out" "·"; not_called '^fzf'
 case_ "plain menu when fzf cannot run (old fzf: exit 2) on a terminal"
-if has_script; then
-  fresh; stub fzf 'exit 2'
-  out=$(on_tty "q"$'\n' fedokawaii); has "$out" "FEDOKAWAII"; has "$out" "13  learn"
-  case_ "fzf menu: Esc closes it (exit 0)"
-  stub fzf 'cat >/dev/null; exit 130'; on_tty "" fedokawaii >/dev/null; eq "$?" 0; called '^fzf --read0 --ansi'
-else _ok; fi
+fresh; stub fzf 'exit 2'
+out=$(on_tty "q"$'\n' fedokawaii); has "$out" "FEDOKAWAII"; has "$out" "13  learn"
+case_ "fzf menu: Esc closes it (exit 0)"
+stub fzf 'cat >/dev/null; exit 130'; on_tty "" fedokawaii >/dev/null; eq "$?" 0; called '^fzf --read0 --ansi'
 case_ "Super+U: the menu in a warm window of its own (a popup: kawa-warm's toggle)"
 fresh; stub kawa-warm; fedokawaii --window; called "^kawa-warm system$"
 case_ "Super+U's popup: a job is handed to a window of its own (a click outside, or Super+U again, never kills it) and the menu ends"

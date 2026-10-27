@@ -242,7 +242,7 @@ with open("big.csv", "w") as f:
   eq "$r" 0 "$(tail -n 2 "$TMP/vd.out" | tr '\n' '|')"; eq "$(wc -l <big.tsv)" 200001
   ((SECONDS < 60)) && _ok || _no "took ${SECONDS}s"
   case_ "vd on the terminal (a pseudo-terminal of its own) with this file: the column names and the status line, then q quits"
-  out=$(python3 -I "$C/pty_run.py" --cols 100 --rows 30 --timeout 30 --send 4 'q' -- "$REAL_VD" -- "trip to Japan.csv" 2>/dev/null | sed 's/\x1b\[[0-9;?]*[a-zA-Z]//g')
+  out=$(python3 -I "$REPO/tests/lib/pty_run.py" --cols 100 --rows 30 --timeout 30 --send 4 'q' -- "$REAL_VD" -- "trip to Japan.csv" 2>/dev/null | sed 's/\x1b\[[0-9;?]*[a-zA-Z]//g')
   has "$out" "city"; has "$out" "temp"; has "$out" "Sharjah"; lacks "$out" "Traceback"
   cd / || exit 1
 else skip "vd is not installed (dnf install visidata) — its config.py is checked, vd itself is not run"; fi
@@ -292,7 +292,7 @@ else
   out=$(FZF_DEFAULT_OPTS_FILE=$HOME/.config/fedokawaii/fzf.opts "$REAL_FZF" --filter x </dev/null 2>&1); r=$?
   eq "$r" 1 "1 = nothing matched; 2 = an option it does not know: $out"
   case_ "fzf.opts: one blank line between the search line and the first row; the count on the search line; never an ellipsis"
-  out=$(FZF_DEFAULT_OPTS_FILE=$HOME/.config/fedokawaii/fzf.opts SHELL=/bin/bash python3 -I "$REPO/tests/content/pty_run.py" \
+  out=$(FZF_DEFAULT_OPTS_FILE=$HOME/.config/fedokawaii/fzf.opts SHELL=/bin/bash python3 -I "$REPO/tests/lib/pty_run.py" \
     --cols 40 --rows 8 --hangup 1.5 -- bash -c "printf 'alpha\nbeta gamma delta epsilon zeta eta theta iota\n' | '$REAL_FZF'" \
     | python3 -I -c 'import sys,pyte; s=pyte.Screen(40,8); pyte.ByteStream(s).feed(sys.stdin.buffer.read()); print("\n".join(l.rstrip() for l in s.display))')
   mapfile -t L <<<"$out"

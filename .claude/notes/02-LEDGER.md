@@ -316,6 +316,20 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   the light palette → 0 on 11 (12.1 / 5.2); tests/content/pty_run.py plays foot (TERM=foot when the
   run has none — the loop's TERM=dumb broke every curses program under test); python3-pyte added
   to the manifest for the self-tests (installed here with dnf at once; repair would do the same).
+- r27-9b (T09 follow-up, 06:20) the test suite ran less than it said — found and fixed: `script`
+  (util-linux-script) is not installed on this PC, so test_calc skipped itself "passing", six
+  Super+U engine blocks counted `_ok` without running, test_glass and test_file's listing failed.
+  One tool per job: tests/lib/pty_run.py (moved from tests/content: shared) gained --stdin (piped
+  keys typed in) and --flush, and replaced `script` in all four places → test_calc 29/0 (was
+  skipped), engine/test_menu 466/0 (six blocks now really run), test_glass 27/0, test_file 256/0
+  (also: zstd's calls logged when the real one is here; ImageMagick 7.1.2 prints channels as
+  "graya 2.0"). test_configs 332/0 (pyte). Still red, by design until T24 rebuilds the prompt:
+  content/test_shell 15 and test_tiles 18 — bash 5.3's readline redraws the prompt line in place
+  and PS1 carries OSC 133;A, so a prompt can mark twice (invisible to him; foot's prompt jump
+  finds the same row) — T24 emits the mark once per prompt (PROMPT_COMMAND) and rewrites them.
+  Known red elsewhere (from the root-run baseline, to re-check as dia in T53): session/
+  test_autostart 5 (a <span line_height> the tests don't expect), test_game 4 (gaming leaves the
+  host in T35), installer/test_hardware 1, look/test_wallpaper 1.
 - r27-33 (T29, findings 04:00 — not fixed yet) Prowlarr: on demand by design (kawa-prowlarr: up while
   torrra searches, asleep 30 min after) — "inactive" is normal. /api/v1/health: 0 now. Its own log
   (~/.config/prowlarr/logs) over 8 days: Warn AllowedHostsCheck "Allowed Hosts is not configured"

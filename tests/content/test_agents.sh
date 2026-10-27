@@ -127,7 +127,7 @@ else
   case_ "herdr, started on a terminal of its own from ~/repos: its server up there, the window's side attached; Ctrl+B a starts Claude Code in the folder of the pane you are on"
   # (the shell in the first pane goes into a project; then Ctrl+B a; then Ctrl+B alone, so the
   # PREFIX badge is drawn too)
-  (cd "$HOME/repos" && "${H_ENV[@]}" python3 -I "$C/pty_run.py" --cols 120 --rows 30 --timeout 12 \
+  (cd "$HOME/repos" && "${H_ENV[@]}" python3 -I "$REPO/tests/lib/pty_run.py" --cols 120 --rows 30 --timeout 12 \
      --send 3 'cd project\r' --send 4.5 '\x02' --send 5 'a' --send 7.5 '\x02' --hangup 9 -- herdr) \
     >"$TMP/herdr.out" 2>&1
   L=$HOME/.config/herdr

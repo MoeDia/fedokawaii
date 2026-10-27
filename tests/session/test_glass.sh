@@ -33,7 +33,7 @@ rc 2 kawa-glass sideways
 
 case_ "every open terminal told at once: OSC 11, the theme's ground with the alpha (0.92 → eb), on each pseudo-terminal foot has a program on"
 setup; kawa-glass on >/dev/null
-script -qfc 'exec sleep 31.73' /dev/null >"$TMP/pty.out" 2>/dev/null & BG_PIDS+=($!)
+python3 -I "$REPO/tests/lib/pty_run.py" --flush --timeout 40 -- sleep 31.73 >"$TMP/pty.out" 2>/dev/null & BG_PIDS+=($!)
 for ((i = 0; i < 200; i++)); do kid=$(/usr/bin/pgrep -f '^sleep 31\.73$' | head -n1); [[ -n $kid ]] && break; nap 0.02; done
 echo "$kid" >"$TMP/kid"
 stub pgrep 'case "$*" in *"-x foot"*) echo 4242 ;; "-P 4242") cat "'"$TMP"'/kid" ;; *) exit 1 ;; esac'

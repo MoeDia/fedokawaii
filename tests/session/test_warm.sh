@@ -96,7 +96,7 @@ setup; fifo
 stub kawa-clip 'echo $$ >>"$TMP/runs"; exec sleep 30'
 ( for _ in {1..100}; do [[ -s $TMP/runs ]] && break; sleep 0.05; done
   : >"$XDG_RUNTIME_DIR/kawa-warm-clip.shown"; kawa-warm --hidden clip ) & H=$!
-python3 -I "$C/pty_run.py" --timeout 3 -- kawa-warm --inside clip >/dev/null 2>&1
+python3 -I "$REPO/tests/lib/pty_run.py" --timeout 3 -- kawa-warm --inside clip >/dev/null 2>&1
 wait "$H"
 eq "$(wc -l <"$TMP/runs")" 2 "(ended once, started again)"
 first=$(head -n1 "$TMP/runs"); ! kill -0 "$first" 2>/dev/null && _ok || _no "the first run is still there"
