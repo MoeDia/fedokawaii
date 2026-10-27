@@ -734,8 +734,8 @@ else
     bash -c 'for v in dark light; do [[ -s $1/Sumi-$v/cursors/default && -L $1/Sumi-$v/cursors/left_ptr && -s $1/Sumi-$v/cursors/left_ptr ]] || exit 1; done
              m=$(readlink "$2"); m=${m%/}; [[ ${m##*/} == light ]] && m=light || m=dark
              [[ $(readlink "$3") == "$1/Sumi-$m" ]]' _ /usr/share/icons "$TARGET_HOME/.config/fedokawaii/current" "$TARGET_HOME/.local/share/icons/default"
-  check "desktop font → Sumi UI (Shinonome 16 Bold), crisp at 16 px (no smoothing)" grep -q '^Sumi UI False$' <<<"$(U fc-match -f '%{family} %{antialias}' 'Sumi UI:pixelsize=16' 2>&1)"
-  check "terminal font → Sumi Term (Kappa 20 Bold), crisp at 20 px (no smoothing)" grep -q '^Sumi Term False$' <<<"$(U fc-match -f '%{family} %{antialias}' 'Sumi Term:pixelsize=20' 2>&1)"
+  check "desktop font → Sumi UI (Shinonome 14), crisp at 14 px (no smoothing)" grep -q '^Sumi UI False$' <<<"$(U fc-match -f '%{family[0]} %{antialias}' 'Sumi UI:pixelsize=14' 2>&1)"
+  check "terminal font → Sumi Term: UDEV Gothic NF at 16 px, smoothed in grey" grep -q '^UDEV Gothic NF True 1$' <<<"$(U fc-match -f '%{family[0]} %{antialias} %{hintstyle}' 'Sumi Term:pixelsize=16' 2>&1)"
   check "pixel icons → Sumi Icons"                     grep -q 'Sumi Icons' <<<"$(U fc-match 'Sumi Icons' 2>&1)"
   check "pixel icons in the terminal → Sumi Icons Term"  grep -q 'Sumi Icons Term' <<<"$(U fc-match 'Sumi Icons Term' 2>&1)"
   check "screensaver (kawa-saver) runnable"             U "$TARGET_HOME/.local/bin/kawa-saver" --help

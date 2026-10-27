@@ -386,7 +386,7 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   Known, unrelated, same before this change: installer/test_theme 6 (its sandbox as a user here:
   no /usr/local python site, flock fd 8, plymouth pictures) and installer/test_upstream (FK_PYLIBS
   unbound) — for T53's baseline.
-- r27-11 (T11, the terminal's face — code 06:58, applied live next) "Sumi Term" is now UDEV Gothic NF
+- r27-11 (T11, the terminal's face — committed 06:30, applied 06:31) "Sumi Term" is now UDEV Gothic NF
   v2.2.0 (github.com/yuru7/udev-gothic; OFL 1.1 with "UDEV Gothic" a Reserved Font Name — so it is
   installed AS IT COMES and named by a fontconfig alias in system/60-fedokawaii-pixel.conf, never a
   renamed copy): lib/upstream.sh install_term_face fetches the release zip (sha256 45faeef7…) and
