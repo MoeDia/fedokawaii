@@ -883,6 +883,31 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   knot, scarf) in the light, 20 × 16 cells in the ART_ grammar; `fetch random` and a name pick
   any (tests/content/test_fetch.sh 98/0). Next: the 10 + 10 wallpapers (masters.toml: crops,
   tones), the lock's scenes.
+- r27-19 (T19, dwl's motion — in progress; each part committed with its line) (a) the dissolve,
+  dwl's own (no wlroots patch: Fedora's binary copy stays): each frame the thing's picture is
+  composed by wlroots' render pass into a buffer of its own, one quad of a GLES 2 shader clears
+  the cells not there yet — 3 × 3 px (the wallpapers' pixel: moncell) on the screen's grid, ranks
+  of build-masters.py's 4 × 4 Bayer matrix — and the scene shows that buffer while the window
+  stays in place at opacity 0 (pointer, keys, frame callbacks go on). Window open 420 ms rising
+  9 px, close 400 sinking 9, workspace switch 420 (out 0–280 drifting 24 px, in 140–420), the
+  lock leaving 420; cells on a smoothstep (smootherstep lingered 86 ms on the first and last of
+  the 16 steps). Verified headless on the GPU (wf-recorder to /dev/shm, frames by pts): every
+  cell whole on the 3 px grid (0 mixed; hundreds on a 1 px shifted grid), rank 0 first at (0,0),
+  rank 1 at (2,2); frame build p95 249 µs, max 267 with two windows dissolving (budget 6944);
+  ASan clean (only setup-time EGL leaks at exit). Source checked: wlroots 0.20.2 (Fedora SRPM)
+  render/gles2/pass.c — each pass sets FBO, viewport, blend func, scissor; each draw its
+  program, texture, attributes — so a quad inside our own pass is safe. (c) layer surfaces by
+  namespace (config.h layeranims): the panels' menus dissolve in 200 ms dropping 4 px and out
+  160; a notice 240 · 200; the level display at once, out 300; the saver out 180 (over the lock
+  too). Recorded: quick settings ~200/~160, the notice ~240/~200, the level display ~300.
+  (d) warm windows (Super+U, N, V) unroll from their top edge over 300 ms, the rod (the frame's
+  foot) travelling; put away, a frozen ghost rolls up into the top edge over 240 ms (rolling the
+  live window showed fzf blanking mid-roll); bug 9: popups in a scene layer above any
+  full-screen window — headless: Super+V over a full-screen terminal shows, Esc gives it back.
+  Regress: menu-first-click, one-popup, level-display, warm-exit (now judging the rows above the
+  rod: timing-proof), window-frame, bar-geometry, calendar-middle all hold; test_dwl_anim 38/0.
+  Live check at 144 Hz waits for the session restart (batch B). Next: the bar's stamp on a
+  switch, windows making room, login → desktop, the wash (bug 5, the cursor), the hourglass.
 - r27-keep (found 27 Oct 16:28) ~/blasphemous-save-backup-20261022 was in the Trash (trashed 26 Oct
   16:15 local, with game-shelf, Games, Balatro — before any round-27 session, the first at 27 Oct
   02:03): restored to ~ (476 K, Blasphemous + userdata-774361 intact), per the standing rule and
