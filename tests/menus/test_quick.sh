@@ -262,7 +262,8 @@ called '^makoctl mode -r do-not-disturb$'; called '^systemctl --user stop kawa-d
 case_ "dnd for an hour: the end handed to a systemd timer (an hour on), the quiet mode added, NOT kept across a login, the record 'EPOCH hour' written"
 setup; t0=$EPOCHSECONDS; rc 0 quick --do dnd hour
 eq "$(st dnd)" on; eq "$(modes)" "default do-not-disturb"; eq "$(kawa-state get dnd)" off "timed: a login ends it, so it is not kept"
-called '^systemd-run --user --quiet --unit=kawa-dnd-end --on-active=(3600|3599)s --timer-property=AccuracySec=1s -- kawa-quick --do dnd off$'
+called "^systemd-run --user --quiet --unit=kawa-dnd-end --on-active=(3600|3599)s --timer-property=AccuracySec=1s --setenv=PATH=$PATH -- kawa-quick --do dnd off\$"
+has "$(grep '^systemd-run ' "$CALLS")" "--setenv=PATH=$PATH" "the end runs with this PATH (your systemd's has no ~/.local/bin: kawa-state, kawa-dwlstatus)"
 read -r end choice <"$(rec)"; eq "$choice" hour
 ((end >= t0 + 3600 && end <= EPOCHSECONDS + 3600)) && _ok || _no "the end $((end - t0)) s from the start, not 3600"
 called '^kawa-dwlstatus --poke 12$'

@@ -141,8 +141,10 @@ dnd_set() {
     hour|morning)
       if [[ $1 == hour ]]; then end=$((EPOCHSECONDS + 3600)); else end=$(morning) || return 1; fi
       kawa-state set dnd off                                     # (timed: not kept across a login)
+      # (with this PATH: your systemd's own has no ~/.local/bin, where kawa-quick finds
+      # kawa-state and kawa-dwlstatus — the bell would stay on the bar)
       if systemd-run --user --quiet --unit=kawa-dnd-end --on-active="$((end - EPOCHSECONDS))s" \
-           --timer-property=AccuracySec=1s -- kawa-quick --do dnd off >/dev/null 2>&1; then
+           --timer-property=AccuracySec=1s --setenv=PATH="$PATH" -- kawa-quick --do dnd off >/dev/null 2>&1; then
         echo "$end $1" >"$DND_UNTIL"
         makoctl mode -a do-not-disturb >/dev/null
       else   # (its end could not be set: no quiet at all — one that never ended would hide
