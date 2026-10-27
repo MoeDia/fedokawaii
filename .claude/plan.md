@@ -212,7 +212,7 @@ accept: the matrix in the ledger with every cell green or explained by an upstre
 
 ## Phase 3 — lock, animations, art: the world (demon dark, angel light)
 
-### T18 — the old-master pixel-art pipeline: wallpapers, lock art, the quick-settings head, fetch art, stamps  [todo]
+### T18 — the old-master pixel-art pipeline: wallpapers, lock art, the quick-settings head, fetch art, stamps  [wip — tools/build-masters.py built (crop → 640×360 in linear light → bilateral smoothing → tones: keep | lacquer, lift, gain → a neutral ramp by lightness with a 4×4 Bayer between neighbouring steps, accents only for strongly coloured parts of a matching hue); sources: a subagent writes art/masters/SOURCES.md and fetches to ~/.cache/r27-art; next: masters.toml per picture (crops, tones), the pack entries for our own art (served from the toolkit, scaled ×3 by whole pixels, not Lanczos), grill]
 deps: T08, T09  · model: main (art direction, pixelisation tool, final picks), sub:sonnet (source hunt: public-domain scans with licence lines)  · ledger: r27-18
 files: tools/build-art.py (extended: quantise to the theme palette, ordered dither at the wallpapers' 3 px grid, pixel clean-up passes, a crop/compose spec per picture), art/masters/ (spec files only; sources fetched by checksum into ~/.cache/r27-art, the finished PNGs into the wallpaper pack repo/release as today's pack is), art/icons.txt (demon head for dark / angel head for light: bar right tile 15 px, quick-settings icon, fetch art at the terminal grid as a multi-cell icon block, workspace stamp numerals), bin/fetch, bin/kawa-wallpaper (wallpapers.list entries: ~10 demon "dark" + ~10 angel "light"), tests/look/test_wallpaper.sh, tests/content/test_fetch.sh
 approach:
