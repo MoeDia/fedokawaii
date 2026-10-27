@@ -883,6 +883,10 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   knot, scarf) in the light, 20 × 16 cells in the ART_ grammar; `fetch random` and a name pick
   any (tests/content/test_fetch.sh 98/0). Next: the 10 + 10 wallpapers (masters.toml: crops,
   tones), the lock's scenes.
+- r27-keep (found 27 Oct 16:28) ~/blasphemous-save-backup-20261022 was in the Trash (trashed 26 Oct
+  16:15 local, with game-shelf, Games, Balatro — before any round-27 session, the first at 27 Oct
+  02:03): restored to ~ (476 K, Blasphemous + userdata-774361 intact), per the standing rule and
+  the 27 Oct note (it moves into the gaming VM's import folder with T35).
 - r27-33 (T29, findings 04:00 — not fixed yet) Prowlarr: on demand by design (kawa-prowlarr: up while
   torrra searches, asleep 30 min after) — "inactive" is normal. /api/v1/health: 0 now. Its own log
   (~/.config/prowlarr/logs) over 8 days: Warn AllowedHostsCheck "Allowed Hosts is not configured"
