@@ -103,7 +103,8 @@ f=$(added applyframe)
 grep -q 'dx = c->animdir \* (int)lround(anim_drift \* (1.0 - e));' <<<"$f" \
   && grep -q 'dx = -c->animdir \* (int)lround(anim_drift \* e);' <<<"$f" \
   && grep -q 'double p = kind == AnimIn ? (t - (anim_tag_ms - anim_tag_each_ms)) / anim_tag_each_ms' "$P" \
-  && grep -q 'return kind == AnimOpen ? anim_open_ms : kind == AnimIn ? anim_tag_ms : anim_tag_each_ms;' "$P" \
+  && grep -q 'return kind == AnimOpen ? anim_open_ms : kind == AnimIn ? anim_tag_ms' "$P" \
+  && grep -q ': kind == AnimUnroll ? anim_unroll_ms : anim_tag_each_ms;' "$P" \
   && _ok || _no "the switch's drift and timing"
 
 case_ "layer surfaces by namespace (config.h layeranims): the panels' menus in 200 ms dropping 4 px and out 160, a notice 240 · 200, the level display at once and out 300, the saver out 180; any other at once"
@@ -197,9 +198,27 @@ grep -q '^+		if (saverup(m))$' "$P" && grep -q '^+#define SAVER_GUARD_MS 1500$' 
 case_ "after a long time away (the screens dark): the first input lights them at once, gives the keyboard back to the saver before the key is sent (lighting them sent it to the lock), and the guard waits for the screen to come back"
 grep -q '^+	woke = saverwake();$' "$P" && grep -Pzq '\+	if \(woke\)\n\+		saverkeys\(\);' "$P" && grep -q '^+#define SAVER_WAKE_MS 4000$' "$P" \
   && grep -q 'SAVER_GUARD_MS + (woke ? SAVER_WAKE_MS : 0)' "$P" && _ok || _no "wake, keys back, longer guard"
-case_ "a warm window put away (Super+U's popup after a choice, Super+N, Super+V) dissolves off as a closed window does; shown again at once"
+case_ "a warm window (Super+U, N, V) shown unrolls from its top edge over anim_unroll_ms — its rod (the frame's foot: bottom hairline and shadow) travelling down, the picture cut above it (drawnheight, framelayout) — and one its key started unrolls as it maps"
+grep -q '^static const unsigned int anim_unroll_ms   = 300;' "$CH" && grep -q '^static const unsigned int anim_rollup_ms   = 240;' "$CH" \
+  && grep -q 'return (int)lround(c->geom.height \* e);' <(added drawnheight) \
+  && grep -q 'int w = c->geom.width, h = drawnheight(c), o = c->bw ? 1 : 0, j, dx = 0, dy = 0;' <(added applyframe) \
+  && grep -q 'framelayout(w, h, o, r);' <(added applyframe) \
+  && grep -q 'animstart(c, AnimUnroll, 0);' <(sed -n '/^+warmshow(Client \*c)$/,/^+}/p;/^ warmshow(Client \*c)$/,/^ }/p' "$P") \
+  && grep -q 'animstart(c, AnimUnroll, 0);   /\* (a warm window its key started: it unrolls) \*/' <(added showclient) \
+  && grep -q 'return animations && !locked && c && c->mon;' <(added warmanimok) && _ok || _no "the unroll"
+case_ "put away: a ghost of it rolls up into its top edge over anim_rollup_ms — its picture frozen as it stood (composed once: whatever the window draws once away is never seen), its frame laid out where the scroll ends; from as far as it had unrolled; shown again meanwhile: it unrolls from there"
 f=$(added warmhide)
-grep -q 'ghostclient(c);' <<<"$f" && grep -q 'if (animations && dissolveok() && !locked && c->scene->node.enabled && VISIBLEON(c, c->mon)' <<<"$f" \
-  && grep -q 'animdrop(c);' <<<"$f" && _ok || _no "warmhide: no dissolve"
-lacks "$(added warmshow)" "ghostclient" "shown: at once"
+grep -q 'ghostscroll(c, f);' <<<"$f" && grep -q 'wlr_scene_node_set_enabled(&c->scene->node, 0);' <<<"$f" && grep -q 'animdrop(c);' <<<"$f" \
+  && grep -q 'dissolveshow(&g->dis, pass, 0, 0, 1, 16.0);' <(added ghostscroll) && grep -q 'g->ms = anim_rollup_ms, g->rise = 0;' <(added ghostscroll) \
+  && grep -q 'g->t0 = g->last = nowms() - (1.0 - cbrt(f < 0 ? 0 : f > 1 ? 1 : f)) \* g->ms;' <(added ghostscroll) \
+  && grep -q 'int hv = (int)lround(g->h \* (1.0 - animease(t))), ih = MAX(hv - 2 \* g->o, 0);' <(added ghostapply) \
+  && grep -q 'wlr_scene_buffer_set_source_box(g->dis.node, &(struct wlr_fbox){ 0, 0,' <(added ghostapply) \
+  && grep -q 'f = c->rolling ? ghostopen(c->rolling) : 0;' "$P" && grep -q 'g->of->rolling = NULL;' <(added ghostfree) \
+  && _ok || _no "the roll-up"
+lacks "$(sed -n '/^+warmshow(Client \*c)$/,/^+}/p;/^ warmshow(Client \*c)$/,/^ }/p' "$P")" "ghostclient" "shown: never a ghost"
+case_ "popups (warm windows, \"float\" ones) in their own scene layer above any full-screen window — Super+V over a film (bug 9); a floating layout leaves them there"
+grep -q '^+enum { LyrBg, LyrBottom, LyrTile, LyrFloat, LyrTop, LyrFS, LyrPopup, LyrUnmanaged, LyrOverlay,$' "$P" \
+  && grep -q 'return c->isfullscreen ? LyrFS : ispopup(c) ? LyrPopup : c->isfloating ? LyrFloat : LyrTile;' <(added clientlayer) \
+  && grep -q '|| c->scene->node.parent == layers\[LyrPopup\])' "$P" \
+  && grep -q 'wlr_scene_node_reparent(&c->scene->node, layers\[clientlayer(c)\]);' "$P" && _ok || _no "the popup layer"
 done_

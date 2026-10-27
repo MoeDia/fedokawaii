@@ -3,7 +3,9 @@
 # terminal — "terminated" — before it went): the warm clipboard (Super+V) opened in a headless
 # dwl (tools/kit.sh, the real GPU, both themes), closed by Esc and by Enter, and each closing
 # frame looked at — dwl's ghost of the window must be its page as it was: the heading, the
-# rows, the cursor's fill — never a blank terminal with a lone cursor.
+# rows, the cursor's fill — never a blank terminal with a lone cursor. (Put away, the page rolls
+# up into its top edge, frozen as it stood — T19: whatever is still open above its rod is the
+# open page's own rows, pixel for pixel.)
 #   bash tools/regress/warm-exit.sh [KIT OPTION…]   (e.g. --bin bin --repo-art before an apply)
 # Exit 0 held · 1 broken (said) · 2 the kit could not run
 set -u
@@ -45,18 +47,29 @@ box = [(x, y) for y in range(40, H, 3) for x in range(0, W, 3) if far(a.getpixel
 if not box:
     print("none"); sys.exit()
 x0 = min(p[0] for p in box); x1 = max(p[0] for p in box); y0 = min(p[1] for p in box); y1 = max(p[1] for p in box)
-def ink(im, dy=0):
-    return sum(1 for y in range(y0 + 8, y1 - 8, 2) for x in range(x0 + 8, x1 - 8, 2)
-               if 0 <= y + dy < H and far(im.getpixel((x, y + dy))))
-# (the ghost sinks a few pixels a frame: the best of a few offsets)
-best = max(ink(b, dy) for dy in range(0, 40, 2))
-print(ink(a), best)
+# (the rod: the lowest row with ink across most of the page — the frame's foot, where the scroll
+# is open to; above it, the closing frame's ink must be the open page's — a wiped terminal keeps
+# none of the heading's)
+def across(y):
+    return sum(1 for x in range(x0, x1, 3) if far(b.getpixel((x, y)))) > 0.8 * (x1 - x0) / 3
+rod = max((y for y in range(y0, y1 + 1) if across(y)), default=y0)
+ya, yb = y0 + 8, rod - 3
+if yb - ya < 12:
+    print("late"); sys.exit()
+both = was = 0
+for y in range(ya, yb):
+    for x in range(x0 + 8, x1 - 8, 2):
+        fa, fb = far(a.getpixel((x, y))), far(b.getpixel((x, y)))
+        was += fa
+        both += fa and fb
+print(was, both)
 EOF
 )
     [[ $m != none ]] || { no "the clipboard did not open"; break; }
+    [[ $m != late ]] || { no "closing by $f: the shot came after the scroll had all but closed — nothing to judge"; continue; }
     read -r was now <<<"$m"
-    ((now * 100 >= was * 60)) || no "closing by $f: $now of the page's $was ink points left — a page wiped before it went"
+    ((was > 0 && now * 100 >= was * 90)) || no "closing by $f: $now of the open page's $was ink points above the rod — a page wiped before it went"
   done
 done
 ((fail)) && exit 1
-echo "warm-exit: held — Esc and Enter: the clipboard's ghost is its page as it was, both themes"
+echo "warm-exit: held — Esc and Enter: the clipboard rolls up as its page was, both themes"

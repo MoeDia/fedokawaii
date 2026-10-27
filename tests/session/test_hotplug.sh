@@ -18,7 +18,7 @@ grep -Pzq '\+			\|\| client_is_unmanaged\(c\) \|\| !c->mon\) \{\n[ +]		wlr_xwayl
 case_ "the other paths that run with no monitor: focusmon/dirtomon, the move's snap, an animation's start"
 grep -Pzq '\+	if \(!selmon\)\n\+		return NULL;' "$P" && grep -Pzq '\+	if \(!selmon\)    /\* \(every monitor off or gone\) \*/\n\+		return;' "$P" \
   && grep -q '^+		if (selmon) {   /\* (the edges it snaps to' "$P" \
-  && grep -Pzq '\+animstart\(Client \*c, int kind, int dir\)\n\+\{\n\+	if \(!c->mon\)\n\+		return;' "$P" \
+  && grep -Pzq '\+animstart\(Client \*c, int kind, int dir\)\n\+\{\n\+	int o = c->bw \? 1 : 0;\n\+	if \(!c->mon\)\n\+		return;' "$P" \
   && _ok || _no "NULL monitor guards"
 
 case_ "kept under its name as it goes (cleanupmon → monkeep): tags, layouts, sizes, mode, focus, off"
