@@ -106,7 +106,7 @@ if [[ -z ${1:-} ]]; then
   # region — or, for the whole screen with more than one monitor on, which one: a click on it)
   # shellcheck source=/dev/null
   . "$HOME/.config/fedokawaii/current/colors.sh"
-  pick() { slurp -b '#0f0e0c66' -c "#${C_ACCENT}ff" -s "#${C_ACCENT}22" -w 2 "$@"; }
+  pick() { slurp -b '#18171566' -c "#${C_ACCENT}ff" -s "#${C_ACCENT}22" -w 2 "$@"; }
   if [[ ${a[0]} == region ]]; then g=$(pick) || exit 0; a+=("$g")
   elif (($(wlr-randr --json 2>/dev/null | jq '[.[] | select(.enabled)] | length' 2>/dev/null || echo 1) > 1)); then
     o=$(pick -o -f %o) || exit 0; a+=("$o")

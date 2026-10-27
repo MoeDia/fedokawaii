@@ -6,6 +6,12 @@
 # pixel); swaybg, the monitors (wlr-randr, the kernel's list), fzf and the picker's window are
 # stand-ins (the pack's fetching: test_pack.sh).
 . "$(dirname "$0")/../lib/harness.sh"
+
+# (the colours as the palette makes them today: tools/build-themes.py's colors.sh, never a copy)
+TH=$REPO/configs/home/.config/fedokawaii/themes
+GD=$(sed -n 's/^C_GROUND=//p' "$TH/dark/colors.sh") GL=$(sed -n 's/^C_GROUND=//p' "$TH/light/colors.sh")
+AD=$(sed -n 's/^C_ACCENT=//p' "$TH/dark/colors.sh") AL=$(sed -n 's/^C_ACCENT=//p' "$TH/light/colors.sh")
+srgb() { printf 'srgb(%d,%d,%d)' "0x${1:0:2}" "0x${1:2:2}" "0x${1:4:2}"; }   # (as ImageMagick names a pixel)
 . "$(dirname "$0")/lib.sh"
 need magick python3 flock
 
@@ -82,15 +88,15 @@ list_add() { printf 'dark  %s  -  %s  %s  https://x/%s.jpg  Test\n' "$1" "${3:-c
 setup
 case_ "before the pack is here: the theme's plain ground, nothing else"
 rc 0 kawa-wallpaper --restore
-eq "$(args_of swaybg | head -n 2 | tr '\n' ' ')" "-c #0f0e0c " "the ground's colour"
-eq "$(px "$(shown)" 0 0)" "srgb(15,14,12)" "a picture of the ground (shown as any other)"
+eq "$(args_of swaybg | head -n 2 | tr '\n' ' ')" "-c #$GD " "the ground's colour"
+eq "$(px "$(shown)" 0 0)" "$(srgb "$GD")" "a picture of the ground (shown as any other)"
 eq "$(running)" 1 "one swaybg"
 
 case_ "with the pack: the theme's default, drawn at the monitor's exact size at full quality"
 setup
 art "$PACK/dark/ink-ridges-night.src"
 rc 0 kawa-wallpaper --restore
-args_eq swaybg 1 -c '#0f0e0c' -o DP-1 -i "$(handed)" -m fill
+args_eq swaybg 1 -c "#$GD" -o DP-1 -i "$(handed)" -m fill
 same "$(shown)" "$(cover_of ink-ridges-night)" "not the cached 1080p drawing"
 [[ $(handed) == "$XDG_RUNTIME_DIR"/kawa-wallpaper/*.png ]] && _ok || _no "not handed over as a copy of its own: $(handed)"
 eq "$(size_of "$(shown)")" 1920x1080
@@ -125,7 +131,7 @@ kawa-wallpaper --restore
 eq "$(size_of "$(shown)")" 1920x1200 "16:10: covered and cut to size"
 setup; art "$PACK/dark/ink-ridges-night.src"; hide wlr-randr
 kawa-wallpaper --restore
-eq "$(px "$(shown)" 0 0)" "srgb(15,14,12)" "the plain ground"
+eq "$(px "$(shown)" 0 0)" "$(srgb "$GD")" "the plain ground"
 
 case_ "drawn once: a second restore uses the same drawing, nothing redrawn"
 setup
@@ -143,7 +149,7 @@ setup
 ln -sfn themes/light "$HOME/.config/fedokawaii/current"
 art "$PACK/light/ink-ridges.src"
 kawa-wallpaper --restore
-eq "$(args_of swaybg | head -n2 | tail -n1)" '#e9e1cb'
+eq "$(args_of swaybg | head -n2 | tail -n1)" "#$GL"
 eq "$(size_of "$(shown)")" 1920x1080 "ink-ridges shown"
 [[ ! -e $STATE/wallpaper-dark ]] && _ok || _no "the dark theme's choice was written by a light restore"
 
@@ -333,8 +339,8 @@ eq "$r" 0
 eq "$(pngs)" 5 "five drawings at 1920x1080"
 eq "$(sixes)" 5 "five previews"
 [[ -s $SCREENS/1920x1080/$(key_of d2).png ]] && _ok || _no "d2: no $(key_of d2).png"
-[[ -s $PREVIEWS/1920x1080-12x26-0f0e0c/$(key_of d1).78x17.six ]] && _ok || _no "d1's preview: not where the picker looks (screen-cell-ground/KEY.COLSxROWS.six)"
-[[ -s $PREVIEWS/1920x1080-12x26-e9e1cb/$(key_of l1 light).78x17.six ]] && _ok || _no "l1's preview: on its own theme's ground"
+[[ -s $PREVIEWS/1920x1080-12x26-$GD/$(key_of d1).78x17.six ]] && _ok || _no "d1's preview: not where the picker looks (screen-cell-ground/KEY.COLSxROWS.six)"
+[[ -s $PREVIEWS/1920x1080-12x26-$GL/$(key_of l1 light).78x17.six ]] && _ok || _no "l1's preview: on its own theme's ground"
 has "$out" "wallpaper cache: drawing 5 pictures for 1920x1080"
 has "$out" "wallpaper cache: 5 pictures drawn for 1920x1080 in"
 eq "$(size_of "$SCREENS/1920x1080/$(key_of d3).png")" 1920x1080
@@ -597,7 +603,7 @@ eq "$(cat "$TMP/err")" "" "a tiny pane: no error"
 case_ "--preview notes the pane's size (the cache draws ahead for it)"
 eq "$(cat "$PREVIEWS/geometry")" "12x26 78x17"
 case_ "the preview's own size: a whole fraction of the screen, centred in the pane, clear of its last line"
-f=$PREVIEWS/1920x1080-12x26-0f0e0c/$(key_of moon-road-ink).78x17.six
+f=$PREVIEWS/1920x1080-12x26-$GD/$(key_of moon-road-ink).78x17.six
 [[ -s $f ]] && _ok || _no "not kept where the picker's command looks"
 eq "$(head -c 40 "$f" | grep -ao '"1;1;[0-9]*;[0-9]*')" '"1;1;788;401' "640×360 (a third of 1080p) at 148,41 in a 936×442 pane"
 
@@ -628,7 +634,7 @@ KAWA_CELL=12x24 pane "$WP/mine.png" >/dev/null
 "$TMP/kbin/kawa-wallpaper" --tui "$TMP/out"
 k=$(awk -F'\t' -v c="$WP/mine.png" '$1 == c { print $2 }' "$TMP/rows")
 [[ $k =~ ^mine\.[0-9a-f]{16}\.center$ ]] && _ok || _no "no key after it was read: [$k]"
-[[ -s $PREVIEWS/1920x1080-12x24-0f0e0c/$k.78x17.six ]] && _ok || _no "its preview not kept"
+[[ -s $PREVIEWS/1920x1080-12x24-$GD/$k.78x17.six ]] && _ok || _no "its preview not kept"
 
 case_ "--warm (while the picker is open): every preview drawn ahead, nearest the cursor first"
 setup

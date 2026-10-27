@@ -261,6 +261,17 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   pairs via fontTools; today's UI face: 45 % of L1 kanji touch — the "ugly / spacing" is
   measurable); the finalists rendered in the real bar/notices/foot beside today's (tools/kit.sh,
   font-try.sh; shots in .claude/notes/fonts-r27/). Build + re-grid: T10 (UI), T11 (terminal).
+- r27-8 (T08) the Wada palette — DONE+applied 05:00 (live shots both themes): tools/wada-palette.py
+  holds every colour as a Wada swatch (mattdesl/dictionary-of-colour-combinations, MIT) or an OKLab
+  mix of two; build-themes.py reads P/KAMI/TILE/EDITOR from it (no literal left; its copies check
+  green over 15 files — 129 literal copies remapped, 9 two-role colours resolved to their dark
+  meaning); build-cursors + build-art re-run. Contrast: every text role ≥ 4.5 on every ground
+  (wada-r27.md table; today's had accent_text 4.3 on key). Dark = 鬼 torchlit stone + Jasper Red;
+  light = 天 Sulpher Yellow paper + Deep Slate Green ink + Brick Red + Yellow Ocher gold. New roles
+  flame, gold (for the lock's torches, the sliders' red ramp, halos). Tests made palette-proof
+  (look/test_screenshot, test_wallpaper read colors.sh); launcher fixtures list the new packages;
+  PROJECT_TOP gains .claude + CLAUDE.md (static/test_generated 211/0 — fixed its old failure).
+  dwl's border colours (config.h) take effect at the next session.
 - r27-33 (T29, findings 04:00 — not fixed yet) Prowlarr: on demand by design (kawa-prowlarr: up while
   torrra searches, asleep 30 min after) — "inactive" is normal. /api/v1/health: 0 now. Its own log
   (~/.config/prowlarr/logs) over 8 days: Warn AllowedHostsCheck "Allowed Hosts is not configured"

@@ -21,10 +21,10 @@
  * around one that asks for attention — the same frame the menus and notices wear. These
  * are the dark theme's; the theme in use replaces them from its dwl.colors, at dwl's start
  * and at every switch (dwl.patch: loadcolours). */
-#define SUMI      0x0f0e0cff   /* ink: behind the wallpaper, seen only before it loads */
-#define NEZUMI    0x877f6fff   /* the other windows: warm grey                         */
-#define SHU       0xd0583aff   /* the focused window: vermilion                        */
-#define ASAGI     0x7fb8b0ff   /* a window asking for attention: asagi                 */
+#define SUMI      0x181715ff   /* ink: behind the wallpaper, seen only before it loads */
+#define NEZUMI    0x9a8767ff   /* the other windows: warm grey                         */
+#define SHU       0xeb5324ff   /* the focused window: vermilion                        */
+#define ASAGI     0x82c1b4ff   /* a window asking for attention: asagi                 */
 
 /* appearance */
 static const int sloppyfocus               = 1;  /* focus follows mouse */

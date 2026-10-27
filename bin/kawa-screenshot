@@ -26,7 +26,7 @@ case $mode in region|full|edit|text) ;; *) echo "usage: kawa-screenshot [region|
 # the key again takes it away, below). Then the shot is taken one at a time (the run lock)
 pick() {
   local p r o=""
-  slurp -b '#0f0e0c66' -c "#${C_ACCENT}ff" -s "#${C_ACCENT}22" -w 2 7>&- 9>&- & p=$!
+  slurp -b '#18171566' -c "#${C_ACCENT}ff" -s "#${C_ACCENT}22" -w 2 7>&- 9>&- & p=$!
   echo "$p" >"$RT/kawa-screenshot.pick"
   read -r o 2>/dev/null <"$RT/kawa-screenshot.picking"
   [[ $o == "$$" ]] || kill "$p" 2>/dev/null       # (the key again came before slurp was named)

@@ -13,33 +13,33 @@ keybindings = [
 ]
 
 [themes.fedokawaii]
-default_device = { fg = "#d15b3d" }
-default_stream = { fg = "#d15b3d" }
-selector = { fg = "#d0583a" }
-tab = { fg = "#877f6f" }
-tab_selected = { fg = "#ece3cc" }
-tab_marker = { fg = "#d15b3d" }
-list_more = { fg = "#5f584c" }
-node_title = { fg = "#ece3cc" }
-node_target = { fg = "#877f6f" }
-volume = { fg = "#cfc3a6" }
-volume_empty = { fg = "#3d372f" }
-volume_filled = { fg = "#7fb8b0" }
-meter_inactive = { fg = "#3d372f" }
-meter_active = { fg = "#8e9a5b" }
-meter_overload = { fg = "#d64b4b" }
-meter_center_inactive = { fg = "#3d372f" }
-meter_center_active = { fg = "#8e9a5b" }
-config_device = { fg = "#ece3cc" }
-config_profile = { fg = "#877f6f" }
-dropdown_icon = { fg = "#877f6f" }
-dropdown_border = { fg = "#877f6f" }
-dropdown_item = { fg = "#cfc3a6" }
-dropdown_selected = { fg = "#ece3cc", bg = "#2b2721" }
-dropdown_more = { fg = "#5f584c" }
-help_border = { fg = "#877f6f" }
-help_item = { fg = "#cfc3a6" }
-help_more = { fg = "#5f584c" }
+default_device = { fg = "#eb5324" }
+default_stream = { fg = "#eb5324" }
+selector = { fg = "#eb5324" }
+tab = { fg = "#9a8767" }
+tab_selected = { fg = "#f1e1b4" }
+tab_marker = { fg = "#eb5324" }
+list_more = { fg = "#65583f" }
+node_title = { fg = "#f1e1b4" }
+node_target = { fg = "#9a8767" }
+volume = { fg = "#d4bf9a" }
+volume_empty = { fg = "#3c2f22" }
+volume_filled = { fg = "#82c1b4" }
+meter_inactive = { fg = "#3c2f22" }
+meter_active = { fg = "#8fa071" }
+meter_overload = { fg = "#eb5324" }
+meter_center_inactive = { fg = "#3c2f22" }
+meter_center_active = { fg = "#8fa071" }
+config_device = { fg = "#f1e1b4" }
+config_profile = { fg = "#9a8767" }
+dropdown_icon = { fg = "#9a8767" }
+dropdown_border = { fg = "#9a8767" }
+dropdown_item = { fg = "#d4bf9a" }
+dropdown_selected = { fg = "#f1e1b4", bg = "#2d251e" }
+dropdown_more = { fg = "#65583f" }
+help_border = { fg = "#9a8767" }
+help_item = { fg = "#d4bf9a" }
+help_more = { fg = "#65583f" }
 
 # the marks: wiremix leaves one cell for each and puts the name right after it — its own
 # diamond (◇) filled the cell and touched the name ("◇HD-Audio Generic"). A half block

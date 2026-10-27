@@ -40,35 +40,14 @@ THEMES = HOME / ".config/fedokawaii/themes"
 # ground .. strong run from the background to the strongest text; ansi0/7/8/15 follow
 # gruvbox's convention, so programs using "black" for faint lines and "white" for text
 # read correctly on both grounds: 0 = a shade of the ground, 15 = the strongest ink.
-P = {
-    "dark": dict(
-        ground="0f0e0c", surface="161411", key="1f1c18", edge="2b2721", edge2="3d372f",
-        hi="4a443a", lo="070605", faint="5f584c", muted="877f6f", text="cfc3a6",
-        strong="ece3cc", view="161411",
-        accent="d0583a", accent_hi="e8876d", accent_lo="8a2f1c", accent_text="d15b3d",
-        text_on_accent="0f0e0c",   # anything drawn on vermilion — words, seals, icons, the meters' lit squares: ink (4.7 : 1)
-        lit="cfc3a6", lit_text="0f0e0c", lit_hi="ece3cc", lit_lo="8a8170", urgent_text="0f0e0c",
-        asagi="7fb8b0",                 # the meters, urgency and checking: the bright teal on ink
-        red="d64b4b", green="8e9a5b", yellow="d29f45", blue="5f7fa0", purple="9079a9", teal="5e9c95",
-        bred="e66a5f", bgreen="a8b46f", byellow="e3b866", bblue="7f9dbd", bpurple="ab96c2", bteal="7fb8b0",
-        ansi0="2b2721", ansi7="cfc3a6", ansi8="7a7262", ansi15="ece3cc",
-        gtk="Fedokawaii-dark", base="adw-gtk3-dark", scheme="prefer-dark",
-    ),
-    "light": dict(
-        ground="e9e1cb", surface="dcd2b8", key="efe8d5", edge="c2b79b", edge2="b1a688",
-        hi="fbf7ec", lo="9d9278", faint="9b927e", muted="5f594d", text="2b2721",
-        strong="0f0e0c", view="f1ebda",
-        accent="c0462a", accent_hi="e07a5c", accent_lo="7e2a18", accent_text="9c3922",
-        text_on_accent="fbf7ec",   # anything drawn on vermilion — words, seals, icons, the meters' lit squares: paper (4.7 : 1)
-        lit="2b2721", lit_text="ece3cc", lit_hi="5f584c", lit_lo="0f0e0c", urgent_text="fbf7ec",
-        asagi="2f6e67",                 # the deep teal on paper
-        red="a8342a", green="5c682d", yellow="845b0f", blue="3f6185", purple="6f5a8a", teal="2f6e67",
-        # on paper the "bright" colours are the deeper ones, so they read at least as well
-        bred="942e25", bgreen="4d5625", byellow="6d4b0d", bblue="355270", bpurple="5c4a72", bteal="275a55",
-        ansi0="d6cdb3", ansi7="4a443a", ansi8="696255", ansi15="1f1c18",
-        gtk="Fedokawaii", base="adw-gtk3", scheme="prefer-light",
-    ),
-}
+# Every colour comes from Sanzo Wada's swatches (A Dictionary of Color Combinations): the
+# tokens below are chosen in tools/wada-palette.py — a Wada colour, or a mix of two — and only
+# read here. P: both themes' roles; KAMI, TILE: the bar's washi; EDITOR: nvim's extra inks.
+import importlib.util as _iu
+_spec = _iu.spec_from_file_location("wada_palette", pathlib.Path(__file__).with_name("wada-palette.py"))
+_wada = _iu.module_from_spec(_spec)
+_spec.loader.exec_module(_wada)
+P, KAMI, TILE, EDITOR = _wada.palette()
 NAMES = {"dark": "sumi (ink)", "light": "washi (paper)"}
 
 
@@ -100,7 +79,7 @@ def waybar_css(m, p):
     rows = [("faint", p["faint"]), ("muted", p["muted"]), ("text", p["text"]),
             ("strong", p["strong"]), ("accent-text", p["accent_text"]), ("strong-on-accent", p["text_on_accent"]),
             ("asagi", p["asagi"]),
-            ("tile", TILE[m]), ("kami-red", KAMI[m]["red"]), ("seal-ink", "f3ead2" if m == "dark" else "faf4e4")]
+            ("tile", TILE[m]), ("kami-red", KAMI[m]["red"]), ("seal-ink", P["dark"]["lo"])]   # (the numeral on the seal: Wada's Black, both themes)
     out = [f"/* {header('~/.config/fedokawaii/current/waybar.css', NAMES[m] + ' colours for the bar')} */"]
     out += [f"@define-color {k:<17}#{v};" for k, v in rows]
     return "\n".join(out) + "\n"
@@ -134,12 +113,6 @@ def png(w, h, rows):
 # paper, rule at the left; rule, paper, paper, hairline, shadow at the right. style.css
 # lays them on as border-images (sliced 6 5 6 4, top right bottom left: the edges stay, the middle stretches
 # under the words) with the paper's colour and its fibres as the background inside the rule.
-KAMI = {
-    "dark": dict(hair=(222, 210, 180, 128), shadow=((0, 0, 0, 170), (0, 0, 0, 80)), rule="3a342b",
-                 red="cf5636", gold="c9a45c", rod="4a3423", rod_hi="8a6a45", rod_dk="1c140d", fibre_t=0.06, fibre_to="ffffff"),
-    "light": dict(hair=(28, 22, 16, 215), shadow=((40, 30, 20, 110), (40, 30, 20, 48)), rule="d2c39d",
-                  red="bf432b", gold="a8843f", rod="5a3e28", rod_hi="9a7a52", rod_dk="2a1d12", fibre_t=0.6, fibre_to="ffffff"),
-}
 BAR_H = 31
 K_HAIR_T, K_TOP, K_RULE_T, K_RULE_B, K_BOT, K_HAIR_B = 2, 3, 5, 25, 27, 28
 K_SLICE = (6, 5, 6, 4)                  # top right bottom left: the edges a border-image keeps
@@ -272,7 +245,6 @@ def foot_mode(m, p):
 
 # the washi of the bar's tiles and the prompt's: on the ink, paper dyed in ink (墨染め sumizome),
 # a shade above the ground; on the paper, the paper as it comes (生成り kinari), a shade below white
-TILE = {"dark": "26221c", "light": "f8f2e2"}
 
 
 def foot_block():
@@ -764,7 +736,6 @@ help_more = "···"
 # light* (as grounds) and faded_* for the light one. Five slots fall between the
 # palettes' steps — comments, two paper shades, and the orange gruvbox uses for constants —
 # so they are named here, as the editor's own shades.
-EDITOR = dict(comment="7b7365", paper2="b8ad92", paper3="a0957c", orange="d07a45", orange_deep="a8551f")
 D, L = P["dark"], P["light"]
 GRUVBOX = [
     [("dark0_hard", D["ground"]), ("dark0", D["ground"]), ("dark0_soft", D["surface"])],

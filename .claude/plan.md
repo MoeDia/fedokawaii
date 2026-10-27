@@ -92,7 +92,7 @@ approach:
 - Decide the set (UI face + size, terminal face + size + line height, the icon grid that follows), write why in fonts-r27.md with the shots; the sizes "a little smaller than today, more on screen" (today: UI 16 px / 8 px cell, term 20 px / 10×20 cell, line 24).
 accept: fonts-r27.md with the table (sources + licences), the rendered comparison sheets (both themes), the decision and the exact cell metrics; no candidate shortlisted that fails the pair test; the chosen licences allow bundling in the repo (quoted).
 
-### T08 — the Wada palette: colour roles for the whole design system  [todo]
+### T08 — the Wada palette: colour roles for the whole design system  [done 2026-10-27 — see .claude/notes/wada-r27.md]
 deps: T07  · model: main  · ledger: r27-8
 files: tools/build-themes.py (P dict, GRUVBOX/GRUVBOX_LIGHT, EDITOR), configs/home/.config/fedokawaii/themes/*/ (generated), src/dwl/config.h colours (loaded from dwl.colors anyway), lib/common.sh colour notes, .claude/notes/wada-r27.md
 approach:

@@ -9,26 +9,26 @@
 # and a synthesised one smears their pixels. The body under it in text, each line on a 24 px
 # row too — the card's rows as a panel's, so an app's picture (two rows: 48 px) stands beside
 # the title's and the first line's rows exactly.
-background-color=#161411ff
-text-color=#cfc3a6
-border-color=#877f6f
+background-color=#1c1916ff
+text-color=#d4bf9a
+border-color=#9a8767
 # an app's own progress (the hint "value"): mako fills the card from the left, under the
 # words — asagi, the meters' colour, thinned so the words keep their contrast
-progress-color=over #7fb8b040
-format=<span foreground="#ece3cc" line_height="24576">%s</span>\n<span line_height="24576">%b</span>
+progress-color=over #82c1b440
+format=<span foreground="#f1e1b4" line_height="24576">%s</span>\n<span line_height="24576">%b</span>
 
 # critical: the frame in vermilion (the main config keeps these on screen until dismissed)
 [urgency=critical]
-border-color=#d0583a
+border-color=#eb5324
 
 # several notices from one app, folded into one card: the count beside the title, muted
 [grouped]
-format=<span foreground="#ece3cc" line_height="24576">%s <span foreground="#877f6f">×%g</span></span>\n<span line_height="24576">%b</span>
+format=<span foreground="#f1e1b4" line_height="24576">%s <span foreground="#9a8767">×%g</span></span>\n<span line_height="24576">%b</span>
 
 # udiskie's notice of a drive that would not open ("Job failed" — failed to mount, or to
 # unlock: a wrong passphrase): titled like the drives' own notices (kawa-drives)
 [app-name=udiskie]
-format=<span foreground="#ece3cc" line_height="24576">󾁄  not opened</span>\n<span line_height="24576">%b</span>
+format=<span foreground="#f1e1b4" line_height="24576">󾁄  not opened</span>\n<span line_height="24576">%b</span>
 
 # the level display (kawa-osd): one meter row, as quick settings' — its glyph, its name, the
 # twelve squares, the number — which brings its own colours and its 24 px row

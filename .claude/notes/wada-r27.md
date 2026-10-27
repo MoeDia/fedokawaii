@@ -98,3 +98,23 @@ on surface: faint 2.1 · muted 4.6 · text 9.9 · strong 12.8 · accent_text 4.6
 on key: faint 2.5 · muted 5.7 · text 12.1 · strong 15.8 · accent_text 5.7 · asagi 4.8;
 text_on_accent on accent 4.7. (faint is meant dim — "not there yet" — but 2.1 on paper surface
 is the lowest: judge it in renders, not by the number alone.)
+
+## The palette, decided (T08, 2026-10-27 05:00) — tools/wada-palette.py is the only place a colour is chosen
+
+```
+== dark
+  on ground  : faint  2.6 · muted  5.1 · text 10.0 · strong 13.8 · accent_text  4.9 · asagi  8.7
+  on surface : faint  2.5 · muted  5.0 · text  9.8 · strong 13.5 · accent_text  4.8 · asagi  8.5
+  on key     : faint  2.4 · muted  4.8 · text  9.2 · strong 12.7 · accent_text  4.6 · asagi  8.1
+  text_on_accent on accent 5.1 · lit_text on lit 10.0
+== light
+  on ground  : faint  2.5 · muted  4.8 · text 12.2 · strong 13.5 · accent_text  4.7 · asagi  4.5
+  on surface : faint  2.4 · muted  4.7 · text 11.9 · strong 13.2 · accent_text  4.5 · asagi  4.4
+  on key     : faint  2.9 · muted  5.6 · text 14.1 · strong 15.7 · accent_text  5.4 · asagi  5.2
+  text_on_accent on accent 5.4 · lit_text on lit 14.1
+```
+Swatches with their recipes: wada-r27/swatches.png; live: wada-r27/live-{dark,light}.png. Dark (鬼):
+Black/Vandyke Brown grounds, Pale Raw Umber stone edges, Ecru→Ivory Buff parchment text, Jasper Red
+vermilion (Red Orange held ink at 4.3 only), Venice Green→Ecru teal, Apricot Orange flame, Isabella gold.
+Light (天): Sulpher Yellow paper, Deep Slate Green→Black ink, Brick Red seal, Yellow Ocher gold, a deep
+porcelain teal. Every text role ≥ 4.5 : 1 on every ground, muted ≥ 4.7, ink on vermilion 5.1 / 5.4.

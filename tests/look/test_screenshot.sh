@@ -3,6 +3,11 @@
 # screen), Super+Print (a region, then satty). slurp, grim, wl-copy and satty are stand-ins
 # that keep what they were given; the notice's thumbnail is drawn by the real ImageMagick.
 . "$(dirname "$0")/../lib/harness.sh"
+
+# (the colours as the palette makes them today: tools/build-themes.py's colors.sh, never a copy)
+TH=$REPO/configs/home/.config/fedokawaii/themes
+GD=$(sed -n 's/^C_GROUND=//p' "$TH/dark/colors.sh") GL=$(sed -n 's/^C_GROUND=//p' "$TH/light/colors.sh")
+AD=$(sed -n 's/^C_ACCENT=//p' "$TH/dark/colors.sh") AL=$(sed -n 's/^C_ACCENT=//p' "$TH/light/colors.sh")
 . "$(dirname "$0")/lib.sh"
 need magick flock
 
@@ -36,7 +41,7 @@ shots() { find "$SHOTS" -type f 2>/dev/null | sort; }
 setup
 case_ "Print: a region in the theme's vermilion, saved, copied as a picture, a notice with its thumbnail"
 rc 0 kawa-screenshot
-args_eq slurp 1 -b '#0f0e0c66' -c '#d0583aff' -s '#d0583a22' -w 2
+args_eq slurp 1 -b "#${GD}66" -c "#${AD}ff" -s "#${AD}22" -w 2
 args_eq grim 1 -g "10,20 300x100" "$F"
 args_eq wl-copy 1 --type image/png
 cmp -s "$TMP/clip" "$F" && _ok || _no "the clipboard does not hold the saved picture"
@@ -48,7 +53,7 @@ case_ "the light theme: the selection in its own vermilion"
 setup
 ln -sfn themes/light "$HOME/.config/fedokawaii/current"
 kawa-screenshot region
-args_eq slurp 1 -b '#0f0e0c66' -c '#c0462aff' -s '#c0462a22' -w 2
+args_eq slurp 1 -b "#${GD}66" -c "#${AL}ff" -s "#${AL}22" -w 2
 
 case_ "Shift+Print: the whole screen, no region asked"
 setup

@@ -404,7 +404,8 @@ write_file() {                      # write_file PATH [MODE] < content — never
 # against the repository), so that setup's end can tell the project's files from yours
 # shellcheck disable=SC2034  # (setup.sh reads it)
 PROJECT_TOP=(PACKAGES.md README.md art bin check.sh configs docs fedokawaii.conf fedokawaii.sh
-             lib setup.sh src system tests theme.sh tools verify.sh .git .gitignore .gitattributes)
+             lib setup.sh src system tests theme.sh tools verify.sh .git .gitignore .gitattributes
+             .claude CLAUDE.md)   # (the agents' brief and notes: the project's own too)
 # the boot's own arguments, on every boot entry (setup.sh's s_quiet_boot puts them there,
 # verify.sh checks them): the splash (rhgb), and nothing else on the screen from the power
 # button to the login — the kernel's messages only when they are critical (quiet loglevel=3;

@@ -17,28 +17,28 @@ return {
       -- the palette for the ground Neovim has: gruvbox reads it each time it loads — at the
       -- start, and again whenever foot tells Neovim the ground changed
       local dark = {
-        dark0_hard = "#0f0e0c", dark0 = "#0f0e0c", dark0_soft = "#161411",
-        dark1 = "#161411", dark2 = "#1f1c18", dark3 = "#2b2721", dark4 = "#3d372f",
-        gray = "#7b7365",
-        light0_hard = "#e9e1cb", light0 = "#ece3cc", light1 = "#cfc3a6", light2 = "#b8ad92",
-        light3 = "#a0957c", light4 = "#8a8170",
-        bright_red = "#d0583a", bright_green = "#a8b46f", bright_yellow = "#e3b866",
-        bright_blue = "#7f9dbd", bright_purple = "#ab96c2", bright_aqua = "#7fb8b0",
-        bright_orange = "#d07a45",
-        neutral_red = "#d64b4b", neutral_yellow = "#d29f45",
+        dark0_hard = "#181715", dark0 = "#181715", dark0_soft = "#1c1916",
+        dark1 = "#1c1916", dark2 = "#221e1a", dark3 = "#2d251e", dark4 = "#3c2f22",
+        gray = "#8a7755",
+        light0_hard = "#e8e3c2", light0 = "#f1e1b4", light1 = "#d4bf9a", light2 = "#c3ab88",
+        light3 = "#ac9162", light4 = "#9a8767",
+        bright_red = "#eb5324", bright_green = "#96d1aa", bright_yellow = "#fbe6a0",
+        bright_blue = "#a7d4e4", bright_purple = "#b5b1d8", bright_aqua = "#82c1b4",
+        bright_orange = "#f68c50",
+        neutral_red = "#eb5324", neutral_yellow = "#e2b540",
         -- the light theme's accents, deepened to read on paper
-        faded_red = "#a8342a", faded_green = "#5c682d", faded_yellow = "#845b0f",
-        faded_blue = "#3f6185", faded_purple = "#6f5a8a", faded_aqua = "#2f6e67",
-        faded_orange = "#a8551f",
+        faded_red = "#a84222", faded_green = "#437742", faded_yellow = "#986f2d",
+        faded_blue = "#006eb8", faded_purple = "#66629c", faded_aqua = "#00726a",
+        faded_orange = "#bb542d",
       }
       local light = vim.tbl_extend("force", dark, {
-        light0_hard = "#e9e1cb", light0 = "#e9e1cb", light0_soft = "#f1ebda",
-        light1 = "#dcd2b8", light2 = "#c2b79b", light3 = "#b1a688", light4 = "#9b927e",
-        dark0_hard = "#0f0e0c", dark0 = "#0f0e0c", dark1 = "#2b2721", dark2 = "#2b2721",
-        dark3 = "#5f594d", dark4 = "#5f594d", gray = "#5f594d",
-        faded_red = "#a8342a", faded_green = "#5c682d", faded_yellow = "#845b0f",
-        faded_blue = "#3f6185", faded_purple = "#6f5a8a", faded_aqua = "#2f6e67",
-        faded_orange = "#a8551f",
+        light0_hard = "#e8e3c2", light0 = "#e8e3c2", light0_soft = "#f7f1d1",
+        light1 = "#ecdfb3", light2 = "#dfcc9c", light3 = "#d7bc8c", light4 = "#8b917f",
+        dark0_hard = "#121b1b", dark0 = "#121b1b", dark1 = "#122625", dark2 = "#122625",
+        dark3 = "#586459", dark4 = "#586459", gray = "#586459",
+        faded_red = "#a84222", faded_green = "#437742", faded_yellow = "#986f2d",
+        faded_blue = "#006eb8", faded_purple = "#66629c", faded_aqua = "#00726a",
+        faded_orange = "#bb542d",
       })
       vim.api.nvim_create_autocmd("ColorSchemePre", {
         group = vim.api.nvim_create_augroup("kawa_ground", { clear = true }),
@@ -52,7 +52,7 @@ return {
         group = vim.api.nvim_create_augroup("kawa_cursorline", { clear = true }),
         pattern = "gruvbox",
         callback = function()
-          local bg = vim.o.background == "light" and "#dcd2b8" or "#2b2721"
+          local bg = vim.o.background == "light" and "#ecdfb3" or "#2d251e"
           vim.api.nvim_set_hl(0, "CursorLine", { bg = bg })
           -- the picker's counts ("12/403"): in the comments' quiet ink, not the faint one
           -- gruvbox gives them (close to the ground itself)
@@ -61,8 +61,8 @@ return {
           -- name in the text's ink, the stitch in edge2; the rows' glyphs vermilion, their
           -- names the text, their keys and the start's time muted
           local t = vim.o.background == "light"
-            and { kanji = "#9c3922", text = "#2b2721", stitch = "#b1a688", muted = "#5f594d" }
-            or { kanji = "#d15b3d", text = "#cfc3a6", stitch = "#3d372f", muted = "#877f6f" }
+            and { kanji = "#a84222", text = "#122625", stitch = "#d7bc8c", muted = "#586459" }
+            or { kanji = "#eb5324", text = "#d4bf9a", stitch = "#3c2f22", muted = "#9a8767" }
           vim.api.nvim_set_hl(0, "KawaKanji", { fg = t.kanji })
           vim.api.nvim_set_hl(0, "KawaName", { fg = t.text })
           vim.api.nvim_set_hl(0, "KawaStitch", { fg = t.stitch })
@@ -75,8 +75,8 @@ return {
           -- (accent_text), a warning yellow, a note asagi, a hint muted — the words alone, no
           -- ground behind them; the code they point at underlined in the same ink
           local d = vim.o.background == "light"
-            and { Error = "#9c3922", Warn = "#845b0f", Info = "#2f6e67", Hint = "#5f594d" }
-            or { Error = "#d15b3d", Warn = "#d29f45", Info = "#7fb8b0", Hint = "#877f6f" }
+            and { Error = "#a84222", Warn = "#986f2d", Info = "#00726a", Hint = "#586459" }
+            or { Error = "#eb5324", Warn = "#e2b540", Info = "#82c1b4", Hint = "#9a8767" }
           for k, c in pairs(d) do
             vim.api.nvim_set_hl(0, "Diagnostic" .. k, { fg = c })
             vim.api.nvim_set_hl(0, "DiagnosticSign" .. k, { fg = c })
@@ -99,8 +99,8 @@ return {
     "nvim-lualine/lualine.nvim",
     opts = function(_, opts)
       local P = {
-        dark = { ground = "#0f0e0c", bar = "#161411", key = "#1f1c18", text = "#cfc3a6", muted = "#877f6f", accent = "#d0583a", teal = "#7fb8b0", yellow = "#d29f45", blue = "#7f9dbd", red = "#d64b4b", on_accent = "#0f0e0c" },
-        light = { ground = "#e9e1cb", bar = "#dcd2b8", key = "#efe8d5", text = "#2b2721", muted = "#5f594d", accent = "#c0462a", teal = "#2f6e67", yellow = "#845b0f", blue = "#3f6185", red = "#a8342a", on_accent = "#fbf7ec" },
+        dark = { ground = "#181715", bar = "#1c1916", key = "#221e1a", text = "#d4bf9a", muted = "#9a8767", accent = "#eb5324", teal = "#82c1b4", yellow = "#e2b540", blue = "#a7d4e4", red = "#eb5324", on_accent = "#111314" },
+        light = { ground = "#e8e3c2", bar = "#ecdfb3", key = "#f8f3d8", text = "#122625", muted = "#586459", accent = "#a84222", teal = "#00726a", yellow = "#986f2d", blue = "#006eb8", red = "#a84222", on_accent = "#f8f3d8" },
       }
       local function theme()
         local p = P[vim.o.background] or P.dark

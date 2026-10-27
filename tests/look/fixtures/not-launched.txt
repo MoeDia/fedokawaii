@@ -29,6 +29,7 @@ gcc                             the compiler theme.sh builds dwl and the helpers
 make                            the build
 pkgconf-pkg-config              the build
 gtk3-devel                      the build
+libasan                         AddressSanitizer's runtime: dwl built with it for the checks (tools/hl-dwl.sh --asan)
 wayland-devel                   the build
 wayland-protocols-devel         the build
 libinput-devel                  the build
@@ -162,6 +163,13 @@ snapper                         snapshots: a timer, and the snapper command
 libdnf5-plugin-actions          dnf's snapshot hook
 grub-btrfs                      the snapshots in the boot menu
 podman                          Prowlarr's container
+libvirt-daemon-kvm              the virtual machines' engine (the games VM; the test VMs)
+virt-install                    makes a virtual machine (tools/vm-create.sh)
+edk2-ovmf                       a virtual machine's UEFI firmware
+swtpm                           a virtual machine's TPM (Windows 11)
+swtpm-tools                     swtpm's set-up
+passt                           a virtual machine's network
+qemu-img                        a virtual machine's disk images
 # ── games' parts ──
 gamescope                       a command games are started with
 mangohud                        the games' overlay
@@ -176,10 +184,12 @@ kawa-calendar                   a menu: the bar's date (Super+C)
 kawa-cell                       a part of the windows' pictures
 kawa-clipfiles                  files on the clipboard: yazi's Ctrl+C / Ctrl+V
 kawa-config                     a menu: Super+Shift+U, "change the desktop" in Super+U
+kawa-crashnote                  at login: says when the desktop crashed (autostart.sh)
 kawa-display                    the outputs' modes, at login
 kawa-downloads                  a menu: the bar's download mark
 kawa-drives                     a menu: the bar's drives, the drive's notice
 kawa-dwlstatus                  the bar's status
+kawa-foryou                     what only you can do: a notice at login and Super+U's first row
 kawa-game                       game mode: Steam's watch in the bar runs it
 kawa-glass                      a switch: Super+U → transparency
 kawa-help                       a menu: Super+/

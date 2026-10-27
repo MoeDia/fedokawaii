@@ -90,28 +90,28 @@ def contrast(a, b):
 def dark():
     p = {}
     p["lo"] = w("Black", "dark.lo")
-    p["ground"] = mix("Black", "Vandyke Brown", 0.08, "dark.ground")
-    p["surface"] = mix("Black", "Vandyke Brown", 0.15, "dark.surface")
+    p["ground"] = mix("Black", "Vandyke Brown", 0.13, "dark.ground")
+    p["surface"] = mix("Black", "Vandyke Brown", 0.20, "dark.surface")
     p["view"] = p["surface"]
     p["key"] = mix("Black", "Pale Raw Umber", 0.20, "dark.key")
     p["edge"] = mix("Black", "Pale Raw Umber", 0.32, "dark.edge")
     p["edge2"] = mix("Black", "Pale Raw Umber", 0.48, "dark.edge2")
     p["hi"] = mix("Black", "Pale Raw Umber", 0.62, "dark.hi")
-    p["faint"] = mix("Light Brownish Olive", "Black", 0.30, "dark.faint")
+    p["faint"] = mix("Light Brownish Olive", "Black", 0.22, "dark.faint")
     p["muted"] = mix("Light Brownish Olive", "Ecru", 0.40, "dark.muted")
     p["text"] = mix("Ecru", "Ivory Buff", 0.45, "dark.text")
     p["strong"] = mix("Ivory Buff", "Sulpher Yellow", 0.55, "dark.strong")
-    p["accent"] = w("Red Orange", "dark.accent")
-    p["accent_hi"] = mix("Red Orange", "Apricot Orange", 0.5, "dark.accent_hi")
+    p["accent"] = w("Jasper Red", "dark.accent")        # (Red Orange's fill held ink at 4.3 : 1 only)
+    p["accent_hi"] = mix("Jasper Red", "Apricot Orange", 0.5, "dark.accent_hi")
     p["accent_lo"] = w("Vandyke Red", "dark.accent_lo")
     p["accent_text"] = w("Jasper Red", "dark.accent_text")
-    p["text_on_accent"] = p["ground"]
+    p["text_on_accent"] = p["lo"]                 # (Wada's Black on the vermilion: 4.5 : 1 and over)
     p["lit"], p["lit_text"], p["lit_hi"], p["lit_lo"] = p["text"], p["ground"], p["strong"], p["muted"]
-    p["urgent_text"] = p["ground"]
-    p["asagi"] = w("Venice Green", "dark.asagi")
+    p["urgent_text"] = p["lo"]
+    p["asagi"] = mix("Venice Green", "Ecru", 0.25, "dark.asagi")
     p["flame"] = w("Apricot Orange", "dark.flame")
     p["gold"] = w("Isabella Color", "dark.gold")
-    p["red"], p["green"], p["yellow"] = w("Red Orange"), w("Rainette Green"), w("Yellow Ocher")
+    p["red"], p["green"], p["yellow"] = w("Jasper Red"), w("Rainette Green"), w("Yellow Ocher")
     p["blue"], p["purple"], p["teal"] = w("Salvia Blue"), w("Light Mauve"), w("Benzol Green")
     p["bred"], p["bgreen"], p["byellow"] = w("Coral Red"), w("Cobalt Green"), w("Naples Yellow")
     p["bblue"], p["bpurple"], p["bteal"] = w("Pale King's Blue"), w("Grayish Lavender - A"), w("Venice Green")
@@ -123,7 +123,7 @@ def dark():
 # ── the light theme: 天 the angel's — gold leaf on paper, a deep green ink, a softer seal ──────
 def light():
     p = {}
-    p["ground"] = mix("Sulpher Yellow", "Neutral Gray", 0.12, "light.ground")
+    p["ground"] = mix("Sulpher Yellow", "Neutral Gray", 0.20, "light.ground")
     p["surface"] = mix("Sulpher Yellow", "Isabella Color", 0.18, "light.surface")
     p["view"] = mix("Sulpher Yellow", "White", 0.25, "light.view")
     p["key"] = mix("Sulpher Yellow", "White", 0.35, "light.key")
@@ -187,29 +187,41 @@ def sheet(P, out):
     im.save(out)
 
 
-def main(argv):
+def palette():
+    """P (both themes' tokens), KAMI (the bar's washi ornaments), TILE (its paper), EDITOR (nvim's
+    extra inks) — what tools/build-themes.py writes every colour file from."""
     P = {"dark": dark(), "light": light()}
+    def rgba(h, a):
+        return tuple(int(h[i:i + 2], 16) for i in (0, 2, 4)) + (a,)
+    ink, umber = W["Black"], mix("Vandyke Brown", "Black", 0.45)
+    kami = {
+        "dark": dict(hair=rgba(P["dark"]["text"], 128), shadow=(rgba(ink, 170), rgba(ink, 80)), rule=P["dark"]["edge"],
+                     red=P["dark"]["accent"], gold=P["dark"]["gold"], rod=mix("Vandyke Brown", "Black", 0.1),
+                     rod_hi=mix("Pale Raw Umber", "Isabella Color", 0.3), rod_dk=mix("Black", "Vandyke Brown", 0.2),
+                     fibre_t=0.06, fibre_to="ffffff"),
+        "light": dict(hair=rgba(P["light"]["strong"], 215), shadow=(rgba(umber, 110), rgba(umber, 48)), rule=P["light"]["edge"],
+                      red=P["light"]["accent"], gold=P["light"]["gold"], rod=mix("Vandyke Brown", "Pale Raw Umber", 0.2),
+                      rod_hi=mix("Pale Raw Umber", "Isabella Color", 0.45), rod_dk=mix("Vandyke Brown", "Black", 0.4),
+                      fibre_t=0.6, fibre_to="ffffff"),
+    }
+    tile = {"dark": mix(P["dark"]["ground"], "Pale Raw Umber", 0.16), "light": mix("Sulpher Yellow", "White", 0.45)}
+    editor = dict(comment=mix("Light Brownish Olive", "Ecru", 0.15), paper2=mix("Ecru", "Isabella Color", 0.3),
+                  paper3=mix("Isabella Color", "Light Brownish Olive", 0.35), orange=w("Apricot Orange"),
+                  orange_deep=mix("Brick Red", "Apricot Orange", 0.25))
+    return P, kami, tile, editor
+
+
+def main(argv):
+    P, kami, tile, editor = palette()
     if "--table" in argv:
         table(P)
     if "--sheet" in argv:
         sheet(P, argv[argv.index("--sheet") + 1])
     if "--palette" in argv:
         out = argv[argv.index("--palette") + 1]
-        # (the bar's washi: the tile's paper and the ornaments, from the same swatches)
-        kami = {
-            "dark": dict(hair=(222, 210, 180, 128), shadow=((0, 0, 0, 170), (0, 0, 0, 80)), rule=P["dark"]["edge"],
-                         red=P["dark"]["accent"], gold=P["dark"]["gold"], rod=mix("Vandyke Brown", "Black", 0.1),
-                         rod_hi=mix("Pale Raw Umber", "Isabella Color", 0.3), rod_dk=mix("Black", "Vandyke Brown", 0.2),
-                         fibre_t=0.06, fibre_to="ffffff"),
-            "light": dict(hair=(28, 22, 16, 215), shadow=((40, 30, 20, 110), (40, 30, 20, 48)), rule=P["light"]["edge"],
-                          red=P["light"]["accent"], gold=P["light"]["gold"], rod=mix("Vandyke Brown", "Pale Raw Umber", 0.2),
-                          rod_hi=mix("Pale Raw Umber", "Isabella Color", 0.45), rod_dk=mix("Vandyke Brown", "Black", 0.4),
-                          fibre_t=0.6, fibre_to="ffffff"),
-        }
-        tile = {"dark": mix(P["dark"]["ground"], "Pale Raw Umber", 0.16), "light": mix("Sulpher Yellow", "White", 0.45)}
         with open(out, "w") as f:
             f.write("# generated by tools/wada-palette.py — every colour a Wada swatch or a mix of two\n")
-            f.write(f"P = {P!r}\nKAMI = {kami!r}\nTILE = {tile!r}\n")
+            f.write(f"P = {P!r}\nKAMI = {kami!r}\nTILE = {tile!r}\nEDITOR = {editor!r}\n")
         print(f"palette → {out}")
     return 0
 

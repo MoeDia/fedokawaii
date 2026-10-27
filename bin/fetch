@@ -20,7 +20,7 @@ set -u
 #    entry of each is its palette, letter=colour ─────────────────────────────────────
 # shellcheck disable=SC2034  # read through the nameref in picture()
 ART_neko=(
-  "O=2b2721 W=ece3cc w=cfc3a6 P=e8876d R=d0583a Y=e3b866 y=d29f45 K=2b2721"
+  "O=2d251e W=f1e1b4 w=d4bf9a P=f1713b R=eb5324 Y=fbe6a0 y=e2b540 K=2d251e"
   "..OO.........OO....."
   ".OPWO.......OWPO...."
   ".OPWWOOOOOOOWWPO.OO."
@@ -40,7 +40,7 @@ ART_neko=(
 )
 # shellcheck disable=SC2034  # read through the nameref in picture()
 ART_daruma=(
-  "O=2b2721 R=d0583a r=a8342a W=ece3cc w=cfc3a6 K=161411 Y=e3b866 y=d29f45"
+  "O=2d251e R=eb5324 r=a84222 W=f1e1b4 w=d4bf9a K=1c1916 Y=fbe6a0 y=e2b540"
   "......OOOOOOOO......"
   "....OORRRRRRRROO...."
   "...ORRRRRRRRRRRRO..."
@@ -60,7 +60,7 @@ ART_daruma=(
 )
 # shellcheck disable=SC2034  # read through the nameref in picture()
 ART_torii=(
-  "a=2b2721 b=6f5a8a c=942e25 d=c0462a e=d29f45 S=e3b866 K=161411 T=d0583a t=8a2f1c s=355270 z=7f9dbd m=5c4a72"
+  "a=2d251e b=66629c c=82241f d=a84222 e=e2b540 S=fbe6a0 K=1c1916 T=eb5324 t=82241f s=005b8d z=a7d4e4 m=4f4086"
   "aaaaaaaaaaaaaaaaaaaa"
   "aaaKaaaaaaaaaaaaKaaa"
   "bbbKKKKKKKKKKKKKKbbb"
@@ -80,7 +80,7 @@ ART_torii=(
 )
 # shellcheck disable=SC2034  # read through the nameref in picture()
 ART_pc=(
-  "H=ece3cc K=cfc3a6 S=b1a688 T=877f6f k=9d9278 L=a8b46f n=0f0e0c m=1f1c18 o=355270 u=d0583a v=c0462a w=ece3cc f=5f7fa0 F=3f6185 a=5e9c95 A=7fb8b0 O=2b2721"
+  "H=f1e1b4 K=d4bf9a S=d7bc8c T=9a8767 k=96865e L=96d1aa n=181715 m=221e1a o=005b8d u=eb5324 v=a84222 w=f1e1b4 f=97acc8 F=006eb8 a=00978d A=82c1b4 O=2d251e"
   ".OOOOOOOOOOOOOOOOOO."
   ".OHHHHHHHHHHHHHHHSO."
   ".OHKKKKKKKKKKKKKKSO."
@@ -100,7 +100,7 @@ ART_pc=(
 )
 # shellcheck disable=SC2034  # read through the nameref in picture()
 ART_fuji=(
-  "b=3f6185 c=7f9dbd p=e8876d y=e3b866 R=d0583a W=ece3cc w=cfc3a6 m=355270 a=5e9c95 s=275a55 z=7fb8b0"
+  "b=006eb8 c=a7d4e4 p=f1713b y=fbe6a0 R=eb5324 W=f1e1b4 w=d4bf9a m=005b8d a=00978d s=064f6e z=82c1b4"
   "bbbbbbbbbbbbbbbbbbbb"
   "bbbbbbbbbbbbbbbbbbbb"
   "bbbbbbbbbbbbbbbRRbbb"
@@ -120,7 +120,7 @@ ART_fuji=(
 )
 # shellcheck disable=SC2034  # read through the nameref in picture()
 ART_onigiri=(
-  "O=2b2721 W=ece3cc w=cfc3a6 K=2b2721 P=e8876d n=1f1c18 h=3d372f"
+  "O=2d251e W=f1e1b4 w=d4bf9a K=2d251e P=f1713b n=221e1a h=3c2f22"
   ".........OO........."
   "........OWWO........"
   ".......OWWWWO......."
@@ -140,7 +140,7 @@ ART_onigiri=(
 )
 # shellcheck disable=SC2034  # read through the nameref in picture()
 ART_chochin=(
-  "O=2b2721 K=161411 R=d0583a r=8a2f1c W=ece3cc k=2b2721 Y=e3b866 y=d29f45"
+  "O=2d251e K=1c1916 R=eb5324 r=82241f W=f1e1b4 k=2d251e Y=fbe6a0 y=e2b540"
   ".........OO........."
   ".........OO........."
   ".....OOOOOOOOOO....."
@@ -160,7 +160,7 @@ ART_chochin=(
 )
 # shellcheck disable=SC2034  # read through the nameref in picture()
 ART_cassette=(
-  "O=2b2721 B=3d372f b=2b2721 Y=e3b866 R=d0583a W=ece3cc w=cfc3a6 n=161411 T=877f6f"
+  "O=2d251e B=3c2f22 b=2d251e Y=fbe6a0 R=eb5324 W=f1e1b4 w=d4bf9a n=1c1916 T=9a8767"
   "...................."
   "OOOOOOOOOOOOOOOOOOOO"
   "OBBBBBBBBBBBBBBBBBBO"
@@ -180,7 +180,7 @@ ART_cassette=(
 )
 # shellcheck disable=SC2034  # read through the nameref in picture()
 ART_kitsune=(
-  "O=2b2721 W=ece3cc w=cfc3a6 R=d0583a r=a8342a K=161411 Y=e3b866"
+  "O=2d251e W=f1e1b4 w=d4bf9a R=eb5324 r=a84222 K=1c1916 Y=fbe6a0"
   ".OO..............OO."
   "ORRO............ORRO"
   "ORWRO..........ORWRO"
@@ -200,7 +200,7 @@ ART_kitsune=(
 )
 # shellcheck disable=SC2034  # read through the nameref in picture()
 ART_ramen=(
-  "O=2b2721 R=d0583a r=8a2f1c W=ece3cc E=ece3cc Y=e3b866 N=1f1c18 P=e8876d b=d29f45 g=8e9a5b G=a8b46f T=877f6f"
+  "O=2d251e R=eb5324 r=82241f W=f1e1b4 E=f1e1b4 Y=fbe6a0 N=221e1a P=f1713b b=e2b540 g=8fa071 G=96d1aa T=9a8767"
   "...................."
   ".....T....T....T...."
   "......T....T....T..."
