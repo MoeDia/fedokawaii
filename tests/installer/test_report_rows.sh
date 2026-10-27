@@ -189,11 +189,11 @@ stub ps "printf '%s\n' ' 90000 waybar' ' 3000 bash /h/.local/bin/kawa-mem' ' 250
 run "PERF-03 every session process's memory (RSS)"; eq "$RC" 0 "$OUT"; has "$OUT" "app"
 stub ps "printf '%s\n' ' 300000 waybar'"; run "PERF-03 every session process's memory (RSS)"; eq "$RC" 1; has "$OUT" "OVER"
 rm -f "$STUBS/ps"
-case_ "PERF-07: a module polling under 10 s fails (Steam's 3 s), signals and long intervals pass"
+case_ "PERF-07: a module polling under 10 s fails (one every 3 s), signals and long intervals pass"
 mkdir -p "$HOME/.config/waybar"
 printf '%s\n' '{ "custom/date": { "exec": "x", "interval": 60 }, "custom/mem": { "exec": "kawa-mem", "restart-interval": 5 },' '  // a comment' '  "custom/tag1": { "exec": "y", "signal": 8 }, }' >"$HOME/.config/waybar/config.jsonc"
 run "PERF-07 the bar's polling"; eq "$RC" 0 "$OUT"; has "$OUT" "60 timed runs an hour"
-printf '%s\n' '{ "custom/steam": { "exec": "kawa-steam --bar", "interval": 3 } }' >"$HOME/.config/waybar/config.jsonc"
+printf '%s\n' '{ "custom/poll": { "exec": "kawa-poll", "interval": 3 } }' >"$HOME/.config/waybar/config.jsonc"
 run "PERF-07 the bar's polling"; eq "$RC" 1; has "$OUT" "make it a signal"
 case_ "fedokawaii-latency (PERF-09): repeated, judged on p95 and the spread, worst first; nothing it lacks is guessed"
 L=$REPO/system/fedokawaii-latency

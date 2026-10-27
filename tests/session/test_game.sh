@@ -176,8 +176,8 @@ console.log([ask("com.redhat.tuned.switch_profile", {}, "you"), ask("com.redhat.
   eq "$out" "yes none yes none none none none" "profile switch and a held timer: the owner only; nothing else"
 }
 
-case_ "Steam's games: the bar's watch starts game mode once a game, ends it when none is left"
-w=$(sed -n '/^  --bar-watch)/,/^  --bar)/p' "$REPO/bin/kawa-steam")
+case_ "Steam's games: the session's watch (kawa-steam --watch) starts game mode once a game, ends it when none is left"
+w=$(sed -n '/^  --watch)/,/^  --warm)/p' "$REPO/bin/kawa-steam")
 has "$w" 'kawa-game start steam "$k" &'; has "$w" 'kawa-game end &'
 has "$w" '<"$XDG_RUNTIME_DIR/kawa-game.on"'
 

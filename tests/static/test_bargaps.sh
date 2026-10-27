@@ -61,7 +61,7 @@ bad=$(grep -nE '\$ICON_(VOL_[0-4]|VOL_MUTE|BRI_[0-4]|MEMORY|USB|HOURGLASS)\b[^"]
 for f in kawa-volume kawa-brightness kawa-mem kawa-drives kawa-timer kawa-weather; do
   grep -q 'ICON_BAR_' "$REPO/bin/$f" || _no "$f draws no ICON_BAR_"
 done
-grep -q 'bar_download' "$REPO/bin/kawa-downloads" && _ok || _no "kawa-downloads draws its icon with a space"
+grep -q 'ic[f"bar_dl_{frame}"]' "$REPO/bin/kawa-downloads" && _ok || _no "kawa-downloads draws its icon with a space"
 
 CSS=$REPO/configs/home/.config/waybar/style.css
 case_ "no module of the bar holds a fixed width"
@@ -209,6 +209,7 @@ want("…and the time's box as wide as at any other hour", t1[1][3] + t1[0][1], 
 want("the left wing → the date", IR("eq-0") + box("#custom-wing-left")[0][1] + air("2")[0], 14)
 want("the time → the right wing", air("M")[1] + box("#custom-wing-right")[0][3] + IL("eq-0"), 14)
 want("the left rod → the left wing's ink", 2 + box("#when")[0][3] + box("#custom-wing-left")[1][3] + IL("eq-0"), 15)
+want("the right wing's ink → the right rod", IR("eq-0") + box("#custom-wing-right")[1][1] + box("#when")[0][1], 8)
 print("\n".join(bad))
 EOF
 )

@@ -143,15 +143,16 @@ case $item in
          else printf '{"text":"%s"%s}\n' "${k[u - 1]}" "$cls"; fi ;;
   mode)  # what is held back: the quiet bell while "do not disturb" is on (its end in the
          # tooltip when it is timed: kawa-quick dnd), the monitor while a screen is shared;
-         # nothing otherwise (hidden). A click: do not disturb's own dropdown
+         # nothing otherwise (hidden). A click: do not disturb's own dropdown. Each an icon
+         # alone (14 px, quick settings' picture size), its ink from the pen: no air either side
          case $(makoctl mode 2>/dev/null) in
-           *sharing*)        lit_json "{\"text\":\"$ICON_BAR_MONITOR\",\"class\":\"share\",\"tooltip\":\"sharing screen\"}" ;;
+           *sharing*)        lit_json "{\"text\":\"$ICON_SHARE_BAR\",\"class\":\"share\",\"tooltip\":\"sharing screen\"}" ;;
            *do-not-disturb*) tip="do not disturb"
                              if read -r end _ 2>/dev/null <"${XDG_RUNTIME_DIR:-/run/user/$UID}/kawa-dnd.until" \
                                 && [[ $end =~ ^[0-9]+$ ]] && ((end > EPOCHSECONDS)); then
                                printf -v tip 'do not disturb until %(%-H:%M)T' "$end"
                              fi
-                             lit_json "{\"text\":\"$ICON_BAR_BELL_OFF\",\"class\":\"dnd\",\"tooltip\":\"$tip\"}" ;;
+                             lit_json "{\"text\":\"$ICON_TILE_BELL_OFF_BAR\",\"class\":\"dnd\",\"tooltip\":\"$tip\"}" ;;
            *)                echo '{"text":""}' ;;
          esac ;;
   *)     usage ;;

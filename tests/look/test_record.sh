@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # tests/look/test_record.sh — kawa-record: Super+Shift+R asks whole screen or a region, sound
-# or none, records with wf-recorder on the graphics card (H.264 through VA-API), shows 録 and
+# or none, records with wf-recorder on the graphics card (H.264 through VA-API), shows its red dot and
 # the time in the bar while it runs, and the same key (or the mark's click) stops it: the file
 # in ~/Videos/Recordings, its path on the clipboard, a notice whose click opens it.
 # wf-recorder is a stand-in that keeps its arguments, writes a file and ends on SIGINT.
@@ -53,8 +53,9 @@ case_ "whole screen with sound: H.264 on the card, the default output's monitor,
 until_ '[[ -s $TMP/wf.args ]]'
 a=$(wf_args); has "$a" $'-c\nh264_vaapi'; has "$a" "--audio=@DEFAULT_MONITOR@"; lacks "$a" "-g"; lacks "$a" "-o"
 [[ $a =~ -f$'\n'"$VID"/[0-9]{4}-[0-9]{2}-[0-9]{2}_[0-9]{2}-[0-9]{2}-[0-9]{2}\.mp4 ]] && _ok || _no "file: $a"
-case_ "while it runs: the bar's 録 and the time, lit; the key again stops it"
-b=$(kawa-record bar); has "$b" '"text":"録 00:0'; has "$b" '"class":"rec"'
+case_ "while it runs: the bar's red dot (whole on even seconds, its ring on odd ones: one width) and the time; the key again stops it"
+. "$REPO/configs/home/.config/fedokawaii/icons.sh"
+b=$(kawa-record bar); [[ $b == "{\"text\":\"$ICON_BAR_REC_0"00:0* || $b == "{\"text\":\"$ICON_BAR_REC_1"00:0* ]] && _ok || _no "the dot and the time: $b"; has "$b" '"class":"rec"'
 pid=$(cut -d' ' -f1 <"$XDG_RUNTIME_DIR/kawa-record")
 rc 0 kawa-record
 until_ '! kill -0 '"$pid"' 2>/dev/null' && _ok || _no "wf-recorder still runs"
@@ -93,17 +94,17 @@ setup; rc 2 kawa-record frob; rc 2 kawa-record run whole loud; rc 2 kawa-record 
 case_ "stop with nothing running: a notice says so at once; the bar stays empty"
 setup; rc 0 kawa-record stop; has "$(args_of notify-send 1)" "nothing is being recorded"; eq "$(kawa-record bar)" '{"text":""}'
 # ── pause: parts, 3-2-1 on the bar, one file ─────────────────────────────────────────────
-case_ "pause: wf-recorder ends its part, the bar says 録 停 and the time, muted; nothing records"
+case_ "pause: wf-recorder ends its part, the bar shows the pause mark and the time, muted; nothing records"
 setup; argv ffmpeg 'for a; do o=$a; done; echo joined >"$o"'
 recording whole silent; w1=$(pgrep -f -n "$STUBS/wf-recorder")
 rc 0 kawa-record pause
 until_ '[[ $(kawa-record bar) == *paused* ]]' && _ok || _no "not paused: $(kawa-record bar)"
-has "$(kawa-record bar)" '"text":"録 停 00:0'
+has "$(kawa-record bar)" "\"text\":\"${ICON_BAR_PAUSE}00:0"
 until_ '! kill -0 '"$w1"' 2>/dev/null' && _ok || _no "wf-recorder still records while paused"
 case_ "pause again: 3, 2, 1 on the bar (a second each), then a new part records"
 rc 0 kawa-record pause
-until_ '[[ $(kawa-record bar) == *\"録\ 3\"* ]]' && _ok || _no "no 3: $(kawa-record bar)"
-until_ '[[ $(kawa-record bar) == *\"録\ 1\"* ]]' && _ok || _no "no 1"
+until_ '[[ $(kawa-record bar) == *"\"${ICON_BAR_REC_0}3\""* ]]' && _ok || _no "no 3: $(kawa-record bar)"
+until_ '[[ $(kawa-record bar) == *"\"${ICON_BAR_REC_0}1\""* ]]' && _ok || _no "no 1"
 until_ '[[ $(kawa-record bar) == *\"class\":\"rec\"* ]]' && _ok || _no "not on again"
 until_ '[[ $(wf_args) == *"$VID/."* ]]'; has "$(wf_args)" "$VID/."
 case_ "stopped after a pause: the parts joined by ffmpeg as they are (concat, no re-encode), only the file left"

@@ -11,6 +11,14 @@ mark (hidden while nothing comes in), its menu, and one notice as each download 
     kawa-downloads bar       the bar's mark (waybar JSON): the percent of them all (bytes
                              come in over bytes to come, every source together), the mark
                              alone while no total is known yet; empty (hidden) while idle
+    kawa-downloads bar --follow
+                             the same, long-running — what the bar runs: while anything
+                             downloads the mark moves (its arrow dropping into the tray, 6
+                             frames, 8 a second: design-system §13) and the percent is looked
+                             at every 2 s; idle it is hidden and asleep on a fifo of its own
+                             ($XDG_RUNTIME_DIR/kawa-bar.wake.PID: kawa-dwlstatus --poke and
+                             --wake — the watcher's word and its menu's — wake it); lit
+                             ("active") while its menu is open (kawa-drop.open)
     kawa-downloads watch     the session's watcher (autostart): woken by the kernel (inotify)
                              as a download starts or ends, it pokes the mark (SIGRTMIN+21) and
                              says each finished one; while any runs it looks every 2 s, idle
@@ -195,14 +203,78 @@ def percent(items):
     return int(100 * sum(d for d, _ in known) / sum(t for _, t in known))
 
 
-def bar_json(items, ic):
+def bar_json(items, ic, frame=0, lit=False):
+    """The mark: its frame (0: at rest), the percent after it, "active" while its menu is open."""
     if not items:
         return '{"text":""}'
     p = percent(items)
-    # (icons.sh's bar_download, no space, before a value: exactly 8 px from its ink to the value's)
-    text = ic["download"] if p is None else f'{ic["bar_download"]}{p}<span fgalpha=\'55%\'>%</span>'
-    cls = ["downloading", "bare"] if p is None else "downloading"
-    return json.dumps({"text": text, "class": cls}, ensure_ascii=False)
+    # (icons.sh's bar_dl_N, no space, before a value: exactly 8 px from its ink to the value's)
+    text = ic[f"dl_{frame}"] if p is None else f'{ic[f"bar_dl_{frame}"]}{p}<span fgalpha=\'55%\'>%</span>'
+    cls = ["downloading", "bare"] if p is None else ["downloading"]
+    if lit:
+        cls.append("active")
+    return json.dumps({"text": text, "class": cls if len(cls) > 1 else cls[0]}, ensure_ascii=False)
+
+
+def lit():
+    """Its menu on screen: kawa-drop.open names this script, its pid alive (kawa-bar's bar_lit)."""
+    try:
+        with open(os.path.join(RUN, "kawa-drop.open"), encoding="utf-8") as f:
+            pid, _, who = f.read().strip().partition(" ")
+        os.kill(int(pid), 0)
+        return who == "kawa-downloads"
+    except (OSError, ValueError):
+        return False
+
+
+FRAMES, FPS = 6, 8                                           # the mark's moving arrow (dl-0 … dl-5)
+
+
+def follow():
+    """The bar's module, long-running (see the doc): a line each time the mark changes."""
+    wake = os.path.join(RUN, f"kawa-bar.wake.{os.getpid()}")
+    try:
+        os.mkfifo(wake, 0o600)
+        fd = os.open(wake, os.O_RDWR | os.O_NONBLOCK)
+    except OSError:
+        return 1
+    def bye(*_):
+        try:
+            os.unlink(wake)
+        except OSError:
+            pass
+        os._exit(0)
+    for sig in (signal.SIGTERM, signal.SIGHUP, signal.SIGINT):
+        signal.signal(sig, bye)
+    ic, folder, libs = icons(), brave_folder(), steam_libraries()
+    items, looked, frame, shown, woke, beat = [], 0.0, 0, None, True, time.monotonic()
+    try:
+        while True:
+            now = time.monotonic()
+            if woke or now - looked >= BUSY:
+                items, looked, woke = scan(folder, libs), now, False
+            line = bar_json(items, ic, frame if items else 0, lit())
+            if line != shown:
+                print(line, flush=True)
+                shown = line
+            # moving: the next frame on the beat (every 1/8 s from the first, never drifting);
+            # idle: asleep until a word comes
+            if items:
+                beat = max(beat + 1 / FPS, time.monotonic() - 1 / FPS)   # (a late beat: no burst)
+            ready, _, _ = select.select([fd], [], [], max(0.0, beat - time.monotonic()) if items else None)
+            if ready:
+                try:
+                    os.read(fd, 4096)
+                except OSError:
+                    pass
+                woke = True
+            elif items:
+                frame = (frame + 1) % FRAMES
+            if not items:
+                beat = time.monotonic()
+    except (BrokenPipeError, KeyboardInterrupt):
+        pass
+    bye()
 
 
 def short(name):
@@ -357,8 +429,10 @@ def main(a):
             print("\t".join(str(x) for x in i))
         return 0
     if cmd == "bar" and len(a) == 1:
-        print(bar_json(scan(brave_folder(), steam_libraries()), icons()))
+        print(bar_json(scan(brave_folder(), steam_libraries()), icons(), 0, lit()))
         return 0
+    if cmd == "bar" and a[1:] == ["--follow"]:
+        return follow()
     if cmd == "watch" and len(a) == 1:
         return watch()
     if cmd == "notice" and len(a) == 5:
@@ -366,7 +440,7 @@ def main(a):
     if cmd == "open" and len(a) == 3:
         open_it(a[1], a[2])
         return 0
-    print("usage: kawa-downloads [menu|list|bar|watch|notice SOURCE NAME BYTES WHERE|open SOURCE WHERE]"
+    print("usage: kawa-downloads [menu|list|bar [--follow]|watch|notice SOURCE NAME BYTES WHERE|open SOURCE WHERE]"
           " (kawa-downloads --help)", file=sys.stderr)
     return 2
 

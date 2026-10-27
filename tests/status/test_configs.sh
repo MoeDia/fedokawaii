@@ -21,10 +21,10 @@ EOF
 case_ "cava.conf parses, every section once"
 python3 -I -c 'import configparser,sys; c=configparser.ConfigParser(comment_prefixes=(";","#"),strict=True); c.read(sys.argv[1]); print(" ".join(c.sections()))' "$CAVA" >"$TMP/sections" 2>&1
 eq "$(cat "$TMP/sections")" "general input output smoothing"
-case_ "cava.conf: the frames kawa-nowplaying reads — 16 bands, 0–12 each, ';' apart, a newline after each"
+case_ "cava.conf: the frames kawa-nowplaying reads — 16 bands, 0–9 each, ';' apart, a newline after each"
 eq "$(ini general bars)" 16
 eq "$(ini output method)" raw; eq "$(ini output raw_target)" /dev/stdout; eq "$(ini output data_format)" ascii
-eq "$(ini output ascii_max_range)" 12 "thirteen heights, a pixel each: eq-0 … eq-12"
+eq "$(ini output ascii_max_range)" 9 "ten heights, a pixel each, the capitals' 10 at most: eq-0 … eq-9"
 eq "$(ini general sleep_timer)" 0 "never asleep: its sleep looks for sound once a second (kawa-nowplaying ends it instead)"
 eq "$(ini output bar_delimiter)" 59 "';' is 59"; eq "$(ini output frame_delimiter)" 10 "a newline"
 eq "$(ini output channels)" stereo "8 bands a side, mirrored"

@@ -125,14 +125,15 @@ button, button:hover, button:active, button:checked { background: none; box-shad
 #custom-wing-left, #custom-date, #custom-day, #custom-time, #custom-wing-right {
   padding: 3px 0 3px 0; margin: 0; background: none; border: none;
 }
-#custom-wing-left  { margin-left: -1px; padding-right: 13px; }   /* (its columns' air: 1 px either side) */
+#custom-wing-left  { margin-left: -2px; padding-right: 12px; }   /* (its columns' air: 2 px either side) */
 #custom-date       { padding-right: 13px; }                       /* (the year's last figure: 1 px of air) */
 #custom-day        { padding-right: 13px; }                       /* (火 水 木 金 土: none before, 1 after) */
 #custom-day.mon    { margin-left: -1px; padding-right: 12px; }    /* (月: 1 before, 2 after) */
 #custom-day.sun    { margin-left: -3px; padding-right: 12px; }    /* (日: 3 before, 2 after) */
 #custom-time.l1    { margin-left: -1px; padding-right: 1px; }     /* (10–12 o'clock: the 1's air; the
                                                                      same width, so nothing moves) */
-#custom-wing-right { padding-left: 12px; }                        /* (M's air and the column's) */
+#custom-wing-right { padding-left: 11px; margin-right: -1px; }    /* (M's air and the column's; its last
+                                                                     column's 2 px of air, not M's 1) */
 
 /* ── the right: what the computer is doing, a tile each · the cat ──────────────────── */
 #custom-weather { padding-right: 6px; }   /* (° has 2 px of air) */

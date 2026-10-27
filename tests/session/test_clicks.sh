@@ -33,6 +33,9 @@ for m, v in c.items():
 
 case_ "the bar has its clicks (the list is read, not empty)"
 (( $(wc -l <"$TMP/clicks") >= 30 )) && _ok || _no "only $(wc -l <"$TMP/clicks") clicks found in config.jsonc"
+# dwl's fifo (the keyboard tile's click, kawa-tag kb next): a line read from it is what happens
+mkfifo "$XDG_RUNTIME_DIR/dwl-warm"
+( exec 3<>"$XDG_RUNTIME_DIR/dwl-warm"; while IFS= read -r l <&3; do echo "dwl-${l// /-} $(date +%s%N)" >>"$TMP/acts"; done ) & BG_PIDS+=($!)
 case_ "each click and scroll: something happens within 900 ms, with every slow service a second behind"
 while IFS=$'\t' read -r mod ev cmd; do
   : >"$TMP/acts"; rm -f "$XDG_RUNTIME_DIR"/kawa-menu-* "$XDG_RUNTIME_DIR"/kawa-term-* 2>/dev/null

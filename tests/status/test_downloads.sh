@@ -64,7 +64,7 @@ steam_game 774361 Blasphemous 1600 1600; eq "$(kawa-downloads list)" ""
 # ── the mark ─────────────────────────────────────────────────────────────────────────────
 case_ "the mark: the percent of all, bytes over bytes (no count, no sizes); the mark alone while no total is known; a job of any name counts"
 world; steam_game 1 Hades 400 1600
-I=$(. "$HOME/.config/fedokawaii/icons.sh"; printf %s "$ICON_BAR_DOWNLOAD")
+I=$(. "$HOME/.config/fedokawaii/icons.sh"; printf %s "$ICON_BAR_DL_0")   # (at rest: the arrow's first frame)
 eq "$(mark)" '{"text": "'"$I"'25<span fgalpha='"'"'55%'"'"'>%</span>", "class": "downloading"}'
 : >"$D/a.crdownload"; brave_db "$D/a.crdownload" "$D/a" 0
 out=$(mark); has "$out" "\"$I""25<span"; lacks "$out" count
@@ -73,9 +73,40 @@ printf 'a.zip\t1600\t1600\t/tmp/a.zip\n' >"$XDG_RUNTIME_DIR/kawa-downloads/pack.
 has "$(mark)" "\"$I""62<span"
 rm -f "$XDG_RUNTIME_DIR/kawa-downloads/pack.$job"; world; : >"$D/b.crdownload"
 has "$(mark)" '"bare"'
-case_ "…through kawa-bar: lit while its menu is open (its button's marker)"
+case_ "…lit while its menu is open (its button's marker, its pid alive)"
 sleep 600 & p=$!; on_exit "kill $p 2>/dev/null"; printf '%s kawa-downloads\n' "$p" >"$XDG_RUNTIME_DIR/kawa-drop.open"
-has "$(kawa-bar downloads -- kawa-downloads bar)" '"active"'
+has "$(mark)" '"active"'
+printf '%s kawa-weather\n' "$p" >"$XDG_RUNTIME_DIR/kawa-drop.open"; lacks "$(mark)" '"active"' "another script's menu: not lit"
+rm -f "$XDG_RUNTIME_DIR/kawa-drop.open"
+
+case_ "bar --follow (what the bar runs): while anything downloads the arrow drops into its tray — six frames, 8 a second, each its own glyph; the percent beside it"
+world; steam_game 1 Hades 400 1600
+. "$HOME/.config/fedokawaii/icons.sh"
+kawa-downloads bar --follow >"$TMP/follow" & f=$!; on_exit "kill $f 2>/dev/null"
+sleep 1.2
+n=$(grep -c . "$TMP/follow"); ((n >= 7 && n <= 12)) && _ok || _no "$n lines in 1.2 s (8 a second: about 9)"
+frames=$(python3 -I -c 'import json, sys
+for l in open(sys.argv[1]): print(json.loads(l)["text"][0])' "$TMP/follow" | sort -u | wc -l)
+eq "$frames" 6 "all six frames shown"
+has "$(head -n1 "$TMP/follow")" "\"$ICON_BAR_DL_0""25<span" "the first at rest, then the percent"
+case_ "…the files looked at every 2 s while moving (not 8 times a second): the percent follows"
+steam_game 1 Hades 800 1600; sleep 2.4
+has "$(tail -n1 "$TMP/follow")" '50<span' "the new percent within 2 s"
+case_ "…idle: hidden, and asleep — not a line more, nothing done (a select on its fifo)"
+rm -rf "$L/downloading/1" "$L/appmanifest_1.acf"; sleep 2.4
+eq "$(tail -n1 "$TMP/follow")" '{"text":""}' "hidden"
+c1=$(grep -c . "$TMP/follow"); sleep 1.5; eq "$(grep -c . "$TMP/follow")" "$c1" "no line while idle"
+eq "$(awk '{print $3}' "/proc/$f/stat")" S "asleep (S)"
+case_ "…woken by kawa-dwlstatus (the watcher's poke, a menu's wake): a download that starts shows at once"
+w=$(ls "$XDG_RUNTIME_DIR"/kawa-bar.wake.* 2>/dev/null); eq "$w" "$XDG_RUNTIME_DIR/kawa-bar.wake.$f" "its fifo, named by its pid"
+steam_game 2 Celeste 100 400; printf '\n' 1<>"$w"; sleep 0.4
+has "$(tail -n1 "$TMP/follow")" '25<span' "shown within 0.4 s of the word"
+case_ "…lit as its menu opens (woken: kawa-panel wakes the bar's long-running modules)"
+sleep 600 & m=$!; on_exit "kill $m 2>/dev/null"; printf '%s kawa-downloads\n' "$m" >"$XDG_RUNTIME_DIR/kawa-drop.open"; printf '\n' 1<>"$w"; sleep 0.4
+has "$(tail -n1 "$TMP/follow")" '"active"'
+case_ "…ended (waybar stops it): its fifo taken away with it"
+kill "$f"; wait "$f" 2>/dev/null; [[ ! -e $w ]] && _ok || _no "the fifo left behind"
+rm -f "$XDG_RUNTIME_DIR/kawa-drop.open"
 
 # ── the menu ─────────────────────────────────────────────────────────────────────────────
 case_ "the menu: downloads under its arrow, a row each — its glyph, its name (a torrent's dots as spaces), how much of how much, the percent"

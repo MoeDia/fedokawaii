@@ -5,12 +5,14 @@
 #
 #   kawa-record          not recording: a menu under the bar — whole screen or a region, sound
 #                        or none — then it starts. Recording: it stops (the same key)
-#   kawa-record stop     the recording stopped (a click on the bar's 録 mark)
+#   kawa-record stop     the recording stopped (a click on the bar's recording tile)
 #   kawa-record pause    paused (Super+Shift+P), or — paused — on again after a 3-2-1 count
 #                        on the bar; the parts are one file when it stops (ffmpeg, no re-encode)
-#   kawa-record bar      the bar's module (waybar JSON): 録 and the time gone by, vermilion,
-#                        while one runs; 録 停 and the time, muted, while paused; 録 3, 2, 1
-#                        before it records again; nothing (hidden) otherwise
+#   kawa-record bar      the bar's module (waybar JSON): the red dot — whole on the even
+#                        seconds, its ring on the odd ones (it is poked each second) — and the
+#                        time gone by, vermilion, while one runs; the pause mark and the time,
+#                        muted, while paused; the dot and 3, 2, 1 before it records again;
+#                        nothing (hidden) otherwise
 #   kawa-record run whole|region sound|silent [GEOMETRY|MONITOR]
 #                        the recording itself, in a session of its own (what the menu starts)
 #
@@ -51,10 +53,13 @@ clock() {   # clock SECONDS → 00:12 · 59:59 · 1:02:03 (as the timer beside t
 case ${1:-} in
   bar)
     if read -r _ s f m < <(running); then
+      # shellcheck source=/dev/null
+      . "$HOME/.config/fedokawaii/icons.sh"
+      dot=$ICON_BAR_REC_0; ((EPOCHSECONDS % 2)) && dot=$ICON_BAR_REC_1
       case $m in
-        rec)    printf '{"text":"録 %s","class":"rec"}\n' "$(clock $((EPOCHSECONDS - s)))" ;;
-        paused) printf '{"text":"録 停 %s","class":"paused"}\n' "$(clock "$s")" ;;
-        *)      printf '{"text":"録 %s","class":"count"}\n' "$m" ;;
+        rec)    printf '{"text":"%s%s","class":"rec"}\n' "$dot" "$(clock $((EPOCHSECONDS - s)))" ;;
+        paused) printf '{"text":"%s%s","class":"paused"}\n' "$ICON_BAR_PAUSE" "$(clock "$s")" ;;
+        *)      printf '{"text":"%s%s","class":"count"}\n' "$ICON_BAR_REC_0" "$m" ;;
       esac
     else echo '{"text":""}'; fi
     exit 0 ;;

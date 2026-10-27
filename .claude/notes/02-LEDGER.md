@@ -597,6 +597,53 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   installed (old) bar: rows 0+2 2+1 3+24, x 5, 1915. ASan headless run of the new dwl: no error.
   Tests: test_bargaps rewritten for 27 rows (5/0), test_bar 252/0, test_dwlstatus 171/0, test_tag
   78/0 (+ kb next), test_timer 79/0, test_design_doc 35/0 (bar in BUILT), test_panel 481/0.
+- r27-14b (T14, the bar's moving and owner items — committed with this line; applied 11:36, the
+  session restarted onto the new dwl at 11:37 via greetd's initial_session, no password; nothing
+  unsaved: the notes' nvim had 0 changed buffers) The mode tile an icon alone with no air of its
+  own (it carried ICON_BAR_*'s 8 px for a value it never has): the quiet bell is quick settings'
+  14 px picture (tile-bell-off), sharing a new 14 px monitor (share). Recording: 録 → the red dot,
+  whole on even seconds and its ring on odd ones (kawa-record is poked each second: no process
+  for it), 停 → the pause mark; the countdown beside the dot. What plays: a television with its
+  antenna for a video (tv-0…3, 6 a second: every 10 of cava's 60 frames while it sounds) or the
+  cassette (5 a second), still at its first frame while paused (no pause sign), the title, a red
+  rule (np-rule: 1 × 10 on the capitals, 8 px either side), the artist or channel faint. Video or
+  sound: Brave's MPRIS has no address and its picture is a PNG of its own (Chromium's
+  system_media_controls_linux.cc sets title, artist, album, length, trackid and artUrl = a
+  file:// temp PNG — read 27 Oct), so the picture's shape decides: wider than 5 : 4 a video, a
+  square sleeve sound; mpv by its file's name; no picture: sound (one od per track, never per
+  frame). The wings in our red: 10 heights 1–10 px on the capitals' rows (eq-0…9, 2 px wide, 4
+  apart; cava ascii_max_range 9), inked from accent_lo to accent (colors.sh C_WING, built by
+  build-themes). Downloads: the arrow dropping into its tray (dl-0…5, frame 0 = the old icon),
+  kawa-downloads bar --follow long-running — 8 frames a second while anything downloads (line
+  times: 125.0 ms apart, measured), the files looked at every 2 s, hidden and asleep on its
+  wake fifo when idle (state S, no line), woken by kawa-dwlstatus (the watcher's poke, a menu's
+  wake), lit by its menu's marker. Weather's sun and brightness' bulb were already two pictures
+  (the owner's item holds: checked in the live shot, 33° under the sun, 0 % beside the bulb).
+  The active title's "lighter weight": Sumi UI is one weight of 1 px strokes (T10) — nothing
+  heavier left to lighten (checked in the shots).
+  Measured: headless (tools/kit.sh play) the arrow's six frames in order 0→5→0 in 24 shots;
+  the wings fed through their fifos: rod→wing 15, wing→date 14, date→kanji 14, kanji→time 14,
+  time→wing 15 at 11 o'clock (its 1's air: the designed hour case), wing→rod 8, the kanji still
+  on x 953–965; live after the restart: a tiled foot's border on rows 33–34, columns 8–9 and
+  1910–1911, bottom 1070–1071 — the bar's outer hairlines and the windows' 8 px; the critical
+  notice's frame x 1502–1911 from y 33; kawa-tag kb next → AR (blue), again → US (kb.json).
+  Tests: test_record 62/0, test_downloads 52/0 (+ follow: frames, 2 s looks, idle sleep, wake,
+  lit, its fifo gone with it), test_bar 252/0, test_bargaps 5/0 (wings' air), test_nowplaying
+  (rewritten for the label, the picture's kind, the 10 red heights — by a subagent, checked).
+  Steam's tile went with the bar's Steam items, but its watch also ran game mode for Steam's
+  games (kawa-game start/end): kept, as kawa-steam --watch from autostart (keep: restarted if
+  it dies), printing nothing, its wait a fifo of its own — so gaming on this PC is no worse
+  until T35 moves it into its VM; --bar, --bar-watch, ingame() gone; the health report's RES-03
+  (kawa-downloads bar --follow is a long-running child of waybar now), BAR-11 (a vermilion
+  tile's lit picture), BAR-25, PERF-08 follow. The subagent's review of kawa-nowplaying found
+  three real faults, fixed: a new track was told by player + title + picture (an mpv song, then
+  a video of the same name, kept the cassette) → its address counts; any file's bytes 16–23 were
+  read as a size (a wide WebP gave the cassette or the television at random) → only a PNG's
+  (signature, IHDR); the picture's frame carried over between tracks → from frame 0. test_steam
+  61/0, test_report_rows 268/0, test_nowplaying 204/0, test_configs 65/0 (cava 0–9), test_clicks
+  37/0 (+ the keyboard tile's click, read from a stand-in fifo), test_dwl_anim 28/0 (outergappx 8).
+  Seen, for T38: the bar's brightness reads 0 % in every shot today — the LG's own setting or a
+  DDC read to check.
 - r27-33 (T29, findings 04:00 — not fixed yet) Prowlarr: on demand by design (kawa-prowlarr: up while
   torrra searches, asleep 30 min after) — "inactive" is normal. /api/v1/health: 0 now. Its own log
   (~/.config/prowlarr/logs) over 8 days: Warn AllowedHostsCheck "Allowed Hosts is not configured"

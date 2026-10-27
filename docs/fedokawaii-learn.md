@@ -477,20 +477,18 @@ Keep the help sheet (**Super+/**) a key away; write down the three keys you look
 | Part | Shows | Click |
 |---|---|---|
 | the torii ⛩ | | the launcher |
-| workspaces 一 二 三 … | the desks; 四–九 only while they hold a window | go there |
-| the layout icon | spiral, columns or floating | switch spiral ⇄ columns |
-| the title | the focused window | |
-| date · day · time | in the middle, on a hanging scroll: `Wed 21 Oct`, the day as a kanji in vermilion (月 Monday … 日 Sunday), the time to the second | the calendar; the time: a timer |
-| the wings | while music plays, its sound inside the scroll either side of the clock: thin columns, the left channel left, the right right | play/pause |
-| now playing | the first tile on the right: a turning cassette, the title, the artist quieter | play/pause; right: next |
+| workspaces 一 二 三 … | the desks; 四–九 only while they hold a window; the one you are on stamped with a red seal | go there |
+| the layout's mark and the title | one tile: spiral, columns or floating, then the focused window's name | the mark: switch spiral ⇄ columns |
+| date · day · time | in the middle, on a hanging scroll: `27/10/2026` with red slashes, the day as a kanji in vermilion (月 Monday … 日 Sunday) on the screen's middle, the time to the second | the calendar; the time: a timer |
+| the wings | while music plays, its sound inside the scroll either side of the clock: red columns rising, the left channel left, the right right | play/pause |
+| now playing | the first tile on the right: a television with its antenna for a video, a cassette for music — moving while it sounds, still while paused —, the title, a red rule, the channel or artist quieter | play/pause; right: next |
 | a timer | while one runs: the time left (a stopwatch: the time gone by) | the timer menu |
 | the quiet bell, or the monitor | do-not-disturb on · your screen is being shared | the bell: off, for an hour, until the morning, on |
 | the drive mark | a USB stick, disk or SD card is plugged in | open or eject it |
-| the download mark | something is downloading: the percent of all of it | the downloads centre (chapter 7) |
-| Steam's gamepad | while Steam runs | Steam |
-| the keyboard | `US` or `AR`, the layout you type in | |
+| the download mark | something is downloading: its arrow dropping into the tray, the percent of all of it | the downloads centre (chapter 7) |
+| the keyboard | `US` (red) or `AR` (blue), the layout you type in | the other layout |
 | memory | how much the programs use (`5.2G`); vermilion past 85 % | btop |
-| volume · brightness | speaker and sun, with the level | the sound panel · the brightness slider |
+| volume · brightness | speaker and bulb, with the level | the sound panel · the brightness slider |
 | weather | the sky and the temperature where you are | |
 | the cat | quick settings | quick settings |
 
@@ -600,13 +598,14 @@ In satty: **z** an arrow, **r** a rectangle, **t** text, **m** numbered markers,
 ## 6.3 Recording the screen
 
 **Super+Shift+R** opens a small menu: the whole screen or a region, with the desktop's sound or
-without. Choose, and it records: **録** and the time gone by stand in the bar, in vermilion.
-**Super+Shift+R** again — or a click on 録 — stops it. A notice says where the file is (a click
-plays it), and its path is on the clipboard.
+without. Choose, and it records: a red dot, pulsing once a second, and the time gone by stand in
+the bar, in vermilion. **Super+Shift+R** again — or a click on that tile — stops it. A notice
+says where the file is (a click plays it), and its path is on the clipboard.
 
-**Super+Shift+P** pauses it: the bar shows **録 停 00:12**, and nothing is recorded — not the
-screen, not the sound. Press it again and the bar counts **録 3**, **録 2**, **録 1**, a second
-each, then records on. The pieces become one file when you stop.
+**Super+Shift+P** pauses it: the bar shows the pause mark and the time (**00:12**), muted, and
+nothing is recorded — not the screen, not the sound. Press it again and the bar counts **3**,
+**2**, **1** beside the dot, a second each, then records on. The pieces become one file when you
+stop.
 
 | What | Where |
 |---|---|
@@ -674,7 +673,7 @@ note.
 **6.6 ★★ A pause in the middle.** Record a region, pause it with **Super+Shift+P** for ten
 seconds while you open something private, resume, and stop.
 
-*Expected:* the bar shows 録 停 while paused, then 録 3 · 2 · 1; the file plays straight through,
+*Expected:* the bar shows the pause mark while paused, then the dot and 3 · 2 · 1; the file plays straight through,
 without the private part.
 
 **6.7 ★★ One PDF from three.** Copy three PDFs (or pictures) in yazi, **Super+D** → 紙 *pages* →

@@ -67,7 +67,9 @@ def colors_sh(m, p):
              "# shellcheck shell=bash disable=SC2034",
              f"THEME={m}"]
     lines += [f"C_{k.upper()}={p[k]}" for k in keys]
-    lines.append(f"C_TEAL={p['asagi']}   # asagi: the music meter and the level display")
+    lines.append(f"C_TEAL={p['asagi']}   # asagi: the level display")
+    wing = " ".join(_mixc(p["accent_lo"], p["accent"], i / 9) for i in range(10))
+    lines.append(f'C_WING="{wing}"   # the music meter (the clock\'s wings): 1 … 10 px, accent_lo rising to accent')
     lines.append(f'C_ANSI="{" ".join(ansi(p))}"   # the 16 terminal colours (theme.sh: console palette)')
     return "\n".join(lines) + "\n"
 

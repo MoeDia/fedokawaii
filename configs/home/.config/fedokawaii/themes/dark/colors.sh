@@ -11,5 +11,6 @@ C_TEXT=d4bf9a
 C_STRONG=f1e1b4
 C_ACCENT=eb5324
 C_ACCENT_TEXT=eb5324
-C_TEAL=82c1b4   # asagi: the music meter and the level display
+C_TEAL=82c1b4   # asagi: the level display
+C_WING="82241f 8e2920 992e20 a53421 b13921 bc3e22 c84322 d44923 df4e23 eb5324"   # the music meter (the clock's wings): 1 … 10 px, accent_lo rising to accent
 C_ANSI="2d251e eb5324 8fa071 e2b540 97acc8 9a72aa 00978d d4bf9a 9a8767 f58e84 96d1aa fbe6a0 a7d4e4 b5b1d8 62c6bf f1e1b4"   # the 16 terminal colours (theme.sh: console palette)

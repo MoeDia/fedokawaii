@@ -120,6 +120,7 @@ keep kawa-downloads watch </dev/null &            # the bar's download mark, and
 keep kawa-clipkeep </dev/null &                   # a copy outlives the app it came from
 keep wl-paste --watch kawa-clip --store </dev/null &   # clipboard history (Super+V): text and pictures
 kawa-steam --warm </dev/null &                    # Steam, quietly, a minute in (its menu turns it off; STEAM=no: nothing)
+keep kawa-steam --watch </dev/null &              # game mode while a Steam game runs (until gaming moves into its VM: T35)
 kawa-steam --guard </dev/null &                   # Steam closed properly before a restart or shut down,
                                                    #   whoever asks (its saves to Steam Cloud; STEAM=no: nothing)
 

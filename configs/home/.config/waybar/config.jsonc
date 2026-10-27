@@ -117,11 +117,12 @@
   "custom/drives": { "exec": "kawa-bar drives -- kawa-drives bar", "return-type": "json", "signal": 13,
                      "tooltip": false, "exec-on-event": false, "on-click": "setsid -f kawa-drives" },
 
-  // the download mark while anything downloads — a torrent, Brave (kawa-downloads): the
-  // percent of them all, how many past one; click: what comes in and how far, a click on one
-  // opens where it lands. The session's watcher pokes it with SIGRTMIN+21 as one starts,
-  // moves on or ends; empty hides it
-  "custom/downloads": { "exec": "kawa-bar downloads -- kawa-downloads bar", "return-type": "json", "signal": 21,
+  // the download mark while anything downloads — a torrent, Brave (kawa-downloads): its arrow
+  // dropping into the tray (6 frames, 8 a second), the percent of them all; click: what comes
+  // in and how far, a click on one opens where it lands. Long-running: asleep while nothing
+  // downloads, woken by its watcher's word and its menu's (kawa-dwlstatus: its fifo); empty
+  // hides it
+  "custom/downloads": { "exec": "kawa-downloads bar --follow", "return-type": "json", "restart-interval": 5,
                         "tooltip": false, "exec-on-event": false, "on-click": "setsid -f kawa-downloads" },
 
   // memory in use (kawa-mem: what programs hold, as btop counts it); click: btop, big

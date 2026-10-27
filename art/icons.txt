@@ -760,16 +760,11 @@
 .##########.
 ............
 
-# The music meter: one thread of a column per frequency band — 2 px wide, 2 px of air
-# between (a 4 px advance: 8 bands in 32 px) — rising in one piece, 1 px (the floor: a dot
-# on the baseline) to 13 (the capitals' height) a pixel at a time: eq-0 … eq-12 (eq-7 … eq-12
-# at the end of this file, drawn as these). It stands on the
-# baseline, like the letters beside it, one pixel in, like every other icon's ink.
-@eq-0 adv=4 x=1
-..
-..
-..
-..
+# The music meter, the clock's wings (design-system §8): a column per frequency band — 2 px
+# wide, 4 px of air between (a 6 px advance: 8 bands in 48 px) — rising in one piece on the
+# capitals' rows, 1 px (the floor: on the baseline) to 10 (the capitals' height) a pixel at a
+# time: eq-0 … eq-9 (eq-7 … eq-9 at the end of this file, drawn as these).
+@eq-0 adv=6 x=2
 ..
 ..
 ..
@@ -781,11 +776,7 @@
 ..
 ##
 
-@eq-1 adv=4 x=1
-..
-..
-..
-..
+@eq-1 adv=6 x=2
 ..
 ..
 ..
@@ -797,11 +788,7 @@
 ##
 ##
 
-@eq-2 adv=4 x=1
-..
-..
-..
-..
+@eq-2 adv=6 x=2
 ..
 ..
 ..
@@ -813,11 +800,7 @@
 ##
 ##
 
-@eq-3 adv=4 x=1
-..
-..
-..
-..
+@eq-3 adv=6 x=2
 ..
 ..
 ..
@@ -829,11 +812,7 @@
 ##
 ##
 
-@eq-4 adv=4 x=1
-..
-..
-..
-..
+@eq-4 adv=6 x=2
 ..
 ..
 ..
@@ -845,11 +824,7 @@
 ##
 ##
 
-@eq-5 adv=4 x=1
-..
-..
-..
-..
+@eq-5 adv=6 x=2
 ..
 ..
 ..
@@ -861,11 +836,7 @@
 ##
 ##
 
-@eq-6 adv=4 x=1
-..
-..
-..
-..
+@eq-6 adv=6 x=2
 ..
 ..
 ..
@@ -1603,12 +1574,8 @@
 ####
 ####
 
-# the music meter's taller columns, 8 … 13 px (eq-0 … eq-6 above: 1 … 7 px)
-@eq-7 adv=4 x=1
-..
-..
-..
-..
+# the music meter's taller columns, 8 … 10 px (eq-0 … eq-6 above: 1 … 7 px)
+@eq-7 adv=6 x=2
 ..
 ..
 ##
@@ -1620,11 +1587,7 @@
 ##
 ##
 
-@eq-8 adv=4 x=1
-..
-..
-..
-..
+@eq-8 adv=6 x=2
 ..
 ##
 ##
@@ -1636,59 +1599,7 @@
 ##
 ##
 
-@eq-9 adv=4 x=1
-..
-..
-..
-..
-##
-##
-##
-##
-##
-##
-##
-##
-##
-##
-
-@eq-10 adv=4 x=1
-..
-..
-..
-##
-##
-##
-##
-##
-##
-##
-##
-##
-##
-##
-
-@eq-11 adv=4 x=1
-..
-..
-##
-##
-##
-##
-##
-##
-##
-##
-##
-##
-##
-##
-
-@eq-12 adv=4 x=1
-..
-##
-##
-##
+@eq-9 adv=6 x=2
 ##
 ##
 ##
@@ -2310,3 +2221,211 @@
 ..#...#...
 ..#...#..#
 ##....####
+
+# your screen being shared, alone on the bar's mode tile (quick settings' 14 px picture size,
+# as the quiet bell beside it: tile-bell-off) — the monitor itself, its stand
+@share
+..............
+##############
+#............#
+#............#
+#............#
+#............#
+#............#
+#............#
+#............#
+##############
+......##......
+......##......
+....######....
+..............
+
+# recording, on the bar (design-system §13: its red dot, once a second): the dot, then its ring —
+# the time beside it never moves (one width)
+@rec-0
+............
+............
+....####....
+...######...
+..########..
+..########..
+..########..
+..########..
+...######...
+....####....
+............
+............
+
+@rec-1
+............
+............
+....####....
+...#....#...
+..#......#..
+..#......#..
+..#......#..
+..#......#..
+...#....#...
+....####....
+............
+............
+
+# what plays, a video (the bar: design-system §13 — the television with its antenna, 4 frames,
+# 6 a second while it sounds; at rest and paused its first frame): the picture's line rising,
+# then the antenna twitching
+@tv-0
+..#......#..
+...#....#...
+....#..#....
+.....##.....
+############
+#..........#
+#.########.#
+#.#......#.#
+#.#......#.#
+#.########.#
+############
+..#......#..
+
+@tv-1
+..#......#..
+...#....#...
+....#..#....
+.....##.....
+############
+#..........#
+#.########.#
+#.#......#.#
+#.#.####.#.#
+#.########.#
+############
+..#......#..
+
+@tv-2
+..#......#..
+...#....#...
+....#..#....
+.....##.....
+############
+#..........#
+#.########.#
+#.#.####.#.#
+#.#......#.#
+#.########.#
+############
+..#......#..
+
+@tv-3
+...#....#...
+...#....#...
+....#..#....
+.....##.....
+############
+#..........#
+#.########.#
+#.#......#.#
+#.#......#.#
+#.########.#
+############
+..#......#..
+
+# the red rule between what plays and who (the bar's first tile on the right: design-system §8)
+# — 1 × 10 on the capitals' rows, 8 px of air either side (7 here and the title's last letter's
+# own column; 8 before the next word, whose first letter has none)
+@np-rule adv=16 x=7
+#
+#
+#
+#
+#
+#
+#
+#
+#
+#
+
+# the download mark, moving while anything downloads (design-system §13: the arrow dropping
+# into its tray, 6 frames, 8 a second; at rest the first — download, the same drawing)
+@dl-0
+.....##.....
+.....##.....
+.....##.....
+.....##.....
+..#..##..#..
+...#.##.#...
+....####....
+.....##.....
+............
+#..........#
+#..........#
+############
+
+@dl-1
+............
+.....##.....
+.....##.....
+.....##.....
+.....##.....
+..#..##..#..
+...#.##.#...
+....####....
+.....##.....
+#..........#
+#..........#
+############
+
+@dl-2
+............
+............
+.....##.....
+.....##.....
+.....##.....
+.....##.....
+..#..##..#..
+...#.##.#...
+....####....
+#....##....#
+#..........#
+############
+
+@dl-3
+............
+............
+............
+.....##.....
+.....##.....
+.....##.....
+.....##.....
+..#..##..#..
+...#.##.#...
+#...####...#
+#....##....#
+############
+
+@dl-4
+..#..##..#..
+...#.##.#...
+....####....
+.....##.....
+............
+............
+............
+............
+............
+#..........#
+#..........#
+############
+
+@dl-5
+.....##.....
+.....##.....
+..#..##..#..
+...#.##.#...
+....####....
+.....##.....
+............
+............
+............
+#..........#
+#..........#
+############

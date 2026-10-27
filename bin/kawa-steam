@@ -1,16 +1,16 @@
 #!/usr/bin/env bash
 # kawa-steam — Steam, as part of the desktop:
-#   kawa-steam [steam://…] Steam's window (the launcher's Steam, a click on the bar's gamepad;
+#   kawa-steam [steam://…] Steam's window (the launcher's Steam;
 #                         ~/.local/share/applications/steam.desktop): brought up when Steam
 #                         runs; started when it does not, with a notice ("starting Steam…",
 #                         "updating itself" on its very first start) that goes once its window
 #                         is there. A steam:// (or steamlink://) link (a game's page, "install" on a web page)
 #                         is handed to it either way
-#   kawa-steam --bar      the bar's gamepad, while Steam runs (waybar JSON, once):
-#                         dim while it starts, lit once ready, filled vermilion in a game
-#   kawa-steam --bar-watch  the same, long-running: what the bar runs (read from /proc by
-#                         bash alone, no process started: a look every 3 s, and at once
-#                         when a dropdown opens or closes)
+#   kawa-steam --watch    the session's game-mode watch (autostart): game mode while a Steam
+#                         game runs (kawa-game), ended when none does — read from /proc by bash
+#                         alone, no process started, a look every 3 s. (The bar's gamepad is
+#                         gone: gaming moves into a VM of its own — plan T32–T35 — and this
+#                         script with it.)
 #   kawa-steam --menu     the gamepad's right-click: Library · Downloads · Friends · Settings ·
 #                         start with the desktop on/off · quit Steam
 #   kawa-steam --warm     at login (the session's autostart): a minute later, Steam started
@@ -50,9 +50,9 @@
 # Exit status: 0 done · 1 could not (Steam is not installed; still running after --quit) · 2 misuse.
 set -u
 case ${1:-} in
-  ""|--bar|--bar-watch|--menu|--warm|--quit|--guard|--guard-wait|--cloud|--cloud-fix|steam://*|steamlink://*) ;;
+  ""|--watch|--menu|--warm|--quit|--guard|--guard-wait|--cloud|--cloud-fix|steam://*|steamlink://*) ;;
   -h|--help) sed -n '2,/^set -u/{/^set -u/d;s/^# \{0,1\}//;p}' "$0"; exit 0 ;;
-  *) echo "usage: kawa-steam [steam://… | --bar | --menu | --warm | --quit [WHY] | --guard | --cloud] (kawa-steam --help)" >&2; exit 2 ;;
+  *) echo "usage: kawa-steam [steam://… | --watch | --menu | --warm | --quit [WHY] | --guard | --cloud] (kawa-steam --help)" >&2; exit 2 ;;
 esac
 # shellcheck source=/dev/null
 . "$HOME/.config/fedokawaii/icons.sh"
@@ -62,7 +62,6 @@ export MANGOHUD=1
 WARM=$HOME/.config/fedokawaii/steam-warm
 running() { pgrep -xu "$UID" steam >/dev/null; }
 ready()   { pgrep -xu "$UID" steamwebhelper >/dev/null; }
-ingame()  { pgrep -u "$UID" -f 'SteamLaunch AppId=' >/dev/null; }
 warm_on() { [[ $(cat "$WARM" 2>/dev/null) != no ]]; }
 
 say() { logger -t kawa-steam -- "$*" 2>/dev/null; }
@@ -250,22 +249,20 @@ case ${1:-} in
       break
     done
     exit 0 ;;
-  --bar-watch)
-    # the bar's gamepad, long-running (waybar's restart-interval): the same states as --bar,
-    # read straight from /proc by bash alone — Steam's pid from ~/.steampid, its children for
-    # its web helper and a game (SteamLaunch) — so no process is started, Steam open or not;
-    # a look every 3 s, at once when a dropdown opens or closes (kawa-bar's wake fifo: lit)
-    . "${BASH_SOURCE[0]%/*}/kawa-bar"                 # bar_lit, lit_json's rules (bash alone)
-    wake=${XDG_RUNTIME_DIR:?}/kawa-bar.wake.$$
-    mkfifo -m 600 -- "$wake" && exec {quiet}<>"$wake" || exit 1
-    trap 'rm -f -- "$wake"' EXIT
+  --watch)
+    # game mode for Steam's games, long-running (autostart): Steam's pid from ~/.steampid, its
+    # children for a game (SteamLaunch) — read straight from /proc by bash alone, so no process
+    # is started, Steam open or not; a look every 3 s
+    tick=${XDG_RUNTIME_DIR:?}/kawa-steam.watch.$$     # (a fifo of its own, held open both ways: a
+    mkfifo -m 600 -- "$tick" && exec {quiet}<>"$tick" || exit 1   # read on it waits, no process)
+    trap 'rm -f -- "$tick"' EXIT
     trap 'exit 0' TERM HUP INT PIPE
     kids() {   # kids PID — its children, on one line (CONFIG_PROC_CHILDREN: each thread's)
       local t k all=""
       for t in /proc/"$1"/task/*/children; do k=""; read -r k 2>/dev/null <"$t"; [[ -n $k ]] && all+=" $k"; done   # (no newline at its end: read says 1, the line read all the same)
       printf -v KIDS '%s' "$all"
     }
-    last="" gm=""
+    gm=""
     while :; do
       st=off pid="" c=""
       read -r pid 2>/dev/null <"$HOME/.steampid"
@@ -293,23 +290,8 @@ case ${1:-} in
       elif [[ $st != game && $gw == steam ]] || [[ $gw == run && ! -e /proc/$gr ]]; then
         gm=""; kawa-game end &
       fi
-      case $st in
-        off)      out='{"text":""}' ;;
-        game)     out="{\"text\":\"$ICON_GAMEPAD\",\"class\":\"game\",\"tooltip\":\"Steam · in game\"}" ;;
-        ready)    out="{\"text\":\"$ICON_GAMEPAD\",\"class\":\"ready\",\"tooltip\":\"Steam\"}" ;;
-        starting) out="{\"text\":\"$ICON_GAMEPAD\",\"class\":\"starting\",\"tooltip\":\"Steam starting\"}" ;;
-      esac
-      if [[ $st != off ]] && bar_lit steam; then out=${out%%,\"tooltip\"*}; out="${out/\"class\":\"$st\"/\"class\":[\"$st\",\"active\"]}}"; fi
-      [[ $out != "$last" ]] && { printf '%s\n' "$out" || exit 0; last=$out; }
       read -r -t 3 -u "$quiet" _
-      while read -r -t 0 -u "$quiet" && read -r -u "$quiet" _; do :; done   # (wakes heaped up: one look)
     done ;;
-  --bar)
-    if ! running; then echo '{"text":""}'
-    elif ingame; then printf '{"text":"%s","class":"game","tooltip":"Steam · in game"}\n' "$ICON_GAMEPAD"
-    elif ready; then printf '{"text":"%s","class":"ready","tooltip":"Steam"}\n' "$ICON_GAMEPAD"
-    else printf '{"text":"%s","class":"starting","tooltip":"Steam starting"}\n' "$ICON_GAMEPAD"; fi
-    exit 0 ;;
   --warm)
     command -v steam >/dev/null && warm_on || exit 0
     sleep 60

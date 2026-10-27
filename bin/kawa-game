@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # kawa-game — game mode: while a game runs, the computer is the game's, and all of it comes back
 # when the game ends. Every Steam game gets it by itself — a Windows one through Proton too, no
-# launch option: the bar's Steam watch (kawa-steam --bar-watch, a look every 3 s from /proc)
+# launch option: the session's Steam watch (kawa-steam --watch, a look every 3 s from /proc)
 # sees Steam's reaper of a game (SteamLaunch) and says start, and says end once it is gone. Any
 # other game: kawa-game run GAME [ARG…].
 #   kawa-game start steam|run PID   game mode on, for the game under PID (Steam's reaper, or

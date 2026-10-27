@@ -106,25 +106,22 @@ has "$(journal)" "cloud: Blasphemous (774361) keeps its cloud saves in Windows' 
 case_ "misuse (2); --help (0)"
 setup; rc 2 kawa-steam --frobnicate
 has "$(kawa-steam --help)" "kawa-steam --quit [WHY]"
-case_ "--bar-watch (what the bar runs): off, starting, ready, in a game — read from /proc, no process started; lit while its dropdown is open"
+case_ "--watch (the session's, autostart): game mode while a Steam game runs — kawa-game start steam PID as one starts (its reaper: SteamLaunch AppId=…), kawa-game end as it ends; read from /proc, no line printed, no tile on the bar any more"
 setup; rm -f "$STUBS/pgrep"; mkdir -p "$TMP/fs"
-cp /bin/sleep "$TMP/fs/steamwebhelper"; printf '#!/bin/bash\nsleep 20\n' >"$TMP/fs/reaper"; chmod 755 "$TMP/fs/reaper"
-printf '#!/bin/bash\n%s/steamwebhelper 20 & wait\n' "$TMP/fs" >"$TMP/fs/steamwebhelper.sh"; chmod 755 "$TMP/fs/steamwebhelper.sh"
-printf '#!/bin/bash\nif [ "$1" = deep ]; then %s/steamwebhelper.sh & elif [ "$1" != bare ]; then %s/steamwebhelper 20 & fi\nif [ "$1" = game ]; then %s/reaper SteamLaunch AppId=42 & fi\nsleep 20 & wait\n' "$TMP/fs" "$TMP/fs" "$TMP/fs" >"$TMP/fs/steam"; chmod 755 "$TMP/fs/steam"
-watch1() { timeout 3 kawa-steam --bar-watch 2>/dev/null | head -n 1; }
-up() {   # up PID N — the fake Steam named so, with N children of its own (a loaded machine: up to 10 s)
-  for _ in $(seq 100); do [[ $(cat "/proc/$1/comm" 2>/dev/null) == steam && $(cat /proc/"$1"/task/*/children 2>/dev/null | wc -w) -ge $2 ]] && return; sleep 0.1; done; }
-rm -f "$HOME/.steampid"; eq "$(watch1)" '{"text":""}' "no Steam: hidden"
-for m in bare ready game deep; do   # (deep: the web helper under a wrapper — the Steam Runtime's — as on Fedora)
-  n=2; [[ $m == bare ]] && n=1; [[ $m == game ]] && n=3
-  "$TMP/fs/steam" "$m" & sp=$!; echo "$sp" >"$HOME/.steampid"; up "$sp" "$n"; [[ $m == deep ]] && sleep 0.5
-  o=$(watch1); kill "$sp" 2>/dev/null; pkill -P "$sp" 2>/dev/null; pkill -x steamwebhelper 2>/dev/null; wait "$sp" 2>/dev/null
-  case $m in bare) has "$o" '"class":"starting"' ;; ready|deep) has "$o" '"class":"ready"' ;; game) has "$o" '"class":"game"' ;; esac
-done
-"$TMP/fs/steam" ready & sp=$!; echo "$sp" >"$HOME/.steampid"; up "$sp" 2; sleep 30 & dp=$!
-printf '%s kawa-steam\n' "$dp" >"$XDG_RUNTIME_DIR/kawa-drop.open"
-o=$(watch1); has "$o" '"class":["ready","active"]'; lacks "$o" tooltip "lit: no tooltip"
-rm -f "$XDG_RUNTIME_DIR/kawa-drop.open"; kill "$dp" "$sp" 2>/dev/null; pkill -P "$sp" 2>/dev/null
-echo 99999999 >"$HOME/.steampid"; eq "$(watch1)" '{"text":""}' "a pid file left by a Steam gone: hidden"
-
+printf '#!/bin/bash\nsleep 20\n' >"$TMP/fs/reaper"; chmod 755 "$TMP/fs/reaper"
+printf '#!/bin/bash\nif [ "$1" = game ]; then %s/reaper SteamLaunch AppId=42 & fi\nsleep 20 & wait\n' "$TMP/fs" >"$TMP/fs/steam"; chmod 755 "$TMP/fs/steam"
+stub kawa-game
+up() { for _ in $(seq 100); do [[ $(cat "/proc/$1/comm" 2>/dev/null) == steam && $(cat /proc/"$1"/task/*/children 2>/dev/null | wc -w) -ge $2 ]] && return; sleep 0.1; done; }
+"$TMP/fs/steam" game & sp=$!; echo "$sp" >"$HOME/.steampid"; up "$sp" 2
+kawa-steam --watch >"$TMP/watch.out" 2>&1 & w=$!
+for _ in $(seq 50); do grep -q '^kawa-game start steam ' "$CALLS" && break; sleep 0.1; done
+called '^kawa-game start steam [0-9]+$'
+kill "$sp" 2>/dev/null; pkill -P "$sp" 2>/dev/null; wait "$sp" 2>/dev/null
+echo steam 1 >"$XDG_RUNTIME_DIR/kawa-game.on"
+for _ in $(seq 60); do grep -q '^kawa-game end' "$CALLS" && break; sleep 0.1; done
+called '^kawa-game end$'
+eq "$(cat "$TMP/watch.out")" "" "nothing printed (no bar tile)"
+w_fifo=$(ls "$XDG_RUNTIME_DIR"/kawa-steam.watch.* 2>/dev/null); eq "$w_fifo" "$XDG_RUNTIME_DIR/kawa-steam.watch.$w" "its wait: a fifo of its own"
+kill "$w"; wait "$w" 2>/dev/null; [[ ! -e $w_fifo ]] && _ok || _no "its fifo left behind"
+rc 2 kawa-steam --bar; rc 2 kawa-steam --bar-watch
 done_

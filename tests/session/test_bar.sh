@@ -91,49 +91,49 @@ eq "$(kawa-bar brightness -- true)" "" "nothing printed: nothing added (the modu
 rc 3 kawa-bar brightness -- sh -c 'echo "{\"text\":\"\"}"; exit 3'
 rm -f "$R/kawa-panel-brightness.open"
 eq "$(kawa-bar brightness -- echo '{"text":"x","class":"a"}')" '{"text":"x","class":"a"}' "not lit: the line as it came"
-case_ "the mode tile: the quiet bell while do not disturb is on, the monitor while a screen is shared — each with a tooltip that says what it is; nothing otherwise"
+case_ "the mode tile: the quiet bell while do not disturb is on, the monitor while a screen is shared — each an icon alone (14 px, no air of its own), with a tooltip that says what it is; nothing otherwise"
 stub makoctl 'echo do-not-disturb'
-eq "$(kawa-bar mode)" "{\"text\":\"$ICON_BAR_BELL_OFF\",\"class\":\"dnd\",\"tooltip\":\"do not disturb\"}"
+eq "$(kawa-bar mode)" "{\"text\":\"$ICON_TILE_BELL_OFF_BAR\",\"class\":\"dnd\",\"tooltip\":\"do not disturb\"}"
 stub makoctl 'printf "sharing\ndefault\n"'
-eq "$(kawa-bar mode)" "{\"text\":\"$ICON_BAR_MONITOR\",\"class\":\"share\",\"tooltip\":\"sharing screen\"}"
+eq "$(kawa-bar mode)" "{\"text\":\"$ICON_SHARE_BAR\",\"class\":\"share\",\"tooltip\":\"sharing screen\"}"
 stub makoctl 'printf "do-not-disturb\nsharing\n"'
-has "$(kawa-bar mode)" "\"text\":\"$ICON_BAR_MONITOR\"" "both held back: the screen being shared is what shows"
+has "$(kawa-bar mode)" "\"text\":\"$ICON_SHARE_BAR\"" "both held back: the screen being shared is what shows"
 stub makoctl 'echo default'; eq "$(kawa-bar mode)" '{"text":""}' "nothing held back: nothing (the module hidden)"
-lacks "$(kawa-bar mode)" "$ICON_BAR_BELL_OFF"
+lacks "$(kawa-bar mode)" "$ICON_TILE_BELL_OFF_BAR"
 case_ "the mode tile is lit by its own dropdown (kawa-quick dnd: kawa-drop.open naming kawa-quick), its tooltip emptied — not by quick settings' panel (the cat's), not by another script's dropdown"
 stub makoctl 'echo do-not-disturb'
 alive; p=$P
 echo "$p kawa-quick" >"$R/kawa-drop.open"
-eq "$(kawa-bar mode)" "{\"text\":\"$ICON_BAR_BELL_OFF\",\"class\":[\"dnd\",\"active\"],\"tooltip\":\"\"}" "lit while its dropdown is open"
+eq "$(kawa-bar mode)" "{\"text\":\"$ICON_TILE_BELL_OFF_BAR\",\"class\":[\"dnd\",\"active\"],\"tooltip\":\"\"}" "lit while its dropdown is open"
 rc 0 kawa-bar --lit mode
 echo "$p kawa-calendar" >"$R/kawa-drop.open"
-eq "$(kawa-bar mode)" "{\"text\":\"$ICON_BAR_BELL_OFF\",\"class\":\"dnd\",\"tooltip\":\"do not disturb\"}" "another script's dropdown open: not lit"
+eq "$(kawa-bar mode)" "{\"text\":\"$ICON_TILE_BELL_OFF_BAR\",\"class\":\"dnd\",\"tooltip\":\"do not disturb\"}" "another script's dropdown open: not lit"
 rm -f "$R/kawa-drop.open"; echo "$p" >"$R/kawa-panel.open"
-eq "$(kawa-bar mode)" "{\"text\":\"$ICON_BAR_BELL_OFF\",\"class\":\"dnd\",\"tooltip\":\"do not disturb\"}" "quick settings open: the cat is lit, this tile is not"
+eq "$(kawa-bar mode)" "{\"text\":\"$ICON_TILE_BELL_OFF_BAR\",\"class\":\"dnd\",\"tooltip\":\"do not disturb\"}" "quick settings open: the cat is lit, this tile is not"
 rc 1 kawa-bar --lit mode; rc 0 kawa-bar --lit cat
 rm -f "$R/kawa-panel.open"
 echo "$p kawa-quick" >"$R/kawa-drop.open"; kill -9 "$p"; wait "$p" 2>/dev/null
-eq "$(kawa-bar mode)" "{\"text\":\"$ICON_BAR_BELL_OFF\",\"class\":\"dnd\",\"tooltip\":\"do not disturb\"}" "its opener killed: dark at the next run"
+eq "$(kawa-bar mode)" "{\"text\":\"$ICON_TILE_BELL_OFF_BAR\",\"class\":\"dnd\",\"tooltip\":\"do not disturb\"}" "its opener killed: dark at the next run"
 rm -f "$R/kawa-drop.open"
 stub makoctl 'printf "sharing\n"'; alive; echo "$P kawa-quick" >"$R/kawa-drop.open"
-eq "$(kawa-bar mode)" "{\"text\":\"$ICON_BAR_MONITOR\",\"class\":[\"share\",\"active\"],\"tooltip\":\"\"}" "the sharing monitor is the same tile: lit by the same dropdown"
+eq "$(kawa-bar mode)" "{\"text\":\"$ICON_SHARE_BAR\",\"class\":[\"share\",\"active\"],\"tooltip\":\"\"}" "the sharing monitor is the same tile: lit by the same dropdown"
 rm -f "$R/kawa-drop.open"
 case_ "the quiet bell's tooltip: \"do not disturb\", and — for a timed one (kawa-dnd.until: EPOCH CHOICE) — \"do not disturb until H:MM\", the hour as the clock writes it without a leading zero; an end gone by or a broken record: the plain words"
 stub makoctl 'echo do-not-disturb'
 end=$(( $(date +%s) + 5400 )); want=$(date -d "@$end" '+%-H:%M')
 echo "$end hour" >"$R/kawa-dnd.until"
-eq "$(kawa-bar mode)" "{\"text\":\"$ICON_BAR_BELL_OFF\",\"class\":\"dnd\",\"tooltip\":\"do not disturb until $want\"}" "a timed one"
+eq "$(kawa-bar mode)" "{\"text\":\"$ICON_TILE_BELL_OFF_BAR\",\"class\":\"dnd\",\"tooltip\":\"do not disturb until $want\"}" "a timed one"
 [[ $want =~ ^([0-9]|1[0-9]|2[0-3]):[0-5][0-9]$ ]] && _ok || _no "the hour [$want] is not H:MM"
 echo "$end morning" >"$R/kawa-dnd.until"
 has "$(kawa-bar mode)" "\"tooltip\":\"do not disturb until $want\"" "the morning's the same"
 for junk in "$(( $(date +%s) - 60 )) hour" "0 hour" "soon hour" "" "x"; do
   printf '%s\n' "$junk" >"$R/kawa-dnd.until"
-  eq "$(kawa-bar mode)" "{\"text\":\"$ICON_BAR_BELL_OFF\",\"class\":\"dnd\",\"tooltip\":\"do not disturb\"}" "[$junk]: the plain words"
+  eq "$(kawa-bar mode)" "{\"text\":\"$ICON_TILE_BELL_OFF_BAR\",\"class\":\"dnd\",\"tooltip\":\"do not disturb\"}" "[$junk]: the plain words"
 done
 rm -f "$R/kawa-dnd.until"
-eq "$(kawa-bar mode)" "{\"text\":\"$ICON_BAR_BELL_OFF\",\"class\":\"dnd\",\"tooltip\":\"do not disturb\"}" "no record: the plain words"
+eq "$(kawa-bar mode)" "{\"text\":\"$ICON_TILE_BELL_OFF_BAR\",\"class\":\"dnd\",\"tooltip\":\"do not disturb\"}" "no record: the plain words"
 echo "$end hour" >"$R/kawa-dnd.until"; stub makoctl 'printf "sharing\n"'
-eq "$(kawa-bar mode)" "{\"text\":\"$ICON_BAR_MONITOR\",\"class\":\"share\",\"tooltip\":\"sharing screen\"}" "sharing: its own words, a timed record or not"
+eq "$(kawa-bar mode)" "{\"text\":\"$ICON_SHARE_BAR\",\"class\":\"share\",\"tooltip\":\"sharing screen\"}" "sharing: its own words, a timed record or not"
 rm -f "$R/kawa-dnd.until"
 case_ "the layout: kawa-dwlstatus's own line for this bar's monitor, lit by a layout menu"
 mkdir -p "$R/dwl-bar/DP-1"; echo '{"text":"L","class":"spiral"}' >"$R/dwl-bar/DP-1/layout.json"; echo '{"text":"F","class":"float"}' >"$R/dwl-bar/layout.json"
