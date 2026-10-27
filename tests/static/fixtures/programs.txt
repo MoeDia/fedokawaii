@@ -30,6 +30,7 @@ cksum               minimal   coreutils
 cp                  minimal   coreutils
 cut                 minimal   coreutils
 date                minimal   coreutils
+dd                  minimal   coreutils
 df                  minimal   coreutils
 dirname             minimal   coreutils
 head                minimal   coreutils
