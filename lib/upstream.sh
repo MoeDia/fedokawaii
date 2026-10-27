@@ -248,7 +248,7 @@ install_faces() {   # system/fonts → FACES_DIR (only what changed), the faces 
   as_user rm -f "$(up_state_dir)/nerd-DepartureMono"
   # the folder touched first: a face rewritten in place leaves its mtime as it was, and
   # fontconfig would go on serving the cache it made of the old one
-  if ((ch)); then touch "$FACES_DIR"; fc-cache -f >/dev/null; as_user fc-cache -f >/dev/null; fi
+  if ((ch)); then touch "$FACES_DIR"; fc-cache -f >/dev/null; as_user fc-cache -f >/dev/null; session_fonts_reload; fi
   ok "Sumi UI and Sumi Term (the desktop's faces: Shinonome 14 and Kappa 20)"
 }
 

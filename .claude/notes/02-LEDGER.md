@@ -373,6 +373,19 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   before: session/test_autostart's titles never expected the line-height span — 84/0 now,
   its 5 old failures gone); static, status, menus, look, session green but for the known:
   test_game 4 (T35), look/test_wallpaper 1 (old), content/test_shell+test_tiles (T24).
+- r27-10d (T10 applied live — 06:15; verify 0 problems after repair, snapshot 257 before it) and a
+  REAL BUG found by looking: after the apply the bar drew the wrong kanji (二 as 伜, 三 as 亡, 火 as
+  燈) — the running waybar (and mako) shaped text with the NEW SumiUI.ttf's glyph numbers (Pango
+  via HarfBuzz) while cairo drew from the face it had opened before. Any font change by apply,
+  repair or update would have shown him that until his next login. Fixed: lib/common.sh
+  session_fonts_reload — called by theme.sh when ~/.local/share/fonts changes and by upstream.sh's
+  install_faces when the system faces change: waybar ended with KILL (autostart.sh's keep starts
+  it again; a clean exit would end it), mako restarted as its unit; the terminals keep their face
+  until the next login (their server's restart would close every window). Verified live: after
+  the restart 一 二 三, 火 and the new torii/layout drawn right (screenshots /dev/shm/r27/live-bar2*).
+  Known, unrelated, same before this change: installer/test_theme 6 (its sandbox as a user here:
+  no /usr/local python site, flock fd 8, plymouth pictures) and installer/test_upstream (FK_PYLIBS
+  unbound) — for T53's baseline.
 - r27-33 (T29, findings 04:00 — not fixed yet) Prowlarr: on demand by design (kawa-prowlarr: up while
   torrra searches, asleep 30 min after) — "inactive" is normal. /api/v1/health: 0 now. Its own log
   (~/.config/prowlarr/logs) over 8 days: Warn AllowedHostsCheck "Allowed Hosts is not configured"

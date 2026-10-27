@@ -994,6 +994,8 @@ if changed /etc/dconf/; then R dconf update; ok "dconf defaults compiled"; fi
 # folder's mtime as it was, and fontconfig would go on serving the cache of the old one
 if changed /.local/share/fonts/; then U touch "$TARGET_HOME/.local/share/fonts"; fi
 if changed /fontconfig/ || changed /.local/share/fonts/; then U fc-cache -f; fi
+# (a face replaced under the running bar and notices: they start again — session_fonts_reload)
+if changed /.local/share/fonts/; then session_fonts_reload; fi
 # the colourscheme plugin is fetched the first time its spec appears — install only: the
 # plugins you have stay at their versions (they move with update, which keeps the old ones)
 if changed /nvim/lua/plugins/ && [[ -f $TARGET_HOME/.config/nvim/init.lua ]]; then

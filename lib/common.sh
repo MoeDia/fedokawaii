@@ -313,6 +313,22 @@ step() {
 }
 
 # ── target user (exported by the caller: TARGET_USER/HOME/UID/GID) ───────────
+# session_fonts_reload — a face the running session draws with was replaced on disk: what holds
+# its fonts open for the whole session starts again. Left running, Pango shapes with the new
+# file's glyph numbers while cairo draws from the face it opened before — the wrong glyphs (二
+# drawn as 伜 on the bar, 27 Oct). The bar is ended with KILL (autostart.sh's keep starts it
+# again; a clean exit would end it for the session), mako restarted as its own unit. The
+# terminals keep their face until their server starts again at the next login (restarting it
+# would close every window). No session: nothing to do.
+session_fonts_reload() {
+  local uid=${TARGET_UID:-}
+  [[ -n $uid ]] || uid=$(id -u "${TARGET_USER:-}" 2>/dev/null) || return 0
+  pgrep -xu "$uid" waybar >/dev/null || return 0
+  pkill -KILL -xu "$uid" waybar
+  if [[ $EUID -eq 0 ]]; then as_user systemctl --user --no-block restart mako.service
+  else systemctl --user --no-block restart mako.service; fi 2>/dev/null
+  return 0
+}
 as_user() {
   [[ ${_HOME_ENV_OF:-} == "$TARGET_HOME" ]] || { mapfile -t _HOME_ENV < <(home_env "$TARGET_HOME"); _HOME_ENV_OF=$TARGET_HOME; }
   runuser -u "$TARGET_USER" -- env -i \
