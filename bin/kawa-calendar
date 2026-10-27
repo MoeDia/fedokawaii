@@ -45,7 +45,7 @@ while :; do
 
   # (--stay: a key answers and the dropdown stays — the next month drawn in its place, no
   # close and open between; a click while it comes is done on it)
-  i=$(printf '%s\n' "${rows[@]}" | kawa-menu --drop --index --stay "${sel[@]}") || exit 0
+  i=$(printf '%s\n' "${rows[@]}" | kawa-menu --drop --middle --index --stay "${sel[@]}") || exit 0
   case $((i - k)) in
     0) off=$((off - 1)) sel=(--select "$i") ;;
     1) off=$((off + 1)) sel=(--select "$i") ;;

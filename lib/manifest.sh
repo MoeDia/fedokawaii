@@ -15,6 +15,8 @@ PKG_BASE=(
   python3               # the helpers' small Python parts and the self-tests (tuned brings it
                         #   too: listed, never assumed)
   python3-pyte          # the self-tests: a terminal's screen read back as it would show (vd, fzf)
+  wlrctl                # the self-tests: a pointer in a headless desktop (wlroots' virtual pointer:
+                        #   the menus answer a hover and a click from their first frame)
   diffutils man-db      # diff/cmp: the copy against the toolkit, the checks · man: the manuals
                         #   the change menu opens (both usually there; listed, never assumed)
   tar grubby            # tar: the release archives, GE-Proton, the C helpers' builds · grubby:

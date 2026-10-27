@@ -229,9 +229,11 @@ Motion — how any of these changes over time — is §11.
 - **One at a time**: opening any menu, panel or popup (the bar's dropdowns, quick settings, the
   launcher, Super+U/V/W/N/C/R//) closes whichever is open.
 - **Where it opens**: from a bar tile — centred under it, its top hairline on y 33 (the windows'
-  tops), kept 8 px inside the screen; from a key — at its own place: quick settings and the bar's
-  right-hand dropdowns under the right end (their right hairline on x 1911), the launcher under
-  the torii (left hairline on x 8), Super+U, N, V, W, R and / centred on the screen.
+  tops), kept 8 px inside the screen; the date's own (the calendar, the timer) centred under the
+  bar's middle, a click or a key alike (`kawa-menu --drop --middle`); from a key — at its own
+  place: quick settings and the bar's right-hand dropdowns under the right end (their right
+  hairline on x 1911), the launcher under the torii (left hairline on x 8), Super+U, N, V, W, R
+  and / centred on the screen.
 - **Over everything**: a popup shows over a fullscreen window too.
 - The same click or key again closes it; Esc and a click outside close it.
 - **Opens clean**: no remembered cursor, no remembered highlight; the pointer works the moment it

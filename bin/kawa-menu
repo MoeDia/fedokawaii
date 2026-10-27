@@ -2,7 +2,7 @@
 # kawa-menu — one look for every small menu: the panel's, drawn as the sound panel is — parts
 # under kanji seals, rows, keys —, list order kept; and the launcher.
 #
-#   … | kawa-menu [--drop] [--title TEXT] [--width N] [--lines N] [--select N] [--prompt P] [--index] [--stay]
+#   … | kawa-menu [--drop [--middle]] [--title TEXT] [--width N] [--lines N] [--select N] [--prompt P] [--index] [--stay]
 #   kawa-menu --launcher
 #
 #   the lines   one a thing, its fields apart by tabs (kawa-panel's "a menu"): part KANJI NAME
@@ -12,6 +12,8 @@
 #   --drop      open as a dropdown from the bar: under the button just clicked, or from a key
 #               under the bar's right end (where quick settings' panel opens too); its button
 #               lit while it is open; otherwise in the middle of the screen
+#   --middle    with --drop: from the bar's middle, where the date is — whether a click or a
+#               key opened it (the calendar, the timer)
 #   --launcher  the launcher itself (the panel's: the torii and Super+Space), in the middle
 #               of the screen — open, or closed when it is open
 #   --title     a quiet line above the list
@@ -40,12 +42,13 @@
 # Prints the chosen line; exits 1 when the menu is dismissed (Esc, a click outside, its key
 # again) or cannot open, 2 on wrong use.
 set -u
-usage() { echo "usage: … | kawa-menu [--drop] [--title TEXT] [--width N] [--lines N] [--select N] [--prompt P [--password]] [--index] [--stay] · kawa-menu --launcher" >&2; exit 2; }
+usage() { echo "usage: … | kawa-menu [--drop [--middle]] [--title TEXT] [--width N] [--lines N] [--select N] [--prompt P [--password]] [--index] [--stay] · kawa-menu --launcher" >&2; exit 2; }
 pargs=()                                      # (a menu's options, as the panel takes them)
 launcher=0 idx=0
 while (($#)); do
   case $1 in
     --drop)   pargs+=(--drop); shift; continue ;;
+    --middle) pargs+=(--middle); shift; continue ;;
     --launcher) launcher=1; shift; continue ;;
     --index)  idx=1; pargs+=(--index); shift; continue ;;
     --stay)   pargs+=(--stay); shift; continue ;;

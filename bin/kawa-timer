@@ -161,7 +161,7 @@ menu() {
   for m in 5 10 25 45 60; do printf -v v '%2d min' "$m"; line row "$ICON_HOURGLASS" "$v"; acts+=("start $m"); done
   line row "$ICON_HOURGLASS" stopwatch; acts+=(stopwatch)
   [[ -n $t ]] && { line row "$ICON_CROSS" "cancel the $k"; acts+=(cancel); }
-  i=$(printf '%s\n' "${rows[@]}" | kawa-menu --drop --index --select 1) || return 0
+  i=$(printf '%s\n' "${rows[@]}" | kawa-menu --drop --middle --index --select 1) || return 0
   case ${acts[i]:--} in
     "start "*) start "${acts[i]#start }" ;;
     stopwatch) stopwatch ;;

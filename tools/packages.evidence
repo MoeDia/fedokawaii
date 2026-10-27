@@ -120,6 +120,7 @@ python3-gobject|fedora|https://packages.fedoraproject.org/search?query=python3-g
 python3-pem|fedora|https://packages.fedoraproject.org/search?query=python3-pem|2026-10-14|manifest 2026-10-14
 python3-pyOpenSSL|fedora|https://packages.fedoraproject.org/search?query=python3-pyOpenSSL|2026-10-14|manifest 2026-10-14
 python3-pyte|fedora|https://packages.fedoraproject.org/pkgs/python-pyte/python3-pyte/|2026-10-27|python3-pyte-0.8.2-15.fc44 (from python-pyte), installed from Fedora 44's own repo: the self-tests' terminal screen
+wlrctl|fedora|https://packages.fedoraproject.org/pkgs/wlrctl/wlrctl/|2026-10-27|wlrctl-0.2.2-6.fc44 (upstream git.sr.ht/~brocellous/wlrctl), in Fedora 44, 45 and Rawhide: the self-tests' pointer (zwlr_virtual_pointer_v1, which dwl offers)
 python3-twisted|fedora|https://packages.fedoraproject.org/pkgs/python-twisted/python3-twisted/fedora-44.html|2026-10-20|F44
 python3-twisted+tls|fedora|https://packages.fedoraproject.org/pkgs/python-twisted/python3-twisted+tls/fedora-44.html|2026-10-20|F44
 qalculate|fedora|https://packages.fedoraproject.org/search?query=qalculate|2026-10-14|manifest 2026-10-14

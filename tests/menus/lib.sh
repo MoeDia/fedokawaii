@@ -41,7 +41,7 @@ fz_arg() {
   while IFS= read -r a; do
     ((next)) && { printf '%s' "$a"; return; }
     case $a in
-      --"$1") case $1 in drop|index|stay|password) printf set; return ;; esac; next=1 ;;
+      --"$1") case $1 in drop|middle|index|stay|password) printf set; return ;; esac; next=1 ;;
     esac
   done < <(fz_args "${2:-}")
   ((next)) && printf set

@@ -23,9 +23,10 @@ called '^kawa-panel --menu $'
 eq "$(cat "$FZ/who.$(fz_n)")" test_menu.sh "the script that asked: the panel's toggle and the lit button go by it"
 
 case_ "every option reaches the panel"
-answer enter; out=$(pick --drop --title "pick one" --width 30 --lines 3 --select 2 --prompt "> " --index)
+answer enter; out=$(pick --drop --middle --title "pick one" --width 30 --lines 3 --select 2 --prompt "> " --index)
 eq "$out" 2 "Enter on the --select line prints its number"
 eq "$(fz_arg drop)" set "dropped from the bar (the panel places it: under the click, or the bar's right end)"
+eq "$(fz_arg middle)" set "from the bar's middle (the panel centres it there)"
 eq "$(fz_arg title)" "pick one"; eq "$(fz_arg width)" 30; eq "$(fz_arg lines)" 3
 eq "$(fz_arg select)" 2; eq "$(fz_arg prompt)" "> "; eq "$(fz_arg index)" set
 lacks "$(fz_args)" "anchor"; lacks "$(fz_args)" "margin"
@@ -70,7 +71,7 @@ eq "$(fz_arg width)" 12; eq "$(fz_arg lines)" 2
 
 case_ "--help: the usage and the line format, exit 0"
 out=$(kawa-menu --help); rc 0 kawa-menu --help
-has "$out" "kawa-menu [--drop]"; has "$out" "--index"; has "$out" "part"; has "$out" "row|on|off|info GLYPH NAME [DETAIL [VALUE]]"
+has "$out" "kawa-menu [--drop [--middle]]"; has "$out" "--index"; has "$out" "part"; has "$out" "row|on|off|info GLYPH NAME [DETAIL [VALUE]]"
 has "$out" "--width N   at least N columns of 7 px" "(the panel's column: kawa-panel's COL)"
 eq "$(python3 -I -c 'import re,sys; print(re.search(r"^COL = (\d+)", open(sys.argv[1]).read(), re.M).group(1))' "$REPO/bin/kawa-panel")" 7
 case_ "wrong use: exit 2 and no menu opens"

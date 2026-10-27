@@ -463,6 +463,35 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   Docs: design-system §7 "Tabs" (the grammar, for every screen of several sections); Learn chapter
   8 as rewritten (tabs, the entries table) still true. Deferred, noted in the plan: the running
   row's turning hourglass → T19; Super+U's key sheet → T23; "(BACKUP_TARGET)" out of the words → T48.
+- r27-13a (T13, the menus' bugs 3, 7, 8 — committed 08:51; live after the session restart) Found, not
+  guessed: tools/kit.sh gained plays (tools/kit-play.sh: the pointer through wlrctl — wlroots'
+  virtual pointer, Fedora's wlrctl 0.2.2, added to the manifest for the self-tests — the keys
+  through wtype, shots by name), --bin (the repo's scripts before an apply), --time, and dwl itself
+  now runs in the kit's home and PATH (before, a key's program started by dwl had the real HOME —
+  checked: nothing of ours was written there).
+  Bug 3 ("highlighted options not active until I click the menu once"): a menu opened by its KEY
+  under a resting pointer never got the pointer — dwl refreshes pointer focus only when a layer
+  surface changes the usable area (a menu changes none), so the row under it stayed dark and every
+  click went to what was there before, until the hand moved (reproduced: two clicks on "next", the
+  month unchanged). Opened by a click it worked, which is why r25-3 looked fixed. → dwl: a layer
+  surface's commit asks for a pointer re-check once the commit is done (pointerlater: an idle
+  callback — at once it found nothing: the scene takes the buffer after dwl's listener), and a
+  button's release re-checks it (a menu that opened while the button was down). Now: the row
+  under the pointer lit at open, the first click pages (Oct → Nov → Dec, shots).
+  Bug 8 (two popups at once): reproduced in 4 of 4 pairs (calendar + Super+U either way, Super+X +
+  Super+V either way): dwl closed popups only for a click on the bar, and focusclient never took
+  the keyboard from an overlay menu. → a popup raised (lift: its key, a new one, a click — never
+  the pointer passing) drops a menu first; a kawa-panel surface taking the keyboard closes every
+  popup (only the panel's namespace: the lock never closes a book). Proven: every ordered pair of
+  ten (Super+C U N V X A W R / Space) — 90 shots, each one popup, always the second, at its own
+  place (a 4×-pooled, dilated count, nested boxes merged).
+  Bug 7 (Super+C on the right): kawa-menu --drop --middle (the calendar, the timer): the top alone
+  anchored, layer-shell centres it on the output (the clicked one, or dwl's) — by key, a click on
+  the date or on the time: the frame centred at x 959.5, the bar's middle group (854–1065) at 959.5.
+  Tests: tests/session/test_popups.sh (new, 15: the patch read); test_panel 408/0 (+middle place
+  and request), test_menu 84/0, test_calendar 85/0, test_timer 79/0; static green. design-system §6
+  "where it opens" names the date's dropdowns. The headless regression checks (tools/regress, T52)
+  come with the redesign's final geometry.
 - r27-33 (T29, findings 04:00 — not fixed yet) Prowlarr: on demand by design (kawa-prowlarr: up while
   torrra searches, asleep 30 min after) — "inactive" is normal. /api/v1/health: 0 now. Its own log
   (~/.config/prowlarr/logs) over 8 days: Warn AllowedHostsCheck "Allowed Hosts is not configured"

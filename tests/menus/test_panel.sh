@@ -691,6 +691,13 @@ for m in quick sound brightness; do
   eq "$(py "fresh(); p.request('$m'); print(p.place)")" "('right', 8, None)" "$m"
 done
 eq "$(py 'print(kp.menu_place(True, None, 300), kp.menu_place(False, None, 300))')" "('right', 8, None) ('centre', 0, None)" "a menu dropped from the bar by a key: as quick settings; any other in the middle"
+case_ "--middle (the calendar, the timer): dropped from the bar's middle, the date's — a click or a key alike, on the clicked output; the top alone anchored (centred on it)"
+eq "$(py 'print(kp.menu_place(True, None, 410, True), kp.menu_place(True, (880, 0, 1920), 410, True), kp.menu_place(True, (2900, 1920, 2560), 410, True))')" \
+  "('middle', 0, None) ('middle', 0, 0) ('middle', 0, 1920)" "by a key: dwl's output; by a click: that one"
+eq "$(py 'print(kp.menu_place(False, None, 410, True))')" "('centre', 0, None)" "--middle without --drop: the middle of the screen, as any menu"
+f=$(sed -n '/side, margin, out_x = panel.place/,/area.set_size_request/p' "$REPO/bin/kawa-panel")
+has "$f" 'if side == "middle":'; has "$f" 'GtkLayerShell.set_anchor(win, GtkLayerShell.Edge.TOP, True)'
+has "$f" 'if side in ("left", "middle") and out_x is not None:' "(the clicked output)"
 lacks "$(cat "$REPO/bin/kawa-panel")" "MARGIN" "no place of its own per panel"
 has "$(cat "$REPO/bin/kawa-panel")" 'GtkLayerShell.set_margin(win, edge, margin)'
 case_ "opened by a click on the bar: centred under the pointer, on that output, kept 8 px inside its edges"
@@ -734,6 +741,8 @@ has "$(cat "$REPO/src/dwl/config.h")" 'SHCMD("kawa-quick sound")'
 case_ "a menu's request: the caller, its options, its rows (kawa-menu's file) — a wrong one is no menu"
 eq "$(py 'w, m = kp.menu_request("kawa-calendar\n3\n--drop\n--title\npick one\npart\t暦\tOct\nrow\tx\ta\n")
 print(w, m.drop, repr(m.title), [l[1] for l in m.lines])')" "kawa-calendar True 'pick one' ['part', 'row']"
+eq "$(py 'w, m = kp.menu_request("kawa-calendar\n2\n--drop\n--middle\ncell\t1\n"); print(m.drop, m.middle)')" "True True" "--middle read"
+eq "$(py 'w, m = kp.menu_request("kawa-drives\n1\n--drop\nrow\tx\ta\n"); print(m.drop, m.middle)')" "True False" "(none: not dropped from the middle)"
 eq "$(py 'print([kp.menu_request(t) for t in ("", "x\n", "x\nz\n", "x\n2\n--title\n", "x\n1\n--bogus\n")])')" "[None, None, None, None, None]"
 eq "$(py 'w, m = kp.menu_request("kawa-power\n0\n"); print(w, m.lines, m.drop)')" "kawa-power [] False" "no rows: an empty menu"
 case_ "a dropdown lights its button: kawa-drop.open (the panel's pid, the script that asked), its module poked — and dark again as it goes"

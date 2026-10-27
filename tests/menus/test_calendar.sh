@@ -35,7 +35,7 @@ eq "$(week 3)" "12 13 14 15 16:today 17 18" "today stamped"
 eq "$(week 6)" "2:dim 3:dim 4:dim 5:dim 6:dim 7:dim 8:dim" "November's first days fill the sixth week"
 eq "$(fz_rows | tail -n 3 | tr '\n' '|')" "key	$ICON_CHEVRON_LEFT	previous|key	$ICON_CHEVRON_RIGHT	next|key	$ICON_CALENDAR	today|"
 eq "$(fz_rows | wc -l)" 53 "the heading, 7 weekdays, 42 days, 3 keys"
-eq "$(fz_arg drop)" set "a dropdown"; eq "$(fz_arg select)" "" "opened clean"; eq "$(fz_arg width)" "" "sized by its grid"
+eq "$(fz_arg drop)" set "a dropdown"; eq "$(fz_arg middle)" set "from the bar's middle, the date's (a click or Super+C alike)"; eq "$(fz_arg select)" "" "opened clean"; eq "$(fz_arg width)" "" "sized by its grid"
 fits
 case_ "today on every weekday: stamped, in its weekday's column"
 for d in 12 13 14 15 16 17 18; do

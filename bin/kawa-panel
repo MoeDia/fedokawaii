@@ -399,9 +399,12 @@ def where(click, w):
     return "right", EDGE, None
 
 
-def menu_place(drop, click, w):
+def menu_place(drop, click, w, middle=False):
     """A menu's: dropped from the bar (--drop) as a panel is — under the click, or 8 px from
-    the right edge —, any other in the middle of the screen."""
+    the right edge —, from the bar's middle (--middle: the date's, whether a click or a key
+    opened it — on the clicked output, or dwl's), any other in the middle of the screen."""
+    if drop and middle:
+        return "middle", 0, click[1] if click else None
     return where(click, w) if drop else ("centre", 0, None)
 
 
@@ -540,10 +543,11 @@ class Menu:
     what has been typed."""
 
     def __init__(self, lines, drop=False, title="", width=0, lines_shown=0, select=None,
-                 prompt=None, index=False, stay=False, password=False):
+                 prompt=None, index=False, stay=False, password=False, middle=False):
         self.lines = [parse_line(i, l) for i, l in enumerate(lines)]
         self.stay = stay          # (its keys answer and keep it on screen: the next page in place)
         self.drop, self.title, self.width, self.shown = drop, title, width, lines_shown
+        self.middle = middle      # (dropped from the bar's middle: the date's place)
         self.select, self.prompt, self.index = select, prompt, index
         self.password = password  # (what is typed shown as ◆ each, never itself)
         self.query = ""
@@ -1182,7 +1186,8 @@ class Panel:
         # keyboard-first: the cursor on its first choice (or --select's line) from the start —
         # Enter takes it at once; the pointer moves it (hover(): one cursor, never two lights)
         self.focus = self.first_key() if self.items else None
-        self.place = menu_place(menu.drop, self.ui.clicked() if menu.drop else None, self.size[0])
+        self.place = menu_place(menu.drop, self.ui.clicked() if menu.drop else None, self.size[0],
+                                menu.middle)
         self.ui.show()
         if menu.drop or what == "launcher":
             self.ui.light(what, True)                 # (its button on the bar lit)
@@ -1717,13 +1722,14 @@ def ask(line):
 
 def menu_args(args):
     """A menu's options (kawa-menu's, as it passes them) → the request's, or None (wrong use):
-    --drop, --index, --stay, --password, --title TEXT, --width N, --lines N, --select N, --prompt TEXT."""
-    req = {"drop": False, "index": False, "stay": False, "password": False, "title": "", "width": 0, "lines": 0,
-           "select": None, "prompt": None}
+    --drop, --middle, --index, --stay, --password, --title TEXT, --width N, --lines N, --select N,
+    --prompt TEXT."""
+    req = {"drop": False, "middle": False, "index": False, "stay": False, "password": False, "title": "",
+           "width": 0, "lines": 0, "select": None, "prompt": None}
     i = 0
     while i < len(args):
         a = args[i]
-        if a in ("--drop", "--index", "--stay", "--password"):
+        if a in ("--drop", "--middle", "--index", "--stay", "--password"):
             req[a[2:]] = True
             i += 1
             continue
@@ -1753,7 +1759,8 @@ def menu_request(text):
         return None
     return lines[0], Menu(lines[2 + n:], drop=req["drop"], title=req["title"], width=req["width"],
                           lines_shown=req["lines"], select=req["select"], prompt=req["prompt"],
-                          index=req["index"], stay=req["stay"], password=req["password"])
+                          index=req["index"], stay=req["stay"], password=req["password"],
+                          middle=req["middle"])
 
 
 # ── on screen ─────────────────────────────────────────────────────────────────────────────
@@ -1885,13 +1892,16 @@ def main(argv):
         # its border in line with a window's there), the others under their module
         # (a menu not dropped from the bar — power, help, change —: no anchor, the middle)
         side, margin, out_x = panel.place
-        if side != "centre":
+        if side == "middle":                     # (the top alone: centred on its output)
+            GtkLayerShell.set_anchor(win, GtkLayerShell.Edge.TOP, True)
+            GtkLayerShell.set_margin(win, GtkLayerShell.Edge.TOP, 8)
+        elif side != "centre":
             edge = GtkLayerShell.Edge.LEFT if side == "left" else GtkLayerShell.Edge.RIGHT
             GtkLayerShell.set_anchor(win, GtkLayerShell.Edge.TOP, True)
             GtkLayerShell.set_anchor(win, edge, True)
             GtkLayerShell.set_margin(win, GtkLayerShell.Edge.TOP, 8)
             GtkLayerShell.set_margin(win, edge, margin)
-        if side == "left":
+        if side in ("left", "middle") and out_x is not None:
             disp = Gdk.Display.get_default()
             for i in range(disp.get_n_monitors()):
                 if disp.get_monitor(i).get_geometry().x == out_x:

@@ -43,7 +43,7 @@ eq "$(sed -n 1p <<<"$rows")" "part	時	timer	" "the heading: 時 timer, nothing 
 eq "$(sed -n '2,6p' <<<"$rows" | tr '\n' '|')" "row	$ICON_HOURGLASS	 5 min|row	$ICON_HOURGLASS	10 min|row	$ICON_HOURGLASS	25 min|row	$ICON_HOURGLASS	45 min|row	$ICON_HOURGLASS	60 min|" "a row a length, the figures right-aligned"
 eq "$(sed -n 7p <<<"$rows")" "row	$ICON_HOURGLASS	stopwatch"
 lacks "$rows" cancel; eq "$(wc -l <<<"$rows")" 7
-eq "$(fz_arg drop)" set "a dropdown, as the calendar"; eq "$(fz_arg select)" 1 "on 5 min, not the heading"
+eq "$(fz_arg drop)" set "a dropdown, as the calendar"; eq "$(fz_arg middle)" set "from the bar's middle, as the calendar"; eq "$(fz_arg select)" 1 "on 5 min, not the heading"
 eq "$(fz_arg width)" "" "sized to its content"
 fits
 case_ "Esc, a click outside: nothing set"

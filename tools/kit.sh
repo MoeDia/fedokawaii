@@ -13,13 +13,18 @@
 #                of the installed ones: the theme folders, foot's colours, GTK, nvim's colours
 #     --tui      "COLSxROWS:FILE" — the tui scene: a floating terminal that size running the
 #                script FILE (a mock screen, a screen under work), shot when it has drawn
+#     --play     FILE — the play scene: FILE run inside, in the words of tools/kit-play.sh (the
+#                pointer, the keys, shots by name): a menu opened by a click, hovered, used
+#     --time     the longest the whole run may take, seconds (default 120: a long play needs more)
+#     --bin      DIR first on the kit's PATH (the repository's bin/: its scripts tried before
+#                they are applied; everything else stays the installed state)
 #     SCENE      bar · notice · launcher · term · quick (Super+X) · system (Super+U; system:N its
-#                tab N after the first, shot as system-N.png) · tui (--tui) · full (default: bar notice term full)
+#                tab N after the first, shot as system-N.png) · tui (--tui) · play (--play) · full (default: bar notice term full)
 # Shots → OUT (default /dev/shm/r27/kit/THEME)/SCENE.png. Exit 0 · 1 a scene failed · 2 misuse.
 set -u
 here=$(cd "$(dirname "$0")" && pwd)
 repo=$(cd "$here/.." && pwd)
-theme=dark out="" fontdir="" fonts=() edits=() scenes=() themes="" tui=""
+theme=dark out="" fontdir="" fonts=() edits=() scenes=() themes="" tui="" play="" limit=120 bin=""
 while (($#)); do
   case $1 in
     --theme) theme=$2; shift 2 ;;
@@ -29,6 +34,9 @@ while (($#)); do
     --themes) themes=$(realpath "$2"); shift 2 ;;
     --out) out=$2; shift 2 ;;
     --tui) tui=$2; shift 2 ;;
+    --play) play=$(realpath "$2"); shift 2 ;;
+    --time) limit=$2; shift 2 ;;
+    --bin) bin=$(realpath "$2"); shift 2 ;;
     -h|--help) sed -n '2,/^set -u/{/^set -u/d;s/^# \{0,1\}//;p}' "$0"; exit 0 ;;
     -*) echo "kit: unknown option $1" >&2; exit 2 ;;
     *) scenes+=("$1"); shift ;;
@@ -96,7 +104,7 @@ sys_size=$(sed -n 's/^ *system) .*size=\([0-9]*x[0-9]*\) .*/\1/p' "$(command -v 
 # inside the headless dwl: the kit's environment, then each scene and its shot
 cat >"$K/inside.sh" <<EOF
 export HOME=$h XDG_CONFIG_HOME=$h/.config XDG_CACHE_HOME=$h/.cache XDG_STATE_HOME=$h/.local/state
-export XDG_DATA_HOME=$h/.local/share FONTCONFIG_FILE=$K/fonts.conf PATH=$h/.local/bin:/usr/local/bin:/usr/bin:/bin
+export XDG_DATA_HOME=$h/.local/share FONTCONFIG_FILE=$K/fonts.conf PATH=${bin:+$bin:}$h/.local/bin:/usr/local/bin:/usr/bin:/bin
 export XDG_CURRENT_DESKTOP=wlroots XDG_SESSION_TYPE=wayland
 cd "\$HOME"
 kawa-dwlstatus <&0 >/dev/null 2>&1 &
@@ -122,6 +130,9 @@ for s in ${scenes[*]}; do
     tui)      # --tui's script in a floating terminal of its size
       footclient -a float -T tui -W "${tui%%:*}" -- bash "${tui#*:}" >/dev/null 2>&1 &
       sleep 3; grim "$out/tui.png"; wtype -k Escape; sleep 0.5 ;;
+    play)     # --play's FILE, in kit-play.sh's words
+      export KIT_OUT="$out"; : >"$out/play.log"
+      ( . "$here/kit-play.sh"; . "$play" ) || fail=1 ;;
     system|system:[0-9])   # Super+U: its foot window as kawa-warm sizes it (app-id float: dwl puts
       # no warm window away); system:N — Tab pressed N times first (the Nth tab after the first)
       footclient -a float -T system -W $sys_size -- fedokawaii --popup >/dev/null 2>&1 &
@@ -134,7 +145,13 @@ for s in ${scenes[*]}; do
 done
 exit \$fail
 EOF
-bash "$here/hl-dwl.sh" "$K/inside.sh" --time 120 --keep "$K/logs"
+# (dwl itself in the kit's home and PATH: what it starts — a key's program, a warm window — is
+# the kit's too, never the real home's)
+dwl_bin=$HOME/.local/src/dwl/dwl
+HOME=$h XDG_CONFIG_HOME=$h/.config XDG_CACHE_HOME=$h/.cache XDG_STATE_HOME=$h/.local/state \
+  XDG_DATA_HOME=$h/.local/share FONTCONFIG_FILE=$K/fonts.conf \
+  PATH=${bin:+$bin:}$h/.local/bin:/usr/local/bin:/usr/bin:/bin \
+  bash "$here/hl-dwl.sh" "$K/inside.sh" --dwl "$dwl_bin" --time "$limit" --keep "$K/logs"
 rc=$?
 for s in "${scenes[@]}"; do [[ -f $out/$s.png ]] && echo "$out/$s.png"; done
 ((rc == 0)) || { echo "kit: a scene failed (exit $rc) — waybar: $(tail -n 3 "$K/waybar.log" 2>/dev/null)" >&2; exit 1; }

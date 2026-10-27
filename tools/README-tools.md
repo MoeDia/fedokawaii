@@ -8,6 +8,8 @@
 | `perf.sh` | the before/after protocol in the live session (idle, boot, terminals, switches, typing, menus, nvim) | `bash tools/perf.sh [OUTDIR]` · `--again OUTDIR` |
 | `shot.sh` | grim of the live session (or a headless run), `--both` themes | `bash tools/shot.sh NAME [--region "X,Y WxH"] [--runtime DIR] [--both]` → /dev/shm/r27/ |
 | `px.py` | pixel measurement: runs (stripes), boxes, gaps, centre, hist, diff, zoom | `python3 tools/px.py --help` |
+| `kit.sh` | the real surfaces in a headless dwl from a throw-away home (the installed configs; dwl itself in that home): the bar, notices, the launcher, quick settings, Super+U and its tabs, a mock TUI — or a play | `bash tools/kit.sh [--theme dark\|light] [--bin bin] [--time S] [--out DIR] SCENE…` · `--play FILE play` |
+| `kit-play.sh` | a play's words (sourced by the kit): `at X Y`, `by`, `click`, `key`, `chord logo u`, `text`, `shot NAME [X,Y WxH]`, `panel`, `warm`, `nap`, `say` — the pointer through wlrctl, the keys through wtype | a play is a file of those lines |
 | `hotplug-test.sh` | a real monitor unplug/replug on the free GPU (root) with X11 windows (`xconf.c`) | `sudo bash tools/hotplug-test.sh [DWL]` (`CYCLES=N`) |
 | `dwl-patch.sh` | `src/dwl/dwl.patch` from the edited tree — before `fedokawaii apply` | `bash tools/dwl-patch.sh [TREE]` |
 | `selftest.sh` | the installed system checked from a copy | `fedokawaii selftest [--sandbox]` |
