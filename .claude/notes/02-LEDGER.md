@@ -222,6 +222,10 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   the heavy scene (tools/perf-load.sh: 0 dropped of 10,305 frames, CPU 1.3 %, GPU 10 %), the latency
   suite --full (58 ok; FAIL Brave cold 20 s timeout, lazygit 1010 ms, recording start 1209 ms),
   boot pace (10 boots), nvim in a real pty to VeryLazy 148 ms (tools/ptytime.py; headless said 10).
+  The latency suite's "Brave from cold" FAIL is its method: `brave-origin-stable --headless=new
+  --dump-dom about:blank` hangs to the timeout here even with --password-store=basic, --disable-gpu
+  and --ozone-platform=headless (04:12) → T60 times Brave as he meets it: the key press to its
+  window's first frame (frame log W line), cold (caches dropped) and warm; the suite's row fixed.
 - r27-6 (T06) the one early notice — DONE+VERIFIED 03:24: facts from the official pages: the
   LG 24G411A-B has one DisplayPort 1.4 and HDMI 2.0, 120 Hz native / 144 Hz overclocked
   (lg.com/cl/monitores/gaming/24g411a-b); the MSI PRO B650M-B shows only HDMI (4K@60, HDMI 2.1)
