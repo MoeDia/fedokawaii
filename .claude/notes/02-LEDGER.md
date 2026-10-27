@@ -236,6 +236,18 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   until he clicks them done: a critical notice at every login — mako [app-name=foryou] click =
   done — and Super+U status's first row "for you"); test_foryou.sh (15). Shown live (shot), and
   `fedokawaii status` leads with it.
+- r27-5 (T05) the VM harness — WIP (04:30): tools/vm-create.sh (session VM, kickstart = the README's
+  install on this PC's layout: one Btrfs subvol root, /boot XFS outside, UEFI; Fedora 44 from the
+  master server https://dl.fedoraproject.org/pub/fedora/linux/releases/44/Everything/x86_64/os/
+  (.treeinfo "Fedora 44"; the redirector's mirror refused the initrd: 403) + updates repo; no
+  password at all — harness key + sudo; base.qcow2 + overlay, boots in 11 s), vm-snap/vm-run/
+  vm-smoke, test_vm_tools.sh (20). Fixed on the way: a Minimal Install has no tar (README's first
+  step done first); F44 has no @^minimal-environment (custom-environment, as the PC); setup refuses
+  a VM display → hw_test_vm (a marker only the harness sets; video decode and DDC/CI become named
+  skips, never passes); GPU=amd in the VM's conf (his package set). Green 04:25: setup to "done",
+  verify 230 passed + 3 named skips, dwl/waybar/mako up, screenshot ok (resumed at the gate after
+  the verify fix — a full fresh run follows). The PC's 27 extra checks were session checks (verify
+  ran before the desktop) → vm-smoke now verifies with the desktop up.
 - r27-33 (T29, findings 04:00 — not fixed yet) Prowlarr: on demand by design (kawa-prowlarr: up while
   torrra searches, asleep 30 min after) — "inactive" is normal. /api/v1/health: 0 now. Its own log
   (~/.config/prowlarr/logs) over 8 days: Warn AllowedHostsCheck "Allowed Hosts is not configured"
