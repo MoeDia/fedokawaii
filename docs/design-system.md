@@ -254,6 +254,13 @@ content, inside its margin of one cell:
   content's last column, `muted`.
 - **Cursor**: the row's cells filled `accent` from the margin column to the margin column, its
   inks `text_on_accent`.
+- **Tabs** (a screen of several sections: Super+U): three lines heading the list, at a
+  heading's column (one cell out from the rows, §3 indent) — the tabs, the line under the one
+  shown, a row of paper. The tab shown: its icon in `accent_text`, two columns, its name in
+  `strong`, and under the name alone `▔` in `accent`, its ends flush with the letters'; the
+  others their icon alone in `muted`. Every icon two columns, every gap three: 26–28 px of air
+  between any two tabs. Tab / Shift+Tab, ← / → and a click change it. A pane beside the list
+  starts its heading level with the tabs and its first line level with the list's first row.
 - **No footer** of the obvious (Enter, Esc, arrows): the keys of the app in front are in
   Super+/ (it knows the app). A screen with a key of its own shows that one on its last line —
   the key in `text`, what it does in `muted`, its state in `strong` (Super+W: `r  change every

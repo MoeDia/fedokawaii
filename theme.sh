@@ -1062,6 +1062,7 @@ if pgrep -u "$TARGET_UID" -x dwl >/dev/null; then
   live() { U env WAYLAND_DISPLAY="$WD" "$@" >/dev/null 2>&1 || true; }
   live kawa-display
   live kawa-theme apply                    # terminals, bar, notifications, GTK, Qt, wallpaper
+  live kawa-warm --renew system clip       # (their windows as now drawn; the notes hold your page)
   log "reloaded the theme in the running session (new fonts, foot settings and dwl apply at next login)"
 fi
 run_boot                                   # 3b + 3c, contained (see above): they apply at the next boot

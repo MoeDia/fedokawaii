@@ -24,6 +24,7 @@ setup() {
   mkdir -p "$W" "$VL"
   local f; for f in "${PARTS[@]}"; do mkdir -p "$(dirname "$TK/$f")"; printf '# %s\n' "$f" >"$TK/$f"; done
   printf 'print("drawn")\n' >"$TK/tools/build-themes.py"; cp "$TK/tools/build-themes.py" "$TK/tools/build-icons.py"
+  cp "$REPO/lib/common.sh" "$TK/lib/"   # (what counts the changes: tree_changes, apply's own)
   : >"$W/edit"; echo 0 >"$W/editrc"
   # the engine: copy as fedokawaii copy makes it (with git's record of the settings), else logged
   stub fedokawaii 'case $1 in

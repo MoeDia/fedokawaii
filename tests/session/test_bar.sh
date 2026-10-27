@@ -123,7 +123,9 @@ kawa-dwlstatus --poke 15; pokes >/dev/null  # the next poke, whoever sends it: t
 eq "$(sh -c "$cat_ex")" "{\"text\":\"$ICON_CAT\"}" "dark: its marker is left, its pid dead"
 case_ "the panel killed with kill -9 under a dropdown: its button dark at the next run (the marker's pid dead)"
 alive; p=$P; echo "$p kawa-calendar" >"$R/kawa-drop.open"
-d=$(LC_ALL=C date '+%a %d %b'); a=$(. "$HOME/.config/fedokawaii/width.sh"; air "$d"; echo "${__air#* }")
+d=$(LC_ALL=C date '+%a %d %b')
+# shellcheck disable=SC2154  # (__air: what width.sh's air sets)
+a=$(. "$HOME/.config/fedokawaii/width.sh"; air "$d"; echo "${__air#* }")
 eq "$(kawa-bar date)" "{\"text\":\"$d\",\"class\":[\"active\",\"$a\"]}"
 kill -9 "$p"; wait "$p" 2>/dev/null
 eq "$(kawa-bar date)" "{\"text\":\"$d\",\"class\":\"$a\"}" "dark at the next run"
@@ -161,7 +163,7 @@ kawa-dwlstatus --poke 15; eq "$(pokes)" "12 15"
 kawa-dwlstatus --poke 19 20; eq "$(pokes)" "19 20"
 mkfifo "$R/kawa-bar.wake.$$" "$R/kawa-bar.wake.$(dead)"; exec 6<>"$R/kawa-bar.wake.$$"
 kawa-dwlstatus --wake; read -r -t 1 -u 6 && _ok || _no "--wake: no line in the live module's fifo"
-eq "$(ls "$R" | grep -c 'kawa-bar.wake')" 1 "the dead module's fifo taken away"
+eq "$(compgen -G "$R/kawa-bar.wake*" | wc -l)" 1 "the dead module's fifo taken away"
 kawa-dwlstatus --poke 16; read -r -t 1 -u 6 && _ok || _no "--poke: no wake"
 rc 2 kawa-dwlstatus --wake x
 exec 6<&-; rm -f "$R/kawa-bar.wake.$$"
@@ -230,7 +232,8 @@ read -r -t 1 -u 6 && _ok || _no "not woken as it opened"
 wait "$f"; [[ -e $R/kawa-term-btop.open ]] && _no "the marker stayed" || _ok
 read -r -t 1 -u 6 && _ok || _no "not woken as it closed"
 stub footclient 'exec sleep 31.5'; kawa-term --float --once btop btop 112x33 -- btop & f=$!
-until_ '[[ -s $R/kawa-term-btop.open ]]'; kill -TERM "$f"; pkill -f "sleep 31.5"; wait "$f" 2>/dev/null
+until_ '[[ -s $R/kawa-term-btop.open ]]'; s=$(pgrep -P "$f" -x sleep)   # (the window's stand-in: exactly that one ends, after)
+kill -TERM "$f"; [[ -n $s ]] && kill "$s" 2>/dev/null; wait "$f" 2>/dev/null
 [[ -e $R/kawa-term-btop.open ]] && _no "killed (TERM): the marker stayed" || _ok
 exec 6<&-
 
@@ -294,7 +297,7 @@ S_=$REPO/configs/home/.config/waybar/style.css
 grep -q '^window#waybar { background: transparent;' "$S_" && _ok || _no "the bar has a ground of its own"
 toks=" $(sed -n 's/^@define-color \([a-z-]*\) .*/\1/p' "$REPO/configs/home/.config/fedokawaii/themes/dark/waybar.css" | tr '\n' ' ')"
 eq "$toks" " faint muted text strong accent-text strong-on-accent asagi tile kami-red seal-ink " "waybar.css: these and no more"
-for t in light; do eq " $(sed -n 's/^@define-color \([a-z-]*\) .*/\1/p' "$REPO/configs/home/.config/fedokawaii/themes/$t/waybar.css" | tr '\n' ' ')" "$toks" "$t: the same names"; done
+eq " $(sed -n 's/^@define-color \([a-z-]*\) .*/\1/p' "$REPO/configs/home/.config/fedokawaii/themes/light/waybar.css" | tr '\n' ' ')" "$toks" "light: the same names"
 bad=""; for u in $(grep -o '@[a-z-]*' "$S_" | grep -v '^@import' | sort -u); do [[ $toks == *" ${u#@} "* ]] || bad+=" $u"; done
 eq "${bad:-none}" none "style.css names a colour waybar.css does not define"
 bad=$(grep -nE 'background(-color)?: *@' "$S_" | grep -vE '@(tile|kami-red);')

@@ -129,6 +129,9 @@ num() { [[ ${1:-} =~ ^[0-9]+$ ]]; }
 # the toolkit's records: one line each, written by root when it ran (all can read them)
 read_rec() { local f=$STATE/$1; [[ -r $f ]] && head -n1 "$f"; }
 last_update() { local l; l=$(read_rec last-update) || return 1; [[ $l =~ ^([0-9]+)\ ([a-z]+) ]] || return 1; echo "${BASH_REMATCH[1]} ${BASH_REMATCH[2]}"; }
+# cleared_since T — a verify after T found nothing to fix: what a run at T left is answered,
+# and no longer said (a note about the past that is no longer true is noise)
+cleared_since() { local vt vf; read -r vt _ vf _ < <(read_rec last-verify) && num "$vt" && num "$vf" && ((vt > $1 && vf == 0)); }
 busy() {   # a toolkit run (update, repair, …) holds its lock right now
   [[ -r $STATE/lock ]] || return 1
   ( exec 8<"$STATE/lock" && ! flock -n 8 ) 2>/dev/null
@@ -250,7 +253,7 @@ status_kv() {
     case $res in
       ok)      ;;
       partial) printf '\037some parts left for the next one\n' ;;
-      checks)  printf '\037verify found problems: repair\n' ;;
+      checks)  cleared_since "$t" || printf '\037verify found problems: repair\n' ;;
       *)       printf '\037tried %s, stopped: see the log\n' "$(date -d "@$t" '+%-d %b' 2>/dev/null)" ;;
     esac
   fi
@@ -267,7 +270,7 @@ status_kv() {
   # the checks after a dnf transaction of yours (the guard's unit, lib/guard.sh): only when
   # one waits or the last left something
   if [[ -e $STATE/after-dnf ]]; then printf 'dnf\037checks after it waiting\n'
-  elif read -r t res < <(read_rec last-after-dnf) && num "$t" && [[ $res != ok ]]; then
+  elif read -r t res < <(read_rec last-after-dnf) && num "$t" && [[ $res != ok ]] && ! cleared_since "$t"; then
     printf 'dnf\037%s left something · repair\n' "$(ago "$t")"
   fi
   run=$(uname -r); new=$(rpm -q --last kernel-core 2>/dev/null | head -n1); new=${new%% *}; new=${new#kernel-core-}
@@ -283,11 +286,21 @@ status_kv() {
   fi
   # left for you to look at, never changed by itself
   if [[ -s $STATE/unavailable ]]; then
-    l=$(tr '\n' ' ' <"$STATE/unavailable"); l=${l% }
-    ((${#l} > 34)) && l="${l:0:33}…"             # (with its key's column: 44 at most)
-    printf 'retired\037%s\n' "$l"
+    # (whole names while they fit — with its key's column 44 at most — then how many more;
+    # never a name cut, never an ellipsis)
+    local names=() k out="" more
+    read -r -a names < <(tr '\n' ' ' <"$STATE/unavailable")
+    for k in "${!names[@]}"; do
+      more=" +$(( ${#names[@]} - k ))"
+      if (( ${#out} + 1 + ${#names[k]} + (k + 1 < ${#names[@]} ? ${#more} : 0) > 34 )); then
+        out=${out:+$out$more}; break
+      fi
+      out=${out:+$out }${names[k]}
+    done
+    [[ -n $out ]] || { out="${#names[@]} package"; ((${#names[@]} > 1)) && out+=s; }
+    ((${#names[@]})) && printf 'retired\037%s\n' "$out"
   fi
-  n=$(grep -c . "$STATE/rpmnew" 2>/dev/null) && ((n)) && printf 'compare\037%d config file(s) after the move\n' "$n"
+  n=$(grep -c . "$STATE/rpmnew" 2>/dev/null) && ((n)) && printf 'compare\037%d config file%s after the move\n' "$n" "$( ((n == 1)) || echo s)"
   return 0
 }
 status() {   # the status as text: the keys in a column of their own, two columns clear of the
@@ -421,26 +434,15 @@ keep_file() {
   ((unkept == 0))                                       # (1: something named was not kept — said above)
 }
 copy_apply() {   # the copy applied: ShellCheck's advice on the scripts you changed, then root's part
-  local f sh=()
+  local f st sh=()
   need_copy && need_toolkit || return 1
   if command -v shellcheck >/dev/null; then
-    # the scripts you changed, and the ones you added (a new folder: every file in it)
-    while IFS= read -r f; do
-      case $f in
-        "Files $TK/"*) f=${f#"Files $TK/"}; f=${f% and "$COPY"/*} ;;   # (a name may hold " and ")
-        "Only in $COPY"*) f=${f#"Only in $COPY"}; f=${f#/}; f=${f/: //}; f=${f#/} ;;
-        *) continue ;;
-      esac
-      if [[ -d $COPY/$f ]]; then
-        while IFS= read -r -d '' g; do
-          g=${g#"$COPY/"}
-          if [[ $g == *.sh ]] || head -n1 -- "$COPY/$g" | grep -qE '^#!.*[/ ](ba)?sh( |$)'; then sh+=("$g"); fi
-        done < <(find "$COPY/$f" -type f -print0)
-        continue
-      fi
-      [[ -f $COPY/$f ]] || continue
+    # the scripts you changed, and the ones you added (each file: lib/common.sh's tree_changes,
+    # apply's own list)
+    while IFS=$'\t' read -r st f; do
+      [[ $st != gone && -f $COPY/$f ]] || continue
       if [[ $f == *.sh ]] || head -n1 -- "$COPY/$f" | grep -qE '^#!.*[/ ](ba)?sh( |$)'; then sh+=("$f"); fi
-    done < <(diff -rq --exclude=.git -- "$TK" "$COPY" 2>/dev/null)
+    done < <(LOG_FILE=/dev/null; . "$TK/lib/common.sh" >/dev/null && tree_changes "$TK" "$COPY")
     if ((${#sh[@]})) && ! (cd "$COPY" && shellcheck -x -S warning -- "${sh[@]}"); then
       echo "  ↑ ShellCheck's notes on the scripts you changed (each SC number explained: shellcheck.net/wiki) — apply goes on"
     fi
@@ -632,19 +634,31 @@ if ! on_console && [[ -r $HOME/.config/fedokawaii/screen.sh ]]; then
   # shellcheck source=/dev/null
   . "$HOME/.config/fedokawaii/screen.sh"
 fi
-# every entry: ACTION<TAB>ICON<TAB>NAME<TAB>VALUE (the value at the right, muted — or in the
-# kanji's vermilion when it needs you: due, ready, to fix, no backup), in three parts — the
-# system's upkeep, the desktop, help — each under a heading of its own: -<TAB>KANJI<TAB>NAME
-# (守 keep, 卓 the desk, 案 the guide), which the cursor never stops on
+# Super+U (docs/design-system.md §7): five sections as tabs across the top — system, update,
+# snapshots, backups, learning — the section's entries as rows, the entry under the cursor told
+# in the pane beside them. Tab / Shift+Tab, → / ←, or a click on a tab change the section.
+SECTIONS=(system update snapshots backups learning)
+tab_icon() {   # tab_icon SECTION → its pixel icon
+  case $1 in
+    system) printf '%s' "${ICON_MONITOR:-·}" ;; update) printf '%s' "${ICON_RESTART:-·}" ;;
+    snapshots) printf '%s' "${ICON_CAMERA:-·}" ;; backups) printf '%s' "${ICON_DRIVE:-·}" ;;
+    learning) printf '%s' "${ICON_MORTARBOARD:-·}" ;;
+  esac
+}
+# what is not built yet: a row in the faint ink that says "soon", its pane what it will be
+SOON='held|file|restore|drive|chess|typing|todo'
+# every entry: SECTION<TAB>ACTION<TAB>ICON<TAB>NAME<TAB>VALUE (the value at the right, muted — or
+# in the vermilion when it needs you: due, ready, to fix, no backup); rows SECTION: that
+# section's, rows: all of them
 rows() {
-  local d st n r from l t p f w R=${INK_KANJI:-} O=${INK_OFF:-} upd up ver_ snap bk nxt
+  local only=${1:-} d st n r from l t p f w R=${INK_KANJI:-} O=${INK_OFF:-} upd up ver_ snap bk nxt
   d=$(due_at); read -r st n r from < <(next_state)
   if ((d <= now)); then upd="${R}due$O"; else upd=$(inn "$d"); fi
   case $st in
     ready)    up="${R}ready$O" ;;
     settling) up=$(inn "$from") ;;
     soon)     up=$(date -d "@$r" '+%b %Y') ;;
-    *)        up=check ;;
+    *)        up="may be out" ;;   # (as status says it: its day passed, not seen out yet)
   esac
   ver_=""
   if l=$(read_rec last-verify); then
@@ -661,199 +675,218 @@ rows() {
   local pl="" pt pr
   if read -r pt pr _ 2>/dev/null <"$PULL_REC" && num "$pt"; then pl=$(ago "$pt"); [[ $pr == ok ]] || pl="$R$pl$O"; fi
   # (a release that cannot be read is not guessed at: no Fedora 0, no move to Fedora 1)
-  if (($(ver))); then nxt="upgrade to Fedora $n"; else nxt="upgrade to the next Fedora"; fi
-  # (change and keybindings open screens of their own: only on the desktop, not on a text console)
-  local desk=(); [[ -n ${WAYLAND_DISPLAY:-} ]] && desk=(1)
-  printf '%s\t%s\t%s\t%s\n' \
-    -         守                        upkeep                ""  \
-    status    "${ICON_CPU:-·}"          status                ""  \
-    update    "${ICON_DOWNLOAD:-·}"     update                "$upd" \
-    pull      "${ICON_CLOUD:-·}"        "update fedokawaii"   "$pl" \
-    upgrade   "${ICON_RESTART:-·}"      "$nxt"                "$up" \
-    verify    "${ICON_CHECK:-·}"        verify                "$ver_" \
-    repair    "${ICON_SLIDERS:-·}"      repair                "" \
-    drift     "${ICON_BRANCH:-·}"       drift                 "" \
-    snapshots "${ICON_HOURGLASS:-·}"    snapshots             "$snap" \
-    backup    "${ICON_ARCHIVE:-·}"      backup                "$bk" \
-    -         卓                        desktop               ""  \
-    ${desk:+change    "${ICON_CODE:-·}" "change the desktop"  ""} \
-    theme     "${ICON_THEME:-·}"        "theme, applied again" "" \
-    settings  "${ICON_FILE:-·}"         settings              "" \
-    remind    "${ICON_BELL:-·}"         reminders             "$([[ $REMIND == yes ]] && echo "every $EVERY days" || echo off)" \
-    -         案                        help                  ""  \
-    ${desk:+keys      "${ICON_KEYBOARD:-·}" keybindings       ""} \
-    guide     "${ICON_BOOK:-·}"         learn                 "" \
-    log       "${ICON_NOTE:-·}"         log                   ""
+  if (($(ver))); then nxt="Fedora $n"; else nxt="the next Fedora"; fi
+  # (change and keys open screens of their own: only on the desktop, not on a text console)
+  local desk=""; [[ -n ${WAYLAND_DISPLAY:-} ]] && desk=1
+  e() { [[ -z $only || $only == "$1" ]] && printf '%s\t%s\t%s\t%s\t%s\n' "$1" "$2" "$3" "$4" "$5"; return 0; }
+  e system    status    "${ICON_CPU:-·}"        status                 ""
+  e system    verify    "${ICON_CHECK:-·}"      verify                 "$ver_"
+  e system    repair    "${ICON_KIT:-·}"        repair                 ""
+  e system    drift     "${ICON_BRANCH:-·}"     drift                  ""
+  [[ -n $desk ]] && e system change "${ICON_CODE:-·}" "change the desktop" ""
+  e system    theme     "${ICON_THEME:-·}"      "the theme, anew"      ""
+  e system    settings  "${ICON_SLIDERS:-·}"    settings               ""
+  e system    remind    "${ICON_BELL:-·}"       reminders              "$([[ $REMIND == yes ]] && echo "every $EVERY days" || echo off)"
+  e system    log       "${ICON_NOTE:-·}"       log                    ""
+  e update    update    "${ICON_DOWNLOAD:-·}"   update                 "$upd"
+  e update    pull      "${ICON_TORII_SMALL:-·}" fedokawaii            "$pl"
+  e update    upgrade   "${ICON_UPGRADE:-·}"    "$nxt"                 "$up"
+  e update    held      "${ICON_LOCK:-·}"       held                   ""
+  e snapshots snapshots "${ICON_UNDO:-·}"       "go back"              "$snap"
+  e snapshots file      "${ICON_FILE:-·}"       "a file, back"         ""
+  e backups   backup    "${ICON_ARCHIVE:-·}"    "back up now"          "$bk"
+  e backups   restore   "${ICON_UNDO:-·}"       restore                ""
+  e backups   drive     "${ICON_USB:-·}"        "the drive"            ""
+  e learning  guide     "${ICON_BOOK:-·}"       lessons                ""
+  e learning  chess     "${ICON_KNIGHT:-·}"     chess                  ""
+  e learning  typing    "${ICON_KEYBOARD:-·}"   typing                 ""
+  e learning  todo      "${ICON_BOX_ON:-·}"     to-do                  ""
+  [[ -n $desk ]] && e learning keys "${ICON_KEYCAP:-·}" keys ""
+  return 0
 }
-# the part each entry is in: its kanji heads the pane beside the list
-part_of() {
+section_of() {   # section_of ACTION → its tab
   case $1 in
-    status|update|pull|upgrade|verify|repair|drift|snapshots|backup) echo 守 ;;
-    change|theme|settings|remind) echo 卓 ;;
-    *) echo 案 ;;
+    status|verify|repair|drift|change|theme|settings|remind|log) echo system ;;
+    update|pull|upgrade|held) echo update ;;
+    snapshots|file) echo snapshots ;;
+    backup|restore|drive) echo backups ;;
+    *) echo learning ;;
   esac
+}
+icon_of() {   # icon_of ACTION → its row's icon (a job window's heading)
+  local s a g l m
+  while IFS=$'\t' read -r s a g l m; do [[ $a == "$1" ]] && { printf '%s' "$g"; return 0; }; done < <(rows)
+  printf '%s' "${ICON_TORII:-·}"
+}
+# the tab the menu shows (a file of its own: fzf's bindings and its reloads read it); a menu
+# starts on the first
+tab_now() { local t; t=$(cat -- "${FK_TAB:-/nonexistent}" 2>/dev/null); [[ " ${SECTIONS[*]} " == *" $t "* ]] && printf '%s' "$t" || printf system; }
+tab_set() { [[ -n ${FK_TAB:-} ]] && printf '%s\n' "$1" >"$FK_TAB"; return 0; }
+# tabs [SECTION] — the tab bar over the list, three lines: the section shown its icon in the
+# accent's ink and its name strong, a vermilion line under them (▔: foot draws it at the top of
+# the next row — just under the words); the others their icon alone, muted, three columns
+# apart; then a row of paper. (The pane beside the list starts at the window's top: fzf gives
+# it the whole height, so the bar is as wide as the list — and the entry's heading in the pane
+# stands level with it.)
+TAB_GAP=3
+# The tab bar heads the list as a heading does its rows: one cell further out than they are
+# (docs/design-system.md §3, indent). The tab shown: its icon in the accent's ink, two columns,
+# its name strong, a vermilion line under the name alone (its ends flush with the letters'); the
+# others their icon alone, muted. Every icon is two columns, every gap three: the same air
+# between any two tabs
+tab_w() { if [[ $1 == "$2" ]]; then echo $((3 + ${#1})); else echo 2; fi; }   # tab_w TAB SHOWN → its columns
+tabs() {
+  local act=${1:-$(tab_now)} t top="" under="" g
+  printf -v g '%*s' "$TAB_GAP" ''
+  for t in "${SECTIONS[@]}"; do
+    if [[ $t == "$act" ]]; then
+      top+="${INK_KANJI:-}$(tab_icon "$t")${INK_OFF:-}  ${INK_STRONG:-}$t${INK_OFF:-}$g"
+      under+="   ${INK_ACCENT:-${INK_KANJI:-}}$(printf '▔%.0s' $(seq "${#t}"))${INK_OFF:-}$g"
+    else
+      top+="${INK_MUTED:-}$(tab_icon "$t")${INK_OFF:-} $g"
+      under+=$(printf '%*s' "$((2 + TAB_GAP))" '')
+    fi
+  done
+  top=${top%"$g"}; under=${under%"${under##*[! ]}"}   # (no paper after the last tab, or the line)
+  printf '%s\n%s\n \n' "${top% }" "$under"          # (and a row of paper under the bar)
+}
+tab_at() {   # tab_at COLUMN → the tab drawn there (a click on the bar: fzf counts from 1, the
+  # header's first column), nothing between them
+  local col=$1 t w act start=1; act=$(tab_now)
+  for t in "${SECTIONS[@]}"; do
+    w=$(tab_w "$t" "$act")
+    ((col >= start && col < start + w)) && { printf '%s' "$t"; return 0; }
+    start=$((start + w + TAB_GAP))
+  done
+  return 1
+}
+tab_next() {   # tab_next +1|-1 → the section beside the one shown
+  local i n=${#SECTIONS[@]} cur; cur=$(tab_now)
+  for i in "${!SECTIONS[@]}"; do [[ ${SECTIONS[i]} == "$cur" ]] && break; done
+  printf '%s' "${SECTIONS[(i + $1 + n) % n]}"
 }
 # The list and the pane, in a window W columns wide inside fzf's margins (FZF_COLUMNS, which
 # fzf tells every command it runs): the pane takes PANE columns at the right, the list the
-# rest — its text two columns less (the cursor's fill reaches one column past the text each
-# side), 46 in the 100-column window: room to spare beside the widest entry with its value
-# ("upgrade to Fedora 45  in 40 days"). Each row is screen.sh's: two spaces, the glyph, two
-# spaces, the name, the value right-aligned at the list's last column; each heading its
-# kanji, its name and the stitch to that column. The menu asks for its rows again once fzf
-# is up and whenever the window changes size, so the column is right however late the
-# window gets its final size.
+# rest. Each row screen.sh's: its icon, two columns, its name, the value right-aligned at the
+# list's last column; what is not built yet in the faint ink, "soon". The menu asks for its rows
+# again once fzf is up and whenever the window changes size, so the column is right however
+# late the window gets its final size.
 PANE=50
 fit_rows() {
-  local W=38 a g l m c=${FZF_COLUMNS:-}
+  local W=38 s a g l m c=${FZF_COLUMNS:-} sec=${1:-$(tab_now)}
   # (fzf's width; before fzf has drawn it says 0, so then the terminal's, less the margins)
   num "$c" && ((c > 0)) || { c=$(stty size </dev/tty 2>/dev/null) && c=$((${c#* } - 2)); } 2>/dev/null
   num "$c" && ((c > PANE + 40)) && W=$((c - PANE - 2))
-  while IFS=$'\t' read -r a g l m; do
-    if [[ $a == - ]]; then printf -- '-\t%s\t\n' "$(screen_heading "$g" "$l" "$W")"
+  while IFS=$'\t' read -r s a g l m; do
+    if [[ $a == @($SOON) ]]; then
+      printf '%s\t%s\t%s\n' "$a" "$(screen_row "${INK_FAINT:-}$g" "${INK_FAINT:-}$l${INK_OFF:-}" "${INK_FAINT:-}soon${INK_OFF:-}" "$W")" "$l"
     else printf '%s\t%s\t%s\n' "$a" "$(screen_row "$g" "$l" "$m" "$W")" "$l"; fi
-  done < <(rows)
+  done < <(rows "$sec")
 }
-# fzf's items: ACTION<TAB>ROW<TAB>NAME, each ended by a NUL, a heading after the first with an
-# empty line above it (an item of two lines: the gap between the parts is the heading's own)
-fit_items() {
-  local a l m n=0
-  while IFS=$'\t' read -r a l m; do
-    if [[ $a == - ]] && ((n++)); then printf -- '-\t\n%s\t\0' "$l"; else printf '%s\t%s\t%s\0' "$a" "$l" "$m"; fi
-  done < <(fit_rows)
-}
+# fzf's items: ACTION<TAB>ROW<TAB>NAME, each ended by a NUL
+fit_items() { local a l m; while IFS=$'\t' read -r a l m; do printf '%s\t%s\t%s\0' "$a" "$l" "$m"; done < <(fit_rows "$@"); }
 
-# the right pane, a part of its own: the entry's heading (its part's kanji, its name, the
-# stitch — level with the list's first heading), how things stand for it (its lines of the
-# status: the key muted, a column clear of the longest) and what it does — at most 45
-# characters a line, two columns in from the heading (as rows are), and 15 lines: nothing ever wraps or scrolls away
+# the pane, a part of its own: the entry's heading (its icon, its name, the rule — level with
+# the list's first row), how things stand for it (its lines of the status: the key muted, a
+# column clear of the longest) and, for what is not plain from its name, what it does — at most
+# 45 characters a line, two columns in from the heading (as rows are), and 15 lines: nothing ever
+# wraps or scrolls away
 explain() {
-  local a=$1 O=$INK_OFF G=$INK_MUTED kv pw=${FZF_PREVIEW_COLUMNS:-$PANE}
-  # (a heading, nothing or something unknown: nothing to explain)
-  [[ $a == @(status|update|pull|upgrade|verify|repair|snapshots|backup|theme|drift|change|settings|remind|log|keys|guide) ]] || return 0
-  printf '  %s\n' "$(screen_heading "$(part_of "$a")" "${2:-$a}" $((pw - 3)))"
+  local a=$1 O=${INK_OFF:-} G=${INK_MUTED:-} F=${INK_FAINT:-} kv pw=${FZF_PREVIEW_COLUMNS:-$PANE}
+  # (nothing, or something unknown: nothing to explain)
+  [[ $a == @(status|update|pull|upgrade|verify|repair|snapshots|backup|theme|drift|change|settings|remind|log|keys|guide|$SOON) ]] || return 0
+  printf '%s\n\n\n' "$(screen_heading "$(icon_of "$a")" "${2:-$a}" $((pw - 1)))"   # (level with the tab bar; its words with the list's first row)
   # (the whole status only for the entries that show more than whether a run is going on:
   # the pane follows the cursor, so the others stay instant)
   case $a in
     status|update|upgrade|verify|repair|remind) kv=$(status_kv) ;;
     *) kv=$(busy && printf 'running\037%s\n' 'an update or a repair, now') ;;
   esac
-  pick() {   # pick 'KEY|KEY…' → those lines of the status (with their continuations), less what
-    local k v on=0 any=0   # the list beside it says already (next: the upgrade's row; due's "in N days": update's)
+  pick() {   # pick 'KEY|KEY…' [ROOM] → those lines of the status (with their continuations), less
+    # what the list beside it says already (next: the upgrade's row; due's "in N days": update's).
+    # More than ROOM lines (the rare ones all at once): the routine ones make way — the kernel
+    # unless a restart waits for it, the disk unless it runs low, the release, its support —
+    # never one that asks something of you: the pane never scrolls
+    local k v on=0 i d last="" room=${2:-0} ks=() ls=()
     while IFS=$'\037' read -r k v; do
-      if [[ -n $k ]]; then if [[ "|$1|" == *"|$k|"* ]]; then on=1; else on=0; fi; fi
+      if [[ -n $k ]]; then if [[ "|$1|" == *"|$k|"* ]]; then on=1; else on=0; fi; last=$k; fi
       [[ $k == due ]] && v=${v% · in *}
-      ((on)) && { printf '    %s%-8s%s  %s\n' "$G" "$k" "$O" "$v"; any=1; }
+      ((on)) && { ks+=("$last"); ls+=("$(printf '   %s%-9s%s %s' "$G" "$k" "$O" "$v")"); }
     done <<<"$kv"
-    ((any)) && printf '\n'
+    for d in kernel disk release support; do
+      ((room > 0 && ${#ls[@]} > room)) || break
+      for i in "${!ks[@]}"; do
+        [[ ${ks[i]} == "$d" && ${ls[i]} != *"restart for it"* && ${ls[i]} != *" · low" ]] && unset 'ks[i]' 'ls[i]'
+      done
+      ks=("${ks[@]}"); ls=("${ls[@]}")
+    done
+    ((${#ls[@]})) && printf '%s\n' "${ls[@]}" ''
     return 0
   }
-  say() {   # (two columns in from the heading, as rows are)
-    local l t i c LC_ALL=C.UTF-8
-    for l; do
-      if [[ -n ${FUSION_WIDE:-} ]]; then
-        t=""; for ((i = 0; i < ${#l}; i++)); do
-          c=${l:i:1}; t+=$c
-          # shellcheck disable=SC2053  # (FUSION_WIDE is a pattern)
-          [[ $c == $FUSION_WIDE && ${l:i+1:1} == " " ]] && t+=" "
-        done; l=$t
-      fi
-      printf '    %s\n' "$l"
-    done
-  }
+  say() { local l; for l; do printf '   %s%s%s\n' "$G" "$l" "$O"; done; }   # (muted, three columns in)
+  soon() { local l; printf '   %snot yet%s\n\n' "$F" "$O"; for l; do printf '   %s%s%s\n' "$F" "$l" "$O"; done; }
   case $a in
-    status)    pick 'running|release|support|moved|updated|due|verified|dnf|backup|kernel|disk|retired|compare' ;;
+    status)    pick 'running|release|support|moved|updated|due|verified|dnf|backup|kernel|disk|retired|compare' \
+                    $(( ${FZF_PREVIEW_LINES:-0} - 3 )) ;;   # (the room under the heading)
     update)    pick 'running|updated|due'
-               say "everything in one go: a snapshot first," \
-                   "then Fedora's packages, the desktop's own" \
-                   "tools at their pinned versions, torrra," \
-                   "Prowlarr's image and neovim's plugins (your" \
-                   "versions kept), and the checks. a part that" \
-                   "fails is reported; the rest goes on. once a" \
-                   "season is enough: nothing updates by itself." ;;
+               say "a snapshot first, then everything: Fedora's" \
+                   "packages, the desktop's own tools, the" \
+                   "checks. nothing updates by itself." ;;
     pull)      pick 'running'
-               say "fedokawaii itself, from GitHub: your clone" \
-                   "(~/repos/fedokawaii) brought to the newest," \
-                   "then the update runs from it, and repair if" \
-                   "anything is left. your changes in the clone" \
-                   "are kept. the repository is public: no" \
-                   "sign-in, no token." ;;
+               say "fedokawaii itself, from GitHub — then the" \
+                   "update from it. your changes are kept." ;;
     upgrade)   pick 'running|release|support|moved'
-               say "a new Fedora comes every six months, each" \
-                   "supported for about thirteen. the move is" \
-                   "offered once it has settled ($WAIT days) and" \
-                   "its extra repositories and libraries are" \
-                   "ready. it takes a snapshot, downloads" \
-                   "everything and restarts to install it —" \
-                   "20 to 40 minutes — and the desktop comes" \
-                   "back as it was." ;;
+               say "the move to a new Fedora, once it has" \
+                   "settled ($WAIT days): a snapshot, the" \
+                   "download, a restart — 20 to 40 minutes." ;;
     verify)    pick 'running|verified'
-               say "every package, service, file and setting" \
-                   "checked against the toolkit. changes" \
-                   "nothing." ;;
-    repair)    pick 'running|verified'
-               say "verify, then put right what it found —" \
-                   "missing packages and drivers, anything" \
-                   "doubled or fighting, services, the login," \
-                   "dwl, the session, the desktop's tools," \
-                   "the configs — and verify again. your" \
-                   "own files are never touched. offline, it" \
-                   "does what needs no network." ;;
-    snapshots) pick 'running'
-               say "the system as it was before each change: a" \
-                   "pair around every dnf run, one before each" \
-                   "update, repair and move, hourly ones for a" \
-                   "while, and setup's baseline. the newest ten" \
-                   "\"before\" ones are in the boot menu too." \
-                   "enter: the list — and one restored, from" \
-                   "the next start, if you say so (§37.5)." ;;
-    backup)    pick 'running|backup'
-               say "your home — minus ~/Downloads, caches and" \
-                   "what can be downloaded again — to the" \
-                   "drive named in BACKUP_TARGET, with restic." \
-                   "plug it in first. the first backup copies" \
-                   "everything; the next ones only what" \
-                   "changed. snapshots live on this disk; this" \
-                   "survives it. a file back: handbook §37.6." ;;
-    theme)     pick 'running'
-               # shellcheck disable=SC2088  # (a path to read, not to expand)
-               say "every config the toolkit manages, back as" \
-                   "it has it; yours are kept first, in" \
-                   "~/.local/state/fedokawaii/backup." ;;
-    drift)     pick 'running'
-               say "the configs that differ from the toolkit's." \
+               say "everything checked against the toolkit." \
                    "changes nothing." ;;
+    repair)    pick 'running|verified'
+               say "verify, then what it found put right —" \
+                   "your own files never touched." ;;
+    snapshots) pick 'running'
+               say "the system as it was before each change." \
+                   "enter: the list, and one brought back if you" \
+                   "say so. the newest are in the boot menu too." ;;
+    backup)    pick 'running|backup'
+               say "your home, to the drive (BACKUP_TARGET)." \
+                   "plug it in first." ;;
+    theme)     pick 'running'
+               say "every config as the toolkit has it; yours" \
+                   "kept first." ;;
+    drift)     pick 'running'
+               say "the configs that differ from the toolkit's." ;;
     settings)  pick 'running'
-               say "fedokawaii.conf — keyboard layouts, refresh" \
-                   "rate, city, time zone, SSH… — a copy, in" \
-                   "neovim. when you close it, every value is" \
-                   "checked; only a valid file is saved (as" \
-                   "root). the next update applies it; the" \
-                   "backup's two settings count at once." ;;
+               say "fedokawaii.conf in neovim, checked as you" \
+                   "close it; only a valid file is saved." ;;
     change)    pick 'running'
-               say "the menu of the desktop's own parts — keys," \
-                   "bar, colours, terminal, shell, launcher…" \
-                   "— each opened in your working copy, then" \
-                   "applied if you say so (chapter 42). also" \
-                   "super+shift+u. this window closes for it." ;;
+               say "keys, the bar, the colours, the terminal:" \
+                   "changed in your copy, then applied." ;;
     keys)      pick 'running'
-               say "every keybinding, grouped, to read or to" \
-                   "search: type a word to keep only its lines." \
-                   "also super+/. this window closes for it." ;;
+               say "every key: the app in front's first, then" \
+                   "the desktop's. Super+/ anywhere." ;;
     remind)    pick 'running|due'
-               say "a notice when the update season comes round," \
-                   "when a new Fedora has settled, and a month" \
-                   "before yours ends — read from what is known," \
-                   "never from the network." \
-                   "" \
-                   "enter: every 60 · 90 · 120 days · off." ;;
+               say "enter: every 60 · 90 · 120 days · off." ;;
     log)       pick 'running'
-               say "the last run's log, at its end (root's: you" \
-                   "are asked for your password)." ;;
+               say "what every update, repair and verify did," \
+                   "the newest last. your password first." ;;
     guide)     pick 'running'
-               say "the learning guide, in zathura: every" \
-                   "key and program, then Python and Rust" \
-                   "from zero to AI. (The full handbook:" \
-                   "docs/ on GitHub.)" ;;
+               say "the Learn book: how this desktop works," \
+                   "and how to keep it well." ;;
+    held)      soon "what an update holds back, and why — let go" \
+                    "once it passes again." ;;
+    file)      soon "one file as it was, from a snapshot — never" \
+                    "the whole system." ;;
+    restore)   soon "your files back from the drive, all or some." ;;
+    drive)     soon "the backup drive: which, how full, plugged" \
+                    "in or not." ;;
+    chess)     soon "chess from the first move to 1800: games," \
+                    "puzzles, lessons." ;;
+    typing)    soon "touch typing, finger by finger, to 100 words" \
+                    "a minute." ;;
+    todo)      soon "a list beside your notes: a box to tick, and" \
+                    "nothing more." ;;
   esac
 }
 
@@ -892,14 +925,14 @@ pause() {   # pause RC [ACTION] — the outcome as a row (its glyph: done, or ne
   printf '\n  %s  %s\n\n  %sany key %s%s ' "$g" "$t" "$K" "$BACK" "$O"
   read -rsn1 _ </dev/tty || true
 }
-# job_head ACTION — a job's own heading at the top of its window (its part's kanji, its name),
+# job_head ACTION — a job's own heading at the top of its window (its icon, its name, the rule),
 # a blank line under it; none on a text console
 job_head() {
   local w n=$1
   on_console && return 0
   w=$(screen_width) || return 0
   case $1 in remind) n=reminders ;; guide) n=learn ;; keys) n=keybindings ;; esac
-  printf '\n  %s\n\n' "$(screen_heading "$(part_of "$1")" "$n" "$w")"
+  printf '\n  %s\n\n' "$(screen_heading "$(icon_of "$1")" "$n" "$w")"
 }
 # the entries that run a job — dnf, a backup, an edit, or root's password asked: in Super+U's
 # popup they are handed to a window of their own (hand), which a click elsewhere, another
@@ -1047,30 +1080,36 @@ menu_fzf() {   # → fzf's exit status (2: it could not run — the plain menu t
   export FZF_DEFAULT_OPTS_FILE=$HOME/.config/fedokawaii/fzf.opts; unset FZF_DEFAULT_OPTS
   [[ -r $FZF_DEFAULT_OPTS_FILE ]] || unset FZF_DEFAULT_OPTS_FILE
   ( release_check >/dev/null 2>&1 & )               # (for the next look: the menu never waits on it)
-  # Three parts, each under its heading, and the pane beside them: a part of its own, headed
-  # by the entry under the cursor. Sixteen entries need no search: no input line — the first
-  # heading stands a row under the window's top, level with the pane's. The headings stay in
-  # the list but never match the fixed query (fzf's raw mode shows them in place, in their
-  # own inks): up and down step from entry to entry, and the cursor starts on the first entry
-  # and comes back to one after every reload. (change and keybindings open screens of their
-  # own: this one closes for them)
-  fit_items | fzf --read0 --ansi --no-sort --no-input --raw --query='!守 !卓 !案' --gutter-raw=' ' \
-    --height=100% --delimiter=$'\t' --with-nth=2 --color=nomatch:-1:regular --tiebreak=index "${listen[@]}" \
+  # The tab bar as fzf's header (three lines: the tabs, the line under the one shown, a row of
+  # paper), the section's entries as the list, the pane beside them: the entry under the
+  # cursor. No input line (twenty-odd entries need no search). Every start shows the first
+  # tab; a tab changes on Tab / Shift+Tab, → / ←, or a click on it — the list and the bar
+  # read again, the cursor on the section's first entry. Enter runs the entry; what is not
+  # built yet only says so in the pane. (change and keys open screens of their own: this
+  # one closes for them)
+  export FK_TAB; FK_TAB=$(mktemp "${XDG_RUNTIME_DIR:-/tmp}/fedokawaii-tab.XXXXXX") || return 2
+  tab_set system
+  local go="reload-sync($self --items)+transform-header($self --tabs)+first"
+  fit_items | fzf --read0 --ansi --no-sort --no-input --gutter-raw=' ' \
+    --height=100% --delimiter=$'\t' --with-nth=2 --tiebreak=index "${listen[@]}" \
+    --header="$(tabs system)" --header-first \
     --preview="$self --explain {1} {3}" --preview-window="right,$PANE,border-none,noinfo,nowrap" \
-    --footer=$'\n'"$(screen_footer 'enter run' 'esc close')" \
     --bind="start:reload-sync($self --items)" --bind="resize:reload-sync($self --items)" \
-    --bind="result:transform:[[ \$FZF_RAW == 0 ]] && echo down-match" \
-    --bind="down:down-match,up:up-match,j:down-match,k:up-match,q:abort" \
-    --bind="enter:transform:case {1} in -) ;; ${launch}remind) echo 'execute-silent($self --run {1})+reload-sync($self --items)' ;; change|keys${pop}) echo 'become($self --run {1})' ;; *) echo 'execute($self --run {1})+reload-sync($self --items)' ;; esac" >/dev/null
+    --bind="tab:execute-silent($self --tab +1)+$go,btab:execute-silent($self --tab -1)+$go" \
+    --bind="right:execute-silent($self --tab +1)+$go,left:execute-silent($self --tab -1)+$go" \
+    --bind="click-header:execute-silent($self --tab click \$FZF_CLICK_HEADER_COLUMN \$FZF_CLICK_HEADER_LINE)+$go" \
+    --bind="j:down,k:up,l:execute-silent($self --tab +1)+$go,h:execute-silent($self --tab -1)+$go,q:abort" \
+    --bind="enter:transform:case {1} in $SOON) ;; ${launch}remind) echo 'execute-silent($self --run {1})+reload-sync($self --items)' ;; change|keys${pop}) echo 'become($self --run {1})' ;; *) echo 'execute($self --run {1})+reload-sync($self --items)' ;; esac" >/dev/null
+  local rc=$?; rm -f -- "$FK_TAB"; return "$rc"
 }
 
 ascii() {   # for a text console whose font may lack them: plain stand-ins
   if on_console; then sed 's/·/-/g; s/—/-/g; s/…/.../g; s/→/->/g; s/§/s./g'; else cat; fi
 }
 menu_plain() {   # no fzf, or a text console: numbered, nothing but bash
-  local acts=() names=() a g l m i c
-  while IFS=$'\t' read -r a g l m; do
-    [[ $a == - ]] && continue                     # (the headings: a plain list needs none)
+  local acts=() names=() s a g l m i c
+  while IFS=$'\t' read -r s a g l m; do
+    [[ $a == @($SOON) ]] && continue              # (what is not built yet: not offered)
     acts+=("$a"); names+=("$l")
   done < <(rows | sed 's/\x1b\[[0-9;]*m//g')
   while :; do
@@ -1090,9 +1129,15 @@ case ${1:-} in
                 menu_fzf; (($? == 2)) && menu_plain
               else menu_plain; fi
               exit 0 ;;
-  --window)   exec kawa-warm system ;;   # (Super+U's popup, warm: kawa-warm runs --popup in it, 100×27)   # (fzf's margin row above, 16 entries, 3 headings and the 2 gaps above them, two rows of paper more above the footer's two, fzf's margin row below: 27, odd, so the window centres to the pixel)
-  --rows)     fit_rows ;;
-  --items)    fit_items ;;
+  --window)   exec kawa-warm system ;;   # (Super+U's popup, warm: kawa-warm runs --popup in it, 100×22 — fzf's margin row, the tab bar's three, the pane's fifteen, the margin row: and every window centres to the pixel, its height even)
+  --rows)     fit_rows "${2:-}" ;;
+  --items)    fit_items "${2:-}" ;;
+  --tabs)     tabs "${2:-}" ;;
+  --tab)      case ${2:-} in                         # (fzf's bindings: the section shown changes)
+                +1|-1) tab_set "$(tab_next "$2")" ;;
+                click) [[ ${4:-} == 1 ]] && t=$(tab_at "${3:-0}") && tab_set "$t" ;;
+                *) [[ " ${SECTIONS[*]} " == *" ${2:-} "* ]] && tab_set "$2" ;;
+              esac; exit 0 ;;
   --explain)  explain "${2:-}" "${3:-}" ;;
   --run)      run "${2:-}" ;;
   --job)      job_window "${2:-}" ;;                                # (hand's: the job's window)

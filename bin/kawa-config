@@ -30,14 +30,14 @@ ensure_copy() {
   fedokawaii copy >/dev/null 2>&1 || { say "could not make the working copy in $COPY"; return 1; }
   say "your working copy: ${COPY/#$HOME/\~} — made from the toolkit; the desktop changes only when you apply"
 }
-pending() {   # how many files of the copy differ from the toolkit (fedokawaii.conf only when
-  # the copy changed it: as made or last applied, apply keeps the menu's settings — the same
-  # rule as fedokawaii diff)
-  local x=() a=/var/lib/fedokawaii/conf-from-copy.conf b=$COPY/.git/fedokawaii-conf-base
+pending() {   # how many files of the copy differ from the toolkit, counted as apply counts
+  # them (lib/common.sh's tree_changes); fedokawaii.conf only when the copy changed it: as made
+  # or last applied, apply keeps the menu's settings — the same rule as fedokawaii diff
+  local skip="" a=/var/lib/fedokawaii/conf-from-copy.conf b=$COPY/.git/fedokawaii-conf-base
   [[ -d $COPY ]] || { echo 0; return; }
   [[ -f $b && ! ( -f $a && $a -nt $b ) ]] || b=$a
-  [[ -f $b ]] && cmp -s -- "$COPY/fedokawaii.conf" "$b" && x=(--exclude=fedokawaii.conf)
-  diff -rq --exclude=.git "${x[@]}" -- "$TK" "$COPY" 2>/dev/null | wc -l
+  [[ -f $b ]] && cmp -s -- "$COPY/fedokawaii.conf" "$b" && skip=fedokawaii.conf
+  (LOG_FILE=/dev/null; . "$TK/lib/common.sh" >/dev/null && tree_changes "$TK" "$COPY") | awk -F'\t' -v s="$skip" '$2 != s' | wc -l
 }
 
 # edit TITLE DIR FILE… — neovim in a terminal window of its own (the folder as its project),

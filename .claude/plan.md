@@ -131,7 +131,7 @@ accept: foot shows the face at the chosen px with 0 fractional pixels (grim crop
 
 ## Phase 2 — one design, one unit: Super+U first, then every surface to match
 
-### T12 — Super+U fully redesigned (structure, sections, states, spacing, art)  [todo]
+### T12 — Super+U fully redesigned (structure, sections, states, spacing, art)  [done 2026-10-27 — r27-12]
 deps: T09, T11  · model: main  · ledger: r27-12
 files: system/fedokawaii (the TUI: rows(), part_of(), the pane, job_head, --window), bin/kawa-term (its window), configs/home/.config/fedokawaii/keybinds.txt, art/icons.txt (one pixel icon per entry and section), tests/engine/test_menu.sh, tests/engine/test_status.sh, docs (Learn piece "Super+U")
 approach:
@@ -207,6 +207,7 @@ approach:
 - Bug 9: popups (warm windows, kawa-panel menus) above fullscreen: warm/float popups moved to a layer above LyrFS while shown (LyrFloat → a new LyrPopup above fullscreen; layer-shell menus of the panel are already top/overlay — verify) and focus rules kept (a fullscreen game regains focus when the popup goes).
 - First login after boot: the greeter handover above; measured with the frame log from dwl's first commit.
 - Build + ASan + framestat.py on every animation headless before batch-B's restart; after it, the same on the PC at 144 Hz; passthrough recordings inspected frame by frame.
+- (from T12) Super+U: a running job's row shows the hourglass turning (a moving pixel icon: frames in the term icon font, driven by fzf's reload while `busy`), in place of its static icon.
 accept: tools/anim-check.sh: every animation (open/close/workspace/menu/warm/lock→desktop/greeter→session/wash/theme) has every frame at a refresh interval, 0 late frames, duration within ±1 frame of its config (open/close/workspace 400–450, wash 1200), no frame with stray pixels (px.py on extracted frames); bug 5 recording shows no black box (every frame's histogram has no full-ground region before the wash); Super+V over a fullscreen mpv visible (shot); test_dwl_anim.sh updated; the Learn "motion" piece corrected.
 
 ### T20 — the lock screen rebuilt; greeter twin; cursor, wrong-password speed, screens off after 5 s, saver→lock freeze re-verified  [todo]
@@ -227,6 +228,7 @@ approach:
 - Flicker on save: autosave via `vim.fn.writefile` from a debounced timer (no `:write`, no message, no redraw); `lazyredraw` off; measured with a passthrough recording (zero frames differing outside the typed cell).
 - Notebook: a fixed left margin column (a pixel rule glyph drawn by `statuscolumn`), ruled lines as the `CursorLine`-less `hl-NonText` guide on every row (a faint dotted baseline via the icon font's rule glyph in a virtual-text column or `fillchars`), the heading "notes" + pixel icon with the design's section gap below, the top/bottom margins fixed by `scrolloff` + a winbar/footer that never moves; measured at 3 scroll positions.
 - To-do: dead simple — checkbox rows, Enter adds, Space toggles, `dd` deletes, done rows struck through; reachable with Tab from notes and from Super+U → learning → to-do; state is the file.
+NOTE (T12, 06:47): notes.lua still draws its heading the old way (kanji + the dashed stitch ╌) — the new grammar (icon, strong name, solid rule; docs §7) comes with this redesign.
 accept: shots both themes at top/middle/end of a long note: margins identical to the pixel; recording of 30 s typing + 5 saves: no frame with a black region, no full redraw; to-do: 10 toggles/adds/deletes round-trip through the file (test_todo.sh); Learn "notes" piece corrected.
 
 ### T22 — yazi: the whole UI rebuilt on the engine; hidden files always; .rar; locked PDFs asked properly  [todo]
@@ -235,6 +237,7 @@ files: configs/home/.config/yazi/{init.lua,yazi.toml,theme.toml,keymap.toml,plug
 approach:
 - Layout from the design: header = pixel icon + path, three panes with ratios tuned for 1080p density, the status line as a footer row, file kinds by our icon font, dark-theme contrast fixed from the Wada tokens (every text role ≥ 4.5:1), selection/cursor rows as the design states; nothing truncated with "…" (yazi's own truncation replaced in init.lua's linemode); checked at a narrow tile (the spiral's third window), half, full screen.
 - `show_hidden = true` in yazi.toml and the picker's; `.rar`/`.cbr` opener and previewer through `unrar` (bug 11); the picker (xdg-desktop-portal-termfilechooser) gets the same look.
+NOTE (T12, 06:47): yazi's Lua draws dashed stitches (╌) — solid or none with this rebuild (bug 17).
 accept: shots both themes at 3 sizes measured; px.py contrast of dark theme rows; `.rar` opens/extracts/previews (test with a generated archive); a locked PDF: wrong password twice shows "wrong password" in the same prompt, right one opens, no second window (recording); hidden files visible in yazi and in the portal picker (test); Learn "yazi" piece corrected.
 
 ### T23 — Super+/ comprehensive, fuzzy, context-aware  [todo]
@@ -243,6 +246,7 @@ files: bin/kawa-help, configs/home/.config/fedokawaii/keybinds.txt → configs/h
 approach:
 - Context: the focused client's app-id/title from dwl's status (kawa-dwlstatus writes the focused title/app-id); for foot the program inside: kawa-term records the command it runs per window; for a plain terminal the foreground process of the pty (`ps -o comm --tty`) — mapped to a sheet; that sheet's part first, then the desktop's, then every other, all filterable.
 - Every key in a sheet verified against the program's current docs/`--help` (sub:sonnet digest with sources), the static test checks dwl's config.h keys are all listed.
+- (from T12) a sheet for Super+U (the system menu): Tab / Shift+Tab or → / ← a tab, a click on a tab, Enter, Esc — context: the warm window's title `system`.
 accept: Super+/ inside yazi/nvim/lazygit/btop/torrra shows that app's keys first (shots); fuzzy "wpa" finds "wallpaper picker"; every config.h key present (test); 0 kanji headings; both themes measured.
 
 ### T24 — the prompt: our own, pastel-powerline, the terminal icon, Wada pastels  [todo]
@@ -474,6 +478,7 @@ approach:
 - One model in words and in the menu: snapshot = undo on this disk (automatic before every update/upgrade, a daily one, cleanup by count and a space floor), backup = a copy on another drive (restic, the drive chosen once); nothing else is offered.
 - Harden: scrub monthly (timer + a notice only on errors), space checks before snapshots and updates, read-only snapshot boots via grub-btrfs with kernels matched (T44's policy), the restore path proven for root and for single files; every step says what it will do before it does it (one line) and what it did after.
 - Every path tested in the VM (T49 injects the broken boot); the PC gets only the non-destructive paths run for real (undo + back, single-file restore, backup to the drive if present).
+- (from T12) the status and the backups pane name no setting (today "not set up (BACKUP_TARGET)", "to the drive (BACKUP_TARGET)"): "not set up" and the drive's own name once chosen — "the drive" entry sets it up.
 accept: on the PC: an undo to the pre-update snapshot and back (ROOT.old) with /boot matched (kernel list verified), a single-file restore, a backup+restore of a folder to a test drive image (loop device in the VM; on the PC the real drive if present else the VM), a read-only snapshot boot in the VM; space floor enforced (inject a full disk in the VM); tests green.
 
 ### T49 — every failure injected in the VM, kept as tools/ scripts  [todo]

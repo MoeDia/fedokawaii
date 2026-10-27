@@ -11,12 +11,15 @@
 #     --edit     sed SED applied to the kit's copy of FILE (under ~/.config, or .bashrc): sizes …
 #     --themes   a trial palette's files (tools/build-themes.py --palette P --out DIR) in place
 #                of the installed ones: the theme folders, foot's colours, GTK, nvim's colours
-#     SCENE      bar · notice · launcher · term · quick (Super+X) · system (Super+U) · full (default: bar notice term full)
+#     --tui      "COLSxROWS:FILE" — the tui scene: a floating terminal that size running the
+#                script FILE (a mock screen, a screen under work), shot when it has drawn
+#     SCENE      bar · notice · launcher · term · quick (Super+X) · system (Super+U; system:N its
+#                tab N after the first, shot as system-N.png) · tui (--tui) · full (default: bar notice term full)
 # Shots → OUT (default /dev/shm/r27/kit/THEME)/SCENE.png. Exit 0 · 1 a scene failed · 2 misuse.
 set -u
 here=$(cd "$(dirname "$0")" && pwd)
 repo=$(cd "$here/.." && pwd)
-theme=dark out="" fontdir="" fonts=() edits=() scenes=() themes=""
+theme=dark out="" fontdir="" fonts=() edits=() scenes=() themes="" tui=""
 while (($#)); do
   case $1 in
     --theme) theme=$2; shift 2 ;;
@@ -25,6 +28,7 @@ while (($#)); do
     --edit) edits+=("$2"); shift 2 ;;
     --themes) themes=$(realpath "$2"); shift 2 ;;
     --out) out=$2; shift 2 ;;
+    --tui) tui=$2; shift 2 ;;
     -h|--help) sed -n '2,/^set -u/{/^set -u/d;s/^# \{0,1\}//;p}' "$0"; exit 0 ;;
     -*) echo "kit: unknown option $1" >&2; exit 2 ;;
     *) scenes+=("$1"); shift ;;
@@ -85,6 +89,10 @@ done
   echo '</fontconfig>'
 } >"$K/fonts.conf"
 
+# Super+U's window: the size kawa-warm opens it at (the installed one: what the desktop runs)
+sys_size=$(sed -n 's/^ *system) .*size=\([0-9]*x[0-9]*\) .*/\1/p' "$(command -v kawa-warm)")
+[[ $sys_size =~ ^[0-9]+x[0-9]+$ ]] || { echo "kit: no size for the system window in kawa-warm" >&2; exit 1; }
+
 # inside the headless dwl: the kit's environment, then each scene and its shot
 cat >"$K/inside.sh" <<EOF
 export HOME=$h XDG_CONFIG_HOME=$h/.config XDG_CACHE_HOME=$h/.cache XDG_STATE_HOME=$h/.local/state
@@ -111,9 +119,15 @@ for s in ${scenes[*]}; do
       grim "$out/term.png" ;;
     quick)    # quick settings (Super+X: kawa-quick → kawa-panel), its whole window
       kawa-quick >/dev/null 2>&1 & sleep 2; grim "$out/quick.png"; wtype -k Escape; sleep 0.5 ;;
-    system)   # Super+U: its foot window as kawa-warm sizes it (app-id float: dwl puts no warm window away)
-      footclient -a float -T system -W 100x27 -- fedokawaii --popup >/dev/null 2>&1 &
-      sleep 3; grim "$out/system.png"; wtype -k Escape; sleep 0.5 ;;
+    tui)      # --tui's script in a floating terminal of its size
+      footclient -a float -T tui -W "${tui%%:*}" -- bash "${tui#*:}" >/dev/null 2>&1 &
+      sleep 3; grim "$out/tui.png"; wtype -k Escape; sleep 0.5 ;;
+    system|system:[0-9])   # Super+U: its foot window as kawa-warm sizes it (app-id float: dwl puts
+      # no warm window away); system:N — Tab pressed N times first (the Nth tab after the first)
+      footclient -a float -T system -W $sys_size -- fedokawaii --popup >/dev/null 2>&1 &
+      sleep 3; n=\${s#system}; n=\${n#:}
+      for ((i = 0; i < \${n:-0}; i++)); do wtype -k Tab; sleep 0.4; done
+      grim "$out/\${s/:/-}.png"; wtype -k Escape; sleep 0.5 ;;
     full) grim "$out/full.png" ;;
     *) echo "kit: no scene \$s" >&2; fail=1 ;;
   esac || fail=1

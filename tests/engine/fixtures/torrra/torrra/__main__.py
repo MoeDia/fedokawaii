@@ -5,6 +5,7 @@ it opens, its first screen (compose(), each widget's words), then a search for e
 FAKE_QUERY's words ('|' apart) — an IndexerError shown in the window as torrra shows it, the
 window staying open — and the theme it would draw with.
 FAKE_SAY: words it says on stderr before it exits 0 (as torrra says what stops it).
+FAKE_HOLD: its window stays open (10 s at most) until a signal ends it — a window closed, Ctrl+C.
 FAKE_DL: a JSON file, a list of moments 2 s apart — each the torrents its window holds then
 ({name, save_path, done, total, finished, paused}); at each its screen ticks, and what
 $XDG_RUNTIME_DIR/kawa-downloads holds right after is written to FAKE_DL.seen.N."""
@@ -48,6 +49,8 @@ def cli():
     seen = {}
     if not {"--help", "-h", "--version"} & set(sys.argv) and (words[:1] or [""])[0] not in ("config", "download"):
         seen = window(cfg, key)
+        if os.environ.get("FAKE_HOLD"):
+            time.sleep(10)
     if os.environ.get("FAKE_DL"):
         from torrra.core.download import Handle, get_download_manager
         from torrra.screens.home import HomeScreen

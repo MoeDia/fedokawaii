@@ -6,7 +6,6 @@
 # behaviour on a real dwl: the latency harness); kawa-warm's is run, footclient a stand-in.
 . "$(dirname "$0")/../lib/harness.sh"
 P=$REPO/src/dwl/dwl.patch CH=$REPO/src/dwl/config.h
-C=$(cd "$(dirname "$0")/../content" && pwd)
 sandbox
 
 # ── dwl.patch ────────────────────────────────────────────────────────────────────────────
@@ -66,7 +65,7 @@ setup; python3 -I -c 'import socket, sys; socket.socket(socket.AF_UNIX).bind(sys
 rc 0 kawa-warm --start
 for w in "warm-notes -T notes -W 80x25 -- $REPO/bin/kawa-warm --inside notes" \
          "warm-clip -T clipboard -W 80x27 -- $REPO/bin/kawa-warm --inside clip" \
-         "warm-system -T system -W 100x27 -- $REPO/bin/kawa-warm --inside system"; do
+         "warm-system -T system -W 100x18 -- $REPO/bin/kawa-warm --inside system"; do
   called "^footclient -a $w\$"
 done
 case_ "--open NAME (its key, none running): the window, shown as it starts"
@@ -103,6 +102,23 @@ first=$(head -n1 "$TMP/runs"); ! kill -0 "$first" 2>/dev/null && _ok || _no "the
 eq "$(got 0)" "" "(no hide: it was away already)"
 [[ ! -e $XDG_RUNTIME_DIR/kawa-warm-clip.shown ]] && _ok || _no "the clipboard still marked shown (Super+Z would act on it)"
 for p in $(cat "$TMP/runs"); do kill "$p" 2>/dev/null; done
+
+case_ "--renew clip system (theme.sh, after an apply): one put away — its loop and its run ended, opened again put away at its size; one showing left as it is; the notes never"
+setup
+stub kawa-clip 'echo $$ >>"$TMP/runs"; exec sleep 30'
+python3 -I "$REPO/tests/lib/pty_run.py" --timeout 5 -- kawa-warm --inside clip >/dev/null 2>&1 & W=$!
+for _ in {1..100}; do [[ -s $TMP/runs ]] && break; sleep 0.05; done
+loop=$(cat "$XDG_RUNTIME_DIR/kawa-warm-clip.pid"); run=$(head -n1 "$TMP/runs")
+: >"$XDG_RUNTIME_DIR/kawa-warm-system.shown"
+rc 0 kawa-warm --renew system clip
+! kill -0 "$loop" 2>/dev/null && _ok || _no "the clipboard's loop still runs"
+! kill -0 "$run" 2>/dev/null && _ok || _no "what ran in it still runs"
+called "^footclient --no-wait -a warm-clip -T clipboard -W 80x27 -- $REPO/bin/kawa-warm --inside clip\$"
+not_called "^footclient --no-wait -a warm-system" "the system menu, showing: left as it is"
+wait "$W" 2>/dev/null
+setup; out=$(kawa-warm --renew clip notes 2>&1); eq "$?" 2; has "$out" "the notes hold your page"; not_called '^footclient'
+setup; rc 0 kawa-warm --renew system
+called "^footclient --no-wait -a warm-system -T system -W 100x18 -- $REPO/bin/kawa-warm --inside system\$" "none running: opened, put away"
 
 case_ "--shown/--hidden: the clipboard marked shown and its list read again; the menu's list read again; the notes page told through its socket"
 setup; rc 0 kawa-warm --shown clip; called '^kawa-clip --poke$'

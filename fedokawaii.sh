@@ -82,24 +82,19 @@ as_desk() { runuser -u "$user" -- "$@"; }   # the desktop user (who owns the wor
 # changed, repair follows — it installs them and puts them in place. The copy is read as
 # you: root reads nothing in your folders but the copy it makes (and checks) itself.
 apply_copy() {
-  local f out base bad=() changed=() theme=0 sys=0 rc=0
+  local f st base bad=() changed=() theme=0 sys=0 rc=0
   from_copy || die "apply runs from your working copy on a finished install (fedokawaii copy makes one) — the toolkit itself: fedokawaii theme"
   [[ -n $user ]] || die "unknown desktop user — run setup first"
   hdr "Fedokawaii apply · $REPO_DIR → the toolkit"
-  out=$(as_desk diff -rq --exclude=.git -- "$TOOLKIT" "$REPO_DIR" 2>/dev/null) || true
-  while IFS= read -r f; do
-    case $f in
-      "Files $TOOLKIT/"*" differ") f=${f#"Files $TOOLKIT/"}; f=${f% and "$REPO_DIR"/*} ;;   # (a name may hold " and ")
-      "Only in $REPO_DIR"*) f=${f#"Only in $REPO_DIR"}; f=${f#/}; f=${f/: //}; f="${f#/} (new)" ;;
-      "Only in $TOOLKIT"*) f=${f#"Only in $TOOLKIT"}; f=${f#/}; f=${f/: //}; f="${f#/} (gone)" ;;
-      *) continue ;;
-    esac
+  # (each file the copy changed, added or lost — lib/common.sh, read with your eyes)
+  while IFS=$'\t' read -r st f; do
     # fedokawaii.conf just as the copy had it when made or last applied: the settings you
     # changed since, through the menu, are the toolkit's — not a change of the copy's
     if [[ $f == fedokawaii.conf ]] && base=$(conf_base "$REPO_DIR/.git/fedokawaii-conf-base") && [[ -n $base ]] \
        && as_desk cmp -s -- "$REPO_DIR/fedokawaii.conf" "$base"; then continue; fi
+    case $st in new) f+=" (new)" ;; gone) f+=" (gone)" ;; esac
     changed+=("$f")
-  done <<<"$out"
+  done < <(tree_changes "$TOOLKIT" "$REPO_DIR" as_desk)
   if ((${#changed[@]} == 0)); then
     ok "the copy and the toolkit are the same — nothing to apply (fedokawaii theme puts the configs back as they are)"; return 0
   fi

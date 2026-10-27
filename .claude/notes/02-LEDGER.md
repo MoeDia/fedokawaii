@@ -406,6 +406,63 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   stand-ins, pinned) — test_upstream up to Syncplay 114/0, test_report_rows 268/0 (and evidence
   rows for libasan and python3-pyte that PKG-19 asked for), static green, ShellCheck clean on every
   touched file (a few old warnings fixed on the way).
+- r27-12 (T12, Super+U — committed 08:22, applied 08:20) Super+U rebuilt as five tabs: system · update ·
+  snapshots · backups · learning (system/fedokawaii: SECTIONS, rows SECTION, tabs, tab_at). The tab
+  bar is fzf's header, three lines: the tabs, the line under the one shown, a row of paper — at a
+  heading's column, one cell out from the rows (design-system §3 indent; a first try put it on the
+  rows' column and was taken back for that rule). The tab shown: icon in the accent's ink, name
+  strong, ▔ in the accent under the NAME ALONE (measured x 50–97 = the ink of "system": both ends
+  flush; under icon + name it overhung the icon's ink by 2 px on the left only); the others their
+  icon alone, muted; every icon two columns, every gap three → 26/28/28/28 px of air (px.py gaps;
+  before: 26/20/20/20). Tab/Shift+Tab/→/←/l/h and a click change it (click-header: fzf counts the
+  column from 1 at the header's first column — measured in a pty with the menu's own fzf.opts and a
+  real SGR click: screen column 3 → 1). The list: each section's rows; what is not built yet faint
+  with "soon" (held, a file back, restore, the drive, chess, typing, to-do) and "not yet" in the
+  pane; the pane: its heading level with the tabs (row 1), its first line level with the list's
+  first row (row 4: y 90 in both columns, px.py), every line ≤ 49 columns.
+  Window 100×18 (was 22; tools/kit.sh had 27): fzf's margins give the pane 16 rows, 13 status lines
+  under the heading; when the rare lines all come at once the routine ones make way — the kernel
+  unless a restart waits for it, the disk unless low, the release, its support — never one asking
+  for you (pick ROOM; tested at the fullest: 14 lines → the release made way).
+  Found while grilling, fixed: a note about the past no longer true stays away (cleared_since: a
+  clean verify after a run answers "verify found problems: repair" under updated, and the dnf
+  guard's "left something" — the live status showed the first next to "257 checks passed · today");
+  retired packages cut with "…" (the owner's rule) → whole names, then "+N"; "1 config file(s)" →
+  singular/plural; the next Fedora's "check" → "may be out" (status's own words); change, keys, log,
+  lessons showed a bare heading → one line each saying what they open.
+  Inherited red tests (red at f22b66a too), fixed: diffutils 3.12 shell-quotes names with spaces in
+  `diff -rq` ("Files 'a b' and … differ" — /usr/share/doc/diffutils/NEWS, 3.12) and apply + the
+  engine parsed those messages, missing such files → lib/common.sh tree_changes (both trees' BLAKE2
+  sums, "STATE<TAB>NAME", exact for any name but one with a newline; run as the desktop user by
+  apply), used by apply, the engine's ShellCheck pass and kawa-config's "N not applied" (all three
+  count alike now). test_pull's git stand-in counted local calls (status, rev-parse) as could-prompt
+  (it passed in the old sandbox only because that set GIT_TERMINAL_PROMPT globally) → it watches the
+  network calls: all fgit, no helper, never a prompt. test_torrra assumed sh is not bash (Fedora's
+  sh IS bash, BASH_VERSION set) → unsets BASH_VERSION to stand for another shell. Two more seen
+  red in one area run (test_torrra "HUP: exit 0", test_term_float "hung up", leaving two orphans
+  that held run.sh's pipe for 17 min) were MY run's doing: started under nohup, so SIGHUP was
+  ignored in every descendant and bash cannot trap a signal it starts with ignored — reproduced
+  under nohup, green 4/4 without it even with every core busy (memory note: tests never under
+  nohup). Still, test_torrra's case signalled `$(ps -o ppid= -p $PPID)`, which — kawa-torrra no
+  longer waiting for Prowlarr — could after reparenting be the user's systemd manager (HUP =
+  daemon-reload, INT = as TERM: exit.target, the whole session's services — man 1 systemd; the
+  journal shows it never happened) → now as a terminal does it: kawa-torrra in a process group of
+  its own (real setsid), the signal to that group only, the fake torrra held open (fixture
+  FAKE_HOLD); 3 runs green. test_bar's `pkill -f "sleep 31.5"` → the exact pid; ShellCheck
+  warnings in test_pull/test_torrra/test_bar cleaned.
+  Live: the warm Super+U window kept the size it was started with (100×27 since 06:33) until a
+  login → kawa-warm --renew clip|system (closes one put away — its loop, then its run's process
+  group — and opens it again put away, footclient --no-wait; one showing is left; never the
+  notes: they hold your page), called by theme.sh's live part: after this apply the live window
+  measures 18 × 100 (stty on its pty), the clipboard's 27 × 80, the notes untouched (same pid).
+  tools/kit.sh: Super+U's size read from the installed kawa-warm; scenes system:N (the Nth tab).
+  Verified: test_menu 555/0 · test_status 183/0 · test_copy 77/0 · test_front 118/0 · test_pull
+  62/0 · test_torrra 191/0 ×3 · test_config 102/0 · test_warm 77/0 · test_bar 241/0 · test_syntax
+  680/0 · areas engine, static, menus, session green but test_game (4, the known gaming ones → T35/
+  T38); applied live 08:20 (repair: 0 problems after); kit shots of all five tabs in both themes, measured (px.py runs/gaps/zoom).
+  Docs: design-system §7 "Tabs" (the grammar, for every screen of several sections); Learn chapter
+  8 as rewritten (tabs, the entries table) still true. Deferred, noted in the plan: the running
+  row's turning hourglass → T19; Super+U's key sheet → T23; "(BACKUP_TARGET)" out of the words → T48.
 - r27-33 (T29, findings 04:00 — not fixed yet) Prowlarr: on demand by design (kawa-prowlarr: up while
   torrra searches, asleep 30 min after) — "inactive" is normal. /api/v1/health: 0 now. Its own log
   (~/.config/prowlarr/logs) over 8 days: Warn AllowedHostsCheck "Allowed Hosts is not configured"

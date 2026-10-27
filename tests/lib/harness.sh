@@ -119,20 +119,22 @@ eq()    { [[ $1 == "$2" ]] && _ok || _no "${3:-expected [$2], got [$1]}"; }
 has()   { [[ $1 == *"$2"* ]] && _ok || _no "${3:-[$2] not in: ${1:0:300}}"; }
 lacks() { [[ $1 != *"$2"* ]] && _ok || _no "${3:-[$2] should not be in: ${1:0:300}}"; }
 # heading_ok LINE [W] [MSG] — LINE is a text screen's heading (docs/design-system.md §7,
-# ~/.config/fedokawaii/screen.sh): one kanji in accent_text (foot's colour 20), two spaces,
-# the name in the words' own ink, lower case, a space, then only the stitch (╌, at least two)
-# in edge2 (colour 19) to the end — W columns in the terminal in all, when W is given
+# ~/.config/fedokawaii/screen.sh): its mark in accent_text (foot's colour 20) — a pixel icon,
+# or a kanji where a screen has not yet moved to icons (T16) — two spaces, the name in strong
+# (23), lower case, a space, then only the rule (─, solid, at least two) in edge2 (colour 19)
+# to the end — W columns in the terminal in all, when W is given
 heading_ok() {
   local why
   why=$(python3 -I -c '
 import re, sys, unicodedata
 line, w = sys.argv[1], sys.argv[2]
-m = re.fullmatch(r"\x1b\[38;5;20m(.)\x1b\[0m  ([^\x1b]*[^ \x1b]) \x1b\[38;5;19m(╌{2,})\x1b\[0m", line)
+m = re.fullmatch(r"\x1b\[38;5;20m(.)\x1b\[0m  \x1b\[38;5;23m([^\x1b]*[^ \x1b])\x1b\[0m \x1b\[38;5;19m(─{2,})\x1b\[0m", line)
 if not m:
-    sys.exit("not kanji (accent_text) + two spaces + name + a space + stitch (edge2): %r" % line)
+    sys.exit("not a mark (accent_text) + two spaces + the name (strong) + a space + the rule (edge2, solid): %r" % line)
 k, name, st = m.groups()
-if unicodedata.east_asian_width(k) != "W" or not unicodedata.name(k, "").startswith("CJK"):
-    sys.exit("the mark is no kanji: %r" % k)
+icon = 0xFE000 <= ord(k) <= 0xFEFFF                     # (Sumi Icons: the pixel icons, one column)
+if not icon and (unicodedata.east_asian_width(k) != "W" or not unicodedata.name(k, "").startswith("CJK")):
+    sys.exit("the mark is neither a pixel icon nor a kanji: %r" % k)
 if re.search(r"[A-Z]", name):
     sys.exit("the name is not lower case: %r" % name)
 cols = sum(2 if unicodedata.east_asian_width(c) in "WF" else 1 for c in k + "  " + name + " " + st)

@@ -28,7 +28,7 @@ eq "$(git -C "$C" remote get-url origin)" "file://$O"
 eq "$(front_calls)" "front update"
 called "^sudo bash $C/fedokawaii.sh update"
 has "$out" "cloned"; has "$(cat "$HOME/.local/state/fedokawaii/pull.log")" "fedokawaii pull"
-read -r t res h <"$HOME/.local/state/fedokawaii/last-pull"; eq "$res" ok; eq "$h" "$(git -C "$C" rev-parse --short HEAD)"
+read -r _ res h <"$HOME/.local/state/fedokawaii/last-pull"; eq "$res" ok; eq "$h" "$(git -C "$C" rev-parse --short HEAD)"
 called "^notify-send .*fedokawaii pull up to date with GitHub"
 
 case_ "GitHub moved on: fast-forwarded, the new commits listed; your uncommitted change kept"
@@ -44,7 +44,7 @@ has "$out" "repair follows"; called "^sudo bash $R/toolkit/fedokawaii.sh repair"
 case_ "the update failing (1): repair follows too; a repair that fails is the outcome, said in a notice"
 rec last-verify "$(date +%s) 200 0 0"; echo 1 >"$R/rc-update"; echo 1 >"$R/rc-repair"; : >"$R/front.log"; reset_calls
 fedokawaii pull >/dev/null 2>&1; eq "$?" 1; eq "$(front_calls | tr '\n' '|')" "front update|front repair|"
-called "^notify-send -a desktop -u critical"; read -r t res h <"$HOME/.local/state/fedokawaii/last-pull"; eq "$res" failed
+called "^notify-send -a desktop -u critical"; read -r _ res h <"$HOME/.local/state/fedokawaii/last-pull"; eq "$res" failed
 rm -f "$R/rc-update" "$R/rc-repair"
 
 case_ "your commits and GitHub's went apart: stopped before anything runs as root, how to go on said"
@@ -87,9 +87,13 @@ D=$HOME/fk; git clone -q "$O" "$D"; out=$(fedokawaii --adopt "$D" </dev/null 2>&
 fresh; fedokawaii copy >/dev/null 2>&1; echo "# mine" >>"$C/setup.sh"
 D=$HOME/fk; git clone -q "$O" "$D"; out=$(fedokawaii --adopt "$D" </dev/null 2>&1); eq "$?" 0; has "$out" packed
 
-case_ "pull reads the public repository: no credential helper, git never prompts"
-fresh; stub git 'case "$*" in *"credential.helper= "*) echo "plain" >>"$TMP/git-auth" ;; esac; [ "$GIT_TERMINAL_PROMPT" = 0 ] || echo prompt >>"$TMP/git-prompt"; exec /usr/bin/git "$@"'
-fedokawaii pull >/dev/null 2>&1; [[ -s $TMP/git-auth ]] && _ok || _no "a credential helper left in"; [[ ! -e $TMP/git-prompt ]] && _ok || _no "git could prompt"
+case_ "pull reads the public repository: every call that reaches the network without a credential helper, never prompting"
+# (the calls that read the clone alone — status, rev-parse, merge, log — have nothing to ask)
+fresh; stub git 'case " $* " in *" fetch "*|*" clone "*|*" ls-remote "*|*" pull "*|*" push "*)
+  case "$*" in *"credential.helper= "*) echo plain >>"$TMP/git-auth" ;; *) echo helper >>"$TMP/git-helper" ;; esac
+  [ "$GIT_TERMINAL_PROMPT" = 0 ] || echo prompt >>"$TMP/git-prompt" ;; esac; exec /usr/bin/git "$@"'
+fedokawaii pull >/dev/null 2>&1; [[ -s $TMP/git-auth ]] && _ok || _no "no network call seen"
+[[ ! -e $TMP/git-helper ]] && _ok || _no "a credential helper left in"; [[ ! -e $TMP/git-prompt ]] && _ok || _no "git could prompt"
 case_ "GitHub not answering: said, nothing runs as root"
 fresh; export FEDOKAWAII_ORIGIN=https://example.invalid/fedokawaii.git
 out=$(timeout 60 fedokawaii pull 2>&1 </dev/null); eq "$?" 1; has "$out" "GitHub does not answer"; eq "$(front_calls)" ""

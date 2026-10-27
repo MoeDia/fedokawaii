@@ -654,6 +654,29 @@ conf_base() {
   if [[ -n $a && -n $b ]]; then [[ $b -nt $a ]] && echo "$b" || echo "$a"
   else echo "${b:-$a}"; fi
 }
+# tree_changes A B [READER…] — what differs between two trees, .git folders aside, one file a
+# line in name order: "changed<TAB>REL" (in both, unlike), "new<TAB>REL" (B's alone),
+# "gone<TAB>REL" (A's alone); both read through READER (as_desk: the desktop user's eyes) or
+# as yourself. From the files' sums, never from diff's messages: diffutils 3.12 began
+# shell-quoting names in those ("Files 'a b' and …"), and a name is the one thing apply must
+# get exactly right (whatever it holds but a newline: read it with IFS=$'\t' read -r STATE REL)
+tree_changes() {
+  local a=$1 b=$2 l f; shift 2
+  local -A sum=() seen=()
+  while IFS= read -r -d '' l; do sum[${l#*  }]=${l%%  *}; done < <(_tree_sums "$a" "$@")
+  {
+    while IFS= read -r -d '' l; do
+      f=${l#*  }; seen[$f]=1
+      if [[ -z ${sum[$f]+x} ]]; then printf 'new\t%s\n' "$f"
+      elif [[ ${sum[$f]} != "${l%%  *}" ]]; then printf 'changed\t%s\n' "$f"; fi
+    done < <(_tree_sums "$b" "$@")
+    for f in "${!sum[@]}"; do [[ -n ${seen[$f]+x} ]] || printf 'gone\t%s\n' "$f"; done
+  } | LC_ALL=C sort -t $'\t' -k2
+}
+_tree_sums() {   # _tree_sums DIR [READER…] → "SUM  REL\0" for each of its files
+  local d=$1; shift
+  "$@" env -C "$d" sh -c 'find . -name .git -prune -o -type f -printf "%P\0" | xargs -0r b2sum --zero --' 2>/dev/null
+}
 conf_problems() {                   # conf_problems FILE → one line per problem; empty = valid
   read_conf "$1"; conf_report
 }

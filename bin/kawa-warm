@@ -8,6 +8,9 @@
 #
 #   kawa-warm NAME       show it, or put it away (what its key does)
 #   kawa-warm --start    the three, started put away (autostart.sh, at login)
+#   kawa-warm --renew NAME…   clip or system, closed and opened again put away (theme.sh, after
+#                        an apply: a new size or program at once, no login); one showing is left
+#                        as it is. Never the notes: they hold your page
 #
 # The other forms are dwl's and the window's own: --open NAME (its key, none running),
 # --shown NAME and --hidden NAME (each change), --inside NAME [show] (what runs in it).
@@ -20,7 +23,7 @@ spec() {   # spec NAME — its window's title and size, and what runs in it ($cm
   case $1 in
     notes)  title=notes     size=80x25  cmd=(kawa-notes --inside) ;;
     clip)   title=clipboard size=80x27  cmd=(kawa-clip --tui) ;;
-    system) title=system    size=100x27 cmd=(fedokawaii --popup) ;;
+    system) title=system    size=100x18 cmd=(fedokawaii --popup) ;;
     *) echo "kawa-warm: no warm window \"$1\" (${NAMES[*]})" >&2; return 2 ;;
   esac
 }
@@ -43,6 +46,23 @@ case ${1:-} in
     for n in "${NAMES[@]}"; do spec "$n" && { window "$n" & }; done
     wait; exit 0 ;;
   --open)   spec "${2:-}" || exit 2; window "$2" show; exit 0 ;;
+  --renew)
+    shift
+    for n; do
+      [[ $n == @(clip|system) ]] || { echo "kawa-warm: --renew takes clip and system (the notes hold your page)" >&2; exit 2; }
+    done
+    for n; do
+      spec "$n"; [[ -e $RUN/kawa-warm-$n.shown ]] && continue
+      if loop "$n"; then
+        # (the loop first — else it starts its run again — then the run, its own process group)
+        st=$(<"/proc/$pid/stat"); read -r -a f <<<"${st##*) }"
+        kill -TERM "$pid" 2>/dev/null
+        [[ ${f[5]:-} =~ ^[1-9][0-9]*$ && ${f[5]} != "${f[2]}" ]] && kill -TERM -- "-${f[5]}" 2>/dev/null
+        for _ in $(seq 50); do kill -0 "$pid" 2>/dev/null || break; sleep 0.05; done
+      fi
+      footclient --no-wait -a "warm-$n" -T "$title" -W "$size" -- "$0" --inside "$n" 9>&- </dev/null >/dev/null 2>&1
+    done
+    exit 0 ;;
   --shown)
     case ${2:-} in
       notes)  nvim --server "$RUN/kawa-notes.nvim" --remote-expr 'v:lua.kawa_notes_shown()' >/dev/null 2>&1 ;;

@@ -144,7 +144,7 @@ FAKE_QUERY='a|b' out=$(kawa-torrra 2>&1); eq "$(grep -c '^torrra: Prowlarr is no
 fresh; FAKE_QUERY='a|b|c' out=$(kawa-torrra 2>&1); eq "$(grep -c 'httpx.get' "$FAKE_LOG")" 1 "one answer is enough"
 eq "$(seenj "$out" searches)" '[["a result for a"], ["a result for b"], ["a result for c"]]'
 case_ "no search typed: Prowlarr not asked at all (only woken)"
-fresh; FAKE_QUERY= out=$(kawa-torrra 2>&1); eq "$?" 0; [[ ! -s $FAKE_LOG ]] && _ok || _no "asked: $(cat "$FAKE_LOG")"
+fresh; FAKE_QUERY='' out=$(kawa-torrra 2>&1); eq "$?" 0; [[ ! -s $FAKE_LOG ]] && _ok || _no "asked: $(cat "$FAKE_LOG")"
 called '^systemctl --user start prowlarr.service'
 case_ "Prowlarr too slow to answer (the 5 s timeout): said the same way"
 fresh; FAKE_PROWLARR=slow; out=$(kawa-torrra 2>&1); eq "$?" 0; has "$out" "not answering"; has "$(seen "$out" searches)" "IndexerError"
@@ -166,15 +166,18 @@ case_ "port 9696 taken by another program: said, before anything is started"
 fresh; stub ss 'echo "LISTEN 0 4096 127.0.0.1:9696 0.0.0.0:*"'
 out=$(kawa-torrra 2>&1); eq "$?" 1; has "$out" "port 9696"; has "$out" "another program"; not_called ' start '
 case_ "the window closed (HUP) or Ctrl+C while Prowlarr starts: its sleep is planned all the same"
+# (as a terminal does it: the signal to the window's whole process group — torrra, kawa-torrra,
+# the start behind them — at the moment Prowlarr's start is asked; kawa-torrra in a group of its
+# own, so nothing outside it is ever signalled)
 for sig in HUP INT; do
-  fresh; stub systemctl 'case "$*" in *is-active*) echo activating; exit 3 ;; *LoadState*) echo loaded ;; *" start "*) kill -'"$sig"' $(ps -o ppid= -p $PPID); sleep 0.3 ;; esac'   # (kawa-torrra: kawa-prowlarr starts it
-  kawa-torrra >/dev/null 2>&1; r=$?
+  fresh; stub systemctl 'case "$*" in *is-active*) echo activating; exit 3 ;; *LoadState*) echo loaded ;; *" start "*) kill -'"$sig"' -- "-$(cat "'"$TMP"'/kt.pid")"; sleep 0.3 ;; esac'
+  FAKE_HOLD=1 "$SETSID" -w bash -c 'echo "$$" >"$1"; exec kawa-torrra' _ "$TMP/kt.pid" >/dev/null 2>&1; r=$?
   [[ $r == 129 || $r == 130 ]] && _ok || _no "$sig: exit $r"
   called 'systemd-run .*--on-active=30min'
 done
 case_ "the window does not wait for Prowlarr: it opens while Prowlarr starts (kawa-prowlarr --busy behind it)"
 fresh; stub systemctl 'case "$*" in *is-active*) exit 3 ;; *LoadState*) echo loaded ;; *" start "*) sleep 2; : >"'"$TMP"'/active" ;; esac'
-t0=$EPOCHREALTIME; out=$(FAKE_QUERY= kawa-torrra 2>&1); t=$(( (${EPOCHREALTIME/./} - ${t0/./}) / 1000 ))
+t0=$EPOCHREALTIME; out=$(FAKE_QUERY='' kawa-torrra 2>&1); t=$(( (${EPOCHREALTIME/./} - ${t0/./}) / 1000 ))
 eq "$(seen "$out" healthy)" True; ((t < 1500)) && _ok || _no "the window waited $t ms"
 has "$(cat "$REPO/system/kawa-torrra")" 'kawa-prowlarr --busy >/dev/null 2>&1 8>&- &' "(its lock not held by the start)"
 sleep 2.2
@@ -285,10 +288,11 @@ case_ "…its list gone with the window"
 [[ -z $(ls -A "$XDG_RUNTIME_DIR/kawa-downloads" 2>/dev/null) ]] && _ok || _no "left: $(ls "$XDG_RUNTIME_DIR/kawa-downloads")"
 
 # ── the profile hook: `torrra` in a shell is kawa-torrra ─────────────────────
-case_ "in bash, torrra runs kawa-torrra with its words; in sh, nothing is defined"
+case_ "in bash, torrra runs kawa-torrra with its words; in a shell that is not bash, nothing is defined"
 fresh; stub kawa-torrra
 bash -c '. "$1"; torrra search "a b"' _ "$REPO/system/kawa-torrra.profile.sh"; called '^kawa-torrra search a b$'
-out=$(sh -c '. "$1"; command -v torrra || echo none' _ "$REPO/system/kawa-torrra.profile.sh"); eq "$out" none
+# (Fedora's sh is bash itself, BASH_VERSION and all: a shell without it is one that is not bash)
+out=$(sh -c 'unset BASH_VERSION; . "$1"; command -v torrra || echo none' _ "$REPO/system/kawa-torrra.profile.sh"); eq "$out" none
 sh -n "$REPO/system/kawa-torrra.profile.sh" && _ok || _no "not valid sh"
 
 done_

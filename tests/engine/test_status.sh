@@ -38,6 +38,12 @@ has "$(line due "$out")" "in 80 days"
 case_ "an update with parts left, one whose checks failed: said under it"
 rec last-update "$(ago_s 1) partial"; has "$(fedokawaii status)" "some parts left for the next one"
 rec last-update "$(ago_s 1) checks"; has "$(fedokawaii status)" "verify found problems: repair"
+case_ "…and a clean verify since: answered, no longer said (one before it, or one finding something, still is)"
+rec last-verify "$(( $(date +%s) - 60 )) 257 0 0"; lacks "$(fedokawaii status)" "verify found problems"
+rec last-verify "$(( $(ago_s 1) - 60 )) 257 0 0"; has "$(fedokawaii status)" "verify found problems: repair"
+rec last-verify "$(( $(date +%s) - 60 )) 250 7 0"; has "$(fedokawaii status)" "verify found problems: repair"
+rm -f "$R/state/last-verify"; rec last-after-dnf "$(ago_s 1) failed"; has "$(line dnf "$(fedokawaii status)")" "left something · repair"
+rec last-verify "$(( $(date +%s) - 60 )) 257 0 0"; lacks "$(fedokawaii status)" "left something"
 
 case_ "an update cut off (power cut) after a good one: the good one is the last update"
 fresh; rec last-update-done "$(ago_s 100)"; rec last-update "$(ago_s 0) stopped"
@@ -48,7 +54,7 @@ has "$out" "stopped" "the try that stopped is still mentioned"
 has "$(line due "$out")" "now" "still due: the stopped run did not count"
 (( $(widest "$out") <= 44 )) && _ok || _no "too wide: $out"
 case_ "the menu agrees: update is due, the title names the last finished update"
-rows=$(plain "$(fedokawaii --rows)")
+rows=$(plain "$(fedokawaii --rows update)")   # (the update tab)
 has "$(grep -m1 '^update' <<<"$rows")" "due"
 
 case_ "an update cut off with none before it: none since setup, and the try mentioned"
@@ -99,14 +105,23 @@ stub df 'exit 1'; out=$(fedokawaii status 2>&1); lacks "$out" "disk"; eq "$?" 0
 case_ "rpm missing (or failing): the running kernel"
 stub rpm 'exit 127'; has "$(line kernel "$(fedokawaii status)")" "6.17.1-300.fc44.x86_64"
 
-case_ "packages Fedora no longer has: listed, cut to fit"
+case_ "packages Fedora no longer has: whole names while they fit, then how many more — never a name cut, never an ellipsis"
 fresh; printf '%s\n' libfoo-tools some-long-retired-package-name another-one >"$R/state/unavailable"
 l=$(line retired "$(fedokawaii status)")
-has "$l" "libfoo-tools some-long-retired-pa…"
+has "$l" "libfoo-tools +2"; lacks "$l" "…"; lacks "$l" "some-long"
 (( ${#l} <= 44 )) && _ok || _no "retired line too long: $l"
+printf '%s\n' gtk2 libfoo >"$R/state/unavailable"
+has "$(line retired "$(fedokawaii status)")" "gtk2 libfoo"
+printf '%s\n' python3-a-package-name-far-too-long-for-the-line >"$R/state/unavailable"
+has "$(line retired "$(fedokawaii status)")" "1 package"
+printf '%s\n' python3-a-package-name-far-too-long-for-the-line libfoo >"$R/state/unavailable"
+has "$(line retired "$(fedokawaii status)")" "2 packages"
+printf '\n\n' >"$R/state/unavailable"
+lacks "$(fedokawaii status)" "retired"
 case_ "config files to compare after a move: counted, the list named"
 printf '/etc/a.rpmnew\n/etc/b.rpmsave\n' >"$R/state/rpmnew"
-out=$(fedokawaii status); has "$out" "2 config file(s) after the move"; has "$out" "(the list: $R/state/rpmnew)"
+out=$(fedokawaii status); has "$out" "2 config files after the move"; has "$out" "(the list: $R/state/rpmnew)"
+printf '/etc/a.rpmnew\n' >"$R/state/rpmnew"; has "$(fedokawaii status)" "1 config file after the move"
 
 # ── Fedora's releases ────────────────────────────────────────────────────────
 case_ "support known from os-release: the day, and how far"
@@ -143,7 +158,7 @@ fresh; : >"$R/state/lock"
 for _ in 1 2 3 4 5 6 7 8 9 10; do flock -n "$R/state/lock" true || break; sleep 0.1; done
 out=$(fedokawaii status)
 eq "$(head -n1 <<<"$out")" "running   an update or a repair, now" "(the keys' column two clear of the longest, verified)"
-has "$(grep -m1 '^update' <<<"$(plain "$(fedokawaii --rows)")")" "running"
+has "$(grep -m1 '^update' <<<"$(plain "$(fedokawaii --rows update)")")" "running"
 kill "$holder" 2>/dev/null; wait "$holder" 2>/dev/null
 case_ "a stale lock (left by a run that crashed: the file, nobody holding it) is not a run"
 out=$(fedokawaii status); lacks "$out" "running"
