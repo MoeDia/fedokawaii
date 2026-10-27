@@ -38,7 +38,7 @@ colour anywhere, in either mood. (`--doc` prints the hex columns of this table.)
 | token | dark 鬼 | light 天 | role |
 |---|---|---|---|
 | `ground` | `181715` Black → Vandyke Brown 0.13 | `e8e3c2` Sulpher Yellow → Neutral Gray 0.2 | the screens' ground: terminals, panels, menus, the launcher — all at kawa-glass's see-through (0.92) |
-| `surface` | `1c1916` Black → Vandyke Brown 0.2 | `ecdfb3` Sulpher Yellow → Isabella Color 0.18 | a solid ground: notices, the level display |
+| `surface` | `1c1916` Black → Vandyke Brown 0.2 | `ecdfb3` Sulpher Yellow → Isabella Color 0.18 | a solid ground: notices, the level display, tooltips |
 | `view` | `1c1916` | `f7f1d1` Sulpher Yellow → White 0.25 | a toolkit's list or canvas ground (GTK views, FireAlpaca's panels) |
 | `key` | `221e1a` Black → Pale Raw Umber 0.2 | `f8f3d8` Sulpher Yellow → White 0.35 | a tile's or key's fill at rest |
 | `edge` | `2d251e` Black → Pale Raw Umber 0.32 | `dfcc9c` Sulpher Yellow → Isabella Color 0.45 | a tile's or key's 1 px frame at rest; an unlit meter segment; the terminal's black |
@@ -201,7 +201,8 @@ screen and the bar's paper share one rhythm.
   numeral (一 to 九, drawn 10 × 10 for it) in Black, wholly inside the circle.
 - **Chosen** (one of several: an output, a mode): a vermilion dot, 6 px round, in the row's
   value column — the hanko's mark.
-- **Tooltip**: a panel one row high, pad 8, words only.
+- **Tooltip**: a panel one row high on the solid `surface`, pad 8, words only (the bar's: GTK's
+  tooltip window keeps a border of its own, so `style.css` pads the label by what is left).
 - **The launcher** (Super+Space or the torii): a panel 47 cells wide and always ten rows tall (it
   never jumps while you type): the line you type on, then the entries — each an app's own 16 px
   icon, or ours for what has none (a terminal program, a page, a helper); a sum or a conversion

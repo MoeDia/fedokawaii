@@ -78,7 +78,8 @@ def waybar_css(m, p):
     # what style.css takes: the words' inks, lit (asagi: under the pointer, or open), and the
     # tiles (紙 kami) — their paper, the vermilion of the torii's, the cat's and the seal's,
     # the words on the seal
-    rows = [("faint", p["faint"]), ("muted", p["muted"]), ("text", p["text"]),
+    rows = [("surface", p["surface"]),                               # (a tooltip's solid ground)
+            ("faint", p["faint"]), ("muted", p["muted"]), ("text", p["text"]),
             ("strong", p["strong"]), ("accent-text", p["accent_text"]), ("strong-on-accent", p["text_on_accent"]),
             ("asagi", p["asagi"]), ("blue", p["blue"]),                  # (blue: the keyboard's AR)
             ("tile", TILE[m]), ("kami-red", KAMI[m]["red"]), ("kami-red-lit", p["accent_hi"]),
@@ -156,6 +157,32 @@ def kami_tile(m, fill, w=12):
     for y in range(K_TOP + 1, K_HAIR_B + 1):   # and the column from the hairline's second row
         c[y][R + 1] = k["shadow"][1]
     return png(w, BAR_H, c)
+
+
+def kami_tip(m, fill, w=12):
+    """A tooltip's frame (§4, a tooltip: a panel one row high): the hairline, its corners left
+    out, the paper (fill) inside, the shadow — the tile's frame without the bar's air above it.
+    Sliced 2 2 3 2 by style.css (the top slice holds the hairline and a row of paper, so the
+    right edge it stretches — the hairline and the shadow's column — is the same in every row)."""
+    k = KAMI[m]
+    none = (0, 0, 0, 0)
+    h = 6
+    c = [[none] * w for _ in range(h)]
+    L, R, T, B = 0, w - 2, 0, h - 3
+    for y in range(T + 1, B):
+        for x in range(L + 1, R):
+            c[y][x] = _rgb(fill)
+    for x in range(L + 1, R):
+        c[T][x] = c[B][x] = k["hair"]
+    for y in range(T + 1, B):
+        c[y][L] = c[y][R] = k["hair"]
+    for x in range(L + 1, R + 1):
+        c[B + 1][x] = k["shadow"][0]
+    for x in range(L + 2, R + 2):
+        c[B + 2][x] = k["shadow"][1]
+    for y in range(T + 2, B + 1):
+        c[y][R + 1] = k["shadow"][1]
+    return png(w, h, c)
 
 
 def kami_fibre(m, fill, s=1):
@@ -260,6 +287,7 @@ def ornaments(m, p):
         "kami-red.png": kami_tile(m, k["red"]),
         "kami-red-lit.png": kami_tile(m, p["accent_hi"]),   # (a vermilion tile under the pointer or open)
         "kami-fibre.png": kami_fibre(m, fill),
+        "kami-tip.png": kami_tip(m, p["surface"]),
         "kami-seal.png": kami_seal(m),
         "kami-scroll.png": kami_scroll(m, fill),
         # the lock and login screens' scroll (sliced 12 16 12 16), until T20 draws them anew
@@ -343,13 +371,6 @@ format=<span foreground="#{p['strong']}" line_height="20480">%s <span foreground
 # unlock: a wrong passphrase): titled like the drives' own notices (kawa-drives)
 [app-name=udiskie]
 format=<span foreground="#{p['strong']}" line_height="20480">\U000FE044 not opened</span>\\n<span line_height="20480">%b</span>
-
-# the level display (kawa-osd): one meter row, which brings its own colours and its row — its
-# frame as it was until it becomes a surface of the panel's (plan T15): no shadow (its window
-# has no margin to hold one)
-[category=osd]
-format=%b
-shadow-color=#00000000 #00000000
 """
 
 
@@ -946,7 +967,7 @@ def lualine_palettes():
 
 
 # files that hold literal copies of palette colours (they cannot include a generated file)
-COPIES = ["bin/kawa-books", "bin/kawa-notes", "bin/kawa-osd", "bin/kawa-clip", "bin/kawa-menu", "bin/kawa-lock",
+COPIES = ["bin/kawa-books", "bin/kawa-notes", "bin/kawa-clip", "bin/kawa-menu", "bin/kawa-lock",
           "bin/kawa-wallpaper", "bin/kawa-screenshot", "bin/kawa-record", "bin/fetch", "src/dwl/config.h",
           "configs/home/.config/mpv/mpv.conf", "configs/home/.config/satty/config.toml",
           "configs/home/.config/MangoHud/MangoHud.conf", "configs/home/.config/lazygit/config.yml"]
@@ -977,7 +998,7 @@ def panel_conf(m, p):
     """kawa-panel, quick settings: it draws itself (every square and segment on the pixel grid),
     so it takes the colours by name rather than as CSS — and its frame's, as the bar's tiles have
     it (KAMI: the hairline and the shadow's two rows, each with its own opacity: rrggbbaa)."""
-    keys = ("ground", "key", "edge", "edge2", "faint", "muted", "text", "strong", "accent",
+    keys = ("ground", "surface", "key", "edge", "edge2", "faint", "muted", "text", "strong", "accent",
             "accent_text", "accent_lo", "text_on_accent", "asagi", "flame")
     k = KAMI[m]
     frame = {"hair": k["hair"], "shadow1": k["shadow"][0], "shadow2": k["shadow"][1]}

@@ -175,7 +175,11 @@ set_all() {   # set_all PERCENT — every monitor on its own scale; 1: the first
   return "$r"
 }
 
-note() { echo "$1" >"$LEVEL"; poke; kawa-osd 明 brightness "$1"; }   # the level, shown for a moment (明: its meter's kanji, as in quick settings)
+note() {   # the level, shown for a moment: the bulb of its fifth, as the bar and quick settings draw it
+  local b=("$ICON_BRI_0" "$ICON_BRI_1" "$ICON_BRI_2" "$ICON_BRI_3" "$ICON_BRI_4") i=$(($1 / 20))
+  ((i > 4)) && i=4
+  echo "$1" >"$LEVEL"; poke; kawa-osd "${b[i]}" brightness "$1"
+}
 
 want() {   # want → the level asked for and not applied yet (taken: the next ask is new)
   local v

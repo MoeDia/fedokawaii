@@ -19,6 +19,11 @@ in one write: none is lost or merged, however fast they come), answered in the o
                       answered into the fifo kawa-menu.PID.out: "RC TEXT" (0 and the chosen
                       line, or 1 dismissed, 2 wrong use); kawa-menu ending first takes it away
     close             whatever is open closes (the launcher is opening)
+    level ICON PCT [off]  the level display (kawa-osd: the volume, microphone and brightness
+                      keys): a window of its own, low in the middle of the screen — ICON, the
+                      meter at PCT (hollow and "off" with off), the value — shown at once, gone
+                      LEVEL_MS after the last such request; it takes no key and no click, and
+                      leaves whatever panel or menu is open as it is
 A request is a toggle: the panel or menu (a menu by the script that asked for it) open closes
 instead. Whether it came from a click on the bar or from a key is known exactly: dwl rewrites
 $XDG_RUNTIME_DIR/dwl-pointer at every press on the bar, before the bar hears of it, so a
@@ -141,6 +146,15 @@ KEY_H = ROW                          # a key: one row high, its 1 px frame insid
 GROUP = 2 * GAP                      # the air between a panel's groups (the meters, the tiles, the keys)
 SEGS, SEG_W, SEG_H = 20, 6, 10       # a meter: 20 segments 6 × 10 px, one a cell (2 px of air) — 5 % each
 SPAN = SEGS * CELL                   # 160: the segments' run
+# the level display (design-system §9): one row — the icon in its column, the meter from cell 3,
+# the value right-aligned at the content's end (a gap and four letters after the meter: 28
+# cells) — in 16 px of pad and the hairline; its window the frame and the shadow
+LEVEL_CONTENT = 28 * CELL            # 224
+LEVEL_SEG_X = 3 * CELL               # the meter's first segment (the icon's column, a cell of air)
+LEVEL_W = 2 * (HAIR + PAD) + LEVEL_CONTENT   # 258
+LEVEL_H = 2 * (HAIR + PAD) + ROW             # 54
+LEVEL_BOTTOM = 72                    # its frame's foot 72 px above the screen's bottom edge
+LEVEL_MS = 1200                      # it goes 1.2 s after the last key
 CELL_W = 5 * CELL                    # a calendar's day: 40 px, 8 apart — 7 × 40 + 6 × 8 = 328, three keys of 104
 DOT = 6                              # the chosen one's dot (one of several: an output, a mode), round
 
@@ -2464,6 +2478,92 @@ def main(argv):
                 else:
                     box(cr, x, top, SEG_W, rows, lit_ink)
 
+    # ── the level display (kawa-osd; design-system §9) ──
+    # A window of its own beside the panels' (a key pressed while quick settings is open leaves
+    # it where it is): low in the middle of the screen, on the overlay layer (over a fullscreen
+    # window too), never the keyboard's, its input region empty (a click goes through it); its
+    # namespace is not the panels' (dwl's one-menu rule leaves it alone). Shown at once, drawn
+    # again as each key comes (a held key: as fast as it repeats), gone LEVEL_MS after the last;
+    # while it shows, $XDG_RUNTIME_DIR/kawa-level.shown holds its pid (the health report's).
+    lvl = {"win": None, "icon": "", "pct": 0, "off": False, "hide": 0}
+    LEVEL_MARK = os.path.join(RUN, "kawa-level.shown")
+
+    class _Muted:                         # (segments() reads only this of an item)
+        def __init__(self, muted):
+            self.muted = muted
+
+    def level_draw(widget, cr):
+        """§9: the solid surface in the frame (§4), its one row: the icon in its column
+        (accent_text), the twenty segments (§4 Meter: hollow while off), the value right-aligned
+        (muted; "off" faint)."""
+        W, H = LEVEL_W, LEVEL_H
+        cr.set_operator(cairo.OPERATOR_SOURCE)
+        cr.set_source_rgba(0, 0, 0, 0)
+        cr.paint()
+        box(cr, HAIR, HAIR, W - 2 * HAIR, H - 2 * HAIR, "surface")
+        cr.set_operator(cairo.OPERATOR_OVER)
+        x0, y0 = HAIR + PAD, HAIR + PAD
+        ty = y0 + (ROW - LINE) // 2
+        glyph(cr, x0, ty, lvl["icon"], "accent_text")
+        segments(cr, _Muted(lvl["off"]), x0 + LEVEL_SEG_X, y0 + (ROW - SEG_H) // 2, lvl["pct"], False)
+        text(cr, x0 + LEVEL_CONTENT, ty, "off" if lvl["off"] else f"{lvl['pct']}%",
+             "faint" if lvl["off"] else "muted", right=True)
+        cr.set_operator(cairo.OPERATOR_SOURCE)
+        frame(cr, 0, 0, W, H, "hair", cut=True)
+        box(cr, HAIR, H, W - HAIR, 1, "shadow1")
+        box(cr, 2 * HAIR, H + 1, W - HAIR, 1, "shadow2")
+        box(cr, W, 2 * HAIR, 1, H - 2 * HAIR, "shadow2")
+        cr.set_operator(cairo.OPERATOR_OVER)
+        return True
+
+    def level_window():
+        win = Gtk.Window()
+        rgba = win.get_screen().get_rgba_visual()
+        if rgba is not None:
+            win.set_visual(rgba)
+        win.set_app_paintable(True)
+        GtkLayerShell.init_for_window(win)
+        GtkLayerShell.set_namespace(win, "kawa-level")
+        GtkLayerShell.set_layer(win, GtkLayerShell.Layer.OVERLAY)
+        GtkLayerShell.set_keyboard_mode(win, GtkLayerShell.KeyboardMode.NONE)
+        GtkLayerShell.set_exclusive_zone(win, -1)            # (over the bar's zone, never moving it)
+        GtkLayerShell.set_anchor(win, GtkLayerShell.Edge.BOTTOM, True)
+        # (the window holds the frame's shadow under it: two rows below the frame's foot)
+        GtkLayerShell.set_margin(win, GtkLayerShell.Edge.BOTTOM, LEVEL_BOTTOM - SHADOW_B)
+        win.set_size_request(LEVEL_W + SHADOW_R, LEVEL_H + SHADOW_B)
+        area = Gtk.DrawingArea()
+        win.add(area)
+        area.connect("draw", level_draw)
+        win.connect("realize", lambda w: w.input_shape_combine_region(cairo.Region()))
+        return win
+
+    def level_gone(n):
+        if n == lvl["hide"] and lvl["win"] is not None:
+            lvl["win"].hide()
+            try:
+                os.unlink(LEVEL_MARK)
+            except OSError:
+                pass
+        return False
+
+    def level(icon, pct, off):
+        """A key's level: shown (or drawn anew), its going put back LEVEL_MS from now."""
+        lvl.update(icon=icon, pct=max(0, min(999, pct)), off=off)
+        if lvl["win"] is None:
+            lvl["win"] = level_window()
+        if not lvl["win"].get_visible():
+            lvl["win"].show_all()
+            try:
+                with open(LEVEL_MARK, "w", encoding="utf-8") as f:
+                    f.write(f"{os.getpid()}\n")
+            except OSError:
+                pass
+        else:
+            lvl["win"].queue_draw()
+        lvl["hide"] += 1
+        n = lvl["hide"]
+        GLib.timeout_add(LEVEL_MS, lambda: level_gone(n))
+
     def item_(cr, it):
         """An item: its fill and frame, its icon, name, value (look() says in which colours)."""
         lk = look(it, it.key == panel.focus, it.key == panel.hot)
@@ -2656,6 +2756,8 @@ def main(argv):
                 menu_from(int(f[1]))
             elif f == ["close"]:
                 panel.close("chosen")
+            elif len(f) in (3, 4) and f[0] == "level" and f[2].isdigit() and f[3:] in ([], ["off"]):
+                level(f[1], int(f[2]), f[3:] == ["off"])
         return True
     GLib.io_add_watch(GLib.IOChannel.unix_new(fifo), GLib.PRIORITY_DEFAULT, GLib.IOCondition.IN, on_fifo)
 

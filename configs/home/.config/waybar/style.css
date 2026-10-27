@@ -186,5 +186,22 @@ button, button:hover, button:active, button:checked { background: none; box-shad
 /* on the seal: the other ink there is (never asagi on red) */
 .tag.selected:hover { color: @strong; }
 
-tooltip { background: @tile; border: 1px solid @muted; border-radius: 0; }   /* framed like every menu */
-tooltip label { color: @text; padding: 0 8px; }
+/* ── a tooltip: a panel one row high (design-system §4) — the solid surface in the frame of
+   everything that floats (kami-tip.png, sliced 2 2 3 2: the hairline, its corners left out, the
+   shadow), 8 px of pad round the words' row: the line on the row's rows 3–16 ───────────── */
+tooltip {
+  background-color: @surface;
+  background-clip: padding-box;
+  border-style: solid;
+  border-color: transparent;
+  border-width: 2px 2px 3px 2px;
+  border-image: url("../fedokawaii/current/kami-tip.png") 2 2 3 2 stretch;
+  border-radius: 0;
+  padding: 0;
+}
+tooltip box, tooltip * { padding: 0; margin: 0; min-height: 0; min-width: 0; }
+/* (GTK's tooltip window keeps a border of its own round its box — not CSS, so no rule removes
+   it: 5 px at the left, the right and the top, 4 at the foot, measured — and the label's
+   padding is what is left of the design's: 8 of pad and the row's 3 above the line, one row and
+   one column of it in the picture) */
+tooltip label { color: @text; padding: 6px 3px 8px 3px; margin: 0; }

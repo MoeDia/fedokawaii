@@ -1,11 +1,14 @@
 #!/usr/bin/env bash
 # tests/status/test_brightness.sh — kawa-brightness: monitors over DDC/CI (fake_ddcutil: buses,
 # dead buses, renumbering, slow answers) and a laptop's own panel through logind (fake_busctl
-# over a made-up /sys, KAWA_SYSFS). The level display is the real kawa-osd.
+# over a made-up /sys, KAWA_SYSFS). The level display is the real kawa-osd, asking lib.sh's
+# stand-in for the panel: osd is the last thing asked of it, as ICON|PCT|off (the bulb of the
+# level's fifth, the number). The notice daemon is lib.sh's fake, for the one notice there is
+# (no monitor answered).
 # Turned from the display review's live runs (review12/B) into checks.
 . "$(dirname "$0")/lib.sh"
 setup() {
-  box; notices; . "$HOME/.config/fedokawaii/icons.sh"
+  box; notices; osd_panel; . "$HOME/.config/fedokawaii/icons.sh"
   export DDC=$TMP/ddc DDC_BUSES=5 DDC_DEAD="" DDC_DELAY=0 KAWA_SYSFS=$TMP/sys
   mkdir -p "$DDC" "$KAWA_SYSFS/class/drm/card1-DP-1" "$KAWA_SYSFS/class/backlight"
   echo connected >"$KAWA_SYSFS/class/drm/card1-DP-1/status"
@@ -14,7 +17,7 @@ setup() {
 }
 b() { cat "$DDC/b$1" 2>/dev/null || echo 70; }          # b BUS — a monitor's level now
 cache() { cat "$XDG_RUNTIME_DIR/kawa-ddc-buses" 2>/dev/null; }
-shown() { osd | cut -d'|' -f3; }                        # the level the panel showed last
+shown() { osd | cut -d'|' -f2; }                        # the level the panel was last asked to show
 notice() { grep '^NOTICE [0-9]* desktop ' "$NOTIFY_STATE/log" 2>/dev/null | tail -n 1 | cut -d'|' -f2-; }
 detects() { grep -c ' detect' "$DDC/log" 2>/dev/null || echo 0; }
 # laptop NAME TYPE MAX NOW — a built-in panel (eDP, connected) and its backlight
@@ -29,21 +32,34 @@ backlight() {   # backlight NAME TYPE MAX NOW — a backlight device (TYPE "" = 
 bl() { cat "$KAWA_SYSFS/class/backlight/$1/brightness"; }
 
 # ── one monitor ──────────────────────────────────────────────────────────────
-case_ "one monitor at 70 %: +10 → 80, the panel says so; -10 → 70; 40 → 40"
+case_ "one monitor at 70 %: +10 → 80, the panel is asked to show it (the bulb of its fifth, no notice); -10 → 70; 40 → 40"
 setup
-rc 0 kawa-brightness +10; eq "$(b 5)" 80; eq "$(osd | cut -d'|' -f2,3)" "明  brightness|80%"
+rc 0 kawa-brightness +10; eq "$(b 5)" 80; eq "$(osd)" "$ICON_BRI_4|80|"
+not_called '^notify-send '
 rc 0 kawa-brightness -10; eq "$(b 5)" 70
 rc 0 kawa-brightness 40;  eq "$(b 5)" 40; eq "$(kawa-brightness --level)" 40
 eq "$(kawa-state get brightness)" 40 "the level set is kept (kawa-state restore puts it back at login)"
-eq "$(shown)" 70% "a level set from quick settings pops nothing up over its meter (the -10 step's 70 % stays the last shown)"
+eq "$(shown)" 70 "a level set from quick settings pops nothing up over its meter (the -10 step's 70 % stays the last shown)"
 case_ "the ends: never above 100 or below 0 (a monitor's 0 is its dimmest, not dark)"
 kawa-brightness +100; eq "$(b 5)" 100; kawa-brightness +10; eq "$(b 5)" 100
 kawa-brightness 150;  eq "$(b 5)" 100
-kawa-brightness -100; eq "$(b 5)" 0; kawa-brightness -10; eq "$(b 5)" 0; eq "$(shown)" 0%
+kawa-brightness -100; eq "$(b 5)" 0; kawa-brightness -10; eq "$(b 5)" 0; eq "$(shown)" 0
 kawa-brightness 007;  eq "$(b 5)" 7 "a leading zero is not octal"
 case_ "a monitor on its own scale (max 50): 80 % is 40 of 50, and its level read back in per cent"
 setup; echo 50 >"$DDC/max5"; echo 35 >"$DDC/b5"
-kawa-brightness +10; eq "$(b 5)" 40; eq "$(shown)" 80%
+kawa-brightness +10; eq "$(b 5)" 40; eq "$(shown)" 80
+
+case_ "the bulb of its fifth: 0–19 the first, 20–39, 40–59, 60–79, 80–100 the fifth (as the bar and quick settings draw it) — at every edge, up and down; never the old kanji"
+setup
+for t in 0:+1:1:0 18:+1:19:0 19:+1:20:1 38:+1:39:1 39:+1:40:2 58:+1:59:2 59:+1:60:3 78:+1:79:3 79:+1:80:4 98:+1:99:4 99:+1:100:4 100:+1:100:4 \
+         20:-1:19:0 40:-1:39:1 60:-1:59:2 80:-1:79:3 100:-1:99:4 1:-1:0:0 0:-1:0:0; do
+  IFS=: read -r from step pct bulb <<<"$t"
+  kawa-brightness "$from"; kawa-brightness "$step"
+  v=ICON_BRI_$bulb
+  eq "$(osd)" "${!v}|$pct|" "$step from $from"
+done
+lacks "$(osd_raw)" 明 "the kanji of the old display is gone"
+not_called '^notify-send '
 
 # ── two monitors, dead ones, renumbered ones ─────────────────────────────────
 case_ "two monitors: both move together, each on its own scale"
@@ -81,17 +97,20 @@ setup; echo 5 >"$XDG_RUNTIME_DIR/kawa-ddc-buses"; export DDC_BUSES=""
 rc 1 kawa-brightness +10; has "$(notice)" "no monitor answered"
 
 # ── a held key, the lock ─────────────────────────────────────────────────────
-case_ "a held key (35 presses a second, monitors answering in 50 ms): repeats dropped, both monitors in step, never past 100"
+case_ "a held key (35 presses a second, monitors answering in 50 ms): repeats dropped, both monitors in step, never past 100; the panel asked only for the presses that went through"
 setup; export DDC_BUSES="5 7" DDC_DELAY=0.05
 for _ in {1..35}; do kawa-brightness +10 & /bin/sleep 0.028; done; wait
 v5=$(b 5) v7=$(b 7)
 eq "$v5" "$v7" "both monitors at the same level"
 [[ $v5 =~ ^(80|90|100)$ ]] && _ok || _no "level $v5"
-eq "$(shown)" "$v5%" "the panel shows where it ended"
-eq "$(cut -d' ' -f2 "$NOTIFY_STATE/log" | sort -u)" 1 "one panel, updated in place"
+eq "$(shown)" "$v5" "the last request is where it ended"
+eq "$(osd_raw | awk '$1 != "level" || NF != 3 || $3 !~ /^[0-9]+$/ || $3 > 100' | wc -l)" 0 "every request whole (level ICON PCT), none beyond 100"
+eq "$(osd_raw | wc -l)" "$(($(grep -c setvcp "$DDC/log") / 2))" "one request for each press that went through (two monitors, two setvcp); the dropped repeats ask nothing"
+not_called '^notify-send '
 case_ "… and down the same way: 0 at most, still in step"
 for _ in {1..35}; do kawa-brightness -10 & /bin/sleep 0.028; done; wait
 eq "$(b 5)" "$(b 7)"
+eq "$(osd_raw | wc -l)" "$(($(grep -c setvcp "$DDC/log") / 2))" "and still one request for each that went through"
 case_ "quick settings' meter dragged (a level every 30 ms, monitor 200 ms a change): none queued, the last one always arrives"
 setup; export DDC_DELAY=0.2; kawa-brightness --level >/dev/null; : >"$DDC/log"
 for v in 10 15 20 25 30 35 40 45 50 55 60 65; do kawa-brightness "$v" & /bin/sleep 0.03; done; wait
@@ -114,8 +133,8 @@ eq "$(b 5)" 30 "not dropped"
 case_ "a key press: the level shows before the monitor has answered, and one DDC/CI conversation"
 setup; kawa-brightness --level >/dev/null; : >"$DDC/log"; export DDC_DELAY=1.5
 kawa-brightness +10 &
-for _ in {1..60}; do [[ $(shown) == 80% ]] && break; /bin/sleep 0.02; done
-eq "$(shown)" 80% "shown at once"
+for _ in {1..60}; do [[ $(shown) == 80 ]] && break; /bin/sleep 0.02; done
+eq "$(shown)" 80 "shown at once"
 eq "$(b 5)" 70 "(the monitor not there yet)"
 wait; eq "$(b 5)" 80
 eq "$(grep -c . "$DDC/log")" 1 "one ddcutil: the change (its level known, no read first)"
@@ -132,13 +151,13 @@ setup; rc 2 kawa-brightness; rc 2 kawa-brightness menu; rc 2 kawa-brightness +x;
 case_ "a laptop (firmware backlight, 0–100): +10 through logind, no DDC monitor, no notice"
 setup; export DDC_BUSES=""; laptop acpi_video0 firmware 100 70
 rc 0 kawa-brightness +10
-eq "$(bl acpi_video0)" 80; eq "$(shown)" 80%; eq "$(notice)" ""
+eq "$(bl acpi_video0)" 80; eq "$(shown)" 80; eq "$(notice)" ""
 called 'busctl call org.freedesktop.login1 /org/freedesktop/login1/session/auto org.freedesktop.login1.Session SetBrightness ssu backlight acpi_video0 80'
 case_ "… 'no DDC monitor' is kept ('-'), so the next presses do not look again"
 eq "$(cache)" -; kawa-brightness +10; kawa-brightness +10; eq "$(detects)" 1; eq "$(bl acpi_video0)" 100
 case_ "a raw panel (0–255): its own scale both ways"
 setup; export DDC_BUSES=""; laptop amdgpu_bl1 raw 255 255
-kawa-brightness -10; eq "$(bl amdgpu_bl1)" 229; eq "$(shown)" 90%
+kawa-brightness -10; eq "$(bl amdgpu_bl1)" 229; eq "$(shown)" 90
 kawa-brightness 50; eq "$(bl amdgpu_bl1)" 127
 case_ "never 0 on a panel (that is a black screen): 0 and a step below are its lowest, 1"
 kawa-brightness 0; eq "$(bl amdgpu_bl1)" 1; eq "$(kawa-brightness --level)" 0

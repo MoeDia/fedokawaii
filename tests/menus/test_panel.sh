@@ -486,9 +486,9 @@ case_ "one reading at a time: asked again meanwhile, read once more after"
 eq "$(py 'fresh(); p.refresh(); p.refresh(); p.refresh(); print(sum(c == "run kawa-quick --state" for c in u.calls)); u.answer(STATE); print(sum(c == "run kawa-quick --state" for c in u.calls))')" "$(printf '1\n2')"
 case_ "kawa-quick failing: the last state stays"
 eq "$(py 'fresh(); p.refresh(); u.answer("", 1); print(p.state["night"])')" on
-case_ "the colours: the theme's panel.conf, every name the drawing uses"
+case_ "the colours: the theme's panel.conf, every name the drawing uses (surface: the level display's solid ground)"
 for m in dark light; do
-  eq "$(py "c = kp.colours('$REPO/configs/home/.config/fedokawaii/themes/$m/panel.conf'); print(sorted(c) == sorted(['ground','key','edge','edge2','faint','muted','text','strong','accent','accent_text','accent_lo','text_on_accent','asagi','flame','hair','shadow1','shadow2']), all(0 <= v <= 1 for t in c.values() for v in t), sorted(k for k, t in c.items() if len(t) == 4), sorted({len(t) for t in c.values()}))")" "True True ['hair', 'shadow1', 'shadow2'] [3, 4]" "$m: the frame's hairline and its two shadows carry an alpha, the rest are plain"
+  eq "$(py "c = kp.colours('$REPO/configs/home/.config/fedokawaii/themes/$m/panel.conf'); print(sorted(c) == sorted(['ground','surface','key','edge','edge2','faint','muted','text','strong','accent','accent_text','accent_lo','text_on_accent','asagi','flame','hair','shadow1','shadow2']), all(0 <= v <= 1 for t in c.values() for v in t), sorted(k for k, t in c.items() if len(t) == 4), sorted({len(t) for t in c.values()}))")" "True True ['hair', 'shadow1', 'shadow2'] [3, 4]" "$m: the frame's hairline and its two shadows carry an alpha, the rest are plain"
 done
 case_ "a theme switch while it runs: kawa-theme's rename of the link over current is seen, and the new link's colours read (light after dark)"
 # (watch_theme with a stand-in Gio: the folder's events as GIO gives them for a rename —
@@ -903,4 +903,18 @@ case_ "the session starts it (autostart, kept running), its colours come with ea
 has "$(cat "$REPO/configs/home/.config/dwl/autostart.sh")" 'keep kawa-panel'
 for m in dark light; do [[ -s $REPO/configs/home/.config/fedokawaii/themes/$m/panel.conf ]] && _ok || _no "no $m panel.conf"; done
 has "$(cat "$REPO/configs/home/.config/waybar/config.jsonc")" '"on-click": "kawa-quick"'
+# ── the level display (kawa-osd's: design-system §9) ─────────────────────────────────
+case_ "the level display: one row on the grid — 258 × 54 (16 of pad, the hairline), its content 28 cells: the icon's column, the meter from cell 3, a gap, four letters right-aligned; 72 px above the screen's foot, gone 1.2 s after the last key"
+eq "$(py 'print(kp.LEVEL_W, kp.LEVEL_H, kp.LEVEL_CONTENT, kp.LEVEL_CONTENT // kp.CELL, kp.LEVEL_SEG_X, kp.LEVEL_BOTTOM, kp.LEVEL_MS)')" "258 54 224 28 24 72 1200"
+eq "$(py 'print(kp.LEVEL_SEG_X + kp.SPAN + kp.GAP + 4 * kp.COL <= kp.LEVEL_CONTENT, kp.LEVEL_SEG_X == kp.GLYPH_COL + kp.GAP)')" "True True" "the meter, a gap and \"100%\" fit; the meter a gap after the icon's column"
+case_ "…asked through the fifo (level ICON PCT [off]: anything else ignored), a window of its own — the overlay layer, its own namespace (dwl's one-menu rule leaves it alone), no keyboard, no input region —, the panel's segments and frame, a marker while it shows"
+P_=$(cat "$REPO/bin/kawa-panel")
+has "$P_" 'elif len(f) in (3, 4) and f[0] == "level" and f[2].isdigit() and f[3:] in ([], ["off"]):'
+has "$P_" 'GtkLayerShell.set_namespace(win, "kawa-level")'
+has "$P_" 'GtkLayerShell.set_keyboard_mode(win, GtkLayerShell.KeyboardMode.NONE)'
+has "$P_" 'w.input_shape_combine_region(cairo.Region())'
+has "$P_" 'segments(cr, _Muted(lvl["off"]), x0 + LEVEL_SEG_X'
+has "$P_" 'frame(cr, 0, 0, W, H, "hair", cut=True)'
+has "$P_" 'LEVEL_MARK = os.path.join(RUN, "kawa-level.shown")'
+
 done_

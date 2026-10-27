@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # tests/status/lib.sh — what the bar's status and sound tests share, on top of the harness:
 # a fake PipeWire (fake_pw.py: wpctl and pw-dump over one JSON machine), a notice daemon that
-# hands out ids like mako, JSON and width checks.
+# hands out ids like mako, the panel's fifo that the level display (kawa-osd) asks, JSON and
+# width checks.
 # shellcheck source=../lib/harness.sh
 . "$(dirname "${BASH_SOURCE[0]}")/../lib/harness.sh"
 SD=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
@@ -70,42 +71,51 @@ waitfor() {
   return 1
 }
 
-# osd [N] — the Nth-last level display shown (default the last), as "ID|ICON LABEL|VALUE|LIT/12":
-# VALUE is the number or "off", LIT the meter's lit squares (hollow ones too, while muted);
-# the body must be well-formed Pango markup, or "bad markup" comes back
+# The level display (kawa-osd) asks the running panel through its fifo, one line a request:
+# `level ICON PCT [off]` in $XDG_RUNTIME_DIR/kawa-panel.in. No notice, no process: the tests
+# stand in for the panel by holding that fifo themselves.
+#
+# osd_panel — the panel running: the fifo the real kawa-panel makes (mode 600), held open here
+# read and write, as the panel holds it. A request waits in it until osd/osd_raw reads it, so
+# nothing is lost or merged and there is nothing to wait for, kill or clean up (the descriptor
+# goes with the shell). Call it in every fresh sandbox (the old fifo went with the old one);
+# `rm -f "$XDG_RUNTIME_DIR/kawa-panel.in"` afterwards is "no panel running".
+osd_panel() {
+  [[ -n ${OSD_FD:-} ]] && { exec {OSD_FD}>&-; OSD_FD=""; }    # (the previous one's, or this sandbox's own: a panel restarted)
+  OSD_LOG=$TMP/osd.log; : >"$OSD_LOG"
+  rm -f -- "$XDG_RUNTIME_DIR/kawa-panel.in"
+  mkfifo -m 600 -- "$XDG_RUNTIME_DIR/kawa-panel.in" && exec {OSD_FD}<>"$XDG_RUNTIME_DIR/kawa-panel.in"
+}
+# osd_raw — every request made of the panel so far, as kawa-osd wrote it, one line each, oldest
+# first. What waits in the fifo is read into a log first (once), so this and osd may be asked
+# as often as you like, from a pipeline or not. Nothing without osd_panel. A request that came
+# without its newline would leave a reader waiting for ever: one second, then it is logged with
+# " (no newline)" after it, for the test to fail on.
+osd_raw() {
+  local l r
+  [[ -n ${OSD_FD:-} ]] || return 0
+  while read -r -t 0 -u "$OSD_FD"; do
+    IFS= read -r -t 1 -u "$OSD_FD" l; r=$?
+    ((r)) && [[ -z $l ]] && break
+    ((r)) && l+=' (no newline)'
+    printf '%s\n' "$l" >>"$OSD_LOG"
+  done
+  cat -- "$OSD_LOG" 2>/dev/null
+}
+# osd [N] — the Nth-last request (default the last) as "ICON|PCT|off", or "ICON|PCT|" when it is
+# not off; nothing when there is no such request. A line that is not `level ICON PCT [off]`
+# comes back as "bad request|LINE|", for the test to fail on.
 osd() {
-  local l; l=$(grep '^NOTICE [0-9]* osd ' "$NOTIFY_STATE/log" 2>/dev/null | tail -n "${1:-1}" | head -n 1)
-  [[ -n $l ]] || return 0
-  python3 -I - "$l" <<'EOF2'
-import sys, xml.dom.minidom as X
-line = sys.argv[1]
-head, summary, body = line.split(" | ", 2)
-nid = head.split()[1]
-try:
-    d = X.parseString("<m>" + body + "</m>").documentElement
-except Exception:
-    print(f"{nid}|{summary}|bad markup|"); sys.exit()
-def text(n): return "".join(c.data if c.nodeType == c.TEXT_NODE else text(c) for c in n.childNodes)
-# kawa-osd's row: one span (the 24 px row) holding the glyph, the name, the slider (the span
-# in the icon font: the fill, the knob, the track, its 2 px of air) and the value (the last).
-# The slider read back into pixels from icons.sh's lv-* parts: where its knob starts, and its
-# whole width ("131/192")
-import os, re
-sh = open(os.path.expanduser("~/.config/fedokawaii/icons.sh")).read()
-px = {}
-for name, esc in re.findall(r"^ICON_(LV_[A-Z]+(?:_\d+)?|GAP1|GAP)='?\$'([^']*)'", sh, re.M):
-    ch = bytes(int(h, 16) for h in re.findall(r"\\x([0-9a-f]{2})", esc)).decode()
-    n = name.rsplit("_", 1)
-    px[ch] = 1 if name in ("GAP1", "LV_TICK") else 2 if name == "GAP" else 4 if name == "LV_KNOB" else int(n[1])
-row = [c for c in d.childNodes if c.nodeType == c.ELEMENT_NODE][0]
-spans = [c for c in row.childNodes if c.nodeType == c.ELEMENT_NODE]
-slider = [s for s in spans if s.getAttribute("font").startswith("Sumi Icons ")][0]
-parts = [c for c in slider.childNodes if c.nodeType == c.ELEMENT_NODE]
-w = lambda t: sum(px.get(ch, 1000) for ch in t)
-knob = w(text(parts[0])); total = w(text(slider))
-value = text(spans[-1]).strip()
-print(f"{nid}|{summary}|{value}|{knob}/{total}")
-EOF2
+  local n=${1:-1} all=() l
+  [[ $n =~ ^[1-9][0-9]*$ ]] || return 0
+  mapfile -t all < <(osd_raw)
+  ((n <= ${#all[@]})) || return 0
+  l=${all[${#all[@]} - n]}
+  if [[ $l =~ ^level\ ([^[:space:]]+)\ ([0-9]+)(\ off)?$ ]]; then
+    printf '%s|%s|%s\n' "${BASH_REMATCH[1]}" "${BASH_REMATCH[2]}" "${BASH_REMATCH[3]# }"
+  else
+    printf 'bad request|%s|\n' "$l"
+  fi
 }
 
 # box — sandbox, and also the compiled locales (locale_ok) go when the test file ends

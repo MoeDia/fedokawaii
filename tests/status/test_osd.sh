@@ -1,150 +1,240 @@
 #!/usr/bin/env bash
 # tests/status/test_osd.sh — kawa-osd, the level display of the volume, microphone and
-# brightness keys: one panel that updates in place (mako's synchronous tag), drawn as quick
-# settings' old meter row — the glyph, the name in 12 columns, a 190 px slider (its fill to the
-# nearest pixel, a 4 px knob on its end), a 4-column number. (Quick settings' meters are twenty
-# segments now: T15 rebuilds this display on them, a surface of the panel's own — until then
-# it keeps the slider's own rule, checked here.) The notice daemon is lib.sh's fake.
+# brightness keys. It draws nothing and sends no notice: it asks the running panel (kawa-panel)
+# through the panel's fifo, $XDG_RUNTIME_DIR/kawa-panel.in, with ONE line — `level ICON PCT`,
+# or `level ICON PCT off` while muted — written whole, and is done: opened for reading and
+# writing, it never waits for the panel, whatever the panel is doing. The panel here is lib.sh's
+# stand-in (osd_panel holds the fifo; osd_raw and osd read what was asked of it).
+# Checked: the exact line for a normal level, a muted one, one above 999, one that is no number
+# and one with leading zeros; one line per call however fast the calls come (a held key: none
+# lost, none merged, none torn); no panel running (no fifo, or something else at its path): a
+# failure (1) that writes nothing anywhere; every kind of misuse (2), and --help (0); and,
+# throughout, that no notice (notify-send) and no other program is ever called.
+# (Not run here: with XDG_RUNTIME_DIR unset kawa-osd falls back to /run/user/UID — on this PC
+# the live session's own fifo, which a test must never poke.)
 . "$(dirname "$0")/lib.sh"
-setup() { box; notices; . "$HOME/.config/fedokawaii/icons.sh"; . "$HOME/.config/fedokawaii/current/colors.sh"; }
-body() { sed -n "\$s/^NOTICE [0-9]* osd | [^|]* | //p" "$NOTIFY_STATE/log"; }   # the last panel's markup
-# panel_knob PCT — where the slider's rule puts its knob for PCT: the fill to the nearest of its
-# 190 px (all of it above 100 %), the 4 px knob centred on the fill's end, kept on the rule
-panel_knob() {
-  local span=190 knob=4 fill=0 k
-  (($1 > 0)) && fill=$(( ($1 * span * 2 + 100) / 200 ))
-  ((fill > span)) && fill=$span
-  k=$((fill - knob / 2)); ((k < 0)) && k=0; ((k > span - knob)) && k=$((span - knob))
-  echo "$k"
-}
+# a panel running; and stand-ins that log it if a notice were sent or a process started
+setup() { box; osd_panel; stub notify-send; stub makoctl; stub kawa-panel; . "$HOME/.config/fedokawaii/icons.sh"; }
+# the panel quit (it takes its fifo away): nobody to ask
+nopanel() { setup; rm -f "$XDG_RUNTIME_DIR/kawa-panel.in"; }
+# tree — everything in the sandbox with its kind, size and time: the same twice = nothing written
+tree() { find "$TMP" -mindepth 1 -printf '%p %y %s %T@\n' | sort; }
 
-# ── what it shows ────────────────────────────────────────────────────────────
-case_ "70 %: the glyph and name, the slider's knob at 131 of its 192 px, the number; app and category 'osd' (mako's rule), one panel in place"
+# ── what it asks ─────────────────────────────────────────────────────────────
+case_ "70 %: one line 'level ICON 70' in the panel's fifo; done (0), silent; no notice, no other program"
 setup
-rc 0 kawa-osd 明 brightness 70
-eq "$(osd | cut -d'|' -f2-)" "明  brightness|70%|131/192"
-called '^notify-send -a osd -c osd -u low -h int:transient:1 -h string:x-canonical-private-synchronous:osd '
+out=$(kawa-osd "$ICON_BRI_3" brightness 70 2>&1); r=$?
+eq "$r" 0; eq "$out" "" "nothing printed"
+eq "$(osd_raw)" "level $ICON_BRI_3 70"
+eq "$(osd)" "$ICON_BRI_3|70|"
+not_called '^notify-send '
+eq "$(<"$CALLS")" "" "no program of the desktop was called"
 
-case_ "the slider: its knob where its rule puts it, its width 192 px, at every level"
-for p in $(seq 0 100); do
-  kawa-osd "$ICON_VOL_2" volume "$p"
-  eq "$(osd | cut -d'|' -f3-)" "$p%|$(panel_knob "$p")/192" "at $p %"
+case_ "muted: 'level ICON 40 off' — the word off after the level, the icon as given"
+setup
+rc 0 kawa-osd "$ICON_VOL_MUTE" volume 40 off
+eq "$(osd_raw)" "level $ICON_VOL_MUTE 40 off"
+eq "$(osd)" "$ICON_VOL_MUTE|40|off"
+kawa-osd "$ICON_MIC_OFF" microphone 0 off;  eq "$(osd)" "$ICON_MIC_OFF|0|off"
+kawa-osd "$ICON_VOL_MUTE" volume 999 off;   eq "$(osd)" "$ICON_VOL_MUTE|999|off"
+kawa-osd "$ICON_VOL_2" volume 40;           eq "$(osd)" "$ICON_VOL_2|40|" "not muted: no word after the level"
+
+case_ "the label is accepted and not used: any word, an empty one, one with spaces, markup or a command in it — the same line"
+setup
+labels=(volume microphone brightness "" "a very long label here" '<b>x</b>' '$(id)' '%s' 明)
+for lab in "${labels[@]}"; do
+  rc 0 kawa-osd "$ICON_VOL_2" "$lab" 50
 done
-for p in 0 1 2 3 50 98 99 100; do
-  kawa-osd "$ICON_VOL_2" volume "$p" off
-  eq "$(osd | cut -d'|' -f3-)" "off|$(panel_knob "$p")/192" "muted, at $p %"
+eq "$(osd_raw | sort -u)" "level $ICON_VOL_2 50" "the label is in none of them"
+eq "$(osd_raw | wc -l)" "${#labels[@]}" "one line each"
+
+case_ "the icon goes through as it is — pixel icons, a kanji, plain text, and text printf or the shell would read as something"
+setup
+icons=("$ICON_VOL_4" "$ICON_BRI_0" "$ICON_MIC" 明 x '%s' '%d%%' '\n' '\\' '*' '$HOME' '`id`' -- "it's" '"q"' '<b>')
+for ic in "${icons[@]}"; do
+  rc 0 kawa-osd "$ic" volume 5
+  eq "$(osd_raw | tail -n 1)" "level $ic 5" "icon [$ic]"
+done
+eq "$(osd_raw | wc -l)" "${#icons[@]}"
+
+case_ "the level is the real number, three digits at most: 0 to 999 as they are; 1000 to 9999 is 999"
+setup
+for p in 0:0 1:1 5:5 45:45 99:99 100:100 101:101 150:150 999:999 1000:999 1234:999 9999:999; do
+  rc 0 kawa-osd "$ICON_VOL_4" volume "${p%:*}"
+  eq "$(osd)" "$ICON_VOL_4|${p#*:}|" "level ${p%:*}"
 done
 
-case_ "above 100 % (only the mixer goes there): the slider full, the real number; three digits at most"
-kawa-osd "$ICON_VOL_4" volume 150
-eq "$(osd | cut -d'|' -f3-)" "150%|186/192"
-kawa-osd "$ICON_VOL_4" volume 1000
-eq "$(osd | cut -d'|' -f3-)" "999%|186/192" "the panel never widens"
+case_ "a level that is not one to four digits is 0 — still a request (exit 0, one line): empty, words, signs, decimals, spaces, five digits, a newline"
+setup
+bad=("" abc -5 +5 -0 4.5 5.0 ' 5' '5 ' 1e3 0x10 '٣' '<b>' ';' 10000 00099 $'5\n' $'\n5')
+for p in "${bad[@]}"; do
+  rc 0 kawa-osd "$ICON_VOL_2" volume "$p"
+  eq "$(osd)" "$ICON_VOL_2|0|" "level [$p]"
+done
+eq "$(osd_raw | wc -l)" "${#bad[@]}" "one line each"
 
-case_ "muted: the level kept, its fill hollow (a tick at each end), the knob muted; the number says 'off', faint"
-kawa-osd "$ICON_VOL_MUTE" volume 40 off
-eq "$(osd | cut -d'|' -f2-)" "$ICON_VOL_MUTE  volume|off|74/192"
-# 40 %: fill 76 px, the knob at 74: hollow 0–72 (a tick, 64 + 4 + 2 + 1, a tick), its air, the knob
-has "$(body)" "<span color='#$C_TEAL'>$ICON_LV_TICK$ICON_LV_HOLLOW_64$ICON_LV_HOLLOW_4$ICON_LV_HOLLOW_2$ICON_LV_HOLLOW_1$ICON_LV_TICK$ICON_GAP1</span><span color='#$C_MUTED'>$ICON_LV_KNOB</span>"
-has "$(body)" "<span color='#$C_FAINT'> off</span>"
+case_ "a level is never run as a command, and never makes a second request (\$(…), backquotes, ;, a newline with 'close' after it)"
+setup
+evil=("\$(touch $TMP/pwned)" "\`touch $TMP/pwned\`" "5;touch $TMP/pwned" $'50\nclose' $'50\ntoggle quick')
+for p in "${evil[@]}"; do
+  rc 0 kawa-osd "$ICON_VOL_2" volume "$p"
+done
+eq "$(osd_raw | sort -u)" "level $ICON_VOL_2 0" "a plain 0 each"
+eq "$(osd_raw | wc -l)" "${#evil[@]}" "one line each"
+[[ ! -e $TMP/pwned ]] && _ok || _no "a level was run as a command"
 
-case_ "a level that is not a number: 0, still a well-formed panel"
-for p in "" abc -5 4.5 '$(id)' '<b>'; do
-  kawa-osd 明 brightness "$p"
-  eq "$(osd | cut -d'|' -f3-)" "0%|0/192" "level [$p]"
+case_ "leading zeros are read as decimal, never octal: 007 → 7, 010 → 10, 08 and 09 are fine, 0100 → 100, 0999 → 999, 0000 → 0"
+setup
+for p in 007:7 08:8 09:9 010:10 0100:100 0999:999 000:0 0000:0 0001:1; do
+  rc 0 kawa-osd "$ICON_VOL_2" volume "${p%:*}"
+  eq "$(osd)" "$ICON_VOL_2|${p#*:}|" "level ${p%:*}"
 done
 
-case_ "the panel's inks: the glyph accent_text, the name text, the fill asagi, the knob strong, the track faint, the number muted"
+# ── one line per call ────────────────────────────────────────────────────────
+case_ "a held key — 30 calls in a row, the panel not reading meanwhile: 30 lines in order, none merged; 30 of the same level too, no repeat is skipped"
 setup
-kawa-osd 明 brightness 50
-b=$(body)
-has "$b" "<span line_height='24576'><span color='#$C_ACCENT_TEXT'>明</span>"
-has "$b" "<span color='#$C_TEXT'>brightness  $ICON_GAP$ICON_GAP1</span>"
-# 50 %: fill 95 px, the knob at 93 — fill 92 (64 + 16 + 8 + 4), air, the knob, air, the track
-# from 98 to the third quarter's tick (at 143: 45 = 32 + 8 + 4 + 1), the tick, the rest (46: 32 + 8 + 4 + 2)
-has "$b" "<span font='Sumi Icons 14px'><span color='#$C_TEAL'>$ICON_LV_FILL_64$ICON_LV_FILL_16$ICON_LV_FILL_8$ICON_LV_FILL_4$ICON_GAP1</span><span color='#$C_STRONG'>$ICON_LV_KNOB</span>"
-has "$b" "<span color='#$C_FAINT'>$ICON_GAP1$ICON_LV_TRACK_32$ICON_LV_TRACK_8$ICON_LV_TRACK_4$ICON_LV_TRACK_1$ICON_LV_TICK$ICON_LV_TRACK_32$ICON_LV_TRACK_8$ICON_LV_TRACK_4$ICON_LV_TRACK_2</span>$ICON_GAP</span>"
-has "$b" "<span color='#$C_MUTED'> 50%</span></span>"
+want=""
+for i in {1..30}; do
+  rc 0 kawa-osd "$ICON_VOL_3" volume $((i * 3))
+  want+="level $ICON_VOL_3 $((i * 3))"$'\n'
+done
+eq "$(osd_raw)" "${want%$'\n'}" "the ramp, line for line"
+for _ in {1..30}; do kawa-osd "$ICON_VOL_2" volume 50; done
+eq "$(osd_raw | wc -l)" 60
+eq "$(osd_raw | tail -n 30 | sort -u)" "level $ICON_VOL_2 50"
+eq "$(osd 30)" "$ICON_VOL_2|50|" "the 30th from the last: the first of the repeats"
+eq "$(osd 31)" "$ICON_VOL_3|90|" "… and the one before it: the ramp's last"
+eq "$(osd 60)" "$ICON_VOL_3|3|" "… back to the ramp's first"
+eq "$(osd 61)" "" "there is no 61st"
+not_called '^notify-send '
 
-case_ "one row on the panel's grid: the name 21 px after the glyph's pen (any glyph two columns, 14 px, then a space, 7), 12 columns of name and 3 px of air, the slider, 7 px, 4 columns of number"
+case_ "… and 30 at once, each with a 100-character icon (a torn line would show): 30 whole lines, each its own, none interleaved"
 setup
-kawa-osd 明 brightness 70
-has "$(body)" "明</span> <span color='#$C_TEXT'>brightness  $ICON_GAP$ICON_GAP1</span>"
-kawa-osd "$ICON_VOL_3" volume 70
-has "$(body)" "$ICON_VOL_3</span> <span color='#$C_TEXT'>volume      $ICON_GAP$ICON_GAP1</span>"
-kawa-osd "$ICON_MIC" microphone 70
-has "$(body)" "$ICON_MIC</span> <span color='#$C_TEXT'>microphone  $ICON_GAP$ICON_GAP1</span>"
-lacks "$(body)" "font='Fusion" "no face but Sumi's"
-v=$(for p in 5 70 100; do kawa-osd 明 brightness "$p"; body | sed -e "s/.*<span color='#$C_MUTED'>//" -e 's/<.*//'; done
-    kawa-osd 明 brightness 5 off; body | sed -e "s/.*<span color='#$C_FAINT'>//" -e 's/<.*//')
-eq "$(printf '%s\n' "$v" | awk '{ print length($0) }' | sort -u)" 4 "every value 4 columns: [$(tr '\n' '|' <<<"$v")]"
-has "$(body)" "$ICON_GAP</span> <span color='#$C_FAINT'>" "7 px (a space) after the slider's 2 px of air, then the number"
-case_ "where mako puts it: the glyph's pen at x 26, the slider from x 134 to its number, all inside the 412 × 60 panel"
-eq "$(python3 -I -B - "$REPO" <<'EOF' 2>&1
-import re, sys
-COL, SPAN = 7, 190                                         # (a column of Sumi UI; the slider)
-conf = open(sys.argv[1] + "/configs/home/.config/mako/config").read()
-top, osd = conf.split("[category=osd]")[0], conf.split("[category=osd]")[1].split("\n[")[0]
-get = lambda part, key: (re.findall(rf"^{key}=(.*)$", part, re.M) or [None])[-1]
-pad = [int(x) for x in (get(osd, "padding") or get(top, "padding")).split(",")]
-pad = pad * 2 if len(pad) == 1 else pad
-border = int(get(osd, "border-size") or get(top, "border-size")); width = int(get(osd, "width") or get(top, "width"))
-pen = border + pad[1]
-squares = pen + 2 * COL + COL + 12 * COL + 3             # (the glyph, a space, the name's 12 columns, 3 px of air)
-print(pen == 26, squares == 134, width, 2 * border + 2 * pad[0] + 24,
-      squares + SPAN + 2 + COL + 4 * COL <= width - border - pad[1])
-EOF
-)" "True True 412 60 True"
-eq "$(kawa-osd 明 "a very long label here" 50; osd | cut -d'|' -f2)" "明  a very long label here" "the title is whole…"
-has "$(body)" "<span color='#$C_TEXT'>a very long $ICON_GAP" "… the row's name cut to its 12 columns: the slider never moves"
+long=$(printf 'x%.0s' {1..100})
+for i in {1..30}; do kawa-osd "$long$i" volume "$i" & done; wait
+eq "$(osd_raw | wc -l)" 30
+eq "$(osd_raw | grep -Ec '^level x{100}[0-9]+ [0-9]+$')" 30 "every line whole"
+eq "$(osd_raw | awk '{ n = substr($2, 101) } n != $3 { bad++ } END { print bad + 0 }')" 0 "each icon with its own level"
+eq "$(osd_raw | awk '{ print $3 }' | sort -n | tr '\n' ' ')" "$(seq 1 30 | tr '\n' ' ')" "all thirty levels, none twice"
 
-case_ "the theme's colours (light); no theme set up: no panel in made-up colours, a failure"
-setup; ln -sfn themes/light "$HOME/.config/fedokawaii/current"
-. "$HOME/.config/fedokawaii/themes/light/colors.sh"
-kawa-osd 明 brightness 50
-has "$(body)" "color='#$C_TEAL'"
-rm "$HOME/.config/fedokawaii/current"; n=$(wc -l <"$NOTIFY_STATE/log")
-kawa-osd 明 brightness 50 2>/dev/null && _no "exit 0 without a theme" || _ok
-eq "$(wc -l <"$NOTIFY_STATE/log")" "$n" "nothing shown"
+case_ "nobody reading (the panel killed, its fifo left behind): refused at once — not shown, so a failure (1), never a wait for a reader"
+box; . "$HOME/.config/fedokawaii/icons.sh"
+mkfifo "$XDG_RUNTIME_DIR/kawa-panel.in"
+rc 1 timeout 10 kawa-osd "$ICON_VOL_2" volume 50    # (a wait for a reader would end in 124)
+eq "$(find "$XDG_RUNTIME_DIR" -maxdepth 1 -name 'kawa-panel.in' -type p | wc -l)" 1 "the fifo left as it was"
 
-# ── one panel, updated in place ──────────────────────────────────────────────
-case_ "a held key (20 presses), and 20 at once: every one the same synchronous panel"
+case_ "a hung panel (its pipe full, nobody draining it): the line dropped (1) at once — never this process stuck, holding the volume key's lock"
+box; . "$HOME/.config/fedokawaii/icons.sh"
+mkfifo "$XDG_RUNTIME_DIR/kawa-panel.in"
+exec 7<>"$XDG_RUNTIME_DIR/kawa-panel.in"           # (a reader that never reads: the hung panel)
+python3 -c 'import os, sys
+fd = os.open(sys.argv[1], os.O_WRONLY | os.O_NONBLOCK)
+try:
+    while True: os.write(fd, b"x" * 4096)
+except BlockingIOError: pass' "$XDG_RUNTIME_DIR/kawa-panel.in"
+rc 1 timeout 10 kawa-osd "$ICON_VOL_2" volume 50
+rc 1 timeout 10 kawa-osd "$ICON_VOL_MUTE" volume 50 off
+exec 7<&-
+
+# ── no panel running ─────────────────────────────────────────────────────────
+case_ "no panel (no fifo): not shown, a failure (1) — silent, and nothing written anywhere (no file, no log, no notice)"
+nopanel
+before=$(tree)
+out=$(kawa-osd "$ICON_VOL_2" volume 50 2>&1); r=$?
+eq "$r" 1; eq "$out" "" "silent"
+out=$(kawa-osd "$ICON_VOL_MUTE" volume 40 off 2>&1); eq "$?" 1
+out=$(kawa-osd "$ICON_VOL_2" volume abc 2>&1);       eq "$?" 1 "a level that is no number is no reason to answer otherwise"
+eq "$(tree)" "$before" "the sandbox is as it was: not a file made, not a byte written"
+eq "$(osd_raw)" ""
+not_called '^notify-send '
+case_ "… something at the panel's path that is no fifo (a file, a folder, a link to nothing, a link to a file): 1 as well, and nothing written to it"
+nopanel
+f=$XDG_RUNTIME_DIR/kawa-panel.in
+: >"$f";                      rc 1 kawa-osd "$ICON_VOL_2" volume 50; eq "$(wc -c <"$f")" 0 "the file stays empty"
+rm "$f"; mkdir "$f";          rc 1 kawa-osd "$ICON_VOL_2" volume 50; eq "$(ls -A "$f")" "" "the folder stays empty"
+rmdir "$f"; ln -s "$TMP/nowhere" "$f"; rc 1 kawa-osd "$ICON_VOL_2" volume 50
+[[ ! -e $TMP/nowhere ]] && _ok || _no "a link to nothing was followed, and made"
+rm "$f"; : >"$TMP/plain"; ln -s "$TMP/plain" "$f"; rc 1 kawa-osd "$ICON_VOL_2" volume 50; eq "$(wc -c <"$TMP/plain")" 0 "the file behind the link stays empty"
+case_ "… the panel starts later: from then on the calls arrive, nothing kept for it from before"
+nopanel
+rc 1 kawa-osd "$ICON_VOL_2" volume 30
+osd_panel
+rc 0 kawa-osd "$ICON_VOL_2" volume 31
+eq "$(osd_raw)" "level $ICON_VOL_2 31"
+case_ "… and goes away again (its fifo taken away): back to 1, nothing more written"
+rm -f "$XDG_RUNTIME_DIR/kawa-panel.in"
+rc 1 kawa-osd "$ICON_VOL_2" volume 32
+eq "$(osd_raw)" "level $ICON_VOL_2 31"
+
+# ── misuse ───────────────────────────────────────────────────────────────────
+case_ "wrong number of arguments (none, one, two, five, six): misuse (2) with the usage line on stderr, nothing on stdout, nothing asked of the panel"
 setup
-for i in {1..20}; do kawa-osd "$ICON_VOL_2" volume $((i * 5)); done
-for i in {1..20}; do kawa-osd "$ICON_VOL_2" volume $((i * 5)) & done; wait
-eq "$(grep -c '^notify-send ' "$CALLS")" 40
-eq "$(grep '^notify-send ' "$CALLS" | grep -vc -- '-h string:x-canonical-private-synchronous:osd ')" 0 "each one takes the panel's place"
-
-case_ "mako not running: nothing shown, a failure (1)"
-setup
-NOTIFY_DOWN=1 kawa-osd 明 brightness 60; eq "$?" 1
-eq "$(osd)" "" "no notice"
-case_ "… and once it runs again, the panel comes back"
-kawa-osd 明 brightness 70
-eq "$(osd | cut -d'|' -f3)" "70%"
-
-# ── misuse, environment ──────────────────────────────────────────────────────
-case_ "--help: what it does, nothing shown; too few arguments: misuse"
-setup
-out=$(kawa-osd --help); r=$?
-eq "$r" 0; has "$out" "kawa-osd ICON LABEL PERCENT"; eq "$(osd)" ""
 rc 2 kawa-osd
-rc 2 kawa-osd 明 brightness
-eq "$(osd)" "" "nothing shown for misuse"
+rc 2 kawa-osd "$ICON_VOL_2"
+rc 2 kawa-osd "$ICON_VOL_2" volume
+rc 2 kawa-osd "$ICON_VOL_2" volume 50 off extra
+rc 2 kawa-osd "$ICON_VOL_2" volume 50 off off off
+has "$(kawa-osd 2>&1 >/dev/null)" "usage: kawa-osd ICON LABEL PERCENT [off]"
+eq "$(kawa-osd "$ICON_VOL_2" volume 50 off extra 2>/dev/null)" "" "nothing on stdout"
+eq "$(osd_raw)" ""
+case_ "an empty icon, or one with a space, tab, newline, return or form feed in it (an icon is one word; a newline would be a second request): 2"
+setup
+for ic in "" " " "a b" " a" "a " $'a\tb' $'a\nb' $'a\rb' $'a\vb' $'a\fb' $'x\ntoggle quick' $'x\nclose'; do
+  rc 2 kawa-osd "$ic" volume 50
+  rc 2 kawa-osd "$ic" volume 50 off
+done
+eq "$(osd_raw)" "" "nothing asked of the panel"
+case_ "a fourth word that is not 'off' (another word, other case, a space around it, a newline and a request after it): 2 — 'off' itself the only one"
+setup
+for w in on OFF Off 'off ' ' off' yes 1 -off off1 $'off\nclose'; do
+  rc 2 kawa-osd "$ICON_VOL_2" volume 50 "$w"
+done
+eq "$(osd_raw)" "" "nothing asked of the panel"
+rc 0 kawa-osd "$ICON_VOL_2" volume 50 off
+eq "$(osd)" "$ICON_VOL_2|50|off"
+case_ "misuse is judged before the panel is looked for: 2 with no panel too (a level that is no number is not misuse: 1)"
+nopanel
+rc 2 kawa-osd
+rc 2 kawa-osd "" volume 50
+rc 2 kawa-osd "$ICON_VOL_2" volume 50 on
+rc 1 kawa-osd "$ICON_VOL_2" volume 50
+rc 1 kawa-osd "$ICON_VOL_2" volume abc
+case_ "--help and -h: what it does (the level line it sends), on stdout, done (0) — no panel needed, nothing asked of one"
+setup
+out=$(kawa-osd --help 2>/dev/null); r=$?
+eq "$r" 0; has "$out" "kawa-osd ICON LABEL PERCENT [off]"; has "$out" "level"; lacks "$out" "set -u" "the comment only, not the script"
+eq "$(kawa-osd --help 2>&1 >/dev/null)" "" "nothing on stderr"
+eq "$(kawa-osd -h)" "$out" "-h the same"
+rc 0 kawa-osd --help "$ICON_VOL_2" volume 50
+eq "$(osd_raw)" "" "nothing asked of the panel"
+rm -f "$XDG_RUNTIME_DIR/kawa-panel.in"; rc 0 kawa-osd --help
 
-case_ "HOME with a space in it: the theme's colours still found"
-setup; mv "$HOME" "$TMP/my home"; export HOME="$TMP/my home"
-kawa-osd 明 brightness 50
-has "$(body)" "color='#$(. "$HOME/.config/fedokawaii/current/colors.sh"; echo "$C_TEAL")'"
-eq "$(osd | cut -d'|' -f3)" "50%"
-
-case_ "Turkish and Arabic locales: the same panel"
+# ── environment ──────────────────────────────────────────────────────────────
+case_ "a runtime folder with a space, brackets, a star and a dollar in its name: the request still arrives"
+setup
+export XDG_RUNTIME_DIR="$TMP/my run [1] * \$x"; mkdir -p "$XDG_RUNTIME_DIR"; chmod 700 "$XDG_RUNTIME_DIR"; osd_panel
+rc 0 kawa-osd "$ICON_VOL_2" volume 45
+eq "$(osd)" "$ICON_VOL_2|45|"
+case_ "it needs nothing of the desktop's set-up (it draws nothing): no home, no locale, no theme, no icons — only PATH and the runtime folder"
+setup
+rc 0 env -i PATH="$PATH" XDG_RUNTIME_DIR="$XDG_RUNTIME_DIR" kawa-osd "$ICON_VOL_2" volume 45 off
+eq "$(osd_raw)" "level $ICON_VOL_2 45 off"
+case_ "Turkish and Arabic locales: the same lines"
 setup
 for loc in tr_TR.UTF-8 ar_EG.UTF-8; do
   locale_ok "$loc" || { skip "no $loc here"; continue; }
-  LC_ALL=$loc kawa-osd 明 brightness 45 2>/dev/null
-  eq "$(osd | cut -d'|' -f3-)" "45%|84/192" "$loc"
-  has "$(body)" "<span color='#$C_TEXT'>brightness  </span>" "$loc: the name in its 12 columns"
+  LC_ALL=$loc kawa-osd "$ICON_VOL_2" volume 45;     eq "$(osd)" "$ICON_VOL_2|45|" "$loc"
+  LC_ALL=$loc kawa-osd "$ICON_VOL_MUTE" volume 007 off; eq "$(osd)" "$ICON_VOL_MUTE|7|off" "$loc: leading zeros"
+  LC_ALL=$loc kawa-osd "$ICON_VOL_2" volume 1500;   eq "$(osd)" "$ICON_VOL_2|999|" "$loc: above 999"
 done
+
+# ── no notice, ever ──────────────────────────────────────────────────────────
+case_ "whatever the request — good, muted, a nonsense level, misuse, --help, no panel — no notice (notify-send, makoctl) and no process of the desktop: bash alone"
+setup
+kawa-osd "$ICON_VOL_2" volume 50; kawa-osd "$ICON_VOL_MUTE" volume 50 off; kawa-osd "$ICON_VOL_2" volume abc
+kawa-osd 2>/dev/null; kawa-osd "" volume 50 2>/dev/null; kawa-osd --help >/dev/null
+rm -f "$XDG_RUNTIME_DIR/kawa-panel.in"; kawa-osd "$ICON_VOL_2" volume 50
+not_called '^notify-send'; not_called '^makoctl'; not_called '^kawa-panel'
+eq "$(<"$CALLS")" "" "no program of the desktop was called at all"
 
 done_

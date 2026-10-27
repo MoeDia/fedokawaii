@@ -13,7 +13,7 @@
 | `hotplug-test.sh` | a real monitor unplug/replug on the free GPU (root) with X11 windows (`xconf.c`) | `sudo bash tools/hotplug-test.sh [DWL]` (`CYCLES=N`) |
 | `dwl-patch.sh` | `src/dwl/dwl.patch` from the edited tree — before `fedokawaii apply` | `bash tools/dwl-patch.sh [TREE]` |
 | `selftest.sh` | the installed system checked from a copy | `fedokawaii selftest [--sandbox]` |
-| `regress/*.sh` | never again: one headless check per reported bug or measured surface (`menu-first-click`, `calendar-middle`, `one-popup`, `bar-geometry`), each passing on the fixed build and failing on the old one; `regress/shots.py` measures their shots | `bash tools/regress/NAME.sh [KIT OPTION…]` (`--bin bin --repo-art`: the repository's state) |
+| `regress/*.sh` | never again: one headless check per reported bug or measured surface (`menu-first-click`, `calendar-middle`, `one-popup`, `bar-geometry`, `window-frame`, `level-display`), each passing on the fixed build and failing on the old one; `regress/shots.py` measures their shots | `bash tools/regress/NAME.sh [KIT OPTION…]` (`--bin bin --repo-art`: the repository's state) |
 | `start.sh` / `claude-loop.sh` | round 27's autonomous loop (a user service) | `bash tools/start.sh [stop\|status]` |
 | `build-*.py` | fonts, icons, themes, cursors, art from the repo's sources | each prints `--help` |
 

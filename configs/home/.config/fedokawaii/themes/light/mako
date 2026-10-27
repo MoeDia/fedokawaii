@@ -31,10 +31,3 @@ format=<span foreground="#121b1b" line_height="20480">%s <span foreground="#5864
 # unlock: a wrong passphrase): titled like the drives' own notices (kawa-drives)
 [app-name=udiskie]
 format=<span foreground="#121b1b" line_height="20480">󾁄 not opened</span>\n<span line_height="20480">%b</span>
-
-# the level display (kawa-osd): one meter row, which brings its own colours and its row — its
-# frame as it was until it becomes a surface of the panel's (plan T15): no shadow (its window
-# has no margin to hold one)
-[category=osd]
-format=%b
-shadow-color=#00000000 #00000000

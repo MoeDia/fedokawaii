@@ -488,7 +488,7 @@ Keep the help sheet (**Super+/**) a key away; write down the three keys you look
 | the download mark | something is downloading: its arrow dropping into the tray, the percent of all of it | the downloads centre (chapter 7) |
 | the keyboard | `US` (red) or `AR` (blue), the layout you type in | the other layout |
 | memory | how much the programs use (`5.2G`); vermilion past 85 % | btop |
-| volume · brightness | speaker and bulb, with the level | the sound panel · the brightness slider |
+| volume · brightness | speaker and bulb, with the level | the sound panel · the brightness meter |
 | weather | the sky and the temperature where you are | |
 | the cat | quick settings | quick settings |
 

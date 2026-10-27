@@ -687,6 +687,40 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   themes; skipped where it is not built), test_osd, test_report_rows (PKG-19: evidence),
   test_notices, test_conf, test_theme, test_generated, test_deps green; the installer tests'
   fake machine has a built mako.
+- r27-15c (T15, the level display — committed with this line) No longer a mako notice: a window of
+  kawa-panel's own (its fifo: "level ICON PCT [off]"; kawa-osd is now a 25-line client writing
+  one line, no process on the panel's side, exit 1 with no panel), low in the middle (its frame's
+  foot 72 px above the screen's), the overlay layer (over a fullscreen window; and not a notice,
+  so do-not-disturb and sharing never hide it), its own namespace "kawa-level" (dwl's one-menu
+  rule only knows "kawa-panel": a key pressed while quick settings is open leaves it open),
+  keyboard NONE, an empty input region (a click goes through it). §9: one row on the grid — the
+  icon in its 16 px column (accent_text; brightness's bulb of its fifth, no more 明), the panel's
+  own segments() from cell 3 (to the pixel: the ramp, hollow while off), the value right-aligned
+  at 28 cells (muted, "off" faint), 258 × 54 with the frame and shadow, solid surface
+  (panel.conf gains it). Drawn anew as each key comes, gone 1.2 s after the last (a GLib
+  timeout reset per key); kawa-level.shown while it shows (the report's UI-06 times that now,
+  not makoctl). Shots (kit play, both themes): 45 / 92 (16 asagi, 2 flame, the 19th part-lit) /
+  60 off (hollow) / the bulb at 70; gone 1.6 s later. mako's osd sections removed (and kawa-osd
+  from build-themes' COPIES: no colour in it now). Hardened after a review (a subagent's, checked
+  here): the line is written by dd with O_NONBLOCK and nocreat — a stale fifo with no panel
+  reading it is refused at once (1, not a silent 0), a hung panel's full pipe drops the line (1)
+  instead of leaving the volume/brightness key stuck holding its lock, and a fifo gone between
+  the check and the open never becomes a plain file; one whole line, one write (fullblock, under
+  PIPE_BUF). tools/regress/level-display.sh (new): 258 × 54, centred, foot 72, 47 % = nine
+  segments and the tenth's 4 rows, gone in time — held, both themes. Tests: test_osd 277/0
+  (stale fifo, full pipe new), test_volume 112/0, test_brightness 151/0. Found on the way: two
+  session tests left a process holding run.sh's pipe (test_clicks' dwl-fifo reader, forever —
+  the area run hung 23 min; test_push's sleep 300): both now go with the test (H_CLEANUP).
+- r27-15d (T15, tooltips) The bar's tooltips in the frame: kami-tip.png (build-themes: the hairline,
+  its corners left out, the shadow; sliced 2 2 3 2 so the right edge it stretches is even) on
+  solid surface, one row with 8 px of pad. GTK 3's tooltip window keeps a border of its own
+  round its box (not CSS: no rule removes it — measured 5 px at three sides, 4 at the foot), so
+  the label is padded by what is left: measured both themes — frame 38 rows (1 + 8 + 20 + 8 +
+  1), 8 px of paper to the words either side, the capitals 14 rows from each hairline. Found on
+  the way: one property GTK 3 does not know (border-spacing) made waybar drop the whole sheet —
+  the bar vanished; test_syntax now parses style.css with GTK itself in both themes (caught it:
+  2 failures with it, none without). Super+/ looked at: the text-screen grammar already, in the
+  new window frame; its content and context are T23's.
 - r27-33 (T29, findings 04:00 — not fixed yet) Prowlarr: on demand by design (kawa-prowlarr: up while
   torrra searches, asleep 30 min after) — "inactive" is normal. /api/v1/health: 0 now. Its own log
   (~/.config/prowlarr/logs) over 8 days: Warn AllowedHostsCheck "Allowed Hosts is not configured"

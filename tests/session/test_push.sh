@@ -12,7 +12,7 @@ R=$XDG_RUNTIME_DIR; mkdir -p "$R"
 : >"$R/kawa-brightness.asked"                      # (no monitor asked in the background)
 echo 50 >"$R/kawa-brightness.level"
 out=$TMP/bri; mkfifo "$out"
-kawa-brightness --bar >"$out" & mod=$!; BG_PIDS+=("$mod")
+kawa-brightness --bar >"$out" & mod=$!; H_CLEANUP+=("kill $mod 2>/dev/null")
 exec 7<"$out"
 IFS= read -r -t 5 -u 7 l
 case_ "the brightness module: the level known, then every pushed one"
@@ -26,7 +26,7 @@ for v in 41 42 43 44 45 46 47 48 49 77; do bar_push brightness "$v"; done
 last=""; while IFS= read -r -t 0.3 -u 7 l; do last=$l; done
 has "$last" '77<span'
 case_ "lit while its slider is open: a wake redraws it with the light, no tooltip"
-/bin/sleep 300 & p=$!; BG_PIDS+=("$p"); echo "$p" >"$R/kawa-panel-brightness.open"
+/bin/sleep 300 </dev/null >/dev/null 2>&1 & p=$!; H_CLEANUP+=("kill $p 2>/dev/null"); echo "$p" >"$R/kawa-panel-brightness.open"
 "$REPO/bin/kawa-dwlstatus" --wake; IFS= read -r -t 2 -u 7 l
 has "$l" '"class":"active"'; has "$l" '"tooltip":""'
 rm -f "$R/kawa-panel-brightness.open"; "$REPO/bin/kawa-dwlstatus" --wake; IFS= read -r -t 2 -u 7 l; lacks "$l" active

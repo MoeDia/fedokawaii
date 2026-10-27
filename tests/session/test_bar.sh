@@ -335,12 +335,13 @@ case_ "the style (紙 kami): no bar of its own — tiles of washi; every colour 
 S_=$REPO/configs/home/.config/waybar/style.css
 grep -q '^window#waybar { background: transparent;' "$S_" && _ok || _no "the bar has a ground of its own"
 toks=" $(sed -n 's/^@define-color \([a-z-]*\) .*/\1/p' "$REPO/configs/home/.config/fedokawaii/themes/dark/waybar.css" | tr '\n' ' ')"
-eq "$toks" " faint muted text strong accent-text strong-on-accent asagi blue tile kami-red kami-red-lit seal-ink " "waybar.css: these and no more"
+eq "$toks" " surface faint muted text strong accent-text strong-on-accent asagi blue tile kami-red kami-red-lit seal-ink " "waybar.css: these and no more"
 eq " $(sed -n 's/^@define-color \([a-z-]*\) .*/\1/p' "$REPO/configs/home/.config/fedokawaii/themes/light/waybar.css" | tr '\n' ' ')" "$toks" "light: the same names"
 bad=""; for u in $(grep -o '@[a-z-]*' "$S_" | grep -v '^@import' | sort -u); do [[ $toks == *" ${u#@} "* ]] || bad+=" $u"; done
 eq "${bad:-none}" none "style.css names a colour waybar.css does not define"
 bad=$(grep -nE 'background(-color)?: *@' "$S_" | grep -vE '@(tile|kami-red|kami-red-lit);')
-eq "$bad" "" "a ground other than the paper's or the corners' vermilion (lit: the brighter one)"
+eq "$bad" "$(grep -nE '^  background-color: @surface;' "$S_")" "a ground other than the paper's or the corners' vermilion (lit: the brighter one) — but the tooltip's"
+eq "$(grep -B1 -E '^  background-color: @surface;' "$S_" | head -n 1)" "tooltip {" "the surface (what floats) only under the tooltip: the bar's own tiles stay washi"
 grep -q 'box-shadow: *inset' "$S_" && _no "a ring is back" || _ok
 lacks "$(cat "$REPO/configs/home/.config/foot/foot.ini")" $'\n24=' "foot's palette has no tile colour of the bar's (24) any more"
 st() { grep -E "^\.tag\.$1 *\{" -A4 "$S_" | tr -d '\n'; }

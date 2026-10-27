@@ -109,6 +109,20 @@ if [[ -n $m ]]; then
   has "$out" "Failed to parse" "mako did not notice a bad key: $out"
 else skipped "the desktop's mako is not built here (setup.sh: build_mako)"; fi
 
+case_ "GTK 3 reads the bar's style (waybar's style.css with each theme's colours) without one error — waybar drops the whole sheet over a single bad property, and the bar with it"
+for t in dark light; do
+  out=$({ cat "$REPO/configs/home/.config/fedokawaii/themes/$t/waybar.css"; grep -v '^@import' "$REPO/configs/home/.config/waybar/style.css"; } \
+        | python3 -I -c 'import sys, gi
+gi.require_version("Gtk", "3.0")
+from gi.repository import Gtk
+p = Gtk.CssProvider(); bad = []
+p.connect("parsing-error", lambda prov, sec, e: bad.append(f"line {sec.get_start_line() + 1}: {e.message}"))
+try: p.load_from_data(sys.stdin.buffer.read())
+except Exception: pass
+print("; ".join(bad))' 2>&1)
+  eq "$out" "" "$t: GTK's word on style.css"
+done
+
 case_ "foot reads its config with both themes (foot --check-config), the see-through ground on and off"
 if f=$(real foot); then
   # (its last include: the file theme.sh makes once and kawa-glass rewrites)

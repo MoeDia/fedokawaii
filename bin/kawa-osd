@@ -1,86 +1,29 @@
 #!/usr/bin/env bash
 # kawa-osd ICON LABEL PERCENT [off] — the level display of the volume, microphone and
-# brightness keys: one small panel at the bottom centre (mako, category "osd") that
-# updates in place while a key is held, also over fullscreen windows and while "do not
-# disturb" is on.
-#
-#   ┌──────────────────────────────────────────┐   quick settings' meter row, to the pixel
-#   │ 明 brightness  ━━━━━━━━━┃─┬────   70%    │   (docs/design-system.md): the glyph in
-#   └──────────────────────────────────────────┘   accent_text, the name in text, the slider
-#                                                  — a 190 px rule: the fill (asagi, 6 px)
-#   to the level, the knob (an ink rod, 4 × 14, strong) on its end, the track (faint, 2 px)
-#   with a tick at each quarter still showing; muted, the fill hollow and the knob muted —
-#   and the number, right-aligned in muted ("off" in faint while muted). The slider is
-#   kawa-panel's own (fill_of, knob_of): the same pixels, spelled with the icon font's
-#   slider parts (lv-*: each one colour, widths 1, 2, 4 … 128 px adding up to any length).
-# Exit status: 0 shown · 1 not shown (no notice daemon) · 2 misuse.
+# brightness keys (docs/design-system.md §9): the running panel shows it — kawa-panel, asked
+# through its fifo ("level ICON PCT [off]"), no process started there — in a window of its own,
+# low in the middle of the screen: ICON, the meter's twenty segments (quick settings' own, to
+# the pixel: reddening near the top, hollow while off), the value; drawn anew as each key
+# comes, gone 1.2 s after the last. Over a fullscreen window and while "do not disturb" is on
+# too: it is not a notice. LABEL says what the level is of (the icon shows it: not drawn).
+# Exit status: 0 asked · 1 not shown (no panel running) · 2 misuse.
 set -u
 case ${1:-} in
   -h|--help) sed -n '2,/^set -u/{/^set -u/d;s/^# \{0,1\}//;p}' "$0"; exit 0 ;;
 esac
-(($# >= 3)) || { echo "usage: kawa-osd ICON LABEL PERCENT [off] (kawa-osd --help)" >&2; exit 2; }
-# shellcheck source=/dev/null
-. "$HOME/.config/fedokawaii/icons.sh"
-# shellcheck source=/dev/null
-. "$HOME/.config/fedokawaii/current/colors.sh"
-
-icon=${1:-} label=${2:-} pct=${3:-0} off=${4:-}
+usage() { echo "usage: kawa-osd ICON LABEL PERCENT [off] (kawa-osd --help)" >&2; exit 2; }
+(($# >= 3 && $# <= 4)) || usage
+icon=$1 pct=$3 off=${4:-}
+[[ -n $icon && $icon != *[[:space:]]* ]] || usage
+[[ -z $off || $off == off ]] || usage
 [[ $pct =~ ^[0-9]{1,4}$ ]] || pct=0
-pct=$((10#$pct)); ((pct > 999)) && pct=999     # (three digits wide)
-SPAN=190 KNOB=4                               # (kawa-panel: SPAN, KNOB)
-fill=0                                         # its fill_of: the nearest pixel, all above 100 %
-((pct > 0)) && fill=$(( (pct * SPAN * 2 + 100) / 200 ))
-((fill > SPAN)) && fill=$SPAN
-knob=$((fill - KNOB / 2)); ((knob < 0)) && knob=0; ((knob > SPAN - KNOB)) && knob=$((SPAN - KNOB))
-
-# run VAR KIND N — N pixels of a part (FILL, HOLLOW, TRACK) added to VAR as its glyphs: one
-# per bit of N (no subshell: a held key draws dozens of these a second)
-run() {
-  local -n out_=$1
-  local kind=$2 n=$3 b=128 v
-  while ((b > 0)); do
-    if ((n >= b)); then v=ICON_LV_${kind}_$b; out_+=${!v}; n=$((n - b)); fi
-    b=$((b / 2))
-  done
-}
-# Across, as the panel's row (mako's padding puts the first pen at x 26, the row's x + 8):
-# the glyph — a kanji or an icon, two columns of Sumi UI (14 px) —, a space (7 px), the
-# name in 12 columns (84 px) and 3 px of air, so the slider (190 px) starts where the
-# panel's does, 2 px of air, a space, the number in 4 columns: 335 px, within mako's 360 px
-# line (the panel 412 px wide, quick settings' own) — until T15 lays it on the 8 × 20 cell
-printf -v name '%-12.12s' "$label"
-name+=$ICON_GAP$ICON_GAP1
-end=$((knob - 1))                              # the fill, up to the knob's pixel of air
-lead=""
-if ((end > 0)); then
-  if [[ -n $off ]]; then                       # (hollow: closed by a tick at either end)
-    lead=$ICON_LV_TICK
-    if ((end >= 2)); then run lead HOLLOW $((end - 2)); lead+=$ICON_LV_TICK; fi
-  else run lead FILL "$end"; fi
-fi
-((knob > 0)) && lead+=$ICON_GAP1               # (the knob's air on its left)
-t0=$((knob + KNOB + 1)) track="" x=0
-if ((t0 <= SPAN)); then
-  track=$ICON_GAP1                             # (its air on the right), then the track, a tick at each quarter
-  x=$t0
-  for tx in $(( (SPAN * 2 + 4) / 8 )) $(( (SPAN * 4 + 4) / 8 )) $(( (SPAN * 6 + 4) / 8 )); do
-    ((tx < x)) && continue
-    run track TRACK $((tx - x)); track+=$ICON_LV_TICK; x=$((tx + 1))
-  done
-  run track TRACK $((SPAN - x))
-fi
-knob_ink=$C_STRONG; [[ -n $off ]] && knob_ink=$C_MUTED
-if [[ -n $off ]]; then value="<span color='#$C_FAINT'> off</span>"
-else printf -v value "<span color='#%s'>%3d%%</span>" "$C_MUTED" "$pct"; fi
-# one row of 24 px (line_height in Pango units: px × 1024), its words on the 14 px line in
-# the middle
-body="<span line_height='24576'><span color='#$C_ACCENT_TEXT'>$icon</span> <span color='#$C_TEXT'>$name</span>"
-body+="<span font='Sumi Icons 14px'><span color='#$C_TEAL'>$lead</span><span color='#$knob_ink'>$ICON_LV_KNOB</span>"
-body+="<span color='#$C_FAINT'>$track</span>$ICON_GAP</span> $value</span>"
-
-# its own app name, so mako never groups it with other notices; and one panel, whatever comes:
-# mako's synchronous tag (x-canonical-private-synchronous) makes each one take the place of
-# the panel already on screen with the same tag and app — the volume's, the microphone's and
-# the brightness's alike, a held key's overlapping runs too — in place, with no id to keep
-exec notify-send -a osd -c osd -u low -h int:transient:1 -h string:x-canonical-private-synchronous:osd \
-  "$icon  $label" "$body" 2>/dev/null
+pct=$((10#$pct)); ((pct > 999)) && pct=999     # (the mixer goes past 100: the real number, three digits at most)
+fifo=${XDG_RUNTIME_DIR:-/run/user/$UID}/kawa-panel.in
+[[ -p $fifo ]] || exit 1
+# one line, one write (under PIPE_BUF: whole, never mixed with another key's), and never a wait:
+# opened for writing without blocking — no panel reading it (a stale fifo): refused at once;
+# a hung panel's pipe full: the line dropped, not this process stuck holding the key's lock —
+# and never made a plain file should the fifo go meanwhile (nocreat)
+printf 'level %s %d%s\n' "$icon" "$pct" "${off:+ off}" \
+  | dd of="$fifo" iflag=fullblock oflag=nonblock conv=nocreat status=none 2>/dev/null || exit 1
+exit 0

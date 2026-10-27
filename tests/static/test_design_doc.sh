@@ -7,7 +7,7 @@
 . "$(dirname "$0")/../lib/harness.sh"
 sandbox
 DOC=$REPO/docs/design-system.md
-BUILT=(palette ui-face term-face menus bar)
+BUILT=(palette ui-face term-face menus bar windows notices)
 
 case_ "whole: no open question left in it"
 grep -nE '\b(TBD|TODO|FIXME|XXX)\b|\?\?' "$DOC" >"$TMP/open" && _no "$(head -3 "$TMP/open")" || _ok
@@ -147,6 +147,32 @@ the tiles of a group, 12 px between groups" "the doc's gaps"
   has "$css" "#custom-torii { margin-left: 8px;" "the torii's hairline on x 8"
   has "$css" "#custom-menu  { margin-left: 11px; margin-right: 7px; }" "the cat's on x 1911 (its shadow's column and 7 to the edge)"
   lacks "$css" "kami-seal-narrow" "one seal for every numeral (10 × 10, §4)"
+}
+built_windows() {   # §4, §12: the windows' frame — the doc's numbers in dwl's config and colours
+  local doc ch
+  doc=$(cat "$DOC"); ch=$(cat "$REPO/src/dwl/config.h")
+  has "$doc" "8 px between hairlines — window and window, window and the screen's edge, the bar's" "the doc's gaps"
+  has "$ch" "borderpx         = 1;" "a 1 px hairline (§4)"
+  has "$ch" "gappx            = 8;" "8 px between windows"
+  has "$ch" "outergappx       = 8;" "8 px to the screen's edges and the bar's hairline"
+  for t in dark light; do
+    eq "$(grep -cE '^(focus|border|urgent|shadow1|shadow2) [0-9a-f]{8}$' "$REPO/configs/home/.config/fedokawaii/themes/$t/dwl.colors")" 5 "$t: the three hairlines and the shadow's two inks, RRGGBBAA"
+  done
+  has "$(cat "$REPO/src/dwl/dwl.patch")" "the shadow's parts, 4–6, lie outside the window" "the shadow outside the window, in the gap"
+}
+built_notices() {   # §4, §9: notices — the doc's numbers in mako's config, the frame in the desktop's mako
+  local doc cfg
+  doc=$(cat "$DOC"); cfg=$(cat "$REPO/configs/home/.config/mako/config")
+  has "$doc" "a panel 47 cells wide (410 px)" "the doc's width"
+  has "$cfg" $'\nwidth=410\n' "410 wide"; has "$cfg" $'\nborder-size=1\n' "a 1 px hairline"
+  has "$cfg" $'\npadding=16\n' "16 px of pad"; has "$cfg" $'\nmargin=8\n' "8 px to the next and the edges"
+  has "$cfg" $'\nhanging-indent=21\n' "the body under the title's words (the icon's 14 px, 7 of air)"
+  eq "$(( $(sed -n 's/^height=//p' <<<"$cfg") - 2 - 32 ))" 140 "whole rows: seven of 20"
+  for t in dark light; do
+    has "$(cat "$REPO/configs/home/.config/fedokawaii/themes/$t/mako")" "shadow-color=#" "$t: the frame's shadow"
+    has "$(cat "$REPO/configs/home/.config/fedokawaii/themes/$t/mako")" "summary-icon-color=#" "$t: the title's icon in its own ink"
+  done
+  has "$(cat "$REPO/src/mako/mako.patch")" "shadow-color" "the desktop's mako draws them (src/mako/mako.patch)"
 }
 for s in "${BUILT[@]}"; do
   case_ "§14 $s: rebuilt to the doc — its numbers in its files"
