@@ -88,7 +88,7 @@ game_world() {
   stub tuned-adm 'case $1 in active) echo "Current active profile: $(cat "$TMP/profile")" ;; profile) echo "$2" >"$TMP/profile" ;; esac'
   # systemctl: the timers' states from $TMP/sub.UNIT (waiting, elapsed); the report active or frozen
   stub systemctl 'case "$*" in
-  *"show -p SubState --value "*)    cat "$TMP/sub.${*##* }" 2>/dev/null ;;
+  *"show -p SubState --value "*)    for u; do :; done; cat "$TMP/sub.$u" 2>/dev/null ;;   # (the unit: the last word — ${*##* } strips each word on its own)
   *"show -p FreezerState --value "*) cat "$TMP/freezer" 2>/dev/null || echo running ;;
   *"is-active --quiet fedokawaii-report.service"*) [ -e "$TMP/report" ] || exit 1 ;;
 esac'

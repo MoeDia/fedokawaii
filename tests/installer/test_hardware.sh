@@ -91,12 +91,14 @@ fkh fwfiles "iwlwifi-mvm-firmware /usr/lib/firmware/iwlwifi-so-a0-gf-a0-89.ucode
             "realtek-firmware /usr/lib/firmware/rtw89/rtw8852b_fw-1.bin.xz" \
             "mt7xxx-firmware /usr/lib/firmware/mediatek/WIFI_RAM_CODE_MT7961_1.bin.xz" \
             "intel-bt-firmware /usr/lib/firmware/intel/ibt-0040-0041.sfi.xz"
-hw hw_firmware_pkgs
+# (the fake machine's own firmware folder, empty yet — never this PC's /usr/lib/firmware, where
+# linux-firmware may well have put two of these files)
+fkrun env HW_FW=/root/fw bash -c '. "$1"; hw_firmware_pkgs' _ "$LIBHW"
 eq "$OUT" "$(printf '%s\n' intel-bt-firmware iwlwifi-mvm-firmware mt7xxx-firmware realtek-firmware)"
 mkdir -p "$W/root/fw/rtw89"; : >"$W/root/fw/rtw89/rtw8852b_fw-1.bin.xz"
 fkrun env HW_FW=/root/fw bash -c '. "$1"; hw_firmware_pkgs' _ "$LIBHW"
 lacks "$OUT" realtek-firmware "installed since this boot"; has "$OUT" iwlwifi-mvm-firmware
-reset_calls; hw hw_firmware_pkgs -C; called 'dnf\] -q -C repoquery'
+reset_calls; fkrun env HW_FW=/root/fw bash -c '. "$1"; hw_firmware_pkgs -C' _ "$LIBHW"; called 'dnf\] -q -C repoquery'
 case_ "hw_firmware_pkgs offline: nothing (and no error)"
 fkh net off; hw hw_firmware_pkgs; eq "$RC" 0
 rm -f "$FKH/net"

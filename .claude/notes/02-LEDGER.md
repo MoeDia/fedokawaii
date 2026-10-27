@@ -993,3 +993,9 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   build-themes.py's output; PROJECT_TOP lacks a top-level entry), static/test_syntax (1: setup.sh
   :75 SC1010 — shellcheck's newer parse; FIXED 03:57: "done" quoted), installer/test_hardware (1:
   hw_firmware_pkgs expects intel-bt-firmware — the machine's firmware files). → T53.
+  UPDATE 27 Oct 18:45: test_autostart 84/0, test_glass 27/0, test_generated pass now (earlier
+  passes); test_hardware 103/0 — the first hw_firmware_pkgs call read this PC's /usr/lib/firmware
+  (linux-firmware has rtw89/rtw8852b_fw-1 and mediatek/WIFI_RAM_CODE_MT7961_1 here), now the fake
+  machine's own empty folder; test_game 73/0 — its systemctl stand-in looked the unit up with
+  ${*##* }, which strips each word on its own (POSIX), so no timer ever read "waiting": the
+  stand-in's fault, not kawa-game's; it takes the last word now. None of the listed ones fails.
