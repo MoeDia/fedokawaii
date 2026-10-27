@@ -859,6 +859,27 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   The browser's checks go with T31a (Brave is being replaced). LibreOffice (GTK, Wayland) behaves
   as any GTK program; found on the way: a clean profile opens with its "Welcome / first time"
   dialog and its splash over the CSV import — the installer should pre-seed its profile (T54).
+- r27-18 (T18, the old masters' world — in progress; each part committed with its line)
+  (a) tools/build-masters.py: a public-domain print or painting → the desktop's own pixel art,
+  640 × 360 (shown 3 × 3 at 1080p): reduced in linear light (Lanczos), a 5 × 5 bilateral
+  smoothing twice (the paper's grain and mottled colour become a woodblock's flat areas, lines
+  kept), its tones over the mood's ramp (kept, or "lacquer": the paper black lacquer, the lines
+  light — maki-e), then each pixel a step of the ramp by its lightness, two neighbouring steps
+  mixed by a 4 × 4 Bayer threshold, and an accent (vermilion, flame, asagi…) only where the part
+  is strongly coloured and of a matching hue. Grilled on a pack print in three passes: nearest
+  colour everywhere made noise and teal skies; hue-blind lightness made a sky vermilion; the
+  ramp + matching accents gave a print by candlelight (dark) and on kinari paper (light).
+  (b) the pack takes the desktop's own pictures from the toolkit ("toolkit:PATH", copied and
+  checked by SHA-256 as a download is), and a picture smaller than the screen — pixel art — is
+  enlarged by the smallest whole number that covers it, each pixel a square (3 × 3 at 1080p),
+  never smoothed (test: a checkerboard read back pixel by pixel). (c) the bar's far right: the
+  cat gives way to the mood's face — an oni (horns, scowl, tusks; it roars while quick settings
+  is open) by night, a tennin (serene, a nimbus behind it; eyes open and smiling when open) by
+  day — drawn in the cat's weight and its 15 px of ink (the tile's 8 px of air: bar-geometry
+  held both moods, the gaps test reads both faces and "us"/"US"); a mood switch pokes the tile.
+  Sources: a subagent hunts public-domain demons and angels in museums' open-access collections
+  (art/masters/SOURCES.md, fetched to ~/.cache/r27-art). Next: the 10 + 10 wallpapers
+  (masters.toml: crops, tones), the lock's scenes, the fetch art.
 - r27-33 (T29, findings 04:00 — not fixed yet) Prowlarr: on demand by design (kawa-prowlarr: up while
   torrra searches, asleep 30 min after) — "inactive" is normal. /api/v1/health: 0 now. Its own log
   (~/.config/prowlarr/logs) over 8 days: Warn AllowedHostsCheck "Allowed Hosts is not configured"
