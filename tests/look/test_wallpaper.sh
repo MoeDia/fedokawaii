@@ -84,6 +84,34 @@ key_of() {   # key_of NAME [THEME] — a pack picture's key: its name, its SHA-2
 cover_of() { printf '%s' "$SCREENS/${2:-1920x1080}/$(key_of "$1").png"; }   # cover_of NAME [WxH]
 list_add() { printf 'dark  %s  -  %s  %s  https://x/%s.jpg  Test\n' "$1" "${3:-center}" "${2:-0}" "$1" >>"$SHARE/wallpapers.list"; }
 
+# ── the desktop's own pictures (art/masters: the old masters as pixel art) ──────────────
+case_ "the desktop's own pictures: in the toolkit (toolkit:PATH), copied and checked by their SHA-256 as a download is; a picture 640 × 360 enlarged by whole pixels — 3 × 3 at 1080p, each one square, never smoothed"
+setup
+export KAWA_TOOLKIT=$TMP/tk; mkdir -p "$KAWA_TOOLKIT/art/masters/out"
+# (a checkerboard of pixel art: every 3 × 3 block on the screen one source pixel, nothing between)
+python3 -I -c 'import sys; from PIL import Image
+im = Image.new("P", (640, 360)); im.putpalette([0x18, 0x17, 0x15, 0xeb, 0x53, 0x24] + [0] * 762)
+im.putdata([(x + y) % 2 for y in range(360) for x in range(640)]); im.save(sys.argv[1])' "$KAWA_TOOLKIT/art/masters/out/own-demon.png"
+sum=$(sha256sum "$KAWA_TOOLKIT/art/masters/out/own-demon.png" | cut -d' ' -f1)
+printf 'dark  own-demon  -  center  %s  toolkit:art/masters/out/own-demon.png  ours (CC0 source)\n' "$sum" >>"$SHARE/wallpapers.list"
+kawa-wallpaper --pack >/dev/null 2>&1
+cmp -s "$PACK/dark/own-demon.src" "$KAWA_TOOLKIT/art/masters/out/own-demon.png" && _ok || _no "not fetched from the toolkit"
+printf 'x' >>"$KAWA_TOOLKIT/art/masters/out/own-demon.png"; rm -f "$PACK/dark/own-demon.src"
+kawa-wallpaper --pack >/dev/null 2>&1; [[ ! -e $PACK/dark/own-demon.src ]] && _ok || _no "a toolkit file that is not the listed one was taken"
+python3 -I -c 'import sys; from PIL import Image
+im = Image.new("P", (640, 360)); im.putpalette([0x18, 0x17, 0x15, 0xeb, 0x53, 0x24] + [0] * 762)
+im.putdata([(x + y) % 2 for y in range(360) for x in range(640)]); im.save(sys.argv[1], "PNG")' "$PACK/dark/own-demon.src"
+echo pack:own-demon >"$STATE/wallpaper-dark"
+rc 0 kawa-wallpaper --restore
+eq "$(size_of "$(shown)")" 1920x1080
+eq "$(python3 -I -c 'import sys; from PIL import Image
+im = Image.open(sys.argv[1]).convert("RGB"); bad = 0
+for by in range(0, 1080, 37):
+    for bx in range(0, 1920, 41):
+        sx, sy = bx // 3, by // 3; want = (0xeb, 0x53, 0x24) if (sx + sy) % 2 else (0x18, 0x17, 0x15)
+        bad += im.getpixel((bx, by)) != want
+print(bad)' "$(shown)")" 0 "every screen pixel the colour of its source pixel, 3 × 3 (no smoothing, no shift)"
+
 # ── --restore: the theme's choice, every monitor at its size ───────────────────
 setup
 case_ "before the pack is here: the theme's plain ground, nothing else"

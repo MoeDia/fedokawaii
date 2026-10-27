@@ -65,6 +65,7 @@ if [[ ${1:-menu} == menu ]]; then
   kawa-term --float --once wallpaper wallpaper "${WIN_COLS}x37" -- "$0" --tui "$pick" || exit 0
 fi
 WALLPAPER_DIR=$HOME/Pictures/Wallpapers
+TK=${KAWA_TOOLKIT:-/usr/local/lib/fedokawaii}    # (the desktop's own pictures come with it; the tests point it elsewhere)
 # shellcheck source=/dev/null
 . "$HOME/.config/fedokawaii/env"
 # shellcheck source=/dev/null
@@ -175,12 +176,21 @@ source_of() {   # source_of pack:NAME|FILE → SRC, the picture file, GRAV, its 
 
 cover() {   # cover WxH → SRC reduced to cover WxH and cropped to it (drawn once)
   # Lanczos, in linear light (the colours mix as light does: no darkened edges). A picture
-  # replaced under the same name since (newer than its drawing) is drawn again
-  local w=${1%x*} h=${1#*x} out=$SCREENS/$1/$KEY.png
+  # smaller than the screen is pixel art — the desktop's own, 640 × 360 (art/masters) —:
+  # enlarged by the smallest whole number that covers it, each pixel a square of the screen's
+  # (3 × 3 at 1080p), never smoothed. A picture replaced under the same name since (newer than
+  # its drawing) is drawn again
+  local w=${1%x*} h=${1#*x} out=$SCREENS/$1/$KEY.png sw=0 sh=0 k fit
   if [[ ! -s $out || $SRC -nt $out ]]; then
     mkdir -p "${out%/*}"
-    magick "${SRC}[0]" -auto-orient -colorspace RGB -filter Lanczos -resize "${w}x${h}^" \
-      -colorspace sRGB -gravity "$GRAV" -extent "${w}x${h}" -strip "PNG24:$out.$BASHPID.tmp" 2>/dev/null \
+    read -r sw sh < <(magick "${SRC}[0]" -format '%w %h\n' info: 2>/dev/null)
+    if ((sw > 0 && sh > 0 && sw < w && sh < h)); then
+      k=$(( (w + sw - 1) / sw )); (( (h + sh - 1) / sh > k )) && k=$(( (h + sh - 1) / sh ))
+      fit=(-filter point -resize "$((sw * k))x$((sh * k))!")
+    else
+      fit=(-colorspace RGB -filter Lanczos -resize "${w}x${h}^" -colorspace sRGB)
+    fi
+    magick "${SRC}[0]" -auto-orient "${fit[@]}" -gravity "$GRAV" -extent "${w}x${h}" -strip "PNG24:$out.$BASHPID.tmp" 2>/dev/null \
       && mv -f "$out.$BASHPID.tmp" "$out" || { rm -f "$out.$BASHPID.tmp"; return 1; }
   fi
   printf '%s' "$out"
@@ -336,7 +346,10 @@ pack() {   # download and check every pack picture not here yet; it is kept as i
     # curl retries each one, so offline the whole list would take minutes
     if ((offline >= 3)); then fail=$((fail + 1)) untried=$((untried + 1)); continue; fi
     mkdir -p "$PACK/$mode"
-    curl -fsSL --proto '=https' --retry 2 --max-time 180 -o "$tmp/src" "$url"; rc=$?
+    # (the desktop's own pictures — the old masters as pixel art, art/masters — come with the
+    # toolkit: "toolkit:PATH", copied and checked as a download is)
+    if [[ $url == toolkit:* ]]; then cp -- "$TK/${url#toolkit:}" "$tmp/src" 2>/dev/null; rc=$?
+    else curl -fsSL --proto '=https' --retry 2 --max-time 180 -o "$tmp/src" "$url"; rc=$?; fi
     # (a picture ImageMagick cannot read is refused too: a page in its place, say)
     if ((rc == 0)) && [[ $(sha256sum "$tmp/src") == "$sum "* ]] \
        && magick "$tmp/src[0]" -format %w info: >/dev/null 2>&1 \
