@@ -26,7 +26,7 @@ for v in 41 42 43 44 45 46 47 48 49 77; do bar_push brightness "$v"; done
 last=""; while IFS= read -r -t 0.3 -u 7 l; do last=$l; done
 has "$last" '77<span'
 case_ "lit while its slider is open: a wake redraws it with the light, no tooltip"
-/bin/sleep 300 </dev/null >/dev/null 2>&1 & p=$!; H_CLEANUP+=("kill $p 2>/dev/null"); echo "$p" >"$R/kawa-panel-brightness.open"
+/bin/sleep 300 >/dev/null 2>&1 & p=$!; H_CLEANUP+=("kill $p 2>/dev/null"); echo "$p" >"$R/kawa-panel-brightness.open"
 "$REPO/bin/kawa-dwlstatus" --wake; IFS= read -r -t 2 -u 7 l
 has "$l" '"class":"active"'; has "$l" '"tooltip":""'
 rm -f "$R/kawa-panel-brightness.open"; "$REPO/bin/kawa-dwlstatus" --wake; IFS= read -r -t 2 -u 7 l; lacks "$l" active

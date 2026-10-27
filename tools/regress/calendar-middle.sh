@@ -22,6 +22,9 @@ for s in key click; do
   [[ -s $out/$s.png ]] || { echo "calendar-middle: no shot ($s)" >&2; exit 1; }
   # (a row through the calendar's frame, under the bar: its two hairlines)
   read -r _ _ cal2 < <(python3 -I "$here/shots.py" edges "$out/$s.png" 60 0 1920) || { echo "calendar-middle: no calendar ($s)" >&2; exit 1; }
-  ((cal2 == bar2)) || { echo "calendar-middle: opened by $s, its centre ×2 is $cal2, the bar's middle $bar2" >&2; exit 1; }
+  # (the clock's scroll is odd — its kanji's ink is 13 px with its two sides alike, r27-14 — and
+  # the calendar even — seven 40 px days, six 8 px gaps: their middles can be half a pixel
+  # apart, ×2 one; anything more is a calendar off its date)
+  ((cal2 - bar2 <= 1 && bar2 - cal2 <= 1)) || { echo "calendar-middle: opened by $s, its centre ×2 is $cal2, the bar's middle $bar2" >&2; exit 1; }
 done
 echo "calendar-middle: held — by its key and by a click, centred on the bar's middle (×2: $bar2)"

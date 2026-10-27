@@ -73,6 +73,11 @@ rm -rf "$h/.local/state/fedokawaii/for-you"
 cp -a "$HOME/.bashrc" "$h/" 2>/dev/null
 [[ -d $HOME/.bashrc.d ]] && cp -a "$HOME/.bashrc.d" "$h/"
 ln -s "$HOME/.local/bin" "$h/.local/bin"
+# nvim's plugins, linked (702 MB: no copy in /tmp's memory): read, never written — lazy.nvim's
+# checker is off and every plugin is there, so nothing installs; its state and shada go to the
+# kit's own XDG_STATE_HOME. Without them the notes and the editor fell back to nvim's default
+# colours: not what the session shows
+[[ -d $HOME/.local/share/nvim ]] && ln -s "$HOME/.local/share/nvim" "$h/.local/share/nvim"
 if ((repo_art)); then
   # (the installed fonts but the icons, which are the repository's; its icons.sh and themes)
   mkdir -p "$h/.local/share/fonts"

@@ -569,3 +569,19 @@ Keep `docs/design-system.md` the single truth and update it as the design grows.
 `.claude/notes/02-LEDGER.md` (all past requests and status — continue it as r27-N lines),
 `round27-owner-notes.md` (his words), `00-README.md`/`03-LOG.md` (history of how things were
 done; paths there refer to the old cloud sandbox — use this file's procedures instead).
+
+**Added 2026-10-27 14:27 (owner) — fold into the plan:**
+- Bar UI font: he likes it now; switch only if research + renders show something clearly better.
+- Remove "clean mic" (the mic noise-suppression feature) completely.
+- Replace Brave with a better, more stable Chromium-based browser (research current options
+  from official sources; pick the most solid; migrate his bookmarks, logins, settings, theme).
+- A button to switch the monitor off (quick settings).
+- Torrents app: copy a torrent's magnet link; stream a video immediately while it downloads.
+- Fix copy/paste problems everywhere (find and reproduce them first).
+- The bar's US/AR: CAPITALS while Caps Lock is on, lowercase (us/ar) when it is off, live.
+- Strong design love for quick settings: make it a proper, beautiful menu.
+- Browser (14:29): NOT plain Chromium or Chrome — he wants to be shocked by how good and
+  stable it is. Survey the less common, well-made Chromium-based browsers (minimal, fast,
+  private, actively maintained, Wayland-native, good update channel on Fedora), verify each
+  from official sources, try the top candidates on this PC (start time, RAM, smoothness at
+  144 Hz, video decode, extensions he needs), pick the best, and theme it to our design.

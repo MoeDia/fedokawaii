@@ -381,7 +381,7 @@ fresh
 for k in q Q "" ; do out=$(printf '%s\n' "$k" | tty_free fedokawaii 2>&1); eq "$?" 0 "[$k]"; done
 out=$(tty_free fedokawaii </dev/null 2>&1); eq "$?" 0 "end of input"
 has "$out" "FEDOKAWAII"; has "$out" "release   Fedora 44"; has "$out" " 1  status"; has "$out" " 8  log"; has "$out" " 9  update"; has "$out" "10  fedokawaii"
-has "$out" "13  back up now"; has "$out" "14  lessons"; lacks "$out" "soon" "nothing that is not built yet"; has "$out" "backup    not set up"
+has "$out" "13  back up now"; has "$out" "14  lessons"; lacks "$out" "soon" "nothing that is not built yet"; has "$out" "backup    no drive"
 case_ "plain menu: a number runs its entry, then the menu again"
 out=$(printf '9\nq\n' | tty_free fedokawaii 2>&1)
 eq "$(front_calls)" "front update"; eq "$(grep -c FEDOKAWAII <<<"$out")" 2

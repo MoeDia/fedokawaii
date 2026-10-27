@@ -31,14 +31,18 @@ import sys
 import numpy as np
 from PIL import Image
 
-GROUND = np.array([0x18, 0x17, 0x15])          # the kit's flat ground (tools/kit.sh)
+GROUND = np.array([0x18, 0x17, 0x15])          # the kit's flat ground — the theme's own (tools/kit.sh):
+                                               # read from each shot as it is loaded (load)
 
 
 def load(f):
+    global GROUND
     try:
-        return np.asarray(Image.open(f).convert("RGB"), dtype=np.int16)
+        a = np.asarray(Image.open(f).convert("RGB"), dtype=np.int16)
     except OSError as e:
         sys.exit(f"shots: {f}: {e}")
+    GROUND = a[1, 2].copy()        # (row 1, column 2: above the bar's tiles and left of its first)
+    return a
 
 
 def popups(f, top=40):

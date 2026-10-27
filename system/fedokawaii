@@ -277,7 +277,7 @@ status_kv() {
   if [[ -n $new && $new != "$run" ]]; then printf 'kernel\037%s · restart for it\n' "${new%.x86_64}"
   else printf 'kernel\037%s\n' "$run"; fi
   # the last backup to another disk (kawa-backup): its day — none yet, or none set up, in red
-  if [[ -z $BACKUP_TARGET ]]; then printf 'backup\037not set up (BACKUP_TARGET)\n'
+  if [[ -z $BACKUP_TARGET ]]; then printf 'backup\037no drive · quick settings → backup\n'
   elif t=$(last_backup); then printf 'backup\037%s · %s\n' "$(day "$t")" "$(ago "$t")"
   else printf 'backup\037none yet · quick settings → backup\n'; fi
   if read -r size free < <(df -B1 --output=size,avail / 2>/dev/null | tail -n1) && num "$free" && num "$size"; then
@@ -850,7 +850,7 @@ explain() {
                    "enter: the list, and one brought back if you" \
                    "say so. the newest are in the boot menu too." ;;
     backup)    pick 'running|backup'
-               say "your home, to the drive (BACKUP_TARGET)." \
+               say "your home, to the drive you chose." \
                    "plug it in first." ;;
     theme)     pick 'running'
                say "every config as the toolkit has it; yours" \

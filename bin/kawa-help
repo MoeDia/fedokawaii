@@ -60,4 +60,6 @@ sheet() {
     fi
   done <"$f"
 }
-sheet | kawa-menu --prompt "> " --lines 24 >/dev/null || true
+# (the field to type in bare, as the launcher's: the cursor in it says enough — a prompt is for a
+# field that needs words of its own: a size, an order, a passphrase's lock)
+sheet | kawa-menu --prompt "" --lines 24 >/dev/null || true

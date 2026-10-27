@@ -185,13 +185,30 @@ FOUND (06:25, during T10): the launcher lists Foot, Foot Client AND Foot Server 
 accept: `grep -rn '╌' bin lib system` empty except where the design table allows (none); shots of every TUI both themes at two sizes measured; recordings show zero full-screen clears on notes save / calc typing / clipboard exit; tests green.
 
 - (found in T13b, failing on clean HEAD) look/test_wallpaper (12): the rows' indent (one space, not two), the heading without the stitch, the pack's default "only 308 colours" — rewritten with the Super+W TUI here.
-### T17 — the side-by-side audit: every surface, both themes, one grammar (the coherence pass)  [todo]
+### T17 — the side-by-side audit: every surface, both themes, one grammar (the coherence pass)  [done 2026-10-27 — r27-17, .claude/notes/grill-r27.md; tools/gallery.sh --check is the reference T52 wires in]
 deps: T12–T16  · model: main  · ledger: r27-17
 files: tools/gallery.sh (shots of every surface in both themes into /dev/shm/r27/gallery/, contact sheets), .claude/notes/grill-r27.md (the art-director list and what was fixed), tools/regress/gallery-expect.json (the measured numbers kept as the regression reference for T52)
 approach:
 - Shoot: bar, every bar dropdown, launcher, quick settings + sound + brightness, every Super+ key popup, notices (normal/critical), OSD, lock, greeter (headless cage), saver, every TUI, nvim, yazi, btop, Brave frame, the books; contact sheets dark|light side by side.
 - Grill each against T09's appendix; fix; re-shoot; repeat until the list is empty; record every measurement as the expected values of the regression gallery.
 accept: grill-r27.md ends with "nothing left"; gallery-expect.json committed and tools/regress/gallery.sh (T52) passes against it.
+
+### T17b — the owner's 14:27 items for the desktop (CLAUDE.md "Added 2026-10-27 14:27"): clean mic gone; a monitor-off button; quick settings made a menu he loves; US/AR in capitals with Caps Lock  [todo]
+deps: T17 · model: main · ledger: r27-17b
+files: bin/kawa-panel, bin/kawa-quick, configs/home/.config/pipewire/** (the noise-suppression filter chain and everything that only exists for it), lib/manifest.sh (its package if nothing else needs it), tests/status/*, tests/menus/*, docs (Learn: §sound, quick settings), src/dwl/dwl.patch (Caps Lock reported with the keyboard layout: dwl's status gains the lock state; batch B restart), bin/kawa-dwlstatus + waybar config (the kb tile: "US"/"AR" while Caps Lock is on, "us"/"ar" when off, live — from dwl's own state, no polling), art/icons.txt
+approach:
+- Clean mic: remove the feature completely — the panel's row, the level meter on it, kawa-quick's switch, the PipeWire filter config and the package if only it needs it, the report rows, tests, the Learn text; a repair removes what an older install left (T42's rule).
+- Monitor off: a key in quick settings' bottom row beside wallpaper/screenshot — "screen off" (wlopm --off * through dwl's own DPMS path, the same as the lock's 5 s off: any key or move lights it again, nothing lost); its own icon.
+- Quick settings: a proper, beautiful menu (his "strong design love", 14:27, and 26–27 Oct "every item unique yet aligned with OCD precision"): each tile its own drawn picture and character, alive (state shown by motion/ink, not words alone), every row/tile/gap measured to the pixel in both themes; grilled until nothing is left; gallery reference re-recorded.
+- US/AR: the bar's tile shows capitals while Caps Lock is on and lowercase when off, at once (dwl prints the lock state on its status line as it changes — a keyboard's modifiers event — kawa-dwlstatus formats it; regression check in test_dwlstatus and the kit).
+accept: no "clean mic" anywhere (grep), no orphan config; the monitor-off key measured and live-tested (off, a key, back on the lock or desktop); quick settings shots both themes grilled to "nothing left"; Caps Lock toggled live → tile changes within a frame (dwl status log), both cases tested.
+NOTE (owner 14:27): the bar's UI font — he likes it now: change it only if research and renders show something clearly better (T58 checks once; otherwise it stays).
+
+### T17c — copy and paste, everywhere: find, reproduce, fix (owner 14:27)  [todo]
+deps: T17 · model: main (sub:sonnet for the reproduction matrix) · ledger: r27-17c
+files: bin/kawa-clip*, kawa-clipkeep, configs/home/.config/dwl/autostart.sh (wl-paste --watch), xwayland/primary selection bits, tests/content/test_clip.sh, a new tools/regress/clipboard.sh
+approach: build the matrix first — every pair of {foot, nvim (+ notes), Brave/its successor, LibreOffice, Xournal/FireAlpaca, yazi, an X11 app, a GTK4 app, the launcher, Super+V} × {Ctrl+C/V, Ctrl+Shift+C/V, primary (select / middle click), a picture, a file from yazi, a copy whose app then closed} — run it headless where possible (wl-copy/wl-paste/wtype against the real apps in the kit) and live for the rest; each failure reproduced, its cause found (clipkeep's offer, cliphist's mime choice, Xwayland's sync, an app's own quirk), fixed, and kept as a regression row.
+accept: the matrix in the ledger with every cell green or explained by an upstream limit (with its source); tools/regress/clipboard.sh holds.
 
 ## Phase 3 — lock, animations, art: the world (demon dark, angel light)
 
@@ -331,6 +348,7 @@ files: lib/upstream.sh (TORRRA_VERSION pinned; a vendored patch src/torrra/torrr
 approach:
 - Bug 12 measured: time from "add" to the first tracker response; "failed to resolve" captured with the exact message (libtorrent's tracker DNS? Prowlarr's container name? IPv6?) → fixed at its cause (resolv/host network of the quadlet, or a tracker URL the indexer gives); the stress tool keeps numbers before/after.
 - Design: the whole UI rebuilt in our DNA (header, rows, progress as pixel bars, states by colour, details pane), adaptive layouts from a narrow tile to fullscreen (a column set per width band), nothing cut.
+- (owner 14:27) Copy a torrent's magnet link (a key on its row: the magnet to the clipboard, a notice says so); stream a video at once while it downloads (sequential/first-and-last-pieces priority for the chosen file, opened in mpv as soon as enough is there — libtorrent's own piece priorities, no second client).
 - Prowlarr's warning: read it from its UI/API (`/api/v1/health`), fix the cause (e.g. an indexer failing, "update available" on a pinned image, a proxy/DNS setting) and keep the fix in the installer.
 accept: stress numbers (p95 add→peer, redraw at 500 rows < 50 ms, RSS) in the ledger; shots at 3 sizes both themes measured; a finished torrent notifies exactly once across 5 reopens (test); Prowlarr health list empty (API output quoted); tests green.
 
@@ -340,7 +358,16 @@ files: configs/home/.config/nvim/lua/{config/lazy.lua,plugins/*.lua}, configs/ho
 approach: measured in a real TUI (pty/foot) to LazyVim's VeryLazy and the first full redraw — the headless `--startuptime +qa` (10 ms) never loads the UI plugins — ×10 before (T04) → per-plugin cost table; cut plugins that cost more than they give (listed with reasons), lazy-load the rest on keys/filetypes; treesitter parsers limited to the languages he uses; keep LazyVim's keys he learned (Learn piece checked); measure editing latency (keystroke→redraw via the pty with timestamps).
 accept: startup to VeryLazy improved by every plugin cut or lazy-loaded that the table shows is worth it (each kept plugin's cost justified in the ledger; no fixed % target), editing latency unchanged or better; `lazy-lock.json` committed and installed by setup; the Learn "neovim" piece corrected.
 
-### T31 — downloads from Brave: progress %, the odd link icon  [todo]
+### T31a — the browser: a better Chromium-based one than Brave (owner 14:27 + 14:29), chosen by trial, migrated, themed  [todo]
+deps: T17 · model: main (decision), sub:sonnet (the survey digest from official sources) · ledger: r27-31a
+files: lib/manifest.sh, lib/upstream.sh (its repo or pinned release, checked), setup.sh, theme.sh (its theme: our colours, both themes, the window frame), configs/home/.local/share/applications/*, bin/* that name Brave (brave-origin, the web apps — Spotify, WhatsApp — the downloads module, Super+B), tests, docs (Learn + guide), the migration script (bookmarks, logins/passwords via the browser's own import, settings, extensions he uses)
+approach:
+- Not plain Chromium or Chrome (his words): survey the less common, well-made Chromium-based browsers — minimal, fast, private, actively maintained, Wayland-native, a sound update channel on Fedora (a repo or a signed release we can pin and update through the one update button) — each verified from its official site, repo and release notes (sources in the ledger), with honest notes on maintenance health and security-patch latency against upstream Chromium.
+- Try the top 2–3 on this PC: start time (cold/warm), RAM with his tabs, smoothness at 144 Hz (frame times), VA-API video decode on the RX 9060 XT, Wayland fractional/HiDPI, the extensions he needs, its downloads API for the bar; pick the best by the numbers and say why.
+- Migrate from Brave: bookmarks, saved logins (its own import, never typed by us), settings, extensions; theme it to our design (dark/light following the switch where it can); then remove Brave and its repo (T42's structure rule) once he has used it — Brave stays until the new one is proven.
+accept: the survey and trial numbers in the ledger; the new browser installed by the installer (VM-proven at T54), migrated, themed, every Brave reference gone; Super+B, the web apps, the downloads module and the tests all on it.
+
+### T31 — downloads from the browser (T31a's): progress %, the odd link icon  [todo]
 deps: T14  · model: main  · ledger: r27-35
 files: bin/kawa-downloads (Brave's .crdownload sizes vs the expected size from Brave's history/`~/.config/BraveSoftware/.../History` is locked — use the partial file's growth and the Content-Length Brave records in the .crdownload's companion? measure what exists; else show bytes/s and the elapsed without a %), the notice's icon (our download icon, not the app's generic link icon: `notify-send -i` with the pixel icon path), tests/status/test_downloads.sh
 approach:
@@ -639,6 +666,10 @@ accept: (when asked) the PDF rebuilt with real shots, the pieces regenerated, ka
 | torrents overhaul + hardening; "failed to resolve" (12); notice on every open (12); Prowlarr warning | T29 |
 | neovim faster, lazy-lock pinned | T30 |
 | Brave download %, odd link icon (13) | T31 |
+| (14:27) bar UI font kept unless clearly better · clean mic removed · monitor-off button · quick settings a menu he loves · US/AR capitals with Caps Lock | T17b |
+| (14:27) copy/paste problems everywhere: found, reproduced, fixed | T17c |
+| (14:27/14:29) a better Chromium-based browser than Brave (not Chromium/Chrome): surveyed, tried, migrated, themed | T31a |
+| (14:27) torrents: copy a magnet link; stream a video while it downloads | T29 |
 | gaming VM research + design (RDNA4 reset, IOMMU, CS2/VAC honesty, display design, iGPU host) | T32 |
 | Windows VM unattended, minimal, one folder; controller passthrough; licence | T33 |
 | the VM app (start/stop, display switch, controller, state), launcher entry, hard tests, frame times | T34 |

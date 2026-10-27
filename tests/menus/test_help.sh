@@ -20,10 +20,11 @@ for l in open(sys.argv[1], encoding="utf-8").read().splitlines():
     while not gaps and i < len(l) and not (l[i] != " " and l[i - 1] == " "): i += 1
     print("info\t\t" + l[:i].strip() + "\t" + l[i:].strip())'
 
-case_ "the sheet: every line but the blank ones, a filter prompt, sized to its content, 24 lines, no cursor (info rows are only read)"
+case_ "the sheet: every line but the blank ones, a field to filter in (bare, as the launcher's: no prompt of its own), sized to its content, 24 lines, no cursor (info rows are only read)"
 setup; answer esc; rc 0 kawa-help
 eq "$(fz_rows | grep -c .)" "$(grep -cv '^[[:space:]]*$' "$K")"
-eq "$(fz_arg prompt)" "> "; eq "$(fz_arg width)" ""; eq "$(fz_arg lines)" 24; eq "$(fz_arg select)" ""
+has "$(cat "$REPO/bin/kawa-help")" 'kawa-menu --prompt "" --lines 24' "a field, bare"
+eq "$(fz_arg prompt)" ""; eq "$(fz_arg width)" ""; eq "$(fz_arg lines)" 24; eq "$(fz_arg select)" ""
 eq "$(fz_rows | sed -n 2p)" "info		Super+Return	terminal (foot)" "line 1 is a binding, not a heading"
 eq "$(fz_arg drop)" "" "centred"; fits
 case_ "every binding an info row: no glyph, the key as its name, what it does as its detail (the panel's column), as the sheet says"

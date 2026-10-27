@@ -318,7 +318,7 @@ case ${1:-} in
              done <<<"${KAWA_BACKUP_DRIVES:-}" ;;
   --drive-heading)   # [W] — its heading, and what the choice is for
              w=${2:-}; [[ -n $w ]] || w=$(screen_width) || exit 1
-             printf '%s\n \n  %swhich drive keeps your backup? it is remembered (BACKUP_TARGET)%s\n ' \
+             printf '%s\n \n  %swhich drive keeps your backup? it is remembered%s\n ' \
                "$(screen_heading "$ICON_DRIVE" "back up to" "$w")" "$INK_MUTED" "$INK_OFF" ;;
   status)    (($# == 1)) || exit 2; status ;;
   target)    (($# == 1)) || exit 2; [[ -n $CONF_WHY ]] || printf '%s\n' "$BACKUP_TARGET" ;;   # (one that breaks its rule: none)

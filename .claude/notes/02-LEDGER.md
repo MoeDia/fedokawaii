@@ -770,6 +770,33 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   status — the new cases: test_warm (--away, KAWA_WARM), test_clip (the binds), test_menu (the
   popup's), test_calc (in place, the line typed), test_books (meter, columns, three lines),
   test_wallpaper (the key line), test_launcher (icons by name, every one in the font).
+- r27-17 (T17, the side-by-side audit — committed with this line) tools/gallery.sh (new): every
+  surface opened as a person opens it, in a headless dwl on the real GPU, both themes — 27 of
+  them, dark | light sheets and an index; --record writes each surface's box to
+  tools/regress/gallery-expect.json, --check holds a later build to it (held twice in a row).
+  Measured: every surface the same box in both themes (27/27), dropdowns from y 33, the right
+  ones ending at x 1913. Fixed: Super+/'s field bare like the launcher's (its "> " gone);
+  Super+U, the backup pane and the drive picker no longer show a setting's name
+  ("BACKUP_TARGET" → "no drive · quick settings → backup"); the kit paints each theme's own
+  ground (light surfaces were shot on sumi, their hairline lost) and links nvim's data (read
+  only: nothing written — checked), shots.py reads the ground from each shot; the regress set
+  re-run on it — bar-geometry, window-frame, level-display, warm-exit, menu-first-click,
+  one-popup held; calendar-middle failed by half a pixel: parity (the clock's scroll is odd —
+  its kanji's 13 px with equal sides — the calendar even), no layout makes both exact without a
+  1 px asymmetry elsewhere: the check holds them within half a pixel now. The yazi picker's
+  own-keys line and heading column went with r27-16's commit. Seen and owned by later tasks:
+  notes (T21), yazi's view (T22), the prompt (T24), quick settings (T17b), lock/greeter/saver
+  (T20). The list: .claude/notes/grill-r27.md ("nothing left for T17").
+- r27-17-owner (owner, 2026-10-27 14:27 and 14:29, written into CLAUDE.md: "fold into the plan")
+  — folded, not done yet: the bar's UI font kept unless research and renders show something
+  clearly better (T17b's note, T58 checks once) · "clean mic" removed completely · a button to
+  switch the monitor off (quick settings) · quick settings made a menu he loves · US/AR in
+  capitals while Caps Lock is on, lowercase when off, live — all T17b · copy/paste problems
+  everywhere, found and reproduced first — T17c · a better Chromium-based browser than Brave,
+  not plain Chromium/Chrome: the less common, well-made ones surveyed from official sources,
+  the best 2–3 tried on this PC (start, RAM, 144 Hz smoothness, video decode, extensions),
+  migrated (bookmarks, logins, settings, extensions) and themed — T31a · torrents: copy a
+  magnet link, stream a video while it downloads — T29.
 - r27-33 (T29, findings 04:00 — not fixed yet) Prowlarr: on demand by design (kawa-prowlarr: up while
   torrra searches, asleep 30 min after) — "inactive" is normal. /api/v1/health: 0 now. Its own log
   (~/.config/prowlarr/logs) over 8 days: Warn AllowedHostsCheck "Allowed Hosts is not configured"
