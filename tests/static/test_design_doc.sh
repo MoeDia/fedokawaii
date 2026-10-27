@@ -7,7 +7,7 @@
 . "$(dirname "$0")/../lib/harness.sh"
 sandbox
 DOC=$REPO/docs/design-system.md
-BUILT=(palette)
+BUILT=(palette ui-face)
 
 case_ "whole: no open question left in it"
 grep -nE '\b(TBD|TODO|FIXME|XXX)\b|\?\?' "$DOC" >"$TMP/open" && _no "$(head -3 "$TMP/open")" || _ok
@@ -74,6 +74,28 @@ built_palette() {   # the generated theme files carry the doc's inks
           | sed -E "s/.*\| \`([0-9a-f]{6})\`[^|]*\| \`([0-9a-f]{6})\`/\1 \2/" \
           | awk -v m="$m" '{print (m == "dark") ? $1 : $2}' | paste -sd ' ')" "$m: panel.conf's ground and accent"
   done
+}
+built_ui-face() {   # §2: Sumi UI as the doc's table says it is, and 14 px wherever it is set
+  eq "$(python3 -I - "$REPO/system/fonts/SumiUI.ttf" "$DOC" <<'PY'
+import re, sys
+from PIL import Image, ImageDraw, ImageFont
+f = ImageFont.truetype(sys.argv[1], 14)
+def rows(ch):
+    im = Image.new("1", (20, 20), 0); d = ImageDraw.Draw(im); d.fontmode = "1"; d.text((0, 0), ch, font=f, fill=1)
+    ys = [y for y in range(20) for x in range(20) if im.getpixel((x, y))]
+    return f"{min(ys)}–{max(ys)}" if min(ys) != max(ys) else f"{min(ys)}"
+doc = open(sys.argv[2], encoding="utf-8").read()
+table = dict((m.group(2), m.group(1)) for m in re.finditer(r"^\| ([0-9–]+) \| (.+?) \|$", doc.split("**Sumi UI's em**")[1].split("\n\n")[1], re.M))
+got = {"kanji and kana (a column of air at their left)": rows("漢"), "capitals, digits, ascenders (10 rows)": rows("H"),
+       "the x-height (7 rows)": rows("x"), "the minus — and every rule drawn beside words (§4)": rows("-")}
+bad = [f"{k}: doc {table.get(k)}, font {v}" for k, v in got.items() if table.get(k) != v]
+adv = {round(f.getlength(c)) for c in "Hil0@~"} | {round(f.getlength("漢")) // 2}
+print(len(table), bad, sorted(adv))
+PY
+)" "5 [] [7]" "the em's rows and the cell, read from the doc's table, measured on the font"
+  has "$(cat "$REPO/configs/home/.config/waybar/style.css")" "font-size: 14px;" "the bar"
+  has "$(cat "$REPO/configs/home/.config/mako/config")" "14px" "the notices"
+  eq "$(sed -n 's/^LINE = \([0-9]*\).*/\1/p; s/^COL = \([0-9]*\).*/\1/p' "$REPO/bin/kawa-panel" | paste -sd ' ')" "7 14" "kawa-panel's COL and LINE"
 }
 for s in "${BUILT[@]}"; do
   case_ "§14 $s: rebuilt to the doc — its numbers in its files"
