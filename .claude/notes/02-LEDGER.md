@@ -248,6 +248,14 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   verify 230 passed + 3 named skips, dwl/waybar/mako up, screenshot ok (resumed at the gate after
   the verify fix — a full fresh run follows). The PC's 27 extra checks were session checks (verify
   ran before the desktop) → vm-smoke now verifies with the desktop up.
+- r27-7 (T07) fonts — DECIDED 04:45 (the owner may veto): UI = JF Dot Shinonome 14 regular, repaired
+  (public domain; 14 px, 7 px cells; 52 touching T pairs + 4 gutter-less kanji fixed in the build;
+  fallback Fusion Pixel 12 proportional, OFL); terminal = UDEV Gothic NF 2.2.0, 16 px, cell 8x19,
+  no ligatures (OFL). How: a research subagent (Sonnet) measured 33 families from official
+  sources (.claude/notes/fonts-r27.md: licences + URLs + sha256, coverage, drawn sizes, touching
+  pairs via fontTools; today's UI face: 45 % of L1 kanji touch — the "ugly / spacing" is
+  measurable); the finalists rendered in the real bar/notices/foot beside today's (tools/kit.sh,
+  font-try.sh; shots in .claude/notes/fonts-r27/). Build + re-grid: T10 (UI), T11 (terminal).
 - r27-33 (T29, findings 04:00 — not fixed yet) Prowlarr: on demand by design (kawa-prowlarr: up while
   torrra searches, asleep 30 min after) — "inactive" is normal. /api/v1/health: 0 now. Its own log
   (~/.config/prowlarr/logs) over 8 days: Warn AllowedHostsCheck "Allowed Hosts is not configured"
