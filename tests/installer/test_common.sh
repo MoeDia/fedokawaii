@@ -129,11 +129,14 @@ mkdir -p "$TMP/priv"; chmod 700 "$TMP/priv"; lib "echo x | write_file '$TMP/priv
 lib "echo x | write_file '$TMP/new/sub/f'"; eq "$(stat -c %a "$TMP/new/sub")" 755 "a missing folder is made, 755"
 chmod 755 "$TMP/ro"
 
-case_ "take_lock: a second run waits a few seconds, then stops with a plain sentence (exit 1)"
-( exec 9>"$TMP/lock"; flock 9; /bin/sleep 8 ) & holder=$!
+case_ "take_lock: a second run waits a few seconds, then stops with a plain sentence (exit 1) —
+  never wiping the name the run holding it wrote there (setup.sh's mode: the system menu's row)"
+printf 'repair\n' >"$TMP/lock"
+( exec 9<"$TMP/lock"; flock 9; /bin/sleep 8 ) & holder=$!
 for _ in 1 2 3 4 5 6 7 8 9 10; do flock -n "$TMP/lock" true 2>/dev/null || break; /bin/sleep 0.2; done
 lib "take_lock '$TMP/lock'; echo got"; eq "$RC" 1; lacks "$OUT" got
 has "$OUT" "another Fedokawaii run (an update, a repair, setup or Theme) is going on — wait for it to finish"
+eq "$(cat "$TMP/lock")" repair "the holder's name kept"
 kill "$holder" 2>/dev/null; wait "$holder" 2>/dev/null
 lib "take_lock '$TMP/lock'; echo got"; has "$OUT" got "free again"
 case_ "take_lock on a folder of yours: opened read-only, never truncated or replaced"

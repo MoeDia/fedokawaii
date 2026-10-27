@@ -81,10 +81,11 @@ if [[ $MODE == status ]]; then        # read-only, so it works while another run
   find "$STATE_DIR" -name 'done.*' -printf '  ✔ %f\n' | sed 's/done\.//' | sort; exit 0
 fi
 if [[ $MODE == kernels ]]; then     # (the boot's own run: never waits — another run is on, so next start)
-  exec 9>"$STATE_DIR/lock"; flock -n 9 || exit 0
+  exec 9<>"$STATE_DIR/lock"; flock -n 9 || exit 0
 elif [[ $MODE == after-dnf ]]; then   # (after a dnf run: waits for an update or repair to end first)
-  exec 9>"$STATE_DIR/lock"; flock 9
+  exec 9<>"$STATE_DIR/lock"; flock 9
 else take_lock "$STATE_DIR/lock"; fi
+printf '%s\n' "$MODE" >"$STATE_DIR/lock"   # (which run holds it: the system menu marks its row)
 make_tmp
 # A run resumed after a reboot (fedokawaii-resume.service) that stops: nobody typed a command
 # to "run again", and tty1, the service's own screen, has no login of its own until you

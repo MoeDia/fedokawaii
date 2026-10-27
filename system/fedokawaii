@@ -136,6 +136,15 @@ busy() {   # a toolkit run (update, repair, …) holds its lock right now
   [[ -r $STATE/lock ]] || return 1
   ( exec 8<"$STATE/lock" && ! flock -n 8 ) 2>/dev/null
 }
+running_job() {   # → the menu's entry whose run holds the lock (setup.sh writes its mode there
+  # once it holds it), empty for a run that names none; status 1: nothing runs
+  busy || return 1
+  local j=""; read -r j <"$STATE/lock" 2>/dev/null
+  case $j in update|after-dnf) echo update ;; repair) echo repair ;; upgrade|after-upgrade) echo upgrade ;; *) echo "" ;; esac
+}
+running_words() {   # running_words JOB → what runs, as the status says it
+  case $1 in update) echo 'an update' ;; repair) echo 'a repair' ;; upgrade) echo 'an upgrade' ;; *) echo 'an update or a repair' ;; esac
+}
 
 # Fedora's releases. Yours: its end of support is in os-release (SUPPORT_END, kept current
 # by Fedora's own updates). The next: out once its release tree is published — the day
@@ -233,7 +242,7 @@ status_kv() {
   local t res from to d e l p f w run new free size n
   # what only you can do (kawa-foryou), first
   while IFS= read -r t; do printf 'for you\037%s\n' "$t"; done < <(kawa-foryou list 2>/dev/null)
-  busy && printf 'running\037%s\n' 'an update or a repair, now'
+  run=$(running_job) && printf 'running\037%s, now\n' "$(running_words "$run")"
   if (($(ver))); then
     printf 'release\037Fedora %s\n' "$(ver)"
     printf 'support\037%s\n' "$(v_support)"
@@ -334,8 +343,8 @@ root() {   # root CMD… — CMD as root, through sudo; a refusal is said as wha
 }
 held() {   # a run that takes root's lock (update, upgrade, repair, apply) while one goes on:
   # said at once — no password asked, no wait for the lock
-  busy || return 1
-  echo "  an update or a repair is running now — wait for it to finish (fedokawaii status)" >&2
+  local j; j=$(running_job) || return 1
+  echo "  $(running_words "$j") is running now — wait for it to finish (fedokawaii status)" >&2
 }
 as_root() {
   need_toolkit || return 1
@@ -670,7 +679,7 @@ rows() {
   if [[ -z $BACKUP_TARGET ]]; then bk="${R}none$O"
   elif t=$(last_backup); then bk=$(ago "$t"); backup_late && bk="$R$(ago "$t")$O"
   else bk="${R}never$O"; fi
-  busy && upd="${R}running$O"
+  local run; run=$(running_job) && run=${run:-update}
   # (fedokawaii itself: when the clone was last pulled from GitHub)
   local pl="" pt pr
   if read -r pt pr _ 2>/dev/null <"$PULL_REC" && num "$pt"; then pl=$(ago "$pt"); [[ $pr == ok ]] || pl="$R$pl$O"; fi
@@ -678,7 +687,10 @@ rows() {
   if (($(ver))); then nxt="Fedora $n"; else nxt="the next Fedora"; fi
   # (change and keys open screens of their own: only on the desktop, not on a text console)
   local desk=""; [[ -n ${WAYLAND_DISPLAY:-} ]] && desk=1
-  e() { [[ -z $only || $only == "$1" ]] && printf '%s\t%s\t%s\t%s\t%s\n' "$1" "$2" "$3" "$4" "$5"; return 0; }
+  # (the row of the run going on: the hourglass in place of its icon, "running" in vermilion)
+  e() { [[ -z $only || $only == "$1" ]] || return 0
+    if [[ $2 == "${run:-}" ]]; then printf '%s\t%s\t%s\t%s\t%s\n' "$1" "$2" "${ICON_HOURGLASS:-·}" "$4" "${R}running$O"
+    else printf '%s\t%s\t%s\t%s\t%s\n' "$1" "$2" "$3" "$4" "$5"; fi; }
   e system    status    "${ICON_CPU:-·}"        status                 ""
   e system    verify    "${ICON_CHECK:-·}"      verify                 "$ver_"
   e system    repair    "${ICON_KIT:-·}"        repair                 ""
@@ -800,7 +812,7 @@ explain() {
   # the pane follows the cursor, so the others stay instant)
   case $a in
     status|update|upgrade|verify|repair|remind) kv=$(status_kv) ;;
-    *) kv=$(busy && printf 'running\037%s\n' 'an update or a repair, now') ;;
+    *) kv=$(j=$(running_job) && printf 'running\037%s, now\n' "$(running_words "$j")") ;;
   esac
   pick() {   # pick 'KEY|KEY…' [ROOM] → those lines of the status (with their continuations), less
     # what the list beside it says already (next: the upgrade's row; due's "in N days": update's).

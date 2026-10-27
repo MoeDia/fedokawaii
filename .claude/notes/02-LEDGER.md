@@ -946,6 +946,19 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   (warm-exit, menu-first-click, level-display). The Learn book has no motion piece yet (T27
   writes it from design-system §11, which matches config.h). Next: login → desktop (the
   greeter's handover), the hourglass.
+  (i) the hourglass, step 1 — Super+U knows which job runs: setup.sh writes its mode into root's
+  lock once it holds it (opened without emptying it: lib/common.sh take_lock, setup.sh's kernels
+  and after-dnf runs — a run waiting for the lock never wipes the holder's name); the menu maps
+  it to its row (update · after-dnf → update, repair, upgrade · after-upgrade → upgrade; a run
+  naming none — the boot's, an older one — stands as an update, as before) and that row alone
+  shows the hourglass in place of its icon and "running" in vermilion; the status and a second
+  run say which ("running   a repair, now", "a repair is running now — wait…"). Before: every
+  run marked the update row and said "an update or a repair". Tests: test_status 196/0 (+12:
+  three modes, one row running each, the words, the second run told), test_common 138/0 (the
+  holder's name kept — fails on the old take_lock, 137/1), test_menu 559/0, static 10/10.
+  Step 2 (next pass): the hourglass turning — frames in the icon font, a ticker sending fzf a
+  cheap reload only while the popup is shown and a job runs (19 ms a reload of the rows
+  measured; the pane must not re-run or flicker: checked live in the warm window).
 - r27-keep (found 27 Oct 16:28) ~/blasphemous-save-backup-20261022 was in the Trash (trashed 26 Oct
   16:15 local, with game-shelf, Games, Balatro — before any round-27 session, the first at 27 Oct
   02:03): restored to ~ (476 K, Blasphemous + userdata-774361 intact), per the standing rule and

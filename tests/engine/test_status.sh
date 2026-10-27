@@ -160,6 +160,19 @@ out=$(fedokawaii status)
 eq "$(head -n1 <<<"$out")" "running   an update or a repair, now" "(the keys' column two clear of the longest, verified)"
 has "$(grep -m1 '^update' <<<"$(plain "$(fedokawaii --rows update)")")" "running"
 kill "$holder" 2>/dev/null; wait "$holder" 2>/dev/null
+case_ "a run that names itself in the lock (setup.sh's mode): the words say which, its own row shows it"
+for m in repair:repair:'a repair' after-dnf:update:'an update' after-upgrade:upgrade:'an upgrade'; do
+  IFS=: read -r mode row words <<<"$m"
+  fresh; printf '%s\n' "$mode" >"$R/state/lock"
+  ( exec 9<"$R/state/lock"; flock 9; exec sleep 30 ) >/dev/null 2>&1 & holder=$!
+  for _ in 1 2 3 4 5 6 7 8 9 10; do flock -n "$R/state/lock" true || break; sleep 0.1; done
+  eq "$(head -n1 <<<"$(fedokawaii status)")" "running   $words, now" "$mode"
+  all=$(for t in system update; do plain "$(fedokawaii --rows "$t")"; done)
+  eq "$(grep -c 'running' <<<"$all")" 1 "$mode: one row running"
+  has "$(grep -m1 "^$row"$'\t' <<<"$all")" "running" "$mode: the row of $row"
+  out=$(fedokawaii update 2>&1); has "$out" "$words is running now" "$mode: a second run told"
+  kill "$holder" 2>/dev/null; wait "$holder" 2>/dev/null
+done
 case_ "a stale lock (left by a run that crashed: the file, nobody holding it) is not a run"
 out=$(fedokawaii status); lacks "$out" "running"
 case_ "a lock file root keeps private: not a run, no error"

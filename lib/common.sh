@@ -502,7 +502,9 @@ take_built() {   # take_built SRC DEST MODE — 1 (nothing changed) if it cannot
 
 # ── one run at a time; temp files always cleaned up ──────────────────────────
 take_lock() {                       # take_lock FILE|DIR (a few seconds' grace: the menu looks at it too)
-  if [[ -d $1 ]]; then exec 9<"$1"; else exec 9>"$1"; fi   # a folder of yours is only ever read, never truncated
+  # (a folder of yours is only ever read; a file opened without emptying it: a run that waits
+  # never wipes the name the one holding it wrote there — setup.sh's mode, the menu's row)
+  if [[ -d $1 ]]; then exec 9<"$1"; else exec 9<>"$1"; fi
   flock -w 5 9 || die "another Fedokawaii run (an update, a repair, setup or Theme) is going on — wait for it to finish"
 }
 KAWA_TMP="" FOLLOWER=""
