@@ -130,42 +130,37 @@ if v=$(real desktop-file-validate); then
   done
 else skipped "desktop-file-validate is not installed (the spec's rules above still ran)"; fi
 
-case_ "the mixer's marks (wiremix's one-cell slots) are one cell in the terminal's font: a half block foot draws itself, or a glyph the terminal's face (Sumi Term) draws 10 px wide"
-f=$REPO/system/fonts/SumiTerm.ttf                 # (the toolkit's own: tools/build-fonts.py)
-for m in dark light; do
-  t=$REPO/configs/home/.config/fedokawaii/themes/$m/wiremix.toml
-  grep -q '^char_set = "fedokawaii"$' "$t" && _ok || _no "$m: no char_set of ours"
-  if [[ -s $f ]]; then
+case_ "the mixer's marks (wiremix's one-cell slots) are one cell in the terminal's face (Sumi Term: UDEV Gothic NF, 8 px at 16) — or a half block foot draws itself"
+f=$(fc-match -f '%{file}' 'Sumi Term' 2>/dev/null)
+if [[ $f == *UDEVGothicNF* ]]; then
+  for m in dark light; do
+    t=$REPO/configs/home/.config/fedokawaii/themes/$m/wiremix.toml
+    grep -q '^char_set = "fedokawaii"$' "$t" && _ok || _no "$m: no char_set of ours"
     out=$(python3 -I - "$f" "$t" <<'PY'
 import re, sys
 from PIL import ImageFont
-F = ImageFont.truetype(sys.argv[1], 20)
+F = ImageFont.truetype(sys.argv[1], 16)
 for k, v in re.findall(r'^(default_device|default_stream|list_more|dropdown_more|help_more) = "(.*)"$', open(sys.argv[2]).read(), re.M):
     for ch in v:
-        if not 0x2580 <= ord(ch) <= 0x259F and F.getlength(ch) != 10:
+        if not 0x2580 <= ord(ch) <= 0x259F and F.getlength(ch) != 8:
             print(k, ch, F.getlength(ch))
 PY
 )
     eq "$out" "" "$m: every mark one cell"
-  else _no "no $f"; fi
-done
-case_ "Sumi Term (system/fonts, tools/build-fonts.py): what a terminal gives one cell is drawn in one cell, a wide letter in two; upright strokes a half pixel heavier"
-f=$REPO/system/fonts/SumiTerm.ttf
-if [[ -s $f ]]; then
+  done
+else skipped "the terminal's face is not installed here (fc-match 'Sumi Term': ${f:-none}) — fedokawaii repair puts it in"; fi
+case_ "Sumi Term (UDEV Gothic NF, installed as it comes): what a terminal gives one cell is drawn in one cell (8 px at 16), a wide letter in two"
+if [[ $f == *UDEVGothicNF* ]]; then
   out=$(python3 -I - "$f" <<'PY'
 import sys
-from PIL import Image, ImageDraw, ImageFont
-F = ImageFont.truetype(sys.argv[1], 20)
-for ch, w in (("a", 10), ("↑", 10), ("▼", 10), ("—", 10), ("─", 10), ("設", 20), ("ア", 20)):
+from PIL import ImageFont
+F = ImageFont.truetype(sys.argv[1], 16)
+for ch, w in (("a", 8), ("@", 8), ("↑", 8), ("▼", 8), ("—", 8), ("─", 8), ("·", 8), ("設", 16), ("ア", 16), ("鍵", 16)):
     if F.getlength(ch) != w:
         print(ch, F.getlength(ch))
-# "l": its stem 3 screen pixels across (a pixel face's usual 2: too thin at 20 px)
-m = Image.new("1", (20, 30)); ImageDraw.Draw(m).text((0, 0), "l", font=F, fill=1)
-rows = [sum(m.getpixel((x, y)) for x in range(20)) for y in range(30)]
-print("stem", max(rows)) if max(rows) < 3 else None
 PY
 )
   eq "$out" ""
-else _no "no $f"; fi
+else skipped "the terminal's face is not installed here — fedokawaii repair puts it in"; fi
 
 done_

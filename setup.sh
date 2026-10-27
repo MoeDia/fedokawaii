@@ -1346,7 +1346,7 @@ s_virt()    { dnf_install "${PKG_VIRT[@]}"; }       # (libvirt's daemons start o
 
 s_upstream() {
   local e; for e in "${UPSTREAM[@]}"; do install_upstream_bin "$e"; done
-  install_nerd_fonts
+  install_term_face
   install_faces
   s_localsend
 }
@@ -2659,8 +2659,8 @@ do_update() {
   step_on "dwl's own wlroots" wlr_step
   # the desktop's own tools: pinned, so normally nothing to do
   for e in "${UPSTREAM[@]}"; do step_on "${e%%|*}" install_upstream_bin "$e"; done
-  step_on "Nerd Fonts" install_nerd_fonts
-  step_on "the desktop's faces (Sumi UI, Sumi Term)" install_faces
+  step_on "the terminal's face (UDEV Gothic NF)" install_term_face
+  step_on "the desktop's face (Sumi UI)" install_faces
   step_on "Syncplay" install_syncplay
   step_on "LocalSend" install_localsend
   step_on "ble.sh" install_blesh
@@ -3090,7 +3090,7 @@ r_upstream() {   # release binaries and fonts present (each is a no-op when curr
   local e rc=0   # tried even when one before it failed
   for e in "${UPSTREAM[@]}"; do install_upstream_bin "$e" || rc=1; done
   retire_upstream || rc=1
-  install_nerd_fonts || rc=1
+  install_term_face || rc=1
   install_faces || rc=1
   install_syncplay || rc=1
   install_blesh || rc=1

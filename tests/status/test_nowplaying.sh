@@ -83,8 +83,8 @@ json_lines "$L"; json_lines "$Rw"; markup_ok "$L"; markup_ok "$Rw"
 eq "$(head -n 1 <<<"$L")" '{"text":""}' "a wing starts empty"
 eq "$(last "$L")" "playing|$(EQ 0 2 4 7 8 10 12 9)" "the left wing: the left channel"
 eq "$(last "$Rw")" "playing|$(EQ 11 3 1 0 0 5 12 6)" "the right wing: the right"
-tiers=$(. "$HOME/.config/fedokawaii/current/colors.sh"; s=""; t=("$C_EDGE2" "$C_FAINT" "$C_FAINT" "$C_FAINT" "$C_MUTED" "$C_MUTED" "$C_MUTED" "$C_MUTED" "$C_TEXT" "$C_TEXT" "$C_TEXT" "$C_TEXT" "$C_TEXT")
-  for d in 0 2 4 7 8 10 12 9; do v=ICON_EQ_$d; s+="<span color='#${t[d]}'>${!v}</span>"; done; printf '%s' "$s")
+tiers=$(. "$HOME/.config/fedokawaii/current/colors.sh"; s=""; ink=("$C_EDGE2" "$C_FAINT" "$C_FAINT" "$C_FAINT" "$C_MUTED" "$C_MUTED" "$C_MUTED" "$C_MUTED" "$C_TEXT" "$C_TEXT" "$C_TEXT" "$C_TEXT" "$C_TEXT")
+  for d in 0 2 4 7 8 10 12 9; do v=ICON_EQ_$d; s+="<span color='#${ink[d]}'>${!v}</span>"; done; printf '%s' "$s")
 eq "$(tail -n 1 <<<"$L")" "{\"text\":\"$tiers\",\"class\":\"playing\"}" "every column its own span: its height's ink"
 lacks "$L$Rw" "$(. "$HOME/.config/fedokawaii/current/colors.sh"; echo "$C_ACCENT")" "no vermilion peak lamp any more"; lacks "$L$Rw" "$(. "$HOME/.config/fedokawaii/current/colors.sh"; echo "$C_TEAL")" "no asagi"
 case_ "the wings: a module of their own each (--wing left|right), reading a fifo of its own; another side: misuse"

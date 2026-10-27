@@ -117,9 +117,12 @@ Ink on vermilion (`text_on_accent` on `accent`): 5.1 dark, 5.4 light.
 - **Display size** — the one exception: Sumi UI at a whole multiple of 14 px, never smoothed:
   ×2 (28 px) for the boot splash, the boot menu (GRUB) and the installer's screens. The lock's
   quote is not set in a font at all: it is lettered by hand, pixel by pixel (§9).
-- **Sumi Term** sits in foot's 20 px line with its ink centred (`foot.ini`: `line-height=20px`,
-  `vertical-letter-offset` as measured); foot draws box drawing itself, so `─` is one pixel on
-  the line's row 10, the same row as a panel's rule (§4).
+- **Sumi Term** is UDEV Gothic NF installed as it comes (`lib/upstream.sh`, its files pinned by
+  SHA-256; "UDEV Gothic" is its licence's reserved name) and named "Sumi Term" by fontconfig's
+  alias (`system/60-fedokawaii-pixel.conf`), drawn smoothed in grey with light hinting. In
+  foot's 20 px line (`line-height=20px`) its ascent and descent round to 16 + 4: the baseline
+  16 px down, capitals on rows 4–15 (their middle the line's); foot draws box drawing itself,
+  so `─` is one pixel on the line's row 10, the same row as a panel's rule (§4).
 - No scaling anywhere at 1080p: dwl's monitors at scale 1; nothing sets GDK_SCALE,
   GDK_DPI_SCALE, QT_SCALE_FACTOR or Xft.dpi — sizes are the pixels written here.
 - Words are lower case (proper names keep theirs: Fedora, Bluetooth, LG ULTRAGEAR).

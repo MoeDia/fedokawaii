@@ -103,10 +103,10 @@ has "$s" "host = syncplay.pl"; has "$s" "port = 8999"; has "$s" "name = fkuser"
 grep -qE '^room = fkuser-[0-9a-f]{4}$' "$ini" && _ok || _no "no room of your own: $(grep '^room' "$ini")"
 has "$s" "playerpath = /usr/bin/mpv"; has "$s" "mediasearchdirectories = ['$H/Videos', '$H/Downloads']"
 has "$s" "checkforupdatesautomatically = False"
-has "$s" "chatinputfontfamily = JetBrainsMono Nerd Font"; has "$s" "chatoutputfontfamily = JetBrainsMono Nerd Font"
-eq "$(sed -n 's/^chat\(In\|Out\)\(put\)FontFamily=//p' "$W$H/.config/mpv/script-opts/syncplayintf.conf" | sort -u)" "JetBrainsMono Nerd Font" \
+has "$s" "chatinputfontfamily = UDEV Gothic NF"; has "$s" "chatoutputfontfamily = UDEV Gothic NF"
+eq "$(sed -n 's/^chat\(In\|Out\)\(put\)FontFamily=//p' "$W$H/.config/mpv/script-opts/syncplayintf.conf" | sort -u)" "UDEV Gothic NF" \
   "its words on the film in that font from mpv's first frame (Syncplay's script in mpv)"
-has "$(grep '^osd-font=' "$W$H/.config/mpv/mpv.conf")" '"JetBrainsMono Nerd Font"' "the same as mpv's own"
+has "$(grep '^osd-font=' "$W$H/.config/mpv/mpv.conf")" '"UDEV Gothic NF"' "the same as mpv's own"
 eq "$(fk stat -c '%U %a' "$H/.config/syncplay.ini")" "fkuser 600"
 
 case_ "Xournal++ (Sketch): the pen's lower button the eraser, its upper one the hand"
@@ -159,7 +159,7 @@ sed -i -e 's/^host = .*/host = films.example.org/' -e 's/^name = .*/name = Mo/' 
   -e 's/^chatoutputfontfamily = .*/chatoutputfontfamily = sans-serif/' "$ini"
 theme --check; eq "$RC" 3; has "$OUT" "syncplay.ini (Syncplay: playerpath, chatoutputfontfamily not set)"
 theme; eq "$RC" 0; has "$OUT" "syncplay.ini (Syncplay: playerpath, chatoutputfontfamily)"
-has "$(cat "$ini")" "chatoutputfontfamily = JetBrainsMono Nerd Font" "Syncplay's own default (sans-serif) is not a choice of yours: mpv's font again"
+has "$(cat "$ini")" "chatoutputfontfamily = UDEV Gothic NF" "Syncplay's own default (sans-serif) is not a choice of yours: mpv's font again"
 s=$(cat "$ini")
 has "$s" "host = films.example.org"; has "$s" "name = Mo"; has "$s" "room = Friday%%night"
 has "$s" "playerpath = /usr/bin/mpv"

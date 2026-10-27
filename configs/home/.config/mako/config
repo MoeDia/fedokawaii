@@ -6,7 +6,7 @@
 # colours, the title's row and the level display's look come from the current theme (the
 # vermilion frame of critical ones too); mako takes include only outside a [section]
 include=~/.config/fedokawaii/current/mako
-font=Sumi UI,Sumi Icons,JetBrainsMono Nerd Font,Noto Kufi Arabic 14px
+font=Sumi UI,Sumi Icons,UDEV Gothic NF,Noto Kufi Arabic 14px
 border-size=2
 border-radius=0
 # the panel's 16 px of pad all round: the words start 16 px inside the frame — an app's

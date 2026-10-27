@@ -5,6 +5,7 @@
 # passes — a mode set's REG_WAIT, glycin's loader under the bar, a USB controller set up again
 # after a sleep, the report's own shell — and what is wrong still fails. The rows' own command
 # lines, read from system/fedokawaii-report as its checks() reads them; no fake machine.
+# shellcheck disable=SC2034  # (the harness reads it: this file needs no fake machine)
 FK_PURE=1
 . "$(dirname "$0")/../lib/harness.sh"
 sandbox
@@ -228,9 +229,15 @@ sed -i '/exec_after/d' "$HOME/.config/xdg-desktop-portal-wlr/config"; PATH=$TMP/
 printf '[mode=do-not-disturb]\n[mode=sharing]\n[mode=game]\n' >"$HOME/.config/mako/config"; run "HUSH-02 mako's hush modes"; eq "$RC" 0 "$OUT"
 printf '[mode=do-not-disturb]\n' >"$HOME/.config/mako/config"; run "HUSH-02 mako's hush modes"; eq "$RC" 1
 mkdir -p "$TMP/tk/lib" "$TMP/tk/system"; cp "$REPO/lib/upstream.sh" "$TMP/tk/lib/"; cp "$REPO/system/fedokawaii-latency" "$TMP/tk/system/"
-mkdir -p "$HOME/.local/share/fedokawaii/upstream"; p=$(sed -n 's/^NERD_FONTS_TAG=//p' "$REPO/lib/upstream.sh")
-echo "$p" >"$HOME/.local/share/fedokawaii/upstream/nerd-JetBrainsMono"; run "FONT-17 the Nerd Font at its pin"; eq "$RC" 0 "$OUT"
-echo v0.1 >"$HOME/.local/share/fedokawaii/upstream/nerd-JetBrainsMono"; run "FONT-17 the Nerd Font at its pin"; eq "$RC" 1
+mkdir -p "$HOME/.local/share/fedokawaii/upstream"
+# (the terminal's face: four stand-ins in a folder of their own, the toolkit's copy pinned to them)
+F=$TMP/faces; mkdir -p "$F"; sed -i "s|^FACES_DIR=.*|FACES_DIR=$F|" "$TMP/tk/lib/upstream.sh"
+while IFS='|' read -r f sum; do printf 'face %s\n' "$f" >"$F/$f"; sed -i "s/$sum/$(sha256sum "$F/$f" | cut -d' ' -f1)/" "$TMP/tk/lib/upstream.sh"
+done < <(. "$REPO/lib/upstream.sh"; printf '%s\n' "${TERM_FACE_FILES[@]}")
+run "FONT-17 the terminal's face at its pin"; eq "$RC" 0 "$OUT"
+printf x >>"$F/UDEVGothicNF-Bold.ttf"; run "FONT-17 the terminal's face at its pin"; eq "$RC" 1 "a file changed"
+printf 'face %s\n' UDEVGothicNF-Bold.ttf >"$F/UDEVGothicNF-Bold.ttf"; mkdir -p "$HOME/.local/share/fonts/JetBrainsMonoNerd"
+run "FONT-17 the terminal's face at its pin"; eq "$RC" 1 "the Nerd Font before it still there"; rm -rf "$HOME/.local/share/fonts/JetBrainsMonoNerd"
 d=$HOME/.local/share/Steam/compatibilitytools.d; mkdir -p "$d/GE-Proton11-11" "$d/GE-Proton11-10"; echo GE-Proton11-11 >"$HOME/.local/share/fedokawaii/upstream/ge-proton"
 run "GAME-21 GE-Proton: the recorded one there, two kept at most"; eq "$RC" 0 "$OUT"; mkdir -p "$d/GE-Proton11-9"
 run "GAME-21 GE-Proton: the recorded one there, two kept at most"; eq "$RC" 1 "three kept"
@@ -319,7 +326,7 @@ case_ "INS-02: setup's records agree — a finished build passes; a phase, user 
 printf 'done\n' >"$TMP/state/phase"; id -un >"$TMP/state/user"; echo amd >"$TMP/state/gpu"; rm -f "$TMP"/state/done.*
 run "INS-02 setup's own records agree"; eq "$RC" 0 "$OUT"
 echo 7 >"$TMP/state/phase"; run "INS-02 setup's own records agree"; eq "$RC" 1; has "$OUT" "'7' is no phase"
-echo done >"$TMP/state/phase"; echo nobody-here-xyz >"$TMP/state/user"; run "INS-02 setup's own records agree"; eq "$RC" 1; has "$OUT" "names 'nobody-here-xyz', no user here"
+echo "done" >"$TMP/state/phase"; echo nobody-here-xyz >"$TMP/state/user"; run "INS-02 setup's own records agree"; eq "$RC" 1; has "$OUT" "names 'nobody-here-xyz', no user here"
 id -un >"$TMP/state/user"; : >"$TMP/state/done.T5 repositories"; run "INS-02 setup's own records agree"; eq "$RC" 1; has "$OUT" "the container trial's records, on a real machine"
 rm -f "$TMP"/state/done.T*
 case_ "INS-03: nothing dnf could not install — each left-out package said with why"

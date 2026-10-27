@@ -56,8 +56,8 @@ for t in dark light; do
 done
 case_ "zathurarc: r reloads (the guide's §16.1), Ctrl+r recolours, the font is the desktop's monospace"
 has "$(cat "$Z")" $'map r reload'; has "$(cat "$Z")" $'map <C-r> recolor'
-has "$(cat "$Z")" 'set font "JetBrainsMono Nerd Font'
-has "$(cat "$REPO/configs/home/.config/fontconfig/fonts.conf")" "<family>JetBrainsMono Nerd Font</family>"
+has "$(cat "$Z")" 'set font "UDEV Gothic NF'
+has "$(cat "$REPO/configs/home/.config/fontconfig/fonts.conf")" "<family>UDEV Gothic NF</family>"
 if command -v zathura >/dev/null; then
   case_ "zathurarc: every option it sets is one this zathura knows (its binary, and girara's for the window's)"
   zbin=("$(command -v zathura)"); while read -r l; do zbin+=("$l"); done < <(ldd "${zbin[0]}" 2>/dev/null | grep -o '/[^ ]*girara[^ ]*')

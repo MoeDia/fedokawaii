@@ -386,6 +386,26 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   Known, unrelated, same before this change: installer/test_theme 6 (its sandbox as a user here:
   no /usr/local python site, flock fd 8, plymouth pictures) and installer/test_upstream (FK_PYLIBS
   unbound) — for T53's baseline.
+- r27-11 (T11, the terminal's face — code 06:58, applied live next) "Sumi Term" is now UDEV Gothic NF
+  v2.2.0 (github.com/yuru7/udev-gothic; OFL 1.1 with "UDEV Gothic" a Reserved Font Name — so it is
+  installed AS IT COMES and named by a fontconfig alias in system/60-fedokawaii-pixel.conf, never a
+  renamed copy): lib/upstream.sh install_term_face fetches the release zip (sha256 45faeef7…) and
+  installs only UDEVGothicNF-{Regular,Bold,Italic,BoldItalic}.ttf, each pinned by its own sha256
+  (b11bbf18…, 63617ebf…, 13587ad9…, fff1d74b…) into /usr/local/share/fonts/fedokawaii — a face in
+  place is known by its bytes, no tag to keep. Drawn smoothed in grey (foot's see-through ground:
+  no colour fringes) with hintslight. ONE coding face: JetBrainsMono Nerd Font (the old fallback,
+  GTK/Qt/mpv/zathura/Syncplay monospace) retired everywhere (configs, dconf, qt6ct, fonts.conf,
+  mako; its home folder removed by the installer); the Kappa-based SumiTerm.ttf and its whole build
+  path (Unifont fill-in, the term signs, bolding) removed from build-fonts.py — the UI build stays
+  byte-identical (cmp). foot: pixelsize 16, line-height 20 (baseline 16 down, caps rows 4–15 — no
+  vertical-letter-offset needed, measured), pad 8, zoom ±2 px (8/9/10 px cells), real Bold/Italic.
+  Sumi Icons Term rebuilt on a 16 px em: the UI's 12 × 12 drawings pixel for pixel, centred in
+  whole 8 px cells, raised 1 px (their middle on UDEV's capitals' middle). verify + the report's
+  FONT-16/FONT-17 rewritten (the faces' bytes, the four pins, the Nerd Font gone; FONT-17 reads
+  FACES_DIR from the toolkit so it can be tested); the installer's tests fake the zip (four
+  stand-ins, pinned) — test_upstream up to Syncplay 114/0, test_report_rows 268/0 (and evidence
+  rows for libasan and python3-pyte that PKG-19 asked for), static green, ShellCheck clean on every
+  touched file (a few old warnings fixed on the way).
 - r27-33 (T29, findings 04:00 — not fixed yet) Prowlarr: on demand by design (kawa-prowlarr: up while
   torrra searches, asleep 30 min after) — "inactive" is normal. /api/v1/health: 0 now. Its own log
   (~/.config/prowlarr/logs) over 8 days: Warn AllowedHostsCheck "Allowed Hosts is not configured"

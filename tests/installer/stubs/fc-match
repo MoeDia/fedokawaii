@@ -1,6 +1,6 @@
 #!/bin/bash
 case $1 in
-  monospace) echo 'JetBrainsMonoNerdFont-Regular.ttf: "JetBrainsMono Nerd Font" "Regular"' ;;
+  monospace|'Sumi Term') echo 'UDEVGothicNF-Regular.ttf: "UDEV Gothic NF" "Regular"' ;;
   *lang=ar*) echo 'NotoNaskhArabic-Regular.ttf: "Noto Naskh Arabic" "Regular"' ;;
   *lang=*) echo 'NotoSansCJK-VF.ttc: "Noto Sans CJK JP" "Regular"' ;;
   *) echo "x.ttf: \"$1\" \"Regular\"" ;;

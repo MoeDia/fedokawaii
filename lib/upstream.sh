@@ -29,15 +29,24 @@ UPSTREAM=(
 # (slides are LibreOffice Impress's now) and spotify_player (Spotify's own app, built by lpf:
 # setup.sh) — taken out of ~/.local/bin, with their records, by update and repair
 UPSTREAM_RETIRED=(presenterm spotify_player)
-# the apps' monospace font (code, and the Nerd Font symbols programs draw) — Nerd Fonts v3.5.1
-NERD_FONTS_TAG=v3.5.1
-NERD_FONTS=(
-  "JetBrainsMono|04d5e8f903693f9dd13e16f867e994834e681eb3c72c0d337a770dcda09010cf"
+# the terminal's face and every program's monospace — "Sumi Term" (docs/design-system.md §2):
+# UDEV Gothic NF, JetBrains Mono's letters, BIZ UDGothic's Japanese and the Nerd Font symbols,
+# its 1:2 build without ligatures (github.com/yuru7/udev-gothic, SIL OFL 1.1 with "UDEV Gothic"
+# a reserved name: installed as it comes, called "Sumi Term" by fontconfig's alias,
+# system/60-fedokawaii-pixel.conf). From the release's own archive, checksum-pinned, and each
+# of its four files pinned too: a face in place is known by its bytes, nothing to remember.
+TERM_FACE_URL=https://github.com/yuru7/udev-gothic/releases/download/v2.2.0/UDEVGothic_NF_v2.2.0.zip
+TERM_FACE_SUM=45faeef7b5d8bc591bcc5887a2ca0c5fb9028066f18a5a52cd6f10b7d655ba37
+TERM_FACE_FILES=(
+  "UDEVGothicNF-Regular.ttf|b11bbf183d025a67afd4a5b1b7d930925f80b15c2f52f3642c4660d2b6d6d851"
+  "UDEVGothicNF-Bold.ttf|63617ebfd7b73c79933b65d7f4cb50ba67b2831c68bc46052997dfe795207d18"
+  "UDEVGothicNF-Italic.ttf|13587ad92d30c07a2625405b73275387ae08e17fb3e15a5ed1509d77be1d9e95"
+  "UDEVGothicNF-BoldItalic.ttf|fff1d74bef9aab8a77dde68ef73bd5b067e408ec7fd696271847200cd392986b"
 )
-# the desktop's two faces, Sumi UI and Sumi Term (tools/build-fonts.py: the classic Japanese
-# dot fonts Shinonome 16 and Kappa 20, bold), are the repo's own files (system/fonts):
-# installed for every account (/usr/local/share/fonts/fedokawaii) — the login screen runs as
-# its own system user. FACES_OLD: where the pixel font before them lay (Fusion Pixel)
+# the desktop's own face, Sumi UI (tools/build-fonts.py: the classic Japanese dot font
+# Shinonome 14), is the repo's own file (system/fonts): installed for every account
+# (/usr/local/share/fonts/fedokawaii), beside the terminal's — the login screen runs as its
+# own system user. FACES_OLD: where the pixel font before them lay (Fusion Pixel)
 FACES_DIR=/usr/local/share/fonts/fedokawaii
 FACES_OLD=/usr/local/share/fonts/fusion-pixel
 # (its files were GE-ProtonN-M.tar.gz; since GE-Proton 11 there is one per architecture:
@@ -84,7 +93,6 @@ BLESH_COMMIT=d81fd54feb0d996fdff20dca27eaf0201f7015cc
 
 up_state_dir() { echo "$TARGET_HOME/.local/share/fedokawaii/upstream"; }
 up_tag()       { as_user cat -- "$(up_state_dir)/$1" 2>/dev/null | head -c 200 || true; }   # (yours: read as you)
-font_dir()     { echo "$TARGET_HOME/.local/share/fonts/${1}Nerd"; }
 proton_dir()   { echo "$TARGET_HOME/.local/share/Steam/compatibilitytools.d"; }
 
 record_tag() {   # (every write into the home is the user's own: user_put)
@@ -208,38 +216,47 @@ retire_upstream() {   # UPSTREAM_RETIRED out: each binary (only one its record s
   done
 }
 
-install_nerd_fonts() {    # each family from its own release file, checksum-pinned
-  local e name sum dir f failed=0 bad
-  for e in "${NERD_FONTS[@]}"; do
-    IFS='|' read -r name sum <<<"$e"; dir=$(font_dir "$name")
-    if [[ $(up_tag "nerd-$name") == "$NERD_FONTS_TAG" ]] && compgen -G "$dir/*.[ot]tf" >/dev/null; then
-      log "$name Nerd Font $NERD_FONTS_TAG — in place"; continue
-    fi
-    fetch_pinned "https://github.com/ryanoasis/nerd-fonts/releases/download/$NERD_FONTS_TAG/$name.tar.xz" "$sum" \
-      || { failed=1; continue; }
-    compgen -G "$REL_DIR/x/*.[ot]tf" >/dev/null || { log "the $name archive held no font files"; failed=1; continue; }
-    as_user rm -rf "$dir"; as_user mkdir -p "$dir"; bad=0
-    while IFS= read -r -d '' f; do user_put 0644 "$dir/${f##*/}" <"$f" || bad=1; done \
-      < <(find "$REL_DIR/x" \( -name '*.ttf' -o -name '*.otf' \) -print0)
-    rm -rf "$REL_DIR"
-    if ((bad)); then log "could not write the $name fonts into $dir (is the disk full?)"; failed=1; continue; fi
-    record_tag "nerd-$name" "$NERD_FONTS_TAG"
-    ok "$name Nerd Font $NERD_FONTS_TAG"
+install_term_face() {   # UDEV Gothic NF → FACES_DIR, its four files as pinned; the Nerd Font before it gone
+  local e f sum src ok=1 ch=0
+  for e in "${TERM_FACE_FILES[@]}"; do
+    IFS='|' read -r f sum <<<"$e"
+    [[ -f $FACES_DIR/$f && $(sha256sum "$FACES_DIR/$f" | cut -d' ' -f1) == "$sum" ]] || ok=0
   done
-  as_user fc-cache -f >/dev/null
-  return "$failed"
+  if ((ok == 0)); then
+    install -d -m 0755 "$FACES_DIR" || { log "could not make $FACES_DIR"; return 1; }
+    fetch_pinned "$TERM_FACE_URL" "$TERM_FACE_SUM" || return 1
+    for e in "${TERM_FACE_FILES[@]}"; do
+      IFS='|' read -r f sum <<<"$e"
+      src=$(find "$REL_DIR/x" -type f -name "$f" -print -quit)
+      if [[ -z $src || $(sha256sum "$src" | cut -d' ' -f1) != "$sum" ]]; then
+        log "$f: not in the archive as pinned — refused"; rm -rf "$REL_DIR"; return 1
+      fi
+      install -m 0644 "$src" "$FACES_DIR/$f" \
+        || { log "could not write $FACES_DIR/$f (is the disk full?)"; rm -rf "$REL_DIR"; return 1; }
+    done
+    rm -rf "$REL_DIR"; ch=1
+  fi
+  # the Nerd Font before it (JetBrains Mono, in the home): one coding face, never two
+  if [[ -e $TARGET_HOME/.local/share/fonts/JetBrainsMonoNerd ]]; then
+    as_user rm -rf "$TARGET_HOME/.local/share/fonts/JetBrainsMonoNerd"; ch=1
+  fi
+  as_user rm -f "$(up_state_dir)/nerd-JetBrainsMono"
+  if ((ch)); then touch "$FACES_DIR"; fc-cache -f >/dev/null; as_user fc-cache -f >/dev/null; session_fonts_reload; fi
+  ok "UDEV Gothic NF v2.2.0 (the terminal's face: Sumi Term)"
 }
 
 install_faces() {   # system/fonts → FACES_DIR (only what changed), the faces before them gone
   local f ch=0
   install -d -m 0755 "$FACES_DIR" || { log "could not make $FACES_DIR"; return 1; }
-  for f in SumiUI.ttf SumiTerm.ttf LICENSE; do
+  for f in SumiUI.ttf LICENSE; do
     cmp -s "$REPO_DIR/system/fonts/$f" "$FACES_DIR/$f" && continue
     install -m 0644 "$REPO_DIR/system/fonts/$f" "$FACES_DIR/" \
       || { log "could not write $FACES_DIR/$f (is the disk full?)"; return 1; }
     ch=1
   done
   if [[ -d $FACES_OLD ]]; then rm -rf "$FACES_OLD"; ch=1; fi
+  # Sumi Term's own file from before (Kappa 20: the terminal's face is UDEV Gothic NF now)
+  if [[ -e $FACES_DIR/SumiTerm.ttf ]]; then rm -f "$FACES_DIR/SumiTerm.ttf"; ch=1; fi
   # the pixel fonts before them in the home (Fusion Pixel's era and the one before it): never
   # a second dot font beside the faces — Pango's fallback would take one for a letter
   for f in PixelMplus DepartureMonoNerd FusionPixel; do
@@ -249,7 +266,7 @@ install_faces() {   # system/fonts → FACES_DIR (only what changed), the faces 
   # the folder touched first: a face rewritten in place leaves its mtime as it was, and
   # fontconfig would go on serving the cache it made of the old one
   if ((ch)); then touch "$FACES_DIR"; fc-cache -f >/dev/null; as_user fc-cache -f >/dev/null; session_fonts_reload; fi
-  ok "Sumi UI and Sumi Term (the desktop's faces: Shinonome 14 and Kappa 20)"
+  ok "Sumi UI (the desktop's face: Shinonome 14)"
 }
 
 # swap_in NEW DIR NAME — the folder NEW (built, and found to work) in DIR's place, the old one

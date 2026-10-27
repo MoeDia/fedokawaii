@@ -328,11 +328,12 @@ EOF
 
 # ── the GitHub releases, faked: archives made here, and the fake machine's copies of the
 #    project pinned to them (lib/upstream.sh's SHA-256s are the real releases') ─────────────
+fake_face() { printf 'a stand-in for %s\n' "$1"; }   # fake_face FILE — a face's stand-in bytes
 releases() {
   local r=$TMP/rel d f sum name file old
   rm -rf "$r"; mkdir -p "$r"
   tool() { printf '#!/bin/sh\necho "%s %s"\n' "$1" "$2" >"$3"; chmod 755 "$3"; }
-  mkdir -p "$r/satty" "$r/yazi/yazi-x86_64-unknown-linux-musl" "$r/lg" "$r/jb" "$r/ge/GE-Proton10-25"
+  mkdir -p "$r/satty" "$r/yazi/yazi-x86_64-unknown-linux-musl" "$r/lg" "$r/ud/UDEVGothic_NF_v2.2.0" "$r/ge/GE-Proton10-25"
   tool satty 0.22.0 "$r/satty/satty"; tool yazi 26.9.1 "$r/yazi/yazi-x86_64-unknown-linux-musl/yazi"; tool ya 26.9.1 "$r/yazi/yazi-x86_64-unknown-linux-musl/ya"
   tool bluetui 0.8.2 "$FKH/dl/bluetui-x86_64-linux-musl"     # (no archive: the release file is the binary)
   fake_herdr "$FKH/dl/herdr-linux-x86_64"                    # (no archive either)
@@ -341,7 +342,8 @@ releases() {
   lgfile=$(. "$REPO/lib/upstream.sh"; printf '%s\n' "${UPSTREAM[@]}" | awk -F'|' '$1 == "lazygit" { print $4 }')
   lsv=$(. "$REPO/lib/upstream.sh"; echo "${LOCALSEND_TAG#v}")
   tool lazygit "$(sed -E 's/^lazygit_([0-9.]+)_.*/\1/' <<<"$lgfile")" "$r/lg/lazygit"; echo licence >"$r/lg/LICENSE"; echo readme >"$r/lg/README.md"   # (as its release: beside them)
-  echo font >"$r/jb/JetBrainsMonoNerdFont-Regular.ttf"
+  for f in Regular Bold Italic BoldItalic; do fake_face "UDEVGothicNF-$f.ttf" >"$r/ud/UDEVGothic_NF_v2.2.0/UDEVGothicNF-$f.ttf"; done
+  echo other >"$r/ud/UDEVGothic_NF_v2.2.0/UDEVGothic35NF-Regular.ttf"   # (a variant the archive has too: not taken)
   echo '"compatibilitytools" { }' >"$r/ge/GE-Proton10-25/compatibilitytool.vdf"
   # LocalSend: its release folder (the app, its libraries, its data)
   mkdir -p "$r/ls/lib" "$r/ls/data/flutter_assets/assets/img"; tool localsend_app "$lsv" "$r/ls/localsend_app"
@@ -350,7 +352,7 @@ releases() {
   tar -czf "$FKH/dl/satty-x86_64-unknown-linux-gnu.tar.gz" -C "$r/satty" .
   (cd "$r/yazi" && python3 -m zipfile -c "$FKH/dl/yazi-x86_64-unknown-linux-musl.zip" yazi-x86_64-unknown-linux-musl)
   tar -czf "$FKH/dl/$lgfile" -C "$r/lg" LICENSE README.md lazygit
-  tar -cJf "$FKH/dl/JetBrainsMono.tar.xz" -C "$r/jb" .
+  (cd "$r/ud" && python3 -m zipfile -c "$FKH/dl/UDEVGothic_NF_v2.2.0.zip" UDEVGothic_NF_v2.2.0)
   tar -czf "$FKH/dl/GE-Proton10-25.tar.gz" -C "$r/ge" GE-Proton10-25
   (cd "$FKH/dl" && sha512sum GE-Proton10-25.tar.gz >GE-Proton10-25.sha512sum)
   printf '%s\n' '{"tag_name":"GE-Proton10-25","assets":[' \
@@ -363,10 +365,11 @@ releases() {
     while IFS='|' read -r name _ _ file old _; do
       sum=$(sha256sum "$FKH/dl/$file" | cut -d' ' -f1); sed -i "s/$old/$sum/" "$f"
     done < <(. "$REPO/lib/upstream.sh"; printf '%s\n' "${UPSTREAM[@]}")
-    for name in JetBrainsMono; do
-      old=$(. "$REPO/lib/upstream.sh"; printf '%s\n' "${NERD_FONTS[@]}" | sed -n "s/^$name|//p")
-      sum=$(sha256sum "$FKH/dl/$name.tar.xz" | cut -d' ' -f1); sed -i "s/$old/$sum/" "$f"
-    done
+    # (the terminal's face: its archive's sum and each of its four files', the stand-ins')
+    old=$(. "$REPO/lib/upstream.sh"; echo "$TERM_FACE_SUM"); sum=$(sha256sum "$FKH/dl/UDEVGothic_NF_v2.2.0.zip" | cut -d' ' -f1)
+    sed -i "s/$old/$sum/" "$f"
+    while IFS='|' read -r name old; do sed -i "s/$old/$(fake_face "$name" | sha256sum | cut -d' ' -f1)/" "$f"
+    done < <(. "$REPO/lib/upstream.sh"; printf '%s\n' "${TERM_FACE_FILES[@]}")
     old=$(. "$REPO/lib/upstream.sh"; echo "$LOCALSEND_SHA256"); sum=$(sha256sum "$FKH/dl/$(. "$REPO/lib/upstream.sh"; echo "$LOCALSEND_ASSET")" | cut -d' ' -f1)
     sed -i "s/$old/$sum/" "$f"
   done
@@ -490,17 +493,16 @@ built() {
     printf '{"enable": true, "definitionName": "%s"},' "$d"; done | sed 's/,$//')" >"$FKH/prowlarr-indexers"
   echo $'Scrub started:    Sat Oct  3 02:00:00 2026\nStatus:           finished\nError summary:    no errors found' >"$FKH/scrub-status"
   # the user's home: tools at their pinned tags, fonts, GE-Proton, torrra, secrets, Prowlarr, nvim
-  mkdir -p "$U/.local/bin" "$U/.local/share/fedokawaii/upstream" "$U/.local/share/fonts/JetBrainsMonoNerd" \
+  mkdir -p "$U/.local/bin" "$U/.local/share/fedokawaii/upstream" \
     "$W/usr/local/share/fonts/fedokawaii" "$U/.local/share/Steam/compatibilitytools.d/GE-Proton10-25" \
     "$U/.local/src/dwl/.git" "$U/.local/share/uv/tools/torrra/bin" "$U/.config/fedokawaii" "$U/.config/containers/systemd" \
     "$U/.config/prowlarr" "$U/.config/nvim" "$U/.config/torrra" "$U/.local/state/fedokawaii" "$U/Downloads" "$U/.local/share/nvim/lazy/LazyVim"
-  local name tag bins b
+  local name tag bins b f
   while IFS='|' read -r name _ tag _ _ bins; do
     for b in $bins; do printf '#!/bin/sh\necho "%s %s"\n' "$b" "$tag" >"$U/.local/bin/$b"; chmod 755 "$U/.local/bin/$b"; done
     [[ $name == herdr ]] && fake_herdr "$U/.local/bin/herdr"
     echo "$tag" >"$U/.local/share/fedokawaii/upstream/$name"
   done < <(. "$REPO/lib/upstream.sh"; printf '%s\n' "${UPSTREAM[@]}")
-  echo v3.5.1 >"$U/.local/share/fedokawaii/upstream/nerd-JetBrainsMono"
   echo GE-Proton10-25 >"$U/.local/share/fedokawaii/upstream/ge-proton"
   # Syncplay from its pinned source: the folder, the two starters, the commit recorded
   ( . "$TI/stubs/_lib.sh"; FKH=$FKH fake_syncplay_source "$U/.local/share/fedokawaii/syncplay" )
@@ -521,7 +523,8 @@ built() {
   for b in cargo rustc rust-analyzer cargo-clippy rustfmt; do printf '#!/bin/sh\nexit 0\n' >"$U/.local/share/cargo/bin/$b"; chmod 755 "$U/.local/share/cargo/bin/$b"; done
   printf '#!/bin/bash\n. /usr/local/bin/_lib.sh\nfkh_log "$*"\nexit 0\n' >"$U/.local/share/cargo/bin/rustup"; chmod 755 "$U/.local/share/cargo/bin/rustup"   # (says what update asks of it)
   for b in basedpyright ruff codelldb; do printf '#!/bin/sh\nexit 0\n' >"$U/.local/share/nvim/mason/bin/$b"; chmod 755 "$U/.local/share/nvim/mason/bin/$b"; done
-  : >"$U/.local/share/fonts/JetBrainsMonoNerd/a.ttf"; cp "$REPO"/system/fonts/{SumiUI.ttf,SumiTerm.ttf,LICENSE} "$W/usr/local/share/fonts/fedokawaii/"   # (install_faces')
+  cp "$REPO"/system/fonts/{SumiUI.ttf,LICENSE} "$W/usr/local/share/fonts/fedokawaii/"   # (install_faces')
+  for f in Regular Bold Italic BoldItalic; do fake_face "UDEVGothicNF-$f.ttf" >"$W/usr/local/share/fonts/fedokawaii/UDEVGothicNF-$f.ttf"; done   # (install_term_face's: releases pins these)
   printf '#!/bin/bash\nfor a; do [[ $a == - ]] && { cat >/dev/null; break; }; done\nexit 0\n' >"$U/.local/share/uv/tools/torrra/bin/python"; chmod 755 "$U/.local/share/uv/tools/torrra/bin/python"
   printf 'PROWLARR_API_KEY=a1b2c3d4e5f60718293a4b5c6d7e8f90\n' >"$U/.config/fedokawaii/secrets.sh"; chmod 600 "$U/.config/fedokawaii/secrets.sh"
   cp "$REPO/system/prowlarr.container" "$U/.config/containers/systemd/prowlarr.container"

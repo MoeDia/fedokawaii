@@ -751,8 +751,8 @@ FONT-12 the spacing is the toolkit's | user | warn | - | r=0; for f in .config/f
 FONT-13 the terminal's cell | ses+full+solo/10 | info | footclient | footclient -N -- sh -c "kawa-cell >$RT/fk-cell 2>&1" >/dev/null 2>&1; sleep 1.5; cat "$RT/fk-cell" 2>/dev/null; rm -f "$RT/fk-cell" | foot's cell size (10x24 expected: the 20 px face, 24 px lines) | -
 FONT-14 hinting for UI text | ses | info | - | gsettings get org.gnome.desktop.interface font-hinting; gsettings get org.gnome.desktop.interface font-antialiasing | - | -
 FONT-15 fontconfig sees your fonts | user | fail | - | n=$(fc-list : file | grep -c "$HOME/.local/share/fonts"); echo "$n of your fonts known to fontconfig"; [ "$n" -gt 0 ] | the fonts in ~/.local/share/fonts are in fontconfig's cache (the pixel font, the icons) | fc-cache -f
-FONT-16 the desktop's faces are the toolkit's | root | fail | - | r=0; for f in SumiUI.ttf SumiTerm.ttf; do cmp "$TK/system/fonts/$f" "/usr/local/share/fonts/fedokawaii/$f" || r=1; done; [ -e /usr/local/share/fonts/fusion-pixel ] && { echo "the font before them is still there"; r=1; }; exit $r | Sumi UI and Sumi Term in /usr/local/share/fonts/fedokawaii, byte for byte the toolkit's; nothing of the font before them | run: fedokawaii update
-FONT-17 the Nerd Font at its pin | user | fail | - | p=$(sed -n 's/^NERD_FONTS_TAG=//p' "$TK/lib/upstream.sh"); r=0; n=0; for f in ~/.local/share/fedokawaii/upstream/nerd-*; do [ -e "$f" ] || continue; n=$((n + 1)); v=$(cat "$f"); echo "${f##*/}: $v"; [ "$v" = "$p" ] || r=1; done; echo "pinned $p"; [ "$n" -gt 0 ] && exit $r | each Nerd Font installed is the pinned release (checked by its SHA-256 as it was installed) | run: fedokawaii update
+FONT-16 the desktop's face is the toolkit's | root | fail | - | r=0; cmp "$TK/system/fonts/SumiUI.ttf" /usr/local/share/fonts/fedokawaii/SumiUI.ttf || r=1; for o in /usr/local/share/fonts/fusion-pixel /usr/local/share/fonts/fedokawaii/SumiTerm.ttf; do [ -e "$o" ] && { echo "a font from before is still there: $o"; r=1; }; done; exit $r | Sumi UI in /usr/local/share/fonts/fedokawaii, byte for byte the toolkit's; nothing of the fonts before it | run: fedokawaii update
+FONT-17 the terminal's face at its pin | user | fail | - | r=0; d=$(sed -n 's/^FACES_DIR=//p' "$TK/lib/upstream.sh"); for e in $(sed -n 's/^  "\(UDEVGothicNF-[A-Za-z]*\.ttf|[0-9a-f]*\)"$/\1/p' "$TK/lib/upstream.sh"); do f=${e%%|*}; s=$(sha256sum "$d/$f" 2>/dev/null|cut -d' ' -f1); echo "$f: ${s:-missing}"; [ "$s" = "${e#*|}" ] || r=1; done; [ -e ~/.local/share/fonts/JetBrainsMonoNerd ] && { echo "the Nerd Font before it is still there"; r=1; }; exit $r | UDEV Gothic NF's four files, each byte for byte the pinned release's; the Nerd Font before it gone | run: fedokawaii update
 ROWS
 
 checks "20. the launcher and what opens what" <<'ROWS'
@@ -1510,7 +1510,7 @@ tail -n 40 "$UH/.cache/kawa-clip.log" >>"$BODY" 2>/dev/null
 sec "19. fonts"
 run "Arabic fonts (fc-list :lang=ar)" bash -c 'fc-list :lang=ar family | sort -u'
 [[ -n $(fc-list :lang=ar family 2>/dev/null) ]] && good "Arabic fonts are installed" || fail "no Arabic font is installed (fc-list :lang=ar is empty)" "run: fedokawaii repair"
-urun "the fonts the desktop uses" bash -c 'for f in "Sumi UI" "Sumi Term" "Sumi Icons" "Sumi Icons Term" "Noto Sans" "Noto Sans CJK JP" "Noto Kufi Arabic" "JetBrainsMono Nerd Font" ":lang=ar"; do printf "%-28s → %s\n" "$f" "$(fc-match "$f")"; done'
+urun "the fonts the desktop uses" bash -c 'for f in "Sumi UI" "Sumi Term" "Sumi Icons" "Sumi Icons Term" "Noto Sans" "Noto Sans CJK JP" "Noto Kufi Arabic" "UDEV Gothic NF" "monospace" ":lang=ar"; do printf "%-28s → %s\n" "$f" "$(fc-match "$f")"; done'
 urun "GTK settings" bash -c 'for k in gtk-theme icon-theme cursor-theme color-scheme font-name; do printf "%-14s %s\n" $k "$(gsettings get org.gnome.desktop.interface $k)"; done'
 sub "mpv's on-screen text and subtitles (osd-font, sub-font) and what fontconfig gives"
 for k in osd-font sub-font; do

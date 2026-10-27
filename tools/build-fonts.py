@@ -1,30 +1,25 @@
 #!/usr/bin/env python3
-"""tools/build-fonts.py — the desktop's two faces, from the classic Japanese dot fonts.
+"""tools/build-fonts.py — the desktop's own face, Sumi UI, from a classic Japanese dot font.
 
     python3 tools/build-fonts.py ui SHINONOME14.ttf COZETTEVECTOR.ttf
-    python3 tools/build-fonts.py term KAPPA20B.ttf UNIFONT_JP.otf
 
 Writes (committed, so an install needs neither the sources nor Python's fontTools; setup.sh
-puts them in /usr/local/share/fonts/fedokawaii, for every account — the login screen too):
+puts it in /usr/local/share/fonts/fedokawaii, for every account — the login screen too):
     system/fonts/SumiUI.ttf     "Sumi UI": bar, panels, menus, launcher, notices, lock and
         login — 東雲 (Shinonome) Gothic 14, the regular weight (every stroke one pixel): a 14 px
         em, a 7 px cell (a kanji or kana 14), capitals 10 px tall (docs/design-system.md §2);
         and the air tables of configs/home/.config/fedokawaii/width.sh, measured from it
-    system/fonts/SumiTerm.ttf   "Sumi Term": the terminals — Kappa 20 Bold (kterm's face):
-        a 20 px line, a 10 px cell (a kanji or kana 20), capitals 14 px tall
+(The terminal's face, Sumi Term, is UDEV Gothic NF as it comes: lib/upstream.sh.)
 
-Both are drawn for their one size and nothing else: every pixel of the source becomes one
-square of the outline, 100 units a pixel, so at 14 px (Sumi UI) and 20 px (Sumi Term) — and
-at their whole multiples — each lands on one screen pixel (never smoothed:
-system/60-fedokawaii-pixel.conf). The sources, read here pixel by pixel at their own size:
+It is drawn for its one size and nothing else: every pixel of the source becomes one square
+of the outline, 100 units a pixel, so at 14 px — and at its whole multiples — each lands on
+one screen pixel (never smoothed: system/60-fedokawaii-pixel.conf). The sources, read here
+pixel by pixel at their own size:
     https://ftp.iij.ad.jp/pub/osdn.jp/users/8/8542/jfdotfont-20150527.zip
         8e574faaaa7e27294aec66464aaf427447b2f0ccec8fe00c50e69bbf509f14b1
-        → JF-Dot-Shinonome14.ttf, JF-Dot-Kappa20B.ttf (public domain, as the Shinonome and
-        Kappa fonts they draw)
+        → JF-Dot-Shinonome14.ttf (public domain, as the Shinonome font it draws)
     https://github.com/the-moonwitch/Cozette/releases/tag/v.1.30.0 → CozetteVector.ttf
         2d54a586f824f32d9d2dd01ec3b990c2a4d6445efa77e20177efe382ebe51627 (MIT, © 2020 Ines)
-    https://unifoundry.com/pub/unifont/unifont-17.0.05/font-builds/unifont_jp-17.0.05.otf
-        5f20737a09f40c3f0b7511e6c657e48ca1f683e02f0bc0b9565a3c363827a887 (SIL OFL 1.1)
 
 What Sumi UI takes from where:
   · its letters, digits and signs (ASCII), the Latin-1 letters it draws one cell wide, every
@@ -36,8 +31,6 @@ What Sumi UI takes from where:
     drawn for it, art/signs.txt;
   · what else a line of text may hold, one cell wide (Greek, Cyrillic, the rest of the
     signs, arrows, shapes and lines): Cozette's 6 × 13 drawing, on the face's baseline.
-Sumi Term takes the face's own as above, the same five redrawn, and Unifont's 8 × 16 for the
-rest, made one pixel bolder to the right as the face's bold is.
 So a character is one cell exactly when the terminal and kawa-panel count it as one (East
 Asian width W and F: two; every other: one), and nothing reaches into the next cell.
 
@@ -61,11 +54,10 @@ PX = 100                                    # units a pixel
 # the faces: their size, cell, rows above the baseline (asc) and below (desc), the row of
 # the baseline in a picture Pillow draws at y 0 (its own ascent), and the hand-drawn signs
 FACES = {
-    "ui": dict(family="Sumi UI", file="SumiUI.ttf", size=14, cell=7, asc=12, desc=2, base=13, bold=False),
-    "term": dict(family="Sumi Term", file="SumiTerm.ttf", size=20, cell=10, asc=17, desc=3, base=18, bold=True),
+    "ui": dict(family="Sumi UI", file="SumiUI.ttf", size=14, cell=7, asc=12, desc=2, base=13),
 }
-# the signs, drawn on the face's grid (row 0 = the line's top, as Pillow draws it), regular
-# weight (Sumi Term: made bold as the Unifont additions are). "~" sits on the minus's row.
+# the signs, drawn on the face's grid (row 0 = the line's top, as Pillow draws it), in its
+# weight. "~" sits on the minus's row.
 HAND = {
     "ui": {
         "'": (3, ["...#...", "...#...", "...#..."]),
@@ -73,18 +65,8 @@ HAND = {
         "`": (3, ["..#....", "...#...", "....#.."]),
         "~": (None, [".##..#.", "#..##.."]),
     },
-    "term": {
-        "'": (3, ["....#.....", "....#.....", "....#.....", "....#.....", "....#....."]),
-        '"': (3, ["..#...#...", "..#...#...", "..#...#...", "..#...#...", "..#...#..."]),
-        "`": (3, ["...#......", "....#.....", ".....#...."]),
-        "~": (None, ["..##......", ".#..#.....", ".....#..#.", "......##.."]),   # (4 rows: a home's ~ read at a glance)
-    },
 }
-# Unifont's characters taken: Latin, Greek, Cyrillic, and the signs, arrows, shapes and
-# lines of U+2000–U+2BFF; never what the face draws wide (W, F) itself
-BLOCKS = [(0x00A0, 0x024F), (0x0370, 0x03FF), (0x0400, 0x045F), (0x1E00, 0x1EFF),
-          (0x2000, 0x2BFF)]
-NO_BOLD = [(0x2500, 0x259F), (0x2800, 0x28FF)]   # box lines, blocks, braille: as drawn
+RUN_ON_BLOCKS = [(0x2500, 0x259F), (0x2800, 0x28FF)]   # box lines, blocks, braille: as drawn
 # Sumi UI's fill-in (Cozette, 6 × 13): Latin past Latin-1, IPA and the spacing marks, Greek,
 # Cyrillic, Latin Extended Additional, and the signs, arrows, shapes and lines of U+2000–U+2BFF
 COZETTE_BLOCKS = [(0x00A0, 0x02FF), (0x0370, 0x03FF), (0x0400, 0x04FF), (0x1E00, 0x1EFF), (0x2000, 0x2BFF)]
@@ -148,20 +130,6 @@ def picture(font, ch, w, h):
     d.text((0, 0), ch, font=font, fill=1)
     px = im.load()
     return {(x, y) for y in range(h) for x in range(w) if px[x, y]}
-
-
-def bolder(pix, width):
-    """One pixel more to the right of each, as the faces' bold is made — except where it
-    would close a one-pixel gap (paper with ink just beyond) or leave the cell."""
-    out = set(pix)
-    for x, y in pix:
-        n = (x + 1, y)
-        if n in pix or x + 1 >= width:
-            continue
-        if (x + 2, y) in pix:
-            continue
-        out.add(n)
-    return out
 
 
 def rectangles(pix):
@@ -243,8 +211,8 @@ def write_font(kind, glyphs, notice, licence, licence_url):
                 usWinDescent=-D, sxHeight=(base - xh[0]) * PX, sCapHeight=(base - cap[0]) * PX,
                 achVendID="SUMI", fsType=0, xAvgCharWidth=cell * PX,
                 usWeightClass=700, fsSelection=0x20)
-    # Each face is drawn in one weight (Sumi Term: Kappa's Bold cut; Sumi UI: Shinonome's
-    # regular, every stroke a pixel) and declared bold: a toolkit asking for bold (a GTK button,
+    # The face is drawn in one weight (Shinonome's regular, every stroke a pixel) and
+    # declared bold: a toolkit asking for bold (a GTK button,
     # <b> in a notification) finds it as it is, and fontconfig's 90-synthetic.conf never smears
     # it a pixel wider — its only face serves regular too.
     fb.setupPost(isFixedPitch=1)
@@ -395,7 +363,7 @@ def build_ui(face_path, cozette_path):
     # gutter loses a column that repeats its neighbour), save what runs on (— ―, the lines)
     for cp in sorted(glyphs):
         adv, pix = glyphs[cp]
-        if chr(cp) in RUN_ON or any(a2 <= cp <= b2 for a2, b2 in NO_BOLD) or not pix:
+        if chr(cp) in RUN_ON or any(a2 <= cp <= b2 for a2, b2 in RUN_ON_BLOCKS) or not pix:
             continue
         if max(x for x, _ in pix) < adv - 1:
             continue
@@ -438,120 +406,11 @@ def write_air(glyphs, cell):
     f.write_text(t2)
 
 
-def build(kind, face_path, unifont_path):
-    c = FACES[kind]
-    size, cell, asc, desc, base = c["size"], c["cell"], c["asc"], c["desc"], c["base"]
-    top = base - asc                    # the first row of the line in Pillow's picture
-    face = ImageFont.truetype(face_path, size)
-    uni = ImageFont.truetype(unifont_path, 16)
-    fcm = TTFont(face_path, lazy=True).getBestCmap()
-    ucm = TTFont(unifont_path, lazy=True).getBestCmap()
-
-    def in_line(pix, adv):
-        bad = [(x, y) for x, y in pix if not (0 <= x < adv and top <= y < base + desc)]
-        return not bad
-
-    glyphs = {}                         # codepoint → (advance in px, pixels in Pillow rows)
-    # 1. the face: ASCII and every wide character it draws
-    for cp in fcm:
-        ch = chr(cp)
-        if 0x21 <= cp <= 0x7E or (wide(ch) and cp >= 0x2E80) or 0xFF61 <= cp <= 0xFF9F:
-            adv = 2 * cell if wide(ch) else cell
-            pix = picture(face, ch, adv + 2, base + desc + 2)
-            pix = {(x, y) for x, y in pix if x < adv}
-            if not in_line(pix, adv):
-                sys.exit(f"build-fonts: {c['family']}: U+{cp:04X} leaves its cell")
-            glyphs[cp] = (adv, pix)
-    # 2. the five signs, by hand
-    minus = sorted({y for x, y in glyphs[ord("-")][1]})
-    mid = minus[len(minus) // 2]
-    for ch, (row, art) in HAND[kind].items():
-        if row is None:
-            row = mid - len(art) // 2
-        pix = {(x, row + i) for i, line in enumerate(art) for x, v in enumerate(line) if v == "#"}
-        glyphs[ord(ch)] = (cell, bolder(pix, cell) if c["bold"] else pix)
-    slash = glyphs[ord("/")][1]
-    xs = [x for x, _ in slash]
-    lo, hi = min(xs), max(xs)
-    glyphs[ord("\\")] = (cell, {(lo + hi - x, y) for x, y in slash})
-    # 3. Unifont: what one cell holds that the face has not drawn one cell wide
-    dx = (cell - 8) // 2                # Unifont's 8 px in the cell, centred
-    dy = base - 14                      # its baseline (row 14) on the face's
-    for a, b in BLOCKS:
-        for cp in range(a, b + 1):
-            ch = chr(cp)
-            if cp not in ucm or wide(ch) or cp in glyphs:
-                continue
-            cat = unicodedata.category(ch)
-            if cat.startswith(("M", "C", "Z")) and cp not in (0x00A0, 0x202F):
-                continue
-            if uni.getlength(ch) != 8:  # Unifont draws it two cells wide: not one cell's
-                continue
-            pix = picture(uni, ch, 10, 18)
-            pix = {(x + dx, y + dy) for x, y in pix if x < 8}
-            if not any(a2 <= cp <= b2 for a2, b2 in NO_BOLD):
-                pix = bolder(pix, cell)
-            if not in_line(pix, cell):
-                continue                # taller than the line (a few stacked accents): left out
-            glyphs[cp] = (cell, pix)
-    # 3b. A column of air after every one-cell character (both faces): the face's bold, one
-    # pixel wider to the right, and Unifont made bolder the same way, reach the cell's last
-    # column for many of them (a b d h k p q s, é ñ ж, # $ % & @ ~, ｱ…), and the next one's first
-    # column touches it — two characters read as one shape ("pdf", "ads", "1%", "é&"). So the
-    # last column is always air: a character with its first column free moves into it; one
-    # that fills the cell loses a column inside it — one that repeats its neighbour (inside a
-    # bowl; the second column of a stem never), the middlemost; one with no column to spare
-    # has two neighbouring columns made one. Left as drawn: what is meant to run on into the
-    # next cell — the box lines, the blocks and braille (foot's own, NO_BOLD), the low line
-    # and the long dashes; and the signs of art/signs.txt (step 4), drawn with their air.
-    for cp in sorted(glyphs):
-        ch = chr(cp)
-        adv, pix = glyphs[cp]
-        if ch in RUN_ON or any(a2 <= cp <= b2 for a2, b2 in NO_BOLD):
-            continue
-        if not pix or max(x for x, _ in pix) < adv - 1:
-            continue                    # (its last column free already)
-        if min(x for x, _ in pix) > 0:
-            glyphs[cp] = (adv, {(x - 1, y) for x, y in pix})   # a column free on the left: moved into it
-            continue
-        colof = lambda x: frozenset(y for x2, y in pix if x2 == x)
-        spare = [x for x in range(2, adv - 2)
-                 if colof(x) == colof(x - 1) and colof(x) == colof(x + 1)]
-        if not spare:
-            spare = [x for x in range(2, adv - 2) if colof(x) == colof(x + 1)
-                     and not (colof(x) and colof(x - 1) == frozenset() and colof(x + 2) == frozenset())]
-        mid = (adv - 1) / 2
-        if spare:
-            x0 = min(spare, key=lambda x: (abs(x - mid), x))
-            glyphs[cp] = (adv, {(x if x < x0 else x - 1, y) for x, y in pix if x != x0})
-            continue
-        if adv != cell:
-            continue                    # (a kanji with no column to spare: left as drawn)
-        # no column repeats its neighbour (a slant: v x y z A N S …; m w M W): two next to
-        # each other made one — the pair that differ least, nearest the middle (their
-        # pixels together: a slant stays joined)
-        x0 = min(range(1, adv - 2), key=lambda x: (len(colof(x) ^ colof(x + 1)), abs(x + 0.5 - mid), x))
-        glyphs[cp] = (adv, {(x if x <= x0 else x - 1, y) for x, y in pix})
-    # 4. the signs the desktop shows, drawn for this face (art/signs.txt): over the rest
-    for ch, rows in signs(kind, cell).items():
-        glyphs[ord(ch)] = (cell, rows)
-    glyphs[0x20] = (cell, set())
-    glyphs[0x3000] = (2 * cell, set())
-    if 0xA0 in ucm:
-        glyphs[0xA0] = (cell, set())
-
-    return write_font(kind, glyphs,
-                      "Kappa 20 Bold (public domain, via JF Dot fonts 2015-05-27) and GNU Unifont JP "
-                      "17.0.05 (SIL Open Font License 1.1); this font under the SIL Open Font License 1.1.",
-                      "SIL Open Font License 1.1", "https://openfontlicense.org")
-
-
 def main(argv):
-    if len(argv) != 3 or argv[0] not in FACES:
+    if len(argv) != 3 or argv[0] != "ui":
         sys.exit(__doc__.split("\n\n")[1])
-    kind, a, b = argv
-    n = build_ui(a, b) if kind == "ui" else build(kind, a, b)
-    print(f"{FACES[kind]['family']}: {n} characters → {OUT / FACES[kind]['file']}")
+    n = build_ui(argv[1], argv[2])
+    print(f"Sumi UI: {n} characters → {OUT / FACES['ui']['file']}")
 
 
 if __name__ == "__main__":

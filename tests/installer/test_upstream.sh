@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # tests/installer/test_upstream.sh — lib/upstream.sh: the desktop's pinned tools from GitHub
-# releases (satty, yazi, bluetui, lazygit, herdr), the Nerd Font, the desktop's faces and GE-Proton,
+# releases (satty, yazi, bluetui, lazygit, herdr), the terminal's face, the desktop's face and GE-Proton,
 # in the fake machine with fake releases. Each is fetched, checked against its pinned SHA-256
 # and put in the user's home by the user; a second run finds it in place; a download that
 # differs by a byte, is cut off half-way or cannot happen at all changes nothing; a library
@@ -144,32 +144,45 @@ fkrun bash -c 'LOG_FILE=/dev/null; . /home/fkuser/fedokawaii/lib/common.sh; expo
 has "$OUT" "rc=1"; [[ ! -e $W/etc/fk-new ]] && _ok || _no "the user wrote into /etc"
 
 # ── fonts ────────────────────────────────────────────────────────────────────
-case_ "the Nerd Font: in its folder, by you, its tag recorded, the font cache made"
-back start; up 'install_nerd_fonts'; eq "$RC" 0
-[[ -s $W$H/.local/share/fonts/JetBrainsMonoNerd/JetBrainsMonoNerdFont-Regular.ttf ]] && _ok || _no "the family missing"
-eq "$(cat "$W$H/.local/share/fedokawaii/upstream/nerd-JetBrainsMono")" v3.5.1
-called 'fkuser\[fc-cache\] -f'
-reset_calls; up 'install_nerd_fonts'; has "$OUT" "JetBrainsMono Nerd Font v3.5.1 — in place"; not_called curl
-case_ "the download altered: refused (exit 1), nothing installed, no tag"
-back start; printf 'x' >>"$dl/JetBrainsMono.tar.xz"
-up 'install_nerd_fonts'; eq "$RC" 1
-[[ ! -e $W$H/.local/share/fonts/JetBrainsMonoNerd && ! -e $W$H/.local/share/fedokawaii/upstream/nerd-JetBrainsMono ]] && _ok || _no "an altered download installed"
+case_ "the terminal's face (UDEV Gothic NF): its four files from the pinned archive into the faces' folder, root's, read by all; the Nerd Font before it gone; the caches made"
+back start; mkdir -p "$W$H/.local/share/fonts/JetBrainsMonoNerd" "$W$H/.local/share/fedokawaii/upstream"
+: >"$W$H/.local/share/fonts/JetBrainsMonoNerd/a.ttf"; echo v3.5.1 >"$W$H/.local/share/fedokawaii/upstream/nerd-JetBrainsMono"
+fk chown -R fkuser:fkuser "$H/.local"
+reset_calls; up 'install_term_face'; eq "$RC" 0
+has "$OUT" "UDEV Gothic NF v2.2.0"; has "$OUT" "verified: UDEVGothic_NF_v2.2.0.zip"
+eq "$(cd "$W/usr/local/share/fonts/fedokawaii" && printf '%s ' UDEV*)" "UDEVGothicNF-Bold.ttf UDEVGothicNF-BoldItalic.ttf UDEVGothicNF-Italic.ttf UDEVGothicNF-Regular.ttf " \
+  "the four NF files, no other variant of the archive"
+for f in Regular Bold Italic BoldItalic; do
+  eq "$(cat "$W/usr/local/share/fonts/fedokawaii/UDEVGothicNF-$f.ttf")" "$(fake_face "UDEVGothicNF-$f.ttf")" "$f"
+done
+eq "$(stat -c '%U %a' "$W"/usr/local/share/fonts/fedokawaii/UDEV* | sort -u)" "root 644"
+[[ ! -e $W$H/.local/share/fonts/JetBrainsMonoNerd && ! -e $W$H/.local/share/fedokawaii/upstream/nerd-JetBrainsMono ]] \
+  && _ok || _no "the Nerd Font before it left in the home"
+called '^root\[fc-cache\] -f$'; called '^fkuser\[fc-cache\] -f$'
+case_ "…a second run: in place, known by its bytes — nothing downloaded, no cache made again"
+reset_calls; up 'install_term_face'; eq "$RC" 0; not_called curl; not_called 'fc-cache'
+case_ "…one of the four changed on disk: fetched again and put right"
+printf changed >"$W/usr/local/share/fonts/fedokawaii/UDEVGothicNF-Bold.ttf"
+reset_calls; up 'install_term_face'; eq "$RC" 0; called curl
+eq "$(cat "$W/usr/local/share/fonts/fedokawaii/UDEVGothicNF-Bold.ttf")" "$(fake_face UDEVGothicNF-Bold.ttf)"
+case_ "the download altered: refused (exit 1), nothing installed"
+back start; printf 'x' >>"$dl/UDEVGothic_NF_v2.2.0.zip"
+up 'install_term_face'; eq "$RC" 1
+[[ ! -e $W/usr/local/share/fonts/fedokawaii/UDEVGothicNF-Regular.ttf ]] && _ok || _no "an altered download installed"
 case_ "a file that cannot be written (a full home; here a folder you cannot write): failed and said, no tag — also where errexit is off (repair calls these under ||)"
 back start; mkdir -p "$W$H/.local/bin" "$W$H/.local/share/fonts"; fk chown -R fkuser:fkuser "$H/.local"
 fk chmod 555 "$H/.local/bin" "$H/.local/share/fonts"
 up "install_upstream_bin $satty || echo FAILED"; has "$OUT" "FAILED"; lacks "$OUT" "✔ satty"
 [[ ! -e $W$H/.local/share/fedokawaii/upstream/satty ]] && _ok || _no "the tag recorded for a binary not written"
-up 'install_nerd_fonts || echo FAILED'; has "$OUT" "FAILED"
-[[ ! -e $W$H/.local/share/fedokawaii/upstream/nerd-JetBrainsMono ]] && _ok || _no "the tag recorded for fonts not written"
 fk chmod 755 "$H/.local/bin" "$H/.local/share/fonts"
-case_ "the faces, Sumi UI and Sumi Term: for every account (/usr/local/share/fonts/fedokawaii) from system/fonts with their licence, root's, read by all; the faces before them gone (Fusion Pixel's folder, the old pixel fonts of the home)"
+case_ "the face, Sumi UI: for every account (/usr/local/share/fonts/fedokawaii) from system/fonts with its licence, root's, read by all; the faces before it gone (Fusion Pixel's folder, Sumi Term's old file, the old pixel fonts of the home)"
 back start; mkdir -p "$W/usr/local/share/fonts/fusion-pixel" "$W$H/.local/share/fonts/PixelMplus" "$W$H/.local/share/fonts/DepartureMonoNerd" "$W$H/.local/share/fonts/FusionPixel" "$W$H/.local/share/fedokawaii/upstream"
-printf face >"$W/usr/local/share/fonts/fusion-pixel/sumi-ui.ttf"
+printf face >"$W/usr/local/share/fonts/fusion-pixel/sumi-ui.ttf"; mkdir -p "$W/usr/local/share/fonts/fedokawaii"; printf old >"$W/usr/local/share/fonts/fedokawaii/SumiTerm.ttf"
 echo v3.5.1 >"$W$H/.local/share/fedokawaii/upstream/nerd-DepartureMono"; fk chown -R fkuser:fkuser "$H/.local"
 reset_calls; up 'install_faces'; eq "$RC" 0
-has "$OUT" "Sumi UI and Sumi Term"
-eq "$(ls -A "$W/usr/local/share/fonts/fedokawaii" | tr '\n' ' ')" "LICENSE SumiTerm.ttf SumiUI.ttf "
-for f in SumiUI.ttf SumiTerm.ttf LICENSE; do
+has "$OUT" "Sumi UI (the desktop's face"
+eq "$(ls -A "$W/usr/local/share/fonts/fedokawaii" | tr '\n' ' ')" "LICENSE SumiUI.ttf " "Sumi Term's old file gone"
+for f in SumiUI.ttf LICENSE; do
   cmp -s "$REPO/system/fonts/$f" "$W/usr/local/share/fonts/fedokawaii/$f" && _ok || _no "$f is not system/fonts' own"
 done
 eq "$(stat -c '%U %a' "$W"/usr/local/share/fonts/fedokawaii/* | sort -u)" "root 644"
@@ -180,9 +193,9 @@ called '^root\[fc-cache\] -f$'; called '^fkuser\[fc-cache\] -f$'
 case_ "…a second run: in place — nothing written, no cache made again"
 reset_calls; up 'install_faces'; eq "$RC" 0; not_called 'fc-cache'
 case_ "…one face changed in the repository (an update): that one written, the caches made again"
-printf changed >"$W/usr/local/share/fonts/fedokawaii/SumiTerm.ttf"
+printf changed >"$W/usr/local/share/fonts/fedokawaii/SumiUI.ttf"
 reset_calls; up 'install_faces'; eq "$RC" 0; called '^root\[fc-cache\] -f$'
-cmp -s "$REPO/system/fonts/SumiTerm.ttf" "$W/usr/local/share/fonts/fedokawaii/SumiTerm.ttf" && _ok || _no "the changed face not put back"
+cmp -s "$REPO/system/fonts/SumiUI.ttf" "$W/usr/local/share/fonts/fedokawaii/SumiUI.ttf" && _ok || _no "the changed face not put back"
 
 # ── Syncplay, from its pinned source ─────────────────────────────────────────
 sp=$W$H/.local/share/fedokawaii/syncplay spt=$W$H/.local/share/fedokawaii/upstream/syncplay

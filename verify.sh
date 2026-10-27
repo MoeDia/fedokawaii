@@ -538,8 +538,8 @@ for e in "${UPSTREAM[@]}"; do
     check "$b $tag runs" U timeout 10 "$f" --version
   done
 done
-check "Sumi UI and Sumi Term (the desktop's faces, for every account: the toolkit's own)" \
-  bash -c 'cmp -s "$1/system/fonts/SumiUI.ttf" "$2/SumiUI.ttf" && cmp -s "$1/system/fonts/SumiTerm.ttf" "$2/SumiTerm.ttf" && [[ ! -e $3 ]]' _ "$REPO_DIR" "$FACES_DIR" "$FACES_OLD"
+check "Sumi UI (the desktop's face, for every account: the toolkit's own)" \
+  bash -c 'cmp -s "$1/system/fonts/SumiUI.ttf" "$2/SumiUI.ttf" && [[ ! -e $3 && ! -e $2/SumiTerm.ttf ]]' _ "$REPO_DIR" "$FACES_DIR" "$FACES_OLD"
 # Syncplay, from its pinned source (setup carries on without it: update and repair fetch it)
 case $(up_tag syncplay) in
   "") warn "Syncplay not installed yet" "update and repair fetch it (watching together waits till then)" ;;
@@ -566,10 +566,8 @@ case $(up_tag blesh) in
   "$BLESH_COMMIT") check "ble.sh ${BLESH_COMMIT:0:7} loads (the shell's colours, suggestions and menus)" blesh_runs ;;
   *) fail "ble.sh is not the pinned ${BLESH_COMMIT:0:7}" "update and repair put it in" ;;
 esac
-for e in "${NERD_FONTS[@]}"; do
-  f=${e%%|*}
-  check "$f Nerd Font $NERD_FONTS_TAG"                 test "$(up_tag "nerd-$f")" = "$NERD_FONTS_TAG" -a -n "$(compgen -G "$(font_dir "$f")/*.[ot]tf")"
-done
+check "UDEV Gothic NF v2.2.0, the terminal's face (its four files as pinned)" \
+  bash -c 'for e; do f=${e%%|*}; [[ $(sha256sum "'"$FACES_DIR"'/$f" 2>/dev/null | cut -d" " -f1) == "${e#*|}" ]] || exit 1; done' _ "${TERM_FACE_FILES[@]}"
 # (GE-Proton comes from GitHub, and setup carries on without it: Steam has its own Proton)
 if [[ $STEAM == yes ]]; then
   if [[ -z $(up_tag ge-proton) ]]; then warn "GE-Proton not installed yet" "Steam's own Proton works meanwhile — update tries again"
@@ -722,7 +720,7 @@ else
   else warn "Brave not in the desktop's colours" "your choice in Brave — or Settings → Appearance → Theme → GTK"; fi
   check "magnet links and .torrent files open in torrra" test "$(U xdg-mime query default x-scheme-handler/magnet) $(U xdg-mime query default application/x-bittorrent)" = "kawa-torrents.desktop kawa-torrents.desktop"
   check "GTK 3 themes find adw-gtk3"                   bash -c 'for t in "" -dark; do f=$(sed -n "s|.*url(\"file://\([^\"]*\)\").*|\1|p" "$1/Fedokawaii$t/gtk-3.0/gtk.css"); [[ -r $f ]] || exit 1; done' _ "$TARGET_HOME/.local/share/themes"
-  check "monospace → JetBrainsMono Nerd Font"          grep -q JetBrainsMono <<<"$(U fc-match monospace 2>&1)"
+  check "monospace and Sumi Term → UDEV Gothic NF"      U bash -c '[[ $(fc-match monospace) == *"UDEV Gothic NF"* && $(fc-match "Sumi Term") == *"UDEV Gothic NF"* ]]'
   check "Arabic → Noto Naskh Arabic"                   grep -q Naskh <<<"$(U fc-match 'sans-serif:lang=ar' 2>&1)"
   check "Japanese / Chinese / Korean → Noto Sans CJK"  U bash -c 'for l in ja zh-cn ko; do [[ $(fc-match "sans-serif:lang=$l") == *"Noto Sans CJK"* ]] || exit 1; done'
   check "mpv: the theme's colours, players follow switches" test -r "$TARGET_HOME/.config/fedokawaii/current/mpv.conf" -a -f "$TARGET_HOME/.config/mpv/scripts/kawa-ipc.lua"

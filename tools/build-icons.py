@@ -7,11 +7,10 @@
 Outputs (all committed, so a normal install needs neither Python nor fontTools):
     configs/home/.local/share/fonts/SumiIcons.ttf       "Sumi Icons": bar, menus, notices
     configs/home/.local/share/fonts/SumiIconsTerm.ttf   "Sumi Icons Term": the same drawings
-        on the terminal's face, Sumi Term (a 20 px em: at its 20 px every drawing pixel is
-        one screen pixel, a 14 × 14 icon within two of its 10-px cells and as tall as its
-        capitals), without their air on the left (foot draws each from the left edge of
-        its cell, so the air would only push the icon into the space after it: prompt,
-        fetch, the pop-ups' titles)
+        beside the terminal's face, Sumi Term (UDEV Gothic NF at 16 px: a 16 px em, so every
+        drawing pixel is one screen pixel), each centred in whole 8 px cells (a 12 px icon in
+        two: foot draws it from its cell's left edge, into the space after it) and its middle
+        on the capitals' middle (11.6 px tall: a 12 px icon from the baseline up)
     configs/home/.config/fedokawaii/icons.sh
 
 The font copies Sumi UI's grid: 1400 units per em, 100 units per pixel, so at 14 px (or 28,
@@ -33,9 +32,9 @@ ROOT = pathlib.Path(__file__).resolve().parent.parent
 SRC = ROOT / "art" / "icons.txt"
 TTF = ROOT / "configs/home/.local/share/fonts/SumiIcons.ttf"
 TERM_TTF = ROOT / "configs/home/.local/share/fonts/SumiIconsTerm.ttf"
-TERM_RAISE = 2                    # pixels: Sumi Term's capitals stand 14 px on the baseline (their middle 7)
-TERM_SHIFT = 16                   # pixels to the left (all its air): its ink starts at its cell's edge
-TERM_UPM, TERM_ASC, TERM_DESC = 2000, 1700, -300  # Sumi Term's em and line: 17 up, 3 down
+TERM_RAISE = 1                    # pixels: Sumi Term's capitals stand 11.6 px on the baseline (their middle 6)
+TERM_CELL = 8                     # Sumi Term's cell: each drawing centred in whole cells
+TERM_UPM, TERM_ASC, TERM_DESC = 1600, 1600, -400  # Sumi Term's em and foot's line: 16 up, 4 down
 SH = ROOT / "configs/home/.config/fedokawaii/icons.sh"
 
 UPM, PX = 1400, 100               # Sumi UI's grid: a 14 px em, 100 units per pixel
@@ -119,10 +118,10 @@ def rectangles(rows):
     return out
 
 
-def glyph(ic, raise_px=0, shift=0):
+def glyph(ic, raise_px=0):
     pen = TTGlyphPen(None)
     top = MIDDLE + raise_px + ic["h"] // 2   # pixel row 0 sits just below this line
-    x = ic["x"] - min(shift, max(ic["x"], 0))  # (never left of the pen)
+    x = ic["x"]
     for x0, y0, x1, y1 in rectangles(ic["rows"]):
         L, R = (x + x0) * PX, (x + x1) * PX
         T, B = (top - y0) * PX, (top - y1) * PX
@@ -131,7 +130,7 @@ def glyph(ic, raise_px=0, shift=0):
     return pen.glyph()
 
 
-def build(icons, path=TTF, family="Sumi Icons", raise_px=0, shift=0, upm=UPM, asc=ASC, desc=DESC):
+def build(icons, path=TTF, family="Sumi Icons", raise_px=0, cell=0, upm=UPM, asc=ASC, desc=DESC):
     names = [".notdef", "space"] + ["i_" + ic["name"].replace("-", "_") for ic in icons]
     fb = FontBuilder(upm, isTTF=True)
     fb.setupGlyphOrder(names)
@@ -144,7 +143,10 @@ def build(icons, path=TTF, family="Sumi Icons", raise_px=0, shift=0, upm=UPM, as
     glyphs = {".notdef": notdef.glyph(), "space": TTGlyphPen(None).glyph()}
     metrics = {".notdef": (800, 100), "space": (800, 0)}
     for ic, name in zip(icons, names[2:]):
-        glyphs[name] = glyph(ic, raise_px, shift)
+        if cell:                             # (centred in whole cells of the terminal's face)
+            adv = -(-ic["w"] // cell) * cell
+            ic = {**ic, "adv": adv, "x": (adv - ic["w"]) // 2}
+        glyphs[name] = glyph(ic, raise_px)
         metrics[name] = (ic["adv"] * PX, ic["x"] * PX)
     fb.setupGlyf(glyphs)
     glyf = fb.font["glyf"]
@@ -274,7 +276,7 @@ def main():
     a = ap.parse_args()
     icons = twins(parse(SRC.read_text()))
     build(icons)
-    build(icons, TERM_TTF, "Sumi Icons Term", TERM_RAISE, TERM_SHIFT, TERM_UPM, TERM_ASC, TERM_DESC)
+    build(icons, TERM_TTF, "Sumi Icons Term", TERM_RAISE, TERM_CELL, TERM_UPM, TERM_ASC, TERM_DESC)
     write_sh(icons)
     print(f"{len(icons)} icons → {TTF.relative_to(ROOT)}, {TERM_TTF.relative_to(ROOT)}, {SH.relative_to(ROOT)}")
     if a.preview:

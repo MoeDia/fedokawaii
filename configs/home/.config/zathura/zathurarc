@@ -9,7 +9,7 @@ set zoom-min 10
 set guioptions ""
 set window-title-basename true
 set statusbar-home-tilde true
-set font "JetBrainsMono Nerd Font 10"
+set font "UDEV Gothic NF 10"
 
 # colours of the current theme (dark ink or light paper); kawa-theme reloads open windows
 include ../fedokawaii/current/zathurarc

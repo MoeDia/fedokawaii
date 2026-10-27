@@ -251,6 +251,7 @@ files: configs/home/.bashrc.d/fedokawaii.sh (PROMPT_COMMAND/PS1), configs/home/.
 approach:
 - Segments: terminal icon · folder (parent faint, current strong) · git branch/state · (exit code, took) · `›`; each on a pastel from the Wada set with ink text; the pixel-art caps from our icon font (no Nerd powerline glyphs); one line, ≤ 40 cells before the cursor; the r26 rule kept (\e[3J after clear).
 - Rendered in foot at the new grid, 8-window bursts for dup headings (r26/dups.py reused as tools/prompt-dups.py).
+NOTE (T11, 06:55): tests/content/test_tiles.sh's header and WIDTHS are the old 10 × 24 cells (188 × 43 full) — recompute for the 8 × 20 cell when its prompt tests are rewritten here.
 accept: shot both themes measured (segment caps align to the cell); 0/20 duplicate headings in burst tests; test_shell.sh updated; the Learn "shell" piece corrected.
 
 ### T25a — chess: research digest and the 365-day curriculum (730 games, puzzles)  [todo]

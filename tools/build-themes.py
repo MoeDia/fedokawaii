@@ -669,7 +669,7 @@ def mpv_conf(m, p):
 def qt6ct_conf(m, p):
     # QSettings ini: no comments. ~/.config/qt6ct/qt6ct.conf is a link to this file;
     # kawa-theme re-points the link, which qt6ct notices (it watches that folder).
-    # The fonts are GTK's (the dconf defaults: Noto Sans 10.5, JetBrainsMono Nerd 11), as
+    # The fonts are GTK's (the dconf defaults: Noto Sans 10.5, UDEV Gothic NF 11), as
     # QFont writes them, so a Qt window's words match a GTK one's beside it.
     return ("[Appearance]\n"
             "color_scheme_path=@HOME@/.config/fedokawaii/current/qt6ct-colors.conf\n"
@@ -677,7 +677,7 @@ def qt6ct_conf(m, p):
             "icon_theme=Adwaita\n"
             "standard_dialogs=default\nstyle=Fusion\n\n"
             "[Fonts]\n"
-            'fixed="JetBrainsMono Nerd Font,11,-1,5,400,0,0,0,0,0,0,0,0,0,0,1"\n'
+            'fixed="UDEV Gothic NF,11,-1,5,400,0,0,0,0,0,0,0,0,0,0,1"\n'
             'general="Noto Sans,10.5,-1,5,400,0,0,0,0,0,0,0,0,0,0,1"\n')
 
 

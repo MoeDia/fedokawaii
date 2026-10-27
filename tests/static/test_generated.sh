@@ -48,14 +48,16 @@ if python3 -c 'import fontTools' 2>/dev/null; then
   same
 else skipped "python3-fonttools is not installed (dnf install python3-fonttools)"; fi
 
-case_ "build-fonts.py on a copy: Sumi UI and Sumi Term, byte for byte (from FEDOKAWAII_FONT_SOURCES: JF Dot Shinonome 16 Bold, Kappa 20 Bold, Unifont JP)"
+case_ "build-fonts.py on a copy: Sumi UI and width.sh's air tables, byte for byte (from FEDOKAWAII_FONT_SOURCES: JF Dot Shinonome 14, Cozette 1.30.0)"
 FS=${FEDOKAWAII_FONT_SOURCES:-}
-if python3 -c 'import fontTools, PIL' 2>/dev/null && [[ -n $FS && -f $FS/JF-Dot-Shinonome16B.ttf && -f $FS/JF-Dot-Kappa20B.ttf && -f $FS/unifont_jp-17.0.05.otf ]]; then
+if python3 -c 'import fontTools, PIL' 2>/dev/null && [[ -n $FS && -f $FS/JF-Dot-Shinonome14.ttf && -f $FS/CozetteVector.ttf ]]; then
   copy
-  (cd "$G" && python3 tools/build-fonts.py "$FS/JF-Dot-Shinonome16B.ttf" "$FS/JF-Dot-Kappa20B.ttf" "$FS/unifont_jp-17.0.05.otf") >"$TMP/log" 2>&1 \
+  (cd "$G" && python3 tools/build-fonts.py ui "$FS/JF-Dot-Shinonome14.ttf" "$FS/CozetteVector.ttf") >"$TMP/log" 2>&1 \
     && _ok || _no "it failed: $(tail -n 4 "$TMP/log" | tr '\n' ' ')"
-  for f in SumiUI.ttf SumiTerm.ttf; do cmp -s "$REPO/system/fonts/$f" "$G/system/fonts/$f" && _ok || _no "system/fonts/$f differs from what build-fonts.py makes"; done
-else skipped "FEDOKAWAII_FONT_SOURCES does not hold the three sources (or python3-fonttools / pillow missing)"; fi
+  for f in system/fonts/SumiUI.ttf configs/home/.config/fedokawaii/width.sh; do
+    cmp -s "$REPO/$f" "$G/$f" && _ok || _no "$f differs from what build-fonts.py makes"
+  done
+else skipped "FEDOKAWAII_FONT_SOURCES does not hold the two sources (or python3-fonttools / pillow missing)"; fi
 
 case_ "build-cursors.py on a copy: the pointers, byte for byte"
 copy
@@ -68,11 +70,11 @@ case_ "PROJECT_TOP (lib/common.sh) names every entry at the repository's top lev
 missing=$(cd "$REPO" && . lib/common.sh >/dev/null 2>&1; for e in * .[!.]*; do [[ -e $e && $e != .git ]] || continue; [[ " ${PROJECT_TOP[*]} " == *" $e "* ]] || printf '%s ' "$e"; done)
 eq "$missing" "" "top-level entries PROJECT_TOP lacks"
 case_ "width.sh's cols counts as the faces draw (tests/menus/cols.py: East Asian W and F two columns, the rest one, marks none)"
-bad=""
+cols_bad=""
 while IFS= read -r t; do
   a=$(LC_ALL=C bash -c '. "$1"; cols "$2"' _ "$REPO/configs/home/.config/fedokawaii/width.sh" "$t")
   b=$(printf '%s\n' "$t" | python3 -I "$REPO/tests/menus/cols.py")
-  [[ $a == "$b" ]] || bad+="[$t] $a≠$b · "
+  [[ $a == "$b" ]] || cols_bad+="[$t] $a≠$b · "
 done <<'EOF'
 plain ascii text
 ── launch ──
@@ -81,7 +83,7 @@ Logitech® G Pro™ X — Wireless
 写真のバックアップ · Ørsted
 مرحبا بالعالم
 EOF
-eq "$bad" "" "cols and cols.py disagree"
+eq "$cols_bad" "" "cols and cols.py disagree"
 case_ "every \$ICON_… used anywhere is defined in icons.sh"
 mapfile -t used < <(cd "$REPO" && grep -rhoE '\bICON_[A-Z0-9_]*[A-Z0-9]\b' bin system lib configs src setup.sh theme.sh \
   verify.sh check.sh fedokawaii.sh --exclude=icons.sh | sort -u)
