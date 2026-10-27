@@ -272,7 +272,7 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   (look/test_screenshot, test_wallpaper read colors.sh); launcher fixtures list the new packages;
   PROJECT_TOP gains .claude + CLAUDE.md (static/test_generated 211/0 — fixed its old failure).
   dwl's border colours (config.h) take effect at the next session.
-- r27-9 (T09) docs/design-system.md rewritten as the single truth — DONE 05:55 (verified: the new
+- r27-9 (T09) docs/design-system.md rewritten as the single truth — DONE 05:30 (verified: the new
   tests/static/test_design_doc.sh 10/10, and it fails on a wrong hex, an open "TBD", a wrong contrast
   — mutation-tested). Decided by sketching with the real faces + palette (mock: .claude/notes/
   design-r27/mock.py; shots pair-dark, mock-dark/light; Super+U today: superu-before.png):
@@ -316,7 +316,7 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   the light palette → 0 on 11 (12.1 / 5.2); tests/content/pty_run.py plays foot (TERM=foot when the
   run has none — the loop's TERM=dumb broke every curses program under test); python3-pyte added
   to the manifest for the self-tests (installed here with dnf at once; repair would do the same).
-- r27-9b (T09 follow-up, 06:20) the test suite ran less than it said — found and fixed: `script`
+- r27-9b (T09 follow-up, 05:35) the test suite ran less than it said — found and fixed: `script`
   (util-linux-script) is not installed on this PC, so test_calc skipped itself "passing", six
   Super+U engine blocks counted `_ok` without running, test_glass and test_file's listing failed.
   One tool per job: tests/lib/pty_run.py (moved from tests/content: shared) gained --stdin (piped
@@ -330,7 +330,7 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   Known red elsewhere (from the root-run baseline, to re-check as dia in T53): session/
   test_autostart 5 (a <span line_height> the tests don't expect), test_game 4 (gaming leaves the
   host in T35), installer/test_hardware 1, look/test_wallpaper 1.
-- r27-10a (T10, the face — 07:10, NOT applied live yet: the configs still say 16 px; apply only
+- r27-10a (T10, the face — 05:52, NOT applied live yet: the configs still say 16 px; apply only
   after T10c) Sumi UI rebuilt: Shinonome Gothic 14 regular (its ASCII, 88 Latin-1 letters, kana,
   kanji, full-width forms, half-width kana) + Latin Extended-A COMPOSED from its own letters and
   accents (the face's capitals a row shorter for a mark, as its own É: Dvořák, Łódź, Ţară, Ľubica
@@ -346,7 +346,7 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   Sumi UI under MIT (Cozette's; Shinonome public domain) — system/fonts/LICENSE. Specimen sheet
   checked at 2× in both moods (fixed after looking: ↑↓ cap-tall beside 5-row ←→, ‹› bigger than
   the face's « »). Kept: declared weight 700 (drawn regular) so fontconfig never synthesises bold.
-- r27-10b (T10, the icons — 07:55, not applied live yet: with T10c) every icon drawn again BY HAND
+- r27-10b (T10, the icons — 06:00, not applied live yet: with T10c) every icon drawn again BY HAND
   for Sumi UI 14 in its weight (1 px strokes), from a mechanical first pass (thin + 14→12) that was
   judged by eye and mostly redrawn: 12 × 12 beside words (middle on the capitals' middle), 14 × 14
   alone (the four layouts drawn as what dwl does: master+stack, overlap, monocle, fibonacci), 16 × 16
