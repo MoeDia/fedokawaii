@@ -62,7 +62,7 @@ approach:
 accept: perf-before.md complete (every row filled or marked "not measurable today, why"); `bash tools/perf.sh` reproduces it in one run (report.txt kept under .claude/notes/perf/); committed.
 STATE (2026-10-27 03:15, ledger r27-4): first run captured (.claude/notes/perf-r27-before.txt: idle, boot, terminal/switch/typing/menus frames and key→glass, nvim). LEFT: the rows above not yet in perf.sh (cold/warm app starts ×10, the heavy-use scene, fedokawaii-latency, pace_boots, wallpaper/theme durations, a bar click) — and nvim measured for REAL: the 10 ms of `nvim --headless --startuptime +qa` never attaches a UI nor fires LazyVim's VeryLazy, so time it in a pty/foot to VeryLazy (+ the first redraw); take them before Phase 1 changes anything they measure.
 
-### T05 — the VM harness (nothing is "VM-proven" without it)  [todo]
+### T05 — the VM harness (nothing is "VM-proven" without it)  [done 2026-10-27 — see ledger r27-5]
 deps: T03  · model: main (design, VM creation), sub:sonnet (tests/installer/test_vm_tools.sh, the serial-log parser)  · ledger: r27-5
 files: lib/manifest.sh (new PKG_VIRT: libvirt-daemon-kvm, qemu-kvm, virt-install, edk2-ovmf, swtpm, guestfs-tools/libguestfs-tools-c, virt-viewer not needed; verify: user in libvirt group), setup.sh (s_virt: libvirtd socket activation, no autostart of VMs), tools/vm-create.sh, tools/vm-snap.sh, tools/vm-run.sh, tools/vm-smoke.sh, tools/vm-ks/*.ks, docs: a Learn piece stub (T50 finishes), tests/installer/test_vm_tools.sh
 approach:

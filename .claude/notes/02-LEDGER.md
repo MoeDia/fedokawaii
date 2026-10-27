@@ -236,7 +236,7 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   until he clicks them done: a critical notice at every login — mako [app-name=foryou] click =
   done — and Super+U status's first row "for you"); test_foryou.sh (15). Shown live (shot), and
   `fedokawaii status` leads with it.
-- r27-5 (T05) the VM harness — WIP (04:30): tools/vm-create.sh (session VM, kickstart = the README's
+- r27-5 (T05) the VM harness — VERIFIED (04:44): tools/vm-create.sh (session VM, kickstart = the README's
   install on this PC's layout: one Btrfs subvol root, /boot XFS outside, UEFI; Fedora 44 from the
   master server https://dl.fedoraproject.org/pub/fedora/linux/releases/44/Everything/x86_64/os/
   (.treeinfo "Fedora 44"; the redirector's mirror refused the initrd: 403) + updates repo; no
@@ -248,6 +248,11 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   verify 230 passed + 3 named skips, dwl/waybar/mako up, screenshot ok (resumed at the gate after
   the verify fix — a full fresh run follows). The PC's 27 extra checks were session checks (verify
   ran before the desktop) → vm-smoke now verifies with the desktop up.
+  DONE 04:44 — the full fresh run, in one go: a bare Fedora 44 → fedokawaii.sh all through its
+  reboots in 16 min → desktop up (dwl, waybar, mako; screenshot ok) → verify 251 passed + 4 named
+  skips (H264/HEVC/AV1 decode, DDC/CI; the PC: 257). State "built" saved (vm-snap.sh f44 save built,
+  22 s: 12 G overlay over the 61 G base, reflinked — ~/VM is its own Btrfs subvolume, outside the
+  system's snapshots) — the update-system tests (T45–T49) start from it.
 - r27-7 (T07) fonts — DECIDED 04:45 (the owner may veto): UI = JF Dot Shinonome 14 regular, repaired
   (public domain; 14 px, 7 px cells; 52 touching T pairs + 4 gutter-less kanji fixed in the build;
   fallback Fusion Pixel 12 proportional, OFL); terminal = UDEV Gothic NF 2.2.0, 16 px, cell 8x19,
