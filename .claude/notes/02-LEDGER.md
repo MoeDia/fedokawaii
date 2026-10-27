@@ -346,6 +346,19 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   Sumi UI under MIT (Cozette's; Shinonome public domain) — system/fonts/LICENSE. Specimen sheet
   checked at 2× in both moods (fixed after looking: ↑↓ cap-tall beside 5-row ←→, ‹› bigger than
   the face's « »). Kept: declared weight 700 (drawn regular) so fontconfig never synthesises bold.
+- r27-10b (T10, the icons — 07:55, not applied live yet: with T10c) every icon drawn again BY HAND
+  for Sumi UI 14 in its weight (1 px strokes), from a mechanical first pass (thin + 14→12) that was
+  judged by eye and mostly redrawn: 12 × 12 beside words (middle on the capitals' middle), 14 × 14
+  alone (the four layouts drawn as what dwl does: master+stack, overlap, monocle, fibonacci), 16 × 16
+  emblems (the torii with 2 px pillars; the cats padded until T18's demon/angel), 18 × 12 the volume
+  ladder (arcs centred on row 6) and the cassette (its reels + and × as they turn). Decided on
+  sight: BRIGHTNESS is now a bulb gaining a pair of rays a level (the owner: the weather's sun and
+  brightness looked the same — a ◐ was tried and dropped: it is theme's); every "off" is the thing
+  with a small × at its top right (speaker, mic, bell, wifi) — slashes were unreadable at 12 px.
+  Checked: every drawing renders pixel-exact from SumiIcons.ttf at 14 px (the six 64/128 px meter
+  pieces only clipped by the check's canvas); sheet .claude/notes/design-r27/icons-r27.png, the
+  drawings' source icons-new.py. tools/build-icons.py on the 14 px grid (1400 upm, middle 5 px,
+  7 px cells, even sizes only); eq/lv/seg parts untouched (their surfaces: T14, T15).
 - r27-33 (T29, findings 04:00 — not fixed yet) Prowlarr: on demand by design (kawa-prowlarr: up while
   torrra searches, asleep 30 min after) — "inactive" is normal. /api/v1/health: 0 now. Its own log
   (~/.config/prowlarr/logs) over 8 days: Warn AllowedHostsCheck "Allowed Hosts is not configured"

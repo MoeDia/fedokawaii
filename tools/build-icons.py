@@ -14,8 +14,8 @@ Outputs (all committed, so a normal install needs neither Python nor fontTools):
         fetch, the pop-ups' titles)
     configs/home/.config/fedokawaii/icons.sh
 
-The font copies Sumi UI's grid: 1600 units per em, 100 units per pixel, so at 16 px (or 32,
-48…) every pixel of the drawing lands on exactly one screen pixel.
+The font copies Sumi UI's grid: 1400 units per em, 100 units per pixel, so at 14 px (or 28,
+42…) every pixel of the drawing lands on exactly one screen pixel.
 Each run of '#' is merged into rectangles, so the outlines are few and gap-free.
 Needs: python3-fonttools (dnf install python3-fonttools).
 """
@@ -33,17 +33,17 @@ ROOT = pathlib.Path(__file__).resolve().parent.parent
 SRC = ROOT / "art" / "icons.txt"
 TTF = ROOT / "configs/home/.local/share/fonts/SumiIcons.ttf"
 TERM_TTF = ROOT / "configs/home/.local/share/fonts/SumiIconsTerm.ttf"
-TERM_RAISE = 1                    # pixels: Sumi Term's capitals stand 14 px on the baseline
+TERM_RAISE = 2                    # pixels: Sumi Term's capitals stand 14 px on the baseline (their middle 7)
 TERM_SHIFT = 16                   # pixels to the left (all its air): its ink starts at its cell's edge
 TERM_UPM, TERM_ASC, TERM_DESC = 2000, 1700, -300  # Sumi Term's em and line: 17 up, 3 down
 SH = ROOT / "configs/home/.config/fedokawaii/icons.sh"
 
-UPM, PX = 1600, 100               # Sumi UI's grid: a 16 px em, 100 units per pixel
-ASC, DESC = 1400, -200            # its line: 14 up, 2 down — mixing the fonts keeps the line
+UPM, PX = 1400, 100               # Sumi UI's grid: a 14 px em, 100 units per pixel
+ASC, DESC = 1200, -200            # its line: 12 up, 2 down — mixing the fonts keeps the line
 FIRST = 0xFE000                   # Supplementary Private Use Area A
-BAR_GAP = 8                       # the bar: from an icon's ink to its value's (a column of Sumi UI)
-MIDDLE = 6                        # an icon's middle in pixels above the baseline (Sumi UI's
-                                  # capitals stand 13 px on it: an even icon rests on it)
+BAR_GAP = 8                       # the bar: from an icon's ink to its value's (a column of the grid)
+MIDDLE = 5                        # an icon's middle in pixels above the baseline: the middle of
+                                  # Sumi UI's capitals (10 px tall on it)
 
 
 def parse(text):
@@ -82,15 +82,14 @@ def parse(text):
         if len(widths) != 1:
             sys.exit(f"icons.txt:{ic['line']}: {name} rows differ in width {sorted(widths)}")
         w, h = widths.pop(), len(rows)
-        # two kinds: even × even, resting on the baseline (an icon of 14 rows as tall as Sumi
-        # UI's capitals, beside words); and seal-sized, 15 rows, odd × odd, as tall as Sumi
-        # UI's kanji less a row — the bar's buttons, which hold kanji and icons alike
-        if h % 2 and h != 15:
-            sys.exit(f"icons.txt:{ic['line']}: {name} is {h} rows; heights are even, or 15 (seal-sized)")
-        if "x" not in ic and (w % 2) != (h % 2):
-            sys.exit(f"icons.txt:{ic['line']}: {name} is {w} × {h}; even × even, or odd × 15")
+        # even × even, its middle on the capitals' middle (12 beside words, 14 alone, 16 the
+        # emblems); a part laid by the pixel (x given: the meters' pieces) any width
+        if h % 2:
+            sys.exit(f"icons.txt:{ic['line']}: {name} is {h} rows; heights are even")
+        if "x" not in ic and w % 2:
+            sys.exit(f"icons.txt:{ic['line']}: {name} is {w} × {h}; even × even")
         ic["w"], ic["h"] = w, h
-        ic.setdefault("adv", -(-w // 8) * 8)    # whole 8 px columns of Sumi UI: a 14 or 15 px icon two
+        ic.setdefault("adv", -(-w // 7) * 7)    # whole 7 px columns of Sumi UI: a 12 or 14 px icon two
         ic.setdefault("x", (ic["adv"] - w) // 2)
     return icons
 
