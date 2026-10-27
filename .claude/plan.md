@@ -110,7 +110,7 @@ approach:
 accept: the doc has no "TBD"; test_design_doc.sh checks every size in the doc appears in the generated configs (bar height, pads, font px) — parses the tables; ledger lists the decisions.
 AMENDED (T09, 05:25): the sizes cannot be in the configs before the surfaces are rebuilt, so test_design_doc.sh checks them per surface as each lands (a BUILT list, §14 of the doc): T10 adds `ui-face`, T11 `term-face`, T14 `bar`, T15 `windows` + `notices` — each task's acceptance includes its `built_*` check green.
 
-### T10 — build the UI face, re-grid icons/signs, rebuild width tables  [todo]
+### T10 — build the UI face, re-grid icons/signs, rebuild width tables  [done 2026-10-27 06:25 — ledger r27-10a…d; surface conformance (px.py 0 px) lands with each surface's redesign: T12–T16]
 deps: T09  · model: main  · ledger: r27-10
 files: tools/build-fonts.py (new sources, new cell), art/signs.txt (redrawn for the new cells), art/icons.txt (every icon re-drawn/re-gridded to the new UI cell; the icon's "air-less twin" rule kept), tools/build-icons.py, system/fonts/*.ttf, configs/home/.local/share/fonts/SumiIcons*.ttf, configs/home/.config/fedokawaii/width.sh + icons.sh (generated), system/60-fedokawaii-pixel.conf, configs/home/.config/fontconfig/fonts.conf, configs/home/.config/waybar/style.css + config.jsonc (sizes only here; the redesign is T15), themes/*/gtklock.css, mako config, kawa-panel (PX constants), kawa-greet, kawa-osd, kawa-saver (glyphs.h), plymouth/GRUB display sizes, lib/upstream.sh (sources pinned by checksum, not in the repo), tests/static/test_generated.sh, tests/menus/*, tests/status/width.py
 approach:
@@ -175,6 +175,7 @@ approach:
 - One rule set in screen.sh (heading, row, footer, blank rows, column widths, right-aligned values) that every TUI sources; dashed `╌` lines gone everywhere (grep-tested); spacing re-measured in a shot of each screen at the spiral's first window size and at full screen.
 - Books "torn down and redone": the list on the left (progress as a 10-cell pixel bar glyph set), the cover right, alignment by column rule; the flicker causes measured with a passthrough recording before/after (fzf redraw vs our preview redraw).
 - Launcher entries for terminal programs get their pixel icon (22 px) instead of a kanji seal.
+FOUND (06:25, during T10): the launcher lists Foot, Foot Client AND Foot Server — one terminal entry only (NoDisplay for footclient/foot-server; audit every duplicate or helper entry the same way).
 accept: `grep -rn '╌' bin lib system` empty except where the design table allows (none); shots of every TUI both themes at two sizes measured; recordings show zero full-screen clears on notes save / calc typing / clipboard exit; tests green.
 
 ### T17 — the side-by-side audit: every surface, both themes, one grammar (the coherence pass)  [todo]

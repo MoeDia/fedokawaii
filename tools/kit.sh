@@ -11,7 +11,7 @@
 #     --edit     sed SED applied to the kit's copy of FILE (under ~/.config, or .bashrc): sizes …
 #     --themes   a trial palette's files (tools/build-themes.py --palette P --out DIR) in place
 #                of the installed ones: the theme folders, foot's colours, GTK, nvim's colours
-#     SCENE      bar · notice · launcher · term · system (Super+U) · full (default: bar notice term full)
+#     SCENE      bar · notice · launcher · term · quick (Super+X) · system (Super+U) · full (default: bar notice term full)
 # Shots → OUT (default /dev/shm/r27/kit/THEME)/SCENE.png. Exit 0 · 1 a scene failed · 2 misuse.
 set -u
 here=$(cd "$(dirname "$0")" && pwd)
@@ -109,6 +109,8 @@ for s in ${scenes[*]}; do
       footclient -W 100x24 -- bash -i >/dev/null 2>&1 &
       sleep 2; wtype -s 1200 -d 30 "ls --color=always /usr/share | head -5"; wtype -k Return; sleep 1.5
       grim "$out/term.png" ;;
+    quick)    # quick settings (Super+X: kawa-quick → kawa-panel), its whole window
+      kawa-quick >/dev/null 2>&1 & sleep 2; grim "$out/quick.png"; wtype -k Escape; sleep 0.5 ;;
     system)   # Super+U: its foot window as kawa-warm sizes it (app-id float: dwl puts no warm window away)
       footclient -a float -T system -W 100x27 -- fedokawaii --popup >/dev/null 2>&1 &
       sleep 3; grim "$out/system.png"; wtype -k Escape; sleep 0.5 ;;
