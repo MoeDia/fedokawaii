@@ -310,13 +310,15 @@ done
 va=$(vainfo --display drm --device "$rnd" 2>/dev/null)
 # (Fedora's own VA driver leaves H.264 and HEVC out: while RPM Fusion's waits, a warning)
 for p in VAProfileH264High VAProfileHEVCMain; do
-  if grep -q "$p" <<<"$va"; then pass "hardware decode: ${p#VAProfile}"
+  if hw_test_vm; then info "hardware decode: ${p#VAProfile} — skipped: the test harness's VM has no GPU to decode with"
+  elif grep -q "$p" <<<"$va"; then pass "hardware decode: ${p#VAProfile}"
   elif [[ $GPU_KIND == amd ]] && grep -qx mesa-va-drivers-freeworld < <(waiting rpmfusion); then
     warn "no hardware decode: ${p#VAProfile} yet" "RPM Fusion's VA driver waits for this Fedora's Mesa — such video plays on the CPU meanwhile"
   else fail "hardware decode: ${p#VAProfile}"; fi
 done
 # AV1 decoding needs AMD RDNA 2+ or Intel Tiger Lake+: older cards get a note, not a failure
-if grep -q VAProfileAV1Profile0 <<<"$va"; then pass "hardware decode: AV1Profile0"
+if hw_test_vm; then info "hardware decode: AV1Profile0 — skipped: the test harness's VM has no GPU to decode with"
+elif grep -q VAProfileAV1Profile0 <<<"$va"; then pass "hardware decode: AV1Profile0"
 elif [[ -n $va ]]; then warn "no AV1 hardware decode" "this GPU predates it; AV1 video decodes on the CPU"
 else fail "hardware decode" "vainfo found no VA-API driver on ${rnd:-any render node}"; fi
 check "Vulkan driver present"                          compgen -G '/usr/share/vulkan/icd.d/*.json'
