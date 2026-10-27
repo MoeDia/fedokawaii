@@ -82,7 +82,7 @@ accept: notice shown (screenshot) and shown again after a session restart until 
 
 ## Phase 1 — foundations that move everything: fonts, palette, the design system as the single truth
 
-### T07 — the new fonts, chosen by rendering in our real surfaces  [todo]
+### T07 — the new fonts, chosen by rendering in our real surfaces  [done 2026-10-27 — decision in .claude/notes/fonts-r27.md]
 deps: T03  · model: main (renders, decision), sub:sonnet (the facts table: licence, coverage, drawn sizes, hinting, download URL + checksum per candidate, from each project's official page)  · ledger: r27-7
 files: .claude/notes/fonts-r27.md (the comparison with shots), tools/font-try.sh (renders a candidate into waybar/panel/foot/mako/gtklock headless, both themes), scratch fonts outside the repo (~/.cache/r27-fonts/)
 approach:
