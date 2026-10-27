@@ -551,6 +551,19 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   the four faces; hw_firmware_pkgs reads this machine's firmware) → T53, where the world gets
   its own writable copies of what the installer writes. The live installer is unaffected
   (apply 08:52, verify 257/257).
+- r27-13c (T13, live check of the timed quiet — 11:00–11:05, two fixes committed and applied) Fired
+  the real transient unit instead of trusting the stubs: (1) it ran kawa-quick from the user
+  manager, whose PATH (systemctl --user show-environment: /usr/local/bin:/usr/bin) has no
+  ~/.local/bin — makoctl ended the quiet but kawa-state/kawa-dwlstatus were "not found" (exit
+  127): the bell would have stayed on the bar → systemd-run --setenv=PATH="$PATH"; (2) the end's
+  first step stopped kawa-dnd-end.service — the very service it ran in — so it was killed before
+  makoctl and the quiet would never have ended → the timer runs "dnd end": only the timer
+  stopped, then off as usual; --collect so a failed unit never keeps the name. Verified live:
+  "for an hour" → do-not-disturb mode, the unit's Environment PATH=/home/dia/.local/bin:…, the
+  bell with "until 12:03"; `systemctl --user start kawa-dnd-end.service` (the timer's own end, now)
+  → mode default, the bell gone, timer and unit gone, the record file gone; off/on by hand as
+  before. test_quick 361/0. Seen on the way (→ T14): the mode tile uses ICON_BAR_BELL_OFF, the
+  icon-before-a-value form with 8 px of trailing air — an icon alone needs the 14 px "alone" form.
 - r27-33 (T29, findings 04:00 — not fixed yet) Prowlarr: on demand by design (kawa-prowlarr: up while
   torrra searches, asleep 30 min after) — "inactive" is normal. /api/v1/health: 0 now. Its own log
   (~/.config/prowlarr/logs) over 8 days: Warn AllowedHostsCheck "Allowed Hosts is not configured"
