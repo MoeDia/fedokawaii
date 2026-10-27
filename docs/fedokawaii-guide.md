@@ -190,7 +190,7 @@ Four ideas run through every file:
 | **One tool per job** | one editor (neovim), one browser (Brave Origin), one terminal (foot), one panel for the launcher and every menu (kawa-panel). `verify.sh` fails if a second one appears, and update and repair take out what is doubled or fights (§36.2) |
 | **Nothing hidden** | every package is listed in `lib/manifest.sh`, every release binary in `lib/upstream.sh`, every colour in `tools/build-themes.py`, every icon in `art/icons.txt` |
 | **Proof, not hope** | `verify.sh` checks the machine against the lists; `theme.sh --check` checks every config against the repository |
-| **Pixel-exact** | two pixel faces — Sumi UI on a 16-pixel grid, Sumi Term on a 20-pixel one — and the icons drawn on the same grids, shown at whole multiples of them only (16 in the bar and menus, 20 in the terminal, 64 for the lock screen's clock, 32 to 64 in the boot menu); pixel art is enlarged by whole numbers only, so every pixel stays a sharp square |
+| **Pixel-exact** | a pixel face — Sumi UI on a 14-pixel grid — and the icons drawn on the same grid, shown at whole multiples of it only (14 in the bar and menus, 56 for the lock screen's clock, 28 to 56 in the boot menu); the terminal's face, UDEV Gothic NF, in a cell of 8 × 20 pixels; pixel art is enlarged by whole numbers only, so every pixel stays a sharp square |
 
 In plain words: the project keeps a written list of everything it installs, and a checker
 that compares the machine with that list. If the two differ, you are told — nothing drifts
@@ -3670,16 +3670,15 @@ and its marks are described in §11.3.
 | double · triple · four clicks | select a word · the text inside the quotes around it (the whole line where there are none) · the whole line |
 | Ctrl+drag | select a rectangle, such as one column of `ll`'s output |
 
-**The letters.** The text is Sumi Term at 20 px — Kappa 20 Bold, the bitmap face of the old
-kterm terminals, drawn on a 20-pixel grid and shown at exactly that size, so every pixel of
-the font is one sharp screen pixel; a Latin letter takes one cell, a kanji two. On a 24-inch
-1080p screen a window filling it holds 188 × 42 cells. The font's own lines are exactly 20 px
-tall, so the tallest letters of one line would touch the next: `line-height=24px` in
-`foot.ini` puts 4 px of air between lines. Each character cell is therefore 10 × 24 pixels,
-and `kawa-cell` typed in a terminal prints it (`10x24`). The desktop's icons in the terminal
-(Sumi Icons Term) are drawn on the same grid, two cells wide and a line high. Ctrl++ and
-Ctrl+- change the size a whole grid at a time (20, 40, 60 px — crisp at every step); Ctrl+0
-comes back.
+**The letters.** The text is Sumi Term at 16 px — UDEV Gothic NF (JetBrains Mono's letters,
+BIZ UDGothic's Japanese, the Nerd Font symbols), installed as it comes and given that name by
+fontconfig: a Latin letter takes one cell of 8 px, a kanji two; no ligatures, so `==` and `->`
+stay what you typed. `line-height=20px` in `foot.ini` makes each line 20 px — the design's row
+(docs/design-system.md §3) — with the baseline 16 px down: each character cell is 8 × 20
+pixels, and `kawa-cell` typed in a terminal prints it (`8x20`). The desktop's icons in the
+terminal (Sumi Icons Term) are the bar's own 12 × 12 drawings, pixel for pixel, each centred
+in two cells. Ctrl++ and Ctrl+- change the size 2 px at a time (16, 18, 20 px: a cell of 8,
+9, 10 px, whole pixels at every step); Ctrl+0 comes back.
 
 **See-through.** The terminal's ground lets a little of the wallpaper through (alpha 0.92: the
 letters stay as they are; no blur — dwl draws none, and it would cost the graphics card for
@@ -10274,7 +10273,7 @@ update never moves them, and a download that differs by one byte is refused.
 | lazygit | 0.66.2 | its colours file and ch. 41's keys are written for it |
 | bluetui | 0.8.2 | Bluetooth pairing in a terminal; its release file is the program itself |
 | herdr | 0.9.5 | the Agents window; its config is written for it |
-| JetBrains Mono (Nerd Fonts) | 3.5.1 | the apps' monospace font, and the symbols terminal programs draw |
+| UDEV Gothic NF | 2.2.0 | the terminal's face (Sumi Term) and every program's monospace, with the Nerd Font symbols |
 | Syncplay | 1.7.6 (its tag's commit) + two fixes of ours | run from its source on Fedora's Python libraries: Fedora's package would bring Qt for a window never used; the fixes (`src/syncplay/syncplay.patch`) are in the recorded pin, so a changed patch is put in by the next update |
 | LocalSend | 1.18.2 | its own release, kept whole in `~/.local/share/localsend`: Fedora does not package it |
 | ble.sh | 0.4.0-devel4+d81fd54 (a commit of 8 Sep 2026) | its own releases (2023) predate the bash 5.3 Fedora ships, and its nightly file is replaced in place, so it is built here from that commit — git checks every file against it |
@@ -11858,7 +11857,7 @@ Three libraries put text on the screen, in this order:
 
 ```text
 $ fc-match monospace
-JetBrainsMonoNerdFont-Regular.ttf: "JetBrainsMono Nerd Font" "Regular"
+UDEVGothicNF-Regular.ttf: "UDEV Gothic NF" "Regular"
 ```
 
 *(for example)* The rules are in `~/.config/fontconfig/fonts.conf` (§40.3); after changing them,
@@ -12908,10 +12907,10 @@ cat /var/lib/fedokawaii/last-verify    # → 1792039927 179 0 1
 | drivers and firmware | every package this hardware needs (microcode, Wi-Fi, sound DSP, missing firmware, Intel's video decoding beside an AMD card; one missing is a warning: update and repair install it) · microcode loaded at boot · every network, display, sound and USB device held by a driver · Wi-Fi managed by NetworkManager · device firmware updates, when fwupd knows of any (shown, never a fault) · udisks answers, so drives open · which driver opens NTFS |
 | compositor & login | dwl version and pinned commit, XWayland, its own wlroots and every library, the patch (keys, gaps, frames, centring, layout) · the session launcher and its keyboard layouts · the greetd SELinux module, the login screen (kawa-greet in cage, for you) and its look for both themes · greetd alone on tty1, after the splash, and a login screen that cannot start said on tty1 · the pixel font crisp for every account · the lock screen's words (*ちがう · wrong password*) · the yazi file dialog built and known to the portals |
 | services | greetd, Bluetooth, snapper timers, fstrim, PipeWire · the tuned profile · Wi-Fi power saving off · the Bluetooth dongle's power saving off · ntsync · linger · shutdown's 30 s for your services · `secrets.sh` private · Prowlarr: its key in `secrets.sh`, its container file current, its start waiting on nothing online (no `podman-user-wait-network-online.service`), running, answering, taking the key, its files yours, the usual eight indexers (a warning when one is missing) · podman's database · `~/Downloads` outside the snapshots · the SSH policy and firewall ports (6881 for torrents, 53317 for LocalSend) |
-| upstream binaries (lib/upstream.sh) | present, every library resolves, `--version` runs · the desktop's faces, Sumi UI and Sumi Term, and the Nerd Font · LocalSend · Syncplay · ble.sh · GE-Proton |
+| upstream binaries (lib/upstream.sh) | present, every library resolves, `--version` runs · the desktop's face, Sumi UI, and the terminal's, UDEV Gothic NF · LocalSend · Syncplay · ble.sh · GE-Proton |
 | applications | Brave Origin actually starts · Claude Code · LazyVim · torrra loads and runs through its wrapper, with no key in its config · mpv in the bar · yt-dlp's JavaScript runtime · lazygit · qalc · restic |
 | snapshots | a snapper config for `/` · the baseline snapshot (a warning when it is gone) · a snapshot pair around every DNF run · the snapshots' bounds · the monthly Btrfs scrub, and what the last one found |
-| theme | every file in sync · dwl built from `config.h` · foot accepts its config · waybar config parses · GTK and the portal follow the current theme · no window buttons · default programs · Brave in the desktop's colours · Qt palette · fonts resolve (Arabic, Japanese, Chinese, Korean) · the desktop's face Sumi UI, sharp at 16 px, and the terminal's Sumi Term, at 20 px · mpv's colours · the lock screen's pictures for both themes · the two C helpers built · the clipboard window · the wallpaper pack · the Sumi pointers · the yazi file dialog · cava · the boot menu theme · the boot splash (*起動中 · starting Fedora*), and in every kernel's boot image (`lsinitrd`) |
+| theme | every file in sync · dwl built from `config.h` · foot accepts its config · waybar config parses · GTK and the portal follow the current theme · no window buttons · default programs · Brave in the desktop's colours · Qt palette · fonts resolve (Arabic, Japanese, Chinese, Korean) · the desktop's face Sumi UI, sharp at 14 px, and the terminal's Sumi Term, UDEV Gothic NF at 16 px, smoothed · mpv's colours · the lock screen's pictures for both themes · the two C helpers built · the clipboard window · the wallpaper pack · the Sumi pointers · the yazi file dialog · cava · the boot menu theme · the boot splash (*起動中 · starting Fedora*), and in every kernel's boot image (`lsinitrd`) |
 | live session | bar, notifications, terminal server, wallpaper, idle, automount, status readers, polkit agent, clipboard history and keeper, the update reminder · the graphical session known to systemd · the file-dialog and screen-sharing portals · the "Share" sound devices (PipeWire's node `share_sink`) · the refresh rate is the best available · a monitor answers DDC/CI · night light (shown, never a fault: it is yours to switch off) |
 
 The *live session* area appears only while your desktop session runs (verify looks for dwl):
@@ -14501,7 +14500,7 @@ below read.
 | GTK 4 / libadwaita | one `gtk.css` with both palettes, chosen by GTK's color-scheme media query | gsettings `color-scheme` |
 | GTK 3 | two GTK themes of its own, `Fedokawaii` and `Fedokawaii-dark` (adw-gtk3 + the palette, in `~/.local/share/themes`) | gsettings `gtk-theme` — every open window, the file dialog included |
 | Brave | GTK mode (set by Theme): its tab strip, toolbar and menus come from the GTK theme, a few rules in it reach Brave alone (the address bar keeps Brave's own colours); the new-tab page is the ground colour (`light-dark()`); web pages follow the portal's dark / light | live |
-| Qt | `qt6ct.conf` is a link into the theme (the palette, GTK's fonts — Noto Sans 10.5, JetBrainsMono Nerd 11 — and GTK's Adwaita icons) | the link is replaced; qt6ct watches its folder |
+| Qt | `qt6ct.conf` is a link into the theme (the palette, GTK's fonts — Noto Sans 10.5, UDEV Gothic NF 11 — and GTK's Adwaita icons) | the link is replaced; qt6ct watches its folder |
 | mpv | `include` of `current/mpv.conf`: on-screen text, the controller, menus | every open player loads the new file over its socket |
 | btop | `color_theme = "fedokawaii"`: `~/.config/btop/themes/fedokawaii.theme` is a link through `current` (btop takes themes only by name) | SIGUSR2 |
 | zathura | `include ../fedokawaii/current/zathurarc` | `SourceConfig` over D-Bus |
@@ -14538,10 +14537,9 @@ checks that each one is still a palette colour (it stops if not).
 
 | Font | Where | Why |
 |---|---|---|
-| **Sumi UI** (東雲 Shinonome Gothic 16 Bold) | everything the desktop draws itself: the bar, the launcher, menus, panels and notifications at 16 px; the lock and login screens (their clock at 64); the boot menu at 32, 48 or 64 px; the boot splash; the game overlay | a dot face with Latin, kana and kanji in one face, on a 16 px grid (a letter 8 px wide, a kanji 16) — set at 16 px or a whole multiple, never in points, with smoothing off. Every one-cell character keeps its last column empty (the face's bold reached it, and two letters, figures or signs touched: "pdf", "100%"); its five old-fashioned signs (the tilde, the backslash, both quotes, the grave accent) are redrawn and the small signs the desktop uses (arrows, ◆ ● ✓ ✗ ·) drawn by hand on its grid (`art/signs.txt`); what it lacks — accented Latin, Greek, Cyrillic, more signs — comes from GNU Unifont JP 17, made bold to match |
-| **Sumi Term** (Kappa 20 Bold) | the terminal and all in it (neovim, yazi, btop…) at 20 px, on 24 px lines (§11.9) | the bitmap face of the old kterm terminals, on a 20 px grid, a 10 × 24 px cell, its signs and its gaps made as Sumi UI's. Both faces are files of this repository (`system/fonts`, made by `tools/build-fonts.py` from the public-domain JF Dot fonts and Unifont JP; SIL Open Font License 1.1), installed for every account in `/usr/local/share/fonts/fedokawaii`, because the login screen runs as its own user, and declared bold — the weight they are drawn in — so no program ever smears them wider with a bold of its own making |
+| **Sumi UI** (東雲 Shinonome Gothic 14) | everything the desktop draws itself: the bar, the launcher, menus, panels and notifications at 14 px; the lock and login screens (their clock at 56); the boot menu at 28, 42 or 56 px; the boot splash | a dot face with Latin, kana and kanji in one face, on a 14 px grid (a letter 7 px wide, a kanji 14), every stroke one pixel — set at 14 px or a whole multiple, never in points, with smoothing off. No two letters touch (each one-cell character keeps its last column empty); its five old-fashioned signs (the tilde, the backslash, both quotes, the grave accent) are redrawn, the signs and punctuation the desktop uses (‘ ’ “ ” – — … • arrows ◆ ● ✓ ° ± × ÷ €) drawn by hand on its grid (`art/signs.txt`), Latin Extended-A (ā č ę ł ő ř ş ž) composed from its own letters and accents, and Greek, Cyrillic and the rarer signs taken from Cozette (MIT). A file of this repository (`system/fonts`, made by `tools/build-fonts.py`; MIT), installed for every account in `/usr/local/share/fonts/fedokawaii` because the login screen runs as its own user, and declared bold so no program ever smears it with a bold of its own making |
+| **Sumi Term** (UDEV Gothic NF) | the terminal and all in it (neovim, yazi, btop…) at 16 px, on 20 px lines (§11.9); and every program's `monospace` — GTK and Qt, mpv's on-screen text, Syncplay's words on the film, zathura | JetBrains Mono's letters with BIZ UDGothic's Japanese and the Nerd Font symbols, one face for all code: installed as it comes from its own release (`lib/upstream.sh`, each of its four files pinned by SHA-256; SIL Open Font License 1.1, "UDEV Gothic" its reserved name), and named "Sumi Term" by an alias in `/etc/fonts/conf.d/60-fedokawaii-pixel.conf`; drawn smoothed in grey with light hinting |
 | **Sumi Icons** | every icon in the bar, menus and notifications — and, as *Sumi Icons Term*, in the prompt, fetch and the clipboard and wallpaper windows | the desktop's own icon font, built from `art/icons.txt` on the same grid |
-| **JetBrains Mono** (Nerd Font) | the `monospace` font of GTK and Qt programs; mpv's on-screen text, and Syncplay's words on the film from its first frame (`~/.config/mpv/script-opts/syncplayintf.conf`, and the same in `syncplay.ini`); in the terminal, only the symbols Sumi Term lacks (yazi's file icons) | readable code in apps, and the Nerd Font symbols terminal programs draw |
 | **Noto Naskh Arabic** · **Noto Kufi Arabic** | Arabic: Naskh in GTK and Qt programs, Brave and LibreOffice (fontconfig's `sans-serif` for `lang=ar`, Amiri for `serif`); Kufi in the bar, the menus and the notices, beside the pixel letters | joined and right to left wherever the program shapes text. The terminal (foot) cannot: it would draw Arabic unjoined and left to right, so nothing the desktop shows there carries it — the weather window names your city as `WEATHER_CITY` spells it |
 | **Noto Sans CJK** | Japanese, Chinese and Korean in programs, web pages and subtitles | a full, smooth face where text is read at length |
 | **Terminus** | the text console | sharp bitmap font for the console under the login screen |
@@ -14551,9 +14549,9 @@ A *point* is a length (1/72 inch) that turns into a different number of pixels w
 screen's scaling; a pixel size is exact, which is what a pixel font needs. Fontconfig, the
 library every program asks which font to use and how to draw it (§31.7), has rules in
 `/etc/fonts/conf.d/60-fedokawaii-pixel.conf` switch three things **off** for the pixel fonts —
-Sumi UI, Sumi Term and the two Sumi Icons. They are installed for every account, the login
-screen's too, and read after your own `~/.config/fontconfig/fonts.conf`, because in fontconfig the
-last matching edit wins:
+Sumi UI and the two Sumi Icons — and name UDEV Gothic NF "Sumi Term". They are installed for
+every account, the login screen's too, and read after your own `~/.config/fontconfig/fonts.conf`,
+because in fontconfig the last matching edit wins:
 
 | Setting | What it does | Other fonts | Pixel fonts |
 |---|---|---|---|
@@ -14561,20 +14559,20 @@ last matching edit wins:
 | `hinting` | nudges outlines onto the pixel grid | slight | off — they sit on it already |
 | `rgba` | colour fringes (subpixel smoothing) | `rgb` | `none` |
 
-The desktop asks for them only at whole multiples of their grids — Sumi UI at 16, 32, 48 and
-64 px, Sumi Term at 20, 40 and 60 — the sizes where every pixel of the font lands on one, two,
-three or four screen pixels; nothing sets them at any other size.
+The desktop asks for them only at whole multiples of their grids — Sumi UI at 14, 28, 42 and
+56 px — the sizes where every pixel of the font lands on one, two, three or four screen pixels;
+nothing sets them at any other size.
 
 ```sh
-fc-match -f '%{antialias}\n' 'Sumi UI:pixelsize=16'     # → False: drawn sharp
-fc-match -f '%{antialias}\n' 'Sumi Term:pixelsize=20'   # → False: the terminal's, sharp too
+fc-match -f '%{antialias}\n' 'Sumi UI:pixelsize=14'     # → False: drawn sharp
+fc-match -f '%{family[0]} %{antialias}\n' 'Sumi Term:pixelsize=16'   # → UDEV Gothic NF True
 ```
 
 **Try this.** Ask fontconfig which font a program gets for code, for Arabic and for Japanese.
 
 ```text
 $ fc-match monospace
-JetBrainsMonoNerdFont-Regular.ttf: "JetBrainsMono Nerd Font" "Regular"
+UDEVGothicNF-Regular.ttf: "UDEV Gothic NF" "Regular"
 $ fc-match 'sans-serif:lang=ar'
 …: "Noto Naskh Arabic" "Regular"
 $ fc-match 'sans-serif:lang=ja'
@@ -14599,8 +14597,9 @@ cat — is *seal-sized*, standing as the font's kanji do, so in the bar kanji an
 alike.
 `tools/build-icons.py` merges each drawing into a few rectangles and writes
 `SumiIcons.ttf` (code points U+FE000 onward, clear of every Nerd Font), its terminal cut
-`SumiIconsTerm.ttf` ("Sumi Icons Term": the same drawings on Sumi Term's 20 px line, without
-their air on the left, because foot draws each from the left edge of its cell) and
+`SumiIconsTerm.ttf` ("Sumi Icons Term": the same drawings beside Sumi Term at 16 px, each
+centred in whole 8 px cells — foot draws a glyph from the left edge of its cell, into the
+space after it) and
 `~/.config/fedokawaii/icons.sh`, which gives the scripts names like `$ICON_SPEAKER` — and, for
 the bar, `$ICON_BAR_SPEAKER`: the drawing with no air either side followed by exactly 8 px of
 space, so a module's padding is the paper before its icon's ink and 8 px the paper between the
@@ -15608,7 +15607,7 @@ An example of each language, as it appears in these files:
 ```ini
 # INI — foot/foot.ini: a [section], then key=value lines
 [main]
-font=Sumi Term:pixelsize=20,Sumi Icons Term:pixelsize=20,JetBrainsMono Nerd Font:pixelsize=17
+font=Sumi Term:pixelsize=16,Sumi Icons Term:pixelsize=16
 ```
 
 ```lua

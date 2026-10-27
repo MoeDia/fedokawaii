@@ -7,7 +7,7 @@
 . "$(dirname "$0")/../lib/harness.sh"
 sandbox
 DOC=$REPO/docs/design-system.md
-BUILT=(palette ui-face)
+BUILT=(palette ui-face term-face)
 
 case_ "whole: no open question left in it"
 grep -nE '\b(TBD|TODO|FIXME|XXX)\b|\?\?' "$DOC" >"$TMP/open" && _no "$(head -3 "$TMP/open")" || _ok
@@ -96,6 +96,19 @@ PY
   has "$(cat "$REPO/configs/home/.config/waybar/style.css")" "font-size: 14px;" "the bar"
   has "$(cat "$REPO/configs/home/.config/mako/config")" "14px" "the notices"
   eq "$(sed -n 's/^LINE = \([0-9]*\).*/\1/p; s/^COL = \([0-9]*\).*/\1/p' "$REPO/bin/kawa-panel" | paste -sd ' ')" "7 14" "kawa-panel's COL and LINE"
+}
+built_term-face() {   # §2: Sumi Term as the doc's table gives it — in foot, the alias, the pins
+  local row px cell line
+  row=$(grep -E '^\| \*\*Sumi Term\*\* \|' "$DOC")
+  px=$(awk -F' \\| ' '{print $4}' <<<"$row"); cell=$(awk -F' \\| ' '{print $5}' <<<"$row"); line=$(awk -F' \\| ' '{print $6}' <<<"$row")
+  eq "$px|$cell|$line" "16 px|8 × 20|20" "the doc's row (size, cell, line)"
+  local ini=$REPO/configs/home/.config/foot/foot.ini
+  has "$(cat "$ini")" "font=Sumi Term:pixelsize=${px% px},"; has "$(cat "$ini")" "line-height=${line}px"
+  has "$(cat "$ini")" "pad=8x8" "foot's pad: 8, the screen's own cell of margin making 16"
+  has "$(cat "$REPO/system/60-fedokawaii-pixel.conf")" "<family>Sumi Term</family>
+    <prefer><family>UDEV Gothic NF</family></prefer>" "the alias"
+  eq "$(. "$REPO/lib/upstream.sh"; printf '%s\n' "${TERM_FACE_FILES[@]}" | cut -d'|' -f1 | paste -sd ' ')" \
+     "UDEVGothicNF-Regular.ttf UDEVGothicNF-Bold.ttf UDEVGothicNF-Italic.ttf UDEVGothicNF-BoldItalic.ttf" "its four files pinned"
 }
 for s in "${BUILT[@]}"; do
   case_ "§14 $s: rebuilt to the doc — its numbers in its files"

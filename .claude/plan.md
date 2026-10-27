@@ -119,7 +119,7 @@ approach:
 - Re-render the gallery; measure every surface's gaps against T09 with tools/px.py; iterate until zero deviations.
 accept: tools/px.py reports every gap/pad/centre of bar, menu, quick settings, notice, OSD, lock, greeter, saver within 0 px of the design table, both themes; no pair-spacing fault in the pangram sheet; tests updated and green; `fedokawaii apply` installs the faces (verify checks the font files' checksums). + tests/static/test_design_doc.sh: `ui-face` in BUILT with its `built_*` check (the doc's numbers in its files), green.
 
-### T11 — build the terminal face; foot, TUIs, nvim re-aligned  [todo]
+### T11 — build the terminal face; foot, TUIs, nvim re-aligned  [done 2026-10-27 06:45 — ledger r27-11; live after a session restart; the TUIs' grammar itself: T12/T16]
 deps: T10  · model: main  · ledger: r27-11
 files: tools/build-fonts.py (term), art/icons.txt (term twins), configs/home/.config/foot/foot.ini (font, line-height, pad, font-size-adjustment), configs/home/.config/fedokawaii/screen.sh, lib/common.sh (_heading/_row widths), bin/kawa-term (window sizes in cells: the system menu's 100×27 etc. recomputed so every popup still centres to the pixel), every TUI's column maths (kawa-books, kawa-notes/notes.lua, kawa-clip, kawa-wallpaper --tui, kawa-file, kawa-help, system/fedokawaii), configs/home/.config/{yazi,btop,nvim,lazygit,bluetui,visidata,gdu} font-dependent bits, tests/content/*, tests/look/test_term.sh
 approach:
