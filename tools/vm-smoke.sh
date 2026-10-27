@@ -2,9 +2,11 @@
 # tools/vm-smoke.sh — the whole install proven in a test VM (tools/vm-create.sh), from the
 # fresh Fedora to a running desktop, the way the owner installs (README §2): this repository's
 # tracked files (as in the working tree) copied in, `sudo bash fedokawaii.sh all` — setup with the
-# theme, through its own reboots (it resumes on tty1) — then verify, then the desktop started
-# (greetd's initial session: no password anywhere) and looked at: dwl, the bar and the notices
-# running, a screenshot that is not black and has the bar on it.
+# theme, through its own reboots (it resumes on tty1) — then the desktop started (greetd's
+# initial session: no password anywhere), verify run with it up (its session checks too, as on
+# the PC), and the desktop looked at: dwl, the bar and the notices running, a screenshot that
+# is not black and has the bar on it. In this VM a check that needs real hardware (video
+# decoding, a monitor's DDC/CI) is a named skip (lib/hardware.sh hw_test_vm), never a pass.
 #   bash tools/vm-smoke.sh NAME [--keep] [--timeout MIN]
 #     --keep     start from the VM as it is (default: revert to the fresh install first)
 #     --timeout  the longest the install may take (default 240 min)
@@ -64,15 +66,17 @@ while :; do
 done
 note "setup done in $(( (SECONDS - t0) / 60 )) min"
 run 'sudo cat /var/log/fedokawaii.log' >"$out/setup.log" 2>&1
-run 'sudo fedokawaii verify' >"$out/verify.log" 2>&1
-vrc=$?
-counts=$(grep -oE '[0-9]+/[0-9]+' "$out/verify.log" | tail -n 1)
-note "verify: exit $vrc ${counts:+· $counts} (the failing lines: grep ✘ $out/verify.log)"
 # the desktop: greetd's initial session, as on the PC (CLAUDE.md START §4), never a password
 run 'f=/etc/greetd/fedokawaii.toml; sudo cp -a $f /root/fk.bak && printf "\n[initial_session]\ncommand = \"/usr/local/bin/start-dwl\"\nuser = \"dia\"\n" | sudo tee -a $f >/dev/null && sudo rm -f /run/greetd.run && sudo systemctl restart greetd; sleep 20; sudo cp -a /root/fk.bak $f' \
   || finish red "the session could not be started"
 procs=$(run 'for p in dwl waybar mako; do pgrep -u dia -x $p >/dev/null && printf "%s " $p; done')
 note "running: ${procs:-nothing}"
+# (verify with the session up, as on the PC: its session checks — the bar, the portals, sound — run too)
+run 'sudo fedokawaii verify' >"$out/verify.log" 2>&1
+vrc=$?
+counts=$(sed 's/\x1b\[[0-9;]*m//g' "$out/verify.log" | grep -oE '[0-9]+ checks passed|[0-9]+ of [0-9]+ checks failed' | tail -n 1)
+counts="$counts · $(grep -c 'skipped: the test harness' "$out/verify.log") named skips"
+note "verify: exit $vrc ${counts:+· $counts} (the failing lines: grep ✘ $out/verify.log)"
 run 'eval "$(tr "\0" "\n" </proc/$(pgrep -u dia -xo waybar)/environ | grep -E "^(WAYLAND_DISPLAY|XDG_RUNTIME_DIR)=" | sed "s/^/export /")"; grim /tmp/smoke.png' \
   && run --get /tmp/smoke.png "$out/desktop.png"
 shot=bad

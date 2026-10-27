@@ -819,6 +819,8 @@ if pgrep -u "$TARGET_UID" -x dwl >/dev/null; then
     pass "a monitor answers DDC/CI (brightness control works)"
   elif compgen -G '/sys/class/backlight/*' >/dev/null && grep -qsx connected /sys/class/drm/card*-eDP-*/status; then
     pass "the laptop's own screen: brightness through its backlight"
+  elif hw_test_vm; then
+    info "a monitor answers DDC/CI — skipped: the test harness's VM has no monitor"
   else
     warn "no monitor answered DDC/CI" "switch DDC/CI on in the monitor's on-screen menu, then try Super+]"
   fi
