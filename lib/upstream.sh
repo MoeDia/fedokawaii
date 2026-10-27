@@ -249,7 +249,7 @@ install_faces() {   # system/fonts → FACES_DIR (only what changed), the faces 
   # the folder touched first: a face rewritten in place leaves its mtime as it was, and
   # fontconfig would go on serving the cache it made of the old one
   if ((ch)); then touch "$FACES_DIR"; fc-cache -f >/dev/null; as_user fc-cache -f >/dev/null; fi
-  ok "Sumi UI and Sumi Term (the desktop's faces: Shinonome 16 and Kappa 20, bold)"
+  ok "Sumi UI and Sumi Term (the desktop's faces: Shinonome 14 and Kappa 20)"
 }
 
 # swap_in NEW DIR NAME — the folder NEW (built, and found to work) in DIR's place, the old one

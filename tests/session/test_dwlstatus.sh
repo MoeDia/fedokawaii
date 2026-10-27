@@ -353,7 +353,7 @@ from PIL import Image, ImageDraw, ImageFont
 root = sys.argv[1]
 w = open(root + "/configs/home/.config/fedokawaii/width.sh").read()
 L = re.search(r"^__AIR_L=(\d+)", w, re.M).group(1); R = re.search(r"^__AIR_R=(\d+)", w, re.M).group(1)
-f = ImageFont.truetype(root + "/system/fonts/SumiUI.ttf", 16); bad = []
+f = ImageFont.truetype(root + "/system/fonts/SumiUI.ttf", 14); bad = []
 for i in range(33, 127):
     im = Image.new("L", (48, 24)); ImageDraw.Draw(im).text((8, 0), chr(i), font=f, fill=255)
     xs = [x for x in range(48) for y in range(24) if im.getpixel((x, y)) > 128]

@@ -89,7 +89,7 @@ Ink on vermilion (`text_on_accent` on `accent`): 5.1 dark, 5.4 light.
 
 | face | built from | licence | size | cell | line | where |
 |---|---|---|---|---|---|---|
-| **Sumi UI** | JF Dot 東雲 Shinonome Gothic 14, the regular weight, repaired (`tools/build-fonts.py`) | public domain | 14 px | 7 px a letter, 14 a kanji or kana | 20 (a row) | the bar, panels, menus, the launcher, notices, the level display, lock, login, saver, boot |
+| **Sumi UI** | JF Dot 東雲 Shinonome Gothic 14, the regular weight, repaired; Latin Extended-A composed from its own letters; Cozette 1.30.0 for Greek, Cyrillic and the rarer signs (`tools/build-fonts.py`) | public domain + MIT | 14 px | 7 px a letter, 14 a kanji or kana | 20 (a row) | the bar, panels, menus, the launcher, notices, the level display, lock, login, saver, boot |
 | **Sumi Term** | UDEV Gothic NF 2.2.0, regular, no ligatures (JetBrains Mono's letters, BIZ UDGothic's Japanese, Nerd Fonts) | OFL 1.1 | 16 px | 8 × 20 | 20 | foot: every terminal screen, the TUIs, Neovim |
 | **Sumi Icons** | ours: `art/icons.txt` → `tools/build-icons.py` | ours | Sumi UI's grid | — | — | beside Sumi UI |
 | **Sumi Icons Term** | the same drawings, pixel for pixel, centred in two cells | ours | — | 16 × 20 | — | beside Sumi Term |
@@ -108,9 +108,11 @@ Ink on vermilion (`text_on_accent` on `accent`): 5.1 dark, 5.4 light.
   too, §13), and nothing smears it: no antialiasing, no hinting, no synthetic bold
   (`system/60-fedokawaii-pixel.conf`). Its repair: no pair of letters touches (0 of the 8836
   ASCII pairs), every kana and kanji keeps a column of air; the JIS signs it draws the old way
-  (`\` `~` both quotes and the grave accent) are redrawn the Western way, and what it lacks
-  (box drawing, arrows, the one-cell signs ◆ ● ■ ✓ ✗ · →, Arabic) is drawn on its grid in
-  `art/signs.txt`.
+  (`\` `~` both quotes and the grave accent) are redrawn the Western way; the desktop's signs
+  and the common punctuation (‘ ’ “ ” – — … • → ◆ ● ✓ ° ± × ÷ € …) are drawn on its grid in
+  `art/signs.txt`; Latin Extended-A (ā č ę ł ő ř ş ž) is composed from its own letters and
+  accents; Greek, Cyrillic and the rarer signs are Cozette's 6 × 13 drawings on its baseline
+  (their capitals 8 rows); Arabic comes from Noto Kufi Arabic through the toolkit.
 - **One size** for words. Hierarchy by ink and place, never by size.
 - **Display size** — the one exception: Sumi UI at a whole multiple of 14 px, never smoothed:
   ×2 (28 px) for the boot splash, the boot menu (GRUB) and the installer's screens. The lock's

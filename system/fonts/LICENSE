@@ -1,12 +1,40 @@
 Sumi UI and Sumi Term (system/fonts/, made by tools/build-fonts.py)
 
-Sumi UI draws Shinonome Gothic 16 Bold (東雲ゴシック, the Shinonome font project, public
-domain) and Sumi Term draws Kappa 20 Bold (Kappa20, public domain), both as converted by
-the JF Dot fonts (jfdotfont-20150527, public domain); the signs of art/signs.txt are drawn
-for this desktop; their other one-cell characters are GNU Unifont JP 17.0.05's
-(Copyright (c) 1998-2025 Roman Czyborra, Paul Hardy, Qianqian Fang, Andrew Miller,
-Johnnie Weaver, David Corbett, Nils Moskopp, Rebecca Bettencourt, et al. — SIL Open Font
-License 1.1). The two fonts are under the SIL Open Font License, Version 1.1:
+Sumi UI draws Shinonome Gothic 14 (東雲ゴシック, the Shinonome font project, public domain) as
+converted by the JF Dot fonts (jfdotfont-20150527, public domain); its Latin Extended-A is
+composed from those letters, and the signs of art/signs.txt are drawn for this desktop; its
+other one-cell characters (Greek, Cyrillic, the rarer signs) are Cozette 1.30.0's
+(Copyright (c) 2020, Ines <ines@moonwit.ch> — MIT License). Sumi UI is under the MIT License
+below, as Cozette is.
+
+Sumi Term draws Kappa 20 Bold (Kappa20, public domain) as converted by the JF Dot fonts; the
+signs of art/signs.txt are drawn for this desktop; its other one-cell characters are GNU
+Unifont JP 17.0.05's (Copyright (c) 1998-2025 Roman Czyborra, Paul Hardy, Qianqian Fang,
+Andrew Miller, Johnnie Weaver, David Corbett, Nils Moskopp, Rebecca Bettencourt, et al. — SIL
+Open Font License 1.1). Sumi Term is under the SIL Open Font License, Version 1.1, below.
+
+-----------------------------------------------------------
+MIT License
+
+Copyright (c) 2020, Ines <ines@moonwit.ch>
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
 
 -----------------------------------------------------------
 SIL OPEN FONT LICENSE Version 1.1 - 26 February 2007

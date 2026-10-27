@@ -330,6 +330,22 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   Known red elsewhere (from the root-run baseline, to re-check as dia in T53): session/
   test_autostart 5 (a <span line_height> the tests don't expect), test_game 4 (gaming leaves the
   host in T35), installer/test_hardware 1, look/test_wallpaper 1.
+- r27-10a (T10, the face — 07:10, NOT applied live yet: the configs still say 16 px; apply only
+  after T10c) Sumi UI rebuilt: Shinonome Gothic 14 regular (its ASCII, 88 Latin-1 letters, kana,
+  kanji, full-width forms, half-width kana) + Latin Extended-A COMPOSED from its own letters and
+  accents (the face's capitals a row shorter for a mark, as its own É: Dvořák, Łódź, Ţară, Ľubica
+  read in its style) + 45 signs and punctuation drawn on its 7 × 14 grid (‘ ’ “ ” – — … • → ◆ ●
+  ✓ ✗ ° ± × ÷ % € ▶ …; its own ° ± × ÷ are two cells wide, JIS) + T redrawn (its 7 px bar was
+  the 52 touching pairs) + Cozette 1.30.0 (MIT, github.com/the-moonwitch/Cozette, sha256
+  2d54a586…) for Greek, Cyrillic, Vietnamese and the rarer signs, on its baseline — Unifont (8 ×
+  16) can no longer fill a 14 px face. Measured on the build: 0 ASCII pairs touching (with
+  diagonals), 2340 one-cell glyphs all keep a column of air, every kana/kanji a gutter (only ／＼
+  touch, drawn corner to corner); em rows = the design doc's (capitals 2–11, x 5–11, kanji 0–13,
+  minus 7). 9414 characters. tools/build-fonts.py: `ui FACE COZETTE` / `term KAPPA UNIFONT`, a
+  shared writer, and it now WRITES width.sh's air tables (they were hand-kept). The licence:
+  Sumi UI under MIT (Cozette's; Shinonome public domain) — system/fonts/LICENSE. Specimen sheet
+  checked at 2× in both moods (fixed after looking: ↑↓ cap-tall beside 5-row ←→, ‹› bigger than
+  the face's « »). Kept: declared weight 700 (drawn regular) so fontconfig never synthesises bold.
 - r27-33 (T29, findings 04:00 — not fixed yet) Prowlarr: on demand by design (kawa-prowlarr: up while
   torrra searches, asleep 30 min after) — "inactive" is normal. /api/v1/health: 0 now. Its own log
   (~/.config/prowlarr/logs) over 8 days: Warn AllowedHostsCheck "Allowed Hosts is not configured"

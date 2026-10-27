@@ -85,9 +85,10 @@ Note the source (URL or command) in the ledger next to each such decision.
   always before `fedokawaii apply`, which otherwise re-applies the repo's old patch over your edits.
 - **Fonts/icons:** after editing `art/icons.txt` → `python3 tools/build-icons.py`; after
   `art/signs.txt` / `tools/build-fonts.py` →
-  `python3 tools/build-fonts.py JF-Dot-Shinonome16B.ttf JF-Dot-Kappa20B.ttf unifont_jp-17.0.05.otf`
-  (the three sources: URLs in the script's header — jfdotfont-20150527.zip, unifont_jp 17.0.05;
-  keep them in a scratch folder, not the repo) — it also rewrites `configs/home/.config/fedokawaii/width.sh`.
+  `python3 tools/build-fonts.py ui JF-Dot-Shinonome14.ttf CozetteVector.ttf` (Sumi UI) and
+  `python3 tools/build-fonts.py term JF-Dot-Kappa20B.ttf unifont_jp-17.0.05.otf` (Sumi Term)
+  (the sources: URLs and sha256 in the script's header; kept in `~/.cache/r27-fonts/`, not the
+  repo) — `ui` also rewrites the air tables of `configs/home/.config/fedokawaii/width.sh`.
 - **Tests:** `bash tests/run.sh` (all, ~15 min) or one file `bash tests/<area>/test_x.sh`.
   Update tests with every behaviour change; all must pass before pushing.
 - **Headless visual testing on the real GPU** (no disturbance to the live session):
