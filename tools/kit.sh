@@ -9,18 +9,21 @@
 #     --fontdir  extra fonts (a candidate's files) seen by every app in the kit
 #     --font     NAME (as the configs call it: "Sumi UI", "Sumi Term") drawn with FAMILY instead
 #     --edit     sed SED applied to the kit's copy of FILE (under ~/.config, or .bashrc): sizes …
+#     --themes   a trial palette's files (tools/build-themes.py --palette P --out DIR) in place
+#                of the installed ones: the theme folders, foot's colours, GTK, nvim's colours
 #     SCENE      bar · notice · launcher · term · full (default: bar notice term full)
 # Shots → OUT (default /dev/shm/r27/kit/THEME)/SCENE.png. Exit 0 · 1 a scene failed · 2 misuse.
 set -u
 here=$(cd "$(dirname "$0")" && pwd)
 repo=$(cd "$here/.." && pwd)
-theme=dark out="" fontdir="" fonts=() edits=() scenes=()
+theme=dark out="" fontdir="" fonts=() edits=() scenes=() themes=""
 while (($#)); do
   case $1 in
     --theme) theme=$2; shift 2 ;;
     --fontdir) fontdir=$(realpath "$2"); shift 2 ;;
     --font) fonts+=("$2"); shift 2 ;;
     --edit) edits+=("$2"); shift 2 ;;
+    --themes) themes=$(realpath "$2"); shift 2 ;;
     --out) out=$2; shift 2 ;;
     -h|--help) sed -n '2,/^set -u/{/^set -u/d;s/^# \{0,1\}//;p}' "$0"; exit 0 ;;
     -*) echo "kit: unknown option $1" >&2; exit 2 ;;
@@ -51,6 +54,19 @@ cp -a "$HOME/.bashrc" "$h/" 2>/dev/null
 [[ -d $HOME/.bashrc.d ]] && cp -a "$HOME/.bashrc.d" "$h/"
 ln -s "$HOME/.local/bin" "$h/.local/bin"
 ln -s "$HOME/.local/share/fonts" "$h/.local/share/fonts"
+if [[ -n $themes ]]; then
+  [[ -d $themes/.config/fedokawaii/themes ]] || { echo "kit: --themes: no build-themes tree at $themes" >&2; exit 2; }
+  cp -a "$themes/.config/fedokawaii/themes/." "$h/.config/fedokawaii/themes/"
+  cp -a "$themes/.config/gtk-4.0/gtk.css" "$h/.config/gtk-4.0/gtk.css"
+  cp -a "$themes/.config/nvim/lua/plugins/colorscheme.lua" "$h/.config/nvim/lua/plugins/colorscheme.lua"
+  mkdir -p "$h/.local/share/themes" && cp -a "$themes/.local/share/themes/." "$h/.local/share/themes/"
+  # (foot's colours: the trial's block in place of the installed one)
+  python3 -I -c 'import re, sys
+new = re.search(r"# >>> colours.*?# <<< colours", open(sys.argv[1]).read(), re.S).group(0)
+t = open(sys.argv[2]).read()
+open(sys.argv[2], "w").write(re.sub(r"# >>> colours.*?# <<< colours", lambda _: new, t, flags=re.S))' \
+    "$themes/.config/foot/foot.ini" "$h/.config/foot/foot.ini" || exit 2
+fi
 ln -sfn "themes/$theme" "$h/.config/fedokawaii/current"
 for e in "${edits[@]}"; do
   f=${e%%:*} x=${e#*:}

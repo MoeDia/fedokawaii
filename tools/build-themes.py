@@ -2,6 +2,10 @@
 """tools/build-themes.py — write every colour file of the two themes from one palette.
 
     python3 tools/build-themes.py
+    python3 tools/build-themes.py --palette FILE --out DIR   a trial: FILE (python) redefines P,
+        KAMI, TILE, EDITOR …; every file written under DIR instead (as configs/home lays them out:
+        DIR/.config/fedokawaii/themes/…, DIR/.config/foot/foot.ini …) for tools/kit.sh --themes DIR;
+        the repo untouched, the copies' check skipped (their colours are today's)
 
 The desktop has two themes: "dark" (sumi ink: ink-black ground, unbleached-paper text)
 and "light" (washi paper: warm paper ground, ink text). Both share the accents
@@ -1000,6 +1004,16 @@ FILES = {
 
 
 def main():
+    global HOME, THEMES
+    import sys
+    args = sys.argv[1:]
+    trial = "--out" in args
+    if "--palette" in args:
+        exec(pathlib.Path(args[args.index("--palette") + 1]).read_text(), globals())
+    template = HOME / ".config/foot/foot.ini"
+    if trial:
+        HOME = pathlib.Path(args[args.index("--out") + 1]).resolve()
+        THEMES = HOME / ".config/fedokawaii/themes"
     written = 0
     for m, p in P.items():
         d = THEMES / m
@@ -1011,18 +1025,24 @@ def main():
             (d / name).write_bytes(data)
             written += 1
     foot = HOME / ".config/foot/foot.ini"
-    text = foot.read_text()
+    foot.parent.mkdir(parents=True, exist_ok=True)
+    text = template.read_text()
     new, n = re.subn(r"# >>> colours.*?# <<< colours", lambda _: foot_block(), text, flags=re.S)
     if n != 1:
         raise SystemExit("foot.ini: the '# >>> colours' … '# <<< colours' markers are missing")
     foot.write_text(new)
+    (HOME / ".config/gtk-4.0").mkdir(parents=True, exist_ok=True)
     (HOME / ".config/gtk-4.0/gtk.css").write_text(gtk4_css())
     for m, p in P.items():
         t = HOME / ".local/share/themes" / p["gtk"]
         (t / "gtk-3.0").mkdir(parents=True, exist_ok=True)
         (t / "gtk-3.0/gtk.css").write_text(gtk3_theme(m, p))
         (t / "index.theme").write_text(gtk3_index(m, p))
+    (HOME / ".config/nvim/lua/plugins").mkdir(parents=True, exist_ok=True)
     (HOME / ".config/nvim/lua/plugins/colorscheme.lua").write_text(nvim_colorscheme())
+    if trial:
+        print(f"trial: {written} theme files + foot.ini + gtk + nvim under {HOME}")
+        return
     check_copies()
     print(f"{written} theme files + foot.ini + gtk-4.0/gtk.css + 2 GTK 3 themes + nvim written;"
           f" the colours in {len(COPIES)} other files are all the palettes'")
