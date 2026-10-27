@@ -14,22 +14,30 @@
                         ((hex >> 16) & 0xFF) / 255.0f, \
                         ((hex >> 8) & 0xFF) / 255.0f, \
                         (hex & 0xFF) / 255.0f }
+/* (premultiplied, as the scene draws a see-through rect) */
+#define PCOLOR(hex)   { ((hex >> 24) & 0xFF) / 255.0f * ((hex & 0xFF) / 255.0f), \
+                        ((hex >> 16) & 0xFF) / 255.0f * ((hex & 0xFF) / 255.0f), \
+                        ((hex >> 8) & 0xFF) / 255.0f * ((hex & 0xFF) / 255.0f), \
+                        (hex & 0xFF) / 255.0f }
 
 /* ── colours ─────────────────────────────────────────────────────────────────
- * The desktop's own (tools/build-themes.py). Every window has a plain, full 2 px border,
- * one solid colour: vermilion around the focused one, warm grey around the others, asagi
- * around one that asks for attention — the same frame the menus and notices wear. These
- * are the dark theme's; the theme in use replaces them from its dwl.colors, at dwl's start
- * and at every switch (dwl.patch: loadcolours). */
+ * The desktop's own (tools/build-themes.py). Every window wears the frame everything that
+ * floats wears (docs/design-system.md §4, §12): a 1 px hairline, its corners left out —
+ * vermilion round the focused one, the hairline's ink round the others, asagi round one that
+ * asks for attention — and the shadow under it and at its right. These are the dark theme's;
+ * the theme in use replaces them from its dwl.colors, at dwl's start and at every switch
+ * (dwl.patch: loadcolours). */
 #define SUMI      0x181715ff   /* ink: behind the wallpaper, seen only before it loads */
-#define NEZUMI    0x9a8767ff   /* the other windows: warm grey                         */
+#define HAIR      0xd4bf9a80   /* the other windows: the hairline's ink (text at 50 %) */
 #define SHU       0xeb5324ff   /* the focused window: vermilion                        */
 #define ASAGI     0x82c1b4ff   /* a window asking for attention: asagi                 */
+#define SHADOW1   0x111314aa   /* the shadow's first row: Black at 67 %                */
+#define SHADOW2   0x11131450   /* its second row and its column: at 31 %               */
 
 /* appearance */
 static const int sloppyfocus               = 1;  /* focus follows mouse */
 static const int bypass_surface_visibility = 0;
-static const unsigned int borderpx         = 2;  /* the border (dwl.patch draws it as outline + band) */
+static const unsigned int borderpx         = 1;  /* the hairline (dwl.patch: applyframe draws it and its shadow) */
 static const unsigned int gappx            = 8;  /* gap between windows (dwl.patch) */
 static const unsigned int outergappx       = 8;  /* …and from the screen's edges and the bar's hairline
                                                     (its exclusive zone ends there: waybar's margin-bottom
@@ -38,10 +46,10 @@ static const unsigned int outergappx       = 8;  /* …and from the screen's edg
                                                     their tops on y 33 (dwl.patch) */
 static const unsigned int snap             = 16; /* snap pixel */
 static const float rootcolor[]             = COLOR(SUMI);
-/* { outline, band top/left, band bottom/right }: one colour each, a plain full border */
-static float bordercolor[3][4]             = { COLOR(NEZUMI), COLOR(NEZUMI), COLOR(NEZUMI) };
-static float focuscolor[3][4]              = { COLOR(SHU), COLOR(SHU), COLOR(SHU) };
-static float urgentcolor[3][4]             = { COLOR(ASAGI), COLOR(ASAGI), COLOR(ASAGI) };
+/* { the hairline, the shadow's first row, its second row and column } */
+static float bordercolor[3][4]             = { PCOLOR(HAIR), PCOLOR(SHADOW1), PCOLOR(SHADOW2) };
+static float focuscolor[3][4]              = { PCOLOR(SHU), PCOLOR(SHADOW1), PCOLOR(SHADOW2) };
+static float urgentcolor[3][4]             = { PCOLOR(ASAGI), PCOLOR(SHADOW1), PCOLOR(SHADOW2) };
 static const float fullscreen_bg[]         = {0.059f, 0.055f, 0.047f, 1.0f};
 
 /* animations (dwl.patch): a new window fades in, rising its last anim_rise px to its

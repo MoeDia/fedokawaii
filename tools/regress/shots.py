@@ -20,6 +20,10 @@
                                clock's parts (the scroll's rods to the ink, the ink gaps, the
                                kanji's centre); FIBRE: the theme's kami-fibre.png (its colours are
                                paper, not ink)
+  shots.py frames SHOT ROW     two tiled windows' frames (design-system §4, §12) across ROW: each
+                               hairline's x and colour, the shadow's column after the right one,
+                               the gaps — then the right window's bottom-right corner, 7 × 4
+                               pixels as letters (its hairline, the corner left out, the shadow)
 Exit 0 · 1 a check's own "no" (differ) · 2 misuse or an unreadable shot.
 """
 import sys
@@ -140,6 +144,29 @@ def bar(f, fibre):
     return out
 
 
+def frames(f, y):
+    """The frames across row y, and the right window's bottom-right corner (see the doc)."""
+    im = load(f)
+    row = im[y]
+    xs = [x for x in range(1, im.shape[1]) if (row[x] != row[x - 1]).any()]
+    out = ["changes " + " ".join(f"{x}:{row[x][0]:02x}{row[x][1]:02x}{row[x][2]:02x}" for x in xs)]
+    # the right window's right hairline: the last change before the screen's edge but two
+    r = [x for x in xs if x < im.shape[1] - 4]
+    if r:
+        hx = r[-3] if len(r) >= 3 else r[-1]
+        hair = im[y, hx]                              # (the hairline's own colour, down to the row
+        bottom = y                                    #  before its corner: then the bottom hairline's row)
+        while bottom + 1 < im.shape[0] and (im[bottom + 1, hx] == hair).all():
+            bottom += 1
+        bottom += 1
+        names = {}
+        out.append(f"corner at {hx},{bottom}")
+        for yy in range(bottom - 1, bottom + 3):
+            out.append("".join(names.setdefault(tuple(int(v) for v in im[yy, xx]), chr(97 + len(names)))
+                               for xx in range(hx - 4, hx + 3)))
+    return out
+
+
 def main(argv):
     if len(argv) < 3:
         sys.exit(__doc__)
@@ -174,6 +201,8 @@ def main(argv):
         if not ink:
             sys.exit("shots: nothing on that row")
         print(ink[0], ink[-1], ink[0] + ink[-1] + 1)
+    elif cmd == "frames":
+        print("\n".join(frames(argv[2], int(argv[3]))))
     elif cmd == "bar":
         print("\n".join(bar(argv[2], argv[3])))
     else:

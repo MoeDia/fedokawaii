@@ -644,6 +644,20 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   37/0 (+ the keyboard tile's click, read from a stand-in fifo), test_dwl_anim 28/0 (outergappx 8).
   Seen, for T38: the bar's brightness reads 0 % in every shot today — the LG's own setting or a
   DDC read to check.
+- r27-15a (T15, the windows' frame — committed with this line; live with the next session restart)
+  The doc's frame, not the plan's older band (§4, §12): borderpx 2 → 1, dwl's 8 rects → 7 — the
+  hairline's four sides with their corner pixels left out, and the shadow outside the window in
+  the gap (the first row from a pixel in to under the right hairline, the second a pixel further
+  right, the column from the hairline's second row down to the bottom hairline's row), clipped
+  with the window while it slides (its own cut: it lies outside the window's box) and faded with
+  it; dwl.colors now RRGGBBAA — focus, border (the tiles' hairline ink: dark text at 50 %, light
+  strong at 84 %), urgent, shadow1, shadow2 (KAMI's) — kept premultiplied (the scene's
+  colours are). Measured headless (two tiled foots, both themes): hairlines on x 8, 1181 | 1190,
+  1911, 8 px between the windows' hairlines with the shadow column in them, the bottom-right
+  corner map hairline/cut/column/row1/row2 exactly kawa-panel's frame; tools/regress/
+  window-frame.sh (new) holds on the new dwl and fails on the installed one (2 px solid border).
+  Lost once and redone: an apply at 11:57 put the repo's patch back over the uncommitted tree
+  (CLAUDE.md says so) — the tree's diff is now saved to /dev/shm before any apply.
 - r27-33 (T29, findings 04:00 — not fixed yet) Prowlarr: on demand by design (kawa-prowlarr: up while
   torrra searches, asleep 30 min after) — "inactive" is normal. /api/v1/health: 0 now. Its own log
   (~/.config/prowlarr/logs) over 8 days: Warn AllowedHostsCheck "Allowed Hosts is not configured"

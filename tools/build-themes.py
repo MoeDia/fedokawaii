@@ -992,11 +992,15 @@ def saver_conf(m, p):
 
 
 def dwl_colors(m, p):
-    """dwl's window borders — the focused window's, the others', one asking for attention —
-    the same as the menus' and notices' frames in this theme. dwl reads the file at its start
-    and again at every switch (kawa-theme sends it SIGUSR1)."""
-    return (f"# {header('~/.config/fedokawaii/current/dwl.colors', 'the window borders in ' + NAMES[m])}\n"
-            f"focus {p['accent']}\nborder {p['muted']}\nurgent {p['asagi']}\n")
+    """dwl's window frames (design-system §4, §12) — the hairline of the focused window, of the
+    others (the bar's tiles' own ink), of one asking for attention — and the shadow's two inks,
+    KAMI's, as the tiles and panels have them: RRGGBBAA. dwl reads the file at its start and
+    again at every switch (kawa-theme sends it SIGUSR1)."""
+    k = KAMI[m]
+    hx = lambda c: "".join(f"{v:02x}" for v in c)
+    return (f"# {header('~/.config/fedokawaii/current/dwl.colors', 'the window frames in ' + NAMES[m])}\n"
+            f"focus {p['accent']}ff\nborder {hx(k['hair'])}\nurgent {p['asagi']}ff\n"
+            f"shadow1 {hx(k['shadow'][0])}\nshadow2 {hx(k['shadow'][1])}\n")
 
 
 FILES = {

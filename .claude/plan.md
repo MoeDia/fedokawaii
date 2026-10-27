@@ -161,7 +161,7 @@ approach:
 accept: px.py table of every tile (ink gaps 8/8, groups 4/10, edge 6, height 27, stamps' numerals inside the circle by ≥ 1 px all round) both themes; animated icons: a passthrough recording shows the frame sequence at the intended rate with no stray pixels; tests green; the Learn "bar" piece corrected. + tests/static/test_design_doc.sh: `bar` in BUILT with its `built_*` check (the doc's numbers in its files), green.
 
 PROGRESS: T14a done (r27-14a: 27 rows, frames, stamps, the clock, kb click, Steam out, tools/regress/bar-geometry.sh). Next: T14b — the mode tile as an icon alone (ICON_BELL_OFF_BAR, no trailing air), the recording dot, what plays (TV/cassette moving, the red rule, the channel faint), the wings in our red (8 columns a side, 2 wide 4 apart, 1–10 px), downloads moving, the weather's sun on a horizon; then the apply + session restart (dwl: outergappx 8, kb next) and the live measurements.
-### T15 — window borders with the bar's 3D look (dwl) + notices, OSD, tooltips, Super+/ to the grammar  [todo]
+### T15 — window borders with the bar's 3D look (dwl) + notices, OSD, tooltips, Super+/ to the grammar  [wip — T15a frames done, r27-15a]
 deps: T14  · model: main  · ledger: r27-15
 files: ~/.local/src/dwl/dwl.c (applyframe: outline + light band + shadow band + a 1 px shadow row under the window, colours from dwl.colors: 3 per state) → src/dwl/dwl.patch (batch B), tools/build-themes.py (dwl.colors), configs/home/.config/mako/config + themes/*/mako, bin/kawa-osd, bin/kawa-help (look), waybar tooltips (style.css), tests/session/test_dwl_anim.sh (borders), tests/look/test_units.sh
 approach:
