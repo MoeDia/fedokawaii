@@ -22,7 +22,6 @@
 #   time        the timer's menu           kawa-drop.open  "PID kawa-timer"
 #   drives      the drives menu            kawa-drop.open  "PID kawa-drives"
 #   downloads   the downloads menu         kawa-drop.open  "PID kawa-downloads"
-#   steam       Steam's menu               kawa-drop.open  "PID kawa-steam"
 #   weather     the forecast               kawa-drop.open  "PID kawa-weather"
 #   layout      the layout menu            kawa-drop.open  "PID kawa-tag"
 #   memory      btop                       kawa-term-btop.open               kawa-term --float --once btop
@@ -45,7 +44,6 @@ bar_lit() {
     time)        marks=("kawa-drop.open kawa-timer") ;;
     drives)      marks=("kawa-drop.open kawa-drives") ;;
     downloads)   marks=("kawa-drop.open kawa-downloads") ;;
-    steam)       marks=("kawa-drop.open kawa-steam") ;;
     weather)     marks=("kawa-drop.open kawa-weather") ;;
     layout)      marks=("kawa-drop.open kawa-tag") ;;
     memory)      marks=("kawa-term-btop.open") ;;
@@ -126,20 +124,22 @@ case $item in
   cat)   # quick settings: the cat smiles while its panel is open
          if ((lit)); then printf '{"text":"%s"%s}\n' "$ICON_CAT_HAPPY" "$cls"
          else printf '{"text":"%s"}\n' "$ICON_CAT"; fi ;;
-  date)  # "Mon 19 Oct", in English whatever the system's language (three letters each: one width)
-         # — and its month's last letter's own air (Jul's l: 3 px, Oct's t: 1, Nov's v: none)
-         # as a class, so the 14 px to the day's kanji holds every month (width.sh: air)
-         printf -v d '%(%a %d %b)T' -1
+  date)  # DD∕MM∕YYYY, its two slashes our own (Sumi UI's ∕: a clean stair on the figures' ten
+         # rows — art/signs.txt) in vermilion: the same width every day, figures only
          # shellcheck source=/dev/null
-         __air=''; . "$HOME/.config/fedokawaii/width.sh"; air "$d"
-         if ((lit)); then printf '{"text":"%s","class":["active","%s"]}\n' "$d" "${__air#* }"
-         else printf '{"text":"%s","class":"%s"}\n' "$d" "${__air#* }"; fi ;;
+         . "$HOME/.config/fedokawaii/current/colors.sh"
+         s="<span color='#$C_ACCENT_TEXT'>∕</span>"
+         printf -v d "%(%d)T$s%(%m)T$s%(%Y)T" -1 -1 -1
+         if ((lit)); then printf '{"text":"%s","class":"active"}\n' "$d"
+         else printf '{"text":"%s"}\n' "$d"; fi ;;
   day)   # the day of the week as its kanji: 月 火 水 木 金 土 日, Monday first
-         # (Monday's 月 has 13 px of ink in its 16: its own class, so style.css centres it)
+         # (月 and 日 have more air of their own than the others: a class each, so style.css
+         # keeps 14 px to the date and to the time)
          k=(月 火 水 木 金 土 日); printf -v u '%(%u)T' -1
-         if ((u == 1)); then
-           if [[ -n $cls ]]; then printf '{"text":"%s","class":["mon","active"]}\n' "${k[0]}"
-           else printf '{"text":"%s","class":"mon"}\n' "${k[0]}"; fi
+         c=""; ((u == 1)) && c=mon; ((u == 7)) && c=sun
+         if [[ -n $c ]]; then
+           if [[ -n $cls ]]; then printf '{"text":"%s","class":["%s","active"]}\n' "${k[u - 1]}" "$c"
+           else printf '{"text":"%s","class":"%s"}\n' "${k[u - 1]}" "$c"; fi
          else printf '{"text":"%s"%s}\n' "${k[u - 1]}" "$cls"; fi ;;
   mode)  # what is held back: the quiet bell while "do not disturb" is on (its end in the
          # tooltip when it is timed: kawa-quick dnd), the monitor while a screen is shared;

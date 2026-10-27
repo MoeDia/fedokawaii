@@ -2,18 +2,18 @@
 // the screen (紙 kami — style.css), each part of the desktop on a tile of its own.
 //   left:   the torii key (opens the launcher) on a vermilion tile · the workspaces 一 二 三
 //           (+ any others in use), a tile each, the one you are on stamped with a vermilion seal
-//           · the layout icon (click: the next layout, right-click: the one before) and the
-//           window title, on one tile
+//           · the layout's mark (click: the next layout, right-click: the one before) and the
+//           window's name, on one tile (group/focused)
 //   centre: the clock mounted as a hanging scroll: date · the day's kanji · time — and while
 //           music plays, its spectrum inside it either side, the left channel left, the right
 //           one right
-//   right:  now playing · a timer (while one runs) · 録 while recording · the mode kanji ·
-//           drives · downloads (while one runs) · Steam's gamepad (while it runs) · the keyboard
-//           layout · memory · volume · brightness · weather, a tile each · the cat (quick
-//           settings) on the other corner's vermilion tile
+//   right:  now playing · a timer (while one runs) · recording (while one runs) · the quiet
+//           bell or the sharing monitor · drives · downloads (while one runs) · the keyboard
+//           layout (click: the next) · memory · volume · brightness · weather, a tile each ·
+//           the cat (quick settings) on the other end's vermilion tile
 // Network, Bluetooth, night light, theme… live in the quick-settings dropdown,
 // so the bar stays quiet. No tray: the desktop's own modules stand for what apps would put
-// there (Steam's gamepad). Reload without logging out: pkill -USR2 waybar
+// there. Reload without logging out: pkill -USR2 waybar
 //
 // Every button that opens something toggles it — a click opens it, the same click again
 // closes it, another button's closes it and opens its own — and stays lit (its class "active":
@@ -24,7 +24,7 @@
 // open) would hold its button's light back. A module that only answers its signal has no
 // "interval" (waybar then never waits for its clicks at all).
 // Signals (SIGRTMIN+N, kawa-dwlstatus --poke): 8 workspaces · 9 layout · 10 title · 11
-// keyboard layout · 12 mode · 13 drives · 14 brightness · 15 the cat · 17 Steam · 18 weather ·
+// keyboard layout · 12 mode · 13 drives · 14 brightness · 15 the cat · 18 weather ·
 // 19 date and day · 20 torii · 21 downloads · 22 recording; the long-running modules (time, memory, volume) are woken
 // through a fifo of their own instead.
 // Tooltips: only where the glyph does not say it all — what it is · click · right-click ·
@@ -42,20 +42,25 @@
   "position": "top",
   // 31 px: a tile's hairline, paper and rule above the 16 px text line and below it, and the
   // tile's shadow (style.css: the rows)
-  "height": 31,
+  "height": 27,
+  // its exclusive zone ends on the tiles' lower hairline (row 24): the shadow's two rows lie in
+  // the windows' 8 px gap (gtk-layer-shell's auto zone: the height plus this margin), so the
+  // windows' tops are on y 33 (dwl's outergappx 8) — docs/design-system.md §3, §12
+  "margin-bottom": -2,
   "spacing": 0,
 
   "modules-left": [
     "custom/torii",
     "custom/tag1", "custom/tag2", "custom/tag3", "custom/tag4", "custom/tag5",
     "custom/tag6", "custom/tag7", "custom/tag8", "custom/tag9",
-    "custom/layout", "custom/title"
+    "group/focused"
   ],
   "modules-center": ["group/when"],
   "modules-right": ["group/status", "custom/menu"],
   "group/status": { "orientation": "horizontal",
-                    "modules": ["custom/nowplaying", "custom/timer", "custom/record", "custom/mode", "custom/drives", "custom/downloads", "custom/steam", "custom/kb", "custom/mem", "custom/volume", "custom/brightness", "custom/weather"] },
+                    "modules": ["custom/nowplaying", "custom/timer", "custom/record", "custom/mode", "custom/drives", "custom/downloads", "custom/kb", "custom/mem", "custom/volume", "custom/brightness", "custom/weather"] },
   "group/when":   { "orientation": "horizontal", "modules": ["custom/wing-left", "custom/date", "custom/day", "custom/time", "custom/wing-right"] },
+  "group/focused": { "orientation": "horizontal", "modules": ["custom/layout", "custom/title"] },
 
   // the torii: the launcher (kawa-menu --launcher, in the middle of the screen; Super+Space the same)
   "custom/torii": { "exec": "kawa-bar torii", "return-type": "json", "signal": 20, "tooltip": false,
@@ -78,7 +83,8 @@
   "custom/layout": { "exec": "kawa-bar layout", "return-type": "json", "signal": 9, "tooltip": false,
                      "exec-on-event": false, "on-click": "kawa-tag layout next", "on-click-right": "kawa-tag layout prev" },
   // keyboard layout (US / AR, switched with Alt+Shift); vermilion while it is not the first
-  "custom/kb":     { "exec": "{ IFS= read -r l <\"$XDG_RUNTIME_DIR/dwl-bar/kb.json\"; } 2>/dev/null && printf '%s\\n' \"$l\"",     "return-type": "json", "signal": 11, "tooltip": false },
+  "custom/kb":     { "exec": "{ IFS= read -r l <\"$XDG_RUNTIME_DIR/dwl-bar/kb.json\"; } 2>/dev/null && printf '%s\\n' \"$l\"",     "return-type": "json", "signal": 11, "tooltip": false,
+                     "exec-on-event": false, "on-click": "kawa-tag kb next" },
   "custom/title":  { "exec": "{ IFS= read -r l <\"$XDG_RUNTIME_DIR/dwl-bar/${WAYBAR_OUTPUT_NAME:-.}/title.json\" || IFS= read -r l <\"$XDG_RUNTIME_DIR/dwl-bar/title.json\"; } 2>/dev/null && printf '%s\\n' \"$l\"",  "return-type": "json", "signal": 10, "tooltip": false },
 
   // one long-running script (see its header); restarted if it ever exits. It meters the music
@@ -111,17 +117,12 @@
   "custom/drives": { "exec": "kawa-bar drives -- kawa-drives bar", "return-type": "json", "signal": 13,
                      "tooltip": false, "exec-on-event": false, "on-click": "setsid -f kawa-drives" },
 
-  // the download mark while anything downloads — a torrent, Brave, Steam (kawa-downloads): the
+  // the download mark while anything downloads — a torrent, Brave (kawa-downloads): the
   // percent of them all, how many past one; click: what comes in and how far, a click on one
   // opens where it lands. The session's watcher pokes it with SIGRTMIN+21 as one starts,
   // moves on or ends; empty hides it
   "custom/downloads": { "exec": "kawa-bar downloads -- kawa-downloads bar", "return-type": "json", "signal": 21,
                         "tooltip": false, "exec-on-event": false, "on-click": "setsid -f kawa-downloads" },
-
-  // Steam's gamepad, only while Steam runs (kawa-steam --bar): dim while it starts, lit once
-  // ready, vermilion in a game. Click: Steam's window · right-click: its menu
-  "custom/steam": { "exec": "kawa-steam --bar-watch", "return-type": "json", "restart-interval": 5, "signal": 17,
-                    "exec-on-event": false, "on-click": "setsid -f kawa-steam", "on-click-right": "setsid -f kawa-steam --menu" },
 
   // memory in use (kawa-mem: what programs hold, as btop counts it); click: btop, big
   // enough for all its boxes — the graphics card's too (140 × 41 cells: 1420 × 922 px)

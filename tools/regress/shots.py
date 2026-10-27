@@ -13,6 +13,13 @@
                                edge on row Y, and its centre ×2 (whole numbers: 1920 = 960)
   shots.py edges SHOT Y X0 X1  the first and the last pixel on row Y, between X0 and X1, that is
                                not the ground (a frame's two hairlines), and their centre ×2
+  shots.py bar SHOT FIBRE      the bar measured (docs/design-system.md §8): a line per tile — its
+                               box (hairline to shadow column), the paper, the ink's first and
+                               last column and row, the paper to the ink either side — then the
+                               rows of the first tile, the gaps between the tiles, and the
+                               clock's parts (the scroll's rods to the ink, the ink gaps, the
+                               kanji's centre); FIBRE: the theme's kami-fibre.png (its colours are
+                               paper, not ink)
 Exit 0 · 1 a check's own "no" (differ) · 2 misuse or an unreadable shot.
 """
 import sys
@@ -83,6 +90,56 @@ def keys(f, region=None):
     return sorted(set(found), key=lambda k: (k[1], k[0]))
 
 
+def bar(f, fibre):
+    """The bar's tiles, rows, gaps and clock as numbers (see the module's doc)."""
+    im = load(f)
+    fib = {tuple(int(v) for v in c) for c in np.asarray(Image.open(fibre).convert("RGB")).reshape(-1, 3)}
+    row = im[13]
+    out, tiles, x = [], [], 0
+    while x < im.shape[1]:
+        if (row[x] != GROUND).any():
+            x0 = x
+            while x < im.shape[1] and (row[x] != GROUND).any():
+                x += 1
+            tiles.append((x0, x - 1))
+        else:
+            x += 1
+    paper_of = lambda a, b, ink_set: [(c, y) for c in range(a, b + 1) for y in range(5, 23)
+                                      if tuple(int(v) for v in im[y, c]) not in ink_set]
+    for a, b in tiles:
+        scroll = (b - a) > 150                       # (the clock: rods 4 px, no shadow column)
+        L, R = (a + 3, b - 3) if scroll else (a, b - 1)   # (the scroll: the rods, 4 px, are its edges)
+        paper = fib | {tuple(int(v) for v in im[13, L + 1])}
+        ink = paper_of(L + 1, R - 1, paper)
+        if not ink:
+            out.append(f"tile {a} {b} paper {L + 1} {R - 1} ink none")
+            continue
+        xs = [p[0] for p in ink]
+        ys = [p[1] for p in ink]
+        out.append(f"tile {a} {b} paper {L + 1} {R - 1} ink {min(xs)} {max(xs)} rows {min(ys)} {max(ys)} "
+                   f"left {min(xs) - (L + 1)} right {(R - 1) - max(xs)}" + (" scroll" if scroll else ""))
+        if scroll:
+            cols = sorted({p[0] for p in ink})
+            parts = []
+            for c in cols:
+                if parts and c - parts[-1][1] <= 5:
+                    parts[-1][1] = c
+                else:
+                    parts.append([c, c])
+            out.append("clock " + " ".join(f"{p0}-{p1}" for p0, p1 in parts)
+                       + " gaps " + " ".join(str(q[0] - p[1] - 1) for p, q in zip(parts, parts[1:])))
+    col = im[:, tiles[0][0] + 1]
+    runs, y = [], 0
+    while y < 27:
+        y0 = y
+        while y < 27 and (col[y] == col[y0]).all():
+            y += 1
+        runs.append(f"{y0}+{y - y0}")
+    out.append("rows " + " ".join(runs))
+    out.append("gaps " + " ".join(str(t2[0] - t1[1] - 1) for t1, t2 in zip(tiles, tiles[1:])))
+    return out
+
+
 def main(argv):
     if len(argv) < 3:
         sys.exit(__doc__)
@@ -117,6 +174,8 @@ def main(argv):
         if not ink:
             sys.exit("shots: nothing on that row")
         print(ink[0], ink[-1], ink[0] + ink[-1] + 1)
+    elif cmd == "bar":
+        print("\n".join(bar(argv[2], argv[3])))
     else:
         sys.exit(__doc__)
     return 0

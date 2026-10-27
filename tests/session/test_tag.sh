@@ -54,6 +54,16 @@ sandbox; stub wtype
 for _ in $(seq 1 20); do kawa-tag 2; done
 eq "$(grep -c '^wtype -M logo -k 2 -m logo$' "$CALLS")" 20
 
+case_ "kb next (the bar's US · AR tile): \"kb next\" into dwl's fifo — dwl switches the layout (a virtual keyboard could not); no wtype, never a wait"
+sandbox; stub wtype; mkfifo "$XDG_RUNTIME_DIR/dwl-warm"; exec 7<>"$XDG_RUNTIME_DIR/dwl-warm"
+rc 0 kawa-tag kb next
+read -r -t 1 -u 7 l; eq "$l" "kb next" "the line dwl reads (kbnext)"
+not_called '^wtype'
+exec 7<&-
+rm -f "$XDG_RUNTIME_DIR/dwl-warm"; rc 1 kawa-tag kb next   # (no fifo, no dwl of ours: exit 1, nothing waits)
+: >"$XDG_RUNTIME_DIR/dwl-warm"; rc 1 kawa-tag kb next   # (not a fifo)
+rc 2 kawa-tag kb; rc 2 kawa-tag kb prev; rc 2 kawa-tag kb next x
+
 case_ "kawa-tag is clean (bash -n, shellcheck)"
 rc 0 bash -n "$REPO/bin/kawa-tag"; rc 0 shellcheck -S warning -x "$REPO/bin/kawa-tag"
 

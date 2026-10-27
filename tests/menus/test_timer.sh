@@ -68,7 +68,7 @@ eq "$(st)" ""; eq "$(rings)" 0; not_called '^notify-send'
 # ── the bar ──────────────────────────────────────────────────────────────────────────
 case_ "the bar: the clock the time alone, always; the timer a cell of its own — empty while none runs, at once beside the clock when one is set (its colour the class's: style.css)"
 setup; bar_up; bar_up timer
-[[ $(last) =~ ^\{\"text\":\"[01][0-9]:[0-5][0-9]:[0-5][0-9]\ [AP]M\"\}$ ]] && _ok || _no "the time: $(last)"
+[[ $(last) =~ ^\{\"text\":\"(0[0-9]:[0-5][0-9]:[0-5][0-9]\ [AP]M\"|1[0-2]:[0-5][0-9]:[0-5][0-9]\ [AP]M\",\"class\":\"l1\")\}$ ]] && _ok || _no "the time (10–12 o'clock: l1, its 1's own air): $(last)"
 eq "$(last 1)" '{"text":""}' "no timer: an empty cell (waybar hides it)"
 kawa-timer start 10
 within 300 "$TMP/bar.1" '"class":"timer"' && _ok || _no "no timer on the bar 0.3 s after it was set: $(last 1)"
@@ -76,7 +76,7 @@ within 300 "$TMP/bar.1" '"class":"timer"' && _ok || _no "no timer on the bar 0.3
 # should a second turn meanwhile)
 [[ $(last 1) == '{"text":"'"${ICON_BAR_HOURGLASS}"@(10:00|09:59)'","class":"timer"}' ]] && _ok || _no "the hourglass and the time left: $(last 1)"
 within 2500 "$TMP/bar.1" "${ICON_BAR_HOURGLASS}09:59" && _ok || _no "the second after: $(last 1)"
-[[ $(last) =~ ^\{\"text\":\"[01][0-9]:[0-5][0-9]:[0-5][0-9]\ [AP]M\"\}$ ]] && _ok || _no "the clock keeps to the time: $(last)"
+[[ $(last) =~ ^\{\"text\":\"(0[0-9]:[0-5][0-9]:[0-5][0-9]\ [AP]M\"|1[0-2]:[0-5][0-9]:[0-5][0-9]\ [AP]M\",\"class\":\"l1\")\}$ ]] && _ok || _no "the clock keeps to the time: $(last)"
 case_ "two monitors, two bars: both draw it, both at once"
 bar_up timer; within 300 "$TMP/bar.2" "${ICON_BAR_HOURGLASS}09:5" && _ok || _no "the second bar: $(last 2)"
 case_ "waybar restarted: the new bar reads the timer from the runtime folder"

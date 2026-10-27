@@ -7,7 +7,7 @@
 . "$(dirname "$0")/../lib/harness.sh"
 sandbox
 DOC=$REPO/docs/design-system.md
-BUILT=(palette ui-face term-face menus)
+BUILT=(palette ui-face term-face menus bar)
 
 case_ "whole: no open question left in it"
 grep -nE '\b(TBD|TODO|FIXME|XXX)\b|\?\?' "$DOC" >"$TMP/open" && _no "$(head -3 "$TMP/open")" || _ok
@@ -130,6 +130,23 @@ PY
 )" "[] 20 6 6 1 4 3" "the doc's grid (§3) in kawa-panel: cell, row, pad, hairline, shadow, icon column, content, tile, key, meter, gap; 20 segments of 6; the dot 6; the shadow's column 1; a row's name at cell 4, a heading's at cell 3"
   has "$(cat "$REPO/configs/home/.config/mako/config")" "width=410" "a notice as wide as quick settings (§3: 410 with pad and hairlines)"
   lacks "$(grep -n 'part[^a-z]*[一-龯]' "$REPO"/bin/kawa-* 2>/dev/null)" "part" "no kanji heading in any menu (§13)"
+}
+built_bar() {   # §3, §8, §12: the bar's rows and spacing — the doc's numbers in waybar's config, its style and its pictures
+  local doc cfg css
+  doc=$(cat "$DOC"); cfg=$(sed 's#^ *//.*##' "$REPO/configs/home/.config/waybar/config.jsonc"); css=$(cat "$REPO/configs/home/.config/waybar/style.css")
+  has "$doc" "| bar | 27 | — | 3 air, hairline, 20 paper, hairline, 2 shadow (§8) |" "the doc's bar: 27 rows"
+  has "$cfg" '"height": 27,' "waybar's height: 27"
+  has "$cfg" '"margin-bottom": -2,' "its zone ends on the lower hairline (the windows' tops on y 33)"
+  has "$(cat "$REPO/src/dwl/config.h")" "outergappx       = 8;" "dwl's outer gap: the doc's 8 (§12)"
+  eq "$(python3 -I -c 'from PIL import Image; import sys; print(Image.open(sys.argv[1]).size[1])' "$REPO/configs/home/.config/fedokawaii/themes/dark/kami-tile.png")" 27 "the tile's picture: 27 rows"
+  has "$doc" "4 px between
+the tiles of a group, 12 px between groups" "the doc's gaps"
+  has "$css" "margin: 0 0 0 3px;" "within a group: 3 and the shadow's column (4)"
+  has "$css" "#custom-tag1 { margin-left: 11px; }" "between groups: 11 and the shadow's column (12)"
+  has "$doc" "the outer tiles' hairlines on x 8 and x 1911" "the doc's edges"
+  has "$css" "#custom-torii { margin-left: 8px;" "the torii's hairline on x 8"
+  has "$css" "#custom-menu  { margin-left: 11px; margin-right: 7px; }" "the cat's on x 1911 (its shadow's column and 7 to the edge)"
+  lacks "$css" "kami-seal-narrow" "one seal for every numeral (10 × 10, §4)"
 }
 for s in "${BUILT[@]}"; do
   case_ "§14 $s: rebuilt to the doc — its numbers in its files"

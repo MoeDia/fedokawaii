@@ -76,7 +76,7 @@ LOCPID=$!; BG_PIDS+=("$LOCPID")
 case_ "a whole recorded session (one monitor, real dwl): the bar ends where dwl did, every file valid JSON"
 rc 0 status "$F/one-monitor.status"
 eq "$(tagrow)" "1:emp 2:sel 3:emp 4:- 5:- 6:- 7:- 8:- 9:-" "after quitting: no windows, workspace 2 shown"
-eq "$(bar layout)" "{\"text\":\"$ICON_SPIRAL\",\"class\":\"spiral\"}"
+eq "$(bar layout)" "{\"text\":\"$ICON_SPIRAL\",\"class\":[\"spiral\",\"alone\"]}" "no window: the mark alone in the tile (it takes the tile's 8 px of paper after it)"
 eq "$(bar title)" '{"text":"","class":["l0","r0"]}'
 eq "$(bar kb)" '{"text":"US","class":"first"}'
 eq "$(json_ok)" ""
@@ -152,7 +152,7 @@ eq "$(tagrow)" "1:sel 2:emp 3:emp 4:- 5:- 6:- 7:- 8:- 9:-"
 eq "$(json_ok)" ""
 
 # ── the layout ───────────────────────────────────────────────────────────────
-case_ "each of dwl's layout symbols as its pixel icon"
+case_ "each of dwl's layout symbols as its pixel icon (a window's name beside it: the mark not alone)"
 for t in "(@)#$ICON_SPIRAL#spiral" "|||#$ICON_TILE#columns" "><>#$ICON_FLOAT#float"; do
   IFS='#' read -r sym icon cls <<<"$t"
   rm -rf "$BAR"; block DP-1 1 1 1 0 "$sym" 0 x | kawa-dwlstatus

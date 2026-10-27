@@ -564,6 +564,39 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   → mode default, the bell gone, timer and unit gone, the record file gone; off/on by hand as
   before. test_quick 361/0. Seen on the way (→ T14): the mode tile uses ICON_BAR_BELL_OFF, the
   icon-before-a-value form with 8 px of trailing air — an icon alone needs the 14 px "alone" form.
+- r27-14a (T14, the bar's geometry — committed with this line; live after T14's apply and session
+  restart) 27 rows, every tile §4's frame and nothing inside it: build-themes.py draws kami-tile,
+  kami-red (+ kami-red-lit: a vermilion tile under the pointer or open — accent_hi, its own
+  picture since the paper's first column is in the slice), the 16 px seal, the scroll (rods
+  4 px, gold-capped, a row proud of the hairlines), all sliced 4 2 3 2 (the scroll 4 4 3 6) so
+  the stretched edges are the same in every column; the lock keeps its old scroll (lock_scroll)
+  until T20. waybar: height 27, margin-bottom -2 — its exclusive zone is gtk-layer-shell's auto
+  zone, the height plus the unanchored edge's margin (waybar 0.15.0 src/bar.cpp setMode →
+  gtk_layer_auto_exclusive_zone_enable; gtk-layer-shell v0.10.0 layer-surface.c) — so it ends
+  on the lower hairline and the shadow lies in the windows' gap; dwl outergappx 5 → 8: the
+  windows' tops on y 33, their edges on x 8 / 1911 = the outer tiles' hairlines (measured
+  headless: a tiled foot's border rows 33–34, columns 8–9 and 1910–1911, bottom 1070–1071).
+  Workspaces: the numerals 一–九 drawn 10 × 10 (art/icons.txt ws-1…9, no air), the stamp a 16 px
+  seal laid at 4 2 of the tile's padding box: rows 6–21 round the numeral's 9–18, 5 px of paper
+  either side (the old narrow seal for 四 七 九 gone). The layout's mark and the window's name one
+  tile (group/focused; "alone" when there is no window). The clock: DD∕MM∕YYYY, its slashes a
+  new sign in Sumi UI (∕ U+2215: a clean 2 : 1 stair on the figures' ten rows — the face's "/"
+  runs 13 rows in uneven steps), red by a span from colors.sh; 14 px date→kanji→time (月, 日 and
+  10–12 o'clock's leading 1 carry classes for their own air), the date's side 7 px wider (the
+  time is), so the kanji's ink stands on the screen's middle (x 953–965, centre 959). US in
+  accent_text, AR in blue; a click switches: kawa-tag kb next → dwl's fifo "kb next" → kbnext()
+  sets the next layout on one keyboard of the group, which wlroots gives to every other one and
+  to the group (wlroots 0.20.2 types/wlr_keyboard_group.c handle_keyboard_modifiers, read in the
+  Fedora source rpm); a virtual keyboard could not (a layout of its own). Steam's tile, light,
+  poke and signal gone from the bar (kawa-steam itself: T35).
+  Measured (tools/regress/bar-geometry.sh, new: headless, both themes): rows 0+3 3+1 4+20 24+1
+  25+1 26+1; hairlines on x 8 and 1911; gaps 4 within a group, 12 between; 8 px paper→ink both
+  sides in every tile (torii 17–32 on 9–40; the cat; 二 三 at 8/8; the layout's mark 8/8 on
+  rows 7–20; words on 9–18); the seal x 60–75 rows 6–21 round 一 at 63–72; the clock 15·14·14·8
+  (9 from 10 to 12 o'clock — the box keeps its width so the kanji never moves). It fails on the
+  installed (old) bar: rows 0+2 2+1 3+24, x 5, 1915. ASan headless run of the new dwl: no error.
+  Tests: test_bargaps rewritten for 27 rows (5/0), test_bar 252/0, test_dwlstatus 171/0, test_tag
+  78/0 (+ kb next), test_timer 79/0, test_design_doc 35/0 (bar in BUILT), test_panel 481/0.
 - r27-33 (T29, findings 04:00 — not fixed yet) Prowlarr: on demand by design (kawa-prowlarr: up while
   torrra searches, asleep 30 min after) — "inactive" is normal. /api/v1/health: 0 now. Its own log
   (~/.config/prowlarr/logs) over 8 days: Warn AllowedHostsCheck "Allowed Hosts is not configured"

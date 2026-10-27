@@ -31,9 +31,11 @@ static const int sloppyfocus               = 1;  /* focus follows mouse */
 static const int bypass_surface_visibility = 0;
 static const unsigned int borderpx         = 2;  /* the border (dwl.patch draws it as outline + band) */
 static const unsigned int gappx            = 8;  /* gap between windows (dwl.patch) */
-static const unsigned int outergappx       = 5;  /* …and from the screen's edges: the windows' outer edge
-                                                    on the bar's tiles' hairline (x 5, 1914), so the
-                                                    windows are exactly as wide as the bar (dwl.patch) */
+static const unsigned int outergappx       = 8;  /* …and from the screen's edges and the bar's hairline
+                                                    (its exclusive zone ends there: waybar's margin-bottom
+                                                    -2 leaves the shadow out): the windows' outer edges on
+                                                    x 8 and 1911, the bar's outer tiles' hairlines, and
+                                                    their tops on y 33 (dwl.patch) */
 static const unsigned int snap             = 16; /* snap pixel */
 static const float rootcolor[]             = COLOR(SUMI);
 /* { outline, band top/left, band bottom/right }: one colour each, a plain full border */

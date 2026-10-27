@@ -10,7 +10,7 @@
 #   +12 the mode tile (do not disturb's bell and its dropdown — kawa-quick —, the screen-share
 #       portal's monitor) · +13 the drive mark (kawa-drives) · +14 the brightness
 #   (kawa-brightness, its slider) · +15 the cat (quick settings) · +16 the volume (the sound
-#   panel; a fifo wake) · +17 Steam's gamepad · +18 the weather · +19 the date and its day
+#   panel; a fifo wake) · +18 the weather · +19 the date and its day
 #   (the calendar) · +20 the torii (the launcher) — the menus' through kawa-menu
 # Exit status: 0 the stream ended (dwl is gone) or poked · 1 no runtime folder · 2 misuse.
 #
@@ -77,8 +77,9 @@ esac
 . "$HOME/.config/fedokawaii/icons.sh"
 . "$HOME/.config/fedokawaii/width.sh"   # air: the title's first and last letters' own air
 __air=''                                  # (air's answer)
-# the workspaces by their kanji numerals, as the bar shows them
-KANJI=(一 二 三 四 五 六 七 八 九)
+# the workspaces by their kanji numerals, as the bar shows them: drawn 10 × 10 for it, so the
+# one you are on stands wholly inside its 16 px seal (art/icons.txt ws-1 … ws-9)
+KANJI=("$ICON_WS_1" "$ICON_WS_2" "$ICON_WS_3" "$ICON_WS_4" "$ICON_WS_5" "$ICON_WS_6" "$ICON_WS_7" "$ICON_WS_8" "$ICON_WS_9")
 DIR="${XDG_RUNTIME_DIR:?}/dwl-bar"
 mkdir -p "$DIR" || exit 1
 ALWAYS=3
@@ -145,8 +146,11 @@ emit() {   # emit MONITOR — its files (and the focused one's at the top), then
   # stacked high — comes from a font with a taller line, and the label, and the whole bar with
   # it, grew by up to 15 px for as long as that window had the focus)
   [[ -n $title ]] && title="<span line_height='14336'>$title</span>"
+  # (the mark and the name share one tile: with no window the mark is alone in it, "alone",
+  # and takes the tile's 8 px of paper after it itself)
+  local lc="\"$cls\""; [[ -z $title ]] && lc="[\"$cls\",\"alone\"]"
   for at in "${to[@]}"; do
-    put "${at}layout" "{\"text\":\"$icon\",\"class\":\"$cls\"}" && ly=1
+    put "${at}layout" "{\"text\":\"$icon\",\"class\":$lc}" && ly=1
     put "${at}title" "{\"text\":\"$title\",\"class\":[\"$ta\"]}" && tt=1
   done
   # the keyboard layout, shown only when there is more than one to switch between

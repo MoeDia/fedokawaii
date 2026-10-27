@@ -118,7 +118,7 @@ COUNTS = os.path.join(HOME, ".cache/fedokawaii/launcher-counts")   # how often e
 # a dropdown's button (kawa-bar): kawa-drop.open holds this panel's pid and the script that
 # asked for the menu while it is open; its module is poked (SIGRTMIN+N), the timer's woken
 DROP = os.path.join(RUN, "kawa-drop.open")
-DROP_POKE = {"kawa-calendar": "19", "kawa-drives": "13", "kawa-steam": "17", "kawa-weather": "18",
+DROP_POKE = {"kawa-calendar": "19", "kawa-drives": "13", "kawa-weather": "18",
              "kawa-tag": "9", "kawa-timer": None, "kawa-downloads": "21",
              "kawa-quick": "12"}      # (do not disturb's dropdown: the bar's quiet bell)
 

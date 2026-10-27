@@ -21,7 +21,8 @@
 #     --dwl      the dwl binary (default the edited tree's, ~/.local/src/dwl/dwl; the session's
 #                own: /usr/local/bin/dwl)
 #     --repo-art the repository's drawn files in place of the installed ones: icons.sh, the icon
-#                fonts, the theme folders (what build-icons.py and build-themes.py just wrote)
+#                fonts, the theme folders (what build-icons.py and build-themes.py just wrote),
+#                Sumi UI (build-fonts.py's), waybar's config and style
 #     SCENE      bar · notice · launcher · term · quick (Super+X) · system (Super+U; system:N its
 #                tab N after the first, shot as system-N.png) · tui (--tui) · play (--play) · full (default: bar notice term full)
 # Shots → OUT (default /dev/shm/r27/kit/THEME)/SCENE.png. Exit 0 · 1 a scene failed · 2 misuse.
@@ -78,6 +79,7 @@ if ((repo_art)); then
   cp "$repo"/configs/home/.local/share/fonts/SumiIcons*.ttf "$h/.local/share/fonts/"
   cp "$repo/configs/home/.config/fedokawaii/icons.sh" "$h/.config/fedokawaii/icons.sh"
   cp -a "$repo/configs/home/.config/fedokawaii/themes/." "$h/.config/fedokawaii/themes/"
+  rm -rf "$h/.config/waybar"; cp -a "$repo/configs/home/.config/waybar" "$h/.config/waybar"
 else
   ln -s "$HOME/.local/share/fonts" "$h/.local/share/fonts"
 fi
@@ -105,6 +107,10 @@ done
   echo '<?xml version="1.0"?><!DOCTYPE fontconfig SYSTEM "urn:fontconfig:fonts.dtd"><fontconfig>'
   echo '<include ignore_missing="yes">/etc/fonts/fonts.conf</include>'
   [[ -n $fontdir ]] && echo "<dir>$fontdir</dir>"
+  if ((repo_art)); then   # (the repository's Sumi UI, the installed one left out)
+    echo "<selectfont><rejectfont><glob>/usr/local/share/fonts/fedokawaii/SumiUI.ttf</glob></rejectfont></selectfont>"
+    echo "<dir>$repo/system/fonts</dir>"
+  fi
   echo "<cachedir>$K/fc-cache</cachedir>"
   for f in "${fonts[@]}"; do
     printf '<match target="pattern"><test name="family"><string>%s</string></test><edit name="family" mode="prepend" binding="strong"><string>%s</string></edit></match>\n' "${f%%=*}" "${f#*=}"

@@ -4,15 +4,24 @@
 # kawa-tag layout prev  columns → spiral (right-click: back). Floating piles the windows on
 #                       top of each other: only its own key (Super+Y) chooses it; from it,
 #                       a click goes to the spiral (right-click: columns)
-# Both press dwl's own keys through a virtual keyboard (wtype), so dwl acts exactly as if
-# you had pressed them — on the monitor under the pointer, the one whose bar was clicked.
-# Exit status: 0 pressed · 1 could not (wtype missing or refused) · 2 misuse.
+# kawa-tag kb next      what clicking the keyboard tile (US · AR) does: the next layout
+# The first two press dwl's own keys through a virtual keyboard (wtype), so dwl acts exactly as
+# if you had pressed them — on the monitor under the pointer, the one whose bar was clicked.
+# The layout is dwl's to switch (its fifo, "kb next"): a virtual keyboard has a layout of its
+# own, so pressing Alt+Shift through one would switch nothing on yours.
+# Exit status: 0 pressed (asked) · 1 could not (wtype missing or refused; dwl's fifo not there)
+# · 2 misuse.
 set -u
 case ${1:-} in
   -h|--help) sed -n '2,/^set -u/{/^set -u/d;s/^# \{0,1\}//;p}' "$0"; exit 0 ;;
 esac
 key=""
-if [[ $# == 1 && $1 =~ ^[1-9]$ ]]; then key=$1
+if [[ $# == 2 && $1 == kb && $2 == next ]]; then
+  f=${XDG_RUNTIME_DIR:-/run/user/$UID}/dwl-warm
+  [[ -p $f ]] || exit 1
+  { printf 'kb next\n' 1<>"$f"; } 2>/dev/null || exit 1     # (opened read-write: never waits)
+  exit 0
+elif [[ $# == 1 && $1 =~ ^[1-9]$ ]]; then key=$1
 elif [[ $# == 2 && $1 == layout && $2 =~ ^(next|prev)$ ]]; then
   # the layout shown now (kawa-dwlstatus: the monitor's own file, else the focused one's)
   order=(spiral columns); keys=(s t); n=${#order[@]}; now=-1
@@ -23,7 +32,7 @@ elif [[ $# == 2 && $1 == layout && $2 =~ ^(next|prev)$ ]]; then
     if [[ $2 == next ]]; then key=${keys[0]}; else key=${keys[n - 1]}; fi
   elif [[ $2 == next ]]; then key=${keys[(now + 1) % n]}; else key=${keys[(now + n - 1) % n]}; fi
 else
-  echo "usage: kawa-tag 1-9 · kawa-tag layout next|prev" >&2; exit 2
+  echo "usage: kawa-tag 1-9 · kawa-tag layout next|prev · kawa-tag kb next" >&2; exit 2
 fi
 # (a click that does nothing would say nothing: the bar's clicks have no terminal to print to)
 command -v wtype >/dev/null || {

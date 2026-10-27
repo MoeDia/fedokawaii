@@ -1,32 +1,37 @@
 /* ~/.config/waybar/style.css — 紙 kami: no bar, but washi tiles floating along the top of the
-   screen, each part of the desktop on a tile of its own. On the ink theme the paper is dyed
-   in ink (墨染め sumizome) and the words pale; on the paper theme it is the paper as it comes
-   (生成り kinari) and the words sumi. Every tile alike (tools/build-themes.py draws them, per
-   theme): the paper, a printer's rule 2 px inside its edge, a hairline round it and a soft
-   shadow under it, so a tile stands on any wallpaper —
-     the torii and the cat   vermilion, a gold rule, at the corners
-     the workspaces          a tile each: its numeral faint while empty, the text's ink while
-                             it holds windows, asagi while it asks for you; the one you are
-                             on stamped with a vermilion seal, its numeral the paper's
-     the layout, the title   a tile each
+   screen, each part of the desktop on a tile of its own (docs/design-system.md §8). On the ink
+   theme the paper is dyed in ink (墨染め sumizome) and the words pale; on the paper theme it is
+   the paper as it comes (生成り kinari) and the words sumi. Every tile is the frame everything
+   that floats has (§4) — a hairline round the paper, its corner pixels left out, and the shadow
+   under it (two rows, a pixel further right each) and a column at its right — with the paper
+   and its faint fibre inside: one frame, nothing inside it. tools/build-themes.py draws the
+   pictures, per theme, exactly to their box —
+     the torii and the cat   vermilion tiles at the two ends (lit: the brighter vermilion)
+     the workspaces          a tile each: its numeral (10 × 10) faint while empty, the text's
+                             ink while it holds windows, asagi while it asks for you; the one
+                             you are on stamped with the round vermilion seal (16 px), its
+                             numeral Black, wholly inside it
+     the layout, the title   one tile: the layout's mark, 8 px, the window's name
      the clock               mounted as a hanging scroll between lacquered, gold-capped rods:
-                             the date · the day's kanji in vermilion · the time, 8 px from
-                             the paper to the ink at both ends, the scroll centred on the
-                             screen — and while music plays its spectrum inside the scroll,
-                             either side
+                             the date · the day's kanji in vermilion · the time — and while
+                             music plays its spectrum inside the scroll, either side
      the rest                a tile each
-   The rows (31): the hairline on 2, the paper 3–27 with its rule on 5 and 25, the hairline on
-   28, the shadow 29–30; the 16 px text line on 8–23, the capitals on 9–21 — centred on row
-   15, the tile's middle; an icon alone a row higher, its 15 px centred there too. Each tile
-   is a border-image (kami-*.png, sliced 6 5 6 4: the edges kept to the pixel, the middle
-   stretched) round the paper's colour and its fibres.
-   Spacing, paper to paper: 4 px between the tiles of a group, 10 between groups, 6 from the
-   screen's edges; inside a tile 8 px from the paper's edge to the ink, both sides (each
-   glyph's own air counted).
+   The rows (27): air on 0–2, the hairline on 3, the paper 4–23 (one row of 20), the hairline on
+   24, the shadow 25–26; on the paper the words on the row's own rows — the em on 7–20, the
+   capitals 9–18, an icon beside words on 8–19, an icon alone on 7–20, the emblems on 6–21.
+   Each tile is a border-image (kami-*.png, sliced 4 2 3 2: the air and the hairline · the
+   hairline and the shadow's column · the hairline and the shadow's rows · the hairline and the
+   paper's first column) round the paper's colour and its fibres.
+   Across: 8 px from the paper's edge to the ink, both sides of every tile (each glyph's own air
+   counted: the paper's first column is in the picture, so the padding is 7 on the left, 8 less
+   the last glyph's air on the right); 4 px hairline to hairline between the tiles of a group
+   (the shadow's column and 3), 12 between groups; the outer tiles' hairlines on x 8 and x 1911,
+   where the windows' edges are (§12). The bar's exclusive zone ends on its lower hairline
+   (config.jsonc: margin-bottom -2): the windows' tops 8 px under it, on y 33.
    Colours and pictures come from the current theme (ink or paper): kawa-theme switches
-   ~/.config/fedokawaii/current and reloads the bar.
-   Sumi UI and Sumi Icons are on a 14 px grid: keep font-size at 14px so every pixel lands on
-   a whole screen pixel. Reload: pkill -USR2 waybar */
+   ~/.config/fedokawaii/current and reloads the bar. Sumi UI and Sumi Icons are drawn on a 14 px
+   grid: keep font-size at 14px so every pixel lands on a whole screen pixel.
+   Reload: pkill -USR2 waybar */
 @import url("../fedokawaii/current/waybar.css");
 
 * {
@@ -44,107 +49,101 @@ window#waybar { background: transparent; color: @text; }
 button, button:hover, button:active, button:checked { background: none; box-shadow: none; border: none; }
 
 /* ── a tile ─────────────────────────────────────────────────────────────────────────── */
-#custom-torii, .tag, #custom-layout, #custom-title, #custom-nowplaying, #custom-timer,
-#custom-record, #custom-mode, #custom-drives, #custom-downloads, #custom-steam, #custom-kb,
-#custom-mem, #custom-volume, #custom-brightness, #custom-weather, #custom-menu {
+#custom-torii, .tag, #focused, #custom-nowplaying, #custom-timer, #custom-record,
+#custom-mode, #custom-drives, #custom-downloads, #custom-kb, #custom-mem, #custom-volume,
+#custom-brightness, #custom-weather, #custom-menu {
   border-style: solid;
   border-color: transparent;
-  border-width: 6px 5px 6px 4px;
-  border-image: url("../fedokawaii/current/kami-tile.png") 6 5 6 4 stretch;
+  border-width: 4px 2px 3px 2px;
+  border-image: url("../fedokawaii/current/kami-tile.png") 4 2 3 2 stretch;
   background-color: @tile;
   background-image: url("../fedokawaii/current/kami-fibre.png");
   background-repeat: repeat;
   background-position: 0 0;
   background-clip: padding-box;
   background-origin: padding-box;
-  /* the line on rows 8–23 (2 px under the rule), the paper's 8 px to the ink: 4 of them in
-     the border's picture, the rest here (each glyph's air counted where it has some) */
-  padding: 2px 5px 1px 5px;
-  margin: 0 0 0 1px;
+  /* the 14 px line on the paper's rows 3–16 (the em on the bar's 7–20); 8 px paper to ink:
+     one column of it in the picture, 7 here — and on the right 8 less the last glyph's own
+     column of air (every figure and letter of Sumi UI has one) */
+  padding: 3px 7px 3px 7px;
+  margin: 0 0 0 3px;
 }
-/* the corners' vermilion tiles: the torii and the cat, in the ground's ink */
+/* the two ends' vermilion tiles: the torii and the cat, their emblems in the ground's ink */
 #custom-torii, #custom-menu {
-  border-image: url("../fedokawaii/current/kami-red.png") 6 5 6 4 stretch;
+  border-image: url("../fedokawaii/current/kami-red.png") 4 2 3 2 stretch;
   background-color: @kami-red;
   background-image: none;
   color: @strong-on-accent;
-  padding: 1px 4px 2px 5px;          /* (an icon alone: a row higher; its 15 px of ink in 16) */
 }
-#custom-torii { margin-left: 5px; padding-right: 5px; }   /* (its 16 px emblem has no air of its own) */
-#custom-menu  { margin-left: 7px; margin-right: 4px; }
+#custom-torii { margin-left: 8px; padding-right: 8px; }   /* (the torii's ink fills its 16 columns) */
+#custom-menu  { margin-left: 11px; margin-right: 7px; }   /* (its right hairline on x 1911) */
 
 /* ── the workspaces ─────────────────────────────────────────────────────────────────── */
-.tag { color: @faint; padding-left: 5px; padding-right: 5px; }
-#custom-tag4, #custom-tag7, #custom-tag9 { padding-right: 4px; }   /* (四 七 九: 15 px of ink in 16) */
-#custom-tag1 { margin-left: 7px; }
+.tag { color: @faint; padding-right: 8px; }   /* (the numerals: 10 × 10, no air of their own) */
+#custom-tag1 { margin-left: 11px; }
 .tag.occupied { color: @text; }
 .tag.urgent   { color: @asagi; }
-/* where you are: the seal, the numeral on it in the paper's ink */
-/* (the seal is drawn to the tile's inside exactly — 26 × 19, 25 × 19 for 四 七 九 — and laid
-   at its corner: centred on the numeral to the pixel, nothing left to GTK's rounding) */
+/* where you are: the seal centred on the numeral (its ink on the paper's columns 8–17, the
+   seal's 16 on 5–20, two rows of paper above and below it), the numeral on it in Black */
 .tag.selected {
   color: @seal-ink;
   background-image: url("../fedokawaii/current/kami-seal.png"), url("../fedokawaii/current/kami-fibre.png");
-  background-position: 0 0, 0 0;
+  background-position: 4px 2px, 0 0;
   background-repeat: no-repeat, repeat;
 }
-#custom-tag4.selected, #custom-tag7.selected, #custom-tag9.selected {
-  background-image: url("../fedokawaii/current/kami-seal-narrow.png"), url("../fedokawaii/current/kami-fibre.png");
-}
-/* the layout's icon and the window's title: a tile each (the title's gone with no window) */
-#custom-layout { color: @muted; margin-left: 7px; padding: 1px 5px 2px 5px; }   /* (an icon alone: 14 px, no air of its own) */
-#custom-title  { color: @text; }
-/* words that change (the title, what plays): their first and last letters' own air — 0 to 3
-   columns of Sumi UI (kawa-dwlstatus, kawa-nowplaying: width.sh's air) — taken from the
-   pad, so the paper to the ink is 8 px at both ends whatever the words */
-#custom-title.l1 { padding-left: 4px; }   #custom-title.r1, #custom-nowplaying.r1 { padding-right: 4px; }
-#custom-title.l2 { padding-left: 3px; }   #custom-title.r2, #custom-nowplaying.r2 { padding-right: 3px; }
-#custom-title.l3 { padding-left: 2px; }   #custom-title.r3, #custom-nowplaying.r3 { padding-right: 2px; }
+
+/* ── the layout's mark and the window's name: one tile ─────────────────────────────── */
+#focused { margin-left: 11px; padding: 0; }
+#custom-layout, #custom-title { padding: 3px 0 3px 0; margin: 0; background: none; border: none; }
+#custom-layout { color: @muted; padding-left: 7px; }        /* (an icon alone: 14 px, no air) */
+#custom-layout.alone { padding-right: 8px; }                 /* (no window: the mark alone) */
+#custom-title { color: @text; padding-left: 8px; padding-right: 8px; }
+/* the name's first and last letters' own air (kawa-dwlstatus: width.sh's air) taken from the
+   pad, so the mark to the ink and the ink to the paper's edge are 8 px whatever the words */
+#custom-title.l1 { padding-left: 7px; }   #custom-title.r1, #custom-nowplaying.r1 { padding-right: 7px; }
+#custom-title.l2 { padding-left: 6px; }   #custom-title.r2, #custom-nowplaying.r2 { padding-right: 6px; }
+#custom-title.l3 { padding-left: 5px; }   #custom-title.r3, #custom-nowplaying.r3 { padding-right: 5px; }
 
 /* ── the middle: the clock, a hanging scroll ───────────────────────────────────────── */
+/* DD∕MM∕YYYY · the day's kanji · HH:MM:SS AM, 14 px of air between them (each glyph's own air
+   counted), 8 px from the time to the right rod; the time is 7 px longer than the date, so the
+   date's side has 7 more (15 to the rod) and the kanji stands on the screen's middle — the
+   scroll is centred, and the two sides of the kanji weigh the same, whatever the day or hour */
 #when {
   border-style: solid;
   border-color: transparent;
-  border-width: 6px 8px 6px 8px;
-  border-image: url("../fedokawaii/current/kami-scroll.png") 6 8 6 8 stretch;
+  border-width: 4px 4px 3px 6px;
+  border-image: url("../fedokawaii/current/kami-scroll.png") 4 4 3 6 stretch;
   background-color: @tile;
   background-image: url("../fedokawaii/current/kami-fibre.png");
   background-repeat: repeat;
   background-clip: padding-box;
   background-origin: padding-box;
-  padding: 0 4px;                   /* 4 px of paper in the rod's picture, 4 here: 8 to the ink */
+  padding: 0 7px 0 13px;   /* (two columns of paper are in the picture at the left: 15 to the
+                              ink there; at the right 7 and M's own column: 8) */
 }
 #custom-wing-left, #custom-date, #custom-day, #custom-time, #custom-wing-right {
-  padding: 2px 0 1px 0; margin: 0; background: none; border: none;
+  padding: 3px 0 3px 0; margin: 0; background: none; border: none;
 }
-/* 14 px of air between the parts (the wings' last column has 2 px of air of its own) */
-#custom-wing-left  { padding-right: 13px; margin-left: -1px; }   /* (a column's 1 px of air before it) */
-#custom-date       { padding-left: 0; padding-right: 14px; }   /* (less its month's last letter's air) */
-#custom-date.r1 { padding-right: 13px; }  #custom-date.r2 { padding-right: 12px; }  #custom-date.r3 { padding-right: 11px; }
-#custom-day        { padding-right: 14px; }   /* (the time's first figure: no air before it) */
-#custom-day.mon    { padding-left: 1px; padding-right: 13px; }   /* (月: 13 px of ink in its 16) */
-#custom-time       { padding-right: 0; }
-#custom-wing-right { padding-left: 12px; margin-right: -5px; }  /* (AM/PM's M: its column of air) */  /* (the last column's air after it) */
+#custom-wing-left  { margin-left: -1px; padding-right: 13px; }   /* (its columns' air: 1 px either side) */
+#custom-date       { padding-right: 13px; }                       /* (the year's last figure: 1 px of air) */
+#custom-day        { padding-right: 13px; }                       /* (火 水 木 金 土: none before, 1 after) */
+#custom-day.mon    { margin-left: -1px; padding-right: 12px; }    /* (月: 1 before, 2 after) */
+#custom-day.sun    { margin-left: -3px; padding-right: 12px; }    /* (日: 3 before, 2 after) */
+#custom-time.l1    { margin-left: -1px; padding-right: 1px; }     /* (10–12 o'clock: the 1's air; the
+                                                                     same width, so nothing moves) */
+#custom-wing-right { padding-left: 12px; }                        /* (M's air and the column's) */
 
 /* ── the right: what the computer is doing, a tile each · the cat ──────────────────── */
-#custom-nowplaying, #custom-timer, #custom-record, #custom-mode, #custom-drives,
-#custom-downloads, #custom-steam, #custom-kb, #custom-mem, #custom-volume,
-#custom-brightness, #custom-weather { padding-left: 5px; padding-right: 5px; }
-#custom-weather    { padding-right: 2px; }      /* (° has 3 px of air) */
-/* ending in a letter or a figure: its own column of air (every one of Sumi UI's has one) */
-#custom-timer, #custom-record, #custom-drives, #custom-kb, #custom-mem { padding-right: 4px; }
-#custom-steam { padding: 1px 5px 2px 5px; }   /* (an icon alone, 14 px, no air of its own: a row higher) */
+#custom-weather { padding-right: 6px; }   /* (° has 2 px of air) */
 
 #custom-nowplaying        { color: @text; }
 #custom-nowplaying.paused { color: @muted; }
 #custom-drives       { color: @muted; }
 #custom-drives.open  { color: @text; }
 #custom-downloads    { color: @text; }
-#custom-steam        { color: @text; }
-#custom-steam.starting { color: @faint; }
-#custom-steam.game   { color: @accent-text; }
-#custom-kb           { color: @muted; }
-#custom-kb.other     { color: @accent-text; }
+#custom-kb           { color: @accent-text; }    /* US in vermilion */
+#custom-kb.other     { color: @blue; }           /* AR in blue */
 #custom-mem          { color: @muted; }
 #custom-mem.high     { color: @accent-text; }
 #custom-volume       { color: @text; }
@@ -152,36 +151,39 @@ button, button:hover, button:active, button:checked { background: none; box-shad
 #custom-brightness   { color: @text; }
 #custom-weather      { color: @text; }
 #custom-weather.stale { color: @muted; }   /* a forecast over an hour old: said quietly */
-/* the mode — the quiet bell, the sharing monitor — beside the clock: quiet in muted ink, a
-   shared screen in vermilion */
+/* the mode — the quiet bell, the sharing monitor — an icon alone: quiet in muted ink, a shared
+   screen in vermilion */
+#custom-mode       { padding-right: 8px; }
 #custom-mode.dnd   { color: @muted; }
 #custom-mode.share { color: @accent-text; }
-/* 録 and the time gone by while the screen is recorded: vermilion (a click stops it) */
+/* recording: its dot and the time gone by in vermilion (a click stops it) */
 #custom-record        { color: @accent-text; }
 #custom-record.paused { color: @muted; }
 /* the timer beside the clock: the time left in vermilion, a stopwatch's in asagi */
 #custom-timer           { color: @accent-text; }
 #custom-timer.stopwatch { color: @asagi; }
-/* the clock: the date in the text's ink · the day's kanji in vermilion · the time bright */
+/* the clock: the date in the text's ink (its slashes vermilion: kawa-bar) · the day's kanji
+   in vermilion · the time bright */
 #custom-date { color: @text; }
 #custom-day  { color: @accent-text; }
 #custom-time { color: @strong; }
 
 /* ── lit: under the pointer, and open — asagi, at once, whatever its ink at rest ───── */
-#custom-torii:hover, .tag:hover, #custom-layout:hover, #custom-menu:hover, #custom-nowplaying:hover,
-#custom-timer:hover, #custom-record:hover, #custom-mode:hover, #custom-drives:hover,
-#custom-downloads:hover, #custom-steam:hover, #custom-mem:hover, #custom-volume:hover,
-#custom-brightness:hover, #custom-weather:hover, #custom-date:hover, #custom-day:hover,
-#custom-time:hover,
-#custom-torii.active, #custom-layout.active, #custom-menu.active, #custom-mode.active,
-#custom-drives.active, #custom-downloads.active, #custom-steam.active, #custom-mem.active,
-#custom-volume.active, #custom-brightness.active, #custom-weather.active, #custom-date.active,
-#custom-day.active, #custom-time.active { color: @asagi; }
+.tag:hover, #custom-layout:hover, #custom-nowplaying:hover, #custom-timer:hover,
+#custom-record:hover, #custom-mode:hover, #custom-drives:hover, #custom-downloads:hover,
+#custom-kb:hover, #custom-mem:hover, #custom-volume:hover, #custom-brightness:hover,
+#custom-weather:hover, #custom-date:hover, #custom-day:hover, #custom-time:hover,
+#custom-layout.active, #custom-mode.active, #custom-drives.active, #custom-downloads.active,
+#custom-mem.active, #custom-volume.active, #custom-brightness.active, #custom-weather.active,
+#custom-date.active, #custom-day.active, #custom-time.active { color: @asagi; }
 
-/* on vermilion, and on the seal: the other ink there is (after the rule above: never asagi
-   on red) */
-#custom-torii:hover, #custom-torii.active, #custom-menu:hover, #custom-menu.active { color: @strong; }
+/* a vermilion tile lit: its fill the brighter vermilion, the emblem keeps its ink */
+#custom-torii:hover, #custom-torii.active, #custom-menu:hover, #custom-menu.active {
+  border-image: url("../fedokawaii/current/kami-red-lit.png") 4 2 3 2 stretch;
+  background-color: @kami-red-lit;
+}
+/* on the seal: the other ink there is (never asagi on red) */
 .tag.selected:hover { color: @strong; }
 
-tooltip { background: @tile; border: 2px solid @muted; border-radius: 0; }   /* framed like every menu */
-tooltip label { color: @text; padding: 4px 8px; }
+tooltip { background: @tile; border: 1px solid @muted; border-radius: 0; }   /* framed like every menu */
+tooltip label { color: @text; padding: 0 8px; }

@@ -86,7 +86,8 @@ jtext() {
 }
 # tagrow [MON/] — the nine workspaces as the bar shows them: "1:sel 2:occ 3:emp 4:- …" (- hidden;
 # each is its kanji numeral on the bar)
-KANJI_DIGITS=(一 二 三 四 五 六 七 八 九)
+# the workspaces' numerals as the bar draws them: 一 … 九 drawn 10 × 10 (icons.sh's ws-1 … ws-9)
+mapfile -t KANJI_DIGITS < <(. "$REPO/configs/home/.config/fedokawaii/icons.sh"; for n in 1 2 3 4 5 6 7 8 9; do v=ICON_WS_$n; printf '%s\n' "${!v}"; done)
 tagrow() {
   local i j c out=""
   for i in 1 2 3 4 5 6 7 8 9; do

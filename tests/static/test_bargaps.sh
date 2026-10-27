@@ -6,12 +6,15 @@
 #   · every module with an icon and a value draws it with ICON_BAR_*, never "icon value"
 #   · no module holds a fixed width (which would put cloth after the value)
 #   · the tiles (紙 kami): each a border-image of its theme's picture (kami-tile, kami-red at
-#     the corners, kami-scroll round the clock) sliced as drawn — the hairline on rows 2 and
-#     28, the paper 3–27 with its rule on 5 and 25, the shadow 29–30 — the text line on rows
-#     8–23 (an icon alone a row higher)
+#     the two ends, kami-scroll round the clock) sliced as drawn — §4's frame on 27 rows: air
+#     0–2, the hairline on 3 and 24 (corners left out), the paper 4–23, the shadow 25–26 — the
+#     14 px line on the paper's rows 3–16
 #   · 8 px from the paper's edge to the ink both sides inside a tile (each glyph's air
-#     counted); 4 px paper to paper within a group, 10 between groups, 6 to the screen's edges
-#   · the layout and the title a tile each; the clock's parts in one scroll, 14 px of air apart
+#     counted); 4 px hairline to hairline within a group, 12 between groups, the outer
+#     hairlines on x 8 and x 1911
+#   · the layout's mark and the window's name one tile; the stamp's seal centred on its
+#     numeral; the clock's parts in one scroll, 14 px of air apart
+# (tools/regress/bar-geometry.sh measures the same on a real bar, headless.)
 . "$(dirname "$0")/../lib/harness.sh"
 
 case_ "ICON_BAR_*: each icon's ink from the pen, 8 px from it to the value's"
@@ -65,8 +68,8 @@ case_ "no module of the bar holds a fixed width"
 bad=$(grep -nE 'min-width: *[0-9]+px' "$CSS" | grep -vE 'min-width: *(0|1)px')
 [[ -z $bad ]] && _ok || _no "$bad"
 
-case_ "the tiles, from the style and the drawings: the pictures' rows, 8 px paper to ink, 4 / 10 / 6 px paper to paper, the layout and the title a tile each, the clock's parts 14 px apart in the scroll"
-out=$(python3 -I -B - "$REPO" 2>&1 <<'EOF'
+case_ "the tiles, from the style and the drawings: 27 rows (the frame of §4), 8 px paper to ink, 4 / 12 px hairline to hairline, the outer hairlines on x 8 and x 1911, the stamp's numeral inside its seal, the clock's parts 14 px apart"
+out=$(python3 -I - "$REPO" 2>&1 <<'EOF'
 import re, sys
 from PIL import Image, ImageFont, ImageDraw
 root = sys.argv[1]
@@ -106,81 +109,106 @@ g = {"__name__": "bi", "__file__": root + "/tools/build-icons.py"}
 exec(compile(src, "build-icons", "exec"), g)
 ic = {i["name"]: i for i in g["parse"](open(root + "/art/icons.txt").read())}
 IL = lambda n: g["left_air"](ic[n]); IR = lambda n: g["right_air"](ic[n])
-SUMI = ImageFont.truetype(root + "/system/fonts/SumiUI.ttf", 16)
+SUMI = ImageFont.truetype(root + "/system/fonts/SumiUI.ttf", 14)
 def air(ch):
     im = Image.new("L", (48, 24)); ImageDraw.Draw(im).text((8, 0), ch, font=SUMI, fill=255)
     xs = [x for x in range(48) for y in range(24) if im.getpixel((x, y)) > 128]
     return min(xs) - 8, int(SUMI.getlength(ch)) - (max(xs) - 8) - 1
 T = root + "/configs/home/.config/fedokawaii/themes/"
 cfg = re.sub(r"^\s*//.*$", "", open(root + "/configs/home/.config/waybar/config.jsonc").read(), flags=re.M)
-height = int(re.search(r'"height":\s*(\d+)', cfg).group(1)); want("the bar's height", height, 31)
-# the pictures: the hairline on rows 2 and 28, the paper's rule on 5 and 25, the shadow 29–30,
-# nothing on rows 0–1; a tile's slices: the hairline its outer column, then two of paper, the rule
+height = int(re.search(r'"height":\s*(\d+)', cfg).group(1)); want("the bar's height", height, 27)
+want("its margin under it (the exclusive zone ends on the lower hairline)", int(re.search(r'"margin-bottom":\s*(-?\d+)', cfg).group(1)), -2)
+# the pictures (§4's frame): air on rows 0–2, the hairline on 3 and 24 (its corners left out),
+# the paper 4–23, the shadow 25–26 a pixel further right each, a column at the right from row 5
 for th in ("dark", "light"):
-    for n, w in (("kami-tile.png", 12), ("kami-red.png", 12), ("kami-scroll.png", 19)):
-        im = Image.open(T + th + "/" + n).convert("RGBA"); a = lambda x, y: im.getpixel((x, y))
-        want(f"{th}/{n}: its size", im.size, (w, height))
-        if n != "kami-scroll.png" and any(a(x, y)[3] for x in range(w) for y in (0, 1)): bad.append(f"{th}/{n}: ink above the hairline")
-        if not (a(3, 2) == a(3, 28) and a(3, 2)[3] and not a(3, 1)[3] if n != "kami-scroll.png" else a(9, 28)[3]): bad.append(f"{th}/{n}: no hairline on rows 2 and 28")
-        if not all(a(5, y)[3] for y in (29, 30)): bad.append(f"{th}/{n}: no shadow on rows 29–30")
-        if n != "kami-scroll.png":
-            r = a(5, 5)
-            if not (a(5, 25) == r and a(3, 15) == r and a(7, 15) == r and a(5, 4) != r and a(0, 15) == a(3, 2)):
-                bad.append(f"{th}/{n}: the rule not on rows 5 and 25, columns 3 and 7 (the hairline in column 0)")
-    try: Image.open(T + th + "/kami-fibre.png")
-    except OSError: bad.append(f"{th}/kami-fibre.png: missing")
-    # the seal drawn to the workspace tile's padding box exactly: its numeral's 16 px and
-    # the padding (26 × 19; 25 for 四 七 九, whose tile is a pixel narrower)
-    for n, k in (("kami-seal.png", "#custom-tag1"), ("kami-seal-narrow.png", "#custom-tag4")):
-        p_ = box(k)[0]
-        want(f"{th}/{n}: its size, the tile's padding box", Image.open(T + th + "/" + n).size, (p_[3] + 16 + p_[1], p_[0] + 16 + p_[2]))
-    for old in ("washi.png", "hems.png", "seam.png", "cell-bare-36.png", "clock.png", "stitch.png", "hem.png"):
+    for n in ("kami-tile.png", "kami-red.png", "kami-red-lit.png"):
+        im = Image.open(T + th + "/" + n).convert("RGBA"); a = lambda x, y: im.getpixel((x, y)); w = im.size[0]
+        want(f"{th}/{n}: its height", im.size[1], height)
+        hair = a(0, 10)
+        if any(a(x, y)[3] for x in range(w) for y in (0, 1, 2)): bad.append(f"{th}/{n}: ink above the hairline")
+        if not (a(1, 3) == hair == a(w - 3, 3) == a(1, 24) == a(w - 2, 10) and not a(0, 3)[3] and not a(w - 2, 3)[3] and not a(0, 24)[3]):
+            bad.append(f"{th}/{n}: the hairline not on rows 3 and 24, columns 0 and {w - 2}, its corners left out")
+        fill = a(1, 4)
+        if not all(a(x, y) == fill for x in range(1, w - 2) for y in range(4, 24)): bad.append(f"{th}/{n}: more than one fill inside the hairline (a second frame)")
+        s1, s2 = a(1, 25), a(2, 26)
+        if not (s1[3] and s2[3] and not a(1, 26)[3] and a(w - 2, 25) == s1 and not a(w - 1, 25)[3] and a(w - 1, 26) == s2
+                and a(w - 1, 5) == s2 and not a(w - 1, 4)[3]):
+            bad.append(f"{th}/{n}: not §4's shadow (two rows, the second a pixel further right; the column from the hairline's second row)")
+    seal = Image.open(T + th + "/kami-seal.png").convert("RGBA")
+    want(f"{th}/kami-seal.png: its size", seal.size, (16, 16))
+    for old in ("kami-seal-narrow.png", "washi.png", "hems.png", "seam.png", "cell-bare-36.png", "clock.png", "stitch.png", "hem.png"):
         if __import__("os").path.exists(T + th + "/" + old): bad.append(f"{th}/{old}: still there")
-for k in range(1, 10):
-    w_ = "kami-seal-narrow.png" if k in (4, 7, 9) else "kami-seal.png"
-    if f'/{w_}"' not in box(f"#custom-tag{k}.selected")[3].get("background-image", ""): bad.append(f"#custom-tag{k}.selected: not on {w_}")
-tiles = ["#custom-torii", "#custom-menu", "#custom-layout", "#custom-title"] + [f"#custom-tag{k}" for k in range(1, 10)] + \
+    sc = Image.open(T + th + "/kami-scroll.png").convert("RGBA")
+    want(f"{th}/kami-scroll.png: its height", sc.size[1], height)
+tiles = ["#custom-torii", "#custom-menu", "#focused"] + [f"#custom-tag{k}" for k in range(1, 10)] + \
         ["#custom-nowplaying", "#custom-timer", "#custom-record", "#custom-mode", "#custom-drives", "#custom-downloads",
-         "#custom-steam", "#custom-kb", "#custom-mem", "#custom-volume", "#custom-brightness", "#custom-weather"]
+         "#custom-kb", "#custom-mem", "#custom-volume", "#custom-brightness", "#custom-weather"]
 for sel in tiles:
     p_, m_, b_, o = box(sel)
     kind = "kami-red.png" if sel in ("#custom-torii", "#custom-menu") else "kami-tile.png"
-    if kind not in o.get("border-image", "") or not o.get("border-image", "").split(")")[1].strip().startswith("6 5 6 4"):
-        bad.append(f"{sel}: border-image {o.get('border-image')}")
-    want(f"{sel}: its border", b_, [6, 5, 6, 4])
-    alone = sel in ("#custom-torii", "#custom-menu", "#custom-layout", "#custom-steam")
-    want(f"{sel}: the line on rows {'7–22' if alone else '8–23'}", (b_[0] + p_[0], b_[0] + p_[0] + 16 + p_[2] + b_[2]), ((7, height) if alone else (8, height)))
-L = lambda s, ink: 3 + box(s)[0][3] + ink                 # (the paper's edge → the ink: the border's 3 of paper)
-R = lambda s, ink: ink + box(s)[0][1] + 3
+    bi = o.get("border-image", "")
+    if kind not in bi or not bi.split(")")[1].strip().startswith("4 2 3 2"): bad.append(f"{sel}: border-image {bi}")
+    want(f"{sel}: its border (the picture's slices)", b_, [4, 2, 3, 2])
+    inner = sel == "#focused"
+    if not inner: want(f"{sel}: the 14 px line on the paper's rows 3–16", (p_[0], p_[2]), (3, 3))
+for sel in ("#custom-layout", "#custom-title"):
+    want(f"{sel} (inside one tile): its line", (box(sel)[0][0], box(sel)[0][2]), (3, 3))
+    want(f"{sel} (inside one tile): no frame of its own", box(sel)[2], [0, 0, 0, 0])
+# 8 px from the paper's edge to the ink: the paper's first column is in the picture (the left
+# slice: the hairline and one column), so the padding is 7 less the first glyph's air; on the
+# right the padding is 8 less the last glyph's air (the right slice: the hairline, the shadow)
+L = lambda s, ink: 1 + box(s)[0][3] + ink
+R = lambda s, ink: ink + box(s)[0][1]
 for sel, l, r in (("#custom-torii", IL("torii"), IR("torii")), ("#custom-menu", IL("cat"), IR("cat")),
-                  ("#custom-tag1", 0, 0), ("#custom-tag4", 0, 1), ("#custom-volume", 0, 0), ("#custom-weather", 0, 3),
-                  ("#custom-steam", IL("gamepad"), IR("gamepad")), ("#custom-layout", IL("tile"), IR("tile")), ("#custom-title", 0, None)):
-    if l is not None: want(f"{sel}: the paper → its ink", L(sel, l), 8)
-    if r is not None: want(f"{sel}: its ink → the paper", R(sel, r), 8)
-# paper to paper: a tile's right edge 2 columns of hairline and shadow, the next's left 1
-gap = lambda s: 2 + box(s)[1][3] + 1
+                  ("#custom-tag1", IL("ws-1"), IR("ws-1")), ("#custom-tag4", IL("ws-4"), IR("ws-4")),
+                  ("#custom-volume", 0, air("%")[1]), ("#custom-mem", 0, air("G")[1]), ("#custom-weather", 0, air("°")[1]),
+                  ("#custom-kb", air("U")[0], air("S")[1]), ("#custom-timer", 0, air("5")[1]), ("#custom-mode", 0, 0)):
+    want(f"{sel}: the paper → its ink", L(sel, l), 8)
+    want(f"{sel}: its ink → the paper", R(sel, r), 8)
+# the layout's mark and the window's name in one tile: the mark 8 from the paper, the name 8
+# after the mark (less its first letter's air: the classes l1–l3), 8 to the paper's end
+want("#custom-layout: the paper → the mark", 1 + box("#custom-layout")[0][3] + IL("spiral"), 8)
+want("#custom-layout.alone: the mark → the paper", IR("spiral") + box("#custom-layout.alone")[0][1], 8)
+want("the mark → the name", IR("spiral") + box("#custom-layout")[0][1] + box("#custom-title")[0][3], 8)
+for n in (1, 2, 3):
+    want(f"#custom-title.l{n}: the mark → its ink", IR("spiral") + box("#custom-layout")[0][1] + box(f"#custom-title.l{n}")[0][3] + n, 8)
+    want(f"#custom-title.r{n}: its ink → the paper", n + box(f"#custom-title.r{n}")[0][1], 8)
+# the stamp: its seal 16 px laid 4 2 into the padding box — centred on the numeral's 10 × 10
+# (the numeral 8 px into the paper: the padding box starts one column in), two rows of paper
+# above and below it
+p_ = box("#custom-tag1")[0]
+sp = box(".tag.selected")[3].get("background-position", "").split(",")[0].split()
+sx, sy = px(sp[0]), px(sp[1])
+want("the seal across: centred on the numeral", (1 + sx) + 8, 1 + p_[3] + 5)
+want("the seal down: rows 6–21 (2 of paper above it)", 4 + sy, 6)
+# hairline to hairline: a tile's box ends with the shadow's column, so the margin is the gap less 1
+gap = lambda s: 1 + box(s)[1][3]
 for sel in [f"#custom-tag{k}" for k in range(2, 10)] + ["#custom-timer", "#custom-volume", "#custom-weather"]:
     want(f"→ {sel} (within a group)", gap(sel), 4)
-for sel in ("#custom-tag1", "#custom-layout", "#custom-menu"):
-    want(f"→ {sel} (between groups)", gap(sel), 10)
-want("the screen's left edge → the torii", box("#custom-torii")[1][3] + 1, 6)
-want("the cat → the screen's right edge", 2 + box("#custom-menu")[1][1], 6)
-# the clock: the scroll sliced 6 8 6 8; the wings 8 eq columns
-# (4 px each), the date "Wed 21 Oct" 80 px, the time "09:14:08 PM" 88
-pw = lambda s: box(s)[0][3] + box(s)[0][1]
+for sel in ("#custom-tag1", "#focused", "#custom-menu"):
+    want(f"→ {sel} (between groups)", gap(sel), 12)
+want("the screen's left edge → the torii's hairline (x 8)", box("#custom-torii")[1][3], 8)
+want("the cat's hairline → the screen's right edge (x 1911: 8 px of air, the shadow's column in them)", 1 + box("#custom-menu")[1][1], 8)
+# the clock: the scroll sliced 4 4 3 6 (the rod; the rod and two columns of paper); 8 px from
+# the rods to the ink; 14 px of air between its parts, each letter's own air counted
 o = box("#when")[3]
-if "kami-scroll.png" not in o.get("border-image", "") or "6 8 6 8" not in o.get("border-image", ""): bad.append(f"#when: {o.get('border-image')}")
-want("#when's border", box("#when")[2], [6, 8, 6, 8])
-# (14 px of air between the clock's parts, each letter's own air counted: the wing's last
-# column has 1, the date's month its letter's (a class each — width.sh's air), the time's
-# first figure none, AM/PM's M a column)
-want("#custom-wing-left: the padding after it", box("#custom-wing-left")[0][1], 13)
-want("#custom-day: the padding after it", box("#custom-day")[0][1], 14)
-want("#custom-date: the padding after it (a month ending in no air)", box("#custom-date")[0][1], 14)
-for n in (1, 2, 3):
-    want(f"#custom-date.r{n}: the padding after it", box(f"#custom-date.r{n}")[0][1], 14 - n)
-want("#custom-wing-right: the padding before it", box("#custom-wing-right")[0][3], 12)
-want("Monday's (月) box as wide as any day's", pw("#custom-day.mon"), pw("#custom-day"))
+if "kami-scroll.png" not in o.get("border-image", "") or "4 4 3 6" not in o.get("border-image", ""): bad.append(f"#when: {o.get('border-image')}")
+want("#when's border", box("#when")[2], [4, 4, 3, 6])
+want("the left rod → the date's ink: 8, and the 7 the time is longer", 2 + box("#when")[0][3] + box("#custom-date")[0][3] + air("2")[0], 15)
+want("the time's ink → the right rod", air("M")[1] + box("#custom-time")[0][1] + box("#when")[0][1], 8)
+want("the time 7 px longer than the date (11 figures and letters, 10)", (len("09:14:08 PM") - len("27∕10∕2026")) * 7, 7)
+# each day's kanji: 14 px to the date and to the time (its own air taken back by its class)
+for k, cls in (("火", ""), ("水", ""), ("木", ""), ("金", ""), ("土", ""), ("月", ".mon"), ("日", ".sun")):
+    d = box("#custom-day" + cls); al, ar = air(k)
+    want(f"the date → {k}", air("6")[1] + box("#custom-date")[0][1] + d[1][3] + d[0][3] + al, 14)
+    want(f"{k} → the time", ar + d[0][1] + box("#custom-time")[0][3] + air("0")[0], 14)
+t1 = box("#custom-time.l1")
+want("{kanji} → the time from 10 to 12 o'clock (its 1's air)", air("火")[1] + box("#custom-day")[0][1] + t1[1][3] + t1[0][3] + air("1")[0], 14)
+want("…and the time's box as wide as at any other hour", t1[1][3] + t1[0][1], 0)
+# the wings (while music plays): 14 px to the date and from the time, their columns' air counted
+want("the left wing → the date", IR("eq-0") + box("#custom-wing-left")[0][1] + air("2")[0], 14)
+want("the time → the right wing", air("M")[1] + box("#custom-wing-right")[0][3] + IL("eq-0"), 14)
+want("the left rod → the left wing's ink", 2 + box("#when")[0][3] + box("#custom-wing-left")[1][3] + IL("eq-0"), 15)
 print("\n".join(bad))
 EOF
 )

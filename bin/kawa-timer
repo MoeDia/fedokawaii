@@ -134,7 +134,10 @@ bar() {
       if [[ -n $tm ]] && bar_lit time; then cls="[$cls,\"active\"]"; fi
       line="{\"text\":\"$tm\"${cls:+,\"class\":$cls}}"
     else
-      if bar_lit time; then cls='"active"'; fi
+      # (an hour from 10 to 12: its first figure, a 1, has a column of air of its own — "l1":
+      # style.css takes it back, so the kanji to the time stays 14 px)
+      [[ $now == 1* ]] && cls='"l1"'
+      if bar_lit time; then cls=${cls:+[$cls,\"active\"]}; cls=${cls:-'"active"'}; fi
       line="{\"text\":\"$now\"${cls:+,\"class\":$cls}}"
     fi
     [[ $line == "$last" ]] || { printf '%s\n' "$line" || exit 0; last=$line; }

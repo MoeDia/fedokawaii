@@ -78,8 +78,9 @@ def waybar_css(m, p):
     # the words on the seal
     rows = [("faint", p["faint"]), ("muted", p["muted"]), ("text", p["text"]),
             ("strong", p["strong"]), ("accent-text", p["accent_text"]), ("strong-on-accent", p["text_on_accent"]),
-            ("asagi", p["asagi"]),
-            ("tile", TILE[m]), ("kami-red", KAMI[m]["red"]), ("seal-ink", P["dark"]["lo"])]   # (the numeral on the seal: Wada's Black, both themes)
+            ("asagi", p["asagi"]), ("blue", p["blue"]),                  # (blue: the keyboard's AR)
+            ("tile", TILE[m]), ("kami-red", KAMI[m]["red"]), ("kami-red-lit", p["accent_hi"]),
+            ("seal-ink", P["dark"]["lo"])]   # (the numeral on the seal: Wada's Black, both themes)
     out = [f"/* {header('~/.config/fedokawaii/current/waybar.css', NAMES[m] + ' colours for the bar')} */"]
     out += [f"@define-color {k:<17}#{v};" for k, v in rows]
     return "\n".join(out) + "\n"
@@ -100,22 +101,24 @@ def png(w, h, rows):
 # ── the bar: 紙 kami — washi tiles floating along the top (waybar's style.css) ─────────────
 # No bar: every part of it is a tile of washi on the wallpaper — on the ink theme paper dyed
 # in ink (墨染め sumizome), pale words; on the paper theme the paper as it comes (生成り kinari),
-# words in sumi. A tile: the paper (TILE), a printer's rule a pixel inside its edge 2 px in, a
-# hairline round it (pale on the ink, dark on the paper) and a soft shadow under it — so it
-# stands on any wallpaper. The torii and the cat on vermilion with a gold rule; the
-# workspace you are on stamped with a vermilion seal; the clock mounted as a hanging scroll
-# between two lacquered rods with gold caps. The bar's 31 rows, every tile alike:
-#    2        the hairline            25        the rule
-#    3 – 4    the paper               26 – 27   the paper
-#    5        the rule                28        the hairline
-#    6 – 24   the paper, the words    29 – 30   the shadow (two rows, fading)
-# (the capitals on 9–21, centred on row 15 — the tile's middle). Columns: hairline, paper,
-# paper, rule at the left; rule, paper, paper, hairline, shadow at the right. style.css
-# lays them on as border-images (sliced 6 5 6 4, top right bottom left: the edges stay, the middle stretches
-# under the words) with the paper's colour and its fibres as the background inside the rule.
-BAR_H = 31
-K_HAIR_T, K_TOP, K_RULE_T, K_RULE_B, K_BOT, K_HAIR_B = 2, 3, 5, 25, 27, 28
-K_SLICE = (6, 5, 6, 4)                  # top right bottom left: the edges a border-image keeps
+# words in sumi. A tile is the frame every floating thing has (docs/design-system.md §4: a
+# hairline round the paper, its corner pixels left out, and the shadow — light from the top
+# left — two rows under it and a column at its right) with the paper (TILE) and its faint fibre
+# inside: one frame, nothing inside it (no second rule). The torii and the cat on vermilion;
+# the workspace you are on stamped with a round vermilion seal; the clock mounted as a hanging
+# scroll between two lacquered rods with gold caps. The bar's 27 rows, every tile alike (§8):
+#    0 – 2    air (the wallpaper)       24        the hairline
+#    3        the hairline              25 – 26   the shadow (two rows, a pixel further right
+#    4 – 23   the paper: one row of 20             each)
+# (the words on the row's own rows: the em on 7–20, capitals on 9–18). Columns: the hairline,
+# then the paper; at the right the hairline, then the shadow's column. style.css lays each on
+# as a border-image sliced 4 2 3 2 (top right bottom left: the air and the hairline · the
+# hairline and the shadow · the hairline and the shadow's two rows · the hairline and the
+# paper's first column — so the bottom edge it stretches is the same in every column), the
+# paper's colour and fibres as the background inside.
+BAR_H = 27
+K_HAIR_T, K_TOP, K_BOT, K_HAIR_B = 3, 4, 23, 24
+K_SLICE = (4, 2, 3, 2)                  # top right bottom left: the edges a border-image keeps
 
 
 def _rgb(h, a=255):
@@ -127,35 +130,34 @@ def _mixc(a, b, t):
                    for i in (0, 2, 4))
 
 
-def kami_tile(m, fill, rule, w=12):
-    """A tile's picture, w px wide (the middle stretched by style.css): rows and columns as
-    above; its corners: the hairline a pixel in, so a tile's corner is not a sharp square."""
+def kami_tile(m, fill, w=12):
+    """A tile's picture, w px wide (the middle stretched by style.css): rows as above; the
+    hairline in column 0 and w − 2, the paper between, the shadow's column w − 1 — the frame of
+    §4 to the pixel, as kawa-panel draws its panels' (the shadow's first row from a pixel in to
+    under the right hairline, the second a pixel further right, the column from the right
+    hairline's second row down)."""
     k = KAMI[m]
     none = (0, 0, 0, 0)
     c = [[none] * w for _ in range(BAR_H)]
-    x0, x1 = 1, w - 3                   # the paper's columns
+    L, R = 0, w - 2                     # the hairline's columns
     for y in range(K_TOP, K_BOT + 1):
-        for x in range(x0, x1 + 1):
+        for x in range(L + 1, R):
             c[y][x] = _rgb(fill)
-    for x in range(x0 + 2, x1 - 1):     # the rule
-        c[K_RULE_T][x] = c[K_RULE_B][x] = _rgb(rule)
-    for y in range(K_RULE_T, K_RULE_B + 1):
-        c[y][x0 + 2] = c[y][x1 - 2] = _rgb(rule)
-    for x in range(x0, x1 + 1):         # the hairline, its corners cut
+    for x in range(L + 1, R):           # the hairline, its corners left out
         c[K_HAIR_T][x] = c[K_HAIR_B][x] = k["hair"]
     for y in range(K_TOP, K_BOT + 1):
-        c[y][x0 - 1] = c[y][x1 + 1] = k["hair"]
-    for i, a in enumerate(k["shadow"]):  # the shadow: below, and at the right
-        for x in range(x0 + i, x1 + 2 + i):
-            if x < w:
-                c[K_HAIR_B + 1 + i][x] = a
-    for y in range(K_TOP + 1, K_HAIR_B + 1):
-        c[y][x1 + 2] = k["shadow"][1] if c[y][x1 + 2] == none else c[y][x1 + 2]
+        c[y][L] = c[y][R] = k["hair"]
+    for x in range(L + 1, R + 1):       # the shadow: a row from a pixel in to under the hairline,
+        c[K_HAIR_B + 1][x] = k["shadow"][0]
+    for x in range(L + 2, R + 2):       # a row a pixel further right,
+        c[K_HAIR_B + 2][x] = k["shadow"][1]
+    for y in range(K_TOP + 1, K_HAIR_B + 1):   # and the column from the hairline's second row
+        c[y][R + 1] = k["shadow"][1]
     return png(w, BAR_H, c)
 
 
 def kami_fibre(m, fill, s=1):
-    """The paper's fibres, a 12 × 7 tile repeated inside the rule: short strands a shade off."""
+    """The paper's fibres, a 12 × 7 tile repeated inside the frame: short strands a shade off."""
     k = KAMI[m]
     f = _mixc(fill, k["fibre_to"], k["fibre_t"])
     c = [[_rgb(fill)] * 12 for _ in range(7)]
@@ -164,22 +166,15 @@ def kami_fibre(m, fill, s=1):
     return png(12 * s, 7 * s, _scaled(c, s))
 
 
-def kami_seal(m, w=26, sw=18):
-    """The seal of the workspace you are on: vermilion, round, clean-edged, drawn to exactly
-    the tile's inside (w × 19: the padding box style.css lays it on, so nothing is rounded
-    by GTK's centring) — sw px across and 17 high, a pixel clear of the rule above and below,
-    centred on the numeral: on the 16 px numerals' tiles (26 wide) 18 across about the
-    middle of its 26; on 四 七 九's (15 px of ink, 25 wide) 17 across about its 13th column."""
+def kami_seal(m, d=16):
+    """The seal of the workspace you are on (§4 Stamp): vermilion, round, clean-edged, d px
+    across — style.css lays it on the paper centred on the numeral (10 × 10, Black, wholly
+    inside it)."""
     k = KAMI[m]
     none = (0, 0, 0, 0)
-    h, sh = 19, 17
-    cx, cy = w / 2, h / 2
-    c = [[none] * w for _ in range(h)]
-    for y in range(h):
-        for x in range(w):
-            if ((x + 0.5 - cx) / (sw / 2)) ** 2 + ((y + 0.5 - cy) / (sh / 2)) ** 2 <= 1.0:
-                c[y][x] = _rgb(k["red"])
-    return png(w, h, c)
+    r = d / 2
+    return png(d, d, [[_rgb(k["red"]) if (x + 0.5 - r) ** 2 + (y + 0.5 - r) ** 2 <= r * r else none
+                       for x in range(d)] for y in range(d)])
 
 
 def _scaled(c, s):
@@ -187,27 +182,26 @@ def _scaled(c, s):
     return [[px for px in row for _ in range(s)] for row in c for _ in range(s)]
 
 
-def kami_scroll(m, fill, rule, s=1):
-    """The clock's tile mounted as a hanging scroll: a lacquered rod at either end, gold-capped,
-    standing a row proud of the hairline above and below — 8 columns at each end (the rod, the
-    paper mounted straight onto it, the rule), 3 in the middle that style.css stretches; sliced 6 8 6 8."""
+def kami_scroll(m, fill, w=13):
+    """The clock's tile mounted as a hanging scroll: the paper and its hairlines (rows as a
+    tile's) between two lacquered rods, 4 px each, standing a row proud of the hairlines above
+    and below, gold-capped; the paper mounted straight onto them (no corner left out); its
+    shadow under it — the first row between the rods, the second a pixel further right, under
+    the right rod's first column. Sliced 4 4 3 6 (the left: the rod and the paper's first two
+    columns, so the shadow's rows stretch evenly); w px wide, the middle stretched."""
     k = KAMI[m]
     none = (0, 0, 0, 0)
-    w = 19
     c = [[none] * w for _ in range(BAR_H)]
     x0, x1 = 4, w - 5                   # the paper's columns: from the rod itself, no gap
     for y in range(K_TOP, K_BOT + 1):
         for x in range(x0, x1 + 1):
             c[y][x] = _rgb(fill)
-    for x in range(x0 + 2, x1 - 1):
-        c[K_RULE_T][x] = c[K_RULE_B][x] = _rgb(rule)
-    for y in range(K_RULE_T, K_RULE_B + 1):
-        c[y][x0 + 2] = c[y][x1 - 2] = _rgb(rule)
     for x in range(x0, x1 + 1):
         c[K_HAIR_T][x] = c[K_HAIR_B][x] = k["hair"]
-    for i, a in enumerate(k["shadow"]):
-        for x in range(x0, x1 + 1):
-            c[K_HAIR_B + 1 + i][x] = a
+    for x in range(x0 + 1, x1 + 1):
+        c[K_HAIR_B + 1][x] = k["shadow"][0]
+    for x in range(x0 + 2, x1 + 2):
+        c[K_HAIR_B + 2][x] = k["shadow"][1]
     for rx in (0, w - 4):               # the rods
         for y in range(K_HAIR_T - 1, K_HAIR_B + 2):
             for x in range(rx, rx + 4):         # a round rod: dark at its outer edge, lit a
@@ -218,7 +212,41 @@ def kami_scroll(m, fill, rule, s=1):
         for y in (K_HAIR_T - 1, K_HAIR_T, K_HAIR_B, K_HAIR_B + 1):
             for x in range(rx, rx + 4):
                 c[y][x] = _rgb(k["gold"])
-    return png(w * s, BAR_H * s, _scaled(c, s))
+    return png(w, BAR_H, c)
+
+
+def lock_scroll(m, fill, rule, s=2):
+    """The lock and login screens' scroll — the bar's before round 27 (31 rows: a printer's rule
+    inside the paper), twice its size, sliced 12 16 12 16 by gtklock.css. T20 draws the lock
+    anew (the dungeon scenes); until then it keeps this picture."""
+    k = KAMI[m]
+    none = (0, 0, 0, 0)
+    h, w = 31, 19
+    c = [[none] * w for _ in range(h)]
+    x0, x1 = 4, w - 5
+    for y in range(3, 28):
+        for x in range(x0, x1 + 1):
+            c[y][x] = _rgb(fill)
+    for x in range(x0 + 2, x1 - 1):
+        c[5][x] = c[25][x] = _rgb(rule)
+    for y in range(5, 26):
+        c[y][x0 + 2] = c[y][x1 - 2] = _rgb(rule)
+    for x in range(x0, x1 + 1):
+        c[2][x] = c[28][x] = k["hair"]
+    for i, a in enumerate(k["shadow"]):
+        for x in range(x0, x1 + 1):
+            c[29 + i][x] = a
+    for rx in (0, w - 4):
+        for y in range(1, 30):
+            for x in range(rx, rx + 4):
+                c[y][x] = _rgb(k["rod"])
+            out, lit = (rx, rx + 1) if rx == 0 else (rx + 3, rx + 2)
+            c[y][out] = _rgb(k["rod_dk"])
+            c[y][lit] = _rgb(k["rod_hi"])
+        for y in (1, 2, 28, 29):
+            for x in range(rx, rx + 4):
+                c[y][x] = _rgb(k["gold"])
+    return png(w * s, h * s, _scaled(c, s))
 
 
 def ornaments(m, p):
@@ -226,14 +254,14 @@ def ornaments(m, p):
     k = KAMI[m]
     fill = TILE[m]
     return {
-        "kami-tile.png": kami_tile(m, fill, k["rule"]),
-        "kami-red.png": kami_tile(m, k["red"], k["gold"]),
+        "kami-tile.png": kami_tile(m, fill),
+        "kami-red.png": kami_tile(m, k["red"]),
+        "kami-red-lit.png": kami_tile(m, p["accent_hi"]),   # (a vermilion tile under the pointer or open)
         "kami-fibre.png": kami_fibre(m, fill),
         "kami-seal.png": kami_seal(m),
-        "kami-seal-narrow.png": kami_seal(m, 25, 17),
-        "kami-scroll.png": kami_scroll(m, fill, k["rule"]),
-        # the lock and login screens' scroll, the same picture twice its size (sliced 12 16 12 16)
-        "lock-scroll.png": kami_scroll(m, fill, k["rule"], 2),
+        "kami-scroll.png": kami_scroll(m, fill),
+        # the lock and login screens' scroll (sliced 12 16 12 16), until T20 draws them anew
+        "lock-scroll.png": lock_scroll(m, fill, k["rule"]),
         "lock-fibre.png": kami_fibre(m, fill, 2),
     }
 
