@@ -4,10 +4,11 @@ pixel size it is drawn for, with the numbers that decide "no spacing fault": eve
 advance (one width for all, or not), the width of kana and kanji against two Latin cells, the
 line's height, the ink's top and bottom.
 
-  python3 -I tools/font-specimen.py FONT PX OUT.png [--title T] [--scale N] [--fg RRGGBB --bg RRGGBB]
+  python3 -I tools/font-specimen.py FONT PX OUT.png [--title T] [--scale N] [--aa] [--fg RRGGBB --bg RRGGBB]
 
 FONT: a .ttf/.otf file; PX: the pixel size (its em); OUT: the sheet (each pixel a N×N square,
-default 3). Prints the numbers; exit 0 · 1 the font cannot be read · 2 misuse.
+default 3; --aa: smoothed, as a terminal draws a coding font — pixel fonts never are). Prints the
+numbers; exit 0 · 1 the font cannot be read · 2 misuse.
 """
 import sys
 
@@ -52,7 +53,7 @@ def main(argv):
     h = lh * (len(LINES) + 1) + 12
     im = Image.new("RGB", (w, h), bg)
     d = ImageDraw.Draw(im)
-    d.fontmode = "1"                                  # (no smoothing: the pixels as drawn)
+    d.fontmode = "L" if "--aa" in args else "1"       # (no smoothing: the pixels as drawn)
     small = ImageFont.truetype(path, px)
     d.text((8, 4), f"{title} · {px} px", font=small, fill=(208, 88, 58))
     for i, line in enumerate(LINES):
