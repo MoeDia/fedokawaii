@@ -2,17 +2,18 @@
 -- Neovim's whole configuration in that window (nvim -u): not LazyVim and its forty plugins,
 -- which took most of a second to start for a page of text — so the window has its text the
 -- moment it appears, and goes as fast. Kept from the editor: its colours (the gruvbox
--- palette of ~/.config/nvim/lua/plugins/colorscheme.lua, read from there), the system
--- clipboard, the mouse, undo that outlives the window, searches that ignore case. A text screen like every other one
--- (docs/design-system.md §7, screen.sh): along the top its heading — "記  notes ────" — the
--- kanji in accent_text, the name in text, the stitch in edge2 to the right edge, two columns
--- in; the text four columns in, where a list's rows have their glyph; along the bottom, the
--- footer in muted: the file and the keys, instead of the editor's statusline. The inks are
--- the theme's, read from ~/.config/fedokawaii/current/colors.sh, and again whenever the theme
--- switches.
+-- palette of ~/.config/nvim/lua/plugins/colorscheme.lua, read from there), the clipboard as
+-- the editor keeps it (~/.config/nvim/lua/config/clipboard.lua: a copy goes to the desktop's,
+-- what you delete stays here), the mouse, undo that outlives the window, searches that ignore
+-- case. A text screen like every other one (docs/design-system.md §7, screen.sh): along the
+-- top its heading — the note icon in accent_text, two columns, the name in text, the rule in
+-- edge2 to the right edge, two columns in; the text four columns in, where a list's rows have
+-- their glyph; along the bottom, the footer in muted: the file and the keys, instead of the
+-- editor's statusline. The inks are the theme's, read from ~/.config/fedokawaii/current/
+-- colors.sh, and again whenever the theme switches.
 
 vim.loader.enable()                        -- (Lua byte-compiled once, read from the cache after)
-vim.o.clipboard = "unnamedplus"
+dofile(vim.fn.stdpath("config") .. "/lua/config/clipboard.lua").setup()   -- (by its path: any runtime path)
 vim.o.mouse = "a"
 vim.o.undofile = true
 vim.o.ignorecase = true

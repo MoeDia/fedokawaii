@@ -218,9 +218,11 @@ for d in bash less python node sqlite; do mkdir -p "$HOME/.local/state/$d"; done
 run "XDG-02 the history folders are there, yours"; eq "$RC" 0 "$OUT"; rmdir "$HOME/.local/state/node"
 run "XDG-02 the history folders are there, yours"; eq "$RC" 1
 mkdir -p "$TMP/sb"; printf '#!/bin/sh\n[ "$1" = list ] && cat "$TMP/state-list"\n' >"$TMP/sb/kawa-state"; chmod 755 "$TMP/sb/kawa-state"
-printf 'dnd=on\nbrightness=40\ncleanmic=off\nvrr=x\n' >"$TMP/state-list"
+printf 'dnd=on\nbrightness=40\nbluetooth=on\nvrr=x\n' >"$TMP/state-list"
 PATH=$TMP/sb:$PATH run "STATE-05 every kept setting valid"; eq "$RC" 0 "$OUT"; has "$OUT" "(a helper's own)"
 printf 'brightness=140\n' >"$TMP/state-list"; PATH=$TMP/sb:$PATH run "STATE-05 every kept setting valid"; eq "$RC" 1
+printf 'bluetooth=maybe\n' >"$TMP/state-list"; PATH=$TMP/sb:$PATH run "STATE-05 every kept setting valid"; eq "$RC" 1 "a value neither on nor off"
+printf 'cleanmic=off\n' >"$TMP/state-list"; PATH=$TMP/sb:$PATH run "STATE-05 every kept setting valid"; eq "$RC" 0 "a leftover cleanmic line (the next login drops it) is no failure"
 mkdir -p "$HOME/.config/xdg-desktop-portal-wlr" "$HOME/.config/mako"
 printf '[screencast]\nexec_before=/h/kawa-hush on sharing; x\nexec_after=/h/kawa-hush off sharing; x\n' >"$HOME/.config/xdg-desktop-portal-wlr/config"
 printf '#!/bin/sh\n' >"$TMP/sb/kawa-hush"; chmod 755 "$TMP/sb/kawa-hush"
@@ -244,11 +246,11 @@ run "GAME-21 GE-Proton: the recorded one there, two kept at most"; eq "$RC" 1 "t
 run "UPK-22 the timing harness is the toolkit's and runs"; eq "$RC" 0 "$OUT"
 
 case_ "every row the report adds this round parses as checks() splits it (mode, level, seven fields)"
-for n in $(grep -oE '^(UPK-(09|1[0-9]|20)|BOOT-3[1-5]|LOGIN-1[678]|DWL-(18|19)|KEY-1[12]|THEME-(19|20|21)|GPU-(09|1[01])|RES-1[2368]|SYS-1[4-9]|PERF-0[1-9]|NET-2[0-5]|AUD-15|SLP-1[2-6]|UI-1[45]|BAR-2[2-7]|CLIP-12|FONT-15|MIME-0[89]|PKG-1[56]|UNIT-11|DISK-1[67]|SEC-1[012]|X11-04|NIGHT-0[123]|WALL-0[34]|SPOT-08|BAK-06|LOGIN-19|SLP-2[01]|XDG-0[1-3]|UPK-2[12]|BOOT-46|AUD-2[01]|GAME-(19|2[01])|FONT-1[67]|GIT-01|CALC-01|HUSH-0[1-3]|DL-03|STATE-05|REC-04|OCR-02|BAR-28|PANEL-01|FETCH-03|UI-16|THEME-22|UPK-20|APP-09|REC-01|DISK-18|DEV-01|NVIM-02|PKG-1[78]|MON-08) ' "$RPT" | sort -u); do
+for n in $(grep -oE '^(UPK-(09|1[0-9]|20)|BOOT-3[1-5]|LOGIN-1[678]|DWL-(18|19)|KEY-1[12]|THEME-(19|20|21)|GPU-(09|1[01])|RES-1[2368]|SYS-1[4-9]|PERF-0[1-9]|NET-2[0-5]|AUD-15|SLP-1[2-6]|UI-1[45]|BAR-2[2-7]|CLIP-12|FONT-15|MIME-0[89]|PKG-1[56]|UNIT-11|DISK-1[67]|SEC-1[012]|X11-04|NIGHT-0[123]|WALL-0[34]|SPOT-08|BAK-06|LOGIN-19|SLP-2[01]|XDG-0[1-3]|UPK-2[12]|BOOT-46|AUD-21|GAME-(19|2[01])|FONT-1[67]|GIT-01|CALC-01|HUSH-0[1-3]|DL-03|STATE-05|REC-04|OCR-02|BAR-28|PANEL-01|FETCH-03|UI-16|THEME-22|UPK-20|APP-09|REC-01|DISK-18|DEV-01|NVIM-02|PKG-1[78]|MON-08) ' "$RPT" | sort -u); do
   l=$(grep -E "^$n " "$RPT"); f=${l#* | }; m=${f%% | *}; f=${f#* | }; v=${f%% | *}
   [[ $m =~ ^(user|ses|root)(\+full)?(\+solo)?(/[0-9]+)?$ && $v =~ ^(fail|warn|info)$ ]] && _ok || _no "$n: mode [$m] level [$v]"
 done
-eq "$(grep -cE '^(UPK-(09|1[0-9]|20)|BOOT-3[1-5]|LOGIN-1[678]|DWL-(18|19)|KEY-1[12]|THEME-(19|20|21)|GPU-(09|1[01])|RES-1[2368]|SYS-1[4-9]|PERF-0[1-9]|NET-2[0-5]|AUD-15|SLP-1[2-6]|UI-1[45]|BAR-2[2-7]|CLIP-12|FONT-15|MIME-0[89]|PKG-1[56]|UNIT-11|DISK-1[67]|SEC-1[012]|X11-04|NIGHT-0[123]|WALL-0[34]|SPOT-08|BAK-06|LOGIN-19|SLP-2[01]|XDG-0[1-3]|UPK-2[12]|BOOT-46|AUD-2[01]|GAME-(19|2[01])|FONT-1[67]|GIT-01|CALC-01|HUSH-0[1-3]|DL-03|STATE-05|REC-04|OCR-02|BAR-28|PANEL-01|FETCH-03|UI-16|THEME-22|UPK-20|APP-09|REC-01|DISK-18|DEV-01|NVIM-02|PKG-1[78]|MON-08) ' "$RPT")" 125 "125 rows added this round"
+eq "$(grep -cE '^(UPK-(09|1[0-9]|20)|BOOT-3[1-5]|LOGIN-1[678]|DWL-(18|19)|KEY-1[12]|THEME-(19|20|21)|GPU-(09|1[01])|RES-1[2368]|SYS-1[4-9]|PERF-0[1-9]|NET-2[0-5]|AUD-15|SLP-1[2-6]|UI-1[45]|BAR-2[2-7]|CLIP-12|FONT-15|MIME-0[89]|PKG-1[56]|UNIT-11|DISK-1[67]|SEC-1[012]|X11-04|NIGHT-0[123]|WALL-0[34]|SPOT-08|BAK-06|LOGIN-19|SLP-2[01]|XDG-0[1-3]|UPK-2[12]|BOOT-46|AUD-21|GAME-(19|2[01])|FONT-1[67]|GIT-01|CALC-01|HUSH-0[1-3]|DL-03|STATE-05|REC-04|OCR-02|BAR-28|PANEL-01|FETCH-03|UI-16|THEME-22|UPK-20|APP-09|REC-01|DISK-18|DEV-01|NVIM-02|PKG-1[78]|MON-08) ' "$RPT")" 124 "124 rows added this round"
 eq "$(grep -oE '^[A-Z0-9]+-[0-9]+[a-z]? ' "$RPT" | sort | uniq -d)" "" "no ID twice"
 
 case_ "SLP-10: the check's own shell (its command line names the keeper) is no keeper"

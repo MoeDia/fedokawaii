@@ -19,7 +19,9 @@ out=$(mktemp -d /dev/shm/regress-bar.XXXXXX)
 fail=0
 no() { echo "bar-geometry ($th): $*" >&2; fail=1; }
 for th in dark light; do
-  bash "$here/../kit.sh" --theme "$th" "$@" --out "$out/$th" bar >"$out/kit-$th.log" 2>&1 \
+  # (two layouts, as the session has them: the keyboard's tile shown — "us", small: Caps Lock off)
+  XKB_DEFAULT_LAYOUT=us,ara XKB_DEFAULT_OPTIONS=grp:alt_shift_toggle \
+    bash "$here/../kit.sh" --theme "$th" "$@" --out "$out/$th" bar >"$out/kit-$th.log" 2>&1 \
     || { echo "bar-geometry: the kit failed: $(tail -n 2 "$out/kit-$th.log")" >&2; exit 2; }
   fibre=$HOME/.config/fedokawaii/themes/$th/kami-fibre.png
   [[ " $* " == *" --repo-art "* ]] && fibre=$here/../../configs/home/.config/fedokawaii/themes/$th/kami-fibre.png

@@ -62,7 +62,6 @@ class UI:
     def run(self, argv, done): pass
     def launch(self, argv): self.calls.append("launch " + " ".join(argv))
     def later(self, ms, fn): pass
-    def listen(self, on): pass
     def calc(self, m): self.calls.append(f"calc {m.query}")
     def copy_answer(self, text): self.calls.append(f"copy {text}")
     def start(self, app): self.calls.append(f"start {app.id}")

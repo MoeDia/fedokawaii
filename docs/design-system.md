@@ -186,10 +186,16 @@ screen and the bar's paper share one rhythm.
 - **Key**: one row high, `key` fill, 1 px `edge` frame inside the row; its icon and name centred
   by their ink. Two or three share a row, 8 apart, the row the content's width; an icon-only key
   is 20 × 20.
-- **Tile**: 120 × 80, `key` fill, 1 px `edge` frame; its picture (an icon alone, 14 px) on rows
-  0–1, its name on row 2, its state on row 3, all from x 8. On: the frame `accent`, the picture
-  `accent_text`, the state `strong`; off: the picture `muted`, the state `faint`. Each tile's
-  picture is its own drawing — no two alike.
+- **Tile** (quick settings): 120 × 80, `key` fill, 1 px `edge` frame — the same on and off: the
+  state is the crest's. The crest: a seal 28 px across, centred on the tile's middle column, its
+  top 4 px under the frame; its picture (14 px, each its own drawing — no two alike) in the
+  middle. On — the seal pressed: a vermilion disc (`accent`) with a ring of paper (`key`) 2 px
+  inside its edge, the picture knocked out in paper — the bar's stamp and the hanko of "chosen",
+  one mark; off — the seal's outline in `edge2`, the picture `muted`. Its name centred on row 2
+  (`text` on, `muted` off), its state centred on row 3 (`strong` on, `faint` off). Under the
+  cursor's vermilion: the crest in `text_on_accent`. Turned on, the seal is stamped (§11's stamp:
+  a pixel larger all round in `accent_hi` for two frames, then its size); turned off, its outline
+  at once.
 - **Meter**: its icon and name as a row's, then 20 segments (§3), right-aligned before the value.
   Lit segments `asagi`; over 80 % the 17th–18th `flame` and the 19th–20th `accent` (it reddens
   as it rises); unlit `edge`. A level between two segments lights the last one partly, from the
@@ -318,7 +324,7 @@ the tiles of a group, 12 px between groups.
 | the clock | a hanging scroll (`kami-scroll.png`: the paper between two lacquered rods, gold caps) centred on the screen: the date `DD/MM/YYYY` in `text` with slashes of our own in `accent_text` (`art/signs.txt`), the day's kanji `accent_text` exactly on the screen's centre line, the time `strong`; 14 px between them, the shorter side padded so the kanji stays centred |
 | the music's wings | while something plays, inside the scroll either side of the clock: 8 columns a side (2 px wide, 4 apart, 1–10 px tall on the capitals' rows), the lowest notes nearest the clock; inked by height from `accent_lo` to `accent` — our red, rising |
 | what plays | the first tile on the right: its icon moving (§13: a television with its antenna for a video, the cassette for sound), the title `text`, a red rule (1 × 10 px, `accent_text`, on the capitals' rows, 8 px either side), the channel or episode `faint`; paused: still, the title `muted` |
-| the keyboard | `US` in `accent_text`, `AR` in `blue`; a click switches |
+| the keyboard | `us` in `accent_text`, `ar` in `blue` — capitals while Caps Lock is on (dwl's `kbcaps`); a click switches |
 | do not disturb | its icon (the quiet bell) only while on; a click opens its own dropdown — off · for an hour · until the morning · on, the one in force marked (§4 chosen); a timed one ends by itself |
 | downloads | while something downloads: its icon moving |
 | the others | timer, recording, drives, memory, volume, brightness, the weather — each its own tile, icon and value |

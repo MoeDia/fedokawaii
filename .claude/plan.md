@@ -193,7 +193,7 @@ approach:
 - Grill each against T09's appendix; fix; re-shoot; repeat until the list is empty; record every measurement as the expected values of the regression gallery.
 accept: grill-r27.md ends with "nothing left"; gallery-expect.json committed and tools/regress/gallery.sh (T52) passes against it.
 
-### T17b — the owner's 14:27 items for the desktop (CLAUDE.md "Added 2026-10-27 14:27"): clean mic gone; a monitor-off button; quick settings made a menu he loves; US/AR in capitals with Caps Lock  [todo]
+### T17b — the owner's 14:27 items for the desktop (CLAUDE.md "Added 2026-10-27 14:27"): clean mic gone; a monitor-off button; quick settings made a menu he loves; US/AR in capitals with Caps Lock  [wip — clean mic, screen off, Caps Lock done (r27-17b; Caps live with the next session); left: quick settings' design pass]
 deps: T17 · model: main · ledger: r27-17b
 files: bin/kawa-panel, bin/kawa-quick, configs/home/.config/pipewire/** (the noise-suppression filter chain and everything that only exists for it), lib/manifest.sh (its package if nothing else needs it), tests/status/*, tests/menus/*, docs (Learn: §sound, quick settings), src/dwl/dwl.patch (Caps Lock reported with the keyboard layout: dwl's status gains the lock state; batch B restart), bin/kawa-dwlstatus + waybar config (the kb tile: "US"/"AR" while Caps Lock is on, "us"/"ar" when off, live — from dwl's own state, no polling), art/icons.txt
 approach:
@@ -204,7 +204,7 @@ approach:
 accept: no "clean mic" anywhere (grep), no orphan config; the monitor-off key measured and live-tested (off, a key, back on the lock or desktop); quick settings shots both themes grilled to "nothing left"; Caps Lock toggled live → tile changes within a frame (dwl status log), both cases tested.
 NOTE (owner 14:27): the bar's UI font — he likes it now: change it only if research and renders show something clearly better (T58 checks once; otherwise it stays).
 
-### T17c — copy and paste, everywhere: find, reproduce, fix (owner 14:27)  [todo]
+### T17c — copy and paste, everywhere: find, reproduce, fix (owner 14:27)  [wip — big copies kept, the editor's clipboard (r27-17c); left: foot, Xwayland, the browser, LibreOffice]
 deps: T17 · model: main (sub:sonnet for the reproduction matrix) · ledger: r27-17c
 files: bin/kawa-clip*, kawa-clipkeep, configs/home/.config/dwl/autostart.sh (wl-paste --watch), xwayland/primary selection bits, tests/content/test_clip.sh, a new tools/regress/clipboard.sh
 approach: build the matrix first — every pair of {foot, nvim (+ notes), Brave/its successor, LibreOffice, Xournal/FireAlpaca, yazi, an X11 app, a GTK4 app, the launcher, Super+V} × {Ctrl+C/V, Ctrl+Shift+C/V, primary (select / middle click), a picture, a file from yazi, a copy whose app then closed} — run it headless where possible (wl-copy/wl-paste/wtype against the real apps in the kit) and live for the rest; each failure reproduced, its cause found (clipkeep's offer, cliphist's mime choice, Xwayland's sync, an app's own quirk), fixed, and kept as a regression row.

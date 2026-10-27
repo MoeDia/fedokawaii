@@ -57,7 +57,7 @@ pokes() {
 
 # block MON SELMON OCC SEL URG LAYOUT KB [TITLE] — one monitor's lines as dwl prints them
 # (src/dwl/dwl.patch printstatus: title, appid, fullscreen, floating, selmon, tags, layout,
-# kblayout); with no TITLE the monitor has no focused window
+# kbcaps — $CAPS, 0 unless set —, kblayout); with no TITLE the monitor has no focused window
 block() {
   local mon=$1 sel=$2 occ=$3 tags=$4 urg=$5 lt=$6 kb=$7
   if (($# >= 8)); then
@@ -65,8 +65,8 @@ block() {
   else
     printf '%s title \n%s appid \n%s fullscreen \n%s floating \n' "$mon" "$mon" "$mon" "$mon"
   fi
-  printf '%s selmon %s\n%s tags %s %s %s %s\n%s layout %s\n%s kblayout %s\n' \
-    "$mon" "$sel" "$mon" "$occ" "$tags" "$((occ & tags))" "$urg" "$mon" "$lt" "$mon" "$kb"
+  printf '%s selmon %s\n%s tags %s %s %s %s\n%s layout %s\n%s kbcaps %s\n%s kblayout %s\n' \
+    "$mon" "$sel" "$mon" "$occ" "$tags" "$((occ & tags))" "$urg" "$mon" "$lt" "$mon" "${CAPS:-0}" "$mon" "$kb"
 }
 
 # status FILE… — kawa-dwlstatus reads these, one after the other, as one stream

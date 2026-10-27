@@ -25,7 +25,11 @@ echo '# ~/.config/sc-im/scimrc — sc-im, the terminal spreadsheet' >"$W$H/.conf
 echo '# ~/.config/spotify-player/app.toml — spotify_player (Premium)' >"$W$H/.config/spotify-player/app.toml"
 echo '# ~/.config/spotify-player/theme.toml — spotify_player uses the terminal' >"$W$H/.config/spotify-player/theme.toml"
 echo 'my own notes' >"$W$H/.config/sc-im/mine.sc"
-fk chown -hR fkuser:fkuser "$H/.config/presenterm" "$H/.config/sc-im" "$H/.config/spotify-player"
+# …and the clean mic's file (PipeWire's echo-cancel module, taken out of the desktop), in the folder of 50-quality.conf
+mkdir -p "$W$H/.config/pipewire/pipewire.conf.d"
+printf '%s\n' '# ~/.config/pipewire/pipewire.conf.d/60-clean-mic.conf — the clean mic' 'context.modules = [ { name = libpipewire-module-echo-cancel } ]' \
+  >"$W$H/.config/pipewire/pipewire.conf.d/60-clean-mic.conf"
+fk chown -hR fkuser:fkuser "$H/.config/presenterm" "$H/.config/sc-im" "$H/.config/spotify-player" "$H/.config/pipewire"
 
 # ── the first run ────────────────────────────────────────────────────────────
 case_ "first run: every file of configs/home, bin/ and configs/system in place (exit 0)"
@@ -81,6 +85,13 @@ b=$(backups | tail -n1)
 [[ -L $b/.config/presenterm/config.yaml && -f $b/.config/sc-im/scimrc && -f $b/.config/spotify-player/app.toml ]] && _ok \
   || _no "not in the backup ($b)"
 has "$OUT" "spotify-player/theme.toml (retired)"
+
+case_ "the clean mic's file (60-clean-mic.conf, still ours: its echo-cancel module says so): into the backup, the folder and its other files (the sound's own settings) staying"
+pw=$W$H/.config/pipewire/pipewire.conf.d
+[[ ! -e $pw/60-clean-mic.conf ]] && _ok || _no "60-clean-mic.conf is still there"
+has "$(cat "$b/.config/pipewire/pipewire.conf.d/60-clean-mic.conf" 2>/dev/null)" "libpipewire-module-echo-cancel" "kept in the backup"
+has "$OUT" "60-clean-mic.conf (retired)"
+[[ -s $pw/50-quality.conf && -s $pw/60-share.conf ]] && _ok || _no "the folder lost 50-quality.conf or 60-share.conf"
 
 case_ "the pointers: both Sumi themes, their other names made as links, the default one the theme's"
 miss="" n=0
@@ -198,5 +209,52 @@ echo "/usr/local/bin/dwl" >>"$W/var/lib/fkh/procs"
 theme; eq "$RC" 0
 has "$OUT" "reloaded the theme in the running session"
 sed -i '\|/usr/local/bin/dwl|d' "$W/var/lib/fkh/procs"; rm -rf "$W/run/user/$FK_UID/doc" "$W/run/user/$FK_UID/wayland-1"
+
+case_ "a 60-clean-mic.conf you changed (no echo-cancel module left in it) is yours: not retired"
+printf '%s\n' '# mine now' >"$pw/60-clean-mic.conf"; fk chown fkuser:fkuser "$H/.config/pipewire/pipewire.conf.d/60-clean-mic.conf"
+theme; eq "$RC" 0; lacks "$OUT" "60-clean-mic.conf (retired)"
+eq "$(cat "$pw/60-clean-mic.conf")" "# mine now"; rm -f "$pw/60-clean-mic.conf"
+
+# ── a sound server that started with the clean mic (theme.sh's step 6b) ──────────────────────
+# PipeWire's object list as the real one prints it: the rear microphone (66), the clean mic's
+# capture stream (38, linked to it), the clean mic (39), and the default input
+pwdump() {   # pwdump DEFAULT-SOURCE [STATE-OF-A-PLAYER] — with a state, a program's stream too (mpv's, named)
+  local player=""
+  [[ -n ${2:-} ]] && player="{ \"id\": 77, \"type\": \"PipeWire:Interface:Node\", \"info\": { \"state\": \"$2\", \"props\": { \"node.name\": \"mpv\", \"application.name\": \"mpv\", \"media.class\": \"Stream/Output/Audio\" } } },"
+  fkh pw-dump "[ { \"id\": 66, \"type\": \"PipeWire:Interface:Node\", \"info\": { \"state\": \"suspended\", \"props\": { \"node.name\": \"alsa_input.pci-0000_15_00.6.analog-stereo\", \"media.class\": \"Audio/Source\", \"priority.session\": 2009 } } },
+  { \"id\": 38, \"type\": \"PipeWire:Interface:Node\", \"info\": { \"state\": \"suspended\", \"props\": { \"node.name\": \"clean_mic.capture\", \"media.class\": \"Stream/Input/Audio\" } } },
+  { \"id\": 39, \"type\": \"PipeWire:Interface:Node\", \"info\": { \"state\": \"suspended\", \"props\": { \"node.name\": \"clean_mic\", \"media.class\": \"Audio/Source\", \"priority.session\": 3000 } } },
+  $player
+  { \"id\": 900, \"type\": \"PipeWire:Interface:Link\", \"info\": { \"output-node-id\": 66, \"input-node-id\": 38, \"state\": \"paused\" } },
+  { \"id\": 47, \"type\": \"PipeWire:Interface:Metadata\", \"props\": { \"metadata.name\": \"default\" }, \"metadata\": [ { \"subject\": 0, \"key\": \"default.audio.source\", \"type\": \"Spa:String:JSON\", \"value\": { \"name\": \"$1\" } } ] } ]"
+}
+printf '%s\n' '#!/bin/bash' '. /usr/local/bin/_lib.sh' 'fkh_log "$*"' >"$W/usr/local/bin/wpctl"; chmod 755 "$W/usr/local/bin/wpctl"   # (logs what it is asked)
+case_ "the clean mic still in the running sound server, no program holding a sound stream (the desktop's own streams — the clean mic's — do not count): the default back to the microphone it listened to, the sound server restarted to let go of it"
+pwdump clean_mic; reset_calls; rm -f "$W$H/.local/state/fedokawaii/sound-restart"
+theme; eq "$RC" 0
+called 'wpctl\] set-default 66$'
+called 'systemctl\] --user restart pipewire.socket pipewire.service wireplumber.service$'
+has "$OUT" "the clean mic is out of the sound server (restarted: no program held a sound stream)"
+[[ ! -e $W$H/.local/state/fedokawaii/sound-restart ]] && _ok || _no "a restart left for the login although it was done"
+case_ "…the default another microphone already: left as it is, the restart alone"
+pwdump alsa_input.pci-0000_15_00.6.analog-stereo; reset_calls
+theme; eq "$RC" 0
+not_called 'wpctl\] set-default'; called 'systemctl\] --user restart pipewire.socket'
+case_ "…a program holding a sound stream, playing or paused (music, a call, a video paused in the browser — a restart would take its sound): the default moved, the sound server NOT restarted — the restart left for the next login (autostart: before anything plays)"
+for st in running idle suspended; do
+  pwdump clean_mic "$st"; reset_calls; rm -f "$W$H/.local/state/fedokawaii/sound-restart"
+  theme; eq "$RC" 0
+  called 'wpctl\] set-default 66$'; not_called 'systemctl\] --user restart pipewire'
+  has "$OUT" "the clean mic goes at your next login (a program holds a sound stream now"
+  [[ -e $W$H/.local/state/fedokawaii/sound-restart ]] && _ok || _no "$st: no restart left for the login"
+done
+a=$(cat "$REPO/configs/home/.config/dwl/autostart.sh")
+has "$a" 'if [ -e "$HOME/.local/state/fedokawaii/sound-restart" ]; then' "the login takes it up"
+[[ $(grep -n 'sound-restart' <<<"$a" | head -n1 | cut -d: -f1) -lt $(grep -n '^kawa-display' <<<"$a" | cut -d: -f1) ]] && _ok || _no "the login's restart comes after something else started"
+case_ "…no clean mic in the sound server (the usual run), or no sound server at all: no call to wpctl, no restart"
+pwdump "alsa_input.pci-0000_15_00.6.analog-stereo"; fkh pw-dump "$(sed 's/clean_mic/gone/g' "$FKH/pw-dump")"; reset_calls
+theme; eq "$RC" 0; not_called 'wpctl\]'; not_called 'systemctl\] --user restart pipewire'
+rm -f "$FKH/pw-dump"; reset_calls
+theme; eq "$RC" 0; not_called 'wpctl\]'; not_called 'systemctl\] --user restart pipewire'
 
 done_

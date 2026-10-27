@@ -142,7 +142,16 @@ hist_setup() {
   stub kawa-cell 'echo 9x21'; stub curl
   stub fzf 'cat >/dev/null; while [ ! -e "$TMP/close" ]; do [ -d "$TMP" ] || exit 1; sleep 0.05; done'
 }
-put() { python3 -I "$REPO/tests/content/fake_cliphist.py" store; }     # stdin → a new entry
+# put — stdin → a new entry, kept as the session keeps a copy (kawa-clip --store: one over cliphist's
+# 5,000,000 bytes as a file beside the history — the 5.5 MB screenshot is one), the clipboard
+# itself left as it was
+put() {
+  local had=0 r
+  [[ -e $CB.type ]] && { mv -f "$CB.type" "$CB.type.put"; had=1; }
+  CLIPBOARD_STATE=data kawa-clip --store; r=$?
+  ((had)) && mv -f "$CB.type.put" "$CB.type"
+  return "$r"
+}
 newest() { ls "$CLIP_DB" | sort -n | tail -n1; }
 open_window() {
   rm -f "$TMP/close"; : >"$XDG_RUNTIME_DIR/kawa-warm-clip.shown"; kawa-clip --tui & WIN=$!

@@ -2,8 +2,9 @@
 # tests/status/test_configs.sh — the two configs behind the bar's sound: cava.conf must give
 # kawa-nowplaying exactly the frames it parses (16 bands of 0–6, ';' apart, one frame a line),
 # and 60-share.conf's devices must be the ones the sound panel (kawa-quick --state sound) and the handbook treat as "Share";
-# then PipeWire's 50-quality.conf (rates, period, resampler), 60-clean-mic.conf (the clean mic) and
-# WirePlumber's 50-bluetooth-quality.conf (the headphones' codecs).
+# then PipeWire's 50-quality.conf (rates, period, resampler) and WirePlumber's
+# 50-bluetooth-quality.conf (the headphones' codecs); and the clean mic, gone: its file not
+# shipped, theme.sh retiring the one an earlier install left.
 # (That PipeWire 1.0 loads 60-share.conf and lists both under Filters was checked live.)
 . "$(dirname "$0")/lib.sh"
 box
@@ -49,9 +50,8 @@ eq "$(strip | grep -c 'priority.session = 0')" 1
 case_ "60-share.conf: the names the handbook uses"
 has "$(strip)" 'node.description = "Share"'; has "$(sed -n '1,12p' "$SHARE")" '"Monitor of Share"'
 
-# ── what you hear, and the clean mic ─────────────────────────────────────────
+# ── what you hear ────────────────────────────────────────────────────────────
 PW=$REPO/configs/home/.config/pipewire
-CLEAN=$PW/pipewire.conf.d/60-clean-mic.conf
 nc() { sed -e 's/#.*//' "$1"; }
 case_ "every PipeWire file: braces and brackets balanced (setup sets aside one PipeWire will not start with)"
 for f in "$PW"/*.conf.d/*.conf; do
@@ -77,20 +77,12 @@ has "$B" 'bluez5.enable-sbc-xq = true'; has "$B" 'bluez5.enable-msbc = true'; ha
 has "$(grep -A8 'monitor.bluez.rules' <<<"$B")" 'device.name = "~bluez_card.*"'
 has "$(grep -A8 'monitor.bluez.rules' <<<"$B")" 'bluez5.a2dp.ldac.quality = "hq"'
 eq "$(tr -cd '{' <<<"$B" | wc -c) $(tr -cd '[' <<<"$B" | wc -c)" "$(tr -cd '}' <<<"$B" | wc -c) $(tr -cd ']' <<<"$B" | wc -c)" "its brackets balanced"
-case_ "60-clean-mic.conf: one echo-cancel module, WebRTC's (pipewire-libs' own: no extra package), in monitor mode (what you hear untouched)"
-C=$(nc "$CLEAN")
-eq "$(grep -c 'libpipewire-module-echo-cancel' <<<"$C")" 1
-has "$C" 'library.name   = aec/libspa-aec-webrtc'; has "$C" 'monitor.mode   = true'
-lacks "$C" 'libpipewire-module-filter-chain'; lacks "$C" 'ladspa'
-case_ "60-clean-mic.conf: noise suppression and the high-pass on, no gain control (Brave's own: two would pump)"
-has "$C" 'webrtc.noise_suppression = true'; has "$C" 'webrtc.high_pass_filter  = true'; has "$C" 'webrtc.gain_control      = false'
-case_ "60-clean-mic.conf: the names kawa-quick reads (clean_mic, its capture clean_mic.capture), both streams passive (the microphone opened only while something records)"
-has "$(nc "$CLEAN" | grep -A3 'source.props')" 'node.name        = "clean_mic"'
-has "$(nc "$CLEAN" | grep -A3 'capture.props')" 'node.name        = "clean_mic.capture"'
-eq "$(grep -c 'node.passive     = true' <<<"$C")" 2
-has "$(cat "$REPO/bin/kawa-quick")" '"clean_mic.capture"'; has "$(cat "$REPO/bin/kawa-panel")" '"--target", "clean_mic"'
-case_ "60-clean-mic.conf: the default input while nothing else was chosen — above every sound card's microphone (the owner's: 2009)"
-p=$(sed -n 's/.*priority.session = \([0-9]*\).*/\1/p' "$CLEAN")
-(( p > $(python3 -I -c 'import json,sys; print(max(n["prio"] for n in json.load(open(sys.argv[1]))["nodes"] if n["class"] == "Audio/Source"))' "$SD/fixtures/pw-owner.json") )) && _ok || _no "priority $p"
+
+# ── the clean mic: gone ──────────────────────────────────────────────────────
+case_ "the clean mic is taken out: no echo-cancel module in any PipeWire file shipped, 60-clean-mic.conf not among them"
+[[ ! -e $PW/pipewire.conf.d/60-clean-mic.conf ]] && _ok || _no "60-clean-mic.conf is still shipped"
+eq "$(grep -rl 'libpipewire-module-echo-cancel' "$PW" 2>/dev/null)" "" "an echo-cancel module in: $(grep -rl 'libpipewire-module-echo-cancel' "$PW" 2>/dev/null)"
+case_ "theme.sh retires the one an earlier install left (while it is still ours: its echo-cancel module says so)"
+has "$(cat "$REPO/theme.sh")" "retire .config/pipewire/pipewire.conf.d/60-clean-mic.conf 'libpipewire-module-echo-cancel'"
 
 done_

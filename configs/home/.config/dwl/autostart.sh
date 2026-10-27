@@ -82,6 +82,12 @@ keep() {
   done
 }
 
+# a sound server restart an apply left for this moment (theme.sh: a change it cannot make while
+# a program holds a sound stream): now, before anything plays
+if [ -e "$HOME/.local/state/fedokawaii/sound-restart" ]; then
+  rm -f "$HOME/.local/state/fedokawaii/sound-restart"
+  systemctl --user restart pipewire.socket pipewire.service wireplumber.service </dev/null >/dev/null 2>&1
+fi
 kawa-display </dev/null                            # resolution + refresh rate
 kawa-theme apply </dev/null                        # dark or light: GTK/Qt settings, wallpaper
 kawa-state restore </dev/null                      # what you set, as you left it, before the bar draws

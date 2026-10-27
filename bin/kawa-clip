@@ -10,10 +10,20 @@
 #   Esc       close, the clipboard exactly as it was
 #
 # The other forms are its own parts: --tui (inside the window), --list, --preview ID,
-# --copy ID, --delete ID, --wipe, --focus PID [ID], --held, --poke, and --store, which keeps each
-# new copy: the session's wl-paste --watch runs it (autostart.sh). Text and pictures are
-# kept — the last 100 copies, none bigger than 20 MiB. Copies outlive the app they came
-# from (kawa-clipkeep).
+# --copy ID, --decode ID, --delete ID, --wipe, --focus PID [ID], --held, --poke, and --store,
+# which keeps each new copy: the session's wl-paste --watch runs it (autostart.sh). Text and
+# pictures are kept — the last 100 copies, none bigger than 20 MiB. Copies outlive the app
+# they came from (kawa-clipkeep).
+#
+# cliphist (0.7, Fedora's) keeps nothing over 5,000,000 bytes and says nothing about it (its
+# store returns at once; newer versions name it -max-store-size): a photo or a 4K screenshot
+# copied never reached the history. Such a copy is kept here instead, whole, as a file in
+# ~/.cache/kawa-clip/big/ named by its SHA-256's first 16 figures, and the history holds a line
+# standing in for it — "kawa-clip:big TYPE WxH BYTES NAME" (WxH "-" for what is no picture;
+# well under the 100 characters cliphist's list shows of a line) — which the list shows as the
+# picture it is and --decode turns back into its bytes (the preview, Enter, Super+Z all read it
+# so). A file whose line has left the history (the newest 100 kept, one forgotten, all wiped)
+# goes with it.
 #
 # While the window is open, $XDG_RUNTIME_DIR/kawa-clip.current says which entry its cursor
 # is on — "PID ID", PID the window's own kawa-clip, ID empty while the search matches
@@ -35,8 +45,31 @@ export FZF_DEFAULT_OPTS_FILE=$HOME/.config/fedokawaii/fzf.opts; unset FZF_DEFAUL
 magick() { LC_ALL=C command magick "$@"; }
 KEEP=(-max-items 100)                                # cliphist: the newest 100 copies, the rest forgotten
 MAX_BYTES=$((20 << 20))                              # a bigger copy is not kept (a 20 MiB picture is ~5000×4000)
+CLIPHIST_MAX=5000000                                 # cliphist's own: above it, kept as a file (see the top)
+BIG=${XDG_CACHE_HOME:-$HOME/.cache}/kawa-clip/big    # those files
 
 entry() { printf '%s\t\n' "$1"; }            # cliphist's own line form: "ID<tab>…"
+# decode ID — the entry's bytes on stdout: cliphist's, or — a line standing in for a big copy —
+# the file it stands for. 1: no such entry, or its file gone
+decode() {
+  local t line="" r
+  t=$(mktemp "$RUN/kawa-clip.XXXXXX") || return 1     # (the window clears such files: one a killed preview left)
+  entry "$1" | cliphist decode >"$t" 2>/dev/null
+  IFS= read -r -n 160 line <"$t" 2>/dev/null
+  if [[ $line =~ ^kawa-clip:big\ [^\ ]+\ [^\ ]+\ [0-9]+\ ([0-9a-f]{16})$ ]]; then cat -- "$BIG/${BASH_REMATCH[1]}" 2>/dev/null
+  else cat -- "$t"; fi
+  r=$?; rm -f -- "$t"; return "$r"
+}
+# prune — the big copies' files no line of the history stands for any more: gone
+prune() {
+  [[ -d $BIG ]] || return 0
+  local keep f
+  keep=$(cliphist list 2>/dev/null | sed -n 's/^[0-9]*\tkawa-clip:big [^ ]* [^ ]* [0-9]* \([0-9a-f]\{16\}\)$/\1/p')
+  for f in "$BIG"/*; do
+    [[ -f $f ]] || continue
+    grep -qxF -- "${f##*/}" <<<"$keep" || rm -f -- "$f"
+  done
+}
 # window — the open window's kawa-clip, from $CUR: its pid, and the entry under the cursor in
 # $held. Fails when no window is open: no file, one not ours, or its process gone — a window
 # killed outright leaves the file behind, and its pid may since be another program's
@@ -68,6 +101,12 @@ case ${1:-} in
       if [[ $rest =~ ^\[\[\ binary\ data\ ([0-9.]+\ [KMG]?i?B)\ ([[:alnum:]+.-]+)\ ([0-9]+)x([0-9]+)\ \]\]$ ]]; then
         printf '%s\t%s\n' "$id" "$(screen_row "$ICON_PICTURE" "${BASH_REMATCH[2]} picture" \
           "${BASH_REMATCH[3]}×${BASH_REMATCH[4]} · ${BASH_REMATCH[1]}" "$w")"
+      elif [[ $rest =~ ^kawa-clip:big\ image/([[:alnum:]+.-]+)\ ([0-9]+)x([0-9]+)\ ([0-9]+)\ [0-9a-f]{16}$ ]]; then
+        # (a big copy kept as a file: listed as cliphist lists a picture — its MiB as cliphist rounds them)
+        printf '%s\t%s\n' "$id" "$(screen_row "$ICON_PICTURE" "${BASH_REMATCH[1]} picture" \
+          "${BASH_REMATCH[2]}×${BASH_REMATCH[3]} · $(( (BASH_REMATCH[4] + (1 << 19)) >> 20 )) MiB" "$w")"
+      elif [[ $rest =~ ^kawa-clip:big\ ([^\ ]+)\ -\ ([0-9]+)\ [0-9a-f]{16}$ ]]; then
+        printf '%s\t%s\n' "$id" "$(screen_row "$ICON_BOX_OFF" data "${BASH_REMATCH[1]} · $(( (BASH_REMATCH[2] + (1 << 19)) >> 20 )) MiB" "$w")"
       elif [[ $rest =~ ^\[\[\ binary\ data\ (.*)\ \]\]$ ]]; then
         printf '%s\t%s\n' "$id" "$(screen_row "$ICON_BOX_OFF" data "${BASH_REMATCH[1]}" "$w")"
       elif [[ $rest == *�* ]]; then   # bytes that are not text (cliphist 0.7 shows them as �,
@@ -83,7 +122,7 @@ case ${1:-} in
     [[ ${2:-} =~ ^[0-9]+$ ]] || exit 0
     tmp=$(mktemp "$RUN/kawa-clip.XXXXXX") || exit 0
     trap 'rm -f "$tmp"' EXIT
-    entry "$2" | cliphist decode >"$tmp" 2>/dev/null || exit 0
+    decode "$2" >"$tmp" || exit 0
     # text is whatever has a character set — code, mail and keys too, which `file` names
     # application/javascript, message/rfc822, application/pgp-keys…
     mime=$(file -b --mime "$tmp" 2>/dev/null); type=${mime%%;*}
@@ -130,7 +169,7 @@ case ${1:-} in
     command -v wl-copy >/dev/null || { notify-send -a desktop -u critical -- "$ICON_CLIPBOARD  clipboard" "wl-copy is missing — fedokawaii repair puts it back" 2>/dev/null; exit 1; }
     tmp=$(mktemp "$RUN/kawa-clip.XXXXXX") || exit 1
     trap 'rm -f "$tmp"' EXIT
-    entry "$2" | cliphist decode >"$tmp" 2>/dev/null && [[ -s $tmp ]] || exit 1
+    decode "$2" >"$tmp" && [[ -s $tmp ]] || exit 1
     # its own session: closing the window keeps it. A picture is offered as what it is
     # (image/png…), so the program you paste into takes a picture; text as wl-copy finds it
     type=$(file -b --mime-type "$tmp" 2>/dev/null)
@@ -158,12 +197,31 @@ case ${1:-} in
                                && grep -qE '^[[:space:]]*(https?|file|data|blob):[^[:space:]]+[[:space:]]*$' "$tmp"; }; }; then
       wl-paste --no-newline --type "$pic" 2>/dev/null | head -c $((MAX_BYTES + 1)) >"$tmp"
     fi
-    (($(stat -c %s "$tmp") <= MAX_BYTES)) || exit 0
-    cliphist "${KEEP[@]}" store <"$tmp"; r=$?
+    size=$(stat -c %s "$tmp")
+    ((size <= MAX_BYTES)) || exit 0
+    if ((size > CLIPHIST_MAX)); then
+      # (more than cliphist keeps: the copy as a file, the history a line standing for it — see
+      # the top; the same copy again is the same file and the same line, so it shows once)
+      sum=$(sha256sum <"$tmp") sum=${sum:0:16}
+      mkdir -p -- "$BIG" || exit 1
+      [[ -s $BIG/$sum ]] || { cp -- "$tmp" "$BIG/$sum.part" && mv -f -- "$BIG/$sum.part" "$BIG/$sum"; } || exit 1
+      t=$(file -b --mime-type "$tmp" 2>/dev/null) dims=-
+      [[ $t == image/* ]] && dims=$(magick "${tmp}[0]" -format '%wx%h' info: 2>/dev/null)
+      [[ $dims =~ ^[0-9]+x[0-9]+$ ]] || dims=-
+      printf 'kawa-clip:big %s %s %s %s' "${t:-application/octet-stream}" "$dims" "$size" "$sum" \
+        | cliphist "${KEEP[@]}" store; r=$?
+    else
+      cliphist "${KEEP[@]}" store <"$tmp"; r=$?
+    fi
+    prune                                                     # (one the newest 100 pushed out: its file too)
     poke
     exit "$r" ;;
+  --decode)     # an entry's bytes, a big copy's too (the preview, Enter and Super+Z read them so)
+    [[ ${2:-} =~ ^[0-9]+$ ]] || exit 2
+    decode "$2"; exit ;;
   --delete)
     [[ ${2:-} =~ ^[0-9]+$ ]] && entry "$2" | cliphist delete
+    prune
     exit 0 ;;
   --focus)      # fzf's, at each move: the window PID's cursor is on entry ID now — none, while
                 # the search matches nothing (see the top)
@@ -181,7 +239,7 @@ case ${1:-} in
     printf '\n  forget all %d entries, and empty the clipboard?  [y/N] ' "$n"
     read -rsn1 a </dev/tty
     # (the clipboard emptied too: what was copied last is gone for every app, and for Super+Z)
-    [[ $a == [yY] ]] && { cliphist wipe; wl-copy --clear; }
+    [[ $a == [yY] ]] && { cliphist wipe; prune; wl-copy --clear; }
     exit 0 ;;
   --poke)       # the open window's list read again (kawa-warm, as it shows)
     poke; exit 0 ;;

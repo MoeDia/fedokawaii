@@ -486,7 +486,7 @@ Keep the help sheet (**Super+/**) a key away; write down the three keys you look
 | the quiet bell, or the monitor | do-not-disturb on · your screen is being shared | the bell: off, for an hour, until the morning, on |
 | the drive mark | a USB stick, disk or SD card is plugged in | open or eject it |
 | the download mark | something is downloading: its arrow dropping into the tray, the percent of all of it | the downloads centre (chapter 7) |
-| the keyboard | `US` (red) or `AR` (blue), the layout you type in | the other layout |
+| the keyboard | `us` (red) or `ar` (blue), the layout you type in — in capitals, `US` `AR`, while Caps Lock is on | the other layout |
 | memory | how much the programs use (`5.2G`); vermilion past 85 % | btop |
 | volume · brightness | speaker and bulb, with the level | the sound panel · the brightness meter |
 | weather | the sky and the temperature where you are | |

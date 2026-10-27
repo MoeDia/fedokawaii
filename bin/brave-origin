@@ -21,9 +21,8 @@
 # chosen), qualityLimitationReason "none".
 # The microphone's level is never moved by a call: WebRtcAllowInputVolumeAdjustment off —
 # else Chromium's gain control turns the system's microphone volume up and down as you speak
-# (Meet always asks for it), pumping the clean mic's level (60-clean-mic.conf) and every
-# other program's; its own gain inside the call still works. A --disable-features of your own
-# is joined to this one.
+# (Meet always asks for it), pumping the level every other program records at; its own gain
+# inside the call still works. A --disable-features of your own is joined to this one.
 # The password store is pinned to Brave's basic one — the one it uses here today, with no
 # keyring running — so that a keyring a package brings later, or a Brave that chooses
 # differently, can never leave every login and cookie saved before it unreadable. (A

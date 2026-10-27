@@ -43,7 +43,7 @@ Source: **F** Fedora · **RF** RPM Fusion · **V** vendor repo (signed) · **C**
 | Clipboard | wl-clipboard + cliphist + fzf | F | Super+V: the history in a small window (fzf) — text and pictures (screenshots, Brave's *Copy image*), the last 100, none over 20 MiB (`kawa-clip --store` behind `wl-paste --watch`); pictures previewed in the terminal (ImageMagick draws them as sixels) and copied back as pictures |
 | Screenshots | grim + slurp + satty | F + GH | satty needs gtk4 + libadwaita (listed) |
 | Night light | gammastep | F | `kawa-night`: the warmth you set, day and night alike (it never follows the sun), kept across logins; quick settings turns it on and off, its wheel warmer or cooler |
-| Audio | PipeWire + WirePlumber (+ pulse/alsa shims) + pipewire-utils | F | wiremix (the mixer: a terminal program, in a floating window, in the theme's colours), playerctl; all sound processing is PipeWire's own: the clean mic its echo-cancel module with the WebRTC library (pipewire-libs: no package of its own — RNNoise's LADSPA plugin is not in Fedora), an equaliser, when wanted, its filter-chain's param_eq (EasyEffects and Calf retired); `pw-dump` feeds the audio menu, `pw-play` sounds the timer's chime |
+| Audio | PipeWire + WirePlumber (+ pulse/alsa shims) + pipewire-utils | F | wiremix (the mixer: a terminal program, in a floating window, in the theme's colours), playerctl; all sound processing is PipeWire's own: an equaliser, when wanted, its filter-chain's param_eq (EasyEffects and Calf retired); `pw-dump` feeds the audio menu, `pw-play` sounds the timer's chime |
 | Music meter | cava | F | the bar's spectrum meter, only while sound plays (sleeps through silence) |
 | Monitor brightness | ddcutil | F | DDC/CI, like Twinkle Tray on Windows |
 | Bar clicks | wtype | F | clicking a workspace presses its key (Super+1…9) |
@@ -128,7 +128,7 @@ before setup started plus the manifest — anything else is reported by name.
 | bsdtar | 7z lists and opens the books window's comics: one archive tool |
 | mediainfo | ffprobe (part of ffmpeg) tells the same about a video or song |
 | pavucontrol, blueman | terminal programs first: wiremix (Fedora's package) is the mixer, bluetui (GitHub release, pinned) pairs devices — both open in a floating foot window and wear the theme; no GTK window, nothing to start at login |
-| EasyEffects, Calf | one sound-processing stack, PipeWire's own: the clean mic is its echo-cancel module (WebRTC noise suppression and echo cancellation), an equaliser its filter-chain's param_eq when wanted (handbook §15.6) — nothing running beside PipeWire, no Qt program kept for one job |
+| EasyEffects, Calf | one sound-processing stack, PipeWire's own: an equaliser is its filter-chain's param_eq when wanted (handbook §15.6) — nothing running beside PipeWire, no Qt program kept for one job |
 | Brave flags file | Chromium ≥ 140 picks Wayland automatically |
 | `keepcache`, `skip_if_unavailable`, `clean_requirements_on_remove` in dnf config | already Fedora's defaults |
 | lazygit's COPR (dejan/lazygit) | its description says it is no longer maintained; lazygit now comes from its GitHub release, pinned (SHA-256) |

@@ -17,6 +17,7 @@
 # dwl prints these lines per monitor (the last one comes from src/dwl/dwl.patch):
 #   <mon> title <text> · appid · fullscreen · floating · selmon <0|1>
 #   <mon> tags <occupied> <selected> <focused-client> <urgent> · <mon> layout <sym>
+#   <mon> kbcaps 0|1        Caps Lock locked (before kblayout, which ends the block)
 #   <mon> kblayout <n>      the active keyboard layout, 0 = first of XKB_DEFAULT_LAYOUT
 #
 # Workspaces: 1–3 are always shown; 4–9 appear only while they hold a window, are
@@ -84,7 +85,7 @@ DIR="${XDG_RUNTIME_DIR:?}/dwl-bar"
 mkdir -p "$DIR" || exit 1
 ALWAYS=3
 
-declare -A OCC SEL URG TITLE LAYOUT KB LAST
+declare -A OCC SEL URG TITLE LAYOUT KB CAPS LAST
 SELMON=""
 # keyboard layouts as the session set them (start-dwl): "us,ara" → US AR
 IFS=, read -r -a KBNAMES <<<"${XKB_DEFAULT_LAYOUT:-us}"
@@ -153,11 +154,14 @@ emit() {   # emit MONITOR — its files (and the focused one's at the top), then
     put "${at}layout" "{\"text\":\"$icon\",\"class\":$lc}" && ly=1
     put "${at}title" "{\"text\":\"$title\",\"class\":[\"$ta\"]}" && tt=1
   done
-  # the keyboard layout, shown only when there is more than one to switch between
+  # the keyboard layout, shown only when there is more than one to switch between: in
+  # capitals while Caps Lock is on ("US"), small while it is off ("us") — what the keys
+  # type, at a glance
   local k=${KB[$mon]:-0} name="" which=first
   if ((${#KBNAMES[@]} > 1)); then
     name=${KBNAMES[k]:-?}; name=${name:0:2}; ((k)) && which=other
-    put kb "{\"text\":\"${name^^}\",\"class\":\"$which\"}" && kc=1
+    if [[ ${CAPS[$mon]:-0} == 1 ]]; then name=${name^^}; else name=${name,,}; fi
+    put kb "{\"text\":\"$name\",\"class\":\"$which\"}" && kc=1
   else
     put kb '{"text":""}' && kc=1
   fi
@@ -185,6 +189,7 @@ while IFS=' ' read -r mon kind rest; do
               KB[$mon]=$rest
             fi
             [[ $mon =~ ^[[:alnum:]][[:alnum:]_.-]*$ ]] && emit "$mon" ;;   # (the name becomes a folder)
+    kbcaps) [[ $rest == [01] ]] && CAPS[$mon]=$rest ;;
     selmon) [[ $rest == 1 ]] && SELMON=$mon ;;
   esac
 done

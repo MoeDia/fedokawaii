@@ -244,6 +244,9 @@ retire .config/gtk-3.0/gtk.css 'current/gtk3.css'
 #   ~/.local/share/applications/calf.desktop — hid Calf's JACK host, which came with EasyEffects
 #   (both retired: PipeWire's own modules do their job)
 retire .local/share/applications/calf.desktop "Calf's JACK host"
+#   ~/.config/pipewire/pipewire.conf.d/60-clean-mic.conf — the clean mic (WebRTC noise
+#   suppression on the microphone): taken out at the owner's word (2026-10-27)
+retire .config/pipewire/pipewire.conf.d/60-clean-mic.conf 'libpipewire-module-echo-cancel'
 #   ~/.bashrc.d/scriptorium.sh — this project's old name: a second prompt and its aliases
 retire .bashrc.d/scriptorium.sh 'scriptorium'
 #   ~/.local/bin/kawa-audio — the old fuzzel sound menu: the sound panel (kawa-panel --sound)
@@ -1064,6 +1067,38 @@ if pgrep -u "$TARGET_UID" -x dwl >/dev/null; then
   live kawa-theme apply                    # terminals, bar, notifications, GTK, Qt, wallpaper
   live kawa-warm --renew system clip       # (their windows as now drawn; the notes hold your page)
   log "reloaded the theme in the running session (new fonts, foot settings and dwl apply at next login)"
+fi
+# ── 6b. the clean mic, out of a sound server that started with it ────────────
+# 60-clean-mic.conf is retired above, but a PipeWire that read it at its start keeps the node
+# until it restarts — and a default input named clean_mic would then be no microphone. So the
+# default goes back to the raw microphone it listened to, and the sound server restarts to let
+# the node go — only while no program holds a sound stream, playing or paused (a call, a song,
+# a video paused in the browser would lose its sound); else the session's next start restarts
+# it before anything plays (~/.local/state/fedokawaii/sound-restart, autostart.sh). A program's
+# stream names its program (application.name); the desktop's own — the clean mic's two, Share's —
+# do not
+if CM=$(U timeout 10 pw-dump 2>/dev/null) \
+   && jq -e 'any(.[]; .type == "PipeWire:Interface:Node" and .info.props["node.name"] == "clean_mic")' >/dev/null <<<"$CM"; then
+  CM_RAW=$(jq -r '[.[] | select(.type == "PipeWire:Interface:Node")] as $n
+    | ([.[] | select(.type == "PipeWire:Interface:Metadata" and .props["metadata.name"] == "default")
+        | .metadata[]? | select(.key == "default.audio.source") | .value.name] | .[0] // "") as $src
+    | ($n | map(select(.info.props["node.name"] == "clean_mic.capture")) | .[0].id // -1) as $cap
+    | ([.[] | select(.type == "PipeWire:Interface:Link") | .info
+        | select(.["input-node-id"] == $cap) | .["output-node-id"]] | .[0]) as $heard
+    | select($src == "clean_mic")
+    | $heard // ($n | map(select(.info.props["media.class"] == "Audio/Source" and .info.props["node.name"] != "clean_mic")
+                          ) | sort_by(-(.info.props["priority.session"] // 0)) | .[0].id) // empty' <<<"$CM") || CM_RAW=""
+  if [[ $CM_RAW =~ ^[0-9]+$ ]]; then U wpctl set-default "$CM_RAW" || true; fi
+  if jq -e 'any(.[]; .type == "PipeWire:Interface:Node" and .info.props["application.name"] != null
+        and ((.info.props["media.class"] // "") | startswith("Stream/")))' >/dev/null <<<"$CM"; then
+    U mkdir -p "$TARGET_HOME/.local/state/fedokawaii" && U touch "$TARGET_HOME/.local/state/fedokawaii/sound-restart"
+    log "the clean mic goes at your next login (a program holds a sound stream now: the sound server is left running)"
+  elif U systemctl --user restart pipewire.socket pipewire.service wireplumber.service; then
+    ok "the clean mic is out of the sound server (restarted: no program held a sound stream)"
+  else
+    U mkdir -p "$TARGET_HOME/.local/state/fedokawaii" && U touch "$TARGET_HOME/.local/state/fedokawaii/sound-restart"
+    log "the clean mic goes at your next login (the sound server did not restart now)"
+  fi
 fi
 run_boot                                   # 3b + 3c, contained (see above): they apply at the next boot
 if ((BOOT_FAILED)); then

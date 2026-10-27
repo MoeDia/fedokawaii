@@ -30,7 +30,7 @@ sink=alsa_output.pci-0000_0e_00.4.analog-stereo
 case_ "--state sound: the level, mute, the microphone, then the outputs and the inputs (the default ticked: 1)"
 setup
 rc 0 kawa-quick --state sound
-eq "$(sq | cut -f1-4)" "$(printf '%s\n' $'sound\t40%' $'muted\toff' $'mic\ton' $'cleanmic\tnone' \
+eq "$(sq | cut -f1-4)" "$(printf '%s\n' $'sound\t40%' $'muted\toff' $'mic\ton' \
   $'output\t62\t1\tStarship/Matisse HD Audio Controller Analog Stereo' \
   $'output\t73\t0\tNavi 31 HDMI/DP Audio Digital Stereo (HDMI)' \
   $'input\t67\t1\tStarship/Matisse HD Audio Controller Analog Stereo')"
@@ -134,73 +134,36 @@ lacks "$(devs)" Capture; lacks "$(devs)" Playback
 case_ "PipeWire not running: no output, no microphone, no devices — said, not failed (the panel shows it)"
 setup; pw_edit "st['running'] = False"
 rc 0 kawa-quick --state sound
-eq "$(sq)" "$(printf '%s\n' $'sound\tno output' $'muted\toff' $'mic\tnone' $'cleanmic\tnone')"
+eq "$(sq)" "$(printf '%s\n' $'sound\tno output' $'muted\toff' $'mic\tnone')"
 
-# ── the clean mic (60-clean-mic.conf): its key, the default input clean ⇄ raw ────────────────
-# the owner's machine with the chain loaded as PipeWire 1.6 shows it: the echo-cancel module's
-# capture stream (from the rear mic), its source clean_mic (priority 3000: the default while
-# nothing else was chosen), its reference stream; Brave in a Meet call recording the default
-# (a site that names its microphone: such a stream does not follow the default alone)
-clean_world() {
+# ── an input picked: what records moves with it ──────────────────────────────────────────────
+# the owner's machine with Brave in a Meet call recording the default input (a site that names
+# its microphone: such a stream does not follow the default alone), and a front microphone
+# beside the rear one
+call_world() {
   box; export FAKE_PW=$TMP/pw.json; cp "$SD/fixtures/pw-owner.json" "$FAKE_PW"
   stub wpctl 'exec python3 -I '"$SD"'/fake_pw.py wpctl "$@"'; stub pw-dump 'exec python3 -I '"$SD"'/fake_pw.py pw-dump "$@"'
   stub pw-metadata 'exec python3 -I '"$SD"'/fake_pw.py pw-metadata "$@"'
-  pw_edit "st['nodes'] += [
-    {'id': 110, 'class': 'Stream/Input/Audio', 'name': 'clean_mic.capture', 'desc': 'Clean mic (the raw microphone)', 'vol': 1.0, 'props': {'node.passive': True, 'node.link-group': 'echo-cancel-1761-30'}},
-    {'id': 111, 'class': 'Audio/Source', 'name': 'clean_mic', 'desc': 'Clean mic', 'prio': 3000, 'vol': 1.0, 'props': {'node.link-group': 'echo-cancel-1761-30', 'node.virtual': True}},
-    {'id': 112, 'class': 'Stream/Input/Audio', 'name': 'clean_mic.reference', 'desc': 'Clean mic (what plays, to cancel)', 'vol': 1.0, 'props': {'node.passive': True, 'stream.capture.sink': True, 'node.link-group': 'echo-cancel-1761-30'}},
-    {'id': 120, 'class': 'Stream/Input/Audio', 'name': 'Chromium input', 'desc': 'meet.google.com', 'vol': 1.0, 'props': {'application.name': 'Brave', 'target.object': 'clean_mic'}}]
-st['links'] = [[67, 110], [62, 112], [111, 120]]"
+  pw_edit "st['devices'][0]['routes'].append({'direction': 'Input', 'device': 5, 'name': 'analog-input-front-mic', 'description': 'Front Microphone'})
+st['nodes'] += [dict(node('alsa_input.pci-0000_15_00.6.analog-stereo'), id=68, name='front', prio=100, props=dict(node('alsa_input.pci-0000_15_00.6.analog-stereo')['props'], **{'card.profile.device': 5})),
+  {'id': 120, 'class': 'Stream/Input/Audio', 'name': 'Chromium input', 'desc': 'meet.google.com', 'vol': 1.0, 'props': {'application.name': 'Brave', 'target.object': 'alsa_input.pci-0000_15_00.6.analog-stereo'}}]
+st['links'] = [[67, 120]]"
 }
 brave_from() { python3 -I -c 'import json, sys; st = json.load(open(sys.argv[1])); print(*[o for o, n in st["links"] if n == 120])' "$FAKE_PW"; }
-case_ "on (its priority made it the default): cleanmic on, the clean mic not a row of its own — the microphone it listens to ticked"
-clean_world
-eq "$(sv cleanmic)" on
-eq "$(devs | grep $'^input')" $'input\t67\t1\tRyzen HD Audio Controller Analog Stereo' "one input row, the rear mic, ticked"
-lacks "$(sq)" "Clean mic"
-case_ "clean → raw: the rear mic the default, Brave's call moved to it at once (still recording: the call goes on), the clean mic's mute carried over"
-clean_world; pw_edit "node('clean_mic')['mute'] = True"
-rc 0 kawa-quick --do cleanmic
-grep -q '^wpctl set-default 67$' "$FAKE_PW.log" && _ok || _no "no set-default 67"
-grep -q '^pw-metadata 120 target.object alsa_input.pci-0000_15_00.6.analog-stereo$' "$FAKE_PW.log" && _ok || _no "Brave not moved"
-not_in() { grep -q "$1" "$FAKE_PW.log" && _no "$2" || _ok; }
-not_in '^pw-metadata 110 ' "the clean mic's own capture is never moved as a program"
-not_in '^pw-metadata 112 ' "nor its reference"
-eq "$(brave_from)" 67 "Brave records the rear mic now"
-eq "$(sv cleanmic) $(sv mic)" "off muted" "off, and still muted"
-eq "$(devs | grep $'^input')" $'input\t67\t1\tRyzen HD Audio Controller Analog Stereo'
-case_ "raw → clean: the clean mic told to listen to that raw one first (its capture's target), then the default; Brave moved back"
-: >"$FAKE_PW.log"; rc 0 kawa-quick --do cleanmic
-eq "$(grep -E '^(wpctl set-default|pw-metadata)' "$FAKE_PW.log" | tr '\n' '|')" \
-  "pw-metadata 110 target.object alsa_input.pci-0000_15_00.6.analog-stereo|wpctl set-default 111|pw-metadata 120 target.object clean_mic|"
-eq "$(brave_from) $(sv cleanmic)" "111 on"
-case_ "the choice is kept twice over: WirePlumber's configured default, and kawa-state's cleanmic (every login puts it back) — a restart finds it as it was left"
-clean_world; rc 0 kawa-quick --do cleanmic
-eq "$(kawa-state get cleanmic)" off "kept: off"
-pw_edit "st['links'] = [[67, 110], [62, 112]]"   # (PipeWire restarted: the streams gone, the clean mic's chain loaded again)
-eq "$(sv cleanmic)" off "raw stays raw after the restart"
-eq "$(python3 -I -c 'import json, sys; print(json.load(open(sys.argv[1]))["configured"]["source"])' "$FAKE_PW")" alsa_input.pci-0000_15_00.6.analog-stereo
-rc 0 kawa-quick --do cleanmic; pw_edit "st['links'] = [[67, 110], [62, 112]]"
-eq "$(sv cleanmic)" on "clean stays clean"
-eq "$(kawa-state get cleanmic)" on "kept: on"
-case_ "the clean mic not loaded: picking an input keeps no cleanmic (nothing to put back)"
-setup; rc 0 kawa-quick --do input 67; rc 1 kawa-state get cleanmic
-case_ "the key tells the truth: another program changing the default input (wiremix, wpctl) is what the next read says"
-clean_world; rc 0 wpctl set-default 67; eq "$(sv cleanmic)" off
-rc 0 wpctl set-default 111; eq "$(sv cleanmic)" on
-case_ "a raw row picked while on: that microphone the default (the clean mic off, its key says so), what records moved"
-clean_world
-pw_edit "st['devices'][0]['routes'].append({'direction': 'Input', 'device': 5, 'name': 'analog-input-front-mic', 'description': 'Front Microphone'})"
-pw_edit "st['nodes'].append(dict(node('alsa_input.pci-0000_15_00.6.analog-stereo'), id=68, name='front', prio=100, props=dict(node('alsa_input.pci-0000_15_00.6.analog-stereo')['props'], **{'card.profile.device': 5})))"
-rc 0 kawa-quick --do input 68; eq "$(sv cleanmic) $(brave_from)" "off 68"
-eq "$(devs | grep $'^input' | cut -f2,3 | tr '\n' ' ')" $'67\t0 68\t1 '
-case_ "… and back to clean: it listens to the front mic now (the raw default when switched on)"
-rc 0 kawa-quick --do cleanmic; eq "$(sv cleanmic) $(brave_from)" "on 111"
-eq "$(devs | grep $'^input' | cut -f2,3 | tr '\n' ' ')" $'67\t0 68\t1 ' "the front mic ticked: the one it hears"
-case_ "not loaded (60-clean-mic.conf set aside, or PipeWire older): cleanmic none, the key could not (1), nothing changed"
-setup; eq "$(sv cleanmic)" none; rc 1 kawa-quick --do cleanmic
-grep -qs 'set-default' "$FAKE_PW.log" && _no "the default changed" || _ok
-setup; pw_edit "st['running'] = False"; eq "$(sv cleanmic)" none "PipeWire not running: none"
+case_ "an input picked while a call records: that microphone the default, the call moved to it at once (still recording: it goes on), the old one's mute carried over"
+call_world; pw_edit "node('alsa_input.pci-0000_15_00.6.analog-stereo')['mute'] = True"
+eq "$(brave_from)" 67 "Brave records the rear mic"
+rc 0 kawa-quick --do input 68
+grep -q '^wpctl set-default 68$' "$FAKE_PW.log" && _ok || _no "no set-default 68"
+grep -q '^pw-metadata 120 target.object front$' "$FAKE_PW.log" && _ok || _no "Brave not moved"
+eq "$(brave_from)" 68 "Brave records the front mic now"
+eq "$(devs | grep $'^input' | cut -f2,3 | tr '\n' ' ')" $'67\t0 68\t1 ' "the front mic ticked"
+eq "$(sv mic)" muted "muted stays muted"
+case_ "…and back: the same the other way; only the call's stream moves, never a card's node or a loopback's"
+rc 0 kawa-quick --do input 67; eq "$(brave_from)" 67 "Brave records the rear mic again"
+eq "$(grep -c '^pw-metadata' "$FAKE_PW.log")" 2 "one move each way, nothing else"
+case_ "an input picked keeps nothing of its own in kawa-state (the default is WirePlumber's: it keeps it across restarts)"
+setup; rc 0 kawa-quick --do input 67; eq "$(kawa-state list)" ""
 case_ "an input picked with nothing recording: the default, no move asked; a gone id: 1"
 setup; rc 0 kawa-quick --do input 67; grep -qs '^pw-metadata' "$FAKE_PW.log" && _no "moved" || _ok
 rc 1 kawa-quick --do input 73   # (an output's id is no input)

@@ -219,6 +219,41 @@ cmp -s "$CLIP_DB/1" "$TMP/shot.png" && _ok || _no "the screenshot's bytes change
 has "$(kawa-clip --list | rows)" $'1\tpng picture  1920×1080 · '
 has "$(prev 1 | sixel_info | jget raster)" "666, 168" "previewed as a sixel"
 
+case_ "a picture over cliphist's 5,000,000 bytes (0.7 drops such a copy without a word: it never reached Super+V): kept as a file beside the history, a line standing for it, listed as the picture"
+store_setup
+python3 -I -c 'import os, sys; sys.stdout.buffer.write(os.urandom(1400 * 1250 * 3))' >"$TMP/noise"
+magick -size 1400x1250 -depth 8 rgb:"$TMP/noise" png:- 2>/dev/null >"$TMP/big.png"
+(( $(stat -c %s "$TMP/big.png") > 5000000 )) && _ok || _no "the test picture is only $(stat -c %s "$TMP/big.png") bytes"
+offer image/png; bytes image/png <"$TMP/big.png"; cp "$TMP/big.png" "$TMP/stdin"
+rc 0 store
+B=$HOME/.cache/kawa-clip/big
+eq "$(ls "$B" | wc -l)" 1 "one file"
+cmp -s "$B/$(ls "$B")" "$TMP/big.png" && _ok || _no "the file is not the copy"
+line=$(newest_bytes)
+[[ $line =~ ^kawa-clip:big\ image/png\ 1400x1250\ [0-9]+\ [0-9a-f]{16}$ ]] && _ok || _no "the line: [$line]"
+((${#line} < 100)) && _ok || _no "the line is ${#line} characters: cliphist's list would cut it"
+has "$(kawa-clip --list | rows)" $'\tpng picture  1400×1250 · 5 MiB' "listed as any picture"
+case_ "… --decode gives its bytes whole (the preview, Enter, Super+Z read it so); Enter copies the picture back, a picture"
+id=$(newest)
+kawa-clip --decode "$id" | cmp -s - "$TMP/big.png" && _ok || _no "decoded, not the copy"
+rm -f "$FZF_ARGS"; rc 0 timeout 5 kawa-clip --decode "$id" >/dev/null
+[[ ! -e $FZF_ARGS ]] && _ok || _no "--decode went on into the window (fzf ran)"
+has "$(prev "$id" | sixel_info | jget raster)" "," "previewed as a sixel"
+stub wl-copy 'printf "%s\n" "$*" >"$COPIED.args"; cat >"$COPIED"'
+rc 0 kawa-clip --copy "$id"
+cmp -s "$COPIED" "$TMP/big.png" && _ok || _no "copied back: not the whole picture"
+has "$(cat "$COPIED.args")" "--type image/png"
+has "$(cat "$REPO/bin/kawa-shrink")" 'kawa-clip --decode "$id"' "Super+Z reads an entry through kawa-clip (a big copy's file, not its line)"
+case_ "… the same picture again: one file, one line; forgotten (Ctrl+D), its file goes; pushed out of the newest 100, its file goes"
+rc 0 store; eq "$(ls "$B" | wc -l)" 1; eq "$(grep -l '^kawa-clip:big' "$CLIP_DB"/[0-9]* | wc -l)" 1
+rc 0 kawa-clip --delete "$(newest)"; eq "$(ls "$B" | wc -l)" 0 "forgotten with its line"
+rc 0 store; offer 'text/plain;charset=utf-8'
+for i in $(seq 1 100); do printf 'copy %s' "$i" | CLIPBOARD_STATE=data kawa-clip --store; done
+eq "$(ls "$B" | wc -l)" 0 "pushed out of the newest 100: gone with its line"
+case_ "… a copy over our own 20 MiB: not kept at all (as before)"
+python3 -I -c 'import sys; sys.stdout.buffer.write(b"x" * (21 << 20))' >"$TMP/stdin"; offer 'text/plain;charset=utf-8'
+n0=$(ls "$CLIP_DB" | wc -l); rc 0 store; eq "$(ls "$CLIP_DB" | wc -l)" "$n0"; eq "$(ls "$B" 2>/dev/null | wc -l)" 0
+
 case_ "Brave's Copy image (the picture, its <img> tag and its link — wl-paste hands over the link): the picture"
 store_setup
 magick -size 640x480 xc:'#7fb8b0' png:- >"$TMP/cat.png"
@@ -271,10 +306,10 @@ case_ "a copy kawa-clipkeep offers again (its program closed): stored when it wa
 store_setup; offer 'text/plain;charset=utf-8' application/x-kawa-clipkeep; printf 'kept' >"$TMP/stdin"
 rc 0 store; eq "$(ls "$CLIP_DB" | wc -l)" 0
 
-case_ "a copy bigger than 20 MiB is not kept — up to 20 MiB is, text or picture"
+case_ "a copy bigger than 20 MiB is not kept — up to 20 MiB is, text or picture (over cliphist's 5,000,000 bytes: as a file, whole)"
 store_setup
 offer image/png; head -c $((20 << 20)) /dev/zero | bytes image/png; : >"$TMP/stdin"
-store; eq "$(stat -c %s "$CLIP_DB/1" 2>&1)" $((20 << 20))
+store; eq "$(kawa-clip --decode 1 | wc -c)" $((20 << 20))
 head -c $((20 << 20 + 1)) /dev/zero | bytes image/png; store
 eq "$(ls "$CLIP_DB" | wc -l)" 1 "a picture one byte over"
 offer 'text/plain;charset=utf-8'; python3 -c 'print("x" * (20 * 1024 * 1024 + 1), end="")' >"$TMP/stdin"; store

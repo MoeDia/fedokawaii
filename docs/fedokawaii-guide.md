@@ -2185,10 +2185,9 @@ volume, drawn as quick settings is, in three parts under kanji seals:
   unmutes — then *mute* (*unmute* while muted) and *mixer* (wiremix, every program's own level);
 - 出 *output* and 入 *input*: every device, the one in use ticked; click another and it becomes
   the default at once, the panel staying open to show it, and what plays moves to it (*Share*
-  is not listed: it is picked per program, §14.4). At the foot of 入: while the clean mic is on,
-  its level live (a slider with no knob, that only shows); *mute microphone*; then *clean mic* ▣ / □ —
-  your microphone with the room taken out, or raw, switched at once, a call in progress moving
-  with it — and *test mic* (5 seconds recorded, played back). §15.6 says more.
+  is not listed: it is picked per program, §14.4). At the foot of 入, two keys side by side, as
+  *mute* and *mixer* are: *mute microphone* (*unmute microphone* while muted) and *test mic*
+  (5 seconds recorded, played back). §15.6 says more.
 
 **The brightness slider** (a click on the bar's brightness) is the 明 meter alone, under the
 sun: click, drag, the wheel or **← →** straight away.
@@ -4987,7 +4986,7 @@ Paused
 ## 15.6 Sound: the mixer and effects
 
 The sound panel (**Super+A**, or a click on the bar's volume, §8.1) covers everyday needs:
-volume, mute, the output and the input, the clean mic and a test of it. The mixer goes further.
+volume, mute, the output and the input, and a test of the microphone. The mixer goes further.
 
 **No click.** Fedora lets the sound card's codec power down after a second of silence, and
 waking it clicks in the speakers — at each volume change, each notice. Setup keeps it awake:
@@ -5015,57 +5014,25 @@ The default output is WirePlumber's choice by priority — the analog jack befor
 HDMI — until you pick one in the sound panel; then that one, remembered. The volume's
 slider follows a cubic curve (as `wpctl` does): the steps sound even.
 
-**The clean mic.** Your microphone, as it comes from the sound card, carries the room: the
-PC's fans, the keyboard, a street, and on speakers the call itself coming back. The clean
-mic — an input named *Clean mic* — is that microphone passed through WebRTC's audio
-processing, the very code Chrome and Meet use, running inside PipeWire:
+In the sound panel (**Super+A**), at the foot of 入 *input*, two keys side by side: *mute
+microphone* (*unmute microphone* while muted) and *test mic*, which records 5 seconds from the
+default input and plays them back: how the others hear you. A notice says when to speak. The
+ticked row under 入 is the default input: click another microphone's row and that one becomes
+the default, and what records moves to it at once — a call in progress keeps going; muted stays
+muted.
 
-- a **high-pass filter** — rumble and knocks on the desk gone;
-- **noise suppression** — steady noise (fans, hum, traffic) taken out between and under words;
-- **echo cancellation** — what your computer plays subtracted from what the microphone hears,
-  so a call on speakers never echoes back to the others (on headphones there is no echo, and
-  it stays out of the way).
-
-It is the **default input**, so every program that records gets it: Discord and Meet in Brave,
-Steam's voice chat, a game's. Nothing is added to what you hear: it only listens to the
-output, the way the bar's music meter does. It costs nothing while no program records from it
-(the microphone is not even opened), and about 1 % of one core while one does. The file is
-`~/.config/pipewire/pipewire.conf.d/60-clean-mic.conf`: one PipeWire module, no extra package
-(RNNoise, the other common choice, is not packaged by Fedora). No automatic gain in it: Brave
-has its own, and two in a row pump the level up and down.
-
-In the sound panel (**Super+A**), at the foot of 入 *input*:
-
-| Key | Does |
-|---|---|
-| the level (only while the clean mic is on) | a slider with no knob, live: what the clean mic hears — speak at your normal voice and it should fill two-thirds; full is clipping |
-| *clean mic* ▣ / □ | ▣ on: the clean mic is the default input; a click makes the raw microphone the default (□), another brings the clean one back. A call in progress moves with it at once — Discord or Meet keeps going; muted stays muted. The choice is PipeWire's own (WirePlumber remembers it across restarts), and the key reads it each time it opens: changed elsewhere — in wiremix — it says so |
-| *test mic* | records 5 seconds from the default input and plays them back: how the others hear you, noise suppression included. A notice says when to speak |
-
-While it is on, the ticked row under 入 is the microphone the clean mic listens to. Click
-another microphone's row and that one becomes the default, raw (the key turns □); *clean mic*
-again then cleans that one. The raw microphone is always in each program's own list too, for
-the rare program that should have it.
-
-**Calls in Brave: Discord and Meet.** The clean mic has already cleaned the sound, so let the
-call do as little again as it can — two noise suppressors in a row make a voice sound
-underwater, and a call's gain control fights a level you set:
-
-| Where | Set |
-|---|---|
-| Discord → User Settings → Voice & Video | *Input Device*: **Default** (it follows the clean mic key; a named device too, but Default is the one that always does) · *Noise Suppression*: **None** (Krisp on top of the clean mic cleans twice) · *Echo Cancellation*: **off** · *Automatic Gain Control*: **off** · *Input Sensitivity*: automatic |
-| Meet → ⋮ → Settings → Audio | *Microphone*: **Default** · *Noise cancellation* (shown on some accounts): **off** |
-
-Meet asks Brave for its own echo cancellation and gain on every call and offers no switch;
-that is harmless after the clean mic (with no echo left, Brave's stays out of the way).
-`brave-origin` starts Brave so that a call can never move your microphone's level in the
-system (its `WebRtcAllowInputVolumeAdjustment` is off, `~/.local/bin/brave-origin`): only Brave's own gain, inside the call, is left.
+**Calls in Brave: Discord and Meet.** Set *Input Device* (Discord → User Settings → Voice &
+Video) and *Microphone* (Meet → ⋮ → Settings → Audio) to **Default**: they then follow the
+input you pick in the sound panel. Meet asks Brave for its own echo cancellation and gain on
+every call and offers no switch. `brave-origin` starts Brave so that a call can never move your
+microphone's level in the system (its `WebRtcAllowInputVolumeAdjustment` is off,
+`~/.local/bin/brave-origin`): only Brave's own gain, inside the call, is left.
 
 **The microphone's level.** Set once, in the mixer: sound panel → *mixer* → *Input Devices*,
-the raw microphone near **100 %** — that is the card's 0 dB; above it the card adds its boost,
+the microphone near **100 %** — that is the card's 0 dB; above it the card adds its boost,
 and you get hiss and clipped loud words. Then *test mic*: too quiet, and the others turn you
-up (and your room with you) — raise it a little; distorted when you laugh, lower it. The clean
-mic's own level stays at 100 %. The health report checks the range (*AUD-19*).
+up (and your room with you) — raise it a little; distorted when you laugh, lower it. The
+health report checks the range (*AUD-19*).
 
 **wiremix**, the full mixer: sound panel → *mixer*. It is a terminal program, and opens in a
 floating window of its own; the tabs are named along its foot. *Playback* — a volume and an
@@ -11912,10 +11879,9 @@ Audio
 
 *(for example, shortened)* Under *Sinks* are the outputs, under *Sources* the inputs; `*` marks the
 default. The list also holds *Share* and *Share (as microphone)*, this desktop's own pair for
-calls (`~/.config/pipewire/pipewire.conf.d/60-share.conf`, §14.4). *Clean mic*
-is the microphone through PipeWire's echo-cancel module (`60-clean-mic.conf`, §15.6): it and
-its two streams, `clean_mic.capture` and `clean_mic.reference`, are listed under *Filters*. The rates, the period and the resampler are `50-quality.conf` (§15.6); what the graph
-does right now — each node's period, rate and underruns (*ERR*) — is `pw-top`.
+calls (`~/.config/pipewire/pipewire.conf.d/60-share.conf`, §14.4). The rates, the period and
+the resampler are `50-quality.conf` (§15.6); what the graph does right now — each node's
+period, rate and underruns (*ERR*) — is `pw-top`.
 
 ```sh
 wpctl get-volume @DEFAULT_AUDIO_SINK@        # Volume: 0.40 — what the bar shows as 40

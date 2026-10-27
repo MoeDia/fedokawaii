@@ -48,10 +48,8 @@ volume's number are the bar's, right above it, so they are not said again here):
 The sound panel, three parts under their headings: sound — the volume's meter (hollow while
 muted; its icon the bar's) and two keys, mute and mixer (wiremix) · output and input — every
 device (not "Share"), the one in use ticked: a click makes another the default, playing audio
-moves to it · the input's foot: while the clean mic is on, its level live (a meter that only
-shows: pw-record reads it while the panel is open, nothing after), mute microphone, then clean
-mic ▣/□ (the default input clean ⇄ raw, at once; what records moves with it) and test mic (5 s
-recorded, played back: kawa-quick --do mictest).
+moves to it · the input's foot: two keys side by side, as mute and mixer above — mute
+microphone and test mic (5 s recorded, played back: kawa-quick --do mictest).
 The brightness slider: the brightness meter alone, as in quick settings.
 Everything on docs/design-system.md's grid (§3–§4): rows of 20 px, a heading's icon, name and
 rule, keys one row high, tiles of 120 × 80, the frame's hairline (its corners left out) and the
@@ -321,18 +319,6 @@ def parse_sound(text):
 def percent(v):
     """'70%' → 70; anything else (no DDC/CI, muted, no output) → None."""
     return int(v[:-1]) if v.endswith("%") and v[:-1].isdigit() else None
-
-
-def peak_pct(data):
-    """A block of 16-bit samples (the clean mic's, pw-record's) → the meter's level: its peak
-    on a 60 dB scale (−60 dBFS and below 0, full scale 100: the rule full is clipping)."""
-    import array
-    import math
-    a = array.array("h", data[:len(data) // 2 * 2])
-    pk = max((abs(v) for v in a), default=0)
-    if pk == 0:
-        return 0
-    return max(0, min(100, round((20 * math.log10(pk / 32768) + 60) * 100 / 60)))
 
 
 def vol_icon(pct, muted):
@@ -793,15 +779,15 @@ def layout_quick(s):
         y += TILE_H + GAP
         r += 1
     y += GROUP - GAP
-    # (the keys the whole width, 8 px apart: power its icon alone — a square, a row high —, the
-    # two others sharing the rest)
-    half = (INNER - KEY_H - 2 * GAP) // 2
-    keys = [("wallpaper", "picture", "wallpaper", half), ("screenshot", "camera", "screenshot", INNER - KEY_H - 2 * GAP - half),
-            ("power", "power", "", KEY_H)]
+    # (the keys the whole width, 8 px apart: screen off and power their icons alone — squares, a
+    # row high —, the two others sharing the rest)
+    half = (INNER - 2 * KEY_H - 3 * GAP) // 2
+    keys = [("wallpaper", "picture", "wallpaper", half), ("screenshot", "camera", "screenshot", INNER - 2 * KEY_H - 3 * GAP - half),
+            ("screenoff", "screen_off", "", KEY_H), ("power", "power", "", KEY_H)]
     x = x0
     for key, ic, name, w in keys:
         items.append(Item(key, "key", x, y, w, KEY_H, r, icon=ic, name=name,
-                          tip=s.get("wallpaper", "") if key == "wallpaper" else ""))
+                          tip=s.get("wallpaper", "") if key == "wallpaper" else "screen off" if key == "screenoff" else ""))
         x += w + GAP
     y += KEY_H + PAD + BORDER
     return Layout(items, (x0, x0), [], (INNER + 2 * (PAD + BORDER), y), heads)
@@ -842,22 +828,10 @@ def layout_sound(s):
             r += 1
     if s.get("mic", "none") != "none":                # (no input: no microphone to mute)
         mic_muted = s.get("mic") == "muted"
-        clean = s.get("cleanmic", "none")
-        y += GAP
-        if clean == "on":                             # (the clean mic's level, live: it only shows)
-            items.append(Item("level", "level", x0, y, INNER, ROW, r, icon="mic", name="clean mic",
-                              value=s.get("level", "0%")))
-            y += ROW + GAP
-            r += 1
-        items.append(Item("mic", "key", x0, y, INNER, KEY_H, r, icon="mic" if mic_muted else "mic_off",
+        y += GAP                                      # (one row of two keys, as mute and mixer above)
+        items.append(Item("mic", "key", x0, y, half, KEY_H, r, icon="mic" if mic_muted else "mic_off",
                           name="unmute microphone" if mic_muted else "mute microphone"))
-        y += KEY_H + GAP
-        r += 1
-        if clean != "none":                           # (not loaded: the test alone, the row's width)
-            items.append(Item("cleanmic", "key", x0, y, half, KEY_H, r, icon="box_on" if clean == "on" else "box_off",
-                              name="clean mic", lit=clean == "on"))
-        tx = x0 if clean == "none" else x0 + half + GAP
-        items.append(Item("mictest", "key", tx, y, x0 + INNER - tx, KEY_H, r, icon="mic", name="test mic"))
+        items.append(Item("mictest", "key", x0 + half + GAP, y, INNER - half - GAP, KEY_H, r, icon="mic", name="test mic"))
         y += KEY_H
     y += PAD + BORDER
     return Layout(items, (x0, x0), [], (INNER + 2 * (PAD + BORDER), y), heads, nones)
@@ -1011,7 +985,7 @@ def look(it, focused, hot):
         return {"fill": "key", "frame": "accent" if it.lit else "edge",
                 "glyph": "accent_text" if it.lit else "muted", "label": "text",
                 "value": "strong" if it.lit else "faint", "on_fill": False, "detail": "text"}
-    bare = it.kind in ("meter", "level", "row", "app")
+    bare = it.kind in ("meter", "row", "app")
     return {"fill": None if bare else "key", "frame": None if bare else "edge",
             "glyph": "strong" if it.lit else ("muted" if bare else "text"),
             "label": "strong" if it.lit else "text", "value": "muted", "on_fill": False, "detail": "text"}
@@ -1019,7 +993,7 @@ def look(it, focused, hot):
 
 SWITCHES = ("theme", "night", "vrr", "bluetooth", "dnd", "saver")   # done in place: the panel stays
 WHEELED = {"night": ("warmer", "cooler")}   # a tile the wheel changes: the night light's warmth
-OPENERS = ("network", "devices", "drives", "backup", "wallpaper", "screenshot", "record", "ocr", "power")
+OPENERS = ("network", "devices", "drives", "backup", "wallpaper", "screenshot", "record", "ocr", "screenoff", "power")
 METERS = ("brightness", "sound")
 MOVES = ("Left", "h", "Right", "l", "Up", "k", "Down", "j", "Tab", "ISO_Left_Tab")
 ENTER = ("Return", "KP_Enter", "space")
@@ -1113,10 +1087,7 @@ class Panel:
                     new[k] = old[k]
                     if k == "sound" and "muted" in old:
                         new["muted"] = old["muted"]
-            if "level" in old:                        # (the clean mic's level: the listener's, live)
-                new["level"] = old["level"]
             self.states[mode] = new
-            self.listen()
             if mode == self.mode:
                 self.relayout()
                 keys = [i.key for i in self.items]
@@ -1241,7 +1212,6 @@ class Panel:
             if click is not None and click != self.used:
                 self.lost = (self.what, click)
         self.focus = self.hot = self.pointer = self.dragging = None
-        self.listen()                                 # (the clean mic's meter: no one reading it now)
         try:
             self.ui.hide()
         finally:                                      # (whatever else fails:)
@@ -1251,18 +1221,6 @@ class Panel:
                     self.ui.light(self.what, False)
             else:
                 self.ui.light(self.mode, False)       # a panel's marker gone
-
-    # the clean mic's level: read (ui.listen) only while the sound panel is open and shows it
-    def listen(self):
-        self.ui.listen(self.visible and self.mode == "sound" and self.states["sound"].get("cleanmic") == "on")
-
-    def heard(self, pct):
-        """The listener's newest level: kept, and its meter alone redrawn."""
-        self.states["sound"]["level"] = f"{pct}%"
-        it = self.item("level") if self.mode == "sound" else None
-        if it:
-            it.value = self.states["sound"]["level"]
-            self.ui.redraw(it)
 
     # doing
     def item(self, key):
@@ -1309,9 +1267,7 @@ class Panel:
             if key in ("mute", "mic"):
                 self.ui.run(["kawa-quick", "--do", "mute" if key == "mute" else "micmute"],
                             lambda rc, out: self.refresh())
-            elif key == "cleanmic":                   # (stays open: the key and the ticks show the new state)
-                self.ui.run(["kawa-quick", "--do", "cleanmic"], lambda rc, out: self.refresh())
-            elif key == "mictest":                    # (stays open: the level shows while it records)
+            elif key == "mictest":                    # (stays open: it records and plays on its own)
                 self.ui.launch(["kawa-quick", "--do", "mictest"])
             elif key == "mixer":
                 self.close("chosen")
@@ -1522,10 +1478,9 @@ class Panel:
     def rehot(self):
         """The hot item: the one under the pointer now (the layout may have moved under it).
         The cursor goes with it, in every panel and menu: one light, the pointer's or the keys'
-        — whichever moved last (it stays where the pointer left it). A level that only shows
-        (the clean mic's) is never the cursor's."""
+        — whichever moved last (it stays where the pointer left it)."""
         it = self.at(*self.pointer) if self.pointer else None
-        if it and self.visible and not self.dragging and it.kind != "level":
+        if it and self.visible and not self.dragging:
             self.move(it.key)
         self.set_hot(it.key if it else None)
 
@@ -2050,36 +2005,6 @@ def main(argv):
         def launch(self, argv):
             Gio.Subprocess.new(argv, Gio.SubprocessFlags.STDOUT_SILENCE | Gio.SubprocessFlags.STDERR_SILENCE)
 
-        def listen(self, on):
-            """The clean mic's level: on — pw-record from it (16 kHz mono, raw samples on its
-            stdout, 50 ms a block), each block's peak to panel.heard; off — that recorder
-            ended. (The chain runs only while something records from it: this, while shown.)"""
-            p = rec["p"]
-            if on and p is None:
-                p = rec["p"] = Gio.Subprocess.new(
-                    ["pw-record", "--raw", "--target", "clean_mic", "--rate", "16000", "--channels", "1",
-                     "--format", "s16", "--latency", "50ms", "-"],
-                    Gio.SubprocessFlags.STDOUT_PIPE | Gio.SubprocessFlags.STDERR_SILENCE)
-
-                def got(stream, res):
-                    try:
-                        b = stream.read_bytes_finish(res).get_data()
-                    except GLib.Error:
-                        b = b""
-                    if rec["p"] is not p:             # (ended meanwhile)
-                        return
-                    if not b:
-                        rec["p"] = None               # (pw-record ended by itself: the next read starts one)
-                        return
-                    panel.heard(peak_pct(b))
-                    stream.read_bytes_async(1600, GLib.PRIORITY_DEFAULT, None, got)
-                p.get_stdout_pipe().read_bytes_async(1600, GLib.PRIORITY_DEFAULT, None, got)
-            elif not on and p is not None:
-                rec["p"] = None
-                p.force_exit()
-
-    rec = {"p": None}                                 # (the clean mic's level: its recorder)
-
     # ── the launcher's entries: Gio's list of the desktop entries shown (NoDisplay, Hidden,
     # OnlyShowIn already applied; ~/.local/share/applications first), each with its icon,
     # loaded once — read again when an entry is added, changed or removed (Gio's own watch)
@@ -2585,7 +2510,7 @@ def main(argv):
         """An item: its fill and frame, its icon, name, value (look() says in which colours)."""
         lk = look(it, it.key == panel.focus, it.key == panel.hot)
         on = lk["on_fill"]
-        if it.kind in ("row", "app", "meter", "level"):
+        if it.kind in ("row", "app", "meter"):
             if lk["fill"]:                        # (the cursor: a cell beyond the content either side)
                 box(cr, it.x - CELL, it.y, it.w + 2 * CELL, it.h, lk["fill"])
         else:
@@ -2594,7 +2519,7 @@ def main(argv):
             if lk["frame"]:
                 frame(cr, it.x, it.y, it.w, it.h, lk["frame"])
         ty = it.y + (ROW - LINE) // 2
-        if it.kind in ("meter", "level"):
+        if it.kind == "meter":
             pct = percent(it.value)
             glyph(cr, it.x + GLYPH_X, ty, ic.get(it.icon, it.icon) if it.icon else "", lk["glyph"])
             text(cr, it.x + NAME_X, ty, it.name, lk["label"])

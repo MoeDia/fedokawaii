@@ -89,7 +89,7 @@ PKG_DESKTOP=(
                                                           #   programs that open it directly: games)
   pipewire-utils                                          # pw-dump: the audio popup lists outputs/inputs from it
   wiremix playerctl cava                                  # per-app mixer (a terminal window), media keys, the bar's music meter
-                                                          #   (the clean mic and an equaliser: PipeWire's own modules — no package)
+                                                          #   (sound processing, an equaliser: PipeWire's own modules — no package)
   waybar mako foot                                        # bar, notifications, terminal (the launcher and menus: kawa-panel)
   gtk-layer-shell                                         # quick settings: kawa-panel (GTK 3 and Python's
                                                           #   GObject with cairo come with the login screen)
@@ -190,8 +190,8 @@ RETIRED_PKGS=(unzip mediainfo    # unzip: 7zip opens zips too · mediainfo: ffpr
               papirus-icon-theme       # every app shows its own icon now (hicolor), not an icon pack's
               bsdtar                   # the books window's comics: 7z lists and opens them (one archive tool)
               gamemode                 # game mode is kawa-game's (tuned owns the CPU and the card's level)
-              easyeffects calf      # one sound-processing stack, PipeWire's own: the clean mic (echo-cancel),
-                                    #   an equaliser if you want one (filter-chain's param_eq) — handbook §15.6
+              easyeffects calf      # one sound-processing stack, PipeWire's own: an equaliser if you want
+                                    #   one (filter-chain's param_eq) — handbook §15.6
               python3-fonttools     # the faces are the repo's own files now (system/fonts): nothing to build
               fuzzel                # the launcher and every menu are kawa-panel's (its sums worked out as you type)
               pipx python3.13       # uv installs torrra now, on a Python 3.13 of its own (one Python tool: uv)

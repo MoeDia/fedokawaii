@@ -7,7 +7,9 @@ else as text — whitespace runs as one space, cut at 100 characters with "…",
 are not UTF-8 as U+FFFD, other control characters (NUL, ESC) left as they are. `store` as
 cliphist's: CLIPBOARD_STATE "sensitive" keeps nothing, "clear" forgets the newest, anything
 else stores what is not blank — the same bytes again move to the top — and keeps the newest
--max-items (750 unless given). Every call is logged to $CLIP_DB.log, its options with it."""
+-max-items (750 unless given); a copy over 5,000,000 bytes is dropped without a word, exit 0
+(0.7's maxStoreSize: no flag for it before 0.8's -max-store-size — measured: 5000000 kept,
+5000001 not). Every call is logged to $CLIP_DB.log, its options with it."""
 import os, re, struct, sys
 
 db = os.environ["CLIP_DB"]
@@ -92,7 +94,7 @@ elif cmd == "store":
         if ids(): os.remove(os.path.join(db, str(ids()[0])))
     elif state != "sensitive":
         b = sys.stdin.buffer.read()
-        if b.strip():
+        if b.strip() and len(b) <= 5_000_000:
             for i in ids():
                 if open(os.path.join(db, str(i)), "rb").read() == b: os.remove(os.path.join(db, str(i)))
             n = (ids() or [0])[0] + 1

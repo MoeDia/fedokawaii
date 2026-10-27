@@ -71,7 +71,8 @@ elif id=$(kawa-clip --held 2>/dev/null); then
   # Ctrl+C keeps its file:// links) as those files; anything else is nothing to shrink
   hint="the entry under the cursor in the clipboard history is not a picture, a PDF, or files"
   e=$work/entry
-  if [[ $id =~ ^[0-9]+$ ]] && printf '%s\t\n' "$id" | cliphist decode >"$e" 2>/dev/null && [[ -s $e ]]; then
+  # (its bytes as kawa-clip keeps them: a big copy's file too, not the line standing for it)
+  if [[ $id =~ ^[0-9]+$ ]] && kawa-clip --decode "$id" >"$e" 2>/dev/null && [[ -s $e ]]; then
     t=$(kind "$e")
     if [[ $t =~ $pictype ]]; then nofile "$t" <"$e"
     elif [[ $t == text/* ]]; then uris <"$e"; fi

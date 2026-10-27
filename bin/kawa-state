@@ -11,12 +11,12 @@
 #   kawa-state restore           at login: each kept setting put back — dnd (do not disturb, once
 #                                mako runs), bluetooth (on or off: bluetoothd powers the adapter
 #                                at every boot otherwise), brightness (the monitors' level, as
-#                                last set here), cleanmic (the default input clean or raw, as
-#                                the sound panel's key left it, once PipeWire lists the clean
-#                                mic) — the slow ones in the background; what was done
+#                                last set here) — the slow ones in the background; what was done
 #                                is noted for the report in ~/.local/state/fedokawaii/restored
 #                                ("boot ID", then "KEY<TAB>ok|failed|kept<TAB>VALUE": kept — a
-#                                key a helper of its own puts back)
+#                                key a helper of its own puts back). A setting the desktop no
+#                                longer has is taken out of the store, with no record and no
+#                                failure
 # What keeps its own file in the same folder, read by the program itself: night (kawa-night),
 # saver (kawa-saver), foot-glass.ini (foot), wallpaper-dark|light (kawa-wallpaper); the theme
 # is the link ~/.config/fedokawaii/current, FreeSync ~/.config/fedokawaii/vrr (dwl), sound
@@ -35,6 +35,9 @@ esac
 DIR=${XDG_STATE_HOME:-$HOME/.local/state}/fedokawaii
 F=$DIR/settings REC=$DIR/restored
 SYS=${KAWA_SYSFS:-/sys} PROC=${KAWA_PROC:-/proc}   # (the tests point these at a made-up machine)
+# settings an earlier version kept that the desktop no longer has: each taken out of the store
+# at the next login, quietly (no record, no failure) — add a key here when its setting goes
+RETIRED=(cleanmic)   # (the sound panel's noise-suppressed microphone, gone since 2026-10-27)
 
 get() {   # get KEY → its value (the last line of it wins: a hand edit never makes two)
   local l v="" found=1
@@ -87,17 +90,6 @@ brightness() {  # the monitors' level as last set (DDC/CI is slow: in the backgr
   kawa-brightness "$1" >/dev/null 2>&1 && note brightness ok "$1" || note brightness failed "$1"
 }
 
-cleanmic_now() {   # the clean mic's state as the sound panel reads it: on, off (none: not loaded)
-  kawa-quick --state sound 2>/dev/null | sed -n 's/^cleanmic\t//p'
-}
-cleanmic_loaded() { [[ $(cleanmic_now) == @(on|off) ]]; }
-cleanmic() {   # the default input clean or raw as last switched (kawa-quick --do cleanmic: what
-  # records moves with it), once PipeWire lists the clean mic; already so: nothing done
-  waitfor 20 cleanmic_loaded || { note cleanmic failed "$1"; return; }
-  [[ $(cleanmic_now) == "$1" ]] || kawa-quick --do cleanmic >/dev/null 2>&1
-  [[ $(cleanmic_now) == "$1" ]] && note cleanmic ok "$1" || note cleanmic failed "$1"
-}
-
 restore() {
   local l k v boot
   mkdir -p "$DIR" || return 1
@@ -107,8 +99,9 @@ restore() {
   while IFS= read -r l; do
     [[ $l == \#* || $l != *=* ]] && continue
     k=${l%%=*} v=${l#*=}
+    if [[ " ${RETIRED[*]} " == *" $k "* ]]; then put "$k" & continue; fi   # (the store taken whole, so in the background)
     case $k in
-      dnd|bluetooth|cleanmic) if [[ $v == @(on|off) ]]; then "$k" "$v" & else note "$k" failed "$v"; fi ;;
+      dnd|bluetooth) if [[ $v == @(on|off) ]]; then "$k" "$v" & else note "$k" failed "$v"; fi ;;
       brightness) if [[ $v =~ ^[0-9]{1,3}$ ]] && ((10#$v <= 100)); then brightness "$((10#$v))" &
                   else note "$k" failed "$v"; fi ;;
       *)          note "$k" kept "$v" ;;      # (a helper of its own reads it)

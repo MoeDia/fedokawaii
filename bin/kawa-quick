@@ -18,11 +18,8 @@
 #                               screensaver after 15 min away: "15 min", or "off"), vrrnow (FreeSync on
 #                               the card this moment: on, off, none, unread)
 #   kawa-quick --state sound    the sound panel's: sound (the output's level, also while
-#                               muted), muted (on|off), mic (on|muted|none), cleanmic (on: the
-#                               clean mic is the default input · off · none: not loaded), then
-#                               each output and input (not "Share", not the clean mic — while
-#                               it is on, the microphone it listens to is the ticked input):
-#                               "output|input<TAB>ID<TAB>1 (the
+#                               muted), muted (on|off), mic (on|muted|none), then each output
+#                               and input (not "Share"): "output|input<TAB>ID<TAB>1 (the
 #                               default) or 0<TAB>DESCRIPTION<TAB>PORT<TAB>NICK<TAB>CARD<TAB>
 #                               PROFILE<TAB>API" (what names it; any but the first may be empty)
 #   kawa-quick --state brightness   the slider's: brightness
@@ -33,11 +30,10 @@
 #                               micmute (the output's, the microphone's, switched over) ·
 #                               output ID · input ID (the default: playing audio moves to it;
 #                               an input: what records moves to it, the mute carried over) ·
-#                               cleanmic (the default input clean ⇄ raw, as input ID; kept: kawa-state) ·
 #                               mictest (5 s recorded from the default input, played back) ·
 #                               sound (the sound panel) · mixer · network · devices · drives ·
 #                               backup · wallpaper · screenshot · record · ocr · power (each opens its own menu
-#                               or window)
+#                               or window) · screenoff (every screen dark until the next key or move)
 #
 # Exit: 0 done · 1 it could not (said) · 2 wrong use.
 set -u
@@ -236,10 +232,6 @@ state_audio() {   # the sound panel's: the output's level and mute, the micropho
   if [[ $v != *Volume:* ]]; then printf 'mic\tnone\n'
   elif [[ $v == *MUTED* ]]; then printf 'mic\tmuted\n'
   else printf 'mic\ton\n'; fi
-  # the clean mic (~/.config/pipewire/pipewire.conf.d/60-clean-mic.conf, node clean_mic): on
-  # while it is the default input — PipeWire's own default, read each time, never remembered
-  # here. It is not a row: its key says it; while on, the row ticked is the microphone it
-  # listens to (its capture stream's link)
   # the devices from pw-dump (JSON: a name with any characters is safe), the default ticked,
   # each with what names it (the panel makes its short name of them, kawa-panel's
   # device_names): its description, the port in use (its card's active route for it: Line
@@ -248,7 +240,7 @@ state_audio() {   # the sound panel's: the output's level and mute, the micropho
   # API (alsa, bluez5). A control character (a tab, a line break) a space: one device a line.
   # Not "Share" (share_sink, ~/.config/pipewire): what plays there goes to calls, so it is
   # picked for one program at a time in the mixer — as the default, every sound would be shared
-  d=$(pw-dump 2>/dev/null) || { printf 'cleanmic\tnone\n'; return 0; }   # (PipeWire not running: no devices)
+  d=$(pw-dump 2>/dev/null) || return 0   # (PipeWire not running: no devices)
   jq -r '
     ([.[] | select(.type == "PipeWire:Interface:Metadata" and .props["metadata.name"] == "default")
           | .metadata[]?] ) as $md
@@ -257,20 +249,13 @@ state_audio() {   # the sound panel's: the output's level and mute, the micropho
     | ([.[] | select(.type == "PipeWire:Interface:Device") | {key: (.id | tostring), value: .}]
        | from_entries) as $cards
     | ([.[] | select(.type == "PipeWire:Interface:Node")]) as $nodes
-    | ($nodes | map(select(.info.props["node.name"] == "clean_mic.capture")) | .[0].id // -1) as $cap
-    | ([.[] | select(.type == "PipeWire:Interface:Link") | .info | select(.["input-node-id"] == $cap)
-        | .["output-node-id"]] | .[0] // -1) as $heard
-    | (if any($nodes[]; .info.props["node.name"] == "clean_mic") | not then "none"
-       elif $src == "clean_mic" then "on" else "off" end) as $clean
-    | "cleanmic\t\($clean)",
-    ([$nodes[] | .info.props as $p
+    | ([$nodes[] | .info.props as $p
        | select($p["media.class"] == "Audio/Sink" or $p["media.class"] == "Audio/Source")
-       | select($p["node.name"] != "share_sink" and $p["node.name"] != "clean_mic")
+       | select($p["node.name"] != "share_sink")
        | ($p["media.class"] == "Audio/Sink") as $out
        | ($cards[($p["device.id"] // "" | tostring)] // {}) as $card
        | [ (if $out then "output" else "input" end), .id,
-           (if $p["node.name"] == $sink or $p["node.name"] == $src
-               or ($clean == "on" and .id == $heard) then 1 else 0 end),
+           (if $p["node.name"] == $sink or $p["node.name"] == $src then 1 else 0 end),
            ($p["node.description"] // $p["node.nick"] // $p["node.name"]),
            ([$card.info.params.Route[]?
              | select(.direction == (if $out then "Output" else "Input" end)
@@ -286,11 +271,9 @@ state_audio() {   # the sound panel's: the output's level and mute, the micropho
 # across restarts), and what was recording from the old default moved with it at once, a
 # call's microphone too (pw-metadata target.object — Brave picks its microphone itself when a
 # site names one, and such a stream would not follow the default alone); the old one's mute
-# carried over (muted stays muted). Never the clean mic's own capture stream. With the clean
-# mic loaded, its state kept too (kawa-state cleanmic on|off: every login puts it back). 1: no
-# such input
+# carried over (muted stays muted). 1: no such input
 source_to() {
-  local d plan m to="" s clean=false
+  local d plan m to="" s
   d=$(pw-dump 2>/dev/null) || return 1
   plan=$(jq -r --argjson to "$1" '
     [.[] | select(.type == "PipeWire:Interface:Node")] as $n
@@ -300,15 +283,14 @@ source_to() {
         | .metadata[]? | select(.key == "default.audio.source") | .value.name] | .[0] // "") as $src
       | ($n | map(select(.info.props["node.name"] == $src)) | .[0].id // -1) as $old
       | "to\t\($t.info.props["node.name"])",
-        "clean\t\(any($n[]; .info.props["node.name"] == "clean_mic"))",
         ([.[] | select(.type == "PipeWire:Interface:Link") | .info
           | select(.["output-node-id"] == $old) | .["input-node-id"]] | unique[]) as $s
         | ($n | map(select(.id == $s)) | .[0].info.props // {}) as $p
-        | select($p["media.class"] == "Stream/Input/Audio" and $p["node.name"] != "clean_mic.capture")
+        | select($p["media.class"] == "Stream/Input/Audio")
         | "move\t\($s)"
       end' <<<"$d" 2>/dev/null)
   while IFS=$'\t' read -r s m; do
-    case $s in to) to=$m ;; clean) clean=$m ;; esac
+    [[ $s == to ]] && to=$m
   done <<<"$plan"
   [[ -n $to ]] || return 1
   m=$(wpctl get-volume @DEFAULT_AUDIO_SOURCE@ 2>/dev/null)
@@ -317,41 +299,23 @@ source_to() {
   while IFS=$'\t' read -r s m; do
     [[ $s == move ]] && pw-metadata "$m" target.object "$to" >/dev/null 2>&1
   done <<<"$plan"
-  [[ $clean == true ]] && kawa-state set cleanmic "$([[ $to == clean_mic ]] && echo on || echo off)"
   return 0
 }
 
-# clean_mic — the default input clean ⇄ raw. Clean → raw: the microphone the clean mic
-# listens to (else the sound card's best). Raw → clean: the clean mic first told to listen
-# to that raw one (its capture stream's target), then made the default. 1: not loaded
-clean_mic() {
-  local d st clean cap raw rawname
-  d=$(pw-dump 2>/dev/null) || return 1
-  read -r st clean cap raw rawname < <(jq -r '
-    [.[] | select(.type == "PipeWire:Interface:Node")] as $n
-    | ([.[] | select(.type == "PipeWire:Interface:Metadata" and .props["metadata.name"] == "default")
-        | .metadata[]? | select(.key == "default.audio.source") | .value.name] | .[0] // "") as $src
-    | ($n | map(select(.info.props["node.name"] == "clean_mic")) | .[0].id // empty) as $clean
-    | ($n | map(select(.info.props["node.name"] == "clean_mic.capture")) | .[0].id // -1) as $cap
-    | ([.[] | select(.type == "PipeWire:Interface:Link") | .info | select(.["input-node-id"] == $cap)
-        | .["output-node-id"]] | .[0] // -1) as $heard
-    | ($n | map(select(.info.props["media.class"] == "Audio/Source" and .info.props["node.name"] != "clean_mic"))
-        | sort_by(-(.info.props["priority.session"] // 0))) as $raws
-    | (if $src == "clean_mic" then ($raws | map(select(.id == $heard)) + $raws)
-       else ($raws | map(select(.info.props["node.name"] == $src)) + $raws) end | .[0]) as $raw
-    | select($raw != null)
-    | [(if $src == "clean_mic" then "on" else "off" end), $clean, $cap, $raw.id, $raw.info.props["node.name"]]
-    | map(tostring) | join(" ")' <<<"$d" 2>/dev/null)
-  [[ -n ${raw:-} ]] || return 1
-  if [[ $st == on ]]; then source_to "$raw"; return; fi
-  ((cap >= 0)) && pw-metadata "$cap" target.object "$rawname" >/dev/null 2>&1
-  source_to "$clean"
+# mic_test — 5 s from the default input, played back at once: how the others hear you. One at
+# a time; a notice for each half, the first naming the input recorded
+# screen_off — every screen dark now (quick settings' key): after the click's own release, so it
+# does not light them at once; the next key or move lights them again — a swayidle of its own,
+# which does that once and goes (its resume runs after the first second without input, at the
+# first input after it: kawa-lock --screens on, then it ends itself). One at a time
+screen_off() {
+  exec 9>"${XDG_RUNTIME_DIR:-/run/user/$UID}/kawa-screenoff.lock"; flock -n 9 || return 0
+  command -v swayidle >/dev/null || return 1
+  sleep 0.4
+  kawa-lock --screens off || return 1
+  swayidle -w timeout 1 ':' resume 'kawa-lock --screens on; kill $PPID' 9>&- </dev/null >/dev/null 2>&1
 }
 
-# mic_test — 5 s from the default input, played back at once: how the others hear you (the
-# clean mic's noise suppression included while it is on). One at a time; a notice for each
-# half, the first naming the input recorded ("Clean mic" while it is the default: the proof
-# that calls get it)
 mic_test() {
   local f="${XDG_RUNTIME_DIR:-/run/user/$UID}/kawa-mictest.wav" from
   exec 9>"$f.lock"; flock -n 9 || return 0
@@ -415,7 +379,6 @@ act() {   # act ACTION [N] — the panel's choices
                 [[ ${2:-} =~ ^[0-9]{1,9}$ ]] || usage
                 if [[ $1 == input ]]; then source_to "$((10#$2))"
                 else wpctl set-default "$((10#$2))" >/dev/null 2>&1 || return 1; fi ;;
-    cleanmic)   clean_mic ;;
     mictest)    mic_test ;;
     sound)      toggle sound ;;                                 # (its own panel: outputs, inputs)
     mixer)      exec kawa-term --float --once mixer mixer 96x29 -- wiremix ;;   # (7 rows of 4 lines, the tabs)
@@ -427,6 +390,7 @@ act() {   # act ACTION [N] — the panel's choices
     screenshot) exec kawa-screenshot region ;;
     record)     exec kawa-record ;;                             # (not recording: its menu · recording: stopped)
     ocr)        exec kawa-screenshot text ;;                    # (a region's words onto the clipboard)
+    screenoff)  screen_off ;;
     power)      exec kawa-power ;;
     *)          usage ;;
   esac

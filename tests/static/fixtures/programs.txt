@@ -169,7 +169,7 @@ wiremix             manifest  wiremix           # f44: 0.11.0 (rust-wiremix)
 pw-dump             manifest  pipewire-utils    # f44
 pw-metadata         manifest  pipewire-utils    # f44: kawa-nowplaying follows the default output
 pw-play             manifest  pipewire-utils    # f44 (a link to pw-cat)
-pw-record           manifest  pipewire-utils    # f44 (a link to pw-cat): the sound panel's test mic and the clean mic's level
+pw-record           manifest  pipewire-utils    # f44 (a link to pw-cat): the sound panel's test mic
 pw-mon              manifest  pipewire-utils    # f44 (the bar's volume follows PipeWire's events)
 pw-metadata         manifest  pipewire-utils    # f44 (now playing's meter follows the default output)
 wpctl               manifest  wireplumber

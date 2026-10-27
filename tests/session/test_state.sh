@@ -108,23 +108,26 @@ rc 0 kawa-state restore; settle 3
 eq "$(rec dnd)" $'failed\ton'; eq "$(rec bluetooth)" $'failed\ton'; eq "$(rec brightness)" $'failed\t170'
 setup; rm -rf "$W/sys/class/bluetooth/hci0"; kawa-state set bluetooth off; kawa-state restore; settle 1
 eq "$(rec bluetooth)" $'kept\toff'; eq "$(cat "$W/bt")" 'b true' "no adapter: nothing asked"
-case_ "the clean mic: switched off in the sound panel, kept; PipeWire's chain comes up late at login (none at first) — put back off once it is listed, ok noted"
+case_ "a setting the desktop no longer has (cleanmic, the clean mic's): taken out of the store at login, quietly — no record, no failure; the others put back in their places"
 setup
-# kawa-quick: the clean mic's state in $W/clean ("none" until asked $W/pw-late times: PipeWire starting)
-echo on >"$W/clean"; echo 0 >"$W/pw-asked"; echo 3 >"$W/pw-late"
-stub kawa-quick 'case "$1 $2" in
-  "--state sound") n=$(cat "$W/pw-asked"); echo $((n + 1)) >"$W/pw-asked"
-                   [ "$n" -ge "$(cat "$W/pw-late")" ] && printf "cleanmic\t%s\n" "$(cat "$W/clean")" || printf "cleanmic\tnone\n" ;;
-  "--do cleanmic") [ "$(cat "$W/clean")" = on ] && echo off >"$W/clean" || echo on >"$W/clean"; echo cleanmic >>"$W/switched" ;;
-esac'
-rc 0 kawa-state set cleanmic off
+rc 0 kawa-state set dnd on; rc 0 kawa-state set cleanmic off; rc 0 kawa-state set brightness 40
+rc 0 kawa-state restore; settle 2
+for _ in {1..300}; do grep -q '^cleanmic=' "$ST/settings" || break; /bin/sleep 0.02; done
+eq "$(kawa-state list)" $'dnd=on\nbrightness=40' "the line gone, the others in their places"
+eq "$(rec cleanmic)" "" "no record of it: not ok, not failed, not kept"
+lacks "$(cat "$ST/restored")" cleanmic
+eq "$(rec dnd)" $'ok\ton'; eq "$(rec brightness)" $'ok\t40'
+case_ "…alone in an old store (with its comment): the store keeps the comment, the record says this boot and nothing else"
+setup; mkdir -p "$ST"; printf '%s\n' '# ~/.local/state/fedokawaii/settings — what you set on the desktop' 'cleanmic=on' >"$ST/settings"
+rc 0 kawa-state restore
+for _ in {1..300}; do grep -q '^cleanmic=' "$ST/settings" || break; /bin/sleep 0.02; done
+eq "$(kawa-state list)" "" "nothing kept now"; eq "$(head -n1 "$ST/settings")" '# ~/.local/state/fedokawaii/settings — what you set on the desktop (kawa-state; kawa-state --help)'
+eq "$(cat "$ST/restored")" "boot boot-1"
+case_ "…a hand edit with the key twice: both gone"
+setup; mkdir -p "$ST"; printf 'cleanmic=on\nbluetooth=off\ncleanmic=off\n' >"$ST/settings"
 rc 0 kawa-state restore; settle 1
-eq "$(rec cleanmic)" $'ok\toff'; eq "$(cat "$W/clean")" off; eq "$(cat "$W/switched")" cleanmic "switched once"
-case_ "the clean mic already as kept: nothing switched, ok; never listed (60-clean-mic.conf set aside): failed, noted for the report"
-: >"$W/switched"; echo 0 >"$W/pw-asked"; echo 0 >"$W/pw-late"
-rc 0 kawa-state restore; settle 1; eq "$(rec cleanmic)" $'ok\toff'; eq "$(cat "$W/switched")" ""
-echo 999 >"$W/pw-late"; echo 0 >"$W/pw-asked"; rc 0 kawa-state restore; settle 1
-eq "$(rec cleanmic)" $'failed\toff'; eq "$(cat "$W/switched")" "" "nothing switched"
+for _ in {1..300}; do grep -q '^cleanmic=' "$ST/settings" || break; /bin/sleep 0.02; done
+eq "$(kawa-state list)" "bluetooth=off"; eq "$(rec bluetooth)" $'ok\toff'; eq "$(rec cleanmic)" ""
 
 case_ "restore with nothing set: the record says this boot, nothing else"
 setup; rc 0 kawa-state restore; eq "$(cat "$ST/restored")" "boot boot-1"

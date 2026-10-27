@@ -178,7 +178,7 @@ rc 0 kawa-notes --help; has "$(kawa-notes --help)" "Super+N"
 if [[ -z $REAL_NVIM ]]; then
   skip "no neovim here: notes.lua not run"
 else
-  setup; rm -f "$STUBS/nvim"; config .config/fedokawaii/notes.lua
+  setup; rm -f "$STUBS/nvim"; config .config/fedokawaii/notes.lua; config .config/nvim/lua/config/clipboard.lua
   # (the window's neovim, on its socket — kawa-notes.nvim: keys are typed in through it)
   stub nvim "exec '$REAL_NVIM' --clean \"\$@\""     # (the page alone, without LazyVim)
   ask() {   # ask LUA-EXPR [FILE] — the value, from neovim set up as the window sets it up
@@ -196,6 +196,23 @@ else
   case_ "notes.lua: nothing written over the footer while typing (no mode, no keys, no 'written')"
   eq "$(ask '{vim.o.showmode, vim.o.showcmd, vim.o.ruler}')" "{ false, false, false }"
   has "$(ask vim.o.shortmess)" "WFcsS"
+  case_ "the clipboard (owner 14:27, copy/paste): y copies to the desktop's; x, dd, cw keep what they take in the editor — the desktop's copy and Super+V's history untouched; p puts in the newest copy, the desktop's when one came since, else the editor's (dd then p moves a line)"
+  clip() {   # clip KEYS… — typed into a page of three lines, with a clipboard of its own ("from the browser"): the desktop's clipboard, then the page
+    local a=() k
+    for k; do a+=(-c "$k"); done
+    nvim --headless -c 'lua vim.g.clipboard = { name = "test", cache_enabled = 0,
+        copy = { ["+"] = function(l, t) vim.g.plus = { l, t } end, ["*"] = function(l, t) vim.g.plus = { l, t } end },
+        paste = { ["+"] = function() return vim.g.plus end, ["*"] = function() return vim.g.plus end } }
+        vim.g.plus = { { "from the browser" }, "v" }' \
+      -c 'luafile ~/.config/fedokawaii/notes.lua' -c 'lua vim.api.nvim_buf_set_lines(0, 0, -1, false, { "first line", "second line", "third line" })' \
+      "${a[@]}" \
+      -c 'lua io.stdout:write(table.concat(vim.g.plus[1], "|") .. " / " .. table.concat(vim.api.nvim_buf_get_lines(0, 0, -1, false), "|"))' -c 'qa!' -- "$TMP/c.md" 2>/dev/null
+  }
+  eq "$(clip 'normal dd' 'normal x')" "from the browser / econd line|third line" "dd and x: the desktop's copy kept"
+  eq "$(clip 'normal dd' 'normal p')" "from the browser / sfrom the browserecond line|third line" "p after a copy elsewhere: that copy (a line's part: put in after the cursor)"
+  eq "$(clip 'normal yy' 'normal jdd' 'normal p')" "first line| / first line|third line|second line" "yy: to the desktop (a whole line: its end with it); dd then p: the line moved (the editor's own)"
+  eq "$(clip 'normal yy' 'normal "+p')" "first line| / first line|first line|second line|third line" '"+p: the desktop'"'"'s, as asked'
+  has "$(cat "$REPO/configs/home/.config/nvim/lua/config/options.lua")" 'require("config.clipboard").setup()' "the editor (LazyVim) the same"
   case_ "notes.lua: writes without waiting for the disk, and never reformats the page (LazyVim's autoformat off)"
   eq "$(ask '{vim.o.fsync, vim.b.autoformat}')" "{ false, false }"
   hl() { nvim --headless -c 'luafile ~/.config/fedokawaii/notes.lua' \
@@ -223,7 +240,7 @@ else
   # (its line of keys shows), "hello world" is typed and 0.05 s later the terminal goes
   ours() { local p; for p in $(pgrep -f "$TMP" 2>/dev/null); do kill -KILL "$p" 2>/dev/null; done; }
   case_ "the window ended (the session ending) a pause after typing: nothing lost — written once a second passes without a change (Super+Q puts a warm window away: dwl)"
-  setup; rm -f "$STUBS/nvim"; config .config/fedokawaii/notes.lua
+  setup; rm -f "$STUBS/nvim"; config .config/fedokawaii/notes.lua; config .config/nvim/lua/config/clipboard.lua
   stub nvim "exec '$REAL_NVIM' --clean \"\$@\""
   mkdir -p "${N%/*}"; printf '%s\n\n' "$H" >"$N"
   python3 -I "$REPO/tests/lib/pty_run.py" --timeout 20 --answer 'saved as you go' 'hello world' --hangup +1.6 -- kawa-notes --inside --shown >/dev/null

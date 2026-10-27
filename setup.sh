@@ -1375,9 +1375,9 @@ s_blesh() {
 # never takes goes here once lpf is gone: its build account (the user and group pkg-build,
 # which lpf made) and /var/lib/lpf (that account's home: the recipe's state, its build
 # folders, Spotify's download, the logs). Update and repair; nothing while lpf is installed.
-# EasyEffects left the desktop (PipeWire's own modules do its jobs: the clean mic, an
-# equaliser): presets you saved in it are yours, never touched — said once, in the update's
-# log, with where they are and what takes them now
+# EasyEffects left the desktop (PipeWire's own modules do its job: an equaliser): presets you
+# saved in it are yours, never touched — said once, in the update's log, with where they are
+# and what takes them now
 easyeffects_note() {
   local d n=0 where=()
   [[ -e $STATE_DIR/easyeffects-noted ]] && return 0
@@ -1388,7 +1388,7 @@ easyeffects_note() {
     where+=("${d/#$TARGET_HOME/\~}")
   done
   if ((n)); then
-    log "EasyEffects is no longer part of the desktop: your $n preset(s) stay in ${where[*]} — an equaliser is PipeWire's own now (the handbook, §15.6: its bands in Equalizer APO's format); the microphone is the clean mic's"
+    log "EasyEffects is no longer part of the desktop: your $n preset(s) stay in ${where[*]} — an equaliser is PipeWire's own now (the handbook, §15.6: its bands in Equalizer APO's format)"
   fi
   : >"$STATE_DIR/easyeffects-noted"
 }

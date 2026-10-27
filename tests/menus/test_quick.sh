@@ -445,6 +445,17 @@ rc 0 quick; called '^setsid -f kawa-panel --open$'
 reset_calls; echo $$ >"$XDG_RUNTIME_DIR/kawa-panel.pid"; rc 0 quick; called '^setsid -f kawa-panel --open$'
 reset_calls; rc 0 quick sound; called '^setsid -f kawa-panel --sound$'
 
+# ── screen off (owner, 14:27) ────────────────────────────────────────────────────────────
+case_ "screenoff: every screen dark (kawa-lock --screens off, after the click's release), then a swayidle of its own that lights them at the next key or move and ends itself; one at a time; no swayidle: nothing done"
+setup; stub kawa-lock; stub swayidle; reset_calls
+rc 0 kawa-quick --do screenoff
+called '^kawa-lock --screens off$'
+called "^swayidle -w timeout 1 : resume kawa-lock --screens on; kill \\\$PPID$"
+[[ $(grep -n '^kawa-lock --screens off$' "$CALLS" | cut -d: -f1) -lt $(grep -n '^swayidle' "$CALLS" | cut -d: -f1) ]] && _ok || _no "the wake set before the screens went dark"
+reset_calls; exec 8>"$XDG_RUNTIME_DIR/kawa-screenoff.lock"; flock -n 8
+rc 0 kawa-quick --do screenoff; not_called '^kawa-lock' "(one already running: nothing)"; exec 8>&-
+reset_calls; rm -f "$STUBS/swayidle"; PATH=$(without swayidle) rc 1 kawa-quick --do screenoff; not_called '^kawa-lock' "(no way to light them again: never dark)"
+
 # ── use, locale ───────────────────────────────────────────────────────────────────────
 case_ "--help: what it is, exit 0; anything else: exit 2"
 setup; out=$(kawa-quick --help); rc 0 kawa-quick --help; has "$out" "quick settings"; has "$out" "--state"

@@ -797,6 +797,48 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   the best 2–3 tried on this PC (start, RAM, 144 Hz smoothness, video decode, extensions),
   migrated (bookmarks, logins, settings, extensions) and themed — T31a · torrents: copy a
   magnet link, stream a video while it downloads — T29.
+- r27-17b (T17b, the owner's 14:27 desktop items — partly; committed with this line) Clean mic
+  removed completely (a subagent's work, reviewed here): 60-clean-mic.conf gone and retired from
+  installs (backed up), kawa-quick's state/switch/source_to parts, kawa-state's setting (an old
+  "cleanmic=" line dropped quietly at login), the sound panel's key and live level meter with all
+  their listening code (pw-record, peak_pct, listen/heard — the separate level display kept), the
+  report rows AUD-18/AUD-20, docs; the microphone's foot is now one row, mute · test mic, like
+  mute · mixer above (28 px shorter). The running sound server: theme.sh points the default input
+  back at the microphone the clean mic listened to, and restarts PipeWire only when no program
+  holds a sound stream (playing or paused — a program's stream names its program, the desktop's
+  own module streams do not: read on the live pw-dump); else it leaves "sound-restart" for the
+  next login, which autostart takes before anything plays. (Unloading the module alone was tried
+  on a throwaway PipeWire: the test daemon did not answer pw-dump — not pursued.) Screen off: a
+  square key beside power in quick settings' foot (its own icon: the monitor with the power sign,
+  tooltip "screen off"): kawa-lock --screens off after the click's release, then a one-shot
+  swayidle lights them at the next key or move and ends itself; shot both themes. US/AR: dwl
+  prints "kbcaps 0|1" (the keyboards' group's locked Caps, before kblayout) and the bar's tile is
+  "us"/"ar" small, "US"/"AR" while Caps Lock is on (C locale: no dotted İ); bar-geometry now
+  always runs with two layouts (the tile measured: 8 px to the ink, small letters too) — live
+  with the next session (new dwl); a kernel-level key tool for that check: tools/uinput-key.py.
+  Left in T17b: quick settings made a menu he loves (its design pass).
+- r27-17c (T17c, copy and paste — the first two problems found, reproduced, fixed; committed with
+  this line) Reproduced headless with the session's own helpers (kawa-clipkeep, wl-paste --watch
+  kawa-clip --store) and real copies: (1) cliphist 0.7.0 (Fedora's) keeps nothing over 5,000,000
+  bytes and says nothing (exit 0; its source: maxStoreSize 5e6, a -max-store-size flag only in
+  later versions — github.com/sentriz/cliphist cliphist.go; measured 5000000 kept, 5000001 not):
+  a photo or a 4K screenshot never reached Super+V. Now kept by kawa-clip itself up to its 20 MiB
+  as a file (~/.cache/kawa-clip/big/, 16 hex of its SHA-256) with a short line standing for it in
+  the history (type, size, dimensions, name — under the 100 characters cliphist's list shows);
+  listed as a picture, --decode gives the bytes (preview, Enter, Super+Z all read through it),
+  pruned when its line leaves the history. (2) The editor and the notes ran with "unnamedplus":
+  every x, dd or cw replaced the desktop's clipboard and landed in Super+V's history (shown: a
+  link copied, dd → the clipboard held the deleted line, x → one letter). Now
+  ~/.config/nvim/lua/config/clipboard.lua (both use it): y copies to the desktop's clipboard,
+  deletes stay in the editor, p/P put in the newest copy — the desktop's when one came since, else
+  the editor's (dd then p still moves a line); shown in the kit: the browser's copy survives dd
+  and x, p puts it in, yy reaches the desktop, the history holds only real copies. Clipkeep,
+  quick exits (0.2–1.5 s), pictures and text after their app closed, primary selection, paste
+  latency (5 ms): all fine. Tests: test_clip (big copies, the stand-in, pruning, no fall-through
+  into the window — a missing exit hung Super+Z's test, found and fixed), test_shrink (stores as the
+  session does), test_notes (the clipboard rules with a clipboard provider of its own), fake
+  cliphist dropping >5 MB as 0.7 does. Still to check in T17c: foot's own copy/paste and
+  primary, Xwayland programs, the browser, LibreOffice.
 - r27-33 (T29, findings 04:00 — not fixed yet) Prowlarr: on demand by design (kawa-prowlarr: up while
   torrra searches, asleep 30 min after) — "inactive" is normal. /api/v1/health: 0 now. Its own log
   (~/.config/prowlarr/logs) over 8 days: Warn AllowedHostsCheck "Allowed Hosts is not configured"

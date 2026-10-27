@@ -55,7 +55,6 @@ class UI:
     def run(self, argv, done): self.calls.append("run " + " ".join(argv)); self.pending.append(done)
     def launch(self, argv): self.calls.append("launch " + " ".join(argv))
     def later(self, ms, fn): self.calls.append(f"later {ms}"); self.timers.append(fn)
-    def listen(self, on): self.listening = on    # (the clean mic's level read, or not)
     def answer(self, out="", rc=0):            # the oldest run comes back
         self.pending.pop(0)(rc, out)
 STATE = ("theme\tdark\nbrightness\t70%\nnight\ton\nvrr\tin games\nwallpaper\tmishima-mist\nsound\t62%\n"
@@ -83,9 +82,9 @@ EOF
 # ── the layout ─────────────────────────────────────────────────────────────────────────
 case_ "the items, in order: two meters, the tiles (bluetooth and devices with an adapter), three keys"
 eq "$(py 'fresh(); print(" ".join(i.key for i in p.items))')" \
-  "brightness sound theme night vrr network bluetooth devices drives backup dnd saver record ocr wallpaper screenshot power"
+  "brightness sound theme night vrr network bluetooth devices drives backup dnd saver record ocr wallpaper screenshot screenoff power"
 eq "$(py 'fresh(STATE.replace("bluetooth\ton\n","").replace("devices\tnone\n","")); print(" ".join(i.key for i in p.items))')" \
-  "brightness sound theme night vrr network drives backup dnd saver record ocr wallpaper screenshot power"
+  "brightness sound theme night vrr network drives backup dnd saver record ocr wallpaper screenshot screenoff power"
 case_ "the captures: record (on while one runs: a click stops it) and read text, each closing the panel for its own picker"
 eq "$(py 'fresh(); t = p.item("record"); print(t.icon, t.value, t.lit, p.item("ocr").icon, p.item("ocr").name)')" "tile_record off False tile_read read text"
 eq "$(py 'fresh(STATE + "record\ton\n"); t = p.item("record"); print(t.value, t.lit)')" "recording True"
@@ -107,9 +106,10 @@ case_ "no adapter: ten tiles, three, three, then two and two — two a row are w
 eq "$(py 'fresh(STATE.replace("bluetooth\ton\n","").replace("devices\tnone\n","")); print(" ".join(f"{i.x}+{i.w}" for i in p.items if i.kind == "tile"))')" \
   "17+120 145+120 273+120 17+120 145+120 273+120 17+184 209+184 17+184 209+184"
 eq "$(py 'print([kp.rows_of(n) for n in (9, 8, 7, 6, 4, 1)])')" "[[3, 3, 3], [3, 3, 2], [3, 2, 2], [3, 3], [2, 2], [1]]"
-case_ "the keys at the foot: wallpaper, screenshot, power (an icon alone, a 20 px square) — the whole width, 8 apart, one row high"
+case_ "the keys at the foot: wallpaper, screenshot, screen off and power (each an icon alone, a 20 px square; screen off its tooltip) — the whole width, 8 apart, one row high"
 eq "$(py 'fresh(); print(" ".join(f"{i.key}:{i.x}+{i.w}x{i.h}:{i.name or chr(45)}" for i in p.items if i.kind == "key"))')" \
-  "wallpaper:17+170x20:wallpaper screenshot:195+170x20:screenshot power:373+20x20:-"
+  "wallpaper:17+156x20:wallpaper screenshot:181+156x20:screenshot screenoff:345+20x20:- power:373+20x20:-"
+eq "$(py 'fresh(); print(p.item("screenoff").icon, p.item("screenoff").tip)')" "screen_off screen off"
 eq "$(py 'fresh(); k=[i for i in p.items if i.kind=="key"]; print(k[0].x - 17, 393 - (k[-1].x + k[-1].w), p.size[1] - (k[0].y + k[0].h))')" "0 0 17" "edge to edge; 16 px of pad and the hairline under them"
 case_ "the meters under the heading (its row, then 8 px of air): the full width, 20 px rows touching; the groups 16 px apart, nothing drawn between them"
 eq "$(py 'fresh(); print(" ".join(f"{i.x},{i.y},{i.w},{i.h}" for i in p.items if i.kind == "meter"), p.rules)')" \
@@ -278,7 +278,7 @@ for k in theme night vrr bluetooth dnd; do
     "run kawa-quick --do $k, run kawa-quick --state True" "$k"
 done
 case_ "the others: the panel closes, then their own menu or window"
-for k in network devices drives backup wallpaper screenshot power; do
+for k in network devices drives backup wallpaper screenshot screenoff power; do
   eq "$(py "fresh(); p.request(); u.calls.clear(); p.activate('$k'); print(', '.join(u.calls))")" \
     "hide, light quick off, launch kawa-quick --do $k" "$k"
 done
@@ -291,10 +291,10 @@ eq "$(py 'fresh(); p.request(); u.calls.clear(); p.focus = "brightness"; p.key("
 nav() { py "fresh(); p.focus = '$1'; [p.key(k) for k in '$2'.split()]; print(p.focus)"; }
 case_ "arrows (and h j k l): along a row, and up and down to the nearest below or above"
 eq "$(nav theme 'Right Right Right')" vrr "the end of a row stays"
-eq "$(nav theme 'Down Down')" drives; eq "$(nav night 'Down')" bluetooth; eq "$(nav vrr 'j j j j')" power
+eq "$(nav theme 'Down Down')" drives; eq "$(nav night 'Down')" bluetooth; eq "$(nav vrr 'j j j j')" screenoff "(the nearest centre below)"
 eq "$(nav theme 'Up')" sound; eq "$(nav sound 'k k')" brightness; eq "$(nav brightness 'Up')" brightness
 eq "$(nav dnd 'Down')" ocr; eq "$(nav saver 'Down')" wallpaper "the foot: the key nearest below"; eq "$(nav record 'Down')" screenshot
-eq "$(nav screenshot 'Up')" ocr; eq "$(nav sound 'Down')" night "from a meter: the middle tile"
+eq "$(nav screenshot 'Up')" record "(its centre, 259, nearer record's 205 than ocr's 333)"; eq "$(nav sound 'Down')" night "from a meter: the middle tile"
 case_ "Tab and Shift+Tab: every item in turn, round"
 eq "$(nav power 'Tab')" brightness; eq "$(nav brightness 'ISO_Left_Tab')" power
 case_ "← → (h l) on a meter: its level by 5, at once and then set"
@@ -568,12 +568,10 @@ eq "$(py 'opened("sound", SOUND); p.enter(200, 171); print(p.hot); p.refresh(); 
   "$(printf '%s\n' out:73 out:73)" "a device added below: the same row still under it"
 eq "$(py 'opened("sound", SOUND); p.enter(200, 151); print(p.hot); p.refresh(); u.answer("\n".join(l for l in SOUND.split("\n") if not l.startswith("output\t62"))); print(p.hot)')" \
   "$(printf '%s\n' out:62 out:73)" "the row under it gone: the one that took its place"
-ON=$'SOUND.replace("mic\\ton\\n", "mic\\ton\\ncleanmic\\ton\\n")'
-case_ "one light in every panel and menu: the pointer moves the cursor in the sound panel, in a menu and in the launcher, as in quick settings — but never onto a level that only shows"
+case_ "one light in every panel and menu: the pointer moves the cursor in the sound panel, in a menu and in the launcher, as in quick settings"
 eq "$(py 'opened("sound", SOUND); p.enter(200, 171); print(p.hot, p.focus)')" "out:73 out:73" "the sound panel"
 eq "$(py 'fresh(); p.request("menu x", kp.Menu(["a", "b", "c"]), lambda rc, t: 0); it = p.item("2"); p.enter(it.x + 2, it.y + 2); print(p.hot, p.focus)')" "2 2" "a menu"
 eq "$(py 'fresh(); p.request("launcher", kp.Launcher([], {}), None); print(p.hot, p.focus)')" "None None" "the launcher, no entries: nothing to take"
-eq "$(py 'opened("sound", '"$ON"'); l = p.item("level"); p.enter(l.x + 5, l.y + 5); print(p.hot, p.focus)')" "level None" "the clean mic's live level: hot, never the cursor's"
 eq "$(py 'fresh(); p.enter(200, 130); print(p.hot, p.focus)')" "night None" "a panel not on screen: no cursor to move"
 case_ "the pointer works whether or not the panel has the keyboard: motion, enter and clicks never ask for it"
 lacks "$(sed -n '/^class Panel/,/^def mark/p' "$REPO/bin/kawa-panel")" 'has_focus'
@@ -588,7 +586,7 @@ case_ "the sound panel: sound (the speaker — the volume, mute, mixer), output 
 eq "$(py 'opened("sound", SOUND); print(" ".join(i.key for i in p.items)); print(p.heads)')" \
   "$(printf '%s\n' "sound mute mixer out:62 out:73 in:67 in:90 mic mictest" "[('speaker', 'sound', 17, 17), ('headphones', 'output', 17, 113), ('mic', 'input', 17, 201)]")"
 eq "$(py 'opened("sound", SOUND); print(" ".join(f"{i.key}:{i.kind}:{i.x},{i.y},{i.w},{i.h}" for i in p.items), p.size, p.win)')" \
-  "sound:meter:17,45,376,20 mute:key:17,73,184,20 mixer:key:209,73,184,20 out:62:row:17,141,376,20 out:73:row:17,161,376,20 in:67:row:17,229,376,20 in:90:row:17,249,376,20 mic:key:17,277,376,20 mictest:key:17,305,376,20 (410, 342) (411, 344)" \
+  "sound:meter:17,45,376,20 mute:key:17,73,184,20 mixer:key:209,73,184,20 out:62:row:17,141,376,20 out:73:row:17,161,376,20 in:67:row:17,229,376,20 in:90:row:17,249,376,20 mic:key:17,277,184,20 mictest:key:209,277,184,20 (410, 314) (411, 316)" \
   "quick settings' width and grid: 17 px from the edges, a heading and 8 px of air above its first row, 20 px of air above a heading that is not first, rows touching, keys one row high 8 px apart"
 eq "$(py 'opened("sound", SOUND); print(" | ".join(f"{i.icon} {i.name} {i.lit}" for i in p.items if i.kind == "row"))')" \
   "speaker line out · analog True | speaker LG ULTRAGEAR · HDMI False | mic rear mic True | mic front mic False" "an output the speaker, an input the microphone; the default lit (no boxes ticked)"
@@ -599,29 +597,27 @@ eq "$(py 'opened("sound", SOUND.replace("muted\toff", "muted\ton").replace("mic\
   "speaker unmute True 62% | mic unmute microphone" "muted: unmute (the level kept, its segments hollow), the microphone too"
 eq "$(py 'opened("sound", "sound\tno output\nmuted\toff\nmic\tnone\n"); print(" ".join(i.key for i in p.items), p.nones, p.size)')" \
   "sound mute mixer [(17, 141), (17, 209)] (410, 246)" "no devices: each list says none; no input, no microphone to mute"
-case_ "the clean mic (kawa-quick's cleanmic): on — its level live above mute microphone, then clean mic (on: lit) and test mic side by side; off — unlit, no level; not loaded — test mic alone"
-ON=$'SOUND.replace("mic\\ton\\n", "mic\\ton\\ncleanmic\\ton\\n")'
-eq "$(py 'opened("sound", '"$ON"'); print(" ".join(f"{i.key}:{i.kind}:{i.x},{i.y},{i.w},{i.h}" for i in p.items[-4:]), p.size)')" \
-  "level:level:17,277,376,20 mic:key:17,305,376,20 cleanmic:key:17,333,184,20 mictest:key:209,333,184,20 (410, 370)"
-eq "$(py 'opened("sound", '"$ON"'); c = p.item("cleanmic"); l = p.item("level"); print(c.icon, c.name, c.lit, "|", l.icon, l.name, l.value, "|", u.listening)')" \
-  "box_on clean mic True | mic clean mic 0% | True" "▣ while on; its meter read while the panel shows it"
-eq "$(py 'opened("sound", SOUND.replace("mic\ton\n", "mic\ton\ncleanmic\toff\n")); c = p.item("cleanmic"); print(c.icon, c.lit, p.item("level"), u.listening, " ".join(i.key for i in p.items[-3:]))')" \
-  "box_off False None False mic cleanmic mictest" "□ while off: no level, nothing read"
-eq "$(py 'opened("sound", '"$ON"'); p.close("chosen"); print(u.listening)')" False "closed: the recorder ended"
-eq "$(py 'opened("sound", '"$ON"'); p.open("quick"); print(u.listening)')" False "another panel: ended too"
-case_ "clean mic: a click switches it (kawa-quick --do cleanmic), the panel stays and reads back; test mic runs on its own, the panel stays"
-eq "$(py 'opened("sound", '"$ON"'); c = p.item("cleanmic"); p.press(c.x + 5, c.y + 5); print(u.calls[-1]); u.answer(); print(u.calls[-1], p.visible)')" \
-  "$(printf '%s\n' 'run kawa-quick --do cleanmic' 'run kawa-quick --state sound True')"
-eq "$(py 'opened("sound", '"$ON"'); p.focus = "mictest"; p.key("Return"); print(u.calls[-1], p.visible)')" "launch kawa-quick --do mictest True"
-eq "$(py 'opened("sound", '"$ON"'); p.focus = "level"; p.key("Return"); p.key("Right"); l = p.item("level"); p.press(l.x + 200, l.y + 5); print([c for c in u.calls if c.startswith(("run", "launch"))], p.dragging)')" "[] None" "the level only shows: no key, click or drag sets it"
-case_ "the level: each block's peak on 60 dB (silence 0, −30 dBFS half, full scale all twenty segments); kept across a state read, redrawn alone"
-eq "$(py 'import array; b = lambda v: array.array("h", [0, v, -v]).tobytes(); print(kp.peak_pct(b""), kp.peak_pct(b(0)), kp.peak_pct(b(33)), kp.peak_pct(b(1036)), kp.peak_pct(b(32767)), kp.peak_pct(b(32767)[:-1]))')" "0 0 0 50 100 100"
-eq "$(py 'opened("sound", '"$ON"'); p.heard(75); print(p.item("level").value, u.drawn[-1]); p.refresh(); u.answer('"$ON"'); print(p.item("level").value)')" \
-  "$(printf '%s\n' "75% ['level']" "75%")"
+case_ "the microphone's foot: ONE row of two half-width keys side by side, exactly as mute and mixer above — mute microphone at the left edge, test mic a gap after it, the same y — and nothing else under 入 (no level, no third key)"
+eq "$(py 'opened("sound", SOUND); m, t = p.item("mic"), p.item("mictest"); x0, half = kp.BORDER + kp.PAD, (kp.INNER - kp.GAP) // 2
+print(m.y == t.y, m.row == t.row, m.x == x0, m.w == half, t.x == x0 + half + kp.GAP, t.w == kp.INNER - half - kp.GAP, m.h == t.h == kp.KEY_H, (m.x, m.w, t.x, t.w))')" \
+  "True True True True True True True (17, 184, 209, 184)"
+eq "$(py 'opened("sound", SOUND); mu, mx, m, t = (p.item(k) for k in ("mute", "mixer", "mic", "mictest")); print((m.x, m.w, t.x, t.w) == (mu.x, mu.w, mx.x, mx.w), p.items[-1].key, p.items[-2].key)')" \
+  "True mictest mic" "the very columns of mute · mixer; the last row of the panel"
+eq "$(py 'opened("sound", SOUND); m = p.item("mic"); print(p.size[1] - (m.y + m.h))')" 17 "16 px of pad and the hairline under the keys: the panel ends there"
+eq "$(py 'opened("sound", SOUND.replace("mic\ton\n", "mic\tmuted\n")); m, t = p.item("mic"), p.item("mictest"); print(m.icon, m.name, m.w, "|", t.icon, t.name, t.w)')" \
+  "mic unmute microphone 184 | mic test mic 184" "muted: unmute microphone — the longest name the foot has"
+eq "$(py 'print(kp.px_of("unmute microphone") + kp.GLYPH_COL + kp.GAP <= (kp.INNER - kp.GAP) // 2 - 2 * kp.CELL)')" True "…its icon, gap and name with a cell of air either side, never cut"
+eq "$(py 'opened("sound", SOUND.replace("mic\ton\n", "mic\ton\ncleanmic\ton\nlevel\t50%\n")); print(" ".join(i.key for i in p.items[-3:]), p.size)')" \
+  "in:90 mic mictest (410, 314)" "a stray cleanmic or level line (a kawa-quick from before) draws nothing: the foot is the same two keys"
+case_ "mute microphone: a click switches it (kawa-quick --do micmute), the panel stays and reads back; test mic runs on its own, the panel stays"
+eq "$(py 'opened("sound", SOUND); m = p.item("mic"); p.press(m.x + 5, m.y + 5); print(u.calls[-1]); u.answer(); print(u.calls[-1], p.visible)')" \
+  "$(printf '%s\n' 'run kawa-quick --do micmute' 'run kawa-quick --state sound True')"
+eq "$(py 'opened("sound", SOUND); t = p.item("mictest"); p.press(t.x + 5, t.y + 5); print(u.calls[-1], p.visible)')" "launch kawa-quick --do mictest True"
+eq "$(py 'opened("sound", SOUND); p.focus = "mictest"; p.key("Return"); print(u.calls[-1], p.visible)')" "launch kawa-quick --do mictest True"
 case_ "the sound meter's icon is the bar's: no wave at 0, one to 25 %, two to 50, three to 75, four above; crossed out muted"
 eq "$(py 'print(*[kp.vol_icon(v, False) for v in (0, 1, 25, 26, 50, 51, 75, 76, 100, 130)], kp.vol_icon(40, True), kp.vol_icon(None, False))')" \
   "vol_0 vol_1 vol_1 vol_2 vol_2 vol_3 vol_3 vol_4 vol_4 vol_4 vol_mute vol_0"
-eq "$(py 'i = kp.icons(); print(all(f"vol_{n}" in i for n in (0, 1, 2, 3, 4, "mute")), all(k in i for k in ("speaker", "speaker_off", "sliders", "mic", "mic_off", "box_on", "box_off")))')" "True True"
+eq "$(py 'i = kp.icons(); print(all(f"vol_{n}" in i for n in (0, 1, 2, 3, 4, "mute")), all(k in i for k in ("speaker", "speaker_off", "sliders", "mic", "mic_off")))')" "True True"
 case_ "parse_sound: the levels, the devices in order, each by its short name; odd lines skipped"
 eq "$(py 's = kp.parse_sound("sound\t40%\nmuted\ton\nmic\tnone\noutput\t5\t1\tA Analog Stereo\t\t\t\t\t\ninput\tx\t0\tbad\t\t\t\t\t\noutput\t6\t0\tB\n"); print(s["sound"], s["muted"], s["mic"], s["outputs"], s["inputs"])')" \
   "40% on none [('5', True, 'analog')] []"
@@ -656,7 +652,8 @@ eq "$(py 'opened("sound", SOUND); p.press(200, 151); p.press(200, 239); print([c
 case_ "mute and mute microphone: switched over, the panel stays; mixer: the panel closes, wiremix opens (kawa-quick --do mixer)"
 eq "$(py 'opened("sound", SOUND); p.press(60, 83); print(u.calls[-1]); u.answer(); print(u.calls[-1], p.visible)')" \
   "$(printf '%s\n' 'run kawa-quick --do mute' 'run kawa-quick --state sound True')"
-eq "$(py 'opened("sound", SOUND); p.press(200, 287); print(u.calls[-1], p.visible)')" "run kawa-quick --do micmute True"
+eq "$(py 'opened("sound", SOUND); p.press(100, 287); print(u.calls[-1], p.visible)')" "run kawa-quick --do micmute True"
+eq "$(py 'opened("sound", SOUND); p.press(300, 287); print(u.calls[-1], p.visible)')" "launch kawa-quick --do mictest True" "test mic: the right half"
 eq "$(py 'opened("sound", SOUND); p.press(300, 83); print(", ".join(u.calls[-3:]), p.visible)')" "hide, light sound off, launch kawa-quick --do mixer False"
 case_ "the volume: dragged, clicked, the wheel, ← →, as quick settings' (kawa-quick --do volume N), one at a time"
 eq "$(py 'opened("sound", SOUND); p.press(235 + 76, 55); print(p.state["sound"], u.calls[-1])')" "50% run kawa-quick --do volume 50"
