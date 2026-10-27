@@ -47,15 +47,20 @@ end
 local where = (os.getenv("KAWA_NOTES_WHERE") or "~/Notes/notes.md"):gsub("%%", "%%%%")
 
 local function colours()
-  -- (the dark theme's, should the file be missing)
-  local c = { GROUND = "0f0e0c", EDGE2 = "3d372f", MUTED = "877f6f", TEXT = "cfc3a6", ACCENT_TEXT = "d15b3d" }
+  -- the theme's inks (colors.sh, written by tools/build-themes.py): the current one's, or —
+  -- no theme switched on yet — the dark one's, from its own file (no colour is written here)
+  local c = { GROUND = false, EDGE2 = false, MUTED = false, TEXT = false, ACCENT_TEXT = false }
   local f = io.open(vim.fn.expand("~/.config/fedokawaii/current/colors.sh"))
+    or io.open(vim.fn.expand("~/.config/fedokawaii/themes/dark/colors.sh"))
   if f then
     for line in f:lines() do
-      local k, v = line:match("^C_([%u_]+)=(%x%x%x%x%x%x)")
-      if k and c[k] then c[k] = v end
+      local k, v = line:match("^C_([%u%d_]+)=(%x%x%x%x%x%x)")
+      if k and c[k] == false then c[k] = v end
     end
     f:close()
+  end
+  for k, v in pairs(c) do
+    if not v then error("notes: the theme has no C_" .. k .. " (~/.config/fedokawaii/current/colors.sh)") end
   end
   local g = "#" .. c.GROUND
   for name, k in pairs({ KawaKanji = "ACCENT_TEXT", KawaName = "TEXT", KawaStitch = "EDGE2", KawaMuted = "MUTED" }) do

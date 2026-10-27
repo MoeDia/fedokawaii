@@ -14,6 +14,7 @@ PKG_BASE=(
   git jq gnupg2         # used by the scripts (clone, GitHub API, key check); zips: 7zip (apps)
   python3               # the helpers' small Python parts and the self-tests (tuned brings it
                         #   too: listed, never assumed)
+  python3-pyte          # the self-tests: a terminal's screen read back as it would show (vd, fzf)
   diffutils man-db      # diff/cmp: the copy against the toolkit, the checks · man: the manuals
                         #   the change menu opens (both usually there; listed, never assumed)
   tar grubby            # tar: the release archives, GE-Proton, the C helpers' builds · grubby:

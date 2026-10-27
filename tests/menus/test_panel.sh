@@ -435,7 +435,7 @@ done
 case_ "a theme switch while it runs: kawa-theme's rename of the link over current is seen, and the new link's colours read (light after dark)"
 # (watch_theme with a stand-in Gio: the folder's events as GIO gives them for a rename —
 # the new link moved onto "current"; on a real screen: the panel opened after kawa-theme light
-# draws its ground e9e1cb — the theme's panel.conf)
+# draws the light ground — the theme's panel.conf)
 mkdir -p "$HOME/.config/fedokawaii/themes"
 for m in dark light; do ln -sfn "$REPO/configs/home/.config/fedokawaii/themes/$m" "$HOME/.config/fedokawaii/themes/$m"; done
 ln -sfn themes/dark "$HOME/.config/fedokawaii/current"
@@ -463,7 +463,7 @@ changed()
 os.symlink("themes/light", d + "/current.new"); os.rename(d + "/current.new", kp.CURRENT)
 Gio.mon.fn(Gio.mon, F(d + "/current.new"), F(kp.CURRENT), 0)     # (the rename)
 Gio.mon.fn(Gio.mon, F(d + "/state.sh"), None, 0)                    # (something else there: nothing)
-print(" ".join(seen))')" "0f0e0c e9e1cb"
+print(" ".join(seen))')" "$(for m in dark light; do sed -n 's/^ground=//p' "$REPO/configs/home/.config/fedokawaii/themes/$m/panel.conf"; done | paste -sd ' ')"
 used=$(grep -oE '"(ground|key|edge|edge2|faint|muted|text|strong|accent|accent_text|accent_lo|text_on_accent|asagi|[a-z_]+)"' "$REPO/bin/kawa-panel" | sort -u | tr -d '"' | tr '\n' ' ')
 for n in ground key edge edge2 faint muted text strong accent accent_text accent_lo text_on_accent asagi; do has " $used" " $n " "$n is drawn with"; done
 

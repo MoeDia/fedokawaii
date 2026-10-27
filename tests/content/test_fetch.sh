@@ -96,10 +96,18 @@ has_picture "$(TERM=xterm-256color COLORTERM=truecolor F neko)" && _ok || _no "n
 
 # ── the pictures ─────────────────────────────────────────────────────────────
 case_ "every picture: 20 × 16 pixels, every letter in its palette, every colour the desktop's own"
-python3 -I - "$REPO/bin/fetch" "$REPO/tools/build-themes.py" <<'EOF' >"$TMP/art.txt"
-import re, sys
+python3 -I - "$REPO/bin/fetch" "$REPO/tools/wada-palette.py" <<'EOF' >"$TMP/art.txt"
+import importlib.util, re, sys
 src = open(sys.argv[1]).read()
-own = {h.lower() for h in re.findall(r"\b[0-9a-fA-F]{6}\b", open(sys.argv[2]).read())}
+spec = importlib.util.spec_from_file_location("wp", sys.argv[2]); wp = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(wp)
+own = set(wp.W.values())                  # (the desktop's own: Wada's swatches and every token made of them)
+def add(v):
+    if isinstance(v, str) and re.fullmatch(r"[0-9a-f]{6}", v): own.add(v)
+    elif isinstance(v, tuple) and len(v) in (3, 4) and all(isinstance(x, int) for x in v): own.add("%02x%02x%02x" % v[:3])
+    elif isinstance(v, (tuple, list)): [add(x) for x in v]
+    elif isinstance(v, dict): [add(x) for x in v.values()]
+add(wp.palette())
 names = re.search(r"^NAMES=\(([^)]*)\)", src, re.M).group(1).split()
 arts = dict(re.findall(r"^ART_(\w+)=\(\n(.*?)\n\)", src, re.M | re.S))
 print("names", " ".join(sorted(names)) == " ".join(sorted(arts)))

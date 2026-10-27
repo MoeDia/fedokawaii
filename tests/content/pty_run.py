@@ -55,6 +55,8 @@ def main(argv):
     pid, fd = pty.fork()
     if pid == 0:
         fcntl.ioctl(0, termios.TIOCSWINSZ, struct.pack("HHHH", rows, cols, 0, 0))
+        if os.environ.get("TERM", "dumb") == "dumb":   # (it plays foot's part: a run with no terminal
+            os.environ["TERM"] = "foot"                 # of its own — a service, the loop — says "dumb")
         try:
             os.execvp(cmd[0], cmd)
         except OSError as e:

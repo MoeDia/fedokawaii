@@ -201,12 +201,15 @@ else
     -c "lua local h = vim.api.nvim_get_hl(0, {name='$1'}); io.stdout:write(string.format('%06x %06x', h.fg or 0, h.bg or 0))" \
     -c 'qa!' -- "$TMP/n.md" 2>/dev/null; }
   case_ "notes.lua: the theme's inks — the kanji accent_text, the name text, the stitch edge2, the footer muted, on the ground"
-  eq "$(hl KawaKanji)" "d15b3d 0f0e0c"; eq "$(hl KawaName)" "cfc3a6 0f0e0c"
-  eq "$(hl KawaStitch)" "3d372f 0f0e0c"; eq "$(hl KawaMuted)" "877f6f 0f0e0c"
+  ink() { sed -n "s/^C_$2=\([0-9a-f]*\).*/\1/p" "$HOME/.config/fedokawaii/themes/$1/colors.sh"; }   # ink THEME NAME
+  eq "$(hl KawaKanji)" "$(ink dark ACCENT_TEXT) $(ink dark GROUND)"; eq "$(hl KawaName)" "$(ink dark TEXT) $(ink dark GROUND)"
+  eq "$(hl KawaStitch)" "$(ink dark EDGE2) $(ink dark GROUND)"; eq "$(hl KawaMuted)" "$(ink dark MUTED) $(ink dark GROUND)"
+  [[ $(ink dark EDGE2) =~ ^[0-9a-f]{6}$ && $(ink dark EDGE2) != "$(ink light EDGE2)" ]] && _ok || _no "the themes' C_EDGE2 (read: a name with a digit)"
   ln -sfn themes/light "$HOME/.config/fedokawaii/current"
-  eq "$(hl KawaMuted)" "$(sed -n 's/^C_MUTED=\([0-9a-f]*\).*/\1/p' "$HOME/.config/fedokawaii/themes/light/colors.sh") e9e1cb" "on paper"
+  eq "$(hl KawaMuted)" "$(ink light MUTED) $(ink light GROUND)" "on paper"
+  eq "$(hl KawaStitch)" "$(ink light EDGE2) $(ink light GROUND)" "on paper: the stitch"
   rm "$HOME/.config/fedokawaii/current"
-  eq "$(hl KawaMuted)" "877f6f 0f0e0c" "no theme set up: the dark one's"
+  eq "$(hl KawaMuted)" "$(ink dark MUTED) $(ink dark GROUND)" "no theme set up: the dark one's, from its file"
   ln -s themes/dark "$HOME/.config/fedokawaii/current"
   case_ "notes.lua: a theme switch while open (ColorScheme) brings the new colours"
   out=$(nvim --headless -c 'luafile ~/.config/fedokawaii/notes.lua' \

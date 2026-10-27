@@ -23,6 +23,9 @@ esac'
   : >"$FZF_PICK"
 }
 MAGICK=$(command -v magick) FD=$(command -v fd fdfind 2>/dev/null | head -n1)
+# the plain card's ground as sixel gives it (whole percents): the theme's C_EDGE (dark, the sandbox's)
+CARD=$(. "$REPO/configs/home/.config/fedokawaii/themes/dark/colors.sh"
+  python3 -I -c 'import sys; h = sys.argv[1]; print(",".join(str(int(100 * int(h[i:i + 2], 16) / 255 + 0.5)) for i in (0, 2, 4)))' "$C_EDGE")
 now() { date -u '+%Y-%m-%d %H:%M:%S'; }
 ago_utc() { date -u -d "$1" '+%Y-%m-%d %H:%M:%S'; }
 plain() { sed 's/\x1b\[[0-9;]*m//g'; }
@@ -212,25 +215,25 @@ case_ "covers: the first page (PDF), the declared cover (EPUB 2 and 3), a cover-
 for n in "Reading Now.pdf" "Flow.epub" "Japanese/日本語の本.epub" "named cover.epub" "New Comic.cbz"; do
   info=$(cover "$B/$n" | sixel_info)
   [[ $(jget p2 <<<"$info") == 1 ]] && _ok || _no "$n: no picture"
-  lacks "$(jget colours <<<"$info")" "17,15,13" "$n drew the plain card (C_EDGE) instead of its cover"
+  lacks "$(jget colours <<<"$info")" "$CARD" "$n drew the plain card (C_EDGE) instead of its cover"
 done
 has "$(cover "$B/Reading Now.pdf" | sixel_info | jget colours)" "82,35,23" "the PDF's red page"
 has "$(cover "$B/Flow.epub" | sixel_info | jget colours)" "37,50,63" "the EPUB's blue cover"
 case_ "an EPUB whose cover's address has %20 for a space (an href is a URL): its cover"
 mk epub "$B/encoded.epub" encoded
 info=$(cover "$B/encoded.epub" | sixel_info)
-lacks "$(jget colours <<<"$info")" "17,15,13" "the plain card instead of its cover"
+lacks "$(jget colours <<<"$info")" "$CARD" "the plain card instead of its cover"
 has "$(jget colours <<<"$info")" "37,50,63" "the EPUB's blue cover"
 case_ "no picture in it, or corrupt: a plain card with its kind"
 printf '%%PDF-1.4 broken' >"$B/corrupt.pdf"; printf 'xx' >"$B/corrupt.cbz"
 for n in "no cover.epub" corrupt.pdf corrupt.cbz; do
   out=$(cover "$B/$n" 2>"$TMP/err")
-  has "$(sixel_info <<<"$out" | jget colours)" "17,15,13" "$n: the card"
+  has "$(sixel_info <<<"$out" | jget colours)" "$CARD" "$n: the card"
   eq "$(cat "$TMP/err")" "" "$n: nothing on stderr"
 done
 case_ "a comic whose pages have glob characters in their names: its first page"
 mk cbz "$B/glob.cbz" 'p[1].png' 'q*2.png' 'r?3.png'      # (as a pattern, p[1].png would be p1.png)
-lacks "$(cover "$B/glob.cbz" | sixel_info | jget colours)" "17,15,13"
+lacks "$(cover "$B/glob.cbz" | sixel_info | jget colours)" "$CARD"
 
 case_ "the pane: cover centred between the rule and the pane's end (where the title's rule ends), the words under it, inside the pane"
 for size in "36 24" "36 26" "50 30" "21 9" "40 12"; do

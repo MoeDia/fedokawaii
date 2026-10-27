@@ -3,9 +3,10 @@
 Color Combinations, 1933–34): every token a Wada colour, or a stated mix of two in OKLab. Nothing
 else: no colour is written here that is not a Wada swatch or a mix of two.
 
-  python3 -I tools/wada-palette.py [--sheet OUT.png] [--palette OUT.py] [--table]
+  python3 -I tools/wada-palette.py [--sheet OUT.png] [--palette OUT.py] [--table] [--doc]
 
---table: each text role's contrast (WCAG) on each ground, both themes; --sheet: the swatches with
+--table: each text role's contrast (WCAG) on each ground, both themes; --doc: the token rows of
+docs/design-system.md §1 (hex and recipe); --sheet: the swatches with
 their names and recipes; --palette: a file for tools/build-themes.py --palette (P, KAMI, TILE).
 The colours: the dataset github.com/mattdesl/dictionary-of-colour-combinations (MIT, © 2020 Matt
 DesLauriers, after Dain M. Blodorn Kim's) — only the swatches used are copied below.
@@ -187,6 +188,25 @@ def sheet(P, out):
     im.save(out)
 
 
+DOC_TOKENS = ("ground", "surface", "view", "key", "edge", "edge2", "hi", "lo", "faint", "muted", "text", "strong",
+              "accent", "accent_hi", "accent_lo", "accent_text", "text_on_accent", "asagi", "flame", "gold", "lit", "lit_text")
+DOC_TERM = ("red", "green", "yellow", "blue", "purple", "teal", "bred", "bgreen", "byellow", "bblue", "bpurple", "bteal")
+
+
+def doc(P, tile):
+    """The tokens as docs/design-system.md §1 lays them out (its first three columns: the role is
+    the doc's own) — tests/static/test_design_doc.sh reads the doc's hex codes back against these."""
+    def cell(m, k, h):
+        r = RECIPE.get(f"{m}.{k}", "")
+        r = r if r and r != h else ""
+        return f"`{h}`" + (f" {r}" if r else "")
+    for k in DOC_TOKENS:
+        print(f"| `{k}` | {cell('dark', k, P['dark'][k])} | {cell('light', k, P['light'][k])} |")
+    print(f"| `tile` | `{tile['dark']}` | `{tile['light']}` |")
+    for k in DOC_TERM:
+        print(f"| `{k}` | `{P['dark'][k]}` | `{P['light'][k]}` |")
+
+
 def palette():
     """P (both themes' tokens), KAMI (the bar's washi ornaments), TILE (its paper), EDITOR (nvim's
     extra inks) — what tools/build-themes.py writes every colour file from."""
@@ -215,6 +235,8 @@ def main(argv):
     P, kami, tile, editor = palette()
     if "--table" in argv:
         table(P)
+    if "--doc" in argv:
+        doc(P, tile)
     if "--sheet" in argv:
         sheet(P, argv[argv.index("--sheet") + 1])
     if "--palette" in argv:

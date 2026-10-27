@@ -272,6 +272,50 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   (look/test_screenshot, test_wallpaper read colors.sh); launcher fixtures list the new packages;
   PROJECT_TOP gains .claude + CLAUDE.md (static/test_generated 211/0 — fixed its old failure).
   dwl's border colours (config.h) take effect at the next session.
+- r27-9 (T09) docs/design-system.md rewritten as the single truth — DONE 05:55 (verified: the new
+  tests/static/test_design_doc.sh 10/10, and it fails on a wrong hex, an open "TBD", a wrong contrast
+  — mutation-tested). Decided by sketching with the real faces + palette (mock: .claude/notes/
+  design-r27/mock.py; shots pair-dark, mock-dark/light; Super+U today: superu-before.png):
+  · ONE cell for everything: the terminal's 8 × 20 — GUI rows, terminal lines, the bar's paper are
+    all 20 px; GUI and TUI share columns (heading icon at cell 0, name cell 3; rows: icon cell 1,
+    name cell 4). So foot's line becomes 20 (T07 said 19): 16 px × 1.25, one rhythm; a full-height
+    window 51 rows (today 43, 19 px would give 54).
+  · bar 27 rows: 3 air, hairline, paper 4–23, hairline, shadow 25–26; capitals 9–18 (5 px of paper
+    above and below); three 16 × 16 emblems (torii, workspace stamp 16 Ø with a 10 × 10 Black
+    numeral, the demon/angel face); outer hairlines on x 8 / 1911 = the windows' edges.
+  · ONE frame for all that floats (bar tiles, windows, panels, notices, tooltips): 1 px hairline,
+    corners left out, the bar's own shadow (2 rows under, 1 column right) — no inner rule (his
+    "second frame") anywhere; windows' focused hairline vermilion. 8 px between hairlines
+    everywhere → the windows' tops on y 33.
+  · headings: 12 px icon (accent_text) + name (strong) + a solid 1 px rule on the minus's row (no
+    dashed rule anywhere — bug 17); air: GUI 8 px under / 20 above, TUI one blank line under / two
+    above (bug 15: the heading belongs to its rows). No footers of the obvious (Enter/Esc: Super+/
+    knows the app's keys); a screen's own key does get one (Super+W's rotate).
+  · icons 12 × 12 beside words (1 px strokes — the regular face's weight; centred on the
+    capitals), 14 alone, 16 the emblems; kanji in three places only (stamps, the day kanji, the
+    lock's quote).
+  · the meter (sliders): 20 segments of 6 × 10 px, 5 % each, partial levels by rows (every level its
+    own pixels), reddening over 80 % (flame, then accent) — "alive, not a plain rectangle".
+  · motion: dissolve (Bayer 4×4 in 3 px blocks — a flag in the private wlroots' GLES2 shader, T19),
+    stamp, scroll; a timing table (windows 420/400, workspace 420, menus 200/160, warm windows
+    300/240, lock → desktop 600, login → desktop 900, wash 1200, the cursor changing as the wash
+    reaches it).
+  · the lock's quotes, checked in dictionaries: 口は禍の門 (dark: the mouth is the gate of
+    misfortune — the password typed into a demon's mouth; デジタル大辞泉, 精選版 日本国語大辞典 with
+    十訓抄 1252: https://kotobank.jp/word/口は禍の門-489587) and 言わぬが花 (light: better left
+    unsaid; デジタル大辞泉, 日本国語大辞典 "言ぬが花" 1729: https://kotobank.jp/word/言わぬが花-430611).
+  Sections keep their numbers (≈30 comments in the scripts cite §1–§9; §5's motion moved to the new
+  §11 — kawa-theme and theme.sh re-pointed; the lock's comments follow in T20). tools/wada-palette.py
+  --doc prints §1's hex columns. The size checks join the test surface by surface (BUILT; plan T09
+  amended). Kit: a `system` scene (Super+U headless).
+  Also fixed on the way (the T08 fallout, all palette-proof now): test_quick (the namespace's UID 0
+  vs the stub's), test_panel and test_books and test_fetch (colours read from the theme, not
+  literals); notes.lua had a LATENT BUG — its pattern could not read C_EDGE2 (a digit), so the
+  stitch was always a literal, and a literal-colour fallback for a missing theme (both gone: it
+  reads the dark theme's own file, else says what is missing); VisiData's "working" was 2.9:1 in
+  the light palette → 0 on 11 (12.1 / 5.2); tests/content/pty_run.py plays foot (TERM=foot when the
+  run has none — the loop's TERM=dumb broke every curses program under test); python3-pyte added
+  to the manifest for the self-tests (installed here with dnf at once; repair would do the same).
 - r27-33 (T29, findings 04:00 — not fixed yet) Prowlarr: on demand by design (kawa-prowlarr: up while
   torrra searches, asleep 30 min after) — "inactive" is normal. /api/v1/health: 0 now. Its own log
   (~/.config/prowlarr/logs) over 8 days: Warn AllowedHostsCheck "Allowed Hosts is not configured"

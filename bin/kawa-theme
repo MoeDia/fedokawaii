@@ -39,7 +39,7 @@
 # Every program takes the new theme in one frame of its own, all of them told at the same
 # moment — the wallpaper drawn off screen and swapped in whole (kawa-wallpaper), the bar
 # restyled in place, the windows recoloured — under the one designed transition
-# (design-system §5): the screen as it was, faded away smoothly over a third of a second (kawa-saver
+# (design-system §11): the screen as it was, faded away smoothly over a third of a second (kawa-saver
 # --wash), never holding a click; a press during it jumps to the end and switches back.
 #
 # Exit: 0 done (also a press dropped while a switch runs) · 1 could not · 2 wrong use.
@@ -159,7 +159,7 @@ c.sendall((json.dumps({"command": ["load-config-file", sys.argv[2]]}) + "\n").en
   return 0
 }
 
-# The transition (design-system §5: the one designed one, the same as a new wallpaper's):
+# The transition (design-system §11: the one designed one, the same as a new wallpaper's):
 # kawa-saver --wash lays the screen as it was over everything, the switch is made under it,
 # then it is washed off in ink (720 ms: drops of the darkest ink bleed out over it and take it
 # with them, frame by frame). It takes no input: every click goes

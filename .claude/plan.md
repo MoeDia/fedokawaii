@@ -101,13 +101,14 @@ approach:
 - Render the gallery (T03 shot.sh of the current surfaces) before/after; grill; iterate.
 accept: build-themes.py regenerates both themes from the Wada data with no literal colour outside it; contrast table in wada-r27.md (every text role ≥ 4.5:1 on its ground, muted ≥ 3:1); gallery shots both themes; tests/look/test_theme.sh updated for the token set.
 
-### T09 — docs/design-system.md rewritten FIRST as the single truth  [todo]
+### T09 — docs/design-system.md rewritten FIRST as the single truth  [done 2026-10-27 — see ledger r27-9]
 deps: T07, T08  · model: main  · ledger: r27-9
 files: docs/design-system.md (full rewrite), docs/design-system-assets/ (grid diagrams rendered by tools/px.py as PNG), tests/static/test_design_doc.sh
 approach:
 - Sections: 1 palette (Wada roles, both moods: demon/dark, angel/light — two moods, not a recolour), 2 type (the chosen faces, pixel sizes, cells, line heights, display sizes), 3 grid (frame, pad, gap, row, seal → now "stamp", rule, section, key, tile, meter, bar 27), 4 parts (panel, heading = pixel icon + name + stitch rule, row, key, tile, meter, stamps), 5 icon grammar (14/15 px icons on the UI grid, term twin, kanji only on: workspace stamps (numeral black, inside the circle), the lock quote, the bar's day seal; everywhere else custom pixel icons; the demon/angel art rules), 6 motion (playful pixel: dissolves, stamps, scrolls unrolling; 400–450 ms open/close/workspace; menus/warm windows; lock→desktop; greeter→session; wash 1.2 s; cursor in the wash; all frame-driven at the refresh, eased, whole pixels, never a hard edge sweeping), 7 states (rest/hover/cursor/chosen/disabled; sliders alive — the fill reddening above 80 %), 8 behaviour (one popup at a time, opens centred under its button, over fullscreen, pointer live at open), 9 text screens (TUI grammar: no dashed rules — the stitch becomes a pixel rule glyph or whitespace; spacing table), 10 the bar (27 rows: the exact row map), 11 notices/OSD/lock/greeter/saver, 12 windows (border = the bar's 3D look: outline + light band + shadow band), 13 the books.
 - Every number in a table; every surface listed with its owner script; a "grill list" appendix (what an exacting art director checks) used by T18.
 accept: the doc has no "TBD"; test_design_doc.sh checks every size in the doc appears in the generated configs (bar height, pads, font px) — parses the tables; ledger lists the decisions.
+AMENDED (T09, 05:50): the sizes cannot be in the configs before the surfaces are rebuilt, so test_design_doc.sh checks them per surface as each lands (a BUILT list, §14 of the doc): T10 adds `ui-face`, T11 `term-face`, T14 `bar`, T15 `windows` + `notices` — each task's acceptance includes its `built_*` check green.
 
 ### T10 — build the UI face, re-grid icons/signs, rebuild width tables  [todo]
 deps: T09  · model: main  · ledger: r27-10
@@ -116,7 +117,7 @@ approach:
 - The face name stays "Sumi UI" (every config already names it) built from the chosen source(s) at the chosen size; the five old-Japanese signs still redrawn; signs and icons at the new cell; display size = a whole multiple.
 - width.sh: the per-letter air table regenerated (build-fonts.py rewrites it); every pixel constant in kawa-panel/kawa-osd/kawa-greet/kawa-saver derived from one place (`~/.config/fedokawaii/screen.sh`/`width.sh` values) rather than literals — fold while touching.
 - Re-render the gallery; measure every surface's gaps against T09 with tools/px.py; iterate until zero deviations.
-accept: tools/px.py reports every gap/pad/centre of bar, menu, quick settings, notice, OSD, lock, greeter, saver within 0 px of the design table, both themes; no pair-spacing fault in the pangram sheet; tests updated and green; `fedokawaii apply` installs the faces (verify checks the font files' checksums).
+accept: tools/px.py reports every gap/pad/centre of bar, menu, quick settings, notice, OSD, lock, greeter, saver within 0 px of the design table, both themes; no pair-spacing fault in the pangram sheet; tests updated and green; `fedokawaii apply` installs the faces (verify checks the font files' checksums). + tests/static/test_design_doc.sh: `ui-face` in BUILT with its `built_*` check (the doc's numbers in its files), green.
 
 ### T11 — build the terminal face; foot, TUIs, nvim re-aligned  [todo]
 deps: T10  · model: main  · ledger: r27-11
@@ -125,7 +126,7 @@ approach:
 - The chosen coding face + Nerd glyphs + Japanese coverage at its best hinted pixel size; ligatures decided from the reading test; line height chosen so the cell is whole pixels and a 1080p tile holds whole rows (document the grid: W×H cells at the spiral's first window and a full window).
 - "Sumi Term" stays the family name in configs (an alias face built from the chosen font: no config churn); the term icon twins re-gridded; the prompt (T26) comes later on this grid.
 - Every TUI's fixed widths recomputed from screen.sh; kawa-term's COLSxROWS tables regenerated; nothing truncated (test_noellipsis).
-accept: foot shows the face at the chosen px with 0 fractional pixels (grim crop at 4×: crisp stems); a full-screen foot holds the documented cells; every popup window centred to the pixel (px.py); tests green; the Learn book's "terminal" pieces corrected.
+accept: foot shows the face at the chosen px with 0 fractional pixels (grim crop at 4×: crisp stems); a full-screen foot holds the documented cells; every popup window centred to the pixel (px.py); tests green; the Learn book's "terminal" pieces corrected. + tests/static/test_design_doc.sh: `term-face` in BUILT with its `built_*` check (the doc's numbers in its files), green.
 
 ## Phase 2 — one design, one unit: Super+U first, then every surface to match
 
@@ -155,7 +156,7 @@ approach:
 - 27 rows: row map written in T09 (hairline, paper, rule, the text line, rule, paper, hairline, shadow) and drawn by build-themes.py to the pixel; no inner cream second frame on any tile including the two red end tiles; workspace stamps: the numeral black, small, fully inside the red circle for 1–9 (measure every numeral's ink inside the circle's ink); active title lighter (the UI face's regular weight if the chosen family has one, else a thinner synthetic rule — decided with the face).
 - Date `DD/MM/YYYY` with a custom red pixel slash glyph; day kanji seal stays (allowed); US red / AR blue (our blue token) and clickable (kawa-tag kb next); video title ▸ red separator ▸ channel/episode; visualizer wings in our red; the TV antenna icon animating while a video plays, the downloads icon animating while a download runs (frame sequences via the icon font: 4–6 frames at 6–8 fps, driven by the module's own loop, no extra processes); weather "sunny" redrawn (a sun with rays and a horizon) distinct from brightness' ring; Steam module, kawa-steam references removed from the bar now (T38 removes the rest).
 - Re-measure all spacing: 8 px ink→edge, 4/10 px groups, 6 px screen edge, the bar's distance to the windows' borders (outergappx + the tiles' shadow): every icon and section measured with px.py, both themes; the bar never grows (the r26 fix kept).
-accept: px.py table of every tile (ink gaps 8/8, groups 4/10, edge 6, height 27, stamps' numerals inside the circle by ≥ 1 px all round) both themes; animated icons: a passthrough recording shows the frame sequence at the intended rate with no stray pixels; tests green; the Learn "bar" piece corrected.
+accept: px.py table of every tile (ink gaps 8/8, groups 4/10, edge 6, height 27, stamps' numerals inside the circle by ≥ 1 px all round) both themes; animated icons: a passthrough recording shows the frame sequence at the intended rate with no stray pixels; tests green; the Learn "bar" piece corrected. + tests/static/test_design_doc.sh: `bar` in BUILT with its `built_*` check (the doc's numbers in its files), green.
 
 ### T15 — window borders with the bar's 3D look (dwl) + notices, OSD, tooltips, Super+/ to the grammar  [todo]
 deps: T14  · model: main  · ledger: r27-15
@@ -164,7 +165,7 @@ approach:
 - Border: the same three-tone rule the tiles carry (hairline, paper/band, shadow) at 2 px total + shadow row; focused = vermilion band, others = warm grey, urgent = asagi; measured on a shot at 4× zoom; no change to gaps (8/5 px) — the shadow lives inside the border's pixels.
 - Notices: 412 → the new grid width, icon column, title/body rows, the critical vermilion frame, square corners; OSD = the panel's meter to the pixel with the alive fill (T13) and its "high" red; tooltips = one row on a tile.
 - Super+/ visual only here (content + context in T23).
-accept: 4× crops of a focused/unfocused/urgent border matched against the tile's rows (px.py colour rows identical in order); notice/OSD/tooltip shots both themes measured; headless proof before the batch-B restart.
+accept: 4× crops of a focused/unfocused/urgent border matched against the tile's rows (px.py colour rows identical in order); notice/OSD/tooltip shots both themes measured; headless proof before the batch-B restart. + tests/static/test_design_doc.sh: `windows, notices` in BUILT with its `built_*` check (the doc's numbers in its files), green.
 
 ### T16 — TUI grammar pass: books (Super+R), wallpaper (Super+W + rotate key), clipboard, launcher calc, no dashed lines, kanji → icons  [todo]
 deps: T11, T12  · model: main  · ledger: r27-16

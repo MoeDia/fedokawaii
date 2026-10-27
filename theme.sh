@@ -250,7 +250,7 @@ retire .bashrc.d/scriptorium.sh 'scriptorium'
 #   took its place, and a copy left in ~/.local/bin would still answer to its name
 retire .local/bin/kawa-audio 'kawa-audio — the sound menu'
 #   ~/.local/bin/kawa-veil — the old theme and wallpaper transitions: kawa-saver --wash is the
-#   one transition now (design-system §5)
+#   one transition now (design-system §11)
 retire .local/bin/kawa-veil 'usage: kawa-veil'
 retire .local/state/fedokawaii/kawa-veil.sha256 ''
 #   presenterm, sc-im and spotify_player — slides, sheets and Spotify are LibreOffice's and

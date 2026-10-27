@@ -245,7 +245,8 @@ open(sys.argv[1] + ".up", "w").close()
 while True: signal.pause()' "$TMP/dwl.got" & dwl=$!
 /bin/sleep 300 & old=$!                     # (a dwl without the handler: the signal would end it)
 for _ in {1..300}; do [[ -e $TMP/dwl.got.up ]] && break; /bin/sleep 0.01; done
-stub pgrep '[ "$*" = "-xu '"$UID"' dwl" ] && { echo '"$dwl"'; echo '"$old"'; exit 0; }; exit 1'
+# (pgrep -xu UID dwl: in the namespace (ns) kawa-quick's own UID is 0, outside it the user's)
+stub pgrep '[ "$1 $3" = "-xu dwl" ] && { echo '"$dwl"'; echo '"$old"'; exit 0; }; exit 1'
 rc 0 quick --do vrr
 for _ in {1..100}; do [[ -s $TMP/dwl.got ]] && break; /bin/sleep 0.02; done
 eq "$(cat "$TMP/dwl.got" 2>/dev/null)" USR1 "dwl told"
