@@ -131,6 +131,8 @@ HAIR, PAD = 1, 16                    # the frame's hairline; the paper from it t
 BORDER = HAIR                        # (the content starts BORDER + PAD from the frame's outer edge)
 SHADOW_R, SHADOW_B = 1, 2            # the frame's shadow: a column at its right, two rows under it
 TILE_W, TILE_H, GAP = 120, 80, 8     # three tiles a row: 3 × 120 + 2 × 8 = 376, the content
+CREST_R, CREST_TOP = 14, 5           # a tile's crest (§4): a seal 28 px across, 4 px of air under the frame (as under its state)
+STAMP_MS = 60                        # a seal stamped (§11): a pixel larger in accent_hi this long
 INNER = 3 * TILE_W + 2 * GAP         # 376: 47 cells (quick settings, the sound panel, the launcher)
 COL = 7                              # a column of Sumi UI: a letter (a kanji or kana: two)
 LINE = 14                            # Sumi UI's em: in a row, on its rows 3–16 (capitals 5–14)
@@ -968,6 +970,29 @@ def layout_launcher(m):
     return lay
 
 
+_DISCS = {}
+
+
+def disc_rows(r, r_in=-1.0):
+    """A pixel disc 2r across, centred between pixels (its rows and columns −r … r−1): the cells
+    whose centre is within r — and, for a ring, beyond r_in — as runs a row: [(dy, dx0, dx1)].
+    (One drawing for every seal: the same pixels at every size, in both themes.)"""
+    key = (r, r_in)
+    if key not in _DISCS:
+        out = []
+        for y in range(-r, r):
+            run = None
+            for x in range(-r, r + 1):
+                inside = x < r and r_in < ((x + .5) ** 2 + (y + .5) ** 2) ** .5 <= r
+                if inside and run is None:
+                    run = x
+                elif not inside and run is not None:
+                    out.append((y, run, x - 1))
+                    run = None
+        _DISCS[key] = out
+    return _DISCS[key]
+
+
 def look(it, focused, hot):
     """How an item is drawn (docs/design-system.md §4–§5) — the colours' names: fill (None:
     none of its own), frame (None: none), glyph (its icon or picture), label (its name), value
@@ -975,16 +1000,23 @@ def look(it, focused, hot):
     on_fill (drawn on the cursor's vermilion: a meter's segments in its inks).
     The cursor — the keyboard's place, and the pointer's: one light, never two — fills the item
     in vermilion, its inks text_on_accent. At rest: a row's icon muted, its name text (the one
-    in use strong); a key on its own fill in a 1 px frame; a tile on — its frame vermilion, its
-    picture accent_text, its state strong —, off — its picture muted, its state faint."""
+    in use strong); a key on its own fill in a 1 px frame; a tile in its frame, on or off — its
+    crest says which (drawn in item_): its name text on, muted off; its state strong, faint."""
+    if it.kind == "tile":                          # (its crest: seal and ring when on, outline when off)
+        on = it.lit
+        if focused:
+            ink = "text_on_accent"
+            return {"fill": "accent", "frame": None, "glyph": "accent" if on else ink, "label": ink,
+                    "value": ink, "on_fill": True, "detail": ink,
+                    "seal": ink if on else None, "ring": "accent" if on else None, "outline": None if on else ink}
+        return {"fill": "key", "frame": "edge", "glyph": "key" if on else "muted",
+                "label": "text" if on else "muted", "value": "strong" if on else "faint", "on_fill": False,
+                "detail": "text", "seal": "accent" if on else None, "ring": "key" if on else None,
+                "outline": None if on else "edge2"}
     if focused:
         ink = "text_on_accent"
         return {"fill": "accent", "frame": None, "glyph": ink, "label": ink,
                 "value": ink, "on_fill": True, "detail": ink}
-    if it.kind == "tile":
-        return {"fill": "key", "frame": "accent" if it.lit else "edge",
-                "glyph": "accent_text" if it.lit else "muted", "label": "text",
-                "value": "strong" if it.lit else "faint", "on_fill": False, "detail": "text"}
     bare = it.kind in ("meter", "row", "app")
     return {"fill": None if bare else "key", "frame": None if bare else "edge",
             "glyph": "strong" if it.lit else ("muted" if bare else "text"),
@@ -1005,6 +1037,7 @@ class Panel:
 
     def __init__(self, ui):
         self.ui = ui
+        self.stamps = {}         # tile → when its seal was stamped (turned on: stamping())
         self.mode = "quick"      # the panel open (or the last one open)
         self.states = {m: {} for m in MODES}
         self.states["menu"] = Menu([])
@@ -1066,6 +1099,11 @@ class Panel:
         self.ui.run(["kawa-quick", "--state"] + ([] if mode == "quick" else [mode]),
                     lambda rc, out: self.got_state(mode, rc, out))
 
+    def stamping(self, key):
+        """A tile's seal being stamped now (§11: turned on, STAMP_MS a pixel larger)."""
+        t = self.stamps.get(key)
+        return t is not None and self.ui.now() - t < STAMP_MS / 1000
+
     def setting(self, key):
         """Dragged, or a level of it being set or waiting to be."""
         return self.dragging == key or key in self.wanted or key in self.busy
@@ -1082,6 +1120,14 @@ class Panel:
         if rc == 0:
             new = parse_sound(out) if mode == "sound" else parse_state(out)
             old = self.states[mode]
+            # a tile turned on while quick settings shows: its seal stamped (a choice made — §11;
+            # never at an open: the old state must be there to change from)
+            if mode == "quick" and old and self.visible and self.mode == "quick":
+                was = {t[0] for t in tiles_of(old) if t[4]}
+                for t in tiles_of(new):
+                    if t[4] and t[0] not in was:
+                        self.stamps[t[0]] = self.ui.now()
+                        self.ui.later(STAMP_MS, lambda k=t[0]: self.ui.redraw(*[i for i in self.items if i.key == k]))
             for k in METERS:
                 if k in old and self.held(k, mode):
                     new[k] = old[k]
@@ -1924,6 +1970,9 @@ def main(argv):
         def later(self, ms, fn):
             GLib.timeout_add(ms, lambda: fn() and False)
 
+        def now(self):
+            return time.monotonic()
+
         def hide(self):
             if view["win"]:
                 w, view["win"], view["area"] = view["win"], None, None
@@ -2530,12 +2579,27 @@ def main(argv):
                 return
             segments(cr, it, Panel.slider_x(it), it.y + (ROW - SEG_H) // 2, pct, on)
         elif it.kind == "tile":
-            # its picture on rows 0–1 (14 px, the two rows' middle), its name on row 2, its state
-            # on row 3, all from x 8
-            pic(cr, it.x + CELL, it.y + ROW - 7, ic[it.icon], lk["glyph"])
-            tw = it.w - 2 * CELL
-            text(cr, it.x + CELL, it.y + 2 * ROW + (ROW - LINE) // 2, it.name, lk["label"], width=tw)
-            text(cr, it.x + CELL, it.y + 3 * ROW + (ROW - LINE) // 2, it.value, lk["value"], width=tw)
+            # its crest (§4): a seal 28 px across on the tile's middle column, its top 4 px in —
+            # on, pressed (vermilion, a paper ring 2 px inside its edge, the picture knocked out
+            # in paper; the moment it is stamped a pixel larger in accent_hi), off, its outline;
+            # under the cursor's vermilion in text_on_accent. Its name and state centred under it
+            cx, cy = it.x + it.w // 2, it.y + CREST_TOP + CREST_R
+            if lk["seal"]:
+                big = not on and panel.stamping(it.key)       # (the stamp's moment: §11)
+                r = CREST_R + (1 if big else 0)
+                for dy, a, b in disc_rows(r):
+                    box(cr, cx + a, cy + dy, b - a + 1, 1, "accent_hi" if big else lk["seal"])
+                for dy, a, b in disc_rows(r - 2, r - 3):
+                    box(cr, cx + a, cy + dy, b - a + 1, 1, lk["ring"])
+            else:
+                for dy, a, b in disc_rows(CREST_R, CREST_R - 1):
+                    box(cr, cx + a, cy + dy, b - a + 1, 1, lk["outline"])
+            pic(cr, cx - 7, cy - 7, ic[it.icon], lk["glyph"])
+            for row, words, ink in ((2, it.name, lk["label"]), (3, it.value, lk["value"])):
+                if words:
+                    ink_w = text_layout(cr, words).get_pixel_extents()[0]
+                    text(cr, it.x + (it.w - ink_w.width) // 2 - ink_w.x, it.y + row * ROW + (ROW - LINE) // 2,
+                         words, ink, width=it.w - 2 * CELL)
         elif it.kind == "app":                   # (the launcher's: its icon, its name, the answer's "copy")
             ix, iy = it.x + GLYPH_X, it.y + (it.h - APP_ICON) // 2
             pic_ = ic["calc"] if it.app is None else it.app.pic

@@ -193,7 +193,7 @@ approach:
 - Grill each against T09's appendix; fix; re-shoot; repeat until the list is empty; record every measurement as the expected values of the regression gallery.
 accept: grill-r27.md ends with "nothing left"; gallery-expect.json committed and tools/regress/gallery.sh (T52) passes against it.
 
-### T17b — the owner's 14:27 items for the desktop (CLAUDE.md "Added 2026-10-27 14:27"): clean mic gone; a monitor-off button; quick settings made a menu he loves; US/AR in capitals with Caps Lock  [wip — clean mic, screen off, Caps Lock done (r27-17b; Caps live with the next session); left: quick settings' design pass]
+### T17b — the owner's 14:27 items for the desktop (CLAUDE.md "Added 2026-10-27 14:27"): clean mic gone; a monitor-off button; quick settings made a menu he loves; US/AR in capitals with Caps Lock  [done 2026-10-27 — r27-17b: clean mic gone, screen off, Caps Lock (live with the next session), quick settings as crests]
 deps: T17 · model: main · ledger: r27-17b
 files: bin/kawa-panel, bin/kawa-quick, configs/home/.config/pipewire/** (the noise-suppression filter chain and everything that only exists for it), lib/manifest.sh (its package if nothing else needs it), tests/status/*, tests/menus/*, docs (Learn: §sound, quick settings), src/dwl/dwl.patch (Caps Lock reported with the keyboard layout: dwl's status gains the lock state; batch B restart), bin/kawa-dwlstatus + waybar config (the kb tile: "US"/"AR" while Caps Lock is on, "us"/"ar" when off, live — from dwl's own state, no polling), art/icons.txt
 approach:

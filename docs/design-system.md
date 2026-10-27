@@ -187,15 +187,15 @@ screen and the bar's paper share one rhythm.
   by their ink. Two or three share a row, 8 apart, the row the content's width; an icon-only key
   is 20 × 20.
 - **Tile** (quick settings): 120 × 80, `key` fill, 1 px `edge` frame — the same on and off: the
-  state is the crest's. The crest: a seal 28 px across, centred on the tile's middle column, its
-  top 4 px under the frame; its picture (14 px, each its own drawing — no two alike) in the
-  middle. On — the seal pressed: a vermilion disc (`accent`) with a ring of paper (`key`) 2 px
-  inside its edge, the picture knocked out in paper — the bar's stamp and the hanko of "chosen",
-  one mark; off — the seal's outline in `edge2`, the picture `muted`. Its name centred on row 2
-  (`text` on, `muted` off), its state centred on row 3 (`strong` on, `faint` off). Under the
-  cursor's vermilion: the crest in `text_on_accent`. Turned on, the seal is stamped (§11's stamp:
-  a pixel larger all round in `accent_hi` for two frames, then its size); turned off, its outline
-  at once.
+  state is the crest's. The crest: a seal 28 px across, centred on the tile's middle column, 4 px
+  of air between it and the frame — as between the state and the frame below; its picture (14
+  px, each its own drawing — no two alike) in its middle. On — the seal pressed: a vermilion disc
+  (`accent`) with a ring of paper (`key`) 2 px inside its edge, the picture knocked out in paper —
+  the bar's stamp and the hanko of "chosen", one mark; off — the seal's outline in `edge2`, the
+  picture `muted`. Its name centred on row 2 (`text` on, `muted` off), its state centred on row 3
+  (`strong` on, `faint` off). Under the cursor's vermilion: the crest in `text_on_accent`. Turned
+  on, the seal is stamped (§11's stamp: a pixel larger all round in `accent_hi` for 60 ms, then its
+  size); turned off, its outline at once.
 - **Meter**: its icon and name as a row's, then 20 segments (§3), right-aligned before the value.
   Lit segments `asagi`; over 80 % the 17th–18th `flame` and the 19th–20th `accent` (it reddens
   as it rises); unlit `edge`. A level between two segments lights the last one partly, from the
@@ -388,7 +388,7 @@ stamp is a choice made, a scroll is something long opening.
 | login → desktop | the scene dissolves into the desktop; the bar's tiles stamp in from left to right, 30 ms apart | 900 |
 | a theme switch · a new wallpaper | the wash (kawa-saver --wash): five drops of the new mood's darkest ink land on the old picture and bleed out along a paper grain in 3 px pixels, a wet rim at their edge; the pointer's picture changes the moment the wash reaches it | 1200 |
 | the screensaver leaves | dissolves off | 180 |
-| a stamp (a toggle switched on, the workspace seal) | down: 1 px larger all round in `accent_hi` for two frames, then its size in `accent` | 120 |
+| a stamp (a toggle switched on — quick settings' seal —, the workspace seal) | down: 1 px larger all round in `accent_hi`, then its size in `accent` | 60 |
 | a meter changing | its segments light (or go out) one after another | 12 a segment |
 | icons that move (§13) | their frames in a loop, only while the state holds | 6–8 a second |
 

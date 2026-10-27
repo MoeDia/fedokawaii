@@ -999,8 +999,8 @@ def panel_conf(m, p):
     so it takes the colours by name rather than as CSS — and its frame's, as the bar's tiles have
     it (KAMI: the hairline and the shadow's two rows, each with its own opacity: rrggbbaa)."""
     keys = ("ground", "surface", "key", "edge", "edge2", "faint", "muted", "text", "strong", "accent",
-            "accent_text", "accent_lo", "text_on_accent", "asagi", "flame")
-    k = KAMI[m]
+            "accent_text", "accent_lo", "accent_hi", "text_on_accent", "asagi", "flame")
+    k = KAMI[m]   # (accent_hi: a tile's seal the moment it is stamped — design-system §11)
     frame = {"hair": k["hair"], "shadow1": k["shadow"][0], "shadow2": k["shadow"][1]}
     return (f"# {header('~/.config/fedokawaii/current/panel.conf', 'quick settings in ' + NAMES[m])}\n"
             + "".join(f"{k}={p[k]}\n" for k in keys)

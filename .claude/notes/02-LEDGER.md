@@ -816,7 +816,21 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   "us"/"ar" small, "US"/"AR" while Caps Lock is on (C locale: no dotted İ); bar-geometry now
   always runs with two layouts (the tile measured: 8 px to the ink, small letters too) — live
   with the next session (new dwl); a kernel-level key tool for that check: tools/uinput-key.py.
-  Left in T17b: quick settings made a menu he loves (its design pass).
+  Quick settings' design pass (owner: "strong design love … a proper, beautiful menu"; 26–27 Oct
+  "every item unique yet aligned"): grilled — twelve identical boxes, a 14 px picture lost in each
+  corner, "on" only a vermilion frame. Now each setting a crest (kamon) in the world's own
+  language: a seal 28 px across on the tile's middle column (exact pixel masks, the same at every
+  size), on — pressed: a vermilion disc, a paper ring 2 px inside its edge, the picture knocked out
+  in paper (the bar's workspace stamp and the "chosen" hanko: one mark), off — its outline in
+  edge2; name and state centred by their ink; the tiles' frames neutral (the seal carries the
+  state). Air measured: 4 px above the seal and 4 under the state line (moved 1 px after the first
+  shot: 3/4), seal → name 12, name → state 10. Turned on while it shows, the seal is stamped
+  (§11: a pixel larger in accent_hi for 60 ms, then its size; never at an open). Under the
+  cursor: the seal in negative (text_on_accent disc, vermilion ring and picture), the outline in
+  the cursor's ink — shots both themes (rest, cursor on off/on, after Enter). All inks from
+  look() (the panel's rule, its test kept). Mocked first (PIL, two variants: with/without the
+  vermilion frames — without won), design-system §4/§11 rewritten first. Tests: test_panel 502/0
+  (crest masks symmetric, 28 rows; the stamp's timing; look's crest inks), gallery --check held.
 - r27-17c (T17c, copy and paste — the first two problems found, reproduced, fixed; committed with
   this line) Reproduced headless with the session's own helpers (kawa-clipkeep, wl-paste --watch
   kawa-clip --store) and real copies: (1) cliphist 0.7.0 (Fedora's) keeps nothing over 5,000,000
