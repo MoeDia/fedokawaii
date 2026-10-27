@@ -124,6 +124,15 @@ grep -q 'if (!l->mapped && layer_surface->surface->mapped && l->la && l->la->in_
   && grep -q 'ghosttree(m, m->lock_surface->surface->data, layers\[LyrBlock\],' "$P" \
   && _ok || _no "the layer surfaces' dissolves"
 
+case_ "tiled windows making room (a neighbour gone, the master swapped, its share changed) slide from where they are drawn to their places over anim_slide_ms, eased out; a new place mid-slide goes on from where it is, the same place again changes nothing (no restart, no jolt)"
+grep -q '^static const unsigned int anim_slide_ms    = 240;' "$CH" \
+  && grep -q 'if (!interact && slideok(c) && (wasx != c->geom.x || wasy != c->geom.y)' "$P" \
+  && grep -q '&& (fromx != c->geom.x || fromy != c->geom.y)) {' "$P" \
+  && grep -q 'c->slidex = fromx - c->geom.x, c->slidey = fromy - c->geom.y;' "$P" \
+  && grep -q 'dx = (int)lround(c->slidex \* (1.0 - e));' <(added applyframe) \
+  && grep -q '&& (c->anim == AnimNone || c->anim == AnimSlide)' <(added slideok) \
+  && grep -q '!c->isfloating && !c->isfullscreen && !iswarm(c)' <(added slideok) && _ok || _no "the slide"
+
 case_ "tearing (async) flips only while FreeSync is on for the screen (vrr 1)"
 grep -q '^+	if (m->vrr == 1 && (c = focustop(m)) && c->isfullscreen && client_surface(c)$' "$P" && _ok || _no "async flips without FreeSync"
 case_ "an empty cut hides the picture (wlroots takes an empty clip for none)"
