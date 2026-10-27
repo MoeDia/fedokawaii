@@ -18,13 +18,15 @@
 #     --time     the longest the whole run may take, seconds (default 120: a long play needs more)
 #     --bin      DIR first on the kit's PATH (the repository's bin/: its scripts tried before
 #                they are applied; everything else stays the installed state)
+#     --dwl      the dwl binary (default the edited tree's, ~/.local/src/dwl/dwl; the session's
+#                own: /usr/local/bin/dwl)
 #     SCENE      bar · notice · launcher · term · quick (Super+X) · system (Super+U; system:N its
 #                tab N after the first, shot as system-N.png) · tui (--tui) · play (--play) · full (default: bar notice term full)
 # Shots → OUT (default /dev/shm/r27/kit/THEME)/SCENE.png. Exit 0 · 1 a scene failed · 2 misuse.
 set -u
 here=$(cd "$(dirname "$0")" && pwd)
 repo=$(cd "$here/.." && pwd)
-theme=dark out="" fontdir="" fonts=() edits=() scenes=() themes="" tui="" play="" limit=120 bin=""
+theme=dark out="" fontdir="" fonts=() edits=() scenes=() themes="" tui="" play="" limit=120 bin="" dwl_bin=$HOME/.local/src/dwl/dwl
 while (($#)); do
   case $1 in
     --theme) theme=$2; shift 2 ;;
@@ -37,6 +39,7 @@ while (($#)); do
     --play) play=$(realpath "$2"); shift 2 ;;
     --time) limit=$2; shift 2 ;;
     --bin) bin=$(realpath "$2"); shift 2 ;;
+    --dwl) dwl_bin=$(realpath "$2"); shift 2 ;;
     -h|--help) sed -n '2,/^set -u/{/^set -u/d;s/^# \{0,1\}//;p}' "$0"; exit 0 ;;
     -*) echo "kit: unknown option $1" >&2; exit 2 ;;
     *) scenes+=("$1"); shift ;;
@@ -147,7 +150,6 @@ exit \$fail
 EOF
 # (dwl itself in the kit's home and PATH: what it starts — a key's program, a warm window — is
 # the kit's too, never the real home's)
-dwl_bin=$HOME/.local/src/dwl/dwl
 HOME=$h XDG_CONFIG_HOME=$h/.config XDG_CACHE_HOME=$h/.cache XDG_STATE_HOME=$h/.local/state \
   XDG_DATA_HOME=$h/.local/share FONTCONFIG_FILE=$K/fonts.conf \
   PATH=${bin:+$bin:}$h/.local/bin:/usr/local/bin:/usr/bin:/bin \
