@@ -40,6 +40,9 @@ run --repo || finish red "copying the repository in failed"
 # (the harness's marker: a VM's display is allowed, the hardware checks skipped and named —
 # lib/hardware.sh hw_test_vm; never on a real machine)
 run 'sudo mkdir -p /var/lib/fedokawaii && sudo touch /var/lib/fedokawaii/test-vm' || finish red "the test marker could not be set"
+# (built as the PC is: GPU="amd" — the same packages, so an update tested here is his update)
+run 'sed -i "s/^GPU=\"[a-z]*\"/GPU=\"amd\"/" ~/fedokawaii/fedokawaii.conf && grep -q "^GPU=\"amd\"" ~/fedokawaii/fedokawaii.conf' \
+  || finish red "GPU=amd could not be set in the VM's fedokawaii.conf"
 note "sudo bash fedokawaii.sh all — setup with the theme, through its reboots"
 run 'cd ~/fedokawaii && sudo setsid -f bash -c "bash fedokawaii.sh all </dev/null >/tmp/fk-all.out 2>&1"' \
   || finish red "setup did not start"
