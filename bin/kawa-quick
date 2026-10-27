@@ -27,7 +27,8 @@
 #                               PROFILE<TAB>API" (what names it; any but the first may be empty)
 #   kawa-quick --state brightness   the slider's: brightness
 #   kawa-quick --do ACTION [N]  one thing done: theme · night · vrr · bluetooth · dnd (each
-#                               switched over; dnd on|off|hour|morning: set so) · saver (the screensaver on ⇄ off) ·
+#                               switched over; dnd on|off|hour|morning: set so; end: off, as a
+#                               timed one's timer ends it) · saver (the screensaver on ⇄ off) ·
 #                               warmer · cooler (the night light, a step, on) · brightness N · volume N (set, in %) · mute ·
 #                               micmute (the output's, the microphone's, switched over) ·
 #                               output ID · input ID (the default: playing audio moves to it;
@@ -133,7 +134,10 @@ morning() {   # the next 8:00, as seconds
 }
 dnd_set() {
   local end
-  systemctl --user stop kawa-dnd-end.timer kawa-dnd-end.service >/dev/null 2>&1
+  # a timer still waiting stopped first — and its service, but never from inside it: the timer's
+  # own end runs "dnd end", and stopping the service it runs in would kill it before the quiet ends
+  if [[ $1 == end ]]; then systemctl --user stop kawa-dnd-end.timer >/dev/null 2>&1; set -- off
+  else systemctl --user stop kawa-dnd-end.timer kawa-dnd-end.service >/dev/null 2>&1; fi
   rm -f -- "$DND_UNTIL"
   case $1 in
     off) makoctl mode -r do-not-disturb >/dev/null; kawa-state set dnd off ;;
@@ -143,8 +147,9 @@ dnd_set() {
       kawa-state set dnd off                                     # (timed: not kept across a login)
       # (with this PATH: your systemd's own has no ~/.local/bin, where kawa-quick finds
       # kawa-state and kawa-dwlstatus — the bell would stay on the bar)
-      if systemd-run --user --quiet --unit=kawa-dnd-end --on-active="$((end - EPOCHSECONDS))s" \
-           --timer-property=AccuracySec=1s --setenv=PATH="$PATH" -- kawa-quick --do dnd off >/dev/null 2>&1; then
+      # (--collect: gone once it has run, even failed — or the next timed one could not take its name)
+      if systemd-run --user --quiet --collect --unit=kawa-dnd-end --on-active="$((end - EPOCHSECONDS))s" \
+           --timer-property=AccuracySec=1s --setenv=PATH="$PATH" -- kawa-quick --do dnd end >/dev/null 2>&1; then
         echo "$end $1" >"$DND_UNTIL"
         makoctl mode -a do-not-disturb >/dev/null
       else   # (its end could not be set: no quiet at all — one that never ended would hide
@@ -396,7 +401,7 @@ act() {   # act ACTION [N] — the panel's choices
                 else v=on; fi
                 kawa-state set bluetooth "$v" ;;   # (kept: bluetoothd powers it at every boot otherwise)
     dnd)        case ${2:-} in
-                  on|off|hour|morning) dnd_set "$2" ;;
+                  on|off|hour|morning|end) dnd_set "$2" ;;   # (end: the timer's own, below)
                   "") if [[ $(state_dnd) == on ]]; then dnd_set off; else dnd_set on; fi ;;
                   *) usage ;;
                 esac ;;

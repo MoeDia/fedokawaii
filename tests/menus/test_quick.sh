@@ -262,7 +262,7 @@ called '^makoctl mode -r do-not-disturb$'; called '^systemctl --user stop kawa-d
 case_ "dnd for an hour: the end handed to a systemd timer (an hour on), the quiet mode added, NOT kept across a login, the record 'EPOCH hour' written"
 setup; t0=$EPOCHSECONDS; rc 0 quick --do dnd hour
 eq "$(st dnd)" on; eq "$(modes)" "default do-not-disturb"; eq "$(kawa-state get dnd)" off "timed: a login ends it, so it is not kept"
-called "^systemd-run --user --quiet --unit=kawa-dnd-end --on-active=(3600|3599)s --timer-property=AccuracySec=1s --setenv=PATH=$PATH -- kawa-quick --do dnd off\$"
+called "^systemd-run --user --quiet --collect --unit=kawa-dnd-end --on-active=(3600|3599)s --timer-property=AccuracySec=1s --setenv=PATH=$PATH -- kawa-quick --do dnd end\$"
 has "$(grep '^systemd-run ' "$CALLS")" "--setenv=PATH=$PATH" "the end runs with this PATH (your systemd's has no ~/.local/bin: kawa-state, kawa-dwlstatus)"
 read -r end choice <"$(rec)"; eq "$choice" hour
 ((end >= t0 + 3600 && end <= EPOCHSECONDS + 3600)) && _ok || _no "the end $((end - t0)) s from the start, not 3600"
@@ -276,7 +276,7 @@ TZ=$tz rc 0 quick --do dnd morning
 read -r end choice <"$(rec)"; eq "$choice" morning; eq "$end" "$want" "today at 8:00"
 n=$(grep -Eo -- '--on-active=[0-9]+s' "$CALLS" | tr -dc 0-9); ((n >= want - t0 - 3 && n <= want - t0 + 3)) && _ok || _no "the timer is for ${n}s, not $((want - t0))s"
 eq "$(modes)" "default do-not-disturb"; eq "$(kawa-state get dnd)" off "timed: not kept"
-called ' -- kawa-quick --do dnd off$'
+called ' -- kawa-quick --do dnd end$'
 case_ "dnd until the morning, after 8:00: tomorrow's"
 setup; tz=$(tz_at 12); t0=$(TZ=$tz date +%s); want=$(TZ=$tz date -d 'tomorrow 08:00' +%s)
 TZ=$tz rc 0 quick --do dnd morning
@@ -289,9 +289,11 @@ eq "$(grep -c '^systemctl --user stop kawa-dnd-end.timer kawa-dnd-end.service$' 
 eq "$(cut -d' ' -f2 "$(rec)")" morning
 rc 0 quick --do dnd on; [[ ! -e $(rec) ]] && _ok || _no "an untimed one with an end on record"
 eq "$(kawa-state get dnd)" on; eq "$(modes)" "default do-not-disturb"
-case_ "dnd: the timer that ends it runs the same command (kawa-quick --do dnd off): quiet over, record gone, the state follows"
-setup; rc 0 quick --do dnd hour; rc 0 quick --do dnd off
+case_ "dnd: the timer that ends it runs kawa-quick --do dnd end — quiet over, record gone, the state follows, the bell poked; only the timer stopped, never the service it runs in (that would kill it first)"
+setup; rc 0 quick --do dnd hour; reset_calls; rc 0 quick --do dnd end
 eq "$(st dnd)" off; eq "$(modes)" default; [[ ! -e $(rec) ]] && _ok || _no "the record is left"
+called '^systemctl --user stop kawa-dnd-end.timer$'; not_called 'stop kawa-dnd-end.timer kawa-dnd-end.service'
+called '^makoctl mode -r do-not-disturb$'; called '^kawa-dwlstatus --poke 12$'; eq "$(kawa-state get dnd)" off
 case_ "dnd timed, but systemd cannot set its end: NO quiet at all (one that never ended would hide every notice for good), a notice says why"
 setup; stub systemd-run 'exit 1'
 for w in hour morning; do
@@ -359,7 +361,7 @@ case_ "the dropdown: a choice sets it (the line's number) — off, an hour, the 
 setup; echo do-not-disturb >>"$W/modes"; answer "row 1"; rc 0 dndm
 eq "$(modes)" default "off: the quiet mode taken away"; called '^makoctl mode -r do-not-disturb$'
 setup; answer "row 2"; rc 0 dndm
-eq "$(modes)" "default do-not-disturb" "an hour: quiet"; called '^systemd-run --user --quiet --unit=kawa-dnd-end --on-active=(3600|3599)s '
+eq "$(modes)" "default do-not-disturb" "an hour: quiet"; called '^systemd-run --user --quiet --collect --unit=kawa-dnd-end --on-active=(3600|3599)s '
 eq "$(cut -d' ' -f2 "$(rec)")" hour
 setup; answer "row 3"; rc 0 dndm
 eq "$(modes)" "default do-not-disturb" "the morning: quiet"; eq "$(cut -d' ' -f2 "$(rec)")" morning
