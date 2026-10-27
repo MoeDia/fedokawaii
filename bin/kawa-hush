@@ -57,7 +57,7 @@ if [[ $how == tell ]]; then
   [[ $act == default ]] || exit 0
   # (報 and when, then an info row a notice — its title, its app right-aligned: nothing in it
   # to choose, a notice gone by is only read)
-  rows=("$(printf 'part\t報\t%s' "$when")")
+  rows=("$(printf 'part\t%s\t%s' "$ICON_BELL_OFF" "$when")")
   for h in "${held[@]}"; do
     app=${h%%$'\037'*} sum=${h#*$'\037'}
     rows+=("$(printf 'info\t%s\t%s\t\t%s' "$ICON_BELL" "$(cut_cols "${sum:-untitled}" 40)" "$app")")

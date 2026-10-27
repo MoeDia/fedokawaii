@@ -94,7 +94,7 @@ if [[ -z ${1:-} ]]; then
   # the key while one runs: it stops; else the choice, then the recording in a session of its own
   if running >/dev/null; then exec "$0" stop; fi
   exec 9>"$RUN/kawa-record.lock"; flock -n 9 || exit 0   # (a held key: one menu)
-  i=$(printf '%s\n' "part	録	record" \
+  i=$(printf '%s\n' "part	$ICON_RECORD	record" \
         "row	$ICON_PICTURE	whole screen		no sound" \
         "row	$ICON_SPEAKER	whole screen		with sound" \
         "row	$ICON_TILE	a region		no sound" \

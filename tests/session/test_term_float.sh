@@ -30,7 +30,7 @@ LOCDIR=$(mktemp -d "${TMPDIR:-/tmp}/kawa-test-loc.XXXXXX")
 localedef -i tr_TR -f UTF-8 "$LOCDIR/tr_TR.UTF-8" >/dev/null 2>&1 & LOCPID=$!
 # mkinside — "inside", what runs in the window: logs its arguments and whether it holds the
 # --once lock (fd 9); waits for the file $KF_WAIT if set (the window stays open), exits $KF_RC
-mkinside() { stub inside '[ -e /proc/self/fd/9 ] && echo "inside holds fd 9" >>"'"$CALLS"'"; [ -n "$KF_WAIT" ] && while [ ! -e "$KF_WAIT" ]; do /bin/sleep 0.05; done; exit "${KF_RC:-0}"'; }
+mkinside() { stub inside '[ -e /proc/self/fd/9 ] && echo "inside holds fd 9" >>"'"$CALLS"'"; [ -n "$KF_WAIT" ] && while [ ! -e "$KF_WAIT" ]; do [ -d "${KF_WAIT%/*}" ] || exit 1; /bin/sleep 0.05; done; exit "${KF_RC:-0}"'; }
 
 case_ "the terminal server opens it: app-id float, the title, the size; the command runs inside; exit 0"
 setup; mkinside

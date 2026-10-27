@@ -89,11 +89,12 @@ wlopm                           the screens off
 wayland-utils                   wayland-info, a command (the health report)
 ddcutil                         monitor brightness: the bar's brightness
 wtype                           the bar's clicks
+wlrctl                          the self-tests' pointer (tools/kit-play.sh: a menu clicked, hovered)
 wl-clipboard                    the clipboard's commands (Clipboard is its history)
 cliphist                        the clipboard's history store (Clipboard shows it)
 grim                            the screenshot's capture (Print)
 slurp                           the screenshot's region (Print)
-gammastep                       the night light: quick settings' 灯 switches it
+gammastep                       the night light: quick settings' lantern switches it
 libnotify                       notify-send, a command
 xdg-desktop-portal-wlr          a portal: screen sharing
 xdg-desktop-portal-gtk          a portal: settings, printing
@@ -199,7 +200,7 @@ kawa-idle                       what happens while you are away
 kawa-lock                       the lock: Super+Escape
 kawa-mem                        the bar's memory
 kawa-menu                       the menus' and the launcher's look
-kawa-night                      the night light: quick settings' 灯
+kawa-night                      the night light: quick settings' lantern
 kawa-nowplaying                 the bar's now-playing
 kawa-osd                        the level display
 kawa-panel                      the panels: quick settings (Super+X), sound (Super+A)

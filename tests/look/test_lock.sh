@@ -18,7 +18,7 @@ FAKE_LOCK='echo "LANGUAGE=$LANGUAGE LC_TIME=$LC_TIME" >>"$FAKE_TMP/gtklock.env"
 trap "exit 0" TERM
 echo "gtklock $$" >>"$FAKE_PROCS"
 while [ $# -gt 0 ]; do [ "$1" = --lock-command ] && sh -c "$2"; shift; done
-while [ ! -e "$FAKE_TMP/unlock" ]; do /bin/sleep 0.05; done
+while [ ! -e "$FAKE_TMP/unlock" ]; do [ -d "$FAKE_TMP" ] || exit 1; /bin/sleep 0.05; done
 exit 0'
 setup() {
   look
@@ -127,7 +127,7 @@ argv gtklock 'echo "gtklock $$" >>"$FAKE_PROCS"
 while [ $# -gt 0 ]; do [ "$1" = --lock-command ] && sh -c "$2"; shift; done
 n=$(cat "$FAKE_TMP/n" 2>/dev/null || echo 0); echo $((n + 1)) >"$FAKE_TMP/n"
 [ "$n" -lt 3 ] && kill -KILL $$
-while [ ! -e "$FAKE_TMP/unlock" ]; do /bin/sleep 0.05; done'
+while [ ! -e "$FAKE_TMP/unlock" ]; do [ -d "$FAKE_TMP" ] || exit 1; /bin/sleep 0.05; done'
 start=$SECONDS; rc 0 kawa-lock
 for _ in {1..150}; do (( $(locks) >= 4 )) && break; /bin/sleep 0.1; done   # (three pauses of a second: up to 15 s on a busy machine)
 (( $(locks) >= 4 )) || _no "not started again each time: $(locks)"

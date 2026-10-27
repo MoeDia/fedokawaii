@@ -1,23 +1,21 @@
 #!/usr/bin/env bash
 # tests/status/test_osd.sh — kawa-osd, the level display of the volume, microphone and
 # brightness keys: one panel that updates in place (mako's synchronous tag), drawn as quick
-# settings' meter row (docs/design-system.md) — the glyph, the name in 12 columns, the
-# slider drawn by the panel's own rule (its knob where kawa-panel puts it), a 4-column number. The notice daemon is lib.sh's fake.
+# settings' old meter row — the glyph, the name in 12 columns, a 190 px slider (its fill to the
+# nearest pixel, a 4 px knob on its end), a 4-column number. (Quick settings' meters are twenty
+# segments now: T15 rebuilds this display on them, a surface of the panel's own — until then
+# it keeps the slider's own rule, checked here.) The notice daemon is lib.sh's fake.
 . "$(dirname "$0")/lib.sh"
 setup() { box; notices; . "$HOME/.config/fedokawaii/icons.sh"; . "$HOME/.config/fedokawaii/current/colors.sh"; }
 body() { sed -n "\$s/^NOTICE [0-9]* osd | [^|]* | //p" "$NOTIFY_STATE/log"; }   # the last panel's markup
-# panel_knob PCT — where kawa-panel's own slider puts its knob for PCT (its knob_of, run alone)
+# panel_knob PCT — where the slider's rule puts its knob for PCT: the fill to the nearest of its
+# 190 px (all of it above 100 %), the 4 px knob centred on the fill's end, kept on the rule
 panel_knob() {
-  python3 -I - "$REPO/bin/kawa-panel" "$1" <<'EOF'
-import ast, sys
-src = open(sys.argv[1]).read()
-tree = ast.parse(src)
-keep = [n for n in tree.body if isinstance(n, ast.FunctionDef) and n.name in ("fill_of", "knob_of")
-        or isinstance(n, ast.Assign) and any(getattr(t, "id", "") == "SPAN" for t in getattr(n.targets[0], "elts", n.targets))]
-ns = {}
-exec(compile(ast.Module(body=keep, type_ignores=[]), "kawa-panel", "exec"), ns)
-print(ns["knob_of"](int(sys.argv[2])))
-EOF
+  local span=190 knob=4 fill=0 k
+  (($1 > 0)) && fill=$(( ($1 * span * 2 + 100) / 200 ))
+  ((fill > span)) && fill=$span
+  k=$((fill - knob / 2)); ((k < 0)) && k=0; ((k > span - knob)) && k=$((span - knob))
+  echo "$k"
 }
 
 # ── what it shows ────────────────────────────────────────────────────────────
@@ -27,7 +25,7 @@ rc 0 kawa-osd 明 brightness 70
 eq "$(osd | cut -d'|' -f2-)" "明  brightness|70%|131/192"
 called '^notify-send -a osd -c osd -u low -h int:transient:1 -h string:x-canonical-private-synchronous:osd '
 
-case_ "the slider: its knob where the panel's meter puts it, its width 192 px, at every level"
+case_ "the slider: its knob where its rule puts it, its width 192 px, at every level"
 for p in $(seq 0 100); do
   kawa-osd "$ICON_VOL_2" volume "$p"
   eq "$(osd | cut -d'|' -f3-)" "$p%|$(panel_knob "$p")/192" "at $p %"
@@ -81,11 +79,10 @@ v=$(for p in 5 70 100; do kawa-osd 明 brightness "$p"; body | sed -e "s/.*<span
     kawa-osd 明 brightness 5 off; body | sed -e "s/.*<span color='#$C_FAINT'>//" -e 's/<.*//')
 eq "$(printf '%s\n' "$v" | awk '{ print length($0) }' | sort -u)" 4 "every value 4 columns: [$(tr '\n' '|' <<<"$v")]"
 has "$(body)" "$ICON_GAP</span> <span color='#$C_FAINT'>" "7 px (a space) after the slider's 2 px of air, then the number"
-case_ "where mako puts it: the glyph's pen where the panel's meter row has its glyph, the slider where the panel's starts; 412 × 60"
+case_ "where mako puts it: the glyph's pen at x 26, the slider from x 134 to its number, all inside the 412 × 60 panel"
 eq "$(python3 -I -B - "$REPO" <<'EOF' 2>&1
-import importlib.machinery as m, importlib.util as u, re, sys
-sys.modules["gi"] = None
-l = m.SourceFileLoader("kp", sys.argv[1] + "/bin/kawa-panel"); k = u.module_from_spec(u.spec_from_loader("kp", l)); l.exec_module(k)
+import re, sys
+COL, SPAN = 7, 190                                         # (a column of Sumi UI; the slider)
 conf = open(sys.argv[1] + "/configs/home/.config/mako/config").read()
 top, osd = conf.split("[category=osd]")[0], conf.split("[category=osd]")[1].split("\n[")[0]
 get = lambda part, key: (re.findall(rf"^{key}=(.*)$", part, re.M) or [None])[-1]
@@ -93,10 +90,9 @@ pad = [int(x) for x in (get(osd, "padding") or get(top, "padding")).split(",")]
 pad = pad * 2 if len(pad) == 1 else pad
 border = int(get(top, "border-size")); width = int(get(osd, "width") or get(top, "width"))
 pen = border + pad[1]
-squares = pen + 2 * k.COL + k.COL + 12 * k.COL + 3       # (the glyph, a space, the name's 12 columns, 3 px of air)
-x0 = k.BORDER + k.PAD                                      # (the panel's meter: a row of the panel's inner width)
-print(pen == x0 + k.GAP, squares == x0 + k.INNER - k.TRAIL - k.SPAN, width, 2 * border + 2 * pad[0] + 24,
-      squares + k.SPAN + 2 + k.COL + 4 * k.COL <= width - border - pad[1])
+squares = pen + 2 * COL + COL + 12 * COL + 3             # (the glyph, a space, the name's 12 columns, 3 px of air)
+print(pen == 26, squares == 134, width, 2 * border + 2 * pad[0] + 24,
+      squares + SPAN + 2 + COL + 4 * COL <= width - border - pad[1])
 EOF
 )" "True True 412 60 True"
 eq "$(kawa-osd 明 "a very long label here" 50; osd | cut -d'|' -f2)" "明  a very long label here" "the title is whole…"

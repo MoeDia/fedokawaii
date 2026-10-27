@@ -152,8 +152,8 @@ button, button:hover, button:active, button:checked { background: none; box-shad
 #custom-brightness   { color: @text; }
 #custom-weather      { color: @text; }
 #custom-weather.stale { color: @muted; }   /* a forecast over an hour old: said quietly */
-/* the mode — 静 quiet, 共有 shared — a kanji in the day's place of honour: quiet in faint
-   ink, a shared screen in vermilion */
+/* the mode — the quiet bell, the sharing monitor — beside the clock: quiet in muted ink, a
+   shared screen in vermilion */
 #custom-mode.dnd   { color: @muted; }
 #custom-mode.share { color: @accent-text; }
 /* 録 and the time gone by while the screen is recorded: vermilion (a click stops it) */

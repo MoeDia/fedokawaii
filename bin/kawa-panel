@@ -31,33 +31,36 @@ after an odd number, closed after an even one.
 
 Quick settings, top to bottom, on one 16 px grid (the day, the time, the weather and the
 volume's number are the bar's, right above it, so they are not said again here):
-    two meters    明 brightness and 音 sound: a slider each (their levels are the
-                  bar's), or the words when there is no level; Enter (or a click on its
-                  name) on 音 sound opens the sound panel
+    two meters    brightness and sound: twenty segments each (their levels are the bar's),
+                  reddening as they rise, hollow while muted; the words when there is no
+                  level; Enter (or a click on its name) on sound opens the sound panel
     the tiles     theme · night light · freesync · network · bluetooth · devices (those two
-                  only with a Bluetooth adapter) · drives · backup · dnd · screensaver — each
-                  its icon, a kanji seal, its name and how it stands; the seal is stamped
-                  vermilion while the thing is on (the night light: its warmth, the wheel over
-                  it warmer or cooler; the screensaver: on or off)
-    three keys    wallpaper · screenshot · power (its icon alone), centred
-The sound panel, three parts under kanji seals: 音 sound — the volume's slider (its fill hollow
-while muted; its icon the bar's) and two keys, mute and mixer (wiremix) · 出 output and
-入 input — every device (not "Share"), the one in use ticked: a click makes another the
-default, playing audio moves to it · the input's foot: while the clean mic is on, its level
-live (a meter that only shows: pw-record reads it while the panel is open, nothing after),
-mute microphone, then clean mic ▣/□ (the default input clean ⇄ raw, at once; what records
-moves with it) and test mic (5 s recorded, played back: kawa-quick --do mictest).
+                  only with a Bluetooth adapter) · drives · backup · dnd · screensaver ·
+                  record · read text — each its own 14 px picture (the theme's: the moon, the
+                  rising sun), its name and how it stands; on, its frame and picture vermilion
+                  (the night light: its warmth, the wheel over it warmer or cooler)
+    three keys    wallpaper · screenshot · power (its icon alone)
+The sound panel, three parts under their headings: sound — the volume's meter (hollow while
+muted; its icon the bar's) and two keys, mute and mixer (wiremix) · output and input — every
+device (not "Share"), the one in use ticked: a click makes another the default, playing audio
+moves to it · the input's foot: while the clean mic is on, its level live (a meter that only
+shows: pw-record reads it while the panel is open, nothing after), mute microphone, then clean
+mic ▣/□ (the default input clean ⇄ raw, at once; what records moves with it) and test mic (5 s
+recorded, played back: kawa-quick --do mictest).
 The brightness slider: the brightness meter alone, as in quick settings.
+Everything on docs/design-system.md's grid (§3–§4): rows of 20 px, a heading's icon, name and
+rule, keys one row high, tiles of 120 × 80, the frame's hairline (its corners left out) and the
+bar's shadow — sized in whole cells.
 Opened by a click on the bar, each hangs right under the pointer (dwl's dwl-pointer, written
 as it clicks), kept 8 px inside its output; opened by its key, under its own module: quick
 settings at the right end, the others under the volume and the brightness (fixed margins,
 measured on a 1920 px bar).
 
-The pointer draws no box: the item under it keeps its look, only its icon (a meter's kanji)
-and its name turn vermilion — at once, no easing, also right after it opens. A click does
-what is under the pointer. The keyboard's cursor (filled in vermilion) is not there until a
-key asks for it: the first arrow, Tab or Enter puts it on the first item, every open starts
-without it (nothing remembered from the last time).
+One light (§5): the cursor — filled in vermilion — is the keyboard's place and the pointer's:
+the item under the pointer takes it at once (no easing, also right after it opens), a key
+moves it from there. It is not there until a key or the pointer asks for it: the first arrow,
+Tab or Enter puts it on the first item, every open starts without it (nothing remembered from
+the last time). A click does what is under the pointer.
 
 Keys: arrows or h j k l move · on a meter ← → (h l) change it by 5 (the slider's from the
 first press: it is all there is) · Enter or Space does it · Tab goes round · Esc closes.
@@ -116,25 +119,30 @@ COUNTS = os.path.join(HOME, ".cache/fedokawaii/launcher-counts")   # how often e
 # asked for the menu while it is open; its module is poked (SIGRTMIN+N), the timer's woken
 DROP = os.path.join(RUN, "kawa-drop.open")
 DROP_POKE = {"kawa-calendar": "19", "kawa-drives": "13", "kawa-steam": "17", "kawa-weather": "18",
-             "kawa-tag": "9", "kawa-timer": None, "kawa-downloads": "21"}
+             "kawa-tag": "9", "kawa-timer": None, "kawa-downloads": "21",
+             "kawa-quick": "12"}      # (do not disturb's dropdown: the bar's quiet bell)
 
-# ── the grid (pixels) ─────────────────────────────────────────────────────────────────────
-# (docs/design-system.md §3; Sumi UI at 14 px — a 7 px column a letter; the rest of this grid is
-# the old one until T13 lays the panels on the 8 × 20 cell)
-BORDER, PAD = 2, 16                  # the frame and the margin inside it
+# ── the grid (pixels): docs/design-system.md §3–§4 — every column on 8 px, every row 20 ───────
+CELL, ROW = 8, 20                    # the cell: the terminal's, and every surface's
+HAIR, PAD = 1, 16                    # the frame's hairline; the paper from it to the content, all round
+BORDER = HAIR                        # (the content starts BORDER + PAD from the frame's outer edge)
+SHADOW_R, SHADOW_B = 1, 2            # the frame's shadow: a column at its right, two rows under it
 TILE_W, TILE_H, GAP = 120, 80, 8     # three tiles a row: 3 × 120 + 2 × 8 = 376, the content
-INNER = 3 * TILE_W + 2 * GAP
+INNER = 3 * TILE_W + 2 * GAP         # 376: 47 cells (quick settings, the sound panel, the launcher)
 COL = 7                              # a column of Sumi UI: a letter (a kanji or kana: two)
-LINE = 14                            # a line of text, Sumi UI (its em)
-SEAL = 26                            # a seal: a 16 px kanji, 4 px of paper and a 1 px frame all round
-RULE = 29                            # a section's rule: 14 px, the stitch, 14 px
-METER_H, METER_GAP = 24, 2           # a row (its words 4 px from the top), 2 px between rows
-SPAN, KNOB, KNOB_H, FILL_H, TRACK_H = 190, 4, 14, 6, 2   # a meter's slider (below: one rule both ways)
-KEY_H = 32                           # a key button (quick settings' foot: 164 · 164 · 32, power)
-SECTION = 24                         # the sound panel: a part's last row to the next seal
-NAME_X = GAP + LINE + GAP            # a row's name: its glyph's column, then a gap
-STAMP = "outline"                    # how a tile's seal is stamped (see seal() in main)
-
+LINE = 14                            # Sumi UI's em: in a row, on its rows 3–16 (capitals 5–14)
+METER_H, METER_GAP = ROW, 0          # a row, and the rows' air between them: none (theirs is inside)
+GLYPH_COL = 2 * CELL                 # the icon column: 16 px, an icon centred in it (2 px either side)
+GLYPH_X, NAME_X = CELL, 4 * CELL     # a row's icon column (cell 1: the icon on x 10–21) · its name (cell 4)
+HEAD_X = 3 * CELL                    # a heading's name (cell 3: its icon in the column at cell 0)
+HEAD_H = ROW + GAP                   # a heading: its row, then 8 px of air
+SECTION = ROW                        # the air above a heading (none at a panel's top)
+KEY_H = ROW                          # a key: one row high, its 1 px frame inside the row
+GROUP = 2 * GAP                      # the air between a panel's groups (the meters, the tiles, the keys)
+SEGS, SEG_W, SEG_H = 20, 6, 10       # a meter: 20 segments 6 × 10 px, one a cell (2 px of air) — 5 % each
+SPAN = SEGS * CELL                   # 160: the segments' run
+CELL_W = 5 * CELL                    # a calendar's day: 40 px, 8 apart — 7 × 40 + 6 × 8 = 328, three keys of 104
+DOT = 6                              # the chosen one's dot (one of several: an output, a mode), round
 
 
 def icons(path=ICONS_SH):
@@ -165,13 +173,14 @@ def glass():
 
 
 def colours(path):
-    """panel.conf: NAME=rrggbb → NAME: (r, g, b) in 0…1."""
+    """panel.conf: NAME=rrggbb → NAME: (r, g, b) in 0…1; NAME=rrggbbaa (the frame's hairline
+    and shadow) → (r, g, b, a)."""
     out = {}
     for line in open(path, encoding="utf-8"):
         line = line.strip()
         if line and not line.startswith("#") and "=" in line:
             k, v = line.split("=", 1)
-            out[k] = tuple(int(v[i:i + 2], 16) / 255 for i in (0, 2, 4))
+            out[k] = tuple(int(v[i:i + 2], 16) / 255 for i in range(0, len(v), 2))
     return out
 
 
@@ -322,42 +331,35 @@ def vol_icon(pct, muted):
     return f"vol_{min(4, (pct + 24) // 25)}"
 
 
-# ── a meter's slider and its level: one rule both ways ────────────────────────────────────
-# A 190 px rule: the track (2 px, faint) filled 6 px tall in asagi up to the level, the knob —
-# an ink rod, 4 × 14 — centred on the fill's end with a pixel of air either side, a tick (1 × 6)
-# at each quarter of the track still showing. The level and the pixels are each other's
-# inverse: a level fills fill_of(level) pixels (to the nearest, 1 % ≈ 1.9 px); a pointer `off`
-# pixels into the rule means the level whose fill ends there — the knob's middle is always
-# under the pointer. Left of the rule is 0, its end and beyond 100. kawa-osd draws the same
-# pixels from its glyphs (art/icons.txt: lv-*).
+# ── a meter: twenty segments, one rule both ways (docs/design-system.md §4) ──────────────
+# Twenty segments, 6 × 10 px, one a cell (2 px of air between): 5 % each. A level lights its
+# whole segments and the next one partly, from the bottom, two rows a percent — every level has
+# its own pixels. Lit: asagi; the 17th–18th flame, the 19th–20th accent (it reddens as it rises);
+# unlit: edge. A click or a drag sets the level of the segment under the pointer, lit to its
+# top: a pointer `off` px into the run means level_at(off). kawa-osd draws the same segments.
 
 
-def fill_of(pct):
-    """How many pixels of the rule a level fills (0…190); above 100 % (the mixer's) all."""
+def lit_of(pct):
+    """(whole segments, rows of the next one) a level lights: 5 % a segment, 2 rows a percent."""
     if pct is None or pct <= 0:
-        return 0
-    return min(SPAN, (pct * SPAN * 2 + 100) // 200)
+        return 0, 0
+    pct = min(100, pct)
+    return pct // 5, (pct % 5) * 2
 
 
-def knob_of(pct):
-    """Where the knob starts on the rule: centred on the fill's end, kept on the rule."""
-    return max(0, min(SPAN - KNOB, fill_of(pct) - KNOB // 2))
-
-
-def ticks():
-    """The quarter ticks' columns on the rule."""
-    return [(SPAN * q * 2 + 4) // 8 for q in (1, 2, 3)]
+def seg_ink(i):
+    """The ink a lit segment takes (i from 0): asagi; the 17th–18th flame, the 19th–20th accent."""
+    return "accent" if i >= SEGS - 2 else "flame" if i >= SEGS - 4 else "asagi"
 
 
 def level_at(off):
-    """The level a pointer `off` pixels right of the rule's left edge means (any number: a
-    drag past either end holds that end)."""
+    """The level a pointer `off` px right of the segments' left edge means: the segment under it
+    (or the air after it) lit to its top; left of the run 0, its end and beyond 100 (a drag past
+    either end holds that end)."""
     o = int(off // 1)
-    if o <= 0:
+    if o < 0:
         return 0
-    if o >= SPAN:
-        return 100
-    return min(100, (o * 200 + SPAN) // (2 * SPAN))
+    return min(100, (o // CELL + 1) * 5)
 
 
 def snap(now, d):
@@ -396,7 +398,7 @@ def where(click, w):
     if click:
         x, out_x, out_x_w = click
         return "left", hang(x, out_x, out_x_w, w), out_x
-    return "right", EDGE, None
+    return "right", EDGE - SHADOW_R, None      # (its right hairline EDGE px in; its shadow past it)
 
 
 def menu_place(drop, click, w, middle=False):
@@ -446,30 +448,32 @@ def vrr_shown(s):
 
 
 def tiles_of(s):
-    """(key, icon, kanji, name, value, stamped) for each tile, in order."""
+    """(key, picture, name, value, on) for each tile, in order: each its own 14 px picture
+    (art/icons.txt tile-*), the theme's the mood it is in — the moon at night, the sun rising."""
     dark = s.get("theme", "dark") != "light"
     net = s.get("nettype", "offline")
-    t = [("theme", "moon" if dark else "sun", "夜" if dark else "昼", "theme", "dark" if dark else "light", True),
-         ("night", "lantern", "灯", "night light", s.get("night", "off"), s.get("night", "off") != "off"),
-         ("vrr", "window", "滑", "freesync") + vrr_shown(s),
-         ("network", {"ethernet": "ethernet", "wifi": "wifi"}.get(net, "offline"), "網", "network",
+    dnd = s.get("dnd") == "on"
+    t = [("theme", "tile_moon" if dark else "tile_sun", "theme", "dark" if dark else "light", True),
+         ("night", "tile_lantern", "night light", s.get("night", "off"), s.get("night", "off") != "off"),
+         ("vrr", "tile_wave", "freesync") + vrr_shown(s),
+         ("network", {"ethernet": "tile_ethernet", "wifi": "tile_wifi"}.get(net, "tile_offline"), "network",
           s.get("network", "offline"), net in ("ethernet", "wifi") or s.get("network", "offline") != "offline")]
     if "bluetooth" in s:
         dev = s.get("devices", "off")
-        t += [("bluetooth", "bluetooth", "青", "bluetooth", s["bluetooth"], s["bluetooth"] == "on"),
-              ("devices", "headphones", "対", "devices", dev, dev not in ("none", "off"))]
+        t += [("bluetooth", "tile_bluetooth", "bluetooth", s["bluetooth"], s["bluetooth"] == "on"),
+              ("devices", "tile_devices", "devices", dev, dev not in ("none", "off"))]
     b = s.get("backup", "not set up")
-    t += [("drives", "drive", "盤", "drives", s.get("drives", "none"), s.get("drives", "none") != "none"),
-          ("backup", "archive", "蔵", "backup", b, b not in ("never", "not set up")),
-          ("dnd", "bell_off" if s.get("dnd") == "on" else "bell", "静", "dnd", s.get("dnd", "off"), s.get("dnd") == "on"),
-          ("saver", "hourglass", "夢", "screensaver", s.get("saver", "off"), s.get("saver", "off") != "off"),
+    t += [("drives", "tile_drive", "drives", s.get("drives", "none"), s.get("drives", "none") != "none"),
+          ("backup", "tile_backup", "backup", b, b not in ("never", "not set up")),
+          ("dnd", "tile_bell_off" if dnd else "tile_bell", "dnd", s.get("dnd", "off"), dnd),
+          ("saver", "tile_saver", "screensaver", s.get("saver", "off"), s.get("saver", "off") != "off"),
           # the screen's two captures beside the foot's screenshot: a recording (its menu —
-          # whole or a region, sound or none —, or stopped while one runs: stamped then) and
-          # a region's words read onto the clipboard (kawa-screenshot text)
-          ("record", "cassette_a", "録", "record", "recording" if s.get("record") == "on" else "off", s.get("record") == "on"),
-          ("ocr", "note", "読", "read text", "a region", False)]
+          # whole or a region, sound or none —, or stopped while one runs: on then) and a
+          # region's words read onto the clipboard (kawa-screenshot text)
+          ("record", "tile_record", "record", "recording" if s.get("record") == "on" else "off", s.get("record") == "on"),
+          ("ocr", "tile_read", "read text", "a region", False)]
     # (each value as much as its tile shows: a gap each side, 104 px of words)
-    return [(k, i, j, n, fit(v, TILE_W - 2 * GAP), on) for k, i, j, n, v, on in t]
+    return [(k, i, n, fit(v, TILE_W - 2 * GAP), on) for k, i, n, v, on in t]
 
 
 def rows_of(n):
@@ -497,7 +501,7 @@ class Layout:
 # ── a menu (kawa-panel --menu, kawa-menu's): a list read from its caller ──────────────────
 # One line a thing, its fields apart by tabs; the line's number (from 0) is what --index
 # prints, so a caller's own list of what each line does stays its own:
-#     part  KANJI  NAME [VALUE]     a part's heading: its seal, its name, the stitch to the
+#     part  ICON   NAME [VALUE]     a part's heading: its icon, its name, the rule to the
 #                                   right edge (a value at its end, quiet: "up 03h 07m")
 #     row   GLYPH  NAME [DETAIL [VALUE]]
 #                                   a choice: its glyph (an icon, ▣ □ — any character), its
@@ -522,7 +526,6 @@ class Layout:
 LINE_KINDS = ("part", "row", "on", "off", "info", "key", "cell", "note")
 ROW_KINDS = ("row", "on", "off", "info")
 SHOWN_KINDS = ("off", "info")       # rows drawn but never chosen
-CELL_GAP = 4                         # seven cells a row: 7 × 50 + 6 × 4 = 374, within the content
 MENU_MAX_H = 1080 - 31 - 8 - 8       # (a list taller than the screen under the bar: it scrolls)
 
 
@@ -553,34 +556,37 @@ class Menu:
         self.query = ""
 
     def inner(self):
-        """The content's width: as wide as its widest line needs (a row: a gap, its glyph, a
-        gap, the name — the details' column after the longest name, two gaps on —, the values'
-        column two gaps after the widest words, a gap at the end: columns(); a heading with its
-        value; keys sharing a row, each as wide as the widest; a grid's whole content), or the
-        columns asked for if wider. (Widths in the font's columns: 8 px, a wide letter 16.)"""
+        """The content's width, in whole cells: as wide as its widest line needs (a row: its icon
+        column, the name from cell 4 — the details' column two cells after the longest name —,
+        the values' column two cells after the widest words: columns(); a heading: its icon,
+        its name from cell 3, a run of its rule, its value; keys sharing a row, each as wide as
+        the widest, a cell of air either side of their ink; a month's grid), or the columns
+        asked for if wider. (Widths in the font's columns: 7 px, a wide letter 14.)"""
         rows = [f for _, k, f in self.lines if k in ROW_KINDS]
         dx, vright = columns(rows, px_of)
-        need = [GAP + px_of(self.title) + GAP if self.title else 0, vright + GAP if vright else 0]
+        need = [NAME_X + px_of(self.title) if self.title else 0, vright]
         run = []                                  # (keys one after another: equal, sharing a row)
         for _, k, f in self.lines + [(None, "end", [])]:
             if k == "key":
-                run.append(2 * GAP + LINE + GAP + px_of(fld(f, 1)))
+                run.append(2 * CELL + (12 + GAP if fld(f, 0) else 0) + px_of(fld(f, 1)))
                 continue
             if run:
                 need.append(len(run) * max(run) + (len(run) - 1) * GAP)
                 run = []
             if k in ROW_KINDS:
                 if not fld(f, 3):
-                    need.append((dx + px_of(fld(f, 2)) if fld(f, 2) else NAME_X + px_of(fld(f, 1))) + GAP)
+                    words = dx + px_of(fld(f, 2)) if fld(f, 2) else NAME_X + px_of(fld(f, 1))
+                    need.append(words + (2 * CELL + DOT if k == "on" else 0))
             elif k == "plain":
-                need.append(NAME_X + px_of(f[0]) + GAP)
+                need.append(NAME_X + px_of(f[0]))
             elif k == "part":
-                need.append(SEAL + GAP + px_of(fld(f, 1)) + GAP + 4 * GAP + (GAP + px_of(fld(f, 2)) if fld(f, 2) else 0))
+                need.append(HEAD_X + px_of(fld(f, 1)) + GAP + 4 * CELL + (GAP + px_of(fld(f, 2)) if fld(f, 2) else 0))
             elif k == "cell":
-                need.append(INNER)
+                need.append(7 * CELL_W + 6 * GAP)
             elif k == "note":
-                need.append(GAP + px_of(f[0]) + GAP)
-        return max(need + [COL * self.width + 2 * GAP if self.width else 0, 160])
+                need.append(NAME_X + px_of(f[0]))
+        w = max(need + [COL * self.width if self.width else 0, 20 * CELL])
+        return -(-w // CELL) * CELL               # (whole cells)
 
     def matches(self, *words):
         """A choice the typed words all find (in its name, detail or value, in any case)."""
@@ -596,11 +602,6 @@ def px_of(t):
     """Its width in the font: a column a letter, two a wide one (a kanji, a kana, a full-width
     sign: East Asian width W or F — Sumi UI draws exactly that, tools/build-fonts.py)."""
     return sum(2 * COL if unicodedata.east_asian_width(c) in "WF" else COL for c in t)
-
-
-# a meter's slider ends this far from its right edge, in quick settings and the sound panel
-# alike: they start two gaps after the longest name ("brightness"), under one another
-TRAIL = INNER - (NAME_X + px_of("brightness") + 2 * GAP) - SPAN
 
 
 def fit(t, w, tail=False):
@@ -638,20 +639,22 @@ def columns(rows, width):
 
 
 def layout_menu(m):
-    """A menu's place for each thing, as the sound panel's: parts under seals (SECTION between
-    parts), rows of METER_H 2 px apart, keys KEY_H high sharing a row a gap apart, a grid's cells.
-    While something is typed only the choices it finds show, under their parts."""
+    """A menu's place for each thing, on the grid (docs/design-system.md §3–§4): parts under
+    their headings (a row, 8 px of air; a row of air above one that is not first), rows of 20
+    px touching, keys one row high sharing a row 8 px apart (8 px from what is above them), a
+    month's days 40 × 20, 8 apart. While something is typed only the choices it finds show,
+    under their parts."""
     x0 = BORDER + PAD
     w = m.inner()
     y = x0
     items, heads, marks, r = [], [], [], 0
     if m.title:
         marks.append(("note", x0, y, w, m.title))
-        y += METER_H + GAP
+        y += ROW + GAP
     if m.prompt is not None:
         marks.append(("input", x0, y, w, KEY_H, m.prompt, "◆" * len(m.query) if m.password else m.query))
-        # (the line typed on, then the room of a part's break before the first row — as in
-        # every text screen, one blank line between where you type and what it finds)
+        # (the line typed on, then a row of air before the first row — as in every text screen,
+        # one blank line between where you type and what it finds)
         y += KEY_H + SECTION
     top = y
     lines = m.lines
@@ -666,7 +669,7 @@ def layout_menu(m):
                     part = None
                 keep.append(ln)
         lines = keep
-    prev = None                                   # (what came before: the space before this)
+    prev = None                                   # (what came before: the air before this)
     k = 0
     while k < len(lines):
         i, kind, f = lines[k]
@@ -675,9 +678,9 @@ def layout_menu(m):
             continue
         if kind == "part":
             if prev is not None:
-                y += SECTION - (METER_GAP if prev in ("row", "cell") else 0)
+                y += SECTION
             heads.append((f[0], f[1] if len(f) > 1 else "", x0, y) + ((f[2],) if len(f) > 2 and f[2] else ()))
-            y += SEAL + GAP
+            y += HEAD_H
             prev = None
         elif kind == "key":
             run = []
@@ -685,9 +688,7 @@ def layout_menu(m):
                 run.append(lines[k])
                 k += 1
             k -= 1
-            if prev in ("row", "cell", "note"):
-                y += GAP - METER_GAP
-            elif prev == "key":
+            if prev is not None:
                 y += GAP
             n = len(run)
             kw = (w - (n - 1) * GAP) // n
@@ -706,15 +707,14 @@ def layout_menu(m):
             k -= 1
             if prev == "key":
                 y += GAP
-            cw = (w - 6 * CELL_GAP) // 7
             for c, (j, _, g) in enumerate(run):
                 if c and c % 7 == 0:
-                    y += METER_H + METER_GAP
-                xx = x0 + (c % 7) * (cw + CELL_GAP)
-                marks.append(("cell", xx, y, cw, METER_H, g[0], g[1] if len(g) > 1 else ""))
-            y += METER_H + METER_GAP
+                    y += ROW
+                xx = x0 + (c % 7) * (CELL_W + GAP)
+                marks.append(("cell", xx, y, CELL_W, ROW, g[0], g[1] if len(g) > 1 else ""))
+            y += ROW
             prev = "cell"
-        else:                                     # a row (row, on, off, plain) or a note
+        else:                                     # a row (row, on, off, info, plain) or a note
             if prev == "key":
                 y += GAP
             if kind == "note":
@@ -722,24 +722,22 @@ def layout_menu(m):
             elif kind in SHOWN_KINDS:
                 marks.append((kind, x0, y, w, f[0], fld(f, 1), fld(f, 2), fld(f, 3)))
             elif kind == "plain":
-                items.append(Item(str(i), "row", x0, y, w, METER_H, r, glyph="", name=f[0]))
+                items.append(Item(str(i), "row", x0, y, w, ROW, r, glyph="", name=f[0]))
                 r += 1
             else:
-                items.append(Item(str(i), "row", x0, y, w, METER_H, r, glyph=f[0], name=fld(f, 1),
+                items.append(Item(str(i), "row", x0, y, w, ROW, r, glyph=f[0], name=fld(f, 1),
                                   detail=fld(f, 2), value=fld(f, 3), lit=kind == "on"))
                 r += 1
-            y += METER_H + METER_GAP
+            y += ROW
             prev = "row" if kind != "note" else "note"
         k += 1
-    if prev in ("row", "cell", "note"):
-        y -= METER_GAP
     if m.query and not items and not m.password and any(k in ROW_KINDS + ("plain",) for _, k, _ in m.lines):
         marks.append(("none", x0, y))             # (nothing found: Enter gives what was typed)
-        y += METER_H
+        y += ROW
     height = y - top
     view_h = min(height, MENU_MAX_H - top - PAD - BORDER)
     # (each line's foot — a choice's, or a row only read: keys share one)
-    ends = sorted({it.y + it.h for it in items} | {mk[2] + METER_H for mk in marks if mk[0] in SHOWN_KINDS})
+    ends = sorted({it.y + it.h for it in items} | {mk[2] + ROW for mk in marks if mk[0] in SHOWN_KINDS})
     if m.shown and len(ends) > m.shown:          # (at most N lines of choices, whole: the view
         view_h = min(view_h, ends[m.shown - 1] - top)   # ends under the Nth, its parts above it)
     for it in items:
@@ -748,34 +746,41 @@ def layout_menu(m):
                   [], marks, (top, view_h, height) if view_h < height else None)
 
 
+def bri_icon(pct):
+    """Brightness's icon for a level: the bar's own (kawa-brightness: a fifth each)."""
+    return f"bri_{min(4, pct // 20)}" if pct is not None else "bri_0"
+
+
 def layout_quick(s):
-    """設 quick settings under its seal, as every panel opens; the two meters; the tiles (three
-    a row, a short last row two wide ones: 184 × 80); the keys at the foot, the whole width."""
+    """Quick settings: its heading (the sliders), the two meters, the tiles (three a row, a
+    short last row two wide ones: 184 × 80), the keys at the foot the whole width — each group
+    GROUP px from the next, no rule between them (docs/design-system.md §4)."""
     x0 = y = BORDER + PAD
-    items, rules, r = [], [], 0
-    head = (x0, y)
-    heads = [("設", "quick settings", x0, y)]
-    y += SEAL + GAP
-    for key, kanji, name in (("brightness", "明", "brightness"), ("sound", "音", "sound")):
-        items.append(Item(key, "meter", x0, y, INNER, METER_H, r, kanji=kanji, name=name, value=s.get(key, "")))
-        y += METER_H + METER_GAP
+    items, r = [], 0
+    heads = [("sliders", "quick settings", x0, y)]
+    y += HEAD_H
+    for key, name in (("brightness", "brightness"), ("sound", "sound")):
+        pct = percent(s.get(key, ""))
+        icon = bri_icon(pct) if key == "brightness" else vol_icon(pct, s.get("muted") == "on")
+        items.append(Item(key, "meter", x0, y, INNER, ROW, r, icon=icon, name=name, value=s.get(key, ""),
+                          muted=key == "sound" and s.get("muted") == "on"))
+        y += ROW
         r += 1
-    y += RULE - METER_GAP
-    rules.append(y - RULE + RULE // 2)
+    y += GROUP
     t = tiles_of(s)
     i = 0
     for n in rows_of(len(t)):
         w = (INNER - (n - 1) * GAP) // n
         for c in range(n):
-            key, ic, kanji, name, value, lit = t[i]
-            items.append(Item(key, "tile", x0 + c * (w + GAP), y, w, TILE_H, r, icon=ic, kanji=kanji,
-                              name=name, value=value, lit=lit))
+            key, ic, name, value, lit = t[i]
+            items.append(Item(key, "tile", x0 + c * (w + GAP), y, w, TILE_H, r, icon=ic, name=name,
+                              value=value, lit=lit))
             i += 1
         y += TILE_H + GAP
         r += 1
-    y += RULE - GAP
-    rules.append(y - RULE + RULE // 2)
-    # (the keys the whole width, a gap apart: power its icon alone, the two others sharing the rest)
+    y += GROUP - GAP
+    # (the keys the whole width, 8 px apart: power its icon alone — a square, a row high —, the
+    # two others sharing the rest)
     half = (INNER - KEY_H - 2 * GAP) // 2
     keys = [("wallpaper", "picture", "wallpaper", half), ("screenshot", "camera", "screenshot", INNER - KEY_H - 2 * GAP - half),
             ("power", "power", "", KEY_H)]
@@ -785,21 +790,22 @@ def layout_quick(s):
                           tip=s.get("wallpaper", "") if key == "wallpaper" else ""))
         x += w + GAP
     y += KEY_H + PAD + BORDER
-    return Layout(items, head, rules, (INNER + 2 * (PAD + BORDER), y), heads)
+    return Layout(items, (x0, x0), [], (INNER + 2 * (PAD + BORDER), y), heads)
 
 
 def layout_sound(s):
-    """音 sound: the volume's meter, then mute and mixer side by side · 出 output and 入 input:
-    a row per device (a list with none says "none") · mute microphone at the input's foot.
-    Each part under its seal; a seal's stitch runs to the right edge."""
+    """The sound panel: sound (the speaker) — the volume's meter, then mute and mixer side by
+    side · output (headphones) and input (the microphone): a row per device (a list with none
+    says "none") · the microphone's keys at the input's foot. Each part under its heading."""
     x0 = y = BORDER + PAD
     items, heads, nones, r = [], [], [], 0
     muted = s.get("muted") == "on"
-    heads.append(("音", "sound", x0, y))
-    y += SEAL + GAP
-    items.append(Item("sound", "meter", x0, y, INNER, METER_H, r, name="volume", value=s.get("sound", ""),
-                      muted=muted))
-    y += METER_H + GAP
+    heads.append(("speaker", "sound", x0, y))
+    y += HEAD_H
+    pct = percent(s.get("sound", ""))
+    items.append(Item("sound", "meter", x0, y, INNER, ROW, r, icon=vol_icon(pct, muted), name="volume",
+                      value=s.get("sound", ""), muted=muted))
+    y += ROW + GAP
     r += 1
     half = (INNER - GAP) // 2
     items.append(Item("mute", "key", x0, y, half, KEY_H, r, icon="speaker" if muted else "speaker_off",
@@ -807,28 +813,27 @@ def layout_sound(s):
     items.append(Item("mixer", "key", x0 + half + GAP, y, INNER - half - GAP, KEY_H, r, icon="sliders", name="mixer"))
     y += KEY_H
     r += 1
-    for kanji, name, pre, devs in (("出", "output", "out", s.get("outputs", [])),
-                                   ("入", "input", "in", s.get("inputs", []))):
+    for icon, name, pre, devs in (("headphones", "output", "out", s.get("outputs", [])),
+                                  ("mic", "input", "in", s.get("inputs", []))):
         y += SECTION
-        heads.append((kanji, name, x0, y))
-        y += SEAL + GAP
+        heads.append((icon, name, x0, y))
+        y += HEAD_H
         if not devs:
             nones.append((x0, y))
-            y += METER_H + METER_GAP
+            y += ROW
         for dev_id, default, label in devs:
-            items.append(Item(f"{pre}:{dev_id}", "row", x0, y, INNER, METER_H, r, icon="box_on" if default else "box_off",
+            items.append(Item(f"{pre}:{dev_id}", "row", x0, y, INNER, ROW, r, icon="speaker" if pre == "out" else "mic",
                               name=label, lit=default))
-            y += METER_H + METER_GAP
+            y += ROW
             r += 1
-        y -= METER_GAP
     if s.get("mic", "none") != "none":                # (no input: no microphone to mute)
         mic_muted = s.get("mic") == "muted"
         clean = s.get("cleanmic", "none")
         y += GAP
         if clean == "on":                             # (the clean mic's level, live: it only shows)
-            items.append(Item("level", "level", x0, y, INNER, METER_H, r, icon="mic", name="clean mic",
+            items.append(Item("level", "level", x0, y, INNER, ROW, r, icon="mic", name="clean mic",
                               value=s.get("level", "0%")))
-            y += METER_H + GAP
+            y += ROW + GAP
             r += 1
         items.append(Item("mic", "key", x0, y, INNER, KEY_H, r, icon="mic" if mic_muted else "mic_off",
                           name="unmute microphone" if mic_muted else "mute microphone"))
@@ -845,14 +850,15 @@ def layout_sound(s):
 
 
 def layout_brightness(s):
-    """The brightness meter alone, the size of what it holds: its kanji and name, two gaps,
-    the slider — the kanji's ink and the slider's end on the content's edges (the
-    slider as quick settings draws it)."""
+    """The brightness meter alone, the size of what it holds: its icon and name as a row's,
+    two cells of air, the segments — their last on the content's edge (as quick settings
+    draws them)."""
     x0 = BORDER + PAD
-    w = LINE + GAP + px_of("brightness") + 2 * GAP + SPAN
-    it = Item("brightness", "meter", x0, x0, w, METER_H, 0, kanji="明", name="brightness",
-              value=s.get("brightness", ""), inset=0, trail=0)
-    return Layout([it], (x0, x0), [], (w + 2 * (PAD + BORDER), x0 + METER_H + PAD + BORDER))
+    w = NAME_X + 10 * COL + 2 * CELL + SPAN           # ("brightness": ten letters)
+    pct = percent(s.get("brightness", ""))
+    it = Item("brightness", "meter", x0, x0, w, ROW, 0, icon=bri_icon(pct), name="brightness",
+              value=s.get("brightness", ""))
+    return Layout([it], (x0, x0), [], (w + 2 * (PAD + BORDER), x0 + ROW + PAD + BORDER))
 
 
 def layout(s, mode="quick"):
@@ -875,7 +881,7 @@ def layout(s, mode="quick"):
 # row copies the answer (a notice says so, with it) — and text that finds nothing runs as a
 # command when its first word is one. The same key or the torii again closes it, as every
 # panel; it opens in the middle of the screen, its size fixed while you type.
-APP_ICON = 22                        # an entry's icon: the 24 px row less a pixel above and below
+APP_ICON = 16                        # an entry's icon: an app's own, at its native 16 px, centred in the row
 LAUNCH_ROWS = 10
 
 
@@ -940,8 +946,8 @@ def layout_launcher(m):
     x0 = BORDER + PAD
     w = INNER
     y = x0
-    heads = [("起", "launcher", x0, y)]
-    y += SEAL + GAP
+    heads = [("torii_small", "launcher", x0, y)]
+    y += HEAD_H
     marks = [("input", x0, y, w, KEY_H, "", m.query)]
     y += KEY_H + SECTION
     top = y
@@ -949,19 +955,17 @@ def layout_launcher(m):
     ans = m.answer_now()
     rows = ([("calc", None)] if ans else []) + [(f"a{k}", a) for k, a in enumerate(m.found)]
     for key, a in rows:
-        it = Item(key, "app", x0, y, w, METER_H, r, app=a,
+        it = Item(key, "app", x0, y, w, ROW, r, app=a,
                   name=ans if a is None else a.name, value="copy" if a is None else "")
         it.scrolls = True
         items.append(it)
-        y += METER_H + METER_GAP
+        y += ROW
         r += 1
-    if rows:
-        y -= METER_GAP
-    elif m.query:
+    if not rows and m.query:
         marks.append(("none", x0, y))        # (Enter: what was typed runs, its first word a program)
         y += METER_H
     height = y - top
-    view_h = LAUNCH_ROWS * (METER_H + METER_GAP) - METER_GAP
+    view_h = LAUNCH_ROWS * ROW
     lay = Layout(items, (x0, x0), [], (w + 2 * (PAD + BORDER), top + view_h + PAD + BORDER), heads,
                  [], marks, (top, view_h, max(height, view_h)) if height > view_h else (top, view_h, view_h))
     lay.fixed = True                         # (its size kept while typing: never trimmed to its ink)
@@ -969,28 +973,26 @@ def layout_launcher(m):
 
 
 def look(it, focused, hot):
-    """How an item is drawn — the colours' names: fill (None: none of its own), frame (None:
-    none), glyph (its icon, or a meter's kanji), label (its name), value (its words, a meter's
-    words with no level), on_fill (its seal and slider drawn as on vermilion), detail (a menu
-    row's second column: text, its ink on the cursor's fill).
-    The keyboard's cursor (focused) is filled in vermilion, its ink text_on_accent. The pointer
-    (hot) draws no box: an item under it keeps its resting look and only its glyph and its name
-    turn accent_text; under the pointer and the cursor both, it is drawn as the cursor (ink on
-    vermilion keeps its contrast).
-    A tile's seal says whether the thing is on, so the pointer leaves it as it is. A device's
-    row: the one in use ticked and in strong ink, the others' box quiet."""
+    """How an item is drawn (docs/design-system.md §4–§5) — the colours' names: fill (None:
+    none of its own), frame (None: none), glyph (its icon or picture), label (its name), value
+    (its words; a meter's words when it has no level), detail (a menu row's second column),
+    on_fill (drawn on the cursor's vermilion: a meter's segments in its inks).
+    The cursor — the keyboard's place, and the pointer's: one light, never two — fills the item
+    in vermilion, its inks text_on_accent. At rest: a row's icon muted, its name text (the one
+    in use strong); a key on its own fill in a 1 px frame; a tile on — its frame vermilion, its
+    picture accent_text, its state strong —, off — its picture muted, its state faint."""
     if focused:
         ink = "text_on_accent"
         return {"fill": "accent", "frame": None, "glyph": ink, "label": ink,
                 "value": ink, "on_fill": True, "detail": ink}
+    if it.kind == "tile":
+        return {"fill": "key", "frame": "accent" if it.lit else "edge",
+                "glyph": "accent_text" if it.lit else "muted", "label": "text",
+                "value": "strong" if it.lit else "faint", "on_fill": False, "detail": "text"}
     bare = it.kind in ("meter", "level", "row", "app")
-    glyph = {"meter": "accent_text", "level": "accent_text", "row": "strong" if it.lit else "muted"}.get(it.kind, "text")
-    rest = {"fill": None if bare else "key", "frame": None if bare else "edge", "glyph": glyph,
-            "label": "strong" if it.kind in ("tile", "row") and it.lit else "text",
-            "value": "muted", "on_fill": False, "detail": "text"}
-    if hot:
-        rest["glyph"] = rest["label"] = "accent_text"
-    return rest
+    return {"fill": None if bare else "key", "frame": None if bare else "edge",
+            "glyph": "strong" if it.lit else ("muted" if bare else "text"),
+            "label": "strong" if it.lit else "text", "value": "muted", "on_fill": False, "detail": "text"}
 
 
 SWITCHES = ("theme", "night", "vrr", "bluetooth", "dnd", "saver")   # done in place: the panel stays
@@ -1014,13 +1016,13 @@ class Panel:
         self.holding = False     # a --stay menu's key answered: on screen, waiting for its next page
         self.queued = []         # keys pressed meanwhile: each one done on the page as it comes
         self.scroll = 0          # how far a menu's list is scrolled (px)
+        self.ox = 0              # the frame's air in its window (a middle menu: a column, §4)
         self.relayout()
         self.focus = None        # the keyboard's cursor (filled in vermilion): none until a key
-        self.hot = None          # the item under the pointer: its glyph and name lit, no box
+        self.hot = None          # the item under the pointer (the cursor goes there too)
         self.pointer = None      # where the pointer is over the panel (None: not over it)
         self.dragging = None     # the meter being dragged
         self.visible = False
-        self.dy, self.win = 0, self.size
         self.place = where(None, self.size[0])
         self.what = None         # what is open (or was last): a panel's mode, or "menu CALLER"
         self.used = None         # the last bar click a request came from (its id: ui.click())
@@ -1049,14 +1051,12 @@ class Panel:
             self.scroll = max(0, min(self.scroll, self.view[2] - self.view[1]))
         else:
             self.scroll = 0
-        # the pads above and below measured to the ink (design-system §3): what is drawn is
-        # looked at, and the window starts dy px lower and is h high, 12 px of paper between
-        # the frame and the first and the last ink
-        if getattr(lay, "fixed", False):
-            self.dy, self.win = 0, self.size
-        else:
-            self.dy, h, w = self.ui.trim(self.size)
-            self.win = (w, h)
+        # the window: the frame's box (the layout's size, in whole cells) and its shadow, a
+        # column at the right and two rows under it (docs/design-system.md §4); ox px of air
+        # before it (a menu from the bar's middle: a column as wide as the shadow's, so dwl,
+        # centring the window, centres the frame to the pixel)
+        self.dy = 0
+        self.win = (self.ox + self.size[0] + SHADOW_R, self.size[1] + SHADOW_B)
 
     # the state
     def refresh(self, mode=None):
@@ -1164,6 +1164,7 @@ class Panel:
         self.scrolled = (None, 0.0)
         self.relayout()
         self.place = where(self.ui.clicked(), self.size[0])   # (under the click, or its key's place)
+        self.at_place()
         self.ui.show()
         self.ui.light(mode, True)
         self.refresh()
@@ -1188,9 +1189,17 @@ class Panel:
         self.focus = self.first_key() if self.items else None
         self.place = menu_place(menu.drop, self.ui.clicked() if menu.drop else None, self.size[0],
                                 menu.middle)
+        self.at_place()
         self.ui.show()
         if menu.drop or what == "launcher":
             self.ui.light(what, True)                 # (its button on the bar lit)
+
+    def at_place(self):
+        """The frame's air in the window for where it hangs (a middle one: a column before it)."""
+        ox = SHADOW_R if self.place[0] == "middle" else 0
+        if ox != self.ox:
+            self.ox = ox
+            self.win = (self.ox + self.size[0] + SHADOW_R, self.size[1] + SHADOW_B)
 
     def answer(self, rc, text=""):
         """The menu's caller told, once."""
@@ -1340,14 +1349,16 @@ class Panel:
 
     @staticmethod
     def slider_x(item):
-        """Where a meter's slider starts (as drawn)."""
-        return item.x + item.w - getattr(item, "trail", TRAIL) - SPAN
+        """Where a meter's segments start (as drawn): right-aligned in its row, before a value's
+        room if it keeps one (trail)."""
+        return item.x + item.w - getattr(item, "trail", 0) - (SPAN - (CELL - SEG_W))   # (the last one's ink on the edge)
 
     def meter_at(self, item, x, held=False):
-        """The level a pointer at x on a meter means: on its slider (or a gap either side, the
-        left margin meaning 0); held (a drag): anywhere, past an end that end. None: not there."""
+        """The level a pointer at x on a meter means: on its segments (or a cell's air before
+        them, meaning 0 — or after them, 100); held (a drag): anywhere, past an end that end.
+        None: not there (its name: what the name does)."""
         off = x - self.slider_x(item)
-        if not held and not (-GAP <= off < SPAN + GAP // 2):
+        if not held and not (-CELL <= off < SPAN + CELL):
             return None
         return level_at(off)
 
@@ -1488,10 +1499,11 @@ class Panel:
 
     def rehot(self):
         """The hot item: the one under the pointer now (the layout may have moved under it).
-        In a menu the cursor goes with it: one cursor, the pointer's or the keys' — whichever
-        moved last (it stays where the pointer left it)."""
+        The cursor goes with it, in every panel and menu: one light, the pointer's or the keys'
+        — whichever moved last (it stays where the pointer left it). A level that only shows
+        (the clean mic's) is never the cursor's."""
         it = self.at(*self.pointer) if self.pointer else None
-        if it and self.mode == "menu" and self.visible and not self.dragging:
+        if it and self.visible and not self.dragging and it.kind != "level":
             self.move(it.key)
         self.set_hot(it.key if it else None)
 
@@ -1611,10 +1623,9 @@ def bar_push(name, line):
 
 def poke_sigs(what):
     """The bar's signals (SIGRTMIN+N) that tell what's button (a mode, or "menu CALLER") to look
-    again — quick settings' with the mode seal's (its click opens them too) —, [] for the
-    timer's (a long-running module: woken), None for no button."""
+    again, [] for the timer's (a long-running module: woken), None for no button."""
     if what in POKE:
-        return [POKE[what]] + ([12] if what == "quick" else [])
+        return [POKE[what]]
     caller = what.partition(" ")[2]
     if caller not in DROP_POKE:
         return None
@@ -1913,27 +1924,6 @@ def main(argv):
     drawing = []            # (the drawing ready: the pads can be measured)
 
     class UI:
-        def trim(self, size):
-            """(dy, h, w): the content's ink, first and last row (drawn off screen, at rest), PAD
-            px of paper from the frame above and below it — the window's top dy px down the
-            layout, h high; and its last column PAD px from the frame on the right — w wide (a
-            stitch stops on its last whole stitch, up to 4 px short of the layout's edge: the
-            panel ends PAD px after it, not PAD after the layout's edge)."""
-            W, H = size
-            if not drawing:
-                return 0, H, W                    # (not drawable yet: the layout's own)
-            surf = cairo.ImageSurface(cairo.FORMAT_ARGB32, W, H)
-            content(cairo.Context(surf), at_rest=True)
-            surf.flush()
-            data, stride = surf.get_data(), surf.get_stride()
-            blank = bytes(stride)
-            rows = [y for y in range(BORDER, H - BORDER) if data[y * stride:(y + 1) * stride] != blank]
-            if not rows:
-                return 0, H, W
-            dy = rows[0] - (BORDER + PAD)
-            right = max(len(bytes(data[y * stride:(y + 1) * stride]).rstrip(b"\0")) for y in rows)   # (bytes: 4 a pixel)
-            return dy, rows[-1] + 1 - dy + PAD + BORDER, min(W, (right + 3) // 4 + PAD + BORDER)
-
         def redraw(self, *items):
             """The items given (their own pixels: no flicker, little to draw), or all."""
             a = view["area"]
@@ -1941,7 +1931,7 @@ def main(argv):
                 return
             if items and view.get("size") == panel.win and not panel.view:
                 for it in items:
-                    a.queue_draw_area(it.x, it.y - panel.dy, it.w, it.h)
+                    a.queue_draw_area(it.x + panel.ox, it.y - panel.dy, it.w, it.h)
                 return
             if view.get("size") != panel.win:
                 view["size"] = panel.win
@@ -2248,16 +2238,20 @@ def main(argv):
     font.set_absolute_size(LINE * Pango.SCALE)
 
     def col(cr, name):
-        cr.set_source_rgb(*pal[name])
+        v = pal[name]
+        cr.set_source_rgba(*v) if len(v) == 4 else cr.set_source_rgb(*v)
 
     def box(cr, x, y, w, h, name):
         col(cr, name)
         cr.rectangle(x, y, w, h)
         cr.fill()
 
-    def frame(cr, x, y, w, h, name, t=1):
-        box(cr, x, y, w, t, name)
-        box(cr, x, y + h - t, w, t, name)
+    def frame(cr, x, y, w, h, name, t=1, cut=False):
+        """A t px frame round x, y, w × h; cut: its four corner pixels left out (§4: the corner
+        is not a sharp square)."""
+        c = t if cut else 0
+        box(cr, x + c, y, w - 2 * c, t, name)
+        box(cr, x + c, y + h - t, w - 2 * c, t, name)
         box(cr, x, y + t, t, h - 2 * t, name)
         box(cr, x + w - t, y + t, t, h - 2 * t, name)
 
@@ -2282,115 +2276,121 @@ def main(argv):
         PangoCairo.show_layout(cr, lay)
         return (ink.x + ink.width) if right else log.width
 
+    base = []                                     # (Sumi UI's baseline in a LINE px box: measured once)
+
+    def baseline(cr):
+        """Where the letters' baseline lies in the LINE px box text() sets them in."""
+        if not base:
+            lay = text_layout(cr, "H")
+            log = lay.get_pixel_extents()[1]
+            base.append(-log.y - (log.height - LINE) + lay.get_baseline() // Pango.SCALE)
+        return base[0]
+
+    def on_line(cr, lay, y):
+        """The y to draw a layout at so that its baseline is the letters' in the LINE box at y:
+        an icon's rows are drawn on the em's, so its middle stands on the capitals' (its own
+        font's ascent is not Sumi UI's: its line box would set it a pixel low)."""
+        return y + baseline(cr) - lay.get_baseline() // Pango.SCALE
+
     def glyph(cr, x, y, ch, name, box_w=None, box_h=None):
-        """An icon or a kanji, its ink centred in a box_w × box_h box at x, y (a line if not given)."""
+        """An icon (or any character), its ink centred in a box_w × box_h box at x, y — on a
+        line (no box_h): centred in box_w (the icon column: GLYPH_COL) and set on the line's
+        baseline, as the letters are (an icon's middle on the capitals')."""
         lay = text_layout(cr, ch)
         ink, log = lay.get_pixel_extents()
         col(cr, name)
-        # (in a box: its ink centred; on a line: its ink centred in the line's square, LINE
-        # wide from x — every row's glyph on one axis, whatever its side bearing, and a wide
-        # one (the volume's speaker and waves, 20 px) stands out 2 px either side of the
-        # column instead of running into the name)
-        gx = x + (((box_w or LINE) - ink.width) // 2 - ink.x)
-        gy = y + ((box_h - ink.height) // 2 - ink.y if box_h else -log.y - (log.height - LINE))
+        gx = x + (((box_w or GLYPH_COL) - ink.width) // 2 - ink.x)
+        gy = y + (box_h - ink.height) // 2 - ink.y if box_h else on_line(cr, lay, y)
         cr.move_to(gx, gy)
         PangoCairo.show_layout(cr, lay)
 
-    def seal(cr, x, y, ch, stamped, on_fill):
-        """A tile's seal. On: stamped in vermilion ink as a real hanko is — the kanji and a
-        2 px frame (朱文: red letters on the paper, lighter than the day's filled seal at the
-        top, so nine of them never shout). Off: a faint 1 px outline, the kanji faint."""
-        if STAMP == "filled" and stamped:
-            box(cr, x, y, SEAL, SEAL, "text_on_accent" if on_fill else "accent")
-            glyph(cr, x, y, ch, "accent" if on_fill else "text_on_accent", SEAL, SEAL)
-        elif stamped:
-            frame(cr, x, y, SEAL, SEAL, "text_on_accent" if on_fill else "accent_text", 2)
-            glyph(cr, x, y, ch, "text_on_accent" if on_fill else "accent_text", SEAL, SEAL)
-        else:
-            frame(cr, x, y, SEAL, SEAL, "accent_lo" if on_fill else "edge2")
-            glyph(cr, x, y, ch, "accent_lo" if on_fill else "faint", SEAL, SEAL)
-
-    def stitch(cr, x, y, w):
-        """A running stitch, 3 px on and 2 off, from x (a whole stitch first: every heading
-        starts alike, a gap after its name) to the last whole stitch that fits in w — it may
-        stop up to 4 px short of x + w (the content's edge, or a gap before a value)."""
-        col(cr, "edge2")
-        for sx in range(x, x + w - 2, 5):
-            cr.rectangle(sx, y, 3, 1)
-        cr.fill()
-
-    def heading(cr, kanji, name, x, y, value=""):
-        """A part of a panel or a menu: its kanji in a seal (a 1 px frame, the kanji vermilion
-        — a label, not a state: quieter than a tile's stamp), its name, and the stitch on to
-        the right edge, through the seal's middle (to a value at its end, quiet)."""
+    def heading(cr, icon, name, x, y, value=""):
+        """A part of a panel or a menu (§4): its icon (12 px, accent_text) in the icon column at
+        the content's first cell, its name strong from cell 3, 8 px, then the rule — 1 px
+        edge2, solid, on the row's row 10 — to the content's right edge (or 8 px before a value
+        at its end, muted)."""
         right = panel.size[0] - PAD - BORDER
-        frame(cr, x, y, SEAL, SEAL, "edge2")
-        glyph(cr, x, y, kanji, "accent_text", SEAL, SEAL)
-        ty = y + (SEAL - LINE) // 2
-        w = text(cr, x + SEAL + GAP, ty, name, "text")
+        ty = y + (ROW - LINE) // 2
+        glyph(cr, x, ty, ic.get(icon, icon), "accent_text")
+        w = text(cr, x + HEAD_X, ty, name, "strong")
         if value:
             right -= text(cr, right, ty, value, "muted", right=True) + GAP
-        sx = x + SEAL + GAP + w + GAP
-        stitch(cr, sx, y + SEAL // 2, right - sx)
+        sx = x + HEAD_X + w + GAP
+        if right > sx:
+            box(cr, sx, y + 10, right - sx, 1, "edge2")
 
     def mark_(cr, m):
-        """What a menu draws but does not offer: its title, a row not to be chosen, a grid's
-        cell, the filter's line, "none" found."""
+        """What a menu draws but does not offer: its title, a row not to be chosen, a month's
+        day, the line typed on, "none" found."""
         k = m[0]
         if k == "note":
             _, x, y, w, t = m
-            text(cr, x + GAP, y + (METER_H - LINE) // 2, t, "muted", width=w - 2 * GAP)
+            text(cr, x + NAME_X, y + (ROW - LINE) // 2, t, "muted", width=w - NAME_X)
         elif k in SHOWN_KINDS:            # (a row not to choose: off faint, info in a row's inks)
             _, x, y, w, g, name, detail, value = m
             off = k == "off"
             dx = detail_x[0]
-            ty = y + (METER_H - LINE) // 2
-            glyph(cr, x + GAP, ty, g, "faint" if off else "muted")
-            vr = min(value_r[0], x + w - GAP) if value_r[0] else x + w - GAP
-            right = vr - ((text(cr, vr, ty, value, "faint" if off else "muted", right=True) + 2 * GAP) if value else 0)
-            text(cr, x + NAME_X, ty, name, "faint" if off else "text", width=(dx if detail else right) - (x + NAME_X) - GAP)
+            ty = y + (ROW - LINE) // 2
+            glyph(cr, x + GLYPH_X, ty, g, "faint" if off else "muted")
+            vr = min(value_r[0], x + w) if value_r[0] else x + w
+            right = vr - ((text(cr, vr, ty, value, "faint" if off else "muted", right=True) + 2 * CELL) if value else 0)
+            text(cr, x + NAME_X, ty, name, "faint" if off else "text", width=(dx if detail else right) - (x + NAME_X) - CELL)
             if detail:
                 text(cr, dx, ty, detail, "faint" if off else "text", width=right - dx)
         elif k == "cell":
             _, x, y, w, h, t, state = m
-            if state == "today":                  # (stamped, as a lit seal)
-                frame(cr, x, y - 1, w, h + 2, "accent_text", 2)
-            lw = text_layout(cr, t).get_pixel_extents()[1].width
+            if state == "today":                  # (stamped: a 1 px vermilion frame, its corners cut)
+                frame(cr, x, y, w, h, "accent_text", cut=True)
+            lw = text_layout(cr, t).get_pixel_extents()[0]
             name = {"today": "accent_text", "dim": "faint", "head": "muted"}.get(state, "text")
-            text(cr, x + (w - lw) // 2, y + (h - LINE) // 2, t, name)
+            text(cr, x + (w - lw.width) // 2 - lw.x, y + (h - LINE) // 2, t, name)
         elif k == "input":
             _, x, y, w, h, prompt, query = m
             box(cr, x, y, w, h, "key")
             frame(cr, x, y, w, h, "edge")
             ty = y + (h - LINE) // 2
-            pw = text(cr, x + GAP, ty, prompt, "muted") if prompt else 0
-            qw = text(cr, x + GAP + pw, ty, query, "text", width=w - 2 * GAP - pw - 2, tail=True)
-            box(cr, x + GAP + pw + qw + 1, ty, 2, LINE, "accent_text")   # (the caret: still, no blink)
+            pw = text(cr, x + CELL, ty, prompt, "muted") if prompt else 0
+            qw = text(cr, x + CELL + pw, ty, query, "text", width=w - 2 * CELL - pw - 2, tail=True)
+            box(cr, x + CELL + pw + qw + 1, ty, 2, LINE, "accent_text")   # (the caret: still, no blink)
         elif k == "none":
             _, x, y = m
-            text(cr, x + NAME_X, y + (METER_H - LINE) // 2, "none", "faint")
+            text(cr, x + NAME_X, y + (ROW - LINE) // 2, "none", "faint")
 
     detail_x = [0]
     value_r = [0]           # (a menu's values' right edge; 0: each row's own right edge)
 
     def draw(widget, cr):
-        W, H = panel.win
-        # the ground: the terminal's own, at its alpha (kawa-glass) — the same see-through
-        # cloth as every text screen; everything on it drawn opaque, as the terminal's text
+        W, H = panel.size                         # the frame's box; the window is SHADOW more
         cr.set_operator(cairo.OPERATOR_SOURCE)
-        cr.set_source_rgba(*pal["ground"], see[0])
+        cr.set_source_rgba(0, 0, 0, 0)
         cr.paint()
+        cr.translate(panel.ox, 0)                 # (the frame's own place in the window)
+        # the ground: the terminal's own, at its alpha (kawa-glass) — the same see-through cloth
+        # as every text screen; everything on it drawn opaque, as the terminal's text
+        cr.set_source_rgba(*pal["ground"], see[0])
+        cr.rectangle(HAIR, HAIR, W - 2 * HAIR, H - 2 * HAIR)
+        cr.fill()
         cr.set_operator(cairo.OPERATOR_OVER)
         cr.save()
+        cr.rectangle(HAIR, HAIR, W - 2 * HAIR, H - 2 * HAIR)
+        cr.clip()
         cr.translate(0, -panel.dy)
         content(cr)
         cr.restore()
-        frame(cr, 0, 0, W, H, "muted", BORDER)
+        # the frame (§4): the hairline, its four corners left out; the shadow — light from the
+        # top left — two rows under it (the first from a pixel in to under the right hairline,
+        # the second a pixel further right) and a column at its right from its third row down
+        cr.set_operator(cairo.OPERATOR_SOURCE)
+        frame(cr, 0, 0, W, H, "hair", cut=True)
+        box(cr, HAIR, H, W - HAIR, 1, "shadow1")
+        box(cr, 2 * HAIR, H + 1, W - HAIR, 1, "shadow2")
+        box(cr, W, 2 * HAIR, 1, H - 2 * HAIR, "shadow2")
+        cr.set_operator(cairo.OPERATOR_OVER)
         return True
 
     def content(cr, at_rest=False):
         """Everything inside the frame, in the layout's own place (at rest: no cursor, nothing
-        under the pointer — as the pads are measured)."""
+        under the pointer)."""
         if at_rest:
             keep = panel.focus, panel.hot
             panel.focus = panel.hot = None
@@ -2401,8 +2401,6 @@ def main(argv):
             return
         W, H = panel.size
         hx, hy = panel.head
-        for ry in panel.rules:
-            stitch(cr, hx, ry, INNER)
         # (a menu's list that scrolls: what is in it drawn moved up, cut to its view)
         top, vh = (panel.view[0], panel.view[1]) if panel.view else (H, 0)
 
@@ -2434,88 +2432,98 @@ def main(argv):
             listed(it.y if it.scrolls else 0, lambda it=it: item_(cr, it))
         return True
 
+    def pic(cr, x, y, ch, name):
+        """A picture placed by its own box (a tile's: the drawing's 14 px square at x, its rows
+        from y), not by its ink — each drawing keeps the place it was drawn in."""
+        lay = text_layout(cr, ch)
+        log = lay.get_pixel_extents()[1]
+        col(cr, name)
+        cr.move_to(x - log.x, on_line(cr, lay, y))
+        PangoCairo.show_layout(cr, lay)
+
+    def dot(cr, x, y, name):
+        """The chosen mark (§4): a vermilion dot DOT px round — its corner pixels left out."""
+        box(cr, x + 1, y, DOT - 2, DOT, name)
+        box(cr, x, y + 1, DOT, DOT - 2, name)
+
+    def segments(cr, it, sx, sy, pct, on):
+        """A meter's twenty segments from sx, sy: lit to the level (the next one partly, from the
+        bottom), unlit edge; muted, the lit ones hollow; on the cursor's vermilion, lit
+        text_on_accent, unlit accent_lo."""
+        full, part = lit_of(pct)
+        for i in range(SEGS):
+            x = sx + i * CELL
+            lit_ink, off_ink = ("text_on_accent", "accent_lo") if on else (seg_ink(i), "edge")
+            rows = SEG_H if i < full else part if i == full else 0
+            if rows < SEG_H:
+                box(cr, x, sy, SEG_W, SEG_H - rows, off_ink)
+            if rows:
+                top = sy + SEG_H - rows
+                if it.muted and rows > 2:         # (hollow: its outline, the ground showing through)
+                    frame(cr, x, top, SEG_W, rows, lit_ink)
+                else:
+                    box(cr, x, top, SEG_W, rows, lit_ink)
+
     def item_(cr, it):
-        """An item: its fill and frame, its glyph, name, value (look() says in which colours)."""
-        # the keyboard's cursor filled in vermilion; the pointer's item only its glyph and
-        # name lit (look(), above main) — no box behind it, no easing: drawn at once
+        """An item: its fill and frame, its icon, name, value (look() says in which colours)."""
         lk = look(it, it.key == panel.focus, it.key == panel.hot)
         on = lk["on_fill"]
-        if lk["fill"]:
-            box(cr, it.x, it.y, it.w, it.h, lk["fill"])
-        if lk["frame"]:
-            frame(cr, it.x, it.y, it.w, it.h, lk["frame"])
+        if it.kind in ("row", "app", "meter", "level"):
+            if lk["fill"]:                        # (the cursor: a cell beyond the content either side)
+                box(cr, it.x - CELL, it.y, it.w + 2 * CELL, it.h, lk["fill"])
+        else:
+            if lk["fill"]:
+                box(cr, it.x, it.y, it.w, it.h, lk["fill"])
+            if lk["frame"]:
+                frame(cr, it.x, it.y, it.w, it.h, lk["frame"])
+        ty = it.y + (ROW - LINE) // 2
         if it.kind in ("meter", "level"):
-            ty = it.y + (it.h - LINE) // 2
             pct = percent(it.value)
-            mark = it.kanji or ic[it.icon or vol_icon(pct, it.muted)]
-            inset = getattr(it, "inset", GAP)
-            glyph(cr, it.x + inset, ty, mark, lk["glyph"])
-            text(cr, it.x + inset + LINE + GAP, ty, it.name, lk["label"])
-            # (no DDC/CI, muted, no output: the words alone; a level's number is the bar's,
-            # above — the slider stands where the sound's does)
+            glyph(cr, it.x + GLYPH_X, ty, ic.get(it.icon, it.icon) if it.icon else "", lk["glyph"])
+            text(cr, it.x + NAME_X, ty, it.name, lk["label"])
+            # (no DDC/CI, no output: the words alone, at the end; a level's number is the bar's,
+            # above — the segments stand where every meter's do)
             if pct is None:
-                text(cr, it.x + it.w - GAP, ty, it.value, lk["value"], right=True)
+                text(cr, it.x + it.w, ty, it.value, lk["value"], right=True)
                 return
-            sx = Panel.slider_x(it)
-            mid = it.y + it.h // 2                      # the rule's middle: the row's
-            # (on the vermilion fill everything in the colour of what stands on vermilion;
-            # muted, the level kept but not heard: the fill hollow, the knob muted)
-            fill, rest = ("text_on_accent", "accent_lo") if on else ("asagi", "faint")
-            knob_ink = ("accent_lo" if on else "muted") if it.muted else ("text_on_accent" if on else "strong")
-            w, k = fill_of(pct), knob_of(pct)
-            live = it.kind == "level"                   # (a meter that only shows: no knob)
-            end = w if live else k - 1                  # the fill up to the knob's air
-            if end > 0:
-                fy = mid - FILL_H // 2
-                frame(cr, sx, fy, end, FILL_H, fill) if it.muted else box(cr, sx, fy, end, FILL_H, fill)
-            t0 = w if live else k + KNOB + 1            # the track after the knob's air
-            if t0 < SPAN:
-                box(cr, sx + t0, mid - TRACK_H // 2, SPAN - t0, TRACK_H, rest)
-                for tx in ticks():
-                    if tx >= t0:
-                        box(cr, sx + tx, mid - FILL_H // 2, 1, FILL_H, rest)
-            if not live:
-                box(cr, sx + k, mid - KNOB_H // 2, KNOB, KNOB_H, knob_ink)
+            segments(cr, it, Panel.slider_x(it), it.y + (ROW - SEG_H) // 2, pct, on)
         elif it.kind == "tile":
-            glyph(cr, it.x + GAP, it.y + GAP, ic[it.icon], lk["glyph"], None, SEAL)
-            seal(cr, it.x + it.w - GAP - SEAL, it.y + GAP, it.kanji, it.lit, on)
-            tw = it.w - 2 * GAP
-            text(cr, it.x + GAP, it.y + GAP + SEAL + 4, it.name, lk["label"], width=tw)
-            text(cr, it.x + GAP, it.y + GAP + SEAL + 4 + LINE + 2, it.value, lk["value"], width=tw)
+            # its picture on rows 0–1 (14 px, the two rows' middle), its name on row 2, its state
+            # on row 3, all from x 8
+            pic(cr, it.x + CELL, it.y + ROW - 7, ic[it.icon], lk["glyph"])
+            tw = it.w - 2 * CELL
+            text(cr, it.x + CELL, it.y + 2 * ROW + (ROW - LINE) // 2, it.name, lk["label"], width=tw)
+            text(cr, it.x + CELL, it.y + 3 * ROW + (ROW - LINE) // 2, it.value, lk["value"], width=tw)
         elif it.kind == "app":                   # (the launcher's: its icon, its name, the answer's "copy")
-            ty = it.y + (it.h - LINE) // 2
-            ix, iy = it.x + GAP, it.y + (it.h - APP_ICON) // 2
-            pic = "算" if it.app is None else it.app.pic
-            if isinstance(pic, str):              # a seal: the kanji in a 1 px frame, on a tile's ground
-                box(cr, ix, iy, APP_ICON, APP_ICON, "key")
-                frame(cr, ix, iy, APP_ICON, APP_ICON, "edge2")
-                glyph(cr, ix, iy, pic, "accent_text", APP_ICON, APP_ICON)
+            ix, iy = it.x + GLYPH_X, it.y + (it.h - APP_ICON) // 2
+            pic_ = "算" if it.app is None else it.app.pic
+            if isinstance(pic_, str):             # (one of ours: T16 draws its own picture)
+                glyph(cr, it.x + GLYPH_X, ty, pic_, lk["glyph"] if lk["fill"] else "accent_text")
             else:
-                Gdk.cairo_set_source_pixbuf(cr, pic, ix, iy)
+                Gdk.cairo_set_source_pixbuf(cr, pic_, ix, iy)
                 cr.paint()
-            nx = ix + APP_ICON + GAP
-            right = it.x + it.w - GAP
+            right = it.x + it.w
             if it.value:
-                right -= text(cr, right, ty, it.value, lk["value"], right=True) + 2 * GAP
-            text(cr, nx, ty, it.name, "accent_text" if it.app is None and not lk["fill"] else lk["label"],
-                 width=right - nx)
+                right -= text(cr, right, ty, it.value, lk["value"], right=True) + 2 * CELL
+            text(cr, it.x + NAME_X, ty, it.name, "accent_text" if it.app is None and not lk["fill"] else lk["label"],
+                 width=right - (it.x + NAME_X))
         elif it.kind == "row":
-            ty = it.y + (it.h - LINE) // 2
             g = it.glyph if it.glyph is not None else ic[it.icon]
             if g:
-                glyph(cr, it.x + GAP, ty, g, lk["glyph"])
-            right = min(value_r[0], it.x + it.w - GAP) if value_r[0] else it.x + it.w - GAP
+                glyph(cr, it.x + GLYPH_X, ty, g, lk["glyph"])
+            right = min(value_r[0], it.x + it.w) if value_r[0] else it.x + it.w
+            if it.lit and not it.value:           # (the chosen one of several: the hanko's dot)
+                dot(cr, it.x + it.w - DOT, it.y + (ROW - DOT) // 2, "text_on_accent" if on else "accent")
+                right -= DOT + 2 * CELL
             if it.value:
-                right -= text(cr, right, ty, it.value, lk["value"], right=True) + 2 * GAP
-            end = detail_x[0] - GAP if it.detail else right
+                right -= text(cr, right, ty, it.value, lk["value"], right=True) + 2 * CELL
+            end = detail_x[0] - CELL if it.detail else right
             text(cr, it.x + NAME_X, ty, it.name, lk["label"], width=end - (it.x + NAME_X))
             if it.detail:
                 text(cr, detail_x[0], ty, it.detail, lk["detail"], width=right - detail_x[0])
-        else:
-            ty = it.y + (it.h - LINE) // 2
+        else:                                     # a key: its icon and name centred by their ink
             g = it.glyph if it.glyph is not None else ic[it.icon]
             if it.name:
-                # (centred by ink: the glyph's and the name's own pixels, a gap apart)
                 nink = text_layout(cr, it.name).get_pixel_extents()[0]
                 gw = text_layout(cr, g).get_pixel_extents()[0].width if g else 0
                 x = it.x + (it.w - (gw + GAP if g else 0) - nink.width) // 2
@@ -2536,11 +2544,11 @@ def main(argv):
         return True
 
     def on_motion(w, ev):
-        panel.hover(ev.x, ev.y + panel.dy, dragging=bool(ev.state & Gdk.ModifierType.BUTTON1_MASK))
+        panel.hover(ev.x - panel.ox, ev.y + panel.dy, dragging=bool(ev.state & Gdk.ModifierType.BUTTON1_MASK))
         return True
 
     def on_enter(w, ev):
-        panel.enter(ev.x, ev.y + panel.dy)
+        panel.enter(ev.x - panel.ox, ev.y + panel.dy)
         return False
 
     def on_leave(w, ev):
@@ -2552,24 +2560,24 @@ def main(argv):
 
     def on_press(w, ev):
         if ev.button == 1 and ev.type == Gdk.EventType.BUTTON_PRESS:
-            panel.press(ev.x, ev.y + panel.dy)
+            panel.press(ev.x - panel.ox, ev.y + panel.dy)
         return True
 
     def on_release(w, ev):
-        panel.release(ev.x, ev.y + panel.dy)
+        panel.release(ev.x - panel.ox, ev.y + panel.dy)
         return True
 
     def on_scroll(w, ev):
         if ev.direction == Gdk.ScrollDirection.SMOOTH:
             _, dx, dy = ev.get_scroll_deltas()
             if dy:
-                panel.scroll_by(ev.x, ev.y + panel.dy, dy)
+                panel.scroll_by(ev.x - panel.ox, ev.y + panel.dy, dy)
         elif ev.direction in (Gdk.ScrollDirection.UP, Gdk.ScrollDirection.DOWN):
-            panel.wheel(ev.x, ev.y + panel.dy, ev.direction == Gdk.ScrollDirection.UP)
+            panel.wheel(ev.x - panel.ox, ev.y + panel.dy, ev.direction == Gdk.ScrollDirection.UP)
         return True
 
     def on_tip(w, x, y, kb, tip):
-        it = panel.at(x, y + panel.dy)
+        it = panel.at(x - panel.ox, y + panel.dy)
         if it and it.tip:
             tip.set_text(it.tip)
             return True

@@ -18,6 +18,7 @@ cal() { kawa-calendar; }
 . "$REPO/configs/home/.config/fedokawaii/icons.sh"
 month() { fz_rows "${1:-}" | sed -n 1p | cut -f3; }                        # the heading's name
 cells() { fz_rows "${1:-}" | grep '^cell' | sed 1,7d; }                    # the six weeks, in order
+# shellcheck disable=SC2120  # (the menu's number is passed on to cells; no test needs another page yet)
 days() { cells "$@" | grep -v $'\tdim$' | cut -f2 | tr '\n' ' '; }         # this month's days
 week() { cells "${2:-}" | sed -n "$(( ($1 - 1) * 7 + 1 )),$(( $1 * 7 ))p" | cut -f2,3 | tr '\t\n' ': ' | sed 's/: / /g; s/ $//'; }
 lastday() { cells "$@" | grep -v $'\tdim$' | tail -n1 | cut -f2; }
@@ -25,9 +26,9 @@ today_() { cells "$@" | grep $'\ttoday$' | cut -f2; }
 key_at() { fz_rows "${2:-}" | sed -n "$(( $1 + 1 ))p"; }                    # line N (0-based)
 
 # ── a month ───────────────────────────────────────────────────────────────────────────
-case_ "October 2026, today Friday the 16th: 暦 and the month, the weekdays, six weeks, today stamped, three keys"
+case_ "October 2026, today Friday the 16th: the calendar icon and the month, the weekdays, six weeks, today stamped, three keys"
 setup 2026-10-16; answer esc; cal; rc 0 true
-eq "$(fz_rows | sed -n 1p)" "part	暦	Oct 2026"
+eq "$(fz_rows | sed -n 1p)" "part	$ICON_CALENDAR	Oct 2026" "the heading carries the calendar's icon"
 eq "$(fz_rows | sed -n '2,8p' | tr '\n' '|')" "cell	Mo	head|cell	Tu	head|cell	We	head|cell	Th	head|cell	Fr	head|cell	Sa	head|cell	Su	head|"
 eq "$(cells | wc -l)" 42 "six weeks, always"
 eq "$(week 1)" "28:dim 29:dim 30:dim 1 2 3 4" "September's last days dim before the 1st (a Thursday)"

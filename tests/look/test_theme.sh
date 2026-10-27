@@ -17,7 +17,7 @@ setup() {
   export GS=$TMP/gsettings; : >"$GS"
   # gsettings get/set org.gnome.desktop.interface KEY [VALUE] — kept in $GS (KEY=VALUE)
   stubf gsettings <<'EOF'
-[ -e "$FAKE_TMP/gate.gs.use" ] && { echo $$ >"$FAKE_TMP/gs.pid"; : >"$FAKE_TMP/gate.gs.in"; while [ ! -e "$FAKE_TMP/gate.gs" ]; do /bin/sleep 0.02; done; }
+[ -e "$FAKE_TMP/gate.gs.use" ] && { echo $$ >"$FAKE_TMP/gs.pid"; : >"$FAKE_TMP/gate.gs.in"; while [ ! -e "$FAKE_TMP/gate.gs" ]; do [ -d "$FAKE_TMP" ] || exit 1; /bin/sleep 0.02; done; }
 case $1 in
   get) printf "'%s'\n" "$(sed -n "s/^$3=//p" "$GS")" ;;
   set) exec 5>"$GS.lock"; flock 5   # (kawa-theme sets the four keys at once)

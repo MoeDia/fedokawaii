@@ -938,12 +938,16 @@ def check_copies():
 
 
 def panel_conf(m, p):
-    """kawa-panel, quick settings: it draws itself (every square and seal on the pixel grid),
-    so it takes the colours by name rather than as CSS."""
+    """kawa-panel, quick settings: it draws itself (every square and segment on the pixel grid),
+    so it takes the colours by name rather than as CSS — and its frame's, as the bar's tiles have
+    it (KAMI: the hairline and the shadow's two rows, each with its own opacity: rrggbbaa)."""
     keys = ("ground", "key", "edge", "edge2", "faint", "muted", "text", "strong", "accent",
-            "accent_text", "accent_lo", "text_on_accent", "asagi")
+            "accent_text", "accent_lo", "text_on_accent", "asagi", "flame")
+    k = KAMI[m]
+    frame = {"hair": k["hair"], "shadow1": k["shadow"][0], "shadow2": k["shadow"][1]}
     return (f"# {header('~/.config/fedokawaii/current/panel.conf', 'quick settings in ' + NAMES[m])}\n"
-            + "".join(f"{k}={p[k]}\n" for k in keys))
+            + "".join(f"{k}={p[k]}\n" for k in keys)
+            + "".join(f"{n}={''.join(f'{c:02x}' for c in v)}\n" for n, v in frame.items()))
 
 
 def saver_conf(m, p):

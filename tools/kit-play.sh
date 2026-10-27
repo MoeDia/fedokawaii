@@ -26,7 +26,7 @@ shot()  { if (($# > 1)); then grim -g "${*:2}" "$KIT_OUT/$1.png"; else grim "$KI
 nap()   { sleep "$1"; }
 say()   { printf '%s\n' "$*" >>"$KIT_OUT/play.log"; }
 panel() {
-  kawa-panel >/dev/null 2>&1 &
+  kawa-panel >/dev/null 2>>"$KIT_OUT/panel.log" &   # (what it says wrong: beside the shots)
   local _; for _ in $(seq 60); do [[ -p $XDG_RUNTIME_DIR/kawa-panel.in ]] && return 0; sleep 0.05; done
   say "panel: no fifo after 3 s"; return 1
 }

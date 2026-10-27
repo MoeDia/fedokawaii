@@ -38,7 +38,7 @@ packsetup() {   # packsetup N — a list of N pictures (p1…pN), each served co
   stubf curl <<'EOF'
 o="" u=""
 while [ $# -gt 0 ]; do case $1 in -o) o=$2; shift ;; -*) ;; *) u=$1 ;; esac; shift; done
-[ -e "$FAKE_TMP/gate.curl.use" ] && grep -q "^$u" "$FAKE_TMP/gate.curl.use" && { : >"$FAKE_TMP/gate.curl.in"; while [ ! -e "$FAKE_TMP/gate.curl" ]; do /bin/sleep 0.02; done; }
+[ -e "$FAKE_TMP/gate.curl.use" ] && grep -q "^$u" "$FAKE_TMP/gate.curl.use" && { : >"$FAKE_TMP/gate.curl.in"; while [ ! -e "$FAKE_TMP/gate.curl" ]; do [ -d "$FAKE_TMP" ] || exit 6; /bin/sleep 0.02; done; }
 line=$(grep -m1 "^$u " "$FAKE_TMP/net") || exit 6
 set -- $line
 [ "$2" = 0 ] || exit "$2"

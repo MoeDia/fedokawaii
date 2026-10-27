@@ -168,7 +168,7 @@ fi
 # A dropdown under the weather in the bar (kawa-menu --drop: lit while open, closed by the
 # bar's click again), in the design system's parts (docs/design-system.md), one line each in
 # kawa-menu's tab-separated format, laid out by it:
-#   part  天  Sharjah                     the heading: 天 (ten, the sky — 天気, the weather), the city
+#   part  ☁  Sharjah                     the heading: the cloud (the weather's own), the city
 #   info  ☼  Mon 19  scorching  31°      a day, only to read (the cursor and the pointer pass
 #                                         it): the sky's glyph, the weekday and date, how the
 #                                         day feels (a column of its own), its mean temperature
@@ -178,7 +178,7 @@ fi
 # came, and their age — "offline · 3 h old".
 rows=()
 line() { local IFS=$'\t'; rows+=("$*"); }
-line part 天 "$WEATHER_CITY"
+line part "$ICON_CLOUD" "$WEATHER_CITY"
 for d in "${days[@]}"; do
   read -r wd dd code mean feels <<<"$d"
   sky "$code" 1 || continue

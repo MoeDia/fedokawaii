@@ -310,7 +310,7 @@ the tiles of a group, 12 px between groups.
 | the music's wings | while something plays, inside the scroll either side of the clock: 8 columns a side (2 px wide, 4 apart, 1–10 px tall on the capitals' rows), the lowest notes nearest the clock; inked by height from `accent_lo` to `accent` — our red, rising |
 | what plays | the first tile on the right: its icon moving (§13: a television with its antenna for a video, the cassette for sound), the title `text`, a red rule (1 × 10 px, `accent_text`, on the capitals' rows, 8 px either side), the channel or episode `faint`; paused: still, the title `muted` |
 | the keyboard | `US` in `accent_text`, `AR` in `blue`; a click switches |
-| do not disturb | its icon only while on; a click opens a small menu of its own (turn it off) |
+| do not disturb | its icon (the quiet bell) only while on; a click opens its own dropdown — off · for an hour · until the morning · on, the one in force marked (§4 chosen); a timed one ends by itself |
 | downloads | while something downloads: its icon moving |
 | the others | timer, recording, drives, memory, volume, brightness, the weather — each its own tile, icon and value |
 | quick settings | the right end's vermilion tile: the demon's head (dark) or the angel's face (light), its emblem |

@@ -66,10 +66,10 @@ pages() { qpdf --show-npages "$1"; }
 notice() { grep '^notify-send' "$CALLS" | tail -n1; }
 
 # ── the menu ────────────────────────────────────────────────────────────────────────────
-case_ "one PDF: its parts under their kanji, what was chosen and its size at the first heading's end"
+case_ "one PDF: its parts under their icons, what was chosen and its size at the first heading's end"
 setup; textpdf "$A/report.pdf" "page one" "page two" "page three"
 answers esc; rc 0 kawa-file "$A/report.pdf"
-eq "$(grep '^part' "$TMP/menu.1" | cut -f2 | tr -d '\n')" "紙抜変署包"
+eq "$(grep '^part' "$TMP/menu.1" | cut -f2 | tr -d '\n')" "$ICON_PAGES$ICON_TAKE_OUT$ICON_SLIDERS$ICON_PEN$ICON_ARCHIVE" "pages, take out, change, sign, pack"
 has "$(head -n1 "$TMP/menu.1")" "	1 PDF · "
 for r in "split into pages" "take some pages" "rotate pages" "reorder pages" "delete pages" "its pictures" "its text" \
          "PNG · 150 dpi" "PNG · 300 dpi" "make it searchable" "make it smaller" "lock with a password" \
@@ -79,11 +79,11 @@ done
 lacks "$(menu 1)" "stamp your signature" "(no signature drawn yet)"
 lacks "$(menu 1)" "merge" "(one PDF: nothing to merge)"
 has "$(cat "$TMP/menu.1.args")" "--index --select 1"
-case_ "… a folder alone: only 包 pack; an archive: 解 unpack first"
-answers esc; kf "$A/folder"; eq "$(grep '^part' "$TMP/menu.1" | cut -f2 | tr -d '\n')" "包"
+case_ "… a folder alone: only pack (the archive icon); an archive: unpack (its own icon) first"
+answers esc; kf "$A/folder"; eq "$(grep '^part' "$TMP/menu.1" | cut -f2 | tr -d '\n')" "$ICON_ARCHIVE"
 has "$(head -n1 "$TMP/menu.1")" "1 folder · "
 (cd "$A" && 7z a -bso0 f.zip folder >/dev/null)
-answers esc; kf "$A/f.zip"; eq "$(grep '^part' "$TMP/menu.1" | cut -f2 | tr -d '\n')" "解包"
+answers esc; kf "$A/f.zip"; eq "$(grep '^part' "$TMP/menu.1" | cut -f2 | tr -d '\n')" "$ICON_UNPACK$ICON_ARCHIVE"
 has "$(menu 1)" "extract into a folder	f/"; has "$(menu 1)" "list its contents"; has "$(menu 1)" "test it"
 lacks "$(menu 1)" "asks its password"
 
@@ -91,7 +91,7 @@ case_ "nothing chosen: a notice, no menu; --choose: the file dialog first; wrong
 setup; rc 1 kawa-file; called 'notify-send -a desktop -- .*nothing to work on'
 [[ ! -e $TMP/menus ]] && _ok || _no "a menu opened"
 stub kawa-pick 'printf "%s\n" "$TMP/docs/folder" >"$5"'; answers esc
-rc 0 kawa-file --choose; called '^kawa-pick 1 0 0 '; eq "$(grep '^part' "$TMP/menu.1" | cut -f2)" "包"
+rc 0 kawa-file --choose; called '^kawa-pick 1 0 0 '; eq "$(grep '^part' "$TMP/menu.1" | cut -f2)" "$ICON_ARCHIVE"
 rc 2 kawa-file --bogus; rc 2 kawa-file --list
 
 case_ "files copied in yazi (file:// links on the clipboard): those"
@@ -108,6 +108,7 @@ called "^7z a -tzip -mx1 "
 has "$(7z l -ba "$z")" "folder/inner/two.txt"
 eq "$(grep -c '^row' "$TMP/menu.2")" 4 "fast, balanced, smallest, a level of your own"
 has "$(menu 2)" "fast	quick · larger	mx1"; has "$(menu 2)" "smallest	slow · smallest	mx9"
+eq "$(sed -n 1p "$TMP/menu.2" | cut -f1-3)" "part	$ICON_ARCHIVE	compression" "the compression menu's heading: the archive icon"
 has "$(cat "$TMP/menu.2.args")" "--select 2" "(never chosen: balanced)"
 called '^notify-send -a desktop -A default=open -- .* (KB|MB) → .* % .*folder\.zip · its path copied'
 eq "$(cat "$CB.data")" "$z"
@@ -146,6 +147,7 @@ setup; answers tar.zst "a level of your own" 12; rc 0 kawa-file "$A/folder"
 [[ -s $A/folder.tar.zst ]] && _ok || _no "no tar.zst"
 called '^zstd -T0 -12'
 has "$(menu 3)" "level " ; has "$(cat "$TMP/menu.3.args")" "--prompt level "
+eq "$(sed -n 1p "$TMP/menu.3" | cut -f1-3)" "part	$ICON_SLIDERS	a level of your own" "the typed question's heading: the sliders"
 eq "$(cat "$TMP/state")" "pack-zst=12"
 answers tar.zst balanced; kf "$A/folder"; has "$(cat "$TMP/menu.2.args")" "--select 4"; has "$(menu 2)" "level 12"
 for bad in 0 20 "x"; do
@@ -172,7 +174,7 @@ called 'notify-send -a desktop -A default=open -- .*extracted into a folder'
 case_ "extract here: beside it, nothing overwritten (a name taken: \"(1)\"); no work folder left"
 answers "extract here"; rc 0 kawa-file "$A/f.zip"
 [[ -s "$A/folder (1)/one.txt" ]] && _ok || _no "$(ls "$A" | tr '\n' '|')"
-eq "$(ls -A "$A" | grep -c '^\.kawa-file')" 0
+eq "$(find "$A" -maxdepth 1 -name '.kawa-file*' | wc -l)" 0
 case_ "test it: whole · a damaged one said"
 answers "test it"; rc 0 kawa-file "$A/f.zip"; called 'notify-send .*whole.*f\.zip · [0-9]+ files'
 cp "$A/f.zip" "$A/bad.zip"; printf 'XXXXXXXXXXXXXXXXXXXXXXXX' | dd of="$A/bad.zip" bs=1 seek=60 conv=notrunc 2>/dev/null
@@ -233,11 +235,13 @@ setup; pdfs
 answers "merge into one PDF" "as chosen"; rc 0 kawa-file "$A/b.pdf" "$A/a.pdf" "$A/c.pdf"
 m=$A/b-merged.pdf; eq "$(pages "$m")" 4; eq "$(words "$m")" "bee one bee two ay one cee one "
 has "$(menu 2)" "first: b.pdf"
+eq "$(sed -n 1p "$TMP/menu.2" | cut -f1-3)" "part	$ICON_ORDER	order" "the order question's heading: the order icon"
 answers "merge into one PDF" "by name"; rc 0 kawa-file "$A/b.pdf" "$A/c.pdf" "$A/a.pdf"
 eq "$(words "$A/a-merged.pdf")" "ay one bee one bee two cee one "
 answers "merge into one PDF" "an order of your own" "3 1 2"; rc 0 kawa-file "$A/b.pdf" "$A/a.pdf" "$A/c.pdf"
 eq "$(words "$A/c-merged.pdf")" "cee one bee one bee two ay one "
 has "$(menu 3)" "note	1  b.pdf"
+eq "$(sed -n 1p "$TMP/menu.3" | cut -f1-3)" "part	$ICON_ORDER	an order of your own"
 answers "merge into one PDF" "an order of your own" "4 1"; rc 1 kawa-file "$A/b.pdf" "$A/a.pdf" "$A/c.pdf"
 called 'notify-send .*not an order: 4 1.*1 to 3'
 answers "merge into one PDF" "an order of your own" "1 1"; rc 1 kawa-file "$A/b.pdf" "$A/a.pdf"; called 'there twice'
@@ -257,6 +261,8 @@ for bad in "9|page 9 is past the end: it has 5 pages" "4-2|4-2 runs backwards: s
   answers "take some pages" "${bad%%|*}"; rc 1 kawa-file "$A/r.pdf"; called "notify-send .*no pages taken.*${bad#*|}"
 done
 answers "rotate pages" "a quarter right" "2,4"; rc 0 kawa-file "$A/r.pdf"
+eq "$(sed -n 1p "$TMP/menu.2" | cut -f1-3)" "part	$ICON_RESTART	rotate" "the rotate menu's heading: the restart arrow"
+eq "$(sed -n 1p "$TMP/menu.3" | cut -f1-3)" "part	$ICON_PAGES	which pages" "… and the question after it: the pages icon"
 eq "$(pdfinfo -f 1 -l 5 "$A/r.rotated.pdf" | awk '/ rot:/ { printf "%s ", $4 }')" "0 90 0 90 0 "
 answers "rotate pages" "upside down" "all pages"; rc 0 kawa-file "$A/r.pdf"
 eq "$(pdfinfo -f 1 -l 5 "$A/r.rotated (1).pdf" | awk '/ rot:/ { printf "%s ", $4 }')" "180 180 180 180 180 "
@@ -271,7 +277,7 @@ answers "its text"; rc 0 kawa-file "$A/r.pdf"; [[ -s "$A/r (1).txt" ]] && _ok ||
 answers "its pictures"; rc 1 kawa-file "$A/r.pdf"; called 'notify-send .*no pictures in r\.pdf'; [[ ! -e $A/r-images ]] && _ok || _no "an empty folder left"
 magick -size 400x300 xc:skyblue -fill black -draw 'circle 200,150 200,60' "$A/pic.png"
 magick "$A/pic.png" "$A/pic.png" "$A/photos.pdf" 2>/dev/null
-answers "its pictures"; rc 0 kawa-file "$A/photos.pdf"; (($(ls "$A/photos-images" | grep -c '\.png$') >= 2)) && _ok || _no "$(ls "$A/photos-images" | tr '\n' '|')"
+answers "its pictures"; rc 0 kawa-file "$A/photos.pdf"; (($(find "$A/photos-images" -name '*.png' | wc -l) >= 2)) && _ok || _no "$(ls "$A/photos-images" | tr '\n' '|')"
 answers "its text"; rc 1 kawa-file "$A/photos.pdf"; called 'notify-send .*no text in photos\.pdf.*searchable'
 answers "PNG · 150 dpi"; rc 0 kawa-file "$A/r.pdf"; eq "$(ls "$A/r-150dpi" | wc -l)" 5
 eq "$(magick "$A/r-150dpi/$(ls "$A/r-150dpi" | head -n1)" -format '%w' info:)" 1275 "8.5 in × 150"
@@ -336,6 +342,8 @@ read -r w h c < <(magick "$S" -format '%w %h %[channels]' info:)
 ((w > 1000 && w < 1030 && h > 345 && h < 375)) && _ok || _no "trimmed to the ink: ${w}×$h"
 [[ ${c%% *} == *a ]] && _ok || _no "no transparency: $c"   # (ImageMagick 7.1.2: "graya 2.0" — the channels, then their count)
 has "$(menu 2)" "last page"; has "$(cat "$TMP/menu.2.args")" "--prompt page "
+eq "$(sed -n 1p "$TMP/menu.2" | cut -f1-3)" "part	$ICON_PAGES	page" "the page question's heading: the pages icon"
+eq "$(sed -n 1p "$TMP/menu.3" | cut -f1-3)" "part	$ICON_CORNER	corner" "the corner menu's heading: the corner icon"
 eq "$(grep '^row' "$TMP/menu.3" | cut -f3 | tr '\n' '|')" "bottom right|bottom left|top right|top left|"
 # where the ink went: page 3 drawn before and after, the difference's box (612 × 792 pt at 72 dpi)
 ink() { pdftoppm -f "$2" -l "$2" -r 72 -png "$1" "$TMP/i1"; pdftoppm -f "$2" -l "$2" -r 72 -png "$A/deal.pdf" "$TMP/i0"

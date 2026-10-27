@@ -484,7 +484,7 @@ Keep the help sheet (**Super+/**) a key away; write down the three keys you look
 | the wings | while music plays, its sound inside the scroll either side of the clock: thin columns, the left channel left, the right right | play/pause |
 | now playing | the first tile on the right: a turning cassette, the title, the artist quieter | play/pause; right: next |
 | a timer | while one runs: the time left (a stopwatch: the time gone by) | the timer menu |
-| a seal 静 or 共有 | do-not-disturb on · your screen is being shared | |
+| the quiet bell, or the monitor | do-not-disturb on · your screen is being shared | the bell: off, for an hour, until the morning, on |
 | the drive mark | a USB stick, disk or SD card is plugged in | open or eject it |
 | the download mark | something is downloading: the percent of all of it | the downloads centre (chapter 7) |
 | Steam's gamepad | while Steam runs | Steam |
@@ -525,7 +525,8 @@ it and it jumps to its end, then switches back.
 
 A notice appears at the top right and fades by itself; a click does what it offers (opens the
 download, the drive). **Super+Shift+N** dismisses them all. While you need quiet — a call, an
-exam — turn on *dnd* in quick settings: notices wait, and **静** stands in the bar.
+exam — turn on *dnd* in quick settings: notices wait, and the quiet bell stands in the bar. A
+click on the bell chooses how long: *for an hour* or *until the morning* end by themselves.
 
 ### Exercises
 
@@ -536,7 +537,7 @@ exam — turn on *dnd* in quick settings: notices wait, and **静** stands in th
 **5.2 ★ Quiet.** Turn on *dnd* (**Super+X**, *dnd*), then run `notify-send hello` in a
 terminal. Turn *dnd* off.
 
-*Expected:* no notice while 静 is in the bar; the notice shows once dnd is off.
+*Expected:* no notice while the bell is in the bar; the notice shows once dnd is off.
 
 **5.3 ★★ A 25-minute focus timer.** Click the time in the bar and choose *25 min*.
 

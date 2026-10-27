@@ -17,7 +17,7 @@ padding=16
 # lines up with the windows and the dropdown menus to the pixel; as wide as quick settings'
 # panel (kawa-panel), so the two make one column under the bar's right end
 margin=8
-width=412
+width=410
 height=180
 default-timeout=5000
 layer=overlay
@@ -90,7 +90,7 @@ invisible=1
 # bottom centre, replaced in place while a key is held — quick settings' brightness panel,
 # to the pixel: 412 × 60, one meter row of 24 px in the 16 px of pad above and below, and
 # 24 across — the panel's 16 and its row's 8 — so the glyph's pen stands at x 26 and the
-# squares at x 146, where the panel's meter has them (kawa-osd). An even width, so it is
+# slider at x 134 (kawa-osd; T15 rebuilds it on quick settings' segments). An even width, so it is
 # centred to the pixel on any screen; 72 px above the bottom edge (mako leaves out the last
 # notice's own bottom margin, so the distance is the outer margin).
 [category=osd]

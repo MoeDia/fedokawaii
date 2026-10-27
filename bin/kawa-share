@@ -89,7 +89,7 @@ cut40() { cut_cols "$1" 40; }   # cut40 TEXT — TEXT in at most 40 columns of t
 # (its name, its current size right-aligned) or a window (its title); line N + 1 is lines[N]
 rows=()
 line() { local IFS=$'\t'; rows+=("$*"); }
-line part 共 "share what?"
+line part "$ICON_LINK" "share what?"
 for l in "${lines[@]}"; do
   case $l in
     "Window: "*) t=${l#Window: }; a=${t##* (}; a=${a%)}; t=${t% (*}   # the title, without the token —

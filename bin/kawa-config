@@ -37,6 +37,7 @@ pending() {   # how many files of the copy differ from the toolkit, counted as a
   [[ -d $COPY ]] || { echo 0; return; }
   [[ -f $b && ! ( -f $a && $a -nt $b ) ]] || b=$a
   [[ -f $b ]] && cmp -s -- "$COPY/fedokawaii.conf" "$b" && skip=fedokawaii.conf
+  # shellcheck disable=SC2034  # (LOG_FILE: read by common.sh, sourced next)
   (LOG_FILE=/dev/null; . "$TK/lib/common.sh" >/dev/null && tree_changes "$TK" "$COPY") | awk -F'\t' -v s="$skip" '$2 != s' | wc -l
 }
 
@@ -77,7 +78,7 @@ draw_icons() {    # fontTools, once, into a folder of its own (it is not a packa
 # after an edit that changed something: apply now, or later
 after_edit() {   # after_edit WHEN
   local i
-  i=$({ line part 適 apply
+  i=$({ line part "$ICON_CHECK" apply
         line row "$ICON_DOWNLOAD" 'apply now' 'asks your password'
         line row "$ICON_HOURGLASS" later 'fedokawaii apply'
         line row "$ICON_BRANCH" 'what changed' 'in the copy'; } | kawa-menu --index --select 1 --title "$1") || return 0
@@ -110,7 +111,7 @@ yours() {   # yours TITLE WHEN FILE HEADER
 }
 yours_menu() {
   local i
-  i=$({ line part 己 'yours alone'
+  i=$({ line part "$ICON_USER" 'yours alone'
         line row "$ICON_TERMINAL" 'shell additions' 'aliases, functions, exports'
         line row "$ICON_HOURGLASS" autostart 'programs at every login'
         line row "$ICON_CODE" 'neovim plugins' 'LazyVim specs'
@@ -142,7 +143,7 @@ return {
 learn_menu() {
   local rows=() urls=() i sec page
   l() { rows+=("$(line row "$1" "$2" "$3")"); urls+=("$4"); }
-  rows+=("$(line part 学 learn)"); urls+=(-)
+  rows+=("$(line part "$ICON_MORTARBOARD" learn)"); urls+=(-)
   l "$ICON_BOOK"     'learning guide' 'programs, Python, Rust'  guide
   l "$ICON_KEYBOARD" keys            "this desktop's: Super+/"  keys
   l "$ICON_TERMINAL" bash            'The Linux Command Line'   https://linuxcommand.org/tlcl.php
@@ -171,8 +172,8 @@ learn_menu() {
 # history, help
 rows=() acts=()
 row() { rows+=("$(line row "$2" "$3" "$4")"); acts+=("$1"); }
-heading_row() { rows+=("$(line part "$1" "$2")"); acts+=(-); }   # heading_row KANJI NAME
-heading_row 見 look
+heading_row() { rows+=("$(line part "$1" "$2")"); acts+=(-); }   # heading_row ICON NAME
+heading_row "$ICON_THEME" look
 row colours   "$ICON_THEME"     colours        "the dark and light palettes"
 row bar       "$ICON_WINDOW"    bar            "what it shows"
 row barlook   "$ICON_CODE"      'bar look'     "sizes, spacing (CSS)"
@@ -180,23 +181,23 @@ row icons     "$ICON_PICTURE"   icons          "the pixel icons (text grids)"
 row notify    "$ICON_BELL"      notifications  "look, how long they stay"
 row launcher  "$ICON_CHEVRON_RIGHT" 'menus, launcher' "their grid and doing (kawa-panel)"
 row glass     "$ICON_TERMINAL"  transparency   "foot's see-through ground: $(kawa-glass)"
-heading_row 手 use
+heading_row "$ICON_KEYBOARD" use
 row keys      "$ICON_KEYBOARD"  keys           "dwl's, and the help sheet"
 row terminal  "$ICON_TERMINAL"  terminal       "font, size, keys"
 row shell     "$ICON_PROMPT"    shell          "prompt, aliases"
 row files     "$ICON_FOLDER"    files          "yazi's panes, colours, keys"
 row drives    "$ICON_DRIVE"     drives         "notices, eject, passphrase"
 row autostart "$ICON_HOURGLASS" autostart      "programs, idle and lock times"
-heading_row 系 system
+heading_row "$ICON_MONITOR" system
 row settings  "$ICON_SLIDERS"   settings       "keyboard, city, refresh rate"
 row packages  "$ICON_ARCHIVE"   packages       "what is installed"
 row yours     "$ICON_USER"      'yours alone'  "what the theme never touches"
-heading_row 史 history
+heading_row "$ICON_BRANCH" history
 row changed   "$ICON_DIFF"      'what changed' "the copy against the toolkit"
 row history   "$ICON_BRANCH"    history        "commit, undo, push (lazygit)"
 row apply     "$ICON_DOWNLOAD"  apply          "the copy becomes the desktop"
 row pull      "$ICON_CLOUD"     'update fedokawaii' "GitHub's newest, then applied"
-heading_row 案 help
+heading_row "$ICON_BOOK" help
 row learn     "$ICON_BOOK"      learn          "the guide, manuals, wikis"
 n=$(pending)
 title="change · ${COPY/#$HOME/\~}"

@@ -27,8 +27,9 @@ binary() { python3 -I -c 'import sys; sys.stdout.buffer.write((bytes(range(255, 
 prev() { FZF_PREVIEW_COLUMNS=${COLS:-74} FZF_PREVIEW_LINES=${LINES_:-9} KAWA_CELL=9x21 kawa-clip --preview "$@"; }
 . "$HOME/.config/fedokawaii/icons.sh" 2>/dev/null || . "$REPO/configs/home/.config/fedokawaii/icons.sh"
 # rows LIST — the list's rows as words: its own inks (screen.sh's: 38;5;N and the reset) out, the
-# row's indent and glyph out (checked on their own), its padding as two spaces — "ID<tab>name  value"
-rows() { sed -e $'s/\e\\[38;5;[0-9]*m//g; s/\e\\[0m//g' -e $'s/\t  [^ ]*  /\t/; s/   */  /g'; }
+# row's indent (a column: screen_row's; kawa-clip's own text rows keep two) and glyph out (checked
+# on their own), its padding as two spaces — "ID<tab>name  value"
+rows() { sed -e $'s/\e\\[38;5;[0-9]*m//g; s/\e\\[0m//g' -e $'s/\t \\{1,2\\}[^ ]*  /\t/; s/   */  /g'; }
 
 # ── the list ─────────────────────────────────────────────────────────────────
 setup
@@ -41,10 +42,10 @@ binary | python3 -I "$C/fake_cliphist.py" store
 raw=$(kawa-clip --list); out=$(rows <<<"$raw")
 case_ "the list: newest first, each row its cliphist id, a tab, and what it shows"
 eq "$(cut -f1 <<<"$out" | tr '\n' ' ')" "6 5 4 3 2 1 "
-case_ "a row as every text screen's (screen.sh): two spaces, the glyph in muted, two spaces, the name; a value right-aligned at the window's 76th column, muted"
+case_ "a row as every text screen's (screen.sh): a space, the glyph in muted, two spaces, the name; a value right-aligned at the window's 76th column, muted"
 eq "$(grep $'^4\t' <<<"$raw" | cut -f2 | sed -e $'s/\e\\[[0-9;]*m//g' | LC_ALL=C.UTF-8 wc -L)" 76
-has "$raw" $'4\t  \e[38;5;21m'"$ICON_PICTURE"$'\e[0m  png picture  '
-has "$raw" $'3\t  \e[38;5;21m'"$ICON_CLIPBOARD"$'\e[0m  日本語'
+has "$raw" $'4\t \e[38;5;21m'"$ICON_PICTURE"$'\e[0m  png picture  '
+grep -Eqa $'^3\t {1,2}\e\\[38;5;21m'"$ICON_CLIPBOARD"$'\e\\[0m  日本語' <<<"$raw" && _ok || _no "a text row: its glyph in muted, two spaces, the text — in $(grep -a '^3' <<<"$raw")"
 eq "$(FZF_COLUMNS=60 kawa-clip --list | grep $'^4\t' | cut -f2 | sed -e $'s/\e\\[[0-9;]*m//g' | LC_ALL=C.UTF-8 wc -L)" 58 "a reload: fzf's width less a column each side"
 has "$out" $'1\tline one line two with tab line three' "newlines and tabs read as spaces"
 has "$out" $'2\t-rf --no-preserve-root /' "a leading dash is just text"
@@ -55,7 +56,7 @@ has "$out" $'4\tpng picture  640×480 · '
 has "$out" $'5\tjpeg picture  64×32 · '
 case_ "binary data that is not a picture: a row of its own, named"
 eq "$(grep $'^6\t' <<<"$out")" $'6\tdata  not text'
-has "$raw" $'6\t  \e[38;5;21m'"$ICON_BOX_OFF"
+has "$raw" $'6\t \e[38;5;21m'"$ICON_BOX_OFF"
 
 case_ "an escape in a copy (colour codes, a clear-screen): shown as ^[, never acted on"
 setup
@@ -382,7 +383,7 @@ sh -c "${ccmd//\{1\}/1}"; eq "$(cat "$COPIED")" "hello there" "enter, run as fzf
 cur() { cat "$XDG_RUNTIME_DIR/kawa-clip.current" 2>/dev/null; }
 open_window() {   # open_window [setsid] — kawa-clip --tui in the background, WIN its pid
   rm -f "$TMP/close" "$FZF_ARGS"
-  stub fzf 'for a; do printf "%s\n" "$a"; done >"$FZF_ARGS"; cat >/dev/null; while [ ! -e "$TMP/close" ]; do sleep 0.05; done'
+  stub fzf 'for a; do printf "%s\n" "$a"; done >"$FZF_ARGS"; cat >/dev/null; while [ ! -e "$TMP/close" ]; do [ -d "$TMP" ] || exit 1; sleep 0.05; done'
   : >"$XDG_RUNTIME_DIR/kawa-warm-clip.shown"    # (shown: kawa-warm --shown's mark)
   "$@" kawa-clip --tui 2>/dev/null & WIN=$!     # (bash says "Hangup" of a hung-up fzf)
   on_exit "touch '$TMP/close' 2>/dev/null; kill $WIN 2>/dev/null"

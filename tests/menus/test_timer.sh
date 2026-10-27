@@ -39,7 +39,7 @@ within() {   # within MS FILE TEXT — TEXT shows in a line of FILE within MS mi
 case_ "the clock's menu: a heading, 5 · 10 · 25 · 45 · 60 min and a stopwatch, under the bar; no cancel while none runs"
 setup; answer esc; rc 0 kawa-timer
 rows=$(fz_rows)
-eq "$(sed -n 1p <<<"$rows")" "part	時	timer	" "the heading: 時 timer, nothing running at its end"
+eq "$(sed -n 1p <<<"$rows")" "part	$ICON_HOURGLASS	timer	" "the heading: the hourglass and timer, nothing running at its end"
 eq "$(sed -n '2,6p' <<<"$rows" | tr '\n' '|')" "row	$ICON_HOURGLASS	 5 min|row	$ICON_HOURGLASS	10 min|row	$ICON_HOURGLASS	25 min|row	$ICON_HOURGLASS	45 min|row	$ICON_HOURGLASS	60 min|" "a row a length, the figures right-aligned"
 eq "$(sed -n 7p <<<"$rows")" "row	$ICON_HOURGLASS	stopwatch"
 lacks "$rows" cancel; eq "$(wc -l <<<"$rows")" 7
@@ -57,7 +57,7 @@ eq "$k" timer; eq "$m" 25
 [[ $set =~ ^[01][0-9]:[0-5][0-9]\ [AP]M$ ]] && _ok || _no "set at [$set], not as the bar's clock writes it"
 eq "$(rings)" 1 "one waiter"
 answer esc; kawa-timer; has "$(fz_rows)" "row	$ICON_CROSS	cancel the timer"
-[[ $(fz_rows | sed -n 1p) =~ ^part$'\t'時$'\t'timer$'\t'2[45]:[0-5][0-9]\ left$ ]] && _ok || _no "the running timer at the heading's end: $(fz_rows | sed -n 1p)"
+T=$'\t'; [[ $(fz_rows | sed -n 1p) =~ ^part${T}"$ICON_HOURGLASS"${T}timer${T}2[45]:[0-5][0-9]\ left$ ]] && _ok || _no "the running timer at the heading's end: $(fz_rows | sed -n 1p)"
 case_ "another timer takes the first one's place (one waiter, the new end)"
 answer "pick 5 min"; kawa-timer
 eq "$(rings)" 1; read -r _ end2 m _ <<<"$(st)"; eq "$m" 5; ((end2 < end)) && _ok || _no "the 25 min one still stands"
@@ -93,7 +93,7 @@ case_ "a stopwatch past an hour: H:MM:SS"
 printf 'stopwatch %s\n' $((EPOCHSECONDS - 3723)) >"$XDG_RUNTIME_DIR/kawa-timer"
 within 1500 "$TMP/bar.3" "${ICON_BAR_HOURGLASS}1:02:0" && _ok || _no "$(last 3)"
 answer esc; kawa-timer
-[[ $(fz_rows | sed -n 1p) =~ ^part$'\t'時$'\t'timer$'\t'stopwatch\ 1:02:0[0-9]$ ]] && _ok || _no "the stopwatch at the menu's heading: $(fz_rows | sed -n 1p)"
+T=$'\t'; [[ $(fz_rows | sed -n 1p) =~ ^part${T}"$ICON_HOURGLASS"${T}timer${T}stopwatch\ 1:02:0[0-9]$ ]] && _ok || _no "the stopwatch at the menu's heading: $(fz_rows | sed -n 1p)"
 has "$(fz_rows)" "row	$ICON_CROSS	cancel the stopwatch"
 bars_down
 rc 2 kawa-timer bar clock; rc 2 kawa-timer bar timer x

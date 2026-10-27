@@ -74,7 +74,7 @@ dnd() {   # do not disturb, once mako answers (it starts beside the bar); added 
   waitfor 20 makoctl mode || { note dnd failed "$1"; return; }
   if [[ $1 == on ]]; then makoctl mode -a do-not-disturb; else makoctl mode -r do-not-disturb; fi >/dev/null 2>&1 \
     && note dnd ok "$1" || note dnd failed "$1"
-  kawa-dwlstatus --poke 12 2>/dev/null   # (the bar's 静 seal)
+  kawa-dwlstatus --poke 12 2>/dev/null   # (the bar's quiet bell)
 }
 bluetooth() {   # the adapter powered as you left it, once bluetoothd answers (it starts at boot)
   local b=false; [[ $1 == on ]] && b=true

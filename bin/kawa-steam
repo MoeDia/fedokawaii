@@ -327,7 +327,7 @@ case ${1:-} in
     c=□; warm_on && c=▣
     rows=()
     line() { local IFS=$'\t'; rows+=("$*"); }
-    line part 遊 Steam
+    line part "$ICON_GAMEPAD" Steam
     line row "$ICON_FOLDER" library
     line row "$ICON_DOWNLOAD" downloads
     line row "$ICON_USER" friends

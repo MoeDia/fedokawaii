@@ -111,18 +111,18 @@ rows=() acts=()
 line() { local IFS=$'\t'; rows+=("$*"); }
 row() { local a=$1; shift; line row "$@"; acts+=("$a"); }
 part() { line part "$@"; acts+=(-); }
-part 縮 shrink "$what · $(human "$total")"
+part "$ICON_SHRINK" shrink "$what · $(human "$total")"
 if ((${#pics[@]})); then
   row email "$ICON_PICTURE" email "under 1 MB"
   row chat  "$ICON_PICTURE" chat "under 500 KB"
   row own   "$ICON_SLIDERS" "your own size" "type it"
-  part 形 "as another kind"
+  part "$ICON_CONVERT" "as another kind"
   row jpg   "$ICON_FILE" JPEG
   row webp  "$ICON_FILE" WebP
   row png   "$ICON_FILE" PNG lossless
 fi
 if ((${#pdfs[@]})); then
-  ((${#pics[@]})) && part 紙 PDF
+  ((${#pics[@]})) && part "$ICON_PAGES" PDF
   row pdf-ebook   "$ICON_BOOK" "PDF · email" "150 dpi pictures"
   row pdf-screen  "$ICON_BOOK" "PDF · smallest" "72 dpi"
   row pdf-printer "$ICON_BOOK" "PDF · print" "300 dpi"
@@ -134,7 +134,7 @@ case $act in
   email) target=1000000 edge=2560 ;;
   chat)  target=500000 edge=1600 ;;
   own)   # the size typed on the filter line (Enter on what no row has gives what was typed), or one picked
-         s=$({ printf 'part\t縮\tyour own size\n'
+         s=$({ printf 'part\t%s\tyour own size\n' "$ICON_SHRINK"
                for z in "300 KB" "500 KB" "1 MB" "2 MB" "5 MB"; do printf 'row\t%s\t%s\n' "$ICON_SLIDERS" "$z"; done; } |
              kawa-menu --prompt "under " --title "type a size, or pick one") || exit 0
          target=$(bytes "$s") || { say "not a size: $s" "say it as 300 KB, 2 MB or 1.5mb"; exit 1; }

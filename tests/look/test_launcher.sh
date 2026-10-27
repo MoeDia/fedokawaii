@@ -115,7 +115,7 @@ for s in $SEALS; do
   eq "$(key "$A/${s%%:*}.desktop" X-Fedokawaii-Kanji)" "${s#*:}" "${s%%:*}: its seal"
 done
 eq "$(key "$A/kawa-sketch.desktop" Icon)" com.github.xournalpp.xournalpp "Sketch: Xournal++'s own (it is Xournal++)"
-case_ "the seals: each one kanji, wide, drawn by Sumi UI, no two alike; the panel draws one as a seal 22 px square at the row's size — key ground, edge2 frame, accent_text kanji"
+case_ "the pictures: an app's own icon at its native 16 px (design-system §3), forced to it; a terminal program's kanji (one each, wide, drawn by Sumi UI, no two alike — T16 draws them as icons) in the icon column in accent_text, no box round it"
 out=$(python3 -I - "$REPO" $SEALS <<'PY'
 import sys, unicodedata
 from fontTools.ttLib import TTFont
@@ -129,12 +129,12 @@ PY
 )
 eq "$out" "" "the seals' kanji"
 P=$REPO/bin/kawa-panel
-grep -qx 'APP_ICON = 22 .*' "$P" && _ok || _no "an entry's icon is not 22 px"
+grep -qx 'APP_ICON = 16 .*' "$P" && _ok || _no "an entry's icon is not 16 px"
 grep -qF 'theme.lookup_by_gicon(g, APP_ICON, Gtk.IconLookupFlags.FORCE_SIZE)' "$P" && _ok || _no "the icons not loaded at the row's size, forced"
 seal=$(sed -n '/elif it.kind == "app":/,/elif it.kind == "row":/p' "$P")
-has "$seal" 'box(cr, ix, iy, APP_ICON, APP_ICON, "key")' "the seal's ground: key"
-has "$seal" 'frame(cr, ix, iy, APP_ICON, APP_ICON, "edge2")' "the seal's frame: edge2"
-has "$seal" 'glyph(cr, ix, iy, pic, "accent_text", APP_ICON, APP_ICON)' "the seal's kanji: accent_text, centred in it"
+has "$seal" 'glyph(cr, it.x + GLYPH_X, ty, pic_, lk["glyph"] if lk["fill"] else "accent_text")' "the kanji: accent_text in the icon column (on the cursor: the cursor's ink)"
+lacks "$seal" 'frame(cr, ix, iy' "no box round it (§4: never a second frame)"
+has "$seal" 'Gdk.cairo_set_source_pixbuf(cr, pic_, ix, iy)' "an app's own icon as it is, centred in the row"
 has "$(sed -n '/    def list(self):/,/return self.cache/p' "$P")" 'a.pic = a.kanji or self.icon(theme, info) or "窓"' "the seal first, then the icon, then a window's seal"
 has "$(key "$A/syncplay.desktop" Icon)" "/.local/share/fedokawaii/syncplay/syncplay/resources/hicolor/" "Syncplay's own, from its copy"
 has "$(key "$A/localsend.desktop" Icon)" "/.local/share/localsend/data/flutter_assets/assets/img/logo-" "LocalSend's own, from its release"

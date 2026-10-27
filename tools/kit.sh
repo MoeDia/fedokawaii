@@ -20,13 +20,15 @@
 #                they are applied; everything else stays the installed state)
 #     --dwl      the dwl binary (default the edited tree's, ~/.local/src/dwl/dwl; the session's
 #                own: /usr/local/bin/dwl)
+#     --repo-art the repository's drawn files in place of the installed ones: icons.sh, the icon
+#                fonts, the theme folders (what build-icons.py and build-themes.py just wrote)
 #     SCENE      bar · notice · launcher · term · quick (Super+X) · system (Super+U; system:N its
 #                tab N after the first, shot as system-N.png) · tui (--tui) · play (--play) · full (default: bar notice term full)
 # Shots → OUT (default /dev/shm/r27/kit/THEME)/SCENE.png. Exit 0 · 1 a scene failed · 2 misuse.
 set -u
 here=$(cd "$(dirname "$0")" && pwd)
 repo=$(cd "$here/.." && pwd)
-theme=dark out="" fontdir="" fonts=() edits=() scenes=() themes="" tui="" play="" limit=120 bin="" dwl_bin=$HOME/.local/src/dwl/dwl
+theme=dark out="" fontdir="" fonts=() edits=() scenes=() themes="" tui="" play="" limit=120 bin="" dwl_bin=$HOME/.local/src/dwl/dwl repo_art=0
 while (($#)); do
   case $1 in
     --theme) theme=$2; shift 2 ;;
@@ -40,6 +42,7 @@ while (($#)); do
     --time) limit=$2; shift 2 ;;
     --bin) bin=$(realpath "$2"); shift 2 ;;
     --dwl) dwl_bin=$(realpath "$2"); shift 2 ;;
+    --repo-art) repo_art=1; shift ;;
     -h|--help) sed -n '2,/^set -u/{/^set -u/d;s/^# \{0,1\}//;p}' "$0"; exit 0 ;;
     -*) echo "kit: unknown option $1" >&2; exit 2 ;;
     *) scenes+=("$1"); shift ;;
@@ -68,7 +71,16 @@ rm -rf "$h/.local/state/fedokawaii/for-you"
 cp -a "$HOME/.bashrc" "$h/" 2>/dev/null
 [[ -d $HOME/.bashrc.d ]] && cp -a "$HOME/.bashrc.d" "$h/"
 ln -s "$HOME/.local/bin" "$h/.local/bin"
-ln -s "$HOME/.local/share/fonts" "$h/.local/share/fonts"
+if ((repo_art)); then
+  # (the installed fonts but the icons, which are the repository's; its icons.sh and themes)
+  mkdir -p "$h/.local/share/fonts"
+  for f in "$HOME/.local/share/fonts"/*; do [[ ${f##*/} == SumiIcons* ]] || ln -s "$f" "$h/.local/share/fonts/"; done
+  cp "$repo"/configs/home/.local/share/fonts/SumiIcons*.ttf "$h/.local/share/fonts/"
+  cp "$repo/configs/home/.config/fedokawaii/icons.sh" "$h/.config/fedokawaii/icons.sh"
+  cp -a "$repo/configs/home/.config/fedokawaii/themes/." "$h/.config/fedokawaii/themes/"
+else
+  ln -s "$HOME/.local/share/fonts" "$h/.local/share/fonts"
+fi
 if [[ -n $themes ]]; then
   [[ -d $themes/.config/fedokawaii/themes ]] || { echo "kit: --themes: no build-themes tree at $themes" >&2; exit 2; }
   cp -a "$themes/.config/fedokawaii/themes/." "$h/.config/fedokawaii/themes/"

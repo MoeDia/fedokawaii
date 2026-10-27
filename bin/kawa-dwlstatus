@@ -7,8 +7,8 @@
 # $XDG_RUNTIME_DIR/kawa-bar.wake.PID), then exits; `kawa-dwlstatus --wake` only wakes them.
 # The signals, one per module (an opener pokes its module as its menu opens and as it closes:
 # the module is lit meanwhile — kawa-bar):
-#   +12 the mode seal (quick settings, the screen-share portal; and with every +15: its click
-#       opens quick settings too) · +13 the drive mark (kawa-drives) · +14 the brightness
+#   +12 the mode tile (do not disturb's bell and its dropdown — kawa-quick —, the screen-share
+#       portal's monitor) · +13 the drive mark (kawa-drives) · +14 the brightness
 #   (kawa-brightness, its slider) · +15 the cat (quick settings) · +16 the volume (the sound
 #   panel; a fifo wake) · +17 Steam's gamepad · +18 the weather · +19 the date and its day
 #   (the calendar) · +20 the torii (the launcher) — the menus' through kawa-menu
@@ -66,8 +66,6 @@ case ${1:-} in
     shift
     (($#)) || { echo "usage: kawa-dwlstatus --poke N…" >&2; exit 2; }
     for n; do [[ $n =~ ^[0-9]{1,2}$ ]] && ((n <= 30)) || { echo "kawa-dwlstatus: --poke takes signal numbers 0–30, not $n" >&2; exit 2; }; done
-    # quick settings opened or closed (+15): the mode seal too, whose click opens them
-    [[ " $* " == *" 15 "* && " $* " != *" 12 "* ]] && set -- "$@" 12
     poke "$@"; wake; exit 0 ;;
   --wake) (($# == 1)) || { echo "usage: kawa-dwlstatus --wake" >&2; exit 2; }
     wake; exit 0 ;;

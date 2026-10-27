@@ -53,10 +53,10 @@ setup; eq "$(share "Window: notes.md — nvim ($ID)")" "Window: notes.md — nvi
 
 . "$REPO/configs/home/.config/fedokawaii/icons.sh"
 nm() { fz_rows | sed -n "$(( $1 + 1 ))p" | cut -f3; }    # the name on the menu's line N (0-based)
-case_ "two screens: 共 share what?, each by its name and current size; the chosen one's line comes back unchanged"
+case_ "two screens: the link icon and share what?, each by its name and current size; the chosen one's line comes back unchanged"
 setup; answer "row 2"; out=$(share "$M1" "$M2")
 eq "$out" "$M2"
-eq "$(fz_rows | sed -n 1p)" "part	共	share what?" "the heading"
+eq "$(fz_rows | sed -n 1p)" "part	$ICON_LINK	share what?" "the heading: the link icon"
 eq "$(fz_rows | sed 1d | cut -f1,3- )" $'row\tDP-1\t\t3840×2160\nrow\tHDMI-A-1\t\t1920×1080' "the current mode, not the preferred one, as the row's value (the panel right-aligns it in a column)"
 eq "$(fz_arg title)" ""; eq "$(fz_arg width)" ""; eq "$(fz_arg lines)" 2; eq "$(fz_arg index)" set; eq "$(fz_arg select)" 1
 fits

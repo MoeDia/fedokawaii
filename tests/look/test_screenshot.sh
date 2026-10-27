@@ -16,7 +16,7 @@ setup() {
   SHOTS=$HOME/Pictures/Screenshots
   magick -size 300x100 gradient:red-blue "$TMP/shot.png"
   # slurp: a region, or Esc ($TMP/esc), or held at a gate ($TMP/gate.slurp.use)
-  argv slurp '[ -e "$FAKE_TMP/gate.slurp.use" ] && { : >"$FAKE_TMP/gate.slurp.in"; while [ ! -e "$FAKE_TMP/gate.slurp" ]; do /bin/sleep 0.02; done; }
+  argv slurp '[ -e "$FAKE_TMP/gate.slurp.use" ] && { : >"$FAKE_TMP/gate.slurp.in"; while [ ! -e "$FAKE_TMP/gate.slurp" ]; do [ -d "$FAKE_TMP" ] || exit 1; /bin/sleep 0.02; done; }
 [ -e "$FAKE_TMP/esc" ] && exit 1
 echo "10,20 300x100"'
   # grim [-g GEOM] FILE|-: the picture (with the call's number after it: every shot differs)

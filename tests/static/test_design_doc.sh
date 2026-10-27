@@ -7,7 +7,7 @@
 . "$(dirname "$0")/../lib/harness.sh"
 sandbox
 DOC=$REPO/docs/design-system.md
-BUILT=(palette ui-face term-face)
+BUILT=(palette ui-face term-face menus)
 
 case_ "whole: no open question left in it"
 grep -nE '\b(TBD|TODO|FIXME|XXX)\b|\?\?' "$DOC" >"$TMP/open" && _no "$(head -3 "$TMP/open")" || _ok
@@ -109,6 +109,27 @@ built_term-face() {   # §2: Sumi Term as the doc's table gives it — in foot, 
     <prefer><family>UDEV Gothic NF</family></prefer>" "the alias"
   eq "$(. "$REPO/lib/upstream.sh"; printf '%s\n' "${TERM_FACE_FILES[@]}" | cut -d'|' -f1 | paste -sd ' ')" \
      "UDEVGothicNF-Regular.ttf UDEVGothicNF-Bold.ttf UDEVGothicNF-Italic.ttf UDEVGothicNF-BoldItalic.ttf" "its four files pinned"
+}
+built_menus() {   # §3–§4: the panels' and menus' grid — the doc's table read, kawa-panel's numbers the same
+  eq "$(python3 -I - "$REPO/bin/kawa-panel" "$DOC" <<'PY'
+import importlib.machinery, importlib.util, re, sys
+sys.dont_write_bytecode = True   # (-I ignores PYTHONDONTWRITEBYTECODE: no bin/__pycache__ in the copy)
+loader = importlib.machinery.SourceFileLoader("kawa_panel", sys.argv[1])
+spec = importlib.util.spec_from_loader("kawa_panel", loader); kp = importlib.util.module_from_spec(spec); loader.exec_module(kp)
+grid = open(sys.argv[2], encoding="utf-8").read().split("## 3. Grid")[1].split("## 4.")[0]
+def row(name):
+    m = re.search(r"^\| " + re.escape(name) + r" \| ([^|]+) \|", grid, re.M)
+    return m.group(1).strip() if m else None
+got = {"cell": f"{kp.CELL} × {kp.ROW}", "row": str(kp.ROW), "pad": str(kp.PAD), "hairline": str(kp.HAIR),
+       "shadow": str(kp.SHADOW_B), "icon column": str(kp.GLYPH_COL), "content": str(kp.INNER),
+       "tile": f"{kp.TILE_W} × {kp.TILE_H}", "key": f"{kp.KEY_H} high", "meter": f"{kp.SPAN} × {kp.SEG_H}",
+       "gap": str(kp.GAP)}
+bad = [f"{k}: doc {row(k)}, kawa-panel {v}" for k, v in got.items() if row(k) != v]
+print(bad, kp.SEGS, kp.SEG_W, kp.DOT, kp.SHADOW_R, kp.NAME_X // kp.CELL, kp.HEAD_X // kp.CELL)
+PY
+)" "[] 20 6 6 1 4 3" "the doc's grid (§3) in kawa-panel: cell, row, pad, hairline, shadow, icon column, content, tile, key, meter, gap; 20 segments of 6; the dot 6; the shadow's column 1; a row's name at cell 4, a heading's at cell 3"
+  has "$(cat "$REPO/configs/home/.config/mako/config")" "width=410" "a notice as wide as quick settings (§3: 410 with pad and hairlines)"
+  lacks "$(grep -n 'part[^a-z]*[一-龯]' "$REPO"/bin/kawa-* 2>/dev/null)" "part" "no kanji heading in any menu (§13)"
 }
 for s in "${BUILT[@]}"; do
   case_ "§14 $s: rebuilt to the doc — its numbers in its files"

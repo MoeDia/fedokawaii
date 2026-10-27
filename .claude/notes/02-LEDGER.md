@@ -492,6 +492,65 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   and request), test_menu 84/0, test_calendar 85/0, test_timer 79/0; static green. design-system §6
   "where it opens" names the date's dropdowns. The headless regression checks (tools/regress, T52)
   come with the redesign's final geometry.
+- r27-13b (T13, the redesign — committed with this line; applied live after) Every panel and menu on
+  the design's 8 × 20 grid (docs/design-system.md §3–§4; test_design_doc's new `menus` check reads
+  the doc's §3 table back against kawa-panel's numbers): a 1 px hairline frame with its corners
+  left out and the bar's shadow (two rows under, a column right; KAMI's inks via panel.conf
+  hair/shadow1/shadow2), 16 px of pad, headings an icon + name + a solid rule (no kanji heading
+  left in any menu: grep in the same check), rows on cells 1/4, keys one row high, no dashed rule.
+  Quick settings 410 × 498 (+1/+2 of shadow; was 412 × 554): two meters of 20 segments (6 × 10, a
+  cell each, 5 % a segment, the next lit partly from the bottom) — asagi, the 17th–18th flame, the
+  19th–20th accent, read back segment by segment from headless shots (tools/kit.sh play, a
+  stand-in kawa-quick giving the levels) at 42/50/85/100 % in both themes: 50 → 10 asagi; 85 →
+  16 + 1 flame; 100 → 16 + 2 flame + 2 accent; 42 → 8 + the 9th's bottom 4 rows. (In light, T08's
+  palette makes flame and accent one Brick Red a84222: the light meter reddens in one step —
+  kept, the doc's table says so.) Twelve tiles 120 × 80, each its own pixel picture instead of a
+  kanji seal (16 drawings over every state: moon/sun, lantern, wave, wired/Wi-Fi/offline,
+  bluetooth, headphones, drive, the backup box, bell/quiet bell, saver, record, read); one light:
+  the pointer moves the cursor. Notices 410 wide (mako) so the two stay one column.
+  Do not disturb (owner's bar item): the bar's quiet bell opens its own dropdown — kawa-quick dnd:
+  off · for an hour · until the morning (8:00) · on, the one in force marked; a timed one ends by
+  a transient systemd --user timer (kawa-dnd-end, AccuracySec 1 s); if that timer cannot be set
+  it does not go quiet at all and says so (a quiet that never ends would hide every notice). The
+  mode tile is lit by that dropdown (DROP_POKE kawa-quick → +12) — no longer by quick settings:
+  kawa-dwlstatus's "+15 brings +12" and the panel's extra +12 removed (this pass; their tests
+  turned round). The tile's 静 / 共有 → the quiet bell / the monitor, tooltip "do not disturb
+  until 11:18" while timed. Found, fixed: kawa-help drew nothing after the icon change (its map
+  read icons.sh only on its error path). Static checks: ICON_W/ICON_X (read by test_generated as
+  undefined $ICON_ names) → GLYPH_COL/GLYPH_X; test_design_doc's import wrote bin/__pycache__ into
+  the tests' copy (python -I ignores PYTHONDONTWRITEBYTECODE) and test_syntax took it for a script
+  → sys.dont_write_bytecode.
+  Shots (headless, tools/kit.sh --bin --repo-art): quick settings and the DND dropdown, both
+  themes — frame + shadow 411 × 500 at x 1502 y 39, the first tile at +17/+101 (px.py boxes).
+  Regression checks (T13a): tools/regress/menu-first-click.sh, calendar-middle.sh, one-popup.sh.
+  Learn: the bar table, §5.3 and exercise 5.2 speak of the bell. Deferred, noted in the plan:
+  the bell's lit tile and the recording dot → T14; the OSD's segments and 410 → T15; the
+  launcher's and the TUIs' remaining kanji → T16.
+  Also fixed with it: tests that T13b's headings broke (test_drives 123/0, test_record 62/0 — the
+  record menu's heading now a 12 px camera, quick settings' own picture, not the cassette —,
+  test_weather 170/0, test_downloads 40/0, test_launcher 264/0: apps at their native 16 px, the
+  kanji until T16 without a box; wlrctl named in not-launched.txt), test_osd 153/0 (it imported
+  the panel's old slider functions: now the OSD's own rule, until T15 rebuilds the level display
+  as a surface of the panel's on its twenty segments). Test hygiene: every gated stand-in (a stub
+  waiting for a gate file: test_pack's curl, test_theme's gs, test_screenshot's slurp, test_lock,
+  test_shrink/test_clip's fzf, test_term_float's inside, look/lib.sh's wait_gate) now ends when
+  its test's folder is gone — test_pack's curl stub had polled as an orphan for 4–6 h (three
+  found, one of them root's from the 04:25 selftest under sudo); root-owned leftovers of that
+  selftest removed from /tmp (the installer tests' lock file among them: unwritable from the
+  tests' user namespace, so installer tests ran unlocked; also five hotplug.* dirs of T01's).
+  Full suite (10:15, 122 files): red but for the fixed ones — all failing on clean HEAD d8e411d
+  too (a worktree run): content/test_shell 15 + test_tiles 18 (readline redraws the whole prompt
+  line, its OSC 133;A mark with it, on input and on Enter — pty_run.py types the next line at
+  the redraw's mark: → T24, the prompt rebuilt, the tests' typing waits for quiet), look/
+  test_wallpaper 12 (the Super+W TUI's rows and heading changed under it: → T16), session/
+  test_game 4 (→ T35), installer (run again alone, the lock fixed): test_theme_parts 37 +
+  test_theme 9 + test_torture/test_verify/test_upkeep/test_report/test_afterdnf/test_setup/
+  test_hardware (the fake machine's /usr/share is a read-only farm of links to this machine's:
+  theme.sh writing /usr/share/plymouth/themes/sumi — a folder the live PC now has — hits EROFS
+  and the boot part's checks fall after it; verify's UDEV Gothic pin check in a world without
+  the four faces; hw_firmware_pkgs reads this machine's firmware) → T53, where the world gets
+  its own writable copies of what the installer writes. The live installer is unaffected
+  (apply 08:52, verify 257/257).
 - r27-33 (T29, findings 04:00 — not fixed yet) Prowlarr: on demand by design (kawa-prowlarr: up while
   torrra searches, asleep 30 min after) — "inactive" is normal. /api/v1/health: 0 now. Its own log
   (~/.config/prowlarr/logs) over 8 days: Warn AllowedHostsCheck "Allowed Hosts is not configured"

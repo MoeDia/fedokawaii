@@ -44,10 +44,10 @@ stopped() { kawa-record stop; until_ '! kill -0 $RPID 2>/dev/null'; wait "$RPID"
 
 # ── the key: the menu, then a recording ──────────────────────────────────────────────────
 setup
-case_ "the key: a dropdown under the bar — 録 record, whole screen or a region, sound or none"
+case_ "the key: a dropdown under the bar — the camera, record; whole screen or a region, sound or none"
 echo 2 >"$TMP/pick"; rc 0 kawa-record
 args_eq kawa-menu 1 --drop --index
-m=$(cat "$TMP/menu.in"); has "$m" $'part\t録\trecord'; has "$m" "whole screen"; has "$m" "a region"; has "$m" "with sound"
+m=$(cat "$TMP/menu.in"); has "$m" "part	$(. "$REPO/configs/home/.config/fedokawaii/icons.sh"; printf %s "$ICON_RECORD")	record"; has "$m" "whole screen"; has "$m" "a region"; has "$m" "with sound"
 until_ '[[ -s $XDG_RUNTIME_DIR/kawa-record ]]' && _ok || _no "no recording started"
 case_ "whole screen with sound: H.264 on the card, the default output's monitor, a dated .mp4"
 until_ '[[ -s $TMP/wf.args ]]'

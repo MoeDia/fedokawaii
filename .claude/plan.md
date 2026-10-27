@@ -140,7 +140,7 @@ approach:
 - States drawn, not explained: a running job's row shows a moving pixel icon (the hourglass turning), a due update its stamp, a failed verify its count in vermilion.
 accept: shots both themes measured (heading → first row = the design's section gap; icon column, name column, value column aligned to the pixel across sections); every entry opens its screen or says "not yet" (none dead); keyboard and pointer both work from the first frame; tests updated; Learn piece rewritten.
 
-### T13 — menus, quick settings, bar dropdowns: the same grammar, every bug of theirs fixed  [todo]
+### T13 — menus, quick settings, bar dropdowns: the same grammar, every bug of theirs fixed  [done 2026-10-27 — r27-13a, r27-13b]
 deps: T12  · model: main  · ledger: r27-13
 files: bin/kawa-panel (Layout/Menu/Panel, menu_place, layout_quick, layout_menu, look(), hover/focus-on-map), bin/kawa-menu, bin/kawa-quick, bin/kawa-calendar, bin/kawa-timer, bin/kawa-drives, bin/kawa-downloads, bin/kawa-weather, bin/kawa-hush (DND menu), bin/kawa-help (look only), art/icons.txt (one unique icon per quick tile and per menu heading; no kanji), tests/menus/*, tests/session/test_clicks.sh
 approach:
@@ -150,13 +150,14 @@ approach:
 - Kanji headings → pixel icons everywhere in menus; calendar/timer/drives/downloads/weather dropdowns re-laid on the grid; weather rows stay info rows.
 accept: tests/menus green + new cases (hover-without-click, calendar placement = date tile centre ±0 px, 12 popup-pair combinations each leaving exactly one open); shots both themes measured; the DND menu shot; slider at 50/85/100 % shots (colour ramp verified by px.py histogram).
 
-### T14 — the bar redesign (27 px, no inner frame, every owner item) — Steam items dropped  [todo]
+### T14 — the bar redesign (27 px, no inner frame, every owner item) — Steam items dropped  [wip]
 deps: T10, T13  · model: main  · ledger: r27-14
 files: configs/home/.config/waybar/config.jsonc + style.css, tools/build-themes.py (kami pictures: BAR_H 27, K_SLICE, seals, scroll, red tiles without the inner cream rule), bin/kawa-bar, bin/kawa-dwlstatus, bin/kawa-nowplaying (video title · red separator · channel/episode), bin/kawa-downloads (animated icon while downloading), bin/kawa-weather (new "sunny" icon ≠ brightness), bin/kawa-brightness, bin/kawa-volume, bin/kawa-mem, bin/kawa-timer, art/icons.txt (antenna TV frames, downloads frames, the red slash, the demon/angel head on the right tile — from T20's art; placeholders until then), configs/home/.config/fedokawaii/width.sh, tests/session/test_bar.sh, tests/static/test_bargaps.sh, tests/status/*
 approach:
 - 27 rows: row map written in T09 (hairline, paper, rule, the text line, rule, paper, hairline, shadow) and drawn by build-themes.py to the pixel; no inner cream second frame on any tile including the two red end tiles; workspace stamps: the numeral black, small, fully inside the red circle for 1–9 (measure every numeral's ink inside the circle's ink); active title lighter (the UI face's regular weight if the chosen family has one, else a thinner synthetic rule — decided with the face).
 - Date `DD/MM/YYYY` with a custom red pixel slash glyph; day kanji seal stays (allowed); US red / AR blue (our blue token) and clickable (kawa-tag kb next); video title ▸ red separator ▸ channel/episode; visualizer wings in our red; the TV antenna icon animating while a video plays, the downloads icon animating while a download runs (frame sequences via the icon font: 4–6 frames at 6–8 fps, driven by the module's own loop, no extra processes); weather "sunny" redrawn (a sun with rays and a horizon) distinct from brightness' ring; Steam module, kawa-steam references removed from the bar now (T38 removes the rest).
 - Re-measure all spacing: 8 px ink→edge, 4/10 px groups, 6 px screen edge, the bar's distance to the windows' borders (outergappx + the tiles' shadow): every icon and section measured with px.py, both themes; the bar never grows (the r26 fix kept).
+- (from T13) the mode tile now shows the quiet bell ($ICON_BAR_BELL_OFF) or the monitor (sharing), lit by its own dropdown (kawa-drop.open kawa-quick): style it as a lit tile of the new bar; the recording module's 録 (kawa-record bar) → the recording icon (§13: the red dot, once a second).
 accept: px.py table of every tile (ink gaps 8/8, groups 4/10, edge 6, height 27, stamps' numerals inside the circle by ≥ 1 px all round) both themes; animated icons: a passthrough recording shows the frame sequence at the intended rate with no stray pixels; tests green; the Learn "bar" piece corrected. + tests/static/test_design_doc.sh: `bar` in BUILT with its `built_*` check (the doc's numbers in its files), green.
 
 ### T15 — window borders with the bar's 3D look (dwl) + notices, OSD, tooltips, Super+/ to the grammar  [todo]
@@ -166,6 +167,8 @@ approach:
 - Border: the same three-tone rule the tiles carry (hairline, paper/band, shadow) at 2 px total + shadow row; focused = vermilion band, others = warm grey, urgent = asagi; measured on a shot at 4× zoom; no change to gaps (8/5 px) — the shadow lives inside the border's pixels.
 - Notices: 412 → the new grid width, icon column, title/body rows, the critical vermilion frame, square corners; OSD = the panel's meter to the pixel with the alive fill (T13) and its "high" red; tooltips = one row on a tile.
 - Super+/ visual only here (content + context in T23).
+- (from T13) kawa-osd: 明 brightness → the bri icon; its meter → the panel's 20 segments (lit_of/seg_ink in kawa-panel: one rule both ways); its mako category width 412 → 410 (notices are 410 now).
+- (from T13b) the level display as a surface of kawa-panel's own ("level": bottom centre, overlay layer, no keyboard, namespace of its own so dwl's one-popup rule leaves it alone, gone 1.2 s after the last key; updated in place through the panel's fifo — no process per key) drawing the panel's segments to the pixel; kawa-osd a client of it; test_osd/test_volume/test_brightness rewritten (their OSD parser reads segments).
 accept: 4× crops of a focused/unfocused/urgent border matched against the tile's rows (px.py colour rows identical in order); notice/OSD/tooltip shots both themes measured; headless proof before the batch-B restart. + tests/static/test_design_doc.sh: `windows, notices` in BUILT with its `built_*` check (the doc's numbers in its files), green.
 
 ### T16 — TUI grammar pass: books (Super+R), wallpaper (Super+W + rotate key), clipboard, launcher calc, no dashed lines, kanji → icons  [todo]
@@ -176,8 +179,10 @@ approach:
 - Books "torn down and redone": the list on the left (progress as a 10-cell pixel bar glyph set), the cover right, alignment by column rule; the flicker causes measured with a passthrough recording before/after (fzf redraw vs our preview redraw).
 - Launcher entries for terminal programs get their pixel icon (22 px) instead of a kanji seal.
 FOUND (06:25, during T10): the launcher lists Foot, Foot Client AND Foot Server — one terminal entry only (NoDisplay for footclient/foot-server; audit every duplicate or helper entry the same way).
+- (from T13) kanji left in TUIs and the launcher, each → a pixel icon: the launcher's seals for terminal programs (X-Fedokawaii-Kanji: 端 編 箱 …, kawa-panel App.kanji, the 窓 default) — draw them as icons; screen_heading kanji: kawa-books 本, kawa-wallpaper 壁, kawa-calc 算, kawa-git 庫, kawa-together 共, kawa-file's TUI 目 and pages_typed 頁 序 削 (Learn book line ~705 then says so).
 accept: `grep -rn '╌' bin lib system` empty except where the design table allows (none); shots of every TUI both themes at two sizes measured; recordings show zero full-screen clears on notes save / calc typing / clipboard exit; tests green.
 
+- (found in T13b, failing on clean HEAD) look/test_wallpaper (12): the rows' indent (one space, not two), the heading without the stitch, the pack's default "only 308 colours" — rewritten with the Super+W TUI here.
 ### T17 — the side-by-side audit: every surface, both themes, one grammar (the coherence pass)  [todo]
 deps: T12–T16  · model: main  · ledger: r27-17
 files: tools/gallery.sh (shots of every surface in both themes into /dev/shm/r27/gallery/, contact sheets), .claude/notes/grill-r27.md (the art-director list and what was fixed), tools/regress/gallery-expect.json (the measured numbers kept as the regression reference for T52)
@@ -258,6 +263,7 @@ approach:
 NOTE (T11, 06:55): tests/content/test_tiles.sh's header and WIDTHS are the old 10 × 24 cells (188 × 43 full) — recompute for the 8 × 20 cell when its prompt tests are rewritten here.
 accept: shot both themes measured (segment caps align to the cell); 0/20 duplicate headings in burst tests; test_shell.sh updated; the Learn "shell" piece corrected.
 
+- (found in T13b, failing on clean HEAD) content/test_shell (15) and test_tiles (18): readline redraws the whole prompt line — the OSC 133;A mark inside PS1 with it — when input arrives and on Enter, so tests/lib/pty_run.py types the next --line at a redraw's mark: the session()s wait for quiet after the mark (--quiet, as the ble.sh cases do) or the mark moves out of what readline redraws (PS0/PROMPT_COMMAND); both files green with the new prompt.
 ### T25a — chess: research digest and the 365-day curriculum (730 games, puzzles)  [todo]
 deps: T09  · model: sub:sonnet (digest + curriculum draft), main (critique, final)  · ledger: r27-25
 files: .claude/notes/chess-research.md (sources: Steps Method (Brunia & van Wijgerden), Yusupov Build Up Your Chess, Heisman Everyone's 2nd Chess Book, Chernev Logical Chess, Seirawan Winning Chess series, Silman Complete Endgame Course, Polgár 5334, Woodpecker Method, chess.com lessons structure (public pages), Lichess puzzle DB (CC0) and its themes; cited, nothing copied), docs/learn/chess/curriculum.md (52 weeks × 14 games: each game's lesson goal, the Stockfish level/skill + a handicap plan matched to the lesson, the puzzle set/theme of the day, review checklist), docs/learn/chess/SOURCES.md
@@ -521,6 +527,7 @@ files: bin/*, lib/*, setup.sh, theme.sh, verify.sh, fedokawaii.sh, system/*, too
 approach: first the three test files already failing on clean HEAD (ledger r27-0: session/test_autostart (the bar's <span line_height> wrapper), test_game (snapper/scrub timers — gone with T35), test_glass (OSC 11)) fixed or retired with a reason; then `shellcheck -S style` over everything (bash and sh, with the repo's directives), unused functions/variables found by a script (tools/deadcode.sh), duplicated helpers folded into lib/common.sh or a new lib/ui.sh (screen grammar), every `run`/`retry` failure path tested, `set -u/pipefail` audit (tests/static/test_pipefail.sh), `fedokawaii selftest --sandbox`.
 accept: shellcheck 0 warnings; tools/deadcode.sh 0 findings; `bash tests/run.sh` all green; `fedokawaii selftest --sandbox` clean (exit 0) on the PC; line count of bin+lib not larger than before the task (ledger numbers).
 
+- (found in T13b, failing on clean HEAD d8e411d) the installer tests' fake machine: /usr/share is a read-only farm of links to this machine's — theme.sh writing /usr/share/plymouth/themes/sumi (the live PC has it now) hits EROFS: give the world writable copies of every /usr/share folder the installer writes (plymouth themes, fonts, …) — test_theme_parts 37, installer/test_theme 9 and the cascade in test_torture/test_verify/test_upkeep/test_report/test_afterdnf/test_setup; verify's UDEV Gothic pin check in the world; test_hardware's hw_firmware_pkgs reads this machine's firmware (intel-bt-firmware). A `sudo` selftest leaves root-owned files in /tmp that break later runs as the user (the installer lock): the selftest cleans up after itself, the harness tolerates an unwritable lock.
 ### T54 — everything trickles into the installer: clean VM install, update, structure, both proven again  [todo]
 deps: T05, T42, T45, T48, T53  · model: main  · ledger: r27-58
 files: tools/vm-smoke.sh (reused), .claude/notes/vm-runs.md

@@ -93,10 +93,10 @@
     "exec-on-event": false, "on-click": "kawa-nowplaying play-pause", "on-click-right": "kawa-nowplaying next", "on-click-middle": "kawa-nowplaying previous"
   },
 
-  // a seal while something is held back: 静 (quiet) while "do not disturb" is on, 共有
-  // (shared) while a screen is shared; nothing otherwise. Poked with SIGRTMIN+12 by quick
-  // settings and the screen-sharing portal (and with every +15: its click is quick settings')
-  "custom/mode": { "exec": "kawa-bar mode", "return-type": "json", "signal": 12, "exec-on-event": false, "on-click": "kawa-quick" },
+  // what is held back: the quiet bell while "do not disturb" is on, the monitor while a screen
+  // is shared; nothing otherwise. Poked with SIGRTMIN+12 by kawa-quick (do not disturb, from
+  // quick settings or its own dropdown — this tile's click) and the screen-sharing portal
+  "custom/mode": { "exec": "kawa-bar mode", "return-type": "json", "signal": 12, "exec-on-event": false, "on-click": "setsid -f kawa-quick dnd" },
 
   // 録 (record) and the time gone by, in vermilion, while the screen is recorded (Super+Shift+R);
   // hidden otherwise. kawa-record pokes it each second while it records — nothing runs for it

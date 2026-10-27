@@ -8,11 +8,12 @@
 # the window's fzf; kawa-clip itself is real.
 . "$(dirname "$0")/../lib/harness.sh"
 command -v magick >/dev/null && command -v gs >/dev/null || { printf '  – skipped: needs magick and gs\n'; done_; exit; }
+. "$REPO/configs/home/.config/fedokawaii/icons.sh"
 
 setup() {
   sandbox
   config .config/fedokawaii/icons.sh
-  export CB=$TMP/clipboard XDG_RUNTIME_DIR=$TMP/run; mkdir -m 700 -p "$XDG_RUNTIME_DIR"
+  export CB=$TMP/clipboard XDG_RUNTIME_DIR=$TMP/run; mkdir -p "$XDG_RUNTIME_DIR" && chmod 700 "$XDG_RUNTIME_DIR"
   # (WATCH set: then what the session's wl-paste --watch does — the copy into the history)
   stub wl-copy 'if [ "$1" = --clear ]; then rm -f "$CB.type" "$CB.data"; exit 0; fi
 t=text/plain; [ "$1" = --type ] && t=$2; cat >"$CB.data.w"; mv -f "$CB.data.w" "$CB.data"; printf %s "$t" >"$CB.type.w"; mv -f "$CB.type.w" "$CB.type"
@@ -50,10 +51,10 @@ eq "$(magick "$r" -format '%c' info: 2>/dev/null)" "" "where it was taken went w
 has "$(magick "$A/beach.jpg" -format '%c' info: 2>/dev/null)" "25.2N" "(the photo itself has it)"
 [[ -s $A/beach.jpg ]] && _ok || _no "the original is gone"
 case_ "the menu: what it holds and how big, then only what fits it (pictures: no PDF rows)"
-eq "$(head -n1 "$TMP/menu.rows" | cut -f1-3)" "part	縮	shrink" "the heading (the panel's line format)"
+eq "$(head -n1 "$TMP/menu.rows" | cut -f1-3)" "part	$ICON_SHRINK	shrink" "the heading (the panel's line format): the shrink icon"
 has "$(head -n1 "$TMP/menu.rows" | cut -f4)" "1 picture · " "what was copied and its size at the heading's end"
 eq "$(grep -c '^row' "$TMP/menu.rows")" 6 "email, chat, your own size; JPEG, WebP, PNG"
-eq "$(grep '^part' "$TMP/menu.rows" | cut -f2 | tr -d '\n')" "縮形" "the kinds under their own part"
+eq "$(grep '^part' "$TMP/menu.rows" | cut -f2 | tr -d '\n')" "$ICON_SHRINK$ICON_CONVERT" "the kinds under their own part: shrink, then another kind (the convert icon)"
 lacks "$(cat "$TMP/menu.rows")" "PDF"
 has "$(head -n1 "$TMP/menu.args")" "--index --select 1"
 case_ "chat: under 500 KB, no larger than 1600 px; again: (1), nothing overwritten"
@@ -65,13 +66,13 @@ case_ "a size of your own: typed (150 KB) — under it, even if the picture must
 SIZE="150 KB" rc 0 shrink "your own size" "$A/beach.jpg"
 has "$(tail -n1 "$TMP/menu.args")" '--prompt under  --title type a size, or pick one' "typed on the filter line"
 eq "$(grep -c "^row	.*	[0-9]* [KM]B$" "$TMP/menu.rows")" 5 "or one of five sizes picked"
-eq "$(head -n1 "$TMP/menu.rows")" "part	縮	your own size" "under its heading"
+eq "$(head -n1 "$TMP/menu.rows")" "part	$ICON_SHRINK	your own size" "under its heading"
 r="$A/beach (under 150 KB).jpg"; (($(size "$r") <= 150000)) && _ok || _no "$(size "$r" 2>&1) bytes"
 for s in 1.5mb "2 MB" 300 "750 kb"; do
   SIZE=$s rc 0 shrink "your own size" "$A/screen.png"
 done
-ls "$A" | grep -q 'screen (under 1.5 MB).jpg' && _ok || _no "1.5mb not read: $(ls "$A" | tr '\n' '|')"
-ls "$A" | grep -q 'screen (under 300 KB).jpg' && _ok || _no "300 (KB) not read"
+[[ -e "$A/screen (under 1.5 MB).jpg" ]] && _ok || _no "1.5mb not read: $(ls "$A" | tr '\n' '|')"
+[[ -e "$A/screen (under 300 KB).jpg" ]] && _ok || _no "300 (KB) not read"
 case_ "a size that is no size: said, nothing made"
 SIZE="small please" shrink "your own size" "$A/screen.png"; eq "$?" 1
 called 'notify-send .*not a size: small please'
@@ -107,7 +108,7 @@ has "$(cat "$CB.data")" "file://$A/tiny.pdf"
 called 'notify-send .*tiny\.pdf · on the clipboard.* · 1 no smaller than it was: the original'
 case_ "a PDF and a picture together: each its own rows"
 rc 0 shrink "PDF · print" "$A/scan.pdf" "$A/beach.jpg"
-has "$(head -n1 "$TMP/menu.rows")" "1 picture, 1 PDF"; has "$(cat "$TMP/menu.rows")" "part	紙	PDF"
+has "$(head -n1 "$TMP/menu.rows")" "1 picture, 1 PDF"; has "$(cat "$TMP/menu.rows")" "part	$ICON_PAGES	PDF" "the PDF rows under the pages icon"
 
 # ── what was copied ────────────────────────────────────────────────────────────────────
 case_ "files copied in yazi (Ctrl+C): those"
@@ -139,7 +140,7 @@ hist_setup() {
   export CLIP_DB=$TMP/clip; mkdir -p "$CLIP_DB"
   stub cliphist "exec python3 -I '$REPO/tests/content/fake_cliphist.py' \"\$@\""
   stub kawa-cell 'echo 9x21'; stub curl
-  stub fzf 'cat >/dev/null; while [ ! -e "$TMP/close" ]; do sleep 0.05; done'
+  stub fzf 'cat >/dev/null; while [ ! -e "$TMP/close" ]; do [ -d "$TMP" ] || exit 1; sleep 0.05; done'
 }
 put() { python3 -I "$REPO/tests/content/fake_cliphist.py" store; }     # stdin → a new entry
 newest() { ls "$CLIP_DB" | sort -n | tail -n1; }
@@ -187,7 +188,7 @@ r3=$(ls -t "$HOME/Pictures" | head -n1); eq "$(file -b --mime-type "$HOME/Pictur
 cmp -s "$CB.data" "$HOME/Pictures/$r3" && _ok || _no "the third is not on the clipboard"
 case_ "… the same choice twice on the same entry: two files, the second numbered"
 cursor 1; rc 0 shrink "	PNG"; rc 0 shrink "	PNG"
-eq "$(ls "$HOME/Pictures" | grep -c '\.png$')" 2
+eq "$(find "$HOME/Pictures" -maxdepth 1 -name '*.png' | wc -l)" 2
 unset WATCH; close_window
 
 case_ "Super+V open, the cursor on text: nothing to shrink — even with a picture on the clipboard"
@@ -216,7 +217,7 @@ put <"$A/screen.png"; open_window; cursor 1
 MENU_HOOK='touch "$TMP/close"; sleep 0.3' rc 0 shrink "	JPEG"
 wait "$WIN" 2>/dev/null
 [[ ! -e $XDG_RUNTIME_DIR/kawa-clip.current ]] && _ok || _no "the window's file stayed"
-eq "$(ls "$HOME/Pictures" | grep -c '\.jpg$')" 1
+eq "$(find "$HOME/Pictures" -maxdepth 1 -name '*.jpg' | wc -l)" 1
 
 case_ "a window gone without a word (killed: its file left): ignored — the clipboard it is"
 hist_setup
@@ -224,7 +225,7 @@ printf 'just words' | put; wl-copy --type image/png <"$A/screen.png"
 sh -c 'exit 0' & dead=$!; wait "$dead"
 printf '%s 1\n' "$dead" >"$XDG_RUNTIME_DIR/kawa-clip.current"
 rc 1 kawa-clip --held
-rc 0 shrink "	WebP"; eq "$(ls "$HOME/Pictures" | grep -c '^copied .*\.webp$')" 1 "the clipboard's picture, as WebP"
+rc 0 shrink "	WebP"; eq "$(find "$HOME/Pictures" -maxdepth 1 -name 'copied *.webp' | wc -l)" 1 "the clipboard's picture, as WebP"
 case_ "… its pid now another program's: ignored too"
 sleep 30 & other=$!; on_exit "kill $other 2>/dev/null"
 printf '%s 1\n' "$other" >"$XDG_RUNTIME_DIR/kawa-clip.current"

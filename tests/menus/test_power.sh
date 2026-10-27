@@ -18,9 +18,9 @@ power() {   # power [SECONDS] — kawa-power, the machine up for SECONDS (defaul
 . "$REPO/configs/home/.config/fedokawaii/icons.sh"
 
 # ── the choices ───────────────────────────────────────────────────────────────────────
-case_ "the menu: 電 power with the uptime at its end, five choices, centred, sized to its content"
+case_ "the menu: the power icon and power with the uptime at its end, five choices, centred, sized to its content"
 setup; answer esc; power
-eq "$(fz_rows | sed -n 1p | cut -f1-3)" "part	電	power" "the heading"
+eq "$(fz_rows | sed -n 1p | cut -f1-3)" "part	$ICON_POWER	power" "the heading: the power icon"
 eq "$(fz_rows | sed -n 1p | cut -f4 | cut -c1-3)" "up " "the uptime at the heading's end"
 eq "$(fz_rows | sed 1d | tr '\n' '|')" "row	$ICON_LOCK	lock|row	$ICON_ZZZ	sleep|row	$ICON_DOOR	log out|row	$ICON_RESTART	restart|row	$ICON_POWER	shut down|" "a row a choice: its icon, its name"
 eq "$(fz_arg select)" 1 "the cursor's first key on lock"

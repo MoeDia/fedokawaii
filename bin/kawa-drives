@@ -384,7 +384,7 @@ menu() {   # the drives' dropdown; the cursor's first key on the first drive
   local -a rows=() acts=() order=()
   local -A named=()
   line() { local IFS=$'\t'; rows+=("$*"); }
-  line part 盤 drives; acts+=(-)
+  line part "$ICON_DRIVE" drives; acts+=(-)
   while IFS=$'\t' read -r dev disk label size fs folder; do
     if [[ -n $folder ]]; then line on "$ICON_DRIVE" "$label" open "$size"
     else line row "$ICON_DRIVE" "$label" closed "$size"; fi
@@ -392,7 +392,7 @@ menu() {   # the drives' dropdown; the cursor's first key on the first drive
     [[ -n ${named[$disk]:-} ]] || { named[$disk]=$label; order+=("$disk"); }
   done < <(list)
   if ((${#order[@]})); then
-    line part 出 eject; acts+=(-)
+    line part "$ICON_EJECT" eject; acts+=(-)
     for disk in "${order[@]}"; do line row "$ICON_EJECT" "${named[$disk]}"; acts+=("eject $disk"); done
   else
     line off "$ICON_DRIVE" "nothing plugged in"; acts+=(-)

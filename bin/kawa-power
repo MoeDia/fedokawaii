@@ -51,7 +51,7 @@ else w=$((d / 7)) r=$((d % 7)); ((w > 99)) && w=99 r=6        # (as far as it ca
      printf -v t 'up %02dw %02dd' "$w" "$r"; fi
 rows=()
 line() { local IFS=$'\t'; rows+=("$*"); }
-line part 電 power "$t"
+line part "$ICON_POWER" power "$t"
 line row "$ICON_LOCK" lock
 line row "$ICON_ZZZ" sleep
 line row "$ICON_DOOR" "log out"

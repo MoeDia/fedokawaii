@@ -157,7 +157,7 @@ menu() {
     if [[ $k == timer ]]; then clock v $((a - EPOCHSECONDS)); t="$v left"
     else clock v $((EPOCHSECONDS - a)); t="stopwatch $v"; fi
   fi
-  line part 時 timer "$t"; acts+=(-)
+  line part "$ICON_HOURGLASS" timer "$t"; acts+=(-)
   for m in 5 10 25 45 60; do printf -v v '%2d min' "$m"; line row "$ICON_HOURGLASS" "$v"; acts+=("start $m"); done
   line row "$ICON_HOURGLASS" stopwatch; acts+=(stopwatch)
   [[ -n $t ]] && { line row "$ICON_CROSS" "cancel the $k"; acts+=(cancel); }

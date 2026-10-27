@@ -29,7 +29,7 @@ while :; do
 
   rows=()
   line() { local IFS=$'\t'; rows+=("$*"); }
-  line part 暦 "$mname $year"
+  line part "$ICON_CALENDAR" "$mname $year"
   for w in Mo Tu We Th Fr Sa Su; do line cell "$w" head; done
   # six weeks always (the grid never changes height as it pages): the month before's last
   # days, this month's, then the next one's first, those two dim

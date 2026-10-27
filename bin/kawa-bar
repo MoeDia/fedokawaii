@@ -51,7 +51,8 @@ bar_lit() {
     memory)      marks=("kawa-term-btop.open") ;;
     volume)      marks=("kawa-panel-sound.open") ;;
     brightness)  marks=("kawa-panel-brightness.open") ;;
-    mode|cat)    marks=("kawa-panel.open") ;;
+    mode)        marks=("kawa-drop.open kawa-quick") ;;   # (its own dropdown: do not disturb's)
+    cat)         marks=("kawa-panel.open") ;;
     *)           return 1 ;;
   esac
   for m in "${marks[@]}"; do
@@ -140,11 +141,17 @@ case $item in
            if [[ -n $cls ]]; then printf '{"text":"%s","class":["mon","active"]}\n' "${k[0]}"
            else printf '{"text":"%s","class":"mon"}\n' "${k[0]}"; fi
          else printf '{"text":"%s"%s}\n' "${k[u - 1]}" "$cls"; fi ;;
-  mode)  # a seal while something is held back: 静 (quiet) while "do not disturb" is on,
-         # 共有 (shared) while a screen is shared; nothing otherwise (hidden)
+  mode)  # what is held back: the quiet bell while "do not disturb" is on (its end in the
+         # tooltip when it is timed: kawa-quick dnd), the monitor while a screen is shared;
+         # nothing otherwise (hidden). A click: do not disturb's own dropdown
          case $(makoctl mode 2>/dev/null) in
-           *sharing*)        lit_json '{"text":"共有","class":"share","tooltip":"sharing screen"}' ;;
-           *do-not-disturb*) lit_json '{"text":"静","class":"dnd","tooltip":"do not disturb"}' ;;
+           *sharing*)        lit_json "{\"text\":\"$ICON_BAR_MONITOR\",\"class\":\"share\",\"tooltip\":\"sharing screen\"}" ;;
+           *do-not-disturb*) tip="do not disturb"
+                             if read -r end _ 2>/dev/null <"${XDG_RUNTIME_DIR:-/run/user/$UID}/kawa-dnd.until" \
+                                && [[ $end =~ ^[0-9]+$ ]] && ((end > EPOCHSECONDS)); then
+                               printf -v tip 'do not disturb until %(%-H:%M)T' "$end"
+                             fi
+                             lit_json "{\"text\":\"$ICON_BAR_BELL_OFF\",\"class\":\"dnd\",\"tooltip\":\"$tip\"}" ;;
            *)                echo '{"text":""}' ;;
          esac ;;
   *)     usage ;;

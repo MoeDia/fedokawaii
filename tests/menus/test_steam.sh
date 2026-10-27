@@ -32,10 +32,10 @@ setup; : >"$TMP/steam-stays"; KAWA_STEAM_QUIT_WAIT=1 kawa-steam --quit shutdown;
 eq "$(journal | tail -n 1)" "Steam still runs 1 s after it was asked to quit (shutdown) — left as it is"
 case_ "the gamepad menu's quit Steam: the same proper close"
 setup; answer "pick quit Steam"; kawa-steam --menu; called '^steam -shutdown$'; has "$(journal)" "(menu), done in"
-case_ "the gamepad menu: 遊 Steam, a row a page, start with the desktop as a check, a dropdown sized to its content"
+case_ "the gamepad menu: the gamepad icon and Steam, a row a page, start with the desktop as a check, a dropdown sized to its content"
 . "$REPO/configs/home/.config/fedokawaii/icons.sh"
 setup; answer esc; kawa-steam --menu
-eq "$(fz_rows | tr '\n' '|')" "part	遊	Steam|row	$ICON_FOLDER	library|row	$ICON_DOWNLOAD	downloads|row	$ICON_USER	friends|row	$ICON_SLIDERS	settings|row	▣	start with the desktop|row	$ICON_POWER	quit Steam|"
+eq "$(fz_rows | tr '\n' '|')" "part	$ICON_GAMEPAD	Steam|row	$ICON_FOLDER	library|row	$ICON_DOWNLOAD	downloads|row	$ICON_USER	friends|row	$ICON_SLIDERS	settings|row	▣	start with the desktop|row	$ICON_POWER	quit Steam|"
 eq "$(fz_arg drop)" set; eq "$(fz_arg select)" 1; eq "$(fz_arg width)" ""; fits
 case_ "…start with the desktop picked: off now, the check empty the next time"
 answer "pick start with the desktop"; kawa-steam --menu

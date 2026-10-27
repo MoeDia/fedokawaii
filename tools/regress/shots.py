@@ -1,0 +1,126 @@
+#!/usr/bin/env python3
+"""tools/regress/shots.py — what a kit shot shows, for the regression checks (tools/regress/*.sh):
+
+  shots.py popups SHOT…        each shot: its name, how many popups it shows, and their boxes —
+                               what is not the kit's flat ground under the bar, pooled 4×4 and
+                               dilated (a window's own parts one), its big pieces, those inside
+                               another merged
+  shots.py keys SHOT [X,Y,W,H] the keys a menu shows (its 1 px framed boxes one row high, two or
+                               more side by side): "X Y W H" each, left to right, in the region
+  shots.py centre SHOT X Y     the colour there: rrggbb
+  shots.py differ A B X,Y,W,H  whether the two shots differ in that region (exit 0) or not (1)
+  shots.py middle SHOT Y       the bar's middle group (the date's): its ink's left and right
+                               edge on row Y, and its centre ×2 (whole numbers: 1920 = 960)
+  shots.py edges SHOT Y X0 X1  the first and the last pixel on row Y, between X0 and X1, that is
+                               not the ground (a frame's two hairlines), and their centre ×2
+Exit 0 · 1 a check's own "no" (differ) · 2 misuse or an unreadable shot.
+"""
+import sys
+
+import numpy as np
+from PIL import Image
+
+GROUND = np.array([0x18, 0x17, 0x15])          # the kit's flat ground (tools/kit.sh)
+
+
+def load(f):
+    try:
+        return np.asarray(Image.open(f).convert("RGB"), dtype=np.int16)
+    except OSError as e:
+        sys.exit(f"shots: {f}: {e}")
+
+
+def popups(f, top=40):
+    a = load(f)[top:]
+    m = np.abs(a - GROUND).max(axis=2) > 8
+    h, w = m.shape[0] // 4, m.shape[1] // 4
+    s = m[:h * 4, :w * 4].reshape(h, 4, w, 4).any(axis=(1, 3))
+    d = s.copy()
+    for dy in (-2, -1, 0, 1, 2):
+        for dx in (-2, -1, 0, 1, 2):
+            d |= np.roll(np.roll(s, dy, 0), dx, 1)
+    seen = np.zeros_like(d)
+    boxes = []
+    for y in range(h):
+        for x in range(w):
+            if d[y, x] and not seen[y, x]:
+                st, ys, xs = [(y, x)], [y, y], [x, x]
+                seen[y, x] = True
+                while st:
+                    cy, cx = st.pop()
+                    ys = [min(ys[0], cy), max(ys[1], cy)]
+                    xs = [min(xs[0], cx), max(xs[1], cx)]
+                    for ny, nx in ((cy + 1, cx), (cy - 1, cx), (cy, cx + 1), (cy, cx - 1)):
+                        if 0 <= ny < h and 0 <= nx < w and d[ny, nx] and not seen[ny, nx]:
+                            seen[ny, nx] = True
+                            st.append((ny, nx))
+                b = (xs[0] * 4, ys[0] * 4 + top, (xs[1] + 1) * 4, (ys[1] + 1) * 4 + top)
+                if b[2] - b[0] >= 150 and b[3] - b[1] >= 100:
+                    boxes.append(b)
+    return [b for b in boxes if not any(o != b and o[0] <= b[0] and o[1] <= b[1] and o[2] >= b[2] and o[3] >= b[3]
+                                        for o in boxes)]
+
+
+def keys(f, region=None):
+    """Framed boxes one row high (20 px), 40 px wide or more: a run of one colour (not the
+    ground) on a row, the same run 19 rows below, both ends' columns that colour between."""
+    a = load(f)
+    x0, y0, w, h = region or (0, 0, a.shape[1], a.shape[0])
+    sub = a[y0:y0 + h, x0:x0 + w]
+    found = []
+    for y in range(sub.shape[0] - 19):
+        top, bot = sub[y], sub[y + 19]
+        x = 0
+        while x < sub.shape[1]:
+            c = top[x]
+            run = 1
+            while x + run < sub.shape[1] and (top[x + run] == c).all():
+                run += 1
+            if (run >= 40 and np.abs(c - GROUND).max() > 8 and (bot[x:x + run] == c).all()
+                    and (sub[y:y + 20, x] == c).all() and (sub[y:y + 20, x + run - 1] == c).all()):
+                found.append((x0 + x, y0 + y, run, 20))
+            x += run
+    return sorted(set(found), key=lambda k: (k[1], k[0]))
+
+
+def main(argv):
+    if len(argv) < 3:
+        sys.exit(__doc__)
+    cmd = argv[1]
+    if cmd == "popups":
+        for f in argv[2:]:
+            b = popups(f)
+            print(f.rsplit("/", 1)[-1][:-4], len(b), " ".join(f"{x},{y},{x2 - x},{y2 - y}" for x, y, x2, y2 in b))
+    elif cmd == "keys":
+        reg = tuple(int(v) for v in argv[3].split(",")) if len(argv) > 3 else None
+        for k in keys(argv[2], reg):
+            print(*k)
+    elif cmd == "centre":
+        a = load(argv[2])
+        r, g, b = a[int(argv[4]), int(argv[3])]
+        print(f"{r:02x}{g:02x}{b:02x}")
+    elif cmd == "differ":
+        x, y, w, h = (int(v) for v in argv[4].split(","))
+        a, b = load(argv[2])[y:y + h, x:x + w], load(argv[3])[y:y + h, x:x + w]
+        return 0 if (a != b).any() else 1
+    elif cmd == "middle":
+        row = load(argv[2])[int(argv[3])]
+        ink = np.nonzero(np.abs(row - GROUND).max(axis=1) > 8)[0]
+        mid = [i for i in ink if 640 <= i < 1280]          # (the middle third: the date's group)
+        if not mid:
+            sys.exit("shots: no middle group on that row")
+        print(mid[0], mid[-1], mid[0] + mid[-1] + 1)
+    elif cmd == "edges":
+        row = load(argv[2])[int(argv[3])]
+        x0, x1 = int(argv[4]), int(argv[5])
+        ink = [i for i in np.nonzero(np.abs(row - GROUND).max(axis=1) > 8)[0] if x0 <= i < x1]
+        if not ink:
+            sys.exit("shots: nothing on that row")
+        print(ink[0], ink[-1], ink[0] + ink[-1] + 1)
+    else:
+        sys.exit(__doc__)
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv))

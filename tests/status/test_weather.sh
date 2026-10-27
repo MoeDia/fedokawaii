@@ -127,12 +127,12 @@ eq "$(bar)" '{"text":""}'; eq "$(kawa-weather)" "Sharjah"
 # DETAIL VALUE", "off GLYPH NAME" (faint, not a choice)
 T=$'\t'
 wd() { LC_ALL=C date -u -d "$TODAY +$1 day" '+%a %-d'; }
-case_ "the menu: a dropdown under the bar — the heading (天, the city), then today and the six days after it"
+case_ "the menu: a dropdown under the bar — the heading (the cloud, the city), then today and the six days after it"
 cached; answers esc
 rc 0 kawa-weather --menu
 eq "$(opened)" 1
 eq "$(args)" "--drop --index --title  " "under the bar, no cursor (nothing to choose: every day only read), no title while fresh"
-eq "$(row 0)" "part${T}天${T}Sharjah" "the heading: the seal, the city"
+eq "$(row 0)" "part${T}$ICON_CLOUD${T}Sharjah" "the heading: the weather's cloud, the city"
 eq "$(grep -c . <<<"$(rows)")" 8
 eq "$(row 1)" "info${T}$ICON_SUN${T}$(wd 0)${T}scorching${T}31°" "today: clear, feels 38.4 → scorching, a mean of 31.2"
 eq "$(row 2)" "info${T}$ICON_SUN${T}$(wd 1)${T}hot${T}31°" "mostly clear, 36.2 → hot, 30.8"
@@ -171,7 +171,7 @@ setup; forecast '.daily.time |= map(strptime("%Y-%m-%d") | mktime - 86400 | strf
 kawa-weather >/dev/null; fetched; touch -d '-26 hours' "$CACHE"; echo offline >"$HOME/.cache/kawa-weather.failed"
 answer '' 6; answers esc; kawa-weather --menu
 eq "$(args)" "--drop --index --title offline · 1 day old " "said plainly, in the quiet line above the heading"
-eq "$(row 0)" "part${T}天${T}Sharjah"; eq "$(grep -c . <<<"$(rows)")" 7 "the heading and six days"
+eq "$(row 0)" "part${T}$ICON_CLOUD${T}Sharjah"; eq "$(grep -c . <<<"$(rows)")" 7 "the heading and six days"
 eq "$(cut -f3-4 <<<"$(row 1)")" "$(wd 0)${T}hot" "today first: yesterday's second day"
 fetched
 case_ "over an hour old, the last fetch not failed (still on its way): only its age"
@@ -182,7 +182,7 @@ fetched
 case_ "nothing cached, offline: the heading and one faint row of why, nothing to choose, no days made up"
 setup; echo offline >"$HOME/.cache/kawa-weather.failed"; answer '' 6; answers esc
 kawa-weather --menu
-eq "$(rows)" "part${T}天${T}Sharjah"$'\n'"off${T}$ICON_OFFLINE${T}offline"
+eq "$(rows)" "part${T}$ICON_CLOUD${T}Sharjah"$'\n'"off${T}$ICON_OFFLINE${T}offline"
 eq "$(args)" "--drop --index --title  " "no cursor to place"
 fetched
 case_ "nothing cached, Open-Meteo down: that, said"
@@ -214,7 +214,7 @@ eq "$(tip "$(bar)")" "St. John's · clear"
 case_ "a city with an accent, in Arabic: the heading as written (fedokawaii.conf's own spelling)"
 for c in "Saint-Étienne" "الشارقة" "St. John's"; do
   cached; city "$c"; answers esc; kawa-weather --menu
-  eq "$(row 0)" "part${T}天${T}$c" "$c"
+  eq "$(row 0)" "part${T}$ICON_CLOUD${T}$c" "$c"
 done
 
 # ── environment, misuse ──────────────────────────────────────────────────────

@@ -78,14 +78,14 @@ sleep 600 & p=$!; on_exit "kill $p 2>/dev/null"; printf '%s kawa-downloads\n' "$
 has "$(kawa-bar downloads -- kawa-downloads bar)" '"active"'
 
 # ── the menu ─────────────────────────────────────────────────────────────────────────────
-case_ "the menu: 受 downloads, a row each — its glyph, its name (a torrent's dots as spaces), how much of how much, the percent"
+case_ "the menu: downloads under its arrow, a row each — its glyph, its name (a torrent's dots as spaces), how much of how much, the percent"
 world; . "$HOME/.config/fedokawaii/icons.sh"
 sleep 600 & live=$!; on_exit "kill $live 2>/dev/null"
 torrra_list "$live" $'Big.Buck.Bunny.2008.1080p\t2500000000\t5000000000\t'"$D/Big.Buck.Bunny.2008.1080p"
 steam_game 2 Celeste 0 1200000000
 stub kawa-menu 'cat >"$TMP/menu.in"; echo 1'
 kawa-downloads; rows=$(cat "$TMP/menu.in")
-eq "$rows" "part	受	downloads
+eq "$rows" "part	$ICON_DOWNLOAD	downloads
 row	$ICON_DOWNLOAD	Big Buck Bunny 2008 1080p	2.5 GB of 5.0 GB	50%
 row	$ICON_GAMEPAD	Celeste	0 B of 1.2 GB	0%
 key	$ICON_DOWNLOAD	torrents"

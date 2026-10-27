@@ -12,17 +12,19 @@ case ${1:-} in
   -h|--help) sed -n '2,/^set -u/{/^set -u/d;s/^# \{0,1\}//;p}' "$0"; exit 0 ;;
   *) echo "usage: kawa-help   (no arguments: the keybinding sheet)" >&2; exit 2 ;;
 esac
+# shellcheck source=/dev/null
+. "$HOME/.config/fedokawaii/icons.sh"
 f="$HOME/.config/fedokawaii/keybinds.txt"
-[[ -r $f ]] || { . "$HOME/.config/fedokawaii/icons.sh"; notify-send -a desktop -u critical -- "$ICON_KEYBOARD  keybindings" "keybinds.txt is missing — fedokawaii repair puts it back"; exit 1; }
+[[ -r $f ]] || { notify-send -a desktop -u critical -- "$ICON_KEYBOARD  keybindings" "keybinds.txt is missing — fedokawaii repair puts it back"; exit 1; }
 export LC_ALL=C.UTF-8                            # (a column a character)
-# kanji NAME → K, the part's kanji, by the first word of its name (a part of your own: 節,
-# "a section"; no subshell: the sheet is built at every press, the one that closes it too)
-kanji() {
+# part_icon NAME → K, the part's icon, by the first word of its name (a part of your own: the
+# keycap; no subshell: the sheet is built at every press, the one that closes it too)
+part_icon() {
   case ${1%%[^a-z]*} in
-    launch) K=起 ;; screenshots) K=写 ;; windows) K=窓 ;; workspaces) K=場 ;;
-    sound) K=音 ;; terminal) K=端 ;; files) K=書 ;; drives) K=盤 ;; session) K=席 ;;
-    drawing) K=筆 ;;
-    *) K=節 ;;
+    launch) K=$ICON_TORII_SMALL ;; screenshots) K=$ICON_CAMERA ;; windows) K=$ICON_WINDOW ;; workspaces) K=$ICON_TILE ;;
+    sound) K=$ICON_SPEAKER ;; terminal) K=$ICON_TERMINAL ;; files) K=$ICON_FOLDER ;; drives) K=$ICON_DRIVE ;; session) K=$ICON_POWER ;;
+    drawing) K=$ICON_BRUSH ;;
+    *) K=$ICON_KEYCAP ;;
   esac
 }
 # split LINE — the key and its description, each without the spaces around it (KEY, DESC).
@@ -52,7 +54,7 @@ sheet() {
       v=""
       if [[ $t == *": "* ]]; then v=${t#*: } t=${t%%: *}
       elif [[ $t =~ ^(.*[^ ])\ +\((.*)\)$ ]]; then t=${BASH_REMATCH[1]} v=${BASH_REMATCH[2]}; fi
-      kanji "$t"; printf 'part\t%s\t%s\t%s\n' "$K" "$t" "$v"
+      part_icon "$t"; printf 'part\t%s\t%s\t%s\n' "$K" "$t" "$v"
     else
       split "$l"; printf 'info\t\t%s\t%s\n' "$KEY" "$DESC"
     fi

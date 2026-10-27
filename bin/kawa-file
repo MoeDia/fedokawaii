@@ -234,14 +234,14 @@ part() { if ((first)); then line part "$1" "$2" "$what"; first=0; else line part
 na=${#arcs[@]} np=${#pdfs[@]}
 if ((na)); then
   pw=""; for i in "${!arcs[@]}"; do locked "${arcs[i]}" "${akinds[i]}" && pw=" · asks its password"; done
-  part 解 unpack
+  part "$ICON_UNPACK" unpack
   row x-here "$ICON_FOLDER" "extract here" "beside it$pw"
   row x-dir  "$ICON_FOLDER" "extract into a folder" "$( ((na == 1)) && echo "$(stem "${arcs[0]}")/" || echo "a folder each")$pw"
   ((na == 1)) && row list "$ICON_ARCHIVE" "list its contents" "a window, type to filter"
   row test   "$ICON_CHECK" "test it" "is every file whole"
 fi
 if ((${#merge[@]} + np)); then
-  part 紙 pages
+  part "$ICON_PAGES" pages
   if ((${#merge[@]} > 1)); then row merge "$ICON_BOOK" "merge into one PDF" "${#merge[@]} files, in an order you choose"
   elif ((${#pics[@]})); then row merge "$ICON_BOOK" "make it a PDF" "a page a picture"; fi
   if ((np)); then
@@ -255,21 +255,21 @@ if ((${#merge[@]} + np)); then
   fi
 fi
 if ((np)); then
-  part 抜 "take out"
+  part "$ICON_TAKE_OUT" "take out"
   row images "$ICON_PICTURE" "its pictures" "PNG, as they are in it"
   row text   "$ICON_NOTE" "its text" ".txt"
   row png150 "$ICON_PICTURE" "pages as pictures" "PNG · 150 dpi"
   row png300 "$ICON_PICTURE" "pages as pictures" "PNG · 300 dpi, to print"
 fi
 if ((np + ${#shut[@]})); then
-  part 変 change
+  part "$ICON_SLIDERS" change
   if ((np)); then
     row ocr    "$ICON_BOOK" "make it searchable" "reads a scan: English, Arabic"
     row shrink "$ICON_BOOK" "make it smaller" "Super+Z's sizes"
     row lock   "$ICON_LOCK" "lock with a password" "AES-256"
   fi
   ((${#shut[@]})) && row unlock "$ICON_LOCK" "unlock" "its password, once"
-  part 署 sign
+  part "$ICON_PEN" sign
   if ((np == 1)); then
     row annotate "$ICON_NOTE" "write or draw on it" "Xournal++, on a copy"
     row hand     "$ICON_NOTE" "sign by hand" "Xournal++, anywhere on it"
@@ -278,7 +278,7 @@ if ((np + ${#shut[@]})); then
   fi
   row verify "$ICON_CHECK" "check its signatures" "digital ones"
 fi
-part 包 pack
+part "$ICON_ARCHIVE" pack
 row zip    "$ICON_ARCHIVE" zip "to share: opens anywhere"
 row zip-pw "$ICON_ARCHIVE" "zip · with a password" "AES-256"
 row 7z     "$ICON_ARCHIVE" 7z "smaller"
@@ -300,7 +300,7 @@ finish() {
   [[ $act == default ]] && setsid -f xdg-open "$open" >/dev/null 2>&1 </dev/null
   return 0
 }
-# ask KANJI NAME PROMPT TITLE [ROW…] → a row picked (its name), or the words typed
+# ask ICON NAME PROMPT TITLE [ROW…] → a row picked (its name), or the words typed
 ask() {
   local k=$1 n=$2 p=$3 t=$4 r; shift 4
   { printf 'part\t%s\t%s\n' "$k" "$n"; for r; do printf 'row\t%s\t%s\n' "$ICON_SLIDERS" "$r"; done; } |
@@ -386,13 +386,13 @@ level() {
   last=$(kawa-state get "$key" 2>/dev/null) || last=balanced
   for i in 0 1 2; do [[ $last == "${names[i]}" ]] && sel=$((i + 1)); done
   [[ $last =~ ^[0-9]+$ ]] && ((last >= lo && last <= hi)) && sel=4
-  i=$({ printf 'part\t圧\tcompression\t%s\n' ".${fmt/zst/tar.zst}"
+  i=$({ printf 'part\t%s\tcompression\t%s\n' "$ICON_ARCHIVE" ".${fmt/zst/tar.zst}"
         for c in 0 1 2; do printf 'row\t%s\t%s\t%s\t%s\n' "$ICON_SLIDERS" "${names[c]}" "${det[c]}" "${val[c]}"; done
         printf 'row\t%s\t%s\t%s\t%s\n' "$ICON_SLIDERS" "a level of your own" "type $lo to $hi" "$( ((sel == 4)) && echo "level $last")"; } |
       kawa-menu --index --select "$sel") || exit 0
   case $i in
     1) c=fast ;; 2) c=balanced ;; 3) c=smallest ;;
-    4) s=$(ask 圧 "a level of your own" "level " "type a level, $lo (fastest) to $hi (smallest)") || exit 0
+    4) s=$(ask "$ICON_SLIDERS" "a level of your own" "level " "type a level, $lo (fastest) to $hi (smallest)") || exit 0
        s=${s// /}
        [[ $s =~ ^[0-9]{1,2}$ ]] && ((10#$s >= lo && 10#$s <= hi)) || oops "not a level: $s" ".${fmt/zst/tar.zst} takes $lo to $hi"
        c=$((10#$s)) ;;
@@ -443,13 +443,13 @@ topdf() {   # topdf PICTURE OUT — a page of it, sized as A4 is at its longer s
 merge_pdfs() {
   local src=("${merge[@]}") i s pages=() n out k
   if ((${#src[@]} > 1)); then
-    k=$({ printf 'part\t序\torder\n'
+    k=$({ printf 'part\t%s\torder\n' "$ICON_ORDER"
           printf 'row\t%s\tas chosen\tfirst: %s\n' "$ICON_FILE" "$(cut_cols "${src[0]##*/}" 32)"
           printf 'row\t%s\tby name\tA to Z, 2 before 10\n' "$ICON_FILE"
           printf 'row\t%s\tan order of your own\ttype it: 3 1 2\n' "$ICON_SLIDERS"; } | kawa-menu --index --select 1) || exit 0
     case $k in
       2) mapfile -t src < <(for i in "${src[@]}"; do printf '%s\t%s\n' "${i##*/}" "$i"; done | LC_ALL=C sort -V | cut -f2-) ;;
-      3) s=$({ printf 'part\t序\tan order of your own\n'
+      3) s=$({ printf 'part\t%s\tan order of your own\n' "$ICON_ORDER"
                for i in "${!src[@]}"; do printf 'note\t%d  %s\n' $((i + 1)) "$(cut_cols "${src[i]##*/}" 40)"; done; } |
              kawa-menu --prompt "order " --title "the numbers, in the order you want them") || exit 0
          n=() ; local seen=" "
@@ -587,12 +587,12 @@ draw_signature() {
 stamp() {
   local p c g s W H Wp Hp sw sh m out corners=("" "bottom right" "bottom left" "top right" "top left")
   one
-  s=$(ask 頁 page "page " "the page to sign: its number, or pick" "last page" "first page") || exit 0
+  s=$(ask "$ICON_PAGES" page "page " "the page to sign: its number, or pick" "last page" "first page") || exit 0
   case $s in "last page") p=$N ;; "first page") p=1 ;;
     *) [[ ${s// /} =~ ^[0-9]+$ ]] && ((10#${s// /} >= 1 && 10#${s// /} <= N)) || oops "no page \"$s\"" "${F##*/} has pages 1 to $N"
        p=$((10#${s// /})) ;;
   esac
-  c=$({ printf 'part\t隅\tcorner\n'
+  c=$({ printf 'part\t%s\tcorner\n' "$ICON_CORNER"
         for s in "${corners[@]:1}"; do printf 'row\t%s\t%s\n' "$ICON_NOTE" "$s"; done; } |
       kawa-menu --index --select 1) || exit 0
   case $c in 1) g=southeast ;; 2) g=southwest ;; 3) g=northeast ;; 4) g=northwest ;; *) exit 0 ;; esac
@@ -622,13 +622,13 @@ case $act in
   range)  one; pages_typed 頁 "take some pages" "type the pages: 3-7,10 (it has $N)"
           out=$(beside "$F" ".pages-$LIST.pdf"); qpdf_to "$out" --empty --pages "$F" "$LIST" --
           finish "$ICON_BOOK" "pages $LIST · a PDF of their own" "$out" "$out" ;;
-  rotate) a=$({ printf 'part\t回\trotate\n'
+  rotate) a=$({ printf 'part\t%s\trotate\n' "$ICON_RESTART"
                 printf 'row\t%s\t%s\n' "$ICON_BOOK" "a quarter right" "$ICON_BOOK" "a quarter left" "$ICON_BOOK" "upside down"; } |
               kawa-menu --index --select 1) || exit 0
           case $a in 1) ANGLE=+90 ;; 2) ANGLE=-90 ;; 3) ANGLE=+180 ;; *) exit 0 ;; esac
           PAGES=1-z
           if ((np == 1)); then
-            one; s=$(ask 頁 "which pages" "pages " "all, or type them: 2,5-6 (it has $N)" "all pages") || exit 0
+            one; s=$(ask "$ICON_PAGES" "which pages" "pages " "all, or type them: 2,5-6 (it has $N)" "all pages") || exit 0
             if [[ $s != "all pages" ]]; then plist "$s" "$N" || oops "${F##*/}: not rotated" "$WHY"; PAGES=$LIST; fi
           fi
           TITLE="rotated" pdf_each do_rotate ;;

@@ -3,8 +3,11 @@
 # it: test_panel.sh): what --state says for the machine's state (wired, a Wi-Fi by its name,
 # offline, a VPN; a Bluetooth adapter or none, on, off, blocked, the devices connected; the
 # night light; FreeSync; do not disturb; the theme; the brightness, the sound, the wallpaper;
-# drives), what each --do does, and the toggle that opens and closes the panel.
-# The machine is made up: nmcli, busctl, bluetoothctl, makoctl, gammastep (a process table in
+# drives), what each --do does, do not disturb's own dropdown (kawa-quick dnd: its lines for each
+# state, what each choice sets, a timed one's end handed to systemd) and the toggle that opens
+# and closes the panel.
+# The machine is made up: nmcli, busctl, bluetoothctl, makoctl (its modes in a file), systemd-run
+# and systemctl (logged), gammastep (a process table in
 # a file), kawa-theme, kawa-drives and kawa-weather are stand-ins; whether there is a
 # Bluetooth adapter is a tmpfs over /sys/class in a namespace of its own (ns). The backup row
 # shows what kawa-backup status says (a stand-in: $W/backup).
@@ -36,8 +39,14 @@ if [ -e "$W/fading" ]; then : >"$W/procs"; rm -f "$W/fading"; else : >"$W/fading
   stub setsid '[ "$2" = gammastep ] || exit 0
 echo "stdin: $(readlink /proc/$$/fd/0 || echo closed)" >>"$W/gammastep.stdin"
 [ -e "$W/no-gammastep" ] || echo gammastep >>"$W/procs"'
-  stub makoctl 'if [ "$1 $2" = "mode -t" ]; then grep -qx "$3" "$W/modes" && sed -i "/^$3\$/d" "$W/modes" || echo "$3" >>"$W/modes"
-else cat "$W/modes"; fi'
+  # mako's modes, in $W/modes: makoctl mode lists them, -a adds one, -r takes one away
+  stub makoctl 'case "$*" in
+  "mode") cat "$W/modes" ;;
+  "mode -a "*) grep -qx "$3" "$W/modes" || echo "$3" >>"$W/modes" ;;
+  "mode -r "*) sed -i "/^$3\$/d" "$W/modes" ;;
+  *) echo "makoctl: not stubbed: $*" >&2; exit 1 ;;
+esac'
+  stub systemctl; stub systemd-run          # (a timed quiet time's end: logged, nothing really scheduled)
   stub kawa-theme '[ "$1" = toggle ] || exit 2
 cd "$HOME/.config/fedokawaii" && if [ "$(readlink current)" = themes/dark ]; then ln -sfn themes/light current; else ln -sfn themes/dark current; fi'
   stub kawa-drives '[ "$1" = list ] && cat "$W/drives"'
@@ -221,14 +230,147 @@ quick --do saver; eq "$(st saver)" "15 min"; eq "$(cat "$SV")" on
 echo 7 >"$SV"; eq "$(st saver)" "15 min" "anything but off: on (kawa-saver reads it so too)"
 
 # ── do not disturb, the theme, FreeSync, the levels, the rest ────────────────────────
-case_ "dnd: mako's mode switched, the bar's seal poked, the state following"
+case_ "dnd: a switch — mako's quiet mode added, then taken away; kept for the next login; the bar's bell poked"
 setup; quick --do dnd; eq "$(st dnd)" on; eq "$(kawa-state get dnd)" on "kept for the next login"
 quick --do dnd; eq "$(st dnd)" off; eq "$(kawa-state get dnd)" off
-eq "$(grep -c '^makoctl mode -t do-not-disturb$' "$CALLS")" 2
-called '^kawa-dwlstatus --poke 12$'
+eq "$(grep -c '^makoctl mode -a do-not-disturb$' "$CALLS")" 1; eq "$(grep -c '^makoctl mode -r do-not-disturb$' "$CALLS")" 1
+not_called '^makoctl mode -t' "(the old toggle is gone: what it does is added or removed, never guessed)"
+eq "$(grep -c '^kawa-dwlstatus --poke 12$' "$CALLS")" 2 "the bell poked at every change"
 case_ "dnd while a screen is shared (mode sharing): still its own switch"
 setup; echo sharing >"$W/modes"; quick --do dnd
 eq "$(sort "$W/modes" | tr '\n' ' ')" "do-not-disturb sharing "
+quick --do dnd; eq "$(sort "$W/modes" | tr '\n' ' ')" "sharing " "off again: the share's mode is left as it is"
+
+# ── do not disturb: set (--do dnd on|off|hour|morning) ────────────────────────────────
+modes() { sort "$W/modes" | paste -sd' '; }                       # mako's modes now
+rec() { echo "$XDG_RUNTIME_DIR/kawa-dnd.until"; }                  # a timed one's record: EPOCH CHOICE
+# tz_at HOUR — a fixed-offset zone in which it is HOUR o'clock now: the morning (8:00) it
+# offers is today's before 8:00, tomorrow's after it
+tz_at() { printf 'KAWA%s' "$(( $(date -u +%-H) - $1 ))"; }
+case_ "dnd on: the quiet mode added, kept for the next login, no timer; the timer of an earlier timed one stopped"
+setup; rc 0 quick --do dnd on
+eq "$(st dnd)" on; eq "$(modes)" "default do-not-disturb"; eq "$(kawa-state get dnd)" on "an untimed one is kept"
+called '^makoctl mode -a do-not-disturb$'; called '^systemctl --user stop kawa-dnd-end.timer kawa-dnd-end.service$'
+called '^kawa-dwlstatus --poke 12$'; not_called '^systemd-run'
+[[ ! -e $(rec) ]] && _ok || _no "a record of an end for an untimed one: $(cat "$(rec)")"
+case_ "dnd off: the quiet mode taken away (the others left), kept off, the bell poked, the timer stopped"
+setup; printf 'default\ndo-not-disturb\nsharing\n' >"$W/modes"; kawa-state set dnd on; echo "$(( $(date +%s) + 600 )) hour" >"$(rec)"
+rc 0 quick --do dnd off
+eq "$(st dnd)" off; eq "$(modes)" "default sharing"; eq "$(kawa-state get dnd)" off
+called '^makoctl mode -r do-not-disturb$'; called '^systemctl --user stop kawa-dnd-end.timer kawa-dnd-end.service$'; called '^kawa-dwlstatus --poke 12$'
+[[ ! -e $(rec) ]] && _ok || _no "the record of its end is still there"
+case_ "dnd for an hour: the end handed to a systemd timer (an hour on), the quiet mode added, NOT kept across a login, the record 'EPOCH hour' written"
+setup; t0=$EPOCHSECONDS; rc 0 quick --do dnd hour
+eq "$(st dnd)" on; eq "$(modes)" "default do-not-disturb"; eq "$(kawa-state get dnd)" off "timed: a login ends it, so it is not kept"
+called '^systemd-run --user --quiet --unit=kawa-dnd-end --on-active=(3600|3599)s --timer-property=AccuracySec=1s -- kawa-quick --do dnd off$'
+read -r end choice <"$(rec)"; eq "$choice" hour
+((end >= t0 + 3600 && end <= EPOCHSECONDS + 3600)) && _ok || _no "the end $((end - t0)) s from the start, not 3600"
+called '^kawa-dwlstatus --poke 12$'
+# (the order that matters: an earlier timer stopped first, or the new one would go with it)
+eq "$(grep -E '^(systemctl --user stop|systemd-run|makoctl mode -a)' "$CALLS" | awk '{ printf "%s|", $1 }')" \
+  "systemctl|systemd-run|makoctl|" "stopped, then scheduled, then quiet"
+case_ "dnd until the morning (8:00), before 8:00: today's, the timer for the seconds to it"
+setup; tz=$(tz_at 3); t0=$(TZ=$tz date +%s); want=$(TZ=$tz date -d 'today 08:00' +%s)
+TZ=$tz rc 0 quick --do dnd morning
+read -r end choice <"$(rec)"; eq "$choice" morning; eq "$end" "$want" "today at 8:00"
+n=$(grep -Eo -- '--on-active=[0-9]+s' "$CALLS" | tr -dc 0-9); ((n >= want - t0 - 3 && n <= want - t0 + 3)) && _ok || _no "the timer is for ${n}s, not $((want - t0))s"
+eq "$(modes)" "default do-not-disturb"; eq "$(kawa-state get dnd)" off "timed: not kept"
+called ' -- kawa-quick --do dnd off$'
+case_ "dnd until the morning, after 8:00: tomorrow's"
+setup; tz=$(tz_at 12); t0=$(TZ=$tz date +%s); want=$(TZ=$tz date -d 'tomorrow 08:00' +%s)
+TZ=$tz rc 0 quick --do dnd morning
+read -r end choice <"$(rec)"; eq "$end" "$want" "tomorrow at 8:00"
+n=$(grep -Eo -- '--on-active=[0-9]+s' "$CALLS" | tr -dc 0-9); ((n >= want - t0 - 3 && n <= want - t0 + 3)) && _ok || _no "the timer is for ${n}s, not $((want - t0))s"
+((n > 0 && n <= 24 * 3600)) && _ok || _no "a timer of ${n}s is not within a day"
+case_ "dnd timed, then another: the first one's timer stopped and its record replaced; then on: no end at all"
+setup; rc 0 quick --do dnd hour; rc 0 quick --do dnd morning
+eq "$(grep -c '^systemctl --user stop kawa-dnd-end.timer kawa-dnd-end.service$' "$CALLS")" 2 "each change stops the one before"
+eq "$(cut -d' ' -f2 "$(rec)")" morning
+rc 0 quick --do dnd on; [[ ! -e $(rec) ]] && _ok || _no "an untimed one with an end on record"
+eq "$(kawa-state get dnd)" on; eq "$(modes)" "default do-not-disturb"
+case_ "dnd: the timer that ends it runs the same command (kawa-quick --do dnd off): quiet over, record gone, the state follows"
+setup; rc 0 quick --do dnd hour; rc 0 quick --do dnd off
+eq "$(st dnd)" off; eq "$(modes)" default; [[ ! -e $(rec) ]] && _ok || _no "the record is left"
+case_ "dnd timed, but systemd cannot set its end: NO quiet at all (one that never ended would hide every notice for good), a notice says why"
+setup; stub systemd-run 'exit 1'
+for w in hour morning; do
+  reset_calls; quick --do dnd "$w" >/dev/null 2>&1
+  eq "$(modes)" default "$w: mako's modes untouched"; eq "$(st dnd)" off
+  not_called '^makoctl mode -a'; [[ ! -e $(rec) ]] && _ok || _no "$w: a record of an end that was never set"
+  called "^notify-send -a desktop -- $ICON_BELL_OFF  do not disturb its end could not be set \(systemd --user\) — it stays off\$"
+  called '^kawa-dwlstatus --poke 12$'
+  eq "$(kawa-state get dnd)" off "$w: nothing kept"
+done
+case_ "dnd until the morning, the morning not worked out (date fails): nothing set, exit 1"
+setup; stub date '[ "$*" = "-d today 08:00 +%s" ] && exit 1; exec /bin/date "$@"'
+rc 1 quick --do dnd morning; eq "$(modes)" default; not_called '^makoctl mode -a'; not_called '^systemd-run'
+case_ "dnd: wrong use — a word it does not know, a third argument"
+setup; rc 2 quick --do dnd bogus; rc 2 quick --do dnd on extra; rc 2 kawa-quick --do dnd hours
+not_called '^makoctl'
+
+# ── do not disturb: its dropdown (kawa-quick dnd) ─────────────────────────────────────
+# the bar's quiet bell opens it: a part line, then off · for an hour · until the morning · on,
+# the one in force an "on" line with the cursor on it
+dndm() { env "${QENV[@]}" kawa-quick dnd; }                       # the dropdown, on the made-up machine
+kinds() { fz_rows | cut -f1 | tr '\n' ' '; }
+names() { fz_rows | cut -f3 | tr '\n' '|'; }
+case_ "the dropdown, nothing set: a part line (the quiet bell, do not disturb), four rows, off in force — an on line, the cursor on it"
+setup; answer esc; rc 0 dndm
+eq "$(fz_rows | sed -n 1p | cut -f1-3)" "part	$ICON_BELL_OFF	do not disturb" "the heading: the quiet bell, the name"
+eq "$(fz_rows | sed -n 1p | cut -f4)" "" "nothing timed: no end at the heading's end"
+eq "$(names)" "do not disturb|off|for an hour|until the morning|on|"
+eq "$(fz_rows | sed -n '2,5p' | cut -f2 | tr '\n' ' ')" "$ICON_BELL $ICON_HOURGLASS $ICON_MOON $ICON_BELL_OFF " "each its own icon: the bell, the hourglass, the moon, the quiet bell"
+eq "$(kinds)" "part on row row row " "off is in force"
+eq "$(fz_arg select)" 1 "the cursor on it"; eq "$(fz_arg drop)" set "a dropdown from the bar"; eq "$(fz_arg index)" set; eq "$(fz_arg middle)" "" "under its own tile, not the date's middle"
+eq "$(fz_rows | sed -n 2p | cut -f4)" "notices as they come"; eq "$(fz_rows | sed -n 5p | cut -f4)" "until you turn it off"
+fits
+case_ "… the hour's and the morning's words: until H:MM an hour on, 8:00 (today's, before 8:00) or 8:00 tomorrow"
+setup; answer esc; a=$(date -d '+1 hour' +%-H:%M); rc 0 dndm; b=$(date -d '+1 hour' +%-H:%M)
+v=$(fz_rows | sed -n 3p | cut -f4); [[ $v == "until $a" || $v == "until $b" ]] && _ok || _no "an hour on is [$v], not until $a"
+setup; answer esc; QENV=(LC_ALL=C.UTF-8 "TZ=$(tz_at 3)"); rc 0 dndm
+eq "$(fz_rows | sed -n 4p | cut -f4)" "8:00" "before 8:00: this morning's"
+setup; answer esc; QENV=(LC_ALL=C.UTF-8 "TZ=$(tz_at 12)"); rc 0 dndm
+eq "$(fz_rows | sed -n 4p | cut -f4)" "8:00 tomorrow" "after 8:00: tomorrow's"
+QENV=(LC_ALL=C.UTF-8)
+case_ "the dropdown, on with no end (quiet until you turn it off): on is the line in force, the cursor on it, no end at the heading"
+setup; echo do-not-disturb >>"$W/modes"; answer esc; rc 0 dndm
+eq "$(kinds)" "part row row row on "; eq "$(fz_arg select)" 4; eq "$(fz_rows | sed -n 1p | cut -f4)" ""
+case_ "the dropdown, timed for an hour: for an hour is the line in force, the end at the heading's end (until H:MM)"
+setup; echo do-not-disturb >>"$W/modes"; end=$(( $(date +%s) + 2400 )); echo "$end hour" >"$(rec)"; answer esc; rc 0 dndm
+eq "$(kinds)" "part row on row row "; eq "$(fz_arg select)" 2
+eq "$(fz_rows | sed -n 1p | cut -f4)" "$(date -d "@$end" '+until %-H:%M')" "the heading's end: when it ends"
+case_ "the dropdown, timed until the morning: until the morning is the line in force"
+setup; echo do-not-disturb >>"$W/modes"; end=$(( $(date +%s) + 7200 )); echo "$end morning" >"$(rec)"; answer esc; rc 0 dndm
+eq "$(kinds)" "part row row on row "; eq "$(fz_arg select)" 3
+eq "$(fz_rows | sed -n 1p | cut -f4)" "$(date -d "@$end" '+until %-H:%M')"
+case_ "the dropdown, a record that is stale or broken, or the quiet mode already off: only what mako says counts"
+setup; echo do-not-disturb >>"$W/modes"; echo "$(( $(date +%s) - 30 )) hour" >"$(rec)"; answer esc; rc 0 dndm
+eq "$(kinds)" "part row row row on " "an end gone by with the mode still on: the plain quiet"
+eq "$(fz_rows | sed -n 1p | cut -f4)" "" "… no end shown"
+for junk in "x hour" "" "0 morning"; do
+  setup; echo do-not-disturb >>"$W/modes"; printf '%s\n' "$junk" >"$(rec)"; answer esc; rc 0 dndm
+  eq "$(kinds)" "part row row row on " "[$junk]: the plain quiet"
+done
+setup; echo "$(( $(date +%s) + 3000 )) hour" >"$(rec)"; answer esc; rc 0 dndm
+eq "$(kinds)" "part on row row row " "mako not quiet (a login ended it): off is in force, whatever the record says"
+eq "$(fz_arg select)" 1
+case_ "the dropdown: a choice sets it (the line's number) — off, an hour, the morning, on; the part line is no choice"
+setup; echo do-not-disturb >>"$W/modes"; answer "row 1"; rc 0 dndm
+eq "$(modes)" default "off: the quiet mode taken away"; called '^makoctl mode -r do-not-disturb$'
+setup; answer "row 2"; rc 0 dndm
+eq "$(modes)" "default do-not-disturb" "an hour: quiet"; called '^systemd-run --user --quiet --unit=kawa-dnd-end --on-active=(3600|3599)s '
+eq "$(cut -d' ' -f2 "$(rec)")" hour
+setup; answer "row 3"; rc 0 dndm
+eq "$(modes)" "default do-not-disturb" "the morning: quiet"; eq "$(cut -d' ' -f2 "$(rec)")" morning
+setup; answer "row 4"; rc 0 dndm
+eq "$(modes)" "default do-not-disturb" "on: quiet"; not_called '^systemd-run'; eq "$(kawa-state get dnd)" on
+setup; echo do-not-disturb >>"$W/modes"; answer "row 0"; rc 0 dndm
+eq "$(modes)" "default do-not-disturb" "the part line: nothing changed"; not_called '^(makoctl mode -[ar]|systemd-run|kawa-dwlstatus)'
+case_ "the dropdown dismissed (Esc, a click outside, its tile again): nothing set, exit 0"
+for a in esc lost; do setup; answer "$a"; rc 0 dndm; eq "$(modes)" default "$a"; not_called '^(makoctl mode -[ar]|systemd-run|systemctl|kawa-dwlstatus)'; done
+case_ "kawa-quick dnd takes no argument (a second one is wrong use, exit 2, no menu); --help names it"
+setup; rc 2 kawa-quick dnd extra; rc 2 kawa-quick dnd sound; eq "$(fz_n)" 0 "no menu for a wrong use"
+has "$(kawa-quick --help)" "kawa-quick dnd" "--help names it"
 case_ "theme: kawa-theme toggle, and the state follows"
 setup; rc 0 quick --do theme; called '^kawa-theme toggle$'; eq "$(st theme)" light
 case_ "FreeSync: in games → always → off → in games, written where dwl reads it"

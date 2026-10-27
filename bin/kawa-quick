@@ -7,6 +7,10 @@
 #                               slider) opens, or closes if it is open: the running panel asked
 #                               through its fifo (kawa-panel), by bash alone — the bar's clicks
 #                               and the keys, at once
+#   kawa-quick dnd              do not disturb's own dropdown (the bar's quiet bell): off · for an
+#                               hour · until the morning (8:00) · on — the one in force marked; a
+#                               timed one ends by itself (kawa-dnd-end, a timer of your systemd)
+#                               and is not kept across a login (an untimed one is: kawa-state)
 #   kawa-quick --state          how everything stands, one "KEY<TAB>VALUE" a line: theme,
 #                               brightness, night ("off" or its warmth, "4000K"), vrr,
 #                               wallpaper, sound, nettype, network, bluetooth and devices (only
@@ -23,7 +27,7 @@
 #                               PROFILE<TAB>API" (what names it; any but the first may be empty)
 #   kawa-quick --state brightness   the slider's: brightness
 #   kawa-quick --do ACTION [N]  one thing done: theme · night · vrr · bluetooth · dnd (each
-#                               switched over) · saver (the screensaver on ⇄ off) ·
+#                               switched over; dnd on|off|hour|morning: set so) · saver (the screensaver on ⇄ off) ·
 #                               warmer · cooler (the night light, a step, on) · brightness N · volume N (set, in %) · mute ·
 #                               micmute (the output's, the microphone's, switched over) ·
 #                               output ID · input ID (the default: playing audio moves to it;
@@ -36,9 +40,9 @@
 #
 # Exit: 0 done · 1 it could not (said) · 2 wrong use.
 set -u
-usage() { echo "usage: kawa-quick [sound | brightness | --state | --do ACTION [N]] (kawa-quick --help)" >&2; exit 2; }
+usage() { echo "usage: kawa-quick [sound | brightness | dnd | --state | --do ACTION [N]] (kawa-quick --help)" >&2; exit 2; }
 case ${1:-} in
-  ""|sound|brightness) (($# <= 1)) || usage ;;
+  ""|sound|brightness|dnd) (($# <= 1)) || usage ;;
   --state) (($# == 1)) || [[ $# == 2 && ( $2 == sound || $2 == brightness ) ]] || usage ;;
   --do) (($# == 2 || $# == 3)) || usage ;;
   -h|--help) sed -n '2,/^set -u/{/^set -u/d;s/^# \{0,1\}//;p}' "$0"; exit 0 ;;
@@ -118,6 +122,56 @@ state_vrrnow() {  # …and what the card does this moment (kawa-display --vrr, D
   else echo none; fi
 }
 state_dnd()   { [[ $(makoctl mode 2>/dev/null) == *do-not-disturb* ]] && echo on || echo off; }
+# do not disturb, set: off · on (until you turn it off: kept across a login) · hour · morning
+# (timed: kawa-dnd-end, a timer of your systemd, turns it off; not kept — a login ends it).
+# Every change ends a timer still waiting, and tells the bar (its bell)
+DND_UNTIL=${XDG_RUNTIME_DIR:-/run/user/$UID}/kawa-dnd.until     # "EPOCH CHOICE" while a timed one runs
+morning() {   # the next 8:00, as seconds
+  local t; t=$(date -d 'today 08:00' +%s) || return 1
+  ((t > EPOCHSECONDS)) || t=$(date -d 'tomorrow 08:00' +%s)
+  echo "$t"
+}
+dnd_set() {
+  local end
+  systemctl --user stop kawa-dnd-end.timer kawa-dnd-end.service >/dev/null 2>&1
+  rm -f -- "$DND_UNTIL"
+  case $1 in
+    off) makoctl mode -r do-not-disturb >/dev/null; kawa-state set dnd off ;;
+    on)  makoctl mode -a do-not-disturb >/dev/null; kawa-state set dnd on ;;
+    hour|morning)
+      if [[ $1 == hour ]]; then end=$((EPOCHSECONDS + 3600)); else end=$(morning) || return 1; fi
+      kawa-state set dnd off                                     # (timed: not kept across a login)
+      if systemd-run --user --quiet --unit=kawa-dnd-end --on-active="$((end - EPOCHSECONDS))s" \
+           --timer-property=AccuracySec=1s -- kawa-quick --do dnd off >/dev/null 2>&1; then
+        echo "$end $1" >"$DND_UNTIL"
+        makoctl mode -a do-not-disturb >/dev/null
+      else   # (its end could not be set: no quiet at all — one that never ended would hide
+             # every notice for good)
+        notify-send -a desktop -- "$ICON_BELL_OFF  do not disturb" "its end could not be set (systemd --user) — it stays off"
+      fi ;;
+  esac
+  kawa-dwlstatus --poke 12                                       # (the bar's bell)
+}
+dnd_menu() {   # its dropdown: the four, the one in force marked (the cursor on it)
+  local cur=off end choice m when rows=() acts=() n=0 sel=1 i c a g name detail
+  [[ $(state_dnd) == on ]] && cur=on
+  if [[ $cur == on ]] && read -r end choice 2>/dev/null <"$DND_UNTIL" && [[ $end =~ ^[0-9]+$ ]] && ((end > EPOCHSECONDS)); then
+    cur=$choice
+  fi
+  m=$(morning) || m=0
+  when="8:00"; (($(date -d "@$m" +%j) != $(date +%j))) && when="8:00 tomorrow"
+  line() { local IFS=$'\t'; rows+=("$*"); }
+  line part "$ICON_BELL_OFF" "do not disturb" "$([[ $cur == @(hour|morning) ]] && date -d "@$end" '+until %-H:%M')"; acts+=(-)
+  for c in "off|$ICON_BELL|off|notices as they come" "hour|$ICON_HOURGLASS|for an hour|until $(date -d "@$((EPOCHSECONDS + 3600))" +%-H:%M)" \
+           "morning|$ICON_MOON|until the morning|$when" "on|$ICON_BELL_OFF|on|until you turn it off"; do
+    IFS='|' read -r a g name detail <<<"$c"
+    n=$((n + 1)); [[ $a == "$cur" ]] && sel=$n
+    line "$([[ $a == "$cur" ]] && echo on || echo row)" "$g" "$name" "$detail"; acts+=("$a")
+  done
+  i=$(printf '%s\n' "${rows[@]}" | kawa-menu --drop --index --select "$sel") || return 0
+  [[ $i =~ ^[0-9]+$ && -n ${acts[i]:-} && ${acts[i]} != - ]] || return 0
+  dnd_set "${acts[i]}"
+}
 state_drives() {   # USB sticks, disks, SD cards plugged in (kawa-drives: one line per file system):
   # one by its name and size ("SANDISK 58G"), more by the first one's name and how many more
   # ("SANDISK +2") — the count alone is the bar's drive mark, right above
@@ -319,7 +373,7 @@ state() {   # everything, KEY<TAB>VALUE (a value's tabs and line breaks become s
 
 act() {   # act ACTION [N] — the panel's choices
   local v
-  case $1 in brightness|volume|output|input) (($# == 2)) || usage ;; *) (($# == 1)) || usage ;; esac
+  case $1 in brightness|volume|output|input) (($# == 2)) || usage ;; dnd) (($# <= 2)) || usage ;; *) (($# == 1)) || usage ;; esac
   case $1 in
     theme)      kawa-theme toggle ;;
     night)      kawa-night toggle ;;                 # (kept: the next login finds it so)
@@ -339,9 +393,11 @@ act() {   # act ACTION [N] — the panel's choices
                   return 1
                 else v=on; fi
                 kawa-state set bluetooth "$v" ;;   # (kept: bluetoothd powers it at every boot otherwise)
-    dnd)        makoctl mode -t do-not-disturb >/dev/null
-                kawa-state set dnd "$(state_dnd)"               # (kept: the next login finds it so)
-                kawa-dwlstatus --poke 12 ;;                     # the bar's 静 seal
+    dnd)        case ${2:-} in
+                  on|off|hour|morning) dnd_set "$2" ;;
+                  "") if [[ $(state_dnd) == on ]]; then dnd_set off; else dnd_set on; fi ;;
+                  *) usage ;;
+                esac ;;
     brightness) [[ ${2:-} =~ ^[0-9]{1,3}$ ]] && ((10#$2 <= 100)) || usage
                 kawa-brightness "$((10#$2))" ;;
     volume)     [[ ${2:-} =~ ^[0-9]{1,3}$ ]] && ((10#$2 <= 100)) || usage
@@ -380,4 +436,5 @@ case ${1:-} in
              *)          state ;;
            esac ;;
   --do)    act "${@:2}" ;;
+  dnd)     dnd_menu ;;
 esac

@@ -159,7 +159,7 @@ at_gate() {   # at_gate NAME — wait (up to 10 s) until something is waiting at
   local i; for i in {1..1000}; do [[ -e $TMP/gate.$1.in ]] && return 0; /bin/sleep 0.01; done; return 1
 }
 # (sh, for stand-in bodies) wait at gate NAME until it opens
-wait_gate() { printf ': >"%s.in"; while [ ! -e "%s" ]; do /bin/sleep 0.02; done' "$TMP/gate.$1" "$TMP/gate.$1"; }
+wait_gate() { printf ': >"%s.in"; while [ ! -e "%s" ]; do [ -d "%s" ] || exit 1; /bin/sleep 0.02; done' "$TMP/gate.$1" "$TMP/gate.$1" "$TMP"; }
 
 need() {   # need CMD… — skip the rest of this file (passing) when a tool the checks need is missing
   local c

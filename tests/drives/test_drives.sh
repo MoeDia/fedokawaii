@@ -353,10 +353,10 @@ kawa-drives menu
 rows=$(cat "$TMP_MENU")
 ICON_EJECT=$(. "$HOME/.config/fedokawaii/icons.sh"; printf '%s' "$ICON_EJECT")
 ICON_DRIVE=$(. "$HOME/.config/fedokawaii/icons.sh"; printf '%s' "$ICON_DRIVE")
-eq "$(head -n1 <<<"$rows")" "part	盤	drives" "the drives under their heading (the panel's line format)"
+eq "$(head -n1 <<<"$rows")" "part	$ICON_DRIVE	drives" "the drives under their heading (the panel's line format)"
 eq "$(sed -n '2,6p' <<<"$rows" | cut -f1,2,4 | sort -u | tr '\n' '|')" "on	$ICON_DRIVE	open|row	$ICON_DRIVE	closed|" "a row a file system: open (lit) or closed in its own column"
 [[ $(sed -n 2p <<<"$rows" | cut -f5) =~ ^[0-9.]+[KMGT]?B?$|^[0-9.,]+\ ?[KMGT]i?B$ ]] && _ok || _no "the size as the row's value: $(sed -n 2p <<<"$rows")"
-eq "$(sed -n 7p <<<"$rows")" "part	出	eject" "the second heading right after (the panel spaces its parts)"
+eq "$(sed -n 7p <<<"$rows")" "part	$ICON_EJECT	eject" "the second heading right after (the panel spaces its parts)"
 ej=$(sed -n '8,$p' <<<"$rows")
 has "$ej" "row	$ICON_EJECT	KINGSTON"; has "$ej" "row	$ICON_EJECT	BACKUP" "a drive is named by its first file system, under the eject heading"
 lacks "$rows" "eject KINGSTON" "the heading says eject: the rows do not again"
@@ -370,7 +370,7 @@ not_called 'udiskie'
 case_ "menu with nothing plugged in: one quiet row"
 printf '{"blockdevices": []}\n' >"$FAKE_DISKS"
 stub kawa-menu 'cat >"$TMP_MENU"; exit 1'
-reset_calls; kawa-drives menu; eq "$(cat "$TMP_MENU" | tr '\n' '|')" "part	盤	drives|off	$ICON_DRIVE	nothing plugged in|" "faint, nothing to choose"
+reset_calls; kawa-drives menu; eq "$(cat "$TMP_MENU" | tr '\n' '|')" "part	$ICON_DRIVE	drives|off	$ICON_DRIVE	nothing plugged in|" "faint, nothing to choose"
 called 'kawa-menu --drop --index$' "no cursor place: nothing to choose"
 
 # ── ~/Drives: a folder per open drive ────────────────────────────────────────

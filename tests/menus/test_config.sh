@@ -61,10 +61,10 @@ title() { fz_arg title "${1:-}"; }
 . "$REPO/configs/home/.config/fedokawaii/icons.sh"
 
 # ── the menu, and the copy's state in its title ──────────────────────────────────────
-case_ "no working copy yet: every part in five, each under its kanji, sized to its content, the title says it is made on first use"
+case_ "no working copy yet: every part in five, each under its icon, sized to its content, the title says it is made on first use"
 setup; answer esc; rc 0 config_
 eq "$(fz_rows | grep '^row' | cut -f3 | tr '\n' ',')" "colours,bar,bar look,icons,notifications,menus, launcher,transparency,keys,terminal,shell,files,drives,autostart,settings,packages,yours alone,what changed,history,apply,update fedokawaii,learn,"
-eq "$(fz_rows | grep '^part' | cut -f2,3 | tr '\t\n' ' ,')" "見 look,手 use,系 system,史 history,案 help," "the headings: a kanji, the name"
+eq "$(fz_rows | grep '^part' | cut -f2,3 | tr '\t\n' ' ,')" "$ICON_THEME look,$ICON_KEYBOARD use,$ICON_MONITOR system,$ICON_BRANCH history,$ICON_BOOK help," "the headings: an icon, the name"
 eq "$(fz_rows | grep -vc -e '^part	' -e '^row	')" 0 "nothing but parts and rows (the panel spaces its parts)"
 eq "$(fz_rows | grep '^row' | awk -F'\t' 'NF != 4' )" "" "every row: its icon, its name, its note"
 eq "$(fz_rows | grep -F "	menus, launcher	" | cut -f4)" "their grid and doing (kawa-panel)"
@@ -106,7 +106,7 @@ not_called '^fedokawaii copy'; eq "$(cat "$COPY/notes.txt")" mine
 case_ "a part changed: apply now runs fedokawaii apply in a window that waits for a key"
 setup; copy_made; echo change >"$W/edit"; answer "pick terminal" "pick apply now"; config_
 eq "$(fz_n)" 2; eq "$(title 2)" "the terminal server reads it at your next login"
-eq "$(fz_rows 2 | cut -f1-3 | tr '\t\n' ' ,')" "part 適 apply,row $ICON_DOWNLOAD apply now,row $ICON_HOURGLASS later,row $ICON_BRANCH what changed," "the apply question: 適 apply, three rows"
+eq "$(fz_rows 2 | cut -f1-3 | tr '\t\n' ' ,')" "part $ICON_CHECK apply,row $ICON_DOWNLOAD apply now,row $ICON_HOURGLASS later,row $ICON_BRANCH what changed," "the apply question: the check icon and apply, three rows"
 FITS_WRAP=1 fits 2 "(the when-text wraps at its spaces)"
 called '^kawa-term --float --once apply --dialog apply 100x33 -- bash -c .* _ fedokawaii apply$'
 case_ "… later: nothing runs now"
@@ -174,6 +174,7 @@ for p in "shell additions:.bashrc.d/local.sh:Fedora's ~/.bashrc reads every" "au
   called "^footclient -T change · $name -D $HOME/${f%/*} -- nvim -O -- $HOME/$f$"
   called "notify-send -a desktop -- .*  change ~/$f — yours: nothing to apply"
 done
+eq "$(fz_rows 2 | sed -n 1p | cut -f1-3)" "part	$ICON_USER	yours alone" "its heading: the user icon and its name"
 fits 2
 case_ "yours alone, the file there already: never overwritten"
 setup; mkdir -p "$HOME/.bashrc.d"; echo "alias ll='ls -l'" >"$HOME/.bashrc.d/local.sh"
@@ -183,6 +184,7 @@ case_ "your scripts: yazi in ~/.local/bin"
 setup; answer "pick yours alone" "pick your scripts"; config_; called "^footclient -N -- yazi $HOME/.local/bin$"
 case_ "learn: the learning guide, the help sheet, a man page, a web page"
 setup; answer "pick learn" "pick learning guide"; config_; called '^fedokawaii guide$'; fits 2
+eq "$(fz_rows 2 | sed -n 1p | cut -f1-3)" "part	$ICON_MORTARBOARD	learn" "its heading: the mortarboard and its name"
 setup; answer "pick learn" "pick 	keys	"; config_; called '^kawa-help'
 setup; answer "pick learn" "pick man foot.ini"; config_; called '^kawa-term man 5 foot.ini$'
 setup; answer "pick learn" "pick ShellCheck"; config_; called '^setsid -f xdg-open https://www.shellcheck.net/wiki/$'

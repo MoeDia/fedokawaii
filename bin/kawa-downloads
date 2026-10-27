@@ -2,7 +2,7 @@
 """kawa-downloads — everything this computer is downloading, in one place: the bar's download
 mark (hidden while nothing comes in), its menu, and one notice as each download finishes.
 
-    kawa-downloads           the menu (a click on the mark): 受 downloads — a row each, its
+    kawa-downloads           the menu (a click on the mark): downloads (its arrow) — a row each, its
                              source's glyph, its name, how much of how much, the percent; a
                              click opens where it lands (Steam: its downloads page) · the
                              foot: torrents (the search), while that window is not open
@@ -244,7 +244,7 @@ def open_it(source, where):
 def menu():
     ic = icons()
     items = scan(brave_folder(), steam_libraries())
-    rows, acts = ["part\t受\tdownloads"], [None]
+    rows, acts = [f"part\t{ic['download']}\tdownloads"], [None]
     for src, name, done, total, where in items:
         detail = f"{size(done)} of {size(total)}" if total else size(done)
         value = f"{int(100 * done / total)}%" if total else ""

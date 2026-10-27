@@ -74,7 +74,7 @@ memory kawa-term-btop.open -
 volume kawa-panel-sound.open -
 brightness kawa-panel-brightness.open -
 cat kawa-panel.open -
-mode kawa-panel.open -
+mode kawa-drop.open kawa-quick
 EOF
 rm -f "$R"/kawa-*.open
 
@@ -93,13 +93,50 @@ eq "$(kawa-bar brightness -- true)" "" "nothing printed: nothing added (the modu
 rc 3 kawa-bar brightness -- sh -c 'echo "{\"text\":\"\"}"; exit 3'
 rm -f "$R/kawa-panel-brightness.open"
 eq "$(kawa-bar brightness -- echo '{"text":"x","class":"a"}')" '{"text":"x","class":"a"}' "not lit: the line as it came"
-case_ "the mode seal: 静 or 共有 with a tooltip that says what it is and does; lit with quick settings"
+case_ "the mode tile: the quiet bell while do not disturb is on, the monitor while a screen is shared — each with a tooltip that says what it is; nothing otherwise"
 stub makoctl 'echo do-not-disturb'
-eq "$(kawa-bar mode)" '{"text":"静","class":["dnd","active"],"tooltip":""}'
+eq "$(kawa-bar mode)" "{\"text\":\"$ICON_BAR_BELL_OFF\",\"class\":\"dnd\",\"tooltip\":\"do not disturb\"}"
+stub makoctl 'printf "sharing\ndefault\n"'
+eq "$(kawa-bar mode)" "{\"text\":\"$ICON_BAR_MONITOR\",\"class\":\"share\",\"tooltip\":\"sharing screen\"}"
+stub makoctl 'printf "do-not-disturb\nsharing\n"'
+has "$(kawa-bar mode)" "\"text\":\"$ICON_BAR_MONITOR\"" "both held back: the screen being shared is what shows"
+stub makoctl 'echo default'; eq "$(kawa-bar mode)" '{"text":""}' "nothing held back: nothing (the module hidden)"
+lacks "$(kawa-bar mode)" "$ICON_BAR_BELL_OFF"
+case_ "the mode tile is lit by its own dropdown (kawa-quick dnd: kawa-drop.open naming kawa-quick), its tooltip emptied — not by quick settings' panel (the cat's), not by another script's dropdown"
+stub makoctl 'echo do-not-disturb'
+alive; p=$P
+echo "$p kawa-quick" >"$R/kawa-drop.open"
+eq "$(kawa-bar mode)" "{\"text\":\"$ICON_BAR_BELL_OFF\",\"class\":[\"dnd\",\"active\"],\"tooltip\":\"\"}" "lit while its dropdown is open"
+rc 0 kawa-bar --lit mode
+echo "$p kawa-calendar" >"$R/kawa-drop.open"
+eq "$(kawa-bar mode)" "{\"text\":\"$ICON_BAR_BELL_OFF\",\"class\":\"dnd\",\"tooltip\":\"do not disturb\"}" "another script's dropdown open: not lit"
+rm -f "$R/kawa-drop.open"; echo "$p" >"$R/kawa-panel.open"
+eq "$(kawa-bar mode)" "{\"text\":\"$ICON_BAR_BELL_OFF\",\"class\":\"dnd\",\"tooltip\":\"do not disturb\"}" "quick settings open: the cat is lit, this tile is not"
+rc 1 kawa-bar --lit mode; rc 0 kawa-bar --lit cat
 rm -f "$R/kawa-panel.open"
-eq "$(kawa-bar mode)" '{"text":"静","class":"dnd","tooltip":"do not disturb"}'
-stub makoctl 'printf "sharing\ndefault\n"'; has "$(kawa-bar mode)" '"text":"共有"'
-stub makoctl 'echo default'; eq "$(kawa-bar mode)" '{"text":""}'
+echo "$p kawa-quick" >"$R/kawa-drop.open"; kill -9 "$p"; wait "$p" 2>/dev/null
+eq "$(kawa-bar mode)" "{\"text\":\"$ICON_BAR_BELL_OFF\",\"class\":\"dnd\",\"tooltip\":\"do not disturb\"}" "its opener killed: dark at the next run"
+rm -f "$R/kawa-drop.open"
+stub makoctl 'printf "sharing\n"'; alive; echo "$P kawa-quick" >"$R/kawa-drop.open"
+eq "$(kawa-bar mode)" "{\"text\":\"$ICON_BAR_MONITOR\",\"class\":[\"share\",\"active\"],\"tooltip\":\"\"}" "the sharing monitor is the same tile: lit by the same dropdown"
+rm -f "$R/kawa-drop.open"
+case_ "the quiet bell's tooltip: \"do not disturb\", and — for a timed one (kawa-dnd.until: EPOCH CHOICE) — \"do not disturb until H:MM\", the hour as the clock writes it without a leading zero; an end gone by or a broken record: the plain words"
+stub makoctl 'echo do-not-disturb'
+end=$(( $(date +%s) + 5400 )); want=$(date -d "@$end" '+%-H:%M')
+echo "$end hour" >"$R/kawa-dnd.until"
+eq "$(kawa-bar mode)" "{\"text\":\"$ICON_BAR_BELL_OFF\",\"class\":\"dnd\",\"tooltip\":\"do not disturb until $want\"}" "a timed one"
+[[ $want =~ ^([0-9]|1[0-9]|2[0-3]):[0-5][0-9]$ ]] && _ok || _no "the hour [$want] is not H:MM"
+echo "$end morning" >"$R/kawa-dnd.until"
+has "$(kawa-bar mode)" "\"tooltip\":\"do not disturb until $want\"" "the morning's the same"
+for junk in "$(( $(date +%s) - 60 )) hour" "0 hour" "soon hour" "" "x"; do
+  printf '%s\n' "$junk" >"$R/kawa-dnd.until"
+  eq "$(kawa-bar mode)" "{\"text\":\"$ICON_BAR_BELL_OFF\",\"class\":\"dnd\",\"tooltip\":\"do not disturb\"}" "[$junk]: the plain words"
+done
+rm -f "$R/kawa-dnd.until"
+eq "$(kawa-bar mode)" "{\"text\":\"$ICON_BAR_BELL_OFF\",\"class\":\"dnd\",\"tooltip\":\"do not disturb\"}" "no record: the plain words"
+echo "$end hour" >"$R/kawa-dnd.until"; stub makoctl 'printf "sharing\n"'
+eq "$(kawa-bar mode)" "{\"text\":\"$ICON_BAR_MONITOR\",\"class\":\"share\",\"tooltip\":\"sharing screen\"}" "sharing: its own words, a timed record or not"
+rm -f "$R/kawa-dnd.until"
 case_ "the layout: kawa-dwlstatus's own line for this bar's monitor, lit by a layout menu"
 mkdir -p "$R/dwl-bar/DP-1"; echo '{"text":"L","class":"spiral"}' >"$R/dwl-bar/DP-1/layout.json"; echo '{"text":"F","class":"float"}' >"$R/dwl-bar/layout.json"
 eq "$(WAYBAR_OUTPUT_NAME=DP-1 kawa-bar layout)" '{"text":"L","class":"spiral"}'
@@ -116,7 +153,7 @@ cat_ex=$(wbexec custom/menu)
 printf '#!/bin/bash\necho $$ >"$XDG_RUNTIME_DIR/kawa-panel.open"\nkawa-dwlstatus --poke 15\nexec sleep 300\n' >"$TMP/bin/kawa-panel"; chmod 755 "$TMP/bin/kawa-panel"
 "$TMP/bin/kawa-panel" & kp=$!; BG_PIDS+=("$kp")
 until_ '[[ -s $R/kawa-panel.open ]]'; nap 0.2
-eq "$(pokes)" "12 15" "the cat poked (and the mode seal with it)"
+eq "$(pokes)" "15" "the cat poked (the mode tile not: it has a dropdown of its own)"
 eq "$(sh -c "$cat_ex")" "{\"text\":\"$ICON_CAT_HAPPY\",\"class\":\"active\"}" "lit while it runs"
 kill -9 "$kp"; wait "$kp" 2>/dev/null
 kawa-dwlstatus --poke 15; pokes >/dev/null  # the next poke, whoever sends it: the module runs again
@@ -157,9 +194,9 @@ eq "$out" "0 True {\"text\":\"$ICON_TORII\",\"class\":\"active\"}
 dead >"$R/kawa-launcher.open"; rc 1 kawa-bar --lit torii; rm -f "$R/kawa-launcher.open"
 
 # ── the pokes and the wakes ──────────────────────────────────────────────────────────
-case_ "kawa-dwlstatus --poke 15 tells the mode seal too; every poke wakes the long-running modules' fifos"
+case_ "kawa-dwlstatus --poke N pokes those alone (+15 no longer the mode tile's: it has its own dropdown); every poke wakes the long-running modules' fifos"
 setup; setrun
-kawa-dwlstatus --poke 15; eq "$(pokes)" "12 15"
+kawa-dwlstatus --poke 15; eq "$(pokes)" "15"
 kawa-dwlstatus --poke 19 20; eq "$(pokes)" "19 20"
 mkfifo "$R/kawa-bar.wake.$$" "$R/kawa-bar.wake.$(dead)"; exec 6<>"$R/kawa-bar.wake.$$"
 kawa-dwlstatus --wake; read -r -t 1 -u 6 && _ok || _no "--wake: no line in the live module's fifo"
@@ -244,14 +281,15 @@ python3 -B - "$REPO/tests/static" "$C" <<'EOF' && _ok || _no "see above"
 import json, sys
 sys.path.insert(0, sys.argv[1]); import parsecheck as p
 c = json.loads(p.strip_jsonc(open(sys.argv[2]).read())); bad = 0
-openers = {"kawa-menu", "kawa-calendar", "kawa-timer", "kawa-drives", "kawa-steam", "kawa-weather", "kawa-term", "kawa-panel", "kawa-downloads"}
+openers = {"kawa-menu", "kawa-calendar", "kawa-timer", "kawa-drives", "kawa-steam", "kawa-weather", "kawa-term", "kawa-panel", "kawa-downloads", "kawa-quick"}
+asks = ([], ["sound"], ["brightness"])     # kawa-quick asking the running panel through its fifo: bash alone, no time
 for k, v in c.items():
     if not isinstance(v, dict): continue
     if v.get("interval") == "once": print(k, "interval once"); bad = 1
     for e in ("on-click", "on-click-right", "on-click-middle"):
         cmd = v.get(e, "")
         w = cmd.split()
-        if w and w[0] in openers: print(k, e, cmd, "— not apart from the bar"); bad = 1
+        if w and w[0] in openers and not (w[0] == "kawa-quick" and w[1:] in asks): print(k, e, cmd, "— not apart from the bar"); bad = 1
         if w[:2] == ["setsid", "-f"] and w[2] not in openers: print(k, e, cmd, "— apart, but opens nothing"); bad = 1
     if k.startswith("custom/") and "on-click" in v and v.get("exec-on-event") is not False:
         print(k, "— a click runs its module's command again (exec-on-event)"); bad = 1
@@ -259,7 +297,8 @@ sys.exit(bad)
 EOF
 eq "$(wbexec custom/volume on-click)" "kawa-quick sound"
 eq "$(wbexec custom/brightness on-click)" "kawa-quick brightness"
-eq "$(wbexec custom/menu on-click) $(wbexec custom/mode on-click)" "kawa-quick kawa-quick"
+eq "$(wbexec custom/menu on-click)" "kawa-quick" "the cat: quick settings, asked of the panel"
+eq "$(wbexec custom/mode on-click)" "setsid -f kawa-quick dnd" "the mode tile: do not disturb's own dropdown, apart from the bar (a menu waits for its answer)"
 eq "$(wbexec custom/volume on-click-right) | $(wbexec custom/volume on-scroll-up) | $(wbexec custom/volume on-scroll-down)" "kawa-volume mute | kawa-volume up 2 | kawa-volume down 2"
 eq "$(wbexec custom/torii on-click)" "setsid -f kawa-menu --launcher"
 eq "$(wbexec custom/weather on-click)" "setsid -f kawa-weather --menu"
@@ -272,8 +311,8 @@ done
 eq "$(python3 -I -B -c 'import importlib.machinery as m, importlib.util as u, sys
 sys.modules["gi"] = None
 l = m.SourceFileLoader("kp", sys.argv[1]); k = u.module_from_spec(u.spec_from_loader("kp", l)); l.exec_module(k)
-print(*[f"{c}:{k.poke_sigs("menu " + c)}" for c in ("kawa-calendar", "kawa-drives", "kawa-steam", "kawa-weather", "kawa-tag", "kawa-timer")])' "$REPO/bin/kawa-panel")" \
-  "kawa-calendar:[19] kawa-drives:[13] kawa-steam:[17] kawa-weather:[18] kawa-tag:[9] kawa-timer:[]" "the panel pokes each dropdown's button with its module's signal (the timer's: woken)"
+print(*[f"{c}:{k.poke_sigs("menu " + c)}" for c in ("kawa-calendar", "kawa-drives", "kawa-steam", "kawa-weather", "kawa-tag", "kawa-timer", "kawa-quick")])' "$REPO/bin/kawa-panel")" \
+  "kawa-calendar:[19] kawa-drives:[13] kawa-steam:[17] kawa-weather:[18] kawa-tag:[9] kawa-timer:[] kawa-quick:[12]" "the panel pokes each dropdown's button with its module's signal (the timer's: woken; do not disturb's: the mode tile's +12)"
 eq "$(python3 -I -B -c 'import importlib.machinery as m, importlib.util as u, sys
 sys.modules["gi"] = None
 l = m.SourceFileLoader("kp", sys.argv[1]); k = u.module_from_spec(u.spec_from_loader("kp", l)); l.exec_module(k)
