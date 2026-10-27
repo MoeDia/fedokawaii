@@ -71,6 +71,17 @@ static const unsigned int anim_unlock_ms   = 420;  /* the lock screen dissolving
                                                     * desktop once the password is right */
 static const int anim_rise                 = 9;    /* px: three of the wallpapers' pixels */
 static const int anim_drift                = 24;   /* px */
+/* layer surfaces, by their namespace (§11): the panels' menus dissolve in as they drop 4 px into
+ * place, and out; a notice in and out; the level display comes at once (with its key) and
+ * dissolves away; the screensaver dissolves off into what it covered (it comes in its own way).
+ * Any other (the bar, the wallpaper, the wash): at once */
+static const LayerAnim layeranims[] = {
+	/* namespace        in ms  out ms  drop px */
+	{ "kawa-panel",     200,   160,    4 },
+	{ "notifications",  240,   200,    0 },
+	{ "kawa-level",     0,     300,    0 },
+	{ "kawa-saver",     0,     180,    0 },
+};
 
 /* tagging - TAGCOUNT must be no greater than 31 */
 #define TAGCOUNT (9)

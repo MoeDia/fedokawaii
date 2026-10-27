@@ -94,7 +94,7 @@ grep -q 'uint64_t linear = DRM_FORMAT_MOD_LINEAR;' <<<"$f" && grep -q '.format =
   && grep -q 'wlr_allocator_create_buffer(alloc, w, h, &fmt)' <<<"$f" && grep -q 'd->node->point_accepts_input = ghostinput;' <<<"$f" \
   && grep -q 'wlr_buffer_drop(d->buf);' <(added dissolveend) && grep -q 'return drw && wlr_renderer_is_gles2(drw);' <(added dissolveok) \
   && grep -q 'animations && dissolveok() && !locked' <(added animok) \
-  && grep -A14 '^@@ .* gpureset(struct wl_listener' "$P" | grep -q '^+	punchprog = 0;$' \
+  && grep -A24 '^@@ .* gpureset(struct wl_listener' "$P" | grep -q '^+	punchprog = 0;$' \
   && grep -q '"XLIBS=xcb xcb-icccm pixman-1 glesv2"' "$REPO/lib/manifest.sh" && grep -q 'XLIBS="xcb xcb-icccm pixman-1 glesv2"' "$REPO/tools/hl-dwl.sh" \
   && _ok || _no "the buffer's life"
 
@@ -105,6 +105,23 @@ grep -q 'dx = c->animdir \* (int)lround(anim_drift \* (1.0 - e));' <<<"$f" \
   && grep -q 'double p = kind == AnimIn ? (t - (anim_tag_ms - anim_tag_each_ms)) / anim_tag_each_ms' "$P" \
   && grep -q 'return kind == AnimOpen ? anim_open_ms : kind == AnimIn ? anim_tag_ms : anim_tag_each_ms;' "$P" \
   && _ok || _no "the switch's drift and timing"
+
+case_ "layer surfaces by namespace (config.h layeranims): the panels' menus in 200 ms dropping 4 px and out 160, a notice 240 · 200, the level display at once and out 300, the saver out 180; any other at once"
+for c in "$(cat "$CH")" "$(sed -n '/^+++ b\/config.def.h/,/^--- /p' "$P" | sed 's/^+//')"; do
+  grep -Eq '^	\{ "kawa-panel", +200, +160, +4 \},' <<<"$c" && grep -Eq '^	\{ "notifications", +240, +200, +0 \},' <<<"$c" \
+    && grep -Eq '^	\{ "kawa-level", +0, +300, +0 \},' <<<"$c" && grep -Eq '^	\{ "kawa-saver", +0, +180, +0 \},' <<<"$c" \
+    && _ok || _no "layeranims"
+done
+case_ "a layer surface dissolves in from the frame after it maps (its picture reaches the scene after dwl's listener), dropping la->drop px into place, the surface itself there at opacity 0; on unmap its last picture dissolves away — from as far as it had come in — over what it covered (ghosttree, above it in its own layer); the saver even over the lock"
+f=$(sed -n '/^ commitlayersurfacenotify(/,/^ }/p;/^+commitlayersurfacenotify(/,/^+}/p' "$P")
+grep -q 'if (!l->mapped && layer_surface->surface->mapped && l->la && l->la->in_ms && layerok(l)) {' "$P" \
+  && grep -q 'dy = -(int)lround(l->la->drop \* (1.0 - animease(p)));' <(added layerdissolve) \
+  && grep -q 'wlr_scene_node_for_each_buffer(&l->scene->node, fadebuffer, &zero);' <(added layerdissolve) \
+  && grep -q 'ghosttree(l->mon, l->scene, l->scene->node.parent, l->la->out_ms, from < 0 ? 0 : from);' "$P" \
+  && grep -q 'return animations && dissolveok() && (l->saver || !locked) && l->mon;' <(added layerok) \
+  && grep -A4 '^@@ .* destroylayersurfacenotify(' "$P" | grep -q '^+	dissolveend(&l->dis);$' \
+  && grep -q 'ghosttree(m, m->lock_surface->surface->data, layers\[LyrBlock\],' "$P" \
+  && _ok || _no "the layer surfaces' dissolves"
 
 case_ "tearing (async) flips only while FreeSync is on for the screen (vrr 1)"
 grep -q '^+	if (m->vrr == 1 && (c = focustop(m)) && c->isfullscreen && client_surface(c)$' "$P" && _ok || _no "async flips without FreeSync"
@@ -138,7 +155,7 @@ grep -q '!locked && c && c->mon && !c->isfullscreen' <(added animok) && grep -q 
   && grep -q 'if (c->mon == m && c->isfullscreen && (c->tags & (was | now)))' "$P" && _ok || _no "an exclusion is missing"
 
 case_ "an animation waits while its monitor is held for a window to draw its new size (its clock moved on: nothing lost to an unshown frame)"
-grep -q '^+		held = pending && m->holding && !m->holdover;' "$P" && [[ $(grep -c 't0 += now - .*last;' <(added animframe)) == 2 ]] \
+grep -q '^+		held = pending && m->holding && !m->holdover;' "$P" && [[ $(grep -c 't0 += now - .*last;' <(added animframe)) == 3 ]] \
   && ! sed -n '/if (held)/,/continue;/p' <(added animframe) | grep -q 'left = 1' \
   && _ok || _no "animframe ignores holdmon, or asks for frames while held (a held screen answering its own frames: dwl ran out of memory)"
 
@@ -167,9 +184,10 @@ grep -q '^static const unsigned int outergappx *= 8;' "$CH" && grep -q '^static 
 case_ "unlocked: the lock screen dissolves off the desktop (anim_unlock_ms, a ghost of each screen's lock over it all, no sinking); locking: at once"
 grep -q '^static const unsigned int anim_unlock_ms   = 420;' "$REPO/src/dwl/config.h" && grep -q '^+	if (animations && dissolveok()) {$' "$P" \
   && _ok || _no "anim_unlock_ms"
-f=$(added ghostlock)
-grep -q 'g->tree = wlr_scene_tree_create(layers\[LyrBlock\]);' <<<"$f" && grep -q 'g->ms = anim_unlock_ms, g->rise = 0;' <<<"$f" \
-  && grep -q '^+				ghostlock(m, m->lock_surface->surface->data);' "$P" && _ok || _no "ghostlock"
+f=$(added ghosttree)
+grep -q 'g->tree = wlr_scene_tree_create(parent);' <<<"$f" && grep -q 'g->ms = ms, g->rise = 0;' <<<"$f" \
+  && grep -q '^+				ghosttree(m, m->lock_surface->surface->data, layers\[LyrBlock\],$' "$P" \
+  && grep -q '^+						anim_unlock_ms, 0);$' "$P" && _ok || _no "ghosttree for the lock"
 case_ "the screensaver over the lock: its own scene layer above the lock's, for the user's own kawa-saver alone (/proc/PID/exe); the lock holds no frame under it; a saver that does not go is taken off within SAVER_GUARD_MS"
 grep -q '^+	LyrIMPopup, LyrBlock, LyrSaver, NUM_LAYERS }; /\* scene layers \*/' "$P" && _ok || _no "LyrSaver above LyrBlock"
 f=$(added issaver)
