@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # tools/hl-dwl.sh — a headless dwl on the real GPU (renderD128): nothing on the screen, nothing
 # of the session touched (a runtime dir of its own, no input devices: keys go in through wtype's
-# virtual keyboard), 1920x1080@144 like the monitor, dwl's frame log on. SCRIPT runs inside it
+# virtual keyboard; a D-Bus session of its own: a notice, a player, a portal there never reaches
+# the session's), 1920x1080@144 like the monitor, dwl's frame log on. SCRIPT runs inside it
 # (sh, with WAYLAND_DISPLAY and DISPLAY set; `wtype -s 1000 …` lets the virtual keyboard
 # register before its first key); dwl ends when SCRIPT ends. Nothing is left behind.
 #   bash tools/hl-dwl.sh SCRIPT [--dwl BIN] [--asan] [--time S] [--keep DIR] [--size WxH@HZ]
@@ -45,12 +46,12 @@ trap 'rm -rf "$rt"' EXIT
 cat >"$rt/inside.sh" <<EOF
 #!/bin/sh
 wlr-randr --output HEADLESS-1 --custom-mode $size >/dev/null 2>&1
-sh "$script" >"$rt/script.log" 2>&1
+dbus-run-session -- sh "$script" >"$rt/script.log" 2>&1
 echo \$? >"$rt/status"
 kill \$PPID
 EOF
 chmod +x "$rt/inside.sh"
-env -u WAYLAND_DISPLAY -u DISPLAY XDG_RUNTIME_DIR="$rt" WLR_BACKENDS=headless WLR_RENDERER=gles2 \
+env -u WAYLAND_DISPLAY -u DISPLAY -u DBUS_SESSION_BUS_ADDRESS XDG_RUNTIME_DIR="$rt" WLR_BACKENDS=headless WLR_RENDERER=gles2 \
   WLR_LIBINPUT_NO_DEVICES=1 WLR_HEADLESS_OUTPUTS=1 WLR_RENDER_DRM_DEVICE=/dev/dri/renderD128 \
   DWL_FRAMELOG="$rt/frames.log" ASAN_OPTIONS="log_path=$rt/asan:detect_leaks=1" \
   timeout "$limit" "$bin" -s "$rt/inside.sh" >"$rt/dwl.log" 2>&1
