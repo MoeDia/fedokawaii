@@ -209,6 +209,12 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   to every commit (safe from the owner's `git reset --hard origin/main` one-liner; a memory note
   outside the repo says how to restore main from it); CLAUDE.md START step 0. The owner pushes
   once at the end (`git push origin main` with his credentials) — told in the final summary.
+  UPDATE 27 Oct 18:18: pushing works — he logged in with gh (credential helper `gh auth
+  git-credential`, account MoeDia); origin/main = 93d90fd; every commit is pushed again, r27 kept
+  as a mirror. (Commit with -c user.name/user.email: the repo has no identity of its own.)
+- r27-loop (27 Oct 18:13, outside a session) tools/claude-loop.sh now runs each pass under
+  `timeout 1h` and sleeps 23 h after it — his throttle, left as it is (uncommitted, never
+  staged); each pass now ends at a committed point within the hour.
 - r27-4 (T04 DONE 03:45 — the BASELINE, all rows in .claude/notes/perf-before.md; dwl = crash fix +
   frame log only): tools/perf.sh → .claude/notes/perf/before-perf.txt (raw: ~/.cache/fedokawaii-perf/r27-before).
   Idle 30 s: CPU 0.3 %, GPU 0 % 3.0 W, VRAM 273 MiB, RAM 3.0 GiB used (PSS: steamwebhelper 1068
