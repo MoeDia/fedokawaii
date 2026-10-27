@@ -90,6 +90,17 @@ button, button:hover, button:active, button:checked { background: none; box-shad
   background-image: url("../fedokawaii/current/kami-seal.png"), url("../fedokawaii/current/kami-fibre.png");
   background-position: 4px 2px, 0 0;
   background-repeat: no-repeat, repeat;
+  animation: kawa-stamp 60ms steps(1, start);
+}
+/* a workspace switch: the seal lifts off the old numeral and stamps down on the new one — its
+   thump a pixel larger all round in accent_hi for 60 ms, then its size (design-system §11): two
+   frames, nothing in between. (GTK 3 reads steps(1, start) as CSS reads steps(1, end): the first
+   state held to the end — measured, 606 ms at 600; steps(1, end) jumped after one frame) */
+@keyframes kawa-stamp {
+  from { background-image: url("../fedokawaii/current/kami-seal-thump.png"), url("../fedokawaii/current/kami-fibre.png");
+         background-position: 3px 1px, 0 0; }
+  to   { background-image: url("../fedokawaii/current/kami-seal.png"), url("../fedokawaii/current/kami-fibre.png");
+         background-position: 4px 2px, 0 0; }
 }
 
 /* ── the layout's mark and the window's name: one tile ─────────────────────────────── */

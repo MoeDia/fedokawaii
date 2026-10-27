@@ -223,5 +223,6 @@ kawa-theme                      dark ⇄ light: quick settings' theme
 kawa-timer                      a menu: the bar's time
 kawa-tidy                       the home kept clean: its timer runs it
 kawa-warm                       the warm windows (notes, clipboard, system): their keys, in dwl
+kawa-wash                       the theme switch's and a new wallpaper's transition: dwl draws it
 kawa-volume                     the volume keys
 kawa-weather                    a menu: the bar's weather

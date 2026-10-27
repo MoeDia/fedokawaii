@@ -39,8 +39,8 @@
 # Every program takes the new theme in one frame of its own, all of them told at the same
 # moment — the wallpaper drawn off screen and swapped in whole (kawa-wallpaper), the bar
 # restyled in place, the windows recoloured — under the one designed transition
-# (design-system §11): the screen as it was, faded away smoothly over a third of a second (kawa-saver
-# --wash), never holding a click; a press during it jumps to the end and switches back.
+# (design-system §11): the screen as it was, washed off in ink over 1.2 s (kawa-wash: dwl
+# draws it), never holding a click; a press during it jumps to the end and switches back.
 #
 # Exit: 0 done (also a press dropped while a switch runs) · 1 could not · 2 wrong use.
 set -u
@@ -161,18 +161,18 @@ c.sendall((json.dumps({"command": ["load-config-file", sys.argv[2]]}) + "\n").en
 }
 
 # The transition (design-system §11: the one designed one, the same as a new wallpaper's):
-# kawa-saver --wash lays the screen as it was over everything, the switch is made under it,
-# then it is washed off in ink (720 ms: drops of the darkest ink bleed out over it and take it
-# with them, frame by frame). It takes no input: every click goes
-# through. A press during it ends it at once (the final state) and switches again
+# kawa-wash lays the screen as it was over everything (dwl draws it), the switch is made under
+# it, then it is washed off in ink (1.2 s: drops of the new mood's darkest ink bleed out over it
+# and take it with them; the pointer takes the new theme as the ink reaches it). It takes no
+# input: every click goes through. A press during it ends it at once (the final state) and
+# switches again
 wash_begin() {
   [[ -n ${WAYLAND_DISPLAY:-} ]] && ((!NOWASH)) || return 0
-  coproc WASH { exec kawa-saver --wash 6>&- 7>&- 9>&-; }
-  read -r -t 1 -u "${WASH[0]}" _                    # "covered": the old picture is up
+  kawa-wash cover 6>&- 7>&- 9>&-                     # (back once the old picture is up)
 }
-wash_end() {   # the switch is made: washed away (our end of its stdin closed)
-  [[ -n ${WASH[1]:-} ]] && eval "exec ${WASH[1]}>&-"
-  return 0
+wash_end() {   # the switch is made: washed away
+  [[ -n ${WAYLAND_DISPLAY:-} ]] && ((!NOWASH)) || return 0
+  kawa-wash go 6>&- 7>&- 9>&-
 }
 
 took() {   # took MODE — the switch's time, from the press, in the theme's log (fedokawaii-report
@@ -207,7 +207,7 @@ case ${1:-toggle} in
     if ! flock -n 7; then
       exec 6>"$XDG_RUNTIME_DIR/kawa-theme.next"
       flock -n 6 || exit 0
-      kill -TERM "$(cat "$XDG_RUNTIME_DIR/kawa-wash.pid" 2>/dev/null)" 2>/dev/null
+      kawa-wash drop 6>&- 7>&-
       flock -w 10 7 || exit 0
       NOWASH=1
     fi

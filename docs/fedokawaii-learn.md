@@ -545,8 +545,8 @@ terminal. Turn *dnd* off.
 **5.4 ★ A new wallpaper every four hours.** **Super+W**, **r** so its last line says *on*,
 **Esc**. Then **Super+Shift+W** twice, and watch the wash each time.
 
-*Expected:* it still says *on* when you open the picker again; each theme switch washes the screen in a
-quarter of a second, in steps.
+*Expected:* it still says *on* when you open the picker again; at each theme switch drops of ink land on
+the screen and bleed the old mood away in 1.2 s, the pointer changing as the ink reaches it.
 
 # 6. Clipboard, screenshots and recordings
 

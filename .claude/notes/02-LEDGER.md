@@ -881,8 +881,9 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   (art/masters/SOURCES.md, fetched to ~/.cache/r27-art). (d) fetch shows the mood's face: an
   oni mask (horns, brows, tusks, a vermilion tongue) in the dark, a haloed tennin (nimbus, hair
   knot, scarf) in the light, 20 × 16 cells in the ART_ grammar; `fetch random` and a name pick
-  any (tests/content/test_fetch.sh 98/0). Next: the 10 + 10 wallpapers (masters.toml: crops,
-  tones), the lock's scenes.
+  any (tests/content/test_fetch.sh 98/0). (e) art/masters/SOURCES.md: 14 demons and 14 angels
+  from museums' open-access collections, each record (object page, licence line) checked
+  (4b0226e). Next: the 10 + 10 wallpapers (masters.toml: crops, tones), the lock's scenes.
 - r27-19 (T19, dwl's motion — in progress; each part committed with its line) (a) the dissolve,
   dwl's own (no wlroots patch: Fedora's binary copy stays): each frame the thing's picture is
   composed by wlroots' render pass into a buffer of its own, one quad of a GLES 2 shader clears
@@ -906,8 +907,28 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   full-screen window — headless: Super+V over a full-screen terminal shows, Esc gives it back.
   Regress: menu-first-click, one-popup, level-display, warm-exit (now judging the rows above the
   rod: timing-proof), window-frame, bar-geometry, calendar-middle all hold; test_dwl_anim 38/0.
-  Live check at 144 Hz waits for the session restart (batch B). Next: the bar's stamp on a
-  switch, windows making room, login → desktop, the wash (bug 5, the cursor), the hourglass.
+  Live check at 144 Hz waits for the session restart (batch B).
+  (e) tiled windows making room slide to their new places, 240 ms eased out (a new place
+  mid-slide goes on from where it is); headless frame log: every slide 240 ms, 0 steps skipped.
+  (f) the wash moves into dwl (kawa-saver's --wash, its alpha-modifier and grim path gone):
+  kawa-wash cover|go|drop through dwl's fifo. cover: each screen composed once into a picture
+  of its own over everything, "covered" answered (5–6 ms headless), the change made under it;
+  go: bled away over 1200 ms (smootherstep) — five drops of the new mood's darkest ink
+  (dwl.colors "ink", written by build-themes.py) along a paper grain, 3 × 3 px cells on the
+  screen's grid, a 55 % wet rim at the front; the pointer's new theme loads the moment the ink
+  reaches it; drop: the end at once (a second switch pressed); a cover never told to go goes
+  after 3 s; none under the lock, with animations off, or on a dark screen. Bug 5: the
+  wallpaper picker keeps its page on Enter (fzf --no-clear) and dissolves out over the wash —
+  never the bare ground. Headless on the GPU, both themes (tools/regress/wash.sh, 37 s): 199
+  and 200 frames over 1204.6 ms, cells whole on the 3 px grid, only the old, the new and the
+  rim's ink, the cursor loaded once between go and end; test_wash 28/0, test_theme 263/0,
+  test_saver 75/0, test_dwl_anim 64/0. (g) the bar's seal stamps down on a workspace switch:
+  a pixel larger all round in accent_hi (kami-seal-thump.png, 18 px) for 60 ms, then its size —
+  two frames (GTK 3 reads steps(1, start) as CSS's steps(1, end): measured, the first state
+  held to the end); test_bargaps checks its size, one ink and its place. Learn 5.4 and the
+  Guide's §40 say the new wash. Not applied live yet: the session's dwl (11:36) has no wash —
+  kawa-theme would wait 1 s for an answer; it goes live with batch B's restart. Next: login →
+  desktop (the greeter's handover), the hourglass, tools/anim-check.sh, the Learn motion piece.
 - r27-keep (found 27 Oct 16:28) ~/blasphemous-save-backup-20261022 was in the Trash (trashed 26 Oct
   16:15 local, with game-shelf, Games, Balatro — before any round-27 session, the first at 27 Oct
   02:03): restored to ~ (476 K, Blasphemous + userdata-774361 intact), per the standing rule and

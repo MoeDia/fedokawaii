@@ -2,7 +2,7 @@
 # tests/look/test_theme.sh — kawa-theme: the two themes, switched by re-pointing one link and
 # telling whatever runs to look again. The running apps are real processes of this test
 # (python ones that catch SIGUSR1/2 like foot, waybar, btop and dwl do); gsettings keeps its
-# keys in a file, mako and D-Bus are stand-ins. kawa-saver --wash (the one transition) is a stand-in too.
+# keys in a file, mako and D-Bus are stand-ins. kawa-wash (the one transition, dwl's) is a stand-in too.
 . "$(dirname "$0")/../lib/harness.sh"
 . "$(dirname "$0")/lib.sh"
 need python3 flock
@@ -233,25 +233,22 @@ eq "$(cat "$locklog" 2>/dev/null)" "" "swaylock got no signal"
 alive "$lockpid" && _ok || _no "swaylock is gone"
 
 # ── in a session: the transition and the wallpaper ──────────────────────────
-case_ "in a session: the switch under the one transition (kawa-saver --wash: covered, then its stdin closed)"
+case_ "in a session: the switch under the one transition (kawa-wash: covered first, the switch under it, then washed off)"
 setup; export WAYLAND_DISPLAY=wayland-1
-stubf kawa-saver <<'EOF'
-[ "$1" = --wash ] || exit 2
-echo covered; cat >/dev/null; echo "wash ended" >>"$FAKE_TMP/wash.log"
+stubf kawa-wash <<'EOF'
+echo "$1 $(readlink "$HOME/.config/fedokawaii/current")" >>"$FAKE_TMP/wash.log"
 EOF
 kawa-theme light; theme_is light
-eq "$(cat "$TMP/wash.log")" "wash ended" "washed once, after the switch"
-called '^kawa-saver --wash'
-case_ "a press during a switch: its wash ended at once (the final state), then switched back, no wash of its own"
-sleep 30 & wpid=$!; echo "$wpid" >"$XDG_RUNTIME_DIR/kawa-wash.pid"; : >"$TMP/wash.log"
+eq "$(cat "$TMP/wash.log")" "cover themes/dark"$'\n'"go themes/light" "covered on the old theme, washed off on the new"
+case_ "a press during a switch: its wash dropped at once (the final state), then switched back, no wash of its own"
+: >"$TMP/wash.log"
 exec 5>"$XDG_RUNTIME_DIR/kawa-theme.busy"; flock 5
 kawa-theme toggle 5>&- & tpid=$!
-for _ in $(seq 50); do kill -0 "$wpid" 2>/dev/null || break; /bin/sleep 0.05; done
-kill -0 "$wpid" 2>/dev/null && _no "the running wash was not ended" || _ok
+for _ in $(seq 50); do [[ -s $TMP/wash.log ]] && break; /bin/sleep 0.05; done
+eq "$(cat "$TMP/wash.log")" "drop themes/light" "the running wash dropped"
 theme_is light
 exec 5>&-; wait "$tpid"; theme_is dark
-eq "$(cat "$TMP/wash.log")" "" "no second wash"
-rm -f "$XDG_RUNTIME_DIR/kawa-wash.pid"
+eq "$(cat "$TMP/wash.log")" "drop themes/light" "no second wash"
 kawa-theme dark; theme_is dark
 lacks "$(grep -v '^ *#' "$REPO/bin/kawa-theme")" "veil"; lacks "$(grep -v '^ *#' "$REPO/bin/kawa-wallpaper")" "veil"
 [[ ! -e $REPO/src/kawa-veil ]] && _ok || _no "src/kawa-veil is still there"

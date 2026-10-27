@@ -1,0 +1,32 @@
+#!/usr/bin/env bash
+# kawa-wash — the one transition of a theme switch or a new wallpaper, drawn by dwl itself
+# (dwl.patch: the wash; docs/design-system.md §11): the screen as it is laid over everything,
+# the change made under it, then five drops of the new mood's darkest ink land on the old
+# picture and bleed it away along a paper grain, in the wallpapers' 3 px pixels, over 1.2 s —
+# the pointer taking the new theme the moment the ink reaches it. Clicks go through it all.
+#
+#   kawa-wash cover   lay it (returns once it is on, 1 s at most: a change is never held up)
+#   kawa-wash go      wash it off (the change is made)
+#   kawa-wash drop    take it away at once, the final state (another switch pressed meanwhile)
+#
+# kawa-theme and kawa-wallpaper call it. Outside the desktop (no dwl to ask): nothing, at once;
+# dwl lays none under the lock, with animations off, or on a screen that is off.
+set -u
+case ${1:-} in -h|--help) sed -n '2,/^set -u/{/^set -u/d;s/^# \{0,1\}//;p}' "$0"; exit 0 ;; esac
+run=${XDG_RUNTIME_DIR:-/run/user/$UID}
+fifo=$run/dwl-warm                      # dwl reads its commands here (dwl.patch: warmfifo)
+case ${1:-} in
+  cover)
+    [[ -p $fifo ]] || exit 0
+    # its answer, "covered", comes through a fifo of our own (dwl writes only into one of
+    # ours in the runtime folder)
+    r=$(mktemp -u "$run/kawa-wash.XXXXXX") && mkfifo -m 600 "$r" || exit 0
+    exec 3<>"$r"
+    printf 'wash cover %s\n' "$r" 1<>"$fifo"
+    read -r -t 1 -u 3 _
+    rm -f "$r" ;;
+  go|drop)
+    [[ -p $fifo ]] && printf 'wash %s\n' "$1" 1<>"$fifo" ;;
+  *) echo "usage: kawa-wash cover|go|drop (kawa-wash --help)" >&2; exit 2 ;;
+esac
+exit 0

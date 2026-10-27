@@ -252,7 +252,7 @@ retire .bashrc.d/scriptorium.sh 'scriptorium'
 #   ~/.local/bin/kawa-audio — the old fuzzel sound menu: the sound panel (kawa-panel --sound)
 #   took its place, and a copy left in ~/.local/bin would still answer to its name
 retire .local/bin/kawa-audio 'kawa-audio — the sound menu'
-#   ~/.local/bin/kawa-veil — the old theme and wallpaper transitions: kawa-saver --wash is the
+#   ~/.local/bin/kawa-veil — the old theme and wallpaper transitions: kawa-wash (dwl draws it) is the
 #   one transition now (design-system §11)
 retire .local/bin/kawa-veil 'usage: kawa-veil'
 retire .local/state/fedokawaii/kawa-veil.sha256 ''

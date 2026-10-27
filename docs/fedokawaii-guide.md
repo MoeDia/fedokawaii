@@ -14668,11 +14668,13 @@ apply (chapter 42); the change shows at the next theme switch, or the next login
 
 A theme switch and a new wallpaper share one transition, and nothing else on the desktop
 moves: each program takes the change in a single frame of its own, all told at the same
-moment, the wallpaper drawn off screen first — and over it all, the screen as it was, sent to
-the compositor once, is washed off in ink over 720 ms (`kawa-saver --wash`: five drops of the
-darkest ink bleed out over it along the grain of the paper, a wet rim at their edge, and the
-new screen shows where they have passed — only the dots that changed sent at each refresh). Clicks go through it; a press during a theme
-switch's wash jumps to its end.
+moment, the wallpaper drawn off screen first — and over it all, the screen as it was (dwl
+composes it once into a picture of its own, asked by `kawa-wash cover`) is washed off in ink
+over 1.2 s (`kawa-wash go`: five drops of the new mood's darkest ink bleed out over it along
+the grain of the paper in the wallpapers' 3 px pixels, a wet rim at their edge, and the new
+screen shows where they have passed; the pointer takes the new theme the moment the ink
+reaches it). Clicks go through it; a press during a theme switch's wash jumps to its end
+(`kawa-wash drop`), and a cover never told to go is washed off by itself after 3 s.
 
 ## 40.7 The terminal's invisible marks
 

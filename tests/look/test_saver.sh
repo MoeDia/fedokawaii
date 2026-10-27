@@ -35,13 +35,11 @@ if [[ -n $SAVER ]]; then
   rc 0 saver --help; has "$(saver --help)" "any input ends it"
   rc 2 saver --bogus; rc 2 saver --pace 0; rc 2 saver --idle 10
 
-  case_ "--wash (the one transition) that cannot show: says covered at once and leaves — a switch is never held up"
-  out=$(saver --wash </dev/null 2>&1); eq "$?$out" "0covered"
-  case_ "--wash: never takes input (no keyboard, an empty input region), an ink bleed of WASH_MS (720 ms): drops of the theme's darkest ink spread over the old picture and take it with them, only what changed drawn each frame"
+  case_ "the one transition is dwl's now (kawa-wash): no --wash here, no alpha-modifier, no grim"
+  rc 2 saver --wash
   src=$(cat "$SRC/kawa-saver.c")
-  has "$src" "wl_surface_set_input_region(o->surface, none)"; has "$src" "set_keyboard_interactivity(o->layer, 0)"
-  has "$src" "#define WASH_MS 720"; has "$src" "static void wash_frame("; has "$src" "static uint32_t wash_ink(void)"
-  has "$(sed -n '/^static double wash_ease/,/^}/p' "$SRC/kawa-saver.c")" "t * t * t * (t * (t * 6 - 15) + 10)" "smootherstep"
+  lacks "$src" "wash_frame"; lacks "$src" "alpha_modifier"; lacks "$src" '"grim"'
+  lacks "$(cat "$SRC/Makefile")" "alpha-modifier"
   case_ "--idle (away 15 min): switched off in quick settings, the lock alone at once"
   mkdir -p "${W%/*}"; echo off >"$W"
   rc 0 saver --idle; called '^kawa-lock $'
@@ -80,10 +78,9 @@ fi
 case_ "input: the keyboard held while it shows, every key and button waited out, any of them ends it"
 has "$(cat "$SRC/kawa-saver.c")" "zwlr_layer_surface_v1_set_keyboard_interactivity(o->layer, 1)"
 has "$(cat "$SRC/kawa-saver.c")" "ZWLR_LAYER_SHELL_V1_LAYER_OVERLAY"
-has "$(cat "$SRC/kawa-saver.c")" "#define PART_MS 180"
-has "$(cat "$SRC/kawa-saver.c")" "if (washed && (idle_mode ? lock_up() : held == 0))" "gone once the wash is done and every key up (with --idle: once the lock is)"
+has "$(cat "$SRC/kawa-saver.c")" "if (idle_mode ? lock_up() : held == 0)" "gone, whole until then, once every key is up (with --idle: once the lock is) — dwl dissolves it away (layeranims), never half-transparent"
 has "$(cat "$SRC/kawa-saver.c")" "if (t - leave_at > (idle_mode ? 15000 : 3000))" "never held for good: 3 s, 15 s waiting for the lock"
-has "$(cat "$SRC/kawa-saver.c")" "double a = 1.0 - wash_ease((t - leave_at) / PART_MS);" "leaving: faded away on the compositor, eased (PART_MS)"
+lacks "$(cat "$SRC/kawa-saver.c")" "PART_MS"; lacks "$(cat "$SRC/kawa-saver.c")" "set_multiplier"
 lacks "$(cat "$SRC/kawa-saver.c")" "if (leaving && (held == 0"
 for f in kb_key pt_button pt_axis pt_motion; do grep -A12 "^static void $f" "$SRC/kawa-saver.c" | grep -q leave_now && _ok || _no "$f does not end it"; done
 
@@ -95,7 +92,7 @@ has "$m" 'if (!idle_mode && tick % (1000 / pace + 1) == 0 && locked())' "its own
 grep -A8 '^static void leave_now' "$SRC/kawa-saver.c" | grep -q 'if (idle_mode && !lock_started)' && _ok || _no "leave_now: no --idle branch"
 grep -A8 '^static void leave_now' "$SRC/kawa-saver.c" | grep -q 'lock_start();' && _ok || _no "the first input does not start the lock"
 b=$(sed -n '/^static void lock_start(void)$/,/^}/p' "$SRC/kawa-saver.c")
-has "$b" 'execlp("kawa-lock", "kawa-lock", (char *)NULL);'; lacks "$b" "waitpid" "started, not waited for (the wash goes on meanwhile)"
+has "$b" 'execlp("kawa-lock", "kawa-lock", (char *)NULL);'; lacks "$b" "waitpid" "started, not waited for (the cloth stays up meanwhile)"
 has "$(sed -n '/^static bool lock_up(void)$/,/^}/p' "$SRC/kawa-saver.c")" "waitpid(lock_pid, NULL, WNOHANG)"
 lacks "$(cat "$SRC/kawa-saver.c")" "lock_now"
 case_ "the clock framed in running stitch, its shadow a dot down and right, as the bar's patches"

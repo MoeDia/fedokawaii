@@ -77,6 +77,9 @@ static const unsigned int anim_unroll_ms   = 300;  /* a warm window shown (Super
 static const unsigned int anim_rollup_ms   = 240;  /* …put away: rolls up into its top edge */
 static const unsigned int anim_slide_ms    = 240;  /* tiled windows making room: each slides
                                                     * from where it was to its new place */
+static const unsigned int anim_wash_ms     = 1200; /* a theme switch, a new wallpaper: the
+                                                    * ink bleeding the old picture away */
+static const unsigned int anim_wash_hold_ms = 3000; /* …a cover never told to go goes then */
 /* layer surfaces, by their namespace (§11): the panels' menus dissolve in as they drop 4 px into
  * place, and out; a notice in and out; the level display comes at once (with its key) and
  * dissolves away; the screensaver dissolves off into what it covered (it comes in its own way).

@@ -72,7 +72,7 @@ alive() {   # alive PID — running (a zombie is not: it was killed, only not re
   local st=""; { read -r _ _ st _ <"/proc/$1/stat"; } 2>/dev/null; [[ -n $st && $st != Z ]]
 }
 got() {   # got LOG N — a catcher's log once it holds N signals (5 s at most), then printed
-  local i; for i in {1..250}; do (( $(wc -l <"$1" 2>/dev/null || echo 0) >= $2 )) && break; /bin/sleep 0.02; done
+  local i; for i in {1..250}; do (( $(wc -l 2>/dev/null <"$1" || echo 0) >= $2 )) && break; /bin/sleep 0.02; done
   cat "$1" 2>/dev/null
 }
 

@@ -136,6 +136,10 @@ for th in ("dark", "light"):
             bad.append(f"{th}/{n}: not §4's shadow (two rows, the second a pixel further right; the column from the hairline's second row)")
     seal = Image.open(T + th + "/kami-seal.png").convert("RGBA")
     want(f"{th}/kami-seal.png: its size", seal.size, (16, 16))
+    thump = Image.open(T + th + "/kami-seal-thump.png").convert("RGBA")
+    want(f"{th}/kami-seal-thump.png: a pixel larger all round", thump.size, (18, 18))
+    lit = Image.open(T + th + "/kami-red-lit.png").convert("RGBA").getpixel((1, 10))   # (accent_hi: the lit tile's fill)
+    want(f"{th}/kami-seal-thump.png: one ink, the lit vermilion", sorted(c for _, c in thump.getcolors() if c[3]), [lit])
     for old in ("kami-seal-narrow.png", "washi.png", "hems.png", "seam.png", "cell-bare-36.png", "clock.png", "stitch.png", "hem.png"):
         if __import__("os").path.exists(T + th + "/" + old): bad.append(f"{th}/{old}: still there")
     sc = Image.open(T + th + "/kami-scroll.png").convert("RGBA")
@@ -182,6 +186,13 @@ sp = box(".tag.selected")[3].get("background-position", "").split(",")[0].split(
 sx, sy = px(sp[0]), px(sp[1])
 want("the seal across: centred on the numeral", (1 + sx) + 8, 1 + p_[3] + 5)
 want("the seal down: rows 6–21 (2 of paper above it)", 4 + sy, 6)
+# its thump as it lands (§11 the stamp): 18 px laid a pixel up and left — the same middle, rows 5–22
+kf = re.search(r"@keyframes kawa-stamp \{\s*from\s+\{([^}]*)\}\s*to\s+\{([^}]*)\}", css)
+fr = kf and re.search(r"background-position: *([0-9]+)px ([0-9]+)px", kf.group(1))
+want("the thump: kami-seal-thump.png, a pixel up and left of the seal", bool(kf) and "kami-seal-thump.png" in kf.group(1)
+     and (px(fr.group(1) + "px"), px(fr.group(2) + "px")) == (sx - 1, sy - 1) and "kami-seal.png" in kf.group(2), True)
+want("the thump held 60 ms, then the seal (GTK 3's steps(1, start): two frames, nothing between)",
+     box(".tag.selected")[3].get("animation"), "kawa-stamp 60ms steps(1, start)")
 # hairline to hairline: a tile's box ends with the shadow's column, so the margin is the gap less 1
 gap = lambda s: 1 + box(s)[1][3]
 for sel in [f"#custom-tag{k}" for k in range(2, 10)] + ["#custom-timer", "#custom-volume", "#custom-weather"]:

@@ -94,7 +94,7 @@ grep -q 'uint64_t linear = DRM_FORMAT_MOD_LINEAR;' <<<"$f" && grep -q '.format =
   && grep -q 'wlr_allocator_create_buffer(alloc, w, h, &fmt)' <<<"$f" && grep -q 'd->node->point_accepts_input = ghostinput;' <<<"$f" \
   && grep -q 'wlr_buffer_drop(d->buf);' <(added dissolveend) && grep -q 'return drw && wlr_renderer_is_gles2(drw);' <(added dissolveok) \
   && grep -q 'animations && dissolveok() && !locked' <(added animok) \
-  && grep -A24 '^@@ .* gpureset(struct wl_listener' "$P" | grep -q '^+	punchprog = 0;$' \
+  && grep -q '^+	punchprog = washprog = 0;$' "$P" \
   && grep -q '"XLIBS=xcb xcb-icccm pixman-1 glesv2"' "$REPO/lib/manifest.sh" && grep -q 'XLIBS="xcb xcb-icccm pixman-1 glesv2"' "$REPO/tools/hl-dwl.sh" \
   && _ok || _no "the buffer's life"
 
@@ -199,7 +199,7 @@ grep -q 'g->tree = wlr_scene_tree_create(parent);' <<<"$f" && grep -q 'g->ms = m
   && grep -q '^+				ghosttree(m, m->lock_surface->surface->data, layers\[LyrBlock\],$' "$P" \
   && grep -q '^+						anim_unlock_ms, 0);$' "$P" && _ok || _no "ghosttree for the lock"
 case_ "the screensaver over the lock: its own scene layer above the lock's, for the user's own kawa-saver alone (/proc/PID/exe); the lock holds no frame under it; a saver that does not go is taken off within SAVER_GUARD_MS"
-grep -q '^+	LyrIMPopup, LyrBlock, LyrSaver, NUM_LAYERS }; /\* scene layers \*/' "$P" && _ok || _no "LyrSaver above LyrBlock"
+grep -q '^+	LyrIMPopup, LyrWash, LyrWashOver, LyrBlock, LyrSaver, NUM_LAYERS }; ' "$P" && _ok || _no "LyrSaver above LyrBlock"
 f=$(added issaver)
 grep -q 'strcmp(ls->namespace, "kawa-saver")' <<<"$f" && grep -q 'snprintf(link, sizeof(link), "/proc/%d/exe", (int)pid);' <<<"$f" \
   && grep -q 'return b && !strcmp(b + 1, "kawa-saver");' <<<"$f" && grep -q 'if (uid != getuid())' <<<"$f" && _ok || _no "issaver"
@@ -230,4 +230,41 @@ grep -q '^+enum { LyrBg, LyrBottom, LyrTile, LyrFloat, LyrTop, LyrFS, LyrPopup, 
   && grep -q 'return c->isfullscreen ? LyrFS : ispopup(c) ? LyrPopup : c->isfloating ? LyrFloat : LyrTile;' <(added clientlayer) \
   && grep -q '|| c->scene->node.parent == layers\[LyrPopup\])' "$P" \
   && grep -q 'wlr_scene_node_reparent(&c->scene->node, layers\[clientlayer(c)\]);' "$P" && _ok || _no "the popup layer"
+case_ "the wash (a theme switch, a new wallpaper — kawa-wash): config.h 1200 ms, a cover never told to go goes after 3 s"
+grep -q '^static const unsigned int anim_wash_ms *= 1200;' "$CH" && grep -q '^static const unsigned int anim_wash_hold_ms *= 3000;' "$CH" \
+  && _ok || _no "anim_wash_ms, anim_wash_hold_ms"
+case_ "the wash's cover: each screen composed once, as the scene draws it, up to its own layer (LyrWash: over the desktop, under the drag icon, the lock and the saver) — what was going away lifted above it first (ghostlift) — then \"covered\" into the caller's fifo"
+grep -q '^+	LyrIMPopup, LyrWash, LyrWashOver, LyrBlock, LyrSaver, NUM_LAYERS }; ' "$P" \
+  && grep -q 'if (node == &layers\[LyrWash\]->node)' <(added washcover) && grep -q 'washwalk(pass, node, -m->m.x, -m->m.y);' <(added washcover) \
+  && grep -q 'wlr_scene_node_reparent(&g->tree->node, layers\[LyrWashOver\]);' <(added ghostlift) \
+  && [[ $(grep -n 'w->on = 1;' <(added washcover) | cut -d: -f1) -lt $(grep -n 'ghostlift(g);' <(added washcover) | cut -d: -f1) ]] \
+  && grep -q 'wlr_scene_buffer_set_buffer(w->dis.node, w->snap);' <(added washcover) \
+  && grep -q '!animations || !dissolveok() || locked || !m->wlr_output->enabled || m->asleep' <(added washcover) \
+  && _ok || _no "the cover"
+w=$(sed -n '/^+washreply(/,/^+}/p' "$P")
+has "$w" 'strncmp(path, run, n) || path[n] != '"'"'/'"'"' || strstr(path, "/../")' "the answer only into the runtime folder"
+has "$w" 'O_WRONLY | O_NONBLOCK | O_CLOEXEC | O_NOFOLLOW' "never blocking on a fifo no one reads"
+has "$w" 'S_ISFIFO(st.st_mode) && st.st_uid == getuid()' "a fifo of this user's"
+case_ "the bleed: five ink drops' moments, 16 bits a cell (moncell), spread over the whole range; one quad of a GLES 2 shader — cleared once its moment is past, the wet rim (55 % of dwl.colors' ink) just behind the front, the old picture elsewhere; smootherstep over anim_wash_ms, each frame drawn for its refresh"
+has "$(added washnoise)" 'n[i] = hi > lo ? (n[i] - lo) / (hi - lo) : 0;' "normalised: the bleed lasts all its time"
+has "$(added washcover)" 'px[i] = 0xff000000u | (v & 0xff) << 8 | v >> 8;'
+has "$(added washcover)" 'wlr_texture_from_pixels(drw, DRM_FORMAT_ABGR8888,'
+f=$(sed -n '/^+washinit(/,/^+}/p' "$P")
+has "$f" 'if (v >= p + rim) discard;'; has "$f" 'gl_FragColor = v < p ? vec4(0.0) : vec4(ink * 0.55, 0.55);'
+has "$(added washframe)" 't = t * t * t * (t * (t * 6 - 15) + 10);' "smootherstep"
+has "$(added washframe)" 'p = (float)(t * (1.0 + 2 * WASH_RIM) - WASH_RIM);'
+has "$(added animframe)" 'left |= washframe(m, now, held);' "driven by the screen's frames, held with the rest"
+has "$(sed -n '/^+loadcolours(/,/^+}/p' "$P")" 'if (!strcmp(key, "ink")) {' "the ink from dwl.colors"
+for t in dark light; do grep -q '^ink [0-9a-f]\{6\}ff$' "$REPO/configs/home/.config/fedokawaii/themes/$t/dwl.colors" && _ok || _no "$t: no ink in dwl.colors"; done
+case_ "the pointer takes a theme switch's new pointer as the ink reaches it (washcursor), or as the wash ends; none waits without a wash"
+has "$(sed -n '/^+reloadcursors(/,/^+}/p' "$P")" 'if (washing())' "under a wash: it waits"
+grep -A2 'if (washcursor && cursor->x >= m->m.x' <(added washframe) | grep -q 'w->noise\[(size_t)cy \* w->gw + cx\] < p' <(added washframe) && _ok || _no "the ink at the pointer"
+has "$(added washend)" 'if (washcursor && !washing()) {'
+case_ "the fifo: \"wash cover PATH\", \"wash go\", \"wash drop\"; locking drops it; a GPU reset and a monitor going end it"
+has "$(sed -n '/^+warmcmd(/,/^+}/p' "$P")" 'washcmd(line + 5);'
+c=$(added washcmd)
+has "$c" 'wl_event_source_timer_update(washtimer, any ? anim_wash_hold_ms : 0);'; has "$c" 'washtimeout(NULL);'; has "$c" 'washdrop();'
+grep -q '^+	washdrop();                       /\* (under the lock: nothing to wash) \*/' "$P" && _ok || _no "locking drops it"
+grep -q '^+	punchprog = washprog = 0;' "$P" && grep -q '^+	washend(m);' "$P" && _ok || _no "GPU reset, monitor gone"
+
 done_

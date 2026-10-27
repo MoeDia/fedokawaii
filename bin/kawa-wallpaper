@@ -2,7 +2,7 @@
 # kawa-wallpaper             choose a wallpaper for the current theme (Super+W): a small
 #                            window lists them and shows the one under the cursor, as the
 #                            screen will; Enter sets it — drawn off screen, then in place of
-#                            the old one, washed away in 8 dithered steps (kawa-saver --wash)
+#                            the old one, washed away in ink (kawa-wash)
 #                            — Esc leaves everything as it was
 # kawa-wallpaper --restore   show the current theme's choice again (login, theme switch)
 # kawa-wallpaper --set C     show choice C and remember it (what the picker runs)
@@ -625,14 +625,11 @@ case ${1:-menu} in
     c=${2:-default}
     # a picture named from the folder you are in is remembered in full: found from anywhere
     case $c in default|pack:*|/*) ;; *) [[ -e $c ]] && c=$PWD/$c ;; esac
-    # (the change under the one transition, a theme switch's too: kawa-saver --wash — the old
-    # picture washed away in 8 dithered steps, every click going through meanwhile)
-    if [[ -n ${WAYLAND_DISPLAY:-} ]]; then
-      coproc WASH { exec kawa-saver --wash 8>&-; }
-      read -r -t 1 -u "${WASH[0]}" _
-    fi
+    # (the change under the one transition, a theme switch's too: kawa-wash — the old picture
+    # washed away in ink, every click going through meanwhile)
+    [[ -n ${WAYLAND_DISPLAY:-} ]] && kawa-wash cover 8>&-
     apply "$c"; r=$?
-    [[ -n ${WASH[1]:-} ]] && eval "exec ${WASH[1]}>&-"
+    [[ -n ${WAYLAND_DISPLAY:-} ]] && kawa-wash go 8>&-
     ((r == 0)) || { echo "kawa-wallpaper: cannot show '$c' (not there, or not a picture file)" >&2; exit 1; }
     printf '%s\n' "$c" >"$STATE_DIR/wallpaper-$THEME"
     if [[ $c == pack:* && -n ${L_PAIR[${c#pack:}]:-} && ${L_PAIR[${c#pack:}]} != - ]]; then   # the same place, other theme
@@ -679,7 +676,7 @@ case ${1:-menu} in
     trap 'kill -- -"$warm" 2>/dev/null; rm -f "$order"' EXIT
     self=$(printf '%q' "$0") pdir=$(printf '%q' "$dir")
     export FZF_DEFAULT_OPTS_FILE=$HOME/.config/fedokawaii/fzf.opts; unset FZF_DEFAULT_OPTS   # (every list alike)
-    sel=$(for r in "${list[@]}"; do printf '%s\n' "$r"; done | fzf --ansi --no-sort --no-input --height=100% \
+    sel=$(for r in "${list[@]}"; do printf '%s\n' "$r"; done | fzf --ansi --no-sort --no-input --height=100% --no-clear \
       --delimiter=$'\t' --with-nth=3.. --header="$(screen_heading "$ICON_PICTURE" wallpaper "$W")"$'\n ' \
       --with-shell='bash -c' \
       --preview="f=$pdir/{2}.\${FZF_PREVIEW_COLUMNS}x\${FZF_PREVIEW_LINES}.six; [ -s \"\$f\" ] && exec cat \"\$f\"; exec $self --preview {1}" \

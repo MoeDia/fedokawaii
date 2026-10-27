@@ -195,14 +195,15 @@ def kami_fibre(m, fill, s=1):
     return png(12 * s, 7 * s, _scaled(c, s))
 
 
-def kami_seal(m, d=16):
+def kami_seal(m, d=16, ink=None):
     """The seal of the workspace you are on (§4 Stamp): vermilion, round, clean-edged, d px
     across — style.css lays it on the paper centred on the numeral (10 × 10, Black, wholly
-    inside it)."""
+    inside it). Its thump as it lands on a new workspace (§11 the stamp): a pixel larger all
+    round, d + 2, in accent_hi, for the stamp's 60 ms (kami-seal-thump.png)."""
     k = KAMI[m]
     none = (0, 0, 0, 0)
     r = d / 2
-    return png(d, d, [[_rgb(k["red"]) if (x + 0.5 - r) ** 2 + (y + 0.5 - r) ** 2 <= r * r else none
+    return png(d, d, [[_rgb(ink or k["red"]) if (x + 0.5 - r) ** 2 + (y + 0.5 - r) ** 2 <= r * r else none
                        for x in range(d)] for y in range(d)])
 
 
@@ -289,6 +290,7 @@ def ornaments(m, p):
         "kami-fibre.png": kami_fibre(m, fill),
         "kami-tip.png": kami_tip(m, p["surface"]),
         "kami-seal.png": kami_seal(m),
+        "kami-seal-thump.png": kami_seal(m, 18, p["accent_hi"]),
         "kami-scroll.png": kami_scroll(m, fill),
         # the lock and login screens' scroll (sliced 12 16 12 16), until T20 draws them anew
         "lock-scroll.png": lock_scroll(m, fill, k["rule"]),
@@ -1021,13 +1023,19 @@ def saver_conf(m, p):
 def dwl_colors(m, p):
     """dwl's window frames (design-system §4, §12) — the hairline of the focused window, of the
     others (the bar's tiles' own ink), of one asking for attention — and the shadow's two inks,
-    KAMI's, as the tiles and panels have them: RRGGBBAA. dwl reads the file at its start and
+    KAMI's, as the tiles and panels have them, and the wash's ink (§11): RRGGBBAA. dwl reads the file at its start and
     again at every switch (kawa-theme sends it SIGUSR1)."""
     k = KAMI[m]
     hx = lambda c: "".join(f"{v:02x}" for v in c)
+    # the wash's ink (a theme switch, a new wallpaper: dwl.patch washframe): the mood's darkest —
+    # of the saver's colours, as the wash drawn by kawa-saver took it
+    dark = m == "dark"
+    inks = [p["ground"], p["surface"], p["edge2"], p["muted"] if dark else p["blue"],
+            p["lo"] if dark else p["edge"], p["text"], p["accent"], p["accent_text"]]
+    ink = min(inks, key=lambda c: sum(int(c[i:i + 2], 16) for i in (0, 2, 4)))
     return (f"# {header('~/.config/fedokawaii/current/dwl.colors', 'the window frames in ' + NAMES[m])}\n"
             f"focus {p['accent']}ff\nborder {hx(k['hair'])}\nurgent {p['asagi']}ff\n"
-            f"shadow1 {hx(k['shadow'][0])}\nshadow2 {hx(k['shadow'][1])}\n")
+            f"shadow1 {hx(k['shadow'][0])}\nshadow2 {hx(k['shadow'][1])}\nink {ink}ff\n")
 
 
 FILES = {

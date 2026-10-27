@@ -10,8 +10,7 @@ CFLAGS   ?= -O2 -pipe
 WFLAGS    = -std=c11 -Wall -Wextra $(shell pkg-config --cflags wayland-client)
 WLIBS     = $(shell pkg-config --libs wayland-client) -lm
 XML       = wlr-layer-shell-unstable-v1=wlr-layer-shell-unstable-v1.xml \
-            xdg-shell=$(PROTOCOLS)/stable/xdg-shell/xdg-shell.xml \
-            alpha-modifier-v1=$(PROTOCOLS)/staging/alpha-modifier/alpha-modifier-v1.xml
+            xdg-shell=$(PROTOCOLS)/stable/xdg-shell/xdg-shell.xml
 NAMES     = $(foreach x,$(XML),$(firstword $(subst =, ,$(x))))
 GEN_H     = $(NAMES:%=$(O)/%-client-protocol.h)
 GEN_C     = $(NAMES:%=$(O)/%-protocol.c)

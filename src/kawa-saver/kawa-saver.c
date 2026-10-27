@@ -2,7 +2,6 @@
  * kawa-saver — the screensaver: sashiko, stitched across every screen.
  *
  *   kawa-saver         now (a look at it: any input ends it, nothing locks)
- *   kawa-saver --wash  the one transition (a theme switch, a new wallpaper): see wash()
  *   kawa-saver --idle  away 15 minutes (kawa-idle, from swayidle: never while something
  *                      plays): the screensaver, with the lock under it — kawa-lock starts as
  *                      the saver shows, and dwl keeps the saver over the lock screen (its own
@@ -57,7 +56,6 @@
 #include <unistd.h>
 #include <wayland-client.h>
 #include "wlr-layer-shell-unstable-v1-client-protocol.h"
-#include "alpha-modifier-v1-client-protocol.h"
 #include "glyphs.h"
 
 /* ── the palette (current/saver.conf) ───────────────────────────────────────────────── */
@@ -91,17 +89,13 @@ struct output {
 	struct wl_list link;
 	struct wl_output *wl;
 	uint32_t global;
-	char name[64];      /* (--wash: grim's -o) */
-	uint32_t *old;      /* (--wash: the screen as it was, W × H) */
 	int scale;
 	struct wl_surface *surface;
 	struct zwlr_layer_surface_v1 *layer;
-	struct wp_alpha_modifier_surface_v1 *alpha;   /* (--wash) */
 	int lw, lh;
 	bool configured, closed, waiting_frame, ready;
 	/* the picture, and the grid of dots it shows */
 	int W, H, bs, cw, ch, tw, th;
-	float *noise; int gw, gh;   /* (--wash: the bleed's moments, one a dot) */
 	struct buffer buf[2];
 	uint8_t *thread;    /* the cloth: what is sewn (a colour a dot) */
 	uint8_t *dots;      /* what shows: the cloth, the seals and the clock over it */
@@ -124,7 +118,6 @@ static struct wl_display *display;
 static struct wl_compositor *compositor;
 static struct wl_shm *shm;
 static struct zwlr_layer_shell_v1 *layer_shell;
-static struct wp_alpha_modifier_v1 *alpha_mgr;   /* (--wash: the cross-fade, on the GPU) */
 static struct wl_seat *seat;
 static struct wl_keyboard *keyboard;
 static struct wl_pointer *pointer;
@@ -132,11 +125,10 @@ static struct wl_list outputs;
 static long tick;                         /* steps since the start */
 static int pace = 80;                     /* ms a step */
 static unsigned seed;
-static bool leaving;                      /* input came: washed away, gone once every key and button is up */
+static bool leaving;                      /* input came: gone once every key and button is up (with --idle: once the lock is) */
 static bool idle_mode;                    /* --idle: the lock behind it */
 static pid_t lock_pid;                    /* kawa-lock, started as it shows (--idle) */
 static bool lock_started;
-#define PART_MS 180                       /* the wash as it leaves */
 static int held;                          /* keys and buttons down */
 static double leave_at;
 static bool moved_base;
@@ -653,7 +645,7 @@ static void leave_now(void)
 		leaving = true;
 		leave_at = now_ms();
 		if (idle_mode && !lock_started)
-			lock_start();             /* (not up yet: it comes while the cloth washes away) */
+			lock_start();             /* (not up yet: the cloth stays until it is) */
 	}
 }
 static void kb_keymap(void *d, struct wl_keyboard *k, uint32_t f, int32_t fd, uint32_t s)
@@ -773,11 +765,7 @@ static void out_scale(void *d, struct wl_output *w, int32_t s)
 	(void)w;
 	((struct output *)d)->scale = s > 0 ? s : 1;
 }
-static void out_name(void *d, struct wl_output *w, const char *n)
-{
-	(void)w;
-	snprintf(((struct output *)d)->name, sizeof ((struct output *)d)->name, "%s", n);
-}
+static void out_name(void *d, struct wl_output *w, const char *n) { (void)d, (void)w, (void)n; }
 static void out_desc(void *d, struct wl_output *w, const char *n) { (void)d, (void)w, (void)n; }
 static const struct wl_output_listener output_listener = {
 	.geometry = out_geometry, .mode = out_mode, .done = out_done, .scale = out_scale,
@@ -793,8 +781,6 @@ static void global_add(void *data, struct wl_registry *r, uint32_t name, const c
 		shm = wl_registry_bind(r, name, &wl_shm_interface, 1);
 	} else if (!strcmp(iface, zwlr_layer_shell_v1_interface.name)) {
 		layer_shell = wl_registry_bind(r, name, &zwlr_layer_shell_v1_interface, 1);
-	} else if (!strcmp(iface, wp_alpha_modifier_v1_interface.name)) {
-		alpha_mgr = wl_registry_bind(r, name, &wp_alpha_modifier_v1_interface, 1);
 	} else if (!strcmp(iface, wl_seat_interface.name) && !seat) {
 		seat = wl_registry_bind(r, name, &wl_seat_interface, version < 5 ? version : 5);
 		wl_seat_add_listener(seat, &seat_listener, NULL);
@@ -921,328 +907,9 @@ static void usage(void)
 	exit(2);
 }
 
-/* ── --wash: the one transition (a theme switch, a new wallpaper) ────────────────────────
- * The screen as it was (grim, each monitor) laid over everything, then faded away: the new
- * look comes up through it, smoothly, in WASH_MS — eased in and out, a new opacity for every
- * frame the screen shows (the frame callbacks: 144 a second on a 144 Hz screen), the time
- * read as each frame comes. The picture is sent once; only its opacity changes (the alpha-
- * modifier protocol: the compositor blends it on the graphics card — no pixel redrawn here).
- * It never takes input (no keyboard, an empty input region: every click goes through to what
- * is under it). The caller reads "covered" on our stdout once the old picture is up, makes its
- * change underneath, then closes our stdin: the fade starts. SIGTERM (another switch while
- * this one fades: kawa-theme) takes it away at once — the final state. Anything that fails (no
- * grim, no screen, no alpha-modifier) prints "covered" all the same and leaves: the change is
- * never held up. Our pid in $XDG_RUNTIME_DIR/kawa-wash.pid while it shows. */
-#define WASH_MS 720
-#define WASH_DOT 3        /* the bleed's grain: the wallpapers' pixel (3 px at 1080p) */
-#define WASH_RIM 0.035    /* the wet rim: a band of ink where the old picture lets go */
-static bool load_ppm(struct output *o, const char *path)
-{
-	FILE *f = fopen(path, "rb");
-	int w, h, mx;
-	if (!f)
-		return false;
-	if (fscanf(f, "P6 %d %d %d", &w, &h, &mx) != 3 || mx != 255 || fgetc(f) == EOF || w != o->W || h != o->H) {
-		fclose(f);
-		return false;
-	}
-	o->old = malloc((size_t)w * (size_t)h * 4);
-	uint8_t *row = malloc((size_t)w * 3);
-	bool ok = o->old && row;
-	for (int y = 0; ok && y < h; y++) {
-		ok = fread(row, 3, (size_t)w, f) == (size_t)w;
-		for (int x = 0; ok && x < w; x++)
-			o->old[(size_t)y * (size_t)w + (size_t)x] = 0xff000000u | (uint32_t)row[3 * x] << 16
-				| (uint32_t)row[3 * x + 1] << 8 | row[3 * x + 2];
-	}
-	free(row);
-	fclose(f);
-	return ok;
-}
-
-/* the old picture into b, whole, and shown */
-static void wash_draw(struct output *o, struct buffer *b)
-{
-	memcpy(b->px, o->old, (size_t)o->W * (size_t)o->H * 4);
-	wl_surface_attach(o->surface, b->wl, 0, 0);
-	wl_surface_damage_buffer(o->surface, 0, 0, o->W, o->H);
-	b->busy = true;
-	struct wl_callback *cb = wl_surface_frame(o->surface);
-	wl_callback_add_listener(cb, &frame_listener, o);
-	o->waiting_frame = true;
-	wl_surface_commit(o->surface);
-}
-
-/* the fade's curve: smootherstep — no jolt as it starts, none as it lands */
-static double wash_ease(double t)
-{
-	t = t < 0 ? 0 : t > 1 ? 1 : t;
-	return t * t * t * (t * (t * 6 - 15) + 10);
-}
-
-/* The ink bleed. Each dot of the old picture lets go at its own moment: an ink drop's front
- * spreading from the middle of the screen (its distance) broken up by fibre-like noise
- * (value noise, three octaves), so the new look seeps up through the paper rather than
- * cross-fading. At the front a rim of the theme's ink, a dot or two deep, darkens what is
- * letting go — the wet edge of the wash — then the dot clears. Drawn on a grid of WASH_DOT
- * px squares (the desktop's pixel), each frame only the dots that changed: a band, a few
- * percent of the screen. */
-static float *wash_noise(int gw, int gh, unsigned seed0)
-{
-	float *n = malloc((size_t)gw * (size_t)gh * sizeof *n);
-	if (!n) return NULL;
-	int cell[3] = { 48, 16, 6 };
-	float amp[3] = { 0.55f, 0.30f, 0.15f };
-	float cx = (gw - 1) / 2.0f, cy = (gh - 1) / 2.0f, rmax = sqrtf(cx * cx + cy * cy);
-	for (int y = 0; y < gh; y++)
-		for (int x = 0; x < gw; x++) {
-			float v = 0;
-			for (int k = 0; k < 3; k++) {
-				int c = cell[k], ix = x / c, iy = y / c;
-				float fx = (float)(x % c) / c, fy = (float)(y % c) / c;
-				fx = fx * fx * (3 - 2 * fx); fy = fy * fy * (3 - 2 * fy);
-				#define H(a, b) ((float)((((unsigned)(a) * 73856093u) ^ ((unsigned)(b) * 19349663u) ^ (seed0 * 83492791u + (unsigned)k * 2654435761u)) % 1024u) / 1023.0f)
-				float a = H(ix, iy), b = H(ix + 1, iy), cc = H(ix, iy + 1), d = H(ix + 1, iy + 1);
-				#undef H
-				v += amp[k] * ((a * (1 - fx) + b * fx) * (1 - fy) + (cc * (1 - fx) + d * fx) * fy);
-			}
-			/* the nearest of the drops: one in the middle, four more about it — blooms that
-			 * spread and meet, as ink dropped on wet paper */
-			float r = 9;
-			for (int d = 0; d < 5; d++) {
-				float px = d ? cx + (float)((int)((seed0 * 2654435761u + (unsigned)d * 40503u) % 1000u) - 500) / 1000.0f * cx * 1.4f : cx;
-				float py = d ? cy + (float)((int)((seed0 * 97u + (unsigned)d * 2246822519u) % 1000u) - 500) / 1000.0f * cy * 1.4f : cy;
-				float dx = x - px, dy = (y - py) * 1.6f;
-				float rr = sqrtf(dx * dx + dy * dy) / (rmax * 1.25f) + (d ? 0.08f : 0);   /* (the others a moment later) */
-				if (rr < r) r = rr;
-			}
-			n[(size_t)y * gw + x] = 0.62f * r + 0.38f * v;
-		}
-	return n;
-}
-
-/* the old picture at bleed p into b: each dot whole (before its moment), inked (in the rim),
- * or clear (after). Only dots whose state differs from b's last p are written; damaged */
-static void wash_frame(struct output *o, struct buffer *b, const float *n, int gw, int gh,
-		float p, float bp, uint32_t ink)
-{
-	int x0 = gw, y0 = gh, x1 = -1, y1 = -1;
-	float lo = (bp < p ? bp : p) - WASH_RIM, hi = (bp > p ? bp : p) + 0.001f;
-	uint32_t ir = (ink >> 16) & 255, ig = (ink >> 8) & 255, ib = ink & 255;
-	for (int gy = 0; gy < gh; gy++)
-		for (int gx = 0; gx < gw; gx++) {
-			float v = n[(size_t)gy * gw + gx];
-			if (v < lo || v > hi + WASH_RIM)
-				continue;
-			int state = v < p ? 2 : v < p + WASH_RIM ? 1 : 0;   /* clear · rim · whole */
-			int X = gx * WASH_DOT, Y = gy * WASH_DOT;
-			for (int yy = Y; yy < Y + WASH_DOT && yy < o->H; yy++) {
-				uint32_t *row = b->px + (size_t)yy * o->W, *src = o->old + (size_t)yy * o->W;
-				for (int xx = X; xx < X + WASH_DOT && xx < o->W; xx++) {
-					uint32_t c = src[xx];
-					if (state == 2) c = 0;
-					else if (state == 1) {   /* the wet rim: 55 % ink over the old picture */
-						uint32_t r = ((c >> 16) & 255) * 45 / 100 + ir * 55 / 100;
-						uint32_t g = ((c >> 8) & 255) * 45 / 100 + ig * 55 / 100;
-						uint32_t bl = (c & 255) * 45 / 100 + ib * 55 / 100;
-						c = 0xff000000u | r << 16 | g << 8 | bl;
-					}
-					row[xx] = c;
-				}
-			}
-			x0 = gx < x0 ? gx : x0, x1 = gx > x1 ? gx : x1;
-			y0 = gy < y0 ? gy : y0, y1 = gy > y1 ? gy : y1;
-		}
-	wl_surface_attach(o->surface, b->wl, 0, 0);
-	if (x1 >= 0)
-		wl_surface_damage_buffer(o->surface, x0 * WASH_DOT, y0 * WASH_DOT,
-				(x1 - x0 + 1) * WASH_DOT, (y1 - y0 + 1) * WASH_DOT);
-}
-
-/* the theme's ink for the rim: saver.conf's "ground" on the dark theme is near black; the
- * ink is the darkest of its colours either way */
-static uint32_t wash_ink(void)
-{
-	uint32_t ink = 0x0f0e0c;
-	if (read_palette()) {
-		unsigned best = 999;
-		for (int i = 0; i < NCOL; i++) {
-			uint32_t c = pal[i];
-			unsigned l = ((c >> 16) & 255) + ((c >> 8) & 255) + (c & 255);
-			if (l < best) best = l, ink = c & 0xffffff;
-		}
-	}
-	return ink;
-}
-
-static int wash(void)
-{
-	char pidp[PATH_MAX], tmp[PATH_MAX];
-	struct output *o;
-	bool covered = false;
-	signal(SIGTERM, on_signal);
-	signal(SIGINT, on_signal);
-	signal(SIGPIPE, SIG_IGN);
-	snprintf(pidp, sizeof pidp, "%s/kawa-wash.pid", runtime());
-	display = wl_display_connect(NULL);
-	if (!display)
-		goto done;
-	wl_list_init(&outputs);
-	struct wl_registry *registry = wl_display_get_registry(display);
-	wl_registry_add_listener(registry, &registry_listener, NULL);
-	wl_display_roundtrip(display);
-	wl_display_roundtrip(display);
-	if (!compositor || !shm || !layer_shell)
-		goto done;
-	buffer_format = WL_SHM_FORMAT_ARGB8888;   /* (the bleed clears dots: a picture with alpha) */
-	wl_list_for_each(o, &outputs, link) {
-		o->surface = wl_compositor_create_surface(compositor);
-		struct wl_region *none = wl_compositor_create_region(compositor);
-		wl_surface_set_input_region(o->surface, none);   /* every click goes through */
-		wl_region_destroy(none);
-		o->layer = zwlr_layer_shell_v1_get_layer_surface(layer_shell, o->surface, o->wl,
-				ZWLR_LAYER_SHELL_V1_LAYER_OVERLAY, "kawa-wash");
-		zwlr_layer_surface_v1_add_listener(o->layer, &layer_listener, o);
-		zwlr_layer_surface_v1_set_anchor(o->layer, ZWLR_LAYER_SURFACE_V1_ANCHOR_TOP |
-				ZWLR_LAYER_SURFACE_V1_ANCHOR_BOTTOM | ZWLR_LAYER_SURFACE_V1_ANCHOR_LEFT |
-				ZWLR_LAYER_SURFACE_V1_ANCHOR_RIGHT);
-		zwlr_layer_surface_v1_set_exclusive_zone(o->layer, -1);
-		zwlr_layer_surface_v1_set_keyboard_interactivity(o->layer, 0);
-		wl_surface_commit(o->surface);
-	}
-	wl_display_roundtrip(display);
-	/* the screens as they are, before anything of ours is on them */
-	int shown = 0;
-	wl_list_for_each(o, &outputs, link) {
-		if (!o->configured || o->closed || o->lw <= 0 || !o->name[0])
-			continue;
-		o->W = o->lw * o->scale, o->H = o->lh * o->scale;
-		snprintf(tmp, sizeof tmp, "%s/kawa-wash-%d.ppm", runtime(), (int)o->global);
-		pid_t g = fork();
-		if (g == 0) {
-			int nul = open("/dev/null", O_WRONLY);
-			if (nul >= 0) { dup2(nul, 1); dup2(nul, 2); }
-			execlp("grim", "grim", "-t", "ppm", "-o", o->name, tmp, (char *)NULL);
-			_exit(127);
-		}
-		int st = 1;
-		if (g > 0)
-			while (waitpid(g, &st, 0) < 0 && errno == EINTR)
-				;
-		bool got = g > 0 && WIFEXITED(st) && WEXITSTATUS(st) == 0 && load_ppm(o, tmp);
-		unlink(tmp);
-		if (!got || !make_buffer(o, &o->buf[0]) || !make_buffer(o, &o->buf[1]))
-			continue;
-		memcpy(o->buf[1].px, o->old, (size_t)o->W * (size_t)o->H * 4);
-		wl_surface_set_buffer_scale(o->surface, o->scale);
-		o->ready = true;
-		wash_draw(o, &o->buf[0]);
-		shown++;
-	}
-	if (!shown || stop)
-		goto done;
-	FILE *pf = fopen(pidp, "w");
-	if (pf) { fprintf(pf, "%d\n", (int)getpid()); fclose(pf); }
-	/* covered once every screen has shown the old picture (its frame done), 300 ms at most */
-	double t0 = now_ms();
-	for (;;) {
-		bool all = true;
-		wl_list_for_each(o, &outputs, link)
-			if (o->ready && o->waiting_frame && !o->closed) all = false;
-		if (all || stop || now_ms() - t0 > 300)
-			break;
-		struct pollfd p = { .fd = wl_display_get_fd(display), .events = POLLIN };
-		wl_display_flush(display);
-		if (poll(&p, 1, 20) > 0 && wl_display_dispatch(display) < 0)
-			goto done;
-	}
-	puts("covered");
-	fflush(stdout);
-	covered = true;
-	/* the change underneath: until our stdin closes (3 s at most), the screens kept */
-	struct pollfd pp[2] = { { .fd = 0, .events = POLLIN }, { .fd = wl_display_get_fd(display), .events = POLLIN } };
-	t0 = now_ms();
-	while (!stop && now_ms() - t0 < 3000) {
-		wl_display_flush(display);
-		if (poll(pp, 2, 50) <= 0)
-			continue;
-		if (pp[1].revents & POLLIN && wl_display_dispatch(display) < 0)
-			goto done;
-		if (pp[0].revents & (POLLIN | POLLHUP)) {
-			char c[64];
-			if (read(0, c, sizeof c) <= 0)
-				break;
-		}
-	}
-	/* bled away: each frame the screens show, the front moved on (WASH_MS, eased), only the
-	 * dots that changed drawn into whichever picture the compositor has let go of */
-	{
-		uint32_t ink = wash_ink();
-		float last[16][2];
-		int k = 0;
-		wl_list_for_each(o, &outputs, link) {
-			int gw = (o->W + WASH_DOT - 1) / WASH_DOT, gh = (o->H + WASH_DOT - 1) / WASH_DOT;
-			o->noise = wash_noise(gw, gh, (unsigned)time(NULL));
-			o->gw = gw, o->gh = gh;
-			if (k < 16) last[k][0] = last[k][1] = -1.0f;
-			k++;
-		}
-		t0 = now_ms();
-		for (;;) {
-			double t = (now_ms() - t0) / WASH_MS;
-			float p = (float)(wash_ease(t) * (1.0 + 2 * WASH_RIM) - WASH_RIM);
-			k = 0;
-			wl_list_for_each(o, &outputs, link) {
-				int i = k++;
-				if (!o->ready || o->closed || o->waiting_frame || !o->noise || i >= 16)
-					continue;
-				int bi = !o->buf[0].busy ? 0 : !o->buf[1].busy ? 1 : -1;
-				if (bi < 0)
-					continue;
-				wash_frame(o, &o->buf[bi], o->noise, o->gw, o->gh, p, last[i][bi], ink);
-				last[i][bi] = p;
-				o->buf[bi].busy = true;
-				struct wl_callback *cb = wl_surface_frame(o->surface);
-				wl_callback_add_listener(cb, &frame_listener, o);
-				o->waiting_frame = true;
-				wl_surface_commit(o->surface);
-			}
-			if (t >= 1.0 || stop)
-				break;
-			struct pollfd p2 = { .fd = wl_display_get_fd(display), .events = POLLIN };
-			wl_display_flush(display);
-			if (poll(&p2, 1, 50) > 0 && wl_display_dispatch(display) < 0)
-				goto done;
-		}
-	}
-	wl_display_roundtrip(display);   /* (the last, clear frame reached the compositor) */
-done:
-	if (!covered) {
-		puts("covered");
-		fflush(stdout);
-	}
-	unlink(pidp);
-	if (display) {
-		wl_list_for_each(o, &outputs, link) {
-			if (o->alpha)
-				wp_alpha_modifier_surface_v1_destroy(o->alpha);
-			free(o->noise);
-			if (o->layer)
-				zwlr_layer_surface_v1_destroy(o->layer);
-			if (o->surface)
-				wl_surface_destroy(o->surface);
-		}
-		wl_display_roundtrip(display);
-		wl_display_disconnect(display);
-	}
-	return 0;
-}
-
 int main(int argc, char **argv)
 {
 	seed = (unsigned)time(NULL) ^ (unsigned)getpid();
-	if (argc == 2 && !strcmp(argv[1], "--wash"))
-		return wash();
 	for (int i = 1; i < argc; i++) {
 		if (!strcmp(argv[i], "--idle")) idle_mode = true;
 		else if (!strcmp(argv[i], "--seed") && i + 1 < argc) seed = (unsigned)strtoul(argv[++i], NULL, 10);
@@ -1251,9 +918,7 @@ int main(int argc, char **argv)
 			puts("kawa-saver — the screensaver (sashiko stitched across every screen); any input ends it.\n"
 			     "  kawa-saver         now (nothing locks)\n"
 			     "  kawa-saver --idle  away 15 minutes (kawa-idle): the screensaver, the lock behind it as it\n"
-			     "                     ends (switched off in quick settings: the lock at once)\n"
-			     "  kawa-saver --wash  the transition of a theme switch or a new wallpaper: the screen as it\n"
-			     "                     was, faded away (320 ms, eased) once stdin closes (kawa-theme)");
+			     "                     ends (switched off in quick settings: the lock at once)");
 			return 0;
 		} else usage();
 	}
@@ -1283,12 +948,11 @@ int main(int argc, char **argv)
 	wl_registry_add_listener(registry, &registry_listener, NULL);
 	wl_display_roundtrip(display);
 	wl_display_roundtrip(display);
-	if (!compositor || !shm || !layer_shell || !alpha_mgr)
-		return fail("the compositor lacks layer-shell, shared memory or alpha-modifier");
+	if (!compositor || !shm || !layer_shell)
+		return fail("the compositor lacks layer-shell or shared memory");
 	struct output *o;
 	wl_list_for_each(o, &outputs, link) {
 		o->surface = wl_compositor_create_surface(compositor);
-		o->alpha = wp_alpha_modifier_v1_get_surface(alpha_mgr, o->surface);
 		o->layer = zwlr_layer_shell_v1_get_layer_surface(layer_shell, o->surface, o->wl,
 				ZWLR_LAYER_SHELL_V1_LAYER_OVERLAY, "kawa-saver");
 		zwlr_layer_surface_v1_add_listener(o->layer, &layer_listener, o);
@@ -1315,22 +979,11 @@ int main(int argc, char **argv)
 	while (!stop) {
 		double t = now_ms();
 		if (leaving) {
-			/* at once: the cloth fades away (PART_MS, eased: a new opacity each frame the
-			 * screen shows, blended by the compositor) — and with --idle the lock comes up
-			 * behind it meanwhile. Gone once it is clear, the lock is up (it has the keyboard
-			 * from then: with it no key or button is waited for), and, without a lock, every
-			 * key and button is up again (none reaches a window) */
-			double a = 1.0 - wash_ease((t - leave_at) / PART_MS);
-			wl_list_for_each(o, &outputs, link)
-				if (o->ready && !o->closed && !o->waiting_frame) {
-					wp_alpha_modifier_surface_v1_set_multiplier(o->alpha, (uint32_t)(a * UINT32_MAX));
-					struct wl_callback *cb = wl_surface_frame(o->surface);
-					wl_callback_add_listener(cb, &frame_listener, o);
-					o->waiting_frame = true;
-					wl_surface_commit(o->surface);
-				}
-			bool washed = t - leave_at >= PART_MS;
-			if (washed && (idle_mode ? lock_up() : held == 0))
+			/* gone once the lock is up (it has the keyboard from then: with it no key or
+			 * button is waited for) or, without a lock, every key and button is up again
+			 * (none reaches a window) — whole until then; dwl dissolves its last picture
+			 * away over what it covered, cell by cell (dwl.patch: layeranims) */
+			if (idle_mode ? lock_up() : held == 0)
 				break;
 			if (t - leave_at > (idle_mode ? 15000 : 3000))
 				break;                    /* (a key that never comes up, a lock that hangs) */
