@@ -246,4 +246,5 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   the bar's <span line_height> wrapper), test_game (4: snapper/scrub timers — gaming leaves the
   host anyway), test_glass (2: OSC 11); static/test_generated (2: lock-scroll.png differs from
   build-themes.py's output; PROJECT_TOP lacks a top-level entry), static/test_syntax (1: setup.sh
-  :75 SC1010 — shellcheck's newer parse). → T53.
+  :75 SC1010 — shellcheck's newer parse; FIXED 03:57: "done" quoted), installer/test_hardware (1:
+  hw_firmware_pkgs expects intel-bt-firmware — the machine's firmware files). → T53.

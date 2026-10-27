@@ -234,7 +234,8 @@ case $(hw_gpu) in
           else fail "AMD GPU found but amdgpu is not driving it" "${gpus% }"; fi ;;
   intel)  pass "Intel GPU (${gpus% })" ;;
   nvidia) fail "NVIDIA only" "this build targets AMD/Intel (open drivers)" ;;
-  vm)     fail "a virtual machine's display (${gpus% })" "the desktop needs an AMD or Intel GPU: setup's last check (hardware video decoding) cannot pass here" ;;
+  vm)     if hw_test_vm; then warn "a virtual machine's display (${gpus% })" "the test harness's VM (tools/vm-smoke.sh): what needs a real GPU is skipped, each named"
+          else fail "a virtual machine's display (${gpus% })" "the desktop needs an AMD or Intel GPU: setup's last check (hardware video decoding) cannot pass here"; fi ;;
   *)      # no card the kernel drives: one too new for this kernel is named in fedokawaii.conf
           if [[ $GPU != auto ]]; then warn "no GPU seen by the kernel" "GPU=$GPU in fedokawaii.conf: setup installs its drivers"
           else fail "no AMD or Intel GPU seen by the kernel" "a card too new for this kernel: set GPU= in fedokawaii.conf"; fi ;;

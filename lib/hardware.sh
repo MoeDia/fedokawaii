@@ -40,6 +40,11 @@ hw_gpu() {
   elif grep -qxE '0x(1af4|1b36|15ad|80ee|1234)' <<<"$v"; then echo vm
   else echo none; fi
 }
+# hw_test_vm — the test harness's VM (tools/vm-smoke.sh put /var/lib/fedokawaii/test-vm there)
+# with a VM's display: what needs a real GPU (hardware video decoding, the monitor's DDC, its
+# refresh) is skipped and named instead of failed, so the whole install can be proven there.
+# Never on a real machine: the marker is the harness's alone, and a real card wins anyway
+hw_test_vm() { [[ -e ${HW_STATE:-/var/lib/fedokawaii}/test-vm && $(hw_gpu) == vm ]]; }
 # hw_discrete_amd — an AMD card with memory of its own (2 GiB or more): not an APU's shared
 # memory. mpv's high-quality scaling is written for such a card (theme.sh).
 # hw_discrete_amd_pci — its PCI address (0000:03:00.0: it stays when card numbers move —
