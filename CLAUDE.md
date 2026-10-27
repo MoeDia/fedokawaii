@@ -80,7 +80,7 @@ Note the source (URL or command) in the ledger next to each such decision.
   (rebuilds dwl from `src/dwl/dwl.patch` into `~/.local/src/dwl`, runs theme, verify).
   A new dwl binary only takes effect in a **new session** (log out/in; the owner does that).
 - **dwl work:** edit `~/.local/src/dwl/dwl.c` (= pinned dwl + patch), rebuild there with
-  `make WLR_INCS="$(cat /usr/local/lib/fedokawaii-wlroots-0.20/cflags)" WLR_LIBS="-Wl,-rpath,/usr/local/lib/fedokawaii-wlroots-0.20/lib -L/usr/local/lib/fedokawaii-wlroots-0.20/lib -lwlroots-0.20 -lpixman-1 -ldrm" XWAYLAND=-DXWAYLAND XLIBS="xcb xcb-icccm"`,
+  `make WLR_INCS="$(cat /usr/local/lib/fedokawaii-wlroots-0.20/cflags)" WLR_LIBS="-Wl,-rpath,/usr/local/lib/fedokawaii-wlroots-0.20/lib -L/usr/local/lib/fedokawaii-wlroots-0.20/lib -lwlroots-0.20 -lpixman-1 -ldrm" XWAYLAND=-DXWAYLAND XLIBS="xcb xcb-icccm pixman-1 glesv2"` (dwl draws its dissolve with GLES 2: lib/manifest.sh DWL_MAKE),
   test it, then **`bash tools/dwl-patch.sh`** (writes `src/dwl/dwl.patch` from that tree) —
   always before `fedokawaii apply`, which otherwise re-applies the repo's old patch over your edits.
 - **Fonts/icons:** after editing `art/icons.txt` → `python3 tools/build-icons.py`; after

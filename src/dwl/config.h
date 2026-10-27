@@ -52,23 +52,25 @@ static float focuscolor[3][4]              = { PCOLOR(SHU), PCOLOR(SHADOW1), PCO
 static float urgentcolor[3][4]             = { PCOLOR(ASAGI), PCOLOR(SHADOW1), PCOLOR(SHADOW2) };
 static const float fullscreen_bg[]         = {0.059f, 0.055f, 0.047f, 1.0f};
 
-/* animations (dwl.patch): a new window fades in, rising its last anim_rise px to its
- * place; a closed one fades away, sinking as much; a workspace switch fades the windows
- * out as they drift a little (anim_drift of the screen's width) to one side, and the next
- * ones in from the other — every frame the screen shows, drawn for the moment that frame
- * reaches the screen, the movement eased out and the fade on a smootherstep; never a
- * full-screen window; unlocked, the lock screen fades off the desktop (locking: at once).
- * No edge sweeps across the screen: a moving cut reads as a tear.
- * 0: everything at once */
+/* animations (dwl.patch; docs/design-system.md §11 — playful pixel): a new window dissolves
+ * in — cell by cell, cells of the wallpapers' pixel (3 × 3 at 1080p), in a 4 × 4 Bayer
+ * matrix's order — rising its last anim_rise px to its place; a closed one dissolves out,
+ * sinking as much; a workspace switch dissolves the windows out as they drift anim_drift px
+ * to one side, and the next ones in from the other, the two overlapping — every frame the
+ * screen shows, drawn for the moment that frame reaches the screen, the movement eased out
+ * and the cells on a smoothstep; never a full-screen window; unlocked, the lock screen
+ * dissolves off the desktop (locking: at once). No edge sweeps across the screen (a moving
+ * cut reads as a tear), nothing is ever half-transparent. 0: everything at once */
 static const int animations                = 1;
-static const unsigned int anim_open_ms     = 240;  /* a window opening */
-static const unsigned int anim_close_ms    = 180;  /* …closing: quicker, out of the way */
-static const unsigned int anim_tag_ms      = 240;  /* a workspace switch */
-static const unsigned int anim_unlock_ms   = 320;  /* the lock screen fading off the desktop
-                                                    * once the password is right (locking:
-                                                    * at once) */
-static const int anim_rise                 = 24;   /* px */
-static const double anim_drift             = 0.06; /* 115 px on a 1920 px screen */
+static const unsigned int anim_open_ms     = 420;  /* a window opening */
+static const unsigned int anim_close_ms    = 400;  /* …closing */
+static const unsigned int anim_tag_ms      = 420;  /* a workspace switch, all of it: */
+static const unsigned int anim_tag_each_ms = 280;  /* …the windows leaving its first 280 ms,
+                                                    * those coming its last 280 (140 – 420) */
+static const unsigned int anim_unlock_ms   = 420;  /* the lock screen dissolving off the
+                                                    * desktop once the password is right */
+static const int anim_rise                 = 9;    /* px: three of the wallpapers' pixels */
+static const int anim_drift                = 24;   /* px */
 
 /* tagging - TAGCOUNT must be no greater than 31 */
 #define TAGCOUNT (9)

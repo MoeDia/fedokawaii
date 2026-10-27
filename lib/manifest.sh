@@ -79,8 +79,9 @@ PKG_BUILD=(             # kept installed: theme.sh rebuilds dwl (config.h, patch
                                               #   gdk-pixbuf; Wayland and sd-bus as above
 )
 # dwl's config.mk ships XWayland commented out; Steam and other X11 apps need it on
-# (and pixman: dwl.patch damages a window capture's output itself — capturesession)
-DWL_MAKE=(XWAYLAND=-DXWAYLAND "XLIBS=xcb xcb-icccm pixman-1")
+# (and pixman: dwl.patch damages a window capture's output itself — capturesession; GLES 2:
+# its dissolve, a shader of its own — the headers come with wlroots-devel's own requirement)
+DWL_MAKE=(XWAYLAND=-DXWAYLAND "XLIBS=xcb xcb-icccm pixman-1 glesv2")
 PKG_SESSION=(greetd greetd-selinux xorg-x11-server-Xwayland    # the login manager, X11 apps
   cage python3-gobject gtk3                                     # the login screen: kawa-greet (GTK) in cage, a kiosk compositor
   plymouth-plugin-script)                                       # the boot splash (the "sumi" Plymouth theme is a script)

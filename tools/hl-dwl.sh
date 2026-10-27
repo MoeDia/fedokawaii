@@ -35,7 +35,7 @@ if ((asan)); then
   inc=$(cat /usr/local/lib/fedokawaii-wlroots-0.20/cflags) lib=/usr/local/lib/fedokawaii-wlroots-0.20/lib
   make -s -C "$abuild" CFLAGS="-O1 -fsanitize=address -fno-omit-frame-pointer" LDFLAGS="-fsanitize=address" \
     WLR_INCS="$inc" WLR_LIBS="-Wl,-rpath,$lib -L$lib -lwlroots-0.20 -lpixman-1 -ldrm" \
-    XWAYLAND=-DXWAYLAND XLIBS="xcb xcb-icccm" >/dev/null || { echo "hl-dwl: the ASan build failed" >&2; exit 2; }
+    XWAYLAND=-DXWAYLAND XLIBS="xcb xcb-icccm pixman-1 glesv2" >/dev/null || { echo "hl-dwl: the ASan build failed" >&2; exit 2; }
   bin=$abuild/dwl
 fi
 [[ -x $bin ]] || { echo "hl-dwl: no dwl at $bin" >&2; exit 2; }
