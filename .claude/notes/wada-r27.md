@@ -87,3 +87,14 @@ asagi (Dusky Green 10.8) — the greys and the teal are ours, not Wada's.
   #332: Coral Red #f58e84 · Scarlet #cb2f43 · Deep Slate Olive #253122 · Dusky Green #004f46
   #340: Peach Red #f15a30 · Sea Green #00b49b · Neutral Gray #b6bfc1 · Black #111314
 ```
+
+## Today's contrast (WCAG 2.x ratio, 2026-10-27) — T08's bar: text ≥ 4.5, muted ≥ 3
+dark — on ground: faint 2.7 · muted 4.9 · text 11.0 · strong 15.1 · accent_text 4.8 · asagi 8.6;
+on surface: faint 2.6 · muted 4.6 · text 10.5 · strong 14.4 · accent_text 4.6 · asagi 8.2;
+on key: faint 2.4 · muted 4.3 · text 9.7 · strong 13.3 · **accent_text 4.3 (fails)** · asagi 7.6;
+text_on_accent on accent 4.7.
+light — on ground: faint 2.4 · muted 5.3 · text 11.4 · strong 14.8 · accent_text 5.3 · asagi 4.5;
+on surface: faint 2.1 · muted 4.6 · text 9.9 · strong 12.8 · accent_text 4.6 · asagi 3.9;
+on key: faint 2.5 · muted 5.7 · text 12.1 · strong 15.8 · accent_text 5.7 · asagi 4.8;
+text_on_accent on accent 4.7. (faint is meant dim — "not there yet" — but 2.1 on paper surface
+is the lowest: judge it in renders, not by the number alone.)
