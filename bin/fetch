@@ -2,11 +2,13 @@
 # fetch — a small, cute system summary in the spirit of pfetch and nerdfetch: one of
 # ten pixel pictures drawn for this desktop, beside one icon line per fact.
 #
-#   fetch            a picture chosen at random
-#   fetch NAME       that one: neko (beckoning cat), daruma, torii (sunset over the
-#                    sea), pc (a beige computer showing Mt Fuji), fuji (dawn over the
-#                    mountain), onigiri, chochin (a paper lantern), cassette, kitsune
-#                    (a fox mask) or ramen
+#   fetch            the mood's own face: an oni (a demon's mask) in the dark theme, a tennin
+#                    (an angel, haloed) in the light — the world the desktop lives in
+#   fetch random     one of the pictures at random
+#   fetch NAME       that one: oni, tennin, neko (beckoning cat), daruma, torii (sunset over
+#                    the sea), pc (a beige computer showing Mt Fuji), fuji (dawn over the
+#                    mountain), onigiri, chochin (a paper lantern), cassette, kitsune (a fox
+#                    mask) or ramen
 #
 # The pictures are real pixel art: two pixels per character cell, drawn with half
 # blocks in 24-bit colour, which foot renders gap-free. Every colour in them is one of
@@ -218,7 +220,47 @@ ART_ramen=(
   ".....OOrrrrrrOO....."
   ".....OOOOOOOOOO....."
 )
-NAMES=(neko daruma torii pc fuji onigiri chochin cassette kitsune ramen)
+# shellcheck disable=SC2034  # read through the nameref in picture()
+ART_oni=(
+  "O=2d251e R=eb5324 r=82241f Y=e2b540 W=f1e1b4 w=d4bf9a K=111314"
+  "..O..............O.."
+  ".OWO............OWO."
+  ".OwWO..........OWwO."
+  "..OwWOOOOOOOOOOWwO.."
+  "...ORRRRRRRRRRRRO..."
+  "..ORRRRRRRRRRRRRRO.."
+  ".ORRrrRRRRRRRRrrRRO."
+  ".ORRRrrRRRRRRrrRRRO."
+  ".ORRYYKRRRRRRKYYRRO."
+  ".ORRRYYRRRRRRYYRRRO."
+  ".ORRRRRRrrrrRRRRRRO."
+  ".ORRKKKKKKKKKKKKRRO."
+  ".ORRKWKKKKKKKKWKRRO."
+  "..ORRKKKKKKKKKKRRO.."
+  "...ORRRRRRRRRRRRO..."
+  "....OOOOOOOOOOOO...."
+)
+# shellcheck disable=SC2034  # read through the nameref in picture()
+ART_tennin=(
+  "O=2d251e Y=e2b540 K=121b1b W=f1e1b4 w=d4bf9a R=eb5324 A=82c1b4 a=00978d"
+  ".....YYYYYYYYYY....."
+  "...YY..........YY..."
+  "..Y....KKKKKK....Y.."
+  ".Y...KKKKKKKKKK...Y."
+  ".Y..KKKKKKKKKKKK..Y."
+  "Y..KKKOOOOOOOOKKK..Y"
+  "Y..KKOWWWWWWWWOKK..Y"
+  "Y..KOWKKWWWWKKWOK..Y"
+  ".Y.KOWWWWWWWWWWOK.Y."
+  ".Y..OWWWWwwWWWWO..Y."
+  "..Y.OWWWWRRWWWWO.Y.."
+  "...YYOWWWWWWWWOYY..."
+  "....AAOOWWWWOOAA...."
+  "..AAa..OOOOOO..aAA.."
+  ".Aa..............aA."
+  "A..................A"
+)
+NAMES=(oni tennin neko daruma torii pc fuji onigiri chochin cassette kitsune ramen)
 
 rgb() { printf -v "$1" '%d;%d;%d' "0x${2:0:2}" "0x${2:2:2}" "0x${2:4:2}"; }
 
@@ -281,7 +323,12 @@ INFO=(
 
 # ── print: the picture on the left when the terminal shows 24-bit colour ──────
 [[ ${1:-} == @(-h|--help) ]] && { sed -n '2,/^set -u/{/^set -u/d;s/^# \{0,1\}//;p}' "$0"; exit 0; }
-pick=${1:-${NAMES[RANDOM % ${#NAMES[@]}]}}
+# (no name: the mood's face — THEME from the theme's own colors.sh; "random": any of them)
+THEME=dark
+# shellcheck source=/dev/null
+[[ -r $HOME/.config/fedokawaii/current/colors.sh ]] && . "$HOME/.config/fedokawaii/current/colors.sh"
+if (($#)); then pick=$1; elif [[ $THEME == light ]]; then pick=tennin; else pick=oni; fi
+[[ $pick == random ]] && pick=${NAMES[RANDOM % ${#NAMES[@]}]}
 [[ " ${NAMES[*]} " == *" $pick "* && $# -le 1 ]] || { echo "fetch: pictures are: ${NAMES[*]}" >&2; exit 2; }
 [[ $TERM == foot* || ${COLORTERM:-} == truecolor || ${COLORTERM:-} == 24bit ]] && picture "$pick"
 # the picture only where its lines fit (2 + 20 + 3 columns before the facts): in a narrower
