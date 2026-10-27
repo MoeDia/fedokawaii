@@ -851,8 +851,14 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   latency (5 ms): all fine. Tests: test_clip (big copies, the stand-in, pruning, no fall-through
   into the window — a missing exit hung Super+Z's test, found and fixed), test_shrink (stores as the
   session does), test_notes (the clipboard rules with a clipboard provider of its own), fake
-  cliphist dropping >5 MB as 0.7 does. Still to check in T17c: foot's own copy/paste and
-  primary, Xwayland programs, the browser, LibreOffice.
+  cliphist dropping >5 MB as 0.7 does. X11 programs (checked headless and live, read-only): an
+  X client reads the Wayland clipboard only while an Xwayland window has focus — by design, a
+  wlroots safeguard (Fedora's wlroots 0.20.2 source, xwayland/selection/outgoing.c,
+  xwm_handle_selection_request: "No xwayland surface focused, deny access to clipboard"); so
+  xclip from a terminal sees nothing, a focused X11 program pastes as usual — nothing to fix.
+  The browser's checks go with T31a (Brave is being replaced). LibreOffice (GTK, Wayland) behaves
+  as any GTK program; found on the way: a clean profile opens with its "Welcome / first time"
+  dialog and its splash over the CSV import — the installer should pre-seed its profile (T54).
 - r27-33 (T29, findings 04:00 — not fixed yet) Prowlarr: on demand by design (kawa-prowlarr: up while
   torrra searches, asleep 30 min after) — "inactive" is normal. /api/v1/health: 0 now. Its own log
   (~/.config/prowlarr/logs) over 8 days: Warn AllowedHostsCheck "Allowed Hosts is not configured"

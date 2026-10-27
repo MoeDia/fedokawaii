@@ -204,7 +204,7 @@ approach:
 accept: no "clean mic" anywhere (grep), no orphan config; the monitor-off key measured and live-tested (off, a key, back on the lock or desktop); quick settings shots both themes grilled to "nothing left"; Caps Lock toggled live → tile changes within a frame (dwl status log), both cases tested.
 NOTE (owner 14:27): the bar's UI font — he likes it now: change it only if research and renders show something clearly better (T58 checks once; otherwise it stays).
 
-### T17c — copy and paste, everywhere: find, reproduce, fix (owner 14:27)  [wip — big copies kept, the editor's clipboard (r27-17c); left: foot, Xwayland, the browser, LibreOffice]
+### T17c — copy and paste, everywhere: find, reproduce, fix (owner 14:27)  [done 2026-10-27 — r27-17c: big copies kept, the editor's clipboard; X11 reads need X focus (wlroots, by design); the browser's checks with T31a]
 deps: T17 · model: main (sub:sonnet for the reproduction matrix) · ledger: r27-17c
 files: bin/kawa-clip*, kawa-clipkeep, configs/home/.config/dwl/autostart.sh (wl-paste --watch), xwayland/primary selection bits, tests/content/test_clip.sh, a new tools/regress/clipboard.sh
 approach: build the matrix first — every pair of {foot, nvim (+ notes), Brave/its successor, LibreOffice, Xournal/FireAlpaca, yazi, an X11 app, a GTK4 app, the launcher, Super+V} × {Ctrl+C/V, Ctrl+Shift+C/V, primary (select / middle click), a picture, a file from yazi, a copy whose app then closed} — run it headless where possible (wl-copy/wl-paste/wtype against the real apps in the kit) and live for the rest; each failure reproduced, its cause found (clipkeep's offer, cliphist's mime choice, Xwayland's sync, an app's own quirk), fixed, and kept as a regression row.
@@ -365,7 +365,7 @@ approach:
 - Not plain Chromium or Chrome (his words): survey the less common, well-made Chromium-based browsers — minimal, fast, private, actively maintained, Wayland-native, a sound update channel on Fedora (a repo or a signed release we can pin and update through the one update button) — each verified from its official site, repo and release notes (sources in the ledger), with honest notes on maintenance health and security-patch latency against upstream Chromium.
 - Try the top 2–3 on this PC: start time (cold/warm), RAM with his tabs, smoothness at 144 Hz (frame times), VA-API video decode on the RX 9060 XT, Wayland fractional/HiDPI, the extensions he needs, its downloads API for the bar; pick the best by the numbers and say why.
 - Migrate from Brave: bookmarks, saved logins (its own import, never typed by us), settings, extensions; theme it to our design (dark/light following the switch where it can); then remove Brave and its repo (T42's structure rule) once he has used it — Brave stays until the new one is proven.
-accept: the survey and trial numbers in the ledger; the new browser installed by the installer (VM-proven at T54), migrated, themed, every Brave reference gone; Super+B, the web apps, the downloads module and the tests all on it.
+accept: the survey and trial numbers in the ledger; the new browser installed by the installer (VM-proven at T54), migrated, themed, every Brave reference gone; Super+B, the web apps, the downloads module and the tests all on it; copy and paste checked with it (text, links, pictures, to and from foot and the editor, its copies over 5 MB reaching Super+V — T17c's matrix).
 
 ### T31 — downloads from the browser (T31a's): progress %, the odd link icon  [todo]
 deps: T14  · model: main  · ledger: r27-35
@@ -563,6 +563,7 @@ files: tools/vm-smoke.sh (reused), .claude/notes/vm-runs.md
 approach:
 - Fresh VM from the base snapshot, the current repo in; the full chain run by vm-smoke.sh; every skipped verify check must be hardware-only (named); STRUCT and the update button's idempotent run added to vm-smoke.sh as stages.
 - On the PC: `sudo FEDOKAWAII_COPY=$PWD fedokawaii apply` then verify; drift must be empty (every config owned by theme.sh, his settings apart in fedokawaii.conf/secrets.sh/*.local).
+- (found in T17c) A clean install's first LibreOffice opens with its "Welcome / first time" dialog and its splash: the installer pre-seeds the profile (registrymodifications.xcu: FirstRun off, the splash off) so nothing asks on day one.
 accept: fresh VM: setup → theme → verify 100 % (every skip hardware-named) → desktop smoke green → STRUCT green → the update button runs with no changes (idempotent) → T49's run-all green; the PC: `fedokawaii verify` green after `apply`; numbers and run ids in the ledger.
 
 ## Phase 8 — the installer ISO (only after everything above is solid)
