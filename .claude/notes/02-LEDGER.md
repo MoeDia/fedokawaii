@@ -359,6 +359,20 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   pieces only clipped by the check's canvas); sheet .claude/notes/design-r27/icons-r27.png, the
   drawings' source icons-new.py. tools/build-icons.py on the 14 px grid (1400 upm, middle 5 px,
   7 px cells, even sizes only); eq/lv/seg parts untouched (their surfaces: T14, T15).
+- r27-10c (T10, the sizes — 06:20) every size that named the old face moved to Sumi UI 14: the bar
+  (font-size 14px; the title's and the music's line held at 14 px: line_height 14336), mako 14px,
+  kawa-panel COL 7 / LINE 14 (its grid otherwise the old one until T13), kawa-osd (Sumi Icons 14px;
+  3 px of air after the name so its slider still starts where the panel's does), the lock and
+  login (14 px, the clock 56 = ×4, the ◆ 28 = ×2; AM/PM still 6 px off the foot: 8 − 2), the
+  saver's letters (glyphs.h at 14, its seal 24), the boot splash's pictures at 28, GRUB's fonts
+  remade with grub2-mkfont 2.12 at 28/42/56 (sumi-32/48/64.pf2 gone; theme.sh FS = 14 × GS),
+  kawa-books' card 28, MangoHud 28, the fontconfig note, the report's FONT checks (14/28). The
+  bar's icon-alone tiles (torii, layout, Steam) a pixel more padding on the right: the new
+  14/16 px drawings carry no air of their own (test_bargaps: 8 px paper to ink, both sides).
+  Both C helpers compile with the new glyphs. Tests moved with it (and a few that were stale
+  before: session/test_autostart's titles never expected the line-height span — 84/0 now,
+  its 5 old failures gone); static, status, menus, look, session green but for the known:
+  test_game 4 (T35), look/test_wallpaper 1 (old), content/test_shell+test_tiles (T24).
 - r27-33 (T29, findings 04:00 — not fixed yet) Prowlarr: on demand by design (kawa-prowlarr: up while
   torrra searches, asleep 30 min after) — "inactive" is normal. /api/v1/health: 0 now. Its own log
   (~/.config/prowlarr/logs) over 8 days: Warn AllowedHostsCheck "Allowed Hosts is not configured"

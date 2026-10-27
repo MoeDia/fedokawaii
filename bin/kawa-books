@@ -335,7 +335,7 @@ print("\n".join(lines))' "$title" "$W" 2>/dev/null)
   if ((card)); then                             # no picture in the file: a card, its kind on it
     magick -size "${w}x${Hc}" "xc:#$C_EDGE" -fill none -stroke "#$C_MUTED" -strokewidth 2 \
       -draw "rectangle 1,1 $((w - 2)),$((Hc - 2))" +antialias -stroke none -fill "#$C_MUTED" \
-      -font "$(fc-match -f '%{file}' 'Sumi UI')" -pointsize 32 -gravity center \
+      -font "$(fc-match -f '%{file}' 'Sumi UI')" -pointsize 28 -gravity center \
       -annotate +0+0 "$(LC_ALL=C; printf '%s' "${kind^^}")" "PNG24:$png" 2>/dev/null
   else
     magick "${tmp}[0]" -resize "${w}x${Hc}^" -gravity center -extent "${w}x${Hc}" "PNG24:$png" 2>/dev/null

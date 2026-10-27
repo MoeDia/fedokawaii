@@ -99,7 +99,7 @@ for name, esc in re.findall(r"^ICON_(LV_[A-Z]+(?:_\d+)?|GAP1|GAP)='?\$'([^']*)'"
     px[ch] = 1 if name in ("GAP1", "LV_TICK") else 2 if name == "GAP" else 4 if name == "LV_KNOB" else int(n[1])
 row = [c for c in d.childNodes if c.nodeType == c.ELEMENT_NODE][0]
 spans = [c for c in row.childNodes if c.nodeType == c.ELEMENT_NODE]
-slider = [s for s in spans if s.getAttribute("font") == "Sumi Icons 16px"][0]
+slider = [s for s in spans if s.getAttribute("font").startswith("Sumi Icons ")][0]
 parts = [c for c in slider.childNodes if c.nodeType == c.ELEMENT_NODE]
 w = lambda t: sum(px.get(ch, 1000) for ch in t)
 knob = w(text(parts[0])); total = w(text(slider))

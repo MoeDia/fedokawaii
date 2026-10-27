@@ -208,9 +208,9 @@ show() {
       # shellcheck disable=SC2089  # pango markup going into JSON: single quotes on purpose
       body+="  <span color='#$C_FAINT'>$a</span>"
     fi
-    # (the line held at 15 px, as kawa-dwlstatus holds the title's: a song's name in a script
+    # (the line held at 14 px, as kawa-dwlstatus holds the title's: a song's name in a script
     # Sumi UI lacks would grow the bar)
-    body="<span line_height='15360'>$body</span>"
+    body="<span line_height='14336'>$body</span>"
     # (ICON_BAR_*: the icon's ink, then exactly 8 px to the words)
     if [[ $status == Paused ]]; then
       out="{\"text\":\"$ICON_BAR_PAUSE$body\",\"class\":[\"paused\",\"$__air\"]}"

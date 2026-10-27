@@ -44,10 +44,12 @@ run() {
   done
 }
 # Across, as the panel's row (mako's padding puts the first pen at x 26, the row's x + 8):
-# the glyph — a kanji or an icon, two columns of Sumi UI (16 px) —, a space (8 px), the
-# name in 12 columns (96 px), the slider (190 px) and 2 px of air, a space, the number in 4
-# columns: 352 px, within mako's 360 px line (the panel 412 px wide, quick settings' own)
+# the glyph — a kanji or an icon, two columns of Sumi UI (14 px) —, a space (7 px), the
+# name in 12 columns (84 px) and 3 px of air, so the slider (190 px) starts where the
+# panel's does, 2 px of air, a space, the number in 4 columns: 335 px, within mako's 360 px
+# line (the panel 412 px wide, quick settings' own) — until T15 lays it on the 8 × 20 cell
 printf -v name '%-12.12s' "$label"
+name+=$ICON_GAP$ICON_GAP1
 end=$((knob - 1))                              # the fill, up to the knob's pixel of air
 lead=""
 if ((end > 0)); then
@@ -70,10 +72,10 @@ fi
 knob_ink=$C_STRONG; [[ -n $off ]] && knob_ink=$C_MUTED
 if [[ -n $off ]]; then value="<span color='#$C_FAINT'> off</span>"
 else printf -v value "<span color='#%s'>%3d%%</span>" "$C_MUTED" "$pct"; fi
-# one row of 24 px (line_height in Pango units: px × 1024), its words on the 16 px line in
+# one row of 24 px (line_height in Pango units: px × 1024), its words on the 14 px line in
 # the middle
 body="<span line_height='24576'><span color='#$C_ACCENT_TEXT'>$icon</span> <span color='#$C_TEXT'>$name</span>"
-body+="<span font='Sumi Icons 16px'><span color='#$C_TEAL'>$lead</span><span color='#$knob_ink'>$ICON_LV_KNOB</span>"
+body+="<span font='Sumi Icons 14px'><span color='#$C_TEAL'>$lead</span><span color='#$knob_ink'>$ICON_LV_KNOB</span>"
 body+="<span color='#$C_FAINT'>$track</span>$ICON_GAP</span> $value</span>"
 
 # its own app name, so mako never groups it with other notices; and one panel, whatever comes:

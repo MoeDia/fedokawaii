@@ -394,8 +394,8 @@ boot_and_console() {
   # GRUB gets a pixel theme in the desktop's own language, at the monitor's native
   # resolution: plain sumi ink with a hem of seigaiha waves along the bottom edge, fading
   # upwards in an ordered dither (the grain of the desktop's transitions); the torii above
-  # a quiet box of boot entries in Sumi UI (2×, 3× or 4× its pixel grid: 32, 48 or
-  # 64 px), the chosen entry filled whole in vermilion — the desktop's one sign of what is
+  # a quiet box of boot entries in Sumi UI (2×, 3× or 4× its pixel grid: 28, 42 or
+  # 56 px), the chosen entry filled whole in vermilion — the desktop's one sign of what is
   # active — and a thin vermilion line counting down. Once an entry is chosen, nothing: the
   # box GRUB keeps for its own messages while it loads the system is drawn invisible (Fedora
   # prints none), so the screen stays plain until the boot splash takes over.
@@ -415,7 +415,7 @@ boot_and_console() {
   }
   MODE=$(native_mode); MH=${MODE#*x}
   GS=$((MH / 720)); ((GS < 2)) && GS=2; ((GS > 4)) && GS=4   # pixel scale: 1080p/1440p ×2, 4K ×3, 5K ×4
-  FS=$((16 * GS))                            # Sumi UI on a whole multiple of its 16 px grid
+  FS=$((14 * GS))                            # Sumi UI on a whole multiple of its 14 px grid
   GT=$(mktemp -d)
   # same pixels → same bytes on every run; PNG24/PNG32 below because GRUB reads only 8-bit
   # channels (ImageMagick would otherwise write tiny 1- or 2-bit palette files it rejects)

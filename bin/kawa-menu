@@ -15,7 +15,7 @@
 #   --launcher  the launcher itself (the panel's: the torii and Super+Space), in the middle
 #               of the screen — open, or closed when it is open
 #   --title     a quiet line above the list
-#   --width N   at least N columns of 8 px (without it the menu is as wide as its content)
+#   --width N   at least N columns of 7 px (without it the menu is as wide as its content)
 #   --lines N   at most N rows show; a longer list scrolls (the wheel, the cursor)
 #   --select N  the line the cursor opens on (else the first choice: Enter takes it at once;
 #               the pointer moves it — one cursor, the pointer's or the keys')

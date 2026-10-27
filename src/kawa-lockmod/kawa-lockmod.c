@@ -11,15 +11,15 @@
  *  kawa-steam --guard, which logind tells first).
  *
  *  The flavour, as on the login screen (kawa-greet): AM/PM after the big time (gtklock draws
- *  "%I:%M" at 64 px: design-system §2's display size); after the date the weekday in kanji
+ *  "%I:%M" at 56 px: design-system §2's display size); after the date the weekday in kanji
  *  (火曜日, accent_text); under the day a line of the season and the hour — 秋の夜 · the
  *  moon, a seal on paper — its
  *  kanji in accent_text, its words muted (VERSES: the same sixteen in kawa-greet). Read again
  *  every half minute; the look is current/gtklock.css (#weekday, #verse-kanji, #verse).
  *
- *  The password's line. Each character a vermilion ◆ at 32 px — Sumi UI at twice its pixels,
+ *  The password's line. Each character a vermilion ◆ at 28 px — Sumi UI at twice its pixels,
  *  as the time is at four: big enough to count at a glance — while the hint (パスワード ·
- *  password) stays at 16 px: the entry's own placeholder would grow with it, so the hint is a
+ *  password) stays at 14 px: the entry's own placeholder would grow with it, so the hint is a
  *  label of its own over the empty line (#input-hint), gone with the first character.
  *
  *  The wake guard. The key that wakes the computer, or lights the dark screens, only wakes:

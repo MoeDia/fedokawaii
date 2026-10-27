@@ -24,7 +24,7 @@ title_is() {
   python3 -I - "$BAR/title.json" "$1" <<'EOF'
 import json, sys, xml.etree.ElementTree as E
 t = json.load(open(sys.argv[1], encoding="utf-8"))["text"]
-w = ("<span line_height='15360'>", "</span>")
+w = ("<span line_height='14336'>", "</span>")
 if t and not (t.startswith(w[0]) and t.endswith(w[1])):
     print(f"[{t[:80]}] is not held at 15 px")
 elif t:
@@ -230,7 +230,7 @@ for m in tag1 tag5 layout title; do
   eq "$(env -u WAYBAR_OUTPUT_NAME sh -c "$ex")" "$(bar "HDMI-A-1/$m")" "$m with no name: the focused monitor's"
   eq "$(WAYBAR_OUTPUT_NAME=DP-3 sh -c "$ex")" "$(bar "HDMI-A-1/$m")" "$m on a monitor not reported yet"
 done
-eq "$(WAYBAR_OUTPUT_NAME=DP-1 sh -c "$(wbexec custom/title)")" '{"text":"<span line_height='"'"'15360'"'"'>on the left</span>","class":["l0","r1"]}'
+eq "$(WAYBAR_OUTPUT_NAME=DP-1 sh -c "$(wbexec custom/title)")" '{"text":"<span line_height='"'"'14336'"'"'>on the left</span>","class":["l0","r1"]}'
 eq "$(WAYBAR_OUTPUT_NAME=DP-1 sh -c "$(wbexec custom/kb)")" '{"text":"US","class":"first"}' "the keyboard: one for all"
 case_ "the focus moves to the other monitor: the top files follow it, in either order dwl lists them"
 rm -rf "$BAR"
@@ -340,7 +340,7 @@ block DP-1 1 1 1 0 '(@)' 0 "same" >&7; exec 7>&-; wait "$sp"
 eq "$(jtext title)" "same"; eq "$(tagrow)" "1:sel 2:emp 3:emp 4:- 5:- 6:- 7:- 8:- 9:-"
 case_ "a runtime folder with a space in its path"
 mkdir -p "$TMP/run time"; XDG_RUNTIME_DIR="$TMP/run time" kawa-dwlstatus < <(block DP-1 1 1 1 0 '(@)' 0 "spaced")
-eq "$(cat "$TMP/run time/dwl-bar/title.json")" '{"text":"<span line_height='"'"'15360'"'"'>spaced</span>","class":["l0","r1"]}'
+eq "$(cat "$TMP/run time/dwl-bar/title.json")" '{"text":"<span line_height='"'"'14336'"'"'>spaced</span>","class":["l0","r1"]}'
 case_ "icons.sh missing (a theme run that never finished): no made-up symbols — it stops, said (autostart drains dwl's pipe meanwhile)"
 mv "$HOME/.config/fedokawaii/icons.sh" "$TMP/icons.sh"; rm -rf "$BAR"
 err=$({ block DP-1 1 1 1 0 '(@)' 0 "second"; } | kawa-dwlstatus 2>&1 >/dev/null); r=$?
@@ -364,7 +364,7 @@ EOF
 )
 eq "$got" "94 94"
 rm -rf "$BAR"; kawa-dwlstatus < <(block DP-1 1 1 1 0 '(@)' 0 "lo-fi beats")
-eq "$(bar title)" '{"text":"<span line_height='"'"'15360'"'"'>lo-fi beats</span>","class":["l2","r1"]}' "l: 2 px of air before it, s: its column of air after (every letter has one)"
+eq "$(bar title)" '{"text":"<span line_height='"'"'14336'"'"'>lo-fi beats</span>","class":["l2","r1"]}' "l: 2 px of air before it, s: its column of air after (every letter has one)"
 case_ "a home folder with a space"
 mkdir -p "$TMP/my home/.config/fedokawaii"; cp "$HOME/.config/fedokawaii/icons.sh" "$HOME/.config/fedokawaii/width.sh" "$TMP/my home/.config/fedokawaii/"
 rm -rf "$BAR"; HOME="$TMP/my home" kawa-dwlstatus < <(block DP-1 1 1 1 0 '(@)' 0 "home")

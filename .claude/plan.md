@@ -126,6 +126,7 @@ approach:
 - The chosen coding face + Nerd glyphs + Japanese coverage at its best hinted pixel size; ligatures decided from the reading test; line height chosen so the cell is whole pixels and a 1080p tile holds whole rows (document the grid: W×H cells at the spiral's first window and a full window).
 - "Sumi Term" stays the family name in configs (an alias face built from the chosen font: no config churn); the term icon twins re-gridded; the prompt (T26) comes later on this grid.
 - Every TUI's fixed widths recomputed from screen.sh; kawa-term's COLSxROWS tables regenerated; nothing truncated (test_noellipsis).
+MEASURED (06:05, during T10): foot with UDEV Gothic NF at 16 px and line-height=20px puts the baseline 16 px down (ascent 15.33 and descent 3.25 round to 16 + 4 = 20: no slack, nothing to centre) — capitals on rows 4–15 (middle ≈ 10.2), descenders 16–19; foot draws ─ on row 10, the GUI rule's row. No vertical-letter-offset needed (render: font-try.sh term udev20 16 20).
 accept: foot shows the face at the chosen px with 0 fractional pixels (grim crop at 4×: crisp stems); a full-screen foot holds the documented cells; every popup window centred to the pixel (px.py); tests green; the Learn book's "terminal" pieces corrected. + tests/static/test_design_doc.sh: `term-face` in BUILT with its `built_*` check (the doc's numbers in its files), green.
 
 ## Phase 2 — one design, one unit: Super+U first, then every surface to match

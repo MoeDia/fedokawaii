@@ -4,7 +4,7 @@ compositor: one full-screen window) on tty1, as its own user (greetd).
 
 It is the lock screen's twin: on your wallpaper shaded into the ground (as the lock shows it:
 kawa-wallpaper leaves a copy in /var/lib/fedokawaii-greeter), no panel, no box — one column in
-the middle: the pixel padlock beside the time at 64 px, the day (its seal, the date, the
+the middle: the pixel padlock beside the time at 56 px, the day (its seal, the date, the
 weekday in kanji: 火曜日), a line of the season and the hour (VERSES — the same sixteen as
 kawa-lockmod's), and one line for your password, each character a ◆ in accent_text. A wrong
 password empties it and says so above it; the right one starts the desktop
@@ -122,7 +122,7 @@ class Greeter(Gtk.Window):
         box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, name="window-box",
                       halign=Gtk.Align.CENTER, valign=Gtk.Align.CENTER)
         info = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, name="info-box")
-        # the face: the padlock, the time in the display size (64 px: design-system §2), AM/PM
+        # the face: the padlock, the time in the display size (56 px: design-system §2), AM/PM
         face = Gtk.Box(name="face", halign=Gtk.Align.CENTER)
         face.add(Gtk.Image(file=f"{art}/padlock.png", name="padlock", valign=Gtk.Align.CENTER))
         self.clock = Gtk.Label(name="clock-label", valign=Gtk.Align.CENTER)
@@ -154,7 +154,7 @@ class Greeter(Gtk.Window):
                                visibility=False, invisible_char=ord("◆"), caps_lock_warning=False,   # (a code point: GTK takes a number)
                                input_purpose=Gtk.InputPurpose.PASSWORD)
         self.entry.connect("activate", self.login)
-        # each ◆ at 32 px (gtklock.css), the hint at 16 over the empty line: a label of its own,
+        # each ◆ at 28 px (gtklock.css), the hint at 14 over the empty line: a label of its own,
         # as kawa-lockmod does it (the entry's placeholder would grow with the ◆)
         hint = Gtk.Label(name="input-hint", label=f"{user} · パスワード · password",
                          halign=Gtk.Align.CENTER, valign=Gtk.Align.CENTER, no_show_all=True)

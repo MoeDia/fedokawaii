@@ -24,7 +24,7 @@
  * words) and moves every minute. When the cloth is
  * full it rests, then is washed (an ordered dither, block by block) and sewn anew. Everything
  * is drawn on a grid of dots as big as a pixel of the wallpapers' pixel art (3 px at 1080p,
- * 4 at 1440p, 6 at 4K), in the design system's own letters (Sumi UI at 16 px: glyphs.h).
+ * 4 at 1440p, 6 at 4K), in the design system's own letters (Sumi UI at 14 px: glyphs.h).
  * Nothing on the screen stays put: no burn-in.
  *
  * Any key, click, scroll or move of the pointer ends it — and goes nowhere else: it holds the
@@ -69,7 +69,7 @@ static uint32_t pal[NCOL];
 
 #define CELL 8          /* the sashiko grid, in dots */
 #define TILE 16         /* what is redrawn at once, in dots */
-#define SEAL 26         /* a seal, as the panels draw it: the kanji (16) with 4 of paper and 1 of frame round it */
+#define SEAL 24         /* a seal, as the panels draw it: the kanji (14) with 4 of paper and 1 of frame round it */
 #define GAP GLYPH_COL   /* a gap, as the panels keep: a column of the letters */
 #define MAXSEALS 6
 #define NEEDLES 8

@@ -12,6 +12,7 @@ git                             a command (lazygit is its window: Git)
 jq                              a command the scripts use
 gnupg2                          a command the scripts use
 python3                         a language: the helpers' Python, scripts you write
+python3-pyte                    a library: the self-tests read a terminal's screen with it
 diffutils                       commands (diff, cmp)
 man-db                          man, in a shell; the change menu opens the manuals
 tar                             a command

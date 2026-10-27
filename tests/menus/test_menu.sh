@@ -71,8 +71,8 @@ eq "$(fz_arg width)" 12; eq "$(fz_arg lines)" 2
 case_ "--help: the usage and the line format, exit 0"
 out=$(kawa-menu --help); rc 0 kawa-menu --help
 has "$out" "kawa-menu [--drop]"; has "$out" "--index"; has "$out" "part"; has "$out" "row|on|off|info GLYPH NAME [DETAIL [VALUE]]"
-has "$out" "--width N   at least N columns of 8 px" "(the panel's column: kawa-panel's COL)"
-eq "$(python3 -I -c 'import re,sys; print(re.search(r"^COL = (\d+)", open(sys.argv[1]).read(), re.M).group(1))' "$REPO/bin/kawa-panel")" 8
+has "$out" "--width N   at least N columns of 7 px" "(the panel's column: kawa-panel's COL)"
+eq "$(python3 -I -c 'import re,sys; print(re.search(r"^COL = (\d+)", open(sys.argv[1]).read(), re.M).group(1))' "$REPO/bin/kawa-panel")" 7
 case_ "wrong use: exit 2 and no menu opens"
 n=$(fz_n)
 rc 2 kawa-menu --bogus; rc 2 kawa-menu --title; rc 2 kawa-menu --width

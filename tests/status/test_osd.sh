@@ -61,26 +61,26 @@ setup
 kawa-osd 明 brightness 50
 b=$(body)
 has "$b" "<span line_height='24576'><span color='#$C_ACCENT_TEXT'>明</span>"
-has "$b" "<span color='#$C_TEXT'>brightness  </span>"
+has "$b" "<span color='#$C_TEXT'>brightness  $ICON_GAP$ICON_GAP1</span>"
 # 50 %: fill 95 px, the knob at 93 — fill 92 (64 + 16 + 8 + 4), air, the knob, air, the track
 # from 98 to the third quarter's tick (at 143: 45 = 32 + 8 + 4 + 1), the tick, the rest (46: 32 + 8 + 4 + 2)
-has "$b" "<span font='Sumi Icons 16px'><span color='#$C_TEAL'>$ICON_LV_FILL_64$ICON_LV_FILL_16$ICON_LV_FILL_8$ICON_LV_FILL_4$ICON_GAP1</span><span color='#$C_STRONG'>$ICON_LV_KNOB</span>"
+has "$b" "<span font='Sumi Icons 14px'><span color='#$C_TEAL'>$ICON_LV_FILL_64$ICON_LV_FILL_16$ICON_LV_FILL_8$ICON_LV_FILL_4$ICON_GAP1</span><span color='#$C_STRONG'>$ICON_LV_KNOB</span>"
 has "$b" "<span color='#$C_FAINT'>$ICON_GAP1$ICON_LV_TRACK_32$ICON_LV_TRACK_8$ICON_LV_TRACK_4$ICON_LV_TRACK_1$ICON_LV_TICK$ICON_LV_TRACK_32$ICON_LV_TRACK_8$ICON_LV_TRACK_4$ICON_LV_TRACK_2</span>$ICON_GAP</span>"
 has "$b" "<span color='#$C_MUTED'> 50%</span></span>"
 
-case_ "one row on the panel's grid: the name 24 px after the glyph's pen (any glyph two columns, 16 px, then a space, 8), 12 columns of name, 12 squares, 8 px, 4 columns of number"
+case_ "one row on the panel's grid: the name 21 px after the glyph's pen (any glyph two columns, 14 px, then a space, 7), 12 columns of name and 3 px of air, the slider, 7 px, 4 columns of number"
 setup
 kawa-osd 明 brightness 70
-has "$(body)" "明</span> <span color='#$C_TEXT'>brightness  </span>"
+has "$(body)" "明</span> <span color='#$C_TEXT'>brightness  $ICON_GAP$ICON_GAP1</span>"
 kawa-osd "$ICON_VOL_3" volume 70
-has "$(body)" "$ICON_VOL_3</span> <span color='#$C_TEXT'>volume      </span>"
+has "$(body)" "$ICON_VOL_3</span> <span color='#$C_TEXT'>volume      $ICON_GAP$ICON_GAP1</span>"
 kawa-osd "$ICON_MIC" microphone 70
-has "$(body)" "$ICON_MIC</span> <span color='#$C_TEXT'>microphone  </span>"
+has "$(body)" "$ICON_MIC</span> <span color='#$C_TEXT'>microphone  $ICON_GAP$ICON_GAP1</span>"
 lacks "$(body)" "font='Fusion" "no face but Sumi's"
 v=$(for p in 5 70 100; do kawa-osd 明 brightness "$p"; body | sed -e "s/.*<span color='#$C_MUTED'>//" -e 's/<.*//'; done
     kawa-osd 明 brightness 5 off; body | sed -e "s/.*<span color='#$C_FAINT'>//" -e 's/<.*//')
 eq "$(printf '%s\n' "$v" | awk '{ print length($0) }' | sort -u)" 4 "every value 4 columns: [$(tr '\n' '|' <<<"$v")]"
-has "$(body)" "$ICON_GAP</span> <span color='#$C_FAINT'>" "8 px (a space) after the slider's 2 px of air, then the number"
+has "$(body)" "$ICON_GAP</span> <span color='#$C_FAINT'>" "7 px (a space) after the slider's 2 px of air, then the number"
 case_ "where mako puts it: the glyph's pen where the panel's meter row has its glyph, the slider where the panel's starts; 412 × 60"
 eq "$(python3 -I -B - "$REPO" <<'EOF' 2>&1
 import importlib.machinery as m, importlib.util as u, re, sys
@@ -93,14 +93,14 @@ pad = [int(x) for x in (get(osd, "padding") or get(top, "padding")).split(",")]
 pad = pad * 2 if len(pad) == 1 else pad
 border = int(get(top, "border-size")); width = int(get(osd, "width") or get(top, "width"))
 pen = border + pad[1]
-squares = pen + 2 * k.COL + k.COL + 12 * k.COL           # (the glyph, a space, the name's 12 columns)
+squares = pen + 2 * k.COL + k.COL + 12 * k.COL + 3       # (the glyph, a space, the name's 12 columns, 3 px of air)
 x0 = k.BORDER + k.PAD                                      # (the panel's meter: a row of the panel's inner width)
 print(pen == x0 + k.GAP, squares == x0 + k.INNER - k.TRAIL - k.SPAN, width, 2 * border + 2 * pad[0] + 24,
       squares + k.SPAN + 2 + k.COL + 4 * k.COL <= width - border - pad[1])
 EOF
 )" "True True 412 60 True"
 eq "$(kawa-osd 明 "a very long label here" 50; osd | cut -d'|' -f2)" "明  a very long label here" "the title is whole…"
-has "$(body)" "<span color='#$C_TEXT'>a very long </span>" "… the row's name cut to its 12 columns: the slider never moves"
+has "$(body)" "<span color='#$C_TEXT'>a very long $ICON_GAP" "… the row's name cut to its 12 columns: the slider never moves"
 
 case_ "the theme's colours (light); no theme set up: no panel in made-up colours, a failure"
 setup; ln -sfn themes/light "$HOME/.config/fedokawaii/current"

@@ -308,14 +308,14 @@ eq "$(py 'fresh(); p.request(); p.hover(200, 170); p.close("chosen"); p.request(
 eq "$(py 'fresh(); p.hover(200, 170); p.refresh(); u.answer(STATE); print(p.hot)')" night
 eq "$(py 'fresh(); p.hover(206, 430); p.refresh(); u.answer(STATE.replace("bluetooth\ton\n","").replace("devices\tnone\n","")); print(p.hot)')" None "its tile gone: none"
 case_ "a drag: the meter follows, the hot one does not move off it"
-eq "$(py 'fresh(); p.hover(148, 64); p.press(148, 64); p.hover(200, 170, dragging=True); print(p.hot, p.focus)')" "brightness None"
+eq "$(py 'fresh(); p.hover(136, 64); p.press(136, 64); p.hover(200, 170, dragging=True); print(p.hot, p.focus)')" "brightness None"
 eq "$(py 'fresh(); p.press(5, 5); print(u.calls)')" "[]" "on the frame: nothing"
 case_ "a click on a meter's slider: the level there, dragged: it follows"
-eq "$(py 'fresh(); p.press(146 + 95, 64); print(p.state["brightness"])')" 50% "the rule's middle pixel: 50 %"
-eq "$(py 'fresh(); p.press(146 + 80, 64); print(p.state["brightness"])')" 42% "80 of its 190 px: 42 %"
-eq "$(py 'fresh(); p.press(148, 90); p.hover(340, 90, dragging=True); print(p.state["sound"])')" 100%
-eq "$(py 'fresh(); p.press(148, 90); p.release(); p.hover(340, 90, dragging=True); print(p.state["sound"])')" 1% "let go: no more"
-eq "$(py 'fresh(); p.press(141, 64); print(p.state["brightness"])')" 0% "just left of the rule: 0"
+eq "$(py 'fresh(); p.press(134 + 95, 64); print(p.state["brightness"])')" 50% "the rule's middle pixel: 50 %"
+eq "$(py 'fresh(); p.press(134 + 80, 64); print(p.state["brightness"])')" 42% "80 of its 190 px: 42 %"
+eq "$(py 'fresh(); p.press(136, 90); p.hover(340, 90, dragging=True); print(p.state["sound"])')" 100%
+eq "$(py 'fresh(); p.press(136, 90); p.release(); p.hover(340, 90, dragging=True); print(p.state["sound"])')" 1% "let go: no more"
+eq "$(py 'fresh(); p.press(129, 64); print(p.state["brightness"])')" 0% "just left of the rule: 0"
 
 case_ "the slider and the level, one rule both ways: the fill ends (the knob's middle stands) where the pointer is"
 eq "$(py '
@@ -334,36 +334,36 @@ eq "$(py 'print([kp.snap(v, d) for v, d in ((62, 5), (62, -5), (60, 5), (60, -5)
 
 case_ "a drag: every motion sets the level under the pointer at once, only that meter redrawn, one set at a time, the last one sent"
 eq "$(py '
-fresh(); p.press(146 + 30, 64); u.drawn.clear()
+fresh(); p.press(134 + 30, 64); u.drawn.clear()
 shown = []
 for x in range(176, 360, 7):
-    p.hover(x, 64, dragging=True); shown.append(p.state["brightness"] == f"{kp.level_at(x - 146)}%")
+    p.hover(x, 64, dragging=True); shown.append(p.state["brightness"] == f"{kp.level_at(x - 134)}%")
 print(all(shown), all(d == ["brightness"] for d in u.drawn), sum(c.startswith("run kawa-quick --do brightness") for c in u.calls))
 u.answer(); print(u.calls[-1]); p.release(); u.answer(); print(u.calls[-1])')" \
   "$(printf '%s\n' 'True True 1' 'run kawa-quick --do brightness 100' 'run kawa-quick --state')"
-eq "$(py 'fresh(); p.press(146 + 30, 64); n = len(u.calls); p.hover(146 + 30, 64, dragging=True); p.hover(146 + 30.5, 64, dragging=True); print(len(u.calls) - n)')" 0 "the same level again: nothing redrawn, nothing sent"
-eq "$(py 'fresh(); p.press(148, 64); p.hover(-50, 64, dragging=True); a = p.state["brightness"]; p.hover(900, 64, dragging=True); print(a, p.state["brightness"])')" "0% 100%" "dragged past either end: that end"
+eq "$(py 'fresh(); p.press(134 + 30, 64); n = len(u.calls); p.hover(134 + 30, 64, dragging=True); p.hover(134 + 30.5, 64, dragging=True); print(len(u.calls) - n)')" 0 "the same level again: nothing redrawn, nothing sent"
+eq "$(py 'fresh(); p.press(136, 64); p.hover(-50, 64, dragging=True); a = p.state["brightness"]; p.hover(900, 64, dragging=True); print(a, p.state["brightness"])')" "0% 100%" "dragged past either end: that end"
 
 case_ "no snapping back: a state read that comes back mid-drag, or was started before the last change, leaves the meter as set"
 eq "$(py '
 fresh(); p.refresh()                                  # (a read already under way: the open)
-p.press(146 + 134, 64); v = p.state["brightness"]
+p.press(134 + 134, 64); v = p.state["brightness"]
 u.pending.pop(1)(0, STATE)                            # (it comes back with the old 70 %)
 print(v, p.state["brightness"])')" "71% 71%"
 eq "$(py '
-fresh(); p.press(146 + 134, 64); p.release(); p.refresh()
+fresh(); p.press(134 + 134, 64); p.release(); p.refresh()
 u.answer()                                            # (the level set: confirmed)
 u.answer(STATE)                                       # (the read started before that: 70 %)
 print(p.state["brightness"])')" 71% "a read started while it was being set: ignored"
 eq "$(py '
-fresh(); p.press(146 + 134, 64); p.release(); u.answer()
+fresh(); p.press(134 + 134, 64); p.release(); u.answer()
 u.answer(STATE.replace("70%", "71%").replace("night\ton", "night\toff"))
 print(p.state["brightness"], p.state["night"], p.held("brightness"))')" "71% off False" "a read after it: taken, and the meter free again"
 eq "$(py '
-fresh(); p.refresh(); p.press(146 + 134, 64); p.release(); p.refresh(); u.answer(STATE); u.answer(); u.answer(STATE); u.answer(STATE)
+fresh(); p.refresh(); p.press(134 + 134, 64); p.release(); p.refresh(); u.answer(STATE); u.answer(); u.answer(STATE); u.answer(STATE)
 print(p.state["brightness"], p.held("brightness"))')" "70% False" "reads that started while it was set are ignored, but only those: the meter is not held for good"
 eq "$(py '
-fresh(); p.press(146 + 134, 64); p.release(); u.answer(); u.answer(STATE)
+fresh(); p.press(134 + 134, 64); p.release(); u.answer(); u.answer(STATE)
 print(p.state["brightness"])')" 70% "… so a level the machine did not take shows as it is"
 
 case_ "the wheel and a touchpad: a step per notch; a touchpad's small scrolls summed, not a step each"
@@ -489,7 +489,7 @@ eq "$(py 'fresh(); p.request(); p.key("Down"); p.key("Down"); p.close("chosen");
 case_ "the pointer coming in (enter-notify): what is under it hot at once, before any motion"
 eq "$(py 'fresh(); p.request(); u.drawn.clear(); p.enter(200, 170); print(p.hot, u.drawn)')" "night [['night']]"
 eq "$(py 'fresh(); p.request(); p.enter(5, 5); print(p.hot)')" None "on the frame: nothing"
-eq "$(py 'fresh(); p.request(); p.press(148, 64); p.enter(200, 170); print(p.hot)')" brightness "during a drag the hot one stays"
+eq "$(py 'fresh(); p.request(); p.press(136, 64); p.enter(200, 170); print(p.hot)')" brightness "during a drag the hot one stays"
 case_ "it opens under the pointer: the item there is hot as the window says the pointer is in"
 eq "$(py 'fresh(); p.request(); p.enter(60, 520); print(p.hot)')" wallpaper
 case_ "the pointer leaving: only a real leave clears it — not one into a child's window, not a grab's crossing"
@@ -576,8 +576,8 @@ eq "$(dn '"output", "Echo-Cancel Sink", "", "", "", "", ""')" "Echo-Cancel Sink"
 case_ "two alike: told apart by their cards, else by number"
 eq "$(py 'H = ("HDMI / DisplayPort", "HDMI 0"); print(kp.device_names([("output", "Navi 48 HDMI/DP Audio Controller Digital Stereo (HDMI)", *H, "Navi 48 HDMI/DP Audio Controller", "Digital Stereo (HDMI)", "alsa"), ("output", "Radeon High Definition Audio Controller Digital Stereo (HDMI)", *H, "Radeon High Definition Audio Controller", "Digital Stereo (HDMI)", "alsa"), ("output", "X", "", "", "", "", ""), ("output", "X", "", "", "", "", "")]))')" \
   "['HDMI · Navi 48', 'HDMI · Radeon', 'X', 'X 2']"
-case_ "every short name fits its row whole (42 columns of Sumi UI's 8 px: the row's 336 px, its name to a gap before the edge) — no …"
-eq "$(py 's = kp.parse_sound(SOUND); print(max(kp.px_of(n) for _, _, n in s["outputs"] + s["inputs"]) <= kp.INNER - kp.NAME_X - kp.GAP == 336)')" True
+case_ "every short name fits its row whole (the row's 338 px — 48 columns of Sumi UI's 7 px —, its name to a gap before the edge) — no …"
+eq "$(py 's = kp.parse_sound(SOUND); print(max(kp.px_of(n) for _, _, n in s["outputs"] + s["inputs"]) <= kp.INNER - kp.NAME_X - kp.GAP == 338)')" True
 case_ "a row's look: the one in use in strong ink, the others' box quiet; the pointer lights glyph and name, the cursor fills it"
 eq "$(py 'opened("sound", SOUND); a, b = p.item("out:62"), p.item("out:73"); print(*[" ".join(str(v) for v in kp.look(i, f, h).values()) for i, f, h in ((a, False, False), (b, False, False), (b, False, True), (b, True, False))], sep=" | ")')" \
   "None None strong strong muted False text | None None muted text muted False text | None None accent_text accent_text muted False text | accent None text_on_accent text_on_accent text_on_accent True text_on_accent"
@@ -593,18 +593,18 @@ eq "$(py 'opened("sound", SOUND); p.press(60, 100); print(u.calls[-1]); u.answer
 eq "$(py 'opened("sound", SOUND); p.press(200, 356); print(u.calls[-1], p.visible)')" "run kawa-quick --do micmute True"
 eq "$(py 'opened("sound", SOUND); p.press(300, 100); print(", ".join(u.calls[-3:]), p.visible)')" "hide, light sound off, launch kawa-quick --do mixer False"
 case_ "the volume: dragged, clicked, the wheel, ← →, as quick settings' (kawa-quick --do volume N), one at a time"
-eq "$(py 'opened("sound", SOUND); p.press(146 + 95, 64); print(p.state["sound"], u.calls[-1])')" "50% run kawa-quick --do volume 50"
-eq "$(py 'opened("sound", SOUND); p.press(148, 64); p.hover(340, 64, dragging=True); p.hover(146 + 120, 64, dragging=True); print(sum(c.startswith("run kawa-quick --do volume") for c in u.calls)); u.answer(); print(u.calls[-1])')" \
+eq "$(py 'opened("sound", SOUND); p.press(134 + 95, 64); print(p.state["sound"], u.calls[-1])')" "50% run kawa-quick --do volume 50"
+eq "$(py 'opened("sound", SOUND); p.press(136, 64); p.hover(340, 64, dragging=True); p.hover(134 + 120, 64, dragging=True); print(sum(c.startswith("run kawa-quick --do volume") for c in u.calls)); u.answer(); print(u.calls[-1])')" \
   "$(printf '%s\n' 1 'run kawa-quick --do volume 63')"
 eq "$(py 'opened("sound", SOUND); p.wheel(200, 64, True); print(p.state["sound"])')" 65%
 eq "$(py 'opened("sound", SOUND); p.key("Down"); p.key("Right"); print(p.focus, p.state["sound"])')" "sound 65%"
 case_ "muted: a level set unmutes (kawa-quick --do volume does) — even the same level; the fill solid again at once"
-eq "$(py 'opened("sound", SOUND.replace("muted\toff", "muted\ton")); p.press(146 + 118, 64); print(p.state["sound"], p.state["muted"], p.item("sound").muted, u.calls[-1])')" \
+eq "$(py 'opened("sound", SOUND.replace("muted\toff", "muted\ton")); p.press(134 + 118, 64); print(p.state["sound"], p.state["muted"], p.item("sound").muted, u.calls[-1])')" \
   "62% off False run kawa-quick --do volume 62"
 case_ "no snapping back: a read of the sound panel started before a change leaves the volume (and its unmute) as set"
-eq "$(py 'opened("sound", SOUND.replace("muted\toff", "muted\ton")); p.press(146 + 134, 64); p.release(); p.refresh(); u.answer(); u.answer(SOUND.replace("muted\toff", "muted\ton")); print(p.state["sound"], p.state["muted"])')" "71% off"
+eq "$(py 'opened("sound", SOUND.replace("muted\toff", "muted\ton")); p.press(134 + 134, 64); p.release(); p.refresh(); u.answer(); u.answer(SOUND.replace("muted\toff", "muted\ton")); print(p.state["sound"], p.state["muted"])')" "71% off"
 case_ "a level set in one panel is every panel's: quick settings shows it too, and its older read does not undo it"
-eq "$(py 'opened("sound", SOUND); p.refresh("quick"); p.press(146 + 134, 64); print(p.states["quick"]["sound"]); u.answer(STATE); print(p.states["quick"]["sound"])')" \
+eq "$(py 'opened("sound", SOUND); p.refresh("quick"); p.press(134 + 134, 64); print(p.states["quick"]["sound"]); u.answer(STATE); print(p.states["quick"]["sound"])')" \
   "$(printf '%s\n' 71% 71%)"
 eq "$(py 'opened("brightness", "brightness\t70%\n"); p.key("Right"); print(p.states["quick"]["brightness"], p.state["brightness"])')" "75% 75%"
 case_ "the arrows: up and down through the rows (two keys in one), left and right along the keys"
@@ -614,12 +614,12 @@ eq "$(py 'opened("sound", SOUND); p.focus = "mic"; p.key("Up"); p.key("Up"); pri
 # ── the brightness slider (--brightness) ───────────────────────────────────────────────
 case_ "the brightness slider: the meter alone, the size of what it holds — its kanji on the content's left edge, its last square on the right"
 eq "$(py 'opened("brightness", "brightness\t70%\n"); i = p.items[0]; print([(i.key, i.kind, i.kanji, i.name, i.x, i.y, i.w, i.h)], p.size, p.slider_x(i), p.slider_x(i) + kp.SPAN == i.x + i.w)')" \
-  "[('brightness', 'meter', '明', 'brightness', 18, 18, 310, 24)] (346, 60) 138 True"
-eq "$(py 'fresh(); print(p.slider_x(p.item("brightness")))')" 146 "quick settings' squares where they were"
+  "[('brightness', 'meter', '明', 'brightness', 18, 18, 298, 24)] (334, 60) 126 True"
+eq "$(py 'fresh(); print(p.slider_x(p.item("brightness")))')" 134 "quick settings' squares where they were"
 case_ "its keys: ← → (h l) change it from the first press (it is all there is) — no cursor drawn for that; a click, a drag, the wheel"
 eq "$(py 'opened("brightness", "brightness\t70%\n"); p.key("Right"); p.key("h"); print(p.focus, p.state["brightness"], [c for c in u.calls if c.startswith("run")][0])')" \
   "None 70% run kawa-quick --do brightness 75"
-eq "$(py 'opened("brightness", "brightness\t70%\n"); p.press(138 + 95, 30); print(p.state["brightness"])')" 50%
+eq "$(py 'opened("brightness", "brightness\t70%\n"); p.press(126 + 95, 30); print(p.state["brightness"])')" 50%
 eq "$(py 'opened("brightness", "brightness\t70%\n"); p.wheel(200, 30, False); print(p.state["brightness"])')" 65%
 eq "$(py 'opened("brightness", "brightness\tno DDC/CI\n"); p.key("Right"); print(p.state["brightness"], u.calls)')" "no DDC/CI []" "no DDC/CI: the words, the keys do nothing"
 eq "$(py 'opened("brightness", "brightness\t70%\n"); p.key("Tab"); print(p.focus)')" brightness "Tab shows the cursor on it"
@@ -765,10 +765,10 @@ eq "$(py 'fresh(); p.request("menu kawa-power", kp.Menu(["a"]), lambda *a: 0); p
 # ── a menu's size ─────────────────────────────────────────────────────────────────────
 case_ "a menu sizes to its content: the value 16 px after the widest detail, 8 px to the edge (the weather's week)"
 eq "$(py 'm = kp.Menu(["part\t天\tSharjah", "row\t☼\tMon 19\tscorching\t31°", "row\t☁\tTue 20\tmild\t24°"])
-print(m.inner(), kp.columns([l[2] for l in m.lines if l[1] == "row"], kp.px_of))')" "216 (96, 208)" "the names 48 px: details at 32 + 48 + 16 = 96; scorching (72) ends at 168, + 16 + the widest value (24): 208; + 8: 216 wide"
+print(m.inner(), kp.columns([l[2] for l in m.lines if l[1] == "row"], kp.px_of))')" "196 (88, 188)" "the names 42 px: details at 30 + 42 + 16 = 88; scorching (63) ends at 151, + 16 + the widest value (21): 188; + 8: 196 wide"
 eq "$(py 'print(kp.Menu(["row\tx\tlock", "row\tx\tshut down"]).inner())')" 160 "a short menu: 160 px at least"
-eq "$(py 'print(kp.Menu(["key\tx\tprevious", "key\tx\tnext", "key\tx\ttoday"]).inner())')" "$((3 * (40 + 64) + 2 * 8))" "keys sharing a row: each as wide as the widest (a gap, its glyph, a gap, the name, a gap)"
-eq "$(py 'print(kp.px_of("a—b…"), kp.px_of("写真"))')" "32 32" "the signs Sumi UI draws into one column count 8, a kanji 16"
+eq "$(py 'print(kp.Menu(["key\tx\tprevious", "key\tx\tnext", "key\tx\ttoday"]).inner())')" "$((3 * (38 + 56) + 2 * 8))" "keys sharing a row: each as wide as the widest (a gap, its glyph, a gap, the name, a gap)"
+eq "$(py 'print(kp.px_of("a—b…"), kp.px_of("写真"))')" "28 28" "the signs Sumi UI draws into one column count 7, a kanji 14"
 case_ "--lines N: N lines of choices whole, their headings above them not counted"
 eq "$(py 'print(kp.layout_menu(kp.Menu(["part\t共\tshare", "row\tx\ta", "row\tx\tb", "row\tx\tc"], lines_shown=3)).view)')" None "a heading and three rows, three asked: all of it, no scrolling"
 eq "$(py 'm = kp.Menu(["part\t起\tone"] + ["row\t\tk\td"] * 5 + ["part\t写\ttwo"] + ["row\t\tk\td"] * 5, lines_shown=6)

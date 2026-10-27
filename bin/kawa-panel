@@ -119,12 +119,13 @@ DROP_POKE = {"kawa-calendar": "19", "kawa-drives": "13", "kawa-steam": "17", "ka
              "kawa-tag": "9", "kawa-timer": None, "kawa-downloads": "21"}
 
 # ── the grid (pixels) ─────────────────────────────────────────────────────────────────────
-# (docs/design-system.md §3: the grid of Sumi UI at 16 px — an 8 px column a letter)
+# (docs/design-system.md §3; Sumi UI at 14 px — a 7 px column a letter; the rest of this grid is
+# the old one until T13 lays the panels on the 8 × 20 cell)
 BORDER, PAD = 2, 16                  # the frame and the margin inside it
 TILE_W, TILE_H, GAP = 120, 80, 8     # three tiles a row: 3 × 120 + 2 × 8 = 376, the content
 INNER = 3 * TILE_W + 2 * GAP
-COL = 8                              # a column of Sumi UI: a letter (a kanji or kana: two)
-LINE = 16                            # a line of text, Sumi UI
+COL = 7                              # a column of Sumi UI: a letter (a kanji or kana: two)
+LINE = 14                            # a line of text, Sumi UI (its em)
 SEAL = 26                            # a seal: a 16 px kanji, 4 px of paper and a 1 px frame all round
 RULE = 29                            # a section's rule: 14 px, the stitch, 14 px
 METER_H, METER_GAP = 24, 2           # a row (its words 4 px from the top), 2 px between rows

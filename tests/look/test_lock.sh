@@ -350,10 +350,10 @@ eq "$(locks)" 1
 case_ "the machine awake again: swayidle's after-resume tells the journal (the health report reads it)"
 grep -qF "  after-resume 'kawa-lock --resumed' \\" "$REPO/configs/home/.config/dwl/autostart.sh" && _ok || _no "no after-resume line"
 
-case_ "the password's line: each ◆ at 32 px (Sumi UI at twice its pixels), 8 px apart, no caret; the hint a 16 px label of its own over the empty line (lock and login alike)"
+case_ "the password's line: each ◆ at 28 px (Sumi UI at twice its pixels), 8 px apart, no caret; the hint a 14 px label of its own over the empty line (lock and login alike)"
 for t in dark light; do
   c=$(sed -n '/^#input-field {/,/^}/p' "$REPO/configs/home/.config/fedokawaii/themes/$t/gtklock.css")
-  has "$c" "font-size: 32px;" "$t"; has "$c" "letter-spacing: 8px;" "$t"; has "$c" "caret-color: transparent;" "$t"
+  has "$c" "font-size: 28px;" "$t"; has "$c" "letter-spacing: 8px;" "$t"; has "$c" "caret-color: transparent;" "$t"
   grep -q '^#input-label, #input-hint { color: #' "$REPO/configs/home/.config/fedokawaii/themes/$t/gtklock.css" && _ok || _no "$t: the hint's ink"
 done
 m=$(sed -n '/^static void hint_add/,/^}/p' "$REPO/src/kawa-lockmod/kawa-lockmod.c")

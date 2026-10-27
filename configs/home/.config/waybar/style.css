@@ -25,13 +25,13 @@
    glyph's own air counted).
    Colours and pictures come from the current theme (ink or paper): kawa-theme switches
    ~/.config/fedokawaii/current and reloads the bar.
-   Sumi UI and Sumi Icons are on a 16 px grid: keep font-size at 16px so every pixel lands on
+   Sumi UI and Sumi Icons are on a 14 px grid: keep font-size at 14px so every pixel lands on
    a whole screen pixel. Reload: pkill -USR2 waybar */
 @import url("../fedokawaii/current/waybar.css");
 
 * {
   font-family: "Sumi UI", "Sumi Icons", "Noto Kufi Arabic";
-  font-size: 16px;
+  font-size: 14px;
   min-height: 0;
   border: none;
   border-radius: 0;
@@ -70,7 +70,7 @@ button, button:hover, button:active, button:checked { background: none; box-shad
   color: @strong-on-accent;
   padding: 1px 4px 2px 5px;          /* (an icon alone: a row higher; its 15 px of ink in 16) */
 }
-#custom-torii { margin-left: 5px; }
+#custom-torii { margin-left: 5px; padding-right: 5px; }   /* (its 16 px emblem has no air of its own) */
 #custom-menu  { margin-left: 7px; margin-right: 4px; }
 
 /* ── the workspaces ─────────────────────────────────────────────────────────────────── */
@@ -92,7 +92,7 @@ button, button:hover, button:active, button:checked { background: none; box-shad
   background-image: url("../fedokawaii/current/kami-seal-narrow.png"), url("../fedokawaii/current/kami-fibre.png");
 }
 /* the layout's icon and the window's title: a tile each (the title's gone with no window) */
-#custom-layout { color: @muted; margin-left: 7px; padding: 1px 4px 2px 5px; }   /* (an icon alone) */
+#custom-layout { color: @muted; margin-left: 7px; padding: 1px 5px 2px 5px; }   /* (an icon alone: 14 px, no air of its own) */
 #custom-title  { color: @text; }
 /* words that change (the title, what plays): their first and last letters' own air — 0 to 3
    columns of Sumi UI (kawa-dwlstatus, kawa-nowplaying: width.sh's air) — taken from the
@@ -133,7 +133,7 @@ button, button:hover, button:active, button:checked { background: none; box-shad
 #custom-weather    { padding-right: 2px; }      /* (° has 3 px of air) */
 /* ending in a letter or a figure: its own column of air (every one of Sumi UI's has one) */
 #custom-timer, #custom-record, #custom-drives, #custom-kb, #custom-mem { padding-right: 4px; }
-#custom-steam { padding: 1px 4px 2px 5px; }   /* (an icon alone: a row higher; its 15 px of ink in 16) */
+#custom-steam { padding: 1px 5px 2px 5px; }   /* (an icon alone, 14 px, no air of its own: a row higher) */
 
 #custom-nowplaying        { color: @text; }
 #custom-nowplaying.paused { color: @muted; }
