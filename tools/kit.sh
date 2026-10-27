@@ -40,6 +40,7 @@ for f in "$repo"/configs/home/.config/*; do
   f=${f##*/}
   [[ -e $HOME/.config/$f ]] && cp -a "$HOME/.config/$f" "$h/.config/"
 done
+rm -f "$h/.config/fedokawaii/secrets.sh"     # (keys never leave their file: no render needs one)
 cp -a "$HOME/.config/dconf" "$HOME/.config/gtk-3.0" "$h/.config/" 2>/dev/null
 # (the session's small settings the configs include or read: foot's glass, night, saver, theme …;
 # never the big ones — a backup tarball, logs, for-you's notes)
