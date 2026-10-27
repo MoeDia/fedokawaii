@@ -153,6 +153,7 @@ c.sendall((json.dumps({"command": ["load-config-file", sys.argv[2]]}) + "\n").en
   # the login screen (kawa-greet) wears the theme you last had (setup made the folder yours)
   [[ -w /var/lib/fedokawaii-greeter ]] && printf '%s\n' "$m" >/var/lib/fedokawaii-greeter/theme
   kawa-dwlstatus --wake 2>/dev/null                  # (the bar restyles itself: see above)
+  kawa-dwlstatus --poke 15 2>/dev/null               # (and its far right shows the mood's face: oni ⇄ tennin)
   signal USR2 btop
   [[ -L $HOME/.config/qt6ct/qt6ct.conf ]] && relink ../fedokawaii/current/qt6ct.conf "$HOME/.config/qt6ct/qt6ct.conf"
   ((${#jobs[@]})) && wait "${jobs[@]}"

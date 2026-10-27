@@ -140,7 +140,7 @@ icon() { (. "$ICONS"; printf '%s' "${!1}"); }
 # (the bar's glyphs are drawn by its scripts, from icons.sh: tests/session/test_bar.sh runs them)
 eq "$(bar 'c["custom/torii"]["exec"]') | $(bar 'c["custom/menu"]["exec"]') | $(bar 'c["custom/volume"]["exec"]')" \
    "kawa-bar torii | kawa-bar cat | kawa-volume bar" "the torii, the cat and the volume: their scripts"
-for n in ICON_TORII ICON_CAT ICON_CAT_HAPPY; do has "$(cat "$REPO/bin/kawa-bar")" "\$$n" "kawa-bar draws $n"; done
+for n in ICON_TORII ICON_ONI ICON_ONI_OPEN ICON_TENNIN ICON_TENNIN_OPEN; do has "$(cat "$REPO/bin/kawa-bar")" "\$$n" "kawa-bar draws $n"; done
 for n in ICON_VOL_0 ICON_VOL_1 ICON_VOL_2 ICON_VOL_3 ICON_VOL_4 ICON_VOL_MUTE; do has "$(cat "$REPO/bin/kawa-volume")" "\$$n" "kawa-volume draws $n"; done
 lacks "$(grep -v '^ *//' "$REPO/configs/home/.config/waybar/config.jsonc")" '\uDBB8' "no glyph written into the config itself"
 

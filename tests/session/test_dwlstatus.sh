@@ -381,8 +381,8 @@ rm -rf "$BAR"; HOME="$TMP/my home" kawa-dwlstatus < <(block DP-1 1 1 1 0 '(@)' 0
 eq "$(bar layout)" "{\"text\":\"$ICON_SPIRAL\",\"class\":\"spiral\"}"
 case_ "the cat: lit only while quick settings' marker holds a live pid (a pid that died, an empty or broken marker, a dropdown's: dark)"
 cat_ex=$(wbexec custom/menu)
-lit_=$(. "$HOME/.config/fedokawaii/icons.sh"; printf '{"text":"%s","class":"active"}' "$ICON_CAT_HAPPY")
-dark_=$(. "$HOME/.config/fedokawaii/icons.sh"; printf '{"text":"%s"}' "$ICON_CAT")
+lit_=$(. "$HOME/.config/fedokawaii/icons.sh"; printf '{"text":"%s","class":"active"}' "$ICON_ONI_OPEN")
+dark_=$(. "$HOME/.config/fedokawaii/icons.sh"; printf '{"text":"%s"}' "$ICON_ONI")
 rm -f "$XDG_RUNTIME_DIR"/kawa-*.open
 eq "$(sh -c "$cat_ex")" "$dark_" "no marker: dark"
 echo $$ >"$XDG_RUNTIME_DIR/kawa-panel.open"; eq "$(sh -c "$cat_ex")" "$lit_" "a live pid: lit"

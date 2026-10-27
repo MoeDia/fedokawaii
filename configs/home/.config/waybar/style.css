@@ -6,7 +6,7 @@
    under it (two rows, a pixel further right each) and a column at its right — with the paper
    and its faint fibre inside: one frame, nothing inside it. tools/build-themes.py draws the
    pictures, per theme, exactly to their box —
-     the torii and the cat   vermilion tiles at the two ends (lit: the brighter vermilion)
+     the torii and the face  vermilion tiles at the two ends (lit: the brighter vermilion)
      the workspaces          a tile each: its numeral (10 × 10) faint while empty, the text's
                              ink while it holds windows, asagi while it asks for you; the one
                              you are on stamped with the round vermilion seal (16 px), its
@@ -68,7 +68,7 @@ button, button:hover, button:active, button:checked { background: none; box-shad
   padding: 3px 7px 3px 7px;
   margin: 0 0 0 3px;
 }
-/* the two ends' vermilion tiles: the torii and the cat, their emblems in the ground's ink */
+/* the two ends' vermilion tiles: the torii and the mood's face (a demon, an angel), their emblems in the ground's ink */
 #custom-torii, #custom-menu {
   border-image: url("../fedokawaii/current/kami-red.png") 4 2 3 2 stretch;
   background-color: @kami-red;
@@ -135,7 +135,7 @@ button, button:hover, button:active, button:checked { background: none; box-shad
 #custom-wing-right { padding-left: 11px; margin-right: -1px; }    /* (M's air and the column's; its last
                                                                      column's 2 px of air, not M's 1) */
 
-/* ── the right: what the computer is doing, a tile each · the cat ──────────────────── */
+/* ── the right: what the computer is doing, a tile each · the face ─────────────────── */
 #custom-weather { padding-right: 6px; }   /* (° has 2 px of air) */
 
 #custom-nowplaying        { color: @text; }

@@ -3,7 +3,7 @@ Super+Return            terminal (foot)
 Super+Space             launcher (also the torii in the bar)
 Super+B                 browser (Brave Origin)
 Super+E                 files (yazi)
-Super+X                 quick settings (also the cat in the bar)
+Super+X                 quick settings (also the face at the bar's right end)
 Super+A                 sound panel (also click the volume)
 Super+C                 calendar (also click the date)
 Super+/                 this help

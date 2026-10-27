@@ -159,10 +159,11 @@ for sel in ("#custom-layout", "#custom-title"):
 # right the padding is 8 less the last glyph's air (the right slice: the hairline, the shadow)
 L = lambda s, ink: 1 + box(s)[0][3] + ink
 R = lambda s, ink: ink + box(s)[0][1]
-for sel, l, r in (("#custom-torii", IL("torii"), IR("torii")), ("#custom-menu", IL("cat"), IR("cat")),
+for sel, l, r in (("#custom-torii", IL("torii"), IR("torii")), ("#custom-menu", IL("oni"), IR("oni")), ("#custom-menu", IL("tennin"), IR("tennin")),
                   ("#custom-tag1", IL("ws-1"), IR("ws-1")), ("#custom-tag4", IL("ws-4"), IR("ws-4")),
                   ("#custom-volume", 0, air("%")[1]), ("#custom-mem", 0, air("G")[1]), ("#custom-weather", 0, air("°")[1]),
-                  ("#custom-kb", air("U")[0], air("S")[1]), ("#custom-timer", 0, air("5")[1]), ("#custom-mode", 0, 0)):
+                  ("#custom-kb", air("u")[0], air("s")[1]), ("#custom-kb", air("U")[0], air("S")[1]),   # (us, and US with Caps Lock)
+                  ("#custom-timer", 0, air("5")[1]), ("#custom-mode", 0, 0)):
     want(f"{sel}: the paper → its ink", L(sel, l), 8)
     want(f"{sel}: its ink → the paper", R(sel, r), 8)
 # the layout's mark and the window's name in one tile: the mark 8 from the paper, the name 8
@@ -188,7 +189,7 @@ for sel in [f"#custom-tag{k}" for k in range(2, 10)] + ["#custom-timer", "#custo
 for sel in ("#custom-tag1", "#focused", "#custom-menu"):
     want(f"→ {sel} (between groups)", gap(sel), 12)
 want("the screen's left edge → the torii's hairline (x 8)", box("#custom-torii")[1][3], 8)
-want("the cat's hairline → the screen's right edge (x 1911: 8 px of air, the shadow's column in them)", 1 + box("#custom-menu")[1][1], 8)
+want("the face's hairline → the screen's right edge (x 1911: 8 px of air, the shadow's column in them)", 1 + box("#custom-menu")[1][1], 8)
 # the clock: the scroll sliced 4 4 3 6 (the rod; the rod and two columns of paper); 8 px from
 # the rods to the ink; 14 px of air between its parts, each letter's own air counted
 o = box("#when")[3]

@@ -10,7 +10,7 @@
 //   right:  now playing · a timer (while one runs) · recording (while one runs) · the quiet
 //           bell or the sharing monitor · drives · downloads (while one runs) · the keyboard
 //           layout (click: the next) · memory · volume · brightness · weather, a tile each ·
-//           the cat (quick settings) on the other end's vermilion tile
+//           the mood's face (quick settings: a demon by night, an angel by day) on the other end's vermilion tile
 // Network, Bluetooth, night light, theme… live in the quick-settings dropdown,
 // so the bar stays quiet. No tray: the desktop's own modules stand for what apps would put
 // there. Reload without logging out: pkill -USR2 waybar
@@ -24,7 +24,7 @@
 // open) would hold its button's light back. A module that only answers its signal has no
 // "interval" (waybar then never waits for its clicks at all).
 // Signals (SIGRTMIN+N, kawa-dwlstatus --poke): 8 workspaces · 9 layout · 10 title · 11
-// keyboard layout · 12 mode · 13 drives · 14 brightness · 15 the cat · 18 weather ·
+// keyboard layout · 12 mode · 13 drives · 14 brightness · 15 the face · 18 weather ·
 // 19 date and day · 20 torii · 21 downloads · 22 recording; the long-running modules (time, memory, volume) are woken
 // through a fifo of their own instead.
 // Tooltips: only where the glyph does not say it all — what it is · click · right-click ·
@@ -168,7 +168,7 @@
   "custom/timer": { "exec": "kawa-timer bar timer", "return-type": "json", "restart-interval": 5, "tooltip": false,
                     "exec-on-event": false, "on-click": "setsid -f kawa-timer" },
 
-  // the cat (quick settings, kawa-panel): it smiles while they are open
+  // the mood's face (quick settings, kawa-panel): the oni roars, the tennin smiles while they are open
   "custom/menu": { "exec": "kawa-bar cat", "return-type": "json", "signal": 15, "tooltip": false,
                    "exec-on-event": false, "on-click": "kawa-quick" }
 }

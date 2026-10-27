@@ -121,9 +121,14 @@ case $item in
          l=""; { IFS= read -r l <"$XDG_RUNTIME_DIR/dwl-bar/${WAYBAR_OUTPUT_NAME:-.}/layout.json" \
                  || IFS= read -r l <"$XDG_RUNTIME_DIR/dwl-bar/layout.json"; } 2>/dev/null
          lit_json "$l" ;;
-  cat)   # quick settings: the cat smiles while its panel is open
-         if ((lit)); then printf '{"text":"%s"%s}\n' "$ICON_CAT_HAPPY" "$cls"
-         else printf '{"text":"%s"}\n' "$ICON_CAT"; fi ;;
+  cat)   # quick settings: the mood's own face — a demon by night, an angel by day (the old
+         # masters' world: art/icons.txt oni, tennin) — that opens up while its panel is open
+         # shellcheck source=/dev/null
+         . "$HOME/.config/fedokawaii/current/colors.sh"           # (THEME)
+         if [[ ${THEME:-dark} == light ]]; then face=$ICON_TENNIN open=$ICON_TENNIN_OPEN
+         else face=$ICON_ONI open=$ICON_ONI_OPEN; fi
+         if ((lit)); then printf '{"text":"%s"%s}\n' "$open" "$cls"
+         else printf '{"text":"%s"}\n' "$face"; fi ;;
   date)  # DD∕MM∕YYYY, its two slashes our own (Sumi UI's ∕: a clean stair on the figures' ten
          # rows — art/signs.txt) in vermilion: the same width every day, figures only
          # shellcheck source=/dev/null

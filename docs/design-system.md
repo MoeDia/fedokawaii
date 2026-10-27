@@ -23,7 +23,7 @@ the grid and the motion are shared; the mood decides the inks, the art and the s
 | art | demons and warriors after Kuniyoshi and Hokusai, pixel-drawn | tennin (angels), clouds and lotus after Buddhist painting |
 | the lock | a dungeon wall, two torches, a demon's open mouth | a temple in clouds, two stone lanterns, an angel's halo |
 | its quote | 口は禍の門 — the mouth is the gate of misfortune | 言わぬが花 — better left unsaid |
-| quick settings' face | a demon's head, samurai-helmed | an angel's face, haloed |
+| quick settings' face | a demon's head — horned, scowling, tusked (roaring while its panel is open) | an angel's face — serene, a nimbus behind it (its eyes open, smiling, while its panel is open) |
 
 Both quotes are proverbs about keeping words in — the right thing to read where a password is
 typed (sources: kotobank — デジタル大辞泉, 精選版 日本国語大辞典; the earliest uses 1252 and 1729).
@@ -450,7 +450,7 @@ numbers here against its files.
 | the bar | — | `configs/home/.config/waybar/`, `bin/kawa-bar` | T14 |
 | windows' frames; notices; the level display; tooltips | — | `src/dwl/`; `src/mako/mako.patch` (the desktop's mako: the frame, the title's icon ink, the hanging indent, no "…") + mako's `config`; `bin/kawa-osd` | T15 |
 | books, wallpapers, clipboard, the launcher | Super+R, W, V, Space | `bin/kawa-books`, `bin/kawa-wallpaper`, `bin/kawa-clip`, `bin/kawa-menu` | T16 |
-| art: wallpapers, the lock's scenes, quick settings' face | — | `tools/build-art.py` | T18 |
+| art: wallpapers (the old masters as pixel art), the lock's scenes, quick settings' face | — | `tools/build-masters.py` (art/masters), `tools/build-art.py`, art/icons.txt (oni, tennin) | T18 |
 | motion | — | `src/dwl/`, the private wlroots, `src/kawa-saver` | T19 |
 | lock, login, screensaver | idle, Super+Escape, boot | `bin/kawa-lock`, `src/kawa-lockmod`, `system/kawa-greet`, `src/kawa-saver` | T20 |
 | notes and the to-do list | Super+N | `bin/kawa-notes` | T21 |
