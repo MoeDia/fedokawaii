@@ -122,6 +122,50 @@ lacks "$(plain "$l1")" "system" "no name for a tab not shown"
 eq "$(plain "$l2")" "        ▔▔▔▔▔▔" "the line: under the name shown alone (6 columns), at its column"
 has "$l2" $'\e[38;5;16m▔' "the line in the accent"
 eq "$(plain "$(fedokawaii --tabs learning | head -n1)")" "$ICON_MONITOR    $ICON_RESTART    $ICON_CAMERA    $ICON_DRIVE    $ICON_MORTARBOARD  learning" "the last shown: no paper after it"
+case_ "a job running: its row again in each frame of the hourglass turning (fields 4–9 after the name: 0 1 2 3 3 4), only its icon changed; every other row the same picture in each; none running: all alike"
+printf 'repair\n' >"$R/state/lock"
+( exec 9<"$R/state/lock"; flock 9; exec sleep 30 ) >/dev/null 2>&1 & holder=$!
+for _ in 1 2 3 4 5 6 7 8 9 10; do flock -n "$R/state/lock" true || break; sleep 0.1; done
+rows=$(fedokawaii --rows system)
+eq "$(awk -F'\t' '{print NF}' <<<"$rows" | sort -u)" 9 "nine fields a row"
+IFS=$'\t' read -r -a f < <(grep -m1 $'^repair\t' <<<"$rows")
+has "${f[1]}" "$ICON_HOURGLASS" "at rest: the hourglass"
+k=3; for g in "$ICON_HG_0" "$ICON_HG_1" "$ICON_HG_2" "$ICON_HG_3" "$ICON_HG_3" "$ICON_HG_4"; do
+  has "${f[k]}" "$g" "frame $((k - 3))"; eq "${f[k]/"$g"/$ICON_HOURGLASS}" "${f[1]}" "frame $((k - 3)): only its icon differs"; k=$((k + 1))
+done
+IFS=$'\t' read -r -a f < <(grep -m1 $'^verify\t' <<<"$rows")
+eq "$(printf '%s\n' "${f[@]:3}" | sort -u | wc -l)" 1 "another row: one picture"; eq "${f[3]}" "${f[1]}" "another row: as it is"
+eq "$(fedokawaii --items system | tr '\0' '\n' | awk -F'\t' '{print NF}' | sort -u)" 9 "fzf's items carry the frames"
+kill "$holder" 2>/dev/null; wait "$holder" 2>/dev/null
+eq "$(fedokawaii --rows system | awk -F'\t' '{ for (i = 4; i <= 9; i++) if ($i != $2) n++ } END { print n + 0 }')" 0 "none running: every frame its row"
+case_ "the ticker (--tick, kawa-warm starts it as the popup shows): the list turned through the frames 6 a second while the popup shows and a job runs; the job ended: the list read again, the row at rest; one ticker at a time; not shown or nothing running: nothing"
+export XDG_RUNTIME_DIR=$TMP/run; mkdir -p "$XDG_RUNTIME_DIR"
+python3 -c 'import socket, sys; socket.socket(socket.AF_UNIX).bind(sys.argv[1])' "$XDG_RUNTIME_DIR/fedokawaii-menu.sock"
+stub curl 'p=; for a; do [ "$p" = --data-binary ] && echo "$a" >>"$FK_R/curl.log"; p=$a; done'
+: >"$R/curl.log"; fedokawaii --tick; eq "$(cat "$R/curl.log")" "" "not shown: nothing said"
+: >"$XDG_RUNTIME_DIR/kawa-warm-system.shown"
+fedokawaii --tick; eq "$(cat "$R/curl.log")" "" "shown, nothing running: nothing said"
+( exec 9<"$R/state/lock"; flock 9; exec sleep 1.2 ) >/dev/null 2>&1 & holder=$!
+for _ in 1 2 3 4 5 6 7 8 9 10; do flock -n "$R/state/lock" true || break; sleep 0.1; done
+fedokawaii --tick & ticker=$!; sleep 0.3
+t0=$(date +%s%N); fedokawaii --tick; t1=$(date +%s%N)
+(( (t1 - t0) / 1000000 < 300 )) && _ok || _no "a second ticker waited instead of leaving"
+[[ -e $XDG_RUNTIME_DIR/fedokawaii-pane/on ]] && _ok || _no "turning: the panes not kept"
+FZF_PREVIEW_COLUMNS=50 fedokawaii --explain update update >"$TMP/pane1"
+eq "$(cat "$XDG_RUNTIME_DIR/fedokawaii-pane/update.50")" "$(cat "$TMP/pane1")" "turning: a pane made is kept, as it was shown"
+wait "$ticker"; wait "$holder" 2>/dev/null
+[[ ! -e $XDG_RUNTIME_DIR/fedokawaii-pane ]] && _ok || _no "the turning stopped: the kept panes still there"
+n=$(grep -c '^change-with-nth([4-9])$' "$R/curl.log")
+((n >= 4 && n <= 9)) && _ok || _no "turned $n times in ~1.1 s (6 a second: 5–7)"
+eq "$(grep -m6 '^change-with-nth' "$R/curl.log" | tr -dc '0-9')" "456789" "each frame named, in turn (a rotation through the socket starts again at its first)"
+eq "$(tail -n1 "$R/curl.log")" 'reload-sync(fedokawaii --items)+change-with-nth(2)' "the job ended: the list read again, at rest"
+: >"$R/curl.log"; ( exec 9<"$R/state/lock"; flock 9; exec sleep 1 ) >/dev/null 2>&1 & holder=$!
+for _ in 1 2 3 4 5 6 7 8 9 10; do flock -n "$R/state/lock" true || break; sleep 0.1; done
+fedokawaii --tick & ticker=$!; sleep 0.4; rm -f "$XDG_RUNTIME_DIR/kawa-warm-system.shown"
+wait "$ticker"; kill "$holder" 2>/dev/null; wait "$holder" 2>/dev/null
+n=$(grep -c 'change-with-nth(4' "$R/curl.log"); ((n >= 1 && n <= 4)) && _ok || _no "put away: still turning ($n)"
+lacks "$(cat "$R/curl.log")" "reload-sync" "put away: nothing read again"
+stub curl 'exit 6'; unset XDG_RUNTIME_DIR
 case_ "a tab: Tab / → the next, Shift+Tab / ← the one before, round the ends; a click on its icon (two columns) or its name shows it — between them, after them, or on the line under, nothing"
 export FK_TAB=$TMP/tab; echo system >"$FK_TAB"
 fedokawaii --tab +1; eq "$(cat "$FK_TAB")" update; fedokawaii --tab -1; fedokawaii --tab -1; eq "$(cat "$FK_TAB")" learning "round the start"

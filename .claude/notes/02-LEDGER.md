@@ -956,9 +956,23 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   run marked the update row and said "an update or a repair". Tests: test_status 196/0 (+12:
   three modes, one row running each, the words, the second run told), test_common 138/0 (the
   holder's name kept — fails on the old take_lock, 137/1), test_menu 559/0, static 10/10.
-  Step 2 (next pass): the hourglass turning — frames in the icon font, a ticker sending fzf a
-  cheap reload only while the popup is shown and a job runs (19 ms a reload of the rows
-  measured; the pane must not re-run or flicker: checked live in the warm window).
+  (j) the hourglass turning, step 2: five frames in art/icons.txt (hg-0 … hg-4, the plain
+  hourglass's outline: the sand falls 0–2, lies 3 — held a beat —, the glass turns on its side
+  4, stands with the sand above 0), drawn at 1× and 10× in both inks; appended (the bar twins
+  move up by five as with every new icon — no literal code point of theirs anywhere: searched).
+  The rows carry the running row once more per frame (fields 4–9 after the name, frame 3
+  twice); `fedokawaii --tick` (kawa-warm starts it as the popup shows, which now also marks the
+  menu shown — --renew no longer restarts it under his eyes) tells fzf 6 times a second while
+  the popup shows and a job runs, and at the end reads the list again, at rest. Real fzf 0.74.5
+  driven through a pty: change-with-nth(4|5|6) sent through the socket starts its rotation
+  afresh each time (4, 4, 4 — no turning), so each frame is named (4 5 6 4 5 6 2 drawn as
+  sent); and fzf runs the pane again at every switch (1 → 8 runs in 7 ticks) at 42 ms a pane —
+  a quarter of a core — so while it turns each pane is made once and kept in the runtime folder
+  (750 µs a frame then), dropped when the turning stops. Tests: test_menu 588/0 (+29: nine
+  fields, each frame only its icon changed, other rows alike, the ticker's frames named in turn
+  and timed, one ticker, nothing when hidden or idle, the panes kept then dropped), test_warm
+  88/0, test_status 196/0, launcher/config/copy, static 10/10. Live look (fonts, the popup at
+  144 Hz) with the next apply — after batch B's restart (the wash).
 - r27-keep (found 27 Oct 16:28) ~/blasphemous-save-backup-20261022 was in the Trash (trashed 26 Oct
   16:15 local, with game-shelf, Games, Balatro — before any round-27 session, the first at 27 Oct
   02:03): restored to ~ (476 K, Blasphemous + userdata-774361 intact), per the standing rule and

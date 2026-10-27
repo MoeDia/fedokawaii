@@ -428,7 +428,10 @@ stamp is a choice made, a scroll is something long opening.
 - Icons that move (frames `name-0` … in icons.txt, at the rate given): the television with its
   antenna while a video plays (4 frames, 6 a second), the cassette's reels while sound plays,
   the downloads arrow dropping into its tray (6 frames, 8 a second), recording's red dot (once a
-  second); at rest, their first frame.
+  second), the hourglass on Super+U's row of the job that runs (`hg-0` … `hg-4`: the sand
+  falls, lies a beat, the glass turns; 6 a second while the menu shows — fzf told each frame,
+  the pane kept meanwhile, never made again at every frame); at rest, their first frame (the
+  hourglass: the plain one).
 - **Art** — pixel versions of public-domain old masters, drawn in the palette's inks at the
   wallpapers' 3 px pixel: demons and warriors after Kuniyoshi and Hokusai (dark), tennin after
   Buddhist painting (light) — about ten wallpapers each, the lock's scenes, quick settings' face

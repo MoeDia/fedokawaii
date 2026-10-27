@@ -784,19 +784,53 @@ tab_next() {   # tab_next +1|-1 → the section beside the one shown
 # again once fzf is up and whenever the window changes size, so the column is right however
 # late the window gets its final size.
 PANE=50
+# A job running: its row (the hourglass in place of its icon) again in each frame of the hourglass
+# turning — fields 4–9 after the name, the third frame twice (the sand lying a beat); every other
+# row the same in each. fzf shows field 2; in Super+U's popup --tick turns the list through 4–9
+# (change-with-nth: the list redrawn, nothing read again, the pane left as it is)
+HG_FRAMES="${ICON_HG_0:-·} ${ICON_HG_1:-·} ${ICON_HG_2:-·} ${ICON_HG_3:-·} ${ICON_HG_3:-·} ${ICON_HG_4:-·}"
 fit_rows() {
-  local W=38 s a g l m c=${FZF_COLUMNS:-} sec=${1:-$(tab_now)}
+  local W=38 s a g l m c=${FZF_COLUMNS:-} sec=${1:-$(tab_now)} run row f fr
   # (fzf's width; before fzf has drawn it says 0, so then the terminal's, less the margins)
   num "$c" && ((c > 0)) || { c=$(stty size </dev/tty 2>/dev/null) && c=$((${c#* } - 2)); } 2>/dev/null
   num "$c" && ((c > PANE + 40)) && W=$((c - PANE - 2))
+  run=$(running_job) && run=${run:-update}
   while IFS=$'\t' read -r s a g l m; do
     if [[ $a == @($SOON) ]]; then
-      printf '%s\t%s\t%s\n' "$a" "$(screen_row "${INK_FAINT:-}$g" "${INK_FAINT:-}$l${INK_OFF:-}" "${INK_FAINT:-}soon${INK_OFF:-}" "$W")" "$l"
-    else printf '%s\t%s\t%s\n' "$a" "$(screen_row "$g" "$l" "$m" "$W")" "$l"; fi
+      row=$(screen_row "${INK_FAINT:-}$g" "${INK_FAINT:-}$l${INK_OFF:-}" "${INK_FAINT:-}soon${INK_OFF:-}" "$W")
+    else row=$(screen_row "$g" "$l" "$m" "$W"); fi
+    fr=""
+    for f in $HG_FRAMES; do
+      if [[ $a == "${run:-}" ]]; then fr+=$'\t'$(screen_row "$f" "$l" "$m" "$W"); else fr+=$'\t'$row; fi
+    done
+    printf '%s\t%s\t%s%s\n' "$a" "$row" "$l" "$fr"
   done < <(rows "$sec")
 }
 # fzf's items: ACTION<TAB>ROW<TAB>NAME, each ended by a NUL
-fit_items() { local a l m; while IFS=$'\t' read -r a l m; do printf '%s\t%s\t%s\0' "$a" "$l" "$m"; done < <(fit_rows "$@"); }
+fit_items() { local r; while IFS= read -r r; do printf '%s\0' "$r"; done < <(fit_rows "$@"); }
+
+# the hourglass turning in Super+U's popup: 6 frames a second while the popup shows (kawa-warm's
+# mark) and a job runs — one ticker at a time; the job ended as it shows: its row at rest. Each
+# frame named (a rotation sent through the socket starts again at its first). fzf runs the pane
+# again at every frame: meanwhile each entry's pane is made once and kept (PANE_KEPT, 42 ms a
+# pane → a cat), dropped as the turning stops
+PANE_KEPT=${XDG_RUNTIME_DIR:-/tmp}/fedokawaii-pane
+tick() {
+  local r=${XDG_RUNTIME_DIR:-/tmp} sock turned=0 i=0
+  sock=$r/fedokawaii-menu.sock
+  exec 7>"$r/fedokawaii-tick.lock"; flock -n 7 || return 0
+  say() { curl -s --max-time 1 --unix-socket "$sock" --data-binary "$1" http://localhost/ >/dev/null 2>&1; }
+  trap 'rm -rf -- "$PANE_KEPT"' EXIT
+  while [[ -e $r/kawa-warm-system.shown && -S $sock ]] && busy; do
+    ((turned)) || { mkdir -p -- "$PANE_KEPT" && : >"$PANE_KEPT/on"; }
+    say "change-with-nth($((4 + i)))" || break
+    i=$(((i + 1) % 6)) turned=1; sleep 0.166
+  done
+  rm -rf -- "$PANE_KEPT"
+  ((turned)) && [[ -e $r/kawa-warm-system.shown && -S $sock ]] && ! busy \
+    && say 'reload-sync(fedokawaii --items)+change-with-nth(2)'
+  return 0
+}
 
 # the pane, a part of its own: the entry's heading (its icon, its name, the rule — level with
 # the list's first row), how things stand for it (its lines of the status: the key muted, a
@@ -1108,7 +1142,7 @@ menu_fzf() {   # → fzf's exit status (2: it could not run — the plain menu t
   fit_items | fzf --read0 --ansi --no-sort --no-input --gutter-raw=' ' \
     --height=100% --delimiter=$'\t' --with-nth=2 --tiebreak=index "${listen[@]}" \
     --header="$(tabs system)" --header-first \
-    --preview="$self --explain {1} {3}" --preview-window="right,$PANE,border-none,noinfo,nowrap" \
+    --preview="k=$(printf '%q' "$PANE_KEPT")/{1}.\$FZF_PREVIEW_COLUMNS; [ -e $(printf '%q' "$PANE_KEPT")/on ] && [ -s \"\$k\" ] && exec cat \"\$k\"; exec $self --explain {1} {3}" --preview-window="right,$PANE,border-none,noinfo,nowrap" \
     --bind="start:reload-sync($self --items)" --bind="resize:reload-sync($self --items)" \
     --bind="tab:execute-silent($self --tab +1)+$go,btab:execute-silent($self --tab -1)+$go" \
     --bind="right:execute-silent($self --tab +1)+$go,left:execute-silent($self --tab -1)+$go" \
@@ -1151,13 +1185,16 @@ case ${1:-} in
   --window)   exec kawa-warm system ;;   # (Super+U's popup, warm: kawa-warm runs --popup in it, 100×22 — fzf's margin row, the tab bar's three, the pane's fifteen, the margin row: and every window centres to the pixel, its height even)
   --rows)     fit_rows "${2:-}" ;;
   --items)    fit_items "${2:-}" ;;
+  --tick)     tick ;;
   --tabs)     tabs "${2:-}" ;;
   --tab)      case ${2:-} in                         # (fzf's bindings: the section shown changes)
                 +1|-1) tab_set "$(tab_next "$2")" ;;
                 click) [[ ${4:-} == 1 ]] && t=$(tab_at "${3:-0}") && tab_set "$t" ;;
                 *) [[ " ${SECTIONS[*]} " == *" ${2:-} "* ]] && tab_set "$2" ;;
               esac; exit 0 ;;
-  --explain)  explain "${2:-}" "${3:-}" ;;
+  --explain)  if [[ -e $PANE_KEPT/on && ${2:-} =~ ^[a-z]+$ ]]; then   # (the hourglass turning: kept)
+                explain "$2" "${3:-}" | tee -- "$PANE_KEPT/$2.${FZF_PREVIEW_COLUMNS:-0}"
+              else explain "${2:-}" "${3:-}"; fi ;;
   --run)      run "${2:-}" ;;
   --job)      job_window "${2:-}" ;;                                # (hand's: the job's window)
   --job-run)  BACK="closes this window"; unset FEDOKAWAII_POPUP; run "${2:-}" ;;            # (inside it)

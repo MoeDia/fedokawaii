@@ -69,8 +69,10 @@ case ${1:-} in
     case ${2:-} in
       notes)  nvim --server "$RUN/kawa-notes.nvim" --remote-expr 'v:lua.kawa_notes_shown()' >/dev/null 2>&1 ;;
       clip)   : >"$RUN/kawa-warm-clip.shown"; kawa-clip --poke ;;
-      system) curl -s --max-time 2 --unix-socket "$RUN/fedokawaii-menu.sock" \
-                --data-binary 'reload-sync(fedokawaii --items)' http://localhost/ >/dev/null 2>&1 ;;
+      system) : >"$RUN/kawa-warm-system.shown"
+              curl -s --max-time 2 --unix-socket "$RUN/fedokawaii-menu.sock" \
+                --data-binary 'reload-sync(fedokawaii --items)' http://localhost/ >/dev/null 2>&1
+              setsid -f fedokawaii --tick >/dev/null 2>&1 </dev/null ;;   # (the hourglass, while a job runs)
       *) spec "${2:-}"; exit 2 ;;
     esac
     exit 0 ;;

@@ -130,10 +130,13 @@ setup; out=$(kawa-warm --renew clip notes 2>&1); eq "$?" 2; has "$out" "the note
 setup; rc 0 kawa-warm --renew system
 called "^footclient --no-wait -a warm-system -T system -W 100x18 -- $REPO/bin/kawa-warm --inside system\$" "none running: opened, put away"
 
-case_ "--shown/--hidden: the clipboard marked shown and its list read again; the menu's list read again; the notes page told through its socket"
-setup; rc 0 kawa-warm --shown clip; called '^kawa-clip --poke$'
+case_ "--shown/--hidden: the clipboard and the menu marked shown and their lists read again (the menu's hourglass ticker started: it turns only while a job runs); the notes page told through its socket"
+setup; stub setsid; rc 0 kawa-warm --shown clip; called '^kawa-clip --poke$'
 [[ -e $XDG_RUNTIME_DIR/kawa-warm-clip.shown ]] && _ok || _no "no shown mark"
 rc 0 kawa-warm --shown system; called "^curl .*--unix-socket $XDG_RUNTIME_DIR/fedokawaii-menu.sock --data-binary reload-sync\(fedokawaii --items\)"
+called '^setsid -f fedokawaii --tick$'
+[[ -e $XDG_RUNTIME_DIR/kawa-warm-system.shown ]] && _ok || _no "the menu: no shown mark"
+rc 0 kawa-warm --hidden system; [[ ! -e $XDG_RUNTIME_DIR/kawa-warm-system.shown ]] && _ok || _no "the menu put away: still marked shown"
 rc 0 kawa-warm --shown notes; called "^nvim --server $XDG_RUNTIME_DIR/kawa-notes.nvim --remote-expr v:lua.kawa_notes_shown\(\)\$"
 rc 0 kawa-warm --hidden notes; called "^nvim --server $XDG_RUNTIME_DIR/kawa-notes.nvim --remote-expr v:lua.kawa_notes_hidden\(\)\$"
 rc 0 kawa-warm --hidden clip   # (none running: nothing to end)
