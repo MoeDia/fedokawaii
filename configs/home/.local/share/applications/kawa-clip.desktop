@@ -1,11 +1,11 @@
 [Desktop Entry]
 # The clipboard history (kawa-clip), as Super+V opens it: what you copied, newest first,
-# pictures too; Enter puts one back. Its icon: our seal of 写 (the launcher draws it: X-Fedokawaii-Kanji).
+# pictures too; Enter puts one back. Its icon: our pixel clipboard (the launcher draws it: X-Fedokawaii-Icon).
 Type=Application
 Name=Clipboard
 GenericName=Clipboard history
 Comment=What you copied before, text and pictures: Enter puts it back
-X-Fedokawaii-Kanji=写
+X-Fedokawaii-Icon=clipboard
 Exec=@HOME@/.local/bin/kawa-clip
 Terminal=false
 Categories=Utility;

@@ -2,12 +2,12 @@
 # One terminal in the launcher: a window of the session's terminal server, as Super+Enter
 # opens it (foot's own three entries — Foot, Foot Client, Foot Server — would be three names
 # for one job; foot.desktop and foot-server.desktop here hide the other two). Its icon: our
-# seal of 端 (the launcher draws it: X-Fedokawaii-Kanji).
+# seal of 端 (the launcher draws it: X-Fedokawaii-Icon).
 Type=Application
 Name=Terminal
 GenericName=Terminal
 Comment=foot, a window of the session's terminal server (as Super+Enter)
-X-Fedokawaii-Kanji=端
+X-Fedokawaii-Icon=terminal
 Exec=footclient
 Terminal=false
 Categories=System;TerminalEmulator;

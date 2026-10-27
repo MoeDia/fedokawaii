@@ -18,8 +18,8 @@
 # Its look is the desktop's (the theme "fedokawaii", registered here): foot's own 16 colours,
 # which change with dark and light — the ground the terminal's see-through one, vermilion for
 # the cursor's row and a focused frame, the frames at rest in the quiet edge colour — and
-# its first screen a text screen of ours: 種 torrents over the search line, no banner, no
-# emoji. Any other theme you pick with Ctrl+T is kept.
+# its first screen a text screen of ours: the download icon, torrents over the search line, no
+# banner, no emoji. Any other theme you pick with Ctrl+T is kept.
 set -uo pipefail
 # shellcheck source=/dev/null
 ICON=$(. "$HOME/.config/fedokawaii/icons.sh" && printf '%s' "$ICON_DOWNLOAD")   # (its notices' mark)
@@ -168,12 +168,12 @@ tapp.TorrraApp.CSS = """
 #welcome_container #commands_container Grid Static.key { text-align: left !important; color: ansi_white !important; }
 """
 
-# the first screen: a text screen of ours (docs/design-system.md §7) — the heading (種 in
-# vermilion, the name, the stitch), a line saying what it is, the search line, then the keys
+# the first screen: a text screen of ours (docs/design-system.md §7) — the heading (the
+# download icon in vermilion — Sumi Icons' U+FE042, as in icons.sh —, the name, the rule), a line saying what it is, the search line, then the keys
 # as rows: no banner, no emoji. The same ids as torrra's own, so its layout holds
 def kawa_welcome(self):
     with Container(id="welcome_container"):
-        yield Static("[ansi_red]種[/]  torrents [ansi_bright_black]" + "╌" * 51 + "[/]", id="banner")
+        yield Static("[ansi_red]\U000fe042[/]  torrents [ansi_bright_black]" + "─" * 52 + "[/]", id="banner")
         yield Static("search the usual sites through Prowlarr —\ndownloads go on while this window is open",
                      id="subtitle")
         yield welcome.SearchInput(placeholder="what to find", id="search")

@@ -3,9 +3,10 @@
 #   · the package entries hidden by an entry of the same name (NoDisplay): exactly this set,
 #     each still a whole entry (Type, Name, Exec) so the program keeps working
 #   · every entry of the desktop's own shows a window program's official icon (a name a
-#     package installs into hicolor, or the app's own picture by its path) or our seal — its
-#     kanji (X-Fedokawaii-Kanji), drawn by the panel in a 22 × 22 seal: key ground, edge2
-#     frame, accent_text kanji, a kanji Sumi UI draws — never an icon pack's name, never
+#     package installs into hicolor, or the app's own picture by its path) or one of our pixel
+#     icons — its name in art/icons.txt (X-Fedokawaii-Icon), drawn by the panel in the icon
+#     column in accent_text, no box round it, no two entries alike — never a kanji (§13: kanji
+#     only on the stamps, the day and the lock's quote), never an icon pack's name, never
 #     foot's or neovim's for what is not them
 #   · no icon pack anywhere: no Papirus in a config, a script or the manifest (but as retired)
 #   · the icons drawn at the row's size (22 px, forced: never a bigger copy)
@@ -96,46 +97,56 @@ PY
 )
 eq "$out" "3 3 0 None" "the launcher matches what a program is and its keywords too (Network: wifi; System monitor: task manager), its name first"
 
-case_ "every listed entry: a window program's own icon, or our seal (its kanji, X-Fedokawaii-Kanji)"
+case_ "every listed entry: a window program's own icon, or one of our pixel icons (X-Fedokawaii-Icon)"
 OFFICIAL=" com.github.xournalpp.xournalpp steam "
-SEALS="footclient:端 kawa-edit:編 kawa-files:箱 kawa-agents:代 kawa-git:枝 kawa-notes:記
-  kawa-clip:写 kawa-books:本 kawa-wallpaper:壁 kawa-backup:蔵 kawa-calc:算 kawa-disk:量
-  kawa-tables:表 btop:視 kawa-mixer:混 kawa-network:網 kawa-bluetooth:青 kawa-file:具
-  kawa-torrents:種 kawa-prowlarr:索 spotify:曲 whatsapp:話"
+OURS="footclient:terminal kawa-edit:code kawa-files:folder kawa-agents:agents kawa-git:branch
+  kawa-notes:note kawa-clip:clipboard kawa-books:book kawa-wallpaper:picture kawa-backup:archive
+  kawa-calc:calc kawa-disk:usage kawa-tables:sheet btop:cpu kawa-mixer:sliders
+  kawa-network:globe kawa-bluetooth:bluetooth kawa-file:tools kawa-torrents:download
+  kawa-prowlarr:search spotify:music whatsapp:speech"
 for f in "$A"/*.desktop; do
   [[ $(key "$f" NoDisplay) == true ]] && continue
-  i=$(key "$f" Icon) k=$(key "$f" X-Fedokawaii-Kanji) n=${f##*/}
+  i=$(key "$f" Icon) k=$(key "$f" X-Fedokawaii-Icon) n=${f##*/}
   if [[ -n $k ]]; then
-    [[ -z $i ]] && _ok || _no "$n: a seal and an Icon= both (the icon would win)"
-    [[ $SEALS == *"${n%.desktop}:$k"* ]] && _ok || _no "$n: a seal ($k) no list here names"
+    [[ -z $i ]] && _ok || _no "$n: ours and an Icon= both (the icon would win)"
+    [[ $OURS == *"${n%.desktop}:$k"* ]] && _ok || _no "$n: an icon ($k) no list here names"
   elif [[ $i == @HOME@/* ]]; then [[ $i == *.png ]] && _ok || _no "$n: a picture by path that is no PNG: $i"
   else [[ $OFFICIAL == *" $i "* ]] && _ok || _no "$n: Icon=$i is no window program's own icon"; fi
 done
-for s in $SEALS; do
-  eq "$(key "$A/${s%%:*}.desktop" X-Fedokawaii-Kanji)" "${s#*:}" "${s%%:*}: its seal"
+for s in $OURS; do
+  eq "$(key "$A/${s%%:*}.desktop" X-Fedokawaii-Icon)" "${s#*:}" "${s%%:*}: its icon"
 done
+eq "$(grep -l '^X-Fedokawaii-Kanji=' "$A"/*.desktop 2>/dev/null)" "" "no kanji seal left (§13)"
 eq "$(key "$A/kawa-sketch.desktop" Icon)" com.github.xournalpp.xournalpp "Sketch: Xournal++'s own (it is Xournal++)"
-case_ "the pictures: an app's own icon at its native 16 px (design-system §3), forced to it; a terminal program's kanji (one each, wide, drawn by Sumi UI, no two alike — T16 draws them as icons) in the icon column in accent_text, no box round it"
-out=$(python3 -I - "$REPO" $SEALS <<'PY'
-import sys, unicodedata
+case_ "the pictures: an app's own icon at its native 16 px (design-system §3), forced to it; a terminal program's pixel icon (a name icons.sh defines and the icon font draws, no two entries alike) in the icon column in accent_text, no box round it"
+. "$REPO/configs/home/.config/fedokawaii/icons.sh"
+out=$(python3 -I - "$REPO" $OURS <<'PY'
+import sys
 from fontTools.ttLib import TTFont
-cmap = TTFont(sys.argv[1] + "/system/fonts/SumiUI.ttf").getBestCmap()
+cmap = TTFont(sys.argv[1] + "/configs/home/.local/share/fonts/SumiIcons.ttf").getBestCmap()
+sh = open(sys.argv[1] + "/configs/home/.config/fedokawaii/icons.sh", encoding="utf-8").read()
+names = {l.split("=", 1)[0][5:].lower().replace("_", "-"): l for l in sh.splitlines() if l.startswith("ICON_")}
 ks = [a.split(":")[1] for a in sys.argv[2:]]
 for k in ks:
-    if len(k) != 1 or unicodedata.east_asian_width(k) != "W": print(f"{k}: not one wide kanji")
-    elif ord(k) not in cmap: print(f"{k}: Sumi UI does not draw it")
-if len(set(ks)) != len(ks): print("two entries share a seal")
+    if k not in names: print(f"{k}: no such icon in icons.sh")
+    else:
+        v = names[k].split("=$'", 1)[1].split("'")[0]
+        ch = bytes(int(h, 16) for h in v.split("\\x")[1:]).decode()
+        if ord(ch) not in cmap: print(f"{k}: the icon font does not draw it")
+if len(set(ks)) != len(ks): print("two entries share an icon")
 PY
 )
-eq "$out" "" "the seals' kanji"
+eq "$out" "" "the entries' icons"
 P=$REPO/bin/kawa-panel
 grep -qx 'APP_ICON = 16 .*' "$P" && _ok || _no "an entry's icon is not 16 px"
 grep -qF 'theme.lookup_by_gicon(g, APP_ICON, Gtk.IconLookupFlags.FORCE_SIZE)' "$P" && _ok || _no "the icons not loaded at the row's size, forced"
 seal=$(sed -n '/elif it.kind == "app":/,/elif it.kind == "row":/p' "$P")
-has "$seal" 'glyph(cr, it.x + GLYPH_X, ty, pic_, lk["glyph"] if lk["fill"] else "accent_text")' "the kanji: accent_text in the icon column (on the cursor: the cursor's ink)"
+has "$seal" 'glyph(cr, it.x + GLYPH_X, ty, pic_, lk["glyph"] if lk["fill"] else "accent_text")' "ours: accent_text in the icon column (on the cursor: the cursor's ink)"
+has "$seal" 'pic_ = ic["calc"] if it.app is None else it.app.pic' "the answer's row: the calculator's icon"
 lacks "$seal" 'frame(cr, ix, iy' "no box round it (§4: never a second frame)"
 has "$seal" 'Gdk.cairo_set_source_pixbuf(cr, pic_, ix, iy)' "an app's own icon as it is, centred in the row"
-has "$(sed -n '/    def list(self):/,/return self.cache/p' "$P")" 'a.pic = a.kanji or self.icon(theme, info) or "窓"' "the seal first, then the icon, then a window's seal"
+has "$(sed -n '/    def list(self):/,/return self.cache/p' "$P")" 'a.pic = (ic[a.mark.replace("-", "_")] if a.mark else self.icon(theme, info)) or ic["window"]' "ours by name, else the program's own, else a window's"
+lacks "$(cat "$P")" '"窓"' "no kanji for a window any more"
 has "$(key "$A/syncplay.desktop" Icon)" "/.local/share/fedokawaii/syncplay/syncplay/resources/hicolor/" "Syncplay's own, from its copy"
 has "$(key "$A/localsend.desktop" Icon)" "/.local/share/localsend/data/flutter_assets/assets/img/logo-" "LocalSend's own, from its release"
 eq "$(key "$A/spotify.desktop" Exec)" "@HOME@/.local/bin/brave-origin --app=https://open.spotify.com" "Spotify: a Brave app window"

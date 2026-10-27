@@ -6,6 +6,7 @@
 # lazygit then opens in it; a bad name or address is said, never acted on. Typed on a terminal
 # of its own (pty_run.py); fzf and lazygit are stand-ins, and the real fzf takes c and n.
 . "$(dirname "$0")/lib.sh"
+. "$REPO/configs/home/.config/fedokawaii/icons.sh"
 FD=$(command -v fd 2>/dev/null) GIT=$(command -v git 2>/dev/null)
 [[ -n $FD && -n $GIT ]] || { skip "no fd or git here"; exit 0; }
 
@@ -41,12 +42,13 @@ mkdir -p "$HOME/repos/notone/sub"
 case_ "--list: every repository in ~/repos and the home, the last used first; none in hidden folders, each once"
 eq "$(kawa-git --list | sed "s|^$HOME|~|" | tr '\n' ' ')" "~/repos/new ~/repos/group/deep ~/project ~/repos/old "
 
-case_ "the picker: a §7 screen — 庫 repositories, a row each with its branch — Enter opens lazygit in the one chosen"
+case_ "the picker: a §7 screen — the branch icon, repositories, a row each with its branch — Enter opens lazygit in the one chosen"
 echo "$HOME/repos/new" >"$TMP/fzf.pick"
 out=$(run); eq "$(cat "$TMP/lazygit.pwd" 2>/dev/null)" "$HOME/repos/new"
 args=$(cat "$TMP/fzf.args.1")
 heading_ok "$(hdr list)" 76
-has "$args" "enter open"; has "$args" "esc close"; has "$args" "--with-nth=2"
+lacks "$args" "enter open"; lacks "$args" "esc close"; lacks "$args" "--footer" "nothing obvious on its last line (§7)"
+has "$(hdr list)" "$ICON_BRANCH"; lacks "$(hdr list)" "庫" "no kanji (§13)"; has "$args" "--with-nth=2"
 has "$args" "--bind=start,resize:reload-sync["; has "$args" "+transform-header["
 first=$(head -n1 "$TMP/fzf.in.1" | plain); has "$first" "~/repos/new"; has "$first" "feature"
 eq "$(cut -f1 "$TMP/fzf.in.1" | sed "s|^$HOME|~|" | tr '\n' ' ')" "~/repos/new ~/repos/group/deep ~/project ~/repos/old "
@@ -66,7 +68,8 @@ case_ "none: the screen says there are none and how to get one, with c and n as 
 run >/dev/null
 args=$(cat "$TMP/fzf.args.1")
 heading_ok "$(hdr none)" 76
-has "$(kawa-git --heading none 76)" "no repositories yet"; has "$args" "c clone"; has "$args" "n new"
+has "$(kawa-git --heading none 76)" "no repositories yet"
+has "$args" "--footer="$'\n'"c  "$'\e[38;5;21m'"clone"$'\e[0m'"    n  "$'\e[38;5;21m'"new"$'\e[0m' "its two keys (§7: the key, what it does muted, four columns apart)"
 has "$args" "--bind=c:pos(1)+accept,n:pos(2)+accept"
 has "$(plain <"$TMP/fzf.in.1")" "clone one"; has "$(plain <"$TMP/fzf.in.1")" "start a new one"
 

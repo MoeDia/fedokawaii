@@ -1,13 +1,14 @@
 --- @since 26.9.1
 -- ~/.config/yazi/plugins/kawa-pdf.yazi — a PDF's preview: yazi's own (its page drawn by
 -- pdftoppm, J/K turning the pages), but a PDF locked with a password says so in the desktop's
--- words — 鍵 locked, and that Enter opens it in the reader, which asks for the password —
+-- words — the lock icon, locked, and that Enter opens it in the reader, which asks for the password —
 -- instead of pdftoppm's "Failed to convert PDF to image, stderr: Command Line Error: Incorrect
 -- password". Any other PDF that cannot be drawn says why in one line. yazi.toml puts it before
 -- the preset (whose name a plugin of ours cannot take: yazi keeps its own).
 -- After yazi's preset pdf.lua (v26.9.1, MIT): kept in step with the yazi lib/upstream.sh pins.
 
 local M = {}
+local ICON_LOCK = "\243\190\128\160" -- Sumi Icons: lock (U+FE020), as in icons.sh
 
 -- (pdftoppm's words for a PDF that needs a password to be opened)
 local function locked(stderr) return stderr:find("Incorrect password", 1, true) ~= nil end
@@ -30,7 +31,7 @@ function M:peek(job)
 		return ya.emit("peek", { bound - 1, only_if = job.file.url, upper_bound = true })
 	elseif lock then
 		return say(job, {
-			{ ui.Span("鍵"):fg("red"), ui.Span("  locked") },
+			{ ui.Span(ICON_LOCK):fg("red"), ui.Span("  locked") },
 			ui.Span("this PDF asks for its password"):fg("darkgray"),
 			ui.Span("Enter opens it: the reader asks"):fg("darkgray"),
 		})

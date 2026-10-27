@@ -29,6 +29,7 @@ export GTK_USE_PORTAL=1 GDK_DEBUG=portals
 # the session's own notices: the window icon (Sumi Icons' "window", written as its bytes —
 # icons.sh is bash's, this is sh), two spaces, then the title, as every notice of the desktop
 SEAL=$(printf '\363\276\200\256')
+ICON_CAMERA=$(printf '\363\276\200\234')     # (Sumi Icons' camera, U+FE01C: Super+U's snapshots)
 SESSION_VARS="WAYLAND_DISPLAY DISPLAY XDG_CURRENT_DESKTOP XDG_SESSION_DESKTOP XDG_SESSION_TYPE GTK_USE_PORTAL GDK_DEBUG"
 # shellcheck disable=SC2086  # a list of names
 systemctl --user import-environment $SESSION_VARS \
@@ -104,7 +105,7 @@ kawa-foryou show 2>/dev/null
 # the session before ended because dwl crashed: said once, when and where (never "a restart")
 kawa-crashnote </dev/null >/dev/null 2>&1 &
 if grep -q '/\.snapshots/' /proc/cmdline; then
-  notify-send -a desktop -u critical -- "史  a snapshot" \
+  notify-send -a desktop -u critical -- "$ICON_CAMERA  a snapshot" \
     "the system as it was — nothing done here is kept. Super+U → snapshots to restore it" 2>/dev/null &
 fi
 # nmtui (quick settings → network) and other newt dialogs in the terminal's own 16 colours,

@@ -75,7 +75,7 @@ case ${1:-} in
         printf '%s\t%s\n' "$id" "$(screen_row "$ICON_BOX_OFF" data "not text" "$w")"
       else      # an escape in a copy is shown as ^[ — fzf would act on it (other control
                 # characters fzf itself shows as ^G, ^H…); a long one fzf cuts at the edge
-        printf '%s\t  %s%s%s  %s\n' "$id" "$INK_MUTED" "$ICON_CLIPBOARD" "$INK_OFF" "${rest//$'\e'/^[}"
+        printf '%s\t %s%s%s  %s\n' "$id" "$INK_MUTED" "$ICON_CLIPBOARD" "$INK_OFF" "${rest//$'\e'/^[}"   # (screen_row's columns)
       fi
     done
     exit 0 ;;
@@ -198,10 +198,10 @@ export KAWA_CELL
 # fzf kills a preview it no longer needs outright (SIGKILL): the copies such previews were
 # reading are in memory (the runtime folder) until cleared — here, as one window is open
 rm -f -- "$RUN"/kawa-clip.?????? 2>/dev/null
-# A text screen (docs/design-system.md §7, screen.sh): the heading — 写, clipboard, the stitch
-# across the window's 76 columns — then the search line, whose empty field says how the list
-# stands (newest first, or why it is empty), the list, the preview under its rule, the keys.
-head="$(screen_heading 写 clipboard 76)"$'\n '
+# A text screen (docs/design-system.md §7, screen.sh): the heading — its icon, clipboard, the
+# rule across the window's 76 columns — then the search line, whose empty field says how the
+# list stands (newest first, or why it is empty), the list, the preview under its rule, its keys.
+head="$(screen_heading "$ICON_CLIPBOARD" clipboard 76)"$'\n '
 if ! command -v cliphist >/dev/null; then ghost='cliphist is missing — fedokawaii repair puts it back'
 elif [[ -n $(cliphist list 2>/dev/null | head -c1) ]]; then ghost='newest first'
 else ghost='nothing copied yet'; fi
@@ -220,14 +220,18 @@ gone() {
 trap gone EXIT; trap 'exit 129' HUP; trap 'exit 130' INT; trap 'exit 143' TERM
 rm -f -- "$SOCK"                                     # (a window killed outright left it)
 "$0" --focus "$pid"                                  # open, nothing under the cursor yet
+# Ended by a key (a copy, Esc): in the warm window, put away first — while the list is still
+# drawn (dwl's ghost of it fades, never a page fzf wiped on its way out: kawa-warm --away)
+away=""; [[ ${KAWA_WARM:-} == clip ]] && away="execute-silent(kawa-warm --away clip)+"
 fzf --ansi --no-sort --height=100% \
   --delimiter=$'\t' --with-nth=2.. --scheme=history --header="$head" --ghost="$ghost" \
   --preview="$self --preview {1}" --preview-window='down,9,wrap-word,border-top,noinfo' --preview-wrap-sign='   ' \
-  --footer=$'\n'"$(screen_footer 'enter copy' 'super+z shrink' 'ctrl+d forget' 'ctrl+x forget all')" \
+  --footer=$'\n'"$(screen_keys super+z shrink '' ctrl+d forget '' ctrl+x 'forget all' '')" \
   --listen="$SOCK" \
   --bind="focus:execute-silent($self --focus $pid {1})" \
   --bind="result:execute-silent($self --focus $pid {1})+execute-silent([ \"\$FZF_MATCH_COUNT\" != 0 ] || $self --focus $pid)" \
-  --bind="enter:become($self --copy {1})" \
+  --bind="enter:${away}become($self --copy {1})" \
+  --bind="esc,ctrl-c,ctrl-g,ctrl-q:${away}abort" \
   --bind="ctrl-d:execute-silent($self --delete {1})+reload($self --list)" \
   --bind="ctrl-x:execute($self --wipe)+reload($self --list)" \
   < <("$0" --list)

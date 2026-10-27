@@ -152,7 +152,9 @@ function M:redraw()
 		lines[#lines + 1] = l
 	end
 	lines[#lines + 1] = ui.Line("")
-	lines[#lines + 1] = ui.Line(self.busy or "enter open  ·  e eject  ·  esc close"):fg("darkgray")
+	-- (its own key alone, §7: the key in the words' ink, what it does muted)
+	lines[#lines + 1] = self.busy and ui.Line(self.busy):fg("darkgray")
+		or ui.Line { ui.Span("e"), ui.Span("  eject"):fg("darkgray") }
 	return {
 		ui.Clear(a),
 		ui.Border(ui.Edge.ALL)

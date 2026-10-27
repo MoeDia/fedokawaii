@@ -1,11 +1,11 @@
 [Desktop Entry]
 # bluetui, Bluetooth pairing — the window quick settings' devices opens (kawa-quick --do
-# devices: floating, one at a time). Its icon: our seal of 青 (the launcher draws it: X-Fedokawaii-Kanji).
+# devices: floating, one at a time). Its icon: our pixel bluetooth (the launcher draws it: X-Fedokawaii-Icon).
 Type=Application
 Name=Bluetooth
 GenericName=Pair a device
 Comment=bluetui: pair and connect headphones, speakers, controllers and keyboards
-X-Fedokawaii-Kanji=青
+X-Fedokawaii-Icon=bluetooth
 Exec=@HOME@/.local/bin/kawa-quick --do devices
 Terminal=false
 Categories=Settings;HardwareSettings;

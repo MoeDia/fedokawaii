@@ -358,7 +358,7 @@ mic_test() {
   from=$(wpctl inspect @DEFAULT_AUDIO_SOURCE@ 2>/dev/null | sed -n 's/^[ *]*node\.description = "\(.*\)"$/\1/p' | head -n 1)
   notify-send -a desktop -t 5000 -- "$ICON_MIC  test mic" "recording 5 seconds from ${from:-the default input} — speak as in a call" 2>/dev/null
   timeout -s INT 5 pw-record --channels 1 "$f" >/dev/null 2>&1
-  [[ -s $f ]] || { notify-send -a desktop -- "$ICON_MIC_OFF  test mic" "nothing recorded — is there a microphone (Super+A, under 入)?" 2>/dev/null; return 1; }
+  [[ -s $f ]] || { notify-send -a desktop -- "$ICON_MIC_OFF  test mic" "nothing recorded — is there a microphone (Super+A, under input)?" 2>/dev/null; return 1; }
   notify-send -a desktop -t 5000 -- "$ICON_MIC  test mic" "playing it back" 2>/dev/null
   pw-play "$f" >/dev/null 2>&1
   rm -f -- "$f"

@@ -248,8 +248,7 @@ pick_target() {   # → 0 saved (and read again) · 4 nothing to pick, or none p
   local self; self=$(printf '%q' "$0")
   pick=$(printf '%s\n' "${rows[@]}" | KAWA_BACKUP_DRIVES=$(printf '%s\n' "${rows[@]}") \
          fzf --ansi --delimiter=$'\t' --with-nth=3 --no-sort --height=100% --with-shell='bash -c' \
-           --bind="start,resize:reload-sync[$self --drive-rows]+transform-header[$self --drive-heading]" \
-           --footer=$'\n'"$(screen_footer 'enter keep it there' 'esc cancel')") \
+           --bind="start,resize:reload-sync[$self --drive-rows]+transform-header[$self --drive-heading]") \
     || { printf '  no drive picked — nothing backed up\n' >&2; return 4; }
   label=${pick%%$'\t'*}
   t=$(mktemp "${XDG_RUNTIME_DIR:-/tmp}/fedokawaii.conf.XXXXXX") || return 1
@@ -320,7 +319,7 @@ case ${1:-} in
   --drive-heading)   # [W] — its heading, and what the choice is for
              w=${2:-}; [[ -n $w ]] || w=$(screen_width) || exit 1
              printf '%s\n \n  %swhich drive keeps your backup? it is remembered (BACKUP_TARGET)%s\n ' \
-               "$(screen_heading 盤 "back up to" "$w")" "$INK_MUTED" "$INK_OFF" ;;
+               "$(screen_heading "$ICON_DRIVE" "back up to" "$w")" "$INK_MUTED" "$INK_OFF" ;;
   status)    (($# == 1)) || exit 2; status ;;
   target)    (($# == 1)) || exit 2; [[ -n $CONF_WHY ]] || printf '%s\n' "$BACKUP_TARGET" ;;   # (one that breaks its rule: none)
   where)     (($# == 1)) || exit 2

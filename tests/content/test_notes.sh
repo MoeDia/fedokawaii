@@ -7,6 +7,7 @@
 # in a terminal of its own — put away and shown again through its socket, and closed under
 # it. (The key itself, dwl's warm toggle: tests/session/test_warm.sh.)
 . "$(dirname "$0")/lib.sh"
+. "$REPO/configs/home/.config/fedokawaii/icons.sh"
 
 setup() {   # setup — a fresh sandbox; the window writes $TYPED into $NOTES_FILE, as neovim
             # saves it: a fresh line opened under the end, what was typed on it
@@ -188,8 +189,8 @@ else
   eq "$(ask '{vim.wo.number, vim.wo.relativenumber, vim.wo.signcolumn, vim.wo.foldcolumn, vim.wo.wrap, vim.wo.linebreak, vim.wo.spell, vim.wo.cursorline}')" \
      '{ false, false, "no", "4", true, true, false, false }'
   case_ "notes.lua: the heading (記, notes, the stitch: §7); the footer names the file ('%' kept as a '%') and the keys"
-  has "$(ask vim.wo.winbar)" "%#KawaGround#  %#KawaKanji#記%#KawaGround#  %#KawaName#notes %#KawaStitch#%="
-  has "$(ask "vim.opt_local.fillchars:get().wbr")" "╌"
+  has "$(ask vim.wo.winbar)" "%#KawaGround#  %#KawaIcon#$ICON_NOTE%#KawaGround#  %#KawaName#notes %#KawaStitch#%="
+  has "$(ask "vim.opt_local.fillchars:get().wbr")" "─"
   has "$(ask vim.wo.statusline)" "%#KawaMuted#~/Notes/50%% off.md  ·  saved as you go  ·  super+n puts it away"
   eq "$(ask '{vim.o.laststatus, vim.o.cmdheight}')" "{ 2, 0 }"
   case_ "notes.lua: nothing written over the footer while typing (no mode, no keys, no 'written')"
@@ -202,7 +203,7 @@ else
     -c 'qa!' -- "$TMP/n.md" 2>/dev/null; }
   case_ "notes.lua: the theme's inks — the kanji accent_text, the name text, the stitch edge2, the footer muted, on the ground"
   ink() { sed -n "s/^C_$2=\([0-9a-f]*\).*/\1/p" "$HOME/.config/fedokawaii/themes/$1/colors.sh"; }   # ink THEME NAME
-  eq "$(hl KawaKanji)" "$(ink dark ACCENT_TEXT) $(ink dark GROUND)"; eq "$(hl KawaName)" "$(ink dark TEXT) $(ink dark GROUND)"
+  eq "$(hl KawaIcon)" "$(ink dark ACCENT_TEXT) $(ink dark GROUND)"; eq "$(hl KawaName)" "$(ink dark TEXT) $(ink dark GROUND)"
   eq "$(hl KawaStitch)" "$(ink dark EDGE2) $(ink dark GROUND)"; eq "$(hl KawaMuted)" "$(ink dark MUTED) $(ink dark GROUND)"
   [[ $(ink dark EDGE2) =~ ^[0-9a-f]{6}$ && $(ink dark EDGE2) != "$(ink light EDGE2)" ]] && _ok || _no "the themes' C_EDGE2 (read: a name with a digit)"
   ln -sfn themes/light "$HOME/.config/fedokawaii/current"
@@ -270,7 +271,7 @@ else
   out=$(nvim --headless -c 'luafile ~/.config/fedokawaii/notes.lua' -c 'e ~/Notes/trip.md' \
     -c "lua io.stdout:write(vim.inspect({vim.api.nvim_eval_statusline(vim.wo.winbar, {winid = 0, use_winbar = true}).str, vim.api.nvim_eval_statusline(vim.wo.statusline, {winid = 0}).str, vim.wo.number, vim.wo.foldcolumn, vim.wo.wrap}))" \
     -c 'qa!' -- "$N" 2>/dev/null)
-  has "$out" "  記  notes ╌╌╌"; has "$out" "  ~/Notes/trip.md  ·  saved as you go"; has "$out" 'false, "4", true }'
+  has "$out" "  $ICON_NOTE  notes ───"; has "$out" "  ~/Notes/trip.md  ·  saved as you go"; has "$out" 'false, "4", true }'
   # the warm page: put away (kawa-warm --hidden) and shown again the next day (--shown),
   # through its socket as kawa-warm does — saved and tidied as it goes, today's note as it shows
   case_ "warm: put away — saved and tidied; shown the next day — its heading, the cursor under it, typing"

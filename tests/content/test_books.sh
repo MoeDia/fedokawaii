@@ -6,6 +6,7 @@
 # 0, 1 and 500 books, and zathura's memory of where you were (a real bookmarks.sqlite).
 # The covers are drawn for real (poppler, 7z, ImageMagick, kawa-sixel) and read back.
 . "$(dirname "$0")/lib.sh"
+. "$REPO/configs/home/.config/fedokawaii/icons.sh"
 
 setup() {   # setup — a fresh sandbox with an empty ~/Books; fzf, zathura, gio as stand-ins
   sandbox; unset LOCPATH
@@ -75,23 +76,26 @@ done
 lacks "$out" ".hidden"; lacks "$out" "thrown"; lacks "$out" "notes.txt"; lacks "$out" "scan.djvu" "(zathura here has no DjVu plugin)"
 lacks "$out" "gone.pdf"
 
-case_ "reading: page and total, a bar in tenths, read today"
+times() { local s="" i; for ((i = 0; i < $2; i++)); do s+=$1; done; printf '%s' "$s"; }   # times TEXT N
+case_ "reading: page and total, a meter in tenths (read solid, to read hollow: the shapes say it on the cursor's row too), read today"
 r=$(row "Reading Now.pdf")
-has "$(field 2 <<<"$r" | plain)" "━━━━━━━───     87/120"
+has "$(field 2 <<<"$r" | plain)" "$(times "$ICON_READ" 7)$(times "$ICON_READ_OFF" 3)     87/120"
+has "$(field 2 <<<"$r")" $'\e[38;5;20m'"$ICON_READ" "read: accent_text"; has "$(field 2 <<<"$r")" $'\e[38;5;19m'"$ICON_READ_OFF" "to read: edge2"
 eq "$(field 3 <<<"$r")" "read today" "when (the page is the list's)"
 eq "$(field 4 <<<"$r")" "pdf · 25.4 KB" "the caption: no page count, the list's 87/120 says it"
 eq "$(field 5 <<<"$r")" "" "found by its own path: zathura opens it where it was"
-case_ "finished: 'done', a full bar in muted, when"
+case_ "finished: 'done', a full meter in muted, when"
 r=$(row "Done Book.pdf")
-has "$(field 2 <<<"$r" | plain)" "━━━━━━━━━━       done"; has "$(field 2 <<<"$r")" $'\e[38;5;21m━'
+has "$(field 2 <<<"$r" | plain)" "$(times "$ICON_READ" 10)       done"; has "$(field 2 <<<"$r")" $'\e[38;5;21m'"$ICON_READ"
 eq "$(field 3 <<<"$r")" "read 2 weeks ago" "when (done is the list's)"
 case_ "moved since zathura saw it: found by name, the page kept, opened there (field 5)"
 r=$(row "Flow.epub")
-has "$(field 2 <<<"$r" | plain)" "━─────────       37/–" "no fixed pages: the same N/M, the M unknown"
+has "$(field 2 <<<"$r" | plain)" "$ICON_READ$(times "$ICON_READ_OFF" 9)       37/–" "no fixed pages: the same N/M, the M unknown"
 eq "$(field 3 <<<"$r")" "read 3 days ago"; eq "$(field 5 <<<"$r")" 37
-case_ "new: a grey bar, 'new', what it is"
+case_ "new: no meter (not begun), 'new', what it is"
 r=$(row "New Comic.cbz")
-has "$(field 2 <<<"$r" | plain)" "──────────        new"
+[[ $(field 2 <<<"$r" | plain) =~ New\ Comic\ {45}new$ ]] && _ok || _no "not the title, its column's spaces, a blank meter, then new: [$(field 2 <<<"$r" | plain)]"
+lacks "$(field 2 <<<"$r")" "$ICON_READ_OFF" "no meter for a book not begun"
 has "$(field 4 <<<"$r")" "cbz · 3 pages · " "the pictures counted, not the text file"
 case_ "the order: being read, most recent first; then the new ones, newest first"
 eq "$(cut -f1 <<<"$out" | head -n3 | sed "s|$B/||" | tr '\n' '|')" "Reading Now.pdf|Flow.epub|Done Book.pdf|"
@@ -112,8 +116,8 @@ eq "$(FZF_COLUMNS=40 kawa-books --rows | widths)" "61 " "too narrow to trust: th
 eq "$(kawa-books --rows | widths)" "61 "
 case_ "a title longer than its column is cut at a word's end — never with …"
 mk pdf "$B/$(printf 'word %.0s' {1..30}).pdf" 1
-t=$(FZF_COLUMNS=75 kawa-books --rows | grep 'word word' | field 2 | plain)
-has "$t" "word    ──" "the last whole word, then the column's spaces"; lacks "$t" "…"
+t=$(FZF_COLUMNS=85 kawa-books --rows | grep 'word word' | field 2 | plain)
+[[ $t =~ ^\ .\ \ word\ word\ word\ {23}new$ ]] && _ok || _no "the last whole word, then the column's spaces: [$t]"; lacks "$t" "…"
 
 case_ "a name that is not UTF-8 (an old zip's), in a real UTF-8 locale: listed, the rest too"
 if locale_of en_US; then L=$LOC
@@ -137,9 +141,9 @@ for t in "family 👨‍👩‍👧 photos:16" "thumbs 👍🏽 up:12" "❤️ h
          "$(printf 'cafe\xcc\x81') au lait:12" "🇯🇵 trip:7"; do
   mk pdf "$B/${t%:*}.pdf" 1
   r=$(FZF_COLUMNS=100 kawa-books --rows | grep -F -- "$B/${t%:*}.pdf"$'\t' | field 2 | plain)
-  r=${r#  *  }                                        # (the row's indent and glyph)
+  r=${r# *  }                                         # (the row's indent and glyph)
   pad=${r#"${t%:*}"}; pad=${pad%%[!\ ]*}
-  eq "${#pad}" $((31 + 2 - ${t##*:})) "${t%:*}: its padding (title column 31, then 2 spaces)"
+  eq "${#pad}" $((32 + 2 + 10 + 2 + 6 - ${t##*:})) "${t%:*}: its padding (title column 32, 2 spaces, no meter: new, then the mark's column)"
 done
 
 case_ "no books, ~/Books missing: an empty list, the folder made"
@@ -255,14 +259,14 @@ for l in sys.stdin.read().splitlines():
     w = sum(2 if unicodedata.east_asian_width(c) in "WF" else 1 for c in l)
     if w > int(sys.argv[1]): sys.exit(1)' "$cols" <<<"$text" && _ok || _no "$size: a line of words wider than the pane"
 done
-case_ "a long Japanese title (the list cut it, so the caption names it): two lines at most, inside the pane, no …"
+case_ "a long Japanese title (the list cut it, so the caption names it): three lines at most, inside the pane, no …"
 mk epub "$B/$(printf '長い題名%.0s' {1..12}).epub" meta
 long=$(printf '長い題名%.0s' {1..12})
 whole=$(kawa-books --rows | grep -F -- "$B/$long.epub"$'\t' | field 6)
 eq "$whole" "$long" "the list cuts it: its whole title goes to the caption (field 6)"
 text=$(FZF_PREVIEW_COLUMNS=36 FZF_PREVIEW_LINES=24 KAWA_CELL=9x21 kawa-books --preview "$B/$long.epub" "info one" "info two" "$whole" \
        | sixel_info | jrepr after | python3 -I -c 'import sys,ast; print(ast.literal_eval(sys.stdin.read()))' | plain)
-eq "$(grep -c '長' <<<"$text")" 2; lacks "$text" "…"
+eq "$(grep -c '長' <<<"$text")" 3; lacks "$text" "…"
 case_ "a title the list shows whole: the caption does not repeat it"
 text=$(cover "$B/Reading Now.pdf" | sixel_info | jrepr after | python3 -I -c 'import sys,ast; print(ast.literal_eval(sys.stdin.read()))' | plain)
 lacks "$text" "Reading Now"; eq "$(kawa-books --rows | grep -F -- "$B/Reading Now.pdf"$'\t' | field 6)" ""
@@ -333,7 +337,7 @@ if [[ -z $FD ]]; then skip "no fd here: Ctrl+A not tried"; else
 stub fd "exec '$FD' \"\$@\""
 printf '%s\n' "~/Downloads/Taken.pdf" "~/Downloads/sub/Deep.epub" >"$FZF_PICK"
 kawa-books --add
-offered=$(cut -f2 "$FZF_IN.add" | plain | sed 's/^  [^ ]*  //' | sort | tr '\n' '|')
+offered=$(cut -f2 "$FZF_IN.add" | plain | sed 's/^ [^ ]*  //' | sort | tr '\n' '|')   # (§7: a column in, the glyph, two)
 eq "$offered" "~/Documents/a.b.c.pdf|~/Downloads/Taken.pdf|~/Downloads/sub/Deep.epub|"
 [[ -f "$B/Taken (2).pdf" && -f $B/Deep.epub && -f $B/Taken.pdf && ! -e $HOME/Downloads/Taken.pdf ]] && _ok \
   || _no "moved wrong: $(ls "$B" | tr '\n' '|')"

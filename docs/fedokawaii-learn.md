@@ -506,13 +506,14 @@ Keep the help sheet (**Super+/**) a key away; write down the three keys you look
 | wallpaper · theme | **Super+W** · **Super+Shift+W** | a picture for this theme · dark ⇄ light |
 
 Every menu works the same: arrows or **j** **k** move, **Enter** chooses, **Esc** closes, and
-typing filters the list.
+typing filters a long list. A screen with a key of its own shows it on its last line — the key,
+what it does, and its state — and nothing else there: Super+/ has all the rest.
 
 **The wallpaper picker** (**Super+W**) lists the theme's pictures, with the one under the cursor
 shown underneath, as the screen will show it. Hold ↓ to run through them; **Enter** sets one,
-**Esc** leaves everything as it was. Its first row is a switch, *a new one every 4 hours*
-(□ off, ▣ on): **Enter** turns it over, and from then on the pack's next picture goes up every
-four hours of a session, by itself. It stays as you left it across logins.
+**Esc** leaves everything as it was. Its own key is on its last line — *r  change every 4 h  off*:
+**r** (or a click on that line) turns it on, and from then on the pack's next picture goes up
+every four hours of a session, by itself. It stays as you left it across logins.
 
 **The one transition.** A theme switch (**Super+Shift+W**) and a new wallpaper share one
 transition: the old screen fades away over a third of a second, drawn at every refresh of the
@@ -541,10 +542,10 @@ terminal. Turn *dnd* off.
 
 *Expected:* the time left shows in the timer's heading; a notice when it ends.
 
-**5.4 ★ A new wallpaper every four hours.** **Super+W**, **Enter** on the first row so it shows ▣,
+**5.4 ★ A new wallpaper every four hours.** **Super+W**, **r** so its last line says *on*,
 **Esc**. Then **Super+Shift+W** twice, and watch the wash each time.
 
-*Expected:* ▣ stays on after you close the picker; each theme switch washes the screen in a
+*Expected:* it still says *on* when you open the picker again; each theme switch washes the screen in a
 quarter of a second, in steps.
 
 # 6. Clipboard, screenshots and recordings
@@ -701,15 +702,15 @@ Syncplay — and **Enter**. The programs you start most rise to the top. **Shift
 forget its rank.
 
 Each entry has its icon: a window program shows its own (Brave, Steam, LibreOffice); every other
-entry — the terminal programs, the pages in Brave — a **seal** of its own, drawn in the desktop's
-pixels: one kanji in a thin frame, in the theme's colours. 端 Terminal, 編 Editor, 箱 Files,
-枝 Git, 記 Notes, 写 Clipboard, 算 Calculator, 具 File tools, 壁 Wallpaper, 視 System monitor —
-after a week you find them by their seal before you have read a word.
+entry — the terminal programs, the pages in Brave — one of the desktop's own **pixel icons**, in
+the theme's red: a terminal for Terminal, a pair of brackets for the Editor, a folder for Files,
+a branch for Git, a page for Notes, a clipboard, a calculator, a wrench for the file tools, a
+picture for the wallpapers, a chip for the system monitor — after a week you find them by their
+icon before you have read a word.
 
 **Sums, without the calculator.** Type a sum in the launcher itself — `15% of 2400`,
-`120 usd to aed` — and press **Enter**. Nothing matches a program, so the line goes to the
-calculator, and a notice says *15% of 2400 = 360 · copied*: the answer is on the clipboard. (The
-answer is not drawn in the launcher's list as you type; for that, open the calculator.)
+`120 usd to aed` — and its answer appears as the first row while you type, with the calculator's
+icon and *copy* at its right. **Enter** copies it: a notice says *copied*, the answer under it.
 
 ## 7.2 The calculator
 

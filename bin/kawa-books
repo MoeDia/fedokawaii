@@ -151,7 +151,8 @@ def size(n):
 
 # screen.sh's inks (foot's colours past the sixteen): accent_text, muted, edge2, the words' own
 K, G, E, O = "\033[38;5;20m", "\033[38;5;21m", "\033[38;5;19m", "\033[0m"
-glyph = f"  {G}{os.environ['ICON_BOOK']}{O}  "      # (a row: two spaces, the glyph, two spaces)
+glyph = f" {G}{os.environ['ICON_BOOK']}{O}  "       # (a row, §7: a column in, the glyph, two columns)
+LIT, OFF = os.environ["ICON_READ"], os.environ["ICON_READ_OFF"]   # (a tenth each: solid, hollow)
 rows = []
 for path, kind in found:
     if path not in fresh:
@@ -159,14 +160,14 @@ for path, kind in found:
     sz, mt, pages = fresh[path]
     seen = read.get(os.path.realpath(path)) or by_name.get(os.path.basename(path))
     title = os.path.splitext(os.path.basename(path))[0].replace("_", " ")
-    tw = width - 5 - 2 - 10 - 2 - 9
+    tw = width - 4 - 2 - 10 - 2 - 9            # (the row: glyph 4 · title · 2 · meter 10 · 2 · mark 9)
     if seen:
         page = seen[0] + 1
         done = bool(pages) and page >= pages
-        # the bar: how much is read, in tenths — at least one once begun (a book without a
-        # page count shows just that one: begun, how far unknown)
+        # the meter: how much is read, in tenths — at least one once begun (a book without a
+        # page count shows just that one: begun, how far unknown); a done book's all ten, muted
         n = 10 if done else max(round(10 * page / pages) if pages else 1, 1)
-        bar = (G if done else K) + "━" * n + E + "─" * (10 - n) + O
+        bar = (G if done else K) + LIT * n + E + OFF * (10 - n) + O
         # where you are, one way for every book: "87/120" — "37/–" where the book has no
         # fixed pages (an EPUB's depend on the window); "done"
         mark = "done" if done else (f"{page}/{pages}" if pages else f"{page}/–")
@@ -174,7 +175,7 @@ for path, kind in found:
         color, key = (G if done else O), (1, seen[1])
         goto = str(page) if seen[2] else ""     # (found by name: moved since, so open it there)
     else:
-        bar, mark, goto = E + "─" * 10 + O, "new", ""
+        bar, mark, goto = " " * 10, "new", ""     # (not begun: no meter, the mark says it)
         info1, color, key = "", O, (0, mt)     # (not opened yet: the list's "new" says it)
     # the kind and size, and the page count only where the list's mark does not show it
     # ("87/120" does; "new" and "done" do not)
@@ -195,7 +196,8 @@ PY
 rows() {
   local w=${KAWA_BOOKS_W:-61}   # (the 104-column window)
   [[ ${FZF_COLUMNS:-} =~ ^[0-9]+$ ]] && ((FZF_COLUMNS > 70)) && w=$((FZF_COLUMNS - 41))   # (the cursor's fill a column past the text each side)
-  ICON_BOOK=$ICON_BOOK python3 -I -c "$ROWS" "$BOOKS" "$CACHE" "$DB" "$w" "${EXT[@]}"
+  ICON_BOOK=$ICON_BOOK ICON_READ=$ICON_READ ICON_READ_OFF=$ICON_READ_OFF \
+    python3 -I -c "$ROWS" "$BOOKS" "$CACHE" "$DB" "$w" "${EXT[@]}"
 }
 
 # ── the cover: the first page (PDF, comics), the book's own cover (EPUB) or a plain card ──
@@ -307,7 +309,7 @@ for word in t.split():
     cur = word
 if cur: lines.append(cur)
 lines = lines or [cut(t, w)]
-if len(lines) > 2: lines = lines[:2]            # (two lines at most: the rest goes, no "…")
+if len(lines) > 3: lines = lines[:3]            # (three lines at most — a subtitle too: the rest goes, no "…")
 print("\n".join(lines))' "$title" "$W" 2>/dev/null)
     [[ -z $title ]] && tl=()
     [[ -n $title && ${#tl[@]} == 0 ]] && tl=("${title:0:W}")
@@ -385,10 +387,10 @@ case ${1:-} in
     args=(); for e in "${EXT[@]}"; do args+=(-e "$e"); done
     mapfile -t pick < <(fd -t f -i "${args[@]}" . \
         "$HOME/Downloads" "$HOME/Documents" 2>/dev/null \
-      | while IFS= read -r p; do [[ $p == "$BOOKS"/* ]] || printf '%s\t  %s%s%s  %s\n' "$p" "$INK_MUTED" "$ICON_BOOK" "$INK_OFF" "${p/#"$HOME"/\~}"; done \
+      | while IFS= read -r p; do [[ $p == "$BOOKS"/* ]] || printf '%s\t %s%s%s  %s\n' "$p" "$INK_MUTED" "$ICON_BOOK" "$INK_OFF" "${p/#"$HOME"/\~}"; done \
       | fzf --ansi --multi --height=100% --delimiter=$'\t' --with-nth=2 \
-          --header="$(screen_heading 本 "add books" 100)"$'\n ' --ghost='from ~/Downloads ~/Documents' \
-          --footer=$'\n'"$(screen_footer 'tab mark' 'enter add' 'esc back')" \
+          --header="$(screen_heading "$ICON_BOOK" "add books" 100)"$'\n ' --ghost='from ~/Downloads ~/Documents' \
+          --footer=$'\n'"$(screen_keys tab mark '')" \
       | cut -f1)
     for p in "${pick[@]}"; do
       [[ -f $p ]] || continue
@@ -415,10 +417,10 @@ read -r _ c < <(stty size 2>/dev/null); [[ ${c:-} =~ ^[0-9]+$ ]] && ((c > 70)) |
 KAWA_BOOKS_W=$((c - 43))   # (fzf's width is the window's less its margins: as FZF_COLUMNS - 41)
 export KAWA_CELL KAWA_BOOKS_W
 mapfile -t list < <(rows)
-# A text screen (docs/design-system.md §7, screen.sh): the heading — 本, books, the stitch over
-# the list's width — the search line, whose empty field says where they are, the list (each
-# row its glyph, the title, how far it is read), the cover pane, the keys
-head="$(screen_heading 本 books "$KAWA_BOOKS_W")"$'\n '
+# A text screen (docs/design-system.md §7, screen.sh): the heading — its icon, books, the rule
+# over the list's width — the search line, whose empty field says where they are, the list (each
+# row its glyph, the title, how far it is read), the cover pane, its own keys
+head="$(screen_heading "$ICON_BOOK" books "$KAWA_BOOKS_W")"$'\n '
 # shellcheck disable=SC2088  # (words on the screen, not a path)
 if ((${#list[@]})); then ghost='~/Books'; else ghost='none in ~/Books yet — ctrl+a adds some'; fi
 self=$(printf '%q' "$0")
@@ -426,7 +428,7 @@ printf '%s\n' "${list[@]}" | fzf --ansi --no-sort --height=100% \
   --delimiter=$'\t' --with-nth=2 --tiebreak=index --header="$head" --ghost="$ghost" \
   --preview="$self --preview {1} {3} {4} {6}" --preview-window='right,36,border-left,noinfo,wrap' \
   --preview-wrap-sign=' ' \
-  --footer=$'\n'"$(screen_footer 'enter read' 'ctrl+a add' 'ctrl+d remove' 'esc close')" \
+  --footer=$'\n'"$(screen_keys ctrl+a add '' ctrl+d remove '')" \
   --bind="enter:become($self --open {1} {5})" \
   --bind="ctrl-a:become($self --add)" \
   --bind="start:reload-sync($self --rows)" --bind="resize:reload-sync($self --rows)" \

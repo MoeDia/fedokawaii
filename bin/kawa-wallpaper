@@ -6,14 +6,14 @@
 #                            — Esc leaves everything as it was
 # kawa-wallpaper --restore   show the current theme's choice again (login, theme switch)
 # kawa-wallpaper --set C     show choice C and remember it (what the picker runs)
-# kawa-wallpaper --next      the pack's next picture, when "a new one every 4 hours" is on (the
-#                            picker's first row: kawa-state wallpaper-rotate on|off; its
-#                            timer: kawa-wallpaper-next.timer)
-# kawa-wallpaper --rotate on|off|toggle   that row's switch
+# kawa-wallpaper --next      the pack's next picture, when "change every 4 h" is on (the
+#                            picker's key r, its state on the picker's last line: kawa-state
+#                            wallpaper-rotate on|off; its timer: kawa-wallpaper-next.timer)
+# kawa-wallpaper --rotate on|off|toggle   that key's switch
 # kawa-wallpaper --pack      fetch the wallpaper pack, then draw it for the screen (theme.sh)
 # kawa-wallpaper --cache     draw whatever of the pack is not drawn yet, for every screen
 # kawa-wallpaper --cache-status   is everything drawn? (exit 1: not all of it)
-# (--tui, --preview C, --warm and --cache-one are the picker's and the cache's own parts)
+# (--tui, --keys, --preview C, --warm and --cache-one are the picker's and the cache's own parts)
 #
 # Each theme (dark, light) remembers its own wallpaper. The choices are:
 #   default   the theme's picture from the pack, one place by night and by day: ink-ridges-night
@@ -530,11 +530,12 @@ cache_status() {   # the report's and verify's look: complete and current?
 
 # ── the picker ────────────────────────────────────────────────────────────────────────
 # A text screen (docs/design-system.md §7, in screen.sh's words, as every other one): the
-# heading — 壁, wallpaper, the stitch — then the list, each row its glyph and name, the
+# heading — its picture, wallpaper, the rule — then the list, each row its glyph and name, the
 # theme's own picture marked "default" and a picture with a day/night pair ◐, right-aligned
-# in muted; the cursor the accent fill. The window is fixed (kawa-term --float 80x37), so the rows'
-# width is known: its columns less two each side (fzf's margin and the cursor fill's: W, at
-# the top)
+# in muted; the cursor the accent fill; on its last line its own key, r, and the switch's
+# state (no input line: nothing to type, the letter is the key's). The window is fixed
+# (kawa-term --float 80x37), so the rows' width is known: its columns less two each side
+# (fzf's margin and the cursor fill's: W, at the top)
 declare -A OWN_SUM=()
 current() {   # the choice shown now, as the list names it: the default's own picture is "default"
   local c
@@ -574,10 +575,10 @@ rows() {   # every choice for this theme: "CHOICE<TAB>KEY<TAB>ROW" (KEY: the pre
     done
 }
 
-rotate_row() {   # the picker's first row: the switch of "a new one every 4 hours"
-  local box=$ICON_BOX_OFF
-  [[ $(kawa-state get wallpaper-rotate 2>/dev/null) == on ]] && box=$ICON_BOX_ON
-  printf 'rotate\t\t%s\n' "$(screen_row "$box" "a new one every 4 hours" "" "$W")"
+keys() {   # the picker's last line (a blank one over it): r, the switch "change every 4 h", its state
+  local s=off
+  [[ $(kawa-state get wallpaper-rotate 2>/dev/null) == on ]] && s=on
+  printf '\n%s' "$(screen_keys r 'change every 4 h' "$s")"
 }
 
 case ${1:-menu} in
@@ -588,8 +589,8 @@ case ${1:-menu} in
       *) echo "usage: kawa-wallpaper --rotate on|off|toggle" >&2; exit 2 ;;
     esac
     kawa-state set wallpaper-rotate "$v" ;;
-  --rows)      # the picker's list again (after its switch row changed)
-    rotate_row; rows ;;
+  --keys)      # the picker's last line again (after its switch was turned)
+    keys ;;
   --next)      # the timer's: the pack's next picture for this theme (after the one shown), when on
     [[ $(kawa-state get wallpaper-rotate 2>/dev/null) == on ]] || exit 0
     cur=$(cat "$STATE_DIR/wallpaper-$THEME" 2>/dev/null)
@@ -648,8 +649,8 @@ case ${1:-menu} in
     export KAWA_CELL
     read -r _ screen < <(outputs)
     [[ $screen =~ ^[0-9]+x[0-9]+$ ]] || exit 1
-    mapfile -t list < <(rotate_row; rows)
-    cur=$(current) pos=2                              # (1: the switch row)
+    mapfile -t list < <(rows)
+    cur=$(current) pos=1
     for i in "${!list[@]}"; do [[ ${list[i]%%$'\t'*} == "$cur" ]] && pos=$((i + 1)); done
     # a preview is a cat of its sixel, drawn ahead (the folder: this screen, this cell, this
     # ground; the file: the picture's key and the pane's size, as fzf gives it); one not drawn
@@ -658,31 +659,27 @@ case ${1:-menu} in
     order=$(mktemp "$XDG_RUNTIME_DIR/kawa-wallpaper-warm.XXXXXX") || exit 1
     for ((d = 0; d < ${#list[@]}; d++)); do
       i=$((pos - 1 + d)); ((i < ${#list[@]})) && printf '%s\0' "${list[i]%%$'\t'*}"
-      i=$((pos - 1 - d)); ((d > 0 && i >= 1)) && printf '%s\0' "${list[i]%%$'\t'*}"
+      i=$((pos - 1 - d)); ((d > 0 && i >= 0)) && printf '%s\0' "${list[i]%%$'\t'*}"
     done >"$order"
     setsid "$0" --warm "$order" </dev/null >/dev/null 2>&1 &   # its own group: closing stops all of it
     warm=$!
     trap 'kill -- -"$warm" 2>/dev/null; rm -f "$order"' EXIT
     self=$(printf '%q' "$0") pdir=$(printf '%q' "$dir")
     export FZF_DEFAULT_OPTS_FILE=$HOME/.config/fedokawaii/fzf.opts; unset FZF_DEFAULT_OPTS   # (every list alike)
-    sel=$(for r in "${list[@]}"; do printf '%s\n' "$r"; done | fzf --ansi --no-sort --height=100% \
-      --delimiter=$'\t' --with-nth=3.. --header="$(screen_heading 壁 wallpaper "$W")"$'\n ' \
+    sel=$(for r in "${list[@]}"; do printf '%s\n' "$r"; done | fzf --ansi --no-sort --no-input --height=100% \
+      --delimiter=$'\t' --with-nth=3.. --header="$(screen_heading "$ICON_PICTURE" wallpaper "$W")"$'\n ' \
       --with-shell='bash -c' \
       --preview="f=$pdir/{2}.\${FZF_PREVIEW_COLUMNS}x\${FZF_PREVIEW_LINES}.six; [ -s \"\$f\" ] && exec cat \"\$f\"; exec $self --preview {1}" \
       --preview-window='down,18,border-top,noinfo' \
-      --footer=$'\n'"$(screen_footer "$THEME theme" 'enter set' "$ICON_THEME  sets both themes" 'esc close')" \
-      --bind="enter:transform:[ {1} = rotate ] && echo 'execute-silent($self --rotate toggle)+reload($self --rows)' || echo accept" \
+      --footer="$(keys)" \
+      --bind="r:execute-silent($self --rotate toggle)+transform-footer($self --keys)" \
+      --bind="click-footer:transform:[ \"\$FZF_CLICK_FOOTER_LINE\" = 2 ] && echo 'execute-silent($self --rotate toggle)+transform-footer($self --keys)'" \
       --bind="load:pos($pos)+unbind(load)") || exit 0
     # (load, not start: start comes before the list has arrived, and pos past what has arrived
-    # yet lands short; once only — a reload after the switch keeps the cursor on the switch)
+    # yet lands short; once only)
     printf '%s\n' "${sel%%$'\t'*}" >"$out" ;;
   --preview)   # fzf's preview, when its sixel is not drawn yet: drawn now, and the pane's size noted
     c=${2:-} cell=${KAWA_CELL:-} area=${FZF_PREVIEW_COLUMNS:-}x${FZF_PREVIEW_LINES:-}
-    if [[ $c == rotate ]]; then   # (its words to the pane's width, at words' ends: none cut off)
-      printf '\n'
-      fold -s -w $(( ${FZF_PREVIEW_COLUMNS:-60} - 4 )) <<<"every 4 hours the pack's next picture for this theme — for a picture with a pair, both themes" | sed 's/ *$//; s/^/  /'
-      exit 0
-    fi
     read -r _ screen < <(outputs)
     # (quiet: fzf shows a preview's stderr in the pane — a picture it cannot read, cut short
     # or not a picture at all, gets the plain "no preview" line instead of ImageMagick's words)

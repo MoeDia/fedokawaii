@@ -100,7 +100,11 @@ args_eq swaybg 1 -c "#$GD" -o DP-1 -i "$(handed)" -m fill
 same "$(shown)" "$(cover_of ink-ridges-night)" "not the cached 1080p drawing"
 [[ $(handed) == "$XDG_RUNTIME_DIR"/kawa-wallpaper/*.png ]] && _ok || _no "not handed over as a copy of its own: $(handed)"
 eq "$(size_of "$(shown)")" 1920x1080
-(( $(colours "$(shown)") > 500 )) && _ok || _no "only $(colours "$(shown)") colours: redrawn coarsely, not at full quality"
+# (full quality: every colour of the picture it came from kept — a smooth gradient's JPEG has
+# few, ~270, and the cover drawn from it in linear light keeps them all; quantized or a
+# palette's PNG would have fewer)
+(( $(colours "$(shown)") >= $(colours "$PACK/dark/ink-ridges-night.src") )) && _ok \
+  || _no "only $(colours "$(shown)") colours of the picture's $(colours "$PACK/dark/ink-ridges-night.src"): redrawn coarsely, not at full quality"
 
 case_ "two monitors of different sizes, one turned, one switched off: each its own size"
 setup
@@ -436,7 +440,7 @@ lacks "$(cat "$CACHE/wallpaper-sums")" "mine.png" "a deleted picture is forgotte
 # fzf: keeps the rows and its options, then answers as FZF_PICK says (a row's first field,
 # or "esc"); the picker's window (kawa-term --float) runs its command in place
 picker() {
-  argv fzf 'tee "$FAKE_TMP/all" | grep -v "^rotate	" >"$FAKE_TMP/rows"   # (the switch row apart: $TMP/all)
+  argv fzf 'cat >"$FAKE_TMP/rows"
 case ${FZF_PICK:-esc} in esc) exit 130 ;; esac
 grep -m1 -F "$FZF_PICK	" "$FAKE_TMP/rows" || exit 1'
   stub kawa-term 'while [ "$1" != "--" ]; do shift; done; shift; "$@"'
@@ -453,7 +457,7 @@ case_ "one picture of your own: listed (its key not known until it is first read
 photo "$WP/only one.png"
 kawa-wallpaper --tui "$TMP/out"
 eq "$(cut -f1,2 "$TMP/rows")" "$WP/only one.png	"
-eq "$(plain)" "  $ICON_FOLDER  only one.png"
+eq "$(plain)" " $ICON_FOLDER  only one.png"
 rm "$WP/only one.png"
 
 case_ "the pack and your own: the default first, the pack in list order, then yours"
@@ -466,12 +470,12 @@ photo "$WP/b.png"; photo "$WP/a.jpg"; photo "$WP/sub dir/c.webp"
 kawa-wallpaper --tui "$TMP/out"
 eq "$(cut -f1,2 "$TMP/rows" | head -n1)" "default	$(key_of ink-ridges-night)" "the default, with its key"
 eq "$(cut -f1 "$TMP/rows" | tr '\n' ' ')" "default pack:moon-road-ink pack:mishima-mist pack:seaside-train pack:quay-night pack:old-pier-at-night $WP/a.jpg $WP/b.png $WP/sub dir/c.webp "
-has "$(plain)" "  $ICON_FOLDER  sub dir/c.webp"
+has "$(plain)" " $ICON_FOLDER  sub dir/c.webp"
 lacks "$(rows)" red-fuji "the other theme's pictures are not offered"
 
-case_ "the rows (design system §7): two spaces, the glyph, two spaces, the name; the value right-aligned in muted"
+case_ "the rows (design system §7): a column in, the glyph, two columns, the name; the value right-aligned in muted"
 d=$(plain | head -n1)
-eq "$d" "  $ICON_TORII  ink-ridges-night$(printf '%*s' $((76 - 5 - 16 - 17)) '')current · default" "the default, shown now: 'current · default' at the last column"
+eq "$d" " $ICON_TORII  ink-ridges-night$(printf '%*s' $((76 - 4 - 16 - 17)) '')current · default" "the default, shown now: 'current · default' at the last column"
 eq "$(plain | grep -F "$ICON_THEME" | while IFS= read -r l; do printf '%s\n' "$(LC_ALL=C.UTF-8 wc -L <<<"$l")"; done | sort -u)" 76 "the ◐ marks: at the last column (76)"
 eq "$(grep -cF "$ICON_THEME" "$TMP/rows")" 2 "quay-night and old-pier-at-night have a pair"
 has "$(sed -n 1p "$TMP/rows")" $'\e[38;5;21mcurrent · default' "the value in muted (palette 21)"
@@ -480,17 +484,19 @@ case_ "the one shown now says so: 'current' (a pair's ◐ after it); the default
 eq "$(plain | grep -c 'current')" 1 "nothing chosen yet: the default, current"
 echo pack:ink-ridges-night >"$STATE/wallpaper-dark"; kawa-wallpaper --tui "$TMP/out"
 eq "$(plain | grep -c 'current')" 1; has "$(plain | head -n1)" "ink-ridges-night"; has "$(plain | head -n1)" "current · default"
-has "$(args_of fzf "$(ncalls fzf)")" "load:pos(2)+" "the cursor on it"
+has "$(args_of fzf "$(ncalls fzf)")" "load:pos(1)+" "the cursor on it"
 echo pack:quay-night >"$STATE/wallpaper-dark"; kawa-wallpaper --tui "$TMP/out"
 eq "$(plain | grep 'current' | sed 's/.*quay-night *//')" "current  $ICON_THEME" "a pack with a pair: current, its ◐ after it"
 lacks "$(plain | head -n1)" "current"
 rm -f "$STATE/wallpaper-dark"; kawa-wallpaper --tui "$TMP/out"
-case_ "the window: the heading (壁, wallpaper, the stitch in edge2), the footer, no pointer glyph of its own"
+case_ "the window (§7): the heading (its picture in accent_text, wallpaper, the rule in edge2), its own key on the last line — r, change every 4 h, its state —, nothing obvious (enter, esc), no input line, no pointer glyph of its own"
 a=$(args_of fzf "$(ncalls fzf)")
-h=$(grep -A1 -x -- --header <<<"$a" | sed -n 2p; sed -n '/^--header=/p' <<<"$a")
-has "$a" $'\e[38;5;20m壁'; has "$a" "wallpaper "$'\e[38;5;19m╌╌'
+has "$a" $'\e[38;5;20m'"$ICON_PICTURE"; has "$a" "wallpaper"$'\e[0m \e[38;5;19m──'
+lacks "$a" "╌"; lacks "$a" "壁" "no kanji (§13)"
 lacks "$a" "--pointer"; lacks "$a" "--border-label"
-has "$a" "enter set"; has "$a" "esc close"
+has "$a" "--footer="$'\n'"r  "$'\e[38;5;21m'"change every 4 h"$'\e[0m  \e[38;5;23m'"off"$'\e[0m' "the key in the words' ink, what it does muted, its state strong"
+lacks "$a" "enter set"; lacks "$a" "esc close"
+has "$a" "--no-input" "nothing to type: r is the key's"
 has "$a" "--with-nth=3.."
 
 case_ "your own pictures with odd names: listed with their full path; tab and line break left out"
@@ -502,7 +508,7 @@ done
 kawa-wallpaper --tui "$TMP/out"
 for n in "my photo.png" "ü日本 العربية.jpg" "it's \"quoted\".png" '$(touch pwned).png' '`touch pwned2`.png' "-leading.png" "UPPER.PNG"; do
   has "$(cut -f1 "$TMP/rows")" "$WP/$n"
-  has "$(plain)" "  $ICON_FOLDER  $n"
+  has "$(plain)" " $ICON_FOLDER  $n"
 done
 lacks "$(rows)" "tab"; lacks "$(rows)" "line.png"; lacks "$(rows)" "notes.txt"; lacks "$(rows)" "no-ext"
 eq "$(nrows)" 7
@@ -523,19 +529,21 @@ case_ "the cursor starts on the current choice"
 FZF_PICK=esc kawa-wallpaper --tui "$TMP/out"
 echo "$WP/p0500.png" >"$STATE/wallpaper-dark"
 kawa-wallpaper --tui "$TMP/out"
-has "$(args_of fzf "$(ncalls fzf)")" "load:pos(501)+unbind(load)" "(the switch row first; once the list has arrived, once only)"
+has "$(args_of fzf "$(ncalls fzf)")" "load:pos(500)+unbind(load)" "(once the list has arrived, once only)"
 lacks "$(args_of fzf "$(ncalls fzf)")" "start:pos(" "(start comes before the list: the cursor would land short)"
 case_ "your own picture, shown now: 'current'"
 eq "$(plain | grep -c 'current')" 1 "one row: $(plain | grep 'current')"
 has "$(plain | grep 'current')" "p0500.png" "your own picture, shown now"
 
-case_ "every 4 hours: the picker's first row is its switch (off until switched on), Enter turns it in place"
-head -n1 "$TMP/all" | cut -f1 | grep -qx rotate && _ok || _no "the first row is not the switch"
-has "$(head -n1 "$TMP/all" | cut -f3 | sed "s/\x1b\[[0-9;]*m//g")" "$ICON_BOX_OFF  a new one every 4 hours"
-has "$(args_of fzf "$(ncalls fzf)")" "execute-silent("
+case_ "every 4 hours: the picker's key r (or a click on its line) turns the switch, its last line says on/off at once — no row of the list"
+lacks "$(cut -f1 "$TMP/rows")" rotate "the switch is no row"
+a=$(args_of fzf "$(ncalls fzf)")
+has "$a" "r:execute-silent($(printf '%q' "$(command -v kawa-wallpaper)") --rotate toggle)+transform-footer("
+has "$a" 'click-footer:transform:[ "$FZF_CLICK_FOOTER_LINE" = 2 ]' "a click on the key's line (the line under the blank one), nowhere else"
 rc 0 kawa-wallpaper --rotate toggle; eq "$(kawa-state get wallpaper-rotate)" on
-has "$(kawa-wallpaper --rows | head -n1 | cut -f3 | sed "s/\x1b\[[0-9;]*m//g")" "$ICON_BOX_ON  a new one every 4 hours"
+eq "$(kawa-wallpaper --keys | sed "s/\x1b\[[0-9;]*m//g")" $'\nr  change every 4 h  on'
 rc 0 kawa-wallpaper --rotate toggle; eq "$(kawa-state get wallpaper-rotate)" off
+eq "$(kawa-wallpaper --keys | sed "s/\x1b\[[0-9;]*m//g")" $'\nr  change every 4 h  off'
 rc 2 kawa-wallpaper --rotate maybe
 
 case_ "--next (its timer, every 4 hours): nothing while off; on, the pack's next picture after the one shown, round again at the end"

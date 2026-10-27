@@ -77,6 +77,16 @@ setup; fifo; stub kawa-clip 'echo run >>"$TMP/runs"; sleep 1.1'
 kawa-warm --inside clip & L=$!
 sleep 2.5; kill "$L"; wait "$L" 2>/dev/null
 eq "$(got 0)" $'hide clip\nhide clip'; eq "$(wc -l <"$TMP/runs")" 3
+case_ "...what runs in it knows it is warm (KAWA_WARM: its name), to put the window away first as it ends"
+setup; fifo; stub kawa-clip 'printf "%s\n" "${KAWA_WARM:-none}" >>"$TMP/runs"; sleep 1.1'
+kawa-warm --inside clip & L=$!; sleep 0.4; kill "$L"; wait "$L" 2>/dev/null
+eq "$(head -n1 "$TMP/runs")" clip
+case_ "--away NAME (what runs in it, as it ends — Esc, a copy): dwl told to put it away while its page is still drawn; no dwl: nothing, at once, no file made"
+setup; fifo
+rc 0 kawa-warm --away clip; eq "$(got)" "hide clip"
+rc 2 kawa-warm --away music
+rm -f "$FIFO"; rc 0 timeout 5 kawa-warm --away clip; [[ ! -e $FIFO ]] && _ok || _no "a plain file made where dwl's fifo goes"
+mkfifo "$FIFO"; rc 0 timeout 5 kawa-warm --away system "(a fifo nobody reads — dwl gone: never a wait)"
 case_ "...one that cannot start: five tries in a row, then the window closes"
 setup; fifo; stub kawa-clip 'echo run >>"$TMP/runs"; exit 1'
 rc 1 kawa-warm --inside clip; eq "$(wc -l <"$TMP/runs")" 5

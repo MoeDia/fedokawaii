@@ -427,19 +427,20 @@ export FZF_DEFAULT_OPTS_FILE=$HOME/.config/fedokawaii/fzf.opts FZF_DEFAULT_OPTS=
 __kawa_peek="if [[ -d {} ]]; then eza -T -L 2 --color=always --group-directories-first {}; \
 else bat --color=always --style=numbers --line-range=:300 {}; fi"
 export FZF_CTRL_T_COMMAND='fd --hidden --exclude .git --strip-cwd-prefix'
-# __kawa_heading VAR KANJI NAME [P] — VAR: fzf's options for that heading, as wide as the list:
-# fzf's width less a column each side — and less the preview's P per cent at the right (fzf
-# gives it the whole per cent of its width, rounded down)
+# __kawa_heading VAR ICON NAME [P] — VAR: fzf's options for that heading (ICON: its name in
+# icons.sh, read as it is drawn), as wide as the list: fzf's width less a column each side —
+# and less the preview's P per cent at the right (fzf gives it the whole per cent of its
+# width, rounded down)
 __kawa_h=""
 __kawa_heading() {
-  printf -v "$1" -- '%s' "--with-shell='bash -c' --bind='start,resize:transform-header:. ~/.config/fedokawaii/screen.sh && screen_heading $2 $3 \$((FZF_COLUMNS - FZF_COLUMNS * ${4:-0} / 100 - 2)) && printf \"\\\\n \"'"
+  printf -v "$1" -- '%s' "--with-shell='bash -c' --bind='start,resize:transform-header:. ~/.config/fedokawaii/icons.sh && . ~/.config/fedokawaii/screen.sh && screen_heading \"\$ICON_$2\" $3 \$((FZF_COLUMNS - FZF_COLUMNS * ${4:-0} / 100 - 2)) && printf \"\\\\n \"'"
 }
-__kawa_heading __kawa_h 探 files 55
+__kawa_heading __kawa_h FILE files 55
 export FZF_CTRL_T_OPTS="$__kawa_h --preview='$__kawa_peek' --preview-window=right,55%,border-left"
 export FZF_ALT_C_COMMAND='fd --type d --hidden --exclude .git --strip-cwd-prefix'
-__kawa_heading __kawa_h 道 folders 55
+__kawa_heading __kawa_h FOLDER folders 55
 export FZF_ALT_C_OPTS="$__kawa_h --preview='eza -T -L 2 --color=always --group-directories-first {}' --preview-window=right,55%,border-left"
-__kawa_heading __kawa_h 歴 history
+__kawa_heading __kawa_h HOURGLASS history
 export FZF_CTRL_R_OPTS=$__kawa_h
 unset __kawa_peek __kawa_h
 unset -f __kawa_heading

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # tools/kit.sh — the desktop's real surfaces rendered off-screen, to be measured (tools/px.py) and
-# compared: a headless dwl on the real GPU (tools/hl-dwl.sh) on a flat ground (no wallpaper),
+# compared: a headless dwl on the real GPU (tools/hl-dwl.sh) on a flat ground (the theme's own, no wallpaper),
 # the real apps with the installed configs — but from a throw-away home: copies of what theme.sh
 # installed in ~/.config (and ~/.bashrc), empty caches and state, the scripts and fonts linked.
 # Nothing of the session or of the real home is written; the live theme stays as it is.
@@ -22,7 +22,8 @@
 #                own: /usr/local/bin/dwl)
 #     --repo-art the repository's drawn files in place of the installed ones: icons.sh, the icon
 #                fonts, the theme folders (what build-icons.py and build-themes.py just wrote),
-#                Sumi UI (build-fonts.py's), waybar's and mako's configs
+#                Sumi UI (build-fonts.py's), waybar's and mako's configs, the text screens'
+#                grammar (screen.sh, fzf.opts)
 #     SCENE      bar · notice · launcher · term · quick (Super+X) · system (Super+U; system:N its
 #                tab N after the first, shot as system-N.png) · tui (--tui) · play (--play) · full (default: bar notice term full)
 # Shots → OUT (default /dev/shm/r27/kit/THEME)/SCENE.png. Exit 0 · 1 a scene failed · 2 misuse.
@@ -78,6 +79,10 @@ if ((repo_art)); then
   for f in "$HOME/.local/share/fonts"/*; do [[ ${f##*/} == SumiIcons* ]] || ln -s "$f" "$h/.local/share/fonts/"; done
   cp "$repo"/configs/home/.local/share/fonts/SumiIcons*.ttf "$h/.local/share/fonts/"
   cp "$repo/configs/home/.config/fedokawaii/icons.sh" "$h/.config/fedokawaii/icons.sh"
+  cp "$repo/configs/home/.config/fedokawaii/screen.sh" "$h/.config/fedokawaii/"
+  # (fzf.opts as theme.sh writes it: its prompt's chevron filled in)
+  sed "s|@ICON_CHEVRON_RIGHT@|$(. "$repo/configs/home/.config/fedokawaii/icons.sh"; printf '%s' "$ICON_CHEVRON_RIGHT")|g" \
+    "$repo/configs/home/.config/fedokawaii/fzf.opts" >"$h/.config/fedokawaii/fzf.opts"
   cp -a "$repo/configs/home/.config/fedokawaii/themes/." "$h/.config/fedokawaii/themes/"
   rm -rf "$h/.config/waybar" "$h/.config/mako"
   cp -a "$repo/configs/home/.config/waybar" "$repo/configs/home/.config/mako" "$h/.config/"
@@ -130,6 +135,9 @@ export XDG_DATA_HOME=$h/.local/share FONTCONFIG_FILE=$K/fonts.conf PATH=${bin:+$
 export XDG_CURRENT_DESKTOP=wlroots XDG_SESSION_TYPE=wayland
 cd "\$HOME"
 kawa-dwlstatus <&0 >/dev/null 2>&1 &
+# (the theme's own ground under everything, as its plain wallpaper is before the pack: a light
+# surface's dark hairline shows against paper, not lost in the sumi of dwl's root)
+. "\$HOME/.config/fedokawaii/current/colors.sh" && swaybg -c "#\$C_GROUND" >/dev/null 2>&1 &
 mako >/dev/null 2>&1 &
 foot --server >/dev/null 2>&1 &
 waybar >"$K/waybar.log" 2>&1 &

@@ -2,12 +2,12 @@
 # btop, the system monitor — in place of btop's own entry (the same name), which would ask
 # the launcher for a terminal (Terminal=true). The same window the bar's memory opens:
 # floating, 140×41, one at a time (the bar's memory lit while it is open; a second start
-# closes it). Its icon: our seal of 視 (the launcher draws it: X-Fedokawaii-Kanji).
+# closes it). Its icon: our pixel cpu (the launcher draws it: X-Fedokawaii-Icon).
 Type=Application
 Name=System monitor
 GenericName=Task manager
 Comment=btop: processor, memory, disks, network, graphics card and every program running
-X-Fedokawaii-Kanji=視
+X-Fedokawaii-Icon=cpu
 Exec=@HOME@/.local/bin/kawa-term --float --once btop btop 140x41 -- btop
 Terminal=false
 Categories=System;Monitor;

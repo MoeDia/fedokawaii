@@ -9,18 +9,20 @@
 #    󾀜  update                   in 44 days    (edge2) to the edge — solid, never dashed
 #                                              a row: a column in, its icon, two columns, the
 #                                              name (text); its value right-aligned (muted)
+#   r  change every 4 h  on                    a screen's own key, on its last line (never
+#                                              the obvious: Enter, Esc, the arrows)
 #
 # The inks are foot's palette past the sixteen (tools/build-themes.py writes them for both
 # themes), so a screen follows a theme switch as every other line in the terminal does; the
 # words themselves are the terminal's own foreground (text).
-INK_KANJI=$'\e[38;5;20m'     # accent_text: a heading's icon; a value that needs you ("due")
-INK_ACCENT=$'\e[38;5;16m'    # accent: the line under the tab shown (Super+U)
-INK_MUTED=$'\e[38;5;21m'     # muted: a value, a glyph at rest, a key's name, the footer
-INK_FAINT=$'\e[38;5;22m'     # faint: what is not there yet ("none"); the footer's dots
-INK_STRONG=$'\e[38;5;23m'    # strong: emphasis
-INK_STITCH=$'\e[38;5;19m'    # edge2: a heading's rule
-INK_OFF=$'\e[0m'             # back to the words' own ink (text)
-STITCH='─'                   # (foot draws the box-drawing letters itself: one pixel, on the line's row 10)
+INK_ACCENT_TEXT=$'\e[38;5;20m'  # accent_text: a heading's icon; a value that needs you ("due")
+INK_ACCENT=$'\e[38;5;16m'       # accent: the line under the tab shown (Super+U)
+INK_MUTED=$'\e[38;5;21m'        # muted: a value, a glyph at rest, a key's name, the footer
+INK_FAINT=$'\e[38;5;22m'        # faint: what is not there yet ("none"); the footer's dots
+INK_STRONG=$'\e[38;5;23m'       # strong: emphasis
+INK_STITCH=$'\e[38;5;19m'       # edge2: a heading's rule
+INK_OFF=$'\e[0m'                # back to the words' own ink (text)
+STITCH='─'                      # (foot draws the box-drawing letters itself: one pixel, on the line's row 10)
 
 # screen_cols TEXT — the columns TEXT takes in the terminal (a kanji two, an escape none)
 screen_cols() {
@@ -34,10 +36,10 @@ screen_heading() {
   local n s
   n=$(( $3 - $(screen_cols "$1") - 3 - $(screen_cols "$2") )); ((n < 2)) && n=2
   printf -v s '%*s' "$n" ''
-  printf '%s%s%s  %s%s%s %s%s%s' "$INK_KANJI" "$1" "$INK_OFF" "$INK_STRONG" "$2" "$INK_OFF" "$INK_STITCH" "${s// /$STITCH}" "$INK_OFF"
+  printf '%s%s%s  %s%s%s %s%s%s' "$INK_ACCENT_TEXT" "$1" "$INK_OFF" "$INK_STRONG" "$2" "$INK_OFF" "$INK_STITCH" "${s// /$STITCH}" "$INK_OFF"
 }
 # screen_row GLYPH NAME VALUE W — a row, W columns wide: VALUE right-aligned at the last
-# column, in muted unless it carries an ink of its own (a value that needs you: INK_KANJI)
+# column, in muted unless it carries an ink of its own (a value that needs you: INK_ACCENT_TEXT)
 screen_row() {
   local v=$3 pad=0
   [[ -n $v && $v != $'\e'* ]] && v=$INK_MUTED$v$INK_OFF
@@ -45,11 +47,17 @@ screen_row() {
   [[ -n $v ]] && { pad=$(( $4 - 4 - $(screen_cols "$2") - $(screen_cols "$v") )); ((pad < 2)) && pad=2; }
   printf ' %s%s%s  %s%*s%s' "$INK_MUTED" "$1" "$INK_OFF" "$2" "$pad" '' "$v"
 }
-# screen_footer KEY… — the footer's words: "enter run" "esc close" → enter run  ·  esc close
-# (fzf draws it in muted itself, --color footer; elsewhere: printf '%s%s' "$INK_MUTED" …)
-screen_footer() {
-  local out="" w
-  for w; do out+=${out:+"  $INK_FAINT·$INK_MUTED  "}$w; done
+# screen_keys KEY WHAT STATE … — a screen's own keys on its last line (docs/design-system.md §7:
+# never the obvious ones — Enter, Esc, the arrows: Super+/ has every key), in threes: the key in
+# the words' own ink (text), what it does in muted, its state ("" for none) in strong; two keys
+# four columns apart. "r" "change every 4 h" "on" → r  change every 4 h  on
+# (in fzf: --footer — fzf.opts gives the footer the words' ink, -1, as the rest of a screen)
+screen_keys() {
+  local out=""
+  while (($# >= 3)); do
+    out+=${out:+"    "}$1"  $INK_MUTED$2$INK_OFF"${3:+"  $INK_STRONG$3$INK_OFF"}
+    shift 3
+  done
   printf '%s' "$out"
 }
 # screen_width — the width a screen's lines have: the terminal's, less two columns of paper each

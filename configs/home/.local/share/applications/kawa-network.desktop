@@ -1,11 +1,11 @@
 [Desktop Entry]
 # nmtui, NetworkManager's own screens — the window quick settings' network opens (kawa-quick
-# --do network: floating, one at a time). Its icon: our seal of 網 (the launcher draws it: X-Fedokawaii-Kanji).
+# --do network: floating, one at a time). Its icon: our pixel globe (the launcher draws it: X-Fedokawaii-Icon).
 Type=Application
 Name=Network
 GenericName=Wi-Fi and network connections
 Comment=nmtui: join a Wi-Fi network, set up a wired connection or a VPN
-X-Fedokawaii-Kanji=網
+X-Fedokawaii-Icon=globe
 Exec=@HOME@/.local/bin/kawa-quick --do network
 Terminal=false
 Categories=Settings;HardwareSettings;

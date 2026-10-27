@@ -137,13 +137,19 @@ fresh; stub kawa-config; stub kawa-help
 WAYLAND_DISPLAY=wayland-1 fedokawaii --run change </dev/null; WAYLAND_DISPLAY=wayland-1 fedokawaii --run keys </dev/null
 for _ in 1 2 3 4 5 6 7 8 9 10; do grep -q kawa-help "$CALLS" && grep -q kawa-config "$CALLS" && break; sleep 0.1; done
 called '^setsid -f kawa-config$'; called '^setsid -f kawa-help$'
-has "$(cat "$(command -v fedokawaii)")" "enter:transform:case {1} in \$SOON) ;; \${launch}remind) echo 'execute-silent(\$self --run {1})+reload-sync(\$self --items)' ;; change|keys\${pop}) echo 'become("
+has "$(cat "$(command -v fedokawaii)")" "enter:transform:case {1} in \$SOON) ;; \${launch}remind) echo 'execute-silent(\$self --run {1})+reload-sync(\$self --items)' ;; change|keys\${pop}) echo '\${away}become("
 case_ "Super+U's popup (--popup): the menu closes for a job too (fzf becomes the run, which hands it on); the guide, the key sheet and the settings start without fzf giving up the screen, then the popup is put away (dwl fades it off: never a blank terminal); a plain menu, neither"
 fresh; stub fzf 'cat >/dev/null; exit 130'
 on_tty "" fedokawaii --popup >/dev/null
 called "enter:transform:case \\{1\\} in held\\|file\\|restore\\|drive\\|chess\\|typing\\|todo\\) ;; guide\\|keys\\|change\\) echo 'execute-silent\\([^)]* --run \\{1\\}\\)\\+execute-silent\\(kawa-warm system\\)' ;; remind\\) "
 called 'remind\) echo .execute-silent\([^)]* --run \{1\}\)\+reload-sync\([^)]* --items\). ;; change\|keys\|update\|pull\|upgrade\|verify\|repair\|theme\|drift\|snapshots\|backup\|settings\|log\) echo .become\('
 reset_calls; on_tty "" fedokawaii >/dev/null; called 'enter:transform:case \{1\} in held\|file\|restore\|drive\|chess\|typing\|todo\) ;; remind\) echo .execute-silent\([^)]*\)\+reload-sync\([^)]*\). ;; change\|keys\) echo .become\('
+called 'esc,ctrl-c,ctrl-g,ctrl-q:abort' "(outside the warm window: Esc only ends it)"
+case_ "…in the warm window (KAWA_WARM=system): Esc, q and a job's become put it away first — while the menu is still drawn (dwl's ghost of it fades, never a page fzf wiped)"
+reset_calls; KAWA_WARM=system on_tty "" fedokawaii --popup >/dev/null
+called 'esc,ctrl-c,ctrl-g,ctrl-q:execute-silent\(kawa-warm --away system\)\+abort'
+called ',q:execute-silent\(kawa-warm --away system\)\+abort'
+called "echo .execute-silent\\(kawa-warm --away system\\)\\+become\\("
 case_ "rows: the mark at the right edge, wider with a wider window (FZF_COLUMNS)"
 w=$(widest "$(entries "$(FZF_COLUMNS=120 fedokawaii --rows)")"); eq "$w" 68
 w=$(widest "$(entries "$(FZF_COLUMNS=98 fedokawaii --rows)")"); eq "$w" 46 "the 100-column window (98 inside fzf's margins): 46"

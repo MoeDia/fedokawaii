@@ -1,12 +1,12 @@
 [Desktop Entry]
 # A backup now (kawa-backup --window), as quick settings' backup starts it: your home onto
 # the backup drive with restic, in a small window that stays until it is done. Its icon: our
-# seal of 蔵 (the launcher draws it: X-Fedokawaii-Kanji).
+# seal of 蔵 (the launcher draws it: X-Fedokawaii-Icon).
 Type=Application
 Name=Backup
 GenericName=Back up your files
 Comment=restic: your home folder onto the backup drive
-X-Fedokawaii-Kanji=蔵
+X-Fedokawaii-Icon=archive
 Exec=@HOME@/.local/bin/kawa-backup --window
 Terminal=false
 Categories=Utility;Archiving;

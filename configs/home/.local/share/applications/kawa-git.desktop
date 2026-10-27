@@ -2,12 +2,12 @@
 # Your repositories (kawa-git) in a terminal window of its own (kawa-term, app-id kawa-git),
 # tiled: the one you worked in last first, Enter opens lazygit in it. With none yet, it says
 # how to get one — clone one into ~/repos, or start a new one — and opens lazygit there. Its
-# icon: our seal of 枝 (the launcher draws it: X-Fedokawaii-Kanji).
+# icon: our pixel branch (the launcher draws it: X-Fedokawaii-Icon).
 Type=Application
 Name=Git
 GenericName=Version control
 Comment=lazygit on one of your repositories: stage, commit, branch, pull and push
-X-Fedokawaii-Kanji=枝
+X-Fedokawaii-Icon=branch
 Exec=@HOME@/.local/bin/kawa-term --app kawa-git Git @HOME@/.local/bin/kawa-git
 Terminal=false
 Categories=Development;RevisionControl;

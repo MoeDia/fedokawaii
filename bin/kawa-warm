@@ -13,7 +13,9 @@
 #                        as it is. Never the notes: they hold your page
 #
 # The other forms are dwl's and the window's own: --open NAME (its key, none running),
-# --shown NAME and --hidden NAME (each change), --inside NAME [show] (what runs in it).
+# --shown NAME and --hidden NAME (each change), --inside NAME [show] (what runs in it), --away
+# NAME (what runs in it, as it ends: put away first — while its page is still drawn, so dwl's
+# ghost of the window is that page, never a terminal wiped on the way out).
 set -u
 RUN=${XDG_RUNTIME_DIR:?}
 FIFO=$RUN/dwl-warm                       # dwl reads "toggle NAME" and "hide NAME" here
@@ -87,8 +89,14 @@ case ${1:-} in
       *) spec "${2:-}"; exit 2 ;;
     esac
     exit 0 ;;
+  --away)
+    spec "${2:-}" || exit 2
+    # (read-write: never a wait, a stale fifo or not — and never a plain file made in its place)
+    [[ -p $FIFO ]] && printf 'hide %s\n' "$2" 1<>"$FIFO"
+    exit 0 ;;
   --inside)
     name=${2:-}; spec "$name" || exit 2
+    export KAWA_WARM=$name               # (what runs in it puts the window away as it ends: --away)
     once=(); [[ $name == notes && ${3:-} == show ]] && once=(--shown)   # (the page: shown as it starts)
     printf '%s\n' "$$" >"$RUN/kawa-warm-$name.pid"
     rm -f "$RUN/kawa-warm-$name.reset"

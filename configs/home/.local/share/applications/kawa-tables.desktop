@@ -6,12 +6,12 @@
 # terminal): with no file, vd lists the home folder — Enter on a CSV, TSV, JSON or SQLite
 # file opens it. Excel files (.xlsx, .ods) open in LibreOffice Calc — vd would need
 # python3-openpyxl for them. (`--`: a file named like -b or -o is opened as a file, never
-# read as an option) Its icon: our seal of 表 (the launcher draws it: X-Fedokawaii-Kanji).
+# read as an option) Its icon: our pixel sheet (the launcher draws it: X-Fedokawaii-Icon).
 Type=Application
 Name=Tables
 GenericName=Table viewer
 Comment=VisiData: CSV, TSV, JSON and SQLite tables — sort, filter, sum, group
-X-Fedokawaii-Kanji=表
+X-Fedokawaii-Icon=sheet
 Exec=@HOME@/.local/bin/kawa-term --app kawa-tables Tables vd -- %F
 Terminal=false
 MimeType=text/csv;text/tab-separated-values;

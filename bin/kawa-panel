@@ -883,15 +883,15 @@ def layout(s, mode="quick"):
 
 
 # ── the launcher (the torii, Super+Space) ─────────────────────────────────────────────────
-# A menu of its own kind: under its seal (起 launcher) the line you type on, then — while what
+# A menu of its own kind: under its heading (the torii, launcher) the line you type on, then — while what
 # you typed is a sum, a percentage or a conversion — its answer, worked out as you type (qalc,
 # one for the session's panel: the calculator's own), then the programs it finds, best first:
 # a name that starts with it, a word of the name that does, a name that holds it, what the
 # program is or its keywords (GenericName, Keywords: "browser" finds Brave), the letters in
 # order; equals, the one started more often first, then by name. Ten rows show; more scroll.
-# Each its icon (22 × 22, shown 1:1): a window program's own (the icon theme's, hicolor), or
-# a seal of ours — the entry's kanji (X-Fedokawaii-Kanji) in a 1 px frame, as a heading's —
-# for a program in a terminal or one with none. Enter (or a click) starts it — the answer's
+# Each its icon (16 px, shown 1:1): a window program's own (the icon theme's, hicolor), or one
+# of the desktop's pixel icons (X-Fedokawaii-Icon: its name in art/icons.txt) for a program in a
+# terminal — a window's for one with none; the answer's row, the calculator's. Enter (or a click) starts it — the answer's
 # row copies the answer (a notice says so, with it) — and text that finds nothing runs as a
 # command when its first word is one. The same key or the torii again closes it, as every
 # panel; it opens in the middle of the screen, its size fixed while you type.
@@ -900,12 +900,12 @@ LAUNCH_ROWS = 10
 
 
 class App:
-    def __init__(self, aid, name, generic, words, kanji, info):
-        self.id, self.name, self.info, self.kanji = aid, name, info, kanji
+    def __init__(self, aid, name, generic, words, mark, info):
+        self.id, self.name, self.info, self.mark = aid, name, info, mark
         self.low = name.lower()
         self.words = self.low.split()
         self.more = " ".join([generic or ""] + list(words or [])).lower()
-        self.pic = None              # its icon, once loaded (a pixbuf), or the seal's kanji
+        self.pic = None              # its icon, once loaded (a pixbuf), or one of ours (its character)
 
 
 def rank(app, words):
@@ -938,6 +938,7 @@ class Launcher(Menu):
         Menu.__init__(self, [], prompt="")
         self.apps, self.counts = apps, counts
         self.calc = None                     # (the typed text, its answer)
+        self.pending = None                  # (the typed text asked as a sum, its answer not come yet)
         self.found = []
         self.refind()
 
@@ -952,8 +953,15 @@ class Launcher(Menu):
         self.found = [t[3] for t in got]
 
     def answer_now(self):
-        """The answer's row, when it answers what is typed now."""
-        return self.calc[1] if self.calc and self.calc[0] == self.query else None
+        """The answer's row: the answer to what is typed now — or, while that is still being
+        worked out (asked, not answered yet), the last one, in place: the row stays as each key
+        is typed and its answer changes where it stands, never gone and back (bug 6's flicker).
+        Text that is no sum (not asked) has none at once."""
+        if not self.calc:
+            return None
+        if self.calc[0] == self.query or self.pending == self.query:
+            return self.calc[1]
+        return None
 
 
 def layout_launcher(m):
@@ -2091,8 +2099,10 @@ def main(argv):
                     if not isinstance(info, GioUnix.DesktopAppInfo) or not info.should_show():
                         continue
                     a = App(info.get_id() or "", info.get_name() or "", info.get_generic_name(),
-                            info.get_keywords(), info.get_string("X-Fedokawaii-Kanji"), info)
-                    a.pic = a.kanji or self.icon(theme, info) or "窓"   # (none at all: a window's seal)
+                            info.get_keywords(), info.get_string("X-Fedokawaii-Icon"), info)
+                    # (ours by name — test_launcher holds every name to a real icon; none at all:
+                    # a window's)
+                    a.pic = (ic[a.mark.replace("-", "_")] if a.mark else self.icon(theme, info)) or ic["window"]
                     got.append(a)
                 self.cache = got
             return self.cache
@@ -2180,7 +2190,9 @@ def main(argv):
     def calc_ask(m):
         q = m.query
         if sum_of(q) is None:
+            m.pending = None                          # (no sum: no answer row, at once)
             return
+        m.pending = q
         qc["next"] = (m, q)
         if qc["busy"] is None:
             calc_send()
@@ -2228,6 +2240,11 @@ def main(argv):
         e = sum_of(q)
         if a and not a.startswith(("error", "warning")) and a != e:
             m.calc = (q, money(a))
+            if m.pending == q:
+                m.pending = None
+            panel.answered(m)
+        elif m.pending == q:                          # (no answer to what is typed: the last one goes)
+            m.pending = None
             panel.answered(m)
         if qc["next"]:
             calc_send()
@@ -2596,8 +2613,8 @@ def main(argv):
             text(cr, it.x + CELL, it.y + 3 * ROW + (ROW - LINE) // 2, it.value, lk["value"], width=tw)
         elif it.kind == "app":                   # (the launcher's: its icon, its name, the answer's "copy")
             ix, iy = it.x + GLYPH_X, it.y + (it.h - APP_ICON) // 2
-            pic_ = "算" if it.app is None else it.app.pic
-            if isinstance(pic_, str):             # (one of ours: T16 draws its own picture)
+            pic_ = ic["calc"] if it.app is None else it.app.pic
+            if isinstance(pic_, str):             # (one of ours: a character of the icon font)
                 glyph(cr, it.x + GLYPH_X, ty, pic_, lk["glyph"] if lk["fill"] else "accent_text")
             else:
                 Gdk.cairo_set_source_pixbuf(cr, pic_, ix, iy)
@@ -2779,7 +2796,7 @@ def main(argv):
         surf = cairo.ImageSurface(cairo.FORMAT_RGB24, 480, 720)
         for mode in MODES + ("menu", "launcher"):
             if mode == "menu":
-                panel.states["menu"] = Menu(["part\t暦\tOctober", "row\t\u25a3\tname\tdetail\t42°", "key\t<\tback"])
+                panel.states["menu"] = Menu([f"part\t{ic['calendar']}\tOctober", "row\t\u25a3\tname\tdetail\t42°", "key\t<\tback"])
             elif mode == "launcher":                   # (the entries read, their icons loaded)
                 panel.states["menu"] = Launcher(apps.list(), {})
                 mode = "menu"

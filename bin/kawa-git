@@ -63,7 +63,7 @@ rows() {
   fi
 }
 heading() {   # heading KIND W
-  screen_heading 庫 repositories "$2"
+  screen_heading "$ICON_BRANCH" repositories "$2"
   if [[ $1 == none ]]; then
     printf '\n\n  no repositories yet: none in %s or your home.\n  get one, and lazygit opens in it.' "$SHOWN"
   fi
@@ -94,13 +94,13 @@ open() { cd -- "$1" && printf '\e[H\e[2J' && exec lazygit; }
 # screen goes to the terminal itself: what is printed is the answer alone
 ask() {
   local v
-  { printf '\e[H\e[2J\n  %s\n\n' "$(screen_heading 庫 "$1" "$W")"
-    printf '    %s%s%s\n\n    %s%s%s  ' "$INK_MUTED" "$2" "$INK_OFF" "$INK_KANJI" "$ICON_CHEVRON_RIGHT" "$INK_OFF"; } >/dev/tty
+  { printf '\e[H\e[2J\n  %s\n\n' "$(screen_heading "$ICON_BRANCH" "$1" "$W")"
+    printf '    %s%s%s\n\n    %s%s%s  ' "$INK_MUTED" "$2" "$INK_OFF" "$INK_ACCENT_TEXT" "$ICON_CHEVRON_RIGHT" "$INK_OFF"; } >/dev/tty
   IFS= read -re v </dev/tty 2>/dev/tty || return 1
   [[ -n $v ]] || return 1
   printf '%s' "$v"
 }
-said() { printf '\n    %s%s%s\n\n    %sany key: back%s' "$INK_KANJI" "$1" "$INK_OFF" "$INK_MUTED" "$INK_OFF"; read -rsn1 </dev/tty; }
+said() { printf '\n    %s%s%s\n\n    %sany key: back%s' "$INK_ACCENT_TEXT" "$1" "$INK_OFF" "$INK_MUTED" "$INK_OFF"; read -rsn1 </dev/tty; }
 clone() {
   local url name
   url=$(ask "clone a repository" "its address, as its page shows it: https://github.com/someone/project") || return 0
@@ -124,7 +124,7 @@ none() {
   local got
   while :; do
     W=$(screen_width) || exit 1                     # (the ask screens: at the width it has now)
-    got=$(pick none --no-input --footer=$'\n'"$(screen_footer 'c clone' 'n new' 'enter choose' 'esc close')" \
+    got=$(pick none --no-input --footer=$'\n'"$(screen_keys c clone '' n new '')" \
             --bind='c:pos(1)+accept,n:pos(2)+accept') || exit 0
     case ${got%%$'\t'*} in clone) clone ;; init) init ;; esac
   done
@@ -132,5 +132,5 @@ none() {
 
 KAWA_GIT_REPOS=$(repos); export KAWA_GIT_REPOS        # (found once: each resize lays them out again)
 [[ -n $KAWA_GIT_REPOS ]] || none
-got=$(pick list --ghost="type to filter" --footer=$'\n'"$(screen_footer 'enter open' 'esc close')") || exit 0
+got=$(pick list --ghost="type to filter") || exit 0
 open "${got%%$'\t'*}"

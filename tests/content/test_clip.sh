@@ -377,6 +377,15 @@ eq "$(sh -c "${pcmd//\{1\}/1}" 2>&1)" "   hello there" "the preview, run as fzf 
 eq "$(bash -c "${pcmd//\{1\}/1}" 2>&1)" "   hello there" "and with bash as \$SHELL"
 ccmd=$(grep -F -- "--bind=enter:become(" "$FZF_ARGS"); ccmd=${ccmd#--bind=enter:become(}; ccmd=${ccmd%)}
 sh -c "${ccmd//\{1\}/1}"; eq "$(cat "$COPIED")" "hello there" "enter, run as fzf runs it"
+eq "$(grep -cF -- "--bind=esc,ctrl-c,ctrl-g,ctrl-q:abort" "$FZF_ARGS")" 1 "outside the warm window: Esc only ends it"
+
+case_ "in the warm window (KAWA_WARM=clip): Esc and Enter put it away first — while the list is still drawn (dwl's ghost of it fades, never a page fzf wiped on its way out) — then end it"
+setup; put 'hello there'
+KAWA_WARM=clip kawa-clip --tui
+has "$(cat "$FZF_ARGS")" "--bind=esc,ctrl-c,ctrl-g,ctrl-q:execute-silent(kawa-warm --away clip)+abort"
+has "$(cat "$FZF_ARGS")" "--bind=enter:execute-silent(kawa-warm --away clip)+become("
+KAWA_WARM=system kawa-clip --tui
+lacks "$(cat "$FZF_ARGS")" "--away" "(another warm window's run: not this one's to put away)"
 
 # ── Super+Z on an entry: the cursor's entry kept while the window is open ────
 # (the window's fzf a stand-in that waits for $TMP/close; the bindings run as fzf runs them)
@@ -414,7 +423,8 @@ FZF_MATCH_COUNT=0 bash -c "$c"; eq "$(cur)" "$WIN " "(with bash as \$SHELL)"
 bind focus 1 >/dev/null 2>&1; FZF_MATCH_COUNT=2 sh -c "$c"; eq "$(kawa-clip --held)" 1 "matches: left as it is"
 case_ "… fzf listens on its socket, for the history's reload"
 has "$(cat "$FZF_ARGS")" "--listen=$XDG_RUNTIME_DIR/kawa-clip.sock"
-has "$(cat "$FZF_ARGS")" "super+z shrink" "the footer names the key"
+has "$(cat "$FZF_ARGS")" "super+z  "$'\e[38;5;21m'"shrink" "its last line names the key (§7)"
+lacks "$(cat "$FZF_ARGS")" "enter copy" "nothing obvious (§7)"
 case_ "a new copy while it is open (--store): the window's list reloaded, the cursor on the newest"
 stub curl
 store_setup_keep() { stub wl-paste 'case $1 in --list-types) echo "text/plain;charset=utf-8" ;; esac'; }

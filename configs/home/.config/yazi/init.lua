@@ -112,7 +112,7 @@ function Tab:build(...)
 end
 
 -- Stacked, the rails become one rule between the list and the preview: the desktop's
--- stitch (╌, as under every heading), one free column at each end like every other row.
+-- rule (─, solid, as under every heading), one free column at each end like every other row.
 local rails_build = Rails.build
 function Rails:build(...)
 	if not stacked(self._chunks) then return rails_build(self, ...) end
@@ -122,7 +122,7 @@ function Rails:build(...)
 			_id = "rail-middle",
 			reflow = function() return {} end, -- (not a target for the mouse: nothing to drag)
 			redraw = function()
-				return { ui.Bar(ui.Edge.TOP):area(area):symbol("╌"):style(th.mgr.border_style) }
+				return { ui.Bar(ui.Edge.TOP):area(area):symbol("─"):style(th.mgr.border_style) }
 			end,
 		},
 	}
@@ -165,15 +165,16 @@ end
 
 -- ── the file dialog: kawa-pick starts yazi with KAWA_PICK=<mode> ─────────────────────
 -- Dressed like the other text screens (docs/design-system.md §7): along the top a heading —
--- the folder icon in vermilion where a heading's kanji stands (its second half, then two
--- spaces), the dialog's name, then the folder it is in, muted, and the stitch (╌) to the
--- edge; the keys along the bottom, the count at the right.
+-- the folder icon in vermilion, two columns, the dialog's name, then the folder it is in,
+-- muted, and the rule (─) to the edge; on the last line its own keys (never the obvious:
+-- Enter, Esc — Super+/ has those), each key in the words' ink and what it does muted, four
+-- columns apart; the count at the right.
 local PICK = {
-	open1   = { "open file",    "enter open  ·  / find  ·  . hidden  ·  esc cancel" },
-	openN   = { "open files",   "space mark  ·  enter open  ·  esc cancel" },
-	folder1 = { "open folder",  "enter choose  ·  q this folder  ·  esc cancel" },
-	folderN = { "open folders", "space mark  ·  enter choose  ·  q this folder  ·  esc cancel" },
-	save    = { "save file",    "enter save  ·  r rename  ·  esc cancel" },
+	open1   = { "open file",    { "/", "find", ".", "hidden" } },
+	openN   = { "open files",   { "space", "mark" } },
+	folder1 = { "open folder",  { "q", "this folder" } },
+	folderN = { "open folders", { "space", "mark", "q", "this folder" } },
+	save    = { "save file",    { "r", "rename" } },
 }
 local pick = PICK[os.getenv("KAWA_PICK") or ""]
 if pick then
@@ -183,17 +184,25 @@ if pick then
 		local room = self._area.w - 1 - (self._right_width or 0)
 		local head = ui.Line {
 			ui.Span(ICON):fg("lightred"),
-			ui.Span("   " .. pick[1] .. "  "),
+			ui.Span("  " .. pick[1] .. "  "),
 		}
 		-- (a long folder loses its start, nothing in its place; at least two stitches stay)
 		local where = cut(ya.readable_path(tostring(self._current.cwd)) .. self:flags(), math.max(0, room - head:width() - 3), true)
 		local line = ui.Line { head, ui.Span(where .. " "):fg("darkgray") }
-		return ui.Line { line, ui.Span(string.rep("╌", math.max(0, room - line:width()))):style(th.mgr.border_style) }
+		return ui.Line { line, ui.Span(string.rep("─", math.max(0, room - line:width()))):style(th.mgr.border_style) }
 	end, 1000, Header.LEFT)
 	for id = 1, 6 do -- mode, size, name · permissions, percent, position
 		Status:children_remove(id, id <= 3 and Status.LEFT or Status.RIGHT)
 	end
-	Status:children_add(function() return ui.Span("  " .. pick[2]):fg("darkgray") end, 1000, Status.LEFT)
+	Status:children_add(function()
+		local spans, k = { ui.Span("  ") }, pick[2]
+		for i = 1, #k, 2 do
+			if i > 1 then spans[#spans + 1] = ui.Span("    ") end
+			spans[#spans + 1] = ui.Span(k[i])
+			spans[#spans + 1] = ui.Span("  " .. k[i + 1]):fg("darkgray")
+		end
+		return ui.Line(spans)
+	end, 1000, Status.LEFT)
 	Status:children_add(function(self)
 		local n = #self._current.files
 		return ui.Span(string.format("%d/%d", math.min(self._current.cursor + 1, n), n)):fg("darkgray")

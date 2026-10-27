@@ -25,6 +25,8 @@ case ${1:-} in
 esac
 command -v qalc >/dev/null || { echo "kawa-calc: qalc is missing — fedokawaii repair puts it back" >&2; exit 1; }
 # shellcheck source=/dev/null
+. "$HOME/.config/fedokawaii/icons.sh"
+# shellcheck source=/dev/null
 . "$HOME/.config/fedokawaii/screen.sh"
 # shellcheck source=/dev/null
 . "$HOME/.config/fedokawaii/files.sh"              # clip_put
@@ -74,8 +76,13 @@ case ${1:-} in
 esac
 
 # ── the screen: §7's grammar — the heading, the line typed, its answer, the lines kept ──
+# The line typed as a search line: the chevron at the rows' icon column, the words at their
+# names'; the answer under it (its = drawn in the chevron's box: one over the other to the
+# pixel), "copy" (what Enter does) at its right as the launcher's row
+# has it; the lines kept at the names' column; on the last line its own key alone (§7: not
+# the obvious — Enter, Esc, ↑ — Super+/ has those)
 expr="" ans="" note="" kept=()
-KEYS="enter copy  ·  up again  ·  ctrl+q qalc's prompt  ·  esc close"
+KEYS=$(screen_keys ctrl+q "qalc's prompt" '')
 # The screen is drawn as one frame, never cleared first: each line is written over the one
 # before and the rest of it erased (\e[K), the lines below the last ones too (\e[J), all
 # between a synchronised update's marks (\e[?2026h and \e[?2026l: foot shows the frame only
@@ -87,15 +94,19 @@ draw() {
   local w r c i f
   read -r r c < <(stty size 2>/dev/null </dev/tty) && [[ $r$c =~ ^[0-9]+$ ]] || { r=13; c=64; }
   w=$((c - 4))
-  f=$'\e[?2026h\e[?25l\e[H\e[K\n  '"$(screen_heading 算 calculator "$w")"$'\e[K\n\e[K\n'
-  f+="  $INK_MUTED›$INK_OFF  $expr"$'\e7\e[K\n'
-  if [[ -n $ans ]]; then f+="  $INK_MUTED=$INK_OFF  $INK_STRONG$ans$INK_OFF"$'\e[K\n'
-  else f+="  $INK_FAINT=$INK_OFF"$'\e[K\n'; fi
+  f=$'\e[?2026h\e[?25l\e[H\e[K\n  '"$(screen_heading "$ICON_CALC" calculator "$w")"$'\e[K\n\e[K\n'
+  f+="   $INK_ACCENT_TEXT$ICON_CHEVRON_RIGHT$INK_OFF  $expr"$'\e7\e[K\n'
+  if [[ -n $ans ]]; then
+    f+="   $INK_MUTED$ICON_EQUALS$INK_OFF  $INK_STRONG$ans$INK_OFF"
+    # (copy ending at the content's last column — the terminal's w + 2: two columns of paper first)
+    ((w - 4 - $(screen_cols "$ans") >= 8)) && f+=$'\e['"$((w - 1))"'G'"${INK_MUTED}copy$INK_OFF"
+    f+=$'\e[K\n'
+  else f+="   $INK_FAINT$ICON_EQUALS$INK_OFF"$'\e[K\n'; fi
   f+=$'\e[K\n'
   for ((i = ${#kept[@]} - 1; i >= 0 && i >= ${#kept[@]} - 4; i--)); do
-    f+="  $INK_MUTED${kept[i]}$INK_OFF"$'\e[K\n'
+    f+="      $INK_MUTED${kept[i]}$INK_OFF"$'\e[K\n'
   done
-  f+=$'\e[J\e['"$r"$';1H  '"$INK_MUTED${note:-$KEYS}$INK_OFF"$'\e[K\e8\e[?25h\e[?2026l'
+  f+=$'\e[J\e['"$r"$';1H  '"${note:+$INK_MUTED}${note:-$KEYS}$INK_OFF"$'\e[K\e8\e[?25h\e[?2026l'
   printf '%s' "$f"
 }
 # the terminal raw for the whole window, not only during each read: a key typed while the

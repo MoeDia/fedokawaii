@@ -4487,23 +4487,22 @@ remember it.
 * A window program shows its **own icon**, as its package ships it, at 22 × 22 — no icon
   pack: Brave, LibreOffice, Xournal++ (and Sketch, which opens in it), Steam, LocalSend,
   Syncplay, OpenRGB, LACT. Every other entry — the terminal programs, and the pages in Brave —
-  shows a **seal of its own**, drawn in the desktop's pixels like a panel's heading: a 1 px
-  frame, one kanji meaning the entry, in the theme's colours (switching the theme switches
-  them):
+  shows one of the desktop's **pixel icons** (art/icons.txt, the Sumi Icons font), in the
+  icon column in the theme's accent ink (switching the theme switches it):
 
-  | seal | entry | seal | entry | seal | entry |
+  | icon | entry | icon | entry | icon | entry |
   |---|---|---|---|---|---|
-  | 端 | Terminal | 本 | Books | 網 | Network |
-  | 編 | Editor | 壁 | Wallpaper | 青 | Bluetooth |
-  | 箱 | Files | 蔵 | Backup | 具 | File tools |
-  | 代 | Agents | 算 | Calculator | 種 | Torrents |
-  | 枝 | Git | 量 | Disk usage | 索 | Prowlarr |
-  | 記 | Notes | 表 | Tables | 曲 | Spotify |
-  | 写 | Clipboard | 視 | System monitor | 話 | WhatsApp |
-  |  |  | 混 | Volume mixer |  |  |
+  | terminal | Terminal | book | Books | globe | Network |
+  | code | Editor | picture | Wallpaper | bluetooth | Bluetooth |
+  | folder | Files | archive | Backup | tools | File tools |
+  | agents | Agents | calc | Calculator | download | Torrents |
+  | branch | Git | usage | Disk usage | search | Prowlarr |
+  | note | Notes | sheet | Tables | music | Spotify |
+  | clipboard | Clipboard | cpu | System monitor | speech | WhatsApp |
+  |  |  | sliders | Volume mixer |  |  |
 
-  Each entry names its kanji itself, on an `X-Fedokawaii-Kanji=` line of its `.desktop`
-  file in `~/.local/share/applications`; the launcher draws the seal as it opens.
+  Each entry names its icon itself, on an `X-Fedokawaii-Icon=` line of its `.desktop`
+  file in `~/.local/share/applications`; an entry with no icon at all gets the window icon.
 * Only what you start is listed: the helpers that come with packages — Qt's settings
   (qt6ct), LibreOffice's start centre, and mpv and zathura with nothing to open — are hidden
   by entries of the same name in `~/.local/share/applications` (`NoDisplay=true`); the

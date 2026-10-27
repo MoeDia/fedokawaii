@@ -255,6 +255,14 @@ content, inside its margin of one cell:
   under it; two blank lines above it (none at the top of a pane). No dashed rule anywhere.
 - **Row**: its icon at column 1, its name from column 4 in `text`; a value right-aligned to the
   content's last column, `muted`.
+- **Search line** (a list long enough to filter): the chevron in `accent_text` at the rows' icon
+  column (1), what is typed — or the ghost words saying what the list holds, `faint` — at their
+  names' (4); the count right-aligned to the last column, `muted`. A short list has none (Super+U,
+  Super+W): its letters are free for its own keys.
+- **Meter** (a quantity in a row: Super+R's reading): ten segments, a cell each (Sumi Icons' `read`
+  and `read-off`, 6 × 10 on the cell's 8 px pitch — the panel's meter in characters) — done
+  solid in `accent_text` (`muted` once complete), to do hollow in `edge2`; the cursor's row
+  strips the inks, the shapes still say it. Nothing yet: no meter at all.
 - **Cursor**: the row's cells filled `accent` from the margin column to the margin column, its
   inks `text_on_accent`.
 - **Tabs** (a screen of several sections: Super+U): three lines heading the list, at a

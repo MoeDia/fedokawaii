@@ -288,7 +288,7 @@ out=$(y <<'EOF'
 wait a.txt
 settle
 key M
-wait enter open
+wait  eject
 settle
 screen
 lit
@@ -309,17 +309,17 @@ key <Up>
 settle
 lit
 key <Esc>
-gone enter open
+gone  eject
 key M
-wait enter open
+wait  eject
 settle
 key q
-gone enter open
+gone  eject
 key M
-wait enter open
+wait  eject
 settle
 key M
-gone enter open
+gone  eject
 quit
 EOF
 )
@@ -327,7 +327,7 @@ case_ "M lists the drives: label, size, file system, open or closed — and the 
 has "$out" "drives"
 has "$out" "KINGSTON                          28.9G  vfat   open"
 has "$out" "WD Elements                      431.5G  ntfs   closed"
-has "$out" "enter open  ·  e eject  ·  esc close"
+has "$out" "e  eject"; lacks "$out" "esc close" "its own key alone (§7)"
 called '^kawa-drives list$'
 case_ "the list starts on the first drive; j and k (↓ ↑) move, and not past either end"
 lit() { sed -n "$((30 * $1 + 31)),$((30 * $1 + 60))p" <<<"$out" | grep -oE 'KINGSTON|WD Elements'; }
@@ -342,12 +342,12 @@ y <<'EOF'
 wait a.txt
 settle
 key M
-wait enter open
+wait  eject
 settle
 key j
 settle
 key <Enter>
-gone enter open
+gone  eject
 settle
 quit
 EOF
@@ -359,10 +359,10 @@ for k in l '<Right>'; do
 wait a.txt
 settle
 key M
-wait enter open
+wait  eject
 settle
 key $k
-gone enter open
+gone  eject
 settle
 quit
 EOF
@@ -375,18 +375,18 @@ out=$(y <<'EOF'
 wait a.txt
 settle
 key M
-wait enter open
+wait  eject
 settle
 key <Enter>
 sleep 0.4
 settle
 screen
 key <Esc>
-gone enter open
+gone  eject
 quit
 EOF
 )
-called '^kawa-drives open /dev/sdb1$'; has "$out" "enter open"
+called '^kawa-drives open /dev/sdb1$'; has "$out" "e  eject"
 eq "$(grep -c '^kawa-drives list' "$CALLS")" 2 "listed again after the failure"
 eq "$(last_dir)" "$W"
 
@@ -396,12 +396,12 @@ y <<'EOF'
 wait a.txt
 settle
 key M
-wait enter open
+wait  eject
 settle
 key j
 settle
 key e
-gone enter open
+gone  eject
 waitfile $TMP/hit.setsid
 quit
 EOF
@@ -415,11 +415,11 @@ out=$(CWD=$MNT/KINGSTON/photos y <<'EOF'
 wait No items
 settle
 key M
-wait enter open
+wait  eject
 settle
 lit
 key e
-gone enter open
+gone  eject
 waitfile $TMP/hit.setsid
 settle
 quit
@@ -435,27 +435,27 @@ y <<'EOF'
 wait a.txt
 settle
 key M
-wait enter open
+wait  eject
 settle
 key j
 settle
 key <Esc>
-gone enter open
+gone  eject
 key M
-wait enter open
+wait  eject
 settle
 key <Enter>
-gone enter open
+gone  eject
 settle
 quit
 EOF
 called '^kawa-drives open /dev/sdb1$'; not_called 'open /dev/sdc2'
 
 drives_screen() {   # drives_screen [SIZE] [KEYS…] — the screen with M open (after KEYS)
-  local size=${1:-100x30} k steps=$'wait a.txt\nsettle\nkey M\nwait enter open\nsettle'
+  local size=${1:-100x30} k steps=$'wait a.txt\nsettle\nkey M\nwait eject\nsettle'
   shift
   for k; do steps+=$'\n'"key $k"$'\nsettle'; done
-  y "$size" <<<"$steps"$'\nscreen\nkey <Esc>\ngone enter open\nquit'
+  y "$size" <<<"$steps"$'\nscreen\nkey <Esc>\ngone eject\nquit'
 }
 case_ "nothing plugged in: the list says so (and Enter, e do nothing)"
 setup; : >"$KD/list"; reset_calls
@@ -476,7 +476,7 @@ out=$(y <<'EOF'
 wait a.txt
 settle
 key M
-wait enter open
+wait  eject
 settle
 screen
 key j
@@ -484,7 +484,7 @@ settle
 key j
 settle
 key <Enter>
-gone enter open
+gone  eject
 quit
 EOF
 )
@@ -496,7 +496,7 @@ called '^kawa-drives open /dev/sdd1$' "opening passes the drive's device, never 
 # every row of the frame ends in its border at the same column (wide characters counted right)
 python3 - "$out" <<'EOF' && _ok || _no "the frame's right border is not straight"
 import sys, unicodedata
-rows = [r for r in sys.argv[1].split("\n") if r.count("│") >= 3 and any(w in r for w in ("1.9T", "64G", "8G", "enter open"))]
+rows = [r for r in sys.argv[1].split("\n") if r.count("│") >= 3 and any(w in r for w in ("1.9T", "64G", "8G", "e  eject"))]
 def last_bar(r):
     w, at = 0, None
     for ch in r:
@@ -507,7 +507,7 @@ sys.exit(0 if len(rows) == 4 and len({last_bar(r) for r in rows}) == 1 else 1)
 EOF
 case_ "a narrow window (50 columns): the list fits, cut to the window"
 out=$(drives_screen 50x20)
-has "$out" "enter open"; has "$out" "exfat"
+has "$out" "e  eject"; has "$out" "exfat"
 
 # ── g d ──────────────────────────────────────────────────────────────────────────────────
 case_ "g d goes to ~/Drives, where each open drive is a folder by its name (kawa-drives keeps it)"
@@ -614,7 +614,7 @@ key <Esc>
 sleep 1
 EOF
 )
-has "$out" "space mark  ·  enter open" "(open after the first Esc)"; eq "$(answer)" "" "cancelled: no answer"
+has "$out" "space  mark" "(open after the first Esc)"; lacks "$out" "esc cancel" "its own keys alone (§7)"; eq "$(answer)" "" "cancelled: no answer"
 case_ "a long folder in the dialog's title (§7's heading: icon, name, the folder muted, the stitch): its start cut, no ellipsis, the stitch to the edge"
 L="$W/とても長い日本語のフォルダの名前がここにありますとても長い日本語のフォルダの名前/مجلد"
 mkdir -p "$L"; echo x >"$L/x.txt"
@@ -627,18 +627,18 @@ sleep 1
 EOF
 )
 head1=$(sed -n 1p <<<"$out")
-has "$head1" "   open file  "; lacks "$head1" "…"; has "$head1" "/مجلد ╌"
+has "$head1" "$(printf "\363\276\200\261")  open file  " "the icon, two columns, the name (§7)"; lacks "$head1" "…"; has "$head1" "/مجلد ─"
 eq "$(python3 -I -B -c 'import sys; sys.path.insert(0, sys.argv[1]); import drive
 print(sum(drive.width(c) for c in sys.stdin.read().rstrip("\n")))' "$D" <<<"$head1")" 99 "(the title rule: the window less its free column)"
 
 # ── the panes by the window's size (init.lua): every tile of a 1080-p screen ─────────────
 # panes — what a screen shows of the layout: the columns of the rails (│) on its third row,
-# and "stitch A-B" when a row of ╌ (the stacked layout's rule) runs from column A to B
+# and "stitch A-B" when a row of ─ (the stacked layout's rule, solid) runs from column A to B
 panes() { python3 -I -c '
 import sys
 rows = sys.stdin.read().split("\n")
 rails = [str(i) for i, c in enumerate(rows[2]) if c == "│"] if len(rows) > 2 else []
-st = [r for r in rows if r.strip() and set(r.strip()) == {"╌"}]
+st = [r for r in rows if r.strip() and set(r.strip()) == {"─"}]
 out = " ".join(rails)
 if st: out += (" " if out else "") + "stitch %d-%d" % (len(st[0]) - len(st[0].lstrip()), len(st[0].rstrip()) - 1)
 print(out or "none")'; }

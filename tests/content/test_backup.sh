@@ -110,7 +110,8 @@ has "$(cat "$TMP/fzf.args")" "--drive-heading"
 eq "$(KAWA_BACKUP_DRIVES=$'KINGSTON\t28.9G vfat · open' kawa-backup --drive-rows 40 | sed 's/\x1b\[[0-9;]*m//g')" \
   $'KINGSTON\t28.9G vfat · open\t '"$ICON_DRIVE"'  KINGSTON           28.9G vfat · open' "a row (screen.sh): a space, the icon, two spaces, the name, its value right-aligned at the 40th column"
 h=$(kawa-backup --drive-heading 40 | sed 's/\x1b\[[0-9;]*m//g')
-eq "$(head -n1 <<<"$h")" "盤  back up to $(printf '─%.0s' {1..25})" "the heading: its mark, two spaces, the name, a space, a solid rule to the 40th column"
+. "$REPO/configs/home/.config/fedokawaii/icons.sh"
+eq "$(head -n1 <<<"$h")" "$ICON_DRIVE  back up to $(printf '─%.0s' {1..26})" "the heading: its icon (a column, its ink into the next), two spaces, the name, a space, a solid rule to the 40th column"
 heading_ok "$(kawa-backup --drive-heading 40 | head -n1)" 40 "the heading's inks and form (accent_text mark, strong name, edge2 rule)"
 has "$h" "which drive keeps your backup?"
 called '^sudo -v'; called "^sudo bash $KAWA_TOOLKIT/fedokawaii.sh conf "

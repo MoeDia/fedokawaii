@@ -61,8 +61,9 @@ has "$v" '"from-ansi-dark": "kept"' "ansi-dark's own variables kept under ours"
 has "$v" '"block-cursor-background": "ansi_red", "block-cursor-foreground": "ansi_black"'
 has "$v" '"block-cursor-blurred-background": "transparent", "block-cursor-blurred-foreground": "ansi_red"'
 has "$v" '"secondary-muted": "ansi_bright_black", "text-secondary": "ansi_white"'
-case_ "…its first screen a text screen of ours: 種 torrents over the stitch, what it is, the search line, the version and the indexer, the keys as rows — no banner, no emoji"
-eq "$(seenj "$out" welcome)" '["banner: [ansi_red]種[/]  torrents [ansi_bright_black]╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌[/]", "subtitle: search the usual sites through Prowlarr —\ndownloads go on while this window is open", "input: what to find", "version: torrra 2.5.1 · prowlarr", ": quit", "key: ctrl+q", ": colours", "key: ctrl+t", ": downloads", "key: ctrl+d", ": every key", "key: ?"]'
+case_ "…its first screen a text screen of ours: the download icon, torrents over the rule, what it is, the search line, the version and the indexer, the keys as rows — no banner, no emoji"
+. "$REPO/configs/home/.config/fedokawaii/icons.sh"
+eq "$(seenj "$out" welcome)" '["banner: [ansi_red]'"$ICON_DOWNLOAD"'[/]  torrents [ansi_bright_black]────────────────────────────────────────────────────[/]", "subtitle: search the usual sites through Prowlarr —\ndownloads go on while this window is open", "input: what to find", "version: torrra 2.5.1 · prowlarr", ": quit", "key: ctrl+q", ": colours", "key: ctrl+t", ": downloads", "key: ctrl+d", ": every key", "key: ?"]'
 lacks "$(seen "$out" welcome)" "🏴"
 c=$(seen "$out" css)
 has "$c" "#welcome_container { max-width: 64 !important; }"; has "$c" "grid-columns: 14 1fr !important;"

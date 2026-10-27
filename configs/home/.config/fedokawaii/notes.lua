@@ -4,7 +4,7 @@
 -- moment it appears, and goes as fast. Kept from the editor: its colours (the gruvbox
 -- palette of ~/.config/nvim/lua/plugins/colorscheme.lua, read from there), the system
 -- clipboard, the mouse, undo that outlives the window, searches that ignore case. A text screen like every other one
--- (docs/design-system.md §7, screen.sh): along the top its heading — "記  notes ╌╌╌╌" — the
+-- (docs/design-system.md §7, screen.sh): along the top its heading — "記  notes ────" — the
 -- kanji in accent_text, the name in text, the stitch in edge2 to the right edge, two columns
 -- in; the text four columns in, where a list's rows have their glyph; along the bottom, the
 -- footer in muted: the file and the keys, instead of the editor's statusline. The inks are
@@ -45,6 +45,7 @@ do
 end
 
 local where = (os.getenv("KAWA_NOTES_WHERE") or "~/Notes/notes.md"):gsub("%%", "%%%%")
+local ICON_NOTE = "\243\190\128\188" -- Sumi Icons: note (U+FE03C), as in icons.sh
 
 local function colours()
   -- the theme's inks (colors.sh, written by tools/build-themes.py): the current one's, or —
@@ -63,7 +64,7 @@ local function colours()
     if not v then error("notes: the theme has no C_" .. k .. " (~/.config/fedokawaii/current/colors.sh)") end
   end
   local g = "#" .. c.GROUND
-  for name, k in pairs({ KawaKanji = "ACCENT_TEXT", KawaName = "TEXT", KawaStitch = "EDGE2", KawaMuted = "MUTED" }) do
+  for name, k in pairs({ KawaIcon = "ACCENT_TEXT", KawaName = "TEXT", KawaStitch = "EDGE2", KawaMuted = "MUTED" }) do
     vim.api.nvim_set_hl(0, name, { fg = "#" .. c[k], bg = g })
   end
   vim.api.nvim_set_hl(0, "KawaGround", { bg = g })
@@ -119,11 +120,11 @@ local function page()
   vim.opt_local.cursorline = false          -- (a page: no bar across it, only the cursor)
   vim.opt_local.wrap = true
   vim.opt_local.linebreak = true
-  vim.opt_local.fillchars:append({ wbr = "╌" })
+  vim.opt_local.fillchars:append({ wbr = "─" })
   local name = b == notes and where
     or vim.fn.fnamemodify(vim.api.nvim_buf_get_name(b), ":~"):gsub("%%", "%%%%")
-  -- (the stitch: the winbar's fill, ╌ in edge2, from after the name to two columns short of the edge)
-  vim.opt_local.winbar = "%#KawaGround#  %#KawaKanji#記%#KawaGround#  %#KawaName#notes %#KawaStitch#%=%#KawaGround#  "
+  -- (the rule: the winbar's fill, ─ in edge2 — solid, as every heading's —, from after the name to two columns short of the edge)
+  vim.opt_local.winbar = "%#KawaGround#  %#KawaIcon#" .. ICON_NOTE .. "%#KawaGround#  %#KawaName#notes %#KawaStitch#%=%#KawaGround#  "
   vim.wo.statusline = footer_of(name)
   -- (LazyVim formats a file on every write when a formatter knows it — the Markdown extra
   -- does: here that would rewrite the page under your fingers, key by key)

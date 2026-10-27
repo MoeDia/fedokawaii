@@ -3,12 +3,12 @@
 # link (Brave asks once whether to open it here) or a .torrent file starts downloading
 # straight away (defaults in ~/.config/mimeapps.list). kawa-torrra hands torrra the Prowlarr
 # key from secrets.sh and says what is wrong as a notice. Its icon: our seal of 種
-# (the launcher draws it: X-Fedokawaii-Kanji).
+# (the launcher draws it: X-Fedokawaii-Icon).
 Type=Application
 Name=Torrents
 GenericName=Torrent search and download
 Comment=torrra, searching through Prowlarr
-X-Fedokawaii-Kanji=種
+X-Fedokawaii-Icon=download
 Exec=@HOME@/.local/bin/kawa-term kawa-torrra --open %u
 Terminal=false
 MimeType=x-scheme-handler/magnet;application/x-bittorrent;

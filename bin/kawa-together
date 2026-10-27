@@ -87,7 +87,7 @@ list() {
   fi
   q=$(trim "$2")
   if [[ -n $q && $kind == servers ]] && ! q=$(norm_server "$q"); then
-    printf 'bad\t\t%s\n' "$(screen_row "$ICON_CROSS" "$(trim "$2")" "${INK_KANJI}not a server: host, or host:port$INK_OFF" "$w")"; q=""
+    printf 'bad\t\t%s\n' "$(screen_row "$ICON_CROSS" "$(trim "$2")" "${INK_ACCENT_TEXT}not a server: host, or host:port$INK_OFF" "$w")"; q=""
   fi
   [[ -n $q && -z ${at[$q]+x} ]] && add "$q" new
   for i in "${!vals[@]}"; do
@@ -213,7 +213,7 @@ self=$(printf '%q' "$0")
 # line, the rows, the keys. W: the rows' width
 W=0
 width() { W=$(screen_width) || say "no terminal to draw the form in"; }
-heading() { printf '%s\n ' "$(screen_heading 共 "$1" "$W")"; }
+heading() { printf '%s\n ' "$(screen_heading "$ICON_TOGETHER" "$1" "$W")"; }
 
 # the form's rows: what<TAB>the row — its glyph and name, its value right-aligned
 line() { printf '%s\t%s\n' "$1" "$(screen_row "$2" "$3" "$4" "$W")"; }
@@ -242,7 +242,6 @@ choose() {
   got=$(TOGETHER_NOW=$2 TOGETHER_PUBLIC=$PUBLIC TOGETHER_PORT=$TOGETHER_PORT \
         fzf --ansi --no-sort --no-extended --height=100% --delimiter=$'\t' --with-nth=3 \
           --header="$(heading "$3")" --ghost="${4:-pick one, or type a new one}" \
-          --footer=$'\n'"$(screen_footer 'enter take' 'esc back')" \
           --bind="start:reload-sync($self --list $1 '')" --bind="change:reload-sync($self --list $1 {q})" \
           --bind='enter:transform:[ {1} = bad ] || echo accept' </dev/null) || return 1
   got=${got#*$'\t'}; printf '%s' "${got%%$'\t'*}"
@@ -251,9 +250,9 @@ choose() {
 ask_pw() {
   local p
   width
-  printf '\e[H\e[2J\n  %s\n\n' "$(screen_heading 共 password "$W")"
+  printf '\e[H\e[2J\n  %s\n\n' "$(screen_heading "$ICON_TOGETHER" password "$W")"
   printf '    %s%s%s\n\n' "$INK_MUTED" "$1" "$INK_OFF"
-  printf '    the password for this server — Enter alone if it has none\n    (nothing shows as you type)\n\n    %s%s%s  ' "$INK_KANJI" "$ICON_CHEVRON_RIGHT" "$INK_OFF"
+  printf '    the password for this server — Enter alone if it has none\n    (nothing shows as you type)\n\n    %s%s%s  ' "$INK_ACCENT_TEXT" "$ICON_CHEVRON_RIGHT" "$INK_OFF"
   IFS= read -rs p || return 0
   PW[$1]=$p
 }
@@ -302,8 +301,7 @@ while :; do
   # (no input line: the rows start under the heading, as Super+U's do)
   width
   pick=$(rows | fzf --ansi --no-sort --no-input --height=100% --delimiter=$'\t' --with-nth=2 \
-           --header="$(heading "watch together")${msg[0]:+$'\n'  $INK_KANJI${msg[0]}$INK_OFF$'\n '}" \
-           --footer=$'\n'"$(screen_footer 'enter choose' 'esc cancel')") || exit 1
+           --header="$(heading "watch together")${msg[0]:+$'\n'  $INK_ACCENT_TEXT${msg[0]}$INK_OFF$'\n '}") || exit 1
   msg=()
   case ${pick%%$'\t'*} in
     join)     if [[ -n $server && -n $room && -n $name ]]; then join; fi

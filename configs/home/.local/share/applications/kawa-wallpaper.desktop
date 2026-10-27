@@ -1,12 +1,12 @@
 [Desktop Entry]
 # The wallpaper picker (kawa-wallpaper), as Super+W opens it: the pictures for the current
 # theme, the one under the cursor shown as the screen will; Enter sets it. Its icon: our
-# seal of 壁 (the launcher draws it: X-Fedokawaii-Kanji).
+# seal of 壁 (the launcher draws it: X-Fedokawaii-Icon).
 Type=Application
 Name=Wallpaper
 GenericName=Desktop background
 Comment=Choose the picture behind the windows
-X-Fedokawaii-Kanji=壁
+X-Fedokawaii-Icon=picture
 Exec=@HOME@/.local/bin/kawa-wallpaper
 Terminal=false
 Categories=Settings;DesktopSettings;

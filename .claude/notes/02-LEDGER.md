@@ -721,6 +721,55 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   the bar vanished; test_syntax now parses style.css with GTK itself in both themes (caught it:
   2 failures with it, none without). Super+/ looked at: the text-screen grammar already, in the
   new window frame; its content and context are T23's.
+- r27-16 (T16, the text screens to one grammar — committed with this line) No dashed rule left
+  (╌ → ─: the shell's part headings, the notes' winbar, nvim's start screen, yazi, torrents;
+  grep-tested). Kanji only where §13 has them (stamps, the bar's day, the lock's quote): the text
+  screens' headings now their pixel icon (drive, calculator, branch, clipboard, book, together,
+  file, picture; the PDF tools' pages/order/take-out), the launcher's entries (X-Fedokawaii-Kanji
+  → X-Fedokawaii-Icon, 22 names; nine icons drawn — calculator, two people, a gauge, a robot, a
+  magnifier, a wrench, a note, a speech bubble, a globe; an entry with none: the window icon; the
+  answer's row: the calculator), the notes' winbar (note), nvim's start screen (code), yazi's
+  locked PDF (lock), torrents' banner (download), the shell's Ctrl+T / Alt+C / Ctrl+R headings
+  (file, folder, hourglass — read from icons.sh as drawn), the snapshot-boot notice (camera:
+  Super+U's snapshots), the mic test's words ("under input"), the panel's warm-up; INK_KANJI →
+  INK_ACCENT_TEXT, KawaKanji → KawaIcon; test_notices allows no kanji any more. Report BAR-14
+  still measured "Mon 19 Oct" and 一…九: now DD∕MM∕YYYY (70 px each) and the stamp icons (10 px).
+  §7's last line (screen_footer → screen_keys): only a screen's own keys — key in text, what it
+  does muted, its state strong; never Enter/Esc/arrows (Super+/ has them): clipboard super+z,
+  ctrl+d, ctrl+x · books ctrl+a, ctrl+d (adding: tab) · git c, n · calculator ctrl+q · the rest
+  none (backup, together, git's list, file contents); fzf.opts' footer ink -1 (fzf maps a reset in
+  the footer to the footer's own ink — measured in a pty). Super+W (owner: "a toggle key inside
+  Super+W, shown at the bottom"): the switch left the list — r (or a click on its line) turns
+  "change every 4 h", its state on the last line, no input line (the letter is the key's); shots
+  both themes, r toggled in place. Columns: the clipboard's and books' rows stood a column
+  further in than §7 (two spaces) — one now, as screen_row; fzf's prompt chevron moved to the
+  rows' icon column and the typed text to their names' (measured: chevron cell x = row icon
+  cell x, text x = name x, both themes). Books (bug 16): §7's columns, the reading meter in
+  pixels (icons read / read-off, 6 × 10 on the 8 px pitch: done solid accent_text, muted once the
+  book is done; to do hollow edge2 — the cursor's row strips inks, the shapes still say it; no
+  meter for a book not begun; before: ━/─ lines), the caption under the cover up to three lines
+  (a long title lost its end at two). Calculator: its line typed as a search line, the answer's
+  = an icon in the chevron's own box (measured: both inks x 1229–1233, middles one row apart),
+  "copy" ending at the last column, kept lines at the names' column. Clipboard exit (bug 6,
+  "terminated"): Esc or Enter wiped fzf's page before the warm loop told dwl, so dwl's ghost was
+  a blank terminal with a cursor (shot 30 ms after Esc); now the window is put away first
+  (kawa-warm --away NAME: "hide NAME" to dwl's fifo, read-write — never a wait, never a plain
+  file; KAWA_WARM tells the run it is warm) and then fzf ends — the ghost is the page as it was
+  (shots: Esc and Enter, both themes); Super+U the same (Esc, q, a job's become). The loop's job
+  control printed "Terminated" for a run killed by SIGTERM (reproduced in a pty): the popup now
+  ends on TERM by itself, as the clipboard did (a stderr redirect would have taken bash's
+  terminal for job control — tried: the window never showed). tools/regress/warm-exit.sh (new):
+  holds on this build, fails on the installed one (Enter: 116 of 4356 ink points left). Launcher
+  sums (bug 6, flicker): each key dropped the answer row until qalc answered the new text, then
+  put it back — the list jumped twice a key; now the last answer stays in place while the new one
+  is worked out (pending), changes where it stands, and goes at once when the text is no sum
+  (shots: 36 → 408 in place). kit.sh --repo-art also takes screen.sh and fzf.opts. Foot, Foot
+  Client, Foot Server: one entry already (NoDisplay). Shots both themes: Super+W (empty, five
+  pictures), books (six books, cursor on done/new), clipboard (open, both exits), calculator and
+  git (full tile and half tiles), Super+U. Tests: content/look/menus/engine/session/static/yazi/
+  status — the new cases: test_warm (--away, KAWA_WARM), test_clip (the binds), test_menu (the
+  popup's), test_calc (in place, the line typed), test_books (meter, columns, three lines),
+  test_wallpaper (the key line), test_launcher (icons by name, every one in the font).
 - r27-33 (T29, findings 04:00 — not fixed yet) Prowlarr: on demand by design (kawa-prowlarr: up while
   torrra searches, asleep 30 min after) — "inactive" is normal. /api/v1/health: 0 now. Its own log
   (~/.config/prowlarr/logs) over 8 days: Warn AllowedHostsCheck "Allowed Hosts is not configured"

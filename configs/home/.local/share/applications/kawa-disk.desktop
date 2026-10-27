@@ -2,12 +2,12 @@
 # gdu on your home folder in a terminal window of its own (kawa-term, app-id kawa-disk),
 # tiled: what fills the disk, folder by folder, biggest first (~/.config/gdu/gdu.yaml).
 # (`--`: the folder is never read as an option) Its icon: our seal of 量
-# (the launcher draws it: X-Fedokawaii-Kanji).
+# (the launcher draws it: X-Fedokawaii-Icon).
 Type=Application
 Name=Disk usage
 GenericName=What fills the disk
 Comment=gdu: your folders by size, biggest first
-X-Fedokawaii-Kanji=量
+X-Fedokawaii-Icon=usage
 Exec=@HOME@/.local/bin/kawa-term --app kawa-disk "Disk usage" gdu -- @HOME@
 Terminal=false
 Categories=System;Filesystem;

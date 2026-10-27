@@ -3,12 +3,12 @@
 # tabs, no address bar, tiled like every other window, through ~/.local/bin/brave-origin as
 # all of Brave is. Linked to your phone once (scan the code in WhatsApp → Linked devices);
 # Brave keeps the link. Its notices come through Brave, as the desktop's other notices do.
-# Its icon: our seal of 話 (the launcher draws it: X-Fedokawaii-Kanji).
+# Its icon: our pixel speech (the launcher draws it: X-Fedokawaii-Icon).
 Type=Application
 Name=WhatsApp
 GenericName=Messenger
 Comment=WhatsApp Web, in a window of its own
-X-Fedokawaii-Kanji=話
+X-Fedokawaii-Icon=speech
 Exec=@HOME@/.local/bin/brave-origin --app=https://web.whatsapp.com
 Terminal=false
 Categories=Network;InstantMessaging;Chat;

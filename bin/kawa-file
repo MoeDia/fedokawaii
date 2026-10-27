@@ -157,8 +157,8 @@ if [[ ${1:-} == --list ]]; then
   W=$(screen_width) || { echo "kawa-file: no terminal to draw in" >&2; exit 1; }
   name=$(cut_cols "${f##*/}" $((W - 16)))
   if locked "$f" "$k"; then
-    printf '\e[H\e[2J\n  %s\n\n    %s%s%s\n\n    %s%s%s  ' "$(screen_heading 目 "$name" "$W")" \
-      "$INK_MUTED" "its password, to see its contents (hidden as you type)" "$INK_OFF" "$INK_KANJI" "$ICON_CHEVRON_RIGHT" "$INK_OFF" >/dev/tty
+    printf '\e[H\e[2J\n  %s\n\n    %s%s%s\n\n    %s%s%s  ' "$(screen_heading "$ICON_FILE" "$name" "$W")" \
+      "$INK_MUTED" "its password, to see its contents (hidden as you type)" "$INK_OFF" "$INK_ACCENT_TEXT" "$ICON_CHEVRON_RIGHT" "$INK_OFF" >/dev/tty
     IFS= read -rs PW </dev/tty || exit 0
     [[ -n $PW ]] || exit 0
   fi
@@ -172,8 +172,7 @@ if [[ ${1:-} == --list ]]; then
   [[ -n $rows ]] || rows=$'-\t'"$(screen_row "$ICON_CROSS" "nothing to show: a wrong password, or it is damaged" "" "$W")"
   export FZF_DEFAULT_OPTS_FILE=$HOME/.config/fedokawaii/fzf.opts; unset FZF_DEFAULT_OPTS
   fzf --ansi --no-sort --height=100% --delimiter=$'\t' --with-nth=2 --ghost="type to filter" \
-    --header="$(screen_heading 目 "$name" "$W"; printf '\n ')" \
-    --footer=$'\n'"$(screen_footer 'type to filter' 'esc close')" <<<"$rows" >/dev/null
+    --header="$(screen_heading "$ICON_FILE" "$name" "$W"; printf '\n ')" <<<"$rows" >/dev/null
   exit 0
 fi
 
@@ -619,7 +618,7 @@ case $act in
   zip-pw|7z-pw) pack "${act%-pw}" pw ;;
   merge)  merge_pdfs ;;
   split)  TITLE="split · a PDF a page" pdf_each do_split ;;
-  range)  one; pages_typed 頁 "take some pages" "type the pages: 3-7,10 (it has $N)"
+  range)  one; pages_typed "$ICON_PAGES" "take some pages" "type the pages: 3-7,10 (it has $N)"
           out=$(beside "$F" ".pages-$LIST.pdf"); qpdf_to "$out" --empty --pages "$F" "$LIST" --
           finish "$ICON_BOOK" "pages $LIST · a PDF of their own" "$out" "$out" ;;
   rotate) a=$({ printf 'part\t%s\trotate\n' "$ICON_RESTART"
@@ -632,10 +631,10 @@ case $act in
             if [[ $s != "all pages" ]]; then plist "$s" "$N" || oops "${F##*/}: not rotated" "$WHY"; PAGES=$LIST; fi
           fi
           TITLE="rotated" pdf_each do_rotate ;;
-  order)  one; pages_typed 序 "reorder pages" "the new order: 3,1,2,4-$N (it has $N)" any
+  order)  one; pages_typed "$ICON_ORDER" "reorder pages" "the new order: 3,1,2,4-$N (it has $N)" any
           out=$(beside "$F" .reordered.pdf); qpdf_to "$out" --empty --pages "$F" "$LIST" --
           finish "$ICON_BOOK" "reordered · $(npages "$out") pages" "$out" "$out" ;;
-  delete) one; pages_typed 削 "delete pages" "the pages to delete: 2,5-6 (it has $N)"
+  delete) one; pages_typed "$ICON_TAKE_OUT" "delete pages" "the pages to delete: 2,5-6 (it has $N)"
           declare -A gone=(); keep=()
           IFS=, read -ra P <<<"$LIST"; for r in "${P[@]}"; do for ((q = 10#${r%-*}; q <= 10#${r#*-}; q++)); do gone[$q]=1; done; done
           for ((q = 1; q <= N; q++)); do [[ -n ${gone[$q]:-} ]] || keep+=("$q"); done

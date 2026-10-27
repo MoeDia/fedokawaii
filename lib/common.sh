@@ -54,7 +54,8 @@ _row() {
   fi
   _out "    $1  $t"
 }
-# _heading NAME — a part's heading: on a terminal "  NAME ╌╌╌…" to its right edge, two columns
+# _heading NAME — a part's heading: on a terminal "  NAME ───…" to its right edge (the rule solid,
+# as every heading's: docs/design-system.md §7), two columns
 # of paper either side; in the log "── NAME"
 _heading() {
   local c n s
@@ -63,7 +64,7 @@ _heading() {
   if ((c == 0)); then printf '\n── %s\n' "$1"; return 0; fi
   n=$(( c - 5 - $(LC_ALL=C.UTF-8 wc -L <<<"$1") )); ((n < 2)) && n=2
   printf -v s '%*s' "$n" ''
-  printf '\n  %s %s%s%s\n' "$1" "$C_STITCH" "${s// /╌}" "$C_RESET"
+  printf '\n  %s %s%s%s\n' "$1" "$C_STITCH" "${s// /─}" "$C_RESET"
 }
 log()  { local IFS=' '; _out "${C_FAINT}$(_ts)${C_RESET} ${C_MUTED}▸${C_RESET} $*"; }
 ok()   { local IFS=' '; _out "${C_FAINT}$(_ts)${C_RESET} ${C_MUTED}✔${C_RESET} $*"; }

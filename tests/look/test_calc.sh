@@ -20,17 +20,21 @@ typed() {
 plain() { sed 's/\x1b\[[0-9;?]*[A-Za-z]//g; s/\x1b[78]//g' <<<"$1"; }
 
 setup
-case_ "a conversion: its answer as it is typed; the heading is 算 calculator"
-out=$(plain "$(typed '5 ft to cm')"); has "$out" "算  calculator"; has "$out" "=  152.4 cm"
-case_ "Enter: the answer copied, the line kept above, said in the footer"
+case_ "a conversion: its answer as it is typed; the heading is the calculator's icon, calculator"
+. "$REPO/configs/home/.config/fedokawaii/icons.sh"
+out=$(plain "$(typed '5 ft to cm')"); has "$out" "$ICON_CALC  calculator"; has "$out" "$ICON_EQUALS  152.4 cm"
+lacks "$out" "算" "no kanji (§13)"
+case_ "Enter: the answer copied, the line kept above, said on the last line"
 out=$(plain "$(typed '6*7' '\r')"); eq "$(cat "$TMP/clip" 2>/dev/null)" 42; has "$out" "6*7 = 42"; has "$out" "copied: 42"
 case_ "a word alone, or one of qalc's commands: no answer (never sent: exit would end qalc)"
-setup; out=$(plain "$(typed 'steam' '\x15exit 5' '\x152+2')"); lacks "$out" "=  0"; has "$out" "=  4"
+setup; out=$(plain "$(typed 'steam' '\x15exit 5' '\x152+2')"); lacks "$out" "$ICON_EQUALS  0"; has "$out" "$ICON_EQUALS  4"
 case_ "Backspace takes a letter back; the answer follows"
-out=$(plain "$(typed '2*30' '\x7f')"); has "$out" "=  6"
-case_ "each key one frame (a synchronised update), never cleared first; the footer only one-column letters"
+out=$(plain "$(typed '2*30' '\x7f')"); has "$out" "$ICON_EQUALS  6"
+case_ "each key one frame (a synchronised update), never cleared first; the last line its own key alone (§7), the answer's copy at its right"
 raw=$(typed '1+1' '\x7f'); has "$raw" $'\e[?2026h'; has "$raw" $'\e[?2026l'; lacks "$raw" $'\e[2J'
-has "$(plain "$raw")" "up again"; lacks "$raw" "↑"
+has "$(plain "$raw")" "ctrl+q  qalc's prompt"; lacks "$(plain "$raw")" "esc close"; lacks "$(plain "$raw")" "enter copy"; lacks "$raw" "↑"
+has "$(plain "$raw")" "copy" "the answer's copy"
+has "$raw" "   "$'\e[38;5;20m'"$ICON_CHEVRON_RIGHT"$'\e[0m  1+1' "the line typed: the chevron (accent_text) at the rows' icon column, the words at their names'"
 case_ "a percentage in words: \"15% of 2400\" is qalc's 15% * 2400 (qalc alone: rem(15, 1 B))"
 eq "$(kawa-calc --answer '15% of 2400')" 360; eq "$(kawa-calc --answer '120 * 15% of 10')" 180
 rc 1 kawa-calc --answer steam
@@ -64,7 +68,7 @@ class UI:
     def start(self, app): self.calls.append(f"start {app.id}")
     def command(self, text): self.calls.append(f"command {text}")
 apps = [kp.App("brave-origin.desktop", "Brave Origin", "Web browser", ["internet"], None, None),
-        kp.App("kawa-calc.desktop", "Calculator", "Sums and conversions", ["math"], "算", None)]
+        kp.App("kawa-calc.desktop", "Calculator", "Sums and conversions", ["math"], "calc", None)]
 u = UI(); p = kp.Panel(u)
 def typed(text):
     for c in text: p.typed("space" if c == " " else c, c)
@@ -77,6 +81,16 @@ eq "$(lp 'typed("15% of 2400"); print([c for c in u.calls if c.startswith("calc"
 print(p.items[0].key, p.items[0].name, p.items[0].value, p.focus); p.key("Return"); print(u.calls[-1], p.visible)')" \
   "$(printf '%s\n' 'calc 15% of 2400' 'calc 360 copy calc' 'copy 360 False')"
 eq "$(lp 'typed("2+2"); m = p.state; m.calc = ("2+", "3"); p.answered(m); print([i.key for i in p.items])')" "[]" "an answer to what was typed before: not shown"
+case_ "bug 6 (the answer's row flickered as each key was typed): while the new text's answer is worked out (asked: calc_ask marks it pending) the last answer stays in its row, the list never jumps; it changes in place when the new one comes, and goes at once when the text is no sum"
+eq "$(lp 'typed("12*3"); m = p.state; m.calc = ("12*3", "36"); p.answered(m)
+u.calc = lambda m: setattr(m, "pending", m.query)    # (as calc_ask: a sum asked is pending)
+typed("4"); print(p.items[0].key, p.items[0].name, p.focus)
+m.calc = ("12*34", "408"); m.pending = None; p.answered(m); print(p.items[0].key, p.items[0].name, p.focus)
+u.calc = lambda m: setattr(m, "pending", None)       # (no sum: nothing asked)
+typed(" apples"); print([i.key for i in p.items if i.key == "calc"])')" \
+  "$(printf '%s\n' 'calc 36 calc' 'calc 408 calc' '[]')"
+has "$(sed -n '/    def calc_ask(m):/,/qc\["next"\] = (m, q)/p' "$REPO/bin/kawa-panel")" "m.pending = q" "calc_ask marks what it asks"
+has "$(sed -n '/    def calc_line(stream, res):/,/    def calc_end/p' "$REPO/bin/kawa-panel")" "elif m.pending == q:" "an answer that is none: the last one goes"
 setup; argv notify-send; rm -f "$TMP/clip"
 src=$(sed -n '/        def copy_answer(self, text):/,/^$/p' "$REPO/bin/kawa-panel" | python3 -c 'import sys, re; t = sys.stdin.read(); print(re.search(r"\"bash\", \"-c\", (.*?), \"_\", text\]", t, re.S).group(1))')
 script=$(python3 -c 'import ast, sys; print("".join(ast.literal_eval("(" + sys.argv[1] + ")")))' "$src")

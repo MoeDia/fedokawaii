@@ -1,12 +1,12 @@
 [Desktop Entry]
 # Your notes (kawa-notes), as Super+N opens them: ~/Notes/notes.md in neovim, in a small
 # floating window; a second start puts it away. Its icon: our seal of 記
-# (the launcher draws it: X-Fedokawaii-Kanji).
+# (the launcher draws it: X-Fedokawaii-Icon).
 Type=Application
 Name=Notes
 GenericName=Notebook
 Comment=One notes file, a heading for each day, in neovim
-X-Fedokawaii-Kanji=記
+X-Fedokawaii-Icon=note
 Exec=@HOME@/.local/bin/kawa-notes
 Terminal=false
 Categories=Office;

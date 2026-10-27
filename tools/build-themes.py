@@ -855,16 +855,16 @@ return {{
           -- the picker's counts ("12/403"): in the comments' quiet ink, not the faint one
           -- gruvbox gives them (close to the ground itself)
           vim.api.nvim_set_hl(0, "SnacksPickerTotals", {{ link = "Comment" }})
-          -- the first screen (look.lua) as a text screen: the heading's kanji vermilion, its
+          -- the first screen (look.lua) as a text screen: the heading's icon vermilion, its
           -- name in the text's ink, the stitch in edge2; the rows' glyphs vermilion, their
           -- names the text, their keys and the start's time muted
           local t = vim.o.background == "light"
-            and {{ kanji = "#{P['light']['accent_text']}", text = "#{P['light']['text']}", stitch = "#{P['light']['edge2']}", muted = "#{P['light']['muted']}" }}
-            or {{ kanji = "#{P['dark']['accent_text']}", text = "#{P['dark']['text']}", stitch = "#{P['dark']['edge2']}", muted = "#{P['dark']['muted']}" }}
-          vim.api.nvim_set_hl(0, "KawaKanji", {{ fg = t.kanji }})
+            and {{ icon = "#{P['light']['accent_text']}", text = "#{P['light']['text']}", stitch = "#{P['light']['edge2']}", muted = "#{P['light']['muted']}" }}
+            or {{ icon = "#{P['dark']['accent_text']}", text = "#{P['dark']['text']}", stitch = "#{P['dark']['edge2']}", muted = "#{P['dark']['muted']}" }}
+          vim.api.nvim_set_hl(0, "KawaIcon", {{ fg = t.icon }})
           vim.api.nvim_set_hl(0, "KawaName", {{ fg = t.text }})
           vim.api.nvim_set_hl(0, "KawaStitch", {{ fg = t.stitch }})
-          vim.api.nvim_set_hl(0, "SnacksDashboardIcon", {{ fg = t.kanji }})
+          vim.api.nvim_set_hl(0, "SnacksDashboardIcon", {{ fg = t.icon }})
           vim.api.nvim_set_hl(0, "SnacksDashboardDesc", {{ fg = t.text }})
           vim.api.nvim_set_hl(0, "SnacksDashboardKey", {{ fg = t.muted }})
           vim.api.nvim_set_hl(0, "SnacksDashboardFooter", {{ fg = t.muted }})

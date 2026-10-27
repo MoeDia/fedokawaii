@@ -43,6 +43,9 @@ wlroots-devel                   the build
 meson                           the build
 inih-devel                      the build
 systemd-devel                   the build
+cairo-devel                     the build (the desktop's mako)
+pango-devel                     the build (the desktop's mako)
+gdk-pixbuf2-devel               the build (the desktop's mako)
 greetd                          the login manager
 greetd-selinux                  the login manager's policy
 xorg-x11-server-Xwayland        X11 programs' display

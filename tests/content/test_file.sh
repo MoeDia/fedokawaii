@@ -199,7 +199,7 @@ eq "$(cat "$A/folder (1)/one.txt")" "first file"
 tar -czf "$A/old.tar.gz" -C "$A" folder; answers "extract here"; rc 0 kawa-file "$A/old.tar.gz"
 [[ -s "$A/folder (2)/inner/two.txt" ]] && _ok || _no "$(ls "$A" | tr '\n' '|')"
 
-case_ "list its contents: a window of its own, the screen in it (§7: 目, a row each, folders indented, sizes)"
+case_ "list its contents: a window of its own, the screen in it (§7: the file icon, a row each, folders indented, sizes)"
 answers "list its contents"; rc 0 kawa-file "$A/old.tar.gz"
 called "^kawa-term --float --once kawa-file contents 80x37 -- .*kawa-file --list $A/old.tar.gz"
 stub fzf 'cat >"$TMP/fzf.in"; printf "%s\n" "$@" >"$TMP/fzf.args"'
@@ -207,7 +207,9 @@ stub stty 'echo "40 80"'
 python3 -I "$REPO/tests/lib/pty_run.py" --cols 80 --rows 40 --timeout 20 -- kawa-file --list "$A/old.tar.gz" >/dev/null 2>&1
 has "$(cat "$TMP/fzf.in")" "  folder/"; has "$(cat "$TMP/fzf.in")" "    two.txt"
 has "$(cat "$TMP/fzf.in")" "KB" "a file's size"
-has "$(cat "$TMP/fzf.args")" "目"; has "$(cat "$TMP/fzf.args")" "esc close"
+. "$REPO/configs/home/.config/fedokawaii/icons.sh"
+has "$(cat "$TMP/fzf.args")" "$ICON_FILE"; lacks "$(cat "$TMP/fzf.args")" "目" "no kanji (§13)"
+lacks "$(cat "$TMP/fzf.args")" "esc close" "nothing obvious on its last line (§7)"
 
 case_ "RAR (unrar, its own tool): asked on stdin through setsid, the password never an argument"
 setup
