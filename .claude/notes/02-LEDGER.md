@@ -933,8 +933,19 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   two frames (GTK 3 reads steps(1, start) as CSS's steps(1, end): measured, the first state
   held to the end); test_bargaps checks its size, one ink and its place. Learn 5.4 and the
   Guide's §40 say the new wash. Not applied live yet: the session's dwl (11:36) has no wash —
-  kawa-theme would wait 1 s for an answer; it goes live with batch B's restart. Next: login →
-  desktop (the greeter's handover), the hourglass, tools/anim-check.sh, the Learn motion piece.
+  kawa-theme would wait 1 s for an answer; it goes live with batch B's restart.
+  (h) tools/anim-check.sh — T19's acceptance check: every animation dwl draws on its own run
+  headless on the GPU (9.5 s) and judged from dwl's frame log, not a recording: its pace from
+  the steps themselves, its last step within a frame of its end, no step skipped, progress
+  rising. Result: open 420.0 / 420 (68 steps, ×2), close 400.0 / 400, slide 240.0 / 240 (39),
+  workspace out 280.0 / 280 (46), in 420.0 / 420 (68), wash 1200.0 / 1200 (199); max gap
+  6.6 ms at a 6.28 ms frame, 0 skipped. Proven both ways: the same binary judged against a
+  config.h saying open 300 → "open: paced 420.0 ms, not 300", exit 1. (A slide needs a
+  window's place to change — the master closing; the master only narrowing is a resize, not
+  a slide, by T19e's design.) Warm windows, menus, notices, the lock keep their regress checks
+  (warm-exit, menu-first-click, level-display). The Learn book has no motion piece yet (T27
+  writes it from design-system §11, which matches config.h). Next: login → desktop (the
+  greeter's handover), the hourglass.
 - r27-keep (found 27 Oct 16:28) ~/blasphemous-save-backup-20261022 was in the Trash (trashed 26 Oct
   16:15 local, with game-shelf, Games, Balatro — before any round-27 session, the first at 27 Oct
   02:03): restored to ~ (476 K, Blasphemous + userdata-774361 intact), per the standing rule and
