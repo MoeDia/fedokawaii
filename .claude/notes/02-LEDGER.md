@@ -999,3 +999,12 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   machine's own empty folder; test_game 73/0 — its systemctl stand-in looked the unit up with
   ${*##* }, which strips each word on its own (POSIX), so no timer ever read "waiting": the
   stand-in's fault, not kawa-game's; it takes the last word now. None of the listed ones fails.
+- r27-suite (27 Oct 18:45–19:07, the full suite, cut off at the pass's end in the look area):
+  failing — installer: test_setup 47, test_theme_parts 37, test_verify 15, test_setup_wait 12,
+  test_theme 9, test_torture 5, test_upkeep 4, test_afterdnf 3, test_report 3, test_setup_hw 2,
+  test_guard 1 (those read say "mako's tag v1.11.0 does not point at the pinned commit 91c6b79… —
+  refusing to build": lib/upstream.sh's mako pin against the tests' stand-in repo — mako was not
+  touched this pass); shell: test_shell 15, test_tiles 18 (the prompt: test_tiles fails the same 18
+  at 4b0226e, this pass's start — not from this pass). Every file this pass touched passes on its
+  own. NEXT PASS FIRST: the mako pin against its tag (lib/upstream.sh, the stand-in), then the
+  prompt's cases, then the full suite again — before any new work.
