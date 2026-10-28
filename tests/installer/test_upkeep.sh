@@ -174,19 +174,19 @@ back built; fkh_add units "global-enabled grub-boot-success.timer"
 tk --repair; called 'systemctl\] --global disable grub-boot-success.timer'
 grep -qx "global-enabled grub-boot-success.timer" "$FKH/units" && _no "still on for every session" || _ok
 case_ "repair: a new kernel (waiting for its restart) without its boot image gets one (dracut --kver), and verify passes after"
-back built; fkh kernels "6.99.1-200.fc44.x86_64" "$(uname -r)"; echo vmlinuz >"$W/boot/vmlinuz-6.99.1-200.fc44.x86_64"
-tk --repair; has "$OUT" "kernel 6.99.1-200.fc44.x86_64 has no boot image (initramfs) — dracut makes it now"
-called 'dracut\] -f --kver 6.99.1-200.fc44.x86_64'
-[[ -s $W/boot/initramfs-6.99.1-200.fc44.x86_64.img ]] && _ok || _no "no image made"
+back built; fkh kernels "99.1.1-200.fc44.x86_64" "$(uname -r)"; echo vmlinuz >"$W/boot/vmlinuz-99.1.1-200.fc44.x86_64"
+tk --repair; has "$OUT" "kernel 99.1.1-200.fc44.x86_64 has no boot image (initramfs) — dracut makes it now"
+called 'dracut\] -f --kver 99.1.1-200.fc44.x86_64'
+[[ -s $W/boot/initramfs-99.1.1-200.fc44.x86_64.img ]] && _ok || _no "no image made"
 has "$OUT" "problem(s) before, 0 now"
 case_ "update: the same, counted among the parts that failed when dracut cannot"
-back built; fkh kernels "6.99.1-200.fc44.x86_64" "$(uname -r)"; echo vmlinuz >"$W/boot/vmlinuz-6.99.1-200.fc44.x86_64"; fkh rc-dracut 1
-tk --update; has "$OUT" "dracut could not make the boot image for 6.99.1-200.fc44.x86_64"
+back built; fkh kernels "99.1.1-200.fc44.x86_64" "$(uname -r)"; echo vmlinuz >"$W/boot/vmlinuz-99.1.1-200.fc44.x86_64"; fkh rc-dracut 1
+tk --update; has "$OUT" "dracut could not make the boot image for 99.1.1-200.fc44.x86_64"
 has "$OUT" "not updated this time"; has "$OUT" "the kernels' boot images (dracut)"; rm -f "$FKH/rc-dracut"
 case_ "repair: /boot not mounted (no vmlinuz either): said, nothing written into the empty folder"
-back built; fkh kernels "6.99.1-200.fc44.x86_64" "$(uname -r)"
-tk --repair; has "$OUT" "no /boot/vmlinuz-6.99.1-200.fc44.x86_64 — is /boot mounted?"
-not_called 'dracut\] -f --kver'; [[ ! -e $W/boot/initramfs-6.99.1-200.fc44.x86_64.img ]] && _ok || _no "an image written beside a missing kernel"
+back built; fkh kernels "99.1.1-200.fc44.x86_64" "$(uname -r)"
+tk --repair; has "$OUT" "no /boot/vmlinuz-99.1.1-200.fc44.x86_64 — is /boot mounted?"
+not_called 'dracut\] -f --kver'; [[ ! -e $W/boot/initramfs-99.1.1-200.fc44.x86_64.img ]] && _ok || _no "an image written beside a missing kernel"
 
 case_ "repair: each package change a service of its own (closing the window cuts none in half); what only asks dnf stays in the window"
 back built; fkh_del installed bat; fkh_add installed systemd-oomd-defaults; reset_calls
@@ -277,9 +277,9 @@ case_ "repair: an fstab whose Btrfs lines lack noatime — written with it (find
 back built; printf 'UUID=7ea4 / btrfs subvol=root,compress=zstd:1,relatime 0 0\nUUID=AB12 /boot ext4 defaults 1 2\n' >"$W/etc/fstab"
 tk --repair; has "$(cat "$W/etc/fstab")" $'subvol=root,compress=zstd:1,noatime'; lacks "$OUT" "does not verify"
 case_ "repair or update with a new kernel not yet running: both kept, said — nothing removed"
-back built; fkh kernels "$(uname -r)" "6.99.1-200.fc44.x86_64"; echo vmlinuz >"$W/boot/vmlinuz-6.99.1-200.fc44.x86_64"; : >"$W/boot/initramfs-6.99.1-200.fc44.x86_64.img"
+back built; fkh kernels "$(uname -r)" "99.1.1-200.fc44.x86_64"; echo vmlinuz >"$W/boot/vmlinuz-99.1.1-200.fc44.x86_64"; : >"$W/boot/initramfs-99.1.1-200.fc44.x86_64.img"
 reset_calls; tk --repair; not_called 'remove kernel'
-has "$OUT" "kernel 6.99.1-200.fc44.x86_64 is installed and waits for a restart"
+has "$OUT" "kernel 99.1.1-200.fc44.x86_64 is installed and waits for a restart"
 reset_calls; tk --update; not_called 'remove kernel'
 case_ "the start-up run (a quarter of an hour in): only once this start reached the desktop (boot_success=1) — then the one before goes"
 back built; fkh kernels "6.18.1-200.fc44.x86_64" "$(uname -r)"; grubenv boot_success=0

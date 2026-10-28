@@ -85,7 +85,7 @@ if [[ $MODE == kernels ]]; then     # (the boot's own run: never waits — anoth
 elif [[ $MODE == after-dnf ]]; then   # (after a dnf run: waits for an update or repair to end first)
   exec 9<>"$STATE_DIR/lock"; flock 9
 else take_lock "$STATE_DIR/lock"; fi
-printf '%s\n' "$MODE" >"$STATE_DIR/lock"   # (which run holds it: the system menu marks its row)
+printf '%s\n' "$MODE" 2>/dev/null >"$STATE_DIR/lock" || true   # (which run holds it: the system menu marks its row — a full disk says so below)
 make_tmp
 # A run resumed after a reboot (fedokawaii-resume.service) that stops: nobody typed a command
 # to "run again", and tty1, the service's own screen, has no login of its own until you

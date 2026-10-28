@@ -1041,3 +1041,16 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   slid to 61 %, the new one's dissolve waiting at its first step for foot's first frame — five
   shots alike), the screen at rest pixel-identical before and after. The 144 Hz look of every
   animation on the monitor itself goes with T19k-1 (the bar's flicker), on this dwl.
+- r27-19k-1 (28 Oct 12:50, first look — not fixed yet) the bar through a burst of switches:
+  tools/regress/bar-burst.sh (headless kit, the shipped dwl, the real waybar, a terminal on 1 and
+  on 2, 1 ↔ 2 every 40 ms × 24, the top 40 rows shot every ~14 ms: 403–413 shots). The bar's own
+  rows (0–26): 10 states in 30 runs, all states it rests in (the seals 1/2, the clock's second,
+  one status value); the two shown for one shot only are a seal change and the clock / a status
+  value ticking a shot later — no torn, blank or mixed bar. Under it (rows 27–39): 56 states,
+  203 of 220 runs one shot long — every switch restarts the windows' scroll and dissolve, so the
+  windows' top frames against the bar's edge jump sideways and go dashed (the dissolve's 3 px
+  cells) at every switch. Most likely what reads as "the bar flickers": the windows meeting it,
+  not the bar. His report was on the 15:51 dwl (before batch B). NEXT: the same burst on the PC
+  at 144 Hz (Super+1/2 held through wtype in the live session, dwl's frame log), then the fix at
+  the cause — a switch arriving while the last one still runs takes over from where the windows
+  are (no restart from the edge, no new dissolve) — and the pass/fail rule in bar-burst.sh.
