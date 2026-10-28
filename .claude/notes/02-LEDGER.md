@@ -1090,3 +1090,9 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   changing colour under the bar: the installed dwl (turn only) 0 pops, 30 colour changes →
   exit 1; the fixed tree 0 and 0 → exit 0 (955 shots). anim-check all held; ASan 0 errors over
   560 turned frames. Patch rewritten (reproduces the tree). Live with the next restart.
+- r27-19k-1 VERIFIED on the PC (28 Oct 13:02, the final dwl applied 13:02:19, session restarted
+  13:02:27): the burst through the live session (two terminals, 24 switches 40 ms apart, grim on
+  HDMI-A-1 every ~14 ms, 362 shots): the bar's rows 7 states, none for one shot; under it 0 pops,
+  0 frame-colour changes (362/362 red; before the colour fix: grey/red at every switch, 30 per
+  burst headless). The screen at rest after: pixel-identical to before. The owner's eye on a real
+  burst of his own is the last word (r27-19k-1 stays VERIFIED by measurement until he says).
