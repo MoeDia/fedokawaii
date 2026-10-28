@@ -46,8 +46,17 @@ session() {
 headers() { python3 -I - "$TMP/out" <<'PY'
 import re, sys
 raw = open(sys.argv[1], "rb").read().decode("utf-8", "replace")
-for seg in raw.split("\x1b]133;A\x1b\\")[1:]:
-    print(seg.split("\n")[0].rstrip("\r"))
+parts, out = raw.split("\x1b]133;A\x1b\\"), []
+seen = lambda t: len(re.sub(r"\x1b\[[0-9;?]*[A-Za-z]|\x1b\][^\x1b]*\x1b\\\\|[\x01\x02]", "", t))
+for prev, seg in zip(parts, parts[1:]):
+    line = re.sub(r"\x1b\[[0-9;?]*[A-LN-Za-ln-z]", "", seg.split("\n")[0].rstrip("\r"))   # (cursor moves out, colours kept)
+    # readline 8.3 draws the line again over itself as keys come (a carriage return, then the
+    # prompt with its mark anew, on the same row): the same prompt, its fullest drawing kept
+    if out and prev.endswith("\r"):
+        out[-1] = max(out[-1], line, key=seen)
+    else:
+        out.append(line)
+print("\n".join(out))
 PY
 }
 # width TEXT — the columns TEXT takes in foot: escapes none, a kanji two, a pixel icon one

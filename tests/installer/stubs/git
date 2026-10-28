@@ -34,6 +34,7 @@ case $1 in
            "v0.9^{commit}") cat "$FKH/tag-v0.9" 2>/dev/null || echo 98bea2c27f99c549023fb394bfd983a439d8ccb9 ;;
            "v1.4.3^{commit}") cat "$FKH/tag-v1.4.3" 2>/dev/null || echo cb8cec0b30aa6e2cc36b1b5cb34d6dc9a1face29 ;;
            "v1.7.6^{commit}") cat "$FKH/tag-v1.7.6" 2>/dev/null || echo 993232ab095bb810593459bc705b3e6fc64ad161 ;;
+           "v1.11.0^{commit}") cat "$FKH/tag-v1.11.0" 2>/dev/null || echo 91c6b799855762ad1eb8b4498967c270a339be0c ;;
            HEAD) cat "$FKH/dwl-head" 2>/dev/null || echo 98bea2c27f99c549023fb394bfd983a439d8ccb9 ;;
            *) echo "$2" ;;
          esac; exit 0 ;;

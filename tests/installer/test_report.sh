@@ -45,7 +45,7 @@ fk bash -c 'mkdir -p /home/fkuser/.cache/oops /home/fkuser/.local/share/containe
             touch /home/fkuser/.cache/oops/{a,b,c} /home/fkuser/.local/share/containers/storage/overlay/x/{1,2}
             chown -R fkuser:fkuser /home/fkuser/.cache /home/fkuser/.local
             chown 0:0 /home/fkuser/.cache/oops/{a,b,c}
-            chown -R 100999:100999 /home/fkuser/.local/share/containers/storage/overlay/x'
+            chown -R 65000:65000 /home/fkuser/.local/share/containers/storage/overlay/x'
 printf 'THEME="dark"\n' >"$W/var/lib/fedokawaii/conf-from-copy.conf"
 { for i in 1 2 3 4 5 6 7; do echo "  step context $i"; done; echo "  ✘ 3.06 applications: dnf failed"
   seq 1 500 | sed 's/^/  ✔ step /'; } >>"$W/var/log/fedokawaii.log"

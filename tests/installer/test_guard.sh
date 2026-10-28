@@ -59,7 +59,7 @@ eq "$(stopped)" ""; eq "$ERR" ""
 case_ "pre: …a library only dwl itself and the helpers load (relinked from source) — through, the rebuild said"
 pkgfile libxkbcommon-2.0 "libxkbcommon.so.1()(64bit)"
 tx "libxkbcommon U IN 2.0" "libxkbcommon O OUT 1.13" >"$TMP/replies"; guard pre
-eq "$(stopped)" ""; has "$ERR" "libxkbcommon.so.0 changes: dwl and the desktop's helpers are rebuilt for it"
+eq "$(stopped)" ""; has "$ERR" "libxkbcommon.so.0 changes: dwl, the desktop's helpers and its mako are rebuilt for it right after"
 case_ "pre: …a library a release tool loads — through, said"
 pkgfile libgit2-1.10 "libgit2.so.1.10()(64bit)"
 tx "libgit2 U IN 1.10" "libgit2 O OUT 1.9" >"$TMP/replies"; guard pre

@@ -53,8 +53,16 @@ headers() {
     "${a[@]}" -- bash -i 2>&1) | python3 -I -c '
 import re, sys
 raw = sys.stdin.buffer.read().decode("utf-8", "replace")
-for seg in raw.split("\x1b]133;A\x1b\\")[1:]:
-    print(re.sub(r"\x1b\[[0-9;]*m|\x1b\][^\x1b]*\x1b\\\\|[\x01\x02]", "", seg.split("\n")[0].rstrip("\r")))' | plain
+parts, out = raw.split("\x1b]133;A\x1b\\"), []
+for prev, seg in zip(parts, parts[1:]):
+    line = re.sub(r"\x1b\[[0-9;?]*[A-Za-z]|\x1b\][^\x1b]*\x1b\\\\|[\x01\x02]", "", seg.split("\n")[0].rstrip("\r"))
+    # readline 8.3 draws the line again over itself as keys come (a carriage return, then the
+    # prompt with its mark anew): the same prompt, its fullest drawing kept
+    if out and prev.endswith("\r"):
+        out[-1] = max(out[-1], line, key=len)
+    else:
+        out.append(line)
+print("\n".join(out))' | plain
 }
 width() { python3 -I -c 'import sys, unicodedata; print(sum(2 if unicodedata.east_asian_width(c) in "WF" else 1 for c in sys.argv[1]))' "$1"; }
 

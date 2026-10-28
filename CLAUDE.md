@@ -585,3 +585,16 @@ done; paths there refer to the old cloud sandbox — use this file's procedures 
   private, actively maintained, Wayland-native, good update channel on Fedora), verify each
   from official sources, try the top candidates on this PC (start time, RAM, smoothness at
   144 Hz, video decode, extensions he needs), pick the best, and theme it to our design.
+- Owner 2026-10-27 19:19 (high priority, fold into the next tasks):
+  - The demon/angel head icons are far too simple. Make them serious, proper, detailed icons —
+    if the 14x15 pixel grid or text glyphs cannot carry it, use a larger grid or real image
+    icons (PNG/SVG where the surface allows) instead. The same for every custom icon: more
+    alive, unique and complex; put real effort in.
+  - The bar flickers/artifacts for a split second when switching workspaces rapidly: find it
+    frame by frame and fix it; add a regression check.
+  - A proper icon for the to-do list.
+  - Quick settings is still poor: redesign it properly (this is the third time he says so).
+  - Highlight contrast: in dark mode a highlighted row's contents are not contrasty enough —
+    measure contrast (WCAG ratio) for every highlighted/selected state in both themes and fix
+    every one below a clear threshold.
+  - Always measure alignment and spacing precisely, every surface, every change.

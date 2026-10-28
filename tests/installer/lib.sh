@@ -121,7 +121,7 @@ usr_farm() {
   mkdir -p "$b" "$s"
   (cd /usr/bin && find . -mindepth 1 -maxdepth 1 -printf "$W/.usr/bin/%f\\0") | xargs -0 ln -s -t "$b"
   (cd /usr/share && find . -mindepth 1 -maxdepth 1 ! -name icons ! -name vulkan ! -name applications ! -name locale -printf "$W/.usr/share/%f\\0") | xargs -0 ln -s -t "$s"
-  for n in vi vim view vimdiff nano emacs flatpak snap nvim agreety greetd gnome-shell; do rm -f "$b/$n"; done
+  for n in vi vim view vimdiff nano emacs flatpak snap nvim agreety greetd gnome-shell steam; do rm -f "$b/$n"; done
   mkdir -p "$s/icons" "$s/applications" "$s/vulkan/icd.d" "$s/locale"
   for n in /usr/share/locale/*; do [[ $n == */fk ]] || ln -s "$W/.usr$n" "$s/locale/${n##*/}"; done   # (fk: the lock screen's, setup's own)
   for n in /usr/share/icons/*; do   # (Sumi-*: the pointers, setup's own — a machine that ran theme.sh has them)
@@ -134,8 +134,8 @@ fake_cmd() { printf '#!/bin/sh\nexit 0\n' >"$1"; chmod 755 "$1"; }
 # /usr/local site folder, which is the fake machine's own. (FK_PYLIBS: that folder, for a test)
 fake_pylibs() {
   local pp m
-  pp=$(python3 -I -c 'import sys; print(next((p for p in sys.path if p.startswith("/usr/local/lib/python")), ""))')
-  [[ -n $pp ]] || { echo "harness: this python3 has no /usr/local site folder — Syncplay's steps will fail" >&2; return 0; }
+  # (the folder Fedora's python3 reads under /usr/local: stubs/python3 keeps it read under -I)
+  pp=$(python3 -I -c 'import sys; print("/usr/local/lib/python%d.%d/site-packages" % sys.version_info[:2])')
   FK_PYLIBS=$W$pp
   mkdir -p "$FK_PYLIBS/twisted/internet"
   for m in twisted/__init__ twisted/internet/__init__ certifi/__init__ pem/__init__ OpenSSL/__init__; do

@@ -4,6 +4,13 @@
 fkh_log "$*"
 r=$(rcfor meson 0); ((r == 0)) || exit "$r"
 countdown meson && { echo "meson: ERROR: Dependency \"inih\" not found" >&2; exit 1; }   # ($FKH/fail-meson = N: the first N calls)
+# setup BUILD SRC makes the build folder; compile -C …/mako/build makes mako's binary (the
+# desktop's options' names in it, as src/mako/mako.patch adds them)
+[[ $1 == setup ]] && mkdir -p "$2"
+if [[ $1 == compile && $3 == */mako/build ]]; then
+  printf '#!/bin/sh\n# shadow-color summary-icon-color hanging-indent\necho "Usage: mako [options...]"\n' >"$3/mako"
+  chmod 755 "$3/mako"
+fi
 if [[ $1 == install ]]; then
   d=""; while (($#)); do [[ $1 == --destdir ]] && d=$2; shift; done
   mkdir -p "$d/usr/local/libexec" "$d/usr/local/lib/systemd/user" "$d/usr/local/share/dbus-1/services" "$d/usr/local/share/xdg-desktop-portal/portals"
