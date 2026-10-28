@@ -7,7 +7,7 @@
 # sorted into states: the bar's own (each must be a state it rests in — a seal, the clock —
 # never a torn or blank one) and what the windows draw against its edge.
 #   bash tools/regress/bar-burst.sh [--dwl BIN] [--out DIR] [--bar ROWS]
-# (WIP: it reports; the pass/fail rule lands with the fix — plan T19k-1)
+# Exit 0 no flash · 1 a flash under the bar (said: which shots) · 2 the kit could not run
 set -euo pipefail
 here=$(cd "$(dirname "$0")/../.." && pwd)
 dwl=/usr/local/bin/dwl out=/dev/shm/r27/bar-burst bar=27
@@ -47,4 +47,15 @@ for name, box in (("the bar", (0, 0, 1920, bar)), ("under it", (0, bar, 1920, 40
     print(f"{name}: {len(files)} shots, {len(set(order))} states, {len(runs)} runs, "
           f"{sum(1 for _, n in runs if n == 1)} shown for one shot only")
     print("  " + " ".join(f"{h[:4]}×{n}" for h, n in runs))
+# a flash: under the bar, the windows' lit pixels (their frames' top lines) in one shot more
+# than 300 away from both neighbours, the same way — a frame shown whole, dashed or gone for
+# one shot (the dwl before animturn: a dashed top frame at every switch)
+lit = []
+for f in files:
+    im = Image.open(f).convert("L").crop((0, bar, 1920, 40))
+    lit.append(sum(im.point(lambda v: 255 if v > 70 else 0).histogram()[255:]))
+flashes = [i for i in range(1, len(lit) - 1)
+           if (lit[i] - lit[i - 1]) * (lit[i] - lit[i + 1]) > 0 and min(abs(lit[i] - lit[i - 1]), abs(lit[i] - lit[i + 1])) > 300]
+print(f"flashes under the bar: {len(flashes)}" + (f" (shots {', '.join(map(str, flashes[:12]))})" if flashes else ""))
+sys.exit(1 if flashes else 0)
 PY

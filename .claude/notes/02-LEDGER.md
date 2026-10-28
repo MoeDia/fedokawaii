@@ -1054,3 +1054,17 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   at 144 Hz (Super+1/2 held through wtype in the live session, dwl's frame log), then the fix at
   the cause — a switch arriving while the last one still runs takes over from where the windows
   are (no restart from the edge, no new dissolve) — and the pass/fail rule in bar-burst.sh.
+- r27-19k-1 FIXED in code (28 Oct 12:54, headless-proven; live with the next session restart):
+  the cause found in view(): a switch during the last one's animation ran animstop() on every
+  window still animating — one half dissolved IN snapped whole for a frame, then dissolved OUT
+  from 100 %; one half OUT vanished, then came IN from 0. Now such a window turns round where
+  it stands (animturn: its AnimIn/AnimOut played backwards from its animp, back over the time it
+  took — the same cells and the same drift on the next frame; turned twice it runs forwards
+  again; a window going elsewhere ends as before). VERIFIED headless: tools/anim-check.sh on the
+  edited dwl all held (open 420.0, slide 240.0, close 400.0, workspace out 280.0 / in 420.0,
+  wash 1200.1, 0 skipped); tools/regress/bar-burst.sh (rule: a "flash" = the windows' lit pixels
+  under the bar one shot > 300 off both neighbours) — the shipped dwl 17 flashes (a dashed top
+  frame at every switch), the fixed one 0; under the bar 56 → 23 states, the bar's own rows 8
+  states, none for one shot. src/dwl/dwl.patch rewritten (it reproduces the tree byte for byte
+  from v0.9 98bea2c). NEXT PASS: ASan build + bar-burst again, apply, session restart, the burst
+  on the PC (live grim shots), bar-burst into tests/session's regression set (T52).
