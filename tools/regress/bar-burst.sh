@@ -3,11 +3,11 @@
 # 19:19 report: "the bar flickers for a split second when switching workspaces rapidly"): a
 # headless kit (tools/kit.sh: dwl on the real GPU, the real waybar) with a terminal on 1 and on
 # 2, then 1 ↔ 2 every 40 ms, 24 times, while the screen's top 40 rows are shot as fast as grim
-# allows (~14 ms a shot). Then each shot's bar (rows 0 … BAR-1) and the rows under it are
+# allows (~14 ms a shot), then six more 180 ms apart. Then each shot's bar (rows 0 … BAR-1) and the rows under it are
 # sorted into states: the bar's own (each must be a state it rests in — a seal, the clock —
 # never a torn or blank one) and what the windows draw against its edge.
 #   bash tools/regress/bar-burst.sh [--dwl BIN] [--out DIR] [--bar ROWS]
-# Exit 0 no flash · 1 a flash under the bar (said: which shots) · 2 the kit could not run
+# Exit 0 nothing pops · 1 a pop or a frame changing colour under the bar (said) · 2 the kit could not run
 set -euo pipefail
 here=$(cd "$(dirname "$0")/../.." && pwd)
 dwl=/usr/local/bin/dwl out=/dev/shm/r27/bar-burst bar=27
@@ -22,6 +22,10 @@ chord logo 1; nap 0.8
 ( i=0; while [[ ! -e $KIT_OUT/stop ]]; do grim -g "0,0 1920x40" "$KIT_OUT/b$(printf %04d "$i").png"; i=$((i + 1)); done ) &
 nap 0.3
 seq=(); for n in $(seq 12); do seq+=(-M logo -k 2 -m logo -s 40 -M logo -k 1 -m logo -s 40); done
+wtype -s 300 "${seq[@]}"
+nap 0.8
+# (slower: each window gets well into its dissolve before it is sent back)
+seq=(); for n in $(seq 6); do seq+=(-M logo -k 2 -m logo -s 180 -M logo -k 1 -m logo -s 180); done
 wtype -s 300 "${seq[@]}"
 nap 0.8
 touch "$KIT_OUT/stop"; wait
@@ -47,15 +51,23 @@ for name, box in (("the bar", (0, 0, 1920, bar)), ("under it", (0, bar, 1920, 40
     print(f"{name}: {len(files)} shots, {len(set(order))} states, {len(runs)} runs, "
           f"{sum(1 for _, n in runs if n == 1)} shown for one shot only")
     print("  " + " ".join(f"{h[:4]}×{n}" for h, n in runs))
-# a flash: under the bar, the windows' lit pixels (their frames' top lines) in one shot more
-# than 300 away from both neighbours, the same way — a frame shown whole, dashed or gone for
-# one shot (the dwl before animturn: a dashed top frame at every switch)
-lit = []
+# a pop: under the bar, the windows' frames (their top lines' lit pixels) jumping by more than
+# one dissolve step between two shots — a dissolve moves a quarter of a line a step (the 4 × 4
+# Bayer order: a row of cells comes a quarter at a time), and at ~14 ms a shot never more than
+# one step (17.5 ms each over 280 ms); more is a window snapped whole or gone. The frame's
+# colour too: a window's frame turning grey ↔ red under the bar with the switches is a flicker
+lit, col = [], []
 for f in files:
-    im = Image.open(f).convert("L").crop((0, bar, 1920, 40))
-    lit.append(sum(im.point(lambda v: 255 if v > 70 else 0).histogram()[255:]))
-flashes = [i for i in range(1, len(lit) - 1)
-           if (lit[i] - lit[i - 1]) * (lit[i] - lit[i + 1]) > 0 and min(abs(lit[i] - lit[i - 1]), abs(lit[i] - lit[i + 1])) > 300]
-print(f"flashes under the bar: {len(flashes)}" + (f" (shots {', '.join(map(str, flashes[:12]))})" if flashes else ""))
-sys.exit(1 if flashes else 0)
+    im = Image.open(f).convert("RGB")
+    g = im.convert("L").crop((0, bar, 1920, 40))
+    lit.append(sum(g.point(lambda v: 255 if v > 70 else 0).histogram()[255:]))
+    row = [im.getpixel((x, bar + 6)) for x in range(10, 1910, 7)]
+    red = sum(1 for r, gg, b in row if r > 180 and gg < 120); grey = sum(1 for r, gg, b in row if 90 < r < 150 and abs(r - gg) < 20)
+    col.append("red" if red > grey and red > 20 else "grey" if grey > 20 else "")
+step = 1920 / 4 * 1.25
+pops = [i for i in range(1, len(lit)) if abs(lit[i] - lit[i - 1]) > step]
+turns = sum(1 for a, b in zip(col, col[1:]) if a and b and a != b)
+print(f"pops under the bar: {len(pops)}" + (f" (shots {', '.join(map(str, pops[:12]))})" if pops else ""))
+print(f"frame colour changes under the bar: {turns}")
+sys.exit(1 if pops or turns else 0)
 PY

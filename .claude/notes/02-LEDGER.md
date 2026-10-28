@@ -1068,3 +1068,25 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   states, none for one shot. src/dwl/dwl.patch rewritten (it reproduces the tree byte for byte
   from v0.9 98bea2c). NEXT PASS: ASan build + bar-burst again, apply, session restart, the burst
   on the PC (live grim shots), bar-burst into tests/session's regression set (T52).
+- r27-suite CLEAN (28 Oct 12:56): every file the last full run listed now passes — installer:
+  test_setup 232/0, test_setup_wait 70/0, test_setup_hw 84/0, test_verify 171/0, test_theme
+  140/0, test_theme_parts 129/0, test_torture 214/0 (the Arabic-locale runs skipped: no
+  ar_AE.UTF-8 here), test_upkeep 219/0 (a disk full to the last byte: the job's mark no longer
+  fails before the space sentence — a real fix in setup.sh), test_afterdnf 37/0, test_report
+  118/0, test_guard 42/0; content: test_shell 187/0, test_tiles 142/0. The whole suite in one
+  run is still owed (one-hour passes: run it in two halves next).
+- r27-19k-1 ASan (28 Oct 12:56): tools/hl-dwl.sh --asan with bursts 1↔2 at 30–45 ms, 1→2→3→2→1,
+  a window closing and one opening mid-burst: 556 turned-round frames (A … r2/r3 in the frame
+  log), 0 AddressSanitizer errors; LeakSanitizer only dwl's one-time setup allocations at exit
+  (EGL init, event-loop sources — no animation code in any stack).
+- r27-19k-1 part 2 (28 Oct 12:58–13:02): LIVE on the PC (the turn fix applied 12:57, session
+  restarted 12:57:49): the burst through the real session (two terminals, grim on HDMI-A-1):
+  the bar's rows 8 states, none for one shot — and one flicker left right under the bar: the
+  leaving window's frame went grey the moment the focus moved and red again when it turned
+  back, at every switch. FIXED in code: a window on its way out keeps the frame it had (view:
+  bwas), set right once it is gone (animstop). bar-burst.sh now has a slower second burst
+  (6 × 180 ms: windows well into their dissolve) and two rules — a pop (the frames' lit pixels
+  jumping more than one dissolve step, a quarter line, between two ~14 ms shots) and a frame
+  changing colour under the bar: the installed dwl (turn only) 0 pops, 30 colour changes →
+  exit 1; the fixed tree 0 and 0 → exit 0 (955 shots). anim-check all held; ASan 0 errors over
+  560 turned frames. Patch rewritten (reproduces the tree). Live with the next restart.
