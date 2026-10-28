@@ -1096,3 +1096,9 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   0 frame-colour changes (362/362 red; before the colour fix: grey/red at every switch, 30 per
   burst headless). The screen at rest after: pixel-identical to before. The owner's eye on a real
   burst of his own is the last word (r27-19k-1 stays VERIFIED by measurement until he says).
+- NEXT PASS STARTS HERE (28 Oct 13:04): T19k-2, highlight contrast — .claude/notes/contrast-r27.md
+  has the measurements and the candidates (one grammar for "selected" in both themes: cream words
+  on a deep lacquer red, ≥ 7:1 for the row's words; faint ≥ 4.5 where it is text); render them with
+  tools/gallery.sh --only system,launcher,quick,clipboard, grill, build tools/contrast.py + its
+  static test. Then T19k-3 (quick settings, for real). The full suite in two halves (installer /
+  the rest) somewhere in the pass: every file that failed is green one by one now.
