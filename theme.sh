@@ -822,7 +822,7 @@ want = {("server_data", "host"): "syncplay.pl", ("server_data", "port"): "8999",
         ("client_settings", "playerpath"): "/usr/bin/mpv",
         ("client_settings", "mediasearchdirectories"): repr([home + "/Videos", home + "/Downloads"]),
         ("general", "checkforupdatesautomatically"): "False",
-        ("gui", "chatinputfontfamily"): "JetBrainsMono Nerd Font", ("gui", "chatoutputfontfamily"): "JetBrainsMono Nerd Font"}
+        ("gui", "chatinputfontfamily"): "UDEV Gothic NF", ("gui", "chatoutputfontfamily"): "UDEV Gothic NF"}
 cfg = configparser.RawConfigParser(strict=False)        # (as Syncplay reads it: a doubled %% stays)
 try:
     with open(path, encoding="utf-8-sig") as f:
@@ -832,7 +832,8 @@ except FileNotFoundError:
 except (configparser.Error, UnicodeError):
     sys.exit(4)
 unset = ("", "None", "{}", "[]")
-gaps = [k for k in want if cfg.get(*k, fallback="").strip() in unset + (("sans-serif",) if k[0] == "gui" else ())]
+# (the gui's fonts: Syncplay's sans-serif, and the face the terminal had before UDEV Gothic NF — ours, gone)
+gaps = [k for k in want if cfg.get(*k, fallback="").strip() in unset + (("sans-serif", "JetBrainsMono Nerd Font") if k[0] == "gui" else ())]
 print(", ".join(k[1] for k in gaps))
 if check or not gaps:
     sys.exit(3 if gaps else 0)

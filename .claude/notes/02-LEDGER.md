@@ -1008,3 +1008,36 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   at 4b0226e, this pass's start — not from this pass). Every file this pass touched passes on its
   own. NEXT PASS FIRST: the mako pin against its tag (lib/upstream.sh, the stand-in), then the
   prompt's cases, then the full suite again — before any new work.
+- r27-suite fixed (28 Oct 12:28–, pass of 12:27): every failure read was the harness, not the
+  desktop, except one real bug. Stand-ins: git/meson know mako v1.11.0 (its pinned commit, a
+  built binary) → test_setup 232/0, test_setup_wait 70/0; test_tiles 142/0 and test_shell 187/0:
+  readline 8.3 (bash 5.3.9 here; the tests were written under 5.2) draws the line again over
+  itself as keys come — CR, the prompt and its OSC 133;A anew on the same row (foot marks a row,
+  so no double mark for its prompt jumps) — the parsers keep each prompt's fullest drawing; the
+  fake machine's python3 turns a leading -I into -E -P, as Fedora reads /usr/local's site folder
+  only with the user site on (checked: `python3 -I` never lists it, even when it exists) →
+  test_afterdnf 37/0; test_report 118/0 (the host's steam hidden in the fake machine; a mapped
+  uid for podman's files — 100999 is outside the 65536 subordinate ids); test_guard 42/0 (the
+  guard's message names mako now); test_verify 171/0 (built worlds pin the four UDEV Gothic
+  stand-ins, not only those that fetch releases); the fake /usr/share gets its own plymouth
+  themes (the host's sumi is read-only through the farm). REAL BUG: Syncplay's chat was set to
+  "JetBrainsMono Nerd Font", gone since T11 (fc-match → Noto Sans; his syncplay.ini named it):
+  theme.sh sets UDEV Gothic NF (as mpv's OSD and syncplayintf.conf) and counts the old face as
+  ours, not his choice — replaced; the report's FONT-08 asked for the old face too (would FAIL):
+  now UDEV Gothic NF.
+- r27-19k (28 Oct) the owner's 19:19 items (CLAUDE.md, uncommitted until 7e06e6b) were not in the
+  plan: now T19k — 1 the bar's flicker on rapid workspace switches (frame log + anim-check
+  --bar-burst), 2 highlight contrast (tools/contrast.py, WCAG ≥ 4.5:1 text/icons, 3:1 frames,
+  both themes, a static test), 3 quick settings redesigned for real, 4 serious icons (demon/angel
+  heads on a larger grid or images, with T18), 5 a to-do icon (with T21), 6 measure always.
+- r27-19 batch B LIVE (28 Oct 12:41–12:45): `fedokawaii apply` took the repair path ("packages or
+  system parts changed"), verify 1 problem before → 0 after; dwl rebuilt from src/dwl/dwl.patch
+  (12:42:26), the notices' mako v1.11.0 in place. The session restarted 12:43:10 through greetd's
+  one-time initial_session (his session held only its autostart windows: nothing of his open;
+  the file restored at once — 0 initial_session lines). VERIFIED: tools/anim-check.sh --dwl
+  /usr/local/bin/dwl (the shipped binary, headless on the GPU): open 420.0 ×2, slide 240.0,
+  close 400.0 ×2, workspace out 280.0 / in 420.0, wash 1200.0 ms, 0 skipped, last steps ≤ 6.2 ms
+  after their end; live: grim shots 14 ms apart while a window opened beside another (the tiles
+  slid to 61 %, the new one's dissolve waiting at its first step for foot's first frame — five
+  shots alike), the screen at rest pixel-identical before and after. The 144 Hz look of every
+  animation on the monitor itself goes with T19k-1 (the bar's flicker), on this dwl.

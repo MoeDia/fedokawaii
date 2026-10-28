@@ -44,10 +44,10 @@ lib() { OUT=$(LOG_FILE=/dev/null STATE_DIR=$TMP/state bash -c '. "$1/lib/common.
 sandbox
 case_ "every fedokawaii.conf key fuzzed: refused by its name, or valid — never a shell error, never a number that wraps"
 mapfile -t KEYS < <(sed -n 's/^\([A-Z_]*\)=.*/\1/p' "$REPO/fedokawaii.conf")
-eq "${#KEYS[@]}" 21 "the keys of fedokawaii.conf"
+eq "${#KEYS[@]}" 23 "the keys of fedokawaii.conf"
 FUZZ=("" " " "a b" "日本語" "مدينة" '$(touch /tmp/fk-pwned)' '`id`' 'x;rm -rf /' "../../etc/passwd" "-1" "0" \
       "18446744073709551760" "99999999999999999999999" "$(printf 'x%.0s' {1..3000})" $'tab\there' "yes " "AMD" "v0.9 " "\\")
-STRICT=" GPU STEAM SSH_SERVER THEME WALLPAPER_PACK BOOT_MENU_SECONDS MONITOR_HZ DNF_PARALLEL TIMEZONE NIGHT_LIGHT KB_LAYOUTS KB_TOGGLE BACKUP_REMIND_DAYS DWL_TAG DWL_COMMIT DWL_WLROOTS TFC_TAG TFC_COMMIT "
+STRICT=" GPU STEAM SSH_SERVER THEME WALLPAPER_PACK BOOT_MENU_SECONDS MONITOR_HZ DNF_PARALLEL TIMEZONE NIGHT_LIGHT KB_LAYOUTS KB_TOGGLE BACKUP_REMIND_DAYS DWL_TAG DWL_COMMIT DWL_WLROOTS TFC_TAG TFC_COMMIT MAKO_TAG MAKO_COMMIT "
 n=0 bad=0
 for k in "${KEYS[@]}"; do
   for v in "${FUZZ[@]}"; do
@@ -304,8 +304,11 @@ done
 
 case_ "an Arabic locale around it: the same checks, the same words, no shell error"
 back fresh
-fkrun env LANG=ar_AE.UTF-8 LC_ALL=ar_AE.UTF-8 LANGUAGE=ar bash "$CLONE/check.sh"; eq "$(shell_errors "$OUT")" ""; has "$OUT" "READY"
-fkrun env LANG=ar_AE.UTF-8 LC_ALL=ar_AE.UTF-8 bash "$CLONE/fedokawaii.sh" --dry-run setup; eq "$RC" 0; eq "$(shell_errors "$OUT")" ""
+# (the locale has to exist on this machine — glibc-langpack-ar — or bash itself warns it cannot set it)
+if locale -a 2>/dev/null | grep -qix 'ar_AE.utf8'; then
+  fkrun env LANG=ar_AE.UTF-8 LC_ALL=ar_AE.UTF-8 LANGUAGE=ar bash "$CLONE/check.sh"; eq "$(shell_errors "$OUT")" ""; has "$OUT" "READY"
+  fkrun env LANG=ar_AE.UTF-8 LC_ALL=ar_AE.UTF-8 bash "$CLONE/fedokawaii.sh" --dry-run setup; eq "$RC" 0; eq "$(shell_errors "$OUT")" ""
+else printf '  - skipped: the Arabic locale runs — no ar_AE.UTF-8 on this machine (glibc-langpack-ar)\n'; fi
 sed -i 's/^WEATHER_CITY=.*/WEATHER_CITY="الشارقة"/' "$W$CLONE/fedokawaii.conf"
 fkrun env LANG=C LC_ALL=C bash "$CLONE/fedokawaii.sh" conf; eq "$RC" 0 "an Arabic city in a C locale: $OUT"
 

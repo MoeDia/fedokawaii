@@ -120,10 +120,13 @@ usr_farm() {
   local b=$W/usrbin s=$W/usrshare n
   mkdir -p "$b" "$s"
   (cd /usr/bin && find . -mindepth 1 -maxdepth 1 -printf "$W/.usr/bin/%f\\0") | xargs -0 ln -s -t "$b"
-  (cd /usr/share && find . -mindepth 1 -maxdepth 1 ! -name icons ! -name vulkan ! -name applications ! -name locale -printf "$W/.usr/share/%f\\0") | xargs -0 ln -s -t "$s"
+  (cd /usr/share && find . -mindepth 1 -maxdepth 1 ! -name icons ! -name vulkan ! -name applications ! -name locale ! -name plymouth -printf "$W/.usr/share/%f\\0") | xargs -0 ln -s -t "$s"
   for n in vi vim view vimdiff nano emacs flatpak snap nvim agreety greetd gnome-shell steam; do rm -f "$b/$n"; done
   mkdir -p "$s/icons" "$s/applications" "$s/vulkan/icd.d" "$s/locale"
   for n in /usr/share/locale/*; do [[ $n == */fk ]] || ln -s "$W/.usr$n" "$s/locale/${n##*/}"; done   # (fk: the lock screen's, setup's own)
+  mkdir -p "$s/plymouth/themes"   # (sumi: the boot splash, theme.sh's own — a machine that ran it has one)
+  for n in /usr/share/plymouth/*; do [[ -e $n && $n != */themes ]] || continue; ln -s "$W/.usr$n" "$s/plymouth/${n##*/}"; done
+  for n in /usr/share/plymouth/themes/*; do [[ -e $n && $n != */sumi ]] || continue; ln -s "$W/.usr$n" "$s/plymouth/themes/${n##*/}"; done
   for n in /usr/share/icons/*; do   # (Sumi-*: the pointers, setup's own — a machine that ran theme.sh has them)
     [[ $n == */Papirus* || $n == */Adwaita || $n == */Sumi-* ]] || ln -s "$W/.usr$n" "$s/icons/${n##*/}"
   done
@@ -329,6 +332,14 @@ EOF
 # ── the GitHub releases, faked: archives made here, and the fake machine's copies of the
 #    project pinned to them (lib/upstream.sh's SHA-256s are the real releases') ─────────────
 fake_face() { printf 'a stand-in for %s\n' "$1"; }   # fake_face FILE — a face's stand-in bytes
+pin_faces() {   # the fake machine's copies of the project: the terminal face's four files pinned to their stand-ins
+  local d f name old
+  for d in "$W/home/fkuser/fedokawaii" "$W/usr/local/lib/fedokawaii"; do
+    f=$d/lib/upstream.sh; [[ -f $f ]] || continue
+    while IFS='|' read -r name old; do sed -i "s/$old/$(fake_face "$name" | sha256sum | cut -d' ' -f1)/" "$f"
+    done < <(. "$REPO/lib/upstream.sh"; printf '%s\n' "${TERM_FACE_FILES[@]}")
+  done
+}
 releases() {
   local r=$TMP/rel d f sum name file old
   rm -rf "$r"; mkdir -p "$r"
@@ -368,11 +379,10 @@ releases() {
     # (the terminal's face: its archive's sum and each of its four files', the stand-ins')
     old=$(. "$REPO/lib/upstream.sh"; echo "$TERM_FACE_SUM"); sum=$(sha256sum "$FKH/dl/UDEVGothic_NF_v2.2.0.zip" | cut -d' ' -f1)
     sed -i "s/$old/$sum/" "$f"
-    while IFS='|' read -r name old; do sed -i "s/$old/$(fake_face "$name" | sha256sum | cut -d' ' -f1)/" "$f"
-    done < <(. "$REPO/lib/upstream.sh"; printf '%s\n' "${TERM_FACE_FILES[@]}")
     old=$(. "$REPO/lib/upstream.sh"; echo "$LOCALSEND_SHA256"); sum=$(sha256sum "$FKH/dl/$(. "$REPO/lib/upstream.sh"; echo "$LOCALSEND_ASSET")" | cut -d' ' -f1)
     sed -i "s/$old/$sum/" "$f"
   done
+  pin_faces
   chmod -R a+rwX "$FKH"
 }
 
@@ -531,7 +541,8 @@ built() {
   printf '#!/bin/bash\n. /usr/local/bin/_lib.sh\nfkh_log "$*"\nexit 0\n' >"$U/.local/share/cargo/bin/rustup"; chmod 755 "$U/.local/share/cargo/bin/rustup"   # (says what update asks of it)
   for b in basedpyright ruff codelldb; do printf '#!/bin/sh\nexit 0\n' >"$U/.local/share/nvim/mason/bin/$b"; chmod 755 "$U/.local/share/nvim/mason/bin/$b"; done
   cp "$REPO"/system/fonts/{SumiUI.ttf,LICENSE} "$W/usr/local/share/fonts/fedokawaii/"   # (install_faces')
-  for f in Regular Bold Italic BoldItalic; do fake_face "UDEVGothicNF-$f.ttf" >"$W/usr/local/share/fonts/fedokawaii/UDEVGothicNF-$f.ttf"; done   # (install_term_face's: releases pins these)
+  for f in Regular Bold Italic BoldItalic; do fake_face "UDEVGothicNF-$f.ttf" >"$W/usr/local/share/fonts/fedokawaii/UDEVGothicNF-$f.ttf"; done   # (install_term_face's)
+  pin_faces
   printf '#!/bin/bash\nfor a; do [[ $a == - ]] && { cat >/dev/null; break; }; done\nexit 0\n' >"$U/.local/share/uv/tools/torrra/bin/python"; chmod 755 "$U/.local/share/uv/tools/torrra/bin/python"
   printf 'PROWLARR_API_KEY=a1b2c3d4e5f60718293a4b5c6d7e8f90\n' >"$U/.config/fedokawaii/secrets.sh"; chmod 600 "$U/.config/fedokawaii/secrets.sh"
   cp "$REPO/system/prowlarr.container" "$U/.config/containers/systemd/prowlarr.container"
