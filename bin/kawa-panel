@@ -999,14 +999,14 @@ def look(it, focused, hot):
     (its words; a meter's words when it has no level), detail (a menu row's second column),
     on_fill (drawn on the cursor's vermilion: a meter's segments in its inks).
     The cursor — the keyboard's place, and the pointer's: one light, never two — fills the item
-    in vermilion, its inks text_on_accent. At rest: a row's icon muted, its name text (the one
+    with the lacquer (select), its inks text_on_select. At rest: a row's icon muted, its name text (the one
     in use strong); a key on its own fill in a 1 px frame; a tile in its frame, on or off — its
     crest says which (drawn in item_): its name text on, muted off; its state strong, faint."""
     if it.kind == "tile":                          # (its crest: seal and ring when on, outline when off)
         on = it.lit
         if focused:
-            ink = "text_on_accent"
-            return {"fill": "accent", "frame": None, "glyph": "accent" if on else ink, "label": ink,
+            ink = "text_on_select"
+            return {"fill": "select", "frame": None, "glyph": "select" if on else ink, "label": ink,
                     "value": ink, "on_fill": True, "detail": ink,
                     "seal": ink if on else None, "ring": "accent" if on else None, "outline": None if on else ink}
         return {"fill": "key", "frame": "edge", "glyph": "key" if on else "muted",
@@ -1014,8 +1014,8 @@ def look(it, focused, hot):
                 "detail": "text", "seal": "accent" if on else None, "ring": "key" if on else None,
                 "outline": None if on else "edge2"}
     if focused:
-        ink = "text_on_accent"
-        return {"fill": "accent", "frame": None, "glyph": ink, "label": ink,
+        ink = "text_on_select"
+        return {"fill": "select", "frame": None, "glyph": ink, "label": ink,
                 "value": ink, "on_fill": True, "detail": ink}
     bare = it.kind in ("meter", "row", "app")
     return {"fill": None if bare else "key", "frame": None if bare else "edge",
@@ -2453,12 +2453,12 @@ def main(argv):
 
     def segments(cr, it, sx, sy, pct, on):
         """A meter's twenty segments from sx, sy: lit to the level (the next one partly, from the
-        bottom), unlit edge; muted, the lit ones hollow; on the cursor's vermilion, lit
-        text_on_accent, unlit accent_lo."""
+        bottom), unlit edge; muted, the lit ones hollow; on the cursor's lacquer, lit
+        text_on_select, unlit select_lo."""
         full, part = lit_of(pct)
         for i in range(SEGS):
             x = sx + i * CELL
-            lit_ink, off_ink = ("text_on_accent", "accent_lo") if on else (seg_ink(i), "edge")
+            lit_ink, off_ink = ("text_on_select", "select_lo") if on else (seg_ink(i), "edge")
             rows = SEG_H if i < full else part if i == full else 0
             if rows < SEG_H:
                 box(cr, x, sy, SEG_W, SEG_H - rows, off_ink)
@@ -2582,7 +2582,7 @@ def main(argv):
             # its crest (§4): a seal 28 px across on the tile's middle column, its top 4 px in —
             # on, pressed (vermilion, a paper ring 2 px inside its edge, the picture knocked out
             # in paper; the moment it is stamped a pixel larger in accent_hi), off, its outline;
-            # under the cursor's vermilion in text_on_accent. Its name and state centred under it
+            # under the cursor's lacquer in text_on_select. Its name and state centred under it
             cx, cy = it.x + it.w // 2, it.y + CREST_TOP + CREST_R
             if lk["seal"]:
                 big = not on and panel.stamping(it.key)       # (the stamp's moment: §11)
@@ -2619,7 +2619,7 @@ def main(argv):
                 glyph(cr, it.x + GLYPH_X, ty, g, lk["glyph"])
             right = min(value_r[0], it.x + it.w) if value_r[0] else it.x + it.w
             if it.lit and not it.value:           # (the chosen one of several: the hanko's dot)
-                dot(cr, it.x + it.w - DOT, it.y + (ROW - DOT) // 2, "text_on_accent" if on else "accent")
+                dot(cr, it.x + it.w - DOT, it.y + (ROW - DOT) // 2, "text_on_select" if on else "accent")
                 right -= DOT + 2 * CELL
             if it.value:
                 right -= text(cr, right, ty, it.value, lk["value"], right=True) + 2 * CELL

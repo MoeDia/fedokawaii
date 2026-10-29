@@ -43,7 +43,7 @@ window { background-color: #181715; }
   background: none; border: none; border-bottom: 2px solid #2d251e; border-radius: 0;
 }
 #input-field:focus { border-bottom-color: #9a8767; }
-#input-field selection { background-color: #eb5324; color: #111314; }
+#input-field selection { background-color: #82241f; color: #f1e1b4; }
 #input-label, #input-hint { color: #65583f; }
 /* the three keys (kawa-lockmod; kawa-greet): 24 px under the line, words, muted; under the
    pointer and the keyboard's focus (Tab) accent_text */

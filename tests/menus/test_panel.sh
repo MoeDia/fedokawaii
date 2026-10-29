@@ -408,30 +408,30 @@ eq "$(py 'opened("quick", STATE); p.hover(200, 130); u.drawn.clear(); p.hover(21
 eq "$(py 'opened("quick", STATE); p.hover(200, 130); u.drawn.clear(); p.hover(10, 130); print(u.drawn, p.focus)')" "[['night']] night" "onto the frame: the one left, the cursor stays"
 eq "$(py 'fresh(); p.focus = "theme"; u.drawn.clear(); p.key("Right"); print(u.drawn)')" "[['theme', 'night']]" "the keys: the cursor's two"
 
-case_ "how each item is drawn (look): the cursor fills it in vermilion; at rest a tile in its edge frame, on — its crest a vermilion seal with a paper ring, the picture knocked out in paper, its state strong — or off — the crest's outline edge2, its picture and name muted, its state faint; a key on its own fill in a 1 px frame; a meter bare. The pointer adds nothing of its own: it moves the cursor"
+case_ "how each item is drawn (look): the cursor fills it with the lacquer (select); at rest a tile in its edge frame, on — its crest a vermilion seal with a paper ring, the picture knocked out in paper, its state strong — or off — the crest's outline edge2, its picture and name muted, its state faint; a key on its own fill in a 1 px frame; a meter bare. The pointer adds nothing of its own: it moves the cursor"
 lk() { py "fresh(); i = p.item('$1'); l = kp.look(i, $2, $3); print(l['fill'], l['frame'], l['glyph'], l['label'], l['value'], l['on_fill'])"; }
 eq "$(lk night False False)" "key edge key text strong False" "a tile that is on"
 eq "$(lk devices False False)" "key edge muted muted faint False" "a tile that is off"
 crest() { py "fresh(); i = p.item('$1'); l = kp.look(i, $2, False); print(l['seal'], l['ring'], l['outline'])"; }
 eq "$(crest night False)" "accent key None" "on: the seal vermilion, its ring paper"
 eq "$(crest devices False)" "None None edge2" "off: the outline"
-eq "$(crest night True)" "text_on_accent accent None" "on, under the cursor: the seal in its ink, the ring vermilion"
-eq "$(crest devices True)" "None None text_on_accent" "off, under the cursor: the outline in its ink"
+eq "$(crest night True)" "text_on_select accent None" "on, under the cursor: the seal in its ink, the ring vermilion"
+eq "$(crest devices True)" "None None text_on_select" "off, under the cursor: the outline in its ink"
 eq "$(lk wallpaper False False)" "key edge text text muted False" "a key at rest: its fill and edge frame"
 eq "$(lk power False False)" "key edge text text muted False"
 eq "$(lk sound False False)" "None None muted text muted False" "a meter at rest: nothing behind it"
 for k in night devices wallpaper power sound; do
   eq "$(lk $k False True)" "$(lk $k False False)" "$k under the pointer: drawn as at rest (it has the cursor then)"
-  g=text_on_accent; [[ $k == night ]] && g=accent          # (a seal under the cursor: its picture vermilion)
-  eq "$(lk $k True False)" "accent None $g text_on_accent text_on_accent True" "$k the cursor: filled in vermilion"
-  eq "$(lk $k True True)" "accent None $g text_on_accent text_on_accent True" "$k the cursor and under the pointer: the same"
+  g=text_on_select; [[ $k == night ]] && g=select          # (a seal under the cursor: its picture the lacquer)
+  eq "$(lk $k True False)" "select None $g text_on_select text_on_select True" "$k the cursor: filled with the lacquer"
+  eq "$(lk $k True True)" "select None $g text_on_select text_on_select True" "$k the cursor and under the pointer: the same"
 done
 eq "$(py 'fresh(); print(sorted({kp.look(i, False, True) == kp.look(i, False, False) for i in p.items}))')" "[True]" \
   "no item is drawn differently under the pointer: no tint, no frame, no vermilion of its own"
 case_ "draw() takes every colour from look(): the cursor (the pointer moves it), nothing else decides"
 src=$(sed -n '/    def draw(widget, cr):/,/^    def on_key/p' "$REPO/bin/kawa-panel")
 has "$src" 'lk = look(it, it.key == panel.focus, it.key == panel.hot)'
-lacks "$src" '"accent" if'; lacks "$src" 'text_on_accent" if on else "text'
+lacks "$src" '"accent" if'; lacks "$src" 'text_on_select" if on else "text'
 case_ "no GTK widget with a hover look: the window holds one drawing area, painted whole; no transitions"
 has "$(cat "$REPO/bin/kawa-panel")" '* { transition: none; animation: none; }'
 eq "$(grep -oE 'Gtk\.(Button|EventBox|ToggleButton|Scale|Switch|Label|Box|Grid|ListBox|MenuItem|Image)\b' "$REPO/bin/kawa-panel" | sort -u)" "" "no widgets but the window and its drawing area"
@@ -451,15 +451,15 @@ has "$d" 'glyph(cr, x, ty, ic.get(icon, icon), "accent_text")'
 has "$d" 'w = text(cr, x + HEAD_X, ty, name, "strong")'
 has "$d" 'box(cr, sx, y + 10, right - sx, 1, "edge2")'
 has "$d" 'right -= text(cr, right, ty, value, "muted", right=True) + GAP'
-case_ "a meter's pixels: twenty segments of 6 × 10 a cell apart — lit in the level's ink (asagi, flame, accent), the next one partly from the bottom, unlit edge; hollow (an outline) while muted; on the cursor's vermilion lit text_on_accent, unlit accent_lo"
+case_ "a meter's pixels: twenty segments of 6 × 10 a cell apart — lit in the level's ink (asagi, flame, accent), the next one partly from the bottom, unlit edge; hollow (an outline) while muted; on the cursor's lacquer lit text_on_select, unlit select_lo"
 has "$d" 'full, part = lit_of(pct)'
-has "$d" 'lit_ink, off_ink = ("text_on_accent", "accent_lo") if on else (seg_ink(i), "edge")'
+has "$d" 'lit_ink, off_ink = ("text_on_select", "select_lo") if on else (seg_ink(i), "edge")'
 has "$d" 'rows = SEG_H if i < full else part if i == full else 0'
 has "$d" 'frame(cr, x, top, SEG_W, rows, lit_ink)'
 has "$d" 'segments(cr, it, Panel.slider_x(it), it.y + (ROW - SEG_H) // 2, pct, on)' "centred in its row"
-case_ "the chosen dot and a calendar's today, in pixels: a lit row with no value gets a 6 px vermilion dot at its right edge (text_on_accent on the cursor), its corners left out; today a 1 px accent frame, its corners cut"
+case_ "the chosen dot and a calendar's today, in pixels: a lit row with no value gets a 6 px vermilion dot at its right edge (text_on_select on the cursor), its corners left out; today a 1 px accent frame, its corners cut"
 has "$d" 'if it.lit and not it.value:'
-has "$d" 'dot(cr, it.x + it.w - DOT, it.y + (ROW - DOT) // 2, "text_on_accent" if on else "accent")'
+has "$d" 'dot(cr, it.x + it.w - DOT, it.y + (ROW - DOT) // 2, "text_on_select" if on else "accent")'
 has "$d" 'box(cr, x + 1, y, DOT - 2, DOT, name)'; has "$d" 'box(cr, x, y + 1, DOT, DOT - 2, name)'
 has "$d" 'frame(cr, x, y, w, h, "accent_text", cut=True)'
 case_ "a tile's pixels (§4): its crest — a seal 28 px across on the tile's middle column, 4 px of air above it as under its state; on, a disc and a paper ring 2 px inside its edge, off, a 1 px outline — its picture (14 px) in its middle; its name on row 2, its state on row 3, centred by their ink"
@@ -508,7 +508,7 @@ case_ "kawa-quick failing: the last state stays"
 eq "$(py 'fresh(); p.refresh(); u.answer("", 1); print(p.state["night"])')" on
 case_ "the colours: the theme's panel.conf, every name the drawing uses (surface: the level display's solid ground; accent_hi: a seal the moment it is stamped)"
 for m in dark light; do
-  eq "$(py "c = kp.colours('$REPO/configs/home/.config/fedokawaii/themes/$m/panel.conf'); print(sorted(c) == sorted(['ground','surface','key','edge','edge2','faint','muted','text','strong','accent','accent_text','accent_lo','accent_hi','text_on_accent','asagi','flame','hair','shadow1','shadow2']), all(0 <= v <= 1 for t in c.values() for v in t), sorted(k for k, t in c.items() if len(t) == 4), sorted({len(t) for t in c.values()}))")" "True True ['hair', 'shadow1', 'shadow2'] [3, 4]" "$m: the frame's hairline and its two shadows carry an alpha, the rest are plain"
+  eq "$(py "c = kp.colours('$REPO/configs/home/.config/fedokawaii/themes/$m/panel.conf'); print(sorted(c) == sorted(['ground','surface','key','edge','edge2','faint','muted','text','strong','accent','accent_text','accent_hi','select','text_on_select','select_lo','asagi','flame','hair','shadow1','shadow2']), all(0 <= v <= 1 for t in c.values() for v in t), sorted(k for k, t in c.items() if len(t) == 4), sorted({len(t) for t in c.values()}))")" "True True ['hair', 'shadow1', 'shadow2'] [3, 4]" "$m: the frame's hairline and its two shadows carry an alpha, the rest are plain"
 done
 case_ "a theme switch while it runs: kawa-theme's rename of the link over current is seen, and the new link's colours read (light after dark)"
 # (watch_theme with a stand-in Gio: the folder's events as GIO gives them for a rename —
@@ -542,8 +542,8 @@ os.symlink("themes/light", d + "/current.new"); os.rename(d + "/current.new", kp
 Gio.mon.fn(Gio.mon, F(d + "/current.new"), F(kp.CURRENT), 0)     # (the rename)
 Gio.mon.fn(Gio.mon, F(d + "/state.sh"), None, 0)                    # (something else there: nothing)
 print(" ".join(seen))')" "$(for m in dark light; do sed -n 's/^ground=//p' "$REPO/configs/home/.config/fedokawaii/themes/$m/panel.conf"; done | paste -sd ' ')"
-used=$(grep -oE '"(ground|key|edge|edge2|faint|muted|text|strong|accent|accent_text|accent_lo|text_on_accent|asagi|[a-z_0-9]+)"' "$REPO/bin/kawa-panel" | sort -u | tr -d '"' | tr '\n' ' ')
-for n in ground key edge edge2 faint muted text strong accent accent_text accent_lo text_on_accent asagi flame hair shadow1 shadow2; do has " $used" " $n " "$n is drawn with"; done
+used=$(grep -oE '"(ground|key|edge|edge2|faint|muted|text|strong|accent|accent_text|select|text_on_select|select_lo|asagi|[a-z_0-9]+)"' "$REPO/bin/kawa-panel" | sort -u | tr -d '"' | tr '\n' ' ')
+for n in ground key edge edge2 faint muted text strong accent accent_text select text_on_select select_lo asagi flame hair shadow1 shadow2; do has " $used" " $n " "$n is drawn with"; done
 
 # ── every open afresh: nothing remembered ──────────────────────────────────────────────
 case_ "a meter dragged, closed, opened again: no cursor, nothing hot, no drag — nothing highlighted"
@@ -662,7 +662,7 @@ case_ "every short name fits its row whole (the row's 322 px — 46 columns of S
 eq "$(py 's = kp.parse_sound(SOUND); print(max(kp.px_of(n) for _, _, n in s["outputs"] + s["inputs"]) <= kp.INNER - kp.NAME_X - 2 * kp.CELL - kp.DOT == 322)')" True
 case_ "a row's look: the one in use (lit) in strong ink, the others quiet; the pointer adds nothing (it moves the cursor), the cursor fills the row"
 eq "$(py 'opened("sound", SOUND); a, b = p.item("out:62"), p.item("out:73"); print(*[" ".join(str(v) for v in kp.look(i, f, h).values()) for i, f, h in ((a, False, False), (b, False, False), (b, False, True), (b, True, False))], sep=" | ")')" \
-  "None None strong strong muted False text | None None muted text muted False text | None None muted text muted False text | accent None text_on_accent text_on_accent text_on_accent True text_on_accent"
+  "None None strong strong muted False text | None None muted text muted False text | None None muted text muted False text | select None text_on_select text_on_select text_on_select True text_on_select"
 case_ "another output picked (a click or Enter): the default (kawa-quick --do output ID: wpctl set-default), the panel stays and reads again"
 eq "$(py 'opened("sound", SOUND); p.press(200, 171); print(u.calls[-1]); u.answer(); print(u.calls[-1], p.visible)')" \
   "$(printf '%s\n' 'run kawa-quick --do output 73' 'run kawa-quick --state sound True')"

@@ -325,14 +325,16 @@ def foot_block():
         out += [f"regular{i}={a[i]}" for i in range(8)]
         out += [f"bright{i}={a[8 + i]}" for i in range(8)]
         # the desktop's own four, past the sixteen, for every list in a terminal (fzf.opts,
-        # VisiData) and the shell's prompt: 16 the fill of what is selected (vermilion), 17
-        # the words on it, 18 the soft fill under the pointer, 19 the stitched rules (edge2:
+        # VisiData) and the shell's prompt: 16 the vermilion (accent), 17 the words on it,
+        # 24 the fill of what is selected (select: the lacquer), 25 the words on it (fzf's bg+
+        # and fg+), 18 the soft fill under the pointer, 19 the stitched rules (edge2:
         # a heading's ╌, as in the panels), and the text screens' own inks (docs/design-system.md
         # §7, ~/.config/fedokawaii/screen.sh): 20 accent_text (a heading's kanji), 21 muted (a
         # value, a footer), 22 faint (what is not there yet), 23 strong — the words are the
         # foreground (text) — switched with the theme like the rest
         out += [f"16={p['accent']}", f"17={p['text_on_accent']}", f"18={p['edge']}", f"19={p['edge2']}",
-                f"20={p['accent_text']}", f"21={p['muted']}", f"22={p['faint']}", f"23={p['strong']}"]
+                f"20={p['accent_text']}", f"21={p['muted']}", f"22={p['faint']}", f"23={p['strong']}",
+                f"24={p['select']}", f"25={p['text_on_select']}"]
     out.append("# <<< colours")
     return "\n".join(out)
 
@@ -378,7 +380,7 @@ format=<span foreground="#{p['strong']}" line_height="20480">\U000FE044 not open
 
 def gtk_vars(m, p):
     v = p["view"]
-    return [("accent_color", p["accent_text"]), ("accent_bg_color", p["accent"]), ("accent_fg_color", p["text_on_accent"]),
+    return [("accent_color", p["accent_text"]), ("accent_bg_color", p["select"]), ("accent_fg_color", p["text_on_select"]),
             ("window_bg_color", p["ground"]), ("window_fg_color", p["strong"] if m == "dark" else p["text"]),
             ("view_bg_color", v), ("view_fg_color", p["strong"] if m == "dark" else p["text"]),
             ("headerbar_bg_color", p["surface"]), ("headerbar_fg_color", p["strong"] if m == "dark" else p["text"]),
@@ -405,10 +407,10 @@ SQUARE_NOTE = ["/* The desktop's parts (docs/design-system.md), as far as GTK dr
                "   would leave a gap inside that border. Every window, dialog, decoration and popover",
                "   fills its border exactly. A button is a key — the key fill in a 1 px edge frame;",
                "   under the pointer only its words and icon turn accent_text, no box; pressed or",
-               "   switched on it is filled vermilion, its ink text_on_accent, as a dialog's default",
+               "   switched on it is filled with the lacquer (select), its ink text_on_select, as a dialog's default",
                "   button always is. A check box or a radio button is the panels' check: □, and ▣",
                "   when chosen (an 8 px frame, the 4 px square in it). What is selected — a row, the",
-               "   words in a field — is filled vermilion, ink on it; the text cursor is vermilion.",
+               "   words in a field — is filled with the lacquer, cream on it; the text cursor is vermilion.",
                "   GTK's CSS has no !important: each rule carries :not(#kawa-…) twice, which counts",
                "   as two ids and so outweighs the base theme's own rules, whatever their classes. */"]
 WIN = ["window", "window.csd", "window.solid-csd", "window.dialog", "window.popup", "decoration",
@@ -482,7 +484,7 @@ def gtk3_theme(m, p):
             "/* Brave (Chromium's GTK mode, theme.sh sets it) samples these same colours for its tab",
             "   strip, toolbar and menus (its address bar keeps Brave's own). Chromium gives every",
             "   style node it reads the class .chromium, so the rules below reach Brave only: its",
-            "   accent (checked boxes, the selected row) is the vermilion rather than a dull blend,",
+            "   accent (checked boxes, the selected row) is the lacquer rather than a dull blend,",
             "   its tooltips are the palette's, and its tab strip stays the same when the window is",
             "   not focused. */",
             f"@define-color {'placeholder_text_color':<26}#{p['muted']};",
@@ -530,21 +532,21 @@ QT_ROLES = ["WindowText", "Button", "Light", "Midlight", "Dark", "Mid", "Text", 
 def qt_colors(m, p):
     """Qt's palette roles, each one of the panels' tokens (docs/design-system.md): the window
     on the ground as GTK's; buttons and fields the key fill, their bevels and frames the
-    edges (flat: no shade darker than the stitch); what is selected filled vermilion with
-    its ink; links accent_text, visited ones the dim vermilion; words not there yet faint;
-    a disabled window's words faint and its selection the edge."""
+    edges (flat: no shade darker than the stitch); what is selected filled with the lacquer
+    (select), cream on it; links accent_text, visited ones the dim vermilion; words not there yet faint;
+    a disabled window's words faint and its selection the edge, muted on it."""
     fg = p["strong"] if m == "dark" else p["text"]      # (the words of a window, as GTK's)
     base = {
         "WindowText": fg, "Button": p["key"], "Light": p["edge2"], "Midlight": p["edge"],
         "Dark": p["edge2"], "Mid": p["edge"], "Text": fg, "BrightText": p["text_on_accent"],
         "ButtonText": fg, "Base": p["key"], "Window": p["ground"], "Shadow": p["edge2"],
-        "Highlight": p["accent"], "HighlightedText": p["text_on_accent"],
+        "Highlight": p["select"], "HighlightedText": p["text_on_select"],
         "Link": p["accent_text"], "LinkVisited": p["accent_lo"],
         "AlternateBase": p["surface"], "NoRole": p["ground"], "ToolTipBase": p["surface"],
         "ToolTipText": fg, "PlaceholderText": p["faint"],
     }
 
-    def line(text, hl):
+    def line(text, hl, on_hl):
         vals = []
         for r in QT_ROLES:
             c = base[r]
@@ -552,13 +554,15 @@ def qt_colors(m, p):
                 c = text
             if r == "Highlight":
                 c = hl
+            if r == "HighlightedText":
+                c = on_hl
             vals.append(f"#ff{c}")
         return ", ".join(vals)
     return (f"# {header('~/.config/fedokawaii/current/qt6ct-colors.conf', NAMES[m] + ' colours for Qt (qt6ct)')}\n"
             "[ColorScheme]\n"
-            f"active_colors={line(fg, p['accent'])}\n"
-            f"disabled_colors={line(p['faint'], p['edge'])}\n"
-            f"inactive_colors={line(fg, p['accent'])}\n")
+            f"active_colors={line(fg, p['select'], p['text_on_select'])}\n"
+            f"disabled_colors={line(p['faint'], p['edge'], p['muted'])}\n"
+            f"inactive_colors={line(fg, p['select'], p['text_on_select'])}\n")
 
 
 def btop_theme(m, p):
@@ -566,7 +570,7 @@ def btop_theme(m, p):
     start = p["edge"] if m == "dark" else p["ansi0"]
     t = {
         "main_bg": p["ground"], "main_fg": p["text"], "title": p["strong"], "hi_fg": p["accent_text"],
-        "selected_bg": p["edge"] if m == "dark" else p["ansi0"], "selected_fg": p["strong"],
+        "selected_bg": p["select"], "selected_fg": p["text_on_select"],
         "inactive_fg": p["faint"], "graph_text": p["muted"], "meter_bg": p["edge"] if m == "dark" else p["ansi0"],
         "proc_misc": p["asagi"],
         "cpu_box": box, "mem_box": box, "net_box": box, "proc_box": box, "div_line": p["edge"],
@@ -689,7 +693,7 @@ window {{ background-color: {ink('ground')}; }}
   background: none; border: none; border-bottom: 2px solid #{k['rule']}; border-radius: 0;
 }}
 #input-field:focus {{ border-bottom-color: {ink('muted')}; }}
-#input-field selection {{ background-color: {ink('accent')}; color: {ink('text_on_accent')}; }}
+#input-field selection {{ background-color: {ink('select')}; color: {ink('text_on_select')}; }}
 #input-label, #input-hint {{ color: {ink('faint')}; }}
 /* the three keys (kawa-lockmod; kawa-greet): 24 px under the line, words, muted; under the
    pointer and the keyboard's focus (Tab) accent_text */
@@ -710,10 +714,10 @@ def mpv_conf(m, p):
             ("osc-buttons_color", p["text"]), ("osc-small_buttonsL_color", p["text"]),
             ("osc-small_buttonsR_color", p["text"]), ("osc-top_buttons_color", p["text"]),
             ("osc-held_element_color", p["asagi"]),
-            ("console-focused_color", p["text_on_accent"]), ("console-focused_back_color", p["accent"]),
+            ("console-focused_color", p["text_on_select"]), ("console-focused_back_color", p["select"]),
             ("console-match_color", p["asagi"]),
-            ("context_menu-focused_color", p["text_on_accent"]),
-            ("context_menu-focused_back_color", p["accent"])]
+            ("context_menu-focused_color", p["text_on_select"]),
+            ("context_menu-focused_back_color", p["select"])]
     body = "\n".join([f'{k}="#{v}"' for k, v in rows] + [f'script-opt="{k}=#{v}"' for k, v in opts])
     return f"""# {header('~/.config/fedokawaii/current/mpv.conf', "mpv's colours in " + NAMES[m])}
 # Read by ~/.config/mpv/mpv.conf (include) and handed to open players by kawa-theme.
@@ -743,7 +747,7 @@ def qt6ct_conf(m, p):
 def wiremix(m, p):
     # the mixer (audio menu → mixer…): the level bars in the level display's teal, the peak
     # meters matcha, red past 0 dB; the chosen row and the default device marked vermilion;
-    # lists as the panel's menus draw them (the chosen line on the edge colour). Unset styles keep
+    # lists as the menus draw them (the chosen line in the lacquer, cream on it). Unset styles keep
     # foot's own text and ground.
     faint = p["edge2"] if m == "dark" else p["edge"]
     styles = [("default_device", f'fg = "#{p["accent_text"]}"'), ("default_stream", f'fg = "#{p["accent_text"]}"'),
@@ -756,7 +760,7 @@ def wiremix(m, p):
               ("meter_center_inactive", f'fg = "#{faint}"'), ("meter_center_active", f'fg = "#{p["green"]}"'),
               ("config_device", f'fg = "#{p["strong"]}"'), ("config_profile", f'fg = "#{p["muted"]}"'),
               ("dropdown_icon", f'fg = "#{p["muted"]}"'), ("dropdown_border", f'fg = "#{p["muted"]}"'),
-              ("dropdown_item", f'fg = "#{p["text"]}"'), ("dropdown_selected", f'fg = "#{p["strong"]}", bg = "#{p["edge"]}"'),
+              ("dropdown_item", f'fg = "#{p["text"]}"'), ("dropdown_selected", f'fg = "#{p["text_on_select"]}", bg = "#{p["select"]}"'),
               ("dropdown_more", f'fg = "#{p["faint"]}"'),
               ("help_border", f'fg = "#{p["muted"]}"'), ("help_item", f'fg = "#{p["text"]}"'), ("help_more", f'fg = "#{p["faint"]}"')]
     body = "\n".join(f"{k} = {{ {v} }}" for k, v in styles)
@@ -857,6 +861,13 @@ return {{
           -- the picker's counts ("12/403"): in the comments' quiet ink, not the faint one
           -- gruvbox gives them (close to the ground itself)
           vim.api.nvim_set_hl(0, "SnacksPickerTotals", {{ link = "Comment" }})
+          -- what is selected (the completion menu's row, the wild menu's): the desktop's lacquer
+          -- with the strongest cream on it, as every menu has it (gruvbox's blue held 3.3 : 1 on paper)
+          local sel = vim.o.background == "light"
+            and {{ bg = "#{P['light']['select']}", fg = "#{P['light']['text_on_select']}" }}
+            or {{ bg = "#{P['dark']['select']}", fg = "#{P['dark']['text_on_select']}" }}
+          vim.api.nvim_set_hl(0, "PmenuSel", sel)
+          vim.api.nvim_set_hl(0, "WildMenu", sel)
           -- the first screen (look.lua) as a text screen: the heading's icon vermilion, its
           -- name in the text's ink, the stitch in edge2; the rows' glyphs vermilion, their
           -- names the text, their keys and the start's time muted
@@ -1001,7 +1012,7 @@ def panel_conf(m, p):
     so it takes the colours by name rather than as CSS — and its frame's, as the bar's tiles have
     it (KAMI: the hairline and the shadow's two rows, each with its own opacity: rrggbbaa)."""
     keys = ("ground", "surface", "key", "edge", "edge2", "faint", "muted", "text", "strong", "accent",
-            "accent_text", "accent_lo", "accent_hi", "text_on_accent", "asagi", "flame")
+            "accent_text", "accent_hi", "select", "text_on_select", "select_lo", "asagi", "flame")
     k = KAMI[m]   # (accent_hi: a tile's seal the moment it is stamped — design-system §11)
     frame = {"hair": k["hair"], "shadow1": k["shadow"][0], "shadow2": k["shadow"][1]}
     return (f"# {header('~/.config/fedokawaii/current/panel.conf', 'quick settings in ' + NAMES[m])}\n"

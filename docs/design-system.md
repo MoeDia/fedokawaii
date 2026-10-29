@@ -49,11 +49,14 @@ colour anywhere, in either mood. (`--doc` prints the hex columns of this table.)
 | `muted` | `9a8767` Light Brownish Olive → Ecru 0.4 | `586459` text → ground 0.36 | secondary words: values, a key's action, the layout's mark |
 | `text` | `d4bf9a` Ecru → Ivory Buff 0.45 | `122625` Deep Slate Green → Black 0.3 | names, rows, body |
 | `strong` | `f1e1b4` Ivory Buff → Sulpher Yellow 0.55 | `121b1b` Deep Slate Green → Black 0.7 | a heading's name, a notice's title, the time, a state that is on |
-| `accent` | `eb5324` Jasper Red | `a84222` Brick Red | vermilion fill: the keyboard's cursor, the bar's end tiles, the workspace stamp, the focused window's hairline |
+| `accent` | `eb5324` Jasper Red | `a84222` Brick Red | vermilion fill: the bar's end tiles, the workspace stamp, the focused window's hairline |
 | `accent_hi` | `f1713b` Jasper Red → Apricot Orange 0.5 | `cb6336` Brick Red → Apricot Orange 0.45 | vermilion lit: a vermilion tile under the pointer, a key held down, a stamp's thump (§11) |
 | `accent_lo` | `82241f` Vandyke Red | `953321` Brick Red → Vandyke Red 0.5 | dim vermilion: an unlit segment on a vermilion fill |
 | `accent_text` | `eb5324` Jasper Red | `a84222` Brick Red | vermilion ink: a heading's icon, the day's kanji, the date's slashes, US, a failure's words |
 | `text_on_accent` | `111314` | `f8f3d8` | ink on vermilion |
+| `select` | `82241f` Vandyke Red | `82241f` Vandyke Red | what is selected — the keyboard's cursor on a row, a tile or a key; GTK's and Qt's selection, a default button: the lacquer (漆), one in both moods |
+| `text_on_select` | `f1e1b4` | `f8f3d8` | every ink on the lacquer: words, icons, a lit segment |
+| `select_lo` | `a65e49` Vandyke Red → f1e1b4 0.3 | `a96353` Vandyke Red → f8f3d8 0.3 | an unlit segment on the lacquer |
 | `asagi` | `82c1b4` Venice Green → Ecru 0.25 | `00726a` Light Porcelain Green → Dusky Green 0.45 | lit: a bar tile under the pointer or open; a meter's lit segments; something asking for you |
 | `flame` | `f68c50` Apricot Orange | `a84222` Brick Red | fire: the torches and lanterns, a meter's segments over 80 % |
 | `gold` | `c5a56e` Isabella Color | `e2b540` Yellow Ocher | metal and leaf in art only (rod caps, a halo, a demon's eyes, the torches' brass) — never words |
@@ -83,7 +86,11 @@ every ground it is drawn on, `muted` ≥ 4.7; `faint` is meant dim (≥ 2.4: "no
 | light `ground` | 2.5 | 4.8 | 12.2 | 13.5 | 4.7 | 4.5 |
 | light `key` | 2.9 | 5.6 | 14.1 | 15.7 | 5.4 | 5.2 |
 
-Ink on vermilion (`text_on_accent` on `accent`): 5.1 dark, 5.4 light.
+Ink on vermilion (`text_on_accent` on `accent`): 5.1 dark, 5.4 light — a mark's (the bar's seal), never
+a row's. What is selected is the lacquer, its words ≥ 7 : 1 (`text_on_select` on `select`: 7.3 dark,
+8.5 light): `tools/contrast.py` measures every selected and highlighted state of every surface from
+the files the desktop ships (words ≥ 7, icons and matched letters ≥ 4.5, a large glyph or a
+meter's level ≥ 3) and tests/static/test_contrast.sh fails under any of them.
 
 ## 2. Type
 
@@ -193,14 +200,14 @@ screen and the bar's paper share one rhythm.
   (`accent`) with a ring of paper (`key`) 2 px inside its edge, the picture knocked out in paper —
   the bar's stamp and the hanko of "chosen", one mark; off — the seal's outline in `edge2`, the
   picture `muted`. Its name centred on row 2 (`text` on, `muted` off), its state centred on row 3
-  (`strong` on, `faint` off). Under the cursor's vermilion: the crest in `text_on_accent`. Turned
+  (`strong` on, `faint` off). Under the cursor's lacquer: the crest in `text_on_select`, its picture `select`. Turned
   on, the seal is stamped (§11's stamp: a pixel larger all round in `accent_hi` for 60 ms, then its
   size); turned off, its outline at once.
 - **Meter**: its icon and name as a row's, then 20 segments (§3), right-aligned before the value.
   Lit segments `asagi`; over 80 % the 17th–18th `flame` and the 19th–20th `accent` (it reddens
   as it rises); unlit `edge`. A level between two segments lights the last one partly, from the
   bottom, two rows a percent: every level has its own pixels. Muted: the lit segments hollow
-  (their 1 px outline). On the cursor's vermilion: lit `text_on_accent`, unlit `accent_lo`.
+  (their 1 px outline). On the cursor's lacquer: lit `text_on_select`, unlit `select_lo`.
   A click or a drag anywhere on it sets the level. The level display (kawa-osd) draws the same
   segments to the pixel.
 - **Stamp** (the bar's workspace seal): a round vermilion seal 16 px across, clean-edged, its
@@ -220,7 +227,7 @@ screen and the bar's paper share one rhythm.
 |---|---|---|---|
 | rest | §4 | §7 | §8 |
 | hover (the pointer) | the cursor goes to the row under it — one light, never two | the same (a mouse click acts as Enter) | the tile lit: icon and words `asagi`; a vermilion tile's fill `accent_hi` |
-| cursor (the keyboard) | the row filled `accent`, inks `text_on_accent`; a menu opens with it on its first choice, Enter acts at once | the same | — |
+| cursor (the keyboard) | the row filled `select` (the lacquer), every ink on it `text_on_select`; a menu opens with it on its first choice, Enter acts at once | the same (fzf: bg+ 24, fg+ 25, `:strip`) | — |
 | chosen | the vermilion dot (§4) | `●` in `accent_text`, in the value column | — |
 | on · off | §4 tile; a row's value `strong` "on" · `faint` "off" | the same words, the same inks | — |
 | absent | `faint`, and the word says why ("none", "no DDC/CI") | the same | the tile is not there |

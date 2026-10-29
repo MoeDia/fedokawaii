@@ -2,7 +2,7 @@
    (the redefined colours after the import replace adw-gtk3's own) */
 @import url("file:///usr/share/themes/adw-gtk3/gtk-3.0/gtk.css");
 @define-color accent_color              #a84222;
-@define-color accent_bg_color           #a84222;
+@define-color accent_bg_color           #82241f;
 @define-color accent_fg_color           #f8f3d8;
 @define-color window_bg_color           #e8e3c2;
 @define-color window_fg_color           #122625;
@@ -38,7 +38,7 @@
 /* Brave (Chromium's GTK mode, theme.sh sets it) samples these same colours for its tab
    strip, toolbar and menus (its address bar keeps Brave's own). Chromium gives every
    style node it reads the class .chromium, so the rules below reach Brave only: its
-   accent (checked boxes, the selected row) is the vermilion rather than a dull blend,
+   accent (checked boxes, the selected row) is the lacquer rather than a dull blend,
    its tooltips are the palette's, and its tab strip stays the same when the window is
    not focused. */
 @define-color placeholder_text_color    #586459;
@@ -53,10 +53,10 @@ headerbar.chromium:backdrop { background-color: @headerbar_bg_color; }
    would leave a gap inside that border. Every window, dialog, decoration and popover
    fills its border exactly. A button is a key — the key fill in a 1 px edge frame;
    under the pointer only its words and icon turn accent_text, no box; pressed or
-   switched on it is filled vermilion, its ink text_on_accent, as a dialog's default
+   switched on it is filled with the lacquer (select), its ink text_on_select, as a dialog's default
    button always is. A check box or a radio button is the panels' check: □, and ▣
    when chosen (an 8 px frame, the 4 px square in it). What is selected — a row, the
-   words in a field — is filled vermilion, ink on it; the text cursor is vermilion.
+   words in a field — is filled with the lacquer, cream on it; the text cursor is vermilion.
    GTK's CSS has no !important: each rule carries :not(#kawa-…) twice, which counts
    as two ids and so outweighs the base theme's own rules, whatever their classes. */
 *:not(#kawa-square):not(#kawa-sq) { border-radius: 0; }

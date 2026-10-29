@@ -107,6 +107,12 @@ def dark():
     p["accent_lo"] = w("Vandyke Red", "dark.accent_lo")
     p["accent_text"] = w("Jasper Red", "dark.accent_text")
     p["text_on_accent"] = p["lo"]                 # (Wada's Black on the vermilion: 4.5 : 1 and over)
+    # what is selected — a menu's row under the cursor, quick settings' item, GTK's and Qt's
+    # selection: the same deep lacquer in both themes (漆, one grammar), the strongest cream on it
+    # (7.3 : 1; the vermilion held black words at 5.1 only — the owner's 19:19 complaint)
+    p["select"] = w("Vandyke Red", "dark.select")
+    p["text_on_select"] = p["strong"]
+    p["select_lo"] = mix("Vandyke Red", p["text_on_select"], 0.3, "dark.select_lo")   # (unlit: 3.7 : 1 under the lit)
     p["lit"], p["lit_text"], p["lit_hi"], p["lit_lo"] = p["text"], p["ground"], p["strong"], p["muted"]
     p["urgent_text"] = p["lo"]
     p["asagi"] = mix("Venice Green", "Ecru", 0.25, "dark.asagi")
@@ -141,6 +147,9 @@ def light():
     p["accent_lo"] = mix("Brick Red", "Vandyke Red", 0.5, "light.accent_lo")
     p["accent_text"] = w("Brick Red", "light.accent_text")
     p["text_on_accent"] = p["key"]
+    p["select"] = w("Vandyke Red", "light.select")   # (the dark theme's lacquer: 8.5 : 1 under the key's cream)
+    p["text_on_select"] = p["key"]
+    p["select_lo"] = mix("Vandyke Red", p["text_on_select"], 0.3, "light.select_lo")
     p["lit"], p["lit_text"], p["lit_hi"], p["lit_lo"] = p["text"], p["key"], p["muted"], p["strong"]
     p["urgent_text"] = p["key"]
     p["asagi"] = mix("Light Porcelain Green", "Dusky Green", 0.45, "light.asagi")
@@ -166,6 +175,7 @@ def table(P):
                 cells.append(f"{r} {c:4.1f}{' ✘' if c < need else ''}")
             print(f"  on {g:8}: " + " · ".join(cells))
         print(f"  text_on_accent on accent {contrast(p['text_on_accent'], p['accent']):.1f}"
+              f" · text_on_select on select {contrast(p['text_on_select'], p['select']):.1f}"
               f" · lit_text on lit {contrast(p['lit_text'], p['lit']):.1f}")
 
 
@@ -189,7 +199,9 @@ def sheet(P, out):
 
 
 DOC_TOKENS = ("ground", "surface", "view", "key", "edge", "edge2", "hi", "lo", "faint", "muted", "text", "strong",
-              "accent", "accent_hi", "accent_lo", "accent_text", "text_on_accent", "asagi", "flame", "gold", "lit", "lit_text")
+              "accent", "accent_hi", "accent_lo", "accent_text", "text_on_accent", "select", "text_on_select", "select_lo", "asagi",
+              "flame",
+              "gold", "lit", "lit_text")
 DOC_TERM = ("red", "green", "yellow", "blue", "purple", "teal", "bred", "bgreen", "byellow", "bblue", "bpurple", "bteal")
 
 

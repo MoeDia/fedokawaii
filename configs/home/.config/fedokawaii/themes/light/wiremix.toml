@@ -35,7 +35,7 @@ config_profile = { fg = "#586459" }
 dropdown_icon = { fg = "#586459" }
 dropdown_border = { fg = "#586459" }
 dropdown_item = { fg = "#122625" }
-dropdown_selected = { fg = "#121b1b", bg = "#dfcc9c" }
+dropdown_selected = { fg = "#f8f3d8", bg = "#82241f" }
 dropdown_more = { fg = "#8b917f" }
 help_border = { fg = "#586459" }
 help_item = { fg = "#122625" }
