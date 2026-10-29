@@ -151,8 +151,8 @@ for node in ast.parse(src).body:
         if not isinstance(v, ast.Constant) or not isinstance(v.value, str):
             bad.append(f"line {node.lineno}: {k} is not a string"); continue
         for w in v.value.split():
-            if w in names or w in attrs or (w.isdigit() and 0 <= int(w) <= 17): continue
-            bad.append(f"line {node.lineno}: {k}: {w!r} is not one of the terminal's 16 colours")
+            if w in names or w in attrs or (w.isdigit() and 0 <= int(w) <= 25): continue
+            bad.append(f"line {node.lineno}: {k}: {w!r} is not one of the terminal's colours (0-15, the desktop's 16-25)")
 print("\n".join(bad))
 EOF
 )
@@ -189,7 +189,7 @@ for theme in ("dark", "light"):
     sec = re.search(r"^\[colors-%s\]\n(.*?)(?=^\[|\Z)" % theme, ini, re.M | re.S).group(1)
     kv = dict(re.findall(r"^(\w+)=([0-9a-fA-F]{6})", sec, re.M))
     pal = {i: kv["regular%d" % i] for i in range(8)} | {8 + i: kv["bright%d" % i] for i in range(8)} \
-        | {16: kv["16"], 17: kv["17"]}                     # (the desktop's own: the selection's fill and words)
+        | {int(k): v for k, v in kv.items() if k.isdigit()}   # (the desktop's own, 16-25: the lacquer 24, its words 25)
     FG, BG = kv["foreground"], kv["background"]
     col = lambda n, d: pal[n] if n is not None else d
     # VisiData 3.3 (update_attr): a colour fills what is not set yet, and replaces what is

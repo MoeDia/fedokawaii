@@ -7,16 +7,16 @@
 # bat and yazi — nothing per theme here. Its own defaults reach into the 256-colour cube
 # (81, 215, 237 …), which neither palette has; each of those is set to a palette colour
 # below, after fzf.opts: 15 the strongest ink, 8 quiet, 9 vermilion, 14 asagi, 3 yamabuki,
-# and the desktop's own slots past the sixteen (foot.ini): 16 the fill of what is selected,
-# 17 the words on it. 'normal' alone is the terminal's own text on its own ground.
+# and the desktop's own slots past the sixteen (foot.ini): 24 the fill of what is selected
+# (the lacquer), 25 the words on it. 'normal' alone is the terminal's own text on its own ground.
 
 options.color_default = 'normal'                 # cells: text on the ground
 options.color_default_hdr = 'bold'               # column names, in the text's own ink: the
                                                  # cursor's one takes its colours below whole
 options.color_bottom_hdr = 'underline 15'
-options.color_current_row = '17 on 16'           # the row under the cursor, filled as fzf's
+options.color_current_row = '25 on 24'           # the row under the cursor, filled as fzf's
 options.color_current_col = 'bold'
-options.color_current_hdr = '17 on 16'           # the cursor's column name, filled the same
+options.color_current_hdr = '25 on 24'           # the cursor's column name, filled the same
 options.color_column_sep = '8'                   # the rules between columns
 options.color_key_col = '14'                     # key columns (!) in asagi
 options.color_hidden_col = '8'
@@ -39,7 +39,7 @@ options.color_error = '9'
 options.color_warning = '3'
 options.color_working = 'bold 0 on 11'           # a load still running (on the status bar)
 options.color_menu = '7 on 0'                    # the menu bar (Alt+H)
-options.color_menu_active = 'bold 0 on 9'
+options.color_menu_active = '25 on 24'           # … its item under the cursor, as every menu's
 options.color_menu_spec = '0 on 14'
 options.color_menu_help = '7 on 0'
 options.color_cmdpalette = '7 on 0'              # the command palette (Space)

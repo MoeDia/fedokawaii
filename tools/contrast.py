@@ -37,7 +37,8 @@ def foot_colours(m):
     return pal, kv["foreground"], kv["background"]
 
 
-def fzf_pairs(m):
+def term_pairs(m):
+    """The menus in a terminal: fzf's (fzf.opts) and VisiData's, both in foot's palette slots."""
     pal, fg, bg = foot_colours(m)
     opts = (HOME / ".config/fedokawaii/fzf.opts").read_text()
     col = {}
@@ -48,7 +49,13 @@ def fzf_pairs(m):
     def ink(name, default):
         v = col.get(name, "-1")
         return default if v == "-1" else pal[int(v)]
+    # VisiData (the Tables window) takes the same slots: 'FG on BG', foot's palette numbers
+    vd = {k: (pal[int(f)], pal[int(g)]) for k, f, g in
+          re.findall(r"^options\.(color_\w+) = '(\d+) on (\d+)'", (HOME / ".config/visidata/config.py").read_text(), re.M)}
     return [("every menu (fzf)", "the row under the cursor: its words", ink("fg+", fg), ink("bg+", bg), WORDS),
+            ("Tables (VisiData)", "the row under the cursor", *vd["color_current_row"], WORDS),
+            ("Tables (VisiData)", "the cursor's column name", *vd["color_current_hdr"], WORDS),
+            ("Tables (VisiData)", "the menu's item under the cursor", *vd["color_menu_active"], WORDS),
             ("every menu (fzf)", "the row under the cursor: the letters matched", ink("hl+", fg), ink("bg+", bg), WORDS),
             ("every menu (fzf)", "a marked row", ink("selected-fg", fg), ink("selected-bg", bg), ICON),
             ("every menu (fzf)", "the letters matched, at rest", ink("hl", fg), bg, ICON)]
@@ -105,7 +112,7 @@ def app_pairs(m):
 def rows():
     out = []
     for m in ("dark", "light"):
-        for surface, state, fg, bg, need in (fzf_pairs(m) + panel_pairs(m) + css_pairs(m) + qt_pairs(m) + app_pairs(m)):
+        for surface, state, fg, bg, need in (term_pairs(m) + panel_pairs(m) + css_pairs(m) + qt_pairs(m) + app_pairs(m)):
             out.append((m, surface, state, fg, bg, contrast(fg, bg), need))
     return out
 
