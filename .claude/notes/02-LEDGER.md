@@ -1102,3 +1102,34 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   tools/gallery.sh --only system,launcher,quick,clipboard, grill, build tools/contrast.py + its
   static test. Then T19k-3 (quick settings, for real). The full suite in two halves (installer /
   the rest) somewhere in the pass: every file that failed is green one by one now.
+- r27-19k-2 DONE + VERIFIED on the PC (30 Oct 02:28) — highlight contrast. What is selected is
+  now one grammar in both themes: the lacquer (漆) — Wada's Vandyke Red #82241f, new roles
+  `select` / `text_on_select` / `select_lo` in tools/wada-palette.py — with the strongest cream on
+  it: 7.28 : 1 dark (#f1e1b4), 8.46 light (#f8f3d8); before, near-black on the vermilion, 5.14
+  (pure black could not pass 5.8) and light's cream on Brick Red 5.42 — two opposite grammars.
+  Where: every fzf menu (foot's new 24/25 = bg+/fg+, `:strip` keeps every ink on the row cream),
+  quick settings' and the bar menus' cursor (kawa-panel look(): fill select, inks text_on_select;
+  a seal under it: its picture the lacquer on the cream disc; a meter's unlit segments select_lo,
+  3.7 : 1 under the lit — the vermilion there would have been 1.6 in light), GTK 3/4 (accent_bg/fg:
+  selected rows, default/pressed buttons), Qt (Highlight/HighlightedText; disabled: muted on edge),
+  Neovim's completion and wild menus (gruvbox's blue held 3.3 on paper), mpv's console and context
+  menu, btop's chosen process, the mixer's dropdown, the lock's selected words. tools/contrast.py
+  (new) measures every selected/highlighted pair from the shipped files — 40, both themes, words
+  ≥ 7, icons/matched letters ≥ 4.5, a seal's numeral / a meter's level ≥ 3: 0 under;
+  tests/static/test_contrast.sh 11/0 (it also proves a 5.1 row fails); test_panel 503/0;
+  test_design_doc 54/0 (§1: the three tokens, the selected rule; §4/§5 updated). Headless renders
+  (tools/gallery.sh system/launcher/quick/clipboard/sound, both themes; a kit play with the cursor
+  on a meter and a tile): one lacquer band in both themes. Applied 02:22 (fedokawaii apply; verify
+  257/258 — the one: qbittorrent outside the manifest, see the note below). LIVE: foot reads its
+  palette only at start, so the session's foot server (no terminal of his open) and the warm
+  windows were restarted in the session's environment (02:26) instead of a session restart (he
+  had logged in at 02:14:48 — maybe at the PC); Super+U opened live by wtype, grim: the band
+  #82241f, its words #f1e1b4 = 7.28 : 1 measured on the screen, 0 pixels of foot's default 24.
+  Left: yazi's cursor row (edge, not the lacquer) → T22 (plan updated). Seen for T19k-3: under the
+  cursor a meter's last segment sits flush on the fill's right edge while the icon has 8 px of air
+  on the left (as before the change) — fix with the quick-settings redesign.
+- r27-note (30 Oct 02:23): `fedokawaii verify` flags "installed outside the manifest — qbittorrent":
+  the owner installed it himself (dnf history 74, 28 Oct 22:35 +04, `dnf install qbittorrent`, user
+  dia — not a script). Respected: not removed. Decide with the torrents task (T-torrents: likely he
+  wants a client that works now; the gaming side's qBittorrent goes into the Windows VM) — either
+  the manifest takes it as his choice or the Torrents app replaces it; until then verify shows 1.
