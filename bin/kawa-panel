@@ -997,7 +997,7 @@ def look(it, focused, hot):
     """How an item is drawn (docs/design-system.md §4–§5) — the colours' names: fill (None:
     none of its own), frame (None: none), glyph (its icon or picture), label (its name), value
     (its words; a meter's words when it has no level), detail (a menu row's second column),
-    on_fill (drawn on the cursor's vermilion: a meter's segments in its inks).
+    on_fill (drawn on the cursor's lacquer: a meter's segments in its inks).
     The cursor — the keyboard's place, and the pointer's: one light, never two — fills the item
     with the lacquer (select), its inks text_on_select. At rest: a row's icon muted, its name text (the one
     in use strong); a key on its own fill in a 1 px frame; a tile in its frame, on or off — its

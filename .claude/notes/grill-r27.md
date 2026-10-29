@@ -47,3 +47,36 @@ against docs/design-system.md.
 - In the kit the brightness meter is empty (no DDC/CI monitor there); live it reads 40 %.
 
 Nothing left for T17.
+
+## T19k-3 — quick settings, the third time (30 Oct 02:31): three directions sketched
+`.claude/notes/design-r27/quick-t19k3.py` → `quick-A-mon.png`, `quick-B-ema.png`, `quick-C-list.png`
+(dark | light, Sumi UI 14 + Sumi Icons, the Wada palette, the cursor on "night light, off"; the
+pictures are today's 14 px tile icons — T19k-4 draws them anew). Today's panel, grilled first:
+twelve identical boxes in 1 px frames (the "plain rectangles" he dislikes), a 28 px seal per box,
+two lines of words — eight of twelve tiles off, so the panel reads mostly dead grey; nothing of
+the world in it (no art, no ornament, no motion but the stamp); the cursor's fill flush with the
+meter's last segment on the right while the icon has 8 px of air on the left.
+- **A, the mon sheet (家紋)** — no boxes: each item a crest 36 px across on a sheet of four columns
+  (94 px), its name and state centred under it; on: the vermilion seal, a paper ring, the picture
+  knocked out; off: the crest's outline (edge2), the picture muted. Calm, balanced, unmistakably
+  Japanese (a page of family crests); each crest can be its own drawing — the "every item its own
+  character, all centred to the pixel" he asked for. Against it: still a grid of toggles at heart;
+  off states in faint (2.4–2.6 : 1) read dead.
+- **B, the ema wall (絵馬)** — wooden votive plaques hung on rods. The most world, but twelve
+  gables, strings and rods are clutter for a panel opened twenty times a day, the plaques are boxes
+  again, and it is the tallest (≈ 520 px). Rejected; its rod with gold caps (the bar's scroll rod,
+  KAMI) is worth keeping as the sheet's one ornament.
+- **C, the list** — Super+U's grammar (a row each, a 20 px crest in the icon column, the state
+  right-aligned). The cleanest alignment, but a settings page, not "a proper, beautiful menu":
+  every item left-aligned in one column loses the "unique, centred" he asked for.
+**Chosen: A**, refined before it is built: (1) the crests drawn anew at 28 × 28 inside a 36 px seal
+(T19k-4, one drawing each — no 14 px icon scaled); (2) every name `text`, the state `muted` when
+off (never faint: "off" is a state, not an absence), `strong` when on — the seal says on/off;
+(3) the four keys at the foot (wallpaper, screenshot, screen off, power) on the same four columns,
+as small crests — one grid for the whole panel; (4) the demon/angel head (T19k-4) at the top
+in place of the plain heading icon, on the rod; (5) the cursor the lacquer cell (94 × 88, the
+whole column's item), its words and crest outline cream — measured symmetric (equal air left and
+right of the crest and of the longest name); (6) motion: the seal's stamp when turned on (§11),
+and a crest that moves while its thing runs (record's dot, backup's arrows, the network's pulse).
+Next pass: build A in kawa-panel (Layout for the sheet, crests at 36), render both themes, px.py
+every gap, grill again.

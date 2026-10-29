@@ -188,8 +188,8 @@ screen and the bar's paper share one rhythm.
   `text` from cell 4 (x 32); a value in `muted`, right-aligned to the content's edge, two cells or
   more after the widest name. A row that only shows (a week of weather, a help line) is never a
   choice: the cursor and the pointer pass it by.
-- **Cursor** (the keyboard's place): the row filled `accent`, one cell beyond the content either
-  side (into the pad), its inks `text_on_accent`.
+- **Cursor** (the keyboard's place): the row filled `select` (the lacquer), one cell beyond the content
+  either side (into the pad), its inks `text_on_select`.
 - **Key**: one row high, `key` fill, 1 px `edge` frame inside the row; its icon and name centred
   by their ink. Two or three share a row, 8 apart, the row the content's width; an icon-only key
   is 20 × 20.
