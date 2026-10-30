@@ -80,3 +80,15 @@ right of the crest and of the longest name); (6) motion: the seal's stamp when t
 and a crest that moves while its thing runs (record's dot, backup's arrows, the network's pulse).
 Next pass: build A in kawa-panel (Layout for the sheet, crests at 36), render both themes, px.py
 every gap, grill again.
+**Built (30 Oct 11:30, branch r27-wip-t19k3, not on main yet):** steps (a)–(c) — the sheet of
+94 × 88 cells (four columns, nothing framed, crest 36 at 6 px, name row at 46, state row at 66,
+words 86 px wide so "KINGSTON 58G" stays whole), names `text`, off states `muted`; test_panel
+503/0 on the branch; renders both themes (kit play, the repo's bin): at rest, cursor on an off
+crest. **The grid question** (test_design_doc §3 fails: 94 × 88 is off the 8 px column / 20 px row
+grid): rendered against the on-grid variant A2 (88-wide cells 8 apart, 80 tall, the crest in a
+two-row band: `quick-A2-grid.png`, side by side `quick-A-built-vs-A2-grid.png`). A2's cursor cell
+crowds the crest (2 px under its top edge, 5 below the state: top-heavy) and narrows the words;
+the built one has balanced air (6 above the crest, 7 under the state's capitals). **Decision:
+94 × 88 stays** — the sheet spans the content exactly (its outer edges on the grid), every crest
+is centred on its own column, so nothing in it lines up with a text column anyway; §3 gets the
+mon sheet as the grid's one stated exception and test_design_doc reads MON_W × MON_H. Then merge.

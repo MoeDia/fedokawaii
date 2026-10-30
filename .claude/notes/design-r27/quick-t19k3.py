@@ -168,4 +168,41 @@ for name, fn in (("A-mon", mon), ("B-ema", ema), ("C-list", lst)):
     sheet = Image.new("RGB", (a.width + b.width, max(a.height, b.height)), (90, 90, 90))
     sheet.paste(a, (0, 0)); sheet.paste(b, (a.width, 0))
     sheet.save(OUT / f"quick-{name}.png")
+
+# A2 — the mon sheet on the design system's grid: cells 88 wide (11 columns of 8) and 8 apart,
+# 80 tall (4 rows of 20): the crest 36 in a band of two rows (2 px of air above and below), its
+# name and state a row each; the cursor the cell (88 × 80), a column of ground between two cells
+def mon_grid(m):
+    W, H = 2 * 17 + 376, 2 * 17 + 28 + 40 + 16 + 3 * 80 + 2 * 8 + 16 + 20
+    im, d, p = frame(m, W, H)
+    x0, y0 = 10 + 17, 10 + 17
+    heading(d, p, x0, y0, 376)
+    meters(d, p, x0, y0 + 28, 376)
+    gy = y0 + 28 + 40 + 16
+    cw, ch, g = 88, 80, 8
+    for i, (ic, name, val, on) in enumerate(ITEMS):
+        x, y = x0 + (i % 4) * (cw + g), gy + (i // 4) * (ch + g)
+        cx = x + cw // 2
+        cur = i == CUR
+        if cur:
+            d.rectangle((x, y, x + cw - 1, y + ch - 1), fill=rgb(p["select"]))
+        ink = p["text_on_select"] if cur else None
+        cy = y + 2 + 18
+        if on:
+            disc(d, cx, cy, 18, fill=ink or p["accent"])
+            disc(d, cx, cy, 15, outline=p["select"] if cur else p["key"])
+            text(d, cx, cy - 7, ICONS[ic], p["select"] if cur else p["key"], IC, centre=True)
+        else:
+            disc(d, cx, cy, 18, outline=ink or p["edge2"])
+            text(d, cx, cy - 7, ICONS[ic], ink or p["muted"], IC, centre=True)
+        text(d, cx, y + 40 + 3, name, ink or p["text"], centre=True)
+        text(d, cx, y + 60 + 3, val, ink or (p["strong"] if on else p["muted"]), centre=True)
+    return im
+
+
+a, b = mon_grid("dark"), mon_grid("light")
+sheet = Image.new("RGB", (a.width + b.width, max(a.height, b.height)), (90, 90, 90))
+sheet.paste(a, (0, 0)); sheet.paste(b, (a.width, 0))
+sheet.save(OUT / "quick-A2-grid.png")
+
 print("ok")
