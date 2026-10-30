@@ -92,3 +92,8 @@ the built one has balanced air (6 above the crest, 7 under the state's capitals)
 94 × 88 stays** — the sheet spans the content exactly (its outer edges on the grid), every crest
 is centred on its own column, so nothing in it lines up with a text column anyway; §3 gets the
 mon sheet as the grid's one stated exception and test_design_doc reads MON_W × MON_H. Then merge.
+**Measured (30 Oct 11:36, the kit's shots, both themes identical):** the cursor cell 94 × 88; the
+crest 36 px, x 29–64 in its cell — air 29 | 29, exact; 6 px above it, 7 under the state's ink;
+crest → the name's ink 9 px, name → state 8. A word of odd ink width cannot split an even cell
+(freesync, 55 px: 19 | 20) — the extra pixel goes right, the same everywhere; T19k-4's pictures and
+any word can be checked against that rule.
