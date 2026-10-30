@@ -1133,3 +1133,26 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   dia — not a script). Respected: not removed. Decide with the torrents task (T-torrents: likely he
   wants a client that works now; the gaming side's qBittorrent goes into the Windows VM) — either
   the manifest takes it as his choice or the Torrents app replaces it; until then verify shows 1.
+- r27-19k-2 part 2 (30 Oct 02:31): VisiData (the Tables window) still filled its cursor row and
+  column name with the vermilion (17 on 16) and its menu's active item black on coral / Vandyke
+  Red — now 25 on 24 (the lacquer) like every menu; tools/contrast.py reads its config (48 pairs,
+  0 under); test_configs 332/0 (its colour check takes slots 16–25). Applied (live config: '25 on
+  24'). The doc's cursor (§4) and kawa-panel's comment say lacquer. OPEN, measured: lazygit's
+  selected line keeps each file's own colour on `black` (edge) — a red (unstaged) name 4.15 : 1 in
+  dark; lazygit has no selected-line foreground, so the lacquer would put red on red: decide with
+  the git screen (bold + a darker line, or `reverse`), then add it to contrast.py.
+- r27-19k-3 first step (30 Oct 02:31): quick settings in three directions (sketches with the real
+  faces and palette: .claude/notes/design-r27/quick-{A-mon,B-ema,C-list}.png), grilled in
+  .claude/notes/grill-r27.md — CHOSEN: A, the mon sheet (家紋): no boxes, a crest 36 px across per
+  item on four columns, name and state centred under it, the four foot keys on the same columns,
+  the demon/angel head on the rod at the top; the refinements to build are listed there. Not built
+  yet (it re-measures most of test_panel's 503 checks: a pass of its own).
+- r27-event (30 Oct 02:31–11:23): the session was LOCKED at 02:31:07 (kawa-lock "lock up" — gtklock
+  locked every screen); the journal has no automated trigger (kawa-idle silent, the round's idle
+  inhibitor active, swayidle has no logind lock handler, the test harness's runtime dir is its
+  own): a direct kawa-lock — most likely Super+L (he had logged in at 02:14:48). kawa-lock's rule
+  "still locked after 90 s: sleep" suspended the PC at 02:32:37 with this pass mid-apply; he woke
+  it at 11:22:28 and unlocked 11:23:07; the apply finished then (11:23:10). Nothing lost (all
+  committed). While he is at the PC: no wtype/session restart — headless only. Note: the foot
+  server restarted at 02:26 runs outside autostart's keep() until the next login (no harm: it is
+  the server autostart starts, same environment; a crash would leave Super+Return dead until then).
