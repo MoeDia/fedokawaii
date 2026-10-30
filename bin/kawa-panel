@@ -481,7 +481,9 @@ def tiles_of(s):
           ("record", "tile_record", "record", "recording" if s.get("record") == "on" else "off", s.get("record") == "on"),
           ("ocr", "tile_read", "read text", "a region", False)]
     # (each value as much as its tile shows: a gap each side, 104 px of words)
-    return [(k, i, n, fit(v, MON_W - 2 * CELL), on) for k, i, n, v, on in t]
+    # (each state as much as its cell shows: half a cell of air either side — two neighbours'
+    # words a cell apart at the least —, 86 px of words: "KINGSTON 58G" whole)
+    return [(k, i, n, fit(v, MON_W - CELL), on) for k, i, n, v, on in t]
 
 
 def rows_of(n, per=MON_COLS):
@@ -2603,7 +2605,7 @@ def main(argv):
                 if words:
                     ink_w = text_layout(cr, words).get_pixel_extents()[0]
                     text(cr, it.x + (it.w - ink_w.width) // 2 - ink_w.x, it.y + top + (ROW - LINE) // 2,
-                         words, ink, width=it.w - 2 * CELL)
+                         words, ink, width=it.w - CELL)
         elif it.kind == "app":                   # (the launcher's: its icon, its name, the answer's "copy")
             ix, iy = it.x + GLYPH_X, it.y + (it.h - APP_ICON) // 2
             pic_ = ic["calc"] if it.app is None else it.app.pic

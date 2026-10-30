@@ -89,23 +89,23 @@ case_ "the captures: record (on while one runs: a click stops it) and read text,
 eq "$(py 'fresh(); t = p.item("record"); print(t.icon, t.value, t.lit, p.item("ocr").icon, p.item("ocr").name)')" "tile_record off False tile_read read text"
 eq "$(py 'fresh(STATE + "record\ton\n"); t = p.item("record"); print(t.value, t.lit)')" "recording True"
 eq "$(py 'fresh(); p.request(); p.activate("record"); p.activate("ocr"); print([c for c in u.calls if c.startswith("launch")], p.visible)')" "['launch kawa-quick --do record', 'launch kawa-quick --do ocr'] False"
-case_ "the size: 410 × 498 (a 1 px hairline, 16 px of pad, its heading and two meters, four rows of 120 × 80 tiles 8 apart, the keys; no day line: the bar's)"
-eq "$(py 'fresh(); print(*p.size)')" "410 498"
+case_ "the size: 410 × 418 (a 1 px hairline, 16 px of pad, its heading and two meters, the sheet: three rows of 94 × 88 crests, the keys; no day line: the bar's)"
+eq "$(py 'fresh(); print(*p.size)')" "410 418"
 eq "$(py 'print(kp.INNER, kp.INNER + 2 * (kp.PAD + kp.BORDER), kp.BORDER, kp.HAIR, kp.PAD)')" "376 410 1 1 16" "376 of content, 2 × 16 of pad, 2 × 1 of hairline"
-case_ "the window is the frame's box and its shadow — a column at its right, two rows under it (411 × 500) — and never trimmed to its ink"
-eq "$(py 'fresh(); print(*p.win, p.ox, p.dy, kp.SHADOW_R, kp.SHADOW_B)')" "411 500 0 0 1 2"
+case_ "the window is the frame's box and its shadow — a column at its right, two rows under it (411 × 420) — and never trimmed to its ink"
+eq "$(py 'fresh(); print(*p.win, p.ox, p.dy, kp.SHADOW_R, kp.SHADOW_B)')" "411 420 0 0 1 2"
 eq "$(py 'fresh(); print(p.win == (p.size[0] + kp.SHADOW_R, p.size[1] + kp.SHADOW_B), p.rules); opened("sound", SOUND); print(p.win == (p.size[0] + 1, p.size[1] + 2), p.rules); opened("brightness", "brightness\t70%\n"); print(p.win == (p.size[0] + 1, p.size[1] + 2), p.rules, p.dy)')" "$(printf '%s\n' "True []" "True []" "True [] 0")" "every panel the same: the box + 1 column, + 2 rows — no trimming (dy 0), nothing drawn between the groups"
 case_ "it opens under its heading, as every panel: the sliders icon, quick settings, the rule to the right edge"
 eq "$(py 'fresh(); print(p.heads)')" "[('sliders', 'quick settings', 17, 17)]"
 case_ "notices are as wide: one column under the bar's right end"
 has "$(cat "$REPO/configs/home/.config/mako/config")" "width=$(py 'fresh(); print(p.size[0])')"
-case_ "the tiles: three a row (twelve: 3 3 3 3), 120 × 80, 8 apart; the content 17 px from every edge (the hairline and 16 of pad)"
+case_ "the sheet (家紋): four crests a row (twelve: 4 4 4), each cell 94 × 88, nothing between them; the content 17 px from every edge (the hairline and 16 of pad)"
 eq "$(py 'fresh(); print(" ".join(f"{i.x},{i.y},{i.w},{i.h}" for i in p.items if i.kind == "tile"))')" \
-  "17,101,120,80 145,101,120,80 273,101,120,80 17,189,120,80 145,189,120,80 273,189,120,80 17,277,120,80 145,277,120,80 273,277,120,80 17,365,120,80 145,365,120,80 273,365,120,80"
-case_ "no adapter: ten tiles, three, three, then two and two — two a row are wider (never a lone tile), each row the full width"
+  "17,101,94,88 111,101,94,88 205,101,94,88 299,101,94,88 17,189,94,88 111,189,94,88 205,189,94,88 299,189,94,88 17,277,94,88 111,277,94,88 205,277,94,88 299,277,94,88"
+case_ "no adapter: ten crests, four, three, three — shared as evenly as they go, the fuller rows first (never a lone crest), a short row centred on the sheet, the cells as wide"
 eq "$(py 'fresh(STATE.replace("bluetooth\ton\n","").replace("devices\tnone\n","")); print(" ".join(f"{i.x}+{i.w}" for i in p.items if i.kind == "tile"))')" \
-  "17+120 145+120 273+120 17+120 145+120 273+120 17+184 209+184 17+184 209+184"
-eq "$(py 'print([kp.rows_of(n) for n in (9, 8, 7, 6, 4, 1)])')" "[[3, 3, 3], [3, 3, 2], [3, 2, 2], [3, 3], [2, 2], [1]]"
+  "17+94 111+94 205+94 299+94 64+94 158+94 252+94 64+94 158+94 252+94"
+eq "$(py 'print([kp.rows_of(n) for n in (12, 10, 9, 8, 7, 6, 5, 4, 1, 0)])')" "[[4, 4, 4], [4, 3, 3], [3, 3, 3], [4, 4], [4, 3], [3, 3], [3, 2], [4], [1], []]"
 case_ "the keys at the foot: wallpaper, screenshot, screen off and power (each an icon alone, a 20 px square; screen off its tooltip) — the whole width, 8 apart, one row high"
 eq "$(py 'fresh(); print(" ".join(f"{i.key}:{i.x}+{i.w}x{i.h}:{i.name or chr(45)}" for i in p.items if i.kind == "key"))')" \
   "wallpaper:17+156x20:wallpaper screenshot:181+156x20:screenshot screenoff:345+20x20:- power:373+20x20:-"
@@ -290,11 +290,11 @@ eq "$(py 'fresh(); p.request(); u.calls.clear(); p.focus = "brightness"; p.key("
 # ── the keys ──────────────────────────────────────────────────────────────────────────
 nav() { py "fresh(); p.focus = '$1'; [p.key(k) for k in '$2'.split()]; print(p.focus)"; }
 case_ "arrows (and h j k l): along a row, and up and down to the nearest below or above"
-eq "$(nav theme 'Right Right Right')" vrr "the end of a row stays"
-eq "$(nav theme 'Down Down')" drives; eq "$(nav night 'Down')" bluetooth; eq "$(nav vrr 'j j j j')" screenoff "(the nearest centre below)"
+eq "$(nav theme 'Right Right Right Right')" network "the end of a row stays"
+eq "$(nav theme 'Down Down')" dnd; eq "$(nav night 'Down')" devices; eq "$(nav vrr 'j j j j')" screenshot "(the nearest centre below)"
 eq "$(nav theme 'Up')" sound; eq "$(nav sound 'k k')" brightness; eq "$(nav brightness 'Up')" brightness
-eq "$(nav dnd 'Down')" ocr; eq "$(nav saver 'Down')" wallpaper "the foot: the key nearest below"; eq "$(nav record 'Down')" screenshot
-eq "$(nav screenshot 'Up')" record "(its centre, 259, nearer record's 205 than ocr's 333)"; eq "$(nav sound 'Down')" night "from a meter: the middle tile"
+eq "$(nav dnd 'Down')" wallpaper; eq "$(nav saver 'Down')" wallpaper "the foot: the key nearest below"; eq "$(nav record 'Down')" screenshot
+eq "$(nav screenshot 'Up')" record "(its centre, 259, nearer record's 252 than ocr's 346)"; eq "$(nav sound 'Down')" night "from a meter: the middle tile"
 case_ "Tab and Shift+Tab: every item in turn, round"
 eq "$(nav power 'Tab')" brightness; eq "$(nav brightness 'ISO_Left_Tab')" power
 case_ "← → (h l) on a meter: its level by 5, at once and then set"
@@ -305,8 +305,9 @@ case_ "a meter without a level (no DDC/CI, muted, no output): ← → do nothing
 eq "$(py 'fresh(STATE.replace("70%","no DDC/CI")); p.focus = "brightness"; p.key("Right"); print(p.state["brightness"], u.calls)')" "no DDC/CI []"
 
 # ── the mouse ─────────────────────────────────────────────────────────────────────────
-# (quick settings, 12 tiles: night at x 145–265, y 101–181; the meters' segments from x 235, a
-# cell each; brightness y 45–65, sound y 65–85; the keys y 461–481)
+# (quick settings, 12 crests: night's cell at x 111–204, y 101–188 — the rows every 88 px, the
+# columns every 94 from x 17; the meters' segments from x 235, a cell each; brightness y 45–65,
+# sound y 65–85; the keys y 381–400)
 case_ "one light: the pointer over an item moves the cursor there (it is hot and the cursor at once), and the cursor stays where the pointer left it"
 eq "$(py 'opened("quick", STATE); p.hover(200, 130); print(p.hot, p.focus)')" "night night"
 eq "$(py 'opened("quick", STATE); p.hover(200, 130); p.hover(10, 130); print(p.hot, p.focus)')" "None night" "over the frame or a gap: nothing hot, the cursor where the pointer left it"
@@ -317,10 +318,10 @@ case_ "a click does what is under the pointer, there and then"
 eq "$(py 'opened("quick", STATE); p.hover(200, 130); p.press(200, 130); print(p.hot, p.focus)')" "night night"
 eq "$(py 'fresh(); p.press(300, 75); print(p.focus)')" None "a click on a meter, with no cursor shown: none is shown for it"
 eq "$(py 'fresh(); p.focus = "theme"; p.press(300, 75); print(p.focus)')" sound "… but a cursor the keys showed follows the click"
-eq "$(py 'fresh(); p.request(); u.calls.clear(); p.press(60, 470); print(", ".join(u.calls))')" "redraw, hide, light quick off, launch kawa-quick --do wallpaper"
+eq "$(py 'fresh(); p.request(); u.calls.clear(); p.press(60, 390); print(", ".join(u.calls))')" "redraw, hide, light quick off, launch kawa-quick --do wallpaper"
 case_ "the keys move the cursor from where the pointer left it"
-eq "$(py 'opened("quick", STATE); p.hover(330, 130); p.key("Left"); print(p.hot, p.focus)')" "vrr night"
-eq "$(py 'opened("quick", STATE); p.hover(200, 220); p.key("Down"); print(p.hot, p.focus)')" "bluetooth backup"
+eq "$(py 'opened("quick", STATE); p.hover(250, 130); p.key("Left"); print(p.hot, p.focus)')" "vrr night"
+eq "$(py 'opened("quick", STATE); p.hover(60, 220); p.key("Down"); print(p.hot, p.focus)')" "bluetooth dnd"
 case_ "the pointer leaving the panel: nothing hot, only that item redrawn; the cursor stays"
 eq "$(py 'opened("quick", STATE); p.hover(200, 130); u.drawn.clear(); p.leave(); print(p.hot, p.focus, u.drawn)')" "None night [['night']]"
 eq "$(py 'fresh(); u.drawn.clear(); p.leave(); print(u.drawn)')" "[]" "nothing was hot: nothing redrawn"
@@ -329,7 +330,7 @@ has "$(cat "$REPO/bin/kawa-panel")" 'Gdk.EventMask.LEAVE_NOTIFY_MASK'
 case_ "opened again: nothing hot until the pointer says where it is (a new window); a state read keeps it while it is there"
 eq "$(py 'fresh(); p.request(); p.hover(200, 130); p.close("chosen"); p.request(); print(p.hot)')" None
 eq "$(py 'fresh(); p.hover(200, 130); p.refresh(); u.answer(STATE); print(p.hot)')" night
-eq "$(py 'fresh(); p.hover(205, 400); a = p.hot; p.refresh(); u.answer(STATE.replace("bluetooth\ton\n","").replace("devices\tnone\n","")); print(a, p.hot)')" "record None" "the last row reflowed to two wide tiles: the gap between them"
+eq "$(py 'fresh(); p.hover(40, 330); a = p.hot; p.refresh(); u.answer(STATE.replace("bluetooth\ton\n","").replace("devices\tnone\n","")); print(a, p.hot)')" "dnd None" "the last row reflowed to three, centred: the margin left of it"
 case_ "a drag: the meter follows, the hot one does not move off it (nor the cursor)"
 eq "$(py 'opened("quick", STATE); p.hover(300, 55); p.press(300, 55); p.hover(200, 130, dragging=True); print(p.hot, p.focus)')" "brightness brightness"
 eq "$(py 'fresh(); p.press(5, 5); print(u.calls)')" "[]" "on the frame: nothing"
@@ -402,16 +403,16 @@ eq "$(py 'fresh(); p.scroll_by(200, 55, 0.5); p.scroll_by(200, 75, 0.5); print(p
 
 case_ "moving between items redraws only those that changed: the one left and the one entered (the cursor and the hot one together)"
 eq "$(py 'opened("quick", STATE); p.hover(200, 130); print(sorted({tuple(d) for d in u.drawn}))')" "[('night',)]" "the first: only it"
-eq "$(py 'opened("quick", STATE); p.hover(200, 130); u.drawn.clear(); p.hover(320, 130); print(sorted({tuple(d) for d in u.drawn}))')" "[('night', 'vrr')]"
-eq "$(py 'opened("quick", STATE); p.hover(200, 130); u.drawn.clear(); p.hover(201, 131); p.hover(210, 150); print(u.drawn)')" "[]" "within the same item: nothing"
-eq "$(py 'opened("quick", STATE); p.hover(200, 130); u.drawn.clear(); p.hover(210, 184); print(sorted({tuple(d) for d in u.drawn}))')" "[('night',)]" "onto the gap under it: the one left"
+eq "$(py 'opened("quick", STATE); p.hover(200, 130); u.drawn.clear(); p.hover(250, 130); print(sorted({tuple(d) for d in u.drawn}))')" "[('night', 'vrr')]"
+eq "$(py 'opened("quick", STATE); p.hover(200, 130); u.drawn.clear(); p.hover(201, 131); p.hover(190, 150); print(u.drawn)')" "[]" "within the same item: nothing"
+eq "$(py 'opened("quick", STATE); p.hover(200, 130); u.drawn.clear(); p.hover(200, 195); print(sorted({tuple(d) for d in u.drawn}))')" "[('night', 'devices')]" "straight down onto the next row (the sheet has no gaps): both"
 eq "$(py 'opened("quick", STATE); p.hover(200, 130); u.drawn.clear(); p.hover(10, 130); print(u.drawn, p.focus)')" "[['night']] night" "onto the frame: the one left, the cursor stays"
 eq "$(py 'fresh(); p.focus = "theme"; u.drawn.clear(); p.key("Right"); print(u.drawn)')" "[['theme', 'night']]" "the keys: the cursor's two"
 
-case_ "how each item is drawn (look): the cursor fills it with the lacquer (select); at rest a tile in its edge frame, on — its crest a vermilion seal with a paper ring, the picture knocked out in paper, its state strong — or off — the crest's outline edge2, its picture and name muted, its state faint; a key on its own fill in a 1 px frame; a meter bare. The pointer adds nothing of its own: it moves the cursor"
+case_ "how each item is drawn (look): the cursor fills it with the lacquer (select); at rest a crest on the bare sheet, its name text, on — a vermilion seal with a paper ring, the picture knocked out in paper, its state strong — or off — the crest's outline edge2, its picture muted, its state muted (a state, never faintnt; a key on its own fill in a 1 px frame; a meter bare. The pointer adds nothing of its own: it moves the cursor"
 lk() { py "fresh(); i = p.item('$1'); l = kp.look(i, $2, $3); print(l['fill'], l['frame'], l['glyph'], l['label'], l['value'], l['on_fill'])"; }
-eq "$(lk night False False)" "key edge key text strong False" "a tile that is on"
-eq "$(lk devices False False)" "key edge muted muted faint False" "a tile that is off"
+eq "$(lk night False False)" "None None key text strong False" "a crest that is on"
+eq "$(lk devices False False)" "None None muted text muted False" "a crest that is off"
 crest() { py "fresh(); i = p.item('$1'); l = kp.look(i, $2, False); print(l['seal'], l['ring'], l['outline'])"; }
 eq "$(crest night False)" "accent key None" "on: the seal vermilion, its ring paper"
 eq "$(crest devices False)" "None None edge2" "off: the outline"
@@ -462,12 +463,12 @@ has "$d" 'if it.lit and not it.value:'
 has "$d" 'dot(cr, it.x + it.w - DOT, it.y + (ROW - DOT) // 2, "text_on_select" if on else "accent")'
 has "$d" 'box(cr, x + 1, y, DOT - 2, DOT, name)'; has "$d" 'box(cr, x, y + 1, DOT, DOT - 2, name)'
 has "$d" 'frame(cr, x, y, w, h, "accent_text", cut=True)'
-case_ "a tile's pixels (§4): its crest — a seal 28 px across on the tile's middle column, 4 px of air above it as under its state; on, a disc and a paper ring 2 px inside its edge, off, a 1 px outline — its picture (14 px) in its middle; its name on row 2, its state on row 3, centred by their ink"
-has "$d" 'cx, cy = it.x + it.w // 2, it.y + CREST_TOP + CREST_R'
-has "$d" 'for dy, a, b in disc_rows(r - 2, r - 3):'; has "$d" 'for dy, a, b in disc_rows(CREST_R, CREST_R - 1):'
+case_ "a crest's pixels (§4): a seal 36 px across on its cell's middle column, 6 px down; on, a disc and a paper ring 2 px inside its edge, off, a 1 px outline — its picture (14 px) in its middle; its name on the row 46 px down, its state on the row 66 px down, centred by their ink"
+has "$d" 'cx, cy = it.x + it.w // 2, it.y + MON_TOP + MON_R'
+has "$d" 'for dy, a, b in disc_rows(r - 2, r - 3):'; has "$d" 'for dy, a, b in disc_rows(MON_R, MON_R - 1):'
 has "$d" 'pic(cr, cx - 7, cy - 7, ic[it.icon], lk["glyph"])'
-has "$d" 'text(cr, it.x + (it.w - ink_w.width) // 2 - ink_w.x, it.y + row * ROW + (ROW - LINE) // 2,'
-eq "$(py 'print(kp.CREST_R, kp.CREST_TOP, kp.TILE_H - 2 * kp.ROW)')" "14 5 40" "28 px across, its top 5 px down the tile (the frame's pixel and 4 of air), in the two rows above the words"
+has "$d" 'text(cr, it.x + (it.w - ink_w.width) // 2 - ink_w.x, it.y + top + (ROW - LINE) // 2,'
+eq "$(py 'print(kp.MON_R, kp.MON_TOP, kp.MON_NAME, kp.MON_STATE, kp.MON_W, kp.MON_H, kp.MON_STATE + kp.ROW <= kp.MON_H)')" "18 6 46 66 94 88 True" "36 px across, 6 px down its cell, the name and the state a row each under it, inside the cell"
 eq "$(py 'r = kp.disc_rows(14); ys = sorted({y for y, a, b in r}); w = {y: b - a + 1 for y, a, b in r}
 print(len(ys), ys[0], ys[-1], max(w.values()), all(a == -1 - b for y, a, b in r), all(w[y] == w[-1 - y] for y in ys))')" \
   "28 -14 13 28 True True" "the disc: 28 rows, 28 wide at its widest, symmetric left-right and top-bottom"
@@ -569,7 +570,7 @@ eq "$(py 'fresh(); p.request(); u.drawn.clear(); p.enter(200, 130); print(p.hot,
 eq "$(py 'fresh(); p.request(); p.enter(5, 5); print(p.hot, p.focus)')" "None None" "on the frame: nothing"
 eq "$(py 'fresh(); p.request(); p.press(300, 55); p.enter(200, 130); print(p.hot)')" brightness "during a drag the hot one stays"
 case_ "it opens under the pointer: the item there is hot as the window says the pointer is in"
-eq "$(py 'fresh(); p.request(); p.enter(60, 470); print(p.hot, p.focus)')" "wallpaper wallpaper"
+eq "$(py 'fresh(); p.request(); p.enter(60, 390); print(p.hot, p.focus)')" "wallpaper wallpaper"
 case_ "the pointer leaving: only a real leave clears it — not one into a child's window, not a grab's crossing"
 eq "$(py 'print([kp.real_leave(m, d) for m, d in (("normal", "nonlinear"), ("normal", "ancestor"), ("ungrab", "nonlinear"), ("normal", "inferior"), ("grab", "nonlinear"), ("gtk-grab", "ancestor"), ("state-changed", "nonlinear"))])')" \
   "[True, True, True, False, False, False, False]"
@@ -578,12 +579,12 @@ has "$(cat "$REPO/bin/kawa-panel")" 'win.connect("enter-notify-event", on_enter)
 has "$(cat "$REPO/bin/kawa-panel")" 'Gdk.EventMask.ENTER_NOTIFY_MASK'
 case_ "a click acts on the item under the pointer — hot at once, even with no motion or enter before it"
 eq "$(py 'fresh(); p.request(); u.calls.clear(); p.press(200, 130); print(p.hot, u.calls[-2:])')" "night ['redraw', 'run kawa-quick --do night']"
-eq "$(py 'fresh(); p.request(); p.hover(200, 130); u.calls.clear(); p.press(320, 130); print(p.hot, u.calls[-1])')" "vrr run kawa-quick --do vrr" "a stale hot one does not matter: the click's place does"
+eq "$(py 'fresh(); p.request(); p.hover(200, 130); u.calls.clear(); p.press(250, 130); print(p.hot, u.calls[-1])')" "vrr run kawa-quick --do vrr" "a stale hot one does not matter: the click's place does"
 case_ "let go: the hot one is what is under the pointer then (a drag may end anywhere)"
 eq "$(py 'fresh(); p.request(); p.press(300, 55); p.hover(200, 130, dragging=True); p.release(200, 130); print(p.hot, p.dragging)')" "night None"
 eq "$(py 'fresh(); p.request(); p.press(300, 55); p.release(420, 55); print(p.hot)')" None "let go outside: nothing"
 case_ "the panel changing under a still pointer (a state read): the hot one is what is under it now"
-eq "$(py 'fresh(); p.request(); p.enter(200, 260); u.answer(STATE.replace("bluetooth\ton\n","").replace("devices\tnone\n","")); print(p.hot)')" drives
+eq "$(py 'fresh(); p.request(); p.enter(200, 260); u.answer(STATE.replace("bluetooth\ton\n","").replace("devices\tnone\n","")); print(p.hot)')" backup
 eq "$(py 'opened("sound", SOUND); p.enter(200, 171); print(p.hot); p.refresh(); u.answer(SOUND.replace("input\t90", "output\t91\t0\tUSB DAC\t\t\t\t\t\ninput\t90")); print(p.hot)')" \
   "$(printf '%s\n' out:73 out:73)" "a device added below: the same row still under it"
 eq "$(py 'opened("sound", SOUND); p.enter(200, 151); print(p.hot); p.refresh(); u.answer("\n".join(l for l in SOUND.split("\n") if not l.startswith("output\t62"))); print(p.hot)')" \
