@@ -1156,3 +1156,25 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   committed). While he is at the PC: no wtype/session restart — headless only. Note: the foot
   server restarted at 02:26 runs outside autostart's keep() until the next login (no harm: it is
   the server autostart starts, same environment; a crash would leave Super+Return dead until then).
+- r27-19k-3 (a)–(c) ON MAIN (30 Oct 11:34) — quick settings as the mon sheet (家紋): four columns
+  of crests in 94 × 88 cells, nothing framed (a short row centred), the crest a seal 36 px across
+  6 px down, the name (text) on the row 46 px down, the state on the row 66 px down (strong on,
+  muted off — never faint), words up to 86 px ("KINGSTON 58G" whole); the cursor the whole cell in
+  the lacquer. The grid question (94 × 88 is off the 8 px / 20 px grid) grilled against an on-grid
+  variant (88 × 80, 8 apart: the crest crowded 2 px under the cursor's edge) — 94 × 88 kept, §3
+  states it as the grid's one exception; §4 rewritten. Tests: test_panel 503/0, test_quick 369/0,
+  test_hotkeys 65/0, test_design_doc 54/0, test_noellipsis 9/0, test_contrast 11/0; the gallery's
+  reference box for quick 411 × 420. Rendered headless both themes (kit play with the repo's bin:
+  rest, the cursor on an off crest). NOT applied: he was at the PC (an apply restarts nothing he
+  sees, but the live check would pop quick settings up on his screen) — next pass, while he is away.
+- r27-suite (30 Oct, partial): the whole suite started 02:28 on that tree (a copy) — 52 of 124 files
+  passed with 0 failures before the pass ran out (content, drives, engine, installer through
+  test_upgrade; it slept with the PC 02:32–11:22). Owed: the rest (installer from test_upkeep, look,
+  menus, session, static, status, yazi …) on the current tree.
+- NEXT PASS STARTS HERE (30 Oct 11:35): apply (fedokawaii apply) and look at quick settings live
+  (only if he is away: kawa-quick in the session's env, grim, Escape through the panel's fifo — no
+  wtype into his apps); then T19k-3 (d) the foot keys on the four columns (render both variants,
+  grill), (f) px.py: the air left/right of every crest and of the longest word, the cursor cell's
+  edges, the meter row under the cursor (flush right today); then T19k-4 (the crests' 28 px
+  pictures, the demon/angel head on the rod). The rest of the suite in the pass's first minutes,
+  in the background (setsid, never nohup).
