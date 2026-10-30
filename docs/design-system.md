@@ -159,7 +159,7 @@ screen and the bar's paper share one rhythm.
 | heading, GUI | 20 + 8 | — | its row, then 8 px of air; 20 px above it (none at the top of a panel) |
 | heading, TUI | 1 + 1 lines | — | its line, then a blank line; two blank lines above it (none at the top) |
 | content | 376 | 47 | a panel's inner width: quick settings, a notice, the launcher (410 with pad and hairlines) |
-| tile | 120 × 80 | 15 × 4 | a quick-settings tile; three a row, 8 apart = 376 |
+| tile | 94 × 88 | — | a quick-settings crest's cell (the mon sheet, §4): four a row, nothing between = 376 — the grid's one stated exception: each crest is centred on its own column, the sheet's outer edges are on the grid |
 | key | 20 high | 1 row | a key button: its 1 px frame inside the row |
 | meter | 160 × 10 | 20 | 20 segments, each 6 × 10 px with 2 px of air (one a cell): 5 % a segment |
 | stamp | 16 Ø | — | the workspace's vermilion seal on the bar (an emblem), its numeral 10 × 10 inside |
@@ -193,14 +193,15 @@ screen and the bar's paper share one rhythm.
 - **Key**: one row high, `key` fill, 1 px `edge` frame inside the row; its icon and name centred
   by their ink. Two or three share a row, 8 apart, the row the content's width; an icon-only key
   is 20 × 20.
-- **Tile** (quick settings): 120 × 80, `key` fill, 1 px `edge` frame — the same on and off: the
-  state is the crest's. The crest: a seal 28 px across, centred on the tile's middle column, 4 px
-  of air between it and the frame — as between the state and the frame below; its picture (14
+- **Tile** (quick settings — the mon sheet, 家紋): the content in four equal columns, each item a
+  cell 94 × 88, nothing framed (a short row centred on the sheet); the state is the crest's. The
+  crest: a seal 36 px across, centred on its cell's middle column, 6 px down; its picture (14
   px, each its own drawing — no two alike) in its middle. On — the seal pressed: a vermilion disc
   (`accent`) with a ring of paper (`key`) 2 px inside its edge, the picture knocked out in paper —
   the bar's stamp and the hanko of "chosen", one mark; off — the seal's outline in `edge2`, the
-  picture `muted`. Its name centred on row 2 (`text` on, `muted` off), its state centred on row 3
-  (`strong` on, `faint` off). Under the cursor's lacquer: the crest in `text_on_select`, its picture `select`. Turned
+  picture `muted`. Its name centred on the row 46 px down (`text`), its state on the row 66 px down
+  (`strong` on, `muted` off — a state, never faint), each at most 86 px. Under the cursor's lacquer
+  (the whole cell): the crest in `text_on_select`, its picture `select`. Turned
   on, the seal is stamped (§11's stamp: a pixel larger all round in `accent_hi` for 60 ms, then its
   size); turned off, its outline at once.
 - **Meter**: its icon and name as a row's, then 20 segments (§3), right-aligned before the value.

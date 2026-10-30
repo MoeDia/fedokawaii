@@ -122,7 +122,7 @@ def row(name):
     return m.group(1).strip() if m else None
 got = {"cell": f"{kp.CELL} × {kp.ROW}", "row": str(kp.ROW), "pad": str(kp.PAD), "hairline": str(kp.HAIR),
        "shadow": str(kp.SHADOW_B), "icon column": str(kp.GLYPH_COL), "content": str(kp.INNER),
-       "tile": f"{kp.TILE_W} × {kp.TILE_H}", "key": f"{kp.KEY_H} high", "meter": f"{kp.SPAN} × {kp.SEG_H}",
+       "tile": f"{kp.MON_W} × {kp.MON_H}", "key": f"{kp.KEY_H} high", "meter": f"{kp.SPAN} × {kp.SEG_H}",
        "gap": str(kp.GAP)}
 bad = [f"{k}: doc {row(k)}, kawa-panel {v}" for k, v in got.items() if row(k) != v]
 print(bad, kp.SEGS, kp.SEG_W, kp.DOT, kp.SHADOW_R, kp.NAME_X // kp.CELL, kp.HEAD_X // kp.CELL)

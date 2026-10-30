@@ -79,10 +79,10 @@ eq "$(python3 -I -B -c 'import importlib.machinery as m, importlib.util as u, sy
 sys.dont_write_bytecode = True; sys.modules["gi"] = None
 l = m.SourceFileLoader("kp", sys.argv[1]); k = u.module_from_spec(u.spec_from_loader("kp", l))
 l.exec_module(k)
-print(repr(k.fit("Home Network 5G Extended", k.TILE_W - 2 * k.GAP)), repr(k.fit("Home Networking 5G", k.TILE_W - 2 * k.GAP)),
+print(repr(k.fit("Home Network 5G Extended", k.MON_W - k.CELL)), repr(k.fit("Home Networking 5G", k.MON_W - k.CELL)),
       repr(k.fit("typed text here", 40, tail=True)))' \
   "$REPO/bin/kawa-panel")" "'Home Network' 'Home' 'here'" \
-  "the panel: a tile's value cut to its 104 px (a cut on a space keeps the word before it; one inside a word drops it), the typed text keeps its end"
+  "the panel: a crest's state cut to its 86 px (a cut on a space keeps the word before it; one inside a word drops it), the typed text keeps its end"
 lacks "$(sed -n '/    def text(cr, x, y, s, name/,/return log.width/p' "$REPO/bin/kawa-panel" | grep -v '"""' | grep -v '^\s*#')" '"…"' "the panel's text() adds no …"
 
 done_
