@@ -130,10 +130,16 @@ CELL, ROW = 8, 20                    # the cell: the terminal's, and every surfa
 HAIR, PAD = 1, 16                    # the frame's hairline; the paper from it to the content, all round
 BORDER = HAIR                        # (the content starts BORDER + PAD from the frame's outer edge)
 SHADOW_R, SHADOW_B = 1, 2            # the frame's shadow: a column at its right, two rows under it
-TILE_W, TILE_H, GAP = 120, 80, 8     # three tiles a row: 3 × 120 + 2 × 8 = 376, the content
-CREST_R, CREST_TOP = 14, 5           # a tile's crest (§4): a seal 28 px across, 4 px of air under the frame (as under its state)
+GAP = 8                              # the air between two keys, two groups' halves (§3)
 STAMP_MS = 60                        # a seal stamped (§11): a pixel larger in accent_hi this long
-INNER = 3 * TILE_W + 2 * GAP         # 376: 47 cells (quick settings, the sound panel, the launcher)
+INNER = 47 * CELL                    # 376: the content (quick settings, the sound panel, the launcher)
+# quick settings' sheet of crests (§4, 家紋 mon): four columns, nothing framed — a crest 36 px
+# across 6 px down its cell, its name and its state a row each under it (the names' capitals 9 px
+# under the crest), centred on the cell's middle column
+MON_COLS = 4
+MON_W, MON_H = INNER // MON_COLS, 88  # 94 × 88: a sheet of 4 × 94 = 376, the content
+MON_R, MON_TOP = 18, 6                # the crest's radius; its top in the cell
+MON_NAME, MON_STATE = 46, 66          # the name's row, the state's row (from the cell's top)
 COL = 7                              # a column of Sumi UI: a letter (a kanji or kana: two)
 LINE = 14                            # Sumi UI's em: in a row, on its rows 3–16 (capitals 5–14)
 METER_H, METER_GAP = ROW, 0          # a row, and the rows' air between them: none (theirs is inside)
@@ -475,17 +481,15 @@ def tiles_of(s):
           ("record", "tile_record", "record", "recording" if s.get("record") == "on" else "off", s.get("record") == "on"),
           ("ocr", "tile_read", "read text", "a region", False)]
     # (each value as much as its tile shows: a gap each side, 104 px of words)
-    return [(k, i, n, fit(v, TILE_W - 2 * GAP), on) for k, i, n, v, on in t]
+    return [(k, i, n, fit(v, MON_W - 2 * CELL), on) for k, i, n, v, on in t]
 
 
-def rows_of(n):
-    """How many tiles each row holds: three a row; a short last row takes from the one above,
-    so no row is ever a lone tile (7 → 3 2 2; 8 → 3 3 2)."""
-    rows = [3] * (n // 3) + ([n % 3] if n % 3 else [])
-    if len(rows) > 1 and rows[-1] == 1:
-        rows[-2] -= 1
-        rows[-1] += 1
-    return rows
+def rows_of(n, per=MON_COLS):
+    """How many crests each row holds: as few rows as `per` a row allows, the crests shared out
+    as evenly as they go, the fuller rows first — so no row is ever a lone crest and no row
+    much shorter than the others (12 → 4 4 4; 10 → 4 3 3; 9 → 3 3 3; 7 → 4 3; 5 → 3 2)."""
+    k = -(-n // per)
+    return [n // k + (1 if i < n % k else 0) for i in range(k)] if n else []
 
 
 class Layout:
@@ -772,15 +776,15 @@ def layout_quick(s):
     t = tiles_of(s)
     i = 0
     for n in rows_of(len(t)):
-        w = (INNER - (n - 1) * GAP) // n
+        left = x0 + (INNER - n * MON_W) // 2           # (a short row centred on the sheet)
         for c in range(n):
             key, ic, name, value, lit = t[i]
-            items.append(Item(key, "tile", x0 + c * (w + GAP), y, w, TILE_H, r, icon=ic, name=name,
+            items.append(Item(key, "tile", left + c * MON_W, y, MON_W, MON_H, r, icon=ic, name=name,
                               value=value, lit=lit))
             i += 1
-        y += TILE_H + GAP
+        y += MON_H
         r += 1
-    y += GROUP - GAP
+    y += GROUP
     # (the keys the whole width, 8 px apart: screen off and power their icons alone — squares, a
     # row high —, the two others sharing the rest)
     half = (INNER - 2 * KEY_H - 3 * GAP) // 2
@@ -1009,8 +1013,8 @@ def look(it, focused, hot):
             return {"fill": "select", "frame": None, "glyph": "select" if on else ink, "label": ink,
                     "value": ink, "on_fill": True, "detail": ink,
                     "seal": ink if on else None, "ring": "accent" if on else None, "outline": None if on else ink}
-        return {"fill": "key", "frame": "edge", "glyph": "key" if on else "muted",
-                "label": "text" if on else "muted", "value": "strong" if on else "faint", "on_fill": False,
+        return {"fill": None, "frame": None, "glyph": "key" if on else "muted",
+                "label": "text", "value": "strong" if on else "muted", "on_fill": False,
                 "detail": "text", "seal": "accent" if on else None, "ring": "key" if on else None,
                 "outline": None if on else "edge2"}
     if focused:
@@ -2583,22 +2587,22 @@ def main(argv):
             # on, pressed (vermilion, a paper ring 2 px inside its edge, the picture knocked out
             # in paper; the moment it is stamped a pixel larger in accent_hi), off, its outline;
             # under the cursor's lacquer in text_on_select. Its name and state centred under it
-            cx, cy = it.x + it.w // 2, it.y + CREST_TOP + CREST_R
+            cx, cy = it.x + it.w // 2, it.y + MON_TOP + MON_R
             if lk["seal"]:
                 big = not on and panel.stamping(it.key)       # (the stamp's moment: §11)
-                r = CREST_R + (1 if big else 0)
+                r = MON_R + (1 if big else 0)
                 for dy, a, b in disc_rows(r):
                     box(cr, cx + a, cy + dy, b - a + 1, 1, "accent_hi" if big else lk["seal"])
                 for dy, a, b in disc_rows(r - 2, r - 3):
                     box(cr, cx + a, cy + dy, b - a + 1, 1, lk["ring"])
             else:
-                for dy, a, b in disc_rows(CREST_R, CREST_R - 1):
+                for dy, a, b in disc_rows(MON_R, MON_R - 1):
                     box(cr, cx + a, cy + dy, b - a + 1, 1, lk["outline"])
             pic(cr, cx - 7, cy - 7, ic[it.icon], lk["glyph"])
-            for row, words, ink in ((2, it.name, lk["label"]), (3, it.value, lk["value"])):
+            for top, words, ink in ((MON_NAME, it.name, lk["label"]), (MON_STATE, it.value, lk["value"])):
                 if words:
                     ink_w = text_layout(cr, words).get_pixel_extents()[0]
-                    text(cr, it.x + (it.w - ink_w.width) // 2 - ink_w.x, it.y + row * ROW + (ROW - LINE) // 2,
+                    text(cr, it.x + (it.w - ink_w.width) // 2 - ink_w.x, it.y + top + (ROW - LINE) // 2,
                          words, ink, width=it.w - 2 * CELL)
         elif it.kind == "app":                   # (the launcher's: its icon, its name, the answer's "copy")
             ix, iy = it.x + GLYPH_X, it.y + (it.h - APP_ICON) // 2
