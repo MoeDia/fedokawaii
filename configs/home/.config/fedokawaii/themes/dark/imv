@@ -3,6 +3,6 @@
 [options]
 background = 181715
 overlay_font = Noto Sans:11
-overlay_text_color = f1e1b4
+overlay_text_color = e7cfa1
 overlay_background_color = 1c1916
 overlay_background_alpha = e6

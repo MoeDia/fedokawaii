@@ -40,25 +40,25 @@
 }
 @media (prefers-color-scheme: dark) {
   :root {
-    --accent-color: #f27740;
+    --accent-color: #f47b58;
     --accent-bg-color: #82241f;
-    --accent-fg-color: #f1e1b4;
+    --accent-fg-color: #f5ecc2;
     --window-bg-color: #181715;
-    --window-fg-color: #f1e1b4;
+    --window-fg-color: #e7cfa1;
     --view-bg-color: #1c1916;
-    --view-fg-color: #f1e1b4;
+    --view-fg-color: #e7cfa1;
     --headerbar-bg-color: #1c1916;
-    --headerbar-fg-color: #f1e1b4;
+    --headerbar-fg-color: #e7cfa1;
     --headerbar-border-color: #2d251e;
     --headerbar-backdrop-color: #181715;
     --sidebar-bg-color: #1c1916;
-    --sidebar-fg-color: #f1e1b4;
+    --sidebar-fg-color: #e7cfa1;
     --card-bg-color: #1c1916;
-    --card-fg-color: #f1e1b4;
+    --card-fg-color: #e7cfa1;
     --dialog-bg-color: #1c1916;
-    --dialog-fg-color: #f1e1b4;
+    --dialog-fg-color: #e7cfa1;
     --popover-bg-color: #1c1916;
-    --popover-fg-color: #f1e1b4;
+    --popover-fg-color: #e7cfa1;
     --destructive-bg-color: #eb5324;
     --destructive-color: #f58e84;
     --success-bg-color: #8fa071;
@@ -71,8 +71,8 @@
     --kawa-edge: #2d251e;
     --kawa-faint: #907e5d;
     --kawa-muted: #cab596;
-    --kawa-strong: #f1e1b4;
-    --kawa-accent-text: #f27740;
+    --kawa-strong: #f5ecc2;
+    --kawa-accent-text: #f47b58;
   }
 }
 

@@ -68,7 +68,7 @@ export TARGET_USER TARGET_HOME TARGET_UID TARGET_GID
 # shellcheck disable=SC2154  # rc is assigned inside the trap string
 # (on stderr; inside a $(…) or <(…) it only ends that piece, silently — see setup.sh)
 # (as setup.sh's: a command lib/common.sh's run or retry saw fail is named, not their return)
-trap 'rc=$?; ((BASH_SUBSHELL == 0)) || exit $rc; failed_what "${FUNCNAME[0]:-main}:$LINENO"; _out "${C_RED}✘ line $LINENO${FUNCNAME[0]:+ in ${FUNCNAME[0]}(), called from line ${BASH_LINENO[-2]}}: ${FAILED_SHOW:0:160} (exit $rc)${C_RESET}" >&2; exit $rc' ERR
+trap 'rc=$?; ((BASH_SUBSHELL == 0)) || exit $rc; failed_what "${FUNCNAME[0]:-main}:$LINENO"; _out "${C_RED}✘${C_RESET} line $LINENO${FUNCNAME[0]:+ in ${FUNCNAME[0]}(), called from line ${BASH_LINENO[-2]}}: ${FAILED_SHOW:0:160} (exit $rc)" >&2; exit $rc' ERR
 on_exit() {                  # (explicit "return 0": a bare return in a trap handler would
   local rc=$?                # hand back the exit status and set off the ERR trap)
   ((rc == 0 || CHECK)) && return 0
@@ -643,7 +643,7 @@ run_boot() {   # boot_and_console in a subshell with errexit on; what it changed
   # shellcheck disable=SC2154  # rc is assigned inside the trap string
   # shellcheck disable=SC2034  # lvl is read inside the trap string
   ( set -e; lvl=$BASH_SUBSHELL
-    trap 'rc=$?; ((BASH_SUBSHELL == lvl)) || exit $rc; failed_what "${FUNCNAME[0]:-main}:$LINENO"; _out "${C_RED}✘ boot menu / console: line $LINENO${FUNCNAME[0]:+ in ${FUNCNAME[0]}()}: ${FAILED_SHOW:0:160} (exit $rc)${C_RESET}" >&2; exit $rc' ERR
+    trap 'rc=$?; ((BASH_SUBSHELL == lvl)) || exit $rc; failed_what "${FUNCNAME[0]:-main}:$LINENO"; _out "${C_RED}✘${C_RESET} boot menu / console: line $LINENO${FUNCNAME[0]:+ in ${FUNCNAME[0]}()}: ${FAILED_SHOW:0:160} (exit $rc)" >&2; exit $rc' ERR
     n=${#CHANGED[@]} d=${#DRIFT[@]}
     trap 'rm -rf "${GT:-}"; { echo "T$TOTAL"; for x in "${CHANGED[@]:n}"; do echo "C$x"; done; for x in "${DRIFT[@]:d}"; do echo "D$x"; done; } >"$out"' EXIT
     boot_and_console )
@@ -948,7 +948,7 @@ if ((CHECK)); then
   ((DWL_MINE == 0)) || dwl_current || DRIFT+=("/usr/local/bin/dwl (not built from src/dwl as it is now)")
   # (the wallpaper pack depends on the network: verify.sh reports it as a warning instead)
   if ((${#DRIFT[@]})); then
-    printf '%s✘ %d of %d files differ from the repo:%s\n' "$C_RED" "${#DRIFT[@]}" "$TOTAL" "$C_RESET"
+    printf '%s✘%s %d of %d files differ from the repo:\n' "$C_RED" "$C_RESET" "${#DRIFT[@]}" "$TOTAL"
     printf '  %s\n' "${DRIFT[@]}"
   else
     printf '%s✔ theme in sync — %d files match the repo%s\n' "$C_OK" "$TOTAL" "$C_RESET"

@@ -17,4 +17,4 @@ style = "Bold"
 
 [color-palette]
 # toolbar swatches: vermilion, yamabuki, matcha, indigo, kinari (paper)
-palette = ["#eb5324ff", "#e2b540ff", "#8fa071ff", "#97acc8ff", "#f1e1b4ff"]
+palette = ["#eb5324ff", "#e2b540ff", "#8fa071ff", "#97acc8ff", "#f5ecc2ff"]

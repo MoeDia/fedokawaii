@@ -105,12 +105,13 @@ def dark():
     p["faint"] = mix("Light Brownish Olive", "Ecru", 0.25, "dark.faint")
     p["muted"] = mix("Ecru", "Ivory Buff", 0.20, "dark.muted")
     p["text"] = mix("Ecru", "Ivory Buff", 0.90, "dark.text")
-    p["strong"] = mix("Ivory Buff", "Sulpher Yellow", 0.55, "dark.strong")
+    p["strong"] = w("Sulpher Yellow", "dark.strong")    # (Lc 94: 16 over text — a step the eye takes)
     p["accent"] = w("Jasper Red", "dark.accent")        # (Red Orange's fill held ink at 4.3 : 1 only)
-    p["accent_hi"] = mix("Jasper Red", "Apricot Orange", 0.6, "dark.accent_hi")
+    p["accent_hi"] = mix("Jasper Red", "White", 0.2, "dark.accent_hi")    # (the seal's own hue, lit)
     p["accent_lo"] = w("Vandyke Red", "dark.accent_lo")
-    # vermilion as ink — an icon, a mark, a short word that needs you: the lit vermilion (Lc 47,
-    # APCA's level for an icon; Jasper Red read 38). Jasper Red stays the seal's fill. No red on
+    # vermilion as ink — an icon, a mark, a short value that needs you: the lit vermilion (Lc ≥ 47
+    # on every ground, APCA's level for an icon; Jasper Red read 38), the seal's hue kept (a tint
+    # toward white, not toward the flame's orange). Jasper Red stays the seal's fill. No red on
     # sumi reaches a reading level (60): words to be read are text, the red mark beside them
     p["accent_text"] = p["accent_hi"]
     RECIPE["dark.accent_text"] = RECIPE["dark.accent_hi"]
@@ -126,6 +127,12 @@ def dark():
     p["asagi"] = mix("Venice Green", "Ecru", 0.25, "dark.asagi")
     p["flame"] = w("Apricot Orange", "dark.flame")
     p["gold"] = w("Isabella Color", "dark.gold")
+    # the old masters' ramp (tools/build-masters.py, fetch's pictures): three tones between the
+    # stone and the cream — art's, never words' (the words' roles moved for legibility in T19m; the
+    # art keeps its even steps in lightness)
+    p["art_umber"] = mix("Light Brownish Olive", "Black", 0.22, "dark.art_umber")
+    p["art_olive"] = mix("Light Brownish Olive", "Ecru", 0.40, "dark.art_olive")
+    p["art_kinari"] = mix("Ecru", "Ivory Buff", 0.45, "dark.art_kinari")
     p["red"], p["green"], p["yellow"] = w("Jasper Red"), w("Rainette Green"), w("Yellow Ocher")
     p["blue"], p["purple"], p["teal"] = w("Salvia Blue"), w("Light Mauve"), w("Benzol Green")
     p["bred"], p["bgreen"], p["byellow"] = w("Coral Red"), w("Cobalt Green"), w("Naples Yellow")
@@ -168,6 +175,9 @@ def light():
     p["bred"], p["bgreen"], p["byellow"] = w("Vandyke Red"), w("Diamine Green"), w("Sepia")
     p["bblue"], p["bpurple"], p["bteal"] = w("Helvetia Blue"), w("Violet"), w("Vandar Poel's Blue")
     p["ansi0"], p["ansi7"], p["ansi8"], p["ansi15"] = p["edge"], p["text"], p["muted"], p["strong"]
+    # the terminal's black: the band TUIs lay behind a selected line or a changed word — a step
+    # lighter than the frames' edge, so the words on it keep Lc 75 (on edge text reads 73.9)
+    p["ansi0"] = mix("Sulpher Yellow", "Isabella Color", 0.40, "light.ansi0")
     p.update(gtk="Fedokawaii", base="adw-gtk3", scheme="prefer-light")
     return p
 

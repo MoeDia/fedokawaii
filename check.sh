@@ -260,5 +260,5 @@ grep -q '^ethernet:connected' < <(nmcli -t -f TYPE,STATE device 2>/dev/null) && 
 
 # ── verdict ──────────────────────────────────────────────────────────────────
 if summary "READY for setup"; then exit 0; fi
-_out "${C_RED}NOT READY — fix the ✘ items above, then run the check again.${C_RESET}"
+_out "${C_RED}✘${C_RESET} NOT READY — fix the ✘ items above, then run the check again."
 exit 1

@@ -18,7 +18,7 @@
  * thread they leave slowly makes the pattern — a quiet sashiko thread, each dot of it with
  * its shadow a dot down and to the right — a vermilion dot at each needle's tip.
  * Seals are stamped on the cloth now and then (a kanji of sewing, sleep or night — 縫 糸 針 夢
- * 眠 静 月 星 夜 …, accent_text in a 2-dot frame) and lifted again; a small patch, framed in
+ * 眠 静 月 星 夜 …, the seal's own red (accent) in a 2-dot frame) and lifted again; a small patch, framed in
  * running stitch, tells the time (時 and "09:41 PM", the lock screen's
  * words) and moves every minute. When the cloth is
  * full it rests, then is washed (an ordered dither, block by block) and sewn anew. Everything
@@ -261,15 +261,15 @@ static void ink(const struct glyph *g, int *x0, int *y0, int *x1, int *y1)
 			}
 }
 
-/* a seal at x, y: SEAL × SEAL, the kanji's ink centred; stamped (a 2-dot accent_text frame)
- * or a heading's (1 dot of edge2) */
+/* a seal at x, y: SEAL × SEAL, the kanji's ink centred; stamped (the seal's red, accent: a 2-dot
+ * frame, the kanji in it) or a heading's (1 dot of edge2, the kanji in accent_text: vermilion ink) */
 static void draw_seal(struct output *o, int x, int y, const struct glyph *g, bool stamped, uint8_t ground)
 {
 	int x0, y0, x1, y1;
 	fill(o, x, y, SEAL, SEAL, ground);
-	frame(o, x, y, SEAL, SEAL, stamped ? 2 : 1, stamped ? ACCENT_TEXT : EDGE2);
+	frame(o, x, y, SEAL, SEAL, stamped ? 2 : 1, stamped ? ACCENT : EDGE2);
 	ink(g, &x0, &y0, &x1, &y1);
-	draw_glyph(o, g, x + (SEAL - (x1 - x0 + 1)) / 2 - x0, y + (SEAL - (y1 - y0 + 1)) / 2 - y0, ACCENT_TEXT);
+	draw_glyph(o, g, x + (SEAL - (x1 - x0 + 1)) / 2 - x0, y + (SEAL - (y1 - y0 + 1)) / 2 - y0, stamped ? ACCENT : ACCENT_TEXT);
 }
 
 /* ── the sashiko ────────────────────────────────────────────────────────────────────── */

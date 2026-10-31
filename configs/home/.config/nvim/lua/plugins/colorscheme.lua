@@ -20,7 +20,7 @@ return {
         dark0_hard = "#181715", dark0 = "#181715", dark0_soft = "#1c1916",
         dark1 = "#1c1916", dark2 = "#221e1a", dark3 = "#2d251e", dark4 = "#3c2f22",
         gray = "#8a7755",
-        light0_hard = "#e8e3c2", light0 = "#f1e1b4", light1 = "#e7cfa1", light2 = "#c3ab88",
+        light0_hard = "#e8e3c2", light0 = "#f5ecc2", light1 = "#e7cfa1", light2 = "#c3ab88",
         light3 = "#ac9162", light4 = "#cab596",
         bright_red = "#eb5324", bright_green = "#96d1aa", bright_yellow = "#fbe6a0",
         bright_blue = "#a7d4e4", bright_purple = "#b5b1d8", bright_aqua = "#82c1b4",
@@ -61,7 +61,7 @@ return {
           -- with the strongest cream on it, as every menu has it (gruvbox's blue held 3.3 : 1 on paper)
           local sel = vim.o.background == "light"
             and { bg = "#82241f", fg = "#f8f3d8" }
-            or { bg = "#82241f", fg = "#f1e1b4" }
+            or { bg = "#82241f", fg = "#f5ecc2" }
           vim.api.nvim_set_hl(0, "PmenuSel", sel)
           vim.api.nvim_set_hl(0, "WildMenu", sel)
           -- the first screen (look.lua) as a text screen: the heading's icon vermilion, its
@@ -69,7 +69,7 @@ return {
           -- names the text, their keys and the start's time muted
           local t = vim.o.background == "light"
             and { icon = "#a84222", text = "#122625", stitch = "#d7bc8c", muted = "#586459" }
-            or { icon = "#f27740", text = "#e7cfa1", stitch = "#3c2f22", muted = "#cab596" }
+            or { icon = "#f47b58", text = "#e7cfa1", stitch = "#3c2f22", muted = "#cab596" }
           vim.api.nvim_set_hl(0, "KawaIcon", { fg = t.icon })
           vim.api.nvim_set_hl(0, "KawaName", { fg = t.text })
           vim.api.nvim_set_hl(0, "KawaStitch", { fg = t.stitch })
@@ -78,16 +78,19 @@ return {
           vim.api.nvim_set_hl(0, "SnacksDashboardKey", { fg = t.muted })
           vim.api.nvim_set_hl(0, "SnacksDashboardFooter", { fg = t.muted })
           vim.api.nvim_set_hl(0, "SnacksDashboardSpecial", { fg = t.muted })
-          -- diagnostics in the design's inks (docs/design-system.md §1): an error vermilion
-          -- (accent_text), a warning yellow, a note asagi, a hint muted — the words alone, no
-          -- ground behind them; the code they point at underlined in the same ink
+          -- diagnostics in the design's inks (docs/design-system.md §1): the sign and the code's
+          -- underline in the severity's ink — an error vermilion (accent_text), a warning yellow, a
+          -- note asagi, a hint muted; the message's words muted at the line's end, the words' own
+          -- ink in the float (vermilion marks, never carries a sentence: no red on sumi reads)
           local d = vim.o.background == "light"
             and { Error = "#a84222", Warn = "#986f2d", Info = "#00726a", Hint = "#586459" }
-            or { Error = "#f27740", Warn = "#e2b540", Info = "#82c1b4", Hint = "#cab596" }
+            or { Error = "#f47b58", Warn = "#e2b540", Info = "#82c1b4", Hint = "#cab596" }
           for k, c in pairs(d) do
             vim.api.nvim_set_hl(0, "Diagnostic" .. k, { fg = c })
             vim.api.nvim_set_hl(0, "DiagnosticSign" .. k, { fg = c })
-            vim.api.nvim_set_hl(0, "DiagnosticVirtualText" .. k, { fg = c })
+            vim.api.nvim_set_hl(0, "DiagnosticVirtualText" .. k, { fg = t.muted })
+            vim.api.nvim_set_hl(0, "DiagnosticVirtualLines" .. k, { fg = t.muted })
+            vim.api.nvim_set_hl(0, "DiagnosticFloating" .. k, { fg = t.text })
             vim.api.nvim_set_hl(0, "DiagnosticUnderline" .. k, { sp = c, underline = true })
           end
         end,

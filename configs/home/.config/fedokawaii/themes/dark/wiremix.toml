@@ -13,14 +13,14 @@ keybindings = [
 ]
 
 [themes.fedokawaii]
-default_device = { fg = "#f27740" }
-default_stream = { fg = "#f27740" }
+default_device = { fg = "#f5ecc2" }
+default_stream = { fg = "#f5ecc2" }
 selector = { fg = "#eb5324" }
 tab = { fg = "#cab596" }
-tab_selected = { fg = "#f1e1b4" }
-tab_marker = { fg = "#f27740" }
+tab_selected = { fg = "#f5ecc2" }
+tab_marker = { fg = "#f47b58" }
 list_more = { fg = "#907e5d" }
-node_title = { fg = "#f1e1b4" }
+node_title = { fg = "#f5ecc2" }
 node_target = { fg = "#cab596" }
 volume = { fg = "#e7cfa1" }
 volume_empty = { fg = "#3c2f22" }
@@ -30,12 +30,12 @@ meter_active = { fg = "#8fa071" }
 meter_overload = { fg = "#eb5324" }
 meter_center_inactive = { fg = "#3c2f22" }
 meter_center_active = { fg = "#8fa071" }
-config_device = { fg = "#f1e1b4" }
+config_device = { fg = "#f5ecc2" }
 config_profile = { fg = "#cab596" }
 dropdown_icon = { fg = "#cab596" }
 dropdown_border = { fg = "#cab596" }
 dropdown_item = { fg = "#e7cfa1" }
-dropdown_selected = { fg = "#f1e1b4", bg = "#82241f" }
+dropdown_selected = { fg = "#f5ecc2", bg = "#82241f" }
 dropdown_more = { fg = "#907e5d" }
 help_border = { fg = "#cab596" }
 help_item = { fg = "#e7cfa1" }

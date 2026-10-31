@@ -13,11 +13,11 @@ background-color=#1c1916ff
 text-color=#e7cfa1
 border-color=#e7cfa180
 shadow-color=#111314aa #11131450
-summary-icon-color=#f27740
+summary-icon-color=#f47b58
 # an app's own progress (the hint "value"): mako fills the card from the left, under the
 # words — asagi, the meters' colour, thinned so the words keep their contrast
 progress-color=over #82c1b440
-format=<span foreground="#f1e1b4" line_height="20480">%s</span>\n<span line_height="20480">%b</span>
+format=<span foreground="#f5ecc2" line_height="20480">%s</span>\n<span line_height="20480">%b</span>
 
 # critical: the hairline in vermilion (the main config keeps these on screen until dismissed)
 [urgency=critical]
@@ -25,9 +25,9 @@ border-color=#eb5324
 
 # several notices from one app, folded into one card: the count beside the title, muted
 [grouped]
-format=<span foreground="#f1e1b4" line_height="20480">%s <span foreground="#cab596">×%g</span></span>\n<span line_height="20480">%b</span>
+format=<span foreground="#f5ecc2" line_height="20480">%s <span foreground="#cab596">×%g</span></span>\n<span line_height="20480">%b</span>
 
 # udiskie's notice of a drive that would not open ("Job failed" — failed to mount, or to
 # unlock: a wrong passphrase): titled like the drives' own notices (kawa-drives)
 [app-name=udiskie]
-format=<span foreground="#f1e1b4" line_height="20480">󾁄 not opened</span>\n<span line_height="20480">%b</span>
+format=<span foreground="#f5ecc2" line_height="20480">󾁄 not opened</span>\n<span line_height="20480">%b</span>

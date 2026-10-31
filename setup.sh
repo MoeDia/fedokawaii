@@ -70,10 +70,10 @@ load_conf "$REPO_DIR"
 # (a command run or retry saw fail is named, not the helper's own return: failed_what)
 # shellcheck disable=SC2154  # rc is assigned inside the trap string
 trap 'rc=$?; ((BASH_SUBSHELL == 0)) || exit $rc; failed_what "${FUNCNAME[0]:-main}:$LINENO"
-      _out "${C_RED}✘ line $LINENO${FUNCNAME[0]:+ in ${FUNCNAME[0]}(), called from line ${BASH_LINENO[-2]}}: ${FAILED_SHOW:0:160} (exit $rc)${C_RESET}" >&2
+      _out "${C_RED}✘${C_RESET} line $LINENO${FUNCNAME[0]:+ in ${FUNCNAME[0]}(), called from line ${BASH_LINENO[-2]}}: ${FAILED_SHOW:0:160} (exit $rc)" >&2
       _out "  log: $LOG_FILE — fix the cause, then run the same command again (finished steps are skipped)" >&2; exit $rc' ERR
 trap 'if [[ $(head -n1 "${STATE_DIR:-/var/lib/fedokawaii}/phase" 2>/dev/null) == "done" ]]; then _out ""; _out "${C_OK:-}✔ Fedokawaii is built — reboot into the login screen: sudo systemctl reboot${C_RESET}"; exit 0; fi
-      _out ""; _out "${C_RED}✘ interrupted — run the same command again to continue${C_RESET}"; exit 130' INT TERM
+      _out ""; _out "${C_RED}✘${C_RESET} interrupted — run the same command again to continue"; exit 130' INT TERM
 if [[ $MODE == status ]]; then        # read-only, so it works while another run holds the lock
   # shellcheck disable=SC1091
   source /etc/os-release
@@ -367,7 +367,7 @@ contained() {
     # but a command run or retry saw fail is named)
     trap 'rc=$?; ((BASH_SUBSHELL == lvl)) || exit $rc; failed_what "${FUNCNAME[0]:-main}:$LINENO"
           [[ $FAILED_SHOW == return* ]] && exit $rc
-          _out "${C_RED}✘ line $LINENO${FUNCNAME[0]:+ in ${FUNCNAME[0]}()}: ${FAILED_SHOW:0:160} (exit $rc)${C_RESET}" >&2; exit $rc' ERR
+          _out "${C_RED}✘${C_RESET} line $LINENO${FUNCNAME[0]:+ in ${FUNCNAME[0]}()}: ${FAILED_SHOW:0:160} (exit $rc)" >&2; exit $rc' ERR
     "$@" )
   CONTAINED_RC=$?
   set -e; eval "$saved"

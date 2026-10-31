@@ -62,10 +62,13 @@ APCA_KEPT = ("the workspace seal's numeral (Wada's Black, the owner's choice)",)
 
 def role_pairs(m):
     """Every role's words on the grounds they stand on: the panels' and the terminal's, a solid
-    surface, a key's fill, the bar's tile."""
+    surface, a key's fill, the bar's tile — and a selected line's band (the terminal's black, ansi0),
+    which carries a row's own words (text, strong), never muted or faint ones."""
     p = P[m]
     grounds = dict(ground=p["ground"], surface=p["surface"], key=p["key"], tile=_wada.palette()[2][m])
-    return [(f"the roles ({m})", f"{r} on {g}", p[r], bg, ROLE_LC[r]) for g, bg in grounds.items() for r in ROLE_LC]
+    return ([(f"the roles ({m})", f"{r} on {g}", p[r], bg, ROLE_LC[r]) for g, bg in grounds.items() for r in ROLE_LC]
+            # the band behind a selected line (the terminal's black): a selected row's words only
+            + [(f"the roles ({m})", f"{r} on the band (ansi0)", p[r], p["ansi0"], ROLE_LC[r]) for r in ("strong", "text")])
 
 
 def foot_colours(m):

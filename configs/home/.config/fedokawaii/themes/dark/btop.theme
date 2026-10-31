@@ -2,10 +2,10 @@
 # Gradients run matcha → yamabuki → vermilion: calm when idle, warm under load.
 theme[main_bg]="#181715"
 theme[main_fg]="#e7cfa1"
-theme[title]="#f1e1b4"
-theme[hi_fg]="#f27740"
+theme[title]="#f5ecc2"
+theme[hi_fg]="#f47b58"
 theme[selected_bg]="#82241f"
-theme[selected_fg]="#f1e1b4"
+theme[selected_fg]="#f5ecc2"
 theme[inactive_fg]="#907e5d"
 theme[graph_text]="#cab596"
 theme[meter_bg]="#2d251e"

@@ -30,6 +30,7 @@ Needs Pillow and numpy.
 """
 import argparse
 import hashlib
+import importlib.util
 import pathlib
 import sys
 import tomllib
@@ -43,17 +44,22 @@ OUT = ROOT / "art/masters/out"
 CACHE = pathlib.Path.home() / ".cache/r27-art"
 W, H = 640, 360
 
-# each mood's inks (tools/build-themes.py's roles, the Wada palette): a ramp of neutrals, darkest
-# first — the dark mood's sumi and lacquer browns up to ivory, the light mood's ink up to kinari
-# paper — and a few accents a strongly coloured part may take, by its hue: vermilion above all.
-# Fewer colours than a print has: what pixel art gives up, on purpose
+# each mood's inks, by name from the Wada palette (tools/wada-palette.py): a ramp of neutrals,
+# darkest first — the dark mood's sumi and lacquer browns up to ivory (with the three art tones
+# between the stone and the cream), the light mood's ink up to kinari paper — and a few accents a
+# strongly coloured part may take, by its hue: vermilion above all. Fewer colours than a print
+# has: what pixel art gives up, on purpose
+_spec = importlib.util.spec_from_file_location("wada_palette", ROOT / "tools/wada-palette.py")
+_wada = importlib.util.module_from_spec(_spec)
+_spec.loader.exec_module(_wada)
+_P = _wada.palette()[0]
 RAMP = {
-    "dark": ["111314", "181715", "2d251e", "3c2f22", "4a3826", "65583f", "9a8767", "c5a56e", "d4bf9a", "f1e1b4"],
-    "light": ["121b1b", "122625", "586459", "8b917f", "96865e", "d7bc8c", "dfcc9c", "e8e3c2", "f8f3d8"],
+    "dark": [_P["dark"][k] for k in ("lo", "ground", "edge", "edge2", "hi", "art_umber", "art_olive", "gold", "art_kinari", "strong")],
+    "light": [_P["light"][k] for k in ("strong", "text", "muted", "faint", "lo", "edge2", "edge", "ground", "key")],
 }
 ACCENT = {
-    "dark": ["82241f", "eb5324", "f68c50", "82c1b4"],
-    "light": ["953321", "a84222", "cb6336", "00726a", "437742", "006eb8", "e2b540"],
+    "dark": [_P["dark"][k] for k in ("accent_lo", "accent", "flame", "asagi")],
+    "light": [_P["light"][k] for k in ("accent_lo", "accent", "accent_hi", "asagi", "green", "blue", "gold")],
 }
 PALETTE = {m: RAMP[m] + ACCENT[m] for m in RAMP}
 BAYER = np.array([[0, 8, 2, 10], [12, 4, 14, 6], [3, 11, 1, 9], [15, 7, 13, 5]]) / 16 - 0.5

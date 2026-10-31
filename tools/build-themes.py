@@ -775,14 +775,14 @@ format=<span foreground="#{p['strong']}" line_height="20480">\U000FE044 not open
 def gtk_vars(m, p):
     v = p["view"]
     return [("accent_color", p["accent_text"]), ("accent_bg_color", p["select"]), ("accent_fg_color", p["text_on_select"]),
-            ("window_bg_color", p["ground"]), ("window_fg_color", p["strong"] if m == "dark" else p["text"]),
-            ("view_bg_color", v), ("view_fg_color", p["strong"] if m == "dark" else p["text"]),
-            ("headerbar_bg_color", p["surface"]), ("headerbar_fg_color", p["strong"] if m == "dark" else p["text"]),
+            ("window_bg_color", p["ground"]), ("window_fg_color", p["text"]),
+            ("view_bg_color", v), ("view_fg_color", p["text"]),
+            ("headerbar_bg_color", p["surface"]), ("headerbar_fg_color", p["text"]),
             ("headerbar_border_color", p["edge"]), ("headerbar_backdrop_color", p["ground"]),
-            ("sidebar_bg_color", p["surface"]), ("sidebar_fg_color", p["strong"] if m == "dark" else p["text"]),
-            ("card_bg_color", v), ("card_fg_color", p["strong"] if m == "dark" else p["text"]),
-            ("dialog_bg_color", v), ("dialog_fg_color", p["strong"] if m == "dark" else p["text"]),
-            ("popover_bg_color", v), ("popover_fg_color", p["strong"] if m == "dark" else p["text"]),
+            ("sidebar_bg_color", p["surface"]), ("sidebar_fg_color", p["text"]),
+            ("card_bg_color", v), ("card_fg_color", p["text"]),
+            ("dialog_bg_color", v), ("dialog_fg_color", p["text"]),
+            ("popover_bg_color", v), ("popover_fg_color", p["text"]),
             ("destructive_bg_color", p["red"]), ("destructive_color", p["bred"]),
             ("success_bg_color", p["green"]), ("success_color", p["bgreen"]),
             ("warning_bg_color", p["yellow"]), ("warning_color", p["byellow"]),
@@ -929,7 +929,7 @@ def qt_colors(m, p):
     edges (flat: no shade darker than the stitch); what is selected filled with the lacquer
     (select), cream on it; links accent_text, visited ones the dim vermilion; words not there yet faint;
     a disabled window's words faint and its selection the edge, muted on it."""
-    fg = p["strong"] if m == "dark" else p["text"]      # (the words of a window, as GTK's)
+    fg = p["text"]      # (the words of a window, as GTK's: text in both moods, Lc ≥ 75)
     base = {
         "WindowText": fg, "Button": p["key"], "Light": p["edge2"], "Midlight": p["edge"],
         "Dark": p["edge2"], "Mid": p["edge"], "Text": fg, "BrightText": p["text_on_accent"],
@@ -985,7 +985,7 @@ def btop_theme(m, p):
 
 
 def zathurarc(m, p):
-    fg = p["strong"] if m == "dark" else p["text"]
+    fg = p["text"]
     return f"""# {header('~/.config/fedokawaii/current/zathurarc', NAMES[m] + ' colours for zathura')}
 set default-bg          "#{p['ground']}"
 set default-fg          "#{fg}"
@@ -1021,7 +1021,7 @@ def imv(m, p):
 [options]
 background = {p['ground']}
 overlay_font = Noto Sans:11
-overlay_text_color = {p['strong'] if m == 'dark' else p['text']}
+overlay_text_color = {p['text']}
 overlay_background_color = {p['surface']}
 overlay_background_alpha = e6
 """
@@ -1072,9 +1072,10 @@ window {{ background-color: {ink('ground')}; }}
 #verse-line {{ min-height: 14px; margin-top: 8px; }}
 #verse-kanji {{ color: {ink('accent_text')}; }}
 #verse {{ color: {ink('muted')}; }}
-/* what went wrong (ちがう · wrong password, Caps Lock · 大文字), empty until then */
+/* what went wrong (ちがう · wrong password, Caps Lock · 大文字), empty until then: words to be
+   read, in the strongest ink (vermilion is a mark's, never words': design-system §1) */
 #messages {{ min-height: 14px; margin: 24px 0 8px; }}
-#error-label, #warning-label {{ color: {ink('accent_text')}; margin: 0 8px; }}
+#error-label, #warning-label {{ color: {ink('strong')}; margin: 0 8px; }}
 /* the password's line: no box — the paper, a line of the rule's colour under it (the muted
    ink while it has the keyboard), each ◆ in vermilion ink at 28 px (Sumi UI at twice its
    pixels, as the time is at four: counted at a glance), 8 px apart; no caret (each ◆ that
@@ -1140,11 +1141,12 @@ def qt6ct_conf(m, p):
 
 def wiremix(m, p):
     # the mixer (audio menu → mixer…): the level bars in the level display's teal, the peak
-    # meters matcha, red past 0 dB; the chosen row and the default device marked vermilion;
+    # meters matcha, red past 0 dB; the default device's name strong (a state that is on), the tab's
+    # marker vermilion;
     # lists as the menus draw them (the chosen line in the lacquer, cream on it). Unset styles keep
     # foot's own text and ground.
     faint = p["edge2"] if m == "dark" else p["edge"]
-    styles = [("default_device", f'fg = "#{p["accent_text"]}"'), ("default_stream", f'fg = "#{p["accent_text"]}"'),
+    styles = [("default_device", f'fg = "#{p["strong"]}"'), ("default_stream", f'fg = "#{p["strong"]}"'),
               ("selector", f'fg = "#{p["accent"]}"'),
               ("tab", f'fg = "#{p["muted"]}"'), ("tab_selected", f'fg = "#{p["strong"]}"'), ("tab_marker", f'fg = "#{p["accent_text"]}"'),
               ("list_more", f'fg = "#{p["faint"]}"'),
@@ -1276,16 +1278,19 @@ return {{
           vim.api.nvim_set_hl(0, "SnacksDashboardKey", {{ fg = t.muted }})
           vim.api.nvim_set_hl(0, "SnacksDashboardFooter", {{ fg = t.muted }})
           vim.api.nvim_set_hl(0, "SnacksDashboardSpecial", {{ fg = t.muted }})
-          -- diagnostics in the design's inks (docs/design-system.md §1): an error vermilion
-          -- (accent_text), a warning yellow, a note asagi, a hint muted — the words alone, no
-          -- ground behind them; the code they point at underlined in the same ink
+          -- diagnostics in the design's inks (docs/design-system.md §1): the sign and the code's
+          -- underline in the severity's ink — an error vermilion (accent_text), a warning yellow, a
+          -- note asagi, a hint muted; the message's words muted at the line's end, the words' own
+          -- ink in the float (vermilion marks, never carries a sentence: no red on sumi reads)
           local d = vim.o.background == "light"
             and {{ Error = "#{P['light']['accent_text']}", Warn = "#{P['light']['yellow']}", Info = "#{P['light']['asagi']}", Hint = "#{P['light']['muted']}" }}
             or {{ Error = "#{P['dark']['accent_text']}", Warn = "#{P['dark']['yellow']}", Info = "#{P['dark']['asagi']}", Hint = "#{P['dark']['muted']}" }}
           for k, c in pairs(d) do
             vim.api.nvim_set_hl(0, "Diagnostic" .. k, {{ fg = c }})
             vim.api.nvim_set_hl(0, "DiagnosticSign" .. k, {{ fg = c }})
-            vim.api.nvim_set_hl(0, "DiagnosticVirtualText" .. k, {{ fg = c }})
+            vim.api.nvim_set_hl(0, "DiagnosticVirtualText" .. k, {{ fg = t.muted }})
+            vim.api.nvim_set_hl(0, "DiagnosticVirtualLines" .. k, {{ fg = t.muted }})
+            vim.api.nvim_set_hl(0, "DiagnosticFloating" .. k, {{ fg = t.text }})
             vim.api.nvim_set_hl(0, "DiagnosticUnderline" .. k, {{ sp = c, underline = true }})
           end
         end,
@@ -1416,10 +1421,11 @@ def panel_conf(m, p):
 
 def saver_conf(m, p):
     """kawa-saver, the screensaver: it draws dot by dot (C), so it takes the colours by name —
-    the ground, the sashiko's thread and its shadow (muted and lo on the ink, blue and edge on
-    the paper), the seals' vermilion, its clock's panel."""
+    the ground, the sashiko's thread and its shadow (art_olive and lo on the ink — the thread is
+    art, not words: it keeps its tone when the words' roles move — blue and edge on the paper),
+    the seals' vermilion (accent: a stamp; accent_text: the clock's 時), its clock's panel."""
     dark = m == "dark"
-    c = dict(p, thread=p["muted"] if dark else p["blue"], shade=p["lo"] if dark else p["edge"])
+    c = dict(p, thread=p["art_olive"] if dark else p["blue"], shade=p["lo"] if dark else p["edge"])
     keys = ("ground", "surface", "edge2", "thread", "shade", "text", "accent", "accent_text")
     return (f"# {header('~/.config/fedokawaii/current/saver.conf', 'the screensaver in ' + NAMES[m])}\n"
             + "".join(f"{k}={c[k]}\n" for k in keys))

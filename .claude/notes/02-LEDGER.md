@@ -1611,7 +1611,43 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   switch): 13 found in /run/user/1000 between 22:14 and 02:31. Now one record per menu by its pid
   (fedokawaii-tab.$$), and each start removes the records whose menu is gone (kill -0); the warm window's
   TERM trap stays. tests/engine/test_menu.sh 590/0 (+1 case: a dead pid's and an old mktemp record swept, a
-  live menu's kept, its own removed at its end; curl stubbed there — the menu's release check would have
-  gone to the network). Noted for T53: the file's earlier menu runs still reach dl.fedoraproject.org.
+  live menu's kept, its own removed at its end; curl stubbed to fail there — an earlier case's curl
+  stand-in (fzf's socket) answers every call, so a menu run's background release check recorded Fedora 45
+  as out and the next case's rows changed: the race behind its first two failures).
   Also seen (for T42/T59): every SIGUSR2 reload of waybar leaves 3–4 zombie children (comm "waybar") that
   waybar never reaps — 7 from 01:57/01:58, 3 more at 02:33.
+- r27-19m-b1-master (1 Nov 02:45; Fable, fresh, read-only): VERDICT FAIL — 2 major, 5 minor, 2 nits; it
+  verified the APCA function against the reference pairs, recomputed the table, saw the gate fail the
+  old text, and found the live PC on the new palette. FIXED (1 Nov 03:05):
+  (1, major) vermilion still carried sentences: lib/common.sh's die(), fail() rows, the verdict line and
+  dnf's failure lines, setup.sh's and theme.sh's error traps, check.sh's NOT READY, theme.sh's drift
+  line → the ✘ vermilion, the words in their own ink; the lock's message (gtklock #error-label) strong;
+  Neovim's diagnostics: the sign and the underline in the severity's ink, the message muted at the
+  line's end and text in the float; the mixer's default device strong ("a state that is on"); kept by
+  rule and written in §1: short values that need you (the bar's memory when high, a running timer,
+  "1 to fix"), links (Qt, GTK).
+  (2, major) build-art.py's outputs (the boot splash's words, the padlock, the seals) still held the old
+  tones → rebuilt; tests/static/test_generated.sh now rebuilds them on a copy and compares byte for byte
+  (plymouth, the saver's glyphs.h, gtklock.mo too) — 261/0.
+  (3) the old masters' ramp named the retired roles → three art tones in the palette (art_umber 65583f,
+  art_olive 9a8767, art_kinari d4bf9a: the dark ramp's even steps), build-masters.py reads its ramp and
+  accents by token name; fetch's art inks back on those exact tones; the saver's sashiko thread is art
+  too: art_olive (its look before the change, exactly).
+  (4) the steps: strong → Sulpher Yellow #f5ecc2 (Lc 94; text 78, muted 63, faint 34: ≥ 15 between
+  neighbours, written in §1; the light mood's strong over text by hue and place — both near-black ink);
+  the words of apps (GTK 3/4, Qt, zathura, imv's overlay) take text in both moods (was strong in the
+  dark: now Lc 94 would glare at length); the lacquer's words 8.0 : 1 (was 7.3).
+  (5) the ink's hue: Jasper Red → White 0.2 #f47b58 (h as the seal's; Lc 49 ground, 48 key/tile) over
+  → Apricot 0.6 (h 43, toward the flame) — rendered side by side with the seal in the bar, a notice and
+  Super+U (/dev/shm/r27/trial-*.png): the tint reads as the seal's red lit, the orange as a second red.
+  (6) the gate covers the band behind a selected line (the terminal's black, ansi0) for a row's words
+  (text, strong); light text read 73.9 on edge → the light mood's ansi0 a step lighter (Sulpher Yellow →
+  Isabella 0.4, e2cfa0: text 75.6), frames keep edge; muted on a band is not a row's ink (§1).
+  (7) the saver and the lock rendered before/after in the kit (/dev/shm/r27/ba-{lock-typed,saver}.png;
+  no wrong password typed — his account's failure count untouched): the lock's keys and date clearer,
+  the padlock and seal on the new inks; the saver's stamps had turned to the ink's tint (before, both
+  reds were one hex, so its code's choice never showed) → src/kawa-saver: a stamp in the seal's red
+  (accent), the clock's 時 in the ink — rendered again: stamps eb5324, 時 f47b58, thread 9a8767. The
+  greeter draws from the same gtklock.css, padlock and seals (system/kawa-greet): not rendered apart.
+  (8) §1 says why Lc 75 holds a 14 px regular pixel face (every stem a whole pixel at full coverage).
+  (9) the 02:21 run's test_syntax 684/1 was my own bin/__pycache__ (a py_compile check) — removed, 685/0.

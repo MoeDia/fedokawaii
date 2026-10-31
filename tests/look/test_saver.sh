@@ -70,7 +70,9 @@ if [[ -n $SAVER ]]; then
   has "$(cat "$SRC/kawa-saver.c")" 'enum { GROUND, SURFACE, EDGE2, THREAD, SHADE, TEXT, ACCENT, ACCENT_TEXT, NCOL };'
   pc() { sed -n "s/^$2=//p" "$REPO/configs/home/.config/fedokawaii/themes/$1/panel.conf"; }
   sc() { sed -n "s/^$2=//p" "$REPO/configs/home/.config/fedokawaii/themes/$1/saver.conf"; }
-  eq "$(sc dark thread)" "$(pc dark muted)" "the ink's thread: muted, as the bar's"; eq "$(sc light shade)" "$(pc light edge)" "the paper's shade: edge"
+  art_olive=$(python3 -I -c 'import importlib.util as u, sys; s = u.spec_from_file_location("w", sys.argv[1]); m = u.module_from_spec(s); s.loader.exec_module(m); print(m.palette()[0]["dark"]["art_olive"])' "$REPO/tools/wada-palette.py")
+  eq "$(sc dark thread)" "$art_olive" "the ink's thread: the art tone art_olive (art, not words: its tone stays when the words' roles move)"
+  eq "$(sc light shade)" "$(pc light edge)" "the paper's shade: edge"
   rm "$HOME/.config/fedokawaii/current"
   out=$(saver 2>&1); eq "$?" 1; has "$out" "saver.conf"; has "$out" "fedokawaii repair"
 fi

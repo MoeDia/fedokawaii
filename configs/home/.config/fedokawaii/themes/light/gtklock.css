@@ -28,9 +28,10 @@ window { background-color: #e8e3c2; }
 #verse-line { min-height: 14px; margin-top: 8px; }
 #verse-kanji { color: #a84222; }
 #verse { color: #586459; }
-/* what went wrong (ちがう · wrong password, Caps Lock · 大文字), empty until then */
+/* what went wrong (ちがう · wrong password, Caps Lock · 大文字), empty until then: words to be
+   read, in the strongest ink (vermilion is a mark's, never words': design-system §1) */
 #messages { min-height: 14px; margin: 24px 0 8px; }
-#error-label, #warning-label { color: #a84222; margin: 0 8px; }
+#error-label, #warning-label { color: #121b1b; margin: 0 8px; }
 /* the password's line: no box — the paper, a line of the rule's colour under it (the muted
    ink while it has the keyboard), each ◆ in vermilion ink at 28 px (Sumi UI at twice its
    pixels, as the time is at four: counted at a glance), 8 px apart; no caret (each ◆ that

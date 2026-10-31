@@ -5,7 +5,7 @@ umask 022
 
 # What a run says is drawn as every text screen is (docs/design-system.md §7): a part's heading
 # its name and the stitch to the right edge, its rows two columns in — the glyph (muted), two
-# spaces, the words — a failure in vermilion (accent_text), a warning's mark yellow, the times
+# spaces, the words — a failure's ✘ in vermilion (accent_text: a mark, never the words), a warning's mark yellow, the times
 # and the commands run in faint ink. In foot the inks are the desktop's own (its palette past
 # the sixteen: ~/.config/fedokawaii/screen.sh); on a text console the nearest of its sixteen.
 # Not on a terminal (a log, a pipe) the words alone. The log keeps its own plain lines
@@ -68,7 +68,7 @@ _heading() {
 }
 log()  { local IFS=' '; _out "${C_FAINT}$(_ts)${C_RESET} ${C_MUTED}▸${C_RESET} $*"; }
 ok()   { local IFS=' '; _out "${C_FAINT}$(_ts)${C_RESET} ${C_MUTED}✔${C_RESET} $*"; }
-die()  { local IFS=' '; _out "${C_FAINT}$(_ts)${C_RESET} ${C_RED}✘ $*${C_RESET}" >&2; exit 1; }   # (stderr: never swallowed by a $( ))
+die()  { local IFS=' '; _out "${C_FAINT}$(_ts)${C_RESET} ${C_RED}✘${C_RESET} $*" >&2; exit 1; }   # (stderr: never swallowed by a $( ))
 hdr()  { local IFS=' '; _heading "$*"; }
 
 # A command that run or retry saw fail is remembered (FAILED_CMD, with where it was called
@@ -171,7 +171,7 @@ dnf_do() {
     sleep "$pause"
     case $1 in install|upgrade|swap|distro-sync|reinstall|downgrade) refresh=(--refresh) ;; esac
   done
-  _out "${C_RED}✘ dnf -y $* — $why: $(dnf_fix "$why" "${*: -1}")${C_RESET}"
+  _out "${C_RED}✘${C_RESET} dnf -y $* — $why: $(dnf_fix "$why" "${*: -1}")"
   FAILED_CMD="dnf -y $*" FAILED_AT=${FUNCNAME[1]:-main}:${BASH_LINENO[0]}
   return 1
 }
@@ -254,7 +254,7 @@ dnf_install() {
     for p in "${pkgs[@]}"; do pkg_installed "${p%.x86_64}" || bad+=("$p|$why"); done
     ((${#bad[@]})) || bad=("${pkgs[*]}|$why")   # (each is in, yet dnf failed: a scriptlet's error — said as one)
   fi
-  _out "${C_RED}✘ dnf could not install ${#bad[@]} of ${#pkgs[@]} package(s):${C_RESET}"
+  _out "${C_RED}✘${C_RESET} dnf could not install ${#bad[@]} of ${#pkgs[@]} package(s):"
   for p in "${bad[@]}"; do _out "    ${p%%|*} — ${p#*|}: $(dnf_fix "${p#*|}" "${p%%|*}")"; done
   dnf_failed_note "${bad[@]}"
   FAILED_CMD="dnf -y install ${opts[*]}${opts:+ }${pkgs[*]}" FAILED_AT=${FUNCNAME[1]:-main}:${BASH_LINENO[0]}
@@ -267,7 +267,7 @@ pkg_provided()  { rpm -q --whatprovides "$1" >/dev/null 2>&1; }  # …or by a pa
 PASS=0 FAILS=() WARNS=()
 section() { _heading "$1"; }
 pass()    { PASS=$((PASS + 1)); _row "${C_MUTED}✔${C_RESET}" "$1"; }
-fail()    { FAILS+=("$1${2:+ — $2}"); _row "${C_RED}✘${C_RESET}" "$1${2:+ — $2}" "$C_RED"; }
+fail()    { FAILS+=("$1${2:+ — $2}"); _row "${C_RED}✘${C_RESET}" "$1${2:+ — $2}"; }
 warn()    { WARNS+=("$1${2:+ — $2}"); _row "${C_GOLD}!${C_RESET}" "$1${2:+ — $2}"; }
 info()    { _row "${C_MUTED}·${C_RESET}" "$1"; }
 check()   { local label=$1; shift; if "$@" >/dev/null 2>&1; then pass "$label"; else fail "$label"; fi; }
@@ -276,7 +276,7 @@ summary() {                     # summary VERB → prints the verdict; returns 1
   if ((${#FAILS[@]} == 0)); then
     _out "  ${C_MUTED}✔${C_RESET}  $1 — $PASS checks passed${WARNS:+, ${#WARNS[@]} warning(s)}"; return 0
   fi
-  _out "  ${C_RED}✘  ${#FAILS[@]} of $((PASS + ${#FAILS[@]})) checks failed:${C_RESET}"
+  _out "  ${C_RED}✘${C_RESET}  ${#FAILS[@]} of $((PASS + ${#FAILS[@]})) checks failed:"
   local f
   for f in "${FAILS[@]}"; do _row " " "$f"; done
   return 1

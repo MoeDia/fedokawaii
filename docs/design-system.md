@@ -48,15 +48,15 @@ colour anywhere, in either mood. (`--doc` prints the hex columns of this table.)
 | `faint` | `907e5d` Light Brownish Olive → Ecru 0.25 | `8b917f` text → ground 0.6 | what is not there yet ("none"), an empty workspace's numeral |
 | `muted` | `cab596` Ecru → Ivory Buff 0.2 | `586459` text → ground 0.36 | secondary words: values, a key's action, the layout's mark |
 | `text` | `e7cfa1` Ecru → Ivory Buff 0.9 | `122625` Deep Slate Green → Black 0.3 | names, rows, body |
-| `strong` | `f1e1b4` Ivory Buff → Sulpher Yellow 0.55 | `121b1b` Deep Slate Green → Black 0.7 | a heading's name, a notice's title, the time, a state that is on |
+| `strong` | `f5ecc2` Sulpher Yellow | `121b1b` Deep Slate Green → Black 0.7 | a heading's name, a notice's title, the time, a state that is on |
 | `accent` | `eb5324` Jasper Red | `a84222` Brick Red | vermilion fill: the bar's end tiles, the workspace stamp, the focused window's hairline |
-| `accent_hi` | `f27740` Jasper Red → Apricot Orange 0.6 | `cb6336` Brick Red → Apricot Orange 0.45 | vermilion lit: a vermilion tile under the pointer, a key held down, a stamp's thump (§11) |
+| `accent_hi` | `f47b58` Jasper Red → White 0.2 | `cb6336` Brick Red → Apricot Orange 0.45 | vermilion lit: a vermilion tile under the pointer, a key held down, a stamp's thump (§11) |
 | `accent_lo` | `82241f` Vandyke Red | `953321` Brick Red → Vandyke Red 0.5 | dim vermilion: an unlit segment on a vermilion fill |
-| `accent_text` | `f27740` = `accent_hi` | `a84222` Brick Red | vermilion ink: a heading's icon, the day's kanji, the date's slashes, US, a failure's mark — never words to be read (no red on sumi reaches Lc 60: the words beside the mark are `text`) |
+| `accent_text` | `f47b58` = `accent_hi` | `a84222` Brick Red | vermilion ink: a heading's icon, the day's kanji, the date's slashes, US, a failure's mark — never words to be read (no red on sumi reaches Lc 60: the words beside the mark are `text`) |
 | `text_on_accent` | `111314` | `f8f3d8` | ink on vermilion |
 | `select` | `82241f` Vandyke Red | `82241f` Vandyke Red | what is selected — the keyboard's cursor on a row, a key or a place of the dial; GTK's and Qt's selection, a default button: the lacquer (漆), one in both moods |
-| `text_on_select` | `f1e1b4` | `f8f3d8` | every ink on the lacquer: words, icons, a lit segment |
-| `select_lo` | `a65e49` Vandyke Red → f1e1b4 0.3 | `a96353` Vandyke Red → f8f3d8 0.3 | an unlit segment on the lacquer |
+| `text_on_select` | `f5ecc2` | `f8f3d8` | every ink on the lacquer: words, icons, a lit segment |
+| `select_lo` | `a8614d` Vandyke Red → f5ecc2 0.3 | `a96353` Vandyke Red → f8f3d8 0.3 | an unlit segment on the lacquer |
 | `asagi` | `82c1b4` Venice Green → Ecru 0.25 | `00726a` Light Porcelain Green → Dusky Green 0.45 | lit: a bar tile under the pointer or open; a meter's lit segments; something asking for you |
 | `flame` | `f68c50` Apricot Orange | `a84222` Brick Red | fire: the torches and lanterns, a meter's segments over 80 % |
 | `gold` | `c5a56e` Isabella Color | `e2b540` Yellow Ocher | metal and leaf in art only (rod caps, a halo, a demon's eyes, the torches' brass) — never words |
@@ -65,7 +65,8 @@ colour anywhere, in either mood. (`--doc` prints the hex columns of this table.)
 | `tile` | `25201a` | `f9f5de` | the bar's paper (§8) |
 
 The 16 terminal colours (foot, the console, every TUI) come from the same families; `ansi0` is
-`edge`, `ansi7` `text`, `ansi8` `muted`, `ansi15` `strong`:
+`edge` (the light mood's a step lighter, `e2cfa0`: the band behind a selected line, below), `ansi7`
+`text`, `ansi8` `muted`, `ansi15` `strong`:
 
 | token | dark 鬼 | light 天 | token | dark 鬼 | light 天 |
 |---|---|---|---|---|---|
@@ -81,20 +82,48 @@ the WCAG 2 ratio says, so the dark mood is set by Lc), and the WCAG 2 ratio besi
 has APCA's level for what it carries, on every ground words stand on (the panels', a solid
 surface, a key's fill, the bar's tile): `text` and `strong` Lc ≥ 75 (words read at length),
 `muted` ≥ 60 (a label, a value), `accent_text` ≥ 45 (an icon, a mark, a large glyph), `faint` ≥ 30
-(words only spotted: "none", "off"). Both moods keep the same steps within a few Lc (T19m, the
-sources: .claude/notes/design-research.md rule 14). Lc · ratio:
+(words only spotted: "none", "off"). The band a TUI lays behind a selected line or a changed word —
+the terminal's black, `ansi0` — carries that row's own words (`text`, `strong` ≥ 75 on it), never
+muted or faint ones; in the light mood it is a step lighter than the frames' `edge` for that
+(Sulpher Yellow → Isabella Color 0.4, `e2cfa0`: text 75.6 on it, 73.9 on edge). Sources:
+.claude/notes/design-research.md rule 14 (APCA in a Nutshell). APCA ties Lc 75 to 16 px at weight
+500 or 14 px at 700; we hold 14 px Sumi UI at regular weight to it because a pixel face draws every
+stem one whole pixel at full coverage, with no smoothing to thin it — it reads as a heavier weight
+does (T19m (b) 1, 1 Nov).
+
+The steps, so the order reads at a glance: each word ink ≥ 15 Lc below the one above it on the
+ground — dark: strong 94 · text 78 · muted 63 · faint 34; light: text 86 · muted 64 · faint 43, with
+`strong` (87) above `text` by its hue and its place (both are ink on paper, near black: no darker
+ink is left), never by lightness. The terminal's 7 and 8 (`text`, `muted`) keep the same step: 15
+(dark), 22 (light).
+
+Vermilion is a mark's ink, never a reading one — no red on sumi reaches Lc 60: an icon, a mark, a
+seal, a short value that needs you (the bar's memory when high, a running timer's digits, "1 to
+fix", "due"), a link (one word or two to follow, underlined by the toolkit). Words to be read — a
+failure, a message, a sentence — are `text` (or `strong`), with a vermilion ✘ or icon before them
+(lib/common.sh's rows, verify, the lock's message in `strong`, Neovim's diagnostics: the sign and
+the underline in the severity's ink, the message `muted` at the line's end, `text` in the float).
+`accent_text` is `accent_hi` in the dark mood: Jasper Red toward white (the seal's own hue, lit),
+Lc ≥ 47 on every ground.
+
+The old masters' pictures and fetch's take three art tones besides the roles — `art_umber`
+(`65583f`, Light Brownish Olive → Black 0.22), `art_olive` (`9a8767`, Light Brownish Olive → Ecru
+0.4), `art_kinari` (`d4bf9a`, Ecru → Ivory Buff 0.45): the dark ramp's even steps between the stone
+and the cream (tools/build-masters.py reads its ramp by name); never words.
+
+Lc · ratio:
 
 | on | faint | muted | text | strong | accent_text | asagi |
 |---|---|---|---|---|---|---|
-| dark `ground` | 34 · 4.5 | 63 · 9.0 | 78 · 11.8 | 88 · 13.8 | 47 · 6.4 | 61 · 8.7 |
-| dark `key` | 33 · 4.2 | 62 · 8.3 | 77 · 10.9 | 87 · 12.7 | 47 · 5.9 | 60 · 8.1 |
-| dark `tile` | 33 · 4.1 | 62 · 8.1 | 77 · 10.6 | 87 · 12.4 | 46 · 5.8 | 60 · 7.9 |
+| dark `ground` | 34 · 4.5 | 63 · 9.0 | 78 · 11.8 | 94 · 15.1 | 49 · 6.7 | 61 · 8.7 |
+| dark `key` | 33 · 4.2 | 62 · 8.3 | 77 · 10.9 | 93 · 13.9 | 48 · 6.2 | 60 · 8.1 |
+| dark `tile` | 33 · 4.1 | 62 · 8.1 | 77 · 10.6 | 93 · 13.6 | 48 · 6.0 | 60 · 7.9 |
 | light `ground` | 43 · 2.5 | 64 · 4.8 | 86 · 12.2 | 87 · 13.5 | 62 · 4.7 | 61 · 4.5 |
 | light `key` | 52 · 2.9 | 73 · 5.6 | 95 · 14.1 | 97 · 15.7 | 72 · 5.4 | 71 · 5.2 |
 | light `tile` | 53 · 3.0 | 75 · 5.7 | 96 · 14.4 | 98 · 16.0 | 73 · 5.5 | 72 · 5.3 |
 
 Ink on vermilion (`text_on_accent` on `accent`): 5.1 dark, 5.4 light — a mark's (the bar's seal), never
-a row's. What is selected is the lacquer, its words ≥ 7 : 1 (`text_on_select` on `select`: 7.3 dark,
+a row's. What is selected is the lacquer, its words ≥ 7 : 1 (`text_on_select` on `select`: 8.0 dark,
 8.5 light): `tools/contrast.py` measures every selected and highlighted state of every surface from
 the files the desktop ships (words ≥ 7, icons and matched letters ≥ 4.5, a large glyph or a
 meter's level ≥ 3) — and by APCA (`--apca`: the roles above, the selected states at Lc 60 for

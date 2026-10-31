@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # tests/static/test_generated.sh — what is made from something else still matches it:
-#   · tools/build-themes.py, build-icons.py, build-cursors.py and build-fonts.py (given its
+#   · tools/build-themes.py, build-icons.py, build-cursors.py, build-art.py and build-fonts.py (given its
 #     sources: FEDOKAWAII_FONT_SOURCES), run on a copy of the repository, write the committed
 #     files byte for byte (nobody edited an output by hand, nobody forgot to run them), and
 #     build-themes' colour check reads colours, not numbers
@@ -63,6 +63,14 @@ case_ "build-cursors.py on a copy: the pointers, byte for byte"
 copy
 (cd "$G" && python3 tools/build-cursors.py) >"$TMP/log" 2>&1 && _ok || _no "it failed: $(tail -n 4 "$TMP/log" | tr '\n' ' ')"
 same
+
+case_ "build-art.py on a copy: the lock's and the boot's pictures, the saver's letters, gtklock's words, byte for byte"
+copy
+(cd "$G" && python3 tools/build-art.py) >"$TMP/log" 2>&1 && _ok || _no "it failed: $(tail -n 4 "$TMP/log" | tr '\n' ' ')"
+same
+d=$(diff -rq "$REPO/system/plymouth" "$G/system/plymouth" 2>&1; cmp "$REPO/src/kawa-saver/glyphs.h" "$G/src/kawa-saver/glyphs.h" 2>&1
+    cmp "$REPO/art/gtklock.mo" "$G/art/gtklock.mo" 2>&1)
+eq "${d//$G\//copy:}" "" "the boot splash, the saver's letters or gtklock's words differ from build-art.py's"
 
 # ── icons ────────────────────────────────────────────────────────────────────────────────
 ICONS=$REPO/configs/home/.config/fedokawaii/icons.sh

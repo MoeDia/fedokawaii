@@ -13,8 +13,8 @@ keybindings = [
 ]
 
 [themes.fedokawaii]
-default_device = { fg = "#a84222" }
-default_stream = { fg = "#a84222" }
+default_device = { fg = "#121b1b" }
+default_stream = { fg = "#121b1b" }
 selector = { fg = "#a84222" }
 tab = { fg = "#586459" }
 tab_selected = { fg = "#121b1b" }
