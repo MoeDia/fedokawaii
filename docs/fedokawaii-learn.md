@@ -498,7 +498,7 @@ Keep the help sheet (**Super+/**) a key away; write down the three keys you look
 
 | Menu | Key | Inside |
 |---|---|---|
-| quick settings | **Super+X** | brightness and sound, theme, night light, network, Bluetooth, drives, backup, do-not-disturb |
+| quick settings | **Super+X** | a dial: the switches on its hours (theme, night light, FreeSync, screensaver, do-not-disturb, network, Bluetooth, drives, backup, record, read text), brightness and sound as beads inside, screenshot, wallpaper, screen off and power in its corners; the one under the cursor shown large in its middle |
 | sound panel | **Super+A** | the volume, every output and input, the mixer |
 | calendar | **Super+C** | the month; *next*, *today* |
 | power | **Super+Shift+E** | lock · sleep · log out · restart · shut down |

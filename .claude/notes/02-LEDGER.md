@@ -1407,3 +1407,15 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   (pictures); kawa-panel's docstring; art/crests.txt header; build-icons.py's seal-circle rule →
   a pixel of air all round. Static tests green: test_design_doc 54/0, test_noellipsis 9/0,
   test_contrast 11/0. test_panel being rewritten for the dial (a subagent; 406/107 before).
+- r27-inbox (1 Nov 00:10) — the owner's inbox entries of 31 Oct 23:52, 23:55, 23:56 rewritten into
+  the plan (headings now "— in the plan: …"): 23:52 → T19m (a) a design research digest of 100+
+  sources (grids, Japanese masters, interface masters, platform guides, legibility, TUI and
+  pixel craft) into design-system.md, (b) the audit in three full visual passes; 23:55 → T53 (no
+  over-engineering: every file against a named standard, every hot path measured) and Fedora 45
+  in T41 (tuning redone on 45), T46 (44 → 45 the first release upgrade through the button), T56
+  (the ISO on 45) — Fedora 45's final targets 3 Nov 2026 after two no-go slips (Phoronix
+  "Fedora 45 Hits A Second NO-GO", linuxiac; the official fedorapeople schedule page refused the
+  fetch — confirm on the day); 23:56 → T19n, the master: a fresh reviewer on the strongest model
+  gates every task (pass/fail on the evidence) and a trace of every request the owner made.
+  Also: the dial's gallery reference box (tools/regress/gallery-expect.json quick → 1574 33 1913
+  373); the Learn book's quick-settings row describes the dial.
