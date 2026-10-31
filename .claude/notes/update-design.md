@@ -40,32 +40,53 @@ half-done change meets the running system, when "rollback" means a reboot into a
 when nobody can tell which package broke what. So the button never changes the running system with
 an untried transaction:
 
-1. **The candidate.** A writable snapshot of the running root (`root.cand`, top level) receives the
-   transaction: `dnf5 --installroot=<cand> --use-host-config upgrade` from the downloaded cache
-   (scriptlets run chrooted; systemd's skip themselves in a chroot; a new kernel lands in the
-   candidate's own empty /boot, never the real one). The candidate is checked where it lies: every
-   binary of ours links (`ldd` inside it), each config we own parses with its program's own check
-   run inside it (`systemd-nspawn --ephemeral -D cand --private-network`, read-only, no session),
-   dwl and the C helpers rebuilt against it start headless (pixman) inside it, the greeter's and
-   the panel's GTK load, rpm's database is whole (`rpm --root cand -Va` on our files), the BLS entry
-   the new kernel would get has root= and rootflags (B3 #7), its initramfs would hold amdgpu, btrfs
-   and the splash (B3 #6).
+1. **The candidate.** The transaction is resolved once, on the running root, and stored, not run:
+   `dnf5 -C upgrade --store=$fk/tx` (dnf5-upgrade(8): "store … instead of running it"; packages and
+   transaction.json in the folder). A writable snapshot of the running root (`root.cand`, top
+   level) then receives it **inside a container**: `systemd-nspawn -D cand --private-network
+   --bind-ro=$fk/tx --bind=<scratch>:/boot --bind=<dGPU render node> … dnf5 --disable-plugin=actions
+   -C replay /tx` — the container gives the scriptlets their own /proc, /sys, /dev and /run (kernel
+   %posttrans → kernel-install → dracut builds the host-only image it will boot with; nothing
+   reaches the host's udev or systemd), and the actions plugin is off (else the candidate's
+   kawa-snap pre/post and the guard would run — dnf5 loads the host's plugins under
+   --installroot: installroot(7)). `replay` performs "the exact same operations … an error in case
+   of any differences in installed packages or their versions" (dnf5-replay(8)): the same
+   transaction later on the live root is replay's own guarantee, no comparison needed. The new
+   kernel lands in the scratch /boot, never the real one. His configs live in /home/dia/.config:
+   a writable snapshot of `home` (after the split) is bound in at /home for the checks and the
+   fixer. The candidate is checked where it lies: every binary of ours links (`ldd`), each config
+   we own parses with its program's own check, dwl and the C helpers rebuilt against it start
+   headless, the greeter's and the panel's GTK load, `rpm -V` of our files, the BLS entry the new
+   kernel would get has root= and rootflags (B3 #7), its initramfs holds amdgpu, btrfs and the
+   splash (B3 #6), and Mesa from the candidate draws: dwl headless with gles2 on the dGPU's render
+   node, bound by path (`/dev/dri/by-path/pci-0000:03:00.0-render` — node numbers change across
+   kernels, and T32 moves the session to the iGPU). Proven in the VM first (ledger r27-49-exp1: the
+   replay into a bare chroot worked, the kernel only in the scratch /boot, the same 1,973 packages
+   live; the container replaces the bare chroot because dracut and grub's tools need /proc, /sys
+   and /dev).
 2. **Bisection and the fixer work on candidates**, never on the running system: a red candidate is
    thrown away; halves of the package set are tried in fresh candidates (cheap: a snapshot is
    copy-on-write; no reboot); the AI fixer edits a candidate (B6 #12–13).
-3. **Then the running system** takes exactly the transaction the green candidate proved (the same
-   package set, the same cache, `-C`), in place, online, under rpm's inhibitor (B1 rpm-plugin-
-   systemd-inhibit), with the "before" snapshot pinned and an in-flight marker; then the full
-   verify and the desktop smoke test (the real GPU, the real session's programs, headless) — the
-   checks a container cannot make.
+3. **Then the running system** replays exactly that stored transaction (`dnf5 -C replay $fk/tx`),
+   in place, online, under rpm's inhibitor (B1 rpm-plugin-systemd-inhibit), with the "before"
+   snapshot pinned and an in-flight marker; then the full verify and the desktop smoke test (the
+   real GPU, the real session's programs, headless) — the checks a container cannot make. Every
+   stored package is verified first (`rpmkeys --checksig`): replay skips OpenPGP checks.
 4. **Red after that** (rare: what only the real machine shows) → the pinned snapshot is restored
-   (kawa-snap restore: the writable copy swapped in at the next start, kernels matched) and the
-   report says "restart to get the system before the update back"; the hold and the retry follow.
+   (kawa-snap restore, hardened per §3.1: the writable copy exchanged in for the next start,
+   kernels matched) and the report says "restart to get the system before the update back"; the
+   hold and the retry follow. **Automatic restores only once /home is its own subvolume**
+   (`findmnt -no FSROOT /home` = /home): before the split a restore would take his files back in
+   time, so until then it is offered, never done by itself; the split comes before the live
+   replay is enabled on the PC.
 
 Why online and not offline for the routine update (B2 #8 argues offline): the candidate removes
 the reason (an untried transaction under a running desktop), and an offline update costs him two
-restarts and a password each time; the transaction itself is short and inhibited; a cut-off one is
-caught at the next start (§4, phase 5). Release upgrades stay offline (Fedora's documented path,
+restarts and a password each time; the transaction itself is short (the VM: 34 s for 56 packages)
+and inhibited; a cut-off one is caught at the next start (§4, phase 5). Honestly: most runs carry a
+kernel, Mesa or glibc and want a restart anyway (phase 7 recommends it, never forces it) — online
+keeps the rest of his session alive meanwhile. Its cost: the transaction runs twice (candidate and
+live, ≈ 2× its time; T60 measures). Release upgrades stay offline (Fedora's documented path,
 §4.4), after a green VM pre-flight and a green candidate.
 
 ## 3. The disk layout this needs (T48 builds it; migrated on the PC once, the ISO makes it so)
@@ -75,22 +96,63 @@ caught at the next start (§4, phase 5). Release upgrades stay offline (Fedora's
 | `root` | / | yes | the system: packages, /etc, the rpm database (/usr/lib/sysimage/rpm: rolls back with the packages — B1 Changes/RelocateRPMToUsr) |
 | `home` (new) | /home | **never** | his files, configs and repositories: a restore must not take them back in time (B1 #9 — today /home is inside `root`) |
 | `log` (new) | /var/log | never | the journal and dnf's logs of the run that failed survive the restore that undoes it |
-| `fk` (new) | /var/lib/fedokawaii-update | never | the updater's own memory — phase, holds, history, reports, the fixer's attempts (B4 #8: a rollback must not erase the updater's memory) |
-| `root/.snapshots` | /.snapshots | — | kept nested as today (kawa-snap restore moves nested subvolumes across, tested) |
-| `root/home/dia/Downloads`, `…/VM`, `var/lib/machines`, `var/lib/portables` | — | no (nested subvolumes are never in a snapshot) | as today; Downloads and VM move into `home` with the migration |
+| `fk` (new) | /var/lib/fedokawaii/update | never | the updater's own memory — phase, holds, history, reports, the fixer's attempts (B4 #8: a rollback must not erase the updater's memory) |
+| `snapshots` (moved out of root) | /.snapshots | — | top level, so a restore carries nothing nested and no `delete -R` can reach a snapshot (B5 #2, #6); a snapshot refused unless /.snapshots is that mounted subvolume; listed in /etc/selinux/fixfiles_exclude_dirs |
+| `root/home/dia/Downloads`, `…/VM`, `var/lib/machines`, `var/lib/portables` | — | no (nested subvolumes are never in a snapshot) | Downloads and VM move into `home` with the split (renamed: VM images are NOCOW, never copied); machines/portables stay (empty, systemd's) |
 
-Migration (one boot-time unit before greetd, `fedokawaii-split.service`, after a pinned snapshot):
-a reflink copy of /home's files (nested subvolumes excluded, then moved across by rename — Btrfs
-renames a subvolume between parents, as kawa-snap restore does), SELinux contexts kept (`cp -a
---reflink=always` keeps xattrs), compared (file count, sizes, a checksum sample), the fstab line
-added, mounted; the shadowed copy inside `root` removed only after a good boot. The same for
-/var/log. The ISO (T56) creates the layout from the start. (B5 refines the procedure.)
+Never /var or /var/lib whole: the SELinux store (/var/lib/selinux), alternatives, rpm-state and
+authselect must roll back with /etc and /usr (B5 #5; Fedora moved the rpmdb into /usr for the same
+reason). fstab names subvolumes (`subvol=`, never subvolid), with the same options as /, no
+`nofail` on /home; the lines are re-asserted in an incoming root's fstab before every exchange.
+
+The split (once, `fedokawaii-split`, B5 #4): offline — a unit wanted by `system-update.target`, so
+nothing holds /home open — after a pinned snapshot: snapper's timers and snapperd stopped; refused
+while a VM runs; the top level mounted (subvolid=5); `btrfs subvolume create top/home`; `cp -aT
+--reflink=always -x /home top/home` (-a keeps SELinux contexts and xattrs; -x stops at the nested
+subvolumes, checked); Downloads and VM renamed across (`mv`); the trees compared (counts, sizes,
+a checksum sample); the fstab line added; mounted over /home (the old directory not renamed); the
+shadowed copy removed with plain `rm` only after a good boot; snapshots from before the split
+marked not restorable (they hold the old /home). The same for /var/log and `fk`; `.snapshots`
+renamed to the top level. The ISO (T56) creates the layout from the start.
+
+### 3.1 kawa-snap restore, hardened before the button relies on it (B5 #1–3, #8, #11, #17)
+
+Three unsafe spots in today's restore (system/kawa-snap), each fixed and each cut point proven in
+the VM (T49 restore-cut.sh: power off after every step):
+1. *The swap is two renames* (lines 187–188): between them no `root` exists, and the kernel mounts
+   by name — a cut there ends in dracut's emergency shell. → One `exch` (RENAME_EXCHANGE: atomic,
+   between subvolumes under any parent; `exch` from util-linux is installed) of `root.new` ↔
+   `root`, then the swapped-out tree renamed `root.old`, then `btrfs filesystem sync` before any
+   /boot edit and before the word "restart".
+2. *Nested subvolumes are moved before the swap, and leftovers deleted with `delete -R`* (lines
+   149–153, 176–189): a cut or a failed rename lets the next run delete every snapshot. → Snapshots
+   at the top level (§3) leave nothing nested to carry; never `-R` a subvolume that holds another
+   (`btrfs subvolume list -o` checked first); deletions with `--commit-after` and `btrfs subvolume
+   sync` (else "may appear again after a crash").
+3. *Kernel and root paired by two unrelated writes*: `kernel-install add` in the copy flips grub's
+   `saved_entry` before the swap, `grubby --set-default` after it — a cut in either window boots a
+   kernel without its modules. → `kernel-install add` with UPDATEDEFAULT=no (the copy's
+   /etc/sysconfig/kernel for the run), needing the copy's /etc/kernel/cmdline (rootflags=subvol=root),
+   a valid fstab and machine-id, /dev /proc /sys /run /boot /boot/efi bound; the default set once,
+   after the exchange and the sync; `restorecon -R /boot` on the host; orphan kernels removed with
+   `kernel-install remove` only after the restored root has booted; installonly_limit 3 (one more
+   kernel to fall back to while a probation is open).
+Also: /.autorelabel and /system-update stripped from the copy before the exchange; no blanket
+relabel (a restored root is self-consistent: labels and policy travel together — B5 #11) — a
+`restorecon -R -n -v` dry run on /home, /var/log and /boot relabels only the differences; the ESP
+and the bootloader are never rolled back and never "repaired" to older versions (B5 #10: excluded
+from rpm -Va verdicts); `restore old` reconciles /boot as a restore does; retention: `root.old` plus
+at most two timestamped ones; the booted or default subvolume never deleted; rpm's database
+checkpointed (`PRAGMA wal_checkpoint(TRUNCATE)`) before every snapshot (B5 #12).
 
 ## 4. The flow of the button (a state machine; its phase in `fk`, every step idempotent — B2 #9)
 
+This machine (checked 1 Nov 2026): no LUKS, no Flatpak (`rpm -q flatpak`: none), Secure Boot off
+(`mokutil --sb-state`; the ISO may turn it on — §5 row 44), the dGPU (RX 9060 XT) at PCI 03:00.0, the
+iGPU at 15:00.0, one kernel at rest (setup.sh `old_kernels_out`, fedokawaii-kernels.timer).
+
 Phase 0 — **may it start?** One run at a time (its own flock; dnf5/PackageKit/dnf5daemon not
-holding rpm's lock — B3 #4); not on battery below 50 % (a desktop: always on AC); the games VM not
-holding the dGPU (the fixer needs it); space: Btrfs unallocated ≥ 5 GiB and free ≥ 15 GiB read
+holding rpm's lock — B3 #4); the games VM not holding the dGPU (the fixer needs it); space: Btrfs unallocated ≥ 5 GiB and free ≥ 15 GiB read
 from `btrfs filesystem usage`, not df (B1 #10, B3 #14), /boot ≥ 300 MB and the ESP ≥ 50 MB free
 (B3 #5); a run left mid-flight is finished first (phase 5's recovery); verify now — its failures
 become the **baseline** (an update is judged by what it makes newly red, never by what was red
@@ -111,23 +173,39 @@ B4 #16) are held before the candidate is built.
 
 Phase 4 — **snapshot**: "before update DATE", important, pinned in `fk` (not cleaned up until the
 next update has passed its probation, §4.3), checked to exist (B3 #12: never trust a hook's
-silence); the in-flight marker written to `fk`: the snapshot's number, the package set.
+silence; the dnf hook gets `raise_error=1` so a stray dnf run without a snapshot stops too — B5
+#14); rpm's database checkpointed first; the in-flight marker written to `fk`: the snapshot's
+number, the package set. Every stored package verified (`rpmkeys --checksig` against the system's
+keys) before any replay: `dnf5 replay` skips OpenPGP checks for stored packages (seen in the VM,
+ledger r27-49-exp1).
 
 Phase 5 — **the transaction** on the running system: `dnf5 -C upgrade` of exactly the candidate's
 set; the guard's follow-ups (dwl relinked, helpers, theme); a power cut here leaves the marker:
-at the next start, `fedokawaii-resume.service` (before greetd) sees it — if rpm's database shows the
-set complete and verify passes, the run finishes; else the pinned snapshot is restored (kawa-snap
-restore) and the machine restarts once into it; either way a notice at login says what happened.
+at the next start, `fedokawaii-resume.service` (before greetd) sees it and reads the facts (B5 #15:
+libdnf5 never looks for unfinished history): leftover `/var/lib/rpm-state/kernel/installing_core_*`,
+stray `name;<hex>` files, `dnf5 check --dependencies --duplicates`, `rpm -V` of the set, the set
+installed or not — clean and complete → the run finishes (follow-ups, then the session-free
+checks: a verify subset that needs no session; the rest at login); anything else → the pinned
+snapshot is restored (§3.1, only once /home is split — before that, the rescue screen offers it)
+and the machine restarts once into it; the marker records "restored once", so a second start
+never restores again; either way a notice at login says what happened.
 
 Phase 6 — **the real checks**: verify (no new red against the baseline); the configs we own
 against the new versions (each program's own check: `foot --check-config`, waybar/mako/yazi/greetd
-parse, gtklock + kawa-lockmod load in a headless cage); the desktop smoke test (§4.2); the boot
+parse, gtklock + kawa-lockmod load in a headless cage, nvim's plugins from the lock and a
+`:checkhealth` subset); the desktop smoke test (§4.2); the boot
 pieces (the new kernel's vmlinuz and initramfs present and sane, its BLS entry with root= and
 rootflags, grub.cfg's snapshot submenu present — B3 #5–7, B4 #13).
 
-Phase 7 — **keep or undo**: green → kept; the previous run's pin released; a restart recommended
-only when the kernel, systemd, glibc, Mesa or the session's libraries changed (dnf5
-needs-restarting — B1), then the next start is on probation (§4.3). Red → the pinned snapshot
+Phase 7 — **keep or undo**: green → kept; a restart recommended only when the kernel, systemd,
+glibc, Mesa or the session's libraries changed (dnf5 needs-restarting — B1), then the next start
+is on probation (§4.3). A pin is released only by a closed probation (a good start after it),
+never by a later green run — several may be open at once. The pin itself is snapper's: `snapper
+modify -c '' N` (no cleanup algorithm: snapper never removes it), released with `-c number`;
+snapper's timeline off, its number cleanup the only one (no cleanup code of ours). The kernels:
+the previous one is removed (setup.sh `old_kernels_out`, fedokawaii-kernels.timer) only after
+`fedokawaii-boot-good` has marked the new one good — the update's own "one kernel" step moves
+here and never runs while a probation is open. Red → the pinned snapshot
 restored at the next start (§2.4), the held package(s) found in candidates (§4.1) so the next
 press does not repeat it.
 
@@ -149,7 +227,8 @@ is said plainly in the report. No background retries (his decision: the button o
 
 ### 4.2 The desktop smoke test
 
-Headless dwl on the real GPU (gles2, renderD128) as him, a runtime folder of its own, a throw-away
+Headless dwl on the real GPU (gles2, the dGPU's render node by path,
+`/dev/dri/by-path/pci-0000:03:00.0-render`, never renderD128: node numbers change) as him, a runtime folder of its own, a throw-away
 home with copies of the installed configs (tools/kit.sh's machinery), the session's autostart:
 pass when within 20 s dwl has committed frames, waybar, mako, kawa-panel and the warm windows are
 running, a shot of the bar is not blank and matches the bar's geometry check
@@ -159,8 +238,11 @@ container cannot do this (B4 #18: the headless compositor smoke test in verify).
 ### 4.3 Probation of the next start (B1 #7, B2 #5, #7)
 
 A start after a kernel/systemd/glibc/Mesa change is on probation: Fedora's grub boot counting
-(`boot_counter`, 08_fallback_counting: two failed starts → the entry before, i.e. the previous
-kernel) plus our own system-level `fedokawaii-boot-good.service` that sets `boot_success` only
+(B5 #9: 08_fallback_counting runs before 10_reset_boot_success, decrements `boot_counter` while
+`boot_success` is 0, and at 0 sets `default=1` — the second menu position, which must be the
+previous kernel (checked in grub.cfg) — then sticks at -1 until userspace unsets it; armed with
+`boot_counter=3 boot_success=0`, with `rd.shell=0 rd.emergency=reboot` and `kernel.panic` set while
+armed so a hang becomes a counted failure; the off-by-one proven in the VM) plus our own system-level `fedokawaii-boot-good.service` that sets `boot_success` only
 once the session has run dwl for 60 s with its helpers (today only a user-session timer does it,
 two minutes into a login). The previous kernel is never removed while a probation is open; the
 pinned snapshot stays until it closes. A start that never reaches userspace twice → the previous
@@ -170,12 +252,15 @@ entries stay the last resort (read-only boots are fragile on Fedora: B1 #3, B2 #
 
 ### 4.4 Release upgrades (T46)
 
-The same button, when the next Fedora has settled (WAIT days), RPM Fusion and our COPRs have it,
+The same button, when the next Fedora has settled (a 7-day floor after its release day — B3 #18;
+setup.sh's WAIT of 60 goes), RPM Fusion and our COPRs have it,
 the VM pre-flight (T05's harness: install at the target release, setup, theme, verify, smoke) is
 green, and a candidate `--releasever=N distro-sync` built from the running root is green. Then
 Fedora's documented path on the real machine (`dnf5 system-upgrade download --releasever=N`,
-reboot, the offline transaction), judged by facts after it (os-release, rpm's set, verify, smoke —
-B1 #6, B3 #1, #3: dnf5's exit status and silent returns to the old release are not trusted); red →
+reboot, the offline transaction — the pinned snapshot taken before `offline reboot`), judged by
+facts after it (`dnf5 offline status` and `log`, os-release, rpm's set, verify, smoke — B1 #6, B3 #1,
+#3, B5 #16: on failure dnf5's cleanup unit reboots into a half-updated normal system, so the first
+start after an offline run restores the pinned snapshot by itself unless all is complete); red →
 the pinned snapshot restored, "Fedora N waits" with the failing checks. Fedora 45 (3 Nov 2026,
 B1 #13: systemd 262, dracut 111, grub2 81, rpm 6.1 with signatures enforced) is the first.
 
@@ -189,7 +274,8 @@ actions; its output: JSON (verdict fix | cannot_fix) with SEARCH/REPLACE edits o
 config files; any key not in the new docs is rejected mechanically (B6 #11). It edits a candidate
 with the held package in; the failing check must turn green and the full candidate checks pass;
 two attempts at most; then the fix is applied to the running system with the package (phase 5–6)
-and recorded as a local override the next toolkit update reconciles. Everything else ends "held +
+as a `*.local` override (never the theme-owned file, which the next theme run rewrites), recorded
+in `fk` for the next toolkit update to reconcile. Everything else ends "held +
 told". If it cannot beat "hold and wait" on the graded breakage set (T47), the class is held-only.
 
 ## 5. Failure modes → answer → the T49 test that proves it (tools/vm-inject/)
@@ -205,7 +291,7 @@ told". If it cannot beat "hold and wait" on the graded breakage set (T47), the c
 | 7 | the disk too full before | phase 0 refuses, says how much is needed and offers snapshot cleanup | disk-full.sh |
 | 8 | Btrfs metadata full (no unallocated space — B3 #14) | phase 0 reads `btrfs filesystem usage`; refuses with the balance it will run | disk-full.sh --metadata |
 | 9 | /boot or the ESP full (B3 #5) | phase 0 checks; a kernel is pruned only outside a probation | boot-full.sh |
-| 10 | rpm's database damaged before the run | phase 0: `rpm -qa` + `rpm --verifydb`; rebuilt in the candidate first, the live one only after a green candidate | rpmdb-damage.sh |
+| 10 | rpm's database damaged before the run | phase 0: `rpm -qa` and `rpm --verify -a` (B5); `rpmdb --rebuilddb` in the candidate first, the live one only after a green candidate | rpmdb-damage.sh |
 | 11 | a scriptlet fails | the candidate is red → bisect → held; the running system never saw it | broken-pkg.sh --scriptlet |
 | 12 | a library our builds load changes its soname (wlroots deps, libdisplay-info — B3 #17) | the candidate rebuilds dwl and the helpers against it; still red → held | broken-lib.sh |
 | 13 | an option of a config we own renamed or dropped | the candidate's config check red → bisect → held → the fixer (T47) | fixer-bench.sh |
@@ -213,7 +299,7 @@ told". If it cannot beat "hold and wait" on the graded breakage set (T47), the c
 | 15 | a new kernel or initramfs does not start (B3 #6, #16) | probation: two failed starts → the previous kernel (grub boot counting); the kernel held; said at login | broken-boot.sh --initramfs |
 | 16 | a boot argument breaks the start | as 15 | broken-boot.sh --arg |
 | 17 | the session does not start on the real machine though the candidate passed | the live smoke test red → the pinned snapshot restored at the next start; the rescue screen offers it too | broken-session.sh |
-| 18 | SELinux: an older root under a newer policy | kawa-snap restore writes `/.autorelabel` when the policy versions differ (B5); the relabel's progress on the splash (B3 #19) | selinux-relabel.sh |
+| 18 | SELinux: an older root under a newer policy | no blanket relabel (it relabels every writable Btrfs mount, snapshots too, permissive, for a long time — B5 #11): the restored root is label-consistent (labels and policy travel together); `restorecon -R -n -v` on /home, /var/log and /boot, relabelling only the differences | selinux-relabel.sh |
 | 19 | a third-party repository lags or 404s (RPM Fusion has no 45 yet — B3 #15) | left out of this run, its packages wait, said | thirdparty-lag.sh |
 | 20 | a third-party package conflicts with Fedora's (freeworld Mesa) | candidate red → bisect → held | broken-pkg.sh --conflict |
 | 21 | the fixer makes it worse | it only edits a candidate; the checks decide; two attempts; then held + told | fixer-worse.sh |
@@ -236,19 +322,33 @@ told". If it cannot beat "hold and wait" on the graded breakage set (T47), the c
 | 38 | snapshots fill the disk over months | cleanup by count (no qgroups — B3 #11), a space floor checked before each snapshot, the pinned ones kept | space.sh |
 | 39 | a duplicate or mixed set after a cut | phase 6: `dnf5 repoquery --duplicates`, `dnf5 check`, `rpm -V` of the set | power-cut.sh (all points) |
 | 40 | verify itself broken by the update | verify runs from the toolkit; a verify that cannot run is red, never green | verify-broken.sh |
+| 44 | the bootloader (grub2-efi, shim) updated badly — it fails before boot counting can act, and it never rolls back (B5 #10, synthesis 17) | bootloader packages replayed as the last, separate step of phase 5, only after the rest is green; the previous EFI files kept (`EFI/fedora/*.prev`); /boot and /boot/efi excluded from rpm -V verdicts after a restore; older grub2-efi or shim never reinstalled onto the ESP. Secure Boot is off on this PC; the ISO, if it turns it on, adds the SBAT/dbx checks before such a step | broken-bootloader.sh |
+| 41 | power cut during a restore (between any two of its steps) | one atomic exchange, a sync before /boot, the default set last (§3.1): every cut leaves a root that boots with its kernels | restore-cut.sh (each step) |
+| 42 | a stored package tampered with between download and replay | `rpmkeys --checksig` of every stored package before any replay (replay skips OpenPGP checks) | broken-pkg.sh --tampered |
+| 43 | the split of /home is cut off half-way | offline, copy then compare then mount; the old /home untouched until a good boot; the pinned snapshot | split-cut.sh |
 
 ## 6. Attacks (the skeptic's pass)
 
-1. *The candidate passes, the live run differs.* — The candidate's transaction is stored (`--store`)
-   and the live run replays it from the same cache (`dnf5 replay`, -C): the same NEVRAs, no new
-   metadata in between. Proven by test 3/17 comparing `rpm -qa` of candidate and live.
+1. *The candidate passes, the live run differs.* — One stored transaction, resolved once on the
+   live root, replayed in both; replay itself errors on any difference in the installed set
+   (dnf5-replay(8)). Seen in the VM: the same 1,973 packages.
 2. *A chroot is not the system: scriptlets act differently.* — True for service restarts and
    triggers that talk to systemd; those are exactly what the live checks (phase 6) and probation
    catch. The candidate catches what breaks files, links, configs and Mesa.
-3. *kernel-install in the candidate writes into an empty /boot and fails, a false red.* — The
-   candidate gets a scratch /boot (a tmpfs with the loader skeleton bound at cand/boot); its
-   entries are inspected there (root=, initramfs content), then thrown away. Must be proven in the
-   VM first (T49 test 15).
+3. *kernel-install in the candidate writes into an empty /boot, or dracut fails without /proc, a
+   false red.* — The candidate runs in a container (its own /proc, /sys, /dev, /run) with a scratch
+   /boot holding the loader skeleton; in the bare-chroot trial (r27-49-exp1) the kernel landed in
+   the scratch /boot and dracut fell back to a generic image — the container makes it the host-only
+   one; proven in the VM before T45 (c) ships.
+33. *Under --installroot, dnf5 runs the host's plugins: the candidate would snapshot the live root
+   and arm the guard's follow-ups on the live system.* — Every candidate run with
+   `--disable-plugin=actions` (installroot(7): plugin paths are the host's), inside its container.
+34. *A stored package is swapped between download and replay; replay skips OpenPGP checks.* —
+   `rpmkeys --checksig` of every stored package against the system's keys before any replay
+   (row 42).
+35. *The candidate has no /home after the split, so the config checks and the fixer find nothing.*
+   — A writable snapshot of `home` is bound in; an accepted fix lands in the `*.local` override
+   (T42/T45), never in a theme-owned file the next theme run would rewrite.
 4. *Copy-on-write candidates eat the disk.* — Only what the transaction writes (1–3 GB typical),
    counted in phase 0's floor; the candidate deleted at the end of the run.
 5. *Bisection assumes one culprit.* — ddmin finds a smallest failing subset; two interacting
@@ -257,8 +357,9 @@ told". If it cannot beat "hold and wait" on the graded breakage set (T47), the c
    the report; advisories on held ones said plainly; retried each press; the fixer tried.
 7. *A restore to an older root forgets the locks (they live in /etc).* — The holds are `fk`'s;
    phase 0 writes them into /etc/dnf/versionlock.toml every run.
-8. *snapper's cleanup deletes the pinned snapshot.* — snapper's timeline is off; cleanup is ours
-   (by number), and it skips every number pinned in `fk`.
+8. *snapper's cleanup deletes the pinned snapshot.* — A pinned snapshot has no cleanup algorithm
+   (`snapper modify -c ''`): snapper's own cleanup never removes it; the timeline is turned off
+   (its timer is enabled on the PC today).
 9. *dnf5 says failure on success, success on failure (B3 #3).* — Facts decide: rpm's set, verify,
    smoke, os-release.
 10. *Boot counting falls back forever if our boot-good unit breaks.* — The fallback is the
@@ -311,4 +412,5 @@ told". If it cannot beat "hold and wait" on the graded breakage set (T47), the c
 32. *Snapshots are not backups.* — Said in the menu and the Learn piece: undo on this disk vs a
     copy on another drive (T48).
 
-(Open after B5: the /home split's exact procedure and SELinux after restore; then T49 proves each row.)
+No case is left open on paper: B5 is folded in (§3, §3.1, phase 4–5, §4.3, §4.4, rows 18, 41–44).
+What remains is proof: each row's test in the VM (T49), the candidate container first (T45 c).

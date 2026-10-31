@@ -1683,3 +1683,25 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   /proc, /sys: dracut falls back to a generic image, grub2-probe/editenv complain → bind them into the
   candidate (as kawa-snap's inside() does) so its initramfs is the host-only one that will boot.
   Output kept: /dev/shm/r27/vm-candidate-exp.txt. VM stopped (revert to "built" before the next run).
+- r27-47-master / r27-48-master (1 Nov 03:36; Fable, fresh, read-only): T43 PASS (436 links, 11/11 spot
+  checks real and accurate, the synthesis' 28 rows each cited) with nits; T44 FAIL — 9 major, 11 minor, 2 nits.
+  FIXED (1 Nov 03:50), the design revised once with batch 5 folded in:
+  the candidate's mechanics — the transaction stored once on the live root (`--store` does not run),
+  replayed into the candidate inside a container (`systemd-nspawn`: dracut and kernel-install get /proc,
+  /sys, /dev; nothing reaches the host's udev or systemd), `--disable-plugin=actions` on every candidate
+  run (installroot(7): dnf5 loads the host's plugins — the candidate would have snapshotted the live root
+  and armed the guard), a writable snapshot of home bound at /home for the config checks and the fixer,
+  the dGPU's render node by path; replay's own "error on any difference" is the same-transaction proof;
+  automatic restores only once /home is its own subvolume (before: offered); B5's flat layout
+  (snapshots, home, log, fk at the top level; never /var/lib whole) and §3.1 the hardened restore (one
+  exch, a sync before /boot, the default set last, no `delete -R` over a subvolume, no blanket relabel);
+  a bootloader row (replayed last and apart, previous EFI files kept, never downgraded; Secure Boot off
+  here); pins released only by a closed probation and held by snapper itself (no cleanup algorithm),
+  timeline off; the one-kernel rule interlocked with probation; the resume unit's session-free subset
+  and "restored once"; WAIT a 7-day floor + a green pre-flight; rpm --verify -a; nvim checkhealth;
+  machine facts stated (no LUKS, no Flatpak, Secure Boot off); /var/lib/fedokawaii/update; the cost of
+  online (≈ 2× the transaction's time). Research nits: the STRATUS bullet's network-repair paper
+  labelled, a secondary source marked, synthesis rows 19 and 24 given their own citations. Plan: T45's
+  gates and build order, T48's first items (the hardened restore, the flat layout, the split), T49's
+  scripts = the design's §5 test column (44 rows). Back to the master.
+- r27-42-strays-a live (03:08 apply): the 13 stale tab records swept; one left, the warm menu's own pid.
