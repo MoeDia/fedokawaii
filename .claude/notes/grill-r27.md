@@ -97,3 +97,27 @@ crest 36 px, x 29–64 in its cell — air 29 | 29, exact; 6 px above it, 7 unde
 crest → the name's ink 9 px, name → state 8. A word of odd ink width cannot split an even cell
 (freesync, 55 px: 19 | 20) — the extra pixel goes right, the same everywhere; T19k-4's pictures and
 any word can be checked against that rule.
+**(d) the foot (31 Oct 11:06):** two renders on the four columns, both themes (kit, the repo's bin):
+A — small crests (a 24 px outline ring round each icon, the word under: 56 px cells); B — the icon
+over its word, no ring (46 px). A reads as a fourth row of switches, all off (the outline crest *is*
+"off" on this sheet) — "power: off"; it also costs 10 px more. B reads as what they are, actions:
+the same columns, one grid for the panel, nothing framed. **Chosen: B.** Grill of B: icons muted
+at rest like every row's (an action is no state: never vermilion); the group's 16 px keeps the
+foot apart from the sheet without a rule; the icon → word air (10–11 px to the ascenders) a pixel
+or two above the crest → name 9 — kept: the 12 px icon is lighter than a 36 px seal and needs the
+room; 7 above the icon's ink, 7 under the baseline (the crest cell's 6/7).
+**T19k-4 first drawings (31 Oct 11:14) — the mood's face, multi-ink, 18 × 18** (`heads-t19k4.py`,
+`heads-t19k4.png`: each at 1× on its own end tile and 8×). The 1-bit 16 × 16 oni/tennin were
+"far too simple"; the tile's paper is 20 px high, so the gain is in inks, not size: sumi, ivory,
+gold, lacquer on the tile's red. **Dark — the hannya** (after Hokusai's Warai Hannya, AIC 1943.605,
+art/masters/SOURCES.md): gold horns from the temples, black hair parted on the brow, angry brows
+falling to the nose, slanted gold eyes with the pupil at the inner corner, flared nostrils, a grin
+ear to ear in lacquer with four ivory fangs, an ivory chin. Roar (quick settings open): the mouth a
+row deeper, the eyes all gold (no pupil: they glow). **Light — the tennin**: a gold nimbus behind,
+the hair in a bun with a gold pin, long hair to the shoulders, the urna (lacquer) on the brow,
+eyes closed in single lines, small lacquer lips; open: gold irises between black lids, the lips a
+smile. Grilled out on the way: draft 1's flat rectangle eyes and second "mouth" under the lip
+(hannya); the tennin's brow + eye dashes reading as "≡" and nose + lips as two mouths.
+Still to do (next pass): build them from tools/build-art.py (both themes' inks from build-themes),
+waybar's end tile as a background picture (the module's class for open), quick settings' heading
+the same face at 2×; shot on the real bar (kit bar), measured: its air in the tile, 1 px each side.
