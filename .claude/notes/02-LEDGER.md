@@ -1212,4 +1212,23 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
 - r27-fix (31 Oct 11:13): the toolkit no longer holds __pycache__, so every comparison of a clone
   with it skips __pycache__ too (setup.sh's clone removal, system/fedokawaii same_as_toolkit) —
   else a clone with tools/__pycache__ "differs from the toolkit" and is kept (test_upkeep caught it).
+- r27-19k-4 (a) DONE + VERIFIED kit, LIVE-INSTALLED (31 Oct 11:20, 4aa4fb9): the bar's end tile shows
+  the drawn face — tools/build-themes.py FACES → themes/<m>/face.png + face-open.png (18 × 18, four
+  inks); waybar #custom-menu lays it on the paper (background-position 5px 1px), the open frame on
+  .active (quick settings open). Measured on the kit's real bar: 1 | 1 px of paper above/below in
+  both themes, across 7 | 8 (hannya) and 6 | 7 (tennin) — the odd pixel right; the tile's right
+  hairline still on x 1911. Shots at rest and open, both themes (kit play: Super+X). test_bar 265/0
+  (+ the face's case), static 11/11. Applied (6 files: the 4 pictures, style.css, kawa-panel);
+  his next login shows it — a live grim of the bar then (no session was up).
+- r27-fix verified live (31 Oct 11:20): after this apply /usr/local/lib/fedokawaii holds 0 __pycache__
+  (the first apply of the day had copied tools/__pycache__ in).
+- NEXT PASS STARTS HERE (31 Oct 11:21): if his session is up and he is away — grim the bar's end tile
+  and quick settings live (both from the session's env), px.py against the kit's numbers. Then T19k-4
+  (b): quick settings' heading wears the face (open frame) — sketch two ways and grill: (1) the face
+  on a 20 × 20 vermilion seal in the icon column, the name at 24 as every heading's (only 4 px of air
+  to the name), (2) the same seal with the name at 32 (cells: the meters' names below — a stated
+  exception); the hannya's black hair needs the seal (on the dark ground it vanishes). Then (c) the
+  crests' 28 px pictures (12 drawings, one ink each on the seal, multi-ink off) and (d) the to-do
+  icon (T19k-5). The suite's installer area (started 11:10 on a copy before the __pycache__ fix):
+  re-run it whole.
 
