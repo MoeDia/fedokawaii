@@ -1362,3 +1362,13 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   FE800–FE8CF). test_bargaps 6/0 (+ "an icon appended moves no other and no twin"); test_generated
   258/0, test_tiles 137/0, test_bar 265/0, test_panel 513/0. A new icon still needs a new foot server
   (his next login) to show; until then it is absent, never a wrong one.
+- r27 SESSION RESTART (31 Oct 23:08, 6f00a61 applied 23:07 — 66 s, repair path for the fonts, rc 3: only
+  qbittorrent): he had been away since 22:52 (two 60 s idle probes fired, 22:53 and 23:06), no editor held
+  changes (the notes' nvim: no modified buffer), his terminal an idle shell; greetd's initial_session (the
+  file backed up, restored at once: 0 initial_session lines). New session 23:08:03: dwl, waybar, panel,
+  foot server — the new fonts everywhere. VERIFIED LIVE (grim, his session's env): the bar — every twin
+  icon from the new range (memory, volume, brightness), the moon and its star beside 28°; quick settings
+  (opened by kawa-quick, closed again) — the sixteen crests and the hannya heading, measured with a colour
+  tolerance (the panel's glass): moon 6|7·6|6 (248 px), socket 8|8·9|9 (180 px), spool 8|9·7|8 (161 px),
+  exactly the kit's; Super+U (kawa-warm system, put away again) — the tab row: pagoda (lit) system,
+  seedling, camera, chest, cap.
