@@ -1373,7 +1373,7 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   exactly the kit's; Super+U (kawa-warm system, put away again) — the tab row: pagoda (lit) system,
   seedling, camera, chest, cap.
 
-## >>> NEXT PASS STARTS HERE (owner 2026-10-31 23:23, overrides the line above): quick settings rebuilt FROM SCRATCH - drop the mon sheet entirely, no reuse of any earlier layout; super minimal, super creative; several directions rendered and grilled, the best built, tested, live. Then continue the plan.
+## (owner 2026-10-31 23:23 — now r27-19k-7, below): quick settings rebuilt FROM SCRATCH - drop the mon sheet entirely, no reuse of any earlier layout; super minimal, super creative; several directions rendered and grilled, the best built, tested, live. Then continue the plan.
 - r27-19k-7 WIP (31 Oct 23:50) — quick settings from scratch (the owner's 23:23 note above): three
   new directions rendered both moods (design-r27/quick-r4.py: A the dial 和時計, B the soroban, C
   the koto) and grilled — CHOSEN A, the dial: a square 304 px; the twelve switches' 28 px
@@ -1459,3 +1459,37 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   (design-r27/dl-fill-t31.png): the fill exactly inside the tray's walls. Live at his next login
   (the running bar holds the old font and the old module). Left in T31: each source proven with a
   real download, the notice's icon, the browser's %.
+- r27-19k-7-master (1 Nov 00:40, the master's first review — T19n; Fable, fresh, read-only): VERDICT FAIL —
+  2 major, 7 minor, 1 nit, and "alive unmet". FIXED (1 Nov 01:00): (1) the middle's block was centred
+  only for an hour (a corner with no state, a meter with a level sat high; no level low) → echo_parts():
+  each state's block — the picture by its INK (crests/ink.txt, written by build-icons.py), or the level's
+  capitals, then 16 px, then only the rows that have words — centred on the middle; measured on the kit
+  per state: dx 0.0, dy 0.0 (+1.0 where a descender hangs: "power", "light"); (3) the four corners were
+  four ink sizes → camera redrawn 24 × 20 like the print and the monitor, the power ring 22 × 23 (its
+  odd row below), and every corner placed by its ink 2 px from the sides and 4 from top or foot (all four
+  alike, measured 2|2 4|4 both moods), its place centred on the ink; (4) the sound panel unreachable by
+  the pointer → a click on the middle does what it shows (sound: its panel); (5) the wallpaper corner's
+  tooltip doubled the middle → gone, its name the middle's second row; (6) §4's "the words never" vs the
+  glass → the sentence made true (what lies under shows at 8 %, everything drawn is opaque); (7) the
+  evidence predated the code → tools/regress/dial.sh: a kit play both moods that measures the frame, the
+  ink margins, the beads' mirror and the middle's centre per state (held, both moods); (8) dead code
+  and stale words out (GROUP, pic(), the "cat" and "tile" words, on_arc() shared by inside and
+  arc_level, the mood by the theme's name); (9) ↑ ↓ on a meter with no level move on; (10) the
+  theme's hour stated in §4 (never off: the mood, the dial's crown). OPEN (next pass, then the master
+  again): (2) the face at rest is the bar's 18 × 18 blown up ×3 (three pixel scales on one surface) —
+  draw it for the middle at 1 px, ≥ 54 × 54, four inks, both moods, open, no scaling, no outline;
+  ALIVE — the beads lighting one after another as a level changes (§11: 12 ms a bead) and the record
+  hour moving while it records. Tests: test_panel 616/0 (new: the middle's centre per state from
+  echo_parts, the corners' ink margins, the click on the middle), test_design_doc 54/0.
+- r27-19n (1 Nov 01:00) — the trace (a sonnet subagent; .claude/notes/master-trace.md): 332 requests
+  (r24 46, r25 22, r26 36, r27 228 incl. 8 inbox) — done 120, wip 45, todo 138, dropped 29; flags:
+  UNPLANNED 4 (r24-27 screen sharing → T59; r24-40a the boot menu's orange bar → T59; r24-41b the
+  update pulls the repo → T45; r27-rule-2 his fk-remote page → T42), UNPROVEN 7 (r24-37, r25-10,
+  r26-8, r26-14, r27-1427-2/-4/-8 → T51's verification list), STALE 8 (the saver → lock freeze ×3 →
+  T20; T01b's efi_pstore; quick settings ×3 — T19k-7 open; contrast's last two) — all folded into
+  the plan. Left in T19n: the master's own check of the trace's gaps; keeping it current.
+
+## >>> NEXT PASS STARTS HERE (1 Nov 01:00): T19k-7's two open findings — the middle's face drawn at
+## 1 px (≥ 54 × 54, both moods, open) and the dial alive (beads one after another, 12 ms a bead; the
+## record hour moving while it records) — then the master's re-review (tools/master-brief.sh T19k-7,
+## the prompt in the ledger's r27-19k-7-master line's spirit); then T19m (a) the design research.

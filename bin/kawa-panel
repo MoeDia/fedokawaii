@@ -1,5 +1,5 @@
 #!/usr/bin/python3
-"""kawa-panel — the panels under the bar: quick settings (its cat, or Super+X), the sound panel
+"""kawa-panel — the panels under the bar: quick settings (the face at its right end, or Super+X), the sound panel
 (the bar's volume, or Super+A) and the brightness slider (the bar's brightness).
 
     kawa-panel               run, hidden, for the whole session (autostart starts it): it opens
@@ -79,7 +79,7 @@ freesync, bluetooth, dnd, screensaver; mute, an output, an input) stay open and 
 rest close it and open their own menu or window. Everything is done by kawa-quick (--state,
 --do), which knows the machine; this only draws it and listens.
 
-While open each says so to the bar: a marker holding its pid, kawa-panel.open (the cat),
+While open each says so to the bar: a marker holding its pid, kawa-panel.open (the face),
 kawa-panel-sound.open and kawa-panel-brightness.open, and a poke (SIGRTMIN+15, +16, +14).
 Its colours are the theme's (~/.config/fedokawaii/current/panel.conf): a theme switch
 restyles it at once. Exit: 0 · 2 wrong use.
@@ -105,7 +105,7 @@ PIDFILE = os.path.join(RUN, "kawa-panel.pid")
 FIFO = os.path.join(RUN, "kawa-panel.in")           # the requests (above)
 MODES = ("quick", "sound", "brightness")
 # the markers: each holds the panel's pid while that mode is open (one left by a panel gone is
-# no open panel). kawa-panel.open lights the bar's cat (kawa-bar) — its own: a
+# no open panel). kawa-panel.open lights the bar's face (kawa-bar) — its own: a
 # dropdown's (kawa-drop.open) is kawa-menu's
 MARKS = {"quick": os.path.join(RUN, "kawa-panel.open"),
          "sound": os.path.join(RUN, "kawa-panel-sound.open"),
@@ -150,7 +150,6 @@ HOUR = 36                            # an hour's place: 36 × 36 round its 28 px
 BEAD_R, BEAD = 88, 6                 # the meters' beads: on this circle, each 6 px round
 BEAD_FROM, BEAD_RUN = 22, 136        # the first bead this many degrees up from the bottom, the 20th this many more
 BAND = 10                            # a meter under the cursor: its beads on a lacquer band this wide
-CORNER = 28                          # an action's picture in a corner (art/crests.txt, as an hour's)
 HOURS = ("theme", "night", "vrr", "saver", "dnd", "network", "bluetooth", "devices", "drives",
          "backup", "record", "ocr")  # twelve o'clock, then clockwise (no adapter: ten, spaced evenly)
 CORNERS = (("screenshot", "camera", "screenshot"), ("wallpaper", "picture", "wallpaper"),
@@ -164,16 +163,16 @@ HEAD_X = 3 * CELL                    # a heading's name (cell 3: its icon in the
 FACE = os.path.join(HOME, ".config/fedokawaii/current/face-open.png")   # (open: the panel is)
 FACE_X = 3                           # the dial's middle at rest: the bar's 18 × 18 face, three times as large
 # an hour's picture (art/crests.txt → tools/build-icons.py): a mask CREST_PIC px square, its
-# name the tile's icon less "tile_" (tile_bell_off → bell-off.png), painted in the state's ink;
+# name the item's icon less "tile_" (tile_bell_off → bell-off.png), painted in the state's ink;
 # in the dial's middle twice as large (ECHO)
 CRESTS = os.path.join(HOME, ".local/share/fedokawaii/crests")
 CREST_PIC = 28
+CORNER_AIR = (2, 4)                  # a corner's picture: its ink this far from the content's sides, and from its top or foot
 ECHO = 2
 ECHO_W = 16 * CELL                   # its words at most 128 px (between the beads)
 HEAD_H = ROW + GAP                   # a heading: its row, then 8 px of air
 SECTION = ROW                        # the air above a heading (none at a panel's top)
 KEY_H = ROW                          # a key: one row high, its 1 px frame inside the row
-GROUP = 2 * GAP                      # the air between a panel's groups (the meters, the tiles, the keys)
 SEGS, SEG_W, SEG_H = 20, 6, 10       # a meter: 20 segments 6 × 10 px, one a cell (2 px of air) — 5 % each
 SPAN = SEGS * CELL                   # 160: the segments' run
 # the level display (design-system §9): one row — the icon in its column, the meter from cell 3,
@@ -466,7 +465,7 @@ class Item:
 
 
 def vrr_shown(s):
-    """FreeSync's tile: the setting and what the card does this moment (vrrnow, DRM's
+    """FreeSync's hour: the setting and what the card does this moment (vrrnow, DRM's
     VRR_ENABLED) — "games · off" at the desktop, "games · on" in a full-screen game, "always ·
     on"; stamped while it is on. "not offered": no screen offers it (the monitor's own menu)."""
     want, now = s.get("vrr", "in games"), s.get("vrrnow")
@@ -480,8 +479,9 @@ def vrr_shown(s):
 
 
 def tiles_of(s):
-    """(key, picture, name, value, on) for each tile, in order: each its own 14 px picture
-    (art/icons.txt tile-*), the theme's the mood it is in — the moon at night, the sun rising."""
+    """(key, picture, name, value, on) for each switch of the dial, in order: each its own
+    28 px picture (art/crests.txt, by its icon less "tile_"), the theme's the mood it is in —
+    the moon at night, the sun rising."""
     dark = s.get("theme", "dark") != "light"
     net = s.get("nettype", "offline")
     dnd = s.get("dnd") == "on"
@@ -511,13 +511,10 @@ def tiles_of(s):
 
 class Arc(Item):
     """A meter on the dial: twenty beads on a circle round (cx, cy), up the left side (side −1:
-    brightness) or the right (1: sound) from the bottom; the pointer is on it within a bead's
-    spacing of its run and HOUR / 3 of its circle."""
+    brightness) or the right (1: sound) from the bottom; the pointer is on it as on_arc() says."""
 
     def inside(self, x, y):
-        u, r = arc_polar(self, x, y)
-        step = BEAD_RUN / (SEGS - 1)
-        return u is not None and abs(r - BEAD_R) <= HOUR // 3 and BEAD_FROM - step <= u <= BEAD_FROM + BEAD_RUN + step
+        return on_arc(*arc_polar(self, x, y))
 
     def centre(self):
         return self.cx + self.side * BEAD_R
@@ -535,17 +532,22 @@ def arc_polar(it, x, y):
     return math.degrees(math.atan2(dx, dy)), math.hypot(dx, dy)
 
 
+def on_arc(u, r):
+    """A polar place (arc_polar's) on an arc: within a bead's spacing of its run and HOUR / 3 of its circle."""
+    step = BEAD_RUN / (SEGS - 1)
+    return u is not None and abs(r - BEAD_R) <= HOUR // 3 and BEAD_FROM - step <= u <= BEAD_FROM + BEAD_RUN + step
+
+
 def arc_level(it, x, y, held=False):
     """The level a pointer at x, y on an arc means: the bead it is on (5 % each, the first one
     5 %), a bead's spacing below the first 0; held (a drag): anywhere on its side, past an end
     that end. None: not there."""
     u, r = arc_polar(it, x, y)
-    step = BEAD_RUN / (SEGS - 1)
     if u is None:
         return (0 if y >= it.cy else 100) if held else None
-    if not held and not (abs(r - BEAD_R) <= HOUR // 3 and BEAD_FROM - step <= u <= BEAD_FROM + BEAD_RUN + step):
+    if not held and not on_arc(u, r):
         return None
-    j = (u - BEAD_FROM) / step                 # (0: on the first bead's centre)
+    j = (u - BEAD_FROM) / (BEAD_RUN / (SEGS - 1))   # (0: on the first bead's centre)
     return max(0, min(100, 5 * (math.floor(j + .5) + 1)))
 
 
@@ -844,7 +846,7 @@ def layout_quick(s):
         px, py = on_circle(cx, cy, DIAL_R, 360 * i / len(hours))
         ic, name, value, lit = t[key]
         items.append(Item(key, "hour", px - HOUR // 2, py - HOUR // 2, HOUR, HOUR, 0, icon=ic, name=name,
-                          value=value, lit=lit, order=i))
+                          value=value, lit=lit, order=i, pic=(px - CREST_PIC // 2, py - CREST_PIC // 2)))
     for side, key in ((-1, "brightness"), (1, "sound")):
         pct = percent(s.get(key, ""))
         icon = bri_icon(pct) if key == "brightness" else vol_icon(pct, s.get("muted") == "on")
@@ -855,9 +857,14 @@ def layout_quick(s):
                          value=s.get(key, ""), muted=key == "sound" and s.get("muted") == "on",
                          side=side, cx=cx, cy=cy))
     for (key, ic, name), (ax, ay) in zip(CORNERS, ((0, 0), (1, 0), (0, 1), (1, 1))):
-        x, y = x0 + ax * (DIAL - CORNER), y0 + ay * (DIAL - CORNER)
-        items.append(Item(key, "corner", x - (HOUR - CORNER) // 2, y - (HOUR - CORNER) // 2, HOUR, HOUR, 0,
-                          icon=ic, name=name, tip=s.get("wallpaper", "") if key == "wallpaper" else ""))
+        ix, iy, iw, ih = pic_ink(ic)
+        # (its ink CORNER_AIR from the corner's two sides — all four alike —, the square round it)
+        ex = x0 + CORNER_AIR[0] if not ax else x0 + DIAL - CORNER_AIR[0] - iw
+        ey = y0 + CORNER_AIR[1] if not ay else y0 + DIAL - CORNER_AIR[1] - ih
+        px, py = ex - ix, ey - iy
+        mx, my = ex + (iw + 1) // 2, ey + (ih + 1) // 2   # (the place centred on the ink, its odd pixel of air right and below)
+        items.append(Item(key, "corner", mx - HOUR // 2, my - HOUR // 2, HOUR, HOUR, 0, pic=(px, py),
+                          icon=ic, name=name, value=fit(s.get("wallpaper", ""), ECHO_W) if key == "wallpaper" else ""))
     side = DIAL + 2 * (PAD + BORDER)
     lay = Layout(items, (x0, y0), [], (side, side))
     lay.centre = Item("centre", "centre", cx - BEAD_R + BAND, cy - BEAD_R + BAND, 2 * (BEAD_R - BAND), 2 * (BEAD_R - BAND), 0)
@@ -1065,6 +1072,53 @@ def look(it, focused, hot):
             "label": "strong" if it.lit else "text", "value": "muted", "on_fill": False, "detail": "text"}
 
 
+CAPS = 10                            # Sumi UI's capitals: 10 rows (the em's rows 2–11; a row's 5–14)
+ECHO_GAP = 2 * CELL                  # the middle: a picture's (or a level's) ink to the first row's capitals
+_INKS = {}
+
+
+def pic_ink(name):
+    """A picture's ink in its square (x, y, w, h — crests/ink.txt, written by build-icons.py),
+    by its item's icon; the whole square when it is not known."""
+    if not _INKS:
+        _INKS[None] = (0, 0, CREST_PIC, CREST_PIC)
+        try:
+            with open(os.path.join(CRESTS, "ink.txt"), encoding="utf-8") as f:
+                for line in f:
+                    v = line.split()
+                    if len(v) == 5 and not line.startswith("#"):
+                        _INKS[v[0]] = tuple(int(n) for n in v[1:])
+        except (OSError, ValueError):
+            pass
+    return _INKS.get(name.removeprefix("tile_").replace("_", "-"), _INKS[None])
+
+
+def echo_parts(it):
+    """What the dial's middle shows for an item (§4), top to bottom: [(kind, what, ink, top)] —
+    "pic" an hour's or an action's picture twice as large (its ink, pic_ink()), "num" a meter's level
+    in display size (its capitals, 20 px), "words" a row (its capitals, CAPS px); each top from
+    the middle (the point between the dial's middle pixels), the whole block's ink centred on it,
+    its odd row above (the odd pixel of air below, as everywhere). Rows with nothing in them are
+    left out, so every state is centred as itself."""
+    if it.kind == "arc":
+        pct = percent(it.value)
+        head = [("num", str(pct), "strong", 2 * CAPS)] if pct is not None else []
+        words = [(it.name, "strong"), ("muted" if it.muted else "" if pct is not None else it.value, "muted")]
+    else:
+        head = [("pic", it.icon, "accent" if it.lit else "text", ECHO * pic_ink(it.icon)[3])]
+        words = [(it.name, "strong"), (it.value, "strong" if it.lit else "muted")]
+    words = [w for w in words if w[0]]
+    h = sum(x[3] for x in head) + (ECHO_GAP if head and words else 0) + (CAPS + ROW * (len(words) - 1) if words else 0)
+    y = -((h + 1) // 2)
+    out = []
+    for kind, what, ink, hh in head:
+        out.append((kind, what, ink, y))
+        y += hh + ECHO_GAP
+    for i, (w, ink) in enumerate(words):
+        out.append(("words", w, ink, y + i * ROW))
+    return out
+
+
 def toward(items, cur, name):
     """The item an arrow key goes to on the dial: the nearest whose middle lies that way, within
     a cone either side of the arrow (no farther aside than twice as far ahead), the nearer and
@@ -1091,7 +1145,7 @@ def mid_y(it):
 
 
 SWITCHES = ("theme", "night", "vrr", "bluetooth", "dnd", "saver")   # done in place: the panel stays
-WHEELED = {"night": ("warmer", "cooler")}   # a tile the wheel changes: the night light's warmth
+WHEELED = {"night": ("warmer", "cooler")}   # an hour the wheel changes: the night light's warmth
 OPENERS = ("network", "devices", "drives", "backup", "wallpaper", "screenshot", "record", "ocr", "screenoff", "power")
 METERS = ("brightness", "sound")
 MOVES = ("Left", "h", "Right", "l", "Up", "k", "Down", "j", "Tab", "ISO_Left_Tab")
@@ -1104,7 +1158,7 @@ class Panel:
 
     def __init__(self, ui):
         self.ui = ui
-        self.stamps = {}         # tile → when its seal was stamped (turned on: stamping())
+        self.stamps = {}         # hour → when it was stamped (turned on: stamping())
         self.mode = "quick"      # the panel open (or the last one open)
         self.states = {m: {} for m in MODES}
         self.states["menu"] = Menu([])
@@ -1188,7 +1242,7 @@ class Panel:
         if rc == 0:
             new = parse_sound(out) if mode == "sound" else parse_state(out)
             old = self.states[mode]
-            # a tile turned on while quick settings shows: its seal stamped (a choice made — §11;
+            # an hour turned on while quick settings shows: stamped (a choice made — §11;
             # never at an open: the old state must be there to change from)
             if mode == "quick" and old and self.visible and self.mode == "quick":
                 was = {t[0] for t in tiles_of(old) if t[4]}
@@ -1476,8 +1530,8 @@ class Panel:
         if name in ENTER:
             self.activate(cur.key)
         elif self.mode == "quick" and name in MOVES[:8]:
-            if cur.kind == "arc" and name in ("Up", "k", "Down", "j"):   # (its beads rise: up is more)
-                self.step(cur.key, 5 if name in ("Up", "k") else -5)
+            if cur.kind == "arc" and name in ("Up", "k", "Down", "j") and percent(self.state.get(cur.key, "")) is not None:
+                self.step(cur.key, 5 if name in ("Up", "k") else -5)   # (its beads rise: up is more)
             else:
                 to = toward(self.items, cur, name)
                 if to is not None:
@@ -1617,11 +1671,14 @@ class Panel:
     def press(self, x, y):
         """A click does what is under it, there and then (the pointer's item is hot whether
         or not a motion said so). The keyboard's cursor, if a key has shown it, moves there;
-        none is shown for a click."""
+        none is shown for a click. On the dial, a click on its middle does what the middle
+        shows (the sound's level: the sound panel, as Enter on it)."""
         self.pointer = (x, y)
         it = self.at(x, y)
         self.set_hot(it.key if it else None)
         if not it:
+            if self.centre is not None and self.focus is not None and self.centre.inside(x, y):
+                self.activate(self.focus)
             return
         if self.focus is not None:
             self.move(it.key)
@@ -1650,7 +1707,7 @@ class Panel:
             self.nudge(it.key, up)
 
     def nudge(self, key, up):
-        """The wheel's notch on a meter (5 either way) or on a tile it changes (kawa-quick)."""
+        """The wheel's notch on a meter (5 either way) or on an hour it changes (kawa-quick)."""
         if key in WHEELED:
             self.ui.run(["kawa-quick", "--do", WHEELED[key][0 if up else 1]], lambda rc, out: self.refresh())
         else:
@@ -2493,8 +2550,8 @@ def main(argv):
         """The dial's middle (§4): the item the cursor is on — an hour's or an action's picture
         twice as large (accent on, text off), a meter's level in display size (Sumi UI twice as
         large) — with its name (strong) and its state (strong on, muted off; an action's:
-        the wallpaper's name, or nothing) a row each under it, every part centred on the middle by its ink (the odd
-        pixel right); at rest the face (open) three times as large — in the dark mood held by an
+        the wallpaper's name, or nothing) a row each under it (echo_parts: the block centred on
+        the middle both ways, each part by its ink, the odd pixel right and below); at rest the face (open) three times as large — in the dark mood held by an
         outline of edge2 a picture's pixel wide (the hannya's black hair is the ground's ink)."""
         c = panel.centre
         cx, cy = c.x + c.w // 2, c.y + c.h // 2
@@ -2503,7 +2560,7 @@ def main(argv):
             pic_ = face_pic()
             if pic_ is not None:
                 w_, h_ = pic_.get_width(), pic_.get_height()
-                if sum(pal["ground"][:3]) < 1.5:      # (the dark mood: the hannya's hair is the ground's ink —
+                if os.path.basename(os.path.realpath(CURRENT)) == "dark":   # (the hannya's hair is the ground's ink —
                     # its silhouette held by an outline a picture's pixel wide, in edge2)
                     if pic_ not in halos:
                         halos.clear()
@@ -2516,25 +2573,18 @@ def main(argv):
                     scaled(cr, halos[pic_], cx - (w_ + 2) * FACE_X // 2, cy - (h_ + 2) * FACE_X // 2, FACE_X, "edge2")
                 scaled(cr, pic_, cx - w_ * FACE_X // 2, cy - h_ * FACE_X // 2, FACE_X)
             return
-        top = cy - (2 * CREST_PIC + 2 * ROW) // 2 - 4
-        if it.kind in ("hour", "corner"):
-            mask = crest_pic(it.icon)
-            if mask is not None:
-                scaled(cr, mask, cx - CREST_PIC, top, ECHO, "accent" if it.lit else "text")
-            words = ((it.name, "strong"), (it.value if it.kind == "hour" else it.tip, "strong" if it.lit else "muted"))
-        else:
-            pct = percent(it.value)
-            num = f"{pct}" if pct is not None else ""
-            if num:                               # (its capitals' 20 rows on the picture's middle 20)
-                surf, ix, iw = big(num)
-                scaled(cr, surf, cx - (2 * iw + 1) // 2 - 2 * ix, top + CREST_PIC - LINE, 2, "strong")
-            words = ((it.name, "strong"), ("muted" if it.muted else ("" if num else it.value), "muted"))
-        y = top + ECHO * CREST_PIC + GAP
-        for w, ink in words:
-            if w:
-                iw = text_layout(cr, w).get_pixel_extents()[0]
-                text(cr, cx - (iw.width + 1) // 2 - iw.x, y + (ROW - LINE) // 2, w, ink, width=ECHO_W)
-            y += ROW
+        for kind, what, ink, top in echo_parts(it):
+            if kind == "pic":                     # (its ink centred: the square placed by what is drawn in it)
+                mask = crest_pic(what)
+                ix, iy, iw, _ = pic_ink(what)
+                if mask is not None:
+                    scaled(cr, mask, cx - iw - ECHO * ix, cy + top - ECHO * iy, ECHO, ink)
+            elif kind == "num":                   # (Sumi UI twice as large: its capitals on the em's rows 2–11, so 4 down its box)
+                surf, ix, iw = big(what)
+                scaled(cr, surf, cx - (2 * iw + 1) // 2 - 2 * ix, cy + top - 4, 2, ink)
+            else:                                 # (a row's em starts 2 rows above its capitals)
+                iw = text_layout(cr, what).get_pixel_extents()[0]
+                text(cr, cx - (iw.width + 1) // 2 - iw.x, cy + top - 2, what, ink, width=ECHO_W)
 
     def heading(cr, icon, name, x, y, value=""):
         """A part of a panel or a menu (§4): its icon (12 px, accent_text) in the icon column at
@@ -2665,15 +2715,6 @@ def main(argv):
         if panel.centre is not None:
             echo(cr)
         return True
-
-    def pic(cr, x, y, ch, name):
-        """A picture placed by its own box (a tile's: the drawing's 14 px square at x, its rows
-        from y), not by its ink — each drawing keeps the place it was drawn in."""
-        lay = text_layout(cr, ch)
-        log = lay.get_pixel_extents()[1]
-        col(cr, name)
-        cr.move_to(x - log.x, on_line(cr, lay, y))
-        PangoCairo.show_layout(cr, lay)
 
     def dot(cr, x, y, name):
         """The chosen mark (§4): a vermilion dot DOT px round — its corner pixels left out."""
@@ -2818,7 +2859,7 @@ def main(argv):
             mask = crest_pic(it.icon)
             if mask is not None:
                 col(cr, "accent_hi" if not on and panel.stamping(it.key) else lk["glyph"])
-                cr.mask_surface(mask, it.x + (it.w - CREST_PIC) // 2, it.y + (it.h - CREST_PIC) // 2)
+                cr.mask_surface(mask, *it.pic)
         elif it.kind == "arc":
             beads(cr, it, on)
         elif it.kind == "app":                   # (the launcher's: its icon, its name, the answer's "copy")

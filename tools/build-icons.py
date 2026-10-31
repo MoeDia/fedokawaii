@@ -277,6 +277,15 @@ def crests(src=CRESTS_SRC, out=CRESTS_DIR):
                              f"(a pixel of air all round: the cursor's lacquer frames it)")
                 im.putpixel((x, y), (255, 255))
         im.save(out / f"{ic['name']}.png")
+    # each picture's ink box in its square (x y w h): kawa-panel places the corners and the
+    # dial's middle by what is drawn, not by the square (a picture's own air differs)
+    lines = []
+    for ic in pics:
+        xs = [x for r in ic["rows"] for x, v in enumerate(r) if v == "#"]
+        ys = [y for y, r in enumerate(ic["rows"]) if "#" in r]
+        lines.append(f"{ic['name']} {min(xs)} {min(ys)} {max(xs) - min(xs) + 1} {max(ys) - min(ys) + 1}")
+    (out / "ink.txt").write_text("# name x y w h — each picture's ink in its 28 px square (tools/build-icons.py)\n"
+                                 + "\n".join(lines) + "\n")
     names = {ic["name"] for ic in pics}
     for f in out.glob("*.png"):
         if f.stem not in names:

@@ -1,0 +1,21 @@
+# name x y w h — each picture's ink in its 28 px square (tools/build-icons.py)
+moon 2 2 23 24
+sun 1 1 26 26
+lantern 2 4 24 20
+wave 2 4 24 19
+ethernet 4 5 20 18
+wifi 4 5 20 18
+offline 4 5 20 18
+bluetooth 7 2 14 24
+devices 4 4 20 19
+drive 7 2 14 24
+backup 4 6 20 16
+bell 6 3 16 22
+bell-off 4 3 20 22
+saver 4 3 19 21
+record 3 4 21 20
+read 5 5 18 18
+camera 2 4 24 20
+picture 2 4 24 20
+screen-off 2 4 24 20
+power 3 2 22 23

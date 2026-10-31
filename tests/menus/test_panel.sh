@@ -45,6 +45,8 @@ sys.path.insert(0, sys.argv[2])
 loader = importlib.machinery.SourceFileLoader("kawa_panel", sys.argv[1])
 spec = importlib.util.spec_from_loader("kawa_panel", loader)
 kp = importlib.util.module_from_spec(spec); loader.exec_module(kp)
+import os                                      # (the pictures' ink table: the repository's, as installed)
+kp.CRESTS = os.path.join(os.path.dirname(os.path.dirname(sys.argv[1])), "configs/home/.local/share/fedokawaii/crests")
 class UI:
     def __init__(self): self.calls, self.t, self.pending, self.drawn, self.at, self.cid = [], 100.0, [], [], None, None; self.pushed = []; self.timers = []
     def clicked(self): return self.at
@@ -118,7 +120,7 @@ eq "$(py 'fresh(); print(" ".join(f"{i.key}:{i.x},{i.y}" for i in p.items if i.k
 eq "$(py 'fresh(); print({(i.w, i.h) for i in p.items if i.kind == "hour"}, [i.order for i in p.items if i.kind == "hour"])')" "{(36, 36)} [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]"
 eq "$(py 'print(kp.HOUR, kp.DIAL_R, kp.CREST_PIC, (kp.HOUR - kp.CREST_PIC) % 2 == 0)')" "36 128 28 True" "the place 36, its picture 28: 4 px of lacquer all round"
 eq "$(py 'fresh(); print(" ".join(f"{i.key}:{i.centre():g},{kp.mid_y(i):g}" for i in p.items if i.kind in ("hour", "corner")))')" \
-  "theme:169,41 night:233,58 vrr:280,105 saver:297,169 dnd:280,233 network:233,280 bluetooth:169,297 devices:105,280 drives:58,233 backup:41,169 record:58,105 ocr:105,58 screenshot:31,31 wallpaper:307,31 screenoff:31,307 power:307,307" \
+  "theme:169,41 night:233,58 vrr:280,105 saver:297,169 dnd:280,233 network:233,280 bluetooth:169,297 devices:105,280 drives:58,233 backup:41,169 record:58,105 ocr:105,58 screenshot:31,31 wallpaper:307,31 screenoff:31,307 power:308,306" \
   "their middles, where the arrows measure from (centre(), mid_y()); the arcs' are below"
 case_ "the hours are spaced evenly: 360 / n degrees apart, clockwise from twelve (30 with twelve, 36 with ten — no adapter), each 128 px from the middle, to the pixel's rounding"
 eq "$(py 'out = []
@@ -148,8 +150,8 @@ print("\n".join(out))')" "$(printf '%s\n' \
 eq "$(py 'fresh(); a = {i.key: i for i in p.items}; c = p.centre; box = lambda i: (i.x, i.y, i.w, i.h)
 lr = lambda i: (338 - i.x - i.w, i.y, i.w, i.h); tb = lambda i: (i.x, 338 - i.y - i.h, i.w, i.h)
 print(lr(a["brightness"]) == box(a["sound"]), tb(a["brightness"]) == box(a["brightness"]), tb(a["sound"]) == box(a["sound"]),
-      lr(a["screenshot"]) == box(a["wallpaper"]), lr(a["screenoff"]) == box(a["power"]), tb(a["screenshot"]) == box(a["screenoff"]), tb(a["wallpaper"]) == box(a["power"]),
-      lr(c) == box(c) == tb(c))')" "True True True True True True True True" "the arcs mirror each other and each is its own top-bottom mirror; the corners mirror in pairs; the middle is its own"
+      lr(a["screenshot"]) == box(a["wallpaper"]), tb(a["screenshot"]) == box(a["screenoff"]),
+      lr(c) == box(c) == tb(c))')" "True True True True True True" "the arcs mirror each other and each is its own top-bottom mirror; the three corners whose drawings share one ink size mirror (the power sign is round: its ink keeps the same margins, the corners case); the middle is its own"
 eq "$(py 'bad = []
 for d in range(0, 361, 3):
     x, y = kp.on_circle(169, 169, kp.DIAL_R, d); xr, yr = kp.on_circle(169, 169, kp.DIAL_R, 360 - d); xb, yb = kp.on_circle(169, 169, kp.DIAL_R, 180 - d)
@@ -178,12 +180,15 @@ for k in ("brightness", "sound"):
             if ang is not None and abs(r - kp.BEAD_R) <= kp.BAND / 2 and kp.BEAD_FROM - step / 2 <= ang <= kp.BEAD_FROM + kp.BEAD_RUN + step / 2 and not kp.Item.inside(a, x, y):
                 bad.append((k, x, y))
 print(bad[:3])')" "[]" "…and the cursor's lacquer band (BAND px along the circle) too: no pixel of it outside the box, none left stale"
-case_ "the four corners (screenshot, wallpaper, screen off, power): 36 × 36 places whose 28 px pictures stand in the dial's four corners, flush with the content's edges (x and y 17–321); their names and states are the middle's"
+case_ "the four corners (screenshot, wallpaper, screen off, power): placed by what is drawn — each picture's ink 2 px from the content's sides and 4 from its top or foot, all four alike (pic_ink: crests/ink.txt); a 36 × 36 place centred on the ink (its odd pixel of air right and below); their names and states are the middle's"
 eq "$(py 'fresh(); print(" ".join(f"{i.key}:{i.x},{i.y},{i.w}x{i.h}:{i.icon}:{i.name}" for i in p.items if i.kind == "corner"))')" \
-  "screenshot:13,13,36x36:camera:screenshot wallpaper:289,13,36x36:picture:wallpaper screenoff:13,289,36x36:screen_off:screen off power:289,289,36x36:power:power"
-eq "$(py 'fresh(); c = [i for i in p.items if i.kind == "corner"]; xs = [i.x + (i.w - kp.CORNER) // 2 for i in c]; ys = [i.y + (i.h - kp.CORNER) // 2 for i in c]
-print(min(xs), max(xs) + kp.CORNER, min(ys), max(ys) + kp.CORNER, kp.CORNER)')" "17 321 17 321 28" "the four pictures' outer edges are the dial's square"
-eq "$(py 'fresh(); print([p.item(k).tip for k in ("screenshot", "wallpaper", "screenoff", "power")])')" "['', 'mishima-mist', '', '']" "no words under a corner: the middle says it; the wallpaper's tooltip its name"
+  "screenshot:13,13,36x36:camera:screenshot wallpaper:289,13,36x36:picture:wallpaper screenoff:13,289,36x36:screen_off:screen off power:290,288,36x36:power:power"
+eq "$(py 'fresh(); out = []
+for i in [i for i in p.items if i.kind == "corner"]:
+    ix, iy, iw, ih = kp.pic_ink(i.icon); x0, y0 = i.pic[0] + ix, i.pic[1] + iy; x1, y1 = x0 + iw - 1, y0 + ih - 1
+    out.append((x0 - 17 if i.x < 169 else 320 - x1, y0 - 17 if i.y < 169 else 320 - y1, x0 - i.x - (i.x + i.w - 1 - x1), y0 - i.y - (i.y + i.h - 1 - y1)))
+print(out, kp.CORNER_AIR)')" "[(2, 4, 0, 0), (2, 4, 0, 0), (2, 4, 0, 0), (2, 4, 0, -1)] (2, 4)" "every ink CORNER_AIR from its corner; the place's air even either side (power's odd row below)"
+eq "$(py 'fresh(); print([(p.item(k).tip, p.item(k).value) for k in ("screenshot", "wallpaper", "screenoff", "power")])')" "[('', ''), ('', 'mishima-mist'), ('', ''), ('', '')]" "no words under a corner and no tooltip beside the pointer (one light): the middle says it — the wallpaper's name its second row"
 case_ "the dial's middle (the echo): a place of its own, 156 × 156 round the middle, inside the beads' circle less the band — no item (no cursor, nothing to choose): the face at rest, the item the cursor is on, larger, with its name and state"
 eq "$(py 'fresh(); c = p.centre; print(c.key, c.kind, c.x, c.y, c.w, c.h, c in p.items, c.x + c.w // 2, c.y + c.h // 2)')" "centre centre 91 91 156 156 False 169 169"
 eq "$(py 'fresh(); c = p.centre; print(c.x + c.w + c.x == 338, c.y + c.h + c.y == 338, c.w == c.h == 2 * (kp.BEAD_R - kp.BAND), c.x == 169 - kp.BEAD_R + kp.BAND)')" "True True True True" "symmetric round the middle: its box mirrored is itself"
@@ -193,7 +198,7 @@ eq "$(py 'out = []
 for st in (STATE, STATE.replace("bluetooth\ton\n", "").replace("devices\tnone\n", "")):
     fresh(st); multi = [(x, y) for x in range(338) for y in range(338) if sum(i.inside(x, y) for i in p.items) > 1]
     out.append((len(multi), min(i.x for i in p.items), min(i.y for i in p.items), max(i.x + i.w for i in p.items), max(i.y + i.h for i in p.items)))
-print(out)')" "[(0, 13, 13, 325, 325), (0, 13, 13, 325, 325)]"
+print(out)')" "[(0, 13, 13, 326, 325), (0, 13, 13, 326, 325)]"
 case_ "an arc's pointer (arc_level): on a bead the level of that bead — 5 % each, the first 5, the last 100 —, a bead's spacing below the first 0 (above the last 100); held (a drag) anywhere on its side, past an end that end; across the dial, held, the nearer end (0 below the middle, 100 above); off its circle, not held: none"
 eq "$(py 'fresh(); print([[kp.arc_level(p.item(k), *bead(k, j)) for j in range(20)] == [5 * (j + 1) for j in range(20)] and all(p.item(k).inside(*bead(k, j)) for j in range(20)) for k in ("brightness", "sound")])')" "[True, True]" "a click on bead j is 5 · (j + 1) % — on both arcs"
 eq "$(py 'fresh(); print([(kp.arc_level(p.item(k), *kp.bead_at(p.item(k), -0.75)), kp.arc_level(p.item(k), *kp.bead_at(p.item(k), 19.75))) for k in ("brightness", "sound")])')" "[(0, 100), (0, 100)]" "three quarters of a bead's spacing below the first: 0; above the last: 100"
@@ -207,7 +212,7 @@ eq "$(py 'fresh(); print([[a.inside(*kp.bead_at(a, j)) for j in (-1.3, -0.8, 19.
 eq "$(py 'fresh(); print(p.at(73, 73), p.at(*bead("sound", 9)).key)')" "None sound" "an arc's box is for redrawing only: a point in it, off its circle, is no click"
 eq "$(py 'fresh(); s = p.item("sound"); x, y = bead("sound", 12); print(p.meter_at(s, x, y=y), p.meter_at(s, 20, held=True, y=330), p.meter_at(s, 20, y=330), kp.arc_level(s, x, y))')" "65 0 None 65" "Panel.meter_at(an arc, x, y=…) is arc_level: the same levels, held or not"
 case_ "the grid's own constants (the sound panel's, the slider's and the menus': the dial stands outside it)"
-eq "$(py 'print(kp.HEAD_H, kp.SECTION, kp.GROUP, kp.KEY_H, kp.METER_GAP, kp.GAP)')" "28 20 16 20 0 8" "a heading 28, 20 of air above one that is not first, groups 16 apart, keys 20, rows touching"
+eq "$(py 'print(kp.HEAD_H, kp.SECTION, kp.KEY_H, kp.METER_GAP, kp.GAP, hasattr(kp, "GROUP"))')" "28 20 20 0 8 False" "a heading 28, 20 of air above one that is not first, keys 20, rows touching (the sheet's groups gone with it)"
 
 # ── the hours' pictures and words ───────────────────────────────────────────────────────
 t() { py "fresh($1); i = p.item('$2'); print(i.icon, i.name, '|', i.value, '|', 'lit' if i.lit else 'quiet')"; }
@@ -260,8 +265,9 @@ for f in sys.argv[1:]:
     b = open(f, "rb").read(26)
     print(b[:8] == b"\x89PNG\r\n\x1a\n", struct.unpack(">II", b[16:24]), b[24:26])' "$REPO"/configs/home/.local/share/fedokawaii/crests/*.png | sort -u)" "True (28, 28) b'\x08\x04'" "every one a PNG 28 × 28, 8-bit grey and alpha (a mask)"
 eq "$(py 'print(kp.CREST_PIC, kp.CRESTS.endswith("/.local/share/fedokawaii/crests"))')" "28 True"
-case_ "the wallpaper's name: the tip of its key"
-eq "$(py 'fresh(); print(p.item("wallpaper").tip)')" mishima-mist
+case_ "the wallpaper's name: the middle's second row under its corner, cut to the middle's width"
+eq "$(py 'fresh(); print(p.item("wallpaper").value)')" mishima-mist
+eq "$(py 'fresh(STATE.replace("mishima-mist", "a wallpaper with a name much too long for the middle")); v = p.item("wallpaper").value; print(repr(v), kp.px_of(v) <= kp.ECHO_W)')" "'a wallpaper with a' True"
 case_ "no day or weather line: the bar's own, right above the panel"
 eq "$(py 'fresh(); print(hasattr(kp, "date_line"), [i.key for i in p.items if i.key in ("date", "day", "weather")])')" "False []" "no day or weather line: the bar shows them, right above"
 case_ "the icons by name, from icons.sh (none hard-coded): the headings', the meters' and the keys' own, all there"
@@ -446,8 +452,9 @@ eq "$(py 'fresh(); p.focus = "sound"; p.key("Down"); print(p.state["sound"], u.c
 eq "$(py 'fresh(); p.focus = "brightness"; [p.key("Up") for _ in range(9)]; print(p.state["brightness"])')" 100% "no more than 100"
 eq "$(py 'fresh(); p.focus = "sound"; [p.key("Down") for _ in range(20)]; print(p.state["sound"])')" 0% "no less than 0"
 eq "$(py 'fresh(); p.focus = "sound"; p.key("Right"); print(p.focus, p.state["sound"], [c for c in u.calls if c.startswith("run")])')" "saver 62% []" "← → move on: the level is not touched"
-case_ "a meter without a level (no DDC/CI, muted, no output): ↑ ↓ do nothing"
-eq "$(py 'fresh(STATE.replace("70%","no DDC/CI")); p.focus = "brightness"; p.key("Up"); p.key("Down"); print(p.state["brightness"], p.focus, u.calls)')" "no DDC/CI brightness []"
+case_ "a meter without a level (no DDC/CI, no output): ↑ ↓ have nothing to change — they move on, as on any item"
+eq "$(py 'fresh(STATE.replace("70%","no DDC/CI")); p.focus = "brightness"; p.key("Up"); print(p.state["brightness"], p.focus, [c for c in u.calls if c.startswith("run")])')" "no DDC/CI record []" "up from the left arc: the hour above it, nothing sent"
+eq "$(py 'fresh(STATE.replace("70%","no DDC/CI")); p.focus = "brightness"; p.key("Down"); print(p.focus, [c for c in u.calls if c.startswith("run")])')" "drives []"
 
 # ── the mouse ─────────────────────────────────────────────────────────────────────────
 # (quick settings, the dial: night's place x 215–250, y 40–75, middle (233, 58); the theme's middle
@@ -633,16 +640,35 @@ has "$d" 'frame(cr, x, y, w, h, "accent_text", cut=True)'
 case_ "an hour's and a corner's pixels (§4): its 28 px picture (a mask: its own drawing) on the middle of its 36 × 36 place, in the state's ink — accent when on, muted when off, a corner's muted; under the cursor the place in the lacquer, its four corner pixels left out"
 has "$d" 'box(cr, it.x + 1, it.y, it.w - 2, it.h, lk["fill"])'; has "$d" 'box(cr, it.x, it.y + 1, it.w, it.h - 2, lk["fill"])'
 has "$d" 'mask = crest_pic(it.icon)'
-has "$d" 'cr.mask_surface(mask, it.x + (it.w - CREST_PIC) // 2, it.y + (it.h - CREST_PIC) // 2)' "the 28 px picture's middle on the place's (both between pixels)"
+has "$d" 'cr.mask_surface(mask, *it.pic)' "the picture at its place's own spot (an hour: its square centred in the place; a corner: by its ink)"
+eq "$(py 'fresh(); print(all(i.pic == (i.x + (i.w - kp.CREST_PIC) // 2, i.y + (i.h - kp.CREST_PIC) // 2) for i in p.items if i.kind == "hour"))')" True "an hour's 28 px square on the middle of its place (both between pixels)"
 has "$d" 'name = icon.removeprefix("tile_").replace("_", "-")'
 case_ "the dial's middle's pixels (§4): at rest the mood's face three times as large, centred (in the dark mood outlined); under the cursor the item's picture twice as large (accent on, text off) over its name (strong) and its state (strong on, muted off; a corner's: its tip, the wallpaper's name), a row each, every part centred on the middle by its ink; an arc: its level in display size (Sumi UI twice as large), its name and its state"
 has "$d" 'scaled(cr, pic_, cx - w_ * FACE_X // 2, cy - h_ * FACE_X // 2, FACE_X)'
-has "$d" 'if sum(pal["ground"][:3]) < 1.5:'; has "$d" 'scaled(cr, halos[pic_], cx - (w_ + 2) * FACE_X // 2, cy - (h_ + 2) * FACE_X // 2, FACE_X, "edge2")' "the dark mood: the face held by an outline of edge2 a picture's pixel wide (the hannya's black hair is the ground's ink)"
-has "$d" 'top = cy - (2 * CREST_PIC + 2 * ROW) // 2 - 4' "the group (picture, 8 px, two rows) centred on the middle"
-has "$d" 'scaled(cr, mask, cx - CREST_PIC, top, ECHO, "accent" if it.lit else "text")'
-has "$d" 'words = ((it.name, "strong"), (it.value if it.kind == "hour" else it.tip, "strong" if it.lit else "muted"))'
-has "$d" 'scaled(cr, surf, cx - (2 * iw + 1) // 2 - 2 * ix, top + CREST_PIC - LINE, 2, "strong")'
-has "$d" 'text(cr, cx - (iw.width + 1) // 2 - iw.x, y + (ROW - LINE) // 2, w, ink, width=ECHO_W)' "each cut to ECHO_W, the room between the beads"
+has "$d" 'if os.path.basename(os.path.realpath(CURRENT)) == "dark":' "the dark mood (by the theme's name): the face held by an outline of edge2 a picture's pixel wide"
+case_ "the middle's block is centred on the middle in every state, as itself (echo_parts: the picture or the level, then the rows that have words — its ink's top and foot equally far from the middle, the odd row above)"
+eq "$(py '
+def block(it):
+    t = kp.echo_parts(it)
+    foot = max(top + (kp.ECHO * kp.pic_ink(w)[3] if k == "pic" else 20 if k == "num" else kp.CAPS) for k, w, _, top in t)
+    return t[0][3], foot, [(k, w) for k, w, _, _ in t]
+S = {"hour on": STATE, "hour off": STATE}
+out = []
+for st, key in ((STATE, "theme"), (STATE, "dnd"), (STATE, "screenshot"), (STATE, "wallpaper"), (STATE, "brightness"),
+                (STATE + "muted\ton\n", "sound"), (STATE.replace("70%", "no DDC/CI"), "brightness")):
+    fresh(st); top, foot, parts = block(p.item(key))
+    out.append(f"{key}:{top},{foot}:{-top - foot}")
+print(" ".join(out))')" \
+  "theme:-47,47:0 dnd:-45,45:0 screenshot:-33,33:0 wallpaper:-43,43:0 brightness:-23,23:0 sound:-33,33:0 brightness:-15,15:0" \
+  "by the picture's ink (twice its rows), 16 px, then the rows' capitals: the moon 48 + 16 + 30, the bell 44 + …, the camera with its name alone 40 + 16 + 10, a level 20 + 16 + 10, muted sound 20 + 16 + 30, no level 30 — each balanced on the middle"
+eq "$(py 'fresh(); print([(k, w, i) for k, w, i, _ in kp.echo_parts(p.item("theme"))], [(k, w) for k, w, _, _ in kp.echo_parts(p.item("brightness"))], [(k, w, i) for k, w, i, _ in kp.echo_parts(p.item("screenoff"))])')" \
+  "[('pic', 'tile_moon', 'accent'), ('words', 'theme', 'strong'), ('words', 'dark', 'strong')] [('num', '70'), ('words', 'brightness')] [('pic', 'screen_off', 'text'), ('words', 'screen off', 'strong')]" \
+  "an hour: its picture (accent on), name, state; a meter: its level in display size, its name; a corner: its picture, its name"
+eq "$(py 'fresh(); t = kp.echo_parts(p.item("theme")); print(t[1][3] - (t[0][3] + kp.ECHO * kp.pic_ink("tile_moon")[3]), t[2][3] - t[1][3], kp.ECHO_GAP)')" "16 20 16" "the picture's ink to the name's capitals 16 px (two cells); the rows 20 apart"
+case_ "a click on the middle does what it shows (the sound's level: the sound panel, as Enter on it); at rest, nothing"
+eq "$(py 'opened("quick", STATE); p.key("Tab"); p.focus = "sound"; p.press(169, 169); print(p.mode, p.visible)')" "sound True" "the sound panel opens in its place"
+eq "$(py 'opened("quick", STATE); p.focus = "dnd"; p.press(169, 169); print([c for c in u.calls if c.startswith("run")])')" "['run kawa-quick --do dnd']" "an hour shown: switched"
+eq "$(py 'opened("quick", STATE); p.press(169, 169); print([c for c in u.calls if c.startswith("run") or c.startswith("launch")], p.focus)')" "[] None" "the face: nothing to do"
 eq "$(py 'print(kp.ECHO, kp.ECHO_W, kp.ECHO * kp.CREST_PIC, kp.ECHO_W // kp.CELL)')" "2 128 56 16" "the picture 56 px, the words 128 (16 cells) at most"
 case_ "an hour's state fits the middle: each at most ECHO_W px, cut at a word, never with an ellipsis"
 eq "$(py 'S = [STATE.replace("theme\tdark", "theme\tlight"), STATE, STATE.replace("nettype\twifi", "nettype\tethernet"), STATE.replace("nettype\twifi", "nettype\toffline"), STATE.replace("dnd\toff", "dnd\ton")]

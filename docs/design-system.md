@@ -54,7 +54,7 @@ colour anywhere, in either mood. (`--doc` prints the hex columns of this table.)
 | `accent_lo` | `82241f` Vandyke Red | `953321` Brick Red → Vandyke Red 0.5 | dim vermilion: an unlit segment on a vermilion fill |
 | `accent_text` | `eb5324` Jasper Red | `a84222` Brick Red | vermilion ink: a heading's icon, the day's kanji, the date's slashes, US, a failure's words |
 | `text_on_accent` | `111314` | `f8f3d8` | ink on vermilion |
-| `select` | `82241f` Vandyke Red | `82241f` Vandyke Red | what is selected — the keyboard's cursor on a row, a tile or a key; GTK's and Qt's selection, a default button: the lacquer (漆), one in both moods |
+| `select` | `82241f` Vandyke Red | `82241f` Vandyke Red | what is selected — the keyboard's cursor on a row, a key or a place of the dial; GTK's and Qt's selection, a default button: the lacquer (漆), one in both moods |
 | `text_on_select` | `f1e1b4` | `f8f3d8` | every ink on the lacquer: words, icons, a lit segment |
 | `select_lo` | `a65e49` Vandyke Red → f1e1b4 0.3 | `a96353` Vandyke Red → f8f3d8 0.3 | an unlit segment on the lacquer |
 | `asagi` | `82c1b4` Venice Green → Ecru 0.25 | `00726a` Light Porcelain Green → Dusky Green 0.45 | lit: a bar tile under the pointer or open; a meter's lit segments; something asking for you |
@@ -152,7 +152,7 @@ screen and the bar's paper share one rhythm.
 | hairline | 1 | — | the frame of everything that floats (§4) |
 | shadow | 2 | — | two rows under a hairline (each a pixel further right), one column beside it (§4) |
 | icon | 12 × 12 | — | beside words, on the em's rows 1–12 (centred on the capitals) |
-| icon alone | 14 × 14 | — | where no words follow: the layouts, a tile's picture, an icon-only key |
+| icon alone | 14 × 14 | — | where no words follow: the layouts, an icon-only key |
 | emblem | 16 × 16 | — | the bar's torii and workspace stamp (glyphs) |
 | face | 18 × 18 | — | quick settings' face on the bar's end tile: a picture in four inks (sumi, ivory, gold, lacquer — tools/build-themes.py FACES), a pixel of paper above and below, the odd pixel of air right |
 | icon column | 16 | 2 | an icon centred in it (2 px either side) |
@@ -180,9 +180,10 @@ screen and the bar's paper share one rhythm.
   column, lighter, right of the right hairline from its second row down. The hairline's ink: dark — `text` at 50 %; light — `strong` at 84 %; the shadow's: dark —
   Black at 67 % then 31 %; light — umber at 43 % then 19 % (`KAMI` in `tools/wada-palette.py`).
   Never rounded, never a second frame inside (no inner rule, no bevel).
-- **Panel**: `ground` at the terminals' see-through (kawa-glass: the wallpaper faintly behind,
-  the words never), the frame, 16 px of pad, content on the grid. Sized to its content in whole
-  cells.
+- **Panel**: `ground` at the terminals' see-through (kawa-glass, the owner's transparency: what
+  lies under it — the wallpaper, a window and its words — shows faintly, at 8 %; everything the
+  panel draws is opaque), the frame, 16 px of pad, content on the grid. Sized to its content in
+  whole cells.
 - **Heading**: its icon (12 px) in `accent_text` in the icon column at the content's first cell,
   its name in `strong` from cell 3 (x 24), 8 px, then the **rule** — 1 px `edge2`, solid, on the
   row's row 10 (the minus's), to the content's right edge. Air: §3. Every part of a panel opens
@@ -201,16 +202,20 @@ screen and the bar's paper share one rhythm.
   the switches' pictures (28 px, each its own drawing: art/crests.txt, §13), the theme at twelve,
   then clockwise night light, freesync, screensaver, do not disturb, network, Bluetooth, devices,
   drives, backup, record, read text (no Bluetooth adapter: ten, spaced evenly): `accent` on,
-  `muted` off. Its **meters** are beads (§3) on a circle of radius 88 inside the hours —
+  `muted` off — the theme's hour is never off: it is the mood (the moon at night, the rising sun
+  by day), always `accent`, the crown of the dial. Its **meters** are beads (§3) on a circle of radius 88 inside the hours —
   brightness rising up the left, sound up the right, from the bottom: lit `asagi`, the 17th–18th
   `flame`, the 19th–20th `accent` (they redden as they rise), unlit `edge2`, muted hollow (their
   outline), no level all unlit; a click on a bead sets its level (5 % each, a bead's spacing
   below the first 0), a drag follows round the circle, the wheel ±5. Its **corners** hold the four
   actions (screenshot top left, wallpaper top right, screen off bottom left, power bottom right),
-  each a 28 px picture in `muted`, flush with the content's corner. Its **middle** shows the
+  each a 28 px picture in `muted` placed by its ink: 2 px from the content's sides and 4 from
+  its top or foot, all four alike (crests/ink.txt, written by build-icons.py). Its **middle** shows the
   item the cursor is on — an hour's or an action's picture twice as large (`accent` on, `text`
-  off), a meter's level in display size (Sumi UI twice as large, `strong`) —, its name (`strong`)
-  and its state (`strong` on, `muted` off) a row each under it, every part centred by its ink;
+  off), a meter's level in display size (Sumi UI twice as large, `strong`) —, then 16 px, its
+  name (`strong`) and its state (`strong` on, `muted` off) a row each, rows with nothing in them
+  left out; the block centred on the middle both ways by the pictures' ink and the rows'
+  capitals (a descender hangs below), each part by its ink; a click on it does what it shows;
   at rest, the mood's face (open) three times as large. Under the cursor an hour or a corner is
   its place (36 × 36) in the lacquer, its corner pixels left out, the picture `text_on_select`;
   a meter is a lacquer band 10 px wide along its beads (lit `text_on_select`, unlit
@@ -244,7 +249,7 @@ screen and the bar's paper share one rhythm.
 | hover (the pointer) | the cursor goes to the row under it — one light, never two | the same (a mouse click acts as Enter) | the tile lit: icon and words `asagi`; a vermilion tile's fill `accent_hi` |
 | cursor (the keyboard) | the row filled `select` (the lacquer), every ink on it `text_on_select`; a menu opens with it on its first choice, Enter acts at once | the same (fzf: bg+ 24, fg+ 25, `:strip`) | — |
 | chosen | the vermilion dot (§4) | `●` in `accent_text`, in the value column | — |
-| on · off | §4 tile; a row's value `strong` "on" · `faint` "off" | the same words, the same inks | — |
+| on · off | §4 dial (an hour `accent` on, `muted` off); a row's value `strong` "on" · `faint` "off" | the same words, the same inks | — |
 | absent | `faint`, and the word says why ("none", "no DDC/CI") | the same | the tile is not there |
 | busy | its icon moves (§13) | the same icon's frames | its icon moves |
 | asking for you | — | — | the workspace's numeral `asagi`; the window's hairline `asagi` |
@@ -331,7 +336,7 @@ paper and a faint fibre in it — one frame, nothing inside it.
 | 7–20 | the em: kanji 7–20, capitals 9–18 — five rows of paper above them and five below |
 | 8–19 | an icon beside words (12 px, centred on the capitals) |
 | 7–20 | an icon alone (14 px) |
-| 6–21 | the emblems (16 × 16): the torii, the stamp (its numeral on 9–18), quick settings' face |
+| 6–21 | the emblems (16 × 16): the torii, the stamp (its numeral on 9–18); quick settings' face, a picture 18 × 18 on 5–22 (§3 face) |
 
 Across: the outer tiles' hairlines on x 8 and x 1911 — the windows' edges (§12); 8 px from the
 paper's edge to the ink on both sides of every tile (words that change carry their first and
@@ -440,7 +445,7 @@ stamp is a choice made, a scroll is something long opening.
 
 - Every icon is ours, drawn in `art/icons.txt` on Sumi UI's grid in its weight: 1 px strokes both
   ways. **12 × 12** beside words, on the em's rows 1–12, centred on the capitals (§2);
-  **14 × 14** alone; the bar's three emblems **16 × 16**. Sumi Icons Term draws the same pixels,
+  **14 × 14** alone; the bar's two emblems **16 × 16** (its face is a picture, §3). Sumi Icons Term draws the same pixels,
   centred in two terminal cells.
 - **Pictures** (quick settings' dial, §4): **28 × 28** in `art/crests.txt` — one ink, strokes
   2 px both ways, a 45° stroke a run of 3 on the stair (as heavy as a straight 2), details
@@ -466,7 +471,7 @@ stamp is a choice made, a scroll is something long opening.
 - **Art** — pixel versions of public-domain old masters, drawn in the palette's inks at the
   wallpapers' 3 px pixel: demons and warriors after Kuniyoshi and Hokusai (dark), tennin after
   Buddhist painting (light) — about ten wallpapers each, the lock's scenes, quick settings' face
-  (demon head / angel face, a 16 × 16 emblem), the fetch art.
+  (demon head / angel face: 18 × 18 on the bar's end tile, §3), the fetch art.
 
 ## 14. Surfaces and their owners
 

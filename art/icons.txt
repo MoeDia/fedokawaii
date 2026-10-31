@@ -10,7 +10,7 @@
 # beside words an icon sits as the letters do, at 14 px, 28 px, 42 px…:
 #   12 × 12   beside words (on the em's rows 1–12)
 #   14 × 14   alone: where no words follow (the layouts, a tile's picture) — the em's rows
-#   16 × 16   the bar's three emblems: the torii, the stamp, quick settings' face
+#   16 × 16   the bar's two emblems: the torii, the stamp (its face: a picture, 18 × 18)
 #   18 × 12   the wide ones: the volume's ladder, the cassette
 #
 # tools/build-icons.py turns this file into
