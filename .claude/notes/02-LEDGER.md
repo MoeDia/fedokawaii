@@ -1285,4 +1285,9 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   site-packages/NAME) for that run; the two "Twisted missing" cases name twisted besides moving the
   stand-in away (and clear it after). Inert unless a case writes it. test_upstream 246/0 (was 242/4),
   test_afterdnf 37/0, test_guard 42/0. Owed: the whole installer area on this tree (next pass).
+- NEXT PASS STARTS HERE (31 Oct 11:38; the 11:27 note's items stand): first read
+  ~/.cache/r27-suite-installer-20261031.log — the whole installer area started 11:38 on d83edfd (detached;
+  expect "✔ all 25"); a failure there is the first job. Then the 11:27 list: the live grim of the
+  bar's face and quick settings (only while he is away), T19k-4 (c) the crests' pictures (the moon
+  holds; the sun's diagonals and the lantern grilled in grill-r27.md), T19k-5 the tanzaku.
 
