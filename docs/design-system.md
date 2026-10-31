@@ -160,6 +160,7 @@ screen and the bar's paper share one rhythm.
 | heading, TUI | 1 + 1 lines | — | its line, then a blank line; two blank lines above it (none at the top) |
 | content | 376 | 47 | a panel's inner width: quick settings, a notice, the launcher (410 with pad and hairlines) |
 | tile | 94 × 88 | — | a quick-settings crest's cell (the mon sheet, §4): four a row, nothing between = 376 — the grid's one stated exception: each crest is centred on its own column, the sheet's outer edges are on the grid |
+| action | 94 × 46 | — | the mon sheet's foot: an icon over its word on the same four columns (§4) |
 | key | 20 high | 1 row | a key button: its 1 px frame inside the row |
 | meter | 160 × 10 | 20 | 20 segments, each 6 × 10 px with 2 px of air (one a cell): 5 % a segment |
 | stamp | 16 Ø | — | the workspace's vermilion seal on the bar (an emblem), its numeral 10 × 10 inside |
@@ -204,6 +205,11 @@ screen and the bar's paper share one rhythm.
   (the whole cell): the crest in `text_on_select`, its picture `select`. Turned
   on, the seal is stamped (§11's stamp: a pixel larger all round in `accent_hi` for 60 ms, then its
   size); turned off, its outline at once.
+- **Action** (the mon sheet's foot: wallpaper, screenshot, screen off, power): on the sheet's
+  four columns, a group (16 px) under it, each a cell 94 × 46 — its icon (14 px, `muted`) 6 px
+  down, its word (`text`) on the row 24 px down, both centred on the column like a crest's. No
+  crest and no frame: a crest says on or off, an action has neither. Under the cursor the
+  whole cell in the lacquer, its inks `text_on_select`.
 - **Meter**: its icon and name as a row's, then 20 segments (§3), right-aligned before the value.
   Lit segments `asagi`; over 80 % the 17th–18th `flame` and the 19th–20th `accent` (it reddens
   as it rises); unlit `edge`. A level between two segments lights the last one partly, from the

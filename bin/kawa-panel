@@ -140,6 +140,7 @@ MON_COLS = 4
 MON_W, MON_H = INNER // MON_COLS, 88  # 94 × 88: a sheet of 4 × 94 = 376, the content
 MON_R, MON_TOP = 18, 6                # the crest's radius; its top in the cell
 MON_NAME, MON_STATE = 46, 66          # the name's row, the state's row (from the cell's top)
+ACT_TOP, ACT_NAME, ACT_H = 6, 24, 46   # an action at the sheet's foot: its icon's top, its word's row, its cell
 COL = 7                              # a column of Sumi UI: a letter (a kanji or kana: two)
 LINE = 14                            # Sumi UI's em: in a row, on its rows 3–16 (capitals 5–14)
 METER_H, METER_GAP = ROW, 0          # a row, and the rows' air between them: none (theirs is inside)
@@ -760,9 +761,9 @@ def bri_icon(pct):
 
 
 def layout_quick(s):
-    """Quick settings: its heading (the sliders), the two meters, the tiles (three a row, a
-    short last row two wide ones: 184 × 80), the keys at the foot the whole width — each group
-    GROUP px from the next, no rule between them (docs/design-system.md §4)."""
+    """Quick settings: its heading (the sliders), the two meters, the mon sheet (a crest per
+    switch, four columns of MON_W × MON_H, a short row centred), the four actions at its foot on
+    the same columns — each group GROUP px from the next, no rule between them (docs/design-system.md §4)."""
     x0 = y = BORDER + PAD
     items, r = [], 0
     heads = [("sliders", "quick settings", x0, y)]
@@ -787,17 +788,14 @@ def layout_quick(s):
         y += MON_H
         r += 1
     y += GROUP
-    # (the keys the whole width, 8 px apart: screen off and power their icons alone — squares, a
-    # row high —, the two others sharing the rest)
-    half = (INNER - 2 * KEY_H - 3 * GAP) // 2
-    keys = [("wallpaper", "picture", "wallpaper", half), ("screenshot", "camera", "screenshot", INNER - 2 * KEY_H - 3 * GAP - half),
-            ("screenoff", "screen_off", "", KEY_H), ("power", "power", "", KEY_H)]
-    x = x0
-    for key, ic, name, w in keys:
-        items.append(Item(key, "key", x, y, w, KEY_H, r, icon=ic, name=name,
-                          tip=s.get("wallpaper", "") if key == "wallpaper" else "screen off" if key == "screenoff" else ""))
-        x += w + GAP
-    y += KEY_H + PAD + BORDER
+    # (the four actions on the sheet's four columns: an icon over its word, no crest — a crest
+    # says on or off, an action has neither)
+    acts = (("wallpaper", "picture", "wallpaper"), ("screenshot", "camera", "screenshot"),
+            ("screenoff", "screen_off", "screen off"), ("power", "power", "power"))
+    for c, (key, ic, name) in enumerate(acts):
+        items.append(Item(key, "act", x0 + c * MON_W, y, MON_W, ACT_H, r, icon=ic, name=name,
+                          tip=s.get("wallpaper", "") if key == "wallpaper" else ""))
+    y += ACT_H + PAD + BORDER
     return Layout(items, (x0, x0), [], (INNER + 2 * (PAD + BORDER), y), heads)
 
 
@@ -1023,7 +1021,7 @@ def look(it, focused, hot):
         ink = "text_on_select"
         return {"fill": "select", "frame": None, "glyph": ink, "label": ink,
                 "value": ink, "on_fill": True, "detail": ink}
-    bare = it.kind in ("meter", "row", "app")
+    bare = it.kind in ("meter", "row", "app", "act")
     return {"fill": None if bare else "key", "frame": None if bare else "edge",
             "glyph": "strong" if it.lit else ("muted" if bare else "text"),
             "label": "strong" if it.lit else "text", "value": "muted", "on_fill": False, "detail": "text"}
@@ -2606,6 +2604,13 @@ def main(argv):
                     ink_w = text_layout(cr, words).get_pixel_extents()[0]
                     text(cr, it.x + (it.w - ink_w.width) // 2 - ink_w.x, it.y + top + (ROW - LINE) // 2,
                          words, ink, width=it.w - CELL)
+        elif it.kind == "act":
+            # an action at the sheet's foot (§4): its icon over its word, both centred on its
+            # column like a crest's (the odd pixel of a word's ink to the right)
+            pic(cr, it.x + it.w // 2 - 7, it.y + ACT_TOP, ic[it.icon], lk["glyph"])
+            ink_w = text_layout(cr, it.name).get_pixel_extents()[0]
+            text(cr, it.x + (it.w - ink_w.width) // 2 - ink_w.x, it.y + ACT_NAME + (ROW - LINE) // 2,
+                 it.name, lk["label"], width=it.w - CELL)
         elif it.kind == "app":                   # (the launcher's: its icon, its name, the answer's "copy")
             ix, iy = it.x + GLYPH_X, it.y + (it.h - APP_ICON) // 2
             pic_ = ic["calc"] if it.app is None else it.app.pic

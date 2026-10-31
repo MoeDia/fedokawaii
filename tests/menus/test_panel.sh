@@ -89,11 +89,11 @@ case_ "the captures: record (on while one runs: a click stops it) and read text,
 eq "$(py 'fresh(); t = p.item("record"); print(t.icon, t.value, t.lit, p.item("ocr").icon, p.item("ocr").name)')" "tile_record off False tile_read read text"
 eq "$(py 'fresh(STATE + "record\ton\n"); t = p.item("record"); print(t.value, t.lit)')" "recording True"
 eq "$(py 'fresh(); p.request(); p.activate("record"); p.activate("ocr"); print([c for c in u.calls if c.startswith("launch")], p.visible)')" "['launch kawa-quick --do record', 'launch kawa-quick --do ocr'] False"
-case_ "the size: 410 × 418 (a 1 px hairline, 16 px of pad, its heading and two meters, the sheet: three rows of 94 × 88 crests, the keys; no day line: the bar's)"
-eq "$(py 'fresh(); print(*p.size)')" "410 418"
+case_ "the size: 410 × 444 (a 1 px hairline, 16 px of pad, its heading and two meters, the sheet: three rows of 94 × 88 crests, its four actions; no day line: the bar's)"
+eq "$(py 'fresh(); print(*p.size)')" "410 444"
 eq "$(py 'print(kp.INNER, kp.INNER + 2 * (kp.PAD + kp.BORDER), kp.BORDER, kp.HAIR, kp.PAD)')" "376 410 1 1 16" "376 of content, 2 × 16 of pad, 2 × 1 of hairline"
-case_ "the window is the frame's box and its shadow — a column at its right, two rows under it (411 × 420) — and never trimmed to its ink"
-eq "$(py 'fresh(); print(*p.win, p.ox, p.dy, kp.SHADOW_R, kp.SHADOW_B)')" "411 420 0 0 1 2"
+case_ "the window is the frame's box and its shadow — a column at its right, two rows under it (411 × 446) — and never trimmed to its ink"
+eq "$(py 'fresh(); print(*p.win, p.ox, p.dy, kp.SHADOW_R, kp.SHADOW_B)')" "411 446 0 0 1 2"
 eq "$(py 'fresh(); print(p.win == (p.size[0] + kp.SHADOW_R, p.size[1] + kp.SHADOW_B), p.rules); opened("sound", SOUND); print(p.win == (p.size[0] + 1, p.size[1] + 2), p.rules); opened("brightness", "brightness\t70%\n"); print(p.win == (p.size[0] + 1, p.size[1] + 2), p.rules, p.dy)')" "$(printf '%s\n' "True []" "True []" "True [] 0")" "every panel the same: the box + 1 column, + 2 rows — no trimming (dy 0), nothing drawn between the groups"
 case_ "it opens under its heading, as every panel: the sliders icon, quick settings, the rule to the right edge"
 eq "$(py 'fresh(); print(p.heads)')" "[('sliders', 'quick settings', 17, 17)]"
@@ -106,16 +106,16 @@ case_ "no adapter: ten crests, four, three, three — shared as evenly as they g
 eq "$(py 'fresh(STATE.replace("bluetooth\ton\n","").replace("devices\tnone\n","")); print(" ".join(f"{i.x}+{i.w}" for i in p.items if i.kind == "tile"))')" \
   "17+94 111+94 205+94 299+94 64+94 158+94 252+94 64+94 158+94 252+94"
 eq "$(py 'print([kp.rows_of(n) for n in (12, 10, 9, 8, 7, 6, 5, 4, 1, 0)])')" "[[4, 4, 4], [4, 3, 3], [3, 3, 3], [4, 4], [4, 3], [3, 3], [3, 2], [4], [1], []]"
-case_ "the keys at the foot: wallpaper, screenshot, screen off and power (each an icon alone, a 20 px square; screen off its tooltip) — the whole width, 8 apart, one row high"
-eq "$(py 'fresh(); print(" ".join(f"{i.key}:{i.x}+{i.w}x{i.h}:{i.name or chr(45)}" for i in p.items if i.kind == "key"))')" \
-  "wallpaper:17+156x20:wallpaper screenshot:181+156x20:screenshot screenoff:345+20x20:- power:373+20x20:-"
-eq "$(py 'fresh(); print(p.item("screenoff").icon, p.item("screenoff").tip)')" "screen_off screen off"
-eq "$(py 'fresh(); k=[i for i in p.items if i.kind=="key"]; print(k[0].x - 17, 393 - (k[-1].x + k[-1].w), p.size[1] - (k[0].y + k[0].h))')" "0 0 17" "edge to edge; 16 px of pad and the hairline under them"
+case_ "the four actions at the sheet's foot (wallpaper, screenshot, screen off, power): on its four columns, each an icon over its word in a 94 × 46 cell — nothing framed, no key left"
+eq "$(py 'fresh(); print(" ".join(f"{i.key}:{i.x},{i.y}+{i.w}x{i.h}:{i.icon}:{i.name}" for i in p.items if i.kind == "act"))')" \
+  "wallpaper:17,381+94x46:picture:wallpaper screenshot:111,381+94x46:camera:screenshot screenoff:205,381+94x46:screen_off:screen off power:299,381+94x46:power:power"
+eq "$(py 'fresh(); print([i.key for i in p.items if i.kind in ("key", "row")], repr(p.item("screenoff").tip), kp.ACT_TOP, kp.ACT_NAME, kp.ACT_H)')" "[] '' 6 24 46" "its word says it (no tooltip); the icon 6 px down, the word's row 24"
+eq "$(py 'fresh(); k=[i for i in p.items if i.kind=="act"]; t=[i for i in p.items if i.kind=="tile"]; print(k[0].x - 17, 393 - (k[-1].x + k[-1].w), p.size[1] - (k[0].y + k[0].h), [a.x for a in k] == [c.x for c in t[:4]])')" "0 0 17 True" "edge to edge on the crests' columns; 16 px of pad and the hairline under them"
 case_ "the meters under the heading (its row, then 8 px of air): the full width, 20 px rows touching; the groups 16 px apart, nothing drawn between them"
 eq "$(py 'fresh(); print(" ".join(f"{i.x},{i.y},{i.w},{i.h}" for i in p.items if i.kind == "meter"), p.rules)')" \
   "17,45,376,20 17,65,376,20 []"
-eq "$(py 'fresh(); m=[i for i in p.items if i.kind=="meter"]; t=[i for i in p.items if i.kind=="tile"]; k=[i for i in p.items if i.kind=="key"][0]
-print(m[0].y - (p.heads[0][3] + 20), m[1].y - (m[0].y + m[0].h), t[0].y - (m[-1].y + m[-1].h), k.y - (t[-1].y + t[-1].h))')" "8 0 16 16" "the heading's 8 px, the meters touching, then 16 px before the tiles and 16 before the keys"
+eq "$(py 'fresh(); m=[i for i in p.items if i.kind=="meter"]; t=[i for i in p.items if i.kind=="tile"]; k=[i for i in p.items if i.kind=="act"][0]
+print(m[0].y - (p.heads[0][3] + 20), m[1].y - (m[0].y + m[0].h), t[0].y - (m[-1].y + m[-1].h), k.y - (t[-1].y + t[-1].h))')" "8 0 16 16" "the heading's 8 px, the meters touching, then 16 px before the tiles and 16 before the actions"
 eq "$(py 'print(kp.HEAD_H, kp.SECTION, kp.GROUP, kp.KEY_H, kp.METER_GAP, kp.GAP)')" "28 20 16 20 0 8" "the grid's own constants: a heading 28, 20 of air above one that is not first, groups 16 apart, keys 20, rows touching"
 
 # ── the tiles' pictures and words ───────────────────────────────────────────────────────
@@ -291,10 +291,10 @@ eq "$(py 'fresh(); p.request(); u.calls.clear(); p.focus = "brightness"; p.key("
 nav() { py "fresh(); p.focus = '$1'; [p.key(k) for k in '$2'.split()]; print(p.focus)"; }
 case_ "arrows (and h j k l): along a row, and up and down to the nearest below or above"
 eq "$(nav theme 'Right Right Right Right')" network "the end of a row stays"
-eq "$(nav theme 'Down Down')" dnd; eq "$(nav night 'Down')" devices; eq "$(nav vrr 'j j j j')" screenshot "(the nearest centre below)"
+eq "$(nav theme 'Down Down')" dnd; eq "$(nav night 'Down')" devices; eq "$(nav vrr 'j j j j')" screenoff "(a column straight down, to its action at the foot)"
 eq "$(nav theme 'Up')" sound; eq "$(nav sound 'k k')" brightness; eq "$(nav brightness 'Up')" brightness
-eq "$(nav dnd 'Down')" wallpaper; eq "$(nav saver 'Down')" wallpaper "the foot: the key nearest below"; eq "$(nav record 'Down')" screenshot
-eq "$(nav screenshot 'Up')" record "(its centre, 259, nearer record's 252 than ocr's 346)"; eq "$(nav sound 'Down')" night "from a meter: the middle tile"
+eq "$(nav dnd 'Down')" wallpaper; eq "$(nav saver 'Down')" screenshot "the foot: the action on the same column"; eq "$(nav record 'Down')" screenoff; eq "$(nav ocr 'Down')" power
+eq "$(nav screenshot 'Up')" saver "(its column's crest)"; eq "$(nav power 'Left Left')" screenshot "(along the foot)"; eq "$(nav sound 'Down')" night "from a meter: the middle tile"
 case_ "Tab and Shift+Tab: every item in turn, round"
 eq "$(nav power 'Tab')" brightness; eq "$(nav brightness 'ISO_Left_Tab')" power
 case_ "← → (h l) on a meter: its level by 5, at once and then set"
@@ -418,8 +418,8 @@ eq "$(crest night False)" "accent key None" "on: the seal vermilion, its ring pa
 eq "$(crest devices False)" "None None edge2" "off: the outline"
 eq "$(crest night True)" "text_on_select accent None" "on, under the cursor: the seal in its ink, the ring vermilion"
 eq "$(crest devices True)" "None None text_on_select" "off, under the cursor: the outline in its ink"
-eq "$(lk wallpaper False False)" "key edge text text muted False" "a key at rest: its fill and edge frame"
-eq "$(lk power False False)" "key edge text text muted False"
+eq "$(lk wallpaper False False)" "None None muted text muted False" "an action at rest: nothing behind it, its icon muted, its word text"
+eq "$(lk power False False)" "None None muted text muted False"
 eq "$(lk sound False False)" "None None muted text muted False" "a meter at rest: nothing behind it"
 for k in night devices wallpaper power sound; do
   eq "$(lk $k False True)" "$(lk $k False False)" "$k under the pointer: drawn as at rest (it has the cursor then)"
