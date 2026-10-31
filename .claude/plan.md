@@ -286,7 +286,7 @@ approach:
 - Standing from now on: every later task's acceptance includes this audit for the surfaces it touches; T59 repeats the whole audit at the end.
 accept: audit-r27.md lists every surface × theme with its measured numbers and 0 open findings; px.py output for each; tests/static/test_audit.sh green; live shots of the most-used ten (bar, quick settings, Super+U, launcher, notices, Super+V, Super+N, lock, foot, yazi) match the kit's numbers to the pixel.
 
-### T19n — the master: an independent reviewer gate on every task, and a trace of every request (owner inbox 2026-10-31 23:56)  [wip 1 Nov — the gate running (first review: T19k-7, FAIL, fixed in part — ledger r27-19k-7-master); the trace built (.claude/notes/master-trace.md: 332 requests, 4 unplanned + 7 unproven + 8 stale → folded into T42, T45, T51, T59); left: the master's check of the trace's gaps; the trace kept current]
+### T19n — the master: an independent reviewer gate on every task, and a trace of every request (owner inbox 2026-10-31 23:56)  [wip 1 Nov — the gate running (T19k-7: FAIL, then PASS — ledger r27-19k-7-master, r27-19k-7 DONE); the trace built (.claude/notes/master-trace.md: 332 requests) and checked by the master (TRACE: GAPS — ten, folded into the plan, ledger r27-19n); standing: every task closed through the master, the trace kept current]
 deps: none (from now on)  · model: the master is a fresh agent on the strongest model (Fable, effort max) with no stake in the work; main prepares the evidence  · ledger: r27-19n
 The owner's words: "make sure to hire a MASTER AN ABSOLUTE SOURCE OF PROPER WORK TRUTH TO MAKE SURE EVERY LITTLE SINGLE THING WAS HELD AND DONE TO HIGHEST STANDARD IN THE WORLD AND NOTHING AT ALL WAS MISSED OR NOT DONE PROPERLY".
 approach:
