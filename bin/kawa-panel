@@ -139,6 +139,8 @@ BORDER = HAIR                        # (the content starts BORDER + PAD from the
 SHADOW_R, SHADOW_B = 1, 2            # the frame's shadow: a column at its right, two rows under it
 GAP = 8                              # the air between two keys, two groups' halves (§3)
 STAMP_MS = 60                        # a seal stamped (§11): a pixel larger in accent_hi this long
+BEAD_MS = 12                         # a meter changing on the dial (§11): its beads light or go out one after another, this apart
+REEL_MS = 250                        # the record hour while it records: its reels turn (§5 busy: its picture moves), a frame this long
 INNER = 47 * CELL                    # 376: the content (quick settings, the sound panel, the launcher)
 # quick settings, the dial (§4, 和時計 a wadokei): a square; the switches' pictures on its hours
 # (the theme at twelve, then clockwise), the two meters as beads on a circle inside them
@@ -536,6 +538,12 @@ def on_arc(u, r):
     """A polar place (arc_polar's) on an arc: within a bead's spacing of its run and HOUR / 3 of its circle."""
     step = BEAD_RUN / (SEGS - 1)
     return u is not None and abs(r - BEAD_R) <= HOUR // 3 and BEAD_FROM - step <= u <= BEAD_FROM + BEAD_RUN + step
+
+
+def lit_beads(value):
+    """How many of a dial meter's twenty beads a level lights (5 % each; no level: none)."""
+    pct = percent(value)
+    return 0 if pct is None else pct // 5
 
 
 def arc_level(it, x, y, held=False):
@@ -1159,6 +1167,10 @@ class Panel:
     def __init__(self, ui):
         self.ui = ui
         self.stamps = {}         # hour → when it was stamped (turned on: stamping())
+        self.shown = {}          # a dial meter → how many beads are lit on screen (they glide to its level: glide())
+        self.gliding = False
+        self.turn = 0            # the record hour's frame while it records (0, 1: its reels turned an eighth — reel())
+        self.reeling = False
         self.mode = "quick"      # the panel open (or the last one open)
         self.states = {m: {} for m in MODES}
         self.states["menu"] = Menu([])
@@ -1221,6 +1233,49 @@ class Panel:
         self.ui.run(["kawa-quick", "--state"] + ([] if mode == "quick" else [mode]),
                     lambda rc, out: self.got_state(mode, rc, out))
 
+    def glide(self):
+        """The dial's beads follow their meters' levels one at a time, BEAD_MS a bead (§11: a
+        meter changing — never at an open, never while closed), each step that arc alone redrawn."""
+        if self.gliding or not self.visible or all(
+                self.shown.get(i.key, lit_beads(i.value)) == lit_beads(i.value) for i in self.items if i.kind == "arc"):
+            return                                    # (nothing to move: no timer)
+        self.gliding = True
+        self.ui.later(BEAD_MS, self._glide)
+
+    def _glide(self):
+        busy = False
+        for it in self.items if self.visible else ():
+            if it.kind == "arc":
+                want = lit_beads(it.value)
+                have = self.shown.setdefault(it.key, want)
+                if have != want:
+                    have += 1 if want > have else -1
+                    self.shown[it.key] = have
+                    self.ui.redraw(it)
+                    busy = busy or have != want
+        self.gliding = busy
+        if busy:
+            self.ui.later(BEAD_MS, self._glide)
+
+    def recording(self):
+        it = self.item("record")
+        return it if self.visible and self.mode == "quick" and it is not None and it.lit else None
+
+    def reel(self):
+        """While a recording runs and quick settings shows, the record hour's reels turn (§5: a
+        busy thing's picture moves) — REEL_MS a frame, that hour (and the middle) redrawn."""
+        if not self.reeling and self.recording():
+            self.reeling = True
+            self.ui.later(REEL_MS, self._reel)
+
+    def _reel(self):
+        it = self.recording()
+        self.turn = (self.turn ^ 1) if it else 0
+        self.reeling = it is not None
+        if it is not None:
+            self.ui.redraw(it)
+            self.ui.later(REEL_MS, self._reel)
+
     def stamping(self, key):
         """An hour being stamped now (§11: turned on, STAMP_MS in accent_hi)."""
         t = self.stamps.get(key)
@@ -1263,6 +1318,8 @@ class Panel:
                     self.focus = None
                 self.rehot()
                 self.ui.redraw()
+                self.glide()                          # (a level changed elsewhere — its keys: the beads follow)
+                self.reel()                           # (a recording started: its reels turn)
         if mode in self.again:
             self.again.discard(mode)
             self.refresh(mode)
@@ -1323,12 +1380,14 @@ class Panel:
         # (it says at once if it is over the panel: enter-notify), no drag
         self.focus = self.hot = self.pointer = self.dragging = None
         self.scrolled = (None, 0.0)
+        self.shown = {}                               # (the beads stand at their levels: no glide at an open)
         self.relayout()
         self.place = where(self.ui.clicked(), self.size[0])   # (under the click, or its key's place)
         self.at_place()
         self.ui.show()
         self.ui.light(mode, True)
         self.refresh()
+        self.reel()
 
     def open_menu(self, menu, reply, what="menu"):
         """A menu asked for (kawa-menu): shown at once in place of whatever panel or menu is on
@@ -1466,6 +1525,7 @@ class Panel:
         if it:
             it.value, it.muted = self.state[key], False
         self.ui.redraw(*([it] if it else []))
+        self.glide()
         # the bar's module the same moment, before the level is sent (that takes a process):
         # the bar, the meter and the level display agree at every step
         self.ui.push("volume" if key == "sound" else key, f"volume {pct} 0" if key == "sound" else str(pct))
@@ -2463,6 +2523,10 @@ def main(argv):
 
     crests = {}
 
+    def frame(icon):
+        """A picture's frame now: the record hour's reels turned while it records (reel())."""
+        return icon + "_2" if icon == "tile_record" and panel.turn else icon
+
     def crest_pic(icon):
         """A picture of the dial (a mask) by its item's icon, read once; None: none there."""
         name = icon.removeprefix("tile_").replace("_", "-")
@@ -2531,8 +2595,7 @@ def main(argv):
                 bands[it.side] = runs
             for y, x, w in bands[it.side]:
                 box(cr, x, y, w, 1, "select")
-        pct = percent(it.value)
-        lit = 0 if pct is None else pct // 5
+        lit = panel.shown.setdefault(it.key, lit_beads(it.value))   # (as they stand: glide() moves them to the level)
         for j in range(SEGS):
             bx, by = bead_at(it, j)
             x, y = bx - BEAD // 2, by - BEAD // 2
@@ -2575,7 +2638,7 @@ def main(argv):
             return
         for kind, what, ink, top in echo_parts(it):
             if kind == "pic":                     # (its ink centred: the square placed by what is drawn in it)
-                mask = crest_pic(what)
+                mask = crest_pic(frame(what))
                 ix, iy, iw, _ = pic_ink(what)
                 if mask is not None:
                     scaled(cr, mask, cx - iw - ECHO * ix, cy + top - ECHO * iy, ECHO, ink)
@@ -2856,7 +2919,7 @@ def main(argv):
             if lk["fill"]:
                 box(cr, it.x + 1, it.y, it.w - 2, it.h, lk["fill"])
                 box(cr, it.x, it.y + 1, it.w, it.h - 2, lk["fill"])
-            mask = crest_pic(it.icon)
+            mask = crest_pic(frame(it.icon))
             if mask is not None:
                 col(cr, "accent_hi" if not on and panel.stamping(it.key) else lk["glyph"])
                 cr.mask_surface(mask, *it.pic)

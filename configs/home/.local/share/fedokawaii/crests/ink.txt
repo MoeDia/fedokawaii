@@ -14,6 +14,7 @@ bell 6 3 16 22
 bell-off 4 3 20 22
 saver 4 3 19 21
 record 3 4 21 20
+record-2 3 4 21 20
 read 5 5 18 18
 camera 2 4 24 20
 picture 2 4 24 20

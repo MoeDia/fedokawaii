@@ -1493,3 +1493,12 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
 ## 1 px (≥ 54 × 54, both moods, open) and the dial alive (beads one after another, 12 ms a bead; the
 ## record hour moving while it records) — then the master's re-review (tools/master-brief.sh T19k-7,
 ## the prompt in the ledger's r27-19k-7-master line's spirit); then T19m (a) the design research.
+- r27-19k-7 alive (1 Nov 01:05) — the master's "alive unmet", done: (a) a level changing on the dial
+  lights its beads one after another, BEAD_MS = 12 a bead (§11's rule, now built for the beads):
+  Panel.shown holds the beads as drawn, glide() steps them toward the level and redraws that arc
+  alone, never at an open and never while closed, no timer when nothing moves; (b) while a recording
+  runs and quick settings shows, the record hour's reels turn — two frames (art/crests.txt record /
+  record-2: the hubs a cross and a cross turned an eighth, swapped between the two reels), 250 ms each,
+  that hour and the middle redrawn; it stops at its first frame when the recording or the panel goes.
+  Tests: test_panel 624/0 (the glide's steps up and down, none at an open or while closed; the reels'
+  frames, their stop), test_design_doc 54/0. §4 and §11 say it.

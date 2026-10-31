@@ -222,7 +222,9 @@ screen and the bar's paper share one rhythm.
   `select_lo`). Keys: an arrow goes to the nearest item that way (no farther aside than twice as
   far ahead), ↑ ↓ on a meter change it by 5, Tab walks every item, Enter acts. Everything is
   symmetric round the dial's middle (it lies between pixels: 304 is even), each half rounded
-  once and the other its mirror. Turned on, an hour is stamped (§11: `accent_hi` for 60 ms).
+  once and the other its mirror. Turned on, an hour is stamped (§11: `accent_hi` for 60 ms); a
+  level changing lights its beads one after another (§11: 12 ms a bead — never at an open); while
+  a recording runs, the record hour's reels turn (two frames, 250 ms each: §5 busy).
 - **Meter**: its icon and name as a row's, then 20 segments (§3), right-aligned before the value.
   Lit segments `asagi`; over 80 % the 17th–18th `flame` and the 19th–20th `accent` (it reddens
   as it rises); unlit `edge`. A level between two segments lights the last one partly, from the
@@ -416,7 +418,7 @@ stamp is a choice made, a scroll is something long opening.
 | a theme switch · a new wallpaper | the wash (dwl's own, asked through kawa-wash: the screen as it was laid over everything, the change made under it): five drops of the new mood's darkest ink land on the old picture and bleed out along a paper grain in 3 px pixels, a wet rim at their edge; the pointer's picture changes the moment the wash reaches it | 1200 |
 | the screensaver leaves | dissolves off | 180 |
 | a stamp (a toggle switched on — an hour of quick settings' dial —, the workspace seal) | down: the seal 1 px larger all round in `accent_hi`, an hour's picture in `accent_hi`; then as it was, in `accent` | 60 |
-| a meter changing | its segments light (or go out) one after another | 12 a segment |
+| a meter changing | its segments (the dial's beads) light or go out one after another | 12 a segment (a bead) |
 | icons that move (§13) | their frames in a loop, only while the state holds | 6–8 a second |
 
 - Every frame is drawn at every refresh of the screen (144 a second here) for the moment it

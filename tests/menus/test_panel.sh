@@ -253,10 +253,10 @@ pics = sorted({t[1] for t in rows})
 print({len(t) for t in rows}, len(pics))
 print(" ".join(pics))')" \
   "$(printf '%s\n' "{5} 16" "tile_backup tile_bell tile_bell_off tile_bluetooth tile_devices tile_drive tile_ethernet tile_lantern tile_moon tile_offline tile_read tile_record tile_saver tile_sun tile_wave tile_wifi")"
-case_ "the pictures (art/crests.txt → tools/build-icons.py): one drawing and one 28 × 28 mask for each picture an hour can wear (its icon less tile_: sixteen over every state) and each corner's (camera, picture, screen-off, power) — twenty, nothing else"
+case_ "the pictures (art/crests.txt → tools/build-icons.py): one drawing and one 28 × 28 mask for each picture an hour can wear (its icon less tile_: sixteen over every state) and each corner's (camera, picture, screen-off, power) — twenty — and the record hour's second frame (record-2, its reels turned), nothing else"
 want="backup bell bell-off bluetooth camera devices drive ethernet lantern moon offline picture power read record saver screen-off sun wave wifi"
-eq "$(grep '^@' "$REPO/art/crests.txt" | cut -c2- | sort | tr '\n' ' ' | sed 's/ $//')" "$want" "drawn: one each"
-eq "$(cd "$REPO/configs/home/.local/share/fedokawaii/crests" && ls -- *.png | sed 's/\.png$//' | sort | tr '\n' ' ' | sed 's/ $//')" "$want" "built: one mask each, no stale one"
+eq "$(grep '^@' "$REPO/art/crests.txt" | cut -c2- | sort | tr '\n' ' ' | sed 's/ $//')" "$(tr ' ' '\n' <<<"$want record-2" | sort | tr '\n' ' ' | sed 's/ $//')" "drawn: one each, and the reels' second frame"
+eq "$(cd "$REPO/configs/home/.local/share/fedokawaii/crests" && ls -- *.png | sed 's/\.png$//' | sort | tr '\n' ' ' | sed 's/ $//')" "$(tr ' ' '\n' <<<"$want record-2" | sort | tr '\n' ' ' | sed 's/ $//')" "built: one mask each, no stale one"
 eq "$(py 'S = [STATE.replace("theme\tdark", "theme\tlight"), STATE, STATE.replace("nettype\twifi", "nettype\tethernet"), STATE.replace("nettype\twifi", "nettype\toffline"), STATE.replace("dnd\toff", "dnd\ton")]
 names = {t[1].removeprefix("tile_").replace("_", "-") for st in S for t in kp.tiles_of(kp.parse_state(st))} | {c[1].replace("_", "-") for c in kp.CORNERS}
 print(" ".join(sorted(names)))')" "$want" "every picture an item can wear is one of them, and each is worn: a corner's icon becomes its file's name the same way (screen_off → screen-off)"
@@ -624,7 +624,20 @@ has "$d" 'rows = SEG_H if i < full else part if i == full else 0'
 has "$d" 'frame(cr, x, top, SEG_W, rows, lit_ink)'
 has "$d" 'segments(cr, it, Panel.slider_x(it), it.y + (ROW - SEG_H) // 2, pct, on)' "centred in its row"
 case_ "an arc's pixels (§4): twenty beads, BEAD px round with their corner pixels left out, on the circle — whole beads lit to the level (5 % each) from the bottom in its ink (asagi, the 17th–18th flame, the 19th–20th accent: it reddens as it rises), unlit edge2; hollow (an outline) while muted; under the cursor on a lacquer band BAND px wide along the circle, lit text_on_select, unlit select_lo"
-has "$d" 'lit = 0 if pct is None else pct // 5'
+has "$d" 'lit = panel.shown.setdefault(it.key, lit_beads(it.value))' "the beads as they stand on screen (glide() moves them to the level)"
+eq "$(py 'print([kp.lit_beads(v) for v in ("0%", "4%", "5%", "62%", "99%", "100%", "no DDC/CI", "")])')" "[0, 0, 1, 12, 19, 20, 0, 0]" "5 % a bead, whole beads; no level: none"
+case_ "a meter changing on the dial: its beads light (or go out) one after another, BEAD_MS (12) a bead (§11) — each step that arc alone redrawn; never at an open, never while closed"
+eq "$(py 'opened("quick", STATE); print(p.shown, p.gliding, "later 12" in u.calls)')" "{} False False" "an open: nothing glides (the beads drawn at their levels)"
+eq "$(py 'opened("quick", STATE); p.shown = {"brightness": 14, "sound": 12}; u.calls.clear(); p.set_level("brightness", 85)
+steps = []
+while u.timers:
+    f = u.timers.pop(0); u.drawn.clear(); f(); steps.append((p.shown["brightness"], [d for d in u.drawn]))
+print(steps, p.gliding, kp.BEAD_MS)')" \
+  "[(15, [['brightness']]), (16, [['brightness']]), (17, [['brightness']])] False 12" "70 → 85: three beads, one a step, only that arc drawn, then it rests"
+eq "$(py 'opened("quick", STATE); p.shown = {"brightness": 14, "sound": 12}; p.set_level("sound", 50); n = 0
+while u.timers: u.timers.pop(0)(); n += 1
+print(p.shown["sound"], n)')" "10 2" "down as well: 62 → 50, two beads go out"
+eq "$(py 'fresh(); p.shown = {"brightness": 14}; p.set_level("brightness", 100); print(p.gliding, u.timers)')" "False []" "closed: no glide (it stands where it is until the next open)"
 has "$d" 'bx, by = bead_at(it, j)'
 has "$d" 'x, y = bx - BEAD // 2, by - BEAD // 2' "the bead's box round its centre pixel"
 has "$d" 'ink = ("text_on_select" if on else seg_ink(j)) if j < lit else ("select_lo" if on else "edge2")'
@@ -639,7 +652,13 @@ has "$d" 'box(cr, x + 1, y, DOT - 2, DOT, name)'; has "$d" 'box(cr, x, y + 1, DO
 has "$d" 'frame(cr, x, y, w, h, "accent_text", cut=True)'
 case_ "an hour's and a corner's pixels (§4): its 28 px picture (a mask: its own drawing) on the middle of its 36 × 36 place, in the state's ink — accent when on, muted when off, a corner's muted; under the cursor the place in the lacquer, its four corner pixels left out"
 has "$d" 'box(cr, it.x + 1, it.y, it.w - 2, it.h, lk["fill"])'; has "$d" 'box(cr, it.x, it.y + 1, it.w, it.h - 2, lk["fill"])'
-has "$d" 'mask = crest_pic(it.icon)'
+has "$d" 'mask = crest_pic(frame(it.icon))' "(its frame: the record hour's reels turned while it records)"
+case_ "the record hour while it records: its reels turn (§5 busy: a picture that moves) — REEL_MS (250) a frame, only that hour redrawn; it stops when the recording does or the panel goes"
+eq "$(py 'R = STATE + "record\ton\n"; fresh(R); p.request("quick"); u.answer(R); print(p.reeling, len(u.timers), kp.REEL_MS)
+f = u.timers.pop(0); u.drawn.clear(); f(); print(p.turn, u.drawn, len(u.timers))
+f = u.timers.pop(0); f(); print(p.turn)')" "$(printf '%s\n' 'True 1 250' "1 [['record']] 1" '0')" "an open while recording: the reels turn, frame by frame (one timer at a time)"
+eq "$(py 'opened("quick", STATE); print(p.reeling, [c for c in u.calls if c.startswith("later")])')" "False []" "not recording: nothing turns, no timer"
+eq "$(py 'R = STATE + "record\ton\n"; fresh(R); p.request("quick"); u.answer(R); reel = u.timers[0]; p.close("chosen"); n = len(u.timers); reel(); print(p.reeling, p.turn, len(u.timers) - n)')" "False 0 0" "the panel gone: the reels stop at their first frame, no timer more"
 has "$d" 'cr.mask_surface(mask, *it.pic)' "the picture at its place's own spot (an hour: its square centred in the place; a corner: by its ink)"
 eq "$(py 'fresh(); print(all(i.pic == (i.x + (i.w - kp.CREST_PIC) // 2, i.y + (i.h - kp.CREST_PIC) // 2) for i in p.items if i.kind == "hour"))')" True "an hour's 28 px square on the middle of its place (both between pixels)"
 has "$d" 'name = icon.removeprefix("tile_").replace("_", "-")'
