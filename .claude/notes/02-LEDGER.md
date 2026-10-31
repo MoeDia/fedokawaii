@@ -1651,3 +1651,11 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   greeter draws from the same gtklock.css, padlock and seals (system/kawa-greet): not rendered apart.
   (8) §1 says why Lc 75 holds a 14 px regular pixel face (every stem a whole pixel at full coverage).
   (9) the 02:21 run's test_syntax 684/1 was my own bin/__pycache__ (a py_compile check) — removed, 685/0.
+- r27-19m-b1-master-2 (1 Nov 03:20; the same master, resumed): VERDICT PASS — every finding of the first
+  review checked closed by its own reads and runs (a pixel scan of every tracked PNG finds no retired
+  tone; the live bar and colors.sh/saver.conf equal the repo; gates 0 under). Its residue, closed now:
+  (1) the ≥ 15 Lc step between word inks is a gate (contrast.py --apca: strong over text 15.9, text over
+  muted 15.2, muted over faint 29.1 on the dark ground; test_contrast 18/0, +1 case: strong back at the
+  old Lc 88 fails); (2) colorscheme.lua says why the base Diagnostic* groups keep the severity's ink
+  (only short marks link to them); (3) one GTK dialog and zathura shot before/after in T19m (b)'s pass 2.
+- r27-19m-b1 DONE (1 Nov 03:20; master PASS) — the dark words by APCA, both moods gated; live since 03:08.

@@ -51,6 +51,7 @@ def apca(fg, bg):
 
 
 APCA_NEED = {WORDS: 60.0, ICON: 45.0, LARGE: 45.0}      # (what each WCAG class asks, read by APCA)
+STEP = 15.0                                              # (Lc between neighbouring word inks: §1)
 
 
 # what each role carries, as APCA's levels: words read at length, a label, an icon or a mark (the
@@ -170,6 +171,15 @@ def main():
                 under += mark == "✘"
                 if mark != "✔" or not quiet:
                     print(f"{mark} {m:5} Lc {lc:5.1f} (≥ {want:g})  WCAG {contrast(fg, bg):5.2f}  {surface}: {state}  #{fg} on #{bg}")
+        # the steps between the word inks (design-system §1): each ≥ 15 Lc below the one above it on
+        # the dark ground, so the order reads at a glance (the light mood's strong sits over text by
+        # hue and place: both near-black ink — exempt)
+        d = P["dark"]
+        for hi, lo in (("strong", "text"), ("text", "muted"), ("muted", "faint")):
+            step = apca(d[hi], d["ground"]) - apca(d[lo], d["ground"])
+            under += step < STEP
+            if step < STEP or not quiet:
+                print(f"{'✘' if step < STEP else '✔'} dark  step {step:5.1f} (≥ {STEP:g})  the word inks: {hi} over {lo} on the ground")
         print(f"APCA: {under} under their level (◇ kept by the owner's word)")
         return 1 if under else 0
     bad = 0

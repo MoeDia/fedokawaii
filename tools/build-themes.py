@@ -1281,7 +1281,9 @@ return {{
           -- diagnostics in the design's inks (docs/design-system.md §1): the sign and the code's
           -- underline in the severity's ink — an error vermilion (accent_text), a warning yellow, a
           -- note asagi, a hint muted; the message's words muted at the line's end, the words' own
-          -- ink in the float (vermilion marks, never carries a sentence: no red on sumi reads)
+          -- ink in the float (vermilion marks, never carries a sentence: no red on sumi reads).
+          -- The base Diagnostic* groups keep the severity's ink on purpose: only what links to
+          -- them (lualine's counts, Trouble's and Telescope's marks — short marks) draws with them
           local d = vim.o.background == "light"
             and {{ Error = "#{P['light']['accent_text']}", Warn = "#{P['light']['yellow']}", Info = "#{P['light']['asagi']}", Hint = "#{P['light']['muted']}" }}
             or {{ Error = "#{P['dark']['accent_text']}", Warn = "#{P['dark']['yellow']}", Info = "#{P['dark']['asagi']}", Hint = "#{P['dark']['muted']}" }}

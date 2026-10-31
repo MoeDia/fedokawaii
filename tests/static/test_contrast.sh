@@ -36,6 +36,13 @@ out=$(python3 -I "$G2/tools/contrast.py" --apca --quiet 2>&1); rc=$?
 eq "$rc" 1 "the dark text at Lc 68 passed"
 has "$out" "text on ground"
 
+case_ "…and it fails word inks too close to tell apart (strong back at Lc 88: 10 over text, the step is 15)"
+G3=$TMP/copy3; mkdir -p "$G3"; cp -r "$REPO"/{tools,configs} "$G3/"
+sed -i 's/p\["strong"\] = w("Sulpher Yellow", "dark.strong")/p["strong"] = mix("Ivory Buff", "Sulpher Yellow", 0.55, "dark.strong")/' "$G3/tools/wada-palette.py"
+out=$(python3 -I "$G3/tools/contrast.py" --apca --quiet 2>&1); rc=$?
+eq "$rc" 1 "a 10-Lc step passed"
+has "$out" "strong over text"
+
 case_ "every menu's selected row is the lacquer: fzf's bg+ 24 (select), fg+ 25 (text_on_select), :strip"
 has "$(cat "$REPO/configs/home/.config/fedokawaii/fzf.opts")" "fg+:25:regular:strip,bg:-1,bg+:24"
 
