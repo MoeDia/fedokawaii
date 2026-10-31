@@ -10,3 +10,6 @@ MAKE SURE YOU ALSO DO CODE OPTIMIZATION I WANT TO AVOID OVERENGINEERED CODE EVER
 
 ## 2026-10-31 23:56 — in the plan: T19n (the master)
 make sure to hire a MASTER AN ABSOLUTE SOURCE OF PROPER WORK TRUTH TO MAKE SURE EVERY LITTLE SINGLE THING WAS HELD AND DONE TO HIGHEST STANDARD IN THE WORLD AND NOTHING AT ALL WAS MISSED OR NOT DONE PROEPRLY
+
+## 2026-11-01 00:11 — in the plan: T31 (the progress drawn inside the bar's downloads icon)
+also for downloads create also a custom beaitful progess bar inside the downloads icon and make sure its perfectly in place and everything and connects well to any download from any source properly
