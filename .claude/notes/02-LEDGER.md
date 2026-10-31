@@ -1705,3 +1705,12 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   gates and build order, T48's first items (the hardened restore, the flat layout, the split), T49's
   scripts = the design's §5 test column (44 rows). Back to the master.
 - r27-42-strays-a live (03:08 apply): the 13 stale tab records swept; one left, the warm menu's own pid.
+- r27-49-exp2 (1 Nov 03:41; the harness VM from "built") — the revised candidate (design §2.1) proven: the
+  pending set stored on the live root (56 packages), each package `rpmkeys --checksig` good (0 bad); a
+  writable snapshot of root replayed INSIDE `systemd-nspawn --register=no --private-network` (tx bound
+  read-only, a scratch tmpfs bound at /boot, `dnf5 --disable-plugin=actions -C replay /tx`): rc 0 in 33 s;
+  in the scratch /boot the new kernel, its BLS entry (root=UUID, rootflags=subvol=root, our arguments)
+  and a host-only initramfs (dracut's hostonly-files inside, amdgpu/btrfs present, 52 MB) — the bare
+  chroot's generic fallback gone; the live root untouched by the candidate run: snapper's snapshots 3 → 3
+  (the actions plugin off), no guard marker, no new kernel file in the real /boot. Noise: gpg "insecure
+  memory" lines inside the container (harmless; silenced in T45). Output: /dev/shm/r27/vm-candidate-exp2.txt.
