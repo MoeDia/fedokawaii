@@ -121,3 +121,12 @@ smile. Grilled out on the way: draft 1's flat rectangle eyes and second "mouth" 
 Still to do (next pass): build them from tools/build-art.py (both themes' inks from build-themes),
 waybar's end tile as a background picture (the module's class for open), quick settings' heading
 the same face at 2×; shot on the real bar (kit bar), measured: its air in the tile, 1 px each side.
+**T19k-4 (b) the heading's face — first render (31 Oct 11:22, kit play, a temp copy of kawa-panel;
+`quick-head-t19k4b.png`: left the name at 24, right at 32; dark above, light below):** the face's
+open frame on a 20 × 20 vermilion seal in place of the sliders icon. At 24 the name crowds the
+seal (~4 px of air: reads as one blob); at 32 the name stands on the same column as the meters'
+names under it ("brightness", "sound") and the seal reads as the panel's hanko — **leaning: 32**
+(a stated exception to §4's heading name at cell 3, quick settings alone). Open question for the
+build: the seal on the content's edge (x 0–19, as rendered) or centred on the icon column over the
+meters' icons (x 6–25: the face right above the bulb and the speaker, 6 px of air to the name) —
+render both, px.py, decide. The seal must stay: on the dark ground the hannya's black hair vanishes.
