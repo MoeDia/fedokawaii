@@ -1249,4 +1249,16 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   words, larger where Super+N's tab shows it (T21). (4) the suite's installer area again on the
   current tree (the 11:10 run used a copy from before the __pycache__ fix: its test_upkeep fails
   for that reason alone).
+- r27-suite (31 Oct 11:32, installer area on a copy of 11:10): 23 of 25 green (test_setup 232,
+  test_torture 214, test_verify 171, test_upgrade 40 …); test_upkeep 1 — the known stale-copy case
+  (fixed in 1e95822: 220/0 on the current tree); **test_upstream 4 failures, OPEN**: "Fedora's
+  Twisted missing" and "a copy whose libraries went since" expect Syncplay not to load once the
+  harness moves its stand-in twisted away (fake_pylibs, $FK_PYLIBS) — it still loads: the stub
+  tests/installer/stubs/python3 turns -I into -E -P and runs /usr/bin/python3, which finds the
+  machine's own /usr/lib/python3.14/site-packages/twisted (python3-twisted 25.5.0, installed 19 Oct).
+  The suite was clean on 28 Oct 12:56 with the same packages (python3 3.14.8 since 19 Oct; dnf 74 —
+  his qbittorrent — added no Python), so something else changed: next pass — run test_upstream
+  alone, print sys.path inside syncplay_runs under the harness (as_user/fkrun's namespace: is the
+  real site folder hidden there, and since when not?), fix the harness (the stand-ins must be the
+  only Python libraries the fake machine has), never the check.
 
