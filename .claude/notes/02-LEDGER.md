@@ -1261,4 +1261,15 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   alone, print sys.path inside syncplay_runs under the harness (as_user/fkrun's namespace: is the
   real site folder hidden there, and since when not?), fix the harness (the stand-ins must be the
   only Python libraries the fake machine has), never the check.
+- r27-suite test_upstream CAUSE FOUND (31 Oct 11:35; reproduces alone in 8 s: 242/4): commit 7e06e6b
+  (28 Oct 12:38) made tests/installer/stubs/python3 turn -I into -E -P so the fake machine's
+  /usr/local stand-ins (fake_pylibs) load — which also leaves this machine's own
+  /usr/lib{,64}/python3.14/site-packages on the path (sys.path, outside: ~/.local…, /usr/lib64…,
+  /usr/lib…): moving the stand-in twisted away now finds the real one. The 12:56 "CLEAN" re-ran only
+  the files that had failed, never test_upstream. FIX (next pass, the harness's own pattern): give
+  the fake machine its own site folders — in usr_farm, a farm of links for each real
+  /usr/lib{,64}/python3.*/site-packages without twisted, certifi, pem, OpenSSL (and their
+  *.dist-info), the real folders bound read-only under $W/.usrpy first (links point there, as
+  $W/.usr/bin's do), then FK_INNER binds each farm over its real folder; the stand-ins stay the only
+  copies. Verify: test_upstream 246/0, test_afterdnf, test_guard, the whole installer area.
 
