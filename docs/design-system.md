@@ -423,7 +423,7 @@ stamp is a choice made, a scroll is something long opening.
 | a theme switch · a new wallpaper | the wash (dwl's own, asked through kawa-wash: the screen as it was laid over everything, the change made under it): five drops of the new mood's darkest ink land on the old picture and bleed out along a paper grain in 3 px pixels, a wet rim at their edge; the pointer's picture changes the moment the wash reaches it | 1200 |
 | the screensaver leaves | dissolves off | 180 |
 | a stamp (a toggle switched on — an hour of quick settings' dial —, the workspace seal) | down: the seal 1 px larger all round in `accent_hi`, an hour's picture in `accent_hi`; then as it was, in `accent` | 60 |
-| a meter changing — the dial's beads | they light or go out one after another (a meter of segments: at once) | 12 a bead |
+| a meter changing — the dial's beads | they light or go out one after another on the frame clock — a bead on the first frame 12 ms or more after the last: at 144 Hz every second frame (a meter of segments: at once) | 12 a bead (13.9 at 144 Hz) |
 | icons that move (§13) | their frames in a loop, only while the state holds | 6–8 a second |
 
 - Every frame is drawn at every refresh of the screen (144 a second here) for the moment it

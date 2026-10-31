@@ -1550,3 +1550,10 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   (< 60), faint 16.9 (< 30) on the ground — the light mood passes all (text 85.6, muted 63.9,
   accent_text 62.4); 12 pairs under in all, incl. the light workspace seal's black numeral on brick
   red, Lc 23.7 (WCAG 3.08). Next pass sets the dark roles by it (render every surface before/after).
+- r27-19k-7 glide on the frame clock (1 Nov 01:55) — the master's minor (4): the beads' glide ran on a
+  12 ms GLib timer, landing beads 1 or 2 refreshes apart at 144 Hz → now on the panel window's frame
+  clock (UI.frames: GTK's tick callback; Panel._glide(t) steps a bead on the first frame 12 ms or more
+  after the last — every second frame at 144 Hz, every frame at 60 Hz). Proven in real GTK under the
+  headless dwl on the real GPU (tools/hl-dwl.sh, a probe with the same callback): frames every
+  ~6.05 ms there, steps exactly two frames apart (12.07 ms) after the first; test_panel 626/0 (the
+  steps at 144 Hz on frames 0, 2, 4; at 60 Hz one a frame). §11 says it.

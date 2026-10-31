@@ -48,7 +48,7 @@ kp = importlib.util.module_from_spec(spec); loader.exec_module(kp)
 import os                                      # (the pictures' ink table: the repository's, as installed)
 kp.CRESTS = os.path.join(os.path.dirname(os.path.dirname(sys.argv[1])), "configs/home/.local/share/fedokawaii/crests")
 class UI:
-    def __init__(self): self.calls, self.t, self.pending, self.drawn, self.at, self.cid = [], 100.0, [], [], None, None; self.pushed = []; self.timers = []
+    def __init__(self): self.calls, self.t, self.pending, self.drawn, self.at, self.cid = [], 100.0, [], [], None, None; self.pushed = []; self.timers = []; self.ticks = []
     def clicked(self): return self.at
     def click(self): return self.cid             # the bar's last press, fresh (its id), or None
     def push(self, name, line): self.pushed.append((name, line))
@@ -60,6 +60,7 @@ class UI:
     def run(self, argv, done): self.calls.append("run " + " ".join(argv)); self.pending.append(done)
     def launch(self, argv): self.calls.append("launch " + " ".join(argv))
     def later(self, ms, fn): self.calls.append(f"later {ms}"); self.timers.append(fn)
+    def frames(self, fn): self.calls.append("frames"); self.ticks.append(fn)
     def answer(self, out="", rc=0):            # the oldest run comes back
         self.pending.pop(0)(rc, out)
 STATE = ("theme\tdark\nbrightness\t70%\nnight\ton\nvrr\tin games\nwallpaper\tmishima-mist\nsound\t62%\n"
@@ -626,18 +627,22 @@ has "$d" 'segments(cr, it, Panel.slider_x(it), it.y + (ROW - SEG_H) // 2, pct, o
 case_ "an arc's pixels (§4): twenty beads, BEAD px round with their corner pixels left out, on the circle — whole beads lit to the level (5 % each) from the bottom in its ink (asagi, the 17th–18th flame, the 19th–20th accent: it reddens as it rises), unlit edge2; hollow (an outline) while muted; under the cursor on a lacquer band BAND px wide along the circle, lit text_on_select, unlit select_lo"
 has "$d" 'lit = panel.shown.setdefault(it.key, lit_beads(it.value))' "the beads as they stand on screen (glide() moves them to the level)"
 eq "$(py 'print([kp.lit_beads(v) for v in ("0%", "4%", "5%", "62%", "99%", "100%", "no DDC/CI", "")])')" "[0, 0, 1, 12, 19, 20, 0, 0]" "5 % a bead, whole beads; no level: none"
-case_ "a meter changing on the dial: its beads light (or go out) one after another, BEAD_MS (12) a bead (§11) — each step that arc alone redrawn; never at an open, never while closed"
-eq "$(py 'opened("quick", STATE); print(p.shown, p.gliding, "later 12" in u.calls)')" "{} False False" "an open: nothing glides (the beads drawn at their levels)"
+case_ "a meter changing on the dial: its beads light (or go out) one after another on the frame clock — a bead on the first frame BEAD_MS (12) or more after the last: at 144 Hz every second frame, at 60 Hz every frame (§11) — each step that arc alone redrawn; never at an open, never while closed"
+eq "$(py 'opened("quick", STATE); print(p.shown, p.gliding, u.ticks)')" "{} False []" "an open: nothing glides (the beads drawn at their levels)"
 eq "$(py 'opened("quick", STATE); p.shown = {"brightness": 14, "sound": 12}; u.calls.clear(); p.set_level("brightness", 85)
-steps = []
-while u.timers:
-    f = u.timers.pop(0); u.drawn.clear(); f(); steps.append((p.shown["brightness"], [d for d in u.drawn]))
-print(steps, p.gliding, kp.BEAD_MS)')" \
-  "[(15, [['brightness']]), (16, [['brightness']]), (17, [['brightness']])] False 12" "70 → 85: three beads, one a step, only that arc drawn, then it rests"
-eq "$(py 'opened("quick", STATE); p.shown = {"brightness": 14, "sound": 12}; p.set_level("sound", 50); n = 0
-while u.timers: u.timers.pop(0)(); n += 1
-print(p.shown["sound"], n)')" "10 2" "down as well: 62 → 50, two beads go out"
-eq "$(py 'fresh(); p.shown = {"brightness": 14}; p.set_level("brightness", 100); print(p.gliding, u.timers)')" "False []" "closed: no glide (it stands where it is until the next open)"
+tick = u.ticks[0]; steps = []; go = True; n = 0
+while go:
+    u.drawn.clear(); go = tick(100 + n / 144); steps.append((n, p.shown["brightness"], [d for d in u.drawn])); n += 1
+print([s for s in steps if s[2]], p.gliding, u.calls.count("frames"))')" \
+  "[(0, 15, [['brightness']]), (2, 16, [['brightness']]), (4, 17, [['brightness']])] False 1" "144 Hz, 70 → 85: a bead on frames 0, 2, 4 (13.9 ms apart), only that arc drawn, then it stops asking"
+eq "$(py 'opened("quick", STATE); p.shown = {"brightness": 14, "sound": 12}; p.set_level("sound", 50); tick = u.ticks[0]; n = 0; frames = []
+while True:
+    before = p.shown["sound"]; go = tick(100 + n / 60)
+    if p.shown["sound"] != before: frames.append(n)
+    n += 1
+    if not go: break
+print(p.shown["sound"], frames)')" "10 [0, 1]" "60 Hz, 62 → 50: two beads go out, one a frame (16.7 ms ≥ 12)"
+eq "$(py 'fresh(); p.shown = {"brightness": 14}; p.set_level("brightness", 100); print(p.gliding, u.ticks)')" "False []" "closed: no glide (it stands where it is until the next open)"
 has "$d" 'bx, by = bead_at(it, j)'
 has "$d" 'x, y = bx - BEAD // 2, by - BEAD // 2' "the bead's box round its centre pixel"
 has "$d" 'ink = ("text_on_select" if on else seg_ink(j)) if j < lit else ("select_lo" if on else "edge2")'

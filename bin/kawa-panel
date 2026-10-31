@@ -139,7 +139,7 @@ BORDER = HAIR                        # (the content starts BORDER + PAD from the
 SHADOW_R, SHADOW_B = 1, 2            # the frame's shadow: a column at its right, two rows under it
 GAP = 8                              # the air between two keys, two groups' halves (§3)
 STAMP_MS = 60                        # a seal stamped (§11): a pixel larger in accent_hi this long
-BEAD_MS = 12                         # a meter changing on the dial (§11): its beads light or go out one after another, this apart
+BEAD_MS = 12                         # a meter changing on the dial (§11): its beads light or go out one after another, at least this apart (on the frame clock)
 REEL_MS = 167                        # the record hour while it records: its reels turn (§5 busy; §13: a moving picture 6 frames a second)
 INNER = 47 * CELL                    # 376: the content (quick settings, the sound panel, the launcher)
 # quick settings, the dial (§4, 和時計 a wadokei): a square; the switches' pictures on its hours
@@ -1166,6 +1166,7 @@ class Panel:
         self.stamps = {}         # hour → when it was stamped (turned on: stamping())
         self.shown = {}          # a dial meter → how many beads are lit on screen (they glide to its level: glide())
         self.gliding = False
+        self.glided = None       # the frame time of the glide's last step
         self.turn = 0            # the record hour's frame while it records (0, 1: its reels turned an eighth — reel())
         self.reeling = False
         self.mode = "quick"      # the panel open (or the last one open)
@@ -1231,15 +1232,21 @@ class Panel:
                     lambda rc, out: self.got_state(mode, rc, out))
 
     def glide(self):
-        """The dial's beads follow their meters' levels one at a time, BEAD_MS a bead (§11: a
-        meter changing — never at an open, never while closed), each step that arc alone redrawn."""
+        """The dial's beads follow their meters' levels one at a time (§11: a meter changing —
+        never at an open, never while closed), on the frame clock: a bead on the first frame
+        BEAD_MS or more after the last (at 144 Hz every second frame, 13.9 ms; at 60 Hz every
+        frame) — each step exactly frames apart, that arc alone redrawn."""
         if self.gliding or not self.visible or all(
                 self.shown.get(i.key, lit_beads(i.value)) == lit_beads(i.value) for i in self.items if i.kind == "arc"):
-            return                                    # (nothing to move: no timer)
-        self.gliding = True
-        self.ui.later(BEAD_MS, self._glide)
+            return                                    # (nothing to move: no frames asked for)
+        self.gliding, self.glided = True, None
+        self.ui.frames(self._glide)
 
-    def _glide(self):
+    def _glide(self, t):
+        """A frame (its time t, seconds): a bead's step when BEAD_MS have passed; whether to go on."""
+        if self.glided is not None and t - self.glided < BEAD_MS / 1000 - 1e-4:
+            return self.visible
+        self.glided = t
         busy = False
         for it in self.items if self.visible else ():
             if it.kind == "arc":
@@ -1251,8 +1258,7 @@ class Panel:
                     self.ui.redraw(it)
                     busy = busy or have != want
         self.gliding = busy
-        if busy:
-            self.ui.later(BEAD_MS, self._glide)
+        return busy
 
     def recording(self):
         it = self.item("record")
@@ -2164,6 +2170,13 @@ def main(argv):
 
         def later(self, ms, fn):
             GLib.timeout_add(ms, lambda: fn() and False)
+
+        def frames(self, fn):
+            """fn(t) on every frame the panel's window draws (its frame clock, t in seconds) for as
+            long as it returns true — motion counted in frames, never a timer between them."""
+            a = view["area"]
+            if a is not None:
+                a.add_tick_callback(lambda w, clock: bool(fn(clock.get_frame_time() / 1e6)))
 
         def now(self):
             return time.monotonic()
