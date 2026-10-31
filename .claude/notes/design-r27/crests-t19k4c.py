@@ -39,6 +39,21 @@ def sun():
     return g
 
 
+def lantern():
+    # the night light: a chōchin — an oval of paper (rx 8.6, ry 9.6) whose ribs show as paper
+    # lines every third row, a lid and a foot (6 × 2) and the hook above the lid
+    g = [[False] * N for _ in range(N)]
+    for y in range(N):
+        for x in range(N):
+            if ((x - C) / 8.6) ** 2 + ((y - C) / 9.6) ** 2 <= 1 and (y - 5) % 3 != 0:
+                g[y][x] = True
+    for y in (2, 3, 24, 25):
+        for x in range(int(C) - 3, int(C) + 5):
+            g[y][x] = True
+    g[0][13] = g[0][14] = g[1][13] = g[1][14] = True
+    return g
+
+
 THEMES = {"dark": {"ground": "181715", "accent": "eb5324", "key": "25201a", "edge2": "3c2f22", "muted": "9a8767"},
           "light": {"ground": "e8e3c2", "accent": "a84222", "key": "f9f5de", "edge2": "d7bc8c", "muted": "586459"}}
 
@@ -73,7 +88,7 @@ def crest(pic, th, on):
 if __name__ == "__main__":
     tiles = []
     for th in ("dark", "light"):
-        for pic in (moon(), sun()):
+        for pic in (moon(), sun(), lantern()):
             for on in (True, False):
                 tiles.append(crest(pic, th, on))
     one = Image.new("RGB", (len(tiles) * 48, 48), (128, 128, 128))

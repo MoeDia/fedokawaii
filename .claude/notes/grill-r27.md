@@ -149,4 +149,9 @@ Sun, second try (11:29): eight polar wedges (3.4 px at the root → 1 at the tip
 from r 7.6 to 12.9 / 11.4 round a disc r 5.6 — it reads as a sun now, the diagonals on the stair;
 left for the hand pass: the short diagonal wedges read a little as arrowheads (try them as long as
 the straight ones less one, or a 1 px gap ring between the disc and the rays as kamon suns have).
+Lantern (night light), first try (11:30): a chōchin — an oval (rx 8.6, ry 9.6) with paper ribs every
+third row, a lid and a foot 8 × 2, a 2 × 2 hook. Fails twice: the hook on the lid makes a "+" (reads
+as a cross, a grave marker) and the even ribs read as a beehive or a barrel. Next: no hook (or a
+1 px arch), fewer ribs that bow with the paper (curved, wider in the middle), and a glow — the
+lantern lit from inside as the night light is (on: a paper core; off: unlit, ribs only).
 
