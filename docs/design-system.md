@@ -159,9 +159,10 @@ screen and the bar's paper share one rhythm.
 | indent | 8 | 1 | a heading's rows start one cell further in than the heading |
 | heading, GUI | 20 + 8 | — | its row, then 8 px of air; 20 px above it (none at the top of a panel) |
 | heading, TUI | 1 + 1 lines | — | its line, then a blank line; two blank lines above it (none at the top) |
-| content | 376 | 47 | a panel's inner width: quick settings, a notice, the launcher (410 with pad and hairlines) |
-| tile | 94 × 88 | — | a quick-settings crest's cell (the mon sheet, §4): four a row, nothing between = 376 — the grid's one stated exception: each crest is centred on its own column, the sheet's outer edges are on the grid |
-| action | 94 × 46 | — | the mon sheet's foot: an icon over its word on the same four columns (§4) |
+| content | 376 | 47 | a panel's inner width: the sound panel, a notice, the launcher (410 with pad and hairlines) |
+| dial | 304 × 304 | 38 | quick settings (§4): a square — the grid's one stated exception (a circle has no rows) — 338 × 338 with pad and hairlines |
+| hour | 36 × 36 | — | a dial's place: its 28 px picture on a circle of radius 128 round the dial's middle (the cursor's lacquer, its corners left out) |
+| bead | 6 Ø | — | a dial's meter: 20 beads on a circle of radius 88, from 22° up from the bottom to 158°, 5 % each |
 | key | 20 high | 1 row | a key button: its 1 px frame inside the row |
 | meter | 160 × 10 | 20 | 20 segments, each 6 × 10 px with 2 px of air (one a cell): 5 % a segment |
 | stamp | 16 Ø | — | the workspace's vermilion seal on the bar (an emblem), its numeral 10 × 10 inside |
@@ -185,10 +186,7 @@ screen and the bar's paper share one rhythm.
 - **Heading**: its icon (12 px) in `accent_text` in the icon column at the content's first cell,
   its name in `strong` from cell 3 (x 24), 8 px, then the **rule** — 1 px `edge2`, solid, on the
   row's row 10 (the minus's), to the content's right edge. Air: §3. Every part of a panel opens
-  with one; a panel of one part may have none. Quick settings' heading alone wears the mood's
-  face (open, as on the bar's end tile while it is open) on a vermilion seal a row square (20 ×
-  20, on the content's edge) in place of the icon, its name then on the rows' names' column (x
-  32: at cell 3 the seal crowds it).
+  with one; a panel of one part may have none (quick settings, the dial: its face says whose it is).
 - **Row**: 20 px; its icon in the icon column at cell 1 (x 8–23, the icon on x 10–21), its name in
   `text` from cell 4 (x 32); a value in `muted`, right-aligned to the content's edge, two cells or
   more after the widest name. A row that only shows (a week of weather, a help line) is never a
@@ -198,22 +196,28 @@ screen and the bar's paper share one rhythm.
 - **Key**: one row high, `key` fill, 1 px `edge` frame inside the row; its icon and name centred
   by their ink. Two or three share a row, 8 apart, the row the content's width; an icon-only key
   is 20 × 20.
-- **Tile** (quick settings — the mon sheet, 家紋): the content in four equal columns, each item a
-  cell 94 × 88, nothing framed (a short row centred on the sheet); the state is the crest's. The
-  crest: a seal 36 px across, centred on its cell's middle column, 6 px down; its picture (28
-  px, each its own drawing — no two alike: art/crests.txt, §13) on its centre. On — the seal pressed: a vermilion disc
-  (`accent`) with a ring of paper (`key`) 2 px inside its edge, the picture knocked out in paper —
-  the bar's stamp and the hanko of "chosen", one mark; off — the seal's outline in `edge2`, the
-  picture `muted`. Its name centred on the row 46 px down (`text`), its state on the row 66 px down
-  (`strong` on, `muted` off — a state, never faint), each at most 86 px. Under the cursor's lacquer
-  (the whole cell): the crest in `text_on_select`, its picture `select`. Turned
-  on, the seal is stamped (§11's stamp: a pixel larger all round in `accent_hi` for 60 ms, then its
-  size); turned off, its outline at once.
-- **Action** (the mon sheet's foot: wallpaper, screenshot, screen off, power): on the sheet's
-  four columns, a group (16 px) under it, each a cell 94 × 46 — its icon (14 px, `muted`) 6 px
-  down, its word (`text`) on the row 24 px down, both centred on the column like a crest's. No
-  crest and no frame: a crest says on or off, an action has neither. Under the cursor the
-  whole cell in the lacquer, its inks `text_on_select`.
+- **Dial** (quick settings, 和時計 — a wadokei, the old Japanese clock): a square of 304 px, no
+  heading and no words at rest. On its **hours** — a circle of radius 128 round its middle —
+  the switches' pictures (28 px, each its own drawing: art/crests.txt, §13), the theme at twelve,
+  then clockwise night light, freesync, screensaver, do not disturb, network, Bluetooth, devices,
+  drives, backup, record, read text (no Bluetooth adapter: ten, spaced evenly): `accent` on,
+  `muted` off. Its **meters** are beads (§3) on a circle of radius 88 inside the hours —
+  brightness rising up the left, sound up the right, from the bottom: lit `asagi`, the 17th–18th
+  `flame`, the 19th–20th `accent` (they redden as they rise), unlit `edge2`, muted hollow (their
+  outline), no level all unlit; a click on a bead sets its level (5 % each, a bead's spacing
+  below the first 0), a drag follows round the circle, the wheel ±5. Its **corners** hold the four
+  actions (screenshot top left, wallpaper top right, screen off bottom left, power bottom right),
+  each a 28 px picture in `muted`, flush with the content's corner. Its **middle** shows the
+  item the cursor is on — an hour's or an action's picture twice as large (`accent` on, `text`
+  off), a meter's level in display size (Sumi UI twice as large, `strong`) —, its name (`strong`)
+  and its state (`strong` on, `muted` off) a row each under it, every part centred by its ink;
+  at rest, the mood's face (open) three times as large. Under the cursor an hour or a corner is
+  its place (36 × 36) in the lacquer, its corner pixels left out, the picture `text_on_select`;
+  a meter is a lacquer band 10 px wide along its beads (lit `text_on_select`, unlit
+  `select_lo`). Keys: an arrow goes to the nearest item that way (no farther aside than twice as
+  far ahead), ↑ ↓ on a meter change it by 5, Tab walks every item, Enter acts. Everything is
+  symmetric round the dial's middle (it lies between pixels: 304 is even), each half rounded
+  once and the other its mirror. Turned on, an hour is stamped (§11: `accent_hi` for 60 ms).
 - **Meter**: its icon and name as a row's, then 20 segments (§3), right-aligned before the value.
   Lit segments `asagi`; over 80 % the 17th–18th `flame` and the 19th–20th `accent` (it reddens
   as it rises); unlit `edge`. A level between two segments lights the last one partly, from the
@@ -406,7 +410,7 @@ stamp is a choice made, a scroll is something long opening.
 | login → desktop | the scene dissolves into the desktop; the bar's tiles stamp in from left to right, 30 ms apart | 900 |
 | a theme switch · a new wallpaper | the wash (dwl's own, asked through kawa-wash: the screen as it was laid over everything, the change made under it): five drops of the new mood's darkest ink land on the old picture and bleed out along a paper grain in 3 px pixels, a wet rim at their edge; the pointer's picture changes the moment the wash reaches it | 1200 |
 | the screensaver leaves | dissolves off | 180 |
-| a stamp (a toggle switched on — quick settings' seal —, the workspace seal) | down: 1 px larger all round in `accent_hi`, then its size in `accent` | 60 |
+| a stamp (a toggle switched on — an hour of quick settings' dial —, the workspace seal) | down: the seal 1 px larger all round in `accent_hi`, an hour's picture in `accent_hi`; then as it was, in `accent` | 60 |
 | a meter changing | its segments light (or go out) one after another | 12 a segment |
 | icons that move (§13) | their frames in a loop, only while the state holds | 6–8 a second |
 
@@ -438,13 +442,14 @@ stamp is a choice made, a scroll is something long opening.
   ways. **12 × 12** beside words, on the em's rows 1–12, centred on the capitals (§2);
   **14 × 14** alone; the bar's three emblems **16 × 16**. Sumi Icons Term draws the same pixels,
   centred in two terminal cells.
-- **Crests** (quick settings' mon sheet, §4): **28 × 28** in `art/crests.txt`, kamon style — one
-  ink, strokes 2 px both ways, a 45° stroke a run of 3 on the stair (as heavy as a straight 2),
-  details knocked out 1 px wide (a band inside a silhouette stops a pixel short of its edge: the
-  outline stays whole), masses solid; the ink inside a circle 26 across (2 px of vermilion before
-  the seal's ring); centred, the odd pixel of air right and below. A line across a picture means
-  "off" (the bell struck through) — no other picture has one. Built to masks
-  (`tools/build-icons.py` → `.local/share/fedokawaii/crests/`), painted in the state's ink.
+- **Pictures** (quick settings' dial, §4): **28 × 28** in `art/crests.txt` — one ink, strokes
+  2 px both ways, a 45° stroke a run of 3 on the stair (as heavy as a straight 2), details
+  knocked out 1 px wide (a band inside a silhouette stops a pixel short of its edge: the outline
+  stays whole), masses solid; a pixel of air all round; centred, the odd pixel of air right and
+  below. Drawn first as crests (kamon), the hours' ink stays inside a circle 26 across. A line
+  across a picture means "off" (the bell struck through) — no other picture has one. Built to
+  masks (`tools/build-icons.py` → `.local/share/fedokawaii/crests/`), painted in the state's ink;
+  in the dial's middle twice as large.
 - One ink: an icon takes its words' ink (state colours from §5); art pieces (the demon, the angel,
   the seals' numerals, the weather's pictures on the bar: tools/build-themes.py SKY) may use more,
   from the palette only.

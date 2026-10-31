@@ -34,25 +34,30 @@ is another click, however fast it comes. Every key's request counts, however fas
 repeats no held key that opens something (one press), so presses as fast as you like end open
 after an odd number, closed after an even one.
 
-Quick settings, top to bottom, on one 16 px grid (the day, the time, the weather and the
-volume's number are the bar's, right above it, so they are not said again here):
-    two meters    brightness and sound: twenty segments each (their levels are the bar's),
-                  reddening as they rise, hollow while muted; the words when there is no
-                  level; Enter (or a click on its name) on sound opens the sound panel
-    the tiles     theme · night light · freesync · network · bluetooth · devices (those two
-                  only with a Bluetooth adapter) · drives · backup · dnd · screensaver ·
-                  record · read text — each its own 14 px picture (the theme's: the moon, the
-                  rising sun), its name and how it stands; on, its frame and picture vermilion
-                  (the night light: its warmth, the wheel over it warmer or cooler)
-    three keys    wallpaper · screenshot · power (its icon alone)
+Quick settings is a dial (和時計, a wadokei — docs/design-system.md §4), a square with no words
+at rest (the day, the time, the weather and the volume's number are the bar's, right above it):
+    the hours     the switches' 28 px pictures on a circle, the theme at twelve, then clockwise
+                  night light · freesync · screensaver · dnd · network · bluetooth · devices
+                  (those two only with a Bluetooth adapter: else ten, spaced evenly) · drives ·
+                  backup · record · read text — vermilion on, muted off; Enter (or a click)
+                  switches one in place, or opens its own menu (network, devices, drives,
+                  backup, record, read text: the panel goes)
+    the meters    brightness up the left, sound up the right: twenty beads each on a circle
+                  inside the hours, lit from the bottom to the level, reddening as they rise,
+                  hollow while muted; a click on a bead sets that level, a drag follows round,
+                  the wheel ±5, ↑ ↓ on one under the cursor ±5; Enter on sound: the sound panel
+    the corners   screenshot · wallpaper · screen off · power
+    the middle    the item under the cursor: its picture twice as large, its name and state (a
+                  meter: its level in display size); at rest, the mood's face
+The arrows go to the nearest item that way, Tab to every item in turn.
 The sound panel, three parts under their headings: sound — the volume's meter (hollow while
 muted; its icon the bar's) and two keys, mute and mixer (wiremix) · output and input — every
 device (not "Share"), the one in use ticked: a click makes another the default, playing audio
 moves to it · the input's foot: two keys side by side, as mute and mixer above — mute
 microphone and test mic (5 s recorded, played back: kawa-quick --do mictest).
-The brightness slider: the brightness meter alone, as in quick settings.
+The brightness slider: the brightness meter alone.
 Everything on docs/design-system.md's grid (§3–§4): rows of 20 px, a heading's icon, name and
-rule, keys one row high, tiles of 120 × 80, the frame's hairline (its corners left out) and the
+rule, keys one row high, the dial's square, the frame's hairline (its corners left out) and the
 bar's shadow — sized in whole cells.
 Opened by a click on the bar, each hangs right under the pointer (dwl's dwl-pointer, written
 as it clicks), kept 8 px inside its output; opened by its key, under its own module: quick
@@ -2422,7 +2427,7 @@ def main(argv):
     crests = {}
 
     def crest_pic(icon):
-        """A crest's picture (a mask) by its tile's icon, read once; None: none there."""
+        """A picture of the dial (a mask) by its item's icon, read once; None: none there."""
         name = icon.removeprefix("tile_").replace("_", "-")
         if name not in crests:
             try:
@@ -2502,20 +2507,34 @@ def main(argv):
                 box(cr, x + 1, y, BEAD - 2, BEAD, ink)
                 box(cr, x, y + 1, BEAD, BEAD - 2, ink)
 
+    halos = {}
+
     def echo(cr):
         """The dial's middle (§4): the item the cursor is on — an hour's or an action's picture
         twice as large (accent on, text off), a meter's level in display size (Sumi UI twice as
         large) — with its name (strong) and its state (strong on, muted off; an action's:
         the wallpaper's name, or nothing) a row each under it, every part centred on the middle by its ink (the odd
-        pixel right); at rest the face (open) three times as large."""
+        pixel right); at rest the face (open) three times as large — in the dark mood held by an
+        outline of edge2 a picture's pixel wide (the hannya's black hair is the ground's ink)."""
         c = panel.centre
         cx, cy = c.x + c.w // 2, c.y + c.h // 2
         it = panel.item(panel.focus) if panel.focus else None
         if it is None:
             pic_ = face_pic()
             if pic_ is not None:
-                w_, h_ = pic_.get_width() * FACE_X, pic_.get_height() * FACE_X
-                scaled(cr, pic_, cx - w_ // 2, cy - h_ // 2, FACE_X)
+                w_, h_ = pic_.get_width(), pic_.get_height()
+                if sum(pal["ground"][:3]) < 1.5:      # (the dark mood: the hannya's hair is the ground's ink —
+                    # its silhouette held by an outline a picture's pixel wide, in edge2)
+                    if pic_ not in halos:
+                        halos.clear()
+                        d = cairo.ImageSurface(cairo.FORMAT_A8, w_ + 2, h_ + 2)
+                        c_ = cairo.Context(d)
+                        for dx in range(3):
+                            for dy in range(3):
+                                c_.mask_surface(pic_, dx, dy)
+                        halos[pic_] = d
+                    scaled(cr, halos[pic_], cx - (w_ + 2) * FACE_X // 2, cy - (h_ + 2) * FACE_X // 2, FACE_X, "edge2")
+                scaled(cr, pic_, cx - w_ * FACE_X // 2, cy - h_ * FACE_X // 2, FACE_X)
             return
         top = cy - (2 * CREST_PIC + 2 * ROW) // 2 - 4
         if it.kind in ("hour", "corner"):

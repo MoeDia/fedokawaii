@@ -598,3 +598,10 @@ done; paths there refer to the old cloud sandbox — use this file's procedures 
     measure contrast (WCAG ratio) for every highlighted/selected state in both themes and fix
     every one below a clear threshold.
   - Always measure alignment and spacing precisely, every surface, every change.
+- INBOX FILE (owner 2026-10-31): at the start of EVERY pass read `.claude/inbox.md`. Each entry
+  headed "— open" is the owner's raw request: rewrite it into clean, precise task(s) in
+  .claude/plan.md (right phase and order, acceptance test, files), then change its heading to
+  "— in the plan: T.." with the task id(s). Same hard rules as everything else.
+  `~/.local/share/fedokawaii/remote` + `fk-remote.service` (port 8737, LAN only, token in
+  ~/.config/fedokawaii/remote-token) are the owner's remote page: keep them working through
+  every change; you may bring them into the repo's structure and design, never remove them.

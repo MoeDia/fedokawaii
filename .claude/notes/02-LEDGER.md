@@ -1374,7 +1374,7 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   seedling, camera, chest, cap.
 
 ## >>> NEXT PASS STARTS HERE (owner 2026-10-31 23:23, overrides the line above): quick settings rebuilt FROM SCRATCH - drop the mon sheet entirely, no reuse of any earlier layout; super minimal, super creative; several directions rendered and grilled, the best built, tested, live. Then continue the plan.
-- r27-19k-7 WIP (1 Nov 00:20) — quick settings from scratch (the owner's 23:23 note above): three
+- r27-19k-7 WIP (31 Oct 23:50) — quick settings from scratch (the owner's 23:23 note above): three
   new directions rendered both moods (design-r27/quick-r4.py: A the dial 和時計, B the soroban, C
   the koto) and grilled — CHOSEN A, the dial: a square 304 px; the twelve switches' 28 px
   pictures on its hours (theme at twelve, then night light, freesync, saver, dnd, network,
@@ -1389,3 +1389,21 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   moods correct. B lost (a crowded row of tiny icons over rods), C lost (a list in disguise).
   The T21 to-do work of the 22:12 pass is in `git stash list` ("T21 to-do WIP") — untouched.
   Also: CLAUDE.md's new INBOX rule; the inbox's 23:47 entry → T19m (the OCD audit) in the plan.
+- r27-19k-7 (1 Nov 00:05) — the dial LIVE on his screen: applied (5 s; crests + kawa-panel), the
+  running kawa-panel replaced through autostart's keep (SIGKILL → keep starts the new one: pid
+  1442607, parent autostart; SIGTERM would have ended it for good — keep returns on exit 0); a
+  60 s presence probe said he was away (00:00:40), then one live shot (kawa-quick, grim, "close"
+  into the fifo): the dial at x 1574–1911, y 33–370 (338 × 338, 8 px from the screen's right
+  edge, top on y 33), identical to the kit's. Measured (px.py, kit, both moods): the ink's
+  margins in the content 2 | 2 and 4 | 4; all 40 beads mirror exactly (rows −82 … +82 round the
+  middle); the face centred dx 0.0 dy 0.0; the middle's words centred (0.0, an odd word −0.5:
+  its odd pixel right, the rule). Grilled + fixed: the corner actions were 14 px icons doubled
+  (blocky beside the hours' drawings) → four new 28 px drawings; the dark hannya's black hair
+  vanished on the sumi ground → an outline a picture's pixel wide in edge2 (dark only; the angel
+  reads whole on paper). Noted, kept: the panel's ground is the terminals' 0.92 glass — over a
+  busy terminal its words show faintly through the dial's open middle (the owner's own
+  transparency setting, as every panel's). Docs: design-system §3 (dial, hour, bead rows), §4
+  (Dial replaces Tile/Action; the heading's face sentence gone), §11 (the stamp), §13
+  (pictures); kawa-panel's docstring; art/crests.txt header; build-icons.py's seal-circle rule →
+  a pixel of air all round. Static tests green: test_design_doc 54/0, test_noellipsis 9/0,
+  test_contrast 11/0. test_panel being rewritten for the dial (a subagent; 406/107 before).

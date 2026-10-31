@@ -66,9 +66,8 @@ def panel_pairs(m):
     gives the item under the cursor (tests/static/test_contrast.sh holds kawa-panel to them)."""
     c = dict(re.findall(r"^([a-z_]+)=([0-9a-f]{6})$", (THEMES / m / "panel.conf").read_text(), re.M))
     return [("quick settings", "the item under the cursor: its words", c["text_on_select"], c["select"], WORDS),
-            ("quick settings", "the item under the cursor: its icon, its dot", c["text_on_select"], c["select"], ICON),
-            ("quick settings", "a tile under the cursor, on: the picture in its seal", c["select"], c["text_on_select"], ICON),
-            ("quick settings", "a meter under the cursor: a lit segment", c["text_on_select"], c["select"], ICON),
+            ("quick settings", "the item under the cursor: its picture (an hour, a corner), its dot", c["text_on_select"], c["select"], ICON),
+            ("quick settings", "a meter under the cursor: a lit bead or segment on the lacquer", c["text_on_select"], c["select"], ICON),
             ("quick settings", "a meter under the cursor: lit against unlit (the level)", c["text_on_select"], c["select_lo"], LARGE)]
 
 
