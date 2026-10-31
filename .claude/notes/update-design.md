@@ -47,9 +47,16 @@ an untried transaction:
    --bind-ro=$fk/tx --bind=<scratch>:/boot --bind=<dGPU render node> … dnf5 --disable-plugin=actions
    -C replay /tx` — the container gives the scriptlets their own /proc, /sys, /dev and /run (kernel
    %posttrans → kernel-install → dracut builds the host-only image it will boot with; nothing
-   reaches the host's udev or systemd), and the actions plugin is off (else the candidate's
-   kawa-snap pre/post and the guard would run — dnf5 loads the host's plugins under
-   --installroot: installroot(7)). `replay` performs "the exact same operations … an error in case
+   reaches the host's udev or systemd), and the actions plugin is off: inside the container its
+   configuration is the candidate's own copy, whose kawa-snap pre/post and guard would act there
+   (snapper on the container's root, the guard arming follow-ups) — and outside a container
+   (`--installroot`) dnf5 would load the host's plugins (installroot(7)). Preconditions, checked in
+   phase 0: the candidate's /etc/kernel/cmdline holds root= and rootflags=subvol=root (kernel-install
+   ignores /proc/cmdline in a container, so without it every kernel update is a false red on the
+   BLS check — this PC has it, B5 #8); the render node granted to the container
+   (`--property=DeviceAllow=/dev/dri/by-path/pci-0000:03:00.0-render rw`). The candidate's SELinux
+   labels are the container's, not the live ones: nothing is ever copied out of it — only its
+   verdict is used. `replay` performs "the exact same operations … an error in case
    of any differences in installed packages or their versions" (dnf5-replay(8)): the same
    transaction later on the live root is replay's own guarantee, no comparison needed. The new
    kernel lands in the scratch /boot, never the real one. His configs live in /home/dia/.config:
@@ -135,8 +142,9 @@ the VM (T49 restore-cut.sh: power off after every step):
    /etc/sysconfig/kernel for the run), needing the copy's /etc/kernel/cmdline (rootflags=subvol=root),
    a valid fstab and machine-id, /dev /proc /sys /run /boot /boot/efi bound; the default set once,
    after the exchange and the sync; `restorecon -R /boot` on the host; orphan kernels removed with
-   `kernel-install remove` only after the restored root has booted; installonly_limit 3 (one more
-   kernel to fall back to while a probation is open).
+   `kernel-install remove` only after the restored root has booted; installonly_limit stays 2 and no
+   kernel transaction runs while a probation is open (that run holds the kernel: one at rest, the
+   previous one only until the new is marked good — setup.sh's rule kept).
 Also: /.autorelabel and /system-update stripped from the copy before the exchange; no blanket
 relabel (a restored root is self-consistent: labels and policy travel together — B5 #11) — a
 `restorecon -R -n -v` dry run on /home, /var/log and /boot relabels only the differences; the ESP
@@ -179,8 +187,8 @@ number, the package set. Every stored package verified (`rpmkeys --checksig` aga
 keys) before any replay: `dnf5 replay` skips OpenPGP checks for stored packages (seen in the VM,
 ledger r27-49-exp1).
 
-Phase 5 — **the transaction** on the running system: `dnf5 -C upgrade` of exactly the candidate's
-set; the guard's follow-ups (dwl relinked, helpers, theme); a power cut here leaves the marker:
+Phase 5 — **the transaction** on the running system: `dnf5 -C replay $fk/tx` — the stored
+transaction the candidate proved (replay's own guarantee: the same operations, or an error); the guard's follow-ups (dwl relinked, helpers, theme); a power cut here leaves the marker:
 at the next start, `fedokawaii-resume.service` (before greetd) sees it and reads the facts (B5 #15:
 libdnf5 never looks for unfinished history): leftover `/var/lib/rpm-state/kernel/installing_core_*`,
 stray `name;<hex>` files, `dnf5 check --dependencies --duplicates`, `rpm -V` of the set, the set
@@ -242,7 +250,9 @@ A start after a kernel/systemd/glibc/Mesa change is on probation: Fedora's grub 
 `boot_success` is 0, and at 0 sets `default=1` — the second menu position, which must be the
 previous kernel (checked in grub.cfg) — then sticks at -1 until userspace unsets it; armed with
 `boot_counter=3 boot_success=0`, with `rd.shell=0 rd.emergency=reboot` and `kernel.panic` set while
-armed so a hang becomes a counted failure; the off-by-one proven in the VM) plus our own system-level `fedokawaii-boot-good.service` that sets `boot_success` only
+armed so a hang becomes a counted failure — a userspace hang counts only when a reboot happens, so
+systemd's RuntimeWatchdogSec (the board's watchdog, sp5100_tco on this AMD chipset: checked in T48)
+is armed only while the probation is open; the off-by-one proven in the VM) plus our own system-level `fedokawaii-boot-good.service` that sets `boot_success` only
 once the session has run dwl for 60 s with its helpers (today only a user-session timer does it,
 two minutes into a login). The previous kernel is never removed while a probation is open; the
 pinned snapshot stays until it closes. A start that never reaches userspace twice → the previous
@@ -295,7 +305,7 @@ told". If it cannot beat "hold and wait" on the graded breakage set (T47), the c
 | 11 | a scriptlet fails | the candidate is red → bisect → held; the running system never saw it | broken-pkg.sh --scriptlet |
 | 12 | a library our builds load changes its soname (wlroots deps, libdisplay-info — B3 #17) | the candidate rebuilds dwl and the helpers against it; still red → held | broken-lib.sh |
 | 13 | an option of a config we own renamed or dropped | the candidate's config check red → bisect → held → the fixer (T47) | fixer-bench.sh |
-| 14 | Mesa breaks the desktop | the candidate's smoke test runs with the real render node bound into the container (Mesa from the candidate, the running kernel) → red → held | broken-mesa.sh (a Mesa build that fails on gles2) |
+| 14 | Mesa breaks the desktop | the candidate's smoke test runs with the real render node bound into the container (Mesa from the candidate, the running kernel) → red → held | broken-mesa.sh (a stub libEGL that aborts) |
 | 15 | a new kernel or initramfs does not start (B3 #6, #16) | probation: two failed starts → the previous kernel (grub boot counting); the kernel held; said at login | broken-boot.sh --initramfs |
 | 16 | a boot argument breaks the start | as 15 | broken-boot.sh --arg |
 | 17 | the session does not start on the real machine though the candidate passed | the live smoke test red → the pinned snapshot restored at the next start; the rescue screen offers it too | broken-session.sh |
@@ -322,10 +332,12 @@ told". If it cannot beat "hold and wait" on the graded breakage set (T47), the c
 | 38 | snapshots fill the disk over months | cleanup by count (no qgroups — B3 #11), a space floor checked before each snapshot, the pinned ones kept | space.sh |
 | 39 | a duplicate or mixed set after a cut | phase 6: `dnf5 repoquery --duplicates`, `dnf5 check`, `rpm -V` of the set | power-cut.sh (all points) |
 | 40 | verify itself broken by the update | verify runs from the toolkit; a verify that cannot run is red, never green | verify-broken.sh |
-| 44 | the bootloader (grub2-efi, shim) updated badly — it fails before boot counting can act, and it never rolls back (B5 #10, synthesis 17) | bootloader packages replayed as the last, separate step of phase 5, only after the rest is green; the previous EFI files kept (`EFI/fedora/*.prev`); /boot and /boot/efi excluded from rpm -V verdicts after a restore; older grub2-efi or shim never reinstalled onto the ESP. Secure Boot is off on this PC; the ISO, if it turns it on, adds the SBAT/dbx checks before such a step | broken-bootloader.sh |
 | 41 | power cut during a restore (between any two of its steps) | one atomic exchange, a sync before /boot, the default set last (§3.1): every cut leaves a root that boots with its kernels | restore-cut.sh (each step) |
 | 42 | a stored package tampered with between download and replay | `rpmkeys --checksig` of every stored package before any replay (replay skips OpenPGP checks) | broken-pkg.sh --tampered |
 | 43 | the split of /home is cut off half-way | offline, copy then compare then mount; the old /home untouched until a good boot; the pinned snapshot | split-cut.sh |
+| 44 | the bootloader (grub2-efi, shim) updated badly — it fails before boot counting can act, and it never rolls back (B5 #10, synthesis 17) | two stored transactions — tx1 with `--exclude=grub2-efi*,shim*`, tx2 those packages alone — both
+replayed in the candidate; live, tx2 only after tx1 is green (one stored transaction cannot be
+replayed in parts); the previous EFI files kept (`EFI/fedora/*.prev`); /boot and /boot/efi excluded from rpm -V verdicts after a restore; older grub2-efi or shim never reinstalled onto the ESP. Secure Boot is off on this PC; the ISO, if it turns it on, adds the SBAT/dbx checks before such a step | broken-bootloader.sh |
 
 ## 6. Attacks (the skeptic's pass)
 
@@ -340,76 +352,78 @@ told". If it cannot beat "hold and wait" on the graded breakage set (T47), the c
    /boot holding the loader skeleton; in the bare-chroot trial (r27-49-exp1) the kernel landed in
    the scratch /boot and dracut fell back to a generic image — the container makes it the host-only
    one; proven in the VM before T45 (c) ships.
-33. *Under --installroot, dnf5 runs the host's plugins: the candidate would snapshot the live root
+4. *Under --installroot, dnf5 runs the host's plugins: the candidate would snapshot the live root
    and arm the guard's follow-ups on the live system.* — Every candidate run with
    `--disable-plugin=actions` (installroot(7): plugin paths are the host's), inside its container.
-34. *A stored package is swapped between download and replay; replay skips OpenPGP checks.* —
+5. *A stored package is swapped between download and replay; replay skips OpenPGP checks.* —
    `rpmkeys --checksig` of every stored package against the system's keys before any replay
    (row 42).
-35. *The candidate has no /home after the split, so the config checks and the fixer find nothing.*
+6. *The candidate has no /home after the split, so the config checks and the fixer find nothing.*
    — A writable snapshot of `home` is bound in; an accepted fix lands in the `*.local` override
    (T42/T45), never in a theme-owned file the next theme run would rewrite.
-4. *Copy-on-write candidates eat the disk.* — Only what the transaction writes (1–3 GB typical),
+7. *Copy-on-write candidates eat the disk.* — Only what the transaction writes (1–3 GB typical),
    counted in phase 0's floor; the candidate deleted at the end of the run.
-5. *Bisection assumes one culprit.* — ddmin finds a smallest failing subset; two interacting
+8. *Bisection assumes one culprit.* — ddmin finds a smallest failing subset; two interacting
    packages are held together; past ⌈log2 |S|⌉ rounds the whole set is held and said.
-6. *A held library holds its dependents and their security fixes.* — Said package by package in
+9. *A held library holds its dependents and their security fixes.* — Said package by package in
    the report; advisories on held ones said plainly; retried each press; the fixer tried.
-7. *A restore to an older root forgets the locks (they live in /etc).* — The holds are `fk`'s;
+10. *A restore to an older root forgets the locks (they live in /etc).* — The holds are `fk`'s;
    phase 0 writes them into /etc/dnf/versionlock.toml every run.
-8. *snapper's cleanup deletes the pinned snapshot.* — A pinned snapshot has no cleanup algorithm
+11. *snapper's cleanup deletes the pinned snapshot.* — A pinned snapshot has no cleanup algorithm
    (`snapper modify -c ''`): snapper's own cleanup never removes it; the timeline is turned off
    (its timer is enabled on the PC today).
-9. *dnf5 says failure on success, success on failure (B3 #3).* — Facts decide: rpm's set, verify,
+12. *dnf5 says failure on success, success on failure (B3 #3).* — Facts decide: rpm's set, verify,
    smoke, os-release.
-10. *Boot counting falls back forever if our boot-good unit breaks.* — The fallback is the
+13. *Boot counting falls back forever if our boot-good unit breaks.* — The fallback is the
     previous kernel, which still works; verify checks the unit is enabled and ran on this boot;
     T49 breaks it on purpose.
-11. *The /home migration loses data.* — Copy, compare, switch, keep the old copy until a good
+14. *The /home migration loses data.* — Copy, compare, switch, keep the old copy until a good
     boot, a pinned snapshot before; rehearsed in the VM with a home of real size and nested
     subvolumes.
-12. *A restore swaps root under his running session.* — Only at the next start; until then the
+15. *A restore swaps root under his running session.* — Only at the next start; until then the
     session runs on; the notice says why he should restart.
-13. *Changes he made in /etc after the snapshot are lost by a restore.* — He never edits /etc; the
+16. *Changes he made in /etc after the snapshot are lost by a restore.* — He never edits /etc; the
     theme's are re-applied after a restore; /home and /var/log are not in root.
-14. *The fixer can be steered by text in a changelog or a log (prompt injection).* — It has no
+17. *The fixer can be steered by text in a changelog or a log (prompt injection).* — It has no
     tools: its answer is a JSON proposal of edits to our own config files, applied by our code
     after the key check; the checks it must pass are outside its reach (B6 #13).
-15. *The fixer invents an option.* — Any key not in the new version's man page/`--help`/default
+18. *The fixer invents an option.* — Any key not in the new version's man page/`--help`/default
     config is rejected before it is tried (B6 #11).
-16. *The model file is huge and may be corrupt.* — Checksum-pinned; missing or wrong → the fixer
+19. *The model file is huge and may be corrupt.* — Checksum-pinned; missing or wrong → the fixer
     is skipped, said; never downloaded during a run that needs it urgently.
-17. *GitHub serves a broken or hostile toolkit.* — Release tags only, the new toolkit's selftest
-    before re-exec; (T45 decides a signing key: tags signed, the PC verifies).
-18. *He presses update twice, or closes the window.* — One run (flock); the window is a view of
+20. *GitHub serves a broken or hostile toolkit.* — Release tags only, signed; the public key ships
+    in the toolkit and the PC verifies the tag's signature (`git verify-tag`) before the re-exec,
+    then the new toolkit's selftest; anything red → the installed toolkit, said.
+21. *He presses update twice, or closes the window.* — One run (flock); the window is a view of
     the unit.
-19. *It takes long.* — Progress in the window and the pane; he can keep working; the GPU work
+22. *It takes long.* — Progress in the window and the pane; he can keep working; the GPU work
     (smoke, fixer) is short and measured (T60).
-20. *The smoke test disturbs his session.* — Its own runtime folder and outputs, headless; it
+23. *The smoke test disturbs his session.* — Its own runtime folder and outputs, headless; it
     never touches his Wayland display; its VRAM freed at exit (measured).
-21. *Third-party repositories make every release day red.* — Lenient for routine updates;
+24. *Third-party repositories make every release day red.* — Lenient for routine updates;
     for releases, waiting until they have it (as today) is the documented gate.
-22. *A release upgrade in a candidate is not what system-upgrade does offline.* — The candidate is
+25. *A release upgrade in a candidate is not what system-upgrade does offline.* — The candidate is
     an extra gate; the VM pre-flight is the main one; the real one is judged by facts after.
-23. *The games VM is running from home/dia/VM.* — Phase 0 refuses while it runs (the fixer needs
+26. *The games VM is running from home/dia/VM.* — Phase 0 refuses while it runs (the fixer needs
     the dGPU; a restore must not move a running disk).
-24. *installonly_limit=2 removes the kernel probation would fall back to.* — No kernel transaction
-    while a probation is open; the third kernel waits for the next press.
-25. *A partial set slips past verify.* — Phase 6: duplicates, `dnf5 check`, `rpm -V` of the set.
-26. *verify is red before the update (qBittorrent today).* — The baseline: only new reds count.
-27. *A restore needs a restart — "never leave him on a broken desktop" is broken.* — The broken
+27. *installonly_limit=2 removes the kernel probation would fall back to.* — No kernel transaction
+    runs while a probation is open (the kernel is held for that run, said in the report); the
+    previous kernel is removed only after the new one is marked good; one kernel at rest otherwise.
+28. *A partial set slips past verify.* — Phase 6: duplicates, `dnf5 check`, `rpm -V` of the set.
+29. *verify is red before the update (qBittorrent today).* — The baseline: only new reds count.
+30. *A restore needs a restart — "never leave him on a broken desktop" is broken.* — The broken
     state exists only after a live red, which the candidate makes rare; the restart is offered at
     once with the reason; the rescue screen offers the same at the next start if he ignores it.
-28. *Read-only snapshot boots hang on Fedora (B2 #11, B3 #10).* — They are not part of the flow;
+31. *Read-only snapshot boots hang on Fedora (B2 #11, B3 #10).* — They are not part of the flow;
     the boot menu keeps them as the last resort only, and the rescue screen's restore needs none.
-29. *The updater's own code has a bug that breaks every run.* — Its state machine is tested on
+32. *The updater's own code has a bug that breaks every run.* — Its state machine is tested on
     stubs (test_update_flow.sh: every branch) and every injection in the VM (T49) before it ships;
     a run that dies says where it stopped, and the next one starts from phase 0.
-30. *An update changes the updater's dependencies (python, jq, btrfs-progs) mid-run.* — The run is
+33. *An update changes the updater's dependencies (python, jq, btrfs-progs) mid-run.* — The run is
     bash + coreutils + dnf5 + btrfs-progs; the toolkit checks they load before the live phase;
     the run re-execs nothing after the transaction except verify (which fails red if it cannot run).
-31. *Firmware.* — Listed, never applied by the button (B1 #15); a separate explicit step later.
-32. *Snapshots are not backups.* — Said in the menu and the Learn piece: undo on this disk vs a
+34. *Firmware.* — Listed, never applied by the button (B1 #15); a separate explicit step later.
+35. *Snapshots are not backups.* — Said in the menu and the Learn piece: undo on this disk vs a
     copy on another drive (T48).
 
 No case is left open on paper: B5 is folded in (§3, §3.1, phase 4–5, §4.3, §4.4, rows 18, 41–44).

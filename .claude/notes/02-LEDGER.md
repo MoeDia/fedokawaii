@@ -1714,3 +1714,14 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   chroot's generic fallback gone; the live root untouched by the candidate run: snapper's snapshots 3 → 3
   (the actions plugin off), no guard marker, no new kernel file in the real /boot. Noise: gpg "insecure
   memory" lines inside the container (harmless; silenced in T45). Output: /dev/shm/r27/vm-candidate-exp2.txt.
+- r27-48-master-2 (1 Nov 03:51; the same master, resumed): VERDICT PASS for T43 and T44 — all 22 findings
+  verified closed, the VM trial accepted as evidence. Its 4 minor + 5 nits closed at once (03:58): phase 5
+  is the replay of the stored transaction; the bootloader as a second stored transaction (tx2: grub2-efi*,
+  shim*), live only after tx1 is green; kernels: installonly_limit stays 2, no kernel transaction while a
+  probation is open (setup.sh's one-kernel rule kept; §3.1, attack 24, plan T48); the candidate's
+  /etc/kernel/cmdline a phase-0 precondition (kernel-install ignores /proc/cmdline in a container); the
+  actions plugin's reason inside nspawn, the render node's DeviceAllow, the candidate's labels never
+  copied out; row 14's test a stub libEGL; attack 17 decided: signed release tags, the key in the
+  toolkit, `git verify-tag` before the re-exec; RuntimeWatchdogSec armed only during a probation;
+  §5 rows and §6 attacks renumbered in order (1–44, 1–35).
+- r27-47 DONE, r27-48 DONE (1 Nov 03:58; master PASS) — T43, T44.
