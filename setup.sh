@@ -169,6 +169,8 @@ install_toolkit() {
       cp -p -- "$b" "$TOOLKIT.new/conf-base"
     fi
     rm -rf "$TOOLKIT.new/t/.git"
+    # (Python's byte-code caches, which a tool run in the copy leaves: no file of the project)
+    find "$TOOLKIT.new/t" -name __pycache__ -type d -prune -exec rm -rf {} +
     chown -R root:root "$TOOLKIT.new/t"; chmod -R u=rwX,go=rX "$TOOLKIT.new/t"   # (no set-id bits)
     # plain files and folders only: a link would point root's toolkit at a file of yours. The
     # copy itself is checked, once made — the clone could have changed while it was read
@@ -2315,7 +2317,7 @@ clone_done() {
   if [[ -n $(find "$d" -path "$d/.git" -prune -o ! -type f ! -type d -print -quit) ]]; then why="it holds links"
   elif ! cmp -s "$d/fedokawaii.conf" "$STATE_DIR/conf-from-copy.conf" && ! cmp -s "$d/fedokawaii.conf" "$TOOLKIT/fedokawaii.conf"; then
     why="its fedokawaii.conf changed after this run read it"
-  elif [[ -n $(diff -rq --exclude=.git --exclude=fedokawaii.conf "$d" "$TOOLKIT" 2>&1) ]]; then
+  elif [[ -n $(diff -rq --exclude=.git --exclude=__pycache__ --exclude=fedokawaii.conf "$d" "$TOOLKIT" 2>&1) ]]; then
     why="it differs from the toolkit"
   elif [[ -e $d/.git ]]; then
     if [[ -n $(as_user git -C "$d" status --porcelain --untracked-files=normal -- . ':!fedokawaii.conf' 2>&1) ]]; then why="git has changes in it"

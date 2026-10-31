@@ -108,11 +108,11 @@ apply_copy() {
   done < <(as_desk find "$REPO_DIR" \( -path "$REPO_DIR/.git" -o -path "$REPO_DIR/docs" \) -prune -o -type f -print0)
   ((${#bad[@]} == 0)) || die "these do not parse — nothing was applied (bash -n FILE shows where): $(IFS=' '; echo "${bad[*]}")"
   # what each change needs: configs, helpers, pictures → theme; the rest → repair (which
-  # runs theme itself); the handbook, tools and these notes only travel with the copy
+  # runs theme itself); the handbook, tools, tests and these notes only travel with the copy
   for f in "${changed[@]}"; do
     case $f in
       configs/*|bin/*|src/*|art/*|theme.sh*) theme=1 ;;
-      docs/*|tools/*|*.md*|verify.sh*|check.sh*|fedokawaii.sh*) ;;
+      docs/*|tools/*|tests/*|.claude/*|*.md*|verify.sh*|check.sh*|fedokawaii.sh*) ;;
       *) sys=1 ;;
     esac
   done

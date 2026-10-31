@@ -495,7 +495,7 @@ origin_public() {
   return 0
 }
 same_as_toolkit() {   # same_as_toolkit DIR — its files are the toolkit's (settings aside)
-  [[ -z $(diff -rq --exclude=.git --exclude=fedokawaii.conf -- "$TK" "$1" 2>&1) ]]
+  [[ -z $(diff -rq --exclude=.git --exclude=__pycache__ --exclude=fedokawaii.conf -- "$TK" "$1" 2>&1) ]]
 }
 pack_aside() {   # pack_aside DIR WHY — the whole folder kept, packed, before it is replaced
   local p

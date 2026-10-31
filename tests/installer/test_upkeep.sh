@@ -317,8 +317,10 @@ fkrun bash $H/fedokawaii/setup.sh --repair
 [[ ! -e $W$H/fedokawaii && -f $W$H/Downloads/fedokawaii.zip ]] && _ok || _no "the newer download went (or the clone stayed)"
 case_ "fedokawaii apply from your own git clone (--toolkit, the copy kept elsewhere): the clone is never removed"
 back built; clone_at $H/code/fedokawaii
+mkdir -p "$W$H/code/fedokawaii/tools/__pycache__"; : >"$W$H/code/fedokawaii/tools/__pycache__/x.cpython-314.pyc"
 fkrun bash $H/code/fedokawaii/setup.sh --toolkit; eq "$RC" 0
 [[ -f $W$H/code/fedokawaii/setup.sh ]] && _ok || _no "your working clone was removed"
+[[ -d $W$TK/tools && ! -e $W$TK/tools/__pycache__ ]] && _ok || _no "Python's byte-code cache was copied into the toolkit"
 lacks "$OUT" "removed: the toolkit has all of it"
 # (a real git repository: a pushed main, and work of yours git alone holds)
 gitrepo() {   # gitrepo DIR — DIR a git repository with everything committed and pushed to a bare "origin"

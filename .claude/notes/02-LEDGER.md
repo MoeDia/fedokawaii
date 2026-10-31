@@ -1178,3 +1178,38 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   edges, the meter row under the cursor (flush right today); then T19k-4 (the crests' 28 px
   pictures, the demon/angel head on the rod). The rest of the suite in the pass's first minutes,
   in the background (setsid, never nohup).
+- r27-event (31 Oct 00:56–10:58): the owner powered the PC off cleanly at 00:56 (systemd-poweroff,
+  journal -b -1) and on at 10:57:54; the pass began at the greeter (no session of his: headless only).
+- r27-19k-3 (a)–(c) LIVE-INSTALLED (31 Oct 11:00): fedokawaii apply (rc 3: only qbittorrent outside
+  the manifest — his own install, r27-note 30 Oct); ~/.local/bin/kawa-panel is the mon sheet; his next
+  login shows it (no session was up to look at it live).
+- r27-19k-3 (d)+(f) DONE + VERIFIED kit (31 Oct 11:07, e6ec42c): the sheet's foot — wallpaper,
+  screenshot, screen off, power — as four ACTIONS on the crests' four columns (94 × 46 each, an icon
+  over its word, 16 px under the sheet), the framed keys gone (they were the last frame on the sheet).
+  Rendered both ways, both themes (.claude/notes/grill-r27.md): small outline crests read as a 4th
+  row of switches that are off (an outline crest = off on this sheet) — rejected; icon over word kept.
+  px.py on the kit's shots (identical in both themes): icons 41 | 41 in every cell; words 16 | 17,
+  12 | 13, 12 | 13, 30 | 30 (the odd pixel right); 7 px above the icon's ink, 7 under the baseline
+  (the crest cells' 6/7); the cursor's lacquer exactly the cell (x 1801 +94, y 414 +46), then 16 px
+  of pad to the hairline, the shadow whole. Panel 410 × 444 (window 411 × 446; gallery-expect
+  updated). test_panel 505/0, test_quick 369/0, test_hotkeys 65/0, test_contrast 11/0,
+  test_noellipsis 9/0, test_design_doc 54/0; design-system §3 table + §4 "Action".
+- r27-fix apply (31 Oct 11:10): apply ran a whole repair (snapshot, packages, firmware …) for
+  changes to tests/ and .claude/ — they now only travel with the copy (like docs/, tools/); Python's
+  __pycache__ (tools/ leaves one) no longer counts as a change nor reaches the toolkit
+  (/usr/local/lib/fedokawaii — a stray file in a root folder). Tests: test_front 125+2 cases,
+  test_upkeep (the toolkit holds no __pycache__). Still to decide with the clean-structure task: the
+  toolkit carries .claude/ (notes, design renders) — nothing reads them there.
+- r27-suite (31 Oct, rest of the 30 Oct run): look 12/12, static 11/11 green; menus' only failure was
+  test_panel copied mid-edit (505/0 after); session/test_bar 1 failure — a stale check ("foot's
+  palette has no 24") from before T19k-2 put the lacquer at 24/25: rewritten (24/25 = select /
+  text_on_select per theme, never the bar's tile) — 257/0.
+- r27-19k-4 WIP (31 Oct 11:14): first serious drawings of the mood's face — the hannya (dark, after
+  Hokusai's Warai Hannya) and the tennin (light), 18 × 18 in four inks (sumi, ivory, gold, lacquer)
+  on the end tile's red, each with its "open" frame (roar / eyes open, smile); renders at 1× and 8×
+  in .claude/notes/design-r27/heads-t19k4.png, the grill in grill-r27.md. Not wired yet: next pass
+  moves the grids into tools/build-art.py → PNGs for waybar's end tile and quick settings' heading.
+- r27-fix (31 Oct 11:13): the toolkit no longer holds __pycache__, so every comparison of a clone
+  with it skips __pycache__ too (setup.sh's clone removal, system/fedokawaii same_as_toolkit) —
+  else a clone with tools/__pycache__ "differs from the toolkit" and is kept (test_upkeep caught it).
+

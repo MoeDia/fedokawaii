@@ -679,8 +679,8 @@ tree_changes() {
   } | LC_ALL=C sort -t $'\t' -k2
 }
 _tree_sums() {   # _tree_sums DIR [READER…] → "SUM  REL\0" for each of its files
-  local d=$1; shift
-  "$@" env -C "$d" sh -c 'find . -name .git -prune -o -type f -printf "%P\0" | xargs -0r b2sum --zero --' 2>/dev/null
+  local d=$1; shift   # (Python's byte-code caches are no file of the project: install_toolkit drops them)
+  "$@" env -C "$d" sh -c 'find . \( -name .git -o -name __pycache__ \) -prune -o -type f -printf "%P\0" | xargs -0r b2sum --zero --' 2>/dev/null
 }
 conf_problems() {                   # conf_problems FILE → one line per problem; empty = valid
   read_conf "$1"; conf_report
