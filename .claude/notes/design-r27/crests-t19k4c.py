@@ -21,17 +21,21 @@ def moon():
 
 
 def sun():
-    # the light mood: a disc and eight rays between two circles, every second one longer
+    # the light mood: a disc and eight wedge rays — each a polar wedge 3.4 px at its root, 1 px
+    # at its tip, rasterised by pixel centres (the diagonals land on the 45° stair, never rounded)
     g = [[disc(x, y, C, C, 5.6) for x in range(N)] for y in range(N)]
-    for k in range(8):
-        a = k * math.pi / 4
-        r0, r1 = 8.2, (12.6 if k % 2 == 0 else 11.0)
-        for t in range(0, 101):
-            r = r0 + (r1 - r0) * t / 100
-            for w in (-0.9, 0, 0.9):
-                x = C + r * math.cos(a) - w * math.sin(a)
-                y = C + r * math.sin(a) + w * math.cos(a)
-                g[round(y)][round(x)] = True
+    for y in range(N):
+        for x in range(N):
+            r = math.hypot(x - C, y - C)
+            a = math.atan2(y - C, x - C)
+            for k in range(8):
+                r0, r1 = 7.6, (12.9 if k % 2 == 0 else 11.4)
+                if not r0 <= r <= r1:
+                    continue
+                w = 3.4 + (1.0 - 3.4) * (r - r0) / (r1 - r0)
+                d = abs((a - k * math.pi / 4 + math.pi) % (2 * math.pi) - math.pi)
+                if r * math.sin(min(d, math.pi / 2)) <= w / 2 and d < math.pi / 2:
+                    g[y][x] = True
     return g
 
 

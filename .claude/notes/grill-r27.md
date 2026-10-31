@@ -145,3 +145,8 @@ gear or a flower — redo with wedge rays (each a triangle 3 px at its root, 1 a
 diagonals drawn by hand on the 45° stair) or the kamon "hi" (a disc in a ring of 16 short
 strokes). Rule found: at 28 px a diagonal stroke needs an odd width drawn on the pixel stair,
 never a rounded rotated bar.
+Sun, second try (11:29): eight polar wedges (3.4 px at the root → 1 at the tip, by pixel centres)
+from r 7.6 to 12.9 / 11.4 round a disc r 5.6 — it reads as a sun now, the diagonals on the stair;
+left for the hand pass: the short diagonal wedges read a little as arrowheads (try them as long as
+the straight ones less one, or a 1 px gap ring between the disc and the rays as kamon suns have).
+
