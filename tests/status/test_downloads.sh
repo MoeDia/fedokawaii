@@ -65,12 +65,14 @@ steam_game 774361 Blasphemous 1600 1600; eq "$(kawa-downloads list)" ""
 case_ "the mark: the percent of all, bytes over bytes (no count, no sizes); the mark alone while no total is known; a job of any name counts"
 world; steam_game 1 Hades 400 1600
 I=$(. "$HOME/.config/fedokawaii/icons.sh"; printf %s "$ICON_BAR_DL_0")   # (at rest: the arrow's first frame)
-eq "$(mark)" '{"text": "'"$I"'25<span fgalpha='"'"'55%'"'"'>%</span>", "class": "downloading"}'
+F=$(. "$HOME/.config/fedokawaii/icons.sh"; printf %s "$ICON_DL_FILL_5")   # (25 %: five steps of the tray's fill)
+T=$(sed -n 's/^C_TEAL=\([0-9a-f]*\).*/\1/p' "$HOME/.config/fedokawaii/current/colors.sh")
+eq "$(mark)" '{"text": "<span color='"'#$T'"'>'"$F"'</span>'"$I"'25<span fgalpha='"'"'55%'"'"'>%</span>", "class": "downloading"}'
 : >"$D/a.crdownload"; brave_db "$D/a.crdownload" "$D/a" 0
-out=$(mark); has "$out" "\"$I""25<span"; lacks "$out" count
+out=$(mark); has "$out" "$I""25<span"; lacks "$out" count
 sleep 600 & job=$!; on_exit "kill $job 2>/dev/null"; mkdir -p "$XDG_RUNTIME_DIR/kawa-downloads"
 printf 'a.zip\t1600\t1600\t/tmp/a.zip\n' >"$XDG_RUNTIME_DIR/kawa-downloads/pack.$job"
-has "$(mark)" "\"$I""62<span"
+has "$(mark)" "$I""62<span"
 rm -f "$XDG_RUNTIME_DIR/kawa-downloads/pack.$job"; world; : >"$D/b.crdownload"
 has "$(mark)" '"bare"'
 case_ "…lit while its menu is open (its button's marker, its pid alive)"
@@ -79,16 +81,36 @@ has "$(mark)" '"active"'
 printf '%s kawa-weather\n' "$p" >"$XDG_RUNTIME_DIR/kawa-drop.open"; lacks "$(mark)" '"active"' "another script's menu: not lit"
 rm -f "$XDG_RUNTIME_DIR/kawa-drop.open"
 
+case_ "the percent inside the mark: its tray filled from the left, 5 % a step (dl_fill_N, no advance, before the mark) in teal; none under 5 %, all twenty at 100 %; strong while lit; no theme at hand: the mark alone"
+fill() { python3 -I -c 'import json, re, sys
+t = json.loads(sys.stdin.read())["text"]; m = re.match(r"<span color=.#([0-9a-f]+).>(.)</span>", t)
+print(f"{m.group(1)} {ord(m.group(2)):X}" if m else "none")'; }
+code() { (. "$HOME/.config/fedokawaii/icons.sh"; v=ICON_DL_FILL_$1; printf '%X' "'${!v}"); }
+S=$(sed -n 's/^C_STRONG=\([0-9a-f]*\).*/\1/p' "$HOME/.config/fedokawaii/current/colors.sh")
+world; steam_game 1 Hades 40 1600; eq "$(mark | fill)" none "2 %: no fill yet"
+world; steam_game 1 Hades 80 1600; eq "$(mark | fill)" "$T $(code 1)" "5 %: the first step (the first column's bottom pixel)"
+world; steam_game 1 Hades 1000 1600; eq "$(mark | fill)" "$T $(code 12)" "62 %: twelve steps"
+world; steam_game 1 Hades 1599 1600; eq "$(mark | fill)" "$T $(code 19)" "99 %: one short of full"
+world; steam_game 1 Hades 1600 1600
+sleep 600 & job2=$!; on_exit "kill $job2 2>/dev/null"; mkdir -p "$XDG_RUNTIME_DIR/kawa-downloads"
+printf 'a.zip\t1600\t1600\t/tmp/a.zip\n' >"$XDG_RUNTIME_DIR/kawa-downloads/pack.$job2"; eq "$(mark | fill)" "$T $(code 20)" "100 %: all twenty"
+rm -f "$XDG_RUNTIME_DIR/kawa-downloads/pack.$job2"
+world; steam_game 1 Hades 1000 1600; sleep 600 & p=$!; on_exit "kill $p 2>/dev/null"
+printf '%s kawa-downloads\n' "$p" >"$XDG_RUNTIME_DIR/kawa-drop.open"; eq "$(mark | fill)" "$S $(code 12)" "lit (its icon teal): the fill strong"
+rm -f "$XDG_RUNTIME_DIR/kawa-drop.open"
+world; steam_game 1 Hades 1000 1600; rm -f "$HOME/.config/fedokawaii/current/colors.sh"; eq "$(mark | fill)" none "no theme at hand: the mark alone, as before"
+has "$(cat "$REPO/art/icons.txt")" "@dl-fill-20 adv=0 x=0" "drawn with no advance (art/icons.txt)"
+
 case_ "bar --follow (what the bar runs): while anything downloads the arrow drops into its tray — six frames, 8 a second, each its own glyph; the percent beside it"
 world; steam_game 1 Hades 400 1600
 . "$HOME/.config/fedokawaii/icons.sh"
 kawa-downloads bar --follow >"$TMP/follow" & f=$!; on_exit "kill $f 2>/dev/null"
 sleep 1.2
 n=$(grep -c . "$TMP/follow"); ((n >= 7 && n <= 12)) && _ok || _no "$n lines in 1.2 s (8 a second: about 9)"
-frames=$(python3 -I -c 'import json, sys
-for l in open(sys.argv[1]): print(json.loads(l)["text"][0])' "$TMP/follow" | sort -u | wc -l)
-eq "$frames" 6 "all six frames shown"
-has "$(head -n1 "$TMP/follow")" "\"$ICON_BAR_DL_0""25<span" "the first at rest, then the percent"
+frames=$(python3 -I -c 'import json, re, sys
+for l in open(sys.argv[1]): print(re.sub(r"^<span [^>]*>.</span>", "", json.loads(l)["text"])[0])' "$TMP/follow" | sort -u | wc -l)
+eq "$frames" 6 "all six frames shown (the arrow after the tray's fill)"
+has "$(head -n1 "$TMP/follow")" "$ICON_BAR_DL_0""25<span" "the first at rest, then the percent"
 case_ "…the files looked at every 2 s while moving (not 8 times a second): the percent follows"
 steam_game 1 Hades 800 1600; sleep 2.4
 has "$(tail -n1 "$TMP/follow")" '50<span' "the new percent within 2 s"

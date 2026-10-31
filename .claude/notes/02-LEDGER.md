@@ -1446,3 +1446,16 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   measured at their centres), mirrored hit zones now a test; (3) disc_rows/_DISCS (the seals')
   dead — gone; (4) the docstring's keys (↑ ↓ on the dial's beads). Also its fix of an old case
   that popped the wrong pending call (passed by accident).
+- r27-31a DONE + VERIFIED kit (1 Nov 00:58) — the owner's inbox of 00:11: the download progress
+  drawn INSIDE the bar's download mark. The tray's inside (10 × 2 px under the arrow) fills from
+  the left, a column at a time, its bottom pixel first (twenty steps of 5 %, as a meter's partly
+  lit segment): art/icons.txt dl-fill-1…20, drawn with no advance (adv=0) and laid before the mark
+  (bar_dl_N, its ink from the pen) in its own ink — the level display's teal (C_TEAL), strong
+  while the tile is lit (its icon is teal then) — so the arrow keeps dropping over it. One total
+  from every source kawa-downloads already counts (torrents, the browser's partial files, jobs).
+  Codes stable (icons.sh: 40 lines added, none moved). Tests: test_downloads 60/0 (new: the fill
+  at 2 % none, 5 % one step, 62 % twelve, 99 % nineteen, 100 % twenty; strong while lit; no theme:
+  the mark alone). Rendered on the kit's real bar, both moods, at 5/25/62/99/100 %
+  (design-r27/dl-fill-t31.png): the fill exactly inside the tray's walls. Live at his next login
+  (the running bar holds the old font and the old module). Left in T31: each source proven with a
+  real download, the notice's icon, the browser's %.
