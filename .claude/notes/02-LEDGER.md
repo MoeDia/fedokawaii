@@ -1372,3 +1372,20 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   tolerance (the panel's glass): moon 6|7·6|6 (248 px), socket 8|8·9|9 (180 px), spool 8|9·7|8 (161 px),
   exactly the kit's; Super+U (kawa-warm system, put away again) — the tab row: pagoda (lit) system,
   seedling, camera, chest, cap.
+
+## >>> NEXT PASS STARTS HERE (owner 2026-10-31 23:23, overrides the line above): quick settings rebuilt FROM SCRATCH - drop the mon sheet entirely, no reuse of any earlier layout; super minimal, super creative; several directions rendered and grilled, the best built, tested, live. Then continue the plan.
+- r27-19k-7 WIP (1 Nov 00:20) — quick settings from scratch (the owner's 23:23 note above): three
+  new directions rendered both moods (design-r27/quick-r4.py: A the dial 和時計, B the soroban, C
+  the koto) and grilled — CHOSEN A, the dial: a square 304 px; the twelve switches' 28 px
+  pictures on its hours (theme at twelve, then night light, freesync, saver, dnd, network,
+  bluetooth, devices, drives, backup, record, read text — clockwise; no adapter: ten, evenly);
+  the meters as twenty 6 px beads each on a circle inside them (brightness up the left, sound up
+  the right, reddening at the top); the four actions in the corners (new 28 px drawings: a
+  still camera, Fuji framed, the monitor gone dark, the power sign); no heading, no words at
+  rest — the face ×3 in the middle; the cursor's item echoed there (its picture ×2, its name,
+  its state; a meter's level in display size). Keys: arrows go to the nearest item that way
+  (toward()), ↑ ↓ on a meter change it, Tab walks the hours clockwise. Rendered headless with
+  the kit (play: rest, theme, night light, the sound arc's lacquer band, saver, power) — both
+  moods correct. B lost (a crowded row of tiny icons over rods), C lost (a list in disguise).
+  The T21 to-do work of the 22:12 pass is in `git stash list` ("T21 to-do WIP") — untouched.
+  Also: CLAUDE.md's new INBOX rule; the inbox's 23:47 entry → T19m (the OCD audit) in the plan.

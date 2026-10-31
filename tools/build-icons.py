@@ -22,7 +22,6 @@ Each run of '#' is merged into rectangles, so the outlines are few and gap-free.
 Needs: python3-fonttools and python3-pillow (dnf install python3-fonttools python3-pillow).
 """
 import argparse
-import math
 import pathlib
 import re
 import sys
@@ -260,8 +259,8 @@ def preview(icons, path, scale=8):
 
 
 def crests(src=CRESTS_SRC, out=CRESTS_DIR):
-    """quick settings' crest pictures (art/crests.txt) as masks: white, the drawing in the
-    alpha, one PNG each by its name; a picture no longer drawn, gone"""
+    """quick settings' pictures (art/crests.txt: the dial's hours and corners) as masks: white,
+    the drawing in the alpha, one PNG each by its name; a picture no longer drawn, gone"""
     from PIL import Image
     pics = parse(src.read_text(), src.name)
     out.mkdir(parents=True, exist_ok=True)
@@ -273,9 +272,9 @@ def crests(src=CRESTS_SRC, out=CRESTS_DIR):
             for x, v in enumerate(r):
                 if v != "#":
                     continue
-                if math.hypot(x + .5 - CREST / 2, y + .5 - CREST / 2) > CREST / 2 - 1:
-                    sys.exit(f"{src.name}:{ic['line']}: {ic['name']}'s pixel {x},{y} is beyond the circle "
-                             f"of {CREST / 2 - 1:g} (the seal's vermilion before its ring)")
+                if not (0 < x < CREST - 1 and 0 < y < CREST - 1):
+                    sys.exit(f"{src.name}:{ic['line']}: {ic['name']}'s pixel {x},{y} is on the square's edge "
+                             f"(a pixel of air all round: the cursor's lacquer frames it)")
                 im.putpixel((x, y), (255, 255))
         im.save(out / f"{ic['name']}.png")
     names = {ic["name"] for ic in pics}
