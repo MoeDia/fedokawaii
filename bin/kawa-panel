@@ -162,8 +162,7 @@ METER_H, METER_GAP = ROW, 0          # a row, and the rows' air between them: no
 GLYPH_COL = 2 * CELL                 # the icon column: 16 px, an icon centred in it (2 px either side)
 GLYPH_X, NAME_X = CELL, 4 * CELL     # a row's icon column (cell 1: the icon on x 10–21) · its name (cell 4)
 HEAD_X = 3 * CELL                    # a heading's name (cell 3: its icon in the column at cell 0)
-FACE = os.path.join(HOME, ".config/fedokawaii/current/face-open.png")   # (open: the panel is)
-FACE_X = 3                           # the dial's middle at rest: the bar's 18 × 18 face, three times as large
+FACE = os.path.join(HOME, ".config/fedokawaii/current/face-big.png")   # the dial's middle at rest: the mood's face, 56 × 56 at 1 px (open: the panel is)
 # an hour's picture (art/crests.txt → tools/build-icons.py): a mask CREST_PIC px square, its
 # name the item's icon less "tile_" (tile_bell_off → bell-off.png), painted in the state's ink;
 # in the dial's middle twice as large (ECHO)
@@ -2523,7 +2522,7 @@ def main(argv):
 
     crests = {}
 
-    def frame(icon):
+    def turned(icon):
         """A picture's frame now: the record hour's reels turned while it records (reel())."""
         return icon + "_2" if icon == "tile_record" and panel.turn else icon
 
@@ -2607,38 +2606,25 @@ def main(argv):
                 box(cr, x + 1, y, BEAD - 2, BEAD, ink)
                 box(cr, x, y + 1, BEAD, BEAD - 2, ink)
 
-    halos = {}
-
     def echo(cr):
         """The dial's middle (§4): the item the cursor is on — an hour's or an action's picture
         twice as large (accent on, text off), a meter's level in display size (Sumi UI twice as
         large) — with its name (strong) and its state (strong on, muted off; an action's:
         the wallpaper's name, or nothing) a row each under it (echo_parts: the block centred on
-        the middle both ways, each part by its ink, the odd pixel right and below); at rest the face (open) three times as large — in the dark mood held by an
-        outline of edge2 a picture's pixel wide (the hannya's black hair is the ground's ink)."""
+        the middle both ways, each part by its ink, the odd pixel right and below); at rest the
+        mood's face (open), drawn for the middle: 56 × 56 at 1 px."""
         c = panel.centre
         cx, cy = c.x + c.w // 2, c.y + c.h // 2
         it = panel.item(panel.focus) if panel.focus else None
-        if it is None:
+        if it is None:                            # (at rest: the face, drawn for the middle at 1 px, centred)
             pic_ = face_pic()
             if pic_ is not None:
-                w_, h_ = pic_.get_width(), pic_.get_height()
-                if os.path.basename(os.path.realpath(CURRENT)) == "dark":   # (the hannya's hair is the ground's ink —
-                    # its silhouette held by an outline a picture's pixel wide, in edge2)
-                    if pic_ not in halos:
-                        halos.clear()
-                        d = cairo.ImageSurface(cairo.FORMAT_A8, w_ + 2, h_ + 2)
-                        c_ = cairo.Context(d)
-                        for dx in range(3):
-                            for dy in range(3):
-                                c_.mask_surface(pic_, dx, dy)
-                        halos[pic_] = d
-                    scaled(cr, halos[pic_], cx - (w_ + 2) * FACE_X // 2, cy - (h_ + 2) * FACE_X // 2, FACE_X, "edge2")
-                scaled(cr, pic_, cx - w_ * FACE_X // 2, cy - h_ * FACE_X // 2, FACE_X)
+                cr.set_source_surface(pic_, cx - pic_.get_width() // 2, cy - pic_.get_height() // 2)
+                cr.paint()
             return
         for kind, what, ink, top in echo_parts(it):
             if kind == "pic":                     # (its ink centred: the square placed by what is drawn in it)
-                mask = crest_pic(frame(what))
+                mask = crest_pic(turned(what))
                 ix, iy, iw, _ = pic_ink(what)
                 if mask is not None:
                     scaled(cr, mask, cx - iw - ECHO * ix, cy + top - ECHO * iy, ECHO, ink)
@@ -2919,7 +2905,7 @@ def main(argv):
             if lk["fill"]:
                 box(cr, it.x + 1, it.y, it.w - 2, it.h, lk["fill"])
                 box(cr, it.x, it.y + 1, it.w, it.h - 2, lk["fill"])
-            mask = crest_pic(frame(it.icon))
+            mask = crest_pic(turned(it.icon))
             if mask is not None:
                 col(cr, "accent_hi" if not on and panel.stamping(it.key) else lk["glyph"])
                 cr.mask_surface(mask, *it.pic)

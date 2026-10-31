@@ -1502,3 +1502,15 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   that hour and the middle redrawn; it stops at its first frame when the recording or the panel goes.
   Tests: test_panel 624/0 (the glide's steps up and down, none at an open or while closed; the reels'
   frames, their stop), test_design_doc 54/0. §4 and §11 say it.
+- r27-19k-7 face (1 Nov 01:35) — the master's finding (2), done: the dial's middle at rest shows the
+  mood's face DRAWN FOR IT, 56 × 56 at 1 px — no scaling, no outline, one pixel scale with the hours:
+  the hannya roaring (ringed gold horns, brows sloping up in anguish, glaring all-gold eyes, a fanged
+  grin in lacquer with gold lips) and the tennin serene in a gold nimbus (a pinned bun, long hair, the
+  urna, gold irises, a small lacquer smile, a gold-edged collar); drawn on the left half and mirrored
+  (tools/build-themes.py FACE_BIG → themes/*/face-big.png; the generator kept as
+  design-r27/faces-56.py, three rounds grilled: tiger-striped forehead and sleepy eyes → glaring eyes,
+  thick horns, a solid tooth band with fangs). Tested: both PNGs 56 × 56, mirror images to the pixel,
+  four inks (test_panel). The dial check (tools/regress/dial.sh) caught a real fault before it went
+  live: the record hour's frame helper was named frame(), shadowing the drawing's frame() — the
+  panel's hairline and shadow vanished (TypeError in draw) → renamed turned(); a static guard now
+  fails any two functions sharing a name in one scope. test_panel 625/0; dial.sh held both moods.

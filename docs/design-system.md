@@ -161,6 +161,7 @@ screen and the bar's paper share one rhythm.
 | heading, TUI | 1 + 1 lines | — | its line, then a blank line; two blank lines above it (none at the top) |
 | content | 376 | 47 | a panel's inner width: the sound panel, a notice, the launcher (410 with pad and hairlines) |
 | dial | 304 × 304 | 38 | quick settings (§4): a square — the grid's one stated exception (a circle has no rows) — 338 × 338 with pad and hairlines |
+| face, the middle | 56 × 56 | — | the dial's middle at rest: the mood's face drawn for it at 1 px, in the faces' four inks, its halves mirrored (§4) |
 | hour | 36 × 36 | — | a dial's place: its 28 px picture on a circle of radius 128 round the dial's middle (the cursor's lacquer, its corners left out) |
 | bead | 6 Ø | — | a dial's meter: 20 beads on a circle of radius 88, from 22° up from the bottom to 158°, 5 % each |
 | key | 20 high | 1 row | a key button: its 1 px frame inside the row |
@@ -216,7 +217,9 @@ screen and the bar's paper share one rhythm.
   name (`strong`) and its state (`strong` on, `muted` off) a row each, rows with nothing in them
   left out; the block centred on the middle both ways by the pictures' ink and the rows'
   capitals (a descender hangs below), each part by its ink; a click on it does what it shows;
-  at rest, the mood's face (open) three times as large. Under the cursor an hour or a corner is
+  at rest, the mood's face (open) drawn for the middle — 56 × 56 at 1 px, its halves mirrored
+  (tools/build-themes.py FACE_BIG): the hannya roaring, the tennin serene in her nimbus. Under the
+  cursor an hour or a corner is
   its place (36 × 36) in the lacquer, its corner pixels left out, the picture `text_on_select`;
   a meter is a lacquer band 10 px wide along its beads (lit `text_on_select`, unlit
   `select_lo`). Keys: an arrow goes to the nearest item that way (no farther aside than twice as

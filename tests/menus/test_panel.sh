@@ -110,7 +110,7 @@ eq "$(py 'fresh(); print(*p.win, p.ox, p.dy, kp.SHADOW_R, kp.SHADOW_B)')" "339 3
 eq "$(py 'fresh(); print(p.win == (p.size[0] + kp.SHADOW_R, p.size[1] + kp.SHADOW_B), p.rules); opened("sound", SOUND); print(p.win == (p.size[0] + 1, p.size[1] + 2), p.rules); opened("brightness", "brightness\t70%\n"); print(p.win == (p.size[0] + 1, p.size[1] + 2), p.rules, p.dy)')" "$(printf '%s\n' "True []" "True []" "True [] 0")" "every panel the same: the box + 1 column, + 2 rows — no trimming (dy 0), nothing drawn between the groups"
 case_ "it opens under no heading — the square is the dial's: the mood's face at its middle, at rest, says whose it is (one picture, the theme's own, drawn in one place)"
 eq "$(py 'fresh(); print(p.heads, p.rules)')" "[] []"
-eq "$(py 'print(kp.FACE.endswith("/.config/fedokawaii/current/face-open.png"), kp.FACE_X)')" "True 3" "the face (open: the panel is) as the theme has it, the bar's 18 × 18 three times as large"
+eq "$(py 'print(kp.FACE.endswith("/.config/fedokawaii/current/face-big.png"), hasattr(kp, "FACE_X"))')" "True False" "the face (open: the panel is) as the theme has it, the bar's 18 × 18 three times as large"
 eq "$(grep -c 'face_pic()' "$REPO/bin/kawa-panel")" 2 "defined once, used once: the dial's middle at rest"
 case_ "notices are as wide as the sound panel: one column under the bar's right end (mako's 410 — the dial is narrower, it is no measure)"
 has "$(cat "$REPO/configs/home/.config/mako/config")" "width=$(py 'opened("sound", SOUND); print(p.size[0])')"
@@ -652,7 +652,15 @@ has "$d" 'box(cr, x + 1, y, DOT - 2, DOT, name)'; has "$d" 'box(cr, x, y + 1, DO
 has "$d" 'frame(cr, x, y, w, h, "accent_text", cut=True)'
 case_ "an hour's and a corner's pixels (§4): its 28 px picture (a mask: its own drawing) on the middle of its 36 × 36 place, in the state's ink — accent when on, muted when off, a corner's muted; under the cursor the place in the lacquer, its four corner pixels left out"
 has "$d" 'box(cr, it.x + 1, it.y, it.w - 2, it.h, lk["fill"])'; has "$d" 'box(cr, it.x, it.y + 1, it.w, it.h - 2, lk["fill"])'
-has "$d" 'mask = crest_pic(frame(it.icon))' "(its frame: the record hour's reels turned while it records)"
+has "$d" 'mask = crest_pic(turned(it.icon))' "(its frame: the record hour's reels turned while it records)"
+case_ "no two functions of the panel share a name in one scope (a later one shadows the earlier: the frame's hairline vanished once, r27-19k-7)"
+eq "$(python3 -I -c 'import ast, collections, sys
+t = ast.parse(open(sys.argv[1]).read())
+bad = []
+for scope in [t] + [n for n in ast.walk(t) if isinstance(n, (ast.FunctionDef, ast.ClassDef))]:
+    c = collections.Counter(n.name for n in scope.body if isinstance(n, ast.FunctionDef))
+    bad += [getattr(scope, "name", "module") + "." + k for k, v in c.items() if v > 1]
+print(bad)' "$REPO/bin/kawa-panel")" "[]"
 case_ "the record hour while it records: its reels turn (§5 busy: a picture that moves) — REEL_MS (250) a frame, only that hour redrawn; it stops when the recording does or the panel goes"
 eq "$(py 'R = STATE + "record\ton\n"; fresh(R); p.request("quick"); u.answer(R); print(p.reeling, len(u.timers), kp.REEL_MS)
 f = u.timers.pop(0); u.drawn.clear(); f(); print(p.turn, u.drawn, len(u.timers))
@@ -662,9 +670,15 @@ eq "$(py 'R = STATE + "record\ton\n"; fresh(R); p.request("quick"); u.answer(R);
 has "$d" 'cr.mask_surface(mask, *it.pic)' "the picture at its place's own spot (an hour: its square centred in the place; a corner: by its ink)"
 eq "$(py 'fresh(); print(all(i.pic == (i.x + (i.w - kp.CREST_PIC) // 2, i.y + (i.h - kp.CREST_PIC) // 2) for i in p.items if i.kind == "hour"))')" True "an hour's 28 px square on the middle of its place (both between pixels)"
 has "$d" 'name = icon.removeprefix("tile_").replace("_", "-")'
-case_ "the dial's middle's pixels (§4): at rest the mood's face three times as large, centred (in the dark mood outlined); under the cursor the item's picture twice as large (accent on, text off) over its name (strong) and its state (strong on, muted off; a corner's: its tip, the wallpaper's name), a row each, every part centred on the middle by its ink; an arc: its level in display size (Sumi UI twice as large), its name and its state"
-has "$d" 'scaled(cr, pic_, cx - w_ * FACE_X // 2, cy - h_ * FACE_X // 2, FACE_X)'
-has "$d" 'if os.path.basename(os.path.realpath(CURRENT)) == "dark":' "the dark mood (by the theme's name): the face held by an outline of edge2 a picture's pixel wide"
+case_ "the dial's middle's pixels (§4): at rest the mood's face drawn for it, 56 × 56 at 1 px, centred; under the cursor the item's picture twice as large (accent on, text off) over its name (strong) and its state (strong on, muted off; a corner's: its tip, the wallpaper's name), a row each, every part centred on the middle by its ink; an arc: its level in display size (Sumi UI twice as large), its name and its state"
+has "$d" 'cr.set_source_surface(pic_, cx - pic_.get_width() // 2, cy - pic_.get_height() // 2)' "at rest the face drawn for the middle, at 1 px, centred (no scaling, no outline)"
+eq "$(python3 -I -c 'import sys
+from PIL import Image
+for m in ("dark", "light"):
+    im = Image.open(f"{sys.argv[1]}/configs/home/.config/fedokawaii/themes/{m}/face-big.png").convert("RGBA"); w, h = im.size
+    px = im.load(); a = [[px[x, y][3] > 0 for x in range(w)] for y in range(h)]
+    print(m, w, h, all(px[x, y] == px[w - 1 - x, y] for y in range(h) for x in range(w)), len({px[x, y] for y in range(h) for x in range(w) if px[x, y][3]}))' "$REPO")" \
+  "$(printf '%s\n' 'dark 56 56 True 4' 'light 56 56 True 4')" "the middle's faces: 56 × 56, mirror images to the pixel, four inks each (tools/build-themes.py FACE_BIG)"
 case_ "the middle's block is centred on the middle in every state, as itself (echo_parts: the picture or the level, then the rows that have words — its ink's top and foot equally far from the middle, the odd row above)"
 eq "$(py '
 def block(it):
