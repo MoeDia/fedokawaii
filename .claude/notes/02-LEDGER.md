@@ -1542,3 +1542,11 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
 ## well as WCAG (tools/contrast.py gains APCA; lift dark text / muted / accent_text in build-themes.py
 ## until both pass; render every surface both moods before and after; the master reviews it). Then the
 ## other four shortfalls, then the three visual passes. The inbox first, as always.
+- r27-19m (b) groundwork (1 Nov 01:50) — tools/contrast.py --apca: APCA-W3 0.0.98G-4g beside WCAG for
+  every highlighted pair and every role's words on the grounds (report only, exit 0; the WCAG check
+  unchanged, test_contrast green). Verified against APCA's reference values (black on white 106.04,
+  white on black 107.88, #888 on white 63.06, white on #888 68.54 — exact). The "before" saved
+  (.claude/notes/apca-before.txt): dark text Lc 68.5 (< 75), muted 38.3 and accent_text 37.9
+  (< 60), faint 16.9 (< 30) on the ground — the light mood passes all (text 85.6, muted 63.9,
+  accent_text 62.4); 12 pairs under in all, incl. the light workspace seal's black numeral on brick
+  red, Lc 23.7 (WCAG 3.08). Next pass sets the dark roles by it (render every surface before/after).

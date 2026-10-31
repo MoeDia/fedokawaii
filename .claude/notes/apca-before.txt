@@ -1,0 +1,67 @@
+✔ dark  Lc  88.0 (≥ 75)  WCAG 13.79  the roles (dark): strong on ground  #f1e1b4 on #181715
+✘ dark  Lc  68.5 (≥ 75)  WCAG 10.00  the roles (dark): text on ground  #d4bf9a on #181715
+✘ dark  Lc  38.3 (≥ 60)  WCAG  5.15  the roles (dark): muted on ground  #9a8767 on #181715
+✘ dark  Lc  37.9 (≥ 60)  WCAG  4.94  the roles (dark): accent_text on ground  #eb5324 on #181715
+✘ dark  Lc  16.9 (≥ 30)  WCAG  2.58  the roles (dark): faint on ground  #65583f on #181715
+✔ dark  Lc  87.7 (≥ 75)  WCAG 13.47  the roles (dark): strong on surface  #f1e1b4 on #1c1916
+✘ dark  Lc  68.2 (≥ 75)  WCAG  9.77  the roles (dark): text on surface  #d4bf9a on #1c1916
+✘ dark  Lc  38.1 (≥ 60)  WCAG  5.03  the roles (dark): muted on surface  #9a8767 on #1c1916
+✘ dark  Lc  37.7 (≥ 60)  WCAG  4.83  the roles (dark): accent_text on surface  #eb5324 on #1c1916
+✘ dark  Lc  16.6 (≥ 30)  WCAG  2.52  the roles (dark): faint on surface  #65583f on #1c1916
+✔ dark  Lc  76.3 (≥ 60)  WCAG  7.28  every menu (fzf): the row under the cursor: its words  #f1e1b4 on #82241f
+✔ dark  Lc  76.3 (≥ 60)  WCAG  7.28  Tables (VisiData): the row under the cursor  #f1e1b4 on #82241f
+✔ dark  Lc  76.3 (≥ 60)  WCAG  7.28  Tables (VisiData): the cursor's column name  #f1e1b4 on #82241f
+✔ dark  Lc  76.3 (≥ 60)  WCAG  7.28  Tables (VisiData): the menu's item under the cursor  #f1e1b4 on #82241f
+✔ dark  Lc  76.3 (≥ 60)  WCAG  7.28  every menu (fzf): the row under the cursor: the letters matched  #f1e1b4 on #82241f
+✔ dark  Lc  85.8 (≥ 45)  WCAG 11.59  every menu (fzf): a marked row  #f1e1b4 on #2d251e
+✘ dark  Lc  37.9 (≥ 45)  WCAG  4.94  every menu (fzf): the letters matched, at rest  #eb5324 on #181715
+✔ dark  Lc  76.3 (≥ 60)  WCAG  7.28  quick settings: the item under the cursor: its words  #f1e1b4 on #82241f
+✔ dark  Lc  76.3 (≥ 45)  WCAG  7.28  quick settings: the item under the cursor: its picture (an hour, a corner), its dot  #f1e1b4 on #82241f
+✔ dark  Lc  76.3 (≥ 45)  WCAG  7.28  quick settings: a meter under the cursor: a lit bead or segment on the lacquer  #f1e1b4 on #82241f
+✔ dark  Lc  60.0 (≥ 45)  WCAG  3.74  quick settings: a meter under the cursor: lit against unlit (the level)  #f1e1b4 on #a65e49
+✔ dark  Lc  76.3 (≥ 60)  WCAG  7.28  GTK 3 apps: a selected row, a default button  #f1e1b4 on #82241f
+✔ dark  Lc  76.3 (≥ 60)  WCAG  7.28  GTK 4 apps: a selected row, a default button  #f1e1b4 on #82241f
+✘ dark  Lc  37.0 (≥ 45)  WCAG  4.57  GTK 3 apps: a button under the pointer: its words  #eb5324 on #221e1a
+✔ dark  Lc  76.3 (≥ 60)  WCAG  7.28  the lock, the login: the words selected in the field  #f1e1b4 on #82241f
+✔ dark  Lc  76.3 (≥ 60)  WCAG  7.28  Qt apps: a selected row  #f1e1b4 on #82241f
+✔ dark  Lc  76.3 (≥ 60)  WCAG  7.28  mpv: the console's chosen line  #f1e1b4 on #82241f
+✔ dark  Lc  76.3 (≥ 60)  WCAG  7.28  mpv: the context menu's chosen row  #f1e1b4 on #82241f
+✔ dark  Lc  76.3 (≥ 60)  WCAG  7.28  Neovim: the completion menu's chosen row  #f1e1b4 on #82241f
+✔ dark  Lc  76.3 (≥ 60)  WCAG  7.28  btop: the chosen process  #f1e1b4 on #82241f
+✔ dark  Lc  76.3 (≥ 60)  WCAG  7.28  the mixer (wiremix): a list's chosen line  #f1e1b4 on #82241f
+✔ dark  Lc  69.3 (≥ 60)  WCAG 10.00  Neovim, TUIs: an inverted chip: the editor's selection, marked items  #181715 on #d4bf9a
+✘ dark  Lc  40.5 (≥ 45)  WCAG  5.14  the bar: the workspace seal's numeral (Wada's Black, the owner's choice)  #111314 on #eb5324
+✔ light Lc  87.2 (≥ 75)  WCAG 13.52  the roles (light): strong on ground  #121b1b on #e8e3c2
+✔ light Lc  85.6 (≥ 75)  WCAG 12.18  the roles (light): text on ground  #122625 on #e8e3c2
+✔ light Lc  63.9 (≥ 60)  WCAG  4.79  the roles (light): muted on ground  #586459 on #e8e3c2
+✔ light Lc  62.4 (≥ 60)  WCAG  4.67  the roles (light): accent_text on ground  #a84222 on #e8e3c2
+✔ light Lc  42.7 (≥ 30)  WCAG  2.51  the roles (light): faint on ground  #8b917f on #e8e3c2
+✔ light Lc  85.6 (≥ 75)  WCAG 13.16  the roles (light): strong on surface  #121b1b on #ecdfb3
+✔ light Lc  84.0 (≥ 75)  WCAG 11.86  the roles (light): text on surface  #122625 on #ecdfb3
+✔ light Lc  62.3 (≥ 60)  WCAG  4.66  the roles (light): muted on surface  #586459 on #ecdfb3
+✔ light Lc  60.8 (≥ 60)  WCAG  4.55  the roles (light): accent_text on surface  #a84222 on #ecdfb3
+✔ light Lc  41.1 (≥ 30)  WCAG  2.44  the roles (light): faint on surface  #8b917f on #ecdfb3
+✔ light Lc  86.8 (≥ 60)  WCAG  8.46  every menu (fzf): the row under the cursor: its words  #f8f3d8 on #82241f
+✔ light Lc  86.8 (≥ 60)  WCAG  8.46  Tables (VisiData): the row under the cursor  #f8f3d8 on #82241f
+✔ light Lc  86.8 (≥ 60)  WCAG  8.46  Tables (VisiData): the cursor's column name  #f8f3d8 on #82241f
+✔ light Lc  86.8 (≥ 60)  WCAG  8.46  Tables (VisiData): the menu's item under the cursor  #f8f3d8 on #82241f
+✔ light Lc  86.8 (≥ 60)  WCAG  8.46  every menu (fzf): the row under the cursor: the letters matched  #f8f3d8 on #82241f
+✔ light Lc  75.6 (≥ 45)  WCAG 11.06  every menu (fzf): a marked row  #121b1b on #dfcc9c
+✔ light Lc  62.4 (≥ 45)  WCAG  4.67  every menu (fzf): the letters matched, at rest  #a84222 on #e8e3c2
+✔ light Lc  86.8 (≥ 60)  WCAG  8.46  quick settings: the item under the cursor: its words  #f8f3d8 on #82241f
+✔ light Lc  86.8 (≥ 45)  WCAG  8.46  quick settings: the item under the cursor: its picture (an hour, a corner), its dot  #f8f3d8 on #82241f
+✔ light Lc  86.8 (≥ 45)  WCAG  8.46  quick settings: a meter under the cursor: a lit bead or segment on the lacquer  #f8f3d8 on #82241f
+✔ light Lc  68.6 (≥ 45)  WCAG  4.09  quick settings: a meter under the cursor: lit against unlit (the level)  #f8f3d8 on #a96353
+✔ light Lc  86.8 (≥ 60)  WCAG  8.46  GTK 3 apps: a selected row, a default button  #f8f3d8 on #82241f
+✔ light Lc  86.8 (≥ 60)  WCAG  8.46  GTK 4 apps: a selected row, a default button  #f8f3d8 on #82241f
+✔ light Lc  71.9 (≥ 45)  WCAG  5.42  GTK 3 apps: a button under the pointer: its words  #a84222 on #f8f3d8
+✔ light Lc  86.8 (≥ 60)  WCAG  8.46  the lock, the login: the words selected in the field  #f8f3d8 on #82241f
+✔ light Lc  86.8 (≥ 60)  WCAG  8.46  Qt apps: a selected row  #f8f3d8 on #82241f
+✔ light Lc  86.8 (≥ 60)  WCAG  8.46  mpv: the console's chosen line  #f8f3d8 on #82241f
+✔ light Lc  86.8 (≥ 60)  WCAG  8.46  mpv: the context menu's chosen row  #f8f3d8 on #82241f
+✔ light Lc  86.8 (≥ 60)  WCAG  8.46  Neovim: the completion menu's chosen row  #f8f3d8 on #82241f
+✔ light Lc  86.8 (≥ 60)  WCAG  8.46  btop: the chosen process  #f8f3d8 on #82241f
+✔ light Lc  86.8 (≥ 60)  WCAG  8.46  the mixer (wiremix): a list's chosen line  #f8f3d8 on #82241f
+✔ light Lc  96.9 (≥ 60)  WCAG 14.14  Neovim, TUIs: an inverted chip: the editor's selection, marked items  #f8f3d8 on #122625
+✘ light Lc  23.7 (≥ 45)  WCAG  3.08  the bar: the workspace seal's numeral (Wada's Black, the owner's choice)  #111314 on #a84222
+APCA: 12 under (a report: the palette is set by it in T19m (b))

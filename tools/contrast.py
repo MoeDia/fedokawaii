@@ -5,6 +5,11 @@ fill, in both themes: the WCAG 2.x contrast ratio, measured from the files the d
 
   python3 tools/contrast.py          the table; exit 1 if a pair is under its threshold
   python3 tools/contrast.py --quiet  only the pairs under it
+  python3 tools/contrast.py --apca   the same pairs and every role's words on the grounds, by APCA
+                                     too (WCAG 3's draft, APCA-W3 0.0.98G-4g: Lc, the lightness
+                                     contrast as read) — a report (exit 0) until T19m (b) sets the
+                                     palette by it: Lc 75 for words read at length, 60 for a
+                                     label, 45 for an icon or a large glyph (APCA's bronze levels)
 
 Thresholds (docs/design-system.md §1): the words on what is selected ≥ 7 : 1 (the owner,
 2026-10-27 19:19: a highlighted row's words did not stand out — the vermilion held black at
@@ -26,6 +31,33 @@ _wada = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(_wada)
 P = _wada.palette()[0]
 contrast = _wada.contrast
+
+
+def apca(fg, bg):
+    """APCA-W3 0.0.98G-4g: the lightness contrast Lc of fg read on bg, as a magnitude (dark on light
+    and light on dark alike; the polarity is in the exponents)."""
+    def y(h):
+        r, g, b = (int(h[i:i + 2], 16) / 255 for i in (0, 2, 4))
+        v = 0.2126729 * r ** 2.4 + 0.7151522 * g ** 2.4 + 0.0721750 * b ** 2.4
+        return v + (0.022 - v) ** 1.414 if v < 0.022 else v       # (the soft clamp of near-black)
+    yt, yb = y(fg), y(bg)
+    if abs(yb - yt) < 0.0005:
+        return 0.0
+    if yb > yt:                                                   # (dark words on a light ground)
+        s = (yb ** 0.56 - yt ** 0.57) * 1.14
+        return 0.0 if s < 0.1 else (s - 0.027) * 100
+    s = (yb ** 0.65 - yt ** 0.62) * 1.14                          # (light words on a dark ground)
+    return 0.0 if s > -0.1 else -(s + 0.027) * 100
+
+
+APCA_NEED = {WORDS: 60.0, ICON: 45.0, LARGE: 45.0}      # (what each WCAG class asks, read by APCA)
+
+
+def role_pairs(m):
+    """Every role's words on the grounds they stand on (the panels', the terminal's, a surface)."""
+    p = P[m]
+    return [(f"the roles ({m})", f"{r} on {g}", p[r], p[g], 75.0 if r in ("text", "strong") else 60.0 if r in ("muted", "accent_text") else 30.0)
+            for g in ("ground", "surface") for r in ("strong", "text", "muted", "accent_text", "faint")]
 
 
 def foot_colours(m):
@@ -118,6 +150,15 @@ def rows():
 
 def main():
     quiet = "--quiet" in sys.argv
+    if "--apca" in sys.argv:
+        under = 0
+        for m in ("dark", "light"):
+            for surface, state, fg, bg, need in (role_pairs(m) + term_pairs(m) + panel_pairs(m) + css_pairs(m) + qt_pairs(m) + app_pairs(m)):
+                lc, want = apca(fg, bg), APCA_NEED.get(need, need)
+                under += lc < want
+                print(f"{'✘' if lc < want else '✔'} {m:5} Lc {lc:5.1f} (≥ {want:g})  WCAG {contrast(fg, bg):5.2f}  {surface}: {state}  #{fg} on #{bg}")
+        print(f"APCA: {under} under (a report: the palette is set by it in T19m (b))")
+        return 0
     bad = 0
     for m, surface, state, fg, bg, r, need in rows():
         low = r < need
