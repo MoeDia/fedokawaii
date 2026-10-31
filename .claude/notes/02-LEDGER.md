@@ -1659,3 +1659,27 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   old Lc 88 fails); (2) colorscheme.lua says why the base Diagnostic* groups keep the severity's ink
   (only short marks link to them); (3) one GTK dialog and zathura shot before/after in T19m (b)'s pass 2.
 - r27-19m-b1 DONE (1 Nov 03:20; master PASS) — the dark words by APCA, both moods gated; live since 03:08.
+- r27-47/48 (1 Nov 03:25) — T43 research: batches 1–4 and 6 in (.claude/notes/update-research.md, 374 distinct
+  links after merging; five sonnet subagents, each on its own file, merged by script), the synthesis (28
+  failure modes ranked by frequency × damage, each sourced); batch 5 (rollback specifics) still running.
+  T44 design drafted (.claude/notes/update-design.md): candidate-first — the transaction stored once
+  against the running root, replayed into a writable snapshot (checked, bisected, fixed there), then
+  replayed on the running root; the layout (home, log, fk subvolumes); the flow (phases 0–8), 40
+  failure modes with their T49 tests, 32 attacks. Checked on this PC (dnf5 5.4.6, its own man pages:
+  dnf5-replay(8), dnf5-upgrade(8)): `--installroot` + `--use-host-config`, `upgrade --store=DIR`
+  ("instead of running it"), `replay DIR` ("the exact same operations … an error in case of any
+  differences in installed packages or their versions"; the directory may hold the packages) — the
+  mechanism exists. The master reviews T43 + T44 now; T45's build order is in the plan.
+- r27-49-exp1 (1 Nov 03:25; the harness VM, state "built" = a full fedokawaii install of 27 Oct, the PC's
+  layout: subvolume root, /boot XFS) — the candidate-first core proven: 57 pending updates (kernel
+  7.2.13 among them) `dnf5 upgrade --store` (17 s, 56 packages, 455 MB: transaction.json + packages/);
+  a writable snapshot of root on the top level with a scratch tmpfs /boot; `dnf5 --installroot=cand
+  --use-host-config replay` rc 0 in 44 s — the new kernel's vmlinuz, initramfs and BLS entry only in
+  the scratch /boot (the real /boot untouched), SELinux labels right (shell_exec_t); then `dnf5 replay`
+  on the live root rc 0 in 34 s; `rpm -qa` of candidate and live: the same 1,973 packages; each root's
+  dnf5 history its own. Found: (1) replay SKIPS OpenPGP checks for stored packages ("skipped OpenPGP
+  checks for 56 packages … @stored_transaction(…)") → the design verifies every stored package with
+  `rpmkeys --checksig` against the system's keys before any replay; (2) a bare chroot lacks /dev,
+  /proc, /sys: dracut falls back to a generic image, grub2-probe/editenv complain → bind them into the
+  candidate (as kawa-snap's inside() does) so its initramfs is the host-only one that will boot.
+  Output kept: /dev/shm/r27/vm-candidate-exp.txt. VM stopped (revert to "built" before the next run).
