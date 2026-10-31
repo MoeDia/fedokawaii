@@ -158,7 +158,26 @@ button, button:hover, button:active, button:checked { background: none; box-shad
                                                                      column's 2 px of air, not M's 1) */
 
 /* ── the right: what the computer is doing, a tile each · the face ─────────────────── */
-#custom-weather { padding-right: 6px; }   /* (° has 2 px of air) */
+/* the weather: its sky drawn (tools/build-themes.py SKY: 14 × 14, a few inks of the palette), laid
+   on the tile's paper by kawa-weather's class — on the line's rows (3–16), 8 px from the paper's
+   edge (its first column is the border's: 7 here), the temperature's ink 8 px after it (a 1 or a
+   minus first has a column of air of its own: l1) */
+#custom-weather {
+  background-position: 7px 3px, 0 0;
+  background-repeat: no-repeat, repeat;
+  padding-left: 29px;
+  padding-right: 6px;   /* (° has 2 px of air) */
+}
+#custom-weather.l1 { padding-left: 28px; }
+#custom-weather.sky-clear        { background-image: url("../fedokawaii/current/sky-clear.png"), url("../fedokawaii/current/kami-fibre.png"); }
+#custom-weather.sky-clear-night  { background-image: url("../fedokawaii/current/sky-clear-night.png"), url("../fedokawaii/current/kami-fibre.png"); }
+#custom-weather.sky-partly       { background-image: url("../fedokawaii/current/sky-partly.png"), url("../fedokawaii/current/kami-fibre.png"); }
+#custom-weather.sky-partly-night { background-image: url("../fedokawaii/current/sky-partly-night.png"), url("../fedokawaii/current/kami-fibre.png"); }
+#custom-weather.sky-cloud        { background-image: url("../fedokawaii/current/sky-cloud.png"), url("../fedokawaii/current/kami-fibre.png"); }
+#custom-weather.sky-fog          { background-image: url("../fedokawaii/current/sky-fog.png"), url("../fedokawaii/current/kami-fibre.png"); }
+#custom-weather.sky-rain         { background-image: url("../fedokawaii/current/sky-rain.png"), url("../fedokawaii/current/kami-fibre.png"); }
+#custom-weather.sky-snow         { background-image: url("../fedokawaii/current/sky-snow.png"), url("../fedokawaii/current/kami-fibre.png"); }
+#custom-weather.sky-storm        { background-image: url("../fedokawaii/current/sky-storm.png"), url("../fedokawaii/current/kami-fibre.png"); }
 
 #custom-nowplaying        { color: @text; }
 #custom-nowplaying.paused { color: @muted; }

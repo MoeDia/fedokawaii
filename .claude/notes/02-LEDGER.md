@@ -1324,3 +1324,17 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   pane's heading, 1 drawing pixel = 1 screen pixel (8× crop). test_menu 589/0 (+ the case: ICON_TODO,
   not ICON_BOX_ON). ICON_BOX_ON now unused (T53's list). Left for T21: the larger tanzaku on Super+N's
   to-do tab.
+- r27-19k-4 (d) DONE + VERIFIED kit (31 Oct 23:20): the bar's weather drawn — its night icon, a thin
+  1-bit crescent, read as a "C" beside the digits ("C 28°", a unit). Now nine skies, 14 × 14 in a few
+  inks of the palette (design-system §8/§13: the weather's pictures may), tools/build-themes.py SKY →
+  themes/*/sky-NAME.png: clear (the vermilion sun, gold rays) and clear-night (the gold moon and its
+  star), partly and partly-night (sun / moon behind a cloud), cloud, fog, rain (blue), snow, storm (a
+  gold bolt); clouds two-toned per theme (dark: ivory, its shade; light: white in a grey edge).
+  kawa-weather --bar: the text is the temperature alone, the sky its class (sky-NAME; l1 when it starts
+  with a 1 or a minus: their own column of air taken back); style.css lays the picture on the tile's
+  paper (two backgrounds over the fibre, 7 px into the padding box = 8 from the paper's edge). Kit play
+  (the kit's own waybar told by signal 18, matched by its HOME), all nine both themes, measured on the
+  bar: paper → sky 8, sky 14 on the line's rows 3–16, sky → value 8 (15°, -3°, 17°, -5° with l1; 28°,
+  21°, 9°, 31° without), value → paper 8. test_weather 229/0 (+ every code's picture, l1, nine pictures
+  × two themes × a rule each), test_bargaps 5/0 (the sky's geometry in place of ICON_BAR_), test_bar
+  265/0, test_design_doc 54/0, test_generated 256/0. The 12 px sky glyphs stay for the forecast menu.

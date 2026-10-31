@@ -345,7 +345,7 @@ the tiles of a group, 12 px between groups.
 | the keyboard | `us` in `accent_text`, `ar` in `blue` — capitals while Caps Lock is on (dwl's `kbcaps`); a click switches |
 | do not disturb | its icon (the quiet bell) only while on; a click opens its own dropdown — off · for an hour · until the morning · on, the one in force marked (§4 chosen); a timed one ends by itself |
 | downloads | while something downloads: its icon moving |
-| the others | timer, recording, drives, memory, volume, brightness, the weather — each its own tile, icon and value |
+| the others | timer, recording, drives, memory, volume, brightness, the weather — each its own tile, icon and value; the weather's icon is a picture of its sky (14 × 14, a few inks: the sun vermilion with gold rays, the moon gold with its star, clouds in two tones, rain and snow blue, lightning gold — clear and partly cloudy by day and by night, cloud, fog, rain, snow, storm), laid on the paper 8 px in on the line's rows, the temperature 8 px after it |
 | quick settings | the right end's vermilion tile: the demon's head (dark) or the angel's face (light), its emblem |
 | lit | under the pointer, or while what it opened is on screen: `asagi` at once (a vermilion tile: `accent_hi`) |
 
@@ -446,7 +446,8 @@ stamp is a choice made, a scroll is something long opening.
   "off" (the bell struck through) — no other picture has one. Built to masks
   (`tools/build-icons.py` → `.local/share/fedokawaii/crests/`), painted in the state's ink.
 - One ink: an icon takes its words' ink (state colours from §5); art pieces (the demon, the angel,
-  the seals' numerals, the weather's pictures) may use more, from the palette only.
+  the seals' numerals, the weather's pictures on the bar: tools/build-themes.py SKY) may use more,
+  from the palette only.
 - **Kanji appear in three places only**: the workspace stamps (一–九), the bar's day kanji, and
   the lock's quote. Everywhere else — headings, menus, TUIs, the launcher — a pixel icon.
 - Each thing its own picture: no two icons alike (the weather's sun is not brightness's).

@@ -58,7 +58,7 @@ bad=$(grep -nE '\$ICON_(VOL_[0-4]|VOL_MUTE|BRI_[0-4]|MEMORY|USB|HOURGLASS)\b[^"]
   "$REPO/bin/kawa-volume" "$REPO/bin/kawa-brightness" "$REPO/bin/kawa-mem" "$REPO/bin/kawa-drives" "$REPO/bin/kawa-timer" \
   | grep -vE ':[0-9]+:\s*#|notify-send|line (row|on)')
 [[ -z $bad ]] && _ok || _no "$bad"
-for f in kawa-volume kawa-brightness kawa-mem kawa-drives kawa-timer kawa-weather; do
+for f in kawa-volume kawa-brightness kawa-mem kawa-drives kawa-timer; do
   grep -q 'ICON_BAR_' "$REPO/bin/$f" || _no "$f draws no ICON_BAR_"
 done
 grep -q 'ic[f"bar_dl_{frame}"]' "$REPO/bin/kawa-downloads" && _ok || _no "kawa-downloads draws its icon with a space"
@@ -165,11 +165,21 @@ L = lambda s, ink: 1 + box(s)[0][3] + ink
 R = lambda s, ink: ink + box(s)[0][1]
 for sel, l, r in (("#custom-torii", IL("torii"), IR("torii")), ("#custom-menu", IL("oni"), IR("oni")), ("#custom-menu", IL("tennin"), IR("tennin")),
                   ("#custom-tag1", IL("ws-1"), IR("ws-1")), ("#custom-tag4", IL("ws-4"), IR("ws-4")),
-                  ("#custom-volume", 0, air("%")[1]), ("#custom-mem", 0, air("G")[1]), ("#custom-weather", 0, air("°")[1]),
+                  ("#custom-volume", 0, air("%")[1]), ("#custom-mem", 0, air("G")[1]),
                   ("#custom-kb", air("u")[0], air("s")[1]), ("#custom-kb", air("U")[0], air("S")[1]),   # (us, and US with Caps Lock)
                   ("#custom-timer", 0, air("5")[1]), ("#custom-mode", 0, 0)):
     want(f"{sel}: the paper → its ink", L(sel, l), 8)
     want(f"{sel}: its ink → the paper", R(sel, r), 8)
+# the weather: its sky a picture (14 × 14, by its class) on the paper's rows 3–16, 8 px from the
+# paper's edge; the temperature's ink 8 px after it (a 1 or a minus first: l1), 8 to the paper's end
+wp = box("#custom-weather")[3].get("background-position", "").split(",")[0].split()
+wx, wy = px(wp[0]), px(wp[1])
+want("#custom-weather: the paper → its sky", 1 + wx, 8)
+want("#custom-weather: its sky on the line's rows (3–16)", wy, 3)
+want("#custom-weather: its sky → the temperature's ink", (1 + box("#custom-weather")[0][3] + air("2")[0]) - (1 + wx + 14), 8)
+want("#custom-weather.l1: its sky → a 1's ink", (1 + box("#custom-weather.l1")[0][3] + air("1")[0]) - (1 + wx + 14), 8)
+want("#custom-weather.l1: its sky → a minus's ink", (1 + box("#custom-weather.l1")[0][3] + air("-")[0]) - (1 + wx + 14), 8)
+want("#custom-weather: its ink → the paper", R("#custom-weather", air("°")[1]), 8)
 # the layout's mark and the window's name in one tile: the mark 8 from the paper, the name 8
 # after the mark (less its first letter's air: the classes l1–l3), 8 to the paper's end
 want("#custom-layout: the paper → the mark", 1 + box("#custom-layout")[0][3] + IL("spiral"), 8)

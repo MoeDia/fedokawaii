@@ -4,8 +4,9 @@
 # fedokawaii.conf). One forecast serves all three: kept in ~/.cache/kawa-weather.json and
 # fetched again in the background once it is 30 minutes old, so nothing waits for the network.
 #   kawa-weather          one line: "☼  Sharjah  31°  clear"
-#   kawa-weather --bar    the bar's module (waybar JSON): the sky's icon and the temperature
-#                         now ("☼ 31°"), the city and the sky in words as its tooltip
+#   kawa-weather --bar    the bar's module (waybar JSON): the temperature now ("31°") and the
+#                         sky as its class (sky-clear, sky-rain …: the tile draws its picture,
+#                         themes/*/sky-*.png), the city and the sky in words as its tooltip
 #   kawa-weather --menu   the week, as a dropdown under the bar (a click on the bar's): today
 #                         and the six days after it — the sky, how the day feels, and its
 #                         mean temperature. Choosing a day only closes it.
@@ -48,14 +49,21 @@ feel() {   # feel DEGREES → $word
 }
 
 # ── the sky ──────────────────────────────────────────────────────────────────
-sky() {    # sky CODE DAY → $icon and $words, for a WMO weather code (Open-Meteo's weather_code);
-  local sun=$ICON_SUN                   # DAY 0 (night): the moon for a clear sky
-  (($2)) || sun=$ICON_MOON
+sky() {    # sky CODE DAY → $icon, $words and $pic (the bar's picture), for a WMO weather code
+  local sun=$ICON_SUN night=""          # (Open-Meteo's weather_code); DAY 0 (night): the moon
+  (($2)) || { sun=$ICON_MOON night=-night; }
   case $1 in
-    0)  icon=$sun words=clear ;;
-    1)  icon=$sun words="mostly clear" ;;
-    2)  icon=$ICON_CLOUD words="partly cloudy" ;;
-    3)  icon=$ICON_CLOUD words=overcast ;;
+    0|1|2|3) ;;                         # (below: by the sky and the hour)
+    45|48) pic=fog ;;
+    51|53|55|56|57|61|63|65|66|67|80|81|82) pic=rain ;;
+    71|73|75|77|85|86) pic=snow ;;
+    95|96|99) pic=storm ;;
+  esac
+  case $1 in
+    0)  icon=$sun words=clear pic=clear$night ;;
+    1)  icon=$sun words="mostly clear" pic=clear$night ;;
+    2)  icon=$ICON_CLOUD words="partly cloudy" pic=partly$night ;;
+    3)  icon=$ICON_CLOUD words=overcast pic=cloud ;;
     45) icon=$ICON_FOG words=fog ;;
     48) icon=$ICON_FOG words="rime fog" ;;
     51) icon=$ICON_RAIN words="light drizzle" ;;
@@ -145,17 +153,16 @@ old() {   # old SECONDS → $old: "45 min old", "3 h old", "1 day old", "4 days 
 
 # ── one line · the bar ───────────────────────────────────────────────────────
 if [[ $mode != menu ]]; then
-  icon="" words=""
+  icon="" words="" pic=""
   ((${#now[@]})) && sky "${now[1]}" "${now[2]}"
   if [[ $mode == bar ]]; then
     if [[ -z $icon ]]; then echo '{"text":""}'; exit 0; fi           # (nothing known yet: no module)
-    tip="$WEATHER_CITY · $words" class='"sky"'
-    if ((age > OLD)); then old "$age"; tip+=" · ${failed:+$failed · }$old"; class='["sky","stale"]'; fi
-    # (its ICON_BAR_*, no space: exactly 8 px from the icon's ink to the value's)
-    for n in SUN MOON CLOUD FOG RAIN SNOW STORM; do
-      v=ICON_$n; [[ $icon == "${!v}" ]] && { v=ICON_BAR_$n; icon=${!v}; break; }
-    done
-    jq -cn --arg t "$icon${now[0]}°" --arg tip "$tip" --argjson c "$class" '{text: $t, tooltip: $tip, class: $c}'
+    # (the sky is the tile's picture, by its class — the words alone are the text; a 1 or a minus
+    # first has a column of air of its own: l1 takes it back, so the picture → the ink stays 8 px)
+    tip="$WEATHER_CITY · $words" class="\"sky\",\"sky-$pic\""
+    [[ ${now[0]} == [1-]* ]] && class+=',"l1"'
+    if ((age > OLD)); then old "$age"; tip+=" · ${failed:+$failed · }$old"; class+=',"stale"'; fi
+    jq -cn --arg t "${now[0]}°" --arg tip "$tip" --argjson c "[$class]" '{text: $t, tooltip: $tip, class: $c}'
   elif [[ -n $icon ]]; then
     printf '%s  %s  %s°  %s\n' "$icon" "$WEATHER_CITY" "${now[0]}" "$words"
   else

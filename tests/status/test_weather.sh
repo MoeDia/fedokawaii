@@ -92,18 +92,24 @@ kawa-weather >/dev/null; fetched
 [[ -e $HOME/.cache/kawa-weather.failed ]] && _no "the reason stayed" || _ok
 
 # ── the bar ──────────────────────────────────────────────────────────────────
-case_ "the bar: the sky's icon and the temperature now; the city and the sky in words as its tooltip"
+case_ "the bar: the temperature now, the sky as its class (the tile draws its picture); the city and the sky in words as its tooltip"
 cached; j=$(bar); json_lines "$j"
-eq "$j" "$(jq -cn --arg t "${ICON_BAR_SUN}33°" '{text: $t, tooltip: "Sharjah · clear", class: "sky"}')"
+eq "$j" "$(jq -cn '{text: "33°", tooltip: "Sharjah · clear", class: ["sky", "sky-clear"]}')"
 case_ "the bar over an hour old (offline): its age in the tooltip, and a class to show it by"
 touch -d '-3 hours' "$CACHE"; answer '' 6
-j=$(bar); eq "$(tip "$j")" "Sharjah · clear · 3 h old"; eq "$(jq -c .class <<<"$j")" '["sky","stale"]'
+j=$(bar); eq "$(tip "$j")" "Sharjah · clear · 3 h old"; eq "$(jq -c .class <<<"$j")" '["sky","sky-clear","stale"]'
 fetched; eq "$(tip "$(bar)")" "Sharjah · clear · offline · 3 h old" "and why, once the fetch failed"
 fetched
 case_ "whole degrees, rounded half up: 29.5 → 30, -0.4 → 0 (never -0), -5.5 → -5, -5.6 → -6"
 for t in 29.5:30 29.4:29 -0.4:0 -0.5:0 -5.5:-5 -5.6:-6 0:0; do
   setup; forecast ".current.temperature_2m = ${t%:*}"; kawa-weather >/dev/null; fetched
-  eq "$(text_of "$(bar)")" "$ICON_BAR_SUN${t#*:}°" "${t%:*}"
+  eq "$(text_of "$(bar)")" "${t#*:}°" "${t%:*}"
+done
+case_ "a temperature starting with a 1 or a minus: l1 (its first column of air taken back), no other"
+for t in 33:no 15:l1 100:l1 -5:l1 0:no 9:no 21:no; do
+  setup; forecast ".current.temperature_2m = ${t%:*}"; kawa-weather >/dev/null; fetched
+  c=$(jq -c .class <<<"$(bar)")
+  if [[ ${t#*:} == l1 ]]; then has "$c" '"l1"' "${t%:*}"; else lacks "$c" '"l1"' "${t%:*}"; fi
 done
 case_ "the sky: every WMO code Open-Meteo sends, its icon and words; the moon for a clear night"
 setup; kawa-weather >/dev/null; fetched
@@ -118,6 +124,23 @@ for c in 0:1:SUN:clear 1:1:SUN:'mostly clear' 0:0:MOON:clear 1:0:MOON:'mostly cl
   jq -c --argjson c "$code" --argjson d "$day" '.current.weather_code = $c | .current.is_day = $d' "$CACHE" >"$CACHE.x" && mv "$CACHE.x" "$CACHE"
   v=ICON_$ic; eq "$(kawa-weather)" "${!v}  Sharjah  33°  $words" "code $code, is_day $day"
 done
+case_ "the bar's picture for every code: the sun, or the moon by night, clear and partly cloudy; then cloud, fog, rain, snow, storm"
+for c in 0:1:clear 1:1:clear 0:0:clear-night 1:0:clear-night 2:1:partly 2:0:partly-night 3:1:cloud 3:0:cloud \
+         45:1:fog 48:0:fog 51:1:rain 57:0:rain 61:1:rain 67:1:rain 80:1:rain 82:0:rain 71:1:snow 77:1:snow \
+         85:0:snow 86:1:snow 95:1:storm 96:0:storm 99:1:storm; do
+  IFS=: read -r code day pic <<<"$c"
+  jq -c --argjson c "$code" --argjson d "$day" '.current.weather_code = $c | .current.is_day = $d' "$CACHE" >"$CACHE.x" && mv "$CACHE.x" "$CACHE"
+  eq "$(jq -c .class <<<"$(bar)")" "[\"sky\",\"sky-$pic\"]" "code $code, is_day $day"
+done
+case_ "every sky the bar can show has its picture in both themes and its rule in the bar's style (none drawn, none left over)"
+skies=$(grep -o 'pic=[a-z]*' "$REPO/bin/kawa-weather" | cut -d= -f2 | sort -u)
+skies=$(printf '%s\n' $skies clear-night partly-night | sort -u | tr '\n' ' ')
+eq "$skies" "clear clear-night cloud fog partly partly-night rain snow storm " "nine skies"
+for k in $skies; do
+  for t in dark light; do [[ -s $REPO/configs/home/.config/fedokawaii/themes/$t/sky-$k.png ]] && _ok || _no "no themes/$t/sky-$k.png"; done
+  grep -q "^#custom-weather\.sky-$k .*sky-$k\.png\"), url(\"\.\./fedokawaii/current/kami-fibre\.png\"); }" "$REPO/configs/home/.config/waybar/style.css" && _ok || _no "no rule for sky-$k"
+done
+eq "$(ls "$REPO/configs/home/.config/fedokawaii/themes/dark" | grep -c '^sky-')" 9 "no picture left over"
 case_ "a code that is no WMO code: no icon is made up — the module waits for a forecast it can draw"
 jq -c '.current.weather_code = 42' "$CACHE" >"$CACHE.x" && mv "$CACHE.x" "$CACHE"
 eq "$(bar)" '{"text":""}'; eq "$(kawa-weather)" "Sharjah"
