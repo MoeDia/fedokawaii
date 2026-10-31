@@ -1338,3 +1338,8 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   21°, 9°, 31° without), value → paper 8. test_weather 229/0 (+ every code's picture, l1, nine pictures
   × two themes × a rule each), test_bargaps 5/0 (the sky's geometry in place of ICON_BAR_), test_bar
   265/0, test_design_doc 54/0, test_generated 256/0. The 12 px sky glyphs stay for the forecast menu.
+- r27-19k-4 (d) LIVE + VERIFIED LIVE (31 Oct 22:53, 9f35c86): he was away (a 60 s idle probe — a
+  throw-away `swayidle timeout 60` in his session — fired), so: apply (5.5 s, rc 0, 20 files: the
+  skies, kawa-weather, style.css …), then SIGUSR2 to his waybar (its style read anew, same pid, no
+  crash) and signal 18 (the weather module): the gold moon and its star beside 28°. Measured on his
+  screen (grim): paper → sky 8 · sky 14 on the paper's rows 3–16 · sky → value 8 · value → paper 8.
