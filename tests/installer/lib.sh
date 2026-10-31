@@ -63,6 +63,15 @@ FK_INNER='set -e; W=$1; shift
   mkdir -p "$W/.usr/bin" "$W/.usr/share"
   for d in bin share; do mount --bind "/usr/$d" "$W/.usr/$d"; mount -o remount,bind,ro "$W/.usr/$d"; done
   mount --bind "$W/usrbin" /usr/bin; mount --bind "$W/usrshare" /usr/share
+  # a Python library of this machine taken away for one run ($FKH/py-hide: a test that moves
+  # its stand-in away too): an unreadable empty folder over it, wherever Python keeps it
+  if [[ -f $W/var/lib/fkh/py-hide ]]; then
+    for n in $(cat "$W/var/lib/fkh/py-hide"); do
+      for d in /usr/lib/python3.*/site-packages/"$n" /usr/lib64/python3.*/site-packages/"$n"; do
+        if [[ -d $d ]]; then mount -t tmpfs -o mode=000 fkpyhide "$d"; fi
+      done
+    done
+  fi
   for d in etc var/lib var/log var/tmp usr/local boot home root; do mount --bind "$W/$d" "/$d"; done
   mount -t tmpfs -o mode=755 fkrun /run; mkdir -p /run/user /run/lock
   mount --bind "$W/sys/class" /sys/class; mount --bind "$W/sys/bus/pci" /sys/bus/pci

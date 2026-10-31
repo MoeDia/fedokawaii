@@ -1280,4 +1280,9 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   FK_INNER reads to bind an empty, unreadable folder over /usr/lib{,64}/python3.*/site-packages/NAME
   for that run, used by the two "missing" cases with the stand-in moved away. Then test_upstream,
   test_afterdnf, test_guard and the installer area. (tests/installer/lib.sh as it was: unchanged.)
+- r27-suite test_upstream FIXED (31 Oct 11:37): the fake machine reads $FKH/py-hide — each named
+  Python library of this machine gets an unreadable empty tmpfs over it (/usr/lib{,64}/python3.*/
+  site-packages/NAME) for that run; the two "Twisted missing" cases name twisted besides moving the
+  stand-in away (and clear it after). Inert unless a case writes it. test_upstream 246/0 (was 242/4),
+  test_afterdnf 37/0, test_guard 42/0. Owed: the whole installer area on this tree (next pass).
 

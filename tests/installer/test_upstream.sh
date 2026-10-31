@@ -245,14 +245,15 @@ up 'install_syncplay'; eq "$RC" 0; has "$OUT" "Syncplay v1.7.6 — in place"; no
 has "$(cat "$W$H/.local/bin/syncplay")" 'exec "$py" -I -u -c' "the older starter not written again"
 case_ "Fedora's Twisted missing: said what the manifest installs, the copy there stays (exit 1)"
 back syncplay; mv "$FK_PYLIBS/twisted" "$TMP/twisted.away"; echo 1111111111111111111111111111111111111111 >"$spt"
+echo twisted >"$FKH/py-hide"   # (and this machine's own Twisted: the stand-ins only add to it)
 up 'install_syncplay'; eq "$RC" 1
 has "$OUT" "does not load with /usr/bin/python3 — are the manifest's python3-twisted+tls"
 [[ -f $sp/syncplay/client.py && -x $W$H/.local/bin/syncplay ]] && _ok || _no "the copy there was taken away"
-mv "$TMP/twisted.away" "$FK_PYLIBS/twisted"
+mv "$TMP/twisted.away" "$FK_PYLIBS/twisted"; rm -f "$FKH/py-hide"
 case_ "a copy whose libraries went since: not 'in place' (fetched again, and said when it still does not load)"
-back syncplay; mv "$FK_PYLIBS/twisted" "$TMP/twisted.away"
+back syncplay; mv "$FK_PYLIBS/twisted" "$TMP/twisted.away"; echo twisted >"$FKH/py-hide"
 up 'install_syncplay'; eq "$RC" 1; lacks "$OUT" "in place"
-mv "$TMP/twisted.away" "$FK_PYLIBS/twisted"
+mv "$TMP/twisted.away" "$FK_PYLIBS/twisted"; rm -f "$FKH/py-hide"
 case_ "offline: three tries (the pause stubbed), then said; nothing installed (exit 1)"
 back start; fkh net off
 up 'install_syncplay'; eq "$RC" 1; has "$OUT" "attempt 3/3 failed"; has "$OUT" "could not fetch Syncplay v1.7.6"
