@@ -22,7 +22,8 @@ click; nap 1.0; shot paged
 PLAY
 bash "$here/../kit.sh" --theme dark "$@" --out "$out" --play "$out/play.sh" play >"$out/kit.log" 2>&1 || { echo "menu-first-click: the kit failed: $(tail -n 2 "$out/kit.log")" >&2; exit 2; }
 read -r _ kx ky kw _ < <(grep '^next ' "$out/play.log") || { echo "menu-first-click: the calendar's keys were not found" >&2; exit 1; }
-accent=$(sed -n 's/^accent=//p' "$HOME/.config/fedokawaii/themes/dark/panel.conf")
+# (the cursor's ink: the lacquer, select — every selected row since r27-19k-2, 30 Oct)
+accent=$(sed -n 's/^select=//p' "$HOME/.config/fedokawaii/themes/dark/panel.conf")
 cx=$((kx + kw / 2)) cy=$((ky + 2))
 got=$(python3 -I "$here/shots.py" centre "$out/lit.png" "$cx" "$cy")
 [[ $got == "$accent" ]] || { echo "menu-first-click: the key under the resting pointer is not lit as the menu opens ($got, not $accent)" >&2; exit 1; }

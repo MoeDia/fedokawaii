@@ -1538,10 +1538,7 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   tools/hl-dwl.sh now reaps on exit every process whose environment names its run's own runtime dir
   (stopped ones too); a kit run after it left nothing.
 
-## >>> NEXT PASS STARTS HERE (1 Nov 01:55): T19m (b), its first item — dark-mood contrast by APCA as
-## well as WCAG (tools/contrast.py gains APCA; lift dark text / muted / accent_text in build-themes.py
-## until both pass; render every surface both moods before and after; the master reviews it). Then the
-## other four shortfalls, then the three visual passes. The inbox first, as always.
+## (1 Nov 01:55 marker: superseded below)
 - r27-19m (b) groundwork (1 Nov 01:50) — tools/contrast.py --apca: APCA-W3 0.0.98G-4g beside WCAG for
   every highlighted pair and every role's words on the grounds (report only, exit 0; the WCAG check
   unchanged, test_contrast green). Verified against APCA's reference values (black on white 106.04,
@@ -1557,3 +1554,24 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   headless dwl on the real GPU (tools/hl-dwl.sh, a probe with the same callback): frames every
   ~6.05 ms there, steps exactly two frames apart (12.07 ms) after the first; test_panel 626/0 (the
   steps at 144 Hz on frames 0, 2, 4; at 60 Hz one a frame). §11 says it.
+- r27-19n the master's trace check (1 Nov 02:00; Fable, read-only): TRACE: GAPS — no request missing a
+  row; ten status/coverage gaps, all folded into the plan as accept lines (T38: the LG's real power
+  cycle over DDC and its button, the bar's brightness reading the LG's real value, the connector named
+  and re-proven after the iGPU move; T19: anim-check for layer surfaces, warm windows, lock → desktop,
+  greeter → session — the menus' ~200/~160 ms came from a recording; T18: the fetch art as the
+  old-master art; T41: kdump decided with its cost; T45: conf/secrets/*.local survive apply and update;
+  T44: held packages retried only inside the next press; T35: qBittorrent on the host decided; T52:
+  the TV icon frame by frame; T19m: the coherence pass's "done" reopened). Its one most important
+  thing not done: the one-button update (T43–T45; Fedora 45 on 3 Nov) → ordered right after T19m (b)'s
+  first item.
+- r27-52a (1 Nov 02:00) — tools/regress/run.sh: every never-again check in one run (the kit's options
+  only to the checks that take them). First run: 8 held, 3 stale — bar-burst could not take kit options
+  (now passed none); bar-geometry knew nothing of the bar's 18 px face (now: rows 5–22, ≥ 6 px of paper,
+  its odd pixel right — the hannya's ink 16 wide, the tennin's 18); menu-first-click expected the old
+  vermilion cursor (now the lacquer, select, since r27-19k-2). All ten held after (bar-burst, bar-geometry,
+  calendar-middle, dial, level-display, menu-first-click, one-popup, warm-exit, wash, window-frame).
+
+## >>> NEXT PASS STARTS HERE (1 Nov 02:05): the inbox first. Then T19m (b) item 1 — the dark roles by
+## APCA (candidates in the plan's T19m: text Ecru → Ivory Buff 0.77 #e1ca9f; muted 45–48; accent words
+## in accent_hi #f1713b; faint #887654) — gallery before/after both moods, tools/regress/run.sh, the
+## master. Then, by the master's order, the one-button update: T43 (research) → T44 (design) → T45.
