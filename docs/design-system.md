@@ -210,8 +210,10 @@ screen and the bar's paper share one rhythm.
   outline), no level all unlit; a click on a bead sets its level (5 % each, a bead's spacing
   below the first 0), a drag follows round the circle, the wheel ±5. Its **corners** hold the four
   actions (screenshot top left, wallpaper top right, screen off bottom left, power bottom right),
-  each a 28 px picture in `muted` placed by its ink: 2 px from the content's sides and 4 from
-  its top or foot, all four alike (crests/ink.txt, written by build-icons.py). Its **middle** shows the
+  each a 28 px picture in `muted`, its ink centred (crests/ink.txt, written by build-icons.py)
+  in a place of 36 × 36 flush with the content's corner, 4 px into the pad — the four places
+  mirror images (the three framed pictures' ink lands 2 px from the sides and 4 from top or foot;
+  the round power sign's 3 and 3). Its **middle** shows the
   item the cursor is on — an hour's or an action's picture twice as large (`accent` on, `text`
   off), a meter's level in display size (Sumi UI twice as large, `strong`) —, then 16 px, its
   name (`strong`) and its state (`strong` on, `muted` off) a row each, rows with nothing in them
@@ -227,7 +229,7 @@ screen and the bar's paper share one rhythm.
   symmetric round the dial's middle (it lies between pixels: 304 is even), each half rounded
   once and the other its mirror. Turned on, an hour is stamped (§11: `accent_hi` for 60 ms); a
   level changing lights its beads one after another (§11: 12 ms a bead — never at an open); while
-  a recording runs, the record hour's reels turn (two frames, 250 ms each: §5 busy).
+  a recording runs, the record hour's reels turn (two frames, 6 a second: §5 busy, §13).
 - **Meter**: its icon and name as a row's, then 20 segments (§3), right-aligned before the value.
   Lit segments `asagi`; over 80 % the 17th–18th `flame` and the 19th–20th `accent` (it reddens
   as it rises); unlit `edge`. A level between two segments lights the last one partly, from the
@@ -421,7 +423,7 @@ stamp is a choice made, a scroll is something long opening.
 | a theme switch · a new wallpaper | the wash (dwl's own, asked through kawa-wash: the screen as it was laid over everything, the change made under it): five drops of the new mood's darkest ink land on the old picture and bleed out along a paper grain in 3 px pixels, a wet rim at their edge; the pointer's picture changes the moment the wash reaches it | 1200 |
 | the screensaver leaves | dissolves off | 180 |
 | a stamp (a toggle switched on — an hour of quick settings' dial —, the workspace seal) | down: the seal 1 px larger all round in `accent_hi`, an hour's picture in `accent_hi`; then as it was, in `accent` | 60 |
-| a meter changing | its segments (the dial's beads) light or go out one after another | 12 a segment (a bead) |
+| a meter changing — the dial's beads | they light or go out one after another (a meter of segments: at once) | 12 a bead |
 | icons that move (§13) | their frames in a loop, only while the state holds | 6–8 a second |
 
 - Every frame is drawn at every refresh of the screen (144 a second here) for the moment it

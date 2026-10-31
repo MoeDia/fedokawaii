@@ -120,7 +120,7 @@ eq "$(py 'fresh(); print(" ".join(f"{i.key}:{i.x},{i.y}" for i in p.items if i.k
 eq "$(py 'fresh(); print({(i.w, i.h) for i in p.items if i.kind == "hour"}, [i.order for i in p.items if i.kind == "hour"])')" "{(36, 36)} [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]"
 eq "$(py 'print(kp.HOUR, kp.DIAL_R, kp.CREST_PIC, (kp.HOUR - kp.CREST_PIC) % 2 == 0)')" "36 128 28 True" "the place 36, its picture 28: 4 px of lacquer all round"
 eq "$(py 'fresh(); print(" ".join(f"{i.key}:{i.centre():g},{kp.mid_y(i):g}" for i in p.items if i.kind in ("hour", "corner")))')" \
-  "theme:169,41 night:233,58 vrr:280,105 saver:297,169 dnd:280,233 network:233,280 bluetooth:169,297 devices:105,280 drives:58,233 backup:41,169 record:58,105 ocr:105,58 screenshot:31,31 wallpaper:307,31 screenoff:31,307 power:308,306" \
+  "theme:169,41 night:233,58 vrr:280,105 saver:297,169 dnd:280,233 network:233,280 bluetooth:169,297 devices:105,280 drives:58,233 backup:41,169 record:58,105 ocr:105,58 screenshot:31,31 wallpaper:307,31 screenoff:31,307 power:307,307" \
   "their middles, where the arrows measure from (centre(), mid_y()); the arcs' are below"
 case_ "the hours are spaced evenly: 360 / n degrees apart, clockwise from twelve (30 with twelve, 36 with ten — no adapter), each 128 px from the middle, to the pixel's rounding"
 eq "$(py 'out = []
@@ -150,8 +150,8 @@ print("\n".join(out))')" "$(printf '%s\n' \
 eq "$(py 'fresh(); a = {i.key: i for i in p.items}; c = p.centre; box = lambda i: (i.x, i.y, i.w, i.h)
 lr = lambda i: (338 - i.x - i.w, i.y, i.w, i.h); tb = lambda i: (i.x, 338 - i.y - i.h, i.w, i.h)
 print(lr(a["brightness"]) == box(a["sound"]), tb(a["brightness"]) == box(a["brightness"]), tb(a["sound"]) == box(a["sound"]),
-      lr(a["screenshot"]) == box(a["wallpaper"]), tb(a["screenshot"]) == box(a["screenoff"]),
-      lr(c) == box(c) == tb(c))')" "True True True True True True" "the arcs mirror each other and each is its own top-bottom mirror; the three corners whose drawings share one ink size mirror (the power sign is round: its ink keeps the same margins, the corners case); the middle is its own"
+      lr(a["screenshot"]) == box(a["wallpaper"]), tb(a["screenshot"]) == box(a["screenoff"]), lr(a["screenoff"]) == box(a["power"]), tb(a["wallpaper"]) == box(a["power"]),
+      lr(c) == box(c) == tb(c))')" "True True True True True True True True" "the arcs mirror each other and each is its own top-bottom mirror; the corners' places mirror in pairs; the middle is its own"
 eq "$(py 'bad = []
 for d in range(0, 361, 3):
     x, y = kp.on_circle(169, 169, kp.DIAL_R, d); xr, yr = kp.on_circle(169, 169, kp.DIAL_R, 360 - d); xb, yb = kp.on_circle(169, 169, kp.DIAL_R, 180 - d)
@@ -180,14 +180,14 @@ for k in ("brightness", "sound"):
             if ang is not None and abs(r - kp.BEAD_R) <= kp.BAND / 2 and kp.BEAD_FROM - step / 2 <= ang <= kp.BEAD_FROM + kp.BEAD_RUN + step / 2 and not kp.Item.inside(a, x, y):
                 bad.append((k, x, y))
 print(bad[:3])')" "[]" "…and the cursor's lacquer band (BAND px along the circle) too: no pixel of it outside the box, none left stale"
-case_ "the four corners (screenshot, wallpaper, screen off, power): placed by what is drawn — each picture's ink 2 px from the content's sides and 4 from its top or foot, all four alike (pic_ink: crests/ink.txt); a 36 × 36 place centred on the ink (its odd pixel of air right and below); their names and states are the middle's"
+case_ "the four corners (screenshot, wallpaper, screen off, power): places of 36 × 36 flush with the content's corners, 4 px into the pad — mirror images —, each picture's ink centred in its place (pic_ink: crests/ink.txt; its odd pixel of air right and below); their names and states are the middle's"
 eq "$(py 'fresh(); print(" ".join(f"{i.key}:{i.x},{i.y},{i.w}x{i.h}:{i.icon}:{i.name}" for i in p.items if i.kind == "corner"))')" \
-  "screenshot:13,13,36x36:camera:screenshot wallpaper:289,13,36x36:picture:wallpaper screenoff:13,289,36x36:screen_off:screen off power:290,288,36x36:power:power"
+  "screenshot:13,13,36x36:camera:screenshot wallpaper:289,13,36x36:picture:wallpaper screenoff:13,289,36x36:screen_off:screen off power:289,289,36x36:power:power"
 eq "$(py 'fresh(); out = []
 for i in [i for i in p.items if i.kind == "corner"]:
     ix, iy, iw, ih = kp.pic_ink(i.icon); x0, y0 = i.pic[0] + ix, i.pic[1] + iy; x1, y1 = x0 + iw - 1, y0 + ih - 1
-    out.append((x0 - 17 if i.x < 169 else 320 - x1, y0 - 17 if i.y < 169 else 320 - y1, x0 - i.x - (i.x + i.w - 1 - x1), y0 - i.y - (i.y + i.h - 1 - y1)))
-print(out, kp.CORNER_AIR)')" "[(2, 4, 0, 0), (2, 4, 0, 0), (2, 4, 0, 0), (2, 4, 0, -1)] (2, 4)" "every ink CORNER_AIR from its corner; the place's air even either side (power's odd row below)"
+    out.append((x0 - 17 if i.x < 169 else 320 - x1, y0 - 17 if i.y < 169 else 320 - y1, (x0 - i.x) - (i.x + i.w - 1 - x1), (y0 - i.y) - (i.y + i.h - 1 - y1)))
+print(out)')" "[(2, 4, 0, 0), (2, 4, 0, 0), (2, 4, 0, 0), (3, 3, 0, -1)]" "the framed pictures' ink 2 from the sides and 4 from top or foot, the round power sign's 3 and 3; every ink centred in its place (power's odd row below)"
 eq "$(py 'fresh(); print([(p.item(k).tip, p.item(k).value) for k in ("screenshot", "wallpaper", "screenoff", "power")])')" "[('', ''), ('', 'mishima-mist'), ('', ''), ('', '')]" "no words under a corner and no tooltip beside the pointer (one light): the middle says it — the wallpaper's name its second row"
 case_ "the dial's middle (the echo): a place of its own, 156 × 156 round the middle, inside the beads' circle less the band — no item (no cursor, nothing to choose): the face at rest, the item the cursor is on, larger, with its name and state"
 eq "$(py 'fresh(); c = p.centre; print(c.key, c.kind, c.x, c.y, c.w, c.h, c in p.items, c.x + c.w // 2, c.y + c.h // 2)')" "centre centre 91 91 156 156 False 169 169"
@@ -198,7 +198,7 @@ eq "$(py 'out = []
 for st in (STATE, STATE.replace("bluetooth\ton\n", "").replace("devices\tnone\n", "")):
     fresh(st); multi = [(x, y) for x in range(338) for y in range(338) if sum(i.inside(x, y) for i in p.items) > 1]
     out.append((len(multi), min(i.x for i in p.items), min(i.y for i in p.items), max(i.x + i.w for i in p.items), max(i.y + i.h for i in p.items)))
-print(out)')" "[(0, 13, 13, 326, 325), (0, 13, 13, 326, 325)]"
+print(out)')" "[(0, 13, 13, 325, 325), (0, 13, 13, 325, 325)]"
 case_ "an arc's pointer (arc_level): on a bead the level of that bead — 5 % each, the first 5, the last 100 —, a bead's spacing below the first 0 (above the last 100); held (a drag) anywhere on its side, past an end that end; across the dial, held, the nearer end (0 below the middle, 100 above); off its circle, not held: none"
 eq "$(py 'fresh(); print([[kp.arc_level(p.item(k), *bead(k, j)) for j in range(20)] == [5 * (j + 1) for j in range(20)] and all(p.item(k).inside(*bead(k, j)) for j in range(20)) for k in ("brightness", "sound")])')" "[True, True]" "a click on bead j is 5 · (j + 1) % — on both arcs"
 eq "$(py 'fresh(); print([(kp.arc_level(p.item(k), *kp.bead_at(p.item(k), -0.75)), kp.arc_level(p.item(k), *kp.bead_at(p.item(k), 19.75))) for k in ("brightness", "sound")])')" "[(0, 100), (0, 100)]" "three quarters of a bead's spacing below the first: 0; above the last: 100"
@@ -661,11 +661,12 @@ for scope in [t] + [n for n in ast.walk(t) if isinstance(n, (ast.FunctionDef, as
     c = collections.Counter(n.name for n in scope.body if isinstance(n, ast.FunctionDef))
     bad += [getattr(scope, "name", "module") + "." + k for k, v in c.items() if v > 1]
 print(bad)' "$REPO/bin/kawa-panel")" "[]"
-case_ "the record hour while it records: its reels turn (§5 busy: a picture that moves) — REEL_MS (250) a frame, only that hour redrawn; it stops when the recording does or the panel goes"
+case_ "the record hour while it records: its reels turn (§5 busy: a picture that moves) — REEL_MS (167: 6 a second, §13) a frame, only that hour redrawn; it stops when the recording does or the panel goes"
 eq "$(py 'R = STATE + "record\ton\n"; fresh(R); p.request("quick"); u.answer(R); print(p.reeling, len(u.timers), kp.REEL_MS)
 f = u.timers.pop(0); u.drawn.clear(); f(); print(p.turn, u.drawn, len(u.timers))
-f = u.timers.pop(0); f(); print(p.turn)')" "$(printf '%s\n' 'True 1 250' "1 [['record']] 1" '0')" "an open while recording: the reels turn, frame by frame (one timer at a time)"
+f = u.timers.pop(0); f(); print(p.turn)')" "$(printf '%s\n' 'True 1 167' "1 [['record']] 1" '0')" "an open while recording: the reels turn, frame by frame (one timer at a time)"
 eq "$(py 'opened("quick", STATE); print(p.reeling, [c for c in u.calls if c.startswith("later")])')" "False []" "not recording: nothing turns, no timer"
+eq "$(py 'R = STATE + "record\ton\n"; fresh(R); p.request("quick"); u.answer(R); u.timers.pop(0)(); print(p.turn); p.refresh(); u.answer(STATE); u.drawn.clear(); u.timers.pop(0)(); print(p.turn, p.reeling, u.drawn)')" "$(printf '%s\n' 1 "0 False [['record']]")" "the recording stopped while the dial shows: the reels back at their first frame, that hour drawn again"
 eq "$(py 'R = STATE + "record\ton\n"; fresh(R); p.request("quick"); u.answer(R); reel = u.timers[0]; p.close("chosen"); n = len(u.timers); reel(); print(p.reeling, p.turn, len(u.timers) - n)')" "False 0 0" "the panel gone: the reels stop at their first frame, no timer more"
 has "$d" 'cr.mask_surface(mask, *it.pic)' "the picture at its place's own spot (an hour: its square centred in the place; a corner: by its ink)"
 eq "$(py 'fresh(); print(all(i.pic == (i.x + (i.w - kp.CREST_PIC) // 2, i.y + (i.h - kp.CREST_PIC) // 2) for i in p.items if i.kind == "hour"))')" True "an hour's 28 px square on the middle of its place (both between pixels)"

@@ -188,3 +188,40 @@ dotted; a band inside a silhouette stops short of its edge; no line across any p
 **Measured on the real panel** (kit, `--repo-art`, both themes): every picture painted 1:1 (the
 moon's 248 px = its mask's), its air to the seal's edge the drawing's + 4 — moon 6 | 7 · 6 | 6,
 socket 8 | 8 · 9 | 9, spool 8 | 9 · 7 | 8: the odd pixel right and below, as the words' rule.
+
+## T19k-7 — quick settings from scratch, the fourth time (31 Oct 23:23 – 1 Nov 01:55)
+
+The owner: "drop the mon sheet entirely, no reuse of any earlier layout; super minimal, super
+creative; several directions rendered and grilled, the best built, tested, live."
+
+Directions (design-r27/quick-r4.py; renders quick-r4-A2-dial.png, -B-soroban.png, -C-koto.png):
+- **A, the dial (和時計)** — the switches on the hours of a wadokei, the meters as beads inside,
+  the actions in the corners, the face in the middle at rest, the cursor's item echoed there large.
+  For: no words at rest (minimal), a new form for a quick-settings panel (creative), a world
+  object (the old Japanese clock; in light, a mandala round the tennin), the meters become the
+  dial's minute marks. Against: arrows on a circle (answered: toward() — the nearest item that way;
+  every item reachable, the walk mirrors left↔right).
+- **B, the soroban** — a rod and a bead per switch. Against: twelve tiny 14 px icons crowded over
+  rods; a row of identical objects — the old grid in another dress.
+- **C, the koto** — a string and a bridge per item. Against: a list underneath (thirteen names),
+  the bridges too small to read.
+CHOSEN A.
+
+Grilled and fixed while building: the corners' 14 px icons doubled were blocky beside the hours
+→ four new 28 px drawings; the dark hannya's hair vanished on sumi → (first an outline, then) a face
+drawn for the middle at 1 px; the middle not redrawn with the cursor → the centre follows every
+partial redraw. The master's first review (r27-19k-7-master) failed it: the middle's block
+off-centre per state, the face a blow-up, four corner ink sizes, the sound panel unreachable by
+pointer, a doubled tooltip, the glass sentence, dead code, ↑ ↓ swallowed, the theme's hour
+unexplained, nothing alive — all answered (ledger). Its re-review passed it; the residue closed:
+the corners' places mirror images (each ink centred in its place; the round power sign overshoots
+the framed ones by a pixel), the reels back to their first frame when a recording stops, 6 frames a
+second, the middle's click a disc, the check's arc shot a real arc.
+
+Measured (tools/regress/dial.sh, kit, both moods; final renders design-r27/dial-final-*.png):
+frame 1574–1911 × 33–370 (338 × 338, 8 px from the right edge, top on y 33); the forty beads mirror
+images; each corner's ink centred in its place; the middle centred at rest, on an hour, on an arc,
+on a corner (dx 0.0, dy 0.0; +1.0 where a descender hangs); live on his screen 00:05 and 01:15.
+Left for T19m: the glide on the frame clock (the master's note: a 12 ms GLib timer lands beads 1 or
+2 refreshes apart at 144 Hz), the panels' 0.92 glass over a busy window, the face grilled once on
+a live-style glass over a bright wallpaper.

@@ -140,7 +140,7 @@ SHADOW_R, SHADOW_B = 1, 2            # the frame's shadow: a column at its right
 GAP = 8                              # the air between two keys, two groups' halves (§3)
 STAMP_MS = 60                        # a seal stamped (§11): a pixel larger in accent_hi this long
 BEAD_MS = 12                         # a meter changing on the dial (§11): its beads light or go out one after another, this apart
-REEL_MS = 250                        # the record hour while it records: its reels turn (§5 busy: its picture moves), a frame this long
+REEL_MS = 167                        # the record hour while it records: its reels turn (§5 busy; §13: a moving picture 6 frames a second)
 INNER = 47 * CELL                    # 376: the content (quick settings, the sound panel, the launcher)
 # quick settings, the dial (§4, 和時計 a wadokei): a square; the switches' pictures on its hours
 # (the theme at twelve, then clockwise), the two meters as beads on a circle inside them
@@ -168,7 +168,6 @@ FACE = os.path.join(HOME, ".config/fedokawaii/current/face-big.png")   # the dia
 # in the dial's middle twice as large (ECHO)
 CRESTS = os.path.join(HOME, ".local/share/fedokawaii/crests")
 CREST_PIC = 28
-CORNER_AIR = (2, 4)                  # a corner's picture: its ink this far from the content's sides, and from its top or foot
 ECHO = 2
 ECHO_W = 16 * CELL                   # its words at most 128 px (between the beads)
 HEAD_H = ROW + GAP                   # a heading: its row, then 8 px of air
@@ -480,9 +479,9 @@ def vrr_shown(s):
 
 
 def tiles_of(s):
-    """(key, picture, name, value, on) for each switch of the dial, in order: each its own
-    28 px picture (art/crests.txt, by its icon less "tile_"), the theme's the mood it is in —
-    the moon at night, the sun rising."""
+    """(key, picture, name, value, on) for each switch of the dial — a lookup: HOURS orders the
+    dial —, each its own 28 px picture (art/crests.txt, by its icon less "tile_"), the theme's
+    the mood it is in — the moon at night, the sun rising."""
     dark = s.get("theme", "dark") != "light"
     net = s.get("nettype", "offline")
     dnd = s.get("dnd") == "on"
@@ -865,12 +864,11 @@ def layout_quick(s):
                          side=side, cx=cx, cy=cy))
     for (key, ic, name), (ax, ay) in zip(CORNERS, ((0, 0), (1, 0), (0, 1), (1, 1))):
         ix, iy, iw, ih = pic_ink(ic)
-        # (its ink CORNER_AIR from the corner's two sides — all four alike —, the square round it)
-        ex = x0 + CORNER_AIR[0] if not ax else x0 + DIAL - CORNER_AIR[0] - iw
-        ey = y0 + CORNER_AIR[1] if not ay else y0 + DIAL - CORNER_AIR[1] - ih
-        px, py = ex - ix, ey - iy
-        mx, my = ex + (iw + 1) // 2, ey + (ih + 1) // 2   # (the place centred on the ink, its odd pixel of air right and below)
-        items.append(Item(key, "corner", mx - HOUR // 2, my - HOUR // 2, HOUR, HOUR, 0, pic=(px, py),
+        # (its place flush with the corner, 4 px into the pad — the four mirror images —, the
+        # picture's ink centred in it, its odd pixel of air right and below)
+        x = x0 - (HOUR - CREST_PIC) // 2 + ax * (DIAL - CREST_PIC)
+        y = y0 - (HOUR - CREST_PIC) // 2 + ay * (DIAL - CREST_PIC)
+        items.append(Item(key, "corner", x, y, HOUR, HOUR, 0, pic=(x + (HOUR - iw) // 2 - ix, y + (HOUR - ih) // 2 - iy),
                           icon=ic, name=name, value=fit(s.get("wallpaper", ""), ECHO_W) if key == "wallpaper" else ""))
     side = DIAL + 2 * (PAD + BORDER)
     lay = Layout(items, (x0, y0), [], (side, side))
@@ -1269,11 +1267,13 @@ class Panel:
 
     def _reel(self):
         it = self.recording()
-        self.turn = (self.turn ^ 1) if it else 0
+        was, self.turn = self.turn, (self.turn ^ 1) if it else 0
         self.reeling = it is not None
         if it is not None:
             self.ui.redraw(it)
             self.ui.later(REEL_MS, self._reel)
+        elif was and self.visible and self.item("record"):
+            self.ui.redraw(self.item("record"))      # (stopped while it shows: at rest, the first frame)
 
     def stamping(self, key):
         """An hour being stamped now (§11: turned on, STAMP_MS in accent_hi)."""
@@ -1736,7 +1736,8 @@ class Panel:
         it = self.at(x, y)
         self.set_hot(it.key if it else None)
         if not it:
-            if self.centre is not None and self.focus is not None and self.centre.inside(x, y):
+            c = self.centre
+            if c is not None and self.focus is not None and math.hypot(x - (c.x + c.w // 2), y - (c.y + c.h // 2)) < BEAD_R - BAND:
                 self.activate(self.focus)
             return
         if self.focus is not None:

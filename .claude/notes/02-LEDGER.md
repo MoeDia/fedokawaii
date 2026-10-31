@@ -1514,3 +1514,17 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   live: the record hour's frame helper was named frame(), shadowing the drawing's frame() — the
   panel's hairline and shadow vanished (TypeError in draw) → renamed turned(); a static guard now
   fails any two functions sharing a name in one scope. test_panel 625/0; dial.sh held both moods.
+- r27-19k-7 DONE + VERIFIED (1 Nov 01:55) — the master's re-review: VERDICT PASS (all ten findings
+  and "alive" closed, checked by its own renders: "100" centred 0.0/0.0, the faces 56 × 56 mirror-
+  exact, four inks). Its residue, closed now: the dial check's "arc" shot was devices → the pointer
+  over a bead (hovered only: a click would set the real brightness); the power corner's place was a
+  pixel off the mirror → the four places flush with the corners (mirror images), each ink centred
+  in its place (the round power sign's ink 3 | 3 from the edges against the framed 2 | 4 — a
+  round form's overshoot); a recording stopping while the dial shows left the reels turned → back
+  to the first frame, redrawn; the reels at 6 frames a second (§13's rule; REEL_MS 167); the
+  middle's click a disc (r < 78), not its square; §11's row says beads only; tiles_of a lookup;
+  the grill written (grill-r27.md "T19k-7") with the three directions' renders kept. test_panel
+  626/0; dial.sh held both moods (frame, beads, corners, the middle at rest/hour/arc/corner).
+  Noted for T19m/T52: the glide on the frame clock, the glass over busy windows, dial.sh into the
+  regression runner. Full suite (01:16–01:36): every area green but installer/test_report 117/1 —
+  "the shell probe left a stopped bash behind" (a process left by the run; re-run alone next pass).
