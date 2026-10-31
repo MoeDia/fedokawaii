@@ -480,4 +480,10 @@ called '^notify-send -a desktop -- .*  upkeep a job of the system menu is runnin
 case_ "change: the part-by-part menu"
 fedokawaii change; called '^kawa-config'
 
+case_ "the tab's record: one per menu, gone when it ends; a start removes the ones whose menu was killed (13 had piled up in a day)"
+fresh; stub fzf 'cat >/dev/null; exit 130'; stub curl 'exit 7'   # (the menu's release check: no network)
+R=$TMP/run; mkdir -p "$R"; sleep 0 & dead=$!; wait "$dead"
+: >"$R/fedokawaii-tab.2c9cwL"; : >"$R/fedokawaii-tab.$dead"; : >"$R/fedokawaii-tab.$$"
+XDG_RUNTIME_DIR=$R on_tty "" fedokawaii >/dev/null
+eq "$(cd "$R" && ls fedokawaii-tab.* 2>/dev/null | paste -sd ' ')" "fedokawaii-tab.$$" "a live menu's record kept, the dead ones and its own gone"
 done_

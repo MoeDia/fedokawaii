@@ -1606,3 +1606,12 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   footer (was hard to read, now plain), yazi/terminal (the text a step brighter). Verified by: contrast.py
   (WCAG 0 under, APCA 0 under), the tests above, the renders.
 
+- r27-42-strays-a (1 Nov 02:50) — Super+U's tab record (fedokawaii-tab.XXXXXX in $XDG_RUNTIME_DIR, from mktemp)
+  leaked whenever its menu was killed rather than ending (the warm window restarted by an apply or a theme
+  switch): 13 found in /run/user/1000 between 22:14 and 02:31. Now one record per menu by its pid
+  (fedokawaii-tab.$$), and each start removes the records whose menu is gone (kill -0); the warm window's
+  TERM trap stays. tests/engine/test_menu.sh 590/0 (+1 case: a dead pid's and an old mktemp record swept, a
+  live menu's kept, its own removed at its end; curl stubbed there — the menu's release check would have
+  gone to the network). Noted for T53: the file's earlier menu runs still reach dl.fedoraproject.org.
+  Also seen (for T42/T59): every SIGUSR2 reload of waybar leaves 3–4 zombie children (comm "waybar") that
+  waybar never reaps — 7 from 01:57/01:58, 3 more at 02:33.

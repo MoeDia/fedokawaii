@@ -1135,7 +1135,14 @@ menu_fzf() {   # → fzf's exit status (2: it could not run — the plain menu t
   # read again, the cursor on the section's first entry. Enter runs the entry; what is not
   # built yet only says so in the pane. (change and keys open screens of their own: this
   # one closes for them)
-  export FK_TAB; FK_TAB=$(mktemp "${XDG_RUNTIME_DIR:-/tmp}/fedokawaii-tab.XXXXXX") || return 2
+  # the tab shown, a record per menu (its pid): one put away by a kill cannot remove its own, so
+  # each start removes the records whose menu has gone (a theme switch or an apply restarts the
+  # warm one — 13 were left in a day)
+  local rec
+  for rec in "${XDG_RUNTIME_DIR:-/tmp}"/fedokawaii-tab.*; do
+    [[ -e $rec ]] && ! kill -0 "${rec##*.}" 2>/dev/null && rm -f -- "$rec"
+  done
+  export FK_TAB=${XDG_RUNTIME_DIR:-/tmp}/fedokawaii-tab.$$
   tab_set system
   local go="reload-sync($self --items)+transform-header($self --tabs)+first" away=""
   # ended by a key (Esc, q, a screen of its own): in the warm window, put away first — while
