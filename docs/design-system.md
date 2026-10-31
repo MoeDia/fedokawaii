@@ -23,7 +23,7 @@ the grid and the motion are shared; the mood decides the inks, the art and the s
 | art | demons and warriors after Kuniyoshi and Hokusai, pixel-drawn | tennin (angels), clouds and lotus after Buddhist painting |
 | the lock | a dungeon wall, two torches, a demon's open mouth | a temple in clouds, two stone lanterns, an angel's halo |
 | its quote | 口は禍の門 — the mouth is the gate of misfortune | 言わぬが花 — better left unsaid |
-| quick settings' face | a demon's head — horned, scowling, tusked (roaring while its panel is open) | an angel's face — serene, a nimbus behind it (its eyes open, smiling, while its panel is open) |
+| quick settings' face | the hannya (after Hokusai's Warai Hannya): gold horns, parted black hair, slanted gold eyes, a fanged lacquer grin (roaring while its panel is open: the mouth deeper, the eyes all gold) | the tennin: a gold nimbus, a pinned bun, the urna, eyes closed (open while its panel is open: gold irises, a smile) |
 
 Both quotes are proverbs about keeping words in — the right thing to read where a password is
 typed (sources: kotobank — デジタル大辞泉, 精選版 日本国語大辞典; the earliest uses 1252 and 1729).
@@ -153,7 +153,8 @@ screen and the bar's paper share one rhythm.
 | shadow | 2 | — | two rows under a hairline (each a pixel further right), one column beside it (§4) |
 | icon | 12 × 12 | — | beside words, on the em's rows 1–12 (centred on the capitals) |
 | icon alone | 14 × 14 | — | where no words follow: the layouts, a tile's picture, an icon-only key |
-| emblem | 16 × 16 | — | the bar's three: the torii, the workspace stamp, quick settings' face |
+| emblem | 16 × 16 | — | the bar's torii and workspace stamp (glyphs) |
+| face | 18 × 18 | — | quick settings' face on the bar's end tile: a picture in four inks (sumi, ivory, gold, lacquer — tools/build-themes.py FACES), a pixel of paper above and below, the odd pixel of air right |
 | icon column | 16 | 2 | an icon centred in it (2 px either side) |
 | indent | 8 | 1 | a heading's rows start one cell further in than the heading |
 | heading, GUI | 20 + 8 | — | its row, then 8 px of air; 20 px above it (none at the top of a panel) |

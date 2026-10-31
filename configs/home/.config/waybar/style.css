@@ -77,6 +77,17 @@ button, button:hover, button:active, button:checked { background: none; box-shad
 }
 #custom-torii { margin-left: 8px; padding-right: 8px; }   /* (the torii's ink fills its 16 columns) */
 #custom-menu  { margin-left: 11px; margin-right: 7px; }   /* (its right hairline on x 1911) */
+/* the mood's face, drawn (tools/build-themes.py FACES: 18 × 18, four inks), laid on the tile's
+   paper: a pixel of it above and below; across, its 29 px box leaves an odd pixel — to the right,
+   as every word's (paper either side of the hannya's ink 7 | 8, the tennin's 6 | 7). The
+   emblem's glyph keeps the tile's width, unseen */
+#custom-menu {
+  background-image: url("../fedokawaii/current/face.png");
+  background-repeat: no-repeat;
+  background-position: 5px 1px;
+  color: transparent;
+}
+#custom-menu.active { background-image: url("../fedokawaii/current/face-open.png"); }
 
 /* ── the workspaces ─────────────────────────────────────────────────────────────────── */
 .tag { color: @faint; padding-right: 8px; }   /* (the numerals: 10 × 10, no air of their own) */

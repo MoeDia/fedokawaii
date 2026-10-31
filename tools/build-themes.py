@@ -279,6 +279,99 @@ def lock_scroll(m, fill, rule, s=2):
     return png(w * s, h * s, _scaled(c, s))
 
 
+# the mood's face on the bar's end tile (quick settings' own: a demon by night, an angel by day),
+# 18 × 18 in four inks — K Wada's Black, W ivory, G gold, D the lacquer; '.' the tile shows
+# through. Dark: the hannya (after Hokusai's Warai Hannya, art/masters/SOURCES.md), roaring while
+# quick settings is open; light: the tennin, a nimbus behind, opening its eyes and smiling.
+FACES = {
+    "dark": ("""
+..G............G..
+.GG............GG.
+.GG...KKKKKK...GG.
+.GGGKKKKKKKKKKGGG.
+..GGKKKKWWKKKKGG..
+..KKKKKWWWWKKKKK..
+..KWKKWWWWWWKKWK..
+..KWWWKKWWKKWWWK..
+..KWGGGWWWWGGGWK..
+..KWWGKWWWWKGWWK..
+..KKWWWKWWKWWWKK..
+..KWKKKKKKKKKKWK..
+..KWKWDDDDDDWKWK..
+..KWKDWDDDDWDKWK..
+..KWKKKKKKKKKKWK..
+...KWWWWWWWWWWK...
+....KWWWWWWWWK....
+.....KKKKKKKK.....
+""", """
+..G............G..
+.GG............GG.
+.GG...KKKKKK...GG.
+.GGGKKKKKKKKKKGGG.
+..GGKKKKWWKKKKGG..
+..KKKKKWWWWKKKKK..
+..KWKKWWWWWWKKWK..
+..KWWWKKWWKKWWWK..
+..KWGGGWWWWGGGWK..
+..KWWGGWWWWGGWWK..
+..KKWWWKWWKWWWKK..
+..KWKKKKKKKKKKWK..
+..KWKWDDDDDDWKWK..
+..KWKDDDDDDDDKWK..
+..KWKDWDDDDWDKWK..
+...KKKKKKKKKKKK...
+....KWWWWWWWWK....
+.....KKKKKKKK.....
+"""),
+    "light": ("""
+......GGGGGG......
+....GG..KK..GG....
+...G...KGGK...G...
+..G...KKKKKK...G..
+.G...KKKKKKKK...G.
+.G..KKKKKKKKKK..G.
+G..KKKKWWWWKKKK..G
+G..KKWWWWWWWWKK..G
+G..KKWWWDDWWWKK..G
+G..KWWWWWWWWWWK..G
+.G.KWKKKWWKKKWK.G.
+.G.KWWWWWWWWWWK.G.
+..GKWWWWWWWWWWKG..
+...KWWWWWWWWWWK...
+...KKWWWDDWWWKK...
+...KKWWWWWWWWKK...
+...KK.KWWWWK.KK...
+...KK..KKKK..KK...
+""", """
+......GGGGGG......
+....GG..KK..GG....
+...G...KGGK...G...
+..G...KKKKKK...G..
+.G...KKKKKKKK...G.
+.G..KKKKKKKKKK..G.
+G..KKKKWWWWKKKK..G
+G..KKWWWWWWWWKK..G
+G..KKWWWDDWWWKK..G
+G..KWWWWWWWWWWK..G
+.G.KWKGKWWKGKWK.G.
+.G.KWWWWWWWWWWK.G.
+..GKWWWWWWWWWWKG..
+...KWWWWWWWWWWK...
+...KKWWDWWDWWKK...
+...KKWWWDDWWWKK...
+...KK.KWWWWK.KK...
+...KK..KKKK..KK...
+"""),
+}
+
+
+def face(m, p, art):
+    """The face as a PNG, its own pixels only (the tile's paper shows through the rest)."""
+    ink = {"K": P["dark"]["lo"], "W": p["text_on_select"], "G": P["dark"]["yellow"], "D": p["select"]}
+    rows = art.strip("\n").split("\n")
+    return png(len(rows[0]), len(rows), [[_rgb(ink[c]) if c != "." else (0, 0, 0, 0) for c in r] for r in rows])
+
+
 def ornaments(m, p):
     """Every picture of the bar, name → bytes."""
     k = KAMI[m]
@@ -291,6 +384,8 @@ def ornaments(m, p):
         "kami-tip.png": kami_tip(m, p["surface"]),
         "kami-seal.png": kami_seal(m),
         "kami-seal-thump.png": kami_seal(m, 18, p["accent_hi"]),
+        "face.png": face(m, p, FACES[m][0]),
+        "face-open.png": face(m, p, FACES[m][1]),
         "kami-scroll.png": kami_scroll(m, fill),
         # the lock and login screens' scroll (sliced 12 16 12 16), until T20 draws them anew
         "lock-scroll.png": lock_scroll(m, fill, k["rule"]),

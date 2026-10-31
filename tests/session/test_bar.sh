@@ -347,7 +347,14 @@ bad=$(grep -nE 'background(-color)?: *@' "$S_" | grep -vE '@(tile|kami-red|kami-
 eq "$bad" "$(grep -nE '^  background-color: @surface;' "$S_")" "a ground other than the paper's or the corners' vermilion (lit: the brighter one) — but the tooltip's"
 eq "$(grep -B1 -E '^  background-color: @surface;' "$S_" | head -n 1)" "tooltip {" "the surface (what floats) only under the tooltip: the bar's own tiles stay washi"
 grep -q 'box-shadow: *inset' "$S_" && _no "a ring is back" || _ok
-lacks "$(cat "$REPO/configs/home/.config/foot/foot.ini")" $'\n24=' "foot's palette has no tile colour of the bar's (24) any more"
+# (foot's 24 and 25 are the lacquer and its words since T19k-2 — every selected row's, never the bar's tile)
+for th in dark light; do
+  ini=$(sed -n "/^\[colors-$th\]/,/^\[/p" "$REPO/configs/home/.config/foot/foot.ini")
+  eq "$(sed -n 's/^24=//p' <<<"$ini") $(sed -n 's/^25=//p' <<<"$ini")" \
+    "$(sed -n 's/^select=//p' "$REPO/configs/home/.config/fedokawaii/themes/$th/panel.conf") $(sed -n 's/^text_on_select=//p' "$REPO/configs/home/.config/fedokawaii/themes/$th/panel.conf")" \
+    "$th: foot's 24 and 25 are the lacquer and its words (select, text_on_select)"
+  lacks "$ini" "=$(sed -n 's/^@define-color tile *#//p' "$REPO/configs/home/.config/fedokawaii/themes/$th/waybar.css" | tr -d ';')"$'\n' "$th: foot's palette has no tile colour of the bar's"
+done
 st() { grep -E "^\.tag\.$1 *\{" -A4 "$S_" | tr -d '\n'; }
 has "$(st occupied)" "color: @text;" "a workspace with windows: its numeral in the text's ink"
 has "$(st urgent)" "color: @asagi;" "one asking for you: asagi"
@@ -364,9 +371,21 @@ for sel, body in re.findall(r"([^{}]+)\{([^}]*)\}", css):
     if ".active" in sel:
         props = {p.split(":")[0].strip() for p in body.split(";") if ":" in p}
         red = all(x.strip().startswith(("#custom-torii", "#custom-menu")) for x in sel.split(","))
-        # (lit: a word's ink — a vermilion tile's fill instead: its brighter picture and ground)
+        # (lit: a word's ink — a vermilion tile's fill instead: its brighter picture and ground;
+        # the mood's face its open frame, the lit fill being the shared rule's)
+        if sel.strip() == "#custom-menu.active" and props == {"background-image"}: continue
         if props != ({"border-image", "background-color"} if red else {"color"}): print(sel.strip(), "changes", props); bad = 1
 sys.exit(bad)
 EOF
 
+case_ "the mood's face: drawn (build-themes FACES, 18 × 18) for both themes, its open frame while quick settings is open, a pixel of paper above and below it"
+for th in dark light; do
+  for f in face face-open; do
+    eq "$(python3 -I -c 'import struct,sys; d=open(sys.argv[1],"rb").read(); print(*struct.unpack(">II", d[16:24]), d[25])' "$REPO/configs/home/.config/fedokawaii/themes/$th/$f.png")" "18 18 6" "$th/$f.png: 18 × 18 with alpha"
+  done
+done
+has "$(grep -A5 -E '^#custom-menu \{$' "$S_")" 'url("../fedokawaii/current/face.png")'
+has "$(grep -A5 -E '^#custom-menu \{$' "$S_")" "background-position: 5px 1px;" "(29 px of box, 20 of paper: the odd pixel right, 1 above and below)"
+has "$(grep -A5 -E '^#custom-menu \{$' "$S_")" "color: transparent;" "the emblem's glyph keeps the width, unseen"
+has "$(grep -E '^#custom-menu\.active \{' "$S_")" 'url("../fedokawaii/current/face-open.png")'
 done_
