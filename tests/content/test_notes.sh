@@ -316,6 +316,85 @@ else
   eq "$r" 0 "(neovim did not stop to ask)"; eq "$out" "one|from the phone"
   eq "$(cat "$N")" $'one\nfrom the phone'
   ours
+
+  # the to-do beside the notes (owner 18:48): the page drawn from ~/Notes/todo.md, its keys
+  todo_steps() {   # todo_steps — the steps, one line of what each shows
+    cat >"$TMP/todo.lua" <<'TODOLUA'
+local function out(s) io.stdout:write(s .. "\n") end
+local function lines() return table.concat(vim.api.nvim_buf_get_lines(0, 0, -1, false), "|") end
+local function keys(k) vim.api.nvim_feedkeys(vim.keycode(k), "tx", false) end
+local ns = vim.api.nvim_create_namespace("kawa_todo")
+local function marks()
+  local t = {}
+  for _, x in ipairs(vim.api.nvim_buf_get_extmarks(0, ns, 0, -1, { details = true })) do
+    local vt = x[4].virt_text
+    t[#t + 1] = (vt and (vt[1][1] .. vt[1][2] .. "+" .. #vt[2][1] .. "@" .. x[2] .. "." .. x[3]) or (x[4].hl_group .. "@" .. x[2] .. "." .. x[3] .. "-" .. x[4].end_col))
+  end
+  return table.concat(t, " ")
+end
+local function changed() vim.api.nvim_exec_autocmds("TextChanged", { buffer = 0 }) end
+out("hidden: " .. kawa_notes_todo())
+kawa_notes_shown()
+out("first: " .. vim.fn.fnamemodify(vim.api.nvim_buf_get_name(0), ":t") .. " " .. lines() .. " " .. marks())
+keys("Abuy rice<CR>call the bank<Esc>"); changed()
+out("typed: " .. lines() .. " " .. marks())
+keys("<Space>"); changed()
+out("ticked: " .. lines() .. " " .. marks())
+keys("<Space>"); changed(); out("unticked: " .. lines()); keys("<Space>"); changed()
+keys("gg0"); vim.api.nvim_exec_autocmds("CursorMoved", { buffer = 0 })
+out("the cursor never on the box: " .. vim.inspect(vim.api.nvim_win_get_cursor(0)))
+keys("A<BS><BS><BS><BS><BS><BS><BS><BS><BS><BS>tea<Esc>")
+out("backspace stops at the box: " .. lines())
+keys("A<CR><CR>"); out("enter on an empty one ends the list: " .. lines() .. " " .. vim.api.nvim_get_mode().mode)
+keys("Go<BS>!<Esc>"); out("backspace on an empty one: " .. lines())
+keys("ggA ou<Left><Left><CR><Esc>"); out("enter mid-words: " .. lines())
+out("heading: " .. vim.wo.winbar)
+out("footer: " .. vim.wo.statusline)
+local function page() return vim.fn.fnamemodify(vim.api.nvim_buf_get_name(0), ":t") end
+keys("<Tab>"); out("tab: " .. page() .. " at the end: " .. tostring(vim.api.nvim_win_get_cursor(0)[1] == vim.api.nvim_buf_line_count(0)))
+keys("<Esc>")
+out("shown, again: " .. kawa_notes_todo() .. " " .. page())
+keys("A<Tab>"); out("typing on the to-do, tab turns it: " .. page())
+keys("A<Tab>"); local to = page(); keys("<Tab>")
+out("typing on the notes, tab turns it: " .. to .. ", the notes keep no tab: " .. tostring(not lines():find("\t")))
+keys("<Tab>")
+keys("o"); kawa_notes_hidden()
+TODOLUA
+    nvim --headless -n -c 'luafile ~/.config/fedokawaii/notes.lua' -c "luafile $TMP/todo.lua" -c 'qa!' -- "$N" 2>&1
+  }
+  case_ "the to-do: Super+U's way in while away (the next page), the first item ready to type, a box drawn over each item's [ ] (its words two columns after it)"
+  setup; rm -f "$STUBS/nvim"; config .config/fedokawaii/notes.lua; config .config/nvim/lua/config/clipboard.lua
+  stub nvim "exec '$REAL_NVIM' --clean \"\$@\""
+  out=$(todo_steps)
+  has "$out" "hidden: hidden"
+  has "$out" "first: todo.md [ ]  ${ICON_BOX_OFF}KawaIcon+3@0.0" "(empty: one item, its box)"
+  has "$out" "typed: [ ] buy rice|[ ] call the bank ${ICON_BOX_OFF}KawaIcon+3@0.0 ${ICON_BOX_OFF}KawaIcon+3@1.0"
+  case_ "...space ticks: the box filled and muted, the words muted and struck through (KawaDone); space again unticks"
+  has "$out" "ticked: [ ] buy rice|[x] call the bank ${ICON_BOX_OFF}KawaIcon+3@0.0 ${ICON_BOX_ON}KawaMuted+3@1.0 KawaDone@1.4-17"
+  has "$out" "unticked: [ ] buy rice|[ ] call the bank"
+  eq "$(nvim --headless -c 'luafile ~/.config/fedokawaii/notes.lua' -c "lua local h = vim.api.nvim_get_hl(0, {name='KawaDone'}); io.stdout:write(string.format('%06x %s', h.fg, tostring(h.strikethrough)))" -c 'qa!' -- "$TMP/n.md" 2>/dev/null)" \
+     "$(sed -n 's/^C_MUTED=\([0-9a-f]*\).*/\1/p' "$HOME/.config/fedokawaii/themes/dark/colors.sh") true"
+  case_ "...the keys: the cursor never on the box, backspace never into it, enter on an empty item ends the list, enter mid-words takes them along"
+  has "$out" "the cursor never on the box: { 1, 4 }"
+  has "$out" "backspace stops at the box: [ ] tea|[x] call the bank"
+  has "$out" "enter on an empty one ends the list: [ ] tea|[x] call the bank n"
+  has "$out" "backspace on an empty one: [ ] tea|[x] call the bank!"
+  has "$out" "enter mid-words: [ ] tea|[ ] ou|[x] call the bank!" "(no space left either side of the cut)"
+  case_ "...its heading (the tanzaku, to-do, the rule) and footer; tab turns to the notes; Super+U's way in while it shows: at once"
+  has "$out" "heading: %#KawaGround#  %#KawaIcon#$ICON_TODO%#KawaGround#  %#KawaName#to-do %#KawaStitch#%="
+  has "$out" "footer: %#KawaGround#  %#KawaMuted#~/Notes/todo.md  ·  space ticks  ·  tab: the notes"
+  has "$out" "tab: notes.md at the end: true" "(the notes again at their end, as they open)"
+  has "$out" "typing on the to-do, tab turns it: notes.md"
+  has "$out" "typing on the notes, tab turns it: todo.md, the notes keep no tab: true" "(the notes open typing: a tab there turns the page, never goes into the text)"
+  has "$out" "shown, again: shown todo.md"
+  case_ "...saved as you go, an item left empty tidied away as the window goes"
+  eq "$(cat "$HOME/Notes/todo.md")" $'[ ] tea\n[ ] ou\n[x] call the bank!'
+  ours
 fi
+
+case_ "kawa-notes --todo: the page asked through its socket — showing: turned at once, nothing else; put away: kawa-warm shows it"
+setup; stub nvim 'echo shown'; kawa-notes --todo; lacks "$(cat "$CALLS" 2>/dev/null)" "kawa-warm"
+setup; stub nvim 'echo hidden'; kawa-notes --todo; called '^kawa-warm notes$'
+setup; stub nvim 'exit 1'; kawa-notes --todo; called '^kawa-warm notes$' "(no page running yet: shown all the same)"
 
 done_

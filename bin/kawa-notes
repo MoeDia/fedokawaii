@@ -7,6 +7,8 @@
 # whichever way the window goes, nothing is lost. A day you opened but wrote nothing under
 # leaves no heading behind.
 #
+# Beside the notes, a page of things to do (~/Notes/todo.md): tab turns to it and back.
+#   kawa-notes --todo     the window on the to-do (Super+U → learning → to-do)
 # (Its own parts: --inside [--shown], what runs in the window; --today, today's heading;
 # --tidy, the end of the file tidied — the page runs these two as it shows and goes.)
 set -u
@@ -17,6 +19,10 @@ HEAD="## $today"
 
 case ${1:-} in
   "") exec kawa-warm notes ;;
+  --todo)                                 # the page turned to the to-do: at once if it shows,
+    r=$(nvim --server "$SOCK" --remote-expr 'v:lua.kawa_notes_todo()' 2>/dev/null)
+    [[ $r == shown ]] && exit 0           # else shown on it (no page running yet: on the notes)
+    exec kawa-warm notes ;;
   --today|--tidy) ;;
   --inside)                               # in the window: neovim
     # as a page, a text screen's heading and footer, with notes.lua as its whole configuration
@@ -35,7 +41,7 @@ case ${1:-} in
       nvim -n -i NONE --listen "$SOCK" -u ~/.config/fedokawaii/notes.lua "${first[@]}" -- "$NOTES"
     "$0" --tidy; exit 0 ;;
   -h|--help) sed -n '2,/^set -u/{/^set -u/d;s/^# \{0,1\}//;p}' "$0"; exit 0 ;;
-  *) echo "usage: kawa-notes   (Super+N: your notes, ~/Notes/notes.md)" >&2; exit 2 ;;
+  *) echo "usage: kawa-notes [--todo]   (Super+N: your notes, ~/Notes/notes.md; the to-do beside them)" >&2; exit 2 ;;
 esac
 
 # notes written on Windows end their lines in CR LF: what is added here does the same (the

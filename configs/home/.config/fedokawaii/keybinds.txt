@@ -13,7 +13,7 @@ Super+V                 clipboard history: text and pictures (again: away)
 Super+Z                 shrink or convert what you copied
 Super+D                 archives and PDFs: unpack, pack, merge, sign
 Super+R                 books: read, add, remove
-Super+N                 notes (again: put them away)
+Super+N                 notes (again: put them away; tab: the to-do)
 Super+Shift+N           dismiss notifications
 Super+U                 the system: update, new Fedora, repair (again: away)
 Super+Shift+U           change the desktop, part by part

@@ -1419,3 +1419,18 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   gates every task (pass/fail on the evidence) and a trace of every request the owner made.
   Also: the dial's gallery reference box (tools/regress/gallery-expect.json quick → 1574 33 1913
   373); the Learn book's quick-settings row describes the dial.
+- r27-21a DONE + VERIFIED kit (1 Nov 00:35) — the to-do beside the notes (owner 18:48: "dead simple —
+  items with a checkbox, done items struck through; nothing else"): ~/Notes/todo.md, a line an item
+  ("[ ] words" / "[x] words", readable anywhere); the page draws the box over "[ ]" on the notes'
+  text column (box-off in the icon ink, box-on muted, the words then muted and struck through);
+  space ticks/unticks, enter adds the next (an empty one's enter ends the list), backspace never
+  into the box, dd takes one away, an empty item tidied as the window goes; its heading the
+  tanzaku + "to-do", its footer "~/Notes/todo.md · space ticks · tab: the notes". Tab turns the
+  page TYPING OR NOT (found in the kit: the notes open typing, so a normal-mode-only Tab typed a
+  tab into the notes and the items went there) — back on the notes, typing at their end; the page
+  hides nvim's ~ under the last line (fillchars eob). Super+U → learning → to-do (kawa-notes
+  --todo: turned at once while the window shows, else shown on it). Tests: test_notes 115/0 (the
+  to-do steps incl. tab typing on either page), test_menu 589/0. Rendered both moods (kit play:
+  notes → tab → typed three, ticked one → tab → notes). Live at his next login: the warm notes
+  window is never restarted under him (it holds his page); until then the to-do entry shows the
+  notes, nothing breaks. (This work was the 22:12 pass's, stashed for the owner's 23:23 note.)

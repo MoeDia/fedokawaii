@@ -301,7 +301,7 @@ accept: shots both themes (art, caret visible at 0.0 s and 0.5 s, torches' frame
 
 ## Phase 4 — the apps
 
-### T21 — notes (Super+N) as a vertical lined notebook; black areas, save flicker, header spacing; the to-do list beside it  [todo]
+### T21 — notes (Super+N) as a vertical lined notebook; black areas, save flicker, header spacing; the to-do list beside it  [wip — the to-do done 1 Nov (ledger r27-21a: Tab turns the page typing or not, Super+U → learning → to-do, test_notes 115/0, rendered both moods); left: the notebook redesign, bug 2's black areas, the save flicker, the header spacing, the Learn piece]
 deps: T11, T16, T19  · model: main  · ledger: r27-21
 files: bin/kawa-notes, configs/home/.config/fedokawaii/notes.lua, bin/kawa-warm (window geometry: a tall rectangle, e.g. 60×40 cells, centred), bin/kawa-todo (new: the same page engine on ~/Notes/todo.md, `[ ]`/`[x]` rows, Space toggles, done rows struck through with the strikethrough attribute, nothing else), system/fedokawaii (learning → to-do), configs/home/.config/fedokawaii/keybinds.txt (inside notes: Tab = to-do page), tests/content/test_notes.sh, tests/content/test_todo.sh
 approach:

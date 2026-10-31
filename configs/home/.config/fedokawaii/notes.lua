@@ -47,6 +47,9 @@ end
 
 local where = (os.getenv("KAWA_NOTES_WHERE") or "~/Notes/notes.md"):gsub("%%", "%%%%")
 local ICON_NOTE = "\243\190\128\188" -- Sumi Icons: note (U+FE03C), as in icons.sh
+local ICON_TODO = "\243\190\131\140" -- the to-do's tanzaku (U+FE0CC)
+local BOX = { [false] = "\243\190\128\179", [true] = "\243\190\128\178" }   -- box-off (U+FE033), box-on (U+FE032)
+local TODO = os.getenv("KAWA_TODO") or vim.fn.expand("~/Notes/todo.md")
 
 local function colours()
   -- the theme's inks (colors.sh, written by tools/build-themes.py): the current one's, or —
@@ -69,6 +72,7 @@ local function colours()
     vim.api.nvim_set_hl(0, name, { fg = "#" .. c[k], bg = g })
   end
   vim.api.nvim_set_hl(0, "KawaGround", { bg = g })
+  vim.api.nvim_set_hl(0, "KawaDone", { fg = "#" .. c.MUTED, bg = g, strikethrough = true })   -- (a to-do done)
   vim.api.nvim_set_hl(0, "StatusLine", { bg = g })
   vim.api.nvim_set_hl(0, "StatusLineNC", { bg = g })
   -- the margin is plain page, not a strip of its own
@@ -84,6 +88,9 @@ local function footer_of(name)
   return "%#KawaGround#  %#KawaMuted#" .. name .. "  ·  saved as you go  ·  super+n puts it away%=%#KawaGround# "
 end
 local footer = footer_of(where)
+local function todo_footer(name)
+  return "%#KawaGround#  %#KawaMuted#" .. name .. "  ·  space ticks  ·  tab: the notes%=%#KawaGround# "
+end
 local function page_footer()
   pcall(function() require("lualine").hide({ place = { "statusline" }, unhide = false }) end)
   vim.o.laststatus = 2
@@ -121,12 +128,14 @@ local function page()
   vim.opt_local.cursorline = false          -- (a page: no bar across it, only the cursor)
   vim.opt_local.wrap = true
   vim.opt_local.linebreak = true
-  vim.opt_local.fillchars:append({ wbr = "─" })
+  vim.opt_local.fillchars:append({ wbr = "─", eob = " " })   -- (no ~ under the last line: a page ends in paper)
   local name = b == notes and where
     or vim.fn.fnamemodify(vim.api.nvim_buf_get_name(b), ":~"):gsub("%%", "%%%%")
   -- (the rule: the winbar's fill, ─ in edge2 — solid, as every heading's —, from after the name to two columns short of the edge)
-  vim.opt_local.winbar = "%#KawaGround#  %#KawaIcon#" .. ICON_NOTE .. "%#KawaGround#  %#KawaName#notes %#KawaStitch#%=%#KawaGround#  "
-  vim.wo.statusline = footer_of(name)
+  local is_todo = vim.api.nvim_buf_get_name(b) == TODO
+  vim.opt_local.winbar = "%#KawaGround#  %#KawaIcon#" .. (is_todo and ICON_TODO or ICON_NOTE) .. "%#KawaGround#  %#KawaName#"
+    .. (is_todo and "to-do" or "notes") .. " %#KawaStitch#%=%#KawaGround#  "
+  vim.wo.statusline = is_todo and todo_footer(name) or footer_of(name)
   -- (LazyVim formats a file on every write when a formatter knows it — the Markdown extra
   -- does: here that would rewrite the page under your fingers, key by key)
   vim.b[b].autoformat = false
@@ -224,8 +233,18 @@ local function run(arg)
   vim.fn.system({ "kawa-notes", arg })
   fresh()
 end
+local shown, next_page = false, nil         -- (the window showing; the page it opens on next)
+local todo_open, todo_tidy                  -- (the to-do's, below)
+local function notes_open()                 -- the page turned back: the notes, typing at their end
+  vim.api.nvim_win_set_buf(0, buf)
+  local n = vim.api.nvim_buf_line_count(buf)
+  vim.api.nvim_win_set_cursor(0, { n, #vim.api.nvim_buf_get_lines(buf, n - 1, n, false)[1] })
+  vim.cmd("startinsert!")
+end
 function _G.kawa_notes_hidden()
-  save()
+  shown = false
+  todo_tidy()
+  save_all()
   run("--tidy")
   return ""
 end
@@ -233,10 +252,153 @@ function _G.kawa_notes_shown()
   save()
   run("--today")
   vim.cmd("silent! wall")                     -- (another file open here: saved, and the notes back)
+  shown = true
+  if next_page == "todo" then next_page = nil; todo_open(); return "" end
   vim.api.nvim_win_set_buf(0, buf)
   local n = vim.api.nvim_buf_line_count(buf)
   vim.api.nvim_buf_set_lines(buf, n, n, false, { "" })
   vim.api.nvim_win_set_cursor(0, { n + 1, 0 })
   vim.cmd("startinsert!")
   return ""
+end
+
+-- ── the to-do (owner 2026-10-25 18:48): a page beside the notes — dead simple: things to do,
+-- each with a box; done ones struck through; nothing else (no dates, no reminders). One file,
+-- ~/Notes/todo.md, a line a thing: "[ ] call the bank", "[x] buy rice" (readable anywhere). The
+-- page draws the box over those four characters — on the notes' text column, the words two
+-- columns after it, as a list row's glyph and name stand (docs/design-system.md §7). Tab (not
+-- typing) turns from one page to the other; on the to-do: space ticks or unticks, enter adds
+-- one under it, typing on an empty one's enter ends the list; dd takes one away. Super+U →
+-- learning → to-do opens on it (kawa-notes --todo). Saved as you go, as the notes are.
+local ns = vim.api.nvim_create_namespace("kawa_todo")
+local todo                                  -- its buffer, once opened
+local ITEM = "^%[([ xX])%] "                -- an item: its box, a space, its words
+local function todo_marks()
+  if not (todo and vim.api.nvim_buf_is_valid(todo)) then return end
+  vim.api.nvim_buf_clear_namespace(todo, ns, 0, -1)
+  for i, line in ipairs(vim.api.nvim_buf_get_lines(todo, 0, -1, false)) do
+    local m = line:match(ITEM)
+    if m then
+      local done = m ~= " "
+      -- (the icon one cell, drawn across two — foot's overflow into the space after it —, then two of air)
+      vim.api.nvim_buf_set_extmark(todo, ns, i - 1, 0, {
+        virt_text = { { BOX[done], done and "KawaMuted" or "KawaIcon" }, { "   ", "KawaGround" } },
+        virt_text_pos = "overlay",
+      })
+      if done and #line > 4 then
+        vim.api.nvim_buf_set_extmark(todo, ns, i - 1, 4, { end_col = #line, hl_group = "KawaDone" })
+      end
+    end
+  end
+end
+local function item_at(row)                 -- the line, and whether it is an item
+  local line = vim.api.nvim_buf_get_lines(todo, row - 1, row, false)[1] or ""
+  return line, line:match(ITEM) ~= nil
+end
+local function new_item(row, words)         -- an item put in after line ROW, typing at its words
+  vim.api.nvim_buf_set_lines(todo, row, row, false, { "[ ] " .. (words or "") })
+  if vim.api.nvim_get_mode().mode:sub(1, 1) == "i" then
+    vim.api.nvim_win_set_cursor(0, { row + 1, 4 })
+  else                                      -- (from the page: typing at its end, after the box)
+    vim.api.nvim_win_set_cursor(0, { row + 1, 0 })
+    vim.cmd("startinsert!")
+  end
+end
+todo_tidy = function()                      -- an item with no words goes (an enter too many)
+  if not (todo and vim.api.nvim_buf_is_valid(todo)) then return end
+  local lines = vim.api.nvim_buf_get_lines(todo, 0, -1, false)
+  for i = #lines, 1, -1 do
+    if lines[i]:match("^%[[ xX]%] *$") then vim.api.nvim_buf_set_lines(todo, i - 1, i, false, {}) end
+  end
+end
+todo_open = function()
+  if not (todo and vim.api.nvim_buf_is_valid(todo)) then
+    vim.fn.mkdir(vim.fs.dirname(TODO), "p")
+    todo = vim.fn.bufadd(TODO)
+    vim.fn.bufload(todo)
+    vim.bo[todo].buflisted = true
+    local k = function(lhs, fn, modes) vim.keymap.set(modes or "n", lhs, fn, { buffer = todo, nowait = true }) end
+    k("<Space>", function()                  -- tick or untick (a line of words: made an item)
+      local r = vim.api.nvim_win_get_cursor(0)[1]
+      local line, is = item_at(r)
+      if is then
+        local m = line:match(ITEM)
+        vim.api.nvim_buf_set_text(todo, r - 1, 1, r - 1, 2, { m == " " and "x" or " " })
+      elseif line:match("%S") then
+        vim.api.nvim_buf_set_text(todo, r - 1, 0, r - 1, 0, { "[ ] " })
+      end
+    end)
+    k("<CR>", function() new_item(vim.api.nvim_win_get_cursor(0)[1]) end)
+    k("o", function() new_item(vim.api.nvim_win_get_cursor(0)[1]) end)
+    k("O", function() new_item(vim.api.nvim_win_get_cursor(0)[1] - 1) end)
+    -- typing: enter gives the next item (the words after the cursor go with it); on an empty one
+    -- the list ends; backspace never goes into the box — on an empty item it takes the item
+    -- away and goes on at the end of the one before. (Keys returned, not typed again: they act
+    -- in their place, however fast the keys come)
+    local function at() local r, c = unpack(vim.api.nvim_win_get_cursor(0)); return r, c, item_at(r) end
+    _G.kawa_todo = {
+      enter = function()
+        local r, c, line = at()
+        if not line:sub(5):match("%S") then
+          vim.api.nvim_buf_set_lines(todo, r - 1, r, false, {})
+          return vim.cmd("stopinsert")
+        end
+        -- (split at the cursor: no space left at the end of one or the start of the other)
+        local head = line:sub(1, 4) .. line:sub(5, c):gsub("%s+$", "")
+        vim.api.nvim_buf_set_lines(todo, r - 1, r, false, { head })
+        new_item(r, (line:sub(c + 1):gsub("^%s+", "")))
+      end,
+      back = function()
+        local r, _, line = at()
+        if not line:sub(5):match("%S") and r > 1 then
+          vim.api.nvim_buf_set_lines(todo, r - 1, r, false, {})
+          local prev = vim.api.nvim_buf_get_lines(todo, r - 2, r - 1, false)[1]
+          vim.api.nvim_win_set_cursor(0, { r - 1, #prev })
+        end
+      end,
+    }
+    vim.keymap.set("i", "<CR>", function()
+      local _, _, _, is = at()
+      return is and "<Cmd>lua kawa_todo.enter()<CR>" or "<CR>"
+    end, { buffer = todo, expr = true })
+    vim.keymap.set("i", "<BS>", function()
+      local _, c, _, is = at()
+      if is and c <= 4 then return "<Cmd>lua kawa_todo.back()<CR>" end
+      return "<BS>"
+    end, { buffer = todo, expr = true })
+    -- the cursor never on the box: on an item it stays at its words
+    vim.api.nvim_create_autocmd({ "CursorMoved", "CursorMovedI" }, {
+      group = group, buffer = todo,
+      callback = function()
+        local r, c = unpack(vim.api.nvim_win_get_cursor(0))
+        local _, is = item_at(r)
+        if is and c < 4 then vim.api.nvim_win_set_cursor(0, { r, 4 }) end
+      end,
+    })
+    vim.api.nvim_create_autocmd({ "TextChanged", "TextChangedI", "BufEnter" }, {
+      group = group, buffer = todo, callback = todo_marks,
+    })
+    vim.keymap.set({ "n", "i" }, "<Tab>", notes_open, { buffer = todo })
+  end
+  vim.api.nvim_win_set_buf(0, todo)
+  todo_marks()
+  if vim.api.nvim_buf_line_count(todo) == 1 and vim.api.nvim_buf_get_lines(todo, 0, 1, false)[1] == "" then
+    vim.api.nvim_buf_set_lines(todo, 0, 1, false, { "[ ] " })   -- (nothing yet: the first one, typing)
+    todo_marks()
+    vim.api.nvim_win_set_cursor(0, { 1, 4 })
+    vim.cmd("startinsert!")
+  else
+    vim.cmd("stopinsert")
+    local r = vim.api.nvim_win_get_cursor(0)[1]
+    local _, is = item_at(r)
+    if is then vim.api.nvim_win_set_cursor(0, { r, 4 }) end
+  end
+end
+-- tab turns the page, typing or not (the notes open typing: a tab there would be typed)
+vim.keymap.set({ "n", "i" }, "<Tab>", function() todo_open() end, { buffer = buf })
+-- kawa-notes --todo: the window on the to-do — at once if it shows, else the next time it does
+function _G.kawa_notes_todo()
+  if shown then todo_open(); return "shown" end
+  next_page = "todo"
+  return "hidden"
 end
