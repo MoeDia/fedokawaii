@@ -1310,3 +1310,17 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   test_panel 513/0 (+ drawn/built/PNG-shape cases), test_design_doc 54/0. tools/kit.sh copies the
   crests into its home. Left: the 14 px tile_* glyphs (all but tile_bell_off, the bar's dnd) are
   unused now — out with T53 (removing them renumbers the font: by name only). Owner's verdict pending.
+- r27-19k-4 (c) LIVE-INSTALLED (31 Oct 22:33, 80f603a): apply 12 s, rc 0 — the 16 crests in
+  ~/.local/share/fedokawaii/crests, kawa-panel updated (the running one keeps its 14 px pictures until
+  his next login). verify after it: 257/258 — the one, qbittorrent outside the manifest (his own install,
+  28 Oct; decided with T29, see r27-note 30 Oct 02:23).
+- r27-19k-5 DONE + VERIFIED kit (31 Oct 22:50): the to-do's own icon — a tanzaku, Tanabata's wish slip
+  hung by its string from a bamboo twig, a tick breaking out of its right edge (art/icons.txt @todo,
+  12 × 12, 1 px strokes as its neighbours: book, knight, keyboard, keycap; appended last: no base code
+  point moved, the -bar twins renumbered by name only). Super+U → learning → to-do shows ICON_TODO in
+  place of the filled checkbox (system/fedokawaii); three rounds of drafts: a centred string stub on a
+  rectangle read as a battery (V1, V7), lines of writing as a document (V6) → the diagonal string to
+  the twig (V11). Kit play both themes (Super+U, 4 × Tab, cursor on to-do): the row's icon and the
+  pane's heading, 1 drawing pixel = 1 screen pixel (8× crop). test_menu 589/0 (+ the case: ICON_TODO,
+  not ICON_BOX_ON). ICON_BOX_ON now unused (T53's list). Left for T21: the larger tanzaku on Super+N's
+  to-do tab.

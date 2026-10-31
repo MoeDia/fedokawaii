@@ -88,6 +88,9 @@ learning: guide chess typing todo keys "
 out=$(WAYLAND_DISPLAY=wayland-1 allrows)
 (( $(widest "$(entries "$out")") <= 38 )) && _ok || _no "a row wider than 38: $(plain "$out")"
 lacks "$(plain "$out")" "╌" "no dashed line anywhere"
+case_ "learning → to-do: its own picture (the tanzaku: ICON_TODO), not a checkbox"
+l=$(cut -f2 <<<"$(grep "^todo"$'\t' <<<"$out")")
+(. "$REPO/configs/home/.config/fedokawaii/icons.sh"; [[ -n $ICON_TODO && $l == *"$ICON_TODO"* && $l != *"$ICON_BOX_ON"* ]]) && _ok || _no "to-do: $l"
 case_ "rows: each entry a column in, its icon, two columns, its name; the value right-aligned at the list's last column, muted"
 for a in update snapshots remind; do
   l=$(cut -f2 <<<"$(grep "^$a"$'\t' <<<"$out")")

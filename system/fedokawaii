@@ -712,7 +712,7 @@ rows() {
   e learning  guide     "${ICON_BOOK:-·}"       lessons                ""
   e learning  chess     "${ICON_KNIGHT:-·}"     chess                  ""
   e learning  typing    "${ICON_KEYBOARD:-·}"   typing                 ""
-  e learning  todo      "${ICON_BOX_ON:-·}"     to-do                  ""
+  e learning  todo      "${ICON_TODO:-·}"       to-do                  ""
   [[ -n $desk ]] && e learning keys "${ICON_KEYCAP:-·}" keys ""
   return 0
 }
