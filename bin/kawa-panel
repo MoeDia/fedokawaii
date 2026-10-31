@@ -70,10 +70,11 @@ moves it from there. It is not there until a key or the pointer asks for it: the
 Tab or Enter puts it on the first item, every open starts without it (nothing remembered from
 the last time). A click does what is under the pointer.
 
-Keys: arrows or h j k l move · on a meter ← → (h l) change it by 5 (the slider's from the
-first press: it is all there is) · Enter or Space does it · Tab goes round · Esc closes.
-The mouse: a click does it; on a meter a click or a drag sets the level there, the wheel moves
-it by 5. A click outside closes it, as with every menu. Switches (theme, night light,
+Keys: arrows or h j k l move (on the dial: to the nearest item that way) · on a meter ← → (h l)
+change it by 5 (the slider's from the first press: it is all there is; the dial's beads rise,
+so there ↑ ↓) · Enter or Space does it · Tab goes round · Esc closes.
+The mouse: a click does it; on a meter a click or a drag sets the level there, the wheel (or a
+touchpad) moves it by 5. A click outside closes it, as with every menu. Switches (theme, night light,
 freesync, bluetooth, dnd, screensaver; mute, an output, an input) stay open and show the new state; the
 rest close it and open their own menu or window. Everything is done by kawa-quick (--state,
 --do), which knows the machine; this only draws it and listens.
@@ -523,10 +524,12 @@ class Arc(Item):
 
 
 def arc_polar(it, x, y):
-    """Where a point is on an arc's side of the dial: its angle up from the bottom (degrees: 0
-    at six o'clock, 180 at twelve; None on the other side) and its distance from the middle —
-    the centre of the dial's middle pixel, cx − ½ (the dial is an even number of pixels across)."""
-    dx, dy = (x + .5 - (it.cx - .5)) * it.side, (y + .5 - (it.cy - .5))
+    """Where a point (the pointer's, as GTK gives it; a pixel's: its centre, x + ½) is on an
+    arc's side of the dial: its angle up from the bottom (degrees: 0 at six o'clock, 180 at
+    twelve; None on the other side) and its distance from the middle — the point cx, cy between
+    the four middle pixels (the dial is an even number of pixels across: every picture and bead
+    is centred on cx ± dx, cy ± dy)."""
+    dx, dy = (x - it.cx) * it.side, (y - it.cy)
     if dx <= 0:
         return None, 0.0
     return math.degrees(math.atan2(dx, dy)), math.hypot(dx, dy)
@@ -1034,29 +1037,6 @@ def layout_launcher(m):
                  [], marks, (top, view_h, max(height, view_h)) if height > view_h else (top, view_h, view_h))
     lay.fixed = True                         # (its size kept while typing: never trimmed to its ink)
     return lay
-
-
-_DISCS = {}
-
-
-def disc_rows(r, r_in=-1.0):
-    """A pixel disc 2r across, centred between pixels (its rows and columns −r … r−1): the cells
-    whose centre is within r — and, for a ring, beyond r_in — as runs a row: [(dy, dx0, dx1)].
-    (One drawing for every seal: the same pixels at every size, in both themes.)"""
-    key = (r, r_in)
-    if key not in _DISCS:
-        out = []
-        for y in range(-r, r):
-            run = None
-            for x in range(-r, r + 1):
-                inside = x < r and r_in < ((x + .5) ** 2 + (y + .5) ** 2) ** .5 <= r
-                if inside and run is None:
-                    run = x
-                elif not inside and run is not None:
-                    out.append((y, run, x - 1))
-                    run = None
-        _DISCS[key] = out
-    return _DISCS[key]
 
 
 def look(it, focused, hot):
@@ -1693,7 +1673,7 @@ class Panel:
             self.scroll_list(dy * 3 * (METER_H + METER_GAP))
             return
         it = self.at(x, y)
-        if not it or (it.kind != "meter" and it.key not in WHEELED):
+        if not it or (it.kind not in ("meter", "arc") and it.key not in WHEELED):
             self.scrolled = (None, 0.0)
             return
         key, acc = self.scrolled
@@ -2483,7 +2463,7 @@ def main(argv):
                 for y in range(it.y, it.y + it.h):
                     run = None
                     for x in range(it.x, it.x + it.w + 1):
-                        u, r = arc_polar(it, x, y) if x < it.x + it.w else (None, 0)
+                        u, r = arc_polar(it, x + .5, y + .5) if x < it.x + it.w else (None, 0)
                         inside = u is not None and abs(r - BEAD_R) <= BAND / 2 and \
                             BEAD_FROM - step / 2 <= u <= BEAD_FROM + BEAD_RUN + step / 2
                         if inside and run is None:

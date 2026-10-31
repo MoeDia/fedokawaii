@@ -1434,3 +1434,15 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   notes → tab → typed three, ticked one → tab → notes). Live at his next login: the warm notes
   window is never restarted under him (it holds his page); until then the to-do entry shows the
   notes, nothing breaks. (This work was the 22:12 pass's, stashed for the owner's 23:23 note.)
+- r27-19k-7 tests (1 Nov 00:35) — tests/menus/test_panel.sh rewritten for the dial (a sonnet
+  subagent, verified here): 613/0 (was 406/107); test_quick 369/0. New: the dial's symmetry (12
+  and 10 hours, arcs, corners, the middle), arc_level for every bead, arrow walks + reachability
+  over both layouts, toward()'s cone and ties, Tab round all 18, ↑ ↓ on an arc, the middle never
+  chosen, hit areas never overlapping. The subagent's review found four faults in the dial's
+  code, all fixed: (1) smooth scrolls (a touchpad; GTK's wheel on Wayland) skipped the arcs
+  (scroll_by knew only "meter") — the beads now step and sum like every meter; (2) arc_polar took
+  the middle as cx − ½ for a pointer's place: the arcs' hit zones sat a pixel up-left and the two
+  were not mirror images — the middle is the point cx, cy between the four middle pixels (pixels
+  measured at their centres), mirrored hit zones now a test; (3) disc_rows/_DISCS (the seals')
+  dead — gone; (4) the docstring's keys (↑ ↓ on the dial's beads). Also its fix of an old case
+  that popped the wrong pending call (passed by accident).
