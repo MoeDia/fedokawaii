@@ -152,13 +152,22 @@ eq "$(t '' backup)" "tile_backup backup | 3 days ago | lit"
 eq "$(t 'STATE.replace("3 days ago","never")' backup)" "tile_backup backup | never | quiet"
 eq "$(t '' dnd)" "tile_bell dnd | off | quiet"
 eq "$(t 'STATE.replace("dnd\toff","dnd\ton")' dnd)" "tile_bell_off dnd | on | lit"
-case_ "tiles_of: (key, picture, name, value, on) — five fields; every picture an icon of the font and no two alike (sixteen drawings over every state)"
+case_ "tiles_of: (key, picture, name, value, on) — five fields; every picture a crest of its own and no two alike (sixteen drawings over every state)"
 eq "$(py 'S = [STATE.replace("theme\tdark", "theme\tlight"), STATE, STATE.replace("nettype\twifi", "nettype\tethernet"), STATE.replace("nettype\twifi", "nettype\toffline"), STATE.replace("dnd\toff", "dnd\ton")]
 rows = [t for st in S for t in kp.tiles_of(kp.parse_state(st))]
-pics = sorted({t[1] for t in rows}); ic = kp.icons()
-print({len(t) for t in rows}, len(pics), [n for n in pics if n not in ic])
+pics = sorted({t[1] for t in rows})
+print({len(t) for t in rows}, len(pics))
 print(" ".join(pics))')" \
-  "$(printf '%s\n' "{5} 16 []" "tile_backup tile_bell tile_bell_off tile_bluetooth tile_devices tile_drive tile_ethernet tile_lantern tile_moon tile_offline tile_read tile_record tile_saver tile_sun tile_wave tile_wifi")"
+  "$(printf '%s\n' "{5} 16" "tile_backup tile_bell tile_bell_off tile_bluetooth tile_devices tile_drive tile_ethernet tile_lantern tile_moon tile_offline tile_read tile_record tile_saver tile_sun tile_wave tile_wifi")"
+case_ "the crests' pictures (art/crests.txt → tools/build-icons.py): one drawing and one 28 × 28 mask for each tile's picture (its icon less tile_), nothing else"
+want="backup bell bell-off bluetooth devices drive ethernet lantern moon offline read record saver sun wave wifi"
+eq "$(grep '^@' "$REPO/art/crests.txt" | cut -c2- | sort | tr '\n' ' ' | sed 's/ $//')" "$want" "drawn: one each"
+eq "$(cd "$REPO/configs/home/.local/share/fedokawaii/crests" && ls -- *.png | sed 's/\.png$//' | sort | tr '\n' ' ' | sed 's/ $//')" "$want" "built: one mask each, no stale one"
+eq "$(python3 -I -c 'import struct, sys
+for f in sys.argv[1:]:
+    b = open(f, "rb").read(26)
+    print(b[:8] == b"\x89PNG\r\n\x1a\n", struct.unpack(">II", b[16:24]), b[24:26])' "$REPO"/configs/home/.local/share/fedokawaii/crests/*.png | sort -u)" "True (28, 28) b'\x08\x04'" "every one a PNG 28 × 28, 8-bit grey and alpha (a mask)"
+eq "$(py 'print(kp.CREST_PIC, kp.CRESTS.endswith("/.local/share/fedokawaii/crests"))')" "28 True"
 case_ "the wallpaper's name: the tip of its key"
 eq "$(py 'fresh(); print(p.item("wallpaper").tip)')" mishima-mist
 case_ "no day or weather line: the bar's own, right above the panel"
@@ -465,10 +474,12 @@ has "$d" 'if it.lit and not it.value:'
 has "$d" 'dot(cr, it.x + it.w - DOT, it.y + (ROW - DOT) // 2, "text_on_select" if on else "accent")'
 has "$d" 'box(cr, x + 1, y, DOT - 2, DOT, name)'; has "$d" 'box(cr, x, y + 1, DOT, DOT - 2, name)'
 has "$d" 'frame(cr, x, y, w, h, "accent_text", cut=True)'
-case_ "a crest's pixels (§4): a seal 36 px across on its cell's middle column, 6 px down; on, a disc and a paper ring 2 px inside its edge, off, a 1 px outline — its picture (14 px) in its middle; its name on the row 46 px down, its state on the row 66 px down, centred by their ink"
+case_ "a crest's pixels (§4): a seal 36 px across on its cell's middle column, 6 px down; on, a disc and a paper ring 2 px inside its edge, off, a 1 px outline — its picture (28 px, a mask in the state's ink) on its centre; its name on the row 46 px down, its state on the row 66 px down, centred by their ink"
 has "$d" 'cx, cy = it.x + it.w // 2, it.y + MON_TOP + MON_R'
 has "$d" 'for dy, a, b in disc_rows(r - 2, r - 3):'; has "$d" 'for dy, a, b in disc_rows(MON_R, MON_R - 1):'
-has "$d" 'pic(cr, cx - 7, cy - 7, ic[it.icon], lk["glyph"])'
+has "$d" 'mask = crest_pic(it.icon)'
+has "$d" 'cr.mask_surface(mask, cx - CREST_PIC // 2, cy - CREST_PIC // 2)' "the 28 px picture's middle on the seal's (both between pixels)"
+has "$d" 'name = icon.removeprefix("tile_").replace("_", "-")'
 has "$d" 'text(cr, it.x + (it.w - ink_w.width) // 2 - ink_w.x, it.y + top + (ROW - LINE) // 2,'
 eq "$(py 'print(kp.MON_R, kp.MON_TOP, kp.MON_NAME, kp.MON_STATE, kp.MON_W, kp.MON_H, kp.MON_STATE + kp.ROW <= kp.MON_H)')" "18 6 46 66 94 88 True" "36 px across, 6 px down its cell, the name and the state a row each under it, inside the cell"
 eq "$(py 'r = kp.disc_rows(14); ys = sorted({y for y, a, b in r}); w = {y: b - a + 1 for y, a, b in r}

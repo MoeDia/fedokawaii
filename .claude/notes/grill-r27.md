@@ -155,3 +155,36 @@ as a cross, a grave marker) and the even ribs read as a beehive or a barrel. Nex
 1 px arch), fewer ribs that bow with the paper (curved, wider in the middle), and a glow — the
 lantern lit from inside as the night light is (on: a paper core; off: unlit, ribs only).
 
+
+**T19k-4 (c) the crests' pictures — built (31 Oct 22:20–23:05; `crests-t19k4c.py`, the sheet in
+`art/crests.txt`):** five rounds of renders (on/off/cursor, both themes, 1× and 4×), each grilled:
+- **kept from round 1:** the crescent, now *with its star* (月に星, the Chiba crest: a disc in its
+  arms — character, and the sun's disc answered), the RJ45 socket (8 contacts, the latch's slot),
+  wifi (three arcs and the dot), the bluetooth rune (diagonals as 2.3-wide strokes), headphones
+  (each cup a shell and a cushion), a USB stick (two windows, a light), a cine camera (two reels,
+  the lens), a region's corners round three lines of words (read text).
+- **sun:** tapered wedges read as nails (⊥) and the 16-ray "hi" as a saw blade → eight bars
+  (straight 2 px, diagonals 2.3 on the stair, a step shorter) round a disc r 6.2.
+- **night light:** a chōchin failed four ways — even ribs = a beehive, full-width ribs cut it into
+  slabs, a tassel = a spinning top, a hook on the lid = a cross → a **tōrō**, the stone lantern of
+  a temple garden (jewel, roof with its corners up, the fire box's two windows and post, the
+  platform, post and base): on the seal its windows are the vermilion — the light.
+- **freesync:** a solid curl read as a snail, "@", a helmet, and with claws a jaw → **water**:
+  three bands of swell, the top one breaking into a curl (it also reads "flow").
+- **backup:** a kura (storehouse) read as a house, its namako lattice as a checkerboard (1 px
+  diagonals on the stair are dotted lines) → a **senryō-bako**, the iron-bound chest a house kept
+  its gold in (bands, lid, lock plate): "kept safe" at once.
+- **dnd:** a bonshō with its nodules read as an apartment block, a hand-drawn one as a canister, a
+  ring lug as a padlock → the dome and a small arched lug, two bands, the striking seat; the bands
+  stop a pixel short of the silhouette (whole, not three slabs); dnd on: the same struck through.
+- **screensaver** (kawa-saver is sashiko): a needle and stitches read as a pen signing, with its
+  thread as a scimitar, a quill, a hook; a spool with the needle through it read as "saver OFF"
+  (a line across a crest is the off-slash) → **the spool and, beside it, the needle upright**, the
+  thread running from the spool over to its eye.
+- **offline:** wifi struck through left crumbs (the slash cuts the arcs into 1–2 px pieces) →
+  the arcs and a cross where the dot was.
+Rules found: a 45° stroke as heavy as a straight 2 px one is a run of 3; a 1 px diagonal reads
+dotted; a band inside a silhouette stops short of its edge; no line across any picture but "off".
+**Measured on the real panel** (kit, `--repo-art`, both themes): every picture painted 1:1 (the
+moon's 248 px = its mask's), its air to the seal's edge the drawing's + 4 — moon 6 | 7 · 6 | 6,
+socket 8 | 8 · 9 | 9, spool 8 | 9 · 7 | 8: the odd pixel right and below, as the words' rule.

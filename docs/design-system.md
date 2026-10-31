@@ -200,8 +200,8 @@ screen and the bar's paper share one rhythm.
   is 20 × 20.
 - **Tile** (quick settings — the mon sheet, 家紋): the content in four equal columns, each item a
   cell 94 × 88, nothing framed (a short row centred on the sheet); the state is the crest's. The
-  crest: a seal 36 px across, centred on its cell's middle column, 6 px down; its picture (14
-  px, each its own drawing — no two alike) in its middle. On — the seal pressed: a vermilion disc
+  crest: a seal 36 px across, centred on its cell's middle column, 6 px down; its picture (28
+  px, each its own drawing — no two alike: art/crests.txt, §13) on its centre. On — the seal pressed: a vermilion disc
   (`accent`) with a ring of paper (`key`) 2 px inside its edge, the picture knocked out in paper —
   the bar's stamp and the hanko of "chosen", one mark; off — the seal's outline in `edge2`, the
   picture `muted`. Its name centred on the row 46 px down (`text`), its state on the row 66 px down
@@ -438,6 +438,13 @@ stamp is a choice made, a scroll is something long opening.
   ways. **12 × 12** beside words, on the em's rows 1–12, centred on the capitals (§2);
   **14 × 14** alone; the bar's three emblems **16 × 16**. Sumi Icons Term draws the same pixels,
   centred in two terminal cells.
+- **Crests** (quick settings' mon sheet, §4): **28 × 28** in `art/crests.txt`, kamon style — one
+  ink, strokes 2 px both ways, a 45° stroke a run of 3 on the stair (as heavy as a straight 2),
+  details knocked out 1 px wide (a band inside a silhouette stops a pixel short of its edge: the
+  outline stays whole), masses solid; the ink inside a circle 26 across (2 px of vermilion before
+  the seal's ring); centred, the odd pixel of air right and below. A line across a picture means
+  "off" (the bell struck through) — no other picture has one. Built to masks
+  (`tools/build-icons.py` → `.local/share/fedokawaii/crests/`), painted in the state's ink.
 - One ink: an icon takes its words' ink (state colours from §5); art pieces (the demon, the angel,
   the seals' numerals, the weather's pictures) may use more, from the palette only.
 - **Kanji appear in three places only**: the workspace stamps (一–九), the bar's day kanji, and

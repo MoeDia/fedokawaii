@@ -91,8 +91,12 @@ if ((repo_art)); then
   cp -a "$repo/configs/home/.config/fedokawaii/themes/." "$h/.config/fedokawaii/themes/"
   rm -rf "$h/.config/waybar" "$h/.config/mako"
   cp -a "$repo/configs/home/.config/waybar" "$repo/configs/home/.config/mako" "$h/.config/"
+  # (quick settings' crest pictures: the repository's masks)
+  mkdir -p "$h/.local/share/fedokawaii" && cp -a "$repo/configs/home/.local/share/fedokawaii/crests" "$h/.local/share/fedokawaii/"
 else
   ln -s "$HOME/.local/share/fonts" "$h/.local/share/fonts"
+  [[ -d $HOME/.local/share/fedokawaii/crests ]] &&
+    mkdir -p "$h/.local/share/fedokawaii" && cp -a "$HOME/.local/share/fedokawaii/crests" "$h/.local/share/fedokawaii/"
 fi
 if [[ -n $themes ]]; then
   [[ -d $themes/.config/fedokawaii/themes ]] || { echo "kit: --themes: no build-themes tree at $themes" >&2; exit 2; }

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """tools/build-icons.py — build the desktop's pixel icon font from art/icons.txt.
 
-    python3 tools/build-icons.py            # writes the font and icons.sh
+    python3 tools/build-icons.py            # writes the font, icons.sh and the crests
     python3 tools/build-icons.py --preview out.png   # also draws every icon, 8x, centred
 
 Outputs (all committed, so a normal install needs neither Python nor fontTools):
@@ -12,13 +12,17 @@ Outputs (all committed, so a normal install needs neither Python nor fontTools):
         two: foot draws it from its cell's left edge, into the space after it) and its middle
         on the capitals' middle (11.6 px tall: a 12 px icon from the baseline up)
     configs/home/.config/fedokawaii/icons.sh
+    configs/home/.local/share/fedokawaii/crests/NAME.png   quick settings' crest pictures
+        (art/crests.txt, 28 × 28): white, the drawing in the alpha — a mask kawa-panel paints
+        in the state's ink
 
 The font copies Sumi UI's grid: 1400 units per em, 100 units per pixel, so at 14 px (or 28,
 42…) every pixel of the drawing lands on exactly one screen pixel.
 Each run of '#' is merged into rectangles, so the outlines are few and gap-free.
-Needs: python3-fonttools (dnf install python3-fonttools).
+Needs: python3-fonttools and python3-pillow (dnf install python3-fonttools python3-pillow).
 """
 import argparse
+import math
 import pathlib
 import re
 import sys
@@ -36,6 +40,9 @@ TERM_RAISE = 1                    # pixels: Sumi Term's capitals stand 11.6 px o
 TERM_CELL = 8                     # Sumi Term's cell: each drawing centred in whole cells
 TERM_UPM, TERM_ASC, TERM_DESC = 1600, 1600, -400  # Sumi Term's em and foot's line: 16 up, 4 down
 SH = ROOT / "configs/home/.config/fedokawaii/icons.sh"
+CRESTS_SRC = ROOT / "art" / "crests.txt"
+CRESTS_DIR = ROOT / "configs/home/.local/share/fedokawaii/crests"
+CREST = 28                        # a crest's picture, square; its ink within CREST / 2 - 1 of the middle
 
 UPM, PX = 1400, 100               # Sumi UI's grid: a 14 px em, 100 units per pixel
 ASC, DESC = 1200, -200            # its line: 12 up, 2 down — mixing the fonts keeps the line
@@ -45,7 +52,7 @@ MIDDLE = 5                        # an icon's middle in pixels above the baselin
                                   # Sumi UI's capitals (10 px tall on it)
 
 
-def parse(text):
+def parse(text, src="icons.txt"):
     icons, cur = [], None
     for n, raw in enumerate(text.splitlines(), 1):
         line = raw.rstrip()
@@ -54,18 +61,18 @@ def parse(text):
         if line.startswith("@"):
             name, *opts = line[1:].split()
             if not re.fullmatch(r"[a-z][a-z0-9-]*", name):
-                sys.exit(f"icons.txt:{n}: bad icon name {name!r}")
+                sys.exit(f"{src}:{n}: bad icon name {name!r}")
             settings = {}
             for o in opts:
                 k, _, v = o.partition("=")
                 if k not in ("adv", "x") or not re.fullmatch(r"-?\d+", v):
-                    sys.exit(f"icons.txt:{n}: bad setting {o!r}")
+                    sys.exit(f"{src}:{n}: bad setting {o!r}")
                 settings[k] = int(v)
             cur = {"name": name, "rows": [], "line": n, **settings}
             icons.append(cur)
         elif re.fullmatch(r"[#.]+", line):
             if cur is None:
-                sys.exit(f"icons.txt:{n}: drawing outside an icon")
+                sys.exit(f"{src}:{n}: drawing outside an icon")
             cur["rows"].append(line)
         elif not line:
             cur = None
@@ -73,20 +80,20 @@ def parse(text):
     for ic in icons:
         rows, name = ic["rows"], ic["name"]
         if name in seen:
-            sys.exit(f"icons.txt:{ic['line']}: {name} drawn twice")
+            sys.exit(f"{src}:{ic['line']}: {name} drawn twice")
         seen.add(name)
         if not rows:
-            sys.exit(f"icons.txt:{ic['line']}: {name} has no drawing")
+            sys.exit(f"{src}:{ic['line']}: {name} has no drawing")
         widths = {len(r) for r in rows}
         if len(widths) != 1:
-            sys.exit(f"icons.txt:{ic['line']}: {name} rows differ in width {sorted(widths)}")
+            sys.exit(f"{src}:{ic['line']}: {name} rows differ in width {sorted(widths)}")
         w, h = widths.pop(), len(rows)
         # even × even, its middle on the capitals' middle (12 beside words, 14 alone, 16 the
         # emblems); a part laid by the pixel (x given: the meters' pieces) any width
         if h % 2:
-            sys.exit(f"icons.txt:{ic['line']}: {name} is {h} rows; heights are even")
+            sys.exit(f"{src}:{ic['line']}: {name} is {h} rows; heights are even")
         if "x" not in ic and w % 2:
-            sys.exit(f"icons.txt:{ic['line']}: {name} is {w} × {h}; even × even")
+            sys.exit(f"{src}:{ic['line']}: {name} is {w} × {h}; even × even")
         ic["w"], ic["h"] = w, h
         ic.setdefault("adv", -(-w // 7) * 7)    # whole 7 px columns of Sumi UI: a 12 or 14 px icon two
         ic.setdefault("x", (ic["adv"] - w) // 2)
@@ -251,6 +258,32 @@ def preview(icons, path, scale=8):
     img.save(path)
 
 
+def crests(src=CRESTS_SRC, out=CRESTS_DIR):
+    """quick settings' crest pictures (art/crests.txt) as masks: white, the drawing in the
+    alpha, one PNG each by its name; a picture no longer drawn, gone"""
+    from PIL import Image
+    pics = parse(src.read_text(), src.name)
+    out.mkdir(parents=True, exist_ok=True)
+    for ic in pics:
+        if (ic["w"], ic["h"]) != (CREST, CREST):
+            sys.exit(f"{src.name}:{ic['line']}: {ic['name']} is {ic['w']} × {ic['h']}; a crest is {CREST} × {CREST}")
+        im = Image.new("LA", (CREST, CREST), (255, 0))
+        for y, r in enumerate(ic["rows"]):
+            for x, v in enumerate(r):
+                if v != "#":
+                    continue
+                if math.hypot(x + .5 - CREST / 2, y + .5 - CREST / 2) > CREST / 2 - 1:
+                    sys.exit(f"{src.name}:{ic['line']}: {ic['name']}'s pixel {x},{y} is beyond the circle "
+                             f"of {CREST / 2 - 1:g} (the seal's vermilion before its ring)")
+                im.putpixel((x, y), (255, 255))
+        im.save(out / f"{ic['name']}.png")
+    names = {ic["name"] for ic in pics}
+    for f in out.glob("*.png"):
+        if f.stem not in names:
+            f.unlink()
+    return pics
+
+
 def left_air(ic):
     return ic["x"] + min(r.index("#") for r in ic["rows"] if "#" in r)
 
@@ -279,6 +312,7 @@ def main():
     build(icons, TERM_TTF, "Sumi Icons Term", TERM_RAISE, TERM_CELL, TERM_UPM, TERM_ASC, TERM_DESC)
     write_sh(icons)
     print(f"{len(icons)} icons → {TTF.relative_to(ROOT)}, {TERM_TTF.relative_to(ROOT)}, {SH.relative_to(ROOT)}")
+    print(f"{len(crests())} crests → {CRESTS_DIR.relative_to(ROOT)}/")
     if a.preview:
         preview(icons, a.preview)
 

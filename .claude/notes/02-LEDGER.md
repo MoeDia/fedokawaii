@@ -1290,4 +1290,23 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   expect "✔ all 25"); a failure there is the first job. Then the 11:27 list: the live grim of the
   bar's face and quick settings (only while he is away), T19k-4 (c) the crests' pictures (the moon
   holds; the sun's diagonals and the lantern grilled in grill-r27.md), T19k-5 the tanzaku.
-
+- r27-suite installer area CLEAN (31 Oct 11:51, on d83edfd, detached): ✔ all 25 files — test_upstream
+  246/0, test_upkeep 220/0, test_setup 232/0, test_torture 214/0, test_verify 171/0, test_upgrade 40/0 …
+  (log ~/.cache/r27-suite-installer-20261031.log).
+- r27-19k-4 (a) VERIFIED LIVE (31 Oct 22:20, grim of his running bar, session env from waybar): the
+  hannya on the end tile, 7 | 8 px of paper across its ink and 1 | 1 above/below (px.py runs + boxes) —
+  the kit's numbers exactly.
+- r27-19k-4 (c) DONE + VERIFIED kit (31 Oct 23:05): quick settings' crests drawn anew — 16 pictures
+  28 × 28 in art/crests.txt (kamon grammar in its header and design-system §4/§13: one ink, 2 px
+  strokes, 45° as runs of 3, 1 px knock-outs, ink inside r 13, the odd pixel right/below, a line
+  across = off): moon and star (月に星), sun, a stone tōrō (night light), water breaking (freesync),
+  socket, wifi, offline (arcs + a cross), the rune, headphones, USB stick, a senryō-bako (backup), a
+  bonshō and the bell struck through (dnd), a spool and its needle (the saver is sashiko), a cine
+  camera, a region's corners (read text). Five render rounds grilled (grill-r27.md). Built by
+  tools/build-icons.py → configs/home/.local/share/fedokawaii/crests/NAME.png (masks; the font and
+  icons.sh rebuilt byte-identical); kawa-panel paints the mask in the state's ink (crest_pic; none
+  there: nothing). Measured on the real panel (kit, both themes): pictures 1:1 (moon 248 px = the
+  mask), air to the seal's edge = drawing + 4 (moon 6|7·6|6, socket 8|8·9|9, spool 8|9·7|8).
+  test_panel 513/0 (+ drawn/built/PNG-shape cases), test_design_doc 54/0. tools/kit.sh copies the
+  crests into its home. Left: the 14 px tile_* glyphs (all but tile_bell_off, the bar's dnd) are
+  unused now — out with T53 (removing them renumbers the font: by name only). Owner's verdict pending.
