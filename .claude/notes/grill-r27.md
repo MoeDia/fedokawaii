@@ -136,3 +136,12 @@ the name at 32** (V2). Built in kawa-panel (heading "face": the seal `accent`, t
 read from current/face-open.png, re-read when the theme's picture changes); kit shots both themes
 (`quick-head-t19k4b-built.png`): the seal x 17–36 / y 17–36 on the panel, the face 1 px inside.
 
+**T19k-4 (c) first sketch (31 Oct 11:28; `crests-t19k4c.py/.png` — on and off, both themes, 1× and
+4×):** the theme's pictures at 28 px from geometry, kamon style (one bold ink). The crescent (a disc
+less a disc up and right, r 11.6 / 9.6) reads at once — strong, 3–4 px inside the seal's paper
+ring, keep and hand-tune its horns' tips (one stair each). The sun (a disc r 5.6, eight rays
+8.2 → 12.6/11.0, 3 px wide) fails: the diagonal rays round into blobs and the whole reads as a
+gear or a flower — redo with wedge rays (each a triangle 3 px at its root, 1 at its tip, the
+diagonals drawn by hand on the 45° stair) or the kamon "hi" (a disc in a ring of 16 short
+strokes). Rule found: at 28 px a diagonal stroke needs an odd width drawn on the pixel stair,
+never a rounded rotated bar.
