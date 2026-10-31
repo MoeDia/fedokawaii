@@ -130,3 +130,9 @@ names under it ("brightness", "sound") and the seal reads as the panel's hanko �
 build: the seal on the content's edge (x 0–19, as rendered) or centred on the icon column over the
 meters' icons (x 6–25: the face right above the bulb and the speaker, 6 px of air to the name) —
 render both, px.py, decide. The seal must stay: on the dark ground the hannya's black hair vanishes.
+**Decided and built (31 Oct 11:25):** the third render (the seal centred over the icon column,
+x 6–25) brought the crowding back (6 px to the name) — **the seal on the content's edge (x 0–19),
+the name at 32** (V2). Built in kawa-panel (heading "face": the seal `accent`, the face's open frame
+read from current/face-open.png, re-read when the theme's picture changes); kit shots both themes
+(`quick-head-t19k4b-built.png`): the seal x 17–36 / y 17–36 on the panel, the face 1 px inside.
+

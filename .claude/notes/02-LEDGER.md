@@ -1231,4 +1231,8 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   crests' 28 px pictures (12 drawings, one ink each on the seal, multi-ink off) and (d) the to-do
   icon (T19k-5). The suite's installer area (started 11:10 on a copy before the __pycache__ fix):
   re-run it whole.
+- r27-19k-4 (b) DONE + VERIFIED kit (31 Oct 11:25): quick settings' heading wears the mood's face —
+  its open frame on a 20 × 20 vermilion seal on the content's edge, the name moved to the rows'
+  column (32); three placements rendered both themes, grilled (grill-r27.md). test_panel 507/0,
+  menus 12/12, test_design_doc 54/0; design-system §4 states the exception. Not applied yet.
 

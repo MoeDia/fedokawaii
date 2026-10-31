@@ -185,7 +185,10 @@ screen and the bar's paper share one rhythm.
 - **Heading**: its icon (12 px) in `accent_text` in the icon column at the content's first cell,
   its name in `strong` from cell 3 (x 24), 8 px, then the **rule** — 1 px `edge2`, solid, on the
   row's row 10 (the minus's), to the content's right edge. Air: §3. Every part of a panel opens
-  with one; a panel of one part may have none.
+  with one; a panel of one part may have none. Quick settings' heading alone wears the mood's
+  face (open, as on the bar's end tile while it is open) on a vermilion seal a row square (20 ×
+  20, on the content's edge) in place of the icon, its name then on the rows' names' column (x
+  32: at cell 3 the seal crowds it).
 - **Row**: 20 px; its icon in the icon column at cell 1 (x 8–23, the icon on x 10–21), its name in
   `text` from cell 4 (x 32); a value in `muted`, right-aligned to the content's edge, two cells or
   more after the widest name. A row that only shows (a week of weather, a help line) is never a

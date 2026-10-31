@@ -147,6 +147,8 @@ METER_H, METER_GAP = ROW, 0          # a row, and the rows' air between them: no
 GLYPH_COL = 2 * CELL                 # the icon column: 16 px, an icon centred in it (2 px either side)
 GLYPH_X, NAME_X = CELL, 4 * CELL     # a row's icon column (cell 1: the icon on x 10–21) · its name (cell 4)
 HEAD_X = 3 * CELL                    # a heading's name (cell 3: its icon in the column at cell 0)
+FACE_SEAL = ROW                      # quick settings' heading: the mood's face on a vermilion seal a row square (§4)
+FACE = os.path.join(HOME, ".config/fedokawaii/current/face-open.png")   # (open: the panel is)
 HEAD_H = ROW + GAP                   # a heading: its row, then 8 px of air
 SECTION = ROW                        # the air above a heading (none at a panel's top)
 KEY_H = ROW                          # a key: one row high, its 1 px frame inside the row
@@ -766,7 +768,7 @@ def layout_quick(s):
     the same columns — each group GROUP px from the next, no rule between them (docs/design-system.md §4)."""
     x0 = y = BORDER + PAD
     items, r = [], 0
-    heads = [("sliders", "quick settings", x0, y)]
+    heads = [("face", "quick settings", x0, y)]
     y += HEAD_H
     for key, name in (("brightness", "brightness"), ("sound", "sound")):
         pct = percent(s.get(key, ""))
@@ -2313,6 +2315,23 @@ def main(argv):
         cr.move_to(gx, gy)
         PangoCairo.show_layout(cr, lay)
 
+    faces = {}
+
+    def face_pic():
+        """The mood's face (build-themes.py FACES) as the theme has it now: read again when the
+        theme's picture changes (the wash to the other mood), else the one read; None: none there."""
+        try:
+            key = (os.path.realpath(FACE), os.stat(FACE).st_mtime_ns)
+        except OSError:
+            return None
+        if key not in faces:
+            faces.clear()
+            try:
+                faces[key] = cairo.ImageSurface.create_from_png(FACE)
+            except (cairo.Error, OSError):
+                faces[key] = None
+        return faces[key]
+
     def heading(cr, icon, name, x, y, value=""):
         """A part of a panel or a menu (§4): its icon (12 px, accent_text) in the icon column at
         the content's first cell, its name strong from cell 3, 8 px, then the rule — 1 px
@@ -2320,8 +2339,19 @@ def main(argv):
         at its end, muted)."""
         right = panel.size[0] - PAD - BORDER
         ty = y + (ROW - LINE) // 2
-        glyph(cr, x, ty, ic.get(icon, icon), "accent_text")
-        w = text(cr, x + HEAD_X, ty, name, "strong")
+        if icon == "face":
+            # quick settings': the bar's end tile in small — the mood's face (open) on a vermilion
+            # seal a row square on the content's edge, its name on the rows' names' column (cell 4:
+            # at cell 3 the seal crowds it); the seal stays — the hannya's hair is the ground's ink
+            box(cr, x, y, FACE_SEAL, FACE_SEAL, "accent")
+            pic_ = face_pic()
+            if pic_ is not None:
+                cr.set_source_surface(pic_, x + (FACE_SEAL - pic_.get_width()) // 2, y + (FACE_SEAL - pic_.get_height()) // 2)
+                cr.paint()
+            w = text(cr, x + NAME_X, ty, name, "strong") + NAME_X - HEAD_X
+        else:
+            glyph(cr, x, ty, ic.get(icon, icon), "accent_text")
+            w = text(cr, x + HEAD_X, ty, name, "strong")
         if value:
             right -= text(cr, right, ty, value, "muted", right=True) + GAP
         sx = x + HEAD_X + w + GAP
