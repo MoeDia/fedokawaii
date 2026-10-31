@@ -1489,10 +1489,7 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   T20; T01b's efi_pstore; quick settings ×3 — T19k-7 open; contrast's last two) — all folded into
   the plan. Left in T19n: the master's own check of the trace's gaps; keeping it current.
 
-## >>> NEXT PASS STARTS HERE (1 Nov 01:00): T19k-7's two open findings — the middle's face drawn at
-## 1 px (≥ 54 × 54, both moods, open) and the dial alive (beads one after another, 12 ms a bead; the
-## record hour moving while it records) — then the master's re-review (tools/master-brief.sh T19k-7,
-## the prompt in the ledger's r27-19k-7-master line's spirit); then T19m (a) the design research.
+## (1 Nov 01:00 marker: done — T19k-7 passed the master at 01:55; T19m (a) done 01:45)
 - r27-19k-7 alive (1 Nov 01:05) — the master's "alive unmet", done: (a) a level changing on the dial
   lights its beads one after another, BEAD_MS = 12 a bead (§11's rule, now built for the beads):
   Panel.shown holds the beads as drawn, glide() steps them toward the level and redraws that arc
@@ -1528,3 +1525,20 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   Noted for T19m/T52: the glide on the frame clock, the glass over busy windows, dial.sh into the
   regression runner. Full suite (01:16–01:36): every area green but installer/test_report 117/1 —
   "the shell probe left a stopped bash behind" (a process left by the run; re-run alone next pass).
+- r27-19m (a) DONE (1 Nov 01:45) — the design research (a sonnet subagent; .claude/notes/design-research.md):
+  138 sources verified (grids/typography 19, Japanese masters/JLREQ 21, interface masters/research 25,
+  platform guides 19, accessibility/legibility 19, TUI 11, pixel art/bitmap fonts 13, motion 11), 43
+  rules (21 followed, 10 in part, 2 contradicted, 10 unsaid). Its five shortfalls are T19m (b)'s first
+  items (plan): dark-mood contrast by APCA (dark text Lc 68 < 75; muted, accent_text Lc 38 < 60 — the
+  owner's own complaint about dark highlights), a legibility floor (x-height ≈ 0.2°), 24 px pointer
+  targets, Japanese beside Latin (JLREQ), a closed spacing scale and the 2 : 1 proximity rule.
+- r27-tools (1 Nov 01:55) — the full suite's one failure (installer/test_report "the shell probe left a
+  stopped bash behind") was a stray of my own kit run: a bar module (the repo's kawa-nowplaying,
+  HOME /tmp/kit.…, XDG_RUNTIME_DIR /tmp/hl-dwl.…) left stopped since 23:49 — killed; test_report 118/0.
+  tools/hl-dwl.sh now reaps on exit every process whose environment names its run's own runtime dir
+  (stopped ones too); a kit run after it left nothing.
+
+## >>> NEXT PASS STARTS HERE (1 Nov 01:55): T19m (b), its first item — dark-mood contrast by APCA as
+## well as WCAG (tools/contrast.py gains APCA; lift dark text / muted / accent_text in build-themes.py
+## until both pass; render every surface both moods before and after; the master reviews it). Then the
+## other four shortfalls, then the three visual passes. The inbox first, as always.

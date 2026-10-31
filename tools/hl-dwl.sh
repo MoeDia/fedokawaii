@@ -41,7 +41,17 @@ fi
 [[ -x $bin ]] || { echo "hl-dwl: no dwl at $bin" >&2; exit 2; }
 rt=$(mktemp -d /tmp/hl-dwl.XXXXXX)
 chmod 700 "$rt"
-trap 'rm -rf "$rt"' EXIT
+# (on the way out, every process the run left — its environment names this run's own runtime dir,
+# which nothing else on the machine has —, a stopped one too: a kit's bar module once lingered
+# stopped for hours and failed the report's check of stopped programs)
+reap() {
+  local p
+  for p in /proc/[0-9]*; do
+    grep -qz "^XDG_RUNTIME_DIR=$rt\$" "$p/environ" 2>/dev/null && kill -KILL "${p#/proc/}" 2>/dev/null
+  done
+  return 0
+}
+trap 'reap; rm -rf "$rt"' EXIT
 # (inside: the mode first, then the script — its status kept for the caller)
 cat >"$rt/inside.sh" <<EOF
 #!/bin/sh
