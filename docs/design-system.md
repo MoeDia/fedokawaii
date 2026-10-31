@@ -45,14 +45,14 @@ colour anywhere, in either mood. (`--doc` prints the hex columns of this table.)
 | `edge2` | `3c2f22` Black → Pale Raw Umber 0.48 | `d7bc8c` Sulpher Yellow → Maple 0.62 | a heading's rule (§4, §7) |
 | `hi` | `4a3826` Black → Pale Raw Umber 0.62 | `ffffff` White | pixel art's light ink (stone, paper, the files' and drives' pictures) |
 | `lo` | `111314` Black | `96865e` Isabella Color → Deep Slate Green 0.25 | pixel art's shadow ink; the screensaver's thread shadow (dark) |
-| `faint` | `65583f` Light Brownish Olive → Black 0.22 | `8b917f` text → ground 0.6 | what is not there yet ("none"), an empty workspace's numeral |
-| `muted` | `9a8767` Light Brownish Olive → Ecru 0.4 | `586459` text → ground 0.36 | secondary words: values, a key's action, the layout's mark |
-| `text` | `d4bf9a` Ecru → Ivory Buff 0.45 | `122625` Deep Slate Green → Black 0.3 | names, rows, body |
+| `faint` | `907e5d` Light Brownish Olive → Ecru 0.25 | `8b917f` text → ground 0.6 | what is not there yet ("none"), an empty workspace's numeral |
+| `muted` | `cab596` Ecru → Ivory Buff 0.2 | `586459` text → ground 0.36 | secondary words: values, a key's action, the layout's mark |
+| `text` | `e7cfa1` Ecru → Ivory Buff 0.9 | `122625` Deep Slate Green → Black 0.3 | names, rows, body |
 | `strong` | `f1e1b4` Ivory Buff → Sulpher Yellow 0.55 | `121b1b` Deep Slate Green → Black 0.7 | a heading's name, a notice's title, the time, a state that is on |
 | `accent` | `eb5324` Jasper Red | `a84222` Brick Red | vermilion fill: the bar's end tiles, the workspace stamp, the focused window's hairline |
-| `accent_hi` | `f1713b` Jasper Red → Apricot Orange 0.5 | `cb6336` Brick Red → Apricot Orange 0.45 | vermilion lit: a vermilion tile under the pointer, a key held down, a stamp's thump (§11) |
+| `accent_hi` | `f27740` Jasper Red → Apricot Orange 0.6 | `cb6336` Brick Red → Apricot Orange 0.45 | vermilion lit: a vermilion tile under the pointer, a key held down, a stamp's thump (§11) |
 | `accent_lo` | `82241f` Vandyke Red | `953321` Brick Red → Vandyke Red 0.5 | dim vermilion: an unlit segment on a vermilion fill |
-| `accent_text` | `eb5324` Jasper Red | `a84222` Brick Red | vermilion ink: a heading's icon, the day's kanji, the date's slashes, US, a failure's words |
+| `accent_text` | `f27740` = `accent_hi` | `a84222` Brick Red | vermilion ink: a heading's icon, the day's kanji, the date's slashes, US, a failure's mark — never words to be read (no red on sumi reaches Lc 60: the words beside the mark are `text`) |
 | `text_on_accent` | `111314` | `f8f3d8` | ink on vermilion |
 | `select` | `82241f` Vandyke Red | `82241f` Vandyke Red | what is selected — the keyboard's cursor on a row, a key or a place of the dial; GTK's and Qt's selection, a default button: the lacquer (漆), one in both moods |
 | `text_on_select` | `f1e1b4` | `f8f3d8` | every ink on the lacquer: words, icons, a lit segment |
@@ -60,7 +60,7 @@ colour anywhere, in either mood. (`--doc` prints the hex columns of this table.)
 | `asagi` | `82c1b4` Venice Green → Ecru 0.25 | `00726a` Light Porcelain Green → Dusky Green 0.45 | lit: a bar tile under the pointer or open; a meter's lit segments; something asking for you |
 | `flame` | `f68c50` Apricot Orange | `a84222` Brick Red | fire: the torches and lanterns, a meter's segments over 80 % |
 | `gold` | `c5a56e` Isabella Color | `e2b540` Yellow Ocher | metal and leaf in art only (rod caps, a halo, a demon's eyes, the torches' brass) — never words |
-| `lit` | `d4bf9a` | `122625` | an inverted chip's fill: the editor's selection, a TUI's marked items |
+| `lit` | `e7cfa1` | `122625` | an inverted chip's fill: the editor's selection, a TUI's marked items |
 | `lit_text` | `181715` | `f8f3d8` | ink on `lit` |
 | `tile` | `25201a` | `f9f5de` | the bar's paper (§8) |
 
@@ -76,21 +76,30 @@ The 16 terminal colours (foot, the console, every TUI) come from the same famili
 | `purple` | `9a72aa` | `66629c` | `bpurple` | `b5b1d8` | `4f4086` |
 | `teal` | `00978d` | `004f46` | `bteal` | `62c6bf` | `064f6e` |
 
-Contrast (WCAG 2 ratio, measured by `tools/wada-palette.py --table`) — every word ≥ 4.5 : 1 on
-every ground it is drawn on, `muted` ≥ 4.7; `faint` is meant dim (≥ 2.4: "not there yet"):
+Contrast — by APCA first (APCA-W3 0.0.98G, its Lc: light words on a dark ground read weaker than
+the WCAG 2 ratio says, so the dark mood is set by Lc), and the WCAG 2 ratio beside it. Each role
+has APCA's level for what it carries, on every ground words stand on (the panels', a solid
+surface, a key's fill, the bar's tile): `text` and `strong` Lc ≥ 75 (words read at length),
+`muted` ≥ 60 (a label, a value), `accent_text` ≥ 45 (an icon, a mark, a large glyph), `faint` ≥ 30
+(words only spotted: "none", "off"). Both moods keep the same steps within a few Lc (T19m, the
+sources: .claude/notes/design-research.md rule 14). Lc · ratio:
 
 | on | faint | muted | text | strong | accent_text | asagi |
 |---|---|---|---|---|---|---|
-| dark `ground` | 2.6 | 5.1 | 10.0 | 13.8 | 4.9 | 8.7 |
-| dark `key` | 2.4 | 4.8 | 9.2 | 12.7 | 4.6 | 8.1 |
-| light `ground` | 2.5 | 4.8 | 12.2 | 13.5 | 4.7 | 4.5 |
-| light `key` | 2.9 | 5.6 | 14.1 | 15.7 | 5.4 | 5.2 |
+| dark `ground` | 34 · 4.5 | 63 · 9.0 | 78 · 11.8 | 88 · 13.8 | 47 · 6.4 | 61 · 8.7 |
+| dark `key` | 33 · 4.2 | 62 · 8.3 | 77 · 10.9 | 87 · 12.7 | 47 · 5.9 | 60 · 8.1 |
+| dark `tile` | 33 · 4.1 | 62 · 8.1 | 77 · 10.6 | 87 · 12.4 | 46 · 5.8 | 60 · 7.9 |
+| light `ground` | 43 · 2.5 | 64 · 4.8 | 86 · 12.2 | 87 · 13.5 | 62 · 4.7 | 61 · 4.5 |
+| light `key` | 52 · 2.9 | 73 · 5.6 | 95 · 14.1 | 97 · 15.7 | 72 · 5.4 | 71 · 5.2 |
+| light `tile` | 53 · 3.0 | 75 · 5.7 | 96 · 14.4 | 98 · 16.0 | 73 · 5.5 | 72 · 5.3 |
 
 Ink on vermilion (`text_on_accent` on `accent`): 5.1 dark, 5.4 light — a mark's (the bar's seal), never
 a row's. What is selected is the lacquer, its words ≥ 7 : 1 (`text_on_select` on `select`: 7.3 dark,
 8.5 light): `tools/contrast.py` measures every selected and highlighted state of every surface from
 the files the desktop ships (words ≥ 7, icons and matched letters ≥ 4.5, a large glyph or a
-meter's level ≥ 3) and tests/static/test_contrast.sh fails under any of them.
+meter's level ≥ 3) — and by APCA (`--apca`: the roles above, the selected states at Lc 60 for
+words and 45 for marks; the workspace seal's black numeral is measured and kept by the owner's
+word, Lc 41 dark, 24 light) — and tests/static/test_contrast.sh fails under any of them.
 
 ## 2. Type
 

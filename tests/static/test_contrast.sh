@@ -2,8 +2,9 @@
 # tests/static/test_contrast.sh — what is selected or highlighted stands out (the owner, 2026-10-27
 # 19:19: "a highlighted row's contents are not contrasty enough"): tools/contrast.py measures every
 # such state of every surface, both themes, from the files the desktop ships — the words on the
-# lacquer ≥ 7 : 1, icons and matched letters ≥ 4.5, a large glyph or a meter's level ≥ 3 — and the
-# surfaces that draw by colour name (quick settings) still use the names it measures.
+# lacquer ≥ 7 : 1, icons and matched letters ≥ 4.5, a large glyph or a meter's level ≥ 3; by APCA
+# too (--apca: every role's words on the grounds, Lc 75 / 60 / 45 / 30) — and the surfaces that
+# draw by colour name (quick settings) still use the names it measures.
 . "$(dirname "$0")/../lib/harness.sh"
 sandbox
 
@@ -21,6 +22,19 @@ sed -i 's/fg+:25:regular:strip,bg:-1,bg+:24/fg+:17:regular:strip,bg:-1,bg+:16/' 
 out=$(python3 -I "$G/tools/contrast.py" --quiet 2>&1); rc=$?
 eq "$rc" 1 "a 5.1 : 1 row passed"
 has "$out" "the row under the cursor: its words"
+
+case_ "tools/contrast.py --apca: every role and pair at its APCA level, both themes (T19m: light words on sumi)"
+out=$(python3 -I "$REPO/tools/contrast.py" --apca --quiet 2>&1); rc=$?
+eq "$rc" 0 "$(grep '✘' <<<"$out" | head -5)"
+has "$out" "APCA: 0 under their level"
+has "$out" "◇ light"     # (the seal's black numeral: measured, kept by his word)
+
+case_ "it fails the dark words back at their old lightness (text Lc 68, under 75)"
+G2=$TMP/copy2; mkdir -p "$G2"; cp -r "$REPO"/{tools,configs} "$G2/"
+sed -i 's/p\["text"\] = mix("Ecru", "Ivory Buff", 0.90/p["text"] = mix("Ecru", "Ivory Buff", 0.45/' "$G2/tools/wada-palette.py"
+out=$(python3 -I "$G2/tools/contrast.py" --apca --quiet 2>&1); rc=$?
+eq "$rc" 1 "the dark text at Lc 68 passed"
+has "$out" "text on ground"
 
 case_ "every menu's selected row is the lacquer: fzf's bg+ 24 (select), fg+ 25 (text_on_select), :strip"
 has "$(cat "$REPO/configs/home/.config/fedokawaii/fzf.opts")" "fg+:25:regular:strip,bg:-1,bg+:24"

@@ -40,7 +40,7 @@
 }
 @media (prefers-color-scheme: dark) {
   :root {
-    --accent-color: #eb5324;
+    --accent-color: #f27740;
     --accent-bg-color: #82241f;
     --accent-fg-color: #f1e1b4;
     --window-bg-color: #181715;
@@ -69,10 +69,10 @@
     --error-color: #f58e84;
     --kawa-key: #221e1a;
     --kawa-edge: #2d251e;
-    --kawa-faint: #65583f;
-    --kawa-muted: #9a8767;
+    --kawa-faint: #907e5d;
+    --kawa-muted: #cab596;
     --kawa-strong: #f1e1b4;
-    --kawa-accent-text: #eb5324;
+    --kawa-accent-text: #f27740;
   }
 }
 

@@ -100,7 +100,7 @@ ask() {
   [[ -n $v ]] || return 1
   printf '%s' "$v"
 }
-said() { printf '\n    %s%s%s\n\n    %sany key: back%s' "$INK_ACCENT_TEXT" "$1" "$INK_OFF" "$INK_MUTED" "$INK_OFF"; read -rsn1 </dev/tty; }
+said() { printf '\n    %s%s%s  %s\n\n    %sany key: back%s' "$INK_ACCENT_TEXT" "$ICON_CROSS" "$INK_OFF" "$1" "$INK_MUTED" "$INK_OFF"; read -rsn1 </dev/tty; }
 clone() {
   local url name
   url=$(ask "clone a repository" "its address, as its page shows it: https://github.com/someone/project") || return 0

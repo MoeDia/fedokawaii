@@ -20,8 +20,8 @@ return {
         dark0_hard = "#181715", dark0 = "#181715", dark0_soft = "#1c1916",
         dark1 = "#1c1916", dark2 = "#221e1a", dark3 = "#2d251e", dark4 = "#3c2f22",
         gray = "#8a7755",
-        light0_hard = "#e8e3c2", light0 = "#f1e1b4", light1 = "#d4bf9a", light2 = "#c3ab88",
-        light3 = "#ac9162", light4 = "#9a8767",
+        light0_hard = "#e8e3c2", light0 = "#f1e1b4", light1 = "#e7cfa1", light2 = "#c3ab88",
+        light3 = "#ac9162", light4 = "#cab596",
         bright_red = "#eb5324", bright_green = "#96d1aa", bright_yellow = "#fbe6a0",
         bright_blue = "#a7d4e4", bright_purple = "#b5b1d8", bright_aqua = "#82c1b4",
         bright_orange = "#f68c50",
@@ -69,7 +69,7 @@ return {
           -- names the text, their keys and the start's time muted
           local t = vim.o.background == "light"
             and { icon = "#a84222", text = "#122625", stitch = "#d7bc8c", muted = "#586459" }
-            or { icon = "#eb5324", text = "#d4bf9a", stitch = "#3c2f22", muted = "#9a8767" }
+            or { icon = "#f27740", text = "#e7cfa1", stitch = "#3c2f22", muted = "#cab596" }
           vim.api.nvim_set_hl(0, "KawaIcon", { fg = t.icon })
           vim.api.nvim_set_hl(0, "KawaName", { fg = t.text })
           vim.api.nvim_set_hl(0, "KawaStitch", { fg = t.stitch })
@@ -83,7 +83,7 @@ return {
           -- ground behind them; the code they point at underlined in the same ink
           local d = vim.o.background == "light"
             and { Error = "#a84222", Warn = "#986f2d", Info = "#00726a", Hint = "#586459" }
-            or { Error = "#eb5324", Warn = "#e2b540", Info = "#82c1b4", Hint = "#9a8767" }
+            or { Error = "#f27740", Warn = "#e2b540", Info = "#82c1b4", Hint = "#cab596" }
           for k, c in pairs(d) do
             vim.api.nvim_set_hl(0, "Diagnostic" .. k, { fg = c })
             vim.api.nvim_set_hl(0, "DiagnosticSign" .. k, { fg = c })
@@ -106,7 +106,7 @@ return {
     "nvim-lualine/lualine.nvim",
     opts = function(_, opts)
       local P = {
-        dark = { ground = "#181715", bar = "#1c1916", key = "#221e1a", text = "#d4bf9a", muted = "#9a8767", accent = "#eb5324", teal = "#82c1b4", yellow = "#e2b540", blue = "#a7d4e4", red = "#eb5324", on_accent = "#111314" },
+        dark = { ground = "#181715", bar = "#1c1916", key = "#221e1a", text = "#e7cfa1", muted = "#cab596", accent = "#eb5324", teal = "#82c1b4", yellow = "#e2b540", blue = "#a7d4e4", red = "#eb5324", on_accent = "#111314" },
         light = { ground = "#e8e3c2", bar = "#ecdfb3", key = "#f8f3d8", text = "#122625", muted = "#586459", accent = "#a84222", teal = "#00726a", yellow = "#986f2d", blue = "#006eb8", red = "#a84222", on_accent = "#f8f3d8" },
       }
       local function theme()

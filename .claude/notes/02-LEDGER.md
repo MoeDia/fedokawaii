@@ -1571,7 +1571,38 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   vermilion cursor (now the lacquer, select, since r27-19k-2). All ten held after (bar-burst, bar-geometry,
   calendar-middle, dial, level-display, menu-first-click, one-popup, warm-exit, wash, window-frame).
 
-## >>> NEXT PASS STARTS HERE (1 Nov 02:05): the inbox first. Then T19m (b) item 1 — the dark roles by
+## (1 Nov 02:05 marker, superseded below): the inbox first. Then T19m (b) item 1 — the dark roles by
 ## APCA (candidates in the plan's T19m: text Ecru → Ivory Buff 0.77 #e1ca9f; muted 45–48; accent words
 ## in accent_hi #f1713b; faint #887654) — gallery before/after both moods, tools/regress/run.sh, the
 ## master. Then, by the master's order, the one-button update: T43 (research) → T44 (design) → T45.
+
+- r27-19m-b1 (1 Nov 02:20; the master's review pending) — the dark words set by APCA (tools/wada-palette.py dark()), on
+  every ground words stand on (ground, surface, key, the bar's tile, a marked row's edge): text Ecru → Ivory
+  Buff 0.9 #e7cfa1 (Lc 68.5 → 78.1 on the ground, 75.9 on edge), muted Ecru → Ivory Buff 0.2 #cab596 (38.3 →
+  62.9; 60.8 on edge), faint LBO → Ecru 0.25 #907e5d (16.9 → 33.8), accent_text = accent_hi = Jasper Red →
+  Apricot Orange 0.6 #f27740 (37.9 → 47.5; was 0.5 #f1713b, 44.8 on a hovered GTK button). strong unchanged
+  (88.0: the lacquer's 7.28 : 1 stays); the light mood unchanged (all pass: text 85.6, muted 63.9, accent 62.4,
+  faint 42.7) — the two moods' steps now within a few Lc. The plan's earlier candidates (text 0.77 = Lc 75.0
+  exactly, muted 45–48) rejected: 75.0 left no margin on the key and the tile (75.98/75.67 at 0.85 were the
+  first to pass everywhere; 0.9 passes the edge too), and muted 45–48 is under the research's own rule 14
+  (≥ 60 for words read) — the hierarchy is kept by the steps (strong 88 · text 78 · muted 63 · faint 34).
+  Vermilion is no reading ink on sumi (no red reaches Lc 60 there): the rule, in §1 and in the code — an
+  icon, a mark, a short word that needs you; never a sentence. The three sentences that were vermilion now
+  draw a vermilion cross before their words (kawa-together's "not a server …" row and its header message,
+  kawa-git's said()); the calculator's answer row at rest: strong. tools/contrast.py --apca is a gate now
+  (ROLE_LC: 75/75/60/45/30 on ground, surface, key, tile; exit 1 under; the seal's black numeral ◇ shown,
+  kept by his word: Lc 40.5 dark, 23.7 light — a cream numeral would read 49/76, not taken: he said black).
+  test_contrast 16/0 (+2: the gate; the old text fails it); design-system §1 rows and the table (Lc · ratio,
+  the bar's tile added) — test_design_doc 54/0 checks both. Copies moved with the roles: dwl's HAIR default
+  e7cfa180 (text at 50 %; the running frames already read it from dwl.colors), MangoHud, lazygit's inactive
+  border (now faint), fetch's art inks (each to the nearest palette tone by OKLab L); the dark cursors rebuilt
+  (their ":" ink is muted) — test_generated 258/0. Rendered before/after, both moods, every surface
+  (tools/gallery.sh on the kit; the foot surfaces again with --themes from a trial palette, since the kit
+  links foot's colours only through --themes): /dev/shm/r27/apca-{before,after,after2}, the dark halves
+  stacked in /dev/shm/r27/apca-ba/. Looked at: Super+U status (labels and values both readable, the "1 to fix"
+  mark lighter), the bar (empty workspaces' numerals visible yet recessive; the date's slashes and the day's
+  kanji a lighter vermilion, still the seal's family), the calendar (the other month's days readable, still
+  apart), notices (the body clearer), quick settings (the off crests clearer; on/off still by hue), Super+N's
+  footer (was hard to read, now plain), yazi/terminal (the text a step brighter). Verified by: contrast.py
+  (WCAG 0 under, APCA 0 under), the tests above, the renders.
+

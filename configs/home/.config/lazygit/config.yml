@@ -18,7 +18,7 @@ gui:
   portraitModeAutoMinHeight: 30
   theme:
     activeBorderColor: [red, bold]
-    inactiveBorderColor: ["#9a8767"]
+    inactiveBorderColor: ["#907e5d"]
     searchingActiveBorderColor: [yellow, bold]
     optionsTextColor: [blue]
     selectedLineBgColor: [black]

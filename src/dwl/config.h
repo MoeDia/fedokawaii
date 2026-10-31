@@ -28,7 +28,7 @@
  * the theme in use replaces them from its dwl.colors, at dwl's start and at every switch
  * (dwl.patch: loadcolours). */
 #define SUMI      0x181715ff   /* ink: behind the wallpaper, seen only before it loads */
-#define HAIR      0xd4bf9a80   /* the other windows: the hairline's ink (text at 50 %) */
+#define HAIR      0xe7cfa180   /* the other windows: the hairline's ink (text at 50 %) */
 #define SHU       0xeb5324ff   /* the focused window: vermilion                        */
 #define ASAGI     0x82c1b4ff   /* a window asking for attention: asagi                 */
 #define SHADOW1   0x111314aa   /* the shadow's first row: Black at 67 %                */

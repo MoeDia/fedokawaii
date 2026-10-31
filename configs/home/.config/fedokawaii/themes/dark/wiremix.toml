@@ -13,16 +13,16 @@ keybindings = [
 ]
 
 [themes.fedokawaii]
-default_device = { fg = "#eb5324" }
-default_stream = { fg = "#eb5324" }
+default_device = { fg = "#f27740" }
+default_stream = { fg = "#f27740" }
 selector = { fg = "#eb5324" }
-tab = { fg = "#9a8767" }
+tab = { fg = "#cab596" }
 tab_selected = { fg = "#f1e1b4" }
-tab_marker = { fg = "#eb5324" }
-list_more = { fg = "#65583f" }
+tab_marker = { fg = "#f27740" }
+list_more = { fg = "#907e5d" }
 node_title = { fg = "#f1e1b4" }
-node_target = { fg = "#9a8767" }
-volume = { fg = "#d4bf9a" }
+node_target = { fg = "#cab596" }
+volume = { fg = "#e7cfa1" }
 volume_empty = { fg = "#3c2f22" }
 volume_filled = { fg = "#82c1b4" }
 meter_inactive = { fg = "#3c2f22" }
@@ -31,15 +31,15 @@ meter_overload = { fg = "#eb5324" }
 meter_center_inactive = { fg = "#3c2f22" }
 meter_center_active = { fg = "#8fa071" }
 config_device = { fg = "#f1e1b4" }
-config_profile = { fg = "#9a8767" }
-dropdown_icon = { fg = "#9a8767" }
-dropdown_border = { fg = "#9a8767" }
-dropdown_item = { fg = "#d4bf9a" }
+config_profile = { fg = "#cab596" }
+dropdown_icon = { fg = "#cab596" }
+dropdown_border = { fg = "#cab596" }
+dropdown_item = { fg = "#e7cfa1" }
 dropdown_selected = { fg = "#f1e1b4", bg = "#82241f" }
-dropdown_more = { fg = "#65583f" }
-help_border = { fg = "#9a8767" }
-help_item = { fg = "#d4bf9a" }
-help_more = { fg = "#65583f" }
+dropdown_more = { fg = "#907e5d" }
+help_border = { fg = "#cab596" }
+help_item = { fg = "#e7cfa1" }
+help_more = { fg = "#907e5d" }
 
 # the marks: wiremix leaves one cell for each and puts the name right after it — its own
 # diamond (◇) filled the cell and touched the name ("◇HD-Audio Generic"). A half block

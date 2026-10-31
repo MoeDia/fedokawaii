@@ -87,7 +87,7 @@ list() {
   fi
   q=$(trim "$2")
   if [[ -n $q && $kind == servers ]] && ! q=$(norm_server "$q"); then
-    printf 'bad\t\t%s\n' "$(screen_row "$ICON_CROSS" "$(trim "$2")" "${INK_ACCENT_TEXT}not a server: host, or host:port$INK_OFF" "$w")"; q=""
+    printf 'bad\t\t%s\n' "$(screen_row "$INK_ACCENT_TEXT$ICON_CROSS" "$(trim "$2")" "not a server: host, or host:port" "$w")"; q=""
   fi
   [[ -n $q && -z ${at[$q]+x} ]] && add "$q" new
   for i in "${!vals[@]}"; do
@@ -301,7 +301,7 @@ while :; do
   # (no input line: the rows start under the heading, as Super+U's do)
   width
   pick=$(rows | fzf --ansi --no-sort --no-input --height=100% --delimiter=$'\t' --with-nth=2 \
-           --header="$(heading "watch together")${msg[0]:+$'\n'  $INK_ACCENT_TEXT${msg[0]}$INK_OFF$'\n '}") || exit 1
+           --header="$(heading "watch together")${msg[0]:+$'\n'  $INK_ACCENT_TEXT$ICON_CROSS$INK_OFF  ${msg[0]}$'\n '}") || exit 1
   msg=()
   case ${pick%%$'\t'*} in
     join)     if [[ -n $server && -n $room && -n $name ]]; then join; fi

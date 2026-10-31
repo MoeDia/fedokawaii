@@ -44,25 +44,28 @@ PY
 eq "$(head -1 "$TMP/pal")" "$(( $(python3 -I -c 'import importlib.util,sys; s=importlib.util.spec_from_file_location("wp",sys.argv[1]); m=importlib.util.module_from_spec(s); s.loader.exec_module(m); print(len(m.DOC_TOKENS)+len(m.DOC_TERM))' "$REPO/tools/wada-palette.py") + 1 ))" "tokens read from the doc"
 eq "$(tail -n +2 "$TMP/pal")" "" "the doc and the palette differ"
 
-case_ "the contrast table (§1) is the measured one (tools/wada-palette.py --table)"
-python3 -I - "$DOC" "$REPO/tools/wada-palette.py" <<'PY' >"$TMP/con"
+case_ "the contrast table (§1) is the measured one: APCA Lc · the WCAG ratio (tools/contrast.py, wada-palette.py)"
+python3 -I - "$DOC" "$REPO/tools/wada-palette.py" "$REPO/tools/contrast.py" <<'PY' >"$TMP/con"
 import importlib.util, re, sys
-spec = importlib.util.spec_from_file_location("wp", sys.argv[2]); wp = importlib.util.module_from_spec(spec)
-spec.loader.exec_module(wp)
-P = wp.palette()[0]
+def load(n, f):
+    spec = importlib.util.spec_from_file_location(n, f); m = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(m); return m
+wp, ct = load("wp", sys.argv[2]), load("ct", sys.argv[3])
+P, TILE = wp.palette()[0], wp.palette()[2]
 roles = ["faint", "muted", "text", "strong", "accent_text", "asagi"]
 bad = []; n = 0
 for line in open(sys.argv[1], encoding="utf-8"):
-    m = re.match(r"\| (dark|light) `(ground|key|surface)` \| (.*) \|$", line.strip())
+    m = re.match(r"\| (dark|light) `(ground|key|surface|tile)` \| (.*) \|$", line.strip())
     if not m: continue
     n += 1
+    p = P[m.group(1)]; bg = TILE[m.group(1)] if m.group(2) == "tile" else p[m.group(2)]
     cells = [c.strip() for c in m.group(3).split("|")]
     for r, c in zip(roles, cells):
-        meas = f"{wp.contrast(P[m.group(1)][r], P[m.group(1)][m.group(2)]):.1f}"
+        meas = f"{ct.apca(p[r], bg):.0f} · {wp.contrast(p[r], bg):.1f}"
         if c != meas: bad.append(f"{m.group(1)} {m.group(2)} {r}: doc {c}, measured {meas}")
 print(n); print("\n".join(bad))
 PY
-eq "$(head -1 "$TMP/con")" 4 "rows read"
+eq "$(head -1 "$TMP/con")" 6 "rows read"
 eq "$(tail -n +2 "$TMP/con")" ""
 
 # ── the surfaces rebuilt to it (§14) ───────────────────────────────────────────────────────────

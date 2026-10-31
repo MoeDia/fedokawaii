@@ -98,14 +98,22 @@ def dark():
     p["edge"] = mix("Black", "Pale Raw Umber", 0.32, "dark.edge")
     p["edge2"] = mix("Black", "Pale Raw Umber", 0.48, "dark.edge2")
     p["hi"] = mix("Black", "Pale Raw Umber", 0.62, "dark.hi")
-    p["faint"] = mix("Light Brownish Olive", "Black", 0.22, "dark.faint")
-    p["muted"] = mix("Light Brownish Olive", "Ecru", 0.40, "dark.muted")
-    p["text"] = mix("Ecru", "Ivory Buff", 0.45, "dark.text")
+    # the words' steps by APCA (T19m: light words on a dark ground read weaker than WCAG's ratio
+    # says) on every ground words stand on (ground, surface, key, the bar's tile, a marked row's
+    # edge): text Lc ≥ 75 (read at length), muted ≥ 60 (a label), faint ≥ 30 (spotted: "none",
+    # "off") — the light mood's steps within a few Lc; text and muted on one line, Ecru → Ivory Buff
+    p["faint"] = mix("Light Brownish Olive", "Ecru", 0.25, "dark.faint")
+    p["muted"] = mix("Ecru", "Ivory Buff", 0.20, "dark.muted")
+    p["text"] = mix("Ecru", "Ivory Buff", 0.90, "dark.text")
     p["strong"] = mix("Ivory Buff", "Sulpher Yellow", 0.55, "dark.strong")
     p["accent"] = w("Jasper Red", "dark.accent")        # (Red Orange's fill held ink at 4.3 : 1 only)
-    p["accent_hi"] = mix("Jasper Red", "Apricot Orange", 0.5, "dark.accent_hi")
+    p["accent_hi"] = mix("Jasper Red", "Apricot Orange", 0.6, "dark.accent_hi")
     p["accent_lo"] = w("Vandyke Red", "dark.accent_lo")
-    p["accent_text"] = w("Jasper Red", "dark.accent_text")
+    # vermilion as ink — an icon, a mark, a short word that needs you: the lit vermilion (Lc 47,
+    # APCA's level for an icon; Jasper Red read 38). Jasper Red stays the seal's fill. No red on
+    # sumi reaches a reading level (60): words to be read are text, the red mark beside them
+    p["accent_text"] = p["accent_hi"]
+    RECIPE["dark.accent_text"] = RECIPE["dark.accent_hi"]
     p["text_on_accent"] = p["lo"]                 # (Wada's Black on the vermilion: 4.5 : 1 and over)
     # what is selected — a menu's row under the cursor, quick settings' item, GTK's and Qt's
     # selection: the same deep lacquer in both themes (漆, one grammar), the strongest cream on it

@@ -2936,7 +2936,7 @@ def main(argv):
             right = it.x + it.w
             if it.value:
                 right -= text(cr, right, ty, it.value, lk["value"], right=True) + 2 * CELL
-            text(cr, it.x + NAME_X, ty, it.name, "accent_text" if it.app is None and not lk["fill"] else lk["label"],
+            text(cr, it.x + NAME_X, ty, it.name, "strong" if it.app is None and not lk["fill"] else lk["label"],
                  width=right - (it.x + NAME_X))
         elif it.kind == "row":
             g = it.glyph if it.glyph is not None else ic[it.icon]
