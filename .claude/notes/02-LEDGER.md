@@ -1235,4 +1235,18 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   its open frame on a 20 × 20 vermilion seal on the content's edge, the name moved to the rows'
   column (32); three placements rendered both themes, grilled (grill-r27.md). test_panel 507/0,
   menus 12/12, test_design_doc 54/0; design-system §4 states the exception. Not applied yet.
+- r27-19k-4 (b) LIVE-INSTALLED + r27-fix apply VERIFIED live (31 Oct 11:25, 012bbe2): apply of a change
+  to bin/, tests/, docs/ and .claude/ ran the theme alone — 5 s, no snapshot, no repair, exit 0 (the
+  same kind of change took a ~65 s repair with a snapshot at 10:59); 1 file updated (kawa-panel).
+- NEXT PASS STARTS HERE (31 Oct 11:27; replaces the 11:21 note): (1) if his session is up and he is
+  away — grim the bar's end tile and quick settings live, px.py against the kit's numbers (face 1 | 1,
+  7 | 8 / 6 | 7; the heading's seal x 17–36). (2) T19k-4 (c): the crests' 28 px pictures — one drawing
+  per switch (theme moon/sun, night lantern, freesync wave, network ethernet/wifi/offline, bluetooth,
+  devices, drives, backup, dnd bell/bell-off, saver, record, read text), 28 × 28 inside the 36 px
+  seal (art/icons.txt can hold 28 × 28 — "at 14 px, 28 px, 42 px…"), grilled one by one at 1× both
+  themes. (3) T19k-5: the to-do's own icon — direction: a tanzaku (Tanabata's wish slip, hung by its
+  string; a tick on it) in place of ICON_BOX_ON (system/fedokawaii learning → to-do), 12 × 12 beside
+  words, larger where Super+N's tab shows it (T21). (4) the suite's installer area again on the
+  current tree (the 11:10 run used a copy from before the __pycache__ fix: its test_upkeep fails
+  for that reason alone).
 
