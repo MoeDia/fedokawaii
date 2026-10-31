@@ -64,7 +64,7 @@ title() { fz_arg title "${1:-}"; }
 case_ "no working copy yet: every part in five, each under its icon, sized to its content, the title says it is made on first use"
 setup; answer esc; rc 0 config_
 eq "$(fz_rows | grep '^row' | cut -f3 | tr '\n' ',')" "colours,bar,bar look,icons,notifications,menus, launcher,transparency,keys,terminal,shell,files,drives,autostart,settings,packages,yours alone,what changed,history,apply,update fedokawaii,learn,"
-eq "$(fz_rows | grep '^part' | cut -f2,3 | tr '\t\n' ' ,')" "$ICON_THEME look,$ICON_KEYBOARD use,$ICON_MONITOR system,$ICON_BRANCH history,$ICON_BOOK help," "the headings: an icon, the name"
+eq "$(fz_rows | grep '^part' | cut -f2,3 | tr '\t\n' ' ,')" "$ICON_THEME look,$ICON_KEYBOARD use,$ICON_SEC_SYSTEM system,$ICON_BRANCH history,$ICON_BOOK help," "the headings: an icon, the name"
 eq "$(fz_rows | grep -vc -e '^part	' -e '^row	')" 0 "nothing but parts and rows (the panel spaces its parts)"
 eq "$(fz_rows | grep '^row' | awk -F'\t' 'NF != 4' )" "" "every row: its icon, its name, its note"
 eq "$(fz_rows | grep -F "	menus, launcher	" | cut -f4)" "their grid and doing (kawa-panel)"

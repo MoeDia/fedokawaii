@@ -25,7 +25,7 @@ src = open(root + "/tools/build-icons.py").read().split("if __name__")[0]
 g = {"__name__": "bi", "__file__": root + "/tools/build-icons.py"}
 exec(compile(src, "build-icons", "exec"), g)
 icons = g["twins"](g["parse"](open(root + "/art/icons.txt").read()))
-by_cp = {g["FIRST"] + i: ic for i, ic in enumerate(icons)}
+by_cp = {ic["code"]: ic for ic in icons}   # (each its own code: FIRST + its place, a twin TWIN + it)
 bad, n = [], 0
 for line in open(root + "/configs/home/.config/fedokawaii/icons.sh"):
     m = re.match(r"ICON_BAR_(\w+)=\$'(.*)'$", line.strip())
@@ -53,6 +53,24 @@ EOF
 )
 [[ -z $out ]] && _ok || _no "$out"
 
+case_ "an icon appended moves no other icon and no twin (a session on its old font never draws a wrong icon)"
+out=$(python3 -I - "$REPO" 2>&1 <<'PYAPPEND'
+import sys
+root = sys.argv[1]
+src = open(root + "/tools/build-icons.py").read().split("if __name__")[0]
+g = {"__name__": "bi", "__file__": root + "/tools/build-icons.py"}
+exec(compile(src, "build-icons", "exec"), g)
+text = open(root + "/art/icons.txt").read()
+before = {ic["name"]: ic["code"] for ic in g["twins"](g["parse"](text))}
+after = {ic["name"]: ic["code"] for ic in g["twins"](g["parse"](text + "\n@zz-new\n" + "#." * 6 + "\n" + ".#" * 6 + "\n"))}
+moved = [n for n in before if after[n] != before[n]]
+codes = list(after.values())
+print("moved:", moved[:5], "twice:", len(codes) - len(set(codes)),
+      "ranges:", all(g["FIRST"] <= c < g["TWIN"] for n, c in after.items() if not n.endswith("-bar")),
+      all(c >= g["TWIN"] for n, c in after.items() if n.endswith("-bar")))
+PYAPPEND
+)
+eq "$out" "moved: [] twice: 0 ranges: True True"
 case_ "the modules draw an icon before a value with ICON_BAR_* (no space between)"
 bad=$(grep -nE '\$ICON_(VOL_[0-4]|VOL_MUTE|BRI_[0-4]|MEMORY|USB|HOURGLASS)\b[^"]* (\$|%|<span)|"%s %s<span|"%s %d' \
   "$REPO/bin/kawa-volume" "$REPO/bin/kawa-brightness" "$REPO/bin/kawa-mem" "$REPO/bin/kawa-drives" "$REPO/bin/kawa-timer" \

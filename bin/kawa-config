@@ -188,7 +188,7 @@ row shell     "$ICON_PROMPT"    shell          "prompt, aliases"
 row files     "$ICON_FOLDER"    files          "yazi's panes, colours, keys"
 row drives    "$ICON_DRIVE"     drives         "notices, eject, passphrase"
 row autostart "$ICON_HOURGLASS" autostart      "programs, idle and lock times"
-heading_row "$ICON_MONITOR" system
+heading_row "$ICON_SEC_SYSTEM" system
 row settings  "$ICON_SLIDERS"   settings       "keyboard, city, refresh rate"
 row packages  "$ICON_ARCHIVE"   packages       "what is installed"
 row yours     "$ICON_USER"      'yours alone'  "what the theme never touches"

@@ -1343,3 +1343,22 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   skies, kawa-weather, style.css …), then SIGUSR2 to his waybar (its style read anew, same pid, no
   crash) and signal 18 (the weather module): the gold moon and its star beside 28°. Measured on his
   screen (grim): paper → sky 8 · sky 14 on the paper's rows 3–16 · sky → value 8 · value → paper 8.
+- r27-19k-4 (e) DONE + VERIFIED kit (31 Oct 23:05): Super+U's sections get their own pictures (12 × 12,
+  1 px strokes; appended to art/icons.txt): system a pagoda (its storeys: the system's layers — also
+  the settings' "system" heading, kawa-config), update a seedling (what is new grows), backups the
+  senryō-bako of its crest (10 rows, centred); snapshots keep the camera, learning the cap (drafts of a
+  brush, a brush over its stroke and a scroll read as "edit" or "document": rejected). Kit play both
+  themes: the tab row's icons on one baseline 40 px apart (px.py boxes). test_menu 589/0, test_config
+  105/0 (their icons in the tab row and the settings' heading).
+- r27-fix FOUND + FIXED (31 Oct 23:20) — an icon added showed WRONG icons in a running session: tested
+  headless (tools/hl-dwl.sh; foot server with the old Sumi Icons Term, the font renamed over as an
+  install does, a new footclient window, then a new server): a running foot server keeps the font it
+  started with (windows A, B identical), a new server draws the new one (C). And every icon appended
+  moved every ICON_BAR_* twin (they followed the base icons), so the old font answered a new code with
+  some other drawing (the to-do's code drew the torii's twin) — in his Super+U since the 22:40 apply,
+  and the bar's short-lived modules could do the same. Fix: tools/build-icons.py gives each icon its
+  own code — FIRST (U+FE000) + its place, its twin TWIN (U+FE800) + the same place — so an appended
+  icon moves nothing (base codes unchanged by this: ICON_TODO still U+FE0CC; twins moved once, to
+  FE800–FE8CF). test_bargaps 6/0 (+ "an icon appended moves no other and no twin"); test_generated
+  258/0, test_tiles 137/0, test_bar 265/0, test_panel 513/0. A new icon still needs a new foot server
+  (his next login) to show; until then it is absent, never a wrong one.

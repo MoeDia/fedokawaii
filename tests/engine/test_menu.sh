@@ -117,14 +117,14 @@ case_ "the tab bar, a heading over the list (a cell further out): the section sh
 t=$(fedokawaii --tabs update)
 eq "$(wc -l <<<"$t")" 3 "three lines"; eq "$(sed -n 3p <<<"$t")" " " "the third a row of paper"
 l1=$(sed -n 1p <<<"$t"); l2=$(sed -n 2p <<<"$t")
-[[ $l1 == $'\e[38;5;21m'"$ICON_MONITOR"* ]] && _ok || _no "the first tab not at the bar's first column (a heading's): $(plain "$l1")"
-has "$l1" $'\e[38;5;20m'"$ICON_RESTART"$'\e[0m  \e[38;5;23mupdate\e[0m' "update shown: icon accent, name strong"
-has "$l1" $'\e[38;5;21m'"$ICON_MONITOR"$'\e[0m    \e[38;5;20m' "system: its icon alone, muted, two columns, then three of paper"
+[[ $l1 == $'\e[38;5;21m'"$ICON_SEC_SYSTEM"* ]] && _ok || _no "the first tab not at the bar's first column (a heading's): $(plain "$l1")"
+has "$l1" $'\e[38;5;20m'"$ICON_SEC_UPDATE"$'\e[0m  \e[38;5;23mupdate\e[0m' "update shown: icon accent, name strong"
+has "$l1" $'\e[38;5;21m'"$ICON_SEC_SYSTEM"$'\e[0m    \e[38;5;20m' "system: its icon alone, muted, two columns, then three of paper"
 has "$l1" $'\e[0m   \e[38;5;21m'"$ICON_CAMERA" "three columns after the name shown"
 lacks "$(plain "$l1")" "system" "no name for a tab not shown"
 eq "$(plain "$l2")" "        ▔▔▔▔▔▔" "the line: under the name shown alone (6 columns), at its column"
 has "$l2" $'\e[38;5;16m▔' "the line in the accent"
-eq "$(plain "$(fedokawaii --tabs learning | head -n1)")" "$ICON_MONITOR    $ICON_RESTART    $ICON_CAMERA    $ICON_DRIVE    $ICON_MORTARBOARD  learning" "the last shown: no paper after it"
+eq "$(plain "$(fedokawaii --tabs learning | head -n1)")" "$ICON_SEC_SYSTEM    $ICON_SEC_UPDATE    $ICON_CAMERA    $ICON_SEC_BACKUPS    $ICON_MORTARBOARD  learning" "the last shown: no paper after it"
 case_ "a job running: its row again in each frame of the hourglass turning (fields 4–9 after the name: 0 1 2 3 3 4), only its icon changed; every other row the same picture in each; none running: all alike"
 printf 'repair\n' >"$R/state/lock"
 ( exec 9<"$R/state/lock"; flock 9; exec sleep 30 ) >/dev/null 2>&1 & holder=$!

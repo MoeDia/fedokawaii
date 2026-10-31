@@ -649,8 +649,8 @@ fi
 SECTIONS=(system update snapshots backups learning)
 tab_icon() {   # tab_icon SECTION → its pixel icon
   case $1 in
-    system) printf '%s' "${ICON_MONITOR:-·}" ;; update) printf '%s' "${ICON_RESTART:-·}" ;;
-    snapshots) printf '%s' "${ICON_CAMERA:-·}" ;; backups) printf '%s' "${ICON_DRIVE:-·}" ;;
+    system) printf '%s' "${ICON_SEC_SYSTEM:-·}" ;; update) printf '%s' "${ICON_SEC_UPDATE:-·}" ;;
+    snapshots) printf '%s' "${ICON_CAMERA:-·}" ;; backups) printf '%s' "${ICON_SEC_BACKUPS:-·}" ;;
     learning) printf '%s' "${ICON_MORTARBOARD:-·}" ;;
   esac
 }

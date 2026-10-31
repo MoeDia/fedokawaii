@@ -46,7 +46,8 @@ CREST = 28                        # a crest's picture, square; its ink within CR
 
 UPM, PX = 1400, 100               # Sumi UI's grid: a 14 px em, 100 units per pixel
 ASC, DESC = 1200, -200            # its line: 12 up, 2 down — mixing the fonts keeps the line
-FIRST = 0xFE000                   # Supplementary Private Use Area A
+FIRST = 0xFE000                   # Supplementary Private Use Area A: each icon at FIRST + its place
+TWIN = 0xFE800                    # its bar twin at TWIN + the same place: a range of its own
 BAR_GAP = 8                       # the bar: from an icon's ink to its value's (a column of the grid)
 MIDDLE = 5                        # an icon's middle in pixels above the baseline: the middle of
                                   # Sumi UI's capitals (10 px tall on it)
@@ -141,7 +142,7 @@ def build(icons, path=TTF, family="Sumi Icons", raise_px=0, cell=0, upm=UPM, asc
     names = [".notdef", "space"] + ["i_" + ic["name"].replace("-", "_") for ic in icons]
     fb = FontBuilder(upm, isTTF=True)
     fb.setupGlyphOrder(names)
-    fb.setupCharacterMap({0x20: "space", **{FIRST + i: names[i + 2] for i in range(len(icons))}})
+    fb.setupCharacterMap({0x20: "space", **{ic["code"]: names[i + 2] for i, ic in enumerate(icons)}})
     notdef = TTGlyphPen(None)                # a hollow box: outer clockwise, inner hole anticlockwise
     notdef.moveTo((100, 0)); notdef.lineTo((100, 1300)); notdef.lineTo((700, 1300)); notdef.lineTo((700, 0))
     notdef.closePath()
@@ -199,8 +200,8 @@ def write_sh(icons):
         "#   . ~/.config/fedokawaii/icons.sh; printf '%s volume\\n' \"$ICON_SPEAKER\"",
         "# shellcheck shell=bash disable=SC2034",
     ]
-    for i, ic in enumerate(icons):
-        b = chr(FIRST + i).encode()
+    for ic in icons:
+        b = chr(ic["code"]).encode()
         esc = "".join(f"\\x{c:02x}" for c in b)
         var = "ICON_" + ic["name"].upper().replace("-", "_")
         out.append(f"{var}=$'{esc}'")
@@ -208,7 +209,7 @@ def write_sh(icons):
     # bar twin — the drawing with no air either side, its ink from the pen — then BAR_GAP px
     # of 2 px and 1 px spaces: the module's padding is the paper before the icon's ink,
     # whatever the icon, and BAR_GAP the paper between its ink and the value's
-    code = {ic["name"]: chr(FIRST + i).encode() for i, ic in enumerate(icons)}
+    code = {ic["name"]: chr(ic["code"]).encode() for ic in icons}
     def esc(b): return "".join(f"\\x{c:02x}" for c in b)
     def spaces(n): return code["gap"] * (n // 2) + code["gap1"] * (n % 2)
     out.append(f"# on the bar: \"$ICON_BAR_X$value\" ({BAR_GAP} px from the icon's ink to the value's)")
@@ -294,13 +295,19 @@ def right_air(ic):
 
 def twins(icons):
     """the bar twins (ICON_BAR_*): every icon again with no air either side — its ink from the
-    pen, its advance its ink's width — after every other, so no icon's code ever changes"""
+    pen, its advance its ink's width. Each icon's code is FIRST + its place in icons.txt, its
+    twin's TWIN + the same place: an icon appended moves no other and no twin, so a session still
+    running on the font it started with never draws a wrong icon (a new one: none, until then)"""
     def ink(ic):
         cols = [i for r in ic["rows"] for i, v in enumerate(r) if v == "#"]
         return min(cols), max(cols)
+    if len(icons) > TWIN - FIRST:
+        sys.exit(f"icons.txt: {len(icons)} icons — more than the {TWIN - FIRST} before the twins' range")
+    for k, ic in enumerate(icons):
+        ic["code"] = FIRST + k
     return icons + [{**ic, "name": ic["name"] + "-bar", "x": -ink(ic)[0],
-                     "adv": ink(ic)[1] - ink(ic)[0] + 1, "twin": True}
-                    for ic in icons if not ic["name"].startswith("gap")]
+                     "adv": ink(ic)[1] - ink(ic)[0] + 1, "twin": True, "code": TWIN + k}
+                    for k, ic in enumerate(icons) if not ic["name"].startswith("gap")]
 
 
 def main():
