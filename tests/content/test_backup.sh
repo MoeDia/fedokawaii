@@ -247,6 +247,7 @@ if [[ -c /dev/fuse ]] && command -v fusermount3 >/dev/null; then
   m=$W/mnt; mkdir -p "$m"; kawa-backup mount "$m" 2>"$W/mount.err" & mp=$!
   for _ in $(seq 1 300); do [[ -d $m/ids/$id ]] && break; sleep 0.1; done
   eq "$(cat "$m/ids/$id$HOME/Documents/report.ods" 2>/dev/null)" three "a file of the first backup, read inside it"
+  out=$(kawa-backup 2>&1); eq "$?" 1 "a backup while one is open for a restore"; has "$out" "the backup is open for a restore (Super+U → restore) — close that window first"
   { echo x >"$m/ids/$id$HOME/Documents/new.txt"; } 2>/dev/null && _no "written into a backup" || _ok
   fusermount3 -u "$m"; wait "$mp"; eq "$?" 0 "restic ends with the unmount: $(cat "$W/mount.err")"
   mountpoint -q "$m" && _no "still mounted" || _ok

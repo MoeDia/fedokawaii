@@ -160,9 +160,16 @@ ready() {   # ready [quiet] → REPO set, the password in the environment; else 
     || { WHY="no RESTIC_PASSWORD in $SECRETS — add a line RESTIC_PASSWORD=\"your passphrase\" (and keep a copy of it elsewhere)"; return 1; }
   export RESTIC_PASSWORD
   # (su, a cron job: no session of yours, so the lock goes in the cache instead)
+  # (the holder writes what it is — a backup, or a backup open for a restore —, so a second run
+  # says which; opened to append: a refused one never empties the holder's word)
   mkdir -p "${LOCK%/*}" 2>/dev/null
-  exec 8>"$LOCK"
-  flock -n 8 || { WHY="a backup is running already — wait for its notice"; return 1; }
+  exec 8>>"$LOCK"
+  if ! flock -n 8; then
+    if [[ $(cat -- "$LOCK" 2>/dev/null) == restore ]]; then WHY="the backup is open for a restore (Super+U → restore) — close that window first"
+    else WHY="a backup is running already — wait for its notice"; fi
+    return 1
+  fi
+  printf '%s\n' "${LOCK_KIND:-backup}" >"$LOCK" 2>/dev/null
   return 0
 }
 r() { restic -r "$REPO" "$@"; }
@@ -308,6 +315,7 @@ backup_times() {   # (not "times": a bash builtin)
 }
 mount_ro() {   # (restic's own mount is read-only; it serves until DIR is unmounted)
   [[ -d $1 ]] || { err "mount takes an empty folder that is there: kawa-backup mount DIR"; return 2; }
+  LOCK_KIND=restore
   open_repo || return 1
   r mount "$1" >/dev/null
 }

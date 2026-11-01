@@ -2949,18 +2949,29 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
 - r27-49-R4b condition 2 MET (1 Nov 21:00–21:09): update-green f44 from the frozen cf211b8 — exit 0 in 277 s, report
   "ok · updated · 61 packages", "update done (ok)", no "the desktop does not start", auditd active with its log, 0
   AVC lines. Kept: /dev/shm/r27/master/T45-5/green-cf211b8/ (+ .txt). Condition 1 (the suite on cf211b8) running.
+- r27-52-restore-sf (1 Nov 21:10–21:20, local): T48 should-fix 7 — kawa-backup's lock holder writes what it is
+  (backup, or restore: `kawa-backup mount` sets LOCK_KIND), opened to append so a refused run never empties it; a
+  backup while a restore has the backup open says "the backup is open for a restore (Super+U → restore) — close
+  that window first" (test_backup 223/0, the row inside the real FUSE mount); should-fix 4 — test_menu row: the
+  restore under a pty hung up (pty_run --hangup) while the dialog shows → fusermount3 -uz called, no folder left.
 ## >>> NEXT PASS STARTS HERE (1 Nov, written 20:55 by the 18:56 pass — the lines above say what it did): the inbox first. Then:
-## (1) NOTHING OF THIS PASS IS PUSHED OR APPLIED YET. main = r27 = the newest local commit (see git log; after
-##     cf211b8 only notes). The whole suite on cf211b8: /dev/shm/r27p/suite-cf211b8.log (started 21:00, last line
-##     "== suite rc=N in S s"); update-green f44 from it: exit 0, report ok — condition 2 MET (T45-5/green-cf211b8/). Green → `git push origin main r27` → apply on the PC (sudo
-##     FEDOKAWAII_COPY=$PWD /usr/local/bin/fedokawaii apply) → verify → the new kawa-panel live (memory
-##     live-panel-restart: SIGKILL it when no panel/menu is open; the bar respawns it? check how) → headless shots of
-##     Super+U → backups and the notes. Red → the failing file alone, fix, its area, then the suite again.
-##     (Known before that run: the 2b12615 suite 126/128 — both reds fixed; a6f5049's look/test_launcher red on
-##     fuse3 — fixed. Every commit after a6f5049 had its own tests run: static, content (test_notes, test_backup,
-##     test_configs), engine (test_menu, test_front), look (test_calc, test_launcher, test_units), menus.)
-## (2) T45's VERDICT 4: PASS WITH CONDITIONS (r27-49-R4b RESULT). Conditions 1–2 = item (1) above; 3 done. Then its
-##     should-fixes 1, 2, 3, 4, 7 (8: the ledger, done) — built with rows, the next review judges them.
+## (1) NOTHING OF THIS PASS IS PUSHED OR APPLIED YET. Local main = r27 = the newest commit. Two points matter:
+##     · cf211b8 — T45's conditions ran on it: update-green exit 0 (MET); the whole suite →
+##       /dev/shm/r27p/suite-cf211b8.log (started 21:00; last line "== suite rc=N in S s"). 415b61c = cf211b8 + notes.
+##     · the newest (3981c01: T45 should-fix 2 and 7; then T48 should-fix 4 and 7) — each change with its own file
+##       tests green (test_upkeep 283/0, test_backup 223/0, test_menu, static), no whole suite yet.
+##     DO: if suite-cf211b8 is rc 0 → `git push origin 415b61c:refs/heads/main` (T45's condition 1 met: tell it in
+##     the ledger) and `git push origin r27`. Then a whole suite on the newest from a frozen worktree (git worktree
+##     add --detach /dev/shm/r27w-suite-<sha> HEAD; bash tests/run.sh there, ~50 min) → rc 0 → push main there →
+##     APPLY on the PC (sudo FEDOKAWAII_COPY=$PWD /usr/local/bin/fedokawaii apply; verify) → the new kawa-panel live
+##     (memory live-panel-restart) → headless shots (grim, the session's env) of Super+U → backups and the notes.
+##     If suite-cf211b8 is red: read the failing file (`grep -B3 ✘`), fix, its area, and go straight to the
+##     whole suite on the newest.
+## (2) T45's VERDICT 4: PASS WITH CONDITIONS (r27-49-R4b RESULT). Conditions 1–2 = item (1) above; 3 done. Its
+##     should-fixes: 5, 6 done (cf211b8), 2, 7 done (3981c01), 8 (the ledger) done; LEFT 1 (a replay that never began:
+##     0 of the set in → nothing held, nothing undone, phase end, said as the stop — today's TERM and fail-replay rows
+##     hold the old behaviour: change them with it), 3 (the stand-in's end-after=N), 4 (daemon-reexec read once in the
+##     VM). Then the master's next review of T45 (brief: master-T45-efh-verdict.md's Verdict 4 + the ledger since).
 ## (3) T48 (the master's verdict 4: FAIL → must-fix 1 answered by taking the in-place restore out; should-fix 2, 3,
 ##     5, 8, 9 built): LEFT should-fix 1 (the job screens' heading at column 0, rows one cell in — §7; changes every
 ##     job screen and test_menu's `aligned`; render both moods; = audit-r27's open grammar finding), 4 (a

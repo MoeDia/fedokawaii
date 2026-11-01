@@ -474,11 +474,12 @@ backups() {
   times) cat "'"$TMP"'/times" ;;
   mount) [ -e "'"$TMP"'/mount-fails" ] && { echo "restic: wrong password or no key found" >&2; exit 1; }
          for id in a1a1a1a1 b2b2b2b2 c3c3c3c3; do mkdir -p "$2/ids/$id'"$HOME"'/Documents"; echo "notes in $id" >"$2/ids/$id'"$HOME"'/Documents/notes.md"; done
-         while [ ! -e "$2.gone" ]; do sleep 0.05; done; rm -rf "$2/ids" "$2.gone" ;;
+         g="'"$TMP"'/unmounted.${2##*/}"; while [ ! -e "$g" ]; do sleep 0.05; done; rm -f "$g" ;;
   drive) cat "'"$TMP"'/drive" ;;
   pick)  exit 4 ;;
 esac'
-  stub fusermount3 'for a; do d=$a; done; [ -d "$d/ids" ] && : >"$d.gone"'
+  # (fusermount3 as an unmount is: the folder empty again — and a word to the stand-in's mount that it is over)
+  stub fusermount3 'for a; do d=$a; done; [ -d "$d/ids" ] && { rm -rf "$d/ids"; : >"'"$TMP"'/unmounted.${d##*/}"; }'
   stub kawa-pick 'printf "%s\n" "env $KAWA_PICK_TITLE | $KAWA_PICK_ROOT" >>"$CALLS"
 [ "$1" = --inside ] && [ "$2" = back ] || exit 9
 sed "s|^@|$3|" "$TMP/pick" >"$4/answer"'
@@ -512,6 +513,11 @@ case_ "…the dialog cancelled: nothing taken, the backup closed; a backup that 
 fresh; backups; out=$(TZ=UTC on_tty $'1\n' fedokawaii --run restore); has "$out" "nothing taken"; called '^fusermount3 -u'; eq "$(mounts_left)" ""
 fresh; backups; : >"$TMP/mount-fails"; out=$(TZ=UTC on_tty $'1\n' fedokawaii --run restore)
 has "$out" "the backup could not be opened: restic: wrong password or no key found"; not_called '^kawa-pick'; eq "$(mounts_left)" ""
+case_ "…the window closed while the backup is open (the dialog showing): the backup closed all the same — fusermount3 called, no folder left (the master's T48 should-fix 4)"
+fresh; backups; stub kawa-pick 'printf "%s\n" "env $KAWA_PICK_TITLE | $KAWA_PICK_ROOT" >>"$CALLS"; sleep 30'
+printf '1\n' | python3 -I "$REPO/tests/lib/pty_run.py" --stdin --hangup 3 --timeout 20 -- fedokawaii --run restore >/dev/null 2>&1
+for _ in $(seq 1 50); do [[ -z $(mounts_left) ]] && break; sleep 0.1; done
+called '^kawa-pick --inside back '; called '^fusermount3 -uz'; eq "$(mounts_left)" "" "the mount's folder and the dialog's gone"
 case_ "…no backup there yet, or kawa-backup cannot reach it (not plugged in): said, nothing asked"
 fresh; backups; : >"$TMP/times"; out=$(tty_free fedokawaii --run restore </dev/null 2>&1); has "$out" "no backup on the drive yet — back up now makes the first"
 fresh; backups; stub kawa-backup 'echo "  KINGSTON is not plugged in" >&2; exit 1'; out=$(tty_free fedokawaii --run restore </dev/null 2>&1)
