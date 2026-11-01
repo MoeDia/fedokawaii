@@ -39,8 +39,8 @@ called 'rpmkeys\] --checksig'
 called "snapper\] -c root modify -c  [0-9]+"
 called 'dnf\] -y -C replay /var/lib/fedokawaii/update/tx'
 grep -q '^mesa 26.1-1.fc44$' "$FKH/evr" && _ok || _no "mesa not at its new version: $(cat "$FKH/evr")"
-# (the copy is gone again, the top unmounted: nothing left beside the system)
-[[ ! -e $W/run/fedokawaii/top/root.cand ]] && _ok || _no "the copy was left behind"
+# (the copy is gone again: nothing left beside the system)
+grep -qx /run/fedokawaii/top/root.cand "$FKH/subvolumes" && _no "the copy was left behind" || _ok
 [[ $(cut -d' ' -f2 "$W/var/lib/fedokawaii/last-update") != stopped ]] && _ok || _no "recorded as stopped"
 # (order: the copy before the snapshot, the snapshot before the system's replay)
 c=$(grep -n 'systemd-nspawn\]' "$CALLS" | head -n1 | cut -d: -f1); s=$(grep -n 'snapper\] -c root create' "$CALLS" | tail -n1 | cut -d: -f1)
@@ -169,13 +169,27 @@ back built; reset_calls; pending "bash 5.2-1.fc44 5.3-1.fc44"; fkh replay-blinds
 up; eq "$RC" 1; has "$OUT" "the desktop's start check could not run (session-start: the kit could not run: hl-dwl: out of time (60 s)) — nothing held, nothing undone"
 eq "$(report)" stopped; [[ -s $U/holds ]] && _no "held: $(cat "$U/holds")" || _ok; not_called 'kawa-snap\] restore'
 eq "$(cut -d' ' -f1 "$U/phase")" check "the phase kept: the next press resumes at the checks"
+sn=$(cat "$U/snap")
 reset_calls; up; eq "$RC" 0 "$(tail -n3 <<<"$OUT")"; has "$OUT" "its steps and checks again"; eq "$(report)" ok
-not_called 'dnf\] .*replay'
+not_called 'dnf\] .*replay'; not_called "snapper\] -c root modify -c number $sn\$"; grep -q "^$sn " "$U/probation" && _ok || _no "snapshot $sn not the probation's"
 case_ "the transaction fails on the running system: undone the same way (offered), the set held"
 back built; reset_calls; pending "bash 5.2-1.fc44 5.3-1.fc44"; fkh fail-replay 1
 up; eq "$RC" 0 "$(tail -n3 <<<"$OUT")"
 eq "$(report)" offered; has "$(cat "$U/report")" "the transaction stopped on the running system"
 grep -q '^bash 5.3-1.fc44 ' "$U/holds" && _ok || _no "not held"
+
+case_ "a run cut before its transaction (a power cut: no exit ran): its copy dropped, its pinned snapshot back to the cleanup — first thing, before the space is measured"
+back built; reset_calls; mkdir -p "$U"; fkh_add subvolumes /run/fedokawaii/top/root.cand
+printf 'snapshot 1\n' >"$U/phase"; echo 7 >"$U/snap"; rm -f "$U/probation"
+up; eq "$RC" 0 "$(tail -n3 <<<"$OUT")"; eq "$(report)" current
+called 'snapper\] -c root modify -c number 7$'; called 'btrfs\] subvolume delete --commit-after /run/fedokawaii/top/root.cand'
+grep -qx /run/fedokawaii/top/root.cand "$FKH/subvolumes" && _no "the stale copy is still there" || _ok
+d=$(grep -n 'subvolume delete' "$CALLS" | head -n1 | cut -d: -f1); f=$(grep -n 'filesystem usage' "$CALLS" | head -n1 | cut -d: -f1)
+((d < f)) && _ok || _no "the copy dropped at call $d, the space measured at $f"
+case_ "…a green run's snapshot is its probation's: the next press leaves it pinned (released when the trial closes)"
+s=$(cut -d' ' -f1 "$U/probation" | tail -n1); [[ $s =~ ^[0-9]+$ ]] && _ok || _no "no snapshot in the probation: $(cat "$U/probation" 2>/dev/null)"
+reset_calls; up; eq "$RC" 0 "$(tail -n3 <<<"$OUT")"; not_called "snapper\] -c root modify -c number $s\$"
+not_called 'subvolume delete'
 
 case_ "a run cut in its transaction, whole after all: finished — the steps and checks, then kept"
 back built; reset_calls; mkdir -p "$U"; printf 'replay 1\n' >"$U/phase"; echo "bash 5.2-1.fc44 5.3-1.fc44" >"$U/set"; : >"$U/baseline"
@@ -183,6 +197,7 @@ echo "bash 5.3-1.fc44" >>"$FKH/evr"; fkh_add installed bash; echo 7 >"$U/snap"
 up; eq "$RC" 0 "$(tail -n3 <<<"$OUT")"
 has "$OUT" "the last update was cut off in its transaction — finishing it first"
 eq "$(report)" ok; not_called 'systemd-nspawn'; not_called 'dnf\] .*--store'
+grep -q '^7 ' "$U/probation" && _ok || _no "snapshot 7 not the probation's: $(cat "$U/probation" 2>/dev/null)"; not_called 'snapper\] -c root modify -c number 7$'
 case_ "a cut run whose transaction still writes (its dnf unit alive): followed to its end first, then judged — whole: kept"
 back built; reset_calls; mkdir -p "$U"; printf 'replay 1\n' >"$U/phase"; echo "bash 5.2-1.fc44 5.3-1.fc44" >"$U/set"; : >"$U/baseline"; echo 7 >"$U/snap"
 fkh_add installed bash; echo "bash 5.3-1.fc44" >>"$FKH/evr"; fkh_add units "active fedokawaii-dnf-1-1.service"; fkh fail-busy-fedokawaii-dnf-1-1.service 3

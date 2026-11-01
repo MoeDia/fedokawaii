@@ -2406,7 +2406,7 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   with only its two known reds (test_setup_wait, test_launcher — both fixed since). t45 (9944a7e) merged into main
   for real: a353613, no conflicts; the WHOLE suite on it started 13:28 (/dev/shm/r27p/merge2.log); main is pushed
   only when it is green.
-- r27-49-18 (1 Nov 13:30–13:46; the master's (G) 18, before the PC's first press) — a whole set held at once no
+- r27-49-18 (1 Nov 13:30–13:45; the master's (G) 18, before the PC's first press) — a whole set held at once no
   longer becomes a notice of hundreds of names: the report's line (and so the notice and the run's last line)
   names the holds by family, two at most, then "and N more"; a red only on the running system says "held: all N
   packages together (which one broke it could not be told apart; newer versions are tried)"; the Super+U held
@@ -2421,7 +2421,7 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   more."), test_status 207/0 (sixty: "61 packages · 60 held", ≤ 44 columns); static syntax/pointers green, no new
   shellcheck finding. Design §4.1 "as built" written.
 
-- r27-49-11 (1 Nov 13:47–13:58; the master's (G) 11) — whether a hold is ever written twice, from the official
+- r27-49-11 (1 Nov 13:45–13:52; the master's (G) 11) — whether a hold is ever written twice, from the official
   source: dnf5 5.4.6.0 (the installed dnf5-5.4.6.0-1.fc44; strings of /usr/bin/dnf5 carry "Package \"{}\" is
   already excluded.") — dnf5/commands/versionlock/versionlock_exclude.cpp at tag 5.4.6.0, exclude_versions():
   an entry of the same name with only `evr !=` conditions gets a condition only for an EVR not already present;
@@ -2432,6 +2432,19 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   with all its specs; `versionlock list` is not used any more. The dnf stand-in adds every spec after `exclude`
   (each once, as dnf5). test_update_flow 227/0: one call holds the kernel family (its three specs), the next
   press puts the holds in force in one call, nothing written twice, no list call.
+
+- r27-49-14 (1 Nov 13:52–14:06; the master's (G) 14) — what a run cut before its end leaves (a power cut: no exit
+  trap ran) is cleared by the next press, first thing in u_start and before the space is measured (a stale copy
+  is gigabytes): lib/update.sh up_leftovers — a root.cand still on the disk's top level (`btrfs subvolume list /`)
+  is dropped (the top mounted, cand_drop), and the pinned snapshot in UPD/snap goes back to snapper's number
+  cleanup unless a probation lists it (up_probation lists every green run's — those are released when the trial
+  closes, as before). Cuts in the transaction or at the check never reach it (the next press resumes, u_start is
+  not run). The btrfs stand-in lists root.cand from $FKH/subvolumes and makes it under the (fresh-tmpfs) top, as
+  the disk keeps it. test_update_flow 241/0: cut before the transaction → the copy dropped and snapshot 7
+  released, both before `filesystem usage`; a green run's snapshot left pinned by the next press; cut in its
+  transaction (whole) and cut at the check → the snapshot handed to the probation, never released. Found: two
+  "the copy was left behind" checks looked at $W/run, which the fake machine never uses (its /run is a fresh
+  tmpfs): vacuous — they read $FKH/subvolumes now.
 
 ## >>> NEXT PASS STARTS HERE (1 Nov, written 13:00 — the lines above say what this pass did): the inbox first. Then,
 ## in the master's order (master-T45-efh-verdict.md, "Re-review"):

@@ -42,6 +42,7 @@ u_start() {
   done
   # (the copy's container: without it every update would look red — said, never guessed)
   command -v systemd-nspawn >/dev/null || die "systemd-nspawn is missing (systemd-container) — fedokawaii repair puts it in; nothing changed"
+  up_leftovers   # (before the space is measured: a stale copy is gigabytes)
   preflight 15360
   if mountpoint -q /boot/efi; then need_space /boot/efi 50; fi
   # (Btrfs writes into unallocated chunks: free space alone can hide a disk that cannot take a write)
@@ -58,6 +59,18 @@ u_start() {
   why=$(up_more) || rc=$?
   ((rc == 2)) && die "the desktop's start check could not run ($why) — nothing changed; press update again"
   [[ -z $why ]] || { log "red before the update: ${why//$'\n'/ · }"; printf '%s\n' "$why" >>"$UPD/baseline"; }
+}
+up_leftovers() {   # what a run cut before its end left (a power cut: no exit trap ran) — its copy
+                   # of the system, dropped; its pinned snapshot, if no probation took it over
+                   # (every green run's does), back to snapper's number cleanup
+  local n
+  n=$(cat "$UPD/snap" 2>/dev/null) || n=""
+  if [[ $n =~ ^[0-9]+$ ]] && ! grep -q "^$n " "$UPD/probation" 2>/dev/null; then
+    snapper -c root modify -c number "$n" >/dev/null 2>&1 || log "snapshot $n could not be released to the cleanup (snapper)"
+    rm -f -- "$UPD/snap"
+  fi
+  btrfs subvolume list / 2>/dev/null | awk '$NF == "root.cand" { f = 1 } END { exit !f }' || return 0
+  up_top; cand_drop
 }
 up_more() {   # the checks verify does not make, a line for each that is red: the desktop's start
               # (desktop_starts), and our builds' libraries and the boot pieces (lib/cand-check.sh:
