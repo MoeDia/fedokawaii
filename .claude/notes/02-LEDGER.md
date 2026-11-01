@@ -1760,9 +1760,17 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   finished the cut one (the snapshot listed again: "1*"); defaulted → the restored system, all in
   place. Logs: /dev/shm/r27/restore-cut/. Not yet on the PC (the master first).
 
+- r27-19m-b1 owed shots (1 Nov 04:25; the master-2's nit 3): a GTK 3 dialog and zathura rendered before
+  (worktree f958bc3) and after in the kit, dark: the dialog's title and words now text (#e7cfa1) where
+  they were strong — a hair warmer, read as well (/dev/shm/r27/ba-gtk.png); zathura draws the PDF's own
+  page on the ground, its words only in its hidden status and input bars — nothing visible moved.
+  Found for T19m's audit (pass 2): a dialog's two buttons are the same lacquer — the suggested one
+  ("Save") does not stand out from "Cancel"; GTK's default action should be the lacquer, the others
+  quiet (key fill, text) — fix with the GTK theme in the audit.
+
 ## >>> NEXT PASS STARTS HERE (1 Nov 04:10): the inbox first. Then, the update system (the master's order):
 ## (1) T48 FIRST (1): proven in the VM (restore-cut.sh, six cut points, exit 0) — the master's review
 ##     (if this pass did not get it), then apply (kawa-snap is not live yet: the PC keeps the old one).
 ## (2) T48 FIRST (2): the flat layout (snapshots, home, log, fk at the top level) and the offline /home
 ##     split — VM first. (3) T45 (a)–(c): kawa-update's state machine on stubs, then the candidate in
-##     nspawn (the core is proven: r27-49-exp1/2). Owed: T19m pass 2's GTK dialog + zathura shots.
+##     nspawn (the core is proven: r27-49-exp1/2). T19m's audit: the GTK dialog's buttons (r27-19m-b1 owed shots).
