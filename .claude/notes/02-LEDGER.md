@@ -2727,7 +2727,13 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   switched to a newer python and such" → plan T46b (the F45 ChangeSet triaged into .claude/notes/f45-changes.md,
   Python first: every Python program of ours on F45's Python with no deprecation warning, the uv CPython pins
   moved; adopted changes proven in vm-smoke f45 and on the PC after its upgrade); master-trace row r27-inbox-1710. A
-  research agent (sonnet) collects the raw facts now → .claude/notes/f45-changes-raw.md (no decisions).
+  research agent (sonnet) collects the raw facts now → .claude/notes/f45-changes-raw.md (no decisions). WRITTEN
+  18:30 (475 lines): 46 accepted changes (19 system-wide, 27 self-contained; = Category:ChangeAcceptedF45), Final
+  GO for Tue 3 Nov (RC-1.4); python3 3.14.8 → 3.15.0 (What's New 3.15's removed/deprecated lists linked), systemd
+  259.10 → 262.1 (its 260–262 incompatible changes listed), podman 5 → 6, llvm 22 → 23, ffmpeg-free 8 → 9; Mesa,
+  PipeWire, wlroots 0.20.2, waybar, mako, neovim keep their upstream versions; every third-party repo here serves
+  F45; all 189 manifest names resolve in F45; a live blocker: RPM Fusion's mesa-va-drivers-freeworld 26.2.6 needs
+  mesa-filesystem 26.2.6, F45 stable has 26.2.5; the official F45 release notes not published yet (404).
 - r27-49-R4 (1 Nov 17:55–): the master's Re-review 4 started (brief /dev/shm/r27/master/T45-4/brief.md; reads the
   frozen /dev/shm/r27w-review4 = 9280e4b); its evidence still arriving: the whole suite on 9280e4b
   (/dev/shm/r27p/suite-9280e4b.log), update-green STORM=1 throttled from 9280e4b (/dev/shm/r27p/green-storm-9280e4b.txt),
