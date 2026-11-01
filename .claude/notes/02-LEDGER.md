@@ -2421,6 +2421,8 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
 ##     (a check that cannot run stops the update now) every update stopped. Fixed on t45 d31adc7 (the stand-ins in
 ##     the fake machine's project copy): test_setup_wait 70/0. The rest of that suite's run: /dev/shm/r27p/all.log
 ##     (on the merged copy). So (B) begins: merge t45 into main again, the WHOLE suite green, then push.
+##     That suite's other finding: test_launcher wanted python3-pillow (main 5ac5c18) and systemd-container
+##     (t45) in fixtures/not-launched.txt — both added, 267/0 on each branch; t45 = 9944a7e (main merged in).
 ## (C) if that run ends offered, restored, held or stopped: stop, report to him (ledger top), no blind retry.
 ## (D)–(H) before any further kernel-bearing press and before T46: 8 (both halves), (E) why waybar and mako
 ##     are "not running" under the unit's as_user in the VM (KEEP=1, kit.log, play.log) — then the VM proofs
