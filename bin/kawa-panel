@@ -1465,7 +1465,13 @@ class Panel:
                 return
             self.close("chosen")
             if it.app is None:
-                self.ui.copy_answer(it.name)
+                # (the row still shows an earlier text's answer while this one's is worked out:
+                # this text's answer is copied once it comes — never the earlier one)
+                m = self.state
+                if m.pending == m.query:
+                    self.ui.copy_answer_of(m, m.query)
+                else:
+                    self.ui.copy_answer(it.name)
             else:
                 self.ui.start(it.app)
             return
@@ -2248,6 +2254,9 @@ def main(argv):
         def calc(self, m):
             calc_ask(m)
 
+        def copy_answer_of(self, m, q):
+            calc_now(m, q, copy=True)
+
         def run(self, argv, done):
             p = Gio.Subprocess.new(argv, Gio.SubprocessFlags.STDOUT_PIPE | Gio.SubprocessFlags.STDERR_SILENCE)
 
@@ -2340,7 +2349,12 @@ def main(argv):
                        r"fraction|frac|sci|scientific|eng|engineering|utc|time|sexa.*|factors|partial.*|cis|"
                        r"polar|rect.*|exact|approximate|optimal|prefix|bijective|unicode|calendars|fp.*|float|"
                        r"double|ieee.*|si|cgs|imperial|us)$")
-    qc = {"p": None, "inp": None, "out": None, "busy": None, "next": None, "idle": 0}
+    qc = {"p": None, "inp": None, "out": None, "busy": None, "next": None, "idle": 0, "settle": 0, "copy": None}
+    # (a sum is asked once the typing settles — SETTLE ms without a key —, never mid-word: to qalc a
+    # half-typed word is a unit of its own ("5 ft t": tonnes, "5 ft to c": the speed of light), and
+    # the answer's row ran through them as the letters came (bug 6, seen frame by frame 1 Nov);
+    # meanwhile the last answer stays in its row)
+    SETTLE = 250
 
     def sum_of(text):
         """What qalc is asked for what is typed, or None: no digit (a word alone is no sum —
@@ -2371,10 +2385,29 @@ def main(argv):
 
     def calc_ask(m):
         q = m.query
+        if qc["settle"]:
+            GLib.source_remove(qc["settle"])
+            qc["settle"] = 0
         if sum_of(q) is None:
             m.pending = None                          # (no sum: no answer row, at once)
             return
         m.pending = q
+        qc["settle"] = GLib.timeout_add(SETTLE, settled, m, q)
+
+    def settled(m, q):
+        qc["settle"] = 0
+        calc_now(m, q)
+        return False
+
+    def calc_now(m, q, copy=False):
+        """Q asked now (its settle over, or Enter on the answer's row: copy=True — its answer
+        copied when it comes, the launcher already gone)."""
+        if qc["settle"]:
+            GLib.source_remove(qc["settle"])
+            qc["settle"] = 0
+        if sum_of(q) is None:
+            return
+        qc["copy"] = q if copy else None
         qc["next"] = (m, q)
         if qc["busy"] is None:
             calc_send()
@@ -2420,7 +2453,12 @@ def main(argv):
         (m, q), a = qc["busy"], qc["ans"]
         qc["busy"] = None
         e = sum_of(q)
-        if a and not a.startswith(("error", "warning")) and a != e:
+        good = a and not a.startswith(("error", "warning")) and a != e
+        if qc["copy"] == q:
+            qc["copy"] = None
+            if good:
+                panel.ui.copy_answer(money(a))
+        if good:
             m.calc = (q, money(a))
             if m.pending == q:
                 m.pending = None

@@ -781,7 +781,7 @@ the pane on the right tells more about the one under the cursor. What is still b
 | update | Fedora N | the move to the next release | once it says *ready* |
 | snapshots | go back | the list of snapshots of the system, and one brought back | before and after a risky change |
 | backups | back up now | your home to the backup drive | weekly |
-| backups | restore | your files as a backup holds them: pick a file, a folder or several (a copy lands in `~/Restored`), or **a** puts all of it back in place — only what is missing — after a new disk | when something is lost |
+| backups | restore | your files as a backup holds them: pick a file, a folder or several — a copy lands in `~/Restored`, never over what is there | when something is lost |
 | backups | the drive | which drive your backups go to, whether it is plugged in, how full, and the last backup; Enter picks another | once, then when it changes |
 | learning | lessons | this book | |
 

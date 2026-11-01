@@ -455,6 +455,7 @@ case_ "…snapshots you cannot read (no ACL), or none yet: said plainly, with wh
 fresh; homesnaps; chmod 000 "${HOME%/*}/.snapshots"; out=$(tty_free fedokawaii --run file </dev/null 2>&1); chmod 755 "${HOME%/*}/.snapshots"
 has "$out" "cannot be read here — fedokawaii repair lets you read them"; not_called '^kawa-pick'
 fresh; rm -rf -- "${HOME%/*}/.snapshots"; mkdir -p "${HOME%/*}/.snapshots"; out=$(tty_free fedokawaii --run file </dev/null 2>&1); has "$out" "no snapshots of your files yet"
+fresh; rm -rf -- "${HOME%/*}/.snapshots"; out=$(tty_free fedokawaii --run file </dev/null 2>&1); has "$out" "no snapshots of your files yet"; lacks "$out" "repair" "no folder at all (before the split, the first hour): none yet, not repair"
 case_ "…its pane says what it does (in Super+U's popup it is a job: a window of its own, below)"
 out=$(plain "$(fedokawaii --explain file)"); has "$out" "copied into"; lacks "$out" "not yet"
 # shellcheck disable=SC2088  # (~ is the words on the screen)
@@ -490,23 +491,26 @@ has "$out" "3    08:15"; has "$out" "$(date -u -d '-5 days' '+%-d %b')"
 [[ $(grep -n '1    09:00' <<<"$out" | cut -d: -f1) -lt $(grep -n '3    08:15' <<<"$out" | cut -d: -f1) ]] && _ok || _no "not newest first"
 aligned "$out" "1    09:00"; aligned "$out" "3    08:15"; eq "$(grep -c -E '[123]    [0-9]{2}:[0-9]{2}' <<<"$out")" 3 "a row a line"
 not_called '^kawa-backup mount'; not_called '^kawa-pick'; [[ -e $HOME/Restored ]] && _no "a folder made for nothing" || _ok
-case_ "…a number, then enter: that backup opened read-only, the dialog in its copy of your home under the moment; the file into ~/Restored, the one now untouched; the backup closed, nothing left"
+case_ "…a number: that backup opened read-only, the dialog in its copy of your home under the moment; the file into ~/Restored, the one now untouched; the backup closed, nothing left"
 fresh; backups; mkdir -p "$HOME/Documents"; echo "notes now" >"$HOME/Documents/notes.md"; echo "@/Documents/notes.md" >"$TMP/pick"
-out=$(plain "$(TZ=UTC on_tty $'2\n\n' fedokawaii --run restore)")
+out=$(plain "$(TZ=UTC on_tty $'2\n' fedokawaii --run restore)")
 called "^kawa-backup mount $XDG_RUNTIME_DIR/fedokawaii-backup\.[A-Za-z0-9]+$"; called "^env as it was yesterday at 21:00 \| $XDG_RUNTIME_DIR/fedokawaii-backup\.[A-Za-z0-9]+/ids/b2b2b2b2$HOME$"
 r=$(find "$HOME/Restored" -name notes.md); eq "$(cat "$r")" "notes in b2b2b2b2"; eq "$(cat "$HOME/Documents/notes.md")" "notes now" "the one there now"
 has "$out" "as it was yesterday at 21:00, into ~/Restored/"; has "$out" "Documents/notes.md"; has "$out" "opening the backup"
 called '^fusermount3 -u'; eq "$(mounts_left)" "" "the mount and the dialog's folder gone"
-case_ "…a, then yes: all of it back in place (kawa-backup everything ID); anything but yes changes nothing"
-fresh; backups; out=$(plain "$(TZ=UTC on_tty $'3\nayes\n' fedokawaii --run restore)"); called '^kawa-backup everything c3c3c3c3$'
-has "$out" "deleted ones too"; not_called '^kawa-backup mount'
-fresh; backups; out=$(TZ=UTC on_tty $'3\nano\n' fedokawaii --run restore); has "$out" "nothing changed"; not_called 'everything'
-case_ "…a number not listed, a key that is neither: nothing taken, nothing opened"
+case_ "…all of it back in place is not offered (restic's restore still replaces a file where the backup has a folder, and resets folders' dates: the master's T48 verdict 4) — a number goes to the dialog, nothing else"
+fresh; backups; out=$(plain "$(TZ=UTC on_tty $'3\n' fedokawaii --run restore)"); lacks "$out" "all of it back"; lacks "$out" "in place"; not_called 'everything'
+case_ "…a number not listed, or one written another way (08): nothing taken, nothing opened, no shell words"
 fresh; backups; out=$(TZ=UTC on_tty $'4\n' fedokawaii --run restore); has "$out" "no backup 4 in the list — nothing taken"; not_called '^kawa-backup mount'
-fresh; backups; out=$(TZ=UTC on_tty $'1\nx' fedokawaii --run restore); has "$out" "nothing taken"; not_called '^kawa-backup mount'
+fresh; backups; out=$(TZ=UTC on_tty $'08\n' fedokawaii --run restore); has "$out" "no backup 08 in the list — nothing taken"; lacks "$out" "value too great"; not_called '^kawa-backup mount'
+case_ "…q at the home's own top (the home itself): said, never \"nothing taken\" for a choice"
+fresh; backups; echo "@" >"$TMP/pick"; out=$(TZ=UTC on_tty $'1\n' fedokawaii --run restore); has "$out" "the whole home is not taken in one go — mark its folders"
+case_ "…a backup of last year says its year (backups live twelve months)"
+fresh; backups; ly=$(( $(date -u +%Y) - 1 )); sed -i "3s/\t[0-9-]*T/\t${ly}-11-20T/" "$TMP/times"
+out=$(plain "$(TZ=UTC on_tty $'\n' fedokawaii --run restore)"); has "$out" "20 Nov $ly"; has "$out" "today"
 case_ "…the dialog cancelled: nothing taken, the backup closed; a backup that cannot be opened: restic's reason, nothing left"
-fresh; backups; out=$(TZ=UTC on_tty $'1\n\n' fedokawaii --run restore); has "$out" "nothing taken"; called '^fusermount3 -u'; eq "$(mounts_left)" ""
-fresh; backups; : >"$TMP/mount-fails"; out=$(TZ=UTC on_tty $'1\n\n' fedokawaii --run restore)
+fresh; backups; out=$(TZ=UTC on_tty $'1\n' fedokawaii --run restore); has "$out" "nothing taken"; called '^fusermount3 -u'; eq "$(mounts_left)" ""
+fresh; backups; : >"$TMP/mount-fails"; out=$(TZ=UTC on_tty $'1\n' fedokawaii --run restore)
 has "$out" "the backup could not be opened: restic: wrong password or no key found"; not_called '^kawa-pick'; eq "$(mounts_left)" ""
 case_ "…no backup there yet, or kawa-backup cannot reach it (not plugged in): said, nothing asked"
 fresh; backups; : >"$TMP/times"; out=$(tty_free fedokawaii --run restore </dev/null 2>&1); has "$out" "no backup on the drive yet — back up now makes the first"
@@ -532,7 +536,7 @@ setting BACKUP_TARGET "/run/media/me/a drive label far too long to fit"; l=$(pla
 setting BACKUP_TARGET ""; has "$(grep -m1 "^drive"$'\t' <<<"$(allrows)")" $'\e[38;5;20mnone'
 reset_calls; out=$(tty_free fedokawaii --run drive </dev/null 2>&1); called '^kawa-backup pick$'
 case_ "restore: its pane says what it does — its own icon (not go back's)"
-out=$(plain "$(fedokawaii --explain restore)"); has "$out" "a folder or several into ~/Restored"; has "$out" "after a new disk"; lacks "$out" "not yet"
+out=$(plain "$(fedokawaii --explain restore)"); has "$out" "a folder or several, copied into ~/Restored"; has "$out" "never over what is there."; lacks "$out" "in place"; lacks "$out" "not yet"
 (. "$REPO/configs/home/.config/fedokawaii/icons.sh"; l=$(row restore); [[ $l == *"$ICON_UNPACK"* && $l != *"$ICON_UNDO"* ]]) && _ok || _no "restore's icon: $(row restore)"
 case_ "snapshots without snapper, or on a root that is not Btrfs: said plainly"
 reset_calls

@@ -921,6 +921,7 @@ explain() {
     # name — a path or an address in pieces at its / and : (or spaces), never cut — where it is,
     # and the last backup
     local n st fr sz v t i w=$((PANE - 17)) pieces=()
+    if ! command -v kawa-backup >/dev/null; then printf '   %s%-9s%s %s\n\n' "$G" drive "$O" "${R}kawa-backup is missing — repair$O"; return 0; fi
     IFS=$'\t' read -r n st fr sz < <(kawa-backup drive 2>/dev/null) || st=none
     case $st in
       open)    v="plugged in · $(gb "$fr") free of $(gb "$sz")" ;;
@@ -1011,8 +1012,8 @@ explain() {
     restore)   pick 'running'
                # shellcheck disable=SC2088  # (~ is the words, not a path)
                say "your files as a backup holds them: a file," \
-                   "a folder or several into ~/Restored — or" \
-                   "all of it back in place, after a new disk." ;;
+                   "a folder or several, copied into ~/Restored," \
+                   "never over what is there." ;;
     drive)     pick 'running'; drive_rows
                say "the drive your backups go to. enter: another," \
                    "from the drives plugged in." ;;
@@ -1204,12 +1205,14 @@ snapshots() {   # the snapshots of / — read from the disk by kawa-snap, as roo
 # the icon under the heading's, the number and the time, the day ending where the heading's rule
 # does; each when[] becomes "HH:MM DAY" (today · yesterday · 30 Oct), as as_it_was reads it
 time_rows() {
-  local i t day today yday w=0
-  today=$(date +%F) yday=$(date -d yesterday +%F)
+  local i t day today yday year w=0
+  today=$(date +%F) yday=$(date -d yesterday +%F) year=$(date +%Y)
   declare -F screen_row >/dev/null && w=$(screen_width 2>/dev/null) || w=0
   for i in "${!nums[@]}"; do
     t=${when[i]#* }
-    case ${when[i]% *} in "$today") day=today ;; "$yday") day=yesterday ;; *) day=$(date -d "${when[i]% *}" '+%-d %b') ;; esac
+    # (a backup lives a year: one of last year's says its year)
+    case ${when[i]% *} in "$today") day=today ;; "$yday") day=yesterday ;; "$year"-*) day=$(date -d "${when[i]% *}" '+%-d %b') ;;
+      *) day=$(date -d "${when[i]% *}" '+%-d %b %Y') ;; esac
     # (a column in, one wider: the icon under the heading's, the day ending where its rule does)
     if ((w)); then printf ' '; screen_row "$1" "$(printf '%-4s %s' "${nums[i]}" "$t")" "$day" $((w + 1)); echo
     else printf '  %-4s %s  %s\n' "${nums[i]}" "$t" "$day"; fi
@@ -1228,10 +1231,11 @@ file_back() {   # a file or a folder of yours as it was in one of /home's snapsh
   # hourly and daily ones), copied into ~/Restored/ — never over what is there now. As you, no
   # password: the snapshots are yours to read (setup gives /home/.snapshots your group), never to change
   local s=$HOME_SNAPS top=${HOME_SNAPS%/.snapshots} rel l f n d i nums=() when=() ans at m
-  local snap work dir p took=()
+  local snap work dir p took=() whole=0
   # (a snapshot holds /home: your home is in it under its own name)
   [[ $HOME == "$top"/* ]] || { echo "  your home ($HOME) is not in $top — its snapshots are $top's" >&2; return 1; }
   rel=${HOME#"$top"}
+  [[ -e $s ]] || { echo "  no snapshots of your files yet — one is taken every hour"; return 0; }
   [[ -x $s ]] || { echo "  your files' snapshots cannot be read here — fedokawaii repair lets you read them" >&2; return 1; }
   # NUMBER<TAB>DATE (UTC, as snapper's own info.xml has it), the newest first
   l=$(for f in "$s"/*/info.xml; do
@@ -1259,20 +1263,23 @@ file_back() {   # a file or a folder of yours as it was in one of /home's snapsh
   snap=$s/$ans/snapshot$rel
   work=$(mktemp -d "${XDG_RUNTIME_DIR:-/tmp}/fedokawaii-back.XXXXXX") || return 1
   KAWA_PICK_TITLE=$m KAWA_PICK_ROOT=$snap kawa-pick --inside back "$snap" "$work"
-  # (only what that snapshot holds of your home: an answer from anywhere else is nothing taken)
-  while IFS= read -r p; do [[ $p == "$snap"/* ]] && took+=("$p"); done < <(cat -- "$work/answer" 2>/dev/null)
+  # (only what that snapshot holds of your home: an answer from anywhere else is nothing taken —
+  # the home itself, q at its top, is said: it is not taken in one go)
+  while IFS= read -r p; do [[ $p == "$snap"/* ]] && took+=("$p"); [[ $p == "$snap" ]] && whole=1; done < <(cat -- "$work/answer" 2>/dev/null)
   rm -rf -- "$work"
   printf '\e[H\e[2J\e[3J'; job_head file
-  ((${#took[@]})) || { echo "  nothing taken"; return 0; }
+  ((${#took[@]})) || { ((whole)) && echo "  the whole home is not taken in one go — mark its folders (space), then enter" || echo "  nothing taken"; return 0; }
   dir=$(restored_dir) || return 1
   printf '  %s, into %s:\n\n' "$m" "${dir/#"$HOME"/\~}"
   restore_into "$dir" "$snap" "${took[@]}"
 }
-backup_back() {   # your files as a backup on the drive holds them (kawa-backup times, mount,
-  # everything — as you: the backup is yours): a number, then a file, a folder or several picked
-  # inside it (kawa-pick's back mode, the backup opened read-only) and copied into ~/Restored —
-  # or all of it back in place, only what is missing (after a new disk)
-  local l i n ans k c id path m mnt work pid="" snap p dir nums=() ids=() paths=() when=() took=()
+backup_back() {   # your files as a backup on the drive holds them (kawa-backup times, mount — as
+  # you: the backup is yours): a number, then a file, a folder or several picked inside it
+  # (kawa-pick's back mode, the backup opened read-only) and copied into ~/Restored. (All of it back
+  # in place is not offered: restic's restore, --overwrite never and all, still replaces a file of
+  # yours where the backup has a folder of that name and resets your folders' dates and modes —
+  # the master's T48 verdict 4; it comes back once it can only add what is missing)
+  local l i n ans id path m mnt work pid="" snap p dir nums=() ids=() paths=() when=() took=()
   command -v kawa-backup >/dev/null || { echo "  kawa-backup is missing — fedokawaii repair puts it back" >&2; return 1; }
   need_files || return 1
   # (why not — no drive chosen, not plugged in, the password — kawa-backup says)
@@ -1283,24 +1290,15 @@ backup_back() {   # your files as a backup on the drive holds them (kawa-backup 
   ((${#when[@]} == ${#ids[@]})) || { echo "  the backups' dates could not be read" >&2; return 1; }
   for i in "${!ids[@]}"; do nums+=("$((i + 1))"); done
   time_rows "${ICON_ARCHIVE:-·}"
-  printf '\n  your files as a backup holds them — its number, or enter for none: '
+  printf '\n  your files as a backup holds them: a file, a folder or several, copied into\n'
+  printf '  ~/Restored — what is there now stays as it is\n'
+  printf '  its number, or enter for none: '
   read -r ans </dev/tty 2>/dev/null || ans=""
   [[ -n $ans ]] || return 0
-  [[ $ans =~ ^[0-9]+$ ]] && ((ans >= 1 && ans <= ${#ids[@]})) || { echo "  no backup $ans in the list — nothing taken" >&2; return 1; }
-  i=$((ans - 1)); id=${ids[i]} path=${paths[i]} m=$(as_it_was "${when[i]}")
-  # (the keys as screen_keys has them: the key in the words' ink, what it does muted)
-  printf '\n  enter  %sa file, a folder or several, copied into ~/Restored%s\n' "${INK_MUTED:-}" "${INK_OFF:-}"
-  printf '  a      %sall of it back in place, after a new disk%s\n  ' "${INK_MUTED:-}" "${INK_OFF:-}"
-  read -rsn1 k </dev/tty 2>/dev/null || k=x; echo
-  case $k in
-    a|A) printf '  every file of it you no longer have comes back — deleted ones too;\n'
-         printf '  nothing you have now is changed. type yes: '
-         read -r c </dev/tty 2>/dev/null || c=""
-         [[ $c == yes ]] || { echo "  nothing changed"; return 0; }
-         kawa-backup everything "$id"; return ;;
-    "")  ;;
-    *)   echo "  nothing taken"; return 0 ;;
-  esac
+  # (compared as words, as file_back's: "08" is no number of the list, and no octal for bash)
+  i=""; for n in "${!nums[@]}"; do [[ ${nums[n]} == "$ans" ]] && i=$n; done
+  [[ -n $i ]] || { echo "  no backup $ans in the list — nothing taken" >&2; return 1; }
+  id=${ids[i]} path=${paths[i]} m=$(as_it_was "${when[i]}")
   command -v kawa-pick >/dev/null || { echo "  kawa-pick is missing — fedokawaii repair puts it back" >&2; return 1; }
   mnt=$(mktemp -d "${XDG_RUNTIME_DIR:-/tmp}/fedokawaii-backup.XXXXXX") || return 1
   work=$(mktemp -d "${XDG_RUNTIME_DIR:-/tmp}/fedokawaii-back.XXXXXX") || { rmdir -- "$mnt"; return 1; }
@@ -1313,12 +1311,17 @@ backup_back() {   # your files as a backup on the drive holds them (kawa-backup 
     # (restic reads the backup's index first: many seconds on a slow drive — two minutes at most)
     for ((n = 0; n < 1200; n++)); do [[ -d $mnt/ids/$id ]] && break; kill -0 "$pid" 2>/dev/null || break; sleep 0.1; done
     snap=$mnt/ids/$id$path
-    [[ -d $snap ]] || { echo "  the backup could not be opened: $(sed -n 1p "$work/why" 2>/dev/null)" >&2; exit 1; }
+    if [[ ! -d $snap ]]; then
+      if kill -0 "$pid" 2>/dev/null; then echo "  the backup did not open within two minutes (a slow drive?) — try again" >&2
+      else echo "  the backup could not be opened: $(sed -n 1p "$work/why" 2>/dev/null)" >&2; fi
+      exit 1
+    fi
     KAWA_PICK_TITLE=$m KAWA_PICK_ROOT=$snap kawa-pick --inside back "$snap" "$work"
-    # (only what that backup holds: an answer from anywhere else is nothing taken)
-    while IFS= read -r p; do [[ $p == "$snap"/* ]] && took+=("$p"); done < <(cat -- "$work/answer" 2>/dev/null)
+    # (only what that backup holds: an answer from anywhere else is nothing taken; the home itself is said)
+    whole=0
+    while IFS= read -r p; do [[ $p == "$snap"/* ]] && took+=("$p"); [[ $p == "$snap" ]] && whole=1; done < <(cat -- "$work/answer" 2>/dev/null)
     printf '\e[H\e[2J\e[3J'; job_head restore
-    ((${#took[@]})) || { echo "  nothing taken"; exit 0; }
+    ((${#took[@]})) || { ((whole)) && echo "  the whole home is not taken in one go — mark its folders (space), then enter" || echo "  nothing taken"; exit 0; }
     dir=$(restored_dir) || exit 1
     printf '  %s, into %s:\n\n' "$m" "${dir/#"$HOME"/\~}"
     restore_into "$dir" "$snap" "${took[@]}" )

@@ -64,6 +64,7 @@ class UI:
     def later(self, ms, fn): pass
     def calc(self, m): self.calls.append(f"calc {m.query}")
     def copy_answer(self, text): self.calls.append(f"copy {text}")
+    def copy_answer_of(self, m, q): self.calls.append(f"copy-of {q}")
     def start(self, app): self.calls.append(f"start {app.id}")
     def command(self, text): self.calls.append(f"command {text}")
 apps = [kp.App("brave-origin.desktop", "Brave Origin", "Web browser", ["internet"], None, None),
@@ -90,6 +91,16 @@ typed(" apples"); print([i.key for i in p.items if i.key == "calc"])')" \
   "$(printf '%s\n' 'calc 36 calc' 'calc 408 calc' '[]')"
 has "$(sed -n '/    def calc_ask(m):/,/qc\["next"\] = (m, q)/p' "$REPO/bin/kawa-panel")" "m.pending = q" "calc_ask marks what it asks"
 has "$(sed -n '/    def calc_line(stream, res):/,/    def calc_end/p' "$REPO/bin/kawa-panel")" "elif m.pending == q:" "an answer that is none: the last one goes"
+case_ "bug 6, the rest (seen frame by frame 1 Nov: typing \"5 ft to cm\" the row ran through 1524 kg*m, 5 B*t*ft, …s*c — a half-typed word is another unit to qalc): a sum is asked once the typing settles (SETTLE ms without a key), never mid-word; Enter while the row still shows an earlier text's answer copies THIS text's, once it comes — never the earlier one"
+eq "$(lp 'typed("5 ft"); m = p.state; m.calc = ("5 ft", "1.524 m"); p.answered(m)
+u.calc = lambda m: setattr(m, "pending", m.query)
+typed(" to cm"); print(p.items[0].name); p.key("Return"); print(u.calls[-1], p.visible)')" \
+  "$(printf '%s\n' '1.524 m' 'copy-of 5 ft to cm False')"
+eq "$(lp 'typed("5 ft"); m = p.state; m.calc = ("5 ft", "1.524 m"); m.pending = None; p.answered(m); p.key("Return"); print(u.calls[-1])')" "copy 1.524 m" "its own answer shown: copied as it is"
+src=$(sed -n '/    def calc_ask(m):/,/    def calc_start():/p' "$REPO/bin/kawa-panel")
+has "$src" 'qc["settle"] = GLib.timeout_add(SETTLE, settled, m, q)' "asked when the typing settles"
+has "$(sed -n '/^    SETTLE = /p' "$REPO/bin/kawa-panel")" "SETTLE = 250"
+has "$(sed -n '/    def calc_line(stream, res):/,/    def calc_end/p' "$REPO/bin/kawa-panel")" 'panel.ui.copy_answer(money(a))' "Enter's answer copied when it comes"
 setup; argv notify-send; rm -f "$TMP/clip"
 src=$(sed -n '/        def copy_answer(self, text):/,/^$/p' "$REPO/bin/kawa-panel" | python3 -c 'import sys, re; t = sys.stdin.read(); print(re.search(r"\"bash\", \"-c\", (.*?), \"_\", text\]", t, re.S).group(1))')
 script=$(python3 -c 'import ast, sys; print("".join(ast.literal_eval("(" + sys.argv[1] + ")")))' "$src")

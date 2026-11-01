@@ -22,8 +22,6 @@
 #   kawa-backup mount DIR        the backups opened read-only at DIR (restic mount: DIR/ids/ID/…)
 #                                until DIR is unmounted (fusermount3 -u DIR) — Super+U → restore
 #                                picks files from one there
-#   kawa-backup everything ID    all of backup ID back in your home: what is missing comes back,
-#                                nothing that is there is changed (restic restore --overwrite never)
 #   kawa-backup drive            the chosen drive for the menu: NAME<TAB>STATE<TAB>FREE<TAB>SIZE —
 #                                STATE open (FREE and SIZE in bytes), plugged (not opened), out,
 #                                address, or none (no drive chosen); never opens a drive
@@ -313,15 +311,6 @@ mount_ro() {   # (restic's own mount is read-only; it serves until DIR is unmoun
   open_repo || return 1
   r mount "$1" >/dev/null
 }
-everything() {
-  local id=$1 j path
-  [[ $id =~ ^[0-9a-f]{8,64}$ ]] || { err "everything takes a backup's id (kawa-backup times), not \"$id\""; return 2; }
-  open_repo || return 1
-  j=$(r snapshots --json "$id" 2>/dev/null) && path=$(jq -r '.[0].paths[0] // empty' <<<"$j") && [[ -n $path ]] \
-    || { err "no backup $id at $REPO (kawa-backup times lists them)"; return 1; }
-  # (the folder it backed up, into your home as it is now — another name for it since, too)
-  r restore "$id:$path" --target "$HOME" --overwrite never
-}
 drive() {   # (the drives menu's names, never opening one: a look, for the menu's pane)
   local t=$BACKUP_TARGET dev label folder size avail
   if [[ -z $t || -n $CONF_WHY ]]; then printf '\tnone\t\t\n'; return 0; fi
@@ -372,7 +361,6 @@ case ${1:-} in
   list)      (($# == 1)) || exit 2; list ;;
   times)     (($# == 1)) || exit 2; backup_times ;;
   mount)     (($# == 2)) || { echo "usage: kawa-backup mount DIR" >&2; exit 2; }; mount_ro "$2" ;;
-  everything) (($# == 2)) || { echo "usage: kawa-backup everything ID" >&2; exit 2; }; everything "$2" ;;
   drive)     (($# == 1)) || exit 2; drive ;;
   pick)      (($# == 1)) || exit 2; pick_target ;;
   check)     (($# == 1)) || exit 2; check ;;

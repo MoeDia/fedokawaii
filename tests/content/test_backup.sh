@@ -48,9 +48,9 @@ home_files() {
 # ── without restic: the words ────────────────────────────────────────────────
 case_ "--help: what it is and every command; misuse: exit 2, nothing run"
 setup; out=$(kawa-backup --help); rc 0 kawa-backup --help
-for w in "kawa-backup list" "restore PATH" "times" "mount DIR" "everything ID" "drive" "pick" "check" "prune" "init" "status" "where" "RESTIC_PASSWORD" "BACKUP_TARGET"; do has "$out" "$w"; done
+for w in "kawa-backup list" "restore PATH" "times" "mount DIR" "drive" "pick" "check" "prune" "init" "status" "where" "RESTIC_PASSWORD" "BACKUP_TARGET"; do has "$out" "$w"; done
 rc 2 kawa-backup frobnicate; rc 2 kawa-backup list extra; rc 2 kawa-backup restore; rc 2 kawa-backup status now
-rc 2 kawa-backup times now; rc 2 kawa-backup mount; rc 2 kawa-backup everything; rc 2 kawa-backup drive now
+rc 2 kawa-backup times now; rc 2 kawa-backup mount; rc 2 kawa-backup drive now; rc 2 kawa-backup everything "$HOME"
 not_called 'notify-send'
 case_ "status (the menus' word): never · today · yesterday · N days ago; no drive named: not set up"
 eq "$(kawa-backup status)" never
@@ -252,11 +252,6 @@ if [[ -c /dev/fuse ]] && command -v fusermount3 >/dev/null; then
   mountpoint -q "$m" && _no "still mounted" || _ok
 else skip "no FUSE here: mount is not tried"; fi
 rc 2 kawa-backup mount "$W/no-such-folder"
-case_ "everything ID (after a new disk): what is missing comes back where it was; what is there stays as it is"
-rm -r "$HOME/Documents/sub dir"; echo mine >"$HOME/Documents/report.ods"
-out=$(kawa-backup everything "$id" 2>&1); eq "$?" 0 "$out"
-eq "$(cat "$HOME/Documents/sub dir/deeper/a b.txt")" two "the missing folder back"; eq "$(cat "$HOME/Documents/report.ods")" mine "his own kept"
-rc 2 kawa-backup everything "not-an-id"; out=$(kawa-backup everything deadbeef 2>&1); eq "$?" 1; has "$out" "no backup deadbeef"
 case_ "prune: the keep rule (7 daily, 4 weekly, 12 monthly); check: a tenth of the data read — both end well"
 out=$(kawa-backup prune 2>&1); eq "$?" 0 "$out"; has "$out" "keep"
 out=$(kawa-backup check 2>&1); eq "$?" 0 "$out"; has "$out" "no errors were found"; has "$out" "a tenth of the data"

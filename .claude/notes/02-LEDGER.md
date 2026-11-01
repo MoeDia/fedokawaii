@@ -2893,30 +2893,68 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   the same (the play read it back). Adopted in notes.lua (pcall: a neovim without it keeps the page); test_notes
   117/0 holds the installed neovim to having it. Left of bug 6: the launcher's calculations/conversions flicker
   (kawa-panel: GTK, another cause — next).
-## >>> NEXT PASS STARTS HERE (1 Nov, written 20:15 by the 18:56 pass — the lines above say what it did): the inbox first. Then:
-## (1) THE MASTER'S RE-REVIEW 4 OF T45 (r27-49-R4b, started 19:20 on 2b12615 → judged at 878f1fd; brief
-##     /dev/shm/r27/master/T45-5/brief.md + two later messages: storm 3 (/dev/shm/r27/master/T45-5/
-##     storm-3-pid1-crash.txt) and the commits 878f1fd/0b45f65): its verdict is appended to
-##     .claude/notes/master-T45-efh-verdict.md ("Re-review 4"). Its must-fix items first. Not there → relaunch it
-##     with that brief (rebuild from ledger r27-49-R4b, -storm3, -halt if /dev/shm was cleared by a reboot).
-## (2) THE SUITE ON 0b45f65 (/dev/shm/r27p/suite-0b45f65.log, started 20:03): green → push main + r27, apply on
-##     the PC (sudo FEDOKAWAII_COPY=$PWD /usr/local/bin/fedokawaii apply), verify, Super+U → backups looked at
-##     live (headless shot: grim with the session's env). [the pass fills in below what happened]
-## (3) T48's new parts to the master: brief /dev/shm/r27/master/T48-4/brief.md (restore, the drive, a file
-##     back; renders beside it) → .claude/notes/master-T48-verdict-4.md.
+- r27-21-bug6b (1 Nov 20:35–20:45) — bug 6, the launcher's half ("it happens when typing in the app launcher
+  calculations or conversions"): recorded frame by frame in the kit — no blank frame any more (the 27-Oct fix
+  keeps the row in place), but typing "5 ft to cm" the row RAN THROUGH qalc's readings of half-typed words:
+  "5 f" → 5, "5 ft t" → 1524 kg*m (t = tonne), "5 ft to" → 5 B*t*ft, "5 ft to c" → 0.0000000050835… s*c (c =
+  light), then 152.4 cm (strip: /dev/shm/r27p/kit-launch/conv-steps.png). FIXED at its cause in kawa-panel: a
+  sum is asked once the typing settles (SETTLE = 250 ms without a key — a quick typist's keys come 100–150 ms
+  apart), the last answer staying in its row meanwhile; Enter while the row still shows an earlier text's answer
+  asks THIS text at once and copies its answer when it comes (copy_answer_of → calc_now(copy) → calc_line) —
+  never the earlier one. SEEN in the kit with the repository's panel at 110 ms a key: the list goes from the apps
+  to the one answer "152.4 cm" (16 frames, no state between); "2 mi in km" + Enter at once → the clipboard
+  "3.218688 km". test_calc 42/0 (the Enter row, the settle's source). Live after the apply and a panel restart
+  (memory: live-panel-restart — SIGKILL when nothing is open).
+- r27-52-restore-master (1 Nov 20:30–20:47, the master's T48 verdict 4: .claude/notes/master-T48-verdict-4.md):
+  FAIL on one data-safety hole — "all of it back in place" (restic restore --overwrite never): in restic 0.19.1's
+  internal/restorer/restorer.go --overwrite governs leaf files only; enterDir → ensureDir REMOVES a file or
+  symlink of his where the backup has a folder of that name, and leaveDir resets every selected folder's
+  mode, dates and xattrs to the backup's — "nothing you have now is changed" was false. The rest proven (the
+  pick flow, the copies, the FUSE mount's tear-down on every exit incl. a closed window — it reproduced that
+  under a pty hang-up —, the drive's row and pane, the renders, test_backup 228/0, test_menu 727/0). ACTED
+  (20:50): the in-place restore TAKEN OUT (kawa-backup everything gone, the menu's a-path and its words gone,
+  the pane and the Learn row say only "copied into ~/Restored, never over what is there"); should-fix 2 (q at
+  the home's top: said), 3 (the two-minute cap's own words), 5 (last year's date says its year), 8 (no
+  snapshots folder at all: "none yet", not repair), 9 ("08": compared as words; the pane says when
+  kawa-backup is missing) built with rows. LEFT for the next pass: should-fix 1 (THE GRAMMAR: job screens put
+  the heading at column 1 — §7 says column 0, the dialog of the same flow has it there; rows one cell in from
+  the heading — test_menu's `aligned` encodes the deviation and changes with it; = the audit's open finding),
+  4 (a closed-window regression row), 7 (the lock's words while a backup is open for a restore), 10 (the
+  ledger: not on the PC yet, no BACKUP_TARGET on the PC — the first real run is owed); and the safe in-place
+  restore, if wanted: `restic ls --json ID`, the subtrees missing in the home only (--include-file), so no
+  existing path is selected — with real-restic tests for a file where the backup has a folder, a symlink, and
+  his folders' dates unchanged.
+## >>> NEXT PASS STARTS HERE (1 Nov, written 20:55 by the 18:56 pass — the lines above say what it did): the inbox first. Then:
+## (1) NOTHING OF THIS PASS IS PUSHED OR APPLIED YET. main = r27 = the newest local commit (see git log). The whole
+##     suite on it was started at the end of this pass, detached → /dev/shm/r27p/suite-<that commit>.log (last line
+##     "== suite rc=N in S s"; ~50 min). Green → `git push origin main r27` → apply on the PC (sudo
+##     FEDOKAWAII_COPY=$PWD /usr/local/bin/fedokawaii apply) → verify → the new kawa-panel live (memory
+##     live-panel-restart: SIGKILL it when no panel/menu is open; the bar respawns it? check how) → headless shots of
+##     Super+U → backups and the notes. Red → the failing file alone, fix, its area, then the suite again.
+##     (Known before that run: the 2b12615 suite 126/128 — both reds fixed; a6f5049's look/test_launcher red on
+##     fuse3 — fixed. Every commit after a6f5049 had its own tests run: static, content (test_notes, test_backup,
+##     test_configs), engine (test_menu, test_front), look (test_calc, test_launcher, test_units), menus.)
+## (2) THE MASTER'S RE-REVIEW 4 OF T45 (r27-49-R4b, started 19:20, judged at 878f1fd + messages about storm 3,
+##     878f1fd, 0b45f65, a6f5049): its verdict in .claude/notes/master-T45-efh-verdict.md ("Re-review 4"). Its
+##     must-fix items first. If it is not there (the pass ended first), relaunch it with
+##     /dev/shm/r27/master/T45-5/brief.md (gone after a reboot: rebuild from ledger r27-49-R4b, -storm3, -halt).
+## (3) T48 (the master's verdict 4: FAIL → must-fix 1 answered by taking the in-place restore out; should-fix 2, 3,
+##     5, 8, 9 built): LEFT should-fix 1 (the job screens' heading at column 0, rows one cell in — §7; changes every
+##     job screen and test_menu's `aligned`; render both moods; = audit-r27's open grammar finding), 4 (a
+##     closed-window row), 7 (the lock's words while a backup is open for a restore), 10 (not on the PC yet; the
+##     first real run with a drive owed); then the master again on T48.
 ## (4) THE KERNEL TRIAL ON THE PC is open since 14:43 (7.2.13; grubenv 3/0/1; snapshot 381 pinned). It closes at
 ##     the next start: the bulk run (r27-bulk-*, 10:36 + 12 h) ends 22:36 — reboot only in a claude-r27 pass
 ##     after that (CLAUDE.md START §4: initial_session, presence probe first), or his own restart; then read
 ##     fedokawaii-boot-good's journal (boot_counter unset, the trial arguments and the watchdog drop-in gone,
 ##     snapshot 381 back to number cleanup, 7.2.11 out at the next "one kernel" step) — ledger r27-49-B3.
-## (5) T19m (b) pass 1 goes on (.claude/notes/audit-r27.md: the table, what pass 1 measured so far, two open
-##     findings — the panel/text-screen row grammar, the optical centre) — px.py over every gallery surface
-##     (/dev/shm/r27/audit/p1, or render again: tools/gallery.sh --out … --bin bin --repo-art).
-## (6) T46 F45 (released Tue 3 Nov): vm-smoke.sh f45 from 0b45f65 tonight: 216/218, the 2 the pre-release
-##     RPM Fusion updates repos (r27-50 cont.). After the release re-run it with T46b's five checks
-##     (f45-changes.md's end); one storm on systemd 262 at most (memory: no-reload-storm).
-## (8) T21: bug 2's black bands DONE (4940712, alpha-mode=matching); the notes' save flicker DONE (0f50860,
-##     ui2); left: the header spacing, the notebook redesign (owner line 39) — a design task: render, grill,
-##     both moods; and bug 6's other half: the launcher's calculation/conversion flicker (kawa-panel).
-## (7) T45 (H) 7's three config checks with T58; T45 (i) the toolkit at a tag, last. T53 notes: theme.sh (2×)
-##     and kawa-tidy still guess "Brave is open" with pgrep — one shared SingletonLock check (bin/brave-origin's).
+## (5) T19m (b) pass 1 goes on (.claude/notes/audit-r27.md; tools/audit-pads.py; the gallery in /dev/shm/r27/audit/p1
+##     or render again: tools/gallery.sh --out … --bin bin --repo-art). Open: the grammar (= T48 should-fix 1),
+##     the optical centre (item 5).
+## (6) T46 F45 (released Tue 3 Nov): vm-smoke.sh f45 from 0b45f65: 216/218, the 2 the pre-release RPM Fusion updates
+##     repos (r27-50 cont.). After the release re-run it with T46b's five checks (f45-changes.md's end); one storm
+##     on systemd 262 at most (memory: no-reload-storm).
+## (7) T21: bug 2's black bands DONE (alpha-mode=matching), the notes' save flicker DONE (ui2), bug 6's launcher
+##     half DONE (the settle, r27-21-bug6b); left: the header spacing, the notebook redesign (owner line 39).
+## (8) T45 (H) 7's three config checks with T58; T45 (i) the toolkit at a tag, last. T53: theme.sh (2×) and
+##     kawa-tidy still guess "Brave is open" with pgrep — one shared SingletonLock check (bin/brave-origin's).

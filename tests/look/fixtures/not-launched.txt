@@ -167,6 +167,7 @@ ShellCheck                      a command: checks shell scripts
 uv                              a command: Python, to learn with
 rustup                          a command: Rust, to learn with
 snapper                         snapshots: a timer, and the snapper command
+fuse3                           restic mount's helper (fusermount3): Super+U → restore opens a backup with it
 libdnf5-plugin-actions          dnf's snapshot hook
 grub-btrfs                      the snapshots in the boot menu
 podman                          Prowlarr's container
