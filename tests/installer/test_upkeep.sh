@@ -212,6 +212,13 @@ called 'systemctl\] reset-failed fedokawaii-dnf-'; grep -q '^ended fedokawaii-dn
 case_ "…a dnf killed by a signal (TERM): its status 128+15, the install said as not done, tried again next time"
 back built; fkh_del installed bat; fkh dnf-killed 15; reset_calls
 tk --repair; pkg_has bat && _no "bat in, from a killed dnf" || _ok; has "$OUT" "could not be installed now: bat"; rm -f "$FKH/dnf-killed"
+case_ "…systemd itself crashed while dnf ran (PID 1 answers nothing, its journal says it froze): said plainly, the run stops — never a wait for ever"
+back built; fkh_del installed bat; reset_calls; fkh systemctl-fail 'show -p (MainPID|ActiveState)'; fkh journal-pid1 'Caught <ABRT>, from our own process.' 'Freezing execution.'
+tk --repair; [[ $RC != 0 ]] && _ok || _no "went on: $RC"; has "$OUT" "systemd, the system's own manager, crashed while dnf ran"; has "$OUT" "restart the PC"
+rm -f "$FKH/systemctl-fail" "$FKH/journal-pid1"
+case_ "…PID 1 not answering for a while (a reload), nothing in its journal: asked again until it answers — never taken for a crash"
+back built; fkh_del installed bat; reset_calls; fkh fail-show-silent 3
+tk --repair; lacks "$OUT" "crashed while dnf ran"; pkg_has bat && _ok || _no "bat not put back"; eq "$(cat "$FKH/fail-show-silent")" 0 "every silence used up"
 case_ "…ended units a cut run left (nobody read their status): cleared first by the next run, never mistaken for one still going"
 back built; fkh_add units "ended fedokawaii-dnf-1-1.service 0" "ended fedokawaii-dnf-2-2.service 1"; fkh_del installed bat; reset_calls
 tk --repair; called 'systemctl\] stop fedokawaii-dnf-1-1.service'; called 'systemctl\] reset-failed fedokawaii-dnf-2-2.service'

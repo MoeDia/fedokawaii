@@ -418,6 +418,8 @@ told". If it cannot beat "hold and wait" on the graded breakage set (T47), the c
 | 44 | the bootloader (grub2-efi, shim) updated badly — it fails before boot counting can act, and it never rolls back (B5 #10, synthesis 17) | two stored transactions — tx1 with `--exclude=grub2-efi*,shim*`, tx2 those packages alone — both
 replayed in the candidate; live, tx2 only after tx1 is green (one stored transaction cannot be
 replayed in parts); the previous EFI files kept (`EFI/fedora/*.prev`); /boot and /boot/efi excluded from rpm -V verdicts after a restore; older grub2-efi or shim never reinstalled onto the ESP. Secure Boot is off on this PC; the ISO, if it turns it on, adds the SBAT/dbx checks before such a step | broken-bootloader.sh |
+| 45 | the transaction's end never seen: `systemd-run --wait` missed it (the VM, 1 Nov: the unit collected while the waiter lived, around the transaction's own daemon-reloads — the update waited for ever) | dnf_detached never waits through the bus: RemainAfterExit, the end asked with `systemctl show` once a second, the unit stopped and reset after; a cut run's ended units cleared by the next (r27-49-hang) | test_upkeep rows; update-green/update-button from the fixed commit |
+| 46 | systemd itself (PID 1) crashes during the transaction (the VM, 1 Nov: systemd 259.10 "Caught <ABRT> … Freezing execution" on a reload asked during its own upgrade) — nothing answers, nothing can be done in that start | dnf_end sees dnf's process gone and PID 1's own "Freezing execution" in the journal (read without it): the run stops, saying to restart; its phase stays replay, so the next start's resume finishes or undoes it | test_upkeep row; the storm (update-green STORM=1) shows the crash |
 
 ## 6. Attacks (the skeptic's pass)
 

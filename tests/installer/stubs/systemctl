@@ -55,7 +55,9 @@ case $verb in
   # show -p MainPID --value U: an active unit's process, read from $FKH/pid-U — one line per
   # call while several are left (each call takes the first: a process that crashes and is
   # started again shows a new one), the last line for ever after; 4242 when there is no file
-  show)       prop="" u=""; set -- "${units[@]}"
+  # ($FKH/fail-show-silent = N: the next N `show` calls get no answer — PID 1 busy, a reload)
+  show)       countdown show-silent && { echo "Failed to get properties: Connection timed out" >&2; exit 1; }
+              prop="" u=""; set -- "${units[@]}"
               while (($#)); do case $1 in -p) prop=$2; shift 2 ;; --value) shift ;; *) u=$1; shift ;; esac; done
               # (-p ActiveState -p SubState -p ExecMainCode -p ExecMainStatus of dnf's unit: its end)
               if [[ $prop == ExecMainStatus && $a == *" -p ActiveState "* ]]; then

@@ -2731,7 +2731,28 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
 - r27-49-R4 (1 Nov 17:55–): the master's Re-review 4 started (brief /dev/shm/r27/master/T45-4/brief.md; reads the
   frozen /dev/shm/r27w-review4 = 9280e4b); its evidence still arriving: the whole suite on 9280e4b
   (/dev/shm/r27p/suite-9280e4b.log), update-green STORM=1 throttled from 9280e4b (/dev/shm/r27p/green-storm-9280e4b.txt),
-  probation fail from ad94381 (/dev/shm/r27p/prob-ad94381.txt).
+  probation fail from ad94381 (/dev/shm/r27p/prob-ad94381.txt) → HELD in 213 s, exit 0, and its hold line in the VM
+  "kernel-core 7.2.13-200.fc44 7.2.11-200.fc44 2026-11-01 kernel did not reach the desktop in three starts" (the
+  SOURCE field, the master's should-fix 2, proven outside the stand-ins; kept: T45-4/probation-ad94381/).
+
+- r27-49-pid1 (1 Nov 17:52–18:30) — the THROTTLED storm (update-green STORM=1 from 9280e4b: a synchronous
+  daemon-reload every 0.2 s while the phase said replay) made 100 reloads, all answered — then the VM's SYSTEMD
+  CRASHED: journal 17:58:51.09 "Reload requested from client … (unit session-7.scope)" [the storm's ssh], 0.02 s
+  after one from the replay unit's own scriptlet, "Caught <ABRT>, from our own process … dumped core as pid 87311
+  … Freezing execution." (systemd-259.10, during its own upgrade). PID 1 frozen: State S, every systemctl
+  "Connection timed out", sudo dead (PAM); dnf_end alive and polling 13 min after the end. The first (unthrottled)
+  storm wedged its VM the same way (its journal gone with the revert). So an external reload during systemd's own
+  upgrade crashes PID 1 here; the storm cannot force the lost-signal race without killing PID 1 first — reported
+  to the master mid-review (evidence /dev/shm/r27/master/T45-4/storm-2-pid1-crash.txt; the run stopped 18:17, the
+  VM powered off). BUILT (main, after 9280e4b): dnf_end, when `systemctl show` gets no answer, dnf's own process
+  is gone and the journal (read without PID 1) holds PID 1's "Freezing execution" → 125; dnf_detached then stops
+  the run: "systemd, the system's own manager, crashed while dnf ran … restart the PC (hold its power button if it
+  does not go down); the next start finishes the update, or puts the system before it back" (the phase stays
+  replay: fedokawaii-update-resume finishes or undoes it at the next start). Stand-ins: journalctl answers `_PID=1
+  -g` from $FKH/journal-pid1; systemctl `show` can stay silent N times ($FKH/fail-show-silent). Rows: the crash →
+  said, the run stopped; three silent answers, no crash in the journal → asked again, bat in, no crash said.
+  update-design §5 rows 45 (the hang) and 46 (PID 1's crash). Areas running: installer + static
+  (/dev/shm/r27p/p1-*.log).
 
 ## >>> NEXT PASS STARTS HERE (1 Nov, written 18:02 — the lines above say what this pass did): the inbox first. Then:
 ## (1) the master's Re-review 4 of T45 (r27-49-R4): its verdict appended to master-T45-efh-verdict.md ("Re-review 4").

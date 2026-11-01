@@ -2632,6 +2632,10 @@ dnf_detached() {   # dnf_detached ARG… — dnf ARG…, detached from this sess
        -p StandardOutput=journal -p StandardError=journal -p SyslogIdentifier=fedokawaii-dnf \
        -E LC_ALL=C.UTF-8 /usr/bin/dnf "$@" 9>&-; then rc=$(dnf_end "$unit.service")
   else rc=$?; fi                                    # (it never started: systemd-run's own status)
+  if ((rc == 125)); then
+    kill "$FOLLOWER" 2>/dev/null || true; FOLLOWER=""
+    die "systemd, the system's own manager, crashed while dnf ran (journalctl -b _PID=1: \"Freezing execution\") — nothing more can be done in this start: restart the PC (hold its power button if it does not go down); the next start finishes the update, or puts the system before it back"
+  fi
   # dnf's last lines (its error, which decides whether a new try can mend it) written into the
   # journal before the follower is stopped: --sync returns once journald has every line its
   # writers sent; a second more lets the follower print them
@@ -2642,13 +2646,21 @@ dnf_detached() {   # dnf_detached ARG… — dnf ARG…, detached from this sess
   return "$rc"
 }
 dnf_end() {   # dnf_end UNIT → its dnf's exit status once it has ended (128+N: killed by signal N),
-              # asked once a second
-  local k v st="" sub="" code="" n=""
+              # asked once a second · 125: systemd itself (PID 1) crashed meanwhile — nothing can be asked
+  local k v st="" sub="" code="" n="" out pid
+  pid=$(systemctl show -p MainPID --value "$1" 2>/dev/null) || pid=""
   while :; do
-    while IFS='=' read -r k v; do
-      case $k in ActiveState) st=$v ;; SubState) sub=$v ;; ExecMainCode) code=$v ;; ExecMainStatus) n=$v ;; esac
-    done < <(systemctl show -p ActiveState -p SubState -p ExecMainCode -p ExecMainStatus "$1" 2>/dev/null || true)
-    [[ $st == @(failed|inactive) || ( $st == active && $sub == exited ) ]] && break
+    if out=$(systemctl show -p ActiveState -p SubState -p ExecMainCode -p ExecMainStatus "$1" 2>/dev/null); then
+      while IFS='=' read -r k v; do
+        case $k in ActiveState) st=$v ;; SubState) sub=$v ;; ExecMainCode) code=$v ;; ExecMainStatus) n=$v ;; esac
+      done <<<"$out"
+      [[ $st == @(failed|inactive) || ( $st == active && $sub == exited ) ]] && break
+    # (no answer, dnf's own process gone: a PID 1 that crashed freezes itself and says so in the
+    # journal, which is read without it — seen in the VM, 1 Nov: systemd 259.10 "Caught <ABRT> …
+    # Freezing execution" on a reload asked during its own upgrade)
+    elif [[ ! -e /proc/${pid:-0} && -n $(journalctl -b -q --no-pager _PID=1 -g 'Freezing execution' 2>/dev/null) ]]; then
+      echo 125; return 0
+    fi
     sleep 1
   done
   # (ExecMainCode: 1 exited with N · 2 killed, 3 dumped by signal N · 0 it never ran)
