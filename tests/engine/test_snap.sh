@@ -127,7 +127,9 @@ disk() {   # a Fedora layout: root (kernel 6.18.0, marked "now"), its snapshots 
     "s|/proc/|$P/|g" "s|^state=/run/kawa-snap.pre\$|state=$TMP/runroot/kawa-snap.pre|" \
     "s|^lock=/run/kawa-snap.lock |lock=$TMP/runroot/kawa-snap.lock |" \
     's|\[\[ \$EUID -eq 0 \]\]|[[ ${FK_EUID:-$EUID} -eq 0 ]]|' \
-    "s|^top=/run/kawa-snap/top |top=$T |" "s|/boot/|$B/|g" "s|sync -f /boot |sync -f $B |"
+    "s|^top=/run/kawa-snap/top |top=$T |" "s|/boot/|$B/|g" "s|sync -f /boot |sync -f $B |" \
+    "s|/usr/local/sbin/fedokawaii-split|$STUBS/fedokawaii-split|"
+  pointed "$REPO/system/fedokawaii-split" "$STUBS/fedokawaii-split" 's|\[\[ \$EUID -eq 0 \]\]|[[ ${FK_EUID:-0} -eq 0 ]]|'
   mk() {   # mk DIR KERNEL MARK
     mkdir -p "$1/usr/lib/modules/$2" "$1/etc" "$1/.snapshots"; : >"$1/usr/lib/modules/$2/vmlinuz"; echo "$3" >"$1/etc/mark"
   }
@@ -159,14 +161,33 @@ disk() {   # a Fedora layout: root (kernel 6.18.0, marked "now"), its snapshots 
   "subvolume delete") shift 2; [ "$1" = -R ] && { echo "delete -R" >>"'"$TMP"'/recursive"; shift; }; [ "$1" = --commit-after ] && shift; rm -rf "$1" ;;
   "subvolume list") [ -d "$4/.snapshots/1" ] && echo "ID 260 gen 9 top level 256 path <FS_TREE>/${4##*/}/.snapshots" ;;
   "filesystem sync") ;;
-  "subvolume show") printf "\tCreation time:\t\t2026-10-16 08:00:00 +0000\n" ;;
+  "subvolume show") case $3 in */top/home) [ -z "${FK_HOME_INSIDE:-}" ] || exit 1 ;; *) [ -e "$3" ] || exit 1 ;; esac
+                    printf "\tCreation time:\t\t2026-10-16 08:00:00 +0000\n" ;;
 esac'
+}
+flat() {   # the disk as fedokawaii-split leaves it: the snapshots, home, log and fk at the top level
+  mv -T "$T/root/.snapshots" "$T/snapshots"; mkdir -p "$T/root/.snapshots" "$T/home" "$T/log" "$T/fk"
+  for n in 1 41; do printf 'UUID=ab12\t/\tbtrfs\tsubvol=root,compress=zstd:1\t0 0\n' >"$T/snapshots/$n/snapshot/etc/fstab"; done
 }
 case_ "list: every snapshot from its info.xml (XML escapes undone), numbered order, the booted one marked"
 disk; out=$(kawa-snap list); eq "$?" 0
 eq "$(sed -n 1p <<<"$out")" $'1\tsingle\t2026-10-11 09:00:00\tfedokawaii baseline\t-'
 eq "$(sed -n 2p <<<"$out")" $'41\tpre\t2026-10-14 09:00:00\tdnf install a & b\t-'
 FK_FSROOT=/root/.snapshots/41/snapshot kawa-snap list | grep -q $'^41\t.*\tbooted$' && _ok || _no "booted not marked"
+case_ "the flat layout (fedokawaii-split): the snapshots read from their own subvolume at the top, the booted one marked"
+disk; flat; out=$(kawa-snap list); eq "$?" 0; eq "$(cut -f1 <<<"$out" | paste -sd' ')" "1 41"
+FK_FSROOT=/snapshots/41/snapshot kawa-snap list | grep -q $'^41\t.*\tbooted$' && _ok || _no "booted not marked"
+case_ "…restore 41, from before the split: the copy gets the layout's fstab lines and mount points, the snapshots stay where they are"
+out=$(kawa-snap restore 41 2>&1); eq "$?" 0 "$out"; eq "$(cat "$T/root/etc/mark")" then41
+called "^btrfs subvolume snapshot $T/snapshots/41/snapshot $T/root.copy\$"
+for l in "/home btrfs subvol=home" "/var/log btrfs subvol=log" "/var/lib/fedokawaii/update btrfs subvol=fk" "/.snapshots btrfs subvol=snapshots"; do
+  grep -qx "UUID=ab12	${l// /	},compress=zstd:1	0 0" "$T/root/etc/fstab" && _ok || _no "no fstab line for ${l%% *}: $(cat "$T/root/etc/fstab")"
+done
+grep -qx "UUID=ab12	/	btrfs	subvol=root,compress=zstd:1	0 0" "$T/root/etc/fstab" && _ok || _no "the / line changed"
+[[ -d $T/root/var/lib/fedokawaii/update && -f $T/snapshots/41/info.xml && -f $T/snapshots/1/info.xml ]] && _ok || _no "a mount point or a snapshot missing"
+case_ "…a copy whose fstab cannot be given the layout: nothing changed"
+disk; flat; rm "$T/snapshots/41/snapshot/etc/fstab"; out=$(kawa-snap restore 41 2>&1); eq "$?" 1; has "$out" "the disk's layout"
+eq "$(cat "$T/root/etc/mark")" now; [[ ! -e $T/root.new && ! -e $T/root.old ]] && _ok || _no "left changed"
 case_ "list on a root that is not Btrfs, or not mounted by subvol=: said, exit 1"
 disk; stub findmnt 'case "$*" in *FSTYPE*) echo ext4 ;; esac'; out=$(kawa-snap list 2>&1); eq "$?" 1; has "$out" "not Btrfs"
 case_ "restore 41: the copy is the system, the old one kept as root.old, the snapshots moved across, /boot matched"

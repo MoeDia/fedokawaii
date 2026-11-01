@@ -669,6 +669,18 @@ if ((PRE == 0)); then
          bash -c 'test -x /etc/grub.d/41_snapshots-btrfs && grep -q "kawa-snap boot" /etc/systemd/system/snapper-cleanup.service.d/fedokawaii.conf && grep -q grub-btrfs.cfg /boot/grub2/grub.cfg'
   check "snapshots kept within bounds (a fifth of the disk stays free)" \
     bash -c 'snapper --csvout -c root get-config | grep -qE "^FREE_LIMIT,0\.2"'
+  # the disk's flat layout (fedokawaii-split): a restore never takes /home, the logs, the
+  # updater's memory or the snapshots back in time
+  lay=$(/usr/local/sbin/fedokawaii-split state 2>&1) || lay="unreadable: $lay"
+  case $lay in
+    flat)   pass "the disk's layout: /home, the logs, the updater's memory and the snapshots their own subvolumes" ;;
+    flat*)  warn "old copies hidden under the new mounts" "fedokawaii repair removes them" ;;
+    armed)  info "the disk's new layout is made at the next start (a minute or two before the login)" ;;
+    nested) if [[ -s /var/lib/fedokawaii/split.failed ]]; then
+              fail "the disk's layout: /home inside the system" "its split was put back: $(sed -n 1p /var/lib/fedokawaii/split.failed) (/var/log/fedokawaii-split.log)"
+            else fail "the disk's layout: /home inside the system" "fedokawaii repair arms the split; the next start makes it"; fi ;;
+    *)      fail "the disk's layout" "$lay" ;;
+  esac
   # the monthly scrub: on, and what the last one found (a disk going bad shows up here first)
   if [[ $(findmnt -no FSTYPE / 2>/dev/null) == btrfs ]]; then
     check "the monthly Btrfs scrub is on"              systemctl is-enabled --quiet fedokawaii-scrub.timer
