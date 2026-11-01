@@ -37,6 +37,8 @@ u_start() {
     [[ $(cat "$d/class" 2>/dev/null) == 0x03* && $(readlink "$d/driver" 2>/dev/null) == */vfio-pci ]] || continue
     die "the games VM holds the graphics card — stop it, then update"
   done
+  # (the copy's container: without it every update would look red — said, never guessed)
+  command -v systemd-nspawn >/dev/null || die "systemd-nspawn is missing (systemd-container) — fedokawaii repair puts it in; nothing changed"
   preflight 15360
   if mountpoint -q /boot/efi; then need_space /boot/efi 50; fi
   # (Btrfs writes into unallocated chunks: free space alone can hide a disk that cannot take a write)

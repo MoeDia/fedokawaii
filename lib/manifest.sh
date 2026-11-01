@@ -11,6 +11,7 @@
 # ── phase 1 ─────────────────────────────────────────────────────────────────
 PKG_BASE=(
   dnf5-plugins          # dnf copr, dnf config-manager
+  systemd-container     # systemd-nspawn: the update tries its transaction in a copy of the system first
   git jq gnupg2         # used by the scripts (clone, GitHub API, key check); zips: 7zip (apps)
   python3               # the helpers' small Python parts and the self-tests (tuned brings it
                         #   too: listed, never assumed)
