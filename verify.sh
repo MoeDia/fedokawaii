@@ -186,9 +186,11 @@ for c in "${COPRS[@]}"; do
   grep -qxF "$c" < <(waiting copr) && continue        # (no build for this Fedora yet: warned above)
   check "COPR $c enabled" grep -qxF "copr:copr.fedorainfracloud.org:${c/\//:}" <<<"$enabled"
 done
+# (a package the update button put in records its origin as @stored_transaction(REPO): the
+# stored transaction was resolved from REPO, and its signature checked before it went in)
 for pr in brave-origin:brave-browser claude-code:claude-code; do
   check "${pr%%:*} from ${pr#*:} (gpgcheck=1)" \
-    bash -c "test \"\$(dnf repoquery --installed --qf '%{from_repo}' ${pr%%:*})\" = ${pr#*:} && grep -qx gpgcheck=1 /etc/yum.repos.d/${pr#*:}.repo"
+    bash -c "o=\$(dnf repoquery --installed --qf '%{from_repo}' ${pr%%:*}); o=\${o#@stored_transaction(}; test \"\${o%)}\" = ${pr#*:} && grep -qx gpgcheck=1 /etc/yum.repos.d/${pr#*:}.repo"
 done
 check "dnf max_parallel_downloads=$DNF_PARALLEL"       test "$(dnfopt max_parallel_downloads)" = "$DNF_PARALLEL"
 check "dnf fastestmirror on"                           grep -qxiE '1|true' <<<"$(dnfopt fastestmirror)"

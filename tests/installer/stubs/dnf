@@ -120,7 +120,9 @@ case "$a" in
       else awk '{ sub(/\.i686$/, "", $1); print $1 }' "$FKH/userinstalled" 2>/dev/null | sort -u; fi; exit 0;;
   *" --installed "*"%{from_repo}"*)
       p=${*: -1}; has installed "$p" || exit 0
-      case $p in brave-origin) echo brave-browser ;; claude-code) echo claude-code ;; *) echo fedora ;; esac; exit 0;;
+      # ($FKH/from-stored: put in by the update button — dnf5 records @stored_transaction(REPO))
+      case $p in brave-origin) r=brave-browser ;; claude-code) r=claude-code ;; *) r=fedora ;; esac
+      if [[ -f $FKH/from-stored ]]; then echo "@stored_transaction($r)"; else echo "$r"; fi; exit 0;;
   *" --releasever="*" repoquery "*)
       net_on || { echo "Failed to download metadata" >&2; exit 1; }
       caps=$(sed -n 's/.*--whatprovides=\([^ ]*\).*/\1/p' <<<"$*"); IFS=, read -ra cs <<<"$caps"
