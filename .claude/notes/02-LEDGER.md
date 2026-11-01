@@ -2110,6 +2110,22 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   top-level mount into nothing; $FKH/nested for Fedora's own); test_setup/test_upkeep re-running; the
   VM: split-cut none (f44b), fail-fstab + overlay-restore (f44) re-running on the fixed programs.
 
+- r27-52b-pc (1 Nov 09:54–09:57; main c32821b = t48, pushed): the whole suite green before it — 123 of 125
+  files at 09:40 (the two red, test_verify and test_deps, from this item: the dependency map lacked chcon,
+  shuf (coreutils) and plymouth (rpm -qf), and verify's fake world had no fedokawaii-split) → test_deps
+  197/0, the installer area 25/25 (test_verify, test_upkeep 253/0, test_setup 233/0). APPLIED on the PC
+  09:54 (apply rc 3: repair, verify 258/259 — the one red his qbittorrent outside the manifest, known
+  since 28 Oct, T35's): snapshot 370 "before repair", snapshot 371 "before the disk's new layout"
+  (important), `fedokawaii-split arm` → armed (/system-update → /var/lib/fedokawaii/split, tries 0,
+  fedokawaii-split.service wanted by system-update.target, the program's sha256 89201bd9… = the repo's);
+  verify's row "the disk's new layout is made at the next start". Before-picture kept: ~/.cache/
+  r27-split-before.txt (home 269 785 files / 35 994 845 100 bytes outside the nested subvolumes;
+  Downloads 191 files 66 GB; VM 44 files 202 GB; Steam 13.5 GB; /var/log 60 files; snapper 46) and
+  ~/.cache/r27-split-before.sha256 (561 files). He was away (no input since 09:39, the swayidle logger;
+  the notes' nvim 0 modified buffers, his terminals only the warm helpers, Steam idle) → restarted at
+  the end of this pass with greetd's one-time initial_session (the file kept in
+  /var/lib/fedokawaii/greetd-fedokawaii.toml.r27): the next pass restores it FIRST and checks the split.
+
 ## >>> NEXT PASS STARTS HERE (1 Nov 09:10): the inbox first. Then:
 ## (0) IF the PC restarted for the split (ledger r27-52b-pc says "restarted"): FIRST greetd's file back —
 ##     `sudo cp -a /var/lib/fedokawaii/greetd-fedokawaii.toml.r27 /etc/greetd/fedokawaii.toml` (0 lines
