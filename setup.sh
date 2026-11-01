@@ -2636,7 +2636,7 @@ dnf_detached() {   # dnf_detached ARG… — dnf ARG…, detached from this sess
   else rc=$?; fi                                    # (it never started: systemd-run's own status)
   if ((rc == 125)); then
     kill "$FOLLOWER" 2>/dev/null || true; FOLLOWER=""
-    halt "systemd, the system's own manager, crashed while dnf ran (journalctl -b _PID=1: \"Freezing execution\") — nothing more can be done in this start: restart the PC (hold its power button if it does not go down); the next start finishes the update, or puts the system before it back"
+    halt "systemd, the system's own manager, crashed while dnf ran (journalctl -b _PID=1: \"Freezing execution\") — nothing more can be done in this start: restart the PC (hold its power button if it does not go down); then the next start or the next press of update finishes the update, or puts the system before it back"
   fi
   # dnf's last lines (its error, which decides whether a new try can mend it) written into the
   # journal before the follower is stopped: --sync returns once journald has every line its
@@ -2659,7 +2659,8 @@ dnf_end() {   # dnf_end UNIT → its dnf's exit status once it has ended (128+N:
       [[ $st == @(failed|inactive) || ( $st == active && $sub == exited ) ]] && break
     # (no answer, dnf's own process gone: a PID 1 that crashed freezes itself and says so in the
     # journal, which is read without it — seen in the VM, 1 Nov: systemd 259.10 "Caught <ABRT> …
-    # Freezing execution" on a reload asked during its own upgrade)
+    # Freezing execution", its assert in method_reload — a Reload from another client while a
+    # scriptlet's reload reply was pending; update-design §5 row 46)
     elif [[ ! -e /proc/${pid:-0} && -n $(journalctl -b -q --no-pager _PID=1 -g 'Freezing execution' 2>/dev/null) ]]; then
       echo 125; return 0
     fi

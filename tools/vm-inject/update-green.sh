@@ -6,14 +6,11 @@
 # the copy (root.cand) is gone, the candidate's log, the packages left to update, SELinux's denials
 # in the run (none, or it is not green).
 #   bash tools/vm-inject/update-green.sh [VM] [REPO]   (VM f44; REPO this repository)
-#   STORM=1 …  PID 1 reloaded over and over while the transaction is replayed (`systemctl daemon-reload`,
-#              each waited for, every 0.2 s — from a second ssh, until the run leaves its replay phase or
-#              15 minutes pass): the end of dnf's unit must still be read (the hang of 1 Nov, ledger
-#              r27-49-hang). Never unthrottled: a loop without the pause floods PID 1 with refused
-#              reloads until it answers nothing (seen 1 Nov 17:46) — a test of the VM, not of the update.
-#              systemd's own packages go in first, outside the run: a reload asked during systemd's own
-#              upgrade crashed PID 1 (259.10, 1 Nov 17:58 — r27-49-pid1; the run's answer to that is a
-#              stub row), so the storm meets the rest of the set and the reloads its scriptlets ask
+# (The reload storm it once had — STORM=1, a daemon-reload loop from a second ssh during the replay —
+# is retired: every storm crashed PID 1 in systemd's own method_reload assert (a Reload while a
+# scriptlet's reload reply is pending; 259.10, and the same asserts in 262: ledger r27-49-storm3), so
+# it proved systemd's bug, never the update's end-reading. That crash's answer is proven whole in the
+# VM and kept as stub rows: the halt, the kept phase, the start's resume, the next press.)
 # Out: a summary on stdout, everything in /dev/shm/r27/update-green/. Exit 0 the run kept the
 # update with a green report · 1 it did not · 2 the VM could not run.
 set -u
@@ -25,17 +22,10 @@ run() { bash "$here/vm-run.sh" "$vm" "$@"; }
   || { echo "update-green: the VM did not start" >&2; exit 2; }
 # (applied as the PC is before a press: the toolkit, the theme, our builds — the desktop check green)
 run --apply "$src" >>"$log" 2>&1 || { echo "update-green: the toolkit could not go in" >&2; exit 2; }
-[[ ${STORM:-} == 1 ]] && run 'sudo dnf -y -q upgrade "systemd*" >/dev/null 2>&1; rpm -q systemd' >"$out/storm-systemd.txt" 2>&1
 pending=$(run 'sudo dnf -q check-upgrade 2>/dev/null | grep -c "\."')
 # (SELinux's denials until now marked; the instrument recorded: auditd running and its log there —
 # ausearch exits 1 with nothing printed for a missing log as for nothing found)
 run 'systemctl is-active auditd; sudo test -s /var/log/audit/audit.log && echo "log there"; sudo ausearch --checkpoint /tmp/avc.ck -m avc >/dev/null 2>&1; true' >"$out/avc-instrument.txt" 2>&1
-if [[ ${STORM:-} == 1 ]]; then
-  run 'sudo setsid -f bash -c "p=/var/lib/fedokawaii/update/phase; n=0; e=\$((SECONDS + 900))
-         until grep -q ^replay \$p 2>/dev/null; do ((SECONDS < e)) || exit; sleep 0.1; done
-         while grep -q ^replay \$p && ((SECONDS < e)); do systemctl daemon-reload && n=\$((n + 1)); sleep 0.2; done
-         echo \$n >/tmp/storm.n" </dev/null >/dev/null 2>&1' >>"$log" 2>&1
-fi
 s=$SECONDS
 run 'sudo bash /usr/local/lib/fedokawaii/setup.sh --update >/tmp/update.log 2>&1; echo "rc=$?"' >"$out/rc.txt" 2>&1
 t=$((SECONDS - s))
@@ -46,10 +36,9 @@ run 'U=/var/lib/fedokawaii/update; for f in phase report holds snap set; do echo
      echo "== snapper"; sudo snapper -c root list --columns number,cleanup,description | tail -n 4
      echo "== left"; sudo dnf -q check-upgrade 2>/dev/null | grep -c "\."; uname -r; rpm -q kernel-core' >"$out/state.txt" 2>&1
 run 'sudo ausearch --checkpoint /tmp/avc.ck -m avc -i 2>/dev/null | grep "^type=AVC"' >"$out/avc.txt" 2>&1
-[[ ${STORM:-} == 1 ]] && run 'cat /tmp/storm.n 2>/dev/null || echo none' >"$out/storm.txt" 2>&1
 bash "$here/vm-snap.sh" "$vm" stop >>"$log" 2>&1
 rc=$(tr -dc 0-9 <"$out/rc.txt")
-printf 'pending before: %s · the run: exit %s in %s s%s\n' "$pending" "${rc:-?}" "$t" "$([[ ${STORM:-} == 1 ]] && echo " · daemon-reloads in the replay: $(cat "$out/storm.txt")")"
+printf 'pending before: %s · the run: exit %s in %s s\n' "$pending" "${rc:-?}" "$t"
 sed -n '/^== report/,/^== holds/p' "$out/state.txt" | sed '1d;$d'
 # (a green run never says the desktop does not start: the check ran and passed, before and after)
 grep -q 'the desktop does not start' "$out/update.log" && echo "the desktop check was red: $(grep -m1 'the desktop does not start' "$out/update.log")"

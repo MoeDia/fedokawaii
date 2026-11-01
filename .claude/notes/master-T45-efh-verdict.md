@@ -605,3 +605,142 @@ pushed. What stands and need not be redone: Verdict 2's must-fix 3, 4, 5 (proven
 should-fix 1–5 decided and built; (F); probation.sh's two cases; run 7's nine rows; the PC's press of 14:39 up to its
 trial's close (B3 still ahead: record the close from fedokawaii-boot-good's journal). The should-fixes decided (done, or
 written in the ledger) by the next review.
+
+## Re-review 4 (1 Nov, 19:16–20:40) — main at 2b12615 (T45's code = 878f1fd; the push candidate a6f5049)
+
+Read: the brief (/dev/shm/r27/master/T45-5/brief.md) and the coordinator's three additions (storm-3, 878f1fd, 0b45f65 →
+a6f5049); Re-review 3; the whole diff 78ea68c..2b12615 (setup.sh dnf_settle/dnf_detached/dnf_end/contained/snapper_limits,
+lib/common.sh halt/pass_halt/run/dnf_try_sub, lib/update.sh u_check/u_report/up_exit, lib/guard.sh desktop_starts,
+system/fedokawaii status_kv and file_back, bin/kawa-pick, yazi init.lua/main.lua, verify.sh, the stand-ins systemd-run/
+systemctl/journalctl/dnf, tests/installer/lib.sh, test_upkeep, test_update_flow, test_status, test_pick, tools/vm-inject/*);
+lib/update.sh at 2b12615 whole; setup.sh do_update/update_steps/step_on/heal/on_signal/make_tmp (:101, every mode);
+lib/common.sh dnf_install/dnf_do/dnf_why/retry/as_user; the stubs' _lib.sh fkh_cut; 878f1fd (two test lines),
+878f1fd..0b45f65 and 0b45f65..a6f5049 by stat — lib/update.sh, lib/guard.sh, lib/common.sh, setup.sh, tests/installer,
+test_status, tools/vm-inject untouched since 878f1fd — and in them the Brave fix, the fuse3 row, update-design row 46,
+systemd-reload-assert.md; the ledger r27-49-hang, -52-file, -49-master-3, -49-master-3-fixes, -49-R4, -49-pid1, -49-halt,
+-49-R3, -49-storm3 and the next-pass note; update-design §2.5, rows 45/46; the evidence copies under T45-5/ (green-79cd435,
+button-79cd435, button-ad94381 + avc-instrument.txt, green-storm-9280e4b, storm-1/2/3, probation-ad94381/fail.log,
+prob-ad94381.txt, green-storm-2b12615). Sources: raw.githubusercontent.com/systemd/systemd v259 and v262
+src/core/dbus-manager.c method_reload (read by me: `assert(!m->pending_reload_message_dbus); assert(!m->pending_reload_message_vl);`
+after the rate limit — no queue, no error); `rpm -q --triggers systemd` and `rpm -q --filetriggers systemd` on this PC
+(259.10); dnf5(8) EXIT CODES (0/1/2 — 125 is no dnf status); /etc/pam.d/runuser (no pam_systemd: as_user works with PID 1
+frozen); a WebSearch for an upstream report (none). Ran (read-only, no file written): test_brave twice from
+/dev/shm/r27w-review5 — as is 22/5, with pgrep answering "nothing" through an exported function 27/0; the PC:
+/home/.snapshots root:dia 0750, info.xml 0644, FSROOT /home = split, Brave open since 18:15 (SingletonLock). Waited
+with bounded loops, never guessed: the suite on 2b12615 (rc=1 in 3282 s, 126 files, reds test_brave 22/5 and
+test_update_flow 309/1), the storm from 2b12615, test_update_flow on 878f1fd (311/0), the suite on 0b45f65 (main stopped
+it: test_report_rows 267/2 and test_torture 212/2, PKG-19 fuse3 without its evidence row — T48's), the suite on a6f5049
+(running as this is written: the addendum below).
+
+### Proven
+- **Must-fix 1, the hang — the shape:** dnf_detached (setup.sh:2633-2651) starts the unit with RemainAfterExit=yes and
+  neither --wait nor --collect; dnf_end (:2652-2670) asks `systemctl show -p ActiveState -p SubState -p ExecMainCode
+  -p ExecMainStatus` once a second on a fresh connection, reads exited N / killed 128+N (ExecMainCode 1 / 2,3); the unit
+  is then stopped and reset-failed; dnf_settle (:2604-2612) clears the ended units a cut run left (mapfile, a line each)
+  before looking for a running one. Rows: test_upkeep's five (no --wait/--collect, the show call, reset-failed, nothing
+  left; a TERM-killed dnf → "could not be installed now"; the crash → 125, said once, one systemd-run; three silent
+  shows → asked again, bat in; two ended units cleared, never "still going") — 278/0 in the 2b12615 suite;
+  test_update_flow's crash chain (crash in the live replay → 125 said once, report "stopped (replay): systemd …", phase
+  replay kept, nothing held → the start after: every package in → steps, said at login → the next press: ok, no replay)
+  and the TERM-in-transaction row — 311/0 on 878f1fd (its 2b12615 form 309/1 was the row's own count of a by-design
+  repetition: the ✘ line and the "── update:" header; 878f1fd counts the ✘ line and checks the header, tests only).
+- **Must-fix 1 — in the VM:** update-green f44 from 79cd435 exit 0 in 304 s, "ok · updated · 61 packages", avc.txt empty
+  (green-79cd435/); update-button f44b from 79cd435 and from ad94381 10/10 each (one unit for three presses, the desktop
+  check green before and after, the report ok, the stopped run's status 1 with its reason; ad94381's with
+  avc-instrument.txt "active / log there"). What those runs crossed: the transaction's own reloads — systemd's transaction
+  file triggers (`rpm -q --filetriggers systemd`: %transfiletriggerin/postun on /usr/lib/systemd/system → daemon-reload),
+  which fire in every transaction with unit files: the 79cd435 log shows "%triggerin"/"%triggerpostun scriptlet:
+  systemd-0:259.10" twice though no systemd package was in its set (state.txt's 61 lines) — the hang's own condition
+  (a reload between the unit's start and its end), met three times with the end read by asking. storm-3 from 2b12615
+  (the code that ships): the fetch unit's end was read by the shipped dnf_end; PID 1 then aborted under the storm
+  (journal 19:21:00.58, 17 ms after the scriptlet's reload finished; coredump __assert_fail ← method_reload), and the
+  run answered as built — one ✘ line 19:21:01, report "stopped (replay): systemd, the system's own manager, crashed …",
+  rc 125, phase replay kept; the VM's next start: fedokawaii-update-resume finished (every package in → steps); main's
+  press after it: "update done (ok): updated · 61 packages", phase end (storm-3-pid1-crash.txt, read by main from the VM
+  booted as it was left; the proof folder's update.log/state.txt empty because ssh sessions cannot open with PID 1
+  frozen and /tmp went with the restart). So the crash chain of 381c08a + 2b12615 is proven on a real crash, not only
+  on the stub.
+- **What proof I accept for must-fix 1, and why:** the storm cannot force the lost-signal race on systemd 259.10 (nor
+  262, F45's): two throttled storms (9280e4b, 2b12615) aborted PID 1 first, by systemd's own assertion — a Reload from
+  any other client while a scriptlet's reload reply is pending (verified in the official source, both versions). The
+  race the hang needs is made by every transaction's file-trigger reloads, which the three green runs crossed; the fix
+  holds no subscription, so there is no signal to lose. Accepted: the design, the stub rows, the three green runs, and
+  storm-3's crash chain. Still owed as a condition: one plain update-green from the pushed commit — the shipped
+  dnf_detached/dnf_end are 22 lines newer than 79cd435's (381c08a's crash branch, 2b12615's halt) and storm-3 read only
+  the fetch unit's end on them.
+- **Must-fix 2:** lib/guard.sh:185 passes every `^bar-geometry (` / `^session-start (` line (no tail); desk_reds labels
+  each; the stand-in prints a line an item, "THEME: what" (tests/installer/lib.sh:54); replay-breaks-bar puts its rows line
+  first (stubs/dnf:68); the row "the bar red before in one item (light, its LAST line) and the update makes it grow
+  (dark: rows, its FIRST line) → red after, offered, gtk3 held" in test_update_flow 311/0.
+- **Must-fix 3:** lib/update.sh:376 appends the fixed " · desktop red before: not judged" to the report's line 2, :384
+  puts "its desktop items red before it were not judged:" and the labels on the lines below; system/fedokawaii:279-284
+  status_kv lifts it into a continuation row of its own before the holds strip; test_status: rows ≤ 44 with and without
+  holds, the pane ≤ 50 — 216/0 in the 2b12615 suite; the status_kv region is untouched by T48's hunks (from :673).
+- **halt/pass_halt (2b12615):** the simplest sound shape I can see — a marker in the run's own temp folder (KAWA_TMP,
+  made at setup.sh:101 for every mode) plus exit 125, re-raised by the three containers (run, dnf_try_sub, contained):
+  five lines and three calls, the only channel out of a `$( )`/pipe subshell short of a signal to $$ — which would land in
+  on_signal's "interrupted — press update again", the wrong advice for a frozen PID 1. 125 clashes with no dnf5 status.
+- **The phase kept on a stop (u_report :379):** right in steps and check (the next press runs the steps and the checks
+  again against the baseline from before; UPD/set and snap stay, so the report says "updated · N" and the probation
+  takes the snapshot) and in replay once dnf has run (whole → steps; not whole → undo). Not right for a stop in replay
+  before dnf began — should-fix 1.
+- **Should-fixes 1–4 of Verdict 3:** (1) avc-instrument.txt in both proofs, the row failing without it
+  (update-button.sh:324, update-green.sh:380/383); (2) probation-ad94381/fail.log:695 "kernel-core 7.2.13-200.fc44
+  7.2.11-200.fc44 2026-11-01 kernel did not reach the desktop in three starts" — the SOURCE field in life, HELD in
+  213 s, exit 0; (3) §2.5 rewritten and right against dnf5-do(8)/dnf5-upgrade(8): --skip-unavailable covers a missing
+  want, not a conflict; --skip-broken makes a partial upgrade; (4) ledger r27-49-R3 says HUNG, r27-49-hang names the
+  evidence file.
+- **The two reds of the 2b12615 suite** had causes outside the update's code and are fixed on the push candidate: the
+  crash row's count (878f1fd); bin/brave-origin:49's `pgrep -u $UID -f` seeing the owner's real Brave from inside the
+  test's throw-away home (my reproduction above) — 0b45f65 reads the profile's own SingletonLock and checks its process
+  lives, with a row for open and for a stale mark: the right signal, and the content area independent of the PC again.
+  The 0b45f65 suite's reds (fuse3 without its evidence row) are T48's, fixed in a6f5049 (tools/packages.evidence).
+
+### Must-fix
+None left in T45's code at 878f1fd.
+
+### Should-fix
+1. **A replay that never began ends as "broke something".** A stop between `up_phase replay` and the unit's start (a
+   shutdown's TERM, systemd-run refusing, dnf failing before its transaction) leaves phase replay with 0 of the set in;
+   the next start restores the snapshot and reboots (up_boot, /home split on the PC), the next press holds the WHOLE set
+   and offers the snapshot (do_update: up_complete false → u_undo) — for a system that did not change, and the holds stay
+   until a newer version appears. The TERM row (cut at the stand-in systemd-run's first line, nothing installed →
+   offered, bash held) enshrines it. Rule: up_complete's count 0 → "nothing went in": nothing held, nothing undone,
+   phase end, said as the stop it was. Pre-existing (do_update's `u_replay || u_undo` at 78ea68c); the kept phase makes
+   it reachable from a stop.
+2. **A PID 1 crash between units is not read.** dnf_detached takes systemd-run's own failure as "it never started"
+   (:2636); dnf_install/dnf_do then try four times (dnf_settle's two list-units and a systemd-run at 25 s bus timeouts
+   each, pauses 15/30/45 s) and say "other". The same test as dnf_end's elif (dnf's pid gone is moot here; the journal's
+   "Freezing execution") on a systemd-run failure would halt there — three lines.
+3. **The stand-in's systemd-run writes "ended" before it returns,** so dnf_end never meets active/running in any row —
+   the loop's only untested branch (Verdict 3's "a unit whose end comes later"); `$FKH/end-after=N` (show says running
+   N times, then the end) covers it. The VM runs cover it in life.
+4. **The end read across `systemctl daemon-reexec`** (systemd's %posttrans when systemd itself is upgraded — the
+   hang's first-named condition, in no kept log's set) measured once in the VM: a transient RemainAfterExit unit that
+   re-executes PID 1 and exits 7, read as failed/7 by dnf_end's show. Ten seconds.
+5. **The halt's words** "the next start finishes the update, or puts the system before it back" hold in replay
+   (up_boot); in steps or check (phase kept) it is the next press — "the next start or press".
+6. **The storm proof's loop never ends once a stopped run keeps its phase** (2b12615's own change): it reloaded a frozen
+   PID 1 to its 900 s cap and its count was lost ("none"). Retire STORM=1 (recommended: on 259/262 it can only crash
+   PID 1) or end the loop on the run's exit too and write the count on every path. Two places still say "during its own
+   upgrade": setup.sh:2662 (dnf_end's comment) and tools/vm-inject/update-green.sh:11-13; the note's "once with systemd
+   itself in the transaction" is unproven (storm-2's set is in no kept log; the 79cd435 set from the same VM image had no
+   systemd package; the reload lines are systemd's file triggers, fired by any package with unit files). Row 46 and
+   systemd-reload-assert.md carry the true cause already (0b45f65) — the draft report is worth sending upstream.
+7. **"A file, back" (r27-52-file) and T48's restore/drive: their own review** (a user-facing feature with a deliberate
+   exposure — /home's snapshots readable by his group — a 70-line TUI, a new kawa-pick mode, a verify row). Read for
+   T45's sake only: snapper_limits' new `|| return 1` sits inside r_system (contained, set -e) — a chgrp/chmod failure
+   ends r_system before snap_hooks and s_layout: order it last or `|| log`; test_menu reports 84 in every suite before
+   and after T48's new rows (the ledger's 663 is the file alone) — whether run.sh runs the new rows at all is for that
+   reviewer; on the PC it works as the ledger says (root:dia 0750, info.xml 0644).
+8. Ledger: this review's result under r27-49-R4b, with the proofs' copies named (T45-5/), and the reds of the 2b12615 and
+   0b45f65 suites with their causes (not the update's code) beside the green on the pushed commit.
+
+## Verdict 4: PASS WITH CONDITIONS
+T45's code at 878f1fd passes; the push waits for: (1) the whole suite rc 0 on the commit that is pushed — a6f5049's run
+was in flight when this was written; its rc line goes in the addendum below, and any new red is judged there; (2) one
+plain update-green f44 from the pushed commit (exit 0, report ok, no "the desktop does not start", avc.txt empty with the
+instrument active), kept under T45-5/; (3) the storm retired as must-fix 1's proof and the two "during its own upgrade"
+places corrected (should-fix 6). What stands and need not be redone: everything under Proven, Verdict 3's should-fixes
+1–4, storm-3's crash chain, the three button/green runs. The should-fixes decided (done, or written in the ledger with
+the reason) by the next review.
