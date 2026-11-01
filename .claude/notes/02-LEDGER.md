@@ -1751,11 +1751,18 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   leftover root.new holds a subvolume, then said ("was finished … run again"); the snapshot's existence
   checked only after that. test_snap 118/0 (the case built as the real cut leaves it).
 
+- r27-52a-restore PROVEN in the VM (1 Nov 04:16; tools/vm-inject/restore-cut.sh f44, exit 0): for each of
+  the six steps a fresh VM ("built"), this repository's kawa-snap, a snapshot, the running root marked,
+  the restore cut by an instant restart (sysrq b, nothing synced: KAWA_SNAP_CUT, a seam honoured only
+  when set). Every start whole: copied, kernels → the marked system runs, its snapshot listed, the
+  kernel's modules there; exchanged → the marked system (the unsynced exchange simply did not happen:
+  atomic either way); moved, renamed → the restored system runs and the next `kawa-snap restore`
+  finished the cut one (the snapshot listed again: "1*"); defaulted → the restored system, all in
+  place. Logs: /dev/shm/r27/restore-cut/. Not yet on the PC (the master first).
+
 ## >>> NEXT PASS STARTS HERE (1 Nov 04:10): the inbox first. Then, the update system (the master's order):
-## (1) T48 FIRST (1)'s proof in the VM — a tools/vm-inject/restore-cut.sh that powers the VM off after
-##     each step of `kawa-snap restore` (copy · kernels added · exchanged · moved · renamed · default set)
-##     and checks every start boots a whole system with its snapshots; then the master; then apply
-##     (kawa-snap is not live yet: the PC keeps the old one until the proof).
+## (1) T48 FIRST (1): proven in the VM (restore-cut.sh, six cut points, exit 0) — the master's review
+##     (if this pass did not get it), then apply (kawa-snap is not live yet: the PC keeps the old one).
 ## (2) T48 FIRST (2): the flat layout (snapshots, home, log, fk at the top level) and the offline /home
 ##     split — VM first. (3) T45 (a)–(c): kawa-update's state machine on stubs, then the candidate in
 ##     nspawn (the core is proven: r27-49-exp1/2). Owed: T19m pass 2's GTK dialog + zathura shots.
