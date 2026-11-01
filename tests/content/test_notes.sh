@@ -196,6 +196,9 @@ else
   case_ "notes.lua: nothing written over the footer while typing (no mode, no keys, no 'written')"
   eq "$(ask '{vim.o.showmode, vim.o.showcmd, vim.o.ruler}')" "{ false, false, false }"
   has "$(ask vim.o.shortmess)" "WFcsS"
+  case_ "notes.lua: neovim's ui2 on — with the old message grid each save blanked the footer for a frame (seen 1 Nov); the installed neovim must have it (an update that drops it is caught here)"
+  eq "$(nvim --headless -c 'lua io.stdout:write(tostring((pcall(require, "vim._core.ui2"))))' -c 'qa!' 2>/dev/null)" true "vim._core.ui2 in this neovim"
+  eq "$(ask 'package.loaded["vim._core.ui2"] ~= nil')" true "enabled by notes.lua"
   case_ "the clipboard (owner 14:27, copy/paste): y copies to the desktop's; x, dd, cw keep what they take in the editor — the desktop's copy and Super+V's history untouched; p puts in the newest copy, the desktop's when one came since, else the editor's (dd then p moves a line)"
   clip() {   # clip KEYS… — typed into a page of three lines, with a clipboard of its own ("from the browser"): the desktop's clipboard, then the page
     local a=() k

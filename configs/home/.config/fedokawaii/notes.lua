@@ -13,6 +13,13 @@
 -- colors.sh, and again whenever the theme switches.
 
 vim.loader.enable()                        -- (Lua byte-compiled once, read from the cache after)
+-- neovim's new message UI (ui2, 0.12 — its own windows for messages and the command line): with
+-- the old message grid and no command line (cmdheight 0, below) every write cleared the line a
+-- message would take — the footer — and drew it again a frame later: the footer blinked at each
+-- save (seen frame by frame, 1 Nov). The window is otherwise drawn pixel for pixel the same.
+-- (a neovim without it keeps the page working; tests/content/test_notes.sh holds the installed
+-- one to having it, so an update that drops it is caught, not lived with)
+pcall(function() require("vim._core.ui2").enable() end)
 dofile(vim.fn.stdpath("config") .. "/lua/config/clipboard.lua").setup()   -- (by its path: any runtime path)
 vim.o.mouse = "a"
 vim.o.undofile = true
