@@ -2,7 +2,7 @@
 # lib/cand-check.sh — run inside the update's candidate (a copy of this system that has just
 # received the transaction, in a container: lib/update.sh cand_run), as root: what must hold
 # before the running system gets the same. A line "red: WHAT" for each failure; exit 1 if any.
-# FK_USER: the desktop's user · FK_GPU: the machine's graphics (amd, intel, …)
+# FK_USER: the desktop's user
 export LC_ALL=C
 red=0
 no() { echo "red: $*"; red=1; }
@@ -15,9 +15,10 @@ for f in /usr/local/bin/dwl /usr/local/bin/mako /usr/local/lib/fedokawaii-wlroot
   m=$(ldd "$f" 2>/dev/null | awk '/not found/ { printf "%s ", $1 }')
   [[ -z $m ]] || no "${f##*/} misses ${m% }"
 done
-# a new kernel: its boot entry finds this root, its boot image starts this machine — every driver
-# the image starting it today has (bound at /run/fk-ref.img) is in it, or built into the new
-# kernel (Fedora builds btrfs and virtio_blk in), or a module the new kernel no longer has
+# a new kernel: its boot entry finds this root, its boot image starts this machine — btrfs and
+# every driver the image starting it today has (bound at /run/fk-ref.img: the disk's, the GPU's)
+# are in it, or built into the new kernel (Fedora builds btrfs and virtio_blk in), or modules the
+# new kernel no longer has
 mods() { lsinitrd "$1" 2>/dev/null | sed -n 's|.*/\([^/]*\)\.ko\(\.[a-z]*\)\{0,1\}$|\1|p' | sort -u; }
 for e in /boot/loader/entries/*.conf; do
   [[ -f $e ]] || continue
@@ -31,8 +32,7 @@ for e in /boot/loader/entries/*.conf; do
   [[ -n $img ]] || { no "the boot image of $k could not be read (lsinitrd)"; continue; }
   d=/usr/lib/modules/$k
   in=$({ echo "$img"; sed 's|.*/||; s|\.ko$||' "$d/modules.builtin" 2>/dev/null; } | sort -u)   # (in the image or built in)
-  need=btrfs; [[ ${FK_GPU:-} == amd ]] && need+=" amdgpu"
-  for m in $need; do grep -qxF -- "$m" <<<"$in" || no "the boot image of $k has no $m, and $k has it not built in"; done
+  grep -qx btrfs <<<"$in" || no "the boot image of $k has no btrfs, and $k has it not built in"
   if [[ -s /run/fk-ref.img ]]; then
     lost=$(mods /run/fk-ref.img | comm -23 - <(echo "$in") \
            | comm -12 - <(cut -d: -f1 "$d/modules.dep" 2>/dev/null | sed 's|.*/||; s|\.ko.*||' | sort -u))

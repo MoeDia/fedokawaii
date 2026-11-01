@@ -105,7 +105,7 @@ cand_run() {   # cand_run TXDIR CMD… — CMD in the candidate, a container of 
   [[ -s /boot/initramfs-$(uname -r).img ]] && ref=(--bind-ro="/boot/initramfs-$(uname -r).img:/run/fk-ref.img")
   systemd-nspawn --quiet --register=no --private-network --link-journal=no -D "$UP_CAND" \
     --bind-ro="$tx:/tx" --bind="$UPD/cand-boot:/boot" --bind-ro="$REPO_DIR/lib/cand-check.sh:/run/fk-check" "${ref[@]}" \
-    --setenv=FK_USER="$TARGET_USER" --setenv=FK_GPU="$(cat "$STATE_DIR/gpu" 2>/dev/null || echo amd)" -- "$@"
+    --setenv=FK_USER="$TARGET_USER" -- "$@"
 }
 cand_try() {   # cand_try TXDIR → 0 green · 1 red (UPD/why says why). A container that does not even
                # start is no verdict on the packages: the run stops there, nothing changed
