@@ -2219,12 +2219,15 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
 ## (0) STILL RED after the apply (10:31 re-run on main: test_setup 148/91, test_setup_wait 47/31,
 ##     test_setup_hw 79/5; test_torture queued on the installer lock): the failing step is s_pace's
 ##     fstab_noatime returning 1 (the ERR trap says "line 1843": one past the call on 1842, a `return 1`).
-##     The PC's /etc/fstab is now a fixed point of pace_fstab (diff empty) and `findmnt --verify` passes on it,
-##     so the world's fstab is not the PC's as copied: keep a world (the harness's keep/back), read
-##     $W/etc/fstab and which of fstab_noatime's three exits fails (pace_fstab · mktemp in /etc · findmnt
-##     --verify: the stand-in needs the file by name). Then give the world a fstab of its own as Fedora's
-##     installer writes it (the root line only, no noatime: s_pace's pass then runs for real in the tests),
-##     never the PC's — and the whole installer area again. These four were green at 09:50 (before the split).
+##     The PC's /etc/fstab is now a fixed point of pace_fstab (diff empty) and `findmnt --verify` passes on it.
+##     FOUND (10:34 probe: a file in tests/installer/ sourcing lib.sh, `world built`, then removed): the built
+##     world has NO /etc/fstab at all — so `new=$(pace_fstab </etc/fstab) || return 1` is the exit that fails;
+##     mktemp in the world's /etc works. A user's `cp -a --no-preserve=ownership /etc/. DIR/` copies the PC's
+##     fstab fine, so it goes missing inside the world build (lib.sh world(): the copy at line 195 runs as the
+##     namespace's root — or a step after it removes or replaces it: grep found no "fstab" in lib.sh or the
+##     stubs). Find it, then give the world a fstab of its own as Fedora's installer writes it (the root line,
+##     no noatime: s_pace's pass then runs for real in the tests), never the PC's — and the whole installer
+##     area again. These four were green at 09:50, before the split.
 ## (1) T45 (worktree ~/repos/fk-t45, main merged in: r27-45-merge): (e) the real checks + the desktop smoke
 ##     test (design §4.2: tools/kit.sh-based, the installed dwl, gles2 on the dGPU's render node by path on the
 ##     PC, pixman in the VM which has no render node), (f) probation (boot counting, fedokawaii-boot-good, no
