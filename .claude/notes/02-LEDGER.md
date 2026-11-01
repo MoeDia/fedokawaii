@@ -2332,6 +2332,49 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   states were made on 27 Oct (before the wash), and the PC builds with config.h — T54's clean VM install
   at the end would have found it; the F45 pre-flight found it 2 days early.
 
+- r27-49-master-efh (1 Nov 11:44–12:09; Fable, fresh, read-only — .claude/notes/master-T45-efh-verdict.md): T45 (e)(f)(h)
+  FAIL — six must-fix, twelve should-fix, seven notes; "the core of (f) is sound and proven" (it re-read
+  08/10/12 and grub.cfg's order on the PC, probed SELinux with a transient unit, ran session-start.sh as the
+  update does: green in 8.97 s); today's main fixes PASS. Done the same pass, on t45 (8589f35, 2b95146,
+  39923d8 + the should-fix commit):
+  1 a check that could not run (exit 2: the kit, the shot's measure) is no verdict — one retry; before the
+    update it stops with nothing changed, after the replay with nothing held or undone and the phase kept
+    (the next press checks again against the old baseline — a new one would have taken the damage in);
+    a red keeps its own verdict line ("session-start (dark): dwl does not start: …"), never waybar's log
+  2 up_exit does make_tmp's exit too (the temp folder, dnf's follower): a test finds none left
+  3 setup.sh --kernels closes an open probation too; old_kernels_out keeps the one before while a kernel
+    is on trial (the update's own "one kernel" step included) — tests for both
+  4 tools/vm-inject/update-button.sh — the button's own path in the VM (three presses, one unit, the
+    exit status, a stopped run's status): running on f44b at the end of the pass
+  5 re-rendered from HEAD, both moods (/dev/shm/r27p/kit-h/all.png): found and fixed "4 held" in the
+    update pane against the held row's "2" (lines vs families) — one count, the families'
+  6 dnf_settle (from dnf_detached): a cut run's transaction still writing is followed to its end before
+    it is judged; refused while another dnf5 runs — a test with a busy dnf unit
+  should-fix done: 9 no "(checks)" from the baseline's reds · 10 a stopped run's reason from this run's
+  log only · 12 rd.retry=30 in the trial (dracut's 180 s × 3 was 9 silent minutes) · 13 hl-dwl: a VM's
+  virtio screen (no 3D) draws with pixman — the VM proofs will see a green desktop check · 15 the update
+  refuses on a start that is not the system itself (a restore waiting for its restart, a snapshot boot) ·
+  16 a hold written once · 17 verify: the resume unit's row. 7, decided: the coredump list is not part of
+  the session check — every piece is checked running by its own runtime folder, a crash is "not running"
+  (nothing restarts in the kit); yazi/greetd/nvim config checks deferred to T45's next step with T58's
+  research (each program's own check, from its docs). NEXT (first): 8 (entry 1 = the kernel before,
+  checked before arming; no kernel transaction while a trial is open), 11 (versionlock list's TOML),
+  14 (a cut run's pinned snapshot and root.cand released), 18 (the whole-set hold written into §4.3 as
+  built; "and N more" in the pane), then back to the master.
+
+- r27-50 (cont., 1 Nov 12:17–12:33) — the first Fedora 45 findings (f45 from development/45, vm-smoke from
+  main fd0739a): the WHOLE install ran through phase 3 on F45 (dwl built with its private wlroots, the
+  faces, the lock module, the saver, the splash in every boot image — every desktop check green); the gate
+  stopped on three: (1–2) rpmfusion-free/nonfree-updates disabled — RPM Fusion's release package for a
+  Fedora not yet released turns on updates-testing instead (seen in the VM: dnf repo list), so this is
+  the pre-release state, re-checked after 3 Nov, not a fault of ours; (3) "sshd: keys only, no root" — a
+  REAL F45 change: OpenSSH 10.5 (openssh-server-10.5p1-1.fc45) prints `sshd -T` with its keywords as
+  written ("PermitRootLogin no", not "permitrootlogin no"); the values were right. verify.sh compares
+  case-blind now (both releases); the sshd stand-in prints F45's casing with $FKH/sshd-camel and
+  test_verify checks it (176/0). Only verify parsed `sshd -T` (grep of the repo).
+  Also: the clean Fedora 44 install from fd0739a (f44 VM, from fresh): GREEN — verify 253 passed, 4
+  named skips, the desktop up in 20 min — the dwl fix (r27-found-4) proven end to end.
+
 ## >>> NEXT PASS STARTS HERE (1 Nov, written 11:50 — see the lines above for what this pass did): the inbox first. Then:
 ## (0) the master's verdict on T45 (e)(f)(h) — .claude/notes/master-T45-efh-verdict.md (asked 11:44): fix every
 ##     finding with its test, back to the master until PASS.

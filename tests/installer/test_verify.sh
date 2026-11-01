@@ -27,6 +27,7 @@ has "$OUT" "✔  no lpf, nothing it left (Spotify is its web player)"
 has "$OUT" "✔  user unit wireplumber.service enabled"; has "$OUT" "✔  hardware decode: H264High"
 has "$OUT" "✔  torrent port 6881 open"; has "$OUT" "✔  firewall: ssh open, no cockpit"; has "$OUT" "✔  sshd: keys only, no root (SSH_SERVER=yes)"
 has "$OUT" "✔  ROCm SMI library for btop (librocm_smi64.so.1.0)"
+fkh sshd-camel; V; has "$OUT" "✔  sshd: keys only, no root (SSH_SERVER=yes)" "OpenSSH 10.5 (Fedora 45) prints PermitRootLogin as written"; rm -f "$FKH/sshd-camel"
 has "$OUT" "✔  restic runs (backups to another disk: kawa-backup)"   # (the exclude list is the theme's: test_theme.sh)
 has "$OUT" "✔  Syncplay v1.7.6 loads (Fedora's python3, Twisted with TLS, certifi, pem)"; has "$OUT" "✔  syncplay runs without a window"
 has "$OUT" "✔  user in video, render"; lacks "$OUT" "input, render"

@@ -5,8 +5,11 @@
 fkh_log "$*"
 case " $* " in
   *" -t "*) r=$(rcfor sshd-t 0); ((r == 0)) || echo "sshd: bad configuration option" >&2; exit "$r" ;;
+  # ($FKH/sshd-camel: OpenSSH 10.5's way — Fedora 45 — the keywords as written)
   *" -T "*) if [[ -f /etc/ssh/sshd_config.d/40-fedokawaii.conf ]]; then
-              printf '%s\n' "passwordauthentication no" "kbdinteractiveauthentication no" "permitrootlogin no"
-            else printf '%s\n' "passwordauthentication yes" "kbdinteractiveauthentication no" "permitrootlogin prohibit-password"; fi ;;
+              o=$(printf '%s\n' "passwordauthentication no" "kbdinteractiveauthentication no" "permitrootlogin no")
+            else o=$(printf '%s\n' "passwordauthentication yes" "kbdinteractiveauthentication no" "permitrootlogin prohibit-password"); fi
+            if [[ -f $FKH/sshd-camel ]]; then sed 's/^passwordauthentication/PasswordAuthentication/; s/^kbdinteractiveauthentication/KbdInteractiveAuthentication/; s/^permitrootlogin/PermitRootLogin/' <<<"$o"
+            else printf '%s\n' "$o"; fi ;;
 esac
 exit 0
