@@ -13,7 +13,10 @@
 //           the mood's face (quick settings: a demon by night, an angel by day) on the other end's vermilion tile
 // Network, Bluetooth, night light, theme… live in the quick-settings dropdown,
 // so the bar stays quiet. No tray: the desktop's own modules stand for what apps would put
-// there. Reload without logging out: pkill -USR2 waybar
+// there. Its style reloads by itself when style.css or the theme's waybar.css changes
+// ("reload_style_on_change": the stylesheet only). Never SIGUSR2: waybar 0.15's full reload
+// leaves children that never ran their command, unreaped, at every reload (ledger r27-found-1);
+// a change of modules takes a new bar (the next login).
 //
 // Every button that opens something toggles it — a click opens it, the same click again
 // closes it, another button's closes it and opens its own — and stays lit (its class "active":
@@ -48,6 +51,7 @@
   // windows' tops are on y 33 (dwl's outergappx 8) — docs/design-system.md §3, §12
   "margin-bottom": -2,
   "spacing": 0,
+  "reload_style_on_change": true,
 
   "modules-left": [
     "custom/torii",

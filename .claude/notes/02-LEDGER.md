@@ -2160,6 +2160,28 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   again"; the list read as the split left it (no `kawa-snap boot` first): grub=2 stale=0. The boot-list fix is
   proven in the VM; the worktree removed.
 
+- r27-found-1 FIXED (1 Nov 10:12–10:22): the cause, from waybar 0.15.0's own source (src/main.cpp,
+  include/util/command.hpp, src/client.cpp, src/modules/custom.cpp at tag 0.15.0) and reproduced headless
+  (the kit, the installed bar, only the kit's own waybar signalled: pgrep -P): every SIGUSR2 is waybar's
+  full reload (Client::reset: every bar and module destroyed and made again) — 3 → 8 → 9 zombie children
+  "[waybar]" after three reloads, every module child replaced; with waybar -l trace the zombie's only line is
+  "(waybar:PID): CRITICAL … Glib::DispatchNotifier::unreference_instance" after "LOG ERROR … Rethrowing unknown
+  exception in logger": a fork made during the teardown that never reached exec, ran exit() through Glib's
+  destructors, and whose module (the only one that would waitpid it — command::open's children are not in
+  the SIGCHLD reap list) was gone. The session never sends SIGUSR2 to the bar (the theme switch goes through
+  the portal's color-scheme: kawa-theme); the senders were the passes' own reloads after an apply (memory
+  "Live bar reload") and the configs' comments telling a reader to. FIX: config.jsonc "reload_style_on_change":
+  true — waybar watches style.css and its @import (a Gio file monitor) and swaps only the CSS provider
+  (client.cpp setupCss): headless, four edits → the same nine children by pid, 0 zombies, the edit drawn
+  (106 px of the test green on the torii). The comments in config.jsonc and style.css now say never SIGUSR2.
+  Guards: tests/static/test_barreload.sh (the key set; nothing in bin, lib, configs, system, tools, the
+  installer or the Learn book sends USR2 to waybar — red on the old config: 0/2, green 2/0) and
+  tools/bar-zombies.sh (the kit: 3 style edits, 10 × poke every signal + wake → alive, the same children, 0
+  zombies, the edit drawn — exit 0). Live: the running bar (since 09:57) has the old config; it watches its
+  style from its next start (the next login), the config installed by the next apply. Left as a note:
+  kawa-dwlstatus caches the newest "waybar" by comm, which a zombie fork keeps — harmless once no zombies
+  are made (a fork alive pre-exec has waybar's handlers: its poke reaches the bar through the pipe).
+
 ## >>> NEXT PASS STARTS HERE (1 Nov 10:12): the inbox first. Then:
 ## (0) done (r27-52b-vm: the split's boot-list fix green in the VM).
 ## (1) T45 (worktree ~/repos/fk-t45): merge main (t48 is in it) into t45; then (e) the real checks +
@@ -2168,4 +2190,4 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
 ##     (boot counting, fedokawaii-boot-good, no kernel transaction while open, RuntimeWatchdogSec), (h) the
 ##     unit + the Super+U pane, (i) the toolkit at a tag; t45 → main after (f) is proven in the VM.
 ## (2) T48 rest: restore-file flow in Super+U, backups (kawa-backup), the space floor (VM: a full disk),
-##     verify rows, the Learn piece. (3) found: r27-found-1 (waybar's zombies).
+##     verify rows, the Learn piece. (3) the next apply installs the bar's reload_style_on_change (r27-found-1).
