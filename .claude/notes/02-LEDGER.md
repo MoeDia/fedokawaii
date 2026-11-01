@@ -1745,6 +1745,12 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   entry kept; a kernel-install stand-in in tests/installer/stubs); test_deps (exch: util-linux,
   @core), test_pipefail (no pipe into head) green.
 
+- r27-52a-restore (cont., 04:20): a restore cut between the exchange and the moves (the restored system
+  running, the snapshots still inside root.new) is now finished by the next `kawa-snap restore`: the
+  tail factored into finish() (moves across, root.old, the timestamped ones, sync), run first when a
+  leftover root.new holds a subvolume, then said ("was finished … run again"); the snapshot's existence
+  checked only after that. test_snap 118/0 (the case built as the real cut leaves it).
+
 ## >>> NEXT PASS STARTS HERE (1 Nov 04:10): the inbox first. Then, the update system (the master's order):
 ## (1) T48 FIRST (1)'s proof in the VM — a tools/vm-inject/restore-cut.sh that powers the VM off after
 ##     each step of `kawa-snap restore` (copy · kernels added · exchanged · moved · renamed · default set)

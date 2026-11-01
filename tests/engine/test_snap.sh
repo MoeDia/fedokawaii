@@ -191,10 +191,12 @@ case_ "an exchange that fails: nothing changed, the copy gone, the default untou
 disk; FK_EXCH_FAIL=1 kawa-snap restore 41 >/dev/null 2>&1; eq "$?" 1
 eq "$(cat "$T/root/etc/mark")" now; [[ ! -e $T/root.new && ! -e $T/root.old ]] && _ok || _no "left changed"
 not_called '^grubby'
-case_ "a root.new holding a subvolume (a restore cut after its exchange) is never deleted: said, nothing changed"
-disk; mkdir -p "$T/root.new/.snapshots/1"; echo before >"$T/root.new/etc-mark"
-out=$(kawa-snap restore 41 2>&1); eq "$?" 1; has "$out" "holds subvolumes"
-[[ -e $T/root.new/.snapshots/1 && -e $T/root.new/etc-mark ]] && _ok || _no "the leftover was deleted"
+case_ "a restore cut after its exchange (the restored system runs, the snapshots still in root.new): finished, never deleted — said, asked again"
+disk; mv -T "$T/root" "$T/root.new"; cp -a "$T/root.new/.snapshots/41/snapshot" "$T/root"
+out=$(kawa-snap restore 41 2>&1); eq "$?" 1; has "$out" "was finished"
+[[ -f $T/root/.snapshots/41/info.xml && -f $T/root/.snapshots/1/info.xml ]] && _ok || _no "the snapshots did not move back"
+eq "$(cat "$T/root/etc/mark")" then41; eq "$(cat "$T/root.old/etc/mark")" now; [[ ! -e $T/root.new ]] && _ok || _no "root.new left"
+[[ ! -e $TMP/recursive ]] && _ok || _no "a recursive delete ran"
 case_ "older replaced systems: two kept with their time, the older ones removed"
 disk; for t in 100 200 300; do mkdir -p "$T/root.old-$t"; done; mkdir -p "$T/root.old"; echo older >"$T/root.old/etc-mark"
 kawa-snap restore 41 >/dev/null 2>&1; eq "$?" 0
