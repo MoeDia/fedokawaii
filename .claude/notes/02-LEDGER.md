@@ -2761,8 +2761,14 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   (/dev/shm/r27p/p1-*.log).
 
 ## >>> NEXT PASS STARTS HERE (1 Nov, written 18:35 — the lines above say what this pass did): the inbox first. Then:
-## (0) is 381c08a (the PID 1 crash handling) pushed? `git log origin/main..main`: if not, its installer + static areas
-##     (/dev/shm/r27p/p1-*.log, started 18:19) decide — green → push; red → fix first. Then apply it on the PC.
+## (0) 381c08a (the PID 1 crash handling) is NOT pushed: its installer area was RED (18:46, 1641 s) — test_upkeep 273/2,
+##     both in the new row "…systemd itself crashed while dnf ran …": OUT lacks "systemd, the system's own manager,
+##     crashed while dnf ran" and "restart the PC"; the captured OUT ends mid-line ("18:37:06 ▸ missing from the m" —
+##     the harness cuts it, or the run hung to the row's timeout: find out first). Leads: in repair the install runs in
+##     heal → contained (a subshell: die ends only it — its message may go only to the log); the journalctl stand-in's
+##     `_PID=1 -g` branch; dnf_end's MainPID read under systemctl-fail. Run test_upkeep alone, print the whole OUT of
+##     that row, fix, then the WHOLE installer area (stand-ins changed) + static; green → push (main carries 381c08a,
+##     bed3488, 8c5aa8b, all local; r27 = main) → apply on the PC. static was green (rc 0).
 ## (1) the master's Re-review 4 of T45 at 9280e4b (r27-49-R4): its verdict appended to master-T45-efh-verdict.md. Told
 ##     mid-review of the storm's PID 1 crash (r27-49-pid1). Not there → launch it again with
 ##     /dev/shm/r27/master/T45-4/brief.md (gone after a reboot: rebuild from ledger r27-49-R4, -pid1, -hang, -master-3,
