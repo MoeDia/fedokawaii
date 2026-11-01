@@ -2375,18 +2375,58 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   Also: the clean Fedora 44 install from fd0739a (f44 VM, from fresh): GREEN — verify 253 passed, 4
   named skips, the desktop up in 20 min — the dwl fix (r27-found-4) proven end to end.
 
-## >>> NEXT PASS STARTS HERE (1 Nov, written 11:50 — see the lines above for what this pass did): the inbox first. Then:
-## (0) the master's verdict on T45 (e)(f)(h) — .claude/notes/master-T45-efh-verdict.md (asked 11:44): fix every
-##     finding with its test, back to the master until PASS.
-## (1) then t45 → main (t45's whole installer area ran 11:46: /dev/shm/r27p/t45-installer.log), apply on the PC,
-##     and the first real run of the new button there: 98 updates wait (kernel 7.2.13, Mesa 26.2.5 …) — the
-##     report, the pane, the probation armed; the trial closes at his next start (the kernels' 15-min run then
-##     takes 7.2.11). Never a session restart for it.
-## (2) T46: the Fedora 45 harness VM f45 (port 2224) is being made from development/45, and vm-smoke.sh runs on
-##     it by itself afterwards from a frozen main (/dev/shm/r27p/main-f45 = 9cfe463): read
-##     /dev/shm/r27p/f45/run.log and ~/VM/harness/f45/smoke-*/summary — every red is an F45 finding (fix in
-##     main, re-run). Fedora 45's release day: Tue 3 Nov (fedorapeople schedule); the button offers the move
-##     7 days after (design §4.4) once the pre-flight is green.
-## (3) T48 rest: "a file, back" (snapper's home config exists on the PC: home/.snapshots), backups
-##     (kawa-backup), the space floor (VM: a full disk), the Learn piece.
-## (4) T45 (i) (the toolkit from GitHub at a release tag) stays last: no release tags yet.
+- r27-49h (cont., 1 Nov 12:20–12:46, the master's must-fix 4 in the VM — tools/vm-inject/update-button.sh on
+  f44b): run 1 — the button's mechanics held (three presses followed one run to the same last line, the
+  exit status came back, a stopped run said "another package manager is running (dnf5)"), but every run
+  stopped at its start: the 27 Oct VM had no python3-pillow, so the check could not run — and only an
+  update could bring it. Fixed: u_start installs the checks' own tool first. Run 2 — still "could not be
+  measured": in the VM hl-dwl chose GLES on the virtio screen (its render node's driver is virtio-pci,
+  not virtio_gpu as the should-fix 13 change assumed), and there the terminal server never came up.
+  Fixed: a virtio screen known by its vendor (0x1af4) → pixman; the check then GREEN inside the VM
+  ("the bar, the notices, the terminals, quick settings and the warm windows up"). Run 3 — THE UPDATE
+  WENT THROUGH THE BUTTON END TO END: `fedokawaii.sh update` → fedokawaii-update.service 12:32:42–12:38:09
+  (5 min 28 s, 2.6 GB peak), exit 0, "update done (ok): updated · 49 packages", the report ok, the stopped
+  run's status 1 with its reason — but the 2nd/3rd presses came only after the run (the VM journal: the
+  second unit at 12:38:51): the proof's ssh waited for the backgrounded first press (it inherited ssh's
+  output). Fixed in the proof (each press detached); run 4 started 12:45.
+- Applied main (f18579d) on the PC 12:32–12:34: dwl rebuilt (the patch's config.def.h lines; same code,
+  next login), the theme reloaded; verify 259/260 — the one red unchanged (qbittorrent outside the
+  manifest, his own: T35's).
+
+- r27-49-master-efh-2 (1 Nov 12:35–12:55; the master's re-review, appended to master-T45-efh-verdict.md): PASS
+  WITH CONDITIONS — must-fix 1–6 fixed (it re-ran test_status 204/0, test_verify 178/0, test_dwlconfig 2/0
+  at HEAD); should-fix 9, 10, 12, 15, 16, 17 fixed, 13 in its renderer half (b006c8f's vendor rule), 7
+  half recorded (now in the plan); 8, 11, 14, 18 safe to defer for the PC's first run (checked on the PC:
+  one kernel-core, no rescue entry). Run 4 of update-button.sh (12:46–12:55, t45 c9 frozen proof5): ALL
+  HELD — three presses, one unit, the same last line "update done (ok): updated · 61 packages", exit 0,
+  the report ok, a stopped run 1 with its reason. Condition (A) done (the plan's T45 line: each deferral
+  with its acceptance). (B)–(H) are the next pass's order below.
+
+## >>> NEXT PASS STARTS HERE (1 Nov, written 13:00 — the lines above say what this pass did): the inbox first. Then,
+## in the master's order (master-T45-efh-verdict.md, "Re-review"):
+## (B) merge t45 → main; the whole suite; `fedokawaii apply`; verify green (with the resume-unit row; the one
+##     red today is his qbittorrent, T35's); nothing of his unsaved; then the PC's first real run of the
+##     button as the menu runs it (`sudo bash /usr/local/lib/fedokawaii/fedokawaii.sh update`; 98 updates incl.
+##     kernel 7.2.13, Mesa 26.2.5). Record: the baseline (NO "red before the update: the desktop does not
+##     start"), the set, the probation for 7.2.13 (grubenv 3/0/1, the trial args with rd.retry=30, the
+##     watchdog drop-in), the report; then a restart through greetd's initial_session (CLAUDE.md START §4),
+##     the probation closed (fedokawaii-boot-good's journal or the kernels run), the pin released, 7.2.11
+##     removed; numbers before/after. A presence probe first; if he is at the PC, wait for him to be away.
+##     The restart: a reboot ends the transient bulk run (r27-bulk-*.service, started 1 Nov 10:36 for 12 h —
+##     memory r27-pass-budget); so run the update early in a pass, and restart near the bulk window's end
+##     (after ~22:00) or let his own next restart close the trial — then read the close from the journal.
+##     A TRIAL MERGE of t45 into main (1 Nov 12:52, local only, then undone with `git reset --keep`: main
+##     stays at its pushed d213dc4, his tools/claude-loop.sh change untouched) ran the whole suite: test_setup_wait
+##     66/7 — its fake machine's toolkit comes from setup's own install, so the real session check ran there and
+##     (a check that cannot run stops the update now) every update stopped. Fixed on t45 d31adc7 (the stand-ins in
+##     the fake machine's project copy): test_setup_wait 70/0. The rest of that suite's run: /dev/shm/r27p/all.log
+##     (on the merged copy). So (B) begins: merge t45 into main again, the WHOLE suite green, then push.
+## (C) if that run ends offered, restored, held or stopped: stop, report to him (ledger top), no blind retry.
+## (D)–(H) before any further kernel-bearing press and before T46: 8 (both halves), (E) why waybar and mako
+##     are "not running" under the unit's as_user in the VM (KEEP=1, kit.log, play.log) — then the VM proofs
+##     assert "the desktop does not start" is absent from a green run's log; (F) update-button.sh: the second
+##     press only once the unit is active and past "the checks before it", one instance asserted
+##     (ExecMainStartTimestamp/MainPID at each press), the VM journal of the units kept — run 4 already all
+##     held; (G) 11, 14, 18 (the notice capped); (H) 7's three checks with T58.
+## Then T46 (F45 on 3 Nov: re-run vm-smoke.sh f45 from a frozen main after the release; RPM Fusion's updates
+## repos then on), T48 rest, T45 (i) last.
