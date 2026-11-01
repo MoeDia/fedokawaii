@@ -23,8 +23,8 @@ for c in "${cases[@]}"; do
   log=$out/$c.log; : >"$log"
   { bash "$here/vm-snap.sh" "$vm" revert built && bash "$here/vm-snap.sh" "$vm" start && run --wait 600; } >>"$log" 2>&1 \
     || { echo "probation: the VM did not start" >&2; exit 2; }
-  { run --repo "$src" && run 'sudo cp -a ~/fedokawaii/. /usr/local/lib/fedokawaii/ && sudo install -m 755 ~/fedokawaii/system/kawa-snap /usr/local/sbin/kawa-snap'
-    run 'rpm -q systemd-container >/dev/null || sudo dnf -y -q install systemd-container'
+  # (applied as the PC is before a press: the toolkit, the theme, our builds — the desktop check green)
+  { run --apply "$src"
     # (the desktop at every start, as him: greetd's initial session, left in place for the whole case)
     run 'printf "\n[initial_session]\ncommand = \"/usr/local/bin/start-dwl\"\nuser = \"dia\"\n" | sudo tee -a /etc/greetd/fedokawaii.toml >/dev/null'
   } >>"$log" 2>&1 || { echo "probation: the toolkit could not go in" >&2; exit 2; }

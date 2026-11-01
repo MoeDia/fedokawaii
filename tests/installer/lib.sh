@@ -222,8 +222,10 @@ world() {   # world fresh|built [--themed]
   printf 'KEYMAP="us"\n' >"$W/etc/vconsole.conf"
   mkdir -p "$W/etc/plymouth"; printf '# Administrator customizations go in this file\n#[Daemon]\n#Theme=fade-in\n' >"$W/etc/plymouth/plymouthd.conf"   # (Fedora's)
   rm -rf "$W/etc/systemd/system/display-manager.service" "$W/etc/yum.repos.d" "$W/etc/dnf" "$W/etc/greetd"
-  # (and whatever of this project the machine running the tests has in its own /etc)
+  # (and whatever of this project the machine running the tests has in its own /etc — by what a
+  # file says or by its name: the PC's own update trial left 90-fedokawaii-probation.conf there)
   grep -rlisZ -e fedokawaii -e scriptorium "$W/etc" 2>/dev/null | xargs -0r rm -f
+  find "$W/etc" \( -iname '*fedokawaii*' -o -iname '*scriptorium*' \) ! -type d -delete 2>/dev/null
   # /proc: an 8-core AMD CPU, 32 GB, booted normally
   printf 'processor\t: 0\nvendor_id\t: AuthenticAMD\nmodel name\t: AMD Ryzen 7 7700\n' >"$W/proc/cpuinfo"
   printf 'MemTotal:       32768000 kB\nMemFree:        30000000 kB\n' >"$W/proc/meminfo"

@@ -72,6 +72,20 @@ up_leftovers() {   # what a run cut before its end left (a power cut: no exit tr
   btrfs subvolume list / 2>/dev/null | awk '$NF == "root.cand" { f = 1 } END { exit !f }' || return 0
   up_top; cand_drop
 }
+# desk_reds VERDICT — the desktop check's verdict ("session-start (dark): not running: waybar ·
+# nothing drawn: …", "bar-geometry (light): the clock's gaps: …"), a line an item, the item in the
+# label (up_labels compares what comes before " — "): a red that was there before the update — the
+# light theme's clock, say — never hides one it brings, mako gone. "not running: X" keeps its name;
+# any other item is named up to its first ": "; the bar's measure keeps its theme
+desk_reds() {
+  awk '{ if (match($0, /^[a-z-]+ \([a-z]+\): /)) { head = substr($0, 1, RLENGTH - 2); rest = substr($0, RLENGTH + 1) }
+         else { head = $1; rest = $0 }
+         n = split(rest, it, / · /)
+         for (i = 1; i <= n; i++) {
+           k = it[i]; if (k !~ /^not running: /) { j = index(k, ": "); if (j) k = substr(k, 1, j - 1) }
+           if (head ~ /^bar-geometry/) k = head ": " k
+           print "the desktop does not start: " k " — " head ": " it[i] } }' <<<"$1"
+}
 up_more() {   # the checks verify does not make, a line for each that is red: the desktop's start
               # (desktop_starts), and our builds' libraries and the boot pieces (lib/cand-check.sh:
               # every boot entry with root= and rootflags=, its image readable, btrfs in it or built in)
@@ -79,7 +93,7 @@ up_more() {   # the checks verify does not make, a line for each that is red: th
   why=$(desktop_starts) || rc=$?
   # (2: the check itself could not run — no verdict on the update: the caller stops the run)
   ((rc == 2)) && { printf '%s\n' "${why:-no reason given}"; return 2; }
-  ((rc == 0)) || echo "the desktop does not start — $why"
+  ((rc == 0)) || desk_reds "$why"
   # (into a variable first: a red check's exit inside a pipe would set off setup.sh's ERR trap)
   out=$(FK_USER=$TARGET_USER bash "$REPO_DIR/lib/cand-check.sh" 2>/dev/null) || true
   printf '%s\n' "$out" | sed -n 's/^red: //p'
@@ -411,7 +425,7 @@ up_probation() {   # after a green update
   grub2-editenv - set boot_counter=3 boot_success=0 boot_indeterminate=1 \
     || { log "GRUB's start counting could not be armed (grub2-editenv) — kernel $new is not on trial"; return 0; }
   grubby --update-kernel="/boot/vmlinuz-$new" --args="$UP_TRIAL" >/dev/null 2>&1 || log "kernel $new's trial arguments could not be set (grubby)"
-  printf '%s\n' "# installed by setup.sh while a new kernel is on trial (lib/update.sh up_probation)" \
+  printf '%s\n' "# installed by fedokawaii (setup.sh: lib/update.sh up_probation) while a new kernel is on trial" \
     '[Manager]' 'RuntimeWatchdogSec=1min' | write_file "$UP_DOG" 0644
   log "kernel $new on trial at the next start: three starts to reach the desktop, else $now again"
 }

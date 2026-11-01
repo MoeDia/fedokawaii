@@ -77,6 +77,13 @@ back built; rm -rf "$W/home/fkuser/.local/share/fedokawaii/syncplay" "$W/home/fk
 tk --repair; called 'git\] .*clone .*Syncplay'; has "$OUT" "✔ Syncplay v1.7.6 (no window)"
 [[ -x $W/home/fkuser/.local/bin/syncplay ]] && _ok || _no "syncplay not put back"
 eq "$(cat "$W/home/fkuser/.local/share/fedokawaii/upstream/syncplay")" "$(. "$REPO/lib/upstream.sh"; syncplay_pin)"
+case_ "the notices' mako off its pin (a toolkit with a new patch): the update builds it before the theme writes its config; in place: left alone"
+back built; reset_calls; tk --update; eq "$RC" 0; not_called 'git\] .*clone .*mako'
+back built; echo stale >"$W/usr/local/bin/mako.built"; reset_calls
+tk --update; eq "$RC" 0 "$(grep -E '✘|failed' <<<"$OUT" | head -n3 | tr '\n' '|')"; called 'git\] .*clone .*mako'
+m=$(grep -n "notices' mako" <<<"$OUT" | head -n1 | cut -d: -f1); t=$(grep -n 'update: the theme' <<<"$OUT" | head -n1 | cut -d: -f1)
+[[ -n $m && -n $t ]] && ((m < t)) && _ok || _no "mako at line ${m:-none}, the theme at ${t:-none}"
+eq "$(cat "$W/usr/local/bin/mako.built")" "$( { printf '%s\n' "$(conf_val MAKO_TAG)" "$(conf_val MAKO_COMMIT)"; cat "$REPO/src/mako/mako.patch"; } | sha256sum | cut -d' ' -f1)" "the record of the build"
 case_ "a machine where lpf built Spotify's app: verify says so; the update hands lpf, the recipe and the app to dnf's clean-up, then takes lpf's account and folder"
 back built; fk bash -c '. /usr/local/bin/_lib.sh; fake_lpf_era'
 fkrun bash "$TK/verify.sh"; has "$OUT" "lpf and Spotify's old app are still installed"
