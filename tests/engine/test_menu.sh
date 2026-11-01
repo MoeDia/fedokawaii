@@ -76,6 +76,23 @@ kill "$holder" 2>/dev/null; wait "$holder" 2>/dev/null
 case_ "the lock let go (its run crashed, the file left behind): runs again"
 reset_calls; rc 0 fedokawaii update; called '^sudo bash .*fedokawaii.sh update'
 
+case_ "held: what the updates hold back — its count on the row, each with why in the pane (a kernel's packages as one); enter does nothing"
+fresh; mkdir -p "$R/state/update"
+printf '%s\n' 'mesa 26.1-1.fc44 26.0-1.fc44 2026-11-01 the desktop does not start' \
+  'kernel-core 7.2.13-200.fc44 7.2.11-200.fc44 2026-11-01 did not reach the desktop in three starts' \
+  'kernel-modules 7.2.13-200.fc44 7.2.11-200.fc44 2026-11-01 did not reach the desktop in three starts' >"$R/state/update/holds"
+[[ $(plain "$(fedokawaii --rows update | grep -m1 held)") == *" 2" ]] && _ok || _no "the count: $(plain "$(fedokawaii --rows update | grep -m1 held)")"
+out=$(plain "$(fedokawaii --explain held)")
+has "$out" "mesa 26.1-1.fc44"; has "$out" "the desktop does not start"; has "$out" "kernel 7.2.13-200.fc44"; lacks "$out" "kernel-modules"
+has "$out" "did not reach the desktop in three"; lacks "$out" "…"; lacks "$out" "not yet"
+(( $(widest "$(sed 1d <<<"$out")") <= 45 )) && _ok || _no "too wide: $out"   # (under its heading: the pane's own rule)
+rm -f "$R/state/update/holds"; [[ $(plain "$(fedokawaii --rows update | grep -m1 held)") == *held ]] && _ok || _no "a count with none held"
+has "$(plain "$(fedokawaii --explain held)")" "nothing held back."
+case_ "an update running as a unit of its own: a press follows it — its output so far, its status; no password"
+fresh; mkdir -p "$R/state/update"; echo "▸ the update on the running system" >"$R/state/update/run.log"
+stub systemctl 'case "$*" in "is-active"*) exit 0 ;; *MainPID*) echo 0 ;; *ExecMainStatus*) echo 0 ;; esac'
+out=$(fedokawaii update 2>&1); eq "$?" 0; has "$out" "the update on the running system"; not_called '^sudo'
+
 # ── the menu's rows ──────────────────────────────────────────────────────────
 case_ "rows: five sections, each its entries in order, each fitting the 38-column list"
 fresh; rec last-update-done "$(ago_s 10)"; rec snapshots 14; rec last-verify "$(ago_s 1) 180 2 0"
@@ -101,7 +118,7 @@ done
 has "$(row update)" "in 80 days"; has "$(row snapshots)" "14"; has "$(row verify)" "2 to fix"; has "$(row remind)" "every 90 days"
 lacks "$(row status)" "Fedora" "status: no value (the pane beside it is the status: the release is its first line)"; has "$(row upgrade)" "Fedora 45"
 case_ "rows: what is not built yet in the faint ink, its value 'soon' — never a dead entry"
-for a in held file restore drive chess typing; do
+for a in file restore drive chess typing; do
   l=$(cut -f2 <<<"$(grep "^$a"$'\t' <<<"$out")")
   has "$l" $'\e[38;5;22m' "$a: faint"; [[ $(plain "$l") == *" soon" ]] && _ok || _no "$a: no soon: $(plain "$l")"
   has "$(plain "$(fedokawaii --explain "$a")")" "not yet" "$a: the pane says so"
@@ -192,7 +209,7 @@ called '^setsid -f kawa-notes --todo$'
 l=$(cut -f2 <<<"$(grep "^todo"$'\t' <<<"$(WAYLAND_DISPLAY=wayland-1 allrows)")")
 lacks "$(plain "$l")" "soon" "a live entry now"
 has "$(plain "$(fedokawaii --explain todo)")" "Super+N, then tab"
-has "$(cat "$(command -v fedokawaii)")" "enter:transform:case {1} in \$SOON) ;; \${launch}remind) echo 'execute-silent(\$self --run {1})+reload-sync(\$self --items)' ;; change|keys\${pop}) echo '\${away}become("
+has "$(cat "$(command -v fedokawaii)")" "enter:transform:case {1} in \$PANE_ONLY|\$SOON) ;; \${launch}remind) echo 'execute-silent(\$self --run {1})+reload-sync(\$self --items)' ;; change|keys\${pop}) echo '\${away}become("
 case_ "Super+U's popup (--popup): the menu closes for a job too (fzf becomes the run, which hands it on); the guide, the key sheet and the settings start without fzf giving up the screen, then the popup is put away (dwl fades it off: never a blank terminal); a plain menu, neither"
 fresh; stub fzf 'cat >/dev/null; exit 130'
 on_tty "" fedokawaii --popup >/dev/null

@@ -4,6 +4,16 @@
 . /usr/local/bin/_lib.sh
 fkh_log "$*"
 [[ -f $FKH/rpm-broken ]] && { echo "error: rpmdb: BDB0113 damaged" >&2; exit 1; }
+# -qp FILE…: a stored package's name and source package (from its file name NAME-VER-REL.ARCH.rpm;
+# $FKH/srpms "NAME SOURCE", else its own name)
+if [[ " $* " == *" -qp "* ]]; then
+  for f; do
+    [[ $f == *.rpm ]] || continue
+    n=${f##*/}; n=${n%.rpm}; n=${n%.*}; n=${n%-*}; n=${n%-*}
+    src=$(awk -v n="$n" '$1 == n { print $2; exit }' "$FKH/srpms" 2>/dev/null)
+    printf '%s %s-1.0-1.fc44.src.rpm\n' "$n" "${src:-$n}"
+  done; exit 0
+fi
 qf="" wp=0 last=0 list=0 names=()
 while (($#)); do
   case $1 in
@@ -22,6 +32,14 @@ for n in "${names[@]}"; do
     echo "package $n is not installed"; miss=$((miss+1)); continue
   fi
   if [[ $n == wlroots-devel && $qf == '%{version}' ]] && has installed wlroots-devel; then printf '0.20.2'; continue; fi
+  # (a package's version: $FKH/evr "NAME EVR", else 1.0-1.fc44 — and NAME-EVR is installed when it is that)
+  if [[ $qf == '%{evr}'* ]]; then has installed "$n" || { miss=$((miss+1)); continue; }
+    v=$(awk -v n="$n" '$1 == n { print $2; exit }' "$FKH/evr" 2>/dev/null); printf '%s\n' "${v:-1.0-1.fc44}"; continue; fi
+  if ((!wp)) && [[ -z $qf && $n =~ ^(.+)-([0-9][^-]*-[^-]+)$ ]] && has installed "${BASH_REMATCH[1]}"; then
+    v=$(awk -v n="${BASH_REMATCH[1]}" '$1 == n { print $2; exit }' "$FKH/evr" 2>/dev/null)
+    [[ ${v:-1.0-1.fc44} == "${BASH_REMATCH[2]}" ]] && { echo "$n.x86_64"; continue; }
+    echo "package $n is not installed"; miss=$((miss+1)); continue
+  fi
   if ((wp)); then p=$(provider "$n") || { echo "no package provides $n"; miss=$((miss+1)); continue; }
   else has installed "$n" && p=$n || { echo "package $n is not installed"; miss=$((miss+1)); continue; }; fi
   if ((list)); then awk -v p="$p" '$1 == p { print $2 }' "$FKH/files" 2>/dev/null; continue; fi

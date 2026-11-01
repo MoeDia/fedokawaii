@@ -44,7 +44,7 @@ for a in "$@"; do
     --update) MODE=update ;;  --repair) MODE=repair ;;  --status) MODE=status ;;  --reset) MODE=reset ;;
     --toolkit) MODE=toolkit ;;  --kernels) MODE=kernels ;;  --layout) MODE=layout ;;
     --upgrade) MODE=upgrade ;;  --now) UPGRADE_FLAG=--now ;;  --after-upgrade) MODE="after-upgrade" ;;
-    --after-dnf) MODE="after-dnf" ;;
+    --after-dnf) MODE="after-dnf" ;;  --update-resume) MODE=update-resume ;;  --boot-good) MODE=boot-good ;;
     --trial) MODE=trial ;;     # (tools/container-trial.sh's, inside its container only)
     --no-reboot) NO_REBOOT=1 ;;
     -h|--help) sed -n '3,/^# ═/p' "$0" | sed '$d'; exit 0 ;;
@@ -64,6 +64,7 @@ source "$REPO_DIR/lib/hygiene.sh"
 source "$REPO_DIR/lib/hardware.sh"
 source "$REPO_DIR/lib/guard.sh"
 source "$REPO_DIR/lib/pace.sh"
+source "$REPO_DIR/lib/update.sh"
 load_conf "$REPO_DIR"
 
 # The error report, on stderr. Inside a $(…), a <(…) or a pipeline (errtrace hands the trap
@@ -82,9 +83,9 @@ if [[ $MODE == status ]]; then        # read-only, so it works while another run
   echo "phase $(cat "$STATE_DIR/phase" 2>/dev/null || echo 1) · user $(cat "$STATE_DIR/user" 2>/dev/null || echo '(not chosen yet)') · Fedora $VERSION_ID · theme $([[ -f $STATE_DIR/with-theme ]] && echo 'with setup' || echo separate)"
   find "$STATE_DIR" -name 'done.*' -printf '  ✔ %f\n' | sed 's/done\.//' | sort; exit 0
 fi
-if [[ $MODE == kernels ]]; then     # (the boot's own run: never waits — another run is on, so next start)
+if [[ $MODE == @(kernels|update-resume) ]]; then     # (the boot's own runs: never wait — another run is on, so next start)
   exec 9<>"$STATE_DIR/lock"; flock -n 9 || exit 0
-elif [[ $MODE == after-dnf ]]; then   # (after a dnf run: waits for an update or repair to end first)
+elif [[ $MODE == @(after-dnf|boot-good) ]]; then   # (after a dnf run, a start marked good: waits for an update or repair to end first)
   exec 9<>"$STATE_DIR/lock"; flock 9
 else take_lock "$STATE_DIR/lock"; fi
 printf '%s\n' "$MODE" 2>/dev/null >"$STATE_DIR/lock" || true   # (which run holds it: the system menu marks its row — a full disk says so below)
@@ -491,6 +492,10 @@ old_kernels_out() {   # old_kernels_out [desktop]
   fi
   if [[ ${1:-} == desktop ]] && ! grep -qx boot_success=1 < <(grub2-editenv - list 2>/dev/null); then
     log "this start has not reached the desktop for two minutes — the kernel before $now stays as the way back"; return 0
+  fi
+  # (a kernel still on trial — its probation not closed: GRUB may yet need the one before)
+  if awk '$2 != "-" { f = 1 } END { exit !f }' "$UPD/probation" 2>/dev/null; then
+    log "a kernel is still on trial (the update's probation) — the one before $now stays"; return 0
   fi
   for v in "${vers[@]:0:${#vers[@]}-1}"; do
     for n in "${KERNEL_PKGS[@]}"; do rpm -q "$n-$v" >/dev/null 2>&1 && pk+=("$n-$v"); done
@@ -2568,23 +2573,27 @@ need_space() {   # need_space PATH MiB — stop, saying what to do, when there i
 # no say), is followed here as it comes, and is copied into the log at the end. Never
 # given a time limit. Its output line by line (stdbuf -oL): without a terminal dnf's output is
 # block-buffered, so the window showed nothing for the whole download — an update that looked
-# stuck. A transaction a run before left going (its window closed, Ctrl+C) is followed to its
-# end first: a new dnf would wait on its lock, saying nothing.
-dnf_detached() {   # dnf_detached ARG… — dnf ARG…, detached from this session; its exit status
-  local unit rc prev f n IFS=' '
+# stuck. A transaction a run before left going (its window closed, Ctrl+C, the update's own unit
+# stopped) is followed to its end first (dnf_settle): a new dnf would wait on its lock, saying
+# nothing — and an update cut in its transaction must not be judged while it still writes.
+dnf_settle() {
+  local prev f n
   prev=$(systemctl list-units --plain --no-legend --state=active 'fedokawaii-dnf-*.service' 2>/dev/null | awk 'NR == 1 { print $1 }')
-  if [[ -n $prev ]]; then
-    _out "${C_DIM}$(_ts) ▸ the package transaction a run before started ($prev) is still going — followed to its end${C_RESET}"
-    journalctl -f -n 20 -o cat -u "$prev" 2>/dev/null 9>&- &
-    f=$!
-    # (three hours at most — a whole release's download on a slow line fits in them: one that
-    # has not ended by then is stuck, and is named, never waited on for ever)
-    for ((n = 0; n < 5400; n++)); do systemctl is-active --quiet "$prev" || break; sleep 2; done
-    kill "$f" 2>/dev/null || true; wait "$f" 2>/dev/null || true
-    if systemctl is-active --quiet "$prev"; then
-      die "the package transaction $prev has run for more than three hours — stuck? journalctl -u $prev shows where; sudo systemctl stop $prev ends it, then run this again"
-    fi
+  [[ -n $prev ]] || return 0
+  _out "${C_DIM}$(_ts) ▸ the package transaction a run before started ($prev) is still going — followed to its end${C_RESET}"
+  journalctl -f -n 20 -o cat -u "$prev" 2>/dev/null 9>&- &
+  f=$!
+  # (three hours at most — a whole release's download on a slow line fits in them: one that
+  # has not ended by then is stuck, and is named, never waited on for ever)
+  for ((n = 0; n < 5400; n++)); do systemctl is-active --quiet "$prev" || break; sleep 2; done
+  kill "$f" 2>/dev/null || true; wait "$f" 2>/dev/null || true
+  if systemctl is-active --quiet "$prev"; then
+    die "the package transaction $prev has run for more than three hours — stuck? journalctl -u $prev shows where; sudo systemctl stop $prev ends it, then run this again"
   fi
+}
+dnf_detached() {   # dnf_detached ARG… — dnf ARG…, detached from this session; its exit status
+  local unit rc IFS=' '
+  dnf_settle
   unit=fedokawaii-dnf-$(date +%s)-$$
   if [[ ${RUN_SHOWN:-} == 1 ]]; then _out "${C_DIM}    (as $unit)${C_RESET}"   # (run said the command already)
   else _out "${C_DIM}$(_ts) \$ dnf $*  (as $unit)${C_RESET}"; fi
@@ -2653,6 +2662,7 @@ snapshot_before() {   # snapshot_before WHAT [important] — a numbered snapshot
   if ! [[ $n =~ ^[0-9]+$ ]] || [[ -z $(snapper -c root --csvout list --columns number 2>/dev/null | grep -x "$n") ]]; then
     die "the snapshot before $1 could not be taken — nothing changed (sudo snapper -c root list; fedokawaii repair)"
   fi
+  SNAP_N=$n
   ok "snapshot $n: before $1"
   /usr/local/sbin/kawa-snap boot >/dev/null 2>&1 || true   # (in the boot menu at once)
 }
@@ -2806,26 +2816,11 @@ step_on() {   # step_on WHAT FN… — one contained step; a failure is remember
   contained "$@"
   ((CONTAINED_RC == 0)) || UPDATE_STEPS_FAILED+=("$what")
 }
-do_update() {
-  [[ $(phase) == 'done' ]] || die "finish the build first"
-  detach_dnf
-  # (until it gets to the end; a disk too full to hold even this: preflight says so, below)
-  record last-update "$(date +%s) stopped" 2>/dev/null || true
-  wait_for_network
-  local newest running result=ok e every
-  hdr "Fedokawaii update · Fedora $FEDORA_VER"
-  toolkit_first
-  preflight 10240
-  snapshot_before "update $(date +%F)" important   # (counted apart from the dnf pairs: the last
-                                                   # seasons' starting points outlast busy months)
-  repos_lenient
-  # the packages first: nothing else may stand in their way (a setting that no longer
-  # applies on a later Fedora is reported below, and the packages that fix it are in)
-  # (vi a script, not a link to nvim, before a new kernel's boot image is made: editor_policy)
-  [[ -L /usr/local/bin/vi ]] && step_on "vi: a script for nvim (dracut follows a link into nvim)" editor_policy
-  dnf_upgrade || die "dnf could not update (the lines above say why) — the snapshot taken before it is the way back (fedokawaii snapshots); try again later, or: fedokawaii repair"
-  # then the system values of fedokawaii.conf, applied again — each on its own: edit it
-  # (fedokawaii settings), then update (keyboard layouts take effect at the next login)
+# update_steps — the desktop's own steps after the packages, each contained (one that fails is
+# reported, the rest goes on): the system values of fedokawaii.conf again, the manifest, the
+# tools at their pins, the theme
+update_steps() {
+  # (fedokawaii.conf: edit it — fedokawaii settings — then update; keyboard layouts at the next login)
   step_on "the toolkit's command" install_toolkit
   # (a build finished before the menu read its date: the day its last phase ended)
   [[ -s $STATE_DIR/setup-done ]] || record setup-done "$(stat -c %Y "$STATE_DIR/phase" 2>/dev/null || date +%s)"
@@ -2880,9 +2875,48 @@ do_update() {
   step_on "dnf's guard and what it knows (lib/guard.sh)" guard_hooks
   step_on "sound (PipeWire keeps running)" r_sound
   step_on "the login screen and panel load GTK" gi_sound
+}
+do_update() {   # the button's run (lib/update.sh: the phases, their state in UPD)
+  [[ $(phase) == 'done' ]] || die "finish the build first"
+  detach_dnf
+  # (until it gets to the end; a disk too full to hold even this: preflight says so, below)
+  record last-update "$(date +%s) stopped" 2>/dev/null || true
+  install -d -m 0755 "$UPD"; rm -f -- "$UPD/why"
+  trap up_exit EXIT
+  wait_for_network
+  local newest running result=ok e every was
+  hdr "Fedokawaii update · Fedora $FEDORA_VER"
+  toolkit_first
+  # a run cut once the running system began to change: finished — or, its transaction not
+  # whole, undone — before anything new is tried
+  was=$(up_was)
+  case $was in
+    replay) dnf_settle    # (its transaction may still be writing: judged only once it has ended)
+            if pgrep -x dnf5 >/dev/null 2>&1; then die "another package manager is running (dnf5) — update again once it has finished"; fi
+            log "the last update was cut off in its transaction — finishing it first"
+            if ! up_complete; then
+              echo "the last update was cut off in its transaction" >"$UPD/why"; u_undo; u_report; return 0
+            fi ;;
+    steps|check) log "the last update was cut off after its transaction — its steps and checks again" ;;
+  esac
+  if [[ $was != @(replay|steps|check) ]]; then
+    u_start
+    # (vi a script, not a link to nvim, before a new kernel's boot image is made: editor_policy)
+    [[ -L /usr/local/bin/vi ]] && step_on "vi: a script for nvim (dracut follows a link into nvim)" editor_policy
+    if u_fetch; then u_candidate; else : >"$UPD/set"; fi
+    u_snapshot
+    u_replay || { u_undo; u_report; return 0; }
+  fi
+  up_phase steps
+  update_steps
   after_dnf_done
-  bash "$REPO_DIR/verify.sh" || result=checks
-  ((${#UPDATE_STEPS_FAILED[@]} == 0)) || result=partial
+  if ! u_check; then
+    u_undo; record last-update "$(date +%s) stopped"; u_report; return 0
+  fi
+  if [[ -s $UPD/set ]]; then UP_END=ok; elif ((UP_HELD)); then UP_END=held; else UP_END=current; fi
+  up_probation
+  # (no "checks" here: what verify finds red was red before — a new red would have undone it)
+  ((${#UPDATE_STEPS_FAILED[@]} == 0 && UP_HELD == 0)) || result=partial
   record last-update "$(date +%s) $result"
   record last-update-done "$(date +%s)"            # (the season counts from here: a run that stopped does not count)
   record_snapshots
@@ -2897,7 +2931,8 @@ do_update() {
   if released $((FEDORA_VER + 1)) >/dev/null; then log "Fedora $((FEDORA_VER + 1)) is out — the menu shows when the move to it is offered"; fi
   every=$(upkeep EVERY 90)
   clone_done || true                                # (the very last: the folder this update was run from)
-  hdr "update done ($result) — the next one in $every days"
+  u_report
+  hdr "update done ($result): $UP_LINE — the next one in $every days"
 }
 
 # ═════════════════════════════════════════════════════════════════════════════
@@ -3490,10 +3525,12 @@ case $MODE in
   after-upgrade) do_after_upgrade; exit 0 ;;
   after-dnf) do_after_dnf && exit 0; exit 3 ;;
   repair) do_repair; exit 0 ;;
+  update-resume) [[ $(phase) == 'done' ]] && on_the_system || exit 0; up_boot; exit 0 ;;
+  boot-good) [[ $(phase) == 'done' ]] && on_the_system || exit 0; up_probation_close; exit 0 ;;
   kernels) [[ $(phase) == 'done' ]] && on_the_system || exit 0
            # (a restore cut short after its exchange: finished first — its snapshots back, its default)
            /usr/local/sbin/kawa-snap finish >/dev/null 2>&1 || log "kawa-snap could not finish a restore that was cut short (sudo kawa-snap finish says why)"
-           kernel_match; orphan_kernels_out desktop; old_kernels_out desktop
+           kernel_match; up_probation_close; orphan_kernels_out desktop; old_kernels_out desktop
            # (the old copies the flat layout's mounts hide: removed once a start has been good)
            if [[ -x /usr/local/sbin/fedokawaii-split ]] && grep -qx boot_success=1 < <(grub2-editenv - list 2>/dev/null); then
              /usr/local/sbin/fedokawaii-split clean || log "the old copies under the new mounts could not be removed (sudo fedokawaii-split clean says why)"

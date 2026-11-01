@@ -258,14 +258,29 @@ status_kv() {
   fi
   if t=$(last_done); then printf 'updated\037%s · %s\n' "$(day "$t")" "$(ago "$t")"
   else printf 'updated\037none since setup\n'; fi
+  # the last run's own outcome (lib/update.sh u_report: TIME OUTCOME, its line) and what the
+  # updates hold back; one undone said as that, not as a stop
+  n=$(held_count)   # (families, as the held row counts them)
+  read -r e p 2>/dev/null <"$STATE/update/report" && num "$e" || p=""
   if read -r t res < <(last_update); then
+    d=$(date -d "@$t" '+%-d %b' 2>/dev/null)
     case $res in
       ok)      ;;
       partial) printf '\037some parts left for the next one\n' ;;
       checks)  cleared_since "$t" || printf '\037verify found problems: repair\n' ;;
-      *)       printf '\037tried %s, stopped: see the log\n' "$(date -d "@$t" '+%-d %b' 2>/dev/null)" ;;
+      *)       case $p in
+                 restored) printf '\037tried %s · undone at restart\n' "$d" ;;
+                 offered)  printf '\037tried %s · snapshot %s undoes it\n' "$d" "$(cat "$STATE/update/snap" 2>/dev/null || echo '?')" ;;
+                 *)        printf '\037tried %s, stopped: see the log\n' "$d" ;;
+               esac ;;
     esac
   fi
+  l=$(sed -n 2p "$STATE/update/report" 2>/dev/null) || l=""; l=${l#updated · }; l=${l%% · held: *}
+  case $p in
+    ok)      printf '\037%s%s\n' "$l" "$( ((n)) && echo " · $n held")" ;;
+    current) printf '\037nothing new%s\n' "$( ((n)) && echo " · $n held")" ;;
+    held)    printf '\037nothing new · %s held\n' "$n" ;;
+  esac
   d=$(due_at)
   if ((d <= now)); then printf 'due\037now · every %d days\n' "$EVERY"
   else printf 'due\037%s · %s\n' "$(day "$d")" "$(inn "$d")"; fi
@@ -348,9 +363,20 @@ held() {   # a run that takes root's lock (update, upgrade, repair, apply) while
 }
 as_root() {
   need_toolkit || return 1
+  # (the update runs as a unit of the system's own: a press while it goes on follows it — no
+  # password, nothing started twice)
+  if [[ $1 == update ]] && systemctl is-active --quiet fedokawaii-update.service; then follow_update; return; fi
   case $1 in update|upgrade|repair) ! held || return 1 ;; esac
   unapplied "$1"
   root bash "$TK/fedokawaii.sh" "$@"
+}
+follow_update() {   # the running update's output (fedokawaii.sh update_unit), so far and as it comes,
+  # until it ends → its exit status
+  local pid rc
+  pid=$(systemctl show -p MainPID --value fedokawaii-update.service 2>/dev/null) || pid=0
+  if [[ $pid =~ ^[1-9][0-9]*$ ]]; then tail -n +1 -f --pid="$pid" "$STATE/update/run.log"; else cat -- "$STATE/update/run.log" 2>/dev/null; fi
+  rc=$(systemctl show -p ExecMainStatus --value fedokawaii-update.service 2>/dev/null) || rc=""
+  return "${rc:-0}"
 }
 # unapplied ACTION — an update or a repair runs the toolkit as it is: changes waiting in your
 # working copy are not part of it (they go in through apply), and a run that put back what
@@ -655,7 +681,8 @@ tab_icon() {   # tab_icon SECTION → its pixel icon
   esac
 }
 # what is not built yet: a row in the faint ink that says "soon", its pane what it will be
-SOON='held|file|restore|drive|chess|typing'
+SOON='file|restore|drive|chess|typing'
+PANE_ONLY='held'   # (an entry that is its pane alone: enter does nothing)
 # every entry: SECTION<TAB>ACTION<TAB>ICON<TAB>NAME<TAB>VALUE (the value at the right, muted — or
 # in the vermilion when it needs you: due, ready, to fix, no backup); rows SECTION: that
 # section's, rows: all of them
@@ -703,7 +730,7 @@ rows() {
   e update    update    "${ICON_DOWNLOAD:-·}"   update                 "$upd"
   e update    pull      "${ICON_TORII_SMALL:-·}" fedokawaii            "$pl"
   e update    upgrade   "${ICON_UPGRADE:-·}"    "$nxt"                 "$up"
-  e update    held      "${ICON_LOCK:-·}"       held                   ""
+  e update    held      "${ICON_LOCK:-·}"       held                   "$(held_count)"
   e snapshots snapshots "${ICON_UNDO:-·}"       "go back"              "$snap"
   e snapshots file      "${ICON_FILE:-·}"       "a file, back"         ""
   e backups   backup    "${ICON_ARCHIVE:-·}"    "back up now"          "$bk"
@@ -716,6 +743,19 @@ rows() {
   [[ -n $desk ]] && e learning keys "${ICON_KEYCAP:-·}" keys ""
   return 0
 }
+# what the updates hold back (lib/update.sh: STATE/update/holds — NAME HELD AT DAY WHY, a line a
+# package): "NAME VERSION<TAB>WHY", a line a family — the packages held at one version for one
+# reason are one source's (kernel, kernel-core …; mesa-dri-drivers, mesa-libEGL …), named by
+# what their names share
+holds() {
+  awk '{ w = ""; for (i = 5; i <= NF; i++) w = w (i > 5 ? " " : "") $i; k = $2 "\t" w
+         if (!(k in name)) { order[++n] = k; name[k] = $1; next }
+         a = name[k]; b = $1; m = 0; while (m < length(a) && substr(a, m + 1, 1) == substr(b, m + 1, 1)) m++
+         name[k] = substr(a, 1, m) }
+       END { for (i = 1; i <= n; i++) { k = order[i]; nm = name[k]; sub(/-+$/, "", nm); split(k, f, "\t")
+                                       print (nm == "" ? "?" : nm) " " f[1] "\t" f[2] } }' "$STATE/update/holds" 2>/dev/null
+}
+held_count() { local n; n=$(holds | grep -c .) && ((n)) && echo "$n"; return 0; }
 section_of() {   # section_of ACTION → its tab
   case $1 in
     status|verify|repair|drift|change|theme|settings|remind|log) echo system ;;
@@ -840,7 +880,7 @@ tick() {
 explain() {
   local a=$1 O=${INK_OFF:-} G=${INK_MUTED:-} F=${INK_FAINT:-} kv pw=${FZF_PREVIEW_COLUMNS:-$PANE}
   # (nothing, or something unknown: nothing to explain)
-  [[ $a == @(status|update|pull|upgrade|verify|repair|snapshots|backup|theme|drift|change|settings|remind|log|keys|guide|todo|$SOON) ]] || return 0
+  [[ $a == @(status|update|pull|upgrade|held|verify|repair|snapshots|backup|theme|drift|change|settings|remind|log|keys|guide|todo|$SOON) ]] || return 0
   printf '%s\n\n\n' "$(screen_heading "$(icon_of "$a")" "${2:-$a}" $((pw - 1)))"   # (level with the tab bar; its words with the list's first row)
   # (the whole status only for the entries that show more than whether a run is going on:
   # the pane follows the cursor, so the others stay instant)
@@ -920,8 +960,16 @@ explain() {
     guide)     pick 'running'
                say "the Learn book: how this desktop works," \
                    "and how to keep it well." ;;
-    held)      soon "what an update holds back, and why — let go" \
-                    "once it passes again." ;;
+    held)      # (each: its name and version, why under it — cut at a word, never an ellipsis)
+               local h w
+               while IFS=$'\t' read -r h w; do
+                 printf '   %s\n' "$h"
+                 ((${#w} <= 41)) || { w=${w:0:42}; w=${w% *}; }
+                 say "$w"; echo
+               done < <(holds | head -n 3)
+               [[ -n $(held_count) ]] || { say "nothing held back."; echo; }
+               say "held at its version — let go by itself" \
+                   "once a newer one passes." ;;
     file)      soon "one file as it was, from a snapshot — never" \
                     "the whole system." ;;
     restore)   soon "your files back from the drive, all or some." ;;
@@ -1162,7 +1210,7 @@ menu_fzf() {   # → fzf's exit status (2: it could not run — the plain menu t
     --bind="click-header:execute-silent($self --tab click \$FZF_CLICK_HEADER_COLUMN \$FZF_CLICK_HEADER_LINE)+$go" \
     --bind="j:down,k:up,l:execute-silent($self --tab +1)+$go,h:execute-silent($self --tab -1)+$go,q:${away}abort" \
     --bind="esc,ctrl-c,ctrl-g,ctrl-q:${away}abort" \
-    --bind="enter:transform:case {1} in $SOON) ;; ${launch}remind) echo 'execute-silent($self --run {1})+reload-sync($self --items)' ;; change|keys${pop}) echo '${away}become($self --run {1})' ;; *) echo 'execute($self --run {1})+reload-sync($self --items)' ;; esac" >/dev/null
+    --bind="enter:transform:case {1} in $PANE_ONLY|$SOON) ;; ${launch}remind) echo 'execute-silent($self --run {1})+reload-sync($self --items)' ;; change|keys${pop}) echo '${away}become($self --run {1})' ;; *) echo 'execute($self --run {1})+reload-sync($self --items)' ;; esac" >/dev/null
   local rc=$?; rm -f -- "$FK_TAB"; return "$rc"
 }
 
@@ -1172,7 +1220,7 @@ ascii() {   # for a text console whose font may lack them: plain stand-ins
 menu_plain() {   # no fzf, or a text console: numbered, nothing but bash
   local acts=() names=() s a g l m i c
   while IFS=$'\t' read -r s a g l m; do
-    [[ $a == @($SOON) ]] && continue              # (what is not built yet: not offered)
+    [[ $a == @($PANE_ONLY|$SOON) ]] && continue   # (what is not built yet, or only a pane: not offered)
     acts+=("$a"); names+=("$l")
   done < <(rows | sed 's/\x1b\[[0-9;]*m//g')
   while :; do

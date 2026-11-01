@@ -234,6 +234,19 @@ world() {   # world fresh|built [--themed]
   mkdir -p "$W/home/fkuser/fedokawaii"
   (cd "$REPO" && tar --exclude=./docs --exclude=./tests --exclude=./.git -cf - .) | tar -xf - --no-same-owner -C "$W/home/fkuser/fedokawaii"
   printf '%s\n' "# .bashrc" 'if [ -d ~/.bashrc.d ]; then for rc in ~/.bashrc.d/*; do . "$rc"; done; fi' >"$W/home/fkuser/.bashrc"
+  # the desktop's start check (the update's: tools/regress) as it would see this machine, which has
+  # no screen — in the project as the user cloned it, so every toolkit made from it (setup's, a
+  # finished install's) carries them: the session comes up when dwl — its stand-in — starts; red
+  # with $FKH/session-red or a bar off its measure, $FKH/bar-red (each file: what the check says);
+  # $FKH/fail-session-cannot = N: the check itself cannot run N times (exit 2, its machinery)
+  printf '%s\n' '#!/bin/bash' '. /usr/local/bin/_lib.sh; fkh_log "$*"' \
+    'countdown session-cannot && { echo "session-start: the kit could not run: hl-dwl: out of time (60 s)" >&2; exit 2; }' \
+    '[[ -s $FKH/session-red ]] && { echo "session-start (dark): $(cat "$FKH/session-red")" >&2; exit 1; }' \
+    '/usr/local/bin/dwl -s true >/dev/null 2>&1 || { echo "session-start (dark): dwl does not start: the stand-in exits 1" >&2; exit 1; }' \
+    'echo "session-start (dark): up"' >"$W/home/fkuser/fedokawaii/tools/regress/session-start.sh"
+  printf '%s\n' '#!/bin/bash' '. /usr/local/bin/_lib.sh; fkh_log "$*"' \
+    '[[ -s $FKH/bar-red ]] && { echo "bar-geometry (dark): $(cat "$FKH/bar-red")" >&2; exit 1; }' 'exit 0' \
+    >"$W/home/fkuser/fedokawaii/tools/regress/bar-geometry.sh"
   # what dwl's build needs of wlroots: its header folder and library (a real .so, so ldd reads it)
   mkdir -p "$W/usr/local/fkh-sys/include/wlroots-0.20/wlr" "$W/usr/local/fkh-sys/lib64"
   echo '/* wlroots */' >"$W/usr/local/fkh-sys/include/wlroots-0.20/wlr/backend.h"
@@ -512,7 +525,8 @@ built() {
   { printf '%s\n' bash sudo NetworkManager; cat "$TMP/manifest"; echo amd-ucode-firmware; } | sort -u | sed 's/$/ User/' >"$FKH/userinstalled"
   echo amd-ucode-firmware >"$S/hardware-pkgs"
   printf 'enabled %s\n' greetd.service bluetooth.service snapper-timeline.timer snapper-cleanup.timer fstrim.timer lactd.service \
-    fedokawaii-scrub.timer fedokawaii-kernels.timer fedokawaii-report.service tuned.service firewalld.service fedokawaii-after-dnf.service >>"$FKH/units"
+    fedokawaii-scrub.timer fedokawaii-kernels.timer fedokawaii-report.service tuned.service firewalld.service fedokawaii-after-dnf.service \
+    fedokawaii-boot-good.path fedokawaii-update-resume.service >>"$FKH/units"
   sed -i '/ sshd.service$/d; /^global-enabled grub-boot-success\.timer$/d' "$FKH/units"   # (that timer: the desktop starts it)
   rm -f "$W/usrbin/nano" "$W/usrbin/vi"                     # (setup took them out)
   printf '%s\n' copr:copr.fedorainfracloud.org:ilyaz:LACT copr:copr.fedorainfracloud.org:zzahkaboom24:grub-btrfs >"$FKH/coprs"

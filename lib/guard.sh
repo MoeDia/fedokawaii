@@ -96,9 +96,61 @@ Nice=10
 [Install]
 WantedBy=multi-user.target
 UNIT
+  # an update cut in its transaction: finished or undone at the next start, before the login
+  # screen (lib/update.sh up_boot)
+  write_file /etc/systemd/system/fedokawaii-update-resume.service <<UNIT
+# installed by setup.sh — after an update cut off in its transaction (a power cut, a crash):
+# kept when its packages all went in, else the system before it put back (lib/update.sh)
+[Unit]
+Description=Fedokawaii: an update cut off in its transaction — finished or undone
+After=local-fs.target
+Before=display-manager.service greetd.service
+ConditionPathExists=$STATE_DIR/update/phase
+ConditionKernelCommandLine=!systemd.volatile
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/bash $TOOLKIT/setup.sh --update-resume
+TimeoutStartSec=30min
+
+[Install]
+WantedBy=multi-user.target
+UNIT
+  # the start after an update: its probation closed the moment the start is marked good —
+  # Fedora's timer writes boot_success into grubenv two minutes into the desktop (lib/update.sh
+  # up_probation_close; the unit itself does nothing while no probation is open)
+  write_file /etc/systemd/system/fedokawaii-boot-good.path <<'UNIT'
+# installed by setup.sh — grubenv changed (a start marked good, a probation armed): the update's
+# probation looked at (fedokawaii-boot-good.service)
+[Unit]
+Description=Fedokawaii: a start marked good closes the update's probation
+
+[Path]
+PathChanged=/boot/grub2/grubenv
+
+[Install]
+WantedBy=paths.target
+UNIT
+  write_file /etc/systemd/system/fedokawaii-boot-good.service <<UNIT
+# installed by setup.sh — this start reached the desktop: the update's probation over (its
+# snapshot released, the new kernel's trial ended), or the new kernel held when GRUB had to
+# take the one before (lib/update.sh up_probation_close)
+[Unit]
+Description=Fedokawaii: the start after an update — its probation closed
+ConditionPathExists=$STATE_DIR/update/probation
+ConditionKernelCommandLine=!systemd.volatile
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/bash $TOOLKIT/setup.sh --boot-good
+UNIT
   systemctl daemon-reload
   systemctl is-enabled --quiet fedokawaii-after-dnf.service || systemctl enable --quiet fedokawaii-after-dnf.service
-  restorecon /usr/local/sbin/kawa-dnf-guard "$GUARD_ACTIONS" /etc/systemd/system/fedokawaii-after-dnf.service 2>/dev/null || true
+  systemctl is-enabled --quiet fedokawaii-update-resume.service || systemctl enable --quiet fedokawaii-update-resume.service
+  systemctl is-enabled --quiet fedokawaii-boot-good.path || systemctl enable --quiet --now fedokawaii-boot-good.path
+  restorecon /usr/local/sbin/kawa-dnf-guard "$GUARD_ACTIONS" /etc/systemd/system/fedokawaii-after-dnf.service \
+    /etc/systemd/system/fedokawaii-update-resume.service /etc/systemd/system/fedokawaii-boot-good.path \
+    /etc/systemd/system/fedokawaii-boot-good.service 2>/dev/null || true
   needs_record
 }
 
@@ -114,6 +166,25 @@ dwl_starts() {
   as_user rm -rf -- "$d"; rm -f "$STATE_DIR/dwl-started"   # (verify's record of a pass: no longer true)
   log "dwl does not start (exit $rc): $(grep -v '^$' "$KAWA_TMP/dwl-start.log" | tail -n 3 | tr '\n' ' ')"
   return 1
+}
+# desktop_starts — the desktop's session comes up (the update's check, update-design §4.2): as you,
+# the installed dwl headless on the card the desktop draws on, a throw-away home with the
+# installed configs (tools/kit.sh) — the bar, the notices, the terminals, quick settings and the
+# warm windows running, the bar drawn and measured in both themes; your own session is never
+# touched. → 0 · 1 red · 2 the check itself could not run (a check's own verdict on stdout, one
+# line — never the programs' log noise). A check that could not run is tried once more (a loaded
+# machine): an update is never undone on a check that did not happen
+desktop_starts() {
+  local t out rc _
+  for t in session-start bar-geometry; do
+    for _ in 1 2; do
+      rc=0; out=$(as_user bash "$REPO_DIR/tools/regress/$t.sh" --dwl /usr/local/bin/dwl 2>&1) || rc=$?
+      ((rc == 2)) || break
+    done
+    ((rc == 0)) && continue
+    sed -n "/^${t}[ :(]/p" <<<"$out" | tail -n 1   # (sed: no match is no failure inside setup.sh's ERR trap)
+    return "$((rc == 1 ? 1 : 2))"
+  done
 }
 # wlr_sound — dwl's own wlroots loads every library it needs; one Fedora replaced (a rebuild
 # for a new libinput, say) is taken again from Fedora's wlroots of the same version, when it

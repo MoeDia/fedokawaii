@@ -13,6 +13,7 @@ tk() { fkrun bash "$TK/setup.sh" "$@"; }
 grubenv() { touch "$FKH/grubenv"; sed -i "/^${1%%=*}=/d" "$FKH/grubenv"; echo "$1" >>"$FKH/grubenv"; }   # grubenv KEY=VALUE — the rest kept
 
 world built; releases
+fkh mounts /run/fedokawaii/top     # (the update's top level: a real mount needs root)
 keep built
 
 case_ "update offline: said within half a minute of tries (exit 1), what to do named"
@@ -27,19 +28,16 @@ has "$OUT" "offline: only what needs no network is repaired now"
 n=$(grep -c 'curl\] .*mirrors.fedoraproject.org' "$CALLS"); ((n >= 3 && n <= 7)) && _ok || _no "$n tries"
 rm -f "$FKH/net"
 
-case_ "update: a transaction cut off half-way leaves packages twice — tidied, and the next try goes through"
-back built; fkh fail-dnf-upgrade 1
+case_ "update: packages left twice by a transaction cut off half-way — tidied before anything else, then the update goes through"
+back built; echo "kernel-core-6.19.2-200.fc44.x86_64" >"$FKH/dups"; fkh pending "bash 5.2-1.fc44 5.3-1.fc44"; fkh_add installed bash
 tk --update; eq "$RC" 0 "$(grep -E '✘|failed' <<<"$OUT" | head -n3 | tr '\n' '|')"
 called 'dnf\] -y remove --duplicates'; eq "$(cat "$FKH/dups")" "" "no package left twice"
 has "$OUT" "update done"
-case_ "update: it fails every time — stopped, the snapshot named as the way back (never 'nothing was changed')"
-back built; fkh fail-dnf-upgrade 9
-tk --update; eq "$RC" 1
-has "$OUT" "dnf could not update"; has "$OUT" "the snapshot taken before it is the way back"; lacks "$OUT" "nothing was changed"
+# (the transaction failing on the running system: tests/installer/test_update_flow.sh)
 
 case_ "update with too little room on /: stopped before anything changes, with what to do"
 back built; fkh btrfs-free $((5 * 1024 ** 3))
-tk --update; eq "$RC" 1; has "$OUT" "only 5.0GB free on / — this needs 10GB: delete old snapshots"
+tk --update; eq "$RC" 1; has "$OUT" "only 5.0GB free on / — this needs 15GB: delete old snapshots"
 not_called 'snapper\] -c root create'; not_called 'dnf\] .*upgrade'
 case_ "…a disk full to the last byte (not even the log can be written): the same sentence, never a raw error"
 back built; fkh btrfs-free 0
@@ -47,7 +45,7 @@ back built; fkh btrfs-free 0
 fkrun bash -c 'for d in /var/log /var/lib/fedokawaii; do s=$1/save$RANDOM; cp -a "$d" "$s"
     mount -t tmpfs -o size=1m fkfull "$d" && cp -a "$s/." "$d/" && rm -rf "$s"; head -c 2m /dev/zero >"$d/.fill" 2>/dev/null
   done; exec bash /usr/local/lib/fedokawaii/setup.sh --update' _ "$W"
-eq "$RC" 1; has "$OUT" "only 0B free on / — this needs 10GB"; lacks "$OUT" "✘ line"; lacks "$OUT" "No space left"
+eq "$RC" 1; has "$OUT" "only 0B free on / — this needs 15GB"; lacks "$OUT" "✘ line"; lacks "$OUT" "No space left"
 
 case_ "the snapshot count the menu shows: recorded by an update; once every snapshot is gone, only repair's own (never the old count)"
 back built; printf '%s\n' "1,fedokawaii baseline" "2,pre" "3,post" >"$FKH/snaps"
@@ -197,8 +195,8 @@ called 'systemd-run\] .*--wait .* /usr/bin/dnf -y remove .*systemd-oomd-defaults
 not_called 'systemd-run\] .* /usr/bin/dnf .*repoquery'; called '^root\[dnf\] -q (--setopt=[^ ]*\.skip_if_unavailable=0 )+repoquery --available --whatprovides bat$'
 has "$OUT" "(as fedokawaii-dnf-"
 case_ "update: the manifest's install after the upgrade is detached too"
-back built; fkh_del installed bat; reset_calls
-tk --update; called 'systemd-run\] .*--wait .* /usr/bin/stdbuf -oL -eL /usr/bin/dnf -y upgrade --refresh'; called 'systemd-run\] .*--wait .* /usr/bin/dnf -y install bat$'
+back built; fkh_del installed bat; fkh pending "bash 5.2-1.fc44 5.3-1.fc44"; fkh_add installed bash; reset_calls
+tk --update; called 'systemd-run\] .*--wait .* /usr/bin/stdbuf -oL -eL /usr/bin/dnf -y -C replay /var/lib/fedokawaii/update/tx'; called 'systemd-run\] .*--wait .* /usr/bin/dnf -y install bat$'
 # ── a machine set up before these: the user in input, no record of it; no Bluetooth or
 #    shutdown setting; systemd-oomd-defaults brought by something ───────────────────────
 earlier() { fk usermod -aG input fkuser; rm -f "$W/var/lib/fedokawaii/input-group-out" \

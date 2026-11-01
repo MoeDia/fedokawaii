@@ -1,11 +1,11 @@
 #!/bin/bash
-# grub2-editenv - list|set K=V|unset K, on $FKH/grubenv
+# grub2-editenv - list|set K=V…|unset K…, on $FKH/grubenv
 . /usr/local/bin/_lib.sh
 fkh_log "$*"
 e=$FKH/grubenv; touch "$e"
 case $2 in
   list) cat "$e" ;;
-  set) k=${3%%=*}; sed -i "/^$k=/d" "$e"; echo "$3" >>"$e" ;;
-  unset) sed -i "/^$3=/d" "$e" ;;
+  set) for kv in "${@:3}"; do sed -i "/^${kv%%=*}=/d" "$e"; echo "$kv" >>"$e"; done ;;
+  unset) for k in "${@:3}"; do sed -i "/^$k=/d" "$e"; done ;;
 esac
 exit "$(rcfor grub2-editenv 0)"

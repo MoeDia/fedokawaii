@@ -34,6 +34,8 @@ has "$OUT" "✔  user in video, render"; lacks "$OUT" "input, render"
 has "$OUT" "✔  Bluetooth dongle power saving off (btusb)"; has "$OUT" "✔  shutdown waits 30 s at most for your services"
 has "$OUT" "✔  the sound card never naps (no click at a volume change)"; has "$OUT" "✔  a restart waits for Steam to close properly (25 s at most)"
 
+case_ "…the same once the update button put brave-origin and claude-code in (dnf5 records @stored_transaction(REPO) as their origin)"
+fkh from-stored; V; has "$OUT" "✔  brave-origin from brave-browser (gpgcheck=1)"; has "$OUT" "✔  claude-code from claude-code (gpgcheck=1)"; rm -f "$FKH/from-stored"
 case_ "your home: a root-owned file in ~/.cache (a program run as root with your HOME) or ~/Downloads (its own subvolume) fails, named; podman's storage (its containers' own ids) does not"
 back built
 fk bash -c 'c=/home/fkuser/.local/share/containers/storage/overlay; runuser -u fkuser -- mkdir -p "$c/l1/diff/app" && : >"$c/l1/diff/app/Prowlarr.dll" && chown -R 100910:100910 "$c/l1"'   # (podman's own folders: yours)

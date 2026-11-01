@@ -204,6 +204,27 @@ dry_run() {
       bash "$REPO_DIR/verify.sh" ;;
   esac
 }
+# update_unit — the update as a unit of the system's own (fedokawaii-update.service): a window
+# closed, a logout, a desktop that stops — none of them cuts it; this terminal only follows its
+# output (STATE/update/run.log, readable by you: Super+U → update follows a run that goes on).
+# → the run's own exit status once it ends
+UPDATE_UNIT=fedokawaii-update.service
+update_unit() {
+  local d=$STATE_DIR/update log pid rc
+  log=$d/run.log
+  if ! systemctl is-active --quiet "$UPDATE_UNIT"; then
+    systemctl reset-failed "$UPDATE_UNIT" 2>/dev/null || true
+    { install -d -m 0755 "$d" && : >"$log" && chmod 0644 "$log"; } || die "no room for the update's output in $d (a full disk?)"
+    systemd-run --quiet --unit="$UPDATE_UNIT" --description="Fedokawaii: the update (Super+U → update)" \
+      -p StandardOutput="append:$log" -p StandardError="append:$log" \
+      --setenv=FK_TERM="${TERM:-}" --setenv=LANG="${LANG:-C.UTF-8}" \
+      /usr/bin/bash "$REPO_DIR/setup.sh" --update || die "the update could not start on its own (systemd-run)"
+  fi
+  pid=$(systemctl show -p MainPID --value "$UPDATE_UNIT" 2>/dev/null) || pid=0
+  if [[ $pid =~ ^[1-9][0-9]*$ ]]; then tail -n +1 -f --pid="$pid" "$log"; else cat -- "$log"; fi
+  rc=$(systemctl show -p ExecMainStatus --value "$UPDATE_UNIT" 2>/dev/null) || rc=""
+  return "${rc:-0}"
+}
 act() {
   # (a word more than an action takes is a slip, never ignored: `upgrade now` is no --now)
   case $1 in
@@ -225,7 +246,7 @@ act() {
     drift)  [[ -n $user ]] || die "unknown desktop user — run setup first"
             bash "$REPO_DIR/theme.sh" --user "$user" --check ;;
     verify) bash "$REPO_DIR/verify.sh" ;;
-    update) bash "$REPO_DIR/setup.sh" --update ;;
+    update) update_unit ;;
     upgrade) if [[ ${2:-} == --now ]]; then bash "$REPO_DIR/setup.sh" --upgrade --now
              else bash "$REPO_DIR/setup.sh" --upgrade; fi ;;
     repair) bash "$REPO_DIR/setup.sh" --repair ;;

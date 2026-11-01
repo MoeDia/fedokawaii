@@ -186,9 +186,11 @@ for c in "${COPRS[@]}"; do
   grep -qxF "$c" < <(waiting copr) && continue        # (no build for this Fedora yet: warned above)
   check "COPR $c enabled" grep -qxF "copr:copr.fedorainfracloud.org:${c/\//:}" <<<"$enabled"
 done
+# (a package the update button put in records its origin as @stored_transaction(REPO): the
+# stored transaction was resolved from REPO, and its signature checked before it went in)
 for pr in brave-origin:brave-browser claude-code:claude-code; do
   check "${pr%%:*} from ${pr#*:} (gpgcheck=1)" \
-    bash -c "test \"\$(dnf repoquery --installed --qf '%{from_repo}' ${pr%%:*})\" = ${pr#*:} && grep -qx gpgcheck=1 /etc/yum.repos.d/${pr#*:}.repo"
+    bash -c "o=\$(dnf repoquery --installed --qf '%{from_repo}' ${pr%%:*}); o=\${o#@stored_transaction(}; test \"\${o%)}\" = ${pr#*:} && grep -qx gpgcheck=1 /etc/yum.repos.d/${pr#*:}.repo"
 done
 check "dnf max_parallel_downloads=$DNF_PARALLEL"       test "$(dnfopt max_parallel_downloads)" = "$DNF_PARALLEL"
 check "dnf fastestmirror on"                           grep -qxiE '1|true' <<<"$(dnfopt fastestmirror)"
@@ -218,6 +220,8 @@ check "dnf's guard: before and after every transaction (kawa-dnf-guard, the acti
 check "dnf's guard knows what our builds load and the manifest (needs, manifest)" \
   bash -c 'grep -qx "wlroots $1" "$2/needs" && test -s "$2/manifest"' _ "$DWL_WLROOTS" "$STATE_DIR"
 check "the checks after a dnf transaction (fedokawaii-after-dnf.service enabled)" systemctl is-enabled --quiet fedokawaii-after-dnf.service
+check "the start after an update closes its probation (fedokawaii-boot-good.path enabled)" systemctl is-enabled --quiet fedokawaii-boot-good.path
+check "an update cut in its transaction is finished or undone before the login (fedokawaii-update-resume.service enabled)" systemctl is-enabled --quiet fedokawaii-update-resume.service
 fi
 if [[ -f $STATE_DIR/after-dnf ]]; then warn "a dnf transaction not yet followed up" "it runs by itself (fedokawaii-after-dnf.service), or now: fedokawaii repair"
 elif read -r t r _ 2>/dev/null <"$STATE_DIR/last-after-dnf" && [[ ${r:-ok} != ok ]]; then
@@ -865,4 +869,6 @@ fi
 # the outcome, for the menu (Super+U) and repair: WHEN PASSED FAILED WARNINGS
 ((PRE)) || printf '%s %s %s %s\n' "$(date +%s)" "$PASS" "${#FAILS[@]}" "${#WARNS[@]}" \
   | write_file "$STATE_DIR/last-verify" 0644 || true
+# (and which failed: an update counts only the checks it made red — lib/update.sh u_check)
+((PRE)) || { ((${#FAILS[@]} == 0)) || printf '%s\n' "${FAILS[@]}"; } | write_file "$STATE_DIR/last-verify-fails" 0644 || true
 exit "$rc"

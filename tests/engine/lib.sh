@@ -40,6 +40,8 @@ engine_world() {
     "s|^TK=/usr/local/lib/fedokawaii\$|TK=$R/toolkit|" \
     "s|^STATE=/var/lib/fedokawaii |STATE=$R/state |" \
     "s|/var/log/fedokawaii.log|$R/fedokawaii.log|g"
+  # (the update's own unit never this machine's: none runs — anything else asked of systemctl as before)
+  stub systemctl 'case "$*" in *fedokawaii-update.service*) exit 3 ;; esac; exec /usr/bin/systemctl "$@"'
   # a finished install: Fedora 44, set up 30 days ago
   echo 'done' >"$R/state/phase"; touch -d "@$(ago_s 30)" "$R/state/phase"
   echo "$USER" >"$R/state/user"
@@ -106,6 +108,12 @@ front_world() {   # the real front in the toolkit, with the scripts it runs as s
   stand_ins "$R/toolkit"
   # root's own: runuser and getent, as for a desktop user of this name
   stub runuser 'while [ $# -gt 0 ]; do case $1 in -u) shift 2 ;; --) shift; break ;; *) break ;; esac; done; exec "$@"'
+  # the update as a unit of the system's own (update_unit): run here and now, its output to the
+  # log it names, its status kept for systemctl show (never the real systemd: no unit, no prompt)
+  stub systemd-run 'log=""; for a; do case $a in StandardOutput=append:*) log=${a#*append:} ;; esac; done
+    while [ $# -gt 0 ] && [ "${1#/}" = "$1" ]; do shift; done
+    "$@" >>"$log" 2>&1; echo $? >"'"$R"'/unit-rc"'
+  stub systemctl 'case "$*" in "is-active"*) exit 3 ;; *ExecMainStatus*) cat "'"$R"'/unit-rc" 2>/dev/null || echo 0 ;; *MainPID*) echo 0 ;; esac'
 }
 stand_ins() {   # stand_ins DIR — setup.sh, theme.sh, check.sh, verify.sh there: they log, answer $R/rc-NAME
   local s

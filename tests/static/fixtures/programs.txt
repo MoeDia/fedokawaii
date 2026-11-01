@@ -97,6 +97,7 @@ kernel-install      minimal   systemd-udev      # f44: kernel-core requires it
 grub2-mkconfig      minimal   grub2-tools       # the installer's bootloader (grub2-efi-x64 requires it)
 grub2-editenv       minimal   grub2-tools-minimal  # f44 (grub2-tools requires it: kawa-snap restore drops a stale tmp_saved_entry)
 grubby              manifest  grubby
+systemd-nspawn      manifest  systemd-container
 wf-recorder         manifest  wf-recorder
 losetup             minimal   util-linux-core   # f44
 renice              minimal   util-linux-core   # f44

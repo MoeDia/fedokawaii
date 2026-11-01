@@ -11,7 +11,7 @@ units=() verb=""
 for x in "$@"; do
   case $x in
     --user|--quiet|--now|-q|--no-block|--global|--system) ;;
-    is-enabled|is-active|enable|disable|cat|daemon-reload|reset-failed|start|stop|restart|set-default|reload|reboot|mask|show) [[ -z $verb ]] && verb=$x ;;
+    is-enabled|is-active|enable|disable|cat|daemon-reload|reset-failed|start|stop|restart|set-default|reload|reboot|mask|show|list-units) [[ -z $verb ]] && verb=$x ;;
     *) [[ -n $verb ]] && units+=("$x") ;;
   esac
 done
@@ -25,7 +25,12 @@ case $verb in
               done
               ((q)) && echo enabled; exit 0 ;;
   mask)       for u in "${units[@]}"; do echo "${pre}masked $u" >>"$FKH/units"; done; exit 0 ;;
-  is-active)  for u in "${units[@]}"; do grep -qx "${pre}active $u" "$FKH/units" || exit 3; done; exit 0 ;;
+  # (a unit still running for a while: $FKH/fail-busy-U = N — active N more times, then it ends)
+  is-active)  for u in "${units[@]}"; do
+                if [[ -f $FKH/fail-busy-$u ]]; then countdown "busy-$u" && continue; sed -i "/^active ${u//./\\.}\$/d" "$FKH/units"; exit 3; fi
+                grep -qx "${pre}active $u" "$FKH/units" || exit 3
+              done; exit 0 ;;
+  list-units) awk '$1 == "active" && $2 ~ /^fedokawaii-dnf-/ { print $2, "loaded active running", $2 }' "$FKH/units"; exit 0 ;;
   enable)     for u in "${units[@]}"; do
                 grep -qx "${pre}enabled $u" "$FKH/units" || echo "${pre}enabled $u" >>"$FKH/units"
                 [[ $a == *" --now "* ]] && ! grep -qx "${pre}active $u" "$FKH/units" && echo "${pre}active $u" >>"$FKH/units"

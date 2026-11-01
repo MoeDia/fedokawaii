@@ -10,8 +10,10 @@ umask 022
 # the sixteen: ~/.config/fedokawaii/screen.sh); on a text console the nearest of its sixteen.
 # Not on a terminal (a log, a pipe) the words alone. The log keeps its own plain lines
 # ("── NAME" for a heading: what the report and status read back), whatever the screen shows
-if [[ -t 1 ]]; then
-  if [[ ${TERM:-} == foot* ]]; then
+# (FK_TERM: the terminal a run started as a unit of its own writes to — the update's, through
+# its log: fedokawaii.sh update_unit)
+if [[ -t 1 || -n ${FK_TERM:-} ]]; then
+  if [[ ${FK_TERM:-${TERM:-}} == foot* ]]; then
     C_MUTED=$'\e[38;5;21m' C_FAINT=$'\e[38;5;22m' C_STITCH=$'\e[38;5;19m' C_RED=$'\e[38;5;20m'
   else
     C_MUTED=$'\e[2m' C_FAINT=$'\e[2m' C_STITCH=$'\e[2m' C_RED=$'\e[31m'
