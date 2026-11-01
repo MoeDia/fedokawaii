@@ -2754,15 +2754,19 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   update-design §5 rows 45 (the hang) and 46 (PID 1's crash). Areas running: installer + static
   (/dev/shm/r27p/p1-*.log).
 
-## >>> NEXT PASS STARTS HERE (1 Nov, written 18:02 — the lines above say what this pass did): the inbox first. Then:
-## (1) the master's Re-review 4 of T45 (r27-49-R4): its verdict appended to master-T45-efh-verdict.md ("Re-review 4").
-##     Not there → launch it again with /dev/shm/r27/master/T45-4/brief.md (gone after a reboot: rebuild it from
-##     ledger r27-49-R4, -hang, -master-3, -master-3-fixes; COPY every proof's folder under /dev/shm/r27/master/T45-4
-##     before re-running a proof — they clear their own folders). Before launching: copy the storm run's folder
-##     (/dev/shm/r27/update-green → T45-4/green-storm-9280e4b/) and the probation's (/dev/shm/r27/probation-f44b →
-##     T45-4/probation-ad94381/) if main did not. Fix its must-fix items. A PASS closes T45 but for (H) and (i).
-## (2) T46b: triage .claude/notes/f45-changes-raw.md (the agent's facts) into f45-changes.md with decisions; Python
-##     first. Then T48's rest (restore + the drive, sketched in plan T48 — the same grammar as "a file, back").
+## >>> NEXT PASS STARTS HERE (1 Nov, written 18:35 — the lines above say what this pass did): the inbox first. Then:
+## (0) is 381c08a (the PID 1 crash handling) pushed? `git log origin/main..main`: if not, its installer + static areas
+##     (/dev/shm/r27p/p1-*.log, started 18:19) decide — green → push; red → fix first. Then apply it on the PC.
+## (1) the master's Re-review 4 of T45 at 9280e4b (r27-49-R4): its verdict appended to master-T45-efh-verdict.md. Told
+##     mid-review of the storm's PID 1 crash (r27-49-pid1). Not there → launch it again with
+##     /dev/shm/r27/master/T45-4/brief.md (gone after a reboot: rebuild from ledger r27-49-R4, -pid1, -hang, -master-3,
+##     -master-3-fixes). Its must-fix items first; 381c08a goes to its next review with the whole suite run on the
+##     commit that is pushed (the suite on 9280e4b: /dev/shm/r27p/suite-9280e4b.log). COPY a proof's folder under
+##     /dev/shm/r27/master/T45-x/ before re-running it — the proofs clear their own folders. No more unthrottled or
+##     throttled storms during a systemd upgrade: it crashes PID 1 (r27-49-pid1) — if the master still wants the
+##     race forced, storm only while a set WITHOUT systemd replays (exclude systemd from the stored set in the VM).
+## (2) T46b: triage .claude/notes/f45-changes-raw.md (a research agent was writing it, 18:05) into f45-changes.md with
+##     decisions, Python first. Then T48's rest (restore + the drive, sketched in plan T48).
 ## (3) THE KERNEL TRIAL ON THE PC is open since 14:43 (7.2.13; grubenv 3/0/1; snapshot 381 pinned). It closes at
 ##     the next start: a reboot ends the bulk run (r27-bulk-*, 10:36 + 12 h) — so reboot only in the claude-r27
 ##     pass after 22:36 (CLAUDE.md START §4: initial_session, presence probe first), or let his own restart close
