@@ -117,3 +117,5 @@ then merge into main through the suite and the master.
   shows it. Either way make the words explicit: give the to-do's text (and the notes') an explicit fg (KawaText from
   C_TEXT) so no cell depends on the terminal's default — t21's notes text already renders right (each line carries
   KawaRule, so its cells are never "default").
+- 00:15 the light to-do's pale words CLOSED: a harness artefact of tools/kit-keys.py (its own pty between nvim and foot);
+  rendered with nvim's own feedkeys the words are #122625 (light text) — the page is right. No explicit ink needed.
