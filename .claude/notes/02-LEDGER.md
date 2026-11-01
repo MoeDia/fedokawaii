@@ -2375,18 +2375,24 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   Also: the clean Fedora 44 install from fd0739a (f44 VM, from fresh): GREEN — verify 253 passed, 4
   named skips, the desktop up in 20 min — the dwl fix (r27-found-4) proven end to end.
 
-## >>> NEXT PASS STARTS HERE (1 Nov, written 11:50 — see the lines above for what this pass did): the inbox first. Then:
-## (0) the master's verdict on T45 (e)(f)(h) — .claude/notes/master-T45-efh-verdict.md (asked 11:44): fix every
-##     finding with its test, back to the master until PASS.
-## (1) then t45 → main (t45's whole installer area ran 11:46: /dev/shm/r27p/t45-installer.log), apply on the PC,
-##     and the first real run of the new button there: 98 updates wait (kernel 7.2.13, Mesa 26.2.5 …) — the
-##     report, the pane, the probation armed; the trial closes at his next start (the kernels' 15-min run then
-##     takes 7.2.11). Never a session restart for it.
-## (2) T46: the Fedora 45 harness VM f45 (port 2224) is being made from development/45, and vm-smoke.sh runs on
-##     it by itself afterwards from a frozen main (/dev/shm/r27p/main-f45 = 9cfe463): read
-##     /dev/shm/r27p/f45/run.log and ~/VM/harness/f45/smoke-*/summary — every red is an F45 finding (fix in
-##     main, re-run). Fedora 45's release day: Tue 3 Nov (fedorapeople schedule); the button offers the move
-##     7 days after (design §4.4) once the pre-flight is green.
-## (3) T48 rest: "a file, back" (snapper's home config exists on the PC: home/.snapshots), backups
-##     (kawa-backup), the space floor (VM: a full disk), the Learn piece.
-## (4) T45 (i) (the toolkit from GitHub at a release tag) stays last: no release tags yet.
+## >>> NEXT PASS STARTS HERE (1 Nov, written 12:40 — the lines above say what this pass did): the inbox first. Then:
+## (0) the master's RE-REVIEW of T45 (asked 12:36): its section at the end of
+##     .claude/notes/master-T45-efh-verdict.md. The second button proof's result: /dev/shm/r27p/update-button2.txt
+##     (gone after a reboot: then run tools/vm-inject/update-button.sh f44b from a frozen t45 again).
+## (1) t45's open should-fix: 8 (before arming: /boot/loader/entries = [new, running], the second's version the
+##     running one, no rescue; and no kernel in a transaction while a trial is open — hold the kernel family),
+##     11 (dnf5 versionlock list prints TOML: parse name + evr, or prove `exclude` twice does not duplicate),
+##     14 (a cut run's pinned snapshot released when its run did not end ok; a stale root.cand dropped at every
+##     start), 18 (the whole-set hold after a live-only red written into design §4.3 as built; the report says
+##     "N packages held together — which broke it could not be told apart"; the held pane "and N more"). Then
+##     the master once more.
+## (2) on the master's PASS: t45 → main (merge, the whole test suite), `fedokawaii apply` on the PC, then the
+##     PC's first real run of the new button: `sudo bash /usr/local/lib/fedokawaii/fedokawaii.sh update` (98
+##     updates: kernel 7.2.13, Mesa 26.2.5 …) — read the report, the pane (kit render), the probation armed;
+##     the trial closes at his next start (never restart his session for it).
+## (3) T46: Fedora 45 (release Tue 3 Nov): the f45 VM's second run passed phase 3 except RPM Fusion's
+##     pre-release repos (re-check after 3 Nov) and sshd (fixed 6a9d389) — run vm-smoke.sh f45 again from a
+##     frozen main; then the button's release move (design §4.4: dnf system-upgrade, the 7-day floor, the VM
+##     pre-flight marker), closing or re-arming an open probation first.
+## (4) T48 rest: "a file, back" (snapper's home config exists), backups, the space floor, the Learn piece.
+## (5) T45 (i) (the toolkit at a release tag) stays last.
