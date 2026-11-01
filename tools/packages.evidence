@@ -31,6 +31,7 @@ ffmpeg|rpmfusion-free|https://rpmfusion.org/Configuration|2026-10-14|manifest 20
 file|fedora|https://packages.fedoraproject.org/search?query=file|2026-10-14|manifest 2026-10-14
 fontconfig|fedora|https://packages.fedoraproject.org/search?query=fontconfig|2026-10-14|manifest 2026-10-14
 foot|fedora|https://packages.fedoraproject.org/search?query=foot|2026-10-14|manifest 2026-10-14
+fuse3|fedora|https://packages.fedoraproject.org/pkgs/fuse3/fuse3/|2026-11-01|F44 3.18.3-1.fc44, F45 3.18.3-1.fc45 (/usr/bin/fusermount3: rpm -qf here) — restic mount, Super+U → restore
 fwupd|fedora|https://packages.fedoraproject.org/search?query=fwupd|2026-10-14|manifest 2026-10-14
 fzf|fedora|https://packages.fedoraproject.org/search?query=fzf|2026-10-14|manifest 2026-10-14
 gamescope|fedora|https://mirrors.seas.harvard.edu/fedora/linux/releases/44/Everything/x86_64/os/Packages/g/|2026-10-20|gamescope-3.16.22 in Fedora 44 Everything (official mirror)

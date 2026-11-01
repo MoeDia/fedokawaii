@@ -2849,6 +2849,19 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   dialog cancelled, a backup that cannot be opened — nothing left behind, no backup yet, not plugged in; the
   drive's pane and row; restore's icon), static 13/13, deps, pick, clipfiles, shrink green. Learn book §8.1:
   both rows. (The PDF waits for his word, as every round-27 edit.)
+- r27-suites (1 Nov 19:14–20:12): the whole suite on 2b12615 rc 1 in 3282 s — 126 of 128 green; the two red
+  exactly the two fixed after it: installer/test_update_flow (the crash row counted the report's closing
+  line too → 878f1fd, the file alone green in 427 s) and content/test_brave (5 rows: the wrapper took ANY
+  running Brave of the user for "open" — the owner's own, live — → 0b45f65 reads its profile's SingletonLock;
+  30/0 with his Brave running). The suite on 2074718 was stopped (superseded); on 0b45f65 started 20:03.
+- r27-19m-p1 (1 Nov 19:58–20:15, T19m (b) pass 1 begun): the gallery rendered from the repository (27
+  surfaces, both moods, /dev/shm/r27/audit/p1) — every box the same in both moods; tools/audit-pads.py
+  (new) measured every surface's paper round its content; .claude/notes/audit-r27.md holds the table, the
+  readings, the method lessons (judge at 1×; measure whole ink boxes, never one row) and two open findings
+  for pass 2 (panels' row indent vs text screens'; the optical centre). The kit now copies the launcher's
+  overrides (its Foot / Foot Client / Foot Server were a kit artefact). T19m item (2) DONE: the legibility
+  floor in design-system §2 (0b45f65).
+
 ## >>> NEXT PASS STARTS HERE (1 Nov, written 20:15 by the 18:56 pass — the lines above say what it did): the inbox first. Then:
 ## (1) THE MASTER'S RE-REVIEW 4 OF T45 (r27-49-R4b, started 19:20 on 2b12615 → judged at 878f1fd; brief
 ##     /dev/shm/r27/master/T45-5/brief.md + two later messages: storm 3 (/dev/shm/r27/master/T45-5/
