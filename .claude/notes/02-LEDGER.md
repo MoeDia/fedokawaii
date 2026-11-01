@@ -3105,13 +3105,24 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   his next Super+U shows it.
 - r27-master-5-done (23:45): the master filled its two placeholders from the suite log (ddaeef7: 128/128, rc 0, 2808 s);
   T45 Verdict 5 PASS and T48 verdict 5 PASS stand (master-T45-efh-verdict.md "## Re-review 5", master-T48-verdict-5.md).
+- r27-push-c5e119f (2 Nov 00:07–00:09): the whole suite on c5e119f — "✔ all 128 test files passed", rc 0 in 3006 s
+  (/dev/shm/r27p/suite-c5e119f.log), its update-green f44 exit 0 in 280 s, "ok · updated · 61 packages", 0 AVC with
+  auditd on, no desktop red (kept: /dev/shm/r27/master/T45-5/green-c5e119f/) → GitHub main 9b10bc8..0f7209e (c5e119f +
+  360baf1's f45-checks + notes). APPLIED from the frozen /dev/shm/r27w-suite-c5e119f (69 s; verify 1 red: his
+  qbittorrent) — on the PC: /usr/local/sbin/kawa-snap = the repo's (uphase), the toolkit's lib/update.sh with the
+  replay filter, ~/.config/fedokawaii/yazi-pick/keymap.toml with q. Presence before: sound playing, no mic, nothing of
+  ours open. Tidied: the old frozen worktrees (/dev/shm), ~/repos/fk-t45 (t45 merged into main, on origin).
+- r27-21-nb (1 Nov 23:10–00:00, branch t21, pushed — NOT on main): the notebook built and grilled twice (one right
+  edge; descenders on the rule); found and fixed there: the to-do's first letters hidden by markdown's conceal. OPEN:
+  the light to-do's open items drawn in #e7cfa1 (the dark text) — in main's live notes.lua too (kit render); cause
+  not yet known (inspect says Normal = #122625; the kit's foot starts light) — see t21's notes-notebook.md.
 ## >>> NEXT PASS STARTS HERE (1 Nov, written ~23:50 by the 21:47 pass — the lines above say what it did): the inbox first. Then:
 ## (0) PRESENCE: he was at the PC all evening (a Discord call + a stream at 22:24; memory presence-not-just-input-idle).
 ##     Before anything he could see or hear (a reboot, a session restart, a bar restart, a live play, a notice):
 ##     `wpctl status` (a mic capture or playback [active]), `playerctl -a status`, one half-scale grim — not only the
 ##     60 s swayidle probe. Present → headless only (kit, pty, VM).
-## (1) GITHUB + PC: see the last r27-push / r27-apply lines above for what is pushed and applied (main = the newest
-##     commit whose whole suite (and, for T45's files, update-green f44) is green; the PC applied from a frozen tree).
+## (1) GITHUB + PC: main = 0f7209e + this pass's last notes commit (c5e119f's code: suite 128/128, update-green
+##     green); the PC runs c5e119f (applied 00:08 from its frozen tree). Nothing is running in the background.
 ##     If a suite was still running when this pass ended: its log /dev/shm/r27p/suite-<commit>.log — rc 0 → push main
 ##     there, apply from /dev/shm/r27w-suite-<commit> (never the working tree), the warm system window restarted
 ##     (kawa-warm --start after its footclient ends) so Super+U shows the change; red → fix forward.
@@ -3128,6 +3139,8 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
 ##     heading's rule; the to-do page's render; a typing play (frames); then merge t21 into main → the whole suite →
 ##     the master → push → apply (the warm notes window is NOT renewed by an apply: it holds his page — it takes the
 ##     new notes.lua at its next start; restart it only when he is away, after checking its buffer is saved).
+##     FIRST on t21: the light to-do's pale words (#e7cfa1 — also in main's live to-do in the kit): find the cause
+##     (the kit, or his screen), then give the page's words an explicit ink either way (r27-21-nb).
 ## (5) T46/T46b (F45 out Tue 3 Nov): after the release — vm-create f45 fresh from the released tree, vm-smoke f45,
 ##     then tools/vm-inject/f45-checks.sh f45 (all five green on the branched tree 1 Nov). T46's pre-flight
 ##     (tools/vm-preflight.sh) and the upgrade's WAIT (60 days by default) for the PC's own move.
