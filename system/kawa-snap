@@ -39,6 +39,7 @@ export LC_ALL=C.UTF-8
 state=/run/kawa-snap.pre
 lock=/run/kawa-snap.lock                     # one restore at a time; a dnf run's pre waits for it
 top=/run/kawa-snap/top                       # the file system's top level, mounted while working
+uphase=/var/lib/fedokawaii/update/phase      # the update's phase (lib/update.sh): a restore ends it
 case ${1:-} in
   pre|post|boot|list|finish) ;;
   restore) [[ ${2:-} =~ ^([1-9][0-9]*|old)$ && ${3:---with-home} == --with-home && $# -le 3 ]] \
@@ -250,6 +251,9 @@ finish() {
   mv -T --no-copy "$new" "$top/$T.old" || mv -T --no-copy "$new" "$top/$T.old.d/$(date +%s)-$$" \
     || echo "kawa-snap: the system before is kept as $T.new (it could not be renamed) — the next restore finishes it" >&2
   power_cut renamed
+  # (an update's open phase — a run cut, or one whose snapshot was offered — was about the system
+  # this restore replaced: ended, so no start judges the restored one by it)
+  if [[ -s $uphase ]]; then printf 'end %s\n' "$(date +%s)" >"$uphase" || echo "kawa-snap: the update's phase could not be ended ($uphase)" >&2; fi
   btrfs filesystem sync "$top" >/dev/null 2>&1 || echo "kawa-snap: not confirmed on disk — wait a minute before restarting" >&2
 }
 # finish_cut — a leftover $T.new without the mark is the system that ran before a restore cut short

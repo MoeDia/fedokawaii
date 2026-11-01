@@ -93,9 +93,9 @@ case "$a" in
   *" replay "*)   # (the stored packages go in: off the pending list, at their new versions in $FKH/evr)
       d=${*: -1}; [[ -s $d/transaction.json ]] || { echo "Cannot open $d/transaction.json" >&2; exit 1; }
       # ($FKH/replay-refused: it ends before its transaction — no history row, nothing in; else the
-      # row first, as libdnf5 commits it before rpm's run: $FKH/history, an id a line)
+      # row first, as libdnf5 commits it before rpm's run: $FKH/history, "ID<TAB>COMMAND LINE" a line)
       [[ -f $FKH/replay-refused ]] && { echo "Error: the transaction could not be started" >&2; exit 1; }
-      echo $(( $(tail -n1 "$FKH/history" 2>/dev/null || echo 0) + 1 )) >>"$FKH/history"; chmod 666 "$FKH/history"
+      printf '%s\t/usr/bin/dnf %s\n' $(( $(cut -f1 "$FKH/history" 2>/dev/null | sort -n | tail -n1) + 1 )) "$*" >>"$FKH/history"; chmod 666 "$FKH/history"
       countdown replay && { echo "Transaction failed: a scriptlet failed" >&2; exit 1; }
       [[ -f $FKH/replay-breaks-dwl ]] && touch "$FKH/dwl-crash"   # (what only the running system shows)
       # (the bar grows a row: its line first, before any red the bar had — the check says it first)
@@ -108,7 +108,7 @@ case "$a" in
   *" versionlock exclude "*) on=0; for s; do ((on)) && add versionlock "$s"; [[ $s == exclude ]] && on=1; done; exit 0;;   # (each spec once, as dnf5 adds them)
   *" versionlock delete "*) n=${*: -1}; [[ -f $FKH/versionlock ]] && sed -i "/^${n}-[0-9]/d" "$FKH/versionlock"; exit 0;;
   *" versionlock list "*) cat "$FKH/versionlock" 2>/dev/null; exit 0;;
-  *" history list "*"--json"*) cat "$FKH/history" 2>/dev/null | jq -cRn '[inputs | select(length > 0) | { id: tonumber }]'; exit 0;;
+  *" history list "*"--json"*) cat "$FKH/history" 2>/dev/null | jq -cRn '[inputs | select(length > 0) | split("\t") | { id: (.[0] | tonumber), command_line: (.[1] // "") }]'; exit 0;;
   *" check "*) [[ -s $FKH/dnfcheck ]] || exit 0; cat "$FKH/dnfcheck"; exit 1;;
   *" distro-sync "*) net_on || exit 1; [[ -f $FKH/distro-sync-fixes ]] && : >"$FKH/dnfcheck"; exit 0;;
   # (and $FKH/orphans: packages nothing needs — unneeded once they are no longer yours)

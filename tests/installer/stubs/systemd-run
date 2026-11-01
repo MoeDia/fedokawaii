@@ -13,6 +13,12 @@ unit=""
 for a; do case $a in --unit=*) unit=${a#--unit=}.service ;; esac; done
 while (($#)) && [[ $1 != /usr/bin/dnf ]]; do shift; done
 shift
+# ($FKH/run-hangs: the replay's dnf still starting — no history row yet, the unit running — when a
+# stop from outside comes: cut-on '^systemd-run\] running …'; the unit ends after two asks of is-active)
+if [[ -f $FKH/run-hangs && -n $unit && " $* " == *" replay "* ]]; then
+  rm -f "$FKH/run-hangs"; echo "active $unit" >>"$FKH/units"; echo 2 >"$FKH/fail-busy-$unit"; chmod 666 "$FKH/fail-busy-$unit"
+  fkh_cut "systemd-run] running $*"; exit 0
+fi
 if [[ -s $FKH/dnf-killed ]]; then rc=$((128 + $(cat "$FKH/dnf-killed"))); else /usr/local/bin/dnf "$@"; rc=$?; fi
 [[ -n $unit ]] && echo "ended $unit $rc" >>"$FKH/units"
 fkh_cut "systemd-run] ended $*"   # (a stop from outside the moment the unit has ended, before its end is read: cut-on '^systemd-run\] ended …')

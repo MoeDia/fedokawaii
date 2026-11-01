@@ -146,6 +146,10 @@ case_ "back: its yazi told the mode (the heading and keys are init.lua's), Enter
 setup; does esc; back >/dev/null; has "$(cat "$W/yazi-config")" "keymap.toml -> $HOME/.config/fedokawaii/yazi-pick/keymap.toml"
 has "$(cat "$HOME/.config/yazi/init.lua")" 'back    = { "as it was",'
 has "$(cat "$HOME/.config/fedokawaii/yazi-pick/kawa-pick.yazi/main.lua")" 'mode == "back"'
+case_ "…q with marks takes the marked, as Enter does (taking back, taking folders) — never the whole folder; the footer says so (rendered: q-taken, 1 Nov)"
+has "$(cat "$HOME/.config/fedokawaii/yazi-pick/keymap.toml")" '{ on = "q",       run = "plugin kawa-pick -- q",'
+has "$(cat "$HOME/.config/fedokawaii/yazi-pick/kawa-pick.yazi/main.lua")" 'if #tab.selected > 0 and (mode == "back" or mode == "folderN") then return ya.emit("open", {}) end'
+has "$(cat "$HOME/.config/yazi/init.lua")" 'k = { k[1], k[2], k[3], "the marked" }'
 
 # ── the answer file, the window, what goes wrong ─────────────────────────────────────
 case_ "the answer file: absolute paths, one a line, each ending in a line break, nothing more"

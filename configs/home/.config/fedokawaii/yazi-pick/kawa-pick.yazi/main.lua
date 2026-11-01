@@ -5,6 +5,8 @@
 -- yazi's own open = choose.
 -- Esc: first what yazi's Esc undoes (marks, visual mode, filter, find, search), then cancel,
 -- as Esc closes every other pop-up of the desktop.
+-- q: the folder you are in (yazi's quit hands kawa-pick its cwd) — but with marks, while taking
+-- folders or taking back, the marked, as Enter takes them: marks then q never means "all of it".
 return {
 	entry = function(_, job)
 		local mode, tab = os.getenv("KAWA_PICK") or "", cx.active
@@ -17,6 +19,10 @@ return {
 				return ya.emit("escape", {})
 			end
 			return ya.emit("quit", { no_cwd_file = true })
+		end
+		if job.args[1] == "q" then
+			if #tab.selected > 0 and (mode == "back" or mode == "folderN") then return ya.emit("open", {}) end
+			return ya.emit("quit", {})
 		end
 		local h = tab.current.hovered
 		if h and h.cha.is_dir and (mode:match("^open") or mode == "back") and #tab.selected == 0 then

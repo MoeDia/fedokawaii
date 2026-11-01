@@ -12,6 +12,7 @@ fresh() {
   pointed "$REPO/system/kawa-snap" "$STUBS/kawa-snap" \
     "s|/proc/|$P/|g" "s|^state=/run/kawa-snap.pre\$|state=$TMP/runroot/kawa-snap.pre|" \
     "s|^lock=/run/kawa-snap.lock |lock=$TMP/runroot/kawa-snap.lock |" \
+    "s|^uphase=/var/lib/fedokawaii/update/phase |uphase=$TMP/runroot/update-phase |" \
     's|\[\[ \$EUID -eq 0 \]\]|[[ ${FK_EUID:-$EUID} -eq 0 ]]|'
   export FK_EUID=0
   # snapper: numbers its snapshots from 41; prints the number for -p
@@ -133,6 +134,7 @@ disk() {   # a Fedora layout: root (kernel 6.18.0, marked "now"), its snapshots 
   pointed "$REPO/system/kawa-snap" "$STUBS/kawa-snap" \
     "s|/proc/|$P/|g" "s|^state=/run/kawa-snap.pre\$|state=$TMP/runroot/kawa-snap.pre|" \
     "s|^lock=/run/kawa-snap.lock |lock=$TMP/runroot/kawa-snap.lock |" \
+    "s|^uphase=/var/lib/fedokawaii/update/phase |uphase=$TMP/runroot/update-phase |" \
     's|\[\[ \$EUID -eq 0 \]\]|[[ ${FK_EUID:-$EUID} -eq 0 ]]|' \
     "s|^top=/run/kawa-snap/top |top=$T |" "s|/boot/|$B/|g" "s|sync -f /boot |sync -f $B |" \
     "s|/usr/local/sbin/fedokawaii-split|$STUBS/fedokawaii-split|" "s|cp -a /usr/local/sbin/kawa-snap |cp -a $STUBS/kawa-snap |"
@@ -235,6 +237,10 @@ eq "$(cat "$TMP/adds")" updatedefault=no; eq "$(cat "$T/root/etc/sysconfig/kerne
 eq "$(grep -n -E '^(exch|grubby)' "$CALLS" | cut -d: -f2 | cut -d' ' -f1 | paste -sd' ')" "exch grubby" "the default after the exchange"
 case_ "…the copy starts clean: no /.autorelabel, no /system-update from the snapshot"
 [[ ! -e $T/root/.autorelabel && ! -L $T/root/system-update ]] && _ok || _no "a relabel or an offline update would run at its first start"
+case_ "…an update's open phase (a run cut, its snapshot offered) ended by the restore: no start judges the restored system by it; none there: none made"
+disk; printf 'replay 1793500000\n' >"$TMP/runroot/update-phase"; kawa-snap restore 41 --with-home >/dev/null 2>&1; eq "$?" 0
+eq "$(cut -d' ' -f1 "$TMP/runroot/update-phase")" end
+disk; rm -f "$TMP/runroot/update-phase"; kawa-snap restore 41 --with-home >/dev/null 2>&1; [[ -e $TMP/runroot/update-phase ]] && _no "a phase made from nothing" || _ok
 case_ "restore old: swapped back — the system before the restore again"
 kawa-snap restore old --with-home >/dev/null 2>&1; eq "$?" 0
 eq "$(cat "$T/root/etc/mark")" now; eq "$(cat "$T/root.old/etc/mark")" then41

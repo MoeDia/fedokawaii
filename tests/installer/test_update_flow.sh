@@ -270,12 +270,12 @@ has "$(foryou)" "the system before it (snapshot 7) was put back"
 case_ "…a start after that, still not whole: never again by itself — said, with the way back"
 reset_calls; printf 'replay 1\n' >"$U/phase"; resume; eq "$RC" 0; not_called 'kawa-snap\] restore'; not_called 'systemctl\] reboot'
 has "$(foryou)" "snapshot 7 is the system before it: Super+U → snapshots → 7"
-case_ "a start after a run cut before its transaction began (no row in dnf's history newer than its mark): nothing to undo — the phase ended, said at login; no restore, no restart"
-back built; reset_calls; cut_run; fkh mounts /run/fedokawaii/top /home; fkh history 5; echo 5 >"$U/hist"
+case_ "a start after a run cut before its transaction began (no replay row in dnf's history newer than its mark — another transaction between counts for nothing): nothing to undo — the phase ended, said at login; no restore, no restart"
+back built; reset_calls; cut_run; fkh mounts /run/fedokawaii/top /home; fkh history $'5\t/usr/bin/dnf -y -C replay /var/lib/fedokawaii/update/tx' $'6\t/usr/bin/dnf -y remove kernel-core-7.2.10'; echo 5 >"$U/hist"
 resume; eq "$RC" 0 "$OUT"; eq "$(cut -d' ' -f1 "$U/phase")" end; not_called 'kawa-snap\] restore'; not_called 'systemctl\] reboot'
 has "$(foryou)" "update-cut the last update stopped before it changed anything press update (Super+U) to run it again"
 case_ "…a row newer than the mark (its transaction began): judged as before — not whole, put back"
-back built; reset_calls; cut_run; fkh mounts /run/fedokawaii/top /home; fkh history 5 6; echo 5 >"$U/hist"
+back built; reset_calls; cut_run; fkh mounts /run/fedokawaii/top /home; fkh history $'5\t/usr/bin/dnf -y -C replay /var/lib/fedokawaii/update/tx' $'6\t/usr/bin/dnf -y -C replay /var/lib/fedokawaii/update/tx'; echo 5 >"$U/hist"
 resume; eq "$RC" 0 "$OUT"; called 'kawa-snap\] restore 7$'; lacks "$(foryou)" "stopped before it changed anything"
 case_ "…not whole, /home inside the system: offered, never done — his home would go back too"
 back built; reset_calls; cut_run
@@ -315,6 +315,12 @@ echo '^systemd-run\] ended .*-C replay ' >"$FKH/cut-on"; echo TERM >"$FKH/cut-si
 up; eq "$RC" 143 "$(tail -n3 <<<"$OUT")"; eq "$(report)" stopped; eq "$(cut -d' ' -f1 "$U/phase")" replay "the phase kept"
 rm -f "$FKH"/cut-*; reset_calls; up; eq "$RC" 0 "$(tail -n3 <<<"$OUT")"; has "$OUT" "the last update was cut off in its transaction — finishing it first"
 eq "$(report)" ok; not_called 'dnf\] .*replay'
+case_ "stopped from outside while dnf's unit still runs (no history row yet): never judged — the phase kept; the next press follows the unit to its end, then runs it anew"
+back built; reset_calls; pending "bash 5.2-1.fc44 5.3-1.fc44"; fkh run-hangs
+echo '^systemd-run\] running .*-C replay ' >"$FKH/cut-on"; echo TERM >"$FKH/cut-sig"; chmod 666 "$FKH"/cut-*
+up; eq "$RC" 143 "$(tail -n3 <<<"$OUT")"; eq "$(report)" stopped; eq "$(cut -d' ' -f1 "$U/phase")" replay "a unit still running: not judged"
+rm -f "$FKH"/cut-*; reset_calls; up; eq "$RC" 0 "$(tail -n3 <<<"$OUT")"; has "$OUT" "is still going — followed to its end"
+has "$OUT" "the last update stopped before its transaction began — nothing had changed: it runs anew"; eq "$(report)" ok
 case_ "dnf's unit still running when first asked (its end shows on the fourth ask): asked again once a second, then read — kept"
 back built; reset_calls; pending "bash 5.2-1.fc44 5.3-1.fc44"; fkh fail-end-late 3
 up; eq "$RC" 0 "$(tail -n3 <<<"$OUT")"; eq "$(report)" ok

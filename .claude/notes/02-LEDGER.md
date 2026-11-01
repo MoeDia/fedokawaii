@@ -3060,6 +3060,42 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   there: dbus_next markdown pikepdf playwright syncplay textual torrra (uv apps' and the docs build's own).
   ShellCheck clean; static test_tools/pipefail/syntax/noellipsis green. Left of item 2: the splash's frames
   (vm-smoke's restart + a screen dump) after the release.
+- r27-49-master-5 (1 Nov 22:45–23:20, the master's T45 Re-review 5, master-T45-efh-verdict.md "## Re-review 5"):
+  VERDICT 5: PASS — no must-fix; the never-began rule proven from the INSTALLED dnf5's and rpm's own sources (the
+  master's own fetch: byte-identical to main's copies; Fedora's dnf5.spec f44 = 5.4.6.0-1, no patch; rpm 6.0.2), every
+  path tested (341/0), green-3c3d583 and green-ddaeef7 closing Verdict 4's condition (2). The sources behind the
+  decision (should-fix 3: the line numbers beside it): libdnf5/base/transaction.cpp :1162 (the test run,
+  RPMTRANS_FLAG_TEST), :1182 (plugins.pre_transaction), :1261 (db_transaction.start()), :1285 (rpm_transaction.run());
+  rpm-6.0.2 lib/psm.cc :1115; dnf5/signal_handlers.cpp :39 (SIGTERM: _exit(1) at once); libdnf5/transaction/db/
+  trans.cpp :85–109 (the row's insert). Noted, no code (should-fix 3): the actions plugin's pre hook (kawa-snap pre)
+  runs BEFORE the row — a replay that dies between the hooks and the row (a throw in start(), a power cut in that
+  instant) leaves a `pre` snapshot without its post; the next transaction's pre overwrites the state file and
+  snapper's number cleanup removes the orphan in time: a snapshot more, no change to the running system.
+- r27-49-R5-sf (1 Nov 22:58–23:05, local): its should-fixes 1, 2, 4 BUILT — (1) up_hist counts only the replay's own
+  rows (`select(.command_line | endswith(" replay " + $UPD/tx))`): a transaction between the mark and the judgement
+  (--kernels' removal, after-dnf's installs) never reads as "began" — seen on the PC tonight: its newest row is 78,
+  `dnf -y mark user fuse3` from the 22:22 apply, the newest replay row 77 (14:41): the filter answers 77, the old
+  highest-id mark would have read 78 as "began"; the stand-in's history rows carry their
+  command line; the start-after row now has a removal between (still ended, said); (2) the running-unit row:
+  systemd-run's stand-in $FKH/run-hangs (the unit running, no row yet) + a TERM → phase replay kept, never judged;
+  the next press follows the unit to its end, then runs it anew; (4) kawa-snap restore ends an open update phase
+  (finish(): `end` into /var/lib/fedokawaii/update/phase when there is one) — after his restore of an offered
+  snapshot no start says "stopped before it changed anything" of a system that is no longer the one it changed;
+  test_snap row (a phase there → end; none → none made).
+- r27-52-master-5 (the master's T48 verdict 5, master-T48-verdict-5.md): PASS — verdict 4's must-fix closed by the
+  removal, should-fix 1 decided by measurement, the PC conditions met where a drive is not needed. Should-fixes: 1
+  yazi's dialog grid (T22, its plan note), 2 q with marks (BUILT below), 3 the next PC run sends the closing key on
+  "any key" (a nit: the next job-window proof does), 4 the drive's pane and row with a real USB label (when one is
+  plugged in — owed, hardware).
+- r27-52-R5-sf2 (1 Nov 22:59–23:02, local): kawa-pick's q — in back and folderN modes, q with marks takes the
+  marked (the plugin emits open, as Enter does), else the folder you are in, as before; the dialog's footer says
+  "q  the marked" while marks exist (init.lua's Status child). Rendered in the kit with the repository's yazi files
+  copied into the kit's home (the kit carries the installed ones): notes.md marked → the footer "q  the marked"
+  (/dev/shm/r27p/kit-g/q-marked-win.png); q → "as it was yesterday at 21:00, into ~/Restored/…: Documents/notes.md
+  ✓ finished" (q-taken-win.png) — the same keys took the whole Documents folder before. test_pick: three rows.
+- r27-push-ddaeef7 (1 Nov 23:10): the whole suite on ddaeef7 — "✔ all 128 test files passed", rc 0 in 2808 s
+  (/dev/shm/r27p/suite-ddaeef7.log), its update-green exit 0 (T45-5/green-ddaeef7), the master's Verdict 5 PASS →
+  GitHub main c8a91e0..ddaeef7. 9b10bc8 (the to-do) and 360baf1 (f45-checks) local, their suite running.
 ## >>> NEXT PASS STARTS HERE (1 Nov, written 20:55 by the 18:56 pass — the lines above say what it did): the inbox first. Then:
 ## (1) PUSHED (by accident, see below), NOT APPLIED. Local main = r27 = the newest commit. Two points matter:
 ##     · cf211b8 — T45's conditions ran on it: update-green exit 0 (MET); the whole suite →

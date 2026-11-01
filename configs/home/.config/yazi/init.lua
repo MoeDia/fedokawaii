@@ -206,6 +206,10 @@ if pick then
 	end
 	Status:children_add(function()
 		local spans, k = { ui.Span("  ") }, pick[2]
+		-- (q with marks takes the marked — the plugin's q — and says so)
+		if #cx.active.selected > 0 and k[#k] == "this folder" and k[1] == "space" then
+			k = { k[1], k[2], k[3], "the marked" }
+		end
 		for i = 1, #k, 2 do
 			if i > 1 then spans[#spans + 1] = ui.Span("    ") end
 			spans[#spans + 1] = ui.Span(k[i])

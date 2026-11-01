@@ -321,9 +321,11 @@ u_replay() {   # → 1 the transaction failed on the running system
 }
 # (dnf commits its history's row for a transaction after rpm's test run and before its real one —
 # libdnf5 base/transaction.cpp, Transaction::Impl::_run: db_transaction.start(), then
-# rpm_transaction.run(); 5.4.6. So with no row newer than UPD/hist, written before the replay,
-# and no dnf unit still running, rpm never began: not one file of the set was touched)
-up_hist() { dnf -q history list --json 2>/dev/null | jq '[.[].id] | max // 0'; }
+# rpm_transaction.run(); 5.4.6. So with no replay row newer than UPD/hist, written before the
+# replay, and no dnf unit still running, rpm never began: not one file of the set was touched.
+# Only the replay's own rows count — another transaction between the mark and the judgement (a
+# kernel the start's --kernels removes, after-dnf's installs) says nothing about this one)
+up_hist() { dnf -q history list --json 2>/dev/null | jq --arg tx "$UPD/tx" '[.[] | select((.command_line // "") | endswith(" replay " + $tx)) | .id] | max // 0'; }
 up_never_began() {
   local was now run
   was=$(cat "$UPD/hist" 2>/dev/null) || return 1
