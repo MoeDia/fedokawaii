@@ -2375,6 +2375,24 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   Also: the clean Fedora 44 install from fd0739a (f44 VM, from fresh): GREEN — verify 253 passed, 4
   named skips, the desktop up in 20 min — the dwl fix (r27-found-4) proven end to end.
 
+- r27-49h (cont., 1 Nov 12:20–12:46, the master's must-fix 4 in the VM — tools/vm-inject/update-button.sh on
+  f44b): run 1 — the button's mechanics held (three presses followed one run to the same last line, the
+  exit status came back, a stopped run said "another package manager is running (dnf5)"), but every run
+  stopped at its start: the 27 Oct VM had no python3-pillow, so the check could not run — and only an
+  update could bring it. Fixed: u_start installs the checks' own tool first. Run 2 — still "could not be
+  measured": in the VM hl-dwl chose GLES on the virtio screen (its render node's driver is virtio-pci,
+  not virtio_gpu as the should-fix 13 change assumed), and there the terminal server never came up.
+  Fixed: a virtio screen known by its vendor (0x1af4) → pixman; the check then GREEN inside the VM
+  ("the bar, the notices, the terminals, quick settings and the warm windows up"). Run 3 — THE UPDATE
+  WENT THROUGH THE BUTTON END TO END: `fedokawaii.sh update` → fedokawaii-update.service 12:32:42–12:38:09
+  (5 min 28 s, 2.6 GB peak), exit 0, "update done (ok): updated · 49 packages", the report ok, the stopped
+  run's status 1 with its reason — but the 2nd/3rd presses came only after the run (the VM journal: the
+  second unit at 12:38:51): the proof's ssh waited for the backgrounded first press (it inherited ssh's
+  output). Fixed in the proof (each press detached); run 4 started 12:45.
+- Applied main (f18579d) on the PC 12:32–12:34: dwl rebuilt (the patch's config.def.h lines; same code,
+  next login), the theme reloaded; verify 259/260 — the one red unchanged (qbittorrent outside the
+  manifest, his own: T35's).
+
 ## >>> NEXT PASS STARTS HERE (1 Nov, written 12:40 — the lines above say what this pass did): the inbox first. Then:
 ## (0) the master's RE-REVIEW of T45 (asked 12:36): its section at the end of
 ##     .claude/notes/master-T45-efh-verdict.md. The second button proof's result: /dev/shm/r27p/update-button2.txt
