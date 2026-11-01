@@ -109,13 +109,12 @@ eq "$(cat "$TMP/secs")" "system: status verify repair drift change theme setting
 update: update pull upgrade held 
 snapshots: snapshots file 
 backups: backup restore drive 
-learning: guide chess typing todo keys "
+learning: guide chess typing keys "
 out=$(WAYLAND_DISPLAY=wayland-1 allrows)
 (( $(widest "$(entries "$out")") <= 38 )) && _ok || _no "a row wider than 38: $(plain "$out")"
 lacks "$(plain "$out")" "╌" "no dashed line anywhere"
-case_ "learning → to-do: its own picture (the tanzaku: ICON_TODO), not a checkbox"
-l=$(cut -f2 <<<"$(grep "^todo"$'\t' <<<"$out")")
-(. "$REPO/configs/home/.config/fedokawaii/icons.sh"; [[ -n $ICON_TODO && $l == *"$ICON_TODO"* && $l != *"$ICON_BOX_ON"* ]]) && _ok || _no "to-do: $l"
+case_ "never again: no to-do in Super+U — it lives in Super+N alone (owner 1 Nov 22:27: \"to-do should NOT be in learning\")"
+lacks "$(plain "$out")" "to-do"; [[ -z $(grep "^todo"$'\t' <<<"$out") ]] && _ok || _no "a todo row: $(grep "^todo" <<<"$out")"
 case_ "rows: each entry a column in, its icon, two columns, its name; the value right-aligned at the list's last column, muted"
 for a in update snapshots remind; do
   l=$(cut -f2 <<<"$(grep "^$a"$'\t' <<<"$out")")
@@ -209,19 +208,15 @@ fresh; stub kawa-config; stub kawa-help
 WAYLAND_DISPLAY=wayland-1 fedokawaii --run change </dev/null; WAYLAND_DISPLAY=wayland-1 fedokawaii --run keys </dev/null
 for _ in 1 2 3 4 5 6 7 8 9 10; do grep -q kawa-help "$CALLS" && grep -q kawa-config "$CALLS" && break; sleep 0.1; done
 called '^setsid -f kawa-config$'; called '^setsid -f kawa-help$'
-case_ "learning → to-do: the notes' window on its to-do page (kawa-notes --todo), the menu put away; its pane says where else it lives"
+case_ "…nor a way in by name: --run todo runs nothing, --explain todo is empty"
 fresh; stub kawa-notes
-WAYLAND_DISPLAY=wayland-1 fedokawaii --run todo </dev/null
-for _ in 1 2 3 4 5 6 7 8 9 10; do grep -q kawa-notes "$CALLS" && break; sleep 0.1; done
-called '^setsid -f kawa-notes --todo$'
-l=$(cut -f2 <<<"$(grep "^todo"$'\t' <<<"$(WAYLAND_DISPLAY=wayland-1 allrows)")")
-lacks "$(plain "$l")" "soon" "a live entry now"
-has "$(plain "$(fedokawaii --explain todo)")" "Super+N, then tab"
+WAYLAND_DISPLAY=wayland-1 fedokawaii --run todo </dev/null; not_called 'kawa-notes'
+eq "$(fedokawaii --explain todo 2>&1)" ""
 has "$(cat "$(command -v fedokawaii)")" "enter:transform:case {1} in \$PANE_ONLY|\$SOON) ;; \${launch}remind) echo 'execute-silent(\$self --run {1})+reload-sync(\$self --items)' ;; change|keys\${pop}) echo '\${away}become("
 case_ "Super+U's popup (--popup): the menu closes for a job too (fzf becomes the run, which hands it on); the guide, the key sheet and the settings start without fzf giving up the screen, then the popup is put away (dwl fades it off: never a blank terminal); a plain menu, neither"
 fresh; stub fzf 'cat >/dev/null; exit 130'
 on_tty "" fedokawaii --popup >/dev/null
-called "enter:transform:case \\{1\\} in held\\|chess\\|typing\\) ;; guide\\|keys\\|change\\|todo\\) echo 'execute-silent\\([^)]* --run \\{1\\}\\)\\+execute-silent\\(kawa-warm system\\)' ;; remind\\) "
+called "enter:transform:case \\{1\\} in held\\|chess\\|typing\\) ;; guide\\|keys\\|change\\) echo 'execute-silent\\([^)]* --run \\{1\\}\\)\\+execute-silent\\(kawa-warm system\\)' ;; remind\\) "
 called 'remind\) echo .execute-silent\([^)]* --run \{1\}\)\+reload-sync\([^)]* --items\). ;; change\|keys\|update\|pull\|upgrade\|verify\|repair\|theme\|drift\|snapshots\|file\|backup\|restore\|drive\|settings\|log\) echo .become\('
 reset_calls; on_tty "" fedokawaii >/dev/null; called 'enter:transform:case \{1\} in held\|chess\|typing\) ;; remind\) echo .execute-silent\([^)]*\)\+reload-sync\([^)]*\). ;; change\|keys\) echo .become\('
 called 'esc,ctrl-c,ctrl-g,ctrl-q:abort' "(outside the warm window: Esc only ends it)"

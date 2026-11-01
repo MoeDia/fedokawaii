@@ -213,7 +213,7 @@ different from brightness; window borders get the bar's 3D shadow look. Sliders 
 brightness): not a plain rectangle, alive — turning red when high. Re-measure all spacing, alignment and fit — every icon and section, and the bar's distance from
 the window borders.
 
-**Added 18:48**: a **to-do list beside the notes (Super+N), reachable from Super+U too** — dead simple: items with a checkbox,
+**Added 18:48**: a **to-do list beside the notes (Super+N)** (owner 2026-11-01 22:27: NOT in Super+U — "to-do should NOT be in learning"; Super+N's tab is its only way in) — dead simple: items with a checkbox,
 done items struck through; no reminders, no dates, nothing else. And a **design coherence pass
 over everything**, above all the menus (quick settings, Super+W, Super+U, Super+V, every
 popup): one colour use, one frame, one spacing and alignment grammar, one philosophy.

@@ -306,7 +306,7 @@ accept: shots both themes (art, caret visible at 0.0 s and 0.5 s, torches' frame
 
 ## Phase 4 — the apps
 
-### T21 — notes (Super+N) as a vertical lined notebook; black areas, save flicker, header spacing; the to-do list beside it  [wip — the to-do done 1 Nov (ledger r27-21a: Tab turns the page typing or not, Super+U → learning → to-do, test_notes 115/0, rendered both moods); bug 2's black areas DONE 1 Nov 20:26 (4940712: foot's alpha-mode=matching — the cells that name the ground's colour were opaque; ledger r27-21-bug2); the save flicker DONE 1 Nov 20:34 (0f50860: neovim's ui2 — each :write blanked the footer for a frame; ledger r27-21-bug6); left: the notebook redesign, the header spacing, the Learn piece]
+### T21 — notes (Super+N) as a vertical lined notebook; black areas, save flicker, header spacing; the to-do list beside it  [wip — the to-do done 1 Nov (ledger r27-21a: Tab turns the page typing or not, test_notes 115/0, rendered both moods); T21t DONE 1 Nov 22:35 (owner inbox 22:27: the to-do out of Super+U — Super+N's tab its only way in; ledger r27-21t); bug 2's black areas DONE 1 Nov 20:26 (4940712: foot's alpha-mode=matching — the cells that name the ground's colour were opaque; ledger r27-21-bug2); the save flicker DONE 1 Nov 20:34 (0f50860: neovim's ui2 — each :write blanked the footer for a frame; ledger r27-21-bug6); left: the notebook redesign, the header spacing, the Learn piece]
 deps: T11, T16, T19  · model: main  · ledger: r27-21
 files: bin/kawa-notes, configs/home/.config/fedokawaii/notes.lua, bin/kawa-warm (window geometry: a tall rectangle, e.g. 60×40 cells, centred), bin/kawa-todo (new: the same page engine on ~/Notes/todo.md, `[ ]`/`[x]` rows, Space toggles, done rows struck through with the strikethrough attribute, nothing else), system/fedokawaii (learning → to-do), configs/home/.config/fedokawaii/keybinds.txt (inside notes: Tab = to-do page), tests/content/test_notes.sh, tests/content/test_todo.sh
 approach:
@@ -316,6 +316,8 @@ approach:
 - To-do: dead simple — checkbox rows, Enter adds, Space toggles, `dd` deletes, done rows struck through; reachable with Tab from notes and from Super+U → learning → to-do; state is the file.
 NOTE (T12, 06:47): notes.lua still draws its heading the old way (kanji + the dashed stitch ╌) — the new grammar (icon, strong name, solid rule; docs §7) comes with this redesign.
 accept: shots both themes at top/middle/end of a long note: margins identical to the pixel; recording of 30 s typing + 5 saves: no frame with a black region, no full redraw; to-do: 10 toggles/adds/deletes round-trip through the file (test_todo.sh); Learn "notes" piece corrected.
+
+T21t (owner inbox 2026-11-01 22:27: "to-do should NOT be in learning thats stupid remove it from there just keep it in the super n") — files: system/fedokawaii (the learning row, its pane, --run/--explain, the launch list), bin/kawa-notes (--todo gone: its only caller was that row), notes.lua (kawa_notes_todo, next_page gone), tests/engine/test_menu.sh (a never-again row: no to-do in Super+U, by row and by name), tests/content/test_notes.sh (the to-do reached by tab, as he does; --todo a misuse), CLAUDE.md's line. accept: test_menu + test_notes green; Super+U's learning tab rows guide · chess · typing · keys; live after the apply (his next Super+U).
 
 ### T22 — yazi: the whole UI rebuilt on the engine; hidden files always; .rar; locked PDFs asked properly  [todo]
 deps: T11, T16  · model: main  · ledger: r27-22

@@ -3021,6 +3021,33 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
 - r27-apply-3c3d583 (1 Nov 22:21): the PC was on b318e6f (18:01: setup.sh and system/fedokawaii compared file for
   file); `sudo FEDOKAWAII_COPY=/dev/shm/r27w-suite-3c3d583 fedokawaii apply` (the frozen, tested tree — never
   the working tree with untested edits) after a presence probe (idle 60 s at 22:11:56) → /dev/shm/r27p/apply-3c3d583.log.
+- r27-52-pc (T48, the master's verdict-4 conditions on the PC, 1 Nov 22:25–22:29 — he was AT the PC (a Discord
+  call, a stream: grim at 22:24), so all headless: the installed fedokawaii + kawa-backup (3c3d583, applied 22:22),
+  the real snapper, restic, FUSE and kawa-pick's yazi, driven by timed keys in a pty (tests/lib/pty_run.py), no
+  notices (no bus); scripts and output: /dev/shm/r27/master/T48-pc/):
+  · a file, back — HIS home, /home's snapshot 12 (22:00): number, Enter, the dialog (yazi) found search-ui.html
+    (/, its name, Enter) and took it (Enter) → "as it was at 22:00, into ~/Restored/2026-11-01-222608:
+    search-ui.html ✓ finished"; the copy byte-identical to the snapshot's (`cmp`), its date kept (26 Oct 17:05);
+    then removed (~/Restored did not exist before: gone again).
+  · restore → a file — a throw-away home and a folder target (BACKUP_TARGET=/dev/shm/…/drive in a copied
+    toolkit's conf, RESTIC_PASSWORD in its secrets.sh; never his home): two real backups (kawa-backup:
+    2a960650, 1a61219c) → restore → 1 → the backup opened: /proc/mounts "restic:… /run/user/1000/fedokawaii-
+    backup.zetFqS fuse ro" at 4, 6, 8 s while the dialog was open → Documents → notes.md taken → "as it was at
+    22:26, into ~/Restored/2026-11-01-222812: Documents/notes.md ✓ finished", its text the NEWEST backup's ("notes
+    changed after backup 1") → after: no fedokawaii-backup.* or fedokawaii-back.* in /run/user/1000, 0 mounts.
+  · the window closed mid-dialog — the same, the pty hung up at 9 s with the backup mounted (6, 8 s): pty rc 129;
+    after: nothing left, 0 mounts. (And the runs killed by pty_run's timeout: nothing left either.)
+  · verify after the apply: 1 red of 262 — his qbittorrent outside the manifest (T35's, known).
+  · Not provable here: the drive's pane/row with a real USB label (no drive plugged in; the pane says "none chosen
+    yet", which is his PC's truth); "a → yes" (the in-place restore was taken out: no such path).
+  · Seen on the way (→ T22): in back mode q takes "this folder" even with marks (Enter takes the marks) — marking
+    three files then q gives the whole folder: q with marks should take the marks.
+- r27-21t (owner inbox 1 Nov 22:27 "to-do should NOT be in learning … just keep it in the super n", 22:28–22:35):
+  the to-do is Super+N's alone — Super+U's learning row, its pane, --run/--explain todo and the launch list's entry
+  gone (system/fedokawaii); kawa-notes --todo (its only caller was that row) and notes.lua's kawa_notes_todo /
+  next_page gone; CLAUDE.md's line says it. Tests: test_menu — a never-again row (no to-do row or word in Super+U;
+  --run todo runs nothing, --explain todo empty); test_notes — the to-do reached by tab from the shown notes, as he
+  does; --todo a misuse (2), nothing shown. test_notes 114/0.
 ## >>> NEXT PASS STARTS HERE (1 Nov, written 20:55 by the 18:56 pass — the lines above say what it did): the inbox first. Then:
 ## (1) PUSHED (by accident, see below), NOT APPLIED. Local main = r27 = the newest commit. Two points matter:
 ##     · cf211b8 — T45's conditions ran on it: update-green exit 0 (MET); the whole suite →

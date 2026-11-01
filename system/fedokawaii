@@ -752,7 +752,6 @@ rows() {
   e learning  guide     "${ICON_BOOK:-·}"       lessons                ""
   e learning  chess     "${ICON_KNIGHT:-·}"     chess                  ""
   e learning  typing    "${ICON_KEYBOARD:-·}"   typing                 ""
-  [[ -n $desk ]] && e learning todo "${ICON_TODO:-·}" to-do ""     # (the notes' window: the desktop's)
   [[ -n $desk ]] && e learning keys "${ICON_KEYCAP:-·}" keys ""
   return 0
 }
@@ -887,7 +886,7 @@ tick() {
 explain() {
   local a=$1 O=${INK_OFF:-} G=${INK_MUTED:-} F=${INK_FAINT:-} R=${INK_ACCENT_TEXT:-} kv pw=${FZF_PREVIEW_COLUMNS:-$PANE}
   # (nothing, or something unknown: nothing to explain)
-  [[ $a == @(status|update|pull|upgrade|held|verify|repair|snapshots|file|backup|restore|drive|theme|drift|change|settings|remind|log|keys|guide|todo|$SOON) ]] || return 0
+  [[ $a == @(status|update|pull|upgrade|held|verify|repair|snapshots|file|backup|restore|drive|theme|drift|change|settings|remind|log|keys|guide|$SOON) ]] || return 0
   printf '%s\n\n\n' "$(screen_heading "$(icon_of "$a")" "${2:-$a}" $((pw - 1)))"   # (level with the tab bar; its words with the list's first row)
   # (the whole status only for the entries that show more than whether a run is going on:
   # the pane follows the cursor, so the others stay instant)
@@ -1021,9 +1020,6 @@ explain() {
                     "puzzles, lessons." ;;
     typing)    soon "touch typing, finger by finger, to 100 words" \
                     "a minute." ;;
-    todo)      pick 'running'
-               say "things to do, a box each to tick — beside" \
-                   "your notes: Super+N, then tab." ;;
   esac
 }
 
@@ -1121,7 +1117,6 @@ run() {   # run ACTION — in the menu's window: the work, its outcome, a key ba
     log)       log_view; return 0 ;;   # (as `fedokawaii log`)
     change)    setsid -f kawa-config >/dev/null 2>&1 </dev/null; return 0 ;;   # (its own menu, by the bar)
     keys)      setsid -f kawa-help >/dev/null 2>&1 </dev/null; return 0 ;;     # (the sheet, by the bar)
-    todo)      setsid -f kawa-notes --todo >/dev/null 2>&1 </dev/null; return 0 ;;   # (the notes' window, on it)
     guide)     if [[ ${FEDOKAWAII_POPUP:-} == yes ]]; then   # (the popup gone: why it did not open, in a notice)
                  local why; why=$(guide 2>&1) || notify-send -a desktop -u critical -- "${ICON_TORII:-·}  learn" "${why#  }"
                  return 0
@@ -1350,7 +1345,7 @@ menu_fzf() {   # → fzf's exit status (2: it could not run — the plain menu t
     # (what opens a window of its own — the guide, the key sheet, the settings — starts it
     # without fzf giving up the screen, then puts the popup away: dwl fades it off as it is,
     # never a blank terminal first; the list starts afresh behind the scenes)
-    launch="guide|keys|change|todo) echo 'execute-silent($self --run {1})+execute-silent(kawa-warm system)' ;; "
+    launch="guide|keys|change) echo 'execute-silent($self --run {1})+execute-silent(kawa-warm system)' ;; "
     rm -f -- "${listen[0]#--listen=}"              # (one killed outright left it: fzf would not start)
   fi
   export FZF_DEFAULT_OPTS_FILE=$HOME/.config/fedokawaii/fzf.opts; unset FZF_DEFAULT_OPTS

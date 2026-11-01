@@ -16,3 +16,6 @@ also for downloads create also a custom beaitful progess bar inside the download
 
 ## 2026-11-01 17:10 — in the plan: T46b (Fedora 45 studied and used to the full, Python first)
 make sure you study the fedora 45 update well and utilize it fully like they switched to a newer python and such
+
+## 2026-11-01 22:27 — in the plan: T21t
+to-do should NOT be in learning thats stupid remove it from there just keep it in the super n

@@ -240,7 +240,7 @@ local function run(arg)
   vim.fn.system({ "kawa-notes", arg })
   fresh()
 end
-local shown, next_page = false, nil         -- (the window showing; the page it opens on next)
+local shown = false                         -- (the window showing)
 local todo_open, todo_tidy                  -- (the to-do's, below)
 local function notes_open()                 -- the page turned back: the notes, typing at their end
   vim.api.nvim_win_set_buf(0, buf)
@@ -260,7 +260,6 @@ function _G.kawa_notes_shown()
   run("--today")
   vim.cmd("silent! wall")                     -- (another file open here: saved, and the notes back)
   shown = true
-  if next_page == "todo" then next_page = nil; todo_open(); return "" end
   vim.api.nvim_win_set_buf(0, buf)
   local n = vim.api.nvim_buf_line_count(buf)
   vim.api.nvim_buf_set_lines(buf, n, n, false, { "" })
@@ -275,8 +274,8 @@ end
 -- page draws the box over those four characters — on the notes' text column, the words two
 -- columns after it, as a list row's glyph and name stand (docs/design-system.md §7). Tab (not
 -- typing) turns from one page to the other; on the to-do: space ticks or unticks, enter adds
--- one under it, typing on an empty one's enter ends the list; dd takes one away. Super+U →
--- learning → to-do opens on it (kawa-notes --todo). Saved as you go, as the notes are.
+-- one under it, typing on an empty one's enter ends the list; dd takes one away. Tab is its only
+-- way in (owner, 1 Nov: Super+N alone, never Super+U). Saved as you go, as the notes are.
 local ns = vim.api.nvim_create_namespace("kawa_todo")
 local todo                                  -- its buffer, once opened
 local ITEM = "^%[([ xX])%] "                -- an item: its box, a space, its words
@@ -403,9 +402,3 @@ todo_open = function()
 end
 -- tab turns the page, typing or not (the notes open typing: a tab there would be typed)
 vim.keymap.set({ "n", "i" }, "<Tab>", function() todo_open() end, { buffer = buf })
--- kawa-notes --todo: the window on the to-do — at once if it shows, else the next time it does
-function _G.kawa_notes_todo()
-  if shown then todo_open(); return "shown" end
-  next_page = "todo"
-  return "hidden"
-end
