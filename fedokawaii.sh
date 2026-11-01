@@ -212,7 +212,8 @@ dry_run() {
 # unit lands in SELinux's initrc_t instead — /usr/bin/bash is shell_exec_t — and there the
 # desktop check's headless session never starts its bar (waybar ends at once, status 0), so every
 # update would begin with "the desktop does not start" and could not see one it broke;
-# systemd.exec(5) SELinuxContext=: ignored without SELinux, "-" a context it cannot set no failure)
+# systemd.exec(5) SELinuxContext=: ignored without SELinux; one it cannot set fails the unit,
+# loudly (229/SELINUX_CONTEXT) — never a run in initrc_t again; setup.sh's u_start checks it too)
 UPDATE_UNIT=fedokawaii-update.service
 update_unit() {
   local d=$STATE_DIR/update log pid rc
@@ -221,7 +222,7 @@ update_unit() {
     systemctl reset-failed "$UPDATE_UNIT" 2>/dev/null || true
     { install -d -m 0755 "$d" && : >"$log" && chmod 0644 "$log"; } || die "no room for the update's output in $d (a full disk?)"
     systemd-run --quiet --unit="$UPDATE_UNIT" --description="Fedokawaii: the update (Super+U → update)" \
-      -p StandardOutput="append:$log" -p StandardError="append:$log" -p SELinuxContext=-system_u:system_r:unconfined_service_t:s0 \
+      -p StandardOutput="append:$log" -p StandardError="append:$log" -p SELinuxContext=system_u:system_r:unconfined_service_t:s0 \
       --setenv=FK_TERM="${TERM:-}" --setenv=LANG="${LANG:-C.UTF-8}" \
       /usr/bin/bash "$REPO_DIR/setup.sh" --update || die "the update could not start on its own (systemd-run)"
   fi

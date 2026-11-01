@@ -33,6 +33,13 @@ u_start() {
   # (a restore waits for the restart — the running root is no longer the system's — or a snapshot
   # started from the boot menu: an update there would pin, hold and change the wrong system)
   on_the_system || die "this start is not the system itself (a restore waits for the restart, or a snapshot from the boot menu runs) — restart first; nothing changed"
+  # (SELinux on: a domain that may start a desktop — the update's unit, unconfined_service_t
+  # (fedokawaii.sh update_unit), or yours by hand, unconfined_t; bash a unit starts without it
+  # lands in initrc_t, where the desktop check's bar never starts and every check would be blind)
+  d=$(id -Z 2>/dev/null) || d=""
+  if selinuxenabled 2>/dev/null && [[ $d != *:@(unconfined_service_t|unconfined_t):* ]]; then
+    die "this run is in SELinux's ${d:-unknown} domain, where the desktop's start check cannot start a desktop — press update in Super+U (fedokawaii update); nothing changed"
+  fi
   for p in dnf5 dnf packagekitd dnf5daemon-server; do
     if pgrep -x "$p" >/dev/null 2>&1; then die "another package manager is running ($p) — update again once it has finished"; fi
   done
@@ -338,7 +345,7 @@ u_undo() {
   else UP_END=offered; fi
 }
 u_report() {   # u_report — the outcome: UPD/report (the pane), the log beside it, a notice
-  local held="" fam=() line why log n
+  local held="" fam=() line why log n desk
   # (the holds by family, as the pane names them — two at most, then how many more: a notice is
   # a line, and a whole set held at once is hundreds of names)
   [[ -s $UPD/holds ]] && mapfile -t fam < <(hold_families "$UPD/holds" | cut -f1)
@@ -347,6 +354,9 @@ u_report() {   # u_report — the outcome: UPD/report (the pane), the log beside
   ((UP_TOGETHER > 1 && ${#fam[@]} > 2)) && held="all $UP_TOGETHER packages together (which one broke it could not be told apart; newer versions are tried)"
   [[ -n $UP_END ]] || UP_END=stopped
   n=$(wc -l 2>/dev/null <"$UPD/set") || n=0
+  # (kept while the desktop's check was red before it: what it could not judge is said, never hidden)
+  desk=$(sed -n '/^the desktop does not start/p' "$UPD/baseline" 2>/dev/null) || desk=""
+  [[ $UP_END == @(ok|current|held) ]] || desk=""
   case $UP_END in
     ok)       line="updated · $n package$( ((n == 1)) || echo s)${held:+ · held: $held}" ;;
     current)  line="up to date${held:+ · held: $held}" ;;
@@ -356,11 +366,13 @@ u_report() {   # u_report — the outcome: UPD/report (the pane), the log beside
     *)        why=$(tail -c +"$((RUN_LOG_FROM + 1))" "$LOG_FILE" 2>/dev/null | grep '✘' | tail -n1 | sed 's/\x1b\[[0-9;]*m//g; s/^.*✘ *//') || why=""   # (this run's own)
               line="stopped ($(up_was | sed 's/^end$/start/')): ${why:-no reason could be written (a full disk?)}" ;;
   esac
+  [[ -z $desk ]] || line+=" · the desktop's check was red before it, so not judged (Super+U → log)"
   ((UP_STAY)) || up_phase end || true
   # (the stored transaction and the downloads kept for the halves: done with, whatever the outcome)
   rm -rf -- "$UPD/tx" "$UPD/try"; dnf -q clean packages >/dev/null 2>&1 || true
   # (no command that can fail inside these pipes: setup.sh's ERR trap would print from them)
   why=$(cat "$UPD/why" 2>/dev/null) || why=""
+  [[ -z $desk ]] || why+=${why:+$'\n'}$(up_labels <<<"$desk" | sed 's/^/red before it: /')
   printf '%s %s\n%s\n%s' "$(date +%s)" "$UP_END" "$line" "${why:+$why$'\n'}" | write_file "$UPD/report" 0644 2>/dev/null || true
   log=$(tail -c +"$((RUN_LOG_FROM + 1))" "$LOG_FILE" 2>/dev/null) || log=""
   printf '%s\n' "$log" | write_file "$UPD/last.log" 0644 2>/dev/null || true
