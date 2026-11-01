@@ -46,6 +46,13 @@ case $release in
   rawhide) tree=$fp/development/rawhide/Everything/x86_64/os/ updates="" ;;
   *) tree=$fp/releases/$release/Everything/x86_64/os/ updates=$fp/updates/$release/Everything/x86_64/ ;;
 esac
+# (a release before its release day: its tree is still staged — 403 —, its branched compose is in
+# development/N, and it has no updates repository yet: said, so a VM is never mistaken for the release)
+if [[ $release != rawhide ]] && ! curl -sfL --max-time 60 -o /dev/null "$tree.treeinfo" \
+   && curl -sfL --max-time 60 -o /dev/null "$fp/development/$release/Everything/x86_64/os/.treeinfo"; then
+  tree=$fp/development/$release/Everything/x86_64/os/ updates=""
+  echo "vm-create: Fedora $release is not released yet — its branched tree (development/$release)"
+fi
 curl -sfL --max-time 60 -o /dev/null "$tree.treeinfo" || { echo "vm-create: no install tree at $tree" >&2; exit 1; }
 cat >"$D/ks.cfg" <<EOF
 # the harness's kickstart (tools/vm-create.sh): the README's install, this PC's layout

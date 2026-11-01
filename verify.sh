@@ -535,7 +535,8 @@ if [[ $SSH_SERVER == no ]]; then
   ((fw)) && check "firewall: no ssh / cockpit"         bash -c "[[ '$fwsvc' != *'not answering'* ]] && ! grep -qwE 'ssh|cockpit' <<<'$fwsvc'"
 else
   check "sshd on (SSH_SERVER=yes), at every boot"      bash -c 'systemctl is-enabled --quiet sshd.service && systemctl is-active --quiet sshd.service'
-  check "sshd: keys only, no root (SSH_SERVER=yes)"    bash -c 'c=$(sshd -T 2>/dev/null) && grep -qx "passwordauthentication no" <<<"$c" && grep -qx "kbdinteractiveauthentication no" <<<"$c" && grep -qx "permitrootlogin no" <<<"$c"'
+  # (any case: OpenSSH 10.5 — Fedora 45 — prints its keywords as written, "PermitRootLogin no")
+  check "sshd: keys only, no root (SSH_SERVER=yes)"    bash -c 'c=$(sshd -T 2>/dev/null) && grep -qix "passwordauthentication no" <<<"$c" && grep -qix "kbdinteractiveauthentication no" <<<"$c" && grep -qix "permitrootlogin no" <<<"$c"'
   ((fw)) && check "firewall: ssh open, no cockpit"     bash -c "[[ '$fwsvc' != *'not answering'* ]] && grep -qw ssh <<<'$fwsvc' && ! grep -qw cockpit <<<'$fwsvc'"
 fi
 

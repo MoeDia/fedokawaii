@@ -297,9 +297,21 @@ previous kernel (checked in grub.cfg) — then sticks at -1 until userspace unse
 `boot_counter=3 boot_success=0`, with `rd.shell=0 rd.emergency=reboot` and `kernel.panic` set while
 armed so a hang becomes a counted failure — a userspace hang counts only when a reboot happens, so
 systemd's RuntimeWatchdogSec (the board's watchdog, sp5100_tco on this AMD chipset: checked in T48)
-is armed only while the probation is open; the off-by-one proven in the VM) plus our own system-level `fedokawaii-boot-good.service` that sets `boot_success` only
-once the session has run dwl for 60 s with its helpers (today only a user-session timer does it,
-two minutes into a login). The previous kernel is never removed while a probation is open; the
+is armed only while the probation is open; the off-by-one proven in the VM). *As built (1 Nov,
+T45 (f)):* the proof of a good start stays the one the desktop already uses — Fedora's own
+grub-boot-success timer, started by autostart.sh, writes `boot_success=1` two minutes into the
+desktop (the same proof that lets the kernel before go: setup.sh old_kernels_out). Our
+`fedokawaii-boot-good.path` watches grubenv and runs `setup.sh --boot-good` the moment it changes
+(the service is skipped while no probation is open; it waits for the setup lock, so a mark during
+an update run is never missed): on the new kernel → `boot_counter` unset, the trial arguments
+(`rd.shell=0 rd.emergency=reboot panic=10`, on its entry only) and the watchdog drop-in removed,
+every pinned snapshot back to snapper's number cleanup; on the one before with `boot_counter=-1`
+(GRUB ran out) → the new kernel held at its version (versionlock, recorded in `fk`), removed, the
+running one the default, a notice at login; the one before chosen by hand → the trial waits.
+Armed after every green update (UPD/probation: SNAPSHOT KERNEL|- DAY a line; a kernel only when
+it brought one): `boot_counter=3 boot_success=0 boot_indeterminate=1` (the menu stays hidden on
+the first try; three tries, then entry 1). A second system-level marker was weighed and dropped:
+marking at the login screen would let a kernel that breaks only the desktop lose the one before. The previous kernel is never removed while a probation is open; the
 pinned snapshot stays until it closes. A start that never reaches userspace twice → the previous
 kernel; a userspace that cannot start the session → the rescue screen (start-dwl) says so and
 offers "go back to the system before the update" (kawa-snap restore) — the boot menu's snapshot
