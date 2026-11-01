@@ -415,6 +415,8 @@ built() {
   done
   printf '%s\n' bash sudo NetworkManager >"$S/baseline-userinstalled"
   echo 1792000000 >"$S/input-group-out"                      # (setup's groups step: never in input)
+  # (the file systems as setup's noatime pass leaves them: lib/pace.sh's own pace_fstab)
+  ( . "$REPO/lib/pace.sh"; pace_fstab <"$W/etc/fstab" >"$W/etc/fstab.n" ) && mv -f "$W/etc/fstab.n" "$W/etc/fstab"
   # the toolkit: this repository, installed for good
   mkdir -p "$W/usr/local/lib/fedokawaii"; cp -a "$U/fedokawaii/." "$W/usr/local/lib/fedokawaii/"
   cp "$W/usr/local/lib/fedokawaii/system/fedokawaii" "$W/usr/local/bin/fedokawaii"
@@ -455,7 +457,10 @@ built() {
   printf '[Service]\nType=oneshot\nTTYPath=/dev/tty1\nExecStart=/usr/bin/printf %s\n' "'The login screen could not start'" >"$W/etc/systemd/system/fedokawaii-login-failed.service"
   printf 'export EDITOR=nvim\nexport VISUAL=nvim\n' >"$W/etc/profile.d/editor.sh"; : >"$W/etc/profile.d/kawa-torrra.sh"
   printf '%s\n' "[ \"\$TERM\" = linux ] && [ -t 1 ] && printf '\\033[?25h'" >"$W/etc/profile.d/fedokawaii-console.sh"
-  printf '#!/bin/sh\nexec nvim "$@"\n' >"$W/usr/local/bin/vi"; chmod 755 "$W/usr/local/bin/vi"; : >"$W/etc/NetworkManager/conf.d/90-fedokawaii.conf"; : >"$W/etc/mpv/scripts/mpris.so"
+  printf '#!/bin/sh\nexec nvim "$@"\n' >"$W/usr/local/bin/vi"; chmod 755 "$W/usr/local/bin/vi"; : >"$W/etc/NetworkManager/conf.d/90-fedokawaii.conf"
+  # (the copy of this machine's /etc may hold it as a link to this machine's own library: replaced,
+  # never written through)
+  mkdir -p "$W/etc/mpv/scripts"; rm -f "$W/etc/mpv/scripts/mpris.so"; : >"$W/etc/mpv/scripts/mpris.so"
   mkdir -p "$W/etc/modprobe.d" "$W/etc/systemd/system/user@.service.d"
   echo 'options btusb enable_autosuspend=0' >"$W/etc/modprobe.d/fedokawaii-btusb.conf"
   # game mode (setup.sh: game_mode): tuned's game profile, its polkit rule, a game's priority
