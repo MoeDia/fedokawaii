@@ -151,8 +151,16 @@ rm -f "$U/holds"
 case_ "the desktop's start check red before the update already: not counted against it — kept, and said"
 back built; reset_calls; pending "bash 5.2-1.fc44 5.3-1.fc44"; fkh session-red "not running: waybar"
 up; eq "$RC" 0 "$(tail -n3 <<<"$OUT")"
-eq "$(report)" ok; has "$OUT" "red before the update: the desktop does not start — session-start (dark): not running: waybar"
+eq "$(report)" ok; has "$OUT" "red before the update: the desktop does not start: not running: waybar — session-start (dark): not running: waybar"
 [[ -s $U/holds ]] && _no "held: $(cat "$U/holds")" || _ok
+has "$(sed -n 2p "$U/report")" "updated · 1 package · the desktop's check was red before it, so not judged (Super+U → log)"
+has "$(sed -n '3,$p' "$U/report")" "red before it: the desktop does not start: not running: waybar"
+case_ "…a red before (the bar's clock) never hides another the update brings (dwl gone): red, the set held — each item its own label"
+back built; reset_calls; pending "mesa 26.0-1.fc44 26.1-1.fc44"; fkh bar-red "the clock's gaps:  (want 14 date→kanji, 14 kanji→time)"; fkh replay-breaks-dwl
+up; eq "$RC" 0 "$(tail -n3 <<<"$OUT")"
+has "$OUT" "red before the update: the desktop does not start: bar-geometry (dark): the clock's gaps — "
+eq "$(report)" offered "$(tail -n3 <<<"$OUT")"; has "$(cat "$U/report")" "the desktop does not start: dwl does not start"
+grep -q '^mesa 26.1-1.fc44 ' "$U/holds" && _ok || _no "the set not held: $(cat "$U/holds" 2>/dev/null)"
 case_ "the bar off its measure after the update only: red — the set held, the snapshot offered"
 back built; reset_calls; pending "gtk3 3.24.50-1.fc44 3.24.51-1.fc44"
 fkh replay-breaks-bar       # (the bar is drawn right before, a row too tall after the replay)
@@ -275,6 +283,7 @@ called "snapper\] -c root modify -c number $s"; [[ ! -e $U/probation && ! -e $W/
 case_ "a kernel with a third entry in the boot menu (a rescue image): no trial — GRUB's way back would not be the running kernel — said"
 back built; reset_calls; pending "bash 5.2-1.fc44 5.3-1.fc44"; fkh kernels "$K" "$NEWK"; : >"$W/boot/vmlinuz-$NEWK"
 fkh menu "$NEWK" "$K" "0-rescue-0123456789abcdef"
+[[ ! -e $W/etc/systemd/system.conf.d/90-fedokawaii-probation.conf ]] && _ok || _no "precondition: a watchdog drop-in before the run (this PC's own, leaked?)"
 up; eq "$RC" 0 "$(tail -n3 <<<"$OUT")"; eq "$(report)" ok
 not_called 'grub2-editenv\] - set boot_counter'; not_called "grubby\] --update-kernel=/boot/vmlinuz-$NEWK"
 eq "$(cut -d' ' -f2 "$U/probation")" - "no kernel on trial"

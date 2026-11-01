@@ -14,10 +14,8 @@ out=/dev/shm/r27/update-green; rm -rf "$out"; mkdir -p "$out"; log=$out/run.log
 run() { bash "$here/vm-run.sh" "$vm" "$@"; }
 { bash "$here/vm-snap.sh" "$vm" revert built && bash "$here/vm-snap.sh" "$vm" start && run --wait 600; } >>"$log" 2>&1 \
   || { echo "update-green: the VM did not start" >&2; exit 2; }
-run --repo "$src" >>"$log" 2>&1 && run 'sudo cp -a ~/fedokawaii/. /usr/local/lib/fedokawaii/ && sudo install -m 755 ~/fedokawaii/system/kawa-snap /usr/local/sbin/kawa-snap' >>"$log" 2>&1 \
-  || { echo "update-green: the toolkit could not go in" >&2; exit 2; }
-# (an install older than the toolkit's manifest: what the button needs before its first run)
-run 'rpm -q systemd-container >/dev/null || sudo dnf -y -q install systemd-container' >>"$log" 2>&1
+# (applied as the PC is before a press: the toolkit, the theme, our builds — the desktop check green)
+run --apply "$src" >>"$log" 2>&1 || { echo "update-green: the toolkit could not go in" >&2; exit 2; }
 pending=$(run 'sudo dnf -q check-upgrade 2>/dev/null | grep -c "\."')
 s=$SECONDS
 run 'sudo bash /usr/local/lib/fedokawaii/setup.sh --update >/tmp/update.log 2>&1; echo "rc=$?"' >"$out/rc.txt" 2>&1

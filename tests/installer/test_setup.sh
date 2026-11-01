@@ -300,5 +300,7 @@ f=$(sed -n '/^remove_resume_unit() {$/,/^}/p' "$REPO/setup.sh")
 has "$f" '((RESUMED)) && [[ -n ${INVOCATION_ID:-} ]] && return 0'
 has "$(cat "$REPO/setup.sh")" '(( NO_REBOOT )) && { unit_file_out; exit 0; }'
 grep -B2 '^  systemctl reboot$' "$REPO/setup.sh" | grep -q 'rm -f "/etc/systemd/system/$RESUME_UNIT"' && _ok || _no "the unit file not taken away before the last reboot"
-has "$(grep -A1 '^trap .if \[\[ \$(head -n1' "$REPO/setup.sh")" '== "done" ]]; then'
+f=$(sed -n '/^on_signal() {$/,/^}/p' "$REPO/setup.sh")
+has "$f" '[[ $MODE == build && $(head -n1 "${STATE_DIR:-/var/lib/fedokawaii}/phase" 2>/dev/null) == "done" ]]; then'
+has "$(cat "$REPO/setup.sh")" "trap 'on_signal 143' TERM"   # (a stop from outside — systemctl, a shutdown)
 done_

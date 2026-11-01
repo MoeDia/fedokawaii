@@ -2857,6 +2857,8 @@ update_steps() {
   step_on "the tools this desktop no longer has" retire_upstream
   if [[ $STEAM == yes ]]; then step_on "GE-Proton" install_ge_proton; fi
   if ! tfc_current; then step_on "the yazi file dialog" build_filechooser; fi
+  # (before the theme: its notices' config is written for this mako — an older one would not start)
+  if ! mako_current; then step_on "the notices' mako (${MAKO_TAG:-}, the desktop's frame)" build_mako; fi
   # torrra: libtorrent (the part that talks to the network) and certifi to their newest —
   # uv tool upgrade keeps the install's own pins (torrra==TORRRA_VERSION, the constraints: the
   # interface libraries torrra was written for stay put); then checked by torrra_up, which

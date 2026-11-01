@@ -16,8 +16,9 @@ bad=0
 ok() { if eval "$2"; then printf '%-58s held\n' "$1"; else printf '%-58s BROKEN\n' "$1"; bad=1; fi; }
 { bash "$here/vm-snap.sh" "$vm" revert built && bash "$here/vm-snap.sh" "$vm" start && run --wait 600; } >>"$log" 2>&1 \
   || { echo "update-button: the VM did not start" >&2; exit 2; }
-{ run --repo "$src" && run 'sudo cp -a ~/fedokawaii/. /usr/local/lib/fedokawaii/ && sudo install -m 755 ~/fedokawaii/system/kawa-snap /usr/local/sbin/kawa-snap && sudo install -m 755 ~/fedokawaii/system/fedokawaii /usr/local/bin/fedokawaii'
-  run 'rpm -q systemd-container >/dev/null || sudo dnf -y -q install systemd-container'; } >>"$log" 2>&1 \
+# (applied as the PC is before a press: a toolkit newer than the VM's theme and builds would make
+# the desktop check red before the update — then it could see nothing after it)
+{ run --apply "$src"; } >>"$log" 2>&1 \
   || { echo "update-button: the toolkit could not go in" >&2; exit 2; }
 # the first press, in the background of the VM; once its unit runs and is past the checks before
 # it (the fetch has begun), the second (root's front) and the third (the menu as the user, no

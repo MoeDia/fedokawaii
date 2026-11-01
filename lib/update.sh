@@ -33,6 +33,13 @@ u_start() {
   # (a restore waits for the restart — the running root is no longer the system's — or a snapshot
   # started from the boot menu: an update there would pin, hold and change the wrong system)
   on_the_system || die "this start is not the system itself (a restore waits for the restart, or a snapshot from the boot menu runs) — restart first; nothing changed"
+  # (SELinux on: a domain that may start a desktop — the update's unit, unconfined_service_t
+  # (fedokawaii.sh update_unit), or yours by hand, unconfined_t; bash a unit starts without it
+  # lands in initrc_t, where the desktop check's bar never starts and every check would be blind)
+  d=$(id -Z 2>/dev/null) || d=""
+  if selinuxenabled 2>/dev/null && [[ $d != *:@(unconfined_service_t|unconfined_t):* ]]; then
+    die "this run is in SELinux's ${d:-unknown} domain, where the desktop's start check cannot start a desktop — press update in Super+U (fedokawaii update); nothing changed"
+  fi
   for p in dnf5 dnf packagekitd dnf5daemon-server; do
     if pgrep -x "$p" >/dev/null 2>&1; then die "another package manager is running ($p) — update again once it has finished"; fi
   done
@@ -72,6 +79,20 @@ up_leftovers() {   # what a run cut before its end left (a power cut: no exit tr
   btrfs subvolume list / 2>/dev/null | awk '$NF == "root.cand" { f = 1 } END { exit !f }' || return 0
   up_top; cand_drop
 }
+# desk_reds VERDICT — the desktop check's verdict ("session-start (dark): not running: waybar ·
+# nothing drawn: …", "bar-geometry (light): the clock's gaps: …"), a line an item, the item in the
+# label (up_labels compares what comes before " — "): a red that was there before the update — the
+# light theme's clock, say — never hides one it brings, mako gone. "not running: X" keeps its name;
+# any other item is named up to its first ": "; the bar's measure keeps its theme
+desk_reds() {
+  awk '{ if (match($0, /^[a-z-]+ \([a-z]+\): /)) { head = substr($0, 1, RLENGTH - 2); rest = substr($0, RLENGTH + 1) }
+         else { head = $1; rest = $0 }
+         n = split(rest, it, / · /)
+         for (i = 1; i <= n; i++) {
+           k = it[i]; if (k !~ /^not running: /) { j = index(k, ": "); if (j) k = substr(k, 1, j - 1) }
+           if (head ~ /^bar-geometry/) k = head ": " k
+           print "the desktop does not start: " k " — " head ": " it[i] } }' <<<"$1"
+}
 up_more() {   # the checks verify does not make, a line for each that is red: the desktop's start
               # (desktop_starts), and our builds' libraries and the boot pieces (lib/cand-check.sh:
               # every boot entry with root= and rootflags=, its image readable, btrfs in it or built in)
@@ -79,7 +100,7 @@ up_more() {   # the checks verify does not make, a line for each that is red: th
   why=$(desktop_starts) || rc=$?
   # (2: the check itself could not run — no verdict on the update: the caller stops the run)
   ((rc == 2)) && { printf '%s\n' "${why:-no reason given}"; return 2; }
-  ((rc == 0)) || echo "the desktop does not start — $why"
+  ((rc == 0)) || desk_reds "$why"
   # (into a variable first: a red check's exit inside a pipe would set off setup.sh's ERR trap)
   out=$(FK_USER=$TARGET_USER bash "$REPO_DIR/lib/cand-check.sh" 2>/dev/null) || true
   printf '%s\n' "$out" | sed -n 's/^red: //p'
@@ -324,7 +345,7 @@ u_undo() {
   else UP_END=offered; fi
 }
 u_report() {   # u_report — the outcome: UPD/report (the pane), the log beside it, a notice
-  local held="" fam=() line why log n
+  local held="" fam=() line why log n desk
   # (the holds by family, as the pane names them — two at most, then how many more: a notice is
   # a line, and a whole set held at once is hundreds of names)
   [[ -s $UPD/holds ]] && mapfile -t fam < <(hold_families "$UPD/holds" | cut -f1)
@@ -333,6 +354,9 @@ u_report() {   # u_report — the outcome: UPD/report (the pane), the log beside
   ((UP_TOGETHER > 1 && ${#fam[@]} > 2)) && held="all $UP_TOGETHER packages together (which one broke it could not be told apart; newer versions are tried)"
   [[ -n $UP_END ]] || UP_END=stopped
   n=$(wc -l 2>/dev/null <"$UPD/set") || n=0
+  # (kept while the desktop's check was red before it: what it could not judge is said, never hidden)
+  desk=$(sed -n '/^the desktop does not start/p' "$UPD/baseline" 2>/dev/null) || desk=""
+  [[ $UP_END == @(ok|current|held) ]] || desk=""
   case $UP_END in
     ok)       line="updated · $n package$( ((n == 1)) || echo s)${held:+ · held: $held}" ;;
     current)  line="up to date${held:+ · held: $held}" ;;
@@ -342,11 +366,13 @@ u_report() {   # u_report — the outcome: UPD/report (the pane), the log beside
     *)        why=$(tail -c +"$((RUN_LOG_FROM + 1))" "$LOG_FILE" 2>/dev/null | grep '✘' | tail -n1 | sed 's/\x1b\[[0-9;]*m//g; s/^.*✘ *//') || why=""   # (this run's own)
               line="stopped ($(up_was | sed 's/^end$/start/')): ${why:-no reason could be written (a full disk?)}" ;;
   esac
+  [[ -z $desk ]] || line+=" · the desktop's check was red before it, so not judged (Super+U → log)"
   ((UP_STAY)) || up_phase end || true
   # (the stored transaction and the downloads kept for the halves: done with, whatever the outcome)
   rm -rf -- "$UPD/tx" "$UPD/try"; dnf -q clean packages >/dev/null 2>&1 || true
   # (no command that can fail inside these pipes: setup.sh's ERR trap would print from them)
   why=$(cat "$UPD/why" 2>/dev/null) || why=""
+  [[ -z $desk ]] || why+=${why:+$'\n'}$(up_labels <<<"$desk" | sed 's/^/red before it: /')
   printf '%s %s\n%s\n%s' "$(date +%s)" "$UP_END" "$line" "${why:+$why$'\n'}" | write_file "$UPD/report" 0644 2>/dev/null || true
   log=$(tail -c +"$((RUN_LOG_FROM + 1))" "$LOG_FILE" 2>/dev/null) || log=""
   printf '%s\n' "$log" | write_file "$UPD/last.log" 0644 2>/dev/null || true
@@ -411,7 +437,7 @@ up_probation() {   # after a green update
   grub2-editenv - set boot_counter=3 boot_success=0 boot_indeterminate=1 \
     || { log "GRUB's start counting could not be armed (grub2-editenv) — kernel $new is not on trial"; return 0; }
   grubby --update-kernel="/boot/vmlinuz-$new" --args="$UP_TRIAL" >/dev/null 2>&1 || log "kernel $new's trial arguments could not be set (grubby)"
-  printf '%s\n' "# installed by setup.sh while a new kernel is on trial (lib/update.sh up_probation)" \
+  printf '%s\n' "# installed by fedokawaii (setup.sh: lib/update.sh up_probation) while a new kernel is on trial" \
     '[Manager]' 'RuntimeWatchdogSec=1min' | write_file "$UP_DOG" 0644
   log "kernel $new on trial at the next start: three starts to reach the desktop, else $now again"
 }

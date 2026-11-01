@@ -61,7 +61,7 @@ out=$(front update 2>&1); eq "$?" 0
 called "^systemd-run --quiet --unit=fedokawaii-update.service .*-p StandardOutput=append:$R/state/update/run.log -p StandardError=append:$R/state/update/run.log .*/usr/bin/bash $R/toolkit/setup.sh --update$"
 called '^systemd-run .*--setenv=FK_TERM=xterm-256color'; eq "$(stat -c %a "$R/state/update/run.log")" 644 "the log readable by the desktop's user"
 # (a service's own domain, not initrc_t — there the desktop check's bar never starts)
-called '^systemd-run .* -p SELinuxContext=-system_u:system_r:unconfined_service_t:s0 '
+called '^systemd-run .* -p SELinuxContext=system_u:system_r:unconfined_service_t:s0 '   # (no "-": a context it cannot set must fail the unit, never run it blind)
 
 case_ "…one that goes on: followed, never started twice"
 stub systemctl 'case "$*" in "is-active"*) exit 0 ;; *MainPID*) echo 0 ;; *ExecMainStatus*) echo 0 ;; esac'
