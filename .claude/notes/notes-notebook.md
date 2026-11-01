@@ -88,3 +88,10 @@ rules' count, the concealed day mark), test_warm's 64x40, the to-do page rendere
 notebook fields (No. · the date in the bar's grammar) decided by render, the grill (both moods, zoomed: the rule's row
 in the cell, its ink against faint, the margin's x against §7), a typing play (frames: no row moves while typing),
 then merge into main through the suite and the master.
+- 23:23–23:27 (t21, 2nd commit): the footer float shows the file's name as it is (the statusline's %-escaping
+  gone with the statusline); the heading's rule drawn out in the tabline (the tabline fills %= with spaces, not
+  wbr's ─ — my first build had lost the rule, the render showed "notes" with none; test_notes caught it too), again at
+  each resize; test_notes 116/0 (the page's columns, the tabline heading full to its row, the blank winbar, the two
+  floats' rows and words, laststatus 0 · cmdheight 0 · scrolloff 2, the to-do's heading and footer), test_warm 88/0
+  (64x40). Renders both moods mid-file: /dev/shm/r27/t21/{dark,light}-long3-win.png. GRILL first: the paper's rules
+  run to the window's last column while the heading's rule stops two columns short — one right edge for both.

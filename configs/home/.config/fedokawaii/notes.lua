@@ -52,7 +52,7 @@ do
   end
 end
 
-local where = (os.getenv("KAWA_NOTES_WHERE") or "~/Notes/notes.md"):gsub("%%", "%%%%")
+local where = os.getenv("KAWA_NOTES_WHERE") or "~/Notes/notes.md"   -- (shown as it is: the footer is a float, no statusline's %)
 local ICON_NOTE = "\243\190\128\188" -- Sumi Icons: note (U+FE03C), as in icons.sh
 local ICON_TODO = "\243\190\131\140" -- the to-do's tanzaku (U+FE0CC)
 local BOX = { [false] = "\243\190\128\179", [true] = "\243\190\128\178" }   -- box-off (U+FE033), box-on (U+FE032)
@@ -165,15 +165,17 @@ local function page()
   vim.opt_local.wrap = true
   vim.opt_local.linebreak = true
   vim.opt_local.fillchars:append({ wbr = " ", eob = " " })   -- (no ~ under the last line: a page ends in paper)
-  local name = b == notes and where
-    or vim.fn.fnamemodify(vim.api.nvim_buf_get_name(b), ":~"):gsub("%%", "%%%%")
-  -- (the rule: the winbar's fill, ─ in edge2 — solid, as every heading's —, from after the name to two columns short of the edge)
+  local name = b == notes and where or vim.fn.fnamemodify(vim.api.nvim_buf_get_name(b), ":~")
   local is_todo = vim.api.nvim_buf_get_name(b) == TODO
   -- (the heading in the tabline — the editor's top row, never scrolled — and a blank winbar under
   -- it: the §3 blank line, there at every scroll position)
+  -- (the tabline fills %= with spaces, not the winbar's ─: the rule is drawn out, edge2, from after
+  -- the name to two columns short of the edge — again at each resize)
+  local icon, word = is_todo and ICON_TODO or ICON_NOTE, is_todo and "to-do" or "notes"
+  local n = vim.o.columns - vim.api.nvim_strwidth("  " .. icon .. "  " .. word .. " ") - 2
   vim.o.showtabline = 2
-  vim.o.tabline = "%#KawaGround#  %#KawaIcon#" .. (is_todo and ICON_TODO or ICON_NOTE) .. "%#KawaGround#  %#KawaName#"
-    .. (is_todo and "to-do" or "notes") .. " %#KawaStitch#%=%#KawaGround#  "
+  vim.o.tabline = "%#KawaGround#  %#KawaIcon#" .. icon .. "%#KawaGround#  %#KawaName#" .. word
+    .. " %#KawaStitch#" .. string.rep("─", math.max(2, n)) .. "%#KawaGround#  "
   vim.opt_local.winbar = "%#KawaGround# "
   foot_text = is_todo and todo_footer(name) or footer_of(name)
   foot_rows(foot_text)
@@ -211,7 +213,7 @@ rule(notes, true)
 vim.api.nvim_create_autocmd("BufWinEnter", { group = group, callback = function(ev) page(); rule(ev.buf, true) end })
 vim.api.nvim_create_autocmd({ "TextChanged", "TextChangedI" }, { group = group, callback = function(ev) rule(ev.buf) end })
 vim.api.nvim_create_autocmd("VimResized", {
-  group = group, callback = function() rule(vim.api.nvim_get_current_buf(), true); foot_rows(foot_text) end,
+  group = group, callback = function() page(); rule(vim.api.nvim_get_current_buf(), true) end,
 })
 
 -- every change written (`update`: only when there is one) once you pause — a second

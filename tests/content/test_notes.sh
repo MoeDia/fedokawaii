@@ -185,14 +185,16 @@ else
     KAWA_NOTES_WHERE='~/Notes/50% off.md' nvim --headless \
       -c 'luafile ~/.config/fedokawaii/notes.lua' -c "lua io.stdout:write(vim.inspect($1))" -c 'qa!' -- "${2:-$TMP/n.md}" 2>/dev/null
   }
-  case_ "notes.lua: a page — no numbers, signs or spell marks, four columns in, lines wrapped at words"
+  case_ "notes.lua: a page — no numbers, signs or spell marks, the words four columns in behind the vermilion margin rule, lines wrapped at words"
   eq "$(ask '{vim.wo.number, vim.wo.relativenumber, vim.wo.signcolumn, vim.wo.foldcolumn, vim.wo.wrap, vim.wo.linebreak, vim.wo.spell, vim.wo.cursorline}')" \
-     '{ false, false, "no", "4", true, true, false, false }'
-  case_ "notes.lua: the heading (記, notes, the stitch: §7); the footer names the file ('%' kept as a '%') and the keys"
-  has "$(ask vim.wo.winbar)" "%#KawaGround#  %#KawaIcon#$ICON_NOTE%#KawaGround#  %#KawaName#notes %#KawaStitch#%="
-  has "$(ask "vim.opt_local.fillchars:get().wbr")" "─"
-  has "$(ask vim.wo.statusline)" "%#KawaMuted#~/Notes/50%% off.md  ·  saved as you go  ·  super+n puts it away"
-  eq "$(ask '{vim.o.laststatus, vim.o.cmdheight}')" "{ 2, 0 }"
+     '{ false, false, "no", "0", true, true, false, false }'
+  eq "$(ask vim.wo.statuscolumn)" '"%#KawaGround#  %#KawaMargin#│%#KawaGround# "'
+  case_ "notes.lua: the heading in the tabline (never scrolled: the note icon, notes, the stitch — §7) with a blank row under it; at the foot a blank row and the footer (the file, '%' as it is, and the keys) — floats over the window's last two rows, the pen kept above them"
+  has "$(ask vim.o.tabline)" "%#KawaGround#  %#KawaIcon#$ICON_NOTE%#KawaGround#  %#KawaName#notes %#KawaStitch#───"
+  eq "$(ask 'vim.api.nvim_strwidth(vim.api.nvim_eval_statusline(vim.o.tabline, {use_tabline = true}).str)')" 80 "(the rule to two columns short of the edge: the row full)"
+  eq "$(ask '{vim.o.showtabline, vim.wo.winbar}')" '{ 2, "%#KawaGround# " }'
+  eq "$(ask '(function() local t = {} for _, w in ipairs(vim.api.nvim_list_wins()) do local c = vim.api.nvim_win_get_config(w) if c.relative ~= "" then t[#t + 1] = (vim.o.lines - c.row) .. ":" .. vim.api.nvim_buf_get_lines(vim.api.nvim_win_get_buf(w), 0, 1, false)[1] end end table.sort(t) return t end)()')" '{ "1:  ~/Notes/50% off.md  ·  saved as you go  ·  super+n puts it away", "2:" }'
+  eq "$(ask '{vim.o.laststatus, vim.o.cmdheight, vim.o.scrolloff}')" "{ 0, 0, 2 }"
   case_ "notes.lua: nothing written over the footer while typing (no mode, no keys, no 'written')"
   eq "$(ask '{vim.o.showmode, vim.o.showcmd, vim.o.ruler}')" "{ false, false, false }"
   has "$(ask vim.o.shortmess)" "WFcsS"
@@ -289,9 +291,9 @@ else
   eq "$(cat "$HOME/Notes/trip.md" 2>&1)" "buy a SIM card" "(closed by Super+Q: nothing lost)"
   eq "$(cat "$N")" "$H"$'\n\nfirst' "(the notes as they were)"
   out=$(nvim --headless -c 'luafile ~/.config/fedokawaii/notes.lua' -c 'e ~/Notes/trip.md' \
-    -c "lua io.stdout:write(vim.inspect({vim.api.nvim_eval_statusline(vim.wo.winbar, {winid = 0, use_winbar = true}).str, vim.api.nvim_eval_statusline(vim.wo.statusline, {winid = 0}).str, vim.wo.number, vim.wo.foldcolumn, vim.wo.wrap}))" \
+    -c "lua io.stdout:write(vim.inspect({vim.api.nvim_eval_statusline(vim.o.tabline, {use_tabline = true}).str, (function() local t = {} for _, w in ipairs(vim.api.nvim_list_wins()) do local c = vim.api.nvim_win_get_config(w) if c.relative ~= \"\" then t[#t + 1] = (vim.o.lines - c.row) .. \":\" .. vim.api.nvim_buf_get_lines(vim.api.nvim_win_get_buf(w), 0, 1, false)[1] end end table.sort(t) return t end)(), vim.wo.number, vim.wo.foldcolumn, vim.wo.wrap}))" \
     -c 'qa!' -- "$N" 2>/dev/null)
-  has "$out" "  $ICON_NOTE  notes ───"; has "$out" "  ~/Notes/trip.md  ·  saved as you go"; has "$out" 'false, "4", true }'
+  has "$out" "  $ICON_NOTE  notes ───"; has "$out" "  ~/Notes/trip.md  ·  saved as you go"; has "$out" 'false, "0", true }'
   # the warm page: put away (kawa-warm --hidden) and shown again the next day (--shown),
   # through its socket as kawa-warm does — saved and tidied as it goes, today's note as it shows
   case_ "warm: put away — saved and tidied; shown the next day — its heading, the cursor under it, typing"
@@ -351,8 +353,8 @@ out("backspace stops at the box: " .. lines())
 keys("A<CR><CR>"); out("enter on an empty one ends the list: " .. lines() .. " " .. vim.api.nvim_get_mode().mode)
 keys("Go<BS>!<Esc>"); out("backspace on an empty one: " .. lines())
 keys("ggA ou<Left><Left><CR><Esc>"); out("enter mid-words: " .. lines())
-out("heading: " .. vim.wo.winbar)
-out("footer: " .. vim.wo.statusline)
+out("heading: " .. vim.o.tabline)
+out("footer: " .. table.concat(vim.tbl_map(function(w) return vim.api.nvim_buf_get_lines(vim.api.nvim_win_get_buf(w), 0, 1, false)[1] end, vim.tbl_filter(function(w) return vim.api.nvim_win_get_config(w).relative ~= "" end, vim.api.nvim_list_wins())), ""))
 local function page() return vim.fn.fnamemodify(vim.api.nvim_buf_get_name(0), ":t") end
 keys("<Tab>"); out("tab: " .. page() .. " at the end: " .. tostring(vim.api.nvim_win_get_cursor(0)[1] == vim.api.nvim_buf_line_count(0)))
 keys("<Esc><Tab>")
@@ -382,8 +384,8 @@ TODOLUA
   has "$out" "backspace on an empty one: [ ] tea|[x] call the bank!"
   has "$out" "enter mid-words: [ ] tea|[ ] ou|[x] call the bank!" "(no space left either side of the cut)"
   case_ "...its heading (the tanzaku, to-do, the rule) and footer; tab turns to the notes and back"
-  has "$out" "heading: %#KawaGround#  %#KawaIcon#$ICON_TODO%#KawaGround#  %#KawaName#to-do %#KawaStitch#%="
-  has "$out" "footer: %#KawaGround#  %#KawaMuted#~/Notes/todo.md  ·  space ticks  ·  tab: the notes"
+  has "$out" "heading: %#KawaGround#  %#KawaIcon#$ICON_TODO%#KawaGround#  %#KawaName#to-do %#KawaStitch#───"
+  has "$out" "footer:   ~/Notes/todo.md  ·  space ticks  ·  tab: the notes"
   has "$out" "tab: notes.md at the end: true" "(the notes again at their end, as they open)"
   has "$out" "typing on the to-do, tab turns it: notes.md"
   has "$out" "typing on the notes, tab turns it: todo.md, the notes keep no tab: true" "(the notes open typing: a tab there turns the page, never goes into the text)"
