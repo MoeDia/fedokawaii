@@ -2318,25 +2318,18 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   (f45, port 2224, 4 CPUs) being created — the first try failed fetching the installer's kernel from a
   slow master server (330 KB/s, release week), retried 11:43.
 
-## >>> NEXT PASS STARTS HERE (1 Nov 10:35): the inbox first. Then:
-## (0) STILL RED after the apply (10:31 re-run on main: test_setup 148/91, test_setup_wait 47/31,
-##     test_setup_hw 79/5; test_torture queued on the installer lock): the failing step is s_pace's
-##     fstab_noatime returning 1 (the ERR trap says "line 1843": one past the call on 1842, a `return 1`).
-##     The PC's /etc/fstab is now a fixed point of pace_fstab (diff empty) and `findmnt --verify` passes on it.
-##     FOUND (10:34 probe: a file in tests/installer/ sourcing lib.sh, `world built`, then removed): the built
-##     world has NO /etc/fstab at all — so `new=$(pace_fstab </etc/fstab) || return 1` is the exit that fails;
-##     mktemp in the world's /etc works. A user's `cp -a --no-preserve=ownership /etc/. DIR/` copies the PC's
-##     fstab fine, so it goes missing inside the world build (lib.sh world(): the copy at line 195 runs as the
-##     namespace's root — or a step after it removes or replaces it: grep found no "fstab" in lib.sh or the
-##     stubs). Find it, then give the world a fstab of its own as Fedora's installer writes it (the root line,
-##     no noatime: s_pace's pass then runs for real in the tests), never the PC's — and the whole installer
-##     area again. These four were green at 09:50, before the split.
-## (1) T45 (worktree ~/repos/fk-t45, main merged in: r27-45-merge): (e) the real checks + the desktop smoke
-##     test (design §4.2: tools/kit.sh-based, the installed dwl, gles2 on the dGPU's render node by path on the
-##     PC, pixman in the VM which has no render node), (f) probation (boot counting, fedokawaii-boot-good, no
-##     kernel transaction while open, RuntimeWatchdogSec), (h) the unit + the Super+U pane, (i) the toolkit at a
-##     tag; t45 → main after (f) is proven in the VM.
-## (2) T48 rest: restore-file flow in Super+U (kawa-snap list's dates are UTC: show local time), backups
+## >>> NEXT PASS STARTS HERE (1 Nov, written 11:50 — see the lines above for what this pass did): the inbox first. Then:
+## (0) the master's verdict on T45 (e)(f)(h) — .claude/notes/master-T45-efh-verdict.md (asked 11:44): fix every
+##     finding with its test, back to the master until PASS.
+## (1) then t45 → main (t45's whole installer area ran 11:46: /dev/shm/r27p/t45-installer.log), apply on the PC,
+##     and the first real run of the new button there: 98 updates wait (kernel 7.2.13, Mesa 26.2.5 …) — the
+##     report, the pane, the probation armed; the trial closes at his next start (the kernels' 15-min run then
+##     takes 7.2.11). Never a session restart for it.
+## (2) T46: the Fedora 45 harness VM f45 (port 2224) is being made from development/45, and vm-smoke.sh runs on
+##     it by itself afterwards from a frozen main (/dev/shm/r27p/main-f45 = 9cfe463): read
+##     /dev/shm/r27p/f45/run.log and ~/VM/harness/f45/smoke-*/summary — every red is an F45 finding (fix in
+##     main, re-run). Fedora 45's release day: Tue 3 Nov (fedorapeople schedule); the button offers the move
+##     7 days after (design §4.4) once the pre-flight is green.
+## (3) T48 rest: "a file, back" (snapper's home config exists on the PC: home/.snapshots), backups
 ##     (kawa-backup), the space floor (VM: a full disk), the Learn piece.
-## (3) T53 items found today: r27-found-2 (bluetoothctl cores from the installer world: a stand-in), the world's
-##     own fstab (r27-52b-fstab), the kit's foot server ending before its dwl.
+## (4) T45 (i) (the toolkit from GitHub at a release tag) stays last: no release tags yet.
