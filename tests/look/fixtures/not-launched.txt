@@ -42,6 +42,7 @@ xcb-util-wm-devel               the build
 wlroots-devel                   the build
 meson                           the build
 inih-devel                      the build
+systemd-container               the update's copy of the system runs in it (systemd-nspawn): no window
 systemd-devel                   the build
 cairo-devel                     the build (the desktop's mako)
 pango-devel                     the build (the desktop's mako)
