@@ -21,10 +21,12 @@ ok() { if eval "$2"; then printf '%-58s held\n' "$1"; else printf '%-58s BROKEN\
   || { echo "update-button: the toolkit could not go in" >&2; exit 2; }
 # the first press, in the background of the VM; 40 s later the second (root's front) and the third
 # (the menu as the user, no password) — each follows to the end
-run 'sudo setsid -f bash -c "bash /usr/local/lib/fedokawaii/fedokawaii.sh update >/tmp/first.out 2>&1; echo \$? >/tmp/first.rc"' >>"$log" 2>&1
+# (each press detached from ssh's own output: else ssh waits for it to end — the next press would
+# come only after the run)
+run 'sudo setsid -f bash -c "bash /usr/local/lib/fedokawaii/fedokawaii.sh update >/tmp/first.out 2>&1; echo \$? >/tmp/first.rc" </dev/null >/dev/null 2>&1' >>"$log" 2>&1
 sleep 40
-run 'sudo setsid -f bash -c "bash /usr/local/lib/fedokawaii/fedokawaii.sh update >/tmp/second.out 2>&1; echo \$? >/tmp/second.rc"
-     setsid -f bash -c "fedokawaii update >/tmp/third.out 2>&1; echo \$? >/tmp/third.rc"' >>"$log" 2>&1
+run 'sudo setsid -f bash -c "bash /usr/local/lib/fedokawaii/fedokawaii.sh update >/tmp/second.out 2>&1; echo \$? >/tmp/second.rc" </dev/null >/dev/null 2>&1
+     setsid -f bash -c "fedokawaii update >/tmp/third.out 2>&1; echo \$? >/tmp/third.rc" </dev/null >/dev/null 2>&1' >>"$log" 2>&1
 for _ in $(seq 90); do run 'test -s /tmp/first.rc && test -s /tmp/second.rc && test -s /tmp/third.rc' && break; sleep 10; done
 run 'for f in first second third; do echo "== $f rc $(cat /tmp/$f.rc 2>/dev/null) last: $(grep -v "^$" /tmp/$f.out | tail -n 1)"; done
      echo "== log last: $(grep -v "^$" /var/lib/fedokawaii/update/run.log | tail -n 1)"
