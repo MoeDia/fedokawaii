@@ -3212,8 +3212,11 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   never MAPPED, though its footclient → kawa-warm --inside → kawa-notes → nvim chain ran); a SECOND Super+N at 5 s → one W
   line and the notes page shown (out2/c8.png, 695,143–1224,960). Likely real: the first press's window never maps (or
   maps only via the second press's spawn: warmpend's 3 s window — dwl.patch ~2946 — re-arms after 3 s and spawns again).
-  Next: the same probe with the installed build (no --bin: kawa-warm 80x25, main's notes.lua) to see whether T21 made it;
-  then foot's side (footclient's window request) vs dwl's (createnotify/mapnotify for app-id warm-notes on WARMTAG).
+  PROBE 3 (00:53, the INSTALLED build: no --bin, its notes.lua, kawa-warm 80x25 → out3/): THE SAME — no W at 5 s, nothing
+  shown; the second press shows the 80 × 25 window (631,293–1288,810). So NOT T21's: an older behaviour of the cold
+  path (kit-only or real) — its own item (dwl/kawa-warm), not a blocker for T21's re-review. Next: foot's side
+  (footclient's window request) vs dwl's (createnotify/mapnotify for app-id warm-notes on WARMTAG); then on the PC when
+  he is away (close the warm notes window, press Super+N once).
 ## >>> NEXT PASS STARTS HERE (2 Nov, written ~00:50 by the 00:10 pass — the lines above say what it did): the inbox first. Then:
 ## (0) PRESENCE: before anything he could see or hear (a reboot, a session restart, a bar restart, a live play, a notice):
 ##     `wpctl status` (a mic capture or playback [active]), `playerctl -a status`, one half-scale grim — not only the
@@ -3224,8 +3227,9 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
 ##     (frozen tree /dev/shm/r27w-suite-42892e1; its rc line at the end) — it does NOT cover the later commits. A suite on
 ##     the newest HEAD was chained to start after it: /dev/shm/r27p/suite-<HEAD>.log from /dev/shm/r27w-suite-<HEAD> (see
 ##     the last ledger line for the commit). rc 0 there + (2) PASS → push main, apply from that frozen tree when he is away.
-## (2) THE MASTER, T21 RE-REVIEW: verdict 1 FAIL (r27-21-master-1); both must-fixes BUILT (r27-21-master-fix). FIRST: the cold
-##     Super+N showed nothing in the kit (r27-21-cold) — artefact or bug, settle it. Owed before the re-review: a cold-start scene in tools/regress/notes-page.sh (Super+N with no warm window on a written day — the pen
+## (2) THE MASTER, T21 RE-REVIEW: verdict 1 FAIL (r27-21-master-1); both must-fixes BUILT (r27-21-master-fix). The cold Super+N
+##     shows nothing on its first press in the kit — pre-T21 too (r27-21-cold): its own item, settle it. Owed before the
+##     re-review: a cold-start scene in tools/regress/notes-page.sh (Super+N with no warm window on a written day — the pen
 ##     above the floats; the kit can start it as kawa-warm does: `kawa-notes --inside notes show`), should-fix 4 (a short
 ##     file opens on its last day line) and 5 (the to-do opens typing on its last item). Then `tools/master-brief.sh T21 …`
 ##     with /dev/shm/r27/t21/fix/*-win.png and the master's Re-review 2 (Fable, max).
