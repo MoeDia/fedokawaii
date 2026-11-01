@@ -2460,6 +2460,37 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   trial → kernel-core 7.3.1 left out, bash in, said). On the PC: one entry today (7.2.11), so the first press
   ends with [7.2.13, 7.2.11] — armed.
 
+- r27-49-B1 (1 Nov 14:14–14:36; the master's (B), the PC's first press — STOPPED by me before anything changed,
+  and its cause fixed) — the merge's whole suite GREEN (128/128 files, 2718 s, /dev/shm/r27p/merge2.log) →
+  a353613 pushed (origin/main). Applied HEAD (9c74323) 14:14–14:15: verify 261/262 (the one red: his qbittorrent).
+  Presence probe 14:16–14:17 (60 s, swayidle in his session's env): away. Baseline recorded: 1948 rpms, kernel
+  7.2.11, mesa 26.2.4, systemd 259.10, glibc 2.43-9; one BLS entry; grubenv boot_success=1 boot_indeterminate=2;
+  dnf check-upgrade 117 lines (kernel 7.2.13, mesa 26.2.5 among them); 761 GiB unallocated. Pressed as the menu
+  does (`sudo bash /usr/local/lib/fedokawaii/fedokawaii.sh update`, 14:17:31): the run started as
+  fedokawaii-update.service, then 14:18:02 "red before the update: the desktop does not start — session-start
+  (dark): not running: waybar · nothing drawn" — exactly the baseline the master ruled out (a red desktop label
+  in the baseline hides every desktop break after the update). Stopped it at 14:18:27 in its fetch (systemctl
+  stop): nothing changed (7.2.11, mesa 26.2.4), no root.cand, the top unmounted, the report "stopped".
+  CAUSE, found and proven on the PC: systemd-run executes /usr/bin/bash, labelled shell_exec_t, so SELinux puts
+  the unit in initrc_t (`systemd-run … /usr/bin/bash -c 'id -Z'` → initrc_t; `systemd-run … id -Z` →
+  unconfined_service_t). There the kit's waybar ends at once with status 0 (its log: the portal's activation
+  error, then nothing — "waybar exit 0" recorded in a kept kit), at-spi is denied on the kit's initrc_tmp_t
+  folders (32 AVCs, gnome_atspi_t). The same check: green as me, green via sudo + as_user, RED in a transient
+  unit, GREEN in the same unit with `-p SELinuxContext=system_u:system_r:unconfined_service_t:s0`. This is the
+  master's (E) as well (waybar and mako "not running" in the VM): not VM-only — the unit's domain. FIX:
+  fedokawaii.sh update_unit passes `-p SELinuxContext=-system_u:system_r:unconfined_service_t:s0`
+  (systemd.exec(5), installed man page: overrides the automated transition, ignored with SELinux off, "-" a
+  context it cannot set is no failure); test_front 133/0 asserts it.
+  The stop itself showed three faults, fixed: (1) setup.sh's INT/TERM trap printed "✔ Fedokawaii is built —
+  reboot" and exited 0 for ANY run on a built system (meant for the install's own final reboot) — now only
+  MODE=build says built; every other run says "✘ interrupted — run the same command again / press update
+  again (Super+U) to continue" and exits 130 (INT) or 143 (TERM); (2) so the update's report names that line
+  instead of "no reason could be written (a full disk?)"; (3) the press returned 0 for a stopped run — now 143.
+  The stand-ins: fkh_cut sends TERM to the whole process group (systemctl stop signals the unit's every
+  process), and `$FKH/cut-on REGEX` cuts at the first matching stub call. test_update_flow 262/0: stopped
+  from outside at the fetch's --store → 143, "interrupted — press update again (Super+U) to continue", never
+  "built", report "stopped (fetch): interrupted …", bash not in; the next press goes on to ok.
+
 ## >>> NEXT PASS STARTS HERE (1 Nov, written 13:00 — the lines above say what this pass did): the inbox first. Then,
 ## in the master's order (master-T45-efh-verdict.md, "Re-review"):
 ## (B) merge t45 → main; the whole suite; `fedokawaii apply`; verify green (with the resume-unit row; the one

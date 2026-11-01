@@ -208,6 +208,11 @@ dry_run() {
 # closed, a logout, a desktop that stops — none of them cuts it; this terminal only follows its
 # output (STATE/update/run.log, readable by you: Super+U → update follows a run that goes on).
 # → the run's own exit status once it ends
+# (in the domain systemd gives a service's own program, unconfined_service_t: bash run by a
+# unit lands in SELinux's initrc_t instead — /usr/bin/bash is shell_exec_t — and there the
+# desktop check's headless session never starts its bar (waybar ends at once, status 0), so every
+# update would begin with "the desktop does not start" and could not see one it broke;
+# systemd.exec(5) SELinuxContext=: ignored without SELinux, "-" a context it cannot set no failure)
 UPDATE_UNIT=fedokawaii-update.service
 update_unit() {
   local d=$STATE_DIR/update log pid rc
@@ -216,7 +221,7 @@ update_unit() {
     systemctl reset-failed "$UPDATE_UNIT" 2>/dev/null || true
     { install -d -m 0755 "$d" && : >"$log" && chmod 0644 "$log"; } || die "no room for the update's output in $d (a full disk?)"
     systemd-run --quiet --unit="$UPDATE_UNIT" --description="Fedokawaii: the update (Super+U → update)" \
-      -p StandardOutput="append:$log" -p StandardError="append:$log" \
+      -p StandardOutput="append:$log" -p StandardError="append:$log" -p SELinuxContext=-system_u:system_r:unconfined_service_t:s0 \
       --setenv=FK_TERM="${TERM:-}" --setenv=LANG="${LANG:-C.UTF-8}" \
       /usr/bin/bash "$REPO_DIR/setup.sh" --update || die "the update could not start on its own (systemd-run)"
   fi

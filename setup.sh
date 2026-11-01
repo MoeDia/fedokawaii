@@ -75,8 +75,17 @@ load_conf "$REPO_DIR"
 trap 'rc=$?; ((BASH_SUBSHELL == 0)) || exit $rc; failed_what "${FUNCNAME[0]:-main}:$LINENO"
       _out "${C_RED}✘${C_RESET} line $LINENO${FUNCNAME[0]:+ in ${FUNCNAME[0]}(), called from line ${BASH_LINENO[-2]}}: ${FAILED_SHOW:0:160} (exit $rc)" >&2
       _out "  log: $LOG_FILE — fix the cause, then run the same command again (finished steps are skipped)" >&2; exit $rc' ERR
-trap 'if [[ $(head -n1 "${STATE_DIR:-/var/lib/fedokawaii}/phase" 2>/dev/null) == "done" ]]; then _out ""; _out "${C_OK:-}✔ Fedokawaii is built — reboot into the login screen: sudo systemctl reboot${C_RESET}"; exit 0; fi
-      _out ""; _out "${C_RED}✘${C_RESET} interrupted — run the same command again to continue"; exit 130' INT TERM
+# Ctrl+C (130), or a stop from outside — a shutdown, systemctl stop (143): said as that, the
+# status not 0 (the update's report takes this line as its reason). Only the install's own end
+# — its reboot stops it once it is built — is no interruption
+on_signal() {
+  if [[ $MODE == build && $(head -n1 "${STATE_DIR:-/var/lib/fedokawaii}/phase" 2>/dev/null) == "done" ]]; then
+    _out ""; _out "${C_OK:-}✔ Fedokawaii is built — reboot into the login screen: sudo systemctl reboot${C_RESET}"; exit 0
+  fi
+  _out ""; _out "${C_RED}✘${C_RESET} interrupted — $([[ $MODE == update ]] && echo "press update again (Super+U)" || echo "run the same command again") to continue"; exit "$1"
+}
+trap 'on_signal 130' INT
+trap 'on_signal 143' TERM
 if [[ $MODE == status ]]; then        # read-only, so it works while another run holds the lock
   # shellcheck disable=SC1091
   source /etc/os-release

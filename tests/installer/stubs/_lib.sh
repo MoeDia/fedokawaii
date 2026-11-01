@@ -1,20 +1,28 @@
 # shared by the fake Fedora's commands (tests/installer/stubs, installed as the fake machine's
 # /usr/local/bin): their state and the call log live in /var/lib/fkh
 FKH=/var/lib/fkh
-fkh_log() { printf '%s[%s] %s\n' "$(id -un 2>/dev/null)" "${0##*/}" "$*" >>"$FKH/calls.log" 2>/dev/null || true; fkh_cut; }
-# fkh_cut — $FKH/cut-at = N (and $FKH/cut-sig: KILL, the default — a power cut — or INT, a
-# Ctrl+C): at the Nth stub call the setup.sh this call runs under is stopped with its whole
-# process group, the stub with it. Only the run this stub belongs to: its own ancestor
+fkh_log() { printf '%s[%s] %s\n' "$(id -un 2>/dev/null)" "${0##*/}" "$*" >>"$FKH/calls.log" 2>/dev/null || true; fkh_cut "${0##*/}] $*"; }
+# fkh_cut — $FKH/cut-at = N (and $FKH/cut-sig: KILL, the default — a power cut —, TERM, a stop
+# from outside — systemctl stop or a shutdown signals the unit's every process, so its whole
+# process group here — or INT, a Ctrl+C, to setup.sh alone): at the Nth stub call the setup.sh
+# this call runs under is stopped, the stub with it. Only the run this stub belongs to: its own ancestor.
+# $FKH/cut-on = a regex instead: the first call matching it ("STUB] ARGS…") is the one
 fkh_cut() {
-  [[ -f $FKH/cut-at ]] || return 0
   local n p=$$ sig pg
-  n=$(( $(cat "$FKH/cut-count" 2>/dev/null || echo 0) + 1 )); echo "$n" >"$FKH/cut-count"
-  ((n == $(cat "$FKH/cut-at"))) || return 0
-  rm -f "$FKH/cut-at"; sig=$(cat "$FKH/cut-sig" 2>/dev/null || echo KILL)
+  if [[ -f $FKH/cut-on ]]; then
+    [[ $1 =~ $(cat "$FKH/cut-on") ]] || return 0
+    rm -f "$FKH/cut-on"; n="on $1"
+  else
+    [[ -f $FKH/cut-at ]] || return 0
+    n=$(( $(cat "$FKH/cut-count" 2>/dev/null || echo 0) + 1 )); echo "$n" >"$FKH/cut-count"
+    ((n == $(cat "$FKH/cut-at"))) || return 0
+    rm -f "$FKH/cut-at"
+  fi
+  sig=$(cat "$FKH/cut-sig" 2>/dev/null || echo KILL)
   while ((p > 1)); do
     if tr '\0' ' ' <"/proc/$p/cmdline" 2>/dev/null | grep -q 'setup\.sh'; then
       echo "cut at stub call $n (${0##*/}) by SIG$sig" >>"$FKH/cut.log"
-      if [[ $sig == KILL ]]; then pg=$(awk '{ print $5 }' "/proc/$p/stat"); kill -KILL -- "-$pg"
+      if [[ $sig == @(KILL|TERM) ]]; then pg=$(awk '{ print $5 }' "/proc/$p/stat"); kill -"$sig" -- "-$pg"
       else kill -"$sig" "$p"; sleep 2; fi
       return 0
     fi

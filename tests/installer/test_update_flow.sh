@@ -191,6 +191,15 @@ s=$(cut -d' ' -f1 "$U/probation" | tail -n1); [[ $s =~ ^[0-9]+$ ]] && _ok || _no
 reset_calls; up; eq "$RC" 0 "$(tail -n3 <<<"$OUT")"; not_called "snapper\] -c root modify -c number $s\$"
 not_called 'subvolume delete'
 
+case_ "stopped from outside while it fetches (systemctl stop, a shutdown: SIGTERM): 143, said as interrupted — never \"built\" — and the next press goes on"
+back built; reset_calls; pending "bash 5.2-1.fc44 5.3-1.fc44"
+echo '^dnf\] -y --setopt=keepcache=True upgrade --store=' >"$FKH/cut-on"; echo TERM >"$FKH/cut-sig"; chmod 666 "$FKH"/cut-*
+up; eq "$RC" 143 "$(tail -n3 <<<"$OUT")"
+lacks "$OUT" "Fedokawaii is built"; has "$OUT" "interrupted — press update again (Super+U) to continue"
+eq "$(report)" stopped; has "$(sed -n 2p "$U/report")" "stopped (fetch): interrupted — press update again (Super+U) to continue"
+grep -q '^bash 5.3' "$FKH/evr" 2>/dev/null && _no "bash went in" || _ok
+rm -f "$FKH"/cut-*; reset_calls; up; eq "$RC" 0 "$(tail -n3 <<<"$OUT")"; eq "$(report)" ok
+
 case_ "a run cut in its transaction, whole after all: finished — the steps and checks, then kept"
 back built; reset_calls; mkdir -p "$U"; printf 'replay 1\n' >"$U/phase"; echo "bash 5.2-1.fc44 5.3-1.fc44" >"$U/set"; : >"$U/baseline"
 echo "bash 5.3-1.fc44" >>"$FKH/evr"; fkh_add installed bash; echo 7 >"$U/snap"
