@@ -1934,6 +1934,17 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   kernel, kernel-core, kernel-modules from one source — held whole, bash and zlib applied). Finding (1)
   (the candidate's dracut without the root device) still open: next pass, VM.
 
+- r27-49c (cont., 07:31) — run 3 finished (the code before the source-package holds; 1055 s for the
+  whole run): the candidate red twice for "the boot image of 7.2.13 has no btrfs" (finding (1)), the
+  kernel and kernel-core held one after the other, then green in the copy (66 packages after the
+  re-store), the live replay went through — and u_check found two NEW reds: "brave-origin from
+  brave-browser (gpgcheck=1)", "claude-code from claude-code (gpgcheck=1)" → the set held, snapshot 2
+  offered (the VM's /home is inside /). Finding (3): a replayed stored transaction records every
+  package's origin as `@stored_transaction(REPO)` (dnf5-upgrade(8): the ids are mangled), so
+  verify.sh:191's `%{from_repo}` check (and fedokawaii-report PKG-16) read the wrong repository — read
+  the origin with the wrapper stripped (or confirm another way that the package came from REPO), and
+  check every %{from_repo} user. Timing for the design: a red set with two bisections ≈ 17 min end to end.
+
 ## >>> NEXT PASS STARTS HERE (1 Nov 07:10): the inbox first. Then:
 ## (1) T48 FIRST (2): the flat layout (snapshots, home, log, fk at the top level; kawa-snap reading
 ##     $top/snapshots) and the offline /home split (a unit under system-update.target, cp -aT
@@ -1941,8 +1952,8 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
 ##     after a good start) — VM first (states "built", "two-kernels"; tools/vm-inject/), then the PC
 ##     with a pinned snapshot. With it: a restore from a real boot-menu snapshot in the VM, the master's
 ##     two missing tests.
-## (2) T45 on branch t45 (worktree ~/repos/fk-t45, main merged in): (c) in the VM — r27-49c's finding (1)
-##     first (the candidate's dracut without the root device → image checks from the host and the device
+## (2) T45 on branch t45 (worktree ~/repos/fk-t45, main merged in): (c) in the VM — r27-49c's findings (1)
+##     and (3) first ((3): replayed packages' origin is @stored_transaction(REPO) — verify.sh:191, report PKG-16) (the candidate's dracut without the root device → image checks from the host and the device
 ##     given read-only; holds by source package are done), then update-green.sh until the run keeps the
 ##     update green; then (e) the real checks + smoke, (f) probation, (h) the unit + the pane, (i) the
 ##     toolkit at a signed tag; t45 merges into main only after (c) is green.
