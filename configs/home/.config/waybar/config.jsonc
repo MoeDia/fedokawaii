@@ -43,8 +43,8 @@
 {
   "layer": "top",
   "position": "top",
-  // 31 px: a tile's hairline, paper and rule above the 16 px text line and below it, and the
-  // tile's shadow (style.css: the rows)
+  // 27 px: air on rows 0–2, a tile's hairline on 3, its paper 4–23, the hairline on 24, the
+  // shadow 25–26 (style.css: the rows)
   "height": 27,
   // its exclusive zone ends on the tiles' lower hairline (row 24): the shadow's two rows lie in
   // the windows' 8 px gap (gtk-layer-shell's auto zone: the height plus this margin), so the
