@@ -102,3 +102,6 @@ then merge into main through the suite and the master.
   row; the winbar's row and the paper row above the footer unruled; 8 px of paper (foot's pad) from 520 to the hairline
   on 529. test_notes 116/0. NEXT grill: descenders (g, p, y) against the rule on the cell's 19th row, zoomed, both
   moods; the rules' ink in light (edge2 #d7bc8c on #e8e3c2) against faint.
+- 23:51 GRILL 2 DONE — descenders against the rule (zoom ×6, /dev/shm/r27/t21/desc-zoom.png, "line one of day 4"): the
+  ink on y 172–186 (the y's tail lowest, on the cell's 18th row), the rule on y 187 (the 19th): they meet, never overlap;
+  the baseline 4 px above the rule — the words stand on their line, as on paper. Light: the same geometry (one font).
