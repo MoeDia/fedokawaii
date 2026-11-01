@@ -96,9 +96,31 @@ Nice=10
 [Install]
 WantedBy=multi-user.target
 UNIT
+  # an update cut in its transaction: finished or undone at the next start, before the login
+  # screen (lib/update.sh up_boot)
+  write_file /etc/systemd/system/fedokawaii-update-resume.service <<UNIT
+# installed by setup.sh — after an update cut off in its transaction (a power cut, a crash):
+# kept when its packages all went in, else the system before it put back (lib/update.sh)
+[Unit]
+Description=Fedokawaii: an update cut off in its transaction — finished or undone
+After=local-fs.target
+Before=display-manager.service greetd.service
+ConditionPathExists=$STATE_DIR/update/phase
+ConditionKernelCommandLine=!systemd.volatile
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/bash $TOOLKIT/setup.sh --update-resume
+TimeoutStartSec=30min
+
+[Install]
+WantedBy=multi-user.target
+UNIT
   systemctl daemon-reload
   systemctl is-enabled --quiet fedokawaii-after-dnf.service || systemctl enable --quiet fedokawaii-after-dnf.service
-  restorecon /usr/local/sbin/kawa-dnf-guard "$GUARD_ACTIONS" /etc/systemd/system/fedokawaii-after-dnf.service 2>/dev/null || true
+  systemctl is-enabled --quiet fedokawaii-update-resume.service || systemctl enable --quiet fedokawaii-update-resume.service
+  restorecon /usr/local/sbin/kawa-dnf-guard "$GUARD_ACTIONS" /etc/systemd/system/fedokawaii-after-dnf.service \
+    /etc/systemd/system/fedokawaii-update-resume.service 2>/dev/null || true
   needs_record
 }
 

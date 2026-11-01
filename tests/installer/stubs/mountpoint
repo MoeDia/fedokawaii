@@ -3,5 +3,8 @@
 # level, the ESP …); any other is asked of the real mountpoint
 . /usr/local/bin/_lib.sh
 fkh_log "$*"
+# (/home and the update's paths answered from $FKH/mounts alone: the harness's own bind mounts are
+# no subvolumes)
+case ${*: -1} in /home|/run/fedokawaii/top|/boot/efi) has mounts "${*: -1}"; exit ;; esac
 has mounts "${*: -1}" && exit 0
 exec /usr/bin/mountpoint "$@"

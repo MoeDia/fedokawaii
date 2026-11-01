@@ -42,7 +42,7 @@ for a in "$@"; do
     --update) MODE=update ;;  --repair) MODE=repair ;;  --status) MODE=status ;;  --reset) MODE=reset ;;
     --toolkit) MODE=toolkit ;;  --kernels) MODE=kernels ;;
     --upgrade) MODE=upgrade ;;  --now) UPGRADE_FLAG=--now ;;  --after-upgrade) MODE="after-upgrade" ;;
-    --after-dnf) MODE="after-dnf" ;;
+    --after-dnf) MODE="after-dnf" ;;  --update-resume) MODE=update-resume ;;
     --trial) MODE=trial ;;     # (tools/container-trial.sh's, inside its container only)
     --no-reboot) NO_REBOOT=1 ;;
     -h|--help) sed -n '3,/^# ═/p' "$0" | sed '$d'; exit 0 ;;
@@ -81,7 +81,7 @@ if [[ $MODE == status ]]; then        # read-only, so it works while another run
   echo "phase $(cat "$STATE_DIR/phase" 2>/dev/null || echo 1) · user $(cat "$STATE_DIR/user" 2>/dev/null || echo '(not chosen yet)') · Fedora $VERSION_ID · theme $([[ -f $STATE_DIR/with-theme ]] && echo 'with setup' || echo separate)"
   find "$STATE_DIR" -name 'done.*' -printf '  ✔ %f\n' | sed 's/done\.//' | sort; exit 0
 fi
-if [[ $MODE == kernels ]]; then     # (the boot's own run: never waits — another run is on, so next start)
+if [[ $MODE == @(kernels|update-resume) ]]; then     # (the boot's own runs: never wait — another run is on, so next start)
   exec 9<>"$STATE_DIR/lock"; flock -n 9 || exit 0
 elif [[ $MODE == after-dnf ]]; then   # (after a dnf run: waits for an update or repair to end first)
   exec 9<>"$STATE_DIR/lock"; flock 9
@@ -3450,6 +3450,7 @@ case $MODE in
   after-upgrade) do_after_upgrade; exit 0 ;;
   after-dnf) do_after_dnf && exit 0; exit 3 ;;
   repair) do_repair; exit 0 ;;
+  update-resume) [[ $(phase) == 'done' ]] && on_the_system || exit 0; up_boot; exit 0 ;;
   kernels) [[ $(phase) == 'done' ]] && on_the_system || exit 0
            kernel_match; orphan_kernels_out desktop; old_kernels_out desktop; exit 0 ;;
   toolkit) [[ $(phase) == 'done' ]] || die "the build is not finished — setup makes the toolkit itself"

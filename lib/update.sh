@@ -240,7 +240,7 @@ u_undo() {
   mapfile -t s < <(awk '$3 != "-" { print $1 }' "$UPD/set" 2>/dev/null)
   ((${#s[@]})) && up_hold "$(head -n1 "$UPD/why")" "${s[@]}"
   if [[ -z $n ]]; then UP_END=checks
-  elif [[ $(findmnt -no FSROOT /home 2>/dev/null) == /home ]] && /usr/local/sbin/kawa-snap restore "$n"; then UP_END=restored
+  elif mountpoint -q /home && /usr/local/sbin/kawa-snap restore "$n"; then UP_END=restored
   else UP_END=offered; fi
 }
 u_report() {   # u_report — the outcome: UPD/report (the pane), the log beside it, a notice
@@ -267,6 +267,29 @@ u_report() {   # u_report — the outcome: UPD/report (the pane), the log beside
   UP_LINE=$line
   [[ $UP_END == @(ok|current|held) ]] || hdr "update: $line"
 }
+# ── a start after an update cut in its transaction (a power cut, a crash): before the login
+# screen (fedokawaii-update-resume.service), never left half-done — its packages all in: kept,
+# the button's next press does the rest; not whole: the system before it put back and started,
+# once (only once /home is its own subvolume — before, offered); either way said at login ──────
+up_boot() {
+  [[ $(up_was) == replay ]] || return 0
+  local n; n=$(cat "$UPD/snap" 2>/dev/null) || n=""
+  if up_complete; then
+    up_phase steps
+    up_tell "the last update was cut off after its packages went in" "press update (Super+U) to finish it"
+  elif [[ -e $UPD/restored-once || -z $n ]] || ! mountpoint -q /home; then
+    up_tell "the last update was cut off half-way" "snapshot ${n:-?} is the system before it: Super+U → snapshots → ${n:-?}$(mountpoint -q /home || echo ' (your home goes back too, until /home is split)')"
+  else
+    date +%s | write_file "$UPD/restored-once" 0644
+    echo "the last update was cut off half-way" >"$UPD/why"
+    if /usr/local/sbin/kawa-snap restore "$n"; then
+      UP_END=restored; u_report
+      up_tell "the last update was cut off half-way" "the system before it (snapshot $n) was put back — press update again when you like"
+      systemctl reboot
+    else up_tell "the last update was cut off half-way" "snapshot $n is the system before it, and could not be put back by itself: Super+U → snapshots → $n"; fi
+  fi
+}
+up_tell() { as_user kawa-foryou add update-cut "$1" "$2" 2>/dev/null || log "$1 — $2"; }   # (a notice at login, kept until clicked)
 UP_END=""
 up_exit() {   # (a run that stops anywhere: the candidate gone, the top unmounted, the report written —
               # quietly: the run's own error has been said, and its status stands)
