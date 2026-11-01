@@ -28,6 +28,13 @@
 # differently, can never leave every login and cookie saved before it unreadable. (A
 # --password-store of your own comes after it: Chromium keeps a switch's last value.)
 set -u
+# Open with this profile? Chromium's own mark — SingletonLock, a link to HOST-PID — whose process
+# is alive; a crash's stale mark is no open Brave, nor is a Brave of another home. The one check
+# for whatever must not write Brave's files under it: `brave-origin --is-open` (0 open, 1 not) —
+# Theme and kawa-tidy ask it; the Widevine switch below too
+lock="${XDG_CONFIG_HOME:-$HOME/.config}/BraveSoftware/Brave-Origin/SingletonLock"
+is_open() { local o; o=$(readlink -- "$lock" 2>/dev/null) && kill -0 "${o##*-}" 2>/dev/null; }
+[[ ${1:-} == --is-open ]] && { is_open; exit; }
 feat=PulseaudioLoopbackForScreenShare,WebRTCPipeWireCapturer,AcceleratedVideoEncoder,AcceleratedVideoDecodeLinuxGL,AcceleratedVideoDecodeLinuxZeroCopyGL args=() rest=""
 off=WebRtcAllowInputVolumeAdjustment
 for a in "$@"; do                           # (after --, Chromium reads no switches: nor here)
@@ -46,10 +53,7 @@ b=/usr/bin/brave-origin-stable
 # was set, and one you switched off in brave://settings since stays off
 ls="${XDG_CONFIG_HOME:-$HOME/.config}/BraveSoftware/Brave-Origin/Local State"
 wm=${XDG_STATE_HOME:-$HOME/.local/state}/fedokawaii/brave-widevine
-# (open with this profile: Chromium's own mark — SingletonLock, a link to HOST-PID — whose
-# process is alive; a crash's stale mark is no open Brave, nor is a Brave of another home)
-open=$(readlink -- "${ls%/*}/SingletonLock" 2>/dev/null) && kill -0 "${open##*-}" 2>/dev/null || open=""
-if [[ ! -e $wm && -z $open ]] && command -v jq >/dev/null; then
+if [[ ! -e $wm ]] && ! is_open && command -v jq >/dev/null; then
   mkdir -p -- "${ls%/*}" "${wm%/*}"
   if [[ -s $ls ]]; then t=$(jq '.brave.widevine_opted_in = true' "$ls" 2>/dev/null)
   else t=$(jq -n '.brave.widevine_opted_in = true'); fi

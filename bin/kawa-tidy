@@ -143,7 +143,9 @@ leftovers() {
   done
   return "$rc"
 }
-brave_open() { pgrep -u "$(id -u)" -f -i brave >/dev/null; }
+# Brave open? Its starter beside this script answers from Chromium's own lock (brave-origin
+# --is-open); one that cannot be asked counts as open: nothing deleted under a running Brave
+brave_open() { local b=${0%/*}/brave-origin; [[ -x $b ]] || return 0; "$b" --is-open; }
 trim() {   # every cache over its limit, its own way
   local e p lim how what s f rc=0
   for e in "${CACHES[@]}"; do

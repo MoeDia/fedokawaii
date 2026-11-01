@@ -3139,6 +3139,18 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   logind lists 80 root "background-light" sudo sessions in state "closing" (c179–c306, since 1 Nov 14:48) whose scopes
   are gone. T53: whatever the apply starts for his session (swaybg, warm windows) belongs in his own manager
   (systemd-run --user / his session), and the closing sudo sessions explained (logind's own GC, or something holding them).
+- r27-53-brave (2 Nov 00:27–00:31, T53 item "one shared SingletonLock check"): `brave-origin --is-open` (0 open, 1 not)
+  — Chromium's own mark (SingletonLock → HOST-PID, the process alive; a crash's stale mark is not open), the one check:
+  theme.sh's two guesses (pgrep '/brave-origin/brave( |$)') and kawa-tidy's (pgrep -f -i brave: ANY process naming
+  brave) now ask it; kawa-tidy asks the brave-origin beside it (its timer's PATH has no ~/.local/bin) and one it
+  cannot ask counts as open (nothing deleted under a running Brave). Tests: test_brave 34/0 (--is-open: open,
+  stale, none; Brave never started by the question), test_tidy 67/0 (the cache kept under a live lock, cleared once
+  its process is gone — was a pgrep stub), test_theme_parts 129/0; ShellCheck clean. NOT in the 42892e1 suite run:
+  the next suite covers it.
+  The stray scopes (r27-stray-scopes) traced: theme.sh §6's live() = `U env WAYLAND_DISPLAY=… CMD` = runuser under
+  sudo → `kawa-theme apply` → `kawa-wallpaper --restore &` → swaybg inherits root's session scope. T53's fix: live()
+  through his own manager (`systemd-run --user --scope`, as_user's env has his bus) — proven by an apply when he is
+  away (swaybg then under user@1000.service), plus why logind keeps 80 closed sudo sessions.
 ## >>> NEXT PASS STARTS HERE (1 Nov, written ~23:50 by the 21:47 pass — the lines above say what it did): the inbox first. Then:
 ## (0) PRESENCE: he was at the PC all evening (a Discord call + a stream at 22:24; memory presence-not-just-input-idle).
 ##     Before anything he could see or hear (a reboot, a session restart, a bar restart, a live play, a notice):

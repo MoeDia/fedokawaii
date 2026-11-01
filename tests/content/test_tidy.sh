@@ -77,14 +77,15 @@ mkfile "$HOME/.cache/uv/big" 3100; mkfile "$HOME/.cache/BraveSoftware/Brave-Brow
 mkfile "$HOME/.cache/fedokawaii/wallpaper-screens/2560x1440/a.png" 1600
 mkdir -p "$HOME/Documents"; mkfile "$HOME/Documents/big.iso" 50
 tidy --check caches; eq "$RC" 1; has "$OUT" "over its limit"
-stub pgrep 'exit 0'                                     # (Brave open)
+bl="${XDG_CONFIG_HOME:-$HOME/.config}/BraveSoftware/Brave-Origin/SingletonLock"   # (Brave open: its own lock, its process alive)
+sleep 60 & live=$!; mkdir -p "${bl%/*}"; ln -sfn "fedokawaii-$live" "$bl"
 tidy; eq "$RC" 0 "$OUT"
 [[ ! -e $HOME/.cache/npm/a && -f $HOME/.cache/pip/b ]] && _ok || _no "npm over: cleared; pip under: kept"
 eq "$(ls "$HOME/.cache/thumbnails/large" | tr '\n' ' ')" "3.png 4.png 5.png 6.png " "the oldest thumbnails out, until under 80 % of 500 MB"
 [[ ! -e $HOME/.cache/uv/big ]] && _ok || _no "uv's prune"; called "^uv cache prune --quiet$"; not_called "^uv cache clean"
 [[ -f $HOME/.cache/BraveSoftware/Brave-Browser/Default/Cache/data ]] && _ok || _no "Brave's cache cleared while Brave runs"
 [[ -f $HOME/.cache/fedokawaii/wallpaper-screens/2560x1440/a.png && -f $HOME/Documents/big.iso ]] && _ok || _no "a program's own cache, or your file, touched"
-stub pgrep 'exit 1'; tidy
+kill "$live"; wait "$live" 2>/dev/null; tidy             # (closed: the lock's process gone — a crash's stale mark too)
 [[ ! -e $HOME/.cache/BraveSoftware/Brave-Browser ]] && _ok || _no "Brave closed: its cache cleared"
 tidy --check caches; eq "$RC" 1 "the drawn wallpapers still over: named, never trimmed here"; has "$OUT" "the wallpapers drawn ahead"
 

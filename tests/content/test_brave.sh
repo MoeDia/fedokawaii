@@ -122,5 +122,12 @@ eq "$(jq -c '[.brave.widevine_opted_in,.keep]' "$LS")" "[false,2]" "open: untouc
 kill "$live"; wait "$live" 2>/dev/null; B
 eq "$(jq -c '[.brave.widevine_opted_in,.keep]' "$LS")" "[true,2]" "the mark's process gone: on"
 rm -f "${LS%/*}/SingletonLock"
+case_ "--is-open: the one check Theme and kawa-tidy ask — 0 open (the lock's process alive), 1 not (no lock, or a stale one); Brave never started"
+sleep 30 & live=$!; ln -sfn "fedokawaii-$live" "${LS%/*}/SingletonLock"; rm -f "$ARGS"
+B --is-open; eq "$?" 0 "open"
+kill "$live"; wait "$live" 2>/dev/null
+B --is-open; eq "$?" 1 "a stale lock: not open"
+rm -f "${LS%/*}/SingletonLock"; B --is-open; eq "$?" 1 "no lock: not open"
+[[ -e $ARGS ]] && _no "Brave started by a question" || _ok
 
 done_

@@ -757,7 +757,7 @@ for BP in "${BRAVE_PREFS[@]}"; do
   fi
   [[ $(cat "$BM" 2>/dev/null) == "$BRAVE_MARK" ]] && continue          # changed in Brave since: yours
   if ((CHECK)); then DRIFT+=("$BP (Brave not in the desktop's colours)")
-  elif pgrep -u "$TARGET_UID" -f '/brave-origin/brave( |$)' >/dev/null; then
+  elif U brave-origin --is-open; then
     log "Brave is open: its colours are set by the next Theme run (or Settings → Appearance → Theme → GTK)"
   else
     BT=$(mktemp)
@@ -784,7 +784,7 @@ if [[ -s $BRAVE_LS ]] && jq -e '.brave.widevine_opted_in == true' "$BRAVE_LS" >/
 elif [[ -e $BWM ]]; then :                                            # switched off in Brave since: yours
 # (Brave open: its starter, ~/.local/bin/brave-origin, switches it on before Brave's next start
 # — Brave writes Local State again as it closes, so nothing may write it now; no drift either)
-elif pgrep -u "$TARGET_UID" -f '/brave-origin/brave( |$)' >/dev/null; then
+elif U brave-origin --is-open; then
   ((CHECK)) || log "Brave is open: Widevine goes on at its next start (its starter switches it on) — close Brave and start it again"
 elif ((CHECK)); then DRIFT+=("$BRAVE_LS (Widevine off: Spotify's web player cannot play)")
 else
