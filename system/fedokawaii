@@ -260,7 +260,7 @@ status_kv() {
   else printf 'updated\037none since setup\n'; fi
   # the last run's own outcome (lib/update.sh u_report: TIME OUTCOME, its line) and what the
   # updates hold back; one undone said as that, not as a stop
-  n=$(grep -c . "$STATE/update/holds" 2>/dev/null) || n=0
+  n=$(held_count)   # (families, as the held row counts them)
   read -r e p 2>/dev/null <"$STATE/update/report" && num "$e" || p=""
   if read -r t res < <(last_update); then
     d=$(date -d "@$t" '+%-d %b' 2>/dev/null)
