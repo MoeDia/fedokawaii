@@ -125,6 +125,21 @@ reset_calls; up; eq "$RC" 0 "$(tail -n3 <<<"$OUT")"
 eq "$(report)" restored; called "kawa-snap\] restore $(cat "$U/snap")"
 has "$(sed -n 2p "$U/report")" "comes back at the next start"
 
+case_ "…sixty packages red only on the running system: all held together — the report and its notice a line, never sixty names"
+back built; reset_calls; rm -f "$U/holds"; set=(); for i in $(seq -w 1 60); do set+=("p$i 1.0-1.fc44 1.1-1.fc44"); done
+pending "${set[@]}"; fkh replay-breaks-dwl
+up; eq "$RC" 0 "$(tail -n3 <<<"$OUT")"
+eq "$(report)" offered; eq "$(grep -c . "$U/holds")" 60 "all sixty held"
+l=$(sed -n 2p "$U/report")
+has "$l" "— held: all 60 packages together (which one broke it could not be told apart; newer versions are tried)"
+lacks "$l" "p07"; ((${#l} <= 200)) && _ok || _no "${#l} characters: $l"
+case_ "…holds from before, four families: two named, then how many more"
+back built; reset_calls; mkdir -p "$U"
+for f in ant bee cat dog; do printf '%s 2.0-1.fc44 1.0-1.fc44 2026-11-01 the desktop does not start\n' "$f-libs" "$f-tools"; done >"$U/holds"
+up; eq "$RC" 0 "$(tail -n3 <<<"$OUT")"
+eq "$(report)" current; has "$(sed -n 2p "$U/report")" "up to date · held: ant 2.0-1.fc44 · bee 2.0-1.fc44 and 2 more"
+rm -f "$U/holds"
+
 case_ "the desktop's start check red before the update already: not counted against it — kept, and said"
 back built; reset_calls; pending "bash 5.2-1.fc44 5.3-1.fc44"; fkh session-red "not running: waybar"
 up; eq "$RC" 0 "$(tail -n3 <<<"$OUT")"

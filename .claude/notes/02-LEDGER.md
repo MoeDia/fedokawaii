@@ -2402,6 +2402,25 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   the report ok, a stopped run 1 with its reason. Condition (A) done (the plan's T45 line: each deferral
   with its acceptance). (B)–(H) are the next pass's order below.
 
+- r27-49-merge (1 Nov 13:28, pass of 13:27) — the old trial merge's suite (/dev/shm/r27p/all.log, 2159 s) ended
+  with only its two known reds (test_setup_wait, test_launcher — both fixed since). t45 (9944a7e) merged into main
+  for real: a353613, no conflicts; the WHOLE suite on it started 13:28 (/dev/shm/r27p/merge2.log); main is pushed
+  only when it is green.
+- r27-49-18 (1 Nov 13:30–13:46; the master's (G) 18, before the PC's first press) — a whole set held at once no
+  longer becomes a notice of hundreds of names: the report's line (and so the notice and the run's last line)
+  names the holds by family, two at most, then "and N more"; a red only on the running system says "held: all N
+  packages together (which one broke it could not be told apart; newer versions are tried)"; the Super+U held
+  pane names three families, then "and N more."; an undo with nothing held no longer ends in an empty "— held:".
+  The family rule moved from the menu into lib/common.sh hold_families (the pane and the report share it) and
+  was fixed on the way: it merged every line with the same version and reason, so a whole set held at once
+  (one reason) turned packages that happen to share a version into one family named by a meaningless common
+  prefix ("p", or "?") — now only names that begin alike (kernel, kernel-core …) group. The menu skips sourcing
+  lib/common.sh when nothing is held (the usual case: no cost). Tests: test_update_flow 220/0 (sixty red only on
+  the running system: offered, sixty held, the line ≤ 200 characters with no name in it; four families from
+  before: "ant … · bee … and 2 more"), test_menu 611/0 (sixty: the row 60, the pane p01–p03 and "and 57
+  more."), test_status 207/0 (sixty: "61 packages · 60 held", ≤ 44 columns); static syntax/pointers green, no new
+  shellcheck finding. Design §4.1 "as built" written.
+
 ## >>> NEXT PASS STARTS HERE (1 Nov, written 13:00 — the lines above say what this pass did): the inbox first. Then,
 ## in the master's order (master-T45-efh-verdict.md, "Re-review"):
 ## (B) merge t45 → main; the whole suite; `fedokawaii apply`; verify green (with the resume-unit row; the one

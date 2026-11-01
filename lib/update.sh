@@ -294,21 +294,27 @@ u_undo() {
   local n s=(); n=$(cat "$UPD/snap" 2>/dev/null) || n=""
   mapfile -t s < <(awk '$3 != "-" { print $1 }' "$UPD/set" 2>/dev/null)
   ((${#s[@]})) && up_hold "$(head -n1 "$UPD/why")" "${s[@]}"
+  UP_TOGETHER=${#s[@]}   # (the whole set: red only on the running system, so never told apart)
   if [[ -z $n ]]; then UP_END=checks
   elif mountpoint -q /home && /usr/local/sbin/kawa-snap restore "$n"; then UP_END=restored
   else UP_END=offered; fi
 }
 u_report() {   # u_report — the outcome: UPD/report (the pane), the log beside it, a notice
-  local held="" line why log n
-  [[ -s $UPD/holds ]] && held=$(awk '{ printf "%s%s %s", (NR > 1 ? " · " : ""), $1, $2 }' "$UPD/holds")
+  local held="" fam=() line why log n
+  # (the holds by family, as the pane names them — two at most, then how many more: a notice is
+  # a line, and a whole set held at once is hundreds of names)
+  [[ -s $UPD/holds ]] && mapfile -t fam < <(hold_families "$UPD/holds" | cut -f1)
+  ((${#fam[@]})) && held="${fam[0]}${fam[1]:+ · ${fam[1]}}"
+  ((${#fam[@]} > 2)) && held+=" and $((${#fam[@]} - 2)) more"
+  ((UP_TOGETHER > 1 && ${#fam[@]} > 2)) && held="all $UP_TOGETHER packages together (which one broke it could not be told apart; newer versions are tried)"
   [[ -n $UP_END ]] || UP_END=stopped
   n=$(wc -l 2>/dev/null <"$UPD/set") || n=0
   case $UP_END in
     ok)       line="updated · $n package$( ((n == 1)) || echo s)${held:+ · held: $held}" ;;
     current)  line="up to date${held:+ · held: $held}" ;;
     held)     line="held: $held — the rest was up to date" ;;
-    restored) line="the update broke something: the system before it comes back at the next start — held: $held" ;;
-    offered)  line="the update broke something: snapshot $(cat "$UPD/snap") is the system before it (Super+U → snapshots) — held: $held" ;;
+    restored) line="the update broke something: the system before it comes back at the next start${held:+ — held: $held}" ;;
+    offered)  line="the update broke something: snapshot $(cat "$UPD/snap") is the system before it (Super+U → snapshots)${held:+ — held: $held}" ;;
     *)        why=$(tail -c +"$((RUN_LOG_FROM + 1))" "$LOG_FILE" 2>/dev/null | grep '✘' | tail -n1 | sed 's/\x1b\[[0-9;]*m//g; s/^.*✘ *//') || why=""   # (this run's own)
               line="stopped ($(up_was | sed 's/^end$/start/')): ${why:-no reason could be written (a full disk?)}" ;;
   esac
@@ -411,7 +417,7 @@ up_probation_close() {   # this start has reached the desktop: the probation ove
   done <"$UPD/probation"
   rm -f -- "$UPD/probation"
 }
-UP_END="" UP_STAY=0
+UP_END="" UP_STAY=0 UP_TOGETHER=0
 up_exit() {   # (a run that stops anywhere: the candidate gone, the top unmounted, the report written —
               # quietly: the run's own error has been said, and its status stands — and what
               # make_tmp's own exit did, which this one replaces: the run's temp folder, dnf's follower)

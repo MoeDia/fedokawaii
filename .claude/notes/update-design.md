@@ -277,6 +277,13 @@ the date); the rest applied with `best=False` (packages that need a held version
 listed). Each later press retries the held ones in a candidate first (newer versions only), and
 releases the lock when they pass; a held package with a security advisory (`dnf5 advisory list`)
 is said plainly in the report. No background retries (his decision: the button only).
+*As built (1 Nov, the master's 18):* a red only on the running system (the copy was green) cannot
+be split in halves — the running system is no copy to try halves in — so the whole set is held
+together and said so: "held: all N packages together (which one broke it could not be told apart;
+newer versions are tried)". Holds are named by family (lib/common.sh hold_families: one version,
+one reason, names that begin alike — kernel, kernel-core … as "kernel"), two at most in the
+report's line and its notice, then "and N more"; the Super+U held pane names three, then "and N
+more"; the held row counts families.
 
 ### 4.2 The desktop smoke test
 

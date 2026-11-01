@@ -88,6 +88,14 @@ has "$out" "did not reach the desktop in three"; lacks "$out" "…"; lacks "$out
 (( $(widest "$(sed 1d <<<"$out")") <= 45 )) && _ok || _no "too wide: $out"   # (under its heading: the pane's own rule)
 rm -f "$R/state/update/holds"; [[ $(plain "$(fedokawaii --rows update | grep -m1 held)") == *held ]] && _ok || _no "a count with none held"
 has "$(plain "$(fedokawaii --explain held)")" "nothing held back."
+case_ "…sixty held at once (a whole set): the row counts sixty, the pane names three, then how many more"
+fresh; mkdir -p "$R/state/update"
+for i in $(seq -w 1 60); do echo "p$i 1.1-1.fc44 1.0-1.fc44 2026-11-01 the desktop does not start"; done >"$R/state/update/holds"
+[[ $(plain "$(fedokawaii --rows update | grep -m1 held)") == *" 60" ]] && _ok || _no "the count: $(plain "$(fedokawaii --rows update | grep -m1 held)")"
+out=$(plain "$(fedokawaii --explain held)")
+has "$out" "p03 1.1-1.fc44"; lacks "$out" "p04"; has "$out" "and 57 more."; lacks "$out" "…"
+(( $(widest "$(sed 1d <<<"$out")") <= 45 )) && _ok || _no "too wide: $out"
+rm -f "$R/state/update/holds"
 case_ "an update running as a unit of its own: a press follows it — its output so far, its status; no password"
 fresh; mkdir -p "$R/state/update"; echo "▸ the update on the running system" >"$R/state/update/run.log"
 stub systemctl 'case "$*" in "is-active"*) exit 0 ;; *MainPID*) echo 0 ;; *ExecMainStatus*) echo 0 ;; esac'

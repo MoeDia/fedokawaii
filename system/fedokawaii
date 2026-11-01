@@ -743,17 +743,11 @@ rows() {
   [[ -n $desk ]] && e learning keys "${ICON_KEYCAP:-·}" keys ""
   return 0
 }
-# what the updates hold back (lib/update.sh: STATE/update/holds — NAME HELD AT DAY WHY, a line a
-# package): "NAME VERSION<TAB>WHY", a line a family — the packages held at one version for one
-# reason are one source's (kernel, kernel-core …; mesa-dri-drivers, mesa-libEGL …), named by
-# what their names share
+# what the updates hold back: "NAME VERSION<TAB>WHY", a line a family (lib/common.sh's
+# hold_families — the update's report names them the same way)
 holds() {
-  awk '{ w = ""; for (i = 5; i <= NF; i++) w = w (i > 5 ? " " : "") $i; k = $2 "\t" w
-         if (!(k in name)) { order[++n] = k; name[k] = $1; next }
-         a = name[k]; b = $1; m = 0; while (m < length(a) && substr(a, m + 1, 1) == substr(b, m + 1, 1)) m++
-         name[k] = substr(a, 1, m) }
-       END { for (i = 1; i <= n; i++) { k = order[i]; nm = name[k]; sub(/-+$/, "", nm); split(k, f, "\t")
-                                       print (nm == "" ? "?" : nm) " " f[1] "\t" f[2] } }' "$STATE/update/holds" 2>/dev/null
+  [[ -s $STATE/update/holds ]] || return 0
+  (LOG_FILE=/dev/null; . "$TK/lib/common.sh" >/dev/null && hold_families "$STATE/update/holds")
 }
 held_count() { local n; n=$(holds | grep -c .) && ((n)) && echo "$n"; return 0; }
 section_of() {   # section_of ACTION → its tab
@@ -967,7 +961,9 @@ explain() {
                  ((${#w} <= 41)) || { w=${w:0:42}; w=${w% *}; }
                  say "$w"; echo
                done < <(holds | head -n 3)
-               [[ -n $(held_count) ]] || { say "nothing held back."; echo; }
+               h=$(held_count)
+               if [[ -z $h ]]; then say "nothing held back."; echo
+               elif ((h > 3)); then say "and $((h - 3)) more."; echo; fi
                say "held at its version — let go by itself" \
                    "once a newer one passes." ;;
     file)      soon "one file as it was, from a snapshot — never" \
