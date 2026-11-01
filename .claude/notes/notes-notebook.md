@@ -119,3 +119,17 @@ then merge into main through the suite and the master.
   KawaRule, so its cells are never "default").
 - 00:15 the light to-do's pale words CLOSED: a harness artefact of tools/kit-keys.py (its own pty between nvim and foot);
   rendered with nvim's own feedkeys the words are #122625 (light text) — the page is right. No explicit ink needed.
+- 2 Nov 00:13–00:25 THE TYPING PLAY (the brief's acceptance "typing 40 lines, no row jumping"): the kit, real foot + nvim,
+  t21's notes.lua and kawa-warm (64 × 40), 40 lines typed with one `wtype -d 22` a line (two wrapping), every screen
+  change recorded (wf-recorder, lossless) and each frame compared (/dev/shm/r27/t21/typing/an/frames.py). scrolloff 2:
+  3 720 frames, the head, the foot and the margin column never changed, all 36 rules whole in every frame, the page
+  scrolled 10 times, one row each (33/33 rows matched) — BUT at the end of the notes the pen sat on the LAST ruled row
+  (scrolloff counts the virt_lines page under the floats): the brief's point 5 (paper ahead of the pen) not met.
+  DECIDED: scrolloff 5 — three ruled rows of fresh paper ahead of the pen, two more under the floats; at the top it
+  opens with yesterday's last lines above today's heading (context, as a diary's page). Again, both moods: dark 3 714 /
+  light 3 711 frames, 0 moved, 0 broken, 15 one-row scrolls (31/33: the two the pen's own), the pen ends on row 32 of
+  36 (renders /dev/shm/r27/t21/typing/{dark,light}-{open,typed}-win.png). Kept as tools/regress/notes-page.sh (it
+  finds the page's rules, rows and margin from the open shot itself; held on t21: 36 rules · 20 px · x 41–521 ·
+  3 715 frames · 0 · 0 · {1: 15} · 3 ahead, both moods).
+  DECIDED, the header's notebook fields (No. · date): none — the bar carries the date, each day's line its own; the
+  head stays the icon, "notes" and its rule (one thing fewer on the page; his "minimal, no clutter").

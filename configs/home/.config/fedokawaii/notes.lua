@@ -102,7 +102,8 @@ local function footer_of(name) return "  " .. name .. "  ·  saved as you go  ·
 local function todo_footer(name) return "  " .. name .. "  ·  space ticks  ·  tab: the notes" end
 -- the page's foot (T21: margins that never move): no statusline — the window runs to the last
 -- row, and two floats lie over its last two: a row of paper, then the footer; scrolloff keeps the
--- pen two rows above them, so nothing typed is ever under them, however far the page scrolls
+-- pen five rows from the edge — never under the floats, three ruled rows of fresh paper ahead of
+-- it as it goes down the page, however far the page scrolls (the play's frames: T21)
 local foot = {}
 local function foot_rows(text)
   local function float(i, row, line, hl)
@@ -125,7 +126,7 @@ local function page_footer()
   pcall(function() require("lualine").hide({ place = { "statusline" }, unhide = false }) end)
   vim.o.laststatus = 0
   vim.o.cmdheight = 0
-  vim.o.scrolloff = 2
+  vim.o.scrolloff = 5
   foot_rows(foot_text)
 end
 

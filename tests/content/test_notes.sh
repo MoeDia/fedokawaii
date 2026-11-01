@@ -194,7 +194,7 @@ else
   eq "$(ask 'vim.api.nvim_strwidth(vim.api.nvim_eval_statusline(vim.o.tabline, {use_tabline = true}).str)')" 80 "(the rule to two columns short of the edge: the row full)"
   eq "$(ask '{vim.o.showtabline, vim.wo.winbar}')" '{ 2, "%#KawaGround# " }'
   eq "$(ask '(function() local t = {} for _, w in ipairs(vim.api.nvim_list_wins()) do local c = vim.api.nvim_win_get_config(w) if c.relative ~= "" then t[#t + 1] = (vim.o.lines - c.row) .. ":" .. vim.api.nvim_buf_get_lines(vim.api.nvim_win_get_buf(w), 0, 1, false)[1] end end table.sort(t) return t end)()')" '{ "1:  ~/Notes/50% off.md  ·  saved as you go  ·  super+n puts it away", "2:" }'
-  eq "$(ask '{vim.o.laststatus, vim.o.cmdheight, vim.o.scrolloff}')" "{ 0, 0, 2 }"
+  eq "$(ask '{vim.o.laststatus, vim.o.cmdheight, vim.o.scrolloff}')" "{ 0, 0, 5 }"
   case_ "notes.lua: nothing written over the footer while typing (no mode, no keys, no 'written')"
   eq "$(ask '{vim.o.showmode, vim.o.showcmd, vim.o.ruler}')" "{ false, false, false }"
   has "$(ask vim.o.shortmess)" "WFcsS"
