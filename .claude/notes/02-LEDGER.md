@@ -1905,14 +1905,265 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   T48's acceptance, not this item: a restore from a real boot-menu snapshot (overlay) in the VM; the
   two tests the master listed (another nested subvolume, an entry without the machine-id token).
 
-## >>> NEXT PASS STARTS HERE (1 Nov 07:10): the inbox first. Then:
-## (1) T48 FIRST (2): the flat layout (snapshots, home, log, fk at the top level; kawa-snap reading
-##     $top/snapshots) and the offline /home split (a unit under system-update.target, cp -aT
-##     --reflink=always -x, Downloads/VM renamed across, compared, fstab by name, the old copy removed
-##     after a good start) — VM first (states "built", "two-kernels"; tools/vm-inject/), then the PC
-##     with a pinned snapshot. With it: a restore from a real boot-menu snapshot in the VM, the master's
-##     two missing tests.
-## (2) T45 on branch t45 (worktree ~/repos/fk-t45, main merged in): (c) proven in the VM —
-##     tools/vm-inject/update-green.sh found and fixed the container call; re-run it (56 pending in
-##     "built"), then (e) the real checks + smoke, (f) probation, (h) the unit + the pane, (i) the
-##     toolkit at a signed tag; t45 merges into main only after (c) is green.
+- r27-49c (1 Nov 07:25; T45 (c), wip on t45 — tools/vm-inject/update-green.sh, the VM "built" with its 49–56
+  real pending updates, the t45 toolkit): run 1 (06:39) — the container was handed the transaction folder
+  as its command (cand_run did not shift its TXDIR: "execv(…/update/tx) failed"), and the bisection then
+  held all 56 packages because its halves could not be stored from the cache: fixed (f04e047) — the
+  argument shifted, --link-journal=no (the copy has the host's machine id), every copy first started
+  with /usr/bin/true (a container that does not start is no verdict: stopped, nothing changed), a half
+  that cannot be tried returns 2 (no culprit named, nothing held, stopped), the stored transaction and
+  kept downloads removed at every end. Run 2 (07:09): the candidate's replay of 56 packages went
+  through in the container ("Complete!", 34 s); its check misread the new kernel's entry (empty
+  version) and the halves could not be stored with -C: fixed (the entry's `version` key; halves
+  stored with the network allowed; the scratch /boot given loader/entries and grub's grubenv). Run 3
+  (07:13, still running at the pass's end; its log in the VM's /tmp/update.log, lost with the next
+  revert): candidate red "the boot image of 7.2.13 has no btrfs"; the bisection found the kernel in
+  ≈ 5 min ("held: kernel 7.2.13") and the rest was red again for the same reason. Two findings for the
+  next pass: (1) inside nspawn dracut cannot see the root's block device ("failed to get device size
+  for /dev/vda3") — its host-only image may lack btrfs where the live one would not (a false red), or
+  lsinitrd fails in there: run the image checks from the host on the scratch /boot (it is a host
+  folder) and give the container the root device read-only (DeviceAllow + bind) so its dracut builds
+  what the live one would — compare both images' module lists in the VM; (2) a hold must cover the
+  culprit's whole source package (the kernel family: kernel, -core, -modules, -modules-core …, one
+  SRPM): bisect over source packages (rpm -qp --qf %{sourcerpm} on the stored rpms), hold every binary
+  of the red one — fewer rounds too (56 binaries ≈ 20 sources).
+
+- r27-49c (cont., 07:30, t45 1ade7a9): finding (2) done on stubs — the bisection and the holds work on
+  source packages (rpm -qp --qf '%{name} %{sourcerpm}' on the stored rpms → UPD/sources; halves of
+  sources; a hold takes every binary of the red one): test_update_flow 131/0 (+ the kernel family —
+  kernel, kernel-core, kernel-modules from one source — held whole, bash and zlib applied). Finding (1)
+  (the candidate's dracut without the root device) still open: next pass, VM.
+
+- r27-49c (cont., 07:31) — run 3 finished (the code before the source-package holds; 1055 s for the
+  whole run): the candidate red twice for "the boot image of 7.2.13 has no btrfs" (finding (1)), the
+  kernel and kernel-core held one after the other, then green in the copy (66 packages after the
+  re-store), the live replay went through — and u_check found two NEW reds: "brave-origin from
+  brave-browser (gpgcheck=1)", "claude-code from claude-code (gpgcheck=1)" → the set held, snapshot 2
+  offered (the VM's /home is inside /). Finding (3): a replayed stored transaction records every
+  package's origin as `@stored_transaction(REPO)` (dnf5-upgrade(8): the ids are mangled), so
+  verify.sh:191's `%{from_repo}` check (and fedokawaii-report PKG-16) read the wrong repository — read
+  the origin with the wrapper stripped (or confirm another way that the package came from REPO), and
+  check every %{from_repo} user. Timing for the design: a red set with two bisections ≈ 17 min end to end.
+
+- r27-49c (cont., 07:34, t45): finding (3) fixed — verify.sh's origin check and fedokawaii-report PKG-16
+  strip `@stored_transaction(…)` (the stored transaction was resolved from REPO and its signatures
+  checked before it went in); systemd-container's evidence row added (packages.fedoraproject.org/pkgs/
+  systemd/systemd-container, dnf5 repoquery: fedora + updates). test_verify 173/0 (+2), test_report_rows
+  269/0. Left for the next pass: finding (1), then update-green.sh to a green run.
+
+- r27-49c (cont., 1 Nov 07:52, t45 66b9252): finding (1) was the CHECK's, not the container's —
+  Fedora's kernel has btrfs built in (CONFIG_BTRFS_FS=y in /boot/config-7.2.11-200.fc44.x86_64,
+  kernel/fs/btrfs/btrfs.ko in modules.builtin; virtio_blk too in the VM), so "no btrfs.ko in the
+  image" was always red. Measured: dracut's host-only image made inside an nspawn candidate (with
+  and without the root device bound read-only, DeviceAllow r) and on the host hold the same modules
+  — the PC 452 = 452 = 452, the VM 440 = 440 = 440 (dracut 108; the "failed to get device size"
+  warning changes nothing). lib/cand-check.sh now wants every driver of the image that starts the
+  machine today (bound read-only at /run/fk-ref.img by cand_run) in the new image or built into the
+  new kernel (modules.builtin), skipping modules the new kernel no longer ships (modules.dep), plus
+  btrfs (+ amdgpu on AMD) the same way. Proven in a real container on the PC: a full image green, an
+  image made with --omit-drivers nvme red "lacks what today's has: nvme". test_update_flow 131/0.
+  No device bind needed (left out: nothing it changes). The VM run with it: next line.
+- r27-52b (1 Nov 07:40–08:05; T48 FIRST (2), wip on branch t48 610a55d, NOT on main or the PC):
+  system/fedokawaii-split — arm (repair's r_system, setup's end, `setup.sh --layout`: a snapshot
+  first; refused, nothing changed, while another /system-update waits, a top-level home/log/fk/
+  snapshots exists, a layout path is mounted from elsewhere, or free < du(home + var/log) + 5 GiB),
+  run (fedokawaii-split.service in system-update.target, systemd.offline-updates(7): each of /home,
+  /var/log, /var/lib/fedokawaii/update copied into NAME.part with cp -aT --reflink=auto -x — auto,
+  because btrfs will not reflink journald's NOCOW files (lsattr: /var/log/journal is C) — compared
+  entry by entry (type, mode, owners, SELinux label, time, size) and 64 files by content, then
+  named; ~/Downloads and ~/VM (subvolumes) and .snapshots moved by rename, never copied; fstab given
+  the four lines (same device and options as /, subvol=NAME), findmnt --verify; each step synced; a
+  cut resumes at the next start (the link stays until the end); a failure or a fourth start puts all
+  of it back (old fstab, moves undone, copies deleted — never one holding a subvolume) and keeps the
+  reason + the program's sha256 in split.failed so repair does not arm the same split again), clean
+  (in a later start: root's hidden old /home, /var/log, update copies removed with rm
+  --one-file-system, never where a subvolume sits), state, fstab FILE TOP. kawa-snap: snapshots
+  read at the top (snapshots) or inside root (before), --with-home only while /home has no
+  subvolume of its own, a restored root from before the split gets the layout's fstab lines (so
+  his files stay today's). The snapshot-boot notice keys on systemd.volatile=overlay (the flat
+  paths have no "/.snapshots/"). verify: the layout row. Measured on the PC: /home 35 G in 236 271
+  files outside Downloads/VM, /var/log 552 M, 849 G free; `cp -x` leaves an empty folder where a
+  nested subvolume sits (tested), the fstab writer on a copy of /etc/fstab (a stale /home line
+  replaced). test_snap 193/0 (+4: list and restore on the flat layout, the fstab lines, a copy
+  that cannot take them), test_split 51/0 (new). The VM proof tools/vm-inject/split-cut.sh (none,
+  six cut points, two failures, the clean, a restore from before the split) runs next; the PC only
+  after it is green (a restart: the owner's PC).
+
+- r27-49c (cont., 08:15, t45 da061e9): two more of the check's own false reds, found by the VM's
+  runs: (a) "no amdgpu" on a virtio VM — the VM's record /var/lib/fedokawaii/gpu says amd and
+  cand_run fell back to "amd" anyway: the GPU rule and the fallback are gone (today's image carries
+  the GPU's driver when the machine needs it); (b) "lacks what today's has: hfs hfsplus jfs minix
+  msdos nls_ucs2_utils ntfs" — the VM's image from the install is generic: the rule is now the
+  drivers this machine runs on (today's image ∩ /proc/modules, the host's list inside the container
+  too), each in the new image or built in. PC re-proven: full green, an image without nvme red.
+  update-green.sh re-running on f44.
+- r27-52b (cont., 08:12, t48 771853a): the split's first VM run (08:09) — the safety net worked
+  for real: plymouth writes /var/log/boot.log through the offline start, the copy of /var/log
+  differed, and everything was put back whole (nested, his files identical, the VM started
+  normally). Fix: files a process holds open under the folder being copied (/proc/*/fd) are copied
+  as they are and left out of the comparison. Second run, case "none" (tools/vm-inject/split-cut.sh
+  f44b none, exit 0): the split in 3 s of the offline start (/home, /var/log, the update folder
+  copied and compared; ~/Downloads, ~/VM and the snapshots moved; fstab 4 lines), then: state
+  "flat, old copies"; his files byte-identical (a newline in a name, a space, a hard-linked pair
+  still 2 links, a symlink, a fifo, an 8 MiB NOCOW file, an xattr, 64 MiB noise; Downloads/VM
+  files); btrfs subvolume list: home, log, fk, snapshots at the top, Downloads and VM inside home;
+  the journal on [/log]; snapper made snapshot 3 in /.snapshots; kawa-snap list 3; the boot
+  menu's list 3 entries on subvol="snapshots/N/snapshot"; clean left root's /home and /var/log
+  empty; then kawa-snap restore 1 (Oct 27's baseline, from before the split — no --with-home) and
+  a start: his files identical, /home and /.snapshots mounted from their subvolumes.
+  tools/vm-clone.sh made the clone f44b (reflinked states, port 2223) so both proofs run at once.
+  T48 (3), the part that is T48's: snapper_limits sets TIMELINE_CREATE=no for root once a home
+  config exists (the system changes only through packages and updates, each snapshotted; /home
+  keeps its hourly ones); before the split root keeps its timeline (it holds his files). The book
+  (8.2) says so; its example list shows an update's snapshot instead of a root "timeline" one.
+  Running: the six cut points and two failures (f44b).
+
+- r27-49c GREEN (1 Nov 08:17; t45 da061e9; tools/vm-inject/update-green.sh f44 ~/repos/fk-t45, exit 0)
+  — the button's run end to end on the harness VM's real pending updates (from "built", 27 Oct):
+  stored once (61 packages incl. kernel 7.2.13, gcc, util-linux, pipewire, brave-origin,
+  claude-code, steam), green in the copy at the first try (the nspawn candidate: replay "Complete!",
+  cand-check green — scriptlet noise in there only: grub2-probe cannot see /dev/vda3, harmless on
+  a scratch /boot), the pinned snapshot 2, the live replay of the same stored transaction, the
+  follow-ups (Prowlarr, nvim plugins, uv, rustup, dracut for 7.2.13, dwl rebuilt, the theme), the
+  checks green; report "ok · updated · 61 packages"; no holds; root.cand gone; 269 s end to end;
+  7.2.13 installed, 7.2.11 kept until the new one runs. Left after it: 3 lines of `dnf
+  check-upgrade` (of 75 before — counted lines, not packages; the next pass reads which). (c) is
+  done in the VM; t45 stays OFF main until T48's flat layout is live on the PC (the master's gate
+  for (d)/(f) on the PC), then (e) the real checks + the desktop smoke test, (f) probation, (h),
+  (i). Note for T46: the run said "Fedora 45 is out — the menu shows when the move to it is
+  offered" on 1 Nov (the owner's date for F45 is 3 Nov) — check what fedokawaii reads for that.
+
+- r27-52b (cont., 08:24; f44b, tools/vm-inject/split-cut.sh, table kept in /dev/shm/r27/split-cut.first9.txt):
+  every cut point whole — part-home (cut after /home's cp, before its comparison: home.part deleted
+  and copied again), copied-home, copied-log, copied-fk, moved, snapshots, fstab: each "ok flat ok
+  ok ok" = the next start went on ("start 2" in the log), the layout flat, his files byte-identical,
+  clean left root's /home and /var/log empty, snapper/kawa-snap/the boot menu on snapshots/N. Two
+  failures made (fail-copied-home, fail-fstab — the latter after fstab was written and Downloads,
+  VM and the snapshots moved): put back whole — nested, his files identical, Downloads/VM/.snapshots
+  back inside root, the old fstab, snapper lists, /system-update gone, split.failed with the reason
+  and the program's sha256; `setup.sh --layout` did not arm it again (state nested) — the table said
+  "armed again" only because the proof read the last line of setup's output (its exit footer): the
+  proof reads four now; both re-running. overlay-restore.sh f44, first run: inside the snapshot
+  started from grub-btrfs's own kernel line (one-time BLS entry + grub2-reboot): / an overlay, the
+  system as S had it, /home today's from its subvolume, kawa-snap list marks S booted, `kawa-snap
+  restore 3` from inside it rc 0; but the next start was S again: the proof's one-time entry named
+  the same kernel file, so the restore's `grubby --set-default /boot/vmlinuz-K` chose it
+  (grubenv saved_entry=fk-overlay) — a harness artefact (grub-btrfs's entries are not BLS entries);
+  a start after the entry went: the restored root (no mark, flat, /home mounted, root.old kept).
+  The proof now removes its entry once S has started; re-running.
+
+- r27-52b (cont., 08:33): the reruns green — split-cut.sh f44b fail-copied-home fail-fstab: both "ok"
+  (put back, nested, files identical, not armed again: "the next toolkit tries again", state nested);
+  overlay-restore.sh f44 exit 0, all 11 checks: the flat layout made and cleaned; snapshot 3 started
+  on a layer in memory from grub-btrfs's own kernel line; the system as S had it (no mark); /home
+  from its subvolume; kawa-snap list marks 3 booted; his files today's; `kawa-snap restore 3` from
+  inside S; the next start: / the root subvolume again, S's state, the layout flat, his files the
+  same. T48 FIRST (2) is proven in the VM in full (whole · 7 cuts · 2 failures · a pre-split restore
+  · a restore from a boot-menu snapshot); the master's verdict next, then the PC.
+
+- r27-found-1 (1 Nov 08:26, seen live, not yet fixed — for T53/T60): his waybar (pid 1687605, up since
+  00:59) holds 13 zombie children ("[waybar] <defunct>", ppid = waybar) born in bursts at 01:57:08,
+  01:58:15, 02:33:19, 03:09:23 — the moments the bar's modules were woken or restarted (kawa-bar
+  wake pipes, brightness/DDC at 01:57). No memory held, but a session of weeks would pile them up:
+  find which custom module's exec children waybar does not reap (waybar's own source for its
+  command runner; our kawa-bar restarts), fix it, and add a regression check (zombies after N
+  module restarts = 0).
+
+- r27-52b-master (1 Nov 08:43; Fable, fresh, read-only, 28 min — .claude/notes/master-T48-verdict-3.md):
+  PASS WITH CONDITIONS, no MAJOR ("no step at which a file of his can be lost or the PC left
+  unbootable"); reproduced test_split 51/0 and test_snap 203/0. Ten MINORs, eight NITs. The evidence as
+  it was (its NIT 14): the nine-case table (/dev/shm/r27/split-cut.first9.txt) had the two failure rows
+  "armed again" from the proof's own assertion (it read only the last line of setup's output); the two
+  failure cases were re-run after that fix (split-cut.fail.summary, both ok); the overlay proof's first
+  run came back into the snapshot because of the harness's own one-time entry, the second run is the one
+  kept (11/11); "a pinned snapshot" before the split is snapper's `important=yes` (NUMBER_LIMIT_IMPORTANT
+  4–10), not a pin; the book's "your files every hour" (§8.2) is true once the split and a repair (or
+  `setup.sh --layout`) made /home's config.
+- r27-52b-fix (1 Nov 08:45–09:05, t48): the ten fixed, each with its test —
+  (1) the content sample goes through the same skip list as the listing (open files, subvolume folders):
+  test_split "a file a process holds open and appends to" — red on the program without the fix
+  ("the copy of /var/log/boot.log differs"), green with it; (2) `run` checks the link is its own before
+  anything else (offline-updates(7) §5): another tool's start on a non-Btrfs root → exit 0; (3) the fstab
+  kept before the rewrite is synced (sync -f), the new one fsynced before its rename, and `back` puts the
+  kept one back only when it is whole (a / line on Btrfs), else leaves fstab as it was and says so;
+  (4) a split put back is verify's red ("nothing for you to do: the next toolkit tries again"), not
+  repair's failure (s_layout returns 0 there; r_system calls `s_layout || log`); (5) the start-up run
+  (setup.sh --kernels, on the system itself, after boot_success=1) runs `fedokawaii-split clean`; verify
+  says "removed at the next start"; (6) one disk-level test in kawa-snap — all four of home, log, fk,
+  snapshots at the top — for the --with-home guard and the fstab lines; `state` answers "broken: the
+  layout half made (at the top: …) — reason" (read mount-free from `btrfs subvolume list /`), verify
+  fails it with the reason, `arm` refuses over it, `back` writes "left behind: …"; (7) a restore gives
+  the restored root today's kawa-snap and fedokawaii-split (cp -a: labels kept; the rest of the toolkit is
+  that day's until the next update); (8) the snapshot-boot notice and kawa-snap's header true for both
+  kinds of snapshot (/home mounted → "your files as they are", not → "the system and your files as
+  they were — nothing done here is kept"); (9) home/.snapshots in grub-btrfs's ignore list; (10) kawa-snap
+  pre and setup's snapshot_before refuse when fstab names /.snapshots on its subvolume and it is not
+  mounted there (pre: a journal line, dnf goes on). NITs taken: tries parsed safely (a damaged file →
+  counted from 0), the give-up path keeps its log, a lock on the shared top mount (state/clean), the
+  wording, design §3 "As built" paragraph, and a stub run of the whole path (test_split's world: btrfs
+  subvolumes as folders tracked by inode, real cp/find/cmp — NIT 16). Left: NIT 17 (copied journal
+  files lose NOCOW until they rotate; tmpfiles sets the folders again — performance only). Also found
+  by the new tests: kawa-snap's guard had lost its `restore`-only condition when moved (finish was
+  refused) — fixed before anything ran. test_split 84/0, test_snap 214/0 (24 restore calls on the nested
+  fake disk now say --with-home: that is the PC's layout until the split). The installer tests' fake
+  Fedora now has the flat layout (findmnt SOURCE, btrfs subvolume list, a mount stand-in that turns the
+  top-level mount into nothing; $FKH/nested for Fedora's own); test_setup/test_upkeep re-running; the
+  VM: split-cut none (f44b), fail-fstab + overlay-restore (f44) re-running on the fixed programs.
+
+- r27-52b-pc (1 Nov 09:54–09:57; main c32821b = t48, pushed): the whole suite green before it — 123 of 125
+  files at 09:40 (the two red, test_verify and test_deps, from this item: the dependency map lacked chcon,
+  shuf (coreutils) and plymouth (rpm -qf), and verify's fake world had no fedokawaii-split) → test_deps
+  197/0, the installer area 25/25 (test_verify, test_upkeep 253/0, test_setup 233/0). APPLIED on the PC
+  09:54 (apply rc 3: repair, verify 258/259 — the one red his qbittorrent outside the manifest, known
+  since 28 Oct, T35's): snapshot 370 "before repair", snapshot 371 "before the disk's new layout"
+  (important), `fedokawaii-split arm` → armed (/system-update → /var/lib/fedokawaii/split, tries 0,
+  fedokawaii-split.service wanted by system-update.target, the program's sha256 89201bd9… = the repo's);
+  verify's row "the disk's new layout is made at the next start". Before-picture kept: ~/.cache/
+  r27-split-before.txt (home 269 785 files / 35 994 845 100 bytes outside the nested subvolumes;
+  Downloads 191 files 66 GB; VM 44 files 202 GB; Steam 13.5 GB; /var/log 60 files; snapper 46) and
+  ~/.cache/r27-split-before.sha256 (561 files). He was away (no input since 09:39, the swayidle logger;
+  the notes' nvim 0 modified buffers, his terminals only the warm helpers, Steam idle) → restarted at
+  the end of this pass with greetd's one-time initial_session (the file kept in
+  /var/lib/fedokawaii/greetd-fedokawaii.toml.r27): the next pass restores it FIRST and checks the split.
+
+- r27-52b-pc (cont., 1 Nov 09:57–10:12): the PC restarted 09:57 (greetd's one-time login); greetd's file put back
+  first (`cp -a` the kept copy: 0 initial_session lines). THE SPLIT, on the PC: its log 09:57:13 "start 1" →
+  09:57:21 "the disk's new layout is made" (8 s: reflink copies) → state "flat, old copies". At the top: root
+  256, home 642, log 643, fk 644, snapshots 259 (the same ID as root/.snapshots had: moved, not copied);
+  Downloads 258 and VM 511 inside home (their IDs kept: moved); fstab's four lines; findmnt: /home [/home],
+  /var/log [/log] (the journal's files there), /var/lib/fedokawaii/update [/fk], /.snapshots [/snapshots].
+  His files: `sha256sum -c` of the 561 kept checksums all OK; the new /home against the old copy the mount
+  hides (a read-only bind of /, file list with sizes, C sort): 236 415 old vs 236 422 new — outside Steam's
+  runtime churn, the caches and Claude's session files written since the start: 0 missing, 0 new, every
+  size equal (Steam's registry.vdf, steam.pid aside). Downloads 191 files / 66 272 717 025 bytes = before;
+  VM 44 files (its disks written by the proofs after 09:01); /var/log 60 files = before; snapper 46 + 370 +
+  371 = 48; fk-f44, fk-f44b listed by virsh. (The 09:01 count of 269 785 home files was an hour older:
+  the copy matches the disk as it was at 09:57, file for file.)
+  FOUND: the boot menu's list (grub-btrfs.cfg, written 09:54:56) still named root/.snapshots/N — after the
+  move none of its ten entries could have started. The VM proofs had called `kawa-snap boot` themselves
+  before reading the list, which hid it. Fixed live: `kawa-snap boot` 10:00 → ten entries snapshots/325 …
+  371, each a subvolume on the disk (checked one by one). In the code: the split's end() lists them again
+  (after a split and after a put-back: its log says which); verify's boot-menu row fails a list that names
+  a snapshot no longer on the disk ("— fedokawaii repair lists them again"); split-cut.sh now reads the
+  list the split made (no `kawa-snap boot` first; asserts stale=0). test_split 87/0 (the old program: red),
+  test_verify 175/0 (the PC's case: root/.snapshots/371/snapshot named → ✘ with repair named), test_snap
+  214/0; the check's logic run on the PC: live list → nothing gone; the stale line → named.
+  Then `setup.sh --layout` (10:00): home's snapper config made, root's timeline off, home's on; clean
+  removed the old /home and /var/log copies → state "flat". `fedokawaii verify` 259/260 (the red: his
+  qbittorrent outside the manifest, T35's); the layout row ✔. T48 FIRST (2) DONE on the PC (the master's
+  condition — the PC with its outputs recorded — met here); the VM re-run of split-cut none for the new
+  end() is the next pass's first item. Note for the Super+U pane (T48 rest): `kawa-snap list` gives
+  snapper's info.xml dates, which are UTC (09:54 shows as 05:54) — the pane shows local time.
+
+## >>> NEXT PASS STARTS HERE (1 Nov 10:12): the inbox first. Then:
+## (0) the VM re-run started 10:1x from a detached worktree (~/.cache/r27-proof-wt, commit of this item):
+##     `bash tools/vm-inject/split-cut.sh f44b none` — its table in ~/.cache/r27-split-cut-none.txt, the case's
+##     log in /dev/shm/r27/split-cut/none.log. Green ("ok", boot menu with stale=0) → ledger, remove the
+##     worktree (`git worktree remove --force ~/.cache/r27-proof-wt`). Red → read the log, fix, VM again.
+## (1) T45 (worktree ~/repos/fk-t45): merge main (t48 is in it) into t45; then (e) the real checks +
+##     the desktop smoke test (design §4.2: tools/kit.sh-based, the installed dwl, gles2 on the dGPU's
+##     render node by path on the PC, pixman in the VM which has no render node), (f) probation
+##     (boot counting, fedokawaii-boot-good, no kernel transaction while open, RuntimeWatchdogSec), (h) the
+##     unit + the Super+U pane, (i) the toolkit at a tag; t45 → main after (f) is proven in the VM.
+## (2) T48 rest: restore-file flow in Super+U, backups (kawa-backup), the space floor (VM: a full disk),
+##     verify rows, the Learn piece. (3) found: r27-found-1 (waybar's zombies).

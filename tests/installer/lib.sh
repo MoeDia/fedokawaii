@@ -193,6 +193,10 @@ world() {   # world fresh|built [--themed]
   echo vmlinuz >"$W/boot/vmlinuz-$(uname -r)"; echo initramfs >"$W/boot/initramfs-$(uname -r).img"   # (the running kernel, as the installer left it)
   # (owned by whoever makes the fake machine — its root: out here a user's own files may show as nobody's)
   cp -a --no-preserve=ownership /etc/. "$W/etc/" 2>/dev/null
+  # (this machine's own setup files out of it: the fake one starts as Fedora left it — setup writes
+  # them; a drivers line already there made repair skip the boot images it must make again)
+  rm -f "$W/etc/dracut.conf.d/fedokawaii.conf" "$W/etc/systemd/system/fedokawaii-split.service" \
+        "$W/etc/systemd/system/system-update.target.wants/fedokawaii-split.service"
   usr_farm
   fake_pylibs
   # the desktop user, an administrator; Fedora's os-release; GRUB's defaults
@@ -461,6 +465,8 @@ built() {
   printf '[main]\nmax_parallel_downloads=10\nfastestmirror=True\nminrate=5k\ntimeout=20\ninstallonly_limit=2\ndefaultyes=True\nexclude_from_weak=nodejs,nodejs22*,PackageKit,java-*-openjdk-headless,libreoffice-help-*\n' >"$W/etc/dnf/libdnf5.conf.d/90-fedokawaii.conf"
   printf '[x]\ngpgcheck=1\n' >"$W/etc/yum.repos.d/brave-browser.repo"; cp "$W/etc/yum.repos.d/brave-browser.repo" "$W/etc/yum.repos.d/claude-code.repo"
   printf '#!/bin/sh\nexit 0\n' >"$W/usr/local/sbin/kawa-snap"; chmod 755 "$W/usr/local/sbin/kawa-snap"; : >"$W/etc/dnf/libdnf5-plugins/actions.d/fedokawaii-snapper.actions"
+  # (the disk's layout: the real fedokawaii-split, on the fake machine's flat layout — stubs/findmnt, btrfs, mount)
+  install -m 0755 "$REPO/system/fedokawaii-split" "$W/usr/local/sbin/fedokawaii-split"
   # the boot menu's snapshots (snap_boot): grub-btrfs's script, the clean-up's drop-in, grub.cfg's submenu
   mkdir -p "$W/etc/grub.d" "$W/etc/systemd/system/snapper-cleanup.service.d" "$W/boot/grub2"
   printf '#!/bin/sh\nexit 0\n' >"$W/etc/grub.d/41_snapshots-btrfs"; chmod 755 "$W/etc/grub.d/41_snapshots-btrfs"

@@ -48,6 +48,8 @@ rm                  minimal   coreutils
 rmdir               minimal   coreutils
 sha1sum             minimal   coreutils
 sha256sum           minimal   coreutils
+shuf                minimal   coreutils
+chcon               minimal   coreutils
 sleep               minimal   coreutils
 sort                minimal   coreutils
 stat                minimal   coreutils
@@ -186,6 +188,7 @@ swayidle            manifest  swayidle
 gtklock             manifest  gtklock           # f44: gtklock 4
 cage                manifest  cage
 plymouth-set-default-theme dep plymouth plymouth-plugin-script   # f44: /usr/sbin/plymouth-set-default-theme
+plymouth            dep       plymouth plymouth-plugin-script   # f44: /usr/bin/plymouth (rpm -qf) — fedokawaii-split's messages
 wlr-randr           manifest  wlr-randr
 wlopm               manifest  wlopm
 ddcutil             manifest  ddcutil

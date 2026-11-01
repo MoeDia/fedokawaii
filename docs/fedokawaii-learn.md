@@ -790,14 +790,14 @@ From a terminal: `update`, `verify`, `repair`, `snaps`, and `fedokawaii report` 
 > **Word — snapshot.** A frozen picture of every file at one moment. It costs almost no space
 > (it shares unchanged data with the live files) and lets you copy any file back as it was.
 
-Snapshots are taken by themselves: every hour, around every package install, before every
-update. Two everyday uses:
+Snapshots are taken by themselves: of your files (/home) every hour; of the system around every
+package install and before every update. Two everyday uses:
 
 ```text
 $ snaps
  # │ Type   │ Pre # │ Date                     │ Description
 ───┼────────┼───────┼──────────────────────────┼────────────────────────
-57 │ single │       │ Mon 20 Oct 2026 10:00:01 │ timeline
+57 │ single │       │ Mon 20 Oct 2026 10:00:01 │ before update 2026-10-20
 58 │ pre    │       │ Mon 20 Oct 2026 10:12:40 │ dnf install htop
 59 │ post   │    58 │ Mon 20 Oct 2026 10:12:52 │ dnf install htop
 ```

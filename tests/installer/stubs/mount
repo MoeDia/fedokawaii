@@ -1,0 +1,8 @@
+#!/bin/bash
+# mount of the fake Fedora: the file system's top level (subvolid=5: fedokawaii-split, kawa-snap)
+# is an empty folder here — nothing mounted; every other mount is the real one
+. /usr/local/bin/_lib.sh
+case " $* " in
+  *subvolid=5*) fkh_log "$*"; exit 0 ;;
+esac
+exec /usr/bin/mount "$@"

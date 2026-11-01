@@ -665,12 +665,34 @@ if ((PRE == 0)); then
   if [[ $(snapper -c root list 2>/dev/null) == *"fedokawaii baseline"* ]]; then pass "baseline snapshot exists"
   else warn "no baseline snapshot" "deleted? the next move to a new Fedora takes one; or now: sudo snapper -c root create -d \"fedokawaii baseline\""; fi
   check "pre/post snapshot around every dnf run"       test -x /usr/local/sbin/kawa-snap -a -f /etc/dnf/libdnf5-plugins/actions.d/fedokawaii-snapper.actions
-  # (grub-btrfs comes from a COPR: while that has no build for this Fedora, warned above)
-  grep -qx zzahkaboom24/grub-btrfs < <(waiting copr) \
-    || check "snapshots in the boot menu (grub-btrfs, listed again after the clean-up)" \
-         bash -c 'test -x /etc/grub.d/41_snapshots-btrfs && grep -q "kawa-snap boot" /etc/systemd/system/snapper-cleanup.service.d/fedokawaii.conf && grep -q grub-btrfs.cfg /boot/grub2/grub.cfg'
+  # (grub-btrfs comes from a COPR: while that has no build for this Fedora, warned above; its list
+  # names each snapshot by its place on the disk — one no longer there cannot start)
+  if ! grep -qx zzahkaboom24/grub-btrfs < <(waiting copr); then
+    lbl="snapshots in the boot menu (grub-btrfs, listed again after the clean-up)"
+    if ! { test -x /etc/grub.d/41_snapshots-btrfs && grep -qs "kawa-snap boot" /etc/systemd/system/snapper-cleanup.service.d/fedokawaii.conf \
+           && grep -qs grub-btrfs.cfg /boot/grub2/grub.cfg; }; then fail "$lbl"
+    else
+      have=$(btrfs subvolume list -a / 2>/dev/null | sed -n 's|.* path ||p' | sed 's|^<FS_TREE>/||')
+      gone=$(sed -n 's/.*subvol="\([^"]*\)".*/\1/p' /boot/grub2/grub-btrfs.cfg 2>/dev/null | sort -u | grep -vxF -f <(printf '%s\n' "$have"))
+      if [[ -z $gone ]]; then pass "$lbl"
+      else fail "the boot menu's snapshots" "it names $(sed -n 1p <<<"$gone"), no longer on the disk — fedokawaii repair lists them again"; fi
+    fi
+  fi
   check "snapshots kept within bounds (a fifth of the disk stays free)" \
     bash -c 'snapper --csvout -c root get-config | grep -qE "^FREE_LIMIT,0\.2"'
+  # the disk's flat layout (fedokawaii-split): a restore never takes /home, the logs, the
+  # updater's memory or the snapshots back in time
+  lay=$(/usr/local/sbin/fedokawaii-split state 2>&1) || lay="unreadable: $lay"
+  case $lay in
+    flat)   pass "the disk's layout: /home, the logs, the updater's memory and the snapshots their own subvolumes" ;;
+    flat*)  warn "old copies hidden under the new mounts" "removed at the next start (or by fedokawaii repair)" ;;
+    armed)  info "the disk's new layout is made at the next start (a minute or two before the login)" ;;
+    broken*) fail "the disk's layout" "${lay#broken: } — /var/log/fedokawaii-split.log" ;;
+    nested) if [[ -s /var/lib/fedokawaii/split.failed ]]; then
+              fail "the disk's layout: /home inside the system" "its split was put back ($(sed -n 1p /var/lib/fedokawaii/split.failed | cut -d' ' -f3-)) — nothing for you to do: the next toolkit tries again"
+            else fail "the disk's layout: /home inside the system" "fedokawaii repair arms the split; the next start makes it"; fi ;;
+    *)      fail "the disk's layout" "$lay" ;;
+  esac
   # the monthly scrub: on, and what the last one found (a disk going bad shows up here first)
   if [[ $(findmnt -no FSTYPE / 2>/dev/null) == btrfs ]]; then
     check "the monthly Btrfs scrub is on"              systemctl is-enabled --quiet fedokawaii-scrub.timer

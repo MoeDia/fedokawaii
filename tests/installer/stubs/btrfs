@@ -9,4 +9,7 @@ case " $* " in
   *" subvolume show "*) has subvolumes "${*: -1}" || exit 1;;
   *" subvolume create "*) mkdir -p "${*: -1}"; add subvolumes "${*: -1}";;
   *" scrub status "*) [[ -f $FKH/scrub-status ]] || exit 1; cat "$FKH/scrub-status";;
+  # (the top level: root, and the flat layout's four — unless $FKH/nested: Fedora's one subvolume)
+  *" subvolume list "*) echo "ID 256 gen 1 top level 5 path root"
+                        [[ -f $FKH/nested ]] || printf 'ID %s gen 1 top level 5 path %s\n' 258 home 259 log 260 fk 261 snapshots;;
 esac; exit 0

@@ -20,14 +20,17 @@
 #                              whole in /boot and written to disk, then a writable copy of it is
 #                              exchanged with the root subvolume in one atomic step and its newest
 #                              kernel made the default at once; the one replaced is kept as ROOT.old
-#                              (restore old goes back to it; two older ones kept in ROOT.old.d), the
-#                              snapshots and any other subvolume inside it move across (the kernels
-#                              it lacks stay in /boot until it has started). While /home is inside
-#                              the system (not its own subvolume) your files would go back too: then
-#                              only with --with-home
-# Or at power-on: hold Shift (Esc/F8) for the boot menu → snapshots (each starts as it was,
-#   on a layer in memory: everything works, nothing done there is kept; kawa-snap restore N
-#   works from there too).
+#                              (restore old goes back to it; two older ones kept in ROOT.old.d), any
+#                              subvolume inside it moves across (the kernels it lacks stay in /boot
+#                              until it has started). The disk's layout (fedokawaii-split) keeps your
+#                              files, the logs, the updater's memory and the snapshots out of it: a
+#                              snapshot from before that layout gets its fstab lines. While /home is
+#                              still inside the system your files would go back too: only with
+#                              --with-home
+# Or at power-on: hold Shift (Esc/F8) for the boot menu → snapshots (each starts as it was, on a
+#   layer in memory: nothing done to the system there is kept; in a snapshot made after the disk's
+#   new layout your files, in /home of their own, are today's and stay as you leave them — in an
+#   older one they are that day's too; kawa-snap restore N works from there too).
 # Inspect: kawa-snap list · revert one transaction: sudo snapper -c root undochange PRE..POST
 # Exit status: pre, post 0 always (dnf goes on whatever happens) · boot, list, restore 0 done,
 # 1 could not (the reason on stderr; restore: nothing was changed) · 2 misuse.
@@ -90,6 +93,12 @@ if [[ $1 == pre || $1 == post ]]; then
   case $1 in
     pre)  # (a restore making its copy now: waited for, ten minutes at most — dnf is never stopped)
           { exec 9>"$lock" && flock -w 600 9; } 2>/dev/null
+          # (the flat layout's /.snapshots not mounted from its subvolume: snapper would write into
+          # the plain folder inside the system — no snapshot, said)
+          if [[ $(findmnt --fstab -no OPTIONS /.snapshots 2>/dev/null) == *subvol=snapshots* \
+                && $(findmnt -no SOURCE --mountpoint /.snapshots 2>/dev/null) != *"[/snapshots]" ]]; then
+            note before "/.snapshots is not mounted from its subvolume (fstab names it) — sudo mount /.snapshots"; exit 0
+          fi
           if ! err=$(snapper -c root create -t pre -p -c number -d "$d" 2>&1 >"$state") \
              || ! [[ $(<"$state") =~ ^[0-9]+$ ]]; then          # (only a number pairs with a post)
             rm -f "$state"; note before "${err:-snapper gave no snapshot number}"
@@ -111,7 +120,8 @@ fi
 # T — the root subvolume's name, as fstab mounts / (Fedora's installer: "root"); in a snapshot
 # started from the boot menu fstab is the snapshot's own copy, so it names the same one
 T=$(findmnt --fstab -no OPTIONS / 2>/dev/null | tr ',' '\n' | sed -n 's/^subvol=\/\{0,1\}//p' | head -n1)
-# what runs, from which disk: the root subvolume (/T) or a snapshot of it (/T/.snapshots/N/snapshot),
+# what runs, from which disk: the root subvolume (/T) or a snapshot of it (/snapshots/N/snapshot;
+# before the flat layout /T/.snapshots/N/snapshot),
 # mounted as it is — or, a snapshot started from the boot menu, under a layer in memory
 # (systemd.volatile=overlay): then the kernel's own arguments name both (root=UUID=, rootflags=subvol=)
 here="" dev=""
@@ -127,11 +137,17 @@ case $(findmnt -no FSTYPE / 2>/dev/null) in
 esac
 [[ -n $dev && $here == /?* ]] || fail "/ is not Btrfs — there are no snapshots of it"
 [[ -n $T && $T != */* ]] || fail "fstab mounts / without a plain subvol= (it says: $(findmnt --fstab -no OPTIONS / 2>/dev/null)) — not the layout Fedora's installer makes"
-booted=-; [[ $here =~ ^/$T/\.snapshots/([0-9]+)/snapshot$ ]] && booted=${BASH_REMATCH[1]}
+booted=-; [[ $here =~ ^/(snapshots|$T/\.snapshots)/([0-9]+)/snapshot$ ]] && booted=${BASH_REMATCH[2]}
+# S — where the snapshots are: their own subvolume at the top (the flat layout: fedokawaii-split),
+# or the installer's, inside the root subvolume
 mount_top() {
   mkdir -p "$top" || fail "cannot make $top"
   mountpoint -q "$top" || mount -o subvolid=5 "$dev" "$top" || fail "cannot mount the top of $dev"
   trap 'umount "$top" 2>/dev/null; rmdir "$top" 2>/dev/null' EXIT
+  S=$top/$T/.snapshots; btrfs subvolume show "$top/snapshots" >/dev/null 2>&1 && S=$top/snapshots
+  # flat — the disk's layout whole (fedokawaii-split): all four of its subvolumes at the top
+  local x; flat=1
+  for x in home log fk snapshots; do btrfs subvolume show "$top/$x" >/dev/null 2>&1 || flat=0; done
 }
 # the field of a snapper info.xml: one of type, date, description (XML's five escapes undone)
 info() {
@@ -141,7 +157,7 @@ info() {
 
 if [[ $1 == list ]]; then
   mount_top
-  for d in "$top/$T/.snapshots"/*/; do
+  for d in "$S"/*/; do
     n=${d%/}; n=${n##*/}
     [[ $n =~ ^[0-9]+$ && -d $d/snapshot ]] || continue
     printf '%s\t%s\t%s\t%s\t%s\n' "$n" "$(info type "$d/info.xml")" "$(info date "$d/info.xml")" \
@@ -164,13 +180,13 @@ fi
 # inside the replaced root (the snapshots …) moves across. Nothing that may hold a subvolume is
 # deleted recursively, and the system that ran is never deleted at all.
 N=${2:-}
-# (his files: until /home is a subvolume of its own they are inside the system, and go back too)
-if [[ $1 == restore ]] && ! mountpoint -q /home && [[ ${3:-} != --with-home ]]; then
-  fail "/home is inside the system: a restore takes your files back to that day too. Until /home is its own subvolume, say that is what you want: kawa-snap restore $N --with-home"
-fi
 exec 9>"$lock"; flock -n 9 || fail "another restore is running — nothing changed"
 for p in dnf5 dnf; do pgrep -x "$p" >/dev/null && fail "a package transaction is running ($p) — restore once it has finished; nothing changed"; done
 mount_top
+# (his files: until the disk's layout is whole (fedokawaii-split) they are inside the system, and go back too)
+if [[ $1 == restore ]] && ((!flat)) && [[ ${3:-} != --with-home ]]; then
+  fail "/home is inside the system: a restore takes your files back to that day too. Until /home is its own subvolume (fedokawaii repair arms that), say that is what you want: kawa-snap restore $N --with-home"
+fi
 [[ -d $top/$T ]] || fail "the root subvolume $T is not on this disk"
 # (/boot and the ESP where GRUB reads them: unmounted, the kernels would land inside the copy)
 mountpoint -q /boot || fail "/boot is not mounted — nothing changed (sudo mount /boot, then again)"
@@ -254,7 +270,7 @@ if finish_cut; then echo "kawa-snap: nothing else was done — for another resto
 if [[ -d $new ]]; then gone "$new" || fail "a leftover copy $T.new could not be removed"; fi
 # (a copy a run cut before marking it: never the system that ran — removed)
 if [[ -d $copy ]]; then gone "$copy" || fail "a leftover copy $T.copy could not be removed"; fi
-src=$top/$T/.snapshots/$N/snapshot; [[ $N == old ]] && src=$top/$T.old
+src=$S/$N/snapshot; [[ $N == old ]] && src=$top/$T.old
 if [[ ! -d $src ]]; then
   [[ $N == old ]] && fail "no system before the last restore is kept — nothing changed"
   fail "there is no snapshot $N (kawa-snap list shows them)"
@@ -263,13 +279,30 @@ btrfs subvolume snapshot "$src" "$copy" >/dev/null || fail "the writable copy of
 if ! { : >"$copy/$mark" && mv -T --no-copy "$copy" "$new"; }; then gone "$copy"; fail "the copy of $N could not be made ready — nothing changed"; fi
 power_cut copied
 undo() {   # undo WHY — before the exchange only: the kernels this run added out of /boot, the copy gone
-  local v
-  for v in "${added[@]}"; do inside kernel-install remove "$v" >/dev/null 2>&1; done
+  local v left=""
+  for v in "${added[@]}"; do
+    inside kernel-install remove "$v" >/dev/null 2>&1
+    # (an entry kernel-install did not take — a name without its token: said; the system that runs
+    # has no modules for v, so the next start's one-kernel rule takes it out)
+    if [[ -e /boot/vmlinuz-$v ]] || compgen -G "/boot/loader/entries/*$v.conf" >/dev/null; then left+=" $v"; fi
+  done
   [[ -n $skb ]] && printf '%s\n' "$skb" >"$sk"
-  unbind; gone "$new"; fail "$* — nothing changed"
+  unbind; gone "$new"
+  [[ -z $left ]] || echo "kawa-snap: kernel$left is still in /boot — unused; the next start takes it out" >&2
+  fail "$* — nothing changed"
 }
 # the copy's first start must not relabel everything or run an old offline update (§3.1)
 rm -f -- "$new/.autorelabel" "$new/system-update" "$new/etc/system-update"
+# the disk's layout in the copy's fstab — a snapshot from before the split has none of it: your
+# files, the logs, the updater's memory and the snapshots stay today's, mounted where they belong;
+# and today's kawa-snap and fedokawaii-split in it (an older kawa-snap would look for the snapshots
+# inside the system; the rest of the toolkit is that day's until the next update)
+if ((flat)); then
+  { mkdir -p "$new/home" "$new/var/log" "$new/var/lib/fedokawaii/update" "$new/.snapshots" \
+    && /usr/local/sbin/fedokawaii-split fstab "$new/etc/fstab" "$top" \
+    && cp -a /usr/local/sbin/kawa-snap /usr/local/sbin/fedokawaii-split "$new/usr/local/sbin/"; } \
+    || undo "the copy could not be given the disk's layout (its fstab, kawa-snap)"
+fi
 # the kernels the copy has (each with its vmlinuz: Fedora keeps one beside its modules)
 mapfile -t K < <(for m in "$new"/usr/lib/modules/*/vmlinuz; do [[ -f $m ]] && m=${m%/vmlinuz} && echo "${m##*/}"; done | sort -V)
 ((${#K[@]})) || undo "snapshot $N has no kernel in /usr/lib/modules"

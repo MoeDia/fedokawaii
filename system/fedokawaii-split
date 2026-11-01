@@ -1,0 +1,300 @@
+#!/usr/bin/env bash
+# /usr/local/sbin/fedokawaii-split — the disk's layout made flat, once (update-design.md §3).
+# Fedora's installer puts everything into one Btrfs subvolume, "root": the system, your files,
+# the logs and the snapshots. Here /home, /var/log, the updater's memory
+# (/var/lib/fedokawaii/update) and the snapshots (/.snapshots) become subvolumes of their own
+# beside it, so that bringing the system back (kawa-snap restore, the update's undo) never takes
+# your files, the logs or the updater's memory back in time, and never carries a snapshot inside.
+#
+#   fedokawaii-split arm     the next start does it (setup.sh's repair, after its snapshot):
+#                            before the desktop, with nothing running that holds a file open
+#                            (systemd's offline mode: /system-update) — a minute or two
+#   fedokawaii-split run     fedokawaii-split.service, in that mode: each folder copied into a
+#                            new subvolume (reflinks: the data is shared, not written twice) and
+#                            compared with it, file by file; the subvolumes inside /home
+#                            (Downloads, VM) and the snapshots moved, never copied; fstab told;
+#                            then the machine restarts. A cut (power, crash) at any step: the next
+#                            start goes on from there. A failure: all of it put back as it was,
+#                            the reason in the log and in /var/lib/fedokawaii/split.failed
+#   fedokawaii-split clean   in a start after it (setup.sh's repair): the old copies the new
+#                            mounts hide, removed — never a subvolume
+#   fedokawaii-split fstab FILE TOP   the layout's lines into the fstab FILE, for each of its
+#                            subvolumes on the disk mounted at TOP (kawa-snap restore: a snapshot
+#                            from before the split gets them)
+#   fedokawaii-split state   flat | armed | nested | broken: WHY — "flat, old copies" while the
+#                            hidden copies are there (removed at the next start, or by repair)
+# Log: /var/log/fedokawaii-split.log. Exit 0 done (or nothing to do) · 1 could not (why on
+# stderr; arm: nothing changed) · 2 misuse.
+set -u
+export LC_ALL=C
+D=/var/lib/fedokawaii/split          # the armed split: /system-update points here; its tries
+F=/var/lib/fedokawaii/split.failed   # the reason the last one was put back
+top=/run/fedokawaii-split/top        # the file system's top level, mounted while working
+# NAME:PATH — the layout's subvolumes, each at the top level, and where it is mounted
+LAYOUT=(home:/home log:/var/log fk:/var/lib/fedokawaii/update snapshots:/.snapshots)
+LOG=/dev/null
+
+say() { { printf '%s %s\n' "$(date '+%F %T')" "$*"; } 2>/dev/null >>"$LOG" || true; }   # (a log that cannot be written stops nothing)
+fail() { printf 'fedokawaii-split: %s\n' "$*" >&2; exit 1; }
+case ${1:-} in
+  arm|run|clean|state) (($# == 1)) || set -- misuse ;;
+  fstab) (($# == 3)) || set -- misuse ;;
+  -h|--help) sed -n '2,/^set -u/{/^set -u/d;s/^# \{0,1\}//;p}' "$0"; exit 0 ;;
+esac
+case ${1:-} in
+  arm|run|clean|state|fstab) ;;
+  *) echo "usage: fedokawaii-split arm|run|clean|state · fedokawaii-split fstab FILE TOP" >&2; exit 2 ;;
+esac
+[[ $EUID -eq 0 ]] || { echo "fedokawaii-split: runs as root (sudo fedokawaii-split $1)" >&2; exit 2; }
+
+sub() { btrfs subvolume show "$1" >/dev/null 2>&1; }   # SUBVOL — a subvolume's own folder
+# below REL — the subvolumes directly inside top/REL, as paths from the top level
+below() { btrfs subvolume list -o "$top/$1" 2>/dev/null | sed -n 's/.* path //p' | sed 's|^<FS_TREE>/||'; }
+# gone SUBVOL — one subvolume deleted, never one holding another (no -R anywhere), synced
+gone() { [[ -z $(below "${1#"$top"/}") ]] && btrfs subvolume delete --commit-after "$1" >/dev/null 2>&1; }
+synced() { btrfs filesystem sync "$top" >/dev/null 2>&1; }
+
+# fstab FILE TOP — FILE's lines for the layout's mount points replaced by ours: the same device and
+# options as its / line, subvol=NAME — for each NAME there is at TOP
+fstab() {
+  local file=$1 t=$2 src opts e lines="" tmp
+  read -r src opts < <(awk '!/^[[:space:]]*#/ && $2 == "/" && $3 == "btrfs" { print $1, $4; exit }' "$file")
+  [[ -n ${src:-} && -n ${opts:-} ]] || return 1
+  opts=$(tr ',' '\n' <<<"$opts" | grep -Ev '^subvol(id)?=' | paste -sd, -)
+  for e in "${LAYOUT[@]}"; do
+    sub "$t/${e%%:*}" || continue
+    printf -v lines '%s%s\t%s\tbtrfs\tsubvol=%s%s\t0 0\n' "$lines" "$src" "${e#*:}" "${e%%:*}" "${opts:+,$opts}"
+  done
+  [[ -n $lines ]] || return 0
+  tmp=$(mktemp "${file%/*}/.fstab-split.XXXXXX") || return 1
+  if ! { awk -v mps="$(printf '%s\n' "${LAYOUT[@]#*:}")" 'BEGIN { n = split(mps, m, "\n"); for (i = 1; i <= n; i++) skip[m[i]] = 1 }
+              /^[[:space:]]*#/ || !($2 in skip) || $3 != "btrfs"' "$file" && printf '%s' "$lines"; } >"$tmp" \
+     || ! chmod 644 "$tmp"; then rm -f "$tmp"; return 1; fi
+  chcon --reference="$file" "$tmp" 2>/dev/null || true
+  { sync "$tmp" && mv -f "$tmp" "$file"; } || { rm -f "$tmp"; return 1; }
+}
+
+# the disk: the root subvolume's name as fstab mounts / (Fedora's installer: "root"), its device
+T=$(findmnt --fstab -no OPTIONS / 2>/dev/null | tr ',' '\n' | sed -n 's/^subvol=\/\{0,1\}//p' | head -n1)
+dev=$(findmnt -no SOURCE / 2>/dev/null); dev=${dev%%\[*}
+top_mounted() {   # → 1 the top level could not be mounted (one user of the mount at a time)
+  { exec 8>/run/fedokawaii-split.lock && flock -w 60 8; } 2>/dev/null || return 1
+  { mkdir -p "$top" && { mountpoint -q "$top" || mount -o subvolid=5 "$dev" "$top"; }; } || return 1
+  trap 'umount "$top" 2>/dev/null; rmdir "$top" 2>/dev/null' EXIT
+}
+mount_top() { top_mounted || fail "cannot mount the top of $dev"; }
+# flat — each PATH mounted from its NAME on this disk
+flat() {
+  local e s
+  for e in "${LAYOUT[@]}"; do
+    s=$(findmnt -no SOURCE --mountpoint "${e#*:}" 2>/dev/null)
+    [[ ${s%%\[*} == "$dev" && $s == *"[/${e%%:*}]" ]] || return 1
+  done
+}
+armed() { [[ $(readlink /system-update 2>/dev/null) == "$D" ]]; }
+
+if [[ $1 == fstab ]]; then fstab "$2" "$3"; exit; fi
+# (systemd.offline-updates(7): another tool's offline start is never ours — nothing done, no failure)
+[[ $1 == run ]] && ! armed && exit 0
+[[ $(findmnt -no FSTYPE / 2>/dev/null) == btrfs && -n $T && $T != */* ]] \
+  || fail "/ is not the Btrfs subvolume fstab names (subvol=…) — not the layout Fedora's installer makes"
+
+# ── state ────────────────────────────────────────────────────────────────────────────────
+# (old copies: what the new mounts hide in the root subvolume, until clean removes it)
+leftovers() {
+  local e
+  for e in "${LAYOUT[@]:0:3}"; do
+    [[ -n $(find "$top/$T${e#*:}" -mindepth 1 -maxdepth 1 -print -quit 2>/dev/null) ]] && return 0
+  done
+  return 1
+}
+# top_names — the subvolumes at the top level by name (btrfs lists them: no mount needed)
+top_names() { btrfs subvolume list / 2>/dev/null | awk '$7 == 5 { sub(/.* path /, ""); print }'; }
+# broken — a part of the layout at the top while the disk is not flat: the reason (→ 1 none)
+broken() {
+  local e w="" why names
+  names=$(top_names)
+  for e in "${LAYOUT[@]}"; do
+    grep -qxE "${e%%:*}(\.part)?" <<<"$names" && w+=" ${e%%:*}"
+  done
+  [[ -n $w ]] || return 1
+  why=$(sed -n 1p "$F" 2>/dev/null | cut -d' ' -f3-)
+  echo "broken: the layout half made (at the top:$w)${why:+ — $why}"
+}
+if [[ $1 == state ]]; then
+  if flat; then mount_top; leftovers && echo "flat, old copies" || echo flat
+  elif armed; then echo armed
+  else broken || echo nested; fi
+  exit 0
+fi
+
+# ── clean ────────────────────────────────────────────────────────────────────────────────
+if [[ $1 == clean ]]; then
+  flat || exit 0
+  mount_top
+  LOG=/var/log/fedokawaii-split.log
+  for e in "${LAYOUT[@]:0:3}"; do
+    d=$top/$T${e#*:}
+    [[ -d $d && -n $(find "$d" -mindepth 1 -maxdepth 1 -print -quit) ]] || continue
+    if below "$T" | grep -qF -- "$T${e#*:}/"; then
+      echo "fedokawaii-split: a subvolume is still inside the old ${e#*:} — left as it is" >&2; continue
+    fi
+    # (--one-file-system: rm never enters another subvolume, should one appear after the check)
+    if find "$d" -mindepth 1 -maxdepth 1 -exec rm -rf --one-file-system -- {} +; then say "the old copy of ${e#*:} under its mount removed"
+    else echo "fedokawaii-split: the old copy of ${e#*:} could not be removed in full" >&2; fi
+  done
+  exit 0
+fi
+
+# ── arm ──────────────────────────────────────────────────────────────────────────────────
+if [[ $1 == arm ]]; then
+  flat && exit 0
+  armed && exit 0
+  [[ -e /system-update || -L /system-update ]] && fail "another offline update waits for the next start (/system-update) — after it"
+  mount_top
+  w=$(broken) && fail "${w#broken: } — not armed (nothing changed)"
+  for e in "${LAYOUT[@]}"; do
+    [[ -e $top/${e%%:*} || -e $top/${e%%:*}.part ]] && fail "a folder ${e%%:*} is already at the top of the disk — not the split's; nothing changed"
+    [[ -n $(findmnt -no SOURCE --mountpoint "${e#*:}" 2>/dev/null) ]] && fail "${e#*:} is mounted from something else — this layout is not Fedora's; nothing changed"
+  done
+  # (copies share their data; a file that cannot be shared — journald's are NOCOW — is written
+  # again: room for all of it, and 5 GiB to spare)
+  need=$(du -sxB1 "$top/$T/home" "$top/$T/var/log" 2>/dev/null | awk '{ s += $1 } END { print s + 5 * 1024 ^ 3 }')
+  free=$(btrfs filesystem usage -b "$top" 2>/dev/null | awk '/Free \(estimated\)/ { print $3; exit }')
+  { [[ $free =~ ^[0-9]+$ ]] && ((free >= need)); } \
+    || fail "$(numfmt --to=iec "${free:-0}") free, the split needs $(numfmt --to=iec "$need") — nothing changed"
+  rm -f "$F"
+  { mkdir -p "$D" && echo 0 >"$D/tries" && ln -sfn "$D" /system-update && sync; } \
+    || { rm -rf "$D"; rm -f /system-update; fail "the split could not be armed"; }
+  echo "fedokawaii-split: armed — the next start makes the layout flat first (a minute or two)"
+  exit 0
+fi
+
+# ── run (in systemd's offline mode) ──────────────────────────────────────────────────────
+armed || exit 0                        # (another tool's offline update: not ours to do)
+# (its log in the armed folder until the end — never inside a folder that is being copied)
+LOG=$D/log
+n=$(cat "$D/tries" 2>/dev/null); [[ $n =~ ^[0-9]+$ ]] || n=0
+n=$((n + 1)); echo "$n" >"$D/tries"; sync -f "$D"
+say "start $n"
+msg() { say "$*"; plymouth display-message --text="$*" >/dev/null 2>&1 || true; }
+# power_cut STEP — for the VM's proof only (tools/vm-inject/split-cut.sh writes $D/cut): STEP there
+# — a power cut at that step in the first start (the kernel restarts, nothing synced); fail-STEP
+# — a failure at that step, so it is all put back
+power_cut() {
+  local c; c=$(cat "$D/cut" 2>/dev/null) || return 0
+  [[ $c == "fail-$1" ]] && back "a failure made at $1 (the VM's proof)"
+  [[ $c == "$1" ]] && ((n == 1)) || return 0
+  echo b >/proc/sysrq-trigger; sleep 30
+}
+end() {   # end — the boot menu's snapshots listed again, the log kept where /var/log is, /system-update gone, the machine restarted
+  local l=$top/$T/var/log/fedokawaii-split.log
+  # (grub-btrfs's list names each snapshot by its place on the disk, which this run changed)
+  if /usr/local/sbin/kawa-snap boot >>"$LOG" 2>&1; then say "the boot menu's snapshots listed again"
+  else say "the boot menu's snapshots could not be listed again (the next dnf run, snapshot or repair does it)"; fi
+  sub "$top/log" && l=$top/log/fedokawaii-split.log
+  cat "$LOG" >>"$l" 2>/dev/null
+  rm -f /system-update; rm -rf "$D"; synced; sync
+  systemctl reboot; exit 0
+}
+# back WHY — all of it put back as it was: the old fstab, the snapshots and the subvolumes from
+# /home back inside root, the copies gone; the reason kept; the old layout starts next
+back() {
+  local p rel e left=""
+  msg "the layout stays as it was: $*"
+  # (the fstab kept before the rewrite, only when it is whole: a / line on Btrfs)
+  if [[ -f $D/fstab ]]; then
+    if awk '!/^[[:space:]]*#/ && $2 == "/" && $3 == "btrfs" { f = 1 } END { exit !f }' "$D/fstab"; then
+      cp -a "$D/fstab" "$top/$T/etc/fstab" || left+=" fstab"
+    else left+=" fstab (the copy kept before was not whole: left as it was)"; fi
+  fi
+  if sub "$top/snapshots"; then
+    { { [[ ! -e $top/$T/.snapshots ]] || rmdir "$top/$T/.snapshots"; } && mv -T --no-copy "$top/snapshots" "$top/$T/.snapshots"; } \
+      || left+=" snapshots"
+  fi
+  if sub "$top/home"; then
+    while IFS= read -r p; do
+      rel=${p#home/}; [[ $p == home/?* ]] || continue
+      { mkdir -p "$top/$T/home/${rel%/*}" && mv -T --no-copy "$top/$p" "$top/$T/home/$rel"; } || left+=" home/$rel"
+    done < <(below home)
+  fi
+  for e in "${LAYOUT[@]:0:3}"; do
+    for p in "$top/${e%%:*}" "$top/${e%%:*}.part"; do
+      sub "$p" && { gone "$p" || left+=" ${p##*/}"; }
+    done
+  done
+  [[ -z $left ]] || say "left behind:$left"
+  # (with this program's own checksum: setup.sh arms it again only once the toolkit's is another)
+  { printf '%s %s%s\n' "$(date '+%F %T')" "$*" "${left:+ — left behind:$left}"; sha256sum <"$0"; } >"$F"
+  end
+}
+if ! top_mounted 2>>"$LOG"; then
+  ((n <= 3)) || { say "the top of the disk cannot be mounted, three starts — given up"
+                   cat "$LOG" >>/var/log/fedokawaii-split.log 2>/dev/null; rm -f /system-update; rm -rf "$D"; systemctl reboot; exit 0; }
+  exit 1
+fi
+((n <= 3)) || back "three starts did not finish it"
+
+# 1. copies: each folder into NAME.part, compared, then named NAME (a NAME is whole)
+# tree DIR SKIP — every entry below DIR on its own subvolume: type, mode, owners, label, time,
+# size (a folder's size aside) — the folders where a subvolume sits (SKIP) left out
+tree() {
+  (cd "$1" && find . -xdev \( -type d -printf 'd %m %U %G %Z %T@ -\t%p\n' -o -printf '%y %m %U %G %Z %T@ %s\t%p\n' \)) \
+    | awk -F'\t' -v s="$2" 'BEGIN { n = split(s, k, "\n"); for (i = 1; i <= n; i++) x[k[i]] = 1 } !($2 in x)' | sort
+}
+held() { find /proc/[0-9]*/fd -lname "$1/*" -printf '%l\n' 2>/dev/null | sed "s|^$1/|./|"; }   # DIR — its files a process holds open
+copy() {   # copy NAME PATH
+  local name=$1 p=$2 src=$top/$T$2 dst=$top/$1.part skip f
+  sub "$top/$name" && return 0
+  [[ -d $src ]] || { mkdir -p "$src" && restorecon "$p"; } || back "$p could not be made"
+  if [[ -e $dst ]]; then gone "$dst" || back "a leftover $name.part could not be removed"; fi
+  msg "the disk's new layout: $p"
+  btrfs subvolume create "$dst" >/dev/null || back "the subvolume $name could not be made"
+  [[ $name == log ]] && journalctl --relinquish-var >/dev/null 2>&1   # (journald on /run while its folder is copied)
+  cp -aT --reflink=auto -x "$src" "$dst" || back "$p could not be copied"
+  power_cut "part-$name"
+  # (left out of the comparison: the folders where a subvolume sits — moved in step 2, cp leaves
+  # them empty — and files a process has open there, copied as they were: plymouth's boot.log)
+  skip=$(below "$T" | sed -n "s|^$T$p/|./|p"; held "$p")
+  diff -q <(tree "$src" "$skip") <(tree "$dst" "$skip") >/dev/null \
+    || back "the copy of $p differs from it: $(diff <(tree "$src" "$skip") <(tree "$dst" "$skip") | sed -n 2p | cut -c1-160)"
+  # (and the contents of 64 of its files, read back)
+  while IFS= read -r -d '' f; do
+    cmp -s -- "$src/$f" "$dst/$f" || back "the copy of $p/${f#./} differs from it"
+  done < <(cd "$src" && find . -xdev -type f -size +0 -print0 | grep -zvxF -f <(printf '%s\n' "$skip") | shuf -z -n 64)
+  { mv -T --no-copy "$dst" "$top/$name" && synced; } || back "the subvolume $name could not be named"
+  say "$p copied"
+  power_cut "copied-$name"
+}
+for e in "${LAYOUT[@]:0:3}"; do copy "${e%%:*}" "${e#*:}"; done
+
+# 2. the subvolumes inside root's /home (Downloads, VM …) into home — moved, never copied
+while IFS= read -r p; do
+  rel=${p#"$T"/home/}; [[ $p == "$T"/home/?* ]] || continue
+  if [[ -e $top/home/$rel ]]; then rmdir "$top/home/$rel" 2>/dev/null || back "home/$rel is not empty in the new home"; fi
+  { mkdir -p "$top/home/${rel%/*}" && mv -T --no-copy "$top/$p" "$top/home/$rel"; } || back "home/$rel could not be moved"
+  say "home/$rel moved"
+done < <(below "$T")
+synced
+power_cut moved
+
+# 3. the snapshots to the top level, an empty folder in their place to mount them on
+if ! sub "$top/snapshots"; then
+  if sub "$top/$T/.snapshots"; then mv -T --no-copy "$top/$T/.snapshots" "$top/snapshots" || back "the snapshots could not be moved"
+  else btrfs subvolume create "$top/snapshots" >/dev/null || back "the subvolume snapshots could not be made"; fi
+  say "the snapshots moved"
+fi
+if [[ ! -d $top/$T/.snapshots ]]; then
+  { mkdir "$top/$T/.snapshots" && chmod 750 "$top/$T/.snapshots" && restorecon /.snapshots; } || back "/.snapshots could not be made"
+fi
+synced
+power_cut snapshots
+
+# 4. fstab: the layout's lines (the one before kept to put back)
+[[ -s $D/fstab ]] || { cp -a "$top/$T/etc/fstab" "$D/fstab" && sync -f "$D"; } || back "fstab could not be kept"
+fstab "$top/$T/etc/fstab" "$top" || back "fstab could not be written"
+findmnt --verify --tab-file "$top/$T/etc/fstab" >/dev/null 2>&1 || back "the new fstab does not verify (findmnt --verify)"
+synced
+power_cut fstab
+msg "the disk's new layout is made"
+end
