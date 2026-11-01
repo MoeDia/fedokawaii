@@ -1989,6 +1989,35 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   six cut points, two failures, the clean, a restore from before the split) runs next; the PC only
   after it is green (a restart: the owner's PC).
 
+- r27-49c (cont., 08:15, t45 da061e9): two more of the check's own false reds, found by the VM's
+  runs: (a) "no amdgpu" on a virtio VM — the VM's record /var/lib/fedokawaii/gpu says amd and
+  cand_run fell back to "amd" anyway: the GPU rule and the fallback are gone (today's image carries
+  the GPU's driver when the machine needs it); (b) "lacks what today's has: hfs hfsplus jfs minix
+  msdos nls_ucs2_utils ntfs" — the VM's image from the install is generic: the rule is now the
+  drivers this machine runs on (today's image ∩ /proc/modules, the host's list inside the container
+  too), each in the new image or built in. PC re-proven: full green, an image without nvme red.
+  update-green.sh re-running on f44.
+- r27-52b (cont., 08:12, t48 771853a): the split's first VM run (08:09) — the safety net worked
+  for real: plymouth writes /var/log/boot.log through the offline start, the copy of /var/log
+  differed, and everything was put back whole (nested, his files identical, the VM started
+  normally). Fix: files a process holds open under the folder being copied (/proc/*/fd) are copied
+  as they are and left out of the comparison. Second run, case "none" (tools/vm-inject/split-cut.sh
+  f44b none, exit 0): the split in 3 s of the offline start (/home, /var/log, the update folder
+  copied and compared; ~/Downloads, ~/VM and the snapshots moved; fstab 4 lines), then: state
+  "flat, old copies"; his files byte-identical (a newline in a name, a space, a hard-linked pair
+  still 2 links, a symlink, a fifo, an 8 MiB NOCOW file, an xattr, 64 MiB noise; Downloads/VM
+  files); btrfs subvolume list: home, log, fk, snapshots at the top, Downloads and VM inside home;
+  the journal on [/log]; snapper made snapshot 3 in /.snapshots; kawa-snap list 3; the boot
+  menu's list 3 entries on subvol="snapshots/N/snapshot"; clean left root's /home and /var/log
+  empty; then kawa-snap restore 1 (Oct 27's baseline, from before the split — no --with-home) and
+  a start: his files identical, /home and /.snapshots mounted from their subvolumes.
+  tools/vm-clone.sh made the clone f44b (reflinked states, port 2223) so both proofs run at once.
+  T48 (3), the part that is T48's: snapper_limits sets TIMELINE_CREATE=no for root once a home
+  config exists (the system changes only through packages and updates, each snapshotted; /home
+  keeps its hourly ones); before the split root keeps its timeline (it holds his files). The book
+  (8.2) says so; its example list shows an update's snapshot instead of a root "timeline" one.
+  Running: the six cut points and two failures (f44b).
+
 ## >>> NEXT PASS STARTS HERE (1 Nov 07:10): the inbox first. Then:
 ## (1) T48 FIRST (2): the flat layout (snapshots, home, log, fk at the top level; kawa-snap reading
 ##     $top/snapshots) and the offline /home split (a unit under system-update.target, cp -aT
