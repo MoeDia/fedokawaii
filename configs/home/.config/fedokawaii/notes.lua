@@ -61,7 +61,7 @@ local TODO = os.getenv("KAWA_TODO") or vim.fn.expand("~/Notes/todo.md")
 local function colours()
   -- the theme's inks (colors.sh, written by tools/build-themes.py): the current one's, or —
   -- no theme switched on yet — the dark one's, from its own file (no colour is written here)
-  local c = { GROUND = false, EDGE2 = false, MUTED = false, TEXT = false, ACCENT_TEXT = false }
+  local c = { GROUND = false, EDGE2 = false, MUTED = false, TEXT = false, ACCENT = false, ACCENT_TEXT = false }
   local f = io.open(vim.fn.expand("~/.config/fedokawaii/current/colors.sh"))
     or io.open(vim.fn.expand("~/.config/fedokawaii/themes/dark/colors.sh"))
   if f then
@@ -79,6 +79,13 @@ local function colours()
     vim.api.nvim_set_hl(0, name, { fg = "#" .. c[k], bg = g })
   end
   vim.api.nvim_set_hl(0, "KawaGround", { bg = g })
+  -- the paper (T21, .claude/notes/notes-notebook.md): a rule under every row in edge2, the margin
+  -- rule in vermilion, a day's line in accent_text on its rule
+  vim.api.nvim_set_hl(0, "KawaRule", { underline = true, sp = "#" .. c.EDGE2 })
+  vim.api.nvim_set_hl(0, "KawaMargin", { fg = "#" .. c.ACCENT, bg = g })
+  vim.api.nvim_set_hl(0, "KawaDay", { fg = "#" .. c.ACCENT_TEXT, underline = true, sp = "#" .. c.EDGE2 })
+  vim.api.nvim_set_hl(0, "TabLine", { bg = g }); vim.api.nvim_set_hl(0, "TabLineFill", { bg = g })
+  vim.api.nvim_set_hl(0, "TabLineSel", { bg = g }); vim.api.nvim_set_hl(0, "NormalFloat", { bg = g })
   vim.api.nvim_set_hl(0, "KawaDone", { fg = "#" .. c.MUTED, bg = g, strikethrough = true })   -- (a to-do done)
   vim.api.nvim_set_hl(0, "StatusLine", { bg = g })
   vim.api.nvim_set_hl(0, "StatusLineNC", { bg = g })
@@ -91,18 +98,35 @@ end
 -- the bottom line, as every text screen's footer: the file and the keys, muted, two columns
 -- in (the editor's own statusline — lualine — is for code; here it is put away, also after
 -- it loads, and after a theme switch sets it up again)
-local function footer_of(name)
-  return "%#KawaGround#  %#KawaMuted#" .. name .. "  ·  saved as you go  ·  super+n puts it away%=%#KawaGround# "
+local function footer_of(name) return "  " .. name .. "  ·  saved as you go  ·  super+n puts it away" end
+local function todo_footer(name) return "  " .. name .. "  ·  space ticks  ·  tab: the notes" end
+-- the page's foot (T21: margins that never move): no statusline — the window runs to the last
+-- row, and two floats lie over its last two: a row of paper, then the footer; scrolloff keeps the
+-- pen two rows above them, so nothing typed is ever under them, however far the page scrolls
+local foot = {}
+local function foot_rows(text)
+  local function float(i, row, line, hl)
+    local f = foot[i] or {}
+    if not (f.buf and vim.api.nvim_buf_is_valid(f.buf)) then f.buf = vim.api.nvim_create_buf(false, true) end
+    vim.api.nvim_buf_set_lines(f.buf, 0, -1, false, { line })
+    vim.api.nvim_buf_clear_namespace(f.buf, -1, 0, -1)
+    if hl and #line > 2 then vim.api.nvim_buf_set_extmark(f.buf, vim.api.nvim_create_namespace("kawa_foot"), 0, 2, { end_col = #line, hl_group = hl }) end
+    local cfg = { relative = "editor", row = row, col = 0, width = vim.o.columns, height = 1, focusable = false, style = "minimal", zindex = 40 }
+    if f.win and vim.api.nvim_win_is_valid(f.win) then vim.api.nvim_win_set_config(f.win, cfg)
+    else f.win = vim.api.nvim_open_win(f.buf, false, cfg) end
+    vim.wo[f.win].winhighlight = "Normal:KawaGround,NormalFloat:KawaGround,EndOfBuffer:KawaGround"
+    foot[i] = f
+  end
+  float(1, vim.o.lines - 2, "", nil)
+  float(2, vim.o.lines - 1, text, "KawaMuted")
 end
-local footer = footer_of(where)
-local function todo_footer(name)
-  return "%#KawaGround#  %#KawaMuted#" .. name .. "  ·  space ticks  ·  tab: the notes%=%#KawaGround# "
-end
+local foot_text = footer_of(where)
 local function page_footer()
   pcall(function() require("lualine").hide({ place = { "statusline" }, unhide = false }) end)
-  vim.o.laststatus = 2
+  vim.o.laststatus = 0
   vim.o.cmdheight = 0
-  vim.wo.statusline = footer
+  vim.o.scrolloff = 2
+  foot_rows(foot_text)
 end
 
 colours()
@@ -127,28 +151,68 @@ local function page()
   vim.opt_local.number = false
   vim.opt_local.relativenumber = false
   vim.opt_local.signcolumn = "no"
-  vim.opt_local.statuscolumn = ""
-  vim.opt_local.foldcolumn = "4"
+  -- the margin: two columns of paper, the vermilion rule, a column — the words at the fourth, where
+  -- a list row's glyph stands (as the fold column's four did); drawn on the ruled rows below the
+  -- text too (statuscolumn runs for virtual lines)
+  vim.opt_local.statuscolumn = "%#KawaGround#  %#KawaMargin#│%#KawaGround# "
+  vim.opt_local.foldcolumn = "0"
   vim.opt_local.foldmethod = "manual"
   vim.opt_local.foldenable = false
   vim.opt_local.spell = false
   vim.opt_local.cursorline = false          -- (a page: no bar across it, only the cursor)
+  vim.opt_local.conceallevel = 2            -- (a day's "## " hidden: the rules' extmarks)
+  vim.opt_local.concealcursor = "n"
   vim.opt_local.wrap = true
   vim.opt_local.linebreak = true
-  vim.opt_local.fillchars:append({ wbr = "─", eob = " " })   -- (no ~ under the last line: a page ends in paper)
+  vim.opt_local.fillchars:append({ wbr = " ", eob = " " })   -- (no ~ under the last line: a page ends in paper)
   local name = b == notes and where
     or vim.fn.fnamemodify(vim.api.nvim_buf_get_name(b), ":~"):gsub("%%", "%%%%")
   -- (the rule: the winbar's fill, ─ in edge2 — solid, as every heading's —, from after the name to two columns short of the edge)
   local is_todo = vim.api.nvim_buf_get_name(b) == TODO
-  vim.opt_local.winbar = "%#KawaGround#  %#KawaIcon#" .. (is_todo and ICON_TODO or ICON_NOTE) .. "%#KawaGround#  %#KawaName#"
+  -- (the heading in the tabline — the editor's top row, never scrolled — and a blank winbar under
+  -- it: the §3 blank line, there at every scroll position)
+  vim.o.showtabline = 2
+  vim.o.tabline = "%#KawaGround#  %#KawaIcon#" .. (is_todo and ICON_TODO or ICON_NOTE) .. "%#KawaGround#  %#KawaName#"
     .. (is_todo and "to-do" or "notes") .. " %#KawaStitch#%=%#KawaGround#  "
-  vim.wo.statusline = is_todo and todo_footer(name) or footer_of(name)
+  vim.opt_local.winbar = "%#KawaGround# "
+  foot_text = is_todo and todo_footer(name) or footer_of(name)
+  foot_rows(foot_text)
   -- (LazyVim formats a file on every write when a formatter knows it — the Markdown extra
   -- does: here that would rewrite the page under your fingers, key by key)
   vim.b[b].autoformat = false
 end
+-- the paper's rules (T21, .claude/notes/notes-notebook.md): every line ruled across the whole
+-- row (line_hl_group: wrapped rows too), the page below the last line ruled to its foot
+-- (virt_lines, as many as the window has rows); a day's line ("## 2026-11-01 · Sun", as the file
+-- keeps it) its date in accent_text, the "## " hidden. Laid again only when the count of lines
+-- changes — a letter typed changes no rule (14 000 lines take 3.9 ms, measured)
+local rules = vim.api.nvim_create_namespace("kawa_rules")
+local ruled = {}                              -- buffer → the line count its rules were laid for
+local function rule(b, force)
+  if not vim.api.nvim_buf_is_loaded(b) or vim.bo[b].buftype ~= "" then return end   -- (at -u time the file is not read yet: BufWinEnter lays them)
+  local n = vim.api.nvim_buf_line_count(b)
+  if not force and ruled[b] == n then return end
+  ruled[b] = n
+  vim.api.nvim_buf_clear_namespace(b, rules, 0, -1)
+  local lines = vim.api.nvim_buf_get_lines(b, 0, -1, false)
+  for i, line in ipairs(lines) do
+    vim.api.nvim_buf_set_extmark(b, rules, i - 1, 0, { line_hl_group = "KawaRule" })
+    if line:match("^## %d%d%d%d%-%d%d%-%d%d") then
+      vim.api.nvim_buf_set_extmark(b, rules, i - 1, 0, { end_col = 3, conceal = "" })
+      vim.api.nvim_buf_set_extmark(b, rules, i - 1, 3, { end_col = #line, hl_group = "KawaDay", priority = 200 })
+    end
+  end
+  local row, below = { { string.rep(" ", vim.o.columns), "KawaRule" } }, {}
+  for _ = 1, vim.o.lines do below[#below + 1] = row end
+  vim.api.nvim_buf_set_extmark(b, rules, n - 1, 0, { virt_lines = below })
+end
 page()
-vim.api.nvim_create_autocmd("BufWinEnter", { group = group, callback = function() page() end })
+rule(notes, true)
+vim.api.nvim_create_autocmd("BufWinEnter", { group = group, callback = function(ev) page(); rule(ev.buf, true) end })
+vim.api.nvim_create_autocmd({ "TextChanged", "TextChangedI" }, { group = group, callback = function(ev) rule(ev.buf) end })
+vim.api.nvim_create_autocmd("VimResized", {
+  group = group, callback = function() rule(vim.api.nvim_get_current_buf(), true); foot_rows(foot_text) end,
+})
 
 -- every change written (`update`: only when there is one) once you pause — a second
 -- without a change — and at once as the window is put away (Super+N, Super+Q: dwl puts a warm

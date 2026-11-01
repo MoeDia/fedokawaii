@@ -69,3 +69,22 @@ accent_text, the blank statusline, the footer float on the last row. Grill list 
   last line). Cost measured headless (nvim 0.12, -u NONE): 14 000 lines (2 000 days of notes) → 3.9 ms for the
   whole pass; his notes.md has 118 lines today. So: the whole pass at open and on TextChanged, and on_lines
   (nvim_buf_attach) for the rows a keystroke touches — never a per-keystroke full pass on a long diary.
+
+## The build on branch t21 (1 Nov 23:10–23:25, ~/repos/fk-t21) — WIP, not on main
+notes.lua: the heading in the TABLINE (showtabline 2), a blank WINBAR under it; NO statusline (laststatus 0): two
+floats over the window's last two rows — a blank row of paper, then the footer (muted) — and scrolloff 2, so the pen
+is never under them; the margin a STATUSCOLUMN "  │ " (the rule in KawaMargin = accent; the words at the fourth column
+as before); every line ruled (line_hl_group KawaRule: underline, sp = edge2) and the page below the last line ruled
+(virt_lines, the window's rows), laid again only when the line count changes; a day's line ("## …") its "## " concealed
+(conceallevel 2, concealcursor n) and the date in KawaDay (accent_text on its rule). kawa-warm: notes 80x25 → 64x40.
+Rendered in the kit (renders and scripts: /dev/shm/r27/t21/): dark and light, a short page (opens on today's heading at
+the top of the page — the history above it, as before), a long one scrolled mid-file (dark-long3: heading · blank ·
+36 ruled rows · blank · footer — the same rows as at the top of the file), and at the end (dark-long2: the last line
+near the top — nvim counts the ruled page below as part of the last line, so the end of the notes is always a fresh
+page; the pen goes down it as he writes). Found on the way: at -u time the file is not read yet (line count 0) — rule()
+skips an unloaded buffer, BufWinEnter lays the rules.
+NEXT on t21: test_notes rows (the tabline/winbar heading, no statusline, the two floats and their rows on resize, the
+rules' count, the concealed day mark), test_warm's 64x40, the to-do page rendered on the same paper, the header's
+notebook fields (No. · the date in the bar's grammar) decided by render, the grill (both moods, zoomed: the rule's row
+in the cell, its ink against faint, the margin's x against §7), a typing play (frames: no row moves while typing),
+then merge into main through the suite and the master.
