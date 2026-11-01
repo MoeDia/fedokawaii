@@ -2421,6 +2421,18 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   more."), test_status 207/0 (sixty: "61 packages · 60 held", ≤ 44 columns); static syntax/pointers green, no new
   shellcheck finding. Design §4.1 "as built" written.
 
+- r27-49-11 (1 Nov 13:47–13:58; the master's (G) 11) — whether a hold is ever written twice, from the official
+  source: dnf5 5.4.6.0 (the installed dnf5-5.4.6.0-1.fc44; strings of /usr/bin/dnf5 carry "Package \"{}\" is
+  already excluded.") — dnf5/commands/versionlock/versionlock_exclude.cpp at tag 5.4.6.0, exclude_versions():
+  an entry of the same name with only `evr !=` conditions gets a condition only for an EVR not already present;
+  nothing new → "already excluded", the file not saved. So the TOML need not be read at all. Found on the way:
+  up_holds_apply grepped `dnf versionlock list` for "NAME-EVR", which dnf5 never prints on one line (its list:
+  "Package name: X" and the conditions under it) — so every press re-ran one `versionlock exclude` per hold, and
+  up_hold one per package: a whole set held = ~100 repository loads (minutes) per press. Now each is ONE call
+  with all its specs; `versionlock list` is not used any more. The dnf stand-in adds every spec after `exclude`
+  (each once, as dnf5). test_update_flow 227/0: one call holds the kernel family (its three specs), the next
+  press puts the holds in force in one call, nothing written twice, no list call.
+
 ## >>> NEXT PASS STARTS HERE (1 Nov, written 13:00 — the lines above say what this pass did): the inbox first. Then,
 ## in the master's order (master-T45-efh-verdict.md, "Re-review"):
 ## (B) merge t45 → main; the whole suite; `fedokawaii apply`; verify green (with the resume-unit row; the one

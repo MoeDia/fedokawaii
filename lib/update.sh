@@ -207,32 +207,36 @@ up_try() {   # up_try NAME… → 0 their update alone is green in a fresh candi
 # ── holds: the version that broke something kept out (dnf5-versionlock(8) exclude), recorded
 # in UPD so a restore of / (which takes /etc/dnf/versionlock.toml back) cannot forget them ─────
 UP_HELD=0
+# (each a single dnf call for all its names — a whole set is a hundred, and every call loads the
+# repositories; dnf5 adds only the versions not excluded yet, so a hold in force is never written
+# twice: dnf5 5.4.6 dnf5/commands/versionlock/versionlock_exclude.cpp, exclude_versions)
 up_hold() {   # up_hold WHY NAME… — each name's new version (from UPD/set) held
-  local why=$1 n v at; shift
+  local why=$1 n v at spec=(); shift
   for n; do
     v=$(awk -v n="$n" '$1 == n { print $3; exit }' "$UPD/set")
     [[ -n $v && $v != - ]] || continue
     # NAME HELD AT DATE WHY (AT: the version it is held at; "-" a new package)
     at=$(rpm -q --qf '%{evr}\n' "$n" 2>/dev/null | sed -n 1p) || at=""
     grep -q "^$n $v " "$UPD/holds" 2>/dev/null || printf '%s %s %s %s %s\n' "$n" "$v" "${at:--}" "$(date +%F)" "$why" >>"$UPD/holds"
-    dnf -q versionlock exclude "$n-$v" >/dev/null 2>&1 || log "could not hold $n $v (dnf versionlock)"
-    log "held: $n $v — $why"; UP_HELD=$((UP_HELD + 1))
+    spec+=("$n-$v"); log "held: $n $v — $why"; UP_HELD=$((UP_HELD + 1))
   done
+  ((${#spec[@]})) || return 0
+  dnf -q versionlock exclude "${spec[@]}" >/dev/null 2>&1 || log "could not hold ${#spec[@]} package(s) (dnf versionlock)"
 }
-up_holds_apply() {   # every hold in force again — but one whose package has moved on (a newer
-                     # version went in, proven) is let go: the version it kept out is past
+up_holds_apply() {   # every hold in force again (a restore of / took /etc/dnf/versionlock.toml
+                     # back) — but one whose package has moved on (a newer version went in,
+                     # proven) is let go: the version it kept out is past
   [[ -s $UPD/holds ]] || return 0
-  local n v at d why now hold=() locks
-  locks=$(dnf -q versionlock list 2>/dev/null) || locks=""
+  local n v at d why now hold=() spec=()
   while IFS=" " read -r n v at d why; do
     [[ -n $n ]] || continue
     now=$(rpm -q --qf '%{evr}\n' "$n" 2>/dev/null | sed -n 1p) || now=""
     if [[ -n $now && $now != "$at" ]]; then
       dnf -q versionlock delete "$n" >/dev/null 2>&1 || true; log "let go: $n $v (now at $now)"; continue
     fi
-    hold+=("$n $v $at $d $why")
-    grep -qF -- "$n-$v" <<<"$locks" || dnf -q versionlock exclude "$n-$v" >/dev/null 2>&1 || true
+    hold+=("$n $v $at $d $why"); spec+=("$n-$v")
   done <"$UPD/holds"
+  ((${#spec[@]} == 0)) || dnf -q versionlock exclude "${spec[@]}" >/dev/null 2>&1 || true
   if ((${#hold[@]})); then printf '%s\n' "${hold[@]}" | write_file "$UPD/holds" 0644; else rm -f -- "$UPD/holds"; fi
 }
 
