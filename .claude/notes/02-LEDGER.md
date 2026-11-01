@@ -1891,11 +1891,28 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   run of the final restore-cut.sh is running (06:52); N6: test_menu's log kept with the evidence.
   test_snap 177/0, test_menu 594/0.
 
-## >>> NEXT PASS STARTS HERE (1 Nov 06:50): the inbox first. Then:
-## (1) T48 FIRST (1): the master's second look (verdict-2.md in /dev/shm/r27/master/T48/, or rerun it from
-##     .claude/notes/master-T48-verdict-1.md + the ledger lines r27-52a-fix/-vm2) — PASS → apply on the PC
-##     (`sudo FEDOKAWAII_COPY=$PWD /usr/local/bin/fedokawaii apply`: setup.sh changed → a repair runs;
-##     it also brings the GTK button rule r27-19m-gtk-default); FAIL → fix, VM again.
-## (2) T48 FIRST (2): the flat layout (snapshots, home, log, fk at the top level) and the offline /home
-##     split — VM first (restore-cut.sh's harness: states "built", "two-kernels").
-## (3) T45 on branch t45 (worktree ~/repos/fk-t45): (c) the candidate in the VM, then (e) (f) (h) (i).
+- r27-52a DONE (1 Nov 07:07; master PASS, its conditions closed) — T48 FIRST (1). The clean run of the
+  final tools/vm-inject/restore-cut.sh (N5): eight rows, every one ok, exit 0 in 886 s — the table kept
+  in .claude/notes/restore-cut-2026-11-01.txt (copied, kernels, adding → the system before ran;
+  exchanged, defaulted, moved, renamed → the restored one; exchanged under the old kernel healed by
+  kernel_match + one start; old → back to the marked system). LIVE on the PC (07:05 apply, exit 3 =
+  applied with a red left: verify 258/259, the one red qbittorrent installed outside the manifest —
+  his, known since 28 Oct, T35's): /usr/local/sbin/kawa-snap = the repo's (sha256 b34e18fe…);
+  /etc/dracut.conf.d/fedokawaii.conf in place and the boot image rebuilt 07:05:13 (lsinitrd:
+  etc/cmdline.d/20-force_drivers.conf = rd.driver.pre=xfs rd.driver.pre=vfat); the kernels unit
+  has ConditionKernelCommandLine=!systemd.volatile; grub-btrfs ignores root.copy and root.old.d; the
+  GTK default-button rule (r27-19m-gtk-default) live in both themes' gtk.css (07:05:23). Still owed by
+  T48's acceptance, not this item: a restore from a real boot-menu snapshot (overlay) in the VM; the
+  two tests the master listed (another nested subvolume, an entry without the machine-id token).
+
+## >>> NEXT PASS STARTS HERE (1 Nov 07:10): the inbox first. Then:
+## (1) T48 FIRST (2): the flat layout (snapshots, home, log, fk at the top level; kawa-snap reading
+##     $top/snapshots) and the offline /home split (a unit under system-update.target, cp -aT
+##     --reflink=always -x, Downloads/VM renamed across, compared, fstab by name, the old copy removed
+##     after a good start) — VM first (states "built", "two-kernels"; tools/vm-inject/), then the PC
+##     with a pinned snapshot. With it: a restore from a real boot-menu snapshot in the VM, the master's
+##     two missing tests.
+## (2) T45 on branch t45 (worktree ~/repos/fk-t45, main merged in): (c) proven in the VM —
+##     tools/vm-inject/update-green.sh found and fixed the container call; re-run it (56 pending in
+##     "built"), then (e) the real checks + smoke, (f) probation, (h) the unit + the pane, (i) the
+##     toolkit at a signed tag; t45 merges into main only after (c) is green.

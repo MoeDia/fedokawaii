@@ -1,0 +1,11 @@
+STEP       START  RUNNING   KERNEL         DEFAULT  AFTER   RESULT
+copied     ok     marked    7.2.13-200.fc4 7.2.11-2 0       ok
+kernels    ok     marked    7.2.13-200.fc4 7.2.11-2 0       ok
+exchanged  ok     snapshot  7.2.11-200.fc4 7.2.11-2 0       ok
+defaulted  ok     snapshot  7.2.11-200.fc4 7.2.11-2 0       ok
+moved      ok     snapshot  7.2.11-200.fc4 7.2.11-2 0       ok
+renamed    ok     snapshot  7.2.11-200.fc4 7.2.11-2 0       ok
+adding     ok     marked    7.2.13-200.fc4 7.2.11-2 0       ok
+old        ok     marked    7.2.13-200.fc4 7.2.13-2 -       ok
+(RUNNING right after the cut: marked = the system before the restore, snapshot = the restored one; AFTER: the next restore's exit; at the end the restored kernel is the default, whole in /boot, root.old kept, no root.new)
+exit 0 in 886 s
