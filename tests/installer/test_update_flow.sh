@@ -32,7 +32,7 @@ case_ "a green update: stored once, proven in a copy (the actions plugin off), p
 back built; reset_calls; pending "bash 5.2-1.fc44 5.3-1.fc44" "mesa 26.0-1.fc44 26.1-1.fc44"
 up; eq "$RC" 0 "$(tail -n3 <<<"$OUT")"
 eq "$(report)" ok; has "$(sed -n 2p "$U/report")" "updated · 2 packages"
-called 'dnf\] -y upgrade --store=/var/lib/fedokawaii/update/tx'
+called 'dnf\] -y --setopt=keepcache=True upgrade --store=/var/lib/fedokawaii/update/tx'
 called 'systemd-nspawn\] .*--private-network .*--bind-ro=/var/lib/fedokawaii/update/tx:/tx .* dnf5 --disable-plugin=actions -y -C replay /tx'
 called 'systemd-nspawn\] .* /usr/bin/bash /run/fk-check'
 called 'rpmkeys\] --checksig'
@@ -83,6 +83,17 @@ up; eq "$RC" 1; has "$OUT" "the update stays red in a copy of the system after t
 not_called 'dnf\] -y -C replay'; not_called 'snapper\] -c root create .*before update'
 eq "$(report)" stopped; has "$(sed -n 2p "$U/report")" "stays red in a copy"
 eq "$(cut -d' ' -f2 "$W/var/lib/fedokawaii/last-update")" stopped
+
+case_ "the copy's container does not even start: no verdict on the packages — stopped, nothing held, nothing changed"
+back built; reset_calls; pending "bash 5.2-1.fc44 5.3-1.fc44" "mesa 26.0-1.fc44 26.1-1.fc44"; fkh nspawn-broken
+up; eq "$RC" 1; has "$OUT" "the copy's container would not start (Failed to set up namespace: Operation not permitted) — nothing changed"
+[[ -s $U/holds ]] && _no "held: $(cat "$U/holds")" || _ok; not_called 'versionlock exclude'; not_called 'dnf\] -y -C replay'
+case_ "red, and a half that cannot be tried on its own: no culprit named — stopped, nothing held"
+back built; reset_calls; pending "a 1-1 2-1" "b 1-1 2-1" "c 1-1 2-1" "d 1-1 2-1"; fkh cand-red a; fkh store-try-fail
+up; eq "$RC" 1; has "$OUT" "the package that causes it could not be found: a part of the set could not be tried on its own — nothing changed, nothing held"
+[[ -s $U/holds ]] && _no "held: $(cat "$U/holds")" || _ok; not_called 'dnf\] -y -C replay'
+case_ "every run ends without its stored transaction or the downloads kept for the halves"
+[[ ! -e $U/tx && ! -e $U/try ]] && _ok || _no "left: $(ls "$U")"; called 'dnf\] -q clean packages'
 
 case_ "red on the running system (the desktop does not start): the set held, the snapshot offered — his files are still inside /"
 back built; reset_calls; pending "mesa 26.0-1.fc44 26.1-1.fc44"

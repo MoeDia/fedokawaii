@@ -73,6 +73,7 @@ case "$a" in
   *" --store="*)
       net_on || [[ $a == *" -C "* ]] || { echo "Curl error (6): Could not resolve host" >&2; exit 1; }
       [[ -f $FKH/store-fail ]] && { echo "Failed to download packages" >&2; exit 1; }
+      [[ -f $FKH/store-try-fail && $a == *"/update/try "* ]] && { echo "Problem: cannot install the best update candidate" >&2; exit 1; }
       d=$(sed -n 's/.*--store=\([^ ]*\).*/\1/p' <<<"$*")
       want=" "; for x in "$@"; do [[ $x == -* || $x == upgrade ]] || want+="$x "; done
       rows=$(while read -r n o v; do

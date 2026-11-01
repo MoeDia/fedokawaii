@@ -63,12 +63,13 @@ u_fetch() {   # → 0 a transaction stored in UPD/tx · 1 nothing to update
   ((rc == 100)) || die "dnf could not read the repositories (check-upgrade: exit $rc) — nothing changed; try again later"
   # resolved and downloaded once, stored instead of run: the candidate and the running system
   # get exactly this (dnf5-upgrade(8) --store, dnf5-replay(8))
-  if ! dnf_detached -y upgrade --store="$UPD/tx"; then
+  # (the downloads kept in dnf's cache too: the halves a red set is cut into are stored from it)
+  if ! dnf_detached -y --setopt=keepcache=True upgrade --store="$UPD/tx"; then
     mapfile -t off < <(third_party_off)
     ((${#off[@]})) || die "dnf could not resolve or download the update — nothing changed (the lines above say why)"
     log "trying again without the third-party repositories ($(IFS=' '; echo "${off[*]#--disablerepo=}"))"
     rm -rf -- "$UPD/tx"
-    dnf_detached -y upgrade --store="$UPD/tx" "${off[@]}" || die "dnf could not resolve or download the update — nothing changed (the lines above say why)"
+    dnf_detached -y --setopt=keepcache=True upgrade --store="$UPD/tx" "${off[@]}" || die "dnf could not resolve or download the update — nothing changed (the lines above say why)"
     UPDATE_STEPS_FAILED+=("third-party packages (a repository failed: dnf repo list; the next update tries again)")
   fi
   [[ -s $UPD/tx/transaction.json ]] || return 1    # (only held packages had updates)
@@ -97,18 +98,23 @@ cand_drop() {
   btrfs subvolume delete --commit-after "$UP_CAND" >/dev/null 2>&1 || log "the copy $UP_CAND could not be removed — the next update removes it"
 }
 cand_run() {   # cand_run TXDIR CMD… — CMD in the candidate, a container of its own: no network,
-               # nothing reaching this system's udev or systemd, the transaction read-only at /tx,
-               # a scratch /boot (a new kernel's files land there, never in the real one)
-  systemd-nspawn --quiet --register=no --private-network -D "$UP_CAND" \
-    --bind-ro="$1:/tx" --bind="$UPD/cand-boot:/boot" --bind-ro="$REPO_DIR/lib/cand-check.sh:/run/fk-check" \
+               # nothing reaching this system's udev, systemd or journal, the transaction read-only
+               # at /tx, a scratch /boot (a new kernel's files land there, never in the real one)
+  local tx=$1; shift
+  systemd-nspawn --quiet --register=no --private-network --link-journal=no -D "$UP_CAND" \
+    --bind-ro="$tx:/tx" --bind="$UPD/cand-boot:/boot" --bind-ro="$REPO_DIR/lib/cand-check.sh:/run/fk-check" \
     --setenv=FK_USER="$TARGET_USER" --setenv=FK_GPU="$(cat "$STATE_DIR/gpu" 2>/dev/null || echo amd)" -- "$@"
 }
-cand_try() {   # cand_try TXDIR → 0 green · 1 red (UPD/why says why)
+cand_try() {   # cand_try TXDIR → 0 green · 1 red (UPD/why says why). A container that does not even
+               # start is no verdict on the packages: the run stops there, nothing changed
   local rc=0
   cand_drop; rm -rf -- "$UPD/cand-boot"; mkdir -p "$UPD/cand-boot"
   btrfs subvolume snapshot / "$UP_CAND" >/dev/null || die "a copy of the system could not be made (btrfs subvolume snapshot) — nothing changed"
+  if ! cand_run "$1" /usr/bin/true >"$UPD/cand.log" 2>&1; then
+    cand_drop; die "the copy's container would not start ($(grep -v '^$' "$UPD/cand.log" | tail -n1)) — nothing changed"
+  fi
   # (the actions plugin off: in there its kawa-snap and guard would act on the copy for nothing)
-  if ! cand_run "$1" dnf5 --disable-plugin=actions -y -C replay /tx >"$UPD/cand.log" 2>&1; then
+  if ! cand_run "$1" dnf5 --disable-plugin=actions -y -C replay /tx >>"$UPD/cand.log" 2>&1; then
     printf 'the transaction does not go through: %s\n' "$(grep -v '^$' "$UPD/cand.log" | tail -n2 | tr '\n' ' ')" >"$UPD/why"; rc=1
   elif ! cand_run "$1" /usr/bin/bash /run/fk-check >>"$UPD/cand.log" 2>&1; then
     sed -n 's/^red: //p' "$UPD/cand.log" >"$UPD/why"; rc=1
@@ -124,33 +130,37 @@ u_candidate() {   # the stored transaction proven in a copy first; red → culpr
   until cand_try "$UPD/tx"; do
     log "red in the copy: $(head -n1 "$UPD/why") — finding the package(s) that cause it"
     ((++n <= 3)) || die "the update stays red in a copy of the system after three holds — nothing changed: $(head -n1 "$UPD/why")"
-    up_bisect
+    up_bisect || die "red in a copy of the system ($(head -n1 "$UPD/why")), and the package that causes it could not be found: a part of the set could not be tried on its own — nothing changed, nothing held; the next press tries again"
     [[ -s $UPD/tx/transaction.json ]] || return 0   # (everything held)
   done
   ok "green in the copy: $(wc -l <"$UPD/set") packages"
 }
-# up_bisect — the set is red: halves tried in fresh candidates (dnf resolves each on its own)
-# until the smallest red part is left; held; the rest stored again. ⌈log2 n⌉ rounds at most.
-# Two halves green alone but red together: the two are held together — never a guess
+# up_bisect — the set is red: halves tried in fresh candidates (dnf resolves each on its own, from
+# the packages the store left in its cache) until the smallest red part is left; held; the rest
+# stored again. ⌈log2 n⌉ rounds at most. Two halves green alone but red together: the two held
+# together — never a guess. → 1 a half could not be tried at all: no culprit named, nothing held
 up_bisect() {
-  local s=() a=() b=() h
+  local s=() a=() b=() h ra rb
   mapfile -t s < <(awk '$3 != "-" { print $1 }' "$UPD/set")
   while ((${#s[@]} > 1)); do
     h=$((${#s[@]} / 2)); a=("${s[@]:0:h}"); b=("${s[@]:h}")
-    if ! up_try "${a[@]}"; then s=("${a[@]}")
-    elif ! up_try "${b[@]}"; then s=("${b[@]}")
-    else break; fi
+    up_try "${a[@]}" && ra=0 || ra=$?
+    if ((ra == 1)); then s=("${a[@]}"); continue; fi
+    up_try "${b[@]}" && rb=0 || rb=$?
+    if ((rb == 1)); then s=("${b[@]}"); continue; fi
+    ((ra == 0 && rb == 0)) || return 1
+    break
   done
   up_hold "$(head -n1 "$UPD/why")" "${s[@]}"
   rm -rf -- "$UPD/tx"
   dnf -q -C -y upgrade --store="$UPD/tx" >/dev/null 2>&1 || true   # (the rest: the holds keep the culprits out)
   if [[ -s $UPD/tx/transaction.json ]]; then up_set "$UPD/tx" >"$UPD/set"; else : >"$UPD/set"; fi
 }
-up_try() {   # up_try NAME… → 1 their update alone is red in a fresh candidate (UPD/why), else 0
+up_try() {   # up_try NAME… → 0 their update alone is green in a fresh candidate · 1 red (UPD/why) ·
+             # 2 it could not be tried (dnf could not resolve or store it on its own)
   rm -rf -- "$UPD/try"
-  # (a part dnf cannot resolve alone proves nothing either way: not red)
-  dnf -q -C -y upgrade --store="$UPD/try" "$@" >/dev/null 2>&1 || return 0
-  [[ -s $UPD/try/transaction.json ]] || return 0
+  dnf -q -C -y upgrade --store="$UPD/try" "$@" >/dev/null 2>&1 || return 2
+  [[ -s $UPD/try/transaction.json ]] || return 2
   local rc=0; cand_try "$UPD/try" || rc=1
   rm -rf -- "$UPD/try"
   return "$rc"
@@ -259,6 +269,8 @@ u_report() {   # u_report — the outcome: UPD/report (the pane), the log beside
               line="stopped ($(up_was | sed 's/^end$/start/')): ${why:-no reason could be written (a full disk?)}" ;;
   esac
   up_phase end || true
+  # (the stored transaction and the downloads kept for the halves: done with, whatever the outcome)
+  rm -rf -- "$UPD/tx" "$UPD/try"; dnf -q clean packages >/dev/null 2>&1 || true
   # (no command that can fail inside these pipes: setup.sh's ERR trap would print from them)
   why=$(cat "$UPD/why" 2>/dev/null) || why=""
   printf '%s %s\n%s\n%s' "$(date +%s)" "$UP_END" "$line" "${why:+$why$'\n'}" | write_file "$UPD/report" 0644 2>/dev/null || true
