@@ -353,3 +353,146 @@ does not start" is absent from a green run's log; (F) update-button.sh launches 
 once the unit is active and past "the checks before it", asserts one unit instance across the presses
 (ExecMainStartTimestamp or MainPID recorded at each press), keeps the VM's journal of the units in the
 out dir, and runs green; (G) 11, 14, 18 as planned, 18's notice line capped; (H) 7's three checks with T58.
+
+## Re-review 2 (1 Nov, 14:46–15:20) — main at aa9366a
+
+Read: the Re-review above; /dev/shm/r27/master/T45-B (brief, diff a353613..HEAD, selinux-repro, update1.out,
+update2.out, apply3.log, the merge's suite log); ledger r27-49-merge … B2; update-design §4.1 as built; plan.md's
+T45 line; lib/update.sh whole; setup.sh:37-88, :328-338, :2538-2550, :2603-2617, :2916-2930, :3537-3542;
+lib/guard.sh:170-190; lib/common.sh:335-341, :695-714; fedokawaii.sh:208-235; system/fedokawaii holds();
+tests/installer/{lib.sh (fk, FK_INNER, back), stubs/_lib.sh, stubs/dnf, stubs/grubby, stubs/btrfs,
+test_update_flow.sh, test_setup.sh:298-303, test_torture.sh:212-228}; tests/engine/test_{front,menu,status}.sh;
+tools/vm-inject/{update-button,update-green,probation}.sh; tools/regress/{session-start,bar-geometry}.sh; the VM
+proof /dev/shm/r27p/button5.txt and /dev/shm/r27/update-button-f44b/{run.log,state.txt,stop.txt,units.txt};
+/dev/shm/r27p/head3.log (the HEAD suite). Ran (read-only, sudo): grubby --info=ALL; grub2-editenv list;
+UPD/{probation,snap,report,phase,holds}; snapper list; grub.cfg (08_fallback_counting, menuentry positions);
+journalctl of the unit (both presses) and the audit AVCs of both windows; restorecon -n -f over the 25 611 files
+of the 96 updated packages (nothing to relabel); hold_families on a crafted file; transient-unit probes (id -Z):
+bash → initrc_t; with the context → unconfined_service_t and `runuser -u dia` keeps it; stdbuf → bash
+(dnf_detached's shape) → unconfined_service_t; an unknown context WITHOUT "-" → 229/SELINUX_CONTEXT, unit failed,
+the journal names the step; WITH "-" → exit 0, running in initrc_t. Sources: systemd.exec(5) installed; dnf5
+5.4.6.0 dnf5/commands/versionlock/versionlock_exclude.cpp (raw.githubusercontent); rhboot/grub2 fedora-44
+grub-core/commands/blscfg.c; /usr/sbin/grubby 8.40-88 (:88-95, sort -Vr of the BLS basenames); 08_fallback_counting
+as grub.cfg:136-155. Tests run by me: test_front 133/0, test_menu 611/0, test_status 207/0, test_update_flow
+261/1 twice (15:02, 15:12 — the same row; its cause, this PC's own state, in must-fix 5); the HEAD suite still
+running at 15:15 (/dev/shm/r27p/head3.log: test_setup 232/1 so far; test_update_flow not yet reached, and it will
+carry the same red). The second press's test rows for (F)/(E) were read from the finished VM proof (14:51).
+
+### Proven
+- **(B) the PC's press of 14:39** — the unit in unconfined_service_t; NO red baseline (verify's one qbittorrent
+  row only); 96 packages stored → green in the copy → snapshot 381 pinned (snapper: no cleanup, important=yes) →
+  replay → steps → verify 1/262 (qbittorrent, in the baseline) → desktop check green → kernel 7.2.13 on trial:
+  `grubby --info=ALL` = [7.2.13 (index 0), 7.2.11 (index 1)], the trial arguments on 7.2.13's entry only,
+  grubenv saved_entry=…7.2.13 boot_counter=3 boot_success=0 boot_indeterminate=1, the watchdog drop-in,
+  UPD/probation "381 7.2.13-200.fc44.x86_64 2026-11-01", report "ok · updated · 96 packages", press exit 0,
+  4 min 14 s (journal). Labels of all 25 611 files of the set correct; 8 AVCs in the window (6 setfiles_t:
+  restorecon denied `map` on libstdbuf.so — should-fix 3; 2 pasta_t — Prowlarr's network, unrelated). GRUB's way
+  back: grub.cfg:37 `set default=saved_entry`, then :143 `set default=1` (08_fallback_counting); no menuentry
+  before `blscfg` (:185), the grub-btrfs submenu after it (:301) → entry 1 = 7.2.11. The trial's close is still
+  ahead (the next start) — not judged.
+- **The SELinux cause (B1)** is real and reproduced by me; the fix puts the unit in the domain systemd gives any
+  unit whose binary carries no policy (the dnf units already ran there: stdbuf is bin_t; dnf5 is rpm_exec_t —
+  setools is not installed, so the transition from there was not queried; verified by outcome: every file of
+  the set labelled right, no rpm/dnf AVC). No other unit runs the desktop check (desktop_starts' only caller:
+  lib/update.sh:79); fedokawaii-kernels/boot-good/update-resume run bash → initrc_t, their paths were proven in
+  the VM before (probation.sh) — the close on the PC is the next proof.
+- **(D) 8, both halves**: lib/update.sh:398-408 (the menu exactly [new, running]), :98-104 (`--exclude=` of
+  KERNEL_PKGS while a probation names a kernel; dnf5(8) list option). Order: blscfg sorts entries by filename
+  with split_cmp/vercmp, newest first; grubby sorts the same basenames with `sort -Vr` — equal for Fedora kernel
+  names (they could differ only on `~`/`+`, which Fedora kernel versions never carry). The rescue entry: the
+  installer removes it (setup.sh:690; verify.sh:280), so [new, running] is the installed shape, and the VM run
+  armed its trial (units.txt:18804). Tests :264-270, :275-281 meaningful — but see must-fix 5.
+- **(G) 11**: the dnf5 5.4.6.0 source confirms it — specs each resolved, grouped by name, exclude_versions adds
+  only the EVRs not present, "already excluded" otherwise, `vl_config.save()` only `if (changed)`; the installed
+  dnf5-5.4.6.0-1.fc44 was not changed by the run. up_hold/up_holds_apply one call each (:244, :259); the stand-in
+  adds each spec once; tests :85-92 meaningful (one call a press, none written twice, `versionlock list` never).
+  **14**: up_leftovers :63-74 — the copy dropped (btrfs subvolume list), the pin released unless a probation lists
+  it; tests :186-196 (the order before `filesystem usage`); the two vacuous "copy left behind" rows now read
+  $FKH/subvolumes. **18**: hold_families (lib/common.sh:703-714) shared by pane and report; the report line capped
+  (:330-333); tests: 60 held → ≤ 200 characters, "and 57 more.", "61 packages · 60 held".
+- **The signal trap**: setup.sh:81-88 — MODE set at :37 (set -u safe); build + phase done → "built", exit 0 (the
+  install's last reboot, :2547); every other mode "interrupted — press update again (Super+U) / run the same
+  command again", 130 INT, 143 TERM; the EXIT trap writes the report with that line (test :190-197; update1.out
+  :316-318 shows the old "✔ Fedokawaii is built" and "no reason could be written" — the motive). test_torture.sh
+  :223 (INT → 130 + the text) agrees. The phase-1/2 reboot (:337 `systemctl reboot; exit 0`) can still print
+  "interrupted" when the shutdown's TERM lands first — as before, cosmetic. The TERM test is sound: FK_INNER ends
+  in `timeout 240 "$@"`, so setup.sh is its own process group and the stub's group kill reaches only the run.
+- **(F) the harness**: update-button.sh waits for is-active and "upgrade --store=" in run.log (the fetch has
+  begun), reads the InvocationID at each press (one: b2903890…), keeps the units' journal (units.txt), asserts the
+  absence of "the desktop does not start" — and that assertion is what caught must-fix 1. The stop row holds.
+  update-green.sh and probation.sh carry the same assertion but were not run since the fix: not yet proven.
+
+### Must-fix
+1. **lib/update.sh:27 (`up_labels` strips " — …"), :82 (every desktop red gets the one label), :310 (labels
+   compared): a desktop red before the update hides ANY desktop red after it.** Shown by the agent's own proof
+   under the fixed unit: units.txt:12686 "red before the update: the desktop does not start — bar-geometry
+   (light): the clock's gaps:  (want 14 …)" and :18803 "red after the update: the desktop does not start —
+   session-start (dark): not running: mako" — yet "update done (ok)" (run.log, state.txt), report ok. The notice
+   daemon not starting after an update is the very thing the check exists for. The Re-review's point 13 ("a red
+   baseline with this label masks EVERY desktop breakage") was answered only for its SELinux instance; the logic
+   is unchanged. Fix: the desktop check's lines compared whole (check + finding), not by label — and a red
+   desktop baseline said in the report ("checked against a desktop that was already red: …"); a test_update_flow
+   row: session-red "not running: waybar" before, replay-breaks → "not running: mako" after → offered, held (the
+   row at :151-155 stays green).
+2. **(E) is not fixed, and the claim "the same SELinux cause — not VM-only" is refuted by its own proof**:
+   button5.txt rc=1 — "the desktop check green before and after (no "the desktop does not start") BROKEN". In the
+   VM the check is red for a different reason each time (bar-geometry's empty gaps before, mako after). The
+   condition stands as written: KEEP=1, kit.log, play.log, mako's and waybar's own logs in the VM; fix the kit or
+   the VM; then update-button, update-green and probation green. Until then no VM proof exercises a green desktop
+   check — and 1 shows what that costs.
+3. **The suite on HEAD is red**: tests/installer/test_setup.sh:303 greps the old `trap 'if [[ $(head -n1 …) ==
+   "done" ]]; then` line, gone with on_signal → test_setup 232/1 (/dev/shm/r27p/head3.log). "All must pass before
+   pushing": HEAD is 7 commits ahead of origin/main, unpushed — keep it so until green; the test must assert
+   on_signal (build + done → "built"/0; else interrupted 130/143), best behaviourally (TERM a built fake machine in
+   build mode: "built", exit 0).
+4. **fedokawaii.sh:224 — the "-" in `SELinuxContext=-…` is a fallback that hides exactly the failure the fix is
+   for.** My probe: a context that cannot be set runs the unit silently in initrc_t (exit 0 — the blind baseline
+   again); without "-" the unit fails loudly (229/SELINUX_CONTEXT, the journal names the step, the press returns
+   229). SELinux disabled is "ignored" already (systemd.exec(5)), so "-" buys nothing on this system. Drop it, and
+   let u_start assert its domain (`id -Z` unconfined_service_t or unconfined_t while SELinux is on) so a run can
+   never begin blind again; test_front asserts the property without "-".
+5. **The fake machine inherits the PC's live state, so a test's verdict depends on what the PC is doing**:
+   test_update_flow's "a kernel with a third entry … no trial" row (:280) fails 261/1 in both my runs (15:02, 15:12)
+   with "the watchdog on with no trial" — the code is right (nothing armed, "not on trial: the boot menu is
+   [… 0-rescue…]" said, probation "- "): tests/installer/lib.sh:195 `cp -a --no-preserve=ownership /etc/. "$W/etc/"`
+   copies this PC's /etc into the fake machine, and since the real press /etc/systemd/system.conf.d/
+   90-fedokawaii-probation.conf exists here (mtime 14:43) — the agent's 254/0 and 262/0 predate it; the HEAD suite
+   (started 14:46) carries the same red. The coordinator confirmed the same cause in a one-case harness file and is
+   fixing it on `next` (the world build drops the host's probation drop-in). That point fix is not enough: the same
+   leak bit once before (memory: "installer world copies host /etc — an apply can change installer test results"),
+   and every file the toolkit owns under /etc (its 90-fedokawaii*.conf drop-ins, versionlock.toml, the probation
+   drop-in, greetd's and dnf's files) leaks the PC's state of the moment into a code test. Scrub at world build
+   everything the toolkit writes under /etc (the list derivable from the toolkit's own writers), or build the
+   world's /etc from a pristine Fedora /etc rather than this PC's; and make such rows assert their precondition
+   (the file absent before `up`). The suite must be green on the pushed commit whatever this PC is doing.
+
+### Should-fix
+1. lib/update.sh:63-71 — up_leftovers releases every non-green run's snapshot, not only a cut run's: after
+   UP_END=offered no probation line is written and UPD/snap persists, so the next press hands the very snapshot
+   the report pointed him to ("snapshot N is the system before it") to snapper's number cleanup (kept a while by
+   NUMBER_LIMIT_IMPORTANT, no longer pinned). Keep it pinned while the last report is offered — or say in that
+   report that pressing update again releases it; a test row.
+2. setup.sh:2696 / :1141 — the update's steps install manifest-missing and hardware packages live, after the
+   replay, outside the stored and copy-proven transaction (the VM run: python3-pyte, wlrctl, wireless-regdb in
+   three dnf transactions, units.txt:3975-4035; the PC's run had none). Either store them with the transaction (a
+   second `--store` of `install`) or write the exception into update-design §3 and the Learn piece.
+3. setup.sh:2613 `stdbuf -oL -eL dnf` — stdbuf's LD_PRELOAD is inherited by every scriptlet; confined ones
+   (restorecon → setfiles_t) are denied `map` on /usr/libexec/coreutils/libstdbuf.so: 6 AVCs an update, and ld.so
+   noise on scriptlets' stderr. dnf5 wrote the journal line-wise here anyway — try without stdbuf, or clear
+   LD_PRELOAD for dnf's children.
+4. lib/common.sh:695-699 says "never two sources merged"; :703-714 merges any names sharing their first component
+   at one version and reason — python3-foo + python3-bar 3.14.1 → "python3" (my run). Use UPD/sources (up_sources
+   already yields NAME SOURCE) when present, else the prefix; or soften the comment.
+5. After a stop the unit stays `failed` (exit-code 143) until the next press's reset-failed (fedokawaii.sh:220)
+   — right, but `systemctl --failed` shows it meanwhile: a line in the Learn piece. (C) was observed in spirit:
+   the first press stopped by the agent at a red baseline, the cause found, fixed and recorded — no blind retry.
+
+## Verdict 2: FAIL
+Until must-fix 1–5 are done. What stands and need not be redone: (B) the PC's press, proven ok up to the trial's
+close (the close itself: the journal of fedokawaii-boot-good after the next start, the pin released, 7.2.11 out —
+record it); (D) 8 and (G) 11/14/18 built and proven; the signal trap; (F)'s harness, which is sound and did its
+job. Conditions for the next review: 1 and 4 with their tests (test_update_flow, test_front) green; 2 with the
+three VM proofs green and their logs kept in /dev/shm/r27; 3 fixed and 5's harness fix (from `next`) merged, then
+the whole suite green on the commit that is pushed — run while this PC still has its kernel on trial, so the
+world's independence from the PC's state is shown, not assumed; the should-fixes decided (done, or written down
+as a decision in the ledger).
