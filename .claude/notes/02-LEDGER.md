@@ -2318,6 +2318,20 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   (f45, port 2224, 4 CPUs) being created — the first try failed fetching the installer's kernel from a
   slow master server (330 KB/s, release week), retried 11:43.
 
+- r27-found-4 DONE (1 Nov 11:53–12:00, main fd0739a) — EVERY CLEAN INSTALL WAS BROKEN since 28 Oct: the first F45
+  VM run (vm-smoke.sh f45 from main 9cfe463) stopped in phase 3 at the dwl build — dwl.c reads anim_wash_ms
+  and anim_wash_hold_ms (the ink wash, T19 e), which only src/dwl/config.h declared; setup.sh s_dwl builds with
+  the patched config.def.h before theme.sh installs config.h. Not a Fedora 45 matter: reproduced on the PC
+  (a copy of ~/.local/src/dwl, config.def.h as config.h: the same two errors). Fixed in the tree's
+  config.def.h, tools/dwl-patch.sh (the patch: only those two lines; dwl.c untouched — the PC's dwl is the
+  same code), a copy built from config.def.h: rc 0. Never again: tests/static/test_dwlconfig.sh — every
+  setting config.h adds beyond dwl's own (tests/static/fixtures/dwl-upstream-config.txt, from the pinned
+  commit 98bea2c) that the patch's code reads has its default in the patch's config.def.h: red on the old
+  patch ("lacks: anim_wash_hold_ms anim_wash_ms"), green now. The F45 smoke started again from fd0739a.
+  Why no test saw it: the installer tests stand in for the build (no compiler run), the harness VM's
+  states were made on 27 Oct (before the wash), and the PC builds with config.h — T54's clean VM install
+  at the end would have found it; the F45 pre-flight found it 2 days early.
+
 ## >>> NEXT PASS STARTS HERE (1 Nov, written 11:50 — see the lines above for what this pass did): the inbox first. Then:
 ## (0) the master's verdict on T45 (e)(f)(h) — .claude/notes/master-T45-efh-verdict.md (asked 11:44): fix every
 ##     finding with its test, back to the master until PASS.
