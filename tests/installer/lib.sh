@@ -234,6 +234,19 @@ world() {   # world fresh|built [--themed]
   mkdir -p "$W/home/fkuser/fedokawaii"
   (cd "$REPO" && tar --exclude=./docs --exclude=./tests --exclude=./.git -cf - .) | tar -xf - --no-same-owner -C "$W/home/fkuser/fedokawaii"
   printf '%s\n' "# .bashrc" 'if [ -d ~/.bashrc.d ]; then for rc in ~/.bashrc.d/*; do . "$rc"; done; fi' >"$W/home/fkuser/.bashrc"
+  # the desktop's start check (the update's: tools/regress) as it would see this machine, which has
+  # no screen — in the project as the user cloned it, so every toolkit made from it (setup's, a
+  # finished install's) carries them: the session comes up when dwl — its stand-in — starts; red
+  # with $FKH/session-red or a bar off its measure, $FKH/bar-red (each file: what the check says);
+  # $FKH/fail-session-cannot = N: the check itself cannot run N times (exit 2, its machinery)
+  printf '%s\n' '#!/bin/bash' '. /usr/local/bin/_lib.sh; fkh_log "$*"' \
+    'countdown session-cannot && { echo "session-start: the kit could not run: hl-dwl: out of time (60 s)" >&2; exit 2; }' \
+    '[[ -s $FKH/session-red ]] && { echo "session-start (dark): $(cat "$FKH/session-red")" >&2; exit 1; }' \
+    '/usr/local/bin/dwl -s true >/dev/null 2>&1 || { echo "session-start (dark): dwl does not start: the stand-in exits 1" >&2; exit 1; }' \
+    'echo "session-start (dark): up"' >"$W/home/fkuser/fedokawaii/tools/regress/session-start.sh"
+  printf '%s\n' '#!/bin/bash' '. /usr/local/bin/_lib.sh; fkh_log "$*"' \
+    '[[ -s $FKH/bar-red ]] && { echo "bar-geometry (dark): $(cat "$FKH/bar-red")" >&2; exit 1; }' 'exit 0' \
+    >"$W/home/fkuser/fedokawaii/tools/regress/bar-geometry.sh"
   # what dwl's build needs of wlroots: its header folder and library (a real .so, so ldd reads it)
   mkdir -p "$W/usr/local/fkh-sys/include/wlroots-0.20/wlr" "$W/usr/local/fkh-sys/lib64"
   echo '/* wlroots */' >"$W/usr/local/fkh-sys/include/wlroots-0.20/wlr/backend.h"
@@ -421,18 +434,6 @@ built() {
   mkdir -p "$W/usr/local/lib/fedokawaii"; cp -a "$U/fedokawaii/." "$W/usr/local/lib/fedokawaii/"
   cp "$W/usr/local/lib/fedokawaii/system/fedokawaii" "$W/usr/local/bin/fedokawaii"
   cp "$W/usr/local/lib/fedokawaii/system/fedokawaii-report" "$W/usr/local/bin/fedokawaii-report"
-  # the desktop's start check (the update's: tools/regress) as it would see this machine, which has
-  # no screen: the session comes up when dwl — its stand-in — starts; red with $FKH/session-red or
-  # a bar off its measure, $FKH/bar-red (each file: what the check says)
-  p=$W/usr/local/lib/fedokawaii/tools/regress
-  # ($FKH/fail-session-cannot = N: the check itself cannot run N times — exit 2, as the real one's machinery)
-  printf '%s\n' '#!/bin/bash' '. /usr/local/bin/_lib.sh; fkh_log "$*"' \
-    'countdown session-cannot && { echo "session-start: the kit could not run: hl-dwl: out of time (60 s)" >&2; exit 2; }' \
-    '[[ -s $FKH/session-red ]] && { echo "session-start (dark): $(cat "$FKH/session-red")" >&2; exit 1; }' \
-    '/usr/local/bin/dwl -s true >/dev/null 2>&1 || { echo "session-start (dark): dwl does not start: the stand-in exits 1" >&2; exit 1; }' \
-    'echo "session-start (dark): up"' >"$p/session-start.sh"
-  printf '%s\n' '#!/bin/bash' '. /usr/local/bin/_lib.sh; fkh_log "$*"' \
-    '[[ -s $FKH/bar-red ]] && { echo "bar-geometry (dark): $(cat "$FKH/bar-red")" >&2; exit 1; }' 'exit 0' >"$p/bar-geometry.sh"
   # dwl, its own wlroots, the session's system pieces
   # (-s CMD: started — CMD runs, and its SIGTERM ends it cleanly, as the real one: the guard's start test)
   printf '#!/bin/sh\n# ldd: libxcb.so.1 => /usr/lib64/libxcb.so.1 (0x1)\n# ldd: libwlroots-0.20.so => /usr/local/lib/fedokawaii-wlroots-0.20/lib/libwlroots-0.20.so (0x2)\n[ -f /var/lib/fkh/dwl-crash ] && exit 1\nif [ "$1" = -s ]; then trap "exit 0" TERM; sh -c "$2" & wait; exit 0; fi\necho "dwl 0.9"\n' >"$W/usr/local/bin/dwl"
