@@ -574,7 +574,7 @@ BUILD ORDER (1 Nov 03:20, from .claude/notes/update-design.md — the candidate-
   (h) phase 8: the report — a notice, the Super+U pane, the log; Super+U's update entry runs the unit and shows its progress.
   (i) phase 1 (the toolkit from GitHub at a release tag, selftest before the re-exec) — last, once releases are tagged.
 
-### T46 — release upgrades through the same button: VM pre-flight first — the first real one: Fedora 44 → 45 (released 3 Nov 2026, target)  [todo]
+### T46 — release upgrades through the same button: VM pre-flight first — the first real one: Fedora 44 → 45 (released 3 Nov 2026, target)  [wip — 1 Nov: setup.sh released() asks only Fedora's own server (a mirror served F45 two days early: r27-found-3); tools/vm-create.sh installs a release before its day from its branched tree (development/N); the harness VM f45 (port 2224) created from it, then the whole install + desktop smoke on F45 (vm-smoke.sh) — its findings first; noted from T45 (f): the offline-update start counts against an open probation (close or re-arm it first)]
 deps: T45, T05  · model: main  · ledger: r27-50
 files: setup.sh (do_upgrade: dnf5 offline/system-upgrade path as Fedora documents it for 44→45; the third-party readiness checks kept), tools/vm-preflight.sh (create a VM at the target release from the current repo: setup/theme/verify/desktop smoke; green → a marker the button reads; red → the failing checks in a notice once, re-tried monthly, EOL warning well before), system/fedokawaii (the update pane shows "Fedora 45: pre-flight green/red/not yet")
 approach:

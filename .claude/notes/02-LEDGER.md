@@ -2288,6 +2288,36 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   Noted for T46: Fedora's offline-update start (system-upgrade) counts as an unmarked start — the
   release move must close or re-arm an open probation first.
 
+- r27-49f PROVEN IN THE VM (1 Nov 11:21–11:31, t45 ad54736 frozen at /dev/shm/r27p/t45-proof;
+  tools/vm-inject/probation.sh, both VMs side by side, logs /dev/shm/r27/probation-f44{,b}/): the button's
+  real run from "built" (61 packages, kernel 7.2.11 → 7.2.13) armed the trial in both (grubenv
+  boot_counter=3 boot_indeterminate=1 boot_success=0, the trial arguments on 7.2.13's entry alone, the
+  watchdog drop-in). fail (f44): 7.2.13's boot image replaced by an empty archive → GRUB counted it out
+  and started 7.2.11; the desktop (greetd's initial session) ran two minutes, Fedora's timer marked the
+  start, fedokawaii-boot-good.path ran at once → "kernel 7.2.13 did not reach the desktop in three
+  starts: held, out; 7.2.11 is the default" — running 7.2.11, default 7.2.11, only kernel-core-7.2.11
+  left, kernel-core 7.2.13 held, counter off, trial args 0, watchdog off, snapshot 2 back to the number
+  cleanup: HELD, 203 s after the restart. pass (f44b): 7.2.13 started, marked good, the trial over —
+  running 7.2.13, default 7.2.13, both kernels kept (the kernels run at 15 min takes the old one), no
+  hold, args 0, watchdog off, snapshot released: HELD, 142 s.
+- r27-49h (1 Nov 11:25–11:41, T45 (h) part 1, t45 44d881b): `fedokawaii update` (Super+U → update) starts
+  fedokawaii-update.service (systemd-run: a closed window, a logout or a desktop that stops never cut
+  it — before, Super+Q on the job window killed the run) and follows its output (STATE/update/run.log,
+  0644; colours through FK_TERM); a press while it runs follows it without a password. The update tab:
+  the last run's outcome under "updated" ("61 packages · 1 held"; an undone run "tried 1 Nov · snapshot
+  41 undoes it" / "· undone at restart", never "stopped"); "held" no longer a "not yet" entry: its
+  count on the row, each held family with why (a source's packages as one, named by what their names
+  share: mesa-dri-drivers + mesa-libEGL → mesa; kernel-core + kernel → kernel), "nothing held back"
+  when none — rendered headless with the real fonts and measured (names in the ink 231,207,161, the
+  why in the muted 202,181,150, as every pane's keys/values; a blank line between items). Decided:
+  no "on trial" row — a safety step he never needs to read (a failed trial shows as a hold and a
+  notice). Tests: test_front 132/0 (+ the unit, its stand-ins: never the real systemd, no polkit
+  prompt on his desktop), test_status 206/0, test_menu 605/0, engine area 12/12.
+- r27-50 (1 Nov 11:42, T46 started): tools/vm-create.sh installs a release before its day from its branched
+  tree (dl.fedoraproject.org development/45 — 200, while releases/45 answers 403); the F45 harness VM
+  (f45, port 2224, 4 CPUs) being created — the first try failed fetching the installer's kernel from a
+  slow master server (330 KB/s, release week), retried 11:43.
+
 ## >>> NEXT PASS STARTS HERE (1 Nov 10:35): the inbox first. Then:
 ## (0) STILL RED after the apply (10:31 re-run on main: test_setup 148/91, test_setup_wait 47/31,
 ##     test_setup_hw 79/5; test_torture queued on the installer lock): the failing step is s_pace's
