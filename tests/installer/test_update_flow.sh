@@ -127,7 +127,7 @@ has "$(sed -n 2p "$U/report")" "comes back at the next start"
 case_ "the desktop's start check red before the update already: not counted against it — kept, and said"
 back built; reset_calls; pending "bash 5.2-1.fc44 5.3-1.fc44"; fkh session-red "not running: waybar"
 up; eq "$RC" 0 "$(tail -n3 <<<"$OUT")"
-eq "$(report)" ok; has "$OUT" "the desktop's start check is red before the update (session-start (dark): not running: waybar)"
+eq "$(report)" ok; has "$OUT" "red before the update: the desktop does not start — session-start (dark): not running: waybar"
 [[ -s $U/holds ]] && _no "held: $(cat "$U/holds")" || _ok
 case_ "the bar off its measure after the update only: red — the set held, the snapshot offered"
 back built; reset_calls; pending "gtk3 3.24.50-1.fc44 3.24.51-1.fc44"
@@ -183,6 +183,47 @@ case_ "a start with nothing cut, or in a snapshot started from the boot menu: no
 back built; reset_calls; resume; eq "$RC" 0; not_called 'kawa-snap'; not_called 'systemctl\] reboot'
 cut_run; fkh fsroot-_ /root/.snapshots/41/snapshot; reset_calls; resume; eq "$RC" 0; not_called 'kawa-snap\] restore'
 rm -f "$FKH/fsroot-_"
+
+# ── the start after an update: its probation (up_probation, setup.sh --boot-good) ─────────────
+K=$(uname -r) NEWK=7.2.99-200.fc44.x86_64
+good() { fkrun bash "$TK/setup.sh" --boot-good; }
+env_has() { grep -qx -- "$1" "$FKH/grubenv" && _ok || _no "grubenv lacks $1: $(tr '\n' ' ' <"$FKH/grubenv")"; }
+case_ "a green update that brought a kernel: its next start on trial — GRUB counts three, no rescue shell, a panic restarts, the watchdog on"
+back built; reset_calls; pending "bash 5.2-1.fc44 5.3-1.fc44"; fkh kernels "$K" "$NEWK"; : >"$W/boot/vmlinuz-$NEWK"
+up; eq "$RC" 0 "$(tail -n3 <<<"$OUT")"; eq "$(report)" ok
+env_has boot_counter=3; env_has boot_success=0; env_has boot_indeterminate=1
+called "grubby\] --update-kernel=/boot/vmlinuz-$NEWK --args=rd.shell=0 rd.emergency=reboot panic=10"
+grep -qx 'RuntimeWatchdogSec=1min' "$W/etc/systemd/system.conf.d/90-fedokawaii-probation.conf" && _ok || _no "no watchdog while on trial"
+eq "$(cut -d' ' -f1,2 "$U/probation")" "$(cat "$U/snap") $NEWK" "the probation: its snapshot, the kernel on trial"
+has "$OUT" "kernel $NEWK on trial at the next start: three starts to reach the desktop, else $K again"
+case_ "…a start marked good before the counting ran out, on the new kernel: the trial over, the snapshot back to the cleanup"
+s=$(cat "$U/snap"); echo "$s $K 2026-11-01" >"$U/probation"; fkh grubenv boot_success=1 boot_counter=2; reset_calls
+good; eq "$RC" 0 "$OUT"
+called 'grub2-editenv\] - unset boot_counter'; called "grubby\] --update-kernel=/boot/vmlinuz-$K --remove-args=rd.shell=0 rd.emergency=reboot panic=10"
+called "snapper\] -c root modify -c number $s"; [[ ! -e $U/probation && ! -e $W/etc/systemd/system.conf.d/90-fedokawaii-probation.conf ]] && _ok || _no "the probation or its watchdog left"
+case_ "GRUB took the one before after three starts: the new kernel held at its version and out, this one the default — said at login"
+back built; reset_calls; cut_run; rm -f "$U/phase"; fkh kernels "$K" "$NEWK"; echo "7 $NEWK 2026-11-01" >"$U/probation"
+fkh grubenv boot_success=1 boot_counter=-1
+good; eq "$RC" 0 "$OUT"
+grep -q "^kernel-core ${NEWK%.*} ${K%.*} [0-9-]* did not reach the desktop in three starts$" "$U/holds" && _ok || _no "not held: $(cat "$U/holds" 2>/dev/null)"
+called "dnf\] -q versionlock exclude kernel-core-${NEWK%.*}"; called "grubby\] --set-default /boot/vmlinuz-$K"
+called "dnf\] -y --disable-repo=\* remove kernel-$NEWK kernel-core-$NEWK kernel-modules-$NEWK kernel-modules-core-$NEWK"
+has "$(foryou)" "update-kernel kernel $NEWK did not reach the desktop in three starts back on $K"
+called 'grub2-editenv\] - unset boot_counter'; called 'snapper\] -c root modify -c number 7'; [[ ! -e $U/probation ]] && _ok || _no "the probation left"
+case_ "the one before chosen in the menu (the counting not run out), or a start not marked good yet: the trial waits — nothing changed"
+back built; reset_calls; mkdir -p "$U"; fkh kernels "$K" "$NEWK"; echo "7 $NEWK 2026-11-01" >"$U/probation"; fkh grubenv boot_success=1 boot_counter=2
+good; eq "$RC" 0; not_called 'grub2-editenv\] - unset'; not_called 'snapper\] -c root modify'; [[ -s $U/probation ]] && _ok || _no "the probation closed"
+fkh grubenv boot_success=0 boot_counter=2; echo "7 $K 2026-11-01" >"$U/probation"; reset_calls
+good; eq "$RC" 0; not_called 'grub2-editenv\] - unset'; [[ -s $U/probation ]] && _ok || _no "closed before a good start"
+case_ "the kernel on trial gone from the system (a restore took it): its trial ends with it at the next good start"
+back built; reset_calls; mkdir -p "$U"; echo "7 $NEWK 2026-11-01" >"$U/probation"; fkh grubenv boot_success=1 boot_counter=3
+good; eq "$RC" 0; has "$OUT" "kernel $NEWK is no longer on the system (a restore took it)"
+called 'grub2-editenv\] - unset boot_counter'; not_called 'grubby\] --set-default'; [[ ! -e $U/probation ]] && _ok || _no "the probation left"
+case_ "an update with no kernel: no trial, its snapshot released at the next good start"
+back built; reset_calls; pending "bash 5.2-1.fc44 5.3-1.fc44"; up; eq "$RC" 0
+not_called 'grub2-editenv\] - set boot_counter'; eq "$(cut -d' ' -f2 "$U/probation")" -
+s=$(cut -d' ' -f1 "$U/probation"); fkh grubenv boot_success=1; reset_calls; good; eq "$RC" 0
+called "snapper\] -c root modify -c number $s"; not_called 'grubby\]'; [[ ! -e $U/probation ]] && _ok || _no "the probation left"
 
 case_ "refused before anything changes: another package manager at work"
 back built; reset_calls; pending "bash 5.2-1.fc44 5.3-1.fc44"; fkh procs "/usr/bin/dnf5 install htop"

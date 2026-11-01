@@ -44,7 +44,7 @@ for a in "$@"; do
     --update) MODE=update ;;  --repair) MODE=repair ;;  --status) MODE=status ;;  --reset) MODE=reset ;;
     --toolkit) MODE=toolkit ;;  --kernels) MODE=kernels ;;  --layout) MODE=layout ;;
     --upgrade) MODE=upgrade ;;  --now) UPGRADE_FLAG=--now ;;  --after-upgrade) MODE="after-upgrade" ;;
-    --after-dnf) MODE="after-dnf" ;;  --update-resume) MODE=update-resume ;;
+    --after-dnf) MODE="after-dnf" ;;  --update-resume) MODE=update-resume ;;  --boot-good) MODE=boot-good ;;
     --trial) MODE=trial ;;     # (tools/container-trial.sh's, inside its container only)
     --no-reboot) NO_REBOOT=1 ;;
     -h|--help) sed -n '3,/^# ═/p' "$0" | sed '$d'; exit 0 ;;
@@ -85,7 +85,7 @@ if [[ $MODE == status ]]; then        # read-only, so it works while another run
 fi
 if [[ $MODE == @(kernels|update-resume) ]]; then     # (the boot's own runs: never wait — another run is on, so next start)
   exec 9<>"$STATE_DIR/lock"; flock -n 9 || exit 0
-elif [[ $MODE == after-dnf ]]; then   # (after a dnf run: waits for an update or repair to end first)
+elif [[ $MODE == @(after-dnf|boot-good) ]]; then   # (after a dnf run, a start marked good: waits for an update or repair to end first)
   exec 9<>"$STATE_DIR/lock"; flock 9
 else take_lock "$STATE_DIR/lock"; fi
 printf '%s\n' "$MODE" 2>/dev/null >"$STATE_DIR/lock" || true   # (which run holds it: the system menu marks its row — a full disk says so below)
@@ -2904,6 +2904,7 @@ do_update() {   # the button's run (lib/update.sh: the phases, their state in UP
     u_undo; record last-update "$(date +%s) stopped"; u_report; return 0
   fi
   if [[ -s $UPD/set ]]; then UP_END=ok; elif ((UP_HELD)); then UP_END=held; else UP_END=current; fi
+  up_probation
   [[ -s $STATE_DIR/last-verify-fails ]] && result=checks
   ((${#UPDATE_STEPS_FAILED[@]} == 0 && UP_HELD == 0)) || result=partial
   record last-update "$(date +%s) $result"
@@ -3515,6 +3516,7 @@ case $MODE in
   after-dnf) do_after_dnf && exit 0; exit 3 ;;
   repair) do_repair; exit 0 ;;
   update-resume) [[ $(phase) == 'done' ]] && on_the_system || exit 0; up_boot; exit 0 ;;
+  boot-good) [[ $(phase) == 'done' ]] && on_the_system || exit 0; up_probation_close; exit 0 ;;
   kernels) [[ $(phase) == 'done' ]] && on_the_system || exit 0
            # (a restore cut short after its exchange: finished first — its snapshots back, its default)
            /usr/local/sbin/kawa-snap finish >/dev/null 2>&1 || log "kawa-snap could not finish a restore that was cut short (sudo kawa-snap finish says why)"

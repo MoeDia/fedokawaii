@@ -522,7 +522,8 @@ built() {
   { printf '%s\n' bash sudo NetworkManager; cat "$TMP/manifest"; echo amd-ucode-firmware; } | sort -u | sed 's/$/ User/' >"$FKH/userinstalled"
   echo amd-ucode-firmware >"$S/hardware-pkgs"
   printf 'enabled %s\n' greetd.service bluetooth.service snapper-timeline.timer snapper-cleanup.timer fstrim.timer lactd.service \
-    fedokawaii-scrub.timer fedokawaii-kernels.timer fedokawaii-report.service tuned.service firewalld.service fedokawaii-after-dnf.service >>"$FKH/units"
+    fedokawaii-scrub.timer fedokawaii-kernels.timer fedokawaii-report.service tuned.service firewalld.service fedokawaii-after-dnf.service \
+    fedokawaii-boot-good.path >>"$FKH/units"
   sed -i '/ sshd.service$/d; /^global-enabled grub-boot-success\.timer$/d' "$FKH/units"   # (that timer: the desktop starts it)
   rm -f "$W/usrbin/nano" "$W/usrbin/vi"                     # (setup took them out)
   printf '%s\n' copr:copr.fedorainfracloud.org:ilyaz:LACT copr:copr.fedorainfracloud.org:zzahkaboom24:grub-btrfs >"$FKH/coprs"

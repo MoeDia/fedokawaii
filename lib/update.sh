@@ -334,6 +334,67 @@ up_boot() {
   fi
 }
 up_tell() { as_user kawa-foryou add update-cut "$1" "$2" 2>/dev/null || log "$1 — $2"; }   # (a notice at login, kept until clicked)
+
+# ── probation: the start after an update (update-design §4.3). Its pinned snapshot stays until a
+# start has reached the desktop (grubenv's boot_success: Fedora's timer, two minutes into the
+# desktop — the same proof that lets the kernel before go); a kernel it brought is counted by
+# GRUB (08_fallback_counting: three starts without that proof, then the one before), and while it
+# is on trial a start that fails is made a restart — no rescue shell, a panic restarts, systemd's
+# hardware watchdog on — so a hang counts too. UPD/probation: SNAPSHOT KERNEL|- DAY, a line an
+# update (several may wait for one restart). Closed by setup.sh --kernels, a quarter of an hour
+# into every start (fedokawaii-kernels.timer) ────────────────────────────────────────────────
+UP_TRIAL="rd.shell=0 rd.emergency=reboot panic=10"
+UP_DOG=/etc/systemd/system.conf.d/90-fedokawaii-probation.conf
+up_probation() {   # after a green update
+  local new now; now=$(uname -r)
+  new=$(rpm -q --qf '%{VERSION}-%{RELEASE}.%{ARCH}\n' kernel-core 2>/dev/null | sort -V | tail -n1) || new=""
+  [[ -n $new && $new != "$now" && -f /boot/vmlinuz-$new ]] || new=-
+  printf '%s %s %s\n' "$(cat "$UPD/snap" 2>/dev/null || echo -)" "$new" "$(date +%F)" >>"$UPD/probation"
+  [[ $new != - ]] || return 0
+  grub2-editenv - set boot_counter=3 boot_success=0 boot_indeterminate=1 \
+    || { log "GRUB's start counting could not be armed (grub2-editenv) — kernel $new is not on trial"; return 0; }
+  grubby --update-kernel="/boot/vmlinuz-$new" --args="$UP_TRIAL" >/dev/null 2>&1 || log "kernel $new's trial arguments could not be set (grubby)"
+  printf '%s\n' "# installed by setup.sh while a new kernel is on trial (lib/update.sh up_probation)" \
+    '[Manager]' 'RuntimeWatchdogSec=1min' | write_file "$UP_DOG" 0644
+  log "kernel $new on trial at the next start: three starts to reach the desktop, else $now again"
+}
+up_probation_close() {   # this start has reached the desktop: the probation over (or the kernel failed it)
+  [[ -s $UPD/probation ]] || return 0
+  grep -qx boot_success=1 < <(grub2-editenv - list 2>/dev/null) || return 0
+  local now c snap k d kernel=- n v pk=()
+  now=$(uname -r)
+  while IFS=' ' read -r snap k d; do [[ $k == - ]] || kernel=$k; done <"$UPD/probation"
+  c=$(grub2-editenv - list 2>/dev/null | sed -n 's/^boot_counter=//p')
+  if [[ $kernel != - && $kernel != "$now" ]] && rpm -q "kernel-core-$kernel" >/dev/null 2>&1; then
+    [[ $c == -1 ]] || return 0      # (the one before chosen in the menu: the trial waits for the new one)
+    # GRUB took the one before: the new kernel held at its version and taken out, this one the default
+    v=${kernel%.*}
+    for n in "${KERNEL_PKGS[@]}"; do
+      rpm -q "$n-$kernel" >/dev/null 2>&1 || continue
+      pk+=("$n-$kernel")
+      printf '%s %s %s %s %s\n' "$n" "$v" "${now%.*}" "$(date +%F)" "did not reach the desktop in three starts" >>"$UPD/holds"
+      dnf -q versionlock exclude "$n-$v" >/dev/null 2>&1 || log "could not hold $n $v (dnf versionlock)"
+    done
+    grubby --set-default "/boot/vmlinuz-$now" >/dev/null 2>&1 || log "kernel $now could not be made the default (grubby)"
+    ((${#pk[@]})) && { run dnf -y --disable-repo='*' remove "${pk[@]}" || log "kernel $kernel could not be removed — it stays in the boot menu, held"; }
+    as_user kawa-foryou add update-kernel "kernel $kernel did not reach the desktop in three starts" \
+      "back on $now; $kernel is held until a newer one comes (Super+U → update)" 2>/dev/null || true
+    log "kernel $kernel did not reach the desktop in three starts: held, out; $now is the default"
+  elif [[ $kernel == "$now" ]]; then
+    grubby --update-kernel="/boot/vmlinuz-$kernel" --remove-args="$UP_TRIAL" >/dev/null 2>&1 || log "kernel $kernel's trial arguments could not be removed (grubby)"
+    log "kernel $kernel reached the desktop: its trial is over"
+  elif [[ $kernel != - ]]; then
+    log "kernel $kernel is no longer on the system (a restore took it): its trial ends with it"
+  fi
+  [[ -z $c ]] || grub2-editenv - unset boot_counter || log "GRUB's start counting could not be turned off (grub2-editenv)"
+  rm -f -- "$UP_DOG"
+  # (the snapshots before the updates: back to snapper's number cleanup)
+  while IFS=' ' read -r snap k d; do
+    [[ $snap =~ ^[0-9]+$ ]] || continue
+    snapper -c root modify -c number "$snap" >/dev/null 2>&1 || log "snapshot $snap could not be released to the cleanup (snapper)"
+  done <"$UPD/probation"
+  rm -f -- "$UPD/probation"
+}
 UP_END=""
 up_exit() {   # (a run that stops anywhere: the candidate gone, the top unmounted, the report written —
               # quietly: the run's own error has been said, and its status stands)

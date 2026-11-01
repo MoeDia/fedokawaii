@@ -116,11 +116,41 @@ TimeoutStartSec=30min
 [Install]
 WantedBy=multi-user.target
 UNIT
+  # the start after an update: its probation closed the moment the start is marked good —
+  # Fedora's timer writes boot_success into grubenv two minutes into the desktop (lib/update.sh
+  # up_probation_close; the unit itself does nothing while no probation is open)
+  write_file /etc/systemd/system/fedokawaii-boot-good.path <<'UNIT'
+# installed by setup.sh — grubenv changed (a start marked good, a probation armed): the update's
+# probation looked at (fedokawaii-boot-good.service)
+[Unit]
+Description=Fedokawaii: a start marked good closes the update's probation
+
+[Path]
+PathChanged=/boot/grub2/grubenv
+
+[Install]
+WantedBy=paths.target
+UNIT
+  write_file /etc/systemd/system/fedokawaii-boot-good.service <<UNIT
+# installed by setup.sh — this start reached the desktop: the update's probation over (its
+# snapshot released, the new kernel's trial ended), or the new kernel held when GRUB had to
+# take the one before (lib/update.sh up_probation_close)
+[Unit]
+Description=Fedokawaii: the start after an update — its probation closed
+ConditionPathExists=$STATE_DIR/update/probation
+ConditionKernelCommandLine=!systemd.volatile
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/bash $TOOLKIT/setup.sh --boot-good
+UNIT
   systemctl daemon-reload
   systemctl is-enabled --quiet fedokawaii-after-dnf.service || systemctl enable --quiet fedokawaii-after-dnf.service
   systemctl is-enabled --quiet fedokawaii-update-resume.service || systemctl enable --quiet fedokawaii-update-resume.service
+  systemctl is-enabled --quiet fedokawaii-boot-good.path || systemctl enable --quiet --now fedokawaii-boot-good.path
   restorecon /usr/local/sbin/kawa-dnf-guard "$GUARD_ACTIONS" /etc/systemd/system/fedokawaii-after-dnf.service \
-    /etc/systemd/system/fedokawaii-update-resume.service 2>/dev/null || true
+    /etc/systemd/system/fedokawaii-update-resume.service /etc/systemd/system/fedokawaii-boot-good.path \
+    /etc/systemd/system/fedokawaii-boot-good.service 2>/dev/null || true
   needs_record
 }
 
