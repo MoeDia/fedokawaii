@@ -2629,16 +2629,20 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   test_update_flow 283/0, test_upkeep 256/0, test_menu rc 0, test_status rc 0; static test_syntax 691/0,
   test_tools 15/0, test_pipefail 1/0; ShellCheck (-S warning) clean on the four changed scripts.
 
-## >>> NEXT PASS STARTS HERE (1 Nov, written 16:03 — the lines above say what this pass did): the inbox first. Then:
-## (1) the master's Re-review 3 of T45 (B, D, E, F, G and the must-fix 1/3/4/5 fixes, should-fix 1): evidence —
-##     ledger r27-49-E1…E4, r27-49-master-2-fixes, r27-49-sf1; /dev/shm/r27p/button7.txt + /dev/shm/r27/update-
-##     button-f44b/ (run 7, all held), /dev/shm/r27/update-green/ (exit 0, no desktop red), next-areas.log,
-##     head3.log; main c1841f6 (pushed). Still for it: probation.sh f44b from main (starts from --apply now; two
-##     cases with reboots, ~35 min) — run it first, in the background.
-## (2) the master's should-fix 2–5 (ledger r27-49-master-2): the live manifest/hardware installs after the replay
-##     (store them in the transaction, or the written exception in update-design.md and the Learn piece); stdbuf's
-##     LD_PRELOAD reaching dnf's scriptlets (6 setfiles_t AVCs per update); hold_families by UPD/sources when
-##     present; the Learn line for a stopped unit. (r27-flaky-1 fixed: main 4f94532, the session area 19/19.)
+- r27-49-R3 (1 Nov 16:21–): the master's Re-review 3 of T45 STARTED 16:25 (Fable, max; brief
+  /dev/shm/r27/master/T45-3/brief.md; it reads the frozen checkout /dev/shm/r27w-master = 78ea68c, pushed) with
+  the evidence still coming in: probation.sh f44b from 766b434 (fail case HELD 16:19: "held in 213 s after the
+  restart · running 7.2.11 · counter off · probation closed · default 7.2.11"; the pass case running),
+  update-green.sh f44 re-run from 78ea68c (the new SELinux-denial row) → /dev/shm/r27p/green-78ea68c.txt, and
+  the whole suite on 78ea68c from /dev/shm/r27w-suite → /dev/shm/r27p/suite-78ea68c.log — started with the PC's
+  kernel still on trial (grubenv boot_counter=3 boot_success=0, the probation drop-in present).
+
+## >>> NEXT PASS STARTS HERE (1 Nov, written 16:27 — the lines above say what this pass did): the inbox first. Then:
+## (1) the master's Re-review 3 of T45: its verdict is appended to master-T45-efh-verdict.md ("Re-review 3"). If
+##     it is not there (the pass ended first), launch it again with /dev/shm/r27/master/T45-3/brief.md (gone after
+##     a reboot: then rebuild it from ledger r27-49-R3 and the Re-review 2 conditions). Fix its must-fix items.
+## (2) DONE this pass: the master's should-fix 2–5 (ledger r27-49-sf2-5, 78ea68c). Next after the review: T48's
+##     rest (restore-file, backups, the space floor, the Learn piece) — on a branch while the master reads main.
 ## (3) THE KERNEL TRIAL ON THE PC is open since 14:43 (7.2.13; grubenv 3/0/1; snapshot 381 pinned). It closes at
 ##     the next start: a reboot ends the bulk run (r27-bulk-*, 10:36 + 12 h) — so reboot only in the claude-r27
 ##     pass after 22:36 (CLAUDE.md START §4: initial_session, presence probe first), or let his own restart close
