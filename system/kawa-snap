@@ -13,26 +13,31 @@
 #                              snapshot started from the boot menu too, where snapper sees none):
 #                              NUMBER TAB TYPE TAB DATE (UTC) TAB DESCRIPTION TAB booted|-
 #                              — and "old", the system a restore replaced, while it is kept
-#   kawa-snap restore N|old    snapshot N becomes the system at the next start: a writable copy
-#                              of it is exchanged with the root subvolume in one atomic step, the
-#                              one replaced is kept as ROOT.old (restore old swaps them back; two
-#                              older ones kept with their time), the snapshots and any other
-#                              subvolume inside it move across, and /boot is made to match (the
-#                              kernels that copy has go back in; its newest becomes the default,
-#                              set last; the kernels it lacks stay until it has started)
+#   kawa-snap restore N|old [--with-home]
+#                              snapshot N becomes the system at the next start: its kernels made
+#                              whole in /boot and written to disk, then a writable copy of it is
+#                              exchanged with the root subvolume in one atomic step and its newest
+#                              kernel made the default at once; the one replaced is kept as ROOT.old
+#                              (restore old goes back to it; two older ones kept in ROOT.old.d), the
+#                              snapshots and any other subvolume inside it move across (the kernels
+#                              it lacks stay in /boot until it has started). While /home is inside
+#                              the system (not its own subvolume) your files would go back too: then
+#                              only with --with-home
 # Or at power-on: hold Shift (Esc/F8) for the boot menu → snapshots (each starts as it was,
-#   on a layer in memory: everything works, nothing done there is kept; then kawa-snap
-#   restore N from there).
+#   on a layer in memory: everything works, nothing done there is kept; kawa-snap restore N
+#   works from there too).
 # Inspect: kawa-snap list · revert one transaction: sudo snapper -c root undochange PRE..POST
 # Exit status: pre, post 0 always (dnf goes on whatever happens) · boot, list, restore 0 done,
 # 1 could not (the reason on stderr; restore: nothing was changed) · 2 misuse.
 set -u
 export LC_ALL=C.UTF-8
 state=/run/kawa-snap.pre
+lock=/run/kawa-snap.lock                     # one restore at a time; a dnf run's pre waits for it
 top=/run/kawa-snap/top                       # the file system's top level, mounted while working
 case ${1:-} in
   pre|post|boot|list) ;;
-  restore) [[ ${2:-} =~ ^([1-9][0-9]*|old)$ ]] || { echo "usage: kawa-snap restore NUMBER|old" >&2; exit 2; } ;;
+  restore) [[ ${2:-} =~ ^([1-9][0-9]*|old)$ && ${3:---with-home} == --with-home && $# -le 3 ]] \
+             || { echo "usage: kawa-snap restore NUMBER|old [--with-home]" >&2; exit 2; } ;;
   -h|--help) sed -n '2,/^set -u/{/^set -u/d;s/^# \{0,1\}//;p}' "$0"; exit 0 ;;
   *) echo "usage: kawa-snap pre|post [PID] (dnf runs it) · kawa-snap boot|list · kawa-snap restore N|old" >&2
      echo "(or at power-on: hold Shift (Esc/F8) for the boot menu → snapshots)" >&2; exit 2 ;;
@@ -81,7 +86,9 @@ if [[ $1 == pre || $1 == post ]]; then
   exec >/dev/null
   d=$(what "${2:-}")
   case $1 in
-    pre)  if ! err=$(snapper -c root create -t pre -p -c number -d "$d" 2>&1 >"$state") \
+    pre)  # (a restore making its copy now: waited for, ten minutes at most — dnf is never stopped)
+          { exec 9>"$lock" && flock -w 600 9; } 2>/dev/null
+          if ! err=$(snapper -c root create -t pre -p -c number -d "$d" 2>&1 >"$state") \
              || ! [[ $(<"$state") =~ ^[0-9]+$ ]]; then          # (only a number pairs with a post)
             rm -f "$state"; note before "${err:-snapper gave no snapshot number}"
           fi ;;
@@ -102,14 +109,24 @@ fi
 # T — the root subvolume's name, as fstab mounts / (Fedora's installer: "root"); in a snapshot
 # started from the boot menu fstab is the snapshot's own copy, so it names the same one
 T=$(findmnt --fstab -no OPTIONS / 2>/dev/null | tr ',' '\n' | sed -n 's/^subvol=\/\{0,1\}//p' | head -n1)
-[[ $(findmnt -no FSTYPE / 2>/dev/null) == btrfs ]] || fail "/ is not Btrfs — there are no snapshots of it"
+# what runs, from which disk: the root subvolume (/T) or a snapshot of it (/T/.snapshots/N/snapshot),
+# mounted as it is — or, a snapshot started from the boot menu, under a layer in memory
+# (systemd.volatile=overlay): then the kernel's own arguments name both (root=UUID=, rootflags=subvol=)
+here="" dev=""
+case $(findmnt -no FSTYPE / 2>/dev/null) in
+  btrfs)   here=$(findmnt -no FSROOT / 2>/dev/null); dev=$(findmnt -no SOURCE / 2>/dev/null); dev=${dev%%\[*} ;;
+  overlay) read -r -a args </proc/cmdline
+           for a in "${args[@]}"; do
+             case $a in
+               root=UUID=*) dev=/dev/disk/by-uuid/${a#root=UUID=} ;;
+               rootflags=*) here=/$(tr ',' '\n' <<<"${a#rootflags=}" | sed -n 's|^subvol=/\{0,1\}||p') ;;
+             esac
+           done ;;
+esac
+[[ -n $dev && $here == /?* ]] || fail "/ is not Btrfs — there are no snapshots of it"
 [[ -n $T && $T != */* ]] || fail "fstab mounts / without a plain subvol= (it says: $(findmnt --fstab -no OPTIONS / 2>/dev/null)) — not the layout Fedora's installer makes"
-# what is running: the root subvolume (/T) or a snapshot of it (/T/.snapshots/N/snapshot)
-here=$(findmnt -no FSROOT / 2>/dev/null)
 booted=-; [[ $here =~ ^/$T/\.snapshots/([0-9]+)/snapshot$ ]] && booted=${BASH_REMATCH[1]}
 mount_top() {
-  local dev
-  dev=$(findmnt -no SOURCE / 2>/dev/null); dev=${dev%%\[*}
   mkdir -p "$top" || fail "cannot make $top"
   mountpoint -q "$top" || mount -o subvolid=5 "$dev" "$top" || fail "cannot mount the top of $dev"
   trap 'umount "$top" 2>/dev/null; rmdir "$top" 2>/dev/null' EXIT
@@ -137,62 +154,106 @@ fi
 
 # ── restore ──────────────────────────────────────────────────────────────────────────────
 # Every step leaves a system that starts (design: .claude/notes/update-design.md §3.1): the copy
-# and its kernels are made first, nothing else changes; then ONE atomic exchange (exch: renameat2
-# RENAME_EXCHANGE — never a moment without a root subvolume, which the kernel mounts by name),
-# synced; then what lived inside the replaced root (the snapshots …) moves across, and the
-# default kernel is set — last. Nothing that may hold a subvolume is ever deleted recursively.
+# and its kernels are made first and written to disk, nothing else changes; then ONE atomic
+# exchange (exch: renameat2 RENAME_EXCHANGE — never a moment without a root subvolume, which the
+# kernel mounts by name), synced, and at once the copy's newest kernel the default; then what lived
+# inside the replaced root (the snapshots …) moves across. Nothing that may hold a subvolume is
+# deleted recursively, and the system that ran is never deleted at all.
 N=$2
+# (his files: until /home is a subvolume of its own they are inside the system, and go back too)
+if ! mountpoint -q /home && [[ ${3:-} != --with-home ]]; then
+  fail "/home is inside the system: a restore takes your files back to that day too. Until /home is its own subvolume, say that is what you want: kawa-snap restore $N --with-home"
+fi
+exec 9>"$lock"; flock -n 9 || fail "another restore is running — nothing changed"
+for p in dnf5 dnf; do pgrep -x "$p" >/dev/null && fail "a package transaction is running ($p) — restore once it has finished; nothing changed"; done
 mount_top
 [[ -d $top/$T ]] || fail "the root subvolume $T is not on this disk"
 command -v exch >/dev/null || fail "exch (util-linux) is missing — the exchange could not be atomic; nothing changed"
 new=$top/$T.new
-binds=()
+mark=.kawa-snap-copy        # (in a copy until it is exchanged in: a $T.new without it is the system that ran)
+binds=() added=() sk="" skb=""
 unbind() { local i; for ((i = ${#binds[@]} - 1; i >= 0; i--)); do umount "${binds[i]}" 2>/dev/null; done; binds=(); }
 gone() { btrfs subvolume delete --commit-after "$1" >/dev/null 2>&1; }   # (never -R: one subvolume, synced)
-# power_cut STEP — a power cut at that step, for the VM's proof only (tools/vm-inject/restore-cut.sh sets
-# KAWA_SNAP_CUT): the kernel restarts at once, nothing synced — what a lost plug does
-power_cut() { [[ ${KAWA_SNAP_CUT:-} == "$1" ]] || return 0; echo b >/proc/sysrq-trigger; sleep 30; }
-# finish — the restore's tail, after the exchange ($T the restored system, $T.new the one that ran):
-# what lived inside the replaced root (the snapshots, systemd's machines …) moves across — a
-# snapshot holds an empty folder where each was — then the replaced one is named $T.old (the one
-# before it kept with its time, at most two of those), synced
+# power_cut STEP — a power cut at that step, for the VM's proof only (tools/vm-inject/restore-cut.sh
+# sets KAWA_SNAP_CUT and makes /run/kawa-snap.cut): the kernel restarts at once, nothing synced
+power_cut() { [[ ${KAWA_SNAP_CUT:-} == "$1" && -e /run/kawa-snap.cut ]] || return 0; echo b >/proc/sysrq-trigger; sleep 30; }
+# whole V — kernel V complete in /boot: the kernel, its boot image, its entry
+whole() { [[ -f /boot/vmlinuz-$1 && -s /boot/initramfs-$1.img ]] && compgen -G "/boot/loader/entries/*-$1.conf" >/dev/null; }
+newest() { local m; for m in "$1"/usr/lib/modules/*/vmlinuz; do [[ -f $m ]] && m=${m%/vmlinuz} && echo "${m##*/}"; done | sort -V | tail -n1; }
+default_to() {   # default_to V — kernel V's entry the default, written to disk
+  grubby --set-default "/boot/vmlinuz-$1" >/dev/null 2>&1 \
+    || { echo "kawa-snap: the default boot entry could not be set — at the next start, choose kernel $1" >&2; return 0; }
+  sync -f /boot || echo "kawa-snap: /boot not confirmed on disk — wait a minute before restarting" >&2
+}
+parents() {   # parents REL — the folders above REL made in the restored system, owned as in the one that ran
+  local d=${1%/*} acc="" x IFS=/
+  [[ $d != "$1" ]] || return 0
+  for x in $d; do
+    acc+=${acc:+/}$x
+    [[ -d $top/$T/$acc ]] && continue
+    mkdir "$top/$T/$acc" && chown --reference="$new/$acc" "$top/$T/$acc" && chmod --reference="$new/$acc" "$top/$T/$acc"
+  done
+}
+# finish — the restore's tail, after the exchange and the default ($T the restored system, $T.new
+# the one that ran): what lived inside the replaced root (the snapshots, systemd's machines …)
+# moves across — a snapshot holds an empty folder where each was — then the replaced one is named
+# $T.old (the one before it kept in $T.old.d with its time, at most two there), synced
 finish() {
   local p rel o i olds=()
+  rm -f -- "$top/$T/$mark"
   while IFS= read -r p; do
     p=${p#<FS_TREE>/}; rel=${p#"$T.new"/}
     [[ $p == "$T.new"/* && -n $rel ]] || continue
     if [[ -d $top/$T/$rel ]]; then
       rmdir "$top/$T/$rel" 2>/dev/null || { echo "kawa-snap: $rel is not empty in the restored system — left in $T.old" >&2; continue; }
-    else mkdir -p "$(dirname "$top/$T/$rel")"; fi
-    mv -T "$new/$rel" "$top/$T/$rel" || echo "kawa-snap: $rel could not move across — left in $T.old" >&2
+    else parents "$rel"; fi
+    mv -T --no-copy "$new/$rel" "$top/$T/$rel" || echo "kawa-snap: $rel could not move across — left in $T.old" >&2
   done < <(btrfs subvolume list -o "$new" 2>/dev/null | sed -n 's/.* path //p')
   power_cut moved
-  if [[ -d $top/$T.old ]]; then mv -T "$top/$T.old" "$top/$T.old-$(date +%s)" || echo "kawa-snap: the older $T.old could not be renamed" >&2; fi
-  mapfile -t olds < <(for o in "$top/$T".old-*; do [[ -d $o ]] && echo "${o##*-} $o"; done | sort -n | cut -d' ' -f2-)
+  mkdir -p "$top/$T.old.d"
+  if [[ -d $top/$T.old ]]; then mv -T --no-copy "$top/$T.old" "$top/$T.old.d/$(date +%s)" || echo "kawa-snap: the older $T.old could not be put aside" >&2; fi
+  mapfile -t olds < <(for o in "$top/$T.old.d"/*; do [[ -d $o ]] && echo "${o##*/} $o"; done | sort -n | cut -d' ' -f2-)
   for ((i = 0; i < ${#olds[@]} - 2; i++)); do
-    [[ -z $(btrfs subvolume list -o "${olds[i]}" 2>/dev/null) ]] && gone "${olds[i]}" || echo "kawa-snap: ${olds[i]##*/} kept (it holds a subvolume)" >&2
+    if [[ -n $(btrfs subvolume list -o "${olds[i]}" 2>/dev/null) ]]; then echo "kawa-snap: ${olds[i]##*/} kept (it holds a subvolume)" >&2
+    elif ! gone "${olds[i]}"; then echo "kawa-snap: ${olds[i]##*/} could not be removed" >&2; fi
   done
-  mv -T "$new" "$top/$T.old" || echo "kawa-snap: the system before is kept as $T.new (it could not be named $T.old)" >&2
+  # (the system that ran: named $T.old — never left under the copy's name for long)
+  mv -T --no-copy "$new" "$top/$T.old" || mv -T --no-copy "$new" "$top/$T.old.d/$(date +%s)-$$" \
+    || echo "kawa-snap: the system before is kept as $T.new (it could not be renamed) — the next restore finishes it" >&2
   power_cut renamed
-  btrfs filesystem sync "$top" >/dev/null 2>&1
+  btrfs filesystem sync "$top" >/dev/null 2>&1 || echo "kawa-snap: not confirmed on disk — wait a minute before restarting" >&2
 }
-# (a copy a run stopped half-way left: removed. One holding a subvolume can only be a restore cut
-# after its exchange — the restored system is running, the snapshots still inside the one before
-# it: that restore is finished first, said, and this one asked for again)
+# (a leftover $T.new: a copy that was never exchanged in has the mark and is removed; one without
+# it is the system that ran before a restore cut short after its exchange — the restored system is
+# running: that restore is finished (its default, the moves, the names), and nothing else is done)
 if [[ -d $new ]]; then
-  if [[ -n $(btrfs subvolume list -o "$new" 2>/dev/null) ]]; then
+  if [[ ! -e $new/$mark ]]; then
+    k=$(newest "$top/$T"); if [[ -n $k ]] && whole "$k"; then default_to "$k"; fi
     finish
-    fail "a restore cut short after its exchange was finished: the snapshots moved back into $T, the system before it is $T.old — run kawa-snap restore $N again"
+    restorecon -R /boot >/dev/null 2>&1 || true
+    boot_list >/dev/null 2>&1 || true
+    sync || echo "kawa-snap: not confirmed on disk — wait a minute before restarting" >&2
+    echo "kawa-snap: a restore cut short after its exchange is finished — the system running now is the restored one, the one before it is $T.old (kawa-snap restore old goes back to it). Nothing else was done: for another restore, run it again."
+    exit 0
   fi
-  gone "$new" || fail "a leftover $T.new could not be removed"
+  gone "$new" || fail "a leftover copy $T.new could not be removed"
 fi
 src=$top/$T/.snapshots/$N/snapshot; [[ $N == old ]] && src=$top/$T.old
-[[ -d $src ]] || fail "there is no snapshot $N (kawa-snap list shows them)"
+if [[ ! -d $src ]]; then
+  [[ $N == old ]] && fail "no system before the last restore is kept — nothing changed"
+  fail "there is no snapshot $N (kawa-snap list shows them)"
+fi
 btrfs subvolume snapshot "$src" "$new" >/dev/null || fail "the writable copy of $N could not be made — nothing changed"
 power_cut copied
-undo() { unbind; gone "$new"; fail "$* — nothing changed"; }
+undo() {   # undo WHY — before the exchange only: the kernels this run added out of /boot, the copy gone
+  local v
+  for v in "${added[@]}"; do inside kernel-install remove "$v" >/dev/null 2>&1; done
+  [[ -n $skb ]] && printf '%s\n' "$skb" >"$sk"
+  unbind; gone "$new"; fail "$* — nothing changed"
+}
+: >"$new/$mark" || undo "the copy could not be marked"
 # the copy's first start must not relabel everything or run an old offline update (§3.1)
-rm -f -- "$new/.autorelabel" "$new/system-update"
+rm -f -- "$new/.autorelabel" "$new/system-update" "$new/etc/system-update"
 # the kernels the copy has (each with its vmlinuz: Fedora keeps one beside its modules)
 mapfile -t K < <(for m in "$new"/usr/lib/modules/*/vmlinuz; do [[ -f $m ]] && m=${m%/vmlinuz} && echo "${m##*/}"; done | sort -V)
 ((${#K[@]})) || undo "snapshot $N has no kernel in /usr/lib/modules"
@@ -203,36 +264,41 @@ inside() {
     local m
     for m in /dev /proc /sys /run /boot /boot/efi; do
       mountpoint -q "$m" || continue
-      mount --bind "$m" "$new$m" || return 1; binds+=("$new$m")
+      mount --bind "$m" "$new$m" || { unbind; return 1; }
+      binds+=("$new$m")
     done
   fi
   chroot "$new" "$@"
 }
-# …added without making any of them the default (the copy's UPDATEDEFAULT off for the run): a
-# cut before the exchange then starts the system that runs now, with its own kernel
-sk=$new/etc/sysconfig/kernel skb=""
+# …added without making any of them the default (the copy's UPDATEDEFAULT off for the run, and a
+# promotion an interrupted kernel install left in grubenv dropped): a cut before the exchange
+# then starts the system that runs now, with its own kernel
+sk=$new/etc/sysconfig/kernel
 [[ -f $sk ]] && skb=$(<"$sk") && sed -i 's/^UPDATEDEFAULT=.*/UPDATEDEFAULT=no/' "$sk"
+grub2-editenv /boot/grub2/grubenv unset tmp_saved_entry >/dev/null 2>&1 || true
 for v in "${K[@]}"; do
-  [[ -f /boot/vmlinuz-$v ]] && continue
+  whole "$v" && continue
   echo "kawa-snap: kernel $v back into /boot (its boot image is made: a minute or two)"
-  inside kernel-install add "$v" "/usr/lib/modules/$v/vmlinuz" >/dev/null 2>&1 \
-    || { inside kernel-install remove "$v" >/dev/null 2>&1; [[ -n $skb ]] && printf '%s\n' "$skb" >"$sk"; undo "kernel $v could not be put back into /boot"; }
+  added+=("$v")
+  inside kernel-install add "$v" "/usr/lib/modules/$v/vmlinuz" >/dev/null 2>&1 || undo "kernel $v could not be put back into /boot"
 done
 [[ -n $skb ]] && printf '%s\n' "$skb" >"$sk"
 unbind
+# /boot and the ESP on disk before the exchange: the restored system's kernels are there whole
+sync -f /boot || undo "/boot could not be written"
+if mountpoint -q /boot/efi; then sync -f /boot/efi || undo "the EFI partition could not be written"; fi
 power_cut kernels
+btrfs filesystem sync "$top" >/dev/null 2>&1 || undo "the disk could not be synced"
 # the exchange: the copy is the root subvolume from here; $new names the system that ran
-btrfs filesystem sync "$top" >/dev/null 2>&1
 exch "$top/$T" "$new" || undo "the exchange failed"
 power_cut exchanged
-btrfs filesystem sync "$top" >/dev/null 2>&1
-finish
-# the default, set last: the restored system's newest kernel (the kernels it lacks stay until it
-# has started — the one-kernel rule takes them then)
-grubby --set-default "/boot/vmlinuz-${K[-1]}" >/dev/null 2>&1 \
-  || echo "kawa-snap: the default boot entry could not be set — at the next start, choose kernel ${K[-1]}" >&2
+btrfs filesystem sync "$top" >/dev/null 2>&1 || echo "kawa-snap: the exchange not confirmed on disk — wait a minute before restarting" >&2
+# the default at once: the restored system's newest kernel (the ones it lacks stay until it has
+# started — the one-kernel rule takes them then)
+default_to "${K[-1]}"
 power_cut defaulted
+finish
 restorecon -R /boot >/dev/null 2>&1 || true
 boot_list >/dev/null 2>&1 || true
-sync
+sync || echo "kawa-snap: not confirmed on disk — wait a minute before restarting" >&2
 echo "kawa-snap: snapshot $N is the system from the next start — restart now. The one it replaced is kept as $T.old (kawa-snap restore old goes back to it)."

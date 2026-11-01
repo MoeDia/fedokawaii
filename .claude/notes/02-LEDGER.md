@@ -1816,6 +1816,41 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   still to re-run on t45 before it merges. Next on t45: (b) phase 0's remaining facts, (c) the
   candidate in the VM.
 
+- r27-52a-fix (1 Nov 06:05; T48 FIRST (1), the master's findings — code and stub tests; the VM proof
+  re-run with two kernels and the master's second look next; NOT on the PC yet) — system/kawa-snap:
+  (1) /boot and the ESP synced (`sync -f`, checked; else undone) before the exchange; (2) the default
+  set at once after the exchange and its sync (grubby, then `sync -f /boot`), before the moves; a
+  restore cut after its exchange is finished by the next run WITH its default, and that run does
+  nothing else (exit 0, said); setup.sh `kernel_match` (start-up run): a running kernel without
+  modules in / → the newest whole kernel that has them the default + a notice; every boot image
+  loads xfs and vfat itself (/etc/dracut.conf.d/fedokawaii.conf force_drivers — dracut.conf(5):
+  "loaded early via modprobe"), so such a start still mounts /boot; (3) `setup.sh --kernels` only
+  on the system itself (on_the_system: FSROOT = /root as fstab mounts it, no systemd.volatile=overlay)
+  + ConditionKernelCommandLine=!systemd.volatile on the unit; (5) a restore while /home is inside
+  root is refused unless `--with-home`; Super+U says "home goes back to then too" and passes it on
+  his yes (and "home stays as it is" once /home is split). Minors: a copy carries a mark
+  (.kawa-snap-copy) — a leftover root.new with it is removed, without it it is the system that ran
+  (finished, never deleted); the system that ran never left as root.new (root.old, else
+  root.old.d/TIME-PID); "whole" = vmlinuz + image + entry; one restore at a time (flock
+  /run/kawa-snap.lock; `pre` waits ≤ 10 min), none while dnf5/dnf runs; syncs checked and said;
+  root.old's predecessors in root.old.d (out of grub-btrfs's list: IGNORE_PREFIX_PATH; root.swap
+  dropped); /etc/system-update stripped; restore from a boot-menu snapshot (/ an overlay: root=UUID=
+  and rootflags=subvol= from /proc/cmdline); undo takes the kernels this run added out again; a
+  failed bind unbinds; nits: the power-cut seam also needs /run/kawa-snap.cut, `mv --no-copy`,
+  grubenv's stale tmp_saved_entry dropped before the adds, missing parent folders made with the
+  owner and mode of the ones that ran, "no system before the last restore is kept", a failed delete
+  said as such. Tests: tests/engine/test_snap.sh 158/0 (+40: the order sync -f → exch → grubby →
+  sync -f → the moves, the mark both ways, the recovery's default, --with-home both ways, the lock,
+  dnf running, the failed rename, vmlinuz-only, whole left alone, undo's remove, restore old with
+  none, the overlay boot, root.old.d kept two and listed nowhere, /etc/system-update), test_menu
+  594/0 (+1: home inside → said, --with-home), test_upkeep (+3: no kernel rule in a snapshot boot
+  either way, kernel_match, the dracut drivers), test_deps 197/0 (grub2-editenv: grub2-tools-minimal).
+  The installer harness's findmnt stub answers FSROOT now: the whole installer area re-run.
+  tools/vm-inject/restore-cut.sh rewritten for the master's finding 4 (two kernels: S has A, the
+  system B with A removed; seven cut points incl. one during the add, then restore old; every state
+  asserted, every check's output logged). Design §3.1 "As built" added; §4 phase 4: no rpm
+  checkpoint (a snapshot is one instant).
+
 ## >>> NEXT PASS STARTS HERE (1 Nov 04:10): the inbox first. Then, the update system (the master's order):
 ## (1) T48 FIRST (1): proven in the VM (restore-cut.sh, six cut points, exit 0). The master's review,
 ##     started 04:17, had not answered when the pass ended (it was re-running test_upkeep) — run it
