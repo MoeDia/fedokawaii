@@ -217,6 +217,13 @@ back built; fkh_del installed bat; reset_calls; fkh systemctl-fail 'show -p (Mai
 tk --repair; eq "$RC" 125 "$(tail -n3 <<<"$OUT")"; eq "$(grep -c "systemd, the system's own manager, crashed while dnf ran" <<<"$OUT")" 1 "said once"; has "$OUT" "restart the PC"
 lacks "$OUT" "dnf attempt"; lacks "$OUT" "could not install"; eq "$(grep -c 'systemd-run\]' "$CALLS")" 1 "one dnf started"
 rm -f "$FKH/systemctl-fail" "$FKH/journal-pid1"
+case_ "…systemd crashed BEFORE a transaction (an earlier one's): systemd-run gets no answer and the journal says PID 1 froze — the same halt, said once, nothing tried again"
+back built; fkh_del installed bat; reset_calls; fkh run-fail; fkh journal-pid1 'Caught <ABRT>, from our own process.' 'Freezing execution.'
+tk --repair; eq "$RC" 125 "$(tail -n3 <<<"$OUT")"; eq "$(grep -c "✘.*systemd, the system's own manager, crashed while dnf ran" <<<"$OUT")" 1 "said once"
+lacks "$OUT" "dnf attempt"; eq "$(grep -c 'systemd-run\]' "$CALLS")" 1 "one systemd-run"
+rm -f "$FKH/journal-pid1"; reset_calls
+tk --repair; lacks "$OUT" "crashed while dnf ran" "systemd-run refused, no freeze in the journal: no crash said"
+rm -f "$FKH/run-fail"
 case_ "…PID 1 not answering for a while (a reload), nothing in its journal: asked again until it answers — never taken for a crash"
 back built; fkh_del installed bat; reset_calls; fkh fail-show-silent 3
 tk --repair; lacks "$OUT" "crashed while dnf ran"; pkg_has bat && _ok || _no "bat not put back"; eq "$(cat "$FKH/fail-show-silent")" 0 "every silence used up"

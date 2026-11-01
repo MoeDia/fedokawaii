@@ -2941,11 +2941,18 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   or log), 8 the ledger (this line, and the suites' reds with their causes: 2b12615 → test_update_flow's row +
   test_brave's live Brave; 0b45f65 → test_torture's fuse3 evidence; a6f5049 → test_launcher's fuse3 — none the
   update's code).
+- r27-49-R4b-sf (1 Nov 21:01, local, after cf211b8): T45 should-fix 2 — dnf_detached: systemd-run's own failure with
+  the journal's "Freezing execution" (PID 1 crashed in an EARLIER transaction) → 125 → the same halt (stand-in:
+  systemd-run's $FKH/run-fail; test_upkeep rows: the halt once, no retry, one systemd-run; refused without a freeze
+  → no crash said); should-fix 7 — snapper_limits' group on /home/.snapshots no longer ends repair's r_system
+  (logged; verify names it). test_upkeep running → /dev/shm/r27p/p12-upkeep.log. Should-fixes 1, 3, 4 left.
+- r27-49-R4b condition 2 MET (1 Nov 21:00–21:09): update-green f44 from the frozen cf211b8 — exit 0 in 277 s, report
+  "ok · updated · 61 packages", "update done (ok)", no "the desktop does not start", auditd active with its log, 0
+  AVC lines. Kept: /dev/shm/r27/master/T45-5/green-cf211b8/ (+ .txt). Condition 1 (the suite on cf211b8) running.
 ## >>> NEXT PASS STARTS HERE (1 Nov, written 20:55 by the 18:56 pass — the lines above say what it did): the inbox first. Then:
 ## (1) NOTHING OF THIS PASS IS PUSHED OR APPLIED YET. main = r27 = the newest local commit (see git log; after
 ##     cf211b8 only notes). The whole suite on cf211b8: /dev/shm/r27p/suite-cf211b8.log (started 21:00, last line
-##     "== suite rc=N in S s"); update-green f44 from it: /dev/shm/r27p/green-cf211b8.txt (T45's conditions 1–2,
-##     r27-49-R4b RESULT). Green → `git push origin main r27` → apply on the PC (sudo
+##     "== suite rc=N in S s"); update-green f44 from it: exit 0, report ok — condition 2 MET (T45-5/green-cf211b8/). Green → `git push origin main r27` → apply on the PC (sudo
 ##     FEDOKAWAII_COPY=$PWD /usr/local/bin/fedokawaii apply) → verify → the new kawa-panel live (memory
 ##     live-panel-restart: SIGKILL it when no panel/menu is open; the bar respawns it? check how) → headless shots of
 ##     Super+U → backups and the notes. Red → the failing file alone, fix, its area, then the suite again.

@@ -2179,8 +2179,11 @@ snapper_limits() {
   # password): /home/.snapshots, 0750 root's as snapper makes it, given your group — read and
   # gone through, never written (the snapshots are read-only); never snapper's ALLOW_USERS,
   # which would let anything running as you delete them too
+  # (not fatal: only "a file, back" needs it, and verify names it — repair's steps after this one
+  # still run: snap_hooks, the layout, the guard)
   if snapper_has home && [[ -d /home/.snapshots ]]; then
-    run chgrp "$(id -gn "$TARGET_USER")" /home/.snapshots && run chmod 0750 /home/.snapshots || return 1
+    run chgrp "$(id -gn "$TARGET_USER")" /home/.snapshots && run chmod 0750 /home/.snapshots \
+      || log "your files' snapshots could not be given your group (/home/.snapshots) — Super+U → a file, back cannot read them; verify names it, repair tries again"
   fi
   return 0
 }
@@ -2633,7 +2636,11 @@ dnf_detached() {   # dnf_detached ARG… — dnf ARG…, detached from this sess
   if systemd-run --quiet --unit="$unit" --service-type=exec -p RemainAfterExit=yes -p TimeoutStopSec=10min \
        -p StandardOutput=journal -p StandardError=journal -p SyslogIdentifier=fedokawaii-dnf \
        -E LC_ALL=C.UTF-8 /usr/bin/dnf "$@" 9>&-; then rc=$(dnf_end "$unit.service")
-  else rc=$?; fi                                    # (it never started: systemd-run's own status)
+  else rc=$?                                        # (it never started: systemd-run's own status —
+    # or systemd itself crashed before it, in an earlier transaction: nothing answers it, and its
+    # journal, read without it, says so)
+    [[ -z $(journalctl -b -q --no-pager _PID=1 -g 'Freezing execution' 2>/dev/null) ]] || rc=125
+  fi
   if ((rc == 125)); then
     kill "$FOLLOWER" 2>/dev/null || true; FOLLOWER=""
     halt "systemd, the system's own manager, crashed while dnf ran (journalctl -b _PID=1: \"Freezing execution\") — nothing more can be done in this start: restart the PC (hold its power button if it does not go down); then the next start or the next press of update finishes the update, or puts the system before it back"

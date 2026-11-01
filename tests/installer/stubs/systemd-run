@@ -3,10 +3,12 @@
 # its end; systemd-run itself says only that it started (0), as without --wait. The unit's end
 # is kept for systemctl show (RemainAfterExit): "ended UNIT RC" in $FKH/units (RC 128+N: killed
 # by signal N); $FKH/dnf-killed = N — dnf killed by signal N instead of running; $FKH/crash-on =
-# a regex: the dnf whose arguments match it ends with systemd itself crashed (a reload during its
-# own upgrade) — every `show` unanswered from then on, its journal saying it froze
+# a regex: the dnf whose arguments match it ends with systemd itself crashed (a reload while a
+# scriptlet's reload reply is pending) — every `show` unanswered from then on, its journal saying it
+# froze; $FKH/run-fail: systemd-run itself gets no answer (PID 1 gone: "Connection timed out"), exit 1
 . /usr/local/bin/_lib.sh
 fkh_log "$*"
+[[ -f $FKH/run-fail ]] && { echo "Failed to start transient service unit: Connection timed out" >&2; exit 1; }
 unit=""
 for a; do case $a in --unit=*) unit=${a#--unit=}.service ;; esac; done
 while (($#)) && [[ $1 != /usr/bin/dnf ]]; do shift; done
