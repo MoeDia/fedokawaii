@@ -2954,15 +2954,24 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   backup while a restore has the backup open says "the backup is open for a restore (Super+U → restore) — close
   that window first" (test_backup 223/0, the row inside the real FUSE mount); should-fix 4 — test_menu row: the
   restore under a pty hung up (pty_run --hangup) while the dialog shows → fusermount3 -uz called, no folder left.
+- r27-push-accident (1 Nov 21:30) — MY MISTAKE: editing this ledger through an UNQUOTED heredoc (python3 - <<PYEOF,
+  to expand one $S) whose text held the push plan in Markdown backticks, bash RAN the two command substitutions:
+  `git push origin 415b61c:refs/heads/main` and `git push origin r27` — GitHub main went b318e6f..415b61c and a new
+  r27 branch = 3c3d583, BEFORE the whole suite on cf211b8 (T45's condition 1) had ended (at that moment: every
+  file so far green, 0 failures, through installer/test_upgrade). Not undone: 415b61c is exactly the commit the
+  plan pushes once that suite is green, and rewriting published history would be a second unasked outward act;
+  if the suite ends red the next pass fixes FORWARD and pushes the fix. Nothing was applied to the PC. Memory
+  heredoc-terminators rewritten: always a quoted, unique delimiter; values in by argv or env.
 ## >>> NEXT PASS STARTS HERE (1 Nov, written 20:55 by the 18:56 pass — the lines above say what it did): the inbox first. Then:
-## (1) NOTHING OF THIS PASS IS PUSHED OR APPLIED YET. Local main = r27 = the newest commit. Two points matter:
+## (1) PUSHED (by accident, see below), NOT APPLIED. Local main = r27 = the newest commit. Two points matter:
 ##     · cf211b8 — T45's conditions ran on it: update-green exit 0 (MET); the whole suite →
 ##       /dev/shm/r27p/suite-cf211b8.log (started 21:00; last line "== suite rc=N in S s"). 415b61c = cf211b8 + notes.
 ##     · the newest (3981c01: T45 should-fix 2 and 7; then T48 should-fix 4 and 7) — each change with its own file
 ##       tests green (test_upkeep 283/0, test_backup 223/0, test_menu, static), no whole suite yet.
-##     DO: if suite-cf211b8 is rc 0 → `git push origin 415b61c:refs/heads/main` (T45's condition 1 met: tell it in
-##     the ledger) and `git push origin r27`. Then a whole suite on the newest from a frozen worktree (git worktree
-##     add --detach /dev/shm/r27w-suite-<sha> HEAD; bash tests/run.sh there, ~50 min) → rc 0 → push main there →
+##     DONE BY ACCIDENT (r27-push-accident): GitHub main = 415b61c, r27 = 3c3d583, pushed 21:30 before the
+##     suite on cf211b8 ended. DO: read suite-cf211b8.log — rc 0: T45 condition 1 met after the fact (say so in the
+##     ledger); red: fix forward at once. The whole suite on the newest, 3c3d583, also runs (started 21:31, from
+##     /dev/shm/r27w-suite-3c3d583 → /dev/shm/r27p/suite-3c3d583.log) → rc 0 → push main there →
 ##     APPLY on the PC (sudo FEDOKAWAII_COPY=$PWD /usr/local/bin/fedokawaii apply; verify) → the new kawa-panel live
 ##     (memory live-panel-restart) → headless shots (grim, the session's env) of Super+U → backups and the notes.
 ##     If suite-cf211b8 is red: read the failing file (`grep -B3 ✘`), fix, its area, and go straight to the
