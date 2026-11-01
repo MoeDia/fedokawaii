@@ -3113,9 +3113,12 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   replay filter, ~/.config/fedokawaii/yazi-pick/keymap.toml with q. Presence before: sound playing, no mic, nothing of
   ours open. Tidied: the old frozen worktrees (/dev/shm), ~/repos/fk-t45 (t45 merged into main, on origin).
 - r27-21-nb (1 Nov 23:10–00:00, branch t21, pushed — NOT on main): the notebook built and grilled twice (one right
-  edge; descenders on the rule); found and fixed there: the to-do's first letters hidden by markdown's conceal. OPEN:
-  the light to-do's open items drawn in #e7cfa1 (the dark text) — in main's live notes.lua too (kit render); cause
-  not yet known (inspect says Normal = #122625; the kit's foot starts light) — see t21's notes-notebook.md.
+  edge; descenders on the rule); found and fixed there: the to-do's first letters hidden by markdown's conceal. The
+  light to-do's pale words (#e7cfa1, the dark text, in renders of main's to-do too) — CLOSED 00:15 as a harness
+  artefact: those renders drove nvim through tools/kit-keys.py, whose own pty sits between nvim and foot; the same
+  page rendered with nvim's own feedkeys (no kit-keys) draws the words #122625, the light text (px.py hist on
+  /dev/shm/r27p/nb2/light-cell-win.png); nvim__inspect_cell: the word's cell carries no attributes (the terminal's
+  default ink) — so judge nvim screens' colours only without kit-keys (memory kit-renders-installed-configs).
 ## >>> NEXT PASS STARTS HERE (1 Nov, written ~23:50 by the 21:47 pass — the lines above say what it did): the inbox first. Then:
 ## (0) PRESENCE: he was at the PC all evening (a Discord call + a stream at 22:24; memory presence-not-just-input-idle).
 ##     Before anything he could see or hear (a reboot, a session restart, a bar restart, a live play, a notice):
@@ -3139,8 +3142,6 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
 ##     heading's rule; the to-do page's render; a typing play (frames); then merge t21 into main → the whole suite →
 ##     the master → push → apply (the warm notes window is NOT renewed by an apply: it holds his page — it takes the
 ##     new notes.lua at its next start; restart it only when he is away, after checking its buffer is saved).
-##     FIRST on t21: the light to-do's pale words (#e7cfa1 — also in main's live to-do in the kit): find the cause
-##     (the kit, or his screen), then give the page's words an explicit ink either way (r27-21-nb).
 ## (5) T46/T46b (F45 out Tue 3 Nov): after the release — vm-create f45 fresh from the released tree, vm-smoke f45,
 ##     then tools/vm-inject/f45-checks.sh f45 (all five green on the branched tree 1 Nov). T46's pre-flight
 ##     (tools/vm-preflight.sh) and the upgrade's WAIT (60 days by default) for the PC's own move.
