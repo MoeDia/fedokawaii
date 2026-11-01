@@ -3157,7 +3157,14 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   through systemd-run → /user.slice/user-1000.slice/user@1000.service/app.slice/run-p2182188-i77661726.scope, the
   environment passed (WAYLAND_DISPLAY seen). The fake machine's systemd-run runs `--user … -- CMD` as it is;
   test_theme's live case asserts the call (141/0). OWED: the PC proof after an apply when he is away (swaybg's
-  /proc/PID/cgroup under user@1000.service) — and logind's 80 "closing" sudo sessions explained.
+  /proc/PID/cgroup under user@1000.service).
+  logind's "closing" sudo sessions (85 in /run/systemd/sessions, 00:34) EXPLAINED, nothing of ours: each is empty
+  (STATE=closing, LEADER_FD_SAVED=1, its leader dead, its scope gone, no process holding its .ref fifo — checked over
+  /proc/*/fd), systemd 259.10-1.fc44. Upstream's known behaviour: logind keeps empty "closing" sessions after logout
+  (https://github.com/systemd/systemd/issues/26744; seen on 257: https://bbs.archlinux.org/viewtopic.php?id=301983 —
+  a logind restart clears them; `loginctl terminate-session` removes one: https://bugs.freedesktop.org/show_bug.cgi?id=89024).
+  A few hundred bytes each, from the round's heavy sudo use; his own sudo is rare. Nothing to build (no logind
+  restart in a live session for that).
 ## >>> NEXT PASS STARTS HERE (1 Nov, written ~23:50 by the 21:47 pass — the lines above say what it did): the inbox first. Then:
 ## (0) PRESENCE: he was at the PC all evening (a Discord call + a stream at 22:24; memory presence-not-just-input-idle).
 ##     Before anything he could see or hear (a reboot, a session restart, a bar restart, a live play, a notice):
