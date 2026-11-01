@@ -1928,6 +1928,12 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   SRPM): bisect over source packages (rpm -qp --qf %{sourcerpm} on the stored rpms), hold every binary
   of the red one — fewer rounds too (56 binaries ≈ 20 sources).
 
+- r27-49c (cont., 07:30, t45 2c0…): finding (2) done on stubs — the bisection and the holds work on
+  source packages (rpm -qp --qf '%{name} %{sourcerpm}' on the stored rpms → UPD/sources; halves of
+  sources; a hold takes every binary of the red one): test_update_flow 131/0 (+ the kernel family —
+  kernel, kernel-core, kernel-modules from one source — held whole, bash and zlib applied). Finding (1)
+  (the candidate's dracut without the root device) still open: next pass, VM.
+
 ## >>> NEXT PASS STARTS HERE (1 Nov 07:10): the inbox first. Then:
 ## (1) T48 FIRST (2): the flat layout (snapshots, home, log, fk at the top level; kawa-snap reading
 ##     $top/snapshots) and the offline /home split (a unit under system-update.target, cp -aT
@@ -1935,8 +1941,8 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
 ##     after a good start) — VM first (states "built", "two-kernels"; tools/vm-inject/), then the PC
 ##     with a pinned snapshot. With it: a restore from a real boot-menu snapshot in the VM, the master's
 ##     two missing tests.
-## (2) T45 on branch t45 (worktree ~/repos/fk-t45, main merged in): (c) in the VM — the two findings of
-##     r27-49c first (the candidate's dracut without the root device → image checks from the host and the
-##     device given read-only; holds by source package), then update-green.sh until the run keeps the
+## (2) T45 on branch t45 (worktree ~/repos/fk-t45, main merged in): (c) in the VM — r27-49c's finding (1)
+##     first (the candidate's dracut without the root device → image checks from the host and the device
+##     given read-only; holds by source package are done), then update-green.sh until the run keeps the
 ##     update green; then (e) the real checks + smoke, (f) probation, (h) the unit + the pane, (i) the
 ##     toolkit at a signed tag; t45 merges into main only after (c) is green.
