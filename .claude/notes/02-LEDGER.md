@@ -2446,6 +2446,20 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   "the copy was left behind" checks looked at $W/run, which the fake machine never uses (its /run is a fresh
   tmpfs): vacuous — they read $FKH/subvolumes now.
 
+- r27-49-8 (1 Nov 14:07–14:12; the master's (D) 8, both halves) — (a) the kernel trial is armed only when the boot
+  menu is exactly [new, running]: GRUB's way back is the menu's SECOND entry (`set default=1` once boot_counter
+  runs out — read on this PC in grub2-tools-2.12-66.fc44's /etc/grub.d/08_fallback_counting), so a third entry (a
+  rescue image, a kernel left from before) could put a never-proven kernel there: up_probation reads `grubby
+  --info=ALL`'s kernels in menu order and, unless they are "$new $now", arms nothing (no counter, no trial
+  arguments, no watchdog) and says why in the log. (b) while a probation names a kernel, u_fetch stores the
+  transaction with `--exclude=kernel,kernel-core,…` (KERNEL_PKGS; dnf5(8): "-x/--exclude … This is a list
+  option") and says "no new kernel this time: kernel X is still on trial — restart, and the next update brings
+  it" — another kernel would take the place of the one GRUB falls back to. Stand-ins: grubby prints $FKH/menu's
+  kernels in order when a test gives one; dnf's --store leaves --exclude's names out. test_update_flow 254/0
+  (the armed case now names its menu; a third entry → not armed, no watchdog, said; the next press while on
+  trial → kernel-core 7.3.1 left out, bash in, said). On the PC: one entry today (7.2.11), so the first press
+  ends with [7.2.13, 7.2.11] — armed.
+
 ## >>> NEXT PASS STARTS HERE (1 Nov, written 13:00 — the lines above say what this pass did): the inbox first. Then,
 ## in the master's order (master-T45-efh-verdict.md, "Re-review"):
 ## (B) merge t45 → main; the whole suite; `fedokawaii apply`; verify green (with the resume-unit row; the one

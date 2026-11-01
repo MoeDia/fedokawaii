@@ -244,18 +244,33 @@ K=$(uname -r) NEWK=7.2.99-200.fc44.x86_64
 good() { fkrun bash "$TK/setup.sh" --boot-good; }
 env_has() { grep -qx -- "$1" "$FKH/grubenv" && _ok || _no "grubenv lacks $1: $(tr '\n' ' ' <"$FKH/grubenv")"; }
 case_ "a green update that brought a kernel: its next start on trial — GRUB counts three, no rescue shell, a panic restarts, the watchdog on"
-back built; reset_calls; pending "bash 5.2-1.fc44 5.3-1.fc44"; fkh kernels "$K" "$NEWK"; : >"$W/boot/vmlinuz-$NEWK"
+back built; reset_calls; pending "bash 5.2-1.fc44 5.3-1.fc44"; fkh kernels "$K" "$NEWK"; : >"$W/boot/vmlinuz-$NEWK"; fkh menu "$NEWK" "$K"
 up; eq "$RC" 0 "$(tail -n3 <<<"$OUT")"; eq "$(report)" ok
 env_has boot_counter=3; env_has boot_success=0; env_has boot_indeterminate=1
 called "grubby\] --update-kernel=/boot/vmlinuz-$NEWK --args=rd.shell=0 rd.emergency=reboot rd.retry=30 panic=10"
 grep -qx 'RuntimeWatchdogSec=1min' "$W/etc/systemd/system.conf.d/90-fedokawaii-probation.conf" && _ok || _no "no watchdog while on trial"
 eq "$(cut -d' ' -f1,2 "$U/probation")" "$(cat "$U/snap") $NEWK" "the probation: its snapshot, the kernel on trial"
 has "$OUT" "kernel $NEWK on trial at the next start: three starts to reach the desktop, else $K again"
+case_ "…the next press while it is on trial: no other kernel this time (it would take the fallback's place) — the rest in, said"
+pending "bash 5.3-1.fc44 5.4-1.fc44" "kernel-core ${NEWK%.x86_64} 7.3.1-200.fc44"; reset_calls
+up; eq "$RC" 0 "$(tail -n3 <<<"$OUT")"; eq "$(report)" ok
+called 'dnf\] -y --setopt=keepcache=True upgrade --store=/var/lib/fedokawaii/update/tx --exclude=kernel,kernel-core,kernel-modules,kernel-modules-core,kernel-modules-extra,kernel-devel,kernel-devel-matched$'
+grep -q '^bash 5.4-1.fc44$' "$FKH/evr" && _ok || _no "the rest not in: $(cat "$FKH/evr")"
+grep -q '^kernel-core 7.3.1' "$FKH/evr" && _no "a kernel went in while one is on trial" || _ok
+has "$OUT" "no new kernel this time: kernel $NEWK is still on trial — restart, and the next update brings it"
 case_ "…a start marked good before the counting ran out, on the new kernel: the trial over, the snapshot back to the cleanup"
 s=$(cat "$U/snap"); echo "$s $K 2026-11-01" >"$U/probation"; fkh grubenv boot_success=1 boot_counter=2; reset_calls
 good; eq "$RC" 0 "$OUT"
 called 'grub2-editenv\] - unset boot_counter'; called "grubby\] --update-kernel=/boot/vmlinuz-$K --remove-args=rd.shell=0 rd.emergency=reboot rd.retry=30 panic=10"
 called "snapper\] -c root modify -c number $s"; [[ ! -e $U/probation && ! -e $W/etc/systemd/system.conf.d/90-fedokawaii-probation.conf ]] && _ok || _no "the probation or its watchdog left"
+case_ "a kernel with a third entry in the boot menu (a rescue image): no trial — GRUB's way back would not be the running kernel — said"
+back built; reset_calls; pending "bash 5.2-1.fc44 5.3-1.fc44"; fkh kernels "$K" "$NEWK"; : >"$W/boot/vmlinuz-$NEWK"
+fkh menu "$NEWK" "$K" "0-rescue-0123456789abcdef"
+up; eq "$RC" 0 "$(tail -n3 <<<"$OUT")"; eq "$(report)" ok
+not_called 'grub2-editenv\] - set boot_counter'; not_called "grubby\] --update-kernel=/boot/vmlinuz-$NEWK"
+eq "$(cut -d' ' -f2 "$U/probation")" - "no kernel on trial"
+[[ ! -e $W/etc/systemd/system.conf.d/90-fedokawaii-probation.conf ]] && _ok || _no "the watchdog on with no trial"
+has "$OUT" "kernel $NEWK is not on trial: the boot menu is [$NEWK $K 0-rescue-0123456789abcdef], not [$NEWK $K]"
 case_ "GRUB took the one before after three starts: the new kernel held at its version and out, this one the default — said at login"
 back built; reset_calls; cut_run; rm -f "$U/phase"; fkh kernels "$K" "$NEWK"; echo "7 $NEWK 2026-11-01" >"$U/probation"
 fkh grubenv boot_success=1 boot_counter=-1

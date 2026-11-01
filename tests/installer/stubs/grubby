@@ -6,7 +6,11 @@ has installed grubby || { echo "bash: grubby: command not found" >&2; exit 127; 
 fkh_log "$*"
 [[ -f $FKH/grub-args ]] || printf '%s\n' "ro rootflags=subvol=root rhgb quiet" "ro rootflags=subvol=root rhgb quiet" >"$FKH/grub-args"
 case " $* " in
-  *" --info=ALL "*) n=0; while IFS= read -r l; do n=$((n + 1)); printf 'index=%d\nkernel="/boot/vmlinuz-6.19.%d"\nargs="%s"\n' "$n" "$n" "$l"; done <"$FKH/grub-args"; exit 0 ;;
+  # ($FKH/menu: the boot menu's kernels in GRUB's order, one a line — else one 6.19.N per entry)
+  *" --info=ALL "*) if [[ -f $FKH/menu ]]; then
+                      n=0; while IFS= read -r k; do printf 'index=%d\nkernel="/boot/vmlinuz-%s"\nargs="%s"\n' "$n" "$k" "$(sed -n 1p "$FKH/grub-args")"; n=$((n + 1)); done <"$FKH/menu"; exit 0
+                    fi
+                    n=0; while IFS= read -r l; do n=$((n + 1)); printf 'index=%d\nkernel="/boot/vmlinuz-6.19.%d"\nargs="%s"\n' "$n" "$n" "$l"; done <"$FKH/grub-args"; exit 0 ;;
   *" --update-kernel=ALL "*)
      for x in "$@"; do
        case $x in --args=*) for w in ${x#--args=}; do

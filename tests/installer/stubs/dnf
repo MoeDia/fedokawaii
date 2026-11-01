@@ -76,8 +76,10 @@ case "$a" in
       [[ -f $FKH/store-try-fail && $a == *"/update/try "* ]] && { echo "Problem: cannot install the best update candidate" >&2; exit 1; }
       d=$(sed -n 's/.*--store=\([^ ]*\).*/\1/p' <<<"$*")
       want=" "; for x in "$@"; do [[ $x == -* || $x == upgrade ]] || want+="$x "; done
+      # (--exclude=A,B: those names left out, as dnf5(8)'s list option)
+      ex=" $(sed -n 's/.*--exclude=\([^ ]*\).*/\1/p' <<<"$*" | tr , ' ') "
       rows=$(while read -r n o v; do
-               [[ -n $v ]] || continue; [[ $want == " " || $want == *" $n "* ]] || continue
+               [[ -n $v ]] || continue; [[ $want == " " || $want == *" $n "* ]] || continue; [[ $ex == *" $n "* ]] && continue
                has versionlock "$n-$v" || echo "$n $o $v"; done < <(cat "$FKH/pending" 2>/dev/null))
       [[ -n $rows ]] || { echo "Nothing to do."; exit 0; }
       mkdir -p "$d/packages"; sep=""

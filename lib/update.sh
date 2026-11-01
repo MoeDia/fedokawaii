@@ -88,22 +88,29 @@ up_more() {   # the checks verify does not make, a line for each that is red: th
 # ── fetch ────────────────────────────────────────────────────────────────────────────────────
 u_fetch() {   # → 0 a transaction stored in UPD/tx · 1 nothing to update
   up_phase fetch
-  local rc=0 off=()
+  local rc=0 off=() tp=() trial=""
   repos_lenient
   up_holds_apply
   rm -rf -- "$UPD/tx"
   dnf -q --refresh check-upgrade >/dev/null 2>&1 || rc=$?
   ((rc == 0)) && return 1
   ((rc == 100)) || die "dnf could not read the repositories (check-upgrade: exit $rc) — nothing changed; try again later"
+  # (a kernel on trial, not yet proven: no other kernel this press — it would take the place of
+  # the one GRUB falls back to; it comes once the trial has closed)
+  [[ -s $UPD/probation ]] && trial=$(awk '$2 != "-" { k = $2 } END { print k }' "$UPD/probation")
+  if [[ -n $trial ]]; then
+    off=("--exclude=$(IFS=,; echo "${KERNEL_PKGS[*]}")")
+    log "no new kernel this time: kernel $trial is still on trial — restart, and the next update brings it"
+  fi
   # resolved and downloaded once, stored instead of run: the candidate and the running system
   # get exactly this (dnf5-upgrade(8) --store, dnf5-replay(8))
   # (the downloads kept in dnf's cache too: the halves a red set is cut into are stored from it)
-  if ! dnf_detached -y --setopt=keepcache=True upgrade --store="$UPD/tx"; then
-    mapfile -t off < <(third_party_off)
-    ((${#off[@]})) || die "dnf could not resolve or download the update — nothing changed (the lines above say why)"
-    log "trying again without the third-party repositories ($(IFS=' '; echo "${off[*]#--disablerepo=}"))"
+  if ! dnf_detached -y --setopt=keepcache=True upgrade --store="$UPD/tx" "${off[@]}"; then
+    mapfile -t tp < <(third_party_off)
+    ((${#tp[@]})) || die "dnf could not resolve or download the update — nothing changed (the lines above say why)"
+    log "trying again without the third-party repositories ($(IFS=' '; echo "${tp[*]#--disablerepo=}"))"
     rm -rf -- "$UPD/tx"
-    dnf_detached -y --setopt=keepcache=True upgrade --store="$UPD/tx" "${off[@]}" || die "dnf could not resolve or download the update — nothing changed (the lines above say why)"
+    dnf_detached -y --setopt=keepcache=True upgrade --store="$UPD/tx" "${off[@]}" "${tp[@]}" || die "dnf could not resolve or download the update — nothing changed (the lines above say why)"
     UPDATE_STEPS_FAILED+=("third-party packages (a repository failed: dnf repo list; the next update tries again)")
   fi
   [[ -s $UPD/tx/transaction.json ]] || return 1    # (only held packages had updates)
@@ -385,9 +392,20 @@ up_tell() { as_user kawa-foryou add update-cut "$1" "$2" 2>/dev/null || log "$1 
 UP_TRIAL="rd.shell=0 rd.emergency=reboot rd.retry=30 panic=10"   # (rd.retry: 30 s, not dracut's 180, before a start that cannot find its root gives up)
 UP_DOG=/etc/systemd/system.conf.d/90-fedokawaii-probation.conf
 up_probation() {   # after a green update
-  local new now; now=$(uname -r)
+  local new now menu; now=$(uname -r)
   new=$(rpm -q --qf '%{VERSION}-%{RELEASE}.%{ARCH}\n' kernel-core 2>/dev/null | sort -V | tail -n1) || new=""
   [[ -n $new && $new != "$now" && -f /boot/vmlinuz-$new ]] || new=-
+  # (GRUB's way back is the menu's second entry — set default=1, /etc/grub.d/08_fallback_counting:
+  # on trial only when the menu is exactly [new, running]; a third entry, a rescue image or a
+  # kernel from before, could put one never proven there — then no trial, and said)
+  if [[ $new != - ]]; then
+    menu=$(grubby --info=ALL 2>/dev/null) || menu=""
+    menu=$(sed -n 's|^kernel="/boot/vmlinuz-\(.*\)"$|\1|p' <<<"$menu" | paste -sd ' ')
+    if [[ $menu != "$new $now" ]]; then
+      log "kernel $new is not on trial: the boot menu is [${menu:-unreadable}], not [$new $now] — GRUB's way back, its second entry, would not be the kernel running now"
+      new=-
+    fi
+  fi
   printf '%s %s %s\n' "$(cat "$UPD/snap" 2>/dev/null || echo -)" "$new" "$(date +%F)" >>"$UPD/probation"
   [[ $new != - ]] || return 0
   grub2-editenv - set boot_counter=3 boot_success=0 boot_indeterminate=1 \
