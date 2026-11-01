@@ -5,7 +5,8 @@
 # boot), journal-unix and journal-unix.prev (-o short-unix, this boot and the one before),
 # journal-pid1 (_PID=1 -g PATTERN: its lines that match — systemd's own words, as a crash leaves them)
 if [[ " $* " == *" _PID=1 -g "* ]]; then
-  p=${*##* -g }; [[ -f /var/lib/fkh/journal-pid1 ]] && grep -E -- "$p" /var/lib/fkh/journal-pid1; exit 0
+  a="$*"; p=${a##* -g }   # (on the joined line: ${*##…} would strip each word on its own)
+  [[ -f /var/lib/fkh/journal-pid1 ]] && grep -E -- "$p" /var/lib/fkh/journal-pid1; exit 0
 fi
 f=""
 case " $* " in

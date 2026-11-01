@@ -2774,6 +2774,11 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
 ##     then REMOVE that printf line before any commit. A lead from reading: dnf_try_sub runs `dnf` (dnf_detached) in
 ##     `$(… | tee …)`, so die ends only that pipeline element and dnf_install RETRIES it (DNF_TRIES, 15·i s pauses);
 ##     the 125 should rather make dnf_install stop at once (a why of its own for dnf_why, e.g. "pid1").
+##     FOUND 18:56 (crashrow.out: RC=124, the run hung after "$ dnf -y install bat (as fedokawaii-dnf-…)" to the row's
+##     timeout): the STAND-IN's bug — journalctl's `p=${*##* -g }` strips each word on its own, so the pattern was
+##     the whole argument line and never matched; fixed (a="$*"; p=${a##* -g }) in the commit after 80684bd, the
+##     debug line removed. Next: the lead above (no retries after a PID 1 crash), then the WHOLE installer area +
+##     static, then push and apply.
 ## (1) the master's Re-review 4 of T45 at 9280e4b (r27-49-R4): its verdict appended to master-T45-efh-verdict.md. Told
 ##     mid-review of the storm's PID 1 crash (r27-49-pid1). Not there → launch it again with
 ##     /dev/shm/r27/master/T45-4/brief.md (gone after a reboot: rebuild from ledger r27-49-R4, -pid1, -hang, -master-3,
