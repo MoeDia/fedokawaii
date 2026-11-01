@@ -694,17 +694,13 @@ load_conf() {                       # load_conf REPO_DIR — read + validate, di
   [[ -z $problems ]] || die "fedokawaii.conf:"$'\n'"$(sed 's/^/    /' <<<"$problems")"
 }
 # hold_families HOLDS — what the updates hold back (lib/update.sh: UPD/holds — NAME HELD AT DAY
-# WHY, a line a package) as "NAME VERSION<TAB>WHY", a line a family: the packages held at one
-# version for one reason whose names begin alike are one source's (kernel, kernel-core …;
-# mesa-dri-drivers, mesa-libEGL …), named by what their names share — never two sources merged
-# because a whole set was held at once and some versions agree. The menu's held row and pane,
-# and the update's report
+# SOURCE WHY, a line a package) as "NAME VERSION<TAB>WHY", a line a family: the packages of one
+# source package held at one version for one reason (kernel, kernel-core …) are one line, named
+# by their source — a package alone by its own name; two sources never merged. The menu's held
+# row and pane, and the update's report
 hold_families() {
-  awk '{ w = ""; for (i = 5; i <= NF; i++) w = w (i > 5 ? " " : "") $i
-         s = $1; sub(/-.*/, "", s); k = s "\t" $2 "\t" w
-         if (!(k in name)) { order[++n] = k; name[k] = $1; next }
-         a = name[k]; b = $1; m = 0; while (m < length(a) && substr(a, m + 1, 1) == substr(b, m + 1, 1)) m++
-         name[k] = substr(a, 1, m) }
-       END { for (i = 1; i <= n; i++) { k = order[i]; nm = name[k]; sub(/-+$/, "", nm); split(k, f, "\t")
-                                       print nm " " f[2] "\t" f[3] } }' "$1" 2>/dev/null
+  awk '{ w = ""; for (i = 6; i <= NF; i++) w = w (i > 6 ? " " : "") $i
+         k = $5 "\t" $2 "\t" w
+         if (k in name) name[k] = $5; else { order[++n] = k; name[k] = $1 } }
+       END { for (i = 1; i <= n; i++) { k = order[i]; split(k, f, "\t"); print name[k] " " f[2] "\t" f[3] } }' "$1" 2>/dev/null
 }

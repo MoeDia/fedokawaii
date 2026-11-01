@@ -2608,6 +2608,27 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   after an offered run: not released, in the probation, released by --boot-good). Pushed c1841f6; applied on the
   PC 15:59–16:00 (verify 261/262, the trial still armed).
 
+- r27-49-sf2-5 (1 Nov 16:04–16:30; the master's should-fix 2–5 decided, main): (3) stdbuf GONE from dnf_detached —
+  measured first, dnf5 5.4.6 without it into the journal (systemd-run, StandardOutput=journal): every line as it
+  comes (makecache: "Updating and loading repositories:" 16:04:57.27, the repos' lines 16:05:01.08; a download of
+  three packages: kernel-core's line 16:05:30.00, linux-firmware's :35.16, kernel-modules' 16:06:08.43), so the
+  window still follows dnf live; the PC's press of 14:39 had 6 AVCs `restorecon (setfiles_t) denied map
+  /usr/libexec/coreutils/libstdbuf.so` (ausearch -m avc -ts today | grep -c libstdbuf → 6). test_upkeep asserts no
+  stdbuf in the unit; update-button.sh and update-green.sh gained a row "no SELinux denial in the presses/run"
+  (ausearch(8) --checkpoint before, the new AVCs after, kept in avc.txt). (4) each hold records its SOURCE package
+  (UPD/holds: NAME HELD AT DATE SOURCE WHY; up_hold from up_sources — u_undo now computes it too; the kernel's
+  probation hold "kernel"); hold_families groups by source, a package alone by its own name, two sources never
+  merged (no prefix guess left; UPD/sources removed with the stored set); no holds existed anywhere (the PC: none),
+  so no migration. Rows: python3-foo + python3-bar (python-foo, python-bar) at one version and reason → two
+  families; a kernel family named "kernel" in the report, never kernel-core. (2) DECIDED, written: update-design
+  §2.5 — the toolkit's own steps after the replay (manifest's missing packages, hardware firmware, pins, fonts,
+  builds, theme) are outside the copy by design, proven by the toolkit's own proofs before they reach him, judged
+  by the same after-checks; one `dnf5 do --store --action=upgrade --action=install …` was weighed (dnf5-do(8) has
+  --store) and not taken: one unresolvable want would stop the whole update. (5) the Learn line (a stopped unit
+  stays "failed" until the next press) and (2)'s line: owed to T50, written into its acceptance. Tests:
+  test_update_flow 283/0, test_upkeep 256/0, test_menu rc 0, test_status rc 0; static test_syntax 691/0,
+  test_tools 15/0, test_pipefail 1/0; ShellCheck (-S warning) clean on the four changed scripts.
+
 ## >>> NEXT PASS STARTS HERE (1 Nov, written 16:03 — the lines above say what this pass did): the inbox first. Then:
 ## (1) the master's Re-review 3 of T45 (B, D, E, F, G and the must-fix 1/3/4/5 fixes, should-fix 1): evidence —
 ##     ledger r27-49-E1…E4, r27-49-master-2-fixes, r27-49-sf1; /dev/shm/r27p/button7.txt + /dev/shm/r27/update-

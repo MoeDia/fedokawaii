@@ -615,7 +615,8 @@ files: docs/learn/pieces/* (update, lights/monitor/network pieces land in their 
 approach:
 - Written from the implemented behaviour, not the design: each piece opens with what he will see and what to do; a one-page "when a notice asks for you" piece with the three cases (a held package with a security update, a red VM pre-flight near EOL, a rollback that needed a reboot).
 - Screenshots of the real Super+U update/snapshots/backups screens (T17's gallery) embedded through kawa-sixel in the pieces and in the book source.
-accept: pieces render in kawa-learn; every statement checked against the implemented behaviour (a checklist in the ledger); the honest limits of the fixer stated.
+- Two lines owed from the master's T45 review (should-fix 2 and 5, 1 Nov): the toolkit's own steps (its manifest's new packages, firmware, pinned tools, the theme) go in after the replay, outside the copy (update-design §2.5) — judged by the same checks, a red undoes them with the update; an update stopped by hand leaves its unit "failed" (`systemctl --failed`) until the next press clears it — expected, nothing to do.
+accept: pieces render in kawa-learn; every statement checked against the implemented behaviour (a checklist in the ledger); the honest limits of the fixer stated; the two owed lines in the update piece.
 
 ## Phase 7 — bugs left, never-again regression checks, repo hardening, the installer proof
 

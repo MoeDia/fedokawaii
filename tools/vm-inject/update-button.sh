@@ -26,6 +26,8 @@ ok() { if eval "$2"; then printf '%-58s held\n' "$1"; else printf '%-58s BROKEN\
 # (each press detached from ssh's own output: else ssh waits for it to end — the next press would
 # come only after the run)
 inv() { run 'systemctl show -p InvocationID --value fedokawaii-update.service'; }
+# (SELinux's denials until now marked: the presses' own read afterwards — ausearch(8) --checkpoint)
+run 'sudo ausearch --checkpoint /tmp/avc.ck -m avc >/dev/null 2>&1; true' >>"$log" 2>&1
 run 'sudo setsid -f bash -c "bash /usr/local/lib/fedokawaii/fedokawaii.sh update >/tmp/first.out 2>&1; echo \$? >/tmp/first.rc" </dev/null >/dev/null 2>&1' >>"$log" 2>&1
 for _ in $(seq 120); do
   run 'systemctl is-active --quiet fedokawaii-update.service && grep -q "upgrade --store=" /var/lib/fedokawaii/update/run.log' && break; sleep 5
@@ -53,6 +55,9 @@ ok "…one invocation, the presses past its checks before it" '[[ $inv1 =~ ^[0-9
 run 'sudo journalctl -b --no-pager -o short-precise -u fedokawaii-update.service -u "fedokawaii-dnf-*"; echo "== run.log"; sed "s/\x1b\[[0-9;]*m//g" /var/lib/fedokawaii/update/run.log' >"$out/units.txt" 2>&1
 ok "the desktop check green before and after (no \"the desktop does not start\")" '! grep -q "the desktop does not start" "$out/units.txt" && grep -q "the checks before it" "$out/units.txt"'
 ok "the report: ok" 'grep -qE "^== report: [0-9]+ (ok|current) " <<<"$st"'
+# (no confined program denied anything in the presses — the scriptlets inherit what dnf's unit gives)
+run 'sudo ausearch --checkpoint /tmp/avc.ck -m avc -i 2>/dev/null | grep "^type=AVC"' >"$out/avc.txt" 2>&1
+ok "no SELinux denial in the presses (avc.txt)" '! grep -q denied "$out/avc.txt"'
 # a run that stops: another dnf5 holds the packages — its status comes back, said
 run 'cp /usr/bin/sleep /tmp/dnf5 && setsid -f /tmp/dnf5 120; sudo bash /usr/local/lib/fedokawaii/fedokawaii.sh update >/tmp/stop.out 2>&1; echo "rc $?"; grep -v "^$" /tmp/stop.out | tail -n 2; pkill -x dnf5' >"$out/stop.txt" 2>&1
 cat "$out/stop.txt" >>"$log"

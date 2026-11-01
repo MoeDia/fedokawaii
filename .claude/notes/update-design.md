@@ -86,6 +86,19 @@ an untried transaction:
    (`findmnt -no FSROOT /home` = /home): before the split a restore would take his files back in
    time, so until then it is offered, never done by itself; the split comes before the live
    replay is enabled on the PC.
+5. **What the copy does not hold: the toolkit's own steps.** After the replay the update runs its
+   steps on the running system (setup.sh `update_steps`): the settings, the manifest's packages this
+   machine lacks, the hardware's (firmware, microcode: lib/hardware.sh), the tools at their pins,
+   the fonts, our builds, the theme. They are the toolkit's changes, not Fedora's: each toolkit
+   commit is proven before it reaches him (tests/, a fresh VM install, update-green.sh), and on a
+   machine that already has them they install nothing (the PC's press of 1 Nov: none; the stale VM
+   of run 7: python3-pyte, wlrctl, wireless-regdb, three small transactions). The same after-checks
+   judge them with the packages; a red is undone with the update (the pinned snapshot) and the set
+   is held, since the culprit cannot be told apart then: the report says "all N packages together".
+   Storing them with the upgrade (`dnf5 do --store … --action=upgrade --action=install …`, one
+   transaction the copy would prove) was weighed and not taken (the master's should-fix 2, 1 Nov):
+   one wanted package that will not resolve would stop the whole update, where a live install that
+   fails is one step reported and tried again by the next press.
 
 Why online and not offline for the routine update (B2 #8 argues offline): the candidate removes
 the reason (an untried transaction under a running desktop), and an offline update costs him two

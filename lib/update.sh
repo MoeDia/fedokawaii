@@ -256,13 +256,15 @@ UP_HELD=0
 # repositories; dnf5 adds only the versions not excluded yet, so a hold in force is never written
 # twice: dnf5 5.4.6 dnf5/commands/versionlock/versionlock_exclude.cpp, exclude_versions)
 up_hold() {   # up_hold WHY NAME… — each name's new version (from UPD/set) held
-  local why=$1 n v at spec=(); shift
+  local why=$1 n v at src spec=(); shift
   for n; do
     v=$(awk -v n="$n" '$1 == n { print $3; exit }' "$UPD/set")
     [[ -n $v && $v != - ]] || continue
-    # NAME HELD AT DATE WHY (AT: the version it is held at; "-" a new package)
+    # NAME HELD AT DATE SOURCE WHY (AT: the version it is held at, "-" a new package; SOURCE: its
+    # source package, from up_sources — the family the report and the pane name it by)
     at=$(rpm -q --qf '%{evr}\n' "$n" 2>/dev/null | sed -n 1p) || at=""
-    grep -q "^$n $v " "$UPD/holds" 2>/dev/null || printf '%s %s %s %s %s\n' "$n" "$v" "${at:--}" "$(date +%F)" "$why" >>"$UPD/holds"
+    src=$(awk -v n="$n" '$1 == n { print $2; exit }' "$UPD/sources" 2>/dev/null) || src=""
+    grep -q "^$n $v " "$UPD/holds" 2>/dev/null || printf '%s %s %s %s %s %s\n' "$n" "$v" "${at:--}" "$(date +%F)" "${src:-$n}" "$why" >>"$UPD/holds"
     spec+=("$n-$v"); log "held: $n $v — $why"; UP_HELD=$((UP_HELD + 1))
   done
   ((${#spec[@]})) || return 0
@@ -272,14 +274,14 @@ up_holds_apply() {   # every hold in force again (a restore of / took /etc/dnf/v
                      # back) — but one whose package has moved on (a newer version went in,
                      # proven) is let go: the version it kept out is past
   [[ -s $UPD/holds ]] || return 0
-  local n v at d why now hold=() spec=()
-  while IFS=" " read -r n v at d why; do
+  local n v at d src why now hold=() spec=()
+  while IFS=" " read -r n v at d src why; do
     [[ -n $n ]] || continue
     now=$(rpm -q --qf '%{evr}\n' "$n" 2>/dev/null | sed -n 1p) || now=""
     if [[ -n $now && $now != "$at" ]]; then
       dnf -q versionlock delete "$n" >/dev/null 2>&1 || true; log "let go: $n $v (now at $now)"; continue
     fi
-    hold+=("$n $v $at $d $why"); spec+=("$n-$v")
+    hold+=("$n $v $at $d $src $why"); spec+=("$n-$v")
   done <"$UPD/holds"
   ((${#spec[@]} == 0)) || dnf -q versionlock exclude "${spec[@]}" >/dev/null 2>&1 || true
   if ((${#hold[@]})); then printf '%s\n' "${hold[@]}" | write_file "$UPD/holds" 0644; else rm -f -- "$UPD/holds"; fi
@@ -342,7 +344,7 @@ u_check() {   # → 0 nothing newly red · 1 (UPD/why lists what)
 u_undo() {
   local n s=(); n=$(cat "$UPD/snap" 2>/dev/null) || n=""
   mapfile -t s < <(awk '$3 != "-" { print $1 }' "$UPD/set" 2>/dev/null)
-  ((${#s[@]})) && up_hold "$(head -n1 "$UPD/why")" "${s[@]}"
+  ((${#s[@]})) && { up_sources; up_hold "$(head -n1 "$UPD/why")" "${s[@]}"; }
   UP_TOGETHER=${#s[@]}   # (the whole set: red only on the running system, so never told apart)
   if [[ -z $n ]]; then UP_END=checks
   elif mountpoint -q /home && /usr/local/sbin/kawa-snap restore "$n"; then UP_END=restored
@@ -373,7 +375,7 @@ u_report() {   # u_report — the outcome: UPD/report (the pane), the log beside
   [[ -z $desk ]] || line+=" · the desktop's check was red before it, so not judged (Super+U → log)"
   ((UP_STAY)) || up_phase end || true
   # (the stored transaction and the downloads kept for the halves: done with, whatever the outcome)
-  rm -rf -- "$UPD/tx" "$UPD/try"; dnf -q clean packages >/dev/null 2>&1 || true
+  rm -rf -- "$UPD/tx" "$UPD/try" "$UPD/sources"; dnf -q clean packages >/dev/null 2>&1 || true
   # (no command that can fail inside these pipes: setup.sh's ERR trap would print from them)
   why=$(cat "$UPD/why" 2>/dev/null) || why=""
   [[ -z $desk ]] || why+=${why:+$'\n'}$(up_labels <<<"$desk" | sed 's/^/red before it: /')
@@ -461,7 +463,7 @@ up_probation_close() {   # this start has reached the desktop: the probation ove
     for n in "${KERNEL_PKGS[@]}"; do
       rpm -q "$n-$kernel" >/dev/null 2>&1 || continue
       pk+=("$n-$kernel")
-      grep -q "^$n $v " "$UPD/holds" 2>/dev/null || printf '%s %s %s %s %s\n' "$n" "$v" "${now%.*}" "$(date +%F)" "did not reach the desktop in three starts" >>"$UPD/holds"
+      grep -q "^$n $v " "$UPD/holds" 2>/dev/null || printf '%s %s %s %s kernel %s\n' "$n" "$v" "${now%.*}" "$(date +%F)" "did not reach the desktop in three starts" >>"$UPD/holds"
       dnf -q versionlock exclude "$n-$v" >/dev/null 2>&1 || log "could not hold $n $v (dnf versionlock)"
     done
     grubby --set-default "/boot/vmlinuz-$now" >/dev/null 2>&1 || log "kernel $now could not be made the default (grubby)"

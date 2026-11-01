@@ -78,9 +78,9 @@ reset_calls; rc 0 fedokawaii update; called '^sudo bash .*fedokawaii.sh update'
 
 case_ "held: what the updates hold back — its count on the row, each with why in the pane (a kernel's packages as one); enter does nothing"
 fresh; mkdir -p "$R/state/update"
-printf '%s\n' 'mesa 26.1-1.fc44 26.0-1.fc44 2026-11-01 the desktop does not start' \
-  'kernel-core 7.2.13-200.fc44 7.2.11-200.fc44 2026-11-01 did not reach the desktop in three starts' \
-  'kernel-modules 7.2.13-200.fc44 7.2.11-200.fc44 2026-11-01 did not reach the desktop in three starts' >"$R/state/update/holds"
+printf '%s\n' 'mesa 26.1-1.fc44 26.0-1.fc44 2026-11-01 mesa the desktop does not start' \
+  'kernel-core 7.2.13-200.fc44 7.2.11-200.fc44 2026-11-01 kernel did not reach the desktop in three starts' \
+  'kernel-modules 7.2.13-200.fc44 7.2.11-200.fc44 2026-11-01 kernel did not reach the desktop in three starts' >"$R/state/update/holds"
 [[ $(plain "$(fedokawaii --rows update | grep -m1 held)") == *" 2" ]] && _ok || _no "the count: $(plain "$(fedokawaii --rows update | grep -m1 held)")"
 out=$(plain "$(fedokawaii --explain held)")
 has "$out" "mesa 26.1-1.fc44"; has "$out" "the desktop does not start"; has "$out" "kernel 7.2.13-200.fc44"; lacks "$out" "kernel-modules"
@@ -90,7 +90,7 @@ rm -f "$R/state/update/holds"; [[ $(plain "$(fedokawaii --rows update | grep -m1
 has "$(plain "$(fedokawaii --explain held)")" "nothing held back."
 case_ "…sixty held at once (a whole set): the row counts sixty, the pane names three, then how many more"
 fresh; mkdir -p "$R/state/update"
-for i in $(seq -w 1 60); do echo "p$i 1.1-1.fc44 1.0-1.fc44 2026-11-01 the desktop does not start"; done >"$R/state/update/holds"
+for i in $(seq -w 1 60); do echo "p$i 1.1-1.fc44 1.0-1.fc44 2026-11-01 p$i the desktop does not start"; done >"$R/state/update/holds"
 [[ $(plain "$(fedokawaii --rows update | grep -m1 held)") == *" 60" ]] && _ok || _no "the count: $(plain "$(fedokawaii --rows update | grep -m1 held)")"
 out=$(plain "$(fedokawaii --explain held)")
 has "$out" "p03 1.1-1.fc44"; lacks "$out" "p04"; has "$out" "and 57 more."; lacks "$out" "…"

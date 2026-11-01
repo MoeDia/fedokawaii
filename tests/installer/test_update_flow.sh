@@ -57,7 +57,7 @@ up; eq "$RC" 0 "$(tail -n3 <<<"$OUT")"
 eq "$(report)" ok; has "$(sed -n 2p "$U/report")" "updated · 3 packages · held: mesa 26.1-1.fc44"
 called 'dnf\] -q versionlock exclude mesa-26.1-1.fc44'
 grep -q '^mesa 26.1-1.fc44 1.0-1.fc44 ' "$U/holds" && _ok || _no "the hold not recorded: $(cat "$U/holds" 2>/dev/null)"
-has "$(cut -d' ' -f5- "$U/holds")" "dwl does not start with mesa"
+eq "$(cut -d' ' -f5 "$U/holds")" mesa "its source recorded"; has "$(cut -d' ' -f6- "$U/holds")" "dwl does not start with mesa"
 grep -q '^mesa ' "$FKH/evr" && _no "mesa went in" || _ok
 grep -q '^zlib 1.3.1-1.fc44$' "$FKH/evr" && _ok || _no "the rest did not go in: $(cat "$FKH/evr")"
 n=$(grep -c 'systemd-nspawn\] .* /usr/bin/bash /run/fk-check$' "$CALLS"); ((n <= 5)) && _ok || _no "$n copies checked for 4 packages (log2: at most 2 rounds of 2, and the set)"
@@ -80,6 +80,7 @@ back built; reset_calls; pending "bash 5.2-1.fc44 5.3-1.fc44" "kernel 7.2.11-200
 fkh srpms "kernel-core kernel" "kernel-modules kernel"; fkh cand-red kernel-core
 up; eq "$RC" 0 "$(tail -n3 <<<"$OUT")"
 eq "$(awk '{ print $1 }' "$U/holds" | sort | tr '\n' ' ')" "kernel kernel-core kernel-modules " "the family held"
+eq "$(awk '{ print $5 }' "$U/holds" | sort -u)" kernel "by its source"; has "$(sed -n 2p "$U/report")" "· held: kernel 7.2.13-200.fc44"; lacks "$(sed -n 2p "$U/report")" "kernel-core"
 grep -q '^bash 5.3-1.fc44$' "$FKH/evr" && grep -q '^zlib 1.3.1-1.fc44$' "$FKH/evr" && _ok || _no "the rest not in: $(cat "$FKH/evr")"
 grep -q '^kernel' "$FKH/evr" && _no "a kernel package went in: $(grep '^kernel' "$FKH/evr")" || _ok
 # (one dnf call holds the family — each call loads the repositories; dnf5 skips what is held already)
@@ -149,9 +150,15 @@ has "$l" "— held: all 60 packages together (which one broke it could not be to
 lacks "$l" "p07"; ((${#l} <= 200)) && _ok || _no "${#l} characters: $l"
 case_ "…holds from before, four families: two named, then how many more"
 back built; reset_calls; mkdir -p "$U"
-for f in ant bee cat dog; do printf '%s 2.0-1.fc44 1.0-1.fc44 2026-11-01 the desktop does not start\n' "$f-libs" "$f-tools"; done >"$U/holds"
+for f in ant bee cat dog; do printf '%s 2.0-1.fc44 1.0-1.fc44 2026-11-01 %s the desktop does not start\n' "$f-libs" "$f" "$f-tools" "$f"; done >"$U/holds"
 up; eq "$RC" 0 "$(tail -n3 <<<"$OUT")"
 eq "$(report)" current; has "$(sed -n 2p "$U/report")" "up to date · held: ant 2.0-1.fc44 · bee 2.0-1.fc44 and 2 more"
+rm -f "$U/holds"
+case_ "…two sources whose names begin alike, at one version and reason: two families, never merged by the prefix"
+back built; reset_calls; mkdir -p "$U"
+printf '%s 3.14.1-1.fc44 3.14.0-1.fc44 2026-11-01 %s the desktop does not start\n' python3-foo python-foo python3-bar python-bar >"$U/holds"
+up; eq "$RC" 0 "$(tail -n3 <<<"$OUT")"
+has "$(sed -n 2p "$U/report")" "up to date · held: python3-foo 3.14.1-1.fc44 · python3-bar 3.14.1-1.fc44"
 rm -f "$U/holds"
 
 case_ "the desktop's start check red before the update already: not counted against it — kept, and said"
@@ -299,7 +306,7 @@ case_ "GRUB took the one before after three starts: the new kernel held at its v
 back built; reset_calls; cut_run; rm -f "$U/phase"; fkh kernels "$K" "$NEWK"; echo "7 $NEWK 2026-11-01" >"$U/probation"
 fkh grubenv boot_success=1 boot_counter=-1
 good; eq "$RC" 0 "$OUT"
-grep -q "^kernel-core ${NEWK%.*} ${K%.*} [0-9-]* did not reach the desktop in three starts$" "$U/holds" && _ok || _no "not held: $(cat "$U/holds" 2>/dev/null)"
+grep -q "^kernel-core ${NEWK%.*} ${K%.*} [0-9-]* kernel did not reach the desktop in three starts$" "$U/holds" && _ok || _no "not held: $(cat "$U/holds" 2>/dev/null)"
 called "dnf\] -q versionlock exclude kernel-core-${NEWK%.*}"; called "grubby\] --set-default /boot/vmlinuz-$K"
 called "dnf\] -y --disable-repo=\* remove kernel-$NEWK kernel-core-$NEWK kernel-modules-$NEWK kernel-modules-core-$NEWK"
 has "$(foryou)" "update-kernel kernel $NEWK did not reach the desktop in three starts back on $K"

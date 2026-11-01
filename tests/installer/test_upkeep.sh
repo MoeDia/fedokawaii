@@ -203,7 +203,7 @@ not_called 'systemd-run\] .* /usr/bin/dnf .*repoquery'; called '^root\[dnf\] -q 
 has "$OUT" "(as fedokawaii-dnf-"
 case_ "update: the manifest's install after the upgrade is detached too"
 back built; fkh_del installed bat; fkh pending "bash 5.2-1.fc44 5.3-1.fc44"; fkh_add installed bash; reset_calls
-tk --update; called 'systemd-run\] .*--wait .* /usr/bin/stdbuf -oL -eL /usr/bin/dnf -y -C replay /var/lib/fedokawaii/update/tx'; called 'systemd-run\] .*--wait .* /usr/bin/dnf -y install bat$'
+tk --update; called 'systemd-run\] .*--wait .* /usr/bin/dnf -y -C replay /var/lib/fedokawaii/update/tx'; not_called 'systemd-run\] .*stdbuf'; called 'systemd-run\] .*--wait .* /usr/bin/dnf -y install bat$'
 # ── a machine set up before these: the user in input, no record of it; no Bluetooth or
 #    shutdown setting; systemd-oomd-defaults brought by something ───────────────────────
 earlier() { fk usermod -aG input fkuser; rm -f "$W/var/lib/fedokawaii/input-group-out" \

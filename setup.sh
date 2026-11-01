@@ -2580,11 +2580,12 @@ need_space() {   # need_space PATH MiB — stop, saying what to do, when there i
 # stops, or systemd restarting itself during the update can never cut it off halfway. Its
 # output goes to the journal (no file for the service to be allowed to write: SELinux has
 # no say), is followed here as it comes, and is copied into the log at the end. Never
-# given a time limit. Its output line by line (stdbuf -oL): without a terminal dnf's output is
-# block-buffered, so the window showed nothing for the whole download — an update that looked
-# stuck. A transaction a run before left going (its window closed, Ctrl+C, the update's own unit
-# stopped) is followed to its end first (dnf_settle): a new dnf would wait on its lock, saying
-# nothing — and an update cut in its transaction must not be judged while it still writes.
+# given a time limit. dnf5 flushes each line itself (measured 1 Nov, 5.4.6 into the journal:
+# every package's line as its download ends), so no stdbuf — its LD_PRELOAD reached every
+# scriptlet, and confined ones were denied it (setfiles_t AVCs each update). A transaction a
+# run before left going (its window closed, Ctrl+C, the update's own unit stopped) is followed
+# to its end first (dnf_settle): a new dnf would wait on its lock, saying nothing — and an
+# update cut in its transaction must not be judged while it still writes.
 dnf_settle() {
   local prev f n
   prev=$(systemctl list-units --plain --no-legend --state=active 'fedokawaii-dnf-*.service' 2>/dev/null | awk 'NR == 1 { print $1 }')
@@ -2610,7 +2611,7 @@ dnf_detached() {   # dnf_detached ARG… — dnf ARG…, detached from this sess
   FOLLOWER=$!
   systemd-run --quiet --unit="$unit" --service-type=exec --wait --collect -p TimeoutStopSec=10min \
     -p StandardOutput=journal -p StandardError=journal -p SyslogIdentifier=fedokawaii-dnf \
-    -E LC_ALL=C.UTF-8 /usr/bin/stdbuf -oL -eL /usr/bin/dnf "$@" 9>&- && rc=0 || rc=$?
+    -E LC_ALL=C.UTF-8 /usr/bin/dnf "$@" 9>&- && rc=0 || rc=$?
   # dnf's last lines (its error, which decides whether a new try can mend it) written into the
   # journal before the follower is stopped: --sync returns once journald has every line its
   # writers sent; a second more lets the follower print them
