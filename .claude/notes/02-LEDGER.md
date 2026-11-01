@@ -1951,6 +1951,44 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   systemd/systemd-container, dnf5 repoquery: fedora + updates). test_verify 173/0 (+2), test_report_rows
   269/0. Left for the next pass: finding (1), then update-green.sh to a green run.
 
+- r27-49c (cont., 1 Nov 07:52, t45 66b9252): finding (1) was the CHECK's, not the container's —
+  Fedora's kernel has btrfs built in (CONFIG_BTRFS_FS=y in /boot/config-7.2.11-200.fc44.x86_64,
+  kernel/fs/btrfs/btrfs.ko in modules.builtin; virtio_blk too in the VM), so "no btrfs.ko in the
+  image" was always red. Measured: dracut's host-only image made inside an nspawn candidate (with
+  and without the root device bound read-only, DeviceAllow r) and on the host hold the same modules
+  — the PC 452 = 452 = 452, the VM 440 = 440 = 440 (dracut 108; the "failed to get device size"
+  warning changes nothing). lib/cand-check.sh now wants every driver of the image that starts the
+  machine today (bound read-only at /run/fk-ref.img by cand_run) in the new image or built into the
+  new kernel (modules.builtin), skipping modules the new kernel no longer ships (modules.dep), plus
+  btrfs (+ amdgpu on AMD) the same way. Proven in a real container on the PC: a full image green, an
+  image made with --omit-drivers nvme red "lacks what today's has: nvme". test_update_flow 131/0.
+  No device bind needed (left out: nothing it changes). The VM run with it: next line.
+- r27-52b (1 Nov 07:40–08:05; T48 FIRST (2), wip on branch t48 610a55d, NOT on main or the PC):
+  system/fedokawaii-split — arm (repair's r_system, setup's end, `setup.sh --layout`: a snapshot
+  first; refused, nothing changed, while another /system-update waits, a top-level home/log/fk/
+  snapshots exists, a layout path is mounted from elsewhere, or free < du(home + var/log) + 5 GiB),
+  run (fedokawaii-split.service in system-update.target, systemd.offline-updates(7): each of /home,
+  /var/log, /var/lib/fedokawaii/update copied into NAME.part with cp -aT --reflink=auto -x — auto,
+  because btrfs will not reflink journald's NOCOW files (lsattr: /var/log/journal is C) — compared
+  entry by entry (type, mode, owners, SELinux label, time, size) and 64 files by content, then
+  named; ~/Downloads and ~/VM (subvolumes) and .snapshots moved by rename, never copied; fstab given
+  the four lines (same device and options as /, subvol=NAME), findmnt --verify; each step synced; a
+  cut resumes at the next start (the link stays until the end); a failure or a fourth start puts all
+  of it back (old fstab, moves undone, copies deleted — never one holding a subvolume) and keeps the
+  reason + the program's sha256 in split.failed so repair does not arm the same split again), clean
+  (in a later start: root's hidden old /home, /var/log, update copies removed with rm
+  --one-file-system, never where a subvolume sits), state, fstab FILE TOP. kawa-snap: snapshots
+  read at the top (snapshots) or inside root (before), --with-home only while /home has no
+  subvolume of its own, a restored root from before the split gets the layout's fstab lines (so
+  his files stay today's). The snapshot-boot notice keys on systemd.volatile=overlay (the flat
+  paths have no "/.snapshots/"). verify: the layout row. Measured on the PC: /home 35 G in 236 271
+  files outside Downloads/VM, /var/log 552 M, 849 G free; `cp -x` leaves an empty folder where a
+  nested subvolume sits (tested), the fstab writer on a copy of /etc/fstab (a stale /home line
+  replaced). test_snap 193/0 (+4: list and restore on the flat layout, the fstab lines, a copy
+  that cannot take them), test_split 51/0 (new). The VM proof tools/vm-inject/split-cut.sh (none,
+  six cut points, two failures, the clean, a restore from before the split) runs next; the PC only
+  after it is green (a restart: the owner's PC).
+
 ## >>> NEXT PASS STARTS HERE (1 Nov 07:10): the inbox first. Then:
 ## (1) T48 FIRST (2): the flat layout (snapshots, home, log, fk at the top level; kawa-snap reading
 ##     $top/snapshots) and the offline /home split (a unit under system-update.target, cp -aT

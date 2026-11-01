@@ -269,10 +269,17 @@ btrfs subvolume snapshot "$src" "$copy" >/dev/null || fail "the writable copy of
 if ! { : >"$copy/$mark" && mv -T --no-copy "$copy" "$new"; }; then gone "$copy"; fail "the copy of $N could not be made ready — nothing changed"; fi
 power_cut copied
 undo() {   # undo WHY — before the exchange only: the kernels this run added out of /boot, the copy gone
-  local v
-  for v in "${added[@]}"; do inside kernel-install remove "$v" >/dev/null 2>&1; done
+  local v left=""
+  for v in "${added[@]}"; do
+    inside kernel-install remove "$v" >/dev/null 2>&1
+    # (an entry kernel-install did not take — a name without its token: said; the system that runs
+    # has no modules for v, so the next start's one-kernel rule takes it out)
+    if [[ -e /boot/vmlinuz-$v ]] || compgen -G "/boot/loader/entries/*$v.conf" >/dev/null; then left+=" $v"; fi
+  done
   [[ -n $skb ]] && printf '%s\n' "$skb" >"$sk"
-  unbind; gone "$new"; fail "$* — nothing changed"
+  unbind; gone "$new"
+  [[ -z $left ]] || echo "kawa-snap: kernel$left is still in /boot — unused; the next start takes it out" >&2
+  fail "$* — nothing changed"
 }
 # the copy's first start must not relabel everything or run an old offline update (§3.1)
 rm -f -- "$new/.autorelabel" "$new/system-update" "$new/etc/system-update"
