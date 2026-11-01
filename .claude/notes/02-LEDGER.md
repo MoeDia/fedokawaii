@@ -1725,3 +1725,31 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   toolkit, `git verify-tag` before the re-exec; RuntimeWatchdogSec armed only during a probation;
   §5 rows and §6 attacks renumbered in order (1–44, 1–35).
 - r27-47 DONE, r27-48 DONE (1 Nov 03:58; master PASS) — T43, T44.
+- r27-52a-restore (1 Nov 04:20; T48 FIRST (1), wip — the code and its stub tests; the VM's cut-point proof
+  and the master next pass) — system/kawa-snap restore hardened per update-design.md §3.1 (B5's three
+  unsafe spots): ONE `exch` (util-linux 2.41.5, renameat2 RENAME_EXCHANGE) instead of two renames —
+  never a moment without `root`; `btrfs filesystem sync` before and after it and after the moves; the
+  copy's kernels added with its /etc/sysconfig/kernel at UPDATEDEFAULT=no for the add (restored after),
+  the default set once, last (grubby after the exchange); nested subvolumes (the snapshots …) moved only
+  after the exchange (a cut between leaves them in root.new — and a leftover root.new holding a
+  subvolume is never deleted: said, nothing changed); deletions `--commit-after`, never `-R`; the
+  copy's /.autorelabel and /system-update removed before it can start; root.old kept, the one before
+  with its time, at most two (sorted by the time suffix — the top path itself has a hyphen); the kernels
+  the restored system lacks no longer removed at once: setup.sh's new orphan_kernels_out (the boot's
+  kernels run, once the start reached the desktop: boot_success=1) takes kernels with no modules in
+  /usr/lib/modules out with kernel-install remove. Tests: tests/engine/test_snap.sh 114/0 (+5 cases:
+  the exchange and the syncs, UPDATEDEFAULT off during the add and back, the default after the
+  exchange, the copy starting clean, a failing exchange changing nothing, a held root.new never
+  deleted, two timestamped kept; the fixture's top path now hyphenated like the real one);
+  tests/installer/test_upkeep.sh 227/0 (+1: orphans go only after the desktop, the running kernel's
+  entry kept; a kernel-install stand-in in tests/installer/stubs); test_deps (exch: util-linux,
+  @core), test_pipefail (no pipe into head) green.
+
+## >>> NEXT PASS STARTS HERE (1 Nov 04:10): the inbox first. Then, the update system (the master's order):
+## (1) T48 FIRST (1)'s proof in the VM — a tools/vm-inject/restore-cut.sh that powers the VM off after
+##     each step of `kawa-snap restore` (copy · kernels added · exchanged · moved · renamed · default set)
+##     and checks every start boots a whole system with its snapshots; then the master; then apply
+##     (kawa-snap is not live yet: the PC keeps the old one until the proof).
+## (2) T48 FIRST (2): the flat layout (snapshots, home, log, fk at the top level) and the offline /home
+##     split — VM first. (3) T45 (a)–(c): kawa-update's state machine on stubs, then the candidate in
+##     nspawn (the core is proven: r27-49-exp1/2). Owed: T19m pass 2's GTK dialog + zathura shots.

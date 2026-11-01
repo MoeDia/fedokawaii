@@ -101,6 +101,7 @@ tuned-adm           manifest  tuned              # kawa-game: the game's profile
 ionice              minimal   util-linux        # @core (kawa-wallpaper: its background drawing at idle priority)
 setsid              minimal   util-linux-core   # f44
 lsblk               minimal   util-linux        # @core (not in -core, f44)
+exch                minimal   util-linux        # @core (util-linux 2.41: renameat2 RENAME_EXCHANGE — kawa-snap restore, f44)
 findmnt             minimal   util-linux-core   # f44
 mountpoint          minimal   util-linux-core   # f44
 blkid               minimal   util-linux-core   # f44

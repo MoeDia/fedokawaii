@@ -287,6 +287,14 @@ reset_calls; tk --kernels; eq "$RC" 0; not_called 'remove kernel'
 has "$OUT" "this start has not reached the desktop for two minutes"
 grubenv boot_success=1; tk --kernels; eq "$RC" 0
 called 'remove kernel-6.18.1-200.fc44.x86_64'; eq "$(cat "$FKH/kernels")" "$(uname -r)"
+case_ "the start-up run: kernels a restore left in /boot without modules go (kernel-install remove) — once this start reached the desktop"
+back built; fkh kernels "$(uname -r)"; mkdir -p "$W/boot/loader/entries"
+printf 'title Fedora\nversion 5.0.1-100.fc44.x86_64\n' >"$W/boot/loader/entries/x-5.0.1-100.fc44.x86_64.conf"
+printf 'title Fedora\nversion %s\n' "$(uname -r)" >"$W/boot/loader/entries/x-$(uname -r).conf"
+grubenv boot_success=0; reset_calls; tk --kernels; eq "$RC" 0; not_called 'kernel-install\] remove'
+grubenv boot_success=1; reset_calls; tk --kernels; eq "$RC" 0
+called 'kernel-install\] remove 5.0.1-100.fc44.x86_64'; not_called "kernel-install\\] remove $(uname -r)"
+has "$OUT" "has no modules in this system"; [[ -f $W/boot/loader/entries/x-$(uname -r).conf ]] && _ok || _no "the running kernel's entry went"
 case_ "the start-up run while another run holds the lock, or before setup has finished: nothing, quietly"
 back built; fkh kernels "6.18.1-200.fc44.x86_64" "$(uname -r)"; grubenv boot_success=1
 echo 3 >"$W/var/lib/fedokawaii/phase"; reset_calls; tk --kernels; eq "$RC" 0; not_called 'remove kernel'

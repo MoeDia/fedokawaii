@@ -1,0 +1,6 @@
+#!/bin/bash
+# kernel-install of the fake Fedora — remove VERSION takes that version's boot entry out of /boot
+. /usr/local/bin/_lib.sh
+fkh_log "$*"
+[[ ${1:-} == remove && -n ${2:-} ]] && rm -f /boot/loader/entries/*-"$2".conf
+exit "$(rcfor kernel-install 0)"

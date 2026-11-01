@@ -498,6 +498,21 @@ old_kernels_out() {   # old_kernels_out [desktop]
   # (no repository needed to remove: none is asked, so it works offline too)
   run dnf -y --disable-repo='*' remove "${pk[@]}"
 }
+# orphan_kernels_out [desktop] — kernels in /boot this system has no modules for (a restore leaves
+# them: the restored rpm database never had them, so dnf cannot take them) go, by kernel-install —
+# once this start has reached the desktop (kawa-snap restore keeps them until then: design §3.1)
+orphan_kernels_out() {
+  local e v now
+  now=$(uname -r)
+  if [[ ${1:-} == desktop ]] && ! grep -qx boot_success=1 < <(grub2-editenv - list 2>/dev/null); then return 0; fi
+  for e in /boot/loader/entries/*.conf; do
+    [[ -f $e ]] || continue
+    v=$(sed -n 's/^version[[:space:]]\{1,\}//p;T;q' "$e")   # (the first version line: sed stops there, no pipe)
+    [[ -n $v && $v != *rescue* && $v != "$now" && ! -d /usr/lib/modules/$v ]] || continue
+    log "kernel $v has no modules in this system (left by a restore) — out of /boot"
+    kernel-install remove "$v" >/dev/null 2>&1 || log "kernel-install could not remove kernel $v — the boot menu still lists it"
+  done
+}
 one_kernel() { s_kernels; old_kernels_out; }   # (setup: the installer's kernel, once the newest runs)
 # s_kernels — the rule at every start: a quarter of an hour in, the boot's own run
 s_kernels() {
@@ -3378,7 +3393,7 @@ case $MODE in
   after-upgrade) do_after_upgrade; exit 0 ;;
   after-dnf) do_after_dnf && exit 0; exit 3 ;;
   repair) do_repair; exit 0 ;;
-  kernels) [[ $(phase) == 'done' ]] || exit 0; old_kernels_out desktop; exit 0 ;;
+  kernels) [[ $(phase) == 'done' ]] || exit 0; orphan_kernels_out desktop; old_kernels_out desktop; exit 0 ;;
   toolkit) [[ $(phase) == 'done' ]] || die "the build is not finished — setup makes the toolkit itself"
            [[ $REPO_DIR != "$TOOLKIT" ]] || { ok "this is the toolkit already"; exit 0; }
            toolkit_first; install_toolkit           # (the second: the fedokawaii command, from it)

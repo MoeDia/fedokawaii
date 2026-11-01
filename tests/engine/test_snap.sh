@@ -121,7 +121,7 @@ for a in "" 0 x -1 '41;id'; do rc 2 kawa-snap restore "$a"; done
 # ── list and restore: the disk's top level a folder here ────────────────────────────────
 disk() {   # a Fedora layout: root (kernel 6.18.0, marked "now"), its snapshots 1 and 41 (kernel 6.17.1, "then")
   fresh
-  T=$TMP/top B=$TMP/boot; mkdir -p "$T" "$B/loader/entries"
+  T=$TMP/kawa-snap/top B=$TMP/boot; mkdir -p "$T" "$B/loader/entries"
   pointed "$REPO/system/kawa-snap" "$STUBS/kawa-snap" \
     "s|/proc/|$P/|g" "s|^state=/run/kawa-snap.pre\$|state=$TMP/runroot/kawa-snap.pre|" \
     's|\[\[ \$EUID -eq 0 \]\]|[[ ${FK_EUID:-$EUID} -eq 0 ]]|' \
@@ -130,8 +130,11 @@ disk() {   # a Fedora layout: root (kernel 6.18.0, marked "now"), its snapshots 
     mkdir -p "$1/usr/lib/modules/$2" "$1/etc" "$1/.snapshots"; : >"$1/usr/lib/modules/$2/vmlinuz"; echo "$3" >"$1/etc/mark"
   }
   mk "$T/root" 6.18.0 now
+  mkdir -p "$T/root/etc/sysconfig"; echo UPDATEDEFAULT=yes >"$T/root/etc/sysconfig/kernel"; rm -f "$TMP/adds" "$TMP/recursive"
   for n in 1 41; do
     mk "$T/root/.snapshots/$n/snapshot" 6.17.1 "then$n"
+    mkdir -p "$T/root/.snapshots/$n/snapshot/etc/sysconfig"; echo UPDATEDEFAULT=yes >"$T/root/.snapshots/$n/snapshot/etc/sysconfig/kernel"
+    : >"$T/root/.snapshots/$n/snapshot/.autorelabel"; ln -sf /var/lib/dnf/system-upgrade "$T/root/.snapshots/$n/snapshot/system-update"
     printf '<?xml version="1.0"?>\n<snapshot>\n  <type>%s</type>\n  <num>%s</num>\n  <date>2026-10-1%s 09:00:00</date>\n  <description>%s</description>\n</snapshot>\n' \
       "$([[ $n == 1 ]] && echo single || echo pre)" "$n" "${n:0:1}" "$([[ $n == 1 ]] && echo 'fedokawaii baseline' || echo 'dnf install a &amp; b')" >"$T/root/.snapshots/$n/info.xml"
   done
@@ -139,12 +142,17 @@ disk() {   # a Fedora layout: root (kernel 6.18.0, marked "now"), its snapshots 
   stub findmnt 'case "$*" in *--fstab*) echo rw,subvol=root,compress=zstd:1 ;; *FSTYPE*) echo btrfs ;;
   *FSROOT*) echo "${FK_FSROOT:-/root}" ;; *SOURCE*) echo "/dev/vda3[/root]" ;; esac'
   stub mountpoint "[ \"\$2\" = \"$T\" ]"
-  stub mount; stub umount; stub restorecon; stub grubby; stub chroot 'shift; [ "$1 $2" != "kernel-install add" ] || exit "${FK_ADD:-0}"'
+  stub mount; stub umount; stub restorecon; stub grubby; stub sync
+  # (the add records the copy's UPDATEDEFAULT as it runs: the default must not move with it)
+  stub chroot 'r=$1; shift; [ "$1 $2" != "kernel-install add" ] || { sed -n "s/^UPDATEDEFAULT=/updatedefault=/p" "$r/etc/sysconfig/kernel" >>"'"$TMP"'/adds"; exit "${FK_ADD:-0}"; }'
   stub kernel-install
+  # (exch: the two names swapped in one step, as renameat2 RENAME_EXCHANGE does)
+  stub exch '[ -n "${FK_EXCH_FAIL:-}" ] && exit 1; mv -T "$1" "$1.x" && mv -T "$2" "$1" && mv -T "$1.x" "$2"'
   stub btrfs 'case "$1 $2" in
   "subvolume snapshot") cp -a "$3" "$4" ;;
-  "subvolume delete") shift 2; [ "$1" = -R ] && shift; rm -rf "$1" ;;
-  "subvolume list") [ -d "$4/.snapshots/1" ] && echo "ID 260 gen 9 top level 256 path <FS_TREE>/root/.snapshots" ;;
+  "subvolume delete") shift 2; [ "$1" = -R ] && { echo "delete -R" >>"'"$TMP"'/recursive"; shift; }; [ "$1" = --commit-after ] && shift; rm -rf "$1" ;;
+  "subvolume list") [ -d "$4/.snapshots/1" ] && echo "ID 260 gen 9 top level 256 path <FS_TREE>/${4##*/}/.snapshots" ;;
+  "filesystem sync") ;;
   "subvolume show") printf "\tCreation time:\t\t2026-10-16 08:00:00 +0000\n" ;;
 esac'
 }
@@ -160,8 +168,17 @@ disk; out=$(kawa-snap restore 41 2>&1); eq "$?" 0 "$out"
 eq "$(cat "$T/root/etc/mark")" then41; eq "$(cat "$T/root.old/etc/mark")" now
 [[ -f $T/root/.snapshots/41/info.xml && ! -e $T/root.old/.snapshots/41 ]] && _ok || _no "the snapshots did not move across"
 called '^chroot .*/top/root.new kernel-install add 6.17.1 /usr/lib/modules/6.17.1/vmlinuz$'
-called '^kernel-install remove 6.18.0$'; called "^grubby --set-default $B/vmlinuz-6.17.1\$"
+called "^grubby --set-default $B/vmlinuz-6.17.1\$"
 has "$out" "restart now"
+case_ "…in one atomic exchange, synced before and after; the kernels it lacks stay until it has started (no remove now)"
+called "^exch $T/root $T/root.new\$"; [[ ! -e $T/root.new ]] && _ok || _no "root.new left behind"
+eq "$(grep -c '^btrfs filesystem sync' "$CALLS")" 3 "three syncs (before and after the exchange, after the moves)"
+not_called '^kernel-install remove'; [[ ! -e $TMP/recursive ]] && _ok || _no "a recursive delete ran"
+case_ "…the kernels added without moving the default (the copy's UPDATEDEFAULT off for the add, back after), the default set last"
+eq "$(cat "$TMP/adds")" updatedefault=no; eq "$(cat "$T/root/etc/sysconfig/kernel")" UPDATEDEFAULT=yes
+eq "$(grep -n -E '^(exch|grubby)' "$CALLS" | cut -d: -f2 | cut -d' ' -f1 | paste -sd' ')" "exch grubby" "the default after the exchange"
+case_ "…the copy starts clean: no /.autorelabel, no /system-update from the snapshot"
+[[ ! -e $T/root/.autorelabel && ! -L $T/root/system-update ]] && _ok || _no "a relabel or an offline update would run at its first start"
 case_ "restore old: swapped back — the system before the restore again"
 kawa-snap restore old >/dev/null 2>&1; eq "$?" 0
 eq "$(cat "$T/root/etc/mark")" now; eq "$(cat "$T/root.old/etc/mark")" then41
@@ -170,6 +187,18 @@ case_ "restore whose kernel cannot be put back into /boot: nothing changed"
 disk; FK_ADD=1 kawa-snap restore 41 >/dev/null 2>&1; eq "$?" 1
 eq "$(cat "$T/root/etc/mark")" now; [[ ! -e $T/root.old && ! -e $T/root.new ]] && _ok || _no "left changed"
 not_called '^grubby'
+case_ "an exchange that fails: nothing changed, the copy gone, the default untouched"
+disk; FK_EXCH_FAIL=1 kawa-snap restore 41 >/dev/null 2>&1; eq "$?" 1
+eq "$(cat "$T/root/etc/mark")" now; [[ ! -e $T/root.new && ! -e $T/root.old ]] && _ok || _no "left changed"
+not_called '^grubby'
+case_ "a root.new holding a subvolume (a restore cut after its exchange) is never deleted: said, nothing changed"
+disk; mkdir -p "$T/root.new/.snapshots/1"; echo before >"$T/root.new/etc-mark"
+out=$(kawa-snap restore 41 2>&1); eq "$?" 1; has "$out" "holds subvolumes"
+[[ -e $T/root.new/.snapshots/1 && -e $T/root.new/etc-mark ]] && _ok || _no "the leftover was deleted"
+case_ "older replaced systems: two kept with their time, the older ones removed"
+disk; for t in 100 200 300; do mkdir -p "$T/root.old-$t"; done; mkdir -p "$T/root.old"; echo older >"$T/root.old/etc-mark"
+kawa-snap restore 41 >/dev/null 2>&1; eq "$?" 0
+eq "$(cd "$T" && ls -d root.old-* | wc -l)" 2 "two timestamped kept"; [[ ! -e $T/root.old-100 && -e $T/root.old-300 ]] && _ok || _no "the wrong ones went"
 case_ "restore of a number that is not there: nothing changed"
 disk; out=$(kawa-snap restore 7 2>&1); eq "$?" 1; has "$out" "no snapshot 7"; not_called '^btrfs subvolume snapshot'
 

@@ -14,10 +14,12 @@
 #                              NUMBER TAB TYPE TAB DATE (UTC) TAB DESCRIPTION TAB booted|-
 #                              — and "old", the system a restore replaced, while it is kept
 #   kawa-snap restore N|old    snapshot N becomes the system at the next start: a writable copy
-#                              of it takes the place of the root subvolume, the one replaced is
-#                              kept as ROOT.old (restore old swaps them back), the snapshots and
-#                              any other subvolume inside it move across, and /boot is made to
-#                              match (the kernels that copy has; its newest is the default)
+#                              of it is exchanged with the root subvolume in one atomic step, the
+#                              one replaced is kept as ROOT.old (restore old swaps them back; two
+#                              older ones kept with their time), the snapshots and any other
+#                              subvolume inside it move across, and /boot is made to match (the
+#                              kernels that copy has go back in; its newest becomes the default,
+#                              set last; the kernels it lacks stay until it has started)
 # Or at power-on: hold Shift (Esc/F8) for the boot menu → snapshots (each starts as it was,
 #   on a layer in memory: everything works, nothing done there is kept; then kawa-snap
 #   restore N from there).
@@ -134,23 +136,32 @@ if [[ $1 == list ]]; then
 fi
 
 # ── restore ──────────────────────────────────────────────────────────────────────────────
-# Everything that can fail happens on the new copy, before anything else moves: a restore that
-# stops there leaves the system exactly as it was. Then two renames swap the copy in (the root
-# subvolume is missing only between them), and /boot is matched to the copy.
+# Every step leaves a system that starts (design: .claude/notes/update-design.md §3.1): the copy
+# and its kernels are made first, nothing else changes; then ONE atomic exchange (exch: renameat2
+# RENAME_EXCHANGE — never a moment without a root subvolume, which the kernel mounts by name),
+# synced; then what lived inside the replaced root (the snapshots …) moves across, and the
+# default kernel is set — last. Nothing that may hold a subvolume is ever deleted recursively.
 N=$2
 mount_top
 src=$top/$T/.snapshots/$N/snapshot; [[ $N == old ]] && src=$top/$T.old
 [[ -d $src ]] || fail "there is no snapshot $N (kawa-snap list shows them)"
 [[ -d $top/$T ]] || fail "the root subvolume $T is not on this disk"
-new=$top/$T.new swap=$top/$T.swap
+command -v exch >/dev/null || fail "exch (util-linux) is missing — the exchange could not be atomic; nothing changed"
+new=$top/$T.new
 binds=()
 unbind() { local i; for ((i = ${#binds[@]} - 1; i >= 0; i--)); do umount "${binds[i]}" 2>/dev/null; done; binds=(); }
-# (a run stopped half-way earlier: its leftovers go first — never the system or what it replaced)
-for x in "$new" "$swap"; do
-  [[ -d $x ]] && { btrfs subvolume delete -R "$x" >/dev/null 2>&1 || fail "a leftover $x could not be removed"; }
-done
+gone() { btrfs subvolume delete --commit-after "$1" >/dev/null 2>&1; }   # (never -R: one subvolume, synced)
+# (a copy a run stopped half-way left: removed — unless a subvolume lives inside it, which only a
+# cut between the exchange and the moves below leaves: then it is the system that ran, kept)
+if [[ -d $new ]]; then
+  [[ -z $(btrfs subvolume list -o "$new" 2>/dev/null) ]] \
+    || fail "$T.new holds subvolumes (a restore cut short after its exchange): nothing removed — $T is the restored system, $T.new the one before it; btrfs subvolume list -o $new"
+  gone "$new" || fail "a leftover $T.new could not be removed"
+fi
 btrfs subvolume snapshot "$src" "$new" >/dev/null || fail "the writable copy of $N could not be made — nothing changed"
-undo() { unbind; btrfs subvolume delete -R "$new" >/dev/null 2>&1; fail "$* — nothing changed"; }
+undo() { unbind; gone "$new"; fail "$* — nothing changed"; }
+# the copy's first start must not relabel everything or run an old offline update (§3.1)
+rm -f -- "$new/.autorelabel" "$new/system-update"
 # the kernels the copy has (each with its vmlinuz: Fedora keeps one beside its modules)
 mapfile -t K < <(for m in "$new"/usr/lib/modules/*/vmlinuz; do [[ -f $m ]] && m=${m%/vmlinuz} && echo "${m##*/}"; done | sort -V)
 ((${#K[@]})) || undo "snapshot $N has no kernel in /usr/lib/modules"
@@ -166,39 +177,45 @@ inside() {
   fi
   chroot "$new" "$@"
 }
+# …added without making any of them the default (the copy's UPDATEDEFAULT off for the run): a
+# cut before the exchange then starts the system that runs now, with its own kernel
+sk=$new/etc/sysconfig/kernel skb=""
+[[ -f $sk ]] && skb=$(<"$sk") && sed -i 's/^UPDATEDEFAULT=.*/UPDATEDEFAULT=no/' "$sk"
 for v in "${K[@]}"; do
   [[ -f /boot/vmlinuz-$v ]] && continue
   echo "kawa-snap: kernel $v back into /boot (its boot image is made: a minute or two)"
   inside kernel-install add "$v" "/usr/lib/modules/$v/vmlinuz" >/dev/null 2>&1 \
-    || { inside kernel-install remove "$v" >/dev/null 2>&1; undo "kernel $v could not be put back into /boot"; }
+    || { inside kernel-install remove "$v" >/dev/null 2>&1; [[ -n $skb ]] && printf '%s\n' "$skb" >"$sk"; undo "kernel $v could not be put back into /boot"; }
 done
+[[ -n $skb ]] && printf '%s\n' "$skb" >"$sk"
 unbind
-# the subvolumes inside the running one (the snapshots themselves, systemd's machines…): a
-# snapshot holds an empty folder where each was — moved across into it
+# the exchange: the copy is the root subvolume from here; $new names the system that ran
+btrfs filesystem sync "$top" >/dev/null 2>&1
+exch "$top/$T" "$new" || undo "the exchange failed"
+btrfs filesystem sync "$top" >/dev/null 2>&1
+# what lived inside the replaced root (the snapshots, systemd's machines …): a snapshot holds an
+# empty folder where each was — moved across into it
 while IFS= read -r p; do
-  p=${p#<FS_TREE>/}; rel=${p#"$T"/}
-  [[ $p == "$T"/* && -n $rel ]] || continue
-  if [[ -d $new/$rel ]]; then
-    rmdir "$new/$rel" 2>/dev/null || { echo "kawa-snap: $rel is not empty in snapshot $N — left in $T.old" >&2; continue; }
-  else mkdir -p "$(dirname "$new/$rel")"; fi
-  mv -T "$top/$T/$rel" "$new/$rel" || echo "kawa-snap: $rel could not move across — left in $T.old" >&2
-done < <(btrfs subvolume list -o "$top/$T" 2>/dev/null | sed -n 's/.* path //p')
-# the swap: the copy is the root subvolume, the one replaced is ROOT.old (an older one goes)
-mv -T "$top/$T" "$swap" || undo "$T could not be renamed"
-mv -T "$new" "$top/$T" || { mv -T "$swap" "$top/$T"; fail "the copy could not take $T's place — put back as it was"; }
-if [[ -d $top/$T.old ]]; then btrfs subvolume delete -R "$top/$T.old" >/dev/null 2>&1 || echo "kawa-snap: the older $T.old could not be removed" >&2; fi
-[[ -d $top/$T.old ]] && mv -T "$top/$T.old" "$top/$T.old-$(date +%s)"
-mv -T "$swap" "$top/$T.old" || echo "kawa-snap: the system before is kept as $T.swap (it could not be named $T.old)" >&2
-# /boot matched: the kernels the restored system lacks go, its newest is the default
-for e in /boot/loader/entries/*.conf; do
-  [[ -f $e ]] || continue
-  v=$(sed -n 's/^version[[:space:]]\{1,\}//p' "$e" | head -n1)
-  [[ -n $v && $v != *rescue* ]] || continue
-  grep -qxF -- "$v" < <(printf '%s\n' "${K[@]}") && continue
-  kernel-install remove "$v" >/dev/null 2>&1 || rm -f -- "$e"
+  p=${p#<FS_TREE>/}; rel=${p#"$T.new"/}
+  [[ $p == "$T.new"/* && -n $rel ]] || continue
+  if [[ -d $top/$T/$rel ]]; then
+    rmdir "$top/$T/$rel" 2>/dev/null || { echo "kawa-snap: $rel is not empty in snapshot $N — left in $T.old" >&2; continue; }
+  else mkdir -p "$(dirname "$top/$T/$rel")"; fi
+  mv -T "$new/$rel" "$top/$T/$rel" || echo "kawa-snap: $rel could not move across — left in $T.old" >&2
+done < <(btrfs subvolume list -o "$new" 2>/dev/null | sed -n 's/.* path //p')
+# the one replaced: ROOT.old; the one before it kept with its time, at most two of those
+if [[ -d $top/$T.old ]]; then mv -T "$top/$T.old" "$top/$T.old-$(date +%s)" || echo "kawa-snap: the older $T.old could not be renamed" >&2; fi
+mapfile -t olds < <(for o in "$top/$T".old-*; do [[ -d $o ]] && echo "${o##*-} $o"; done | sort -n | cut -d' ' -f2-)
+for ((i = 0; i < ${#olds[@]} - 2; i++)); do
+  [[ -z $(btrfs subvolume list -o "${olds[i]}" 2>/dev/null) ]] && gone "${olds[i]}" || echo "kawa-snap: ${olds[i]##*/} kept (it holds a subvolume)" >&2
 done
+mv -T "$new" "$top/$T.old" || echo "kawa-snap: the system before is kept as $T.new (it could not be named $T.old)" >&2
+btrfs filesystem sync "$top" >/dev/null 2>&1
+# the default, set last: the restored system's newest kernel (the kernels it lacks stay until it
+# has started — the one-kernel rule takes them then)
 grubby --set-default "/boot/vmlinuz-${K[-1]}" >/dev/null 2>&1 \
   || echo "kawa-snap: the default boot entry could not be set — at the next start, choose kernel ${K[-1]}" >&2
 restorecon -R /boot >/dev/null 2>&1 || true
 boot_list >/dev/null 2>&1 || true
+sync
 echo "kawa-snap: snapshot $N is the system from the next start — restart now. The one it replaced is kept as $T.old (kawa-snap restore old goes back to it)."
