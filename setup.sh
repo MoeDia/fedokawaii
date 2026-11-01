@@ -2148,11 +2148,15 @@ snapper_configs() {
   fi
   return 0
 }
+# snapper_limits — and the hourly timeline for your files only: once /home has snapshots of its
+# own (the flat layout) the system's timeline is off — it changes only through packages and
+# updates, each snapshotted around itself; before that, its hourly ones hold your files too
 snapper_limits() {
-  local c
+  local c tl
   for c in root home; do
     snapper_has "$c" || continue
-    run snapper -c "$c" set-config NUMBER_LIMIT=4-20 NUMBER_LIMIT_IMPORTANT=4-10 TIMELINE_LIMIT_HOURLY=2-8 \
+    tl=yes; [[ $c == root ]] && snapper_has home && tl=no
+    run snapper -c "$c" set-config TIMELINE_CREATE=$tl NUMBER_LIMIT=4-20 NUMBER_LIMIT_IMPORTANT=4-10 TIMELINE_LIMIT_HOURLY=2-8 \
       TIMELINE_LIMIT_DAILY=2-7 TIMELINE_LIMIT_WEEKLY=0 TIMELINE_LIMIT_MONTHLY=0-2 TIMELINE_LIMIT_YEARLY=0 FREE_LIMIT=0.2
   done
 }
@@ -2264,7 +2268,8 @@ UNIT
   systemctl daemon-reload
   st=$(/usr/local/sbin/fedokawaii-split state) || { log "the disk's layout could not be read (sudo fedokawaii-split state says why)"; return 1; }
   case $st in
-    flat*)  [[ $st == *old* ]] && run /usr/local/sbin/fedokawaii-split clean ;;
+    flat*)  snapper_configs && snapper_limits            # (/home's own snapshots, now that it is a subvolume)
+            [[ $st == *old* ]] && run /usr/local/sbin/fedokawaii-split clean ;;
     armed)  log "the disk's new layout is made at the next start (a minute or two before the login)" ;;
     nested)
       if [[ -s $f && $(sed -n 2p "$f") == "$(sha256sum </usr/local/sbin/fedokawaii-split)" ]]; then

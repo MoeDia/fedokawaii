@@ -223,8 +223,9 @@ copy() {   # copy NAME PATH
   [[ $name == log ]] && journalctl --relinquish-var >/dev/null 2>&1   # (journald on /run while its folder is copied)
   cp -aT --reflink=auto -x "$src" "$dst" || back "$p could not be copied"
   power_cut "part-$name"
-  # (the folders where a subvolume sits — moved in step 2; cp leaves them empty)
-  skip=$(below "$T" | sed -n "s|^$T$p/|./|p")
+  # (left out of the comparison: the folders where a subvolume sits — moved in step 2, cp leaves
+  # them empty — and files a process has open there, copied as they were: plymouth's boot.log)
+  skip=$(below "$T" | sed -n "s|^$T$p/|./|p"; find /proc/[0-9]*/fd -lname "$p/*" -printf '%l\n' 2>/dev/null | sed "s|^$p/|./|")
   diff -q <(tree "$src" "$skip") <(tree "$dst" "$skip") >/dev/null \
     || back "the copy of $p differs from it: $(diff <(tree "$src" "$skip") <(tree "$dst" "$skip") | sed -n 2p | cut -c1-160)"
   # (and the contents of 64 of its files, read back)
