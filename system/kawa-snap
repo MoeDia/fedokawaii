@@ -149,6 +149,9 @@ new=$top/$T.new
 binds=()
 unbind() { local i; for ((i = ${#binds[@]} - 1; i >= 0; i--)); do umount "${binds[i]}" 2>/dev/null; done; binds=(); }
 gone() { btrfs subvolume delete --commit-after "$1" >/dev/null 2>&1; }   # (never -R: one subvolume, synced)
+# power_cut STEP — a power cut at that step, for the VM's proof only (tools/vm-inject/restore-cut.sh sets
+# KAWA_SNAP_CUT): the kernel restarts at once, nothing synced — what a lost plug does
+power_cut() { [[ ${KAWA_SNAP_CUT:-} == "$1" ]] || return 0; echo b >/proc/sysrq-trigger; sleep 30; }
 # finish — the restore's tail, after the exchange ($T the restored system, $T.new the one that ran):
 # what lived inside the replaced root (the snapshots, systemd's machines …) moves across — a
 # snapshot holds an empty folder where each was — then the replaced one is named $T.old (the one
@@ -163,12 +166,14 @@ finish() {
     else mkdir -p "$(dirname "$top/$T/$rel")"; fi
     mv -T "$new/$rel" "$top/$T/$rel" || echo "kawa-snap: $rel could not move across — left in $T.old" >&2
   done < <(btrfs subvolume list -o "$new" 2>/dev/null | sed -n 's/.* path //p')
+  power_cut moved
   if [[ -d $top/$T.old ]]; then mv -T "$top/$T.old" "$top/$T.old-$(date +%s)" || echo "kawa-snap: the older $T.old could not be renamed" >&2; fi
   mapfile -t olds < <(for o in "$top/$T".old-*; do [[ -d $o ]] && echo "${o##*-} $o"; done | sort -n | cut -d' ' -f2-)
   for ((i = 0; i < ${#olds[@]} - 2; i++)); do
     [[ -z $(btrfs subvolume list -o "${olds[i]}" 2>/dev/null) ]] && gone "${olds[i]}" || echo "kawa-snap: ${olds[i]##*/} kept (it holds a subvolume)" >&2
   done
   mv -T "$new" "$top/$T.old" || echo "kawa-snap: the system before is kept as $T.new (it could not be named $T.old)" >&2
+  power_cut renamed
   btrfs filesystem sync "$top" >/dev/null 2>&1
 }
 # (a copy a run stopped half-way left: removed. One holding a subvolume can only be a restore cut
@@ -184,6 +189,7 @@ fi
 src=$top/$T/.snapshots/$N/snapshot; [[ $N == old ]] && src=$top/$T.old
 [[ -d $src ]] || fail "there is no snapshot $N (kawa-snap list shows them)"
 btrfs subvolume snapshot "$src" "$new" >/dev/null || fail "the writable copy of $N could not be made — nothing changed"
+power_cut copied
 undo() { unbind; gone "$new"; fail "$* — nothing changed"; }
 # the copy's first start must not relabel everything or run an old offline update (§3.1)
 rm -f -- "$new/.autorelabel" "$new/system-update"
@@ -214,15 +220,18 @@ for v in "${K[@]}"; do
 done
 [[ -n $skb ]] && printf '%s\n' "$skb" >"$sk"
 unbind
+power_cut kernels
 # the exchange: the copy is the root subvolume from here; $new names the system that ran
 btrfs filesystem sync "$top" >/dev/null 2>&1
 exch "$top/$T" "$new" || undo "the exchange failed"
+power_cut exchanged
 btrfs filesystem sync "$top" >/dev/null 2>&1
 finish
 # the default, set last: the restored system's newest kernel (the kernels it lacks stay until it
 # has started — the one-kernel rule takes them then)
 grubby --set-default "/boot/vmlinuz-${K[-1]}" >/dev/null 2>&1 \
   || echo "kawa-snap: the default boot entry could not be set — at the next start, choose kernel ${K[-1]}" >&2
+power_cut defaulted
 restorecon -R /boot >/dev/null 2>&1 || true
 boot_list >/dev/null 2>&1 || true
 sync
