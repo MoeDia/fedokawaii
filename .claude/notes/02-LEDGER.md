@@ -2882,6 +2882,17 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   turns on updates-testing until the Fedora is out — r27-50, re-checked after 3 Nov); this pass's changes
   (restore, the halt, files.sh) install and verify there.
 
+- r27-21-bug6 (1 Nov 20:28–20:34, 0f50860) — the owner's bug 6, the notes' half ("flickering text in the
+  terminal apps like the notes app when saving"): FOUND frame by frame — a kit play typing into Super+N and
+  pausing, recorded (wf-recorder, ffmpeg -fps_mode passthrough: 20 frames, one a screen change): at each autosave
+  ONE frame with the footer gone (1818 ink pixels → 0 → 1818; twice). Tried in the kit, each recorded the same
+  way: noautocmd on the write — still 2 (not a plugin); lazyredraw — still 2; a write past :write (writefile) —
+  0, but neovim then loses its own record of the file (each save would read as an outside change: a reload);
+  neovim 0.12's ui2 (`require("vim._core.ui2").enable()`, news.txt: experimental, messages in windows of their
+  own) — 0 of 19, the notes window otherwise pixel-identical (px.py diff: only the bar's clock), the page saved
+  the same (the play read it back). Adopted in notes.lua (pcall: a neovim without it keeps the page); test_notes
+  117/0 holds the installed neovim to having it. Left of bug 6: the launcher's calculations/conversions flicker
+  (kawa-panel: GTK, another cause — next).
 ## >>> NEXT PASS STARTS HERE (1 Nov, written 20:15 by the 18:56 pass — the lines above say what it did): the inbox first. Then:
 ## (1) THE MASTER'S RE-REVIEW 4 OF T45 (r27-49-R4b, started 19:20 on 2b12615 → judged at 878f1fd; brief
 ##     /dev/shm/r27/master/T45-5/brief.md + two later messages: storm 3 (/dev/shm/r27/master/T45-5/
@@ -2904,7 +2915,8 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
 ## (6) T46 F45 (released Tue 3 Nov): vm-smoke.sh f45 from 0b45f65 tonight: 216/218, the 2 the pre-release
 ##     RPM Fusion updates repos (r27-50 cont.). After the release re-run it with T46b's five checks
 ##     (f45-changes.md's end); one storm on systemd 262 at most (memory: no-reload-storm).
-## (8) T21: bug 2's black bands DONE (4940712, alpha-mode=matching); left: the save flicker (bug 6), the
-##     header spacing, the notebook redesign (owner line 39) — a design task: render, grill, both moods.
+## (8) T21: bug 2's black bands DONE (4940712, alpha-mode=matching); the notes' save flicker DONE (0f50860,
+##     ui2); left: the header spacing, the notebook redesign (owner line 39) — a design task: render, grill,
+##     both moods; and bug 6's other half: the launcher's calculation/conversion flicker (kawa-panel).
 ## (7) T45 (H) 7's three config checks with T58; T45 (i) the toolkit at a tag, last. T53 notes: theme.sh (2×)
 ##     and kawa-tidy still guess "Brave is open" with pgrep — one shared SingletonLock check (bin/brave-origin's).
