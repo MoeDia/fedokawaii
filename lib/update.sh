@@ -91,7 +91,7 @@ up_set() {   # up_set TXDIR → NAME OLD NEW, a line a package (OLD "-": new · 
 up_top() {
   mountpoint -q "$UP_TOP" && return 0
   local dev; dev=$(findmnt -no SOURCE / | sed 's/\[.*//')
-  mkdir -p "$UP_TOP" && mount -o subvolid=5 "$dev" "$UP_TOP" || die "the top of $dev could not be mounted — nothing changed"
+  { mkdir -p "$UP_TOP" && mount -o subvolid=5 "$dev" "$UP_TOP"; } || die "the top of $dev could not be mounted — nothing changed"
 }
 cand_drop() {
   [[ -d $UP_CAND ]] || return 0
@@ -99,10 +99,12 @@ cand_drop() {
 }
 cand_run() {   # cand_run TXDIR CMD… — CMD in the candidate, a container of its own: no network,
                # nothing reaching this system's udev, systemd or journal, the transaction read-only
-               # at /tx, a scratch /boot (a new kernel's files land there, never in the real one)
-  local tx=$1; shift
+               # at /tx, a scratch /boot (a new kernel's files land there, never in the real one),
+               # the boot image starting this machine now read-only at /run/fk-ref.img
+  local tx=$1 ref=(); shift
+  [[ -s /boot/initramfs-$(uname -r).img ]] && ref=(--bind-ro="/boot/initramfs-$(uname -r).img:/run/fk-ref.img")
   systemd-nspawn --quiet --register=no --private-network --link-journal=no -D "$UP_CAND" \
-    --bind-ro="$tx:/tx" --bind="$UPD/cand-boot:/boot" --bind-ro="$REPO_DIR/lib/cand-check.sh:/run/fk-check" \
+    --bind-ro="$tx:/tx" --bind="$UPD/cand-boot:/boot" --bind-ro="$REPO_DIR/lib/cand-check.sh:/run/fk-check" "${ref[@]}" \
     --setenv=FK_USER="$TARGET_USER" --setenv=FK_GPU="$(cat "$STATE_DIR/gpu" 2>/dev/null || echo amd)" -- "$@"
 }
 cand_try() {   # cand_try TXDIR → 0 green · 1 red (UPD/why says why). A container that does not even
