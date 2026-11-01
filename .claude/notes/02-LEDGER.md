@@ -3207,6 +3207,13 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   0: src/dwl/dwl.patch ~561). A kit artefact or a REAL bug (Super+N opening nothing when the warm notes window is gone —
   after :q, a crash)? Find out first: the kit's dwl frame log (DWL_FRAMELOG: W lines = new windows), the window's tags;
   the same on main's build (42892e1) and on the installed one. If real: fix it before the re-review.
+  PROBE 2 (00:52, /dev/shm/r27/t21/cold/play2.sh → out2/): after the first cold Super+N NO "W" line in the kit's frame log
+  at 5 s (dwl logs W in showclient(), when a new window's first frame is ready or 250 ms after it maps — so that window
+  never MAPPED, though its footclient → kawa-warm --inside → kawa-notes → nvim chain ran); a SECOND Super+N at 5 s → one W
+  line and the notes page shown (out2/c8.png, 695,143–1224,960). Likely real: the first press's window never maps (or
+  maps only via the second press's spawn: warmpend's 3 s window — dwl.patch ~2946 — re-arms after 3 s and spawns again).
+  Next: the same probe with the installed build (no --bin: kawa-warm 80x25, main's notes.lua) to see whether T21 made it;
+  then foot's side (footclient's window request) vs dwl's (createnotify/mapnotify for app-id warm-notes on WARMTAG).
 ## >>> NEXT PASS STARTS HERE (2 Nov, written ~00:50 by the 00:10 pass — the lines above say what it did): the inbox first. Then:
 ## (0) PRESENCE: before anything he could see or hear (a reboot, a session restart, a bar restart, a live play, a notice):
 ##     `wpctl status` (a mic capture or playback [active]), `playerctl -a status`, one half-scale grim — not only the
