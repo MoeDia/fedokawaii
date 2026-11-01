@@ -2518,33 +2518,77 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   next start (a reboot ends the bulk run r27-bulk-*, 10:36 + 12 h — so after 22:36, or his own restart): then
   fedokawaii-boot-good's journal or the kernels timer, the pin released, 7.2.11 removed.
 
-## >>> NEXT PASS STARTS HERE (1 Nov, written 13:00 — the lines above say what this pass did): the inbox first. Then,
-## in the master's order (master-T45-efh-verdict.md, "Re-review"):
-## (B) merge t45 → main; the whole suite; `fedokawaii apply`; verify green (with the resume-unit row; the one
-##     red today is his qbittorrent, T35's); nothing of his unsaved; then the PC's first real run of the
-##     button as the menu runs it (`sudo bash /usr/local/lib/fedokawaii/fedokawaii.sh update`; 98 updates incl.
-##     kernel 7.2.13, Mesa 26.2.5). Record: the baseline (NO "red before the update: the desktop does not
-##     start"), the set, the probation for 7.2.13 (grubenv 3/0/1, the trial args with rd.retry=30, the
-##     watchdog drop-in), the report; then a restart through greetd's initial_session (CLAUDE.md START §4),
-##     the probation closed (fedokawaii-boot-good's journal or the kernels run), the pin released, 7.2.11
-##     removed; numbers before/after. A presence probe first; if he is at the PC, wait for him to be away.
-##     The restart: a reboot ends the transient bulk run (r27-bulk-*.service, started 1 Nov 10:36 for 12 h —
-##     memory r27-pass-budget); so run the update early in a pass, and restart near the bulk window's end
-##     (after ~22:00) or let his own next restart close the trial — then read the close from the journal.
-##     A TRIAL MERGE of t45 into main (1 Nov 12:52, local only, then undone with `git reset --keep`: main
-##     stays at its pushed d213dc4, his tools/claude-loop.sh change untouched) ran the whole suite: test_setup_wait
-##     66/7 — its fake machine's toolkit comes from setup's own install, so the real session check ran there and
-##     (a check that cannot run stops the update now) every update stopped. Fixed on t45 d31adc7 (the stand-ins in
-##     the fake machine's project copy): test_setup_wait 70/0. The rest of that suite's run: /dev/shm/r27p/all.log
-##     (on the merged copy). So (B) begins: merge t45 into main again, the WHOLE suite green, then push.
-##     That suite's other finding: test_launcher wanted python3-pillow (main 5ac5c18) and systemd-container
-##     (t45) in fixtures/not-launched.txt — both added, 267/0 on each branch; t45 = 9944a7e (main merged in).
-## (C) if that run ends offered, restored, held or stopped: stop, report to him (ledger top), no blind retry.
-## (D)–(H) before any further kernel-bearing press and before T46: 8 (both halves), (E) why waybar and mako
-##     are "not running" under the unit's as_user in the VM (KEEP=1, kit.log, play.log) — then the VM proofs
-##     assert "the desktop does not start" is absent from a green run's log; (F) update-button.sh: the second
-##     press only once the unit is active and past "the checks before it", one instance asserted
-##     (ExecMainStartTimestamp/MainPID at each press), the VM journal of the units kept — run 4 already all
-##     held; (G) 11, 14, 18 (the notice capped); (H) 7's three checks with T58.
-## Then T46 (F45 on 3 Nov: re-run vm-smoke.sh f45 from a frozen main after the release; RPM Fusion's updates
-## repos then on), T48 rest, T45 (i) last.
+- r27-49-E1 (1 Nov 14:46–14:52, the VM proof of (E)/(F), run 5: tools/vm-inject/update-button.sh f44b from
+  aa9366a) — the mechanics all held (three presses → one unit, ONE InvocationID b2903890… at the first press and
+  after the second and third, the presses only past the first unit's checks, exit 0 with the run's own last line,
+  the report ok, a stopped run 1 with its reason), and the SELinux fix showed in the VM too: session-start GREEN
+  before the update (waybar up — it was red under initrc_t). But the new row was BROKEN: "red before the update:
+  the desktop does not start — bar-geometry (light): the clock's gaps:  (want 14 …)" and after it "… —
+  session-start (dark): not running: mako", and the run still ended "update done (ok)": one label, "the desktop
+  does not start", so the red before masked the red after — the blindness the master named. Causes: (1) the
+  proof copied only the toolkit into the 27-Oct VM, so a newer toolkit's bar measure met the VM's older theme
+  (bar-geometry red) and the update's theme step then wrote a notices config for the patched mako the VM never
+  had (mako red after); the PC is never in that state (apply runs repair); (2) the label granularity.
+- r27-49-master-2 (1 Nov 14:46–15:20; .claude/notes/master-T45-efh-verdict.md "Re-review 2"): VERDICT 2 FAIL until
+  must-fix 1–5; (B) the PC's press (ok up to the trial's close), (D) 8, (G) 11/14/18, the signal trap and (F)'s
+  harness stand. Must-fix: (1) the desktop check compared by label only — any red before hides any after
+  (lib/update.sh up_labels) → say a red baseline in the report, a test row; (2) (E) not fixed in the VM — find the
+  VM's cause, then the three proofs green; (3) test_setup.sh:303 greps the removed trap line (the suite on HEAD:
+  test_setup 232/1); (4) the "-" in SELinuxContext=- is a fallback — an unsettable context runs the unit silently
+  in initrc_t (its probe), without "-" it fails loudly (229/SELINUX_CONTEXT): drop it, u_start asserts its
+  domain; (5) the fake machine copies this PC's /etc — the PC's real trial drop-in made test_update_flow red
+  (261/1 twice): scrub every /etc file the toolkit owns, rows assert their precondition. Should-fix: (1)
+  up_leftovers releases an OFFERED run's snapshot at the next press (the one the report pointed him to); (2)
+  manifest/hardware installs after the replay run outside the copy-proven transaction (VM: python3-pyte, wlrctl,
+  wireless-regdb) — store them or write the exception in the design and the Learn piece; (3) stdbuf's LD_PRELOAD
+  reaches dnf's scriptlets: 6 setfiles_t AVCs per update; (4) hold_families merges python3-foo + python3-bar at
+  one version and reason (contradicting its comment) — use UPD/sources when present; (5) a stopped unit stays
+  "failed" until the next press: a line in the Learn piece. It verified from sources: dnf5 5.4.6.0's dedupe,
+  rhboot grub2 blscfg.c (filename vercmp, newest first) = grubby's order, systemd.exec(5), restorecon -n over the
+  25 611 updated files (clean), the PC's grubenv 3/0/1, menu [7.2.13, 7.2.11], snapshot 381 pinned.
+- r27-49-master-2-fixes (1 Nov 15:00–15:31, on branch `next` = worktree ~/repos/fk-next, so the master's view of
+  main stayed still): must-fix 1 — lib/update.sh desk_reds: the desktop check's verdict a line per item, the item
+  in the label ("the desktop does not start: not running: waybar", "…: nothing drawn", "…: bar-geometry (light):
+  the clock's gaps", "…: dwl does not start"): a red before never hides another after; a kept update with a red
+  desktop baseline says so in its line ("· the desktop's check was red before it, so not judged (Super+U → log)")
+  and lists them in the report ("red before it: …"); rows: a bar red before + dwl gone after → offered, held; the
+  waybar-red baseline's report lines. Whole lines were weighed and not taken: the verdict's details vary run to
+  run (a colour count, timing) and would undo good updates. Must-fix 3 — test_setup checks on_signal's form and
+  the TERM trap; the behaviour is test_update_flow's TERM row. Must-fix 4 — no "-": a context systemd cannot set
+  fails the unit; u_start dies in any domain but unconfined_service_t (the unit) or unconfined_t (by hand) while
+  SELinux is on (selinuxenabled), so no run begins blind; test_front asserts the property without "-". Must-fix 5
+  — tests/installer/lib.sh scrubs, besides files that say fedokawaii: files NAMED *fedokawaii*/*scriptorium*/
+  kawa-*, and the unmarked ones the toolkit or its tools keep (/etc/snapper, /etc/sysconfig/snapper,
+  /etc/default/grub-btrfs, /etc/profile.d/editor.sh, the Claude Code repo key, the round's sudo rule — found by
+  listing every /etc path setup.sh writes and grepping the PC's copies for the marker); the probation drop-in now
+  says "installed by fedokawaii"; the third-entry row asserts its precondition (no drop-in before the run). (A
+  pristine /etc instead of this PC's copy: T53.) For (E) in the VM: the update's steps now build the patched mako
+  when it is off its pin (before the theme writes its config; test_upkeep row, 255/0), and the three update proofs
+  start from `vm-run.sh --apply` (the copy applied as the PC is, then restarted until nothing waits).
+- r27-49-E2 (1 Nov 15:15–15:30, VM proof run 6 from `next`): the apply in the VM went through ("verify: 13
+  problem(s) before, 0 now"), but every press then stopped at its start: "an earlier update is waiting to be
+  installed at the next restart" — the apply had queued the /home split (T48) for the next start through
+  /system-update, exactly as on the PC this morning; the update rightly refuses. Fixed: vm-run.sh --apply restarts
+  the VM until nothing waits (3d25e97). Run 7 started 15:31.
+
+## >>> NEXT PASS STARTS HERE (1 Nov, written 15:35 — the lines above say what this pass did): the inbox first. Then:
+## (1) STATE: main = aa9366a + branch `next` (worktree ~/repos/fk-next: 1e04cad, fa1beb3, 3d25e97 — the master's
+##     must-fix 1, 3, 4, 5 and the VM proofs' --apply). If `git log main..next` is not empty, this pass did not get
+##     to merge it: check /dev/shm/r27p/next-areas.log (installer, static, engine areas on fa1beb3: "area-X-rc=0" for
+##     all three, then "all-done") and /dev/shm/r27p/head3.log (the whole suite on aa9366a: its only reds were
+##     test_setup's trap grep and test_update_flow's leaked drop-in — both fixed on next); green → `git merge
+##     --ff-only next` in main, push, `git worktree remove ../fk-next`, `git branch -d next`, then apply (CLAUDE.md).
+## (2) (E) in the VM: /dev/shm/r27p/button7.txt (update-button.sh f44b from next, with --apply's restart): every
+##     row "held" — above all "the desktop check green before and after". Then update-green.sh f44 and probation.sh
+##     (both start from --apply now) green, no "the desktop does not start" in their logs. Red → KEEP=1 kit logs.
+## (3) back to the master (Re-review 3) with the evidence of (1)–(2); its should-fix 1–5 (ledger r27-49-master-2):
+##     the offered snapshot kept pinned, the live manifest/hardware installs (store or the written exception),
+##     stdbuf's LD_PRELOAD in dnf's scriptlets, hold_families via UPD/sources, the Learn line for a stopped unit.
+## (4) THE KERNEL TRIAL ON THE PC is open since 14:43 (7.2.13; grubenv 3/0/1; snapshot 381 pinned). It closes at
+##     the next start: a reboot ends the bulk run (r27-bulk-*, 10:36 + 12 h) — so reboot only in the claude-r27
+##     pass after 22:36 (CLAUDE.md START §4: initial_session, presence probe first), or let his own restart close
+##     it; then read fedokawaii-boot-good's journal: boot_counter unset, the trial arguments and the watchdog
+##     drop-in gone, snapshot 381 back to number cleanup, 7.2.11 removed at the next "one kernel" step — ledger
+##     r27-49-B3. libheif 1.23.7 waits for RPM Fusion's libheif-freeworld (dnf skips it: conflicts).
+## (5) T46 F45 (released Tue 3 Nov): re-run vm-smoke.sh f45 from a frozen main after the release (RPM Fusion's
+##     updates repos then on); T48 rest; (H) 7's three config checks with T58; T45 (i) last.
