@@ -3096,44 +3096,42 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
 - r27-push-ddaeef7 (1 Nov 23:10): the whole suite on ddaeef7 — "✔ all 128 test files passed", rc 0 in 2808 s
   (/dev/shm/r27p/suite-ddaeef7.log), its update-green exit 0 (T45-5/green-ddaeef7), the master's Verdict 5 PASS →
   GitHub main c8a91e0..ddaeef7. 9b10bc8 (the to-do) and 360baf1 (f45-checks) local, their suite running.
-## >>> NEXT PASS STARTS HERE (1 Nov, written 20:55 by the 18:56 pass — the lines above say what it did): the inbox first. Then:
-## (1) PUSHED (by accident, see below), NOT APPLIED. Local main = r27 = the newest commit. Two points matter:
-##     · cf211b8 — T45's conditions ran on it: update-green exit 0 (MET); the whole suite →
-##       /dev/shm/r27p/suite-cf211b8.log (started 21:00; last line "== suite rc=N in S s"). 415b61c = cf211b8 + notes.
-##     · the newest (3981c01: T45 should-fix 2 and 7; then T48 should-fix 4 and 7) — each change with its own file
-##       tests green (test_upkeep 283/0, test_backup 223/0, test_menu, static), no whole suite yet.
-##     DONE: GitHub main = 415b61c — its suite (cf211b8) ended GREEN 21:46: 128/128, rc 0 (T45's conditions all
-##     met). GitHub r27 = the newest. THE MASTER'S RULE for any later main (its addendum, 21:47): a commit past
-##     cf211b8 that touches T45's files (3981c01 does: setup.sh) needs its own suite rc line AND its own plain
-##     update-green f44 (exit 0, report ok, no desktop red, avc empty with the instrument) before main moves there.
-##     The whole suite on the newest, 3c3d583, also runs (started 21:31, from
-##     /dev/shm/r27w-suite-3c3d583 → /dev/shm/r27p/suite-3c3d583.log) → rc 0 → push main there →
-##     APPLY on the PC (sudo FEDOKAWAII_COPY=$PWD /usr/local/bin/fedokawaii apply; verify) → the new kawa-panel live
-##     (memory live-panel-restart) → headless shots (grim, the session's env) of Super+U → backups and the notes.
-##     If suite-cf211b8 is red: read the failing file (`grep -B3 ✘`), fix, its area, and go straight to the
-##     whole suite on the newest.
-## (2) T45's VERDICT 4: PASS WITH CONDITIONS (r27-49-R4b RESULT). Conditions 1–2 = item (1) above; 3 done. Its
-##     should-fixes: 5, 6 done (cf211b8), 2, 7 done (3981c01), 8 (the ledger) done; LEFT 1 (a replay that never began:
-##     0 of the set in → nothing held, nothing undone, phase end, said as the stop — today's TERM and fail-replay rows
-##     hold the old behaviour: change them with it), 3 (the stand-in's end-after=N), 4 (daemon-reexec read once in the
-##     VM). Then the master's next review of T45 (brief: master-T45-efh-verdict.md's Verdict 4 + the ledger since).
-## (3) T48 (the master's verdict 4: FAIL → must-fix 1 answered by taking the in-place restore out; should-fix 2, 3,
-##     5, 8, 9 built): LEFT should-fix 1 (the job screens' heading at column 0, rows one cell in — §7; changes every
-##     job screen and test_menu's `aligned`; render both moods; = audit-r27's open grammar finding), 4 (a
-##     closed-window row), 7 (the lock's words while a backup is open for a restore), 10 (not on the PC yet; the
-##     first real run with a drive owed); then the master again on T48.
-## (4) THE KERNEL TRIAL ON THE PC is open since 14:43 (7.2.13; grubenv 3/0/1; snapshot 381 pinned). It closes at
-##     the next start: the bulk run (r27-bulk-*, 10:36 + 12 h) ends 22:36 — reboot only in a claude-r27 pass
-##     after that (CLAUDE.md START §4: initial_session, presence probe first), or his own restart; then read
-##     fedokawaii-boot-good's journal (boot_counter unset, the trial arguments and the watchdog drop-in gone,
-##     snapshot 381 back to number cleanup, 7.2.11 out at the next "one kernel" step) — ledger r27-49-B3.
-## (5) T19m (b) pass 1 goes on (.claude/notes/audit-r27.md; tools/audit-pads.py; the gallery in /dev/shm/r27/audit/p1
-##     or render again: tools/gallery.sh --out … --bin bin --repo-art). Open: the grammar (= T48 should-fix 1),
-##     the optical centre (item 5).
-## (6) T46 F45 (released Tue 3 Nov): vm-smoke.sh f45 from 0b45f65: 216/218, the 2 the pre-release RPM Fusion updates
-##     repos (r27-50 cont.). After the release re-run it with T46b's five checks (f45-changes.md's end); one storm
-##     on systemd 262 at most (memory: no-reload-storm).
-## (7) T21: bug 2's black bands DONE (alpha-mode=matching), the notes' save flicker DONE (ui2), bug 6's launcher
-##     half DONE (the settle, r27-21-bug6b); left: the header spacing, the notebook redesign (owner line 39).
-## (8) T45 (H) 7's three config checks with T58; T45 (i) the toolkit at a tag, last. T53: theme.sh (2×) and
-##     kawa-tidy still guess "Brave is open" with pgrep — one shared SingletonLock check (bin/brave-origin's).
+- r27-21t LIVE (1 Nov 23:46–23:48): the whole suite on 9b10bc8 — "✔ all 128 test files passed", rc 0 in 3607 s
+  (/dev/shm/r27p/suite-9b10bc8.log; its T45 files = ddaeef7's, whose update-green is green) → GitHub main
+  ddaeef7..9b10bc8; applied from the frozen /dev/shm/r27w-suite-9b10bc8 (82 s, verify 1 red: his qbittorrent) after a
+  presence check (sound playing, no mic — the call over —, no warm window showing); theme.sh's live step renewed the
+  warm system and clip windows (their kawa-warm --inside started 23:47:59). On the PC: `fedokawaii --rows learning`
+  → guide chess typing keys; `--explain todo` empty; no `--todo` in the installed fedokawaii or kawa-notes. DONE —
+  his next Super+U shows it.
+- r27-master-5-done (23:45): the master filled its two placeholders from the suite log (ddaeef7: 128/128, rc 0, 2808 s);
+  T45 Verdict 5 PASS and T48 verdict 5 PASS stand (master-T45-efh-verdict.md "## Re-review 5", master-T48-verdict-5.md).
+## >>> NEXT PASS STARTS HERE (1 Nov, written ~23:50 by the 21:47 pass — the lines above say what it did): the inbox first. Then:
+## (0) PRESENCE: he was at the PC all evening (a Discord call + a stream at 22:24; memory presence-not-just-input-idle).
+##     Before anything he could see or hear (a reboot, a session restart, a bar restart, a live play, a notice):
+##     `wpctl status` (a mic capture or playback [active]), `playerctl -a status`, one half-scale grim — not only the
+##     60 s swayidle probe. Present → headless only (kit, pty, VM).
+## (1) GITHUB + PC: see the last r27-push / r27-apply lines above for what is pushed and applied (main = the newest
+##     commit whose whole suite (and, for T45's files, update-green f44) is green; the PC applied from a frozen tree).
+##     If a suite was still running when this pass ended: its log /dev/shm/r27p/suite-<commit>.log — rc 0 → push main
+##     there, apply from /dev/shm/r27w-suite-<commit> (never the working tree), the warm system window restarted
+##     (kawa-warm --start after its footclient ends) so Super+U shows the change; red → fix forward.
+## (2) THE MASTER: T45 Verdict 5 PASS, T48 verdict 5 PASS (both no must-fix). Their should-fixes are built (r27-49-R5-sf,
+##     r27-52-R5-sf2) except T48's 3 (the closing key in the next PC job-window proof) and 4 (a real USB drive) —
+##     T45's last items: (H) 7 with T58, (i) the toolkit at a tag, last. T48's last: the space floor with a full disk
+##     in the VM (T49), the Learn piece (T50).
+## (3) THE KERNEL TRIAL (since 14:43, 7.2.13, snapshot 381 pinned): closes at the next start — only when he is away
+##     ((0)), START §4's reboot way; then read fedokawaii-boot-good's journal — ledger r27-49-B3.
+## (4) T21 THE NOTEBOOK (his line 39 — next in line, design-critical): BUILT on branch t21 (~/repos/fk-t21, pushed
+##     to origin/t21; main untouched): the ruled portrait page, the vermilion margin, heading + blank row, blank row +
+##     footer floating — margins that never move; test_notes 116/0 and test_warm 88/0 there. The brief, its grill list
+##     and its NEXT: .claude/notes/notes-notebook.md (on t21). First: one right edge for the page's rules and the
+##     heading's rule; the to-do page's render; a typing play (frames); then merge t21 into main → the whole suite →
+##     the master → push → apply (the warm notes window is NOT renewed by an apply: it holds his page — it takes the
+##     new notes.lua at its next start; restart it only when he is away, after checking its buffer is saved).
+## (5) T46/T46b (F45 out Tue 3 Nov): after the release — vm-create f45 fresh from the released tree, vm-smoke f45,
+##     then tools/vm-inject/f45-checks.sh f45 (all five green on the branched tree 1 Nov). T46's pre-flight
+##     (tools/vm-preflight.sh) and the upgrade's WAIT (60 days by default) for the PC's own move.
+## (6) T19m (b): pass 1 goes on; items 3–5 (24 px hit areas, JLREQ, the spacing scale, the optical centre, a
+##     reduce-motion switch) with the next dwl batch (a session restart: only when he is away).
+## (7) T22: yazi's grid onto §7 (heading x 25, rows 33 — the dialog's still 17/25); q-with-marks done (r27-52-R5-sf2).
+## (8) T53: theme.sh (2×) and kawa-tidy still guess "Brave is open" with pgrep — one shared SingletonLock check.

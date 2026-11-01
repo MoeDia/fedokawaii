@@ -760,3 +760,108 @@ the reason) by the next review.
   `git diff --stat cf211b8..<pushed> -- lib/update.sh lib/guard.sh lib/common.sh setup.sh tests/installer tools/vm-inject`.
 - Still open before the push: condition (2), one plain update-green f44 from the pushed commit, kept under T45-5/.
   Condition (3) is done in cf211b8.
+
+## Re-review 5 (1 Nov, 22:45–23:20) — main at ddaeef7 (T45's code: 3981c01 should-fixes 2, 7 · ddaeef7 should-fixes 1, 3, 4)
+
+Read: the brief (/dev/shm/r27/master/T48-5/brief.md); Verdict 4 and its Addendum; `git log cf211b8..ddaeef7`; the whole diff
+cf211b8..ddaeef7 of lib/update.sh (+42), setup.sh (+21), the stand-ins dnf/systemctl/systemd-run, test_update_flow (+30),
+test_upkeep (+7); at ddaeef7: lib/update.sh u_replay/up_hist/up_never_began/up_complete (:310–343), u_report (:372–416),
+up_boot (:422–442), up_exit (:521–530); setup.sh on_signal (:81–88), dnf_settle/dnf_detached/dnf_end (:2607–2683),
+do_update (:2947–3008); system/kawa-dnf-guard pre (:31–64) and system/kawa-snap pre/post (:40, :85–115); lib/guard.sh
+guard_hooks (:70–92: the guard's actions file read before the snapper's) and fedokawaii-update-resume.service (:101–119:
+After=local-fs.target, Before=greetd, `flock -n` at setup.sh:95); the ledger r27-49-R4b-sf, -R4b PUSH, -R4b-green3,
+-R4-sf1, -R4-sf3, -R4-sf4; the frozen checkout /dev/shm/r27w-suite-ddaeef7 (= ddaeef7, `git rev-parse`). Sources, read by
+me: main's copies /dev/shm/dnf5src.7wFj/{transaction.cpp,ttrans.cpp} are byte-identical (sha256 0fe94540…bc94 and
+d35c5798…9714) to raw.githubusercontent.com/rpm-software-management/dnf5/5.4.6.0/libdnf5/base/transaction.cpp and
+libdnf5/transaction/transaction.cpp fetched by me into /dev/shm/r27/master/T48-5/_up/; Fedora's dnf5.spec (f44 branch) is
+5.4.6.0-1 with no Patch line; `rpm -q dnf5 libdnf5 libdnf5-plugin-actions` = 5.4.6.0-1.fc44, `rpm -q rpm` = 6.0.2-1.fc44.
+Also fetched at those tags: dnf5/signal_handlers.cpp, dnf5/main.cpp, libdnf5/transaction/db/trans.cpp,
+libdnf5/transaction/transaction_history.cpp, dnf5/commands/history/history_list.cpp; rpm-6.0.2-release lib/transaction.cc
+and lib/psm.cc. On the PC (read-only): `dnf -q history list --json | jq '[.[].id] | max // 0'` → 78 as a user (the DB
+/usr/lib/sysimage/libdnf5/transaction_history.sqlite is 0644; row 77's command_line is "/usr/bin/dnf -y -C replay
+/var/lib/fedokawaii/update/tx"); `findmnt /var/lib/fedokawaii/update` → /dev/nvme0n1p3[/fk]: UPD is the fk subvolume, never
+rolled back. Evidence: green-3c3d583 and green-ddaeef7 under T45-5/ (each exit 0 — 274 s / 324 s —, "updated · 61
+packages", rc.txt 0, avc.txt 0 bytes, avc-instrument.txt "active / log there", no "the desktop does not start" in run.log);
+T45-sf4/measure.txt; the suite log /dev/shm/r27p/suite-ddaeef7.log, waited for with a bounded loop (its line at the end).
+
+### Proven
+- **Should-fix 1, as built — the rule is sound, and better than mine.** The order in libdnf5 5.4.6.0
+  Transaction::Impl::_run (base/transaction.cpp): :1162–1176 rpm's run with RPMTRANS_FLAG_TEST, returning on error or
+  test_only; :1180–1182 the OnScopeExit for post_transaction_cleanup, then `plugins.pre_transaction`; :1185–1261 the
+  history row built and `db_transaction.start()` (transaction/transaction.cpp :311–327: BEGIN, the row — its id
+  last_insert_rowid, db/trans.cpp :194 —, its packages, COMMIT; ROLLBACK on a throw); :1285 the real
+  `rpm_transaction.run()`; the system state (packages.toml …) saved at :1296–1465 only `if (ret == 0)`; :1480 finish;
+  :1483 post_transaction. rpm 6.0.2 writes nothing in the test run: lib/transaction.cc :1465 (the db opened O_RDONLY),
+  :1472 (TEST → no scriptlets, no triggers), :1804 (no transaction lock), lib/psm.cc :1115 rpmpsmRun "Psm can't fail in
+  test mode, just return early" (before unpack and db). So "no row newer than the mark, no dnf unit running" ⇒ rpm's real
+  run never started ⇒ not one file of the set touched — the count of new versions in the rpmdb could not say that, as
+  main argued. The case that matters most: a cut inside rpm leaves a row in state STARTED, and `history list --json` lists
+  every row whatever its state (db/trans.cpp :85–109: select_transactions_by_ids with no ids adds no WHERE;
+  history_list.cpp :48, :64–65) ⇒ "began" ⇒ up_complete, the restore — as before.
+- **What runs between the test and the row — the two actions hooks.** kawa-dnf-guard pre reads the transaction and may
+  `stop` it (:31–64; its one write, STATE/after-dnf, is post's and skipped while the toolkit holds the lock) — nothing a
+  "nothing changed" hides. kawa-snap pre makes a snapper `pre` snapshot of / (number cleanup, :102) and keeps its number
+  in its state file; a replay that dies between the hooks and the row (a throw in start(), a power cut in that instant)
+  leaves that `pre` without its post — the next transaction's pre overwrites the state file, snapper's number cleanup
+  removes the orphan in time. A snapshot more, no change to the running system; the rows "dnf ends before its transaction
+  begins" (replay-refused: dnf exits before the test run) leave none at all. Worth a ledger line, no code.
+- **The unit-still-running guard** (update.sh :331–332): `--state=running` does not match a unit being stopped
+  (deactivating/stop-sigterm) — but dnf5's SIGTERM handler is `_exit(1)` at once (dnf5/signal_handlers.cpp :32–49,
+  installed at main.cpp :1302) and the test run has no scriptlet to be blocked in (transaction.cc :1472), so a dnf under
+  TERM is gone before the comparison, or has its row (the real run) before it; a KILL after TimeoutStopSec the same. A
+  `systemctl` that does not answer (PID 1 frozen) returns 1 ⇒ kept: Verdict 4's crash chain stands (the row "crash in the
+  live replay → phase replay kept" is in the 341/0). Right by construction: every failure of the test is "began".
+- **A stale UPD/hist:** written by every u_replay before its phase (:311–312); unreadable, empty or not a number ⇒
+  up_never_began returns 1 ⇒ the old, conservative judgement — a run stopped by an older toolkit without the file the
+  same. **The history DB rolled back with a restore:** u_undo's and up_boot's restore paths call u_report with UP_END
+  restored/offered ⇒ keep=0 ⇒ phase end before the restart; UPD on the fk subvolume keeps hist, and the next u_replay
+  overwrites it. Nothing reads a stale mark against a rolled-back DB with phase replay, except the case in should-fix 4.
+- **The four users:** u_replay's die (:319; through up_exit → u_report: UP_END stopped, replay, never began ⇒ phase end,
+  nothing held, nothing undone), u_report's keep (:399–403: steps/check kept, replay kept only once began), do_update's
+  replay case (:2964–2965: never began ⇒ was=end ⇒ u_start, up_leftovers releases the pinned snapshot — the row
+  `snapper modify -c number $sn`), up_boot's first branch (:425–427: phase end, the notice, no restore, no restart). The
+  stand-ins: dnf's row before its packages (stubs/dnf :95–96), replay-refused, systemctl's `history list --json` from
+  $FKH/history, systemd-run's cut point "ended". Six new rows; test_update_flow 341/0 in the suite (log line 82).
+- **Should-fix 3:** stubs/systemctl :62–65 `countdown end-late` — the unit seen running N more asks; the row "asked ≥ 4
+  times, kept" (test_update_flow :239–242): dnf_end's running branch is run at last.
+- **Should-fix 4:** measured (T45-sf4/measure.txt, VM f44b, systemd 259.10): a transient RemainAfterExit unit that
+  re-executes PID 1 and exits 7 — setup.sh's own dnf_end printed 7; show failed/failed, ExecMainCode=1, ExecMainStatus=7.
+  (The script's `bc: command not found` line is cosmetic: the elapsed time went unprinted.)
+- **Should-fixes 2 and 7 (3981c01):** dnf_detached :2639–2643 — systemd-run's own failure with the journal's "Freezing
+  execution" ⇒ 125 ⇒ the halt; test_upkeep's two rows (the halt once, one systemd-run; refused without a freeze ⇒ no crash
+  said). snapper_limits :2182–2186 `|| log` — r_system goes on to snap_hooks and the layout.
+- **The conditions of Verdict 4 for the pushed commit:** (2) green-3c3d583 and green-ddaeef7 (above); (3) done in cf211b8;
+  (1) the suite on ddaeef7 — the line at the end of this section.
+- **Over-engineering:** none. Two helpers of nine lines, three call sites, ten lines of stand-in.
+
+### Must-fix
+None.
+
+### Should-fix
+1. **The mark is the DB's highest id, so any transaction between the mark and the judgement reads as "began"** — then
+   up_complete is false and the whole set is held and the snapshot offered, for a system that did not change (the
+   outcome should-fix 1 set out to end, back by another door). The window: a cut replay first judged at a press, not at
+   boot (fedokawaii-update-resume is `flock -n`, setup.sh:95: it yields to a boot run holding the lock, --kernels or
+   after-dnf), with a dnf of ours in between (--kernels' removal of a kernel, after-dnf's installs). Match the row instead
+   of counting: the newest row whose command_line ends with ` replay $UPD/tx` — in up_hist,
+   `jq --arg tx "$UPD/tx" '[.[] | select(.command_line | endswith(" replay " + $tx)) | .id] | max // 0'`, both sides of
+   the comparison unchanged. The same size, immune to other rows. Not a must-fix: the window is narrow and its outcome is
+   the old, conservative one.
+2. **The running-unit branch has no row** (update.sh :331–332): the stand-in's systemd-run runs dnf to its end before it
+   returns, so no cut ever meets an active unit. One row: an `active fedokawaii-dnf-x.service` line in $FKH/units at the
+   cut ⇒ phase replay kept, nothing judged, the next press settles it.
+3. **Ledger (r27-49-R4-sf1):** the orphan `pre` snapshot of kawa-snap (above) and the line numbers this verdict rests on
+   (transaction.cpp :1162/:1182/:1261/:1285, psm.cc :1115, signal_handlers.cpp :39, db/trans.cpp :85–109) — the owner's
+   "never from memory" rule asks for the source beside the decision.
+4. **Nit:** after HIS restore of an offered snapshot (phase replay kept on fk, the DB back to the mark), the next start
+   says "the last update stopped before it changed anything" — true of the system he now has, not of what happened; the
+   old branch was wrong there too ("cut off half-way … snapshots → N" after he had restored N). `kawa-snap restore`
+   writing `end` into the update's phase (one line) would make both true; or the words stay.
+
+## Verdict 5: PASS
+T45's code at ddaeef7 passes: the never-began rule is proven from the installed dnf5's and rpm's own sources, every path it
+touches is tested (341/0) and the two green runs from 3c3d583 and ddaeef7 close Verdict 4's condition (2). Nothing is owed
+on the code; the should-fixes are improvements, decided (done, or a ledger reason) by the next review.
+The suite on ddaeef7 (condition 1 for the push), read by me from /dev/shm/r27p/suite-ddaeef7.log at 23:12: "✔ all 128 test
+files passed", "== suite rc=0 in 2808 s" (test_update_flow 341/0, test_upkeep 283/0, test_status 216/0, test_upstream
+246/0; no file red). Both conditions met on the commit itself: main may move to ddaeef7.
