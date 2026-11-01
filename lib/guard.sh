@@ -182,7 +182,9 @@ desktop_starts() {
       ((rc == 2)) || break
     done
     ((rc == 0)) && continue
-    sed -n "/^${t}[ :(]/p" <<<"$out" | tail -n 1   # (sed: no match is no failure inside setup.sh's ERR trap)
+    # (every line of its verdict — the bar's check says one an item, both themes: desk_reds labels
+    # each, so a red before never hides another; sed: no match is no failure inside the ERR trap)
+    sed -n "/^${t}[ :(]/p" <<<"$out"
     return "$((rc == 1 ? 1 : 2))"
   done
 }

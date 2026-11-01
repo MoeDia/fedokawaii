@@ -240,7 +240,7 @@ due_at() {   # the next update: EVERY days after the last one, or after setup
   echo $(( t + EVERY * DAY ))
 }
 status_kv() {
-  local t res from to d e l p f w run new free size n
+  local t res from to d e l p f w run new free size n k
   # what only you can do (kawa-foryou), first
   while IFS= read -r t; do printf 'for you\037%s\n' "$t"; done < <(kawa-foryou list 2>/dev/null)
   run=$(running_job) && printf 'running\037%s, now\n' "$(running_words "$run")"
@@ -276,9 +276,12 @@ status_kv() {
                esac ;;
     esac
   fi
-  l=$(sed -n 2p "$STATE/update/report" 2>/dev/null) || l=""; l=${l#updated · }; l=${l%% · held: *}
+  l=$(sed -n 2p "$STATE/update/report" 2>/dev/null) || l=""
+  # (kept, its desktop items red before it not judged: lib/update.sh u_report's fixed form — a line of its own)
+  k=""; [[ $l == *" · desktop red before: not judged"* ]] && k=$'\037desktop red before: not judged\n'
+  l=${l#updated · }; l=${l%% · desktop red before: not judged}; l=${l%% · held: *}
   case $p in
-    ok)      printf '\037%s%s\n' "$l" "$( ((n)) && echo " · $n held")" ;;
+    ok)      printf '\037%s%s\n%s' "$l" "$( ((n)) && echo " · $n held")" "$k" ;;
     current) printf '\037nothing new%s\n' "$( ((n)) && echo " · $n held")" ;;
     held)    printf '\037nothing new · %s held\n' "$n" ;;
   esac

@@ -372,13 +372,14 @@ u_report() {   # u_report — the outcome: UPD/report (the pane), the log beside
     *)        why=$(tail -c +"$((RUN_LOG_FROM + 1))" "$LOG_FILE" 2>/dev/null | grep '✘' | tail -n1 | sed 's/\x1b\[[0-9;]*m//g; s/^.*✘ *//') || why=""   # (this run's own)
               line="stopped ($(up_was | sed 's/^end$/start/')): ${why:-no reason could be written (a full disk?)}" ;;
   esac
-  [[ -z $desk ]] || line+=" · the desktop's check was red before it, so not judged (Super+U → log)"
+  # (a fixed short form, so the status's row fits it; which items, in the report's lines below)
+  [[ -z $desk ]] || line+=" · desktop red before: not judged"
   ((UP_STAY)) || up_phase end || true
   # (the stored transaction and the downloads kept for the halves: done with, whatever the outcome)
   rm -rf -- "$UPD/tx" "$UPD/try" "$UPD/sources"; dnf -q clean packages >/dev/null 2>&1 || true
   # (no command that can fail inside these pipes: setup.sh's ERR trap would print from them)
   why=$(cat "$UPD/why" 2>/dev/null) || why=""
-  [[ -z $desk ]] || why+=${why:+$'\n'}$(up_labels <<<"$desk" | sed 's/^/red before it: /')
+  [[ -z $desk ]] || why+=${why:+$'\n'}"its desktop items red before it were not judged:"$'\n'$(up_labels <<<"$desk")
   printf '%s %s\n%s\n%s' "$(date +%s)" "$UP_END" "$line" "${why:+$why$'\n'}" | write_file "$UPD/report" 0644 2>/dev/null || true
   log=$(tail -c +"$((RUN_LOG_FROM + 1))" "$LOG_FILE" 2>/dev/null) || log=""
   printf '%s\n' "$log" | write_file "$UPD/last.log" 0644 2>/dev/null || true

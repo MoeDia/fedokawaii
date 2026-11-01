@@ -26,8 +26,10 @@ ok() { if eval "$2"; then printf '%-58s held\n' "$1"; else printf '%-58s BROKEN\
 # (each press detached from ssh's own output: else ssh waits for it to end — the next press would
 # come only after the run)
 inv() { run 'systemctl show -p InvocationID --value fedokawaii-update.service'; }
-# (SELinux's denials until now marked: the presses' own read afterwards — ausearch(8) --checkpoint)
-run 'sudo ausearch --checkpoint /tmp/avc.ck -m avc >/dev/null 2>&1; true' >>"$log" 2>&1
+# (SELinux's denials until now marked: the presses' own read afterwards — ausearch(8) --checkpoint;
+# the instrument itself recorded: auditd running and its log there — else "no denial" proves nothing,
+# ausearch exits 1 with nothing printed for a missing log as for nothing found)
+run 'systemctl is-active auditd; sudo test -s /var/log/audit/audit.log && echo "log there"; sudo ausearch --checkpoint /tmp/avc.ck -m avc >/dev/null 2>&1; true' >"$out/avc-instrument.txt" 2>&1
 run 'sudo setsid -f bash -c "bash /usr/local/lib/fedokawaii/fedokawaii.sh update >/tmp/first.out 2>&1; echo \$? >/tmp/first.rc" </dev/null >/dev/null 2>&1' >>"$log" 2>&1
 for _ in $(seq 120); do
   run 'systemctl is-active --quiet fedokawaii-update.service && grep -q "upgrade --store=" /var/lib/fedokawaii/update/run.log' && break; sleep 5
@@ -57,7 +59,7 @@ ok "the desktop check green before and after (no \"the desktop does not start\")
 ok "the report: ok" 'grep -qE "^== report: [0-9]+ (ok|current) " <<<"$st"'
 # (no confined program denied anything in the presses — the scriptlets inherit what dnf's unit gives)
 run 'sudo ausearch --checkpoint /tmp/avc.ck -m avc -i 2>/dev/null | grep "^type=AVC"' >"$out/avc.txt" 2>&1
-ok "no SELinux denial in the presses (avc.txt)" '! grep -q denied "$out/avc.txt"'
+ok "no SELinux denial in the presses (avc.txt; auditd on, its log there)" 'grep -qx active "$out/avc-instrument.txt" && grep -qx "log there" "$out/avc-instrument.txt" && ! grep -q denied "$out/avc.txt"'
 # a run that stops: another dnf5 holds the packages — its status comes back, said
 run 'cp /usr/bin/sleep /tmp/dnf5 && setsid -f /tmp/dnf5 120; sudo bash /usr/local/lib/fedokawaii/fedokawaii.sh update >/tmp/stop.out 2>&1; echo "rc $?"; grep -v "^$" /tmp/stop.out | tail -n 2; pkill -x dnf5' >"$out/stop.txt" 2>&1
 cat "$out/stop.txt" >>"$log"

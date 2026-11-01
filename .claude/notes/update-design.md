@@ -96,9 +96,12 @@ an untried transaction:
    judge them with the packages; a red is undone with the update (the pinned snapshot) and the set
    is held, since the culprit cannot be told apart then: the report says "all N packages together".
    Storing them with the upgrade (`dnf5 do --store … --action=upgrade --action=install …`, one
-   transaction the copy would prove) was weighed and not taken (the master's should-fix 2, 1 Nov):
-   one wanted package that will not resolve would stop the whole update, where a live install that
-   fails is one step reported and tried again by the next press.
+   transaction the copy would prove) was weighed and not taken (the master's should-fix 2, 1 Nov;
+   the reason met its re-review 3): `--skip-unavailable` (dnf5-do(8)) covers a wanted package that is
+   not there, not one that conflicts or whose dependencies are broken — that stops the one resolve,
+   Fedora's upgrade with it; and `--skip-broken` would let dnf drop parts of the upgrade to make a
+   want fit — a partial upgrade, which the update never makes. A live install that fails is one step
+   reported, the upgrade kept, and the next press tries it again.
 
 Why online and not offline for the routine update (B2 #8 argues offline): the candidate removes
 the reason (an untried transaction under a running desktop), and an offline update costs him two

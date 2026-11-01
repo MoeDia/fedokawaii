@@ -243,7 +243,8 @@ world() {   # world fresh|built [--themed]
   # the desktop's start check (the update's: tools/regress) as it would see this machine, which has
   # no screen — in the project as the user cloned it, so every toolkit made from it (setup's, a
   # finished install's) carries them: the session comes up when dwl — its stand-in — starts; red
-  # with $FKH/session-red or a bar off its measure, $FKH/bar-red (each file: what the check says);
+  # with $FKH/session-red or a bar off its measure, $FKH/bar-red (each file: what the check says —
+  # the bar's a line an item, "THEME: what", as bar-geometry.sh says it, both themes in one run);
   # $FKH/fail-session-cannot = N: the check itself cannot run N times (exit 2, its machinery)
   printf '%s\n' '#!/bin/bash' '. /usr/local/bin/_lib.sh; fkh_log "$*"' \
     'countdown session-cannot && { echo "session-start: the kit could not run: hl-dwl: out of time (60 s)" >&2; exit 2; }' \
@@ -251,7 +252,7 @@ world() {   # world fresh|built [--themed]
     '/usr/local/bin/dwl -s true >/dev/null 2>&1 || { echo "session-start (dark): dwl does not start: the stand-in exits 1" >&2; exit 1; }' \
     'echo "session-start (dark): up"' >"$W/home/fkuser/fedokawaii/tools/regress/session-start.sh"
   printf '%s\n' '#!/bin/bash' '. /usr/local/bin/_lib.sh; fkh_log "$*"' \
-    '[[ -s $FKH/bar-red ]] && { echo "bar-geometry (dark): $(cat "$FKH/bar-red")" >&2; exit 1; }' 'exit 0' \
+    '[[ -s $FKH/bar-red ]] && { while IFS= read -r l; do [[ $l == @(dark|light):* ]] || l="dark: $l"; echo "bar-geometry (${l%%:*}):${l#*:}" >&2; done <"$FKH/bar-red"; exit 1; }' 'exit 0' \
     >"$W/home/fkuser/fedokawaii/tools/regress/bar-geometry.sh"
   # what dwl's build needs of wlroots: its header folder and library (a real .so, so ldd reads it)
   mkdir -p "$W/usr/local/fkh-sys/include/wlroots-0.20/wlr" "$W/usr/local/fkh-sys/lib64"

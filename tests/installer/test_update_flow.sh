@@ -166,14 +166,20 @@ back built; reset_calls; pending "bash 5.2-1.fc44 5.3-1.fc44"; fkh session-red "
 up; eq "$RC" 0 "$(tail -n3 <<<"$OUT")"
 eq "$(report)" ok; has "$OUT" "red before the update: the desktop does not start: not running: waybar — session-start (dark): not running: waybar"
 [[ -s $U/holds ]] && _no "held: $(cat "$U/holds")" || _ok
-has "$(sed -n 2p "$U/report")" "updated · 1 package · the desktop's check was red before it, so not judged (Super+U → log)"
-has "$(sed -n '3,$p' "$U/report")" "red before it: the desktop does not start: not running: waybar"
+has "$(sed -n 2p "$U/report")" "updated · 1 package · desktop red before: not judged"
+has "$(sed -n '3,$p' "$U/report")" "its desktop items red before it were not judged:"$'\n'"the desktop does not start: not running: waybar"
 case_ "…a red before (the bar's clock) never hides another the update brings (dwl gone): red, the set held — each item its own label"
 back built; reset_calls; pending "mesa 26.0-1.fc44 26.1-1.fc44"; fkh bar-red "the clock's gaps:  (want 14 date→kanji, 14 kanji→time)"; fkh replay-breaks-dwl
 up; eq "$RC" 0 "$(tail -n3 <<<"$OUT")"
 has "$OUT" "red before the update: the desktop does not start: bar-geometry (dark): the clock's gaps — "
 eq "$(report)" offered "$(tail -n3 <<<"$OUT")"; has "$(cat "$U/report")" "the desktop does not start: dwl does not start"
 grep -q '^mesa 26.1-1.fc44 ' "$U/holds" && _ok || _no "the set not held: $(cat "$U/holds" 2>/dev/null)"
+case_ "…the bar red before in one item (light: the clock's gaps, its LAST line) and the update makes it grow (dark: rows, its FIRST line): every line of the check passed on — red, the set held"
+back built; reset_calls; pending "gtk3 3.24.50-1.fc44 3.24.51-1.fc44"; fkh bar-red "light: the clock's gaps:  (want 14 date→kanji, 14 kanji→time)"; fkh replay-breaks-bar
+up; eq "$RC" 0 "$(tail -n3 <<<"$OUT")"
+has "$OUT" "red before the update: the desktop does not start: bar-geometry (light): the clock's gaps — "
+has "$OUT" "red after the update: "; has "$OUT" "the desktop does not start: bar-geometry (dark): rows — bar-geometry (dark): rows: 0+3"
+eq "$(report)" offered "$(tail -n3 <<<"$OUT")"; grep -q '^gtk3 3.24.51-1.fc44 ' "$U/holds" && _ok || _no "the set not held: $(cat "$U/holds" 2>/dev/null)"
 case_ "the bar off its measure after the update only: red — the set held, the snapshot offered"
 back built; reset_calls; pending "gtk3 3.24.50-1.fc44 3.24.51-1.fc44"
 fkh replay-breaks-bar       # (the bar is drawn right before, a row too tall after the replay)
