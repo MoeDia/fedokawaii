@@ -2,6 +2,11 @@
 # everything not named here is yazi's default. Settings of your own go here in your working copy
 # (handbook chapter 42), so the next Theme keeps them.
 
+[mgr]
+# hidden files always shown, dotfiles too (the owner, 27 Oct) — here and in the file dialog,
+# which reads this same file (kawa-pick); `.` puts them away for the moment
+show_hidden = true
+
 [plugin]
 # a PDF's preview through kawa-pdf (yazi's own, but a locked PDF says so in the desktop's
 # words instead of pdftoppm's error): before yazi's rules, for the page and its cache alike

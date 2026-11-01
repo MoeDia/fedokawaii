@@ -3165,6 +3165,13 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   a logind restart clears them; `loginctl terminate-session` removes one: https://bugs.freedesktop.org/show_bug.cgi?id=89024).
   A few hundred bytes each, from the round's heavy sudo use; his own sudo is rare. Nothing to build (no logind
   restart in a live session for that).
+- r27-22-hidden (2 Nov 00:33–00:38, T22's "hidden files always shown, dotfiles included, file manager and picker"):
+  yazi.toml `[mgr] show_hidden = true` — the key as yazi's own reference has it (https://yazi-rs.github.io/docs/configuration/yazi/,
+  [mgr] show_hidden, boolean; the installed yazi 26.9.1 reads [mgr]); the file dialog reads the same file (kawa-pick links
+  ~/.config/yazi/yazi.toml into its config). test_yazi: a real yazi in a pty lists ".hidden-note" (121/0) — on the OLD
+  yazi.toml the same case fails ("never on the screen: .hidden-note", 120/2): the never-again pair. Also green with it:
+  test_pick 104, test_play 55, test_clipfiles 46, test_file 265, test_config 105, test_syncplay 120, test_shrink 121.
+  .rar (bug 11) was already kawa-file's (unrar, a locked one asks). T22's rebuild itself (the grid, contrast) still open.
 ## >>> NEXT PASS STARTS HERE (1 Nov, written ~23:50 by the 21:47 pass — the lines above say what it did): the inbox first. Then:
 ## (0) PRESENCE: he was at the PC all evening (a Discord call + a stream at 22:24; memory presence-not-just-input-idle).
 ##     Before anything he could see or hear (a reboot, a session restart, a bar restart, a live play, a notice):

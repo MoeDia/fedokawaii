@@ -699,5 +699,16 @@ EOF
 eq "$(panes <<<"$out")" "12 34" "(as yazi lays 1:2:2 out)"
 rm -f "$HOME/.config/yazi/yazi.toml"
 
+case_ "hidden files shown, dotfiles too (the desktop's yazi.toml; the file dialog links the same file)"
+cp "$REPO/configs/home/.config/yazi/yazi.toml" "$HOME/.config/yazi/yazi.toml"; : >"$W/.hidden-note"
+out=$(y <<'EOF'
+wait .hidden-note
+screen
+quit
+EOF
+)
+has "$out" ".hidden-note"
+rm -f "$W/.hidden-note"
+
 flush; rm -f "$SF"
 done_

@@ -319,7 +319,7 @@ accept: shots both themes at top/middle/end of a long note: margins identical to
 
 T21t (owner inbox 2026-11-01 22:27: "to-do should NOT be in learning thats stupid remove it from there just keep it in the super n") — files: system/fedokawaii (the learning row, its pane, --run/--explain, the launch list), bin/kawa-notes (--todo gone: its only caller was that row), notes.lua (kawa_notes_todo, next_page gone), tests/engine/test_menu.sh (a never-again row: no to-do in Super+U, by row and by name), tests/content/test_notes.sh (the to-do reached by tab, as he does; --todo a misuse), CLAUDE.md's line. accept: test_menu + test_notes green; Super+U's learning tab rows guide · chess · typing · keys; live after the apply (his next Super+U).
 
-### T22 — yazi: the whole UI rebuilt on the engine; hidden files always; .rar; locked PDFs asked properly  [todo]
+### T22 — yazi: the whole UI rebuilt on the engine; hidden files always; .rar; locked PDFs asked properly  [todo — hidden files DONE 2 Nov 00:38 (yazi.toml [mgr] show_hidden, test_yazi; ledger r27-22-hidden); .rar already kawa-file's]
 deps: T11, T16  · model: main  · ledger: r27-22
 files: configs/home/.config/yazi/{init.lua,yazi.toml,theme.toml,keymap.toml,plugins/*}, configs/home/.config/fedokawaii/yazi-pick/* (the portal picker shares it), bin/kawa-pick, bin/kawa-file (rar via `unrar`; locked archive/PDF prompt loop), configs/home/.config/zathura + a kawa-pdf opener (password asked with `kawa-menu --prompt --password`, checked with `qpdf --password=… --check`; wrong → the same menu again with "wrong password" in place; right → zathura opens a decrypted copy in /dev/shm removed on exit), tests/yazi/*, tests/content/test_file.sh
 approach:
