@@ -71,10 +71,12 @@ for st in "${steps[@]}"; do
             say "after the first restore: $(chk 'uname -r; cat /etc/fk-cut-marker 2>/dev/null || echo snapshot')"
             chk 'sudo kawa-snap restore old --with-home' >/dev/null; run 'sudo systemctl reboot' >>"$log" 2>&1; sleep 25
             want=marked A=$B ;;     # (after restore old: the marked system, its own kernel B)
-    adding) # (the cut in the middle of the kernel's add: the restart while dracut makes A's image)
-            run "sudo setsid -f bash -c 'kawa-snap restore $S --with-home >/tmp/r.log 2>&1'" >>"$log" 2>&1
-            for _ in $(seq 120); do [[ $(chk "pgrep -f '[d]racut-install' >/dev/null && echo busy") == busy ]] && break; sleep 1; done
-            run 'sudo sh -c "echo b >/proc/sysrq-trigger"' >>"$log" 2>&1; sleep 25 ;;
+    adding) # (the cut in the middle of the kernel's add: a watcher inside the VM restarts it 3 s
+            # after dracut began making A's image — ssh is too slow to catch a 15-second build)
+            run "sudo setsid -f bash -c 'for i in \$(seq 900); do pgrep -f \"[d]racut-install\" >/dev/null && { sleep 3; echo b >/proc/sysrq-trigger; }; sleep 0.1; done'
+                 sudo setsid -f bash -c 'kawa-snap restore $S --with-home >/tmp/r.log 2>&1'" >>"$log" 2>&1
+            sleep 60
+            say "/boot after the cut: $(chk "ls /boot | grep -c -- '$A'; sudo sh -c 'ls /boot/loader/entries | grep -c -- $A'")" ;;
     *)      timeout 300 bash "$here/vm-run.sh" "$vm" "sudo KAWA_SNAP_CUT=$st /usr/local/sbin/kawa-snap restore $S --with-home" >>"$log" 2>&1
             sleep 25 ;;
   esac
