@@ -744,3 +744,19 @@ instrument active), kept under T45-5/; (3) the storm retired as must-fix 1's pro
 places corrected (should-fix 6). What stands and need not be redone: everything under Proven, Verdict 3's should-fixes
 1–4, storm-3's crash chain, the three button/green runs. The should-fixes decided (done, or written in the ledger with
 the reason) by the next review.
+
+### Addendum (21:47) — the suite condition, with the facts as they landed
+- 2b12615: rc=1 in 3282 s, 126 files; reds test_brave 22/5 (the PC's open Brave seen by pgrep — reproduced by me) and
+  test_update_flow 309/1 (the crash row's own count) — neither in the update's code.
+- 0b45f65 and a6f5049: stopped by main (T48's fuse3 without its evidence row: test_report_rows 267/2, test_torture
+  212/2; then test_launcher's fixture) — a6f5049's 53 files before the stop all green, test_update_flow 311/0 among them.
+- **cf211b8** (= 878f1fd + should-fixes 5 and 6 done — the halt says "then the next start or the next press of update",
+  dnf_end's comment and update-green.sh name method_reload's assert, STORM retired — + T48's/T19's work, not mine): the
+  whole suite from /dev/shm/r27w-suite-cf211b8 **rc=0 in 2724 s, 127 files, none red** (test_upkeep 278/0,
+  test_update_flow 311/0, test_status 216/0, test_brave 30/0, test_report_rows 269/0, test_launcher 267/0). I read
+  cf211b8's diff to setup.sh and tools/vm-inject/update-green.sh (its only T45 lines after 878f1fd): the rows' words
+  still match ("crashed while dnf ran", "restart the PC", "stopped (replay): …"). Condition (1) is met on cf211b8; if
+  the commit pushed is a later one, its own suite's rc line goes in the ledger beside the empty
+  `git diff --stat cf211b8..<pushed> -- lib/update.sh lib/guard.sh lib/common.sh setup.sh tests/installer tools/vm-inject`.
+- Still open before the push: condition (2), one plain update-green f44 from the pushed commit, kept under T45-5/.
+  Condition (3) is done in cf211b8.

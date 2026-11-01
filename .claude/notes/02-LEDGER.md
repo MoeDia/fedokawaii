@@ -2973,7 +2973,10 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
 ##     · the newest (3981c01: T45 should-fix 2 and 7; then T48 should-fix 4 and 7) — each change with its own file
 ##       tests green (test_upkeep 283/0, test_backup 223/0, test_menu, static), no whole suite yet.
 ##     DONE: GitHub main = 415b61c — its suite (cf211b8) ended GREEN 21:46: 128/128, rc 0 (T45's conditions all
-##     met). GitHub r27 = the newest. The whole suite on the newest, 3c3d583, also runs (started 21:31, from
+##     met). GitHub r27 = the newest. THE MASTER'S RULE for any later main (its addendum, 21:47): a commit past
+##     cf211b8 that touches T45's files (3981c01 does: setup.sh) needs its own suite rc line AND its own plain
+##     update-green f44 (exit 0, report ok, no desktop red, avc empty with the instrument) before main moves there.
+##     The whole suite on the newest, 3c3d583, also runs (started 21:31, from
 ##     /dev/shm/r27w-suite-3c3d583 → /dev/shm/r27p/suite-3c3d583.log) → rc 0 → push main there →
 ##     APPLY on the PC (sudo FEDOKAWAII_COPY=$PWD /usr/local/bin/fedokawaii apply; verify) → the new kawa-panel live
 ##     (memory live-panel-restart) → headless shots (grim, the session's env) of Super+U → backups and the notes.
