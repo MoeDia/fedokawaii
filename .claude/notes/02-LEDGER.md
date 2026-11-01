@@ -3194,6 +3194,10 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   "[ ] a task|[a link](https://example.org/x)|**bold** and `code`|2026-11-01 · Sun"; after -c kawa_notes_shown the page's
   virt_lines on the new last line. NOT reproducible headless: the startup resize (winline 1 either way) — the kit render
   is that path's evidence; a cold-start scene for tools/regress/notes-page.sh is owed (the master's ask).
+- r27-suite-0737d1b (2 Nov 00:47): the whole suite on 0737d1b (T21 with the master's fixes, brave --is-open, live()'s scope,
+  yazi show_hidden) CHAINED after 42892e1's: frozen /dev/shm/r27w-suite-0737d1b → /dev/shm/r27p/suite-0737d1b.log (starts
+  when suite-42892e1.log gets its rc line). Tidied: the worktrees /dev/shm/r27w-suite-c5e119f (applied 2 Nov 00:08) and
+  ~/repos/fk-t21 (t21 merged into main, on origin/t21).
 ## >>> NEXT PASS STARTS HERE (2 Nov, written ~00:50 by the 00:10 pass — the lines above say what it did): the inbox first. Then:
 ## (0) PRESENCE: before anything he could see or hear (a reboot, a session restart, a bar restart, a live play, a notice):
 ##     `wpctl status` (a mic capture or playback [active]), `playerctl -a status`, one half-scale grim — not only the
