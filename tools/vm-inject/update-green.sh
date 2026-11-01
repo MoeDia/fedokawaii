@@ -6,9 +6,11 @@
 # the copy (root.cand) is gone, the candidate's log, the packages left to update, SELinux's denials
 # in the run (none, or it is not green).
 #   bash tools/vm-inject/update-green.sh [VM] [REPO]   (VM f44; REPO this repository)
-#   STORM=1 …  PID 1 reloaded over and over while the transaction is replayed (systemctl daemon-reload in
-#              a loop, from a second ssh, until the run leaves its replay phase or 15 minutes pass): the
-#              end of dnf's unit must still be read (the hang of 1 Nov, ledger r27-49-hang)
+#   STORM=1 …  PID 1 reloaded over and over while the transaction is replayed (`systemctl daemon-reload`,
+#              each waited for, every 0.2 s — from a second ssh, until the run leaves its replay phase or
+#              15 minutes pass): the end of dnf's unit must still be read (the hang of 1 Nov, ledger
+#              r27-49-hang). Never unthrottled: a loop without the pause floods PID 1 with refused
+#              reloads until it answers nothing (seen 1 Nov 17:46) — a test of the VM, not of the update
 # Out: a summary on stdout, everything in /dev/shm/r27/update-green/. Exit 0 the run kept the
 # update with a green report · 1 it did not · 2 the VM could not run.
 set -u
@@ -27,7 +29,7 @@ run 'systemctl is-active auditd; sudo test -s /var/log/audit/audit.log && echo "
 if [[ ${STORM:-} == 1 ]]; then
   run 'sudo setsid -f bash -c "p=/var/lib/fedokawaii/update/phase; n=0; e=\$((SECONDS + 900))
          until grep -q ^replay \$p 2>/dev/null; do ((SECONDS < e)) || exit; sleep 0.1; done
-         while grep -q ^replay \$p && ((SECONDS < e)); do systemctl daemon-reload; n=\$((n + 1)); done
+         while grep -q ^replay \$p && ((SECONDS < e)); do systemctl daemon-reload && n=\$((n + 1)); sleep 0.2; done
          echo \$n >/tmp/storm.n" </dev/null >/dev/null 2>&1' >>"$log" 2>&1
 fi
 s=$SECONDS

@@ -2685,6 +2685,39 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   the popup hand-off; the plain menu's fifteen entries), test_pick 101/0 (back: file, marks, q, Esc, the dress),
   the engine area's other 11 files with the pointed HOME_SNAPS, the yazi area rc 0.
 
+- r27-49-master-3 (1 Nov 16:25–17:15; the master's Re-review 3 of T45 at 78ea68c, appended to
+  master-T45-efh-verdict.md): VERDICT 3 FAIL until must-fix 1–3. Proven and standing: Verdict 2's must-fix 3/4/5 and
+  1's session half, should-fix 1–5 (built or decided), run 7 (9/9), probation fail + pass (exit 0), the suite on
+  78ea68c rc 0 with the PC's kernel on trial throughout, the stdbuf measurement (checked in the PC's journal), the open
+  items stated as open. Must-fix: (1) the hang (r27-49-hang) — 79cd435's shape is right; proofs wanted: a stub row,
+  update-green ×2 and update-button ×2 from the fixed commit, one under a daemon-reload storm; (2) lib/guard.sh
+  desktop_starts kept only the bar check's LAST red line (`tail -n 1`): an old bar red (the clock's gaps, its last
+  check) still hid a new one (rows: the bar growing, its first) — Verdict 2's must-fix 1 was closed only for
+  session-start; (3) the kept-with-red-desktop suffix (82 characters) overflowed the status row (94 columns in a
+  50-column pane, `fedokawaii status` ≤ 44) and was dropped silently with holds — untested. Should-fix: the VM
+  proofs' SELinux rows cannot tell "no denial" from "no audit log" (ausearch exits 1 either way); probation fail
+  from the fixed commit (the "kernel" SOURCE line is stub-proven only); §2.5's reason must meet --skip-unavailable;
+  the ledger to record the 78ea68c green run as hung (done in r27-49-R3 and -hang).
+- r27-49-master-3-fixes (1 Nov 17:15–17:22, ad94381, local until its areas pass): (2) desktop_starts passes EVERY
+  `^bar-geometry (`/`^session-start (` line on (desk_reds labels each); the stand-in prints a line per item, THEME:
+  prefix as bar-geometry.sh says it; replay-breaks-bar puts its rows red FIRST, before a bar red that was there;
+  test_update_flow row: light clock's gaps red before + dark rows after → offered, gtk3 held. (3) the report's line 2
+  says the fixed short " · desktop red before: not judged"; its lines 3+ "its desktop items red before it were not
+  judged:" and the items; the status shows "desktop red before: not judged" on a continuation line of its own (with
+  holds or without); test_status 216/0 with rows ≤ 44 both ways and the pane ≤ 50. Should-fix 1: both VM proofs
+  record auditd's state and the log's presence (avc-instrument.txt) and fail the row without them; 3: §2.5's reason
+  rewritten (--skip-unavailable covers a missing want, not a conflicting one, which stops the one resolve and
+  Fedora's upgrade with it; --skip-broken would drop parts of the upgrade: a partial upgrade). update-green.sh got
+  STORM=1: `systemctl daemon-reload` in a loop from a second ssh while the run's phase says replay (15 min cap),
+  the count kept. Running: the installer, engine, static areas (/dev/shm/r27p/mf-*.log); update-green STORM=1 (f44)
+  and update-button (f44b) from ad94381 (/dev/shm/r27p/{green-storm,button}-ad94381.txt). RESULTS: the areas on
+  ad94381 installer rc 0 (1355 s), engine 0 (323 s), static 0 (27 s); update-button from ad94381 all TEN rows held
+  (avc-instrument: auditd active, its log there); the FIRST STORM wedged the VM's PID 1 — an unthrottled reload
+  loop span at ≈440 calls/s (refused fast), 396 414 in its 15 minutes, after which systemctl from ssh timed out and
+  ssh could not open a session; dnf_end was alive and polling (a `sleep 1` under it at 1108 s) — a flood no
+  transaction makes, recorded in /dev/shm/r27/master/T45-4/storm-1-wedged.txt; the storm is now synchronous and
+  throttled (a reload, then 0.2 s) and re-run. probation.sh fail from ad94381 started 17:34 (f44b).
+
 ## >>> NEXT PASS STARTS HERE (1 Nov, written 17:00 — the lines above say what this pass did): the inbox first. Then:
 ## (1) the master's Re-review 3 of T45: its verdict is appended to master-T45-efh-verdict.md ("Re-review 3"). If
 ##     it is not there (the pass ended first), launch it again with /dev/shm/r27/master/T45-3/brief.md (gone after
