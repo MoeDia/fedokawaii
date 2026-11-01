@@ -2155,11 +2155,13 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   end() is the next pass's first item. Note for the Super+U pane (T48 rest): `kawa-snap list` gives
   snapper's info.xml dates, which are UTC (09:54 shows as 05:54) — the pane shows local time.
 
+- r27-52b-vm (1 Nov 10:08–10:09; worktree of 05eb42e, VM f44b): `split-cut.sh f44b none` → none ok · flat · files ok ·
+  clean ok · RESULT ok, rc 0 (71 s). The split's own log in the VM: "10:09:00 the boot menu's snapshots listed
+  again"; the list read as the split left it (no `kawa-snap boot` first): grub=2 stale=0. The boot-list fix is
+  proven in the VM; the worktree removed.
+
 ## >>> NEXT PASS STARTS HERE (1 Nov 10:12): the inbox first. Then:
-## (0) the VM re-run started 10:1x from a detached worktree (~/.cache/r27-proof-wt, commit of this item):
-##     `bash tools/vm-inject/split-cut.sh f44b none` — its table in ~/.cache/r27-split-cut-none.txt, the case's
-##     log in /dev/shm/r27/split-cut/none.log. Green ("ok", boot menu with stale=0) → ledger, remove the
-##     worktree (`git worktree remove --force ~/.cache/r27-proof-wt`). Red → read the log, fix, VM again.
+## (0) done (r27-52b-vm: the split's boot-list fix green in the VM).
 ## (1) T45 (worktree ~/repos/fk-t45): merge main (t48 is in it) into t45; then (e) the real checks +
 ##     the desktop smoke test (design §4.2: tools/kit.sh-based, the installed dwl, gles2 on the dGPU's
 ##     render node by path on the PC, pixman in the VM which has no render node), (f) probation
