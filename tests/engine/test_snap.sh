@@ -231,6 +231,12 @@ case_ "a leftover copy that was never exchanged in (it has the mark): removed, t
 disk; cp -a "$T/root/.snapshots/1/snapshot" "$T/root.new"; : >"$T/root.new/.kawa-snap-copy"
 out=$(kawa-snap restore 41 2>&1); eq "$?" 0 "$out"; eq "$(cat "$T/root/etc/mark")" then41; eq "$(cat "$T/root.old/etc/mark")" now
 [[ ! -e $T/root/.kawa-snap-copy ]] && _ok || _no "the restored system still has the copy's mark"
+case_ "a leftover root.copy (a run cut before it marked its copy): removed — never taken for the system that ran"
+disk; cp -a "$T/root/.snapshots/1/snapshot" "$T/root.copy"
+out=$(kawa-snap restore 41 2>&1); eq "$?" 0 "$out"; [[ ! -e $T/root.copy ]] && _ok || _no "root.copy left"
+eq "$(cat "$T/root/etc/mark")" then41; eq "$(cat "$T/root.old/etc/mark")" now; lacks "$out" "cut short after its exchange"
+case_ "…the copy made as root.copy, marked, then named root.new (a cut never leaves an unmarked root.new)"
+called "^btrfs subvolume snapshot $T/root/.snapshots/41/snapshot $T/root.copy\$"
 case_ "a kernel with only its vmlinuz in /boot (no image, no entry): put back whole"
 disk; : >"$B/vmlinuz-6.17.1"; kawa-snap restore 41 >/dev/null 2>&1; eq "$?" 0
 called '^chroot .*/top/root.new kernel-install add 6.17.1 '

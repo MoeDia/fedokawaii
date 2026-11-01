@@ -169,8 +169,9 @@ for p in dnf5 dnf; do pgrep -x "$p" >/dev/null && fail "a package transaction is
 mount_top
 [[ -d $top/$T ]] || fail "the root subvolume $T is not on this disk"
 command -v exch >/dev/null || fail "exch (util-linux) is missing — the exchange could not be atomic; nothing changed"
-new=$top/$T.new
-mark=.kawa-snap-copy        # (in a copy until it is exchanged in: a $T.new without it is the system that ran)
+new=$top/$T.new copy=$top/$T.copy
+mark=.kawa-snap-copy        # (in a copy until it is exchanged in: a $T.new without it is the system that ran;
+                            # the copy is made as $T.copy, marked, then named $T.new — never unmarked there)
 binds=() added=() sk="" skb=""
 unbind() { local i; for ((i = ${#binds[@]} - 1; i >= 0; i--)); do umount "${binds[i]}" 2>/dev/null; done; binds=(); }
 gone() { btrfs subvolume delete --commit-after "$1" >/dev/null 2>&1; }   # (never -R: one subvolume, synced)
@@ -238,12 +239,15 @@ if [[ -d $new ]]; then
   fi
   gone "$new" || fail "a leftover copy $T.new could not be removed"
 fi
+# (a copy a run cut before marking it: never the system that ran — removed)
+if [[ -d $copy ]]; then gone "$copy" || fail "a leftover copy $T.copy could not be removed"; fi
 src=$top/$T/.snapshots/$N/snapshot; [[ $N == old ]] && src=$top/$T.old
 if [[ ! -d $src ]]; then
   [[ $N == old ]] && fail "no system before the last restore is kept — nothing changed"
   fail "there is no snapshot $N (kawa-snap list shows them)"
 fi
-btrfs subvolume snapshot "$src" "$new" >/dev/null || fail "the writable copy of $N could not be made — nothing changed"
+btrfs subvolume snapshot "$src" "$copy" >/dev/null || fail "the writable copy of $N could not be made — nothing changed"
+if ! { : >"$copy/$mark" && mv -T --no-copy "$copy" "$new"; }; then gone "$copy"; fail "the copy of $N could not be made ready — nothing changed"; fi
 power_cut copied
 undo() {   # undo WHY — before the exchange only: the kernels this run added out of /boot, the copy gone
   local v
@@ -251,7 +255,6 @@ undo() {   # undo WHY — before the exchange only: the kernels this run added o
   [[ -n $skb ]] && printf '%s\n' "$skb" >"$sk"
   unbind; gone "$new"; fail "$* — nothing changed"
 }
-: >"$new/$mark" || undo "the copy could not be marked"
 # the copy's first start must not relabel everything or run an old offline update (§3.1)
 rm -f -- "$new/.autorelabel" "$new/system-update" "$new/etc/system-update"
 # the kernels the copy has (each with its vmlinuz: Fedora keeps one beside its modules)
@@ -291,8 +294,8 @@ power_cut kernels
 btrfs filesystem sync "$top" >/dev/null 2>&1 || undo "the disk could not be synced"
 # the exchange: the copy is the root subvolume from here; $new names the system that ran
 exch "$top/$T" "$new" || undo "the exchange failed"
-power_cut exchanged
 btrfs filesystem sync "$top" >/dev/null 2>&1 || echo "kawa-snap: the exchange not confirmed on disk — wait a minute before restarting" >&2
+power_cut exchanged
 # the default at once: the restored system's newest kernel (the ones it lacks stay until it has
 # started — the one-kernel rule takes them then)
 default_to "${K[-1]}"

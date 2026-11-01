@@ -18,7 +18,7 @@
 # Out: a table on stdout, every check's output in /dev/shm/r27/restore-cut/STEP.log.
 # Exit 0 every step ended in a whole system · 1 one did not · 2 the VM could not run.
 set -u
-here=$(cd "$(dirname "$0")/.." && pwd); repo=$(cd "$here/.." && pwd)
+here=$(cd "$(dirname "$0")/.." && pwd)
 vm=${1:-f44}; shift 2>/dev/null || true
 steps=("$@"); ((${#steps[@]})) || steps=(copied kernels exchanged defaulted moved renamed adding old)
 out=/dev/shm/r27/restore-cut; mkdir -p "$out"
@@ -64,7 +64,7 @@ for st in "${steps[@]}"; do
   eval "$(chk 'cat ~/restore-cut.env')"
   toolkit >>"$log" 2>&1
   run 'echo live | sudo tee /etc/fk-cut-marker >/dev/null; sudo touch /run/kawa-snap.cut; sync' >>"$log" 2>&1
-  want=snapshot; [[ $st == @(copied|kernels|adding) ]] && want=marked
+  want=snapshot; [[ $st == @(copied|kernels|adding) ]] && want=marked   # (exchanged: cut after its sync — the restored root under the old default kernel)
   case $st in
     old)    # (a whole restore of S, a start, then restore old: back to the marked system and B)
             chk "sudo kawa-snap restore $S --with-home" >/dev/null; run 'sudo systemctl reboot' >>"$log" 2>&1; sleep 25; run --wait 300 >>"$log" 2>&1
@@ -73,7 +73,7 @@ for st in "${steps[@]}"; do
             want=marked A=$B ;;     # (after restore old: the marked system, its own kernel B)
     adding) # (the cut in the middle of the kernel's add: the restart while dracut makes A's image)
             run "sudo setsid -f bash -c 'kawa-snap restore $S --with-home >/tmp/r.log 2>&1'" >>"$log" 2>&1
-            for _ in $(seq 120); do [[ $(chk 'pgrep -x dracut >/dev/null && echo busy') == busy ]] && break; sleep 1; done
+            for _ in $(seq 120); do [[ $(chk "pgrep -f '[d]racut-install' >/dev/null && echo busy") == busy ]] && break; sleep 1; done
             run 'sudo sh -c "echo b >/proc/sysrq-trigger"' >>"$log" 2>&1; sleep 25 ;;
     *)      timeout 300 bash "$here/vm-run.sh" "$vm" "sudo KAWA_SNAP_CUT=$st /usr/local/sbin/kawa-snap restore $S --with-home" >>"$log" 2>&1
             sleep 25 ;;
@@ -98,7 +98,7 @@ for st in "${steps[@]}"; do
     fi
   fi
   def=$(chk 'sudo grubby --default-kernel'); def=${def##*/vmlinuz-}
-  end=$(chk "uname -r; [ -s /boot/initramfs-$A.img ] && ls /boot/loader/entries/*-$A.conf >/dev/null 2>&1 && echo whole
+  end=$(chk "uname -r; sudo sh -c '[ -s /boot/initramfs-$A.img ] && ls /boot/loader/entries/*-$A.conf' >/dev/null 2>&1 && echo whole
             sudo mount -o subvolid=5 \$(findmnt -no SOURCE / | sed 's/\\[.*//') /mnt && { [ -d /mnt/root.new ] && echo new; [ -d /mnt/root.old ] && echo old; sudo umount /mnt; }
             sudo kawa-snap list >/dev/null && echo listed")
   say "end: $end"
