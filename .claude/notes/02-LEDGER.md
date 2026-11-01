@@ -2849,41 +2849,27 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   dialog cancelled, a backup that cannot be opened — nothing left behind, no backup yet, not plugged in; the
   drive's pane and row; restore's icon), static 13/13, deps, pick, clipfiles, shrink green. Learn book §8.1:
   both rows. (The PDF waits for his word, as every round-27 edit.)
-## >>> NEXT PASS STARTS HERE (1 Nov, written 18:35 — the lines above say what this pass did): the inbox first. Then:
-## (0) 381c08a (the PID 1 crash handling) is NOT pushed: its installer area was RED (18:46, 1641 s) — test_upkeep 273/2,
-##     both in the new row "…systemd itself crashed while dnf ran …": OUT lacks "systemd, the system's own manager,
-##     crashed while dnf ran" and "restart the PC"; the captured OUT ends mid-line ("18:37:06 ▸ missing from the m" —
-##     the harness cuts it, or the run hung to the row's timeout: find out first). Leads: in repair the install runs in
-##     heal → contained (a subshell: die ends only it — its message may go only to the log); the journalctl stand-in's
-##     `_PID=1 -g` branch; dnf_end's MainPID read under systemctl-fail. Run test_upkeep alone, print the whole OUT of
-##     that row, fix, then the WHOLE installer area (stand-ins changed) + static; green → push (main carries 381c08a,
-##     bed3488, 8c5aa8b, all local; r27 = main) → apply on the PC. static was green (rc 0). STARTED 18:48: test_upkeep
-##     alone with a TEMPORARY debug line in that row (uncommitted: it writes /dev/shm/r27p/crashrow.out = RC + the
-##     whole OUT, crashrow.log = the fake machine's log; the run's summary /dev/shm/r27p/upkeep-dbg.log) — read them,
-##     then REMOVE that printf line before any commit. A lead from reading: dnf_try_sub runs `dnf` (dnf_detached) in
-##     `$(… | tee …)`, so die ends only that pipeline element and dnf_install RETRIES it (DNF_TRIES, 15·i s pauses);
-##     the 125 should rather make dnf_install stop at once (a why of its own for dnf_why, e.g. "pid1").
-##     FOUND 18:56 (crashrow.out: RC=124, the run hung after "$ dnf -y install bat (as fedokawaii-dnf-…)" to the row's
-##     timeout): the STAND-IN's bug — journalctl's `p=${*##* -g }` strips each word on its own, so the pattern was
-##     the whole argument line and never matched; fixed (a="$*"; p=${a##* -g }) in the commit after 80684bd, the
-##     debug line removed. The installer + static areas on 73cd846 STARTED 18:57 → /dev/shm/r27p/p2-sum.log (+ p2-*.log)
-##     — read them first; then the lead above (no retries after a PID 1 crash: its own why in dnf_why), its rows,
-##     the areas again; green → push and apply.
-## (1) the master's Re-review 4 of T45 at 9280e4b (r27-49-R4): its verdict appended to master-T45-efh-verdict.md. Told
-##     mid-review of the storm's PID 1 crash (r27-49-pid1). Not there → launch it again with
-##     /dev/shm/r27/master/T45-4/brief.md (gone after a reboot: rebuild from ledger r27-49-R4, -pid1, -hang, -master-3,
-##     -master-3-fixes). Its must-fix items first; 381c08a goes to its next review with the whole suite run on the
-##     commit that is pushed (the suite on 9280e4b: /dev/shm/r27p/suite-9280e4b.log). COPY a proof's folder under
-##     /dev/shm/r27/master/T45-x/ before re-running it — the proofs clear their own folders. No more unthrottled or
-##     throttled storms during a systemd upgrade: it crashes PID 1 (r27-49-pid1) — if the master still wants the
-##     race forced, storm only while a set WITHOUT systemd replays (exclude systemd from the stored set in the VM).
-## (2) T46b: triage .claude/notes/f45-changes-raw.md (a research agent was writing it, 18:05) into f45-changes.md with
-##     decisions, Python first. Then T48's rest (restore + the drive, sketched in plan T48).
-## (3) THE KERNEL TRIAL ON THE PC is open since 14:43 (7.2.13; grubenv 3/0/1; snapshot 381 pinned). It closes at
-##     the next start: a reboot ends the bulk run (r27-bulk-*, 10:36 + 12 h) — so reboot only in the claude-r27
-##     pass after 22:36 (CLAUDE.md START §4: initial_session, presence probe first), or let his own restart close
-##     it; then read fedokawaii-boot-good's journal: boot_counter unset, the trial arguments and the watchdog
-##     drop-in gone, snapshot 381 back to number cleanup, 7.2.11 out at the next "one kernel" step — ledger
-##     r27-49-B3. libheif 1.23.7 waits for RPM Fusion's libheif-freeworld (dnf skips it: conflicts).
-## (4) T46 F45 (released Tue 3 Nov): re-run vm-smoke.sh f45 from a frozen main after the release (RPM Fusion's
-##     updates repos then on); T48 rest; (H) 7's three config checks with T58; T45 (i) last.
+## >>> NEXT PASS STARTS HERE (1 Nov, written 20:15 by the 18:56 pass — the lines above say what it did): the inbox first. Then:
+## (1) THE MASTER'S RE-REVIEW 4 OF T45 (r27-49-R4b, started 19:20 on 2b12615 → judged at 878f1fd; brief
+##     /dev/shm/r27/master/T45-5/brief.md + two later messages: storm 3 (/dev/shm/r27/master/T45-5/
+##     storm-3-pid1-crash.txt) and the commits 878f1fd/0b45f65): its verdict is appended to
+##     .claude/notes/master-T45-efh-verdict.md ("Re-review 4"). Its must-fix items first. Not there → relaunch it
+##     with that brief (rebuild from ledger r27-49-R4b, -storm3, -halt if /dev/shm was cleared by a reboot).
+## (2) THE SUITE ON 0b45f65 (/dev/shm/r27p/suite-0b45f65.log, started 20:03): green → push main + r27, apply on
+##     the PC (sudo FEDOKAWAII_COPY=$PWD /usr/local/bin/fedokawaii apply), verify, Super+U → backups looked at
+##     live (headless shot: grim with the session's env). [the pass fills in below what happened]
+## (3) T48's new parts to the master: brief /dev/shm/r27/master/T48-4/brief.md (restore, the drive, a file
+##     back; renders beside it) → .claude/notes/master-T48-verdict-4.md.
+## (4) THE KERNEL TRIAL ON THE PC is open since 14:43 (7.2.13; grubenv 3/0/1; snapshot 381 pinned). It closes at
+##     the next start: the bulk run (r27-bulk-*, 10:36 + 12 h) ends 22:36 — reboot only in a claude-r27 pass
+##     after that (CLAUDE.md START §4: initial_session, presence probe first), or his own restart; then read
+##     fedokawaii-boot-good's journal (boot_counter unset, the trial arguments and the watchdog drop-in gone,
+##     snapshot 381 back to number cleanup, 7.2.11 out at the next "one kernel" step) — ledger r27-49-B3.
+## (5) T19m (b) pass 1 goes on (.claude/notes/audit-r27.md: the table, what pass 1 measured so far, two open
+##     findings — the panel/text-screen row grammar, the optical centre) — px.py over every gallery surface
+##     (/dev/shm/r27/audit/p1, or render again: tools/gallery.sh --out … --bin bin --repo-art).
+## (6) T46 F45 (released Tue 3 Nov): vm-smoke.sh f45 ran from 0b45f65 tonight (/dev/shm/r27p/smoke-f45-0b45f65.txt)
+##     — read it; after the release re-run it with T46b's five checks (f45-changes.md's end), and the storm on
+##     systemd 262 (the reload assert is in its source too).
+## (7) T45 (H) 7's three config checks with T58; T45 (i) the toolkit at a tag, last. T53 notes: theme.sh (2×)
+##     and kawa-tidy still guess "Brave is open" with pgrep — one shared SingletonLock check (bin/brave-origin's).
