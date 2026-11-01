@@ -515,7 +515,7 @@ kernel_match() {
   [[ -d /usr/lib/modules/$(uname -r) ]] && return 0
   v=$(for m in /usr/lib/modules/*/vmlinuz; do
         m=${m%/vmlinuz}; m=${m##*/}
-        if [[ -f /boot/vmlinuz-$m && -s /boot/initramfs-$m.img ]]; then echo "$m"; fi
+        if [[ -f /boot/vmlinuz-$m && -s /boot/initramfs-$m.img ]] && compgen -G "/boot/loader/entries/*-$m.conf" >/dev/null; then echo "$m"; fi
       done | sort -V | tail -n1)
   if [[ -z $v ]]; then log "kernel $(uname -r) has no modules in this system, and no kernel that has is whole in /boot"
   elif grubby --set-default "/boot/vmlinuz-$v" >/dev/null 2>&1; then
@@ -567,12 +567,18 @@ OnBootSec=15min
 WantedBy=timers.target
 UNIT
   # /boot's and the ESP's drivers loaded in the boot image itself: a start whose kernel has no
-  # modules in the system (kernel_match's case) still mounts /boot, so it can be put right
-  write_file /etc/dracut.conf.d/fedokawaii.conf <<'CONF'
+  # modules in the system (kernel_match's case) still mounts /boot, so it can be put right — the
+  # images there are made again once, when this is new (a kernel installed later has it anyway)
+  local dc=/etc/dracut.conf.d/fedokawaii.conf
+  if ! grep -qx 'force_drivers+=" xfs vfat "' "$dc" 2>/dev/null; then
+    write_file "$dc" <<'CONF'
 # installed by setup.sh — /boot (XFS) and the ESP (FAT) mountable by every boot image, even under
 # a kernel whose modules the system lacks (a cut restore: kawa-snap, setup.sh kernel_match)
 force_drivers+=" xfs vfat "
 CONF
+    run dracut -f --regenerate-all || log "dracut could not make the boot images again — the next kernel's has /boot's drivers"
+    sync -f /boot 2>/dev/null || true   # (on disk at once: they are the only way to start)
+  fi
   systemctl daemon-reload
   systemctl is-enabled --quiet fedokawaii-kernels.timer || systemctl enable fedokawaii-kernels.timer
 }
@@ -2242,7 +2248,7 @@ GRUB_BTRFS_TITLE_FORMAT=("date" "description")
 GRUB_BTRFS_LIMIT="10"
 GRUB_BTRFS_SHOW_SNAPSHOTS_FOUND="false"
 GRUB_BTRFS_SHOW_TOTAL_SNAPSHOTS_FOUND="false"
-GRUB_BTRFS_IGNORE_SPECIFIC_PATH=("$t" "$t.old" "$t.new")
+GRUB_BTRFS_IGNORE_SPECIFIC_PATH=("$t" "$t.old" "$t.new" "$t.copy")
 GRUB_BTRFS_IGNORE_PREFIX_PATH=("var/lib/containers" "$t/var/lib/containers" "$t.old.d")
 GRUB_BTRFS_IGNORE_SNAPSHOT_TYPE=("post")
 GRUB_BTRFS_IGNORE_SNAPSHOT_DESCRIPTION=("timeline")
@@ -3452,6 +3458,8 @@ case $MODE in
   repair) do_repair; exit 0 ;;
   update-resume) [[ $(phase) == 'done' ]] && on_the_system || exit 0; up_boot; exit 0 ;;
   kernels) [[ $(phase) == 'done' ]] && on_the_system || exit 0
+           # (a restore cut short after its exchange: finished first — its snapshots back, its default)
+           /usr/local/sbin/kawa-snap finish >/dev/null 2>&1 || log "kawa-snap could not finish a restore that was cut short (sudo kawa-snap finish says why)"
            kernel_match; orphan_kernels_out desktop; old_kernels_out desktop; exit 0 ;;
   toolkit) [[ $(phase) == 'done' ]] || die "the build is not finished — setup makes the toolkit itself"
            [[ $REPO_DIR != "$TOOLKIT" ]] || { ok "this is the toolkit already"; exit 0; }

@@ -173,6 +173,7 @@ tk --repair; called 'systemctl\] --global disable grub-boot-success.timer'
 grep -qx "global-enabled grub-boot-success.timer" "$FKH/units" && _no "still on for every session" || _ok
 case_ "repair: a new kernel (waiting for its restart) without its boot image gets one (dracut --kver), and verify passes after"
 back built; fkh kernels "99.1.1-200.fc44.x86_64" "$(uname -r)"; echo vmlinuz >"$W/boot/vmlinuz-99.1.1-200.fc44.x86_64"
+mkdir -p "$W/etc/dracut.conf.d"; echo 'force_drivers+=" xfs vfat "' >"$W/etc/dracut.conf.d/fedokawaii.conf"   # (the images' drivers in place: no rebuild of all)
 tk --repair; has "$OUT" "kernel 99.1.1-200.fc44.x86_64 has no boot image (initramfs) — dracut makes it now"
 called 'dracut\] -f --kver 99.1.1-200.fc44.x86_64'
 [[ -s $W/boot/initramfs-99.1.1-200.fc44.x86_64.img ]] && _ok || _no "no image made"
@@ -278,7 +279,11 @@ case_ "repair or update with a new kernel not yet running: both kept, said — n
 back built; fkh kernels "$(uname -r)" "99.1.1-200.fc44.x86_64"; echo vmlinuz >"$W/boot/vmlinuz-99.1.1-200.fc44.x86_64"; : >"$W/boot/initramfs-99.1.1-200.fc44.x86_64.img"
 reset_calls; tk --repair; not_called 'remove kernel'
 has "$OUT" "kernel 99.1.1-200.fc44.x86_64 is installed and waits for a restart"
-reset_calls; tk --update; not_called 'remove kernel'
+called 'dracut\] -f --regenerate-all'   # (the boot images made again once: /boot's drivers new in them)
+reset_calls; tk --update; not_called 'remove kernel'; not_called 'dracut\] -f --regenerate-all'
+case_ "…and what they write for the kernels: the start-up unit never in a boot-menu snapshot; every boot image mounts /boot and the ESP itself (xfs, vfat: dracut)"
+grep -q '^ConditionKernelCommandLine=!systemd.volatile$' "$W/etc/systemd/system/fedokawaii-kernels.service" && _ok || _no "the unit runs in a snapshot boot too"
+grep -q '^force_drivers+=" xfs vfat "$' "$W/etc/dracut.conf.d/fedokawaii.conf" && _ok || _no "no dracut drivers: $(cat "$W/etc/dracut.conf.d/fedokawaii.conf" 2>&1)"
 case_ "the start-up run (a quarter of an hour in): only once this start reached the desktop (boot_success=1) — then the one before goes"
 back built; fkh kernels "6.18.1-200.fc44.x86_64" "$(uname -r)"; grubenv boot_success=0
 reset_calls; tk --kernels; eq "$RC" 0; not_called 'remove kernel'
@@ -301,15 +306,13 @@ not_called 'remove kernel'; not_called 'kernel-install\] remove'; not_called 'gr
 rm -f "$FKH/fsroot-_"; c=$(cat "$W/proc/cmdline"); echo "$c systemd.volatile=overlay" >"$W/proc/cmdline"
 reset_calls; tk --kernels; eq "$RC" 0; not_called 'remove kernel'; not_called 'kernel-install\] remove'
 echo "$c" >"$W/proc/cmdline"
-grep -q '^ConditionKernelCommandLine=!systemd.volatile$' "$W/etc/systemd/system/fedokawaii-kernels.service" && _ok || _no "the unit runs in a snapshot boot too"
 case_ "the start-up run under a kernel the system has no modules for (a restore cut in its instant): the newest whole kernel that has them made the default, said"
 back built; k=$(uname -r); fkh kernels "$k"; echo vmlinuz >"$W/boot/vmlinuz-$k"; echo img >"$W/boot/initramfs-$k.img"
+mkdir -p "$W/boot/loader/entries"; printf 'title Fedora\nversion %s\n' "$k" >"$W/boot/loader/entries/x-$k.conf"
 printf '#!/bin/sh\n[ "$1" = -r ] && { echo 9.9.9-1.fc44.x86_64; exit 0; }\nexec /usr/bin/uname "$@"\n' >"$W/usr/local/bin/uname"; chmod 755 "$W/usr/local/bin/uname"
 reset_calls; tk --kernels; eq "$RC" 0
 called "grubby\] --set-default /boot/vmlinuz-$k"; has "$OUT" "kernel 9.9.9-1.fc44.x86_64 has no modules in this system — $k is the default again"
 rm -f "$W/usr/local/bin/uname"
-case_ "…and the boot images mount /boot and the ESP under such a kernel: xfs and vfat loaded by the image itself (dracut)"
-grep -q '^force_drivers+=" xfs vfat "$' "$W/etc/dracut.conf.d/fedokawaii.conf" && _ok || _no "no dracut drivers: $(cat "$W/etc/dracut.conf.d/fedokawaii.conf" 2>&1)"
 case_ "the start-up run while another run holds the lock, or before setup has finished: nothing, quietly"
 back built; fkh kernels "6.18.1-200.fc44.x86_64" "$(uname -r)"; grubenv boot_success=1
 echo 3 >"$W/var/lib/fedokawaii/phase"; reset_calls; tk --kernels; eq "$RC" 0; not_called 'remove kernel'

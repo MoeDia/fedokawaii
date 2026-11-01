@@ -144,7 +144,8 @@ disk() {   # a Fedora layout: root (kernel 6.18.0, marked "now"), its snapshots 
   stub findmnt 'case "$*" in *--fstab*) echo rw,subvol=root,compress=zstd:1 ;; *FSTYPE*) echo btrfs ;;
   *FSROOT*) echo "${FK_FSROOT:-/root}" ;; *SOURCE*) echo "/dev/vda3[/root]" ;; esac'
   # (/home its own subvolume unless FK_HOME_INSIDE: then a restore must be asked --with-home)
-  stub mountpoint "if [ \"\$2\" = \"$T\" ] || { [ \"\$2\" = /home ] && [ -z \"\${FK_HOME_INSIDE:-}\" ]; }; then exit 0; fi; exit 1"
+  # (/boot and the ESP mounted unless FK_BOOT_UNMOUNTED)
+  stub mountpoint "if [ \"\$2\" = \"$T\" ] || { [ \"\$2\" = /home ] && [ -z \"\${FK_HOME_INSIDE:-}\" ]; } || { { [ \"\$2\" = /boot ] || [ \"\$2\" = \"$B/efi\" ]; } && [ -z \"\${FK_BOOT_UNMOUNTED:-}\" ]; }; then exit 0; fi; exit 1"
   stub mount; stub umount; stub restorecon; stub grubby; stub sync; stub grub2-editenv
   stub pgrep 'exit "${FK_PGREP:-1}"'
   ln -sfn /var/lib/dnf/system-upgrade "$T/root/.snapshots/41/snapshot/etc/system-update"
@@ -231,6 +232,25 @@ case_ "a leftover copy that was never exchanged in (it has the mark): removed, t
 disk; cp -a "$T/root/.snapshots/1/snapshot" "$T/root.new"; : >"$T/root.new/.kawa-snap-copy"
 out=$(kawa-snap restore 41 2>&1); eq "$?" 0 "$out"; eq "$(cat "$T/root/etc/mark")" then41; eq "$(cat "$T/root.old/etc/mark")" now
 [[ ! -e $T/root/.kawa-snap-copy ]] && _ok || _no "the restored system still has the copy's mark"
+case_ "/boot not mounted: refused, nothing changed (the kernels would land inside the copy)"
+disk; out=$(FK_BOOT_UNMOUNTED=1 kawa-snap restore 41 2>&1); eq "$?" 1; has "$out" "/boot is not mounted — nothing changed"
+not_called '^btrfs subvolume snapshot'
+case_ "the default cannot be set: the last line says to choose the kernel, never just 'restart now'"
+disk; stub grubby 'exit 1'; out=$(kawa-snap restore 41 2>&1); eq "$?" 0
+has "$out" "at the next start, choose kernel 6.17.1 in the boot menu"; lacks "$out" "restart now"
+case_ "finish: a restore cut after its exchange — the snapshots back, its default; list says so until then"
+disk; mv -T "$T/root" "$T/root.new"; cp -a "$T/root.new/.snapshots/41/snapshot" "$T/root"
+: >"$B/vmlinuz-6.17.1"; echo img >"$B/initramfs-6.17.1.img"; printf 'version 6.17.1\n' >"$B/loader/entries/abc-6.17.1.conf"
+out=$(kawa-snap list 2>&1 >/dev/null); has "$out" "a restore was cut short after its exchange"
+out=$(kawa-snap finish 2>&1); eq "$?" 0 "$out"; has "$out" "a restore cut short after its exchange is finished"
+[[ -f $T/root/.snapshots/41/info.xml && ! -e $T/root.new ]] && _ok || _no "not finished"; called "^grubby --set-default $B/vmlinuz-6.17.1\$"
+out=$(kawa-snap finish 2>&1); eq "$?" 0; has "$out" "no restore to finish"
+case_ "a leftover root.copy (a run cut before it marked its copy): removed — never taken for the system that ran"
+disk; cp -a "$T/root/.snapshots/1/snapshot" "$T/root.copy"
+out=$(kawa-snap restore 41 2>&1); eq "$?" 0 "$out"; [[ ! -e $T/root.copy ]] && _ok || _no "root.copy left"
+eq "$(cat "$T/root/etc/mark")" then41; eq "$(cat "$T/root.old/etc/mark")" now; lacks "$out" "cut short after its exchange"
+case_ "…the copy made as root.copy, marked, then named root.new (a cut never leaves an unmarked root.new)"
+called "^btrfs subvolume snapshot $T/root/.snapshots/41/snapshot $T/root.copy\$"
 case_ "a kernel with only its vmlinuz in /boot (no image, no entry): put back whole"
 disk; : >"$B/vmlinuz-6.17.1"; kawa-snap restore 41 >/dev/null 2>&1; eq "$?" 0
 called '^chroot .*/top/root.new kernel-install add 6.17.1 '
@@ -252,7 +272,7 @@ disk; : >"$T/root.old"; kawa-snap restore 41 >/dev/null 2>&1; eq "$?" 0
 case_ "from a snapshot started from the boot menu (/ an overlay): the disk and the snapshot from the kernel's arguments"
 disk; printf 'BOOT_IMAGE=/vmlinuz-6.17.1 root=UUID=1234-ab ro rootflags=subvol=root/.snapshots/41/snapshot systemd.volatile=overlay\n' >"$P/cmdline"
 stub findmnt 'case "$*" in *--fstab*) echo rw,subvol=root,compress=zstd:1 ;; *FSTYPE*) echo overlay ;; *) echo overlay ;; esac'
-stub mountpoint 'if [ "$2" = /home ]; then exit 0; fi; exit 1'   # (the top not mounted yet: mounted from the kernel's root=)
+stub mountpoint "if [ \"\$2\" = /home ] || [ \"\$2\" = /boot ] || [ \"\$2\" = \"$B/efi\" ]; then exit 0; fi; exit 1"   # (the top not mounted yet: mounted from the kernel's root=)
 kawa-snap list | grep -q $'^41\t.*\tbooted$' && _ok || _no "the booted snapshot not marked"
 kawa-snap restore 41 >/dev/null 2>&1; eq "$?" 0; called '^mount -o subvolid=5 /dev/disk/by-uuid/1234-ab '
 eq "$(cat "$T/root/etc/mark")" then41
