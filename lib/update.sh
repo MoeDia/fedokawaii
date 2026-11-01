@@ -151,7 +151,7 @@ up_sources() {
 }
 bins_of() { local IFS=' '; awk -v want=" $* " 'index(want, " " $2 " ") { print $1 }' "$UPD/sources" | sort -u; }   # (IFS: setup.sh's joins $* with newlines)
 up_bisect() {
-  local s=() a=() b=() x=() h ra rb n
+  local s=() a=() b=() pk=() h ra rb n
   # (by source package: a family goes in, or is held, whole — never half a kernel)
   up_sources
   mapfile -t s < <(awk '$3 != "-" { print $1 }' "$UPD/set" | while IFS= read -r n; do
@@ -159,9 +159,9 @@ up_bisect() {
                    done | sort -u)
   while ((${#s[@]} > 1)); do
     h=$((${#s[@]} / 2)); a=("${s[@]:0:h}"); b=("${s[@]:h}")
-    mapfile -t x < <(bins_of "${a[@]}"); up_try "${x[@]}" && ra=0 || ra=$?
+    mapfile -t pk < <(bins_of "${a[@]}"); up_try "${pk[@]}" && ra=0 || ra=$?
     if ((ra == 1)); then s=("${a[@]}"); continue; fi
-    mapfile -t x < <(bins_of "${b[@]}"); up_try "${x[@]}" && rb=0 || rb=$?
+    mapfile -t pk < <(bins_of "${b[@]}"); up_try "${pk[@]}" && rb=0 || rb=$?
     if ((rb == 1)); then s=("${b[@]}"); continue; fi
     ((ra == 0 && rb == 0)) || return 1
     break
