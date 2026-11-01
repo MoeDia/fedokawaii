@@ -10,7 +10,10 @@
 #              each waited for, every 0.2 s — from a second ssh, until the run leaves its replay phase or
 #              15 minutes pass): the end of dnf's unit must still be read (the hang of 1 Nov, ledger
 #              r27-49-hang). Never unthrottled: a loop without the pause floods PID 1 with refused
-#              reloads until it answers nothing (seen 1 Nov 17:46) — a test of the VM, not of the update
+#              reloads until it answers nothing (seen 1 Nov 17:46) — a test of the VM, not of the update.
+#              systemd's own packages go in first, outside the run: a reload asked during systemd's own
+#              upgrade crashed PID 1 (259.10, 1 Nov 17:58 — r27-49-pid1; the run's answer to that is a
+#              stub row), so the storm meets the rest of the set and the reloads its scriptlets ask
 # Out: a summary on stdout, everything in /dev/shm/r27/update-green/. Exit 0 the run kept the
 # update with a green report · 1 it did not · 2 the VM could not run.
 set -u
@@ -22,6 +25,7 @@ run() { bash "$here/vm-run.sh" "$vm" "$@"; }
   || { echo "update-green: the VM did not start" >&2; exit 2; }
 # (applied as the PC is before a press: the toolkit, the theme, our builds — the desktop check green)
 run --apply "$src" >>"$log" 2>&1 || { echo "update-green: the toolkit could not go in" >&2; exit 2; }
+[[ ${STORM:-} == 1 ]] && run 'sudo dnf -y -q upgrade "systemd*" >/dev/null 2>&1; rpm -q systemd' >"$out/storm-systemd.txt" 2>&1
 pending=$(run 'sudo dnf -q check-upgrade 2>/dev/null | grep -c "\."')
 # (SELinux's denials until now marked; the instrument recorded: auditd running and its log there —
 # ausearch exits 1 with nothing printed for a missing log as for nothing found)

@@ -2,7 +2,9 @@
 # systemd-run of the fake Fedora: dnf's unit (setup.sh dnf_detached) — the program run here to
 # its end; systemd-run itself says only that it started (0), as without --wait. The unit's end
 # is kept for systemctl show (RemainAfterExit): "ended UNIT RC" in $FKH/units (RC 128+N: killed
-# by signal N); $FKH/dnf-killed = N — dnf killed by signal N instead of running
+# by signal N); $FKH/dnf-killed = N — dnf killed by signal N instead of running; $FKH/crash-on =
+# a regex: the dnf whose arguments match it ends with systemd itself crashed (a reload during its
+# own upgrade) — every `show` unanswered from then on, its journal saying it froze
 . /usr/local/bin/_lib.sh
 fkh_log "$*"
 unit=""
@@ -11,4 +13,8 @@ while (($#)) && [[ $1 != /usr/bin/dnf ]]; do shift; done
 shift
 if [[ -s $FKH/dnf-killed ]]; then rc=$((128 + $(cat "$FKH/dnf-killed"))); else /usr/local/bin/dnf "$@"; rc=$?; fi
 [[ -n $unit ]] && echo "ended $unit $rc" >>"$FKH/units"
+if [[ -f $FKH/crash-on && $* =~ $(cat "$FKH/crash-on") ]]; then
+  echo show >>"$FKH/systemctl-fail"; printf '%s\n' 'Caught <ABRT>, from our own process.' 'Freezing execution.' >>"$FKH/journal-pid1"
+  chmod 666 "$FKH/systemctl-fail" "$FKH/journal-pid1"
+fi
 exit 0

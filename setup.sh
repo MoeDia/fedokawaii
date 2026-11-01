@@ -366,8 +366,9 @@ wait_for_network() {
 
 # contained FN [ARG…] — run FN in a subshell with errexit really on, so a failure ends FN
 # alone (the line that failed is reported); its status lands in CONTAINED_RC, and contained
-# itself always returns 0. (`set +e; ( set -e; FN ); set -e` is not enough: with errtrace,
-# the subshell's failure also sets off this script's ERR trap, which ends the whole run.)
+# itself returns 0 — a halt inside ends the run. (`set +e; ( set -e; FN ); set -e` is not
+# enough: with errtrace, the subshell's failure also sets off this script's ERR trap, which
+# ends the whole run.)
 CONTAINED_RC=0
 contained() {
   local saved; saved=$(trap -p ERR)
@@ -383,6 +384,7 @@ contained() {
     "$@" )
   CONTAINED_RC=$?
   set -e; eval "$saved"
+  pass_halt
   return 0
 }
 
@@ -2634,7 +2636,7 @@ dnf_detached() {   # dnf_detached ARG… — dnf ARG…, detached from this sess
   else rc=$?; fi                                    # (it never started: systemd-run's own status)
   if ((rc == 125)); then
     kill "$FOLLOWER" 2>/dev/null || true; FOLLOWER=""
-    die "systemd, the system's own manager, crashed while dnf ran (journalctl -b _PID=1: \"Freezing execution\") — nothing more can be done in this start: restart the PC (hold its power button if it does not go down); the next start finishes the update, or puts the system before it back"
+    halt "systemd, the system's own manager, crashed while dnf ran (journalctl -b _PID=1: \"Freezing execution\") — nothing more can be done in this start: restart the PC (hold its power button if it does not go down); the next start finishes the update, or puts the system before it back"
   fi
   # dnf's last lines (its error, which decides whether a new try can mend it) written into the
   # journal before the follower is stopped: --sync returns once journald has every line its

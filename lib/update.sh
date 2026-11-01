@@ -330,9 +330,9 @@ u_check() {   # → 0 nothing newly red · 1 (UPD/why lists what)
   bash "$REPO_DIR/verify.sh" || true
   after=$(cat "$STATE_DIR/last-verify-fails" 2>/dev/null) || after=""
   more=$(up_more) || rc=$?
-  # (a check that did not happen undoes nothing: stopped here, the next press runs the checks again)
-  # (its phase kept: the next press resumes here, against the baseline from before the update)
-  ((rc == 2)) && { UP_STAY=1; die "the desktop's start check could not run ($more) — nothing held, nothing undone; press update again"; }
+  # (a check that did not happen undoes nothing: stopped here, the phase kept — the next press
+  # runs the checks again, against the baseline from before the update)
+  ((rc == 2)) && die "the desktop's start check could not run ($more) — nothing held, nothing undone; press update again"
   [[ -z $more ]] || { log "red after the update: ${more//$'\n'/ · }"; after+=${after:+$'\n'}$more; }
   new=$(comm -13 <(up_labels <"$UPD/baseline") <(up_labels <<<"$after")) || new=""
   [[ -z $new ]] && return 0
@@ -374,7 +374,9 @@ u_report() {   # u_report — the outcome: UPD/report (the pane), the log beside
   esac
   # (a fixed short form, so the status's row fits it; which items, in the report's lines below)
   [[ -z $desk ]] || line+=" · desktop red before: not judged"
-  ((UP_STAY)) || up_phase end || true
+  # (a run stopped once the running system began to change keeps its phase: the next start
+  # (replay) or press finishes it — never a new update over one not yet whole, or not judged)
+  [[ $UP_END == stopped && $(up_was) == @(replay|steps|check) ]] || up_phase end || true
   # (the stored transaction and the downloads kept for the halves: done with, whatever the outcome)
   rm -rf -- "$UPD/tx" "$UPD/try" "$UPD/sources"; dnf -q clean packages >/dev/null 2>&1 || true
   # (no command that can fail inside these pipes: setup.sh's ERR trap would print from them)
@@ -487,7 +489,7 @@ up_probation_close() {   # this start has reached the desktop: the probation ove
   done <"$UPD/probation"
   rm -f -- "$UPD/probation"
 }
-UP_END="" UP_STAY=0 UP_TOGETHER=0
+UP_END="" UP_TOGETHER=0
 up_exit() {   # (a run that stops anywhere: the candidate gone, the top unmounted, the report written —
               # quietly: the run's own error has been said, and its status stands — and what
               # make_tmp's own exit did, which this one replaces: the run's temp folder, dnf's follower)

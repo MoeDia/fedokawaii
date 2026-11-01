@@ -246,11 +246,14 @@ not_called 'dnf\] .*replay'
 
 # ── the start after a run cut in its transaction (fedokawaii-update-resume.service) ───────────
 resume() { fkrun bash "$TK/setup.sh" --update-resume; }
-cut_run() {   # cut_run — the state a power cut in the transaction leaves: bash's new version stored, snapshot 7
-  mkdir -p "$U"; printf 'replay 1\n' >"$U/phase"; echo "bash 5.2-1.fc44 5.3-1.fc44" >"$U/set"; echo 7 >"$U/snap"; fkh_add installed bash
+start_stubs() {   # what the start's run calls: a notice at login (kawa-foryou, kept in ~/.foryou), kawa-snap recorded
   mkdir -p "$W/home/fkuser/.local/bin"; rm -f "$W/home/fkuser/.foryou"
   printf '#!/bin/sh\necho "$*" >>"$HOME/.foryou"\n' >"$W/home/fkuser/.local/bin/kawa-foryou"; chmod 755 "$W/home/fkuser/.local/bin/kawa-foryou"
   printf '#!/bin/sh\n. /usr/local/bin/_lib.sh\nfkh_log "$*"\nexit 0\n' >"$W/usr/local/sbin/kawa-snap"; chmod 755 "$W/usr/local/sbin/kawa-snap"
+}
+cut_run() {   # cut_run — the state a power cut in the transaction leaves: bash's new version stored, snapshot 7
+  mkdir -p "$U"; printf 'replay 1\n' >"$U/phase"; echo "bash 5.2-1.fc44 5.3-1.fc44" >"$U/set"; echo 7 >"$U/snap"; fkh_add installed bash
+  start_stubs
 }
 foryou() { cat "$W/home/fkuser/.foryou" 2>/dev/null; }
 case_ "a start after a run cut in its transaction, whole after all: kept, the rest left for the next press — said at login"
@@ -274,6 +277,21 @@ case_ "a start with nothing cut, or in a snapshot started from the boot menu: no
 back built; reset_calls; resume; eq "$RC" 0; not_called 'kawa-snap'; not_called 'systemctl\] reboot'
 cut_run; fkh fsroot-_ /root/.snapshots/41/snapshot; reset_calls; resume; eq "$RC" 0; not_called 'kawa-snap\] restore'
 rm -f "$FKH/fsroot-_"
+case_ "systemd itself crashed in the transaction on the running system (PID 1 frozen): said once, the whole run ends there — its phase kept for the next start"
+back built; reset_calls; start_stubs; pending "bash 5.2-1.fc44 5.3-1.fc44"; fkh crash-on ' -C replay '
+up; eq "$RC" 125 "$(tail -n3 <<<"$OUT")"; eq "$(grep -c "systemd, the system's own manager, crashed while dnf ran" <<<"$OUT")" 1 "said once"
+lacks "$OUT" "dnf attempt"; eq "$(report)" stopped; has "$(sed -n 2p "$U/report")" "stopped (replay): systemd, the system's own manager, crashed while dnf ran"
+eq "$(cut -d' ' -f1 "$U/phase")" replay "the phase kept (no step after it began)"; [[ -s $U/holds ]] && _no "held: $(cat "$U/holds")" || _ok
+case_ "…the start after it (PID 1 whole again), every package in: kept, said at login — the next press does the steps and the checks"
+rm -f "$FKH/crash-on" "$FKH/systemctl-fail" "$FKH/journal-pid1"; reset_calls
+resume; eq "$RC" 0 "$OUT"; eq "$(cut -d' ' -f1 "$U/phase")" steps; has "$(foryou)" "update-cut the last update was cut off after its packages went in"
+not_called 'kawa-snap\] restore'; reset_calls; up; eq "$RC" 0 "$(tail -n3 <<<"$OUT")"; eq "$(report)" ok; not_called 'dnf\] .*replay'
+case_ "stopped from outside in its transaction (systemctl stop, a shutdown: SIGTERM): its phase kept — the next press finishes it, or (not whole) undoes it"
+back built; reset_calls; pending "bash 5.2-1.fc44 5.3-1.fc44"
+echo '^systemd-run\] .* /usr/bin/dnf -y -C replay ' >"$FKH/cut-on"; echo TERM >"$FKH/cut-sig"; chmod 666 "$FKH"/cut-*
+up; eq "$RC" 143 "$(tail -n3 <<<"$OUT")"; eq "$(report)" stopped; eq "$(cut -d' ' -f1 "$U/phase")" replay "the phase kept"
+rm -f "$FKH"/cut-*; reset_calls; up; eq "$RC" 0 "$(tail -n3 <<<"$OUT")"; has "$OUT" "the last update was cut off in its transaction — finishing it first"
+eq "$(report)" offered; grep -q '^bash 5.3-1.fc44 ' "$U/holds" && _ok || _no "not held"
 
 # ── the start after an update: its probation (up_probation, setup.sh --boot-good) ─────────────
 K=$(uname -r) NEWK=7.2.99-200.fc44.x86_64

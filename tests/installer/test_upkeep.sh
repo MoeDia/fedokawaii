@@ -212,9 +212,10 @@ called 'systemctl\] reset-failed fedokawaii-dnf-'; grep -q '^ended fedokawaii-dn
 case_ "…a dnf killed by a signal (TERM): its status 128+15, the install said as not done, tried again next time"
 back built; fkh_del installed bat; fkh dnf-killed 15; reset_calls
 tk --repair; pkg_has bat && _no "bat in, from a killed dnf" || _ok; has "$OUT" "could not be installed now: bat"; rm -f "$FKH/dnf-killed"
-case_ "…systemd itself crashed while dnf ran (PID 1 answers nothing, its journal says it froze): said plainly, the run stops — never a wait for ever"
+case_ "…systemd itself crashed while dnf ran (PID 1 answers nothing, its journal says it froze): said once, plainly — the whole run ends there (no new try, no step after it, never a wait for ever)"
 back built; fkh_del installed bat; reset_calls; fkh systemctl-fail 'show -p (MainPID|ActiveState)'; fkh journal-pid1 'Caught <ABRT>, from our own process.' 'Freezing execution.'
-tk --repair; [[ $RC != 0 ]] && _ok || _no "went on: $RC"; has "$OUT" "systemd, the system's own manager, crashed while dnf ran"; has "$OUT" "restart the PC"
+tk --repair; eq "$RC" 125 "$(tail -n3 <<<"$OUT")"; eq "$(grep -c "systemd, the system's own manager, crashed while dnf ran" <<<"$OUT")" 1 "said once"; has "$OUT" "restart the PC"
+lacks "$OUT" "dnf attempt"; lacks "$OUT" "could not install"; eq "$(grep -c 'systemd-run\]' "$CALLS")" 1 "one dnf started"
 rm -f "$FKH/systemctl-fail" "$FKH/journal-pid1"
 case_ "…PID 1 not answering for a while (a reload), nothing in its journal: asked again until it answers — never taken for a crash"
 back built; fkh_del installed bat; reset_calls; fkh fail-show-silent 3

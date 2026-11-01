@@ -72,6 +72,11 @@ log()  { local IFS=' '; _out "${C_FAINT}$(_ts)${C_RESET} ${C_MUTED}▸${C_RESET}
 ok()   { local IFS=' '; _out "${C_FAINT}$(_ts)${C_RESET} ${C_MUTED}✔${C_RESET} $*"; }
 die()  { local IFS=' '; _out "${C_FAINT}$(_ts)${C_RESET} ${C_RED}✘${C_RESET} $*" >&2; exit 1; }   # (stderr: never swallowed by a $( ))
 hdr()  { local IFS=' '; _heading "$*"; }
+# halt MESSAGE — die, for the whole run: a die inside a pipe or contained ends only that piece
+# (one step's failure); a halt is handed up by each of them (pass_halt: run, dnf_try_sub,
+# contained), so the run ends there and then — when nothing more can be done in this start
+halt() { local IFS=' '; [[ -z ${KAWA_TMP:-} ]] || : >"$KAWA_TMP/halt"; _out "${C_FAINT}$(_ts)${C_RESET} ${C_RED}✘${C_RESET} $*" >&2; exit 125; }
+pass_halt() { [[ -z ${KAWA_TMP:-} || ! -e $KAWA_TMP/halt ]] || exit 125; }
 
 # A command that run or retry saw fail is remembered (FAILED_CMD, with where it was called
 # from: FAILED_AT), so the scripts' error report names it: the line the report would see is
@@ -92,6 +97,7 @@ run() {
   FAILED_CMD=""
   _out "${C_DIM}$(_ts) \$ $*${C_RESET}"
   { RUN_SHOWN=1 "$@" 2>&1 | tee -a "$LOG_FILE"; rc=${PIPESTATUS[0]}; } || true
+  pass_halt
   ((rc == 0)) || FAILED_CMD=$* FAILED_AT=${FUNCNAME[1]:-main}:${BASH_LINENO[0]}
   return "$rc"
 }
@@ -153,6 +159,7 @@ dnf_try_sub() {   # dnf_try_sub SUBCOMMAND ARG… — dnf -y SUBCOMMAND ARG…, 
   local IFS=' ' rc
   _out "${C_DIM}$(_ts) \$ dnf -y $*${C_RESET}"
   { DNF_OUT=$(dnf -y "$@" 2>&1 | tee -a "$LOG_FILE" /dev/fd/3 2>/dev/null; exit "${PIPESTATUS[0]}"); rc=$?; } 3>&1
+  pass_halt
   return "$rc"
 }
 # dnf_do SUBCOMMAND ARG… — any other dnf step that reaches the network (upgrade, swap, copr

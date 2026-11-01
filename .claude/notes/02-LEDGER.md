@@ -2760,6 +2760,43 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   update-design §5 rows 45 (the hang) and 46 (PID 1's crash). Areas running: installer + static
   (/dev/shm/r27p/p1-*.log).
 
+- r27-49-halt (1 Nov 18:56–, the pass's step (0), the last pass's lead) — CONFIRMED by reading: dnf_detached's crash
+  answer (125 → die) ran inside a pipe whenever the dnf came through dnf_install/dnf_do (dnf_try_sub's
+  `$(dnf … | tee)`) or run, and inside contained in repair's heal: the die ended only that piece, so dnf_install
+  read the words as "other" and tried again (4 tries, 15/30/45 s, each new dnf_settle and systemd-run against a
+  frozen PID 1: 25 s timeouts in real life), then said "dnf could not install … other" — the crash said four
+  times and buried. BUILT: lib/common.sh `halt` — die for the whole run (marks $KAWA_TMP/halt, exits 125) — and
+  `pass_halt`, which run, dnf_try_sub and contained call after their pipe/subshell, so a halt from any depth ends
+  the run there; dnf_detached halts on 125. AND FOUND (reading u_report for the crash's promise "the next start
+  finishes the update, or puts the system before it back"): u_report wrote phase "end" for EVERY stopped run —
+  a stop in replay, steps or check (PID 1's crash, a stop from outside, any die there) lost the fact that the
+  running system had changed: the next start's update-resume saw "end" and did nothing, and the next press
+  started a NEW update over one never judged (its baseline taken after it: a red it caused would read as "red
+  before, not judged"). Now a stopped run keeps a changed phase (replay | steps | check); UP_STAY, the one case
+  that kept it (the desktop check that could not run), folded into that rule. Stand-in: systemd-run's crash-on
+  (a regex: that dnf ends with PID 1 frozen — every `show` unanswered, the journal's "Freezing execution").
+  Rows: test_upkeep "…systemd itself crashed while dnf ran": RC 125, said ONCE, no "dnf attempt", no "could not
+  install", one systemd-run; test_update_flow: the crash in the live replay → 125, said once, report "stopped
+  (replay): systemd …", phase replay, nothing held → the next start (PID 1 whole): every package in → steps,
+  "cut off after its packages went in" at login → the next press ok, nothing replayed; stopped from outside
+  (TERM) in the transaction → 143, phase replay → the next press "finishing it first", not whole → offered, held.
+  tools/vm-inject/update-green.sh STORM=1 now updates systemd's own packages first, outside the run (a storm
+  during systemd's own upgrade crashed PID 1: r27-49-pid1), so the storm meets the rest of the set and the
+  reloads its scriptlets ask. Tests: test_upkeep + test_update_flow from the tree (/dev/shm/r27p/p3-*.log).
+- r27-50b (T46b, 1 Nov 19:10–19:40): .claude/notes/f45-changes.md — the 46 accepted changes and the version
+  jumps triaged (adopt · adapt · verify · none), Python first. Done here: all 52 Python programs of ours
+  COMPILE under CPython 3.15.0rc3 with -W error (0 failed), their 67 stdlib imports load under 3.15 with
+  -W error (no DeprecationWarning), none uses an API 3.15 removed (grep of What's New's lists); nothing of
+  ours outside RPM links OpenSSL 3 directly (readelf -d of /usr/local/{bin,sbin}, ~/.local/bin, the private
+  wlroots: none; satty only through RPM libraries F45 rebuilt); no nspawn --user=, journalctl -F,
+  Type=notify-reload, logind Can*(), SysV/rc-local, pkg_resources in our code (grep); only our own two
+  .repo files are read from /etc/yum.repos.d (verify.sh:193); Prowlarr's podman is sqlite · netavark ·
+  cgroups v2 (all podman 6 keeps). libtorrent's PyPI wheels still stop at cp313 (pypi.org/pypi/libtorrent/json:
+  2.1.1) — but Fedora ships rb_libtorrent-python3 2.0.11 for the system Python (F44 -5, F45 -9): T29 measures
+  torrra on Fedora's python3 with it (would drop uv's 3.13). Five things to build, each in its task (the file's
+  end). (The 3.15 interpreter came from `uv python install` into /dev/shm — it ALSO linked ~/.local/bin/python3.15:
+  removed at once; memory: --no-bin.)
+
 ## >>> NEXT PASS STARTS HERE (1 Nov, written 18:35 — the lines above say what this pass did): the inbox first. Then:
 ## (0) 381c08a (the PID 1 crash handling) is NOT pushed: its installer area was RED (18:46, 1641 s) — test_upkeep 273/2,
 ##     both in the new row "…systemd itself crashed while dnf ran …": OUT lacks "systemd, the system's own manager,
