@@ -160,13 +160,15 @@ local function page()
   vim.opt_local.foldenable = false
   vim.opt_local.spell = false
   vim.opt_local.cursorline = false          -- (a page: no bar across it, only the cursor)
-  vim.opt_local.conceallevel = 2            -- (a day's "## " hidden: the rules' extmarks)
-  vim.opt_local.concealcursor = "n"
   vim.opt_local.wrap = true
   vim.opt_local.linebreak = true
   vim.opt_local.fillchars:append({ wbr = " ", eob = " " })   -- (no ~ under the last line: a page ends in paper)
   local name = b == notes and where or vim.fn.fnamemodify(vim.api.nvim_buf_get_name(b), ":~")
   local is_todo = vim.api.nvim_buf_get_name(b) == TODO
+  -- (a day's "## " hidden — the rules' extmarks — on the notes only: on the to-do, markdown's own
+  -- conceal would fold each "[ ]" to one cell under its box, and the box would hide two letters)
+  vim.opt_local.conceallevel = is_todo and 0 or 2
+  vim.opt_local.concealcursor = "n"
   -- (the heading in the tabline — the editor's top row, never scrolled — and a blank winbar under
   -- it: the §3 blank line, there at every scroll position)
   -- (the tabline fills %= with spaces, not the winbar's ─: the rule is drawn out, edge2, from after

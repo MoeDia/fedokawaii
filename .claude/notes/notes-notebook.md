@@ -105,3 +105,15 @@ then merge into main through the suite and the master.
 - 23:51 GRILL 2 DONE — descenders against the rule (zoom ×6, /dev/shm/r27/t21/desc-zoom.png, "line one of day 4"): the
   ink on y 172–186 (the y's tail lowest, on the cell's 18th row), the rule on y 187 (the 19th): they meet, never overlap;
   the baseline 4 px above the rule — the words stand on their line, as on paper. Light: the same geometry (one font).
+- 23:53–23:58 the to-do on the paper (renders /dev/shm/r27/t21/{dark,light}-todo-win.png): the heading "to-do ───", the margin
+  rule, the ruled page, its footer — right. FOUND and FIXED: with conceallevel 2 (for the day lines) markdown's own
+  tree-sitter conceal folded each "[ ]" into one cell, and the box overlay (4 cells) then hid each item's first two
+  letters ("new the passport") — conceallevel is now 2 on the notes only, 0 on the to-do.
+  OPEN (next pass, before the merge): in the LIGHT kit the open items' words are #e7cfa1 — the DARK theme's text — on the
+  light ground, barely readable; the done item (KawaDone: explicit muted fg) is right; the SAME in main's live notes.lua
+  (light-todo-main-win.png, 80 × 25). vim.inspect_pos on the word: only @spell; Normal's fg = #122625 (light text). So
+  the cells reach foot as "default foreground" and foot draws its own default — dark in the kit's light run? Check: the
+  kit's foot colours for --theme light (a kit artefact) vs the live PC in light (his screen): a bug only if the live one
+  shows it. Either way make the words explicit: give the to-do's text (and the notes') an explicit fg (KawaText from
+  C_TEXT) so no cell depends on the terminal's default — t21's notes text already renders right (each line carries
+  KawaRule, so its cells are never "default").
