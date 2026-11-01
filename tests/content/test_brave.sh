@@ -115,5 +115,12 @@ printf '{"brave":{"widevine_opted_in":false},"keep":1}\n' >"$LS"; B
 eq "$(jq -c '[.brave.widevine_opted_in,.keep]' "$LS")" "[false,1]" "switched off in Brave since: yours, left off"
 rm -f "$WM"; B
 eq "$(jq -c '[.brave.widevine_opted_in,.keep]' "$LS")" "[true,1]" "no marker: on, the rest of Local State kept"
+case_ "…open with this profile (Chromium's SingletonLock, a link to HOST-PID, its process alive): Local State left alone; a stale mark (a crash): switched on"
+sleep 30 & live=$!
+printf '{"brave":{"widevine_opted_in":false},"keep":2}\n' >"$LS"; rm -f "$WM"; ln -sfn "fedokawaii-$live" "${LS%/*}/SingletonLock"; B
+eq "$(jq -c '[.brave.widevine_opted_in,.keep]' "$LS")" "[false,2]" "open: untouched"; [[ -e $WM ]] && _no "marked while open" || _ok
+kill "$live"; wait "$live" 2>/dev/null; B
+eq "$(jq -c '[.brave.widevine_opted_in,.keep]' "$LS")" "[true,2]" "the mark's process gone: on"
+rm -f "${LS%/*}/SingletonLock"
 
 done_

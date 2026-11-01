@@ -159,6 +159,16 @@ word, Lc 41 dark, 24 light) — and tests/static/test_contrast.sh fails under an
   accents; Greek, Cyrillic and the rarer signs are Cozette's 6 × 13 drawings on its baseline
   (their capitals 8 rows); Arabic comes from Noto Kufi Arabic through the toolkit.
 - **One size** for words. Hierarchy by ink and place, never by size.
+- **The legibility floor** (Legge & Bigelow, *Does print size matter for reading?*, Journal of
+  Vision 11(5):8, 2011: fluent reading needs an x-height of about 0.2° or more; angle = 57.3 ×
+  size ÷ distance). On this 24-inch 1080p panel (EDID 53 × 30 cm: 0.275 mm a pixel), at a desk's
+  50–60 cm (his own distance is not measured — no one can measure it from here; both ends are
+  stated): Sumi UI's 7-row x-height, 1.92 mm, is 0.22° at 50 cm, 0.20° at 55 cm, 0.18° at 60 cm;
+  Sumi Term's 8.7 px (1115/2048 em at 16 px), 2.39 mm, is 0.27° / 0.25° / 0.23°. So **14 px is
+  the floor for words** — nothing is ever set smaller (no "small print", no smaller second size);
+  what is read at length (help, the Learn pieces, a notice's body over two lines) is set in Sumi
+  Term or stays at 14 px; and a desk farther than 55 cm calls for the next whole step of Sumi UI
+  (×2 is display only, so that step is a larger face, chosen and drawn, never a scaled one).
 - **Display size** — the one exception: Sumi UI at a whole multiple of 14 px, never smoothed:
   ×2 (28 px) for the boot splash, the boot menu (GRUB) and the installer's screens. The lock's
   quote is not set in a font at all: it is lettered by hand, pixel by pixel (§9).
