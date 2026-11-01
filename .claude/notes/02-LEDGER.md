@@ -1873,6 +1873,24 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   hit — moved after it. Harness-only: virtio_net forced into the VM's boot images (ssh under a kernel
   without modules). test_snap 164/0, test_upkeep 239/0, test_menu 594/0, the installer area green.
 
+- r27-52a-master-2 (1 Nov 06:45; the same master, resumed — .claude/notes/master-T48-verdict-2.md):
+  VERDICT PASS — 21 of the 23 earlier findings closed, 2 partly (12: the restore from a boot-menu
+  snapshot is stub-tested, not yet proven in a real systemd.volatile=overlay start — that proof is
+  T48's own acceptance item "a read-only snapshot boot in the VM"; 15: two tests still missing — a
+  nested subvolume other than .snapshots, an entry without the machine-id token). New: 0 major,
+  3 minor (conditions before apply), 6 nits. Closed at once (06:52, 7b6c683): N1 the boot images made
+  again once when /etc/dracut.conf.d/fedokawaii.conf is new (`dracut -f --regenerate-all`, then
+  `sync -f /boot`; dracut writes NAME.tmp and renames it: /usr/bin/dracut:2446, 2802) — else the
+  kernel_match heal would be inert on the PC until the next kernel; N2 restore refuses while /boot
+  or the ESP (when fstab names it) is not mounted; N3 `kawa-snap finish` (the cut-restore branch as a
+  verb), called by the start-up run (--kernels) before the kernel rules, and `list` says on stderr that
+  a cut restore waits; N4 the last line says "at the next start, choose kernel X" when the default
+  could not be set; N7 the PC's top level looked at read-only (mount -o ro,subvolid=5): only `root` —
+  no root.new/.copy/.swap/.old leftovers; N8 kernel_match's whole kernel has its entry too; N9 the last
+  line: "install nothing before (it would land in the system being replaced)". N5: the clean eight-row
+  run of the final restore-cut.sh is running (06:52); N6: test_menu's log kept with the evidence.
+  test_snap 177/0, test_menu 594/0.
+
 ## >>> NEXT PASS STARTS HERE (1 Nov 06:50): the inbox first. Then:
 ## (1) T48 FIRST (1): the master's second look (verdict-2.md in /dev/shm/r27/master/T48/, or rerun it from
 ##     .claude/notes/master-T48-verdict-1.md + the ledger lines r27-52a-fix/-vm2) — PASS → apply on the PC

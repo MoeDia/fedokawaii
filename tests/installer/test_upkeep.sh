@@ -175,6 +175,7 @@ tk --repair; called 'systemctl\] --global disable grub-boot-success.timer'
 grep -qx "global-enabled grub-boot-success.timer" "$FKH/units" && _no "still on for every session" || _ok
 case_ "repair: a new kernel (waiting for its restart) without its boot image gets one (dracut --kver), and verify passes after"
 back built; fkh kernels "99.1.1-200.fc44.x86_64" "$(uname -r)"; echo vmlinuz >"$W/boot/vmlinuz-99.1.1-200.fc44.x86_64"
+mkdir -p "$W/etc/dracut.conf.d"; echo 'force_drivers+=" xfs vfat "' >"$W/etc/dracut.conf.d/fedokawaii.conf"   # (the images' drivers in place: no rebuild of all)
 tk --repair; has "$OUT" "kernel 99.1.1-200.fc44.x86_64 has no boot image (initramfs) — dracut makes it now"
 called 'dracut\] -f --kver 99.1.1-200.fc44.x86_64'
 [[ -s $W/boot/initramfs-99.1.1-200.fc44.x86_64.img ]] && _ok || _no "no image made"

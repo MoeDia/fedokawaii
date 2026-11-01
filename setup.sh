@@ -568,13 +568,15 @@ UNIT
   # /boot's and the ESP's drivers loaded in the boot image itself: a start whose kernel has no
   # modules in the system (kernel_match's case) still mounts /boot, so it can be put right — the
   # images there are made again once, when this is new (a kernel installed later has it anyway)
-  local dc=/etc/dracut.conf.d/fedokawaii.conf want
-  want='# installed by setup.sh — /boot (XFS) and the ESP (FAT) mountable by every boot image, even under
+  local dc=/etc/dracut.conf.d/fedokawaii.conf
+  if ! grep -qx 'force_drivers+=" xfs vfat "' "$dc" 2>/dev/null; then
+    write_file "$dc" <<'CONF'
+# installed by setup.sh — /boot (XFS) and the ESP (FAT) mountable by every boot image, even under
 # a kernel whose modules the system lacks (a cut restore: kawa-snap, setup.sh kernel_match)
-force_drivers+=" xfs vfat "'
-  if [[ $(cat "$dc" 2>/dev/null) != "$want" ]]; then
-    printf '%s\n' "$want" | write_file "$dc"
+force_drivers+=" xfs vfat "
+CONF
     run dracut -f --regenerate-all || log "dracut could not make the boot images again — the next kernel's has /boot's drivers"
+    sync -f /boot 2>/dev/null || true   # (on disk at once: they are the only way to start)
   fi
   systemctl daemon-reload
   systemctl is-enabled --quiet fedokawaii-kernels.timer || systemctl enable fedokawaii-kernels.timer
