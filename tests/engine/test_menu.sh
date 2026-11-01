@@ -424,7 +424,9 @@ has "$out" "a file, back"; lacks "$out" "9    "
 l=$(grep -n -E '^ +. +(7|6|3) ' <<<"$out" | cut -d: -f1 | tr '\n' ' '); [[ $(wc -w <<<"$l") == 3 ]] && _ok || _no "three rows: $out"
 has "$out" "7    00:00"; has "$out" "today"; has "$out" "6    12:00"; has "$out" "yesterday"; has "$out" "3    09:30"; has "$out" "$(date -u -d '-5 days' '+%-d %b')"
 [[ $(grep -n '7    00:00' <<<"$out" | cut -d: -f1) -lt $(grep -n '3    09:30' <<<"$out" | cut -d: -f1) ]] && _ok || _no "not newest first"
-has "$out" "copied into"; has "$out" "~/Restored — what is there now stays as it is"; not_called '^kawa-pick'; [[ -e $HOME/Restored ]] && _no "a folder made for nothing" || _ok
+has "$out" "copied into"; not_called '^kawa-pick'; [[ -e $HOME/Restored ]] && _no "a folder made for nothing" || _ok
+# shellcheck disable=SC2088  # (~ is the words on the screen)
+has "$out" "~/Restored — what is there now stays as it is"
 aligned "$out" "7    00:00"; aligned "$out" "3    09:30"; eq "$(grep -c -E '(7|6|3)    [0-9]{2}:[0-9]{2}' <<<"$out")" 3 "a row a line"
 case_ "…a number: the dialog in that snapshot's home, its heading the moment; the file copied into ~/Restored/DATE/, the one now untouched"
 fresh; homesnaps; mkdir -p "$HOME/Documents"; echo "notes now" >"$HOME/Documents/notes.md"
@@ -454,7 +456,9 @@ fresh; homesnaps; chmod 000 "${HOME%/*}/.snapshots"; out=$(tty_free fedokawaii -
 has "$out" "cannot be read here — fedokawaii repair lets you read them"; not_called '^kawa-pick'
 fresh; rm -rf -- "${HOME%/*}/.snapshots"; mkdir -p "${HOME%/*}/.snapshots"; out=$(tty_free fedokawaii --run file </dev/null 2>&1); has "$out" "no snapshots of your files yet"
 case_ "…its pane says what it does (in Super+U's popup it is a job: a window of its own, below)"
-out=$(plain "$(fedokawaii --explain file)"); has "$out" "copied into"; has "$out" "~/Restored, never over what is there."; lacks "$out" "not yet"
+out=$(plain "$(fedokawaii --explain file)"); has "$out" "copied into"; lacks "$out" "not yet"
+# shellcheck disable=SC2088  # (~ is the words on the screen)
+has "$out" "~/Restored, never over what is there."
 case_ "snapshots without snapper, or on a root that is not Btrfs: said plainly"
 reset_calls
 out=$(without snapper -- "$SETSID" -w fedokawaii --run snapshots </dev/null 2>&1); has "$out" "snapper is not installed"; not_called '^sudo'
