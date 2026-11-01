@@ -1928,7 +1928,7 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   SRPM): bisect over source packages (rpm -qp --qf %{sourcerpm} on the stored rpms), hold every binary
   of the red one — fewer rounds too (56 binaries ≈ 20 sources).
 
-- r27-49c (cont., 07:30, t45 2c0…): finding (2) done on stubs — the bisection and the holds work on
+- r27-49c (cont., 07:30, t45 1ade7a9): finding (2) done on stubs — the bisection and the holds work on
   source packages (rpm -qp --qf '%{name} %{sourcerpm}' on the stored rpms → UPD/sources; halves of
   sources; a hold takes every binary of the red one): test_update_flow 131/0 (+ the kernel family —
   kernel, kernel-core, kernel-modules from one source — held whole, bash and zlib applied). Finding (1)
