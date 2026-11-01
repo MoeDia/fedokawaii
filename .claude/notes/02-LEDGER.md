@@ -2635,7 +2635,9 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   restart · running 7.2.11 · counter off · probation closed · default 7.2.11"; the pass case running),
   update-green.sh f44 re-run from 78ea68c (the new SELinux-denial row) → /dev/shm/r27p/green-78ea68c.txt, and
   the whole suite on 78ea68c from /dev/shm/r27w-suite → /dev/shm/r27p/suite-78ea68c.log — started with the PC's
-  kernel still on trial (grubenv boot_counter=3 boot_success=0, the probation drop-in present).
+  kernel still on trial (grubenv boot_counter=3 boot_success=0, the probation drop-in present). RESULTS: probation
+  fail HELD (213 s) + pass HELD (173 s), exit 0; the whole suite on 78ea68c rc 0 in 2915 s (every area green, the
+  trial open throughout — the world independent of the PC's state); update-green from 78ea68c HUNG (r27-49-hang).
 
 - r27-49-hang (1 Nov 16:26–17:00) — FOUND by the re-run of update-green.sh f44 from 78ea68c: the update HUNG after
   its transaction. Evidence (/dev/shm/r27/update-green/hang.txt, the VM's journal and process tree): the replay's
@@ -2655,7 +2657,14 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   read by show, nothing left; a dnf killed by TERM → "could not be installed now"; two ended units of a cut run
   cleared first, never "still going" (that row first failed: dnf_settle ran under dnf_detached's `local IFS=' '`,
   so two ended units read as one word — now mapfile, a line each). The update-green proof was stopped (the hung
-  run; its VM shut down).
+  run; its VM shut down). PROVEN after the fix (local commit 79cd435, from a frozen worktree): update-green.sh f44
+  exit 0 in 304 s — "ok · updated · 61 packages" (systemd 259.10's re-exec in it, the end read by asking), the
+  checks before it 17:02:03 with no desktop red, green in the copy 17:04:20, 7.2.13 on trial 17:07:03, and
+  avc.txt EMPTY: no SELinux denial in the whole update (the PC's press with stdbuf: 6). Kept:
+  /dev/shm/r27/master/T45-3/green-79cd435/ (the proofs clear their own folders at the next run — the hang's
+  captured output: /dev/shm/r27/master/T45-3/hang-evidence.txt). And update-button.sh f44b from 79cd435: all TEN
+  rows held — the three presses exit 0 on one invocation, the desktop check green before and after, the report
+  ok, the new "no SELinux denial in the presses", the stopped run 1 with its reason (kept: …/T45-3/button-79cd435/).
 - r27-52-file (1 Nov 16:30–17:00; T48's "a file, back", was a "soon" placeholder) — Super+U → snapshots → a file,
   back: /home's snapshots (snapper's hourly and daily ones) listed newest first (number, time, today/yesterday/
   date — one `date -f` for the whole list), a number → kawa-pick in a new `back` mode inside the job window at
