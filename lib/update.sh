@@ -29,7 +29,7 @@ up_labels() { sed 's/ — .*//' | sort -u; }   # (a check's label: its detail af
 # ── start ────────────────────────────────────────────────────────────────────────────────────
 u_start() {
   up_phase start
-  local p d un
+  local p d un why
   for p in dnf5 dnf packagekitd dnf5daemon-server; do
     if pgrep -x "$p" >/dev/null 2>&1; then die "another package manager is running ($p) — update again once it has finished"; fi
   done
@@ -49,6 +49,17 @@ u_start() {
   log "the checks before it (what is red now does not count against the update)"
   bash "$REPO_DIR/verify.sh" >/dev/null 2>&1 || true
   cp -- "$STATE_DIR/last-verify-fails" "$UPD/baseline" 2>/dev/null || : >"$UPD/baseline"
+  why=$(up_more)
+  [[ -z $why ]] || { log "red before the update: ${why//$'\n'/ · }"; printf '%s\n' "$why" >>"$UPD/baseline"; }
+}
+up_more() {   # the checks verify does not make, a line for each that is red: the desktop's start
+              # (desktop_starts), and our builds' libraries and the boot pieces (lib/cand-check.sh:
+              # every boot entry with root= and rootflags=, its image readable, btrfs in it or built in)
+  local why out
+  why=$(desktop_starts) || echo "the desktop does not start — $why"
+  # (into a variable first: a red check's exit inside a pipe would set off setup.sh's ERR trap)
+  out=$(FK_USER=$TARGET_USER bash "$REPO_DIR/lib/cand-check.sh" 2>/dev/null) || true
+  printf '%s\n' "$out" | sed -n 's/^red: //p'
 }
 
 # ── fetch ────────────────────────────────────────────────────────────────────────────────────
@@ -254,10 +265,12 @@ up_complete() {   # every package of the stored set at its new version, nothing 
 # ── check, end ───────────────────────────────────────────────────────────────────────────────
 u_check() {   # → 0 nothing newly red · 1 (UPD/why lists what)
   up_phase check
-  local new
+  local new after more
   bash "$REPO_DIR/verify.sh" || true
-  new=$(comm -13 <(up_labels <"$UPD/baseline") <(up_labels <"$STATE_DIR/last-verify-fails" 2>/dev/null)) || new=""
-  dwl_starts || new+=${new:+$'\n'}"the desktop does not start (dwl)"
+  after=$(cat "$STATE_DIR/last-verify-fails" 2>/dev/null) || after=""
+  more=$(up_more)
+  [[ -z $more ]] || { log "red after the update: ${more//$'\n'/ · }"; after+=${after:+$'\n'}$more; }
+  new=$(comm -13 <(up_labels <"$UPD/baseline") <(up_labels <<<"$after")) || new=""
   [[ -z $new ]] && return 0
   printf '%s\n' "$new" >"$UPD/why"; return 1
 }

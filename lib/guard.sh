@@ -137,6 +137,18 @@ dwl_starts() {
   log "dwl does not start (exit $rc): $(grep -v '^$' "$KAWA_TMP/dwl-start.log" | tail -n 3 | tr '\n' ' ')"
   return 1
 }
+# desktop_starts — the desktop's session comes up (the update's check, update-design §4.2): as you,
+# the installed dwl headless on the card the desktop draws on, a throw-away home with the
+# installed configs (tools/kit.sh) — the bar, the notices, the terminals, quick settings and the
+# warm windows running, the bar drawn and measured in both themes; your own session is never
+# touched. → 0 · 1 (what failed on stdout, one line)
+desktop_starts() {
+  local t out
+  for t in session-start bar-geometry; do
+    out=$(as_user bash "$REPO_DIR/tools/regress/$t.sh" --dwl /usr/local/bin/dwl 2>&1) && continue
+    tail -n 1 <<<"$out"; return 1
+  done
+}
 # wlr_sound — dwl's own wlroots loads every library it needs; one Fedora replaced (a rebuild
 # for a new libinput, say) is taken again from Fedora's wlroots of the same version, when it
 # has one — the copy before kept until the new one is in place

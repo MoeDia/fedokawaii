@@ -1,8 +1,9 @@
 #!/usr/bin/bash
 # lib/cand-check.sh — run inside the update's candidate (a copy of this system that has just
 # received the transaction, in a container: lib/update.sh cand_run), as root: what must hold
-# before the running system gets the same. A line "red: WHAT" for each failure; exit 1 if any.
-# FK_USER: the desktop's user
+# before the running system gets the same — and on the running system itself, before and after
+# its transaction (up_more: there without /run/fk-ref.img, every boot entry of the real /boot).
+# A line "red: WHAT" for each failure; exit 1 if any. FK_USER: the desktop's user
 export LC_ALL=C
 red=0
 no() { echo "red: $*"; red=1; }
@@ -25,11 +26,11 @@ norm() { tr - _ | sort -u; }   # (module names: a file's dashes are underscores 
 for e in /boot/loader/entries/*.conf; do
   [[ -f $e ]] || continue
   if ! { grep -Eq '^options .*root=' "$e" && grep -Eq '^options .*rootflags=subvol=' "$e"; }; then
-    no "the new kernel's boot entry has no root= or rootflags= (${e##*/})"
+    no "a boot entry has no root= or rootflags= (${e##*/})"
   fi
   k=$(awk '$1 == "version" { print $2; exit }' "$e")
-  [[ -n $k ]] || { no "a new boot entry names no version (${e##*/})"; continue; }
-  [[ -s /boot/initramfs-$k.img ]] || { no "the new kernel $k has no boot image"; continue; }
+  [[ -n $k ]] || { no "a boot entry names no version (${e##*/})"; continue; }
+  [[ -s /boot/initramfs-$k.img ]] || { no "kernel $k has no boot image"; continue; }
   img=$(mods "/boot/initramfs-$k.img")
   [[ -n $img ]] || { no "the boot image of $k could not be read (lsinitrd)"; continue; }
   d=/usr/lib/modules/$k
