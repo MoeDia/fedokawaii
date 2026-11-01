@@ -108,7 +108,9 @@ cand_run() {   # cand_run TXDIR CMD… — CMD in the candidate, a container of 
 cand_try() {   # cand_try TXDIR → 0 green · 1 red (UPD/why says why). A container that does not even
                # start is no verdict on the packages: the run stops there, nothing changed
   local rc=0
-  cand_drop; rm -rf -- "$UPD/cand-boot"; mkdir -p "$UPD/cand-boot"
+  # (the scratch /boot shaped like the real one: its entries folder, grub's environment)
+  cand_drop; rm -rf -- "$UPD/cand-boot"; mkdir -p "$UPD/cand-boot/loader/entries" "$UPD/cand-boot/grub2"
+  cp -a /boot/grub2/grubenv "$UPD/cand-boot/grub2/" 2>/dev/null || true
   btrfs subvolume snapshot / "$UP_CAND" >/dev/null || die "a copy of the system could not be made (btrfs subvolume snapshot) — nothing changed"
   if ! cand_run "$1" /usr/bin/true >"$UPD/cand.log" 2>&1; then
     cand_drop; die "the copy's container would not start ($(grep -v '^$' "$UPD/cand.log" | tail -n1)) — nothing changed"
@@ -135,8 +137,8 @@ u_candidate() {   # the stored transaction proven in a copy first; red → culpr
   done
   ok "green in the copy: $(wc -l <"$UPD/set") packages"
 }
-# up_bisect — the set is red: halves tried in fresh candidates (dnf resolves each on its own, from
-# the packages the store left in its cache) until the smallest red part is left; held; the rest
+# up_bisect — the set is red: halves tried in fresh candidates (dnf resolves each on its own; the
+# packages from the store's kept downloads) until the smallest red part is left; held; the rest
 # stored again. ⌈log2 n⌉ rounds at most. Two halves green alone but red together: the two held
 # together — never a guess. → 1 a half could not be tried at all: no culprit named, nothing held
 up_bisect() {
@@ -153,13 +155,14 @@ up_bisect() {
   done
   up_hold "$(head -n1 "$UPD/why")" "${s[@]}"
   rm -rf -- "$UPD/tx"
-  dnf -q -C -y upgrade --store="$UPD/tx" >/dev/null 2>&1 || true   # (the rest: the holds keep the culprits out)
+  dnf -q -y upgrade --store="$UPD/tx" >/dev/null 2>&1 || true   # (the rest: the holds keep the culprits out)
   if [[ -s $UPD/tx/transaction.json ]]; then up_set "$UPD/tx" >"$UPD/set"; else : >"$UPD/set"; fi
 }
 up_try() {   # up_try NAME… → 0 their update alone is green in a fresh candidate · 1 red (UPD/why) ·
              # 2 it could not be tried (dnf could not resolve or store it on its own)
   rm -rf -- "$UPD/try"
-  dnf -q -C -y upgrade --store="$UPD/try" "$@" >/dev/null 2>&1 || return 2
+  # (from the downloads the first store kept, else fetched again)
+  dnf -q -y upgrade --store="$UPD/try" "$@" >/dev/null 2>&1 || return 2
   [[ -s $UPD/try/transaction.json ]] || return 2
   local rc=0; cand_try "$UPD/try" || rc=1
   rm -rf -- "$UPD/try"

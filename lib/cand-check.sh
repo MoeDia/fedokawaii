@@ -19,7 +19,8 @@ for e in /boot/loader/entries/*.conf; do
   [[ -f $e ]] || continue
   grep -Eq '^options .*root=' "$e" && grep -Eq '^options .*rootflags=subvol=' "$e" \
     || no "the new kernel's boot entry has no root= or rootflags= (${e##*/})"
-  k=$(sed -n 's|^linux /vmlinuz-||p' "$e")
+  k=$(awk '$1 == "version" { print $2; exit }' "$e")
+  [[ -n $k ]] || { no "a new boot entry names no version (${e##*/})"; continue; }
   [[ -s /boot/initramfs-$k.img ]] || { no "the new kernel $k has no boot image"; continue; }
   mods=btrfs; [[ ${FK_GPU:-} == amd ]] && mods+=" amdgpu"
   list=$(lsinitrd "/boot/initramfs-$k.img" 2>/dev/null)

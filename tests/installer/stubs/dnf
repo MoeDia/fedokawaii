@@ -71,7 +71,7 @@ case "$a" in
   # the update's stored transaction (dnf5-upgrade(8) --store): $FKH/pending "NAME OLD NEW" (OLD -: a
   # new package), only the NAMEs asked for when given, a held version ($FKH/versionlock) left out
   *" --store="*)
-      net_on || [[ $a == *" -C "* ]] || { echo "Curl error (6): Could not resolve host" >&2; exit 1; }
+      net_on || { echo "Curl error (6): Could not resolve host" >&2; exit 1; }
       [[ -f $FKH/store-fail ]] && { echo "Failed to download packages" >&2; exit 1; }
       [[ -f $FKH/store-try-fail && $a == *"/update/try "* ]] && { echo "Problem: cannot install the best update candidate" >&2; exit 1; }
       d=$(sed -n 's/.*--store=\([^ ]*\).*/\1/p' <<<"$*")
