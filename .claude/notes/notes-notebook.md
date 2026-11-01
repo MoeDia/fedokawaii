@@ -95,3 +95,10 @@ then merge into main through the suite and the master.
   floats' rows and words, laststatus 0 · cmdheight 0 · scrolloff 2, the to-do's heading and footer), test_warm 88/0
   (64x40). Renders both moods mid-file: /dev/shm/r27/t21/{dark,light}-long3-win.png. GRILL first: the paper's rules
   run to the window's last column while the heading's rule stops two columns short — one right edge for both.
+- 23:50–23:53 (t21, 3rd commit): GRILL 1 DONE — one right edge: the heading's rule now runs to the page's edge, where the
+  paper's rules end (a notebook's lines run to its edge; the left keeps its margin and the vermilion rule). Measured
+  (px.py on /dev/shm/r27/t21/dark-edge-win.png, 64 × 40): the heading's rule x 97–520 on y 18 (its row's tenth pixel,
+  §3); the page's rules x 41–520, every 20 px from y 67 to y 767 (rows 2–37: 36 ruled rows), each on its cell's 19th
+  row; the winbar's row and the paper row above the footer unruled; 8 px of paper (foot's pad) from 520 to the hairline
+  on 529. test_notes 116/0. NEXT grill: descenders (g, p, y) against the rule on the cell's 19th row, zoomed, both
+  moods; the rules' ink in light (edge2 #d7bc8c on #e8e3c2) against faint.

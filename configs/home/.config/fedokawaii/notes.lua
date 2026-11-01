@@ -170,12 +170,13 @@ local function page()
   -- (the heading in the tabline — the editor's top row, never scrolled — and a blank winbar under
   -- it: the §3 blank line, there at every scroll position)
   -- (the tabline fills %= with spaces, not the winbar's ─: the rule is drawn out, edge2, from after
-  -- the name to two columns short of the edge — again at each resize)
+  -- the name to the page's right edge, where the paper's rules end too — a notebook's lines run to
+  -- its edge — again at each resize)
   local icon, word = is_todo and ICON_TODO or ICON_NOTE, is_todo and "to-do" or "notes"
-  local n = vim.o.columns - vim.api.nvim_strwidth("  " .. icon .. "  " .. word .. " ") - 2
+  local n = vim.o.columns - vim.api.nvim_strwidth("  " .. icon .. "  " .. word .. " ")
   vim.o.showtabline = 2
   vim.o.tabline = "%#KawaGround#  %#KawaIcon#" .. icon .. "%#KawaGround#  %#KawaName#" .. word
-    .. " %#KawaStitch#" .. string.rep("─", math.max(2, n)) .. "%#KawaGround#  "
+    .. " %#KawaStitch#" .. string.rep("─", math.max(2, n))
   vim.opt_local.winbar = "%#KawaGround# "
   foot_text = is_todo and todo_footer(name) or footer_of(name)
   foot_rows(foot_text)
