@@ -2571,6 +2571,24 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   /system-update, exactly as on the PC this morning; the update rightly refuses. Fixed: vm-run.sh --apply restarts
   the VM until nothing waits (3d25e97). Run 7 started 15:31.
 
+- r27-49-E3 (1 Nov 15:31–15:40, VM proof run 7: update-button.sh f44b from `next` 3d25e97) — ALL NINE ROWS HELD,
+  the master's (E) among them: the VM applied as the PC is (vm-run.sh --apply: "repair done — verify: 13
+  problem(s) before, 0 now", dwl re-patched and built, 15:34:55; nothing waited for a restart this time), then the
+  three presses: ONE invocation (900aab59… at the first press and after the second and third), each exit 0 with
+  the run's own last line "update done (ok): updated · 61 packages"; the checks before it 15:35:30 with NO red
+  ("the desktop does not start" appears 0 times in the units' journal + run.log, /dev/shm/r27/update-button-f44b/
+  units.txt); "61 packages to update" 15:36:42; "green in the copy" 15:37:21; kernel 7.2.13 on trial 15:39:47;
+  the report ok; the stopped run 1 with its reason. So the VM's red was its staleness (a toolkit newer than its
+  theme and builds), not the button. Run 6's "an earlier update is waiting … restart first" after the apply did
+  not come back in run 7 (same base, newer tree); its cause is not known — its evidence was overwritten by run 7
+  (the same out dir): the --apply restart loop stays as the guard, and update-green/probation (both from --apply
+  now) watch for it next pass.
+- r27-flaky-1 (1 Nov 15:40): the whole suite on aa9366a (3222 s, /dev/shm/r27p/head3.log) had a third red besides
+  the two fixed on next — session/test_dwlstatus.sh's "a burst of 1125 lines … one title poke per change" (178/2
+  and 179/1 under the VM + two suites + test files at once); 5 re-runs alone or with one suite: 180/0 each.
+  kawa-dwlstatus is untouched by this pass: a load-sensitive count in the test (pokes lost under load) — for T52/
+  T53: make the count robust (the stand-in's poke log, not signal delivery) without weakening the "one per change".
+
 ## >>> NEXT PASS STARTS HERE (1 Nov, written 15:35 — the lines above say what this pass did): the inbox first. Then:
 ## (1) STATE: main = aa9366a + branch `next` (worktree ~/repos/fk-next: 1e04cad, fa1beb3, 3d25e97 — the master's
 ##     must-fix 1, 3, 4, 5 and the VM proofs' --apply). If `git log main..next` is not empty, this pass did not get
