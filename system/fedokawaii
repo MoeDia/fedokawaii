@@ -337,11 +337,11 @@ status() {   # the status as text: the keys in a column of their own, two column
   [[ -s $STATE/rpmnew ]] && printf '%-10s%s\n' '' "(the list: $STATE/rpmnew)"
   return 0
 }
-status_rows() {   # the same as a screen's rows (a terminal on the desktop): two columns in, the
-  local k v       # keys muted — under status's heading (job_head), as the menu's pane has them
+status_rows() {   # the facts as the menu's pane has them (a terminal on the desktop): under the
+  local k v       # heading's name (job_head: column 3, §7 facts), the keys muted
   if on_console || [[ ! -t 1 ]]; then status | sed 's/^/  /'; return 0; fi
-  status_kv | while IFS=$'\037' read -r k v; do printf '  %s%-8s%s  %s\n' "$INK_MUTED" "$k" "$INK_OFF" "$v"; done
-  [[ -s $STATE/rpmnew ]] && printf '  %-8s  %s\n' '' "(the list: $STATE/rpmnew)"
+  status_kv | while IFS=$'\037' read -r k v; do printf '     %s%-8s%s  %s\n' "$INK_MUTED" "$k" "$INK_OFF" "$v"; done
+  [[ -s $STATE/rpmnew ]] && printf '     %-8s  %s\n' '' "(the list: $STATE/rpmnew)"
   return 0
 }
 
@@ -1048,8 +1048,8 @@ edit_settings() {   # a copy edited, checked by the toolkit, and only then made 
   return "$rc"
 }
 BACK="goes back to the menu"   # (a job's own window: "closes this window")
-pause() {   # pause RC [ACTION] — the outcome as a row (its glyph: done, or needs you), then the
-  # key back to the menu as a footer, a blank line between them
+pause() {   # pause RC [ACTION] — the outcome as a row (its glyph: done, or needs you — one cell in,
+  # as a list's), then the key back to the menu at the heading's column, a blank line between them
   local g=${ICON_CHECK:-·} t=finished K=${INK_MUTED:-} N=${INK_ACCENT_TEXT:-} O=${INK_OFF:-}
   if (($1 == 0)); then :
   elif [[ ${2:-} == @(verify|drift|repair|apply) && $1 == 3 ]] \
@@ -1059,7 +1059,7 @@ pause() {   # pause RC [ACTION] — the outcome as a row (its glyph: done, or ne
     g=${ICON_BOX_OFF:-·} t="nothing done"
   else g=$N${ICON_CROSS:-x}$O t="it ended with an error ($1): the lines above say why"; fi
   [[ $g == "$N"* ]] || g=$K$g$O
-  printf '\n  %s  %s\n\n  %sany key %s%s ' "$g" "$t" "$K" "$BACK" "$O"
+  printf '\n   %s  %s\n\n  %sany key %s%s ' "$g" "$t" "$K" "$BACK" "$O"
   read -rsn1 _ </dev/tty || true
 }
 # job_head ACTION — a job's own heading at the top of its window (its icon, its name, the rule),
@@ -1176,8 +1176,8 @@ snapshots() {   # the snapshots of / — read from the disk by kawa-snap, as roo
     [[ $ty == post ]] && continue                       # (a dnf pair is its pre: "before" it)
     v=$(date -d "$d UTC" '+%-d %b %H:%M' 2>/dev/null) || v=$d
     [[ $b == booted ]] && v="running now · $v"
-    # (a column in, one wider: the icon under the heading's, the date ending where its rule does)
-    if ((w)); then printf ' '; screen_row "${ICON_HOURGLASS:-·}" "$(printf '%-4s %s' "$n" "$(fit "$de" $((w - 5 - 5 - ${#v} - 2)))")" "$v" $((w + 1)); echo
+    # (a list under a heading: its icon one cell in from the heading's, §7; the date ending where its rule does)
+    if ((w)); then printf '  '; screen_row "${ICON_HOURGLASS:-·}" "$(printf '%-4s %s' "$n" "$(fit "$de" $((w - 5 - 5 - ${#v} - 3)))")" "$v" "$w"; echo
     else printf '  %-4s  %-46s  %s\n' "$n" "$(fit "$de" 46)" "$v"; fi
     nums+=("$n")
   done <<<"$l"
@@ -1202,8 +1202,8 @@ snapshots() {   # the snapshots of / — read from the disk by kawa-snap, as roo
   return 0
 }
 # time_rows ICON — the moments in nums[] and when[] (the caller's: "%F %H:%M", your time) as rows:
-# the icon under the heading's, the number and the time, the day ending where the heading's rule
-# does; each when[] becomes "HH:MM DAY" (today · yesterday · 30 Oct), as as_it_was reads it
+# the icon one cell in from the heading's (§7), the number and the time, the day ending where the
+# heading's rule does; each when[] becomes "HH:MM DAY" (today · yesterday · 30 Oct), as as_it_was reads it
 time_rows() {
   local i t day today yday year w=0
   today=$(date +%F) yday=$(date -d yesterday +%F) year=$(date +%Y)
@@ -1213,8 +1213,7 @@ time_rows() {
     # (a backup lives a year: one of last year's says its year)
     case ${when[i]% *} in "$today") day=today ;; "$yday") day=yesterday ;; "$year"-*) day=$(date -d "${when[i]% *}" '+%-d %b') ;;
       *) day=$(date -d "${when[i]% *}" '+%-d %b %Y') ;; esac
-    # (a column in, one wider: the icon under the heading's, the day ending where its rule does)
-    if ((w)); then printf ' '; screen_row "$1" "$(printf '%-4s %s' "${nums[i]}" "$t")" "$day" $((w + 1)); echo
+    if ((w)); then printf '  '; screen_row "$1" "$(printf '%-4s %s' "${nums[i]}" "$t")" "$day" "$w"; echo
     else printf '  %-4s %s  %s\n' "${nums[i]}" "$t" "$day"; fi
     when[i]="$t $day"
   done

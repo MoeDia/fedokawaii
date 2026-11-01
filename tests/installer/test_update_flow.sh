@@ -270,6 +270,13 @@ has "$(foryou)" "the system before it (snapshot 7) was put back"
 case_ "…a start after that, still not whole: never again by itself — said, with the way back"
 reset_calls; printf 'replay 1\n' >"$U/phase"; resume; eq "$RC" 0; not_called 'kawa-snap\] restore'; not_called 'systemctl\] reboot'
 has "$(foryou)" "snapshot 7 is the system before it: Super+U → snapshots → 7"
+case_ "a start after a run cut before its transaction began (no row in dnf's history newer than its mark): nothing to undo — the phase ended, said at login; no restore, no restart"
+back built; reset_calls; cut_run; fkh mounts /run/fedokawaii/top /home; fkh history 5; echo 5 >"$U/hist"
+resume; eq "$RC" 0 "$OUT"; eq "$(cut -d' ' -f1 "$U/phase")" end; not_called 'kawa-snap\] restore'; not_called 'systemctl\] reboot'
+has "$(foryou)" "update-cut the last update stopped before it changed anything press update (Super+U) to run it again"
+case_ "…a row newer than the mark (its transaction began): judged as before — not whole, put back"
+back built; reset_calls; cut_run; fkh mounts /run/fedokawaii/top /home; fkh history 5 6; echo 5 >"$U/hist"
+resume; eq "$RC" 0 "$OUT"; called 'kawa-snap\] restore 7$'; lacks "$(foryou)" "stopped before it changed anything"
 case_ "…not whole, /home inside the system: offered, never done — his home would go back too"
 back built; reset_calls; cut_run
 resume; eq "$RC" 0; not_called 'kawa-snap\] restore'; has "$(foryou)" "(your home goes back too, until /home is split)"
@@ -287,12 +294,31 @@ case_ "…the start after it (PID 1 whole again), every package in: kept, said a
 rm -f "$FKH/crash-on" "$FKH/systemctl-fail" "$FKH/journal-pid1"; reset_calls
 resume; eq "$RC" 0 "$OUT"; eq "$(cut -d' ' -f1 "$U/phase")" steps; has "$(foryou)" "update-cut the last update was cut off after its packages went in"
 not_called 'kawa-snap\] restore'; reset_calls; up; eq "$RC" 0 "$(tail -n3 <<<"$OUT")"; eq "$(report)" ok; not_called 'dnf\] .*replay'
-case_ "stopped from outside in its transaction (systemctl stop, a shutdown: SIGTERM): its phase kept — the next press finishes it, or (not whole) undoes it"
+case_ "stopped from outside before its transaction began (systemctl stop, a shutdown: SIGTERM — no newer row in dnf's history): nothing changed — nothing held or undone, the phase ended; the next press runs it anew"
 back built; reset_calls; pending "bash 5.2-1.fc44 5.3-1.fc44"
 echo '^systemd-run\] .* /usr/bin/dnf -y -C replay ' >"$FKH/cut-on"; echo TERM >"$FKH/cut-sig"; chmod 666 "$FKH"/cut-*
+up; eq "$RC" 143 "$(tail -n3 <<<"$OUT")"; eq "$(report)" stopped; eq "$(cut -d' ' -f1 "$U/phase")" end "nothing went in: not kept"
+[[ -s $U/holds ]] && _no "held: $(cat "$U/holds")" || _ok; not_called 'kawa-snap\] restore'; sn=$(cat "$U/snap")
+rm -f "$FKH"/cut-*; reset_calls; up; eq "$RC" 0 "$(tail -n3 <<<"$OUT")"; eq "$(report)" ok; lacks "$OUT" "finishing it first"
+grep -qx 'bash 5.3-1.fc44' "$FKH/evr" && _ok || _no "bash not in: $(cat "$FKH/evr")"
+called "snapper\] -c root modify -c number $sn\$"   # (the stopped run's snapshot: back to the cleanup)
+case_ "dnf ends before its transaction begins on the running system: said as the stop it was — nothing held or undone, the phase ended"
+back built; reset_calls; pending "bash 5.2-1.fc44 5.3-1.fc44"; fkh replay-refused
+up; eq "$RC" 1 "$(tail -n3 <<<"$OUT")"; eq "$(report)" stopped
+has "$(sed -n 2p "$U/report")" "stopped (replay): the transaction did not begin on the running system (dnf replay) — nothing changed; press update again"
+eq "$(cut -d' ' -f1 "$U/phase")" end "nothing went in: not kept"; [[ -s $U/holds ]] && _no "held: $(cat "$U/holds")" || _ok
+lacks "$(cat "$U/report")" "broke something"; not_called 'kawa-snap\] restore'
+rm -f "$FKH/replay-refused"; reset_calls; up; eq "$RC" 0 "$(tail -n3 <<<"$OUT")"; eq "$(report)" ok
+case_ "stopped from outside once its transaction began (SIGTERM the moment dnf's unit ended, before its end was read): its phase kept — the next press finishes it"
+back built; reset_calls; pending "bash 5.2-1.fc44 5.3-1.fc44"
+echo '^systemd-run\] ended .*-C replay ' >"$FKH/cut-on"; echo TERM >"$FKH/cut-sig"; chmod 666 "$FKH"/cut-*
 up; eq "$RC" 143 "$(tail -n3 <<<"$OUT")"; eq "$(report)" stopped; eq "$(cut -d' ' -f1 "$U/phase")" replay "the phase kept"
 rm -f "$FKH"/cut-*; reset_calls; up; eq "$RC" 0 "$(tail -n3 <<<"$OUT")"; has "$OUT" "the last update was cut off in its transaction — finishing it first"
-eq "$(report)" offered; grep -q '^bash 5.3-1.fc44 ' "$U/holds" && _ok || _no "not held"
+eq "$(report)" ok; not_called 'dnf\] .*replay'
+case_ "dnf's unit still running when first asked (its end shows on the fourth ask): asked again once a second, then read — kept"
+back built; reset_calls; pending "bash 5.2-1.fc44 5.3-1.fc44"; fkh fail-end-late 3
+up; eq "$RC" 0 "$(tail -n3 <<<"$OUT")"; eq "$(report)" ok
+n=$(grep -c 'systemctl\] show -p ActiveState' "$CALLS"); ((n >= 4)) && _ok || _no "asked $n times"
 
 # ── the start after an update: its probation (up_probation, setup.sh --boot-good) ─────────────
 K=$(uname -r) NEWK=7.2.99-200.fc44.x86_64

@@ -15,6 +15,7 @@ while (($#)) && [[ $1 != /usr/bin/dnf ]]; do shift; done
 shift
 if [[ -s $FKH/dnf-killed ]]; then rc=$((128 + $(cat "$FKH/dnf-killed"))); else /usr/local/bin/dnf "$@"; rc=$?; fi
 [[ -n $unit ]] && echo "ended $unit $rc" >>"$FKH/units"
+fkh_cut "systemd-run] ended $*"   # (a stop from outside the moment the unit has ended, before its end is read: cut-on '^systemd-run\] ended …')
 if [[ -f $FKH/crash-on && $* =~ $(cat "$FKH/crash-on") ]]; then
   echo show >>"$FKH/systemctl-fail"; printf '%s\n' 'Caught <ABRT>, from our own process.' 'Freezing execution.' >>"$FKH/journal-pid1"
   chmod 666 "$FKH/systemctl-fail" "$FKH/journal-pid1"

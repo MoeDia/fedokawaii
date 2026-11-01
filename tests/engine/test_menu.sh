@@ -355,6 +355,11 @@ out=$(tty_free fedokawaii --run "" </dev/null 2>&1); eq "$?" 0
 case_ "the outcome waits for a key, on the terminal (not on whatever stdin is)"
 out=$(on_tty "x" fedokawaii --run status); has "$out" "finished"; has "$out" "any key goes back"
 eq "$?" 0
+case_ "…its columns (§7): the heading's icon at the screen's first, the facts under its name (as the menu's pane), the outcome a row one cell in, the key back at the heading's column"
+p=$(plain "$out"); h=$(grep -m1 '─' <<<"$p"); lh=${h%%[! ]*}
+r=$(grep -m1 'release' <<<"$p"); l=${r%%[! ]*}; eq "${#l}" "$((${#lh} + 3))" "release under the heading's name: [$r] [$h]"
+r=$(grep -m1 'finished' <<<"$p"); l=${r%%[! ]*}; eq "${#l}" "$((${#lh} + 1))" "the outcome's glyph one cell in: [$r]"
+r=$(grep -m1 'any key' <<<"$p"); l=${r%%[! ]*}; eq "${#l}" "${#lh}" "the key back at the heading's column: [$r]"
 
 case_ "backup: kawa-backup, as you (never through sudo); its status comes back"
 fresh; stub kawa-backup 'exit "$(cat "$FK_R/rc-backup" 2>/dev/null || echo 0)"'
@@ -369,15 +374,16 @@ fresh; snaplist; out=$(outcome snapshots); has "$out" "finished"; called '^sudo 
 out=$(tty_free fedokawaii --run snapshots </dev/null 2>&1)
 has "$out" "fedokawaii baseline"; has "$out" "dnf install htop"; eq "$(grep -c 'dnf install htop' <<<"$out")" 1
 has "$out" "the system before the last restore"
-# aligned SCREEN WORD — on a terminal: SCREEN's first row holding WORD starts its icon where the
-# heading starts its own, and ends where the heading's rule ends (each row a line of its own)
+# aligned SCREEN WORD — on a terminal: SCREEN's first row holding WORD starts its icon one cell in
+# from the heading's (a list under its heading, design-system §7: Super+U's grid, heading x 25, rows
+# x 33), and ends where the heading's rule ends (each row a line of its own)
 aligned() {
   local h r lh lr; h=$(grep -m1 '─' <<<"$1"); r=$(grep -m1 -- "$2" <<<"$1")
   lh=${h%%[! ]*} lr=${r%%[! ]*}
-  eq "${#lr}" "${#lh}" "the icon under the heading's: [$r] [$h]"
+  eq "${#lr}" "$((${#lh} + 1))" "the icon one cell in from the heading's: [$r] [$h]"
   eq "$(LC_ALL=C.UTF-8 wc -L <<<"$r")" "$(LC_ALL=C.UTF-8 wc -L <<<"$h")" "ending where the rule ends: [$r] [$h]"
 }
-case_ "snapshots on a terminal: a row a line, the icon under the heading's, the date ending where its rule ends"
+case_ "snapshots on a terminal: a row a line, the icon one cell in from the heading's, the date ending where its rule ends"
 fresh; snaplist; out=$(plain "$(on_tty $'\n' fedokawaii --run snapshots)")
 aligned "$out" "fedokawaii baseline"; aligned "$out" "the system before the last restore"
 eq "$(grep -c -E 'baseline|htop|last restore' <<<"$out")" 3 "three rows, three lines"

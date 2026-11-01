@@ -62,6 +62,9 @@ case $verb in
               # (-p ActiveState -p SubState -p ExecMainCode -p ExecMainStatus of dnf's unit: its end)
               if [[ $prop == ExecMainStatus && $a == *" -p ActiveState "* ]]; then
                 r=$(awk -v u="$u" '$1 == "ended" && $2 == u { r = $3 } END { print r }' "$FKH/units")
+                # ($FKH/fail-end-late = N: seen running N more times before its end shows — a
+                # transaction that outlasts the first asks)
+                countdown end-late && r=""
                 if [[ -z $r ]]; then printf 'ActiveState=active\nSubState=running\nExecMainCode=0\nExecMainStatus=0\n'
                 elif ((r == 0)); then printf 'ActiveState=active\nSubState=exited\nExecMainCode=1\nExecMainStatus=0\n'
                 elif ((r > 128)); then printf 'ActiveState=failed\nSubState=failed\nExecMainCode=2\nExecMainStatus=%s\n' $((r - 128))

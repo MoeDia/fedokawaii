@@ -2961,9 +2961,13 @@ do_update() {   # the button's run (lib/update.sh: the phases, their state in UP
   case $was in
     replay) dnf_settle    # (its transaction may still be writing: judged only once it has ended)
             if pgrep -x dnf5 >/dev/null 2>&1; then die "another package manager is running (dnf5) — update again once it has finished"; fi
-            log "the last update was cut off in its transaction — finishing it first"
-            if ! up_complete; then
-              echo "the last update was cut off in its transaction" >"$UPD/why"; u_undo; u_report; return 0
+            if up_never_began; then
+              log "the last update stopped before its transaction began — nothing had changed: it runs anew"; was=end
+            else
+              log "the last update was cut off in its transaction — finishing it first"
+              if ! up_complete; then
+                echo "the last update was cut off in its transaction" >"$UPD/why"; u_undo; u_report; return 0
+              fi
             fi ;;
     steps|check) log "the last update was cut off after its transaction — its steps and checks again" ;;
   esac

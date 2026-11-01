@@ -308,11 +308,30 @@ u_snapshot() {
   printf '%s\n' "$SNAP_N" | write_file "$UPD/snap" 0644
 }
 u_replay() {   # → 1 the transaction failed on the running system
+  local h; h=$(up_hist) || h=""
+  printf '%s\n' "$h" | write_file "$UPD/hist" 0644 2>/dev/null || rm -f -- "$UPD/hist"
   up_phase replay
   [[ -s $UPD/tx/transaction.json ]] || return 0
   log "the update on the running system: the transaction the copy proved"
   dnf_detached -y -C replay "$UPD/tx" && return 0
+  # (ended before its transaction began: nothing changed — nothing to hold or undo, and the next
+  # press runs the update anew)
+  up_never_began && die "the transaction did not begin on the running system (dnf replay) — nothing changed; press update again"
   echo "the transaction stopped on the running system (dnf replay)" >"$UPD/why"; return 1
+}
+# (dnf commits its history's row for a transaction after rpm's test run and before its real one —
+# libdnf5 base/transaction.cpp, Transaction::Impl::_run: db_transaction.start(), then
+# rpm_transaction.run(); 5.4.6. So with no row newer than UPD/hist, written before the replay,
+# and no dnf unit still running, rpm never began: not one file of the set was touched)
+up_hist() { dnf -q history list --json 2>/dev/null | jq '[.[].id] | max // 0'; }
+up_never_began() {
+  local was now run
+  was=$(cat "$UPD/hist" 2>/dev/null) || return 1
+  [[ $was =~ ^[0-9]+$ ]] || return 1
+  run=$(systemctl list-units --plain --no-legend --state=running 'fedokawaii-dnf-*.service' 2>/dev/null) || return 1
+  [[ -z $run ]] || return 1
+  now=$(up_hist) || return 1
+  [[ $now == "$was" ]]
 }
 up_complete() {   # every package of the stored set at its new version, nothing twice, dnf's check clean
   local n v
@@ -351,7 +370,7 @@ u_undo() {
   else UP_END=offered; fi
 }
 u_report() {   # u_report — the outcome: UPD/report (the pane), the log beside it, a notice
-  local held="" fam=() line why log n desk
+  local held="" fam=() line why log n desk keep
   # (the holds by family, as the pane names them — two at most, then how many more: a notice is
   # a line, and a whole set held at once is hundreds of names)
   [[ -s $UPD/holds ]] && mapfile -t fam < <(hold_families "$UPD/holds" | cut -f1)
@@ -375,8 +394,13 @@ u_report() {   # u_report — the outcome: UPD/report (the pane), the log beside
   # (a fixed short form, so the status's row fits it; which items, in the report's lines below)
   [[ -z $desk ]] || line+=" · desktop red before: not judged"
   # (a run stopped once the running system began to change keeps its phase: the next start
-  # (replay) or press finishes it — never a new update over one not yet whole, or not judged)
-  [[ $UP_END == stopped && $(up_was) == @(replay|steps|check) ]] || up_phase end || true
+  # (replay) or press finishes it — never a new update over one not yet whole, or not judged;
+  # a replay whose transaction never began changed nothing, and ends)
+  keep=0
+  if [[ $UP_END == stopped ]]; then
+    case $(up_was) in steps|check) keep=1 ;; replay) up_never_began || keep=1 ;; esac
+  fi
+  ((keep)) || up_phase end || true
   # (the stored transaction and the downloads kept for the halves: done with, whatever the outcome)
   rm -rf -- "$UPD/tx" "$UPD/try" "$UPD/sources"; dnf -q clean packages >/dev/null 2>&1 || true
   # (no command that can fail inside these pipes: setup.sh's ERR trap would print from them)
@@ -391,13 +415,17 @@ u_report() {   # u_report — the outcome: UPD/report (the pane), the log beside
   [[ $UP_END == @(ok|current|held) ]] || hdr "update: $line"
 }
 # ── a start after an update cut in its transaction (a power cut, a crash): before the login
-# screen (fedokawaii-update-resume.service), never left half-done — its packages all in: kept,
-# the button's next press does the rest; not whole: the system before it put back and started,
-# once (only once /home is its own subvolume — before, offered); either way said at login ──────
+# screen (fedokawaii-update-resume.service), never left half-done — its transaction never begun:
+# nothing to undo, ended; its packages all in: kept, the button's next press does the rest; not
+# whole: the system before it put back and started, once (only once /home is its own subvolume —
+# before, offered); each said at login ─────────────────────────────────────────────────────────
 up_boot() {
   [[ $(up_was) == replay ]] || return 0
   local n; n=$(cat "$UPD/snap" 2>/dev/null) || n=""
-  if up_complete; then
+  if up_never_began; then
+    up_phase end
+    up_tell "the last update stopped before it changed anything" "press update (Super+U) to run it again"
+  elif up_complete; then
     up_phase steps
     up_tell "the last update was cut off after its packages went in" "press update (Super+U) to finish it"
   elif [[ -e $UPD/restored-once || -z $n ]] || ! mountpoint -q /home; then

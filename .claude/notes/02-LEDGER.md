@@ -2966,6 +2966,61 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   rc 0 in 2724 s (/dev/shm/r27p/suite-cf211b8.log). With update-green exit 0 (condition 2) and the storm retired
   (condition 3), T45's Verdict 4 conditions hold; GitHub main = 415b61c (cf211b8 + notes) — the accidental push
   (r27-push-accident) is thereby the planned one. Left for T45: should-fixes 1, 3, 4, and the next review.
+- r27-49-R4b-green3 (1 Nov 21:49–21:54, the 21:47 pass): update-green f44 from the frozen 3c3d583 (the newest code;
+  past it only notes) — exit 0 in 274 s, report "ok · updated · 61 packages", phase end, no "the desktop does not
+  start", auditd active with its log, 0 AVC lines. Kept: /dev/shm/r27/master/T45-5/green-3c3d583/ (+ .txt). Its T45
+  files past cf211b8 (`git diff --stat cf211b8..3c3d583 -- lib/update.sh lib/guard.sh lib/common.sh setup.sh
+  tests/installer tools/vm-inject`): setup.sh 11, stubs/systemd-run 6, test_upkeep 7 — should-fixes 2 and 7.
+- r27-49-R4-sf4 (T45 Verdict 4 should-fix 4, 1 Nov 21:58, VM f44b — systemd 259.10-1.fc44): the end read across a daemon-reexec,
+  measured with setup.sh's own dnf_end (extracted from the file, sourced in the VM): a transient RemainAfterExit
+  unit running `systemctl daemon-reexec` (rc 0; journal "Reexecution requested from client PID 2255 … Reexecuting."
+  21:58:07.20) then `exit 7` → dnf_end printed 7; show: failed/failed, ExecMainCode=1, ExecMainStatus=7 (systemd keeps
+  a unit's state across its re-exec). Script and output: /dev/shm/r27/master/T45-sf4/ (measure.sh, measure.txt). DONE.
+- r27-49-R4-sf1 (T45 Verdict 4 should-fix 1, 1 Nov 21:55–22:05, local): a replay whose transaction never began no longer ends as
+  "the update broke something". The fact it rests on, from dnf5's own source at the installed version (5.4.6.0,
+  libdnf5/base/transaction.cpp Transaction::Impl::_run: rpm's test run (RPMTRANS_FLAG_TEST, "return just before
+  anything is stored"), then `db_transaction.start()` — libdnf5/transaction/transaction.cpp: BEGIN, the row,
+  COMMIT — and only then `rpm_transaction.run()`): a transaction that touched one file has a history row. The
+  count of new versions in the rpmdb (the master's proposed rule) cannot tell that: a power cut while rpm unpacks
+  the first package leaves 0 of the set in the rpmdb with its files half replaced. Built (lib/update.sh): u_replay
+  writes UPD/hist = `dnf -q history list --json | jq '[.[].id] | max // 0'` before its phase; up_never_began = that
+  mark readable, no fedokawaii-dnf-* unit running (list-units must answer), and no newer row. Used in three places:
+  u_replay's own failure → die "the transaction did not begin on the running system (dnf replay) — nothing changed;
+  press update again" (stopped, nothing held, nothing undone); u_report keeps phase replay only when the
+  transaction began (a TERM while dnf's unit still runs: kept — it may yet begin); do_update's next press after a
+  replay that never began runs the update anew (was=end → u_start: up_leftovers releases its pinned snapshot);
+  up_boot at the next start: phase end, "the last update stopped before it changed anything — press update (Super+U)
+  to run it again", no restore, no restart. Stand-ins: dnf history list --json from $FKH/history, the replay
+  writes its row before its packages ($FKH/replay-refused: none, exit 1); systemd-run's cut point "ended" (a TERM
+  the moment the unit ended). test_update_flow 341/0 (was 311): the TERM before the unit → phase end, nothing held,
+  the next press ok with the stopped run's snapshot released; refused → "stopped (replay): … nothing changed",
+  never "broke something"; a TERM once it began → phase replay kept, the next press finishes it; the start after
+  a cut with no newer row → ended, said, no restore; with a newer row → restored as before. DONE (the master next).
+- r27-49-R4-sf3 (T45 Verdict 4 should-fix 3): systemctl's stand-in $FKH/fail-end-late=N — dnf's unit seen running N more asks
+  before its end; test_update_flow row: end-late 3 → asked ≥ 4 times, kept (ok). DONE.
+- r27-52-R4-sf1 (T48 verdict 4 should-fix 1, 1 Nov 22:00–22:10, local): the job windows' grammar DECIDED and built — measured
+  first, so the rule follows the screens he already has, not the first suggestion: Super+U's heading icon at x 27
+  and its rows' icons at x 35 (one cell in, §4/§7), its pane's facts under the heading's name (x 425 = the name's
+  x); the job windows had their heading at x 27 too but their rows under it (x 27). So the job windows' ROWS move
+  one cell in (time_rows, the snapshot list: `printf '  '` + screen_row W = screen_width), the outcome row
+  (pause's ✓ finished) one cell in, the key line ("any key …") and paragraphs stay at the heading's column, status's
+  facts go under the heading's name (5 columns, as the pane). design-system §7 gained Text and Facts, and the
+  window-padding line now gives the measured pixels (cursor x 17, column 0 x 25, rows x 33). Rendered in the kit,
+  both moods (/dev/shm/r27p/kit-g/{dark,light}-{1,5}-win.png: the restore list, the result): heading icon x 27,
+  rows' icons x 35, the dates' last cell 785–792 = the rule's end (113 +680), 24 px of paper to the hairline both
+  sides; the result: paragraph x 25, the copied item x 33, ✓ x 35 / finished x 57, the key line x 25 — identical
+  boxes in both moods. Status checked in a pty (the kit's status shot came out blank twice — its facts take long
+  to gather; the columns are the text's). test_menu's `aligned` now asserts one cell in; new row: status's facts,
+  the outcome and the key line columns. LEFT for T22: kawa-pick's dialog (yazi) draws its heading at x 17 and its
+  rows at x 25 — the whole yazi grid moves to this one (heading 25, rows 33, its cursor from 17) with yazi's rebuild.
+- r27-49-R4b PUSH (1 Nov 22:21): the whole suite on 3c3d583 — "✔ all 128 test files passed", rc 0 in 3038 s
+  (/dev/shm/r27p/suite-3c3d583.log; test_update_flow 311/0, test_upkeep 283/0, engine/test_menu 735/0) + its
+  update-green (r27-49-R4b-green3) → the master's rule for a later main met: GitHub main 415b61c..c8a91e0 (=
+  3c3d583 + notes). The master's T48 verdict-4 question ("test_menu reports 84 in every suite"): two files carry
+  the name — tests/menus/test_menu.sh (84) and tests/engine/test_menu.sh (735: the T48 rows) — both run.
+- r27-apply-3c3d583 (1 Nov 22:21): the PC was on b318e6f (18:01: setup.sh and system/fedokawaii compared file for
+  file); `sudo FEDOKAWAII_COPY=/dev/shm/r27w-suite-3c3d583 fedokawaii apply` (the frozen, tested tree — never
+  the working tree with untested edits) after a presence probe (idle 60 s at 22:11:56) → /dev/shm/r27p/apply-3c3d583.log.
 ## >>> NEXT PASS STARTS HERE (1 Nov, written 20:55 by the 18:56 pass — the lines above say what it did): the inbox first. Then:
 ## (1) PUSHED (by accident, see below), NOT APPLIED. Local main = r27 = the newest commit. Two points matter:
 ##     · cf211b8 — T45's conditions ran on it: update-green exit 0 (MET); the whole suite →

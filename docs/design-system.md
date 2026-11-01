@@ -343,6 +343,11 @@ content, inside its margin of one cell:
   under it; two blank lines above it (none at the top of a pane). No dashed rule anywhere.
 - **Row**: its icon at column 1, its name from column 4 in `text`; a value right-aligned to the
   content's last column, `muted`.
+- **Text** under a heading (a statement, a question, a message) is a paragraph: at the heading's
+  column (0). What it lists — the files it copied, the outcome's row (`✓ finished`) — is a list:
+  one cell in (column 1), as rows; the key that closes or goes back, at column 0 again.
+- **Facts** (a key and its value: status, the backup's and the drive's panes): the key from the
+  heading's name (column 3) in `muted`, padded to the longest, two columns, the value in `text`.
 - **Search line** (a list long enough to filter): the chevron in `accent_text` at the rows' icon
   column (1), what is typed — or the ghost words saying what the list holds, `faint` — at their
   names' (4); the count right-aligned to the last column, `muted`. A short list has none (Super+U,
@@ -365,8 +370,10 @@ content, inside its margin of one cell:
   the key in `text`, what it does in `muted`, its state in `strong` (Super+W: `r  change every
   4 h  on`).
 - Ground: `ground` at kawa-glass's 0.92 — the wallpaper faintly through, the words never. No blur.
-- Window padding: foot's 8 px; the screen keeps one cell of margin: the content starts 16 px
-  inside the window's hairline, as a panel's (§3 pad).
+- Window padding: foot's 8 px; the screen keeps one cell of margin, then the cursor's column
+  (fzf's pointer; two spaces where no fzf draws): the cursor's fill starts 16 px inside the
+  window's hairline (x 17), column 0 one cell further (x 25), rows' icons at x 33 — a panel's pad,
+  cursor and indent (§3, §4), measured in Super+U, Super+W and the job windows.
 - **The prompt**: one short line in a pastel powerline — segments on Wada's pastels with ink
   words, the torii (his terminal's mark) first: the folder, the branch and its changes, the code
   of a failure, the time of a long command — then `›` and a space (`tools/build-themes.py`
