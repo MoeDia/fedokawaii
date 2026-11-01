@@ -32,4 +32,6 @@ bash "$here/vm-snap.sh" "$vm" stop >>"$log" 2>&1
 rc=$(tr -dc 0-9 <"$out/rc.txt")
 printf 'pending before: %s · the run: exit %s in %s s\n' "$pending" "${rc:-?}" "$t"
 sed -n '/^== report/,/^== holds/p' "$out/state.txt" | sed '1d;$d'
-[[ $rc == 0 ]] && grep -A1 '^== report' "$out/state.txt" | grep -qE ' (ok|current)$'
+# (a green run never says the desktop does not start: the check ran and passed, before and after)
+grep -q 'the desktop does not start' "$out/update.log" && echo "the desktop check was red: $(grep -m1 'the desktop does not start' "$out/update.log")"
+[[ $rc == 0 ]] && grep -A1 '^== report' "$out/state.txt" | grep -qE ' (ok|current)$' && ! grep -q 'the desktop does not start' "$out/update.log"

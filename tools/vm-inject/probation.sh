@@ -30,6 +30,10 @@ for c in "${cases[@]}"; do
   } >>"$log" 2>&1 || { echo "probation: the toolkit could not go in" >&2; exit 2; }
   old=$(run 'uname -r')
   run 'sudo bash /usr/local/lib/fedokawaii/setup.sh --update >/tmp/update.log 2>&1; echo "rc=$?"; sed "s/\x1b\[[0-9;]*m//g" /tmp/update.log | tail -n 25' >>"$log" 2>&1
+  # (a green run never says the desktop does not start: else its check after the update saw nothing)
+  if run 'grep -q "the desktop does not start" /tmp/update.log'; then
+    printf '%-5s the desktop check was red in the update itself — its after-check blind\n' "$c"; bad=1; continue
+  fi
   new=$(run 'sudo cut -d" " -f2 /var/lib/fedokawaii/update/probation | tail -n1')
   snap=$(run 'sudo cut -d" " -f1 /var/lib/fedokawaii/update/probation | tail -n1')
   armed=$(run 'sudo grub2-editenv - list | grep -E "^boot_(counter|success|indeterminate)=" | sort | tr "\n" " "; sudo grubby --info=/boot/vmlinuz-'"$new"' 2>/dev/null | grep -c "rd.shell=0 rd.emergency=reboot rd.retry=30 panic=10"; sudo cat /etc/systemd/system.conf.d/90-fedokawaii-probation.conf 2>/dev/null | grep -c RuntimeWatchdogSec')
