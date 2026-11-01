@@ -77,7 +77,7 @@ Source: **F** Fedora · **RF** RPM Fusion · **V** vendor repo (signed) · **C**
 | Performance | tuned | F | the `fedokawaii` profile: throughput-performance for an always-plugged desktop |
 | Fetch | `fetch` (own, pure bash) | repo | ten pixel pictures; replaces fastfetch |
 | Snapshots | snapper · grub-btrfs | F + C | Timeshift can't use Fedora's subvolume names; grub-btrfs (COPR `zzahkaboom24/grub-btrfs`, 4.14 for Fedora 43, 44 and 45 — Fedora has no package; kylegospo's COPR stopped at 38) lists the newest ten "before" snapshots in the boot menu, made again by `kawa-snap boot` (no grub-btrfsd daemon); `kawa-snap restore` swaps one in as the system |
-| Backups | restic | F | your home to a USB drive, an external disk or a restic address, deduplicated and encrypted; `kawa-backup` runs it (quick settings → backup) — nothing on a timer, the drive may not be plugged in |
+| Backups | restic · fuse3 | F | your home to a USB drive, an external disk or a restic address, deduplicated and encrypted; `kawa-backup` runs it (quick settings → backup) — nothing on a timer, the drive may not be plugged in; Super+U → restore opens a backup read-only (`restic mount`: fuse3) to pick files from it, or puts all of it back after a new disk |
 | Containers | podman | F | for Prowlarr |
 | GPU | Mesa freeworld VA-API · LACT · rocm-smi | RF + C + F | amdgpu feature mask for LACT; rocm-smi: the library btop reads the card through (AMD only); while RPM Fusion is behind this Fedora's Mesa, or the COPR has no build for it, they wait (recorded, Fedora's drivers standing in) and update or repair adds them |
 | Peripherals | OpenRGB | F | RGB lighting on the motherboard's headers; fan speeds are the motherboard firmware's (§21.2) |

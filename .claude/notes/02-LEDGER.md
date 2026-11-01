@@ -2797,6 +2797,58 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   end). (The 3.15 interpreter came from `uv python install` into /dev/shm — it ALSO linked ~/.local/bin/python3.15:
   removed at once; memory: --no-bin.)
 
+- r27-49-R4b (1 Nov 19:20–): the master's Re-review 4 started again (the 17:55 one never wrote its verdict: its
+  pass ended) — on 2b12615, brief /dev/shm/r27/master/T45-5/brief.md (every evidence copy under T45-5/; frozen
+  checkout /dev/shm/r27w-review5 = 2b12615). Running from it: the whole suite → /dev/shm/r27p/suite-2b12615.log,
+  test_upkeep + test_update_flow alone → /dev/shm/r27p/p4-*.log.
+- r27-49-storm3 (1 Nov 19:14–19:31) — update-green STORM=1 from 2b12615 (systemd's packages updated first:
+  storm-systemd.txt 259.10): exit 125 in 147 s. PID 1 CRASHED AGAIN without systemd in the set — journal of the
+  VM's last boot: 19:21:00.432 Reload from the replay unit's scriptlet, "Reloading finished" .566, 19:21:00.583
+  Reload from the storm's session → "Caught <ABRT>, from our own process … dumped core as pid 87416 … Freezing
+  execution". The core dump's stack (coredumpctl info 87416): __assert_fail ← method_reload ←
+  object_find_and_run ← bus_process_object ← … manager_loop. Upstream source: method_reload in
+  src/core/dbus-manager.c asserts !m->pending_reload_message_dbus and !m->pending_reload_message_vl (v259 AND
+  v262 — Fedora 45's — the same: raw.githubusercontent.com/systemd/systemd/v259|v262/src/core/dbus-manager.c);
+  no upstream issue found (gh search issues "pending_reload_message", "method_reload assertion": none; the
+  nearest, #43001, is another reload bug). So: a systemd bug — a Reload from any client while an earlier
+  reload's reply is still pending aborts PID 1; sequential clients cannot hit it, an independent one can (the
+  storm; on the desktop: rare, never from the update itself). Not ours to fix (we do not build systemd); an
+  upstream report drafted for the owner, not posted (outward-facing). THE WHOLE ANSWER PROVEN on the VM as the
+  proof left it (booted without a revert): the run's log "19:21:01 ✘ systemd, the system's own manager, crashed
+  while dnf ran …" once, report "stopped (replay): …", phase replay kept (2b12615's fix); the VM force-stopped;
+  the next start's fedokawaii-update-resume (19:27:37): every package in → phase steps, his notice; the next
+  press (19:29–19:31): "the last update was cut off after its transaction — its steps and checks again" →
+  "update done (ok): updated · 61 packages", phase end. Evidence: /dev/shm/r27/master/T45-5/storm-3-pid1-crash.txt
+  (+ green-storm-2b12615/); told to the master mid-review. update-design §5 row 46 rewritten with the cause.
+  The storm cannot force the lost-signal race: every throttled storm (2 of 2) crashed PID 1 first.
+- r27-52-restore (T48, 1 Nov 19:18–19:50): Super+U → backups → **restore** and **the drive** built (both were
+  "soon"). restore (system/fedokawaii backup_back, as you): kawa-backup's backups newest first — number, time,
+  day (the same rows as "a file, back": time_rows, shared now) — a number, then Enter: that backup opened
+  read-only (`kawa-backup mount`: restic mount, FUSE, in $XDG_RUNTIME_DIR, its own shell with an EXIT/HUP/TERM
+  trap so a closed window never leaves a mount), kawa-pick's back mode inside it under "as it was yesterday at
+  21:00", the picked copied into ~/Restored/DATE-TIME (restored_dir + restore_into: configs/home/.config/
+  fedokawaii/files.sh, now shared with file_back and kawa-backup restore — a second of one name "name (1).ext"
+  as everywhere, a folder never split at a dot); or **a**, then yes: `kawa-backup everything ID` = restic
+  restore ID:FOLDER --target ~ --overwrite never (restic 0.19.1's own option: what is missing comes back,
+  nothing there is changed — tried first on a scratch repo). the drive: the row shows the drive's short name
+  (a path or an address by its last part, only where it fits its 23 columns — the first render showed a long
+  path hard-cut by fzf: fixed), the pane (kawa-backup drive: never opens a drive) its whole name in pieces at
+  spaces, / and : (never cut), plugged in · free of size / not plugged in (vermilion) / none chosen yet
+  (vermilion), and the last backup; Enter = kawa-backup's picker (pick). restore's own icon ICON_UNPACK (it
+  shared go back's UNDO). fuse3 in the manifest (restic mount's fusermount3; PACKAGES.md, the deps fixture).
+  The pane had to be allowed in explain()'s list (SOON had carried both: the first render showed an empty
+  pane — caught by LOOKING). Rendered in the kit, both moods (/dev/shm/r27p/kit-bk/: the list, the choice, the
+  dialog inside the backup, the result "as it was yesterday at 21:00, into ~/Restored/…: Documents/notes.md
+  ✓ finished", the menu's backups tab with each pane): the rows under the heading's icon, the day ending on the
+  rule's last column, the choice's keys in the words' ink and what they do muted (screen_keys' grammar). New
+  tool: tools/kit-keys.py (a text screen driven by timed keys in a pty, drawn live — keyed renders several
+  screens deep; its own terminal raw, so the terminal's focus reports never echo) and kit.sh --tui-wait S.
+  Tests: test_backup 228/0 with the REAL restic (times newest first; mount through FUSE: a file read inside,
+  nothing writable, ends with the unmount; everything: the missing folder back, his changed file kept; drive's
+  six states, never opening one), test_menu (restore: rows, a pick, a then yes / no, a number not listed, the
+  dialog cancelled, a backup that cannot be opened — nothing left behind, no backup yet, not plugged in; the
+  drive's pane and row; restore's icon), static 13/13, deps, pick, clipfiles, shrink green. Learn book §8.1:
+  both rows. (The PDF waits for his word, as every round-27 edit.)
 ## >>> NEXT PASS STARTS HERE (1 Nov, written 18:35 — the lines above say what this pass did): the inbox first. Then:
 ## (0) 381c08a (the PID 1 crash handling) is NOT pushed: its installer area was RED (18:46, 1641 s) — test_upkeep 273/2,
 ##     both in the new row "…systemd itself crashed while dnf ran …": OUT lacks "systemd, the system's own manager,

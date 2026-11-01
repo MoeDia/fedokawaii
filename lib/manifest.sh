@@ -163,7 +163,8 @@ PKG_APPS=(
   openrgb                                           # RGB lighting (fan speeds: the motherboard's firmware)
   snapper libdnf5-plugin-actions                    # snapshots; actions = pre/post snapshot around every dnf run
   grub-btrfs                                        # the snapshots in the boot menu (its COPR: no Fedora package)
-  restic                                            # backups to another disk (kawa-backup)
+  restic fuse3                                      # backups to another disk (kawa-backup); fuse3: a backup
+                                                    #   opened read-only to pick files from (restic mount)
   uv rustup                                         # Python and Rust to learn with: uv installs a current
                                                     #   CPython and its packages, rustup-init the stable Rust
                                                     #   (+ rust-analyzer, clippy, rustfmt) — both in your home (setup.sh: s_dev)

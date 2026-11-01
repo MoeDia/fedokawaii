@@ -3,14 +3,38 @@
 # by those that put something on the clipboard (clip_put).
 # shellcheck shell=bash
 
-# free_name PATH — PATH while nothing is there, else the next free "name (1).ext", "name (2).ext"…
-# beside it, as Brave names a second download: nothing is ever written over
+# free_name PATH [dir] — PATH while nothing is there, else the next free "name (1).ext", "name (2).ext"…
+# beside it, as Brave names a second download: nothing is ever written over (dir: a folder's
+# name, never split at a dot — "v1.2 (1)", not "v1 (1).2")
 free_name() {
   local dir=${1%/*} stem=${1##*/} ext="" n=1
   [[ -e $1 || -L $1 ]] || { printf '%s' "$1"; return; }
-  [[ $stem == ?*.* ]] && ext=.${stem##*.} stem=${stem%.*}
+  [[ ${2:-} != dir && $stem == ?*.* ]] && ext=.${stem##*.} stem=${stem%.*}
   while [[ -e "$dir/$stem ($n)$ext" || -L "$dir/$stem ($n)$ext" ]]; do n=$((n + 1)); done
   printf '%s' "$dir/$stem ($n)$ext"
+}
+
+# restored_dir → a folder of its own in ~/Restored for what comes back from a snapshot or a
+# backup — DATE-TIME (a second one in the same second: .2, .3 …) — made; its path on stdout
+restored_dir() {
+  local base dir n=1
+  base=$HOME/Restored/$(date '+%Y-%m-%d-%H%M%S'); dir=$base
+  while [[ -e $dir ]]; do n=$((n + 1)); dir=$base.$n; done
+  mkdir -p -- "$dir" && printf '%s' "$dir"
+}
+# restore_into DIR ROOT PATH… — each PATH (inside ROOT) copied into DIR, never over anything:
+# a line each, its path under ROOT (and the name it got, a second of one name), or why not all
+# of it came. Yours, with the labels of where it lands — a reflink where it can (the same disk:
+# no space taken until one of them changes)
+restore_into() {
+  local dir=$1 root=$2 p to f out k; shift 2
+  for p; do
+    k=""; [[ -d $p && ! -L $p ]] && k=dir
+    to=$(free_name "$dir/${p##*/}" "$k")
+    f=${p#"$root"/}; [[ ${to##*/} == "${p##*/}" ]] || f+=" — as ${to##*/}"
+    if out=$(cp -RP --preserve=mode,timestamps,links --reflink=auto -- "$p" "$to" 2>&1); then printf '   %s\n' "$f"
+    else printf '   %s — not all of it: %s\n' "$f" "$(sed -n 1p <<<"$out")"; fi
+  done
 }
 
 # clip_put TYPE — stdin onto the clipboard as TYPE, by a wl-copy in a session of its own (the

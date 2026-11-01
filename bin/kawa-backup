@@ -13,10 +13,21 @@
 #                                not plugged in, no password, the drive is full, restic missing);
 #                                one at a time: each takes the last one's place
 #   kawa-backup list             the backups there, oldest first (each with its id)
+#   kawa-backup times            the same for the menu, newest first: ID<TAB>TIME<TAB>FOLDER a line
+#                                (TIME as restic has it, RFC 3339; FOLDER the home it backed up)
 #   kawa-backup restore PATH [SNAPSHOT]
 #                                PATH (a file or a folder) as it was in SNAPSHOT (an id from
 #                                list; latest if none), into ~/Restored/<date>/ — never over
 #                                the original
+#   kawa-backup mount DIR        the backups opened read-only at DIR (restic mount: DIR/ids/ID/…)
+#                                until DIR is unmounted (fusermount3 -u DIR) — Super+U → restore
+#                                picks files from one there
+#   kawa-backup everything ID    all of backup ID back in your home: what is missing comes back,
+#                                nothing that is there is changed (restic restore --overwrite never)
+#   kawa-backup drive            the chosen drive for the menu: NAME<TAB>STATE<TAB>FREE<TAB>SIZE —
+#                                STATE open (FREE and SIZE in bytes), plugged (not opened), out,
+#                                address, or none (no drive chosen); never opens a drive
+#   kawa-backup pick             another drive chosen from those plugged in, and saved
 #   kawa-backup check            the repository read and checked (restic check, a tenth of the data)
 #   kawa-backup prune            old backups thinned out: the last 7 daily, 4 weekly and 12
 #                                monthly ones kept, the space given back
@@ -43,6 +54,8 @@ case :$PATH: in *":$HOME/.local/bin:"*) ;; *) PATH=$HOME/.local/bin:$PATH ;; esa
 . "$HOME/.config/fedokawaii/icons.sh"
 # shellcheck source=/dev/null
 . "$HOME/.config/fedokawaii/screen.sh"
+# shellcheck source=/dev/null
+. "$HOME/.config/fedokawaii/files.sh"            # restored_dir: a folder of its own in ~/Restored
 # BACKUP_TARGET: from the toolkit's fedokawaii.conf, the file Super+U → settings saves — so a
 # change counts at once, with no theme run. Read by the toolkit's own parser (lib/common.sh's
 # read_conf: the file is data, never run; both are root's, readable by all) and held to its
@@ -271,17 +284,14 @@ pick_target() {   # → 0 saved (and read again) · 4 nothing to pick, or none p
 
 # ── restore, list, check, prune, init ────────────────────────────────────────
 restore() {   # restore PATH [SNAPSHOT] — into ~/Restored/<date>/, never over the original
-  local p=$1 snap=${2:-latest} dir base parent name out rc n
+  local p=$1 snap=${2:-latest} dir parent name out rc
   [[ $p == /* ]] || p=$PWD/$p
   p=${p%/}
   [[ -n $p && $p != / ]] || { err "restore takes a file or a folder of yours: kawa-backup restore ~/Documents/report.ods"; return 2; }
   [[ $snap =~ ^([0-9a-f]{8,64}|latest)$ ]] || { err "SNAPSHOT is an id from kawa-backup list (or latest), not \"$snap\""; return 2; }
   open_repo || return 1
   parent=${p%/*}; name=${p##*/}; [[ -n $parent ]] || parent=/
-  # a folder of its own for each restore (a second one in the same second: .2, .3 …)
-  base=$HOME/Restored/$(date '+%Y-%m-%d-%H%M%S'); dir=$base; n=1
-  while [[ -e $dir ]]; do n=$((n + 1)); dir=$base.$n; done
-  mkdir -p "$dir" || return 1
+  dir=$(restored_dir) || return 1
   out=$(r restore "$snap:$parent" --target "$dir" --include "/$name" 2>&1); rc=$?
   grep -v '^restoring ' <<<"$out" | sed 's/^/  /'
   if ((rc)); then rmdir "$dir" 2>/dev/null; err "nothing restored — is $p in that backup? (kawa-backup list)"; return 1; fi
@@ -292,6 +302,41 @@ restore() {   # restore PATH [SNAPSHOT] — into ~/Restored/<date>/, never over 
   printf '  restored: %s/%s\n' "$dir" "$name"
 }
 list()  { open_repo && r snapshots; }
+backup_times() {   # (not "times": a bash builtin)
+  local j
+  open_repo || return 1
+  j=$(r snapshots --json 2>/dev/null) || { err "the backups at $REPO could not be listed (restic snapshots)"; return 1; }
+  jq -r 'sort_by(.time) | reverse | .[] | [.short_id, .time, .paths[0]] | @tsv' <<<"$j"
+}
+mount_ro() {   # (restic's own mount is read-only; it serves until DIR is unmounted)
+  [[ -d $1 ]] || { err "mount takes an empty folder that is there: kawa-backup mount DIR"; return 2; }
+  open_repo || return 1
+  r mount "$1" >/dev/null
+}
+everything() {
+  local id=$1 j path
+  [[ $id =~ ^[0-9a-f]{8,64}$ ]] || { err "everything takes a backup's id (kawa-backup times), not \"$id\""; return 2; }
+  open_repo || return 1
+  j=$(r snapshots --json "$id" 2>/dev/null) && path=$(jq -r '.[0].paths[0] // empty' <<<"$j") && [[ -n $path ]] \
+    || { err "no backup $id at $REPO (kawa-backup times lists them)"; return 1; }
+  # (the folder it backed up, into your home as it is now — another name for it since, too)
+  r restore "$id:$path" --target "$HOME" --overwrite never
+}
+drive() {   # (the drives menu's names, never opening one: a look, for the menu's pane)
+  local t=$BACKUP_TARGET dev label folder size avail
+  if [[ -z $t || -n $CONF_WHY ]]; then printf '\tnone\t\t\n'; return 0; fi
+  if [[ $t =~ ^(sftp|rest|s3|b2|azure|gs|rclone|swift|local):. ]]; then printf '%s\taddress\t\t\n' "$t"; return 0; fi
+  if [[ $t == /* ]]; then folder=$t
+  else
+    # (at the end of the list read leaves them empty: none of that name)
+    while IFS=$'\t' read -r dev _ label _ _ folder; do [[ $label == "$t" ]] && break; done < <(kawa-drives list 2>/dev/null)
+    [[ $label == "$t" ]] || { printf '%s\tout\t\t\n' "$t"; return 0; }
+    [[ -n $folder ]] || { printf '%s\tplugged\t\t\n' "$t"; return 0; }
+  fi
+  [[ -d $folder ]] && read -r size avail < <(df -B1 --output=size,avail -- "$folder" 2>/dev/null | tail -n1) \
+    || { printf '%s\tout\t\t\n' "$t"; return 0; }
+  printf '%s\topen\t%s\t%s\n' "$t" "$avail" "$size"
+}
 check() { open_repo && { printf '  reading a tenth of the data: a few minutes on a USB drive\n'; r check --read-data-subset=10%; }; }
 prune() { open_repo && r forget --keep-daily 7 --keep-weekly 4 --keep-monthly 12 --prune; }
 init()  {
@@ -325,6 +370,11 @@ case ${1:-} in
   where)     (($# == 1)) || exit 2
              if resolve; then printf '%s\n' "$REPO"; else err "$WHY"; exit 1; fi ;;
   list)      (($# == 1)) || exit 2; list ;;
+  times)     (($# == 1)) || exit 2; backup_times ;;
+  mount)     (($# == 2)) || { echo "usage: kawa-backup mount DIR" >&2; exit 2; }; mount_ro "$2" ;;
+  everything) (($# == 2)) || { echo "usage: kawa-backup everything ID" >&2; exit 2; }; everything "$2" ;;
+  drive)     (($# == 1)) || exit 2; drive ;;
+  pick)      (($# == 1)) || exit 2; pick_target ;;
   check)     (($# == 1)) || exit 2; check ;;
   prune)     (($# == 1)) || exit 2; prune ;;
   init)      (($# == 1)) || exit 2; init ;;

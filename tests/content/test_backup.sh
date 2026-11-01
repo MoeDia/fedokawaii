@@ -48,8 +48,9 @@ home_files() {
 # ── without restic: the words ────────────────────────────────────────────────
 case_ "--help: what it is and every command; misuse: exit 2, nothing run"
 setup; out=$(kawa-backup --help); rc 0 kawa-backup --help
-for w in "kawa-backup list" "restore PATH" "check" "prune" "init" "status" "where" "RESTIC_PASSWORD" "BACKUP_TARGET"; do has "$out" "$w"; done
+for w in "kawa-backup list" "restore PATH" "times" "mount DIR" "everything ID" "drive" "pick" "check" "prune" "init" "status" "where" "RESTIC_PASSWORD" "BACKUP_TARGET"; do has "$out" "$w"; done
 rc 2 kawa-backup frobnicate; rc 2 kawa-backup list extra; rc 2 kawa-backup restore; rc 2 kawa-backup status now
+rc 2 kawa-backup times now; rc 2 kawa-backup mount; rc 2 kawa-backup everything; rc 2 kawa-backup drive now
 not_called 'notify-send'
 case_ "status (the menus' word): never · today · yesterday · N days ago; no drive named: not set up"
 eq "$(kawa-backup status)" never
@@ -85,6 +86,13 @@ setup; toolkit BACKUP_TARGET="$W/media/KINGSTON"; eq "$(kawa-backup where)" "$W/
 toolkit BACKUP_TARGET="$W/media/gone"; out=$(kawa-backup where 2>&1); eq "$?" 1; has "$out" "$W/media/gone is not there — is the drive plugged in?"
 toolkit BACKUP_TARGET="sftp:you@nas:/backups"; eq "$(kawa-backup where)" "sftp:you@nas:/backups"
 not_called '^kawa-drives'
+case_ "drive (the menu's pane): the drive's name and where it is — open with its free space and size, plugged in, not plugged in, an address, none — never opening it"
+setup; IFS=$'\t' read -r n st fr sz < <(kawa-backup drive); eq "$n $st" "KINGSTON open"; [[ $fr =~ ^[0-9]+$ && $sz =~ ^[0-9]+$ && $fr -le $sz ]] && _ok || _no "free $fr of $sz"
+setup closed; eq "$(kawa-backup drive)" $'KINGSTON\tplugged\t\t'; not_called '^kawa-drives open'
+setup unplugged; eq "$(kawa-backup drive)" $'KINGSTON\tout\t\t'
+toolkit BACKUP_TARGET="sftp:you@nas:/backups"; eq "$(kawa-backup drive)" $'sftp:you@nas:/backups\taddress\t\t'
+toolkit BACKUP_TARGET="$W/media/gone"; eq "$(kawa-backup drive)" "$W/media/gone"$'\tout\t\t'
+toolkit BACKUP_TARGET=""; eq "$(kawa-backup drive)" $'\tnone\t\t'
 case_ "where: no drive named: said, with where to name it"
 toolkit BACKUP_TARGET=""; out=$(kawa-backup where 2>&1); eq "$?" 1; has "$out" "no BACKUP_TARGET yet"; has "$out" "settings"
 
@@ -228,6 +236,27 @@ has "$(kawa-backup list)" "2 snapshots"
 case_ "Downloads wanted as well: its line deleted from the exclude list, and the next backup has it"
 sed -i '\|/Downloads$|d' "$HOME/.config/fedokawaii/backup-exclude"
 rc 0 kawa-backup; has "$("${R[@]}" ls latest 2>/dev/null)" "$HOME/Downloads/keep me.pdf"
+case_ "times (Super+U → restore's list): every backup, newest first — its id, its time as restic has it, the home it holds"
+out=$(kawa-backup times 2>&1); eq "$?" 0 "$out"; eq "$(grep -c . <<<"$out")" 3 "three backups: $out"
+IFS=$'\t' read -r tid ttime tpath <<<"$(sed -n 1p <<<"$out")"
+[[ $tid =~ ^[0-9a-f]{8}$ && $ttime =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}T ]] && _ok || _no "the first line: $out"; eq "$tpath" "$HOME"
+[[ $(cut -f2 <<<"$out") == "$(cut -f2 <<<"$out" | sort -r)" ]] && _ok || _no "not newest first: $out"
+eq "$(sed -n 3p <<<"$out" | cut -f1)" "$id" "the first backup, last"
+case_ "mount DIR: the backups opened read-only (FUSE) — the home inside each under its id — until DIR is unmounted"
+if [[ -c /dev/fuse ]] && command -v fusermount3 >/dev/null; then
+  m=$W/mnt; mkdir -p "$m"; kawa-backup mount "$m" 2>"$W/mount.err" & mp=$!
+  for _ in $(seq 1 300); do [[ -d $m/ids/$id ]] && break; sleep 0.1; done
+  eq "$(cat "$m/ids/$id$HOME/Documents/report.ods" 2>/dev/null)" three "a file of the first backup, read inside it"
+  { echo x >"$m/ids/$id$HOME/Documents/new.txt"; } 2>/dev/null && _no "written into a backup" || _ok
+  fusermount3 -u "$m"; wait "$mp"; eq "$?" 0 "restic ends with the unmount: $(cat "$W/mount.err")"
+  mountpoint -q "$m" && _no "still mounted" || _ok
+else skip "no FUSE here: mount is not tried"; fi
+rc 2 kawa-backup mount "$W/no-such-folder"
+case_ "everything ID (after a new disk): what is missing comes back where it was; what is there stays as it is"
+rm -r "$HOME/Documents/sub dir"; echo mine >"$HOME/Documents/report.ods"
+out=$(kawa-backup everything "$id" 2>&1); eq "$?" 0 "$out"
+eq "$(cat "$HOME/Documents/sub dir/deeper/a b.txt")" two "the missing folder back"; eq "$(cat "$HOME/Documents/report.ods")" mine "his own kept"
+rc 2 kawa-backup everything "not-an-id"; out=$(kawa-backup everything deadbeef 2>&1); eq "$?" 1; has "$out" "no backup deadbeef"
 case_ "prune: the keep rule (7 daily, 4 weekly, 12 monthly); check: a tenth of the data read — both end well"
 out=$(kawa-backup prune 2>&1); eq "$?" 0 "$out"; has "$out" "keep"
 out=$(kawa-backup check 2>&1); eq "$?" 0 "$out"; has "$out" "no errors were found"; has "$out" "a tenth of the data"

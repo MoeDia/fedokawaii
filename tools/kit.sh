@@ -13,6 +13,8 @@
 #                of the installed ones: the theme folders, foot's colours, GTK, nvim's colours
 #     --tui      "COLSxROWS:FILE" — the tui scene: a floating terminal that size running the
 #                script FILE (a mock screen, a screen under work), shot when it has drawn
+#                (--tui-wait S: S seconds in, default 3 — a screen several keys deep, typed by
+#                tools/kit-keys.py, may need more)
 #     --play     FILE — the play scene: FILE run inside, in the words of tools/kit-play.sh (the
 #                pointer, the keys, shots by name): a menu opened by a click, hovered, used
 #     --time     the longest the whole run may take, seconds (default 120: a long play needs more)
@@ -30,7 +32,7 @@
 set -u
 here=$(cd "$(dirname "$0")" && pwd)
 repo=$(cd "$here/.." && pwd)
-theme=dark out="" fontdir="" fonts=() edits=() scenes=() themes="" tui="" play="" limit=120 bin="" dwl_bin=$HOME/.local/src/dwl/dwl repo_art=0
+theme=dark out="" fontdir="" fonts=() edits=() scenes=() themes="" tui="" tui_wait=3 play="" limit=120 bin="" dwl_bin=$HOME/.local/src/dwl/dwl repo_art=0
 while (($#)); do
   case $1 in
     --theme) theme=$2; shift 2 ;;
@@ -40,6 +42,7 @@ while (($#)); do
     --themes) themes=$(realpath "$2"); shift 2 ;;
     --out) out=$2; shift 2 ;;
     --tui) tui=$2; shift 2 ;;
+    --tui-wait) tui_wait=$2; shift 2 ;;
     --play) play=$(realpath "$2"); shift 2 ;;
     --time) limit=$2; shift 2 ;;
     --bin) bin=$(realpath "$2"); shift 2 ;;
@@ -168,7 +171,7 @@ for s in ${scenes[*]}; do
       kawa-quick >/dev/null 2>&1 & sleep 2; grim "$out/quick.png"; wtype -k Escape; sleep 0.5 ;;
     tui)      # --tui's script in a floating terminal of its size
       footclient -a float -T tui -W "${tui%%:*}" -- bash "${tui#*:}" >/dev/null 2>&1 &
-      sleep 3; grim "$out/tui.png"; wtype -k Escape; sleep 0.5 ;;
+      sleep "$tui_wait"; grim "$out/tui.png"; wtype -k Escape; sleep 0.5 ;;
     play)     # --play's FILE, in kit-play.sh's words
       export KIT_OUT="$out"; : >"$out/play.log"
       ( . "$here/kit-play.sh"; . "$play" ) || fail=1 ;;

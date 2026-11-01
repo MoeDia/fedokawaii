@@ -126,7 +126,7 @@ done
 has "$(row update)" "in 80 days"; has "$(row snapshots)" "14"; has "$(row verify)" "2 to fix"; has "$(row remind)" "every 90 days"
 lacks "$(row status)" "Fedora" "status: no value (the pane beside it is the status: the release is its first line)"; has "$(row upgrade)" "Fedora 45"
 case_ "rows: what is not built yet in the faint ink, its value 'soon' — never a dead entry"
-for a in restore drive chess typing; do
+for a in chess typing; do
   l=$(cut -f2 <<<"$(grep "^$a"$'\t' <<<"$out")")
   has "$l" $'\e[38;5;22m' "$a: faint"; [[ $(plain "$l") == *" soon" ]] && _ok || _no "$a: no soon: $(plain "$l")"
   has "$(plain "$(fedokawaii --explain "$a")")" "not yet" "$a: the pane says so"
@@ -221,9 +221,9 @@ has "$(cat "$(command -v fedokawaii)")" "enter:transform:case {1} in \$PANE_ONLY
 case_ "Super+U's popup (--popup): the menu closes for a job too (fzf becomes the run, which hands it on); the guide, the key sheet and the settings start without fzf giving up the screen, then the popup is put away (dwl fades it off: never a blank terminal); a plain menu, neither"
 fresh; stub fzf 'cat >/dev/null; exit 130'
 on_tty "" fedokawaii --popup >/dev/null
-called "enter:transform:case \\{1\\} in held\\|restore\\|drive\\|chess\\|typing\\) ;; guide\\|keys\\|change\\|todo\\) echo 'execute-silent\\([^)]* --run \\{1\\}\\)\\+execute-silent\\(kawa-warm system\\)' ;; remind\\) "
-called 'remind\) echo .execute-silent\([^)]* --run \{1\}\)\+reload-sync\([^)]* --items\). ;; change\|keys\|update\|pull\|upgrade\|verify\|repair\|theme\|drift\|snapshots\|file\|backup\|settings\|log\) echo .become\('
-reset_calls; on_tty "" fedokawaii >/dev/null; called 'enter:transform:case \{1\} in held\|restore\|drive\|chess\|typing\) ;; remind\) echo .execute-silent\([^)]*\)\+reload-sync\([^)]*\). ;; change\|keys\) echo .become\('
+called "enter:transform:case \\{1\\} in held\\|chess\\|typing\\) ;; guide\\|keys\\|change\\|todo\\) echo 'execute-silent\\([^)]* --run \\{1\\}\\)\\+execute-silent\\(kawa-warm system\\)' ;; remind\\) "
+called 'remind\) echo .execute-silent\([^)]* --run \{1\}\)\+reload-sync\([^)]* --items\). ;; change\|keys\|update\|pull\|upgrade\|verify\|repair\|theme\|drift\|snapshots\|file\|backup\|restore\|drive\|settings\|log\) echo .become\('
+reset_calls; on_tty "" fedokawaii >/dev/null; called 'enter:transform:case \{1\} in held\|chess\|typing\) ;; remind\) echo .execute-silent\([^)]*\)\+reload-sync\([^)]*\). ;; change\|keys\) echo .become\('
 called 'esc,ctrl-c,ctrl-g,ctrl-q:abort' "(outside the warm window: Esc only ends it)"
 case_ "…in the warm window (KAWA_WARM=system): Esc, q and a job's become put it away first — while the menu is still drawn (dwl's ghost of it fades, never a page fzf wiped)"
 reset_calls; KAWA_WARM=system on_tty "" fedokawaii --popup >/dev/null
@@ -440,11 +440,11 @@ case_ "…today's and an older one: the heading says at, or on DAY at"
 fresh; homesnaps; echo "@/Documents/notes.md" >"$TMP/pick"; TZ=UTC on_tty $'7\n' fedokawaii --run file >/dev/null; called "^env as it was at 00:00 | "
 fresh; homesnaps; echo "@/Documents/notes.md" >"$TMP/pick"; TZ=UTC on_tty $'3\n' fedokawaii --run file >/dev/null
 called "^env as it was on $(date -u -d '-5 days' '+%-d %b') at 09:30 | "
-case_ "…a folder and two of one name: each copied whole, the second beside the first (never over it)"
+case_ "…a folder and two of one name: each copied whole, the second beside the first as the desktop names a second file — \"notes (1).md\" (never over it)"
 fresh; homesnaps; printf '%s\n' "@/Documents/old project" "@/Documents/notes.md" "@/Documents/notes.md" >"$TMP/pick"
 TZ=UTC on_tty $'7\n' fedokawaii --run file >/dev/null
 d=$(find "$HOME/Restored" -mindepth 1 -maxdepth 1 -type d); eq "$(cat "$d/old project/plan.txt")" "plan 7"
-eq "$(cat "$d/notes.md")" "notes as at 7"; eq "$(cat "$d/notes.md (2)")" "notes as at 7"; eq "$(find "$HOME/Restored" -mindepth 1 -maxdepth 1 | grep -c .)" 1 "one folder for one taking"
+eq "$(cat "$d/notes.md")" "notes as at 7"; eq "$(cat "$d/notes (1).md")" "notes as at 7"; eq "$(find "$HOME/Restored" -mindepth 1 -maxdepth 1 | grep -c .)" 1 "one folder for one taking"
 case_ "…the dialog cancelled, enter for none, a number not listed, a path outside the snapshot: nothing taken, nothing made"
 fresh; homesnaps; out=$(TZ=UTC on_tty $'6\n' fedokawaii --run file); has "$out" "nothing taken"; [[ -e $HOME/Restored ]] && _no "made: $(ls -R "$HOME/Restored")" || _ok
 fresh; homesnaps; out=$(TZ=UTC on_tty $'8\n' fedokawaii --run file); has "$out" "no snapshot 8 in the list — nothing taken"; not_called '^kawa-pick'
@@ -459,6 +459,81 @@ case_ "…its pane says what it does (in Super+U's popup it is a job: a window o
 out=$(plain "$(fedokawaii --explain file)"); has "$out" "copied into"; lacks "$out" "not yet"
 # shellcheck disable=SC2088  # (~ is the words on the screen)
 has "$out" "~/Restored, never over what is there."
+# ── restore: a backup on the drive, as you ─────────────────────────────────────
+# backups — kawa-backup a stand-in: times lists three backups of your home, newest first (a1 today
+# 09:00 UTC, b2 yesterday 21:00, c3 five days ago 08:15); mount DIR fills DIR/ids/ID/<home>/ with
+# your notes as each held them and serves until fusermount3 (a stand-in) marks DIR unmounted;
+# drive answers $TMP/drive; kawa-pick as above
+backups() {
+  local t1 t2 t3
+  t1="$(date -u +%F)T09:00:00.5+00:00" t2="$(date -u -d yesterday +%F)T21:00:00.5+00:00" t3="$(date -u -d '-5 days' +%F)T08:15:00.5+00:00"
+  printf 'a1a1a1a1\t%s\t%s\nb2b2b2b2\t%s\t%s\nc3c3c3c3\t%s\t%s\n' "$t1" "$HOME" "$t2" "$HOME" "$t3" "$HOME" >"$TMP/times"
+  printf 'KINGSTON\topen\t123000000000\t500000000000\n' >"$TMP/drive"; : >"$TMP/pick"; rm -f "$TMP/mount-fails"
+  stub kawa-backup 'case $1 in
+  times) cat "'"$TMP"'/times" ;;
+  mount) [ -e "'"$TMP"'/mount-fails" ] && { echo "restic: wrong password or no key found" >&2; exit 1; }
+         for id in a1a1a1a1 b2b2b2b2 c3c3c3c3; do mkdir -p "$2/ids/$id'"$HOME"'/Documents"; echo "notes in $id" >"$2/ids/$id'"$HOME"'/Documents/notes.md"; done
+         while [ ! -e "$2.gone" ]; do sleep 0.05; done; rm -rf "$2/ids" "$2.gone" ;;
+  drive) cat "'"$TMP"'/drive" ;;
+  pick)  exit 4 ;;
+esac'
+  stub fusermount3 'for a; do d=$a; done; [ -d "$d/ids" ] && : >"$d.gone"'
+  stub kawa-pick 'printf "%s\n" "env $KAWA_PICK_TITLE | $KAWA_PICK_ROOT" >>"$CALLS"
+[ "$1" = --inside ] && [ "$2" = back ] || exit 9
+sed "s|^@|$3|" "$TMP/pick" >"$4/answer"'
+}
+mounts_left() { ls -d "$XDG_RUNTIME_DIR"/fedokawaii-back* 2>/dev/null; }
+case_ "restore: the backups on the drive, newest first — each its number, time and day; enter for none: nothing opened, nothing made"
+fresh; backups; out=$(plain "$(TZ=UTC on_tty $'\n' fedokawaii --run restore)")
+has "$out" "restore"; has "$out" "1    09:00"; has "$out" "today"; has "$out" "2    21:00"; has "$out" "yesterday"
+has "$out" "3    08:15"; has "$out" "$(date -u -d '-5 days' '+%-d %b')"
+[[ $(grep -n '1    09:00' <<<"$out" | cut -d: -f1) -lt $(grep -n '3    08:15' <<<"$out" | cut -d: -f1) ]] && _ok || _no "not newest first"
+aligned "$out" "1    09:00"; aligned "$out" "3    08:15"; eq "$(grep -c -E '[123]    [0-9]{2}:[0-9]{2}' <<<"$out")" 3 "a row a line"
+not_called '^kawa-backup mount'; not_called '^kawa-pick'; [[ -e $HOME/Restored ]] && _no "a folder made for nothing" || _ok
+case_ "…a number, then enter: that backup opened read-only, the dialog in its copy of your home under the moment; the file into ~/Restored, the one now untouched; the backup closed, nothing left"
+fresh; backups; mkdir -p "$HOME/Documents"; echo "notes now" >"$HOME/Documents/notes.md"; echo "@/Documents/notes.md" >"$TMP/pick"
+out=$(plain "$(TZ=UTC on_tty $'2\n\n' fedokawaii --run restore)")
+called "^kawa-backup mount $XDG_RUNTIME_DIR/fedokawaii-backup\.[A-Za-z0-9]+$"; called "^env as it was yesterday at 21:00 \| $XDG_RUNTIME_DIR/fedokawaii-backup\.[A-Za-z0-9]+/ids/b2b2b2b2$HOME$"
+r=$(find "$HOME/Restored" -name notes.md); eq "$(cat "$r")" "notes in b2b2b2b2"; eq "$(cat "$HOME/Documents/notes.md")" "notes now" "the one there now"
+has "$out" "as it was yesterday at 21:00, into ~/Restored/"; has "$out" "Documents/notes.md"; has "$out" "opening the backup"
+called '^fusermount3 -u'; eq "$(mounts_left)" "" "the mount and the dialog's folder gone"
+case_ "…a, then yes: all of it back in place (kawa-backup everything ID); anything but yes changes nothing"
+fresh; backups; out=$(plain "$(TZ=UTC on_tty $'3\nayes\n' fedokawaii --run restore)"); called '^kawa-backup everything c3c3c3c3$'
+has "$out" "deleted ones too"; not_called '^kawa-backup mount'
+fresh; backups; out=$(TZ=UTC on_tty $'3\nano\n' fedokawaii --run restore); has "$out" "nothing changed"; not_called 'everything'
+case_ "…a number not listed, a key that is neither: nothing taken, nothing opened"
+fresh; backups; out=$(TZ=UTC on_tty $'4\n' fedokawaii --run restore); has "$out" "no backup 4 in the list — nothing taken"; not_called '^kawa-backup mount'
+fresh; backups; out=$(TZ=UTC on_tty $'1\nx' fedokawaii --run restore); has "$out" "nothing taken"; not_called '^kawa-backup mount'
+case_ "…the dialog cancelled: nothing taken, the backup closed; a backup that cannot be opened: restic's reason, nothing left"
+fresh; backups; out=$(TZ=UTC on_tty $'1\n\n' fedokawaii --run restore); has "$out" "nothing taken"; called '^fusermount3 -u'; eq "$(mounts_left)" ""
+fresh; backups; : >"$TMP/mount-fails"; out=$(TZ=UTC on_tty $'1\n\n' fedokawaii --run restore)
+has "$out" "the backup could not be opened: restic: wrong password or no key found"; not_called '^kawa-pick'; eq "$(mounts_left)" ""
+case_ "…no backup there yet, or kawa-backup cannot reach it (not plugged in): said, nothing asked"
+fresh; backups; : >"$TMP/times"; out=$(tty_free fedokawaii --run restore </dev/null 2>&1); has "$out" "no backup on the drive yet — back up now makes the first"
+fresh; backups; stub kawa-backup 'echo "  KINGSTON is not plugged in" >&2; exit 1'; out=$(tty_free fedokawaii --run restore </dev/null 2>&1)
+has "$out" "KINGSTON is not plugged in"; not_called '^kawa-pick'
+case_ "the drive: its pane names it, where it is (free space while it is open) and the last backup; not plugged in, or none chosen, in vermilion"
+fresh; backups; out=$(fedokawaii --explain drive); has "$(plain "$out")" "drive     KINGSTON"; has "$(plain "$out")" "plugged in · 123 GB free of 500 GB"
+has "$(plain "$out")" "backup    none yet"; lacks "$(plain "$out")" "not yet"; has "$(plain "$out")" "enter: another"
+mkdir -p "$HOME/.local/state/fedokawaii"; printf '%s\t1 MiB\tKINGSTON\n' "$(date +%s)" >"$HOME/.local/state/fedokawaii/last-backup"
+has "$(plain "$(fedokawaii --explain drive)")" "backup    $(date '+%-d %b %Y') · today"
+printf 'KINGSTON\tout\t\t\n' >"$TMP/drive"; out=$(fedokawaii --explain drive); has "$out" $'\e[38;5;20mnot plugged in'
+printf '\tnone\t\t\n' >"$TMP/drive"; out=$(fedokawaii --explain drive); has "$out" $'\e[38;5;20mnone chosen yet'; lacks "$(plain "$out")" "backup    "
+case_ "…a name or a path longer than the pane: in pieces at its spaces, / and : — never cut, never wider than the pane"
+printf 'SanDisk Extreme Portable SSD V2 Backups\tplugged\t\t\n' >"$TMP/drive"; out=$(plain "$(fedokawaii --explain drive)")
+has "$out" "drive     SanDisk Extreme Portable SSD V2"$'\n'"             Backups"$'\n'"             plugged in"; (( $(widest "$out") <= 50 )) && _ok || _no "wider than the pane: $out"
+printf 'sftp:backup-user@nas.home.arpa:/srv/restic/fedokawaii\taddress\t\t\n' >"$TMP/drive"; out=$(plain "$(fedokawaii --explain drive)")
+has "$out" "drive     sftp:backup-user@nas.home.arpa:/"$'\n'"             srv/restic/fedokawaii"$'\n'"             a restic address"; (( $(widest "$out") <= 50 )) && _ok || _no "wider than the pane: $out"
+case_ "the drive: its row's value the drive's name — a path or an address by its last part, only where it fits (none chosen: none, in vermilion); enter: kawa-backup's picker"
+fresh; backups; setting BACKUP_TARGET KINGSTON; has "$(plain "$(row drive)")" "KINGSTON"
+setting BACKUP_TARGET /run/media/me/KINGSTON/fedokawaii-backup; has "$(plain "$(row drive)")" "the drive" ; [[ $(plain "$(row drive)") == *" KINGSTON" ]] && _ok || _no "$(plain "$(row drive)")"
+setting BACKUP_TARGET "sftp:you@nas:/backups"; [[ $(plain "$(row drive)") == *" backups" ]] && _ok || _no "$(plain "$(row drive)")"
+setting BACKUP_TARGET "/run/media/me/a drive label far too long to fit"; l=$(plain "$(row drive)"); lacks "$l" "fit" "no value cut short"; (( $(widest "$(cut -f2 <<<"$l")") <= 38 )) && _ok || _no "too wide: $l"
+setting BACKUP_TARGET ""; has "$(grep -m1 "^drive"$'\t' <<<"$(allrows)")" $'\e[38;5;20mnone'
+reset_calls; out=$(tty_free fedokawaii --run drive </dev/null 2>&1); called '^kawa-backup pick$'
+case_ "restore: its pane says what it does — its own icon (not go back's)"
+out=$(plain "$(fedokawaii --explain restore)"); has "$out" "a folder or several into ~/Restored"; has "$out" "after a new disk"; lacks "$out" "not yet"
+(. "$REPO/configs/home/.config/fedokawaii/icons.sh"; l=$(row restore); [[ $l == *"$ICON_UNPACK"* && $l != *"$ICON_UNDO"* ]]) && _ok || _no "restore's icon: $(row restore)"
 case_ "snapshots without snapper, or on a root that is not Btrfs: said plainly"
 reset_calls
 out=$(without snapper -- "$SETSID" -w fedokawaii --run snapshots </dev/null 2>&1); has "$out" "snapper is not installed"; not_called '^sudo'
@@ -533,18 +608,18 @@ tty_free fedokawaii --run settings </dev/null >/dev/null 2>&1; has "$(cat "$R/to
 unset VISUAL
 
 # ── the plain menu (no fzf, a text console) ──────────────────────────────────
-case_ "plain menu: the status, fifteen numbered entries; q, Q, Enter and end of input all leave"
+case_ "plain menu: the status, seventeen numbered entries; q, Q, Enter and end of input all leave"
 fresh
 for k in q Q "" ; do out=$(printf '%s\n' "$k" | tty_free fedokawaii 2>&1); eq "$?" 0 "[$k]"; done
 out=$(tty_free fedokawaii </dev/null 2>&1); eq "$?" 0 "end of input"
 has "$out" "FEDOKAWAII"; has "$out" "release   Fedora 44"; has "$out" " 1  status"; has "$out" " 8  log"; has "$out" " 9  update"; has "$out" "10  fedokawaii"
-has "$out" "13  a file, back"; has "$out" "14  back up now"; has "$out" "15  lessons"; lacks "$out" "soon" "nothing that is not built yet"; has "$out" "backup    no drive"
+has "$out" "13  a file, back"; has "$out" "14  back up now"; has "$out" "15  restore"; has "$out" "16  the drive"; has "$out" "17  lessons"; lacks "$out" "soon" "nothing that is not built yet"; has "$out" "backup    no drive"
 case_ "plain menu: a number runs its entry, then the menu again"
 out=$(printf '9\nq\n' | tty_free fedokawaii 2>&1)
 eq "$(front_calls)" "front update"; eq "$(grep -c FEDOKAWAII <<<"$out")" 2
 case_ "plain menu: a wrong answer says what is wanted, and runs nothing"
-fresh; out=$(printf '0\n16\nx\n1x\n-1\n\n' | tty_free fedokawaii 2>&1)
-eq "$(grep -c '1–15, or q' <<<"$out")" 5 "each of the five wrong answers"; eq "$(front_calls)" ""
+fresh; out=$(printf '0\n18\nx\n1x\n-1\n\n' | tty_free fedokawaii 2>&1)
+eq "$(grep -c '1–17, or q' <<<"$out")" 5 "each of the five wrong answers"; eq "$(front_calls)" ""
 case_ "plain menu on the text console: no characters the console font may lack"
 fresh; out=$(printf 'q\n' | TERM=linux tty_free fedokawaii 2>&1)
 lacks "$out" "·"; lacks "$out" "—"; lacks "$out" "…"; lacks "$out" "→"; has "$out" "status"
@@ -553,10 +628,10 @@ case_ "Fedora 45's text consoles are kmscon's (TERM=kmscon, TERM_SESSION_TYPE=km
 out=$(TERM=kmscon fedokawaii status); lacks "$out" "·"
 out=$(TERM=xterm-256color TERM_SESSION_TYPE=fb fedokawaii status); lacks "$out" "·" "kmscon under another TERM"
 fresh; stub fzf 'cat >/dev/null; exit 130'
-out=$(TERM=kmscon TERM_SESSION_TYPE=kms on_tty "q"$'\n' fedokawaii); has "$out" "15  lessons"; lacks "$out" "·"; not_called '^fzf'
+out=$(TERM=kmscon TERM_SESSION_TYPE=kms on_tty "q"$'\n' fedokawaii); has "$out" "17  lessons"; lacks "$out" "·"; not_called '^fzf'
 case_ "plain menu when fzf cannot run (old fzf: exit 2) on a terminal"
 fresh; stub fzf 'exit 2'
-out=$(on_tty "q"$'\n' fedokawaii); has "$out" "FEDOKAWAII"; has "$out" "15  lessons"
+out=$(on_tty "q"$'\n' fedokawaii); has "$out" "FEDOKAWAII"; has "$out" "17  lessons"
 case_ "fzf menu: Esc closes it (exit 0)"
 stub fzf 'cat >/dev/null; exit 130'; on_tty "" fedokawaii >/dev/null; eq "$?" 0; called '^fzf --read0 --ansi'
 case_ "Super+U: the menu in a warm window of its own (a popup: kawa-warm's toggle)"
