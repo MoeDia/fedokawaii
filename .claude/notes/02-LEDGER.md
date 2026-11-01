@@ -1774,8 +1774,9 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   (one at a time, as in the menus): now only `.default` is filled; an app's suggested action not under
   the cursor is framed in the lacquer, its words bright (tools/build-themes.py square_rules, GTK 3 and
   4). Rendered in the kit (dark): a focused Cancel filled, a suggested Save framed — one filled button
-  (/dev/shm/r27/gtk4-dialog.png). test_generated 261/0, test_contrast 18/0, test_theme 263/0. Seen and
-  left for the audit's pass: a dialog's plain button keeps a dimmer label than a window's (to find).
+  (/dev/shm/r27/gtk4-dialog.png). test_generated 261/0, test_contrast 18/0, test_theme 263/0. The
+  dimmer label seen once was the unfocused dialog (GTK's backdrop state; adw-gtk3 dims it); focused,
+  both buttons' words measure #f5ecc2 (strong) — adw-gtk3's hard-coded white never reaches the screen.
 
 ## >>> NEXT PASS STARTS HERE (1 Nov 04:10): the inbox first. Then, the update system (the master's order):
 ## (1) T48 FIRST (1): proven in the VM (restore-cut.sh, six cut points, exit 0) — the master's review
