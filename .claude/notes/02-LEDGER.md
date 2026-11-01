@@ -3198,6 +3198,15 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   yazi show_hidden) CHAINED after 42892e1's: frozen /dev/shm/r27w-suite-0737d1b → /dev/shm/r27p/suite-0737d1b.log (starts
   when suite-42892e1.log gets its rc line). Tidied: the worktrees /dev/shm/r27w-suite-c5e119f (applied 2 Nov 00:08) and
   ~/repos/fk-t21 (t21 merged into main, on origin/t21).
+- r27-21-cold (2 Nov 00:48–00:54, OPEN — the next pass's first T21 item): the master's ask, a cold-start scene for
+  tools/regress/notes-page.sh, drafted (/dev/shm/r27/t21/cold/notes-page-cold-draft.sh: a 30-day diary with today written,
+  Super+N with no warm window, then 3 ruled rows ahead of the pen) — NOT committed: in the kit the cold Super+N showed
+  NOTHING, at 3, 6 and 10 s (/dev/shm/r27/t21/cold/out/cold{6,10}.png: no pixel off the ground under the bar), while the
+  chain ran: dwl's warm() → `kawa-warm --open notes` → footclient -a warm-notes -W 64x40 → `kawa-warm --inside notes show`
+  → `kawa-notes --inside --shown` → nvim (pgrep in play.log). dwl maps a key-started warm window shown (warmpend, newtags
+  0: src/dwl/dwl.patch ~561). A kit artefact or a REAL bug (Super+N opening nothing when the warm notes window is gone —
+  after :q, a crash)? Find out first: the kit's dwl frame log (DWL_FRAMELOG: W lines = new windows), the window's tags;
+  the same on main's build (42892e1) and on the installed one. If real: fix it before the re-review.
 ## >>> NEXT PASS STARTS HERE (2 Nov, written ~00:50 by the 00:10 pass — the lines above say what it did): the inbox first. Then:
 ## (0) PRESENCE: before anything he could see or hear (a reboot, a session restart, a bar restart, a live play, a notice):
 ##     `wpctl status` (a mic capture or playback [active]), `playerctl -a status`, one half-scale grim — not only the
@@ -3208,8 +3217,8 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
 ##     (frozen tree /dev/shm/r27w-suite-42892e1; its rc line at the end) — it does NOT cover the later commits. A suite on
 ##     the newest HEAD was chained to start after it: /dev/shm/r27p/suite-<HEAD>.log from /dev/shm/r27w-suite-<HEAD> (see
 ##     the last ledger line for the commit). rc 0 there + (2) PASS → push main, apply from that frozen tree when he is away.
-## (2) THE MASTER, T21 RE-REVIEW: verdict 1 FAIL (r27-21-master-1); both must-fixes BUILT (r27-21-master-fix). Owed before the
-##     re-review: a cold-start scene in tools/regress/notes-page.sh (Super+N with no warm window on a written day — the pen
+## (2) THE MASTER, T21 RE-REVIEW: verdict 1 FAIL (r27-21-master-1); both must-fixes BUILT (r27-21-master-fix). FIRST: the cold
+##     Super+N showed nothing in the kit (r27-21-cold) — artefact or bug, settle it. Owed before the re-review: a cold-start scene in tools/regress/notes-page.sh (Super+N with no warm window on a written day — the pen
 ##     above the floats; the kit can start it as kawa-warm does: `kawa-notes --inside notes show`), should-fix 4 (a short
 ##     file opens on its last day line) and 5 (the to-do opens typing on its last item). Then `tools/master-brief.sh T21 …`
 ##     with /dev/shm/r27/t21/fix/*-win.png and the master's Re-review 2 (Fable, max).
