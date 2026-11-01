@@ -29,7 +29,7 @@ up_labels() { sed 's/ — .*//' | sort -u; }   # (a check's label: its detail af
 # ── start ────────────────────────────────────────────────────────────────────────────────────
 u_start() {
   up_phase start
-  local p d un why
+  local p d un why rc=0
   for p in dnf5 dnf packagekitd dnf5daemon-server; do
     if pgrep -x "$p" >/dev/null 2>&1; then die "another package manager is running ($p) — update again once it has finished"; fi
   done
@@ -49,14 +49,18 @@ u_start() {
   log "the checks before it (what is red now does not count against the update)"
   bash "$REPO_DIR/verify.sh" >/dev/null 2>&1 || true
   cp -- "$STATE_DIR/last-verify-fails" "$UPD/baseline" 2>/dev/null || : >"$UPD/baseline"
-  why=$(up_more)
+  why=$(up_more) || rc=$?
+  ((rc == 2)) && die "the desktop's start check could not run ($why) — nothing changed; press update again"
   [[ -z $why ]] || { log "red before the update: ${why//$'\n'/ · }"; printf '%s\n' "$why" >>"$UPD/baseline"; }
 }
 up_more() {   # the checks verify does not make, a line for each that is red: the desktop's start
               # (desktop_starts), and our builds' libraries and the boot pieces (lib/cand-check.sh:
               # every boot entry with root= and rootflags=, its image readable, btrfs in it or built in)
-  local why out
-  why=$(desktop_starts) || echo "the desktop does not start — $why"
+  local why out rc=0
+  why=$(desktop_starts) || rc=$?
+  # (2: the check itself could not run — no verdict on the update: the caller stops the run)
+  ((rc == 2)) && { printf '%s\n' "${why:-no reason given}"; return 2; }
+  ((rc == 0)) || echo "the desktop does not start — $why"
   # (into a variable first: a red check's exit inside a pipe would set off setup.sh's ERR trap)
   out=$(FK_USER=$TARGET_USER bash "$REPO_DIR/lib/cand-check.sh" 2>/dev/null) || true
   printf '%s\n' "$out" | sed -n 's/^red: //p'
@@ -265,10 +269,13 @@ up_complete() {   # every package of the stored set at its new version, nothing 
 # ── check, end ───────────────────────────────────────────────────────────────────────────────
 u_check() {   # → 0 nothing newly red · 1 (UPD/why lists what)
   up_phase check
-  local new after more
+  local new after more rc=0
   bash "$REPO_DIR/verify.sh" || true
   after=$(cat "$STATE_DIR/last-verify-fails" 2>/dev/null) || after=""
-  more=$(up_more)
+  more=$(up_more) || rc=$?
+  # (a check that did not happen undoes nothing: stopped here, the next press runs the checks again)
+  # (its phase kept: the next press resumes here, against the baseline from before the update)
+  ((rc == 2)) && { UP_STAY=1; die "the desktop's start check could not run ($more) — nothing held, nothing undone; press update again"; }
   [[ -z $more ]] || { log "red after the update: ${more//$'\n'/ · }"; after+=${after:+$'\n'}$more; }
   new=$(comm -13 <(up_labels <"$UPD/baseline") <(up_labels <<<"$after")) || new=""
   [[ -z $new ]] && return 0
@@ -299,7 +306,7 @@ u_report() {   # u_report — the outcome: UPD/report (the pane), the log beside
     *)        why=$(grep '✘' "$LOG_FILE" 2>/dev/null | tail -n1 | sed 's/\x1b\[[0-9;]*m//g; s/^.*✘ *//') || why=""
               line="stopped ($(up_was | sed 's/^end$/start/')): ${why:-no reason could be written (a full disk?)}" ;;
   esac
-  up_phase end || true
+  ((UP_STAY)) || up_phase end || true
   # (the stored transaction and the downloads kept for the halves: done with, whatever the outcome)
   rm -rf -- "$UPD/tx" "$UPD/try"; dnf -q clean packages >/dev/null 2>&1 || true
   # (no command that can fail inside these pipes: setup.sh's ERR trap would print from them)
@@ -342,8 +349,10 @@ up_tell() { as_user kawa-foryou add update-cut "$1" "$2" 2>/dev/null || log "$1 
 # GRUB (08_fallback_counting: three starts without that proof, then the one before), and while it
 # is on trial a start that fails is made a restart — no rescue shell, a panic restarts, systemd's
 # hardware watchdog on — so a hang counts too. UPD/probation: SNAPSHOT KERNEL|- DAY, a line an
-# update (several may wait for one restart). Closed by setup.sh --kernels, a quarter of an hour
-# into every start (fedokawaii-kernels.timer) ────────────────────────────────────────────────
+# update (several may wait for one restart). Closed by setup.sh --boot-good the moment grubenv
+# changes (fedokawaii-boot-good.path) and by setup.sh --kernels a quarter of an hour into every
+# start (the path's one trigger may have gone to another write: a kernel install's saved entry);
+# while it names a kernel, the one before is never removed (old_kernels_out) ─────────────────
 UP_TRIAL="rd.shell=0 rd.emergency=reboot panic=10"
 UP_DOG=/etc/systemd/system.conf.d/90-fedokawaii-probation.conf
 up_probation() {   # after a green update
@@ -396,13 +405,15 @@ up_probation_close() {   # this start has reached the desktop: the probation ove
   done <"$UPD/probation"
   rm -f -- "$UPD/probation"
 }
-UP_END=""
+UP_END="" UP_STAY=0
 up_exit() {   # (a run that stops anywhere: the candidate gone, the top unmounted, the report written —
-              # quietly: the run's own error has been said, and its status stands)
+              # quietly: the run's own error has been said, and its status stands — and what
+              # make_tmp's own exit did, which this one replaces: the run's temp folder, dnf's follower)
   trap - ERR; set +e
   cand_drop
   if mountpoint -q "$UP_TOP" 2>/dev/null; then umount "$UP_TOP" 2>/dev/null || true; fi
   rmdir "$UP_TOP" 2>/dev/null || true
   if [[ -z $UP_END && -d $UPD ]]; then UP_END=stopped; u_report; fi
+  rm -rf -- "$KAWA_TMP"; [[ -n ${FOLLOWER:-} ]] && kill "$FOLLOWER" 2>/dev/null
   return 0
 }

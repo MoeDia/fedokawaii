@@ -171,12 +171,19 @@ dwl_starts() {
 # the installed dwl headless on the card the desktop draws on, a throw-away home with the
 # installed configs (tools/kit.sh) — the bar, the notices, the terminals, quick settings and the
 # warm windows running, the bar drawn and measured in both themes; your own session is never
-# touched. → 0 · 1 (what failed on stdout, one line)
+# touched. → 0 · 1 red · 2 the check itself could not run (a check's own verdict on stdout, one
+# line — never the programs' log noise). A check that could not run is tried once more (a loaded
+# machine): an update is never undone on a check that did not happen
 desktop_starts() {
-  local t out
+  local t out rc try
   for t in session-start bar-geometry; do
-    out=$(as_user bash "$REPO_DIR/tools/regress/$t.sh" --dwl /usr/local/bin/dwl 2>&1) && continue
-    tail -n 1 <<<"$out"; return 1
+    for try in 1 2; do
+      rc=0; out=$(as_user bash "$REPO_DIR/tools/regress/$t.sh" --dwl /usr/local/bin/dwl 2>&1) || rc=$?
+      ((rc == 2)) || break
+    done
+    ((rc == 0)) && continue
+    grep -E "^$t[ :(]" <<<"$out" | tail -n 1
+    return "$((rc == 1 ? 1 : 2))"
   done
 }
 # wlr_sound — dwl's own wlroots loads every library it needs; one Fedora replaced (a rebuild

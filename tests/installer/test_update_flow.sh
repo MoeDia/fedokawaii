@@ -104,8 +104,9 @@ case_ "red, and a half that cannot be tried on its own: no culprit named — sto
 back built; reset_calls; pending "a 1-1 2-1" "b 1-1 2-1" "c 1-1 2-1" "d 1-1 2-1"; fkh cand-red a; fkh store-try-fail
 up; eq "$RC" 1; has "$OUT" "the package that causes it could not be found: a part of the set could not be tried on its own — nothing changed, nothing held"
 [[ -s $U/holds ]] && _no "held: $(cat "$U/holds")" || _ok; not_called 'dnf\] -y -C replay'
-case_ "every run ends without its stored transaction or the downloads kept for the halves"
+case_ "every run ends without its stored transaction or the downloads kept for the halves — nor its temp folder"
 [[ ! -e $U/tx && ! -e $U/try ]] && _ok || _no "left: $(ls "$U")"; called 'dnf\] -q clean packages'
+left=$(find "$W/var/tmp" -maxdepth 1 -name 'fedokawaii.*' 2>/dev/null); [[ -z $left ]] && _ok || _no "left in /var/tmp: $left"
 
 case_ "red on the running system (the desktop does not start): the set held, the snapshot offered — his files are still inside /"
 back built; reset_calls; pending "mesa 26.0-1.fc44 26.1-1.fc44"
@@ -136,6 +137,17 @@ up; eq "$RC" 0 "$(tail -n3 <<<"$OUT")"
 eq "$(report)" offered; has "$(cat "$U/report")" "the desktop does not start"
 grep -q '^gtk3 3.24.51-1.fc44 ' "$U/holds" && _ok || _no "the set not held: $(cat "$U/holds" 2>/dev/null)"
 
+case_ "the desktop's check could not run once (a loaded machine): tried again — green, kept"
+back built; reset_calls; pending "bash 5.2-1.fc44 5.3-1.fc44"; fkh fail-session-cannot 1
+up; eq "$RC" 0 "$(tail -n3 <<<"$OUT")"; eq "$(report)" ok
+eq "$(grep -c '^fkuser\[session-start\.sh\]' "$CALLS")" 3 "twice before (the retry), once after"
+case_ "…it cannot run after the replay at all: stopped — nothing held, nothing undone, said; the next press checks again"
+back built; reset_calls; pending "bash 5.2-1.fc44 5.3-1.fc44"; fkh replay-blinds-check
+up; eq "$RC" 1; has "$OUT" "the desktop's start check could not run (session-start: the kit could not run: hl-dwl: out of time (60 s)) — nothing held, nothing undone"
+eq "$(report)" stopped; [[ -s $U/holds ]] && _no "held: $(cat "$U/holds")" || _ok; not_called 'kawa-snap\] restore'
+eq "$(cut -d' ' -f1 "$U/phase")" check "the phase kept: the next press resumes at the checks"
+reset_calls; up; eq "$RC" 0 "$(tail -n3 <<<"$OUT")"; has "$OUT" "its steps and checks again"; eq "$(report)" ok
+not_called 'dnf\] .*replay'
 case_ "the transaction fails on the running system: undone the same way (offered), the set held"
 back built; reset_calls; pending "bash 5.2-1.fc44 5.3-1.fc44"; fkh fail-replay 1
 up; eq "$RC" 0 "$(tail -n3 <<<"$OUT")"
@@ -148,6 +160,11 @@ echo "bash 5.3-1.fc44" >>"$FKH/evr"; fkh_add installed bash; echo 7 >"$U/snap"
 up; eq "$RC" 0 "$(tail -n3 <<<"$OUT")"
 has "$OUT" "the last update was cut off in its transaction — finishing it first"
 eq "$(report)" ok; not_called 'systemd-nspawn'; not_called 'dnf\] .*--store'
+case_ "a cut run whose transaction still writes (its dnf unit alive): followed to its end first, then judged — whole: kept"
+back built; reset_calls; mkdir -p "$U"; printf 'replay 1\n' >"$U/phase"; echo "bash 5.2-1.fc44 5.3-1.fc44" >"$U/set"; : >"$U/baseline"; echo 7 >"$U/snap"
+fkh_add installed bash; echo "bash 5.3-1.fc44" >>"$FKH/evr"; fkh_add units "active fedokawaii-dnf-1-1.service"; fkh fail-busy-fedokawaii-dnf-1-1.service 3
+up; eq "$RC" 0 "$(tail -n3 <<<"$OUT")"; has "$OUT" "(fedokawaii-dnf-1-1.service) is still going — followed to its end"
+eq "$(report)" ok; not_called 'kawa-snap\] restore'
 case_ "…not whole: undone (offered: snapshot 7 named), never repeated half-way"
 back built; reset_calls; mkdir -p "$U"; printf 'replay 1\n' >"$U/phase"; echo "bash 5.2-1.fc44 5.3-1.fc44" >"$U/set"; : >"$U/baseline"; echo 7 >"$U/snap"
 up; eq "$RC" 0; eq "$(report)" offered; has "$(sed -n 2p "$U/report")" "snapshot 7 is the system before it"
@@ -215,6 +232,17 @@ back built; reset_calls; mkdir -p "$U"; fkh kernels "$K" "$NEWK"; echo "7 $NEWK 
 good; eq "$RC" 0; not_called 'grub2-editenv\] - unset'; not_called 'snapper\] -c root modify'; [[ -s $U/probation ]] && _ok || _no "the probation closed"
 fkh grubenv boot_success=0 boot_counter=2; echo "7 $K 2026-11-01" >"$U/probation"; reset_calls
 good; eq "$RC" 0; not_called 'grub2-editenv\] - unset'; [[ -s $U/probation ]] && _ok || _no "closed before a good start"
+case_ "a mark the path unit missed: the kernels run, a quarter of an hour in, closes the probation — and only then takes the one before"
+OLDK=6.19.1-200.fc44.x86_64
+back built; reset_calls; mkdir -p "$U"; fkh kernels "$OLDK" "$K"; echo "7 $K 2026-11-01" >"$U/probation"; fkh grubenv boot_success=1 boot_counter=2
+fkrun bash "$TK/setup.sh" --kernels; eq "$RC" 0 "$OUT"
+u=$(grep -n 'grub2-editenv\] - unset boot_counter' "$CALLS" | cut -d: -f1); r=$(grep -n "dnf\] .*remove .*kernel-core-$OLDK" "$CALLS" | cut -d: -f1)
+[[ -n $u && -n $r ]] && ((u < r)) && _ok || _no "closed at $u, the one before removed at $r"
+[[ ! -e $U/probation ]] && _ok || _no "the probation left"
+case_ "…while a kernel is still on trial, the update's own \"one kernel\" step keeps the one before"
+back built; reset_calls; mkdir -p "$U"; fkh kernels "$OLDK" "$K"; echo "7 $K 2026-11-01" >"$U/probation"; fkh grubenv boot_success=1 boot_counter=2
+pending "bash 5.2-1.fc44 5.3-1.fc44"; up; eq "$RC" 0 "$(tail -n3 <<<"$OUT")"
+has "$OUT" "a kernel is still on trial (the update's probation) — the one before $K stays"; not_called "dnf\] .*remove .*kernel-core-$OLDK"
 case_ "the kernel on trial gone from the system (a restore took it): its trial ends with it at the next good start"
 back built; reset_calls; mkdir -p "$U"; echo "7 $NEWK 2026-11-01" >"$U/probation"; fkh grubenv boot_success=1 boot_counter=3
 good; eq "$RC" 0; has "$OUT" "kernel $NEWK is no longer on the system (a restore took it)"

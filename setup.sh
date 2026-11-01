@@ -493,6 +493,10 @@ old_kernels_out() {   # old_kernels_out [desktop]
   if [[ ${1:-} == desktop ]] && ! grep -qx boot_success=1 < <(grub2-editenv - list 2>/dev/null); then
     log "this start has not reached the desktop for two minutes — the kernel before $now stays as the way back"; return 0
   fi
+  # (a kernel still on trial — its probation not closed: GRUB may yet need the one before)
+  if awk '$2 != "-" { f = 1 } END { exit !f }' "$UPD/probation" 2>/dev/null; then
+    log "a kernel is still on trial (the update's probation) — the one before $now stays"; return 0
+  fi
   for v in "${vers[@]:0:${#vers[@]}-1}"; do
     for n in "${KERNEL_PKGS[@]}"; do rpm -q "$n-$v" >/dev/null 2>&1 && pk+=("$n-$v"); done
   done
@@ -2569,23 +2573,27 @@ need_space() {   # need_space PATH MiB — stop, saying what to do, when there i
 # no say), is followed here as it comes, and is copied into the log at the end. Never
 # given a time limit. Its output line by line (stdbuf -oL): without a terminal dnf's output is
 # block-buffered, so the window showed nothing for the whole download — an update that looked
-# stuck. A transaction a run before left going (its window closed, Ctrl+C) is followed to its
-# end first: a new dnf would wait on its lock, saying nothing.
-dnf_detached() {   # dnf_detached ARG… — dnf ARG…, detached from this session; its exit status
-  local unit rc prev f n IFS=' '
+# stuck. A transaction a run before left going (its window closed, Ctrl+C, the update's own unit
+# stopped) is followed to its end first (dnf_settle): a new dnf would wait on its lock, saying
+# nothing — and an update cut in its transaction must not be judged while it still writes.
+dnf_settle() {
+  local prev f n
   prev=$(systemctl list-units --plain --no-legend --state=active 'fedokawaii-dnf-*.service' 2>/dev/null | awk 'NR == 1 { print $1 }')
-  if [[ -n $prev ]]; then
-    _out "${C_DIM}$(_ts) ▸ the package transaction a run before started ($prev) is still going — followed to its end${C_RESET}"
-    journalctl -f -n 20 -o cat -u "$prev" 2>/dev/null 9>&- &
-    f=$!
-    # (three hours at most — a whole release's download on a slow line fits in them: one that
-    # has not ended by then is stuck, and is named, never waited on for ever)
-    for ((n = 0; n < 5400; n++)); do systemctl is-active --quiet "$prev" || break; sleep 2; done
-    kill "$f" 2>/dev/null || true; wait "$f" 2>/dev/null || true
-    if systemctl is-active --quiet "$prev"; then
-      die "the package transaction $prev has run for more than three hours — stuck? journalctl -u $prev shows where; sudo systemctl stop $prev ends it, then run this again"
-    fi
+  [[ -n $prev ]] || return 0
+  _out "${C_DIM}$(_ts) ▸ the package transaction a run before started ($prev) is still going — followed to its end${C_RESET}"
+  journalctl -f -n 20 -o cat -u "$prev" 2>/dev/null 9>&- &
+  f=$!
+  # (three hours at most — a whole release's download on a slow line fits in them: one that
+  # has not ended by then is stuck, and is named, never waited on for ever)
+  for ((n = 0; n < 5400; n++)); do systemctl is-active --quiet "$prev" || break; sleep 2; done
+  kill "$f" 2>/dev/null || true; wait "$f" 2>/dev/null || true
+  if systemctl is-active --quiet "$prev"; then
+    die "the package transaction $prev has run for more than three hours — stuck? journalctl -u $prev shows where; sudo systemctl stop $prev ends it, then run this again"
   fi
+}
+dnf_detached() {   # dnf_detached ARG… — dnf ARG…, detached from this session; its exit status
+  local unit rc IFS=' '
+  dnf_settle
   unit=fedokawaii-dnf-$(date +%s)-$$
   if [[ ${RUN_SHOWN:-} == 1 ]]; then _out "${C_DIM}    (as $unit)${C_RESET}"   # (run said the command already)
   else _out "${C_DIM}$(_ts) \$ dnf $*  (as $unit)${C_RESET}"; fi
@@ -2883,7 +2891,9 @@ do_update() {   # the button's run (lib/update.sh: the phases, their state in UP
   # whole, undone — before anything new is tried
   was=$(up_was)
   case $was in
-    replay) log "the last update was cut off in its transaction — finishing it first"
+    replay) dnf_settle    # (its transaction may still be writing: judged only once it has ended)
+            if pgrep -x dnf5 >/dev/null 2>&1; then die "another package manager is running (dnf5) — update again once it has finished"; fi
+            log "the last update was cut off in its transaction — finishing it first"
             if ! up_complete; then
               echo "the last update was cut off in its transaction" >"$UPD/why"; u_undo; u_report; return 0
             fi ;;
@@ -3520,7 +3530,7 @@ case $MODE in
   kernels) [[ $(phase) == 'done' ]] && on_the_system || exit 0
            # (a restore cut short after its exchange: finished first — its snapshots back, its default)
            /usr/local/sbin/kawa-snap finish >/dev/null 2>&1 || log "kawa-snap could not finish a restore that was cut short (sudo kawa-snap finish says why)"
-           kernel_match; orphan_kernels_out desktop; old_kernels_out desktop
+           kernel_match; up_probation_close; orphan_kernels_out desktop; old_kernels_out desktop
            # (the old copies the flat layout's mounts hide: removed once a start has been good)
            if [[ -x /usr/local/sbin/fedokawaii-split ]] && grep -qx boot_success=1 < <(grub2-editenv - list 2>/dev/null); then
              /usr/local/sbin/fedokawaii-split clean || log "the old copies under the new mounts could not be removed (sudo fedokawaii-split clean says why)"

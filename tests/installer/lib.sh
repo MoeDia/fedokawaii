@@ -425,9 +425,11 @@ built() {
   # no screen: the session comes up when dwl — its stand-in — starts; red with $FKH/session-red or
   # a bar off its measure, $FKH/bar-red (each file: what the check says)
   p=$W/usr/local/lib/fedokawaii/tools/regress
+  # ($FKH/fail-session-cannot = N: the check itself cannot run N times — exit 2, as the real one's machinery)
   printf '%s\n' '#!/bin/bash' '. /usr/local/bin/_lib.sh; fkh_log "$*"' \
+    'countdown session-cannot && { echo "session-start: the kit could not run: hl-dwl: out of time (60 s)" >&2; exit 2; }' \
     '[[ -s $FKH/session-red ]] && { echo "session-start (dark): $(cat "$FKH/session-red")" >&2; exit 1; }' \
-    '/usr/local/bin/dwl -s true >/dev/null 2>&1 || { echo "session-start: the kit failed: hl-dwl: dwl ended before the script did" >&2; exit 2; }' \
+    '/usr/local/bin/dwl -s true >/dev/null 2>&1 || { echo "session-start (dark): dwl does not start: the stand-in exits 1" >&2; exit 1; }' \
     'echo "session-start (dark): up"' >"$p/session-start.sh"
   printf '%s\n' '#!/bin/bash' '. /usr/local/bin/_lib.sh; fkh_log "$*"' \
     '[[ -s $FKH/bar-red ]] && { echo "bar-geometry (dark): $(cat "$FKH/bar-red")" >&2; exit 1; }' 'exit 0' >"$p/bar-geometry.sh"

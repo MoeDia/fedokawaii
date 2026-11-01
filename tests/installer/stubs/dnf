@@ -93,6 +93,7 @@ case "$a" in
       countdown replay && { echo "Transaction failed: a scriptlet failed" >&2; exit 1; }
       [[ -f $FKH/replay-breaks-dwl ]] && touch "$FKH/dwl-crash"   # (what only the running system shows)
       [[ -f $FKH/replay-breaks-bar ]] && echo "rows: 0+3 3+1 4+21 24+1 25+1 26+1 (want 3 air, hairline, 20 paper, hairline, 2 shadow)" >"$FKH/bar-red"
+      [[ -f $FKH/replay-blinds-check ]] && { echo 2 >"$FKH/fail-session-cannot"; chmod 666 "$FKH/fail-session-cannot"; }   # (the check cannot run after it: twice — counted down by the user's check)
       while read -r n v; do
         sed -i "/^$n /d" "$FKH/pending" "$FKH/evr" 2>/dev/null; echo "$n $v" >>"$FKH/evr"; add installed "$n"
       done < <(jq -r '.rpms[] | select(.action == "Upgrade" or .action == "Install") | .nevra' "$d/transaction.json" | sed -E 's/\.x86_64$//; s/^(.+)-([^-]+-[^-]+)$/\1 \2/')
