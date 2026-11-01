@@ -1,7 +1,8 @@
 --- @sync entry
 -- ~/.config/fedokawaii/yazi-pick/kawa-pick.yazi — the file dialog's Enter and Esc (yazi 26.x).
--- Enter: into a folder while opening files (yazi itself would hand the folder back and
--- kawa-pick would restart yazi in it: a flash); otherwise yazi's own open = choose.
+-- Enter: into a folder while opening files or taking one back from a snapshot (yazi itself
+-- would hand the folder back and kawa-pick would restart yazi in it: a flash); otherwise
+-- yazi's own open = choose.
 -- Esc: first what yazi's Esc undoes (marks, visual mode, filter, find, search), then cancel,
 -- as Esc closes every other pop-up of the desktop.
 return {
@@ -18,7 +19,7 @@ return {
 			return ya.emit("quit", { no_cwd_file = true })
 		end
 		local h = tab.current.hovered
-		if h and h.cha.is_dir and mode:match("^open") and #tab.selected == 0 then
+		if h and h.cha.is_dir and (mode:match("^open") or mode == "back") and #tab.selected == 0 then
 			return ya.emit("enter", {})
 		end
 		ya.emit("open", {})

@@ -12,6 +12,9 @@
 #            folder takes it into that folder · Enter on another file replaces that one,
 #            after a question; cancelling removes the file made for saving again. Where a
 #            file of that name is there already, it is "name (1).ext" (as in Brave)
+#   back     (Super+U → a file, back: inside only) your files as a snapshot holds them —
+#            Enter takes the file under the cursor (or every one Space marked, files and
+#            folders) · Enter on a folder goes into it · q takes the folder you are in
 #   Esc      first undoes what yazi's Esc undoes (marks, a filter, a search), then cancels —
 #            as Esc closes every other popup
 #
@@ -72,7 +75,7 @@ inside() {
   while :; do
     rm -f "$work/chosen" "$work/cwd"
     args=(--chooser-file="$work/chosen")
-    [[ $mode == folder* ]] && args+=(--cwd-file="$work/cwd")
+    [[ $mode == folder* || $mode == back ]] && args+=(--cwd-file="$work/cwd")
     KAWA_PICK=$mode YAZI_CONFIG_HOME=$y yazi "${args[@]}" -- "$here"
     chosen=() keep=()
     [[ -s $work/chosen ]] && mapfile -t chosen <"$work/chosen"
@@ -92,6 +95,10 @@ inside() {
           here=${chosen[0]}; continue               # Enter on a folder: into it
         fi
         [[ $mode == open1 ]] && keep=("${keep[0]}") ;;
+      back)
+        keep=("${chosen[@]}")
+        ((${#keep[@]})) || { [[ -s $work/cwd ]] && keep=("$(<"$work/cwd")"); }   # q: where you are
+        ((${#keep[@]})) || return 0 ;;              # Esc: cancelled
       folder1|folderN)
         for f in "${chosen[@]}"; do
           [[ -d $f ]] || f=$(dirname -- "$f")       # Enter on a file: the folder it is in

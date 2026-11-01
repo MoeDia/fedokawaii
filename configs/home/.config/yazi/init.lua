@@ -175,8 +175,12 @@ local PICK = {
 	folder1 = { "open folder",  { "q", "this folder" } },
 	folderN = { "open folders", { "space", "mark", "q", "this folder" } },
 	save    = { "save file",    { "r", "rename" } },
+	back    = { "as it was",    { "space", "mark", "q", "this folder" } },
 }
 local pick = PICK[os.getenv("KAWA_PICK") or ""]
+-- (taking back: the heading says when — KAWA_PICK_TITLE, "as it was at 16:00" — and the snapshot's
+-- copy of your home, KAWA_PICK_ROOT, is named as home is: ~)
+local pick_title, pick_root = os.getenv("KAWA_PICK_TITLE"), os.getenv("KAWA_PICK_ROOT")
 if pick then
 	local ICON = "\243\190\128\177" -- Sumi Icons: folder (U+FE031), as in icons.sh
 	Header:children_remove(1, Header.LEFT) -- the bare path
@@ -184,10 +188,16 @@ if pick then
 		local room = self._area.w - 1 - (self._right_width or 0)
 		local head = ui.Line {
 			ui.Span(ICON):fg("lightred"),
-			ui.Span("  " .. pick[1] .. "  "),
+			ui.Span("  " .. (pick_title or pick[1]) .. "  "),
 		}
 		-- (a long folder loses its start, nothing in its place; at least two stitches stay)
-		local where = cut(ya.readable_path(tostring(self._current.cwd)) .. self:flags(), math.max(0, room - head:width() - 3), true)
+		local cwd = tostring(self._current.cwd)
+		if pick_root and (cwd == pick_root or cwd:sub(1, #pick_root + 1) == pick_root .. "/") then
+			cwd = "~" .. cwd:sub(#pick_root + 1)
+		else
+			cwd = ya.readable_path(cwd)
+		end
+		local where = cut(cwd .. self:flags(), math.max(0, room - head:width() - 3), true)
 		local line = ui.Line { head, ui.Span(where .. " "):fg("darkgray") }
 		return ui.Line { line, ui.Span(string.rep("─", math.max(0, room - line:width()))):style(th.mgr.border_style) }
 	end, 1000, Header.LEFT)

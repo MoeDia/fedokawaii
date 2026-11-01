@@ -38,6 +38,7 @@ engine_world() {
   mkdir -p "$R/state" "$R/toolkit/docs" "$R/toolkit/lib" "$R/toolkit/system" "$R/toolkit/bin" "$R/toolkit/configs/home/.config/foot"
   pointed "$REPO/system/fedokawaii" "$STUBS/fedokawaii" \
     "s|^TK=/usr/local/lib/fedokawaii\$|TK=$R/toolkit|" \
+    "s|^HOME_SNAPS=/home/.snapshots |HOME_SNAPS=${HOME%/*}/.snapshots |" \
     "s|^STATE=/var/lib/fedokawaii |STATE=$R/state |" \
     "s|/var/log/fedokawaii.log|$R/fedokawaii.log|g"
   # (the update's own unit never this machine's: none runs — anything else asked of systemctl as before)

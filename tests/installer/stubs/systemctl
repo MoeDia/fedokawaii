@@ -30,7 +30,10 @@ case $verb in
                 if [[ -f $FKH/fail-busy-$u ]]; then countdown "busy-$u" && continue; sed -i "/^active ${u//./\\.}\$/d" "$FKH/units"; exit 3; fi
                 grep -qx "${pre}active $u" "$FKH/units" || exit 3
               done; exit 0 ;;
-  list-units) awk '$1 == "active" && $2 ~ /^fedokawaii-dnf-/ { print $2, "loaded active running", $2 }' "$FKH/units"; exit 0 ;;
+  # (dnf's units: the running ones — "active U" — or, --state=exited,failed, the ended ones)
+  list-units) if [[ $a == *" --state=exited,failed "* ]]; then
+                awk '$1 == "ended" && $2 ~ /^fedokawaii-dnf-/ { print $2, "loaded", ($3 == 0 ? "active exited" : "failed failed"), $2 }' "$FKH/units"
+              else awk '$1 == "active" && $2 ~ /^fedokawaii-dnf-/ { print $2, "loaded active running", $2 }' "$FKH/units"; fi; exit 0 ;;
   enable)     for u in "${units[@]}"; do
                 grep -qx "${pre}enabled $u" "$FKH/units" || echo "${pre}enabled $u" >>"$FKH/units"
                 [[ $a == *" --now "* ]] && ! grep -qx "${pre}active $u" "$FKH/units" && echo "${pre}active $u" >>"$FKH/units"
@@ -44,7 +47,7 @@ case $verb in
               done; exit 0 ;;
   start|restart) r=$(rcfor "start-${units[0]:-x}" 0); ((r == 0)) || exit "$r"
               for u in "${units[@]}"; do grep -qx "${pre}active $u" "$FKH/units" || echo "${pre}active $u" >>"$FKH/units"; done; exit 0 ;;
-  stop)       for u in "${units[@]}"; do sed -i "/^${pre}active ${u//./\\.}\$/d" "$FKH/units"; done; exit 0 ;;
+  stop)       for u in "${units[@]}"; do sed -i "/^${pre}active ${u//./\\.}\$/d; /^ended ${u//./\\.} /d" "$FKH/units"; done; exit 0 ;;
   cat)        u=${units[0]:-}
               if [[ -d /etc/systemd/system/$u.d ]]; then cat /etc/systemd/system/"$u".d/*.conf; exit 0; fi
               [[ -f /etc/systemd/system/$u ]] && { cat "/etc/systemd/system/$u"; exit 0; }
@@ -54,6 +57,15 @@ case $verb in
   # started again shows a new one), the last line for ever after; 4242 when there is no file
   show)       prop="" u=""; set -- "${units[@]}"
               while (($#)); do case $1 in -p) prop=$2; shift 2 ;; --value) shift ;; *) u=$1; shift ;; esac; done
+              # (-p ActiveState -p SubState -p ExecMainCode -p ExecMainStatus of dnf's unit: its end)
+              if [[ $prop == ExecMainStatus && $a == *" -p ActiveState "* ]]; then
+                r=$(awk -v u="$u" '$1 == "ended" && $2 == u { r = $3 } END { print r }' "$FKH/units")
+                if [[ -z $r ]]; then printf 'ActiveState=active\nSubState=running\nExecMainCode=0\nExecMainStatus=0\n'
+                elif ((r == 0)); then printf 'ActiveState=active\nSubState=exited\nExecMainCode=1\nExecMainStatus=0\n'
+                elif ((r > 128)); then printf 'ActiveState=failed\nSubState=failed\nExecMainCode=2\nExecMainStatus=%s\n' $((r - 128))
+                else printf 'ActiveState=failed\nSubState=failed\nExecMainCode=1\nExecMainStatus=%s\n' "$r"; fi
+                exit 0
+              fi
               # (-p Wants -p After of prowlarr.service: the dependencies quadlet gave it, $FKH/pw-prowlarr-deps)
               [[ $u == prowlarr.service && -f $FKH/pw-prowlarr-deps ]] && cat "$FKH/pw-prowlarr-deps"
               if [[ $prop == MainPID ]]; then
@@ -62,6 +74,7 @@ case $verb in
                 [[ -s $f ]] || { echo 4242; exit 0; }
                 head -n1 "$f"; (($(wc -l <"$f") > 1)) && sed -i 1d "$f"
               fi; exit 0 ;;
+  reset-failed) for u in "${units[@]}"; do sed -i "/^ended ${u//./\\.} /d" "$FKH/units"; done; exit 0 ;;
   set-default) echo "${units[0]:-}" >"$FKH/default-target"; exit 0 ;;
   reboot)     date +%s >>"$FKH/rebooted"; exit 0 ;;
 esac

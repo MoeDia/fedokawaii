@@ -2173,6 +2173,14 @@ snapper_limits() {
     run snapper -c "$c" set-config TIMELINE_CREATE=$tl NUMBER_LIMIT=4-20 NUMBER_LIMIT_IMPORTANT=4-10 TIMELINE_LIMIT_HOURLY=2-8 \
       TIMELINE_LIMIT_DAILY=2-7 TIMELINE_LIMIT_WEEKLY=0 TIMELINE_LIMIT_MONTHLY=0-2 TIMELINE_LIMIT_YEARLY=0 FREE_LIMIT=0.2
   done
+  # your files' snapshots readable by you (Super+U → a file, back browses them as you, no
+  # password): /home/.snapshots, 0750 root's as snapper makes it, given your group — read and
+  # gone through, never written (the snapshots are read-only); never snapper's ALLOW_USERS,
+  # which would let anything running as you delete them too
+  if snapper_has home && [[ -d /home/.snapshots ]]; then
+    run chgrp "$(id -gn "$TARGET_USER")" /home/.snapshots && run chmod 0750 /home/.snapshots || return 1
+  fi
+  return 0
 }
 
 # s_scrub — once a month, every block of the Btrfs file system read back and checked
@@ -2585,10 +2593,21 @@ need_space() {   # need_space PATH MiB — stop, saying what to do, when there i
 # scriptlet, and confined ones were denied it (setfiles_t AVCs each update). A transaction a
 # run before left going (its window closed, Ctrl+C, the update's own unit stopped) is followed
 # to its end first (dnf_settle): a new dnf would wait on its lock, saying nothing — and an
-# update cut in its transaction must not be judged while it still writes.
+# update cut in its transaction must not be judged while it still writes. Its end is read by
+# asking (dnf_end), never waited for through the bus: systemd's own scriptlets reload or
+# re-execute it inside the transaction, and the signal `systemd-run --wait` waits for can be
+# lost — the update then waited for ever after a finished transaction (the VM, 1 Nov: a
+# daemon-reload 0.7 s before the end). Each unit stays, ended (RemainAfterExit), until its
+# status is read, then goes; one a run cut off left ended is cleared by the next.
 dnf_settle() {
-  local prev f n
-  prev=$(systemctl list-units --plain --no-legend --state=active 'fedokawaii-dnf-*.service' 2>/dev/null | awk 'NR == 1 { print $1 }')
+  local prev f n ended=()
+  # (ended ones a cut run left: their status no one will read — a line each, whatever IFS the
+  # caller has: dnf_detached's is a space)
+  mapfile -t ended < <(systemctl list-units --plain --no-legend --state=exited,failed 'fedokawaii-dnf-*.service' 2>/dev/null | awk '{ print $1 }' || true)
+  for f in "${ended[@]}"; do
+    systemctl stop "$f" >/dev/null 2>&1 || true; systemctl reset-failed "$f" >/dev/null 2>&1 || true
+  done
+  prev=$(systemctl list-units --plain --no-legend --state=running 'fedokawaii-dnf-*.service' 2>/dev/null | awk 'NR == 1 { print $1 }')
   [[ -n $prev ]] || return 0
   _out "${C_DIM}$(_ts) ▸ the package transaction a run before started ($prev) is still going — followed to its end${C_RESET}"
   journalctl -f -n 20 -o cat -u "$prev" 2>/dev/null 9>&- &
@@ -2609,16 +2628,31 @@ dnf_detached() {   # dnf_detached ARG… — dnf ARG…, detached from this sess
   else _out "${C_DIM}$(_ts) \$ dnf $*  (as $unit)${C_RESET}"; fi
   journalctl -f -n 0 -o cat -u "$unit.service" 2>/dev/null 9>&- &
   FOLLOWER=$!
-  systemd-run --quiet --unit="$unit" --service-type=exec --wait --collect -p TimeoutStopSec=10min \
-    -p StandardOutput=journal -p StandardError=journal -p SyslogIdentifier=fedokawaii-dnf \
-    -E LC_ALL=C.UTF-8 /usr/bin/dnf "$@" 9>&- && rc=0 || rc=$?
+  if systemd-run --quiet --unit="$unit" --service-type=exec -p RemainAfterExit=yes -p TimeoutStopSec=10min \
+       -p StandardOutput=journal -p StandardError=journal -p SyslogIdentifier=fedokawaii-dnf \
+       -E LC_ALL=C.UTF-8 /usr/bin/dnf "$@" 9>&-; then rc=$(dnf_end "$unit.service")
+  else rc=$?; fi                                    # (it never started: systemd-run's own status)
   # dnf's last lines (its error, which decides whether a new try can mend it) written into the
   # journal before the follower is stopped: --sync returns once journald has every line its
   # writers sent; a second more lets the follower print them
   journalctl --sync >/dev/null 2>&1 || true
   sleep 1; kill "$FOLLOWER" 2>/dev/null || true; wait "$FOLLOWER" 2>/dev/null || true; FOLLOWER=""
   journalctl -o cat --no-pager "_SYSTEMD_UNIT=$unit.service" >>"$LOG_FILE" 2>/dev/null || true
+  { systemctl stop "$unit.service"; systemctl reset-failed "$unit.service"; } >/dev/null 2>&1 || true
   return "$rc"
+}
+dnf_end() {   # dnf_end UNIT → its dnf's exit status once it has ended (128+N: killed by signal N),
+              # asked once a second
+  local k v st="" sub="" code="" n=""
+  while :; do
+    while IFS='=' read -r k v; do
+      case $k in ActiveState) st=$v ;; SubState) sub=$v ;; ExecMainCode) code=$v ;; ExecMainStatus) n=$v ;; esac
+    done < <(systemctl show -p ActiveState -p SubState -p ExecMainCode -p ExecMainStatus "$1" 2>/dev/null || true)
+    [[ $st == @(failed|inactive) || ( $st == active && $sub == exited ) ]] && break
+    sleep 1
+  done
+  # (ExecMainCode: 1 exited with N · 2 killed, 3 dumped by signal N · 0 it never ran)
+  case $code in 1) echo "${n:-1}" ;; 2|3) echo $((128 + ${n:-0})) ;; *) echo 1 ;; esac
 }
 
 # detach_dnf — from here on, every dnf that changes packages runs as dnf_detached does. Update

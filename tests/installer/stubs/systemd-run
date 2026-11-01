@@ -1,6 +1,14 @@
 #!/bin/bash
+# systemd-run of the fake Fedora: dnf's unit (setup.sh dnf_detached) — the program run here to
+# its end; systemd-run itself says only that it started (0), as without --wait. The unit's end
+# is kept for systemctl show (RemainAfterExit): "ended UNIT RC" in $FKH/units (RC 128+N: killed
+# by signal N); $FKH/dnf-killed = N — dnf killed by signal N instead of running
 . /usr/local/bin/_lib.sh
 fkh_log "$*"
+unit=""
+for a; do case $a in --unit=*) unit=${a#--unit=}.service ;; esac; done
 while (($#)) && [[ $1 != /usr/bin/dnf ]]; do shift; done
 shift
-exec /usr/local/bin/dnf "$@"
+if [[ -s $FKH/dnf-killed ]]; then rc=$((128 + $(cat "$FKH/dnf-killed"))); else /usr/local/bin/dnf "$@"; rc=$?; fi
+[[ -n $unit ]] && echo "ended $unit $rc" >>"$FKH/units"
+exit 0

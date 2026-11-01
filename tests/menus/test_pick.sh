@@ -134,6 +134,19 @@ case_ "save: never answers a folder or a missing file (the portal would hang the
 setup; does "choose gamma dir" "choose gamma dir" "choose report.pdf"; out=$(portal save "$P" report.pdf)
 lacks "$out" error; lacks "$out" "directory"
 
+# ── back: Super+U → a file, back (inside its window: kawa-pick --inside back DIR WORK) ──
+back() { mkdir -p "$TMP/work"; rm -f "$TMP/work/answer"; kawa-pick --inside back "$P" "$TMP/work"; cat "$TMP/work/answer" 2>/dev/null; }
+case_ "back: Enter on a file takes it; marked ones — files and folders — all, in order"
+setup; does "choose alpha.txt"; eq "$(back)" "$P/alpha.txt"; called "^yazi back $P$"
+setup; does "choose gamma dir|beta.txt"; eq "$(back)" "$P/gamma dir"$'\n'"$P/beta.txt"
+case_ "back: q takes the folder you are in; Esc takes nothing"
+setup; does "q gamma dir"; eq "$(back)" "$P/gamma dir"
+setup; does esc; eq "$(back)" "" "nothing"
+case_ "back: its yazi told the mode (the heading and keys are init.lua's), Enter into folders (the plugin)"
+setup; does esc; back >/dev/null; has "$(cat "$W/yazi-config")" "keymap.toml -> $HOME/.config/fedokawaii/yazi-pick/keymap.toml"
+has "$(cat "$HOME/.config/yazi/init.lua")" 'back    = { "as it was",'
+has "$(cat "$HOME/.config/fedokawaii/yazi-pick/kawa-pick.yazi/main.lua")" 'mode == "back"'
+
 # ── the answer file, the window, what goes wrong ─────────────────────────────────────
 case_ "the answer file: absolute paths, one a line, each ending in a line break, nothing more"
 setup; does "choose beta.txt|alpha.txt"; out=$TMP/answer.out

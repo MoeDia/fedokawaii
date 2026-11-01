@@ -126,7 +126,7 @@ done
 has "$(row update)" "in 80 days"; has "$(row snapshots)" "14"; has "$(row verify)" "2 to fix"; has "$(row remind)" "every 90 days"
 lacks "$(row status)" "Fedora" "status: no value (the pane beside it is the status: the release is its first line)"; has "$(row upgrade)" "Fedora 45"
 case_ "rows: what is not built yet in the faint ink, its value 'soon' — never a dead entry"
-for a in file restore drive chess typing; do
+for a in restore drive chess typing; do
   l=$(cut -f2 <<<"$(grep "^$a"$'\t' <<<"$out")")
   has "$l" $'\e[38;5;22m' "$a: faint"; [[ $(plain "$l") == *" soon" ]] && _ok || _no "$a: no soon: $(plain "$l")"
   has "$(plain "$(fedokawaii --explain "$a")")" "not yet" "$a: the pane says so"
@@ -221,9 +221,9 @@ has "$(cat "$(command -v fedokawaii)")" "enter:transform:case {1} in \$PANE_ONLY
 case_ "Super+U's popup (--popup): the menu closes for a job too (fzf becomes the run, which hands it on); the guide, the key sheet and the settings start without fzf giving up the screen, then the popup is put away (dwl fades it off: never a blank terminal); a plain menu, neither"
 fresh; stub fzf 'cat >/dev/null; exit 130'
 on_tty "" fedokawaii --popup >/dev/null
-called "enter:transform:case \\{1\\} in held\\|file\\|restore\\|drive\\|chess\\|typing\\) ;; guide\\|keys\\|change\\|todo\\) echo 'execute-silent\\([^)]* --run \\{1\\}\\)\\+execute-silent\\(kawa-warm system\\)' ;; remind\\) "
-called 'remind\) echo .execute-silent\([^)]* --run \{1\}\)\+reload-sync\([^)]* --items\). ;; change\|keys\|update\|pull\|upgrade\|verify\|repair\|theme\|drift\|snapshots\|backup\|settings\|log\) echo .become\('
-reset_calls; on_tty "" fedokawaii >/dev/null; called 'enter:transform:case \{1\} in held\|file\|restore\|drive\|chess\|typing\) ;; remind\) echo .execute-silent\([^)]*\)\+reload-sync\([^)]*\). ;; change\|keys\) echo .become\('
+called "enter:transform:case \\{1\\} in held\\|restore\\|drive\\|chess\\|typing\\) ;; guide\\|keys\\|change\\|todo\\) echo 'execute-silent\\([^)]* --run \\{1\\}\\)\\+execute-silent\\(kawa-warm system\\)' ;; remind\\) "
+called 'remind\) echo .execute-silent\([^)]* --run \{1\}\)\+reload-sync\([^)]* --items\). ;; change\|keys\|update\|pull\|upgrade\|verify\|repair\|theme\|drift\|snapshots\|file\|backup\|settings\|log\) echo .become\('
+reset_calls; on_tty "" fedokawaii >/dev/null; called 'enter:transform:case \{1\} in held\|restore\|drive\|chess\|typing\) ;; remind\) echo .execute-silent\([^)]*\)\+reload-sync\([^)]*\). ;; change\|keys\) echo .become\('
 called 'esc,ctrl-c,ctrl-g,ctrl-q:abort' "(outside the warm window: Esc only ends it)"
 case_ "…in the warm window (KAWA_WARM=system): Esc, q and a job's become put it away first — while the menu is still drawn (dwl's ghost of it fades, never a page fzf wiped)"
 reset_calls; KAWA_WARM=system on_tty "" fedokawaii --popup >/dev/null
@@ -369,6 +369,18 @@ fresh; snaplist; out=$(outcome snapshots); has "$out" "finished"; called '^sudo 
 out=$(tty_free fedokawaii --run snapshots </dev/null 2>&1)
 has "$out" "fedokawaii baseline"; has "$out" "dnf install htop"; eq "$(grep -c 'dnf install htop' <<<"$out")" 1
 has "$out" "the system before the last restore"
+# aligned SCREEN WORD — on a terminal: SCREEN's first row holding WORD starts its icon where the
+# heading starts its own, and ends where the heading's rule ends (each row a line of its own)
+aligned() {
+  local h r lh lr; h=$(grep -m1 '─' <<<"$1"); r=$(grep -m1 -- "$2" <<<"$1")
+  lh=${h%%[! ]*} lr=${r%%[! ]*}
+  eq "${#lr}" "${#lh}" "the icon under the heading's: [$r] [$h]"
+  eq "$(LC_ALL=C.UTF-8 wc -L <<<"$r")" "$(LC_ALL=C.UTF-8 wc -L <<<"$h")" "ending where the rule ends: [$r] [$h]"
+}
+case_ "snapshots on a terminal: a row a line, the icon under the heading's, the date ending where its rule ends"
+fresh; snaplist; out=$(plain "$(on_tty $'\n' fedokawaii --run snapshots)")
+aligned "$out" "fedokawaii baseline"; aligned "$out" "the system before the last restore"
+eq "$(grep -c -E 'baseline|htop|last restore' <<<"$out")" 3 "three rows, three lines"
 case_ "snapshots: a long description cut at a word's end, never mid-word, never an …; the boot menu's way said"
 fresh; stub kawa-snap 'case $1 in list) printf "9\tpre\t2026-10-15 09:00:00\tdnf install libreoffice-writer libreoffice-calc libreoffice-impress hunspell\t-\n" ;; esac'
 out=$(plain "$(tty_free fedokawaii --run snapshots </dev/null 2>&1)")
@@ -386,6 +398,63 @@ called '^sudo kawa-snap restore 41 --with-home$'
 case_ "snapshots: anything but yes, or a number not listed — nothing restored"
 fresh; snaplist; on_tty $'41\nno\n' fedokawaii --run snapshots >/dev/null; not_called 'kawa-snap restore'
 out=$(on_tty $'42\nyes\n' fedokawaii --run snapshots); has "$out" "no snapshot 42 in the list"; not_called 'kawa-snap restore'
+# ── a file, back: /home's snapshots, as you ───────────────────────────────────
+# homesnaps — three snapshots of /home (snapper's layout: N/info.xml, N/snapshot holding /home,
+# your home in it under its name): 7 today 00:00 UTC, 6 yesterday 12:00, 3 five days ago; in each
+# your notes as they were. kawa-pick a stand-in: logs its call and its environment, answers what
+# $TMP/pick lists (a path a line, under the snapshot it was started in: @ is that start)
+homesnaps() {
+  local S=${HOME%/*}/.snapshots n d h
+  rm -rf -- "$S"; mkdir -p "$S"
+  for n in 7:"$(date -u +%F) 00:00:00" 6:"$(date -u -d yesterday +%F) 12:00:00" 3:"$(date -u -d '-5 days' +%F) 09:30:00"; do
+    d=${n#*:} n=${n%%:*} h=$S/$n/snapshot/${HOME##*/}
+    mkdir -p "$h/Documents/old project"
+    printf '<?xml version="1.0"?>\n<snapshot>\n  <type>single</type>\n  <num>%s</num>\n  <date>%s</date>\n  <description>timeline</description>\n  <cleanup>timeline</cleanup>\n</snapshot>\n' "$n" "$d" >"$S/$n/info.xml"
+    echo "notes as at $n" >"$h/Documents/notes.md"; echo "plan $n" >"$h/Documents/old project/plan.txt"
+  done
+  mkdir -p "$S/9"                                   # (a number with no snapshot in it: left out)
+  : >"$TMP/pick"
+  stub kawa-pick 'printf "%s\n" "env $KAWA_PICK_TITLE | $KAWA_PICK_ROOT" >>"$CALLS"
+[ "$1" = --inside ] && [ "$2" = back ] || exit 9
+sed "s|^@|$3|" "$TMP/pick" >"$4/answer"'
+}
+case_ "a file, back: the snapshots of your files, newest first — each its number, time and day"
+fresh; homesnaps; out=$(plain "$(TZ=UTC on_tty $'\n' fedokawaii --run file)")
+has "$out" "a file, back"; lacks "$out" "9    "
+l=$(grep -n -E '^ +. +(7|6|3) ' <<<"$out" | cut -d: -f1 | tr '\n' ' '); [[ $(wc -w <<<"$l") == 3 ]] && _ok || _no "three rows: $out"
+has "$out" "7    00:00"; has "$out" "today"; has "$out" "6    12:00"; has "$out" "yesterday"; has "$out" "3    09:30"; has "$out" "$(date -u -d '-5 days' '+%-d %b')"
+[[ $(grep -n '7    00:00' <<<"$out" | cut -d: -f1) -lt $(grep -n '3    09:30' <<<"$out" | cut -d: -f1) ]] && _ok || _no "not newest first"
+has "$out" "copied into"; has "$out" "~/Restored — what is there now stays as it is"; not_called '^kawa-pick'; [[ -e $HOME/Restored ]] && _no "a folder made for nothing" || _ok
+aligned "$out" "7    00:00"; aligned "$out" "3    09:30"; eq "$(grep -c -E '(7|6|3)    [0-9]{2}:[0-9]{2}' <<<"$out")" 3 "a row a line"
+case_ "…a number: the dialog in that snapshot's home, its heading the moment; the file copied into ~/Restored/DATE/, the one now untouched"
+fresh; homesnaps; mkdir -p "$HOME/Documents"; echo "notes now" >"$HOME/Documents/notes.md"
+echo "@/Documents/notes.md" >"$TMP/pick"; out=$(TZ=UTC on_tty $'6\n' fedokawaii --run file)
+called "^kawa-pick --inside back ${HOME%/*}/.snapshots/6/snapshot/${HOME##*/} "; called "^env as it was yesterday at 12:00 | ${HOME%/*}/.snapshots/6/snapshot/${HOME##*/}$"
+r=$(find "$HOME/Restored" -name notes.md); eq "$(cat "$r")" "notes as at 6"; eq "$(cat "$HOME/Documents/notes.md")" "notes now" "the one there now"
+[[ ${r#"$HOME/Restored/"} =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}-[0-9]{6}/notes\.md$ ]] && _ok || _no "where: $r"
+has "$out" "as it was yesterday at 12:00, into ~/Restored/"; has "$out" "Documents/notes.md"
+[[ -w $r ]] && _ok || _no "not yours to change: $(stat -c %A "$r")"
+case_ "…today's and an older one: the heading says at, or on DAY at"
+fresh; homesnaps; echo "@/Documents/notes.md" >"$TMP/pick"; TZ=UTC on_tty $'7\n' fedokawaii --run file >/dev/null; called "^env as it was at 00:00 | "
+fresh; homesnaps; echo "@/Documents/notes.md" >"$TMP/pick"; TZ=UTC on_tty $'3\n' fedokawaii --run file >/dev/null
+called "^env as it was on $(date -u -d '-5 days' '+%-d %b') at 09:30 | "
+case_ "…a folder and two of one name: each copied whole, the second beside the first (never over it)"
+fresh; homesnaps; printf '%s\n' "@/Documents/old project" "@/Documents/notes.md" "@/Documents/notes.md" >"$TMP/pick"
+TZ=UTC on_tty $'7\n' fedokawaii --run file >/dev/null
+d=$(find "$HOME/Restored" -mindepth 1 -maxdepth 1 -type d); eq "$(cat "$d/old project/plan.txt")" "plan 7"
+eq "$(cat "$d/notes.md")" "notes as at 7"; eq "$(cat "$d/notes.md (2)")" "notes as at 7"; eq "$(find "$HOME/Restored" -mindepth 1 -maxdepth 1 | grep -c .)" 1 "one folder for one taking"
+case_ "…the dialog cancelled, enter for none, a number not listed, a path outside the snapshot: nothing taken, nothing made"
+fresh; homesnaps; out=$(TZ=UTC on_tty $'6\n' fedokawaii --run file); has "$out" "nothing taken"; [[ -e $HOME/Restored ]] && _no "made: $(ls -R "$HOME/Restored")" || _ok
+fresh; homesnaps; out=$(TZ=UTC on_tty $'8\n' fedokawaii --run file); has "$out" "no snapshot 8 in the list — nothing taken"; not_called '^kawa-pick'
+fresh; homesnaps; out=$(TZ=UTC on_tty $'9\n' fedokawaii --run file); has "$out" "no snapshot 9 in the list"
+fresh; homesnaps; echo "/etc/passwd" >"$TMP/pick"; TZ=UTC on_tty $'6\n' fedokawaii --run file >/dev/null
+[[ -z $(find "$HOME/Restored" -type f 2>/dev/null) ]] && _ok || _no "copied from outside: $(find "$HOME/Restored" -type f)"
+case_ "…snapshots you cannot read (no ACL), or none yet: said plainly, with what puts it right"
+fresh; homesnaps; chmod 000 "${HOME%/*}/.snapshots"; out=$(tty_free fedokawaii --run file </dev/null 2>&1); chmod 755 "${HOME%/*}/.snapshots"
+has "$out" "cannot be read here — fedokawaii repair lets you read them"; not_called '^kawa-pick'
+fresh; rm -rf -- "${HOME%/*}/.snapshots"; mkdir -p "${HOME%/*}/.snapshots"; out=$(tty_free fedokawaii --run file </dev/null 2>&1); has "$out" "no snapshots of your files yet"
+case_ "…its pane says what it does (in Super+U's popup it is a job: a window of its own, below)"
+out=$(plain "$(fedokawaii --explain file)"); has "$out" "copied into"; has "$out" "~/Restored, never over what is there."; lacks "$out" "not yet"
 case_ "snapshots without snapper, or on a root that is not Btrfs: said plainly"
 reset_calls
 out=$(without snapper -- "$SETSID" -w fedokawaii --run snapshots </dev/null 2>&1); has "$out" "snapper is not installed"; not_called '^sudo'
@@ -460,18 +529,18 @@ tty_free fedokawaii --run settings </dev/null >/dev/null 2>&1; has "$(cat "$R/to
 unset VISUAL
 
 # ── the plain menu (no fzf, a text console) ──────────────────────────────────
-case_ "plain menu: the status, fourteen numbered entries; q, Q, Enter and end of input all leave"
+case_ "plain menu: the status, fifteen numbered entries; q, Q, Enter and end of input all leave"
 fresh
 for k in q Q "" ; do out=$(printf '%s\n' "$k" | tty_free fedokawaii 2>&1); eq "$?" 0 "[$k]"; done
 out=$(tty_free fedokawaii </dev/null 2>&1); eq "$?" 0 "end of input"
 has "$out" "FEDOKAWAII"; has "$out" "release   Fedora 44"; has "$out" " 1  status"; has "$out" " 8  log"; has "$out" " 9  update"; has "$out" "10  fedokawaii"
-has "$out" "13  back up now"; has "$out" "14  lessons"; lacks "$out" "soon" "nothing that is not built yet"; has "$out" "backup    no drive"
+has "$out" "13  a file, back"; has "$out" "14  back up now"; has "$out" "15  lessons"; lacks "$out" "soon" "nothing that is not built yet"; has "$out" "backup    no drive"
 case_ "plain menu: a number runs its entry, then the menu again"
 out=$(printf '9\nq\n' | tty_free fedokawaii 2>&1)
 eq "$(front_calls)" "front update"; eq "$(grep -c FEDOKAWAII <<<"$out")" 2
 case_ "plain menu: a wrong answer says what is wanted, and runs nothing"
-fresh; out=$(printf '0\n15\nx\n1x\n-1\n\n' | tty_free fedokawaii 2>&1)
-eq "$(grep -c '1–14, or q' <<<"$out")" 5 "each of the five wrong answers"; eq "$(front_calls)" ""
+fresh; out=$(printf '0\n16\nx\n1x\n-1\n\n' | tty_free fedokawaii 2>&1)
+eq "$(grep -c '1–15, or q' <<<"$out")" 5 "each of the five wrong answers"; eq "$(front_calls)" ""
 case_ "plain menu on the text console: no characters the console font may lack"
 fresh; out=$(printf 'q\n' | TERM=linux tty_free fedokawaii 2>&1)
 lacks "$out" "·"; lacks "$out" "—"; lacks "$out" "…"; lacks "$out" "→"; has "$out" "status"
@@ -480,16 +549,16 @@ case_ "Fedora 45's text consoles are kmscon's (TERM=kmscon, TERM_SESSION_TYPE=km
 out=$(TERM=kmscon fedokawaii status); lacks "$out" "·"
 out=$(TERM=xterm-256color TERM_SESSION_TYPE=fb fedokawaii status); lacks "$out" "·" "kmscon under another TERM"
 fresh; stub fzf 'cat >/dev/null; exit 130'
-out=$(TERM=kmscon TERM_SESSION_TYPE=kms on_tty "q"$'\n' fedokawaii); has "$out" "14  lessons"; lacks "$out" "·"; not_called '^fzf'
+out=$(TERM=kmscon TERM_SESSION_TYPE=kms on_tty "q"$'\n' fedokawaii); has "$out" "15  lessons"; lacks "$out" "·"; not_called '^fzf'
 case_ "plain menu when fzf cannot run (old fzf: exit 2) on a terminal"
 fresh; stub fzf 'exit 2'
-out=$(on_tty "q"$'\n' fedokawaii); has "$out" "FEDOKAWAII"; has "$out" "14  lessons"
+out=$(on_tty "q"$'\n' fedokawaii); has "$out" "FEDOKAWAII"; has "$out" "15  lessons"
 case_ "fzf menu: Esc closes it (exit 0)"
 stub fzf 'cat >/dev/null; exit 130'; on_tty "" fedokawaii >/dev/null; eq "$?" 0; called '^fzf --read0 --ansi'
 case_ "Super+U: the menu in a warm window of its own (a popup: kawa-warm's toggle)"
 fresh; stub kawa-warm; fedokawaii --window; called "^kawa-warm system$"
 case_ "Super+U's popup: a job is handed to a window of its own (a click outside, or Super+U again, never kills it) and the menu ends"
-for a in update upgrade verify repair theme drift snapshots backup settings log; do
+for a in update upgrade verify repair theme drift snapshots file backup settings log; do
   reset_calls; FEDOKAWAII_POPUP=yes tty_free fedokawaii --run "$a" </dev/null >/dev/null 2>&1; eq "$?" 0 "$a"
   called "^setsid -f .*fedokawaii --job $a$"; eq "$(front_calls)" "" "$a: not run in the popup"; not_called '^sudo'
 done

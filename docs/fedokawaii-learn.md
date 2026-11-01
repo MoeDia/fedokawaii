@@ -807,7 +807,7 @@ $ snaps
 | You want | Do |
 |---|---|
 | undo one package install | `sudo snapper -c root undochange 58..59`, then reboot and `verify` |
-| a file of yours as it was an hour ago | `sudo ls /home/.snapshots/` to find a number, then copy it back: `sudo cp -a /home/.snapshots/57/snapshot/$USER/Documents/file.ods ~/Documents/` |
+| a file of yours as it was an hour ago | Super+U → snapshots → **a file, back**: pick the hour, then the file or folder (Space marks several, q takes the folder you are in) — a copy lands in `~/Restored`, beside what you have now; no password |
 | a mark before a risky change | `sudo snapper -c root create -p -d "before my experiment"` (prints its number) |
 | everything back to that mark | `sudo snapper -c root undochange NUMBER..0`, then reboot |
 

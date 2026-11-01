@@ -58,6 +58,7 @@
 set -u
 export LC_ALL=C.UTF-8
 TK=/usr/local/lib/fedokawaii
+HOME_SNAPS=/home/.snapshots                # /home's snapshots (snapper's "home"), readable by you
 STATE=/var/lib/fedokawaii                  # the toolkit's records (root writes, all read)
 CONF=${XDG_CONFIG_HOME:-$HOME/.config}/fedokawaii/upkeep.conf
 CACHE=${XDG_CACHE_HOME:-$HOME/.cache}/fedokawaii
@@ -681,7 +682,7 @@ tab_icon() {   # tab_icon SECTION → its pixel icon
   esac
 }
 # what is not built yet: a row in the faint ink that says "soon", its pane what it will be
-SOON='file|restore|drive|chess|typing'
+SOON='restore|drive|chess|typing'
 PANE_ONLY='held'   # (an entry that is its pane alone: enter does nothing)
 # every entry: SECTION<TAB>ACTION<TAB>ICON<TAB>NAME<TAB>VALUE (the value at the right, muted — or
 # in the vermilion when it needs you: due, ready, to fix, no backup); rows SECTION: that
@@ -874,7 +875,7 @@ tick() {
 explain() {
   local a=$1 O=${INK_OFF:-} G=${INK_MUTED:-} F=${INK_FAINT:-} kv pw=${FZF_PREVIEW_COLUMNS:-$PANE}
   # (nothing, or something unknown: nothing to explain)
-  [[ $a == @(status|update|pull|upgrade|held|verify|repair|snapshots|backup|theme|drift|change|settings|remind|log|keys|guide|todo|$SOON) ]] || return 0
+  [[ $a == @(status|update|pull|upgrade|held|verify|repair|snapshots|file|backup|theme|drift|change|settings|remind|log|keys|guide|todo|$SOON) ]] || return 0
   printf '%s\n\n\n' "$(screen_heading "$(icon_of "$a")" "${2:-$a}" $((pw - 1)))"   # (level with the tab bar; its words with the list's first row)
   # (the whole status only for the entries that show more than whether a run is going on:
   # the pane follows the cursor, so the others stay instant)
@@ -966,8 +967,11 @@ explain() {
                elif ((h > 3)); then say "and $((h - 3)) more."; echo; fi
                say "held at its version — let go by itself" \
                    "once a newer one passes." ;;
-    file)      soon "one file as it was, from a snapshot — never" \
-                    "the whole system." ;;
+    file)      pick 'running'
+               # shellcheck disable=SC2088  # (~ is the words, not a path)
+               say "a file or a folder of yours as it was an" \
+                   "hour, a day or a week ago — copied into" \
+                   "~/Restored, never over what is there." ;;
     restore)   soon "your files back from the drive, all or some." ;;
     drive)     soon "the backup drive: which, how full, plugged" \
                     "in or not." ;;
@@ -1022,13 +1026,13 @@ job_head() {
   local w n=$1
   on_console && return 0
   w=$(screen_width) || return 0
-  case $1 in remind) n=reminders ;; guide) n=learn ;; keys) n=keybindings ;; esac
+  case $1 in remind) n=reminders ;; guide) n=learn ;; keys) n=keybindings ;; file) n="a file, back" ;; esac
   printf '\n  %s\n\n' "$(screen_heading "$(icon_of "$1")" "$n" "$w")"
 }
 # the entries that run a job — dnf, a backup, an edit, or root's password asked: in Super+U's
 # popup they are handed to a window of their own (hand), which a click elsewhere, another
 # window or Super+U again never closes
-JOBS='update|pull|upgrade|verify|repair|theme|drift|snapshots|backup|settings|log'
+JOBS='update|pull|upgrade|verify|repair|theme|drift|snapshots|file|backup|settings|log'
 hand() {   # hand ACTION — the job in a dialog window, on its own: the popup closes behind it
   setsid -f "$0" --job "$1" >/dev/null 2>&1 </dev/null
 }
@@ -1063,6 +1067,7 @@ run() {   # run ACTION — in the menu's window: the work, its outcome, a key ba
     verify)    as_root verify; rc=$? ;;
     repair)    as_root repair; rc=$? ;;
     snapshots) snapshots; rc=$? ;;
+    file)      file_back; rc=$? ;;
     backup)    backup_now; rc=$? ;;
     theme)     as_root theme; rc=$? ;;
     drift)     as_root drift; rc=$? ;;
@@ -1127,7 +1132,8 @@ snapshots() {   # the snapshots of / — read from the disk by kawa-snap, as roo
     [[ $ty == post ]] && continue                       # (a dnf pair is its pre: "before" it)
     v=$(date -d "$d UTC" '+%-d %b %H:%M' 2>/dev/null) || v=$d
     [[ $b == booted ]] && v="running now · $v"
-    if ((w)); then screen_row "${ICON_HOURGLASS:-·}" "$(printf '%-4s %s' "$n" "$(fit "$de" $((w - 5 - 5 - ${#v} - 2)))")" "$v" "$w"
+    # (a column in, one wider: the icon under the heading's, the date ending where its rule does)
+    if ((w)); then printf ' '; screen_row "${ICON_HOURGLASS:-·}" "$(printf '%-4s %s' "$n" "$(fit "$de" $((w - 5 - 5 - ${#v} - 2)))")" "$v" $((w + 1)); echo
     else printf '  %-4s  %-46s  %s\n' "$n" "$(fit "$de" 46)" "$v"; fi
     nums+=("$n")
   done <<<"$l"
@@ -1149,6 +1155,72 @@ snapshots() {   # the snapshots of / — read from the disk by kawa-snap, as roo
   printf '  restart now? y/n '
   read -rsn1 c </dev/tty 2>/dev/null || c=n; echo
   [[ $c == [yY] ]] && systemctl reboot
+  return 0
+}
+file_back() {   # a file or a folder of yours as it was in one of /home's snapshots (snapper's
+  # hourly and daily ones), copied into ~/Restored/ — never over what is there now. As you, no
+  # password: the snapshots are yours to read (setup gives /home/.snapshots your group), never to change
+  local s=$HOME_SNAPS top=${HOME_SNAPS%/.snapshots} rel l f n d i t day today yday w=0 nums=() when=() ans at m
+  local snap work dir base p to out took=()
+  # (a snapshot holds /home: your home is in it under its own name)
+  [[ $HOME == "$top"/* ]] || { echo "  your home ($HOME) is not in $top — its snapshots are $top's" >&2; return 1; }
+  rel=${HOME#"$top"}
+  [[ -x $s ]] || { echo "  your files' snapshots cannot be read here — fedokawaii repair lets you read them" >&2; return 1; }
+  # NUMBER<TAB>DATE (UTC, as snapper's own info.xml has it), the newest first
+  l=$(for f in "$s"/*/info.xml; do
+        n=${f%/info.xml}; n=${n##*/}
+        [[ $n =~ ^[0-9]+$ && -d $s/$n/snapshot$rel ]] || continue
+        d=$(sed -n 's:.*<date>\(.*\)</date>.*:\1:p' "$f" 2>/dev/null)
+        [[ $d =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}\ [0-9]{2}:[0-9]{2}:[0-9]{2}$ ]] && printf '%s\t%s\n' "$n" "$d"
+      done | sort -t$'\t' -k1,1nr)
+  [[ -n $l ]] || { echo "  no snapshots of your files yet — one is taken every hour"; return 0; }
+  # (every date in your time at once: one date for the list, never one a row)
+  mapfile -t nums < <(cut -f1 <<<"$l")
+  mapfile -t when < <(cut -f2 <<<"$l" | sed 's/$/ UTC/' | date -f - '+%F %H:%M')
+  ((${#when[@]} == ${#nums[@]})) || { echo "  the snapshots' dates could not be read" >&2; return 1; }
+  today=$(date +%F) yday=$(date -d yesterday +%F)
+  declare -F screen_row >/dev/null && w=$(screen_width 2>/dev/null) || w=0
+  for i in "${!nums[@]}"; do
+    t=${when[i]#* }
+    case ${when[i]% *} in "$today") day=today ;; "$yday") day=yesterday ;; *) day=$(date -d "${when[i]% *}" '+%-d %b') ;; esac
+    # (a column in, one wider: the icon under the heading's, the day ending where its rule does)
+    if ((w)); then printf ' '; screen_row "${ICON_HOURGLASS:-·}" "$(printf '%-4s %s' "${nums[i]}" "$t")" "$day" $((w + 1)); echo
+    else printf '  %-4s %s  %s\n' "${nums[i]}" "$t" "$day"; fi
+    when[i]="$t $day"
+  done
+  printf '\n  your files as they were then: a file, a folder or several, copied into\n'
+  printf '  ~/Restored — what is there now stays as it is\n'
+  printf '  its number, or enter for none: '
+  read -r ans </dev/tty 2>/dev/null || ans=""
+  [[ -n $ans ]] || return 0
+  at=""; for i in "${!nums[@]}"; do [[ ${nums[i]} == "$ans" ]] && at=${when[i]}; done
+  [[ -n $at ]] || { echo "  no snapshot $ans in the list — nothing taken" >&2; return 1; }
+  command -v kawa-pick >/dev/null || { echo "  kawa-pick is missing — fedokawaii repair puts it back" >&2; return 1; }
+  # (the dialog's heading names the moment: "as it was at 16:00", "… yesterday at 16:00", "… on 30 Oct at 16:00")
+  t=${at%% *} day=${at#* }
+  case $day in today) m="as it was at $t" ;; yesterday) m="as it was yesterday at $t" ;; *) m="as it was on $day at $t" ;; esac
+  snap=$s/$ans/snapshot$rel
+  work=$(mktemp -d "${XDG_RUNTIME_DIR:-/tmp}/fedokawaii-back.XXXXXX") || return 1
+  KAWA_PICK_TITLE=$m KAWA_PICK_ROOT=$snap kawa-pick --inside back "$snap" "$work"
+  # (only what that snapshot holds of your home: an answer from anywhere else is nothing taken)
+  while IFS= read -r p; do [[ $p == "$snap"/* ]] && took+=("$p"); done < <(cat -- "$work/answer" 2>/dev/null)
+  rm -rf -- "$work"
+  printf '\e[H\e[2J\e[3J'; job_head file
+  ((${#took[@]})) || { echo "  nothing taken"; return 0; }
+  # a folder of its own each time (kawa-backup restore's way: ~/Restored/DATE-TIME, .2 in the same second)
+  base=$HOME/Restored/$(date '+%Y-%m-%d-%H%M%S'); dir=$base; n=1
+  while [[ -e $dir ]]; do n=$((n + 1)); dir=$base.$n; done
+  mkdir -p -- "$dir" || return 1
+  printf '  %s, into %s:\n\n' "$m" "${dir/#"$HOME"/\~}"
+  for p in "${took[@]}"; do
+    to=$dir/${p##*/}; n=1
+    while [[ -e $to || -L $to ]]; do n=$((n + 1)); to="$dir/${p##*/} ($n)"; done
+    f=${p#"$snap"/}; [[ ${to##*/} == "${p##*/}" ]] || f+=" — as ${to##*/}"
+    # (a reflink where it can: the same disk, no space taken until one of them changes; yours,
+    # with the labels of where it lands — the snapshot's own are never copied out)
+    if out=$(cp -RP --preserve=mode,timestamps,links --reflink=auto -- "$p" "$to" 2>&1); then printf '   %s\n' "$f"
+    else printf '   %s — not all of it: %s\n' "$f" "$(sed -n 1p <<<"$out")"; fi
+  done
   return 0
 }
 guide() {   # the learning guide: the PDF in zathura on the desktop; on a text console, its text

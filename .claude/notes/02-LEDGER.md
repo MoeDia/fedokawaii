@@ -2637,12 +2637,55 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   the whole suite on 78ea68c from /dev/shm/r27w-suite → /dev/shm/r27p/suite-78ea68c.log — started with the PC's
   kernel still on trial (grubenv boot_counter=3 boot_success=0, the probation drop-in present).
 
-## >>> NEXT PASS STARTS HERE (1 Nov, written 16:27 — the lines above say what this pass did): the inbox first. Then:
+- r27-49-hang (1 Nov 16:26–17:00) — FOUND by the re-run of update-green.sh f44 from 78ea68c: the update HUNG after
+  its transaction. Evidence (/dev/shm/r27/update-green/hang.txt, the VM's journal and process tree): the replay's
+  unit fedokawaii-dnf-1793536088-1277 "Deactivated successfully" 16:28:47.27 (61 packages, systemd 259.10 among
+  them), PID 1 reloaded 0.7 s before (16:28:46.48, "Reload requested from client … systemctl"), the user managers
+  re-executed, scriptlets failing "Failed to start transient service unit: Remote peer disconnected" — and
+  `systemd-run --wait` (dnf_detached) still waiting 18 min later for a unit already collected, load 0. Intermittent:
+  the same set passed in E4, both probation runs and the PC's press. systemd's own %posttrans runs `systemctl
+  daemon-reexec` on every upgrade (rpm -q --scripts systemd). Not reproducible bare on the PC: a unit running
+  `systemctl daemon-reload` (12×) or `daemon-reexec` (5×) just before its end — --wait returned each time; no
+  upstream report found (the nearest: the daemon-reload vs client race, systemd PR #8803 via Launchpad). FIXED (not
+  by retrying --wait): dnf_detached starts the unit with RemainAfterExit=yes and no --wait/--collect; dnf_end asks
+  `systemctl show -p ActiveState -p SubState -p ExecMainCode -p ExecMainStatus` once a second (a fresh connection
+  each time: no signal to lose) → exited N, killed 128+N; the unit then stopped and reset-failed; dnf_settle clears
+  ended units a cut run left before looking for a running one (--state=running). Stand-ins: systemd-run records
+  "ended UNIT RC", systemctl show/list-units/stop/reset-failed answer from it; rows: no --wait/--collect, the end
+  read by show, nothing left; a dnf killed by TERM → "could not be installed now"; two ended units of a cut run
+  cleared first, never "still going" (that row first failed: dnf_settle ran under dnf_detached's `local IFS=' '`,
+  so two ended units read as one word — now mapfile, a line each). The update-green proof was stopped (the hung
+  run; its VM shut down).
+- r27-52-file (1 Nov 16:30–17:00; T48's "a file, back", was a "soon" placeholder) — Super+U → snapshots → a file,
+  back: /home's snapshots (snapper's hourly and daily ones) listed newest first (number, time, today/yesterday/
+  date — one `date -f` for the whole list), a number → kawa-pick in a new `back` mode inside the job window at
+  that snapshot's copy of the home (yazi heading "as it was at 16:00 · ~/Documents", keys "space mark · q this
+  folder": Enter takes a file or the marked files and folders, Enter on a folder goes in, q takes the folder you
+  are in) → copied with reflinks into ~/Restored/DATE-TIME/ (kawa-backup restore's folder rule), a second of one
+  name beside it as "name (2)", never over anything, an answer outside the snapshot taken as nothing; no
+  password: setup gives /home/.snapshots (0750 root, snapper's) his group — never snapper's ALLOW_USERS, which
+  would let anything running as him delete them; verify checks root:GROUP 0750. (acl is not installed here:
+  group ownership instead of an ACL — no package for one directory.) Rendered both moods with the kit
+  (/dev/shm/r27p/kit-fb/{dark,light}-{1,2}-win.png) → found and fixed: the rows sat one column left of the
+  heading's icon and ended two short of its rule — AND the existing "go back" list never ended its rows' lines
+  (screen_row prints no newline: in the job window every system snapshot ran into the next — untested, the
+  tests ran without a terminal); both lists now a row a line, the icon under the heading's, the date ending
+  where the rule ends; rows `aligned` assert it on a pty; re-rendered after the fix (dark-1b-zoom.png, 2×): the
+  hourglasses under the heading's page icon, "today"/"26 Oct" ending on the rule's last pixel column. Tests: test_menu 663/0 (homesnaps: three snapshots,
+  the flow, a folder + two of a name, cancelled / none / not listed / outside, unreadable, none yet, the pane,
+  the popup hand-off; the plain menu's fifteen entries), test_pick 101/0 (back: file, marks, q, Esc, the dress),
+  the engine area's other 11 files with the pointed HOME_SNAPS, the yazi area rc 0.
+
+## >>> NEXT PASS STARTS HERE (1 Nov, written 17:00 — the lines above say what this pass did): the inbox first. Then:
 ## (1) the master's Re-review 3 of T45: its verdict is appended to master-T45-efh-verdict.md ("Re-review 3"). If
 ##     it is not there (the pass ended first), launch it again with /dev/shm/r27/master/T45-3/brief.md (gone after
-##     a reboot: then rebuild it from ledger r27-49-R3 and the Re-review 2 conditions). Fix its must-fix items.
-## (2) DONE this pass: the master's should-fix 2–5 (ledger r27-49-sf2-5, 78ea68c). Next after the review: T48's
-##     rest (restore-file, backups, the space floor, the Learn piece) — on a branch while the master reads main.
+##     a reboot: then rebuild it from ledger r27-49-R3, r27-49-hang and the Re-review 2 conditions). It was told of
+##     the hang (r27-49-hang) mid-review. Fix its must-fix items.
+## (2) the hang's fix (dnf_detached polls, r27-49-hang) proven in the VM: update-green.sh f44 AND update-button.sh
+##     f44b from a frozen worktree of the commit that has it (both with the new SELinux-denial row); the PC applied
+##     with it. Then T48's rest: Super+U → backups → restore and the drive (kawa-backup has the engine: restic
+##     0.19.1 and fuse3 are installed — `restic mount` would let yazi browse a backup as "a file, back" browses a
+##     snapshot: the same grammar), the read-only snapshot boot in the VM, the Learn piece.
 ## (3) THE KERNEL TRIAL ON THE PC is open since 14:43 (7.2.13; grubenv 3/0/1; snapshot 381 pinned). It closes at
 ##     the next start: a reboot ends the bulk run (r27-bulk-*, 10:36 + 12 h) — so reboot only in the claude-r27
 ##     pass after 22:36 (CLAUDE.md START §4: initial_session, presence probe first), or let his own restart close

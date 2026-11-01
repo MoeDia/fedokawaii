@@ -197,13 +197,25 @@ not_called 'dracut\] -f --kver'; [[ ! -e $W/boot/initramfs-99.1.1-200.fc44.x86_6
 case_ "repair: each package change a service of its own (closing the window cuts none in half); what only asks dnf stays in the window"
 back built; fkh_del installed bat; fkh_add installed systemd-oomd-defaults; reset_calls
 tk --repair; pkg_has bat && _ok || _no "bat not put back"
-called 'systemd-run\] .*--wait .* /usr/bin/dnf -y install bat$'
-called 'systemd-run\] .*--wait .* /usr/bin/dnf -y remove .*systemd-oomd-defaults'
+called 'systemd-run\] .*-p RemainAfterExit=yes .* /usr/bin/dnf -y install bat$'
+called 'systemd-run\] .*-p RemainAfterExit=yes .* /usr/bin/dnf -y remove .*systemd-oomd-defaults'
 not_called 'systemd-run\] .* /usr/bin/dnf .*repoquery'; called '^root\[dnf\] -q (--setopt=[^ ]*\.skip_if_unavailable=0 )+repoquery --available --whatprovides bat$'
 has "$OUT" "(as fedokawaii-dnf-"
 case_ "update: the manifest's install after the upgrade is detached too"
 back built; fkh_del installed bat; fkh pending "bash 5.2-1.fc44 5.3-1.fc44"; fkh_add installed bash; reset_calls
-tk --update; called 'systemd-run\] .*--wait .* /usr/bin/dnf -y -C replay /var/lib/fedokawaii/update/tx'; not_called 'systemd-run\] .*stdbuf'; called 'systemd-run\] .*--wait .* /usr/bin/dnf -y install bat$'
+tk --update; called 'systemd-run\] .* /usr/bin/dnf -y -C replay /var/lib/fedokawaii/update/tx'; not_called 'systemd-run\] .*stdbuf'; called 'systemd-run\] .* /usr/bin/dnf -y install bat$'
+case_ "update: dnf's unit never waited for through the bus (systemd's own scriptlets reload it mid-transaction: a lost signal waited for ever) — its end read by asking, then the unit cleared"
+back built; fkh_del installed bat; fkh pending "bash 5.2-1.fc44 5.3-1.fc44"; fkh_add installed bash; reset_calls
+tk --update; eq "$RC" 0 "$(tail -n3 <<<"$OUT")"; not_called 'systemd-run\] .*--wait'; not_called 'systemd-run\] .*--collect'
+called 'systemctl\] show -p ActiveState -p SubState -p ExecMainCode -p ExecMainStatus fedokawaii-dnf-[0-9]+-[0-9]+\.service$'
+called 'systemctl\] reset-failed fedokawaii-dnf-'; grep -q '^ended fedokawaii-dnf-' "$FKH/units" && _no "an ended unit left: $(grep '^ended' "$FKH/units")" || _ok
+case_ "…a dnf killed by a signal (TERM): its status 128+15, the install said as not done, tried again next time"
+back built; fkh_del installed bat; fkh dnf-killed 15; reset_calls
+tk --repair; pkg_has bat && _no "bat in, from a killed dnf" || _ok; has "$OUT" "could not be installed now: bat"; rm -f "$FKH/dnf-killed"
+case_ "…ended units a cut run left (nobody read their status): cleared first by the next run, never mistaken for one still going"
+back built; fkh_add units "ended fedokawaii-dnf-1-1.service 0" "ended fedokawaii-dnf-2-2.service 1"; fkh_del installed bat; reset_calls
+tk --repair; called 'systemctl\] stop fedokawaii-dnf-1-1.service'; called 'systemctl\] reset-failed fedokawaii-dnf-2-2.service'
+lacks "$OUT" "is still going"; grep -q '^ended fedokawaii-dnf-[12]-' "$FKH/units" && _no "left: $(grep '^ended' "$FKH/units")" || _ok; pkg_has bat && _ok || _no "bat not put back"
 # ── a machine set up before these: the user in input, no record of it; no Bluetooth or
 #    shutdown setting; systemd-oomd-defaults brought by something ───────────────────────
 earlier() { fk usermod -aG input fkuser; rm -f "$W/var/lib/fedokawaii/input-group-out" \

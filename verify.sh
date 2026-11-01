@@ -683,6 +683,12 @@ if ((PRE == 0)); then
   fi
   check "snapshots kept within bounds (a fifth of the disk stays free)" \
     bash -c 'snapper --csvout -c root get-config | grep -qE "^FREE_LIMIT,0\.2"'
+  # (Super+U → a file, back reads them as you: /home/.snapshots in your group, 0750 — setup's)
+  if [[ -f /etc/snapper/configs/home && -d /home/.snapshots ]]; then
+    if [[ $(stat -c '%U %G %a' /home/.snapshots 2>/dev/null) == "root $(id -gn "$TARGET_USER" 2>/dev/null) 750" ]]; then
+      pass "your files' snapshots readable by you (Super+U → a file, back)"
+    else fail "your files' snapshots readable by you" "fedokawaii repair lets you read them (/home/.snapshots: root, your group, 0750)"; fi
+  fi
   # the disk's flat layout (fedokawaii-split): a restore never takes /home, the logs, the
   # updater's memory or the snapshots back in time
   lay=$(/usr/local/sbin/fedokawaii-split state 2>&1) || lay="unreadable: $lay"
