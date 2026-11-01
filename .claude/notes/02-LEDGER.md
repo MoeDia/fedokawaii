@@ -2589,24 +2589,36 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   kawa-dwlstatus is untouched by this pass: a load-sensitive count in the test (pokes lost under load) — for T52/
   T53: make the count robust (the stand-in's poke log, not signal delivery) without weakening the "one per change".
 
-## >>> NEXT PASS STARTS HERE (1 Nov, written 15:35 — the lines above say what this pass did): the inbox first. Then:
-## (1) STATE: main = aa9366a + branch `next` (worktree ~/repos/fk-next: 1e04cad, fa1beb3, 3d25e97 — the master's
-##     must-fix 1, 3, 4, 5 and the VM proofs' --apply). If `git log main..next` is not empty, this pass did not get
-##     to merge it: check /dev/shm/r27p/next-areas.log (installer, static, engine areas on fa1beb3: "area-X-rc=0" for
-##     all three, then "all-done") and /dev/shm/r27p/head3.log (the whole suite on aa9366a: its only reds were
-##     test_setup's trap grep and test_update_flow's leaked drop-in — both fixed on next); green → `git merge
-##     --ff-only next` in main, push, `git worktree remove ../fk-next`, `git branch -d next`, then apply (CLAUDE.md).
-## (2) (E) in the VM: /dev/shm/r27p/button7.txt (update-button.sh f44b from next, with --apply's restart): every
-##     row "held" — above all "the desktop check green before and after". Then update-green.sh f44 and probation.sh
-##     (both start from --apply now) green, no "the desktop does not start" in their logs. Red → KEEP=1 kit logs.
-## (3) back to the master (Re-review 3) with the evidence of (1)–(2); its should-fix 1–5 (ledger r27-49-master-2):
-##     the offered snapshot kept pinned, the live manifest/hardware installs (store or the written exception),
-##     stdbuf's LD_PRELOAD in dnf's scriptlets, hold_families via UPD/sources, the Learn line for a stopped unit.
-## (4) THE KERNEL TRIAL ON THE PC is open since 14:43 (7.2.13; grubenv 3/0/1; snapshot 381 pinned). It closes at
+- r27-49-E4 (1 Nov 15:42–15:52) — update-green.sh f44 from `next` (applied first): exit 0 in 342 s, report "ok ·
+  updated · 61 packages", the checks before it 15:46:05 with no red, "green in the copy" 15:47:46, kernel 7.2.13 on
+  trial, "the desktop does not start" 0 times in its log (its new assertion held). The `next` areas on fa1beb3:
+  installer, static, engine all rc 0 (1365 s, /dev/shm/r27p/next-areas.log); with the whole suite on aa9366a
+  (all other areas green but the load-sensitive row, r27-flaky-1) → merged `next` into main (bab147c), PUSHED;
+  the worktree and the branch removed. Applied bab147c on the PC 15:53–15:54: verify 261/262 (his qbittorrent);
+  the trial intact — its arguments on 7.2.13, boot_counter=3 boot_success=0, the watchdog drop-in — repair's boot
+  step adds BOOT_ARGS and removes only BOOT_ARGS_GONE (plymouth.use-simpledrm), never the trial's.
+- r27-49-sf1 (1 Nov 15:53–16:00; the master's should-fix 1) — an "offered" report's snapshot (the way back it
+  named) is no longer released by the next press: up_leftovers keeps it pinned in UPD/offered, and the next kept
+  update's up_probation hands it to the probation, which releases it with its own when the trial closes. (The
+  report's first line read with IFS=' ': setup.sh's IFS is newline and tab.) test_update_flow 277/0 (the press
+  after an offered run: not released, in the probation, released by --boot-good). Pushed c1841f6; applied on the
+  PC 15:59–16:00 (verify 261/262, the trial still armed).
+
+## >>> NEXT PASS STARTS HERE (1 Nov, written 16:01 — the lines above say what this pass did): the inbox first. Then:
+## (1) the master's Re-review 3 of T45 (B, D, E, F, G and the must-fix 1/3/4/5 fixes, should-fix 1): evidence —
+##     ledger r27-49-E1…E4, r27-49-master-2-fixes, r27-49-sf1; /dev/shm/r27p/button7.txt + /dev/shm/r27/update-
+##     button-f44b/ (run 7, all held), /dev/shm/r27/update-green/ (exit 0, no desktop red), next-areas.log,
+##     head3.log; main c1841f6 (pushed). Still for it: probation.sh f44b from main (starts from --apply now; two
+##     cases with reboots, ~35 min) — run it first, in the background.
+## (2) the master's should-fix 2–5 (ledger r27-49-master-2): the live manifest/hardware installs after the replay
+##     (store them in the transaction, or the written exception in update-design.md and the Learn piece); stdbuf's
+##     LD_PRELOAD reaching dnf's scriptlets (6 setfiles_t AVCs per update); hold_families by UPD/sources when
+##     present; the Learn line for a stopped unit. Plus r27-flaky-1 (test_dwlstatus's burst count under load).
+## (3) THE KERNEL TRIAL ON THE PC is open since 14:43 (7.2.13; grubenv 3/0/1; snapshot 381 pinned). It closes at
 ##     the next start: a reboot ends the bulk run (r27-bulk-*, 10:36 + 12 h) — so reboot only in the claude-r27
 ##     pass after 22:36 (CLAUDE.md START §4: initial_session, presence probe first), or let his own restart close
 ##     it; then read fedokawaii-boot-good's journal: boot_counter unset, the trial arguments and the watchdog
-##     drop-in gone, snapshot 381 back to number cleanup, 7.2.11 removed at the next "one kernel" step — ledger
+##     drop-in gone, snapshot 381 back to number cleanup, 7.2.11 out at the next "one kernel" step — ledger
 ##     r27-49-B3. libheif 1.23.7 waits for RPM Fusion's libheif-freeworld (dnf skips it: conflicts).
-## (5) T46 F45 (released Tue 3 Nov): re-run vm-smoke.sh f45 from a frozen main after the release (RPM Fusion's
+## (4) T46 F45 (released Tue 3 Nov): re-run vm-smoke.sh f45 from a frozen main after the release (RPM Fusion's
 ##     updates repos then on); T48 rest; (H) 7's three config checks with T58; T45 (i) last.
