@@ -2182,6 +2182,20 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   kawa-dwlstatus caches the newest "waybar" by comm, which a zombie fork keeps — harmless once no zombies
   are made (a fork alive pre-exec has waybar's handlers: its poke reaches the bar through the pipe).
 
+- r27-found-2 (1 Nov 10:22, for T53/T42 — not yet fixed): the installer tests leave core dumps on his system:
+  62 of /tmp/kawa-test.*/w/.usr/bin/bluetoothctl (SIGABRT, `bluetoothctl show`, users 1000 and the world's
+  555287) in coredumpctl's list — the fake machine's /usr/bin links every real binary (tests/installer/lib.sh
+  usr_farm), and fedokawaii-report's BT-01/BT-04 rows run the real bluetoothctl in a namespace with no system
+  bus, where it aborts. On the PC itself `bluetoothctl show` answers (rc 0, no core). Fix: a stand-in
+  tests/installer/stubs/bluetoothctl (show / devices Paired / info / --version, the world's state from $FKH),
+  then the whole installer area again (a stub change: memory "harness change → full area re-run"); a
+  regression check: no new coredumpctl entry under /tmp/kawa-test.* after tests/run.sh. Also seen: each kit
+  run ends with foot --server writing two "Broken pipe" errors to his journal when the headless dwl goes —
+  the kit should stop its foot server before dwl ends.
+  Checked after the split meanwhile: the new subvolume roots' SELinux labels right (`restorecon -nv` on /home,
+  /home/dia, /var/log, /var/log/journal, /.snapshots, /var/lib/fedokawaii/update: nothing to change), 0 AVC
+  denials since the boot, no failed unit (system or user).
+
 ## >>> NEXT PASS STARTS HERE (1 Nov 10:12): the inbox first. Then:
 ## (0) done (r27-52b-vm: the split's boot-list fix green in the VM).
 ## (1) T45 (worktree ~/repos/fk-t45): merge main (t48 is in it) into t45; then (e) the real checks +
