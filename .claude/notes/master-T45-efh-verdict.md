@@ -496,3 +496,112 @@ three VM proofs green and their logs kept in /dev/shm/r27; 3 fixed and 5's harne
 the whole suite green on the commit that is pushed — run while this PC still has its kernel on trial, so the
 world's independence from the PC's state is shown, not assumed; the should-fixes decided (done, or written down
 as a decision in the ledger).
+
+## Re-review 3 (1 Nov, 16:25–17:15) — main at 78ea68c
+
+Read: the brief (/dev/shm/r27/master/T45-3/brief.md); Re-review 2; the diff aa9366a..78ea68c whole (lib/update.sh,
+fedokawaii.sh, lib/common.sh, setup.sh, the tests, tools/vm-inject/*, tools/vm-run.sh, update-design §2.5, plan T45/T50);
+lib/update.sh at 78ea68c whole; lib/guard.sh desktop_starts; tools/regress/{session-start,bar-geometry}.sh;
+tests/installer/lib.sh world() and its stand-in desktop checks; system/fedokawaii status_kv/explain/pick; setup.sh
+on_signal, dnf_detached, do_update's resume; ledger r27-49-master-2-fixes … R3; the VM proofs' kept logs (button7.txt +
+run 7's units/state/stop; prob-main.txt + fail/pass logs; the green re-run's run.log and — read-only, through
+vm-run.sh — the VM's own processes, units and journal while it hung). Sources: systemd.exec(5), ausearch(8),
+dnf5-do(8), dnf5-upgrade(8), `dnf5 install --help` installed; the PC's journal (fk-buftest* 16:04–16:06; the press's
+reloads 14:42); audit via ausearch. Ran (read-only, sudo): grub2-editenv list and the probation drop-in — 3/0/1 and
+present at 16:28 and at the suite's end 17:10; UPD/*; a [[ == @() ]] probe (bash's [[ matches "as if extglob were
+enabled": no shopt needed); desk_reds against a two-line bar verdict; shellcheck -S warning on the four changed scripts
+(clean); a derivation of every literal /etc path setup.sh/theme.sh/lib/system write (82) against this PC's /etc and the
+world scrub. Tests run by me from /dev/shm/r27w-master: test_front 133/0, test_update_flow 283/0 (serialised behind the
+suite's installer lock). The whole suite on 78ea68c (/dev/shm/r27p/suite-78ea68c.log, from /dev/shm/r27w-suite =
+78ea68c): rc=0 in 2915 s, 128 areas, none red — started 16:21 and ended with this PC's kernel still on trial.
+
+### Proven
+- **Must-fix 4**: fedokawaii.sh:225 no "-"; u_start (lib/update.sh:39-42) dies in any domain but unconfined_service_t
+  (the unit) or unconfined_t (by hand) while `selinuxenabled`; test_front asserts the property without "-" (133/0).
+- **Must-fix 1, the session half**: desk_reds (lib/update.sh:91-99) a line an item, the item in the label; up_labels
+  compares before " — "; a kept update with a red desktop baseline says so (u_report :363-381, "red before it: …").
+  Rows test_update_flow:164-176 meaningful (a waybar-red baseline kept and said; a bar red before + dwl gone after →
+  offered, held); the real checks' format matches the stand-ins' (session-start.sh:33/43, bar-geometry.sh:20). The
+  bar half is NOT closed — must-fix 2 below.
+- **Must-fix 3**: on_signal (setup.sh:81-86) with the traps :87-88; test_setup:303-305 asserts the condition and the
+  TERM trap, the behaviour in test_update_flow's TERM row and test_torture:223; test_setup 234/0 in the suite.
+- **Must-fix 5**: tests/installer/lib.sh:229-233 scrubs by marker, by name (*fedokawaii*, *scriptorium*, kawa-*) and
+  the listed unmarked files; my derivation: of the 82 /etc paths the toolkit names, none this PC has survives the scrub
+  (grub and fstab the world writes itself, :221/:202, before it); the third-entry row asserts its precondition (:299).
+  The suite green on the pushed commit while this PC's /etc held the trial's drop-in: the independence shown, not assumed.
+- **(E)/(F)**: update-button run 7 (3d25e97 — fedokawaii.sh, lib/guard.sh, tools/regress unchanged to 78ea68c) 9/9
+  held, units.txt: "the desktop does not start" 0 times, one invocation, the stop row; probation.sh (766b434) fail held
+  in 213 s, pass in 173 s, exit 0; update-green from `next` (E4) exit 0. The re-run from 78ea68c did not finish:
+  must-fix 1 below — (E) is not green on the pushed commit.
+- **Should-fix 1** (c1841f6): up_leftovers :75-82 keeps an offered run's snapshot in UPD/offered, up_probation :443
+  hands it to the probation, up_probation_close :483-486 releases it; row :129-134 (not released, in the probation,
+  released by --boot-good).
+- **Should-fix 3**: stdbuf gone (setup.sh:2612-2614); the measurement is real — the PC's journal: fk-buftest3
+  (systemd-run, StandardOutput=journal, no stdbuf) wrote kernel-core's line 16:05:30.00, linux-firmware's :35.16,
+  kernel-modules' 16:06:08.43 — line by line as each download ended; the 6 libstdbuf AVCs of the 14:39 press counted
+  by me (`ausearch -m avc -ts today | grep -c libstdbuf` → 6); test_upkeep asserts no stdbuf in the unit.
+- **Should-fix 4**: holds carry SOURCE (lib/update.sh:263-267, :278-287, :466); hold_families by source
+  (lib/common.sh:701-706); rows :157-162 (python3-foo/-bar two families), :83 ("kernel", never kernel-core).
+- **Should-fix 2 and 5** written (update-design §2.5; plan T50's acceptance).
+- The open items — the PC's trial close (B3), (H) 7 with T58, (i) the tag — are stated as open in plan T45 and the
+  ledger's next-pass note, not claimed.
+
+### Must-fix
+1. **setup.sh:2612 dnf_detached — the update can hang for good after a finished transaction.** update-green from
+   78ea68c (VM f44, the run from 16:26): the replay unit fedokawaii-dnf-1793536088-1277 ended 16:28:47.27
+   "Deactivated successfully", Result=success ExecMainStatus=0 — and `systemd-run --quiet … --wait --collect`
+   (pid 55596) was still waiting at 16:46, its private-socket connection ESTAB, the unit already collected
+   (`systemctl show`: LoadState=not-found), setup.sh --update blocked in phase replay, the VM idle (load 0.00), no
+   "exit" line ever (stopped by the coordinator 16:52; the capture: /dev/shm/r27/master/T45-3/hang-evidence.txt).
+   Around the end: two daemon-reloads from the transaction's own scriptlets (16:28:44.19, 16:28:46.49), PID 1 "Got
+   disconnect on API bus" twice (16:28:44.46, 16:28:46.43), systemd's %triggerin scriptlets failing their own
+   transient units ("Remote peer disconnected"). The PC's press of 14:39 had the same reload pattern (14:42:29.35/.63)
+   and returned; E4 and run 7 returned: a race, not a certainty. Fact: the waiter's reference on the unit was lost (the
+   unit collected while the waiter lived), so it vanished before systemd-run read its end; the why (a reload between
+   start and end) is a hypothesis to confirm in systemd's src/run/run.c and the core's unit serialization. Today's
+   recovery needs him: a stop, then a second press (do_update: was=replay → dnf_settle → up_complete → the steps) —
+   against "he never has to step in". Fix: the end never read through a bus subscription — the coordinator's 79cd435
+   (no --wait/--collect, RemainAfterExit=yes, `systemctl show -p ActiveState,SubState,ExecMainCode,ExecMainStatus`
+   once a second, stop + reset-failed after, dnf_settle clearing a cut run's ended units) is the right shape; "never a
+   time limit" stays. Proof wanted: a test_upkeep stub row (a systemd-run that returns at once, a unit whose end comes
+   later; a cut run's ended unit cleared by dnf_settle), and the VM proofs from the fixed commit — update-green and
+   update-button twice each, one of them with a daemon-reload storm in the VM during the replay
+   (`while :; do systemctl daemon-reload; done` from a second ssh) to force the race the fix must survive.
+2. **lib/guard.sh:185 `tail -n 1` — the bar check's reds reach desk_reds one at a time, so a red before can still hide
+   one after.** bar-geometry.sh prints a line per failing item (`no`, :20), both themes in one run; desktop_starts keeps
+   only the last line. Demonstrated with the frozen functions: a dark "rows" red (the bar growing, :29 — the first
+   check) + a light "the clock's gaps" red (:55, the last): desk_reds labels both, the sed+tail keeps only the clock.
+   Verdict 2's must-fix 1 is closed for session-start (one line a run, items joined with " · ") and open for
+   bar-geometry. Fix: every `^bar-geometry (` / `^session-start (` line passed on (drop `tail -n 1`; desk_reds already
+   takes a line an item); the stand-in's bar-red made two lines, the new one first → after the replay: offered, held;
+   a row in test_update_flow.
+3. **lib/update.sh:375 with system/fedokawaii:278-280 — the "red before it" suffix overflows the status row,
+   untested.** For a kept update the status's `updated` continuation gets "N packages · the desktop's check was red
+   before it, so not judged (Super+U → log)": 82 characters for 96 packages, + the row's 12 → 94 columns into a
+   50-column pane (PANE=50, fzf nowrap) and `fedokawaii status` (test_status holds every row ≤ 44) — a cut line (the
+   standing rule: fit, or cut at a word); with holds present `${l%% · held: *}` drops the suffix silently — two
+   behaviours. No test_status row carries the suffix. Fix: a short fixed status form that fits (e.g. "· desktop: red
+   before, not judged"), the sentence in the report's lines 3+ and the log; wording "its items red before it were not
+   judged" (with per-item labels the rest IS judged); test_status rows ≤ 44 with the suffix, with and without holds.
+
+### Should-fix
+1. tools/vm-inject/update-{button,green}.sh — the SELinux rows cannot tell "no denial" from "no audit log": ausearch
+   exits 1 and prints nothing for a missing /var/log/audit/audit.log as for nothing found (ausearch(8) EXIT STATUS), so
+   avc.txt is empty either way. Log `systemctl is-active auditd` and the first checkpoint call's status beside avc.txt
+   and fail the row when the instrument is absent (auditd is active on this PC; the VM's state is in no kept log).
+2. probation.sh ran from 766b434: up_probation_close's new hold line ("kernel" as SOURCE, lib/update.sh:466) is proven
+   on the stub only (test_update_flow:309); fail.log shows the old five-field line. Run probation.sh fail from the
+   fixed commit before the PC's next kernel-bearing press.
+3. update-design §2.5's reason against `dnf5 do --store` ("one wanted package that will not resolve would stop the
+   whole update") overlooks `--skip-unavailable` (dnf5-do(8), dnf5-upgrade(8), `dnf5 install --help`); the decision
+   can stand, the written reason should meet it.
+4. The ledger's R3/E lines must record the 78ea68c green re-run as hung (never "exit N"), and the hang's entry
+   (r27-49-hang) the evidence file's path.
+
+## Verdict 3: FAIL
+Until must-fix 1–3 are done: 1 with its stub row and the VM proofs green from the fixed commit (update-green ×2,
+update-button ×2, one with the reload storm), 2 and 3 with their rows, and the whole suite green on the commit that is
+pushed. What stands and need not be redone: Verdict 2's must-fix 3, 4, 5 (proven above) and must-fix 1's session half;
+should-fix 1–5 decided and built; (F); probation.sh's two cases; run 7's nine rows; the PC's press of 14:39 up to its
+trial's close (B3 still ahead: record the close from fedokawaii-boot-good's journal). The should-fixes decided (done, or
+written in the ledger) by the next review.

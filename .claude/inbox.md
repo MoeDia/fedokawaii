@@ -13,3 +13,6 @@ make sure to hire a MASTER AN ABSOLUTE SOURCE OF PROPER WORK TRUTH TO MAKE SURE 
 
 ## 2026-11-01 00:11 — in the plan: T31 (the progress drawn inside the bar's downloads icon)
 also for downloads create also a custom beaitful progess bar inside the downloads icon and make sure its perfectly in place and everything and connects well to any download from any source properly
+
+## 2026-11-01 17:10 — in the plan: T46b (Fedora 45 studied and used to the full, Python first)
+make sure you study the fedora 45 update well and utilize it fully like they switched to a newer python and such

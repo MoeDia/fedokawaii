@@ -473,6 +473,7 @@ Also read for the wording of the r24 and r25 requests, which the ledger only abb
 | r27-inbox-2355c | Optimise and harden the system intensely for Fedora 45 | T41 | todo | none recorded | |
 | r27-inbox-2356 | Hire a master: a source of truth that nothing was missed | T19n | wip | this trace written; reviewer gate not yet running | |
 | r27-inbox-0011 | Custom beautiful progress bar inside the downloads icon, any source | T31 | wip | kit: fill drawn at 5/25/62/99/100% (r27-31a); sources unproven | |
+| r27-inbox-1710 | Study the Fedora 45 update well and use it fully (a newer Python and such) | T46b | todo | none yet — the digest .claude/notes/f45-changes.md, Python first | |
 
 ## Appendix A: open items the ledger itself records (not owner requests; counted apart)
 

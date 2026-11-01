@@ -2718,16 +2718,30 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   transaction makes, recorded in /dev/shm/r27/master/T45-4/storm-1-wedged.txt; the storm is now synchronous and
   throttled (a reload, then 0.2 s) and re-run. probation.sh fail from ad94381 started 17:34 (f44b).
 
-## >>> NEXT PASS STARTS HERE (1 Nov, written 17:00 — the lines above say what this pass did): the inbox first. Then:
-## (1) the master's Re-review 3 of T45: its verdict is appended to master-T45-efh-verdict.md ("Re-review 3"). If
-##     it is not there (the pass ended first), launch it again with /dev/shm/r27/master/T45-3/brief.md (gone after
-##     a reboot: then rebuild it from ledger r27-49-R3, r27-49-hang and the Re-review 2 conditions). It was told of
-##     the hang (r27-49-hang) mid-review. Fix its must-fix items.
-## (2) the hang's fix (dnf_detached polls, r27-49-hang) proven in the VM: update-green.sh f44 AND update-button.sh
-##     f44b from a frozen worktree of the commit that has it (both with the new SELinux-denial row); the PC applied
-##     with it. Then T48's rest: Super+U → backups → restore and the drive (kawa-backup has the engine: restic
-##     0.19.1 and fuse3 are installed — `restic mount` would let yazi browse a backup as "a file, back" browses a
-##     snapshot: the same grammar), the read-only snapshot boot in the VM, the Learn piece.
+- r27-49-apply6 (1 Nov 17:53–17:54): 9280e4b APPLIED on the PC (the polled dnf end, a file back, the go-back rows,
+  every bar line, the short desktop note): repair "3 problem(s) before, 1 now"; verify 262/263 — the one red his
+  qbittorrent (outside the manifest, known); the new row "your files' snapshots readable by you" passes:
+  /home/.snapshots root:dia 0750, his newest snapshot's home listed as dia; the installed menu has file_back. The
+  kernel trial untouched (grubenv boot_counter=3 boot_success=0 before and after).
+- r27-inbox-1710 (owner, 1 Nov 17:10): "make sure you study the fedora 45 update well and utilize it fully like they
+  switched to a newer python and such" → plan T46b (the F45 ChangeSet triaged into .claude/notes/f45-changes.md,
+  Python first: every Python program of ours on F45's Python with no deprecation warning, the uv CPython pins
+  moved; adopted changes proven in vm-smoke f45 and on the PC after its upgrade); master-trace row r27-inbox-1710. A
+  research agent (sonnet) collects the raw facts now → .claude/notes/f45-changes-raw.md (no decisions).
+- r27-49-R4 (1 Nov 17:55–): the master's Re-review 4 started (brief /dev/shm/r27/master/T45-4/brief.md; reads the
+  frozen /dev/shm/r27w-review4 = 9280e4b); its evidence still arriving: the whole suite on 9280e4b
+  (/dev/shm/r27p/suite-9280e4b.log), update-green STORM=1 throttled from 9280e4b (/dev/shm/r27p/green-storm-9280e4b.txt),
+  probation fail from ad94381 (/dev/shm/r27p/prob-ad94381.txt).
+
+## >>> NEXT PASS STARTS HERE (1 Nov, written 18:02 — the lines above say what this pass did): the inbox first. Then:
+## (1) the master's Re-review 4 of T45 (r27-49-R4): its verdict appended to master-T45-efh-verdict.md ("Re-review 4").
+##     Not there → launch it again with /dev/shm/r27/master/T45-4/brief.md (gone after a reboot: rebuild it from
+##     ledger r27-49-R4, -hang, -master-3, -master-3-fixes; COPY every proof's folder under /dev/shm/r27/master/T45-4
+##     before re-running a proof — they clear their own folders). Before launching: copy the storm run's folder
+##     (/dev/shm/r27/update-green → T45-4/green-storm-9280e4b/) and the probation's (/dev/shm/r27/probation-f44b →
+##     T45-4/probation-ad94381/) if main did not. Fix its must-fix items. A PASS closes T45 but for (H) and (i).
+## (2) T46b: triage .claude/notes/f45-changes-raw.md (the agent's facts) into f45-changes.md with decisions; Python
+##     first. Then T48's rest (restore + the drive, sketched in plan T48 — the same grammar as "a file, back").
 ## (3) THE KERNEL TRIAL ON THE PC is open since 14:43 (7.2.13; grubenv 3/0/1; snapshot 381 pinned). It closes at
 ##     the next start: a reboot ends the bulk run (r27-bulk-*, 10:36 + 12 h) — so reboot only in the claude-r27
 ##     pass after 22:36 (CLAUDE.md START §4: initial_session, presence probe first), or let his own restart close
