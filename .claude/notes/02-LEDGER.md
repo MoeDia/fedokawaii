@@ -3119,6 +3119,26 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   page rendered with nvim's own feedkeys (no kit-keys) draws the words #122625, the light text (px.py hist on
   /dev/shm/r27p/nb2/light-cell-win.png); nvim__inspect_cell: the word's cell carries no attributes (the terminal's
   default ink) — so judge nvim screens' colours only without kit-keys (memory kit-renders-installed-configs).
+- r27-21-nb2 (2 Nov 00:11–00:27, the 00:10 pass, headless — Brave playing sound, so he may be at the PC): THE TYPING
+  PLAY (T21's acceptance "typing 40 lines, no row jumping"): the kit (real foot + nvim, t21's notes.lua and kawa-warm
+  64 × 40), 40 lines typed with one `wtype -d 22` a line (two wrapping), every screen change recorded lossless and each
+  frame compared. scrolloff 2: 3 720 frames, head/foot/margin never changed, all 36 rules whole, 10 one-row scrolls —
+  but at the end of the notes the pen sat on the LAST ruled row (scrolloff counts the virt_lines page under the
+  floats): the brief's point 5 unmet → scrolloff 5 (three ruled rows of fresh paper ahead of the pen; it opens with
+  yesterday's last lines above today's heading). Again: dark 3 714 / light 3 711 frames, 0 moved, 0 broken, 15 one-row
+  scrolls, the pen ends on row 32 of 36 (/dev/shm/r27/t21/typing/{dark,light}-{open,typed}-win.png). Kept as
+  tools/regress/notes-page.sh (it finds the rules, rows and margin from the open shot; 36 rules · 20 px · x 41–521, both
+  moods held; on the OLD installed build: "the page is not ruled", rc 1 — the never-again pair). Decided: no No./date
+  fields in the head (the bar carries the date). test_notes 116/0 on t21 (0ac64ae, pushed origin/t21). MERGED into
+  main a627678; design-system §7 "The page" (42892e1); test_design_doc 54/0, test_tools 15/0, test_syntax 691/0,
+  test_noellipsis 9/0. The whole suite STARTED 00:25 from the frozen /dev/shm/r27w-suite-42892e1 →
+  /dev/shm/r27p/suite-42892e1.log; the master's T21 review STARTED 00:26 (Fable, max; /dev/shm/r27/master/T21/brief.md
+  → verdict.md); r27 = 42892e1 pushed to origin/r27 (main on GitHub stays e083197 until both are green).
+- r27-stray-scopes (2 Nov 00:12, a finding → T53): the 00:07 apply's live step left his wallpaper's swaybg (pid 1869399)
+  inside ROOT's sudo session scope (session-c306.scope "active (abandoned)": runuser under sudo keeps the cgroup), and
+  logind lists 80 root "background-light" sudo sessions in state "closing" (c179–c306, since 1 Nov 14:48) whose scopes
+  are gone. T53: whatever the apply starts for his session (swaybg, warm windows) belongs in his own manager
+  (systemd-run --user / his session), and the closing sudo sessions explained (logind's own GC, or something holding them).
 ## >>> NEXT PASS STARTS HERE (1 Nov, written ~23:50 by the 21:47 pass — the lines above say what it did): the inbox first. Then:
 ## (0) PRESENCE: he was at the PC all evening (a Discord call + a stream at 22:24; memory presence-not-just-input-idle).
 ##     Before anything he could see or hear (a reboot, a session restart, a bar restart, a live play, a notice):
