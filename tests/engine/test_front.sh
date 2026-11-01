@@ -55,6 +55,15 @@ echo 3 >"$R/rc-verify"; rc 3 front verify
 echo 3 >"$R/rc-theme"; rc 3 front drift; echo 4 >"$R/rc-theme"; rc 4 front drift
 echo 3 >"$R/rc-setup"; rc 3 front repair; echo 1 >"$R/rc-setup"; rc 1 front update
 echo 130 >"$R/rc-setup"; rc 130 front update
+case_ "update: a unit of the system's own (a window closed never cuts it), its output followed to the terminal"
+fresh; reset_calls; echo 0 >"$R/rc-setup"
+out=$(front update 2>&1); eq "$?" 0
+called "^systemd-run --quiet --unit=fedokawaii-update.service .*-p StandardOutput=append:$R/state/update/run.log -p StandardError=append:$R/state/update/run.log .*/usr/bin/bash $R/toolkit/setup.sh --update$"
+called '^systemd-run .*--setenv=FK_TERM=xterm-256color'; eq "$(stat -c %a "$R/state/update/run.log")" 644 "the log readable by the desktop's user"
+case_ "…one that goes on: followed, never started twice"
+stub systemctl 'case "$*" in "is-active"*) exit 0 ;; *MainPID*) echo 0 ;; *ExecMainStatus*) echo 0 ;; esac'
+echo "▸ the update, tried first in a copy of the system" >"$R/state/update/run.log"; reset_calls
+out=$(front update 2>&1); eq "$?" 0; has "$out" "tried first in a copy of the system"; not_called '^systemd-run'
 
 # ── who the desktop user is ──────────────────────────────────────────────────
 case_ "the user setup recorded is the one themed (whoever ran sudo)"

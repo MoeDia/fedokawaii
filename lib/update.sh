@@ -286,11 +286,12 @@ u_undo() {
   else UP_END=offered; fi
 }
 u_report() {   # u_report — the outcome: UPD/report (the pane), the log beside it, a notice
-  local held="" line why log
+  local held="" line why log n
   [[ -s $UPD/holds ]] && held=$(awk '{ printf "%s%s %s", (NR > 1 ? " · " : ""), $1, $2 }' "$UPD/holds")
   [[ -n $UP_END ]] || UP_END=stopped
+  n=$(wc -l <"$UPD/set" 2>/dev/null) || n=0
   case $UP_END in
-    ok)       line="updated · $(wc -l <"$UPD/set" 2>/dev/null || echo 0) packages${held:+ · held: $held}" ;;
+    ok)       line="updated · $n package$( ((n == 1)) || echo s)${held:+ · held: $held}" ;;
     current)  line="up to date${held:+ · held: $held}" ;;
     held)     line="held: $held — the rest was up to date" ;;
     restored) line="the update broke something: the system before it comes back at the next start — held: $held" ;;
