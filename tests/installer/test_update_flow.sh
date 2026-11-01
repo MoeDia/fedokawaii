@@ -279,7 +279,8 @@ cut_run; fkh fsroot-_ /root/.snapshots/41/snapshot; reset_calls; resume; eq "$RC
 rm -f "$FKH/fsroot-_"
 case_ "systemd itself crashed in the transaction on the running system (PID 1 frozen): said once, the whole run ends there — its phase kept for the next start"
 back built; reset_calls; start_stubs; pending "bash 5.2-1.fc44 5.3-1.fc44"; fkh crash-on ' -C replay '
-up; eq "$RC" 125 "$(tail -n3 <<<"$OUT")"; eq "$(grep -c "systemd, the system's own manager, crashed while dnf ran" <<<"$OUT")" 1 "said once"
+up; eq "$RC" 125 "$(tail -n3 <<<"$OUT")"; eq "$(grep -c "✘.*systemd, the system's own manager, crashed while dnf ran" <<<"$OUT")" 1 "said once (the report's own last line names it again, as the reason)"
+has "$(grep '── update: ' <<<"$OUT")" "stopped (replay): systemd, the system's own manager, crashed while dnf ran"
 lacks "$OUT" "dnf attempt"; eq "$(report)" stopped; has "$(sed -n 2p "$U/report")" "stopped (replay): systemd, the system's own manager, crashed while dnf ran"
 eq "$(cut -d' ' -f1 "$U/phase")" replay "the phase kept (no step after it began)"; [[ -s $U/holds ]] && _no "held: $(cat "$U/holds")" || _ok
 case_ "…the start after it (PID 1 whole again), every package in: kept, said at login — the next press does the steps and the checks"
