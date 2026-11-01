@@ -21,7 +21,15 @@ SSH=(ssh -q -o BatchMode=yes -o StrictHostKeyChecking=no -o UserKnownHostsFile=/
 case $1 in
   --apply)
     bash "$0" "$name" --repo "${2:-}" || exit 1
-    "${SSH[@]}" 'sudo FEDOKAWAII_COPY=$HOME/fedokawaii /usr/local/bin/fedokawaii apply; r=$?; ((r == 0 || r == 3))' ;;
+    "${SSH[@]}" 'sudo FEDOKAWAII_COPY=$HOME/fedokawaii /usr/local/bin/fedokawaii apply; r=$?; ((r == 0 || r == 3))' || exit 1
+    # (what the apply queued for the next start — an older layout's /home split, T48 — done as on
+    # the PC: restarted until nothing waits; the update refuses to start before)
+    for _ in 1 2 3; do
+      "${SSH[@]}" 'test -e /system-update || test -L /system-update' || exit 0
+      "${SSH[@]}" 'sudo systemctl reboot' >/dev/null 2>&1; sleep 20
+      bash "$0" "$name" --wait 900 || exit 1
+    done
+    echo "vm-run: $name still has an update waiting for a restart after three" >&2; exit 1 ;;
   --repo)
     src=${2:-$(cd "$(dirname "$0")/.." && pwd)}
     # (a Minimal Install has no tar: the README's first command puts it there, as here)
