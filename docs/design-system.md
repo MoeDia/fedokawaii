@@ -379,10 +379,11 @@ content, inside its margin of one cell:
   that never scrolls. Every text row ruled on its cell's 19th pixel row in `edge2`, from the
   words' column to the page's edge — the page below the last line ruled to its foot, so the end
   of the notes is always a fresh page; the margin a 1 px rule in `accent` at the cursor's column,
-  the old notebook's red line. At the foot a row of paper, then the footer (`muted`). A day's
-  line shows its date alone, in `accent_text`. The pen keeps three ruled rows of fresh paper
-  ahead of it; head, foot and margin never move, whatever the scroll (`tools/regress/notes-page.sh`
-  checks every frame of 40 typed lines).
+  the old notebook's red line. At the foot an unruled row of paper (the page's bottom margin, as
+  the blank row under the heading is its top), then the footer (`muted`). A day's line shows its
+  date alone, in `accent_text`; everything else exactly as typed (no markdown styling, nothing
+  hidden). The pen keeps three ruled rows of fresh paper ahead of it; head, foot and margin never
+  move, whatever the scroll (`tools/regress/notes-page.sh` checks every frame of 40 typed lines).
 - **The prompt**: one short line in a pastel powerline — segments on Wada's pastels with ink
   words, the torii (his terminal's mark) first: the folder, the branch and its changes, the code
   of a failure, the time of a long command — then `›` and a space (`tools/build-themes.py`

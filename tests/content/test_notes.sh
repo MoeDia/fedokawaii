@@ -195,6 +195,15 @@ else
   eq "$(ask '{vim.o.showtabline, vim.wo.winbar}')" '{ 2, "%#KawaGround# " }'
   eq "$(ask '(function() local t = {} for _, w in ipairs(vim.api.nvim_list_wins()) do local c = vim.api.nvim_win_get_config(w) if c.relative ~= "" then t[#t + 1] = (vim.o.lines - c.row) .. ":" .. vim.api.nvim_buf_get_lines(vim.api.nvim_win_get_buf(w), 0, 1, false)[1] end end table.sort(t) return t end)()')" '{ "1:  ~/Notes/50% off.md  ·  saved as you go  ·  super+n puts it away", "2:" }'
   eq "$(ask '{vim.o.laststatus, vim.o.cmdheight, vim.o.scrolloff}')" "{ 0, 0, 5 }"
+  case_ "notes.lua: the page shows what was typed — a \"[ ]\", a link's address, \"**\" as written (markdown's own conceal off: the master, 2 Nov); a day's \"## \" alone hidden"
+  printf '%s\n' '[ ] a task' '[a link](https://example.org/x)' '**bold** and `code`' '## 2026-11-01 · Sun' >"$TMP/c2.md"
+  eq "$(ask '(function() vim.cmd("redraw") local t = {} for r = 3, 6 do local s = "" for c = 5, 44 do s = s .. vim.fn.screenstring(r, c) end t[#t + 1] = (s:gsub("%s+$", "")) end return table.concat(t, "|") end)()' "$TMP/c2.md")" \
+    '"[ ] a task|[a link](https://example.org/x)|**bold** and `code`|2026-11-01 · Sun"'
+  case_ "notes.lua: a start on a day already written (Super+N with no warm window: -c kawa_notes_shown) — the page laid under the new last line, the pen above the floats with paper ahead (the master, 2 Nov)"
+  printf '%s\n' '# notes' '' "## $(LC_ALL=C date '+%Y-%m-%d · %a')" '' 'already written today' >"$TMP/w.md"
+  eq "$(KAWA_NOTES_WHERE='~/Notes/w.md' nvim --headless -c 'luafile ~/.config/fedokawaii/notes.lua' -c 'lua kawa_notes_shown()' \
+    -c 'lua vim.cmd("redraw") local r = -1 for _, m in ipairs(vim.api.nvim_buf_get_extmarks(0, vim.api.nvim_get_namespaces().kawa_rules, 0, -1, { details = true })) do if m[4].virt_lines then r = m[2] end end io.stdout:write(tostring(r == vim.api.nvim_buf_line_count(0) - 1) .. " " .. tostring(vim.fn.winline() <= vim.fn.winheight(0) - 5))' \
+    -c 'qa!' -- "$TMP/w.md" 2>/dev/null)" "true true" "(the page under the last line; the pen five rows above the window's foot)"
   case_ "notes.lua: nothing written over the footer while typing (no mode, no keys, no 'written')"
   eq "$(ask '{vim.o.showmode, vim.o.showcmd, vim.o.ruler}')" "{ false, false, false }"
   has "$(ask vim.o.shortmess)" "WFcsS"

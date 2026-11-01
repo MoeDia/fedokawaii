@@ -3172,33 +3172,51 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   yazi.toml the same case fails ("never on the screen: .hidden-note", 120/2): the never-again pair. Also green with it:
   test_pick 104, test_play 55, test_clipfiles 46, test_file 265, test_config 105, test_syncplay 120, test_shrink 121.
   .rar (bug 11) was already kawa-file's (unrar, a locked one asks). T22's rebuild itself (the grid, contrast) still open.
-## >>> NEXT PASS STARTS HERE (1 Nov, written ~23:50 by the 21:47 pass — the lines above say what it did): the inbox first. Then:
-## (0) PRESENCE: he was at the PC all evening (a Discord call + a stream at 22:24; memory presence-not-just-input-idle).
-##     Before anything he could see or hear (a reboot, a session restart, a bar restart, a live play, a notice):
+- r27-21-master-1 (2 Nov 00:26–00:38, the master's T21 review on 42892e1, /dev/shm/r27/master/T21/verdict.md): VERDICT FAIL.
+  Held: geometry to the pixel (one right edge x 520, rules on each cell's 19th px, margin x 28, winbar blank, floats rows
+  38–39), the inks in both themes, the typing play, test_notes. MUST-FIX 1: conceallevel 2 let markdown's own tree-sitter
+  conceal hide what he types ("[ ]", a link's address, "**", "`") — a regression of T21. MUST-FIX 2: a cold start on a day
+  already written (Super+N with no warm window: -c kawa_notes_shown) put the pen UNDER the footer (own/shown2/tui.png).
+  Should-fix 3 (a day line edited in place keeps its old marks), 4 (short file: open on the last day line), 5 (the to-do
+  opens in normal mode), nits 6–8.
+- r27-21-master-fix (2 Nov 00:38–00:47, main): (1) page(): `vim.treesitter.stop(b)` then `syntax=OFF` (stop() brings the old
+  syntax back — its conceal too), conceallevel 2 on every page (the to-do's exception gone): conceal hides a day's "## "
+  alone. Rendered (kit, real foot): "[ ] a task…", "[a link](https://example.org/x)", "**bold** and *em* and `code`" as
+  typed; the day lines' date no longer bold (the bold was markdown's heading style; KawaDay = accent_text, regular, as §7)
+  (/dev/shm/r27/t21/fix/conceal-win.png). (2) rule() laid synchronously after the window's own edits (kawa_notes_shown,
+  notes_open, the to-do's first item) — never scheduled: a scheduled lay runs after the redraw, a frame without its rule
+  — and pen_room(): after a resize (the window's first size reaches neovim after it started, and a resize keeps the
+  cursor's FRACTION of the window, not scrolloff) and after kawa_notes_shown, the page moves up until the pen has its
+  five rows. The master's exact start re-rendered: the pen on row 32 under "already written today", three ruled rows
+  ahead (/dev/shm/r27/t21/fix/shown2b-win.png; was: on the footer, shown2-win.png). (3, should-fix) the count the same →
+  the typed line alone re-laid (its rule, a day's date to its new end). §7: the foot's row is unruled (nit 6), the rest as
+  typed. Tests: test_notes 118/0 — two new rows, each FAILING on 42892e1's notes.lua (116/2): the screen's cells show
+  "[ ] a task|[a link](https://example.org/x)|**bold** and `code`|2026-11-01 · Sun"; after -c kawa_notes_shown the page's
+  virt_lines on the new last line. NOT reproducible headless: the startup resize (winline 1 either way) — the kit render
+  is that path's evidence; a cold-start scene for tools/regress/notes-page.sh is owed (the master's ask).
+## >>> NEXT PASS STARTS HERE (2 Nov, written ~00:50 by the 00:10 pass — the lines above say what it did): the inbox first. Then:
+## (0) PRESENCE: before anything he could see or hear (a reboot, a session restart, a bar restart, a live play, a notice):
 ##     `wpctl status` (a mic capture or playback [active]), `playerctl -a status`, one half-scale grim — not only the
-##     60 s swayidle probe. Present → headless only (kit, pty, VM).
-## (1) GITHUB + PC: main = 0f7209e + this pass's last notes commit (c5e119f's code: suite 128/128, update-green
-##     green); the PC runs c5e119f (applied 00:08 from its frozen tree). Nothing is running in the background.
-##     If a suite was still running when this pass ended: its log /dev/shm/r27p/suite-<commit>.log — rc 0 → push main
-##     there, apply from /dev/shm/r27w-suite-<commit> (never the working tree), the warm system window restarted
-##     (kawa-warm --start after its footclient ends) so Super+U shows the change; red → fix forward.
-## (2) THE MASTER: T45 Verdict 5 PASS, T48 verdict 5 PASS (both no must-fix). Their should-fixes are built (r27-49-R5-sf,
-##     r27-52-R5-sf2) except T48's 3 (the closing key in the next PC job-window proof) and 4 (a real USB drive) —
-##     T45's last items: (H) 7 with T58, (i) the toolkit at a tag, last. T48's last: the space floor with a full disk
-##     in the VM (T49), the Learn piece (T50).
-## (3) THE KERNEL TRIAL (since 14:43, 7.2.13, snapshot 381 pinned): closes at the next start — only when he is away
+##     60 s swayidle probe (memory presence-not-just-input-idle). 2 Nov 00:11: Brave playing sound → this pass headless.
+## (1) GITHUB + PC: GitHub main = e083197 (nothing pushed to main this pass); origin/r27 = the newest local main. Local main
+##     carries: T21's merge + the master's fixes, brave --is-open, theme's live() scope, yazi show_hidden (code commits
+##     a627678 … this pass's last). The suite on 42892e1 (T21 before the master's fixes): /dev/shm/r27p/suite-42892e1.log
+##     (frozen tree /dev/shm/r27w-suite-42892e1; its rc line at the end) — it does NOT cover the later commits. A suite on
+##     the newest HEAD was chained to start after it: /dev/shm/r27p/suite-<HEAD>.log from /dev/shm/r27w-suite-<HEAD> (see
+##     the last ledger line for the commit). rc 0 there + (2) PASS → push main, apply from that frozen tree when he is away.
+## (2) THE MASTER, T21 RE-REVIEW: verdict 1 FAIL (r27-21-master-1); both must-fixes BUILT (r27-21-master-fix). Owed before the
+##     re-review: a cold-start scene in tools/regress/notes-page.sh (Super+N with no warm window on a written day — the pen
+##     above the floats; the kit can start it as kawa-warm does: `kawa-notes --inside notes show`), should-fix 4 (a short
+##     file opens on its last day line) and 5 (the to-do opens typing on its last item). Then `tools/master-brief.sh T21 …`
+##     with /dev/shm/r27/t21/fix/*-win.png and the master's Re-review 2 (Fable, max).
+## (3) AFTER THE APPLY (he away): the warm notes window takes the new page at its next start (its buffer saved, then
+##     kawa-warm --start after its footclient ends); swaybg's /proc/PID/cgroup under user@1000.service (r27-53-scope).
+## (4) THE KERNEL TRIAL (since 1 Nov 14:43, 7.2.13, snapshot 381 pinned): closes at the next start — only when he is away
 ##     ((0)), START §4's reboot way; then read fedokawaii-boot-good's journal — ledger r27-49-B3.
-## (4) T21 THE NOTEBOOK (his line 39 — next in line, design-critical): BUILT on branch t21 (~/repos/fk-t21, pushed
-##     to origin/t21; main untouched): the ruled portrait page, the vermilion margin, heading + blank row, blank row +
-##     footer floating — margins that never move; test_notes 116/0 and test_warm 88/0 there. The brief, its grill list
-##     and its NEXT: .claude/notes/notes-notebook.md (on t21). First: one right edge for the page's rules and the
-##     heading's rule; the to-do page's render; a typing play (frames); then merge t21 into main → the whole suite →
-##     the master → push → apply (the warm notes window is NOT renewed by an apply: it holds his page — it takes the
-##     new notes.lua at its next start; restart it only when he is away, after checking its buffer is saved).
-## (5) T46/T46b (F45 out Tue 3 Nov): after the release — vm-create f45 fresh from the released tree, vm-smoke f45,
-##     then tools/vm-inject/f45-checks.sh f45 (all five green on the branched tree 1 Nov). T46's pre-flight
+## (5) T46/T46b (F45 out Tue 3 Nov): after the release — vm-create f45 fresh from the released tree, vm-smoke f45, then
+##     tools/vm-inject/f45-checks.sh f45 (all five green on the branched tree 1 Nov). T46's pre-flight
 ##     (tools/vm-preflight.sh) and the upgrade's WAIT (60 days by default) for the PC's own move.
-## (6) T19m (b): pass 1 goes on; items 3–5 (24 px hit areas, JLREQ, the spacing scale, the optical centre, a
-##     reduce-motion switch) with the next dwl batch (a session restart: only when he is away).
-## (7) T22: yazi's grid onto §7 (heading x 25, rows 33 — the dialog's still 17/25); q-with-marks done (r27-52-R5-sf2).
-## (8) T53: theme.sh (2×) and kawa-tidy still guess "Brave is open" with pgrep — one shared SingletonLock check.
+## (6) T19m (b): pass 1 goes on; items 3–5 (24 px hit areas, JLREQ, the spacing scale, the optical centre, a reduce-motion
+##     switch) with the next dwl batch (a session restart: only when he is away).
+## (7) T22: the yazi rebuild (grid onto §7: heading x 25, rows 33 — the dialog's still 17/25; contrast); hidden files DONE.
+## (8) T53 goes on (the plan's list).

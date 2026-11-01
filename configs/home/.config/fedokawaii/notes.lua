@@ -166,9 +166,12 @@ local function page()
   vim.opt_local.fillchars:append({ wbr = " ", eob = " " })   -- (no ~ under the last line: a page ends in paper)
   local name = b == notes and where or vim.fn.fnamemodify(vim.api.nvim_buf_get_name(b), ":~")
   local is_todo = vim.api.nvim_buf_get_name(b) == TODO
-  -- (a day's "## " hidden — the rules' extmarks — on the notes only: on the to-do, markdown's own
-  -- conceal would fold each "[ ]" to one cell under its box, and the box would hide two letters)
-  vim.opt_local.conceallevel = is_todo and 0 or 2
+  -- (the page shows what was typed: no markdown highlighting, so none of its conceal — a "[ ]", a
+  -- link's address, "**" stay as written (the master, 2 Nov); tree-sitter's stop brings the old
+  -- syntax back, so that goes off after it. Conceal hides a day's "## " alone: the rules' extmark)
+  pcall(vim.treesitter.stop, b)
+  vim.bo[b].syntax = "OFF"
+  vim.opt_local.conceallevel = 2
   vim.opt_local.concealcursor = "n"
   -- (the heading in the tabline — the editor's top row, never scrolled — and a blank winbar under
   -- it: the §3 blank line, there at every scroll position)
@@ -190,34 +193,54 @@ end
 -- the paper's rules (T21, .claude/notes/notes-notebook.md): every line ruled across the whole
 -- row (line_hl_group: wrapped rows too), the page below the last line ruled to its foot
 -- (virt_lines, as many as the window has rows); a day's line ("## 2026-11-01 · Sun", as the file
--- keeps it) its date in accent_text, the "## " hidden. Laid again only when the count of lines
--- changes — a letter typed changes no rule (14 000 lines take 3.9 ms, measured)
+-- keeps it) its date in accent_text, the "## " hidden. The whole page laid again when the count
+-- of lines changes (14 000 lines take 3.9 ms, measured), else the line typed on alone — a day's
+-- line edited in place keeps its look whole. Laid before the screen is drawn: on each change
+-- (TextChanged/I) and right after the window's own edits (a start's -c precedes TextChanged)
 local rules = vim.api.nvim_create_namespace("kawa_rules")
 local ruled = {}                              -- buffer → the line count its rules were laid for
+local function lay(b, r, line, last)          -- one line's marks: its rule, a day's date, the page under the last
+  vim.api.nvim_buf_set_extmark(b, rules, r, 0, { line_hl_group = "KawaRule" })
+  if line:match("^## %d%d%d%d%-%d%d%-%d%d") then
+    vim.api.nvim_buf_set_extmark(b, rules, r, 0, { end_col = 3, conceal = "" })
+    vim.api.nvim_buf_set_extmark(b, rules, r, 3, { end_col = #line, hl_group = "KawaDay", priority = 200 })
+  end
+  if last then
+    local row, below = { { string.rep(" ", vim.o.columns), "KawaRule" } }, {}
+    for _ = 1, vim.o.lines do below[#below + 1] = row end
+    vim.api.nvim_buf_set_extmark(b, rules, r, 0, { virt_lines = below })
+  end
+end
 local function rule(b, force)
   if not vim.api.nvim_buf_is_loaded(b) or vim.bo[b].buftype ~= "" then return end   -- (at -u time the file is not read yet: BufWinEnter lays them)
   local n = vim.api.nvim_buf_line_count(b)
-  if not force and ruled[b] == n then return end
-  ruled[b] = n
-  vim.api.nvim_buf_clear_namespace(b, rules, 0, -1)
-  local lines = vim.api.nvim_buf_get_lines(b, 0, -1, false)
-  for i, line in ipairs(lines) do
-    vim.api.nvim_buf_set_extmark(b, rules, i - 1, 0, { line_hl_group = "KawaRule" })
-    if line:match("^## %d%d%d%d%-%d%d%-%d%d") then
-      vim.api.nvim_buf_set_extmark(b, rules, i - 1, 0, { end_col = 3, conceal = "" })
-      vim.api.nvim_buf_set_extmark(b, rules, i - 1, 3, { end_col = #line, hl_group = "KawaDay", priority = 200 })
-    end
+  if force or ruled[b] ~= n then
+    ruled[b] = n
+    vim.api.nvim_buf_clear_namespace(b, rules, 0, -1)
+    for i, line in ipairs(vim.api.nvim_buf_get_lines(b, 0, -1, false)) do lay(b, i - 1, line, i == n) end
+  elseif b == vim.api.nvim_get_current_buf() then
+    local r = vim.api.nvim_win_get_cursor(0)[1] - 1
+    vim.api.nvim_buf_clear_namespace(b, rules, r, r + 1)
+    lay(b, r, vim.api.nvim_buf_get_lines(b, r, r + 1, false)[1], r == n - 1)
   end
-  local row, below = { { string.rep(" ", vim.o.columns), "KawaRule" } }, {}
-  for _ = 1, vim.o.lines do below[#below + 1] = row end
-  vim.api.nvim_buf_set_extmark(b, rules, n - 1, 0, { virt_lines = below })
+end
+-- the pen above the floats, paper ahead: a resize (the window's first size reaches neovim after it
+-- started) keeps the cursor's place as a fraction of the window, not scrolloff — so the page is
+-- moved up until the pen has its rows again (the master, 2 Nov: a start on a written day)
+local function pen_room()
+  for _ = 1, vim.o.lines do
+    local v = vim.fn.winsaveview()
+    if vim.fn.winline() <= vim.fn.winheight(0) - vim.o.scrolloff or v.topline >= v.lnum then return end
+    v.topline = v.topline + 1
+    vim.fn.winrestview(v)
+  end
 end
 page()
 rule(notes, true)
 vim.api.nvim_create_autocmd("BufWinEnter", { group = group, callback = function(ev) page(); rule(ev.buf, true) end })
 vim.api.nvim_create_autocmd({ "TextChanged", "TextChangedI" }, { group = group, callback = function(ev) rule(ev.buf) end })
 vim.api.nvim_create_autocmd("VimResized", {
-  group = group, callback = function() page(); rule(vim.api.nvim_get_current_buf(), true) end,
+  group = group, callback = function() page(); rule(vim.api.nvim_get_current_buf(), true); pen_room() end,
 })
 
 -- every change written (`update`: only when there is one) once you pause — a second
@@ -314,6 +337,7 @@ local shown = false                         -- (the window showing)
 local todo_open, todo_tidy                  -- (the to-do's, below)
 local function notes_open()                 -- the page turned back: the notes, typing at their end
   vim.api.nvim_win_set_buf(0, buf)
+  rule(buf)
   local n = vim.api.nvim_buf_line_count(buf)
   vim.api.nvim_win_set_cursor(0, { n, #vim.api.nvim_buf_get_lines(buf, n - 1, n, false)[1] })
   vim.cmd("startinsert!")
@@ -333,7 +357,9 @@ function _G.kawa_notes_shown()
   vim.api.nvim_win_set_buf(0, buf)
   local n = vim.api.nvim_buf_line_count(buf)
   vim.api.nvim_buf_set_lines(buf, n, n, false, { "" })
+  rule(buf)
   vim.api.nvim_win_set_cursor(0, { n + 1, 0 })
+  pen_room()
   vim.cmd("startinsert!")
   return ""
 end
@@ -461,6 +487,7 @@ todo_open = function()
   if vim.api.nvim_buf_line_count(todo) == 1 and vim.api.nvim_buf_get_lines(todo, 0, 1, false)[1] == "" then
     vim.api.nvim_buf_set_lines(todo, 0, 1, false, { "[ ] " })   -- (nothing yet: the first one, typing)
     todo_marks()
+    rule(todo)
     vim.api.nvim_win_set_cursor(0, { 1, 4 })
     vim.cmd("startinsert!")
   else
