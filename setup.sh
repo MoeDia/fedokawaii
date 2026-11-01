@@ -2930,23 +2930,22 @@ upkeep() {   # upkeep KEY DEFAULT → a number from your upkeep.conf (fedokawaii
   esac
   echo "$v"
 }
-# released N → Fedora N's release day (epoch) when it is out: its release tree is published
-# only then (staged ones cannot be read). The tree itself is the final compose, made about a
-# week before the release day: so a week after it, or today if that is sooner. Recorded in
-# /var/lib/fedokawaii/release-N, for the menu. Returns 1 when it is not out (or Fedora's
-# servers cannot be reached).
+# released N → Fedora N's release day (epoch) when it is out: its release tree on Fedora's own
+# server is readable only from then (staged, it answers 403). Never a mirror: mirrors get the
+# staged tree days before, and some serve it (1 Nov 2026: Fedora 45 a 403 at dl.fedoraproject.org,
+# a 200 through the download.fedoraproject.org redirector — two days before its release day).
+# The tree itself is the final compose, made about a week before the release day: so a week
+# after it, or today if that is sooner. Recorded in /var/lib/fedokawaii/release-N, for the
+# menu. Returns 1 when it is not out (or Fedora's server cannot be reached).
 released() {
-  local u h d
+  local h d
   if [[ -s $STATE_DIR/release-$1 ]]; then cat "$STATE_DIR/release-$1"; return 0; fi
-  for u in "https://dl.fedoraproject.org/pub/fedora/linux/releases/$1/Everything/x86_64/os/repodata/repomd.xml" \
-           "https://download.fedoraproject.org/pub/fedora/linux/releases/$1/Everything/x86_64/os/repodata/repomd.xml"; do
-    h=$("${CURL[@]}" --max-time 20 -o /dev/null -D - --head "$u" 2>/dev/null) || continue
-    d=$(sed -n 's/^[Ll]ast-[Mm]odified: *//p' <<<"$h" | tr -d '\r' | tail -n1)
-    d=$(date -d "$d" +%s 2>/dev/null) && d=$((d + 7 * 86400)) || d=$(date +%s)
-    ((d <= $(date +%s))) || d=$(date +%s)
-    record "release-$1" "$d"; echo "$d"; return 0
-  done
-  return 1
+  h=$("${CURL[@]}" --max-time 20 -o /dev/null -D - --head \
+      "https://dl.fedoraproject.org/pub/fedora/linux/releases/$1/Everything/x86_64/os/repodata/repomd.xml" 2>/dev/null) || return 1
+  d=$(sed -n 's/^[Ll]ast-[Mm]odified: *//p' <<<"$h" | tr -d '\r' | tail -n1)
+  d=$(date -d "$d" +%s 2>/dev/null) && d=$((d + 7 * 86400)) || d=$(date +%s)
+  ((d <= $(date +%s))) || d=$(date +%s)
+  record "release-$1" "$d"; echo "$d"
 }
 support_end() {   # → this release's end of support (os-release SUPPORT_END), as an epoch
   local d; d=$(. /etc/os-release 2>/dev/null; printf '%s' "${SUPPORT_END:-}")

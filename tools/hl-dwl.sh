@@ -1,17 +1,18 @@
 #!/usr/bin/env bash
-# tools/hl-dwl.sh — a headless dwl on the real GPU (renderD128): nothing on the screen, nothing
-# of the session touched (a runtime dir of its own, no input devices: keys go in through wtype's
-# virtual keyboard; a D-Bus session of its own: a notice, a player, a portal there never reaches
-# the session's), 1920x1080@144 like the monitor, dwl's frame log on. SCRIPT runs inside it
-# (sh, with WAYLAND_DISPLAY and DISPLAY set; `wtype -s 1000 …` lets the virtual keyboard
-# register before its first key); dwl ends when SCRIPT ends. Nothing is left behind.
+# tools/hl-dwl.sh — a headless dwl on the real GPU (the card the desktop draws on; pixman on a
+# machine with none): nothing on the screen, nothing of the session touched (a runtime dir of its
+# own, no input devices: keys go in through wtype's virtual keyboard; a D-Bus session of its own:
+# a notice, a player, a portal there never reaches the session's), 1920x1080@144 like the
+# monitor, dwl's frame log on. SCRIPT runs inside it (sh, with WAYLAND_DISPLAY and DISPLAY set;
+# `wtype -s 1000 …` lets the virtual keyboard register before its first key); dwl ends when
+# SCRIPT ends. Nothing is left behind.
 #   bash tools/hl-dwl.sh SCRIPT [--dwl BIN] [--asan] [--time S] [--keep DIR] [--size WxH@HZ]
 #     --dwl   the binary (default ~/.local/src/dwl/dwl)
 #     --asan  that tree built once more with AddressSanitizer (in /tmp, the tree untouched);
 #             its reports end up in DIR/asan.* with --keep
 #     --time  the longest it may run, seconds (default 60): then it is stopped (exit 124)
 #     --keep  DIR gets frames.log (tools/framestat.py), dwl.log, script.log (and asan.*)
-# Exit: SCRIPT's own status · 124 out of time · 2 misuse or no GPU.
+# Exit: SCRIPT's own status · 124 out of time · 2 misuse.
 set -u
 script="" bin=$HOME/.local/src/dwl/dwl asan=0 limit=60 keep="" size=1920x1080@144Hz
 while (($#)); do
@@ -27,7 +28,16 @@ while (($#)); do
   esac
 done
 [[ -f $script ]] || { echo "usage: bash tools/hl-dwl.sh SCRIPT [--dwl BIN] [--asan] [--time S] [--keep DIR]" >&2; exit 2; }
-[[ -e /dev/dri/renderD128 ]] || { echo "hl-dwl: no GPU render node (renderD128)" >&2; exit 2; }
+# (the render node of the card the desktop draws on — start-dwl's rule: the most video memory, or
+# the only card; never a fixed renderD128: the numbers move with the cards switched on. None — a
+# VM's plain virtio screen —: pixman, as the desktop there draws too)
+gpu=(WLR_RENDERER=pixman) most=-1
+for n in /sys/class/drm/renderD*; do
+  [[ -e /dev/dri/${n##*/} ]] || continue
+  v=$(cat "$n/device/mem_info_vram_total" 2>/dev/null) || v=0
+  [[ $v =~ ^[0-9]+$ ]] || v=0
+  ((v > most)) && most=$v gpu=(WLR_RENDERER=gles2 "WLR_RENDER_DRM_DEVICE=/dev/dri/${n##*/}")
+done
 if ((asan)); then
   tree=$(dirname "$(realpath "$bin")") abuild=/tmp/hl-dwl-asan
   rm -rf "$abuild" && mkdir -p "$abuild" || exit 2
@@ -61,8 +71,8 @@ echo \$? >"$rt/status"
 kill \$PPID
 EOF
 chmod +x "$rt/inside.sh"
-env -u WAYLAND_DISPLAY -u DISPLAY -u DBUS_SESSION_BUS_ADDRESS XDG_RUNTIME_DIR="$rt" WLR_BACKENDS=headless WLR_RENDERER=gles2 \
-  WLR_LIBINPUT_NO_DEVICES=1 WLR_HEADLESS_OUTPUTS=1 WLR_RENDER_DRM_DEVICE=/dev/dri/renderD128 \
+env -u WAYLAND_DISPLAY -u DISPLAY -u DBUS_SESSION_BUS_ADDRESS XDG_RUNTIME_DIR="$rt" WLR_BACKENDS=headless "${gpu[@]}" \
+  WLR_LIBINPUT_NO_DEVICES=1 WLR_HEADLESS_OUTPUTS=1 \
   DWL_FRAMELOG="$rt/frames.log" ASAN_OPTIONS="log_path=$rt/asan:detect_leaks=1" \
   timeout "$limit" "$bin" -s "$rt/inside.sh" >"$rt/dwl.log" 2>&1
 rc=$?

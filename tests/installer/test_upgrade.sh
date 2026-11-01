@@ -16,6 +16,11 @@ keep built
 case_ "Fedora 45 not out yet (its release tree not published): said, nothing changed (exit 1)"
 tk --upgrade; eq "$RC" 1; has "$OUT" "Fedora 45 is not released yet — nothing changed"
 [[ ! -e $unit ]] && _ok || _no "the unit made anyway"; not_called 'system-upgrade'
+case_ "staged: Fedora's own server still refuses the tree while a mirror would serve it — not released (no mirror asked)"
+echo '<repomd/>' >"$FKH/dl/repomd.xml"; fkh unreachable dl.fedoraproject.org
+tk --upgrade; eq "$RC" 1; has "$OUT" "Fedora 45 is not released yet — nothing changed"
+not_called 'download\.fedoraproject\.org/pub/fedora/linux/releases'; [[ ! -e $W/var/lib/fedokawaii/release-45 ]] && _ok || _no "a release day recorded"
+back built
 case_ "out, but settling (60 days): when it is offered is said; --now does not wait"
 echo '<repomd/>' >"$FKH/dl/repomd.xml"
 tk --upgrade; eq "$RC" 1; has "$OUT" "Fedora 45 is out; it settles 60 days — offered in 60 day(s)"

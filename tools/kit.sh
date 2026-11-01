@@ -148,7 +148,7 @@ kawa-dwlstatus <&0 >/dev/null 2>&1 &
 # surface's dark hairline shows against paper, not lost in the sumi of dwl's root)
 . "\$HOME/.config/fedokawaii/current/colors.sh" && swaybg -c "#\$C_GROUND" >/dev/null 2>&1 &
 mako >/dev/null 2>&1 &
-foot --server >/dev/null 2>&1 &
+foot --server --log-no-syslog >/dev/null 2>&1 &   # (never in his journal: dwl going first leaves foot "Broken pipe")
 waybar >"$K/waybar.log" 2>&1 &
 sleep 3
 fail=0
