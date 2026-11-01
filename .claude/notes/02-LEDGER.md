@@ -2924,20 +2924,36 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   restore, if wanted: `restic ls --json ID`, the subtrees missing in the home only (--include-file), so no
   existing path is selected — with real-restic tests for a file where the backup has a folder, a symlink, and
   his folders' dates unchanged.
+- r27-49-R4b RESULT (1 Nov 19:16–20:40, the master's Re-review 4 of T45, appended to master-T45-efh-verdict.md):
+  VERDICT 4 PASS WITH CONDITIONS — no must-fix left in T45's code (judged at 878f1fd). Conditions for the push:
+  (1) the whole suite rc 0 on the commit that is pushed; (2) one plain update-green f44 from it (exit 0, report ok,
+  no "the desktop does not start", avc.txt empty with the instrument on), kept under /dev/shm/r27/master/T45-5/;
+  (3) the storm retired and its two "during its own upgrade" wordings corrected. (3) DONE in cf211b8 (STORM=1
+  removed from update-green.sh, dnf_end's comment names the method_reload assert) with should-fix 5 (the halt
+  says "the next start or the next press of update"). STARTED 21:00 from the frozen /dev/shm/r27w-suite-cf211b8:
+  the whole suite → /dev/shm/r27p/suite-cf211b8.log, update-green f44 → /dev/shm/r27p/green-cf211b8.txt (its
+  folder copied to T45-5/green-cf211b8/ when it ends). Should-fixes left (decide or build by the next review):
+  1 a replay that never began ends as "broke something" (up_complete with 0 of the set in → nothing held, nothing
+  undone, phase end, said as the stop it was — the TERM row enshrines today's behaviour), 2 a PID 1 crash between
+  units (systemd-run's own failure: the journal's "Freezing execution" → halt there too — three lines), 3 the
+  stand-in's systemd-run ends at once (an end-after=N for dnf_end's running branch), 4 the end read across
+  daemon-reexec measured once in the VM, 6 (done), 7 snapper_limits' `|| return 1` inside r_system (order it last
+  or log), 8 the ledger (this line, and the suites' reds with their causes: 2b12615 → test_update_flow's row +
+  test_brave's live Brave; 0b45f65 → test_torture's fuse3 evidence; a6f5049 → test_launcher's fuse3 — none the
+  update's code).
 ## >>> NEXT PASS STARTS HERE (1 Nov, written 20:55 by the 18:56 pass — the lines above say what it did): the inbox first. Then:
-## (1) NOTHING OF THIS PASS IS PUSHED OR APPLIED YET. main = r27 = the newest local commit (see git log). The whole
-##     suite on it was started at the end of this pass, detached → /dev/shm/r27p/suite-<that commit>.log (last line
-##     "== suite rc=N in S s"; ~50 min). Green → `git push origin main r27` → apply on the PC (sudo
+## (1) NOTHING OF THIS PASS IS PUSHED OR APPLIED YET. main = r27 = the newest local commit (see git log; after
+##     cf211b8 only notes). The whole suite on cf211b8: /dev/shm/r27p/suite-cf211b8.log (started 21:00, last line
+##     "== suite rc=N in S s"); update-green f44 from it: /dev/shm/r27p/green-cf211b8.txt (T45's conditions 1–2,
+##     r27-49-R4b RESULT). Green → `git push origin main r27` → apply on the PC (sudo
 ##     FEDOKAWAII_COPY=$PWD /usr/local/bin/fedokawaii apply) → verify → the new kawa-panel live (memory
 ##     live-panel-restart: SIGKILL it when no panel/menu is open; the bar respawns it? check how) → headless shots of
 ##     Super+U → backups and the notes. Red → the failing file alone, fix, its area, then the suite again.
 ##     (Known before that run: the 2b12615 suite 126/128 — both reds fixed; a6f5049's look/test_launcher red on
 ##     fuse3 — fixed. Every commit after a6f5049 had its own tests run: static, content (test_notes, test_backup,
 ##     test_configs), engine (test_menu, test_front), look (test_calc, test_launcher, test_units), menus.)
-## (2) THE MASTER'S RE-REVIEW 4 OF T45 (r27-49-R4b, started 19:20, judged at 878f1fd + messages about storm 3,
-##     878f1fd, 0b45f65, a6f5049): its verdict in .claude/notes/master-T45-efh-verdict.md ("Re-review 4"). Its
-##     must-fix items first. If it is not there (the pass ended first), relaunch it with
-##     /dev/shm/r27/master/T45-5/brief.md (gone after a reboot: rebuild from ledger r27-49-R4b, -storm3, -halt).
+## (2) T45's VERDICT 4: PASS WITH CONDITIONS (r27-49-R4b RESULT). Conditions 1–2 = item (1) above; 3 done. Then its
+##     should-fixes 1, 2, 3, 4, 7 (8: the ledger, done) — built with rows, the next review judges them.
 ## (3) T48 (the master's verdict 4: FAIL → must-fix 1 answered by taking the in-place restore out; should-fix 2, 3,
 ##     5, 8, 9 built): LEFT should-fix 1 (the job screens' heading at column 0, rows one cell in — §7; changes every
 ##     job screen and test_menu's `aligned`; render both moods; = audit-r27's open grammar finding), 4 (a
