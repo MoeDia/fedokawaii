@@ -13,6 +13,8 @@
 #                              snapshot started from the boot menu too, where snapper sees none):
 #                              NUMBER TAB TYPE TAB DATE (UTC) TAB DESCRIPTION TAB booted|-
 #                              — and "old", the system a restore replaced, while it is kept
+#   kawa-snap finish           a restore cut short after its exchange finished: its default, the
+#                              snapshots moved back (the start-up run calls it; restore does too)
 #   kawa-snap restore N|old [--with-home]
 #                              snapshot N becomes the system at the next start: its kernels made
 #                              whole in /boot and written to disk, then a writable copy of it is
@@ -35,7 +37,7 @@ state=/run/kawa-snap.pre
 lock=/run/kawa-snap.lock                     # one restore at a time; a dnf run's pre waits for it
 top=/run/kawa-snap/top                       # the file system's top level, mounted while working
 case ${1:-} in
-  pre|post|boot|list) ;;
+  pre|post|boot|list|finish) ;;
   restore) [[ ${2:-} =~ ^([1-9][0-9]*|old)$ && ${3:---with-home} == --with-home && $# -le 3 ]] \
              || { echo "usage: kawa-snap restore NUMBER|old [--with-home]" >&2; exit 2; } ;;
   -h|--help) sed -n '2,/^set -u/{/^set -u/d;s/^# \{0,1\}//;p}' "$0"; exit 0 ;;
@@ -145,6 +147,8 @@ if [[ $1 == list ]]; then
     printf '%s\t%s\t%s\t%s\t%s\n' "$n" "$(info type "$d/info.xml")" "$(info date "$d/info.xml")" \
       "$(info description "$d/info.xml")" "$([[ $n == "$booted" ]] && echo booted || echo -)"
   done | sort -n
+  [[ -d $top/$T.new && ! -e $top/$T.new/.kawa-snap-copy ]] \
+    && echo "kawa-snap: a restore was cut short after its exchange — its snapshots are back once it is finished (the start-up run does it, or: sudo kawa-snap finish)" >&2
   if [[ -d $top/$T.old ]]; then
     t=$(btrfs subvolume show "$top/$T.old" 2>/dev/null | sed -n 's/^[[:space:]]*Creation time:[[:space:]]*//p')
     printf 'old\tsingle\t%s\tthe system before the last restore\t-\n' "$(date -u -d "${t:-@0}" '+%F %T' 2>/dev/null)"
@@ -159,15 +163,20 @@ fi
 # kernel mounts by name), synced, and at once the copy's newest kernel the default; then what lived
 # inside the replaced root (the snapshots …) moves across. Nothing that may hold a subvolume is
 # deleted recursively, and the system that ran is never deleted at all.
-N=$2
+N=${2:-}
 # (his files: until /home is a subvolume of its own they are inside the system, and go back too)
-if ! mountpoint -q /home && [[ ${3:-} != --with-home ]]; then
+if [[ $1 == restore ]] && ! mountpoint -q /home && [[ ${3:-} != --with-home ]]; then
   fail "/home is inside the system: a restore takes your files back to that day too. Until /home is its own subvolume, say that is what you want: kawa-snap restore $N --with-home"
 fi
 exec 9>"$lock"; flock -n 9 || fail "another restore is running — nothing changed"
 for p in dnf5 dnf; do pgrep -x "$p" >/dev/null && fail "a package transaction is running ($p) — restore once it has finished; nothing changed"; done
 mount_top
 [[ -d $top/$T ]] || fail "the root subvolume $T is not on this disk"
+# (/boot and the ESP where GRUB reads them: unmounted, the kernels would land inside the copy)
+mountpoint -q /boot || fail "/boot is not mounted — nothing changed (sudo mount /boot, then again)"
+if findmnt --fstab -no TARGET /boot/efi >/dev/null 2>&1 && ! mountpoint -q /boot/efi; then
+  fail "/boot/efi is not mounted — nothing changed (sudo mount /boot/efi, then again)"
+fi
 command -v exch >/dev/null || fail "exch (util-linux) is missing — the exchange could not be atomic; nothing changed"
 new=$top/$T.new copy=$top/$T.copy
 mark=.kawa-snap-copy        # (in a copy until it is exchanged in: a $T.new without it is the system that ran;
@@ -181,9 +190,12 @@ power_cut() { [[ ${KAWA_SNAP_CUT:-} == "$1" && -e /run/kawa-snap.cut ]] || retur
 # whole V — kernel V complete in /boot: the kernel, its boot image, its entry
 whole() { [[ -f /boot/vmlinuz-$1 && -s /boot/initramfs-$1.img ]] && compgen -G "/boot/loader/entries/*-$1.conf" >/dev/null; }
 newest() { local m; for m in "$1"/usr/lib/modules/*/vmlinuz; do [[ -f $m ]] && m=${m%/vmlinuz} && echo "${m##*/}"; done | sort -V | tail -n1; }
+start="restart now"   # (what the last line asks: the default could not be set → choose the kernel)
 default_to() {   # default_to V — kernel V's entry the default, written to disk
-  grubby --set-default "/boot/vmlinuz-$1" >/dev/null 2>&1 \
-    || { echo "kawa-snap: the default boot entry could not be set — at the next start, choose kernel $1" >&2; return 0; }
+  if ! grubby --set-default "/boot/vmlinuz-$1" >/dev/null 2>&1; then
+    echo "kawa-snap: the default boot entry could not be set" >&2
+    start="at the next start, choose kernel $1 in the boot menu (hold Shift)"; return 0
+  fi
   sync -f /boot || echo "kawa-snap: /boot not confirmed on disk — wait a minute before restarting" >&2
 }
 parents() {   # parents REL — the folders above REL made in the restored system, owned as in the one that ran
@@ -224,21 +236,22 @@ finish() {
   power_cut renamed
   btrfs filesystem sync "$top" >/dev/null 2>&1 || echo "kawa-snap: not confirmed on disk — wait a minute before restarting" >&2
 }
-# (a leftover $T.new: a copy that was never exchanged in has the mark and is removed; one without
-# it is the system that ran before a restore cut short after its exchange — the restored system is
-# running: that restore is finished (its default, the moves, the names), and nothing else is done)
-if [[ -d $new ]]; then
-  if [[ ! -e $new/$mark ]]; then
-    k=$(newest "$top/$T"); if [[ -n $k ]] && whole "$k"; then default_to "$k"; fi
-    finish
-    restorecon -R /boot >/dev/null 2>&1 || true
-    boot_list >/dev/null 2>&1 || true
-    sync || echo "kawa-snap: not confirmed on disk — wait a minute before restarting" >&2
-    echo "kawa-snap: a restore cut short after its exchange is finished — the system running now is the restored one, the one before it is $T.old (kawa-snap restore old goes back to it). Nothing else was done: for another restore, run it again."
-    exit 0
-  fi
-  gone "$new" || fail "a leftover copy $T.new could not be removed"
-fi
+# finish_cut — a leftover $T.new without the mark is the system that ran before a restore cut short
+# after its exchange: the restored system is running — that restore is finished (its default, the
+# moves, the names), never deleted. → 1 there was none
+finish_cut() {
+  [[ -d $new && ! -e $new/$mark ]] || return 1
+  local k; k=$(newest "$top/$T"); if [[ -n $k ]] && whole "$k"; then default_to "$k"; fi
+  finish
+  restorecon -R /boot >/dev/null 2>&1 || true
+  boot_list >/dev/null 2>&1 || true
+  sync || echo "kawa-snap: not confirmed on disk — wait a minute before restarting" >&2
+  echo "kawa-snap: a restore cut short after its exchange is finished — the system running now is the restored one, the one before it is $T.old (kawa-snap restore old goes back to it)."
+}
+if [[ $1 == finish ]]; then finish_cut || echo "kawa-snap: no restore to finish"; exit 0; fi
+if finish_cut; then echo "kawa-snap: nothing else was done — for another restore, run it again."; exit 0; fi
+# (a leftover copy that was never exchanged in has the mark: removed)
+if [[ -d $new ]]; then gone "$new" || fail "a leftover copy $T.new could not be removed"; fi
 # (a copy a run cut before marking it: never the system that ran — removed)
 if [[ -d $copy ]]; then gone "$copy" || fail "a leftover copy $T.copy could not be removed"; fi
 src=$top/$T/.snapshots/$N/snapshot; [[ $N == old ]] && src=$top/$T.old
@@ -304,4 +317,4 @@ finish
 restorecon -R /boot >/dev/null 2>&1 || true
 boot_list >/dev/null 2>&1 || true
 sync || echo "kawa-snap: not confirmed on disk — wait a minute before restarting" >&2
-echo "kawa-snap: snapshot $N is the system from the next start — restart now. The one it replaced is kept as $T.old (kawa-snap restore old goes back to it)."
+echo "kawa-snap: snapshot $N is the system from the next start — $start; install nothing before (it would land in the system being replaced). The one it replaced is kept as $T.old (kawa-snap restore old goes back to it)."
