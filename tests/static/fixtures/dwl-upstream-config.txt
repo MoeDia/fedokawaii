@@ -1,0 +1,36 @@
+# dwl's own config.def.h at the pinned commit 98bea2c27f99c549023fb394bfd983a439d8ccb9 (fedokawaii.conf DWL_COMMIT): the settings it
+# declares, one a line — tests/static/test_dwlconfig.sh. Made again when the pin moves:
+#   git -C ~/.local/src/dwl show COMMIT:config.def.h | (the test's ids)
+accel_profile
+accel_speed
+axes
+bordercolor
+borderpx
+button_map
+buttons
+bypass_surface_visibility
+click_method
+disable_while_typing
+drag_lock
+focuscolor
+fullscreen_bg
+keys
+layouts
+left_handed
+menucmd
+middle_button_emulation
+monrules
+natural_scrolling
+repeat_delay
+repeat_rate
+rootcolor
+rules
+scroll_method
+send_events_mode
+sloppyfocus
+snap
+tap_and_drag
+tap_to_click
+termcmd
+urgentcolor
+xkb_rules

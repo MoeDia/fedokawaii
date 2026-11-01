@@ -4884,7 +4884,7 @@
  static inline void
 --- a/config.def.h
 +++ b/config.def.h
-@@ -6,14 +6,39 @@
+@@ -6,14 +6,41 @@
  /* appearance */
  static const int sloppyfocus               = 1;  /* focus follows mouse */
  static const int bypass_surface_visibility = 0;  /* 1 means idle inhibitors will disable idle tracking even if it's surface isn't visible  */
@@ -4917,6 +4917,8 @@
 +static const unsigned int anim_unroll_ms   = 300;   /* a warm window shown: unrolls from its top edge */
 +static const unsigned int anim_rollup_ms   = 240;   /* …put away: rolls up into it */
 +static const unsigned int anim_slide_ms    = 240;   /* tiled windows sliding to their new places */
++static const unsigned int anim_wash_ms     = 1200;  /* a theme switch, a new wallpaper: the ink wash */
++static const unsigned int anim_wash_hold_ms = 3000; /* …a cover never told to go goes then */
 +/* layer surfaces by namespace: dissolving in (ms, px dropped into place) and out; others at once */
 +static const LayerAnim layeranims[] = {
 +	/* namespace        in ms  out ms  drop px */
@@ -4928,7 +4930,7 @@
  
  /* tagging - TAGCOUNT must be no greater than 31 */
  #define TAGCOUNT (9)
-@@ -33,7 +58,7 @@ static const Layout layouts[] = {
+@@ -33,7 +60,7 @@ static const Layout layouts[] = {
  	/* symbol     arrange function */
  	{ "[]=",      tile },
  	{ "><>",      NULL },    /* no layout function means floating behavior */
@@ -4937,7 +4939,7 @@
  };
  
  /* monitors */
-@@ -125,8 +150,6 @@ static const Key keys[] = {
+@@ -125,8 +152,6 @@ static const Key keys[] = {
  	{ MODKEY|WLR_MODIFIER_SHIFT, XKB_KEY_Return,      spawn,            {.v = termcmd} },
  	{ MODKEY,                    XKB_KEY_j,           focusstack,       {.i = +1} },
  	{ MODKEY,                    XKB_KEY_k,           focusstack,       {.i = -1} },
@@ -4946,7 +4948,7 @@
  	{ MODKEY,                    XKB_KEY_h,           setmfact,         {.f = -0.05f} },
  	{ MODKEY,                    XKB_KEY_l,           setmfact,         {.f = +0.05f} },
  	{ MODKEY,                    XKB_KEY_Return,      zoom,             {0} },
-@@ -134,7 +157,6 @@ static const Key keys[] = {
+@@ -134,7 +159,6 @@ static const Key keys[] = {
  	{ MODKEY|WLR_MODIFIER_SHIFT, XKB_KEY_c,           killclient,       {0} },
  	{ MODKEY,                    XKB_KEY_t,           setlayout,        {.v = &layouts[0]} },
  	{ MODKEY,                    XKB_KEY_f,           setlayout,        {.v = &layouts[1]} },
