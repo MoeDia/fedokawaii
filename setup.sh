@@ -499,6 +499,30 @@ old_kernels_out() {   # old_kernels_out [desktop]
   # (no repository needed to remove: none is asked, so it works offline too)
   run dnf -y --disable-repo='*' remove "${pk[@]}"
 }
+# on_the_system — this start is the system itself: / is the root subvolume as fstab mounts it, not
+# a snapshot started from the boot menu (there the real /boot is mounted, but the kernels' modules
+# are the snapshot's: the kernel rules below would take the system's own kernels out of /boot)
+on_the_system() {
+  local t; t=$(findmnt --fstab -no OPTIONS / 2>/dev/null | tr ',' '\n' | sed -n 's/^subvol=\/\{0,1\}//p' | sed -n 1p)
+  [[ $(findmnt -no FSTYPE / 2>/dev/null) == btrfs && $(findmnt -no FSROOT / 2>/dev/null) == "/${t:-root}" ]] \
+    && ! grep -qw 'systemd.volatile=overlay' /proc/cmdline
+}
+# kernel_match — the running kernel has no modules in this system (a restore cut in the instant
+# between its exchange and the new default): the newest kernel that has them, whole in /boot, is
+# made the default, and the next start uses it
+kernel_match() {
+  local m v
+  [[ -d /usr/lib/modules/$(uname -r) ]] && return 0
+  v=$(for m in /usr/lib/modules/*/vmlinuz; do
+        m=${m%/vmlinuz}; m=${m##*/}
+        if [[ -f /boot/vmlinuz-$m && -s /boot/initramfs-$m.img ]]; then echo "$m"; fi
+      done | sort -V | tail -n1)
+  if [[ -z $v ]]; then log "kernel $(uname -r) has no modules in this system, and no kernel that has is whole in /boot"
+  elif grubby --set-default "/boot/vmlinuz-$v" >/dev/null 2>&1; then
+    log "kernel $(uname -r) has no modules in this system — $v is the default again (from the next start)"
+    as_user notify-send -a upkeep -u critical -- upkeep "restart when you can: this start used a kernel the system has no modules for — the right one ($v) is the default again" 2>/dev/null || true
+  else log "kernel $(uname -r) has no modules in this system, and $v could not be made the default (grubby)"; fi
+}
 # orphan_kernels_out [desktop] — kernels in /boot this system has no modules for (a restore leaves
 # them: the restored rpm database never had them, so dnf cannot take them) go, by kernel-install —
 # once this start has reached the desktop (kawa-snap restore keeps them until then: design §3.1)
@@ -522,6 +546,8 @@ s_kernels() {
 # desktop (handbook §29.5)
 [Unit]
 Description=Fedokawaii: one kernel — the one before the newest removed once the newest has proven itself
+# (never in a snapshot started from the boot menu: its modules are not the system's)
+ConditionKernelCommandLine=!systemd.volatile
 
 [Service]
 Type=oneshot
@@ -540,6 +566,13 @@ OnBootSec=15min
 [Install]
 WantedBy=timers.target
 UNIT
+  # /boot's and the ESP's drivers loaded in the boot image itself: a start whose kernel has no
+  # modules in the system (kernel_match's case) still mounts /boot, so it can be put right
+  write_file /etc/dracut.conf.d/fedokawaii.conf <<'CONF'
+# installed by setup.sh — /boot (XFS) and the ESP (FAT) mountable by every boot image, even under
+# a kernel whose modules the system lacks (a cut restore: kawa-snap, setup.sh kernel_match)
+force_drivers+=" xfs vfat "
+CONF
   systemctl daemon-reload
   systemctl is-enabled --quiet fedokawaii-kernels.timer || systemctl enable fedokawaii-kernels.timer
 }
@@ -2209,8 +2242,8 @@ GRUB_BTRFS_TITLE_FORMAT=("date" "description")
 GRUB_BTRFS_LIMIT="10"
 GRUB_BTRFS_SHOW_SNAPSHOTS_FOUND="false"
 GRUB_BTRFS_SHOW_TOTAL_SNAPSHOTS_FOUND="false"
-GRUB_BTRFS_IGNORE_SPECIFIC_PATH=("$t" "$t.old" "$t.new" "$t.swap")
-GRUB_BTRFS_IGNORE_PREFIX_PATH=("var/lib/containers" "$t/var/lib/containers")
+GRUB_BTRFS_IGNORE_SPECIFIC_PATH=("$t" "$t.old" "$t.new")
+GRUB_BTRFS_IGNORE_PREFIX_PATH=("var/lib/containers" "$t/var/lib/containers" "$t.old.d")
 GRUB_BTRFS_IGNORE_SNAPSHOT_TYPE=("post")
 GRUB_BTRFS_IGNORE_SNAPSHOT_DESCRIPTION=("timeline")
 GRUB_BTRFS_SNAPSHOT_KERNEL_PARAMETERS="systemd.volatile=overlay"
@@ -3417,7 +3450,8 @@ case $MODE in
   after-upgrade) do_after_upgrade; exit 0 ;;
   after-dnf) do_after_dnf && exit 0; exit 3 ;;
   repair) do_repair; exit 0 ;;
-  kernels) [[ $(phase) == 'done' ]] || exit 0; orphan_kernels_out desktop; old_kernels_out desktop; exit 0 ;;
+  kernels) [[ $(phase) == 'done' ]] && on_the_system || exit 0
+           kernel_match; orphan_kernels_out desktop; old_kernels_out desktop; exit 0 ;;
   toolkit) [[ $(phase) == 'done' ]] || die "the build is not finished — setup makes the toolkit itself"
            [[ $REPO_DIR != "$TOOLKIT" ]] || { ok "this is the toolkit already"; exit 0; }
            toolkit_first; install_toolkit           # (the second: the fedokawaii command, from it)

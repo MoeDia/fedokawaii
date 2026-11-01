@@ -1087,8 +1087,11 @@ snapshots() {   # the snapshots of / — read from the disk by kawa-snap, as roo
     else printf '  %-4s  %-46s  %s\n' "$n" "$(fit "$de" 46)" "$v"; fi
     nums+=("$n")
   done <<<"$l"
+  # (his files: inside the system until /home is its own subvolume — then they go back too)
+  local home=1; mountpoint -q /home || home=0
   printf '\n  restore one — the whole system as it was then, from the next start (your\n'
-  printf '  home stays as it is; the system now is kept, "old" brings it back):\n'
+  if ((home)); then printf '  home stays as it is; the system now is kept, "old" brings it back):\n'
+  else printf '  home goes back to then too; the system now is kept, "old" brings it back):\n'; fi
   printf '  (or at power-on: hold Shift (Esc/F8) for the boot menu → snapshots)\n'
   printf '  its number, or enter for none: '
   read -r ans </dev/tty 2>/dev/null || ans=""
@@ -1097,7 +1100,8 @@ snapshots() {   # the snapshots of / — read from the disk by kawa-snap, as roo
   printf '  type yes to restore %s (or at power-on: hold Shift (Esc/F8) for the boot menu → snapshots): ' "$ans"
   read -r c </dev/tty 2>/dev/null || c=""
   [[ $c == yes ]] || { echo "  nothing changed"; return 0; }
-  root kawa-snap restore "$ans" || return 1
+  if ((home)); then root kawa-snap restore "$ans" || return 1
+  else root kawa-snap restore "$ans" --with-home || return 1; fi
   printf '  restart now? y/n '
   read -rsn1 c </dev/tty 2>/dev/null || c=n; echo
   [[ $c == [yY] ]] && systemctl reboot

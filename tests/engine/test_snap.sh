@@ -11,6 +11,7 @@ fresh() {
   P=$TMP/proc; mkdir -p "$P" "$TMP/runroot"
   pointed "$REPO/system/kawa-snap" "$STUBS/kawa-snap" \
     "s|/proc/|$P/|g" "s|^state=/run/kawa-snap.pre\$|state=$TMP/runroot/kawa-snap.pre|" \
+    "s|^lock=/run/kawa-snap.lock |lock=$TMP/runroot/kawa-snap.lock |" \
     's|\[\[ \$EUID -eq 0 \]\]|[[ ${FK_EUID:-$EUID} -eq 0 ]]|'
   export FK_EUID=0
   # snapper: numbers its snapshots from 41; prints the number for -p
@@ -124,8 +125,9 @@ disk() {   # a Fedora layout: root (kernel 6.18.0, marked "now"), its snapshots 
   T=$TMP/kawa-snap/top B=$TMP/boot; mkdir -p "$T" "$B/loader/entries"
   pointed "$REPO/system/kawa-snap" "$STUBS/kawa-snap" \
     "s|/proc/|$P/|g" "s|^state=/run/kawa-snap.pre\$|state=$TMP/runroot/kawa-snap.pre|" \
+    "s|^lock=/run/kawa-snap.lock |lock=$TMP/runroot/kawa-snap.lock |" \
     's|\[\[ \$EUID -eq 0 \]\]|[[ ${FK_EUID:-$EUID} -eq 0 ]]|' \
-    "s|^top=/run/kawa-snap/top |top=$T |" "s|/boot/|$B/|g"
+    "s|^top=/run/kawa-snap/top |top=$T |" "s|/boot/|$B/|g" "s|sync -f /boot |sync -f $B |"
   mk() {   # mk DIR KERNEL MARK
     mkdir -p "$1/usr/lib/modules/$2" "$1/etc" "$1/.snapshots"; : >"$1/usr/lib/modules/$2/vmlinuz"; echo "$3" >"$1/etc/mark"
   }
@@ -141,8 +143,11 @@ disk() {   # a Fedora layout: root (kernel 6.18.0, marked "now"), its snapshots 
   : >"$B/vmlinuz-6.18.0"; printf 'title Fedora\nversion 6.18.0\n' >"$B/loader/entries/abc-6.18.0.conf"
   stub findmnt 'case "$*" in *--fstab*) echo rw,subvol=root,compress=zstd:1 ;; *FSTYPE*) echo btrfs ;;
   *FSROOT*) echo "${FK_FSROOT:-/root}" ;; *SOURCE*) echo "/dev/vda3[/root]" ;; esac'
-  stub mountpoint "[ \"\$2\" = \"$T\" ]"
-  stub mount; stub umount; stub restorecon; stub grubby; stub sync
+  # (/home its own subvolume unless FK_HOME_INSIDE: then a restore must be asked --with-home)
+  stub mountpoint "if [ \"\$2\" = \"$T\" ] || { [ \"\$2\" = /home ] && [ -z \"\${FK_HOME_INSIDE:-}\" ]; }; then exit 0; fi; exit 1"
+  stub mount; stub umount; stub restorecon; stub grubby; stub sync; stub grub2-editenv
+  stub pgrep 'exit "${FK_PGREP:-1}"'
+  ln -sfn /var/lib/dnf/system-upgrade "$T/root/.snapshots/41/snapshot/etc/system-update"
   # (the add records the copy's UPDATEDEFAULT as it runs: the default must not move with it)
   stub chroot 'r=$1; shift; [ "$1 $2" != "kernel-install add" ] || { sed -n "s/^UPDATEDEFAULT=/updatedefault=/p" "$r/etc/sysconfig/kernel" >>"'"$TMP"'/adds"; exit "${FK_ADD:-0}"; }'
   stub kernel-install
@@ -191,17 +196,65 @@ case_ "an exchange that fails: nothing changed, the copy gone, the default untou
 disk; FK_EXCH_FAIL=1 kawa-snap restore 41 >/dev/null 2>&1; eq "$?" 1
 eq "$(cat "$T/root/etc/mark")" now; [[ ! -e $T/root.new && ! -e $T/root.old ]] && _ok || _no "left changed"
 not_called '^grubby'
-case_ "a restore cut after its exchange (the restored system runs, the snapshots still in root.new): finished, never deleted — said, asked again"
+case_ "a restore cut after its exchange (the restored system runs, the snapshots still in root.new): finished — its default, the moves — never deleted, nothing else done"
 disk; mv -T "$T/root" "$T/root.new"; cp -a "$T/root.new/.snapshots/41/snapshot" "$T/root"
-out=$(kawa-snap restore 41 2>&1); eq "$?" 1; has "$out" "was finished"
+: >"$B/vmlinuz-6.17.1"; echo img >"$B/initramfs-6.17.1.img"; printf 'version 6.17.1\n' >"$B/loader/entries/abc-6.17.1.conf"
+out=$(kawa-snap restore 41 2>&1); eq "$?" 0 "$out"; has "$out" "a restore cut short after its exchange is finished"
+called "^grubby --set-default $B/vmlinuz-6.17.1\$"; not_called '^btrfs subvolume snapshot'
+
 [[ -f $T/root/.snapshots/41/info.xml && -f $T/root/.snapshots/1/info.xml ]] && _ok || _no "the snapshots did not move back"
 eq "$(cat "$T/root/etc/mark")" then41; eq "$(cat "$T/root.old/etc/mark")" now; [[ ! -e $T/root.new ]] && _ok || _no "root.new left"
 [[ ! -e $TMP/recursive ]] && _ok || _no "a recursive delete ran"
-case_ "older replaced systems: two kept with their time, the older ones removed"
-disk; for t in 100 200 300; do mkdir -p "$T/root.old-$t"; done; mkdir -p "$T/root.old"; echo older >"$T/root.old/etc-mark"
+case_ "older replaced systems: two kept with their time in root.old.d (out of the boot menu's list), the older ones removed"
+disk; for t in 100 200 300; do mkdir -p "$T/root.old.d/$t"; done; mkdir -p "$T/root.old"; echo older >"$T/root.old/etc-mark"
 kawa-snap restore 41 >/dev/null 2>&1; eq "$?" 0
-eq "$(cd "$T" && ls -d root.old-* | wc -l)" 2 "two timestamped kept"; [[ ! -e $T/root.old-100 && -e $T/root.old-300 ]] && _ok || _no "the wrong ones went"
+eq "$(ls "$T/root.old.d" | wc -l)" 2 "two timestamped kept"; [[ ! -e $T/root.old.d/100 && ! -e $T/root.old.d/200 && -e $T/root.old.d/300 ]] && _ok || _no "the wrong ones went: $(ls "$T/root.old.d")"
+[[ -f $T/root.old.d/$(ls "$T/root.old.d" | sort -n | tail -n1)/etc-mark ]] && _ok || _no "the root.old before not kept"
+kawa-snap list | grep -q 'root.old.d\|^300' && _no "list shows the kept ones" || _ok
 case_ "restore of a number that is not there: nothing changed"
 disk; out=$(kawa-snap restore 7 2>&1); eq "$?" 1; has "$out" "no snapshot 7"; not_called '^btrfs subvolume snapshot'
+case_ "restore old with no system before kept: said, nothing changed"
+disk; out=$(kawa-snap restore old 2>&1); eq "$?" 1; has "$out" "no system before the last restore is kept"
+case_ "restore: the arguments — a number or old, then --with-home only"
+disk; rc 2 kawa-snap restore 41 --bogus; rc 2 kawa-snap restore 41 --with-home extra
+case_ "/home inside the system: refused unless --with-home (his files would go back too) — then done"
+disk; out=$(FK_HOME_INSIDE=1 kawa-snap restore 41 2>&1); eq "$?" 1; has "$out" "/home is inside the system"
+not_called '^btrfs subvolume snapshot'; eq "$(cat "$T/root/etc/mark")" now
+FK_HOME_INSIDE=1 kawa-snap restore 41 --with-home >/dev/null 2>&1; eq "$?" 0; eq "$(cat "$T/root/etc/mark")" then41
+case_ "/boot written to disk before the exchange (sync -f /boot), the default right after it, then the moves"
+disk; kawa-snap restore 41 >/dev/null 2>&1; eq "$?" 0
+order=$(grep -n -E '^(sync -f|exch|grubby|btrfs subvolume list -o)' "$CALLS" | cut -d: -f2 | cut -d' ' -f1-2 | uniq | paste -sd'|')
+eq "$order" "sync -f|exch $T/root|grubby --set-default|sync -f|btrfs subvolume" "the order"
+case_ "…the copy starts clean: /etc/system-update too"
+[[ ! -L $T/root/etc/system-update ]] && _ok || _no "/etc/system-update left in the copy"
+case_ "a leftover copy that was never exchanged in (it has the mark): removed, the restore goes on"
+disk; cp -a "$T/root/.snapshots/1/snapshot" "$T/root.new"; : >"$T/root.new/.kawa-snap-copy"
+out=$(kawa-snap restore 41 2>&1); eq "$?" 0 "$out"; eq "$(cat "$T/root/etc/mark")" then41; eq "$(cat "$T/root.old/etc/mark")" now
+[[ ! -e $T/root/.kawa-snap-copy ]] && _ok || _no "the restored system still has the copy's mark"
+case_ "a kernel with only its vmlinuz in /boot (no image, no entry): put back whole"
+disk; : >"$B/vmlinuz-6.17.1"; kawa-snap restore 41 >/dev/null 2>&1; eq "$?" 0
+called '^chroot .*/top/root.new kernel-install add 6.17.1 '
+case_ "a kernel whole in /boot: left as it is"
+disk; : >"$B/vmlinuz-6.17.1"; echo img >"$B/initramfs-6.17.1.img"; printf 'version 6.17.1\n' >"$B/loader/entries/abc-6.17.1.conf"
+kawa-snap restore 41 >/dev/null 2>&1; eq "$?" 0; not_called 'kernel-install add'
+case_ "a kernel that cannot go in: the ones this run added taken out again, the copy's UPDATEDEFAULT back, nothing changed"
+disk; FK_ADD=1 kawa-snap restore 41 >/dev/null 2>&1; eq "$?" 1
+called '^chroot .*/top/root.new kernel-install remove 6.17.1$'; eq "$(cat "$T/root/etc/mark")" now
+case_ "another restore running (its lock held): refused, nothing changed"
+disk; mkdir -p "$TMP/runroot"; flock "$TMP/runroot/kawa-snap.lock" sleep 3 & sleep 0.3
+out=$(kawa-snap restore 41 2>&1); eq "$?" 1; has "$out" "another restore is running"; not_called '^btrfs subvolume snapshot'; wait
+case_ "a package transaction running: refused, nothing changed"
+disk; out=$(FK_PGREP=0 kawa-snap restore 41 2>&1); eq "$?" 1; has "$out" "a package transaction is running"
+case_ "the system that ran cannot be named root.old: kept in root.old.d with its time, never left as root.new"
+disk; : >"$T/root.old"; kawa-snap restore 41 >/dev/null 2>&1; eq "$?" 0
+[[ ! -e $T/root.new ]] && _ok || _no "left as root.new"
+[[ -n $(ls "$T/root.old.d" 2>/dev/null | grep -- '-') ]] && _ok || _no "not kept in root.old.d: $(ls "$T/root.old.d" 2>&1)"
+case_ "from a snapshot started from the boot menu (/ an overlay): the disk and the snapshot from the kernel's arguments"
+disk; printf 'BOOT_IMAGE=/vmlinuz-6.17.1 root=UUID=1234-ab ro rootflags=subvol=root/.snapshots/41/snapshot systemd.volatile=overlay\n' >"$P/cmdline"
+stub findmnt 'case "$*" in *--fstab*) echo rw,subvol=root,compress=zstd:1 ;; *FSTYPE*) echo overlay ;; *) echo overlay ;; esac'
+stub mountpoint 'if [ "$2" = /home ]; then exit 0; fi; exit 1'   # (the top not mounted yet: mounted from the kernel's root=)
+kawa-snap list | grep -q $'^41\t.*\tbooted$' && _ok || _no "the booted snapshot not marked"
+kawa-snap restore 41 >/dev/null 2>&1; eq "$?" 0; called '^mount -o subvolid=5 /dev/disk/by-uuid/1234-ab '
+eq "$(cat "$T/root/etc/mark")" then41
 
 done_

@@ -145,13 +145,40 @@ the VM (T49 restore-cut.sh: power off after every step):
    `kernel-install remove` only after the restored root has booted; installonly_limit stays 2 and no
    kernel transaction runs while a probation is open (that run holds the kernel: one at rest, the
    previous one only until the new is marked good — setup.sh's rule kept).
-Also: /.autorelabel and /system-update stripped from the copy before the exchange; no blanket
-relabel (a restored root is self-consistent: labels and policy travel together — B5 #11) — a
-`restorecon -R -n -v` dry run on /home, /var/log and /boot relabels only the differences; the ESP
-and the bootloader are never rolled back and never "repaired" to older versions (B5 #10: excluded
-from rpm -Va verdicts); `restore old` reconciles /boot as a restore does; retention: `root.old` plus
-at most two timestamped ones; the booted or default subvolume never deleted; rpm's database
-checkpointed (`PRAGMA wal_checkpoint(TRUNCATE)`) before every snapshot (B5 #12).
+Also: /.autorelabel, /system-update and /etc/system-update stripped from the copy before the
+exchange; no blanket relabel (a restored root is self-consistent: labels and policy travel together
+— B5 #11) — a `restorecon -R -n -v` dry run on /home, /var/log and /boot relabels only the
+differences; the ESP and the bootloader are never rolled back and never "repaired" to older
+versions (B5 #10: excluded from rpm -Va verdicts); `restore old` reconciles /boot as a restore does;
+retention: `root.old` plus at most two timestamped ones in the plain folder `root.old.d` (out of
+grub-btrfs's list: GRUB_BTRFS_IGNORE_PREFIX_PATH); the booted or default subvolume never deleted.
+(rpm's database needs no checkpoint before a snapshot: a Btrfs snapshot is one instant and SQLite
+recovers its write-ahead log from it as after a power cut; no transaction runs under the lock.)
+
+As built (1 Nov, after the master's first review — .claude/notes/master-T48-verdict-1.md):
+- the order: the copy (with a mark file, `.kawa-snap-copy`) → its kernels made whole in /boot (vmlinuz,
+  image and entry; added with UPDATEDEFAULT=no and grubenv's stale `tmp_saved_entry` dropped) →
+  `sync -f /boot` and the ESP, each checked (else undone: the added kernels removed, the copy gone) →
+  `btrfs filesystem sync` → `exch` → sync → **the default at once** (grubby, then `sync -f /boot`) →
+  the moves, the names (finish) → restorecon /boot, the boot menu's list, sync. The remaining
+  window (between `exch` and the default: milliseconds) is healed by setup.sh's `kernel_match` at
+  the start-up run (a running kernel without modules in / → the newest whole kernel that has them
+  the default, said), reachable because every boot image loads xfs and vfat itself
+  (/etc/dracut.conf.d/fedokawaii.conf force_drivers, dracut.conf(5)) and so mounts /boot.
+- a leftover `root.new` WITH the mark is a copy never exchanged in (removed); WITHOUT it, the system
+  that ran before a restore cut after its exchange: that restore is finished (its default, the
+  moves, the names), never deleted, and nothing else is done in that run. The system that ran is
+  never left under the copy's name (root.old, else root.old.d/TIME-PID).
+- one restore at a time (flock on /run/kawa-snap.lock; a dnf run's `pre` waits for it, ten minutes at
+  most), none while a package transaction runs.
+- while /home is inside root (before the split, §3): refused unless `--with-home` — Super+U says his
+  home goes back too and passes it on his "yes".
+- from a snapshot started from the boot menu (/ an overlay: systemd.volatile=overlay) the disk and
+  the snapshot are read from the kernel's arguments (root=UUID=, rootflags=subvol=): restore works
+  there too. The start-up kernel rules (setup.sh --kernels) never run in such a start (its FSROOT is
+  not /root, or the overlay; the unit has ConditionKernelCommandLine=!systemd.volatile).
+- deletions `--commit-after`; no `btrfs subvolume sync` (it only waits for the space to come back —
+  the space floor's business, not the restore's safety).
 
 ## 4. The flow of the button (a state machine; its phase in `fk`, every step idempotent — B2 #9)
 
@@ -182,7 +209,7 @@ B4 #16) are held before the candidate is built.
 Phase 4 — **snapshot**: "before update DATE", important, pinned in `fk` (not cleaned up until the
 next update has passed its probation, §4.3), checked to exist (B3 #12: never trust a hook's
 silence; the dnf hook gets `raise_error=1` so a stray dnf run without a snapshot stops too — B5
-#14); rpm's database checkpointed first; the in-flight marker written to `fk`: the snapshot's
+#14); (no rpm checkpoint: §3.1) the in-flight marker written to `fk`: the snapshot's
 number, the package set. Every stored package verified (`rpmkeys --checksig` against the system's
 keys) before any replay: `dnf5 replay` skips OpenPGP checks for stored packages (seen in the VM,
 ledger r27-49-exp1).

@@ -350,10 +350,14 @@ out=$(plain "$(tty_free fedokawaii --run snapshots </dev/null 2>&1)")
 has "$out" "9     dnf install libreoffice-writer "; lacks "$out" "libreoffice-c"; lacks "$out" "…"
 has "$out" "or at power-on: hold Shift (Esc/F8) for the boot menu → snapshots"
 case_ "snapshots: a number, then yes — that one restored as root, the restart asked (n: none)"
-fresh; snaplist; out=$(on_tty $'41\nyes\nn' fedokawaii --run snapshots)
-called '^sudo kawa-snap restore 41$'; not_called '^systemctl reboot'
-fresh; snaplist; on_tty $'old\nyes\ny' fedokawaii --run snapshots >/dev/null
+fresh; snaplist; stub mountpoint 'exit 0'; out=$(on_tty $'41\nyes\nn' fedokawaii --run snapshots)
+called '^sudo kawa-snap restore 41$'; not_called '^systemctl reboot'; has "$out" "home stays as it is"
+fresh; snaplist; stub mountpoint 'exit 0'; on_tty $'old\nyes\ny' fedokawaii --run snapshots >/dev/null
 called '^sudo kawa-snap restore old$'; called '^systemctl reboot'
+case_ "snapshots while /home is inside the system: said that his home goes back too — his yes is the consent (--with-home)"
+fresh; snaplist; stub mountpoint 'exit 1'; out=$(on_tty $'41\nyes\nn' fedokawaii --run snapshots)
+has "$out" "home goes back to then too"; lacks "$out" "home stays as it is"
+called '^sudo kawa-snap restore 41 --with-home$'
 case_ "snapshots: anything but yes, or a number not listed — nothing restored"
 fresh; snaplist; on_tty $'41\nno\n' fedokawaii --run snapshots >/dev/null; not_called 'kawa-snap restore'
 out=$(on_tty $'42\nyes\n' fedokawaii --run snapshots); has "$out" "no snapshot 42 in the list"; not_called 'kawa-snap restore'

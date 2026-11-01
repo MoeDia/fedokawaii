@@ -8,6 +8,8 @@ if [[ " $* " == *" --verify "* ]]; then
   exit 0
 fi
 case " $* " in
+  # (FSROOT: the subvolume a path is mounted from — / the root subvolume; $FKH/fsroot-PATH overrides)
+  *" FSROOT "*) cat "/var/lib/fkh/fsroot-$p" 2>/dev/null || { [[ $p == _ ]] && echo /root; } ;;
   *" OPTIONS "*) cat /var/lib/fkh/mountopts 2>/dev/null || echo "rw,relatime,seclabel,compress=zstd:1,ssd,space_cache=v2,subvolid=257,subvol=/root" ;;
   *) cat "/var/lib/fkh/fstype-$p" 2>/dev/null || { [[ $p == _boot ]] && echo ext4 || echo btrfs; } ;;
 esac

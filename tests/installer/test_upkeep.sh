@@ -293,6 +293,23 @@ grubenv boot_success=0; reset_calls; tk --kernels; eq "$RC" 0; not_called 'kerne
 grubenv boot_success=1; reset_calls; tk --kernels; eq "$RC" 0
 called 'kernel-install\] remove 5.0.1-100.fc44.x86_64'; not_called "kernel-install\\] remove $(uname -r)"
 has "$OUT" "has no modules in this system"; [[ -f $W/boot/loader/entries/x-$(uname -r).conf ]] && _ok || _no "the running kernel's entry went"
+case_ "the start-up run in a snapshot started from the boot menu (/ a snapshot, or systemd.volatile=overlay): no kernel rule runs — the system's own kernels stay in /boot"
+back built; fkh kernels "6.18.1-200.fc44.x86_64" "$(uname -r)"; grubenv boot_success=1; mkdir -p "$W/boot/loader/entries"
+printf 'title Fedora\nversion 5.0.1-100.fc44.x86_64\n' >"$W/boot/loader/entries/x-5.0.1-100.fc44.x86_64.conf"
+fkh fsroot-_ /root/.snapshots/41/snapshot; reset_calls; tk --kernels; eq "$RC" 0
+not_called 'remove kernel'; not_called 'kernel-install\] remove'; not_called 'grubby\] --set-default'
+rm -f "$FKH/fsroot-_"; c=$(cat "$W/proc/cmdline"); echo "$c systemd.volatile=overlay" >"$W/proc/cmdline"
+reset_calls; tk --kernels; eq "$RC" 0; not_called 'remove kernel'; not_called 'kernel-install\] remove'
+echo "$c" >"$W/proc/cmdline"
+grep -q '^ConditionKernelCommandLine=!systemd.volatile$' "$W/etc/systemd/system/fedokawaii-kernels.service" && _ok || _no "the unit runs in a snapshot boot too"
+case_ "the start-up run under a kernel the system has no modules for (a restore cut in its instant): the newest whole kernel that has them made the default, said"
+back built; k=$(uname -r); fkh kernels "$k"; echo vmlinuz >"$W/boot/vmlinuz-$k"; echo img >"$W/boot/initramfs-$k.img"
+printf '#!/bin/sh\n[ "$1" = -r ] && { echo 9.9.9-1.fc44.x86_64; exit 0; }\nexec /usr/bin/uname "$@"\n' >"$W/usr/local/bin/uname"; chmod 755 "$W/usr/local/bin/uname"
+reset_calls; tk --kernels; eq "$RC" 0
+called "grubby\] --set-default /boot/vmlinuz-$k"; has "$OUT" "kernel 9.9.9-1.fc44.x86_64 has no modules in this system — $k is the default again"
+rm -f "$W/usr/local/bin/uname"
+case_ "…and the boot images mount /boot and the ESP under such a kernel: xfs and vfat loaded by the image itself (dracut)"
+grep -q '^force_drivers+=" xfs vfat "$' "$W/etc/dracut.conf.d/fedokawaii.conf" && _ok || _no "no dracut drivers: $(cat "$W/etc/dracut.conf.d/fedokawaii.conf" 2>&1)"
 case_ "the start-up run while another run holds the lock, or before setup has finished: nothing, quietly"
 back built; fkh kernels "6.18.1-200.fc44.x86_64" "$(uname -r)"; grubenv boot_success=1
 echo 3 >"$W/var/lib/fedokawaii/phase"; reset_calls; tk --kernels; eq "$RC" 0; not_called 'remove kernel'
