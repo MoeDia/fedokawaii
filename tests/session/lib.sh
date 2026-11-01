@@ -41,12 +41,16 @@ waybar_up() {
 }
 waybar_down() { [[ -n $WBPID ]] && kill "$WBPID" 2>/dev/null; wait "$WBPID" 2>/dev/null; WBPID=""; rm -f "$TMP/waybar.pid"; }
 
-# pokes — the signals waybar got since the last call, sorted: "8 9 10" (empty: none)
+# pokes — the signals waybar got since the last call, sorted: "8 9 10" (empty: none). Read only
+# once the stand-in has logged its flush (queued after every earlier poke): up to a minute on a
+# loaded machine — a count read before it would be short (seen: 1125 lines under a VM and two
+# suites), so no flush is said as that, never counted
 pokes() {
   local n m i l f=0 out="" ; local -a L cnt=()
   count n flush
   kill -s RTMAX "$WBPID" 2>/dev/null || { echo "lib: waybar is gone" >&2; return 1; }
-  for ((i = 0; i < 1000; i++)); do count m flush; ((m > n)) && break; nap 0.01; done
+  for ((i = 0; i < 6000; i++)); do count m flush; ((m > n)) && break; nap 0.01; done
+  ((m > n)) || { echo "lib: the stand-in waybar logged no flush within a minute" >&2; return 1; }
   mapfile -t L <"$WBLOG"
   for l in "${L[@]}"; do
     if [[ $l == flush ]]; then ((f++)); elif ((f == n)) && [[ $l =~ ^[0-9]+$ ]]; then ((cnt[l]++)); fi

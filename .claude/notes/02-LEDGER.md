@@ -2588,6 +2588,10 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   and 179/1 under the VM + two suites + test files at once); 5 re-runs alone or with one suite: 180/0 each.
   kawa-dwlstatus is untouched by this pass: a load-sensitive count in the test (pokes lost under load) — for T52/
   T53: make the count robust (the stand-in's poke log, not signal delivery) without weakening the "one per change".
+  FIXED 16:05: the stand-in already queues every poke (real-time signals, sigwaitinfo) and logs a "flush" queued
+  after them; tests/session/lib.sh pokes() waited only ~10 s for it, then counted a partial log — now up to a
+  minute, and no flush is reported as that, never counted. The "exactly one poke per change" stays. Session area
+  19/19.
 
 - r27-49-E4 (1 Nov 15:42–15:52) — update-green.sh f44 from `next` (applied first): exit 0 in 342 s, report "ok ·
   updated · 61 packages", the checks before it 15:46:05 with no red, "green in the copy" 15:47:46, kernel 7.2.13 on
