@@ -2126,20 +2126,40 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   the end of this pass with greetd's one-time initial_session (the file kept in
   /var/lib/fedokawaii/greetd-fedokawaii.toml.r27): the next pass restores it FIRST and checks the split.
 
-## >>> NEXT PASS STARTS HERE (1 Nov 09:10): the inbox first. Then:
-## (0) IF the PC restarted for the split (ledger r27-52b-pc says "restarted"): FIRST greetd's file back —
-##     `sudo cp -a /var/lib/fedokawaii/greetd-fedokawaii.toml.r27 /etc/greetd/fedokawaii.toml` (0 lines
-##     initial_session after; it auto-logs in at every start until then). Then check the split on the PC:
-##     `sudo fedokawaii-split state` ("flat, old copies" — or flat if the start-up run already cleaned),
-##     /var/log/fedokawaii-split.log, ~/.cache/r27-split-before.txt (counts: home files, bytes, Downloads,
-##     VM, Steam, /var/log, snapper 46+1, the VMs) and `sudo sha256sum -c --quiet ~/.cache/r27-split-before.sha256`
-##     (561 files of Documents, Pictures, Music, Videos, .ssh, fedokawaii's config/data), `btrfs subvolume
-##     list -a /`, findmnt of /home /var/log /var/lib/fedokawaii/update /.snapshots, the journal on [/log],
-##     `virsh -c qemu:///session list --all` (fk-f44, fk-f44b start), kawa-snap list, the boot menu's list
-##     (snapshots/N); then `sudo bash /usr/local/lib/fedokawaii/setup.sh --layout` (home's snapper config,
-##     root's timeline off, clean) and `fedokawaii verify`; ledger r27-52b-pc; T48 FIRST (2) DONE (the
-##     master's conditions: "the PC with the outputs recorded"). If the split was put back on the PC:
-##     /var/lib/fedokawaii/split.failed + the log say why — fix, VM again, never by hand.
+- r27-52b-pc (cont., 1 Nov 09:57–10:12): the PC restarted 09:57 (greetd's one-time login); greetd's file put back
+  first (`cp -a` the kept copy: 0 initial_session lines). THE SPLIT, on the PC: its log 09:57:13 "start 1" →
+  09:57:21 "the disk's new layout is made" (8 s: reflink copies) → state "flat, old copies". At the top: root
+  256, home 642, log 643, fk 644, snapshots 259 (the same ID as root/.snapshots had: moved, not copied);
+  Downloads 258 and VM 511 inside home (their IDs kept: moved); fstab's four lines; findmnt: /home [/home],
+  /var/log [/log] (the journal's files there), /var/lib/fedokawaii/update [/fk], /.snapshots [/snapshots].
+  His files: `sha256sum -c` of the 561 kept checksums all OK; the new /home against the old copy the mount
+  hides (a read-only bind of /, file list with sizes, C sort): 236 415 old vs 236 422 new — outside Steam's
+  runtime churn, the caches and Claude's session files written since the start: 0 missing, 0 new, every
+  size equal (Steam's registry.vdf, steam.pid aside). Downloads 191 files / 66 272 717 025 bytes = before;
+  VM 44 files (its disks written by the proofs after 09:01); /var/log 60 files = before; snapper 46 + 370 +
+  371 = 48; fk-f44, fk-f44b listed by virsh. (The 09:01 count of 269 785 home files was an hour older:
+  the copy matches the disk as it was at 09:57, file for file.)
+  FOUND: the boot menu's list (grub-btrfs.cfg, written 09:54:56) still named root/.snapshots/N — after the
+  move none of its ten entries could have started. The VM proofs had called `kawa-snap boot` themselves
+  before reading the list, which hid it. Fixed live: `kawa-snap boot` 10:00 → ten entries snapshots/325 …
+  371, each a subvolume on the disk (checked one by one). In the code: the split's end() lists them again
+  (after a split and after a put-back: its log says which); verify's boot-menu row fails a list that names
+  a snapshot no longer on the disk ("— fedokawaii repair lists them again"); split-cut.sh now reads the
+  list the split made (no `kawa-snap boot` first; asserts stale=0). test_split 87/0 (the old program: red),
+  test_verify 175/0 (the PC's case: root/.snapshots/371/snapshot named → ✘ with repair named), test_snap
+  214/0; the check's logic run on the PC: live list → nothing gone; the stale line → named.
+  Then `setup.sh --layout` (10:00): home's snapper config made, root's timeline off, home's on; clean
+  removed the old /home and /var/log copies → state "flat". `fedokawaii verify` 259/260 (the red: his
+  qbittorrent outside the manifest, T35's); the layout row ✔. T48 FIRST (2) DONE on the PC (the master's
+  condition — the PC with its outputs recorded — met here); the VM re-run of split-cut none for the new
+  end() is the next pass's first item. Note for the Super+U pane (T48 rest): `kawa-snap list` gives
+  snapper's info.xml dates, which are UTC (09:54 shows as 05:54) — the pane shows local time.
+
+## >>> NEXT PASS STARTS HERE (1 Nov 10:12): the inbox first. Then:
+## (0) the VM re-run started 10:1x from a detached worktree (~/.cache/r27-proof-wt, commit of this item):
+##     `bash tools/vm-inject/split-cut.sh f44b none` — its table in ~/.cache/r27-split-cut-none.txt, the case's
+##     log in /dev/shm/r27/split-cut/none.log. Green ("ok", boot menu with stale=0) → ledger, remove the
+##     worktree (`git worktree remove --force ~/.cache/r27-proof-wt`). Red → read the log, fix, VM again.
 ## (1) T45 (worktree ~/repos/fk-t45): merge main (t48 is in it) into t45; then (e) the real checks +
 ##     the desktop smoke test (design §4.2: tools/kit.sh-based, the installed dwl, gles2 on the dGPU's
 ##     render node by path on the PC, pixman in the VM which has no render node), (f) probation

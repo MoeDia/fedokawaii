@@ -187,8 +187,11 @@ power_cut() {
   [[ $c == "$1" ]] && ((n == 1)) || return 0
   echo b >/proc/sysrq-trigger; sleep 30
 }
-end() {   # end — the log kept where /var/log is, /system-update gone, the machine restarted
+end() {   # end — the boot menu's snapshots listed again, the log kept where /var/log is, /system-update gone, the machine restarted
   local l=$top/$T/var/log/fedokawaii-split.log
+  # (grub-btrfs's list names each snapshot by its place on the disk, which this run changed)
+  if /usr/local/sbin/kawa-snap boot >>"$LOG" 2>&1; then say "the boot menu's snapshots listed again"
+  else say "the boot menu's snapshots could not be listed again (the next dnf run, snapshot or repair does it)"; fi
   sub "$top/log" && l=$top/log/fedokawaii-split.log
   cat "$LOG" >>"$l" 2>/dev/null
   rm -f /system-update; rm -rf "$D"; synced; sync

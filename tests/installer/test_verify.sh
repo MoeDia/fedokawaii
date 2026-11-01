@@ -260,6 +260,15 @@ back built; sed -i 's/^masked dnf5-makecache.timer$/static dnf5-makecache.timer/
 V; eq "$RC" 3; has "$OUT" "✘  no package downloads in the background (dnf's makecache timer masked)"
 back built; V; has "$OUT" "✔  no package downloads in the background (dnf's makecache timer masked)"
 
+# ── the boot menu's snapshots ────────────────────────────────────────────────
+case_ "the boot menu's list naming a snapshot no longer on the disk (the split moved them; seen on the PC, 1 Nov): a failure, repair named"
+n="snapshots in the boot menu (grub-btrfs, listed again after the clean-up)"
+back built; printf 'linux /vmlinuz rootflags=subvol="snapshots" quiet\n' >"$W/boot/grub2/grub-btrfs.cfg"
+V; has "$OUT" "✔  $n"
+printf 'linux /vmlinuz rootflags=subvol="root/.snapshots/371/snapshot" quiet\n' >>"$W/boot/grub2/grub-btrfs.cfg"
+V; eq "$RC" 3; has "$OUT" "✘  the boot menu's snapshots — it names root/.snapshots/371/snapshot, no longer on the disk — fedokawaii repair lists them again"
+rm -f "$W/boot/grub2/grub-btrfs.cfg"; V; has "$OUT" "✔  $n"
+
 # ── Brave ────────────────────────────────────────────────────────────────────
 case_ "Brave Origin: started hidden, it is 'started' when its DevTools port answers — and nothing of it is left running"
 back built; V

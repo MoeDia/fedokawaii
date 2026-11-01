@@ -22,7 +22,7 @@ fresh() {   # a Fedora layout: root with /home (his file), /var/log, the snapsho
     "s|^top=/run/fedokawaii-split/top |top=$T |" "s|/system-update|$TMP/system-update|g" \
     "s|LOG=/var/log/fedokawaii-split.log|LOG=$TMP/var-log/fedokawaii-split.log|" \
     "s|/run/fedokawaii-split.lock|$TMP/split.lock|" 's|held "\$p")|held "$top/$T$p")|' \
-    's|restorecon /.snapshots|restorecon "$top/$T/.snapshots"|'
+    's|restorecon /.snapshots|restorecon "$top/$T/.snapshots"|' 's|/usr/local/sbin/kawa-snap boot|kawa-snap boot|'
   mkdir -p "$TMP/var-log"
   # (findmnt: / the root subvolume of /dev/vda3 — or FK_FS; each layout path mounted from [/NAME] when FK_FLAT)
   stub findmnt 'case "$*" in
@@ -35,7 +35,7 @@ fresh() {   # a Fedora layout: root with /home (his file), /var/log, the snapsho
   *SOURCE*) echo "/dev/vda3[/root]" ;;
 esac'
   stub mountpoint "[ \"\$2\" = \"$T\" ]"
-  stub mount; stub umount; stub restorecon; stub plymouth; stub journalctl; stub systemctl
+  stub mount; stub umount; stub restorecon; stub plymouth; stub journalctl; stub systemctl; stub kawa-snap
   # (cp: the real one — and FK_GROW, a file a process appends to while the folder is copied)
   stub cp '/usr/bin/cp "$@"; r=$?; [ -n "${FK_GROW:-}" ] && echo more >>"$FK_GROW"; exit $r'
   stub btrfs 'reg='"$REG"' top='"$T"'
@@ -106,7 +106,7 @@ fedokawaii-split run >/dev/null 2>&1; eq "$?" 0
 has "$(sed -n 1p "$TMP/split.failed")" "three starts did not finish it"
 eq "$(sed -n 2p "$TMP/split.failed")" "$(sha256sum <"$STUBS/fedokawaii-split")"
 [[ ! -e $TMP/system-update && ! -e $D ]] && _ok || _no "still armed"
-called '^systemctl reboot'; eq "$(cat "$T/root/home/dia/notes.txt")" his
+called '^systemctl reboot'; eq "$(cat "$T/root/home/dia/notes.txt")" his; called '^kawa-snap boot'
 has "$(cat "$T/root/var/log/fedokawaii-split.log")" "the layout stays as it was"
 
 # ── clean ────────────────────────────────────────────────────────────────────────────────
@@ -130,6 +130,8 @@ eq "$(cat "$T/home/dia/notes.txt" 2>&1)" his; eq "$(cat "$T/log/boot.log" 2>&1)"
 eq "$(grep -c 'subvol=\(home\|log\|fk\|snapshots\),compress=zstd:1' "$T/root/etc/fstab")" 4
 [[ ! -e $TMP/system-update && ! -e $D ]] && _ok || _no "still armed"; called '^systemctl reboot'
 has "$(cat "$T/log/fedokawaii-split.log" 2>&1)" "the disk's new layout is made"
+# (the boot menu's list made again before the restart: it named root/.snapshots/N — seen on the PC, 1 Nov)
+called '^kawa-snap boot'; has "$(cat "$T/log/fedokawaii-split.log" 2>&1)" "the boot menu's snapshots listed again"
 case_ "…a file a process holds open and appends to while /var/log is copied (plymouth's boot.log): copied as it was, compared by neither the listing nor the sample"
 fresh; sleep 30 3>>"$T/root/var/log/boot.log" & holder=$!   # (fewer than 64 files: the sample takes every one)
 fedokawaii-split arm >/dev/null 2>&1; FK_GROW=$T/root/var/log/boot.log fedokawaii-split run >/dev/null 2>&1; eq "$?" 0

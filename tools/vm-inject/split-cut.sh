@@ -55,7 +55,7 @@ split='sudo btrfs subvolume list -a / | sed -n "s/.* path //p"
   echo "journal=$(findmnt -no SOURCE -T /var/log/journal)"; journalctl -b -n 1 -q --no-pager >/dev/null && echo journal-ok
   n=$(sudo snapper -c root create -p -d split-cut) && sudo test -d /.snapshots/$n/snapshot && echo "snap-ok $n"
   echo "listed=$(sudo kawa-snap list | wc -l)"
-  sudo kawa-snap boot >/dev/null; echo "grub=$(sudo grep -c "subvol=.snapshots/" /boot/grub2/grub-btrfs.cfg)"
+  echo "grub=$(sudo grep -c "subvol=.snapshots/" /boot/grub2/grub-btrfs.cfg) stale=$(sudo grep -c "subvol=\"root/.snapshots/" /boot/grub2/grub-btrfs.cfg)"   # (the split lists them itself)
   sudo cat /var/log/fedokawaii-split.log'
 # shellcheck disable=SC2016
 clean='sudo fedokawaii-split clean; sudo fedokawaii-split state
@@ -96,7 +96,7 @@ for st in "${steps[@]}"; do
     { grep -q '^journal=.*\[/log\]$' <<<"$end" && [[ $end == *journal-ok* ]]; } || result+=" journal"
     [[ $end == *snap-ok* ]] || result+=" snapper"
     grep -qE '^listed=[1-9]' <<<"$end" || result+=" kawa-snap list"
-    grep -qE '^grub=[1-9]' <<<"$end" || result+=" boot menu"
+    grep -qE '^grub=[1-9][0-9]* stale=0$' <<<"$end" || result+=" boot menu"
     [[ $st == none || $end == *"start 2"* ]] || result+=" not resumed"
     c=$(chk "$clean")
     cl=ok; [[ $(sed -n 1p <<<"$c") == flat && $(sed -n 2p <<<"$c") -le 2 ]] || { cl=NO; result+=" clean"; }
