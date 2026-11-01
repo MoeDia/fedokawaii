@@ -2155,15 +2155,85 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   end() is the next pass's first item. Note for the Super+U pane (T48 rest): `kawa-snap list` gives
   snapper's info.xml dates, which are UTC (09:54 shows as 05:54) — the pane shows local time.
 
-## >>> NEXT PASS STARTS HERE (1 Nov 10:12): the inbox first. Then:
-## (0) the VM re-run started 10:1x from a detached worktree (~/.cache/r27-proof-wt, commit of this item):
-##     `bash tools/vm-inject/split-cut.sh f44b none` — its table in ~/.cache/r27-split-cut-none.txt, the case's
-##     log in /dev/shm/r27/split-cut/none.log. Green ("ok", boot menu with stale=0) → ledger, remove the
-##     worktree (`git worktree remove --force ~/.cache/r27-proof-wt`). Red → read the log, fix, VM again.
-## (1) T45 (worktree ~/repos/fk-t45): merge main (t48 is in it) into t45; then (e) the real checks +
-##     the desktop smoke test (design §4.2: tools/kit.sh-based, the installed dwl, gles2 on the dGPU's
-##     render node by path on the PC, pixman in the VM which has no render node), (f) probation
-##     (boot counting, fedokawaii-boot-good, no kernel transaction while open, RuntimeWatchdogSec), (h) the
-##     unit + the Super+U pane, (i) the toolkit at a tag; t45 → main after (f) is proven in the VM.
-## (2) T48 rest: restore-file flow in Super+U, backups (kawa-backup), the space floor (VM: a full disk),
-##     verify rows, the Learn piece. (3) found: r27-found-1 (waybar's zombies).
+- r27-52b-vm (1 Nov 10:08–10:09; worktree of 05eb42e, VM f44b): `split-cut.sh f44b none` → none ok · flat · files ok ·
+  clean ok · RESULT ok, rc 0 (71 s). The split's own log in the VM: "10:09:00 the boot menu's snapshots listed
+  again"; the list read as the split left it (no `kawa-snap boot` first): grub=2 stale=0. The boot-list fix is
+  proven in the VM; the worktree removed.
+
+- r27-found-1 FIXED (1 Nov 10:12–10:22): the cause, from waybar 0.15.0's own source (src/main.cpp,
+  include/util/command.hpp, src/client.cpp, src/modules/custom.cpp at tag 0.15.0) and reproduced headless
+  (the kit, the installed bar, only the kit's own waybar signalled: pgrep -P): every SIGUSR2 is waybar's
+  full reload (Client::reset: every bar and module destroyed and made again) — 3 → 8 → 9 zombie children
+  "[waybar]" after three reloads, every module child replaced; with waybar -l trace the zombie's only line is
+  "(waybar:PID): CRITICAL … Glib::DispatchNotifier::unreference_instance" after "LOG ERROR … Rethrowing unknown
+  exception in logger": a fork made during the teardown that never reached exec, ran exit() through Glib's
+  destructors, and whose module (the only one that would waitpid it — command::open's children are not in
+  the SIGCHLD reap list) was gone. The session never sends SIGUSR2 to the bar (the theme switch goes through
+  the portal's color-scheme: kawa-theme); the senders were the passes' own reloads after an apply (memory
+  "Live bar reload") and the configs' comments telling a reader to. FIX: config.jsonc "reload_style_on_change":
+  true — waybar watches style.css and its @import (a Gio file monitor) and swaps only the CSS provider
+  (client.cpp setupCss): headless, four edits → the same nine children by pid, 0 zombies, the edit drawn
+  (106 px of the test green on the torii). The comments in config.jsonc and style.css now say never SIGUSR2.
+  Guards: tests/static/test_barreload.sh (the key set; nothing in bin, lib, configs, system, tools, the
+  installer or the Learn book sends USR2 to waybar — red on the old config: 0/2, green 2/0) and
+  tools/bar-zombies.sh (the kit: 3 style edits, 10 × poke every signal + wake → alive, the same children, 0
+  zombies, the edit drawn — exit 0). Live: the running bar (since 09:57) has the old config; it watches its
+  style from its next start (the next login), the config installed by the next apply. Left as a note:
+  kawa-dwlstatus caches the newest "waybar" by comm, which a zombie fork keeps — harmless once no zombies
+  are made (a fork alive pre-exec has waybar's handlers: its poke reaches the bar through the pipe).
+
+- r27-found-2 (1 Nov 10:22, for T53/T42 — not yet fixed): the installer tests leave core dumps on his system:
+  62 of /tmp/kawa-test.*/w/.usr/bin/bluetoothctl (SIGABRT, `bluetoothctl show`, users 1000 and the world's
+  555287) in coredumpctl's list — the fake machine's /usr/bin links every real binary (tests/installer/lib.sh
+  usr_farm), and fedokawaii-report's BT-01/BT-04 rows run the real bluetoothctl in a namespace with no system
+  bus, where it aborts. On the PC itself `bluetoothctl show` answers (rc 0, no core). Fix: a stand-in
+  tests/installer/stubs/bluetoothctl (show / devices Paired / info / --version, the world's state from $FKH),
+  then the whole installer area again (a stub change: memory "harness change → full area re-run"); a
+  regression check: no new coredumpctl entry under /tmp/kawa-test.* after tests/run.sh. Also seen: each kit
+  run ends with foot --server writing two "Broken pipe" errors to his journal when the headless dwl goes —
+  the kit should stop its foot server before dwl ends.
+  Checked after the split meanwhile: the new subvolume roots' SELinux labels right (`restorecon -nv` on /home,
+  /home/dia, /var/log, /var/log/journal, /.snapshots, /var/lib/fedokawaii/update: nothing to change), 0 AVC
+  denials since the boot, no failed unit (system or user).
+
+- r27-45-merge (1 Nov 10:09–10:30, branch t45 → 77fabc1, e8f9597, pushed): main (the flat layout, T48 (2)) merged
+  into t45 — no conflict (six files changed on both sides: setup.sh, verify.sh, stubs/btrfs, test_upkeep,
+  test_verify, programs.txt; the btrfs stand-in read whole: both sides' cases kept). The merged branch:
+  engine 12/12, static 10/11 → the red was t45's own: lib/update.sh's `local x=()` made shellcheck read
+  setup.sh's string x (s_gaming) as an array (SC2178/SC2128) → the half renamed pk; test_syntax 691/0,
+  test_update_flow 131/0. Installer 22/26: test_setup, _hw, _wait, test_torture red — on main too: next item.
+- r27-52b-fstab (1 Nov 10:24–10:32): those four were red because the PC's /etc changed (the installer tests'
+  world copies it: memory "installer world copies host /etc"): the split had ended its fstab lines "\t0 0",
+  pace_fstab (setup's noatime pass, lib/pace.sh) rebuilds every Btrfs line tab-separated, so the world's
+  s_pace saw a change, wrote a candidate and failed `findmnt --verify` on mount points it does not have
+  (line 1843, s_pace → fstab_noatime: return 1). Fixed at the writer: the split's lines now "\t0\t0" (the
+  form pace_fstab leaves as it is); test_split pins them as pace_fstab's fixed point (red on the old form:
+  87/1, green 88/0); test_snap's expected line follows (214/0). APPLIED 10:30–10:31 (main aeb8680): repair's
+  pace pass rewrote the PC's four lines in the same form (cat -A: tabs to the end); `fedokawaii verify`
+  259/260 — the new row "snapshots in the boot menu" ✔ (every listed snapshot on the disk), the layout ✔,
+  the red his qbittorrent (T35's). The bar's config with reload_style_on_change installed (his running bar
+  takes it at its next start). Still to do (T53): the world's own fstab, not the PC's (the lesson of this
+  item and of the dracut line: the fake Fedora must start as Fedora left it, not as the PC is).
+
+## >>> NEXT PASS STARTS HERE (1 Nov 10:35): the inbox first. Then:
+## (0) STILL RED after the apply (10:31 re-run on main: test_setup 148/91, test_setup_wait 47/31,
+##     test_setup_hw 79/5; test_torture queued on the installer lock): the failing step is s_pace's
+##     fstab_noatime returning 1 (the ERR trap says "line 1843": one past the call on 1842, a `return 1`).
+##     The PC's /etc/fstab is now a fixed point of pace_fstab (diff empty) and `findmnt --verify` passes on it.
+##     FOUND (10:34 probe: a file in tests/installer/ sourcing lib.sh, `world built`, then removed): the built
+##     world has NO /etc/fstab at all — so `new=$(pace_fstab </etc/fstab) || return 1` is the exit that fails;
+##     mktemp in the world's /etc works. A user's `cp -a --no-preserve=ownership /etc/. DIR/` copies the PC's
+##     fstab fine, so it goes missing inside the world build (lib.sh world(): the copy at line 195 runs as the
+##     namespace's root — or a step after it removes or replaces it: grep found no "fstab" in lib.sh or the
+##     stubs). Find it, then give the world a fstab of its own as Fedora's installer writes it (the root line,
+##     no noatime: s_pace's pass then runs for real in the tests), never the PC's — and the whole installer
+##     area again. These four were green at 09:50, before the split.
+## (1) T45 (worktree ~/repos/fk-t45, main merged in: r27-45-merge): (e) the real checks + the desktop smoke
+##     test (design §4.2: tools/kit.sh-based, the installed dwl, gles2 on the dGPU's render node by path on the
+##     PC, pixman in the VM which has no render node), (f) probation (boot counting, fedokawaii-boot-good, no
+##     kernel transaction while open, RuntimeWatchdogSec), (h) the unit + the Super+U pane, (i) the toolkit at a
+##     tag; t45 → main after (f) is proven in the VM.
+## (2) T48 rest: restore-file flow in Super+U (kawa-snap list's dates are UTC: show local time), backups
+##     (kawa-backup), the space floor (VM: a full disk), the Learn piece.
+## (3) T53 items found today: r27-found-2 (bluetoothctl cores from the installer world: a stand-in), the world's
+##     own fstab (r27-52b-fstab), the kit's foot server ending before its dwl.

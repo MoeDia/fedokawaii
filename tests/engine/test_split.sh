@@ -128,6 +128,10 @@ for n in home log fk snapshots; do grep -qx "$(stat -c %i "$T/$n" 2>/dev/null)" 
 eq "$(cat "$T/home/dia/notes.txt" 2>&1)" his; eq "$(cat "$T/log/boot.log" 2>&1)" log
 [[ -d $T/root/.snapshots && -z $(ls -A "$T/root/.snapshots") && -d $T/snapshots/1/snapshot ]] && _ok || _no "the snapshots not moved"
 eq "$(grep -c 'subvol=\(home\|log\|fk\|snapshots\),compress=zstd:1' "$T/root/etc/fstab")" 4
+# (its lines as setup's noatime pass writes them: that pass leaves the fstab as it is — on 1 Nov the
+# split's "0 0" made it rewrite fstab, and in the installer tests' world fail findmnt --verify)
+f=$(grep 'subvol=\(home\|log\|fk\|snapshots\),' "$T/root/etc/fstab" | sed 's/,compress/,noatime,compress/')
+eq "$(. "$REPO/lib/pace.sh"; pace_fstab <<<"$f")" "$f"
 [[ ! -e $TMP/system-update && ! -e $D ]] && _ok || _no "still armed"; called '^systemctl reboot'
 has "$(cat "$T/log/fedokawaii-split.log" 2>&1)" "the disk's new layout is made"
 # (the boot menu's list made again before the restart: it named root/.snapshots/N — seen on the PC, 1 Nov)

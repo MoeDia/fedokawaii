@@ -63,7 +63,8 @@ fstab() {
   opts=$(tr ',' '\n' <<<"$opts" | grep -Ev '^subvol(id)?=' | paste -sd, -)
   for e in "${LAYOUT[@]}"; do
     sub "$t/${e%%:*}" || continue
-    printf -v lines '%s%s\t%s\tbtrfs\tsubvol=%s%s\t0 0\n' "$lines" "$src" "${e#*:}" "${e%%:*}" "${opts:+,$opts}"
+    # (every field tab-separated, as setup's noatime pass writes a line: lib/pace.sh pace_fstab)
+    printf -v lines '%s%s\t%s\tbtrfs\tsubvol=%s%s\t0\t0\n' "$lines" "$src" "${e#*:}" "${e%%:*}" "${opts:+,$opts}"
   done
   [[ -n $lines ]] || return 0
   tmp=$(mktemp "${file%/*}/.fstab-split.XXXXXX") || return 1

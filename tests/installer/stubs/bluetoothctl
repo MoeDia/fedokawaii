@@ -1,0 +1,11 @@
+#!/bin/bash
+# bluetoothctl of the fake Fedora: the adapter it has (sys/class/bluetooth/hci0), powered, nothing
+# paired — the real one aborts here (no system bus in the fake machine) and leaves a core dump.
+# Not in the call log: it was never there (a power cut's call count, fkh_cut, stays as it was)
+case ${1:-} in
+  --version) echo "bluetoothctl: 5.87" ;;
+  show) compgen -G '/sys/class/bluetooth/hci*' >/dev/null || { echo "No default controller available"; exit 1; }
+        printf '%s\n' "Controller 00:1A:7D:DA:71:13 (public)" $'\tName: fedora' $'\tPowered: yes' $'\tPairable: yes' ;;
+  devices|info) ;;
+  *) exit 1 ;;
+esac

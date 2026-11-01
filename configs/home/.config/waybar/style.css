@@ -29,9 +29,10 @@
    where the windows' edges are (§12). The bar's exclusive zone ends on its lower hairline
    (config.jsonc: margin-bottom -2): the windows' tops 8 px under it, on y 33.
    Colours and pictures come from the current theme (ink or paper): kawa-theme switches
-   ~/.config/fedokawaii/current and reloads the bar. Sumi UI and Sumi Icons are drawn on a 14 px
-   grid: keep font-size at 14px so every pixel lands on a whole screen pixel.
-   Reload: pkill -USR2 waybar */
+   ~/.config/fedokawaii/current and the bar loads its style anew. Sumi UI and Sumi Icons are drawn on a
+   14 px grid: keep font-size at 14px so every pixel lands on a whole screen pixel.
+   A change to this file or the theme's waybar.css is loaded by waybar itself (config.jsonc:
+   reload_style_on_change) — never SIGUSR2 (its full reload leaves unreaped children). */
 @import url("../fedokawaii/current/waybar.css");
 
 * {

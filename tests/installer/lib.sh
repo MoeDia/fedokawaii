@@ -197,6 +197,11 @@ world() {   # world fresh|built [--themed]
   # them; a drivers line already there made repair skip the boot images it must make again)
   rm -f "$W/etc/dracut.conf.d/fedokawaii.conf" "$W/etc/systemd/system/fedokawaii-split.service" \
         "$W/etc/systemd/system/system-update.target.wants/fedokawaii-split.service"
+  # (and its file systems as Fedora Server's installer writes them on Btrfs — the PC's first
+  # snapshot: no noatime yet, none of the split's subvolumes; setup and the split add those)
+  printf '%s\n' '#' '# /etc/fstab' '# Created by anaconda' '#' \
+    'UUID=7ea4 / btrfs subvol=root,compress=zstd:1 0 0' 'UUID=7a6a /boot xfs defaults 0 0' \
+    'UUID=A2DF-358F /boot/efi vfat umask=0077,shortname=winnt 0 2' >"$W/etc/fstab"
   usr_farm
   fake_pylibs
   # the desktop user, an administrator; Fedora's os-release; GRUB's defaults

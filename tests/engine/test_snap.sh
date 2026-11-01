@@ -203,7 +203,7 @@ case_ "…restore 41, from before the split: the copy gets the layout's fstab li
 out=$(kawa-snap restore 41 2>&1); eq "$?" 0 "$out"; eq "$(cat "$T/root/etc/mark")" then41   # (no --with-home: his files stay)
 called "^btrfs subvolume snapshot $T/snapshots/41/snapshot $T/root.copy\$"
 for l in "/home btrfs subvol=home" "/var/log btrfs subvol=log" "/var/lib/fedokawaii/update btrfs subvol=fk" "/.snapshots btrfs subvol=snapshots"; do
-  grep -qx "UUID=ab12	${l// /	},compress=zstd:1	0 0" "$T/root/etc/fstab" && _ok || _no "no fstab line for ${l%% *}: $(cat "$T/root/etc/fstab")"
+  grep -qx "UUID=ab12	${l// /	},compress=zstd:1	0	0" "$T/root/etc/fstab" && _ok || _no "no fstab line for ${l%% *}: $(cat "$T/root/etc/fstab")"
 done
 grep -qx "UUID=ab12	/	btrfs	subvol=root,compress=zstd:1	0 0" "$T/root/etc/fstab" && _ok || _no "the / line changed"
 [[ -d $T/root/var/lib/fedokawaii/update && -f $T/snapshots/41/info.xml && -f $T/snapshots/1/info.xml ]] && _ok || _no "a mount point or a snapshot missing"
