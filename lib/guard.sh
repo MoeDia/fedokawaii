@@ -175,14 +175,14 @@ dwl_starts() {
 # line — never the programs' log noise). A check that could not run is tried once more (a loaded
 # machine): an update is never undone on a check that did not happen
 desktop_starts() {
-  local t out rc try
+  local t out rc _
   for t in session-start bar-geometry; do
-    for try in 1 2; do
+    for _ in 1 2; do
       rc=0; out=$(as_user bash "$REPO_DIR/tools/regress/$t.sh" --dwl /usr/local/bin/dwl 2>&1) || rc=$?
       ((rc == 2)) || break
     done
     ((rc == 0)) && continue
-    grep -E "^$t[ :(]" <<<"$out" | tail -n 1
+    sed -n "/^${t}[ :(]/p" <<<"$out" | tail -n 1   # (sed: no match is no failure inside setup.sh's ERR trap)
     return "$((rc == 1 ? 1 : 2))"
   done
 }

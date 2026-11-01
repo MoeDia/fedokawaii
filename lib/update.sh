@@ -30,6 +30,9 @@ up_labels() { sed 's/ — .*//' | sort -u; }   # (a check's label: its detail af
 u_start() {
   up_phase start
   local p d un why rc=0
+  # (a restore waits for the restart — the running root is no longer the system's — or a snapshot
+  # started from the boot menu: an update there would pin, hold and change the wrong system)
+  on_the_system || die "this start is not the system itself (a restore waits for the restart, or a snapshot from the boot menu runs) — restart first; nothing changed"
   for p in dnf5 dnf packagekitd dnf5daemon-server; do
     if pgrep -x "$p" >/dev/null 2>&1; then die "another package manager is running ($p) — update again once it has finished"; fi
   done
@@ -46,6 +49,9 @@ u_start() {
   if [[ $un =~ ^[0-9]+$ ]] && ((un < 5 * 1024 ** 3)); then
     die "only $(numfmt --to=iec --suffix=B "$un") of the disk is unallocated — this needs 5GB: delete old snapshots (fedokawaii snapshots), then: sudo btrfs balance start -dusage=50 /"
   fi
+  # (the checks' own tools first: an install from before they were in the manifest lacks them, and
+  # an update that cannot check could never be the one that brings them)
+  rpm -q python3-pillow >/dev/null 2>&1 || dnf_install python3-pillow || die "the checks' own tool could not be installed (python3-pillow) — nothing changed"
   log "the checks before it (what is red now does not count against the update)"
   bash "$REPO_DIR/verify.sh" >/dev/null 2>&1 || true
   cp -- "$STATE_DIR/last-verify-fails" "$UPD/baseline" 2>/dev/null || : >"$UPD/baseline"
@@ -208,7 +214,7 @@ up_hold() {   # up_hold WHY NAME… — each name's new version (from UPD/set) h
     [[ -n $v && $v != - ]] || continue
     # NAME HELD AT DATE WHY (AT: the version it is held at; "-" a new package)
     at=$(rpm -q --qf '%{evr}\n' "$n" 2>/dev/null | sed -n 1p) || at=""
-    printf '%s %s %s %s %s\n' "$n" "$v" "${at:--}" "$(date +%F)" "$why" >>"$UPD/holds"
+    grep -q "^$n $v " "$UPD/holds" 2>/dev/null || printf '%s %s %s %s %s\n' "$n" "$v" "${at:--}" "$(date +%F)" "$why" >>"$UPD/holds"
     dnf -q versionlock exclude "$n-$v" >/dev/null 2>&1 || log "could not hold $n $v (dnf versionlock)"
     log "held: $n $v — $why"; UP_HELD=$((UP_HELD + 1))
   done
@@ -296,14 +302,14 @@ u_report() {   # u_report — the outcome: UPD/report (the pane), the log beside
   local held="" line why log n
   [[ -s $UPD/holds ]] && held=$(awk '{ printf "%s%s %s", (NR > 1 ? " · " : ""), $1, $2 }' "$UPD/holds")
   [[ -n $UP_END ]] || UP_END=stopped
-  n=$(wc -l <"$UPD/set" 2>/dev/null) || n=0
+  n=$(wc -l 2>/dev/null <"$UPD/set") || n=0
   case $UP_END in
     ok)       line="updated · $n package$( ((n == 1)) || echo s)${held:+ · held: $held}" ;;
     current)  line="up to date${held:+ · held: $held}" ;;
     held)     line="held: $held — the rest was up to date" ;;
     restored) line="the update broke something: the system before it comes back at the next start — held: $held" ;;
     offered)  line="the update broke something: snapshot $(cat "$UPD/snap") is the system before it (Super+U → snapshots) — held: $held" ;;
-    *)        why=$(grep '✘' "$LOG_FILE" 2>/dev/null | tail -n1 | sed 's/\x1b\[[0-9;]*m//g; s/^.*✘ *//') || why=""
+    *)        why=$(tail -c +"$((RUN_LOG_FROM + 1))" "$LOG_FILE" 2>/dev/null | grep '✘' | tail -n1 | sed 's/\x1b\[[0-9;]*m//g; s/^.*✘ *//') || why=""   # (this run's own)
               line="stopped ($(up_was | sed 's/^end$/start/')): ${why:-no reason could be written (a full disk?)}" ;;
   esac
   ((UP_STAY)) || up_phase end || true
@@ -353,7 +359,7 @@ up_tell() { as_user kawa-foryou add update-cut "$1" "$2" 2>/dev/null || log "$1 
 # changes (fedokawaii-boot-good.path) and by setup.sh --kernels a quarter of an hour into every
 # start (the path's one trigger may have gone to another write: a kernel install's saved entry);
 # while it names a kernel, the one before is never removed (old_kernels_out) ─────────────────
-UP_TRIAL="rd.shell=0 rd.emergency=reboot panic=10"
+UP_TRIAL="rd.shell=0 rd.emergency=reboot rd.retry=30 panic=10"   # (rd.retry: 30 s, not dracut's 180, before a start that cannot find its root gives up)
 UP_DOG=/etc/systemd/system.conf.d/90-fedokawaii-probation.conf
 up_probation() {   # after a green update
   local new now; now=$(uname -r)
@@ -382,7 +388,7 @@ up_probation_close() {   # this start has reached the desktop: the probation ove
     for n in "${KERNEL_PKGS[@]}"; do
       rpm -q "$n-$kernel" >/dev/null 2>&1 || continue
       pk+=("$n-$kernel")
-      printf '%s %s %s %s %s\n' "$n" "$v" "${now%.*}" "$(date +%F)" "did not reach the desktop in three starts" >>"$UPD/holds"
+      grep -q "^$n $v " "$UPD/holds" 2>/dev/null || printf '%s %s %s %s %s\n' "$n" "$v" "${now%.*}" "$(date +%F)" "did not reach the desktop in three starts" >>"$UPD/holds"
       dnf -q versionlock exclude "$n-$v" >/dev/null 2>&1 || log "could not hold $n $v (dnf versionlock)"
     done
     grubby --set-default "/boot/vmlinuz-$now" >/dev/null 2>&1 || log "kernel $now could not be made the default (grubby)"

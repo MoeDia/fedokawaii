@@ -221,6 +221,7 @@ check "dnf's guard knows what our builds load and the manifest (needs, manifest)
   bash -c 'grep -qx "wlroots $1" "$2/needs" && test -s "$2/manifest"' _ "$DWL_WLROOTS" "$STATE_DIR"
 check "the checks after a dnf transaction (fedokawaii-after-dnf.service enabled)" systemctl is-enabled --quiet fedokawaii-after-dnf.service
 check "the start after an update closes its probation (fedokawaii-boot-good.path enabled)" systemctl is-enabled --quiet fedokawaii-boot-good.path
+check "an update cut in its transaction is finished or undone before the login (fedokawaii-update-resume.service enabled)" systemctl is-enabled --quiet fedokawaii-update-resume.service
 fi
 if [[ -f $STATE_DIR/after-dnf ]]; then warn "a dnf transaction not yet followed up" "it runs by itself (fedokawaii-after-dnf.service), or now: fedokawaii repair"
 elif read -r t r _ 2>/dev/null <"$STATE_DIR/last-after-dnf" && [[ ${r:-ok} != ok ]]; then

@@ -34,6 +34,7 @@ done
 gpu=(WLR_RENDERER=pixman) most=-1
 for n in /sys/class/drm/renderD*; do
   [[ -e /dev/dri/${n##*/} ]] || continue
+  [[ $(readlink "$n/device/driver") == */virtio_gpu ]] && continue   # (the harness VM's screen: no 3D)
   v=$(cat "$n/device/mem_info_vram_total" 2>/dev/null) || v=0
   [[ $v =~ ^[0-9]+$ ]] || v=0
   ((v > most)) && most=$v gpu=(WLR_RENDERER=gles2 "WLR_RENDER_DRM_DEVICE=/dev/dri/${n##*/}")

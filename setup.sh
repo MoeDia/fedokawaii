@@ -2915,7 +2915,7 @@ do_update() {   # the button's run (lib/update.sh: the phases, their state in UP
   fi
   if [[ -s $UPD/set ]]; then UP_END=ok; elif ((UP_HELD)); then UP_END=held; else UP_END=current; fi
   up_probation
-  [[ -s $STATE_DIR/last-verify-fails ]] && result=checks
+  # (no "checks" here: what verify finds red was red before — a new red would have undone it)
   ((${#UPDATE_STEPS_FAILED[@]} == 0 && UP_HELD == 0)) || result=partial
   record last-update "$(date +%s) $result"
   record last-update-done "$(date +%s)"            # (the season counts from here: a run that stopped does not count)

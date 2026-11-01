@@ -209,14 +209,14 @@ case_ "a green update that brought a kernel: its next start on trial — GRUB co
 back built; reset_calls; pending "bash 5.2-1.fc44 5.3-1.fc44"; fkh kernels "$K" "$NEWK"; : >"$W/boot/vmlinuz-$NEWK"
 up; eq "$RC" 0 "$(tail -n3 <<<"$OUT")"; eq "$(report)" ok
 env_has boot_counter=3; env_has boot_success=0; env_has boot_indeterminate=1
-called "grubby\] --update-kernel=/boot/vmlinuz-$NEWK --args=rd.shell=0 rd.emergency=reboot panic=10"
+called "grubby\] --update-kernel=/boot/vmlinuz-$NEWK --args=rd.shell=0 rd.emergency=reboot rd.retry=30 panic=10"
 grep -qx 'RuntimeWatchdogSec=1min' "$W/etc/systemd/system.conf.d/90-fedokawaii-probation.conf" && _ok || _no "no watchdog while on trial"
 eq "$(cut -d' ' -f1,2 "$U/probation")" "$(cat "$U/snap") $NEWK" "the probation: its snapshot, the kernel on trial"
 has "$OUT" "kernel $NEWK on trial at the next start: three starts to reach the desktop, else $K again"
 case_ "…a start marked good before the counting ran out, on the new kernel: the trial over, the snapshot back to the cleanup"
 s=$(cat "$U/snap"); echo "$s $K 2026-11-01" >"$U/probation"; fkh grubenv boot_success=1 boot_counter=2; reset_calls
 good; eq "$RC" 0 "$OUT"
-called 'grub2-editenv\] - unset boot_counter'; called "grubby\] --update-kernel=/boot/vmlinuz-$K --remove-args=rd.shell=0 rd.emergency=reboot panic=10"
+called 'grub2-editenv\] - unset boot_counter'; called "grubby\] --update-kernel=/boot/vmlinuz-$K --remove-args=rd.shell=0 rd.emergency=reboot rd.retry=30 panic=10"
 called "snapper\] -c root modify -c number $s"; [[ ! -e $U/probation && ! -e $W/etc/systemd/system.conf.d/90-fedokawaii-probation.conf ]] && _ok || _no "the probation or its watchdog left"
 case_ "GRUB took the one before after three starts: the new kernel held at its version and out, this one the default — said at login"
 back built; reset_calls; cut_run; rm -f "$U/phase"; fkh kernels "$K" "$NEWK"; echo "7 $NEWK 2026-11-01" >"$U/probation"
@@ -261,6 +261,10 @@ has "$(sed -n 2p "$U/report")" "stopped (start): another package manager is runn
 case_ "…the games VM holding the graphics card"
 back built; reset_calls; gpu card1 0x1002 0x7590 vfio-pci
 up; eq "$RC" 1; has "$OUT" "the games VM holds the graphics card — stop it, then update"
+case_ "…a restore waiting for the restart, or a snapshot started from the boot menu: not the system itself"
+back built; reset_calls; pending "bash 5.2-1.fc44 5.3-1.fc44"; fkh fsroot-_ /root.old
+up; eq "$RC" 1; has "$OUT" "this start is not the system itself"; not_called 'snapper\] -c root create'; not_called 'dnf\] -y --setopt'
+rm -f "$FKH/fsroot-_"
 case_ "…Btrfs with too little unallocated"
 back built; reset_calls; fkh btrfs-unalloc $((2 * 1024 ** 3))
 up; eq "$RC" 1; has "$OUT" "only 2.0GB of the disk is unallocated — this needs 5GB"; not_called 'snapper\] -c root create'

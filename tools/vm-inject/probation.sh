@@ -32,7 +32,7 @@ for c in "${cases[@]}"; do
   run 'sudo bash /usr/local/lib/fedokawaii/setup.sh --update >/tmp/update.log 2>&1; echo "rc=$?"; sed "s/\x1b\[[0-9;]*m//g" /tmp/update.log | tail -n 25' >>"$log" 2>&1
   new=$(run 'sudo cut -d" " -f2 /var/lib/fedokawaii/update/probation | tail -n1')
   snap=$(run 'sudo cut -d" " -f1 /var/lib/fedokawaii/update/probation | tail -n1')
-  armed=$(run 'sudo grub2-editenv - list | grep -E "^boot_(counter|success|indeterminate)=" | sort | tr "\n" " "; sudo grubby --info=/boot/vmlinuz-'"$new"' 2>/dev/null | grep -c "rd.shell=0 rd.emergency=reboot panic=10"; sudo cat /etc/systemd/system.conf.d/90-fedokawaii-probation.conf 2>/dev/null | grep -c RuntimeWatchdogSec')
+  armed=$(run 'sudo grub2-editenv - list | grep -E "^boot_(counter|success|indeterminate)=" | sort | tr "\n" " "; sudo grubby --info=/boot/vmlinuz-'"$new"' 2>/dev/null | grep -c "rd.shell=0 rd.emergency=reboot rd.retry=30 panic=10"; sudo cat /etc/systemd/system.conf.d/90-fedokawaii-probation.conf 2>/dev/null | grep -c RuntimeWatchdogSec')
   printf 'old %s · new %s · armed: %s\n' "$old" "$new" "$armed" >>"$log"
   if [[ ! $new =~ ^[0-9] || $new == "$old" ]]; then
     printf '%-5s no kernel came with the update (old %s, new %s) — nothing to prove\n' "$c" "$old" "${new:-?}"; bad=1; continue
@@ -50,7 +50,7 @@ for c in "${cases[@]}"; do
             sudo test -e /var/lib/fedokawaii/update/probation && echo "probation open" || echo "probation closed"
             echo "default $(sudo grubby --default-kernel)"; rpm -q kernel-core | tr "\n" " "; echo
             sudo grep "^kernel-core " /var/lib/fedokawaii/update/holds 2>/dev/null || echo "no hold"
-            echo "trial args $(sudo grubby --info=ALL | grep -c "rd.shell=0 rd.emergency=reboot panic=10")"
+            echo "trial args $(sudo grubby --info=ALL | grep -c "rd.shell=0 rd.emergency=reboot rd.retry=30 panic=10")"
             sudo test -e /etc/systemd/system.conf.d/90-fedokawaii-probation.conf && echo "watchdog on" || echo "watchdog off"
             echo "snapshot '"$snap"' $(sudo snapper -c root list --columns number,cleanup | awk -v n='"$snap"' "\$1 == n { print \$3 }")"
             sudo journalctl -b -u fedokawaii-boot-good.service --no-pager -o cat | tail -n 8' 2>&1)
