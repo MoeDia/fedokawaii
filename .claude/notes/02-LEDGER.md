@@ -2608,7 +2608,7 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   after an offered run: not released, in the probation, released by --boot-good). Pushed c1841f6; applied on the
   PC 15:59–16:00 (verify 261/262, the trial still armed).
 
-## >>> NEXT PASS STARTS HERE (1 Nov, written 16:01 — the lines above say what this pass did): the inbox first. Then:
+## >>> NEXT PASS STARTS HERE (1 Nov, written 16:03 — the lines above say what this pass did): the inbox first. Then:
 ## (1) the master's Re-review 3 of T45 (B, D, E, F, G and the must-fix 1/3/4/5 fixes, should-fix 1): evidence —
 ##     ledger r27-49-E1…E4, r27-49-master-2-fixes, r27-49-sf1; /dev/shm/r27p/button7.txt + /dev/shm/r27/update-
 ##     button-f44b/ (run 7, all held), /dev/shm/r27/update-green/ (exit 0, no desktop red), next-areas.log,
@@ -2617,7 +2617,7 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
 ## (2) the master's should-fix 2–5 (ledger r27-49-master-2): the live manifest/hardware installs after the replay
 ##     (store them in the transaction, or the written exception in update-design.md and the Learn piece); stdbuf's
 ##     LD_PRELOAD reaching dnf's scriptlets (6 setfiles_t AVCs per update); hold_families by UPD/sources when
-##     present; the Learn line for a stopped unit. Plus r27-flaky-1 (test_dwlstatus's burst count under load).
+##     present; the Learn line for a stopped unit. (r27-flaky-1 fixed: main 4f94532, the session area 19/19.)
 ## (3) THE KERNEL TRIAL ON THE PC is open since 14:43 (7.2.13; grubenv 3/0/1; snapshot 381 pinned). It closes at
 ##     the next start: a reboot ends the bulk run (r27-bulk-*, 10:36 + 12 h) — so reboot only in the claude-r27
 ##     pass after 22:36 (CLAUDE.md START §4: initial_session, presence probe first), or let his own restart close
