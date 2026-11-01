@@ -2268,12 +2268,12 @@ UNIT
   systemctl daemon-reload
   st=$(/usr/local/sbin/fedokawaii-split state) || { log "the disk's layout could not be read (sudo fedokawaii-split state says why)"; return 1; }
   case $st in
-    flat*)  snapper_configs && snapper_limits            # (/home's own snapshots, now that it is a subvolume)
-            [[ $st == *old* ]] && run /usr/local/sbin/fedokawaii-split clean ;;
+    flat*)  { snapper_configs && snapper_limits; } || return 1   # (/home's own snapshots, now that it is a subvolume)
+            [[ $st != *old* ]] || run /usr/local/sbin/fedokawaii-split clean ;;
     armed)  log "the disk's new layout is made at the next start (a minute or two before the login)" ;;
     nested)
       if [[ -s $f && $(sed -n 2p "$f") == "$(sha256sum </usr/local/sbin/fedokawaii-split)" ]]; then
-        log "the disk's new layout was put back at its last try ($(sed -n 1p "$f")) — the next toolkit tries again"; return 1
+        log "the disk's new layout was put back at its last try ($(sed -n 1p "$f" | cut -d' ' -f3-)) — nothing to do: the next toolkit tries again"; return 0
       fi
       ( snapshot_before "the disk's new layout" important ) || return 1
       run /usr/local/sbin/fedokawaii-split arm ;;
@@ -2299,7 +2299,7 @@ GRUB_BTRFS_LIMIT="10"
 GRUB_BTRFS_SHOW_SNAPSHOTS_FOUND="false"
 GRUB_BTRFS_SHOW_TOTAL_SNAPSHOTS_FOUND="false"
 GRUB_BTRFS_IGNORE_SPECIFIC_PATH=("$t" "$t.old" "$t.new" "$t.copy")
-GRUB_BTRFS_IGNORE_PREFIX_PATH=("var/lib/containers" "$t/var/lib/containers" "$t.old.d")
+GRUB_BTRFS_IGNORE_PREFIX_PATH=("var/lib/containers" "$t/var/lib/containers" "$t.old.d" "home/.snapshots")
 GRUB_BTRFS_IGNORE_SNAPSHOT_TYPE=("post")
 GRUB_BTRFS_IGNORE_SNAPSHOT_DESCRIPTION=("timeline")
 GRUB_BTRFS_SNAPSHOT_KERNEL_PARAMETERS="systemd.volatile=overlay"
@@ -2346,7 +2346,7 @@ s_finalize() {
   guard_hooks                                      # (lib/guard.sh: every dnf transaction checked, and followed up)
   run snapper -c root create -d "fedokawaii baseline"     # no cleanup algorithm: kept until you delete it
   /usr/local/sbin/kawa-snap boot >/dev/null 2>&1 || true  # (the baseline in the boot menu's snapshots)
-  s_layout || log "the disk's new layout is not armed (the line above says why) — repair tries again"
+  s_layout || log "the disk's layout: not done (the line above says why) — repair tries again"
   record setup-done "$(date +%s)"                  # (the menu's title: "set up 17 Oct")
   record_snapshots                                 # (the menu's count: the baseline included)
   # the phase, then the resume unit, go last: should anything above fail, the next start
@@ -2643,6 +2643,12 @@ snapshot_before() {   # snapshot_before WHAT [important] — a numbered snapshot
                       # (kept among the last ten of those)
   local n imp=()
   [[ ${2:-} == important ]] && imp=(-u important=yes)
+  # (the flat layout's /.snapshots not mounted from its subvolume: snapper would write into the
+  # plain folder inside the system, out of every list)
+  if [[ $(findmnt --fstab -no OPTIONS /.snapshots 2>/dev/null) == *subvol=snapshots* \
+        && $(findmnt -no SOURCE --mountpoint /.snapshots 2>/dev/null) != *"[/snapshots]" ]]; then
+    die "/.snapshots is not mounted from its subvolume — no snapshot before $1, nothing changed (sudo mount /.snapshots, then again)"
+  fi
   n=$(snapper -c root create -t single -c number "${imp[@]}" -p -d "before $1" 2>/dev/null) || n=""
   if ! [[ $n =~ ^[0-9]+$ ]] || [[ -z $(snapper -c root --csvout list --columns number 2>/dev/null | grep -x "$n") ]]; then
     die "the snapshot before $1 could not be taken — nothing changed (sudo snapper -c root list; fedokawaii repair)"
@@ -3209,7 +3215,7 @@ r_system() {     # failed units cleared, the session's own system pieces in plac
   snapper_configs
   snapper_limits
   snap_hooks
-  s_layout
+  s_layout || log "the disk's layout: not done (the line above says why) — the next repair tries again"
   guard_hooks
   s_scrub
   s_report                         # (the first-start report's unit: an install that lost it runs it next start)
@@ -3488,7 +3494,12 @@ case $MODE in
   kernels) [[ $(phase) == 'done' ]] && on_the_system || exit 0
            # (a restore cut short after its exchange: finished first — its snapshots back, its default)
            /usr/local/sbin/kawa-snap finish >/dev/null 2>&1 || log "kawa-snap could not finish a restore that was cut short (sudo kawa-snap finish says why)"
-           kernel_match; orphan_kernels_out desktop; old_kernels_out desktop; exit 0 ;;
+           kernel_match; orphan_kernels_out desktop; old_kernels_out desktop
+           # (the old copies the flat layout's mounts hide: removed once a start has been good)
+           if [[ -x /usr/local/sbin/fedokawaii-split ]] && grep -qx boot_success=1 < <(grub2-editenv - list 2>/dev/null); then
+             /usr/local/sbin/fedokawaii-split clean || log "the old copies under the new mounts could not be removed (sudo fedokawaii-split clean says why)"
+           fi
+           exit 0 ;;
   layout) [[ $(phase) == 'done' ]] || die "the build is not finished — setup arms the layout at its end"
           on_the_system || die "this start is not the system itself (a snapshot from the boot menu?) — nothing changed"
           s_layout; exit $? ;;

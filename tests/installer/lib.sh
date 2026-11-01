@@ -193,6 +193,10 @@ world() {   # world fresh|built [--themed]
   echo vmlinuz >"$W/boot/vmlinuz-$(uname -r)"; echo initramfs >"$W/boot/initramfs-$(uname -r).img"   # (the running kernel, as the installer left it)
   # (owned by whoever makes the fake machine — its root: out here a user's own files may show as nobody's)
   cp -a --no-preserve=ownership /etc/. "$W/etc/" 2>/dev/null
+  # (this machine's own setup files out of it: the fake one starts as Fedora left it — setup writes
+  # them; a drivers line already there made repair skip the boot images it must make again)
+  rm -f "$W/etc/dracut.conf.d/fedokawaii.conf" "$W/etc/systemd/system/fedokawaii-split.service" \
+        "$W/etc/systemd/system/system-update.target.wants/fedokawaii-split.service"
   usr_farm
   fake_pylibs
   # the desktop user, an administrator; Fedora's os-release; GRUB's defaults

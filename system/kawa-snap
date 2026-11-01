@@ -27,9 +27,10 @@
 #                              snapshot from before that layout gets its fstab lines. While /home is
 #                              still inside the system your files would go back too: only with
 #                              --with-home
-# Or at power-on: hold Shift (Esc/F8) for the boot menu → snapshots (each starts as it was,
-#   on a layer in memory: nothing done to the system there is kept — your files, in /home of
-#   their own, are today's and stay as you leave them; kawa-snap restore N works from there too).
+# Or at power-on: hold Shift (Esc/F8) for the boot menu → snapshots (each starts as it was, on a
+#   layer in memory: nothing done to the system there is kept; in a snapshot made after the disk's
+#   new layout your files, in /home of their own, are today's and stay as you leave them — in an
+#   older one they are that day's too; kawa-snap restore N works from there too).
 # Inspect: kawa-snap list · revert one transaction: sudo snapper -c root undochange PRE..POST
 # Exit status: pre, post 0 always (dnf goes on whatever happens) · boot, list, restore 0 done,
 # 1 could not (the reason on stderr; restore: nothing was changed) · 2 misuse.
@@ -92,6 +93,12 @@ if [[ $1 == pre || $1 == post ]]; then
   case $1 in
     pre)  # (a restore making its copy now: waited for, ten minutes at most — dnf is never stopped)
           { exec 9>"$lock" && flock -w 600 9; } 2>/dev/null
+          # (the flat layout's /.snapshots not mounted from its subvolume: snapper would write into
+          # the plain folder inside the system — no snapshot, said)
+          if [[ $(findmnt --fstab -no OPTIONS /.snapshots 2>/dev/null) == *subvol=snapshots* \
+                && $(findmnt -no SOURCE --mountpoint /.snapshots 2>/dev/null) != *"[/snapshots]" ]]; then
+            note before "/.snapshots is not mounted from its subvolume (fstab names it) — sudo mount /.snapshots"; exit 0
+          fi
           if ! err=$(snapper -c root create -t pre -p -c number -d "$d" 2>&1 >"$state") \
              || ! [[ $(<"$state") =~ ^[0-9]+$ ]]; then          # (only a number pairs with a post)
             rm -f "$state"; note before "${err:-snapper gave no snapshot number}"
@@ -138,6 +145,9 @@ mount_top() {
   mountpoint -q "$top" || mount -o subvolid=5 "$dev" "$top" || fail "cannot mount the top of $dev"
   trap 'umount "$top" 2>/dev/null; rmdir "$top" 2>/dev/null' EXIT
   S=$top/$T/.snapshots; btrfs subvolume show "$top/snapshots" >/dev/null 2>&1 && S=$top/snapshots
+  # flat — the disk's layout whole (fedokawaii-split): all four of its subvolumes at the top
+  local x; flat=1
+  for x in home log fk snapshots; do btrfs subvolume show "$top/$x" >/dev/null 2>&1 || flat=0; done
 }
 # the field of a snapper info.xml: one of type, date, description (XML's five escapes undone)
 info() {
@@ -173,8 +183,8 @@ N=${2:-}
 exec 9>"$lock"; flock -n 9 || fail "another restore is running — nothing changed"
 for p in dnf5 dnf; do pgrep -x "$p" >/dev/null && fail "a package transaction is running ($p) — restore once it has finished; nothing changed"; done
 mount_top
-# (his files: until /home is a subvolume of its own (fedokawaii-split) they are inside the system, and go back too)
-if ! btrfs subvolume show "$top/home" >/dev/null 2>&1 && [[ ${3:-} != --with-home ]]; then
+# (his files: until the disk's layout is whole (fedokawaii-split) they are inside the system, and go back too)
+if [[ $1 == restore ]] && ((!flat)) && [[ ${3:-} != --with-home ]]; then
   fail "/home is inside the system: a restore takes your files back to that day too. Until /home is its own subvolume (fedokawaii repair arms that), say that is what you want: kawa-snap restore $N --with-home"
 fi
 [[ -d $top/$T ]] || fail "the root subvolume $T is not on this disk"
@@ -284,10 +294,14 @@ undo() {   # undo WHY — before the exchange only: the kernels this run added o
 # the copy's first start must not relabel everything or run an old offline update (§3.1)
 rm -f -- "$new/.autorelabel" "$new/system-update" "$new/etc/system-update"
 # the disk's layout in the copy's fstab — a snapshot from before the split has none of it: your
-# files, the logs, the updater's memory and the snapshots stay today's, mounted where they belong
-if [[ $S == "$top/snapshots" ]]; then
+# files, the logs, the updater's memory and the snapshots stay today's, mounted where they belong;
+# and today's kawa-snap and fedokawaii-split in it (an older kawa-snap would look for the snapshots
+# inside the system; the rest of the toolkit is that day's until the next update)
+if ((flat)); then
   { mkdir -p "$new/home" "$new/var/log" "$new/var/lib/fedokawaii/update" "$new/.snapshots" \
-    && /usr/local/sbin/fedokawaii-split fstab "$new/etc/fstab" "$top"; } || undo "the copy could not be given the disk's layout (its fstab)"
+    && /usr/local/sbin/fedokawaii-split fstab "$new/etc/fstab" "$top" \
+    && cp -a /usr/local/sbin/kawa-snap /usr/local/sbin/fedokawaii-split "$new/usr/local/sbin/"; } \
+    || undo "the copy could not be given the disk's layout (its fstab, kawa-snap)"
 fi
 # the kernels the copy has (each with its vmlinuz: Fedora keeps one beside its modules)
 mapfile -t K < <(for m in "$new"/usr/lib/modules/*/vmlinuz; do [[ -f $m ]] && m=${m%/vmlinuz} && echo "${m##*/}"; done | sort -V)

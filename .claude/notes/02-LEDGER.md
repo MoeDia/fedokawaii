@@ -2061,6 +2061,55 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   same. T48 FIRST (2) is proven in the VM in full (whole · 7 cuts · 2 failures · a pre-split restore
   · a restore from a boot-menu snapshot); the master's verdict next, then the PC.
 
+- r27-found-1 (1 Nov 08:26, seen live, not yet fixed — for T53/T60): his waybar (pid 1687605, up since
+  00:59) holds 13 zombie children ("[waybar] <defunct>", ppid = waybar) born in bursts at 01:57:08,
+  01:58:15, 02:33:19, 03:09:23 — the moments the bar's modules were woken or restarted (kawa-bar
+  wake pipes, brightness/DDC at 01:57). No memory held, but a session of weeks would pile them up:
+  find which custom module's exec children waybar does not reap (waybar's own source for its
+  command runner; our kawa-bar restarts), fix it, and add a regression check (zombies after N
+  module restarts = 0).
+
+- r27-52b-master (1 Nov 08:43; Fable, fresh, read-only, 28 min — .claude/notes/master-T48-verdict-3.md):
+  PASS WITH CONDITIONS, no MAJOR ("no step at which a file of his can be lost or the PC left
+  unbootable"); reproduced test_split 51/0 and test_snap 203/0. Ten MINORs, eight NITs. The evidence as
+  it was (its NIT 14): the nine-case table (/dev/shm/r27/split-cut.first9.txt) had the two failure rows
+  "armed again" from the proof's own assertion (it read only the last line of setup's output); the two
+  failure cases were re-run after that fix (split-cut.fail.summary, both ok); the overlay proof's first
+  run came back into the snapshot because of the harness's own one-time entry, the second run is the one
+  kept (11/11); "a pinned snapshot" before the split is snapper's `important=yes` (NUMBER_LIMIT_IMPORTANT
+  4–10), not a pin; the book's "your files every hour" (§8.2) is true once the split and a repair (or
+  `setup.sh --layout`) made /home's config.
+- r27-52b-fix (1 Nov 08:45–09:05, t48): the ten fixed, each with its test —
+  (1) the content sample goes through the same skip list as the listing (open files, subvolume folders):
+  test_split "a file a process holds open and appends to" — red on the program without the fix
+  ("the copy of /var/log/boot.log differs"), green with it; (2) `run` checks the link is its own before
+  anything else (offline-updates(7) §5): another tool's start on a non-Btrfs root → exit 0; (3) the fstab
+  kept before the rewrite is synced (sync -f), the new one fsynced before its rename, and `back` puts the
+  kept one back only when it is whole (a / line on Btrfs), else leaves fstab as it was and says so;
+  (4) a split put back is verify's red ("nothing for you to do: the next toolkit tries again"), not
+  repair's failure (s_layout returns 0 there; r_system calls `s_layout || log`); (5) the start-up run
+  (setup.sh --kernels, on the system itself, after boot_success=1) runs `fedokawaii-split clean`; verify
+  says "removed at the next start"; (6) one disk-level test in kawa-snap — all four of home, log, fk,
+  snapshots at the top — for the --with-home guard and the fstab lines; `state` answers "broken: the
+  layout half made (at the top: …) — reason" (read mount-free from `btrfs subvolume list /`), verify
+  fails it with the reason, `arm` refuses over it, `back` writes "left behind: …"; (7) a restore gives
+  the restored root today's kawa-snap and fedokawaii-split (cp -a: labels kept; the rest of the toolkit is
+  that day's until the next update); (8) the snapshot-boot notice and kawa-snap's header true for both
+  kinds of snapshot (/home mounted → "your files as they are", not → "the system and your files as
+  they were — nothing done here is kept"); (9) home/.snapshots in grub-btrfs's ignore list; (10) kawa-snap
+  pre and setup's snapshot_before refuse when fstab names /.snapshots on its subvolume and it is not
+  mounted there (pre: a journal line, dnf goes on). NITs taken: tries parsed safely (a damaged file →
+  counted from 0), the give-up path keeps its log, a lock on the shared top mount (state/clean), the
+  wording, design §3 "As built" paragraph, and a stub run of the whole path (test_split's world: btrfs
+  subvolumes as folders tracked by inode, real cp/find/cmp — NIT 16). Left: NIT 17 (copied journal
+  files lose NOCOW until they rotate; tmpfiles sets the folders again — performance only). Also found
+  by the new tests: kawa-snap's guard had lost its `restore`-only condition when moved (finish was
+  refused) — fixed before anything ran. test_split 84/0, test_snap 214/0 (24 restore calls on the nested
+  fake disk now say --with-home: that is the PC's layout until the split). The installer tests' fake
+  Fedora now has the flat layout (findmnt SOURCE, btrfs subvolume list, a mount stand-in that turns the
+  top-level mount into nothing; $FKH/nested for Fedora's own); test_setup/test_upkeep re-running; the
+  VM: split-cut none (f44b), fail-fstab + overlay-restore (f44) re-running on the fixed programs.
+
 ## >>> NEXT PASS STARTS HERE (1 Nov 07:10): the inbox first. Then:
 ## (1) T48 FIRST (2): the flat layout (snapshots, home, log, fk at the top level; kawa-snap reading
 ##     $top/snapshots) and the offline /home split (a unit under system-update.target, cp -aT

@@ -674,10 +674,11 @@ if ((PRE == 0)); then
   lay=$(/usr/local/sbin/fedokawaii-split state 2>&1) || lay="unreadable: $lay"
   case $lay in
     flat)   pass "the disk's layout: /home, the logs, the updater's memory and the snapshots their own subvolumes" ;;
-    flat*)  warn "old copies hidden under the new mounts" "fedokawaii repair removes them" ;;
+    flat*)  warn "old copies hidden under the new mounts" "removed at the next start (or by fedokawaii repair)" ;;
     armed)  info "the disk's new layout is made at the next start (a minute or two before the login)" ;;
+    broken*) fail "the disk's layout" "${lay#broken: } — /var/log/fedokawaii-split.log" ;;
     nested) if [[ -s /var/lib/fedokawaii/split.failed ]]; then
-              fail "the disk's layout: /home inside the system" "its split was put back: $(sed -n 1p /var/lib/fedokawaii/split.failed) (/var/log/fedokawaii-split.log)"
+              fail "the disk's layout: /home inside the system" "its split was put back ($(sed -n 1p /var/lib/fedokawaii/split.failed | cut -d' ' -f3-)) — nothing for you to do: the next toolkit tries again"
             else fail "the disk's layout: /home inside the system" "fedokawaii repair arms the split; the next start makes it"; fi ;;
     *)      fail "the disk's layout" "$lay" ;;
   esac

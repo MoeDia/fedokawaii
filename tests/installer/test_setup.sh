@@ -99,6 +99,7 @@ has "$(cat "$FKH/snaps")" "fedokawaii baseline"
 # the boot menu's snapshots (snap_boot): each started with its root a layer in memory over it
 # (nothing it does is kept), and systemd-remount-fs not trying to remount that layer by fstab
 has "$(cat "$W/etc/default/grub-btrfs/config" 2>/dev/null)" 'GRUB_BTRFS_SNAPSHOT_KERNEL_PARAMETERS="systemd.volatile=overlay"'
+has "$(grep '^GRUB_BTRFS_IGNORE_PREFIX_PATH=' "$W/etc/default/grub-btrfs/config" 2>/dev/null)" '"home/.snapshots"' "/home's snapshots could become boot entries"
 eq "$(grep -v '^#' "$W/etc/systemd/system/systemd-remount-fs.service.d/fedokawaii.conf" 2>/dev/null)" $'[Unit]\nConditionKernelCommandLine=!systemd.volatile=overlay' \
   "a snapshot's boot not \"degraded\" by a remount that cannot be"
 has "$(cat "$W/etc/systemd/system/snapper-cleanup.service.d/fedokawaii.conf" 2>/dev/null)" "ExecStartPost=-/usr/local/sbin/kawa-snap boot"
@@ -299,5 +300,5 @@ f=$(sed -n '/^remove_resume_unit() {$/,/^}/p' "$REPO/setup.sh")
 has "$f" '((RESUMED)) && [[ -n ${INVOCATION_ID:-} ]] && return 0'
 has "$(cat "$REPO/setup.sh")" '(( NO_REBOOT )) && { unit_file_out; exit 0; }'
 grep -B2 '^  systemctl reboot$' "$REPO/setup.sh" | grep -q 'rm -f "/etc/systemd/system/$RESUME_UNIT"' && _ok || _no "the unit file not taken away before the last reboot"
-has "$(sed -n '75,76p' "$REPO/setup.sh")" '== "done" ]]; then'
+has "$(grep -A1 '^trap .if \[\[ \$(head -n1' "$REPO/setup.sh")" '== "done" ]]; then'
 done_

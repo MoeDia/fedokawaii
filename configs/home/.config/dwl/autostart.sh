@@ -106,14 +106,16 @@ keep kawa-panel </dev/null >"$HOME/.cache/kawa-panel.log" 2>&1 &
 systemctl --user --no-block start mako.service
 # started from a snapshot in the boot menu (its root a layer in memory over it: setup.sh
 # snap_boot): said once, and kept on screen until dismissed — the system is that day's and
-# nothing done to it is kept; /home, a subvolume of its own, is today's
+# nothing done to it is kept; /home, when it has its own mount (the disk's new layout), is today's
 # what only you can do (a cable to plug …): kept until done, shown at every login
 kawa-foryou show 2>/dev/null
 # the session before ended because dwl crashed: said once, when and where (never "a restart")
 kawa-crashnote </dev/null >/dev/null 2>&1 &
 if grep -qw 'systemd.volatile=overlay' /proc/cmdline; then
-  notify-send -a desktop -u critical -- "$ICON_CAMERA  a snapshot" \
-    "the system as it was, your files as they are — nothing done to the system is kept. Super+U → snapshots to restore it" 2>/dev/null &
+  # (/home its own mount: a snapshot made after the disk's new layout — his files are today's)
+  if mountpoint -q /home; then t="the system as it was, your files as they are — nothing done to the system is kept"
+  else t="the system and your files as they were — nothing done here is kept"; fi
+  notify-send -a desktop -u critical -- "$ICON_CAMERA  a snapshot" "$t. Super+U → snapshots to restore it" 2>/dev/null &
 fi
 # nmtui (quick settings → network) and other newt dialogs in the terminal's own 16 colours,
 # so they follow the theme like everything in foot; every terminal inherits it from here

@@ -122,6 +122,24 @@ shadowed copy removed with plain `rm` only after a good boot; snapshots from bef
 marked not restorable (they hold the old /home). The same for /var/log and `fk`; `.snapshots`
 renamed to the top level. The ISO (T56) creates the layout from the start.
 
+**As built (1 Nov 2026, T48 FIRST (2): system/fedokawaii-split; proven by tools/vm-inject/split-cut.sh
+and overlay-restore.sh, reviewed by the master — .claude/notes/master-T48-verdict-3.md).** Where it
+differs from the text above: the copy is `cp -aT --reflink=auto -x` (btrfs refuses to reflink
+journald's NOCOW files into a COW folder: those are written again, the room for it checked before
+arming — du of /home + /var/log + 5 GiB); the copy is compared entry by entry (type, mode, owners,
+SELinux label, time, size) and 64 files by content, files a process holds open there (plymouth's
+boot.log in the offline start) copied as they were and left out of both; each step is synced and a
+cut resumes at the next start (the /system-update link stays until the end, three tries), a failure
+or a fourth start puts all of it back and keeps the reason with the program's checksum (repair arms
+it again only for a new program); snapshots from before the split stay restorable: kawa-snap gives
+the restored root the layout's fstab lines and today's kawa-snap and fedokawaii-split, so his files,
+the logs and the updater's memory stay today's; the old copies the mounts hide are removed by the
+start-up run once a start was good (boot_success=1), or by repair; "refused while a VM runs" is moot
+(nothing runs in the offline start); /etc/selinux/fixfiles_exclude_dirs is not needed (no relabel
+of the whole disk is ever run). A half layout (a put-back that could not undo everything) is
+`state: broken` — verify says it with the reason, nothing arms over it, kawa-snap treats the disk
+as not split (--with-home asked, no fstab lines given).
+
 ### 3.1 kawa-snap restore, hardened before the button relies on it (B5 #1–3, #8, #11, #17)
 
 Three unsafe spots in today's restore (system/kawa-snap), each fixed and each cut point proven in

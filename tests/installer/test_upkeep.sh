@@ -399,6 +399,23 @@ case_ "the project unpacked straight into ~/Downloads (a standard folder): nothi
 back built; clone_at $H/Downloads
 fkrun bash $H/Downloads/setup.sh --repair
 [[ -f $W$H/Downloads/setup.sh ]] && _ok || _no "removed from ~/Downloads"; has "$OUT" "~/Downloads kept: it is one of your standard folders"
+case_ "repair on Fedora's one-subvolume layout: the split armed for the next start, a snapshot first (fedokawaii-split; the VM proves the split itself)"
+back built; touch "$FKH/nested"; reset_calls; tk --repair
+eq "$(readlink "$W/system-update")" /var/lib/fedokawaii/split; called "snapper\] -c root create -t single .*before the disk's new layout"
+[[ -L $W/etc/systemd/system/system-update.target.wants/fedokawaii-split.service ]] && _ok || _no "the offline unit not wanted by system-update.target"
+case_ "…a split put back before (its reason kept with this program's checksum): not armed again, said as nothing to do — and repair goes on past it"
+back built; touch "$FKH/nested"; printf '2026-11-01 08:00:00 the copy of /var/log differs from it\n%s\n' "$(sha256sum <"$REPO/system/fedokawaii-split")" >"$W/var/lib/fedokawaii/split.failed"
+reset_calls; tk --repair; [[ ! -e $W/system-update ]] && _ok || _no "armed again"
+has "$OUT" "nothing to do: the next toolkit tries again"; called 'tuned-adm\] profile fedokawaii'   # (r_system's last step ran)
+case_ "the start-up run removes the old copies the new mounts hide — only once this start was good (boot_success=1)"
+back built; install -m 0755 "$REPO/system/fedokawaii-split" "$W/usr/local/sbin/fedokawaii-split"
+grubenv boot_success=0; reset_calls; tk --kernels; eq "$RC" 0; not_called 'mount\] -o subvolid=5'
+grubenv boot_success=1; reset_calls; tk --kernels; eq "$RC" 0; called 'mount\] -o subvolid=5'
+case_ "a snapshot before an update or repair refused while fstab names /.snapshots on its subvolume and it is not mounted there (snapper would write inside the system)"
+back built; touch "$FKH/nested"; echo "rw,noatime,subvol=snapshots" >"$FKH/mountopts-_.snapshots"
+reset_calls; tk --repair; has "$OUT" "/.snapshots is not mounted from its subvolume — no snapshot before repair"; not_called 'snapper\] -c root create -t single'
+rm -f "$FKH/mountopts-_.snapshots"
+
 case_ "repair run from the toolkit itself: nothing of yours touched"
 back built; clone_at $H/fedokawaii; tk --repair
 [[ -d $W$H/fedokawaii ]] && _ok || _no "a folder this run was not started from was removed"

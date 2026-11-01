@@ -21,7 +21,8 @@
 #   fedokawaii-split fstab FILE TOP   the layout's lines into the fstab FILE, for each of its
 #                            subvolumes on the disk mounted at TOP (kawa-snap restore: a snapshot
 #                            from before the split gets them)
-#   fedokawaii-split state   flat | armed | nested — then "old copies" while there are some
+#   fedokawaii-split state   flat | armed | nested | broken: WHY — "flat, old copies" while the
+#                            hidden copies are there (removed at the next start, or by repair)
 # Log: /var/log/fedokawaii-split.log. Exit 0 done (or nothing to do) · 1 could not (why on
 # stderr; arm: nothing changed) · 2 misuse.
 set -u
@@ -70,13 +71,14 @@ fstab() {
               /^[[:space:]]*#/ || !($2 in skip) || $3 != "btrfs"' "$file" && printf '%s' "$lines"; } >"$tmp" \
      || ! chmod 644 "$tmp"; then rm -f "$tmp"; return 1; fi
   chcon --reference="$file" "$tmp" 2>/dev/null || true
-  mv -f "$tmp" "$file" || { rm -f "$tmp"; return 1; }
+  { sync "$tmp" && mv -f "$tmp" "$file"; } || { rm -f "$tmp"; return 1; }
 }
 
 # the disk: the root subvolume's name as fstab mounts / (Fedora's installer: "root"), its device
 T=$(findmnt --fstab -no OPTIONS / 2>/dev/null | tr ',' '\n' | sed -n 's/^subvol=\/\{0,1\}//p' | head -n1)
 dev=$(findmnt -no SOURCE / 2>/dev/null); dev=${dev%%\[*}
-top_mounted() {   # → 1 the top level could not be mounted
+top_mounted() {   # → 1 the top level could not be mounted (one user of the mount at a time)
+  { exec 8>/run/fedokawaii-split.lock && flock -w 60 8; } 2>/dev/null || return 1
   { mkdir -p "$top" && { mountpoint -q "$top" || mount -o subvolid=5 "$dev" "$top"; }; } || return 1
   trap 'umount "$top" 2>/dev/null; rmdir "$top" 2>/dev/null' EXIT
 }
@@ -92,6 +94,8 @@ flat() {
 armed() { [[ $(readlink /system-update 2>/dev/null) == "$D" ]]; }
 
 if [[ $1 == fstab ]]; then fstab "$2" "$3"; exit; fi
+# (systemd.offline-updates(7): another tool's offline start is never ours — nothing done, no failure)
+[[ $1 == run ]] && ! armed && exit 0
 [[ $(findmnt -no FSTYPE / 2>/dev/null) == btrfs && -n $T && $T != */* ]] \
   || fail "/ is not the Btrfs subvolume fstab names (subvol=…) — not the layout Fedora's installer makes"
 
@@ -104,10 +108,23 @@ leftovers() {
   done
   return 1
 }
+# top_names — the subvolumes at the top level by name (btrfs lists them: no mount needed)
+top_names() { btrfs subvolume list / 2>/dev/null | awk '$7 == 5 { sub(/.* path /, ""); print }'; }
+# broken — a part of the layout at the top while the disk is not flat: the reason (→ 1 none)
+broken() {
+  local e w="" why names
+  names=$(top_names)
+  for e in "${LAYOUT[@]}"; do
+    grep -qxE "${e%%:*}(\.part)?" <<<"$names" && w+=" ${e%%:*}"
+  done
+  [[ -n $w ]] || return 1
+  why=$(sed -n 1p "$F" 2>/dev/null | cut -d' ' -f3-)
+  echo "broken: the layout half made (at the top:$w)${why:+ — $why}"
+}
 if [[ $1 == state ]]; then
   if flat; then mount_top; leftovers && echo "flat, old copies" || echo flat
   elif armed; then echo armed
-  else echo nested; fi
+  else broken || echo nested; fi
   exit 0
 fi
 
@@ -135,8 +152,9 @@ if [[ $1 == arm ]]; then
   armed && exit 0
   [[ -e /system-update || -L /system-update ]] && fail "another offline update waits for the next start (/system-update) — after it"
   mount_top
+  w=$(broken) && fail "${w#broken: } — not armed (nothing changed)"
   for e in "${LAYOUT[@]}"; do
-    [[ -e $top/${e%%:*} || -e $top/${e%%:*}.part ]] && fail "a subvolume ${e%%:*} is already at the top of the disk — not made by the split; nothing changed"
+    [[ -e $top/${e%%:*} || -e $top/${e%%:*}.part ]] && fail "a folder ${e%%:*} is already at the top of the disk — not the split's; nothing changed"
     [[ -n $(findmnt -no SOURCE --mountpoint "${e#*:}" 2>/dev/null) ]] && fail "${e#*:} is mounted from something else — this layout is not Fedora's; nothing changed"
   done
   # (copies share their data; a file that cannot be shared — journald's are NOCOW — is written
@@ -156,7 +174,8 @@ fi
 armed || exit 0                        # (another tool's offline update: not ours to do)
 # (its log in the armed folder until the end — never inside a folder that is being copied)
 LOG=$D/log
-n=$(($(cat "$D/tries" 2>/dev/null || echo 0) + 1)); echo "$n" >"$D/tries"; sync -f "$D"
+n=$(cat "$D/tries" 2>/dev/null); [[ $n =~ ^[0-9]+$ ]] || n=0
+n=$((n + 1)); echo "$n" >"$D/tries"; sync -f "$D"
 say "start $n"
 msg() { say "$*"; plymouth display-message --text="$*" >/dev/null 2>&1 || true; }
 # power_cut STEP — for the VM's proof only (tools/vm-inject/split-cut.sh writes $D/cut): STEP there
@@ -178,30 +197,37 @@ end() {   # end — the log kept where /var/log is, /system-update gone, the mac
 # back WHY — all of it put back as it was: the old fstab, the snapshots and the subvolumes from
 # /home back inside root, the copies gone; the reason kept; the old layout starts next
 back() {
-  local p rel e
+  local p rel e left=""
   msg "the layout stays as it was: $*"
-  [[ -f $D/fstab ]] && cp -a "$D/fstab" "$top/$T/etc/fstab"
+  # (the fstab kept before the rewrite, only when it is whole: a / line on Btrfs)
+  if [[ -f $D/fstab ]]; then
+    if awk '!/^[[:space:]]*#/ && $2 == "/" && $3 == "btrfs" { f = 1 } END { exit !f }' "$D/fstab"; then
+      cp -a "$D/fstab" "$top/$T/etc/fstab" || left+=" fstab"
+    else left+=" fstab (the copy kept before was not whole: left as it was)"; fi
+  fi
   if sub "$top/snapshots"; then
-    { [[ ! -e $top/$T/.snapshots ]] || rmdir "$top/$T/.snapshots"; } && mv -T --no-copy "$top/snapshots" "$top/$T/.snapshots"
+    { { [[ ! -e $top/$T/.snapshots ]] || rmdir "$top/$T/.snapshots"; } && mv -T --no-copy "$top/snapshots" "$top/$T/.snapshots"; } \
+      || left+=" snapshots"
   fi
   if sub "$top/home"; then
     while IFS= read -r p; do
       rel=${p#home/}; [[ $p == home/?* ]] || continue
-      { mkdir -p "$top/$T/home/${rel%/*}" && mv -T --no-copy "$top/$p" "$top/$T/home/$rel"; } \
-        || say "home/$rel could not move back — it is in the subvolume home"
+      { mkdir -p "$top/$T/home/${rel%/*}" && mv -T --no-copy "$top/$p" "$top/$T/home/$rel"; } || left+=" home/$rel"
     done < <(below home)
   fi
   for e in "${LAYOUT[@]:0:3}"; do
     for p in "$top/${e%%:*}" "$top/${e%%:*}.part"; do
-      sub "$p" && { gone "$p" || say "${p##*/} could not be removed (it holds a subvolume)"; }
+      sub "$p" && { gone "$p" || left+=" ${p##*/}"; }
     done
   done
+  [[ -z $left ]] || say "left behind:$left"
   # (with this program's own checksum: setup.sh arms it again only once the toolkit's is another)
-  { printf '%s %s\n' "$(date '+%F %T')" "$*"; sha256sum <"$0"; } >"$F"
+  { printf '%s %s%s\n' "$(date '+%F %T')" "$*" "${left:+ — left behind:$left}"; sha256sum <"$0"; } >"$F"
   end
 }
 if ! top_mounted 2>>"$LOG"; then
-  ((n <= 3)) || { say "the top of the disk cannot be mounted, three starts — given up"; rm -f /system-update; rm -rf "$D"; systemctl reboot; exit 0; }
+  ((n <= 3)) || { say "the top of the disk cannot be mounted, three starts — given up"
+                   cat "$LOG" >>/var/log/fedokawaii-split.log 2>/dev/null; rm -f /system-update; rm -rf "$D"; systemctl reboot; exit 0; }
   exit 1
 fi
 ((n <= 3)) || back "three starts did not finish it"
@@ -213,6 +239,7 @@ tree() {
   (cd "$1" && find . -xdev \( -type d -printf 'd %m %U %G %Z %T@ -\t%p\n' -o -printf '%y %m %U %G %Z %T@ %s\t%p\n' \)) \
     | awk -F'\t' -v s="$2" 'BEGIN { n = split(s, k, "\n"); for (i = 1; i <= n; i++) x[k[i]] = 1 } !($2 in x)' | sort
 }
+held() { find /proc/[0-9]*/fd -lname "$1/*" -printf '%l\n' 2>/dev/null | sed "s|^$1/|./|"; }   # DIR — its files a process holds open
 copy() {   # copy NAME PATH
   local name=$1 p=$2 src=$top/$T$2 dst=$top/$1.part skip f
   sub "$top/$name" && return 0
@@ -225,13 +252,13 @@ copy() {   # copy NAME PATH
   power_cut "part-$name"
   # (left out of the comparison: the folders where a subvolume sits — moved in step 2, cp leaves
   # them empty — and files a process has open there, copied as they were: plymouth's boot.log)
-  skip=$(below "$T" | sed -n "s|^$T$p/|./|p"; find /proc/[0-9]*/fd -lname "$p/*" -printf '%l\n' 2>/dev/null | sed "s|^$p/|./|")
+  skip=$(below "$T" | sed -n "s|^$T$p/|./|p"; held "$p")
   diff -q <(tree "$src" "$skip") <(tree "$dst" "$skip") >/dev/null \
     || back "the copy of $p differs from it: $(diff <(tree "$src" "$skip") <(tree "$dst" "$skip") | sed -n 2p | cut -c1-160)"
   # (and the contents of 64 of its files, read back)
   while IFS= read -r -d '' f; do
     cmp -s -- "$src/$f" "$dst/$f" || back "the copy of $p/${f#./} differs from it"
-  done < <(cd "$src" && find . -xdev -type f -size +0 -print0 | shuf -z -n 64)
+  done < <(cd "$src" && find . -xdev -type f -size +0 -print0 | grep -zvxF -f <(printf '%s\n' "$skip") | shuf -z -n 64)
   { mv -T --no-copy "$dst" "$top/$name" && synced; } || back "the subvolume $name could not be named"
   say "$p copied"
   power_cut "copied-$name"
@@ -261,7 +288,7 @@ synced
 power_cut snapshots
 
 # 4. fstab: the layout's lines (the one before kept to put back)
-[[ -f $D/fstab ]] || cp -a "$top/$T/etc/fstab" "$D/fstab" || back "fstab could not be kept"
+[[ -s $D/fstab ]] || { cp -a "$top/$T/etc/fstab" "$D/fstab" && sync -f "$D"; } || back "fstab could not be kept"
 fstab "$top/$T/etc/fstab" "$top" || back "fstab could not be written"
 findmnt --verify --tab-file "$top/$T/etc/fstab" >/dev/null 2>&1 || back "the new fstab does not verify (findmnt --verify)"
 synced
