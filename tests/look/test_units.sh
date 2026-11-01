@@ -198,6 +198,10 @@ for s in colors-dark colors-light; do
   n=$(awk -v s="[$s]" '$0 == s { on = 1; next } /^\[/ { on = 0 } on && /^(regular|bright)[0-7]=/' "$HOME/.config/foot/foot.ini" | wc -l)
   eq "$n" 16 "[$s]: all 16 colours"
 done
+case_ "foot.ini: the see-through ground on every cell of the ground's colour (alpha-mode=matching, both palettes) — never again the notes' opaque bands (owner, 25 Oct: \"black near the text, the sides especially\")"
+for s in colors-dark colors-light; do
+  eq "$(awk -v s="[$s]" '$0 == s { on = 1; next } /^\[/ { on = 0 } on && sub(/^alpha-mode=/, "")' "$HOME/.config/foot/foot.ini")" matching "[$s]"
+done
 
 # ── satty ────────────────────────────────────────────────────────────────────
 case_ "satty's config: valid TOML, only keys satty 0.22 knows, Enter copies, Esc closes"

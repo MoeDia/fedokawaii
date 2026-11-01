@@ -708,8 +708,12 @@ def foot_block():
     for m in ("dark", "light"):
         p = P[m]
         a = ansi(p)
+        # (alpha-mode=matching: the see-through ground on every cell of the ground's colour —
+        # in foot's default mode a cell that names that colour itself stays opaque, and the
+        # notes' heading, margin and footer showed as dark bands over the wallpaper: the
+        # owner's "black near the text, the sides especially")
         out += ["", f"[colors-{m}]", f"# {NAMES[m]}",
-                f"foreground={p['text']}", f"background={p['ground']}",
+                f"foreground={p['text']}", f"background={p['ground']}", "alpha-mode=matching",
                 f"cursor={p['ground']} {p['accent']}",
                 f"selection-foreground={p['ground']}", f"selection-background={p['ansi7']}",
                 f"urls={p['bblue']}", f"jump-labels={p['ground']} {p['yellow']}",
