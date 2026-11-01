@@ -3048,6 +3048,18 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   next_page gone; CLAUDE.md's line says it. Tests: test_menu — a never-again row (no to-do row or word in Super+U;
   --run todo runs nothing, --explain todo empty); test_notes — the to-do reached by tab from the shown notes, as he
   does; --todo a misuse (2), nothing shown. test_notes 114/0.
+- r27-50b-checks (T46b "What gets built" 2, 1 Nov 22:48–22:51): tools/vm-inject/f45-checks.sh (new, kept for the
+  re-run after 3 Nov): on a harness VM that ran vm-smoke — python (every Python program of ours: tracked *.py +
+  python shebangs, 86, compiled by the VM's python3 with -W error; each of the 58 modules they import loaded with
+  DeprecationWarning an error; a module not installed there is named, not red), fonts (fc-match of Sumi UI, Sumi
+  Icons, Sumi Icons Term, Sumi Term/monospace → UDEV Gothic NF, sans-serif → Noto Sans; Sumi UI unsmoothed), tty1
+  (no kmscon), prowlarr (started ON DEMAND as kawa-prowlarr does — the quadlet has no [Install] by design, so
+  "is it running" was the wrong question: my first run said red for that, fixed — /ping answering, stopped
+  again), repos (none of /usr/share/dnf5/repos.d shadowed in /etc/yum.repos.d; a skip before 45). First run on
+  the F45 VM (the branched tree, Python 3.15.0, the 20:07 smoke's install): all five ok, 29 s; not installed
+  there: dbus_next markdown pikepdf playwright syncplay textual torrra (uv apps' and the docs build's own).
+  ShellCheck clean; static test_tools/pipefail/syntax/noellipsis green. Left of item 2: the splash's frames
+  (vm-smoke's restart + a screen dump) after the release.
 ## >>> NEXT PASS STARTS HERE (1 Nov, written 20:55 by the 18:56 pass — the lines above say what it did): the inbox first. Then:
 ## (1) PUSHED (by accident, see below), NOT APPLIED. Local main = r27 = the newest commit. Two points matter:
 ##     · cf211b8 — T45's conditions ran on it: update-green exit 0 (MET); the whole suite →
