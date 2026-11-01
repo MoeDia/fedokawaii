@@ -63,7 +63,7 @@ rm -f "$FIFO"; out=$(kawa-warm clip 2>&1); eq "$?" 1; has "$out" "dwl is not run
 case_ "--start (login): the three windows, app-ids warm-NAME, their titles and sizes, parked"
 setup; python3 -I -c 'import socket, sys; socket.socket(socket.AF_UNIX).bind(sys.argv[1])' "$XDG_RUNTIME_DIR/foot-wayland-test.sock"
 rc 0 kawa-warm --start
-for w in "warm-notes -T notes -W 80x25 -- $REPO/bin/kawa-warm --inside notes" \
+for w in "warm-notes -T notes -W 64x40 -- $REPO/bin/kawa-warm --inside notes" \
          "warm-clip -T clipboard -W 80x27 -- $REPO/bin/kawa-warm --inside clip" \
          "warm-system -T system -W 100x18 -- $REPO/bin/kawa-warm --inside system"; do
   called "^footclient -a $w\$"

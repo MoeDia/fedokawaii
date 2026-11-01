@@ -69,3 +69,67 @@ accent_text, the blank statusline, the footer float on the last row. Grill list 
   last line). Cost measured headless (nvim 0.12, -u NONE): 14 000 lines (2 000 days of notes) → 3.9 ms for the
   whole pass; his notes.md has 118 lines today. So: the whole pass at open and on TextChanged, and on_lines
   (nvim_buf_attach) for the rows a keystroke touches — never a per-keystroke full pass on a long diary.
+
+## The build on branch t21 (1 Nov 23:10–23:25, ~/repos/fk-t21) — WIP, not on main
+notes.lua: the heading in the TABLINE (showtabline 2), a blank WINBAR under it; NO statusline (laststatus 0): two
+floats over the window's last two rows — a blank row of paper, then the footer (muted) — and scrolloff 2, so the pen
+is never under them; the margin a STATUSCOLUMN "  │ " (the rule in KawaMargin = accent; the words at the fourth column
+as before); every line ruled (line_hl_group KawaRule: underline, sp = edge2) and the page below the last line ruled
+(virt_lines, the window's rows), laid again only when the line count changes; a day's line ("## …") its "## " concealed
+(conceallevel 2, concealcursor n) and the date in KawaDay (accent_text on its rule). kawa-warm: notes 80x25 → 64x40.
+Rendered in the kit (renders and scripts: /dev/shm/r27/t21/): dark and light, a short page (opens on today's heading at
+the top of the page — the history above it, as before), a long one scrolled mid-file (dark-long3: heading · blank ·
+36 ruled rows · blank · footer — the same rows as at the top of the file), and at the end (dark-long2: the last line
+near the top — nvim counts the ruled page below as part of the last line, so the end of the notes is always a fresh
+page; the pen goes down it as he writes). Found on the way: at -u time the file is not read yet (line count 0) — rule()
+skips an unloaded buffer, BufWinEnter lays the rules.
+NEXT on t21: test_notes rows (the tabline/winbar heading, no statusline, the two floats and their rows on resize, the
+rules' count, the concealed day mark), test_warm's 64x40, the to-do page rendered on the same paper, the header's
+notebook fields (No. · the date in the bar's grammar) decided by render, the grill (both moods, zoomed: the rule's row
+in the cell, its ink against faint, the margin's x against §7), a typing play (frames: no row moves while typing),
+then merge into main through the suite and the master.
+- 23:23–23:27 (t21, 2nd commit): the footer float shows the file's name as it is (the statusline's %-escaping
+  gone with the statusline); the heading's rule drawn out in the tabline (the tabline fills %= with spaces, not
+  wbr's ─ — my first build had lost the rule, the render showed "notes" with none; test_notes caught it too), again at
+  each resize; test_notes 116/0 (the page's columns, the tabline heading full to its row, the blank winbar, the two
+  floats' rows and words, laststatus 0 · cmdheight 0 · scrolloff 2, the to-do's heading and footer), test_warm 88/0
+  (64x40). Renders both moods mid-file: /dev/shm/r27/t21/{dark,light}-long3-win.png. GRILL first: the paper's rules
+  run to the window's last column while the heading's rule stops two columns short — one right edge for both.
+- 23:50–23:53 (t21, 3rd commit): GRILL 1 DONE — one right edge: the heading's rule now runs to the page's edge, where the
+  paper's rules end (a notebook's lines run to its edge; the left keeps its margin and the vermilion rule). Measured
+  (px.py on /dev/shm/r27/t21/dark-edge-win.png, 64 × 40): the heading's rule x 97–520 on y 18 (its row's tenth pixel,
+  §3); the page's rules x 41–520, every 20 px from y 67 to y 767 (rows 2–37: 36 ruled rows), each on its cell's 19th
+  row; the winbar's row and the paper row above the footer unruled; 8 px of paper (foot's pad) from 520 to the hairline
+  on 529. test_notes 116/0. NEXT grill: descenders (g, p, y) against the rule on the cell's 19th row, zoomed, both
+  moods; the rules' ink in light (edge2 #d7bc8c on #e8e3c2) against faint.
+- 23:51 GRILL 2 DONE — descenders against the rule (zoom ×6, /dev/shm/r27/t21/desc-zoom.png, "line one of day 4"): the
+  ink on y 172–186 (the y's tail lowest, on the cell's 18th row), the rule on y 187 (the 19th): they meet, never overlap;
+  the baseline 4 px above the rule — the words stand on their line, as on paper. Light: the same geometry (one font).
+- 23:53–23:58 the to-do on the paper (renders /dev/shm/r27/t21/{dark,light}-todo-win.png): the heading "to-do ───", the margin
+  rule, the ruled page, its footer — right. FOUND and FIXED: with conceallevel 2 (for the day lines) markdown's own
+  tree-sitter conceal folded each "[ ]" into one cell, and the box overlay (4 cells) then hid each item's first two
+  letters ("new the passport") — conceallevel is now 2 on the notes only, 0 on the to-do.
+  OPEN (next pass, before the merge): in the LIGHT kit the open items' words are #e7cfa1 — the DARK theme's text — on the
+  light ground, barely readable; the done item (KawaDone: explicit muted fg) is right; the SAME in main's live notes.lua
+  (light-todo-main-win.png, 80 × 25). vim.inspect_pos on the word: only @spell; Normal's fg = #122625 (light text). So
+  the cells reach foot as "default foreground" and foot draws its own default — dark in the kit's light run? Check: the
+  kit's foot colours for --theme light (a kit artefact) vs the live PC in light (his screen): a bug only if the live one
+  shows it. Either way make the words explicit: give the to-do's text (and the notes') an explicit fg (KawaText from
+  C_TEXT) so no cell depends on the terminal's default — t21's notes text already renders right (each line carries
+  KawaRule, so its cells are never "default").
+- 00:15 the light to-do's pale words CLOSED: a harness artefact of tools/kit-keys.py (its own pty between nvim and foot);
+  rendered with nvim's own feedkeys the words are #122625 (light text) — the page is right. No explicit ink needed.
+- 2 Nov 00:13–00:25 THE TYPING PLAY (the brief's acceptance "typing 40 lines, no row jumping"): the kit, real foot + nvim,
+  t21's notes.lua and kawa-warm (64 × 40), 40 lines typed with one `wtype -d 22` a line (two wrapping), every screen
+  change recorded (wf-recorder, lossless) and each frame compared (/dev/shm/r27/t21/typing/an/frames.py). scrolloff 2:
+  3 720 frames, the head, the foot and the margin column never changed, all 36 rules whole in every frame, the page
+  scrolled 10 times, one row each (33/33 rows matched) — BUT at the end of the notes the pen sat on the LAST ruled row
+  (scrolloff counts the virt_lines page under the floats): the brief's point 5 (paper ahead of the pen) not met.
+  DECIDED: scrolloff 5 — three ruled rows of fresh paper ahead of the pen, two more under the floats; at the top it
+  opens with yesterday's last lines above today's heading (context, as a diary's page). Again, both moods: dark 3 714 /
+  light 3 711 frames, 0 moved, 0 broken, 15 one-row scrolls (31/33: the two the pen's own), the pen ends on row 32 of
+  36 (renders /dev/shm/r27/t21/typing/{dark,light}-{open,typed}-win.png). Kept as tools/regress/notes-page.sh (it
+  finds the page's rules, rows and margin from the open shot itself; held on t21: 36 rules · 20 px · x 41–521 ·
+  3 715 frames · 0 · 0 · {1: 15} · 3 ahead, both moods).
+  DECIDED, the header's notebook fields (No. · date): none — the bar carries the date, each day's line its own; the
+  head stays the icon, "notes" and its rule (one thing fewer on the page; his "minimal, no clutter").
