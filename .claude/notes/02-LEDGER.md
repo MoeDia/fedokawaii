@@ -1851,11 +1851,33 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   asserted, every check's output logged). Design §3.1 "As built" added; §4 phase 4: no rpm
   checkpoint (a snapshot is one instant).
 
-## >>> NEXT PASS STARTS HERE (1 Nov 04:10): the inbox first. Then, the update system (the master's order):
-## (1) T48 FIRST (1): proven in the VM (restore-cut.sh, six cut points, exit 0). The master's review,
-##     started 04:17, had not answered when the pass ended (it was re-running test_upkeep) — run it
-##     again (tools/master-brief.sh T48 + the restore-cut logs), fix, then apply (kawa-snap and the GTK
-##     button rule are not live yet: the PC keeps the old ones until then).
+- r27-52a-vm2 (1 Nov 06:40; T48 FIRST (1), the master's finding 4) — the restore proven in the VM with
+  ANOTHER kernel (tools/vm-inject/restore-cut.sh, rewritten): the state "two-kernels" made once from
+  "built" — snapshot S=2 under kernel A 7.2.11, B 7.2.13 installed and started, A removed from the
+  system (asserted gone) — so each restore of S puts A back through kernel-install in the copy (dracut
+  ≈ 15 s, measured 06:33:56→06:34:11). Eight runs, each from that state with this repo's toolkit and
+  kawa-snap: cuts (sysrq b, gated by KAWA_SNAP_CUT + /run/kawa-snap.cut; the guest's page cache lost —
+  the model of a lost plug for the OS, the host's cache not modelled) after copied, kernels, exchanged
+  (after its sync: the restored root came up under B "7.2.13-nomod", setup.sh --kernels' kernel_match
+  made A the default, one restart → A with its modules), defaulted, moved, renamed; adding (a watcher
+  inside the VM restarting it 3 s into dracut — /boot then had nothing of A, the system before ran
+  under B); old (a whole restore, a start, restore old, a start: the marked system under B again).
+  Asserted per run and logged (/dev/shm/r27/restore-cut/*.log): start; the system running (marked
+  before the exchange, the snapshot after); the running kernel's modules; the next restore's exit (a
+  cut after the exchange finished by it with its default, exit 0; before it, a whole restore + a
+  start); at the end the restored kernel the default, whole in /boot (image + entry, read as root),
+  root.old present, no root.new, kawa-snap list answers. ALL EIGHT OK. Found by it and fixed: (1) a cut
+  right after the copy left an unmarked root.new the next run took for the system that ran — the copy
+  is made as root.copy, marked, then renamed (a leftover root.copy always removed; root.copy in
+  grub-btrfs's ignore list); (2) the exchanged seam sat before the sync, so the kernel window was never
+  hit — moved after it. Harness-only: virtio_net forced into the VM's boot images (ssh under a kernel
+  without modules). test_snap 164/0, test_upkeep 239/0, test_menu 594/0, the installer area green.
+
+## >>> NEXT PASS STARTS HERE (1 Nov 06:50): the inbox first. Then:
+## (1) T48 FIRST (1): the master's second look (verdict-2.md in /dev/shm/r27/master/T48/, or rerun it from
+##     .claude/notes/master-T48-verdict-1.md + the ledger lines r27-52a-fix/-vm2) — PASS → apply on the PC
+##     (`sudo FEDOKAWAII_COPY=$PWD /usr/local/bin/fedokawaii apply`: setup.sh changed → a repair runs;
+##     it also brings the GTK button rule r27-19m-gtk-default); FAIL → fix, VM again.
 ## (2) T48 FIRST (2): the flat layout (snapshots, home, log, fk at the top level) and the offline /home
-##     split — VM first. (3) T45 (a)–(c): kawa-update's state machine on stubs, then the candidate in
-##     nspawn (the core is proven: r27-49-exp1/2). T19m's audit: the GTK dialog's buttons (r27-19m-b1 owed shots).
+##     split — VM first (restore-cut.sh's harness: states "built", "two-kernels").
+## (3) T45 on branch t45 (worktree ~/repos/fk-t45): (c) the candidate in the VM, then (e) (f) (h) (i).
