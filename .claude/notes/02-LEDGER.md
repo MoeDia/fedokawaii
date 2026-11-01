@@ -2393,24 +2393,31 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   next login), the theme reloaded; verify 259/260 — the one red unchanged (qbittorrent outside the
   manifest, his own: T35's).
 
-## >>> NEXT PASS STARTS HERE (1 Nov, written 12:40 — the lines above say what this pass did): the inbox first. Then:
-## (0) the master's RE-REVIEW of T45 (asked 12:36): its section at the end of
-##     .claude/notes/master-T45-efh-verdict.md. The second button proof's result: /dev/shm/r27p/update-button2.txt
-##     (gone after a reboot: then run tools/vm-inject/update-button.sh f44b from a frozen t45 again).
-## (1) t45's open should-fix: 8 (before arming: /boot/loader/entries = [new, running], the second's version the
-##     running one, no rescue; and no kernel in a transaction while a trial is open — hold the kernel family),
-##     11 (dnf5 versionlock list prints TOML: parse name + evr, or prove `exclude` twice does not duplicate),
-##     14 (a cut run's pinned snapshot released when its run did not end ok; a stale root.cand dropped at every
-##     start), 18 (the whole-set hold after a live-only red written into design §4.3 as built; the report says
-##     "N packages held together — which broke it could not be told apart"; the held pane "and N more"). Then
-##     the master once more.
-## (2) on the master's PASS: t45 → main (merge, the whole test suite), `fedokawaii apply` on the PC, then the
-##     PC's first real run of the new button: `sudo bash /usr/local/lib/fedokawaii/fedokawaii.sh update` (98
-##     updates: kernel 7.2.13, Mesa 26.2.5 …) — read the report, the pane (kit render), the probation armed;
-##     the trial closes at his next start (never restart his session for it).
-## (3) T46: Fedora 45 (release Tue 3 Nov): the f45 VM's second run passed phase 3 except RPM Fusion's
-##     pre-release repos (re-check after 3 Nov) and sshd (fixed 6a9d389) — run vm-smoke.sh f45 again from a
-##     frozen main; then the button's release move (design §4.4: dnf system-upgrade, the 7-day floor, the VM
-##     pre-flight marker), closing or re-arming an open probation first.
-## (4) T48 rest: "a file, back" (snapper's home config exists), backups, the space floor, the Learn piece.
-## (5) T45 (i) (the toolkit at a release tag) stays last.
+- r27-49-master-efh-2 (1 Nov 12:35–12:55; the master's re-review, appended to master-T45-efh-verdict.md): PASS
+  WITH CONDITIONS — must-fix 1–6 fixed (it re-ran test_status 204/0, test_verify 178/0, test_dwlconfig 2/0
+  at HEAD); should-fix 9, 10, 12, 15, 16, 17 fixed, 13 in its renderer half (b006c8f's vendor rule), 7
+  half recorded (now in the plan); 8, 11, 14, 18 safe to defer for the PC's first run (checked on the PC:
+  one kernel-core, no rescue entry). Run 4 of update-button.sh (12:46–12:55, t45 c9 frozen proof5): ALL
+  HELD — three presses, one unit, the same last line "update done (ok): updated · 61 packages", exit 0,
+  the report ok, a stopped run 1 with its reason. Condition (A) done (the plan's T45 line: each deferral
+  with its acceptance). (B)–(H) are the next pass's order below.
+
+## >>> NEXT PASS STARTS HERE (1 Nov, written 13:00 — the lines above say what this pass did): the inbox first. Then,
+## in the master's order (master-T45-efh-verdict.md, "Re-review"):
+## (B) merge t45 → main; the whole suite; `fedokawaii apply`; verify green (with the resume-unit row; the one
+##     red today is his qbittorrent, T35's); nothing of his unsaved; then the PC's first real run of the
+##     button as the menu runs it (`sudo bash /usr/local/lib/fedokawaii/fedokawaii.sh update`; 98 updates incl.
+##     kernel 7.2.13, Mesa 26.2.5). Record: the baseline (NO "red before the update: the desktop does not
+##     start"), the set, the probation for 7.2.13 (grubenv 3/0/1, the trial args with rd.retry=30, the
+##     watchdog drop-in), the report; then a restart through greetd's initial_session (CLAUDE.md START §4),
+##     the probation closed (fedokawaii-boot-good's journal or the kernels run), the pin released, 7.2.11
+##     removed; numbers before/after. A presence probe first; if he is at the PC, wait for him to be away.
+## (C) if that run ends offered, restored, held or stopped: stop, report to him (ledger top), no blind retry.
+## (D)–(H) before any further kernel-bearing press and before T46: 8 (both halves), (E) why waybar and mako
+##     are "not running" under the unit's as_user in the VM (KEEP=1, kit.log, play.log) — then the VM proofs
+##     assert "the desktop does not start" is absent from a green run's log; (F) update-button.sh: the second
+##     press only once the unit is active and past "the checks before it", one instance asserted
+##     (ExecMainStartTimestamp/MainPID at each press), the VM journal of the units kept — run 4 already all
+##     held; (G) 11, 14, 18 (the notice capped); (H) 7's three checks with T58.
+## Then T46 (F45 on 3 Nov: re-run vm-smoke.sh f45 from a frozen main after the release; RPM Fusion's updates
+## repos then on), T48 rest, T45 (i) last.
