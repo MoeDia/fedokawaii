@@ -2962,15 +2962,18 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   plan pushes once that suite is green, and rewriting published history would be a second unasked outward act;
   if the suite ends red the next pass fixes FORWARD and pushes the fix. Nothing was applied to the PC. Memory
   heredoc-terminators rewritten: always a quoted, unique delimiter; values in by argv or env.
+- r27-49-R4b CONDITIONS ALL MET (1 Nov 21:46): the whole suite on cf211b8 — "all 128 test files passed",
+  rc 0 in 2724 s (/dev/shm/r27p/suite-cf211b8.log). With update-green exit 0 (condition 2) and the storm retired
+  (condition 3), T45's Verdict 4 conditions hold; GitHub main = 415b61c (cf211b8 + notes) — the accidental push
+  (r27-push-accident) is thereby the planned one. Left for T45: should-fixes 1, 3, 4, and the next review.
 ## >>> NEXT PASS STARTS HERE (1 Nov, written 20:55 by the 18:56 pass — the lines above say what it did): the inbox first. Then:
 ## (1) PUSHED (by accident, see below), NOT APPLIED. Local main = r27 = the newest commit. Two points matter:
 ##     · cf211b8 — T45's conditions ran on it: update-green exit 0 (MET); the whole suite →
 ##       /dev/shm/r27p/suite-cf211b8.log (started 21:00; last line "== suite rc=N in S s"). 415b61c = cf211b8 + notes.
 ##     · the newest (3981c01: T45 should-fix 2 and 7; then T48 should-fix 4 and 7) — each change with its own file
 ##       tests green (test_upkeep 283/0, test_backup 223/0, test_menu, static), no whole suite yet.
-##     DONE BY ACCIDENT (r27-push-accident): GitHub main = 415b61c, r27 = 3c3d583, pushed 21:30 before the
-##     suite on cf211b8 ended. DO: read suite-cf211b8.log — rc 0: T45 condition 1 met after the fact (say so in the
-##     ledger); red: fix forward at once. The whole suite on the newest, 3c3d583, also runs (started 21:31, from
+##     DONE: GitHub main = 415b61c — its suite (cf211b8) ended GREEN 21:46: 128/128, rc 0 (T45's conditions all
+##     met). GitHub r27 = the newest. The whole suite on the newest, 3c3d583, also runs (started 21:31, from
 ##     /dev/shm/r27w-suite-3c3d583 → /dev/shm/r27p/suite-3c3d583.log) → rc 0 → push main there →
 ##     APPLY on the PC (sudo FEDOKAWAII_COPY=$PWD /usr/local/bin/fedokawaii apply; verify) → the new kawa-panel live
 ##     (memory live-panel-restart) → headless shots (grim, the session's env) of Super+U → backups and the notes.
