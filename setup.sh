@@ -62,6 +62,7 @@ source "$REPO_DIR/lib/hygiene.sh"
 source "$REPO_DIR/lib/hardware.sh"
 source "$REPO_DIR/lib/guard.sh"
 source "$REPO_DIR/lib/pace.sh"
+source "$REPO_DIR/lib/update.sh"
 load_conf "$REPO_DIR"
 
 # The error report, on stderr. Inside a $(…), a <(…) or a pipeline (errtrace hands the trap
@@ -2556,6 +2557,7 @@ snapshot_before() {   # snapshot_before WHAT [important] — a numbered snapshot
   if ! [[ $n =~ ^[0-9]+$ ]] || [[ -z $(snapper -c root --csvout list --columns number 2>/dev/null | grep -x "$n") ]]; then
     die "the snapshot before $1 could not be taken — nothing changed (sudo snapper -c root list; fedokawaii repair)"
   fi
+  SNAP_N=$n
   ok "snapshot $n: before $1"
   /usr/local/sbin/kawa-snap boot >/dev/null 2>&1 || true   # (in the boot menu at once)
 }
@@ -2709,26 +2711,11 @@ step_on() {   # step_on WHAT FN… — one contained step; a failure is remember
   contained "$@"
   ((CONTAINED_RC == 0)) || UPDATE_STEPS_FAILED+=("$what")
 }
-do_update() {
-  [[ $(phase) == 'done' ]] || die "finish the build first"
-  detach_dnf
-  # (until it gets to the end; a disk too full to hold even this: preflight says so, below)
-  record last-update "$(date +%s) stopped" 2>/dev/null || true
-  wait_for_network
-  local newest running result=ok e every
-  hdr "Fedokawaii update · Fedora $FEDORA_VER"
-  toolkit_first
-  preflight 10240
-  snapshot_before "update $(date +%F)" important   # (counted apart from the dnf pairs: the last
-                                                   # seasons' starting points outlast busy months)
-  repos_lenient
-  # the packages first: nothing else may stand in their way (a setting that no longer
-  # applies on a later Fedora is reported below, and the packages that fix it are in)
-  # (vi a script, not a link to nvim, before a new kernel's boot image is made: editor_policy)
-  [[ -L /usr/local/bin/vi ]] && step_on "vi: a script for nvim (dracut follows a link into nvim)" editor_policy
-  dnf_upgrade || die "dnf could not update (the lines above say why) — the snapshot taken before it is the way back (fedokawaii snapshots); try again later, or: fedokawaii repair"
-  # then the system values of fedokawaii.conf, applied again — each on its own: edit it
-  # (fedokawaii settings), then update (keyboard layouts take effect at the next login)
+# update_steps — the desktop's own steps after the packages, each contained (one that fails is
+# reported, the rest goes on): the system values of fedokawaii.conf again, the manifest, the
+# tools at their pins, the theme
+update_steps() {
+  # (fedokawaii.conf: edit it — fedokawaii settings — then update; keyboard layouts at the next login)
   step_on "the toolkit's command" install_toolkit
   # (a build finished before the menu read its date: the day its last phase ended)
   [[ -s $STATE_DIR/setup-done ]] || record setup-done "$(stat -c %Y "$STATE_DIR/phase" 2>/dev/null || date +%s)"
@@ -2783,9 +2770,45 @@ do_update() {
   step_on "dnf's guard and what it knows (lib/guard.sh)" guard_hooks
   step_on "sound (PipeWire keeps running)" r_sound
   step_on "the login screen and panel load GTK" gi_sound
+}
+do_update() {   # the button's run (lib/update.sh: the phases, their state in UPD)
+  [[ $(phase) == 'done' ]] || die "finish the build first"
+  detach_dnf
+  # (until it gets to the end; a disk too full to hold even this: preflight says so, below)
+  record last-update "$(date +%s) stopped" 2>/dev/null || true
+  install -d -m 0755 "$UPD"; rm -f -- "$UPD/why"
+  trap up_exit EXIT
+  wait_for_network
+  local newest running result=ok e every was
+  hdr "Fedokawaii update · Fedora $FEDORA_VER"
+  toolkit_first
+  # a run cut once the running system began to change: finished — or, its transaction not
+  # whole, undone — before anything new is tried
+  was=$(up_was)
+  case $was in
+    replay) log "the last update was cut off in its transaction — finishing it first"
+            if ! up_complete; then
+              echo "the last update was cut off in its transaction" >"$UPD/why"; u_undo; u_report; return 0
+            fi ;;
+    steps|check) log "the last update was cut off after its transaction — its steps and checks again" ;;
+  esac
+  if [[ $was != @(replay|steps|check) ]]; then
+    u_start
+    # (vi a script, not a link to nvim, before a new kernel's boot image is made: editor_policy)
+    [[ -L /usr/local/bin/vi ]] && step_on "vi: a script for nvim (dracut follows a link into nvim)" editor_policy
+    if u_fetch; then u_candidate; else : >"$UPD/set"; fi
+    u_snapshot
+    u_replay || { u_undo; u_report; return 0; }
+  fi
+  up_phase steps
+  update_steps
   after_dnf_done
-  bash "$REPO_DIR/verify.sh" || result=checks
-  ((${#UPDATE_STEPS_FAILED[@]} == 0)) || result=partial
+  if ! u_check; then
+    u_undo; record last-update "$(date +%s) stopped"; u_report; return 0
+  fi
+  if [[ -s $UPD/set ]]; then UP_END=ok; elif ((UP_HELD)); then UP_END=held; else UP_END=current; fi
+  [[ -s $STATE_DIR/last-verify-fails ]] && result=checks
+  ((${#UPDATE_STEPS_FAILED[@]} == 0 && UP_HELD == 0)) || result=partial
   record last-update "$(date +%s) $result"
   record last-update-done "$(date +%s)"            # (the season counts from here: a run that stopped does not count)
   record_snapshots
@@ -2800,7 +2823,8 @@ do_update() {
   if released $((FEDORA_VER + 1)) >/dev/null; then log "Fedora $((FEDORA_VER + 1)) is out — the menu shows when the move to it is offered"; fi
   every=$(upkeep EVERY 90)
   clone_done || true                                # (the very last: the folder this update was run from)
-  hdr "update done ($result) — the next one in $every days"
+  u_report
+  hdr "update done ($result): $UP_LINE — the next one in $every days"
 }
 
 # ═════════════════════════════════════════════════════════════════════════════

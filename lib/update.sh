@@ -1,0 +1,279 @@
+# shellcheck shell=bash
+# lib/update.sh — the update button (Super+U → update): one run from A to Z, in phases
+# (.claude/notes/update-design.md §4). Each phase is written to UPD/phase as it begins, so a run
+# cut anywhere is known to the next one, which finishes or undoes it — never repeats it half-way:
+#   start      may it start: no other package manager at work, room on every disk, the games
+#              VM off; the checks before it (what is red already is the baseline)
+#   fetch      the repositories refreshed; the transaction resolved once and stored, not run
+#   candidate  a copy of this system receives it first, in a container of its own; red → the
+#              culprits found in fresh copies (halves of the set) and held, the rest stored again
+#   snapshot   every stored package's signature checked; the system before it, pinned
+#   replay     that same transaction on the running system, then the desktop's own steps
+#   check      verify (only new reds count) and the desktop's start
+#   end        kept — or the system before it back (at the next start) and the set held; the report
+# Sourced by setup.sh: its log, die, record, dnf_detached and the update's own steps.
+UPD=$STATE_DIR/update                # (the fk subvolume once T48 makes it: never rolled back)
+UP_TOP=/run/fedokawaii/top           # the file system's top level, while a candidate exists
+UP_CAND=$UP_TOP/root.cand
+UP_RUN=$(date +%s)
+
+up_phase() {   # (not written: a full disk — fatal only once the running system is about to change)
+  if printf '%s %s\n' "$1" "$UP_RUN" | write_file "$UPD/phase" 0644 2>/dev/null; then return 0; fi
+  if [[ $1 != @(start|fetch|candidate|end) ]]; then
+    die "the update's state could not be written to $UPD (a full disk?) — nothing changed on the running system"
+  fi
+}
+up_was() { local p=end; [[ -s $UPD/phase ]] && IFS=" " read -r p _ <"$UPD/phase"; echo "$p"; }
+up_labels() { sed 's/ — .*//' | sort -u; }   # (a check's label: its detail after the dash may vary)
+
+# ── start ────────────────────────────────────────────────────────────────────────────────────
+u_start() {
+  up_phase start
+  local p d un
+  for p in dnf5 dnf packagekitd dnf5daemon-server; do
+    if pgrep -x "$p" >/dev/null 2>&1; then die "another package manager is running ($p) — update again once it has finished"; fi
+  done
+  for d in /sys/bus/pci/devices/*; do
+    [[ $(cat "$d/class" 2>/dev/null) == 0x03* && $(readlink "$d/driver" 2>/dev/null) == */vfio-pci ]] || continue
+    die "the games VM holds the graphics card — stop it, then update"
+  done
+  preflight 15360
+  if mountpoint -q /boot/efi; then need_space /boot/efi 50; fi
+  # (Btrfs writes into unallocated chunks: free space alone can hide a disk that cannot take a write)
+  un=$(btrfs filesystem usage -b / 2>/dev/null | awk '/Device unallocated:/ { print $3; exit }') || un=""
+  if [[ $un =~ ^[0-9]+$ ]] && ((un < 5 * 1024 ** 3)); then
+    die "only $(numfmt --to=iec --suffix=B "$un") of the disk is unallocated — this needs 5GB: delete old snapshots (fedokawaii snapshots), then: sudo btrfs balance start -dusage=50 /"
+  fi
+  log "the checks before it (what is red now does not count against the update)"
+  bash "$REPO_DIR/verify.sh" >/dev/null 2>&1 || true
+  cp -- "$STATE_DIR/last-verify-fails" "$UPD/baseline" 2>/dev/null || : >"$UPD/baseline"
+}
+
+# ── fetch ────────────────────────────────────────────────────────────────────────────────────
+u_fetch() {   # → 0 a transaction stored in UPD/tx · 1 nothing to update
+  up_phase fetch
+  local rc=0 off=()
+  repos_lenient
+  up_holds_apply
+  rm -rf -- "$UPD/tx"
+  dnf -q --refresh check-upgrade >/dev/null 2>&1 || rc=$?
+  ((rc == 0)) && return 1
+  ((rc == 100)) || die "dnf could not read the repositories (check-upgrade: exit $rc) — nothing changed; try again later"
+  # resolved and downloaded once, stored instead of run: the candidate and the running system
+  # get exactly this (dnf5-upgrade(8) --store, dnf5-replay(8))
+  if ! dnf_detached -y upgrade --store="$UPD/tx"; then
+    mapfile -t off < <(third_party_off)
+    ((${#off[@]})) || die "dnf could not resolve or download the update — nothing changed (the lines above say why)"
+    log "trying again without the third-party repositories ($(IFS=' '; echo "${off[*]#--disablerepo=}"))"
+    rm -rf -- "$UPD/tx"
+    dnf_detached -y upgrade --store="$UPD/tx" "${off[@]}" || die "dnf could not resolve or download the update — nothing changed (the lines above say why)"
+    UPDATE_STEPS_FAILED+=("third-party packages (a repository failed: dnf repo list; the next update tries again)")
+  fi
+  [[ -s $UPD/tx/transaction.json ]] || return 1    # (only held packages had updates)
+  up_set "$UPD/tx" >"$UPD/set"
+  log "$(wc -l <"$UPD/set") packages to update"
+}
+up_set() {   # up_set TXDIR → NAME OLD NEW, a line a package (OLD "-": new · NEW "-": removed)
+  jq -r '.rpms[] | [.action, .nevra] | @tsv' "$1/transaction.json" | awk -F'\t' '
+    function name(n) { sub(/-[^-]+-[^-]+$/, "", n); return n }
+    function evr(n)  { sub(/\.[^.]+$/, "", n); match(n, /-[^-]+-[^-]+$/); return substr(n, RSTART + 1) }
+    $1 == "Replaced" { old[name($2)] = evr($2); next }
+    $1 == "Remove"   { gone[name($2)] = evr($2); next }
+    { new[name($2)] = evr($2) }
+    END { for (n in new) print n, (n in old ? old[n] : "-"), new[n]
+          for (n in gone) if (!(n in new)) print n, gone[n], "-" }' | sort
+}
+
+# ── candidate ────────────────────────────────────────────────────────────────────────────────
+up_top() {
+  mountpoint -q "$UP_TOP" && return 0
+  local dev; dev=$(findmnt -no SOURCE / | sed 's/\[.*//')
+  mkdir -p "$UP_TOP" && mount -o subvolid=5 "$dev" "$UP_TOP" || die "the top of $dev could not be mounted — nothing changed"
+}
+cand_drop() {
+  [[ -d $UP_CAND ]] || return 0
+  btrfs subvolume delete --commit-after "$UP_CAND" >/dev/null 2>&1 || log "the copy $UP_CAND could not be removed — the next update removes it"
+}
+cand_run() {   # cand_run TXDIR CMD… — CMD in the candidate, a container of its own: no network,
+               # nothing reaching this system's udev or systemd, the transaction read-only at /tx,
+               # a scratch /boot (a new kernel's files land there, never in the real one)
+  systemd-nspawn --quiet --register=no --private-network -D "$UP_CAND" \
+    --bind-ro="$1:/tx" --bind="$UPD/cand-boot:/boot" --bind-ro="$REPO_DIR/lib/cand-check.sh:/run/fk-check" \
+    --setenv=FK_USER="$TARGET_USER" --setenv=FK_GPU="$(cat "$STATE_DIR/gpu" 2>/dev/null || echo amd)" -- "$@"
+}
+cand_try() {   # cand_try TXDIR → 0 green · 1 red (UPD/why says why)
+  local rc=0
+  cand_drop; rm -rf -- "$UPD/cand-boot"; mkdir -p "$UPD/cand-boot"
+  btrfs subvolume snapshot / "$UP_CAND" >/dev/null || die "a copy of the system could not be made (btrfs subvolume snapshot) — nothing changed"
+  # (the actions plugin off: in there its kawa-snap and guard would act on the copy for nothing)
+  if ! cand_run "$1" dnf5 --disable-plugin=actions -y -C replay /tx >"$UPD/cand.log" 2>&1; then
+    printf 'the transaction does not go through: %s\n' "$(grep -v '^$' "$UPD/cand.log" | tail -n2 | tr '\n' ' ')" >"$UPD/why"; rc=1
+  elif ! cand_run "$1" /usr/bin/bash /run/fk-check >>"$UPD/cand.log" 2>&1; then
+    sed -n 's/^red: //p' "$UPD/cand.log" >"$UPD/why"; rc=1
+  fi
+  cand_drop; rm -rf -- "$UPD/cand-boot"
+  return "$rc"
+}
+u_candidate() {   # the stored transaction proven in a copy first; red → culprits held, the rest again
+  up_phase candidate
+  up_top
+  local n=0
+  log "the update, tried first in a copy of the system"
+  until cand_try "$UPD/tx"; do
+    log "red in the copy: $(head -n1 "$UPD/why") — finding the package(s) that cause it"
+    ((++n <= 3)) || die "the update stays red in a copy of the system after three holds — nothing changed: $(head -n1 "$UPD/why")"
+    up_bisect
+    [[ -s $UPD/tx/transaction.json ]] || return 0   # (everything held)
+  done
+  ok "green in the copy: $(wc -l <"$UPD/set") packages"
+}
+# up_bisect — the set is red: halves tried in fresh candidates (dnf resolves each on its own)
+# until the smallest red part is left; held; the rest stored again. ⌈log2 n⌉ rounds at most.
+# Two halves green alone but red together: the two are held together — never a guess
+up_bisect() {
+  local s=() a=() b=() h
+  mapfile -t s < <(awk '$3 != "-" { print $1 }' "$UPD/set")
+  while ((${#s[@]} > 1)); do
+    h=$((${#s[@]} / 2)); a=("${s[@]:0:h}"); b=("${s[@]:h}")
+    if ! up_try "${a[@]}"; then s=("${a[@]}")
+    elif ! up_try "${b[@]}"; then s=("${b[@]}")
+    else break; fi
+  done
+  up_hold "$(head -n1 "$UPD/why")" "${s[@]}"
+  rm -rf -- "$UPD/tx"
+  dnf -q -C -y upgrade --store="$UPD/tx" >/dev/null 2>&1 || true   # (the rest: the holds keep the culprits out)
+  if [[ -s $UPD/tx/transaction.json ]]; then up_set "$UPD/tx" >"$UPD/set"; else : >"$UPD/set"; fi
+}
+up_try() {   # up_try NAME… → 1 their update alone is red in a fresh candidate (UPD/why), else 0
+  rm -rf -- "$UPD/try"
+  # (a part dnf cannot resolve alone proves nothing either way: not red)
+  dnf -q -C -y upgrade --store="$UPD/try" "$@" >/dev/null 2>&1 || return 0
+  [[ -s $UPD/try/transaction.json ]] || return 0
+  local rc=0; cand_try "$UPD/try" || rc=1
+  rm -rf -- "$UPD/try"
+  return "$rc"
+}
+
+# ── holds: the version that broke something kept out (dnf5-versionlock(8) exclude), recorded
+# in UPD so a restore of / (which takes /etc/dnf/versionlock.toml back) cannot forget them ─────
+UP_HELD=0
+up_hold() {   # up_hold WHY NAME… — each name's new version (from UPD/set) held
+  local why=$1 n v at; shift
+  for n; do
+    v=$(awk -v n="$n" '$1 == n { print $3; exit }' "$UPD/set")
+    [[ -n $v && $v != - ]] || continue
+    # NAME HELD AT DATE WHY (AT: the version it is held at; "-" a new package)
+    at=$(rpm -q --qf '%{evr}\n' "$n" 2>/dev/null | sed -n 1p) || at=""
+    printf '%s %s %s %s %s\n' "$n" "$v" "${at:--}" "$(date +%F)" "$why" >>"$UPD/holds"
+    dnf -q versionlock exclude "$n-$v" >/dev/null 2>&1 || log "could not hold $n $v (dnf versionlock)"
+    log "held: $n $v — $why"; UP_HELD=$((UP_HELD + 1))
+  done
+}
+up_holds_apply() {   # every hold in force again — but one whose package has moved on (a newer
+                     # version went in, proven) is let go: the version it kept out is past
+  [[ -s $UPD/holds ]] || return 0
+  local n v at d why now hold=() locks
+  locks=$(dnf -q versionlock list 2>/dev/null) || locks=""
+  while IFS=" " read -r n v at d why; do
+    [[ -n $n ]] || continue
+    now=$(rpm -q --qf '%{evr}\n' "$n" 2>/dev/null | sed -n 1p) || now=""
+    if [[ -n $now && $now != "$at" ]]; then
+      dnf -q versionlock delete "$n" >/dev/null 2>&1 || true; log "let go: $n $v (now at $now)"; continue
+    fi
+    hold+=("$n $v $at $d $why")
+    grep -qF -- "$n-$v" <<<"$locks" || dnf -q versionlock exclude "$n-$v" >/dev/null 2>&1 || true
+  done <"$UPD/holds"
+  if ((${#hold[@]})); then printf '%s\n' "${hold[@]}" | write_file "$UPD/holds" 0644; else rm -f -- "$UPD/holds"; fi
+}
+
+# ── snapshot, replay ─────────────────────────────────────────────────────────────────────────
+u_snapshot() {
+  up_phase snapshot
+  local out n good
+  # (dnf5 replay skips the OpenPGP check for stored packages: done here, against this system's
+  # keys — every package must say so, a missing answer is no answer)
+  n=0; [[ -d $UPD/tx/packages ]] && n=$(find "$UPD/tx/packages" -name '*.rpm' | wc -l)
+  if ((n)); then
+    out=$(find "$UPD/tx/packages" -name '*.rpm' -print0 | xargs -0 rpmkeys --checksig 2>&1 || true)
+    good=$(grep -c ': digests signatures OK$' <<<"$out" || true)
+    ((good == n)) || die "a package is not signed by a key this system trusts — nothing changed: $(grep -v ': digests signatures OK$' <<<"$out" | sed -n 1p)"
+  fi
+  # (rpm's database needs nothing first: a snapshot is one instant, and SQLite takes its
+  # write-ahead log from it as after a power cut — no transaction runs while this one holds the lock)
+  snapshot_before "update $(date +%F)" important
+  # pinned: no cleanup algorithm, so snapper never removes it before the next start has proven
+  # the update (update-design.md §4.3)
+  snapper -c root modify -c '' "$SNAP_N" >/dev/null 2>&1 || log "snapshot $SNAP_N could not be pinned — it is kept as an important one"
+  printf '%s\n' "$SNAP_N" | write_file "$UPD/snap" 0644
+}
+u_replay() {   # → 1 the transaction failed on the running system
+  up_phase replay
+  [[ -s $UPD/tx/transaction.json ]] || return 0
+  log "the update on the running system: the transaction the copy proved"
+  dnf_detached -y -C replay "$UPD/tx" && return 0
+  echo "the transaction stopped on the running system (dnf replay)" >"$UPD/why"; return 1
+}
+up_complete() {   # every package of the stored set at its new version, nothing twice, dnf's check clean
+  local n v
+  while IFS=" " read -r n _ v; do
+    [[ -n $n && $v != - ]] || continue
+    rpm -q "$n-${v#*:}" >/dev/null 2>&1 || return 1
+  done <"$UPD/set"
+  [[ -z $(dnf -q repoquery --duplicates 2>/dev/null) ]] && dnf -q check >/dev/null 2>&1
+}
+
+# ── check, end ───────────────────────────────────────────────────────────────────────────────
+u_check() {   # → 0 nothing newly red · 1 (UPD/why lists what)
+  up_phase check
+  local new
+  bash "$REPO_DIR/verify.sh" || true
+  new=$(comm -13 <(up_labels <"$UPD/baseline") <(up_labels <"$STATE_DIR/last-verify-fails" 2>/dev/null)) || new=""
+  dwl_starts || new+=${new:+$'\n'}"the desktop does not start (dwl)"
+  [[ -z $new ]] && return 0
+  printf '%s\n' "$new" >"$UPD/why"; return 1
+}
+# u_undo — the update made something red: the set held (the next press will not repeat it) and
+# the system before it back. Only once /home is its own subvolume is that done by itself — before,
+# a restore would take his files back in time too, so it is offered
+u_undo() {
+  local n s=(); n=$(cat "$UPD/snap" 2>/dev/null) || n=""
+  mapfile -t s < <(awk '$3 != "-" { print $1 }' "$UPD/set" 2>/dev/null)
+  ((${#s[@]})) && up_hold "$(head -n1 "$UPD/why")" "${s[@]}"
+  if [[ -z $n ]]; then UP_END=checks
+  elif [[ $(findmnt -no FSROOT /home 2>/dev/null) == /home ]] && /usr/local/sbin/kawa-snap restore "$n"; then UP_END=restored
+  else UP_END=offered; fi
+}
+u_report() {   # u_report — the outcome: UPD/report (the pane), the log beside it, a notice
+  local held="" line why log
+  [[ -s $UPD/holds ]] && held=$(awk '{ printf "%s%s %s", (NR > 1 ? " · " : ""), $1, $2 }' "$UPD/holds")
+  [[ -n $UP_END ]] || UP_END=stopped
+  case $UP_END in
+    ok)       line="updated · $(wc -l <"$UPD/set" 2>/dev/null || echo 0) packages${held:+ · held: $held}" ;;
+    current)  line="up to date${held:+ · held: $held}" ;;
+    held)     line="held: $held — the rest was up to date" ;;
+    restored) line="the update broke something: the system before it comes back at the next start — held: $held" ;;
+    offered)  line="the update broke something: snapshot $(cat "$UPD/snap") is the system before it (Super+U → snapshots) — held: $held" ;;
+    *)        why=$(grep '✘' "$LOG_FILE" 2>/dev/null | tail -n1 | sed 's/\x1b\[[0-9;]*m//g; s/^.*✘ *//') || why=""
+              line="stopped ($(up_was | sed 's/^end$/start/')): ${why:-no reason could be written (a full disk?)}" ;;
+  esac
+  up_phase end || true
+  # (no command that can fail inside these pipes: setup.sh's ERR trap would print from them)
+  why=$(cat "$UPD/why" 2>/dev/null) || why=""
+  printf '%s %s\n%s\n%s' "$(date +%s)" "$UP_END" "$line" "${why:+$why$'\n'}" | write_file "$UPD/report" 0644 2>/dev/null || true
+  log=$(tail -c +"$((RUN_LOG_FROM + 1))" "$LOG_FILE" 2>/dev/null) || log=""
+  printf '%s\n' "$log" | write_file "$UPD/last.log" 0644 2>/dev/null || true
+  as_user notify-send -a update -u "$([[ $UP_END == @(ok|current) ]] && echo low || echo critical)" -- update "$line" 2>/dev/null || true
+  # shellcheck disable=SC2034  # (do_update's last line says it)
+  UP_LINE=$line
+  [[ $UP_END == @(ok|current|held) ]] || hdr "update: $line"
+}
+UP_END=""
+up_exit() {   # (a run that stops anywhere: the candidate gone, the top unmounted, the report written —
+              # quietly: the run's own error has been said, and its status stands)
+  trap - ERR; set +e
+  cand_drop
+  if mountpoint -q "$UP_TOP" 2>/dev/null; then umount "$UP_TOP" 2>/dev/null || true; fi
+  rmdir "$UP_TOP" 2>/dev/null || true
+  if [[ -z $UP_END && -d $UPD ]]; then UP_END=stopped; u_report; fi
+  return 0
+}

@@ -1,0 +1,21 @@
+#!/bin/bash
+# systemd-nspawn of the fake Fedora: the update's candidate (lib/update.sh cand_run). The replay
+# goes through unless $FKH/cand-replay-fail; the checks (/run/fk-check) are red for a stored set
+# holding a package named in $FKH/cand-red ("NAME", or "A+B": red only when both are in it)
+. /usr/local/bin/_lib.sh
+fkh_log "$*"
+tx=""; for x in "$@"; do [[ $x == --bind-ro=*:/tx ]] && { tx=${x#--bind-ro=}; tx=${tx%:/tx}; }; done
+case " $* " in
+  *" replay /tx "*) [[ -f $FKH/cand-replay-fail ]] && { echo "Transaction failed: a scriptlet failed in the copy" >&2; exit 1; }; exit 0 ;;
+  *" /run/fk-check "*)
+    names=$(jq -r '.rpms[] | select(.action != "Replaced") | .nevra' "$tx/transaction.json" | sed -E 's/-[^-]+-[^-]+$//')
+    red=0
+    while read -r r; do
+      [[ -n $r ]] || continue
+      all=1; IFS=+ read -ra parts <<<"$r"
+      for p in "${parts[@]}"; do grep -qxF -- "$p" <<<"$names" || all=0; done
+      ((all)) && { echo "red: dwl does not start with $r"; red=1; }
+    done < <(cat "$FKH/cand-red" 2>/dev/null)
+    exit "$red" ;;
+esac
+exit 0

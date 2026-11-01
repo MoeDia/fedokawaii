@@ -842,4 +842,6 @@ fi
 # the outcome, for the menu (Super+U) and repair: WHEN PASSED FAILED WARNINGS
 ((PRE)) || printf '%s %s %s %s\n' "$(date +%s)" "$PASS" "${#FAILS[@]}" "${#WARNS[@]}" \
   | write_file "$STATE_DIR/last-verify" 0644 || true
+# (and which failed: an update counts only the checks it made red — lib/update.sh u_check)
+((PRE)) || { ((${#FAILS[@]} == 0)) || printf '%s\n' "${FAILS[@]}"; } | write_file "$STATE_DIR/last-verify-fails" 0644 || true
 exit "$rc"

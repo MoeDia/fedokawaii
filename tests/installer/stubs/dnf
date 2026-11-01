@@ -66,7 +66,38 @@ case "$a" in
       fi
       add coprs "copr:copr.fedorainfracloud.org:${c/\//:}"; exit 0;;
   *" offline clean "*|*" system-upgrade clean "*|*" clean metadata "*) exit 0;;
-  *" check-upgrade "*) net_on || exit 1; r=$(rcfor check-upgrade 0); ((r == 100)) && printf 'bash.x86_64 5.3-1 updates\nkernel-core.x86_64 6.19-1 updates\n'; exit "$r";;
+  *" check-upgrade "*) net_on || exit 1; r=$(rcfor check-upgrade 0); [[ -s $FKH/pending ]] && r=100
+      ((r == 100)) && printf 'bash.x86_64 5.3-1 updates\nkernel-core.x86_64 6.19-1 updates\n'; exit "$r";;
+  # the update's stored transaction (dnf5-upgrade(8) --store): $FKH/pending "NAME OLD NEW" (OLD -: a
+  # new package), only the NAMEs asked for when given, a held version ($FKH/versionlock) left out
+  *" --store="*)
+      net_on || [[ $a == *" -C "* ]] || { echo "Curl error (6): Could not resolve host" >&2; exit 1; }
+      [[ -f $FKH/store-fail ]] && { echo "Failed to download packages" >&2; exit 1; }
+      d=$(sed -n 's/.*--store=\([^ ]*\).*/\1/p' <<<"$*")
+      want=" "; for x in "$@"; do [[ $x == -* || $x == upgrade ]] || want+="$x "; done
+      rows=$(while read -r n o v; do
+               [[ -n $v ]] || continue; [[ $want == " " || $want == *" $n "* ]] || continue
+               has versionlock "$n-$v" || echo "$n $o $v"; done < <(cat "$FKH/pending" 2>/dev/null))
+      [[ -n $rows ]] || { echo "Nothing to do."; exit 0; }
+      mkdir -p "$d/packages"; sep=""
+      { printf '{"version":"1.0","rpms":['
+        while read -r n o v; do
+          printf '%s{"nevra":"%s-%s.x86_64","action":"%s","package_path":"./packages/%s-%s.x86_64.rpm"}' "$sep" "$n" "$v" "$([[ $o == - ]] && echo Install || echo Upgrade)" "$n" "$v"; sep=,
+          [[ $o == - ]] || printf ',{"nevra":"%s-%s.x86_64","action":"Replaced"}' "$n" "$o"
+          : >"$d/packages/$n-$v.x86_64.rpm"
+        done <<<"$rows"; printf ']}\n'; } >"$d/transaction.json"
+      exit 0;;
+  *" replay "*)   # (the stored packages go in: off the pending list, at their new versions in $FKH/evr)
+      d=${*: -1}; [[ -s $d/transaction.json ]] || { echo "Cannot open $d/transaction.json" >&2; exit 1; }
+      countdown replay && { echo "Transaction failed: a scriptlet failed" >&2; exit 1; }
+      [[ -f $FKH/replay-breaks-dwl ]] && touch "$FKH/dwl-crash"   # (what only the running system shows)
+      while read -r n v; do
+        sed -i "/^$n /d" "$FKH/pending" "$FKH/evr" 2>/dev/null; echo "$n $v" >>"$FKH/evr"; add installed "$n"
+      done < <(jq -r '.rpms[] | select(.action == "Upgrade" or .action == "Install") | .nevra' "$d/transaction.json" | sed -E 's/\.x86_64$//; s/^(.+)-([^-]+-[^-]+)$/\1 \2/')
+      exit 0;;
+  *" versionlock exclude "*) add versionlock "${*: -1}"; exit 0;;
+  *" versionlock delete "*) n=${*: -1}; [[ -f $FKH/versionlock ]] && sed -i "/^${n}-[0-9]/d" "$FKH/versionlock"; exit 0;;
+  *" versionlock list "*) cat "$FKH/versionlock" 2>/dev/null; exit 0;;
   *" check "*) [[ -s $FKH/dnfcheck ]] || exit 0; cat "$FKH/dnfcheck"; exit 1;;
   *" distro-sync "*) net_on || exit 1; [[ -f $FKH/distro-sync-fixes ]] && : >"$FKH/dnfcheck"; exit 0;;
   # (and $FKH/orphans: packages nothing needs — unneeded once they are no longer yours)
