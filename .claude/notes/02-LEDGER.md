@@ -3151,6 +3151,13 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   sudo → `kawa-theme apply` → `kawa-wallpaper --restore &` → swaybg inherits root's session scope. T53's fix: live()
   through his own manager (`systemd-run --user --scope`, as_user's env has his bus) — proven by an apply when he is
   away (swaybg then under user@1000.service), plus why logind keeps 80 closed sudo sessions.
+- r27-53-scope (2 Nov 00:31–00:33, T53, the stray-scopes fix BUILT): theme.sh §6's live() runs each session command as
+  `U env WAYLAND_DISPLAY=… systemd-run --user --scope --quiet --collect -- CMD` — proven on the PC, invisibly (sudo
+  runuser with as_user's bare env): plain runuser → /user.slice/user-0.slice/session-c309.scope (root's sudo session);
+  through systemd-run → /user.slice/user-1000.slice/user@1000.service/app.slice/run-p2182188-i77661726.scope, the
+  environment passed (WAYLAND_DISPLAY seen). The fake machine's systemd-run runs `--user … -- CMD` as it is;
+  test_theme's live case asserts the call (141/0). OWED: the PC proof after an apply when he is away (swaybg's
+  /proc/PID/cgroup under user@1000.service) — and logind's 80 "closing" sudo sessions explained.
 ## >>> NEXT PASS STARTS HERE (1 Nov, written ~23:50 by the 21:47 pass — the lines above say what it did): the inbox first. Then:
 ## (0) PRESENCE: he was at the PC all evening (a Discord call + a stream at 22:24; memory presence-not-just-input-idle).
 ##     Before anything he could see or hear (a reboot, a session restart, a bar restart, a live play, a notice):

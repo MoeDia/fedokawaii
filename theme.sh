@@ -1063,7 +1063,9 @@ if pgrep -u "$TARGET_UID" -x dwl >/dev/null; then
   # (a glob, not find: root cannot read the document portal's FUSE mount in $RT, and find's
   # "Permission denied" on it ended the whole theme run there, before the boot part)
   WD=""; for s in "$RT"/wayland-*; do [[ -S $s ]] || continue; WD=${s##*/}; break; done
-  live() { U env WAYLAND_DISPLAY="$WD" "$@" >/dev/null 2>&1 || true; }
+  # (each in a scope of your own service manager: what it starts for the session — the wallpaper's
+  # swaybg — lives in your tree, never in the sudo session this run came in by)
+  live() { U env WAYLAND_DISPLAY="$WD" systemd-run --user --scope --quiet --collect -- "$@" >/dev/null 2>&1 || true; }
   live kawa-display
   live kawa-theme apply                    # terminals, bar, notifications, GTK, Qt, wallpaper
   live kawa-warm --renew system clip       # (their windows as now drawn; the notes hold your page)

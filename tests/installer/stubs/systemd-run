@@ -8,6 +8,8 @@
 # froze; $FKH/run-fail: systemd-run itself gets no answer (PID 1 gone: "Connection timed out"), exit 1
 . /usr/local/bin/_lib.sh
 fkh_log "$*"
+# (--user --scope … -- CMD: theme.sh's live step — CMD run here, as the scope runs it)
+if [[ ${1:-} == --user ]]; then while (($#)) && [[ $1 != -- ]]; do shift; done; shift; exec "$@"; fi
 [[ -f $FKH/run-fail ]] && { echo "Failed to start transient service unit: Connection timed out" >&2; exit 1; }
 unit=""
 for a; do case $a in --unit=*) unit=${a#--unit=}.service ;; esac; done

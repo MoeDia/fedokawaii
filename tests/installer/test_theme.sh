@@ -208,6 +208,8 @@ mkdir -p "$W/run/user/$FK_UID/doc"; python3 -c 'import socket,sys; s=socket.sock
 echo "/usr/local/bin/dwl" >>"$W/var/lib/fkh/procs"
 theme; eq "$RC" 0
 has "$OUT" "reloaded the theme in the running session"
+grep -qF "[systemd-run] --user --scope --quiet --collect -- kawa-theme apply" "$FKH/calls.log" && _ok \
+  || _no "the session's commands not in a scope of the user's own manager (swaybg would live in root's sudo session)"
 sed -i '\|/usr/local/bin/dwl|d' "$W/var/lib/fkh/procs"; rm -rf "$W/run/user/$FK_UID/doc" "$W/run/user/$FK_UID/wayland-1"
 
 case_ "a 60-clean-mic.conf you changed (no echo-cancel module left in it) is yours: not retired"
