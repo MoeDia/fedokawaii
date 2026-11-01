@@ -2491,6 +2491,33 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   from outside at the fetch's --store → 143, "interrupted — press update again (Super+U) to continue", never
   "built", report "stopped (fetch): interrupted …", bash not in; the next press goes on to ok.
 
+- r27-49-B2 (1 Nov 14:37–14:44; the master's (B) — THE PC'S FIRST REAL PRESS: OK) — f36e09a applied (14:37–14:38,
+  verify 261/262, the red his qbittorrent); both desktop checks GREEN in the fixed unit (`systemd-run -p
+  SELinuxContext=-…unconfined_service_t…`: session-start "the bar, the notices, the terminals, quick settings and
+  the warm windows up; dwl drawing"; bar-geometry "held — 27 rows, hairlines on x 8 and 1911 …, both themes").
+  Presence probe: away. Pressed as the menu does at 14:39:39 (`sudo bash /usr/local/lib/fedokawaii/fedokawaii.sh
+  update`; the unit's main process `ps -o label` = unconfined_service_t). The run, from its own log
+  (/dev/shm/r27p/update2.out, /var/lib/fedokawaii/update/last.log): the checks before it 14:39:43 — NO red
+  before the update (the baseline = verify's one qbittorrent row only); stored 14:40:22–14:41:07 "96 packages to
+  update"; "green in the copy: 96 packages" 14:41:48 (41 s: the kernel's posttrans dracut in the copy's scratch
+  /boot); signatures checked; snapshot 381 "before update 2026-11-01", pinned (snapper cleanup empty); the replay
+  14:41:49; the desktop's steps 14:42:31–14:43:15 (toolkit, pinned binaries "in place", dwl at its commit, theme
+  "all 638 files already in sync", guard, sound, GTK); verify after: 1 of 262 (qbittorrent — in the baseline, so
+  not new); the desktop check after: green; 14:43:52 "kernel 7.2.13-200.fc44.x86_64 on trial at the next start:
+  three starts to reach the desktop, else 7.2.11 again"; "update done (ok): updated · 96 packages — the next one
+  in 90 days"; the press's exit 0. 4 min 17 s. The probation as designed: grubenv boot_counter=3 boot_success=0
+  boot_indeterminate=1; the menu [7.2.13, 7.2.11] (grubby --info=ALL index 0/1 — the (8) check armed it); the trial
+  arguments "rd.shell=0 rd.emergency=reboot rd.retry=30 panic=10" on 7.2.13's entry only; the watchdog drop-in
+  /etc/systemd/system.conf.d/90-fedokawaii-probation.conf "RuntimeWatchdogSec=1min" (read by PID 1 at the next
+  start: systemd itself was not updated, no re-exec); UPD/probation "381 7.2.13-200.fc44.x86_64 2026-11-01";
+  report "ok · updated · 96 packages". Numbers before → after: rpms 1948 → 1952; kernel 7.2.11 → 7.2.11 + 7.2.13;
+  mesa-dri-drivers 26.2.4 → 26.2.5; systemd 259.10, glibc 2.43-9 unchanged. Left by dnf itself, rightly: libheif
+  1.23.7 (+ libheif-ffmpeg, i686) — RPM Fusion's libheif-freeworld is 1.23.6 and needs its libheif's version
+  (`dnf upgrade --assumeno libheif`: "Skipping packages with conflicts" / "broken dependencies:
+  libheif-freeworld"): the next press takes it once RPM Fusion has caught up. STILL OPEN: the trial closes at the
+  next start (a reboot ends the bulk run r27-bulk-*, 10:36 + 12 h — so after 22:36, or his own restart): then
+  fedokawaii-boot-good's journal or the kernels timer, the pin released, 7.2.11 removed.
+
 ## >>> NEXT PASS STARTS HERE (1 Nov, written 13:00 — the lines above say what this pass did): the inbox first. Then,
 ## in the master's order (master-T45-efh-verdict.md, "Re-review"):
 ## (B) merge t45 → main; the whole suite; `fedokawaii apply`; verify green (with the resume-unit row; the one
