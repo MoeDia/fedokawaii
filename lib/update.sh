@@ -69,11 +69,15 @@ u_start() {
 }
 up_leftovers() {   # what a run cut before its end left (a power cut: no exit trap ran) — its copy
                    # of the system, dropped; its pinned snapshot, if no probation took it over
-                   # (every green run's does), back to snapper's number cleanup
-  local n
+                   # (every green run's does), back to snapper's number cleanup — but the one an
+                   # "offered" report named as the way back stays pinned (UPD/offered) until an
+                   # update is kept: its probation then releases it with its own
+  local n o=""
   n=$(cat "$UPD/snap" 2>/dev/null) || n=""
   if [[ $n =~ ^[0-9]+$ ]] && ! grep -q "^$n " "$UPD/probation" 2>/dev/null; then
-    snapper -c root modify -c number "$n" >/dev/null 2>&1 || log "snapshot $n could not be released to the cleanup (snapper)"
+    [[ -s $UPD/report ]] && IFS=' ' read -r _ o _ <"$UPD/report"   # (TIME OUTCOME; setup.sh's IFS is newline and tab)
+    if [[ $o == offered ]]; then grep -qx "$n" "$UPD/offered" 2>/dev/null || echo "$n" >>"$UPD/offered"
+    else snapper -c root modify -c number "$n" >/dev/null 2>&1 || log "snapshot $n could not be released to the cleanup (snapper)"; fi
     rm -f -- "$UPD/snap"
   fi
   btrfs subvolume list / 2>/dev/null | awk '$NF == "root.cand" { f = 1 } END { exit !f }' || return 0
@@ -433,6 +437,8 @@ up_probation() {   # after a green update
     fi
   fi
   printf '%s %s %s\n' "$(cat "$UPD/snap" 2>/dev/null || echo -)" "$new" "$(date +%F)" >>"$UPD/probation"
+  # (a way back an earlier "offered" report named: released with this one when the trial closes)
+  if [[ -s $UPD/offered ]]; then sed "s/\$/ - $(date +%F)/" "$UPD/offered" >>"$UPD/probation"; rm -f -- "$UPD/offered"; fi
   [[ $new != - ]] || return 0
   grub2-editenv - set boot_counter=3 boot_success=0 boot_indeterminate=1 \
     || { log "GRUB's start counting could not be armed (grub2-editenv) — kernel $new is not on trial"; return 0; }

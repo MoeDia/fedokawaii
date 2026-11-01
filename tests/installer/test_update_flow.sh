@@ -125,6 +125,12 @@ has "$(cat "$U/report")" "the desktop does not start"
 grep -q '^mesa 26.1-1.fc44 ' "$U/holds" && _ok || _no "the set not held"
 not_called 'kawa-snap\] restore'
 eq "$(cut -d' ' -f2 "$W/var/lib/fedokawaii/last-update")" stopped "an undone update is no update"
+case_ "…the next press keeps that offered snapshot pinned (the report's way back) until an update is kept — then its probation releases it"
+o=$(cat "$U/snap"); rm -f "$FKH/replay-breaks-dwl" "$FKH/dwl-crash"; pending "zlib 1.3-1.fc44 1.3.1-1.fc44"; reset_calls
+up; eq "$RC" 0 "$(tail -n3 <<<"$OUT")"; eq "$(report)" ok
+not_called "snapper\] -c root modify -c number $o\$"; [[ ! -e $U/offered ]] && _ok || _no "the offered list left: $(cat "$U/offered")"
+grep -q "^$o - " "$U/probation" && _ok || _no "the offered snapshot not the probation's: $(cat "$U/probation" 2>/dev/null)"
+fkh grubenv boot_success=1; reset_calls; fkrun bash "$TK/setup.sh" --boot-good; eq "$RC" 0 "$OUT"; called "snapper\] -c root modify -c number $o\$"
 case_ "…the same once /home is its own subvolume: the system before it restored for the next start"
 back built; pending "mesa 26.0-1.fc44 26.1-1.fc44"; fkh replay-breaks-dwl
 fkh versionlock; fkh mounts /run/fedokawaii/top /home
