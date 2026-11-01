@@ -1779,8 +1779,10 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   both buttons' words measure #f5ecc2 (strong) — adw-gtk3's hard-coded white never reaches the screen.
 
 ## >>> NEXT PASS STARTS HERE (1 Nov 04:10): the inbox first. Then, the update system (the master's order):
-## (1) T48 FIRST (1): proven in the VM (restore-cut.sh, six cut points, exit 0) — the master's review
-##     (if this pass did not get it), then apply (kawa-snap is not live yet: the PC keeps the old one).
+## (1) T48 FIRST (1): proven in the VM (restore-cut.sh, six cut points, exit 0). The master's review,
+##     started 04:17, had not answered when the pass ended (it was re-running test_upkeep) — run it
+##     again (tools/master-brief.sh T48 + the restore-cut logs), fix, then apply (kawa-snap and the GTK
+##     button rule are not live yet: the PC keeps the old ones until then).
 ## (2) T48 FIRST (2): the flat layout (snapshots, home, log, fk at the top level) and the offline /home
 ##     split — VM first. (3) T45 (a)–(c): kawa-update's state machine on stubs, then the candidate in
 ##     nspawn (the core is proven: r27-49-exp1/2). T19m's audit: the GTK dialog's buttons (r27-19m-b1 owed shots).
