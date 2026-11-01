@@ -2412,6 +2412,15 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
 ##     watchdog drop-in), the report; then a restart through greetd's initial_session (CLAUDE.md START §4),
 ##     the probation closed (fedokawaii-boot-good's journal or the kernels run), the pin released, 7.2.11
 ##     removed; numbers before/after. A presence probe first; if he is at the PC, wait for him to be away.
+##     The restart: a reboot ends the transient bulk run (r27-bulk-*.service, started 1 Nov 10:36 for 12 h —
+##     memory r27-pass-budget); so run the update early in a pass, and restart near the bulk window's end
+##     (after ~22:00) or let his own next restart close the trial — then read the close from the journal.
+##     A TRIAL MERGE of t45 into main (1 Nov 12:52, local only, then undone with `git reset --keep`: main
+##     stays at its pushed d213dc4, his tools/claude-loop.sh change untouched) ran the whole suite: test_setup_wait
+##     66/7 — its fake machine's toolkit comes from setup's own install, so the real session check ran there and
+##     (a check that cannot run stops the update now) every update stopped. Fixed on t45 d31adc7 (the stand-ins in
+##     the fake machine's project copy): test_setup_wait 70/0. The rest of that suite's run: /dev/shm/r27p/all.log
+##     (on the merged copy). So (B) begins: merge t45 into main again, the WHOLE suite green, then push.
 ## (C) if that run ends offered, restored, held or stopped: stop, report to him (ledger top), no blind retry.
 ## (D)–(H) before any further kernel-bearing press and before T46: 8 (both halves), (E) why waybar and mako
 ##     are "not running" under the unit's as_user in the VM (KEEP=1, kit.log, play.log) — then the VM proofs
