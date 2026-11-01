@@ -2768,7 +2768,12 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
 ##     heal → contained (a subshell: die ends only it — its message may go only to the log); the journalctl stand-in's
 ##     `_PID=1 -g` branch; dnf_end's MainPID read under systemctl-fail. Run test_upkeep alone, print the whole OUT of
 ##     that row, fix, then the WHOLE installer area (stand-ins changed) + static; green → push (main carries 381c08a,
-##     bed3488, 8c5aa8b, all local; r27 = main) → apply on the PC. static was green (rc 0).
+##     bed3488, 8c5aa8b, all local; r27 = main) → apply on the PC. static was green (rc 0). STARTED 18:48: test_upkeep
+##     alone with a TEMPORARY debug line in that row (uncommitted: it writes /dev/shm/r27p/crashrow.out = RC + the
+##     whole OUT, crashrow.log = the fake machine's log; the run's summary /dev/shm/r27p/upkeep-dbg.log) — read them,
+##     then REMOVE that printf line before any commit. A lead from reading: dnf_try_sub runs `dnf` (dnf_detached) in
+##     `$(… | tee …)`, so die ends only that pipeline element and dnf_install RETRIES it (DNF_TRIES, 15·i s pauses);
+##     the 125 should rather make dnf_install stop at once (a why of its own for dnf_why, e.g. "pid1").
 ## (1) the master's Re-review 4 of T45 at 9280e4b (r27-49-R4): its verdict appended to master-T45-efh-verdict.md. Told
 ##     mid-review of the storm's PID 1 crash (r27-49-pid1). Not there → launch it again with
 ##     /dev/shm/r27/master/T45-4/brief.md (gone after a reboot: rebuild from ledger r27-49-R4, -pid1, -hang, -master-3,
