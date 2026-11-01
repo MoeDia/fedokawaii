@@ -2215,6 +2215,79 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   takes it at its next start). Still to do (T53): the world's own fstab, not the PC's (the lesson of this
   item and of the dracut line: the fake Fedora must start as Fedora left it, not as the PC is).
 
+- r27-52b-fstab DONE (1 Nov 10:37–11:05, main 29bbfc7, 2fb0189): the world's missing /etc/fstab found —
+  tests/installer/lib.sh removes every copied /etc file naming "fedokawaii" (line 221), and since the split
+  the PC's fstab has /var/lib/fedokawaii/update. The fake Fedora now gets anaconda's own fstab (the PC's
+  snapshot 1: root subvol=root,compress=zstd:1 · /boot xfs · the ESP) and a finished install (built())
+  that fstab through lib/pace.sh's pace_fstab, as setup's noatime pass leaves it; findmnt's stand-in says
+  xfs for /boot like it; mount's stand-in records a remount (the noatime pass now runs for real in the
+  world, and its remount would have gone to the host's /). Also found: the built world wrote through
+  the copied /etc/mpv/scripts/mpris.so — a link to this PC's own /usr/lib64/mpv/mpris.so (refused only
+  because the tests run in a user namespace): replaced, never written through. Results: test_setup
+  233/0 (was 148/91), test_setup_wait 70/0 (47/31), test_setup_hw 84/0 (79/5), test_torture 214/0,
+  test_verify 175/0 (160/15 before built()'s fstab); the whole installer area: 24/25 on the first
+  fix, the re-run after built()'s fix below.
+- r27-found-2 DONE (1 Nov 10:39, main 29bbfc7): tests/installer/stubs/bluetoothctl (the world's adapter,
+  powered, nothing paired; not in the call log: the power cuts' counts stay as they were); tests/run.sh
+  fails a run that leaves a core dump under /tmp/kawa-test* (coredumpctl since the run's start) —
+  first run with it: 0 new; the kit's foot server --log-no-syslog (checked: two kit runs at 10:58,
+  no "Broken pipe" line in the journal).
+- r27-found-3 DONE (1 Nov 10:45, main 29bbfc7) — Fedora 45 "out" two days early: setup.sh released()
+  asked dl.fedoraproject.org, then the redirector download.fedoraproject.org — which sent the HEAD to
+  mirrors.nxthost.com, serving F45's staged tree (200, Last-Modified 28 Oct) while Fedora's own server
+  answers 403 (checked 10:41). Bodhi already says F45 "current" and fedoraproject.org/releases.json
+  "45 Beta" — neither is the release; the official schedule (fedorapeople.org/groups/schedule/f-45/
+  f-45-key-tasks.html) gives Final Release Tue 2026-11-03. Now only Fedora's own server; a test case
+  (a staged tree a mirror would serve: "not released yet", no mirror asked, no release day recorded).
+  The PC has no /var/lib/fedokawaii/release-45 (nothing wrong recorded); the menu's own release_check
+  (system/fedokawaii) always used dl.fedoraproject.org only.
+- r27-49e (1 Nov 10:46–11:10, T45 (e), main 29bbfc7 + t45 8dfa60c): the update's checks after its
+  transaction, and the same before it as the baseline (red already: not counted against it):
+  · tools/regress/session-start.sh — the kit's headless dwl (the installed one), the installed configs,
+    the session's pieces as autostart starts them: waybar, mako, the foot server, kawa-panel, the three
+    warm windows still running in this session after their time, the bar's rows drawn (more than 16
+    colours). Proven both ways on the PC: green (8.9 s); a broken waybar config → "not running: waybar ·
+    nothing drawn: the bar's rows hold 1 colour"; a kawa-panel that exits → "panel: no fifo after 3 s ·
+    not running: kawa-panel".
+  · tools/hl-dwl.sh: the render node of the card the desktop draws on (start-dwl's rule: the most video
+    memory) instead of a fixed renderD128 (here 03:00.0 → renderD128, the iGPU 15:00.0 → renderD129);
+    pixman on a machine with none (the harness VM).
+  · lib/guard.sh desktop_starts (session-start + bar-geometry, as the user, the installed dwl) and
+    lib/update.sh up_more (that, and lib/cand-check.sh on the running system: our builds' libraries,
+    every boot entry of the real /boot with root=/rootflags=, its image readable, btrfs in it) — in
+    u_start's baseline and u_check. On the PC as the update runs them (root → runuser, a bare env):
+    session-start 9 s, bar-geometry 7 s (both themes), 157 MB peak; cand-check on the world: green.
+  · python3-pillow in the manifest (the shots' measure; on the PC an orphan nothing requires — dnf
+    autoremove would have taken it): Fedora 44 updates, python3-pillow-12.3.0 (dnf info).
+  · tests: the world's stand-ins for the two checks; a red before the update not counted ("kept, and
+    said"); a bar off its measure only after the replay → the set held, the snapshot offered.
+  Left for (e): the lock screen's start (gtklock + kawa-lockmod in the kit) → T20, where kawa-lock is
+  rebuilt (today it logs to his journal on every lock: a check per update would write there).
+
+- r27-49f (1 Nov 11:00–11:20, T45 (f), on t45 — the probation of the start after an update, design §4.3 as
+  built): after every green run, lib/update.sh up_probation writes UPD/probation (SNAPSHOT KERNEL|- DAY);
+  when the run brought a kernel newer than the running one, GRUB's own counting is armed
+  (grub2-editenv: boot_counter=3 boot_success=0 boot_indeterminate=1 — the menu stays hidden on the
+  first try, Fedora's 08_fallback_counting takes entry 1 after three unmarked starts), the new kernel's
+  entry alone gets rd.shell=0 rd.emergency=reboot panic=10 (dracut.cmdline(7): a failure restarts
+  instead of a shell; a panic restarts after 10 s) and systemd's hardware watchdog goes on
+  (system.conf.d RuntimeWatchdogSec=1min; this PC has sp5100_tco, /dev/watchdog0, RuntimeWatchdogUSec=0
+  until now). The proof of a good start stays the desktop's own: Fedora's grub-boot-success timer
+  (autostart, two minutes into the desktop) writes boot_success=1; fedokawaii-boot-good.path
+  (PathChanged=/boot/grub2/grubenv, read on the PC: a plain file) runs setup.sh --boot-good at that
+  moment (the service skipped while no probation is open; it waits for the setup lock — a mark during
+  an update is never missed; dnf's guard starts the after-dnf service --no-block, so the kernel
+  removal under that lock cannot deadlock): on the new kernel → counting off, the trial arguments out,
+  the watchdog off, every pinned snapshot back to snapper's number cleanup; on the one before with
+  boot_counter=-1 → the new kernel held at its version (versionlock + UPD/holds "did not reach the
+  desktop in three starts"), removed, the running one the default, a notice at login; the one before
+  chosen in the menu → the trial waits; the trial's kernel gone (a restore took it) → the trial ends.
+  Decided against the design's "system-level marker" (one that marks at the login screen): a kernel
+  that breaks only the desktop would then lose the one before — the desktop's two minutes stay the
+  proof (update-design.md §4.3 rewritten as built). verify: "fedokawaii-boot-good.path enabled".
+  Noted for T46: Fedora's offline-update start (system-upgrade) counts as an unmarked start — the
+  release move must close or re-arm an open probation first.
+
 ## >>> NEXT PASS STARTS HERE (1 Nov 10:35): the inbox first. Then:
 ## (0) STILL RED after the apply (10:31 re-run on main: test_setup 148/91, test_setup_wait 47/31,
 ##     test_setup_hw 79/5; test_torture queued on the installer lock): the failing step is s_pace's
