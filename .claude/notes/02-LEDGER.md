@@ -1905,6 +1905,29 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   T48's acceptance, not this item: a restore from a real boot-menu snapshot (overlay) in the VM; the
   two tests the master listed (another nested subvolume, an entry without the machine-id token).
 
+- r27-49c (1 Nov 07:25; T45 (c), wip on t45 — tools/vm-inject/update-green.sh, the VM "built" with its 49–56
+  real pending updates, the t45 toolkit): run 1 (06:39) — the container was handed the transaction folder
+  as its command (cand_run did not shift its TXDIR: "execv(…/update/tx) failed"), and the bisection then
+  held all 56 packages because its halves could not be stored from the cache: fixed (f04e047) — the
+  argument shifted, --link-journal=no (the copy has the host's machine id), every copy first started
+  with /usr/bin/true (a container that does not start is no verdict: stopped, nothing changed), a half
+  that cannot be tried returns 2 (no culprit named, nothing held, stopped), the stored transaction and
+  kept downloads removed at every end. Run 2 (07:09): the candidate's replay of 56 packages went
+  through in the container ("Complete!", 34 s); its check misread the new kernel's entry (empty
+  version) and the halves could not be stored with -C: fixed (the entry's `version` key; halves
+  stored with the network allowed; the scratch /boot given loader/entries and grub's grubenv). Run 3
+  (07:13, still running at the pass's end; its log in the VM's /tmp/update.log, lost with the next
+  revert): candidate red "the boot image of 7.2.13 has no btrfs"; the bisection found the kernel in
+  ≈ 5 min ("held: kernel 7.2.13") and the rest was red again for the same reason. Two findings for the
+  next pass: (1) inside nspawn dracut cannot see the root's block device ("failed to get device size
+  for /dev/vda3") — its host-only image may lack btrfs where the live one would not (a false red), or
+  lsinitrd fails in there: run the image checks from the host on the scratch /boot (it is a host
+  folder) and give the container the root device read-only (DeviceAllow + bind) so its dracut builds
+  what the live one would — compare both images' module lists in the VM; (2) a hold must cover the
+  culprit's whole source package (the kernel family: kernel, -core, -modules, -modules-core …, one
+  SRPM): bisect over source packages (rpm -qp --qf %{sourcerpm} on the stored rpms), hold every binary
+  of the red one — fewer rounds too (56 binaries ≈ 20 sources).
+
 ## >>> NEXT PASS STARTS HERE (1 Nov 07:10): the inbox first. Then:
 ## (1) T48 FIRST (2): the flat layout (snapshots, home, log, fk at the top level; kawa-snap reading
 ##     $top/snapshots) and the offline /home split (a unit under system-update.target, cp -aT
@@ -1912,7 +1935,8 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
 ##     after a good start) — VM first (states "built", "two-kernels"; tools/vm-inject/), then the PC
 ##     with a pinned snapshot. With it: a restore from a real boot-menu snapshot in the VM, the master's
 ##     two missing tests.
-## (2) T45 on branch t45 (worktree ~/repos/fk-t45, main merged in): (c) proven in the VM —
-##     tools/vm-inject/update-green.sh found and fixed the container call; re-run it (56 pending in
-##     "built"), then (e) the real checks + smoke, (f) probation, (h) the unit + the pane, (i) the
+## (2) T45 on branch t45 (worktree ~/repos/fk-t45, main merged in): (c) in the VM — the two findings of
+##     r27-49c first (the candidate's dracut without the root device → image checks from the host and the
+##     device given read-only; holds by source package), then update-green.sh until the run keeps the
+##     update green; then (e) the real checks + smoke, (f) probation, (h) the unit + the pane, (i) the
 ##     toolkit at a signed tag; t45 merges into main only after (c) is green.
