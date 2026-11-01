@@ -2110,15 +2110,24 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   top-level mount into nothing; $FKH/nested for Fedora's own); test_setup/test_upkeep re-running; the
   VM: split-cut none (f44b), fail-fstab + overlay-restore (f44) re-running on the fixed programs.
 
-## >>> NEXT PASS STARTS HERE (1 Nov 07:10): the inbox first. Then:
-## (1) T48 FIRST (2): the flat layout (snapshots, home, log, fk at the top level; kawa-snap reading
-##     $top/snapshots) and the offline /home split (a unit under system-update.target, cp -aT
-##     --reflink=always -x, Downloads/VM renamed across, compared, fstab by name, the old copy removed
-##     after a good start) — VM first (states "built", "two-kernels"; tools/vm-inject/), then the PC
-##     with a pinned snapshot. With it: a restore from a real boot-menu snapshot in the VM, the master's
-##     two missing tests.
-## (2) T45 on branch t45 (worktree ~/repos/fk-t45, main merged in): (c) in the VM — r27-49c's finding (1)
-##     first ((2) source-package holds and (3) the @stored_transaction origins are fixed on t45) (the candidate's dracut without the root device → image checks from the host and the device
-##     given read-only; holds by source package are done), then update-green.sh until the run keeps the
-##     update green; then (e) the real checks + smoke, (f) probation, (h) the unit + the pane, (i) the
-##     toolkit at a signed tag; t45 merges into main only after (c) is green.
+## >>> NEXT PASS STARTS HERE (1 Nov 09:10): the inbox first. Then:
+## (0) IF the PC restarted for the split (ledger r27-52b-pc says "restarted"): FIRST greetd's file back —
+##     `sudo cp -a /var/lib/fedokawaii/greetd-fedokawaii.toml.r27 /etc/greetd/fedokawaii.toml` (0 lines
+##     initial_session after; it auto-logs in at every start until then). Then check the split on the PC:
+##     `sudo fedokawaii-split state` ("flat, old copies" — or flat if the start-up run already cleaned),
+##     /var/log/fedokawaii-split.log, ~/.cache/r27-split-before.txt (counts: home files, bytes, Downloads,
+##     VM, Steam, /var/log, snapper 46+1, the VMs) and `sudo sha256sum -c --quiet ~/.cache/r27-split-before.sha256`
+##     (561 files of Documents, Pictures, Music, Videos, .ssh, fedokawaii's config/data), `btrfs subvolume
+##     list -a /`, findmnt of /home /var/log /var/lib/fedokawaii/update /.snapshots, the journal on [/log],
+##     `virsh -c qemu:///session list --all` (fk-f44, fk-f44b start), kawa-snap list, the boot menu's list
+##     (snapshots/N); then `sudo bash /usr/local/lib/fedokawaii/setup.sh --layout` (home's snapper config,
+##     root's timeline off, clean) and `fedokawaii verify`; ledger r27-52b-pc; T48 FIRST (2) DONE (the
+##     master's conditions: "the PC with the outputs recorded"). If the split was put back on the PC:
+##     /var/lib/fedokawaii/split.failed + the log say why — fix, VM again, never by hand.
+## (1) T45 (worktree ~/repos/fk-t45): merge main (t48 is in it) into t45; then (e) the real checks +
+##     the desktop smoke test (design §4.2: tools/kit.sh-based, the installed dwl, gles2 on the dGPU's
+##     render node by path on the PC, pixman in the VM which has no render node), (f) probation
+##     (boot counting, fedokawaii-boot-good, no kernel transaction while open, RuntimeWatchdogSec), (h) the
+##     unit + the Super+U pane, (i) the toolkit at a tag; t45 → main after (f) is proven in the VM.
+## (2) T48 rest: restore-file flow in Super+U, backups (kawa-backup), the space floor (VM: a full disk),
+##     verify rows, the Learn piece. (3) found: r27-found-1 (waybar's zombies).

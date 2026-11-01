@@ -399,9 +399,9 @@ case_ "the project unpacked straight into ~/Downloads (a standard folder): nothi
 back built; clone_at $H/Downloads
 fkrun bash $H/Downloads/setup.sh --repair
 [[ -f $W$H/Downloads/setup.sh ]] && _ok || _no "removed from ~/Downloads"; has "$OUT" "~/Downloads kept: it is one of your standard folders"
-case_ "repair on Fedora's one-subvolume layout: the split armed for the next start, a snapshot first (fedokawaii-split; the VM proves the split itself)"
+case_ "repair on Fedora's one-subvolume layout: a snapshot first, then the split armed for the next start (the link itself: test_split and the VM — this fake machine's / is not its own)"
 back built; touch "$FKH/nested"; reset_calls; tk --repair
-eq "$(readlink "$W/system-update")" /var/lib/fedokawaii/split; called "snapper\] -c root create -t single .*before the disk's new layout"
+called "snapper\] -c root create -t single .*before the disk's new layout"; has "$OUT" "/usr/local/sbin/fedokawaii-split arm"
 [[ -L $W/etc/systemd/system/system-update.target.wants/fedokawaii-split.service ]] && _ok || _no "the offline unit not wanted by system-update.target"
 case_ "…a split put back before (its reason kept with this program's checksum): not armed again, said as nothing to do — and repair goes on past it"
 back built; touch "$FKH/nested"; printf '2026-11-01 08:00:00 the copy of /var/log differs from it\n%s\n' "$(sha256sum <"$REPO/system/fedokawaii-split")" >"$W/var/lib/fedokawaii/split.failed"
