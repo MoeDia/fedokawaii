@@ -141,18 +141,30 @@ u_candidate() {   # the stored transaction proven in a copy first; red → culpr
 # packages from the store's kept downloads) until the smallest red part is left; held; the rest
 # stored again. ⌈log2 n⌉ rounds at most. Two halves green alone but red together: the two held
 # together — never a guess. → 1 a half could not be tried at all: no culprit named, nothing held
+# up_sources — NAME SOURCE for each stored package (its source package: the kernel's, Mesa's … whole
+# families, built and broken together) into UPD/sources; bins_of SOURCE… → their packages in the set
+up_sources() {
+  rpm -qp --qf '%{name} %{sourcerpm}\n' "$UPD/tx/packages"/*.rpm 2>/dev/null \
+    | sed -E 's/-[^-]+-[^-]+\.src\.rpm$//' | sort -u >"$UPD/sources" || true
+}
+bins_of() { local IFS=' '; awk -v want=" $* " 'index(want, " " $2 " ") { print $1 }' "$UPD/sources" | sort -u; }   # (IFS: setup.sh's joins $* with newlines)
 up_bisect() {
-  local s=() a=() b=() h ra rb
-  mapfile -t s < <(awk '$3 != "-" { print $1 }' "$UPD/set")
+  local s=() a=() b=() x=() h ra rb n
+  # (by source package: a family goes in, or is held, whole — never half a kernel)
+  up_sources
+  mapfile -t s < <(awk '$3 != "-" { print $1 }' "$UPD/set" | while IFS= read -r n; do
+                     awk -v n="$n" '$1 == n { print $2; f = 1 } END { if (!f) print n }' "$UPD/sources"
+                   done | sort -u)
   while ((${#s[@]} > 1)); do
     h=$((${#s[@]} / 2)); a=("${s[@]:0:h}"); b=("${s[@]:h}")
-    up_try "${a[@]}" && ra=0 || ra=$?
+    mapfile -t x < <(bins_of "${a[@]}"); up_try "${x[@]}" && ra=0 || ra=$?
     if ((ra == 1)); then s=("${a[@]}"); continue; fi
-    up_try "${b[@]}" && rb=0 || rb=$?
+    mapfile -t x < <(bins_of "${b[@]}"); up_try "${x[@]}" && rb=0 || rb=$?
     if ((rb == 1)); then s=("${b[@]}"); continue; fi
     ((ra == 0 && rb == 0)) || return 1
     break
   done
+  mapfile -t s < <(bins_of "${s[@]}")
   up_hold "$(head -n1 "$UPD/why")" "${s[@]}"
   rm -rf -- "$UPD/tx"
   dnf -q -y upgrade --store="$UPD/tx" >/dev/null 2>&1 || true   # (the rest: the holds keep the culprits out)

@@ -71,6 +71,15 @@ case_ "…and the press after that lets the old hold go (the package has moved o
 reset_calls; up; [[ -s $U/holds ]] && _no "still held: $(cat "$U/holds")" || _ok
 called 'dnf\] -q versionlock delete mesa'
 
+case_ "a family red (one source package): held whole — never half a kernel"
+back built; reset_calls; pending "bash 5.2-1.fc44 5.3-1.fc44" "kernel 7.2.11-200.fc44 7.2.13-200.fc44" "kernel-core 7.2.11-200.fc44 7.2.13-200.fc44" \
+  "kernel-modules 7.2.11-200.fc44 7.2.13-200.fc44" "zlib 1.3-1.fc44 1.3.1-1.fc44"
+fkh srpms "kernel-core kernel" "kernel-modules kernel"; fkh cand-red kernel-core
+up; eq "$RC" 0 "$(tail -n3 <<<"$OUT")"
+eq "$(awk '{ print $1 }' "$U/holds" | sort | tr '\n' ' ')" "kernel kernel-core kernel-modules " "the family held"
+grep -q '^bash 5.3-1.fc44$' "$FKH/evr" && grep -q '^zlib 1.3.1-1.fc44$' "$FKH/evr" && _ok || _no "the rest not in: $(cat "$FKH/evr")"
+grep -q '^kernel' "$FKH/evr" && _no "a kernel package went in: $(grep '^kernel' "$FKH/evr")" || _ok
+
 case_ "two packages red only together: both halves green alone — held together, never a guess"
 back built; reset_calls; pending "a 1-1 2-1" "b 1-1 2-1" "c 1-1 2-1" "d 1-1 2-1"; fkh cand-red "a+b"
 up; eq "$RC" 0 "$(tail -n3 <<<"$OUT")"
