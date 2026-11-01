@@ -2196,12 +2196,41 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   /home/dia, /var/log, /var/log/journal, /.snapshots, /var/lib/fedokawaii/update: nothing to change), 0 AVC
   denials since the boot, no failed unit (system or user).
 
-## >>> NEXT PASS STARTS HERE (1 Nov 10:12): the inbox first. Then:
-## (0) done (r27-52b-vm: the split's boot-list fix green in the VM).
-## (1) T45 (worktree ~/repos/fk-t45): merge main (t48 is in it) into t45; then (e) the real checks +
-##     the desktop smoke test (design §4.2: tools/kit.sh-based, the installed dwl, gles2 on the dGPU's
-##     render node by path on the PC, pixman in the VM which has no render node), (f) probation
-##     (boot counting, fedokawaii-boot-good, no kernel transaction while open, RuntimeWatchdogSec), (h) the
-##     unit + the Super+U pane, (i) the toolkit at a tag; t45 → main after (f) is proven in the VM.
-## (2) T48 rest: restore-file flow in Super+U, backups (kawa-backup), the space floor (VM: a full disk),
-##     verify rows, the Learn piece. (3) the next apply installs the bar's reload_style_on_change (r27-found-1).
+- r27-45-merge (1 Nov 10:09–10:30, branch t45 → 77fabc1, e8f9597, pushed): main (the flat layout, T48 (2)) merged
+  into t45 — no conflict (six files changed on both sides: setup.sh, verify.sh, stubs/btrfs, test_upkeep,
+  test_verify, programs.txt; the btrfs stand-in read whole: both sides' cases kept). The merged branch:
+  engine 12/12, static 10/11 → the red was t45's own: lib/update.sh's `local x=()` made shellcheck read
+  setup.sh's string x (s_gaming) as an array (SC2178/SC2128) → the half renamed pk; test_syntax 691/0,
+  test_update_flow 131/0. Installer 22/26: test_setup, _hw, _wait, test_torture red — on main too: next item.
+- r27-52b-fstab (1 Nov 10:24–10:32): those four were red because the PC's /etc changed (the installer tests'
+  world copies it: memory "installer world copies host /etc"): the split had ended its fstab lines "\t0 0",
+  pace_fstab (setup's noatime pass, lib/pace.sh) rebuilds every Btrfs line tab-separated, so the world's
+  s_pace saw a change, wrote a candidate and failed `findmnt --verify` on mount points it does not have
+  (line 1843, s_pace → fstab_noatime: return 1). Fixed at the writer: the split's lines now "\t0\t0" (the
+  form pace_fstab leaves as it is); test_split pins them as pace_fstab's fixed point (red on the old form:
+  87/1, green 88/0); test_snap's expected line follows (214/0). APPLIED 10:30–10:31 (main aeb8680): repair's
+  pace pass rewrote the PC's four lines in the same form (cat -A: tabs to the end); `fedokawaii verify`
+  259/260 — the new row "snapshots in the boot menu" ✔ (every listed snapshot on the disk), the layout ✔,
+  the red his qbittorrent (T35's). The bar's config with reload_style_on_change installed (his running bar
+  takes it at its next start). Still to do (T53): the world's own fstab, not the PC's (the lesson of this
+  item and of the dracut line: the fake Fedora must start as Fedora left it, not as the PC is).
+
+## >>> NEXT PASS STARTS HERE (1 Nov 10:35): the inbox first. Then:
+## (0) STILL RED after the apply (10:31 re-run on main: test_setup 148/91, test_setup_wait 47/31,
+##     test_setup_hw 79/5; test_torture queued on the installer lock): the failing step is s_pace's
+##     fstab_noatime returning 1 (the ERR trap says "line 1843": one past the call on 1842, a `return 1`).
+##     The PC's /etc/fstab is now a fixed point of pace_fstab (diff empty) and `findmnt --verify` passes on it,
+##     so the world's fstab is not the PC's as copied: keep a world (the harness's keep/back), read
+##     $W/etc/fstab and which of fstab_noatime's three exits fails (pace_fstab · mktemp in /etc · findmnt
+##     --verify: the stand-in needs the file by name). Then give the world a fstab of its own as Fedora's
+##     installer writes it (the root line only, no noatime: s_pace's pass then runs for real in the tests),
+##     never the PC's — and the whole installer area again. These four were green at 09:50 (before the split).
+## (1) T45 (worktree ~/repos/fk-t45, main merged in: r27-45-merge): (e) the real checks + the desktop smoke
+##     test (design §4.2: tools/kit.sh-based, the installed dwl, gles2 on the dGPU's render node by path on the
+##     PC, pixman in the VM which has no render node), (f) probation (boot counting, fedokawaii-boot-good, no
+##     kernel transaction while open, RuntimeWatchdogSec), (h) the unit + the Super+U pane, (i) the toolkit at a
+##     tag; t45 → main after (f) is proven in the VM.
+## (2) T48 rest: restore-file flow in Super+U (kawa-snap list's dates are UTC: show local time), backups
+##     (kawa-backup), the space floor (VM: a full disk), the Learn piece.
+## (3) T53 items found today: r27-found-2 (bluetoothctl cores from the installer world: a stand-in), the world's
+##     own fstab (r27-52b-fstab), the kit's foot server ending before its dwl.
