@@ -47,6 +47,9 @@ opts=$(sed -E 's/^[[:space:]]*linux[[:space:]]+"[^"]+"[[:space:]]*//' <<<"$line"
 k=${kern#/vmlinuz-}
 run "printf 'title snapshot $S (overlay-restore)\nversion $k\nlinux $kern\ninitrd /initramfs-$k.img\noptions %s\n' '$opts' | sudo tee /boot/loader/entries/fk-overlay.conf >/dev/null && sudo grub2-reboot fk-overlay" >>"$log" 2>&1
 restart || { echo "overlay-restore: snapshot $S did not start" >&2; exit 1; }
+# (the one-time entry gone at once, as a key press leaves none: it names the same kernel file as
+# the real entry, and `grubby --set-default /boot/vmlinuz-K` in the restore could pick it)
+run 'sudo rm -f /boot/loader/entries/fk-overlay.conf' >>"$log" 2>&1
 # shellcheck disable=SC2016  # (expanded in the VM)
 in=$(chk 'findmnt -no FSTYPE /; cat /etc/fk-marker 2>/dev/null || echo no-mark; findmnt -no SOURCE /home; sudo kawa-snap list | awk -F"\t" "\$5 == \"booted\" { print \"booted=\" \$1 }"')
 [[ $(sed -n 1p <<<"$in") == overlay ]] && yes "snapshot $S started on a layer in memory" || no "/ is not an overlay: $(sed -n 1p <<<"$in")"
@@ -57,7 +60,7 @@ in=$(chk 'findmnt -no FSTYPE /; cat /etc/fk-marker 2>/dev/null || echo no-mark; 
 r=$(chk "sudo kawa-snap restore $S 2>&1 | tail -n 1; echo rc=\${PIPESTATUS[0]}")
 [[ $r == *rc=0* ]] && yes "kawa-snap restore $S from inside S" || no "the restore from S: $r"
 restart || { echo "overlay-restore: no start after the restore" >&2; exit 1; }
-end=$(chk 'findmnt -no FSTYPE,SOURCE /; cat /etc/fk-marker 2>/dev/null || echo no-mark; sudo fedokawaii-split state; sudo rm -f /boot/loader/entries/fk-overlay.conf; ls /boot/loader/entries')
+end=$(chk 'findmnt -no FSTYPE,SOURCE /; cat /etc/fk-marker 2>/dev/null || echo no-mark; sudo fedokawaii-split state; sudo grub2-editenv list | grep saved_entry')
 [[ $end == "btrfs "*"[/root]"* ]] && yes "/ the root subvolume again" || no "/ after the restore: $(sed -n 1p <<<"$end")"
 [[ $end == *no-mark* ]] && yes "the restored system is S (no mark)" || no "the mark survived the restore"
 [[ $end == *$'\n'flat* ]] && yes "the layout flat" || no "the layout after the restore: not flat"

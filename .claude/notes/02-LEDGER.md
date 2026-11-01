@@ -2018,6 +2018,49 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   (8.2) says so; its example list shows an update's snapshot instead of a root "timeline" one.
   Running: the six cut points and two failures (f44b).
 
+- r27-49c GREEN (1 Nov 08:17; t45 da061e9; tools/vm-inject/update-green.sh f44 ~/repos/fk-t45, exit 0)
+  — the button's run end to end on the harness VM's real pending updates (from "built", 27 Oct):
+  stored once (61 packages incl. kernel 7.2.13, gcc, util-linux, pipewire, brave-origin,
+  claude-code, steam), green in the copy at the first try (the nspawn candidate: replay "Complete!",
+  cand-check green — scriptlet noise in there only: grub2-probe cannot see /dev/vda3, harmless on
+  a scratch /boot), the pinned snapshot 2, the live replay of the same stored transaction, the
+  follow-ups (Prowlarr, nvim plugins, uv, rustup, dracut for 7.2.13, dwl rebuilt, the theme), the
+  checks green; report "ok · updated · 61 packages"; no holds; root.cand gone; 269 s end to end;
+  7.2.13 installed, 7.2.11 kept until the new one runs. Left after it: 3 lines of `dnf
+  check-upgrade` (of 75 before — counted lines, not packages; the next pass reads which). (c) is
+  done in the VM; t45 stays OFF main until T48's flat layout is live on the PC (the master's gate
+  for (d)/(f) on the PC), then (e) the real checks + the desktop smoke test, (f) probation, (h),
+  (i). Note for T46: the run said "Fedora 45 is out — the menu shows when the move to it is
+  offered" on 1 Nov (the owner's date for F45 is 3 Nov) — check what fedokawaii reads for that.
+
+- r27-52b (cont., 08:24; f44b, tools/vm-inject/split-cut.sh, table kept in /dev/shm/r27/split-cut.first9.txt):
+  every cut point whole — part-home (cut after /home's cp, before its comparison: home.part deleted
+  and copied again), copied-home, copied-log, copied-fk, moved, snapshots, fstab: each "ok flat ok
+  ok ok" = the next start went on ("start 2" in the log), the layout flat, his files byte-identical,
+  clean left root's /home and /var/log empty, snapper/kawa-snap/the boot menu on snapshots/N. Two
+  failures made (fail-copied-home, fail-fstab — the latter after fstab was written and Downloads,
+  VM and the snapshots moved): put back whole — nested, his files identical, Downloads/VM/.snapshots
+  back inside root, the old fstab, snapper lists, /system-update gone, split.failed with the reason
+  and the program's sha256; `setup.sh --layout` did not arm it again (state nested) — the table said
+  "armed again" only because the proof read the last line of setup's output (its exit footer): the
+  proof reads four now; both re-running. overlay-restore.sh f44, first run: inside the snapshot
+  started from grub-btrfs's own kernel line (one-time BLS entry + grub2-reboot): / an overlay, the
+  system as S had it, /home today's from its subvolume, kawa-snap list marks S booted, `kawa-snap
+  restore 3` from inside it rc 0; but the next start was S again: the proof's one-time entry named
+  the same kernel file, so the restore's `grubby --set-default /boot/vmlinuz-K` chose it
+  (grubenv saved_entry=fk-overlay) — a harness artefact (grub-btrfs's entries are not BLS entries);
+  a start after the entry went: the restored root (no mark, flat, /home mounted, root.old kept).
+  The proof now removes its entry once S has started; re-running.
+
+- r27-52b (cont., 08:33): the reruns green — split-cut.sh f44b fail-copied-home fail-fstab: both "ok"
+  (put back, nested, files identical, not armed again: "the next toolkit tries again", state nested);
+  overlay-restore.sh f44 exit 0, all 11 checks: the flat layout made and cleaned; snapshot 3 started
+  on a layer in memory from grub-btrfs's own kernel line; the system as S had it (no mark); /home
+  from its subvolume; kawa-snap list marks 3 booted; his files today's; `kawa-snap restore 3` from
+  inside S; the next start: / the root subvolume again, S's state, the layout flat, his files the
+  same. T48 FIRST (2) is proven in the VM in full (whole · 7 cuts · 2 failures · a pre-split restore
+  · a restore from a boot-menu snapshot); the master's verdict next, then the PC.
+
 ## >>> NEXT PASS STARTS HERE (1 Nov 07:10): the inbox first. Then:
 ## (1) T48 FIRST (2): the flat layout (snapshots, home, log, fk at the top level; kawa-snap reading
 ##     $top/snapshots) and the offline /home split (a unit under system-update.target, cp -aT

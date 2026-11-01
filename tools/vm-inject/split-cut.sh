@@ -48,7 +48,7 @@ line"; ln splitdata/plain splitdata/hardlink; ln -s plain splitdata/symlink; mkf
 # shellcheck disable=SC2016
 failed='sudo cat /var/lib/fedokawaii/split.failed; sudo btrfs subvolume list / | sed -n "s/.* path //p"
   sudo snapper -c root list >/dev/null && echo snapper-ok; [ -e /system-update ] && echo armed-still
-  sudo bash /usr/local/lib/fedokawaii/setup.sh --layout 2>&1 | tail -n 1; echo "state=$(sudo fedokawaii-split state)"'
+  sudo bash /usr/local/lib/fedokawaii/setup.sh --layout 2>&1 | tail -n 4; echo "state=$(sudo fedokawaii-split state)"'
 # shellcheck disable=SC2016
 split='sudo btrfs subvolume list -a / | sed -n "s/.* path //p"
   echo "fstab=$(grep -cE "subvol=(home|log|fk|snapshots)," /etc/fstab)"
