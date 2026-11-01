@@ -1768,6 +1768,15 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   ("Save") does not stand out from "Cancel"; GTK's default action should be the lacquer, the others
   quiet (key fill, text) — fix with the GTK theme in the audit.
 
+- r27-19m-gtk-default (1 Nov 04:30; T19m audit item, found by the owed shots) — two lacquer buttons in a GTK
+  dialog: GTK 3 moves the default (the button Enter presses) with the focus, and our theme filled both
+  `.default` and `.suggested-action`. By the design system's grammar the lacquer is the keyboard's cursor
+  (one at a time, as in the menus): now only `.default` is filled; an app's suggested action not under
+  the cursor is framed in the lacquer, its words bright (tools/build-themes.py square_rules, GTK 3 and
+  4). Rendered in the kit (dark): a focused Cancel filled, a suggested Save framed — one filled button
+  (/dev/shm/r27/gtk4-dialog.png). test_generated 261/0, test_contrast 18/0, test_theme 263/0. Seen and
+  left for the audit's pass: a dialog's plain button keeps a dimmer label than a window's (to find).
+
 ## >>> NEXT PASS STARTS HERE (1 Nov 04:10): the inbox first. Then, the update system (the master's order):
 ## (1) T48 FIRST (1): proven in the VM (restore-cut.sh, six cut points, exit 0) — the master's review
 ##     (if this pass did not get it), then apply (kawa-snap is not live yet: the PC keeps the old one).

@@ -840,10 +840,14 @@ def square_rules(gtk):
              f"button.flat{w}:hover {{ background-color: transparent; box-shadow: none; }}",
              f"{sel(['button'], KEY + ':active')}, {sel(['button'], KEY + ':checked')}, "
              f"{sel(['button.flat'], ':active')}, {sel(['button.flat'], ':checked')} {{ {fill} }}",
-             # the default button: the accent at rest and under the pointer
-             f"{sel(['button.default', 'button.suggested-action'], KEY + ':not(:disabled)')}, "
-             f"{sel(['button.default', 'button.suggested-action'], KEY + ':not(:disabled):hover')} "
+             # the button Enter presses (GTK's default, which follows the focus in a dialog): the
+             # lacquer at rest and under the pointer — the keyboard's cursor, as in the menus; one
+             # button at a time. An app's suggested action elsewhere: framed in the lacquer, not
+             # filled (two filled buttons read as two cursors)
+             f"{sel(['button.default'], KEY + ':not(:disabled)')}, "
+             f"{sel(['button.default'], KEY + ':not(:disabled):hover')} "
              f"{{ {fill} border-color: {accent}; }}",
+             f"{sel(['button.suggested-action'], KEY + ':not(.default):not(:disabled)')} {{ border-color: {accent}; }}",
              # □ and ▣
              f"{sel(['check', 'radio'])} {{ min-width: 4px; min-height: 4px; padding: 1px; margin: 0 6px 0 0; "
              f"border: 1px solid {c['muted']}; border-radius: 0; background-image: none; "
