@@ -196,9 +196,9 @@ repos_enabled() {
 # files' own setting), and a package of one would then look as if it were gone from this
 # Fedora. Here a repository that cannot be read fails the question instead
 dnf_q() {
-  local r o=()
-  while IFS= read -r r; do [[ -n $r ]] && o+=("--setopt=$r.skip_if_unavailable=0"); done < <(repos_enabled)
-  dnf -q "${o[@]}" "$@"
+  local r opts=()
+  while IFS= read -r r; do [[ -n $r ]] && opts+=("--setopt=$r.skip_if_unavailable=0"); done < <(repos_enabled)
+  dnf -q "${opts[@]}" "$@"
 }
 dnf_why() {   # dnf_why [TEXT] → lock · missing · disk · gpg · checksum · net · conflict · other
   local t=${1-$DNF_OUT}

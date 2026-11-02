@@ -36,7 +36,7 @@ SHEBANG = re.compile(r"#!\S*(/env )?\S*\b(ba|da)?sh\b")
 def shell_files(repo):
     """every file that is shell: by its first line, or sourced by the scripts."""
     out = []
-    for d in ("bin", "system", "lib"):
+    for d in ("bin", "system", "lib", "tools", "tools/regress", "tools/vm-inject"):
         for f in sorted((repo / d).iterdir()):
             if f.is_file():
                 first = f.read_text(errors="replace").split("\n", 1)[0]
