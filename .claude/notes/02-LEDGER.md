@@ -3590,25 +3590,32 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   our overrides (ours win: yazi Ctrl+C copies, Enter smart-enter, g d ~/Drives; zathura r reloads; wiremix Esc
   closes; nvim Space g g lazygit), the format kawa-help parses (column 24, 67-wide headings, no ellipsis, no kanji);
   sources in each file's # header.
-## >>> NEXT PASS STARTS HERE (2 Nov, written 13:50 by the 11:03 bulk pass — the lines above say what it did): the inbox first.
-## (0) PRESENCE: before anything he could see or hear (a reboot, a session restart, a bar restart, a live play, a notice):
-##     `wpctl status`, `playerctl -a status`, one half-scale grim — not only the swayidle probe (memory
-##     presence-not-just-input-idle). The 11:03 bulk run was started by hand: assume him at the PC, headless only.
-## (1) T21: verdict 5's must-fixes and should-fix 3 FIXED (a6809d4, 89345d6, decab00 — r27-21-master-5-fix); left before
-##     the master's RE-REVIEW 6: the to-do row's pen-line assert after Tab, the nits (seen_top's comment and key). Review 6
-##     narrow, probing from the foot in typing and in normal mode (archive /dev/shm/r27/master/T21 first — r1–r4 in
-##     master-archive, verdicts 1–5 in .claude/notes/). A suite on the newest HEAD before any push (the one on 7ca416a,
-##     /dev/shm/r27p/suite-7ca416a.log, predates these). Master PASS + a green suite → push main (GitHub main = e083197
-##     still), then APPLY from the frozen tree when he is away + a SESSION RESTART (START §4) for the dwl fix, and the
-##     panel (bug 10) restarted per memory live-panel-restart.
-## (2) THE KERNEL TRIAL (since 1 Nov 14:43, 7.2.13, snapshot 381 pinned): closes at the next start — only when he is
-##     away, START §4's reboot way; then read fedokawaii-boot-good's journal — ledger r27-49-B3. Can go with (1)'s restart.
-## (3) T46/T46b (F45 out Tue 3 Nov): after the release — vm-create f45 fresh from the released tree, vm-smoke f45, then
-##     tools/vm-inject/f45-checks.sh f45; T46's pre-flight (tools/vm-preflight.sh) and the upgrade's WAIT (60 days).
-## (4) T22: grid, cursor, footer, contrast, kinds, empty states BUILT (r27-22-grid, -kinds, -empty); bug 10 BUILT
-##     (r27-22-b10-built) — next, in the kit (one at a time, never beside a suite): the held password window (Super+D →
-##     unlock on a qpdf-locked PDF: wrong, then right; both moods; play ready: /dev/shm/r27/t22/b10/play.sh), the empty
-##     states and the tabs row (r27-22-tabs), zathura's prompt by eye; then the master's T22 review.
-## (5) T19m (b): pass 1 goes on; items 3–5 (24 px hit areas, JLREQ, the spacing scale, the optical centre, a
-##     reduce-motion switch) with the next dwl batch (a session restart: only when he is away).
-## (6) T53 goes on (the plan's list); the test_yazi flake fixed (89a1b06: a mount event lists the drives again).
+## >>> NEXT PASS STARTS HERE (2 Nov, written 15:32 by the 13:51 bulk pass — the lines above say what it did): the inbox first.
+## (0) PRESENCE: before anything he could see or hear (a reboot, a session restart, a bar or panel restart, a live play,
+##     a notice): `wpctl status`, `playerctl -a status`, one half-scale grim (memory presence-not-just-input-idle). At
+##     14:10 he was at the PC (Discord in Brave, sound playing). And every probe outside the harness/kit runs cut off from
+##     his session (memory probes-cut-off-session — r27-leak: our runs put notices on his screen and text on his clipboard).
+## (1) T21: the master's RE-REVIEW 8 ran from 15:24 on b583de2 (verdict 7's look via vim.on_key, the write's tick, Ctrl-C):
+##     its verdict → .claude/notes/master-T21-verdict-8.md (from /dev/shm/r27/master/T21/verdict.md); FAIL → fix → review 9
+##     (archive /dev/shm/r27/master/T21 first: r1–r7 in master-archive). PASS → T21 done but for the apply + a SESSION
+##     RESTART (the dwl cold-Super+N fix) when he is away, and the Learn piece's figure at the book update.
+## (2) PUSH: GitHub main = e083197; the suite on bee0316 ran 15:23–(see r27-suite-bee0316); the commits after it touch only
+##     kawa-calc (test_calc 43/0), kawa-wallpaper (test_wallpaper 270/0), the key sheets (data), notes/ledger/audit.
+## (3) APPLY from a frozen tree when he is away + the panel restart (memory live-panel-restart) + the session restart:
+##     live then — bug 10's held password window with its failed state and the lone field's air, zathura's line, Super+V's
+##     and Super+W's preview rule, the calculator's erase, the idle timer cell, T21's notebook fixes, the harness (tests
+##     only). The KERNEL TRIAL (7.2.13, snapshot 381 pinned) closes at the next start: the reboot the same way (r27-49-B3).
+## (4) T46/T46b (F45 out Tue 3 Nov): vm-create f45 fresh from the released tree, vm-smoke f45, tools/vm-inject/f45-checks.sh,
+##     T46's pre-flight; the upgrade's WAIT (60 days).
+## (5) T23 next step (the sheets are in: caca179, configs/home/.config/fedokawaii/keys/*.txt, 250 rows): the context —
+##     kawa-dwlstatus keeps the focused monitor's appid (dwl prints "<mon> appid <id>"; it is dropped today) in dwl-bar/;
+##     kawa-help reads it: a warm window by its app id (notes, clip, system…), a foot window by its title's first word (our
+##     bashrc puts the running command in the title, OSC 2) → that sheet's parts first, then the desktop's, then the
+##     rest; the sheets for our own screens (Super+U, notes, books, clip, wallpaper); fuzzy rank (subsequence + word
+##     starts) in kawa-panel's filter; tests (test_help); shots both moods; the master.
+## (6) T19m (b) pass 1's rest (audit-r27.md): lock, greeter, saver, boot splash, GRUB (their own renders); GTK/Qt themes,
+##     window borders and gaps; torrents, the downloads' list, kawa-file's parts. Then pass 2 (side by side). The kit
+##     render of Super+V/W and the calculator after their fixes (12e5b22, 74de1f8, a8dfaad) — numbers into audit-r27.md.
+## (7) T22: the master's T22 review (the grid, kinds, empty states, tabs, bug 10 with its failed state, zathura's line).
+## (8) T53's rest: run/retry failure paths, the set -u/pipefail audit, `fedokawaii selftest --sandbox`, kawa-panel's start
+##     and first draw and the warm windows' open measured (tools/proc-load.py for process trees), line counts at its end.
