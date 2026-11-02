@@ -3841,6 +3841,20 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   dots and underscores become spaces, a version's dots (1.6, 24.04.1, 5.1) and a file's type at the end (iso, mkv, zst …)
   stay, any other download keeps its file's name, and a name without spaces is cut at its own - _ . within 30 columns
   (never "…"). test_downloads 61/0 (a new case: five names, both kinds). audit-r27.md row filled.
+- r27-24-direction (3 Nov 01:36–01:45, T24, DECIDED — not built; evidence /dev/shm/r27/master/T24-evidence/): the prompt's
+  pastels are Wada's combination #300 — Grenadine Pink #f48067 (the terminal icon's block), Cream Yellow #fdbf68 (the
+  folder), Turquoise Green #b5decc (git), Calamine Blue #78cdd0 (the time) — ink text on each ≥ 6.8 : 1 (WCAG;
+  computed from colors.json, ~/.cache/r27-wada), a failed code its own block in our vermilion with cream text; rendered
+  as a truecolor mock in a real foot, both moods (pair.png): lively, legible, the blocks distinct on the kinari ground
+  too. Caps: three 8 × 20 cells (foot's cell: Sumi Term 16 px, line 20 — an 8 × 20 drawing centred on the capitals'
+  middle fills the cell exactly in build-icons.py's term font) drawn and painted at the block edges (caps-zoom.png):
+  a 2:1 pixel arrow (generic powerline), a slant (a stock cut), a STAMP EDGE — the left block's paper reaching into the
+  next in round tongues every 5 rows, a strip of kitte stamps: CHOSEN (the plan's "stamp-edge cap", our world's).
+  Build next pass: art/icons.txt @cap_stamp (+ the line's start, mirrored), foot palette 26–29 per mood in
+  build-themes.py (so the theme switch recolours open prompts), __kawa_layout as segments (bg 48;5;N, a cap cell between
+  with fg = the left block, bg = the right; the end cap over the ground; the widths with the caps), the narrow-window
+  order kept (time, then git, then the folder's end), the console plain; tests (test_shell, test_tiles, dup bursts),
+  renders both moods measured (caps on the cell grid), the master.
 ## >>> NEXT PASS STARTS HERE (2 Nov, written 18:12 by the 16:56 bulk pass — the lines above say what it did): the inbox first.
 ## (0) PRESENCE before anything he could see or hear (memory presence-not-just-input-idle): at 16:57 he was in a Discord
 ##     call (Brave: mic + sound). Every probe outside the harness/kit cut off from his session (probes-cut-off-session).
