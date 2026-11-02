@@ -1,0 +1,29 @@
+# btop 1.4.7 (Fedora btop-1.4.7-1.fc44): the system monitor
+# command: btop --version; btop --help
+# source: https://github.com/aristocratos/btop/blob/v1.4.7/src/btop_menu.cpp (its help window; all 46 lines also found in the installed binary)
+# source: https://github.com/aristocratos/btop/blob/v1.4.7/src/btop_input.cpp (the key handling)
+# ours: configs/home/.config/btop/btop.conf (seven layouts of ours for p, after btop's own; vim_keys stays off, so h is help and k kills; update_ms 1000)
+── btop: view ─────────────────────────────────────────────────────
+p / Shift+P             next / previous layout (all boxes, then smaller ones)
+1 to 5                  show or hide a box: cpu, mem, net, proc, gpu
+m or Esc                the menu (o or F2: options)
+F1, ? or h              btop's own help
++ / -                   slower / faster refresh (100 ms a step)
+q                       quit
+── btop: processes ────────────────────────────────────────────────
+Up / Down               choose a process (PgUp / PgDn: a page)
+Enter                   details of the chosen process
+f or /                  filter by name (! first: a regular expression)
+Delete                  clear the filter
+Left / Right            sort by the previous / next column
+r                       reverse the sort order
+e                       processes as a tree (Space: fold / unfold)
+t                       ask the chosen process to stop (SIGTERM)
+k                       kill the chosen process at once (SIGKILL)
+s                       send another signal
+N                       change its priority (nice)
+u                       pause the process list
+F                       follow the chosen process
+── btop: network ──────────────────────────────────────────────────
+b / n                   previous / next network device
+z                       reset the network totals

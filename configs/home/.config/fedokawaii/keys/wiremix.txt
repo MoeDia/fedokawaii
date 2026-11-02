@@ -1,0 +1,18 @@
+# wiremix 0.11.0 (Fedora wiremix-0.11.0-1.fc44): the PipeWire mixer (quick settings, Super+A)
+# command: wiremix --version; wiremix --help
+# source: /usr/share/doc/wiremix/wiremix.toml and README.md (installed; identical to https://github.com/tsowell/wiremix/tree/v0.11.0)
+# ours: configs/home/.config/fedokawaii/themes/dark/wiremix.toml and light/wiremix.toml (Esc closes the mixer; enforce_max_volume)
+# note: the README's Esc only cancels a list; here Esc closes the whole mixer
+── wiremix: moving ────────────────────────────────────────────────
+Tab / Shift+Tab         next / previous tab (H / L too)
+j / k                   next / previous row (arrow keys too)
+Enter or c              open the row's list, then choose with Enter
+Esc                     close the mixer, even from an open list
+q                       quit
+?                       wiremix's own list of keys
+── wiremix: volume ────────────────────────────────────────────────
+h / l                   volume down / up by 1 % (arrow keys too; max 150 %)
+1 to 9                  set the volume to 10 to 90 %
+0                       set the volume to 100 % (the backtick key: 0 %)
+m                       mute or unmute
+d                       make this the default output or input

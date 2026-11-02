@@ -1,0 +1,40 @@
+# VisiData 3.3 (Fedora visidata-3.3-2.fc44): the Tables window (vd; .csv and .tsv open in it from yazi)
+# command: vd --version; vd --help
+# source: man visidata (the installed page: GLOBAL COMMANDS, Metasheets, Derived Sheets)
+# source: /usr/lib/python3.14/site-packages/visidata/clipboard.py (the installed code: Y copies with wl-copy under Wayland)
+# ours: configs/home/.config/visidata/config.py (no key changed; quitguard on, disp_menu off: Alt+H still opens the menu)
+── visidata: moving ───────────────────────────────────────────────
+h j k l                 left, down, up, right (arrow keys too)
+g g / G                 top / bottom (g h / g l: first / last column)
+Ctrl+F / Ctrl+B         a page forward / back
+/ then n / N            search in the column (g /: all), next / previous
+c                       jump to a column by a part of its name
+── visidata: columns ──────────────────────────────────────────────
+!                       make the column a key column
+-                       hide the column (g v: show all again)
+_                       widen the column to fit its text, again: back
+^                       rename the column
+~ # % $ @               column type: text, integer, decimal, money, date
+=                       new column from a Python expression
+Shift+C                 the columns as a sheet, to edit their properties
+── visidata: rows ─────────────────────────────────────────────────
+s / t / u               select / toggle / unselect the row (g s / g u: all)
+|                       select the rows matching a regular expression
+,                       select the rows with the same value as this cell
+"                       a new sheet of only the selected rows
+[ / ]                   sort ascending / descending by this column
+a / d                   add a row / delete the row (g d: the selected)
+e                       edit the cell
+y / p                   copy / paste rows (Y: to the desktop clipboard)
+── visidata: analysis ─────────────────────────────────────────────
+Shift+F                 frequency table: how often each value occurs
+Shift+I                 describe: summary numbers of every column
+Shift+W                 pivot table by this column
+.                       plot the numeric column as a graph
+── visidata: files and leaving ────────────────────────────────────
+Ctrl+S                  save (the file ending picks the format)
+o                       open another file
+Space                   command palette: type a command's name
+U / R                   undo / redo
+Alt+H                   the menu
+q / g q                 close this sheet / close all and leave

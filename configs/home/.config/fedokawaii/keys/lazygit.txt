@@ -1,0 +1,45 @@
+# lazygit 0.66.2 (commit 63ab89f, built 2026-10-16), pinned in lib/upstream.sh; also inside neovim (Space g g)
+# command: lazygit --version
+# source: https://github.com/jesseduffield/lazygit/blob/v0.66.2/docs/keybindings/Keybindings_en.md
+# source: https://github.com/jesseduffield/lazygit/blob/v0.66.2/docs/Config.md (universal keybindings, gui.sidePanels)
+# ours: configs/home/.config/lazygit/config.yml (Ctrl+K in the files panel; the diff renderers delta and git; editor nvim)
+── lazygit: moving ────────────────────────────────────────────────
+1 to 5                  jump to a panel (status is 1, stash is 5)
+Tab / Shift+Tab         next / previous panel (h / l and arrow keys too)
+j / k                   move down / up in the list
+[ / ]                   previous / next tab of a panel (remotes, tags)
+Enter                   go in: a file's lines, a branch's commits
+Esc                     back out, or close a menu
+?                       this panel's keys, as a menu you can search
++ / _                   panel bigger / smaller: half the window, then all
+q                       quit
+── lazygit: files (panel 2) ───────────────────────────────────────
+Space                   stage or unstage the file
+a                       stage or unstage every file
+Enter                   open its diff: Space stages a line (a: whole hunks)
+c                       commit the staged files
+Ctrl+K                  commit as type(scope): subject (asks the type)
+A                       add the staged changes to the last commit (amend)
+d                       discard changes (a menu)
+s                       stash all changes (S: more ways)
+e                       edit the file in nvim
+── lazygit: branches (panel 3) ────────────────────────────────────
+Space                   check out the branch
+n                       new branch
+M                       merge the branch into the current one (a menu)
+r                       rebase the current branch onto it
+d                       delete the branch (a menu)
+── lazygit: commits (panel 4) ─────────────────────────────────────
+Space                   check out the commit
+r                       reword the message
+s / f                   squash / fixup into the commit below
+d                       drop the commit
+e                       edit the commit (starts an interactive rebase)
+A                       add the staged changes to this commit (amend)
+Ctrl+J / Ctrl+K         move the commit down / up
+C then V                copy a commit, paste it here (cherry-pick)
+g                       reset to this commit (a menu: soft, mixed, hard)
+── lazygit: everywhere ────────────────────────────────────────────
+P / p                   push / pull
+z / Z                   undo / redo the last git action
+|                       switch the diff view: delta / plain git

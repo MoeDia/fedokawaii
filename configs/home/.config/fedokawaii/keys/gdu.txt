@@ -1,0 +1,28 @@
+# gdu 5.32.0 (Fedora gdu-5.32.0-3.fc44): what fills the disk
+# command: gdu --version
+# source: https://github.com/dundee/gdu/blob/v5.32.0/tui/show.go (its help window; all 27 lines also found in the installed binary) and tui/keys.go (the key handling)
+# source: /usr/share/doc/gdu/README.md (installed; identical to the tag's)
+# ours: configs/home/.config/gdu/gdu.yaml (colours only; no key changed)
+── gdu: moving ────────────────────────────────────────────────────
+j / k                   move down / up (arrow keys too)
+l or Enter              into the folder (Right too)
+h                       up to the parent folder (Left too)
+g / G                   top / bottom of the list
+/                       search items by name
+── gdu: showing ───────────────────────────────────────────────────
+n / s / C / M           sort by name / size / count / time (again: reverse)
+a                       disk use / apparent size
+c / m                   file count / last change time columns, on or off
+B                       bars against the biggest item, or the whole folder
+i                       info about the item
+v                       look into a file
+── gdu: acting ────────────────────────────────────────────────────
+d                       delete the file or folder (it asks first)
+e                       empty the folder (the folder stays)
+Space                   mark for deletion (then d removes all the marked)
+I                       ignore the item (hide it)
+o                       open with a program
+b                       a shell in this folder (exit comes back)
+r                       scan again
+?                       gdu's own list of keys
+q / Q                   quit / quit and print the folder

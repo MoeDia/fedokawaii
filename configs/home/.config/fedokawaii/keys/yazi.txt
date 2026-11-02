@@ -1,0 +1,47 @@
+# yazi 26.9.1 (8dd895c 2026-09-01): the file manager (Super+E) and the file dialog
+# command: yazi --version
+# source: https://github.com/sxyazi/yazi/blob/v26.9.1/yazi-config/preset/keymap-default.toml (all 254 key rows also found in the installed binary)
+# ours: configs/home/.config/yazi/keymap.toml (Enter, Ctrl+C / X / V, W, M, g d, Alt+Enter, Alt+S, Alt+F) and yazi.toml (show_hidden)
+# ours: configs/home/.config/fedokawaii/yazi-pick/keymap.toml and its kawa-pick plugin (the file dialog)
+# note: the preset's Ctrl+C (close the tab, quit) is copy here, Enter (open) is smart-enter, g d (~/Downloads) is ~/Drives
+── yazi: moving ───────────────────────────────────────────────────
+j / k                   next / previous file (arrow keys too)
+h / l                   up to the parent folder / into the folder
+H / L                   back / forward through the folders you visited
+g g / G                 top / bottom of the list
+Tab                     details of the file (again: close)
+t t                     new tab in this folder
+1 to 9                  go to tab 1 to 9 ([ / ]: previous / next tab)
+~                       yazi's own list of every key
+q                       quit
+── yazi: opening ──────────────────────────────────────────────────
+Enter                   into a folder, or open it (a film: in the open mpv)
+Alt+Enter               play a film in a new mpv window
+O                       open with a program you choose
+W                       watch a film together (Syncplay)
+M                       drives: open or eject a USB stick or disk
+g d                     your drives folder (~/Drives)
+Alt+S                   shrink or convert pictures and PDFs
+Alt+F                   archives and PDFs: unpack, pack, merge, sign
+── yazi: files ────────────────────────────────────────────────────
+Space                   mark the file, move down (v: mark a run)
+Ctrl+A / Ctrl+R         mark all / invert the marks (Esc: clear them)
+y / x / p               copy / cut / paste, inside yazi
+Ctrl+C / X / V          copy / cut / paste files (other apps too)
+d / D                   move to the trash / delete for good
+a                       new file (end the name with / for a folder)
+r                       rename
+c c / c f               copy the file's path / its name
+.                       hide or show hidden files (shown by default here)
+── yazi: finding ──────────────────────────────────────────────────
+/ or ?                  find forward / backward (n / N: next / previous)
+f                       filter the list as you type
+s                       search file names in every folder below (fd)
+S                       search inside the files (ripgrep)
+z / Z                   jump with fzf / to a folder you use (zoxide)
+g h / g c               home / ~/.config
+, m / , s / , n         sort by modified / size / name (capital: reversed)
+── yazi: file dialog ──────────────────────────────────────────────
+Enter                   into a folder, or take the file
+q                       take this folder (with marks: the marked ones)
+Esc                     undo marks, filter or search first; then cancel

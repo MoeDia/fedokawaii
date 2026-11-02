@@ -1,0 +1,20 @@
+# bluetui 0.8.2 (pinned in lib/upstream.sh): Bluetooth pairing from quick settings
+# command: bluetui --version
+# source: https://github.com/pythops/bluetui/blob/v0.8.2/Readme.md (the rebindable keys, with their defaults)
+# source: https://github.com/pythops/bluetui/blob/v0.8.2/src/handler.rs (the key handling) and src/help.rs (its help line)
+# ours: configs/home/.config/bluetui/config.toml (esc_quit = true)
+── bluetui: moving ────────────────────────────────────────────────
+Tab / Shift+Tab         next / previous list (l / h too)
+j / k                   next / previous device (arrow keys too)
+Esc or q                close (Esc leaves a question first, such as a PIN)
+── bluetui: devices ───────────────────────────────────────────────
+s                       scan for new devices, on or off
+Enter or Space          pair a found device · (dis)connect a paired one
+u                       unpair (asks first: Tab chooses, Enter confirms)
+t                       trust: it connects by itself next time
+f                       favourite, on or off
+e                       rename
+── bluetui: the adapter ───────────────────────────────────────────
+o                       power on or off
+d                       discoverable (visible to others), on or off
+p                       pairable (accepts pairing), on or off

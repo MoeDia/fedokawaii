@@ -1,0 +1,31 @@
+# zathura 2026.07.18 (Fedora zathura-2026.07.18-1.fc44, with pdf-mupdf and cb): PDF, EPUB and CBZ (Super+R books)
+# command: zathura --version
+# source: man zathura (the installed page: MOUSE AND KEY BINDINGS, COMMANDS) and man zathurarc (guioptions)
+# source: https://github.com/pwmt/zathura/blob/2026.07.18/zathura/config.c (the default shortcuts; only here: Y)
+# ours: configs/home/.config/zathura/zathurarc (map <C-r> recolor, map r reload, map p print; guioptions empty hides the bars)
+# note: zathura's own r rotates the page; here r reloads, so rotating has no key
+── zathura: reading ───────────────────────────────────────────────
+j / k                   scroll down / up (h / l: sideways; arrow keys too)
+J / K                   next / previous page (PgDn / PgUp too)
+Space / Shift+Space     a screen down / up
+Ctrl+D / Ctrl+U         half a screen down / up
+g g / G                 first / last page (a number, then G: that page)
+Tab                     the contents of the document (Tab or Esc: close)
+/ or ?                  search forward / backward (n / N: next / previous)
+f                       number the links, then type one to follow it
+Ctrl+O / Ctrl+I         back / forward along the places you jumped to
+m, then a letter        set a mark (', then the letter: back to it)
+── zathura: the view ──────────────────────────────────────────────
++ / - / =               zoom in / out / back to the original size
+a / s                   fit the whole page / fit the width
+d                       two pages side by side, on or off
+Ctrl+R                  the page in the theme's colours (again: back)
+Ctrl+N                  show or hide the status bar (the page number)
+F11 / F5                full screen / slide mode
+── zathura: the file ──────────────────────────────────────────────
+r / R                   reload the file (r too here: no rotating)
+o                       open another file (type its path)
+p                       print (Ctrl+P too)
+:                       the command line (:info, :bmark, :blist, :bjump)
+Y                       copy the file's path
+q                       quit

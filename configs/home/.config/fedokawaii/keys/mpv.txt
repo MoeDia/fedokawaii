@@ -1,0 +1,32 @@
+# mpv 0.41.0 (Fedora mpv-0.41.0-5.fc44): videos and music (Enter on a film in yazi; Syncplay's player is this one too)
+# command: mpv --version
+# source: https://github.com/mpv-player/mpv/blob/v0.41.0/etc/input.conf (the default bindings; identical to /usr/share/doc/mpv/input.conf and to the text baked into /usr/bin/mpv)
+# source: https://github.com/mpv-player/mpv/blob/v0.41.0/DOCS/man/input.rst (key sequences), select.rst (g s, g a, g p, g b) and stats.rst (i, I, ?)
+# ours: configs/home/.config/mpv/mpv.conf and scripts/ (no key changed; screenshots go to ~/Pictures/Screenshots; volume-max 150)
+── mpv: playing ───────────────────────────────────────────────────
+Space or p              pause / play
+Left / Right            back / forward 5 s (Shift: 1 s, exactly)
+Down / Up               back / forward 1 minute
+< / >                   previous / next file in the playlist
+[ / ]                   play slower / faster (Backspace: normal speed)
+f                       full screen (a double click too)
+m                       mute
+9 / 0                   volume down / up (the mouse wheel too)
+q / Q                   quit / quit and remember the place
+── mpv: subtitles and sound ───────────────────────────────────────
+j / J                   next / previous subtitle track
+v                       show or hide the subtitles
+z / Z                   subtitles 0.1 s earlier / later
+Ctrl+Left / Right       jump to the previous / next subtitle line
+the # key               next audio track
+Ctrl+- / Ctrl++         sound 0.1 s earlier / later (to match the picture)
+g s / g a               pick a subtitle / audio track from a list
+── mpv: more ──────────────────────────────────────────────────────
+s / S                   screenshot with / without the subtitles
+l                       loop between two points: l for start, end, off
+L                       loop the whole file, on or off
+i / I                   statistics: for a moment / until switched off
+g p                     pick a playlist entry from a list
+Ctrl+V                  add the link you copied to the playlist
+g b                     search all of mpv's keys
+?                       mpv's own list of keys

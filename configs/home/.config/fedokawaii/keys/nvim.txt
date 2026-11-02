@@ -1,0 +1,53 @@
+# nvim 0.12.6 with LazyVim 16.0.1 (commit 9997009, the one in lazy-lock.json); the leader key is Space
+# command: nvim --version
+# command: nvim --headless keymap dump (nvim_get_keymap) in a throw-away XDG sandbox, this repo's config over the locked plugins
+# command: the same on a Python file (basedpyright and ruff attached) and a Rust file in a throw-away git repo (nvim_buf_get_keymap): the keys of LSP, gitsigns and the filetype
+# source: /usr/share/nvim/runtime/doc/index.txt (nvim 0.12.6: the core keys)
+# source: https://github.com/LazyVim/LazyVim/blob/v16.0.1/lua/lazyvim/config/keymaps.lua (identical to the installed copy, which also gave plugins/lsp/init.lua, plugins/editor.lua and the snacks_picker, test/core and dap/core extras)
+# source: https://www.lazyvim.org/keymaps (agrees where it lists a key; it lacks H, L, ] h, [ h and g c c, and shows Space g g as GitUi)
+# ours: configs/home/.config/nvim/lua/config/clipboard.lua (y, p, P) and lua/plugins/dev.lua (Space r, and the Space t and Space d groups it describes)
+# ours: configs/home/.config/nvim/lua/config/lazy.lua (the python, rust, test and dap extras) and after/ftplugin/sh.lua
+── nvim: basics ───────────────────────────────────────────────────
+i / a / o               type before / after / on a new line below
+Esc                     back to normal mode (and clear the search marks)
+h j k l                 left, down, up, right (w / b: a word on / back)
+g g / G                 top / bottom of the file
+u / Ctrl+R              undo / redo
+d d / y y               cut / copy a line (a copy also goes to the desktop)
+p                       paste the newest copy, from here or the desktop
+Ctrl+S                  save
+── nvim: find ─────────────────────────────────────────────────────
+Space, then wait        every Space key, as a menu (which-key)
+Space Space             find a file in the project
+Space /                 search the project's text (grep)
+Space ,                 switch between open buffers
+/ then n / N            search this file, next / previous result
+s                       jump anywhere on screen: s, two letters, the label
+── nvim: code ─────────────────────────────────────────────────────
+g d / g r               go to the definition / list what uses it
+K                       what it is (hover help)
+Space c a               code action (a fix, an import)
+Space c r               rename everywhere
+Space c f               format the file
+] d / [ d               next / previous problem
+] f / [ f               next / previous function
+g c c                   comment or uncomment the line (g c: a selection)
+── nvim: windows, buffers, git ────────────────────────────────────
+H / L                   previous / next buffer
+Space b d               close this buffer
+Ctrl+H / J / K / L      go to the window left / below / above / right
+Space g g               lazygit, inside neovim
+] h / [ h               next / previous changed block (git)
+Space q q               quit everything
+── nvim: run, test, debug (Space r, t, d) ─────────────────────────
+Space r f               run the file: uv run (Python) · cargo run (Rust)
+Space r r               the REPL, open or hide (Python) · runnables (Rust)
+Space r c               run the # %% cell (Python) · cargo check (Rust)
+Space r l               run the line (Python) · cargo clippy (Rust)
+Space r s               run the selection (Python, in visual mode)
+Space r t               cargo test (Rust)
+Space t t / t r         run the file's tests / the nearest test
+Space t s / t o         tests: the summary / a test's output
+Space d b / d c         debugger: set a breakpoint / run or continue
+Space d u / d t         debugger: its panels / end it
+Space t d               debug the nearest test
