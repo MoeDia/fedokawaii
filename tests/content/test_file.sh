@@ -26,10 +26,13 @@ esac'
   # the menu: the next line of $TMP/answers — with --index the number of the first line holding
   # it, else the words themselves (typed on its line); "esc" or none: Esc
   # hidden typing (--password, a prompt of its own: no answers line): $TPW (the second time
-  # $TPW2, when set)
-  stub kawa-menu 'case " $* " in *" --password "*)
+  # $TPW2, when set; "esc": Esc — and a fifth ask is Esc, so a loop can never hang a test);
+  # --done (a held window closed) answers nothing
+  stub kawa-menu 'case " $* " in *" --done "*) exit 0 ;; esac
+case " $* " in *" --password "*)
   n=$(cat "$TMP/typed" 2>/dev/null || echo 0); echo $((n + 1)) >"$TMP/typed"
-  if [ "$n" = 1 ] && [ -n "$TPW2" ]; then printf "%s\n" "$TPW2"; else printf "%s\n" "$TPW"; fi; exit 0 ;; esac
+  if [ "$n" = 1 ] && [ -n "$TPW2" ]; then p=$TPW2; else p=$TPW; fi
+  [ "$p" = esc ] || [ "$n" -ge 4 ] && exit 1; printf "%s\n" "$p"; exit 0 ;; esac
 rows=$(cat); n=$(cat "$TMP/menus" 2>/dev/null || echo 0); n=$((n + 1)); echo "$n" >"$TMP/menus"
 printf "%s\n" "$rows" >"$TMP/menu.$n"; echo "$*" >"$TMP/menu.$n.args"
 a=$(sed -n "${n}p" "$TMP/answers" 2>/dev/null)
@@ -180,13 +183,20 @@ answers "test it"; rc 0 kawa-file "$A/f.zip"; called 'notify-send .*whole.*f\.zi
 cp "$A/f.zip" "$A/bad.zip"; printf 'XXXXXXXXXXXXXXXXXXXXXXXX' | dd of="$A/bad.zip" bs=1 seek=60 conv=notrunc 2>/dev/null
 answers "test it"; rc 1 kawa-file "$A/bad.zip"; called 'notify-send .*not whole.*bad\.zip'
 
-case_ "a locked zip: the menu says so, its password asked, on stdin only; a wrong one said"
+case_ "a locked zip: the menu says so, its password asked (its window held for a wrong one), on stdin only; a wrong one said where it was typed, and asked again — no notice (bug 10); Esc then: nothing done"
 setup; (cd "$A" && printf '%s\n%s\n' "$TPW" "$TPW" | 7z a -bso0 -tzip -p -mem=AES256 locked.zip folder >/dev/null)
 answers esc; kf "$A/locked.zip"; has "$(menu 1)" "asks its password"
 answers "extract into a folder"; rc 0 kawa-file "$A/locked.zip"
 eq "$(cat "$A/locked/one.txt")" "first file"; not_called "$TPW"
-called "^kawa-menu --title locked\.zip · password --prompt $ICON_LOCK   --password --width 40\$"
-TPW=wrong; answers "extract here"; rc 1 kawa-file "$A/locked.zip"; called 'notify-send .*did not open.*wrong password'
+called "^kawa-menu --title locked\.zip · password --prompt $ICON_LOCK   --password --stay --width 40\$"; called '^kawa-menu --done$'
+reset_calls; TPW=wrong TPW2=esc; answers "extract here"; rc 0 kawa-file "$A/locked.zip"
+called "^kawa-menu --title locked\.zip · wrong password --prompt $ICON_LOCK   --password --stay --width 40\$"; not_called 'notify-send'
+[[ ! -e $A/one.txt && ! -e "$A/folder (1)" ]] && _ok || _no "something was extracted: $(ls "$A" | tr '\n' '|')"
+case_ "… a wrong password, then the right one: asked again in the same window, then opened (its window closed at once: --done)"
+reset_calls; TPW=wrong TPW2=secret-Pa55; answers "extract into a folder"; rc 0 kawa-file "$A/locked.zip"
+called "^kawa-menu --title locked\.zip · wrong password "; called '^kawa-menu --done$'; not_called 'notify-send .*wrong'
+eq "$(cat "$A/locked (1)/one.txt" 2>/dev/null || cat "$A/locked/one.txt")" "first file"
+TPW=secret-Pa55 TPW2=""
 case_ "… a 7z with its names hidden: the same"
 setup; (cd "$A" && printf '%s\n%s\n' "$TPW" "$TPW" | 7z a -bso0 -p -mhe=on hidden.7z folder >/dev/null)
 answers "extract here"; rc 0 kawa-file "$A/hidden.7z"; [[ -s $A/folder\ \(1\)/one.txt ]] && _ok || _no "$(ls "$A" | tr '\n' '|')"
@@ -218,12 +228,14 @@ printf 'Rar!\x1a\x07\x01\x00LOCKED' >"$A/comic.rar"
 stub unrar 'cmd=$1; shift; pw=0; [ "$1" = -p ] && pw=1
 case $cmd in
   lt) [ "$1" = -p- ] && { echo "        Name: page1.png"; echo "       Flags: encrypted"; exit 0; } ;;
+  t)  [ $pw = 1 ] || exit 11; read -r p; [ "$p" = secret-Pa55 ] || exit 11 ;;
   x)  [ $pw = 1 ] || exit 11; read -r p; [ "$p" = secret-Pa55 ] || exit 11; for d; do :; done; echo img >"${d}page1.png" ;;
 esac'
 answers esc; kf "$A/comic.rar"; has "$(menu 1)" "asks its password"
 answers "extract into a folder"; rc 0 kawa-file "$A/comic.rar"
 eq "$(cat "$A/comic/page1.png" 2>/dev/null)" img; called '^unrar x -p -idq -o- -- '; not_called "$TPW"
-TPW=no; answers "extract here"; rc 1 kawa-file "$A/comic.rar"; called 'notify-send .*did not open'
+reset_calls; TPW=no TPW2=esc; answers "extract here"; rc 0 kawa-file "$A/comic.rar"; called "^kawa-menu --title comic\.rar · wrong password "; not_called 'notify-send'
+TPW=secret-Pa55 TPW2=""
 }
 case_ "… unrar missing: said, critical (repair puts it back)"
 setup; printf 'Rar!\x1a\x07\x01\x00' >"$A/c.rar"
@@ -286,7 +298,7 @@ eq "$(magick "$A/r-150dpi/$(ls "$A/r-150dpi" | head -n1)" -format '%w' info:)" 1
 answers "PNG · 300 dpi"; rc 0 kawa-file "$A/r.pdf"; eq "$(magick "$A/r-300dpi/$(ls "$A/r-300dpi" | head -n1)" -format '%w' info:)" 2550
 called 'notify-send -a desktop -A default=open -- .*pages as pictures · 300 dpi'
 
-case_ "lock: AES-256, the password typed twice and handed over on qpdf's stdin; unlock; a wrong one said"
+case_ "lock: AES-256, the password typed twice and handed over on qpdf's stdin; unlock; a wrong one said where it was typed, and asked again"
 answers "lock with a password"; rc 0 kawa-file "$A/r.pdf"
 l=$A/r.locked.pdf; rc 0 qpdf --requires-password "$l"; called '^qpdf @-'; not_called "$TPW"
 has "$("$QPDF" --show-encryption --password-file=- "$l" <<<"$TPW" 2>&1)" "AESv3"
@@ -294,7 +306,10 @@ answers esc; kf "$l"; has "$(menu 1)" "unlock"; lacks "$(menu 1)" "split into pa
 answers unlock; rc 0 kawa-file "$l"; eq "$(words "$A/r.locked.unlocked.pdf")" "p1 p2 p3 p4 p5 "
 called '^qpdf --password-file=- --decrypt '; not_called "$TPW"
 grep -rqs "$TPW" "$HOME" "$XDG_RUNTIME_DIR" && _no "the password is in a file" || _ok
-TPW=nope; answers unlock; rc 1 kawa-file "$l"; called 'notify-send .*wrong password.*stays locked'
+reset_calls; TPW2=$TPW TPW=nope; answers unlock; rc 0 kawa-file "$l"
+called "^kawa-menu --title r\.locked\.pdf · wrong password --prompt $ICON_LOCK   --password --stay --width 40\$" "(a wrong one said where it was typed, asked again: bug 10)"
+called '^kawa-menu --done$'; not_called 'notify-send .*wrong'; not_called "$TPW"
+TPW2=""
 
 case_ "make it smaller: kawa-shrink's own menu, on these PDFs (no second way)"
 answers "make it smaller"; rc 0 kawa-file "$A/r.pdf"; called "^kawa-shrink $A/r.pdf\$"

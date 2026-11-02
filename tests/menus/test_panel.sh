@@ -1154,6 +1154,31 @@ for n, c in [("7", "7"), ("5", "5"), ("0", "0"), ("space", " "), ("K", "K"), ("B
     p.key(n, c)
 print(got)')" "[(0, '750 KB')]"
 
+case_ "a password asked with --stay (a locked PDF, an archive — bug 10): Enter answers and the window stays; the caller's next page (\"wrong password\") in its place, the field empty, no new window; keys while it waits are not taken; done closes it at once"
+eq "$(py 'fresh(); got = []
+M = lambda t: kp.Menu([], prompt="P  ", password=True, stay=True, title=t)
+p.request("menu kawa-file", M("r.pdf · password"), lambda rc, out: got.append(out)); u.calls.clear()
+for c in "nope": p.key(c, c)
+p.key("Return", ""); p.key("x", "x"); p.key("Return", "")
+print(got, p.visible, p.holding)
+p.request("menu kawa-file", M("r.pdf · wrong password"), lambda rc, out: got.append(out))
+print(p.visible, p.holding, repr(p.state.query), p.state.title, "show" in u.calls, "hide" in u.calls)
+for c in "pw": p.key(c, c)
+p.key("Return", ""); p.done("menu kawa-file"); print(got, p.visible, "hide" in u.calls)')" \
+  "$(printf '%s\n' "['nope'] True True" "True False '' r.pdf · wrong password False False" "['nope', 'pw'] False True")"
+eq "$(py 'fresh(); got = []
+p.request("menu kawa-file", kp.Menu([], prompt="P  ", password=True, stay=True), lambda rc, out: got.append(out))
+for c in "pw": p.key(c, c)
+p.key("Return", ""); u.timers[-1](); print(got, p.visible)')" "['pw'] False" "its caller silent: closed after the second"
+eq "$(py 'fresh(); p.request("menu kawa-file", kp.Menu([], prompt="P  ", password=True, stay=True), lambda rc, out: 0)
+p.done("menu kawa-other"); a = p.visible; p.done("menu kawa-file"); b = p.visible
+for c in "pw": p.key(c, c)
+p.done("menu kawa-file"); print(a, b, p.visible)')" "True True True" "done: only its own caller's, only a held window (one still being typed in stays)"
+eq "$(py 'fresh(); got = []
+p.request("menu kawa-file", kp.Menu([], prompt="P  ", password=True), lambda rc, out: got.append(out))
+for c in "pw": p.key(c, c)
+p.key("Return", ""); print(got, p.visible)')" "['pw'] False" "(without --stay: answered and closed, as before)"
+
 # ── use ───────────────────────────────────────────────────────────────────────────────
 case_ "--help: what it is; anything else: exit 2"
 out=$(python3 -I "$REPO/bin/kawa-panel" --help); has "$out" "quick settings"; has "$out" "kawa-panel.in"; has "$out" "toggle MODE"

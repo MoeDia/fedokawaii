@@ -1353,6 +1353,12 @@ class Panel:
         else:
             self.open(what)
 
+    def done(self, what):
+        """A --stay menu's caller has nothing more to ask (kawa-menu --done): its held window goes
+        at once — never left for its second (a right password)."""
+        if self.visible and self.what == what and self.holding:
+            self.close("chosen")
+
     def page(self, menu, reply):
         """A --stay menu's next page (its caller asked again after one of its keys): the lines
         replaced in the same window — no close, no new window, the cursor on the key that paged
@@ -1634,6 +1640,8 @@ class Panel:
         shown, the cursor on the first (Enter takes it; on none, Enter gives what was typed).
         Whether the key was one of those."""
         m = self.state
+        if self.holding:                              # (answered, its next page on its way — a
+            return True                               #  check of what was typed: no key yet)
         if name == "BackSpace":
             if not m.query:
                 return True
@@ -1644,6 +1652,10 @@ class Panel:
                 self.ui.command(m.query)              # (its first word a program: run)
                 return True
             self.answer(0, m.query)
+            if m.stay and not self.holding:           # (held, as a key line is: a password asked
+                self.holding = True                   #  again in its place — "wrong password")
+                self.ui.later(1000, lambda: self.holding and self.close("chosen"))
+                return True
             self.close("chosen")
             return True
         elif char and char.isprintable() and name not in ("Return", "KP_Enter"):
@@ -3123,6 +3135,8 @@ def main(argv):
                 panel.request("launcher", Launcher(apps.list(), apps.counts()), None)
             elif len(f) == 2 and f[0] == "menu" and f[1].isdigit():
                 menu_from(int(f[1]))
+            elif len(f) == 2 and f[0] == "done":
+                panel.done("menu " + f[1])
             elif f == ["close"]:
                 panel.close("chosen")
             elif len(f) in (3, 4) and f[0] == "level" and f[2].isdigit() and f[3:] in ([], ["off"]):
