@@ -373,7 +373,10 @@ content, inside its margin of one cell:
   the usual one; a narrow window drops the permissions, then the size. The dialog's last line
   is its own keys instead. What is not there yet — an empty folder, one still being read, a
   filter that finds nothing — one word in `faint` where a row's name would stand ("empty",
-  "loading", "nothing matches"), in the list and in a folder's preview; never centred.
+  "loading", "nothing matches"), in the list and in a folder's preview; never centred. Two
+  folders or more open (yazi's tabs): the tabs under the heading as **Tabs** above — each the
+  folder icon and its folder's name, the shown one `strong` with `▔` under its name, the others
+  `muted` — then a row of paper.
 - **Tabs** (a screen of several sections: Super+U): three lines heading the list, at a
   heading's column (one cell out from the rows, §3 indent) — the tabs, the line under the one
   shown, a row of paper. The tab shown: its icon in `accent_text`, two columns, its name in

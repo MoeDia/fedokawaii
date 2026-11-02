@@ -88,6 +88,29 @@ local function heading(self, name, place)
 	end
 	return ui.Line { head, ui.Span(string.rep("─", math.max(0, room - head:width()))):style(th.mgr.border_style) }
 end
+-- Tabs (two folders or more, `t`): §7's tab grammar under the heading — each the folder icon, two
+-- columns, its folder's name; the one shown in strong with ▔ in accent under its name alone, the
+-- others muted; gaps of three; a name too long cut, nothing in its place (yazi's own cut adds "…");
+-- then a row of paper. A click picks one, as yazi's own.
+function Tabs.height() return #cx.tabs > 1 and 3 or 0 end
+function Tabs:redraw()
+	if self.height() < 1 then return {} end
+	local a = self._area:pad(ui.Pad(0, 2, 0, 2))
+	local room = math.max(4, (a.w - 3 * (#cx.tabs - 1)) // #cx.tabs - 3)
+	local top, under, x = {}, {}, a.x
+	for i = 1, #cx.tabs do
+		local shown, name = i == cx.tabs.idx, cut(cx.tabs[i].name, room)
+		if i > 1 then top[#top + 1], under[#under + 1], x = ui.Span("   "), ui.Span("   "), x + 3 end
+		self._offsets[i] = x
+		top[#top + 1] = ui.Span(FOLDER .. "  "):fg(shown and "20" or "21")
+		top[#top + 1] = ui.Span(name):fg(shown and "23" or "21")
+		under[#under + 1] = ui.Span("   ")
+		under[#under + 1] = shown and ui.Span(string.rep("▔", wide(name))):fg("16") or ui.Span(string.rep(" ", wide(name)))
+		x = x + 3 + wide(name)
+	end
+	return { ui.Line(top):area(a { h = 1 }), ui.Line(under):area(a { y = a.y + 1, h = 1 }) }
+end
+
 Header:children_remove(1, Header.LEFT) -- (the bare path)
 local HEAD = Header:children_add(function(self)
 	return heading(self, ya.readable_path(tostring(self._current.cwd)) .. self:flags())

@@ -3376,6 +3376,13 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   string `o` for dnf_q's local array `o` (renamed `opts`). tools/, tools/regress, tools/vm-inject now in the list (42
   files, 0 warnings): test_syntax 775/0, test_common 138/0. The style level (-S style, 176 notes, mostly SC2016/SC2015
   in deliberate idioms) is the T53 sweep's.
+- r27-22-tabs (2 Nov 12:52–12:58): yazi's tabs (t t, two folders or more) drew " 1 name " blocks (the shown one black on
+  vermilion) and cut a long name with "…" (Tabs:redraw → ui.truncate's default). Now §7's tab grammar: a row at the
+  heading's column — each the folder icon, two columns, its folder's name; the shown one strong with ▔ (accent)
+  under its name alone, the others muted; gaps of three; names cut by init.lua's cut(); then a row of paper
+  (Tabs.height() 3); clicks as yazi's (the offsets kept). test_yazi 130/0 (a row: two tabs, the second in a
+  too-long folder — cut, no "…", ▔ exactly under the shown name, within the margins; a row of paper). The kit render
+  with the next batch.
 ## >>> NEXT PASS STARTS HERE (2 Nov, written 12:45 by the 11:03 bulk pass — the lines above say what it did): the inbox first.
 ## (0) PRESENCE: before anything he could see or hear (a reboot, a session restart, a bar restart, a live play, a notice):
 ##     `wpctl status`, `playerctl -a status`, one half-scale grim — not only the swayidle probe (memory
@@ -3391,8 +3398,8 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
 ##     tools/vm-inject/f45-checks.sh f45; T46's pre-flight (tools/vm-preflight.sh) and the upgrade's WAIT (60 days).
 ## (4) T22: grid, cursor, footer, contrast, kinds, empty states BUILT (r27-22-grid, -kinds, -empty); bug 10 BUILT
 ##     (r27-22-b10-built) — next, in the kit (one at a time, never beside a suite): the held password window (Super+D →
-##     unlock on a qpdf-locked PDF: wrong, then right; both moods), the empty states, zathura's prompt by eye, yazi's
-##     tabs row (t: two tabs — §7's tab grammar?), then the master's T22 review.
+##     unlock on a qpdf-locked PDF: wrong, then right; both moods; play ready: /dev/shm/r27/t22/b10/play.sh), the empty
+##     states and the tabs row (r27-22-tabs), zathura's prompt by eye; then the master's T22 review.
 ## (5) T19m (b): pass 1 goes on; items 3–5 (24 px hit areas, JLREQ, the spacing scale, the optical centre, a
 ##     reduce-motion switch) with the next dwl batch (a session restart: only when he is away).
 ## (6) T53 goes on (the plan's list); the test_yazi flake fixed (89a1b06: a mount event lists the drives again).

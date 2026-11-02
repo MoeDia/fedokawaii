@@ -248,6 +248,33 @@ EOF
 )
 eq "$(grep -c '│      empty' <<<"$out")" 2 "(the word at the names' column: in the empty folder's preview, then in its own list)"
 lacks "$out" "No items"; lacks "$out" "Loading..."
+case_ "two tabs (t t): §7's tab grammar under the heading — each the folder icon, two columns, its folder's name; ▔ under the shown one's name alone; a row of paper; a long name cut, no \"…\""
+setup
+L="$W/a-folder-whose-name-is-much-too-long-for-its-share-of-a-narrow-window-and-more"; mkdir -p "$L"
+out=$(y 60x10 <<'EOF'
+wait a-folder
+settle
+key t
+key t
+settle
+key l
+wait 0/0
+settle
+screen
+quit
+EOF
+)
+rm -rf "$L"
+row3=$(sed -n 3p <<<"$out"); row4=$(sed -n 4p <<<"$out")
+has "$row3" "  $(printf "\363\276\200\261")  work   $(printf "\363\276\200\261")  a-folder-whose" "(two tabs, at the heading's column; the second in the long folder)"
+lacks "$out" "…"
+eq "$(python3 -I -B -c 'import sys; sys.path.insert(0, sys.argv[1]); import drive
+r3, r4 = sys.stdin.read().split("\n")[:2]
+name = r3.split("work   ", 1)[1][3:].rstrip()
+lo = r4.index("▔"); hi = r4.rindex("▔") + 1
+print(len(name) == hi - lo and r4[lo:hi] == "▔" * len(name) and sum(drive.width(c) for c in r3.rstrip()) <= 56)' "$D" <<<"$row3
+$row4")" True "(▔ under the shown name alone, as long as it; the row within the window's 60 less its two-column margins)"
+eq "$(sed -n 5p <<<"$out" | tr -d ' ')" "" "(a row of paper under the tabs)"
 case_ "Enter in an empty folder does nothing at all"
 reset_calls
 CWD=$W/empty y <<'EOF'
