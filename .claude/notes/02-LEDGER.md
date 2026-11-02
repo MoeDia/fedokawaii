@@ -3925,6 +3925,29 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   cursor's keep-in-view (seen) and a relayout's clamp. Kit (/dev/shm/r27/master/T23/v3: paged.png, wheeled.png): the first
   line whole after Page Down ×2 and after a wheel notch. test_panel 639/0 (stops, Page Up back by at most a page, the end
   whole, the touchpad), test_help 139/0.
+- r27-apply-0302 (3 Nov 02:00–02:21, LIVE: he was away — the screens dark since 01:09 by swayidle's 30 min, no input
+  since ≈00:39): the suite on 49e916b 126/128 (its two reds fixed on HEAD: test_syntax's B023, test_panel's load flake);
+  the changed areas re-run on HEAD (shell, tiles, help, panel, downloads, syncplay, crashnote, front, static); apply of
+  5faaa46 from a frozen worktree (02:01, repair: verify 6 → 3), the session restarted through greetd's initial session
+  (02:04: dwl 542057, every keep loop back — the 00:37 incident's damage gone), greetd's file restored; the T23 live check
+  (r27-23-live); a false crash notice found and dismissed (r27-crashnote-pid); apply of fa6cf11 (theme only — FOUND: a
+  Syncplay patch went to theme, which never installs it: fedokawaii.sh now sends src/syncplay and src/mako to repair,
+  test_front 141/0), then a repair: Syncplay at 58a77fc6e993 (T29s fix1 live), verify 1 left: qbittorrent installed
+  outside the manifest (his, known); the panel restarted by its pid (SIGKILL, nothing open) for the scroll fix; the
+  screens dark again until his first key (kawa-quick --do screenoff). LIVE now: dwl (no picture outlives its screen,
+  Ctrl+Alt+F1–F6 only), T21's notebook, T23 (Super+/ by context, paged by keys, line stops), T24 (the stamp prompt: seen
+  live, E-prompt.png), T29s (Syncplay and mpv as one), the 21 wallpapers' pack, the splash without kanji (boot images
+  remade: next boot), the saver's seals, bug 10's held window, the calculator's erase, the idle timer cell, the
+  downloads' names. The kernel trial (7.2.13) still closes at the next boot. Steam's warm start at 02:05 left Proton's
+  wine preloader coredumps (Steam's own, gaming leaves the host in T35).
+- r27-20-hunt (3 Nov 01:28–02:10, a sonnet research subagent; /dev/shm/r27/master/T20-evidence/hunt-*): six open-access
+  woodblock candidates for the light lock, none of them a wallpaper, each reduced to a 75 px head with build-masters'
+  own pipeline: 1 Kōgyo "Seiōbo" (AIC 154624; the Queen Mother of the West with the peach of immortality — brows,
+  eyes, nose, lips survive), 2 Shunshō "Itsukushima Tennyo" (AIC 31506; a scarf loop as a halo; signature to paint
+  out), 3 Kōgyo "Tsurukame" (an open fan by the head), 4 Kōgyo "Taema", 5 Hokusai's karyōbinga surimono (Met 54433),
+  6 Kōgyo "Ema"; no bold Kannon print exists in either API. AIC serves full native width (Seiōbo 2036 × 3000). Next
+  pass: Seiōbo first — render the light scene (gold leaf, the lanterns, the plaque) around her, the password by the
+  peach or in her halo, and grill against the dark one.
 ## >>> NEXT PASS STARTS HERE (2 Nov, written 18:12 by the 16:56 bulk pass — the lines above say what it did): the inbox first.
 ## (0) PRESENCE before anything he could see or hear (memory presence-not-just-input-idle): at 16:57 he was in a Discord
 ##     call (Brave: mic + sound). Every probe outside the harness/kit cut off from his session (probes-cut-off-session).
