@@ -3590,14 +3590,30 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   our overrides (ours win: yazi Ctrl+C copies, Enter smart-enter, g d ~/Drives; zathura r reloads; wiremix Esc
   closes; nvim Space g g lazygit), the format kawa-help parses (column 24, 67-wide headings, no ellipsis, no kanji);
   sources in each file's # header.
+- r27-21-master-8 (2 Nov 15:24–15:46, the master's re-review 8 on b583de2): VERDICT FAIL (.claude/notes/master-T21-verdict-8.md).
+  Held: verdict 7's three rows, should-fix 2 (the write moves nothing, even mid-look), Ctrl-C proven in a REAL PTY (its
+  probe pty-ctrlc.py: "InsertLeave fired" — nvim_input's Ctrl-C bypasses mappings, so no harness row can hold it), 24
+  scenarios byte-identical, Enter/BS/arrows after ten notches, wheel down, shift/ctrl wheel, the to-do's maps, replace
+  mode, no leak into normal mode. MUST-FIX: (1) a look outlived Super+N (hide/show by RPC, focus by nvim_ui_set_focus:
+  no key) — "helloqr" on 156, the to-do's item number landing in the notes; (2) a click after a look landed where the
+  restore had scrolled (127 for 123); (3) a paste (nvim_paste, no key) went into the dragged line. SHOULD-FIX: Ctrl-O
+  after a look acted from a pen yielded 5 up; §7 silent on the look (added 15:38, after its read). Nits: undo split,
+  Ctrl-C's proof, completion.
+- r27-21-master-8-fix (2 Nov 15:47–15:53, 4c8de66): the program placing the pen ends a look (kawa_notes_shown/hidden,
+  BufWinEnter, InsertLeave); a mouse key ends it where it points (no put-back); vim.paste wrapped: a paste's first part
+  puts the pen back; the put-back runs follow() (the page to the pen, the look noted — Ctrl-O k from the pen). Rows use
+  a "lua:" step (a call, as kawa-warm's RPC — a <Cmd> key would end the look and pass blind): hide/show, the same from
+  the to-do, a click compared with the same click in normal mode (122 both; the old 126), a paste, Ctrl-O k — all five
+  FAIL on b583de2 as the master saw them. test_notes 153/0. Re-review 9 started 15:54.
 ## >>> NEXT PASS STARTS HERE (2 Nov, written 15:32 by the 13:51 bulk pass — the lines above say what it did): the inbox first.
 ## (0) PRESENCE: before anything he could see or hear (a reboot, a session restart, a bar or panel restart, a live play,
 ##     a notice): `wpctl status`, `playerctl -a status`, one half-scale grim (memory presence-not-just-input-idle). At
 ##     14:10 he was at the PC (Discord in Brave, sound playing). And every probe outside the harness/kit runs cut off from
 ##     his session (memory probes-cut-off-session — r27-leak: our runs put notices on his screen and text on his clipboard).
-## (1) T21: the master's RE-REVIEW 8 ran from 15:24 on b583de2 (verdict 7's look via vim.on_key, the write's tick, Ctrl-C):
-##     its verdict → .claude/notes/master-T21-verdict-8.md (from /dev/shm/r27/master/T21/verdict.md); FAIL → fix → review 9
-##     (archive /dev/shm/r27/master/T21 first: r1–r7 in master-archive). PASS → T21 done but for the apply + a SESSION
+## (1) T21: the master's RE-REVIEW 9 ran from 15:54 on 4c8de66 (verdict 8's: the look ended by the program's own pen
+##     moves, a click, a paste; follow() on the put-back): its verdict → .claude/notes/master-T21-verdict-9.md (from
+##     /dev/shm/r27/master/T21/verdict.md); FAIL → fix → review 10 (archive /dev/shm/r27/master/T21 first: r1–r8 in
+##     master-archive). PASS → T21 done but for the apply + a SESSION
 ##     RESTART (the dwl cold-Super+N fix) when he is away, and the Learn piece's figure at the book update.
 ## (2) PUSH: GitHub main = e083197; the suite on bee0316 ran 15:23–(see r27-suite-bee0316); the commits after it touch only
 ##     kawa-calc (test_calc 43/0), kawa-wallpaper (test_wallpaper 270/0), the key sheets (data), notes/ledger/audit.
