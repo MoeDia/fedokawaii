@@ -5,23 +5,28 @@ own that holds the desktop's mpv config and scripts (TEMPLATE: a home test_syncp
 the harness). Their players (real mpv, no picture, no sound) are driven over Syncplay's own
 sockets, the way a person would press keys; what Syncplay says is read from its terminal.
 
-    python3 syncplay_pair.py TEMPLATE MEDIA SYNCPLAY_DIR MPV KAWA_TOGETHER
+    python3 syncplay_pair.py TEMPLATE MEDIA SYNCPLAY_DIR MPV KAWA_TOGETHER [--no-close]
 
-MEDIA holds film.mkv and other.mkv. Prints "case TEXT", then "ok" or "no WHY" per check (the
+MEDIA holds film.mkv and other.mkv. Last, Syncplay and its mpv closing as one (the fixes 3 to 5
+of src/syncplay/syncplay.patch): each way of closing, with Syncplay in a terminal (a pty) as its
+window runs it — left out with --no-close (the copy installed does not carry them yet). Prints "case TEXT", then "ok" or "no WHY" per check (the
 test file turns them into its report); anything else is commentary.
 """
 import glob
 import json
 import os
+import pty
 import re
 import shutil
 import signal
 import socket
 import subprocess
 import sys
+import threading
 import time
 
 TEMPLATE, MEDIA, SPDIR, MPV, TOGETHER = sys.argv[1:6]
+CLOSE = "--no-close" not in sys.argv[6:]
 FILM, OTHER = MEDIA + "/film.mkv", MEDIA + "/other.mkv"
 ROOT = os.path.dirname(TEMPLATE)
 RUN = os.environ["XDG_RUNTIME_DIR"]
@@ -128,6 +133,28 @@ def save_spot(h, f, at):   # watched alone first, up to AT seconds (mpv keeps th
     raise RuntimeError(f"mpv kept no spot at {at} s for {os.path.basename(f)} (it has {sorted(spots(h))})")
 
 
+def mpv_under(root):
+    """(pid, socket) of the mpv started under process ROOT once its socket answers, else (None, None)"""
+    todo = [root]
+    while todo:
+        pid = todo.pop()
+        for d in os.listdir("/proc"):
+            if not d.isdigit():
+                continue
+            try:
+                if int(open(f"/proc/{d}/stat").read().rsplit(")", 1)[1].split()[1]) != pid:
+                    continue
+                args = open(f"/proc/{d}/cmdline").read().split("\0")
+            except (OSError, ValueError, IndexError):
+                continue
+            todo.append(int(d))
+            for a in args:
+                if a.startswith("--input-ipc-server="):
+                    get(a.split("=", 1)[1], "pid")
+                    return int(d), a.split("=", 1)[1]
+    return None, None
+
+
 class Friend:
     def __init__(self, name, media=True):
         self.name, self.home = name, home_for(name, media)
@@ -150,24 +177,7 @@ class Friend:
         return None
 
     def find_sock(self):
-        todo = [self.p.pid]
-        while todo:
-            pid = todo.pop()
-            for d in os.listdir("/proc"):
-                if not d.isdigit():
-                    continue
-                try:
-                    if int(open(f"/proc/{d}/stat").read().rsplit(")", 1)[1].split()[1]) != pid:
-                        continue
-                    args = open(f"/proc/{d}/cmdline").read().split("\0")
-                except (OSError, ValueError, IndexError):
-                    continue
-                todo.append(int(d))
-                for a in args:
-                    if a.startswith("--input-ipc-server="):
-                        get(a.split("=", 1)[1], "pid")
-                        return a.split("=", 1)[1]
-        return None
+        return mpv_under(self.p.pid)[1]
 
     def log(self):
         try:
@@ -323,9 +333,103 @@ try:
     check(until(lambda: abs(bob.pos() - 12) < 1, 8), bob.pos())
 
     case("alice closes her player: her own spots (40 s, 30 s) are as she left them")
+    alice.mark()
+    bob.mark()
+    t0 = time.time()
     ipc(sa, ["quit"])
-    until(lambda: alice.p.poll() is not None, 5)
+    ended = until(lambda: alice.p.poll() is not None and time.time(), 5)
     check(spots(alice.home) == {40, 30}, sorted(spots(alice.home)))
+
+    if CLOSE:
+        # (Syncplay's goodbye is quiet: none of what a lost connection says)
+        noise = re.compile(r"ERROR|Traceback|attempting to reconnect|Socket connection died")
+        case("…and her Syncplay ends with it within 1 s, quietly; bob is told she left")
+        check(ended and ended - t0 <= 1, f"Syncplay ended {ended - t0:.2f} s after its mpv" if ended else "Syncplay still running 5 s after its mpv closed")
+        check(bob.said(r"alice has left", 5), bob.log()[bob.at:][-300:])
+        check(not noise.search(alice.log()[alice.at:]), alice.log()[alice.at:][-300:])
+
+        # Syncplay as its terminal window runs it: the console reads the pty (a line at a time)
+        def in_terminal(home, file):
+            pid, fd = pty.fork()
+            if pid == 0:                       # (a terminal's child: Ctrl+C is not ignored, as this
+                signal.signal(signal.SIGINT, signal.SIG_DFL)   # driver's own is, run in the background)
+                e = env(home)                  # (as kawa-together starts it: the crash notice's title)
+                e.update(PATH=nbin + ":" + e["PATH"], KAWA_TOGETHER_CRASH="the film stopped")
+                os.execvpe("syncplay", ["syncplay", "--", file], e)
+            out = []
+
+            def pump():
+                while True:
+                    try:
+                        b = os.read(fd, 65536)
+                    except OSError:
+                        return
+                    if not b:
+                        return
+                    out.append(b.decode("utf-8", "replace"))
+            threading.Thread(target=pump, daemon=True).start()
+            said = lambda: "".join(out)                                  # noqa: E731
+            m = until(lambda: "Successfully connected to server" in said() and mpv_under(pid)[0] and mpv_under(pid), 25)
+            n, end = -1, time.time() + 10      # (then what joining says, said: quiet for 1 s)
+            while len(said()) != n and time.time() < end:
+                n = len(said())
+                time.sleep(1)
+            return pid, fd, said, m or (None, None)
+
+        def gone(pid, t):                      # ended within T seconds (and reaped)
+            end = time.time() + t
+            while time.time() < end:
+                if os.waitpid(pid, os.WNOHANG)[0]:
+                    return True
+                time.sleep(0.02)
+            return False
+
+        # (the notices Syncplay sends: a stand-in notify-send first on its PATH notes each one)
+        noted, nbin = os.path.join(ROOT, "noticed"), os.path.join(ROOT, "notice-bin")
+        os.makedirs(nbin, exist_ok=True)
+        with open(os.path.join(nbin, "notify-send"), "w") as f:
+            f.write(f'#!/bin/sh\nprintf "%s|" "$@" >>"{noted}"; echo >>"{noted}"\n')
+        os.chmod(os.path.join(nbin, "notify-send"), 0o755)
+        notices = lambda: open(noted).read().splitlines() if os.path.exists(noted) else []  # noqa: E731
+
+        dan = Friend("dan")
+        for way, act, crash in (("mpv's window closed (q in it, or Super+Q on it)", lambda pid, fd, m: ipc(m[1], ["quit"]), False),
+                                ("mpv crashes (killed)", lambda pid, fd, m: os.kill(m[0], signal.SIGKILL), True),
+                                ("Ctrl+C in Syncplay's window", lambda pid, fd, m: os.write(fd, b"\x03"), False),
+                                ("Syncplay's window closed (its terminal hangs up)", lambda pid, fd, m: os.killpg(pid, signal.SIGHUP), False)):
+            case(f"{way}: Syncplay and its mpv both end within 1 s, quietly; bob is told dan left; "
+                 + ("one notice says mpv crashed" if crash else "no notice"))
+            bob.mark()
+            pid, fd, said, m = in_terminal(dan.home, FILM)
+            if not m[0]:
+                check(False, "dan's Syncplay never connected with its mpv: " + said()[-300:])
+                continue
+            at, n0 = len(said()), len(notices())
+            act(pid, fd, m)
+            ended = gone(pid, 1)
+            check(ended, "Syncplay still running 1 s after")
+            check(until(lambda: not os.path.exists(f"/proc/{m[0]}"), 1), "its mpv still running 1 s after")
+            check(bob.said(r"dan has left", 5), bob.log()[bob.at:][-300:])
+            rest = said()[at:].replace("^C", "").strip()
+            check(not rest, rest[-300:])
+            if crash:
+                check(until(lambda: len(notices()) > n0, 2)
+                      and notices()[n0:] == ["-a|together|--|the film stopped|mpv crashed (killed): you left the room|"],
+                      f"notices: {notices()[n0:]}")
+            else:
+                time.sleep(0.2)
+                check(notices()[n0:] == [], f"a notice where none belongs: {notices()[n0:]}")
+            os.close(fd)
+            # (what a failed case left — its own only: Syncplay not reaped yet, so its group is still
+            # this run's; mpv by its own socket, never a number another program may have now)
+            if not ended:
+                os.killpg(pid, signal.SIGKILL)
+                os.waitpid(pid, 0)
+            try:
+                if m[1] in open(f"/proc/{m[0]}/cmdline").read():
+                    os.kill(m[0], signal.SIGKILL)
+            except OSError:
+                pass
 except Exception as e:                       # (a step that broke: the case it was in fails)
     check(False, f"the run stopped: {type(e).__name__}: {e}")
 finally:

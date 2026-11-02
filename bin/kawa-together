@@ -49,6 +49,8 @@ export MESA_VK_IGNORE_CONFORMANCE_WARNING=1
 . "$HOME/.config/fedokawaii/icons.sh"
 # shellcheck source=/dev/null
 . "$HOME/.config/fedokawaii/screen.sh"
+# mpv crashing ends Syncplay too (src/syncplay/syncplay.patch): the notice's title, from here
+export KAWA_TOGETHER_CRASH="$ICON_TOGETHER  the film stopped"
 
 # trim TEXT — without the spaces around it
 trim() { local s=$1; s=${s#"${s%%[![:space:]]*}"}; printf '%s' "${s%"${s##*[![:space:]]}"}"; }

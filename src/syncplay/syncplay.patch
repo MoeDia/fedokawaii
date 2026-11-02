@@ -1,5 +1,5 @@
-src/syncplay/syncplay.patch — two fixes to Syncplay v1.7.6 (the pinned commit, lib/upstream.sh),
-applied by install_syncplay before the copy is checked and put in place. Both are in the mpv
+src/syncplay/syncplay.patch — our fixes to Syncplay v1.7.6 (the pinned commit, lib/upstream.sh),
+applied by install_syncplay before the copy is checked and put in place. 1 and 2 are in the mpv
 connection library Syncplay carries (syncplay/vendor/python_mpv_jsonipc):
 
 1. Start: mpv makes its socket file a moment before it listens on it, and Syncplay connected the
@@ -9,10 +9,136 @@ connection library Syncplay carries (syncplay/vendor/python_mpv_jsonipc):
    that never comes (the window gone, Syncplay still open, Ctrl+C doing nothing — 5 closes in
    63 here). It now stops waiting as soon as the connection is gone.
 
+3 to 5 make Syncplay and its mpv close as one (kawa-together: Syncplay in a terminal window,
+mpv beside it). Closing either window, q in mpv, Ctrl+C in Syncplay's window or mpv dying
+ends both, the room is told you left, and nothing flashes in the window as it closes:
+3. Exit: once the client had stopped, Syncplay's process lived on — the console's thread
+   waits in input() for a line, and Python's exit waits for it (a daemon thread too, on
+   3.14), so the window stayed open with Syncplay dead in it. ep_client ends the process
+   once the client has stopped.
+4. Quiet: a stop of ours closed the server connection and then reported it, in three ERROR
+   lines, and tried the server again ("attempting to reconnect"). The stop now ends the
+   retrying first and the closing connection reports nothing; Ctrl+C (which stops the
+   reactor itself) goes through the same stop.
+5. mpv killed or crashed: its socket's reset printed "Socket connection died" and a
+   traceback; it is now the same end as mpv closing.
+6. A crash says so: mpv ended by a fault, an abort or the out-of-memory killer (not a close, a
+   quit or a signal to end it) sends one notice, its title from kawa-together
+   ($KAWA_TOGETHER_CRASH), its body the cause — else both windows would just vanish.
+
 Made with git diff in a clone of the v1.7.6 tag; git apply reads from the first "diff" line on.
 
+diff --git a/syncplay/client.py b/syncplay/client.py
+index 8942225..04e506e 100755
+--- a/syncplay/client.py
++++ b/syncplay/client.py
+@@ -904,12 +904,18 @@ class SyncplayClient(object):
+         connectionHandle = waitForConnection.addCallbacks(connectedNow, failed)
+         message = getMessage("connection-attempt-notification").format(host, port)
+         self.ui.showMessage(message)
++        # (fedokawaii) Ctrl+C stops the reactor itself: leave as a quit does, quietly
++        reactor.addSystemEventTrigger("before", "shutdown", self.stop)
+         reactor.run()
+ 
+     def stop(self, promptForAction=False):
+         if not self._running:
+             return
+         self._running = False
++        # (fedokawaii) a stop is no lost connection: the server is not tried again, so no
++        # "attempting to reconnect" shows in the moment before the window closes
++        if getattr(self, "_reconnectingService", None):
++            self._reconnectingService.stopService()
+         self.destroyProtocol()
+         if self._player:
+             self._player.drop()
+diff --git a/syncplay/ep_client.py b/syncplay/ep_client.py
+index f93793b..ce38482 100644
+--- a/syncplay/ep_client.py
++++ b/syncplay/ep_client.py
+@@ -1,3 +1,4 @@
++import os
+ import sys
+ 
+ from syncplay.clientManager import SyncplayClientManager
+@@ -6,6 +7,11 @@ from syncplay.utils import blackholeStdoutForFrozenWindow
+ def main():
+     blackholeStdoutForFrozenWindow()
+     SyncplayClientManager().run()
++    # (fedokawaii) the client has stopped (mpv closed, a quit, Ctrl+C): end the process now, and
++    # the terminal window with it — the console's thread, waiting in input() for a line, would
++    # hold Python's own exit until one is typed
++    sys.stdout.flush()
++    os._exit(0)
+ 
+ if __name__ == "__main__":
+     main()
+\ No newline at end of file
+diff --git a/syncplay/players/mpv.py b/syncplay/players/mpv.py
+index 0b8ca28..c68ed06 100755
+--- a/syncplay/players/mpv.py
++++ b/syncplay/players/mpv.py
+@@ -2,6 +2,7 @@
+ import os
+ import random
+ import re
++import signal
+ import sys
+ import time
+ import subprocess
+@@ -643,6 +644,30 @@ class MpvPlayer(BasePlayer):
+             #self.mpvpipe.show_text("HELLO WORLD!", 1000)
+             threading.Thread.__init__(self, name="MPV Listener")
+ 
++        def _sayCrash(self):
++            # (fedokawaii) mpv ended by a crash — a fault, an abort, the out-of-memory killer —,
++            # not closed: a notice says so, in kawa-together's words ($KAWA_TOGETHER_CRASH, the
++            # title); a close, a quit or a signal to end it says nothing
++            title = os.environ.get("KAWA_TOGETHER_CRASH")
++            proc = getattr(getattr(self.mpvpipe, "mpv_process", None), "process", None)
++            if not title or proc is None or getattr(self, "_crashSeen", False):
++                return
++            self._crashSeen = True             # (the end is reported once, the socket's and mpv's ways alike)
++            try:
++                rc = proc.wait(timeout=1)
++            except subprocess.TimeoutExpired:
++                return
++            if rc in (0, 4) or -rc in (signal.SIGTERM, signal.SIGHUP, signal.SIGINT):
++                return
++            why = signal.strsignal(-rc).lower() if rc < 0 else "an error, exit {}".format(rc)
++            try:
++                subprocess.Popen(["notify-send", "-a", "together", "--", title,
++                                  "mpv crashed ({}): you left the room".format(why)],
++                                 stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
++                                 start_new_session=True)
++            except OSError:
++                pass
++
+         def _get_ipc_socket(self):
+             if isWindows():
+                 # On Windows, mpv expects a named pipe identifier (not a path)
+@@ -752,6 +777,7 @@ class MpvPlayer(BasePlayer):
+ 
+         def stop_client(self):
+             self.readyToSend = False
++            self._sayCrash()
+             try:
+                 self.mpvpipe.terminate()
+             except: #When mpv is already closed
+diff --git a/syncplay/protocols.py b/syncplay/protocols.py
+index 495111d..bec3ca7 100755
+--- a/syncplay/protocols.py
++++ b/syncplay/protocols.py
+@@ -111,7 +111,7 @@ class SyncClientProtocol(JSONCommandProtocol):
+                 self.dropWithError(getMessage("startTLS-server-certificate-invalid"))
+             elif "mismatched_id=DNS_ID" in str(reason.value):
+                 self.dropWithError(getMessage("startTLS-server-certificate-invalid-DNS-ID"))
+-            elif reason:
++            elif reason and self._client._running:     # (fedokawaii) not when we closed it ourselves
+                 try:
+                     self._client.ui.showErrorMessage(str(type(reason)))
+                     self._client.ui.showErrorMessage(str(reason))
 diff --git a/syncplay/vendor/python_mpv_jsonipc/python_mpv_jsonipc.py b/syncplay/vendor/python_mpv_jsonipc/python_mpv_jsonipc.py
-index 4d9fab3..d3b255a 100644
+index 4d9fab3..d75d3ba 100644
 --- a/syncplay/vendor/python_mpv_jsonipc/python_mpv_jsonipc.py
 +++ b/syncplay/vendor/python_mpv_jsonipc/python_mpv_jsonipc.py
 @@ -132,8 +132,18 @@ class UnixSocket(threading.Thread):
@@ -36,7 +162,16 @@ index 4d9fab3..d3b255a 100644
  
          if self.callback is None:
              self.callback = lambda data: None
-@@ -329,7 +339,12 @@ class MPVInter:
+@@ -178,6 +188,8 @@ class UnixSocket(threading.Thread):
+                     json_data = json.loads(item)
+                     self.callback(json_data)
+                 data = b''
++        except ConnectionResetError:
++            pass                   # (fedokawaii) mpv gone without a goodbye (killed): the same end as a close
+         except Exception as ex:
+             log.error("Socket connection died.", exc_info=1)
+         if self.quit_callback:
+@@ -329,7 +341,12 @@ class MPVInter:
          finally:
              self.socket_lock.release()
  

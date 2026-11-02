@@ -20,7 +20,9 @@
 #                   or later installed: a server on 127.0.0.1 and two friends, each in a home
 #                   with the desktop's mpv config (syncplay_pair.py): joining, ready, pause,
 #                   seek, chat, a different file, the shared playlist, a server restart — and
-#                   no jump to anyone's own spot; all on a Python without PySide6
+#                   no jump to anyone's own spot; all on a Python without PySide6. Then Syncplay
+#                   and its mpv closing as one, every way (mpv's window, mpv killed, Ctrl+C and
+#                   the terminal closed): both end within 1 s, the room is told, nothing is said
 # Skipped (not failed) where those programs are missing.
 . "$(dirname "$0")/../lib/harness.sh"
 D=$(cd "$(dirname "$0")" && pwd)
@@ -458,13 +460,22 @@ mkdir -p "$TMP/media"
   && "$FFMPEG" -loglevel error -f lavfi -i testsrc2=size=160x120:rate=25:duration=50 -f lavfi -i sine=frequency=330:duration=50 \
   -c:v libx264 -preset ultrafast -g 25 -c:a aac -shortest "$TMP/media/other.mkv" || _no "ffmpeg made no films"
 rm -rf "$WL"
+# (closing as one is src/syncplay/syncplay.patch's 3 to 5: tried on a copy that carries this
+# patch — the one apply installs next is named by fedokawaii verify meanwhile)
+close=(--no-close)
+pin=$(sed -n 's/^SYNCPLAY_COMMIT=//p' "$REPO/lib/upstream.sh")+$(sha256sum <"$REPO/src/syncplay/syncplay.patch" | cut -c1-12)
+if [[ -z ${spdir:-} ]]; then
+  printf '  – skipped: closing as one — %s is not the starter lib/upstream.sh writes\n' "$SP"
+elif [[ $(head -c 200 -- "$(dirname -- "$spdir")/upstream/syncplay" 2>/dev/null) != "$pin" ]]; then
+  printf '  – skipped: closing as one — the Syncplay installed carries an older patch (fedokawaii apply brings this one)\n'
+else close=(); fi
 while IFS= read -r ln; do
   case $ln in
     "case "*) case_ "${ln#case }" ;;
     ok) _ok ;;
     "no "*) _no "${ln#no }" ;;
   esac
-done < <(python3 "$D/syncplay_pair.py" "$HOME" "$TMP/media" "$SPD" "$MPV" "$REPO/bin/kawa-together" 2>"$TMP/pair.err")
+done < <(python3 "$D/syncplay_pair.py" "$HOME" "$TMP/media" "$SPD" "$MPV" "$REPO/bin/kawa-together" "${close[@]}" 2>"$TMP/pair.err")
 [[ -s $TMP/pair.err ]] && grep -q Traceback "$TMP/pair.err" && _no "the driver: $(tail -n 3 "$TMP/pair.err")"
 
 done_

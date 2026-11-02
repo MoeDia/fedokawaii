@@ -3772,6 +3772,22 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   folder of the run's own so Xwayland starts, the inner is dia again) — ps/pgrep/kill inside see only the run; probed
   (8 processes visible, his dwl's pid unreachable, foot and Xwayland up), kit bar + quick rendered through it,
   test_tools 24/0, test_dwl_anim 64/0, ShellCheck clean. Memory: never-kill-a-computed-list.
+- r27-29s (T29s, 2 Nov 18:22 inbox → 3 Nov 00:11–01:20, DONE(code) + VERIFIED kit; LIVE with the next apply; the
+  master next): Syncplay and its mpv close as one. Read first: Syncplay 1.7.6's console thread waits in input() and
+  Python's exit waits for it, so mpv closed left Syncplay alive in its window; its own stop printed three ERROR lines
+  and "attempting to reconnect"; a killed mpv printed a traceback. src/syncplay/syncplay.patch 3–6 (the 00:11 pass
+  wrote 3–5, this pass 6): (3) ep_client ends the process once the client stopped, (4) a stop of ours ends the
+  retrying first and reports nothing, Ctrl+C goes through the same stop, (5) a reset socket is mpv's end like a close,
+  (6) a crash says so — mpv ended by a fault/abort/the OOM killer (not a close, quit, TERM/HUP/INT) sends one notice,
+  its title from kawa-together (KAWA_TOGETHER_CRASH="$ICON_TOGETHER  the film stopped"), body "mpv crashed (killed):
+  you left the room"; once only (the socket's and mpv's ways both called the stop: two notices in the first run).
+  Evidence: the kit, fenced (tools/hl-dwl.sh), a local syncplay-server and a bare observer client in the room
+  (/dev/shm/r27/t29s/kit/close-kit.sh, result.log): Super+Q on mpv, q in mpv, kill -9 mpv, Super+Q on Syncplay's
+  window — 10 runs each, 40/40 both windows gone (0.16 s after the key for Super+Q and q, 0.15–0.41 s after a kill,
+  0.11 s for Syncplay's window), no orphan (ps in the fence: only server + observer), the room heard "hl left" 40/40.
+  test_syncplay 143/0 on a copy carrying this patch (the four ways in a pty: both end ≤ 1 s, quiet, bob told, one
+  notice only for the crash, none for the others); 86/0 on the installed copy (those cases skipped until the apply).
+  The test's cleanup kills only what is still its own (an unreaped child's group; mpv by its socket in cmdline).
 ## >>> NEXT PASS STARTS HERE (2 Nov, written 18:12 by the 16:56 bulk pass — the lines above say what it did): the inbox first.
 ## (0) PRESENCE before anything he could see or hear (memory presence-not-just-input-idle): at 16:57 he was in a Discord
 ##     call (Brave: mic + sound). Every probe outside the harness/kit cut off from his session (probes-cut-off-session).
