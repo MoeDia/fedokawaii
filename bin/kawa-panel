@@ -2949,7 +2949,7 @@ def main(argv):
                 draw_it()
                 return
             cr.save()
-            cr.rectangle(0, top, W, shown)              # (cut under its last whole line: shown())
+            cr.rectangle(0, top, W, shown)              # (cut under its last whole line: drawn_h())
             cr.clip()
             cr.translate(0, -panel.scroll)
             draw_it()

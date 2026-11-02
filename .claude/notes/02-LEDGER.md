@@ -4044,12 +4044,23 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   dirty repo (the plan line said ≤ 40 — amended there). Kit, both moods (/dev/shm/r27/master/T24-evidence/fix1): after
   `sleep 60 &` and `sleep 3.2; (exit 2)` — the code "2" on the lacquer in cream, then one "3.2s  jobs 1" block, a stamp
   edge at each end. APPLIED 03:00 (his next terminal draws it). Left: review 2.
+- r27-23-master-4 (3 Nov 02:50–03:05, the master's review 4 of T23): VERDICT PASS (.claude/notes/master-T23-verdict-4.md):
+  no must-fix — the all-stops probe on the four real lists, the live shots measured, the GDK 3.24.52 sources read, and its
+  own virtual-pointer client (zwlr_virtual_pointer_v1 axis_discrete: a real notch through wlroots and GDK) moving Super+/
+  one stop a notch in the kit. SHOULD-FIX (next pass): the mouse-notch regression check models GDK by hand — make the
+  master's client a tool (/dev/shm/r27/master/T23/own/gtk/vp.c → tools/, built from wlr-protocols' XML) and a kit check
+  that sends a real notch. Nits: the draw's comment named shown() (FIXED: drawn_h()); the first notch from the top moves
+  48 px (the heading and a row), later ones 60; up to 36 px of paper under the last whole line when a heading comes next
+  (allowed; the design pass); the launcher: a notch can scroll the cursor's row out of view (older than T23; the design
+  pass); r27-23-fix2's "test_shell 190/0" was the T23-only state (HEAD 187/0).
+  T23 DONE: Super+/ by context (nvim, lazygit, yazi, the quick-settings windows, the file dialog, Torrents), fuzzy, paged
+  by keys, line stops at both edges, one notch one move — live on the PC.
 ## >>> NEXT PASS STARTS HERE (3 Nov, written 02:30 by the 00:42 bulk pass — the lines above say what it did): the inbox first.
 ## (0) PRESENCE before anything he could see or hear (memories presence-not-just-input-idle, probes-cut-off-session,
 ##     never-kill-a-computed-list): every kit/headless run through tools/hl-dwl.sh or tools/kit.sh (now a PID namespace
 ##     of its own); never a kill by a list. Live keys: wtype -s 1000 on every call.
-## (1) THE MASTERS: T23 review 3 FAILED (r27-23-master-3), fixed (r27-23-fix3), live (r27-23-live-2) → review 4
-##     (launched 02:50: /dev/shm/r27/master/T23/verdict.md → .claude/notes/master-T23-verdict-4.md); T24 review 1 FAILED
+## (1) THE MASTERS: T23 PASSED review 4 (r27-23-master-4) — its should-fix: the master's virtual-pointer client as a tool
+##     and a kit check of a real mouse notch; T24 review 1 FAILED
 ##     (r27-24-master-1), fixed and applied (r27-24-fix1) → review 2 (tools/master-brief.sh T24, evidence
 ##     /dev/shm/r27/master/T24-evidence incl. fix1/, verdict-1); then T22 (tools/master-brief.sh T22 with /dev/shm/r27/t22/b10rec/, zpad/v2-*/,
 ##     p/) and T18 (the 21 wallpapers' contact sheets /dev/shm/r27p/t18-*-2.png).
