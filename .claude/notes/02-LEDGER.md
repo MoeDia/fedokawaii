@@ -3911,6 +3911,20 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   (SIGABRT) and 3 Nov 00:48 (SIGSEGV: my first fence try, Xwayland unavailable → dwl crashed at its exit — a real dwl bug on
   the no-Xwayland path, to trace); mpv SIGABRT/SIGBUS 01:59 from test_syncplay's own players (the harness takes their
   media away while they end).
+- r27-23-live (3 Nov 02:04–02:22, T23's must-fix 5 — LIVE on the PC after the apply of 5faaa46 and a session restart; shots
+  /dev/shm/r27/master/T23/v3/): in a real foot, the bar's title and Super+/ at each step — yazi "Yazi: work" (yazi first);
+  Enter on the note → "nvim" (nvim first); Space g g → "lazygit" (lazygit first); q → "nvim" (nvim first: verdict 2's must-fix,
+  live); :q → "Yazi: work" (yazi first); quick settings' mixer (app id float, "mixer") → wiremix first; pairing ("pair a
+  device") → bluetui first; nothing focused → the desktop's sheet; "lck" → the lock screen first. The live prompt in the same
+  session: the stamp blocks (E-prompt.png). Lost keys at first: each new wtype's first key went before its virtual keyboard
+  was there (-s 400/500); with -s 1000 every step held.
+- r27-23-scroll (02:16–02:24, FOUND live): Page Down twice left the list's first line cut through its glyphs — the list moved
+  in 20 px steps while headings are 28 + 16 px: the steps drifted off the lines (the wheel too, since r27-19k). kawa-panel
+  stops(): each line's top (rows, rows only read, headings), up to the first at or past the end; every move stands on one —
+  keys (a line, a page, the ends), the wheel (three lines a notch), a touchpad (summed: a line per third of a notch), the
+  cursor's keep-in-view (seen) and a relayout's clamp. Kit (/dev/shm/r27/master/T23/v3: paged.png, wheeled.png): the first
+  line whole after Page Down ×2 and after a wheel notch. test_panel 639/0 (stops, Page Up back by at most a page, the end
+  whole, the touchpad), test_help 139/0.
 ## >>> NEXT PASS STARTS HERE (2 Nov, written 18:12 by the 16:56 bulk pass — the lines above say what it did): the inbox first.
 ## (0) PRESENCE before anything he could see or hear (memory presence-not-just-input-idle): at 16:57 he was in a Discord
 ##     call (Brave: mic + sound). Every probe outside the harness/kit cut off from his session (probes-cut-off-session).

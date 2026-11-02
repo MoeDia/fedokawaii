@@ -1298,7 +1298,7 @@ class Panel:
         self.heads, self.nones, self.marks, self.view = lay.heads, lay.nones, lay.marks, lay.view
         self.centre = lay.centre
         if self.view:
-            self.scroll = max(0, min(self.scroll, self.view[2] - self.view[1]))
+            self.scroll = max((y for y in self.stops() if y <= self.scroll), default=0)
         else:
             self.scroll = 0
         # the window: the frame's box (the layout's size, in whole cells) and its shadow, a
@@ -1790,14 +1790,16 @@ class Panel:
             self.ui.redraw(*[i for i in (old, self.item(key)) if i])
 
     def seen(self, it):
-        """A menu's list scrolled so the item is whole in view; whether it had to move."""
+        """A menu's list scrolled so the item is whole in view, standing on a line's top (stops);
+        whether it had to move."""
         top, h, _ = self.view
         y0, y1 = it.y - self.scroll, it.y + it.h - self.scroll
         old = self.scroll
         if y0 < top:
-            self.scroll -= top - y0
+            self.scroll = it.y - top
         elif y1 > top + h:
-            self.scroll += y1 - (top + h)
+            need = it.y + it.h - top - h
+            self.scroll = min((y for y in self.stops() if y >= need), default=need)
         return self.scroll != old
 
     # the mouse
@@ -1895,10 +1897,24 @@ class Panel:
         else:
             self.step(key, 5 if up else -5)
 
-    def scroll_list(self, dy):
-        """A menu's list moved by dy px (the wheel: three rows a notch), within its ends."""
+    def stops(self):
+        """Where a menu's list may stand, from its top: each line's top — a row, a row only read, a
+        heading — so no line ever shows cut at the top; up to the first at or past the list's end
+        (the last line whole, the paper under it)."""
         top, h, full = self.view
-        new = max(0, min(full - h, int(self.scroll + dy)))
+        ys = sorted({it.y - top for it in self.items} | {mk[2] - top for mk in self.marks if mk[0] in SHOWN_KINDS}
+                    | {hd[3] - top for hd in self.heads} | {0})
+        end = next((y for y in ys if y >= full - h), full - h)
+        return [y for y in ys if y <= end] + ([end] if end not in ys else [])
+
+    def scroll_list(self, dy):
+        """A menu's list moved by about dy px (a key: a line or a page; the wheel: three lines a
+        notch), standing on a line's top: as far as dy goes, the next line at least."""
+        stops, want = self.stops(), self.scroll + dy
+        if dy > 0:
+            new = max((y for y in stops if self.scroll < y <= want), default=min((y for y in stops if y > self.scroll), default=self.scroll))
+        else:
+            new = min((y for y in stops if want <= y < self.scroll), default=max((y for y in stops if y < self.scroll), default=self.scroll))
         if new != self.scroll:
             self.scroll = new
             if self.pointer:
@@ -1907,9 +1923,15 @@ class Panel:
 
     def scroll_by(self, x, y, dy):
         """A smooth scroll (dy < 0: up): a wheel's notch is 1, a touchpad sends small parts —
-        summed, a step per whole one, so a touchpad does not race through the levels."""
+        summed, a step per whole one (a list: a line per third of one), so a touchpad does not
+        race through the levels or the lines."""
         if self.view:
-            self.scroll_list(dy * 3 * (METER_H + METER_GAP))
+            key, acc = self.scrolled
+            acc = (acc if key == "list" else 0.0) + 3 * dy
+            while abs(acc) >= 1 - 1e-9:
+                self.scroll_list(1 if acc > 0 else -1)
+                acc -= 1 if acc > 0 else -1
+            self.scrolled = ("list", acc)
             return
         it = self.at(x, y)
         if not it or (it.kind not in ("meter", "arc") and it.key not in WHEELED):

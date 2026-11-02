@@ -1168,14 +1168,23 @@ for q, fz in [("wpa", True), ("watch", True), ("w", True), ("wpa", False), ("zzz
   "w: the yazi row's key is w itself (the text's start) — its part goes first; wpa without --fuzzy finds nothing"
 eq "$(py 'print(kp.menu_args(["--prompt", "", "--fuzzy"])["fuzzy"], kp.menu_args(["--prompt", ""])["fuzzy"])')" "True False"
 
-case_ "a list only to read (Super+/'s rows, longer than its 24 lines): Down / Up a row, Page Down / Up a page, End / Home its ends; j, k and Space are the field's letters"
+case_ "a list only to read (Super+/'s rows, longer than its 24 lines): it stands on a line's top whatever moves it — no line ever cut at the top — Down / Up a line, Page Down / Up a page, End / Home its ends (the last line whole), the wheel three lines a notch; j, k and Space are the field's letters"
+eq "$(py 'fresh(); L = ["part\tI\tlaunch"] + ["info\t\tSuper+%d\trow %d" % (i, i) for i in range(30)] + ["part\tY\tyazi\tmoving"] + ["info\t\tk%d\tr %d" % (i, i) for i in range(30)]
+p.request("menu kawa-help", kp.Menu(L, prompt="", fuzzy=True, lines_shown=24), lambda rc, t: 0)
+top, vh, full = p.view; st = p.stops(); R = kp.ROW; s = []
+for k in ("Down", "Down", "Up", "Page_Down", "Page_Down", "Page_Up", "End", "Down", "Home", "Up"):
+    p.key(k); s.append(p.scroll)
+p.wheel(0, 0, False); w = p.scroll
+print(all(x in st for x in s + [w]), s[:3] == [st[1], st[2], st[1]], 0 < s[3] - s[2] <= (vh // R - 1) * R, s[4] > s[3], 0 < s[4] - s[5] <= (vh // R - 1) * R,
+      s[6] == st[-1] >= full - vh, s[7] == st[-1], s[8:] == [0, 0], w == max(y for y in st if y <= 3 * R))
+p.key("j", "j"); p.key("space", " "); p.key("k", "k")
+print(p.state.query == "j k", p.scroll)')" "$(printf '%s\n' "True True True True True True True True True" "True 0")"
+case_ "...a touchpad's small scrolls summed: a line per third of a notch, never a line for each small part"
 eq "$(py 'fresh(); L = ["part\tI\tlaunch"] + ["info\t\tSuper+%d\trow %d" % (i, i) for i in range(60)]
 p.request("menu kawa-help", kp.Menu(L, prompt="", fuzzy=True, lines_shown=24), lambda rc, t: 0)
-top, vh, full = p.view; R = kp.ROW; s = []
-for k in ("Down", "Down", "Up", "Page_Down", "Page_Up", "End", "Down", "Home", "Up"):
-    p.key(k); s.append(p.scroll)
-p.key("j", "j"); p.key("space", " "); p.key("k", "k")
-print(s == [R, 2 * R, R, R + (vh // R - 1) * R, R, full - vh, full - vh, 0, 0], p.state.query == "j k", p.scroll)')" "True True 0"
+st = p.stops(); a = []
+for _ in range(4): p.scroll_by(0, 0, 0.1); a.append(p.scroll)
+print(a == [0, 0, 0, st[1]], p.scroll in st)')" "True True"
 
 case_ "a menu's title: words alone a quiet note; MARK<tab>words a failure (a wrong password asked again: §5's failed state) — the mark in the icon column, so the width counts the words alone"
 eq "$(py 'print(kp.title_parts("pick one"), kp.title_parts("X\tr.pdf · wrong password"))')" "('', 'pick one') ('X', 'r.pdf · wrong password')"
