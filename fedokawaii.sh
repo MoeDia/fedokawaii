@@ -111,6 +111,7 @@ apply_copy() {
   # runs theme itself); the handbook, tools, tests and these notes only travel with the copy
   for f in "${changed[@]}"; do
     case $f in
+      src/mako/*|src/syncplay/*) sys=1 ;;          # (built by setup, not theme: repair puts them in)
       configs/*|bin/*|src/*|art/*|theme.sh*) theme=1 ;;
       docs/*|tools/*|tests/*|.claude/*|*.md*|verify.sh*|check.sh*|fedokawaii.sh*) ;;
       *) sys=1 ;;

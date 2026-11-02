@@ -171,6 +171,16 @@ case_ "…repair that leaves something for you: applied, exit 3"
 printf '#!/usr/bin/env bash\necho "setup $* (from ${0%%/*})" >>"%s/front.log"\n[[ $1 == --toolkit ]] && exit 0\nexit 3\n' "$R" >"$W/setup.sh"
 cp "$W/setup.sh" "$R/toolkit/setup.sh"
 out=$(front apply 2>&1); eq "$?" 3; has "$out" "repair ran; what still needs you is listed above"
+case_ "apply of a patch setup builds (Syncplay's, mako's): repair — theme does not build them (3 Nov: a new Syncplay patch applied by theme alone never reached the PC)"
+for f in src/syncplay/syncplay.patch src/mako/mako.patch; do
+  fresh; copy_world; mkdir -p "$W/${f%/*}"; echo "x" >>"$W/$f"
+  out=$(front apply 2>&1); eq "$?" 0; has "$out" "$f"
+  eq "$(front_calls | cut -d' ' -f1-2 | tr '\n' '|')" "setup --toolkit|setup --repair|" "$f"
+done
+case_ "…a helper theme builds (src/kawa-saver): theme alone"
+fresh; copy_world; mkdir -p "$W/src/kawa-saver"; echo "x" >>"$W/src/kawa-saver/x.c"
+out=$(front apply 2>&1); eq "$?" 0
+eq "$(front_calls | cut -d' ' -f1-3 | tr '\n' '|')" "setup --toolkit (from|theme --user kawa|"
 case_ "apply of the handbook alone: the toolkit has it, nothing else runs"
 fresh; copy_world; echo "more" >>"$W/docs/notes.md"
 out=$(front apply 2>&1); eq "$?" 0; has "$out" "nothing here changes the desktop itself"
