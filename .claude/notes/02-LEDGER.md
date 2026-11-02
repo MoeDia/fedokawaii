@@ -3556,6 +3556,40 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   6 px above its foot, both moods; the search line's "/" cell 11 px in — 3 px inside GTK's entry that neither its
   padding nor its text node's padding/margin moves (tried: unchanged). Into tools/build-themes.py's gtk-4.0 sheet
   next (the ruff sweep holds that file now).
+- r27-21-master-7 (2 Nov 14:22–14:41, the master's re-review 7 on 2445edf): VERDICT FAIL (.claude/notes/master-T21-verdict-7.md).
+  Held: verdict 6's must-fix at one notch at the foot, should-fix 2, nits 3–5, no regression (p4/p5/p6 byte-identical).
+  MUST-FIX 1: past one notch — or one anywhere but the foot — NEOVIM'S OWN scrolloff drags the cursor along with the
+  page (a CursorMovedI, no key) and his next keys splice into an older line ("qrx" on 150, 147, 96; mid-page 134;
+  after a yield "xqr" on 150); a cure proven in ~12 lines (vim.on_key / InsertCharPre). SHOULD-FIX 2: the pause's
+  `update` bumps b:changedtick, so its TextChangedI moved the page back to the pen a second after his last key.
+  Nits: Ctrl-C skips InsertLeave; a row title.
+- r27-21-master-7-fix (2 Nov 14:41–14:47, b583de2): a wheel in typing begins a LOOK — vim.on_key notes the pen before
+  the first wheel key acts; the next key of ANY kind puts it back before acting (letters, Enter, Backspace, arrows act
+  from the pen; a click then goes where it points; on_key chosen over InsertCharPre so Enter and Backspace are covered);
+  Esc ends the look where the page is (putting the pen back first scrolled to it: found by verdict 4's row) and
+  yields as before; follow() does nothing during a look. BufWritePost records the write's tick: its TextChanged moves
+  nothing. Ctrl-C in typing = Esc. Four rows (two notches at the foot, mid-page, after a yield, a wheel then 1.25 s)
+  — values predicted before the run and matched; all four FAIL on 2445edf as the master saw them. test_notes 148/0.
+  The master's re-review 8 started 15:24.
+- r27-53-ruff-done (2 Nov 14:16–15:22, 0b447a0): tools/, tests/, docs/ Python swept (sonnet subagent, verified here):
+  287 notes → 0; compiles; build-icons/build-themes byte-identical; build-fonts/build-art original-vs-edited identical in
+  scratch trees. test_syntax now runs mason's ruff over the 76 Python files (779/0). The harness change (03a7e39)
+  showed two hidden dependencies: PROJECT_TOP lacked the linters' files (test_generated 261/0), and engine/test_menu's
+  plain-menu cases leaned on an `unset WAYLAND_DISPLAY` leaking from line 584 through every later sandbox — now an
+  explicit console() (738/0).
+- r27-19m-p1-tui (2 Nov 14:34–15:23, a8dfaad): pass 1 for the text screens not yet measured — gallery (both moods,
+  /dev/shm/r27/t19m-p1/: clipboard, wallpaper, books, calculator, git, terminal, btop): every box identical in both
+  moods; pads by tools/audit-pads.py. FOUND and FIXED: Super+V's preview text on content column 2 (off the rows'
+  columns 1/4) and fzf's top border a column past each end of the heading's rule → the text under the names, a
+  picture's/file's line as a row, our own rule as the preview's fixed first line (test_clip 207/0; seen again in the
+  kit). OPEN for pass 1's rest: Super+W has the same fzf border (its preview is a cached sixel: the rule goes before
+  the cat, the size key one line less); books/calculator/git/terminal/btop looked at, numbers in audit-r27.md.
+- r27-23-sheets (2 Nov 14:36–15:12, sonnet subagent, NOT committed — the wiring is the next T23 step): ten key sheets
+  in configs/home/.config/fedokawaii/keys/ (yazi 36 rows, nvim 39, lazygit 35, btop 21, wiremix 11, bluetui 12,
+  visidata 30, gdu 20, zathura 22, mpv 24), each checked against the installed version's upstream keymap at its tag and
+  our overrides (ours win: yazi Ctrl+C copies, Enter smart-enter, g d ~/Drives; zathura r reloads; wiremix Esc
+  closes; nvim Space g g lazygit), the format kawa-help parses (column 24, 67-wide headings, no ellipsis, no kanji);
+  sources in each file's # header.
 ## >>> NEXT PASS STARTS HERE (2 Nov, written 13:50 by the 11:03 bulk pass — the lines above say what it did): the inbox first.
 ## (0) PRESENCE: before anything he could see or hear (a reboot, a session restart, a bar restart, a live play, a notice):
 ##     `wpctl status`, `playerctl -a status`, one half-scale grim — not only the swayidle probe (memory
