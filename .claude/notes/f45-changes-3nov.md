@@ -1,10 +1,21 @@
-<!-- assembled 3 Nov 03:27 from the research subagent's parts (/dev/shm/r27/t46b/parts) as the pass ended; its own final f45-changes.md, if it came, is in /dev/shm/r27/t46b/ -->
-
 # Fedora 45 for fedokawaii — what changes, what can break, what we can use
 
 Written 2026-11-03 03:30 +04 (22:30 UTC on 2 Nov), read-only research for task T46b. Nothing on this PC was changed
 (downloads and scratch files are in `/dev/shm/r27/t46b/`; dnf5 ran only as `--assumeno` dry runs with a private cache).
 Every row carries its source; "not found" / "not verified" means exactly that.
+
+## Top 10 (details and sources in the sections below)
+
+1. **Python 3.15 is the default `python3` in F45** (3.14.8 -> 3.15.0; 3.15.2 already in updates-testing, and installable on F44 today as a side-by-side `python3.15`). All 88 Python programs of this repo compile under Fedora's own 3.15.2 with `-W error` and the 45 stdlib modules they import load with DeprecationWarning as error. Every third-party Python library we import exists rebuilt in F45. Gains to take: PEP 810 `lazy import`, the Tachyon sampling profiler, frame-pointer CPython for `perf`.
+2. **A plain `distro-sync --releasever=45` fails on this PC today** (real rpmdb, real repos, dry run). Blocker 1: RPM Fusion's `mesa-va-drivers-freeworld` 26.2.6 needs Fedora's mesa 26.2.6, which is only in updates-testing (clears itself when Fedora pushes it). Blocker 2: `protobuf-compiler`/`grpc-cpp` (visidata -> pandas -> pyarrow chain) conflict with protobuf 33.5; only `--allowerasing` (removes `protobuf-compiler` alone) resolves it. With both handled: 1902 upgrades, 28 installs, 8 downgrades, 5 removals (old kernel + protobuf-compiler).
+3. **F45 is GO for today (RC-1.4) but is not on the mirrors yet; the Fedora Docs release notes exist but say almost nothing** (LibreOffice dictionaries/help, Emacs 31). The ChangeSet wiki page is from 16 Sep and its statuses are stale (OpenSSL 4.0 and Podman 6 did land); the repos are the truth.
+4. **The kernel does not change**: F45's `kernel-x86_64-fedora.config` is byte-identical to F44's, kernel 7.2.14-300 (same 7.2 series; Mesa 26.2.5 and firmware 20261019 are identical too). The GPU stack the RX 9060 XT runs on is unchanged; ROCm moves 7.1.1 -> 7.2 (gfx1200 and gfx1036 are in Fedora's default target list) and Fedora now packages Ollama 0.24.0 with ROCm and Vulkan backends plus llama.cpp b9840.
+5. **Enforced RPM signatures** (`%_pkgverify_level` digest -> all) with RPM 6.1: unsigned or unknown-key RPMs no longer install; the VM harness's injected packages must be signed. RPM 6.1 also lets `rpm -q` run during a transaction.
+6. **Fedora's repo files and GPG keys move to /usr** (`/usr/share/dnf5/repos.d`, `/usr/share/pki/rpm-gpg`): a stray copy in /etc/yum.repos.d overrides the whole file, and our `fedokawaii-report` PKG-20 only scans /etc/yum.repos.d, so Fedora's own repos would drop out of the signature-check report.
+7. **kmscon replaces fbcon on the VT console only for fresh installs** (`@core` gained it; presets disable getty@ and enable kmsconvt@): an upgraded PC keeps getty/fbcon (not in the dry-run transaction), but the ISO / VM harness / kickstart installs get it. greetd's F45 build is patched to coexist; `vt.default_*` palette args are fbcon-only.
+8. **systemd 259.10 -> 262.1, plymouth 24.004 -> 26.134, dracut 108 -> 111, selinux-policy 44 -> 45.23, openssl 3.5 -> 4.0, glib2/gtk4/harfbuzz majors**: look at the boot splash, re-run the PID-1 reload and nspawn proofs, check AVCs. Dismissed after reading the source: the new X11 tmpfiles 1 h age (tmpfiles skips live sockets).
+9. **Podman 6 is safe here**: SQLite state, cgroup v2, pasta already in use; the Prowlarr Quadlet uses no removed key. Netavark/aardvark 2.1.0, containers-common config moves to /usr/share/containers.
+10. **F46 preview that affects the update design**: `allow_vendor_change=False` by default (silent RPM Fusion/COPR swaps will be refused), DNF4 and Modularity removal, ShadowStack, boot.iso by image-builder; Btrfs snapm/boom snapshots did not make F45 (planned for F46).
 
 ## 0. State of the release and how the facts were obtained
 
@@ -92,7 +103,6 @@ Order = importance for fedokawaii. "Can it break us" gives the check; "Can we us
 | [Libxml215](https://fedoraproject.org/wiki/Changes/Libxml215) | categorised `ChangeAcceptedF46`, **but F45 already serves libxml2 2.15.4** (F44: 2.12.10; compat `libxml2_2.13` appears; dnf5, snapper and others were "Rebuilt for libxml2-2.15.4") | wiki category lags the repos again; the dry run installs `libxml2_2.13` |
 | ModernizeBootISO / ModernizeLiveMedia / mkosi-initrd ([F46 accepted list](https://fedoraproject.org/wiki/Category:ChangeAcceptedF46)) | `Category:ChangeAcceptedF46` | boot.iso moves from lorax to image-builder in F46; live media gets livesys-scripts; relevant to the ISO phase when the tool choice is made |
 | Other F46-accepted Changes (14 so far) | BashColorPrompt 1.0, Adopt PURL Metadata, Package builds reproducible, DropLowMemoryMonitor..., Libical4, CrystalLanguage, CoreOS oomd/zram, ChangesDiscussionOnlyOnDevelList | no action |
-
 
 ## 2. Package versions F44 -> F45
 
@@ -311,3 +321,41 @@ There is no F45 "Common Bugs" wiki page any more; Fedora keeps them as [Ask Fedo
 
 F44 stays supported until about 2027-06-02 (changeable); F45 until 2027-12-08; F46 lands about 2027-04-20 (final target) - so F44 -> F46 would be a two-release jump (the documented maximum), and F45 is the safer middle step. Release-day rule of thumb from the sources: wait for `releases/45/` to appear on the mirrors and for mesa 26.2.6 to reach F45 stable before running the real `system-upgrade download`, then expect to answer `--allowerasing` for `protobuf-compiler` only.
 
+## 6. Using Fedora 45 - the ranked list (what to build, in order of value)
+
+| # | Opportunity | How, concretely | State |
+|---|---|---|---|
+| 1 | **Python 3.15 for our own tools** (the owner's example) | (a) Rehearse before moving: `python3.15` 3.15.2 is in F44's updates-testing, side by side with 3.14 - run `python3.15 -X importtime` on kawa-panel/kawa-greet to get the start-up baseline. (b) After the move: `lazy import gi.repository...` style for the heavy imports (keyword unparseable on 3.14, so one commit after the PC is on 3.15). (c) Profile the live panel with `python -m profiling.sampling` (Tachyon) and `perf` (frame pointers are on in the 3.15 build). (d) Keep every `open(..., encoding="utf-8")` (harmless) | compile/imports proven (88/88, 45 stdlib modules); the gi/cairo/PIL runtime proof needs the F45 VM |
+| 2 | **Local-LLM stack from Fedora instead of tarballs** | F45 packages `ollama` 0.24.0 as `ollama-base` + `ollama-rocm` + `ollama-vulkan` (with `ollama.service` and a sysusers file), `llama-cpp` b9840 (F44: b6153), ROCm 7.2.x with RDNA4: `rocm_gpu_list_default` and the hipBLASLt list in rocm-rpm-macros f45 contain `gfx1200;gfx1201` (this PC's RX 9060 XT reports `gfx_target_version 120000` = gfx1200 in /sys/class/kfd, the iGPU gfx1036 - both in the list); `python3-torch` 2.12.0. A packaged runtime is updated, rolled back and removed by the same update button; the hand-installed `/usr/local/bin/ollama` + `/usr/local/lib/ollama` (upstream tarball, 24 Oct) would go. Keep the unit disabled and start it only during an update run (the owner's "no RAM held" rule) | packaging verified from specs; speed on the card (rocm vs vulkan): not measured |
+| 3 | **kmscon for the text console / ISO screens** | `/etc/kmscon/kmscon.conf`: `font-engine`, `font-name` (our terminal face), `palette`, `dpms-timeout`; `@core` already includes it on fresh installs, so the ISO's screens can be drawn by kmscon in our palette; on the upgraded PC it is optional (`dnf install kmscon`). Drop `vt.default_*` only when kmscon owns every tty | font search path not verified |
+| 4 | **RPM 6.1 + enforced signatures** | `rpm -q` during transactions for the update screen; `rpmkeys -Kv` for key reports; `rpm-setup-autosign` + `rpm --import` to sign the VM-injected broken packages | verified from changelogs |
+| 5 | **Fontconfig 2.18 `genericfamily`** | add `<match target="scan">` rules for Sumi Term (monospace) and Sumi UI (sans-serif) in `system/60-fedokawaii-pixel.conf` if `fc-scan` reports 0 | needs the F45 VM |
+| 6 | **Yama scope 1 by default** | accept the new default (no debugger installed); document `yama-ptrace-enable` for the day one is | automatic |
+| 7 | **Repo configs in /usr** | keep our overrides only in `/etc/dnf/repos.override.d` and `/etc/dnf/libdnf5.conf.d`; make `fedokawaii-report` PKG-20 and `verify` read `/usr/share/dnf5/repos.d` as well, and flag any `fedora*.repo` left in /etc/yum.repos.d | small patch |
+| 8 | **Podman 6 Quadlet extras** | `ImageVolume=`, anonymous `Mount=`, `podman quadlet ls`; optional experimental `rootless_port_forwarder="pasta"` | optional |
+| 9 | **Torrra without a second CPython** | F45 `rb_libtorrent-python3` 2.0.11-9 is built for 3.15 (`libboost_python315`, `libcrypto.so.4`); a venv on the system python with `--system-site-packages` would replace uv's CPython 3.13 | needs the T29 measurement |
+| 10 | **Prepare F46 now** | `allow_vendor_change=False` (RPM Fusion/COPR swaps), DNF4 removal, ShadowStack, boot.iso by image-builder: put `allow_vendor_change`/VendorChangeManager decisions into the update design before spring 2027 | planning |
+| - | Seen, not worth adopting | `wl-restart` (new package: restarts a crashed compositor and keeps the Wayland socket, but only Qt/KDE-style clients reconnect; foot and GTK do not), `btrfs-dump`, `libdnf5-plugin-cow` (no reflink half), `libreoffice-dict-*` (optional), `nodejs26`, oo7 (no keyring daemon here) | - |
+
+## 7. Not found / not verified (honest list)
+
+- Per-Change text in the F45 release notes: **not written yet** (System Administrators page empty; the release-note tracker issues #302, #404, #405, #264, #291 ... are still the empty template). It may fill in after release.
+- Final F45 package set: repos move daily (stable updates, updates-testing). Every version above is the state of 2026-11-02/03; `releases/45/` did not exist yet.
+- The dry runs used `distro-sync --releasever=45`, not `system-upgrade download` (same solver, but the offline boot, Plymouth/dracut on 262, SELinux relabel and scriptlets were **not** exercised here). Whether `dnf5 system-upgrade` would add `kmscon` through group membership: the `distro-sync` dry run does not; the real command was not run.
+- glibc 2.44 packaging notes (sourceware wiki) not read; gcc 16 changes not read (compiler unchanged vs F44).
+- Whether amdgpu draws the DRM panic QR screen; whether Fedora's python3.15 build enables the experimental JIT; kmscon's font search path.
+- Plymouth 26.134.222 versus `initcall_blacklist=simpledrm_platform_driver_init` (no splash frames were captured here).
+- visidata 3.3 with pandas 3.0.6; the SSH-port-forwarding SELinux regression fix level (bz 2560255).
+- RPM Fusion / COPR contents beyond the packages named; RPM Fusion bug 7565 text itself.
+- `Changes/Libxml215`, `DisableVendorChangeByDefault`, `ShadowStack` carry F46 categories but at least libxml2 2.15.4 is already in F45; I did not check whether the other two have partial F45 content (dnf5's defaults file proves vendor-change is not on).
+
+## 8. Sources (all fetched 2026-11-02/03)
+
+Fedora wiki: [ChangeSet](https://fedoraproject.org/wiki/Releases/45/ChangeSet) (rev. 787860), [Category:ChangeAcceptedF45](https://fedoraproject.org/wiki/Category:ChangeAcceptedF45), [ChangeAcceptedF46](https://fedoraproject.org/wiki/Category:ChangeAcceptedF46), each `Changes/…` page linked in the tables (read as `?action=raw` wikitext).
+Schedules: [F45](https://fedorapeople.org/groups/schedule/f-45/f-45-key-tasks.html), [F44](https://fedorapeople.org/groups/schedule/f-44/f-44-key-tasks.html), [F46](https://fedorapeople.org/groups/schedule/f-46/f-46-key-tasks.html).
+Docs: [F45 release notes](https://docs.fedoraproject.org/en-US/fedora/f45/release-notes/) and their [sources on the forge](https://forge.fedoraproject.org/docs/release-notes/src/branch/f45/modules/release-notes/pages/), [releases/f45 landing page](https://docs.fedoraproject.org/en-US/releases/f45/), [Upgrading Fedora Linux Using DNF System Plugin](https://docs.fedoraproject.org/en-US/quick-docs/upgrading-fedora-offline/).
+Release engineering: [Final Go/No-Go 2026-10-29](https://meetbot.fedoraproject.org/meeting_matrix_fedoraproject-org/2026-10-29/f45-final-go-no-go-meeting.2026-10-29-18.02.html), [blocker bugs](https://qa.fedoraproject.org/blockerbugs/milestone/45/final/buglist), [Fedora Magazine: F45 Beta](https://fedoramagazine.org/announcing-fedora-linux-45-beta/), [kmscon article](https://fedoramagazine.org/modernizing-the-console-with-kmscon/), [Ask Fedora Common Issues f45](https://discussion.fedoraproject.org/tags/c/ask/common-issues/82/none/f45/1452) and topics 202025, 202542, 195477, 202886, 201707.
+Package data: [dl.fedoraproject.org F45 compose](https://dl.fedoraproject.org/pub/fedora/linux/development/45/), [updates/45](https://dl.fedoraproject.org/pub/fedora/linux/updates/45/), [updates/testing/45](https://dl.fedoraproject.org/pub/fedora/linux/updates/testing/45/), [releases/44](https://dl.fedoraproject.org/pub/fedora/linux/releases/44/), [updates/44](https://dl.fedoraproject.org/pub/fedora/linux/updates/44/) (primary.xml, filelists.xml, comps); dist-git specs and configs on [src.fedoraproject.org](https://src.fedoraproject.org/): rpm, dnf5, fedora-repos, greetd, waybar, foot, mako, gtklock, plymouth, grub2, crypto-policies, systemd, kmscon, redhat-systemd-presets, kernel (`kernel-x86_64-fedora.config` f44/f45), ollama, rocm-rpm-macros, protobuf, snapper, btrfs-progs; payloads of fedora-release-common, systemd, systemd-udev, yama-ptrace-enable, elfutils-default-yama-scope (unpacked in scratch dirs).
+Upstream (not Fedora): [What's New in Python 3.15](https://docs.python.org/3.15/whatsnew/3.15.html), [systemd NEWS](https://github.com/systemd/systemd/blob/main/NEWS) and `tmpfiles.c`, [foot CHANGELOG](https://codeberg.org/dnkl/foot/src/branch/master/CHANGELOG.md), [Podman RELEASE_NOTES](https://github.com/containers/podman/blob/main/RELEASE_NOTES.md), [firewalld releases](https://github.com/firewalld/firewalld/releases), [pykickstart](https://github.com/pykickstart/pykickstart).
+Third party (readiness only): [RPM Fusion](https://download1.rpmfusion.org/) F45 repos, COPR ilyaz/LACT and zzahkaboom24/grub-btrfs, Brave and Claude Code repos.
+Local scratch (all under `/dev/shm/r27/t46b/`): `raw/` downloads, `scripts/` parsers, `dnfsim/*.out` dry runs, `f45-installed-version-changes.tsv` (576 changed installed packages).

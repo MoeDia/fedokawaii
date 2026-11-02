@@ -4073,8 +4073,8 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   54/0 reads them back); the two comments name the jobs step. Left: test_tiles' derivation line, a cache-warm render
   play (TERM=foot), review 3.
 - r27-46b-digest (3 Nov 02:38–03:28, T46b, a sonnet research subagent, read-only; still assembling as the pass ended):
-  Fedora 45's changes against this system from official sources only — .claude/notes/f45-changes-3nov.md (assembled from its
-  parts; its own final file, if it came, in /dev/shm/r27/t46b/) and f45-installed-version-changes.tsv (577 packages: this
+  Fedora 45's changes against this system from official sources only — .claude/notes/f45-changes-3nov.md (its final file,
+  03:27, 361 lines) and f45-installed-version-changes.tsv (577 packages: this
   PC's F44 versions against F45 stable/testing, MAJOR/MINOR flagged, in-manifest marked). Its first lines: F45 Final GO for
   Tue 3 Nov (RC-1.4), releases/45 still 403 at 22:30 UTC; 46 accepted Changes; the release notes published; F44 EOL
   2027-06-02; a real `dnf5 --releasever=45 --assumeno distro-sync` dry run against this PC's rpmdb and repos (RPM Fusion,
