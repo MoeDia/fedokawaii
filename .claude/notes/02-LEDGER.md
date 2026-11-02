@@ -3612,6 +3612,11 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   fits a kawa-record whose run folder vanished (its log unreadable). WATCHER: /dev/shm/r27p/mako-watch.sh (setsid,
   since 16:06) logs every new notice with the test file running at that moment → /dev/shm/r27p/mako-watch.log; read
   it after this suite and the next; fix the test (or the script's fallback) it names.
+- r27-suite-bee0316 (2 Nov 15:23–16:09): ALL 128 test files green on bee0316 (the harness cut off from his session, the
+  ShellCheck style level and ruff in test_syntax, T21 to verdict 7's fix, T22's failed state and lone field, zathura's
+  line, Super+V's preview, the idle timer cell, proc-load). The later commits each tested on their own (test_notes
+  153/0, test_calc 43/0, test_wallpaper 270/0, test_dwlstatus 183/0, test_design_doc 54/0; the sheets: noellipsis,
+  the three test_configs, test_help). PUSHED 16:10: GitHub main e083197 → 2521e97 (95 commits).
 ## >>> NEXT PASS STARTS HERE (2 Nov, written 15:32 by the 13:51 bulk pass — the lines above say what it did): the inbox first.
 ## (0) PRESENCE: before anything he could see or hear (a reboot, a session restart, a bar or panel restart, a live play,
 ##     a notice): `wpctl status`, `playerctl -a status`, one half-scale grim (memory presence-not-just-input-idle). At
@@ -3622,8 +3627,8 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
 ##     /dev/shm/r27/master/T21/verdict.md); FAIL → fix → review 10 (archive /dev/shm/r27/master/T21 first: r1–r8 in
 ##     master-archive). PASS → T21 done but for the apply + a SESSION
 ##     RESTART (the dwl cold-Super+N fix) when he is away, and the Learn piece's figure at the book update.
-## (2) PUSH: GitHub main = e083197; the suite on bee0316 ran 15:23–(see r27-suite-bee0316); the commits after it touch only
-##     kawa-calc (test_calc 43/0), kawa-wallpaper (test_wallpaper 270/0), the key sheets (data), notes/ledger/audit.
+## (2) PUSHED 16:10 (2521e97, after the green suite on bee0316). Every later commit: a suite (or its own tests and the
+##     delta named) before the next push. The leak watcher (/dev/shm/r27p/mako-watch.log, r27-leak-2): read it first.
 ## (3) APPLY from a frozen tree when he is away + the panel restart (memory live-panel-restart) + the session restart:
 ##     live then — bug 10's held password window with its failed state and the lone field's air, zathura's line, Super+V's
 ##     and Super+W's preview rule, the calculator's erase, the idle timer cell, T21's notebook fixes, the harness (tests
