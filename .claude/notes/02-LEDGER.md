@@ -3812,6 +3812,20 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   Nits: the MangoHud and Steam rows listed in T35; part_icon's visidata commented. Observed, not changed (T19m pass 2):
   Super+/'s frame height follows how many headings fall in its first 24 lines (nvim 188..913, yazi 212..889) —
   a fixed frame would leave a ragged bottom instead; to weigh in the side-by-side pass.
+- r27-20-dark (3 Nov 01:05–01:25, T20 step 1, WIP — not wired, nothing installed): tools/build-lock.py builds the dark
+  lock scene from the prototype at the wallpapers' grid (640 × 360, ×3): art/lock/out/lock-dark.png (13 inks, 17 KB)
+  and flame-dark.png (8 frames 18 × 30). Grilled in three renders (/dev/shm/r27/t20/v1 → v2): (1) the wall was a dither
+  haze with no light pools → each stone ONE tone by the light at its middle, top row a step lit, foot a step dark —
+  the pools now read stone by stone, dark between the torches; (2) the quote illegible (dark carved on dark) → gilded:
+  gold strokes, a lo shadow a pixel under-right, on a lintel stone 144 × 29 with its own bevel and grain (Sumi UI 14
+  at its pixels: 42 px on screen); (3) sconces were sticks → iron wall plate with rivets, a ring, a wooden haft with
+  grain, a pitch-soaked head; (4) the flame's core was a 1-px line with a T foot → four nested teardrops (widest past
+  the middle, round at the foot), tip swaying more than the foot, two embers in the loop. The mouth for the entry:
+  x 959–1138, y 638–737 on 1080p. DECIDED for light: NOT the Hagoromo print (already one of the ten angel
+  wallpapers) — the Willow Kannon (willow-kannon.jpg: gold silk, a round green halo; no wallpaper uses it), the halo
+  rhyming with the demon's round plate; where the password is typed in it: next pass, from renders. Next: the light
+  scene, then lock.ui/gtklock.css (no date/time/keys; the entry on the mouth), kawa-lockmod (the flames at 8 fps,
+  its caret, wrong password ≤ 400 ms, 5 s screens off), kawa-lock scaling the scene ×N to the screen, the greeter.
 ## >>> NEXT PASS STARTS HERE (2 Nov, written 18:12 by the 16:56 bulk pass — the lines above say what it did): the inbox first.
 ## (0) PRESENCE before anything he could see or hear (memory presence-not-just-input-idle): at 16:57 he was in a Discord
 ##     call (Brave: mic + sound). Every probe outside the harness/kit cut off from his session (probes-cut-off-session).
