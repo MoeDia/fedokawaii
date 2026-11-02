@@ -148,12 +148,15 @@ password_for() {
   done
 }
 pdf_pw_ok() { qpdf --password-file=- --requires-password "$1"; (($? == 3)); }   # (3: locked, and this opens it)
-arc_pw_ok() {   # arc_pw_ok ARCHIVE KIND — the password on stdin opens it (the archive tested whole)
-  local PW=""
+arc_pw_ok() {   # arc_pw_ok ARCHIVE KIND — the password on stdin opens it: one file of it decrypted is
+  local PW="" first          # enough (the whole tested first would read a big archive twice)
   IFS= read -r PW || [[ -n $PW ]] || return 1
+  first=$(entries "$1" "$2" | awk -F'\t' '$1 == "f" { print $3; exit }')
+  # (names hidden and the password wrong: no list at all; folders alone: nothing to open)
+  [[ -n $first ]] || { entries "$1" "$2" | grep -q .; return; }
   case $2 in
-    7z)  z7 t -bso0 -bsp0 -- "$1" ;;
-    rar) unrar_pw t -idq -- "$1" ;;
+    7z)  z7 t -bso0 -bsp0 -- "$1" "$first" ;;
+    rar) unrar_pw t -idq -- "$1" "$first" ;;
   esac
 }
 new_password() {   # new_password → PW, typed twice

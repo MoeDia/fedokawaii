@@ -3422,6 +3422,11 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   comment whole, "a line a step". Tests: test_notes 138/0 — two new rows (a bracketed 3-line paste and Ctrl-F Ctrl-F
   Ctrl-B at the foot: the pen's room each; smoothscroll off, skipcol 0, no <<< on a page of long lines), BOTH FAIL on
   db4bf81 (136/2).
+- r27-22-b10-cheap (2 Nov 13:21): my own review of bug 10's kawa-file: arc_pw_ok tested a locked archive WHOLE before
+  extracting it — a big one read twice, and the held prompt's 1 s guard would lapse during the check. Now one file is
+  decrypted (the first file entry; names hidden and the password wrong: no list at all → wrong; folders alone: nothing
+  to open → taken). test_file 276/0. (ShellCheck's SC2329 "never invoked" list cross-checked with tools/deadcode.sh: all
+  22 are called by name — password_for's checks, pdf_each's do_*, traps, setup.sh's trial wrappers.)
 ## >>> NEXT PASS STARTS HERE (2 Nov, written 12:45 by the 11:03 bulk pass — the lines above say what it did): the inbox first.
 ## (0) PRESENCE: before anything he could see or hear (a reboot, a session restart, a bar restart, a live play, a notice):
 ##     `wpctl status`, `playerctl -a status`, one half-scale grim — not only the swayidle probe (memory
