@@ -3997,6 +3997,13 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   same 1002 ms; with the pty answering as foot does, 1 ms (both). Exit hooks at VimLeavePre: vim.lsp's and noice's only.
   Next for T30: the per-plugin cost table (lazy's profile, in a pty that answers), cuts and lazy-loads by it, editing
   latency, the lock committed and restored by setup.
+- r27-53-selftest (3 Nov 02:31–02:39, T53 accept item, VERIFIED on the PC): `sudo fedokawaii selftest --sandbox` first exit 3
+  — 2 of 13: "foo did not install", "bar did not install": a record in the machine's /var/lib/fedokawaii/dnf-failed since
+  27 Oct 04:13, written by tests/installer/test_common.sh's trapped() (it left STATE_DIR to lib/common.sh's default, the
+  real one; that run had root's rights). FIXED: trapped() runs with STATE_DIR=$TMP/state (test_common 138/0); the stray
+  record removed. Second run: rc 0 — every check clean, the torture suite in its fake machine green (1m57s; logs
+  /dev/shm/r27p/selftest-sandbox{,-2}.log). Left in T53: the harness itself could pin STATE_DIR for every test (a
+  harness change: whole areas re-run).
 ## >>> NEXT PASS STARTS HERE (3 Nov, written 02:30 by the 00:42 bulk pass — the lines above say what it did): the inbox first.
 ## (0) PRESENCE before anything he could see or hear (memories presence-not-just-input-idle, probes-cut-off-session,
 ##     never-kill-a-computed-list): every kit/headless run through tools/hl-dwl.sh or tools/kit.sh (now a PID namespace
@@ -4017,8 +4024,9 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
 ## (4) T19m — pass 1's rest: the boot splash and GRUB (VM), the polkit password dialog (lxqt-policykit, the one Qt
 ##     window: live), the torrents TUI (with T29); then pass 2 side by side (incl. Super+/'s frame height by headings,
 ##     r27-23-help).
-## (5) T53's rest: run/retry failure paths, the pipefail audit, `fedokawaii selftest --sandbox`, kawa-panel's start and
-##     first draw, line counts (test_syncplay's mpv coredumps: done, r27-53-mpvdumps).
+## (5) T53's rest: run/retry failure paths, the pipefail audit, line counts, the harness pinning STATE_DIR for every test
+##     (done: selftest --sandbox rc 0, r27-53-selftest; the panel's start measured, r27-53-panel-start; test_syncplay's mpv
+##     coredumps, r27-53-mpvdumps).
 ## (6) The next login (or the kernel trial's reboot, 7.2.13) brings the two dwl fixes (r27-dwl-noxwayland, -termburst):
 ##     after it, tools/regress/no-xwayland-exit.sh and term-burst.sh pass on /usr/local/bin/dwl already (checked 02:29);
 ##     the new crashnote writes "TIME PID" at that login (check ~/.local/state/fedokawaii/session-start).
