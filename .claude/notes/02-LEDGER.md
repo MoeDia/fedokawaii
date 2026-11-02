@@ -3217,6 +3217,50 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   path (kit-only or real) — its own item (dwl/kawa-warm), not a blocker for T21's re-review. Next: foot's side
   (footclient's window request) vs dwl's (createnotify/mapnotify for app-id warm-notes on WARMTAG); then on the PC when
   he is away (close the warm notes window, press Super+N once).
+- r27-21-cold DONE (2 Nov 11:03–11:20, the 11:03 bulk pass): the cold Super+N — no warm window (after Super+Q, a
+  crash) — showed NOTHING on its first press and the window on the second, on the installed build too: a REAL bug of
+  dwl's warm path, for all three warm windows (notes, clipboard, system menu). Cause (dwl.c applyrules): dwl runs
+  applyrules() twice for an xdg window — at its first commit (commitnotify's initial_commit, upstream) and at its map —
+  and the warm branch took the key's press (warmpend) at the FIRST call: at the map nothing was pending, so it mapped
+  parked (WARMTAG); the second press found it parked and showed it. (The last pass's "no W line" misled: the frame
+  log is fully buffered — 64 KiB, flushed every 256 lines — so a W written at 0.3 s is not in the file at 5 s on an
+  idle screen; the shots are the evidence.) Fix: the press taken only once the surface is mapped
+  (`client_surface(c)->mapped`; dwl.patch regenerated, 115 hunks). Proof (kit, real GPU, a cold Super+N on a
+  30-day diary, shot at 3 s): the fixed dwl → the window 631,293–1289,811 (the installed 80 × 25 notes), the old
+  binary → nothing (/dev/shm/r27/t21/warmfix/{new,old}/c3.png). test_warm 90/0: two rows (the guard; fail on HEAD's
+  patch). tools/regress/notes-page.sh: the cold scene (the master's ask) and ONE checker for both scenes (the draft's
+  own copy lacked the paper-ink filter and took the window's border for the last rule — shared now).
+- r27-21-sf DONE (2 Nov 11:10–11:45): the master's should-fix 4 and 5, and the bugs they uncovered. notes.lua —
+  (4) the page OPENS ON A DAY'S LINE, never mid-day: the latest day whose line leaves the pen its ROOM (5) rows above
+  as well as below (scrolloff keeps them on both sides) — today's own line when today fills them, else the day
+  before, on the page's first row (nvim_win_text_height counts the rows: wrapped lines too); a today longer than
+  the page opens as the pen needs (pen_room). Today's line ALWAYS on top (the master's literal ask) cannot live with
+  scrolloff 5: TRIED and dropped — a window scrolloff of 0 until the pen passed row 5 made neovim scroll every new
+  last line (still below the old one's 36 rows of virtual paper) to the window's top, or centre it (the kit's
+  frames: "hardly scrolled", then "{-2: 1}"; /dev/shm/r27/t21/warmfix/fr-strip.png, f88-89.png) — glitches against his
+  "super consistent"; the day-line rule keeps scrolloff whole and the master's point (the context never starts
+  mid-day). (5) the TO-DO OPENS TYPING on a fresh item at its end (the first key a word, never a command); esc gives
+  the list (InsertLeave: an item with no words goes, the cursor off the box), where space ticks; its footer names the
+  keys of the moment ("esc: the list" typing, "space ticks" in the list); tab back to the notes tidies it; an empty
+  to-do's one line becomes the item. BUG A (the headless probe): pen_room() saved the view BEFORE asking winline()
+  (which validates it) — each step restored a stale topline, so a pen that started off the page never got its room;
+  winline first now. BUG B (the kit's event log /dev/shm/r27/t21/ev/out/ev.log, pre-existing): kawa-notes --today's
+  write makes the show's checktime RELOAD the buffer, and the reload's FileType starts markdown's tree-sitter again —
+  "# notes" green and bold, the master's must-fix 1 undone on every first show of a day: plain(b) (tree-sitter off,
+  syntax OFF) now also on FileChangedShellPost, the page ruled again. BUG C (the kit's frames once the page opened
+  below line 1: 36 frames with the whole page drawn as red dashed DIFF FILLER, "{-4: 36}" —
+  /dev/shm/r27/t21/warmfix/f88-91.png): the paper's virt_lines were held at the last line's START, so a Return at its
+  end put the new line below the old line's 36 rows of paper until the next lay; neovim scrolled to it (the paper
+  counted as filler above the new line) and drew that stale filler as diff filler for two frames, then jumped to the
+  file's top. Held at the line's END now (right gravity): the line opened there takes the paper along within the
+  edit itself — never a moment with the paper between two lines. (Hidden before: the page used to open at the file's
+  top, where that path did not scroll.) Tests: test_notes 125/0 — seven new rows (a short today opens on yesterday's
+  line; today's own line when it fills the room; a long today keeps the pen's room; the paper follows a line opened
+  at the end before any lay; the to-do typing with its footer; reopened + esc; no highlighting after a reload); on
+  HEAD's notes.lua 118/6 (each opening/to-do/reload row but the long today's), and the paper row fails alone with
+  the paper held at the line's start (124/1). The kit check (tools/regress/notes-page.sh) caught B and C and
+  reproduced C once more by accident (a run that copied the start-held notes.lua: the same 36 frames). design-system §7: the opening rules. Nit 6 was already in §7 ("an unruled
+  row of paper"); nit 7: the virt rows named (the screen's rows, never short of paper).
 ## >>> NEXT PASS STARTS HERE (2 Nov, written ~00:50 by the 00:10 pass — the lines above say what it did): the inbox first. Then:
 ## (0) PRESENCE: before anything he could see or hear (a reboot, a session restart, a bar restart, a live play, a notice):
 ##     `wpctl status` (a mic capture or playback [active]), `playerctl -a status`, one half-scale grim — not only the

@@ -383,7 +383,13 @@ content, inside its margin of one cell:
   the blank row under the heading is its top), then the footer (`muted`). A day's line shows its
   date alone, in `accent_text`; everything else exactly as typed (no markdown styling, nothing
   hidden). The pen keeps three ruled rows of fresh paper ahead of it; head, foot and margin never
-  move, whatever the scroll (`tools/regress/notes-page.sh` checks every frame of 40 typed lines).
+  move, whatever the scroll (`tools/regress/notes-page.sh` checks every frame of 40 typed lines,
+  and a cold start). It opens on a day's line, never mid-day: the latest day whose line leaves
+  the pen its rows above it too (the same five as below) on the page's first row — today's own
+  when today fills them, else the day before — and a today longer than the page opens as the
+  pen needs. The to-do opens the same way, typing, on a fresh item at its end
+  (the first key is a word, never a command); esc gives the list, where space ticks, and an item
+  left with no words goes; its footer names the keys of the moment.
 - **The prompt**: one short line in a pastel powerline — segments on Wada's pastels with ink
   words, the torii (his terminal's mark) first: the folder, the branch and its changes, the code
   of a failure, the time of a long command — then `›` and a space (`tools/build-themes.py`

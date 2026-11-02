@@ -199,11 +199,35 @@ else
   printf '%s\n' '[ ] a task' '[a link](https://example.org/x)' '**bold** and `code`' '## 2026-11-01 · Sun' >"$TMP/c2.md"
   eq "$(ask '(function() vim.cmd("redraw") local t = {} for r = 3, 6 do local s = "" for c = 5, 44 do s = s .. vim.fn.screenstring(r, c) end t[#t + 1] = (s:gsub("%s+$", "")) end return table.concat(t, "|") end)()' "$TMP/c2.md")" \
     '"[ ] a task|[a link](https://example.org/x)|**bold** and `code`|2026-11-01 · Sun"'
+  case_ "notes.lua: ...and after a reload (a change on disk taken in — the day's heading kawa-notes writes at each first show of a day is one): still no markdown highlighting, the page ruled to its new last line"
+  printf '%s\n' '# notes' '' '## 2026-11-01 · Sun' '' 'a line' >"$TMP/r.md"
+  eq "$(nvim --headless -c 'luafile ~/.config/fedokawaii/notes.lua' \
+    -c 'lua local f = io.open(vim.api.nvim_buf_get_name(0), "a") f:write("\n## 2026-11-02 · Mon\n") f:close() vim.cmd("checktime") local r = -1 for _, m in ipairs(vim.api.nvim_buf_get_extmarks(0, vim.api.nvim_get_namespaces().kawa_rules, 0, -1, { details = true })) do if m[4].virt_lines then r = m[2] end end io.stdout:write(tostring(vim.treesitter.highlighter.active[vim.api.nvim_get_current_buf()] == nil) .. " " .. vim.bo.syntax .. " " .. tostring(r == vim.api.nvim_buf_line_count(0) - 1))' \
+    -c 'qa!' -- "$TMP/r.md" 2>/dev/null)" "true OFF true" "(tree-sitter stopped, syntax off, the paper under the new last line)"
+  case_ "notes.lua: a line opened at the end of the last takes the paper along within the edit itself — before any re-lay (held at the line's start, the new line lay below the old one's paper and neovim scrolled to it: the page jumped, its paper drawn as diff filler; the kit's frames, 2 Nov)"
+  printf '%s\n' '# notes' '' '## 2026-11-01 · Sun' '' 'the last line' >"$TMP/e.md"
+  eq "$(nvim --headless -c 'luafile ~/.config/fedokawaii/notes.lua' \
+    -c 'lua local n = vim.api.nvim_buf_line_count(0) local l = vim.api.nvim_buf_get_lines(0, n - 1, n, false)[1] vim.api.nvim_buf_set_text(0, n - 1, #l, n - 1, #l, { "", "" }) local r = -1 for _, m in ipairs(vim.api.nvim_buf_get_extmarks(0, vim.api.nvim_get_namespaces().kawa_rules, 0, -1, { details = true })) do if m[4].virt_lines then r = m[2] end end io.stdout:write(r + 1 .. "/" .. vim.api.nvim_buf_line_count(0))' \
+    -c 'qa!' -- "$TMP/e.md" 2>/dev/null)" "6/6" "(the paper under the new last line at once)"
   case_ "notes.lua: a start on a day already written (Super+N with no warm window: -c kawa_notes_shown) — the page laid under the new last line, the pen above the floats with paper ahead (the master, 2 Nov)"
   printf '%s\n' '# notes' '' "## $(LC_ALL=C date '+%Y-%m-%d · %a')" '' 'already written today' >"$TMP/w.md"
   eq "$(KAWA_NOTES_WHERE='~/Notes/w.md' nvim --headless -c 'luafile ~/.config/fedokawaii/notes.lua' -c 'lua kawa_notes_shown()' \
     -c 'lua vim.cmd("redraw") local r = -1 for _, m in ipairs(vim.api.nvim_buf_get_extmarks(0, vim.api.nvim_get_namespaces().kawa_rules, 0, -1, { details = true })) do if m[4].virt_lines then r = m[2] end end io.stdout:write(tostring(r == vim.api.nvim_buf_line_count(0) - 1) .. " " .. tostring(vim.fn.winline() <= vim.fn.winheight(0) - 5))' \
     -c 'qa!' -- "$TMP/w.md" 2>/dev/null)" "true true" "(the page under the last line; the pen five rows above the window's foot)"
+  case_ "notes.lua: the page opens on a day's line, never mid-day (the master, 2 Nov) — the latest day that leaves the pen its five rows above: yesterday's when today is short, today's own when today fills them; a today too long for the page: the pen keeps its room below"
+  { echo '# notes'; for i in $(seq 1 30); do printf '\n## 2026-10-%02d · Day\n\nline one of day %s\n' "$i" "$i"; done
+    printf '\n## %s\n\nalready written today\n' "$(LC_ALL=C date '+%Y-%m-%d · %a')"; } >"$TMP/d.md"
+  { cat "$TMP/d.md"; for i in $(seq 1 5); do echo "today, line $i"; done; } >"$TMP/d3.md"
+  { cat "$TMP/d.md"; for i in $(seq 1 40); do echo "today, line $i"; done; } >"$TMP/d2.md"
+  for f in d d3 d2; do
+    KAWA_NOTES_WHERE="~/Notes/$f.md" nvim --headless -c 'luafile ~/.config/fedokawaii/notes.lua' -c 'lua kawa_notes_shown()' \
+      -c 'lua vim.cmd("redraw") io.stdout:write(vim.fn.getline("w0") .. " " .. tostring(vim.fn.winline() > 5) .. " " .. tostring(vim.fn.winline() <= vim.fn.winheight(0) - 5) .. "|")' \
+      -c 'qa!' -- "$TMP/$f.md" 2>/dev/null
+  done >"$TMP/today"
+  today="## $(LC_ALL=C date '+%Y-%m-%d · %a')"
+  eq "$(cut -d'|' -f1 "$TMP/today")" "## 2026-10-30 · Day true true" "(a short today: the page from yesterday's line — got: $(cut -d'|' -f1 "$TMP/today"))"
+  eq "$(cut -d'|' -f2 "$TMP/today")" "$today true true" "(today fills the pen's room: today's line on the first row — got: $(cut -d'|' -f2 "$TMP/today"))"
+  [[ $(cut -d'|' -f3 "$TMP/today") == "today, line "*" true true" ]] && _ok || _no "a long today: the pen with its room, the page inside today — got: $(cut -d'|' -f3 "$TMP/today")"
   case_ "notes.lua: nothing written over the footer while typing (no mode, no keys, no 'written')"
   eq "$(ask '{vim.o.showmode, vim.o.showcmd, vim.o.ruler}')" "{ false, false, false }"
   has "$(ask vim.o.shortmess)" "WFcsS"
@@ -347,10 +371,12 @@ local function marks()
   return table.concat(t, " ")
 end
 local function changed() vim.api.nvim_exec_autocmds("TextChanged", { buffer = 0 }) end
+local function foot() return table.concat(vim.tbl_map(function(w) return vim.api.nvim_buf_get_lines(vim.api.nvim_win_get_buf(w), 0, 1, false)[1] end, vim.tbl_filter(function(w) return vim.api.nvim_win_get_config(w).relative ~= "" end, vim.api.nvim_list_wins())), "") end
+local function at() local r, c = unpack(vim.api.nvim_win_get_cursor(0)); return r .. "," .. c .. " " .. vim.api.nvim_get_mode().mode end
+-- (keys() ends typing when its keys run out, as :normal does: what is seen while typing is taken inside the keys)
+_G.seen = function(label) out(label .. ": " .. vim.fn.fnamemodify(vim.api.nvim_buf_get_name(0), ":t") .. " " .. lines() .. " " .. marks() .. " " .. at() .. " " .. foot()) end
 kawa_notes_shown()
-keys("<Tab>")
-out("first: " .. vim.fn.fnamemodify(vim.api.nvim_buf_get_name(0), ":t") .. " " .. lines() .. " " .. marks())
-keys("Abuy rice<CR>call the bank<Esc>"); changed()
+keys("<Tab><Cmd>lua seen('first')<CR>buy rice<CR>call the bank<Esc>"); changed()
 out("typed: " .. lines() .. " " .. marks())
 keys("<Space>"); changed()
 out("ticked: " .. lines() .. " " .. marks())
@@ -363,10 +389,11 @@ keys("A<CR><CR>"); out("enter on an empty one ends the list: " .. lines() .. " "
 keys("Go<BS>!<Esc>"); out("backspace on an empty one: " .. lines())
 keys("ggA ou<Left><Left><CR><Esc>"); out("enter mid-words: " .. lines())
 out("heading: " .. vim.o.tabline)
-out("footer: " .. table.concat(vim.tbl_map(function(w) return vim.api.nvim_buf_get_lines(vim.api.nvim_win_get_buf(w), 0, 1, false)[1] end, vim.tbl_filter(function(w) return vim.api.nvim_win_get_config(w).relative ~= "" end, vim.api.nvim_list_wins())), ""))
+out("footer: " .. foot())
 local function page() return vim.fn.fnamemodify(vim.api.nvim_buf_get_name(0), ":t") end
 keys("<Tab>"); out("tab: " .. page() .. " at the end: " .. tostring(vim.api.nvim_win_get_cursor(0)[1] == vim.api.nvim_buf_line_count(0)))
-keys("<Esc><Tab>")
+keys("<Esc><Tab><Cmd>lua seen('reopened')<CR>")
+out("left: " .. lines() .. " " .. at() .. " " .. foot())
 keys("A<Tab>"); out("typing on the to-do, tab turns it: " .. page())
 keys("A<Tab>"); local to = page(); keys("<Tab>")
 out("typing on the notes, tab turns it: " .. to .. ", the notes keep no tab: " .. tostring(not lines():find("\t")))
@@ -375,11 +402,11 @@ keys("o"); kawa_notes_hidden()
 TODOLUA
     nvim --headless -n -c 'luafile ~/.config/fedokawaii/notes.lua' -c "luafile $TMP/todo.lua" -c 'qa!' -- "$N" 2>&1
   }
-  case_ "the to-do: tab from the notes (its only way in), the first item ready to type, a box drawn over each item's [ ] (its words two columns after it)"
+  case_ "the to-do: tab from the notes (its only way in) — it opens typing on a fresh item (the first key a word, never a command: the master, 2 Nov), a box drawn over each item's [ ] (its words two columns after it), the footer naming the keys of the moment"
   setup; rm -f "$STUBS/nvim"; config .config/fedokawaii/notes.lua; config .config/nvim/lua/config/clipboard.lua
   stub nvim "exec '$REAL_NVIM' --clean \"\$@\""
   out=$(todo_steps)
-  has "$out" "first: todo.md [ ]  ${ICON_BOX_OFF}KawaIcon+3@0.0" "(empty: one item, its box)"
+  has "$out" "first: todo.md [ ]  ${ICON_BOX_OFF}KawaIcon+3@0.0 1,4 i   ~/Notes/todo.md  ·  esc: the list  ·  tab: the notes" "(empty: one item, its box, typing)"
   has "$out" "typed: [ ] buy rice|[ ] call the bank ${ICON_BOX_OFF}KawaIcon+3@0.0 ${ICON_BOX_OFF}KawaIcon+3@1.0"
   case_ "...space ticks: the box filled and muted, the words muted and struck through (KawaDone); space again unticks"
   has "$out" "ticked: [ ] buy rice|[x] call the bank ${ICON_BOX_OFF}KawaIcon+3@0.0 ${ICON_BOX_ON}KawaMuted+3@1.0 KawaDone@1.4-17"
@@ -396,6 +423,9 @@ TODOLUA
   has "$out" "heading: %#KawaGround#  %#KawaIcon#$ICON_TODO%#KawaGround#  %#KawaName#to-do %#KawaStitch#───"
   has "$out" "footer:   ~/Notes/todo.md  ·  space ticks  ·  tab: the notes"
   has "$out" "tab: notes.md at the end: true" "(the notes again at their end, as they open)"
+  case_ "...with items it opens the same: a fresh one at the end, typing; esc gives the list — the fresh one, left with no words, gone — and the footer's keys change with it"
+  has "$out" "reopened: todo.md [ ] tea|[ ] ou|[x] call the bank!|[ ]  ${ICON_BOX_OFF}KawaIcon+3@0.0 ${ICON_BOX_OFF}KawaIcon+3@1.0 ${ICON_BOX_ON}KawaMuted+3@2.0 KawaDone@2.4-18 ${ICON_BOX_OFF}KawaIcon+3@3.0 4,4 i   ~/Notes/todo.md  ·  esc: the list  ·  tab: the notes"
+  has "$out" "left: [ ] tea|[ ] ou|[x] call the bank! 3,4 n   ~/Notes/todo.md  ·  space ticks  ·  tab: the notes"
   has "$out" "typing on the to-do, tab turns it: notes.md"
   has "$out" "typing on the notes, tab turns it: todo.md, the notes keep no tab: true" "(the notes open typing: a tab there turns the page, never goes into the text)"
   case_ "...saved as you go, an item left empty tidied away as the window goes"

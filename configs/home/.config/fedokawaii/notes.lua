@@ -99,12 +99,15 @@ end
 -- in (the editor's own statusline — lualine — is for code; here it is put away, also after
 -- it loads, and after a theme switch sets it up again)
 local function footer_of(name) return "  " .. name .. "  ·  saved as you go  ·  super+n puts it away" end
-local function todo_footer(name) return "  " .. name .. "  ·  space ticks  ·  tab: the notes" end
+local function todo_footer(name, typing)   -- (the keys of the moment: an item typed, or the list)
+  return "  " .. name .. (typing and "  ·  esc: the list" or "  ·  space ticks") .. "  ·  tab: the notes"
+end
 -- the page's foot (T21: margins that never move): no statusline — the window runs to the last
 -- row, and two floats lie over its last two: a row of paper, then the footer; scrolloff keeps the
 -- pen five rows from the edge — never under the floats, three ruled rows of fresh paper ahead of
 -- it as it goes down the page, however far the page scrolls (the play's frames: T21)
 local foot = {}
+local ROOM = 5                                -- the pen's rows to the window's foot: the floats' two, three of paper
 local function foot_rows(text)
   local function float(i, row, line, hl)
     local f = foot[i] or {}
@@ -126,7 +129,7 @@ local function page_footer()
   pcall(function() require("lualine").hide({ place = { "statusline" }, unhide = false }) end)
   vim.o.laststatus = 0
   vim.o.cmdheight = 0
-  vim.o.scrolloff = 5
+  vim.o.scrolloff = ROOM
   foot_rows(foot_text)
 end
 
@@ -146,6 +149,15 @@ vim.api.nvim_create_autocmd("User", {
 -- margin (where a list row's glyph stands: the margin, the cursor's column, two spaces); long lines wrapped at words. Another file
 -- opened in the window (:e ~/Notes/japan-trip.md) is a page too, its name in the footer
 local notes = vim.api.nvim_get_current_buf()
+-- (the page shows what was typed: no markdown highlighting, so none of its conceal — a "[ ]", a
+-- link's address, "**" stay as written (the master, 2 Nov); tree-sitter's stop brings the old
+-- syntax back, so that goes off after it. Conceal hides a day's "## " alone: the rules' extmark.
+-- Again after a reload — the day's heading written by kawa-notes is one —: the reload's FileType
+-- starts markdown's highlighting anew)
+local function plain(b)
+  pcall(vim.treesitter.stop, b)
+  vim.bo[b].syntax = "OFF"
+end
 local function page()
   local b = vim.api.nvim_get_current_buf()
   if vim.bo[b].buftype ~= "" then return end
@@ -166,11 +178,7 @@ local function page()
   vim.opt_local.fillchars:append({ wbr = " ", eob = " " })   -- (no ~ under the last line: a page ends in paper)
   local name = b == notes and where or vim.fn.fnamemodify(vim.api.nvim_buf_get_name(b), ":~")
   local is_todo = vim.api.nvim_buf_get_name(b) == TODO
-  -- (the page shows what was typed: no markdown highlighting, so none of its conceal — a "[ ]", a
-  -- link's address, "**" stay as written (the master, 2 Nov); tree-sitter's stop brings the old
-  -- syntax back, so that goes off after it. Conceal hides a day's "## " alone: the rules' extmark)
-  pcall(vim.treesitter.stop, b)
-  vim.bo[b].syntax = "OFF"
+  plain(b)
   vim.opt_local.conceallevel = 2
   vim.opt_local.concealcursor = "n"
   -- (the heading in the tabline — the editor's top row, never scrolled — and a blank winbar under
@@ -184,7 +192,7 @@ local function page()
   vim.o.tabline = "%#KawaGround#  %#KawaIcon#" .. icon .. "%#KawaGround#  %#KawaName#" .. word
     .. " %#KawaStitch#" .. string.rep("─", math.max(2, n))
   vim.opt_local.winbar = "%#KawaGround# "
-  foot_text = is_todo and todo_footer(name) or footer_of(name)
+  foot_text = is_todo and todo_footer(name, vim.api.nvim_get_mode().mode:sub(1, 1) == "i") or footer_of(name)
   foot_rows(foot_text)
   -- (LazyVim formats a file on every write when a formatter knows it — the Markdown extra
   -- does: here that would rewrite the page under your fingers, key by key)
@@ -192,23 +200,28 @@ local function page()
 end
 -- the paper's rules (T21, .claude/notes/notes-notebook.md): every line ruled across the whole
 -- row (line_hl_group: wrapped rows too), the page below the last line ruled to its foot
--- (virt_lines, as many as the window has rows); a day's line ("## 2026-11-01 · Sun", as the file
--- keeps it) its date in accent_text, the "## " hidden. The whole page laid again when the count
+-- (virt_lines, as many as the screen has rows — the window's are fewer: never short of paper); a
+-- day's line ("## 2026-11-01 · Sun", as the file keeps it) its date in accent_text, the "## "
+-- hidden. The whole page laid again when the count
 -- of lines changes (14 000 lines take 3.9 ms, measured), else the line typed on alone — a day's
 -- line edited in place keeps its look whole. Laid before the screen is drawn: on each change
 -- (TextChanged/I) and right after the window's own edits (a start's -c precedes TextChanged)
 local rules = vim.api.nvim_create_namespace("kawa_rules")
+local DAY = "^## %d%d%d%d%-%d%d%-%d%d"          -- a day's line, as kawa-notes writes it
 local ruled = {}                              -- buffer → the line count its rules were laid for
 local function lay(b, r, line, last)          -- one line's marks: its rule, a day's date, the page under the last
   vim.api.nvim_buf_set_extmark(b, rules, r, 0, { line_hl_group = "KawaRule" })
-  if line:match("^## %d%d%d%d%-%d%d%-%d%d") then
+  if line:match(DAY) then
     vim.api.nvim_buf_set_extmark(b, rules, r, 0, { end_col = 3, conceal = "" })
     vim.api.nvim_buf_set_extmark(b, rules, r, 3, { end_col = #line, hl_group = "KawaDay", priority = 200 })
   end
   if last then
     local row, below = { { string.rep(" ", vim.o.columns), "KawaRule" } }, {}
     for _ = 1, vim.o.lines do below[#below + 1] = row end
-    vim.api.nvim_buf_set_extmark(b, rules, r, 0, { virt_lines = below })
+    -- (at the line's end: a line opened there takes the paper along within the edit itself —
+    -- held at its start, the new line lay below the old one's paper until the next lay, and
+    -- neovim scrolled to it: the page jumped, its paper drawn as diff filler for two frames)
+    vim.api.nvim_buf_set_extmark(b, rules, r, #line, { virt_lines = below })
   end
 end
 local function rule(b, force)
@@ -229,18 +242,40 @@ end
 -- moved up until the pen has its rows again (the master, 2 Nov: a start on a written day)
 local function pen_room()
   for _ = 1, vim.o.lines do
+    if vim.fn.winline() <= vim.fn.winheight(0) - ROOM then return end   -- (first: the view as it stands)
     local v = vim.fn.winsaveview()
-    if vim.fn.winline() <= vim.fn.winheight(0) - vim.o.scrolloff or v.topline >= v.lnum then return end
+    if v.topline >= v.lnum then return end
     v.topline = v.topline + 1
     vim.fn.winrestview(v)
   end
 end
+-- the page opens on a day's line (the master, 2 Nov: never mid-day): the latest day whose line
+-- leaves the pen its room above it as well (scrolloff keeps ROOM rows on both sides) — today's
+-- own line when today fills that much, else the day before it and so on — on the page's first
+-- row; the pen's room below kept first: a day too long for it opens as the pen needs (pen_room)
+local function on_day()
+  local pen = vim.fn.line(".")
+  local lines = vim.api.nvim_buf_get_lines(0, 0, pen - 1, false)
+  for i = #lines, 1, -1 do
+    if i == 1 or lines[i]:match(DAY) then
+      local above = vim.api.nvim_win_text_height(0, { start_row = i - 1, end_row = pen - 2 }).all
+      if above + 1 > vim.fn.winheight(0) - ROOM then break end
+      if above >= ROOM or i == 1 then vim.fn.winrestview({ topline = i, topfill = 0 }); return end
+    end
+  end
+  pen_room()
+end
 page()
 rule(notes, true)
 vim.api.nvim_create_autocmd("BufWinEnter", { group = group, callback = function(ev) page(); rule(ev.buf, true) end })
+vim.api.nvim_create_autocmd("FileChangedShellPost", { group = group, callback = function(ev) plain(ev.buf); rule(ev.buf, true) end })
 vim.api.nvim_create_autocmd({ "TextChanged", "TextChangedI" }, { group = group, callback = function(ev) rule(ev.buf) end })
 vim.api.nvim_create_autocmd("VimResized", {
-  group = group, callback = function() page(); rule(vim.api.nvim_get_current_buf(), true); pen_room() end,
+  group = group,
+  callback = function()   -- (the pen at the notes' end, as they open: on a day's line again)
+    page(); rule(vim.api.nvim_get_current_buf(), true)
+    if vim.api.nvim_get_current_buf() == notes and vim.fn.line(".") == vim.fn.line("$") then on_day() else pen_room() end
+  end,
 })
 
 -- every change written (`update`: only when there is one) once you pause — a second
@@ -336,10 +371,12 @@ end
 local shown = false                         -- (the window showing)
 local todo_open, todo_tidy                  -- (the to-do's, below)
 local function notes_open()                 -- the page turned back: the notes, typing at their end
+  todo_tidy()
   vim.api.nvim_win_set_buf(0, buf)
   rule(buf)
   local n = vim.api.nvim_buf_line_count(buf)
   vim.api.nvim_win_set_cursor(0, { n, #vim.api.nvim_buf_get_lines(buf, n - 1, n, false)[1] })
+  on_day()
   vim.cmd("startinsert!")
 end
 function _G.kawa_notes_hidden()
@@ -359,7 +396,7 @@ function _G.kawa_notes_shown()
   vim.api.nvim_buf_set_lines(buf, n, n, false, { "" })
   rule(buf)
   vim.api.nvim_win_set_cursor(0, { n + 1, 0 })
-  pen_room()
+  on_day()
   vim.cmd("startinsert!")
   return ""
 end
@@ -369,9 +406,11 @@ end
 -- ~/Notes/todo.md, a line a thing: "[ ] call the bank", "[x] buy rice" (readable anywhere). The
 -- page draws the box over those four characters — on the notes' text column, the words two
 -- columns after it, as a list row's glyph and name stand (docs/design-system.md §7). Tab (not
--- typing) turns from one page to the other; on the to-do: space ticks or unticks, enter adds
--- one under it, typing on an empty one's enter ends the list; dd takes one away. Tab is its only
--- way in (owner, 1 Nov: Super+N alone, never Super+U). Saved as you go, as the notes are.
+-- typing) turns from one page to the other. The to-do opens as the notes do: typing, on a fresh
+-- item at its end (the master, 2 Nov: the first key a word, never a command); esc or an empty
+-- item's enter gives the list — an item left with no words goes —, where space ticks or unticks,
+-- enter adds one under the cursor, dd takes one away. Tab is its only way in (owner, 1 Nov:
+-- Super+N alone, never Super+U). Saved as you go, as the notes are.
 local ns = vim.api.nvim_create_namespace("kawa_todo")
 local todo                                  -- its buffer, once opened
 local ITEM = "^%[([ xX])%] "                -- an item: its box, a space, its words
@@ -398,7 +437,9 @@ local function item_at(row)                 -- the line, and whether it is an it
   return line, line:match(ITEM) ~= nil
 end
 local function new_item(row, words)         -- an item put in after line ROW, typing at its words
-  vim.api.nvim_buf_set_lines(todo, row, row, false, { "[ ] " .. (words or "") })
+  local empty = vim.api.nvim_buf_line_count(todo) == 1 and item_at(1) == ""
+  if empty then row = 0 end                 -- (an empty page: its one line becomes the item)
+  vim.api.nvim_buf_set_lines(todo, row, empty and 1 or row, false, { "[ ] " .. (words or "") })
   if vim.api.nvim_get_mode().mode:sub(1, 1) == "i" then
     vim.api.nvim_win_set_cursor(0, { row + 1, 4 })
   else                                      -- (from the page: typing at its end, after the box)
@@ -469,33 +510,34 @@ todo_open = function()
       return "<BS>"
     end, { buffer = todo, expr = true })
     -- the cursor never on the box: on an item it stays at its words
-    vim.api.nvim_create_autocmd({ "CursorMoved", "CursorMovedI" }, {
-      group = group, buffer = todo,
-      callback = function()
-        local r, c = unpack(vim.api.nvim_win_get_cursor(0))
-        local _, is = item_at(r)
-        if is and c < 4 then vim.api.nvim_win_set_cursor(0, { r, 4 }) end
-      end,
-    })
+    local function off_box()
+      local r, c = unpack(vim.api.nvim_win_get_cursor(0))
+      local _, is = item_at(r)
+      if is and c < 4 then vim.api.nvim_win_set_cursor(0, { r, 4 }) end
+    end
+    vim.api.nvim_create_autocmd({ "CursorMoved", "CursorMovedI" }, { group = group, buffer = todo, callback = off_box })
     vim.api.nvim_create_autocmd({ "TextChanged", "TextChangedI", "BufEnter" }, {
       group = group, buffer = todo, callback = todo_marks,
     })
     vim.keymap.set({ "n", "i" }, "<Tab>", notes_open, { buffer = todo })
+    -- typing ended: an item left with no words goes; the footer names the keys of the moment
+    vim.api.nvim_create_autocmd("InsertLeave", {
+      group = group, buffer = todo, callback = function() todo_tidy(); todo_marks(); rule(todo); off_box() end,
+    })
+    vim.api.nvim_create_autocmd("ModeChanged", {
+      group = group, buffer = todo,
+      callback = function()
+        foot_text = todo_footer(vim.fn.fnamemodify(TODO, ":~"), vim.api.nvim_get_mode().mode:sub(1, 1) == "i")
+        foot_rows(foot_text)
+      end,
+    })
   end
   vim.api.nvim_win_set_buf(0, todo)
+  todo_tidy()
+  new_item(vim.api.nvim_buf_line_count(todo))   -- (a fresh one at the end, typing: as the notes open)
   todo_marks()
-  if vim.api.nvim_buf_line_count(todo) == 1 and vim.api.nvim_buf_get_lines(todo, 0, 1, false)[1] == "" then
-    vim.api.nvim_buf_set_lines(todo, 0, 1, false, { "[ ] " })   -- (nothing yet: the first one, typing)
-    todo_marks()
-    rule(todo)
-    vim.api.nvim_win_set_cursor(0, { 1, 4 })
-    vim.cmd("startinsert!")
-  else
-    vim.cmd("stopinsert")
-    local r = vim.api.nvim_win_get_cursor(0)[1]
-    local _, is = item_at(r)
-    if is then vim.api.nvim_win_set_cursor(0, { r, 4 }) end
-  end
+  rule(todo)
+  vim.cmd("startinsert!")
 end
 -- tab turns the page, typing or not (the notes open typing: a tab there would be typed)
 vim.keymap.set({ "n", "i" }, "<Tab>", function() todo_open() end, { buffer = buf })

@@ -19,6 +19,9 @@ grep -q '^+				urg |= c->tags & TAGMASK;' "$P" && _ok || _no "urg unmasked"
 case_ "a warm window maps floating and parked — shown at once only when its key started it"
 f=$(sed -n '/^ 	c->isfloating |= client_is_float_type(c);/,/^ 	setmon(c, mon, newtags);/p' "$P")   # (applyrules' end)
 has "$f" '+	if (iswarm(c)) {'; has "$f" '+		newtags = WARMTAG;'; has "$f" '+			if (warmpend.want)'
+case_ "...its key's press taken as it MAPS: applyrules runs at its first commit too — taken there, the map found nothing pending and parked it (2 Nov: a cold Super+N showed nothing until a second press; tools/regress/notes-page.sh's cold start)"
+has "$f" '+			if (client_surface(c)->mapped)'
+has "$f" "+				warmpend.name[0] = '\\0';"
 case_ "a warm window is a popup: another window taking the focus parks it, never closes it"
 f=$(fn closepopups); has "$f" '+			if (iswarm(c))'; has "$f" '+				warmhide(c, !keep);'
 has "$(fn ispopup)" '|| iswarm(c)'
