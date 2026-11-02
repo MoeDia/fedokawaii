@@ -748,8 +748,9 @@ def layout_menu(m):
     if m.prompt is not None:
         marks.append(("input", x0, y, w, KEY_H, m.prompt, "◆" * len(m.query) if m.password else m.query))
         # (the line typed on, then a row of air before the first row — as in every text screen,
-        # one blank line between where you type and what it finds)
-        y += KEY_H + SECTION
+        # one blank line between where you type and what it finds; a field alone, a password's,
+        # ends the window: the pad under it as above the title)
+        y += KEY_H + (SECTION if m.lines else 0)
     top = y
     lines = m.lines
     if m.query:                                   # (typing: the choices it finds, under their parts)

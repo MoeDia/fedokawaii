@@ -1158,6 +1158,11 @@ case_ "a menu's title: words alone a quiet note; MARK<tab>words a failure (a wro
 eq "$(py 'print(kp.title_parts("pick one"), kp.title_parts("X\tr.pdf · wrong password"))')" "('', 'pick one') ('X', 'r.pdf · wrong password')"
 eq "$(py 'w = "a long name of a locked file, a report.pdf · wrong password"
 print(kp.Menu([], prompt="P  ", title=w).inner() == kp.Menu([], prompt="P  ", title="X\t" + w).inner())')" True "(the mark takes no width: it stands in the icon column)"
+case_ "a field alone (a password asked): the window ends a pad under it, as above the title — no row of air kept for rows that never come (bug 10's window: 37 px under the field, 22 above the title)"
+eq "$(py 'L = kp.layout_menu(kp.Menu([], prompt="P  ", password=True, title="r.pdf · password"))
+print(L.size[1] - 2 * (kp.BORDER + kp.PAD) - (kp.ROW + kp.GAP) - kp.KEY_H)')" 0 "(the frame, the pads, the title's row and its air, the field: nothing else)"
+eq "$(py 'L = kp.layout_menu(kp.Menu(["row\tx\ta"], prompt="P  ", title="t"))
+print(L.size[1] - 2 * (kp.BORDER + kp.PAD) - (kp.ROW + kp.GAP) - kp.KEY_H - kp.SECTION - kp.ROW)')" 0 "(with rows: the row of air between the field and them stays)"
 case_ "a password asked with --stay (a locked PDF, an archive — bug 10): Enter answers and the window stays; the caller's next page (\"wrong password\") in its place, the field empty, no new window; keys while it waits are not taken; done closes it at once"
 eq "$(py 'fresh(); got = []
 M = lambda t: kp.Menu([], prompt="P  ", password=True, stay=True, title=t)
