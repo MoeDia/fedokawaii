@@ -3470,24 +3470,24 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
 - r27-21-master-5-fix (2 Nov 13:46–13:49, 89345d6): CursorMovedI always FOLLOWS the pen (a typed key is a change); only
   CursorMoved and WinScrolled yield; InsertLeave records the change tick (its TextChanged is a look). Probe: wheel up in
   typing (124 → 121, the pen row 36), then "qr": the text on the pen's line, the view back to 124, row 33. test_notes
-  140/0. OPEN (next pass): SHOULD-FIX 3 — Esc after a wheel up in typing still jumps 121 → 124: it is NEOVIM'S OWN
+  140/0. SHOULD-FIX 3 FIXED 13:50 (decab00, below the original note): Esc after a wheel up in typing jumped 121 → 124 — NEOVIM'S OWN
   scrolloff, applied when Esc validates the cursor (the insert-mode wheel fires no event and leaves the pen on row 36,
   under the floats); our hooks run after it. Way: yield BEFORE that check — on InsertLeave, measure the pen's row with
   nvim_win_text_height (rows from the top line to the cursor's: no validation, unlike winline()) and move the cursor
-  up into the room while the view stays; a row: typing at the foot, a wheel up, Esc → the top line as the wheel left it.
-  Also: the to-do row's pen line after Tab (must-fix 1's ask); the two nits.
+  up into the room while the view stays — BUILT so: probe 124 → 121 (wheel) → 121 (Esc), the pen on row 33; a row (typing
+  at the foot, a wheel up, Esc → "-3 0 | 36 33"), test_notes 141/0, the row FAILS on 89345d6. Left: the to-do row's pen
+  line after Tab (must-fix 1's ask); the two nits (the seen_top comment, its key).
 ## >>> NEXT PASS STARTS HERE (2 Nov, written 13:50 by the 11:03 bulk pass — the lines above say what it did): the inbox first.
 ## (0) PRESENCE: before anything he could see or hear (a reboot, a session restart, a bar restart, a live play, a notice):
 ##     `wpctl status`, `playerctl -a status`, one half-scale grim — not only the swayidle probe (memory
 ##     presence-not-just-input-idle). The 11:03 bulk run was started by hand: assume him at the PC, headless only.
-## (1) T21: verdict 5 FAIL (r27-21-master-5) → must-fix 2 FIXED (89345d6), must-fix 1 fixed earlier (a6809d4); OPEN:
-##     should-fix 3 (Esc after a wheel up in typing — neovim's own scrolloff on Esc: yield on InsertLeave before it, the
-##     pen's row by nvim_win_text_height), the to-do row's pen-line assert, the nits (r27-21-master-5-fix). Then the
-##     master's RE-REVIEW 6 (narrow; archive /dev/shm/r27/master/T21 first — r1–r4 in master-archive, verdicts 1–5 in
-##     .claude/notes/), probing from the foot, in typing and in normal mode. The suite on 7ca416a (13:40, alone):
-##     /dev/shm/r27p/suite-7ca416a.log — it predates 89345d6: a suite on the newest HEAD before any push. Master PASS +
-##     a green suite → push main (GitHub main = e083197 still), then APPLY from the frozen tree when he is away + a
-##     SESSION RESTART (START §4) for the dwl fix, and the panel (bug 10) restarted per memory live-panel-restart.
+## (1) T21: verdict 5's must-fixes and should-fix 3 FIXED (a6809d4, 89345d6, decab00 — r27-21-master-5-fix); left before
+##     the master's RE-REVIEW 6: the to-do row's pen-line assert after Tab, the nits (seen_top's comment and key). Review 6
+##     narrow, probing from the foot in typing and in normal mode (archive /dev/shm/r27/master/T21 first — r1–r4 in
+##     master-archive, verdicts 1–5 in .claude/notes/). A suite on the newest HEAD before any push (the one on 7ca416a,
+##     /dev/shm/r27p/suite-7ca416a.log, predates these). Master PASS + a green suite → push main (GitHub main = e083197
+##     still), then APPLY from the frozen tree when he is away + a SESSION RESTART (START §4) for the dwl fix, and the
+##     panel (bug 10) restarted per memory live-panel-restart.
 ## (2) THE KERNEL TRIAL (since 1 Nov 14:43, 7.2.13, snapshot 381 pinned): closes at the next start — only when he is
 ##     away, START §4's reboot way; then read fedokawaii-boot-good's journal — ledger r27-49-B3. Can go with (1)'s restart.
 ## (3) T46/T46b (F45 out Tue 3 Nov): after the release — vm-create f45 fresh from the released tree, vm-smoke f45, then
