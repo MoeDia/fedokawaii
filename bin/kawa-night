@@ -2,7 +2,7 @@
 # kawa-night — the night light: the screens' colour warmed, by gammastep, exactly as you set it
 # — on or off, and how warm — all day and all night: it never follows the sun by itself. What
 # you set is kept (~/.local/state/fedokawaii/night: "on 4000" or "off 4000"), so the next
-# login finds it as you left it (autostart: kawa-night restore). Quick settings' 灯 tile: a
+# login finds it as you left it (autostart: kawa-night restore). Quick settings' night-light hour: a
 # click turns it on or off, the wheel over it makes it warmer or cooler (and on).
 #   kawa-night            how it stands: "off", or its warmth ("4000K")
 #   kawa-night toggle     on ⇄ off (the warmth kept)

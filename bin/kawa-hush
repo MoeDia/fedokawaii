@@ -55,7 +55,7 @@ if [[ $how == tell ]]; then
   . "$HOME/.config/fedokawaii/width.sh"
   act=$(notify-send -a notices -A default=list -- "$ICON_BELL  $what $when" "click: what they were") || exit 0
   [[ $act == default ]] || exit 0
-  # (報 and when, then an info row a notice — its title, its app right-aligned: nothing in it
+  # (the bell, struck through, and when, then an info row a notice — its title, its app right-aligned: nothing in it
   # to choose, a notice gone by is only read)
   rows=("$(printf 'part\t%s\t%s' "$ICON_BELL_OFF" "$when")")
   for h in "${held[@]}"; do

@@ -631,12 +631,12 @@ copied, or opens a file dialog if nothing is. Only the parts that fit your files
 
 | Part | Does |
 |---|---|
-| 解 unpack | extract here · into a folder · list its contents · test it (zip, 7z, tar.*, rar, iso …) |
-| 紙 pages | merge into one PDF (PDFs and pictures) · split · take some pages (`3-7,10`) · rotate · reorder · delete pages |
-| 抜 take out | its pictures · its text · pages as pictures |
-| 変 change | make a scan searchable · make it smaller (Super+Z's sizes) · lock with a password · unlock |
-| 署 sign | write or draw on it · sign by hand · draw your signature once, then stamp it · check digital signatures |
-| 包 pack | zip (opens anywhere) · 7z (smaller) · tar.zst, with a password if you want; then the compression: fast, balanced, smallest |
+| unpack | extract here · into a folder · list its contents · test it (zip, 7z, tar.*, rar, iso …) |
+| pages | merge into one PDF (PDFs and pictures) · split · take some pages (`3-7,10`) · rotate · reorder · delete pages |
+| take out | its pictures · its text · pages as pictures |
+| change | make a scan searchable · make it smaller (Super+Z's sizes) · lock with a password · unlock |
+| sign | write or draw on it · sign by hand · draw your signature once, then stamp it · check digital signatures |
+| pack | zip (opens anywhere) · 7z (smaller) · tar.zst, with a password if you want; then the compression: fast, balanced, smallest |
 
 The result goes next to the original, named for what was done (`report-merged.pdf`,
 `report.pages-3-7.pdf`, `photos.zip`) — nothing is ever overwritten — and its path is copied to
@@ -677,7 +677,7 @@ seconds while you open something private, resume, and stop.
 *Expected:* the bar shows the pause mark while paused, then the dot and 3 · 2 · 1; the file plays straight through,
 without the private part.
 
-**6.7 ★★ One PDF from three.** Copy three PDFs (or pictures) in yazi, **Super+D** → 紙 *pages* →
+**6.7 ★★ One PDF from three.** Copy three PDFs (or pictures) in yazi, **Super+D** → *pages* →
 *merge into one PDF*, in the order you chose them. Then take pages `1-2` out of the result.
 
 *Expected:* `…-merged.pdf` next to the first file, then `…-merged.pages-1-2.pdf`; each path was on

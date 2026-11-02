@@ -209,7 +209,7 @@ unset 'ini[4]'
 export FZF_DEFAULT_OPTS_FILE=$HOME/.config/fedokawaii/fzf.opts; unset FZF_DEFAULT_OPTS
 self=$(printf '%q' "$0")
 # A text screen (docs/design-system.md §7, screen.sh), as wide as the terminal it is in (a tile:
-# any width, read again for each screen): the heading — 共, its name, the stitch — a blank
+# any width, read again for each screen): the heading — the two together, its name, the stitch — a blank
 # line, the rows, the keys. W: the rows' width
 W=0
 width() { W=$(screen_width) || say "no terminal to draw the form in"; }

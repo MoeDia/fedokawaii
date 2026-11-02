@@ -12,21 +12,21 @@
 #   kawa-file --list ARCHIVE  an archive's contents as a text screen (the menu's "list" opens
 #                             it in a window of its own)
 #
-# The menu (kawa-menu, the panel's line format), each part under its kanji:
-#   解 unpack    an archive (zip, 7z, rar, tar.gz/xz/bz2/zst, gz, xz, bz2, zst, iso, cbz/cbr/cb7):
+# The menu (kawa-menu, the panel's line format), each part under its icon:
+#   unpack      an archive (zip, 7z, rar, tar.gz/xz/bz2/zst, gz, xz, bz2, zst, iso, cbz/cbr/cb7):
 #                extract here · into a folder named after it · list its contents · test it.
 #                A locked one asks its password (typed hidden, handed to 7z or unrar on stdin);
 #                a wrong one is said where it was typed, and asked again (Esc: nothing done)
-#   紙 pages     merge PDFs and pictures into one PDF, in an order you choose · split into
+#   pages       merge PDFs and pictures into one PDF, in an order you choose · split into
 #                single pages · take some pages ("3-7,10") · rotate · reorder · delete pages
-#   抜 take out  its pictures (pdfimages) · its text (pdftotext) · its pages as PNG, 150 or 300 dpi
-#   変 change    make a scan searchable (tesseract, English and Arabic) · smaller (kawa-shrink's
+#   take out    its pictures (pdfimages) · its text (pdftotext) · its pages as PNG, 150 or 300 dpi
+#   change      make a scan searchable (tesseract, English and Arabic) · smaller (kawa-shrink's
 #                menu) · lock with a password · unlock (qpdf; the password on stdin; a wrong one
 #                asked again in place)
-#   署 sign      write or draw on it · sign by hand (Xournal++, on a copy) · draw your signature
+#   sign        write or draw on it · sign by hand (Xournal++, on a copy) · draw your signature
 #                once (kept in ~/.local/share/fedokawaii/signature.png) · stamp it on a page's
 #                corner · check its digital signatures (pdfsig)
-#   包 pack      anything chosen into .zip (to share), .7z or .tar.zst, zip and 7z with a
+#   pack        anything chosen into .zip (to share), .7z or .tar.zst, zip and 7z with a
 #                password too (AES-256; 7z hides the names as well); then the compression: fast,
 #                balanced, smallest or a level you type — the last one per format remembered
 #                (kawa-state: pack-zip, pack-7z, pack-zst)

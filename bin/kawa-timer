@@ -152,7 +152,7 @@ bar() {
 
 # ── the menu ────────────────────────────────────────────────────────────────────
 menu() {
-  # in the panel's line format (kawa-menu; docs/design-system.md): 時 timer, the one running
+  # in the panel's line format (kawa-menu; docs/design-system.md): the hourglass, timer, the one running
   # at the heading's end ("04:05 left", "stopwatch 1:02:03"); a row a length (" 5 min",
   # "10 min": the figures right-aligned, the font is monospaced), the stopwatch, and cancel
   # while one runs

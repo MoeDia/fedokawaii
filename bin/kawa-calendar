@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # kawa-calendar — click the date (or Super+C): this month as a dropdown, a grid of the panel's
-# (kawa-menu; docs/design-system.md): 暦 and the month, the weekdays, six weeks of days —
+# (kawa-menu; docs/design-system.md): the calendar icon and the month, the weekdays, six weeks of days —
 # today stamped, the days of the months either side dim — and three keys under it: previous,
 # next, today — paged in place, the same window redrawn at once (kawa-menu --stay). Paging
 # keeps the cursor on the key that paged; Esc or a click elsewhere closes

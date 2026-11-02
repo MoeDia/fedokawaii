@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # kawa-git — "Git" in the launcher: your repositories, the one you worked in last at the top;
-# Enter opens lazygit in it. A text screen (docs/design-system.md §7): 庫 repositories, a row
+# Enter opens lazygit in it. A text screen (docs/design-system.md §7): the branch, repositories, a row
 # each — its folder, its branch right-aligned — type to filter, Esc closes.
 # A repository is a folder with a .git in it, in ~/repos (three levels down) or your home
 # (three levels, not in hidden folders), found with fd; "last" is when git last touched it

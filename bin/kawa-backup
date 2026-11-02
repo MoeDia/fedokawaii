@@ -254,7 +254,7 @@ pick_target() {   # → 0 saved (and read again) · 4 nothing to pick, or none p
     seen[$label]=1; rows+=("$label"$'\t'"$size $fs${folder:+ · open}")
   done < <(kawa-drives list 2>/dev/null)
   # A text screen (docs/design-system.md §7, screen.sh), in whatever terminal this runs in (the
-  # backup window, or yours): the heading — 盤, back up to, the stitch — what the choice is
+  # backup window, or yours): the heading — the drive, back up to, the stitch — what the choice is
   # for, the drives (each its glyph and name, its size and file system right-aligned), the
   # keys. Heading and rows are drawn as fzf starts, at the terminal's width (fzf has not said
   # its own yet), and again at every resize (--drive-rows: from KAWA_BACKUP_DRIVES, the rows here)

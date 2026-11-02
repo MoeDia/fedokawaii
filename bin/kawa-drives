@@ -377,9 +377,9 @@ watch() {   # udisks' own events → the bar and ~/Drives, within a moment of ea
 }
 
 menu() {   # the drives' dropdown; the cursor's first key on the first drive
-  # in the panel's line format (kawa-menu; docs/design-system.md): 盤 drives — a row a file
+  # in the panel's line format (kawa-menu; docs/design-system.md): the drive, drives — a row a file
   # system: its name, open or closed in a column of its own, its size right-aligned (an open
-  # one lit) —, then 出 eject: a row a drive, by the name of its first file system
+  # one lit) —, then the eject icon, eject: a row a drive, by the name of its first file system
   local dev disk label size fs folder i
   local -a rows=() acts=() order=()
   local -A named=()

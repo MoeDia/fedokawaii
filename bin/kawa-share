@@ -85,7 +85,7 @@ while read -r name wh; do size[$name]=$wh; done < <(wlr-randr 2>/dev/null | awk 
   /^    [0-9]+x[0-9]+ px.*current/ { split($1, d, "x"); print out, d[1] "×" d[2] }')
 
 cut40() { cut_cols "$1" 40; }   # cut40 TEXT — TEXT in at most 40 columns of the menu (width.sh)
-# in the panel's line format (kawa-menu; docs/design-system.md): 共 share what?, a row a screen
+# in the panel's line format (kawa-menu; docs/design-system.md): the link, share what?, a row a screen
 # (its name, its current size right-aligned) or a window (its title); line N + 1 is lines[N]
 rows=()
 line() { local IFS=$'\t'; rows+=("$*"); }

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # kawa-power — Super+Shift+E (or "power" in quick settings): lock, sleep, log out,
-# restart, shut down. A small centred menu: 電 power and the uptime over a row a choice, each
+# restart, shut down. A small centred menu: the power icon and the uptime over a row a choice, each
 # with its own pixel icon. Esc cancels (--help: this text).
 #   kawa-power         the menu
 #   kawa-power sleep   locked, then asleep, with no menu (a keyboard's Sleep key)
@@ -40,7 +40,7 @@ case ${1:-} in
   -h|--help) sed -n '2,/^set -u/{/^set -u/d;s/^# \{0,1\}//;p}' "$0"; exit 0 ;;
   *) echo "usage: kawa-power [sleep]" >&2; exit 2 ;;
 esac
-# the menu (kawa-menu, the panel's line format: docs/design-system.md): 電 power, how long the
+# the menu (kawa-menu, the panel's line format: docs/design-system.md): the power icon, how long the
 # machine has been up at the heading's end — "up 03h 07m", "up 04d 03h", "up 15w 02d" — then a
 # row a choice, its icon and its name; the cursor's first key lands on lock
 read -r up _ </proc/uptime; up=${up%.*}

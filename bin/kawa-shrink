@@ -105,9 +105,9 @@ what="${#pics[@]} picture$( ((${#pics[@]} != 1)) && echo s)"
 ((${#pdfs[@]})) && what="$( ((${#pics[@]})) && echo "$what, ")${#pdfs[@]} PDF$( ((${#pdfs[@]} != 1)) && echo s)"
 
 # ── the choice ──────────────────────────────────────────────────────────────────────────
-# in the panel's line format (kawa-menu; docs/design-system.md): 縮 shrink, what was copied and
+# in the panel's line format (kawa-menu; docs/design-system.md): the shrink icon, what was copied and
 # its size at the heading's end; a row a choice, what it aims at in a column of its own; the
-# kinds under 形 (form), a PDF's under 紙 (paper)
+# kinds under the convert icon, a PDF's under the pages icon
 rows=() acts=()
 line() { local IFS=$'\t'; rows+=("$*"); }
 row() { local a=$1; shift; line row "$@"; acts+=("$a"); }

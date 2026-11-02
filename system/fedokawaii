@@ -1139,7 +1139,7 @@ freesync() {   # FreeSync as the card has it this moment (kawa-display --vrr: DR
       echo "FreeSync: $name — offered, off this moment · setting: $say"
     fi
   done <<<"$l"
-  echo "(the card's own state, this moment. In a game, full screen: Super+X — quick settings' 滑 tile reads \"games · on\" — and a monitor whose menu shows the refresh rate shows the game's frame rate there, not 144: FreeSync at work)"
+  echo "(the card's own state, this moment. In a game, full screen: Super+X — quick settings' FreeSync reads \"games · on\" — and a monitor whose menu shows the refresh rate shows the game's frame rate there, not 144: FreeSync at work)"
   grep -q $'\tyes\t' <<<"$l" || [[ $s == off ]]
 }
 snapshots() {   # the snapshots of / — read from the disk by kawa-snap, as root, so the list is
