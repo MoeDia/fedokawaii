@@ -356,8 +356,19 @@ content, inside its margin of one cell:
   and `read-off`, 6 × 10 on the cell's 8 px pitch — the panel's meter in characters) — done
   solid in `accent_text` (`muted` once complete), to do hollow in `edge2`; the cursor's row
   strips the inks, the shapes still say it. Nothing yet: no meter at all.
-- **Cursor**: the row's cells filled `accent` from the margin column to the margin column, its
-  inks `text_on_accent`.
+- **Cursor**: the row's cells filled `select` (the lacquer, §4) from the cursor's column to the
+  one beyond the content, its inks `text_on_select` — every ink, the row's own colours stripped
+  (fzf's `bg+ 24`, `fg+ 25`, `:strip`).
+- **Files** (yazi, Super+E, and the file dialog): the heading — the folder icon, the folder's
+  path in `strong` (the dialog: its name in `strong`, then the folder `muted`), the rule — and a
+  blank row; then the panes, each its own column of rows on this grid, one free column after
+  each rail (`edge2`). The cursor's row as above; a place in another folder — the one you are
+  in, in the parent column, and where you would land, in the preview's — a band of `edge`, its
+  words `strong`. At rest a row keeps its kind's colour (folders `ansi4`, bold). The footer: the
+  hovered file's facts, `muted` — its size, its permissions — from column 0, its place in the
+  list at the right, ending where the heading's rule does; the mode's word only when it is not
+  the usual one; a narrow window drops the permissions, then the size. The dialog's last line
+  is its own keys instead.
 - **Tabs** (a screen of several sections: Super+U): three lines heading the list, at a
   heading's column (one cell out from the rows, §3 indent) — the tabs, the line under the one
   shown, a row of paper. The tab shown: its icon in `accent_text`, two columns, its name in

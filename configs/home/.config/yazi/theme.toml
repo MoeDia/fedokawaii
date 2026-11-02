@@ -1,12 +1,14 @@
 # ~/.config/yazi/theme.toml — yazi (Super+E) in the desktop's colours. Every colour is one
-# of the terminal's 16, by name, so it is foot's palette: an open yazi switches with the
-# dark and light theme exactly like the shell, bat and the code previews (yazi's built-in
-# "ansi" highlighting, used while syntect_theme is empty).
-#   black = the selection ink · red = vermilion · lightcyan = asagi · darkgray = rules
+# of the terminal's, by name or by its number in foot's palette, so an open yazi switches
+# with the dark and light theme exactly like the shell, bat and the code previews (yazi's
+# built-in "ansi" highlighting, used while syntect_theme is empty). The design system's roles
+# are foot's 18–25 (tools/build-themes.py): 18 edge · 19 edge2 · 20 accent_text · 21 muted ·
+# 22 faint · 23 strong · 24 select (the lacquer) · 25 text_on_select — as fzf's colours.
+#   red = vermilion · lightcyan = asagi
 # For yazi 26.x (sections [mgr], [pick], [cmp]); yazi names any key it does not know.
 
 [mgr]
-cwd            = { fg = "white", bold = true }
+cwd            = { fg = "23" }
 find_keyword   = { fg = "lightred", bold = true, underline = true }
 find_position  = { fg = "lightcyan", bg = "reset", bold = true }
 symlink_target = { fg = "darkgray", italic = true }
@@ -19,7 +21,7 @@ count_copied   = { fg = "black", bg = "green" }
 count_cut      = { fg = "black", bg = "red" }
 count_selected = { fg = "black", bg = "yellow" }
 border_symbol = "│"
-border_style  = { fg = "darkgray" }
+border_style  = { fg = "19" }
 syntect_theme = ""
 
 # tabs and the mode badge are lit keys, like the bar's: vermilion in normal mode, asagi
@@ -40,13 +42,16 @@ select_alt  = { fg = "darkgray" }
 unset_main  = { fg = "yellow" }
 unset_alt   = { fg = "darkgray" }
 
-# the row under the cursor: the selection ink behind it; the file keeps its own colour.
+# the row under the cursor: the lacquer, every ink on it text_on_select (§4: what is selected),
+# as fzf's cursor; a place in another folder — the one you are in, in the parent column, and
+# where you would land in the preview's — the edge behind it, quiet, its words strong (the
+# kinds' colours stay on the rows at rest: on a band, a folder's blue falls under 4.5 : 1).
 # padding: the bar's first and last cells, drawn in the bar's colour — a full block keeps the
 # row's name in the same column as its neighbours' ("" would pull it one column left)
 [indicator]
-parent  = { bg = "black" }
-current = { bg = "black", bold = true }
-preview = { underline = true }
+parent  = { bg = "18", fg = "23" }
+current = { bg = "24", fg = "25" }
+preview = { bg = "18", fg = "23" }
 padding = { open = "█", close = "█" }
 
 [status]
@@ -95,7 +100,7 @@ title_error = { fg = "red" }
 
 [pick]
 border   = { fg = "gray" }
-active   = { fg = "lightred", bold = true }
+active   = { bg = "24", fg = "25" }
 inactive = {}
 
 [input]
@@ -106,19 +111,19 @@ selected = { bg = "black" }
 
 [cmp]
 border   = { fg = "gray" }
-active   = { bg = "black", bold = true }
+active   = { bg = "24", fg = "25" }
 inactive = {}
 
 [tasks]
 border  = { fg = "gray" }
 title   = { fg = "white" }
-hovered = { fg = "lightred", bold = true }
+hovered = { bg = "24", fg = "25" }
 
 [help]
 border  = { fg = "gray" }
 chord   = { fg = "lightcyan" }
 action  = {}
-hovered = { bg = "black", bold = true }
+hovered = { bg = "24", fg = "25" }
 
 # file names by kind; folders in blue, like ls
 [filetype]

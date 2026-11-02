@@ -74,12 +74,15 @@ EOF
 case_ "yazi starts with the desktop's config: no error, no warning"
 has "$out" "a.txt"
 lacks "$out" "rror"; lacks "$out" "arning"; lacks "$out" "eprecated"
-case_ "init.lua's frame: one free column at the left of the header and of the status line"
-head1=$(sed -n 1p <<<"$out"); tail1=$(sed -n 30p <<<"$out")
-eq "${head1:0:1}" " " "the header"
+case_ "init.lua's frame (§7's grid): the heading at column 0 (two free columns: the margin, the cursor's) — the folder icon, the path, the rule — a blank row under it; rows' icons at column 1; the footer's facts from column 0, no mode's word in the usual mode, the place in the list at its right end"
+head1=$(sed -n 1p <<<"$out"); row3=$(sed -n 3p <<<"$out"); tail1=$(sed -n 30p <<<"$out")
 # shellcheck disable=SC2088  # (the ~ yazi shows, not one to expand)
-has "$head1" "~/work"
-eq "${tail1:0:2}" "  " "the status line (a free column, then the mode's key)"; has "$tail1" "NOR"
+has "$head1" "  $(printf "\363\276\200\261")  ~/work ─" "the heading: two columns in, the icon, two columns, the path, the rule"
+eq "$(sed -n 2p <<<"$out" | tr -d ' ')" "" "(the blank row under the heading)"
+eq "${row3:0:3}" "   " "(the rows: the margin, the cursor's column, column 0 — the icon at column 1)"
+eq "${tail1:0:2}" "  " "the footer, at column 0"; lacks "$tail1" "NOR"; [[ $tail1 == *" 1/8" ]] && _ok || _no "the footer's end: $tail1"
+eq "$(python3 -I -B -c 'import sys; sys.path.insert(0, sys.argv[1]); import drive
+print(sum(drive.width(c) for c in sys.stdin.read().rstrip("\n")))' "$D" <<<"$tail1")" 98 "(the place in the list two columns short of the edge, as the heading's rule)"
 
 # ── Enter: smart-enter.yazi ──────────────────────────────────────────────────────────────
 case_ "Enter on a folder goes into it (yazi's own Enter would open it in the editor)"
@@ -629,7 +632,7 @@ EOF
 head1=$(sed -n 1p <<<"$out")
 has "$head1" "$(printf "\363\276\200\261")  open file  " "the icon, two columns, the name (§7)"; lacks "$head1" "…"; has "$head1" "/مجلد ─"
 eq "$(python3 -I -B -c 'import sys; sys.path.insert(0, sys.argv[1]); import drive
-print(sum(drive.width(c) for c in sys.stdin.read().rstrip("\n")))' "$D" <<<"$head1")" 99 "(the title rule: the window less its free column)"
+print(sum(drive.width(c) for c in sys.stdin.read().rstrip("\n")))' "$D" <<<"$head1")" 98 "(the title rule: two columns short of the window's edge, as it begins)"
 
 # ── the panes by the window's size (init.lua): every tile of a 1080-p screen ─────────────
 # panes — what a screen shows of the layout: the columns of the rails (│) on its third row,
@@ -656,8 +659,8 @@ EOF
 )
   eq "$(panes <<<"$out")" "$want" "$out"
 done
-case_ "yazi's status line in a narrow window: one line, what does not fit gone (permissions, then the size), the name and the position kept"
-out=$(y 34x14 <<'EOF'
+case_ "yazi's footer in a narrow window: one line, what does not fit gone (the permissions, then the size), the place in the list kept"
+out=$(y 24x14 <<'EOF'
 wait a.txt
 settle
 screen
@@ -665,9 +668,9 @@ quit
 EOF
 )
 st=$(sed -n 14p <<<"$out")
-has "$st" "NOR"; lacks "$st" "rw"; has "$st" "/8"
+lacks "$st" "rw"; has "$st" "/8"
 eq "$(python3 -I -B -c 'import sys; sys.path.insert(0, sys.argv[1]); import drive
-print(sum(drive.width(c) for c in sys.stdin.read().rstrip("\n")) <= 34)' "$D" <<<"$st")" True "$st"
+print(sum(drive.width(c) for c in sys.stdin.read().rstrip("\n")) <= 24)' "$D" <<<"$st")" True "$st"
 case_ "yazi follows its window as it is resized (a window opened or closed beside it): the panes chosen again each time"
 out=$(y 156x40 <<'EOF'
 wait a.txt

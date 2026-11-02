@@ -105,6 +105,26 @@ def term_pairs(m):
             ("every menu (fzf)", "the letters matched, at rest", ink("hl", fg), bg, ICON)]
 
 
+YAZI_NAMES = ("black", "red", "green", "yellow", "blue", "magenta", "cyan", "gray", "darkgray", "lightred",
+              "lightgreen", "lightyellow", "lightblue", "lightmagenta", "lightcyan", "white")
+
+
+def yazi_pairs(m):
+    """The files (yazi, theme.toml): its colours are foot's slots, by name or number — the row under
+    the cursor, and a place in another folder (the parent's, the preview's) under a folder's name."""
+    pal, fg, bg = foot_colours(m)
+    def slot(v):
+        return pal[int(v)] if v.isdigit() else pal[YAZI_NAMES.index(v)]
+    ind = dict(re.findall(r'^(\w+)\s*=\s*\{([^}]*)\}', (HOME / ".config/yazi/theme.toml").read_text().split("[indicator]")[1].split("\n[")[0], re.M))
+    def ink(name, key, default):
+        v = re.search(key + r'\s*=\s*"(\w+)"', ind[name])
+        return slot(v.group(1)) if v else default
+    folder = slot(re.search(r'\{ url = "\*/", fg = "(\w+)"', (HOME / ".config/yazi/theme.toml").read_text()).group(1))
+    return [("files (yazi)", "the row under the cursor: its words", ink("current", "fg", fg), ink("current", "bg", bg), WORDS),
+            ("files (yazi)", "the folder you are in (the parent's place): its name", ink("parent", "fg", folder), ink("parent", "bg", bg), WORDS),
+            ("files (yazi)", "where you would land (the preview's place): its name", ink("preview", "fg", folder), ink("preview", "bg", bg), WORDS)]
+
+
 def panel_pairs(m):
     """quick settings: kawa-panel draws with panel.conf's colours by name — the names its look()
     gives the item under the cursor (tests/static/test_contrast.sh holds kawa-panel to them)."""
@@ -155,7 +175,7 @@ def app_pairs(m):
 def rows():
     out = []
     for m in ("dark", "light"):
-        for surface, state, fg, bg, need in (term_pairs(m) + panel_pairs(m) + css_pairs(m) + qt_pairs(m) + app_pairs(m)):
+        for surface, state, fg, bg, need in (term_pairs(m) + yazi_pairs(m) + panel_pairs(m) + css_pairs(m) + qt_pairs(m) + app_pairs(m)):
             out.append((m, surface, state, fg, bg, contrast(fg, bg), need))
     return out
 
@@ -165,7 +185,7 @@ def main():
     if "--apca" in sys.argv:
         under = 0
         for m in ("dark", "light"):
-            for surface, state, fg, bg, need in (role_pairs(m) + term_pairs(m) + panel_pairs(m) + css_pairs(m) + qt_pairs(m) + app_pairs(m)):
+            for surface, state, fg, bg, need in (role_pairs(m) + term_pairs(m) + yazi_pairs(m) + panel_pairs(m) + css_pairs(m) + qt_pairs(m) + app_pairs(m)):
                 lc, want = apca(fg, bg), APCA_NEED.get(need, need)
                 mark = "◇" if state in APCA_KEPT else "✘" if lc < want else "✔"
                 under += mark == "✘"

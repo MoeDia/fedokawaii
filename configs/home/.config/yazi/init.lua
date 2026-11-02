@@ -22,24 +22,45 @@ local function cut(s, max, from_end)
 	return table.concat(keep)
 end
 function Entity:ellipsis() return "" end
-function Header:cwd()
-	local max = self._area.w - self._right_width
-	if max <= 0 then return "" end
-	local s = ya.readable_path(tostring(self._current.cwd)) .. self:flags()
-	return ui.Span(cut(s, max, true)):style(th.mgr.cwd)
-end
 
--- Every row keeps one free column at each side, as the panes already do (yazi leaves one
--- left of the parent column and one right of the preview) and as the pop-ups do (fzf
--- --margin=0,1): the header and the status line get theirs here. (The tab bar gets its
--- column from theme.toml's [tabs] sep_outer; the header's count of selected files already
--- ends one column short of the edge.)
+-- ── the grid of every text screen (docs/design-system.md §7) ──────────────────────────
+-- A heading on the first row, a blank row under it, the panes, the footer on the last row.
+-- Across: the margin and the cursor's column (the lacquer of the cursor's row starts there),
+-- then a heading's icon at column 0, rows' icons at column 1, their names at column 4; the
+-- heading's rule and the footer's right end two columns short of the edge, as they begin.
+local root_layout = Root.layout
+function Root:layout(...)
+	root_layout(self, ...)
+	local c = self._chunks
+	if c and #c == 4 and c[1].h == 1 and c[3].h > 1 then
+		self._chunks = { c[1] { h = 2 }, c[2] { y = c[2].y + 1 }, c[3] { y = c[3].y + 1, h = c[3].h - 1 }, c[4] }
+	end
+end
 local header_new = Header.new
 function Header:new(area, ...)
-	return header_new(self, area and area:pad(ui.Pad(0, 0, 0, 1)) or area, ...)
+	return header_new(self, area and area:pad(ui.Pad(0, 2, 0, 2)) or area, ...)
 end
-Status:children_add(function() return " " end, 0, Status.LEFT)
-Status:children_add(function() return " " end, 9000, Status.RIGHT)
+Entity:children_add(function() return " " end, 1500) -- (the cell between the cursor's column and the icon)
+
+-- The heading: the folder icon in accent_text, two columns, NAME in strong — then, the file
+-- dialog's, the folder it is in, muted — a space and the rule (─, edge2) to its end. A folder
+-- too long loses its start, nothing in its place; two stitches at least stay.
+local FOLDER = "\243\190\128\177" -- Sumi Icons: folder (U+FE031), as in icons.sh
+local function heading(self, name, place)
+	local room = self._area.w - (self._right_width or 0)
+	local head = ui.Line { ui.Span(FOLDER):fg("20"), ui.Span("  ") }
+	local tail = place and cut(place, math.max(0, room - head:width() - ui.Line { name }:width() - 5), true)
+	if place then
+		head = ui.Line { head, ui.Span(name):fg("23"), ui.Span("  " .. tail .. " "):fg("21") }
+	else
+		head = ui.Line { head, ui.Span(cut(name, math.max(0, room - head:width() - 3), true) .. " "):fg("23") }
+	end
+	return ui.Line { head, ui.Span(string.rep("─", math.max(0, room - head:width()))):style(th.mgr.border_style) }
+end
+Header:children_remove(1, Header.LEFT) -- (the bare path)
+local HEAD = Header:children_add(function(self)
+	return heading(self, ya.readable_path(tostring(self._current.cwd)) .. self:flags())
+end, 1000, Header.LEFT)
 
 -- The panes by the window's size, chosen again whenever it changes (a tiled window does,
 -- each time a window opens or closes beside it). Wide, the preview gets the most room; in
@@ -128,40 +149,37 @@ function Rails:build(...)
 	}
 end
 
--- A narrow window keeps its status line on one line: what it cannot hold goes, the least
--- needed first — the permissions, the size, the percentage — and the file's name is cut
--- to the room left (its end goes).
-local DROP = { 4, 2, 5 } -- yazi's ids: perm, length, percent
-function Status:children_redraw(side)
-	local lines = {}
-	for _, c in ipairs(side == self.RIGHT and self._right or self._left) do
-		if not (self._skip and self._skip[c.id]) then
-			lines[#lines + 1] = (type(c[1]) == "string" and self[c[1]] or c[1])(self)
+-- The footer: the hovered file's facts, muted — its size, its permissions — from column 0, its
+-- place in the list at the right; the mode's word only when it is not the usual one (select,
+-- unset), in its colour. Never the obvious (its name is on the cursor's row). A narrow window
+-- keeps it on one line: the permissions go first, then the size.
+local SEP = "  ·  "
+for id = 1, 6 do Status:children_remove(id, id <= 3 and Status.LEFT or Status.RIGHT) end
+local function place(self)
+	local n = #self._current.files
+	return string.format("%d/%d", math.min(self._current.cursor + 1, n), n)
+end
+local FACTS = Status:children_add(function(self)
+	local h, m, parts = self._current.hovered, self._tab.mode, {}
+	if m.is_select or m.is_unset then parts[#parts + 1] = tostring(m) end
+	if h then
+		parts[#parts + 1] = ya.readable_size(h.cha.len or 0)
+		parts[#parts + 1] = h.cha:perm() or ""
+	end
+	-- (spans afresh for each try: a line takes the spans it is made of)
+	local function line()
+		local t = { ui.Span("  ") }
+		for i, p in ipairs(parts) do
+			if i > 1 then t[#t + 1] = ui.Span(SEP):fg("21") end
+			t[#t + 1] = (i == 1 and p == tostring(m)) and ui.Span(p):style(self:style().main) or ui.Span(p):fg("21")
 		end
+		return ui.Line(t)
 	end
-	return ui.Line(lines)
-end
-local status_name, status_redraw = Status.name, Status.redraw
-function Status:name()
-	local s = status_name(self)
-	if self._room and type(s) == "string" then
-		return cut(s, math.max(0, self._room))
-	end
-	return s
-end
-function Status:redraw()
-	self._skip, self._room = {}, nil
-	local function wide() return self:children_redraw(self.LEFT):width() + self:children_redraw(self.RIGHT):width() end
-	for _, id in ipairs(DROP) do
-		if wide() <= self._area.w then break end
-		self._skip[id] = true
-	end
-	local over = wide() - self._area.w
-	if over > 0 then
-		self._room = ui.Line { status_name(self) }:width() - over
-	end
-	return status_redraw(self)
-end
+	local room = self._area.w - wide(place(self)) - 4
+	while #parts > 0 and line():width() > room do parts[#parts] = nil end
+	return line()
+end, 1000, Status.LEFT)
+Status:children_add(function(self) return ui.Line { ui.Span(place(self)):fg("21"), ui.Span("  ") } end, 1000, Status.RIGHT)
 
 -- ── the file dialog: kawa-pick starts yazi with KAWA_PICK=<mode> ─────────────────────
 -- Dressed like the other text screens (docs/design-system.md §7): along the top a heading —
@@ -182,28 +200,17 @@ local pick = PICK[os.getenv("KAWA_PICK") or ""]
 -- copy of your home, KAWA_PICK_ROOT, is named as home is: ~)
 local pick_title, pick_root = os.getenv("KAWA_PICK_TITLE"), os.getenv("KAWA_PICK_ROOT")
 if pick then
-	local ICON = "\243\190\128\177" -- Sumi Icons: folder (U+FE031), as in icons.sh
-	Header:children_remove(1, Header.LEFT) -- the bare path
+	Header:children_remove(HEAD, Header.LEFT)
 	Header:children_add(function(self)
-		local room = self._area.w - 1 - (self._right_width or 0)
-		local head = ui.Line {
-			ui.Span(ICON):fg("lightred"),
-			ui.Span("  " .. (pick_title or pick[1]) .. "  "),
-		}
-		-- (a long folder loses its start, nothing in its place; at least two stitches stay)
 		local cwd = tostring(self._current.cwd)
 		if pick_root and (cwd == pick_root or cwd:sub(1, #pick_root + 1) == pick_root .. "/") then
 			cwd = "~" .. cwd:sub(#pick_root + 1)
 		else
 			cwd = ya.readable_path(cwd)
 		end
-		local where = cut(cwd .. self:flags(), math.max(0, room - head:width() - 3), true)
-		local line = ui.Line { head, ui.Span(where .. " "):fg("darkgray") }
-		return ui.Line { line, ui.Span(string.rep("─", math.max(0, room - line:width()))):style(th.mgr.border_style) }
+		return heading(self, pick_title or pick[1], cwd .. self:flags())
 	end, 1000, Header.LEFT)
-	for id = 1, 6 do -- mode, size, name · permissions, percent, position
-		Status:children_remove(id, id <= 3 and Status.LEFT or Status.RIGHT)
-	end
+	Status:children_remove(FACTS, Status.LEFT)
 	Status:children_add(function()
 		local spans, k = { ui.Span("  ") }, pick[2]
 		-- (q with marks takes the marked — the plugin's q — and says so)
@@ -213,14 +220,10 @@ if pick then
 		for i = 1, #k, 2 do
 			if i > 1 then spans[#spans + 1] = ui.Span("    ") end
 			spans[#spans + 1] = ui.Span(k[i])
-			spans[#spans + 1] = ui.Span("  " .. k[i + 1]):fg("darkgray")
+			spans[#spans + 1] = ui.Span("  " .. k[i + 1]):fg("21")
 		end
 		return ui.Line(spans)
 	end, 1000, Status.LEFT)
-	Status:children_add(function(self)
-		local n = #self._current.files
-		return ui.Span(string.format("%d/%d", math.min(self._current.cursor + 1, n), n)):fg("darkgray")
-	end, 1000, Status.RIGHT)
 end
 
 -- Super+Z and Super+D are dwl's keys, which yazi never sees: kawa-shrink and kawa-file find the
