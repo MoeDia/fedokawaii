@@ -160,6 +160,14 @@ case_ "…dismissed: nothing opens"
 not_called '^kawa-term'; not_called '^xdg-open'
 
 # ── the notice ───────────────────────────────────────────────────────────────────────────
+case_ "a name in the menu: a torrent's dots and underscores as spaces — a version's dots and a file's type kept —, any other download's name as its file has it; cut within 30 columns at a word, or at - _ . in a name without spaces (never …)"
+world; . "$HOME/.config/fedokawaii/icons.sh"
+sleep 600 & live=$!; on_exit "kill $live 2>/dev/null"
+torrra_list "$live" $'ubuntu-24.04.1-desktop-amd64.iso\t1\t2\t'"$D" $'Album.Name.5.1.FLAC\t1\t2\t'"$D" $'The.Seven.Samurai.1954.1080p.BluRay.x264\t1\t2\t'"$D"
+printf '%s\t1\t2\t%s\n' photos-2026.tar.zst "$D" a_very_long_file_name_without_any_spaces_at_all.pdf "$D" >"$XDG_RUNTIME_DIR/kawa-downloads/pack.$live"
+stub kawa-menu 'cat >"$TMP/menu.in"; echo 0'
+kawa-downloads; names=$(awk -F'\t' '$1 == "row" { print $3 }' "$TMP/menu.in" | sort)
+eq "$names" "$(printf '%s\n' "Album Name 5.1.FLAC" "The Seven Samurai 1954 1080p" a_very_long_file_name_without photos-2026.tar.zst ubuntu-24.04.1-desktop-amd64 | sort)"
 case_ "a finished download's notice: its name, then SOURCE · SIZE · click to open it; a click opens it"
 world; : >"$D/film.mkv"; stub notify-send 'echo default'
 kawa-downloads notice Brave film.mkv 1500000000 "$D/film.mkv"

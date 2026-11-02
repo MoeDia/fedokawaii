@@ -297,14 +297,36 @@ def follow():
     bye()
 
 
-def short(name):
-    """A name for the menu: dots and underscores read as spaces (a torrent's), cut at a word
-    within WIDTH columns (never with "…")."""
-    name = re.sub(r"[._]+", " ", name).strip() if " " not in name else name
+# the endings a torrent's name keeps as they are (a file's type, not words)
+KEPT_ENDS = {"iso", "img", "mkv", "mp4", "avi", "webm", "zip", "rar", "7z", "tar", "gz", "xz", "zst",
+             "pdf", "epub", "cbz", "flac", "mp3", "ogg", "opus", "m4a", "srt"}
+
+
+def _gap(m):
+    """A torrent name's separator: a space, but a dot between two short numbers (a version's:
+    1.6, 24.04.1, 5.1) stays."""
+    if m[0] == ".":
+        left, right = re.search(r"\d*$", m.string[:m.start()])[0], re.match(r"\d*", m.string[m.end():])[0]
+        if 0 < len(left) <= 2 and 0 < len(right) <= 2:
+            return "."
+    return " "
+
+
+def short(name, torrent=False):
+    """A name for the menu: a torrent's dots and underscores read as spaces (its words) — a
+    version's dots (1.6, 24.04.1) and a file's type at the end kept —; any other download's name
+    as its file has it. Cut at a word, or at a - _ . in a name without spaces, within WIDTH
+    columns (never with "…")."""
+    if torrent and " " not in name:
+        stem, dot, end = name.rpartition(".")
+        if not dot or end.lower() not in KEPT_ENDS:
+            stem, end = name, ""
+        name = re.sub(r"[._]+", _gap, stem).strip() + ("." + end if end else "")
     if len(name) <= WIDTH:
         return name
     cut = name[:WIDTH]
-    return cut[:cut.rfind(" ")] if " " in cut[WIDTH // 2:] else cut
+    at = max(cut.rfind(c) for c in (" ", "-", "_", ".") if " " not in cut or c == " ")
+    return cut[:at] if at >= WIDTH // 2 else cut
 
 
 def torrra_open():
@@ -340,7 +362,7 @@ def menu():
     for src, name, done, total, where in items:
         detail = f"{size(done)} of {size(total)}" if total else size(done)
         value = f"{int(100 * done / total)}%" if total else ""
-        rows.append("\t".join(("row", ic[GLYPH.get(src, "download")], short(name), detail, value)))
+        rows.append("\t".join(("row", ic[GLYPH.get(src, "download")], short(name, src == "torrent"), detail, value)))
         acts.append(("open", src, where))
     if not items:
         rows.append(f"off\t{ic['download']}\tnothing downloading")

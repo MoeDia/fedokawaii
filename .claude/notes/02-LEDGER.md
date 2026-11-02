@@ -3833,6 +3833,14 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   halo or on her fan, from renders. Next: the light
   scene, then lock.ui/gtklock.css (no date/time/keys; the entry on the mouth), kawa-lockmod (the flames at 8 fps,
   its caret, wrong password ≤ 400 ms, 5 s screens off), kawa-lock scaling the scene ×N to the screen, the greeter.
+- r27-19m-dl (3 Nov 01:30–01:45, T19m (b) pass 1: the downloads' list; kit-verified dark + light, LIVE with the next
+  apply): rendered with three jobs (a play writing kawa-downloads' job files: two torrents, one archive job) in both
+  moods — the box identical (1462–1913 × 40–185), the inks by role (icons and percents muted, names and sizes text:
+  measured), one column for the sizes, the percents right-aligned. Finding fixed: short() read every name without
+  spaces as a torrent's — "photos-2026.tar.zst" showed as "photos-2026 tar zst" and x86_64 split; now only a torrent's
+  dots and underscores become spaces, a version's dots (1.6, 24.04.1, 5.1) and a file's type at the end (iso, mkv, zst …)
+  stay, any other download keeps its file's name, and a name without spaces is cut at its own - _ . within 30 columns
+  (never "…"). test_downloads 61/0 (a new case: five names, both kinds). audit-r27.md row filled.
 ## >>> NEXT PASS STARTS HERE (2 Nov, written 18:12 by the 16:56 bulk pass — the lines above say what it did): the inbox first.
 ## (0) PRESENCE before anything he could see or hear (memory presence-not-just-input-idle): at 16:57 he was in a Discord
 ##     call (Brave: mic + sound). Every probe outside the harness/kit cut off from his session (probes-cut-off-session).
