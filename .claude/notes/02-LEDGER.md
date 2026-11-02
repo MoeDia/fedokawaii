@@ -3432,13 +3432,32 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   loaded (my test runs and kit renders beside it); the same frozen tree alone: 263/0. The case now waits for the count
   (3 s at most). The second flake of this kind today (r27-suite-2939cc8's test_yazi): T53 — grep the tests for fixed
   sleeps before a count and make them waits.
+- r27-21-master-4 (2 Nov 13:20–13:32, the master's re-review 4 on c793b14, narrow): VERDICT FAIL
+  (.claude/notes/master-T21-verdict-4.md). Held: verdict 3's must-fix 1 gone at its root (a page of three-row lines,
+  41 steps of wheel/Ctrl-Y/U/D/B/F/gg/G: skipcol 0, the margin on every first row, no <<<), should-fix 2's own case,
+  the paste row, the nits, the check's honesty, the twelve shots identical. MUST-FIX 1 (my regression): the WinScrolled
+  hook made scrolling UP from the foot DEAD in normal mode — Ctrl-Y ×5 and the wheel left the top line where it was (the
+  hook pushed the view straight back), in the long to-do too. The master's own premise behind the hook ("a wheel-up
+  never triggers it") was false at the foot; neither of us had probed scrolling from the foot. Should-fix 2: Esc after
+  an insert-mode wheel up jumped the page back three rows (pre-existing). Should-fix 3: §7 lacked "by lines". Nits: the
+  check's lone 2-row step is unplaced; the paging row's wording.
+- r27-21-master-4-fix (2 Nov 13:32–13:36, 597a84c, 7dd0e0b): a scroll he makes is his — when the top line went UP since
+  the last look (only he scrolls up: Ctrl+Y, Ctrl+B, the wheel) the PEN yields, up a line at a time into its room, the
+  view stays; otherwise the view follows the pen (pen_room) — on CursorMoved/I and WinScrolled (keep_room), changes as
+  before. Probe (long.md, 30 lines given, then): Ctrl-Y ×3 → top −1 each, wheel ×2 → −3 each, i+wheel → −3, Esc → 0,
+  Ctrl-F Ctrl-F Ctrl-B → 112 → 148 → 156 → 120, the pen on row 33 every step. test_notes 140/0: two rows (the top line's
+  step at each scroll from the foot; a 45-item to-do: tab, esc, Ctrl-Y ×2 → 0 −1 −1) — BOTH FAIL on c793b14 (138/2).
+  §7: "the page scrolls by lines … a scroll he makes is his"; the check's comment says its one two-row step is
+  unplaced. The kit check on 7dd0e0b (13:38): held, both moods — typed with o and yy p, the cold start, the 45-item
+  to-do (/dev/shm/r27/t21/warmfix/regress14.log).
 ## >>> NEXT PASS STARTS HERE (2 Nov, written 12:45 by the 11:03 bulk pass — the lines above say what it did): the inbox first.
 ## (0) PRESENCE: before anything he could see or hear (a reboot, a session restart, a bar restart, a live play, a notice):
 ##     `wpctl status`, `playerctl -a status`, one half-scale grim — not only the swayidle probe (memory
 ##     presence-not-just-input-idle). The 11:03 bulk run was started by hand: assume him at the PC, headless only.
-## (1) T21: the master's RE-REVIEW 4 (verdict 3 FAIL → fixed in c793b14, r27-21-master-3-fix) STARTED 13:20 → its verdict in
-##     /dev/shm/r27/master/T21/verdict.md (copy it to .claude/notes/master-T21-verdict-4.md; 1–3 are there; the old folders
-##     in /dev/shm/r27/master-archive/T21-r1..r3). The suite on b2f7444 ends RED on test_theme's load flake (fixed since:
+## (1) T21: the master's RE-REVIEW 5 — verdict 4 FAIL (a scroll up from the foot was dead) → fixed in 597a84c/7dd0e0b
+##     (r27-21-master-4-fix): brief from the newest HEAD, NARROW (keep_room: the pen yields on a scroll up; probe from the
+##     FOOT as well as mid-page — the lesson of verdict 4); verdicts 1–4 in .claude/notes/, the old folders in
+##     /dev/shm/r27/master-archive/T21-r1..r3 (archive r4 first: the brief tool wipes /dev/shm/r27/master/T21). The suite on b2f7444 ends RED on test_theme's load flake (fixed since:
 ##     r27-53-flake-theme) — run a fresh suite on the newest HEAD, nothing heavy beside it (no kit, no test runs: two
 ##     flakes today came from load). Master PASS + that suite green → push main (GitHub main = e083197 still), then APPLY from the frozen
 ##     tree when he is away + a SESSION RESTART (START §4) for the dwl fix, and the panel (bug 10) restarted per memory
