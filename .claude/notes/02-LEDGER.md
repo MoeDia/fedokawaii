@@ -3313,20 +3313,72 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   words' ink (12.18 / 11.80), their icon says what they are. Rendered both moods (/dev/shm/r27/t22/p/kinds.png).
   test_yazi 123/0, contrast 52 pairs 0 under; test_shrink 121, test_play 55, test_syncplay 86 (its real-session part
   skipped: syncplay not on this shell's PATH — as in earlier suites) green.
-## >>> NEXT PASS STARTS HERE (2 Nov, written 11:45 by the 11:03 bulk pass — the lines above say what it did): the inbox first.
+- r27-21-master-2 (2 Nov 11:41–12:05, the master's re-review 2 of T21 on 2939cc8): VERDICT FAIL
+  (.claude/notes/master-T21-verdict-2.md; its renders and probes /dev/shm/r27/master/T21/own/). Held: the geometry to the
+  pixel in both moods, must-fix 1 (as typed, after a reload too), the cold start (day line on top, pen on row 9), the dwl
+  mapped guard, bugs A and B, should-fix 4 accepted on the merits, should-fix 5 on short lists. MUST-FIX 1: any new last
+  line made BELOW the paper (o, yy p, G o, Ctrl+O o, :$put — not a split) jumped the page (topline 119 → 90) and hid the
+  pen under the floats. MUST-FIX 2: a to-do longer than the page opened and went on with the pen under the footer.
+  Should-fix 3 (no row for the same-count re-lay), 4 (never-again rows and kit steps in the same commit). Nits: a dead
+  `shown`; the cold scene proves the kit's dwl tree (= the patch: dwl-patch.sh writes it from that tree, cmp'd at the
+  pass's start); §7 overstated the to-do's opening.
+- r27-21-master-2-fix (2 Nov 12:05–12:25): (1) the paper's mark MOVES INSIDE THE CHANGE (nvim_buf_attach on_lines → to the
+  new last line's end) — the master's probe (p1b) on my build: o, yy p, G o, Ctrl+O o, :$put, Return all topline 119 → 119.
+  (2) the pen's room after EVERY change and move (pen_room on TextChanged/I and CursorMoved/I): scrolloff keeps it for
+  one-row steps only — a jump to the end (lines given at once, a paste, the to-do opened at its end) landed the pen on
+  the window's last row and scrolloff kept it there (the same on 2939cc8: a probe of 30 batched lines → row 38 of 38);
+  now row 33 (= 38 − 5) at the foot after o / yy p / Return, the 45-item to-do opens, takes a Return and esc on row 33
+  (2939cc8: 38). Safe now (my earlier CursorMovedI check jumped the page only because the paper was stale then). FOUND
+  BY THE KIT on the way (regress7: 2851 of 3831 frames "broke a rule"): a typed line LOST ITS RULE — the paper's mark
+  was kept by id in the rules' namespace; a clear of that namespace lets neovim give the old id to a fresh rule mark,
+  and moving the paper by id took that line's rule (ids dumped: line 7's rule was id 9 = the paper's): the paper now has
+  a namespace of its own (kawa_paper) — and then (regress8: the page opened with 36 rows of paper ABOVE today's line,
+  the pen under the footer) a RELOAD (the daily heading's write) stranded the old paper mark mid-page while a new one
+  was made: two marks (dumped: lines 6 and 9 of 9); to_end clears the paper's namespace and lays the one mark (the
+  reload row now asks for exactly one); to_end leaves a paper already in place alone (no clear-and-set on every
+  lay). The last kit flag ("{1: 18, 2: 1}"): the frame before yy p had the play's long wrapped line 12 on top — neovim
+  scrolls a put line by LINES, so the page moved that line's two rows (the kit's event log for the same keys without a
+  wrapped top line: top 12 → 13, row 33); smoothscroll on (manual scrolling by rows; it does not change a put's line
+  step), on_day resets skipcol, and the check now allows a forward step of a line's rows (one or two in the play,
+  two-row steps at most as often as its two wrapped lines) and fails any step back or larger. (3) should-fix 3's row (a day's line typed on at its end: its date's ink to the
+  new end; made / unmade a day's line in place — fails on 42892e1). (4) the dead `shown` gone; §7's to-do sentence and
+  the room for o / p / :put / the to-do's Return. Tests: test_notes 136/0 — new rows: the key list (6), the foot (2),
+  the long to-do, should-fix 3, one rule a line — on 2939cc8 7 fail, on 42892e1 18, on the id-colliding build the
+  one-rule row fails. tools/regress/notes-page.sh: the typing play now ends with Esc o + a line, yy p, a line typed at
+  the end (all in the recording); a 45-item to-do scene (tab, a Return, esc: three ruled rows ahead each).
+- r27-22-b10-built (2 Nov 12:02–12:25, bug 10 — locked PDFs and archives asked properly; NOT LIVE until a panel restart,
+  memory live-panel-restart, he away): kawa-panel typed(): under --stay a TYPED answer (a password's Enter) answers and
+  HOLDS the window as a key line does (the same 1 s guard); keys while held are not taken (a second Enter would have
+  closed it — the check is ~0.1 s); `done CALLER` on the fifo closes a held window at once. kawa-menu --done (the
+  caller's held menu, by the same caller name the panel keys menus by). kawa-file: password_for TITLE CHECK… — asks
+  with --password --stay; CHECK with the password on stdin (qpdf --password-file=- --requires-password → 3 = right,
+  qpdf(1) as installed; archives: 7z t / unrar t through the existing stdin wrappers); wrong → the same window, its
+  title "NAME · wrong password", the field empty; right → --done; Esc or nothing → nothing done, no notice. Used by
+  the archives' unpack (ask_pw) and the PDF unlock; the contents window (--list) re-asks in its own terminal too
+  ("wrong password · again"). Tests: test_panel 630/0 (+4: a held typed answer, the next page in place with an empty
+  field, keys ignored while held, the 1 s guard, done only for its caller and only a held window, no --stay as before —
+  3 fail on HEAD's kawa-panel), test_file 276/0 (the stub knows --done and Esc; wrong-then-Esc: asked again in place,
+  nothing extracted, no notice; wrong-then-right: opened, --done; the RAR stand-in's t; the PDF unlock wrong-then-right).
+  Still to see with eyes: the held window's swap in the kit (a play with a locked PDF through Super+D), both moods.
+- r27-suite-2939cc8 (2 Nov 11:40–12:26): 127 of 128 files green; test_yazi 120/1 — "Esc, q and M each close the list
+  (three times opened, three times listed)" — the suite ran beside my kit renders and test runs; the same tree's
+  test_yazi ALONE: 121/0 (12:43). A timing flake under load → T53 (make that case wait for the list, not a fixed time).
+## >>> NEXT PASS STARTS HERE (2 Nov, written 12:45 by the 11:03 bulk pass — the lines above say what it did): the inbox first.
 ## (0) PRESENCE: before anything he could see or hear (a reboot, a session restart, a bar restart, a live play, a notice):
 ##     `wpctl status`, `playerctl -a status`, one half-scale grim — not only the swayidle probe (memory
 ##     presence-not-just-input-idle). The 11:03 bulk run was started by hand: assume him at the PC, headless only.
-## (1) T21: the master's re-review 2 (r27-21-review2) → /dev/shm/r27/master/T21/verdict.md; the suite on 2939cc8
-##     (/dev/shm/r27p/suite-2939cc8.log). Both green → push main (GitHub main = e083197 still), then APPLY from the
-##     frozen tree when he is away + a SESSION RESTART (START §4) — the dwl fix (cold Super+N/V/U) needs a new dwl; the
-##     warm notes window takes the new page at its next start. A FAIL → fix its must-fixes first, re-review.
+## (1) T21: the master's RE-REVIEW 3 (verdict 2 FAIL → fixed in db4bf81, r27-21-master-2-fix) — its brief from the newest
+##     HEAD (tools/master-brief.sh wipes /dev/shm/r27/master/T21: verdicts 1–2 are in .claude/notes/); the suite on the
+##     newest HEAD (/dev/shm/r27p/suite-<HEAD>.log; see r27-suite-* for the last). Both green → push main (GitHub main =
+##     e083197 still), then APPLY from the frozen tree when he is away + a SESSION RESTART (START §4) for the dwl fix, and
+##     the panel (bug 10) restarted per memory live-panel-restart; the warm notes window takes the new page at its start.
 ## (2) THE KERNEL TRIAL (since 1 Nov 14:43, 7.2.13, snapshot 381 pinned): closes at the next start — only when he is
 ##     away, START §4's reboot way; then read fedokawaii-boot-good's journal — ledger r27-49-B3. Can go with (1)'s restart.
 ## (3) T46/T46b (F45 out Tue 3 Nov): after the release — vm-create f45 fresh from the released tree, vm-smoke f45, then
 ##     tools/vm-inject/f45-checks.sh f45; T46's pre-flight (tools/vm-preflight.sh) and the upgrade's WAIT (60 days).
-## (4) T22: grid, cursor, footer, contrast BUILT and seen at three sizes (r27-22-grid, 83f1389); next: bug 10 in place
-##     (r27-22-b10), the grill (kinds' colours at rest, "No items", the tabs row), the master. Learn's yazi chapter: still right.
+## (4) T22: grid, cursor, footer, contrast, kinds BUILT (r27-22-grid, -kinds); bug 10 BUILT (r27-22-b10-built) — next: the
+##     held password window seen in the kit (Super+D → unlock on a qpdf-locked PDF: wrong, then right; both moods),
+##     zathura's prompt by eye, the grill ("No items", the tabs row), the master.
 ## (5) T19m (b): pass 1 goes on; items 3–5 (24 px hit areas, JLREQ, the spacing scale, the optical centre, a
 ##     reduce-motion switch) with the next dwl batch (a session restart: only when he is away).
-## (6) T53 goes on (the plan's list).
+## (6) T53 goes on (the plan's list) + the test_yazi flake under load (r27-suite-2939cc8).
