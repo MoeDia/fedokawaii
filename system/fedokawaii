@@ -762,15 +762,6 @@ holds() {
   (LOG_FILE=/dev/null; . "$TK/lib/common.sh" >/dev/null && hold_families "$STATE/update/holds")
 }
 held_count() { local n; n=$(holds | grep -c .) && ((n)) && echo "$n"; return 0; }
-section_of() {   # section_of ACTION → its tab
-  case $1 in
-    status|verify|repair|drift|change|theme|settings|remind|log) echo system ;;
-    update|pull|upgrade|held) echo update ;;
-    snapshots|file) echo snapshots ;;
-    backup|restore|drive) echo backups ;;
-    *) echo learning ;;
-  esac
-}
 icon_of() {   # icon_of ACTION → its row's icon (a job window's heading)
   local s a g l m
   while IFS=$'\t' read -r s a g l m; do [[ $a == "$1" ]] && { printf '%s' "$g"; return 0; }; done < <(rows)

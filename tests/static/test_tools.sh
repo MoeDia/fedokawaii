@@ -45,4 +45,13 @@ case_ "hl-dwl.sh and shot.sh: usage and refusals (no session started)"
 rc 2 bash "$REPO/tools/hl-dwl.sh"
 rc 2 bash "$REPO/tools/hl-dwl.sh" "$TMP/none.sh"
 rc 2 bash "$REPO/tools/shot.sh" "bad name!"
+case_ "tools/deadcode.sh: no function the desktop ships is left uncalled (T53) — and it finds one made so"
+out=$(bash "$REPO/tools/deadcode.sh" 2>&1); r=$?
+eq "$r" 0 "uncalled: ${out:0:300}"
+D2=$(mktemp -d); mkdir -p "$D2/tools" "$D2/tests/static"; cp -a "$REPO/lib" "$REPO/bin" "$REPO/system" "$D2/"
+cp "$REPO/tools/deadcode.sh" "$D2/tools/"; cp "$REPO/tests/static/parsecheck.py" "$D2/tests/static/"
+printf 'never_called_anywhere() { :; }\n' >>"$D2/lib/common.sh"
+out=$(bash "$D2/tools/deadcode.sh" 2>&1); r=$?
+eq "$r" 1 "(a function no one calls is found)"; has "$out" "never_called_anywhere"
+rm -rf "$D2"
 done_

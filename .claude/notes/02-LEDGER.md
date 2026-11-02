@@ -3397,6 +3397,13 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   same sheets, below); zathura's locked-PDF prompt at 16 px ("Incorrect password. Enter password:",
   /dev/shm/r27/t22/pdf/z-wrong.png) — readable now; grill note: its words touch the window's left edge (girara's
   padding to check).
+- r27-53-deadcode (2 Nov 13:00–13:06): tools/deadcode.sh (T53's acceptance names it) — every function defined in the shell
+  the desktop ships (bin/, lib/, system/, the root scripts, tools/) looked for in the whole repository past its own
+  definition (grep -rwF, no git: the suite's copy is none); 5 s. ONE found: system/fedokawaii's section_of (no caller
+  since an earlier Super+U rebuild) — removed. test_tools 18/0 (the repo clean; a planted uncalled function found);
+  test_syntax 777/0. On the way: parsecheck.py skips a folder that is not there (a copy without tools/regress made
+  deadcode's grep wait on stdin: it refuses an empty list now and never reads stdin). (A slip of mine: `pkill -f`
+  with a pattern from my own command line killed my shell before an edit — CLAUDE.md's rule; no harm, redone.)
 ## >>> NEXT PASS STARTS HERE (2 Nov, written 12:45 by the 11:03 bulk pass — the lines above say what it did): the inbox first.
 ## (0) PRESENCE: before anything he could see or hear (a reboot, a session restart, a bar restart, a live play, a notice):
 ##     `wpctl status`, `playerctl -a status`, one half-scale grim — not only the swayidle probe (memory
