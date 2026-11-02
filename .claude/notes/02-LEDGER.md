@@ -3230,7 +3230,7 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   binary → nothing (/dev/shm/r27/t21/warmfix/{new,old}/c3.png). test_warm 90/0: two rows (the guard; fail on HEAD's
   patch). tools/regress/notes-page.sh: the cold scene (the master's ask) and ONE checker for both scenes (the draft's
   own copy lacked the paper-ink filter and took the window's border for the last rule — shared now).
-- r27-21-sf DONE (2 Nov 11:10–11:45): the master's should-fix 4 and 5, and the bugs they uncovered. notes.lua —
+- r27-21-sf DONE (2 Nov 11:10–11:40): the master's should-fix 4 and 5, and the bugs they uncovered. notes.lua —
   (4) the page OPENS ON A DAY'S LINE, never mid-day: the latest day whose line leaves the pen its ROOM (5) rows above
   as well as below (scrolloff keeps them on both sides) — today's own line when today fills them, else the day
   before, on the page's first row (nvim_win_text_height counts the rows: wrapped lines too); a today longer than
@@ -3267,7 +3267,7 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   STARTED 11:41 (Fable, max): /dev/shm/r27/master/T21/brief.md (+ 25 evidence files) → verdict.md; verdict 1 kept as
   .claude/notes/master-T21-verdict-1.md (the brief tool wipes its folder; the old folder also in
   /dev/shm/r27/master-archive/T21-r1). Old suite worktrees (42892e1, 0737d1b: both rc 0) removed.
-- r27-22-grid (2 Nov 11:50–12:45, 83f1389, WIP of T22): yazi rebuilt onto §7's grid. MEASURED (kit, real GPU, the
+- r27-22-grid (2 Nov 11:42–11:56, 83f1389, WIP of T22): yazi rebuilt onto §7's grid. MEASURED (kit, real GPU, the
   main window full-screen, px.py, dark): the heading's icon ink x 27–38 inside the frame (cell at x 25 = column 0),
   the path from column 3 (x 49), the rule (edge2) to x 1872 — two cells short of the edge, as it begins (the window's
   6 px remainder lies past them: foot's cells); a blank row under it; rows' icons at column 1 (x 33) in the parent
@@ -3285,7 +3285,7 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   test_clipfiles 46, test_file 265 green. No dashed stitch left in yazi's files (grep). LEFT for T22: the three sizes
   (narrow tile, half, full) both themes, the grill (kinds' colours at rest; "No items"; the tabs row), the locked-PDF
   prompt (kawa-pdf), the Learn "yazi" piece, the master.
-- r27-22-b10 (2 Nov 12:50–13:00, the locked PDFs — bug 10, FINDINGS): reproduced in the kit with a qpdf AES-256 PDF
+- r27-22-b10 (2 Nov 11:56–11:59, the locked PDFs — bug 10, FINDINGS): reproduced in the kit with a qpdf AES-256 PDF
   (/dev/shm/r27/t22/pdf/locked.pdf, user password "secret"): zathura 2026.07.18 asks in its own window ("Enter
   password:" bottom-left), a wrong one → "Incorrect password. Enter password:" in place, the right one opens it; one
   window throughout (pgrep 1; /dev/shm/r27/t22/pdf/k/strip.png) — but that prompt is a small line in the corner.
@@ -3294,7 +3294,7 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   qpdf's own man page (installed): --requires-password exits 0 (a password needed), 2 (not encrypted), 3 (encrypted,
   the password given right); --password-file=- is what kawa-file already uses (proven by its tests). NEXT: the
   prompt again IN PLACE with "wrong password" as its title until right or Esc, for both paths; zathura's inputbar
-  inks/size read by eye (zathurarc). CHECKED 13:08 (bin/kawa-panel typed(), ~1641): a TYPED answer (a password's
+  inks/size read by eye (zathurarc). CHECKED 12:00 (bin/kawa-panel typed(), ~1641): a TYPED answer (a password's
   Enter) always answers and closes — --stay holds the window only for a chosen key line (~1483: holding, the next
   page in place via page(), closed after a second if none comes). The build: (1) kawa-panel typed(): under m.stay a
   typed answer holds the window as a key line does (holding, the same 1 s guard); (2) a way for the caller to end a
@@ -3305,7 +3305,7 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   panel's (tests/menus: --stay with a typed answer, --done) and test_file (a wrong then a right password: one
   window, no notice). Live: kawa-panel restarted only per memory live-panel-restart (kit render first, SIGKILL when
   nothing is open) and only when he is away.
-- r27-22-kinds (2 Nov 13:12–13:22, T22's grill 1): the file kinds' colours at rest measured on the ground (WCAG, foot's
+- r27-22-kinds (2 Nov 12:00–12:02, T22's grill 1): the file kinds' colours at rest measured on the ground (WCAG, foot's
   palettes): in LIGHT four names were under 4.5 : 1 — pictures (yellow 986f2d) 3.49, folders (blue 006eb8) 4.13,
   scripts (green 437742) 4.09, media (magenta 66629c) 4.27; dark all ≥ 4.57. → each kind in its brighter slot (in
   light the brighter slots are the deeper inks): pictures 6.31 / 14.44 (light / dark), media 6.72 / 8.74, folders
