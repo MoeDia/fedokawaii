@@ -45,5 +45,8 @@ base=${task%%-*}                               # (T19k-7 → T19k: its heading i
   echo "XDG_RUNTIME_DIR=/run/user/$(id -u), the session bus, DISPLAY): a yank lands on his clipboard, a notice on his screen."
   echo "Run each probe as: env -u WAYLAND_DISPLAY -u DISPLAY DBUS_SESSION_BUS_ADDRESS=unix:path=/nonexistent \\"
   echo "  XDG_RUNTIME_DIR=$out/own/run COMMAND …   (mkdir -m 700 it first; your homes under $out/own/)"
+  echo "Never kill, pkill or killall anything but a pid you started yourself (\$!) or its own process group: on 3 Nov a"
+  echo "script's process list, worked out wrong, killed ~60 of his programs. A headless desktop: tools/hl-dwl.sh or"
+  echo "tools/kit.sh only (a PID namespace of its own — kill there cannot reach him)."
 } >"$out/brief.md"
 echo "$out/brief.md"

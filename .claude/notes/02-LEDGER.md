@@ -3823,7 +3823,14 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   the middle, round at the foot), tip swaying more than the foot, two embers in the loop. The mouth for the entry:
   x 959–1138, y 638–737 on 1080p. DECIDED for light: NOT the Hagoromo print (already one of the ten angel
   wallpapers) — the Willow Kannon (willow-kannon.jpg: gold silk, a round green halo; no wallpaper uses it), the halo
-  rhyming with the demon's round plate; where the password is typed in it: next pass, from renders. Next: the light
+  rhyming with the demon's round plate. TRIED 01:25–01:35 and REJECTED (/dev/shm/r27/master/T20-evidence/): as a
+  hanging scroll in a tokonoma (128 px wide: her face a blank blob, the gold silk a garish yellow) and through a round
+  window at 256 px (her face still a flat gold blob, the halo green/grey camouflage): the old silk's thin ink lines do not
+  survive 640 × 360 in the light inks. KEPT from those tries: a wall of pale gold leaf (20 × 20 squares, hairline seams,
+  each leaf one tone, lit by the lamps — the stone blocks' twin in another material), two hanging chōchin, the quote in
+  sumi on a wooden plaque (the gilded lintel's twin). NEXT: a high-contrast woodblock source for her (an unused Kōgyo /
+  Hokusai tennin or Kannon print, the source hunt's way: AIC/Met open access, sha256, SOURCES.md), the password in her
+  halo or on her fan, from renders. Next: the light
   scene, then lock.ui/gtklock.css (no date/time/keys; the entry on the mouth), kawa-lockmod (the flames at 8 fps,
   its caret, wrong password ≤ 400 ms, 5 s screens off), kawa-lock scaling the scene ×N to the screen, the greeter.
 ## >>> NEXT PASS STARTS HERE (2 Nov, written 18:12 by the 16:56 bulk pass — the lines above say what it did): the inbox first.
