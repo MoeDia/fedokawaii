@@ -309,7 +309,7 @@ screen and the bar's paper share one rhythm.
 | busy | its icon moves (§13) | the same icon's frames | its icon moves |
 | asking for you | — | — | the workspace's numeral `asagi`; the window's hairline `asagi` |
 | high | a meter's top segments `flame`, then `accent` | the same | — |
-| failed | the words `accent_text` | the same | — |
+| failed | its mark (✘) `accent_text` in the icon column, the words `text` (§1: red carries no words) — a wrong password asked again: the title `MARK⇥words` | the same | — |
 
 Motion — how any of these changes over time — is §11.
 

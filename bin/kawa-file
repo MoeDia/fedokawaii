@@ -131,10 +131,11 @@ password() {   # password PROMPT → typed hidden (as the drives' passphrase); E
   printf '%s' "$p"
 }
 # password_for TITLE CHECK… → the password typed, once CHECK (the password on its stdin) takes it — a
-# wrong one asked again in the same window, its title "NAME · wrong password" (bug 10: said where it
-# was typed, no notice, no new window); its window gone at once when right. Esc or nothing: 1
+# wrong one asked again in the same window, its title "NAME · wrong password" behind the failure's
+# mark (bug 10: said where it was typed, no notice, no new window); its window gone at once when
+# right. Esc or nothing: 1
 password_for() {
-  local title=$1 p
+  local title=$1 name=${1% · *} p
   shift
   while :; do
     p=$(kawa-menu --title "$title" --prompt "$ICON_LOCK  " --password --stay --width 40 </dev/null) || return 1
@@ -144,7 +145,7 @@ password_for() {
       printf '%s' "$p"
       return 0
     fi
-    title="${title% · *} · wrong password"
+    title=$ICON_CROSS$'\t'"$name · wrong password"   # (the mark: kawa-panel's title_parts)
   done
 }
 pdf_pw_ok() { qpdf --password-file=- --requires-password "$1"; (($? == 3)); }   # (3: locked, and this opens it)

@@ -183,6 +183,7 @@ answers "test it"; rc 0 kawa-file "$A/f.zip"; called 'notify-send .*whole.*f\.zi
 cp "$A/f.zip" "$A/bad.zip"; printf 'XXXXXXXXXXXXXXXXXXXXXXXX' | dd of="$A/bad.zip" bs=1 seek=60 conv=notrunc 2>/dev/null
 answers "test it"; rc 1 kawa-file "$A/bad.zip"; called 'notify-send .*not whole.*bad\.zip'
 
+FAILED=$ICON_CROSS$'\t'   # (a wrong password's title: the failure's mark, then its words — kawa-panel's title_parts)
 case_ "a locked zip: the menu says so, its password asked (its window held for a wrong one), on stdin only; a wrong one said where it was typed, and asked again — no notice (bug 10); Esc then: nothing done"
 setup; (cd "$A" && printf '%s\n%s\n' "$TPW" "$TPW" | 7z a -bso0 -tzip -p -mem=AES256 locked.zip folder >/dev/null)
 answers esc; kf "$A/locked.zip"; has "$(menu 1)" "asks its password"
@@ -190,11 +191,11 @@ answers "extract into a folder"; rc 0 kawa-file "$A/locked.zip"
 eq "$(cat "$A/locked/one.txt")" "first file"; not_called "$TPW"
 called "^kawa-menu --title locked\.zip · password --prompt $ICON_LOCK   --password --stay --width 40\$"; called '^kawa-menu --done$'
 reset_calls; TPW=wrong TPW2=esc; answers "extract here"; rc 0 kawa-file "$A/locked.zip"
-called "^kawa-menu --title locked\.zip · wrong password --prompt $ICON_LOCK   --password --stay --width 40\$"; not_called 'notify-send'
+called "^kawa-menu --title ${FAILED}locked\.zip · wrong password --prompt $ICON_LOCK   --password --stay --width 40\$"; not_called 'notify-send'
 [[ ! -e $A/one.txt && ! -e "$A/folder (1)" ]] && _ok || _no "something was extracted: $(ls "$A" | tr '\n' '|')"
 case_ "… a wrong password, then the right one: asked again in the same window, then opened (its window closed at once: --done)"
 reset_calls; TPW=wrong TPW2=secret-Pa55; answers "extract into a folder"; rc 0 kawa-file "$A/locked.zip"
-called "^kawa-menu --title locked\.zip · wrong password "; called '^kawa-menu --done$'; not_called 'notify-send .*wrong'
+called "^kawa-menu --title ${FAILED}locked\.zip · wrong password "; called '^kawa-menu --done$'; not_called 'notify-send .*wrong'
 eq "$(cat "$A/locked (1)/one.txt" 2>/dev/null || cat "$A/locked/one.txt")" "first file"
 TPW=secret-Pa55 TPW2=""
 case_ "… a 7z with its names hidden: the same"
@@ -234,7 +235,7 @@ esac'
 answers esc; kf "$A/comic.rar"; has "$(menu 1)" "asks its password"
 answers "extract into a folder"; rc 0 kawa-file "$A/comic.rar"
 eq "$(cat "$A/comic/page1.png" 2>/dev/null)" img; called '^unrar x -p -idq -o- -- '; not_called "$TPW"
-reset_calls; TPW=no TPW2=esc; answers "extract here"; rc 0 kawa-file "$A/comic.rar"; called "^kawa-menu --title comic\.rar · wrong password "; not_called 'notify-send'
+reset_calls; TPW=no TPW2=esc; answers "extract here"; rc 0 kawa-file "$A/comic.rar"; called "^kawa-menu --title ${FAILED}comic\.rar · wrong password "; not_called 'notify-send'
 TPW=secret-Pa55 TPW2=""
 }
 case_ "… unrar missing: said, critical (repair puts it back)"
@@ -307,7 +308,7 @@ answers unlock; rc 0 kawa-file "$l"; eq "$(words "$A/r.locked.unlocked.pdf")" "p
 called '^qpdf --password-file=- --decrypt '; not_called "$TPW"
 grep -rqs "$TPW" "$HOME" "$XDG_RUNTIME_DIR" && _no "the password is in a file" || _ok
 reset_calls; TPW2=$TPW TPW=nope; answers unlock; rc 0 kawa-file "$l"
-called "^kawa-menu --title r\.locked\.pdf · wrong password --prompt $ICON_LOCK   --password --stay --width 40\$" "(a wrong one said where it was typed, asked again: bug 10)"
+called "^kawa-menu --title ${FAILED}r\.locked\.pdf · wrong password --prompt $ICON_LOCK   --password --stay --width 40\$" "(a wrong one said where it was typed, asked again: bug 10)"
 called '^kawa-menu --done$'; not_called 'notify-send .*wrong'; not_called "$TPW"
 TPW2=""
 

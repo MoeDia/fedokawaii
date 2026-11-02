@@ -1154,6 +1154,10 @@ for n, c in [("7", "7"), ("5", "5"), ("0", "0"), ("space", " "), ("K", "K"), ("B
     p.key(n, c)
 print(got)')" "[(0, '750 KB')]"
 
+case_ "a menu's title: words alone a quiet note; MARK<tab>words a failure (a wrong password asked again: §5's failed state) — the mark in the icon column, so the width counts the words alone"
+eq "$(py 'print(kp.title_parts("pick one"), kp.title_parts("X\tr.pdf · wrong password"))')" "('', 'pick one') ('X', 'r.pdf · wrong password')"
+eq "$(py 'w = "a long name of a locked file, a report.pdf · wrong password"
+print(kp.Menu([], prompt="P  ", title=w).inner() == kp.Menu([], prompt="P  ", title="X\t" + w).inner())')" True "(the mark takes no width: it stands in the icon column)"
 case_ "a password asked with --stay (a locked PDF, an archive — bug 10): Enter answers and the window stays; the caller's next page (\"wrong password\") in its place, the field empty, no new window; keys while it waits are not taken; done closes it at once"
 eq "$(py 'fresh(); got = []
 M = lambda t: kp.Menu([], prompt="P  ", password=True, stay=True, title=t)

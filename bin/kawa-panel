@@ -650,7 +650,7 @@ class Menu:
         asked for if wider. (Widths in the font's columns: 7 px, a wide letter 14.)"""
         rows = [f for _, k, f in self.lines if k in ROW_KINDS]
         dx, vright = columns(rows, px_of)
-        need = [NAME_X + px_of(self.title) if self.title else 0, vright]
+        need = [NAME_X + px_of(title_parts(self.title)[1]) if self.title else 0, vright]
         run = []                                  # (keys one after another: equal, sharing a row)
         for _, k, f in self.lines + [(None, "end", [])]:
             if k == "key":
@@ -688,6 +688,14 @@ def px_of(t):
     """Its width in the font: a column a letter, two a wide one (a kanji, a kana, a full-width
     sign: East Asian width W or F — Sumi UI draws exactly that, tools/build-fonts.py)."""
     return sum(2 * COL if unicodedata.east_asian_width(c) in "WF" else COL for c in t)
+
+
+def title_parts(t):
+    """A menu's title as (its mark, its words): "words" alone is a quiet note above the list;
+    "MARK\twords" says something failed — a wrong password asked again (docs/design-system.md
+    §5: the mark accent_text in the icon column, the words text: red carries no words)."""
+    mark, _, words = t.rpartition("\t")
+    return mark, words
 
 
 def fit(t, w, tail=False):
@@ -2722,7 +2730,10 @@ def main(argv):
         k = m[0]
         if k == "note":
             _, x, y, w, t = m
-            text(cr, x + NAME_X, y + (ROW - LINE) // 2, t, "muted", width=w - NAME_X)
+            ty, (mark, words) = y + (ROW - LINE) // 2, title_parts(t)
+            if mark:
+                glyph(cr, x + GLYPH_X, ty, mark, "accent_text")
+            text(cr, x + NAME_X, ty, words, "text" if mark else "muted", width=w - NAME_X)
         elif k in SHOWN_KINDS:            # (a row not to choose: off faint, info in a row's inks)
             _, x, y, w, g, name, detail, value = m
             off = k == "off"
