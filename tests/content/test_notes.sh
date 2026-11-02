@@ -335,6 +335,24 @@ SCROLLLUA
   diary "$TMP/v.md"; look=$(VDUMP="0" scrolls "$TMP/v.md" "$(printf 'x<CR>%.0s' $(seq 1 30))" '<ScrollWheelUp>' '<ScrollWheelUp>' '<ScrollWheelUp>' '<LeftMouse><10,9>' | cut -d'|' -f3)
   diary "$TMP/v.md"; norm=$(VDUMP="0" scrolls "$TMP/v.md" "$(printf 'x<CR>%.0s' $(seq 1 30))" '<Esc><ScrollWheelUp>' '<ScrollWheelUp>' '<ScrollWheelUp>' '<LeftMouse><10,9>' | cut -d'|' -f3)
   eq "$look" "$norm" "(typing: $look · normal mode: $norm)"
+  case_ "...a look, then a click that places no pen — the heading's row (the tabline), the blank row under it (the winbar), the foot's two rows: the pen back, the next key on his line, as with no look (the master, verdict 9's must-fix 1: \"qx\" on 147)"
+  for at in '<20,0>' '<20,1>' '<10,38>' '<10,39>'; do
+    diary "$TMP/v.md"; look=$(VDUMP="147 156" scrolls "$TMP/v.md" "$(printf 'x<CR>%.0s' $(seq 1 30))" '<ScrollWheelUp>' '<ScrollWheelUp>' '<ScrollWheelUp>' "<LeftMouse>$at" 'q' | cut -d'|' -f3)
+    diary "$TMP/v.md"; none=$(VDUMP="147 156" scrolls "$TMP/v.md" "$(printf 'x<CR>%.0s' $(seq 1 30))" "<LeftMouse>$at" 'q' | cut -d'|' -f3)
+    eq "$look" " 156:2 147=x 156=q" "a click at $at after a look"; eq "$none" "$look" "(at $at with no look: $none)"
+  done
+  case_ "...the same in the to-do: a look, a click on the heading, the next key on the item typed"
+  for i in $(seq 1 45); do echo "[ ] thing $i"; done >"$HOME/Notes/todo.md"
+  diary "$TMP/v.md"
+  eq "$(VDUMP="40 46" scrolls "$TMP/v.md" '<Tab>' 'abc' '<ScrollWheelUp>' '<ScrollWheelUp>' '<LeftMouse><20,0>' 'q' | cut -d'|' -f3)" " 46:9 40=[ ] thing 40 46=[ ] abcq"
+  case_ "...a look, then the middle button (in typing neovim pastes at the cursor, not at the pointer): the words at the pen, as with no look (verdict 9: they went into line 147)"
+  clip='lua:vim.g.clipboard = { name = "t", copy = { ["+"] = "cat >/dev/null", ["*"] = "cat >/dev/null" }, paste = { ["+"] = "echo PRIMARY", ["*"] = "echo PRIMARY" } }'
+  diary "$TMP/v.md"; look=$(VDUMP="147 156 157" scrolls "$TMP/v.md" "$(printf 'x<CR>%.0s' $(seq 1 30))" "$clip" '<ScrollWheelUp>' '<ScrollWheelUp>' '<ScrollWheelUp>' '<MiddleMouse><10,9>' 'q' | cut -d'|' -f3)
+  diary "$TMP/v.md"; none=$(VDUMP="147 156 157" scrolls "$TMP/v.md" "$(printf 'x<CR>%.0s' $(seq 1 30))" "$clip" '<MiddleMouse><10,9>' 'q' | cut -d'|' -f3)
+  eq "$look" "$none" "(after a look: $look · with none: $none)"; has "$look" "147=x" "line 147 untouched"; has "$look" "PRIMARY"
+  case_ "...a look, a bare pointer move (a plugin may ask for every move one day), then two keys: the look holds through the move, the keys on his line (verdict 9's should-fix 3)"
+  diary "$TMP/v.md"
+  eq "$(VDUMP="150 156" scrolls "$TMP/v.md" "$(printf 'x<CR>%.0s' $(seq 1 30))" '<ScrollWheelUp>' '<ScrollWheelUp>' 'lua:vim.api.nvim_input_mouse("move", "", "", 0, 10, 20)' 'q' 'r' | cut -d'|' -f3)" " 156:3 150=x 156=qr"
   case_ "...a look, then a paste (foot's is no key — nvim_paste): the text at the pen (verdict 8's must-fix 3: it went into line 150)"
   diary "$TMP/v.md"
   eq "$(VDUMP="150 156 157" scrolls "$TMP/v.md" "$(printf 'x<CR>%.0s' $(seq 1 30))" '<ScrollWheelUp>' '<ScrollWheelUp>' 'lua:vim.api.nvim_paste("one\ntwo", true, -1)' | cut -d'|' -f3)" " 157:4 150=x 156=one 157=two"

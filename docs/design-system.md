@@ -409,8 +409,11 @@ content, inside its margin of one cell:
   `o`, a `p`, a `:put`, a paste. The page scrolls by lines: a wrapped line leaves the top whole.
   A scroll he makes is his — Ctrl+Y, Ctrl+B, the wheel move the page and the pen yields into its
   room; a wheel while typing is a look: the page moves, the pen stays where he typed, and the
-  next key — any: a letter, Return, Backspace, an arrow — acts from the pen, the page back to it
-  (Esc ends the look where the page is) — and head, foot and margin never move, whatever the scroll
+  next key — any: a letter, Return, Backspace, an arrow, a paste, a middle-button paste, a click
+  that places nothing (the heading's rows, the foot's) — acts from the pen, the page back to it; a
+  click on a line ends the look where it points, Esc where the page is, Super+N and the page
+  turned where they put the pen (a click on the foot never places it) — and head, foot and margin
+  never move, whatever the scroll
   (`tools/regress/notes-page.sh` checks every frame of 40 typed lines with an `o` and a `yy p`,
   a cold start and a to-do longer than the page). It opens on a day's line, never mid-day: the
   latest day whose line leaves the pen its rows above it too (the same five as below) on the

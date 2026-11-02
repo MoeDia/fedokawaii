@@ -381,26 +381,46 @@ vim.api.nvim_create_autocmd("CursorMoved", { group = group, callback = keep_room
 -- line (the master, verdicts 6 and 7). The pen is noted as a look begins and put back before the
 -- next key acts — any key: a letter, Enter, Backspace, an arrow, Ctrl+O act from the pen, the
 -- page brought to it (the put-back splits the typing's undo, as an arrow does; a completion ends
--- when the look drags the cursor — neovim's own); a paste too (foot's is no key: vim.paste, below).
--- Esc ends the look where the page is, and yields (InsertLeave); a click ends it where it points
--- (putting the pen back first would scroll the page under the pointer — the master, verdict 8);
--- so does the program placing the pen: the page shown again, turned (BufWinEnter), left.
+-- when the look drags the cursor — neovim's own); a paste too (foot's is no key: vim.paste, below;
+-- the middle button's pastes at the cursor: the pen goes back first). Esc ends the look where the
+-- page is, and yields (InsertLeave); a click on a line of the page ends it where it points
+-- (putting the pen back first would scroll the page under the pointer — the master, verdict 8),
+-- a click that places nothing — the heading's two rows, the foot's — puts the pen back (verdict 9:
+-- the next key went into the line the look had dragged the cursor to); a move, a drag, a release
+-- leave the look as it is: decided by where a press lands, never by a key's name. The program
+-- placing the pen ends it too: the page shown again, turned (BufWinEnter), left.
 -- Nothing is noted meanwhile: WinScrolled does nothing in typing (neovim tells it a wheel only once
 -- the window has been through normal mode), follow() nothing during a look
 local function pen_back(at)                   -- the pen put back where he typed, the page brought to it
   pcall(vim.api.nvim_win_set_cursor, 0, at)
   follow()
 end
+-- (the pointer over a line of the page: in this window, on a buffer line, above the foot's two rows
+-- — floats neovim looks through, to the hidden line under them)
+local function on_page()
+  local m = vim.fn.getmousepos()
+  return m.winid == vim.api.nvim_get_current_win() and m.line > 0 and m.screenrow <= vim.o.lines - 2
+end
 vim.on_key(function(key)
   if not vim.api.nvim_get_mode().mode:find("^[iR]") then look = nil; return end
   local k = vim.fn.keytrans(key)
   if k:find("ScrollWheel", 1, true) then look = look or vim.api.nvim_win_get_cursor(0); return end
   local at = look
-  look = nil
-  if at and k ~= "<Esc>" and not (k:find("Mouse", 1, true) or k:find("Drag", 1, true) or k:find("Release", 1, true)) then
-    pen_back(at)
+  if not at then return end
+  if k:find("Mouse", 1, true) or k:find("Drag", 1, true) or k:find("Release", 1, true) then
+    if k:sub(-6) ~= "Mouse>" then return end   -- (a move, a drag, a release: not a press)
+    look = nil
+    if k:find("Middle", 1, true) or not on_page() then pen_back(at) end
+    return
   end
+  look = nil
+  if k ~= "<Esc>" then pen_back(at) end
 end, vim.api.nvim_create_namespace("kawa_look"))
+-- a click on the foot places nothing (neovim gave it to the hidden line under the floats: the pen
+-- landed there and the page scrolled five lines — the master, verdict 9's nit 5)
+for _, b in ipairs({ "<LeftMouse>", "<RightMouse>" }) do
+  vim.keymap.set({ "n", "i" }, b, function() return vim.fn.getmousepos().screenrow > vim.o.lines - 2 and "" or b end, { expr = true })
+end
 local paste = vim.paste
 vim.paste = function(lines, phase)          -- (a paste's first part: the pen put back before it goes in)
   if look and phase < 2 then local at = look; look = nil; pen_back(at) end
