@@ -4079,8 +4079,19 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   Tue 3 Nov (RC-1.4), releases/45 still 403 at 22:30 UTC; 46 accepted Changes; the release notes published; F44 EOL
   2027-06-02; a real `dnf5 --releasever=45 --assumeno distro-sync` dry run against this PC's rpmdb and repos (RPM Fusion,
   the COPRs); Fedora's python3.15 unpacked in /dev/shm compiled all 88 of the repo's Python programs with -W error. The
-  1 Nov digest (f45-changes.md) kept as it was. Next: read both for T46/T46b's plan (what breaks, what to use: Python 3.15
-  first, the owner's word).
+  1 Nov digest (f45-changes.md) kept as it was. ITS ACTIONABLE FINDINGS (for T46/T46b, T45's release path, T56's ISO):
+  (a) `dnf5 --releasever=45 distro-sync` FAILS on this PC today (dry run): RPM Fusion's mesa-va-drivers-freeworld 26.2.6
+  needs Fedora's mesa 26.2.6 (only in updates-testing yet), and protobuf-compiler/grpc-cpp (visidata → pandas → pyarrow)
+  conflict with protobuf 33.5 — only --allowerasing (removing protobuf-compiler) passes: 1902 upgrades, 28 installs, 8
+  downgrades, 5 removals. The release button must pre-flight exactly this (and wait for the mesa push). (b) RPM 6.1
+  ENFORCES signatures (%_pkgverify_level all): the VM harness's injected packages must be signed. (c) Fedora's repo files and
+  keys move to /usr (/usr/share/dnf5/repos.d, /usr/share/pki/rpm-gpg): fedokawaii-report's PKG-20 scans only
+  /etc/yum.repos.d — fix it. (d) kmscon joins @core on FRESH installs (the ISO and VM): our vt.default_* palette arguments
+  style fbcon only. Also: python3 3.14.8 → 3.15 (all 88 repo programs compile with -W error; lazy imports, the Tachyon
+  profiler, frame pointers to use); the kernel config byte-identical (7.2.14); systemd 262, plymouth 26, dracut 111,
+  selinux-policy 45.23, openssl 4.0, Podman 6 (safe for the Prowlarr quadlet); ROCm 7.2 and Fedora's own Ollama 0.24 (ROCm
+  + Vulkan; gfx1200 in the default targets) for T47; F46 will refuse silent RPM Fusion/COPR vendor changes. The dry runs
+  wrote lines to ~/.local/state/dnf5.log (dnf5's own user log).
 ## >>> NEXT PASS STARTS HERE (3 Nov, written 03:28 by the 00:42 bulk pass — the lines above say what it did): the inbox first.
 ## (0) PRESENCE before anything he could see or hear (memories presence-not-just-input-idle, probes-cut-off-session,
 ##     never-kill-a-computed-list): every kit/headless run through tools/hl-dwl.sh or tools/kit.sh (now a PID namespace
