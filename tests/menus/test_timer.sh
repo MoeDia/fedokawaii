@@ -70,6 +70,9 @@ case_ "the bar: the clock the time alone, always; the timer a cell of its own �
 setup; bar_up; bar_up timer
 [[ $(last) =~ ^\{\"text\":\"(0[0-9]:[0-5][0-9]:[0-5][0-9]\ [AP]M\"|1[0-2]:[0-5][0-9]:[0-5][0-9]\ [AP]M\",\"class\":\"l1\")\}$ ]] && _ok || _no "the time (10–12 o'clock: l1, its 1's own air): $(last)"
 eq "$(last 1)" '{"text":""}' "no timer: an empty cell (waybar hides it)"
+sw() { awk '/^voluntary_ctxt_switches/ { print $2 }' "/proc/$1/status"; }   # sw PID — how often it has slept and woken
+a=$(sw "${BARS[1]}"); sleep 2.2; b=$(sw "${BARS[1]}")
+((b - a <= 1)) && _ok || _no "no timer, yet the cell woke $((b - a)) times in 2.2 s (it waits for a wake, the clock alone ticks)"
 kawa-timer start 10
 within 300 "$TMP/bar.1" '"class":"timer"' && _ok || _no "no timer on the bar 0.3 s after it was set: $(last 1)"
 # (8 px from the hourglass's ink to the figures': ICON_BAR_HOURGLASS, no space; 10:00, or 09:59
@@ -91,6 +94,7 @@ settles 300 "$TMP/bar.3" '^\{"text":""\}$' && _ok || _no "still on the bar: $(la
 called "^notify-send -a desktop -- $ICON_HOURGLASS  stopwatch stopped at 00:0[1-9]$"
 case_ "a stopwatch past an hour: H:MM:SS"
 printf 'stopwatch %s\n' $((EPOCHSECONDS - 3723)) >"$XDG_RUNTIME_DIR/kawa-timer"
+for w in "$XDG_RUNTIME_DIR"/kawa-bar.wake.*; do printf '\n' 1<>"$w"; done   # (as kawa-timer does after each change)
 within 1500 "$TMP/bar.3" "${ICON_BAR_HOURGLASS}1:02:0" && _ok || _no "$(last 3)"
 answer esc; kawa-timer
 T=$'\t'; [[ $(fz_rows | sed -n 1p) =~ ^part${T}"$ICON_HOURGLASS"${T}timer${T}stopwatch\ 1:02:0[0-9]$ ]] && _ok || _no "the stopwatch at the menu's heading: $(fz_rows | sed -n 1p)"

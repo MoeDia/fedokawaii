@@ -141,6 +141,9 @@ bar() {
       line="{\"text\":\"$now\"${cls:+,\"class\":$cls}}"
     fi
     [[ $line == "$last" ]] || { printf '%s\n' "$line" || exit 0; last=$line; }
+    # the timer's cell with none running: nothing ticks — it waits for a wake (every start,
+    # stopwatch and cancel wakes all the bars), not once a second
+    if [[ $cell == timer && -z $tm ]]; then read -r -u "$fd" _; continue; fi
     # to the next whole second, with no process started: a read that times out (or a wake)
     us=${EPOCHREALTIME#*.}; us=$((1000000 - 10#$us)); printf -v frac '%06d' $((us % 1000000))
     read -r -t "$((us / 1000000)).$frac" -u "$fd" _
