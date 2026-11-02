@@ -123,6 +123,11 @@ case ${1:-} in
     tmp=$(mktemp "$RUN/kawa-clip.XXXXXX") || exit 0
     trap 'rm -f "$tmp"' EXIT
     decode "$2" >"$tmp" || exit 0
+    # its first line the rule under the list — from the content's first column to its last, as
+    # the heading's (fzf's own border ran a column past each end) — held there as the text
+    # scrolls (the window's ~1); then the clip, under the list's names
+    printf -v s '%*s' $(( ${FZF_PREVIEW_COLUMNS:-78} - 2 )) ''
+    printf ' %s%s%s\n' "$INK_STITCH" "${s// /$STITCH}" "$INK_OFF"
     # text is whatever has a character set — code, mail and keys too, which `file` names
     # application/javascript, message/rfc822, application/pgp-keys…
     mime=$(file -b --mime "$tmp" 2>/dev/null); type=${mime%%;*}
@@ -136,7 +141,7 @@ case ${1:-} in
         # — and, so its margins are equal to the pixel, a width and height of the same
         # parity as the area's (one edge row or column trimmed if need be, never resampled)
         cell=${KAWA_CELL:?}; ch=${cell#*x}
-        aw=$(( ${FZF_PREVIEW_COLUMNS:-74} * ${cell%x*} )) bh=$(( (${FZF_PREVIEW_LINES:-9} - 2) * ch ))
+        aw=$(( ${FZF_PREVIEW_COLUMNS:-74} * ${cell%x*} )) bh=$(( (${FZF_PREVIEW_LINES:-10} - 3) * ch ))
         w0=0 h0=0; read -r w0 h0 < <(magick "${tmp}[0]" -format '%w %h\n' info: 2>/dev/null)
         if ((aw > 0 && bh > 0 && w0 > 0 && h0 > 0)); then
           sw=$w0 sh=$h0 fit=()
@@ -154,13 +159,13 @@ case ${1:-} in
             printf '\n'; exit 0
           fi
         fi
-        printf '   %s  picture (%s)\n' "$ICON_PICTURE" "${type#image/}" ;;
+        printf '  %s %s\n' "$ICON_PICTURE" "picture (${type#image/})" ;;
       text/*|inode/x-empty)
-        # in the column of the list's glyphs (a wrapped line too: --preview-wrap-sign); an
+        # in the column of the list's names (a wrapped line too: --preview-wrap-sign); an
         # escape as ^[ (an escape code would act on the preview: colour it, clear it), a CR
         # before a line's end left out (text from Windows)
-        head -c 65536 "$tmp" | sed -e 's/\r$//' -e 's/\x1b/^[/g' -e 's/^/   /' ;;
-      *) printf '   %s  %s, %s bytes\n' "$ICON_BOX_OFF" "$type" "$(stat -c %s "$tmp")" ;;
+        head -c 65536 "$tmp" | sed -e 's/\r$//' -e 's/\x1b/^[/g' -e 's/^/     /' ;;
+      *) printf '  %s %s, %s bytes\n' "$ICON_BOX_OFF" "$type" "$(stat -c %s "$tmp")" ;;
     esac
     exit 0 ;;
   --copy)       # back on the clipboard; wl-copy keeps serving it after this window closes
@@ -283,7 +288,7 @@ rm -f -- "$SOCK"                                     # (a window killed outright
 away=""; [[ ${KAWA_WARM:-} == clip ]] && away="execute-silent(kawa-warm --away clip)+"
 fzf --ansi --no-sort --height=100% \
   --delimiter=$'\t' --with-nth=2.. --scheme=history --header="$head" --ghost="$ghost" \
-  --preview="$self --preview {1}" --preview-window='down,9,wrap-word,border-top,noinfo' --preview-wrap-sign='   ' \
+  --preview="$self --preview {1}" --preview-window='down,10,wrap-word,border-none,noinfo,~1' --preview-wrap-sign='     ' \
   --footer=$'\n'"$(screen_keys super+z shrink '' ctrl+d forget '' ctrl+x 'forget all' '')" \
   --listen="$SOCK" \
   --bind="focus:execute-silent($self --focus $pid {1})" \
