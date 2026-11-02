@@ -385,9 +385,10 @@ vim.api.nvim_create_autocmd("CursorMoved", { group = group, callback = keep_room
 -- the middle button's pastes at the cursor: the pen goes back first). Esc ends the look where the
 -- page is, and yields (InsertLeave); a click on a line of the page ends it where it points
 -- (putting the pen back first would scroll the page under the pointer — the master, verdict 8),
--- a click that places nothing — the heading's two rows, the foot's — puts the pen back (verdict 9:
--- the next key went into the line the look had dragged the cursor to); a move, a drag, a release
--- leave the look as it is: decided by where a press lands, never by a key's name. The program
+-- a click on the heading's two rows puts the pen back (verdict 9: the next key went into the line
+-- the look had dragged the cursor to); one on the foot is swallowed whole (below) — the look stays
+-- and the next key puts the pen back; a move, a drag, a release leave the look as it is: decided by
+-- where a press lands, never by a key's name. The program
 -- placing the pen ends it too: the page shown again, turned (BufWinEnter), left.
 -- Nothing is noted meanwhile: WinScrolled does nothing in typing (neovim tells it a wheel only once
 -- the window has been through normal mode), follow() nothing during a look
@@ -417,9 +418,17 @@ vim.on_key(function(key)
   if k ~= "<Esc>" then pen_back(at) end
 end, vim.api.nvim_create_namespace("kawa_look"))
 -- a click on the foot places nothing (neovim gave it to the hidden line under the floats: the pen
--- landed there and the page scrolled five lines — the master, verdict 9's nit 5)
-for _, b in ipairs({ "<LeftMouse>", "<RightMouse>" }) do
-  vim.keymap.set({ "n", "i" }, b, function() return vim.fn.getmousepos().screenrow > vim.o.lines - 2 and "" or b end, { expr = true })
+-- landed there and the page scrolled five lines — the master, verdict 9's nit 5) — one click or
+-- more (neovim counts them itself: the second comes as <2-LeftMouse>, a word selected there and his
+-- next letters commands — verdict 10), in every mode with a cursor to place; the middle button
+-- outside typing (in typing it pastes at the pen, wherever it is pressed). (An operator waiting for
+-- its motion is left to neovim, as ctrl- and alt-clicks are)
+local function foot(k) return function() return vim.fn.getmousepos().screenrow > vim.o.lines - 2 and "" or k end end
+for _, n in ipairs({ "", "2-", "3-", "4-" }) do
+  for _, b in ipairs({ "LeftMouse", "RightMouse" }) do
+    vim.keymap.set({ "n", "i", "x", "s" }, "<" .. n .. b .. ">", foot("<" .. n .. b .. ">"), { expr = true })
+  end
+  vim.keymap.set({ "n", "x", "s" }, "<" .. n .. "MiddleMouse>", foot("<" .. n .. "MiddleMouse>"), { expr = true })
 end
 local paste = vim.paste
 vim.paste = function(lines, phase)          -- (a paste's first part: the pen put back before it goes in)

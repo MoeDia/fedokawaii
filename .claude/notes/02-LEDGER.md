@@ -3735,6 +3735,21 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   lettering: research a licensed brush face; 「鍵は心にあり」 is the plan's first pick), the light mood's scene (a tennin
   on kinari paper with gold), then lock.ui/gtklock.css placing the entry on the mouth, caret, wrong-password path,
   5 s screens off, the greeter twin.
+- r27-21-master-10 (2 Nov 17:39–17:58, the master's re-review 10 on f0994be): VERDICT PASS (.claude/notes/master-T21-verdict-10.md).
+  Held: verdict 9's must-fix (tabline, winbar, the side buttons, the middle button with PRIMARY, the to-do's heading:
+  the pen back), the bare move keeps the look — 41 headless scenarios and 23 in nvim's real TUI (SGR mouse); a single
+  click on the foot swallowed in insert, Replace and normal mode, a resize moving the foot rows; test_notes 166/0.
+  SHOULD-FIX 1: a double/triple click on the foot was not swallowed (the second press comes as <2-LeftMouse>): Visual
+  mode, his next letters commands. Nits: the words (a foot click is swallowed whole, the next key puts the pen back);
+  ctrl/alt/middle/X clicks and x/s/o modes on the foot left to neovim.
+- r27-21-master-10-fix (2 Nov 17:59–18:10): every click count (1–4) of the left and right buttons swallowed on the foot
+  in n, i, x and s; the middle button outside typing too (in typing it pastes at the pen wherever pressed); an operator
+  waiting for its motion left to neovim (said in the comment). The comment and §7 say it whole: the heading's rows
+  put the pen back at once, a foot click is swallowed — the look stays, the next key puts it back. Rows (the harness
+  prints the mode with VMODE=1): a double and a triple click on rows 39/38 with no look → "156:1 156= mode=i", after
+  a look + "q" → "156:2 147=x 156=q mode=i", a double click in normal mode → "mode=n": all 5 FAIL on f0994be (Visual
+  mode; the q-rows hang on a register until ended), test_notes 171/0 on the fix. T21 DONE (code, master PASS): live
+  with the apply + a session restart (the dwl cold-Super+N fix); its Learn figure at the book update.
 ## >>> NEXT PASS STARTS HERE (2 Nov, written 16:25 by the 13:51 bulk pass — the lines above say what it did): the inbox first.
 ## (0) PRESENCE before anything he could see or hear (memory presence-not-just-input-idle); at 16:57 he was in a Discord
 ##     call (Brave: mic + sound). Every probe outside the harness/kit cut off from his session (memory probes-cut-off-session).

@@ -284,6 +284,7 @@ local function step(i, t0)
       pen = " | " .. vim.fn.line(".") .. ":" .. vim.fn.col(".")
       for n in os.getenv("VDUMP"):gmatch("%d+") do pen = pen .. " " .. n .. "=" .. vim.fn.getline(tonumber(n)) end
     end
+    if os.getenv("VMODE") then pen = pen .. " mode=" .. vim.api.nvim_get_mode().mode end   -- (and the mode it ended in)
     local f = io.open(OUT, "w"); f:write(table.concat(dt, " ") .. " | " .. table.concat(rows, " ") .. pen); f:close()
     return vim.cmd("qa!")
   end
@@ -341,6 +342,15 @@ SCROLLLUA
     diary "$TMP/v.md"; none=$(VDUMP="147 156" scrolls "$TMP/v.md" "$(printf 'x<CR>%.0s' $(seq 1 30))" "<LeftMouse>$at" 'q' | cut -d'|' -f3)
     eq "$look" " 156:2 147=x 156=q" "a click at $at after a look"; eq "$none" "$look" "(at $at with no look: $none)"
   done
+  case_ "...a double and a triple click on the foot (neovim counts them itself: the second press is <2-LeftMouse>) are swallowed too — still typing, nothing selected, the pen where it was; after a look the next key on his line (the master, verdict 10's should-fix 1: Visual mode, his letters commands)"
+  dbl='lua:for _ = 1, 2 do vim.api.nvim_input_mouse("left", "press", "", 0, 39, 20); vim.api.nvim_input_mouse("left", "release", "", 0, 39, 20) end'
+  tri='lua:for _ = 1, 3 do vim.api.nvim_input_mouse("left", "press", "", 0, 38, 20); vim.api.nvim_input_mouse("left", "release", "", 0, 38, 20) end'
+  for c in "$dbl" "$tri"; do
+    diary "$TMP/v.md"; eq "$(VMODE=1 VDUMP="156" scrolls "$TMP/v.md" "$(printf 'x<CR>%.0s' $(seq 1 30))" "$c" | cut -d'|' -f3)" " 156:1 156= mode=i" "${c:4:40}… with no look"
+    diary "$TMP/v.md"; eq "$(VMODE=1 VDUMP="147 156" scrolls "$TMP/v.md" "$(printf 'x<CR>%.0s' $(seq 1 30))" '<ScrollWheelUp>' '<ScrollWheelUp>' '<ScrollWheelUp>' "$c" 'q' | cut -d'|' -f3)" " 156:2 147=x 156=q mode=i" "${c:4:40}… after a look"
+  done
+  diary "$TMP/v.md"; got=$(VMODE=1 VDUMP="156" scrolls "$TMP/v.md" "$(printf 'x<CR>%.0s' $(seq 1 30))" '<Esc>' "$dbl" | cut -d'|' -f3)
+  eq "$got" " 156:1 156= mode=n" "(normal mode, no Visual: $got)"
   case_ "...the same in the to-do: a look, a click on the heading, the next key on the item typed"
   for i in $(seq 1 45); do echo "[ ] thing $i"; done >"$HOME/Notes/todo.md"
   diary "$TMP/v.md"
