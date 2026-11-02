@@ -3293,9 +3293,18 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   ONCE (kawa-menu --password), and a wrong password ends in a separate notice ("wrong password · it stays locked").
   qpdf's own man page (installed): --requires-password exits 0 (a password needed), 2 (not encrypted), 3 (encrypted,
   the password given right); --password-file=- is what kawa-file already uses (proven by its tests). NEXT: the
-  prompt again IN PLACE with "wrong password" as its title until right or Esc (kawa-menu --stay keeps a menu's
-  window for the caller's next page — check it carries a typed --password answer; else teach kawa-panel), for both
-  paths; zathura's inputbar inks/size read by eye (zathurarc).
+  prompt again IN PLACE with "wrong password" as its title until right or Esc, for both paths; zathura's inputbar
+  inks/size read by eye (zathurarc). CHECKED 13:08 (bin/kawa-panel typed(), ~1641): a TYPED answer (a password's
+  Enter) always answers and closes — --stay holds the window only for a chosen key line (~1483: holding, the next
+  page in place via page(), closed after a second if none comes). The build: (1) kawa-panel typed(): under m.stay a
+  typed answer holds the window as a key line does (holding, the same 1 s guard); (2) a way for the caller to end a
+  held window AT ONCE (a right password must not linger a second): e.g. `kawa-menu --done` (the panel closes the held
+  menu, "chosen"); (3) kawa-file: password() → `kawa-menu --password --stay --title "NAME · password"`, checked (7z /
+  unrar -p from stdin, qpdf --password-file=- --requires-password = 3), wrong → the same call with the title "wrong
+  password · NAME" (page() puts it in place, the query empty), right → --done; Esc ends it as today. Tests: the
+  panel's (tests/menus: --stay with a typed answer, --done) and test_file (a wrong then a right password: one
+  window, no notice). Live: kawa-panel restarted only per memory live-panel-restart (kit render first, SIGKILL when
+  nothing is open) and only when he is away.
 ## >>> NEXT PASS STARTS HERE (2 Nov, written 11:45 by the 11:03 bulk pass — the lines above say what it did): the inbox first.
 ## (0) PRESENCE: before anything he could see or hear (a reboot, a session restart, a bar restart, a live play, a notice):
 ##     `wpctl status`, `playerctl -a status`, one half-scale grim — not only the swayidle probe (memory
