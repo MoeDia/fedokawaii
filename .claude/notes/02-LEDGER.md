@@ -3631,36 +3631,38 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   (kawa-display --hotplug restores the wallpaper as a monitor lights) — his screens woke then: him back at the PC (the
   round's inhibitor is logind's; swayidle's Wayland idle still darkens them), not the kit. NEXT: grim the corner again;
   if still drawn, restart mako when he is away (systemctl --user restart mako) and watch the watcher's log.
-## >>> NEXT PASS STARTS HERE (2 Nov, written 15:32 by the 13:51 bulk pass — the lines above say what it did): the inbox first.
-## (0) PRESENCE: before anything he could see or hear (a reboot, a session restart, a bar or panel restart, a live play,
-##     a notice): `wpctl status`, `playerctl -a status`, one half-scale grim (memory presence-not-just-input-idle). At
-##     14:10 he was at the PC (Discord in Brave, sound playing). And every probe outside the harness/kit runs cut off from
-##     his session (memory probes-cut-off-session — r27-leak: our runs put notices on his screen and text on his clipboard).
-## (1) T21: the master's RE-REVIEW 9 ran from 15:54 on 4c8de66 (verdict 8's: the look ended by the program's own pen
-##     moves, a click, a paste; follow() on the put-back): its verdict → .claude/notes/master-T21-verdict-9.md (from
-##     /dev/shm/r27/master/T21/verdict.md); FAIL → fix → review 10 (archive /dev/shm/r27/master/T21 first: r1–r8 in
-##     master-archive). PASS → T21 done but for the apply + a SESSION
-##     RESTART (the dwl cold-Super+N fix) when he is away, and the Learn piece's figure at the book update.
-## (2) PUSHED 16:10 (2521e97, after the green suite on bee0316). Every later commit: a suite (or its own tests and the
-##     delta named) before the next push. The leak watcher (/dev/shm/r27p/mako-watch.log, r27-leak-2): read it first.
-## (3) APPLY from a frozen tree when he is away + the panel restart (memory live-panel-restart) + the session restart:
-##     live then — bug 10's held password window with its failed state and the lone field's air, zathura's line, Super+V's
-##     and Super+W's preview rule, the calculator's erase, the idle timer cell, T21's notebook fixes, the harness (tests
-##     only). The KERNEL TRIAL (7.2.13, snapshot 381 pinned) closes at the next start: the reboot the same way (r27-49-B3).
-## (4) T46/T46b (F45 out Tue 3 Nov): vm-create f45 fresh from the released tree, vm-smoke f45, tools/vm-inject/f45-checks.sh,
-##     T46's pre-flight; the upgrade's WAIT (60 days).
-## (5) T23 next step (the sheets are in: caca179, configs/home/.config/fedokawaii/keys/*.txt, 250 rows; kawa-dwlstatus
-##     keeps the focused window's app id in dwl-bar/appid.json since 1a6da40): kawa-help reads it — a warm window by its
-##     app id (warm-notes, warm-clip, warm-system…), a kawa-term --app window by its id; a PLAIN foot window cannot be
-##     told today (FOUND 15:35: the title stays the folder while a program runs — the prompt sets it, nothing per
-##     command): a ble.sh PREEXEC hook (blehook PREEXEC gets the command line; no fork) puts the running program's
-##     name in the title ONLY when it has a sheet (keys/<name>.txt exists: a stat) — every command would flash the
-##     bar's title for an `ls` (a flicker); the bar then shows "yazi", "nvim" while they run (a program's own title
-##     still wins), the prompt puts the folder back; sudo/env wrappers looked past; pty-tested; → that sheet's parts first, then the desktop's, then the rest; the sheets for our own screens (Super+U, notes, books, clip, wallpaper); fuzzy rank (subsequence + word
-##     starts) in kawa-panel's filter; tests (test_help); shots both moods; the master.
+## >>> NEXT PASS STARTS HERE (2 Nov, written 16:25 by the 13:51 bulk pass — the lines above say what it did): the inbox first.
+## (0) PRESENCE before anything he could see or hear (memory presence-not-just-input-idle); at 16:10 he was at the PC
+##     (Discord, sound). Every probe outside the harness/kit cut off from his session (memory probes-cut-off-session).
+##     FIRST: /dev/shm/r27p/mako-watch.log (the watcher, r27-leak-2) — a new notice there names the test file that sent
+##     it; and grim his top-right corner: the stale "recording ×4" drawing (his mako lists none) — gone, or restart mako
+##     when he is away (systemctl --user restart mako).
+## (1) T21: the master's RE-REVIEW 9 (from 15:54 on 4c8de66) — if /dev/shm/r27/master/T21/verdict.md exists, copy it to
+##     .claude/notes/master-T21-verdict-9.md and act: FAIL → fix → review 10 (archive /dev/shm/r27/master/T21 first; r1–r8
+##     in master-archive); PASS → T21 done but for the apply + a SESSION RESTART (the dwl cold-Super+N fix) when he is
+##     away, and the Learn piece's figure at the book update. If it never finished (the pass ended): run review 9 again.
+## (2) Pushed 16:13 (35dec67; the suite green on bee0316). Before the next push: a suite, or every later commit's own
+##     tests named in the ledger.
+## (3) APPLY from a frozen tree when he is away + the panel restart (memory live-panel-restart) + the session restart —
+##     live then: bug 10's held window with its failed state and the lone field's air, zathura's line, Super+V's and
+##     Super+W's preview rule, the calculator's erase, the idle timer cell, T21's notebook, the focused app id file.
+##     The KERNEL TRIAL (7.2.13, snapshot 381 pinned) closes at the next start: the reboot the same way (r27-49-B3).
+## (4) T46/T46b (F45 out Tue 3 Nov): vm-create f45 fresh from the released tree, vm-smoke f45,
+##     tools/vm-inject/f45-checks.sh, T46's pre-flight; the upgrade's WAIT (60 days).
+## (5) T23: the sheets are in (caca179, keys/*.txt, 250 rows) and kawa-dwlstatus keeps the focused window's app id in
+##     dwl-bar/appid.json (1a6da40). Next: kawa-help reads it — a warm window by its app id (warm-notes, warm-clip,
+##     warm-system…), a kawa-term --app window by its id; a PLAIN foot window cannot be told today (FOUND: the title stays
+##     the folder while a program runs): a ble.sh PREEXEC hook (blehook PREEXEC gets the command line; no fork) puts the
+##     running program's name in the title ONLY when it has a sheet (keys/<name>.txt: a stat) — every command would
+##     flash the bar's title for an `ls`; the prompt puts the folder back; sudo/env looked past; pty-tested → that
+##     sheet's parts first, then the desktop's, then the rest; our own screens' sheets (notes, clip, Super+U, wallpaper,
+##     books: their keys read from the code); fuzzy rank (subsequence + word starts) in kawa-panel's filter; test_help;
+##     shots both moods; the master.
 ## (6) T19m (b) pass 1's rest (audit-r27.md): lock, greeter, saver, boot splash, GRUB (their own renders); GTK/Qt themes,
-##     window borders and gaps; torrents, the downloads' list, kawa-file's parts. Then pass 2 (side by side). The kit
-##     render of Super+V/W and the calculator after their fixes (12e5b22, 74de1f8, a8dfaad) — numbers into audit-r27.md.
-## (7) T22: the master's T22 review (the grid, kinds, empty states, tabs, bug 10 with its failed state, zathura's line).
-## (8) T53's rest: run/retry failure paths, the set -u/pipefail audit, `fedokawaii selftest --sandbox`, kawa-panel's start
-##     and first draw and the warm windows' open measured (tools/proc-load.py for process trees), line counts at its end.
+##     window borders and gaps; torrents, the downloads' list, kawa-file's parts. Then pass 2 (side by side).
+## (7) T22: the master's T22 review — tools/master-brief.sh T22 with the evidence: /dev/shm/r27/t22/b10rec/ (wrong twice
+##     then right, both moods, shots + rec-{dark,light}.mkv), /dev/shm/r27/t22/zpad/v2-{dark,light}/ (zathura's line),
+##     /dev/shm/r27/t22/p/ (the tabs, empty states), the grid's renders (r27-22-grid). Its Learn piece at the book update.
+## (8) T53's rest: the run/retry call sites (the helpers' own failure paths are tested: test_common), the pipefail
+##     audit, `fedokawaii selftest --sandbox`, kawa-panel's start and first draw and the warm windows' open measured
+##     (tools/proc-load.py for process trees), line counts at its end (bin+lib: 16061 at its start, 16158 at 16:00).
