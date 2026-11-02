@@ -1,10 +1,17 @@
 #!/usr/bin/env bash
 # kawa-help — Super+/ : every keybinding, type to filter (Esc closes). A menu of the panel's
-# (kawa-menu; docs/design-system.md): each part of keybinds.txt under its kanji and name (what
-# its heading says after a colon or in brackets at the heading's end), an info row a binding —
-# only read, nothing to choose: the key as the row's name, what it does in a column of its own
-# (the panel puts it two gaps after the longest key). A row of keybinds.txt is a key, then its
-# description from column 24 on (a key that runs past it: after its gap of two spaces).
+# (kawa-menu; docs/design-system.md): the keys of the program you are in first — its sheet,
+# ~/.config/fedokawaii/keys/NAME.txt —, then the desktop's (keybinds.txt), then every other
+# program's; each part under its icon and name (what its heading says after a colon or in
+# brackets at the heading's end), an info row a binding — only read, nothing to choose: the key
+# as the row's name, what it does in a column of its own (the panel puts it two gaps after the
+# longest key). A row is a key, then its description from column 24 on (a key that runs past it:
+# after its gap of two spaces); a line starting with # is the sheet's own note (its sources).
+# What is typed finds by its letters in order too ("wpa": the wallpaper picker), the best first.
+# The program you are in: the focused window as the bar knows it (kawa-dwlstatus: its app id
+# and title) — one of ours by its app id (warm-notes …, kawa-git …, zathura, mpv), a terminal by
+# its title: yazi titles itself "Yazi: …", the shell names any other program with a sheet while
+# it runs (fedokawaii.sh, __kawa_preexec).
 # No arguments (--help: this text).
 set -u
 case ${1:-} in
@@ -14,16 +21,20 @@ case ${1:-} in
 esac
 # shellcheck source=/dev/null
 . "$HOME/.config/fedokawaii/icons.sh"
-f="$HOME/.config/fedokawaii/keybinds.txt"
+f="$HOME/.config/fedokawaii/keybinds.txt" keys="$HOME/.config/fedokawaii/keys"
 [[ -r $f ]] || { notify-send -a desktop -u critical -- "$ICON_KEYBOARD  keybindings" "keybinds.txt is missing — fedokawaii repair puts it back"; exit 1; }
 export LC_ALL=C.UTF-8                            # (a column a character)
-# part_icon NAME → K, the part's icon, by the first word of its name (a part of your own: the
-# keycap; no subshell: the sheet is built at every press, the one that closes it too)
+# part_icon NAME → K, the part's icon, by the first word of its name: a part of the desktop's,
+# or a program's (a part of your own: the keycap; no subshell: the sheet is built at every
+# press, the one that closes it too)
 part_icon() {
   case ${1%%[^a-z]*} in
     launch) K=$ICON_TORII_SMALL ;; screenshots) K=$ICON_CAMERA ;; windows) K=$ICON_WINDOW ;; workspaces) K=$ICON_TILE ;;
-    sound) K=$ICON_SPEAKER ;; terminal) K=$ICON_TERMINAL ;; files) K=$ICON_FOLDER ;; drives) K=$ICON_DRIVE ;; session) K=$ICON_POWER ;;
-    drawing) K=$ICON_BRUSH ;;
+    sound) K=$ICON_SPEAKER ;; terminal) K=$ICON_TERMINAL ;; files|yazi) K=$ICON_FOLDER ;; drives) K=$ICON_DRIVE ;;
+    session) K=$ICON_POWER ;; drawing) K=$ICON_BRUSH ;;
+    nvim) K=$ICON_CODE ;; lazygit) K=$ICON_BRANCH ;; btop) K=$ICON_CPU ;; wiremix) K=$ICON_SLIDERS ;;
+    bluetui) K=$ICON_BLUETOOTH ;; visidata) K=$ICON_SHEET ;; gdu) K=$ICON_USAGE ;; zathura) K=$ICON_PAGES ;;
+    mpv) K=$ICON_MONITOR ;;
     *) K=$ICON_KEYCAP ;;
   esac
 }
@@ -43,12 +54,13 @@ split() {
   KEY=${l:0:i} DESC=${l:i}
   KEY=${KEY%"${KEY##*[! ]}"} DESC=${DESC#"${DESC%%[! ]*}"}
 }
-# sheet — the menu's lines: "── name: more ───" or "── name (more) ───" a part (its name; the
-# more at its end), any other line an info row (no glyph: the key, then what it does); blank lines left out
+# sheet FILE — the menu's lines: "── name: more ───" or "── name (more) ───" a part (its name; the
+# more at its end), "# …" the sheet's note (left out), any other line an info row (no glyph: the
+# key, then what it does); blank lines left out
 sheet() {
   local l t v K
   while IFS= read -r l; do
-    [[ -n ${l//[[:space:]]/} ]] || continue
+    [[ -n ${l//[[:space:]]/} && $l != '#'* ]] || continue
     if [[ $l == ─* ]]; then
       t=${l#"${l%%[!─ ]*}"}; t=${t%"${t##*[!─ ]}"}
       v=""
@@ -58,8 +70,36 @@ sheet() {
     else
       split "$l"; printf 'info\t\t%s\t%s\n' "$KEY" "$DESC"
     fi
-  done <"$f"
+  done <"$1"
 }
+# here — the sheet of the program you are in (its name, or nothing): the focused window as
+# kawa-dwlstatus keeps it for the bar, dwl-bar/appid.json and title.json (JSON; the title in the
+# bar's markup: a span around it, & < > as entities) — read with bash alone
+here() {
+  local d=${XDG_RUNTIME_DIR:-/run/user/$UID}/dwl-bar j app="" title="" s=""
+  { IFS= read -r j <"$d/appid.json"; } 2>/dev/null && [[ $j =~ \"text\":\"([^\"\\]*)\" ]] && app=${BASH_REMATCH[1]}
+  if { IFS= read -r j <"$d/title.json"; } 2>/dev/null && [[ $j =~ \"text\":\"(([^\"\\]|\\.)*)\" ]]; then
+    title=${BASH_REMATCH[1]}; title=${title#<span*>}; title=${title%</span>}
+    title=${title//\\\"/\"}; title=${title//\\\\/\\}
+    title=${title//&lt;/<}; title=${title//&gt;/>}; title=${title//&amp;/&}
+  fi
+  case $app in
+    warm-notes) s=notes ;; warm-clip) s=clip ;; warm-system) s=system ;;
+    kawa-git) s=lazygit ;; kawa-disk) s=gdu ;; kawa-tables) s=vd ;;
+    org.pwmt.zathura) s=zathura ;; mpv) s=mpv ;;
+    foot|footclient)
+      case $title in "Yazi: "*) s=yazi ;; *) [[ $title =~ ^[a-z0-9-]+$ ]] && s=$title ;; esac ;;
+  esac
+  [[ -n $s && -r $keys/$s.txt ]] && HERE=$s
+}
+HERE=""
+here
 # (the field to type in bare, as the launcher's: the cursor in it says enough — a prompt is for a
 # field that needs words of its own: a size, an order, a passphrase's lock)
-sheet | kawa-menu --prompt "" --lines 24 >/dev/null || true
+{
+  [[ -n $HERE ]] && sheet "$keys/$HERE.txt"
+  sheet "$f"
+  for k in "$keys"/*.txt; do
+    [[ -r $k && $k != "$keys/$HERE.txt" ]] && sheet "$k"
+  done
+} | kawa-menu --prompt "" --fuzzy --lines 24 >/dev/null || true

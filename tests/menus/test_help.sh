@@ -23,8 +23,9 @@ for l in open(sys.argv[1], encoding="utf-8").read().splitlines():
 case_ "the sheet: every line but the blank ones, a field to filter in (bare, as the launcher's: no prompt of its own), sized to its content, 24 lines, no cursor (info rows are only read)"
 setup; answer esc; rc 0 kawa-help
 eq "$(fz_rows | grep -c .)" "$(grep -cv '^[[:space:]]*$' "$K")"
-has "$(cat "$REPO/bin/kawa-help")" 'kawa-menu --prompt "" --lines 24' "a field, bare"
+has "$(cat "$REPO/bin/kawa-help")" 'kawa-menu --prompt "" --fuzzy --lines 24' "a field, bare"
 eq "$(fz_arg prompt)" ""; eq "$(fz_arg width)" ""; eq "$(fz_arg lines)" 24; eq "$(fz_arg select)" ""
+eq "$(fz_arg fuzzy)" set "what is typed finds by its letters in order too (\"wpa\": the wallpaper picker)"
 eq "$(fz_rows | sed -n 2p)" "info		Super+Return	terminal (foot)" "line 1 is a binding, not a heading"
 eq "$(fz_arg drop)" "" "centred"; fits
 case_ "every binding an info row: no glyph, the key as its name, what it does as its detail (the panel's column), as the sheet says"
@@ -78,6 +79,55 @@ setup; printf 'Super+A                 one\n\n   \nSuper+B                 two\n
 eq "$(fz_rows)" $'info\t\tSuper+A\tone\ninfo\t\tSuper+B\ttwo'
 case_ "an empty sheet: an empty menu, no error"
 setup; : >"$K"; answer esc; rc 0 kawa-help
+
+# ── the programs' sheets (~/.config/fedokawaii/keys/NAME.txt), the one you are in first ─────
+SHEETS=$REPO/configs/home/.config/fedokawaii/keys
+keys_setup() { setup; config .config/fedokawaii/keys; D=$XDG_RUNTIME_DIR/dwl-bar; mkdir -p "$D"; }
+focus() {   # focus APPID TITLE — the focused window as kawa-dwlstatus keeps it (the title in the bar's markup)
+  printf '{"text":"%s"}\n' "$1" >"$D/appid.json"
+  printf '{"text":"<span line_height='"'"'14336'"'"'>%s</span>","class":["l0","r1"]}\n' "$2" >"$D/title.json"
+}
+parts() { fz_rows | awk -F'\t' '$1 == "part" && !seen[$3]++ { printf "%s ", $3 }'; }
+ALL="launch screenshots windows workspaces sound, music, monitor terminal files drives session drawing tablet "
+case_ "no window focused (no files yet): the desktop's sheet first, then every program's, by its file's name"
+keys_setup; answer esc; rc 0 kawa-help
+eq "$(parts)" "${ALL}bluetui btop gdu lazygit mpv nvim visidata wiremix yazi zathura "
+case_ "yazi in a terminal (it titles itself \"Yazi: …\"): its keys first, then the desktop's, then the rest"
+keys_setup; focus footclient "Yazi: ~/Downloads"; answer esc; kawa-help
+eq "$(parts)" "yazi ${ALL}bluetui btop gdu lazygit mpv nvim visidata wiremix zathura "
+eq "$(fz_rows | head -n2 | tail -n1)" "$(printf 'info\t\tj / k\tnext / previous file (arrow keys too)')" "its first row under its first part"
+case_ "a program the shell named in the title (nvim, lazygit, vd): its keys first; a folder as the title, or a program with no sheet: the desktop's first"
+for t in nvim:nvim lazygit:lazygit vd:visidata; do
+  keys_setup; focus foot "${t%%:*}"; answer esc; kawa-help
+  eq "$(parts | cut -d' ' -f1)" "${t#*:}" "titled ${t%%:*}"
+done
+for t in "~/repos/fedokawaii" "btop2" "Yazi"; do
+  keys_setup; focus footclient "$t"; answer esc; kawa-help; eq "$(parts | cut -d' ' -f1)" launch "titled $t"
+done
+case_ "one of ours by its app id: Git lazygit, Disk usage gdu, Tables visidata, zathura, mpv; Brave: the desktop's first"
+for t in kawa-git:lazygit kawa-disk:gdu kawa-tables:visidata org.pwmt.zathura:zathura mpv:mpv brave-origin:launch; do
+  keys_setup; focus "${t%%:*}" "a title"; answer esc; kawa-help
+  eq "$(parts | cut -d' ' -f1)" "${t#*:}" "app id ${t%%:*}"
+done
+case_ "every row of every sheet is in the menu (none lost, none twice), its notes (# …) never; each program's parts under its own icon"
+keys_setup; answer esc; kawa-help
+want=$(cat "$HOME/.config/fedokawaii/keybinds.txt" "$SHEETS"/*.txt | grep -v -e '^#' -e '^─' -e '^[[:space:]]*$' | wc -l)
+eq "$(fz_rows | grep -c '^info')" "$want"
+eq "$(fz_rows | grep -c -e 'source:' -e '^info		# ')" 0 "a sheet's notes shown"
+eq "$(fz_rows | awk -F'\t' '$1 == "part" { print $3 "=" $2 }' | sort -u | grep -E '^(yazi|nvim|lazygit|btop|wiremix|bluetui|visidata|gdu|zathura|mpv)=' | tr '\n' ' ')" \
+  "bluetui=$ICON_BLUETOOTH btop=$ICON_CPU gdu=$ICON_USAGE lazygit=$ICON_BRANCH mpv=$ICON_MONITOR nvim=$ICON_CODE visidata=$ICON_SHEET wiremix=$ICON_SLIDERS yazi=$ICON_FOLDER zathura=$ICON_PAGES "
+eq "$(fz_rows | awk -F'\t' '$1 == "part" && $2 == "'"$ICON_KEYCAP"'"' | wc -l)" 0 "a program's part under the keycap (a part of your own)"
+case_ "each program's sheet in the sheet's own columns: notes on top (#: the version, its command, its sources), the rules ending in column 67, each description at 24"
+for k in "$SHEETS"/*.txt; do
+  eq "$(grep '^── ' "$k" | python3 -I -c 'import sys; print(*sorted({len(l) for l in sys.stdin.read().splitlines()}))')" 67 "${k##*/}: rules"
+  bad=$(python3 -I -c '
+import sys
+for l in open(sys.argv[1], encoding="utf-8").read().splitlines():
+    if l.strip() and not l.startswith(("── ", "#")) and not (l[23:24] == " " and l[24:25] not in ("", " ")):
+        print(l)' "$k")
+  eq "$bad" "" "${k##*/}: lines whose description is out of line"
+  grep -q '^# source: ' "$k" && _ok || _no "${k##*/}: no source"
+done
 
 case_ "a home folder with a space in its name: the sheet still found"
 setup; mv "$HOME" "$TMP/my home"; export HOME="$TMP/my home"; answer esc; rc 0 kawa-help

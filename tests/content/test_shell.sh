@@ -182,6 +182,33 @@ eq "$(grep -c '^zoxide add' "$CALLS")" 2 "$(grep '^zoxide' "$CALLS" | tr '\n' '|
 called '^zoxide add -- /$'; called "^zoxide add -- $HOME\$"
 eq "$(grep -c '^zoxide init' "$CALLS")" 0 "its shell code was read from the cache, not asked for again"
 
+# ── the running program in the title (Super+/) ───────────────────────────────
+case_ "a program with a key sheet names its window while it runs (Super+/ shows its keys first): its first word past sudo, env, options and VAR=…, an alias looked through, its folder dropped; any other command, or one with no sheet, leaves the folder there; ble.sh's PREEXEC hook, no process started"
+home; mkdir -p "$HOME/.config/fedokawaii/keys"
+for s in nvim lazygit vd yazi; do : >"$HOME/.config/fedokawaii/keys/$s.txt"; done
+out=$(bash -c '. <(sed -n "/^__kawa_preexec() {/,/^}/p" "$1"); alias lg=lazygit v="nvim -p"
+  for c in "nvim x" "sudo -E nvim /etc/fstab" "LANG=C env nvim" "/usr/bin/nvim" "lg" "v a b" "vd t.csv" "yazi" \
+    "ls -la" "git status" "btop" "sudo -u root nvim" "" "  " "Nvim" "../nvim"; do
+    printf "%s|" "$c"; __kawa_preexec "$c" | od -An -c | tr -s " " | tr -d "\n"; echo; done' _ "$HOME/.bashrc.d/fedokawaii.sh" 2>&1)
+eq "$out" "nvim x| 033 ] 2 ; n v i m 033 \\
+sudo -E nvim /etc/fstab| 033 ] 2 ; n v i m 033 \\
+LANG=C env nvim| 033 ] 2 ; n v i m 033 \\
+/usr/bin/nvim| 033 ] 2 ; n v i m 033 \\
+lg| 033 ] 2 ; l a z y g i t 033 \\
+v a b| 033 ] 2 ; n v i m 033 \\
+vd t.csv| 033 ] 2 ; v d 033 \\
+yazi| 033 ] 2 ; y a z i 033 \\
+ls -la|
+git status|
+btop|
+sudo -u root nvim|
+|
+  |
+Nvim|
+../nvim| 033 ] 2 ; n v i m 033 \\"
+grep -qx '\[\[ -n \${BLE_VERSION-} \]\] && blehook PREEXEC+=__kawa_preexec' "$REPO/configs/home/.bashrc.d/fedokawaii.sh" \
+  && _ok || _no "the hook is not registered with ble.sh"
+
 # ── ble.sh's settings ────────────────────────────────────────────────────────
 # the faces of the pinned ble.sh whose own colours are fixed ones (xterm's 256): each must
 # be set here, from the terminal's 16. (vbell*: no bell — edit_bell is off; prompt_status_line:

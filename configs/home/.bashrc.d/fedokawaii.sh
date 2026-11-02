@@ -344,6 +344,24 @@ __kawa_render() {
 [[ -n ${BLE_VERSION-} ]] &&
   ble/function#advice around ble/application/render 'if __kawa_render; then ble/application/onwinch; else ble/function#advice/do; fi'
 
+# The program a command runs is the window's title while it runs — only a program with a key
+# sheet (~/.config/fedokawaii/keys/NAME.txt): Super+/ then shows its keys first (kawa-help reads
+# the focused window's title); any other command leaves the folder there (an ls would flash it
+# in the bar). Its first word past sudo, env and the like and VAR=…, an alias looked through,
+# its folder dropped; the next prompt puts the folder back. ble.sh's hook before each command:
+# no process started for it
+__kawa_preexec() {
+  local -a w a
+  local i=0
+  read -r -a w <<<"$1"
+  while [[ ${w[i]-} == @(sudo|env|command|exec|nice|nohup|time|-*|[A-Za-z_]*([A-Za-z0-9_])=*) ]]; do i=$((i + 1)); done
+  [[ -n ${w[i]-} && -n ${BASH_ALIASES[${w[i]}]-} ]] && { read -r -a a <<<"${BASH_ALIASES[${w[i]}]}"; w[i]=${a[0]-}; }
+  w[i]=${w[i]##*/}
+  [[ ${w[i]} == +([a-z0-9-]) && -f $HOME/.config/fedokawaii/keys/${w[i]}.txt ]] && printf '\e]2;%s\e\\' "${w[i]}"
+  return 0
+}
+[[ -n ${BLE_VERSION-} ]] && blehook PREEXEC+=__kawa_preexec
+
 # ── aliases (few, each earns its place) ─────────────────────────────────────
 # ls is eza: folders first, sizes readable; ll adds every detail, hidden files and each
 # file's git state; lt draws the folder as a tree, two levels deep. Colours: the terminal's

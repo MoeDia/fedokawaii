@@ -263,6 +263,7 @@ ble-attach          built     install_blesh     # setup.sh (lib/upstream.sh): bl
 ble-face            built     install_blesh     #   pinned commit into ~/.local/share/blesh; the shell loads it
 ble-import          built     install_blesh     #   (~/.bashrc.d/fedokawaii.sh) and its settings
 bleopt              built     install_blesh     #   (~/.config/blesh/init.sh)
+blehook             built     install_blesh     #   (the program a command runs named in the title: __kawa_preexec)
 ble/function#advice built    install_blesh     #   — and the three of its own functions the prompt's
 ble/canvas/panel#goto.draw built install_blesh #   redraw after a change of width calls
 ble/canvas/bflush.draw built  install_blesh     #   (__kawa_reflow)

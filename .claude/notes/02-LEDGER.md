@@ -3651,6 +3651,24 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   tests/session/test_hotplug.sh 8/0 (fails the old patch on the order and the new case); test_dwl_anim 64/0,
   test_popups 15/0, test_warm 90/0, test_quick 369/0, test_framelog 16/0, test_syntax 781/0. His screen still shows
   the stuck picture (17:00 grim) — nothing but a GPU reset or dwl's exit frees it: the session restart when he is away.
+- r27-23-help (2 Nov 17:10–17:23, T23 wired; kit-verified both moods, /dev/shm/r27/t23/help-v1/): Super+/ opens on the keys
+  of the program in front, then the desktop's (keybinds.txt), then every other sheet's (keys/*.txt, by file name).
+  kawa-help reads the focused window as kawa-dwlstatus keeps it (dwl-bar/appid.json, title.json — bash alone): warm-*,
+  kawa-git/disk/tables, zathura, mpv by app id; a terminal by its title — yazi titles itself "Yazi: …" (probed in a
+  pty: of yazi/lazygit/btop/gdu/wiremix/bluetui/vd/nvim only yazi sets a title), any other program with a sheet is
+  named by the shell: __kawa_preexec (fedokawaii.sh, ble.sh's PREEXEC: first word past sudo/env/options/VAR=, alias
+  looked through, no fork; the prompt puts the folder back). visidata.txt → vd.txt (the command's name). Sheets'
+  "#" notes left out; each program's parts under its own icon (yazi folder, nvim code, lazygit branch, btop cpu,
+  wiremix sliders, bluetui bluetooth, visidata sheet, gdu usage, zathura pages, mpv monitor). kawa-menu --fuzzy
+  (kawa-panel found()/ranked(): whole beats letters, word starts and runs score, a strewn run finds nothing; the
+  best first under their parts). DECIDED: fzf's weighing kept — "wpa" also finds "fit the WHole PAge" first (zathura),
+  the wallpaper picker 4th; "wall" puts it first. FOUND in the kit and FIXED (every typed menu): the window grew
+  677 → 1032 px and jumped up while typing, and the details' column slid 876 → 855 px with what was found — now the
+  size it opened with is kept (cut under the last whole row) and the columns are measured once over all rows
+  (design-system §4 "A menu typed into"). Tests: test_help 99/0 (order by context, every row of every sheet, icons,
+  the sheets' columns and sources), test_panel 637/0 (found, ranked, --fuzzy), test_shell 189/0 (the hook: 16 command
+  lines), test_menu 84/0, test_deps 197/0 (blehook), test_syntax 781/0, test_design_doc 54/0. LEFT for T23: our own
+  screens' sheets (notes, clip, Super+U, wallpaper, books), shots of nvim/lazygit in front, the master.
 ## >>> NEXT PASS STARTS HERE (2 Nov, written 16:25 by the 13:51 bulk pass — the lines above say what it did): the inbox first.
 ## (0) PRESENCE before anything he could see or hear (memory presence-not-just-input-idle); at 16:57 he was in a Discord
 ##     call (Brave: mic + sound). Every probe outside the harness/kit cut off from his session (memory probes-cut-off-session).
@@ -3668,15 +3686,11 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
 ##     The KERNEL TRIAL (7.2.13, snapshot 381 pinned) closes at the next start: the reboot the same way (r27-49-B3).
 ## (4) T46/T46b (F45 out Tue 3 Nov): vm-create f45 fresh from the released tree, vm-smoke f45,
 ##     tools/vm-inject/f45-checks.sh, T46's pre-flight; the upgrade's WAIT (60 days).
-## (5) T23: the sheets are in (caca179, keys/*.txt, 250 rows) and kawa-dwlstatus keeps the focused window's app id in
-##     dwl-bar/appid.json (1a6da40). Next: kawa-help reads it — a warm window by its app id (warm-notes, warm-clip,
-##     warm-system…), a kawa-term --app window by its id; a PLAIN foot window cannot be told today (FOUND: the title stays
-##     the folder while a program runs): a ble.sh PREEXEC hook (blehook PREEXEC gets the command line; no fork) puts the
-##     running program's name in the title ONLY when it has a sheet (keys/<name>.txt: a stat) — every command would
-##     flash the bar's title for an `ls`; the prompt puts the folder back; sudo/env looked past; pty-tested → that
-##     sheet's parts first, then the desktop's, then the rest; our own screens' sheets (notes, clip, Super+U, wallpaper,
-##     books: their keys read from the code); fuzzy rank (subsequence + word starts) in kawa-panel's filter; test_help;
-##     shots both moods; the master.
+## (5) T23 (wired 17:23, r27-23-help): our own screens' sheets — notes (Super+N and its to-do tab), clip (Super+V),
+##     system (Super+U), wallpaper (Super+W), books (Super+R): their keys read from the code, each its own icon (notes
+##     ICON_NOTE, clip ICON_CLIPBOARD, system ICON_SEC_SYSTEM, wallpaper ICON_PICTURE, books ICON_BOOK) in part_icon;
+##     how the wallpaper/books popups are told apart (app id float + title?) — then shots with nvim and lazygit in
+##     front (the hook needs the apply: the kit's bash reads the installed fedokawaii.sh), then the master's T23 review.
 ## (6) T19m (b) pass 1's rest (audit-r27.md): lock, greeter, saver, boot splash, GRUB (their own renders); GTK/Qt themes,
 ##     window borders and gaps; torrents, the downloads' list, kawa-file's parts. Then pass 2 (side by side).
 ## (7) T22: the master's T22 review — tools/master-brief.sh T22 with the evidence: /dev/shm/r27/t22/b10rec/ (wrong twice

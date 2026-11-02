@@ -1154,6 +1154,19 @@ for n, c in [("7", "7"), ("5", "5"), ("0", "0"), ("space", " "), ("K", "K"), ("B
     p.key(n, c)
 print(got)')" "[(0, '750 KB')]"
 
+case_ "--fuzzy (Super+/): a word finds by its letters in order too — whole beats letters, a word's start beats inside; a run strewn over the whole text finds nothing; the rows the best first, each under its part, the parts by their best row (a tie: as listed); without it, words as they are"
+eq "$(py 't = "super+w  wallpaper picker (in it, r: change every 4 h)"
+print(kp.found("wpa", t) > 0, kp.found("wall", t) > kp.found("wpa", t), kp.found("wall", t) > kp.found("all", t), kp.found("sgg", "super+shift+w  dark / light theme (also in quick settings)"), kp.found("zzz", t))')" \
+  "True True True 0 0"
+eq "$(py 'L = ["part\tI\tlaunch", "info\t\tSuper+Return\tterminal (foot)", "info\t\tSuper+W\twallpaper picker", "part\tY\tyazi\tmoving", "info\t\tW\twatch a film together (Syncplay)", "info\t\tj / k\tnext / previous file"]
+for q, fz in [("wpa", True), ("watch", True), ("w", True), ("wpa", False), ("zzz", True)]:
+    m = kp.Menu(L, prompt="", fuzzy=fz); m.query = q
+    lines = kp.ranked(m, m.lines) if fz else None
+    print(q, [f[1] for _, k, f in lines] if lines is not None else [h[1] for h in kp.layout_menu(m).heads])')" \
+  "$(printf '%s\n' "wpa ['launch', 'Super+W', 'yazi', 'W']" "watch ['yazi', 'W']" "w ['yazi', 'W', 'launch', 'Super+W']" "wpa []" "zzz []")" \
+  "w: the yazi row's key is w itself (the text's start) — its part goes first; wpa without --fuzzy finds nothing"
+eq "$(py 'print(kp.menu_args(["--prompt", "", "--fuzzy"])["fuzzy"], kp.menu_args(["--prompt", ""])["fuzzy"])')" "True False"
+
 case_ "a menu's title: words alone a quiet note; MARK<tab>words a failure (a wrong password asked again: §5's failed state) — the mark in the icon column, so the width counts the words alone"
 eq "$(py 'print(kp.title_parts("pick one"), kp.title_parts("X\tr.pdf · wrong password"))')" "('', 'pick one') ('X', 'r.pdf · wrong password')"
 eq "$(py 'w = "a long name of a locked file, a report.pdf · wrong password"

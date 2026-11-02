@@ -628,18 +628,21 @@ def parse_line(i, line):
 
 class Menu:
     """A menu as asked: its lines and options (drop, title, width in columns, lines shown at
-    most, the line the first key puts the cursor on, a prompt — typing filters —, index), and
-    what has been typed."""
+    most, the line the first key puts the cursor on, a prompt — typing filters —, index,
+    fuzzy — what is typed finds by its letters in order, the best first), and what has been typed."""
 
     def __init__(self, lines, drop=False, title="", width=0, lines_shown=0, select=None,
-                 prompt=None, index=False, stay=False, password=False, middle=False):
+                 prompt=None, index=False, stay=False, password=False, middle=False, fuzzy=False):
         self.lines = [parse_line(i, ln) for i, ln in enumerate(lines)]
         self.stay = stay          # (its keys answer and keep it on screen: the next page in place)
         self.drop, self.title, self.width, self.shown = drop, title, width, lines_shown
         self.middle = middle      # (dropped from the bar's middle: the date's place)
         self.select, self.prompt, self.index = select, prompt, index
         self.password = password  # (what is typed shown as ◆ each, never itself)
+        self.fuzzy = fuzzy
         self.query = ""
+        self.opened_h = None      # (a list typed into: its view's height as it opened, kept)
+        self.cols = None          # (its details' and values' columns, once measured in the font)
 
     def inner(self):
         """The content's width, in whole cells: as wide as its widest line needs (a row: its icon
@@ -732,6 +735,68 @@ def columns(rows, width):
     return dx, max(ends) + 2 * GAP + max(width(fld(f, 3)) for f in valued)
 
 
+def found(w, t):
+    """How well a typed word w (lower case) finds the text t (lower case): 0 not at all. Whole in
+    it beats any other way, more at a word's start, most at the text's; else its letters in order,
+    as fzf weighs them: the shortest stretch of t that holds them all, each letter scoring more at
+    a word's start or right after the one before, less for every letter skipped between ("wpa":
+    wallpaper picker) — a run strewn across the whole text (under 10) finds nothing."""
+    i = t.find(w)
+    if i >= 0:
+        return 300 + (100 if i == 0 else 50 if not t[i - 1].isalnum() else 0) - min(i, 50)
+    j, end = 0, -1                                # (forward: where the earliest run of them ends)
+    for k, c in enumerate(t):
+        if c == w[j]:
+            j += 1
+            if j == len(w):
+                end = k
+                break
+    if end < 0:
+        return 0
+    j = len(w) - 1                                # (back from there: where the shortest one starts)
+    for k in range(end, -1, -1):
+        if t[k] == w[j]:
+            j -= 1
+            if j < 0:
+                start = k
+                break
+    s, j, last = 0, 0, -2
+    for k in range(start, end + 1):
+        if j < len(w) and t[k] == w[j]:
+            s += 10 + (15 if k == 0 or not t[k - 1].isalnum() else 0) + (8 if last == k - 1 else 0)
+            last, j = k, j + 1
+    s -= end - start + 1 - len(w)
+    return min(s, 299) if s >= 10 else 0
+
+
+def ranked(m, lines):
+    """(a fuzzy menu, typed in) the rows the words all find, the best first — each still under its
+    part, the parts in the order of their best row (a tie: as listed: the caller's order stands)."""
+    words = m.query.lower().split()
+    groups, part = {}, None                       # (a part → [its best, its place, its line, its rows])
+    for n, ln in enumerate(lines):
+        if ln[1] == "part":
+            part = ln
+            continue
+        if ln[1] not in ("row", "on", "info", "plain"):
+            continue
+        hay = "  ".join(ln[2][1:] if ln[1] != "plain" else ln[2]).lower()
+        score = 0
+        for w in words:
+            f = found(w, hay)
+            if not f:
+                break
+            score += f
+        else:
+            g = groups.setdefault(id(part), [0, n, part, []])
+            g[0] = max(g[0], score)
+            g[3].append((-score, n, ln))
+    out = []
+    for _, _, p, rows in sorted(groups.values(), key=lambda g: (-g[0], g[1])):
+        out += ([p] if p is not None else []) + [ln for _, _, ln in sorted(rows)]
+    return out
+
+
 def layout_menu(m):
     """A menu's place for each thing, on the grid (docs/design-system.md §3–§4): parts under
     their headings (a row, 8 px of air; a row of air above one that is not first), rows of 20
@@ -753,7 +818,9 @@ def layout_menu(m):
         y += KEY_H + (SECTION if m.lines else 0)
     top = y
     lines = m.lines
-    if m.query:                                   # (typing: the choices it finds, under their parts)
+    if m.query and m.fuzzy:
+        lines = ranked(m, lines)
+    elif m.query:                                 # (typing: the choices it finds, under their parts)
         keep, part = [], None
         for ln in lines:
             if ln[1] == "part":
@@ -835,9 +902,22 @@ def layout_menu(m):
     ends = sorted({it.y + it.h for it in items} | {mk[2] + ROW for mk in marks if mk[0] in SHOWN_KINDS})
     if m.shown and len(ends) > m.shown:          # (at most N lines of choices, whole: the view
         view_h = min(view_h, ends[m.shown - 1] - top)   # ends under the Nth, its parts above it)
+    box_h = view_h
+    # a list typed into keeps the size it opened with, as the launcher does (the window never
+    # grows or jumps while you type): what is found fills it from the top — more than fits
+    # scrolls, cut under its last whole line
+    if m.prompt is not None and not m.password and m.lines:
+        if not m.query or m.opened_h is None:
+            m.opened_h = view_h
+        else:
+            box_h = m.opened_h
+            if height > box_h:
+                view_h = max([e - top for e in ends if e - top <= box_h], default=box_h)
+            else:
+                view_h = height
     for it in items:
         it.scrolls = True
-    return Layout(items, (x0, x0), [], (w + 2 * (PAD + BORDER), top + view_h + PAD + BORDER), heads,
+    return Layout(items, (x0, x0), [], (w + 2 * (PAD + BORDER), top + box_h + PAD + BORDER), heads,
                   [], marks, (top, view_h, height) if view_h < height else None)
 
 
@@ -1983,14 +2063,14 @@ def ask(line):
 
 def menu_args(args):
     """A menu's options (kawa-menu's, as it passes them) → the request's, or None (wrong use):
-    --drop, --middle, --index, --stay, --password, --title TEXT, --width N, --lines N, --select N,
-    --prompt TEXT."""
-    req = {"drop": False, "middle": False, "index": False, "stay": False, "password": False, "title": "",
-           "width": 0, "lines": 0, "select": None, "prompt": None}
+    --drop, --middle, --index, --stay, --password, --fuzzy, --title TEXT, --width N, --lines N,
+    --select N, --prompt TEXT."""
+    req = {"drop": False, "middle": False, "index": False, "stay": False, "password": False, "fuzzy": False,
+           "title": "", "width": 0, "lines": 0, "select": None, "prompt": None}
     i = 0
     while i < len(args):
         a = args[i]
-        if a in ("--drop", "--middle", "--index", "--stay", "--password"):
+        if a in ("--drop", "--middle", "--index", "--stay", "--password", "--fuzzy"):
             req[a[2:]] = True
             i += 1
             continue
@@ -2021,7 +2101,7 @@ def menu_request(text):
     return lines[0], Menu(lines[2 + n:], drop=req["drop"], title=req["title"], width=req["width"],
                           lines_shown=req["lines"], select=req["select"], prompt=req["prompt"],
                           index=req["index"], stay=req["stay"], password=req["password"],
-                          middle=req["middle"])
+                          middle=req["middle"], fuzzy=req["fuzzy"])
 
 
 # ── on screen ─────────────────────────────────────────────────────────────────────────────
@@ -2826,9 +2906,16 @@ def main(argv):
         # a menu's details in a column of their own: after its longest name (of a row with one)
         # and, in a menu, its values right-aligned in a column two gaps after the widest words
         # (columns(), as the menu's width was worked out — measured here in the font itself)
-        rows = [("", it.name, it.detail, it.value) for it in panel.items if it.kind == "row"]
-        rows += [m[4:8] for m in panel.marks if m[0] in SHOWN_KINDS]
-        dx, vr = columns(rows, lambda t: text_layout(cr, t).get_pixel_extents()[1].width)
+        def measured(rows):
+            return columns(rows, lambda t: text_layout(cr, t).get_pixel_extents()[1].width)
+        if panel.mode == "menu":                  # (all of its rows, found or not: the column stays
+            m = panel.state                       # put while you type — measured once a menu)
+            if m.cols is None:
+                m.cols = measured([("", fld(f, 1), fld(f, 2), fld(f, 3)) for _, k, f in m.lines if k in ROW_KINDS])
+            dx, vr = m.cols
+        else:
+            dx, vr = measured([("", it.name, it.detail, it.value) for it in panel.items if it.kind == "row"]
+                              + [m[4:8] for m in panel.marks if m[0] in SHOWN_KINDS])
         detail_x[0] = hx + dx
         value_r[0] = hx + vr if panel.mode == "menu" and vr else 0
         for hd in panel.heads:
