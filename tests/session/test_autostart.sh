@@ -15,7 +15,7 @@ SETSID=$(command -v setsid) PKILL=$(command -v pkill) SIDS=()
 # the end of the test (SIGPIPE stays ignored in this subshell only: autostart keeps the default)
 tell() { (trap '' PIPE; cat >&6) 2>/dev/null; }
 
-cleanup() { local s; for s in "${SIDS[@]}"; do ((s > 1)) && "$PKILL" -KILL -s "$s" -f "$TMP"; done; kill_bg; [[ -n $TMP ]] && rm -rf "$TMP"; }
+cleanup() { local s; for s in "${SIDS[@]}"; do ((s > 1)) && "$PKILL" -KILL -s "$s" -f "$TMP"; done; kill_bg; [[ -n $TMP ]] && { _h_reap; rm -rf "$TMP"; }; }
 # daemon NAME… — stand-ins that run until they are stopped (logged with their arguments)
 # (they sleep as $TMP/sys/zzz: every process of a test session names the test's folder)
 daemon() { local d; for d; do stub "$d" "trap 'kill \$! 2>/dev/null; exit 0' TERM HUP; \"$TMP/sys/zzz\" 600 & wait \$!"; done; }

@@ -33,7 +33,7 @@ H_HOST=$(host_sum)
 TMP="" CALLS="" STUBS=""
 
 sandbox() {   # sandbox — every test file starts here (call again for a clean slate)
-  [[ -n $TMP && -d $TMP ]] && rm -rf "$TMP"
+  [[ -n $TMP && -d $TMP ]] && { _h_reap; rm -rf "$TMP"; }
   TMP=$(mktemp -d "${TMPDIR:-/tmp}/kawa-test.XXXXXX")
   trap _h_cleanup EXIT; trap '_h_cleanup; exit 130' INT TERM HUP   # (a killed run leaves nothing)
   STUBS=$TMP/stubs CALLS=$TMP/calls.log
@@ -108,7 +108,21 @@ PY
 # on_exit 'COMMAND' — run at the end, before the throw-away folder goes (sandbox sets the traps)
 H_CLEANUP=()
 on_exit() { H_CLEANUP+=("$1"); }
-_h_cleanup() { local c; for c in "${H_CLEANUP[@]}"; do eval "$c"; done; [[ -n $TMP ]] && rm -rf "$TMP"; }
+_h_cleanup() { local c; for c in "${H_CLEANUP[@]}"; do eval "$c"; done; [[ -n $TMP ]] && { _h_reap; rm -rf "$TMP"; }; }
+# _h_reap — every process the sandbox started and left (its environment names this TMP, which
+# nothing else on the machine has: a player, a window's loop, one that went off on its own with
+# setsid) killed before its folder goes: one still running wrote on into the folder and kept it
+# (39 left in /tmp in two days, 2 Nov). Bash alone, ~15 ms (the file's own shell never carries it:
+# TMP came after it started)
+_h_reap() {
+  local p e IFS=$'\n'
+  for p in /proc/[0-9]*; do
+    [[ ${p#/proc/} == @("$$"|"$BASHPID") ]] && continue
+    mapfile -d '' -t e 2>/dev/null <"$p/environ" || continue
+    [[ $'\n'"${e[*]}"$'\n' == *$'\n'"TMP=$TMP"$'\n'* ]] && kill -KILL "${p#/proc/}" 2>/dev/null
+  done
+  return 0
+}
 
 stub() {      # stub NAME [BODY] — BODY is sh, run with the stub's arguments ("$@"). Its exit
   local f=$STUBS/$1   # status is BODY's own "exit N", else 0 (exit 0 follows BODY)

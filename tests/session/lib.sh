@@ -13,7 +13,7 @@ BG_PIDS=()
 session_sandbox() {
   sandbox
   rm -f "$STUBS/kawa-dwlstatus"
-  trap 'kill_bg; [[ -n $TMP ]] && rm -rf "$TMP"; [[ -n ${LOCDIR:-} ]] && rm -rf "$LOCDIR"' EXIT
+  trap 'kill_bg; [[ -n $TMP ]] && { _h_reap; rm -rf "$TMP"; }; [[ -n ${LOCDIR:-} ]] && rm -rf "$LOCDIR"' EXIT
   BAR=$XDG_RUNTIME_DIR/dwl-bar WBLOG=$TMP/waybar.log WBPID=""
   : >"$WBLOG"
   # pgrep -nxu UID waybar → the stand-in's PID while it runs; nothing else is ever found

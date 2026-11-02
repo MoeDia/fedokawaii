@@ -27,7 +27,7 @@ player() {   # player SOCKET — a real mpv, idle, answering on SOCKET
 ipc() { python3 "$D/mpvipc.py" "$@"; }
 path() { ipc "$1" get path 2>/dev/null | tr -d '"'; }
 quit_all() { local p; for p in "${PIDS[@]}"; do kill "$p" 2>/dev/null; wait "$p" 2>/dev/null; done; PIDS=(); rm -rf "$XDG_RUNTIME_DIR"/*; }
-trap 'quit_all' EXIT
+on_exit quit_all                         # (then the harness's own end: the folder goes too)
 
 case_ "no mpv open: a new window, the file made whole (the player runs elsewhere)"
 cd "$TMP" && rc 0 kawa-play one.wav

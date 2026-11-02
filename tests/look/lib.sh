@@ -14,7 +14,7 @@ look() {   # look — a fresh sandbox for the look helpers (call again for a cle
   if [[ -n $L_TMPDIR ]]; then export TMPDIR=$L_TMPDIR; else unset TMPDIR; fi
   unhide
   sandbox
-  trap 'look_cleanup; [[ -n $TMP ]] && rm -rf "$TMP"; [[ -n $L_FARM ]] && rm -rf "$L_FARM"' EXIT
+  trap 'look_cleanup; [[ -n $TMP ]] && { _h_reap; rm -rf "$TMP"; }; [[ -n $L_FARM ]] && rm -rf "$L_FARM"' EXIT
   PROCS=$TMP/procs ARGS=$TMP/args
   mkdir -p "$ARGS"
   : >"$PROCS"

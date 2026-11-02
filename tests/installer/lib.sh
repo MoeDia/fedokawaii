@@ -185,7 +185,7 @@ world() {   # world fresh|built [--themed]
   fi
   fk_clean; sandbox
   chmod 755 "$TMP"; chmod 666 "$CALLS"
-  trap 'r=$?; fk_clean; [[ -n $TMP ]] && rm -rf "$TMP"; host_guard || exit 1; exit $r' EXIT
+  trap 'r=$?; fk_clean; [[ -n $TMP ]] && { _h_reap; rm -rf "$TMP"; }; host_guard || exit 1; exit $r' EXIT
   W=$TMP/w FKH=$TMP/w/var/lib/fkh
   mkdir -p "$W"/{etc,var/lib/fedokawaii,var/lib/systemd/linger,var/log,var/tmp,boot/grub2,home,root,runuser,dev/dri,proc} \
     "$W"/usr/local/{bin,lib,sbin,libexec,share} "$W"/sys/{class/drm,bus/pci/devices,bus/pci/drivers,firmware,module/i2c_dev} "$FKH/dl"
