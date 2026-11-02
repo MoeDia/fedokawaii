@@ -220,7 +220,8 @@ local paper, attached, sheet = {}, {}, { cols = 0, lines = 0 }
 local seen_top = {}                           -- window → its top line at the last look (keep_room, below): a
                                               -- window's, as the view is; forgotten when another page enters it
                                               -- (one window for the session: nothing to drop)
-local ticks = {}                              -- page → its change count at the last change handled
+local ticks, written = {}, {}                 -- page → its change count at the last change handled; at its last write
+local look                                    -- the pen while a wheel in typing looks away: {line, column}
 local function rows()                         -- the paper's virtual rows, as many as the screen has
   if sheet.cols ~= vim.o.columns or sheet.lines ~= vim.o.lines then
     local row = { { string.rep(" ", vim.o.columns), "KawaRule" } }
@@ -254,7 +255,7 @@ local function rule(b, force)
       on_lines = function(_, buf, _, _, last_old, last_new)
         if last_new ~= last_old and paper[buf] then to_end(buf) end
       end,
-      on_detach = function(_, buf) attached[buf], paper[buf], ruled[buf], ticks[buf] = nil, nil, nil, nil end,
+      on_detach = function(_, buf) attached[buf], paper[buf], ruled[buf], ticks[buf], written[buf] = nil, nil, nil, nil, nil end,
     })
   end
   local n = vim.api.nvim_buf_line_count(b)
@@ -333,6 +334,7 @@ end
 -- (a typed key is a change, never a scroll of his: CursorMovedI follows the pen; and the TextChanged
 -- that leaving typing brings, with no new change in it, is only a look — the master, verdict 5)
 local function follow()
+  if look then return end                     -- (the cursor neovim drags along with a look: no key of his)
   pen_room()
   seen_top[vim.api.nvim_get_current_win()] = vim.fn.line("w0")
 end
@@ -342,7 +344,11 @@ vim.api.nvim_create_autocmd({ "TextChanged", "TextChangedI" }, {
     rule(ev.buf)
     if ev.buf ~= vim.api.nvim_get_current_buf() then return end
     local tick = vim.b[ev.buf].changedtick
-    if ticks[ev.buf] == tick then keep_room() else follow() end
+    -- (a write counts as a change — the pause's `update` a second after his last key: nothing he
+    -- did, so nothing moves — the master, verdict 7)
+    if tick ~= written[ev.buf] then
+      if ticks[ev.buf] == tick then keep_room() else follow() end
+    end
     ticks[ev.buf] = tick
   end,
 })
@@ -365,16 +371,30 @@ vim.api.nvim_create_autocmd("InsertLeave", {
     seen_top[w] = top
   end,
 })
+vim.api.nvim_create_autocmd("BufWritePost", { group = group, callback = function(ev) written[ev.buf] = vim.b[ev.buf].changedtick end })
 vim.api.nvim_create_autocmd("CursorMovedI", { group = group, callback = follow })
 vim.api.nvim_create_autocmd("CursorMoved", { group = group, callback = keep_room })
--- the wheel in typing is a look: nothing moves and nothing is noted — the next key brings the page
--- back to the pen (follow), Esc yields the pen to the page (InsertLeave). (Neovim tells a wheel in
--- typing only to a window that has been through normal mode once — the warm window after its first
--- Esc: there it walked his pen into an older line as he typed — the master, verdict 6)
+-- the wheel in typing is a look: the page moves, the pen stays where he typed. Neovim keeps the
+-- cursor inside the window, so past one notch — or one anywhere but at the foot, where the paper's
+-- rows give it room — it drags the cursor along with no key, and his next keys went into an older
+-- line (the master, verdicts 6 and 7). The pen is noted as a look begins and put back before the
+-- next key acts — any key: a letter, Enter, Backspace, an arrow act from the pen; a click then
+-- goes where it points; Esc yields the pen to the page (InsertLeave). Nothing is noted meanwhile:
+-- WinScrolled does nothing in typing (neovim tells it a wheel only once the window has been
+-- through normal mode), follow() nothing during a look
+vim.on_key(function(key)
+  if not vim.api.nvim_get_mode().mode:find("^[iR]") then look = nil; return end
+  local k = vim.fn.keytrans(key)
+  if k:find("ScrollWheel", 1, true) then look = look or vim.api.nvim_win_get_cursor(0); return end
+  -- (Esc ends the look where the page is: putting the pen back would scroll to it first)
+  if look and k ~= "<Esc>" then pcall(vim.api.nvim_win_set_cursor, 0, look) end
+  look = nil
+end, vim.api.nvim_create_namespace("kawa_look"))
 vim.api.nvim_create_autocmd("WinScrolled", {
   group = group,
   callback = function() if not vim.api.nvim_get_mode().mode:find("^[iR]") then keep_room() end end,
 })
+vim.keymap.set("i", "<C-c>", "<Esc>")         -- (Ctrl+C ends typing as Esc does: neovim's own skips InsertLeave, the yield)
 vim.api.nvim_create_autocmd("VimResized", {
   group = group,
   callback = function()   -- (the pen at the notes' end, as they open: on a day's line again)
