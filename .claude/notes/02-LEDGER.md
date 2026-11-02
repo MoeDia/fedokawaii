@@ -3438,8 +3438,9 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
 ##     presence-not-just-input-idle). The 11:03 bulk run was started by hand: assume him at the PC, headless only.
 ## (1) T21: the master's RE-REVIEW 4 (verdict 3 FAIL → fixed in c793b14, r27-21-master-3-fix) STARTED 13:20 → its verdict in
 ##     /dev/shm/r27/master/T21/verdict.md (copy it to .claude/notes/master-T21-verdict-4.md; 1–3 are there; the old folders
-##     in /dev/shm/r27/master-archive/T21-r1..r3). The suite on b2f7444 (/dev/shm/r27p/suite-b2f7444.log) then a suite on
-##     the newest HEAD. Master PASS + a green suite → push main (GitHub main = e083197 still), then APPLY from the frozen
+##     in /dev/shm/r27/master-archive/T21-r1..r3). The suite on b2f7444 ends RED on test_theme's load flake (fixed since:
+##     r27-53-flake-theme) — run a fresh suite on the newest HEAD, nothing heavy beside it (no kit, no test runs: two
+##     flakes today came from load). Master PASS + that suite green → push main (GitHub main = e083197 still), then APPLY from the frozen
 ##     tree when he is away + a SESSION RESTART (START §4) for the dwl fix, and the panel (bug 10) restarted per memory
 ##     live-panel-restart; the warm notes window takes the new page at its start.
 ## (2) THE KERNEL TRIAL (since 1 Nov 14:43, 7.2.13, snapshot 381 pinned): closes at the next start — only when he is
