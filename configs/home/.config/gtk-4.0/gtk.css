@@ -107,3 +107,8 @@ check:not(#kawa-square):not(#kawa-sq):checked:disabled, radio:not(#kawa-square):
 row:not(#kawa-square):not(#kawa-sq):selected, gridview > child:not(#kawa-square):not(#kawa-sq):selected, flowboxchild:not(#kawa-square):not(#kawa-sq):selected, .view:not(#kawa-square):not(#kawa-sq):selected, selection:not(#kawa-square):not(#kawa-sq) { background-image: none; background-color: var(--accent-bg-color); color: var(--accent-fg-color); }
 entry:not(#kawa-square):not(#kawa-sq), textview:not(#kawa-square):not(#kawa-sq), text:not(#kawa-square):not(#kawa-sq) { caret-color: var(--accent-bg-color); }
 button:not(#kawa-square):not(#kawa-sq):not(.flat):not(.titlebutton):not(.link):not(.up):not(.down):focus-visible { background-image: none; background-color: var(--accent-bg-color); color: var(--accent-fg-color); outline: none; }
+
+/* zathura's line at the foot: 8 px from the frame, 4 above and below (girara's own pads only its entry) */
+#zathura box.inputbar { padding: 4px 8px; }
+#zathura box.inputbar box.inputbar, #zathura label.inputbar { padding: 0; }
+#zathura entry.inputbar { padding-left: 0; padding-right: 0; }

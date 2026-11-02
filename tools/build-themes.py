@@ -925,7 +925,21 @@ def gtk4_css():
 }}
 
 {chr(10).join(SQUARE_NOTE + square_rules(4))}
+
+{ZATHURA_LINE}
 """
+
+
+# zathura's line at the foot (a search, a command, a PDF's own password prompt): zathura 2026.07
+# carries girara's widgets in GTK 4 (github.com/pwmt/zathura: data/girara.css_t, girara-gtk/
+# inputbar.c, dialog.c) — its sheet pads only the entry, by half of statusbar-h-padding, and the
+# prompt's label stood on the frame (1 px of air, measured). The panels' 8 px from the frame,
+# once: the dialog is a box.inputbar inside the session's, and both carry the label and entry
+# (`.inputbar` alone landed three times: 25 px). (T22, ledger r27-22-failed)
+ZATHURA_LINE = """/* zathura's line at the foot: 8 px from the frame, 4 above and below (girara's own pads only its entry) */
+#zathura box.inputbar { padding: 4px 8px; }
+#zathura box.inputbar box.inputbar, #zathura label.inputbar { padding: 0; }
+#zathura entry.inputbar { padding-left: 0; padding-right: 0; }"""
 
 
 QT_ROLES = ["WindowText", "Button", "Light", "Midlight", "Dark", "Mid", "Text", "BrightText", "ButtonText",
