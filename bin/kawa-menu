@@ -26,7 +26,7 @@
 #   --index     print the chosen line's number (0-based) instead of its name
 #   --password  with --prompt: what is typed shows as ◆ each (a passphrase), and Enter gives it
 #   --fuzzy     with --prompt: a word typed finds the choices that hold its letters in order too
-#               ("wpa": wallpaper picker), the best first, each under its part
+#               ("lck": lock screen), the best first, each under its part
 #   --stay      a key line chosen (or, with --prompt, what was typed) is printed and the menu
 #               stays on screen: the caller's next kawa-menu (its next page — the calendar's
 #               months, a password asked again: "wrong password") takes its place in the same

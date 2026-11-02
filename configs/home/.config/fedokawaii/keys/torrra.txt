@@ -1,0 +1,36 @@
+# torrra 2.5.1 (PyPI, a uv tool on its own Python 3.13), held in lib/upstream.sh: torrents — search through Prowlarr, download
+# command: uv tool list (torrra v2.5.1)
+# source: https://github.com/stabldev/torrra/blob/v2.5.1/src/torrra/screens/help.py (its help window, SHORTCUTS; the same file installed)
+# source: the installed BINDINGS (torrra/app.py, widgets/search.py, widgets/data_table.py, widgets/details_panel.py, screens/welcome.py, screens/file_selection.py)
+# ours: bin/kawa-torrra (the Prowlarr key, the downloads folder; no key changed)
+── torrra: anywhere ───────────────────────────────────────────────
+Tab                     next part of the window (the search, the list, the side)
+Ctrl+D                  the downloads (from the first screen)
+t                       turtle mode: the speed limit on or off
+Ctrl+T                  torrra's theme menu (the desktop's is set for you)
+?                       torrra's own list of keys
+Ctrl+Q                  quit
+── torrra: lists ──────────────────────────────────────────────────
+j / k                   move down / up (arrow keys too)
+Ctrl+D / Ctrl+U         a page down / up
+g g / G                 top / bottom of the list
+Enter or l              the details of the torrent
+Left / Right            the details' tabs (files, peers, trackers)
+Esc                     close the details
+── torrra: search results ─────────────────────────────────────────
+Enter                   download it (in its details)
+s / S                   the sort menu / the order turned round
+f                       hide the ones with no seeders, or show them
+x                       the sorting and filter back to yours
+── torrra: downloads ──────────────────────────────────────────────
+p                       pause or go on
+f                       choose its files
+o                       its limits, ratio and in-order download
+d / D                   remove it / remove it and delete its files
+── torrra: choosing files ─────────────────────────────────────────
+Space                   a file or folder in or out
+Left / Right            fold / unfold a folder (h / l too)
+a / n / i               all / none / the other way round
+Enter                   download the chosen ones
+d                       download everything (no wait for the list)
+Esc                     cancel

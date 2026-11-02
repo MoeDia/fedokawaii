@@ -1,8 +1,8 @@
 # the system (Super+U): system, update, snapshots, backups, learning — its sections as tabs
 # source: system/fedokawaii (menu(): its fzf keys tab, btab, right, left, h, l, j, k, enter, esc, q, a click on a tab)
 ── system: Super+U ────────────────────────────────────────────────
-Tab / Shift+Tab         the next / previous section (→ / ← too)
-↑ / ↓                   the entry before / after (told in the pane)
+Tab / Shift+Tab         the next / previous section (→ / ←, l / h too)
+↑ / ↓                   the entry before / after (k / j too; told in the pane)
 Enter                   do it
 a click on a tab        that section
 Esc / q / Super+U       away

@@ -183,12 +183,13 @@ called '^zoxide add -- /$'; called "^zoxide add -- $HOME\$"
 eq "$(grep -c '^zoxide init' "$CALLS")" 0 "its shell code was read from the cache, not asked for again"
 
 # ── the running program in the title (Super+/) ───────────────────────────────
-case_ "a program with a key sheet names its window while it runs (Super+/ shows its keys first): its first word past sudo, env, options and VAR=…, an alias looked through, its folder dropped; any other command, or one with no sheet, leaves the folder there; ble.sh's PREEXEC hook, no process started"
+case_ "a program with a key sheet names its window while it runs (Super+/ shows its keys first): its first word past sudo, env, options and VAR=…, an alias looked through, its folder dropped, cut at ; & | and a leading \\; a program with a window of its own (zathura, mpv), any other command, or one with no sheet, leaves the folder there; ble.sh's PREEXEC hook, no process started, safe under set -u"
 home; mkdir -p "$HOME/.config/fedokawaii/keys"
-for s in nvim lazygit vd yazi; do : >"$HOME/.config/fedokawaii/keys/$s.txt"; done
-out=$(bash -c '. <(sed -n "/^__kawa_preexec() {/,/^}/p" "$1"); alias lg=lazygit v="nvim -p"
+for s in nvim lazygit vd yazi zathura mpv; do : >"$HOME/.config/fedokawaii/keys/$s.txt"; done
+out=$(bash -c 'set -u; . <(sed -n "/^__kawa_preexec() {/,/^}/p" "$1"); alias lg=lazygit v="nvim -p"
   for c in "nvim x" "sudo -E nvim /etc/fstab" "LANG=C env nvim" "/usr/bin/nvim" "lg" "v a b" "vd t.csv" "yazi" \
-    "ls -la" "git status" "btop" "sudo -u root nvim" "" "  " "Nvim" "../nvim"; do
+    "ls -la" "git status" "btop" "sudo -u root nvim" "" "  " "Nvim" "../nvim" \
+    "\\nvim a" "nvim;ls" "lazygit&" "zathura a.pdf" "mpv film.mkv" "sudo"; do
     printf "%s|" "$c"; __kawa_preexec "$c" | od -An -c | tr -s " " | tr -d "\n"; echo; done' _ "$HOME/.bashrc.d/fedokawaii.sh" 2>&1)
 eq "$out" "nvim x| 033 ] 2 ; n v i m 033 \\
 sudo -E nvim /etc/fstab| 033 ] 2 ; n v i m 033 \\
@@ -205,7 +206,13 @@ sudo -u root nvim|
 |
   |
 Nvim|
-../nvim| 033 ] 2 ; n v i m 033 \\"
+../nvim| 033 ] 2 ; n v i m 033 \\
+\\nvim a| 033 ] 2 ; n v i m 033 \\
+nvim;ls| 033 ] 2 ; n v i m 033 \\
+lazygit&| 033 ] 2 ; l a z y g i t 033 \\
+zathura a.pdf|
+mpv film.mkv|
+sudo|"
 grep -qx '\[\[ -n \${BLE_VERSION-} \]\] && blehook PREEXEC+=__kawa_preexec' "$REPO/configs/home/.bashrc.d/fedokawaii.sh" \
   && _ok || _no "the hook is not registered with ble.sh"
 

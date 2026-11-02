@@ -297,7 +297,7 @@ screen and the bar's paper share one rhythm.
   is answered live in the first row and copied by Enter.
 - **A menu typed into** (Super+/, a size, an order) keeps the size it opened with, and its details'
   column where it stood: what is found fills it from the top, cut under its last whole row.
-  Super+/ finds by letters in order too ("wpa": the wallpaper picker), the best first, each under
+  Super+/ finds by letters in order too ("lck": the lock screen), the best first, each under
   its part; it opens on the keys of the program in front, then the desktop's, then every other's.
 
 ## 5. States

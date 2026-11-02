@@ -348,16 +348,19 @@ __kawa_render() {
 # sheet (~/.config/fedokawaii/keys/NAME.txt): Super+/ then shows its keys first (kawa-help reads
 # the focused window's title); any other command leaves the folder there (an ls would flash it
 # in the bar). Its first word past sudo, env and the like and VAR=…, an alias looked through,
-# its folder dropped; the next prompt puts the folder back. ble.sh's hook before each command:
-# no process started for it
+# its folder dropped, cut at ; & | < > ( ) and a leading \ (an alias bypassed); the next prompt
+# puts the folder back. A program with a window of its own (zathura, mpv) leaves the terminal
+# as it is: its window is named by itself. ble.sh's hook before each command: no process
+# started for it
 __kawa_preexec() {
   local -a w a
-  local i=0
+  local i=0 c
   read -r -a w <<<"$1"
   while [[ ${w[i]-} == @(sudo|env|command|exec|nice|nohup|time|-*|[A-Za-z_]*([A-Za-z0-9_])=*) ]]; do i=$((i + 1)); done
-  [[ -n ${w[i]-} && -n ${BASH_ALIASES[${w[i]}]-} ]] && { read -r -a a <<<"${BASH_ALIASES[${w[i]}]}"; w[i]=${a[0]-}; }
-  w[i]=${w[i]##*/}
-  [[ ${w[i]} == +([a-z0-9-]) && -f $HOME/.config/fedokawaii/keys/${w[i]}.txt ]] && printf '\e]2;%s\e\\' "${w[i]}"
+  c=${w[i]-}; c=${c#\\}; c=${c%%[;&|<>()]*}
+  [[ -n $c && -n ${BASH_ALIASES[$c]-} ]] && { read -r -a a <<<"${BASH_ALIASES[$c]}"; c=${a[0]-}; }
+  c=${c##*/}
+  [[ $c == +([a-z0-9-]) && $c != @(zathura|mpv) && -f $HOME/.config/fedokawaii/keys/$c.txt ]] && printf '\e]2;%s\e\\' "$c"
   return 0
 }
 [[ -n ${BLE_VERSION-} ]] && blehook PREEXEC+=__kawa_preexec

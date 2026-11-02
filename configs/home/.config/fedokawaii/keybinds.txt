@@ -76,18 +76,9 @@ Ctrl+R                  search the whole history (fzf)
 Ctrl+T · Alt+C          insert a path · go into a folder (fzf)
 cd NAME                 jump to a folder you use (zoxide)
 fetch                   system summary
-── files (yazi) ───────────────────────────────────────────────────
-Enter on a film         it plays in the mpv window open
-Alt+Enter on a film     it plays in a new mpv window
-Ctrl+C / X / V          copy / cut / paste files (other apps too)
-W on a film             watch it together (Syncplay)
-Alt+S on a picture, PDF shrink or convert it (Super+Z: copied)
-Alt+F on files          archives and PDFs (Super+D: copied)
 ── drives: USB sticks, disks, SD cards ────────────────────────────
 plug one in             it opens; click its notice for its files
 the bar's drive mark    open or eject a drive (quick settings too)
-M in yazi or a dialog   the drives: Enter opens one, e ejects it
-g d in yazi or a dialog ~/Drives: every open drive
 eject first             unplug once it says "safe to unplug"
 ── session ────────────────────────────────────────────────────────
 Super+Ctrl+Shift+Q      log out, no menu (Steam closed properly first)

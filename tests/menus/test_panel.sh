@@ -1167,6 +1167,15 @@ for q, fz in [("wpa", True), ("watch", True), ("w", True), ("wpa", False), ("zzz
   "w: the yazi row's key is w itself (the text's start) — its part goes first; wpa without --fuzzy finds nothing"
 eq "$(py 'print(kp.menu_args(["--prompt", "", "--fuzzy"])["fuzzy"], kp.menu_args(["--prompt", ""])["fuzzy"])')" "True False"
 
+case_ "a list only to read (Super+/'s rows, longer than its 24 lines): Down / Up a row, Page Down / Up a page, End / Home its ends; j, k and Space are the field's letters"
+eq "$(py 'fresh(); L = ["part\tI\tlaunch"] + ["info\t\tSuper+%d\trow %d" % (i, i) for i in range(60)]
+p.request("menu kawa-help", kp.Menu(L, prompt="", fuzzy=True, lines_shown=24), lambda rc, t: 0)
+top, vh, full = p.view; R = kp.ROW; s = []
+for k in ("Down", "Down", "Up", "Page_Down", "Page_Up", "End", "Down", "Home", "Up"):
+    p.key(k); s.append(p.scroll)
+p.key("j", "j"); p.key("space", " "); p.key("k", "k")
+print(s == [R, 2 * R, R, R + (vh // R - 1) * R, R, full - vh, full - vh, 0, 0], p.state.query == "j k", p.scroll)')" "True True 0"
+
 case_ "a menu's title: words alone a quiet note; MARK<tab>words a failure (a wrong password asked again: §5's failed state) — the mark in the icon column, so the width counts the words alone"
 eq "$(py 'print(kp.title_parts("pick one"), kp.title_parts("X\tr.pdf · wrong password"))')" "('', 'pick one') ('X', 'r.pdf · wrong password')"
 eq "$(py 'w = "a long name of a locked file, a report.pdf · wrong password"

@@ -1683,6 +1683,15 @@ class Panel:
             return
         if self.mode == "menu" and self.state.prompt is not None and self.typed(name, char):
             return
+        if self.view and not self.items:
+            # a list only to read (Super+/'s rows): the keys move it — a row, a page, an end (j, k
+            # and Space where no field takes them as letters)
+            page = (self.view[1] // ROW - 1) * ROW
+            dy = {"Up": -ROW, "k": -ROW, "Down": ROW, "j": ROW, "Page_Up": -page, "Page_Down": page,
+                  "space": page, "Home": -self.view[2], "End": self.view[2]}.get(name)
+            if dy is not None:
+                self.scroll_list(dy)
+                return
         cur = self.item(self.focus)
         if cur is None:
             # no cursor yet (every open starts without one): the first key puts it on the

@@ -7,7 +7,7 @@
 # as the row's name, what it does in a column of its own (the panel puts it two gaps after the
 # longest key). A row is a key, then its description from column 24 on (a key that runs past it:
 # after its gap of two spaces); a line starting with # is the sheet's own note (its sources).
-# What is typed finds by its letters in order too ("wpa": the wallpaper picker), the best first.
+# What is typed finds by its letters in order too ("lck": the lock screen), the best first.
 # The program you are in: the focused window as the bar knows it (kawa-dwlstatus: its app id
 # and title) — one of ours by its app id (warm-notes …, kawa-git …, zathura, mpv), a popup of ours
 # by its title (wallpaper, books), a terminal by its title: yazi titles itself "Yazi: …", the shell
@@ -34,6 +34,7 @@ part_icon() {
     session) K=$ICON_POWER ;; drawing) K=$ICON_BRUSH ;;
     nvim) K=$ICON_CODE ;; lazygit) K=$ICON_BRANCH ;; btop) K=$ICON_CPU ;; wiremix) K=$ICON_SLIDERS ;;
     bluetui) K=$ICON_BLUETOOTH ;; visidata) K=$ICON_SHEET ;; gdu) K=$ICON_USAGE ;; zathura) K=$ICON_PAGES ;;
+    torrra) K=$ICON_DOWNLOAD ;;   # (visidata: vd.txt's parts are headed by the program's full name)
     mpv) K=$ICON_MONITOR ;; notes) K=$ICON_NOTE ;; to-do) K=$ICON_TODO ;; clipboard) K=$ICON_CLIPBOARD ;;
     wallpaper) K=$ICON_PICTURE ;; books) K=$ICON_BOOK ;; system) K=$ICON_SEC_SYSTEM ;;
     *) K=$ICON_KEYCAP ;;
@@ -86,10 +87,18 @@ here() {
   fi
   case $app in
     warm-notes) s=notes ;; warm-clip) s=clip ;; warm-system) s=system ;;
-    kawa-git) s=lazygit ;; kawa-disk) s=gdu ;; kawa-tables) s=vd ;;
+    kawa-git) s=lazygit ;; kawa-disk) s=gdu ;; kawa-tables) s=vd ;; kawa-torrents) s=torrra ;;
     org.pwmt.zathura) s=zathura ;; mpv) s=mpv ;;
-    foot|footclient|float|kawa-dialog)   # (a terminal, a popup of ours — wallpaper, books —, the file dialog)
-      case $title in "Yazi: "*) s=yazi ;; *) [[ $title =~ ^[a-z0-9-]+$ ]] && s=$title ;; esac ;;
+  esac
+  # a terminal's title names the program in front: the shell's hook, yazi, nvim (and what runs in
+  # its terminal buffer) title it themselves — nvim opened from yazi or lazygit too; quick
+  # settings' windows are named for what they do
+  case $app in
+    foot|footclient|float|kawa-dialog|kawa-git|kawa-disk|kawa-tables)
+      case $title in
+        "Yazi: "*) s=yazi ;; mixer) s=wiremix ;; "pair a device") s=bluetui ;;
+        *) [[ $title =~ ^[a-z0-9-]+$ && -r $keys/$title.txt ]] && s=$title ;;
+      esac ;;
   esac
   [[ -n $s && -r $keys/$s.txt ]] && HERE=$s
 }

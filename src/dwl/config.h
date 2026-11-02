@@ -272,9 +272,9 @@ static const Key keys[] = {
 	/* log out without the menu (the one way out: no Ctrl+Alt+BackSpace) — Steam closed properly
 	   first, as the power menu's log out does (its saves to Steam Cloud); then dwl, as kawa-power ends it */
 	{ MODKEY|CTRL|SHIFT, XKB_KEY_q,               spawn,            SHCMD("kawa-steam --quit logout; exec pkill -xu \"$(id -u)\" dwl") },
+	/* the text consoles: logind gives the first six one (NAutoVTs=6); past them only a black screen */
 #define CHVT(n) { CTRL|WLR_MODIFIER_ALT, XKB_KEY_F##n, chvt, {.ui = (n)} }
 	CHVT(1), CHVT(2), CHVT(3), CHVT(4), CHVT(5), CHVT(6),
-	CHVT(7), CHVT(8), CHVT(9), CHVT(10), CHVT(11), CHVT(12),
 };
 
 static const Button buttons[] = {

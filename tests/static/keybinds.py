@@ -147,8 +147,8 @@ def check(repo):
             if k not in have:
                 problems.append(f"keybinds.txt:{n}: {spec} ({'+'.join(sorted(k[0]))}+{k[1]}) — config.h does not bind it")
     for k in sorted(have - told, key=lambda k: (sorted(k[0]), k[1])):
-        if k[0] == frozenset({"Ctrl", "Alt"}) and re.fullmatch(r"F\d+", k[1]):
-            continue                                    # the text consoles: the sheet names the common ones
+        if k[0] == frozenset({"Ctrl", "Alt"}) and k[1] == "F1":
+            continue                                    # back from a text console: told in that row's words
         problems.append(f"config.h binds {'+'.join(sorted(k[0]) + [k[1]])}, the help sheet never says so")
     return problems
 

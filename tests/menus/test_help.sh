@@ -38,11 +38,11 @@ has "$(fz_rows)" "part	$ICON_CAMERA	screenshots	clipboard + ~/Pictures/Screensho
 has "$(fz_rows)" "part	$ICON_DRIVE	drives	USB sticks, disks, SD cards"
 has "$(fz_rows)" "part	$ICON_SPEAKER	sound, music, monitor	"
 eq "$(fz_rows | grep -c '^part')" "$(grep -c '^─' "$K")"
-case_ "each part's icon follows the first word of its name: launch the small torii, screenshots the camera, windows the window, workspaces the tile, sound the speaker, terminal the terminal, files the folder, drives the drive, session the power icon, drawing the brush — the sheet's own ten, in order"
+case_ "each part's icon follows the first word of its name: launch the small torii, screenshots the camera, windows the window, workspaces the tile, sound the speaker, terminal the terminal, drives the drive, session the power icon, drawing the brush — the sheet's own nine, in order (yazi's keys are its own sheet's)"
 eq "$(fz_rows | grep '^part' | cut -f2 | tr '\n' ' ')" \
-  "$ICON_TORII_SMALL $ICON_CAMERA $ICON_WINDOW $ICON_TILE $ICON_SPEAKER $ICON_TERMINAL $ICON_FOLDER $ICON_DRIVE $ICON_POWER $ICON_BRUSH " \
-  "launch, screenshots, windows, workspaces, sound, terminal, files, drives, session, drawing tablet"
-eq "$(fz_rows | grep '^part' | cut -f2 | sort -u | wc -l)" 10 "no two parts share an icon"
+  "$ICON_TORII_SMALL $ICON_CAMERA $ICON_WINDOW $ICON_TILE $ICON_SPEAKER $ICON_TERMINAL $ICON_DRIVE $ICON_POWER $ICON_BRUSH " \
+  "launch, screenshots, windows, workspaces, sound, terminal, drives, session, drawing tablet"
+eq "$(fz_rows | grep '^part' | cut -f2 | sort -u | wc -l)" 9 "no two parts share an icon"
 case_ "a part of your own: the keycap"
 setup; printf '%s\n' '── my keys ──' 'Super+F12               mine' >"$K"; answer esc; kawa-help
 eq "$(fz_rows | head -n1)" "part	$ICON_KEYCAP	my keys	" "a name the sheet does not know: the keycap, not an icon of another part"
@@ -88,24 +88,24 @@ focus() {   # focus APPID TITLE — the focused window as kawa-dwlstatus keeps i
   printf '{"text":"<span line_height='"'"'14336'"'"'>%s</span>","class":["l0","r1"]}\n' "$2" >"$D/title.json"
 }
 parts() { fz_rows | awk -F'\t' '$1 == "part" && !seen[$3]++ { printf "%s ", $3 }'; }
-ALL="launch screenshots windows workspaces sound, music, monitor terminal files drives session drawing tablet "
+ALL="launch screenshots windows workspaces sound, music, monitor terminal drives session drawing tablet "
 case_ "no window focused (no files yet): the desktop's sheet first, then every program's, by its file's name"
 keys_setup; answer esc; rc 0 kawa-help
-eq "$(parts)" "${ALL}bluetui books btop clipboard gdu lazygit mpv notes to-do nvim system visidata wallpaper wiremix yazi zathura "
+eq "$(parts)" "${ALL}bluetui books btop clipboard gdu lazygit mpv notes to-do nvim system torrra visidata wallpaper wiremix yazi zathura "
 case_ "yazi in a terminal (it titles itself \"Yazi: …\"): its keys first, then the desktop's, then the rest"
 keys_setup; focus footclient "Yazi: ~/Downloads"; answer esc; kawa-help
-eq "$(parts)" "yazi ${ALL}bluetui books btop clipboard gdu lazygit mpv notes to-do nvim system visidata wallpaper wiremix zathura "
+eq "$(parts)" "yazi ${ALL}bluetui books btop clipboard gdu lazygit mpv notes to-do nvim system torrra visidata wallpaper wiremix zathura "
 eq "$(fz_rows | head -n2 | tail -n1)" "$(printf 'info\t\tj / k\tnext / previous file (arrow keys too)')" "its first row under its first part"
 case_ "a program the shell named in the title (nvim, lazygit, vd): its keys first; a folder as the title, or a program with no sheet: the desktop's first"
-for t in nvim:nvim lazygit:lazygit vd:visidata; do
+for t in nvim:nvim lazygit:lazygit vd:visidata torrra:torrra; do
   keys_setup; focus foot "${t%%:*}"; answer esc; kawa-help
   eq "$(parts | cut -d' ' -f1)" "${t#*:}" "titled ${t%%:*}"
 done
 for t in "~/repos/fedokawaii" "btop2" "Yazi"; do
   keys_setup; focus footclient "$t"; answer esc; kawa-help; eq "$(parts | cut -d' ' -f1)" launch "titled $t"
 done
-case_ "one of ours by its app id: the notes (the to-do beside them), the clipboard, Super+U, Git lazygit, Disk usage gdu, Tables visidata, zathura, mpv; Brave: the desktop's first"
-for t in warm-notes:notes warm-clip:clipboard warm-system:system kawa-git:lazygit kawa-disk:gdu kawa-tables:visidata org.pwmt.zathura:zathura mpv:mpv brave-origin:launch; do
+case_ "one of ours by its app id: the notes (the to-do beside them), the clipboard, Super+U, Git lazygit, Disk usage gdu, Tables visidata, Torrents torrra, zathura, mpv; Brave: the desktop's first"
+for t in warm-notes:notes warm-clip:clipboard warm-system:system kawa-git:lazygit kawa-disk:gdu kawa-tables:visidata kawa-torrents:torrra org.pwmt.zathura:zathura mpv:mpv brave-origin:launch; do
   keys_setup; focus "${t%%:*}" "a title"; answer esc; kawa-help
   eq "$(parts | cut -d' ' -f1)" "${t#*:}" "app id ${t%%:*}"
 done
@@ -116,6 +116,12 @@ for t in "float|wallpaper|wallpaper" "float|books|books" "kawa-dialog|Yazi: ~/Do
   eq "$(parts | cut -d' ' -f1)" "$want" "$a titled $ti"
 done
 eq "$(keys_setup; focus warm-notes notes; answer esc; kawa-help; parts | cut -d' ' -f1-3)" "notes to-do launch" "the notes' two parts, then the desktop's"
+case_ "a program another one started titles itself (nvim from yazi or lazygit, lazygit in nvim's terminal): its keys first — in one of ours too, whose own name is back when it ends; quick settings' mixer and pairing windows by what they do"
+for t in "footclient|nvim|nvim" "kawa-git|nvim|nvim" "kawa-git|Git|lazygit" "kawa-disk|nvim|nvim" "foot|lazygit|lazygit" "float|mixer|wiremix" "float|pair a device|bluetui" "warm-notes|nvim|notes"; do
+  IFS='|' read -r a ti want <<<"$t"
+  keys_setup; focus "$a" "$ti"; answer esc; kawa-help
+  eq "$(parts | cut -d' ' -f1)" "$want" "$a titled $ti"
+done
 case_ "every row of every sheet is in the menu (none lost, none twice), its notes (# …) never; each program's parts under its own icon"
 keys_setup; answer esc; kawa-help
 want=$(cat "$HOME/.config/fedokawaii/keybinds.txt" "$SHEETS"/*.txt | grep -v -e '^#' -e '^─' -e '^[[:space:]]*$' | wc -l)

@@ -3788,6 +3788,30 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   test_syncplay 143/0 on a copy carrying this patch (the four ways in a pty: both end ≤ 1 s, quiet, bob told, one
   notice only for the crash, none for the others); 86/0 on the installed copy (those cases skipped until the apply).
   The test's cleanup kills only what is still its own (an unreaped child's group; mpv by its socket in cmdline).
+- r27-23-fix1 (3 Nov 00:55–01:20, T23: the master's review 1 FAIL → fixed; kit-verified dark; LIVE with the next apply):
+  (1) a program another one starts is now seen: nvim titles itself (configs/home/.config/nvim/lua/config/options.lua:
+  title on, "nvim", or the program of the terminal buffer in front — term://…//PID:CMD → lazygit from Space g g); nvim
+  0.12.6 pushes the title it found and pops it at exit (pty: CSI 22;0t, OSC 2 "nvim", CSI 23;0t; foot-ctlseqs(7) has
+  the title stack), so yazi or lazygit is named again. Kit play (/dev/shm/r27/t23/v2/ctx.play, dark/): titles "Yazi:
+  work" → Enter on a text file "nvim" → :q "Yazi: work"; lazygit (the hook) → e "nvim" → :q "lazygit"; Super+/ shots
+  help-nvim-from-yazi (nvim's parts first), help-yazi-after-nvim (yazi's), help-lazygit, help-nvim-from-lazygit.
+  kawa-help here(): a title naming a sheet wins in kawa-git/disk/tables windows too (nvim from lazygit's e). (2) quick
+  settings' windows: "mixer" → wiremix, "pair a device" → bluetui. (3) keys/torrra.txt from torrra 2.5.1's own help
+  (screens/help.py SHORTCUTS) and the installed BINDINGS (source github.com/stabldev/torrra, the METADATA's
+  Project-URL); the Torrents launcher entry now kawa-term --app kawa-torrents Torrents (kawa-torrents → torrra; the
+  part's icon the download arrow). (4) kawa-panel: a list only to read (no items) moves by keys — Down/Up a row,
+  Page Down/Up a page, End/Home its ends (j/k/Space too where no field takes them; in Super+/ they stay letters).
+  Should-fix: (1) the fuzzy example made true — "lck" → the lock screen, first on the real 457-line list
+  (/dev/shm/r27/t23/rank/rank.sh: "wpa" stays zathura's "whole page" by fzf's honest weighing) in kawa-help,
+  kawa-menu --help, design-system §4; (2) keybinds.txt's "files (yazi)" part and drives' M / g d rows folded into
+  yazi.txt (once); (3) the hook: \nvim, nvim;ls, nvim& named, set -u safe, zathura/mpv (own windows) leave the
+  terminal's title; (4) system.txt: k/j and l/h; (5) tests: test_help 136/0 (the new title cases, the three quick
+  settings windows, kawa-torrents), test_panel 638/0 (paging), test_shell 189/0 (the hook's edges under set -u),
+  test_generated 265/0, keybinds.py clean; (6) dwl config.h binds Ctrl+Alt+F1–F6 only (logind's NAutoVTs=6: F7–F12
+  were black screens), keybinds.py whitelists only F1 now (named in the consoles' row) — compiles (a copy of the tree).
+  Nits: the MangoHud and Steam rows listed in T35; part_icon's visidata commented. Observed, not changed (T19m pass 2):
+  Super+/'s frame height follows how many headings fall in its first 24 lines (nvim 188..913, yazi 212..889) —
+  a fixed frame would leave a ragged bottom instead; to weigh in the side-by-side pass.
 ## >>> NEXT PASS STARTS HERE (2 Nov, written 18:12 by the 16:56 bulk pass — the lines above say what it did): the inbox first.
 ## (0) PRESENCE before anything he could see or hear (memory presence-not-just-input-idle): at 16:57 he was in a Discord
 ##     call (Brave: mic + sound). Every probe outside the harness/kit cut off from his session (probes-cut-off-session).
