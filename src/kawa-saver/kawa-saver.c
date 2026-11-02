@@ -17,9 +17,10 @@
  * hitomezashi grid — one stitch over, one under, each line starting on its own side — and the
  * thread they leave slowly makes the pattern — a quiet sashiko thread, each dot of it with
  * its shadow a dot down and to the right — a vermilion dot at each needle's tip.
- * Seals are stamped on the cloth now and then (a kanji of sewing, sleep or night — 縫 糸 針 夢
- * 眠 静 月 星 夜 …, the seal's own red (accent) in a 2-dot frame) and lifted again; a small patch, framed in
- * running stitch, tells the time (時 and "09:41 PM", the lock screen's
+ * Seals are stamped on the cloth now and then (the night's own pictures — the moon, sleep, a
+ * lantern, a cloud, mist, snow, a lullaby —, the seal's own red (accent) in a 2-dot frame) and lifted
+ * again; a small patch, framed in running stitch, tells the time (the day's seal, as the bar's clock,
+ * and "09:41 PM", the lock screen's
  * words) and moves every minute. When the cloth is
  * full it rests, then is washed (an ordered dither, block by block) and sewn anew. Everything
  * is drawn on a grid of dots as big as a pixel of the wallpapers' pixel art (3 px at 1080p,
@@ -408,10 +409,9 @@ static void seals_step(struct output *o)
 		struct rect r;
 		if (!place(o, SEAL, SEAL, false, &r, NULL))
 			return;
-		size_t nk = 0;                    /* the kanji: one of saver_kanji's (3 bytes each) */
-		for (const char *p = saver_kanji; *p; p += 3) nk++;
-		const char *k = saver_kanji + 3 * rnd(o, (unsigned)nk);
-		const struct glyph *g = glyph_of(k, 3);
+		/* (one of the night's pictures: saver_seals, art/icons.txt's) */
+		const char *k = saver_seals[rnd(o, (unsigned)(sizeof saver_seals / sizeof *saver_seals))];
+		const struct glyph *g = glyph_of(k, strlen(k));
 		if (!g)
 			return;
 		o->seals[i] = (struct seal){ true, r, tick + per_s * (30 + (long)rnd(o, 30)), (int)(g - glyphs) };
@@ -441,13 +441,14 @@ static void stitch_frame(struct output *o, int x, int y, int w, int h)
 }
 
 /* the clock: a patch over the grid's lines, its edges on them (the surface, framed in running
- * stitch as the bar's clock is) — its heading seal 時 and the time in text, centred in it */
-static void draw_clock(struct output *o, const char *t)
+ * stitch as the bar's clock is) — its seal the day's (月 … 日, as the bar's clock) and the time in
+ * text, centred in it; wday as localtime counts it (Sunday 0) */
+static void draw_clock(struct output *o, const char *t, int wday)
 {
 	struct rect r = o->clock;
 	fill(o, r.x, r.y, r.w, r.h, SURFACE);
 	stitch_frame(o, r.x, r.y, r.w, r.h);
-	const struct glyph *g = glyph_of("時", strlen("時"));
+	const struct glyph *g = glyph_of(saver_days + 3 * (wday % 7), 3);
 	int cw = SEAL + GAP + GLYPH_COL * (int)strlen(t), x = r.x + (r.w - cw) / 2, y = r.y + (r.h - SEAL) / 2;
 	if (g)
 		draw_seal(o, x, y, g, false, SURFACE);
@@ -478,7 +479,7 @@ static void clock_step(struct output *o)
 	o->clock = r;                         /* (moved every minute: nothing stays put) */
 	if (old.w)
 		uncover(o, old);
-	draw_clock(o, t);
+	draw_clock(o, t, tm.tm_wday);
 }
 
 static void step(struct output *o)

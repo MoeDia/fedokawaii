@@ -21,8 +21,15 @@ else
 fi
 grep -q 'TOOLS=(.*kawa-saver' "$REPO/theme.sh" && _ok || _no "theme.sh does not build it"
 glyphs=$(grep -c '^	{ "' "$SRC/glyphs.h")
-k=$(sed -n 's/^SAVER_KANJI = "\([^"]*\)".*/\1/p' "$REPO/tools/build-art.py")
-eq "$glyphs" "$(( $(python3 -I -c 'import sys; print(len(sys.argv[1]))' "$k") + 16 ))" "every kanji build-art.py draws, and 時 0-9 : space A P M"
+seals=$(sed -n 's/^SAVER_SEALS = (\(.*\)).*/\1/p' "$REPO/tools/build-art.py" | grep -o '"[a-z_]*"' | wc -l)
+eq "$glyphs" "$((seals + 7 + 15))" "every seal build-art.py draws (its pictures), the seven days, and 0-9 : space A P M"
+case_ "the seals are the night's own pictures, the clock's seal the day's (月 … 日, as the bar's clock): no other kanji — his rule keeps them to the stamps, the lock's quote and the day"
+eq "$(grep -o '^	{ "[^"]*"' "$SRC/glyphs.h" | cut -d'"' -f2 | head -n "$seals" | tr '\n' ' ')" "moon zzz lantern cloud fog snow music "
+eq "$(grep -o '^	{ "[^"]*"' "$SRC/glyphs.h" | cut -d'"' -f2 | python3 -I -c '
+import sys, unicodedata
+print("".join(c for l in sys.stdin.read().split() for c in l if unicodedata.east_asian_width(c) == "W"))')" "日月火水木金土" "kanji in the saver's glyphs: the days alone"
+grep -q 'glyph_of(saver_days + 3 \* (wday % 7), 3)' "$SRC/kawa-saver.c" && grep -q 'draw_clock(o, t, tm.tm_wday);' "$SRC/kawa-saver.c" \
+  && _ok || _no "the clock's seal is not the day's"
 
 if [[ -n $SAVER ]]; then
   saver() { env -u WAYLAND_DISPLAY -u WAYLAND_SOCKET "$SAVER" "$@"; }

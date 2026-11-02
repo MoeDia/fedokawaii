@@ -3751,6 +3751,12 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   a look + "q" → "156:2 147=x 156=q mode=i", a double click in normal mode → "mode=n": all 5 FAIL on f0994be (Visual
   mode; the q-rows hang on a register until ended), test_notes 171/0 on the fix. T21 DONE (code, master PASS): live
   with the apply + a session restart (the dwl cold-Super+N fix); its Learn figure at the book update.
+- r27-19m-saver (2 Nov 18:12–18:16): the screensaver stamped kanji seals (縫 糸 針 夢 眠 静 月 星 夜 波 雪 花 灯 風) and headed
+  its clock with 時 — outside his three places for kanji. Now the seals are the night's own pictures (art/icons.txt:
+  moon, zzz, lantern, cloud, fog, snow, music — tools/build-art.py lays each 12 × 12 drawing into the saver's 14-row
+  glyph), the clock's seal the day's (月 … 日 by tm_wday, as the bar's clock). Seen in the kit both moods
+  (/dev/shm/r27/t19m/saver/: "月 06:15 PM", a zzz seal in the seal's red); test_saver 78/0 (glyph count, the seals'
+  names, the days the only kanji, the clock's seal by the day). Live with the apply (theme.sh builds kawa-saver).
 ## >>> NEXT PASS STARTS HERE (2 Nov, written 18:12 by the 16:56 bulk pass — the lines above say what it did): the inbox first.
 ## (0) PRESENCE before anything he could see or hear (memory presence-not-just-input-idle): at 16:57 he was in a Discord
 ##     call (Brave: mic + sound). Every probe outside the harness/kit cut off from his session (probes-cut-off-session).
@@ -3775,8 +3781,7 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
 ##     at display size (whole pixels, no new font); lock.ui/gtklock.css put the entry on the mouth (x 959–1148, y 633–739);
 ##     kawa-lockmod: torches at 8 fps, its own caret, the wrong-password path ≤ 400 ms (PAM faildelay), 5 s screens off;
 ##     the greeter its twin (its kanji — weekday, verses, 眠/再/電 — go with it); gtklock's "大文字" message too.
-## (6) T19m (b) pass 1's rest: the SAVER (src/kawa-saver/glyphs.h stamps kanji seals, 時 for its clock: outside his three
-##     allowed places — icons or words), the boot splash rendered (VM), GRUB; GTK/Qt themes, window borders and gaps; the
+## (6) T19m (b) pass 1's rest: the saver's kanji DONE 18:16 (r27-19m-saver); the boot splash rendered (VM), GRUB; GTK/Qt themes, window borders and gaps; the
 ##     downloads' list, kawa-file's parts (menus via the kit). Then pass 2 (side by side).
 ## (7) T22: the master's T22 review — tools/master-brief.sh T22 with /dev/shm/r27/t22/b10rec/, zpad/v2-*/, p/ (r27-22-*).
 ## (8) T18: the master's review of the 21 wallpapers (contact sheets /dev/shm/r27p/t18-*-2.png; in place at 1080p).
