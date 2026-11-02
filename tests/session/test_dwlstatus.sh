@@ -204,6 +204,9 @@ case_ "Caps Lock (owner, 14:27): the layout in capitals while it is on — US, A
 rm -rf "$BAR"; CAPS=1 block DP-1 1 1 1 0 '(@)' 0 x | kawa-dwlstatus; eq "$(bar kb)" '{"text":"US","class":"first"}'
 rm -rf "$BAR"; CAPS=1 block DP-1 1 1 1 0 '(@)' 1 x | kawa-dwlstatus; eq "$(bar kb)" '{"text":"AR","class":"other"}'
 rm -rf "$BAR"; { CAPS=1 block DP-1 1 1 1 0 '(@)' 0 x; CAPS=0 block DP-1 1 1 1 0 '(@)' 0 x; } | kawa-dwlstatus; eq "$(bar kb)" '{"text":"us","class":"first"}' "off again: small"
+case_ "the focused window's app id, beside the bar's files (Super+/ reads it: that program's keys first) — the focused monitor's at the top, each monitor's in its folder; no window: empty"
+rm -rf "$BAR"; { block DP-1 1 1 1 0 '(@)' 0 x; block HDMI-A-1 0 1 1 0 '(@)' 0; } | kawa-dwlstatus
+eq "$(jtext appid)" foot "(the focused monitor's)"; eq "$(jtext DP-1/appid)" foot; eq "$(jtext HDMI-A-1/appid)" "" "(a monitor with no window)"
 rm -rf "$BAR"; { block DP-1 1 1 1 0 '(@)' 0 x; printf 'DP-1 kbcaps 7\nDP-1 kblayout 0\n'; } | kawa-dwlstatus; eq "$(bar kb)" '{"text":"us","class":"first"}' "a value that is no 0 or 1: passed over"
 grep -q '^+		printf("%s kbcaps %d\\n", m->wlr_output->name, last_kbcaps);' "$REPO/src/dwl/dwl.patch" && _ok || _no "dwl.patch prints no kbcaps line"
 grep -q '^+		int caps = !!(mods->locked & WLR_MODIFIER_CAPS);' "$REPO/src/dwl/dwl.patch" && _ok || _no "dwl.patch does not read Caps Lock from the keyboards' locked modifiers"

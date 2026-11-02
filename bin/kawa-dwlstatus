@@ -26,7 +26,8 @@
 # Each monitor's bar shows that monitor: its workspaces, layout and window title go to
 # dwl-bar/<monitor>/ (waybar names the bar's monitor to the module: WAYBAR_OUTPUT_NAME);
 # dwl-bar/ itself holds the focused monitor's, for a bar that is told no name. The keyboard
-# layout is one for all (dwl-bar/kb.json).
+# layout is one for all (dwl-bar/kb.json). Beside them, read by no module: appid.json, the
+# focused window's app id (Super+/ shows that program's keys first — kawa-help).
 # No forks per update but the rename that makes each file appear whole (the signals come
 # from bash's own kill).
 set -u
@@ -85,7 +86,7 @@ DIR="${XDG_RUNTIME_DIR:?}/dwl-bar"
 mkdir -p "$DIR" || exit 1
 ALWAYS=3
 
-declare -A OCC SEL URG TITLE LAYOUT KB CAPS LAST
+declare -A OCC SEL URG TITLE APPID LAYOUT KB CAPS LAST
 SELMON=""
 # keyboard layouts as the session set them (start-dwl): "us,ara" → US AR
 IFS=, read -r -a KBNAMES <<<"${XKB_DEFAULT_LAYOUT:-us}"
@@ -150,9 +151,11 @@ emit() {   # emit MONITOR — its files (and the focused one's at the top), then
   # (the mark and the name share one tile: with no window the mark is alone in it, "alone",
   # and takes the tile's 8 px of paper after it itself)
   local lc="\"$cls\""; [[ -z $title ]] && lc="[\"$cls\",\"alone\"]"
+  local ap; esc ap "${APPID[$mon]:-}"
   for at in "${to[@]}"; do
     put "${at}layout" "{\"text\":\"$icon\",\"class\":$lc}" && ly=1
     put "${at}title" "{\"text\":\"$title\",\"class\":[\"$ta\"]}" && tt=1
+    put "${at}appid" "{\"text\":\"$ap\"}"     # (no module shows it: no poke)
   done
   # the keyboard layout, shown only when there is more than one to switch between: in
   # capitals while Caps Lock is on ("US"), small while it is off ("us") — what the keys
@@ -180,6 +183,7 @@ while IFS=' ' read -r mon kind rest; do
             [[ $occ$sel${urg:-0} =~ ^[0-9]+$ ]] || continue   # numbers only: they go into (( ))
             OCC[$mon]=$occ; SEL[$mon]=$sel; URG[$mon]=${urg:-0} ;;
     title)  TITLE[$mon]=$rest ;;
+    appid)  APPID[$mon]=$rest ;;
     layout|kblayout)                       # layout ends an unpatched dwl's block, kblayout ours
             if [[ $kind == layout ]]; then
               [[ ${#rest} -le 15 && $rest != *' '* ]] || continue   # dwl's symbol: 15 bytes at most
