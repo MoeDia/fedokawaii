@@ -3371,6 +3371,11 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   the names' column in the preview and in the list, no "No items"/"Loading..."; its five waits for "No items" wait
   for the footer's 0/0 now). §7 Files: the rule. The kit render with the next batch (the suite was running).
   Also 12:44: test_yazi's drives-list count made robust (r27-suite-2939cc8's flake: yazi's mount event refreshes).
+- r27-53-sc-tools (2 Nov 12:48–12:51, 5f1b643): test_syntax's ShellCheck list never held tools/ — and tools/selftest.sh
+  (`fedokawaii selftest`) carried 11 warnings (SC2178/SC2128): following lib/common.sh with -x, ShellCheck took its
+  string `o` for dnf_q's local array `o` (renamed `opts`). tools/, tools/regress, tools/vm-inject now in the list (42
+  files, 0 warnings): test_syntax 775/0, test_common 138/0. The style level (-S style, 176 notes, mostly SC2016/SC2015
+  in deliberate idioms) is the T53 sweep's.
 ## >>> NEXT PASS STARTS HERE (2 Nov, written 12:45 by the 11:03 bulk pass — the lines above say what it did): the inbox first.
 ## (0) PRESENCE: before anything he could see or hear (a reboot, a session restart, a bar restart, a live play, a notice):
 ##     `wpctl status`, `playerctl -a status`, one half-scale grim — not only the swayidle probe (memory
