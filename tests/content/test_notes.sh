@@ -302,6 +302,9 @@ SCROLLLUA
   diary "$TMP/v.md"
   eq "$(scrolls "$TMP/v.md" "$(printf 'x<CR>%.0s' $(seq 1 30))" '<Esc><C-y>' '<C-y>' '<C-y>' '<ScrollWheelUp>' '<ScrollWheelUp>' 'i<ScrollWheelUp>' '<Esc>')" \
     "-1 -1 -1 -3 -3 -3 0 | 33 33 33 33 33 33 33"
+  case_ "...typing at the foot, a wheel up, Esc: the page stays where the wheel left it, the pen yields into its room (the master, verdict 5's should-fix 3: neovim's own check as typing ends scrolled back)"
+  diary "$TMP/v.md"
+  eq "$(scrolls "$TMP/v.md" "$(printf 'x<CR>%.0s' $(seq 1 30))" '<ScrollWheelUp>' '<Esc>')" "-3 0 | 36 33"
   case_ "...and on a to-do longer than the page (tab, esc, then Ctrl+Y twice): the list moves up each time"
   for i in $(seq 1 45); do echo "[ ] thing $i"; done >"$HOME/Notes/todo.md"
   diary "$TMP/v.md"

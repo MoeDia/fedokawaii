@@ -342,7 +342,21 @@ vim.api.nvim_create_autocmd({ "TextChanged", "TextChangedI" }, {
     ticks[ev.buf] = tick
   end,
 })
-vim.api.nvim_create_autocmd("InsertLeave", { group = group, callback = function(ev) ticks[ev.buf] = vim.b[ev.buf].changedtick end })
+-- (leaving typing after a wheel up — the wheel moves no pen in typing, nor tells anyone: neovim's
+-- own check as typing ends would scroll the page back to the pen; the pen yields first, its row
+-- counted without that check)
+vim.api.nvim_create_autocmd("InsertLeave", {
+  group = group,
+  callback = function(ev)
+    ticks[ev.buf] = vim.b[ev.buf].changedtick
+    local w, top = vim.api.nvim_get_current_win(), vim.fn.winsaveview().topline
+    if not (seen_top[w] and top < seen_top[w]) then return end
+    local room, r = vim.fn.winheight(0) - ROOM, vim.api.nvim_win_get_cursor(0)[1]
+    while r > top and vim.api.nvim_win_text_height(0, { start_row = top - 1, end_row = r - 1 }).all > room do r = r - 1 end
+    if r ~= vim.api.nvim_win_get_cursor(0)[1] then vim.api.nvim_win_set_cursor(0, { r, 0 }) end
+    seen_top[w] = top
+  end,
+})
 vim.api.nvim_create_autocmd("CursorMovedI", { group = group, callback = follow })
 vim.api.nvim_create_autocmd({ "CursorMoved", "WinScrolled" }, { group = group, callback = keep_room })
 vim.api.nvim_create_autocmd("VimResized", {
