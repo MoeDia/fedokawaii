@@ -612,7 +612,7 @@ not_called '^fzf'
 # ── the preview pane ─────────────────────────────────────────────────────────
 # (the picker's previews always have the cell the window measured: --tui exports it; fzf
 # gives the pane's size)
-export KAWA_CELL=12x26 FZF_PREVIEW_COLUMNS=78 FZF_PREVIEW_LINES=17
+export KAWA_CELL=12x26 FZF_PREVIEW_COLUMNS=78 FZF_PREVIEW_LINES=18   # (its first line the rule: the picture's 17)
 pane() {   # pane CHOICE — what the picker's preview command shows (fzf's own command line, run)
   local cmd; cmd=$(args_of fzf "$(ncalls fzf)" | sed -n 's/^--preview=//p')
   [[ -n $cmd ]] || { echo "no --preview"; return 1; }
@@ -629,7 +629,7 @@ eq "$(cat "$TMP/err")" ""
 head -c 200 "$WP/ok.png" >"$WP/cut.png"; echo "not a picture" >"$WP/fake.jpg"
 for f in "$WP/cut.png" "$WP/fake.jpg" "$WP/missing.png" pack:not-there ""; do
   out=$(kawa-wallpaper --preview "$f" 2>"$TMP/err")
-  eq "$out" "  $ICON_PICTURE  no preview" "[$f]"
+  eq "$out" "  $ICON_PICTURE no preview" "[$f]"
   eq "$(cat "$TMP/err")" "" "[$f]: nothing on stderr"
 done
 art "$PACK/dark/moon-road-ink.src" 1920x1080
@@ -655,13 +655,17 @@ kawa-wallpaper --cache >/dev/null 2>&1
 KAWA_CELL=12x24 kawa-wallpaper --preview pack:moon-road-ink >"$TMP/want"
 printf '#!/bin/sh\necho RAN\n' >"$TMP/kbin/kawa-wallpaper"
 s=$EPOCHREALTIME; out=$(pane pack:moon-road-ink); e=$EPOCHREALTIME
-[[ $out == $'\eP'* ]] && _ok || _no "no sixel: ${out:0:40}"
+rule=${out%%$'\n'*}; pic=${out#*$'\n'}
+eq "$(sed 's/\x1b\[[0-9;]*m//g' <<<"$rule")" " $(printf '─%.0s' {1..76})" "the pane's first line: the rule, the content's first column to its last (76, as the heading's)"
+has "$rule" $'\e[38;5;19m' "(in the rule's ink, edge2)"
+[[ $pic == $'\eP'* ]] && _ok || _no "no sixel: ${pic:0:40}"
 lacks "$out" RAN "kawa-wallpaper ran: not a hit"
-cmp -s <(printf '%s\n' "$out") "$TMP/want" && _ok || _no "not the same picture as --preview draws"
+cmp -s <(printf '%s\n' "$pic") "$TMP/want" && _ok || _no "not the same picture as --preview draws"
+has "$(args_of fzf "$(ncalls fzf)")" "--preview-window=down,19,border-none,noinfo,~1"
 (( (${e/./} - ${s/./}) < 100000 )) && _ok || _no "took $(( (${e/./} - ${s/./}) / 1000 )) ms"
 case_ "in the picker (a miss): --preview draws it"
 rm -f "$PREVIEWS"/*/"$(key_of moon-road-ink)".*.six
-eq "$(pane pack:moon-road-ink)" "RAN"
+eq "$(pane pack:moon-road-ink | sed 1d)" "RAN" "(under the rule)"
 case_ "your own picture not read yet: --preview (which reads it); once read, the next picker opens on a hit"
 cp "$REPO/bin/kawa-wallpaper" "$TMP/kbin/"; photo "$WP/mine.png"
 "$TMP/kbin/kawa-wallpaper" --tui "$TMP/out"

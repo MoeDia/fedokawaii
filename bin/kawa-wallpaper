@@ -679,8 +679,8 @@ case ${1:-menu} in
     sel=$(for r in "${list[@]}"; do printf '%s\n' "$r"; done | fzf --ansi --no-sort --no-input --height=100% --no-clear \
       --delimiter=$'\t' --with-nth=3.. --header="$(screen_heading "$ICON_PICTURE" wallpaper "$W")"$'\n ' \
       --with-shell='bash -c' \
-      --preview="f=$pdir/{2}.\${FZF_PREVIEW_COLUMNS}x\${FZF_PREVIEW_LINES}.six; [ -s \"\$f\" ] && exec cat \"\$f\"; exec $self --preview {1}" \
-      --preview-window='down,18,border-top,noinfo' \
+      --preview="printf -v r '%*s' \$((FZF_PREVIEW_COLUMNS - 2)) ''; printf ' %s%s%s\n' '$INK_STITCH' \"\${r// /$STITCH}\" '$INK_OFF'; f=$pdir/{2}.\${FZF_PREVIEW_COLUMNS}x\$((FZF_PREVIEW_LINES - 1)).six; [ -s \"\$f\" ] && exec cat \"\$f\"; exec $self --preview {1}" \
+      --preview-window='down,19,border-none,noinfo,~1' \
       --footer="$(keys)" \
       --bind="r:execute-silent($self --rotate toggle)+transform-footer($self --keys)" \
       --bind="click-footer:transform:[ \"\$FZF_CLICK_FOOTER_LINE\" = 2 ] && echo 'execute-silent($self --rotate toggle)+transform-footer($self --keys)'" \
@@ -689,7 +689,9 @@ case ${1:-menu} in
     # yet lands short; once only)
     printf '%s\n' "${sel%%$'\t'*}" >"$out" ;;
   --preview)   # fzf's preview, when its sixel is not drawn yet: drawn now, and the pane's size noted
-    c=${2:-} cell=${KAWA_CELL:-} area=${FZF_PREVIEW_COLUMNS:-}x${FZF_PREVIEW_LINES:-}
+    # (the pane's first line is the picker's rule — the content's first column to its last, as
+    # the heading's: fzf's own border ran a column past each end — so the picture has one less)
+    c=${2:-} cell=${KAWA_CELL:-} area=${FZF_PREVIEW_COLUMNS:-}x$(( ${FZF_PREVIEW_LINES:-0} - 1 ))
     read -r _ screen < <(outputs)
     # (quiet: fzf shows a preview's stderr in the pane — a picture it cannot read, cut short
     # or not a picture at all, gets the plain "no preview" line instead of ImageMagick's words)
@@ -697,7 +699,7 @@ case ${1:-menu} in
        && source_of "$(resolve "$c")" 2>/dev/null && f=$(make_preview "$screen" "$cell" "$area"); then
       [[ $(geometry) == "$cell $area" ]] || { printf '%s %s\n' "$cell" "$area" >"$GEOMETRY.$$" && mv -f "$GEOMETRY.$$" "$GEOMETRY"; }
       cat "$f"
-    else printf '  %s  no preview\n' "$ICON_PICTURE"; fi ;;
+    else printf '  %s %s\n' "$ICON_PICTURE" "no preview"; fi ;;   # (a row: its icon at column 1, its words at 4)
   --warm)      # every preview of the picker's list drawn ahead, nearest the cursor first, as
     # many at once as there are cores (the picker starts it, and stops it when it closes)
     renice -n 10 $$ >/dev/null 2>&1
