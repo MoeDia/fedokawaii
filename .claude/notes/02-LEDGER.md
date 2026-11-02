@@ -3887,6 +3887,10 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   apart (each retile a ble.sh redraw — r26's duplicated heading came from such bursts), the shell's caches built first as
   a login's first terminal does; count.py counts each prompt by its mark block's top edge: 8 of 8 every time — 0
   duplicates in 160 windows (/dev/shm/r27/master/T24-evidence: burst.play, count.py, burst-r1.png).
+- r27-53-flake-panel (3 Nov 01:58): the suite on 49e916b had one red, test_panel's "the bar told from the panel itself"
+  (SIGRTMIN+N to a fake waybar) — run while 20 kit bursts loaded the machine; alone it passed 638/0 twice. Its wait for
+  the two signals was 1 s at most (20 × 50 ms): now 5 s (a wait that ends the moment both arrive — no cost when fast),
+  the fake waybar's start likewise; 638/0.
 ## >>> NEXT PASS STARTS HERE (2 Nov, written 18:12 by the 16:56 bulk pass — the lines above say what it did): the inbox first.
 ## (0) PRESENCE before anything he could see or hear (memory presence-not-just-input-idle): at 16:57 he was in a Discord
 ##     call (Brave: mic + sound). Every probe outside the harness/kit cut off from his session (probes-cut-off-session).

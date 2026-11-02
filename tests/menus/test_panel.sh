@@ -1094,9 +1094,10 @@ ctypes.CDLL(None).prctl(15, b"waybar")
 for n in (12, 15):
     signal.signal(signal.SIGRTMIN + n, lambda s, f: open(sys.argv[1], "a").write(f"{s - signal.SIGRTMIN}\n"))
 open(sys.argv[1] + ".up", "w").close(); time.sleep(20)' "$TMP/wb.log" & wb=$!
-for _ in {1..50}; do [[ -e $TMP/wb.log.up ]] && break; sleep 0.05; done
+for _ in {1..100}; do [[ -e $TMP/wb.log.up ]] && break; sleep 0.05; done
 XDG_RUNTIME_DIR=$R3 py 'kp.poke("quick"); kp.poke("sound"); kp.poke("menu kawa-quick")'
-for _ in {1..20}; do [[ $(wc -l <"$TMP/wb.log" 2>/dev/null) -ge 2 ]] && break; sleep 0.05; done
+# (a wait, not a pause: done the moment both have arrived — 5 s at most, for a loaded machine)
+for _ in {1..100}; do [[ $(wc -l <"$TMP/wb.log" 2>/dev/null) -ge 2 ]] && break; sleep 0.05; done
 eq "$(sort "$TMP/wb.log" | tr '\n' ' ')" "12 15 " "quick settings: +15 alone; do not disturb's dropdown: +12; the sound's +16 not caught: not sent (it would end waybar)"
 kill -0 "$wb" 2>/dev/null && _ok || _no "waybar ended by a signal it does not catch"
 n=0; while read -r -t 0.2 -u 6 _; do ((n++)); done; eq "$n" 3 "the wake fifo: a line each"
