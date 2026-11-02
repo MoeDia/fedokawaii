@@ -3966,6 +3966,14 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   graph-paper grid → a step under each leaf; three stray dark leaves → the shade clamped; the quote and seal 20 px right
   of centre → centred as one group. Left for the grill: the grid away from the lanterns still a little ruled, the ring
   thin, the lanterns plain — then the wiring (lock.ui, gtklock.css, kawa-lockmod, kawa-lock, the greeter).
+- r27-dwl-noxwayland (3 Nov 02:25–02:30, FIXED in the tree + patch; LIVE with the next apply and a new session): dwl
+  crashed as it ended whenever Xwayland had not started (seen at 00:48 in my first fence try: SIGSEGV in
+  cleanuplisteners → wl_list_remove): its new_xwayland_surface and xwayland_ready listeners are attached only when
+  wlr_xwayland_create succeeds, but were always unlinked (upstream dwl has the same lines). Now unlinked only `if
+  (xwayland)`. Proven: tools/regress/no-xwayland-exit.sh (dwl headless in a user namespace that cannot see
+  /tmp/.X11-unix's owner, so Xwayland refuses it; ended by its startup script) — the installed dwl: status 139 (signal
+  11); the fixed build: 0. test_dwl_anim 64/0, test_dwlconfig 2/0; tools/dwl-patch.sh wrote the patch (only the guard
+  changed, the rest renumbered hunks).
 ## >>> NEXT PASS STARTS HERE (2 Nov, written 18:12 by the 16:56 bulk pass — the lines above say what it did): the inbox first.
 ## (0) PRESENCE before anything he could see or hear (memory presence-not-just-input-idle): at 16:57 he was in a Discord
 ##     call (Brave: mic + sound). Every probe outside the harness/kit cut off from his session (probes-cut-off-session).
