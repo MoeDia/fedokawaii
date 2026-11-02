@@ -50,7 +50,7 @@ Also read for the wording of the r24 and r25 requests, which the ledger only abb
 | r24-19 | Learn guide much longer: Python and Rust levels, exercises | T63 | done | 90k words, Python levels 1 to 4+, Rust, 71 exercise headings | |
 | r24-20 | Wallpapers rotate every 4 h, 100 total, nice transition | T16, T19 | done | 111 in the picker, rotate row first; wash verified | |
 | r24-21 | Blasphemous does not work: diagnose, pick the best Proton | T35 | dropped | superseded: games leave the host; game ran after owner's save choice | |
-| r24-22 | Yazi file picker jumbled and overlapping; yazi disappointing overall | T22 | wip | portal save picker clean (r24); whole-UI rebuild still T22 | |
+| r24-22 | Yazi file picker jumbled and overlapping; yazi disappointing overall | T22 | wip | see r27-dec-5 (T22) | |
 | r24-23 | Font slightly thicker for readability in UI and terminal | T07 | dropped | superseded by the r27 font selection (r27-fonts-1) | |
 | r24-24a | Screensaver wake slow, black screen before the lock | T20 | wip | VERIFIED r26-10 headless; owner still sees it (r27-bug-1) | STALE |
 | r24-24b | Lock screen looks too thin | T20 | dropped | superseded by the r27 lock redesign (r27-dec-4a) | |
@@ -163,7 +163,7 @@ Also read for the wording of the r24 and r25 requests, which the ledger only abb
 | r27-dec-4f | About 10 demon wallpapers (dark) and 10 angel wallpapers (light) | T18 | todo | pipeline and sources only; none of the 20 made | |
 | r27-dec-4g | Bar's far-right icon: demon (dark) or angel (light) | T18, T19k-4 | done | live grim: hannya 7/8 px across, 1/1 above and below | |
 | r27-dec-4h | Fetch art: the mood's demon or angel | T18 | done | test_fetch 98/0; no render recorded | |
-| r27-dec-5 | Yazi: keep the engine, rebuild the whole UI, contrast, many sizes | T22 | todo | none recorded | |
+| r27-dec-5 | Yazi: keep the engine, rebuild the whole UI, contrast, many sizes | T22 | wip | the grid, cursor, footer, contrast, kinds, empty states, tabs built (r27-22-*); kit at 3 sizes, both moods; the master's T22 review next | |
 | r27-dec-6a | Prompt rebuilt in pastel-powerline style with the terminal icon | T24 | todo | none recorded | |
 | r27-dec-6b | Wada palette informs the whole design system | T08 | done | every text role at least 4.5:1; live shots both themes | |
 | r27-dec-7 | Theme switch animates the mouse cursor too | T19 | done | wash.sh: cursor loaded once between go and end | |
@@ -197,23 +197,23 @@ Also read for the wording of the r24 and r25 requests, which the ledger only abb
 | id | request | task | status | proof | flag |
 |---|---|---|---|---|---|
 | r27-bug-1 | Saver to lock after long absence: frozen picture, then a sudden cut | T20 | wip | headless fix verified; real long-absence reproduction not done | |
-| r27-bug-2a | Notes: black areas around the text while typing | T21 | todo | none recorded | |
-| r27-bug-2b | Notes: flicker on save | T21 | todo | none recorded | |
-| r27-bug-2c | Notes: spacing between header and first line | T21 | todo | none recorded | |
-| r27-bug-2d | Notes redesigned as a vertical lined notebook | T21 | todo | none recorded | |
-| r27-bug-2e | Notes: margins constant while scrolling | T21 | todo | none recorded | |
+| r27-bug-2a | Notes: black areas around the text while typing | T21 | wip | foot alpha-mode=matching (4940712), seen in the kit over a wallpaper; the master's reviews of T21 (verdicts 1–7, fixed; 8 running 2 Nov 15:24) | |
+| r27-bug-2b | Notes: flicker on save | T21 | wip | neovim ui2 footer blank per :write fixed (0f50860); kit frames; T21 in the master's review | |
+| r27-bug-2c | Notes: spacing between header and first line | T21 | wip | the heading in the tabline, a blank row under it (a627678); kit renders both moods; T21 in review | |
+| r27-bug-2d | Notes redesigned as a vertical lined notebook | T21 | wip | the ruled portrait page, vermilion margin rule (a627678, design-system §7 "The page"); kit typing play; T21 in review | |
+| r27-bug-2e | Notes: margins constant while scrolling | T21 | wip | margins fixed by floats + paper; scroll/pen rules through verdicts 2–7 (test_notes 148/0); T21 in review | |
 | r27-bug-3 | Bar dropdown rows inactive until first click, fixed for good | T13 | done | kit: row lit at open, first click pages; menu-first-click.sh | |
 | r27-bug-4a | Lock: blinking cursor sometimes missing | T20 | todo | none recorded | |
 | r27-bug-4b | Lock: wrong password takes long to report; make it fast | T20 | todo | none recorded | |
 | r27-bug-5 | Wallpaper change: a black box flashes first | T19 | done | wash.sh both themes: only old, new, rim ink; picker keeps page | |
-| r27-bug-6a | Flicker on notes save (= r27-bug-2b) | T21 | todo | none recorded | |
+| r27-bug-6a | Flicker on notes save (= r27-bug-2b) | T21 | wip | = r27-bug-2b | |
 | r27-bug-6b | Flicker when typing launcher calculations or conversions | T16 | done | answer row stays in place; shots 36 to 408; test_calc 29/0 | |
 | r27-bug-6c | Clipboard exit flashes "terminated" in white text | T16 | done | warm-exit.sh holds, installed build fails; shots of Esc and Enter | |
 | r27-bug-7 | Super+C calendar opens centred under the date | T13 | done | calendar-middle.sh: frame centre x 959.5 = bar middle | |
 | r27-bug-8 | Only one menu or popup open at a time, every combination | T13 | done | one-popup.sh: 90 ordered pairs, one popup each | |
 | r27-bug-9 | Popups such as Super+V visible over fullscreen windows | T19 | done | headless: Super+V over fullscreen terminal shows; Esc returns | |
-| r27-bug-10 | Locked PDFs: password prompt; wrong password says so in place | T22 | todo | none recorded | |
-| r27-bug-11 | .rar files in yazi error; use unrar | T22 | todo | none recorded | |
+| r27-bug-10 | Locked PDFs: password prompt; wrong password says so in place | T22 | wip | kawa-panel holds a typed --stay answer (27601b3), the failed state (d882338) and the lone field's air (0ffb958); kit both moods; not live until a panel restart | |
+| r27-bug-11 | .rar files in yazi error; use unrar | T22 | done | kawa-file opens/extracts .rar with unrar (test_file: the RAR stand-in; the real unrar on the PC) | |
 | r27-bug-12a | Torrents slow; "failed to resolve" when starting a download | T29 | todo | causes found (Prowlarr DNS/IPv6, Cloudflare); no fix recorded | |
 | r27-bug-12b | Notice every time torrents opens for finished downloads | T29 | todo | none recorded | |
 | r27-bug-12c | Stress and measure the torrents app | T29 | todo | none recorded | |
@@ -468,7 +468,7 @@ Also read for the wording of the r24 and r25 requests, which the ledger only abb
 | r27-inbox-2347 | Everything aligned, spaced, proportional, symmetrical, OCD level | T19m | todo | none recorded | |
 | r27-inbox-2352a | 100+ sources (Japanese masters, UX books) for alignment, sizes, contrast | T19m | todo | none recorded | |
 | r27-inbox-2352b | Look at everything at least three times; grill yourself; really look | T19m | todo | none recorded | |
-| r27-inbox-2355a | Avoid over-engineered code: intentional, fast, clean, checked against standards | T53 | todo | none recorded | |
+| r27-inbox-2355a | Avoid over-engineered code: intentional, fast, clean, checked against standards | T53 | wip | T53: ShellCheck -S style 0 and ruff (defaults + bugbear) 0 over every file, both held by test_syntax; deadcode.sh 0; tests cut off from his session; the bar measured (tools/proc-load.py) — 2 Nov, ledger r27-53-* | |
 | r27-inbox-2355b | Final ISO on Fedora 45 (out 3 Nov); leverage it fully | T56, T46 | todo | none recorded | |
 | r27-inbox-2355c | Optimise and harden the system intensely for Fedora 45 | T41 | todo | none recorded | |
 | r27-inbox-2356 | Hire a master: a source of truth that nothing was missed | T19n | wip | this trace written; reviewer gate not yet running | |
