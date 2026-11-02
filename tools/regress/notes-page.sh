@@ -76,7 +76,8 @@ if rec:
     if broke: print(f"{len(broke)} of {n} frames broke a rule (first: frame {broke[0]})")
     # (the page moves by lines, forward: one row a step — two once, when the play's line 12, wrapped onto
     # two rows, leaves the top (line 27 never reaches it); a step back, a larger one or more two-row
-    # steps than that is a broken page)
+    # steps than that is a broken page. The recording cannot place that one step: a two-row step
+    # anywhere passes once)
     if set(shifts) - {1, 2}: print(f"the page scrolled back or by more than a line's rows: {shifts}")
     if shifts.get(2, 0) > 1: print(f"two-row steps more often than line 12 can leave the top (once): {shifts}")
     if shifts.get(1, 0) < 5: print(f"the page hardly scrolled ({shifts}) — the play did not fill it")

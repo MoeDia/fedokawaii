@@ -402,7 +402,9 @@ content, inside its margin of one cell:
   the blank row under the heading is its top), then the footer (`muted`). A day's line shows its
   date alone, in `accent_text`; everything else exactly as typed (no markdown styling, nothing
   hidden). The pen keeps three ruled rows of fresh paper ahead of it — typing, after a Return, an
-  `o`, a `p`, a `:put`, a paste — and head, foot and margin never move, whatever the scroll
+  `o`, a `p`, a `:put`, a paste. The page scrolls by lines: a wrapped line leaves the top whole.
+  A scroll he makes is his — Ctrl+Y, Ctrl+B, the wheel move the page and the pen yields into its
+  room — and head, foot and margin never move, whatever the scroll
   (`tools/regress/notes-page.sh` checks every frame of 40 typed lines with an `o` and a `yy p`,
   a cold start and a to-do longer than the page). It opens on a day's line, never mid-day: the
   latest day whose line leaves the pen its rows above it too (the same five as below) on the
