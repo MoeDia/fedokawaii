@@ -4072,6 +4072,15 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   papers: recipe-named tokens (paper_mark … paper_time: "Grenadine Pink" …) in DOC_TOKENS and §1's table (test_design_doc
   54/0 reads them back); the two comments name the jobs step. Left: test_tiles' derivation line, a cache-warm render
   play (TERM=foot), review 3.
+- r27-46b-digest (3 Nov 02:38–03:28, T46b, a sonnet research subagent, read-only; still assembling as the pass ended):
+  Fedora 45's changes against this system from official sources only — .claude/notes/f45-changes-3nov.md (assembled from its
+  parts; its own final file, if it came, in /dev/shm/r27/t46b/) and f45-installed-version-changes.tsv (577 packages: this
+  PC's F44 versions against F45 stable/testing, MAJOR/MINOR flagged, in-manifest marked). Its first lines: F45 Final GO for
+  Tue 3 Nov (RC-1.4), releases/45 still 403 at 22:30 UTC; 46 accepted Changes; the release notes published; F44 EOL
+  2027-06-02; a real `dnf5 --releasever=45 --assumeno distro-sync` dry run against this PC's rpmdb and repos (RPM Fusion,
+  the COPRs); Fedora's python3.15 unpacked in /dev/shm compiled all 88 of the repo's Python programs with -W error. The
+  1 Nov digest (f45-changes.md) kept as it was. Next: read both for T46/T46b's plan (what breaks, what to use: Python 3.15
+  first, the owner's word).
 ## >>> NEXT PASS STARTS HERE (3 Nov, written 02:30 by the 00:42 bulk pass — the lines above say what it did): the inbox first.
 ## (0) PRESENCE before anything he could see or hear (memories presence-not-just-input-idle, probes-cut-off-session,
 ##     never-kill-a-computed-list): every kit/headless run through tools/hl-dwl.sh or tools/kit.sh (now a PID namespace
@@ -4086,7 +4095,8 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
 ##     (the flames at 8 fps over the dark scene from flame-dark.png, its own caret, wrong password ≤ 400 ms (PAM
 ##     faildelay), 5 s screens off, the wake guard kept), the greeter its twin, tools/regress/lock-start.sh; grill the
 ##     light scene once more (the grid away from the lanterns, the ring, the lanterns) — then the master.
-## (3) T46/T46b — Fedora 45 is released TODAY (3 Nov, ~14:00 UTC; releases/45 was 403 at 01:30): vm-create f45 fresh
+## (3) T46/T46b — Fedora 45 is released TODAY (3 Nov, ~14:00 UTC; releases/45 was 403 at 01:30): read
+##     .claude/notes/f45-changes-3nov.md + f45-installed-version-changes.tsv (r27-46b-digest) first; then vm-create f45 fresh
 ##     from the released tree, vm-smoke f45, tools/vm-inject/f45-checks.sh, T46's pre-flight; the upgrade's WAIT.
 ## (4) T19m — pass 1's rest: the boot splash and GRUB (VM), the polkit password dialog (lxqt-policykit, the one Qt
 ##     window: live), the torrents TUI (with T29); then pass 2 side by side (incl. Super+/'s frame height by headings,
