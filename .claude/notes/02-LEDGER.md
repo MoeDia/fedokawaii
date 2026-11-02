@@ -3485,7 +3485,7 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   seen_top and keep_room say why the yield is safe (every other way the top goes up — k, a search, on_day, a resize —
   brings the page to the pen, so the yield moves nothing; typing never yields) and why the look is the window's and
   forgotten on BufWinEnter (another page's line numbers). test_notes 142/0.
-- r27-leak (2 Nov 14:00–14:16, 03a7e39 + master-brief): OUR RUNS REACHED HIS DESKTOP. A presence grim (14:10) showed
+- r27-leak (2 Nov 14:00–14:15, 03a7e39 + master-brief): OUR RUNS REACHED HIS DESKTOP. A presence grim (14:10) showed
   "recording ×6 — the recording did not start" on his screen (critical notices 244, 245, 256, 267, 278, 289, app
   "desktop", no reason in the body; ~/Videos/Recordings last used 21 Oct: not his) and mako's history held ten
   "timing" notices (300–309) = system/fedokawaii-latency's probe, run by tests/installer/test_report_rows.sh:204 with
@@ -3510,13 +3510,34 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   conditions, SC2329 called by name — tools/deadcode.sh checks those —, SC1091, SC2031/SC2119). The fixed sleeps
   before a count in tests/menus/test_menu.sh became waits (upto N RE; 84/0). Targeted runs: test_state 78/0,
   test_shrink 121/0, test_pull 62/0, test_report 118/0, test_common 138/0, test_shell 187/0, test_bargaps 6/0.
-- r27-53-ruff (2 Nov 14:05–14:16): Python against ruff's defaults + bugbear (ruff 0.17.3 — the one neovim already
+- r27-53-ruff (2 Nov 14:05–14:15): Python against ruff's defaults + bugbear (ruff 0.17.3 — the one neovim already
   runs: mason's, LazyVim's Python extra; ruff.toml at the root, .claude's drafts excluded, two per-file ignores:
   visidata's injected `options`, dbus-next's signature annotations). bin/ and system/ clean: kawa-panel's theme
   monitor held on purpose (named _theme_watch, it was an "unused" variable one tidy-up away from a dead watch),
   zip strict where lengths match by construction, `l` names, a hollow box's four edges a line each;
   fedokawaii-latency's notice probe ran makoctl twice per look (once now), loop variables bound. tools/, tests/,
   docs/ (~290 style notes): a sonnet subagent, generators checked byte-identical — then a test_syntax case.
+- r27-21-master-6 (2 Nov 13:58–14:16, the master's re-review 6 on 45d443f): VERDICT FAIL (.claude/notes/master-T21-verdict-6.md).
+  Held: verdict 5's must-fix 1 (Tab → 46/46; the new row fails on d56fe4a), must-fix 2 on its path, should-fix 3, the
+  nits' comments; p4/p5/p6 reruns identical; o / yy p, Ctrl-keys, undo, Ctrl-O, Enter, Tab both ways, hide/show, resizes,
+  the 24→40-row start, wrapped lines clean; test_notes 142/0. MUST-FIX 1: neovim tells a wheel in typing (WinScrolled)
+  to a window that has been through normal mode once — the warm window after its first Esc — and there the yield
+  walked the pen into an older line as he typed: Esc, A, a wheel up, "qr" → "qrx" on 153 (the rows ran only the fresh
+  window's path: the wheel silent). SHOULD-FIX 2: Esc's yield put the pen on column 0. Nits: two walks of one rule;
+  ticks/seen_top never dropped; VimResized records no look. (Its early probes reached his clipboard: r27-leak.)
+- r27-21-master-6-fix (2 Nov 14:16–14:22, 2445edf): WinScrolled in insert or replace mode does nothing (no yield, no
+  pen_room, no look): the next key brings the page back to the pen (follow), Esc yields (InsertLeave) — one rule for
+  both windows. Esc's yield keeps the column (min(col, #line), as pen_yield). Nits: two walks kept (winline() would
+  make neovim's own check inside InsertLeave: said in the comment); ticks beside seen_top and dropped in on_detach,
+  "one window for the session" said; VimResized records its look. Rows: the master's keys → "156:2 156=qr 153=x"
+  (the six steps' tops and rows predicted before the run, matched); thirty lines of words, a wheel, Esc → "152:11";
+  both FAIL on 45d443f ("153:2 156= 153=qrx", "152:1"). test_notes 144/0. The master's re-review 7 started 14:24.
+- r27-53-timer (2 Nov 14:17–14:23, 8680687): the bar measured on the PC — no process started under waybar in 120 s;
+  its tree 302 wake-ups and 70 ms CPU a minute (waybar 151, the clock 63 — it shows seconds —, kawa-mem 21, the
+  timer's EMPTY cell 67: reading the state once a second with nothing to show). Every start, stopwatch and cancel
+  wakes all the bars already, so the idle cell now waits on its fifo alone. Row: idle, it wakes ≤ 1 time in 2.2 s
+  (the old loop: 3 — fails there); the stopwatch case that wrote the state by hand now wakes as kawa-timer does.
+  test_timer 80/0. Tools: /dev/shm/r27/t53/spawns.py and wakeups.py (kept for T55's measurements).
 ## >>> NEXT PASS STARTS HERE (2 Nov, written 13:50 by the 11:03 bulk pass — the lines above say what it did): the inbox first.
 ## (0) PRESENCE: before anything he could see or hear (a reboot, a session restart, a bar restart, a live play, a notice):
 ##     `wpctl status`, `playerctl -a status`, one half-scale grim — not only the swayidle probe (memory
