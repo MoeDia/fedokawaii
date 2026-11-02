@@ -12,6 +12,7 @@
 menus_sandbox
 rows=$'alpha\nbeta\ngamma'
 pick() { printf '%s\n' "$rows" | kawa-menu "$@"; }   # pick ARGS — the three rows into the menu
+upto() { for _ in {1..100}; do (($(grep -c -- "$2" "$CALLS") >= $1)) && return; sleep 0.02; done; }   # upto N RE — until N calls match (2 s at most: a count after a fixed sleep failed under load)
 
 # ── what the panel is told ────────────────────────────────────────────────────────────
 case_ "plain: the panel's menu (kawa-panel --menu), list order kept, no option it was not given"
@@ -83,7 +84,7 @@ eq "$(fz_n)" "$n"
 has "$(kawa-menu --nope 2>&1)" "unknown option --nope"
 
 case_ "the launcher: the panel's — one \"toggle launcher\" line to its fifo, exit 0 at once; no menu of its own, no other program"
-n=$(fz_n); reset_calls; rc 0 kawa-menu --launcher; sleep 0.2
+n=$(fz_n); reset_calls; rc 0 kawa-menu --launcher; upto 1 .
 eq "$(grep -c . "$CALLS")" 1 "one line"; called '^kawa-panel toggle launcher$'; eq "$(fz_n)" "$n" "no menu asked for"
 for w in fuzzel kawa-calc notify-send kawa-launcher.state; do lacks "$(grep -v '^ *#' "$REPO/bin/kawa-menu")" "$w"; done
 
@@ -112,12 +113,12 @@ eq "$(cat "$TMP/gone-rc")" "rc 1"; t=$(( (${EPOCHREALTIME/./} - ${t0/./}) / 1000
 case_ "no panel running: one is started, the menu shown"
 answer "row 1"; eq "$(pick)" beta
 case_ "the launcher asks only for itself (the panel closes what it shows: no \"close\" line); a menu asks nothing else of it either"
-reset_calls; kawa-menu --launcher; sleep 0.2
+reset_calls; kawa-menu --launcher; upto 1 '^kawa-panel toggle launcher$'
 not_called '^kawa-panel close$'; called '^kawa-panel toggle launcher$'
 reset_calls; answer "row 0"; pick >/dev/null; sleep 0.2; not_called '^kawa-panel close$'; not_called 'toggle'
 case_ "a stale pid file (its pid someone else's): not the panel — that process untouched, a panel started, the launcher shown by it"
 pp=$(cat "$XDG_RUNTIME_DIR/kawa-panel.pid"); sleep 30 & op=$!; echo "$op" >"$XDG_RUNTIME_DIR/kawa-panel.pid"
-reset_calls; rc 0 kawa-menu --launcher; sleep 0.3; called '^kawa-panel toggle launcher$'
+reset_calls; rc 0 kawa-menu --launcher; upto 1 '^kawa-panel toggle launcher$'; called '^kawa-panel toggle launcher$'
 [[ -e /proc/$op ]] && _ok || _no "a stale pid file's process (not the panel) was touched"
 np=$(cat "$XDG_RUNTIME_DIR/kawa-panel.pid"); [[ $np != "$op" && $np != "$pp" && -e /proc/$np ]] && _ok || _no "no new panel (pid file: $np)"
 kill "$op" "$pp" 2>/dev/null
@@ -126,14 +127,14 @@ kill "$op" "$pp" 2>/dev/null
 case_ "its key pressed fast (dwl repeats no held key that opens it): every press reaches the panel as its own \"toggle launcher\", none waited on, none lost — the panel counts them (test_panel: open after an odd number)"
 reset_calls; t0=$EPOCHREALTIME
 for _ in {1..7}; do setsid -f kawa-menu --launcher </dev/null >/dev/null 2>&1; done
-for _ in {1..100}; do (($(grep -c '^kawa-panel toggle launcher$' "$CALLS") >= 7)) && break; sleep 0.02; done
+upto 7 '^kawa-panel toggle launcher$'
 eq "$(grep -c '^kawa-panel toggle launcher$' "$CALLS")" 7
 t=$(( (${EPOCHREALTIME/./} - ${t0/./}) / 1000 )); ((t < 1500)) && _ok || _no "only after $t ms"
-reset_calls; for _ in {1..7}; do kawa-menu --launcher; done; sleep 0.2
+reset_calls; for _ in {1..7}; do kawa-menu --launcher; done; upto 7 '^kawa-panel toggle launcher$'
 eq "$(grep -c '^kawa-panel toggle launcher$' "$CALLS")" 7 "one after another: the same"
 case_ "no panel running: the launcher starts one and asks it (as a menu does)"
 kill "$(cat "$XDG_RUNTIME_DIR/kawa-panel.pid")"; sleep 0.1; reset_calls
-rc 0 kawa-menu --launcher; sleep 0.3; called '^kawa-panel toggle launcher$'
+rc 0 kawa-menu --launcher; upto 1 '^kawa-panel toggle launcher$'; called '^kawa-panel toggle launcher$'
 answer "row 2"; eq "$(pick)" gamma "the same panel takes the next menu"
 
 done_
