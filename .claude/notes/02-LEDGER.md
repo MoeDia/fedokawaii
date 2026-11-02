@@ -3267,6 +3267,35 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   STARTED 11:41 (Fable, max): /dev/shm/r27/master/T21/brief.md (+ 25 evidence files) → verdict.md; verdict 1 kept as
   .claude/notes/master-T21-verdict-1.md (the brief tool wipes its folder; the old folder also in
   /dev/shm/r27/master-archive/T21-r1). Old suite worktrees (42892e1, 0737d1b: both rc 0) removed.
+- r27-22-grid (2 Nov 11:50–12:45, 83f1389, WIP of T22): yazi rebuilt onto §7's grid. MEASURED (kit, real GPU, the
+  main window full-screen, px.py, dark): the heading's icon ink x 27–38 inside the frame (cell at x 25 = column 0),
+  the path from column 3 (x 49), the rule (edge2) to x 1872 — two cells short of the edge, as it begins (the window's
+  6 px remainder lies past them: foot's cells); a blank row under it; rows' icons at column 1 (x 33) in the parent
+  column and the same pattern after every rail (one free column, the cursor's, column 0, the icon); the footer's
+  words from x 26 (column 0), its right end x 1872. The cursor: the lacquer #82241f, its inks #f5ecc2 (dark) /
+  #f8f3d8 (light) — yazi 26.9.1 takes foot's palette NUMBERS ("24", "25"), proven by render: the plan's note that it
+  takes only names or hex was wrong. Contrast (tools/contrast.py now reads theme.toml): a folder's blue on the
+  parent's band was 3.38 : 1 in light (6.49 dark) → a place's words strong: 11.06 / 12.66; 52 pairs, 0 under; APCA 0
+  under. The file dialog: the same heading builder ("open file" strong, ~/demo muted), its keys on the last line,
+  "1/5" two cells short of the edge (renders /dev/shm/r27/t22/p/pick-{dark,light}-win.png; the main
+  /dev/shm/r27/t22/p/{dark,light}/yazi.png). Found on the way: yazi MOVES a Span into the Line that uses it — a
+  second ui.Line from the same spans fails ("expected a string, Span, Line…": the footer's fit loop now makes its
+  spans afresh each try). test_yazi 123/0 (the frame case to the new grid: two free columns, the blank row, rows at
+  column 1, no NOR, the place's end — each fails on the old init.lua); test_pick 104, test_config 105, test_tools 19,
+  test_clipfiles 46, test_file 265 green. No dashed stitch left in yazi's files (grep). LEFT for T22: the three sizes
+  (narrow tile, half, full) both themes, the grill (kinds' colours at rest; "No items"; the tabs row), the locked-PDF
+  prompt (kawa-pdf), the Learn "yazi" piece, the master.
+- r27-22-b10 (2 Nov 12:50–13:00, the locked PDFs — bug 10, FINDINGS): reproduced in the kit with a qpdf AES-256 PDF
+  (/dev/shm/r27/t22/pdf/locked.pdf, user password "secret"): zathura 2026.07.18 asks in its own window ("Enter
+  password:" bottom-left), a wrong one → "Incorrect password. Enter password:" in place, the right one opens it; one
+  window throughout (pgrep 1; /dev/shm/r27/t22/pdf/k/strip.png) — but that prompt is a small line in the corner.
+  kawa-file's paths are the owner's "new window": its unlock (Super+D → change → unlock) and its locked archives ask
+  ONCE (kawa-menu --password), and a wrong password ends in a separate notice ("wrong password · it stays locked").
+  qpdf's own man page (installed): --requires-password exits 0 (a password needed), 2 (not encrypted), 3 (encrypted,
+  the password given right); --password-file=- is what kawa-file already uses (proven by its tests). NEXT: the
+  prompt again IN PLACE with "wrong password" as its title until right or Esc (kawa-menu --stay keeps a menu's
+  window for the caller's next page — check it carries a typed --password answer; else teach kawa-panel), for both
+  paths; zathura's inputbar inks/size read by eye (zathurarc).
 ## >>> NEXT PASS STARTS HERE (2 Nov, written 11:45 by the 11:03 bulk pass — the lines above say what it did): the inbox first.
 ## (0) PRESENCE: before anything he could see or hear (a reboot, a session restart, a bar restart, a live play, a notice):
 ##     `wpctl status`, `playerctl -a status`, one half-scale grim — not only the swayidle probe (memory
@@ -3279,7 +3308,8 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
 ##     away, START §4's reboot way; then read fedokawaii-boot-good's journal — ledger r27-49-B3. Can go with (1)'s restart.
 ## (3) T46/T46b (F45 out Tue 3 Nov): after the release — vm-create f45 fresh from the released tree, vm-smoke f45, then
 ##     tools/vm-inject/f45-checks.sh f45; T46's pre-flight (tools/vm-preflight.sh) and the upgrade's WAIT (60 days).
-## (4) T22: the yazi rebuild (grid onto §7: heading x 25, rows 33 — the dialog's still 17/25; contrast); hidden DONE.
+## (4) T22: grid, cursor, footer, contrast BUILT and seen at three sizes (r27-22-grid, 83f1389); next: bug 10 in place
+##     (r27-22-b10), the grill (kinds' colours at rest, "No items", the tabs row), the master. Learn's yazi chapter: still right.
 ## (5) T19m (b): pass 1 goes on; items 3–5 (24 px hit areas, JLREQ, the spacing scale, the optical centre, a
 ##     reduce-motion switch) with the next dwl batch (a session restart: only when he is away).
 ## (6) T53 goes on (the plan's list).
