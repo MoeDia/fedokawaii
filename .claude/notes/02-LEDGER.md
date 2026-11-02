@@ -3391,6 +3391,12 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   in "UDEV Gothic NF 10" — 10 pt = 13.3 px, under §2's floor of 14 px: the locked-PDF prompt was a small line in the
   corner (r27-22-b10). Now "Sumi Term 16px" (the terminal's face, by its alias, and size). test_configs 332/0. The
   render (a locked PDF, "Enter password:" / "Incorrect password", both moods) with the next kit batch.
+- r27-22-seen (2 Nov 12:57–12:59, kit, both moods): yazi's empty folder previewed — "empty" in faint at the names'
+  column (/dev/shm/r27/t22/p/t{dark,light}-sheet.png, top); two tabs — "demo   Documents" at the heading's column, the
+  shown one strong with the vermilion ▔ under its name alone, the other muted, a row of paper, then the panes (the
+  same sheets, below); zathura's locked-PDF prompt at 16 px ("Incorrect password. Enter password:",
+  /dev/shm/r27/t22/pdf/z-wrong.png) — readable now; grill note: its words touch the window's left edge (girara's
+  padding to check).
 ## >>> NEXT PASS STARTS HERE (2 Nov, written 12:45 by the 11:03 bulk pass — the lines above say what it did): the inbox first.
 ## (0) PRESENCE: before anything he could see or hear (a reboot, a session restart, a bar restart, a live play, a notice):
 ##     `wpctl status`, `playerctl -a status`, one half-scale grim — not only the swayidle probe (memory
