@@ -202,17 +202,17 @@ else
   case_ "notes.lua: ...and after a reload (a change on disk taken in — the day's heading kawa-notes writes at each first show of a day is one): still no markdown highlighting, the page ruled to its new last line"
   printf '%s\n' '# notes' '' '## 2026-11-01 · Sun' '' 'a line' >"$TMP/r.md"
   eq "$(nvim --headless -c 'luafile ~/.config/fedokawaii/notes.lua' \
-    -c 'lua local f = io.open(vim.api.nvim_buf_get_name(0), "a") f:write("\n## 2026-11-02 · Mon\n") f:close() vim.cmd("checktime") local r = -1 for _, m in ipairs(vim.api.nvim_buf_get_extmarks(0, vim.api.nvim_get_namespaces().kawa_rules, 0, -1, { details = true })) do if m[4].virt_lines then r = m[2] end end io.stdout:write(tostring(vim.treesitter.highlighter.active[vim.api.nvim_get_current_buf()] == nil) .. " " .. vim.bo.syntax .. " " .. tostring(r == vim.api.nvim_buf_line_count(0) - 1))' \
-    -c 'qa!' -- "$TMP/r.md" 2>/dev/null)" "true OFF true" "(tree-sitter stopped, syntax off, the paper under the new last line)"
+    -c 'lua local f = io.open(vim.api.nvim_buf_get_name(0), "a") f:write("\n## 2026-11-02 · Mon\n") f:close() vim.cmd("checktime") local r, c = -1, 0 for _, m in ipairs(vim.api.nvim_buf_get_extmarks(0, vim.api.nvim_get_namespaces().kawa_paper, 0, -1, { details = true })) do if m[4].virt_lines then r, c = m[2], c + 1 end end io.stdout:write(tostring(vim.treesitter.highlighter.active[vim.api.nvim_get_current_buf()] == nil) .. " " .. vim.bo.syntax .. " " .. tostring(r == vim.api.nvim_buf_line_count(0) - 1) .. " " .. c)' \
+    -c 'qa!' -- "$TMP/r.md" 2>/dev/null)" "true OFF true 1" "(tree-sitter stopped, syntax off, ONE paper, under the new last line — a reload once stranded a second mid-page)"
   case_ "notes.lua: a line opened at the end of the last takes the paper along within the edit itself — before any re-lay (held at the line's start, the new line lay below the old one's paper and neovim scrolled to it: the page jumped, its paper drawn as diff filler; the kit's frames, 2 Nov)"
   printf '%s\n' '# notes' '' '## 2026-11-01 · Sun' '' 'the last line' >"$TMP/e.md"
   eq "$(nvim --headless -c 'luafile ~/.config/fedokawaii/notes.lua' \
-    -c 'lua local n = vim.api.nvim_buf_line_count(0) local l = vim.api.nvim_buf_get_lines(0, n - 1, n, false)[1] vim.api.nvim_buf_set_text(0, n - 1, #l, n - 1, #l, { "", "" }) local r = -1 for _, m in ipairs(vim.api.nvim_buf_get_extmarks(0, vim.api.nvim_get_namespaces().kawa_rules, 0, -1, { details = true })) do if m[4].virt_lines then r = m[2] end end io.stdout:write(r + 1 .. "/" .. vim.api.nvim_buf_line_count(0))' \
+    -c 'lua local n = vim.api.nvim_buf_line_count(0) local l = vim.api.nvim_buf_get_lines(0, n - 1, n, false)[1] vim.api.nvim_buf_set_text(0, n - 1, #l, n - 1, #l, { "", "" }) local r = -1 for _, m in ipairs(vim.api.nvim_buf_get_extmarks(0, vim.api.nvim_get_namespaces().kawa_paper, 0, -1, { details = true })) do if m[4].virt_lines then r = m[2] end end io.stdout:write(r + 1 .. "/" .. vim.api.nvim_buf_line_count(0))' \
     -c 'qa!' -- "$TMP/e.md" 2>/dev/null)" "6/6" "(the paper under the new last line at once)"
   case_ "notes.lua: a start on a day already written (Super+N with no warm window: -c kawa_notes_shown) — the page laid under the new last line, the pen above the floats with paper ahead (the master, 2 Nov)"
   printf '%s\n' '# notes' '' "## $(LC_ALL=C date '+%Y-%m-%d · %a')" '' 'already written today' >"$TMP/w.md"
   eq "$(KAWA_NOTES_WHERE='~/Notes/w.md' nvim --headless -c 'luafile ~/.config/fedokawaii/notes.lua' -c 'lua kawa_notes_shown()' \
-    -c 'lua vim.cmd("redraw") local r = -1 for _, m in ipairs(vim.api.nvim_buf_get_extmarks(0, vim.api.nvim_get_namespaces().kawa_rules, 0, -1, { details = true })) do if m[4].virt_lines then r = m[2] end end io.stdout:write(tostring(r == vim.api.nvim_buf_line_count(0) - 1) .. " " .. tostring(vim.fn.winline() <= vim.fn.winheight(0) - 5))' \
+    -c 'lua vim.cmd("redraw") local r = -1 for _, m in ipairs(vim.api.nvim_buf_get_extmarks(0, vim.api.nvim_get_namespaces().kawa_paper, 0, -1, { details = true })) do if m[4].virt_lines then r = m[2] end end io.stdout:write(tostring(r == vim.api.nvim_buf_line_count(0) - 1) .. " " .. tostring(vim.fn.winline() <= vim.fn.winheight(0) - 5))' \
     -c 'qa!' -- "$TMP/w.md" 2>/dev/null)" "true true" "(the page under the last line; the pen five rows above the window's foot)"
   case_ "notes.lua: the page opens on a day's line, never mid-day (the master, 2 Nov) — the latest day that leaves the pen its five rows above: yesterday's when today is short, today's own when today fills them; a today too long for the page: the pen keeps its room below"
   { echo '# notes'; for i in $(seq 1 30); do printf '\n## 2026-10-%02d · Day\n\nline one of day %s\n' "$i" "$i"; done
@@ -228,6 +228,74 @@ else
   eq "$(cut -d'|' -f1 "$TMP/today")" "## 2026-10-30 · Day true true" "(a short today: the page from yesterday's line — got: $(cut -d'|' -f1 "$TMP/today"))"
   eq "$(cut -d'|' -f2 "$TMP/today")" "$today true true" "(today fills the pen's room: today's line on the first row — got: $(cut -d'|' -f2 "$TMP/today"))"
   [[ $(cut -d'|' -f3 "$TMP/today") == "today, line "*" true true" ]] && _ok || _no "a long today: the pen with its room, the page inside today — got: $(cut -d'|' -f3 "$TMP/today")"
+  # the page's view after a change, as he types (the master, 2 Nov: verdict 2) — keys given as
+  # input, the view read after the loop has run them (as foot's keys come)
+  cat >"$TMP/view.lua" <<'VIEWLUA'
+vim.o.lines = 40; vim.o.columns = 64
+local K, OUT = os.getenv("VKEYS"), os.getenv("VOUT")
+local function say(s) local f = io.open(OUT, "a"); f:write(s .. "\n"); f:close() end
+local function room() return vim.fn.winline() <= vim.fn.winheight(0) - 5 end
+kawa_notes_shown(); vim.cmd("redraw")
+local steps = vim.split(K, "|", { plain = true })
+local function step(i, t0)
+  if i > #steps then return vim.cmd("qa!") end
+  vim.api.nvim_input(steps[i])
+  vim.defer_fn(function()
+    vim.cmd("redraw")
+    local t = vim.fn.winsaveview().topline
+    say(("%s %s %s"):format(steps[i], math.abs(t - t0) <= 1 and "still" or ("jumped " .. t0 .. "->" .. t), room() and "room" or ("row " .. vim.fn.winline())))
+    step(i + 1, t)
+  end, 250)
+end
+vim.defer_fn(function() step(1, vim.fn.winsaveview().topline) end, 200)
+VIEWLUA
+  view() {   # view FILE KEYS… — each step's line: KEY still|jumped A->B room|row N
+    local f=$1; shift
+    : >"$TMP/view.out"
+    VKEYS=$(IFS='|'; echo "$*") VOUT=$TMP/view.out KAWA_NOTES_WHERE='~/Notes/v.md' \
+      nvim --headless -n -c 'luafile ~/.config/fedokawaii/notes.lua' -c "luafile $TMP/view.lua" -- "$f" >/dev/null 2>&1
+    cat "$TMP/view.out"
+  }
+  diary() { { echo '# notes'; for i in $(seq 1 30); do printf '\n## 2026-10-%02d · Day\n\nline one of day %s\n' "$i" "$i"; done
+    printf '\n## %s\n\nalready written today\n' "$(LC_ALL=C date '+%Y-%m-%d · %a')"; } >"$1"; }
+  case_ "notes.lua: a new last line made below the paper — o, yy p, G o, Ctrl+O o, :\$put — leaves the page where it was (one row at most) and the pen its room (the master, 2 Nov: verdict 2's must-fix 1 — the paper moves inside the change)"
+  for k in '<Esc>o' '<Esc>yyp' '<Esc>Go' '<C-o>o' '<Esc>yy:$put<CR>' '<CR>'; do
+    diary "$TMP/v.md"; eq "$(view "$TMP/v.md" "$k")" "$k still room"
+  done
+  case_ "...and at the foot of the page: thirty lines given at once, then o and yy p — the pen keeps its five rows to the window's foot, the page one row a step"
+  diary "$TMP/v.md"
+  out=$(view "$TMP/v.md" "$(printf 'x<CR>%.0s' $(seq 1 30))" '<Esc>o' '<Esc>yyp')
+  eq "$(cut -d' ' -f3- <<<"$out" | awk '{print $NF}' | tr '\n' ' ')" "room room room " "(the pen's room after each: $(tr '\n' '|' <<<"$out"))"
+  eq "$(sed -n '2,3p' <<<"$out" | awk '{print $2}' | tr '\n' ' ')" "still still " "(o and yy p at the foot: one row a step)"
+  case_ "notes.lua: a to-do longer than the page — tab opens it with the fresh item and the pen above the floats, three rows of paper ahead; a Return and esc keep it so (the master, 2 Nov: verdict 2's must-fix 2)"
+  for i in $(seq 1 45); do echo "[ ] thing $i"; done >"$HOME/Notes/todo.md"
+  diary "$TMP/v.md"
+  eq "$(view "$TMP/v.md" '<Tab>' 'abc<CR>' '<Esc>' | awk '{print $NF}' | tr '\n' ' ')" "room room room "
+  case_ "notes.lua: lines typed with Returns each keep their rule — one rule mark a line, the paper's mark of its own (a cleared namespace gave the paper's old id to a rule, and moving the paper took a typed line's rule: the kit's frames, 2 Nov)"
+  printf '%s\n' '# notes' '' '## 2026-11-01 · Sun' '' 'buy rice' >"$TMP/r2.md"
+  eq "$(KAWA_NOTES_WHERE='~/Notes/r2.md' nvim --headless -n -c 'luafile ~/.config/fedokawaii/notes.lua' -c 'lua
+kawa_notes_shown()
+vim.api.nvim_input("line one<CR>line two<CR>line three<CR>")
+vim.defer_fn(function()
+  local ns, per = vim.api.nvim_get_namespaces().kawa_rules, {}
+  for _, m in ipairs(vim.api.nvim_buf_get_extmarks(0, ns, 0, -1, { details = true })) do
+    if m[4].line_hl_group then per[m[2]] = (per[m[2]] or 0) + 1 end
+  end
+  local bad = {}
+  for r = 0, vim.api.nvim_buf_line_count(0) - 1 do if per[r] ~= 1 then bad[#bad + 1] = (r + 1) .. ":" .. (per[r] or 0) end end
+  io.stdout:write(#bad == 0 and "every line ruled once" or table.concat(bad, " "))
+  vim.cmd("qa!")
+end, 400)' -- "$TMP/r2.md" 2>/dev/null)" "every line ruled once"
+  case_ "notes.lua: a line changed in place (the count the same) is laid again: a day's line typed on at its end — its date's ink to the new end; a line made a day's line gets its marks, a day's line made words loses them (the master, verdict 1's should-fix 3)"
+  printf '%s\n' '# notes' '' '## 2026-11-01 · Sun' '' 'plain words' '## 2026-11-02 · Mon' >"$TMP/i.md"
+  eq "$(nvim --headless -n -c 'luafile ~/.config/fedokawaii/notes.lua' -c 'lua
+local ns = vim.api.nvim_get_namespaces().kawa_rules
+local function day(r) local e = "-" for _, m in ipairs(vim.api.nvim_buf_get_extmarks(0, ns, { r, 0 }, { r, -1 }, { details = true })) do if m[4].hl_group == "KawaDay" then e = m[4].end_col end end return e end
+local function at(r, keys) vim.api.nvim_win_set_cursor(0, { r + 1, 0 }) vim.api.nvim_feedkeys(vim.keycode(keys), "tx", false) vim.api.nvim_exec_autocmds("TextChanged", { buffer = 0 }) end
+at(2, "A, the first<Esc>"); local a = day(2) .. "/" .. #vim.fn.getline(3)
+at(4, "cc## 2026-11-03 · Tue<Esc>"); local b = day(4)
+at(5, "ccwords now<Esc>"); local c = day(5)
+io.stdout:write(a .. " " .. b .. " " .. c)' -c 'qa!' -- "$TMP/i.md" 2>/dev/null)" "31/31 20 -" "(the date's ink to the new end; a new day's line marked; an old one unmarked)"
   case_ "notes.lua: nothing written over the footer while typing (no mode, no keys, no 'written')"
   eq "$(ask '{vim.o.showmode, vim.o.showcmd, vim.o.ruler}')" "{ false, false, false }"
   has "$(ask vim.o.shortmess)" "WFcsS"

@@ -4,9 +4,11 @@
 # Super+N's page in a headless dwl (tools/kit.sh, the real GPU, both themes), 40 lines typed into it at a
 # typist's pace (two of them wrapping) while every screen change is recorded, and each frame looked at:
 # the head (heading, its blank row), the foot (the blank row, the footer) and the margin column exactly
-# as the page opened, every ruled row's rule whole, the page scrolling one row at a time and nothing
-# else, and at the end three ruled rows of fresh paper still ahead of the pen. And a start with no warm
-# window on a day already written (Super+N then starts it cold): the pen above the foot, paper ahead.
+# as the page opened, every ruled row's rule whole, the page scrolling forward a line at a time and nothing
+# else, and at the end three ruled rows of fresh paper still ahead of the pen — then a line opened with
+# o and one doubled with yy p (a new last line below the paper, not by a Return). And a start with no
+# warm window on a day already written (Super+N then starts it cold), and a to-do longer than the page
+# (tab, a Return, esc): each time the pen above the foot, paper ahead.
 #   bash tools/regress/notes-page.sh [KIT OPTION…]   (--bin bin --repo-art: the repository's state —
 #   then the repository's notes.lua too, which the kit's home does not carry)
 # Exit 0 held · 1 broken (said) · 2 the kit could not run
@@ -72,7 +74,10 @@ if rec:
     if n < 500: print(f"only {n} frames recorded — the typing did not reach the page")
     if moved: print(f"{moved} of {n} frames moved the head, the foot or the margin")
     if broke: print(f"{len(broke)} of {n} frames broke a rule (first: frame {broke[0]})")
-    if set(shifts) - {1}: print(f"the page scrolled by other than one row: {shifts}")
+    # (forward only, and by the rows of the line that left the top: one, or two for the play's two
+    # wrapped lines — neovim scrolls a put line (p) by lines; a jump back or a larger one is a broken page)
+    if set(shifts) - {1, 2}: print(f"the page scrolled back or by more than a line's rows: {shifts}")
+    if shifts.get(2, 0) > 2: print(f"two-row steps more often than the play's two wrapped lines can leave the top: {shifts}")
     if shifts.get(1, 0) < 5: print(f"the page hardly scrolled ({shifts}) — the play did not fill it")
 e = np.asarray(Image.open(sys.argv[2]).convert("RGB")).astype(np.int16)[Y0:Y1, X0:X1]
 inked = [k for k in range(rows) if np.any(np.abs(e[top + cell * k:top + cell * k + cell - 2, x0:x1] - ground).sum(axis=2) > 60)]
@@ -103,6 +108,9 @@ for i in $(seq 1 40); do
   esac
   wtype -k Return
 done
+# (a new last line made below the paper, not by a Return — the master, 2 Nov: o, yy p)
+wtype -k Escape; wtype o; wtype -d 22 -- "a line opened with o"; wtype -k Escape
+wtype yyp; wtype A; wtype -k Return; wtype -d 22 -- "and one typed at the end"
 nap 1.5
 kill -INT $w; wait $w 2>/dev/null
 shot typed
@@ -128,6 +136,36 @@ PLAY
     || { echo "notes-page: the kit failed: $(tail -n 2 "$out/kit-$th-cold.log")" >&2; exit 2; }
   [[ -s $out/$th-cold/cold.png ]] || { no "a cold Super+N showed nothing"; continue; }
   while IFS= read -r line; do no "cold start: $line"; done < <(python3 -I "$out/check.py" "$out/$th-cold/cold.png" "$out/$th-cold/cold.png")
+  # the to-do longer than the page (the master, 2 Nov: the fresh item under the footer): tab, a
+  # Return, esc — each with three ruled rows of paper ahead of the pen
+  # shellcheck disable=SC2016  # (the play's own $HOME, expanded inside the kit)
+  { [[ -n $lua ]] && printf 'cp %q "$HOME/.config/fedokawaii/notes.lua"\n' "$(realpath "$lua")"
+    cat <<'PLAY'
+mkdir -p "$HOME/Notes"
+printf '# notes\n\n## 2026-11-01 · Sun\n\nthe first day\n' >"$HOME/Notes/notes.md"
+for i in $(seq 1 45); do echo "[ ] thing $i"; done >"$HOME/Notes/todo.md"
+warm
+nap 3
+chord logo n
+nap 2
+key Tab
+nap 1
+shot tab
+wtype -d 22 -- "a new thing"
+key Return
+nap 1
+shot enter
+key Escape
+nap 1
+shot list
+PLAY
+  } >"$out/todo-$th.sh"
+  bash "$here/../kit.sh" --theme "$th" "$@" --out "$out/$th-todo" --play "$out/todo-$th.sh" play >"$out/kit-$th-todo.log" 2>&1 \
+    || { echo "notes-page: the kit failed: $(tail -n 2 "$out/kit-$th-todo.log")" >&2; exit 2; }
+  for shot in tab enter list; do
+    [[ -s $out/$th-todo/$shot.png ]] || { no "the to-do ($shot): nothing shot"; continue; }
+    while IFS= read -r line; do no "the to-do ($shot): $line"; done < <(python3 -I "$out/check.py" "$out/$th-todo/$shot.png" "$out/$th-todo/$shot.png")
+  done
 done
 ((fail)) && exit 1
-echo "notes-page: held — the page's head, foot and margin still in every frame, its rules whole, one row a scroll, paper ahead of the pen — typed and at a cold start, both themes"
+echo "notes-page: held — the page's head, foot and margin still in every frame, its rules whole, the page forward a line at a time, paper ahead of the pen — typed (o and yy p too), at a cold start and on a to-do longer than the page, both themes"

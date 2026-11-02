@@ -175,6 +175,8 @@ local function page()
   vim.opt_local.cursorline = false          -- (a page: no bar across it, only the cursor)
   vim.opt_local.wrap = true
   vim.opt_local.linebreak = true
+  vim.opt_local.smoothscroll = true         -- (a scroll by rows, not lines: a wrapped line at the top
+                                            --  moved the page two rows at once)
   vim.opt_local.fillchars:append({ wbr = " ", eob = " " })   -- (no ~ under the last line: a page ends in paper)
   local name = b == notes and where or vim.fn.fnamemodify(vim.api.nvim_buf_get_name(b), ":~")
   local is_todo = vim.api.nvim_buf_get_name(b) == TODO
@@ -209,23 +211,52 @@ end
 local rules = vim.api.nvim_create_namespace("kawa_rules")
 local DAY = "^## %d%d%d%d%-%d%d%-%d%d"          -- a day's line, as kawa-notes writes it
 local ruled = {}                              -- buffer → the line count its rules were laid for
+-- The page under the last line: one mark per buffer, held at the last line's END —
+-- and moved there INSIDE every change that makes a new last line (on_lines, before the command
+-- works out its view): o, p, :put, Go add a line after the last, below the mark, and the command's
+-- own scroll would see the pen forty rows down and jump the page (the master, 2 Nov: verdict 2's
+-- must-fix 1; a Return at the end splits the line, which takes the mark along by itself)
+local paperns = vim.api.nvim_create_namespace("kawa_paper")   -- (its own: a clear of the rules never
+local paper, attached, sheet = {}, {}, { cols = 0, lines = 0 }  -- takes it, nor gives its id to a rule)
+local function rows()                         -- the paper's virtual rows, as many as the screen has
+  if sheet.cols ~= vim.o.columns or sheet.lines ~= vim.o.lines then
+    local row = { { string.rep(" ", vim.o.columns), "KawaRule" } }
+    sheet = { cols = vim.o.columns, lines = vim.o.lines }
+    for i = 1, vim.o.lines do sheet[i] = row end
+  end
+  return { unpack(sheet, 1, sheet.lines) }
+end
+local function to_end(b)                      -- the paper under the last line, as it is now — the one paper
+  local n = vim.api.nvim_buf_line_count(b)      -- (a reload strands a mark: never two); left as it is when
+  local line = vim.api.nvim_buf_get_lines(b, n - 1, n, false)[1] or ""   -- it is there already (laid again,
+  local size = vim.o.columns .. "x" .. vim.o.lines                       -- the window scrolled a second row)
+  local at = paper[b] and vim.api.nvim_buf_get_extmark_by_id(b, paperns, paper[b].id, {}) or {}
+  if at[1] == n - 1 and at[2] == #line and paper[b].size == size
+      and #vim.api.nvim_buf_get_extmarks(b, paperns, 0, -1, { limit = 2 }) == 1 then
+    return
+  end
+  vim.api.nvim_buf_clear_namespace(b, paperns, 0, -1)
+  paper[b] = { id = vim.api.nvim_buf_set_extmark(b, paperns, n - 1, #line, { virt_lines = rows() }), size = size }
+end
 local function lay(b, r, line, last)          -- one line's marks: its rule, a day's date, the page under the last
   vim.api.nvim_buf_set_extmark(b, rules, r, 0, { line_hl_group = "KawaRule" })
   if line:match(DAY) then
     vim.api.nvim_buf_set_extmark(b, rules, r, 0, { end_col = 3, conceal = "" })
     vim.api.nvim_buf_set_extmark(b, rules, r, 3, { end_col = #line, hl_group = "KawaDay", priority = 200 })
   end
-  if last then
-    local row, below = { { string.rep(" ", vim.o.columns), "KawaRule" } }, {}
-    for _ = 1, vim.o.lines do below[#below + 1] = row end
-    -- (at the line's end: a line opened there takes the paper along within the edit itself —
-    -- held at its start, the new line lay below the old one's paper until the next lay, and
-    -- neovim scrolled to it: the page jumped, its paper drawn as diff filler for two frames)
-    vim.api.nvim_buf_set_extmark(b, rules, r, #line, { virt_lines = below })
-  end
+  if last then to_end(b) end
 end
 local function rule(b, force)
   if not vim.api.nvim_buf_is_loaded(b) or vim.bo[b].buftype ~= "" then return end   -- (at -u time the file is not read yet: BufWinEnter lays them)
+  if not attached[b] then
+    attached[b] = true
+    vim.api.nvim_buf_attach(b, false, {
+      on_lines = function(_, buf, _, _, last_old, last_new)
+        if last_new ~= last_old and paper[buf] then to_end(buf) end
+      end,
+      on_detach = function(_, buf) attached[buf], paper[buf] = nil, nil end,
+    })
+  end
   local n = vim.api.nvim_buf_line_count(b)
   if force or ruled[b] ~= n then
     ruled[b] = n
@@ -260,7 +291,7 @@ local function on_day()
     if i == 1 or lines[i]:match(DAY) then
       local above = vim.api.nvim_win_text_height(0, { start_row = i - 1, end_row = pen - 2 }).all
       if above + 1 > vim.fn.winheight(0) - ROOM then break end
-      if above >= ROOM or i == 1 then vim.fn.winrestview({ topline = i, topfill = 0 }); return end
+      if above >= ROOM or i == 1 then vim.fn.winrestview({ topline = i, topfill = 0, skipcol = 0 }); return end
     end
   end
   pen_room()
@@ -269,7 +300,15 @@ page()
 rule(notes, true)
 vim.api.nvim_create_autocmd("BufWinEnter", { group = group, callback = function(ev) page(); rule(ev.buf, true) end })
 vim.api.nvim_create_autocmd("FileChangedShellPost", { group = group, callback = function(ev) plain(ev.buf); rule(ev.buf, true) end })
-vim.api.nvim_create_autocmd({ "TextChanged", "TextChangedI" }, { group = group, callback = function(ev) rule(ev.buf) end })
+-- after every change and every move, the pen keeps its room: scrolloff alone keeps it for a step of
+-- one row, but a jump to the end — a paste, lines given at once, the to-do opened at its end — lands
+-- the pen on the window's last row, under the floats, and scrolloff keeps it there (the master, 2 Nov:
+-- verdict 2's must-fix 2). (Safe since the paper moves inside the change: asking the pen's row then
+-- never sees a new line below the old paper)
+vim.api.nvim_create_autocmd({ "TextChanged", "TextChangedI" }, {
+  group = group, callback = function(ev) rule(ev.buf); if ev.buf == vim.api.nvim_get_current_buf() then pen_room() end end,
+})
+vim.api.nvim_create_autocmd({ "CursorMoved", "CursorMovedI" }, { group = group, callback = function() pen_room() end })
 vim.api.nvim_create_autocmd("VimResized", {
   group = group,
   callback = function()   -- (the pen at the notes' end, as they open: on a day's line again)
@@ -368,7 +407,6 @@ local function run(arg)
   vim.fn.system({ "kawa-notes", arg })
   fresh()
 end
-local shown = false                         -- (the window showing)
 local todo_open, todo_tidy                  -- (the to-do's, below)
 local function notes_open()                 -- the page turned back: the notes, typing at their end
   todo_tidy()
@@ -380,7 +418,6 @@ local function notes_open()                 -- the page turned back: the notes, 
   vim.cmd("startinsert!")
 end
 function _G.kawa_notes_hidden()
-  shown = false
   todo_tidy()
   save_all()
   run("--tidy")
@@ -390,7 +427,6 @@ function _G.kawa_notes_shown()
   save()
   run("--today")
   vim.cmd("silent! wall")                     -- (another file open here: saved, and the notes back)
-  shown = true
   vim.api.nvim_win_set_buf(0, buf)
   local n = vim.api.nvim_buf_line_count(buf)
   vim.api.nvim_buf_set_lines(buf, n, n, false, { "" })
