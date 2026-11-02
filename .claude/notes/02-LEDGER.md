@@ -3631,12 +3631,22 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   (kawa-display --hotplug restores the wallpaper as a monitor lights) — his screens woke then: him back at the PC (the
   round's inhibitor is logind's; swayidle's Wayland idle still darkens them), not the kit. NEXT: grim the corner again;
   if still drawn, restart mako when he is away (systemctl --user restart mako) and watch the watcher's log.
+- r27-stuck-notice (2 Nov 16:25–16:27, OPEN, the next pass's first item): the "recording ×4" drawing on his screen is
+  drawn by NO client — mako (the only notification daemon) restarted 16:25 (systemctl --user restart mako.service:
+  active, a new pid) and the picture stayed; makoctl list/history of the new mako empty. dwl holds it: a dwl bug to find
+  (the notice was dismissed while his monitor slept). Details and the plan: the next pass's (0).
 ## >>> NEXT PASS STARTS HERE (2 Nov, written 16:25 by the 13:51 bulk pass — the lines above say what it did): the inbox first.
 ## (0) PRESENCE before anything he could see or hear (memory presence-not-just-input-idle); at 16:10 he was at the PC
 ##     (Discord, sound). Every probe outside the harness/kit cut off from his session (memory probes-cut-off-session).
 ##     FIRST: /dev/shm/r27p/mako-watch.log (the watcher, r27-leak-2) — a new notice there names the test file that sent
-##     it; and grim his top-right corner: the stale "recording ×4" drawing (his mako lists none) — gone, or restart mako
-##     when he is away (systemctl --user restart mako).
+##     it. THEN THE STUCK DRAWING (r27-stuck-notice): grim his top-right corner — "recording ×4 · the recording did not
+##     start" still drawn at 16:25 although NO client draws it: his mako lists none, `makoctl dismiss --all`, `reload`
+##     and a mako RESTART (16:25, new pid, active) all left it; every client of his wayland-0 is his own (ss -xp). So dwl
+##     itself holds that picture. dwl ghosts only clients and the lock (unmaplayersurfacenotify makes none) — look at the
+##     layer surfaces' scene nodes on a monitor that slept: the notice was dismissed at 16:04 (makoctl dismiss -n 310) while
+##     his screens were dark (they woke 16:10:12: the wallpaper restore), and the drawing has been there since. Reproduce
+##     in the kit: a critical notice, the output off (wlopm / dwl's monpower), dismiss it, the output on → stuck? Fix in
+##     dwl, a regression row; a session restart clears it meanwhile (when he is away).
 ## (1) T21: the master's RE-REVIEW 9 (from 15:54 on 4c8de66) — if /dev/shm/r27/master/T21/verdict.md exists, copy it to
 ##     .claude/notes/master-T21-verdict-9.md and act: FAIL → fix → review 10 (archive /dev/shm/r27/master/T21 first; r1–r8
 ##     in master-archive); PASS → T21 done but for the apply + a SESSION RESTART (the dwl cold-Super+N fix) when he is
