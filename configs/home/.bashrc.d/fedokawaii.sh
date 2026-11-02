@@ -95,8 +95,8 @@ unset -f __kawa_glass
 # The papers are Wada's combination #300 (tools/wada-palette.py's paper_* tokens: foot's colours
 # 26–29, their ink 30, both moods); a block is its words with a space either side, the stamp edge a
 # cell of its own (art/icons.txt cap-stamp: the block before's paper over the next one's). A
-# narrow window gives up the time, then the branch, then the folder above, then the folder's
-# end. The line is the same once its command has run, so the history above reads as a column
+# narrow window gives up the time, then the jobs, then the branch, then the folder above, then
+# the folder's end. The line is the same once its command has run, so the history above reads as a column
 # of them. On a text console (no foot) the same words, plain: '#' for the mark, '>' for the ›.
 # Cost: pure bash outside git repositories (one git call inside); the timer is stamped by PS0
 # without a fork. A blank line separates each command's output from the next.
@@ -173,8 +173,8 @@ __kawa_sw() {
 }
 
 # __kawa_layout → __kawa_line, from the pieces and $COLUMNS now: what does not fit goes
-# (the time, then the branch, then the folder above, then the folder's end), a column kept
-# free at the right
+# (the time, then the jobs, then the branch, then the folder above, then the folder's end), a
+# column kept free at the right
 __kawa_layout() {
   if ((!__kawa_ran)) || [[ ${COLUMNS-} != +([0-9]) ]]; then __kawa_winsize || return 0; fi
   [[ ${LC_ALL-} == C.UTF-8 ]] || local LC_ALL=C.UTF-8

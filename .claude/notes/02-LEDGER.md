@@ -4060,13 +4060,25 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   and tools/regress/wheel-notch.sh — builds it in /dev/shm, opens Super+/ in the kit, sends one real notch, measures the
   list's move from two shots (the row shift that lines them up): the fixed panel 48 px (the heading and a row: one notch,
   one move) → exit 0; the panel of 1292bb7 (before the fixes) 150 px (a step's 60 + the smooth parts' 90) → exit 1.
+- r27-24-master-2 (3 Nov 03:09–03:16, the master's review 2 of T24): VERDICT FAIL (.claude/notes/master-T24-verdict-2.md):
+  verdict 1's must-fix 2 and should-fix 4 held; MUST-FIX: the prompt's contrasts unguarded (tools/contrast.py had no prompt
+  surface: test_contrast could not fail if 24–30 moved). SHOULD-FIX: the papers missing from the doc's token table. Nits:
+  two comments without the jobs step; test_tiles' widths without their derivation; the renders' ble.sh cache line; the
+  Learn book's prompt line (book pass).
+- r27-24-fix2 (03:16–03:22): contrast.py prompt_pairs() — the ink (30) on each paper (26–29) and the cream (25) on the
+  lacquer (24), read from foot.ini, both moods, in every run of test_contrast: dark 7.21 (the mark: an icon, ≥ 4.5) /
+  11.38 / 12.67 / 10.15 / 7.95 (words, ≥ 7), light 6.78 / 10.71 / 11.92 / 9.55 / 8.46; APCA Lc 53.1 / 74.8 / 80.6 /
+  68.8 / 82.4 dark, 52.3 / 73.9 / 79.8 / 67.9 / 86.8 light — all at or over their levels (62 pairs, 0 under). The
+  papers: recipe-named tokens (paper_mark … paper_time: "Grenadine Pink" …) in DOC_TOKENS and §1's table (test_design_doc
+  54/0 reads them back); the two comments name the jobs step. Left: test_tiles' derivation line, a cache-warm render
+  play (TERM=foot), review 3.
 ## >>> NEXT PASS STARTS HERE (3 Nov, written 02:30 by the 00:42 bulk pass — the lines above say what it did): the inbox first.
 ## (0) PRESENCE before anything he could see or hear (memories presence-not-just-input-idle, probes-cut-off-session,
 ##     never-kill-a-computed-list): every kit/headless run through tools/hl-dwl.sh or tools/kit.sh (now a PID namespace
 ##     of its own); never a kill by a list. Live keys: wtype -s 1000 on every call.
 ## (1) THE MASTERS: T23 DONE (r27-23-master-4; its should-fix done: r27-23-wheelcheck); T24 review 1 FAILED
-##     (r27-24-master-1), fixed and applied (r27-24-fix1) → review 2 (tools/master-brief.sh T24, evidence
-##     /dev/shm/r27/master/T24-evidence incl. fix1/, verdict-1); then T22 (tools/master-brief.sh T22 with /dev/shm/r27/t22/b10rec/, zpad/v2-*/,
+##     (r27-24-master-1), fixed (r27-24-fix1); review 2 FAILED (r27-24-master-2), fixed (r27-24-fix2; apply it — theme only,
+##     the contrast tool and the doc change nothing installed but the comments) → review 3; then T22 (tools/master-brief.sh T22 with /dev/shm/r27/t22/b10rec/, zpad/v2-*/,
 ##     p/) and T18 (the 21 wallpapers' contact sheets /dev/shm/r27p/t18-*-2.png).
 ## (2) T20 — wire the lock: lock.ui (no date, time or keys: the entry alone, on the demon's mouth x 959–1138 y 638–737 /
 ##     on the sky by Seiōbo's peach x 1080–1290 y 297–387 at 1080p), gtklock.css per mood, kawa-lock handing gtklock the

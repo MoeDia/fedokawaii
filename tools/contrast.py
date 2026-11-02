@@ -105,6 +105,17 @@ def term_pairs(m):
             ("every menu (fzf)", "the letters matched, at rest", ink("hl", fg), bg, ICON)]
 
 
+def prompt_pairs(m):
+    """The prompt's blocks (T24): its ink (30) on each paper (26–29: the terminal's mark, the folder,
+    git, the time and jobs) and a failure's code, the cream (25) on the lacquer (24) — foot's slots."""
+    pal, _, _ = foot_colours(m)
+    return [("the prompt", "the terminal's mark on its paper", pal[30], pal[26], ICON),
+            ("the prompt", "the folder's words on their paper", pal[30], pal[27], WORDS),
+            ("the prompt", "git's words on their paper", pal[30], pal[28], WORDS),
+            ("the prompt", "the time and the jobs on their paper", pal[30], pal[29], WORDS),
+            ("the prompt", "a failure's code on the lacquer", pal[25], pal[24], WORDS)]
+
+
 YAZI_NAMES = ("black", "red", "green", "yellow", "blue", "magenta", "cyan", "gray", "darkgray", "lightred",
               "lightgreen", "lightyellow", "lightblue", "lightmagenta", "lightcyan", "white")
 
@@ -175,7 +186,7 @@ def app_pairs(m):
 def rows():
     out = []
     for m in ("dark", "light"):
-        for surface, state, fg, bg, need in (term_pairs(m) + yazi_pairs(m) + panel_pairs(m) + css_pairs(m) + qt_pairs(m) + app_pairs(m)):
+        for surface, state, fg, bg, need in (term_pairs(m) + prompt_pairs(m) + yazi_pairs(m) + panel_pairs(m) + css_pairs(m) + qt_pairs(m) + app_pairs(m)):
             out.append((m, surface, state, fg, bg, contrast(fg, bg), need))
     return out
 
@@ -185,7 +196,7 @@ def main():
     if "--apca" in sys.argv:
         under = 0
         for m in ("dark", "light"):
-            for surface, state, fg, bg, need in (role_pairs(m) + term_pairs(m) + yazi_pairs(m) + panel_pairs(m) + css_pairs(m) + qt_pairs(m) + app_pairs(m)):
+            for surface, state, fg, bg, need in (role_pairs(m) + term_pairs(m) + prompt_pairs(m) + yazi_pairs(m) + panel_pairs(m) + css_pairs(m) + qt_pairs(m) + app_pairs(m)):
                 lc, want = apca(fg, bg), APCA_NEED.get(need, need)
                 mark = "◇" if state in APCA_KEPT else "✘" if lc < want else "✔"
                 under += mark == "✘"

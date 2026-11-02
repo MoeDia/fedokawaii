@@ -62,6 +62,10 @@ colour anywhere, in either mood. (`--doc` prints the hex columns of this table.)
 | `gold` | `c5a56e` Isabella Color | `e2b540` Yellow Ocher | metal and leaf in art only (rod caps, a halo, a demon's eyes, the torches' brass) — never words |
 | `lit` | `e7cfa1` | `122625` | an inverted chip's fill: the editor's selection, a TUI's marked items |
 | `lit_text` | `181715` | `f8f3d8` | ink on `lit` |
+| `paper_mark` | `f48067` Grenadine Pink | `f48067` Grenadine Pink | the prompt's first block, the terminal's mark on it (Wada's combination #300 — the same four papers in both moods; foot's 26–29, their ink 30: §7) |
+| `paper_folder` | `fdbf68` Cream Yellow | `fdbf68` Cream Yellow | the prompt's folder block |
+| `paper_git` | `b5decc` Turquoise Green | `b5decc` Turquoise Green | the prompt's git block |
+| `paper_time` | `78cdd0` Calamine Blue | `78cdd0` Calamine Blue | the prompt's block of the time and the jobs |
 | `tile` | `25201a` | `f9f5de` | the bar's paper (§8) |
 
 The 16 terminal colours (foot, the console, every TUI) come from the same families; `ansi0` is

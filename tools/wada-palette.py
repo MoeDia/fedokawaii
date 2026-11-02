@@ -221,7 +221,7 @@ def sheet(P, out):
 DOC_TOKENS = ("ground", "surface", "view", "key", "edge", "edge2", "hi", "lo", "faint", "muted", "text", "strong",
               "accent", "accent_hi", "accent_lo", "accent_text", "text_on_accent", "select", "text_on_select", "select_lo", "asagi",
               "flame",
-              "gold", "lit", "lit_text")
+              "gold", "lit", "lit_text", "paper_mark", "paper_folder", "paper_git", "paper_time")
 DOC_TERM = ("red", "green", "yellow", "blue", "purple", "teal", "bred", "bgreen", "byellow", "bblue", "bpurple", "bteal")
 
 
@@ -246,8 +246,8 @@ def palette():
     # the prompt's four papers (the terminal's mark, the folder, git, the time and jobs): Wada's
     # combination #300, the same paper in both moods — the words on them are the ink (≥ 6.8 : 1)
     for m in P:
-        P[m].update(paper_mark=w("Grenadine Pink"), paper_folder=w("Cream Yellow"), paper_git=w("Turquoise Green"),
-                    paper_time=w("Calamine Blue"))
+        P[m].update(paper_mark=w("Grenadine Pink", f"{m}.paper_mark"), paper_folder=w("Cream Yellow", f"{m}.paper_folder"),
+                    paper_git=w("Turquoise Green", f"{m}.paper_git"), paper_time=w("Calamine Blue", f"{m}.paper_time"))
     def rgba(h, a):
         return tuple(int(h[i:i + 2], 16) for i in (0, 2, 4)) + (a,)
     ink, umber = W["Black"], mix("Vandyke Brown", "Black", 0.45)
