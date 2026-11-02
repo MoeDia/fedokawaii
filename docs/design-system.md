@@ -327,7 +327,10 @@ Motion — how any of these changes over time — is §11.
 - The same click or key again closes it; Esc and a click outside close it.
 - **Opens clean**: no remembered cursor, no remembered highlight; the pointer works the moment it
   is open (no click to wake it).
-- A menu that pages (the calendar) pages in place, the cursor kept on the key that paged.
+- A menu that pages (the calendar) pages in place, the cursor kept on the key that paged. A
+  password asked (a locked PDF, an archive) is checked where it was typed: a wrong one keeps the
+  window, its title saying "wrong password", the field empty for the next try — never a notice,
+  never a second window; the right one closes it at once (`kawa-menu --stay`, then `--done`).
 - Bar tooltips say the state in a word or two: "volume 40%", "muted", "brightness 70%",
   "RAM 37% of 32 GB", "do not disturb" — never what a click does.
 - The lock: 5 s with nothing happening and the screens go off; any key or move lights them
