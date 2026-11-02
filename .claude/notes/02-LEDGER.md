@@ -3450,6 +3450,12 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   §7: "the page scrolls by lines … a scroll he makes is his"; the check's comment says its one two-row step is
   unplaced. The kit check on 7dd0e0b (13:38): held, both moods — typed with o and yy p, the cold start, the 45-item
   to-do (/dev/shm/r27/t21/warmfix/regress14.log).
+- r27-21-review5 (2 Nov 13:39, IN FLIGHT): the master's re-review 5 on d56fe4a started 13:39 (narrow: keep_room; probes from
+  the foot) → /dev/shm/r27/master/T21/verdict.md (archive the folder before the next brief). Meanwhile (13:39, its own
+  commit after d56fe4a): the remembered top is forgotten on BufWinEnter — the notes and the to-do share one window, and
+  the first event after Tab compared the to-do's top with the notes' (it could have yielded the pen out of its fresh
+  item; the tests passed only by the events' order). test_notes 140/0. The suite on b2f7444: ends red on the explained
+  test_theme flake (r27-53-flake-theme).
 ## >>> NEXT PASS STARTS HERE (2 Nov, written 12:45 by the 11:03 bulk pass — the lines above say what it did): the inbox first.
 ## (0) PRESENCE: before anything he could see or hear (a reboot, a session restart, a bar restart, a live play, a notice):
 ##     `wpctl status`, `playerctl -a status`, one half-scale grim — not only the swayidle probe (memory
