@@ -3538,6 +3538,24 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   wakes all the bars already, so the idle cell now waits on its fifo alone. Row: idle, it wakes ≤ 1 time in 2.2 s
   (the old loop: 3 — fails there); the stopwatch case that wrote the state by hand now wakes as kawa-timer does.
   test_timer 80/0. The measuring kept: tools/proc-load.py (spawns, wake-ups) — T55 repeats it for before/after.
+- r27-22-failed (2 Nov 14:26–14:38, d882338 + 0ffb958): T22's two grill notes on bug 10's window. (1) "wrong password"
+  stood in the title's quiet ink (muted), as the first ask did: now §5's failed state, as §1 allows red — the cross
+  in accent_text in the icon column (above the field's lock, the same column), the words in text. A menu title
+  "MARK<tab>words" draws so (kawa-panel title_parts; the width counts the words); kawa-file's password_for asks again
+  with it. design-system §5's failed row said "the words accent_text" — against §1's own rule (red carries no
+  words: Lc < 60 on sumi): now the mark and the words. (2) SEEN in that render: 37 px of air under the field, 22
+  above the title — the row of air meant to part the field from rows that never come; now only when rows follow.
+  Rows: title_parts; a lone field's window = frame, pads, title row, field (old: +20 px); with rows the air stays.
+  test_panel 634/0, test_file 276/0. Kit (both moods, /dev/shm/r27/t22/b10/): the ✗ vermilion, aligned over the lock.
+  NOT LIVE until the panel restarts (he away). (3) zathura's line at the foot (a search, a command, the PDF's own
+  password prompt): zathura 2026.07 is GTK4 and carries girara's widgets itself (github.com/pwmt/zathura
+  data/girara.css_t, girara-gtk/inputbar.c, dialog.c): its sheet pads only the entry (half of statusbar-h-padding)
+  and the prompt label sits on the frame — MEASURED 1 px of air. Rules tried in the kit (gtk-4.0 css, USER over
+  APPLICATION): `.inputbar` alone landed three times (25 px: the dialog is a box.inputbar inside the session's);
+  the outer box 8 px, the inner box and label 0, the entry's sides 0 → the prompt 8 px off the frame (+1 bearing),
+  6 px above its foot, both moods; the search line's "/" cell 11 px in — 3 px inside GTK's entry that neither its
+  padding nor its text node's padding/margin moves (tried: unchanged). Into tools/build-themes.py's gtk-4.0 sheet
+  next (the ruff sweep holds that file now).
 ## >>> NEXT PASS STARTS HERE (2 Nov, written 13:50 by the 11:03 bulk pass — the lines above say what it did): the inbox first.
 ## (0) PRESENCE: before anything he could see or hear (a reboot, a session restart, a bar restart, a live play, a notice):
 ##     `wpctl status`, `playerctl -a status`, one half-scale grim — not only the swayidle probe (memory
