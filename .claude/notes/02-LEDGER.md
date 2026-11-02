@@ -3611,9 +3611,10 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
 ##     keeps the focused window's app id in dwl-bar/appid.json since 1a6da40): kawa-help reads it — a warm window by its
 ##     app id (warm-notes, warm-clip, warm-system…), a kawa-term --app window by its id; a PLAIN foot window cannot be
 ##     told today (FOUND 15:35: the title stays the folder while a program runs — the prompt sets it, nothing per
-##     command): a ble.sh PREEXEC hook (blehook; no fork) puts the running command's first word in the title (the bar
-##     then shows "yazi", "nvim" while they run; a program's own title still wins), the prompt puts the folder back —
-##     pty-tested; → that sheet's parts first, then the desktop's, then the rest; the sheets for our own screens (Super+U, notes, books, clip, wallpaper); fuzzy rank (subsequence + word
+##     command): a ble.sh PREEXEC hook (blehook PREEXEC gets the command line; no fork) puts the running program's
+##     name in the title ONLY when it has a sheet (keys/<name>.txt exists: a stat) — every command would flash the
+##     bar's title for an `ls` (a flicker); the bar then shows "yazi", "nvim" while they run (a program's own title
+##     still wins), the prompt puts the folder back; sudo/env wrappers looked past; pty-tested; → that sheet's parts first, then the desktop's, then the rest; the sheets for our own screens (Super+U, notes, books, clip, wallpaper); fuzzy rank (subsequence + word
 ##     starts) in kawa-panel's filter; tests (test_help); shots both moods; the master.
 ## (6) T19m (b) pass 1's rest (audit-r27.md): lock, greeter, saver, boot splash, GRUB (their own renders); GTK/Qt themes,
 ##     window borders and gaps; torrents, the downloads' list, kawa-file's parts. Then pass 2 (side by side). The kit
