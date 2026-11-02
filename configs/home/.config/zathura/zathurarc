@@ -9,7 +9,9 @@ set zoom-min 10
 set guioptions ""
 set window-title-basename true
 set statusbar-home-tilde true
-set font "UDEV Gothic NF 10"
+# the bars (its status, the line a password or a command is typed on): the terminal's face and size —
+# 16 px, as every line read in a terminal (design-system §2: 14 px is the floor; 10 pt was 13.3 px)
+set font "Sumi Term 16px"
 
 # colours of the current theme (dark ink or light paper); kawa-theme reloads open windows
 include ../fedokawaii/current/zathurarc

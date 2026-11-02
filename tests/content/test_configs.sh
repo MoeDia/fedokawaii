@@ -54,9 +54,9 @@ for t in dark light; do
   bad=$(grep -E '^set ' "$TH/$t/zathurarc" | grep -vE '^set +[a-z-]+ +"(#[0-9a-f]{6}|rgba\([0-9]+,[0-9]+,[0-9]+,[01]\.[0-9]+\))"$')
   eq "$bad" "" "$t: a value zathura would not read"
 done
-case_ "zathurarc: r reloads (the guide's §16.1), Ctrl+r recolours, the font is the desktop's monospace"
+case_ "zathurarc: r reloads (the guide's §16.1), Ctrl+r recolours, the font is the terminal's (Sumi Term, 16 px — the legibility floor is 14: 10 pt was 13.3 px, a password typed in a corner)"
 has "$(cat "$Z")" $'map r reload'; has "$(cat "$Z")" $'map <C-r> recolor'
-has "$(cat "$Z")" 'set font "UDEV Gothic NF'
+has "$(cat "$Z")" 'set font "Sumi Term 16px"'
 has "$(cat "$REPO/configs/home/.config/fontconfig/fonts.conf")" "<family>UDEV Gothic NF</family>"
 if command -v zathura >/dev/null; then
   case_ "zathurarc: every option it sets is one this zathura knows (its binary, and girara's for the window's)"

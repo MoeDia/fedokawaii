@@ -3383,6 +3383,10 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   (Tabs.height() 3); clicks as yazi's (the offsets kept). test_yazi 130/0 (a row: two tabs, the second in a
   too-long folder — cut, no "…", ▔ exactly under the shown name, within the margins; a row of paper). The kit render
   with the next batch.
+- r27-22-zathura (2 Nov 12:54): zathura's bars (its status and the line a password or a command is typed on) were set
+  in "UDEV Gothic NF 10" — 10 pt = 13.3 px, under §2's floor of 14 px: the locked-PDF prompt was a small line in the
+  corner (r27-22-b10). Now "Sumi Term 16px" (the terminal's face, by its alias, and size). test_configs 332/0. The
+  render (a locked PDF, "Enter password:" / "Incorrect password", both moods) with the next kit batch.
 ## >>> NEXT PASS STARTS HERE (2 Nov, written 12:45 by the 11:03 bulk pass — the lines above say what it did): the inbox first.
 ## (0) PRESENCE: before anything he could see or hear (a reboot, a session restart, a bar restart, a live play, a notice):
 ##     `wpctl status`, `playerctl -a status`, one half-scale grim — not only the swayidle probe (memory
