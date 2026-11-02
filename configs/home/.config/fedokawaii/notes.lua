@@ -325,14 +325,26 @@ local function keep_room()
   if seen_top[w] and top < seen_top[w] then pen_yield() else pen_room() end
   seen_top[w] = vim.fn.line("w0")
 end
+-- (a typed key is a change, never a scroll of his: CursorMovedI follows the pen; and the TextChanged
+-- that leaving typing brings, with no new change in it, is only a look — the master, verdict 5)
+local ticks = {}
+local function follow()
+  pen_room()
+  seen_top[vim.api.nvim_get_current_win()] = vim.fn.line("w0")
+end
 vim.api.nvim_create_autocmd({ "TextChanged", "TextChangedI" }, {
   group = group,
   callback = function(ev)
     rule(ev.buf)
-    if ev.buf == vim.api.nvim_get_current_buf() then pen_room(); seen_top[vim.api.nvim_get_current_win()] = vim.fn.line("w0") end
+    if ev.buf ~= vim.api.nvim_get_current_buf() then return end
+    local tick = vim.b[ev.buf].changedtick
+    if ticks[ev.buf] == tick then keep_room() else follow() end
+    ticks[ev.buf] = tick
   end,
 })
-vim.api.nvim_create_autocmd({ "CursorMoved", "CursorMovedI", "WinScrolled" }, { group = group, callback = keep_room })
+vim.api.nvim_create_autocmd("InsertLeave", { group = group, callback = function(ev) ticks[ev.buf] = vim.b[ev.buf].changedtick end })
+vim.api.nvim_create_autocmd("CursorMovedI", { group = group, callback = follow })
+vim.api.nvim_create_autocmd({ "CursorMoved", "WinScrolled" }, { group = group, callback = keep_room })
 vim.api.nvim_create_autocmd("VimResized", {
   group = group,
   callback = function()   -- (the pen at the notes' end, as they open: on a day's line again)
