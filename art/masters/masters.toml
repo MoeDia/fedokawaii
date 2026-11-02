@@ -1,0 +1,149 @@
+# art/masters/masters.toml — the old masters' pictures as the desktop's pixel art (T18; tools/build-masters.py):
+# each a 16:9 crop of its source (art/masters/SOURCES.md: the record, the licence, the composition), its tones.
+# Sources live in ~/.cache/r27-art, checked by SHA-256; the pictures made (art/masters/out) are the desktop's own
+# art, which the wallpaper pack takes from the toolkit (wallpapers.list: toolkit:art/masters/out/NAME.png).
+
+[takiyasha-skeleton]
+theme  = "dark"
+source = "takiyasha-skeleton.jpg"
+sha256 = "835028feecbea639168830399b5ccbaffc00f815ccffb037f3c4f1ea3bf2c296"
+crop   = [286, 60, 6098, 3430]
+tone   = "keep"
+
+[warai-hannya]
+theme  = "dark"
+source = "warai-hannya.jpg"
+sha256 = "b1691a1c8674a64af975019aaadd1afa612307416fa59e5f1839fa258dc6e21f"
+crop   = [42, 581, 1602, 901]
+tone   = "keep"
+
+[kohada-koheiji]
+theme  = "dark"
+source = "kohada-koheiji.jpg"
+sha256 = "1f8365719f59727e0af2aaf9705c10bec35926f748f02424dd69646aa4c14829"
+crop   = [34, 300, 1618, 910]
+tone   = "keep"
+chroma = 0.095
+
+[oiwa-lantern]
+theme  = "dark"
+source = "oiwa-lantern.jpg"
+sha256 = "a318aea6cc9e96aae4ad3787f8820dcb26d6b136b1acdb2dfbaf09515d40ed61"
+crop   = [42, 295, 1602, 901]
+tone   = "keep"
+
+[fudo-flames]
+theme  = "dark"
+source = "fudo-flames.jpg"
+sha256 = "f0590ed69ad2e8c9555be99b604630cdab08df821b3aba1032b6d9e19031a347"
+crop   = [330, 170, 3253, 1830]
+tone   = "keep"
+
+[taira-ghosts-bay]
+theme  = "dark"
+source = "taira-ghosts-bay.jpg"
+sha256 = "539f9c52c7481370eceddc5dd8e143e4418dd386e801868243515e4f5ed3206b"
+crop   = [118, 60, 3317, 1866]
+tone   = "keep"
+
+[asajigahara-hag]
+theme  = "dark"
+source = "asajigahara-hag.jpg"
+sha256 = "7f31448ae371cfadc95929a24c61b787bef55d6b8a4b0db656d9f7d1a0e38b73"
+crop   = [337, 42, 1349, 759]
+tone   = "keep"
+
+[seigen-skeleton]
+theme  = "dark"
+source = "seigen-skeleton.jpg"
+sha256 = "094e660e2d73b72df66878b9544528eec87c4de82a43802b4e0684dccd2b3f5e"
+crop   = [59, 507, 1568, 882]
+tone   = "keep"
+
+[yawata-beings]
+theme  = "dark"
+source = "yawata-beings.jpg"
+sha256 = "c6c8054e5b5def8a85f82211496e02034a9bbf2e5701e22a8c773e9e9210dfc4"
+crop   = [31, 85, 1480, 832]
+tone   = "keep"
+
+[raijin-korin]
+theme  = "dark"
+source = "raijin-korin.jpg"
+sha256 = "e6955c712ff146d87bdff09f80fcab8dd765db8ec56ca0461f50fed1d8539c2e"
+crop   = [96, 261, 3648, 2052]
+tone   = "lacquer"
+hue    = 20
+
+[fujin-korin]
+theme  = "dark"
+source = "fujin-korin.jpg"
+sha256 = "dc4e4d7f9bdebd3ed5e5b6dbe91a061081186a9610d027be3c4deaab84119a09"
+crop   = [96, 263, 3648, 2052]
+tone   = "lacquer"
+hue    = 20
+
+[benten-biwa]
+theme  = "light"
+source = "benten-biwa.jpg"
+sha256 = "a21e0c47fd2f1a38da49fbecf022010ba084066715b23e3859cadd9785d761d0"
+crop   = [45, 177, 2166, 1218]
+
+[goddess-dragon]
+theme  = "light"
+source = "goddess-dragon.jpg"
+sha256 = "e06e1b8e37c88d5d45c11f7e709d7526088a774600ac0addc5ec52bb10c5519f"
+crop   = [93, 303, 1500, 844]
+lift   = 0.2
+
+[white-kannon-kyosai]
+theme  = "light"
+source = "white-kannon-kyosai.jpg"
+sha256 = "e74e7e302e34e2ead42951efce6e47e72eb6dbc15fc4d66796b06a8320d67a8e"
+crop   = [59, 493, 2852, 1604]
+lift   = 0.05
+gain   = 1.1
+
+[white-kannon-cleveland]
+theme  = "light"
+source = "white-kannon-cleveland.jpg"
+sha256 = "759b65901a21970fb158410d65f62731407d99627809132c99984178fc4c9eab"
+crop   = [38, 1185, 1844, 1037]
+
+[hagoromo-noh]
+theme  = "light"
+source = "hagoromo-noh.jpg"
+sha256 = "0b9c2a078e23bf033bd4f5a5d78821275473c1b045cc6ab6603e272fb502d512"
+crop   = [34, 223, 1618, 910]
+
+[yoshino-tennin]
+theme  = "light"
+source = "yoshino-tennin.jpg"
+sha256 = "ee227222694c619a5ca89ec1e007c87160a01cdcabe7bbc7db39a2b17757cf4d"
+crop   = [34, 267, 1618, 910]
+
+[feather-robe-tennin]
+theme  = "light"
+source = "feather-robe-tennin.jpg"
+sha256 = "939a96144ba46b210663ba1596b07a06b33fe32524766929f3eac99d9412f375"
+crop   = [287, 0, 1134, 638]
+
+[raigo-1668]
+theme  = "light"
+source = "raigo-1668.jpg"
+sha256 = "cd6d255b927142769732516ffabcb7a059c71d4b5b91597e720947891c8a53e9"
+crop   = [328, 1552, 1686, 948]
+chroma = 0.12
+
+[lotus-sutra-gateway]
+theme  = "light"
+source = "lotus-sutra-gateway.jpg"
+sha256 = "c6b725e33065a6f9ab0bcffac13fb4765e85d602c26da9024202ffa3e000aa14"
+crop   = [480, 232, 3040, 1710]
+chroma = 0.12
+
+[dragon-palace-jewel]
+theme  = "light"
+source = "dragon-palace-jewel.jpg"
+sha256 = "a0c512ab8060cf465d8833a3fad6be47efbe1fb458b1b7586ba37be705051a45"
+crop   = [195, 69, 3259, 1833]

@@ -3698,6 +3698,22 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   their titles; part_icon reads "to-do" whole. Kit both moods (/dev/shm/r27/t23/help-v1/, kit2/, kit3/): over the
   notes, over Super+U, over gdu run in a terminal (the hook: the bar's title "gdu" while it runs, "~" after —
   ble.sh linked into the play's kit home, read-only: its run and cache folders are the kit's). test_help 123/0.
+- r27-18-walls (2 Nov 17:37–17:52, T18: the old masters as wallpapers): art/masters/masters.toml — 11 demons (dark) and
+  10 angels (light) of the 28 sources (SOURCES.md), each an exact 16:9 crop from its composition notes, rendered by
+  tools/build-masters.py to 640 × 360 palette pictures (art/masters/out, 21 PNGs, ~0.8 MB: the desktop's own art the
+  pack takes from the toolkit) and listed in wallpapers.list as their own group after each mood's default
+  (toolkit:art/masters/out/NAME.png, SHA-256 checked, the credit from the museum record). Three rounds, judged on
+  contact sheets and two in place at 1920 × 1080 with the bar (kit): Kōrin's gold leaf had become flat vermilion —
+  hue window 20° (gold leaf sits at 73°, chroma 0.08–0.10: neutral now, black lacquer, the drums and lips still
+  vermilion, maki-e); the mosquito net flooded kohada-koheiji (35 % vermilion) — accent threshold 0.095; the prints'
+  paper margins, the screens' frames and the scrolls' mounts showed as strips — every crop measured edge by edge
+  (column/row means against the picture's) and inset until none is left; asajigahara's blank poem card cropped off;
+  goddess-dragon lifted onto paper, raigō's gold leaf to paper (chroma 0.12). Dropped: taira-ghosts-crabs (busy, two
+  red blocks), earth-spider-demons (busy), willow-kannon (mount + flat gold), kichijoten (abraded noise), haya-raigo
+  (dark ground), ama-dragon-crown (a black scroll block mid-picture), hannya-mask (787 px: kept for the lock's
+  scene, its open mouth). The dark header's count was stale (110 for 106): computed now — 117 dark, 120 light.
+  Shots: /dev/shm/r27p/t18-{dark,light}-2.png, /dev/shm/r27p/t18kit/{dark,light}/wall.png. Next for T18: the lock's
+  two scenes (hannya-mask's or warai-hannya's open mouth framing the field; a tennin for the light), then the master.
 ## >>> NEXT PASS STARTS HERE (2 Nov, written 16:25 by the 13:51 bulk pass — the lines above say what it did): the inbox first.
 ## (0) PRESENCE before anything he could see or hear (memory presence-not-just-input-idle); at 16:57 he was in a Discord
 ##     call (Brave: mic + sound). Every probe outside the harness/kit cut off from his session (memory probes-cut-off-session).
