@@ -267,10 +267,45 @@ VIEWLUA
   out=$(view "$TMP/v.md" "$(printf 'x<CR>%.0s' $(seq 1 30))" '<Esc>o' '<Esc>yyp')
   eq "$(cut -d' ' -f3- <<<"$out" | awk '{print $NF}' | tr '\n' ' ')" "room room room " "(the pen's room after each: $(tr '\n' '|' <<<"$out"))"
   eq "$(sed -n '2,3p' <<<"$out" | awk '{print $2}' | tr '\n' ' ')" "still still " "(o and yy p at the foot: a line a step)"
-  case_ "...a paste at the foot (three lines, bracketed, as a terminal pastes) and paging (Ctrl+F twice, Ctrl+B — no cursor event, only a scroll): the pen keeps its room (the master, verdict 3's should-fix 2)"
+  case_ "...a paste at the foot (three lines, bracketed, as a terminal pastes) and paging (Ctrl+F twice, Ctrl+B): the pen keeps its room — the view as the page left it, the pen moved into it (the master, verdicts 3 and 4)"
   diary "$TMP/v.md"
   out=$(view "$TMP/v.md" "$(printf 'x<CR>%.0s' $(seq 1 30))" "<Cmd>lua vim.api.nvim_paste('one\\ntwo\\nthree', true, -1)<CR>" '<Esc><C-f>' '<C-f>' '<C-b>')
   eq "$(awk '{print $NF}' <<<"$out" | tr '\n' ' ')" "room room room room room " "($(tr '\n' '|' <<<"$out"))"
+  # (each step's top line, as the steps change it: the scrolls up must move it)
+  cat >"$TMP/scroll.lua" <<'SCROLLLUA'
+vim.o.lines = 40; vim.o.columns = 64
+local steps, OUT = vim.split(os.getenv("VKEYS"), "|", { plain = true }), os.getenv("VOUT")
+kawa_notes_shown(); vim.cmd("redraw")
+local dt, rows = {}, {}
+local function step(i, t0)
+  if i > #steps then
+    local f = io.open(OUT, "w"); f:write(table.concat(dt, " ") .. " | " .. table.concat(rows, " ")); f:close()
+    return vim.cmd("qa!")
+  end
+  vim.api.nvim_input(steps[i])
+  vim.defer_fn(function()
+    vim.cmd("redraw")
+    local t = vim.fn.line("w0")
+    if i > 1 then dt[#dt + 1] = t - t0; rows[#rows + 1] = vim.fn.winline() end
+    step(i + 1, t)
+  end, 250)
+end
+vim.defer_fn(function() step(1, vim.fn.line("w0")) end, 200)
+SCROLLLUA
+  scrolls() {   # scrolls FILE KEYS… — the top line's change at each step after the first, then the pen's rows
+    local f=$1; shift
+    VKEYS=$(IFS='|'; echo "$*") VOUT=$TMP/scroll.out KAWA_NOTES_WHERE='~/Notes/v.md' \
+      nvim --headless -n -c 'luafile ~/.config/fedokawaii/notes.lua' -c "luafile $TMP/scroll.lua" -- "$f" >/dev/null 2>&1
+    cat "$TMP/scroll.out"
+  }
+  case_ "notes.lua: a scroll he makes is his — from the foot, Ctrl+Y and the wheel move the page up every time (a line, three a notch), the pen yields into its room; Esc after a wheel up in typing keeps the page where the wheel left it (the master, verdict 4)"
+  diary "$TMP/v.md"
+  eq "$(scrolls "$TMP/v.md" "$(printf 'x<CR>%.0s' $(seq 1 30))" '<Esc><C-y>' '<C-y>' '<C-y>' '<ScrollWheelUp>' '<ScrollWheelUp>' 'i<ScrollWheelUp>' '<Esc>')" \
+    "-1 -1 -1 -3 -3 -3 0 | 33 33 33 33 33 33 33"
+  case_ "...and on a to-do longer than the page (tab, esc, then Ctrl+Y twice): the list moves up each time"
+  for i in $(seq 1 45); do echo "[ ] thing $i"; done >"$HOME/Notes/todo.md"
+  diary "$TMP/v.md"
+  eq "$(scrolls "$TMP/v.md" '<Tab>' '<Esc>' '<C-y>' '<C-y>' | cut -d'|' -f1)" "0 -1 -1 "
   case_ "notes.lua: the page moves by lines — smoothscroll off: it cut a wrapped line at the top and drew neovim's <<< over the margin (the master, verdict 3's must-fix 1)"
   { cat "$TMP/v.md"; for i in 1 2 3; do echo "a long line $i that runs well past the right edge of this page and wraps onto a second row, then a third row of paper"; done; } >"$TMP/w2.md"
   eq "$(KAWA_NOTES_WHERE='~/Notes/w2.md' nvim --headless -n -c 'luafile ~/.config/fedokawaii/notes.lua' -c 'lua kawa_notes_shown()' \

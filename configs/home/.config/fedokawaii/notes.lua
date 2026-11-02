@@ -303,10 +303,33 @@ vim.api.nvim_create_autocmd("FileChangedShellPost", { group = group, callback = 
 -- the pen on the window's last row, under the floats, and scrolloff keeps it there (the master, 2 Nov:
 -- verdict 2's must-fix 2). (Safe since the paper moves inside the change: asking the pen's row then
 -- never sees a new line below the old paper)
+-- A scroll he made is his (the master, verdict 4): when the page went UP since the last look —
+-- only he scrolls it up: Ctrl+Y, Ctrl+B, the wheel — the view stays and the PEN yields, up a line
+-- at a time into its room; otherwise the view follows the pen (pen_room). Neovim's own scrolloff
+-- does the same, but the paper's rows meet it under the floats.
+local seen_top = {}
+local function pen_yield()
+  local room = vim.fn.winheight(0) - ROOM
+  for _ = 1, vim.o.lines do
+    local r, c = unpack(vim.api.nvim_win_get_cursor(0))
+    if vim.fn.winline() <= room or r <= vim.fn.line("w0") then return end
+    local up = vim.api.nvim_buf_get_lines(0, r - 2, r - 1, false)[1] or ""
+    vim.api.nvim_win_set_cursor(0, { r - 1, math.min(c, #up) })
+  end
+end
+local function keep_room()
+  local w, top = vim.api.nvim_get_current_win(), vim.fn.line("w0")
+  if seen_top[w] and top < seen_top[w] then pen_yield() else pen_room() end
+  seen_top[w] = vim.fn.line("w0")
+end
 vim.api.nvim_create_autocmd({ "TextChanged", "TextChangedI" }, {
-  group = group, callback = function(ev) rule(ev.buf); if ev.buf == vim.api.nvim_get_current_buf() then pen_room() end end,
+  group = group,
+  callback = function(ev)
+    rule(ev.buf)
+    if ev.buf == vim.api.nvim_get_current_buf() then pen_room(); seen_top[vim.api.nvim_get_current_win()] = vim.fn.line("w0") end
+  end,
 })
-vim.api.nvim_create_autocmd({ "CursorMoved", "CursorMovedI", "WinScrolled" }, { group = group, callback = function() pen_room() end })
+vim.api.nvim_create_autocmd({ "CursorMoved", "CursorMovedI", "WinScrolled" }, { group = group, callback = keep_room })
 vim.api.nvim_create_autocmd("VimResized", {
   group = group,
   callback = function()   -- (the pen at the notes' end, as they open: on a day's line again)
