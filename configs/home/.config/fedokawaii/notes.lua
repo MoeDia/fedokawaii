@@ -175,8 +175,6 @@ local function page()
   vim.opt_local.cursorline = false          -- (a page: no bar across it, only the cursor)
   vim.opt_local.wrap = true
   vim.opt_local.linebreak = true
-  vim.opt_local.smoothscroll = true         -- (a scroll by rows, not lines: a wrapped line at the top
-                                            --  moved the page two rows at once)
   vim.opt_local.fillchars:append({ wbr = " ", eob = " " })   -- (no ~ under the last line: a page ends in paper)
   local name = b == notes and where or vim.fn.fnamemodify(vim.api.nvim_buf_get_name(b), ":~")
   local is_todo = vim.api.nvim_buf_get_name(b) == TODO
@@ -216,8 +214,9 @@ local ruled = {}                              -- buffer → the line count its r
 -- works out its view): o, p, :put, Go add a line after the last, below the mark, and the command's
 -- own scroll would see the pen forty rows down and jump the page (the master, 2 Nov: verdict 2's
 -- must-fix 1; a Return at the end splits the line, which takes the mark along by itself)
-local paperns = vim.api.nvim_create_namespace("kawa_paper")   -- (its own: a clear of the rules never
-local paper, attached, sheet = {}, {}, { cols = 0, lines = 0 }  -- takes it, nor gives its id to a rule)
+-- (a namespace of its own: a clear of the rules never takes the paper, nor gives its id to a rule)
+local paperns = vim.api.nvim_create_namespace("kawa_paper")
+local paper, attached, sheet = {}, {}, { cols = 0, lines = 0 }
 local function rows()                         -- the paper's virtual rows, as many as the screen has
   if sheet.cols ~= vim.o.columns or sheet.lines ~= vim.o.lines then
     local row = { { string.rep(" ", vim.o.columns), "KawaRule" } }
@@ -231,10 +230,7 @@ local function to_end(b)                      -- the paper under the last line, 
   local line = vim.api.nvim_buf_get_lines(b, n - 1, n, false)[1] or ""   -- it is there already (laid again,
   local size = vim.o.columns .. "x" .. vim.o.lines                       -- the window scrolled a second row)
   local at = paper[b] and vim.api.nvim_buf_get_extmark_by_id(b, paperns, paper[b].id, {}) or {}
-  if at[1] == n - 1 and at[2] == #line and paper[b].size == size
-      and #vim.api.nvim_buf_get_extmarks(b, paperns, 0, -1, { limit = 2 }) == 1 then
-    return
-  end
+  if at[1] == n - 1 and at[2] == #line and paper[b].size == size then return end
   vim.api.nvim_buf_clear_namespace(b, paperns, 0, -1)
   paper[b] = { id = vim.api.nvim_buf_set_extmark(b, paperns, n - 1, #line, { virt_lines = rows() }), size = size }
 end
@@ -254,7 +250,7 @@ local function rule(b, force)
       on_lines = function(_, buf, _, _, last_old, last_new)
         if last_new ~= last_old and paper[buf] then to_end(buf) end
       end,
-      on_detach = function(_, buf) attached[buf], paper[buf] = nil, nil end,
+      on_detach = function(_, buf) attached[buf], paper[buf], ruled[buf] = nil, nil, nil end,
     })
   end
   local n = vim.api.nvim_buf_line_count(b)
@@ -268,6 +264,8 @@ local function rule(b, force)
     lay(b, r, vim.api.nvim_buf_get_lines(b, r, r + 1, false)[1], r == n - 1)
   end
 end
+-- The page moves by LINES (a notebook's: a wrapped line leaves the top whole, two rows at once),
+-- here and in neovim's own scrolling alike.
 -- the pen above the floats, paper ahead: a resize (the window's first size reaches neovim after it
 -- started) keeps the cursor's place as a fraction of the window, not scrolloff — so the page is
 -- moved up until the pen has its rows again (the master, 2 Nov: a start on a written day)
@@ -291,7 +289,7 @@ local function on_day()
     if i == 1 or lines[i]:match(DAY) then
       local above = vim.api.nvim_win_text_height(0, { start_row = i - 1, end_row = pen - 2 }).all
       if above + 1 > vim.fn.winheight(0) - ROOM then break end
-      if above >= ROOM or i == 1 then vim.fn.winrestview({ topline = i, topfill = 0, skipcol = 0 }); return end
+      if above >= ROOM or i == 1 then vim.fn.winrestview({ topline = i, topfill = 0 }); return end
     end
   end
   pen_room()
@@ -308,7 +306,7 @@ vim.api.nvim_create_autocmd("FileChangedShellPost", { group = group, callback = 
 vim.api.nvim_create_autocmd({ "TextChanged", "TextChangedI" }, {
   group = group, callback = function(ev) rule(ev.buf); if ev.buf == vim.api.nvim_get_current_buf() then pen_room() end end,
 })
-vim.api.nvim_create_autocmd({ "CursorMoved", "CursorMovedI" }, { group = group, callback = function() pen_room() end })
+vim.api.nvim_create_autocmd({ "CursorMoved", "CursorMovedI", "WinScrolled" }, { group = group, callback = function() pen_room() end })
 vim.api.nvim_create_autocmd("VimResized", {
   group = group,
   callback = function()   -- (the pen at the notes' end, as they open: on a day's line again)

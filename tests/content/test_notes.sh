@@ -266,7 +266,16 @@ VIEWLUA
   diary "$TMP/v.md"
   out=$(view "$TMP/v.md" "$(printf 'x<CR>%.0s' $(seq 1 30))" '<Esc>o' '<Esc>yyp')
   eq "$(cut -d' ' -f3- <<<"$out" | awk '{print $NF}' | tr '\n' ' ')" "room room room " "(the pen's room after each: $(tr '\n' '|' <<<"$out"))"
-  eq "$(sed -n '2,3p' <<<"$out" | awk '{print $2}' | tr '\n' ' ')" "still still " "(o and yy p at the foot: one row a step)"
+  eq "$(sed -n '2,3p' <<<"$out" | awk '{print $2}' | tr '\n' ' ')" "still still " "(o and yy p at the foot: a line a step)"
+  case_ "...a paste at the foot (three lines, bracketed, as a terminal pastes) and paging (Ctrl+F twice, Ctrl+B — no cursor event, only a scroll): the pen keeps its room (the master, verdict 3's should-fix 2)"
+  diary "$TMP/v.md"
+  out=$(view "$TMP/v.md" "$(printf 'x<CR>%.0s' $(seq 1 30))" "<Cmd>lua vim.api.nvim_paste('one\\ntwo\\nthree', true, -1)<CR>" '<Esc><C-f>' '<C-f>' '<C-b>')
+  eq "$(awk '{print $NF}' <<<"$out" | tr '\n' ' ')" "room room room room room " "($(tr '\n' '|' <<<"$out"))"
+  case_ "notes.lua: the page moves by lines — smoothscroll off: it cut a wrapped line at the top and drew neovim's <<< over the margin (the master, verdict 3's must-fix 1)"
+  { cat "$TMP/v.md"; for i in 1 2 3; do echo "a long line $i that runs well past the right edge of this page and wraps onto a second row, then a third row of paper"; done; } >"$TMP/w2.md"
+  eq "$(KAWA_NOTES_WHERE='~/Notes/w2.md' nvim --headless -n -c 'luafile ~/.config/fedokawaii/notes.lua' -c 'lua kawa_notes_shown()' \
+    -c 'lua vim.cmd("redraw") local t = "" for r = 1, 6 do for c = 1, 64 do t = t .. vim.fn.screenstring(r, c) end end io.stdout:write(tostring(vim.wo.smoothscroll) .. " " .. vim.fn.winsaveview().skipcol .. " " .. tostring(t:find("<<<", 1, true) == nil))' \
+    -c 'qa!' -- "$TMP/w2.md" 2>/dev/null)" "false 0 true" "(smoothscroll off, no line cut at the top, no <<< anywhere on the first rows)"
   case_ "notes.lua: a to-do longer than the page — tab opens it with the fresh item and the pen above the floats, three rows of paper ahead; a Return and esc keep it so (the master, 2 Nov: verdict 2's must-fix 2)"
   for i in $(seq 1 45); do echo "[ ] thing $i"; done >"$HOME/Notes/todo.md"
   diary "$TMP/v.md"

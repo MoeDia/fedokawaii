@@ -3404,6 +3404,24 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   test_syntax 777/0. On the way: parsecheck.py skips a folder that is not there (a copy without tools/regress made
   deadcode's grep wait on stdin: it refuses an empty list now and never reads stdin). (A slip of mine: `pkill -f`
   with a pattern from my own command line killed my shell before an edit — CLAUDE.md's rule; no harm, redone.)
+- r27-21-master-3 (2 Nov 12:45–13:09, the master's re-review 3 on db4bf81): VERDICT FAIL (.claude/notes/master-T21-verdict-3.md).
+  Held: verdict 2's must-fix 1 at its root (36 key sequences — o, yy p, :put, :r, a 3-line put and a bracketed paste,
+  J, dd/u/Ctrl-R, :m, V p, :%d, :g, :s — one paper at the last line's end, one rule a line, topline unchanged);
+  must-fix 2 (the pen on row 33 at the foot and in the 45-item to-do through Tab/Return/Esc/Space/dd/u/o; no fight with
+  Ctrl-Y/E/U/D/F/B, the wheel, gg/G, z-commands); the reload keeps one paper; should-fix 3's row; the geometry to the
+  pixel in all twelve final shots. MUST-FIX 1: smoothscroll (mine, db4bf81) cut a wrapped line at the top and drew
+  neovim's <<< over the margin (the first row without its vermilion rule; at the page's own opening on a day of long
+  lines). SHOULD-FIX 2: Ctrl-F Ctrl-F Ctrl-B left the pen under the float (no cursor event). SHOULD-FIX 3: the two-row
+  step was pen_room's own topline + 1, BY LINES — not "neovim scrolls a put line"; my check was loosened ({1,2}, ≤2)
+  with a comment claiming what it did not verify. Nits: a paste row; to_end's second read; ruled on detach; a split
+  comment; one wording.
+- r27-21-master-3-fix (2 Nov 13:09–13:18): smoothscroll OUT (and on_day's skipcol with it); the page moves BY LINES — said
+  where pen_room is (a notebook's: a wrapped line leaves the top whole); pen_room on WinScrolled too; the check honest —
+  one row a step, two ONCE (the play's line 12, wrapped, leaving the top; line 27 never reaches it), anything else
+  fails; to_end's redundant read gone (the size memo kept: a resize lays new rows), ruled[] cleared on detach, the
+  comment whole, "a line a step". Tests: test_notes 138/0 — two new rows (a bracketed 3-line paste and Ctrl-F Ctrl-F
+  Ctrl-B at the foot: the pen's room each; smoothscroll off, skipcol 0, no <<< on a page of long lines), BOTH FAIL on
+  db4bf81 (136/2).
 ## >>> NEXT PASS STARTS HERE (2 Nov, written 12:45 by the 11:03 bulk pass — the lines above say what it did): the inbox first.
 ## (0) PRESENCE: before anything he could see or hear (a reboot, a session restart, a bar restart, a live play, a notice):
 ##     `wpctl status`, `playerctl -a status`, one half-scale grim — not only the swayidle probe (memory

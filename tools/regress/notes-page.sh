@@ -74,10 +74,11 @@ if rec:
     if n < 500: print(f"only {n} frames recorded — the typing did not reach the page")
     if moved: print(f"{moved} of {n} frames moved the head, the foot or the margin")
     if broke: print(f"{len(broke)} of {n} frames broke a rule (first: frame {broke[0]})")
-    # (forward only, and by the rows of the line that left the top: one, or two for the play's two
-    # wrapped lines — neovim scrolls a put line (p) by lines; a jump back or a larger one is a broken page)
+    # (the page moves by lines, forward: one row a step — two once, when the play's line 12, wrapped onto
+    # two rows, leaves the top (line 27 never reaches it); a step back, a larger one or more two-row
+    # steps than that is a broken page)
     if set(shifts) - {1, 2}: print(f"the page scrolled back or by more than a line's rows: {shifts}")
-    if shifts.get(2, 0) > 2: print(f"two-row steps more often than the play's two wrapped lines can leave the top: {shifts}")
+    if shifts.get(2, 0) > 1: print(f"two-row steps more often than line 12 can leave the top (once): {shifts}")
     if shifts.get(1, 0) < 5: print(f"the page hardly scrolled ({shifts}) — the play did not fill it")
 e = np.asarray(Image.open(sys.argv[2]).convert("RGB")).astype(np.int16)[Y0:Y1, X0:X1]
 inked = [k for k in range(rows) if np.any(np.abs(e[top + cell * k:top + cell * k + cell - 2, x0:x1] - ground).sum(axis=2) > 60)]
