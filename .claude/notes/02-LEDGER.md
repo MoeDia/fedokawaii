@@ -3485,6 +3485,38 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   seen_top and keep_room say why the yield is safe (every other way the top goes up — k, a search, on_day, a resize —
   brings the page to the pen, so the yield moves nothing; typing never yields) and why the look is the window's and
   forgotten on BufWinEnter (another page's line numbers). test_notes 142/0.
+- r27-leak (2 Nov 14:00–14:16, 03a7e39 + master-brief): OUR RUNS REACHED HIS DESKTOP. A presence grim (14:10) showed
+  "recording ×6 — the recording did not start" on his screen (critical notices 244, 245, 256, 267, 278, 289, app
+  "desktop", no reason in the body; ~/Videos/Recordings last used 21 Oct: not his) and mako's history held ten
+  "timing" notices (300–309) = system/fedokawaii-latency's probe, run by tests/installer/test_report_rows.sh:204 with
+  PATH=/usr/bin:/bin — the REAL notify-send over the runner's session bus (the loop's environment carries
+  DBUS_SESSION_BUS_ADDRESS=/run/user/1000/bus, WAYLAND_DISPLAY=wayland-0, DISPLAY=:0; the harness never cut them).
+  And the master's headless-nvim probes (not under the harness) yanked into HIS clipboard: an orphan wl-copy from
+  its home-p9 served "again"; cliphist held "again", "[ ] new", "a line opened with o". Cleaned (14:12): the six
+  notices dismissed, the three cliphist entries deleted, his last own entry (the remote page's line) copied back.
+  FIX: tests/lib/harness.sh sandbox() exports a session bus that is not there (unix:path=$TMP/run/bus), a Wayland
+  name inside its own runtime folder, unsets DISPLAY — test_report_rows 269/0 and no notice reached mako. The kit
+  (tools/hl-dwl.sh) already cut all three. tools/master-brief.sh now ends every brief with "Probing: never his
+  session" (the env line); the master was told mid-review; memory probes-cut-off-session. The source of the six
+  "recording" notices is not pinned (an +11-id rhythm per suite run, the test file not found by grep): the harness
+  fix covers any test; re-check `makoctl list` in his env after the next full suite.
+- r27-53-sc-style (2 Nov 14:00–14:14, 03a7e39): T53's ShellCheck sweep — -S style over the 129 shell files: 221 notes
+  → 0, and test_syntax holds that level now (777/0). Fixed in code: kawa-shrink ran `file` twice for one type;
+  kawa-file's meter split a multiplication against an overflow no file reaches (92 PB); kawa-state recorded
+  "failed" when only the record of a success failed (if/else); setup.sh and verify.sh grep -q over a process
+  substitution (pipefail: never grep -q at a pipe's end), a while-read over fstab, the meson steps one redirect;
+  one sed for two in verify; a quoted path, printf for ls, [:upper:] in the report/verify. .shellcheckrc answers
+  the deliberate idioms once with reasons (SC2016 code in single quotes, SC2015 printing reporters and joined
+  conditions, SC2329 called by name — tools/deadcode.sh checks those —, SC1091, SC2031/SC2119). The fixed sleeps
+  before a count in tests/menus/test_menu.sh became waits (upto N RE; 84/0). Targeted runs: test_state 78/0,
+  test_shrink 121/0, test_pull 62/0, test_report 118/0, test_common 138/0, test_shell 187/0, test_bargaps 6/0.
+- r27-53-ruff (2 Nov 14:05–14:16): Python against ruff's defaults + bugbear (ruff 0.17.3 — the one neovim already
+  runs: mason's, LazyVim's Python extra; ruff.toml at the root, .claude's drafts excluded, two per-file ignores:
+  visidata's injected `options`, dbus-next's signature annotations). bin/ and system/ clean: kawa-panel's theme
+  monitor held on purpose (named _theme_watch, it was an "unused" variable one tidy-up away from a dead watch),
+  zip strict where lengths match by construction, `l` names, a hollow box's four edges a line each;
+  fedokawaii-latency's notice probe ran makoctl twice per look (once now), loop variables bound. tools/, tests/,
+  docs/ (~290 style notes): a sonnet subagent, generators checked byte-identical — then a test_syntax case.
 ## >>> NEXT PASS STARTS HERE (2 Nov, written 13:50 by the 11:03 bulk pass — the lines above say what it did): the inbox first.
 ## (0) PRESENCE: before anything he could see or hear (a reboot, a session restart, a bar restart, a live play, a notice):
 ##     `wpctl status`, `playerctl -a status`, one half-scale grim — not only the swayidle probe (memory

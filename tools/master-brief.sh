@@ -39,5 +39,11 @@ base=${task%%-*}                               # (T19k-7 → T19k: its heading i
     [[ -e $f ]] || { echo "- (missing) $f"; continue; }
     cp -a -- "$f" "$out/"; echo "- $(basename -- "$f")  (from $f)"
   done
+  echo
+  echo "## Probing: never his session"
+  echo "Everything you run outside tests/run.sh and the kit inherits the owner's live desktop (WAYLAND_DISPLAY,"
+  echo "XDG_RUNTIME_DIR=/run/user/$(id -u), the session bus, DISPLAY): a yank lands on his clipboard, a notice on his screen."
+  echo "Run each probe as: env -u WAYLAND_DISPLAY -u DISPLAY DBUS_SESSION_BUS_ADDRESS=unix:path=/nonexistent \\"
+  echo "  XDG_RUNTIME_DIR=$out/own/run COMMAND …   (mkdir -m 700 it first; your homes under $out/own/)"
 } >"$out/brief.md"
 echo "$out/brief.md"
