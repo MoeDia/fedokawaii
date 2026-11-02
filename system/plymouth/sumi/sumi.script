@@ -1,9 +1,9 @@
 # /usr/share/plymouth/themes/sumi/sumi.script — the boot splash, after the boot menu: the
-# same sumi ink and the same vermilion torii, "起動中 · starting Fedora" under it, and three
+# same sumi ink and the same vermilion torii, "starting Fedora" under it, quiet, and three
 # small squares lighting in turn while the system starts. At a power-off or a restart the
-# same splash comes back with its own words: "終了中 · shutting down", "再起動中 · restarting"
+# same splash comes back with its own words: "shutting down", "restarting"
 # (Plymouth.GetMode: plymouth-poweroff/-reboot.service start plymouthd in those modes).
-# A disk that asks for its password gets the lock screen's box: パスワード, and a vermilion ◆ for each character typed.
+# A disk that asks for its password gets the lock screen's box: "the disk's password", and a vermilion ◆ for each character typed.
 # Everything sits on whole pixels around the screen's middle (Math.Int: no half pixels).
 
 Window.SetBackgroundTopColor(0.059, 0.055, 0.047);      # #0f0e0c, the ground of the dark theme

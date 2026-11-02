@@ -12,8 +12,9 @@ Writes (committed, so installing needs neither Python nor Pillow):
         frame, the kanji in accent_text in Sumi UI at 14 px (its own grid: crisp)
     system/plymouth/sumi/*.png   the boot splash's pictures (always ink-dark, like the boot
         menu): the torii (art/grub/torii.xpm, 8× — the size the boot menu shows it at 1080p),
-        "起動中 · starting Fedora" (and, as the machine goes down, "終了中 · shutting down" or
-        "再起動中 · restarting"), the three dots that take turns while it waits, and for a
+        "starting Fedora" (and, as the machine goes down, "shutting down" or "restarting"),
+        quiet, in muted — no kanji: the desktop keeps them to the workspace stamps, the lock's
+        quote and the clock's day — the three dots that take turns while it waits, and for a
         disk password: its words, the box, the ◆ each typed character becomes
     src/kawa-saver/glyphs.h   the screensaver's letters: its kanji (the seals it stamps, 時
         for its clock), the digits and the clock's few letters, each as Sumi UI draws it at
@@ -169,10 +170,10 @@ def splash(font):
     out.mkdir(parents=True, exist_ok=True)
     torii = xpm(ROOT / "art/grub/torii.xpm")
     torii.resize((torii.width * 8, torii.height * 8), Image.NEAREST).save(out / "torii.png", optimize=True)
-    text_png(font, [("起動中", p["text"]), (" · starting Fedora", p["muted"])]).save(out / "starting.png", optimize=True)
-    text_png(font, [("終了中", p["text"]), (" · shutting down", p["muted"])]).save(out / "stopping.png", optimize=True)
-    text_png(font, [("再起動中", p["text"]), (" · restarting", p["muted"])]).save(out / "restarting.png", optimize=True)
-    text_png(font, [("パスワード", p["text"]), (" · the disk's password", p["muted"])]).save(out / "password.png", optimize=True)
+    text_png(font, [("starting Fedora", p["muted"])]).save(out / "starting.png", optimize=True)
+    text_png(font, [("shutting down", p["muted"])]).save(out / "stopping.png", optimize=True)
+    text_png(font, [("restarting", p["muted"])]).save(out / "restarting.png", optimize=True)
+    text_png(font, [("the disk's password", p["muted"])]).save(out / "password.png", optimize=True)
     for name, c in (("dot-on", p["accent"]), ("dot-off", p["edge2"])):
         Image.new("RGBA", (6, 6), rgb(c) + (255,)).save(out / f"{name}.png", optimize=True)
     box = Image.new("RGBA", (288, 44), rgb(p["edge2"]) + (255,))      # the lock screen's box

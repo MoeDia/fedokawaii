@@ -798,7 +798,7 @@ else
   fi
   check "music meter (cava) runs"                      U timeout 5 cava -v
   ((BOOT_SKIPPED)) || check "boot menu theme installed" bash -c 'test -s /boot/grub2/themes/sumi/theme.txt && grep -q grub2/themes/sumi/theme.txt /boot/grub2/grub.cfg'
-  ((BOOT_SKIPPED)) || check "boot splash: the sumi theme (起動中 · starting Fedora)" bash -c '[[ $(plymouth-set-default-theme) == sumi ]] && test -s /usr/share/plymouth/themes/sumi/sumi.script'
+  ((BOOT_SKIPPED)) || check "boot splash: the sumi theme (starting Fedora)" bash -c '[[ $(plymouth-set-default-theme) == sumi ]] && test -s /usr/share/plymouth/themes/sumi/sumi.script'
   # (in every kernel's boot image, where Plymouth reads it — whatever the boot menu's part
   # did: a dracut that failed leaves images with Plymouth's text themes only. Repair: the
   # theme run makes them again)

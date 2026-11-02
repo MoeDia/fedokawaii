@@ -11068,15 +11068,14 @@ apply the theme again (**Super+U** → *theme, applied again*) so it matches the
 After the menu comes the **boot splash**: Plymouth, the program that draws the screen while
 the system starts (the `rhgb` argument below asks for it), with this desktop's own theme,
 **sumi** (`system/plymouth/sumi`). It is the same ink and the same vermilion torii, with
-**起動中 · starting Fedora** (*kidōchū*, "starting") under it and three small squares lighting
+**starting Fedora** under it, quiet, and three small squares lighting
 in turn. It starts as soon as the graphics card's own driver (amdgpu) loads — early: the
 driver is in the boot image — and stays on it, so the screen changes mode only once (starting
 it first on the firmware's screen and moving it to amdgpu after was one change more: a black
 flick before the login); `ShowDelay=0` in `/etc/plymouth/plymouthd.conf` shows it without a
-pause. Going down, the same splash comes back with its own words: **終了中 ·
-shutting down** (*shūryōchū*) at a power-off, **再起動中 · restarting** (*saikidōchū*) at a
-restart — the script asks Plymouth which it is (`Plymouth.GetMode`). Should a disk ever ask for its password at boot, it shows the lock screen's box:
-パスワード, and a vermilion ◆ for each character. The splash lives inside the boot images, so
+pause. Going down, the same splash comes back with its own words: **shutting down** at a
+power-off, **restarting** at a restart — the script asks Plymouth which it is (`Plymouth.GetMode`). Should a disk ever ask for its password at boot, it shows the lock screen's box:
+"the disk's password", and a vermilion ◆ for each character. The splash lives inside the boot images, so
 when Theme changes it the images are made again (dracut, about a minute) — the last thing the
 theme's boot part does, so that should dracut fail, the menu and the console font are in place
 all the same, and the failure is said (✘) and checked by `verify` (*the splash in every boot
@@ -12875,7 +12874,7 @@ cat /var/lib/fedokawaii/last-verify    # → 1792039927 179 0 1
 | upstream binaries (lib/upstream.sh) | present, every library resolves, `--version` runs · the desktop's face, Sumi UI, and the terminal's, UDEV Gothic NF · LocalSend · Syncplay · ble.sh · GE-Proton |
 | applications | Brave Origin actually starts · Claude Code · LazyVim · torrra loads and runs through its wrapper, with no key in its config · mpv in the bar · yt-dlp's JavaScript runtime · lazygit · qalc · restic |
 | snapshots | a snapper config for `/` · the baseline snapshot (a warning when it is gone) · a snapshot pair around every DNF run · the snapshots' bounds · the monthly Btrfs scrub, and what the last one found |
-| theme | every file in sync · dwl built from `config.h` · foot accepts its config · waybar config parses · GTK and the portal follow the current theme · no window buttons · default programs · Brave in the desktop's colours · Qt palette · fonts resolve (Arabic, Japanese, Chinese, Korean) · the desktop's face Sumi UI, sharp at 14 px, and the terminal's Sumi Term, UDEV Gothic NF at 16 px, smoothed · mpv's colours · the lock screen's pictures for both themes · the two C helpers built · the clipboard window · the wallpaper pack · the Sumi pointers · the yazi file dialog · cava · the boot menu theme · the boot splash (*起動中 · starting Fedora*), and in every kernel's boot image (`lsinitrd`) |
+| theme | every file in sync · dwl built from `config.h` · foot accepts its config · waybar config parses · GTK and the portal follow the current theme · no window buttons · default programs · Brave in the desktop's colours · Qt palette · fonts resolve (Arabic, Japanese, Chinese, Korean) · the desktop's face Sumi UI, sharp at 14 px, and the terminal's Sumi Term, UDEV Gothic NF at 16 px, smoothed · mpv's colours · the lock screen's pictures for both themes · the two C helpers built · the clipboard window · the wallpaper pack · the Sumi pointers · the yazi file dialog · cava · the boot menu theme · the boot splash (*starting Fedora*), and in every kernel's boot image (`lsinitrd`) |
 | live session | bar, notifications, terminal server, wallpaper, idle, automount, status readers, polkit agent, clipboard history and keeper, the update reminder · the graphical session known to systemd · the file-dialog and screen-sharing portals · the "Share" sound devices (PipeWire's node `share_sink`) · the refresh rate is the best available · a monitor answers DDC/CI · night light (shown, never a fault: it is yours to switch off) |
 
 The *live session* area appears only while your desktop session runs (verify looks for dwl):

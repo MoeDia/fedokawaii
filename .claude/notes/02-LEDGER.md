@@ -3714,6 +3714,15 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   scene, its open mouth). The dark header's count was stale (110 for 106): computed now — 117 dark, 120 light.
   Shots: /dev/shm/r27p/t18-{dark,light}-2.png, /dev/shm/r27p/t18kit/{dark,light}/wall.png. Next for T18: the lock's
   two scenes (hannya-mask's or warai-hannya's open mouth framing the field; a tennin for the light), then the master.
+- r27-kanji-words (2 Nov 17:31–17:58, his rule: kanji only on the workspace stamps, the lock's quote and the bar's
+  day seal): a sweep of bin/, system/, lib/ for kanji. In code: the bar's day seal (allowed), the greeter (weekday,
+  verses, 眠/再/電 buttons — T20 rebuilds it as the lock's twin), gtklock's messages (T20), and the BOOT SPLASH:
+  "起動中 · starting Fedora" (and 終了中, 再起動中, パスワード) drawn under the torii at every boot — now the words alone, quiet
+  in muted (tools/build-art.py → system/plymouth/sumi/*.png; the script's, theme.sh's, verify's and the guide's
+  words with it; live with the next apply: theme.sh remakes the boot images). Stale words fixed (9cd2939): eleven
+  scripts' headers named the kanji their headings had before the icons; kawa-file's parts; the Learn book's file
+  tools table and 6.7; a FreeSync message naming a "滑 tile" quick settings no longer has (now its hour, "games ·
+  on"). Tests: test_syntax 781/0, test_menu 738/0, test_file 276/0, test_barreload 2/0 (+ the splash's below).
 ## >>> NEXT PASS STARTS HERE (2 Nov, written 16:25 by the 13:51 bulk pass — the lines above say what it did): the inbox first.
 ## (0) PRESENCE before anything he could see or hear (memory presence-not-just-input-idle); at 16:57 he was in a Discord
 ##     call (Brave: mic + sound). Every probe outside the harness/kit cut off from his session (memory probes-cut-off-session).

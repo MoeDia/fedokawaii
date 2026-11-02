@@ -504,7 +504,7 @@ boot_and_console() {
   rm -rf "$GT"
 
   # the boot splash (Plymouth's script plugin, system/plymouth/sumi): after the menu, the same
-  # ink and torii with "起動中 · starting Fedora", and the lock screen's box should a disk ask
+  # ink and torii with "starting Fedora", and the lock screen's box should a disk ask
   # for its password. It lives in the boot images, so a change remakes them (dracut, ~1 min) —
   # last of all, below: should dracut fail, the menu, the console and the rest are in place
   SPLASH_DIR=/usr/share/plymouth/themes/sumi SPLASH_CHANGED=0
