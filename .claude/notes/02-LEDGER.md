@@ -3456,6 +3456,9 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   the first event after Tab compared the to-do's top with the notes' (it could have yielded the pen out of its fresh
   item; the tests passed only by the events' order). test_notes 140/0. The suite on b2f7444: ends red on the explained
   test_theme flake (r27-53-flake-theme).
+- r27-suite-b2f7444 (2 Nov 12:43–13:28): 127 of 128 green; the one red: look/test_theme's load flake (fixed since, eb11633;
+  the same tree alone 263/0). A fresh suite on 7ca416a (everything of this pass) STARTED 13:41, alone (nothing heavy beside
+  it): /dev/shm/r27p/suite-7ca416a.log, the frozen tree /dev/shm/r27w-suite-7ca416a.
 ## >>> NEXT PASS STARTS HERE (2 Nov, written 12:45 by the 11:03 bulk pass — the lines above say what it did): the inbox first.
 ## (0) PRESENCE: before anything he could see or hear (a reboot, a session restart, a bar restart, a live play, a notice):
 ##     `wpctl status`, `playerctl -a status`, one half-scale grim — not only the swayidle probe (memory
