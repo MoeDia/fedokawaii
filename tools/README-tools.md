@@ -2,7 +2,7 @@
 
 | tool | what | call |
 |---|---|---|
-| `hl-dwl.sh` | a headless dwl on the real GPU (1920x1080@144, own runtime dir, wtype input, frame log on); `--asan` builds the tree with AddressSanitizer in /tmp | `bash tools/hl-dwl.sh SCRIPT [--dwl BIN] [--asan] [--time S] [--keep DIR]` |
+| `hl-dwl.sh` | a headless dwl on the real GPU (1920x1080@144, own runtime dir, a PID namespace of its own — ps and kill inside see only the run —, wtype input, frame log on); `--asan` builds the tree with AddressSanitizer in /tmp | `bash tools/hl-dwl.sh SCRIPT [--dwl BIN] [--asan] [--time S] [--keep DIR]` |
 | dwl's frame log | every frame, present, key, button, move, new window, animation step (F/H/P/K/B/M/W/A lines, µs on CLOCK_MONOTONIC) | `DWL_FRAMELOG=FILE dwl …`, or `kill -USR2 $(pgrep -x dwl)` on/off → `$XDG_RUNTIME_DIR/dwl-frames.log` |
 | `framestat.py` | reads the frame log: dropped frames in moving streaks, build µs, key→glass, press→window; `--anim` each animation's steps; `--strict` exit 3 on a drop | `python3 tools/framestat.py LOG [--from T --to T] [--hz N] [--anim] [--strict] [--json]` |
 | `perf.sh` | the before/after protocol in the live session (idle, boot, terminals, switches, typing, menus, nvim) | `bash tools/perf.sh [OUTDIR]` · `--again OUTDIR` |
