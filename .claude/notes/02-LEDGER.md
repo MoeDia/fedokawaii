@@ -3981,33 +3981,29 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   SIGINT/SIGTERM first. tools/regress/term-burst.sh (N headless runs on the render node, TERMs 1 ms apart until gone):
   the installed dwl 2 of 10 aborted (status 134), the fixed build 10 of 10 and 20 of 20 clean. (Those test aborts are
   coredumps of /usr/local/bin/dwl as him: the pid-matched crashnote of r27-crashnote-pid tells none of them.)
-## >>> NEXT PASS STARTS HERE (2 Nov, written 18:12 by the 16:56 bulk pass — the lines above say what it did): the inbox first.
-## (0) PRESENCE before anything he could see or hear (memory presence-not-just-input-idle): at 16:57 he was in a Discord
-##     call (Brave: mic + sound). Every probe outside the harness/kit cut off from his session (probes-cut-off-session).
-##     The stuck "recording ×4" picture is FIXED in the tree (7246d44, r27-stuck-notice-fix): it leaves his screen with
-##     the session restart of (1).
-## (1) APPLY from a frozen tree when he is away + the panel restart (memory live-panel-restart) + the session restart —
-##     live then: dwl (no picture outlives its screen), T21's notebook with verdicts 9–10's fixes, Super+/ (T23: the
-##     program in front first, fuzzy, the fixed-size typed menus; the shell's title hook needs a new terminal), the new
-##     wallpapers (the pack fetches the toolkit's pictures: kawa-wallpaper --pack), the splash without kanji (theme.sh
-##     remakes the boot images: dracut), bug 10's held window, zathura's line, Super+V/W's preview rule, the
-##     calculator's erase, the idle timer cell. The KERNEL TRIAL (7.2.13, snapshot 381 pinned) closes at the next start:
-##     the reboot the same way (r27-49-B3).
-## (2) The suite on dab011a (started 17:38, /dev/shm/r27p/suite-dab011a.log): green → push (the later commits' own tests are
-##     in their ledger lines: e6a6913, 9cd2939, a2a6151, 3f3157c, 4eb98fc); red → fix forward first.
-## (3) T23: the master's review 1 (from 18:12) — /dev/shm/r27/master/T23/verdict.md → .claude/notes/master-T23-verdict-1.md;
-##     FAIL → fix → review 2 (archive /dev/shm/r27/master/T23 first); PASS → T23 done but for the apply.
-## (4) T46/T46b (F45 out Tue 3 Nov): vm-create f45 fresh from the released tree, vm-smoke f45, tools/vm-inject/f45-checks.sh,
-##     T46's pre-flight; the upgrade's WAIT (60 days).
-## (5) T20 from the prototype (r27-20-proto, /dev/shm/r27/t20/proto-1/): tools/build-lock.py — the dark scene (the wall,
-##     the Hannya medallion, the plate's rim), the torches' 8 frames (torch.py: the core still a little square), the light
-##     scene redone (above); the quote DECIDED 「鍵は心にあり」 (kagi wa kokoro ni ari: the key is in the heart) in Sumi UI
-##     at display size (whole pixels, no new font); lock.ui/gtklock.css put the entry on the mouth (x 959–1148, y 633–739);
-##     kawa-lockmod: torches at 8 fps, its own caret, the wrong-password path ≤ 400 ms (PAM faildelay), 5 s screens off;
-##     the greeter its twin (its kanji — weekday, verses, 眠/再/電 — go with it); gtklock's "大文字" message too.
-## (6) T19m (b) pass 1's rest: the saver's kanji DONE 18:16 (r27-19m-saver); the boot splash rendered (VM), GRUB; GTK/Qt themes, window borders and gaps; the
-##     downloads' list, kawa-file's parts (menus via the kit). Then pass 2 (side by side).
-## (7) T22: the master's T22 review — tools/master-brief.sh T22 with /dev/shm/r27/t22/b10rec/, zpad/v2-*/, p/ (r27-22-*).
-## (8) T18: the master's review of the 21 wallpapers (contact sheets /dev/shm/r27p/t18-*-2.png; in place at 1080p).
-## (9) T53's rest: the run/retry call sites, the pipefail audit, `fedokawaii selftest --sandbox`, kawa-panel's start and
-##     first draw measured, line counts.
+## >>> NEXT PASS STARTS HERE (3 Nov, written 02:30 by the 00:42 bulk pass — the lines above say what it did): the inbox first.
+## (0) PRESENCE before anything he could see or hear (memories presence-not-just-input-idle, probes-cut-off-session,
+##     never-kill-a-computed-list): every kit/headless run through tools/hl-dwl.sh or tools/kit.sh (now a PID namespace
+##     of its own); never a kill by a list. Live keys: wtype -s 1000 on every call.
+## (1) THE MASTERS, one at a time: T23 review 3 (launched 02:21: /dev/shm/r27/master/T23/verdict.md → .claude/notes/
+##     master-T23-verdict-3.md; FAIL → fix → review 4, PASS → T23 DONE); then T24 review 1 (brief READY at
+##     /dev/shm/r27/master/T24/brief.md — if /dev/shm was wiped by a reboot: tools/master-brief.sh T24 again, the evidence
+##     re-made from the ledger's r27-24*); then T22 (tools/master-brief.sh T22 with /dev/shm/r27/t22/b10rec/, zpad/v2-*/,
+##     p/) and T18 (the 21 wallpapers' contact sheets /dev/shm/r27p/t18-*-2.png).
+## (2) T20 — wire the lock: lock.ui (no date, time or keys: the entry alone, on the demon's mouth x 959–1138 y 638–737 /
+##     on the sky by Seiōbo's peach x 1080–1290 y 297–387 at 1080p), gtklock.css per mood, kawa-lock handing gtklock the
+##     scene ×N (lock-THEME.png in ~/.cache/fedokawaii per resolution; tools/build-lock.py's art/lock/out), kawa-lockmod
+##     (the flames at 8 fps over the dark scene from flame-dark.png, its own caret, wrong password ≤ 400 ms (PAM
+##     faildelay), 5 s screens off, the wake guard kept), the greeter its twin, tools/regress/lock-start.sh; grill the
+##     light scene once more (the grid away from the lanterns, the ring, the lanterns) — then the master.
+## (3) T46/T46b — Fedora 45 is released TODAY (3 Nov, ~14:00 UTC; releases/45 was 403 at 01:30): vm-create f45 fresh
+##     from the released tree, vm-smoke f45, tools/vm-inject/f45-checks.sh, T46's pre-flight; the upgrade's WAIT.
+## (4) T19m — pass 1's rest: the boot splash and GRUB (VM), the polkit password dialog (lxqt-policykit, the one Qt
+##     window: live), the torrents TUI (with T29); then pass 2 side by side (incl. Super+/'s frame height by headings,
+##     r27-23-help).
+## (5) T53's rest: run/retry failure paths, the pipefail audit, `fedokawaii selftest --sandbox`, kawa-panel's start and
+##     first draw, line counts; test_syncplay's own mpv leave coredumps (SIGABRT/SIGBUS as the harness takes their media
+##     away: end them first).
+## (6) The next login (or the kernel trial's reboot, 7.2.13) brings the two dwl fixes (r27-dwl-noxwayland, -termburst):
+##     after it, tools/regress/no-xwayland-exit.sh and term-burst.sh pass on /usr/local/bin/dwl already (checked 02:29);
+##     the new crashnote writes "TIME PID" at that login (check ~/.local/state/fedokawaii/session-start).
