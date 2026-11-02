@@ -4020,13 +4020,19 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   meter one step a notch). Kit, both moods (/dev/shm/r27/master/T23-evidence-v4: after one Down, one notch, Page Up from
   End): the last ink bands are whole 13 px text rows (805–817, 825–837), paper to the frame — the 4-row fragment at
   845–848 gone; geometry identical in light (should-fix 2 closed with these and the master's own light run). vd.txt says
-  why it is vd. Left: the live re-shot after the apply (J paged, one Down, one notch) — the next pass, he away.
+  why it is vd.
+- r27-23-live-2 (3 Nov 02:47–02:53, LIVE: apply of 9713b06, the panel restarted by its pid, the screens lit for a minute
+  and dark again; /dev/shm/r27/master/T23-evidence-v4/live/): Super+/ over nothing focused in his session — after one
+  Down, one notch (wlrctl: GDK hands it as a touchpad's smooth parts), End then Page Up, Home then Page Down ×2: in each,
+  the first visible line whole under the field and the last one whole with paper to the frame (tops.png, feet.png). The
+  old J (02:14, pre-fix) showed both cuts. A real mouse's double event is proven by test_panel, not live (no mouse of
+  ours can send it).
 ## >>> NEXT PASS STARTS HERE (3 Nov, written 02:30 by the 00:42 bulk pass — the lines above say what it did): the inbox first.
 ## (0) PRESENCE before anything he could see or hear (memories presence-not-just-input-idle, probes-cut-off-session,
 ##     never-kill-a-computed-list): every kit/headless run through tools/hl-dwl.sh or tools/kit.sh (now a PID namespace
 ##     of its own); never a kill by a list. Live keys: wtype -s 1000 on every call.
-## (1) THE MASTERS: T23 review 3 FAILED (r27-23-master-3), fixed (r27-23-fix3) → apply + the live re-shot (J paged, one
-##     Down, one mouse notch, with his real wheel if he is there? no: wtype/wlrctl only, he away) → review 4; T24 review 1
+## (1) THE MASTERS: T23 review 3 FAILED (r27-23-master-3), fixed (r27-23-fix3), live (r27-23-live-2) → review 4
+##     (tools/master-brief.sh T23 with /dev/shm/r27/master/T23-evidence-v4 and verdict-3); T24 review 1
 ##     (launched 02:40 — its verdict at /dev/shm/r27/master/T24/verdict.md → .claude/notes/master-T24-verdict-1.md); then T22 (tools/master-brief.sh T22 with /dev/shm/r27/t22/b10rec/, zpad/v2-*/,
 ##     p/) and T18 (the 21 wallpapers' contact sheets /dev/shm/r27p/t18-*-2.png).
 ## (2) T20 — wire the lock: lock.ui (no date, time or keys: the entry alone, on the demon's mouth x 959–1138 y 638–737 /
