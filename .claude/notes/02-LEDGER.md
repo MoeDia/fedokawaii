@@ -3427,6 +3427,11 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   decrypted (the first file entry; names hidden and the password wrong: no list at all → wrong; folders alone: nothing
   to open → taken). test_file 276/0. (ShellCheck's SC2329 "never invoked" list cross-checked with tools/deadcode.sh: all
   22 are called by name — password_for's checks, pdf_each's do_*, traps, setup.sh's trial wrappers.)
+- r27-53-flake-theme (2 Nov 13:25): the suite on b2f7444 failed tests/look/test_theme's "dwl told at every switch …
+  told every time" (262/1) — a fixed 0.3 s sleep before counting the dwl stand-in's three signals, while the machine was
+  loaded (my test runs and kit renders beside it); the same frozen tree alone: 263/0. The case now waits for the count
+  (3 s at most). The second flake of this kind today (r27-suite-2939cc8's test_yazi): T53 — grep the tests for fixed
+  sleeps before a count and make them waits.
 ## >>> NEXT PASS STARTS HERE (2 Nov, written 12:45 by the 11:03 bulk pass — the lines above say what it did): the inbox first.
 ## (0) PRESENCE: before anything he could see or hear (a reboot, a session restart, a bar restart, a live play, a notice):
 ##     `wpctl status`, `playerctl -a status`, one half-scale grim — not only the swayidle probe (memory

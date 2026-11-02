@@ -120,7 +120,9 @@ kawa-theme light
 eq "$(readlink "$POINTERS")" /usr/share/icons/Sumi-light
 [[ $(stat -c %i "$POINTERS") != "$ino" ]] && _ok || _no "the link was changed in place, not replaced in one step"
 eq "$(got "$dwllog" 1)" SIGUSR1 "dwl takes the theme again"
-kawa-theme light; kawa-theme apply; /bin/sleep 0.3       # (the pointers already right: the borders all the same)
+kawa-theme light; kawa-theme apply                       # (the pointers already right: the borders all the same)
+# (waited for, not a fixed sleep: a loaded machine takes the stand-in longer to log — a suite run, 2 Nov)
+for _ in $(seq 60); do (($(wc -l <"$dwllog") >= 3)) && break; /bin/sleep 0.05; done
 eq "$(wc -l <"$dwllog")" 3 "told every time"
 kawa-theme dark
 eq "$(got "$dwllog" 4 | tail -n1)" SIGUSR1 "and again for dark"
