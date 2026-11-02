@@ -3891,6 +3891,26 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   (SIGRTMIN+N to a fake waybar) — run while 20 kit bursts loaded the machine; alone it passed 638/0 twice. Its wait for
   the two signals was 1 s at most (20 × 50 ms): now 5 s (a wait that ends the moment both arrive — no cost when fast),
   the fake waybar's start likewise; 638/0.
+- r27-29s-master-1 (3 Nov 01:52–02:08, the master's review 1 of T29s): VERDICT PASS (.claude/notes/master-T29s-verdict-1.md;
+  16 ways of ending probed, a fenced kit run 8/8, the pair test 53/53 on its own copy). Should-fix: (1) os._exit skipped
+  the atexit cleanup of Syncplay's runtime folder — a syncplay-* folder left in $XDG_RUNTIME_DIR every session (his own
+  from 2 Nov 18:32 was there); a window closed (SIGHUP) killed Python outright; (2) the crash notice's once-guard was a
+  check-then-set across two threads. Nits: wait for mpv only off the reactor's thread; the Learn §16 line (book pass).
+- r27-29s-fix1 (02:08–02:14): ep_client takes the runtime folder away before os._exit; SIGHUP (the window closed) → its
+  output to /dev/null, then the reactor's stop — the same clean stop as a quit (the leave, the folder); the crash guard
+  under a lock, mpv awaited only off the reactor's thread. test_syncplay 147/0 on the patched copy (each closing case now
+  also asserts no syncplay-* folder left); kit, fenced, 3 runs × 4 ways: 12/12 both gone (Super+Q on Syncplay's window
+  0.31–0.36 s now: the clean stop instead of an instant death), the room told 12/12. His stray folder (empty) removed.
+- r27-crashnote-pid (3 Nov 02:05–02:12, FOUND live): after the session restart a critical notice said "the desktop
+  restarted — dwl crashed at 17:04, in __pthread_kill_implementation" — false: his session's dwl ran 1 Nov 09:57 → 3 Nov
+  02:04; the 17:04 coredump (2 Nov) was a headless dwl as him (`/usr/local/bin/dwl -s 'sh /tmp/hl-dwl.dyBum5/b-inside.sh'`:
+  the kit / the update's start check). Dismissed (makoctl). FIXED: kawa-crashnote DWL-PID — autostart.sh passes $PPID
+  (dwl, which runs it: checked live, 542087's parent is dwl 542057); session-start keeps "TIME PID"; the next login reports
+  only a coredump of that pid (a record without a pid: nothing said, the pid noted). test_crashnote 17/0 (his dwl's crash
+  told; another pid's, a root dwl's, none, an old record: nothing). Seen meanwhile: coredumps of the kit's dwl 2 Nov 17:05
+  (SIGABRT) and 3 Nov 00:48 (SIGSEGV: my first fence try, Xwayland unavailable → dwl crashed at its exit — a real dwl bug on
+  the no-Xwayland path, to trace); mpv SIGABRT/SIGBUS 01:59 from test_syncplay's own players (the harness takes their
+  media away while they end).
 ## >>> NEXT PASS STARTS HERE (2 Nov, written 18:12 by the 16:56 bulk pass — the lines above say what it did): the inbox first.
 ## (0) PRESENCE before anything he could see or hear (memory presence-not-just-input-idle): at 16:57 he was in a Discord
 ##     call (Brave: mic + sound). Every probe outside the harness/kit cut off from his session (probes-cut-off-session).

@@ -428,7 +428,7 @@ approach:
 - Prowlarr's warning: read it from its UI/API (`/api/v1/health`), fix the cause (e.g. an indexer failing, "update available" on a pinned image, a proxy/DNS setting) and keep the fix in the installer.
 accept: stress numbers (p95 add→peer, redraw at 500 rows < 50 ms, RSS) in the ledger; shots at 3 sizes both themes measured; a finished torrent notifies exactly once across 5 reopens (test); Prowlarr health list empty (API output quoted); tests green.
 
-### T29s — Syncplay and its mpv as one: closing either closes both, cleanly (owner inbox 2026-11-02 18:22)  [wip 3 Nov — code + kit 40/40 + test_syncplay 143/0 (ledger r27-29s); open: the apply (live), the master]
+### T29s — Syncplay and its mpv as one: closing either closes both, cleanly (owner inbox 2026-11-02 18:22)  [DONE 3 Nov 02:14 — the master's verdict 1 PASS, its should-fix done (ledger r27-29s, -master-1, -fix1); live with the next apply]
 The owner's words: "when you close the mpv window instance that is in the same workspace where syncplay is open you should close both be connected nicely".
 deps: T03  · model: main  · ledger: r27-33s
 files: bin/kawa-together (Syncplay without its window in a terminal of its own, mpv beside it), configs/home/.config/mpv/scripts/kawa-ipc.lua, script-opts/syncplayintf.conf, the vendored Syncplay (lib/upstream.sh syncplay_dir: its players/mpv.py and client.py — patched as the other upstreams if it must be), tests for kawa-together/syncplay

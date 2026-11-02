@@ -1,19 +1,23 @@
 #!/usr/bin/env bash
-# kawa-crashnote — at login (autostart.sh): when the session before this one ended because dwl
-# itself crashed, say so once, in plain words, with when and where — a crash never passes for
-# "a random restart" again (26 Oct 12:22: dwl crashed in configurex11; it looked like one).
-# Only his own dwl's crashes count (a test dwl run as root is not his session). The time of
-# each login is kept in ~/.local/state/fedokawaii/session-start; the first login only writes it.
+# kawa-crashnote DWL-PID — at login (autostart.sh, which gives dwl's pid: its own parent's): when
+# the session before this one ended because its dwl crashed, say so once, in plain words, with
+# when and where — a crash never passes for "a random restart" again (26 Oct 12:22: dwl crashed
+# in configurex11; it looked like one). Only that session's own dwl counts: each login keeps its
+# time and its dwl's pid in ~/.local/state/fedokawaii/session-start, and the next one looks for a
+# crash of that pid alone — a headless dwl run as you (the kit, the update's start check) crashes
+# under a pid of its own (3 Nov: a test dwl's abort was told as "the desktop restarted"). The
+# first login, or one whose record has no pid, only writes it.
 # Exit 0 (always: a login never waits on this).
 set -u
 state=${XDG_STATE_HOME:-$HOME/.local/state}/fedokawaii
 mkdir -p "$state" 2>/dev/null
-prev=$(cat "$state/session-start" 2>/dev/null)
-date +%s >"$state/session-start" 2>/dev/null
-[[ $prev =~ ^[0-9]+$ ]] || exit 0
-# (a line: DAY DATE TIME TZ PID UID GID SIG COREFILE EXE SIZE — the last of his own)
+prev='' prevpid=''
+read -r prev prevpid _ 2>/dev/null <"$state/session-start"
+printf '%s %s\n' "$(date +%s)" "${1:-}" >"$state/session-start" 2>/dev/null
+[[ $prev =~ ^[0-9]+$ && $prevpid =~ ^[0-9]+$ ]] || exit 0
+# (a line: DAY DATE TIME TZ PID UID GID SIG COREFILE EXE SIZE — that dwl's, his own)
 line=$(coredumpctl --no-pager --no-legend --since "@$prev" list /usr/local/bin/dwl 2>/dev/null \
-  | awk -v u="$(id -u)" '$6 == u' | tail -n 1)
+  | awk -v u="$(id -u)" -v p="$prevpid" '$5 == p && $6 == u' | tail -n 1)
 [[ -n $line ]] || exit 0
 read -r _ _ at _ pid _ <<<"$line"
 where=$(coredumpctl --no-pager info "$pid" 2>/dev/null | sed -n 's/^ *#0 *0x[0-9a-f]* \([A-Za-z_][A-Za-z0-9_]*\) .*/\1/p' | head -n 1)

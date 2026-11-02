@@ -405,6 +405,7 @@ try:
                 check(False, "dan's Syncplay never connected with its mpv: " + said()[-300:])
                 continue
             at, n0 = len(said()), len(notices())
+            run_dirs = set(glob.glob(os.environ.get("XDG_RUNTIME_DIR", "/nonexistent") + "/syncplay-*"))
             act(pid, fd, m)
             ended = gone(pid, 1)
             check(ended, "Syncplay still running 1 s after")
@@ -412,6 +413,8 @@ try:
             check(bob.said(r"dan has left", 5), bob.log()[bob.at:][-300:])
             rest = said()[at:].replace("^C", "").strip()
             check(not rest, rest[-300:])
+            left = set(glob.glob(os.environ.get("XDG_RUNTIME_DIR", "/nonexistent") + "/syncplay-*")) - run_dirs
+            check(not left, f"its runtime folder left behind: {sorted(left)}")
             if crash:
                 check(until(lambda n0=n0: len(notices()) > n0, 2)
                       and notices()[n0:] == ["-a|together|--|the film stopped|mpv crashed (killed): you left the room|"],

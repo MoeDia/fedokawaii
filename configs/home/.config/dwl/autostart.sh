@@ -110,7 +110,7 @@ systemctl --user --no-block start mako.service
 # what only you can do (a cable to plug …): kept until done, shown at every login
 kawa-foryou show 2>/dev/null
 # the session before ended because dwl crashed: said once, when and where (never "a restart")
-kawa-crashnote </dev/null >/dev/null 2>&1 &
+kawa-crashnote "$PPID" </dev/null >/dev/null 2>&1 &   # ($PPID: dwl, which runs this script)
 if grep -qw 'systemd.volatile=overlay' /proc/cmdline; then
   # (/home its own mount: a snapshot made after the disk's new layout — his files are today's)
   if mountpoint -q /home; then t="the system as it was, your files as they are — nothing done to the system is kept"
