@@ -54,4 +54,11 @@ printf 'never_called_anywhere() { :; }\n' >>"$D2/lib/common.sh"
 out=$(bash "$D2/tools/deadcode.sh" 2>&1); r=$?
 eq "$r" 1 "(a function no one calls is found)"; has "$out" "never_called_anywhere"
 rm -rf "$D2"
+case_ "tools/proc-load.py (T53, T55): the processes born under a parent, counted; a tree's wake-ups a minute; misuse exit 2"
+L=$REPO/tools/proc-load.py
+rc 2 python3 -I "$L"; rc 2 python3 -I "$L" spawns 1; rc 2 python3 -I "$L" spawns 1 1 2; rc 2 python3 -I "$L" now 1 1
+mkfifo "$TMP/go"; bash -c 'read -r _ <"$1"; for i in 1 2 3; do sleep 0.6 & done; wait' _ "$TMP/go" & p=$!
+python3 -I "$L" spawns 1.5 "$p" >"$TMP/born" & s=$!; sleep 0.3; printf 'go\n' >"$TMP/go"; wait "$s" "$p"
+eq "$(tail -n1 "$TMP/born")" "total 3 in 2 s" "three children (read and wait are bash's own)"
+eq "$(python3 -I "$L" wakeups 0.5 $$ | tail -n1 | cut -d' ' -f1)" sum "a sum line"
 done_

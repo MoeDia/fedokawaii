@@ -3531,13 +3531,13 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   make neovim's own check inside InsertLeave: said in the comment); ticks beside seen_top and dropped in on_detach,
   "one window for the session" said; VimResized records its look. Rows: the master's keys → "156:2 156=qr 153=x"
   (the six steps' tops and rows predicted before the run, matched); thirty lines of words, a wheel, Esc → "152:11";
-  both FAIL on 45d443f ("153:2 156= 153=qrx", "152:1"). test_notes 144/0. The master's re-review 7 started 14:24.
-- r27-53-timer (2 Nov 14:17–14:23, 8680687): the bar measured on the PC — no process started under waybar in 120 s;
+  both FAIL on 45d443f ("153:2 156= 153=qrx", "152:1"). test_notes 144/0. The master's re-review 7 started 14:22.
+- r27-53-timer (2 Nov 14:17–14:22, 8680687): the bar measured on the PC — no process started under waybar in 120 s;
   its tree 302 wake-ups and 70 ms CPU a minute (waybar 151, the clock 63 — it shows seconds —, kawa-mem 21, the
   timer's EMPTY cell 67: reading the state once a second with nothing to show). Every start, stopwatch and cancel
   wakes all the bars already, so the idle cell now waits on its fifo alone. Row: idle, it wakes ≤ 1 time in 2.2 s
   (the old loop: 3 — fails there); the stopwatch case that wrote the state by hand now wakes as kawa-timer does.
-  test_timer 80/0. Tools: /dev/shm/r27/t53/spawns.py and wakeups.py (kept for T55's measurements).
+  test_timer 80/0. The measuring kept: tools/proc-load.py (spawns, wake-ups) — T55 repeats it for before/after.
 ## >>> NEXT PASS STARTS HERE (2 Nov, written 13:50 by the 11:03 bulk pass — the lines above say what it did): the inbox first.
 ## (0) PRESENCE: before anything he could see or hear (a reboot, a session restart, a bar restart, a live play, a notice):
 ##     `wpctl status`, `playerctl -a status`, one half-scale grim — not only the swayidle probe (memory
