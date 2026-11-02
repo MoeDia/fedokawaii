@@ -27,7 +27,12 @@ grep -q 'snprintf(k->name, sizeof(k->name), "%s", m->wlr_output->name);' <<<"$f"
   && grep -q 'k->tagset\[0\] = m->tagset\[0\];' <<<"$f" && grep -q 'k->sellt = m->sellt;' <<<"$f" \
   && grep -q 'k->mfact = m->mfact;' <<<"$f" && grep -q 'k->refresh = m->wlr_output->current_mode->refresh;' <<<"$f" \
   && grep -q 'k->wassel = m == selmon;' <<<"$f" && grep -q 'k->off = m->asleep || !m->wlr_output->enabled;' <<<"$f" \
-  && grep -Pzq '\+	monkeep\(m\);\n\+	wl_list_for_each_safe\(g, gtmp, &ghosts, link\)' "$P" && _ok || _no "monkeep"
+  && grep -Pzq '\+	monkeep\(m\);\n\+	washend\(m\);' "$P" && _ok || _no "monkeep"
+
+case_ "its ghosts go with it, last: after its layer surfaces closed (each leaves one as it unmaps — a notice showing as the screen dropped off stayed, drawn by nothing, 2 Nov); the runtime check exists"
+grep -Pzq ' 	closemon\(m\);\n(\+	[/ ]\*[^\n]*\n){3}\+	wl_list_for_each_safe\(g, gtmp, &ghosts, link\)\n\+		if \(g->mon == m\)\n\+			ghostfree\(g\);\n 	wlr_scene_node_destroy\(&m->fullscreen_bg->node\);' "$P" \
+  && (($(grep -A1 '^+[[:space:]]*if (g->mon == m)$' "$P" | grep -c 'ghostfree(g);') == 1)) \
+  && [[ -f $REPO/tools/regress/notice-unplug.sh ]] && bash -n "$REPO/tools/regress/notice-unplug.sh" && _ok || _no "the ghosts last"
 
 case_ "back as it was (createmon): its tags and layout, the mode it had, the focus; one turned off stays off, asleep"
 grep -q '^+		if (monkept\[i\].name\[0\] && !strcmp(monkept\[i\].name, wlr_output->name))' "$P" \
