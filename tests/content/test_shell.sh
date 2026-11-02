@@ -88,9 +88,9 @@ eq "$(plain "$(nth 1)")" "$ICON_CAP_STAMP_START $ICON_TERMINAL  $ICON_CAP_STAMP 
 has "$(nth 1)" "$MARK$(C 26 27)$(B 27 30 '~')$(END 27)"
 case_ "foot: after a success the same; no ✓, no code"
 eq "$(P "$(nth 2)")" "$ICON_CAP_STAMP_START $ICON_TERMINAL  $ICON_CAP_STAMP ~ $ICON_CAP_STAMP "; lacks "$(cat "$TMP/out")" "$ICON_CHECK"
-case_ "foot: after a failure the code, a block of its own on the vermilion (16) in its words' ink (25); foot told the status (OSC 133;D)"
+case_ "foot: after a failure the code, a block of its own on the lacquer (24) in its cream (25: 7.9 : 1 and more); foot told the status (OSC 133;D)"
 eq "$(P "$(nth 3)")" "$ICON_CAP_STAMP_START $ICON_TERMINAL  $ICON_CAP_STAMP ~ $ICON_CAP_STAMP 3 $ICON_CAP_STAMP "
-has "$(nth 3)" "$(B 27 30 '~')$(C 27 16)$(B 16 25 3)$(END 16)"
+has "$(nth 3)" "$(B 27 30 '~')$(C 27 24)$(B 24 25 3)$(END 24)"
 has "$(cat "$TMP/out")" $'\e]133;D;3\e\\'
 case_ "foot: Enter on an empty line ran nothing: the result before it stands"
 eq "$(P "$(nth 4)")" "$ICON_CAP_STAMP_START $ICON_TERMINAL  $ICON_CAP_STAMP ~ $ICON_CAP_STAMP 3 $ICON_CAP_STAMP "

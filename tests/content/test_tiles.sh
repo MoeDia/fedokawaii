@@ -1,11 +1,9 @@
 #!/usr/bin/env bash
 # tests/content/test_tiles.sh — the terminal at every size dwl tiles it to on a 1920×1080
-# screen (gap 8, border 2; Sumi Term at 20 px: 10 × 24 px cells, 10 px of paper round):
-#   spiral   1900×1060 → 188×43 · 1170×1060 → 115×43 · 718×1060 → 69×43 · 718×650 → 69×26
-#            718×398 → 69×15 · 439×398 → 41×15 · 267×398 → 24×15 · 267×241 → 24×9 · 267×145 → 24×5
-#   columns  944 → 92×43 · 625 → 60×43 · 466 → 44×43
-# (the sizes below were measured at the cells' earlier 22 px height: each still a size a
-# window can have, each the layout it shows)
+# screen (gap 8, a 1 px border; Sumi Term at 16 px: 8 × 20 px cells, 8 px of paper round —
+# the widths in columns: the window's width less its border and paper, over 8):
+#   full 235 · the spiral's and the columns' 144, 116, 88, 76, 56, 53 · the narrowest 31
+# (the rows matter less here: each test sizes its own)
 # The prompt (~/.bashrc.d/fedokawaii.sh): one short line — what it gives up as the window
 # narrows (the time, the jobs, the branch, the folder above, then the folder's end), real
 # prompts in a terminal of each width, the line laid out anew when the width changes under it
@@ -18,7 +16,7 @@ BLESH_DIR=${FEDOKAWAII_BLESH:-$HOME/.local/share/blesh}
 BLESH_PIN=$(sed -n 's/^BLESH_COMMIT=//p' "$REPO/lib/upstream.sh")
 REAL_LAZYGIT=$(command -v lazygit 2>/dev/null)
 YD=$(cd "$C/../yazi" && pwd)
-WIDTHS="188 115 92 69 60 44 41 24"
+WIDTHS="235 144 116 88 76 56 53 31"
 
 home() {   # home — a fresh home with the shell's files (Fedora's ~/.bashrc reads ~/.bashrc.d)
   sandbox
@@ -75,14 +73,14 @@ lay() { fn "COLUMNS=$1; __kawa_place=fedokawaii __kawa_above=repos/ __g_branch=m
 # (the blocks: the line's edge I, the mark's block " I  ", each block's stamp edge I and its words
 # between two spaces, the end's edge I, a space, the › I and its second half, a space)
 case_ "__kawa_layout: all of it while it fits a column short of the edge; then the time goes, the jobs, the branch, the folder above, then the folder's end — never an ellipsis"
-eq "$(lay 61)" "I I  I repos/fedokawaii I I  main* I 2 I 4.2s I jobs 1 I I  " "61 columns: everything (60 wide)"
-eq "$(lay 60)" "I I  I repos/fedokawaii I I  main* I 2 I jobs 1 I I  " "the time first"
+eq "$(lay 60)" "I I  I repos/fedokawaii I I  main* I 2 I 4.2s  jobs 1 I I  " "60 columns: everything (59 wide; the time and the jobs one block)"
+eq "$(lay 59)" "I I  I repos/fedokawaii I I  main* I 2 I jobs 1 I I  " "the time first"
 eq "$(lay 54)" "I I  I repos/fedokawaii I I  main* I 2 I jobs 1 I I  "
 eq "$(lay 53)" "I I  I repos/fedokawaii I I  main* I 2 I I  " "then the jobs"
 eq "$(lay 44)" "I I  I repos/fedokawaii I 2 I I  " "then the branch"
 eq "$(lay 33)" "I I  I fedokawaii I 2 I I  " "then the folder above"
 eq "$(lay 24)" "I I  I fedoka I 2 I I  " "then the folder's end"
-for c in 80 61 60 53 44 33 24 20; do w=$(width "$(lay "$c")"); ((w <= c - 1)) && _ok || _no "$c columns: $w wide"; done
+for c in 80 60 59 53 44 33 24 20; do w=$(width "$(lay "$c")"); ((w <= c - 1)) && _ok || _no "$c columns: $w wide"; done
 lacks "$(lay 19)" "…"; [[ $(lay 19) == "I I  I "?*" I 2 I I  " ]] && _ok || _no "a letter of the folder kept at least: [$(lay 19)]"
 
 # ── real prompts at every tile's width ────────────────────────────────────────

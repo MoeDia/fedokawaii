@@ -4027,6 +4027,21 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   the first visible line whole under the field and the last one whole with paper to the frame (tops.png, feet.png). The
   old J (02:14, pre-fix) showed both cuts. A real mouse's double event is proven by test_panel, not live (no mouse of
   ours can send it).
+- r27-24-master-1 (3 Nov 02:40–02:56, the master's review 1 of T24): VERDICT FAIL (.claude/notes/master-T24-verdict-1.md;
+  its own kit renders at 24 / 44 / 64 columns, both moods). MUST-FIX: (1) the failure code's block, cream on vermilion,
+  3.05 : 1 in dark (APCA Lc −55) — under §1's floors; (2) the time and the jobs, two blocks on one paper: the stamp edge
+  between them invisible (a 24 px hole in one Calamine run). SHOULD-FIX: (3) the four papers literal in build-themes.py,
+  outside the palette's one source; (4) test_tiles still ran the old cell's widths (188 … 24). Nits: the branch given up
+  before the folder above (a stated order), the Learn book's prompt line (book pass), blesh/init.sh's stale comment, the
+  line 41 cells in a dirty repo (the plan said ≤ 40), the render's ble.sh cache line.
+- r27-24-fix1 (02:56–03:00): the code on the lacquer (24, select) in its cream (25): 7.9 : 1 dark, 8.5 : 1 light; the time
+  and the jobs one block ("4.2s  jobs 1", __kawa_sw counting it: the narrow order unchanged — the time, then the jobs);
+  the papers are tools/wada-palette.py tokens (paper_mark, _folder, _git, _time: W gained Grenadine Pink, Cream Yellow,
+  Turquoise Green, Calamine Blue) read by build-themes.py (foot.ini unchanged byte for byte); test_tiles' header and
+  WIDTHS for the 8 × 20 cell (235 144 116 88 76 56 53 31); blesh/init.sh's comment; design-system §7 says the lacquer and
+  the one block. test_shell 187/0, test_tiles 138/0, test_generated 267/0, test_contrast 18/0, test_design_doc 54/0,
+  test_syntax 785/0. Kept as decided: the narrow order (time, jobs, branch, folder above, folder's end); 41 cells in a
+  dirty repo (the plan line said ≤ 40 — amended there). Left: kit renders of the fixed states, the apply, review 2.
 ## >>> NEXT PASS STARTS HERE (3 Nov, written 02:30 by the 00:42 bulk pass — the lines above say what it did): the inbox first.
 ## (0) PRESENCE before anything he could see or hear (memories presence-not-just-input-idle, probes-cut-off-session,
 ##     never-kill-a-computed-list): every kit/headless run through tools/hl-dwl.sh or tools/kit.sh (now a PID namespace

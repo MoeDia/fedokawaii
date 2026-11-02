@@ -88,12 +88,12 @@ unset -f __kawa_glass
 #   folder   the one you are in, after the one above it (~ at home, / at the root), on Cream
 #            Yellow — the whole path is the window's title, in the bar
 #   branch   in git, on Turquoise Green: its mark, the branch, * when anything is not committed
-#   the code only when the command failed: its own block, the vermilion, cream words
+#   the code only when the command failed: its own block, the lacquer, cream words
 #   the time when it took 3 s or more, and "jobs 1" while a program waits in the background,
-#            on Calamine Blue
+#            one block on Calamine Blue
 #   ›        the desktop's pixel chevron, in the vermilion ink every list's search line has
-# The papers are Wada's combination #300 (tools/build-themes.py PROMPT: foot's colours 26–29,
-# their ink 30, both moods); a block is its words with a space either side, the stamp edge a
+# The papers are Wada's combination #300 (tools/wada-palette.py's paper_* tokens: foot's colours
+# 26–29, their ink 30, both moods); a block is its words with a space either side, the stamp edge a
 # cell of its own (art/icons.txt cap-stamp: the block before's paper over the next one's). A
 # narrow window gives up the time, then the branch, then the folder above, then the folder's
 # end. The line is the same once its command has run, so the history above reads as a column
@@ -158,12 +158,18 @@ __kawa_w() {
 
 # __kawa_blk PAPER INK TEXT — a block of the line: the stamp edge from the block before (its
 # paper over this one's; the first, the line's own edge over the ground), then TEXT between a
-# space either side on PAPER (foot's colours: 26–29 the papers, 16 the vermilion)
+# space either side on PAPER (foot's colours: 26–29 the papers, 24 the lacquer)
 __kawa_blk() {
   if [[ -z $__kawa_prev ]]; then __kawa_line+=$'\001\e[38;5;'"$1"$';49m\002'"$__i_cap0"
   else __kawa_line+=$'\001\e[38;5;'"$__kawa_prev;48;5;$1"$'m\002'"$__i_cap"; fi
   __kawa_line+=$'\001\e[38;5;'"$2;48;5;$1"$'m\002'" $3 "
   __kawa_prev=$1
+}
+
+# __kawa_sw → sw: the columns the time and the jobs take (tw, jw, gap: __kawa_layout's)
+__kawa_sw() {
+  if ((__kawa_blocks)); then sw=$(( tw || jw ? tw + jw + (tw && jw ? 2 : 0) + gap : 0 ))
+  else sw=$(( (tw ? tw + gap : 0) + (jw ? jw + gap : 0) )); fi
 }
 
 # __kawa_layout → __kawa_line, from the pieces and $COLUMNS now: what does not fit goes
@@ -184,20 +190,22 @@ __kawa_layout() {
   # space, the two spaces and the › and its space
   local fixed=$((2 * __i_w + 4)) gap=2
   ((__kawa_blocks)) && fixed=$((2 * __i_w + 9)) gap=3
-  local extra=$(( (gw ? gw + gap : 0) + (cw ? cw + gap : 0) + (tw ? tw + gap : 0) + (jw ? jw + gap : 0) ))
-  if ((fixed + aw + pw + extra > c && tw)); then extra=$((extra - tw - gap)) took=''; fi
-  if ((fixed + aw + pw + extra > c && jw)); then extra=$((extra - jw - gap)) jobs=''; fi
-  if ((fixed + aw + pw + extra > c && gw)); then extra=$((extra - gw - gap)) git=''; fi
-  ((fixed + aw + pw + extra > c)) && above='' aw=0
-  while ((fixed + pw + extra > c && ${#place} > 1)); do place=${place:0:-1}; __kawa_w "$place"; pw=$__w; done
+  # (the time and the jobs: one block on its paper in foot — two blocks on one paper would lose
+  # the edge between them —, two parts on the console)
+  local extra=$(( (gw ? gw + gap : 0) + (cw ? cw + gap : 0) )) sw
+  __kawa_sw
+  if ((fixed + aw + pw + extra + sw > c && tw)); then took='' tw=0; __kawa_sw; fi
+  if ((fixed + aw + pw + extra + sw > c && jw)); then jobs='' jw=0; __kawa_sw; fi
+  if ((fixed + aw + pw + extra + sw > c && gw)); then extra=$((extra - gw - gap)) git=''; fi
+  ((fixed + aw + pw + extra + sw > c)) && above='' aw=0
+  while ((fixed + pw + extra + sw > c && ${#place} > 1)); do place=${place:0:-1}; __kawa_w "$place"; pw=$__w; done
   if ((__kawa_blocks)); then
     __kawa_line='' __kawa_prev=''
     __kawa_blk 26 30 "$__i_torii"
     __kawa_blk 27 30 "$above$place"
     [[ -n $git ]] && __kawa_blk 28 30 "$__i_branch$git"
-    [[ -n $code ]] && __kawa_blk 16 25 "$code"
-    [[ -n $took ]] && __kawa_blk 29 30 "$took"
-    [[ -n $jobs ]] && __kawa_blk 29 30 "$jobs"
+    [[ -n $code ]] && __kawa_blk 24 25 "$code"                 # (the lacquer and its cream: 7.9 : 1 and more)
+    [[ -n $took$jobs ]] && __kawa_blk 29 30 "$took${took:+${jobs:+  }}$jobs"
     __kawa_line+=$'\001\e[38;5;'"$__kawa_prev"$';49m\002'"$__i_cap"$'\001\e[0m\002'" $__c_mark$__i_mark$__c_off "
     return 0
   fi
@@ -212,7 +220,7 @@ __kawa_layout() {
 }
 
 # the line once its command has run (ble.sh's final prompt): the same line — the history
-# above reads as a column of them, each with its torii green or vermilion
+# above reads as a column of them, each with its blocks (a failure's code among them)
 __kawa_finalize() { __kawa_final="${__kawa_gap:+$'\n'}$__kawa_line"; }
 
 __kawa_prompt() {
@@ -248,7 +256,7 @@ __kawa_prompt() {
   __kawa_in_git && __kawa_git
   t=${__kawa_j@P}; __kawa_jobs=''; ((t)) && __kawa_jobs="jobs $t"
 
-  # the result: the torii green, or vermilion and the code; the time when it was 3 s or more
+  # the result: the code when it failed; the time when it was 3 s or more
   __kawa_took=''
   if ((__kawa_t0)); then
     __kawa_ok=$((rc == 0)) __kawa_rc=$rc

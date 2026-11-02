@@ -25,6 +25,8 @@ W = {   # Wada's swatches used here: name → hex (colors.json, 2026-10-27)
     "Cossack Green": "437742", "Orange Citrine": "986f2d", "Blue": "006eb8", "Dark Soft Violet": "66629c",
     "Diamine Green": "1a7444", "Sepia": "644b1e", "Helvetia Blue": "005b8d", "Violet": "4f4086",
     "Vandar Poel's Blue": "064f6e", "Neutral Gray": "b6bfc1", "Khaki": "bc892b", "Maple": "c59f6b",
+    # the prompt's papers: combination #300 (colors.json spells the last "Calamine BLue")
+    "Grenadine Pink": "f48067", "Cream Yellow": "fdbf68", "Turquoise Green": "b5decc", "Calamine Blue": "78cdd0",
 }
 
 
@@ -241,6 +243,11 @@ def palette():
     """P (both themes' tokens), KAMI (the bar's washi ornaments), TILE (its paper), EDITOR (nvim's
     extra inks) — what tools/build-themes.py writes every colour file from."""
     P = {"dark": dark(), "light": light()}
+    # the prompt's four papers (the terminal's mark, the folder, git, the time and jobs): Wada's
+    # combination #300, the same paper in both moods — the words on them are the ink (≥ 6.8 : 1)
+    for m in P:
+        P[m].update(paper_mark=w("Grenadine Pink"), paper_folder=w("Cream Yellow"), paper_git=w("Turquoise Green"),
+                    paper_time=w("Calamine Blue"))
     def rgba(h, a):
         return tuple(int(h[i:i + 2], 16) for i in (0, 2, 4)) + (a,)
     ink, umber = W["Black"], mix("Vandyke Brown", "Black", 0.45)
