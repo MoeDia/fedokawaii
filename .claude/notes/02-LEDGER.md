@@ -3537,7 +3537,7 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   timer's EMPTY cell 67: reading the state once a second with nothing to show). Every start, stopwatch and cancel
   wakes all the bars already, so the idle cell now waits on its fifo alone. Row: idle, it wakes ≤ 1 time in 2.2 s
   (the old loop: 3 — fails there); the stopwatch case that wrote the state by hand now wakes as kawa-timer does.
-  test_timer 80/0. The measuring kept: tools/proc-load.py (spawns, wake-ups) — T55 repeats it for before/after.
+  test_timer 80/0. The measuring kept: tools/proc-load.py (spawns, wake-ups) — T60 (the performance test) repeats it for before/after.
 - r27-22-failed (2 Nov 14:24–14:33, d882338 + 0ffb958): T22's two grill notes on bug 10's window. (1) "wrong password"
   stood in the title's quiet ink (muted), as the first ask did: now §5's failed state, as §1 allows red — the cross
   in accent_text in the icon column (above the field's lock, the same column), the words in text. A menu title

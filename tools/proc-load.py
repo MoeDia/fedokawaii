@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""tools/proc-load.py — what a process tree costs while it runs, from /proc alone (T53, T55):
+"""tools/proc-load.py — what a process tree costs while it runs, from /proc alone (T53, T60):
   proc-load.py spawns SECONDS PID     every process born under PID (any depth) in the window, by argv
   proc-load.py wakeups SECONDS PID…   each process under the PIDs: context switches (≈ wake-ups) a
                                       minute and CPU ms in the window, the busiest first
